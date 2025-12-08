@@ -48,54 +48,49 @@ set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to SDCD_SPDIF
 set_instance_assignment -name WEAK_PULL_UP_RESISTOR ON -to SDCD_SPDIF
 
 #============================================================
-# SDRAM
+# NEC
 #============================================================
-set_location_assignment PIN_Y11 -to SDRAM_A[0]
-set_location_assignment PIN_AA26 -to SDRAM_A[1]
-set_location_assignment PIN_AA13 -to SDRAM_A[2]
-set_location_assignment PIN_AA11 -to SDRAM_A[3]
-set_location_assignment PIN_W11 -to SDRAM_A[4]
-set_location_assignment PIN_Y19 -to SDRAM_A[5]
-set_location_assignment PIN_AB23 -to SDRAM_A[6]
-set_location_assignment PIN_AC23 -to SDRAM_A[7]
-set_location_assignment PIN_AC22 -to SDRAM_A[8]
-set_location_assignment PIN_C12 -to SDRAM_A[9]
-set_location_assignment PIN_AB26 -to SDRAM_A[10]
-set_location_assignment PIN_AD17 -to SDRAM_A[11]
-set_location_assignment PIN_D12 -to SDRAM_A[12]
-set_location_assignment PIN_Y17 -to SDRAM_BA[0]
-set_location_assignment PIN_AB25 -to SDRAM_BA[1]
-set_location_assignment PIN_E8 -to SDRAM_DQ[0]
-set_location_assignment PIN_V12 -to SDRAM_DQ[1]
-set_location_assignment PIN_D11 -to SDRAM_DQ[2]
-set_location_assignment PIN_W12 -to SDRAM_DQ[3]
-set_location_assignment PIN_AH13 -to SDRAM_DQ[4]
-set_location_assignment PIN_D8 -to SDRAM_DQ[5]
-set_location_assignment PIN_AH14 -to SDRAM_DQ[6]
-set_location_assignment PIN_AF7 -to SDRAM_DQ[7]
-set_location_assignment PIN_AE24 -to SDRAM_DQ[8]
-set_location_assignment PIN_AD23 -to SDRAM_DQ[9]
-set_location_assignment PIN_AE6 -to SDRAM_DQ[10]
-set_location_assignment PIN_AE23 -to SDRAM_DQ[11]
-set_location_assignment PIN_AG14 -to SDRAM_DQ[12]
-set_location_assignment PIN_AD5 -to SDRAM_DQ[13]
-set_location_assignment PIN_AF4 -to SDRAM_DQ[14]
-set_location_assignment PIN_AH3 -to SDRAM_DQ[15]
-set_location_assignment PIN_AG13 -to SDRAM_DQML
-set_location_assignment PIN_AF13 -to SDRAM_DQMH
-set_location_assignment PIN_AD20 -to SDRAM_CLK
-set_location_assignment PIN_AG10 -to SDRAM_CKE
-set_location_assignment PIN_AA19 -to SDRAM_nWE
-set_location_assignment PIN_AA18 -to SDRAM_nCAS
-set_location_assignment PIN_Y18 -to SDRAM_nCS
-set_location_assignment PIN_W14 -to SDRAM_nRAS
+set_location_assignment PIN_W12  -to NEC_CLK
+set_location_assignment PIN_AF4  -to NEC_POLLn
+set_location_assignment PIN_AD5  -to NEC_READY
+set_location_assignment PIN_AE23 -to NEC_RESET
+set_location_assignment PIN_AD23 -to NEC_INT
+set_location_assignment PIN_D12  -to NEC_NMI
+set_location_assignment PIN_C12  -to NEC_LGn
+set_location_assignment PIN_AD17 -to NEC_AD_DIR
+set_location_assignment PIN_AC23 -to NEC_AD[0]
+set_location_assignment PIN_AC22 -to NEC_AD[1]
+set_location_assignment PIN_Y19  -to NEC_AD[2]
+set_location_assignment PIN_AB23 -to NEC_AD[3]
+set_location_assignment PIN_AA19 -to NEC_AD[4]
+set_location_assignment PIN_W11  -to NEC_AD[5]
+set_location_assignment PIN_AA18 -to NEC_AD[6]
+set_location_assignment PIN_W14  -to NEC_AD[7]
+set_location_assignment PIN_Y18  -to NEC_AD[8]
+set_location_assignment PIN_Y17  -to NEC_AD[9]
+set_location_assignment PIN_AB25 -to NEC_AD[10]
+set_location_assignment PIN_AB26 -to NEC_AD[11]
+set_location_assignment PIN_Y11  -to NEC_AD[12]
+set_location_assignment PIN_AA26 -to NEC_AD[13]
+set_location_assignment PIN_AA13 -to NEC_AD[14]
+set_location_assignment PIN_AA11 -to NEC_AD[15]
+set_location_assignment PIN_Y15  -to NEC_AD[16]
+set_location_assignment PIN_AA15 -to NEC_AD[17]
+set_location_assignment PIN_AG28 -to NEC_AD[18]
+set_location_assignment PIN_AE25 -to NEC_AD[19]
+set_location_assignment PIN_AG26 -to NEC_UBEn
+set_location_assignment PIN_AG25 -to NEC_RDn
+set_location_assignment PIN_AH24 -to NEC_WRn
+set_location_assignment PIN_AG23 -to NEC_IOn
+set_location_assignment PIN_AG24 -to NEC_BUFRn
+set_location_assignment PIN_AH21 -to NEC_BUFENn
+set_location_assignment PIN_AH23 -to NEC_ASTB
+set_location_assignment PIN_AF22 -to NEC_INTAKn
+set_location_assignment PIN_AF25 -to NEC_ENABLEn
 
-set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to SDRAM_*
-set_instance_assignment -name CURRENT_STRENGTH_NEW "MAXIMUM CURRENT" -to SDRAM_*
-set_instance_assignment -name FAST_OUTPUT_REGISTER ON -to SDRAM_*
-set_instance_assignment -name FAST_OUTPUT_ENABLE_REGISTER ON -to SDRAM_DQ[*]
-set_instance_assignment -name FAST_INPUT_REGISTER ON -to SDRAM_DQ[*]
-set_instance_assignment -name ALLOW_SYNCH_CTRL_USAGE OFF -to *|SDRAM_*
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to NEC_*
+set_instance_assignment -name CURRENT_STRENGTH_NEW "MAXIMUM CURRENT" -to NEC_*
+set_instance_assignment -name WEAK_PULL_UP_RESISTOR ON -to NEC_ENABLEn
 
 #============================================================
 # SPI SD

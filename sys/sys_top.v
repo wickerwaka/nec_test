@@ -43,57 +43,25 @@ module sys_top
 	
 	input         HDMI_TX_INT,
 
-	//////////// SDR ///////////
-	output [12:0] SDRAM_A,
-	inout  [15:0] SDRAM_DQ,
-	output        SDRAM_DQML,
-	output        SDRAM_DQMH,
-	output        SDRAM_nWE,
-	output        SDRAM_nCAS,
-	output        SDRAM_nRAS,
-	output        SDRAM_nCS,
-	output  [1:0] SDRAM_BA,
-	output        SDRAM_CLK,
-	output        SDRAM_CKE,
-
-`ifdef MISTER_DUAL_SDRAM
-	////////// SDR #2 //////////
-	output [12:0] SDRAM2_A,
-	inout  [15:0] SDRAM2_DQ,
-	output        SDRAM2_nWE,
-	output        SDRAM2_nCAS,
-	output        SDRAM2_nRAS,
-	output        SDRAM2_nCS,
-	output  [1:0] SDRAM2_BA,
-	output        SDRAM2_CLK,
-
-`else
-	//////////// VGA ///////////
-	output  [5:0] VGA_R,
-	output  [5:0] VGA_G,
-	output  [5:0] VGA_B,
-	inout         VGA_HS,
-	output		  VGA_VS,
-	input         VGA_EN,  // active low
-
-	/////////// AUDIO //////////
-	output		  AUDIO_L,
-	output		  AUDIO_R,
-	output		  AUDIO_SPDIF,
-
-	//////////// SDIO ///////////
-	inout   [3:0] SDIO_DAT,
-	inout         SDIO_CMD,
-	output        SDIO_CLK,
-
-	//////////// I/O ///////////
-	output        LED_USER,
-	output        LED_HDD,
-	output        LED_POWER,
-	input         BTN_USER,
-	input         BTN_OSD,
-	input         BTN_RESET,
-`endif
+	//////////// NEC ///////////
+	inout  [19:0] NEC_AD,
+	output        NEC_CLK,
+	output        NEC_POLLn,
+	output        NEC_READY,
+	output        NEC_RESET,
+	output        NEC_INT,
+	output        NEC_NMI,
+	output        NEC_LGn,
+    output        NEC_AD_DIR,
+    input         NEC_UBEn,
+    input         NEC_RDn,
+    input         NEC_WRn,
+    input         NEC_IOn,
+    input         NEC_BUFRn,
+    input         NEC_BUFENn,
+    input         NEC_ASTB,
+    input         NEC_INTAKn,
+    output        NEC_ENABLEn,
 
 	////////// I/O ALT /////////
 	output        SD_SPI_CS,
@@ -127,21 +95,11 @@ module sys_top
 //////////////////////  Secondary SD  ///////////////////////////////////
 wire SD_CS, SD_CLK, SD_MOSI, SD_MISO, SD_CD;
 
-`ifndef MISTER_DUAL_SDRAM
-	wire   sd_cd       = SDCD_SPDIF & ~SW[2]; // SW[2]=ON workaround for faulty boards without SD card detect pin.
-	assign SD_CD       = mcp_en ? mcp_sdcd : sd_cd;
-	assign SD_MISO     = SD_CD | (mcp_en ? SD_SPI_MISO : (VGA_EN | SDIO_DAT[0]));
-	assign SD_SPI_CS   = mcp_en ?  (mcp_sdcd  ? 1'bZ : SD_CS) : (sog & ~cs1 & ~VGA_EN) ? 1'b1 : 1'bZ;
-	assign SD_SPI_CLK  = (~mcp_en | mcp_sdcd) ? 1'bZ : SD_CLK;
-	assign SD_SPI_MOSI = (~mcp_en | mcp_sdcd) ? 1'bZ : SD_MOSI;
-	assign {SDIO_CLK,SDIO_CMD,SDIO_DAT} = av_dis ? 6'bZZZZZZ : (mcp_en | sd_cd) ? {vga_g,vga_r,vga_b} : {SD_CLK,SD_MOSI,SD_CS,3'bZZZ};
-`else
-	assign SD_CD       = mcp_sdcd;
-	assign SD_MISO     = mcp_sdcd | SD_SPI_MISO;
-	assign SD_SPI_CS   = mcp_sdcd ? 1'bZ : SD_CS;
-	assign SD_SPI_CLK  = mcp_sdcd ? 1'bZ : SD_CLK;
-	assign SD_SPI_MOSI = mcp_sdcd ? 1'bZ : SD_MOSI;
-`endif
+assign SD_CD       = mcp_sdcd;
+assign SD_MISO     = mcp_sdcd | SD_SPI_MISO;
+assign SD_SPI_CS   = mcp_sdcd ? 1'bZ : SD_CS;
+assign SD_SPI_CLK  = mcp_sdcd ? 1'bZ : SD_CLK;
+assign SD_SPI_MOSI = mcp_sdcd ? 1'bZ : SD_MOSI;
 
 //////////////////////  LEDs/Buttons  ///////////////////////////////////
 
@@ -176,19 +134,10 @@ mcp23009 mcp23009
 
 wire io_dig = mcp_en ? mcp_mode : SW[3];
 
-`ifndef MISTER_DUAL_SDRAM
-	wire   av_dis    = io_dig | VGA_EN;
-	assign LED_POWER = av_dis ? 1'bZ : mcp_en ? de1          : led_p ? 1'bZ : 1'b0;
-	assign LED_HDD   = av_dis ? 1'bZ : mcp_en ? (sog & ~cs1) : led_d ? 1'bZ : 1'b0;
-	//assign LED_USER  = av_dis ? 1'bZ : mcp_en ? ~vga_tx_clk  : led_u ? 1'bZ : 1'b0;
-	assign LED_USER  = VGA_TX_CLK;
-	wire   BTN_DIS   = VGA_EN;
-`else
-	wire   BTN_RESET = 1'b1;
-	wire   BTN_OSD   = 1'b1;
-	wire   BTN_USER  = 1'b1;
-	wire   BTN_DIS   = 1'b1;
-`endif
+wire   BTN_RESET = 1'b1;
+wire   BTN_OSD   = 1'b1;
+wire   BTN_USER  = 1'b1;
+wire   BTN_DIS   = 1'b1;
 
 reg BTN_EN = 0;
 reg [25:0] btn_timeout = 0;
@@ -269,11 +218,7 @@ always @(posedge clk_sys) begin
 	gp_outd <= gp_out;
 end
 
-`ifdef MISTER_DUAL_SDRAM
-	wire  [7:0] core_type  = 'hA8; // generic core, dual SDRAM.
-`else
-	wire  [7:0] core_type  = 'hA4; // generic core.
-`endif
+wire  [7:0] core_type  = 'hA8; // generic core, dual SDRAM.
 
 // HPS will not communicate to core if magic is different
 wire [31:0] core_magic = {24'h5CA623, core_type};
@@ -299,15 +244,6 @@ reg        cfg_set      = 0;
 wire       audio_96k    = cfg[6];
 wire       csync_en     = cfg[3];
 wire       io_osd_vga   = io_ss1 & ~io_ss2;
-`ifndef MISTER_DUAL_SDRAM
-	wire    ypbpr_en     = cfg[5];
-	wire    sog          = cfg[9];
-	`ifdef MISTER_DEBUG_NOHDMI
-		wire vga_scaler   = 0;
-	`else
-		wire vga_scaler   = cfg[2] | vga_force_scaler;
-	`endif
-`endif
 
 reg        cfg_custom_t = 0;
 reg  [5:0] cfg_custom_p1;
@@ -1306,46 +1242,6 @@ assign HDMI_TX_D  = hdmi_out_d;
 
 /////////////////////////  VGA output  //////////////////////////////////
 
-`ifndef MISTER_DUAL_SDRAM
-	wire vga_tx_clk;
-	`ifndef MISTER_DEBUG_NOHDMI
-		cyclonev_clkselect vga_clk_sw
-		( 
-			.clkselect({1'b1, ~vga_fb & ~vga_scaler}),
-			.inclk({clk_vid, hdmi_clk_out, 2'b00}),
-			.outclk(vga_tx_clk)
-		);
-	`else
-		assign vga_tx_clk = clk_vid;
-	`endif
-
-	wire VGA_TX_CLK;
-	altddio_out
-	#(
-		.extend_oe_disable("OFF"),
-		.intended_device_family("Cyclone V"),
-		.invert_output("OFF"),
-		.lpm_hint("UNUSED"),
-		.lpm_type("altddio_out"),
-		.oe_reg("UNREGISTERED"),
-		.power_up_high("OFF"),
-		.width(1)
-	)
-	vgaclk_ddr
-	(
-		.datain_h(1'b0),
-		.datain_l(1'b1),
-		.outclock(vga_tx_clk),
-		.dataout(VGA_TX_CLK),
-		.aclr(~mcp_en & ~av_dis),
-		.aset(1'b0),
-		.oe(~av_dis & (mcp_en | ~led_u)),
-		.outclocken(1'b1),
-		.sclr(1'b0),
-		.sset(1'b0)
-	);
-`endif
-
 wire [23:0] vga_data_sl;
 wire        vga_de_sl, vga_ce_sl, vga_vs_sl, vga_hs_sl;
 scanlines #(0) VGA_scanlines
@@ -1421,70 +1317,6 @@ csync csync_vga(clk_vid, vga_hs_osd, vga_vs_osd, vga_cs_osd);
 	);
 `endif
 
-`ifndef MISTER_DUAL_SDRAM
-	wire VGA_DISABLE;
-	wire [23:0] vgas_o;
-	wire vgas_hs, vgas_vs, vgas_cs, vgas_de;
-	`ifndef MISTER_DEBUG_NOHDMI
-		vga_out vga_scaler_out
-		(
-			.clk(clk_hdmi),
-			.ypbpr_en(ypbpr_en),
-			.hsync(hdmi_hs_osd),
-			.vsync(hdmi_vs_osd),
-			.csync(hdmi_cs_osd),
-			.de(hdmi_de_osd),
-			.dout(vgas_o),
-			.din({24{hdmi_de_osd}} & hdmi_data_osd),
-			.hsync_o(vgas_hs),
-			.vsync_o(vgas_vs),
-			.csync_o(vgas_cs),
-			.de_o(vgas_de)
-		);
-	`else
-		assign {vgas_o, vgas_hs, vgas_vs, vgas_cs, vgas_de} = 0;
-	`endif
-
-	wire [23:0] vga_o, vga_o_t;
-	wire vga_hs, vga_vs, vga_cs, vga_de, vga_hs_t, vga_vs_t, vga_cs_t, vga_de_t;
-	vga_out vga_out
-	(
-		.clk(clk_vid),
-		.ypbpr_en(ypbpr_en),
-		.hsync(vga_hs_osd),
-		.vsync(vga_vs_osd),
-		.csync(vga_cs_osd),
-		.de(vga_de_osd),
-		.dout(vga_o_t),
-		.din(vga_data_osd),
-		.hsync_o(vga_hs_t),
-		.vsync_o(vga_vs_t),
-		.csync_o(vga_cs_t),
-		.de_o(vga_de_t)
-	);
-
-	`ifndef MISTER_DISABLE_YC
-		assign {vga_o, vga_hs, vga_vs, vga_cs, vga_de } = ~yc_en ? {vga_o_t, vga_hs_t, vga_vs_t, vga_cs_t, vga_de_t } : {yc_o, yc_hs, yc_vs, yc_cs, yc_de };
-	`else
-		assign {vga_o, vga_hs, vga_vs, vga_cs, vga_de } =  {vga_o_t, vga_hs_t, vga_vs_t, vga_cs_t, vga_de_t } ;
-	`endif
-
-	wire vgas_en = vga_fb | vga_scaler;
-
-	wire cs1 = vgas_en ? vgas_cs : vga_cs;
-	wire de1 = vgas_en ? vgas_de : vga_de;
-
-	assign VGA_VS = av_dis ? 1'bZ      : ((vgas_en ? (~vgas_vs ^ VS[12])                         : VGA_DISABLE ? 1'd1 : ~vga_vs) | csync_en);
-	assign VGA_HS = av_dis ? 1'bZ      :  (vgas_en ? ((csync_en ? ~vgas_cs : ~vgas_hs) ^ HS[12]) : VGA_DISABLE ? 1'd1 : (csync_en ? ~vga_cs : ~vga_hs));
-	assign VGA_R  = av_dis ? 6'bZZZZZZ :   vgas_en ? vgas_o[23:18]                               : VGA_DISABLE ? 6'd0 : vga_o[23:18];
-	assign VGA_G  = av_dis ? 6'bZZZZZZ :   vgas_en ? vgas_o[15:10]                               : VGA_DISABLE ? 6'd0 : vga_o[15:10];
-	assign VGA_B  = av_dis ? 6'bZZZZZZ :   vgas_en ? vgas_o[7:2]                                 : VGA_DISABLE ? 6'd0 : vga_o[7:2]  ;
-
-	wire [1:0] vga_r  = vgas_en ? vgas_o[17:16] : VGA_DISABLE ? 2'd0 : vga_o[17:16];
-	wire [1:0] vga_g  = vgas_en ? vgas_o[9:8]   : VGA_DISABLE ? 2'd0 : vga_o[9:8];
-	wire [1:0] vga_b  = vgas_en ? vgas_o[1:0]   : VGA_DISABLE ? 2'd0 : vga_o[1:0];
-`endif
-
 reg video_sync = 0;
 always @(posedge clk_vid) begin
 	reg [11:0] line_cnt  = 0;
@@ -1513,14 +1345,6 @@ end
 /////////////////////////  Audio output  ////////////////////////////////
 
 assign SDCD_SPDIF = (mcp_en & ~spdif) ? 1'b0 : 1'bZ;
-
-`ifndef MISTER_DUAL_SDRAM
-	wire analog_l, analog_r;
-
-	assign AUDIO_SPDIF = av_dis ? 1'bZ : (SW[0] | mcp_en) ? HDMI_LRCLK : spdif;
-	assign AUDIO_R     = av_dis ? 1'bZ : (SW[0] | mcp_en) ? HDMI_I2S   : analog_r;
-	assign AUDIO_L     = av_dis ? 1'bZ : (SW[0] | mcp_en) ? HDMI_SCLK  : analog_l;
-`endif
 
 assign HDMI_MCLK = clk_audio;
 wire clk_audio;
@@ -1563,10 +1387,6 @@ audio_out audio_out
 	.i2s_bclk(HDMI_SCLK),
 	.i2s_lrclk(HDMI_LRCLK),
 	.i2s_data(HDMI_I2S),
-`ifndef MISTER_DUAL_SDRAM
-	.dac_l(analog_l),
-	.dac_r(analog_r),
-`endif
 	.spdif(spdif)
 );
 
@@ -1730,10 +1550,6 @@ emu emu
 	.VGA_F1(f1),
 	.VGA_SCALER(vga_force_scaler),
 
-`ifndef MISTER_DUAL_SDRAM
-	.VGA_DISABLE(VGA_DISABLE),
-`endif
-
 	.HDMI_WIDTH(direct_video ? 12'd0 : hdmi_width),
 	.HDMI_HEIGHT(direct_video ? 12'd0 : hdmi_height),
 	.HDMI_FREEZE(freeze),
@@ -1789,29 +1605,23 @@ emu emu
 	.DDRAM_BE(ram_byteenable),
 	.DDRAM_WE(ram_write),
 
-	.SDRAM_DQ(SDRAM_DQ),
-	.SDRAM_A(SDRAM_A),
-	.SDRAM_DQML(SDRAM_DQML),
-	.SDRAM_DQMH(SDRAM_DQMH),
-	.SDRAM_BA(SDRAM_BA),
-	.SDRAM_nCS(SDRAM_nCS),
-	.SDRAM_nWE(SDRAM_nWE),
-	.SDRAM_nRAS(SDRAM_nRAS),
-	.SDRAM_nCAS(SDRAM_nCAS),
-	.SDRAM_CLK(SDRAM_CLK),
-	.SDRAM_CKE(SDRAM_CKE),
-
-`ifdef MISTER_DUAL_SDRAM
-	.SDRAM2_DQ(SDRAM2_DQ),
-	.SDRAM2_A(SDRAM2_A),
-	.SDRAM2_BA(SDRAM2_BA),
-	.SDRAM2_nCS(SDRAM2_nCS),
-	.SDRAM2_nWE(SDRAM2_nWE),
-	.SDRAM2_nRAS(SDRAM2_nRAS),
-	.SDRAM2_nCAS(SDRAM2_nCAS),
-	.SDRAM2_CLK(SDRAM2_CLK),
-	.SDRAM2_EN(io_dig),
-`endif
+	.NEC_AD(NEC_AD),
+	.NEC_CLK(NEC_CLK),
+	.NEC_POLLn(NEC_POLLn),
+	.NEC_READY(NEC_READY),
+	.NEC_RESET(NEC_RESET),
+	.NEC_INT(NEC_INT),
+	.NEC_NMI(NEC_NMI),
+	.NEC_LGn(NEC_LGn),
+    .NEC_AD_DIR(NEC_AD_DIR),
+    .NEC_UBEn(NEC_UBEn),
+    .NEC_RDn(NEC_RDn),
+    .NEC_WRn(NEC_WRn),
+    .NEC_IOn(NEC_IOn),
+    .NEC_BUFRn(NEC_BUFRn),
+    .NEC_BUFENn(NEC_BUFENn),
+    .NEC_ASTB(NEC_ASTB),
+    .NEC_INTAKn(NEC_INTAKn),
 
 	.BUTTONS(btn),
 	.OSD_STATUS(osd_status),

@@ -127,32 +127,25 @@ module emu
 	output  [7:0] DDRAM_BE,
 	output        DDRAM_WE,
 
-	//SDRAM interface with lower latency
-	output        SDRAM_CLK,
-	output        SDRAM_CKE,
-	output [12:0] SDRAM_A,
-	output  [1:0] SDRAM_BA,
-	inout  [15:0] SDRAM_DQ,
-	output        SDRAM_DQML,
-	output        SDRAM_DQMH,
-	output        SDRAM_nCS,
-	output        SDRAM_nCAS,
-	output        SDRAM_nRAS,
-	output        SDRAM_nWE,
+	inout  [19:0] NEC_AD,
+	output        NEC_CLK,
+	output        NEC_POLLn,
+	output        NEC_READY,
+	output        NEC_RESET,
+	output        NEC_INT,
+	output        NEC_NMI,
+	output        NEC_LGn,
+    output        NEC_AD_DIR,
+    input         NEC_UBEn,
+    input         NEC_RDn,
+    input         NEC_WRn,
+    input         NEC_IOn,
+    input         NEC_BUFRn,
+    input         NEC_BUFENn,
+    input         NEC_ASTB,
+    input         NEC_INTAKn,
 
-`ifdef MISTER_DUAL_SDRAM
-	//Secondary SDRAM
-	//Set all output SDRAM_* signals to Z ASAP if SDRAM2_EN is 0
-	input         SDRAM2_EN,
-	output        SDRAM2_CLK,
-	output [12:0] SDRAM2_A,
-	output  [1:0] SDRAM2_BA,
-	inout  [15:0] SDRAM2_DQ,
-	output        SDRAM2_nCS,
-	output        SDRAM2_nCAS,
-	output        SDRAM2_nRAS,
-	output        SDRAM2_nWE,
-`endif
+    output        NEC_ENABLEn,
 
 	input         UART_CTS,
 	output        UART_RTS,
@@ -178,7 +171,6 @@ assign ADC_BUS  = 'Z;
 assign USER_OUT = '1;
 assign {UART_RTS, UART_TXD, UART_DTR} = 0;
 assign {SD_SCK, SD_MOSI, SD_CS} = 'Z;
-assign {SDRAM_DQ, SDRAM_A, SDRAM_BA, SDRAM_CLK, SDRAM_CKE, SDRAM_DQML, SDRAM_DQMH, SDRAM_nWE, SDRAM_nCAS, SDRAM_nRAS, SDRAM_nCS} = 'Z;
 assign {DDRAM_CLK, DDRAM_BURSTCNT, DDRAM_ADDR, DDRAM_DIN, DDRAM_BE, DDRAM_RD, DDRAM_WE} = '0;  
 
 assign VGA_SL = 0;
@@ -196,6 +188,16 @@ assign AUDIO_MIX = 0;
 assign LED_DISK = 0;
 assign LED_POWER = 0;
 assign BUTTONS = 0;
+
+assign NEC_POLLn = 0;
+assign NEC_READY = 1;
+assign NEC_INT = 0;
+assign NEC_NMI = 0;
+assign NEC_LGn = 1;
+assign NEC_AD_DIR = 0;
+assign NEC_RESET = reset;
+assign NEC_ENABLEn = 0;
+
 
 //////////////////////////////////////////////////////////////////
 
@@ -309,5 +311,12 @@ assign VGA_B  = (!col || col == 3) ? video : 8'd0;
 reg  [26:0] act_cnt;
 always @(posedge clk_sys) act_cnt <= act_cnt + 1'd1; 
 assign LED_USER    = act_cnt[26]  ? act_cnt[25:18]  > act_cnt[7:0]  : act_cnt[25:18]  <= act_cnt[7:0];
+
+reg [1:0] clk_div4;
+always_ff @(posedge clk_sys) begin
+    clk_div4 <= clk_div4 + 2'd1;
+end
+
+assign NEC_CLK = clk_div4[1];
 
 endmodule

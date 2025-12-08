@@ -1,19 +1,4 @@
 #============================================================
-# SDIO
-#============================================================
-set_location_assignment PIN_AF25 -to SDIO_DAT[0]
-set_location_assignment PIN_AF23 -to SDIO_DAT[1]
-set_location_assignment PIN_AD26 -to SDIO_DAT[2]
-set_location_assignment PIN_AF28 -to SDIO_DAT[3]
-set_location_assignment PIN_AF27 -to SDIO_CMD
-set_location_assignment PIN_AH26 -to SDIO_CLK
-set_instance_assignment -name CURRENT_STRENGTH_NEW "MAXIMUM CURRENT" -to SDIO_*
-
-set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to SDIO_*
-set_instance_assignment -name WEAK_PULL_UP_RESISTOR ON -to SDIO_DAT[*]
-set_instance_assignment -name WEAK_PULL_UP_RESISTOR ON -to SDIO_CMD
-
-#============================================================
 # VGA
 #============================================================
 set_location_assignment PIN_AE17 -to VGA_R[0]
