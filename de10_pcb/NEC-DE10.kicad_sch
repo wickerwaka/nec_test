@@ -1,0 +1,89 @@
+(kicad_sch
+	(version 20231120)
+	(generator "eeschema")
+	(generator_version "8.0")
+	(uuid "ddde7423-f6ec-43a3-9d7f-3b7e70f4bb41")
+	(paper "A3")
+	(lib_symbols)
+	(sheet
+		(at 31.75 35.56)
+		(size 153.67 125.73)
+		(fields_autoplaced yes)
+		(stroke
+			(width 0.1524)
+			(type solid)
+		)
+		(fill
+			(color 0 0 0 0.0000)
+		)
+		(uuid "3b286c9a-9872-4946-88af-68c784bc6794")
+		(property "Sheetname" "V30"
+			(at 31.75 34.8484 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left bottom)
+			)
+		)
+		(property "Sheetfile" "v30.kicad_sch"
+			(at 31.75 161.8746 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left top)
+			)
+		)
+		(instances
+			(project "NEC-DE10"
+				(path "/ddde7423-f6ec-43a3-9d7f-3b7e70f4bb41"
+					(page "2")
+				)
+			)
+		)
+	)
+	(sheet
+		(at 207.01 36.83)
+		(size 151.13 124.46)
+		(fields_autoplaced yes)
+		(stroke
+			(width 0.1524)
+			(type solid)
+		)
+		(fill
+			(color 0 0 0 0.0000)
+		)
+		(uuid "ccac01a1-2c43-4218-b3e2-3fa27929b8d3")
+		(property "Sheetname" "V35"
+			(at 207.01 36.1184 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left bottom)
+			)
+		)
+		(property "Sheetfile" "v35.kicad_sch"
+			(at 207.01 161.8746 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left top)
+			)
+		)
+		(instances
+			(project "NEC-DE10"
+				(path "/ddde7423-f6ec-43a3-9d7f-3b7e70f4bb41"
+					(page "3")
+				)
+			)
+		)
+	)
+	(sheet_instances
+		(path "/"
+			(page "1")
+		)
+	)
+)

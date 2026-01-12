@@ -1,0 +1,4 @@
+(sym_lib_table
+  (version 7)
+  (lib (name "NEC-DE10")(type "KiCad")(uri "${KIPRJMOD}/NEC-DE10.kicad_sym")(options "")(descr ""))
+)
