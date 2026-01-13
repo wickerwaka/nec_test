@@ -1,0 +1,5 @@
+-no-tabs
+-module-filename
+-no-trailing-spaces
+-explicit-parameter-storage-type
++line-length=length:140
