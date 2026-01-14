@@ -280,11 +280,11 @@ wire VSync;
 wire ce_pix;
 wire [7:0] video;
 
-mycore mycore
+video_gen video_gen
 (
 	.clk(clk_sys),
 	.reset(reset),
-	
+
 	.pal(status[2]),
 	.scandouble(forced_scandoubler),
 
