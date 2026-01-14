@@ -1,3 +1,4 @@
 set_global_assignment -name VERILOG_FILE rtl/video_gen.v
+set_global_assignment -name SYSTEMVERILOG_FILE rtl/cpu_control.sv
 set_global_assignment -name SDC_FILE nec_test.sdc
 set_global_assignment -name SYSTEMVERILOG_FILE nec_test.sv

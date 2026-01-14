@@ -171,7 +171,6 @@ assign ADC_BUS  = 'Z;
 assign USER_OUT = '1;
 assign {UART_RTS, UART_TXD, UART_DTR} = 0;
 assign {SD_SCK, SD_MOSI, SD_CS} = 'Z;
-assign {DDRAM_CLK, DDRAM_BURSTCNT, DDRAM_ADDR, DDRAM_DIN, DDRAM_BE, DDRAM_RD, DDRAM_WE} = '0;  
 
 assign VGA_SL = 0;
 assign VGA_F1 = 0;
@@ -189,14 +188,6 @@ assign LED_DISK = 0;
 assign LED_POWER = 0;
 assign BUTTONS = 0;
 
-assign NEC_POLLn = 0;
-assign NEC_READY = 1;
-assign NEC_INT = 0;
-assign NEC_NMI = 0;
-assign NEC_LGn = 1;
-assign NEC_AD_DIR = 0;
-assign NEC_RESET = reset;
-assign NEC_ENABLEn = 0;
 
 
 //////////////////////////////////////////////////////////////////
@@ -312,11 +303,40 @@ reg  [26:0] act_cnt;
 always @(posedge clk_sys) act_cnt <= act_cnt + 1'd1; 
 assign LED_USER    = act_cnt[26]  ? act_cnt[25:18]  > act_cnt[7:0]  : act_cnt[25:18]  <= act_cnt[7:0];
 
-reg [1:0] clk_div4;
-always_ff @(posedge clk_sys) begin
-    clk_div4 <= clk_div4 + 2'd1;
-end
+cpu_control cpu_control
+(
+    .clk(clk_sys),
+    .reset(reset),
 
-assign NEC_CLK = clk_div4[1];
+    .DDRAM_CLK(DDRAM_CLK),
+    .DDRAM_BUSY(DDRAM_BUSY),
+    .DDRAM_BURSTCNT(DDRAM_BURSTCNT),
+    .DDRAM_ADDR(DDRAM_ADDR),
+    .DDRAM_DOUT(DDRAM_DOUT),
+    .DDRAM_DOUT_READY(DDRAM_DOUT_READY),
+    .DDRAM_RD(DDRAM_RD),
+    .DDRAM_DIN(DDRAM_DIN),
+    .DDRAM_BE(DDRAM_BE),
+    .DDRAM_WE(DDRAM_WE),
+
+    .NEC_AD(NEC_AD),
+    .NEC_CLK(NEC_CLK),
+    .NEC_POLLn(NEC_POLLn),
+    .NEC_READY(NEC_READY),
+    .NEC_RESET(NEC_RESET),
+    .NEC_INT(NEC_INT),
+    .NEC_NMI(NEC_NMI),
+    .NEC_LGn(NEC_LGn),
+    .NEC_AD_DIR(NEC_AD_DIR),
+    .NEC_UBEn(NEC_UBEn),
+    .NEC_RDn(NEC_RDn),
+    .NEC_WRn(NEC_WRn),
+    .NEC_IOn(NEC_IOn),
+    .NEC_BUFRn(NEC_BUFRn),
+    .NEC_BUFENn(NEC_BUFENn),
+    .NEC_ASTB(NEC_ASTB),
+    .NEC_INTAKn(NEC_INTAKn),
+    .NEC_ENABLEn(NEC_ENABLEn)
+);
 
 endmodule
