@@ -303,7 +303,7 @@ reg  [26:0] act_cnt;
 always @(posedge clk_sys) act_cnt <= act_cnt + 1'd1; 
 assign LED_USER    = act_cnt[26]  ? act_cnt[25:18]  > act_cnt[7:0]  : act_cnt[25:18]  <= act_cnt[7:0];
 
-cpu_control cpu_control
+system_large system_large
 (
     .clk(clk_sys),
     .reset(reset),

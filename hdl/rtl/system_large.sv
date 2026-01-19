@@ -1,10 +1,10 @@
 //============================================================================
 //
-//  CPU Control Module - NEC V30/V35 Interface and DDRAM Control
+//  System Large Module - NEC V30/V35 Interface and DDRAM Control
 //
 //============================================================================
 
-module cpu_control
+module system_large
 (
     input         clk,
     input         reset,
