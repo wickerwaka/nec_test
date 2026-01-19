@@ -51,12 +51,12 @@ set_instance_assignment -name WEAK_PULL_UP_RESISTOR ON -to SDCD_SPDIF
 # NEC
 #============================================================
 set_location_assignment PIN_W12  -to NEC_CLK
-set_location_assignment PIN_AF4  -to NEC_POLLn
+set_location_assignment PIN_AF4  -to NEC_POLL_N
 set_location_assignment PIN_AD5  -to NEC_READY
 set_location_assignment PIN_AE23 -to NEC_RESET
 set_location_assignment PIN_AD23 -to NEC_INT
 set_location_assignment PIN_D12  -to NEC_NMI
-set_location_assignment PIN_C12  -to NEC_LGn
+set_location_assignment PIN_C12  -to NEC_LG_N
 set_location_assignment PIN_AD17 -to NEC_AD_DIR
 set_location_assignment PIN_AC23 -to NEC_AD[0]
 set_location_assignment PIN_AC22 -to NEC_AD[1]
@@ -78,19 +78,19 @@ set_location_assignment PIN_Y15  -to NEC_AD[16]
 set_location_assignment PIN_AA15 -to NEC_AD[17]
 set_location_assignment PIN_AG28 -to NEC_AD[18]
 set_location_assignment PIN_AE25 -to NEC_AD[19]
-set_location_assignment PIN_AG26 -to NEC_UBEn
-set_location_assignment PIN_AG25 -to NEC_RDn
-set_location_assignment PIN_AH24 -to NEC_WRn
-set_location_assignment PIN_AG23 -to NEC_IOn
-set_location_assignment PIN_AG24 -to NEC_BUFRn
-set_location_assignment PIN_AH21 -to NEC_BUFENn
+set_location_assignment PIN_AG26 -to NEC_UBE_N
+set_location_assignment PIN_AG25 -to NEC_RD_N
+set_location_assignment PIN_AH24 -to NEC_WR_N
+set_location_assignment PIN_AG23 -to NEC_IO_N
+set_location_assignment PIN_AG24 -to NEC_BUFR_N
+set_location_assignment PIN_AH21 -to NEC_BUFEN_N
 set_location_assignment PIN_AH23 -to NEC_ASTB
-set_location_assignment PIN_AF22 -to NEC_INTAKn
-set_location_assignment PIN_AF25 -to NEC_ENABLEn
+set_location_assignment PIN_AF22 -to NEC_INTAK_N
+set_location_assignment PIN_AF25 -to NEC_ENABLE_N
 
 set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to NEC_*
 set_instance_assignment -name CURRENT_STRENGTH_NEW "MAXIMUM CURRENT" -to NEC_*
-set_instance_assignment -name WEAK_PULL_UP_RESISTOR ON -to NEC_ENABLEn
+set_instance_assignment -name WEAK_PULL_UP_RESISTOR ON -to NEC_ENABLE_N
 
 #============================================================
 # SPI SD

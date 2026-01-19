@@ -1,6 +1,6 @@
 //============================================================================
 //
-//  System Large Module - NEC V30/V35 Interface and DDRAM Control
+//  System Large Module - NEC V30 Interface and DDRAM Control
 //
 //============================================================================
 
@@ -22,38 +22,33 @@ module system_large
     output        DDRAM_WE,
 
     // NEC processor interface
-    inout  [19:0] NEC_AD,
-    output        NEC_CLK,
-    output        NEC_POLLn,
-    output        NEC_READY,
-    output        NEC_RESET,
-    output        NEC_INT,
-    output        NEC_NMI,
-    output        NEC_LGn,
-    output        NEC_AD_DIR,
-    input         NEC_UBEn,
-    input         NEC_RDn,
-    input         NEC_WRn,
-    input         NEC_IOn,
-    input         NEC_BUFRn,
-    input         NEC_BUFENn,
-    input         NEC_ASTB,
-    input         NEC_INTAKn,
-    output        NEC_ENABLEn
+    inout  [19:0] NEC_AD,       // 20-bit multiplex address and data bus
+    output        NEC_AD_DIR,   // 0 - input, 1 - output
+    output        NEC_CLK,      // CPU Clock
+    output        NEC_POLL_N,    // CPU Poll input (active low)
+    output        NEC_READY,    // Tell the CPU the data on the bus is valid
+    output        NEC_RESET,    // CPU Reset
+    output        NEC_INT,      // CPU interupt request
+    output        NEC_NMI,      // CPU Non-maskable interupt request
+    input   [1:0] NEC_QS,       // CPU Queue state
+    input   [2:0] NEC_BS,       // CPU Bus state
+    input         NEC_BUSLOCK_N, // CPU asserts the bus (active low)
+    input         NEC_UBE_N,     // Upper byte is valid in the databus (active low)
+    input         NEC_RD_N,      // Current cycle is a read cycle (active_low)
+    output        NEC_ENABLE_N   // Power on the CPU (active low)
 );
 
 // DDRAM - unused, directly assign to 0
 assign {DDRAM_CLK, DDRAM_BURSTCNT, DDRAM_ADDR, DDRAM_DIN, DDRAM_BE, DDRAM_RD, DDRAM_WE} = '0;
 
 // NEC control signals
-assign NEC_POLLn = 0;
+assign NEC_POLL_N = 0;
 assign NEC_READY = 1;
 assign NEC_INT = 0;
 assign NEC_NMI = 0;
-assign NEC_LGn = 1;
 assign NEC_AD_DIR = 0;
 assign NEC_RESET = reset;
-assign NEC_ENABLEn = 0;
+assign NEC_ENABLE_N = 0;
 
 // NEC clock generation - divide system clock by 4
 reg [1:0] clk_div4;

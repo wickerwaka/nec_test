@@ -129,23 +129,23 @@ module emu
 
 	inout  [19:0] NEC_AD,
 	output        NEC_CLK,
-	output        NEC_POLLn,
+	output        NEC_POLL_N,
 	output        NEC_READY,
 	output        NEC_RESET,
 	output        NEC_INT,
 	output        NEC_NMI,
-	output        NEC_LGn,
+	output        NEC_LG_N,
     output        NEC_AD_DIR,
-    input         NEC_UBEn,
-    input         NEC_RDn,
-    input         NEC_WRn,
-    input         NEC_IOn,
-    input         NEC_BUFRn,
-    input         NEC_BUFENn,
+    input         NEC_UBE_N,
+    input         NEC_RD_N,
+    input         NEC_WR_N,
+    input         NEC_IO_N,
+    input         NEC_BUFR_N,
+    input         NEC_BUFEN_N,
     input         NEC_ASTB,
-    input         NEC_INTAKn,
+    input         NEC_INTAK_N,
 
-    output        NEC_ENABLEn,
+    output        NEC_ENABLE_N,
 
 	input         UART_CTS,
 	output        UART_RTS,
@@ -303,6 +303,8 @@ reg  [26:0] act_cnt;
 always @(posedge clk_sys) act_cnt <= act_cnt + 1'd1; 
 assign LED_USER    = act_cnt[26]  ? act_cnt[25:18]  > act_cnt[7:0]  : act_cnt[25:18]  <= act_cnt[7:0];
 
+assign NEC_LG_N = 0;
+
 system_large system_large
 (
     .clk(clk_sys),
@@ -321,22 +323,18 @@ system_large system_large
 
     .NEC_AD(NEC_AD),
     .NEC_CLK(NEC_CLK),
-    .NEC_POLLn(NEC_POLLn),
+    .NEC_BS({NEC_IO_N, NEC_BUFR_N, NEC_BUFEN_N}),
+    .NEC_QS({NEC_INTAK_N, NEC_ASTB}),
+    .NEC_BUSLOCK_N(NEC_WR_N),
+    .NEC_POLL_N(NEC_POLL_N),
     .NEC_READY(NEC_READY),
     .NEC_RESET(NEC_RESET),
     .NEC_INT(NEC_INT),
     .NEC_NMI(NEC_NMI),
-    .NEC_LGn(NEC_LGn),
     .NEC_AD_DIR(NEC_AD_DIR),
-    .NEC_UBEn(NEC_UBEn),
-    .NEC_RDn(NEC_RDn),
-    .NEC_WRn(NEC_WRn),
-    .NEC_IOn(NEC_IOn),
-    .NEC_BUFRn(NEC_BUFRn),
-    .NEC_BUFENn(NEC_BUFENn),
-    .NEC_ASTB(NEC_ASTB),
-    .NEC_INTAKn(NEC_INTAKn),
-    .NEC_ENABLEn(NEC_ENABLEn)
+    .NEC_UBE_N(NEC_UBE_N),
+    .NEC_RD_N(NEC_RD_N),
+    .NEC_ENABLE_N(NEC_ENABLE_N)
 );
 
 endmodule
