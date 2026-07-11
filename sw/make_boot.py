@@ -56,4 +56,7 @@ odd = mem[1::2]
 # .mif images for the altsyncram init_file (synthesis)
 write_mif(out / "boot_even.mif", even)
 write_mif(out / "boot_odd.mif", odd)
-print(f"wrote boot_even/odd .hex and .mif to {out} ({SIZE} bytes total)")
+# flat binary for loading over the HPS bridge (v30ctl.py load/run)
+sw = Path(__file__).resolve().parent
+(sw / "boot.bin").write_bytes(bytes(mem))
+print(f"wrote boot_even/odd .hex/.mif to {out} and boot.bin to {sw} ({SIZE} bytes)")

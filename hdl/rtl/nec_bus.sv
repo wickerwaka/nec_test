@@ -28,6 +28,9 @@ module nec_bus
 
     // Configuration (quasi-static; change only while CPU is held in reset)
     input             cfg_small_mode,  // 1: CPU strapped small-scale (S/LG high)
+    input             cfg_cpu_off,     // 1: cut the CPU's 5V (ENABLE_N high)
+    input             cfg_short_pwrup, // 1: short rail-settle wait (power
+                                       //    already stable across a re-run)
     input       [5:0] cfg_clk_div,     // sys clocks per CPU clock, even, >= 4
     input       [3:0] cfg_wait_states, // wait states inserted in every bus cycle
     input       [7:0] cfg_int_vector,  // vector byte returned in INTA cycles
@@ -182,14 +185,18 @@ wire wr_low_cyc    = wr_low_seen    | ~buslock_n_q;
 //----------------------------------------------------------------------------
 `ifdef VERILATOR
 localparam int PWRUP_CLKS = 64;          // keep simulation fast
+localparam int PWRUP_CLKS_SHORT = 16;
 `else
 localparam int PWRUP_CLKS = 1 << 22;     // ~131 ms at 32 MHz
+localparam int PWRUP_CLKS_SHORT = 1 << 10;  // ~32 us: rail already stable
 `endif
 
 reg [22:0] pwrup_cnt;
 reg        pwr_good;
 reg  [5:0] reset_cnt;
 reg        nec_reset_q;
+
+wire [22:0] pwrup_target = cfg_short_pwrup ? 23'(PWRUP_CLKS_SHORT) : 23'(PWRUP_CLKS);
 
 always_ff @(posedge clk) begin
     if (reset) begin
@@ -199,7 +206,7 @@ always_ff @(posedge clk) begin
         nec_reset_q <= 1'b1;
     end else if (!pwr_good) begin
         pwrup_cnt <= pwrup_cnt + 23'd1;
-        if (pwrup_cnt == PWRUP_CLKS - 1) pwr_good <= 1'b1;
+        if (pwrup_cnt >= pwrup_target - 23'd1) pwr_good <= 1'b1;
     end else if (tick_rise) begin
         if (reset_cnt != 0) reset_cnt <= reset_cnt - 6'd1;
         else nec_reset_q <= 1'b0;
@@ -207,7 +214,7 @@ always_ff @(posedge clk) begin
 end
 
 assign NEC_RESET    = nec_reset_q;
-assign NEC_ENABLE_N = 1'b0;
+assign NEC_ENABLE_N = cfg_cpu_off;
 assign cpu_running  = ~nec_reset_q;
 assign pwr_good_o   = pwr_good;
 

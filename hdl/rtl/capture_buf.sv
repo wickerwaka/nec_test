@@ -53,6 +53,11 @@ always_ff @(posedge clk) begin
             armed <= 1'b1;
             full  <= 1'b0;
             count <= '0;
+        end else if (!arm) begin
+            // run ended (harness back in reset): disarm but PRESERVE the
+            // trace and count so the host can read them; the single-port
+            // RAM only serves rd_addr while disarmed
+            armed <= 1'b0;
         end else if (ram_we) begin
             count <= count + 1'd1;
             if (count == (LOG2_DEPTH+1)'(DEPTH - 1)) begin

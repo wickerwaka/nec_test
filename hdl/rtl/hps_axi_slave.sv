@@ -1,0 +1,315 @@
+//============================================================================
+//
+//  hps_axi_slave - harness control over the lightweight HPS-to-FPGA bridge
+//
+//  AXI3 slave (single outstanding transaction, INCR bursts) behind the
+//  cyclonev_hps_interface_hps2fpga_light_weight primitive. From the ARM the
+//  2 MB window appears at physical 0xFF200000:
+//
+//    +0x000000  64 KB   test memory, byte-packed (host access only while
+//                       CTRL.host_reset holds the harness in reset)
+//    +0x100000  32 KB   capture buffer, 4096 x 64-bit records as pairs of
+//                       32-bit words (little end first), read-only
+//    +0x180000          registers:
+//        0x00  MAGIC     RO  0x56333031 "V301"
+//        0x04  CTRL      RW  [0] host_reset  [1] cpu_power_off
+//                            [2] skip_pwrup (short rail-settle wait)
+//        0x08  CFG       RW  [5:0] clk_div  [11:8] wait_states
+//                            [23:16] int_vector  [24] small_mode
+//                            (change only while host_reset is set)
+//        0x0C  PINS      RW  [0] int_req  [1] nmi_req  [2] poll_n
+//        0x10  STATUS    RO  [0] pwr_good  [1] cpu_running  [2] cap_full
+//        0x14  CAPCOUNT  RO  records captured
+//
+//============================================================================
+
+module hps_axi_slave
+(
+    input             clk,
+    input             reset,           // sys reset only (not host_reset)
+
+    // AXI3 slave (signals named from the master's perspective)
+    input      [11:0] awid,
+    input      [20:0] awaddr,
+    input       [3:0] awlen,
+    input             awvalid,
+    output reg        awready,
+    input      [31:0] wdata,
+    input       [3:0] wstrb,
+    input             wvalid,
+    input             wlast,
+    output reg        wready,
+    output reg [11:0] bid,
+    output      [1:0] bresp,
+    output reg        bvalid,
+    input             bready,
+    input      [11:0] arid,
+    input      [20:0] araddr,
+    input       [3:0] arlen,
+    input             arvalid,
+    output reg        arready,
+    output reg [11:0] rid,
+    output reg [31:0] rdata,
+    output      [1:0] rresp,
+    output reg        rlast,
+    output reg        rvalid,
+    input             rready,
+
+    // harness control outputs
+    output reg        host_attached,   // set on first CTRL write: host owns
+                                       // the harness lifecycle from then on
+    output reg        host_reset,
+    output reg        cpu_power_off,
+    output reg        skip_pwrup,
+    output reg  [5:0] cfg_clk_div,
+    output reg  [3:0] cfg_wait_states,
+    output reg  [7:0] cfg_int_vector,
+    output reg        cfg_small_mode,
+    output reg        int_req,
+    output reg        nmi_req,
+    output reg        poll_n_out,
+
+    // harness status inputs
+    input             pwr_good,
+    input             cpu_running,
+    input             cap_full,
+    input      [12:0] cap_count,
+
+    // test memory port (valid while host_reset)
+    output reg [19:0] h_mem_addr,
+    output reg        h_mem_wr_req,
+    output reg [15:0] h_mem_wdata,
+    output reg  [1:0] h_mem_be,
+    input      [15:0] h_mem_rdata,
+
+    // capture buffer read port
+    output reg [11:0] h_cap_addr,
+    input      [63:0] h_cap_rdata
+);
+
+localparam bit [31:0] MAGIC = 32'h56333031;
+
+assign bresp = 2'b00;
+assign rresp = 2'b00;
+
+// region select from a latched address
+function automatic bit sel_mem(input [20:0] a); return ~a[20]; endfunction
+function automatic bit sel_cap(input [20:0] a); return a[20] & ~a[19]; endfunction
+function automatic bit sel_reg(input [20:0] a); return a[20] & a[19]; endfunction
+
+typedef enum logic [3:0] {
+    IDLE,
+    W_DATA,     // wait for a W beat
+    W_MEM0,     // low-half memory sub-write
+    W_MEM1,     // high-half memory sub-write
+    W_NEXT,     // advance to next W beat or respond
+    B_RESP,
+    R_SETUP,    // present address to mem/capture, start latency counter
+    R_WAIT,
+    R_DATA,     // rvalid asserted, wait for rready
+    R_NEXT
+} state_t;
+
+state_t st;
+
+reg [11:0] axid;
+reg [20:0] addr;
+reg  [3:0] beats_left;
+reg [31:0] wdata_q;
+reg  [3:0] wstrb_q;
+reg        wlast_q;
+reg  [1:0] lat;
+reg [15:0] rd_lo;
+
+always_ff @(posedge clk) begin
+    if (reset) begin
+        st        <= IDLE;
+        awready   <= 1'b0;
+        wready    <= 1'b0;
+        bvalid    <= 1'b0;
+        arready   <= 1'b0;
+        rvalid    <= 1'b0;
+        rlast     <= 1'b0;
+        h_mem_wr_req <= 1'b0;
+
+        host_attached   <= 1'b0;
+        host_reset      <= 1'b0;
+        cpu_power_off   <= 1'b0;
+        skip_pwrup      <= 1'b0;
+        cfg_clk_div     <= 6'd8;      // 4 MHz
+        cfg_wait_states <= 4'd0;
+        cfg_int_vector  <= 8'hFF;
+        cfg_small_mode  <= 1'b1;      // board runs small mode until RQ/AK rework
+        int_req         <= 1'b0;
+        nmi_req         <= 1'b0;
+        poll_n_out      <= 1'b0;
+    end else begin
+        awready      <= 1'b0;
+        arready      <= 1'b0;
+        h_mem_wr_req <= 1'b0;
+
+        case (st)
+        IDLE: begin
+            if (arvalid) begin
+                axid       <= arid;
+                addr       <= araddr;
+                beats_left <= arlen;
+                arready    <= 1'b1;
+                st         <= R_SETUP;
+            end else if (awvalid) begin
+                axid       <= awid;
+                addr       <= awaddr;
+                beats_left <= awlen;
+                awready    <= 1'b1;
+                st         <= W_DATA;
+            end
+        end
+
+        //--------------------------------------------------------------
+        // write path
+        //--------------------------------------------------------------
+        W_DATA: begin
+            wready <= 1'b1;
+            if (wvalid && wready) begin
+                wready  <= 1'b0;
+                wdata_q <= wdata;
+                wstrb_q <= wstrb;
+                wlast_q <= wlast;
+
+                if (sel_reg(addr)) begin
+                    case (addr[7:0])
+                    8'h04: begin
+                        host_attached <= 1'b1;
+                        host_reset    <= wdata[0];
+                        cpu_power_off <= wdata[1];
+                        skip_pwrup    <= wdata[2];
+                    end
+                    8'h08: begin
+                        cfg_clk_div     <= wdata[5:0];
+                        cfg_wait_states <= wdata[11:8];
+                        cfg_int_vector  <= wdata[23:16];
+                        cfg_small_mode  <= wdata[24];
+                    end
+                    8'h0C: begin
+                        int_req    <= wdata[0];
+                        nmi_req    <= wdata[1];
+                        poll_n_out <= wdata[2];
+                    end
+                    default: ;
+                    endcase
+                    st <= W_NEXT;
+                end else if (sel_mem(addr)) begin
+                    st <= W_MEM0;
+                end else begin
+                    st <= W_NEXT;   // capture region is read-only
+                end
+            end
+        end
+
+        W_MEM0: begin
+            if (wstrb_q[1:0] != 0) begin
+                h_mem_addr   <= {addr[19:2], 2'b00};
+                h_mem_wdata  <= wdata_q[15:0];
+                h_mem_be     <= wstrb_q[1:0];
+                h_mem_wr_req <= 1'b1;
+            end
+            st <= W_MEM1;
+        end
+
+        W_MEM1: begin
+            if (wstrb_q[3:2] != 0) begin
+                h_mem_addr   <= {addr[19:2], 2'b10};
+                h_mem_wdata  <= wdata_q[31:16];
+                h_mem_be     <= wstrb_q[3:2];
+                h_mem_wr_req <= 1'b1;
+            end
+            st <= W_NEXT;
+        end
+
+        W_NEXT: begin
+            if (wlast_q || beats_left == 0) begin
+                bid    <= axid;
+                bvalid <= 1'b1;
+                st     <= B_RESP;
+            end else begin
+                beats_left <= beats_left - 4'd1;
+                addr       <= addr + 21'd4;
+                st         <= W_DATA;
+            end
+        end
+
+        B_RESP: begin
+            if (bready) begin
+                bvalid <= 1'b0;
+                st     <= IDLE;
+            end
+        end
+
+        //--------------------------------------------------------------
+        // read path
+        //--------------------------------------------------------------
+        R_SETUP: begin
+            h_mem_addr <= {addr[19:2], 2'b00};   // low half first
+            h_cap_addr <= addr[14:3];
+            lat        <= 2'd3;
+            st         <= R_WAIT;
+        end
+
+        R_WAIT: begin
+            lat <= lat - 2'd1;
+            if (lat == 1) begin
+                if (sel_mem(addr)) begin
+                    if (h_mem_addr[1] == 1'b0) begin
+                        rd_lo      <= h_mem_rdata;      // low half done,
+                        h_mem_addr <= {addr[19:2], 2'b10}; // start high half
+                        lat        <= 2'd3;
+                    end else begin
+                        rdata <= {h_mem_rdata, rd_lo};
+                        st    <= R_DATA;
+                    end
+                end else if (sel_cap(addr)) begin
+                    rdata <= addr[2] ? h_cap_rdata[63:32] : h_cap_rdata[31:0];
+                    st    <= R_DATA;
+                end else begin
+                    case (addr[7:0])
+                    8'h00: rdata <= MAGIC;
+                    8'h04: rdata <= {29'd0, skip_pwrup, cpu_power_off, host_reset};
+                    8'h08: rdata <= {7'd0, cfg_small_mode, cfg_int_vector,
+                                     4'd0, cfg_wait_states, 2'd0, cfg_clk_div};
+                    8'h0C: rdata <= {29'd0, poll_n_out, nmi_req, int_req};
+                    8'h10: rdata <= {29'd0, cap_full, cpu_running, pwr_good};
+                    8'h14: rdata <= {19'd0, cap_count};
+                    default: rdata <= 32'hDEADBEEF;
+                    endcase
+                    st <= R_DATA;
+                end
+            end
+        end
+
+        R_DATA: begin
+            rid    <= axid;
+            rlast  <= beats_left == 0;
+            rvalid <= 1'b1;
+            st     <= R_NEXT;
+        end
+
+        R_NEXT: begin
+            if (rvalid && rready) begin
+                rvalid <= 1'b0;
+                rlast  <= 1'b0;
+                if (beats_left == 0) begin
+                    st <= IDLE;
+                end else begin
+                    beats_left <= beats_left - 4'd1;
+                    addr       <= addr + 21'd4;
+                    st         <= R_SETUP;
+                end
+            end
+        end
+
+        default: st <= IDLE;
+        endcase
+    end
+end
+
+endmodule

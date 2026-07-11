@@ -88,6 +88,35 @@ BRAM → power/reset sequence → real V30 executes → per-cycle capture →
 JTAG dump → decode. Next: sticky strobe bits, then the RQ/AK rework to
 unlock large mode + queue status.
 
+## 2026-07-11 (later) — HPS bridge: ARM lockup incident + hardening
+
+First deployment of the lightweight-bridge harness control locked up the
+DE10's ARM hard (network dead, SSH gone): the first /dev/mem access to
+0xFF200000 stalled — an unanswered lw-bridge AXI transaction seizes the L3
+interconnect and takes the whole SoC down. Likely cause: the AXI slave was
+reset by the MiSTer framework reset (hps_io status/buttons), which is
+undefined once MiSTer Main is killed — the slave never asserted ready.
+
+Remote recovery attempts, all failed (documenting for next time):
+- Reconfiguring the FPGA with an always-responding slave (hoping the fresh
+  fabric would complete the pending transaction): no recovery.
+- System Console DAP master: Quartus Lite exposes no HPS master service.
+- quartus_hps -o I: DAP IDCODE reads, but "Fail to power up the System and
+  Debug power" — the seizure blocks the debug power handshake too.
+→ **A physical power cycle is the only way back.**
+
+Hardening now in place (sim-verified, awaiting hardware retest):
+- hps_axi_slave reset by a local POR pulse only — always responds,
+  regardless of framework/MiSTer state.
+- host_attached latch: standalone boots use the framework reset as before;
+  after the first CTRL write the host owns the harness lifecycle.
+- capture_buf reset is POR-only; trace survives host_reset for readout.
+- sw/v30ctl.py `prep` puts the bridges into reset BEFORE FPGA
+  reconfiguration (run it every time before quartus_pgm).
+
+Safe flow after every boot: killall MiSTer → v30ctl.py prep → make run →
+v30ctl.py status.
+
 **Tooling notes:**
 - `read_content_from_memory` returns content highest-address-first; bulk
   reads intermittently return all-zeros on Quartus 17.1 even with re-read

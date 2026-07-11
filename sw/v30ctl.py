@@ -1,0 +1,237 @@
+#!/usr/bin/env python3
+"""v30ctl - control the V30 test harness over the lightweight HPS bridge.
+
+Runs on the DE10's ARM (MiSTer Linux) as root. Stop MiSTer Main first
+(`killall MiSTer`) so nothing else drives the FPGA-side interfaces.
+
+Address map (hdl/rtl/hps_axi_slave.sv), window at physical 0xFF200000:
+  +0x000000  64 KB test memory (byte-packed)
+  +0x100000  32 KB capture buffer (4096 x 64-bit records)
+  +0x180000  registers (MAGIC/CTRL/CFG/PINS/STATUS/CAPCOUNT)
+
+IMPORTANT flow around FPGA reconfiguration: run `v30ctl.py prep` BEFORE
+JTAG-programming a new bitstream (it puts the HPS-FPGA bridges into reset so
+the reconfiguration cannot wedge the interconnect), then any other command
+afterwards re-enables them. An access to an unconfigured/unresponsive bridge
+hard-locks the ARM — power cycle if that happens.
+
+Usage:
+  v30ctl.py prep                     # put bridges in reset (before reconfig)
+  v30ctl.py status
+  v30ctl.py stop                     # host_reset: CPU stopped, memory/capture accessible
+  v30ctl.py start [--power-wait]     # release reset (default: fast re-run)
+  v30ctl.py load FILE [--at ADDR]    # write binary image into test memory (while stopped)
+  v30ctl.py peek ADDR [COUNT]        # hex dump of test memory (while stopped)
+  v30ctl.py dump-cap FILE            # write capture records, decode with decode_capture.py
+  v30ctl.py run FILE [--timeout S]   # stop -> load -> start -> wait full -> dump to stdout name
+  v30ctl.py cfg [--div N] [--waits N] [--vector V] [--small 0|1]
+"""
+
+import argparse
+import mmap
+import os
+import struct
+import sys
+import time
+
+LW_BASE   = 0xFF200000
+LW_SPAN   = 0x200000
+RSTMGR    = 0xFFD05000
+L3_GPV    = 0xFF800000
+
+MEM_OFF   = 0x000000
+CAP_OFF   = 0x100000
+REG_OFF   = 0x180000
+
+R_MAGIC    = REG_OFF + 0x00
+R_CTRL     = REG_OFF + 0x04
+R_CFG      = REG_OFF + 0x08
+R_PINS     = REG_OFF + 0x0C
+R_STATUS   = REG_OFF + 0x10
+R_CAPCOUNT = REG_OFF + 0x14
+
+MAGIC = 0x56333031
+
+CTRL_HOST_RESET = 1 << 0
+CTRL_POWER_OFF  = 1 << 1
+CTRL_SKIP_PWRUP = 1 << 2
+
+CAP_RECORDS = 4096
+
+
+class Harness:
+    def __init__(self, connect=True):
+        self.fd = os.open("/dev/mem", os.O_RDWR | os.O_SYNC)
+        if not connect:
+            return
+        self._enable_bridges()
+        self.win = mmap.mmap(self.fd, LW_SPAN, offset=LW_BASE)
+        magic = self.read32(R_MAGIC)
+        if magic != MAGIC:
+            raise RuntimeError(
+                f"bridge magic mismatch: got {magic:08x}, want {MAGIC:08x} "
+                "(is the harness bitstream loaded?)")
+
+    def _brgmodrst(self, set_bits, clr_bits):
+        rst = mmap.mmap(self.fd, 0x1000, offset=RSTMGR)
+        v = struct.unpack("<I", rst[0x1C:0x20])[0]
+        rst[0x1C:0x20] = struct.pack("<I", (v | set_bits) & ~clr_bits)
+        rst.close()
+
+    def disable_bridges(self):
+        # put hps2fpga/lwhps2fpga/fpga2hps into reset: safe state for FPGA
+        # reconfiguration
+        self._brgmodrst(set_bits=0x7, clr_bits=0)
+
+    def _enable_bridges(self):
+        # deassert bridge resets and open the L3 remap window — the same
+        # pokes MiSTer Main performs on core load
+        self._brgmodrst(set_bits=0, clr_bits=0x7)
+        gpv = mmap.mmap(self.fd, 0x1000, offset=L3_GPV)
+        gpv[0:4] = struct.pack("<I", 0x19)
+        gpv.close()
+
+    def read32(self, off):
+        return struct.unpack("<I", self.win[off:off + 4])[0]
+
+    def write32(self, off, val):
+        self.win[off:off + 4] = struct.pack("<I", val & 0xFFFFFFFF)
+
+    # ---- harness operations -------------------------------------------
+    def stop(self):
+        self.write32(R_CTRL, CTRL_HOST_RESET | CTRL_SKIP_PWRUP)
+
+    def start(self, power_wait=False):
+        self.write32(R_CTRL, 0 if power_wait else CTRL_SKIP_PWRUP)
+
+    def status(self):
+        s = self.read32(R_STATUS)
+        return {
+            "pwr_good":    bool(s & 1),
+            "cpu_running": bool(s & 2),
+            "cap_full":    bool(s & 4),
+            "cap_count":   self.read32(R_CAPCOUNT),
+            "ctrl":        self.read32(R_CTRL),
+            "cfg":         self.read32(R_CFG),
+        }
+
+    def load_mem(self, data: bytes, addr=0):
+        assert addr % 4 == 0, "load address must be 32-bit aligned"
+        # pad to a whole number of words
+        pad = (-len(data)) % 4
+        data = data + b"\x00" * pad
+        for i in range(0, len(data), 4):
+            self.win[MEM_OFF + addr + i: MEM_OFF + addr + i + 4] = data[i:i + 4]
+
+    def peek_mem(self, addr, count):
+        out = bytearray()
+        a0 = addr & ~3
+        a1 = (addr + count + 3) & ~3
+        for a in range(a0, a1, 4):
+            out += self.win[MEM_OFF + a: MEM_OFF + a + 4]
+        return bytes(out[addr - a0: addr - a0 + count])
+
+    def dump_capture(self, count=CAP_RECORDS):
+        recs = []
+        for i in range(count):
+            lo = self.read32(CAP_OFF + i * 8)
+            hi = self.read32(CAP_OFF + i * 8 + 4)
+            recs.append((hi << 32) | lo)
+        return recs
+
+    def set_cfg(self, div=None, waits=None, vector=None, small=None):
+        v = self.read32(R_CFG)
+        if div is not None:    v = (v & ~0x3F) | (div & 0x3F)
+        if waits is not None:  v = (v & ~0xF00) | ((waits & 0xF) << 8)
+        if vector is not None: v = (v & ~0xFF0000) | ((vector & 0xFF) << 16)
+        if small is not None:  v = (v & ~(1 << 24)) | ((1 if small else 0) << 24)
+        self.write32(R_CFG, v)
+
+
+def write_cap_file(recs, path):
+    with open(path, "w") as fh:
+        for r in recs:
+            fh.write(f"{r:016x}\n")
+
+
+def main():
+    ap = argparse.ArgumentParser()
+    sub = ap.add_subparsers(dest="cmd", required=True)
+    sub.add_parser("prep")
+    sub.add_parser("status")
+    sub.add_parser("stop")
+    p = sub.add_parser("start")
+    p.add_argument("--power-wait", action="store_true",
+                   help="full ~131 ms rail-settle wait instead of fast re-run")
+    p = sub.add_parser("load")
+    p.add_argument("file")
+    p.add_argument("--at", type=lambda x: int(x, 0), default=0)
+    p = sub.add_parser("peek")
+    p.add_argument("addr", type=lambda x: int(x, 0))
+    p.add_argument("count", type=lambda x: int(x, 0), nargs="?", default=64)
+    p = sub.add_parser("dump-cap")
+    p.add_argument("file")
+    p = sub.add_parser("run")
+    p.add_argument("file", help="binary memory image, loaded at 0")
+    p.add_argument("--timeout", type=float, default=5.0)
+    p.add_argument("--cap", default="capture.hex")
+    p = sub.add_parser("cfg")
+    p.add_argument("--div", type=lambda x: int(x, 0))
+    p.add_argument("--waits", type=lambda x: int(x, 0))
+    p.add_argument("--vector", type=lambda x: int(x, 0))
+    p.add_argument("--small", type=int, choices=(0, 1))
+    args = ap.parse_args()
+
+    if args.cmd == "prep":
+        h = Harness(connect=False)
+        h.disable_bridges()
+        print("bridges in reset: safe to reconfigure the FPGA")
+        return
+
+    h = Harness()
+
+    if args.cmd == "status":
+        for k, v in h.status().items():
+            print(f"{k}: {v:#x}" if isinstance(v, int) and not isinstance(v, bool) else f"{k}: {v}")
+    elif args.cmd == "stop":
+        h.stop()
+        print("stopped (host owns memory/capture)")
+    elif args.cmd == "start":
+        h.start(power_wait=args.power_wait)
+        print("running")
+    elif args.cmd == "load":
+        data = open(args.file, "rb").read()
+        h.stop()
+        h.load_mem(data, args.at)
+        print(f"loaded {len(data)} bytes at {args.at:#x} (harness stopped)")
+    elif args.cmd == "peek":
+        data = h.peek_mem(args.addr, args.count)
+        for i in range(0, len(data), 16):
+            row = data[i:i + 16]
+            print(f"{args.addr + i:05x}: " + " ".join(f"{b:02x}" for b in row))
+    elif args.cmd == "dump-cap":
+        h.stop()
+        write_cap_file(h.dump_capture(), args.file)
+        print(f"wrote {CAP_RECORDS} records to {args.file}")
+    elif args.cmd == "run":
+        data = open(args.file, "rb").read()
+        h.stop()
+        h.load_mem(data, 0)
+        h.start()
+        t0 = time.time()
+        while time.time() - t0 < args.timeout:
+            if h.status()["cap_full"]:
+                break
+            time.sleep(0.01)
+        st = h.status()
+        h.stop()
+        write_cap_file(h.dump_capture(), args.cap)
+        print(f"cap_count={st['cap_count']} full={st['cap_full']} -> {args.cap}")
+    elif args.cmd == "cfg":
+        h.stop()
+        h.set_cfg(args.div, args.waits, args.vector, args.small)
+        print(f"cfg = {h.read32(R_CFG):08x} (harness stopped; 'start' to run)")
+
+
+if __name__ == "__main__":
+    main()
