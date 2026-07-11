@@ -10,7 +10,9 @@ Layout (see the project plan for rationale):
   - `OPEN_QUESTIONS.md` — living list of unknowns; retire entries into fact files as they resolve.
   - `pins_timing.md` — DC/AC electrical and timing facts for μPD70116.
   - `mnemonic_map.json` — NEC↔Intel register/mnemonic mapping.
-  - `instructions.json` — (planned) per-opcode encoding/timing/flags database.
+  - `instructions.json` — per-instruction-form database (288 records): encoding byte patterns, documented
+    clock counts (V20/V30, odd/even address), flag effects, operation formulas. Transcribed visually from the
+    User's Manual scans; `_uncertain` lists 53 flagged manual misprints/ambiguities.
 - `notes/` — summaries of mined external resources (SingleStepTests V20, arduinoX86, MAME necv).
 
 ## Document inventory
