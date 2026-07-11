@@ -192,13 +192,113 @@ def find_loop(txns):
     return None, None
 
 
+#----------------------------------------------------------------------------
+# large (max) mode: BS status + FSM T-state annotations + queue status
+#----------------------------------------------------------------------------
+
+BUS_STATUS = {0: "INTA", 1: "IOR", 2: "IOW", 3: "HALT",
+              4: "CODE", 5: "MEMR", 6: "MEMW", 7: "PASV"}
+T_STATES = {0: "TI", 1: "T1", 2: "T2", 3: "T3", 4: "TW", 5: "T4"}
+QOPS = {0: None, 1: "F", 2: "E", 3: "S"}
+
+
+def decode_large(path):
+    recs = []
+    with open(path) as fh:
+        for i, line in enumerate(fh):
+            line = line.strip()
+            if not line:
+                continue
+            r = int(line, 16)
+            recs.append({
+                "idx": i,
+                "ad_addr": r & 0xFFFFF,
+                "ad_data": (r >> 20) & 0xFFFF,
+                "bs_early": (r >> 40) & 7,
+                "bs_late": (r >> 43) & 7,
+                "qs": (r >> 46) & 3,
+                "ube_n": (r >> 49) & 1,
+                "rst": (r >> 55) & 1,
+                "t": (r >> 56) & 7,
+            })
+    return recs
+
+
+def analyze_large(recs, show_cycles=False):
+    """Transactions from the harness FSM's T-state annotations, plus a
+    prefetch-queue depth reconstruction from the QS ops."""
+    txns = []
+    cur = None
+    depth = 0
+    max_depth = 0
+    insns = 0
+    events = []
+
+    for r in recs:
+        ts = T_STATES.get(r["t"], "?")
+        if ts == "T1":
+            cur = {"start": r["idx"], "kind": BUS_STATUS[r["bs_early"]],
+                   "addr": r["ad_addr"],
+                   "word": (r["ad_addr"] & 1) == 0 and not r["ube_n"]}
+        elif ts in ("T3", "TW") and cur is not None:
+            cur["data"] = r["ad_data"]     # bus released by T4's late sample
+        elif ts == "T4" and cur is not None:
+            cur["end"] = r["idx"]
+            txns.append(cur)
+            if cur["kind"] == "CODE":
+                depth += 2 if cur["word"] else 1
+                max_depth = max(depth, max_depth)
+            cur = None
+
+        q = QOPS[r["qs"]]
+        if q == "F":
+            depth = max(depth - 1, 0)
+            insns += 1
+            events.append((r["idx"], "F", depth))
+        elif q == "S":
+            depth = max(depth - 1, 0)
+            events.append((r["idx"], "S", depth))
+        elif q == "E":
+            depth = 0
+            events.append((r["idx"], "E", depth))
+
+        if show_cycles:
+            print(f"{r['idx']:>5} {ts:<2} {BUS_STATUS[r['bs_early']]:<4} "
+                  f"{r['ad_addr']:05x} {r['ad_data']:04x} "
+                  f"{q or '-'} depth={depth}")
+
+    return txns, events, insns, max_depth
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("dump")
     ap.add_argument("--txn", action="store_true", help="print transactions")
     ap.add_argument("--loops", action="store_true", help="loop analysis")
+    ap.add_argument("--large", action="store_true",
+                    help="large (max) mode: BS status + queue reconstruction")
+    ap.add_argument("--cycles", action="store_true",
+                    help="with --large: per-cycle listing")
     ap.add_argument("-n", type=int, default=60, help="limit txn print")
     args = ap.parse_args()
+
+    if args.large:
+        recs = decode_large(args.dump)
+        print(f"{len(recs)} cycles")
+        txns, events, insns, max_depth = analyze_large(recs, args.cycles)
+        print(f"{len(txns)} transactions, {insns} instruction first-byte ops, "
+              f"max queue depth {max_depth}")
+        if args.txn:
+            print(f"\n{'#':>3} {'cyc':>5} {'len':>3} {'type':<5} "
+                  f"{'addr':<6} {'data':<4} w")
+            for i, t in enumerate(txns[:args.n]):
+                print(f"{i:>3} {t['start']:>5} {t['end']-t['start']+1:>3} "
+                      f"{t['kind']:<5} {t['addr']:05x}  {t['data']:04x} "
+                      f"{'w' if t['word'] else 'b'}")
+        flushes = [e for e in events if e[1] == "E"]
+        if flushes:
+            print(f"queue flushes at cycles: {[e[0] for e in flushes]}")
+        return
 
     cycles = parse(args.dump)
     print(f"{len(cycles)} cycles")

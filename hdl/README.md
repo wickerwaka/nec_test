@@ -54,6 +54,24 @@ Hardware constraints encoded in `nec_bus`:
 The buffer arms when the CPU leaves reset and stops when full (4096 cycles
 = ~1 ms at 4 MHz), so reset release and first fetch are always in the trace.
 
+## HPS bridge (host control from the ARM)
+
+`hps_axi_slave.sv` sits on the lightweight HPS-to-FPGA bridge; from MiSTer
+Linux the 2 MB window is at physical `0xFF200000` (`sw/v30ctl.py` wraps it):
+
+| Offset | Contents |
+|---|---|
+| `0x000000` | 64 KB test memory, byte-packed (host access while CTRL.host_reset) |
+| `0x100000` | capture buffer, 4096 × 64-bit records as 32-bit pairs (RO; read while stopped) |
+| `0x180000` | `MAGIC`(=56333031h) `CTRL` `CFG` `PINS` `STATUS` `CAPCOUNT` — see hps_axi_slave.sv |
+
+Discipline (an unanswered bridge access hard-locks the ARM — power cycle
+only): `killall MiSTer` after boot, `v30ctl.py prep` **before** every
+JTAG reconfiguration, any v30ctl command afterwards re-enables bridges.
+The slave is POR-reset only and independent of the MiSTer framework
+reset; once the host writes CTRL it owns the harness lifecycle
+(host_attached).
+
 ## JTAG readout (no IO board / HPS bridge required)
 
 All three RAMs are runtime-modifiable over the same JTAG cable used for

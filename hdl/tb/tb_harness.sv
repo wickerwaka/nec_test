@@ -362,6 +362,53 @@ initial begin
     axi_read32(A_MEM + 21'h2100, w);
     check(w[15:0] == 16'h1234, $sformatf("cpu write visible via bridge %04x (expect 1234)", w[15:0]));
 
+    //------------------------------------------------------------------
+    // synthetic large-mode trace with scripted queue status, dumped via
+    // the bridge for analyzer development (sw/analyze_capture.py --large)
+    //------------------------------------------------------------------
+    begin
+        int fd, cnt;
+        axi_write32(R_CTRL, 32'h4);                   // rerun large mode
+        while (NEC_RESET !== 1'b1) @(posedge clk);
+        while (NEC_RESET) @(posedge NEC_CLK);
+
+        fork
+            // queue-status script: F/S consumption with one flush, QS
+            // changing at CLK rising edges like the real part
+            begin
+                localparam bit [1:0] SEQ [0:19] = '{
+                    2'b00, 2'b00, 2'b00, 2'b00, 2'b00, 2'b01, 2'b11, 2'b00,
+                    2'b01, 2'b11, 2'b11, 2'b00, 2'b01, 2'b10, 2'b00, 2'b00,
+                    2'b01, 2'b11, 2'b00, 2'b00};
+                for (int i = 0; i < 20; i++) begin
+                    @(posedge NEC_CLK); #(TDLY);
+                    qs_drv = SEQ[i];
+                end
+                qs_drv = 2'b00;
+            end
+            // concurrent code fetches feeding the fictional queue
+            begin
+                bus_cycle(BS_CODE, 20'h00100, 1'b0, 16'h0, rd);
+                bus_cycle(BS_CODE, 20'h00102, 1'b0, 16'h0, rd);
+                bus_cycle(BS_CODE, 20'h00104, 1'b0, 16'h0, rd);
+                // "jump": non-sequential fetch after the scripted flush
+                bus_cycle(BS_CODE, 20'h00200, 1'b0, 16'h0, rd);
+                bus_cycle(BS_MEMW, 20'h02200, 1'b0, 16'hBEEF, rd);
+            end
+        join
+
+        axi_write32(R_CTRL, 32'h5);                   // stop, read trace
+        axi_read32(R_CAPCOUNT, w);
+        cnt = (w > 128) ? 128 : w;
+        fd = $fopen("largemode_synth.hex", "w");
+        for (int i = 0; i < cnt; i++) begin
+            axi_read_cap(i, rec);
+            $fwrite(fd, "%016x\n", rec);
+        end
+        $fclose(fd);
+        $display("wrote %0d large-mode records to largemode_synth.hex", cnt);
+    end
+
     if (errors == 0) $display("ALL TESTS PASSED");
     else $display("%0d TEST(S) FAILED", errors);
     $finish;
