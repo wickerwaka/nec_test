@@ -299,9 +299,8 @@ assign VGA_G  = (!col || col == 2) ? video : 8'd0;
 assign VGA_R  = (!col || col == 1) ? video : 8'd0;
 assign VGA_B  = (!col || col == 3) ? video : 8'd0;
 
-reg  [26:0] act_cnt;
-always @(posedge clk_sys) act_cnt <= act_cnt + 1'd1; 
-assign LED_USER    = act_cnt[26]  ? act_cnt[25:18]  > act_cnt[7:0]  : act_cnt[25:18]  <= act_cnt[7:0];
+wire nec_dbg_led;
+assign LED_USER = nec_dbg_led;
 
 assign NEC_LG_N = 0;
 
@@ -334,7 +333,9 @@ system_large system_large
     .NEC_AD_DIR(NEC_AD_DIR),
     .NEC_UBE_N(NEC_UBE_N),
     .NEC_RD_N(NEC_RD_N),
-    .NEC_ENABLE_N(NEC_ENABLE_N)
+    .NEC_ENABLE_N(NEC_ENABLE_N),
+
+    .dbg_led(nec_dbg_led)
 );
 
 endmodule
