@@ -220,7 +220,12 @@ task automatic small_bus_cycle(
     end else begin
         rd_n_drv = 0;
     end
-    @(posedge NEC_CLK);
+    // T3 (+ TW while READY is low): sample READY shortly before the
+    // falling edge, like the real part, and extend the cycle if not ready
+    @(posedge NEC_CLK); #110ns;
+    while (!NEC_READY) begin
+        @(posedge NEC_CLK); #110ns;   // TW
+    end
     @(negedge NEC_CLK);
     rdata = NEC_AD[15:0];
     @(posedge NEC_CLK); #(TDLY);
@@ -229,6 +234,9 @@ task automatic small_bus_cycle(
     ad_data_en = 0; ube_n_drv = 1;
     @(posedge NEC_CLK);
 endtask
+
+int nec_clks;
+always @(posedge NEC_CLK) nec_clks++;
 
 //----------------------------------------------------------------------------
 // test sequence
@@ -302,6 +310,34 @@ initial begin
     end
     check(astb_seen_in_cap, "capture contains ASTB (via bridge)");
     check(rd_seen_in_cap,   "capture contains RD strobes (via bridge)");
+
+    //------------------------------------------------------------------
+    // small-mode wait states: identical read with 0 vs 2 waits
+    //------------------------------------------------------------------
+    begin
+        int base, waited;
+        axi_write32(R_CTRL, 32'h4);                    // resume (0 waits)
+        while (NEC_RESET !== 1'b1) @(posedge clk);
+        while (NEC_RESET) @(posedge NEC_CLK);
+        base = nec_clks;
+        small_bus_cycle(0, 0, 20'hFFFF0, 1'b0, 16'h0, rd);
+        base = nec_clks - base;
+
+        axi_write32(R_CTRL, 32'h5);
+        axi_write32(R_CFG, (1 << 24) | (8'hFF << 16) | (2 << 8) | 6'd8);
+        axi_write32(R_CTRL, 32'h4);
+        while (NEC_RESET !== 1'b1) @(posedge clk);
+        while (NEC_RESET) @(posedge NEC_CLK);
+        waited = nec_clks;
+        small_bus_cycle(0, 0, 20'hFFFF0, 1'b0, 16'h0, rd);
+        waited = nec_clks - waited;
+
+        check(rd == 16'h00EA, $sformatf("sm+waits: fetch returned %04x (expect 00EA)", rd));
+        check(waited == base + 2,
+              $sformatf("sm: 2 wait states add 2 clks (%0d -> %0d)", base, waited));
+
+        axi_write32(R_CTRL, 32'h5);                    // stop; CFG reset below
+    end
 
     //------------------------------------------------------------------
     // reconfigure to large (max) mode through the bridge and rerun

@@ -238,7 +238,7 @@ reg  sm_wr_n_d;
 // datapath is driven directly by ASTB/RD/WR/INTAK strobes instead.
 //----------------------------------------------------------------------------
 reg [2:0] t_state;
-reg [3:0] wait_cnt;
+reg [4:0] wait_cnt;
 reg       ready_q;
 reg       ready_pin;
 reg       drive_en;
@@ -274,7 +274,19 @@ always_ff @(posedge clk) begin
     end else if (cfg_small_mode) begin
         // strobe-driven datapath, evaluated every sys clock
         sm_wr_n_d <= sm_wr_n;
-        ready_q   <= 1'b1;                    // no wait-state support yet
+
+        // wait-state insertion: arm at the ASTB pulse (T1) with cfg+1 so
+        // the countdown spans T2 (one CPU clock before the first READY
+        // sample at the end of T3), then one wait per CPU clock. READY is
+        // re-registered on the falling CLK edge, giving setup to the
+        // sampling edge.
+        if (sm_astb) begin
+            wait_cnt <= {1'b0, cfg_wait_states} + 5'd1;
+            ready_q  <= cfg_wait_states == 0;
+        end else if (tick_rise && wait_cnt != 0) begin
+            wait_cnt <= wait_cnt - 5'd1;
+            ready_q  <= wait_cnt == 5'd1;
+        end
 
         if (!sm_intak_n)    mem_cycle_type <= BS_INTA;
         else if (!rd_n_q)   mem_cycle_type <= sm_io_m ? BS_MEMR : BS_IOR;
@@ -298,7 +310,7 @@ always_ff @(posedge clk) begin
             mem_cycle_type <= bs_q;
             is_read_cycle  <= read_type;
             is_write_cycle <= write_type;
-            wait_cnt       <= cfg_wait_states;
+            wait_cnt       <= {1'b0, cfg_wait_states};
             ready_q        <= cfg_wait_states == 0;
         end
 
@@ -307,8 +319,8 @@ always_ff @(posedge clk) begin
 
         if (t_state == ST_T3 || t_state == ST_TW) begin
             if (wait_cnt != 0) begin
-                wait_cnt <= wait_cnt - 4'd1;
-                ready_q  <= wait_cnt == 4'd1;
+                wait_cnt <= wait_cnt - 5'd1;
+                ready_q  <= wait_cnt == 5'd1;
             end
         end
 
