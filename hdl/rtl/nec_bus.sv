@@ -146,6 +146,33 @@ always_ff @(posedge clk) begin
     end
 end
 
+// Sticky strobe accumulators (small mode). Short strobes — ASTB in
+// particular is only ~half a CPU cycle — can fall between the two point
+// samples, so capture records accumulate "seen active during this cycle"
+// instead. Large mode keeps point samples: QS is a 2-bit code there and
+// OR-ing across a transition would fabricate invalid codes.
+reg astb_seen, intak_low_seen, rd_low_seen, wr_low_seen;
+
+always_ff @(posedge clk) begin
+    if (tick_rise) begin
+        astb_seen      <= qs_q[0];
+        intak_low_seen <= ~qs_q[1];
+        rd_low_seen    <= ~rd_n_q;
+        wr_low_seen    <= ~buslock_n_q;
+    end else begin
+        astb_seen      <= astb_seen      | qs_q[0];
+        intak_low_seen <= intak_low_seen | ~qs_q[1];
+        rd_low_seen    <= rd_low_seen    | ~rd_n_q;
+        wr_low_seen    <= wr_low_seen    | ~buslock_n_q;
+    end
+end
+
+// Cycle-complete values including the current (capture-edge) sample
+wire astb_cyc      = astb_seen      | qs_q[0];
+wire intak_low_cyc = intak_low_seen | ~qs_q[1];
+wire rd_low_cyc    = rd_low_seen    | ~rd_n_q;
+wire wr_low_cyc    = wr_low_seen    | ~buslock_n_q;
+
 //----------------------------------------------------------------------------
 // Power-on / reset sequencing. ENABLE_N gates the V30's 5V supply through a
 // P-MOSFET on the adapter, so this is a true power-up sequence:
@@ -345,10 +372,13 @@ always_ff @(posedge clk) begin
             nmi_req,          // [53]    NMI driven
             int_req,          // [52]    INT driven
             ready_q,          // [51]    READY driven
-            buslock_n_q,      // [50]    BUSLOCK_N (end of cycle)
-            ube_n_early,      // [49]    UBE_N (address phase)
-            rd_n_q,           // [48]    RD_N (end of cycle)
-            qs_early,         // [47:46] QS (queue op this cycle)
+            // [50] BUSLOCK_N / WR_N, [48] RD_N, [47:46] QS / {INTAK_N,ASTB}:
+            // small mode records sticky seen-active-this-cycle values,
+            // large mode records point samples
+            cfg_small_mode ? ~wr_low_cyc : buslock_n_q,                  // [50]
+            ube_n_early,                                                 // [49]
+            cfg_small_mode ? ~rd_low_cyc : rd_n_q,                       // [48]
+            cfg_small_mode ? {~intak_low_cyc, astb_cyc} : qs_early,      // [47:46]
             bs_q,             // [45:43] BS (end of cycle)
             bs_early,         // [42:40] BS (address phase)
             ad_in_q[19:16],   // [39:36] A19-A16 / PS3-PS0 (end of cycle)

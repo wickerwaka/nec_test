@@ -186,6 +186,14 @@ endtask
 bit [15:0] rd;
 int reset_clks;
 
+// accumulate strobe bits seen in capture records during the small phase
+bit rec_astb = 0, rec_rd = 0, rec_wr = 0;
+always @(posedge clk) if (small_mode && cap_valid) begin
+    rec_astb |= cap_record[46];
+    rec_rd   |= ~cap_record[48];
+    rec_wr   |= ~cap_record[50];
+end
+
 bit dbg = 0;
 always @(posedge NEC_CLK) if (dbg)
     $display("  t=%0t state=%0d bs_pin=%b ad_pin=%05x addr=%05x ctype=%b drv=%b rdata=%04x",
@@ -261,6 +269,11 @@ initial begin
     check(rd == 16'h0000, $sformatf("sm: io read returned %04x (expect 0000)", rd));
     small_bus_cycle(0, 0, 20'h02000, 1'b0, 16'h0, rd);
     check(rd == 16'hCD78, $sformatf("sm: io write left memory %04x (expect CD78)", rd));
+
+    // sticky strobe bits made it into capture records
+    check(rec_astb, "sm: capture records contain ASTB pulses");
+    check(rec_rd,   "sm: capture records contain RD strobes");
+    check(rec_wr,   "sm: capture records contain WR strobes");
 
     if (errors == 0) $display("ALL TESTS PASSED");
     else $display("%0d TEST(S) FAILED", errors);

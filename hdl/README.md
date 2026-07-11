@@ -39,10 +39,10 @@ Hardware constraints encoded in `nec_bus`:
 | 39:36 | A19–A16 / PS3–PS0, data-phase sample |
 | 42:40 | BS0–BS2, address phase |
 | 45:43 | BS0–BS2, end of cycle |
-| 47:46 | QS0–QS1 (queue op for this cycle) |
-| 48    | RD_N (end of cycle) |
+| 47:46 | QS0–QS1 point sample (large mode) / {INTAK̅ not-seen-low, ASTB seen-high} sticky (small mode) |
+| 48    | RD_N: point sample (large) / not-seen-low sticky (small) |
 | 49    | UBE_N (address phase) |
-| 50    | BUSLOCK_N |
+| 50    | BUSLOCK_N point sample (large) / WR_N not-seen-low sticky (small) |
 | 51    | READY as driven |
 | 52    | INT as driven |
 | 53    | NMI as driven |
