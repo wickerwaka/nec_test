@@ -27,6 +27,7 @@ module nec_bus
     input             reset,
 
     // Configuration (quasi-static; change only while CPU is held in reset)
+    input             cfg_small_mode,  // 1: CPU strapped small-scale (S/LG high)
     input       [5:0] cfg_clk_div,     // sys clocks per CPU clock, even, >= 4
     input       [3:0] cfg_wait_states, // wait states inserted in every bus cycle
     input       [7:0] cfg_int_vector,  // vector byte returned in INTA cycles
@@ -66,7 +67,8 @@ module nec_bus
     output reg        cap_valid,
     output reg [63:0] cap_record,
 
-    output            cpu_running      // reset sequence finished
+    output            cpu_running,     // reset sequence finished
+    output            pwr_good_o       // 5V rail settle time elapsed
 );
 
 // Bus status (BS2,BS1,BS0), 8086 S2-S0 compatible
@@ -114,13 +116,14 @@ assign NEC_CLK = nec_clk_q;
 //----------------------------------------------------------------------------
 // Input registration and per-phase samples
 //----------------------------------------------------------------------------
-reg [19:0] ad_in_q;
+reg [19:0] ad_in_q, ad_in_q2;
 reg  [2:0] bs_q;
 reg  [1:0] qs_q;
 reg        buslock_n_q, ube_n_q, rd_n_q;
 
 always_ff @(posedge clk) begin
     ad_in_q     <= NEC_AD;
+    ad_in_q2    <= ad_in_q;    // aligned with strobe edge detectors
     bs_q        <= NEC_BS;
     qs_q        <= NEC_QS;
     buslock_n_q <= NEC_BUSLOCK_N;
@@ -144,15 +147,32 @@ always_ff @(posedge clk) begin
 end
 
 //----------------------------------------------------------------------------
-// Power-on / reset sequencing: hold RESET for 32 CPU clocks after sys reset
+// Power-on / reset sequencing. ENABLE_N gates the V30's 5V supply through a
+// P-MOSFET on the adapter, so this is a true power-up sequence:
+//   1. assert ENABLE_N (power on) with RESET held high
+//   2. wait PWRUP_CLKS sys clocks for the 5V rail to stabilize (~130 ms)
+//   3. hold RESET a further 32 CPU clocks (>= 4 required), then release
 //----------------------------------------------------------------------------
-reg [5:0] reset_cnt;
-reg       nec_reset_q;
+`ifdef VERILATOR
+localparam int PWRUP_CLKS = 64;          // keep simulation fast
+`else
+localparam int PWRUP_CLKS = 1 << 22;     // ~131 ms at 32 MHz
+`endif
+
+reg [22:0] pwrup_cnt;
+reg        pwr_good;
+reg  [5:0] reset_cnt;
+reg        nec_reset_q;
 
 always_ff @(posedge clk) begin
     if (reset) begin
+        pwrup_cnt   <= '0;
+        pwr_good    <= 1'b0;
         reset_cnt   <= 6'd32;
         nec_reset_q <= 1'b1;
+    end else if (!pwr_good) begin
+        pwrup_cnt <= pwrup_cnt + 23'd1;
+        if (pwrup_cnt == PWRUP_CLKS - 1) pwr_good <= 1'b1;
     end else if (tick_rise) begin
         if (reset_cnt != 0) reset_cnt <= reset_cnt - 6'd1;
         else nec_reset_q <= 1'b0;
@@ -162,11 +182,26 @@ end
 assign NEC_RESET    = nec_reset_q;
 assign NEC_ENABLE_N = 1'b0;
 assign cpu_running  = ~nec_reset_q;
+assign pwr_good_o   = pwr_good;
+
+//----------------------------------------------------------------------------
+// Small-scale mode pin aliases. When S/LG is strapped high the max-mode
+// status pins carry their small-scale functions instead (datasheet block
+// diagram, PDF p96): BS0=BUFEN, BS1=BUFR/W, BS2=IO/M (low = I/O),
+// QS0=ASTB, QS1=INTAK, BUSLOCK pin=WR.
+//----------------------------------------------------------------------------
+wire sm_astb    = qs_q[0];
+wire sm_intak_n = qs_q[1];
+wire sm_io_m    = bs_q[2];        // 1 = memory, 0 = I/O
+wire sm_wr_n    = buslock_n_q;
+reg  sm_wr_n_d;
 
 //----------------------------------------------------------------------------
 // T-state tracker. State advances once per CPU cycle, at the rising edge.
 // bs_q at that moment holds the end-of-cycle status: it goes active (!= PASV)
 // during the T4/TI cycle preceding T1.
+// In small mode the FSM idles (t_state stays TI in capture records); the
+// datapath is driven directly by ASTB/RD/WR/INTAK strobes instead.
 //----------------------------------------------------------------------------
 reg [2:0] t_state;
 reg [3:0] wait_cnt;
@@ -200,7 +235,27 @@ always_ff @(posedge clk) begin
         is_read_cycle   <= 1'b0;
         is_write_cycle  <= 1'b0;
         mem_wr_req_done <= 1'b0;
+        sm_wr_n_d       <= 1'b1;
         mem_cycle_type  <= BS_PASV;
+    end else if (cfg_small_mode) begin
+        // strobe-driven datapath, evaluated every sys clock
+        sm_wr_n_d <= sm_wr_n;
+        ready_q   <= 1'b1;                    // no wait-state support yet
+
+        if (!sm_intak_n)    mem_cycle_type <= BS_INTA;
+        else if (!rd_n_q)   mem_cycle_type <= sm_io_m ? BS_MEMR : BS_IOR;
+        else if (!sm_wr_n)  mem_cycle_type <= sm_io_m ? BS_MEMW : BS_IOW;
+
+        // drive read data (or INTA vector) while the strobe is low
+        drive_en <= ~rd_n_q | ~sm_intak_n;
+
+        // latch write data at the rising edge of WR. sm_wr_n/sm_wr_n_d are
+        // 1 and 2 ticks old, so ad_in_q2 (2 ticks old) is the bus value at
+        // or before the edge — data is guaranteed held until WR rises.
+        if (sm_wr_n && !sm_wr_n_d) begin
+            mem_wr_req <= 1'b1;
+            mem_wdata  <= ad_in_q2[15:0];
+        end
     end else if (tick_rise) begin
         t_state <= next_t_state;
 
@@ -237,9 +292,11 @@ always_ff @(posedge clk) begin
     end
 end
 
-// Address latch at the falling edge of T1
+// Address latch. Large mode: falling edge of T1 (address phase sample).
+// Small mode: transparent latch while ASTB is high, frozen at its falling
+// edge — the same behavior as the 74373 latch the pin is designed to drive.
 always_ff @(posedge clk) begin
-    if (tick_fall && t_state == ST_T1) begin
+    if (cfg_small_mode ? sm_astb : (tick_fall && t_state == ST_T1)) begin
         mem_addr <= ad_in_q;
         mem_be   <= { ~ube_n_q, ~ad_in_q[0] };
     end

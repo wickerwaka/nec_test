@@ -1,0 +1,97 @@
+# Bring-up log
+
+## 2026-07-11 — first deployment: harness verified, CPU not driving pins
+
+Deployed the phase-3 harness (4 MHz CPU clock, zero wait states, bring-up
+boot image) over JTAG and dumped the capture buffer repeatedly.
+
+**Verified working:**
+- JTAG programming, In-System Memory readout of all three instances
+  (ME0/ME1/CAPT). Boot image read back byte-perfect from ME0.
+- Capture pipeline: reset-tail records (RESET=1, READY=1, 33 records) then
+  per-cycle records exactly as designed.
+- Power-up sequencing added during debug: ENABLE_N asserted at config, ~131 ms
+  rail-settle wait, then 32 CPU-clock RESET pulse (nec_bus.sv).
+
+**Problem: every CPU-driven pin (BS, QS, RD_N, UBE_N, BUSLOCK_N, AD) reads
+floating-low through the level shifters — before, during, and after reset.**
+The V30 never drove anything. The harness FSM chases the floating status
+(000 reads as INTA ≠ PASV) in an endless T1→T2→T3→T4 loop; that loop in the
+trace is a harness artifact, not CPU activity.
+
+Evidence and eliminations:
+- Reset sequencing correct at the FPGA (captured in-trace).
+- Float pattern was high-ish (PASV, AD=207FF) ~8 µs after config, all-low by
+  131 ms — consistent with residual charge draining from an unpowered rail.
+- ENABLE_N polarity test: inverted to 1 → identical float signature. Both
+  polarities leave the CPU dead, suggesting the PMOS power switch is not the
+  (only) polarity issue, or power isn't the whole story.
+- Schematic: ~CHIP_ENABLE gates a P-MOSFET high-side switch on the V30's 5V;
+  AD0-15 behind F_AD_DIR transceivers; A16-19 fixed CPU→FPGA.
+
+**Physical measurements (Martin, 2026-07-11):** VDD = 5 V, CLK = 4 MHz,
+READY high, RESET low (post-release), CHIP_ENABLE gating works. Chip is
+powered, clocked, and reset correctly — yet drives nothing.
+
+## ROOT CAUSE: RQ/AK0 and RQ/AK1 grounded on the PCB
+
+The PCB netlist ties V30 socket pads 30 and 31 to GND. Correct for
+small-mode semantics (HLDRQ active-high input, HLDAK output idles low), but
+the harness straps LARGE mode, where pins 30/31 are RQ/AK1 and RQ/AK0 —
+**active-low bus-hold request inputs. Grounded = permanent hold request.**
+Per datasheet p98-99, the CPU acknowledges and floats the address bus,
+AD bus, and all control lines — indefinitely. Matches every observation,
+including the lone queue-status blip at startup.
+
+**Fix (chip is socketed):** bend pins 30 and 31 out of the socket and pull
+each up to 5 V through 10 k. (The 8086 has internal pull-ups on RQ/GT and
+the V30 likely inherits them, but the datasheet doesn't confirm it — use
+external pull-ups.)
+
+**Alternative validation path (no rework):** drive S/LG high (FPGA pin
+NEC_LG_N) to select small mode, where the grounded pins are electrically
+correct — but this loses QS0/QS1 queue status, so it is only a stepping
+stone. Harness FSM would need a min-mode decode variant (ASTB as address
+strobe, IO/M + RD/WR for cycle type).
+
+## 2026-07-11 (later) — SMALL MODE: CPU EXECUTING, full chain verified
+
+Implemented small-scale mode in nec_bus (cfg_small_mode: transparent ASTB
+address latch, RD/WR strobe-driven datapath, IO/M low=I/O). NEC_LG_N=1.
+Dual-mode verilator TB passes. Deployed to hardware:
+
+**The V30 executes the boot program.** Captured trace (capture8) shows:
+- RESET release → pins go from floating to driven-idle ~8 cycles later;
+  **first bus cycle ~9 CPU clocks after reset release** (small mode,
+  preliminary — sampling offsets not yet calibrated out).
+- First fetch at FFFF0h, FPGA BRAM returns 00EA (far jump) — then prefetch
+  overshoot: fetches FFFF2/FFFF4/FFFF6 (8 bytes for a 5-byte instruction)
+  while the EU decodes.
+- Jump lands: next fetch 00100h. Program bytes stream back exactly as
+  loaded (34B8, BB12, 2000, 0789, 00A0, A120...).
+- MOV [BW],AW executes: MEMW at 02000h, data 1234h, correct byte enables.
+- Loop repeats ~35x across the 4096-cycle trace. 4-cycle bus cycles, zero
+  wait states throughout.
+
+Known capture artifacts to fix:
+- ASTB pulses fall between the two per-cycle sample points → the record's
+  QS[0] bit never shows ASTB high. Make it a sticky-OR over the cycle.
+  (The transparent address latch works; only the record bit is affected.)
+- Pre-drive float reads as "IOR" in the decoder until the CPU starts
+  driving (~8 cycles post-release). Cosmetic.
+- JTAG bulk reads still occasionally all-zero; dump_capture.tcl now
+  retries aggressively (all-zero chunk = provably bogus since READY bit
+  is always set in valid records). capture8 = 4096/4096 valid.
+
+**Milestone: full discovery-loop chain works** — assemble program → load
+BRAM → power/reset sequence → real V30 executes → per-cycle capture →
+JTAG dump → decode. Next: sticky strobe bits, then the RQ/AK rework to
+unlock large mode + queue status.
+
+**Tooling notes:**
+- `read_content_from_memory` returns content highest-address-first; bulk
+  reads intermittently return all-zeros on Quartus 17.1 even with re-read
+  verification (single-word reads are reliable). sw/dump_capture.tcl uses
+  64-word chunks + retry; treat all-zero regions in dumps with suspicion —
+  a genuine record always has the READY bit (51) set.
+- A valid capture record can never be 0x0000000000000000.

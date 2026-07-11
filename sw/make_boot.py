@@ -35,9 +35,25 @@ put(0x0100, bytes([
 
 ]))
 
+def write_mif(path, data):
+    lines = [
+        f"WIDTH=8;",
+        f"DEPTH={len(data)};",
+        "ADDRESS_RADIX=HEX;",
+        "DATA_RADIX=HEX;",
+        "CONTENT BEGIN",
+    ]
+    lines += [f"{a:X} : {b:02X};" for a, b in enumerate(data)]
+    lines.append("END;")
+    path.write_text("\n".join(lines) + "\n")
+
 out = Path(__file__).resolve().parent.parent / "hdl" / "rtl"
 even = mem[0::2]
 odd = mem[1::2]
+# $readmemh images for simulation
 (out / "boot_even.hex").write_text("\n".join(f"{b:02x}" for b in even) + "\n")
 (out / "boot_odd.hex").write_text("\n".join(f"{b:02x}" for b in odd) + "\n")
-print(f"wrote {out}/boot_even.hex and boot_odd.hex ({SIZE} bytes total)")
+# .mif images for the altsyncram init_file (synthesis)
+write_mif(out / "boot_even.mif", even)
+write_mif(out / "boot_odd.mif", odd)
+print(f"wrote boot_even/odd .hex and .mif to {out} ({SIZE} bytes total)")

@@ -54,6 +54,26 @@ Hardware constraints encoded in `nec_bus`:
 The buffer arms when the CPU leaves reset and stops when full (4096 cycles
 = ~1 ms at 4 MHz), so reset release and first fetch are always in the trace.
 
+## JTAG readout (no IO board / HPS bridge required)
+
+All three RAMs are runtime-modifiable over the same JTAG cable used for
+programming (In-System Memory Content Editor):
+
+| Instance ID | Contents |
+|---|---|
+| `CAPT` | capture buffer, 4096 x 64 |
+| `ME0`  | test memory, even byte lane, 32768 x 8 |
+| `ME1`  | test memory, odd byte lane, 32768 x 8 |
+
+- Dump a trace: `quartus_stp -t sw/dump_capture.tcl capture.hex`, then
+  `python3 sw/decode_capture.py capture.hex -n 100`
+- Load a test program without recompiling: write `ME0`/`ME1` from the
+  In-System Memory Content Editor (GUI or `write_content_to_memory` in a
+  quartus_stp Tcl script), then re-arm by resetting the core.
+
+`LED_USER` carries the capture-full flag but is not observable without a
+MiSTer IO board.
+
 ## Boot image
 
 `rtl/boot_even.hex` / `rtl/boot_odd.hex` hold the 64 KB memory image

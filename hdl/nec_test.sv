@@ -302,7 +302,10 @@ assign VGA_B  = (!col || col == 3) ? video : 8'd0;
 wire nec_dbg_led;
 assign LED_USER = nec_dbg_led;
 
-assign NEC_LG_N = 0;
+// S/LG strap: 1 = small-scale mode, 0 = large-scale (max) mode.
+// Small mode until the RQ/AK0-1 ground ties are reworked (bringup_log.md).
+// Must match cfg_small_mode in system_large.sv.
+assign NEC_LG_N = 1;
 
 system_large system_large
 (

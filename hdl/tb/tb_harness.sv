@@ -32,9 +32,10 @@ always #15.625 clk = ~clk;   // 32 MHz
 wire  [19:0] NEC_AD;
 wire         NEC_AD_DIR, NEC_CLK, NEC_POLL_N, NEC_READY, NEC_RESET;
 wire         NEC_INT, NEC_NMI, NEC_ENABLE_N;
-logic  [1:0] qs_drv = 2'b00;
+logic  [1:0] qs_drv = 2'b10;   // small-mode idle: {INTAK=1, ASTB=0}
 logic  [2:0] bs_drv = BS_PASV;
 logic        buslock_n_drv = 1'b1, ube_n_drv = 1'b1, rd_n_drv = 1'b1;
+logic        small_mode = 0;
 
 // BFM drive of the muxed bus: address phase drives all 20 bits, data phase
 // (writes) drives 15:0; A19:16 are CPU-driven at all times on real hardware.
@@ -60,6 +61,7 @@ wire        cpu_running;
 nec_bus dut
 (
     .clk(clk), .reset(reset),
+    .cfg_small_mode(small_mode),
     .cfg_clk_div(6'd8), .cfg_wait_states(4'd0), .cfg_int_vector(8'hFF),
     .int_req(1'b0), .nmi_req(1'b0), .poll_n_in(1'b0),
     .NEC_AD(NEC_AD), .NEC_AD_DIR(NEC_AD_DIR), .NEC_CLK(NEC_CLK),
@@ -71,10 +73,11 @@ nec_bus dut
     .mem_addr(mem_addr), .mem_cycle_type(mem_cycle_type), .mem_rdata(mem_rdata),
     .mem_wr_req(mem_wr_req), .mem_wdata(mem_wdata), .mem_be(mem_be),
     .cap_valid(cap_valid), .cap_record(cap_record),
-    .cpu_running(cpu_running)
+    .cpu_running(cpu_running),
+    .pwr_good_o()
 );
 
-test_mem #(.INIT_EVEN("hdl/rtl/boot_even.hex"), .INIT_ODD("hdl/rtl/boot_odd.hex")) mem
+test_mem #(.INIT_EVEN_SIM("hdl/rtl/boot_even.hex"), .INIT_ODD_SIM("hdl/rtl/boot_odd.hex")) mem
 (
     .clk(clk),
     .addr(mem_addr), .cycle_type(mem_cycle_type), .rdata(mem_rdata),
@@ -141,6 +144,45 @@ task automatic bus_cycle(
     @(posedge NEC_CLK);
 endtask
 
+// Small-scale mode bus cycle: ASTB address strobe, RD/WR strobes.
+// bs_drv[2] carries IO/M (1 = memory), qs_drv = {INTAK, ASTB},
+// buslock_n_drv carries WR.
+task automatic small_bus_cycle(
+    input bit        is_write,
+    input bit        is_io,
+    input bit [19:0] addr,
+    input bit        ube_n,
+    input bit [15:0] wdata,
+    output bit [15:0] rdata
+);
+    // T1: raise ASTB with the address; IO/M valid with address
+    @(posedge NEC_CLK); #(TDLY);
+    ad_drv = addr; ube_n_drv = ube_n; ad_addr_en = 1;
+    bs_drv[2] = ~is_io;
+    qs_drv[0] = 1;
+    @(negedge NEC_CLK); #(TDLY);
+    qs_drv[0] = 0;                       // ASTB falls: address latched
+    // T2: float address, assert strobe
+    @(posedge NEC_CLK); #(TDLY);
+    ad_addr_en = 0;
+    if (is_write) begin
+        ad_drv = {4'h0, wdata}; ad_data_en = 1;
+        buslock_n_drv = 0;               // WR low
+    end else begin
+        rd_n_drv = 0;
+    end
+    // T3: CPU samples read data at the falling edge
+    @(posedge NEC_CLK);
+    @(negedge NEC_CLK);
+    rdata = NEC_AD[15:0];
+    // T4: raise strobes; the CPU holds write data past the WR rising edge
+    @(posedge NEC_CLK); #(TDLY);
+    rd_n_drv = 1; buslock_n_drv = 1;
+    #(TDLY);
+    ad_data_en = 0; ube_n_drv = 1;
+    @(posedge NEC_CLK);
+endtask
+
 bit [15:0] rd;
 int reset_clks;
 
@@ -187,6 +229,38 @@ initial begin
 
     // capture buffer is recording
     check(cap_count > 0, $sformatf("capture count %0d > 0", cap_count));
+
+    //------------------------------------------------------------------
+    // Small-scale mode phase: reset, switch modes, repeat the checks
+    //------------------------------------------------------------------
+    reset = 1;
+    small_mode = 1;
+    bs_drv = BS_PASV; qs_drv = 2'b10; rd_n_drv = 1; buslock_n_drv = 1;
+    repeat (4) @(posedge clk);
+    reset = 0;
+    while (NEC_RESET) @(posedge NEC_CLK);
+    $display("-- small-scale mode --");
+
+    // code/memory fetch at reset vector
+    small_bus_cycle(0, 0, 20'hFFFF0, 1'b0, 16'h0, rd);
+    check(rd == 16'h00EA, $sformatf("sm: vector fetch returned %04x (expect 00EA)", rd));
+
+    // word write + readback
+    small_bus_cycle(1, 0, 20'h02000, 1'b0, 16'h5678, rd);
+    small_bus_cycle(0, 0, 20'h02000, 1'b0, 16'h0, rd);
+    check(rd == 16'h5678, $sformatf("sm: write/readback returned %04x (expect 5678)", rd));
+
+    // odd byte write merges into the high lane
+    small_bus_cycle(1, 0, 20'h02001, 1'b0, 16'hCD00, rd);
+    small_bus_cycle(0, 0, 20'h02000, 1'b0, 16'h0, rd);
+    check(rd == 16'hCD78, $sformatf("sm: odd-byte merge returned %04x (expect CD78)", rd));
+
+    // I/O read returns 0, and the write must NOT hit memory
+    small_bus_cycle(1, 1, 20'h02000, 1'b0, 16'hBEEF, rd);
+    small_bus_cycle(0, 1, 20'h00080, 1'b0, 16'h0, rd);
+    check(rd == 16'h0000, $sformatf("sm: io read returned %04x (expect 0000)", rd));
+    small_bus_cycle(0, 0, 20'h02000, 1'b0, 16'h0, rd);
+    check(rd == 16'hCD78, $sformatf("sm: io write left memory %04x (expect CD78)", rd));
 
     if (errors == 0) $display("ALL TESTS PASSED");
     else $display("%0d TEST(S) FAILED", errors);

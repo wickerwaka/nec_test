@@ -44,9 +44,10 @@ module system_large
     input         NEC_RD_N,     // Current cycle is a read cycle (active_low)
     output        NEC_ENABLE_N, // Power on the CPU (active low)
 
-    output        dbg_led       // capture status; also anchors the capture RAM
-                                // so it survives synthesis until the HPS
-                                // bridge becomes its real consumer
+    output        dbg_led       // capture-full status. Not observable without
+                                // a MiSTer IO board; the real readout path is
+                                // JTAG (In-System Memory Content Editor,
+                                // instance IDs CAPT/ME0/ME1)
 );
 
 // DDRAM - unused, directly assign to 0
@@ -57,6 +58,13 @@ assign {DDRAM_CLK, DDRAM_BURSTCNT, DDRAM_ADDR, DDRAM_DIN, DDRAM_BE, DDRAM_RD, DD
 //----------------------------------------------------------------------------
 // 32 MHz sys clock / 8 = 4 MHz CPU clock: comfortably inside the
 // uPD70116C-8's 2-8 MHz legal range with 8 sys samples per CPU cycle.
+//
+// SMALL-SCALE MODE (temporary): RQ/AK0-1 are grounded on the adapter PCB,
+// which permanently hold-requests the bus in large mode (see
+// docs/notes/bringup_log.md). Small mode is electrically correct on this
+// board but has no QS0/QS1 queue status. MUST match NEC_LG_N in nec_test.sv
+// (S/LG high = small).
+wire       cfg_small_mode  = 1'b1;
 wire [5:0] cfg_clk_div     = 6'd8;
 wire [3:0] cfg_wait_states = 4'd0;
 wire [7:0] cfg_int_vector  = 8'hFF;
@@ -73,12 +81,14 @@ wire  [1:0] mem_be;
 wire        cap_valid;
 wire [63:0] cap_record;
 wire        cpu_running;
+wire        pwr_good;
 
 nec_bus bus
 (
     .clk(clk),
     .reset(reset),
 
+    .cfg_small_mode(cfg_small_mode),
     .cfg_clk_div(cfg_clk_div),
     .cfg_wait_states(cfg_wait_states),
     .cfg_int_vector(cfg_int_vector),
@@ -112,7 +122,8 @@ nec_bus bus
     .cap_valid(cap_valid),
     .cap_record(cap_record),
 
-    .cpu_running(cpu_running)
+    .cpu_running(cpu_running),
+    .pwr_good_o(pwr_good)
 );
 
 //----------------------------------------------------------------------------
@@ -142,7 +153,7 @@ capture_buf #(.LOG2_DEPTH(12)) capture
 (
     .clk(clk),
     .reset(reset),
-    .arm(cpu_running),
+    .arm(pwr_good),      // record the tail of the reset sequence too
     .wr_valid(cap_valid),
     .wr_data(cap_record),
     .full(cap_full),
