@@ -1,0 +1,51 @@
+
+[3] REPE CMPBKW odd-address slope (expect 22/rep):
+  CW=1: REP F 2 + insn 33 = 35
+  CW=2: REP F 2 + insn 55 = 57
+  CW=3: REP F 2 + insn 77 = 79
+  totals=[35, 57, 79] slopes=[22, 22] -> 7+22/rep layout reading CONFIRMED
+
+[6] INS reg,reg worst-ish cases vs printed max 117:
+INS DL,CL off=0 len=16       F-gap  47  (NOP baseline 3, 32 F ops)
+INS DL,CL off=15 len=16      F-gap 120  (NOP baseline 3, 32 F ops)
+INS DL,CL off=7 len=16       F-gap  96  (NOP baseline 3, 32 F ops)
+
+[9] INM (6C): which index register moves?
+  IY 0x0900 -> 0x0901, IX 0x0010 -> 0x0010 -> IY updated (prose typo confirmed)
+
+[11] ADD AW,imm arithmetic:
+  0x1111 + 0x1111 = 0x2222 -> addition confirmed
+
+[12] SUB [BW+IX+0x40], DW with displacement:
+  [0x0850]=0x1234 - DW=0x0034 -> readback 0x1200 -> disp form works (boxes are a print omission)
+
+[14] SUBC BW, DW (BW=10, DW=3, CY=1):
+  BW=6 DW=3 -> dest=first operand (BW=6), layout as transcribed
+
+[16] MULU byte [BW] bus transfers:
+  AW=7 * [0x0800]=5 -> AW=0x0023; data transfers: [('MEMR', '0x800')] -> 1 read (Transfers: None is a misprint)
+
+[20] DIVU word [BW]: where does the quotient go?
+  DW:AW=9 / [0x0800]=3 -> AW=0x0003 DW=0x0000 -> AW=quotient, DW=remainder (AL is a misprint for AW)
+
+[25] XOR word [BW+0x40], 0x1234 (disp8 then imm16 on wire):
+  0xFFFF ^ 0x1234 -> readback 0xedcb -> disp-before-imm confirmed (box layout is a print artifact)
+
+[32] SHRA byte [BW], 2 on 0x84:
+  0x84 >>a 2 -> 0xe1 -> sign-extends the MEMORY operand (prose typo)
+
+[33] ROR AL, CL with CL=3: is CL consumed?
+  AL' = 0x22 CW = 3 -> CL preserved (microcode uses temp; wording only)
+
+[34] ROR byte [BW], 1 on 0x01 (LSB must reach MSB):
+  0x01 ror 1 -> 0x80 -> MSB set (formula omission is a print artifact)
+
+[37] RORC byte [BW], CL (CL=3, CY=0) on 0x80:
+  -> 0x10 -> matches reg-form 0x10 (formula typo, operand is mem)
+
+[49] RETI restores CY from the stack frame:
+  frame PSW=0xf003: PSW out=0xf003 CY=1 AW=1 -> restored
+  frame PSW=0xf002: PSW out=0xf002 CY=0 AW=1 -> restored
+
+[50] EI sets PSW.IE (bit 9):
+  PSW out=0xf202 IE=1 -> IE set (formula misprint confirmed)

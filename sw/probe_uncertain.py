@@ -184,16 +184,212 @@ def probe_rolc_cl(a, host):
                              "    ROLC AW, CL\n", {"CW": 4}, tag="rolc")
 
 
+#----------------------------------------------------------------------------
+# mission 11 batch 2: remaining _uncertain entries
+#----------------------------------------------------------------------------
+
+def run_full(a, host, src, regs=None, tag="pu", ivt=None, ram=None):
+    code = a.assemble(src, org=0x0500)
+    regs_full = dict({"PS": 0, "PC": 0x0500}, **(regs or {}))
+    return run_test(regs=regs_full, instr=code, host=host, tag=tag,
+                    ivt=ivt, ram=ram)
+
+
+def probe_cmpbk_odd_slope(a, host):
+    """[3] CMPBK odd-address repeat clocks printed 7+22/rep on a garbled
+    line. Measure REPE CMPBKW at odd src/dst, CW=1..3: slope should be 22
+    if the layout reading is right (even slope measured 14; odd = +8 for
+    two split word reads per iteration)."""
+    from sweep_timing import fgap_run
+    print("\n[3] REPE CMPBKW odd-address slope (expect 22/rep):")
+    totals = []
+    for cw in (1, 2, 3):
+        regs = {"DS0": 0, "IX": 0x0801, "DS1": 0, "IY": 0x0901, "CW": cw}
+        src = "    NOP\n" * 16 + "    REPE\n    CMPBKW\n" + "    NOP\n" * 8
+        gaps, _ = fgap_run(a, host, src, regs, tag=f"cbo{cw}")
+        tot = gaps[16] + gaps[17]
+        totals.append(tot)
+        print(f"  CW={cw}: REP F {gaps[16]} + insn {gaps[17]} = {tot}")
+    slopes = [b - x for x, b in zip(totals, totals[1:])]
+    print(f"  totals={totals} slopes={slopes} -> "
+          f"{'7+22/rep layout reading CONFIRMED' if all(s == 22 for s in slopes) else 'slope != 22'}")
+
+
+def probe_ins_max(a, host):
+    """[6] INS reg,reg even max printed 117 (> odd max 113). Time the
+    worst case (16-bit field, offset 15 -> byte-boundary work)."""
+    from exp_biu import fspacing_case
+    print("\n[6] INS reg,reg worst-ish cases vs printed max 117:")
+    for dl, cl in ((0, 15), (15, 15), (7, 15)):
+        regs = {"DS1": 0, "IY": 0x0900, "AW": 0xFFFF, "DW": dl, "CW": cl}
+        gap, _ = fspacing_case(a, host, f"INS DL,CL off={dl} len={cl+1}",
+                               "    DB 0x0F, 0x31, 0xCA\n", regs,
+                               tag=f"insx{dl}")
+
+
+def probe_inm_iy(a, host):
+    """[9] INM prose says IX auto-incremented; operation says IY."""
+    print("\n[9] INM (6C): which index register moves?")
+    regs = run(a, host, "    DB 0x6C\n",
+               {"DS1": 0, "IY": 0x0900, "IX": 0x0010, "DW": 0x0040},
+               tag="inm")
+    print(f"  IY 0x0900 -> {regs['IY']:#06x}, IX 0x0010 -> "
+          f"{regs['IX']:#06x} -> "
+          f"{'IY updated (prose typo confirmed)' if regs['IY'] == 0x0901 and regs['IX'] == 0x0010 else '??'}")
+
+
+def probe_add_acc_imm(a, host):
+    """[11] ADD acc,imm operation printed without '+'."""
+    print("\n[11] ADD AW,imm arithmetic:")
+    regs = run(a, host, "    ADD AW, 0x1111\n", {"AW": 0x1111}, tag="aai")
+    print(f"  0x1111 + 0x1111 = {regs['AW']:#06x} -> "
+          f"{'addition confirmed' if regs['AW'] == 0x2222 else '??'}")
+
+
+def probe_sub_mem_disp(a, host):
+    """[12] SUB mem,reg printed without disp byte-boxes; verify the
+    displacement form executes (encoding 29 50 40 = [BW+IX+0x40])."""
+    print("\n[12] SUB [BW+IX+0x40], DW with displacement:")
+    regs = run(a, host,
+               "    SUB [BW+IX+0x40], DW\n    MOV CW, [BW+IX+0x40]\n",
+               {"BW": 0x0800, "IX": 0x0010, "DS0": 0, "DW": 0x0034},
+               ram=[(0x0850, 0x34), (0x0851, 0x12)], tag="smd")
+    print(f"  [0x0850]=0x1234 - DW=0x0034 -> readback {regs['CW']:#06x} "
+          f"-> {'disp form works (boxes are a print omission)' if regs['CW'] == 0x1200 else '??'}")
+
+
+def probe_subc_direction(a, host):
+    """[14] SUBC reg,reg field layout: which reg is destination?"""
+    print("\n[14] SUBC BW, DW (BW=10, DW=3, CY=1):")
+    regs = run(a, host, "    SUBC BW, DW\n",
+               {"BW": 10, "DW": 3, "PSW": PSW_CY}, tag="sbc")
+    print(f"  BW={regs['BW']} DW={regs['DW']} -> "
+          f"{'dest=first operand (BW=6), layout as transcribed' if regs['BW'] == 6 and regs['DW'] == 3 else '??'}")
+
+
+def probe_mul_mem8_transfers(a, host):
+    """[16] MUL mem8 'Transfers: None' — count data transfers on the bus."""
+    print("\n[16] MULU byte [BW] bus transfers:")
+    res = run_full(a, host, "    MULU byte [BW]\n",
+                   {"AW": 7, "BW": 0x0800, "DS0": 0},
+                   ram=[(0x0800, 5)], tag="mmt")
+    data = [t for t in res["test_txns"] if t["kind"] in ("MEMR", "MEMW")]
+    print(f"  AW=7 * [0x0800]=5 -> AW={res['regs']['AW']:#06x}; "
+          f"data transfers: {[(t['kind'], hex(t['addr'])) for t in data]} "
+          f"-> {'1 read (Transfers: None is a misprint)' if len(data) == 1 else '??'}")
+
+
+def probe_divu_mem16(a, host):
+    """[20] DIVU mem16 'AL <- temp / (mem16)' — quotient register width."""
+    print("\n[20] DIVU word [BW]: where does the quotient go?")
+    regs = run(a, host, "    DIVU word [BW]\n",
+               {"AW": 0x0009, "DW": 0, "BW": 0x0800, "DS0": 0},
+               ram=[(0x0800, 3), (0x0801, 0)], tag="dvm")
+    print(f"  DW:AW=9 / [0x0800]=3 -> AW={regs['AW']:#06x} "
+          f"DW={regs['DW']:#06x} -> "
+          f"{'AW=quotient, DW=remainder (AL is a misprint for AW)' if regs['AW'] == 3 and regs['DW'] == 0 else '??'}")
+
+
+def probe_xor_mem_imm_order(a, host):
+    """[25] XOR mem,imm byte-box order printed imm-above-disp; the wire
+    order the assembler emits (disp first: 81 77 40 34 12) must execute."""
+    print("\n[25] XOR word [BW+0x40], 0x1234 (disp8 then imm16 on wire):")
+    regs = run(a, host,
+               "    XOR word [BW+0x40], 0x1234\n    MOV CW, [BW+0x40]\n",
+               {"BW": 0x0800, "DS0": 0},
+               ram=[(0x0840, 0xFF), (0x0841, 0xFF)], tag="xmi")
+    print(f"  0xFFFF ^ 0x1234 -> readback {regs['CW']:#06x} -> "
+          f"{'disp-before-imm confirmed (box layout is a print artifact)' if regs['CW'] == 0xEDCB else '??'}")
+
+
+def probe_shra_mem(a, host):
+    """[32] SHRA mem,imm8 prose says 'register MSB'; verify memory MSB."""
+    print("\n[32] SHRA byte [BW], 2 on 0x84:")
+    regs = run(a, host, "    SHRA byte [BW], 2\n    MOV DL, byte [BW]\n",
+               {"BW": 0x0800, "DS0": 0}, ram=[(0x0800, 0x84)], tag="shm")
+    dl = regs["DW"] & 0xFF
+    print(f"  0x84 >>a 2 -> {dl:#04x} -> "
+          f"{'sign-extends the MEMORY operand (prose typo)' if dl == 0xE1 else '??'}")
+
+
+def probe_ror_cl_preserved(a, host):
+    """[33] ROR reg,CL 'while CL != 0': does CL survive?"""
+    print("\n[33] ROR AL, CL with CL=3: is CL consumed?")
+    regs = run(a, host, "    ROR AL, CL\n", {"AW": 0x11, "CW": 3},
+               tag="rcl")
+    print(f"  AL' = {regs['AW'] & 0xFF:#04x} CW = {regs['CW']} -> "
+          f"{'CL preserved (microcode uses temp; wording only)' if regs['CW'] == 3 else 'CL CONSUMED?!'}")
+
+
+def probe_ror_mem_msb(a, host):
+    """[34] ROR mem,imm8 formula lacks the MSB<-CY step."""
+    print("\n[34] ROR byte [BW], 1 on 0x01 (LSB must reach MSB):")
+    regs = run(a, host, "    ROR byte [BW], 1\n    MOV DL, byte [BW]\n",
+               {"BW": 0x0800, "DS0": 0}, ram=[(0x0800, 0x01)], tag="rmm")
+    dl = regs["DW"] & 0xFF
+    print(f"  0x01 ror 1 -> {dl:#04x} -> "
+          f"{'MSB set (formula omission is a print artifact)' if dl == 0x80 else '??'}")
+
+
+def probe_rorc_mem_cl(a, host):
+    """[37] RORC mem,CL formula prints 'reg <- reg / 2'; verify the memory
+    operand rotates exactly like the reg form (mission 8: 0x80,CY=0,CL=3
+    -> 0x10)."""
+    print("\n[37] RORC byte [BW], CL (CL=3, CY=0) on 0x80:")
+    regs = run(a, host, "    RORC byte [BW], CL\n    MOV DL, byte [BW]\n",
+               {"BW": 0x0800, "DS0": 0, "CW": 3, "PSW": 0},
+               ram=[(0x0800, 0x80)], tag="rmc")
+    dl = regs["DW"] & 0xFF
+    print(f"  -> {dl:#04x} -> "
+          f"{'matches reg-form 0x10 (formula typo, operand is mem)' if dl == 0x10 else '??'}")
+
+
+def probe_reti_flags(a, host):
+    """[49] RETI flag table scan smudge ('R*' in CY cell): CY restored?"""
+    print("\n[49] RETI restores CY from the stack frame:")
+    for i, (frame_psw, want_cy) in enumerate([(0xF003, 1), (0xF002, 0)]):
+        ram = [(0x0F00, 0x01), (0x0F01, 0x05),       # return PC 0x0501
+               (0x0F02, 0x00), (0x0F03, 0x00),       # PS 0
+               (0x0F04, frame_psw & 0xFF), (0x0F05, frame_psw >> 8)]
+        regs = run(a, host, "    RETI\n    INC AW\n",
+                   {"SS": 0, "SP": 0x0F00, "AW": 0}, ram=ram, tag=f"rti{i}")
+        cy = regs["PSW"] & PSW_CY
+        print(f"  frame PSW={frame_psw:#06x}: PSW out={regs['PSW']:#06x} "
+              f"CY={cy} AW={regs['AW']} -> "
+              f"{'restored' if cy == want_cy and regs['AW'] == 1 else '??'}")
+
+
+def probe_ei(a, host):
+    """[50] EI operation printed 'EI <- 1' (misprint for IE)."""
+    print("\n[50] EI sets PSW.IE (bit 9):")
+    regs = run(a, host, "    EI\n", {"PSW": 0}, tag="ei")
+    ie = (regs["PSW"] >> 9) & 1
+    print(f"  PSW out={regs['PSW']:#06x} IE={ie} -> "
+          f"{'IE set (formula misprint confirmed)' if ie == 1 else '??'}")
+
+
+BATCH2 = (probe_cmpbk_odd_slope, probe_ins_max, probe_inm_iy,
+          probe_add_acc_imm, probe_sub_mem_disp, probe_subc_direction,
+          probe_mul_mem8_transfers, probe_divu_mem16,
+          probe_xor_mem_imm_order, probe_shra_mem, probe_ror_cl_preserved,
+          probe_ror_mem_msb, probe_rorc_mem_cl, probe_reti_flags, probe_ei)
+
+
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("cmd", choices=["all"])
+    ap.add_argument("cmd", choices=["all", "batch2"])
     ap.add_argument("--host", default="root@mister-nec")
     args = ap.parse_args()
     a = Assembler()
-    for fn in (probe_shr_cy, probe_brk_bytes, probe_rorc_v, probe_adj4a,
-               probe_div_conditions, probe_mul_flags, probe_bitop_encodings,
-               probe_rolc_cl):
-        fn(a, args.host)
+    fns = BATCH2 if args.cmd == "batch2" else (
+        probe_shr_cy, probe_brk_bytes, probe_rorc_v, probe_adj4a,
+        probe_div_conditions, probe_mul_flags, probe_bitop_encodings,
+        probe_rolc_cl)
+    for fn in fns:
+        try:
+            fn(a, args.host)
+        except Exception as e:                        # noqa: BLE001
+            print(f"  PROBE FAILED ({fn.__name__}): {str(e)[:120]}")
     return 0
 
 

@@ -363,6 +363,25 @@ yet; INS reg,imm4 at 54 is below the manual's own 67-87 range.
 DW=5, caught when the first "in bounds" attempt ran away through
 unhooked vector 5.
 
+## instructions.json uncertainties: list closed (2026-07-11, mission 11)
+
+sw/probe_uncertain.py batch2 (15 probes, sw/testdata/uncertain_batch2.out)
+plus mission 10 timing data retire the remaining 36 _uncertain entries —
+**all 53 are now resolved** (19 hardware/citation, 17 cosmetic). Notable:
+
+- **CMPBK odd-address repeat clocks confirmed 7+22/rep** (35/57/79 at
+  CW=1/2/3, slope exactly 22 — the garbled manual line read correctly).
+- **INS reg,reg even max 117 is NOT a misprint**: worst case (offset 15,
+  len 16) measures 120 = 117 + the 0F-class +3; the even range really
+  exceeds the odd max.
+- INM updates IY (prose says IX — typo); DIVU mem16 quotient goes to AW;
+  MUL mem8 performs 1 data transfer ('Transfers: None' misprint); XOR
+  mem,imm wire order is disp-then-imm; SUBC reg,reg destination is the
+  reg-field operand; RETI restores CY; EI sets IE; SHRA/ROR/RORC mem-form
+  formula typos verified behaviorally.
+- CALLN's 'SP <- PS - 6' noted as cosmetic (8080-mode only; not runnable
+  without the recovery path).
+
 ## Undefined-flag survey (2026-07-11, mission 8)
 
 sw/probe_flags.py: 53 cases / 275 runs covering every U-flag class in
