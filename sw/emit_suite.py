@@ -100,6 +100,10 @@ OPCODES["F6.4"] = SPEC("F6.4", "mul", [0xF6], modrm="grp8", group=4)
 OPCODES["F7.6"] = SPEC("F7.6", "div", [0xF7], modrm="grp16", group=6, w=1,
                        divtrap=True, stack=True)
 OPCODES["FE.0"] = SPEC("FE.0", "inc", [0xFE], modrm="grp8", group=0)
+OPCODES["F7.7"] = SPEC("F7.7", "div", [0xF7], modrm="grp16", group=7, w=1,
+                       divtrap=True, stack=True)
+OPCODES["F6.7"] = SPEC("F6.7", "div", [0xF6], modrm="grp8", group=7,
+                       divtrap=True, stack=True)
 OPCODES["0F18"] = SPEC("0F18", "test1", [0x0F, 0x18], modrm="grp8",
                        group=0, imm=1, imm_mask=0x07)
 OPCODES["0F28"] = SPEC("0F28", "rol4", [0x0F, 0x28], modrm="grp8", group=0)

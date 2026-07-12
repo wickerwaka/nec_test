@@ -76,7 +76,26 @@ compare flags as the PSW; the divide loop itself never touches flags.
 For non-trap cases DW < divisor always holds, so the borrow forces CY=1,
 Z=0, and (for this probe's operand mix) S=1/AC=1 — hence the earlier
 constant reading. Verified bit-exact 500/500 by the RTL core replay
-(sw/check_core.py). The DIV (signed) row above has not been re-fitted.
+(sw/check_core.py).
+
+**CORRECTION (2026-07-12, Campaign 3 mission F): DIV (signed) re-fitted
+on dedicated F7.7/F6.7 tranches (500 cases each incl. traps).** The
+signed law is the magnitude analog - the flags are always the residue
+of the LAST magnitude micro-op, bit-exact on all 1000 cases:
+- **Trap condition** (byte and word forms): divisor==0, or
+  |num_high| >= |divisor| (magnitude pre-check on absolute values), or
+  the unsigned quotient |num|/|divisor| exceeds 2^(n-1)-1. The range
+  check is SYMMETRIC: quotient -128/-32768 TRAPS (measured: AW=0x3C15
+  / divisor 0x88, quotient exactly -128, takes vector 0).
+- **Early trap** (divisor 0 / pre-check): flags = flags of
+  SUB(|num_high|, |divisor|) at operand width - all six, pushed PSW
+  included (live flags additionally lose IE/TF as usual).
+- **Late trap and non-trap**: flags = S/Z/P of the UNSIGNED quotient
+  with CY=AC=V=0 (the quotient-magnitude write; the sign-fixup
+  micro-ops never touch flags). The old "P=1, Z=(quotient==0)"
+  constants were this law seen through small-quotient probes.
+- Quotient/remainder truncate toward zero; remainder sign follows the
+  dividend (126+123 non-trap cases).
 
 ### Shift/rotate V (the "o" the V20 suite masks)
 All samples fit the 8086's single-step OF formula applied to the **final**
