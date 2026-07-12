@@ -314,12 +314,12 @@ class Assembler:
                            f"(available: {[p for p, _ in self.forms[mnem]]})")
         _, atoms, rec = best
         try:
-            return self._emit(rec, atoms, ops, pc)
+            return self._emit(rec, atoms, ops, pc, final=(_pass == 2))
         except AsmError as e:
             raise AsmError(f"{line!r}: {e}") from None
 
     # ------------------------------------------------------------------
-    def _emit(self, rec, atoms, ops, pc):
+    def _emit(self, rec, atoms, ops, pc, final=True):
         """Fill the encoding byte templates with field values."""
         # operand roles
         regop = next((o for o in ops if o.kind in ("reg8", "reg16")), None)
@@ -470,7 +470,7 @@ class Assembler:
             target = immop[1].value
             rel = target - (pc + len(body))
             if size == 1:
-                if not -128 <= rel <= 127:
+                if final and not -128 <= rel <= 127:
                     raise AsmError(f"short branch out of range ({rel})")
                 body[pos] = rel & 0xFF
             else:

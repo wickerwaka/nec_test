@@ -30,7 +30,7 @@ class RunError(Exception):
     pass
 
 
-def run_image(image, host, tag="test"):
+def run_image(image, host, tag="test", waits=0):
     """Ship the image, run it, return the capture records."""
     with tempfile.TemporaryDirectory() as td:
         binp = Path(td) / f"{tag}.bin"
@@ -41,7 +41,8 @@ def run_image(image, host, tag="test"):
         r = subprocess.run(
             ["ssh", host,
              f"cd {REMOTE_DIR} && "
-             f"timeout 10 python3 v30ctl.py cfg --small 0 >/dev/null && "
+             f"timeout 10 python3 v30ctl.py cfg --small 0 --waits {waits} "
+             f">/dev/null && "
              f"timeout 30 python3 v30ctl.py run "
              f"{tag}.bin --cap {tag}.hex --timeout 3"],
             capture_output=True, text=True, timeout=90)
@@ -119,10 +120,10 @@ def parse_result(recs, meta):
 
 
 def run_test(regs=None, instr=b"", host="root@mister-nec", tag="test",
-             ivt=None, stub_linear=None):
+             ivt=None, stub_linear=None, waits=0):
     image, meta = testimage.compose(regs=regs, instr=instr, ivt=ivt,
                                     stub_linear=stub_linear)
-    recs = run_image(image, host, tag)
+    recs = run_image(image, host, tag, waits=waits)
     res = parse_result(recs, meta)
     res["meta"] = meta
     res["recs"] = recs

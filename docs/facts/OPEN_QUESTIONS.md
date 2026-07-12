@@ -34,13 +34,13 @@ Retire entries by moving them to `docs/facts/` files with provenance (datasheet 
 
 ### Q6: Decode time per opcode?
 - Datasheets give execution clocks but not decode latency. Measure instruction-start-to-first-effect via queue status + bus activity for every opcode.
-- **Status**: open
+- **Status**: METHOD VALIDATED (exp 3, biu_model.md): saturated-queue F-spacing matches documented values exactly for reg/imm forms; modrm memory forms measure +2 vs documentation, MULU +9. Full per-opcode sweep = Campaign 2.
 
 ### Q7: When exactly does a jump flush the queue, and what is the refetch penalty?
-- **Status**: open
+- **Status**: ANSWERED (exp 2): flush→fetch-T1 = 1 cycle, flush→first-byte-consumed = 6 cycles, both parities; odd targets get a 1-byte first fetch.
 
 ### Q8: EA calculation timing — flat 2 clocks for all modes as documented?
-- **Status**: open
+- **Status**: SHAPE CONFIRMED (exp 3): [BW], [BW+IX], [BW+IX+disp8] all identical (13 cycles for MOV reg,mem) — flat across modes as documented, though +2 vs the documented total; direct dmem form is 3 cycles faster.
 
 ### Q9: MUL/DIV timing — data-dependent? (V30 algorithm differs from Intel's.)
 - **Status**: DIVU reg16 measured data-INDEPENDENT at 28 cycles F-to-F across 4 operand sets (biu_model.md). MUL and remaining forms pending.
@@ -62,4 +62,4 @@ Retire entries by moving them to `docs/facts/` files with provenance (datasheet 
 - **Status**: open
 
 ### Q15: Self-modifying code vs prefetch queue — at what distance does a write to an already-fetched byte get ignored?
-- **Status**: open
+- **Status**: MEASURED (exp 6b): stale byte executed when the write lands ≤2 bytes past the writing instruction's end; new value at ≥3 (sequence-dependent; no write snooping).
