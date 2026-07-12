@@ -225,6 +225,40 @@ Notable:
 - IN/OUT: silicon charges 9 uniformly; the manual's 8-cycle rows
   (DW-indirect, all OUT) are 1 low.
 
+## Alignment penalties (2026-07-11, mission 5)
+
+sw/sweep_timing.py odd; 25 records (timing_measured.json: odd_operand /
+anchor fields).
+
+**Odd word operands: +4 cycles per split access, exactly and uniformly.**
+Every word load, store, push, pop, and string access at an odd address
+costs its even-aligned time +4 (one extra 4-cycle bus cycle); RMW forms
+(ADD/INC/XCH/SHL mem) cost +8 (both accesses split). 15/15 cases fit:
+
+| Case (odd vs even measured) | even | odd | delta |
+|---|---|---|---|
+| MOV reg,[BW] / ADD reg,[BW] | 13 | 17 | +4 |
+| MOV [BW],reg | 11 | 15 | +4 |
+| MOV acc,dmem / dmem,acc | 10 | 14 | +4 (odd load = doc 14 exact) |
+| ADD/XCH [BW],reg RMW | 19 | 27 | +8 |
+| INC word [BW] | 20 | 28 | +8 |
+| SHL word [BW],1 | 22 | 30 | +8 |
+| MULU word [BW] | 41 | 45 | +4 |
+| PUSH/POP (SP odd) | 9 | 13 | +4 |
+| STMW / LDMW (odd ptr) | 9 | 13 | +4 |
+| MOV DL,byte [odd] | 13 | 13 | 0 (bytes never split) |
+
+Relative deviations vs the manual's odd-address rows keep the same
+class pattern as the even rows (+2 loads, +3..+4 RMW, +1 push/pop).
+
+**Odd code anchor (PC=0x0501): EU-bound forms identical; memory forms
+shift +-1.** NOP/MOV imm/INC/ADD reg,reg/DIVU/MULU/SHL reg,1 all time
+exactly as at even anchors. But ADD reg,mem measured 12 (vs 13 even),
+MOV mem,reg 10 (vs 11), PUSH 10 (vs 9): the code-fetch phase relative
+to the EU's bus slot moves data-access arbitration by one cycle. A
+per-instruction cycle model must account for fetch-phase alignment,
+not just the instruction itself.
+
 ## Divide-overflow semantics (prior work, large context)
 
 - MAME's divide-overflow behavior for V30 (CY/V = !overflow, registers

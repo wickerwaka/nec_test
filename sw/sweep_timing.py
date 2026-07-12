@@ -84,16 +84,24 @@ def parse_clock_value(s, n=None):
     return None
 
 
-def doc_values(rec, w, n=None):
+def doc_values(rec, w, n=None, odd=False):
     """Applicable documented clock values for our conditions (uPD70116,
-    even-aligned operands, operand width w). Returns (set, verbatim list)."""
+    even-aligned operands unless odd=True, operand width w).
+    Returns (set, verbatim list)."""
     vals, verbatim = set(), []
     for c in rec["clocks"]:
         wl = c["when"].lower()
-        if "70108" in wl:
-            continue
-        if "70116" in wl and "odd" in wl:
-            continue
+        if odd:
+            # odd-operand case: take the uPD70116 odd-address rows
+            if "70116" in wl and "even" in wl:
+                continue
+            if "70108" in wl and "70116" not in wl:
+                continue
+        else:
+            if "70108" in wl:
+                continue
+            if "70116" in wl and "odd" in wl:
+                continue
         if re.search(r"w\s*=\s*0", wl) and w != 0:
             continue
         if re.search(r"w\s*=\s*1", wl) and w != 1:
@@ -121,16 +129,17 @@ def derive_width(asm):
 # one measurement
 #----------------------------------------------------------------------------
 
-def measure(a, host, asm, regs=None, n=None, ram=None, tag="sw", note=None):
+def measure(a, host, asm, regs=None, n=None, ram=None, tag="sw", note=None,
+            odd=False, org=0x0500):
     """Assemble one instruction, measure its F-gap, compare to docs.
     Returns the result record (also printed by fspacing_case)."""
     code = a.assemble(asm)
     rec = a.last_rec
     w = a.last_w if getattr(a, "last_w", None) is not None else derive_width(asm)
-    vals, verbatim = doc_values(rec, w, n)
+    vals, verbatim = doc_values(rec, w, n, odd=odd)
     label = f"{asm}"
     gap, nop_t = fspacing_case(a, host, label, f"    {asm}\n",
-                               regs_extra=regs, tag=tag, ram=ram)
+                               regs_extra=regs, tag=tag, ram=ram, org=org)
     out = {
         "nec_form": rec["nec_form"],
         "asm": asm,
@@ -147,6 +156,10 @@ def measure(a, host, asm, regs=None, n=None, ram=None, tag="sw", note=None):
     }
     if n is not None:
         out["n"] = n
+    if odd:
+        out["odd_operand"] = True
+    if org != 0x0500:
+        out["anchor"] = f"0x{org:04X}"
     if ram:
         out["ram"] = [[f"0x{ad:04X}", f"0x{v:02X}"] for ad, v in ram]
     if note:
@@ -166,8 +179,9 @@ def save(results, skipped):
         data["skipped"] = old.get("skipped", [])
 
     def key(r):
-        return (r["nec_form"], r["asm"], json.dumps(r.get("operands", {}),
-                                                    sort_keys=True))
+        return (r["nec_form"], r["asm"],
+                json.dumps(r.get("operands", {}), sort_keys=True),
+                r.get("odd_operand"), r.get("anchor"))
     merged = {key(r): r for r in data["results"]}
     for r in results:
         merged[key(r)] = r
@@ -608,13 +622,75 @@ def cmd_misc(host):
     return 0
 
 
+#----------------------------------------------------------------------------
+# mission 5: alignment penalties (odd word operands; odd code anchor)
+#----------------------------------------------------------------------------
+
+ODD_MEM = {"BW": 0x0801, "IX": 0x0010, "DS0": 0}
+
+
+def cmd_odd(host):
+    # A) odd-aligned word memory operands (code stays even-anchored)
+    cases = [
+        ("MOV DW, [BW]", ODD_MEM, {"odd": True, "note": "odd word load"}),
+        ("MOV [BW], DW", ODD_MEM, {"odd": True, "note": "odd word store"}),
+        ("ADD DW, [BW]", ODD_MEM, {"odd": True}),
+        ("ADD [BW], DW", ODD_MEM, {"odd": True, "note": "odd RMW"}),
+        ("INC word [BW]", ODD_MEM, {"odd": True, "note": "odd RMW"}),
+        ("XCH [BW], DW", ODD_MEM, {"odd": True, "note": "odd RMW"}),
+        ("MOV AW, [0x0801]", {"DS0": 0}, {"odd": True, "note": "odd direct load"}),
+        ("MOV [0x0801], AW", {"DS0": 0}, {"odd": True, "note": "odd direct store"}),
+        ("MOV DL, byte [BW]", ODD_MEM,
+         {"note": "byte at odd addr - no split expected"}),
+        ("MULU word [BW]", dict(ODD_MEM, AW=7),
+         {"odd": True, "ram": [(0x0801, 5), (0x0802, 0)]}),
+        ("SHL word [BW], 1", ODD_MEM, {"odd": True, "note": "odd RMW"}),
+        ("PUSH BW", {"SS": 0, "SP": 0x0F01}, {"odd": True, "note": "SP odd"}),
+        ("POP BW", {"SS": 0, "SP": 0x0F01}, {"odd": True, "note": "SP odd"}),
+        ("STMW", dict(STRING_REGS, IY=0x0901, AW=0x9090),
+         {"odd": True, "note": "odd string dst"}),
+        ("LDMW", dict(STRING_REGS, IX=0x0801), {"odd": True, "note": "odd src"}),
+    ]
+    results, skipped = run_cases(host, cases)
+
+    # B) odd code anchor (PC=0x0501): representative forms, even operands
+    print("\nodd anchor (PC=0x0501):")
+    a = Assembler()
+    for i, (asm, regs, kw) in enumerate([
+            ("NOP", None, {}),
+            ("MOV AW, 0x1234", None, {}),
+            ("ADD BW, DW", None, {}),
+            ("INC AW", None, {}),
+            ("ADD DW, [BW]", MEM_REGS, {}),
+            ("MOV [BW], DW", MEM_REGS, {}),
+            ("DIVU CW", {"AW": 9, "DW": 0, "CW": 3}, {}),
+            ("SHL AW, 1", None, {}),
+            ("PUSH BW", STACK_REGS, {}),
+            ("MULU CW", {"AW": 7, "CW": 5}, {}),
+    ]):
+        try:
+            r = measure(a, host, asm, regs=regs, tag=f"oa{i}", org=0x0501,
+                        note="odd anchor", **kw)
+            results.append(r)
+            if r["match"] is False:
+                print(f"    ^ DEVIATION {r['deviation']:+d} vs "
+                      f"{r['documented_values']}")
+        except Exception as e:                        # noqa: BLE001
+            print(f"{asm:<28} SKIPPED: {e}")
+            skipped.append({"asm": asm, "reason": f"odd anchor: {e}"})
+    save(results, skipped)
+    return 0
+
+
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("cmd", choices=["mul", "sweep", "flow", "string", "misc"])
+    ap.add_argument("cmd", choices=["mul", "sweep", "flow", "string", "misc",
+                                    "odd"])
     ap.add_argument("--host", default="root@mister-nec")
     args = ap.parse_args()
     sys.exit({"mul": cmd_mul, "sweep": cmd_sweep, "flow": cmd_flow,
-              "string": cmd_string, "misc": cmd_misc}[args.cmd](args.host))
+              "string": cmd_string, "misc": cmd_misc,
+              "odd": cmd_odd}[args.cmd](args.host))
 
 
 if __name__ == "__main__":

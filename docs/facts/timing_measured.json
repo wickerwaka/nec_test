@@ -90,6 +90,28 @@
    "deviation": 3
   },
   {
+   "nec_form": "ADD mem,reg",
+   "asm": "ADD [BW], DW",
+   "bytes": "01 17",
+   "operands": {
+    "BW": "0x0801",
+    "IX": "0x0010",
+    "DS0": "0x0000"
+   },
+   "measured_cycles": 27,
+   "nop_baseline": 3,
+   "documented_clocks": [
+    "W=1, uPD70116 odd addresses: 24"
+   ],
+   "documented_values": [
+    24
+   ],
+   "match": false,
+   "deviation": 3,
+   "odd_operand": true,
+   "note": "odd RMW"
+  },
+  {
    "nec_form": "ADD reg,imm",
    "asm": "ADD BW, 0x0111",
    "bytes": "81 c3 11 01",
@@ -164,6 +186,49 @@
    "deviation": 2
   },
   {
+   "nec_form": "ADD reg,mem",
+   "asm": "ADD DW, [BW]",
+   "bytes": "03 17",
+   "operands": {
+    "BW": "0x0800",
+    "IX": "0x0010",
+    "DS0": "0x0000"
+   },
+   "measured_cycles": 12,
+   "nop_baseline": 3,
+   "documented_clocks": [
+    "W=1, uPD70116 even addresses: 11"
+   ],
+   "documented_values": [
+    11
+   ],
+   "match": false,
+   "deviation": 1,
+   "anchor": "0x0501",
+   "note": "odd anchor"
+  },
+  {
+   "nec_form": "ADD reg,mem",
+   "asm": "ADD DW, [BW]",
+   "bytes": "03 17",
+   "operands": {
+    "BW": "0x0801",
+    "IX": "0x0010",
+    "DS0": "0x0000"
+   },
+   "measured_cycles": 17,
+   "nop_baseline": 3,
+   "documented_clocks": [
+    "W=1, uPD70116 odd addresses: 15"
+   ],
+   "documented_values": [
+    15
+   ],
+   "match": false,
+   "deviation": 2,
+   "odd_operand": true
+  },
+  {
    "nec_form": "ADD reg,reg",
    "asm": "ADD BL, DL",
    "bytes": "02 da",
@@ -194,6 +259,24 @@
    ],
    "match": false,
    "deviation": 1
+  },
+  {
+   "nec_form": "ADD reg,reg",
+   "asm": "ADD BW, DW",
+   "bytes": "03 da",
+   "operands": {},
+   "measured_cycles": 3,
+   "nop_baseline": 3,
+   "documented_clocks": [
+    "2"
+   ],
+   "documented_values": [
+    2
+   ],
+   "match": false,
+   "deviation": 1,
+   "anchor": "0x0501",
+   "note": "odd anchor"
   },
   {
    "nec_form": "ADD reg,reg",
@@ -1397,6 +1480,28 @@
    "deviation": 3
   },
   {
+   "nec_form": "DIVU reg16",
+   "asm": "DIVU CW",
+   "bytes": "f7 f1",
+   "operands": {
+    "AW": "0x0009",
+    "DW": "0x0000",
+    "CW": "0x0003"
+   },
+   "measured_cycles": 28,
+   "nop_baseline": 3,
+   "documented_clocks": [
+    "25"
+   ],
+   "documented_values": [
+    25
+   ],
+   "match": false,
+   "deviation": 3,
+   "anchor": "0x0501",
+   "note": "odd anchor"
+  },
+  {
    "nec_form": "IN acc,DW",
    "asm": "IN AL, DW",
    "bytes": "ec",
@@ -1487,6 +1592,28 @@
    "deviation": 4
   },
   {
+   "nec_form": "INC mem",
+   "asm": "INC word [BW]",
+   "bytes": "ff 07",
+   "operands": {
+    "BW": "0x0801",
+    "IX": "0x0010",
+    "DS0": "0x0000"
+   },
+   "measured_cycles": 28,
+   "nop_baseline": 3,
+   "documented_clocks": [
+    "W=1, uPD70116 odd addresses: 24"
+   ],
+   "documented_values": [
+    24
+   ],
+   "match": false,
+   "deviation": 4,
+   "odd_operand": true,
+   "note": "odd RMW"
+  },
+  {
    "nec_form": "INC reg16",
    "asm": "INC AW",
    "bytes": "40",
@@ -1501,6 +1628,24 @@
    ],
    "match": true,
    "deviation": 0
+  },
+  {
+   "nec_form": "INC reg16",
+   "asm": "INC AW",
+   "bytes": "40",
+   "operands": {},
+   "measured_cycles": 2,
+   "nop_baseline": 3,
+   "documented_clocks": [
+    "2"
+   ],
+   "documented_values": [
+    2
+   ],
+   "match": true,
+   "deviation": 0,
+   "anchor": "0x0501",
+   "note": "odd anchor"
   },
   {
    "nec_form": "INC reg8",
@@ -1565,6 +1710,30 @@
    "note": "even"
   },
   {
+   "nec_form": "LDM/LDMB/LDMW",
+   "asm": "LDMW",
+   "bytes": "ad",
+   "operands": {
+    "DS0": "0x0000",
+    "IX": "0x0801",
+    "DS1": "0x0000",
+    "IY": "0x0900"
+   },
+   "measured_cycles": 13,
+   "nop_baseline": 3,
+   "documented_clocks": [
+    "Repeat, W=1, uPD70116 odd addresses: 7+13/rep",
+    "Single operation, W=1, uPD70116 odd addresses: 11"
+   ],
+   "documented_values": [
+    11
+   ],
+   "match": false,
+   "deviation": 2,
+   "odd_operand": true,
+   "note": "odd src"
+  },
+  {
    "nec_form": "MOV acc,dmem",
    "asm": "MOV AL, [0x0802]",
    "bytes": "a0 02 08",
@@ -1586,6 +1755,26 @@
   },
   {
    "nec_form": "MOV acc,dmem",
+   "asm": "MOV AW, [0x0801]",
+   "bytes": "a1 01 08",
+   "operands": {
+    "DS0": "0x0000"
+   },
+   "measured_cycles": 14,
+   "nop_baseline": 3,
+   "documented_clocks": [
+    "W=1, uPD70116 odd addresses: 14"
+   ],
+   "documented_values": [
+    14
+   ],
+   "match": true,
+   "deviation": 0,
+   "odd_operand": true,
+   "note": "odd direct load"
+  },
+  {
+   "nec_form": "MOV acc,dmem",
    "asm": "MOV AW, [0x0802]",
    "bytes": "a1 02 08",
    "operands": {
@@ -1603,6 +1792,26 @@
    ],
    "match": true,
    "deviation": 0
+  },
+  {
+   "nec_form": "MOV dmem,acc",
+   "asm": "MOV [0x0801], AW",
+   "bytes": "a3 01 08",
+   "operands": {
+    "DS0": "0x0000"
+   },
+   "measured_cycles": 14,
+   "nop_baseline": 3,
+   "documented_clocks": [
+    "W=1, uPD70116 odd addresses: 13"
+   ],
+   "documented_values": [
+    13
+   ],
+   "match": false,
+   "deviation": 1,
+   "odd_operand": true,
+   "note": "odd direct store"
   },
   {
    "nec_form": "MOV dmem,acc",
@@ -1685,6 +1894,50 @@
    "deviation": 2
   },
   {
+   "nec_form": "MOV mem,reg",
+   "asm": "MOV [BW], DW",
+   "bytes": "89 17",
+   "operands": {
+    "BW": "0x0800",
+    "IX": "0x0010",
+    "DS0": "0x0000"
+   },
+   "measured_cycles": 10,
+   "nop_baseline": 3,
+   "documented_clocks": [
+    "W=1, uPD70116 even addresses: 9"
+   ],
+   "documented_values": [
+    9
+   ],
+   "match": false,
+   "deviation": 1,
+   "anchor": "0x0501",
+   "note": "odd anchor"
+  },
+  {
+   "nec_form": "MOV mem,reg",
+   "asm": "MOV [BW], DW",
+   "bytes": "89 17",
+   "operands": {
+    "BW": "0x0801",
+    "IX": "0x0010",
+    "DS0": "0x0000"
+   },
+   "measured_cycles": 15,
+   "nop_baseline": 3,
+   "documented_clocks": [
+    "W=1, uPD70116 odd addresses: 13"
+   ],
+   "documented_values": [
+    13
+   ],
+   "match": false,
+   "deviation": 2,
+   "odd_operand": true,
+   "note": "odd word store"
+  },
+  {
    "nec_form": "MOV mem16,sreg",
    "asm": "MOV [BW], DS0",
    "bytes": "8c 1f",
@@ -1719,6 +1972,24 @@
    ],
    "match": true,
    "deviation": 0
+  },
+  {
+   "nec_form": "MOV reg,imm",
+   "asm": "MOV AW, 0x1234",
+   "bytes": "b8 34 12",
+   "operands": {},
+   "measured_cycles": 4,
+   "nop_baseline": 3,
+   "documented_clocks": [
+    "4"
+   ],
+   "documented_values": [
+    4
+   ],
+   "match": true,
+   "deviation": 0,
+   "anchor": "0x0501",
+   "note": "odd anchor"
   },
   {
    "nec_form": "MOV reg,imm",
@@ -1774,6 +2045,27 @@
   },
   {
    "nec_form": "MOV reg,mem",
+   "asm": "MOV DL, byte [BW]",
+   "bytes": "8a 17",
+   "operands": {
+    "BW": "0x0801",
+    "IX": "0x0010",
+    "DS0": "0x0000"
+   },
+   "measured_cycles": 13,
+   "nop_baseline": 3,
+   "documented_clocks": [
+    "W=0: 11"
+   ],
+   "documented_values": [
+    11
+   ],
+   "match": false,
+   "deviation": 2,
+   "note": "byte at odd addr - no split expected"
+  },
+  {
+   "nec_form": "MOV reg,mem",
    "asm": "MOV DW, [BW]",
    "bytes": "8b 17",
    "operands": {
@@ -1791,6 +2083,28 @@
    ],
    "match": false,
    "deviation": 2
+  },
+  {
+   "nec_form": "MOV reg,mem",
+   "asm": "MOV DW, [BW]",
+   "bytes": "8b 17",
+   "operands": {
+    "BW": "0x0801",
+    "IX": "0x0010",
+    "DS0": "0x0000"
+   },
+   "measured_cycles": 17,
+   "nop_baseline": 3,
+   "documented_clocks": [
+    "W=1, uPD70116 odd addresses: 15"
+   ],
+   "documented_values": [
+    15
+   ],
+   "match": false,
+   "deviation": 2,
+   "odd_operand": true,
+   "note": "odd word load"
   },
   {
    "nec_form": "MOV reg,reg",
@@ -2717,6 +3031,39 @@
    "note": "AW=0xffff mem16=0xffff"
   },
   {
+   "nec_form": "MULU mem16",
+   "asm": "MULU word [BW]",
+   "bytes": "f7 27",
+   "operands": {
+    "BW": "0x0801",
+    "IX": "0x0010",
+    "DS0": "0x0000",
+    "AW": "0x0007"
+   },
+   "measured_cycles": 45,
+   "nop_baseline": 3,
+   "documented_clocks": [
+    "uPD70116 odd addresses (according to data): 39 or 40"
+   ],
+   "documented_values": [
+    39,
+    40
+   ],
+   "match": false,
+   "deviation": 5,
+   "odd_operand": true,
+   "ram": [
+    [
+     "0x0801",
+     "0x05"
+    ],
+    [
+     "0x0802",
+     "0x00"
+    ]
+   ]
+  },
+  {
    "nec_form": "MULU mem8",
    "asm": "MULU byte [BW]",
    "bytes": "f6 27",
@@ -2865,6 +3212,28 @@
    "match": false,
    "deviation": 1,
    "note": "AW=0x0007 CW=0x0005"
+  },
+  {
+   "nec_form": "MULU reg16",
+   "asm": "MULU CW",
+   "bytes": "f7 e1",
+   "operands": {
+    "AW": "0x0007",
+    "CW": "0x0005"
+   },
+   "measured_cycles": 31,
+   "nop_baseline": 3,
+   "documented_clocks": [
+    "according to data: 29 or 30"
+   ],
+   "documented_values": [
+    29,
+    30
+   ],
+   "match": false,
+   "deviation": 1,
+   "anchor": "0x0501",
+   "note": "odd anchor"
   },
   {
    "nec_form": "MULU reg16",
@@ -3106,6 +3475,24 @@
    ],
    "match": true,
    "deviation": 0
+  },
+  {
+   "nec_form": "NOP (no operand)",
+   "asm": "NOP",
+   "bytes": "90",
+   "operands": {},
+   "measured_cycles": 3,
+   "nop_baseline": 3,
+   "documented_clocks": [
+    "3"
+   ],
+   "documented_values": [
+    3
+   ],
+   "match": true,
+   "deviation": 0,
+   "anchor": "0x0501",
+   "note": "odd anchor"
   },
   {
    "nec_form": "NOT reg",
@@ -3408,6 +3795,27 @@
    "note": "pops fill 0x9090"
   },
   {
+   "nec_form": "POP reg16",
+   "asm": "POP BW",
+   "bytes": "5b",
+   "operands": {
+    "SS": "0x0000",
+    "SP": "0x0F01"
+   },
+   "measured_cycles": 13,
+   "nop_baseline": 3,
+   "documented_clocks": [
+    "uPD70116 odd addresses: 12"
+   ],
+   "documented_values": [
+    12
+   ],
+   "match": false,
+   "deviation": 1,
+   "odd_operand": true,
+   "note": "SP odd"
+  },
+  {
    "nec_form": "POP sreg",
    "asm": "POP DS1",
    "bytes": "07",
@@ -3542,6 +3950,48 @@
    ],
    "match": false,
    "deviation": 1
+  },
+  {
+   "nec_form": "PUSH reg16",
+   "asm": "PUSH BW",
+   "bytes": "53",
+   "operands": {
+    "SS": "0x0000",
+    "SP": "0x0F00"
+   },
+   "measured_cycles": 10,
+   "nop_baseline": 3,
+   "documented_clocks": [
+    "uPD70116 even addresses: 8"
+   ],
+   "documented_values": [
+    8
+   ],
+   "match": false,
+   "deviation": 2,
+   "anchor": "0x0501",
+   "note": "odd anchor"
+  },
+  {
+   "nec_form": "PUSH reg16",
+   "asm": "PUSH BW",
+   "bytes": "53",
+   "operands": {
+    "SS": "0x0000",
+    "SP": "0x0F01"
+   },
+   "measured_cycles": 13,
+   "nop_baseline": 3,
+   "documented_clocks": [
+    "uPD70116 odd addresses: 12"
+   ],
+   "documented_values": [
+    12
+   ],
+   "match": false,
+   "deviation": 1,
+   "odd_operand": true,
+   "note": "SP odd"
   },
   {
    "nec_form": "PUSH sreg",
@@ -3893,6 +4343,28 @@
    "deviation": 6
   },
   {
+   "nec_form": "SHL mem,1",
+   "asm": "SHL word [BW], 1",
+   "bytes": "d1 27",
+   "operands": {
+    "BW": "0x0801",
+    "IX": "0x0010",
+    "DS0": "0x0000"
+   },
+   "measured_cycles": 30,
+   "nop_baseline": 3,
+   "documented_clocks": [
+    "When W=1, uPD70116 odd addresses: 24"
+   ],
+   "documented_values": [
+    24
+   ],
+   "match": false,
+   "deviation": 6,
+   "odd_operand": true,
+   "note": "odd RMW"
+  },
+  {
    "nec_form": "SHL mem,CL",
    "asm": "SHL byte [BW], CL",
    "bytes": "d2 27",
@@ -3992,6 +4464,24 @@
    ],
    "match": false,
    "deviation": 4
+  },
+  {
+   "nec_form": "SHL reg,1",
+   "asm": "SHL AW, 1",
+   "bytes": "d1 e0",
+   "operands": {},
+   "measured_cycles": 6,
+   "nop_baseline": 3,
+   "documented_clocks": [
+    "2"
+   ],
+   "documented_values": [
+    2
+   ],
+   "match": false,
+   "deviation": 4,
+   "anchor": "0x0501",
+   "note": "odd anchor"
   },
   {
    "nec_form": "SHL reg,1",
@@ -4228,6 +4718,31 @@
    "note": "even dst"
   },
   {
+   "nec_form": "STM/STMB/STMW",
+   "asm": "STMW",
+   "bytes": "ab",
+   "operands": {
+    "DS0": "0x0000",
+    "IX": "0x0800",
+    "DS1": "0x0000",
+    "IY": "0x0901",
+    "AW": "0x9090"
+   },
+   "measured_cycles": 13,
+   "nop_baseline": 3,
+   "documented_clocks": [
+    "Repeat, W=1, uPD70116 odd addresses: 7+8/rep",
+    "Single operation, W=1, uPD70116 odd addresses: 11"
+   ],
+   "documented_values": [
+    11
+   ],
+   "match": false,
+   "deviation": 2,
+   "odd_operand": true,
+   "note": "odd string dst"
+  },
+  {
    "nec_form": "SUB acc,imm",
    "asm": "SUB AW, 0x1111",
    "bytes": "2d 11 11",
@@ -4437,6 +4952,28 @@
    ],
    "match": false,
    "deviation": 3
+  },
+  {
+   "nec_form": "XCH mem,reg / XCH reg,mem",
+   "asm": "XCH [BW], DW",
+   "bytes": "87 17",
+   "operands": {
+    "BW": "0x0801",
+    "IX": "0x0010",
+    "DS0": "0x0000"
+   },
+   "measured_cycles": 27,
+   "nop_baseline": 3,
+   "documented_clocks": [
+    "W=1, uPD70116 odd addresses: 24"
+   ],
+   "documented_values": [
+    24
+   ],
+   "match": false,
+   "deviation": 3,
+   "odd_operand": true,
+   "note": "odd RMW"
   },
   {
    "nec_form": "XCH reg,reg",
