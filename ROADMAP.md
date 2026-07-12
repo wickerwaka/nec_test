@@ -66,6 +66,29 @@ the core, diffs per-cycle bus/queue behavior against the real chip's
 capture. Grow opcode by opcode using campaign 2's corpus, BIU first
 (campaign 1's model).
 
+Status (2026-07-12, blocks 1-3 complete):
+- **59 opcode forms cycle- and state-exact**, 500 golden cases each
+  (29,500/29,500 full): ALU rm8,r8 x8, MOV family (88/89/8A/8B, sreg
+  8C/8E, moffs A0-A3), XCHG 86/87, LDEA, TRANS, CVTBW/CVTWL, INC/DEC/
+  PUSH/POP r16, B8-BF, shifts D0/4, MULU8, DIVU16, IDIV8/16 (+ traps),
+  INC8 FE/0, 0F18/0F20/0F28, control flow EB/E9/Jcc/DBNZ/CALL/RET(n),
+  string singles A4/A5/AA/AB/AC/AD, REP F3AA/F3A4 (CW 0-3), segment-
+  prefixed 26/2E/36/3E + 8B; boot replay cycle-exact from RESET.
+- **Wait states verified** (mission H): golden tranches at waits=1 and
+  waits=3 (2x 1200/1200); the deferred-completion-eval laws are in
+  biu_model.md "Wait states, cycle-level laws" — Campaign 4 runs behind
+  the same READY path.
+- Remaining for campaign completion (blocked on harness RTL, both need
+  a SUPERVISED harness change + reflash — do NOT attempt from the
+  agent loop):
+  - INT/NMI/POLL and HALT paths — need the pin-event scheduler (RTL
+    item: schedule INT/NMI/POLL edges at captured cycle offsets).
+  - IN/port-read opcodes — need configurable IOR data (RTL item 1).
+- Other residuals: full-scale emission of every documented form (the
+  59-form corpus is the systematic sample), denser undocumented-0F
+  mapping, stacked/randomized prefixes, CMPBK/SCAS-class string ops
+  (flag-writing string forms), 8080-emulation mode.
+
 ### Campaign 4 — in-FPGA A/B verification
 The core instantiated in the harness FPGA behind the same bus interface;
 harness runs identical images against core and socketed chip, diffs
