@@ -23,6 +23,7 @@ import sys
 import tempfile
 import threading
 import time
+import zlib
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
@@ -47,6 +48,8 @@ class ServeRunner:
         self.proc = None
         self.q = None
         self.last_waits = None
+        self.v2 = False          # serve protocol >= v2 (BASE/DELTA/cap)
+        self.base = None         # image cached device-side via BASE
 
     def _reader(self, proc, q):
         for line in proc.stdout:
@@ -88,6 +91,8 @@ class ServeRunner:
         if not banner.startswith("OK SERVE"):
             self.close()
             raise RunError(f"serve: bad banner {banner[:80]!r}")
+        self.v2 = "v2" in banner
+        self.base = None         # device-side cache gone on reconnect
         self.last_waits = None
 
     def cfg(self, waits):
@@ -100,10 +105,33 @@ class ServeRunner:
             raise RunError(f"serve: cfg failed: {line[:120]}")
         self.last_waits = waits
 
-    def run(self, image, timeout=3.0, evt=None, iord=None, pins=None):
+    @staticmethod
+    def _delta(base, image, gran=256):
+        """Block-granular patch stream (u32 off, u16 len, bytes)* for
+        DELTA; empty bytes when the images are identical."""
+        out = bytearray()
+        n = len(image)
+        run_start = None
+        for i in range(0, n, gran):
+            j = min(i + gran, n)
+            differ = image[i:j] != base[i:j]
+            if differ and run_start is None:
+                run_start = i
+            elif not differ and run_start is not None:
+                out += struct.pack("<IH", run_start, i - run_start)
+                out += image[run_start:i]
+                run_start = None
+        if run_start is not None:
+            out += struct.pack("<IH", run_start, n - run_start)
+            out += image[run_start:n]
+        return bytes(out) if out else b""
+
+    def run(self, image, timeout=3.0, evt=None, iord=None, pins=None,
+            cap=None):
         """evt = (linear_addr, delay, hold, pin 0=INT 1=NMI 2=POLL);
         iord = 16-bit I/O read data; pins = static PINS bits (b0 INT,
-        b1 NMI, b2 POLL_N). Returns (recs, evt_fired)."""
+        b1 NMI, b2 POLL_N); cap = capture-record prefix to return
+        (v2 serve only). Returns (recs, evt_fired)."""
         opts = ""
         if evt is not None:
             a, d, ho, p = evt
@@ -112,14 +140,44 @@ class ServeRunner:
             opts += f" iord={iord:04x}"
         if pins is not None:
             opts += f" pins={pins:x}"
-        self._send(f"RUN {timeout}{opts}")
-        self._send(base64.b64encode(image).decode())
+        if cap is not None and self.v2:
+            opts += f" cap={cap}"
+        image = bytes(image)
+        use_delta = False
+        if self.v2:
+            patch = self._delta(self.base, image) \
+                if self.base is not None else None
+            if patch is None or len(patch) > 8192:
+                # (re)establish the baseline, then run an empty delta
+                self._send("BASE")
+                self._send(base64.b64encode(image).decode())
+                br = self._readline(30)
+                if not br.startswith("OK BASE"):
+                    self.close()
+                    raise RunError(f"serve: BASE failed: {br[:120]}")
+                self.base = image
+                patch = b""
+            self._send(f"DELTA {timeout}{opts}")
+            self._send(base64.b64encode(patch).decode())
+            use_delta = True
+        else:
+            self._send(f"RUN {timeout}{opts}")
+            self._send(base64.b64encode(image).decode())
         hdr = self._readline(timeout + 10)
         if not hdr.startswith("OK "):
             self.close()
             raise RunError(f"serve: run failed: {hdr[:120]}")
         fields = hdr.split()
         fired = bool(int(fields[3])) if len(fields) > 3 else False
+        if use_delta:
+            if len(fields) < 5:
+                self.close()
+                raise RunError("serve: DELTA reply missing crc")
+            want = zlib.crc32(image) & 0xFFFFFFFF
+            if int(fields[4], 16) != want:
+                self.close()
+                raise RunError(f"serve: image crc mismatch "
+                               f"{fields[4]} != {want:08x}")
         blob = base64.b64decode(self._readline(10))
         words = struct.unpack(f"<{len(blob) // 8}Q", blob)
         return decode_words(words), fired
@@ -161,7 +219,7 @@ def _run_image_legacy(image, host, tag="test", waits=0):
 
 
 def run_image(image, host, tag="test", waits=0, evt=None, iord=None,
-              pins=None, want_fired=False):
+              pins=None, want_fired=False, cap=None):
     """Run an image, return capture records (or (recs, evt_fired) with
     want_fired). Uses the persistent serve session unless V30_NO_SERVE=1;
     transport errors get one reconnect, then one legacy-path attempt
@@ -177,7 +235,8 @@ def run_image(image, host, tag="test", waits=0, evt=None, iord=None,
         try:
             r.ensure()
             r.cfg(waits)
-            recs, fired = r.run(image, evt=evt, iord=iord, pins=pins)
+            recs, fired = r.run(image, evt=evt, iord=iord, pins=pins,
+                                cap=cap)
             return (recs, fired) if want_fired else recs
         except RunError as e:
             r.close()

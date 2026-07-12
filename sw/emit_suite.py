@@ -64,6 +64,11 @@ EA_STR = ["bx+si", "bx+di", "bp+si", "bp+di", "si", "di", "bp", "bx"]
 
 PRELOAD_BYTES = b"\x63\xc0"       # NEC undocumented multi-cycle no-op
 HANDLER_OFF = 0x0400              # IVT-0 handler (V20 convention)
+# serve-v2 capture prefix: normal 0-wait cases finish (incl. store +
+# done marker) well under 1024 records; 1536 leaves headroom. Raise for
+# wait-state emissions. A too-small value fails loudly ("no done
+# marker") and the case retries.
+EMIT_CAP = 1536
 
 
 #----------------------------------------------------------------------------
@@ -1045,7 +1050,8 @@ def emit_evt_case(spec, case, host, tag, preload_n=0, waits=0):
                                     ram=case["ram"], ivt=ivt,
                                     stub_linear=stub_linear)
     recs, fired = run_image(image, host, tag, waits=waits, evt=evt,
-                            iord=None, pins=pins or None, want_fired=True)
+                            iord=None, pins=pins or None, want_fired=True,
+                            cap=EMIT_CAP)
     if evt and not fired:
         raise RunError("event did not fire")
     res = parse_result(recs, meta)
@@ -1348,7 +1354,7 @@ def emit_case(spec, case, host, tag, preload_n=0, waits=0):
                                     ram=ram, ivt=ivt,
                                     stub_linear=stub_linear)
     recs = run_image(image, host, tag, waits=waits,
-                     iord=case.get("iord"))
+                     iord=case.get("iord"), cap=EMIT_CAP)
     res = parse_result(recs, meta)
 
     rows, events, i0, i1, q0, qf, fetched, memrd = \
@@ -1662,6 +1668,9 @@ def main():
     ap.add_argument("--waits", type=int, default=0,
                     help="harness wait states per bus cycle (CFG waits)")
     args = ap.parse_args()
+    global EMIT_CAP
+    if args.waits:
+        EMIT_CAP = min(4096, EMIT_CAP * (1 + args.waits))
     if args.cmd == "validate":
         return cmd_validate(args.host)
     if args.cmd == "spotcheck":

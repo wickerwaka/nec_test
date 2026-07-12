@@ -148,8 +148,14 @@ class Harness:
         # pad to a whole number of words
         pad = (-len(data)) % 4
         data = data + b"\x00" * pad
-        for i in range(0, len(data), 4):
-            self.win[MEM_OFF + addr + i: MEM_OFF + addr + i + 4] = data[i:i + 4]
+        # bounded slice writes: one memcpy per chunk is fast, but keep
+        # chunks <= 1KB and 32-bit aligned - a single giant copy across
+        # the 32-bit lightweight bridge can emit 64-bit ARM accesses
+        # that bus-error
+        ch = 1024
+        for i in range(0, len(data), ch):
+            end = min(i + ch, len(data))
+            self.win[MEM_OFF + addr + i: MEM_OFF + addr + end] = data[i:end]
 
     def peek_mem(self, addr, count):
         out = bytearray()
@@ -160,12 +166,15 @@ class Harness:
         return bytes(out[addr - a0: addr - a0 + count])
 
     def dump_capture(self, count=CAP_RECORDS):
-        recs = []
-        for i in range(count):
-            lo = self.read32(CAP_OFF + i * 8)
-            hi = self.read32(CAP_OFF + i * 8 + 4)
-            recs.append((hi << 32) | lo)
-        return recs
+        # bounded slice reads (see load_mem note on chunk size)
+        count = min(count, CAP_RECORDS)
+        raw = bytearray()
+        total = count * 8
+        ch = 1024
+        for i in range(0, total, ch):
+            end = min(i + ch, total)
+            raw += self.win[CAP_OFF + i: CAP_OFF + end]
+        return list(struct.unpack(f"<{count}Q", bytes(raw)))
 
     def set_iord(self, val):
         self.write32(R_IORD, val & 0xFFFF)
@@ -201,15 +210,72 @@ def write_cap_file(recs, path):
 
 def serve(h):
     """Persistent batch mode over stdin/stdout (one ssh connection serves
-    many runs; each RUN still does the full stop/load/start/reset cycle)."""
+    many runs; each RUN still does the full stop/load/start/reset cycle).
+
+    v2 additions (client falls back to v1 semantics on an old banner):
+      BASE\\n<base64 image>       cache + CRC a baseline image
+                                  -> OK BASE <crc32-hex>
+      DELTA <timeout> [k=v ...]\\n<base64 patch>
+                                  patch = repeat{u32 off, u16 len, bytes}
+                                  applied to the cached baseline, then a
+                                  normal run; reply carries the effective
+                                  image's crc32 as a 4th field
+      cap=N (RUN/DELTA option)    return only the first N capture records
+    """
     import base64
+    import zlib
     out = sys.stdout
+    base_img = None          # cached baseline (bytearray)
 
     def reply(s):
         out.write(s + "\n")
         out.flush()
 
-    reply("OK SERVE v1")
+    def do_run(img, timeout, evt, iord, pins, cap, crc):
+        h.stop()
+        h.load_mem(img, 0)
+        h.set_iord(iord)
+        h.write32(R_PINS, pins)
+        if evt:
+            h.set_event(addr=evt[0], delay=evt[1], hold=evt[2], pin=evt[3])
+        else:
+            h.set_event(arm=False)
+        h.start()
+        t0 = time.time()
+        while time.time() - t0 < timeout:
+            if h.status()["cap_full"]:
+                break
+            time.sleep(0.002)
+        st = h.status()
+        fired = int(h.event_fired())   # before stop: clears on reset
+        h.stop()
+        h.set_event(arm=False)
+        h.write32(R_PINS, 0)
+        recs = h.dump_capture(cap)
+        blob = struct.pack(f"<{len(recs)}Q", *recs)
+        tail = f" {crc:08x}" if crc is not None else ""
+        reply(f"OK {st['cap_count']} {int(st['cap_full'])} {fired}{tail}")
+        reply(base64.b64encode(blob).decode())
+
+    def parse_opts(parts):
+        timeout = float(parts[1]) if len(parts) > 1 else 3.0
+        evt, iord, pins, cap = None, 0xFFFF, 0, CAP_RECORDS
+        for kv in parts[2:]:
+            k, _, v = kv.partition("=")
+            if k == "evt":
+                a, d, ho, p = v.split(":")
+                evt = (int(a, 16), int(d), int(ho), int(p))
+            elif k == "iord":
+                iord = int(v, 16)
+            elif k == "pins":
+                pins = int(v, 16)
+            elif k == "cap":
+                cap = max(1, min(int(v), CAP_RECORDS))
+            else:
+                raise ValueError(f"unknown option {k!r}")
+        return timeout, evt, iord, pins, cap
+
+    reply("OK SERVE v2")
     for line in sys.stdin:
         parts = line.split()
         if not parts:
@@ -225,47 +291,28 @@ def serve(h):
                 h.stop()
                 h.set_cfg(*vals)
                 reply("OK CFG")
+            elif parts[0] == "BASE":
+                base_img = bytearray(
+                    base64.b64decode(sys.stdin.readline().strip()))
+                reply(f"OK BASE {zlib.crc32(base_img) & 0xFFFFFFFF:08x}")
+            elif parts[0] == "DELTA":
+                timeout, evt, iord, pins, cap = parse_opts(parts)
+                patch = base64.b64decode(sys.stdin.readline().strip())
+                if base_img is None:
+                    raise ValueError("DELTA without BASE")
+                img = bytearray(base_img)
+                i = 0
+                while i < len(patch):
+                    off, ln = struct.unpack_from("<IH", patch, i)
+                    i += 6
+                    img[off:off + ln] = patch[i:i + ln]
+                    i += ln
+                crc = zlib.crc32(img) & 0xFFFFFFFF
+                do_run(bytes(img), timeout, evt, iord, pins, cap, crc)
             elif parts[0] == "RUN":
-                timeout = float(parts[1]) if len(parts) > 1 else 3.0
-                evt = None
-                iord = 0xFFFF
-                pins = 0
-                for kv in parts[2:]:
-                    k, _, v = kv.partition("=")
-                    if k == "evt":
-                        a, d, ho, p = v.split(":")
-                        evt = (int(a, 16), int(d), int(ho), int(p))
-                    elif k == "iord":
-                        iord = int(v, 16)
-                    elif k == "pins":
-                        pins = int(v, 16)
-                    else:
-                        raise ValueError(f"unknown RUN option {k!r}")
+                timeout, evt, iord, pins, cap = parse_opts(parts)
                 img = base64.b64decode(sys.stdin.readline().strip())
-                h.stop()
-                h.load_mem(img, 0)
-                h.set_iord(iord)
-                h.write32(R_PINS, pins)
-                if evt:
-                    h.set_event(addr=evt[0], delay=evt[1], hold=evt[2],
-                                pin=evt[3])
-                else:
-                    h.set_event(arm=False)
-                h.start()
-                t0 = time.time()
-                while time.time() - t0 < timeout:
-                    if h.status()["cap_full"]:
-                        break
-                    time.sleep(0.002)
-                st = h.status()
-                fired = int(h.event_fired())   # before stop: clears on reset
-                h.stop()
-                h.set_event(arm=False)
-                h.write32(R_PINS, 0)
-                recs = h.dump_capture()
-                blob = struct.pack(f"<{len(recs)}Q", *recs)
-                reply(f"OK {st['cap_count']} {int(st['cap_full'])} {fired}")
-                reply(base64.b64encode(blob).decode())
+                do_run(img, timeout, evt, iord, pins, cap, None)
             else:
                 reply(f"ERR unknown command {parts[0]!r}")
         except Exception as e:                        # noqa: BLE001
