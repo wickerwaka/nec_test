@@ -22,6 +22,12 @@
 //     done+6
 //     MULU8 exec: EX at cycle 23 (reg) / done+23 (mem)
 //     DIVU16:     EX at cycle 27 (reg) / done+27 (mem)
+//     IDIV (F6.7/F7.7, mission I; dly relative to the first wait cycle,
+//     mem forms +1, s = 3 extra cycles when the dividend is negative):
+//       early trap (den=0 or |num_hi| >= |den|): IVT ready @ dly 21+s
+//       (byte AND word); late trap (|q| > 2^(n-1)-1, symmetric): byte
+//       36+s, word 44+s; non-trap EX: byte 37+s, word 44+s. Divisor and
+//       quotient signs cost nothing - only the dividend negate does.
 //     DIVU16 trap: IVT read ready at cycle 14 (reg) / done+14 (mem);
 //     IVT offset/segment words read back-to-back; PSW push ready
 //     IVTdone+3; PS push ready PSWdone+2; the cycle after PSdone raises
@@ -154,7 +160,7 @@ typedef enum logic [6:0] {
 } state_e;
 
 state_e     state;
-reg  [4:0]  dly;         // countdown for S_WAITX / S_RMWX / S_RSV / S_TRAP_W*
+reg  [5:0]  dly;         // countdown for S_WAITX / S_RMWX / S_RSV / S_TRAP_W*
 state_e     wnext;       // state entered when S_WAITX expires
 state_e     dret;        // disp-pop state resumed after a queue-dry stall
 
@@ -349,6 +355,82 @@ function automatic [32:0] divu32(input [31:0] num, input [15:0] den);
     end
 endfunction
 
+// Signed divides (IDIV): magnitude divide + sign fixups, per the laws in
+// docs/facts/undefined_flags.md (mission F) and the mission-I timing fit.
+// Returns {early, late, flags, quotient, remainder}:
+//  - early trap = divisor 0 or magnitude pre-check |num_high| >=
+//    |divisor|; late trap = unsigned quotient magnitude exceeds
+//    2^(n-1)-1 (SYMMETRIC: quotient -2^(n-1) traps too).
+//  - flags: early trap leaves the residue of the magnitude pre-check
+//    compare SUB(|num_high|, |divisor|) at operand width; late-trap and
+//    non-trap paths leave S/Z/P of the UNSIGNED quotient magnitude with
+//    CY=AC=V=0 (the sign-fixup micro-ops never touch flags).
+//  - quotient truncates toward zero, remainder sign follows the
+//    dividend.
+function automatic [49:0] idiv32(input [31:0] num, input [15:0] den,
+                                 input [15:0] f);
+    logic [31:0] an, q32, r32;
+    logic [15:0] ad, q, r, nf;
+    logic early, late;
+    an = num[31] ? (~num + 32'd1) : num;
+    ad = den[15] ? (~den + 16'd1) : den;
+    early = (den == 16'd0) || (an[31:16] >= ad);
+    if (early) begin
+        q32 = '0; r32 = '0;
+    end else begin
+        q32 = an / {16'd0, ad};
+        r32 = an % {16'd0, ad};
+    end
+    late = !early && (q32 > 32'd32767);
+    if (early)
+        nf = psw_sub16(an[31:16], ad, f);
+    else begin
+        nf = f;
+        nf[FB_S]  = q32[15];
+        nf[FB_Z]  = q32[15:0] == 16'd0;
+        nf[FB_P]  = ~^q32[7:0];
+        nf[FB_CY] = 1'b0;
+        nf[FB_AC] = 1'b0;
+        nf[FB_V]  = 1'b0;
+    end
+    q = (num[31] ^ den[15]) ? (~q32[15:0] + 16'd1) : q32[15:0];
+    r = num[31] ? (~r32[15:0] + 16'd1) : r32[15:0];
+    idiv32 = {early, late, nf, q, r};
+endfunction
+
+function automatic [33:0] idiv16(input [15:0] num, input [7:0] den,
+                                 input [15:0] f);
+    logic [15:0] an, q16, r16, nf;
+    logic  [7:0] ad, q, r;
+    logic [23:0] t;
+    logic early, late;
+    an = num[15] ? (~num + 16'd1) : num;
+    ad = den[7] ? (~den + 8'd1) : den;
+    early = (den == 8'd0) || (an[15:8] >= ad);
+    if (early) begin
+        q16 = '0; r16 = '0;
+    end else begin
+        q16 = an / {8'd0, ad};
+        r16 = an % {8'd0, ad};
+    end
+    late = !early && (q16 > 16'd127);
+    if (early) begin
+        t = alu8(3'd5, an[15:8], ad, f);    // SUB8 compare residue
+        nf = t[23:8];
+    end else begin
+        nf = f;
+        nf[FB_S]  = q16[7];
+        nf[FB_Z]  = q16[7:0] == 8'd0;
+        nf[FB_P]  = ~^q16[7:0];
+        nf[FB_CY] = 1'b0;
+        nf[FB_AC] = 1'b0;
+        nf[FB_V]  = 1'b0;
+    end
+    q = (num[15] ^ den[7]) ? (~q16[7:0] + 8'd1) : q16[7:0];
+    r = num[15] ? (~r16[7:0] + 8'd1) : r16[7:0];
+    idiv16 = {early, late, nf, q, r};
+endfunction
+
 // ADD4S packed-BCD byte add, nibble-serial as the silicon does it
 // (fitted bit-exact on all 1020 golden byte iterations):
 //  - low digit: binary nibble add; +6 adjust if it carried (c1) or
@@ -469,9 +551,9 @@ always_comb begin
         // E9 at pop+1, Jcc/E2 at pop+2
         S_JDISP: eu_req = q_pop && opc == 8'hEB;
         S_JDHI:  eu_req = q_pop && (opc == 8'hE8 || opc == 8'hC2);
-        S_JWAIT: eu_req = !(op_jcc && dly == 5'd3) &&
+        S_JWAIT: eu_req = !(op_jcc && dly == 6'd3) &&
                           !(opc == 8'hE2 &&
-                            (dly == 5'd5 || wnext == S_JNT));
+                            (dly == 6'd5 || wnext == S_JNT));
         // CALL: the flush cycle keeps the reservation so the push (ready
         // next cycle) wins the first slot ahead of the redirected prefetch
         S_CALLFL: eu_req = 1'b1;
@@ -535,7 +617,7 @@ always_ff @(posedge clk) begin
         // real reset flow: PS=FFFF, PC=0, PSW cleared; the sequencer
         // idles 7 cycles after release, then flush-redirects to FFFF0
         state    <= S_RESET;
-        dly      <= 5'd7;
+        dly      <= 6'd7;
         wnext    <= S_HALT;
         opc      <= '0;
         opc2     <= '0;
@@ -601,20 +683,63 @@ always_ff @(posedge clk) begin
                                 op_xchg8 | op_xchg16)
                                 state <= S_EX;
                             else if (op_grpfe && q_byte[5:3] == 3'd0) begin
-                                dly <= 5'd1;  wnext <= S_EX; state <= S_WAITX;
+                                dly <= 6'd1;  wnext <= S_EX; state <= S_WAITX;
                             end else if (op_grpd0 && q_byte[5:3] == 3'd4) begin
-                                dly <= 5'd3;  wnext <= S_EX; state <= S_WAITX;
+                                dly <= 6'd3;  wnext <= S_EX; state <= S_WAITX;
                             end else if (op_grpf6 && q_byte[5:3] == 3'd4) begin
-                                dly <= 5'd21; wnext <= S_EX; state <= S_WAITX;
+                                dly <= 6'd21; wnext <= S_EX; state <= S_WAITX;
                             end else if (op_grpf7 && q_byte[5:3] == 3'd6) begin
                                 logic [32:0] dv;
                                 dv = divu32({rf[2], rf[0]}, rf[q_byte[2:0]]);
                                 {mem_op, disp} <= dv[31:0];  // q, r temp
                                 psw <= psw_sub16(rf[2], rf[q_byte[2:0]], psw);
                                 if (dv[32]) begin
-                                    dly <= 5'd12; wnext <= S_TRAP_IVT1;
+                                    dly <= 6'd12; wnext <= S_TRAP_IVT1;
                                 end else begin
-                                    dly <= 5'd25; wnext <= S_EX;
+                                    dly <= 6'd25; wnext <= S_EX;
+                                end
+                                state <= S_WAITX;
+                            end else if (op_grpf7 && q_byte[5:3] == 3'd7) begin
+                                // IDIV16 reg (mission I timing law):
+                                // early trap IVT ready @ +21, late trap
+                                // and EX @ +44; +3 if dividend < 0
+                                logic [49:0] dv;
+                                logic [5:0] sfix;
+                                dv = idiv32({rf[2], rf[0]},
+                                            rf[q_byte[2:0]], psw);
+                                sfix = rf[2][15] ? 6'd3 : 6'd0;
+                                {mem_op, disp} <= dv[31:0];  // q, r temp
+                                psw <= dv[47:32];
+                                if (dv[49]) begin            // early trap
+                                    dly <= 6'd21 + sfix;
+                                    wnext <= S_TRAP_IVT1;
+                                end else if (dv[48]) begin   // late trap
+                                    dly <= 6'd44 + sfix;
+                                    wnext <= S_TRAP_IVT1;
+                                end else begin
+                                    dly <= 6'd44 + sfix;
+                                    wnext <= S_EX;
+                                end
+                                state <= S_WAITX;
+                            end else if (op_grpf6 && q_byte[5:3] == 3'd7) begin
+                                // IDIV8 reg: early @ +21, late @ +36,
+                                // EX @ +37; +3 if dividend < 0
+                                logic [33:0] dv8;
+                                logic [5:0] sfix;
+                                dv8 = idiv16(rf[0], reg8_get(q_byte[2:0]),
+                                             psw);
+                                sfix = rf[0][15] ? 6'd3 : 6'd0;
+                                mem_op <= {dv8[7:0], dv8[15:8]}; // {AH=r,AL=q}
+                                psw <= dv8[31:16];
+                                if (dv8[33]) begin           // early trap
+                                    dly <= 6'd21 + sfix;
+                                    wnext <= S_TRAP_IVT1;
+                                end else if (dv8[32]) begin  // late trap
+                                    dly <= 6'd36 + sfix;
+                                    wnext <= S_TRAP_IVT1;
+                                end else begin
+                                    dly <= 6'd37 + sfix;
+                                    wnext <= S_EX;
                                 end
                                 state <= S_WAITX;
                             end else
@@ -622,8 +747,10 @@ always_ff @(posedge clk) begin
                         end else begin
                             // memory form; group ops with an unimplemented
                             // /reg field park the sequencer
-                            if ((op_grpf6 && q_byte[5:3] != 3'd4) ||
-                                (op_grpf7 && q_byte[5:3] != 3'd6) ||
+                            if ((op_grpf6 && q_byte[5:3] != 3'd4 &&
+                                 q_byte[5:3] != 3'd7) ||
+                                (op_grpf7 && q_byte[5:3] != 3'd6 &&
+                                 q_byte[5:3] != 3'd7) ||
                                 (op_grpd0 && q_byte[5:3] != 3'd4) ||
                                 (op_grpfe && q_byte[5:3] != 3'd0))
                                 state <= S_HALT;
@@ -695,17 +822,17 @@ always_ff @(posedge clk) begin
                 pc   <= pc + 16'd1;
                 disp <= pc + 16'd1 + {{8{q_byte[7]}}, q_byte};  // target
                 if (opc == 8'hEB) begin
-                    dly <= 5'd2; wnext <= S_JFLUSH; state <= S_JWAIT;
+                    dly <= 6'd2; wnext <= S_JFLUSH; state <= S_JWAIT;
                 end else if (opc == 8'hE2) begin                // DBNZ
                     rf[1] <= rf[1] - 16'd1;
                     if (rf[1] != 16'd1) begin
-                        dly <= 5'd5; wnext <= S_JFLUSH; state <= S_JWAIT;
+                        dly <= 6'd5; wnext <= S_JFLUSH; state <= S_JWAIT;
                     end else begin
-                        dly <= 5'd1; wnext <= S_JNT; state <= S_JWAIT;
+                        dly <= 6'd1; wnext <= S_JNT; state <= S_JWAIT;
                     end
                 end else begin                                  // Jcc
                     if (jcc_taken) begin
-                        dly <= 5'd3; wnext <= S_JFLUSH; state <= S_JWAIT;
+                        dly <= 6'd3; wnext <= S_JFLUSH; state <= S_JWAIT;
                     end else state <= S_JNT;
                 end
             end
@@ -729,15 +856,15 @@ always_ff @(posedge clk) begin
                 end else begin
                     disp <= pc + 16'd1 + {q_byte, disp[7:0]};   // target
                     if (opc == 8'hE9) begin
-                        dly <= 5'd2; wnext <= S_JFLUSH; state <= S_JWAIT;
+                        dly <= 6'd2; wnext <= S_JFLUSH; state <= S_JWAIT;
                     end else begin                 // E8: flush @ H+3 like E9,
-                        dly <= 5'd2; wnext <= S_CALLFL; state <= S_JWAIT;
+                        dly <= 6'd2; wnext <= S_CALLFL; state <= S_JWAIT;
                     end                            // push ready @ H+4
                 end
             end
             // branch-resolution wait (holds a bus reservation)
             S_JWAIT: begin
-                if (dly == 5'd1) begin
+                if (dly == 6'd1) begin
                     state <= wnext;
                     // near transfers redirect within CS; EA (far) has
                     // already latched its target in S_JSHI
@@ -747,7 +874,7 @@ always_ff @(posedge clk) begin
                         fl_ip <= disp;
                     end
                 end
-                dly <= dly - 5'd1;
+                dly <= dly - 6'd1;
             end
             S_JNT: retire();                                    // not taken
             // BR far (EA) segment bytes; flush at seghi-pop+2 (measured
@@ -761,7 +888,7 @@ always_ff @(posedge clk) begin
                 pc    <= pc + 16'd1;
                 fl_cs <= {q_byte, immb};
                 fl_ip <= disp;
-                dly   <= 5'd1; wnext <= S_JFLUSH; state <= S_JWAIT;
+                dly   <= 6'd1; wnext <= S_JFLUSH; state <= S_JWAIT;
             end
             // MOV AL/AW, moffs16 (A0/A1): direct address pops at F+2/F+3,
             // read ready hi+1, retire at done (boot capture)
@@ -782,8 +909,8 @@ always_ff @(posedge clk) begin
             // standard flush machinery redirects to FFFF:0000 (measured:
             // QS=E at release+7, first fetch T1 at release+9)
             S_RESET: begin
-                if (dly == 5'd1) state <= S_JFLUSH;
-                dly <= dly - 5'd1;
+                if (dly == 6'd1) state <= S_JFLUSH;
+                dly <= dly - 6'd1;
             end
             S_JFLUSH: begin      // q_flush high this cycle (comb)
                 pc      <= fl_ip;
@@ -820,7 +947,7 @@ always_ff @(posedge clk) begin
                     a4_k    <= 8'd0;
                     a4_carry <= 1'b0;
                     a4_z    <= 1'b1;
-                    dly     <= 5'd4;                   // src ready @ pop+5
+                    dly     <= 6'd4;                   // src ready @ pop+5
                     state   <= S_A4_SETUP;
                 end else
                     state <= S_HALT;
@@ -831,7 +958,7 @@ always_ff @(posedge clk) begin
                 if (q_byte[7:6] == 2'd3) begin
                     if (op_test1) state <= S_IMM3;     // imm pops at F+4
                     else begin                         // ROL4 reg: EX @ F+15
-                        dly <= 5'd11; wnext <= S_EX; state <= S_WAITX;
+                        dly <= 6'd11; wnext <= S_EX; state <= S_WAITX;
                     end
                 end else if ((q_byte[7:6] == 2'd0 && q_byte[2:0] == 3'd6) ||
                              q_byte[7:6] == 2'd2)
@@ -852,14 +979,14 @@ always_ff @(posedge clk) begin
             // srcdone+2, write @ dstdone+4, retire @ last wrdone+4.
             //----------------------------------------------------------------
             S_A4_SETUP: begin
-                if (dly == 5'd1) begin
+                if (dly == 6'd1) begin
                     eu_addr <= {sr[SEG_DS], 4'h0} + {4'h0, rf[6]};
                     eu_seg  <= SEG_DS;
                     eu_wr   <= 1'b0;
                     eu_word <= 1'b0;
                     state   <= (a4_cnt == 8'd0) ? S_HALT : S_A4_SRC;
                 end
-                dly <= dly - 5'd1;
+                dly <= dly - 6'd1;
             end
             S_A4_SRC: if (eu_started) state <= S_A4_SRCW;
             S_A4_SRCW: if (eu_done) begin
@@ -879,16 +1006,16 @@ always_ff @(posedge clk) begin
                 a4_z     <= a4_z && s[8];
                 mem_op   <= {a4_src[15:8] + eu_rdata[15:8] +
                              {7'd0, s[10]} + {7'd0, s[9]} - 8'd1, s[7:0]};
-                dly      <= 5'd3;
+                dly      <= 6'd3;
                 state    <= S_A4_G2;
             end
             S_A4_G2: begin
-                if (dly == 5'd1) begin
+                if (dly == 6'd1) begin
                     eu_wr    <= 1'b1;
                     eu_wdata <= mem_op;
                     state    <= S_A4_WR;
                 end
-                dly <= dly - 5'd1;
+                dly <= dly - 6'd1;
             end
             S_A4_WR: if (eu_started) state <= S_A4_WRW;
             S_A4_WRW: if (eu_done) begin
@@ -903,12 +1030,12 @@ always_ff @(posedge clk) begin
                 end else begin
                     // retire at wrdone+4 with final carry, +5 without
                     // (measured: the no-carry path costs one extra cycle)
-                    dly   <= a4_carry ? 5'd4 : 5'd5;
+                    dly   <= a4_carry ? 6'd4 : 6'd5;
                     state <= S_A4_END;
                 end
             end
             S_A4_END: begin
-                if (dly == 5'd1) begin
+                if (dly == 6'd1) begin
                     // undefined-flag law: S=AC=CY(out), P=Z(out), V=0
                     psw[FB_CY] <= a4_carry;
                     psw[FB_S]  <= a4_carry;
@@ -918,7 +1045,7 @@ always_ff @(posedge clk) begin
                     psw[FB_V]  <= 1'b0;
                     retire();
                 end
-                dly <= dly - 5'd1;
+                dly <= dly - 6'd1;
             end
 
             //----------------------------------------------------------------
@@ -937,7 +1064,7 @@ always_ff @(posedge clk) begin
                 pc <= pc + 16'd1;
                 setup_access(ea_base + {{8{q_byte[7]}}, q_byte});
                 if (is_store) begin                       // d1 store: rdy @ 5
-                    dly <= 5'd1; state <= S_RSV;
+                    dly <= 6'd1; state <= S_RSV;
                 end else state <= S_REQ;                  // d1 load: rdy @ 4
             end else begin
                 dret <= S_DISP8; state <= S_DSTALL;
@@ -955,7 +1082,7 @@ always_ff @(posedge clk) begin
                 pc <= pc + 16'd1;
                 setup_access(ea_base + {q_byte, disp[7:0]});
                 if (is_reader) state <= S_REQ;            // d2 load: rdy @ 5
-                else begin dly <= 5'd2; state <= S_RSV; end // d2 store: rdy @ 7
+                else begin dly <= 6'd2; state <= S_RSV; end // d2 store: rdy @ 7
             end else begin
                 dret <= S_DHI; state <= S_DSTALL;
             end
@@ -965,8 +1092,8 @@ always_ff @(posedge clk) begin
             // bus access issue / wait
             //----------------------------------------------------------------
             S_RSV: begin
-                if (dly == 5'd1) state <= S_REQ;
-                dly <= dly - 5'd1;
+                if (dly == 6'd1) state <= S_REQ;
+                dly <= dly - 6'd1;
             end
             S_REQ: if (eu_started) state <= S_BUSW;
             S_BUSW: if (eu_done) begin
@@ -995,24 +1122,56 @@ always_ff @(posedge clk) begin
                     else if (op_test1)
                         state <= S_T1GAP;                 // imm pop done+2
                     else if (op_rol4) begin
-                        dly <= 5'd10; state <= S_RMWX;    // wr ready done+11
+                        dly <= 6'd10; state <= S_RMWX;    // wr ready done+11
                     end else if (op_alu || op_xchg8 || op_xchg16) begin
-                        dly <= 5'd2; state <= S_RMWX;     // wr ready done+3
+                        dly <= 6'd2; state <= S_RMWX;     // wr ready done+3
                     end else if (op_grpfe) begin
-                        dly <= 5'd3; state <= S_RMWX;     // done+4
+                        dly <= 6'd3; state <= S_RMWX;     // done+4
                     end else if (op_grpd0) begin
-                        dly <= 5'd5; state <= S_RMWX;     // done+6
+                        dly <= 6'd5; state <= S_RMWX;     // done+6
+                    end else if (op_grpf6 && mrm_reg == 3'd7) begin
+                        // IDIV8 mem: reg-form law + 1 (like DIVU)
+                        logic [33:0] dv8;
+                        logic [5:0] sfix;
+                        dv8 = idiv16(rf[0], eu_rdata[7:0], psw);
+                        sfix = rf[0][15] ? 6'd3 : 6'd0;
+                        mem_op <= {dv8[7:0], dv8[15:8]};  // {AH=r, AL=q}
+                        psw <= dv8[31:16];
+                        if (dv8[33]) begin
+                            dly <= 6'd22 + sfix; wnext <= S_TRAP_IVT1;
+                        end else if (dv8[32]) begin
+                            dly <= 6'd37 + sfix; wnext <= S_TRAP_IVT1;
+                        end else begin
+                            dly <= 6'd38 + sfix; wnext <= S_EX;
+                        end
+                        state <= S_WAITX;
                     end else if (op_grpf6) begin
-                        dly <= 5'd22; wnext <= S_EX; state <= S_WAITX;
+                        dly <= 6'd22; wnext <= S_EX; state <= S_WAITX;
+                    end else if (op_grpf7 && mrm_reg == 3'd7) begin
+                        // IDIV16 mem: reg-form law + 1 (like DIVU)
+                        logic [49:0] dv;
+                        logic [5:0] sfix;
+                        dv = idiv32({rf[2], rf[0]}, eu_rdata, psw);
+                        sfix = rf[2][15] ? 6'd3 : 6'd0;
+                        {mem_op, disp} <= dv[31:0];
+                        psw <= dv[47:32];
+                        if (dv[49]) begin
+                            dly <= 6'd22 + sfix; wnext <= S_TRAP_IVT1;
+                        end else if (dv[48]) begin
+                            dly <= 6'd45 + sfix; wnext <= S_TRAP_IVT1;
+                        end else begin
+                            dly <= 6'd45 + sfix; wnext <= S_EX;
+                        end
+                        state <= S_WAITX;
                     end else if (op_grpf7) begin
                         logic [32:0] dv;
                         dv = divu32({rf[2], rf[0]}, eu_rdata);
                         {mem_op, disp} <= dv[31:0];
                         psw <= psw_sub16(rf[2], eu_rdata, psw);
                         if (dv[32]) begin
-                            dly <= 5'd13; wnext <= S_TRAP_IVT1;
+                            dly <= 6'd13; wnext <= S_TRAP_IVT1;
                         end else begin
-                            dly <= 5'd26; wnext <= S_EX;
+                            dly <= 6'd26; wnext <= S_EX;
                         end
                         state <= S_WAITX;
                     end else state <= S_HALT;
@@ -1031,7 +1190,7 @@ always_ff @(posedge clk) begin
             // generic wait, then execute (reg forms, MUL/DIV finish)
             //----------------------------------------------------------------
             S_WAITX: begin
-                if (dly == 5'd1) begin
+                if (dly == 6'd1) begin
                     state <= wnext;
                     if (wnext == S_TRAP_IVT1) begin
                         // request params must be valid on state entry
@@ -1041,7 +1200,7 @@ always_ff @(posedge clk) begin
                         eu_word <= 1'b1;
                     end
                 end
-                dly <= dly - 5'd1;
+                dly <= dly - 6'd1;
             end
 
             S_EX: begin
@@ -1078,6 +1237,9 @@ always_ff @(posedge clk) begin
                 end else if (op_grpd0) begin
                     psw <= ex_shl[23:8];
                     wr_reg8(mrm_rm, ex_shl[7:0]);
+                end else if (op_grpf6 && mrm_reg == 3'd7) begin
+                    // IDIV8 writeback: AL=q, AH=r (flags set at dispatch)
+                    rf[0] <= mem_op;
                 end else if (op_grpf6) begin
                     // MULU8: AW = AL * op8; CY=V = (AH != 0);
                     // S/Z/AC/P preserved (undefined_flags.md)
@@ -1099,7 +1261,7 @@ always_ff @(posedge clk) begin
             // RMW writeback (byte ops: sibling lane preserved from the read)
             //----------------------------------------------------------------
             S_RMWX: begin
-                if (dly == 5'd1) begin
+                if (dly == 6'd1) begin
                     state <= S_WREQ;
                     eu_wr <= 1'b1;
                     if (op_xchg8) begin
@@ -1121,7 +1283,7 @@ always_ff @(posedge clk) begin
                         else               psw <= ex_shl[23:8];
                     end
                 end
-                dly <= dly - 5'd1;
+                dly <= dly - 6'd1;
             end
             S_WREQ: if (eu_started) state <= S_WBUSW;
             S_WBUSW: if (eu_done) retire();
@@ -1156,18 +1318,18 @@ always_ff @(posedge clk) begin
                 // cycles already show IE=0 (measured)
                 trap_psw <= psw;
                 psw <= psw & ~16'h0300;
-                dly <= 5'd2; state <= S_TRAP_W1;
+                dly <= 6'd2; state <= S_TRAP_W1;
             end
             S_TRAP_W1: begin
-                if (dly == 5'd1) begin
+                if (dly == 6'd1) begin
                     state <= S_TRAP_PSW;
                     issue_push(trap_psw);
                 end
-                dly <= dly - 5'd1;
+                dly <= dly - 6'd1;
             end
             S_TRAP_PSW: if (eu_started) begin
                 state <= S_TRAP_PSWW;
-                dly   <= 5'd11;      // fixed microcode slot: PS at started+12
+                dly   <= 6'd11;      // fixed microcode slot: PS at started+12
             end
             // The trap chain issues the next push at the EARLIER of two
             // paths (measured on the F7.6 waits tranches): the
@@ -1178,20 +1340,20 @@ always_ff @(posedge clk) begin
             // the slot; the request then waits only on BIU arbitration.
             S_TRAP_PSWW: begin
                 if (eu_wdone) begin
-                    dly <= 5'd1; state <= S_TRAP_W2;
-                end else if (dly == 5'd1) begin
+                    dly <= 6'd1; state <= S_TRAP_W2;
+                end else if (dly == 6'd1) begin
                     state <= S_TRAP_PS;
                     issue_push(sr[SEG_CS]);
                 end else begin
-                    dly <= dly - 5'd1;
+                    dly <= dly - 6'd1;
                 end
             end
             S_TRAP_W2: begin
-                if (dly == 5'd1) begin
+                if (dly == 6'd1) begin
                     state <= S_TRAP_PS;
                     issue_push(sr[SEG_CS]);
                 end
-                dly <= dly - 5'd1;
+                dly <= dly - 6'd1;
             end
             S_TRAP_PS: if (eu_started) state <= S_TRAP_PSW2W;
             S_TRAP_PSW2W: if (eu_wdone) begin

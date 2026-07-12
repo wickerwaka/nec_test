@@ -442,3 +442,33 @@ sw/testdata/0f_log.jsonl). Headlines:
 - MAME's divide-overflow behavior for V30 (CY/V = !overflow, registers
   preserved) is already grounded in hardware testing by Martin (MAME PR
   #15620) — see docs/notes/mame_necv.md.
+
+## IDIV (signed divide) timing law (2026-07-12, Campaign 3 mission I)
+
+Fitted on the F6.7/F7.7 golden tranches (500 cases each, both queue
+variants and all EA forms; anomaly-free trap-predicate over all 1000
+cases) and verified cycle-exact by the RTL core replay 1000/1000 with
+raw flags.
+
+Relative to the dispatch cycle (the cycle after the modrm pop for reg
+forms; the cycle after the operand-read handover for mem forms, which
+adds +1 like DIVU), with s = 3 extra cycles iff the dividend is
+negative:
+
+| path | condition | byte (F6.7) | word (F7.7) |
+|---|---|---|---|
+| early trap (IVT read ready) | den=0 or \|num_hi\| >= \|den\| | 21+s | 21+s |
+| late trap (IVT read ready)  | unsigned \|q\| > 2^(n-1)-1 (symmetric) | 36+s | 44+s |
+| non-trap (EX/writeback)     | otherwise | 37+s | 44+s |
+
+- The early-trap magnitude pre-check runs at the SAME time for byte and
+  word forms; only the divide loop differs (8 fewer iterations for the
+  byte form: 36 vs 44).
+- The only data-dependent term is the dividend negate (+3); divisor
+  sign and quotient/remainder sign fixups cost nothing observable.
+- Architectural/flag law in undefined_flags.md (mission F): early trap
+  leaves the SUB(|num_hi|, |den|) compare residue at operand width;
+  late-trap and non-trap paths leave S/Z/P of the unsigned quotient
+  magnitude with CY=AC=V=0; quotient truncates toward zero, remainder
+  sign follows the dividend; trap = vector 0 with the standard push
+  sequence.
