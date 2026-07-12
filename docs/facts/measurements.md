@@ -290,6 +290,29 @@ note in docs/facts/instructions.json). Highlights:
 - ROLC reg,CL '7 = n' misprint: measures 14 at CL=4, same as sibling
   rotates -> '7 + n'.
 
+## PUSH R / POP R bus decomposition; prefixed divide traps (2026-07-11, mission 7)
+
+Bus-level capture of the 52/33 vs documented 35/43 anomaly:
+
+- **PUSH R (52 cycles)**: 8 MEMW on a strict 6-cycle cadence (4-cycle
+  write + 2 idle cycles between writes — EU-paced, not bus-limited),
+  3 idle cycles lead-in after the preceding fetch. Push order AW, CW,
+  DW, BW, **original SP value**, BP, IX, IY at descending addresses
+  SP-2..SP-16. Documented 35 ~= 8x4+3, i.e. the value the instruction
+  would have if the writes were back-to-back; silicon inserts 2 idles
+  per write.
+- **POP R (33 cycles)**: only **7 bus reads** — the SP slot is
+  physically skipped (never read and discarded; address sequence
+  F00,02,04,08,0A,0C,0E). Reads are back-to-back 4-cycle. 7x4+5 = 33,
+  10 BELOW the documented 43. The documentation also inverts the real
+  ordering (real: POP R faster than PUSH R).
+
+**Prefixed divide traps (Q10 closed)**: the pushed PC always points
+after the WHOLE instruction including prefixes — DIV CW overflow with
+no prefix / DS0: / REP(F3) / DS0:+REP pushes 0502/0503/0503/0504 for
+the instruction starting at 0500. No restart semantics on V30 divide
+traps, prefixes are not dropped from the accounting.
+
 ## Divide-overflow semantics (prior work, large context)
 
 - MAME's divide-overflow behavior for V30 (CY/V = !overflow, registers

@@ -46,7 +46,7 @@ Retire entries by moving them to `docs/facts/` files with provenance (datasheet 
 - **Status**: DIVU reg16 measured data-INDEPENDENT at 28 cycles F-to-F across 4 operand sets (biu_model.md). MUL and remaining forms pending.
 
 ### Q10: Division-exception semantics — pushed CS:IP points where? (V20/V30 differ from 8086.)
-- **Status**: MEASURED for the unprefixed case (2026-07-11, sw/probe_uncertain.py): pushed PC = address AFTER the divide instruction (0x0502 for a 2-byte DIV/DIVU at 0x0500), pushed PS/PSW as expected, registers preserved. Remaining: prefixed forms (segment override, REP) where V-series/8086 differences are claimed.
+- **Status**: ANSWERED (2026-07-11): pushed PC = address AFTER the whole instruction INCLUDING prefixes (measured 0502/0503/0503/0504 for DIV at 0500 with none/DS0:/REP/both prefixes), registers preserved, PS/PSW pushed as expected. No restart semantics.
 
 ### Q11: Undefined flag behavior per opcode?
 - V20 SingleStepTests metadata.json has masks; verify V30 matches V20.
