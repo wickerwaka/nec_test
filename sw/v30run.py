@@ -100,16 +100,29 @@ class ServeRunner:
             raise RunError(f"serve: cfg failed: {line[:120]}")
         self.last_waits = waits
 
-    def run(self, image, timeout=3.0):
-        self._send(f"RUN {timeout}")
+    def run(self, image, timeout=3.0, evt=None, iord=None, pins=None):
+        """evt = (linear_addr, delay, hold, pin 0=INT 1=NMI 2=POLL);
+        iord = 16-bit I/O read data; pins = static PINS bits (b0 INT,
+        b1 NMI, b2 POLL_N). Returns (recs, evt_fired)."""
+        opts = ""
+        if evt is not None:
+            a, d, ho, p = evt
+            opts += f" evt={a:05x}:{d}:{ho}:{p}"
+        if iord is not None:
+            opts += f" iord={iord:04x}"
+        if pins is not None:
+            opts += f" pins={pins:x}"
+        self._send(f"RUN {timeout}{opts}")
         self._send(base64.b64encode(image).decode())
         hdr = self._readline(timeout + 10)
         if not hdr.startswith("OK "):
             self.close()
             raise RunError(f"serve: run failed: {hdr[:120]}")
+        fields = hdr.split()
+        fired = bool(int(fields[3])) if len(fields) > 3 else False
         blob = base64.b64decode(self._readline(10))
         words = struct.unpack(f"<{len(blob) // 8}Q", blob)
-        return decode_words(words)
+        return decode_words(words), fired
 
     def close(self):
         if self.proc:
@@ -147,11 +160,15 @@ def _run_image_legacy(image, host, tag="test", waits=0):
         return decode_large(str(capp))
 
 
-def run_image(image, host, tag="test", waits=0):
-    """Run an image, return capture records. Uses the persistent serve
-    session unless V30_NO_SERVE=1; transport errors get one reconnect,
-    then one legacy-path attempt before giving up."""
+def run_image(image, host, tag="test", waits=0, evt=None, iord=None,
+              pins=None, want_fired=False):
+    """Run an image, return capture records (or (recs, evt_fired) with
+    want_fired). Uses the persistent serve session unless V30_NO_SERVE=1;
+    transport errors get one reconnect, then one legacy-path attempt
+    before giving up (legacy path supports no evt/iord/pins)."""
     if os.environ.get("V30_NO_SERVE") == "1":
+        if evt is not None or iord is not None or pins is not None:
+            raise RunError("evt/iord/pins require the serve path")
         return _run_image_legacy(image, host, tag, waits)
     r = _runners.get(host)
     if r is None:
@@ -160,12 +177,16 @@ def run_image(image, host, tag="test", waits=0):
         try:
             r.ensure()
             r.cfg(waits)
-            return r.run(image)
+            recs, fired = r.run(image, evt=evt, iord=iord, pins=pins)
+            return (recs, fired) if want_fired else recs
         except RunError as e:
             r.close()
             if attempt == 2:
                 print(f"serve path failed twice ({e}); trying legacy path",
                       file=sys.stderr)
+    if evt is not None or iord is not None or pins is not None:
+        raise RunError("serve path failed and evt/iord/pins have no "
+                       "legacy fallback")
     return _run_image_legacy(image, host, tag, waits)
 
 
@@ -236,13 +257,16 @@ def parse_result(recs, meta):
 
 
 def run_test(regs=None, instr=b"", host="root@mister-nec", tag="test",
-             ivt=None, stub_linear=None, waits=0, ram=None):
+             ivt=None, stub_linear=None, waits=0, ram=None, evt=None,
+             iord=None, pins=None):
     image, meta = testimage.compose(regs=regs, instr=instr, ivt=ivt,
                                     stub_linear=stub_linear, ram=ram)
-    recs = run_image(image, host, tag, waits=waits)
+    recs, fired = run_image(image, host, tag, waits=waits, evt=evt,
+                            iord=iord, pins=pins, want_fired=True)
     res = parse_result(recs, meta)
     res["meta"] = meta
     res["recs"] = recs
+    res["evt_fired"] = fired
     return res
 
 

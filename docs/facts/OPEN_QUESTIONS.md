@@ -71,7 +71,15 @@ Retire entries by moving them to `docs/facts/` files with provenance (datasheet 
   recovery path (RETEM/CALLN handler infrastructure).
 
 ### Q14: Interrupt/NMI/POLL recognition points and priority; string-instruction interruption/resume behavior?
-- **Status**: open
+- **Status**: ANSWERED (2026-07-12, Campaign 3 block 4 mission L) — see
+  `docs/facts/interrupt_model.md`: per-instruction boundary sampling
+  (sreg-load and EI shadows, no POP PSW shadow, prefix chains atomic),
+  full INTA/vectoring anatomy (2 INTA cycles 7 apart, trap-law tail),
+  REP per-iteration interruption with all-prefix resume and a
+  pre-INTA resume refetch, NMI edge latch (no INTA, IE-independent),
+  POLL 5-clock sampling, HALT entry/wake laws (incl. IE=0 INT
+  resume-without-vectoring). Remaining: NMI-vs-INT simultaneous
+  priority (needs a two-event scheduler).
 
 ### Q15: Self-modifying code vs prefetch queue — at what distance does a write to an already-fetched byte get ignored?
 - **Status**: MEASURED (exp 6b): stale byte executed when the write lands ≤2 bytes past the writing instruction's end; new value at ≥3 (sequence-dependent; no write snooping).

@@ -29,9 +29,24 @@ Usage:
                                      #   PING                     -> OK PONG
                                      #   CFG <div> <waits> <vector> <small>
                                      #     ('-' keeps a field)    -> OK CFG
-                                     #   RUN <timeout_s>\\n<base64 image>
-                                     #     -> OK <cap_count> <full>\\n<base64
-                                     #        of 4096 LE uint64 records>
+                                     #   RUN <timeout_s> [k=v ...]\\n<base64>
+                                     #     -> OK <cap_count> <full> <evt>
+                                     #        \\n<base64 of 4096 LE uint64>
+                                     #     options (reset to defaults on every
+                                     #     RUN when not given):
+                                     #       evt=A:D:H:P  pin-event scheduler:
+                                     #                    CODE T1 at linear A
+                                     #                    (hex), +D clocks,
+                                     #                    drive pin P (0=INT
+                                     #                    1=NMI 2=POLL) for H
+                                     #                    clocks (0=til reset)
+                                     #       iord=XXXX    I/O read data (hex,
+                                     #                    default FFFF)
+                                     #       pins=X       static PINS reg (hex:
+                                     #                    b0 INT b1 NMI
+                                     #                    b2 POLL_N; default 0)
+                                     #     <evt> in the reply = evt_fired,
+                                     #     sampled before host_reset
                                      #   EXIT                     -> OK BYE
                                      # errors: ERR <message>; one command per
                                      # line, all responses flushed
@@ -212,9 +227,30 @@ def serve(h):
                 reply("OK CFG")
             elif parts[0] == "RUN":
                 timeout = float(parts[1]) if len(parts) > 1 else 3.0
+                evt = None
+                iord = 0xFFFF
+                pins = 0
+                for kv in parts[2:]:
+                    k, _, v = kv.partition("=")
+                    if k == "evt":
+                        a, d, ho, p = v.split(":")
+                        evt = (int(a, 16), int(d), int(ho), int(p))
+                    elif k == "iord":
+                        iord = int(v, 16)
+                    elif k == "pins":
+                        pins = int(v, 16)
+                    else:
+                        raise ValueError(f"unknown RUN option {k!r}")
                 img = base64.b64decode(sys.stdin.readline().strip())
                 h.stop()
                 h.load_mem(img, 0)
+                h.set_iord(iord)
+                h.write32(R_PINS, pins)
+                if evt:
+                    h.set_event(addr=evt[0], delay=evt[1], hold=evt[2],
+                                pin=evt[3])
+                else:
+                    h.set_event(arm=False)
                 h.start()
                 t0 = time.time()
                 while time.time() - t0 < timeout:
@@ -222,10 +258,13 @@ def serve(h):
                         break
                     time.sleep(0.002)
                 st = h.status()
+                fired = int(h.event_fired())   # before stop: clears on reset
                 h.stop()
+                h.set_event(arm=False)
+                h.write32(R_PINS, 0)
                 recs = h.dump_capture()
                 blob = struct.pack(f"<{len(recs)}Q", *recs)
-                reply(f"OK {st['cap_count']} {int(st['cap_full'])}")
+                reply(f"OK {st['cap_count']} {int(st['cap_full'])} {fired}")
                 reply(base64.b64encode(blob).decode())
             else:
                 reply(f"ERR unknown command {parts[0]!r}")
