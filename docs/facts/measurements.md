@@ -88,6 +88,18 @@ max mode via CFG.small_mode=0 → S/LG̅ low).
   first on the upper lane) — same split rule as odd memory words. Harness
   convention: keep exfiltration ports even.
 
+## V20-baseline cross-validation (2026-07-11, pilot)
+
+sw/pilot_v20.py runs V20 SingleStepTests cases (non-prefetched variants)
+on the real V30 and compares architectural results. **60/60 passed**:
+20 cases each of B8 (MOV AX,imm), 00 (ADD r/m8,r8 — modrm, memory
+operands, arithmetic flags), 37 (AAA — undefined flags masked per suite
+metadata). Registers, flags (documented bits), and final memory
+(byte-lane-accurate) all match the V20 hardware baseline, consistent
+with the documented architectural equivalence of the V20/V30 execution
+cores. Throughput ~2-3 s/case over SSH (unbatched); suite-scale
+campaigns need the batching work from loadstore_design.md stage 3.
+
 ## Divide-overflow semantics (prior work, large context)
 
 - MAME's divide-overflow behavior for V30 (CY/V = !overflow, registers

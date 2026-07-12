@@ -119,7 +119,8 @@ class ComposeError(Exception):
     pass
 
 
-def compose(regs=None, instr=b"", stub_linear=None, ivt=None, fill=0x90):
+def compose(regs=None, instr=b"", stub_linear=None, ivt=None, ram=None,
+            fill=0x90):
     """Build a 64 KB test image.
 
     regs: register values (defaults + overrides); PSW normalized here.
@@ -155,6 +156,23 @@ def compose(regs=None, instr=b"", stub_linear=None, ivt=None, fill=0x90):
 
     vec = a.assemble(f"BR 0x0000:0x{LOAD_AT:04X}", org=VECTOR_AT)
     img[VECTOR_AT:VECTOR_AT + len(vec)] = vec
+
+    # extra RAM placements (20-bit linear addresses, e.g. from a V20 suite
+    # test case); reject aliasing collisions in the 64K-mirrored space
+    if ram:
+        seen = {}
+        for addr, val in ram:
+            phys = addr & 0xFFFF
+            if phys in RESERVED:
+                raise ComposeError(f"ram byte at {addr:05x} hits reserved page")
+            if phys in seen and seen[phys] != (addr, val):
+                pa, pv = seen[phys]
+                if pa != addr:
+                    raise ComposeError(
+                        f"mirror alias: {pa:05x} and {addr:05x} both map to "
+                        f"{phys:04x}")
+            seen[phys] = (addr, val)
+            img[phys] = val & 0xFF
 
     anchor = ((r["PS"] << 4) + r["PC"]) & 0xFFFFF
     anchor_phys = anchor & 0xFFFF

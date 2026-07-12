@@ -59,7 +59,8 @@ def extract_txns_large(recs):
         t = r["t"]
         if t == 1:      # T1
             cur = {"start": r["idx"], "kind": r["bs_early"],
-                   "addr": r["ad_addr"], "data": None}
+                   "addr": r["ad_addr"], "data": None,
+                   "ube_n": r["ube_n"]}
         elif t in (3, 4) and cur:   # T3/TW
             cur["data"] = r["ad_data"]
         elif t == 5 and cur:        # T4
@@ -112,7 +113,7 @@ def parse_result(recs, meta):
         "regs": regs_out,
         "test_txns": [
             {"kind": KIND[t["kind"]], "addr": t["addr"], "data": t["data"],
-             "cycles": t["end"] - t["start"] + 1}
+             "ube_n": t["ube_n"], "cycles": t["end"] - t["start"] + 1}
             for t in test_txns],
     }
 
