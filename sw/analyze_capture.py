@@ -208,6 +208,7 @@ def decode_words(words):
         "idx": i,
         "ad_addr": r & 0xFFFFF,
         "ad_data": (r >> 20) & 0xFFFF,
+        "ps": (r >> 36) & 0xF,          # A19-A16 / PS3-PS0, data phase
         "bs_early": (r >> 40) & 7,
         "bs_late": (r >> 43) & 7,
         "qs": (r >> 46) & 3,
