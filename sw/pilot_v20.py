@@ -51,7 +51,7 @@ def apply_write(mem, txn):
             mem[addr & 0xFFFFF] = data >> 8          # odd byte on upper lane
 
 
-def run_case(case, mask, host, tag):
+def run_case(case, mask, host, tag, raw_flags=False):
     init = case["initial"]
     regs = {INTEL2NEC[k]: v for k, v in init["regs"].items()}
     exp = expected_final(case)
@@ -72,7 +72,7 @@ def run_case(case, mask, host, tag):
         want = exp[intel]
         g = got.get(nec)
         if nec == "PSW":
-            m = mask & DOCUMENTED_FLAGS
+            m = 0xFFFF if raw_flags else (mask & DOCUMENTED_FLAGS)
             if g is None or (g ^ want) & m:
                 fails.append((nec, want, g, m))
         elif nec == "PC":
@@ -104,8 +104,12 @@ def main():
     ap.add_argument("opcodes", nargs="+")
     ap.add_argument("--cases", type=int, default=20)
     ap.add_argument("--host", default="root@mister-nec")
-    ap.add_argument("--data", default="/tmp/claude-1000/-home-wickerwaka-src-"
-                    "nec-test/295bdac9-b712-449c-b2f5-a330d77211a5/scratchpad")
+    ap.add_argument("--raw-flags", action="store_true",
+                    help="compare the FULL 16-bit flags word, ignoring the "
+                         "suite's undefined-flag mask (V20==V30 exactness "
+                         "check, mission 12)")
+    ap.add_argument("--data", default=str(Path(__file__).resolve().parent
+                    .parent / "tests" / "v30" / "v20suite"))
     args = ap.parse_args()
 
     meta_db = json.load(open(Path(args.data) / "metadata.json"))
@@ -124,7 +128,8 @@ def main():
             if case["initial"]["regs"]["flags"] & 0x0100:
                 continue                        # TF set: not injectable
             try:
-                fails = run_case(case, mask, args.host, f"pilot{op}")
+                fails = run_case(case, mask, args.host, f"pilot{op}",
+                                 raw_flags=args.raw_flags)
             except ComposeError:
                 skipped += 1
                 continue

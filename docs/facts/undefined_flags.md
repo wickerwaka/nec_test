@@ -111,7 +111,13 @@ preserved inputs, SZP-of-result, or reproducible microcode residue — so:
   record raw values, keep the masks for consumers.
 - For the RTL core (Campaign 3), the masks are not enough: the golden-trace
   diff compares raw PSW, so the core must implement the behaviors above.
-- The suite notes claim V20/V30 undefined-flag values match exactly (same
-  microcode family). Verifying that against the V20 suite's raw values
-  (unmasked comparison in sw/pilot_v20.py) is a cheap follow-up, not yet
-  done.
+- **VERIFIED (2026-07-11, mission 12): V30 undefined-flag behavior is
+  bit-exact with the V20.** `sw/pilot_v20.py --raw-flags` compares the
+  FULL 16-bit flags word (no mask) against the V20 suite's recorded final
+  values: 75/75 cases passed across the U-flag-heavy opcodes 37 (AAA),
+  27 (DAA), D2.4 (SHL r/m8,CL), F6.4 (MUL r/m8), and F6.6 (DIV r/m8,
+  including divide-exception paths with flag words pushed to the stack) —
+  15 non-prefetched cases each (sw/testdata/rawflags_run.out; suite data
+  provenance in tests/v30/v20suite/README.md). The V20 suite's raw flag
+  values can therefore serve as a golden reference for the V30 core's
+  undefined flags, and the classifications above describe both parts.
