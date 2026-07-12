@@ -15,11 +15,41 @@ by a measurement on the real chip. Conditions unless stated: max mode,
   Same rule as the 8086's word-fetch BIU.
 - Fetches are words at even addresses (+2 bytes at T4).
 
-## Flush / jump behavior (exp 2: flush)
+## Flush / jump behavior (exp 2 + Campaign 3 mission E, unified law)
 
-- Queue flush (QS=E) → next fetch **T1 in 1 cycle**, both target parities.
-- Flush → first byte of the target consumed (QS=F): **6 cycles**, both
-  parities (= 1 + 4-cycle fetch + 1).
+Refined against the 4,500-case control-flow tranche (EB/E9/74/75/7C/E2/
+E8/C3/C2, all cycle-exact in the RTL core). Exp 2's "flush→T1 in 1
+cycle" and the divide-trap traces' E+2 shape are both special cases of:
+
+- **Internal flush X** (queue clear + fetch-pointer redirect) is
+  EU-deterministic per instruction: EB/E9 at lastdisp-pop+3, Jcc taken
+  at pop+4, DBNZ taken at pop+6, CALL at hi-pop+3 (one cycle before its
+  push request), RET/RET-pop at read-done+1, divide trap at the cycle
+  after the PS push (raised with the PC push request).
+- **Redirect commit**: the redirected prefetch commits at the normal
+  evaluation points (T3->T4 edge, end of idle cycle) from the END of X
+  onward, plus one flush-only point: the end of a PREFETCH cycle's T4.
+  An EU access's T4 is never an eval point, flush or not (RET's E+2
+  shape). A pending EU request (CALL push, trap PC push) still wins the
+  first slot; the redirect follows it.
+- **QS=E pin display**: shows during X itself when the BIU is quiet;
+  otherwise it waits for the first cycle with (a) no doomed in-flight
+  fetch in T1-T3/TW (a flush during T1-T3 shows at that fetch's T4; a
+  flush AT a fetch's T4 shows one later), (b) no queue-push absorb
+  (cycle after a fetch T4), and (c) no ready-but-not-yet-started EU
+  request (CALL: E waits for the push's status cycle). (c) does not
+  apply at X itself: the trap raises flush and PC-push-ready together
+  and still shows E at once. Exp 2's "T1 in 1 cycle" was the
+  quiet-idle-at-X case.
+- A doomed in-flight fetch always completes its bus cycle; its data is
+  discarded. This includes fetches that only START their T1 after X
+  (committed at an eval just before the flush - Jcc cold variants show
+  the doomed T1 mid-resolution).
+- **Prefetch-reservation start during branch resolution** (from
+  old-stream commits observed inside the window, 500 cases/opcode):
+  EB and CALL/RET-pop reserve at their final-pop cycle; E9 at pop+1;
+  Jcc/DBNZ at pop+2; RET holds its decode reservation through the
+  stack read (plain POP r16 does not).
 - **Odd jump target: the first fetch is a single byte at the odd address**
   (upper lane, UBE̅ low, A0=1), then word-aligned fetching resumes.
 

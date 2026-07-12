@@ -50,9 +50,12 @@ module v30_biu (
 
     input             psw_ie,        // PS2 (IE) bit of the segment status
 
-    // queue consumer (EU). qs is driven by the EU via v30_core.
+    // queue consumer (EU). F/S queue status is driven by the EU via
+    // v30_core; the E (flush) pin timing is BIU-generated (qs_e) per the
+    // measured display law.
     output      [7:0] q_byte,
     output            q_avail,
+    output            qs_e,
     input             q_pop,
     input             q_flush,
     input      [15:0] flush_cs,
@@ -159,6 +162,21 @@ assign q_byte  = q_mem[q_rd];
 assign q_avail = q_avl != 0;
 
 //----------------------------------------------------------------------------
+// QS=E display law (measured, mission E): the E code appears on the pins
+// in the internal-flush cycle when the BIU is quiet; otherwise it waits
+// for the first cycle with no doomed fetch in T1-T3/TW, no queue-push
+// absorb (q_aged), and no ready-but-not-yet-started EU request (a flush
+// raised together with an EU request - the trap - still shows at once).
+//----------------------------------------------------------------------------
+reg e_wait;
+wire flush_busy_fetch = cur_fetch && (state == ST_T1 || state == ST_T2 ||
+                                      state == ST_T3 || state == ST_TW);
+wire flush_quiet = !(cur_fetch && state != ST_TI) && (q_aged == 2'd0);
+wire e_wait_show = e_wait && !flush_busy_fetch && (q_aged == 2'd0) &&
+                   !(eu_ready && !eu_started);
+assign qs_e = (q_flush && flush_quiet) || e_wait_show;
+
+//----------------------------------------------------------------------------
 // commit selection (combinational). Priority: second half of a split EU
 // access, then a ready EU request, then prefetch.
 //----------------------------------------------------------------------------
@@ -212,6 +230,10 @@ endtask
 //----------------------------------------------------------------------------
 wire t3_done = (state == ST_T3 || state == ST_TW) && ready;
 
+// a committed-but-stale prefetch dies in the flush cycle: transitions must
+// not consume it
+wire nxt_live = nxt_valid && !(q_flush && nxt_fetch);
+
 assign eu_done = (state == ST_T4) && !cur_fetch && cur_type != BS_PASV
                  && !cur_split1;
 
@@ -243,6 +265,7 @@ always_ff @(posedge clk) begin
         fetch_discard <= 1'b0;
         fetch_data <= '0;
         eu_rdata   <= '0;
+        e_wait     <= 1'b0;
         if (bkd_load) begin
             fetch_cs  <= bkd_cs;
             fetch_off <= bkd_ip;
@@ -278,15 +301,19 @@ always_ff @(posedge clk) begin
             q_wr   <= '0;
             fetch_cs  <= flush_cs;
             fetch_off <= flush_ip;
-            if (cur_fetch && state != ST_TI)
+            if (flush_busy_fetch)
                 fetch_discard <= 1'b1;    // let the bus cycle finish, drop data
             if (nxt_valid && nxt_fetch)
                 nxt_valid <= 1'b0;        // uncommit a stale fetch
         end
 
+        // QS=E display deferral
+        if (q_flush && !flush_quiet) e_wait <= 1'b1;
+        else if (e_wait_show)        e_wait <= 1'b0;
+
         unique case (state)
             ST_TI: begin
-                if (nxt_valid) begin
+                if (nxt_live) begin
                     state      <= ST_T1;
                     cur_type   <= nxt_type;
                     cur_addr   <= nxt_addr;
@@ -330,7 +357,7 @@ always_ff @(posedge clk) begin
             end
             ST_T4: begin
                 if (cur_fetch && fetch_discard) fetch_discard <= 1'b0;
-                if (nxt_valid) begin
+                if (nxt_live) begin
                     state      <= ST_T1;
                     cur_type   <= nxt_type;
                     cur_addr   <= nxt_addr;
@@ -351,8 +378,12 @@ always_ff @(posedge clk) begin
                     cur_split1 <= 1'b0;
                     cur_split2 <= 1'b0;
                     cur_wr     <= 1'b0;
+                    // NOTE: no commit evaluation at the T4 edge normally
+                    // (measured) - EXCEPT a flush redirect at a prefetch
+                    // T4, which commits immediately (measured, mission E).
+                    // An EU access's T4 still defers to the next Ti eval.
+                    if (q_flush && cur_fetch && pick_any) do_commit();
                 end
-                // NOTE: no commit evaluation at the T4 edge (measured)
             end
             default: state <= ST_TI;
         endcase
@@ -364,20 +395,20 @@ end
 //----------------------------------------------------------------------------
 wire cycle_active = (state != ST_TI) && cur_type != BS_PASV;
 
-assign bs = nxt_valid ? nxt_type
+assign bs = nxt_live ? nxt_type
           : (state == ST_T1 || state == ST_T2) ? cur_type
           : BS_PASV;
 
 wire [15:0] wdata_lanes = cur_swap ? {cur_wdata[7:0], cur_wdata[15:8]}
                                    : cur_wdata;
 
-assign ad_oe_addr = nxt_valid || state == ST_T1;
+assign ad_oe_addr = nxt_live || state == ST_T1;
 assign ad_oe_ps   = !ad_oe_addr && cycle_active &&
                     (state == ST_T2 || state == ST_T3 ||
                      state == ST_TW || state == ST_T4);
 assign ad_oe_data = ad_oe_ps && cur_wr;
 
-assign ad_o = nxt_valid          ? nxt_addr
+assign ad_o = nxt_live           ? nxt_addr
             : (state == ST_T1)   ? cur_addr
             : {1'b0, psw_ie, cur_seg, wdata_lanes};
 

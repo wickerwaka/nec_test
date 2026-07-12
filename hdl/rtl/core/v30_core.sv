@@ -79,10 +79,11 @@ wire        psw_ie;
 wire q_pop   = scr_en ? scr_qop[0]              : eu_pop;
 wire q_first = scr_en ? (scr_qop == 2'b01)      : eu_first;
 wire q_flush = scr_en ? 1'b0                    : eu_flush;
+wire qs_e;   // E display timing is BIU-generated (measured law)
 
 // queue status pins: 00 none, 01 first byte, 10 flush, 11 subsequent byte
-assign QS = q_flush ? 2'b10
-          : q_pop   ? (q_first ? 2'b01 : 2'b11)
+assign QS = qs_e   ? 2'b10
+          : q_pop  ? (q_first ? 2'b01 : 2'b11)
           : 2'b00;
 
 wire [19:0] ad_o;
@@ -103,6 +104,7 @@ v30_biu u_biu (
     .psw_ie     (psw_ie),
     .q_byte     (q_byte),
     .q_avail    (q_avail),
+    .qs_e       (qs_e),
     .q_pop      (q_pop),
     .q_flush    (q_flush),
     .flush_cs   (eu_flush_cs),

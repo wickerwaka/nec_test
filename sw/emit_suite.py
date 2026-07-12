@@ -72,10 +72,11 @@ HANDLER_OFF = 0x0400              # IVT-0 handler (V20 convention)
 # modrm: None, "rm8r8", "rm16r16", "r8rm8", "r16rm16", "grp8", "grp16"
 # imm: byte count appended after modrm/opcode
 def SPEC(key, mnem, base, modrm=None, w=0, imm=0, group=None,
-         stack=False, divtrap=False, string4s=False, imm_mask=None):
+         stack=False, divtrap=False, string4s=False, imm_mask=None,
+         branch=None):
     return dict(key=key, mnem=mnem, base=base, modrm=modrm, w=w, imm=imm,
                 group=group, stack=stack, divtrap=divtrap,
-                string4s=string4s, imm_mask=imm_mask)
+                string4s=string4s, imm_mask=imm_mask, branch=branch)
 
 
 ALU = ["add", "or", "adc", "sbb", "and", "sub", "xor", "cmp"]
@@ -103,6 +104,19 @@ OPCODES["0F18"] = SPEC("0F18", "test1", [0x0F, 0x18], modrm="grp8",
                        group=0, imm=1, imm_mask=0x07)
 OPCODES["0F28"] = SPEC("0F28", "rol4", [0x0F, 0x28], modrm="grp8", group=0)
 OPCODES["0F20"] = SPEC("0F20", "add4s", [0x0F, 0x20], string4s=True)
+# Mission E control flow: the emitter predicts the continuation from the
+# initial state and parks the store stub there.
+OPCODES["EB"] = SPEC("EB", "br short", [0xEB], branch="jmp8")
+OPCODES["E9"] = SPEC("E9", "br near", [0xE9], branch="jmp16")
+OPCODES["74"] = SPEC("74", "be", [0x74], branch="jcc")
+OPCODES["75"] = SPEC("75", "bne", [0x75], branch="jcc")
+OPCODES["7C"] = SPEC("7C", "blt", [0x7C], branch="jcc")
+OPCODES["E2"] = SPEC("E2", "dbnz", [0xE2], branch="loop")
+OPCODES["E8"] = SPEC("E8", "call near", [0xE8], branch="call", stack=True)
+OPCODES["C3"] = SPEC("C3", "ret", [0xC3], branch="ret", stack=True)
+OPCODES["C2"] = SPEC("C2", "ret pop", [0xC2], branch="ret", stack=True)
+
+BRANCH_OPS = ["EB", "E9", "74", "75", "7C", "E2", "E8", "C3", "C2"]
 
 TRANCHE = ["00", "08", "10", "18", "20", "28", "30", "38", "B8", "40",
            "48", "50", "58", "86", "87", "88", "89", "8A", "8B", "D0.4",
@@ -195,10 +209,61 @@ def gen_case(spec, rng):
 
         anchor = ((regs["cs"] << 4) + regs["ip"]) & 0xFFFFF
         a_phys = anchor & 0xFFFF
-        spans = [range(a_phys, a_phys + len(instr) + 24)]   # instr+stub
 
         def lin(seg, off):
             return ((regs[seg] << 4) + (off & 0xFFFF)) & 0xFFFFF
+
+        # control flow: append displacement bytes, evaluate the branch
+        # from the initial state, predict the continuation offset
+        next_ip = None
+        if spec["branch"]:
+            br = spec["branch"]
+            taken = True
+            sd = 0
+            if br in ("jmp8", "jcc", "loop"):
+                d8 = rng.getrandbits(8)
+                instr += bytes([d8])
+                sd = d8 - 0x100 if d8 & 0x80 else d8
+            elif br in ("jmp16", "call"):
+                d16 = rng.getrandbits(16)
+                instr += d16.to_bytes(2, "little")
+                sd = d16
+            elif spec["key"] == "C2":
+                instr += rng.getrandbits(16).to_bytes(2, "little")
+            fall = (regs["ip"] + len(instr)) & 0xFFFF
+            if br == "jcc":
+                f = regs["flags"]
+                zf, sf, of = (f >> 6) & 1, (f >> 7) & 1, (f >> 11) & 1
+                taken = {0x74: zf == 1, 0x75: zf == 0,
+                         0x7C: (sf ^ of) == 1}[spec["base"][0]]
+            elif br == "loop":
+                if rng.random() < 0.3:
+                    regs["cx"] = 1                     # not taken
+                elif (regs["cx"] & 0xFFFF) < 2:
+                    regs["cx"] = rng.randrange(2, 0x10000)
+                taken = ((regs["cx"] - 1) & 0xFFFF) != 0
+            if br == "ret":
+                next_ip = rng.getrandbits(16)
+                ram.append((lin("ss", regs["sp"]), next_ip & 0xFF))
+                ram.append((lin("ss", regs["sp"] + 1), next_ip >> 8))
+            else:
+                next_ip = (fall + sd) & 0xFFFF if taken else fall
+            if br in ("jmp8", "jmp16", "call"):
+                name += f" {next_ip:04x}h"
+            elif br == "jcc" or br == "loop":
+                name += f" {(fall + sd) & 0xFFFF:04x}h" + \
+                        ("" if taken else " (not taken)")
+            elif spec["key"] == "C2":
+                name += f" {int.from_bytes(instr[1:3], 'little'):04x}h"
+
+        if next_ip is not None and \
+                next_ip != (regs["ip"] + len(instr)) & 0xFFFF:
+            # instr + fall-through prefetch overrun; stub at the target
+            spans = [range(a_phys, a_phys + len(instr) + 8),
+                     range(lin("cs", next_ip) & 0xFFFF,
+                           (lin("cs", next_ip) & 0xFFFF) + 24)]
+        else:
+            spans = [range(a_phys, a_phys + len(instr) + 24)]  # instr+stub
 
         # memory operand placement
         if spec["modrm"] and (instr[len(spec["base"])] >> 6) != 3:
@@ -252,7 +317,8 @@ def gen_case(spec, rng):
                 bad = True
         if bad:
             continue
-        return dict(regs=regs, instr=instr, ram=ram, name=name, ivt=ivt)
+        return dict(regs=regs, instr=instr, ram=ram, name=name, ivt=ivt,
+                    next_ip=next_ip)
     raise ComposeError("could not place case after 64 rerolls")
 
 
@@ -393,7 +459,10 @@ def emit_case(spec, case, host, tag, preload_n=0):
     else:
         run_instr = instr
 
-    stub_linear = ((anchor & 0xFFFF) + len(instr)) & 0xFFFF
+    next_ip = case.get("next_ip")
+    if next_ip is None:
+        next_ip = (case["regs"]["ip"] + len(instr)) & 0xFFFF
+    stub_linear = ((case["regs"]["cs"] << 4) + next_ip) & 0xFFFF
     if ivt:
         # handler at HANDLER_OFF: BR far 0000:stub
         h = bytes([0xEA, stub_linear & 0xFF, stub_linear >> 8, 0x00, 0x00])
@@ -407,6 +476,18 @@ def emit_case(spec, case, host, tag, preload_n=0):
 
     rows, events, i0, i1, q0, qf, fetched, memrd = \
         build_rows(recs, meta["anchor_linear"], n_skip_f=preload_n)
+
+    # continuation check: the window-closing F pop must come from the
+    # predicted next_ip (guards branch/ret prediction and stub placement)
+    pop1 = events[i1][1]
+    tgt_lin = (((case["regs"]["cs"] << 4) + next_ip) & 0xFFFFF)
+    if case["ivt"] is None:
+        if pop1 is None or pop1[0] is None or \
+                (pop1[0] & 0xFFFFF) != tgt_lin:
+            got_a = None if (pop1 is None or pop1[0] is None) else pop1[0]
+            raise RunError(f"continuation mismatch: predicted "
+                           f"{tgt_lin:05x}, window closed at "
+                           f"{got_a if got_a is None else hex(got_a)}")
 
     # initial ram: instr bytes + placed operands + fill actually read
     init_ram = []
@@ -454,8 +535,7 @@ def emit_case(spec, case, host, tag, preload_n=0):
     fin_regs = {}
     for ik, nk in INTEL2NEC.items():
         if ik == "ip":
-            fin_ip = HANDLER_OFF if trapped else \
-                (case["regs"]["ip"] + len(instr)) & 0xFFFF
+            fin_ip = HANDLER_OFF if trapped else next_ip
             if fin_ip != case["regs"]["ip"]:
                 fin_regs["ip"] = fin_ip
         elif ik == "cs":

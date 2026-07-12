@@ -30,10 +30,19 @@
 //
 //  Implemented opcodes: 00/08/10/18/20/28/30/38 (ALU rm8,r8), 40-4F,
 //  50-57, 58-5F, 86/87 (XCHG), 88/89/8A/8B, 90, B8-BF, D0/4, F6/4,
-//  F7/6, FE/0, and the V30 0F forms 0F18 (TEST1 rm8,imm3), 0F20
-//  (ADD4S), 0F28 (ROL4 rm8). Unknown opcodes park the sequencer
-//  (S_HALT). 0F forms pop the second byte at F+2 and the modrm at F+3;
-//  the standard EA machinery then applies unchanged.
+//  F7/6, FE/0, the V30 0F forms 0F18 (TEST1 rm8,imm3), 0F20 (ADD4S),
+//  0F28 (ROL4 rm8), and control flow EB/E9 (BR), 74/75/7C (Bcc), E2
+//  (DBNZ), E8 (CALL near), C3/C2 (RET). Unknown opcodes park the
+//  sequencer (S_HALT). 0F forms pop the second byte at F+2 and the
+//  modrm at F+3; the standard EA machinery then applies unchanged.
+//
+//  Control-flow timing (mission E; see docs/facts/biu_model.md for the
+//  unified flush law): internal flush X = lastpop+3 (EB/E9), pop+4
+//  (Jcc taken), pop+6 (DBNZ taken), hi+3 (CALL, one cycle before its
+//  push request; push ready hi+4), done+1 (RET/RET-pop; RET-pop read
+//  ready hi+1). Not-taken: Jcc retires end of pop+1, DBNZ pop+2.
+//  Reservation starts: EB/E8/C2 at their final pop, E9 pop+1, Jcc/E2
+//  pop+2; RET reserves from decode through the stack read.
 //
 //  Undefined-flag behavior per docs/facts/undefined_flags.md, with laws
 //  discovered from the golden traces (each verified on all 500 cases):
@@ -131,6 +140,8 @@ typedef enum logic [5:0] {
     S_0F, S_DEC2, S_T1GAP, S_IMM3,
     S_A4_SETUP, S_A4_SRC, S_A4_SRCW, S_A4_G1, S_A4_DST, S_A4_DSTW,
     S_A4_G2, S_A4_WR, S_A4_WRW, S_A4_END,
+    S_JDISP, S_JDLO, S_JDHI, S_JWAIT, S_JNT, S_JFLUSH,
+    S_CALLFL, S_CALLPUSH, S_CALLW, S_RETF,
     S_TRAP_IVT1, S_TRAP_IVT2, S_TRAP_IVT2W,
     S_TRAP_W1, S_TRAP_PSW, S_TRAP_PSWW,
     S_TRAP_W2, S_TRAP_PS, S_TRAP_PSW2W,
@@ -156,7 +167,8 @@ reg         a4_z;        // accumulated zero flag (pre-adjust bytes)
 reg [15:0]  mem_op;      // operand as read ({sibling, byte} for byte ops)
 reg [15:0]  ivt_off, ivt_seg;
 reg [15:0]  trap_psw;
-reg         flush_now;   // QS=E this cycle (trap path)
+reg         flush_now;   // registered flush (trap path)
+reg [15:0]  fl_cs, fl_ip; // flush redirect target
 
 wire [2:0] mrm_reg = mrm[5:3];
 wire [2:0] mrm_rm  = mrm[2:0];
@@ -176,6 +188,11 @@ wire op_grpd0  = opc == 8'hD0;                       // /4 SHL8,1 only
 wire op_grpfe  = opc == 8'hFE;                       // /0 INC8 only
 wire op_xchg8  = opc == 8'h86;
 wire op_xchg16 = opc == 8'h87;
+wire op_jcc    = opc == 8'h74 || opc == 8'h75 || opc == 8'h7C;
+wire op_ret    = opc == 8'hC3 || opc == 8'hC2;
+wire jcc_taken = (opc == 8'h74) ?  psw[FB_Z] :
+                 (opc == 8'h75) ? !psw[FB_Z] :
+                                   psw[FB_S] ^ psw[FB_V];   // 7C BLT
 wire op_0f     = opc == 8'h0F;                       // two-byte forms
 wire op_test1  = op_0f && opc2 == 8'h18;             // TEST1 rm8,imm3
 wire op_rol4   = op_0f && opc2 == 8'h28;             // ROL4 rm8
@@ -408,13 +425,18 @@ wire pop_want = (state == S_FIRST) ||
                 (state == S_DEC && op_modrm) ||
                 (state == S_0F) || (state == S_DEC2) || (state == S_IMM3) ||
                 (state == S_IMM_LO) || (state == S_IMM_HI) ||
-                (state == S_DISP8) || (state == S_DLO) || (state == S_DHI);
+                (state == S_DISP8) || (state == S_DLO) || (state == S_DHI) ||
+                (state == S_JDISP) || (state == S_JDLO) ||
+                (state == S_JDHI);
 
 assign q_pop   = pop_want && q_avail;
 assign q_first = state == S_FIRST;
-assign q_flush = flush_now;
-assign flush_cs = ivt_seg;
-assign flush_ip = ivt_off;
+// flush: registered for the trap path; combinational for branch flush
+// cycles (S_JFLUSH/S_RETF) and CALL's push-status cycle
+assign q_flush = flush_now || (state == S_JFLUSH) || (state == S_RETF) ||
+                 (state == S_CALLFL);
+assign flush_cs = fl_cs;
+assign flush_ip = fl_ip;
 assign dbg_first_pop = q_pop && q_first;
 
 //----------------------------------------------------------------------------
@@ -431,11 +453,27 @@ always_comb begin
         S_EA1: eu_req = is_reader && mrm_mod == 2'd0;
         S_EA2: eu_req = is_reader;
         S_DISP8, S_DHI: eu_req = is_reader && q_pop;
-        // POP r16 reserves the bus already during decode (measured:
+        // POP r16 / RET reserve the bus already during decode (measured:
         // cold-start POP suppresses the prefetch commit at cycle 1)
-        S_DEC:  eu_req = !op_modrm && opc[7:3] == 5'b01011;
+        S_DEC:  eu_req = !op_modrm && (opc[7:3] == 5'b01011 ||
+                                       opc == 8'hC3);
+        // reservation start (measured per opcode from old-stream commits
+        // inside the resolution window): EB/E8 at the final pop cycle,
+        // E9 at pop+1, Jcc/E2 at pop+2
+        S_JDISP: eu_req = q_pop && opc == 8'hEB;
+        S_JDHI:  eu_req = q_pop && (opc == 8'hE8 || opc == 8'hC2);
+        S_JWAIT: eu_req = !(op_jcc && dly == 5'd3) &&
+                          !(opc == 8'hE2 &&
+                            (dly == 5'd5 || wnext == S_JNT));
+        // CALL: the flush cycle keeps the reservation so the push (ready
+        // next cycle) wins the first slot ahead of the redirected prefetch
+        S_CALLFL: eu_req = 1'b1;
+        // RET holds its reservation through the stack read (measured: no
+        // prefetch commit at the read's T3 edge; plain POP r16 allows it)
+        S_BUSW: eu_req = op_ret;
         S_REQ, S_WREQ,
         S_A4_SRC, S_A4_DST, S_A4_WR,
+        S_CALLPUSH,
         S_TRAP_IVT1, S_TRAP_IVT2,
         S_TRAP_PSW, S_TRAP_PS, S_TRAP_FLUSH, S_TRAP_PC: begin
             eu_req   = 1'b1;
@@ -501,6 +539,8 @@ always_ff @(posedge clk) begin
         ivt_off  <= '0;
         ivt_seg  <= '0;
         trap_psw <= '0;
+        fl_cs    <= '0;
+        fl_ip    <= '0;
         eu_wr    <= 1'b0;
         eu_word  <= 1'b0;
         eu_addr  <= '0;
@@ -589,13 +629,18 @@ always_ff @(posedge clk) begin
                         retire();
                     end else if (opc == 8'h90) state <= S_NOP;
                     else if (opc[7:3] == 5'b01010) state <= S_PUSH_CALC;
-                    else if (opc[7:3] == 5'b01011) begin            // POP r16
+                    else if (opc[7:3] == 5'b01011 ||
+                             opc == 8'hC3) begin      // POP r16 / RET
                         eu_addr <= {sr[SEG_SS], 4'h0} + {4'h0, rf[4]};
                         eu_seg  <= SEG_SS;
                         eu_wr   <= 1'b0;
                         eu_word <= 1'b1;
                         state   <= S_REQ;
-                    end else state <= S_HALT;
+                    end else if (opc == 8'hEB || op_jcc || opc == 8'hE2)
+                        state <= S_JDISP;
+                    else if (opc == 8'hE9 || opc == 8'hE8 || opc == 8'hC2)
+                        state <= S_JDLO;
+                    else state <= S_HALT;
                 end
             end
 
@@ -613,6 +658,90 @@ always_ff @(posedge clk) begin
             end
 
             S_NOP: retire();
+
+            //----------------------------------------------------------------
+            // control flow (mission E; offsets from the golden tranches):
+            //   EB:  disp8 pop P -> flush @ P+3
+            //   E9:  disp16 hi pop H -> flush @ H+3
+            //   Jcc: taken flush @ P+4; not-taken retire end of P+1
+            //   E2:  taken flush @ P+6; not-taken retire end of P+2
+            //   E8:  push ready @ H+4, flush during the push status cycle
+            //   C3/C2: SP read; flush @ done+1 (C2: imm16 pops first,
+            //          read ready @ H+1)
+            //----------------------------------------------------------------
+            S_JDISP: if (q_pop) begin
+                pc   <= pc + 16'd1;
+                disp <= pc + 16'd1 + {{8{q_byte[7]}}, q_byte};  // target
+                if (opc == 8'hEB) begin
+                    dly <= 5'd2; wnext <= S_JFLUSH; state <= S_JWAIT;
+                end else if (opc == 8'hE2) begin                // DBNZ
+                    rf[1] <= rf[1] - 16'd1;
+                    if (rf[1] != 16'd1) begin
+                        dly <= 5'd5; wnext <= S_JFLUSH; state <= S_JWAIT;
+                    end else begin
+                        dly <= 5'd1; wnext <= S_JNT; state <= S_JWAIT;
+                    end
+                end else begin                                  // Jcc
+                    if (jcc_taken) begin
+                        dly <= 5'd3; wnext <= S_JFLUSH; state <= S_JWAIT;
+                    end else state <= S_JNT;
+                end
+            end
+            S_JDLO: if (q_pop) begin
+                disp[7:0] <= q_byte;
+                pc <= pc + 16'd1;
+                state <= S_JDHI;
+            end
+            S_JDHI: if (q_pop) begin
+                pc <= pc + 16'd1;
+                if (opc == 8'hC2) begin
+                    disp[15:8] <= q_byte;                       // pop count
+                    eu_addr <= {sr[SEG_SS], 4'h0} + {4'h0, rf[4]};
+                    eu_seg  <= SEG_SS;
+                    eu_wr   <= 1'b0;
+                    eu_word <= 1'b1;
+                    state   <= S_REQ;                           // rdy @ H+1
+                end else begin
+                    disp <= pc + 16'd1 + {q_byte, disp[7:0]};   // target
+                    if (opc == 8'hE9) begin
+                        dly <= 5'd2; wnext <= S_JFLUSH; state <= S_JWAIT;
+                    end else begin                 // E8: flush @ H+3 like E9,
+                        dly <= 5'd2; wnext <= S_CALLFL; state <= S_JWAIT;
+                    end                            // push ready @ H+4
+                end
+            end
+            // branch-resolution wait (holds a bus reservation)
+            S_JWAIT: begin
+                if (dly == 5'd1) begin
+                    state <= wnext;
+                    if (wnext == S_JFLUSH || wnext == S_CALLFL) begin
+                        fl_cs <= sr[SEG_CS];
+                        fl_ip <= disp;
+                    end
+                end
+                dly <= dly - 5'd1;
+            end
+            S_JNT: retire();                                    // not taken
+            S_JFLUSH: begin      // q_flush high this cycle (comb)
+                pc      <= fl_ip;
+                arch_ip <= fl_ip;
+                state   <= S_FIRST;
+            end
+            S_CALLFL: begin      // q_flush high this cycle (comb)
+                issue_push(pc);  // return address = fall-through
+                pc    <= fl_ip;
+                state <= S_CALLPUSH;
+            end
+            S_CALLPUSH: if (eu_started) state <= S_CALLW;
+            S_CALLW: if (eu_done) begin
+                arch_ip <= pc;
+                state <= S_FIRST;
+            end
+            S_RETF: begin        // q_flush high this cycle (comb)
+                pc      <= fl_ip;
+                arch_ip <= fl_ip;
+                state   <= S_FIRST;
+            end
 
             //----------------------------------------------------------------
             // 0F-prefixed forms: second byte pops at F+2, modrm at F+3
@@ -777,7 +906,13 @@ always_ff @(posedge clk) begin
             end
             S_REQ: if (eu_started) state <= S_BUSW;
             S_BUSW: if (eu_done) begin
-                if (opc[7:3] == 5'b01011) begin           // POP r16
+                if (op_ret) begin                         // C3 / C2
+                    rf[4] <= rf[4] + 16'd2 +
+                             ((opc == 8'hC2) ? disp : 16'd0);
+                    fl_cs <= sr[SEG_CS];
+                    fl_ip <= eu_rdata;
+                    state <= S_RETF;                      // flush @ done+1
+                end else if (opc[7:3] == 5'b01011) begin  // POP r16
                     rf[4] <= rf[4] + 16'd2;
                     rf[opc[2:0]] <= eu_rdata;             // POP SP: load wins
                     retire();
@@ -945,6 +1080,8 @@ always_ff @(posedge clk) begin
             end
             S_TRAP_IVT2W: if (eu_done) begin
                 ivt_seg  <= eu_rdata;
+                fl_cs    <= eu_rdata;
+                fl_ip    <= ivt_off;
                 // psw already carries the divide residue (pre-check
                 // compare); latch the to-be-pushed value here, and clear
                 // the live IE/TF at once - the PS status bits of the push

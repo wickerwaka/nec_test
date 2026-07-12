@@ -148,6 +148,51 @@
    "flags": "o..s.ap.",
    "flags-mask": 63339,
    "note": "ADD4S with CL limited to 1-6 digits"
+  },
+  "EB": {
+   "status": "normal",
+   "arch": "86",
+   "mnemonic-nec": "BR short-label"
+  },
+  "E9": {
+   "status": "normal",
+   "arch": "86",
+   "mnemonic-nec": "BR near-label"
+  },
+  "74": {
+   "status": "normal",
+   "arch": "86",
+   "mnemonic-nec": "BE/BZ short-label"
+  },
+  "75": {
+   "status": "normal",
+   "arch": "86",
+   "mnemonic-nec": "BNE/BNZ short-label"
+  },
+  "7C": {
+   "status": "normal",
+   "arch": "86",
+   "mnemonic-nec": "BLT short-label"
+  },
+  "E2": {
+   "status": "normal",
+   "arch": "86",
+   "mnemonic-nec": "DBNZ short-label"
+  },
+  "E8": {
+   "status": "normal",
+   "arch": "86",
+   "mnemonic-nec": "CALL near-label"
+  },
+  "C3": {
+   "status": "normal",
+   "arch": "86",
+   "mnemonic-nec": "RET"
+  },
+  "C2": {
+   "status": "normal",
+   "arch": "86",
+   "mnemonic-nec": "RET pop-value"
   }
  }
 }
