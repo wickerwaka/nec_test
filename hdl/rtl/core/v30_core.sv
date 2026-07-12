@@ -64,16 +64,20 @@ logic   [1:0] scr_qop = '0;
 `endif
 
 wire  [7:0] q_byte;
-wire        q_avail;
+wire        q_avail, q_avail2, q_any;
 wire        eu_pop, eu_first, eu_flush;
 wire [15:0] eu_flush_cs, eu_flush_ip;
 wire        eu_req, eu_hold, eu_ready, eu_wr, eu_fwd, eu_word;
+wire  [1:0] eu_kind;
 wire [19:0] eu_addr;
 wire  [1:0] eu_seg;
 wire [15:0] eu_wdata;
 wire        eu_started, eu_done, eu_wdone, eu_t1;
 wire [15:0] eu_rdata;
+wire        eu_rd_now;
+wire [15:0] eu_rdata_now;
 wire        psw_ie;
+wire        halt_disp;
 
 // scripted-consumer override (BIU-only verification)
 wire q_pop   = scr_en ? scr_qop[0]              : eu_pop;
@@ -102,8 +106,11 @@ v30_biu u_biu (
     .ad_i       (AD[15:0]),
     .ready      (READY),
     .psw_ie     (psw_ie),
+    .halt_disp  (halt_disp),
     .q_byte     (q_byte),
     .q_avail    (q_avail),
+    .q_avail2   (q_avail2),
+    .q_any      (q_any),
     .qs_e       (qs_e),
     .q_pop      (q_pop),
     .q_flush    (q_flush),
@@ -115,6 +122,7 @@ v30_biu u_biu (
     .eu_wr      (eu_wr),
     .eu_fwd     (eu_fwd),
     .eu_word    (eu_word),
+    .eu_kind    (eu_kind),
     .eu_addr    (eu_addr),
     .eu_seg     (eu_seg),
     .eu_wdata   (eu_wdata),
@@ -123,6 +131,8 @@ v30_biu u_biu (
     .eu_wdone   (eu_wdone),
     .eu_t1      (eu_t1),
     .eu_rdata   (eu_rdata),
+    .eu_rd_now  (eu_rd_now),
+    .eu_rdata_now (eu_rdata_now),
     .bkd_load   (bkd_load),
     .bkd_cs     (bkd_regs[144 +: 16]),
     .bkd_ip     (bkd_fetch_ip),
@@ -135,6 +145,8 @@ v30_eu u_eu (
     .srst       (RESET),
     .q_byte     (q_byte),
     .q_avail    (q_avail),
+    .q_avail2   (q_avail2),
+    .q_any      (q_any),
     .q_pop      (eu_pop),
     .q_first    (eu_first),
     .q_flush    (eu_flush),
@@ -146,6 +158,7 @@ v30_eu u_eu (
     .eu_wr      (eu_wr),
     .eu_fwd     (eu_fwd),
     .eu_word    (eu_word),
+    .eu_kind    (eu_kind),
     .eu_addr    (eu_addr),
     .eu_seg     (eu_seg),
     .eu_wdata   (eu_wdata),
@@ -154,7 +167,13 @@ v30_eu u_eu (
     .eu_wdone   (eu_wdone),
     .eu_t1      (eu_t1),
     .eu_rdata   (eu_rdata),
+    .eu_rd_now  (eu_rd_now),
+    .eu_rdata_now (eu_rdata_now),
     .psw_ie     (psw_ie),
+    .halt_disp  (halt_disp),
+    .pin_int    (INT),
+    .pin_nmi    (NMI),
+    .pin_poll_n (POLL_N),
     .bkd_load   (bkd_load),
     .bkd_regs   (bkd_regs)
 `ifdef V30_BACKDOOR
@@ -178,6 +197,6 @@ assign AD[19:16] = (ad_oe_addr | ad_oe_ps)   ? ad_o[19:16] : 4'hz;
 
 assign BUSLOCK_N = 1'b1;
 
-wire _unused = &{1'b0, INT, NMI, POLL_N, scr_qop[1]};
+wire _unused = &{1'b0, scr_qop[1]};
 
 endmodule

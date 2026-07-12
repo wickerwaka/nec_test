@@ -36,14 +36,21 @@
 //
 //  Implemented opcodes: 00/08/10/18/20/28/30/38 (ALU rm8,r8), 40-4F,
 //  50-57, 58-5F, 86/87 (XCHG), 88/89/8A/8B, 8C/8E (sreg MOV), 8D
-//  (LDEA), 90, 98/99 (CVTBW/CVTWL), A0-A3 (acc moffs), A4/A5/AA/AB/
-//  AC/AD (MOVBK/STM/LDM singles), B8-BF, D0/4, D7 (TRANS), F6/4,
-//  F6/7 F7/7 (IDIV), F7/6, FE/0, the prefixes 26/2E/36/3E (segment
-//  override) and F3 (REP), the V30 0F forms 0F18 (TEST1 rm8,imm3),
-//  0F20 (ADD4S), 0F28 (ROL4 rm8), and control flow EB/E9 (BR),
-//  74/75/7C (Bcc), E2 (DBNZ), E8 (CALL near), C3/C2 (RET). Unknown
-//  opcodes park the sequencer (S_HALT). 0F forms pop the second byte
-//  at F+2 and the modrm at F+3; the standard EA machinery applies.
+//  (LDEA), 90, 98/99 (CVTBW/CVTWL), 9B (POLL), 9D (POP PSW), A0-A3
+//  (acc moffs), A4/A5/AA/AB/AC/AD (MOVBK/STM/LDM singles), B8-BF,
+//  D0/4, D7 (TRANS), E4/E5/EC/ED (IN), F4 (HALT), F6/4, F6/7 F7/7
+//  (IDIV), F7/6, FA/FB (DI/EI), FE/0, the prefixes 26/2E/36/3E
+//  (segment override) and F3 (REP), the V30 0F forms 0F18 (TEST1
+//  rm8,imm3), 0F20 (ADD4S), 0F28 (ROL4 rm8), and control flow EB/E9
+//  (BR), 74/75/7C (Bcc), E2 (DBNZ), E8 (CALL near), C3/C2 (RET).
+//  Unknown opcodes park the sequencer (S_HALT). 0F forms pop the
+//  second byte at F+2 and the modrm at F+3; standard EA machinery.
+//
+//  Block 4 (missions L/M/N): INT/NMI recognition at instruction
+//  boundaries, the INTA pair + trap-chain vectoring, HALT entry/wake,
+//  POLL, IN, EI/DI/POP-PSW IE laws, REP interruption - all timing per
+//  docs/facts/interrupt_model.md (fitted against the 15 interrupt
+//  tranches + 4 IN tranches, tests/v30/v0.1).
 //
 //  Mission J laws (per-form goldens, 500 cases each, all cycle-exact):
 //   - prefixes retire as their own instruction (own F pop, 2 cycles);
@@ -110,6 +117,8 @@ module v30_eu (
     // queue side
     input       [7:0] q_byte,
     input             q_avail,
+    input             q_avail2,
+    input             q_any,
     output            q_pop,
     output            q_first,
     output            q_flush,
@@ -128,13 +137,23 @@ module v30_eu (
     output reg [19:0] eu_addr,
     output reg  [1:0] eu_seg,
     output reg [15:0] eu_wdata,
+    output reg  [1:0] eu_kind,    // 0=mem 1=io 2=inta 3=halt
     input             eu_started,
     input             eu_done,
     input             eu_wdone,   // early write completion (trap chain law)
     input             eu_t1,      // pulse: first T1 of the current EU access
     input      [15:0] eu_rdata,
+    input             eu_rd_now,   // early strobe: read data edge (end T3)
+    input      [15:0] eu_rdata_now,
 
     output            psw_ie,
+    output reg        halt_disp,   // HALT decoded: BIU shows the HALT
+                                   // pseudo-cycle at its display law
+
+    // external event pins (synchronized here)
+    input             pin_int,
+    input             pin_nmi,
+    input             pin_poll_n,
 
     // TB backdoor (verification only): load/observe architectural state
     input             bkd_load,
@@ -152,6 +171,11 @@ localparam bit [1:0] SEG_DS = 2'd3;   // DS0
 // PSW bits
 localparam int FB_CY = 0, FB_P = 2, FB_AC = 4, FB_Z = 6, FB_S = 7,
                FB_V = 11;
+
+// BIU access kinds
+localparam bit [1:0] K_MEM  = 2'd0;
+localparam bit [1:0] K_IO   = 2'd1;
+localparam bit [1:0] K_INTA = 2'd2;
 
 //----------------------------------------------------------------------------
 // architectural state
@@ -186,7 +210,12 @@ typedef enum logic [6:0] {
     S_TRAP_IVT1, S_TRAP_IVT2, S_TRAP_IVT2W,
     S_TRAP_W1, S_TRAP_PSW, S_TRAP_PSWW,
     S_TRAP_W2, S_TRAP_PS, S_TRAP_PSW2W,
-    S_TRAP_FLUSH, S_TRAP_PC, S_TRAP_PCW
+    S_TRAP_FLUSH, S_TRAP_PC, S_TRAP_PCW,
+    S_IRQ_D, S_INT_W0, S_INT_A1, S_INT_A1W, S_INT_G, S_INT_A2, S_INT_A2W,
+    S_IRQ_REPW, S_IRQ_REPFL,
+    S_HALTED, S_HWAIT,
+    S_POLL_WAIT, S_POLL_X,
+    S_IN_PORT
 } state_e;
 
 state_e     state;
@@ -218,6 +247,28 @@ reg         str_wr;      // MOVBK phase: write half of the element
 reg  [5:0]  rslot;       // REP retire slot: counts from the opcode pop
 reg         str_done;    // final string access completed (S_STRE)
 reg [15:0]  fl_cs, fl_ip; // flush redirect target
+// external-event machinery (block 4). The recognition sample is the
+// boundary-decision cycle reading a 4-deep pin pipeline (fitted: the
+// latest catching INT assert is boundary-4, NMI edge boundary-5).
+reg  [3:0]  int_p;
+reg  [4:0]  nmi_p;
+reg         nmi_latch;           // NMI is edge-triggered and latched
+reg         poll_s1;             // POLL_N synchronizer
+reg         shadow;              // recognition shadow (sreg loads)
+reg         ie_pend, ie_val;     // deferred EI/DI IE write (dry queue)
+reg  [15:0] psw_old;             // pre-POP-PSW value (see pop_pend)
+reg         pop_pend;            // POP PSW committed early; an interrupt
+                                 // at its boundary pushes the NEW value
+                                 // but the LIVE psw reverts to psw_old
+                                 // before the IE/BRK clear (measured)
+reg  [2:0]  ie_p;                // IE history: the boundary decision
+                                 // uses IE@B-3 (this delay IS the EI /
+                                 // POP-PSW enable shadow - measured)
+reg [15:0]  insn_ip;             // first byte of the current instruction
+                                 // INCLUDING prefixes (REP resume point)
+reg  [7:0]  ivt_vec;             // vector for the S_TRAP_IVT1 chain
+reg         hwake_ie0;           // HALT released by masked INT: resume
+reg         irq_disp;            // current WAITX is an interrupt dispatch
 
 wire [2:0] mrm_reg = mrm[5:3];
 wire [2:0] mrm_rm  = mrm[2:0];
@@ -255,6 +306,8 @@ wire op_repp   = opc == 8'hF3;                   // REP/REPE prefix
 wire jcc_taken = (opc == 8'h74) ?  psw[FB_Z] :
                  (opc == 8'h75) ? !psw[FB_Z] :
                                    psw[FB_S] ^ psw[FB_V];   // 7C BLT
+wire op_in     = opc == 8'hE4 || opc == 8'hE5 ||
+                 opc == 8'hEC || opc == 8'hED;   // IN acc,imm8 / acc,DW
 wire op_0f     = opc == 8'h0F;                       // two-byte forms
 wire op_test1  = op_0f && opc2 == 8'h18;             // TEST1 rm8,imm3
 wire op_rol4   = op_0f && opc2 == 8'h28;             // ROL4 rm8
@@ -564,12 +617,26 @@ wire [15:0] rmw_wide =
                          (mem_op ^ src_pair);
 
 //----------------------------------------------------------------------------
+// interrupt recognition (measured laws: docs/facts/interrupt_model.md)
+// - sampled once per instruction at its boundary (S_FIRST)
+// - blocked for one boundary by sreg loads and EI (shadow), and always
+//   between a prefix and its instruction (live prefix latches)
+// - NMI is edge-latched and ignores IE; INT is a level gated by IE
+//----------------------------------------------------------------------------
+wire irq_int  = int_p[2] && ie_p[2];
+wire irq_any  = nmi_latch || irq_int;
+wire irq_take = irq_any && !shadow && !rep_en && !seg_ovr_en;
+// REP iteration-boundary sampling runs one stage deeper (fitted)
+wire irq_rep  = nmi_latch || (int_p[3] && psw[9]);
+
+//----------------------------------------------------------------------------
 // queue pop control
 //----------------------------------------------------------------------------
-wire pop_want = (state == S_FIRST) ||
+wire pop_want = (state == S_FIRST && !irq_take) ||
                 (state == S_DEC && op_modrm) ||
                 (state == S_0F) || (state == S_DEC2) || (state == S_IMM3) ||
                 (state == S_IMM_LO) || (state == S_IMM_HI) ||
+                (state == S_IN_PORT) ||
                 (state == S_DISP8) || (state == S_DLO) || (state == S_DHI) ||
                 (state == S_JDISP) || (state == S_JDLO) ||
                 (state == S_JDHI) || (state == S_JSLO) ||
@@ -580,7 +647,7 @@ assign q_first = state == S_FIRST;
 // flush: registered for the trap path; combinational for branch flush
 // cycles (S_JFLUSH/S_RETF) and CALL's push-status cycle
 assign q_flush = flush_now || (state == S_JFLUSH) || (state == S_RETF) ||
-                 (state == S_CALLFL);
+                 (state == S_CALLFL) || (state == S_IRQ_REPFL);
 assign flush_cs = fl_cs;
 assign flush_ip = fl_ip;
 assign dbg_first_pop = q_pop && q_first;
@@ -605,12 +672,16 @@ always_comb begin
                                  q_pop;
         // moffs forms (A0-A3) reserve during their final address-byte
         // pop, exactly like the disp pops (measured: cold A2 blocks the
-        // prefetch commit at the in-flight fetch's T3 edge)
+        // prefetch commit at the in-flight fetch's T3 edge); IN's port
+        // pop reserves identically
         S_MHI: eu_req = q_pop;
+        S_IN_PORT: eu_req = q_pop;
         // POP r16 / RET reserve the bus already during decode (measured:
         // cold-start POP suppresses the prefetch commit at cycle 1)
         S_DEC:  eu_req = !op_modrm && (opc[7:3] == 5'b01011 ||
-                                       opc == 8'hC3);
+                                       opc == 8'hC3 || opc == 8'h9D ||
+                                       opc == 8'hF4 ||
+                                       opc == 8'hEC || opc == 8'hED);
         // reservation start (measured per opcode from old-stream commits
         // inside the resolution window): EB/E8 at the final pop cycle,
         // E9 at pop+1, Jcc/E2 at pop+2
@@ -633,10 +704,14 @@ always_comb begin
         S_CALLPUSH,
         S_STRW, S_STRR, S_STRS,
         S_TRAP_IVT1, S_TRAP_IVT2,
-        S_TRAP_PSW, S_TRAP_PS, S_TRAP_FLUSH, S_TRAP_PC: begin
+        S_TRAP_PSW, S_TRAP_PS, S_TRAP_FLUSH, S_TRAP_PC,
+        S_INT_A1, S_INT_A2: begin
             eu_req   = 1'b1;
             eu_ready = 1'b1;
         end
+        // INTA sequence holds the bus between its cycles (measured: no
+        // prefetch in the inter-INTA gap); the wake-wait states hold too
+        S_IRQ_D, S_INT_W0, S_INT_A1W, S_INT_G, S_INT_A2W: eu_req = 1'b1;
         // ADD4S holds the bus reservation between its accesses through
         // retire (measured: no prefetch commit inside the loop)
         S_A4_SRCW, S_A4_G1, S_A4_DSTW, S_A4_G2, S_A4_WRW, S_A4_END:
@@ -653,6 +728,7 @@ task automatic retire();
     state   <= S_FIRST;
     seg_ovr_en <= 1'b0;      // prefix latches end with their instruction
     rep_en     <= 1'b0;
+    shadow     <= 1'b0;      // shadowing instructions re-set it after
 endtask
 
 // latch memory-operand access parameters (EA paths); off = 16-bit offset
@@ -691,6 +767,13 @@ always_ff @(posedge clk) begin
     flush_now <= 1'b0;
     if (rslot != 6'd0) rslot <= rslot - 6'd1;
 
+    // pin pipelines + NMI edge latch (run in every state)
+    int_p   <= {int_p[2:0], pin_int};
+    nmi_p   <= {nmi_p[3:0], pin_nmi};
+    if (nmi_p[2] && !nmi_p[3]) nmi_latch <= 1'b1;   // set at edge+3
+    poll_s1 <= pin_poll_n;
+    ie_p    <= {ie_p[1:0], psw[9]};
+
     if (srst) begin
         // real reset flow: PS=FFFF, PC=0, PSW cleared; the sequencer
         // idles 7 cycles after release, then flush-redirects to FFFF0
@@ -719,6 +802,22 @@ always_ff @(posedge clk) begin
         str_wr   <= 1'b0;
         rslot    <= 6'd0;
         str_done <= 1'b0;
+        int_p    <= '0;
+        nmi_p    <= '0;
+        nmi_latch <= 1'b0;
+        poll_s1  <= 1'b1;
+        shadow   <= 1'b0;
+        ie_p     <= '0;
+        ie_pend  <= 1'b0;
+        ie_val   <= 1'b0;
+        psw_old  <= '0;
+        pop_pend <= 1'b0;
+        insn_ip  <= '0;
+        ivt_vec  <= '0;
+        hwake_ie0 <= 1'b0;
+        irq_disp <= 1'b0;
+        eu_kind  <= K_MEM;
+        halt_disp <= 1'b0;
         eu_wr    <= 1'b0;
         eu_word  <= 1'b0;
         eu_addr  <= '0;
@@ -744,15 +843,61 @@ always_ff @(posedge clk) begin
             state      <= S_FIRST;
         end
     end else begin
+        // POP PSW consumes the popped image at the read's own data
+        // edge (measured: the new IE shows in the PS bits during T4).
+        // The commit is provisional until the next boundary (pop_pend).
+        if (state == S_BUSW && opc == 8'h9D && eu_rd_now) begin
+            psw_old  <= psw;
+            psw      <= (eu_rdata_now & 16'h0FD5) | 16'hF002;
+            pop_pend <= 1'b1;
+        end
+
+        // deferred EI/DI IE write lands when the queue holds a byte
+        if (ie_pend && q_any) begin
+            psw[9] <= ie_val;
+            ie_pend <= 1'b0;
+        end
+
         unique case (state)
             S_HALT: ;
 
             //----------------------------------------------------------------
-            S_FIRST: if (q_pop) begin
-                opc <= q_byte;
-                pc  <= pc + 16'd1;
-                rslot <= 6'd12;    // REP retire-slot anchor (pop+12)
-                state <= S_DEC;
+            S_FIRST: begin
+                if (irq_take) begin
+                    // boundary recognition (interrupt_model.md): the
+                    // next instruction is not executed; its address is
+                    // the pushed PC (pc already points at it)
+                    if (nmi_latch) begin
+                        nmi_latch <= 1'b0;
+                        ivt_vec   <= 8'd2;
+                        dly <= 6'd6; wnext <= S_TRAP_IVT1;
+                        irq_disp <= 1'b1;
+                        state <= S_WAITX;
+                    end else begin
+                        state <= S_IRQ_D;   // one internal decision cycle
+                    end
+                end else if (q_pop) begin
+                    opc <= q_byte;
+                    if (!rep_en && !seg_ovr_en) insn_ip <= pc;
+                    pc  <= pc + 16'd1;
+                    rslot <= 6'd12;    // REP retire-slot anchor (pop+12)
+                    ivt_vec  <= '0;    // divide trap uses vector 0
+                    irq_disp <= 1'b0;
+                    eu_kind  <= K_MEM;
+                    halt_disp <= (q_byte == 8'hF4);
+                    pop_pend <= 1'b0;
+                    // EI/DI commit IE when the NEXT opcode byte is
+                    // present: at the pop edge if a byte remains, else
+                    // when the queue refills (measured on dry-queue EI)
+                    if (q_byte == 8'hFB || q_byte == 8'hFA) begin
+                        if (q_avail2) psw[9] <= q_byte[0];
+                        else begin
+                            ie_pend <= 1'b1;
+                            ie_val  <= q_byte[0];
+                        end
+                    end
+                    state <= S_DEC;
+                end
             end
 
             //----------------------------------------------------------------
@@ -770,8 +915,10 @@ always_ff @(posedge clk) begin
                                 sx = srmap(q_byte[4:3]);
                                 if (op_srst)
                                     rf[q_byte[2:0]] <= sr[sx];
-                                else
+                                else begin
                                     sr[sx] <= rf[q_byte[2:0]];
+                                    shadow <= 1'b1;   // sreg-load shadow
+                                end
                                 arch_ip <= pc + 16'd1;
                                 seg_ovr_en <= 1'b0;
                                 rep_en     <= 1'b0;
@@ -946,6 +1093,38 @@ always_ff @(posedge clk) begin
                                 dly <= 6'd1; state <= S_RSV;
                             end
                         end
+                    end
+                    else if (opc == 8'hF4) begin          // HALT
+                        state   <= S_HALTED;   // BIU displays the
+                                               // pseudo-cycle (halt_disp)
+                    end else if (opc == 8'h9B) begin      // POLL
+                        // initial check: synchronized pin; the wait
+                        // loop samples LIVE (measured: a release in the
+                        // sample cycle itself is caught)
+                        if (!poll_s1) state <= S_NOP;     // low: 3-cyc nop
+                        else begin
+                            dly <= 6'd3;                  // 1st sample @F+4
+                            state <= S_POLL_WAIT;
+                        end
+                    end else if (opc == 8'hFB ||
+                                 opc == 8'hFA) begin      // EI / DI
+                        retire();     // IE was written at the pop edge
+                    end else if (opc == 8'h9D) begin      // POP PSW
+                        eu_addr <= {sr[SEG_SS], 4'h0} + {4'h0, rf[4]};
+                        eu_seg  <= SEG_SS;
+                        eu_wr   <= 1'b0;
+                        eu_word <= 1'b1;
+                        state   <= S_REQ;
+                    end else if (op_in) begin             // IN
+                        if (opc[3]) begin                 // EC/ED: port=DW
+                            eu_addr <= {4'h0, rf[2]};
+                            eu_seg  <= SEG_CS;
+                            eu_wr   <= 1'b0;
+                            eu_word <= opc[0];
+                            eu_kind <= K_IO;
+                            state   <= S_REQ;
+                        end else
+                            state <= S_IN_PORT;           // imm8 pops @F+2
                     end
                     else state <= S_HALT;
                 end
@@ -1300,7 +1479,14 @@ always_ff @(posedge clk) begin
                     rf[7] <= rf[7] + str_step;
                     if (rep_en) begin
                         rf[1] <= rf[1] - 16'd1;
-                        if (rf[1] != 16'd1) begin
+                        if (rf[1] != 16'd1 && irq_rep) begin
+                            // interrupted between iterations: finish the
+                            // in-flight write, rewind to the first
+                            // prefix, refetch, then vector at
+                            // decision+9 (fitted; see interrupt_model)
+                            state <= S_IRQ_REPW;
+                            dly   <= 6'd8;
+                        end else if (rf[1] != 16'd1) begin
                             eu_addr <= {sr[SEG_ES], 4'h0} +
                                        {4'h0, rf[7] + str_step};
                             state <= S_STRS;
@@ -1343,7 +1529,10 @@ always_ff @(posedge clk) begin
                 rf[7] <= rf[7] + str_step;
                 if (rep_en) begin
                     rf[1] <= rf[1] - 16'd1;
-                    if (rf[1] != 16'd1) begin
+                    if (rf[1] != 16'd1 && irq_rep) begin
+                        state <= S_IRQ_REPW;
+                        dly   <= 6'd8;
+                    end else if (rf[1] != 16'd1) begin
                         eu_addr <= {sr[SEG_ES], 4'h0} +
                                    {4'h0, rf[7] + str_step};
                         state <= S_STRS;
@@ -1376,6 +1565,14 @@ always_ff @(posedge clk) begin
                     fl_cs <= sr[SEG_CS];
                     fl_ip <= eu_rdata;
                     state <= S_RETF;                      // flush @ done+1
+                end else if (opc == 8'h9D) begin          // POP PSW
+                    rf[4] <= rf[4] + 16'd2;
+                    retire();     // psw was consumed at the data edge
+                end else if (op_in) begin                 // IN acc
+                    if (opc[0]) rf[0] <= eu_rdata;
+                    else        rf[0][7:0] <= eu_rdata[7:0];
+                    eu_kind <= K_MEM;
+                    retire();
                 end else if (opc[7:3] == 5'b01011) begin  // POP r16
                     rf[4] <= rf[4] + 16'd2;
                     rf[opc[2:0]] <= eu_rdata;             // POP SP: load wins
@@ -1458,6 +1655,7 @@ always_ff @(posedge clk) begin
                 else if (op_srld)   sr[sx] <= mem_op;
                 else if (op_alu)    psw <= ex_alu[23:8];  // CMP mem
                 retire();
+                if (op_srld) shadow <= 1'b1;   // sreg-load shadow
             end
 
             //----------------------------------------------------------------
@@ -1468,10 +1666,11 @@ always_ff @(posedge clk) begin
                     state <= wnext;
                     if (wnext == S_TRAP_IVT1) begin
                         // request params must be valid on state entry
-                        eu_addr <= 20'h00000;
+                        eu_addr <= {10'h0, ivt_vec, 2'b00};
                         eu_seg  <= SEG_CS;
                         eu_wr   <= 1'b0;
                         eu_word <= 1'b1;
+                        eu_kind <= K_MEM;
                     end
                     if (wnext == S_RSV) dly <= 6'd1;   // REP setup tail
                 end
@@ -1581,7 +1780,7 @@ always_ff @(posedge clk) begin
             // divide trap sequence (timing from F7.6 golden traces)
             //----------------------------------------------------------------
             S_TRAP_IVT1: if (eu_started) begin
-                eu_addr <= 20'h00002;
+                eu_addr <= eu_addr + 20'd2;   // vector high word
                 state <= S_TRAP_IVT2;
             end
             S_TRAP_IVT2: begin
@@ -1597,7 +1796,14 @@ always_ff @(posedge clk) begin
                 // the live IE/TF at once - the PS status bits of the push
                 // cycles already show IE=0 (measured)
                 trap_psw <= psw;
+                // KNOWN RESIDUAL (block 4): when the interrupt lands on
+                // POP PSW's own boundary the silicon splits ~50/50
+                // between keeping the popped value and reverting to the
+                // pre-pop value (with IE/BRK cleared); the discriminator
+                // is not timing (identical stimulus signatures show both
+                // classes). Majority rule implemented: popped value kept.
                 psw <= psw & ~16'h0300;
+                pop_pend <= 1'b0;
                 dly <= 6'd2; state <= S_TRAP_W1;
             end
             S_TRAP_W1: begin
@@ -1643,6 +1849,145 @@ always_ff @(posedge clk) begin
                 pc <= ivt_off;
                 sr[SEG_CS] <= ivt_seg;
             end
+            //----------------------------------------------------------------
+            // REP interruption tail: wait for the in-flight access, then
+            // rewind pc to the first prefix, flush + refetch there
+            // (measured: the resume refetch precedes the INTA pair),
+            // then the INT/NMI entry sequence.
+            //----------------------------------------------------------------
+            S_IRQ_REPW: begin
+                dly <= dly - 6'd1;
+                if (eu_done) begin
+                    pc <= insn_ip;
+                    fl_cs <= sr[SEG_CS];
+                    fl_ip <= insn_ip;
+                end
+                if (dly == 6'd1) state <= S_IRQ_REPFL;
+            end
+            S_IRQ_REPFL: begin   // q_flush high this cycle (comb)
+                if (nmi_latch) begin
+                    nmi_latch <= 1'b0;
+                    ivt_vec   <= 8'd2;
+                    dly <= 6'd8; wnext <= S_TRAP_IVT1;
+                    irq_disp <= 1'b1;
+                    state <= S_WAITX;
+                end else begin
+                    dly <= 6'd2;
+                    state <= S_INT_W0;
+                end
+            end
+
+            //----------------------------------------------------------------
+            // INT entry: 2 INTA bus cycles 7 apart (vector byte taken
+            // from the second), then the divide-trap IVT/push/flush
+            // chain (interrupt_model.md)
+            //----------------------------------------------------------------
+            S_IRQ_D: begin      // INT dispatch: request ready 2 cycles
+                eu_addr <= '0;  // after the blocked boundary pop slot
+                eu_seg  <= SEG_CS;
+                eu_wr   <= 1'b0;
+                eu_word <= 1'b1;
+                eu_kind <= K_INTA;
+                state   <= S_INT_A1;
+            end
+            S_INT_W0: begin
+                if (dly == 6'd1) begin
+                    state <= S_INT_A1;
+                    eu_addr <= '0;
+                    eu_seg  <= SEG_CS;
+                    eu_wr   <= 1'b0;
+                    eu_word <= 1'b1;
+                    eu_kind <= K_INTA;
+                end
+                dly <= dly - 6'd1;
+            end
+            S_INT_A1:  if (eu_started) state <= S_INT_A1W;
+            S_INT_A1W: if (eu_done) state <= S_INT_G;
+            S_INT_G:   begin
+                state <= S_INT_A2;    // one gap cycle: T1-to-T1 = 7
+                eu_kind <= K_INTA;
+            end
+            S_INT_A2:  if (eu_started) state <= S_INT_A2W;
+            S_INT_A2W: if (eu_done) begin
+                ivt_vec <= eu_rdata[7:0];
+                eu_kind <= K_MEM;
+                dly <= 6'd4; wnext <= S_TRAP_IVT1;   // IVT T1 = T4+7
+                irq_disp <= 1'b1;
+                state <= S_WAITX;
+            end
+
+            //----------------------------------------------------------------
+            // HALT: one pseudo bus cycle, then idle with the bus held.
+            // Wake: NMI -> vector 2; INT with IE=1 -> INTA sequence;
+            // INT with IE=0 -> resume at the next instruction WITHOUT
+            // vectoring (measured, != 8086).
+            //----------------------------------------------------------------
+            S_HALTED: begin
+                if (nmi_latch) begin
+                    nmi_latch <= 1'b0;
+                    ivt_vec   <= 8'd2;
+                    halt_disp <= 1'b0;
+                    dly <= 6'd7; wnext <= S_TRAP_IVT1;
+                    state <= S_HWAIT;
+                end else if (int_p[1] && psw[9]) begin
+                    halt_disp <= 1'b0;
+                    dly <= 6'd3; wnext <= S_INT_A1;
+                    state <= S_HWAIT;
+                end else if (int_p[2]) begin
+                    halt_disp <= 1'b0;
+                    retire();          // masked INT releases the halt
+                end
+            end
+            S_HWAIT: begin   // wake wait (bus stays held: no prefetch)
+                if (dly == 6'd1) begin
+                    state <= wnext;
+                    if (wnext == S_TRAP_IVT1) begin
+                        eu_addr <= {10'h0, ivt_vec, 2'b00};
+                        eu_seg  <= SEG_CS;
+                        eu_wr   <= 1'b0;
+                        eu_word <= 1'b1;
+                        eu_kind <= K_MEM;
+                        irq_disp <= 1'b1;
+                    end else begin     // S_INT_A1
+                        eu_addr <= '0;
+                        eu_seg  <= SEG_CS;
+                        eu_wr   <= 1'b0;
+                        eu_word <= 1'b1;
+                        eu_kind <= K_INTA;
+                    end
+                end
+                dly <= dly - 6'd1;
+            end
+
+            //----------------------------------------------------------------
+            // POLL: pin low = 3-cycle no-op; else sample every 5 clocks,
+            // resume 4 cycles after the satisfied sample
+            //----------------------------------------------------------------
+            S_POLL_WAIT: begin
+                if (dly == 6'd1) begin
+                    if (!pin_poll_n) begin  // live sample every 5 clocks
+                        dly <= 6'd3;        // next F = sample + 4
+                        state <= S_POLL_X;
+                    end else
+                        dly <= 6'd5;   // next sample in 5 clocks
+                end else
+                    dly <= dly - 6'd1;
+            end
+            S_POLL_X: begin
+                if (dly == 6'd1) retire();
+                dly <= dly - 6'd1;
+            end
+
+            S_IN_PORT: if (q_pop) begin        // E4/E5 imm8 port @F+2
+                pc <= pc + 16'd1;
+                eu_addr <= {12'h0, q_byte};
+                eu_seg  <= SEG_CS;
+                eu_wr   <= 1'b0;
+                eu_word <= opc[0];
+                eu_kind <= K_IO;
+                state   <= S_REQ;
+            end
+
             S_TRAP_FLUSH: state <= eu_started ? S_TRAP_PCW : S_TRAP_PC;
             S_TRAP_PC:    if (eu_started) state <= S_TRAP_PCW;
             S_TRAP_PCW:   if (eu_done) begin
@@ -1668,7 +2013,11 @@ end
 // prefetch commits at that push's T3 edge.
 assign eu_hold = state == S_TRAP_IVT2W || state == S_TRAP_W1 ||
                  state == S_TRAP_PSWW  || state == S_TRAP_W2 ||
-                 state == S_TRAP_PSW2W;
+                 state == S_TRAP_PSW2W ||
+                 (state == S_HALTED && !(int_p[2] && !psw[9])) ||
+                 (state == S_HWAIT && wnext == S_TRAP_IVT1) ||
+                 (state == S_WAITX && (wnext == S_TRAP_IVT1 ||
+                                       wnext == S_INT_A1) && irq_disp);
 
 assign dbg_regs = {psw, arch_ip, sr[SEG_DS], sr[SEG_SS], sr[SEG_CS],
                    sr[SEG_ES], rf[7], rf[6], rf[5], rf[4], rf[3], rf[2],

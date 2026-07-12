@@ -79,12 +79,16 @@ module v30_biu (
     input             ready,
 
     input             psw_ie,        // PS2 (IE) bit of the segment status
+    input             halt_disp,     // EU decoded HALT: show the pseudo
+                                     // cycle at the first quiet TI
 
     // queue consumer (EU). F/S queue status is driven by the EU via
     // v30_core; the E (flush) pin timing is BIU-generated (qs_e) per the
     // measured display law.
     output      [7:0] q_byte,
     output            q_avail,
+    output            q_avail2,     // >= 2 poppable bytes
+    output            q_any,        // queue occupancy (incl. un-aged)
     output            qs_e,
     input             q_pop,
     input             q_flush,
@@ -100,6 +104,7 @@ module v30_biu (
     input             eu_fwd,       // write data = last read data (string
                                     // read->write forwarding at commit)
     input             eu_word,
+    input       [1:0] eu_kind,     // 0=mem 1=io 2=inta 3=halt
     input      [19:0] eu_addr,
     input       [1:0] eu_seg,
     input      [15:0] eu_wdata,
@@ -112,6 +117,9 @@ module v30_biu (
                                      // its T4 at zero waits (trap chain law)
                                      // access (trap-chain slot anchor)
     output reg [15:0] eu_rdata,
+    output            eu_rd_now,     // comb: EU read final data edge (end
+                                     // of T3/TW) - early-consume strobe
+    output     [15:0] eu_rdata_now,  // the data at that edge
 
     // TB backdoor: load fetch/queue state while in reset (see v30_core)
     input             bkd_load,
@@ -121,10 +129,19 @@ module v30_biu (
     input       [2:0] bkd_qlen
 );
 
+localparam bit [2:0] BS_INTA = 3'b000;
+localparam bit [2:0] BS_IOR  = 3'b001;
+localparam bit [2:0] BS_IOW  = 3'b010;
+localparam bit [2:0] BS_HALT = 3'b011;
 localparam bit [2:0] BS_CODE = 3'b100;
 localparam bit [2:0] BS_MEMR = 3'b101;
 localparam bit [2:0] BS_MEMW = 3'b110;
 localparam bit [2:0] BS_PASV = 3'b111;
+
+localparam bit [1:0] K_MEM  = 2'd0;
+localparam bit [1:0] K_IO   = 2'd1;
+localparam bit [1:0] K_INTA = 2'd2;
+localparam bit [1:0] K_HALT = 2'd3;
 
 localparam bit [2:0] ST_TI = 3'd0;
 localparam bit [2:0] ST_T1 = 3'd1;
@@ -151,6 +168,7 @@ reg        cur_split2;     // second half of a split word access
 reg [15:0] cur_wdata;
 reg  [1:0] cur_seg;
 reg        cur_ube_n;
+reg  [1:0] cur_kind;
 
 // committed next cycle (drives status/address during the current cycle)
 reg        nxt_valid;
@@ -164,6 +182,7 @@ reg        nxt_split2;
 reg [15:0] nxt_wdata;
 reg  [1:0] nxt_seg;
 reg        nxt_ube_n;
+reg  [1:0] nxt_kind;
 
 //----------------------------------------------------------------------------
 // prefetch queue
@@ -209,6 +228,8 @@ wire       prefetch_ok = !q_flush ? (!(eu_req || eu_hold) && occupied <= 4 &&
 
 assign q_byte  = q_mem[q_rd];
 assign q_avail = q_avl != 0;
+assign q_avail2 = q_avl >= 3'd2;   // a byte remains after this pop
+assign q_any    = q_cnt != 3'd0;   // fetched (not yet poppable) counts
 
 //----------------------------------------------------------------------------
 // QS=E display law (measured, mission E): the E code appears on the pins
@@ -243,6 +264,26 @@ wire e_wait_show = e_wait && !flush_busy_fetch && (q_aged == 2'd0) &&
 assign qs_e = (q_flush && flush_quiet) || e_wait_show;
 
 //----------------------------------------------------------------------------
+// HALT pseudo-cycle display (measured, block 4): the HALT status shows
+// at the first idle (TI, nothing committed) cycle after the opcode pop;
+// the next cycle is an address-strobe T1 driving the LAST FETCH address
+// (fetch_phys - 2) on AD15:0 only, with UBE_N released high; no data
+// phase follows. It never enters the commit machinery.
+//----------------------------------------------------------------------------
+reg halt_t1, halt_done;
+wire halt_show = halt_disp && !halt_done && state == ST_TI &&
+                 !nxt_live && !eval_ext;
+always_ff @(posedge clk) begin
+    if (srst || !halt_disp) begin
+        halt_t1   <= 1'b0;
+        halt_done <= 1'b0;
+    end else begin
+        halt_t1 <= halt_show;
+        if (halt_show) halt_done <= 1'b1;
+    end
+end
+
+//----------------------------------------------------------------------------
 // commit selection (combinational). Priority: second half of a split EU
 // access, then a ready EU request, then prefetch.
 //----------------------------------------------------------------------------
@@ -270,15 +311,25 @@ wire eu_ube_n   = eu_word ? 1'b0 : (eu_addr[0] ? 1'b0 : 1'b1);
 
 wire        pick_any   = want_half2 || want_eu || prefetch_ok;
 wire  [2:0] pick_type  = want_half2 ? cur_type
-                       : want_eu    ? (eu_wr ? BS_MEMW : BS_MEMR)
+                       : want_eu    ? (eu_kind == K_INTA ? BS_INTA
+                                     : eu_kind == K_HALT ? BS_HALT
+                                     : eu_kind == K_IO
+                                       ? (eu_wr ? BS_IOW : BS_IOR)
+                                       : (eu_wr ? BS_MEMW : BS_MEMR))
                                     : BS_CODE;
+wire  [1:0] pick_kind  = want_half2 ? cur_kind
+                       : want_eu    ? eu_kind : K_MEM;
+// the HALT pseudo-cycle's T1 drives the last bus cycle's address on
+// AD15:0 (measured: the stale address latch rides out on the pins)
 wire [19:0] pick_addr  = want_half2 ? cur_addr + 20'd1
-                       : want_eu    ? eu_addr
+                       : want_eu    ? (eu_kind == K_HALT ? cur_addr
+                                                         : eu_addr)
                                     : fetch_phys;
 wire        pick_fetch = !want_half2 && !want_eu;
 wire        pick_wr    = want_half2 ? cur_wr : (want_eu && eu_wr);
 wire        pick_swap  = want_half2 ? cur_swap : (want_eu && eu_addr[0]);
-wire        pick_split1 = !want_half2 && want_eu && eu_split;
+wire        pick_split1 = !want_half2 && want_eu && eu_split &&
+                          eu_kind != K_INTA && eu_kind != K_HALT;
 wire        pick_split2 = want_half2;
 // string read->write forwarding (eu_fwd): the write's data is the last
 // read's data - taken live off the bus when the commit coincides with
@@ -288,6 +339,10 @@ wire [15:0] rd_asm  = cur_split2   ? {ad_i[7:0], eu_rdata[7:0]}
                     :                ad_i;
 wire [15:0] rd_fwd  = (t3_done && cur_fetch == 1'b0 && !cur_wr)
                       ? rd_asm : eu_rdata;
+// early-consume strobe: the final data edge of a (non-split) EU read
+assign eu_rd_now    = t3_done && !cur_fetch && !cur_wr && !cur_split1 &&
+                      cur_type != BS_PASV;
+assign eu_rdata_now = rd_asm;
 wire [15:0] pick_wdata = want_half2 ? cur_wdata
                        : (eu_fwd ? rd_fwd : eu_wdata);
 wire  [1:0] pick_seg   = want_half2 ? cur_seg
@@ -307,6 +362,7 @@ task automatic do_commit();
     nxt_wdata  <= pick_wdata;
     nxt_seg    <= pick_seg;
     nxt_ube_n  <= pick_ube_n;
+    nxt_kind   <= pick_kind;
     if (pick_fetch) begin
         fetch_off <= fetch_off_sel + (fetch_word ? 16'd2 : 16'd1);
         if (!q_flush) fetch_cs <= fetch_cs;   // (flush handled below)
@@ -374,6 +430,8 @@ always_ff @(posedge clk) begin
         cur_addr   <= '0;
         cur_wdata  <= '0;
         cur_ube_n  <= 1'b1;
+        cur_kind   <= K_MEM;
+        nxt_kind   <= K_MEM;
         // reset value 0 matches the pre-window fetch history of the golden
         // traces (both queue variants end on even word / odd byte fetches,
         // UBE_N low); the pin holds its value between address phases
@@ -442,6 +500,9 @@ always_ff @(posedge clk) begin
         if (q_flush && !flush_quiet) e_wait <= 1'b1;
         else if (e_wait_show)        e_wait <= 1'b0;
 
+        // HALT pseudo-T1 releases UBE_N high
+        if (halt_show) ube_n <= 1'b1;
+
         unique case (state)
             ST_TI: begin
                 if (nxt_live) begin
@@ -458,6 +519,7 @@ always_ff @(posedge clk) begin
                     cur_wdata  <= nxt_wdata;
                     cur_seg    <= nxt_seg;
                     cur_ube_n  <= nxt_ube_n;
+                    cur_kind   <= nxt_kind;
                     ube_n      <= nxt_ube_n;
                     nxt_valid  <= 1'b0;
                 end else if (eval_ext && pick_any) begin
@@ -477,6 +539,7 @@ always_ff @(posedge clk) begin
                     cur_wdata  <= pick_wdata;
                     cur_seg    <= pick_seg;
                     cur_ube_n  <= pick_ube_n;
+                    cur_kind   <= pick_kind;
                     ube_n      <= pick_ube_n;
                     if (pick_fetch) begin
                         fetch_off <= fetch_off_sel +
@@ -558,6 +621,7 @@ always_ff @(posedge clk) begin
                     cur_wdata  <= nxt_wdata;
                     cur_seg    <= nxt_seg;
                     cur_ube_n  <= nxt_ube_n;
+                    cur_kind   <= nxt_kind;
                     ube_n      <= nxt_ube_n;
                     nxt_valid  <= 1'b0;
                 end else begin
@@ -620,7 +684,8 @@ end
 // during the eval_ext cycle itself (mid-cycle commit)
 wire ext_show = eval_ext && pick_any;
 
-assign bs = nxt_live ? nxt_type
+assign bs = (halt_show || halt_t1) ? BS_HALT
+          : nxt_live ? nxt_type
           : ext_show ? pick_type
           : (state == ST_T1 || state == ST_T2) ? cur_type
           : ((state == ST_T3 || state == ST_TW) && !ready_prev) ? cur_type
@@ -636,13 +701,28 @@ wire [15:0] wdata_lanes = cur_swap ? {cur_wdata[7:0], cur_wdata[15:8]}
 reg t1_half2;
 always @(negedge clk) t1_half2 <= (state == ST_T1);
 
-assign ad_oe_addr = nxt_live || ext_show || state == ST_T1;
-assign ad_oe_ps   = !ad_oe_addr && cycle_active &&
-                    (state == ST_T2 || state == ST_T3 ||
-                     state == ST_TW || state == ST_T4);
-assign ad_oe_data = ad_oe_ps && cur_wr;
+// INTA cycles drive no address: the commit display and T1 leave AD15:0
+// floating; T1 drives AD19:16 = 0 only (measured float pattern). HALT
+// pseudo-cycles drive AD15:0 only (stale address), AD19:16 float.
+wire [1:0] disp_kind = nxt_live ? nxt_kind
+                     : ext_show ? pick_kind : cur_kind;
+wire disp_inta = disp_kind == K_INTA &&
+                 (nxt_live || ext_show || state == ST_T1);
 
-assign ad_o = nxt_live           ? nxt_addr
+assign ad_oe_addr = (nxt_live || ext_show || state == ST_T1) &&
+                    !disp_inta;
+assign ad_oe_ps   = (!ad_oe_addr && cycle_active &&
+                     (state == ST_T2 || state == ST_T3 ||
+                      state == ST_TW || state == ST_T4) &&
+                     cur_kind != K_HALT && !disp_inta) ||
+                    disp_inta;
+assign ad_oe_data = (ad_oe_ps && cur_wr && !disp_inta) || halt_t1 ||
+                    halt_show;
+
+assign ad_o = (halt_t1 || halt_show)
+                                 ? {4'h0, fetch_phys[15:0] - 16'd2}
+            : disp_inta          ? 20'h0
+            : nxt_live           ? nxt_addr
             : ext_show           ? pick_addr
             : (state == ST_T1)   ? (cur_wr && t1_half2
                                     ? {cur_addr[19:16], wdata_lanes}

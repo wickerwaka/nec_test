@@ -23,8 +23,12 @@
 //      <qlen> <q0> <q1> <q2> <q3> <q4> <q5> <fetch_ip>
 //      <nram>  { <addr20> <byte> } * nram
 //      <max_cycles> <nf>
-//    nf = F pops closing the window (2 + one per prefix byte; prefix
-//    bytes pop as extra F's)
+//      <evt_mode> <evt_pin> <evt_addr20> <evt_delay> <evt_hold>
+//      <pins> <iord>
+//    nf = F pops closing the window (the golden window's F-row count);
+//    evt_mode 0=none 1=fetch-trigger 2=fpop-trigger (see the scheduler
+//    comment block); pins = static INT/NMI/POLL_N levels; iord = data
+//    returned for I/O reads
 //
 //  Output stream:
 //      = <idx>
@@ -86,13 +90,33 @@ wire  [1:0] QS;
 wire  [2:0] BS;
 wire        RD_N, UBE_N, BUSLOCK_N;
 
+//----------------------------------------------------------------------------
+// pin-event scheduler + static pins (mirrors the harness semantics):
+//   mode 1 (fetch): pin asserted during cycle idx(CODE T1 at ev_addr)+2+D
+//   mode 2 (fpop):  pin asserted during cycle idx(first F pop)+D, D >= 1
+// hold = assert duration in cycles (0 = until end of case).
+// Static pins: b0 INT, b1 NMI, b2 POLL_N (harness default POLL_N low).
+//----------------------------------------------------------------------------
+integer      ev_mode = 0, ev_pin = 0, ev_delay = 0, ev_hold = 0;
+integer      pins_cfg = 0;
+logic [19:0] ev_addr = '0;
+logic [15:0] iord_r = 16'hFFFF;
+logic        ev_armed = 0;      // waiting for the trigger
+logic        ev_drive = 0;
+integer      ev_cnt = 0;
+integer      ev_hold_cnt = 0;
+
+wire pin_int    = (pins_cfg[0] != 0) | (ev_drive && ev_pin == 0);
+wire pin_nmi    = (pins_cfg[1] != 0) | (ev_drive && ev_pin == 1);
+wire pin_poll_n = (pins_cfg[2] != 0) & ~(ev_drive && ev_pin == 2);
+
 v30_core dut (
     .CLK       (clk),
     .RESET     (reset),
     .READY     (ready_r),
-    .INT       (1'b0),
-    .NMI       (1'b0),
-    .POLL_N    (1'b1),
+    .INT       (pin_int),
+    .NMI       (pin_nmi),
+    .POLL_N    (pin_poll_n),
     .AD        (AD),
     .QS        (QS),
     .BS        (BS),
@@ -142,10 +166,15 @@ wire lat_read  = lat_type == 3'b100 || lat_type == 3'b101 ||
                  lat_type == 3'b001 || lat_type == 3'b000;
 wire lat_write = lat_type == 3'b110 || lat_type == 3'b010;
 
-// memory read drive during T2/T3/Tw of read cycles (nec_bus-equivalent)
+// memory read drive during T2/T3/Tw of read cycles (nec_bus-equivalent);
+// INTA cycles return the vector byte, IOR cycles the configured data
+localparam bit [7:0] INT_VECTOR = 8'hFF;   // harness CFG default
+
 wire        mem_drive = (tb_t == ST_T2 || tb_t == ST_T3 ||
                          tb_t == ST_TW) && lat_read;
-wire [15:0] mem_word  = {mem[{lat_addr[15:1], 1'b1}],
+wire [15:0] mem_word  = lat_type == 3'b000 ? {8'h00, INT_VECTOR}
+                      : lat_type == 3'b001 ? iord_r
+                      : {mem[{lat_addr[15:1], 1'b1}],
                          mem[{lat_addr[15:1], 1'b0}]};
 assign AD[15:0] = mem_drive ? mem_word : 16'hzzzz;
 
@@ -157,18 +186,24 @@ always @(negedge clk) begin
     end
 end
 
-// composed bus value with float retention (protocol-inferred drive)
+// composed bus value with float retention (protocol-inferred drive).
+// INTA cycles drive no address (AD19:16 = 0 during T1 only); HALT
+// pseudo-cycles drive AD15:0 only.
 logic [19:0] hold = '0;
-wire core_addr_drive = (bs_active && (tb_t == ST_T4 || tb_t == ST_TI)) ||
-                       tb_t == ST_T1;
-wire cycle_live      = tb_t != ST_TI && lat_type != BS_PASV;
+wire com_phase  = bs_active && (tb_t == ST_T4 || tb_t == ST_TI);
+wire drive_lo_a = (com_phase && BS != 3'b000) ||
+                  (tb_t == ST_T1 && lat_type != 3'b000);
+wire drive_hi_a = (com_phase && BS != 3'b011) ||
+                  (tb_t == ST_T1 && lat_type != 3'b011);
+wire cycle_live      = tb_t != ST_TI && lat_type != BS_PASV &&
+                       lat_type != 3'b011;
 wire core_ps_drive   = cycle_live && (tb_t == ST_T2 || tb_t == ST_T3 ||
                                       tb_t == ST_TW || tb_t == ST_T4);
 wire core_data_drive = core_ps_drive && lat_write;
 
-wire [15:0] eff_lo = (core_addr_drive || core_data_drive || mem_drive)
+wire [15:0] eff_lo = (drive_lo_a || core_data_drive || mem_drive)
                      ? AD[15:0] : hold[15:0];
-wire  [3:0] eff_hi = (core_addr_drive || core_ps_drive)
+wire  [3:0] eff_hi = (drive_hi_a || core_ps_drive)
                      ? AD[19:16] : hold[19:16];
 
 // mid-cycle (address-phase) sample of the composed bus
@@ -210,6 +245,32 @@ always @(posedge clk) begin
             ready_r  <= wait_cnt == 5'd1;
         end
 
+        // pin-event scheduler (see comment block at the pin wires)
+        if (ev_armed) begin
+            if (ev_mode == 1 && tb_t == ST_T1 && lat_type == 3'b100 &&
+                lat_addr == ev_addr) begin
+                ev_armed <= 0;
+                ev_cnt   <= ev_delay + 1;
+            end else if (ev_mode == 2 && recording && QS == 2'b01 &&
+                         fcount == 0) begin
+                ev_armed <= 0;
+                if (ev_delay <= 1) begin
+                    ev_drive    <= 1;
+                    ev_hold_cnt <= ev_hold;
+                end else
+                    ev_cnt <= ev_delay - 1;
+            end
+        end else if (ev_cnt > 0) begin
+            ev_cnt <= ev_cnt - 1;
+            if (ev_cnt == 1) begin
+                ev_drive    <= 1;
+                ev_hold_cnt <= ev_hold;
+            end
+        end else if (ev_drive && ev_hold != 0) begin
+            ev_hold_cnt <= ev_hold_cnt - 1;
+            if (ev_hold_cnt == 1) ev_drive <= 0;
+        end
+
         hold <= {eff_hi, eff_lo};
 
         // apply CPU writes at the end of the first T3 (as nec_bus does)
@@ -232,7 +293,6 @@ always @(posedge clk) begin
     end else begin
         tb_t     <= ST_TI;
         lat_type <= BS_PASV;
-        hold     <= '0;
         fcount   <= 0;
         wait_cnt <= '0;
         ready_r  <= 1'b1;
@@ -323,11 +383,25 @@ initial begin
         end
         read_hex(t32); maxcyc = int'(t32);
         read_hex(t32); nf = int'(t32);
+        read_hex(t32); ev_mode = int'(t32);
+        read_hex(t32); ev_pin = int'(t32);
+        read_hex(t32); ev_addr = t32[19:0];
+        read_hex(t32); ev_delay = int'(t32);
+        read_hex(t32); ev_hold = int'(t32);
+        read_hex(t32); pins_cfg = int'(t32);
+        read_hex(t32); iord_r = t32[15:0];
+        ev_armed = ev_mode != 0;
+        ev_drive = 0;
+        ev_cnt = 0;
+        ev_hold_cnt = 0;
 
         for (i = 0; i < 14; i++) bkd_regs[i*16 +: 16] = rv[i];
 
         // hold the core in reset, inject state
         reset = 1;
+        // pre-window float retention: the hardware bus retains the last
+        // pre-anchor data phase; its AD19:16 = PS = {0, IE, CS(10)}
+        hold = {1'b0, rv[13][9], 2'b10, 16'h0000};
         @(posedge clk);
         bkd_load = 1;                 // held until release so the reset
         repeat (2) @(posedge clk);    // branch keeps the injected state

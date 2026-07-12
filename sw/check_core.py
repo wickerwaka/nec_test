@@ -64,7 +64,12 @@ DEFAULT_OPS = ["B8", "40", "48", "50", "58", "86", "87", "88", "89",
                "EB", "E9", "74", "75", "7C", "E2", "E8", "C3", "C2",
                "98", "99", "8C", "8D", "8E", "D7",
                "A0", "A1", "A2", "A3", "A4", "A5", "AA", "AB", "AC", "AD",
-               "F3AA", "F3A4", "26.8B", "2E.8B", "36.8B", "3E.8B"]
+               "F3AA", "F3A4", "26.8B", "2E.8B", "36.8B", "3E.8B",
+               # Campaign 3 block 4: interrupt/NMI/POLL/HALT + IN forms
+               "INT.90", "INT.B8", "INT.8ED0", "INT.8ED8", "INT.FB",
+               "INT.9D", "INT.F3AA", "NMI.90", "NMI.B8", "IE0.90",
+               "POLL.LO", "POLL.REL", "HLT.INT", "HLT.NMI", "HLT.RES",
+               "E4", "E5", "EC", "ED"]
 
 
 def build(force=False):
@@ -94,6 +99,13 @@ def n_prefix(case):
     return n
 
 
+def n_fpops(c):
+    """F pops inside the golden window (window-closing pop count).
+    Equals 2 + prefix pops for ordinary cases; interrupt cases close at
+    the handler-entry pop after a variable number of boundaries."""
+    return sum(1 for row in c["cycles"] if row[9] == "F")
+
+
 def compose_batch(cases, path):
     with open(path, "w") as f:
         f.write(f"{len(cases):x}\n")
@@ -111,7 +123,19 @@ def compose_batch(cases, path):
             f.write(f"{len(ram):x}\n")
             for a, v in ram:
                 f.write(f"{a & 0xFFFFF:05x} {v:02x}\n")
-            f.write(f"{len(c['cycles']) + 96:x} {2 + n_prefix(c):x}\n")
+            f.write(f"{len(c['cycles']) + 96:x} {n_fpops(c):x}\n")
+            # pin-event / static-pin / IO-read-data line:
+            #   <mode 0=none 1=fetch 2=fpop> <pin> <addr20> <delay>
+            #   <hold> <pins> <iord>
+            ev = c.get("evt")
+            mode = 0 if ev is None else (1 if ev["trigger"] == "fetch"
+                                         else 2)
+            f.write(f"{mode:x} {ev['pin'] if ev else 0:x} "
+                    f"{(ev.get('addr', 0) if ev else 0) & 0xFFFFF:05x} "
+                    f"{ev['delay'] if ev else 0:x} "
+                    f"{ev['hold'] if ev else 0:x} "
+                    f"{c.get('pins', 0):x} "
+                    f"{c.get('iord', 0xFFFF) & 0xFFFF:04x}\n")
 
 
 def parse_out(path):
@@ -267,7 +291,7 @@ def check_case(c, sim, flags_mask):
         return res
     rows, events, i0, i1 = build_rows_sim(sim["recs"],
                                           c["initial"]["queue"],
-                                          n_close=1 + n_prefix(c))
+                                          n_close=n_fpops(c) - 1)
     if rows is None:
         res["notes"].append("fewer than 2 F pops in sim")
         return res

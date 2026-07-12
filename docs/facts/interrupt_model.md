@@ -121,6 +121,64 @@ capture cycles 188-247) and reproduced on cold-queue REP cases:
   re-run loop in the captures; harmless — analysis uses the first
   pass).
 
+## Cycle-level laws fitted against the golden tranches (Mission M)
+
+Refined from the 15 interrupt-form tranches (200 cases each, both queue
+variants) during the RTL fit; each law is verified cycle-exact on the
+passing corpus (v30_eu.sv / v30_biu.sv are the executable reference).
+
+- **INT recognition pipeline**: the boundary decision runs during the
+  would-pop cycle B of the next instruction and sees the pin level of
+  cycle B-3 (latest catching assert = B-3, measured on the delay-swept
+  tranches). Recognition consumes one internal decision cycle; the INTA
+  request is READY during B+2 and commits at the normal BIU eval points
+  (idle-cycle ends and in-flight-fetch T3 edges) - this arbitration
+  reproduces the measured 7/8/10 assert-to-INTA1 spread exactly.
+- **NMI latch**: set 3 cycles after the pin edge; latest catching edge =
+  B-4. The IVT read request is ready during B+7 (IVT T1 = B+9 on a
+  quiet bus).
+- **IE gating is itself pipelined**: the decision at B uses IE@B-3.
+  This single law IS the "EI shadow" AND explains POP PSW's behavior on
+  an IE 0->1 transition (the immediately following boundary still sees
+  IE=0). There is no separate EI shadow flag in the silicon model.
+- **EI/DI commit IE when the NEXT opcode byte is present in the queue**:
+  at their pop edge if a byte remains after the pop, else at the queue
+  refill (measured on dry-queue EI: the new IE appears in the PS pins
+  only after the next byte is fetched).
+- **POP PSW consumes the popped image at its read's data edge** (the
+  new IE shows in the PS bits during the read's own T4).
+- **HALT display law**: HALT never enters the bus-commit machinery. The
+  HALT status appears at the first idle (Ti, nothing committed) cycle
+  after the opcode pop, followed by one address-strobe T1 that drives
+  the LAST FETCH address (fetch pointer - 2) on AD15:0 only, releasing
+  UBE_N high; no data phase. Prefetch is blocked from the decode cycle.
+- **HALT wake**: INT(IE=1): INTA request ready at assert+6, commits at
+  the eval points (idle bus: INTA1 T1 = assert+8; a cold queue lets one
+  prefetch commit first and the INTA rides its T3 eval). NMI: bus held,
+  IVT request ready at assert+12 (T1 = assert+14). Masked-INT resume:
+  prefetch resumes at the decision cycle (assert+3), the next
+  instruction pops one cycle later.
+- **INTA cycle drive**: no address is driven - AD15:0 float through the
+  commit display and T1; AD19:16 are driven to 0 during both; PS bits
+  (IE, seg=CS) drive T2-T4 as usual; UBE_N low.
+- **REP abort**: iteration boundaries sample a one-deeper pin pipeline
+  (pin@edge-4); on recognition the in-flight write completes, the
+  internal flush fires 9 cycles after the abort decision edge, the
+  resume refetch T1 follows the flush display by 2, and INTA1 T1 by 6.
+
+### Known residuals (documented, not yet modeled)
+
+- **POP PSW + interrupt at its own boundary** (INT.9D, 53/200): the
+  tranche splits into two classes - final live PSW = popped value
+  (majority, modeled) vs = PRE-pop value (both with IE/BRK cleared; the
+  pushed PSW is the popped value in both classes). Identical stimulus
+  timing signatures show both classes, so the discriminator is a data
+  or deeper-state condition; needs targeted bench sweeps.
+- **REP STM abort flush slot** (INT.F3AA, 33/200): first-iteration
+  aborts show the flush at decision+9 or +10 depending on a condition
+  correlated with the first write's commit type; chained-iteration
+  aborts are uniformly +9 (modeled).
+
 ## Priority / notes
 
 - NMI latch + INT level both pending: not yet measured (needs a
