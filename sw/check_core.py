@@ -223,10 +223,11 @@ def diff_rows(exp, got):
         if full:
             if e[1] != g[1]:
                 mm.append((i, 1, e[1], g[1]))
-            if t != "T1" and e[6] != g[6]:
+            # col6 compared on T1 rows too (mission F): write cycles drive
+            # the write data in T1's second half (modeled in the BIU);
+            # read/fetch T1 rows hold the address by retention
+            if e[6] != g[6]:
                 mm.append((i, 6, e[6], g[6]))
-            if t == "T1":
-                masked += 1  # col6 on T1 rows tracks col1; not double-counted
         else:
             masked += 1
     if len(exp) != len(got):

@@ -23,13 +23,24 @@
 //   - Odd word accesses split into two byte cycles, low address first,
 //     back to back. Both halves drive the data word byte-swapped onto the
 //     lanes ({wdata[7:0], wdata[15:8]}), as the silicon does.
-//   - Queue flush (QS=E) clears the queue, cancels in-flight fetch data
-//     and redirects the fetch pointer; the next cycle commits at the
-//     normal evaluation points (a pending EU access still wins first).
+//   - A prefetch cannot commit during a push-absorb cycle (q_aged
+//     nonzero, the cycle after a fetch T4) - measured on the boot loop.
+//   - Queue flush: unified law (docs/facts/biu_model.md, mission E):
+//     the internal flush cycle clears the queue, discards in-flight
+//     fetch data (the bus cycle completes) and redirects the fetch
+//     pointer; the redirect commits from the end of that cycle at the
+//     normal eval points plus prefetch-T4 (flush-only), never at an EU
+//     access's T4. The QS=E pin display follows the measured deferral
+//     law (qs_e below). A committed-but-unstarted stale prefetch dies.
+//   - Write cycles drive the write data on AD15:0 in the second half
+//     of T1 (t1_half2).
 //
-//  Reset-vector sequencing (fetch from FFFF0h after RESET) is not yet
-//  implemented: Campaign 3 cores are started exclusively through the TB
-//  backdoor (bkd_load while in reset). Campaign 4 adds the real reset flow.
+//  Reset-vector sequencing (mission G): the EU holds a bus reservation
+//  for 7 cycles after RESET release, then flush-redirects to FFFF:0000
+//  through the ordinary flush machinery - reproducing the measured
+//  boot pattern (QS=E at release+7, first fetch T1 at FFFF0h at
+//  release+9), verified cycle-exact against the real boot capture
+//  (sw/check_boot.py).
 //
 //============================================================================
 
@@ -155,7 +166,11 @@ wire [2:0] cnt_next = q_cnt - {2'b0, pop_now} + {1'b0, push_now};
 wire [1:0] infl = (cur_fetch && state != ST_TI && push_now == 0 &&
                    !fetch_discard) ? (cur_word ? 2'd2 : 2'd1) : 2'd0;
 wire [3:0] occupied = {1'b0, cnt_next} + {2'b0, infl};
-wire       prefetch_ok = !q_flush ? (!eu_req && occupied <= 4)
+// a prefetch cannot commit during a push-absorb cycle (q_aged nonzero,
+// the cycle after a fetch T4) - measured on the boot loop; flush
+// redirects are exempt (measured on the branch tranches)
+wire       prefetch_ok = !q_flush ? (!eu_req && occupied <= 4 &&
+                                     q_aged == 2'd0)
                                   : !eu_req;   // flushed queue is empty
 
 assign q_byte  = q_mem[q_rd];
@@ -402,6 +417,13 @@ assign bs = nxt_live ? nxt_type
 wire [15:0] wdata_lanes = cur_swap ? {cur_wdata[7:0], cur_wdata[15:8]}
                                    : cur_wdata;
 
+// write cycles switch AD15:0 from address to write data in the second
+// half of T1 (measured: golden MEMW T1 rows carry the write data in the
+// data-phase sample). Negedge-registered so the external T1-falling-edge
+// address latch still sees the address.
+reg t1_half2;
+always @(negedge clk) t1_half2 <= (state == ST_T1);
+
 assign ad_oe_addr = nxt_live || state == ST_T1;
 assign ad_oe_ps   = !ad_oe_addr && cycle_active &&
                     (state == ST_T2 || state == ST_T3 ||
@@ -409,7 +431,9 @@ assign ad_oe_ps   = !ad_oe_addr && cycle_active &&
 assign ad_oe_data = ad_oe_ps && cur_wr;
 
 assign ad_o = nxt_live           ? nxt_addr
-            : (state == ST_T1)   ? cur_addr
+            : (state == ST_T1)   ? (cur_wr && t1_half2
+                                    ? {cur_addr[19:16], wdata_lanes}
+                                    : cur_addr)
             : {1'b0, psw_ie, cur_seg, wdata_lanes};
 
 assign rd_n = !((state == ST_T2 || state == ST_T3 || state == ST_TW)

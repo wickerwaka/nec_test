@@ -128,7 +128,7 @@ assign psw_ie = psw[9];
 //----------------------------------------------------------------------------
 // microsequencer state
 //----------------------------------------------------------------------------
-typedef enum logic [5:0] {
+typedef enum logic [6:0] {
     S_HALT, S_FIRST, S_DEC,
     S_IMM_LO, S_IMM_HI, S_NOP,
     S_EA1, S_EA2, S_DISP8, S_DLO, S_DGAP, S_DHI, S_DSTALL,
@@ -141,6 +141,7 @@ typedef enum logic [5:0] {
     S_A4_SETUP, S_A4_SRC, S_A4_SRCW, S_A4_G1, S_A4_DST, S_A4_DSTW,
     S_A4_G2, S_A4_WR, S_A4_WRW, S_A4_END,
     S_JDISP, S_JDLO, S_JDHI, S_JWAIT, S_JNT, S_JFLUSH,
+    S_JSLO, S_JSHI, S_MLO, S_MHI, S_RESET,
     S_CALLFL, S_CALLPUSH, S_CALLW, S_RETF,
     S_TRAP_IVT1, S_TRAP_IVT2, S_TRAP_IVT2W,
     S_TRAP_W1, S_TRAP_PSW, S_TRAP_PSWW,
@@ -190,6 +191,7 @@ wire op_xchg8  = opc == 8'h86;
 wire op_xchg16 = opc == 8'h87;
 wire op_jcc    = opc == 8'h74 || opc == 8'h75 || opc == 8'h7C;
 wire op_ret    = opc == 8'hC3 || opc == 8'hC2;
+wire op_moff   = opc == 8'hA0 || opc == 8'hA1;   // MOV AL/AW, moffs16
 wire jcc_taken = (opc == 8'h74) ?  psw[FB_Z] :
                  (opc == 8'h75) ? !psw[FB_Z] :
                                    psw[FB_S] ^ psw[FB_V];   // 7C BLT
@@ -427,7 +429,8 @@ wire pop_want = (state == S_FIRST) ||
                 (state == S_IMM_LO) || (state == S_IMM_HI) ||
                 (state == S_DISP8) || (state == S_DLO) || (state == S_DHI) ||
                 (state == S_JDISP) || (state == S_JDLO) ||
-                (state == S_JDHI);
+                (state == S_JDHI) || (state == S_JSLO) ||
+                (state == S_JSHI) || (state == S_MLO) || (state == S_MHI);
 
 assign q_pop   = pop_want && q_avail;
 assign q_first = state == S_FIRST;
@@ -471,6 +474,8 @@ always_comb begin
         // RET holds its reservation through the stack read (measured: no
         // prefetch commit at the read's T3 edge; plain POP r16 allows it)
         S_BUSW: eu_req = op_ret;
+        // reset countdown: the bus stays quiet until the reset flush
+        S_RESET: eu_req = 1'b1;
         S_REQ, S_WREQ,
         S_A4_SRC, S_A4_DST, S_A4_WR,
         S_CALLPUSH,
@@ -522,8 +527,10 @@ always_ff @(posedge clk) begin
     flush_now <= 1'b0;
 
     if (srst) begin
-        state    <= S_HALT;
-        dly      <= '0;
+        // real reset flow: PS=FFFF, PC=0, PSW cleared; the sequencer
+        // idles 7 cycles after release, then flush-redirects to FFFF0
+        state    <= S_RESET;
+        dly      <= 5'd7;
         wnext    <= S_HALT;
         opc      <= '0;
         opc2     <= '0;
@@ -539,13 +546,21 @@ always_ff @(posedge clk) begin
         ivt_off  <= '0;
         ivt_seg  <= '0;
         trap_psw <= '0;
-        fl_cs    <= '0;
+        fl_cs    <= 16'hFFFF;
         fl_ip    <= '0;
         eu_wr    <= 1'b0;
         eu_word  <= 1'b0;
         eu_addr  <= '0;
         eu_seg   <= SEG_DS;
         eu_wdata <= '0;
+        for (int i = 0; i < 8; i++) rf[i] <= '0;
+        sr[SEG_ES] <= '0;
+        sr[SEG_CS] <= 16'hFFFF;
+        sr[SEG_SS] <= '0;
+        sr[SEG_DS] <= '0;
+        pc      <= '0;
+        arch_ip <= '0;
+        psw     <= 16'hF002;
         if (bkd_load) begin
             for (int i = 0; i < 8; i++) rf[i] <= bkd_regs[i*16 +: 16];
             sr[SEG_ES] <= bkd_regs[128 +: 16];
@@ -638,8 +653,10 @@ always_ff @(posedge clk) begin
                         state   <= S_REQ;
                     end else if (opc == 8'hEB || op_jcc || opc == 8'hE2)
                         state <= S_JDISP;
-                    else if (opc == 8'hE9 || opc == 8'hE8 || opc == 8'hC2)
+                    else if (opc == 8'hE9 || opc == 8'hE8 ||
+                             opc == 8'hC2 || opc == 8'hEA)
                         state <= S_JDLO;
+                    else if (op_moff) state <= S_MLO;
                     else state <= S_HALT;
                 end
             end
@@ -694,7 +711,10 @@ always_ff @(posedge clk) begin
             end
             S_JDHI: if (q_pop) begin
                 pc <= pc + 16'd1;
-                if (opc == 8'hC2) begin
+                if (opc == 8'hEA) begin           // BR far: seg follows
+                    disp[15:8] <= q_byte;         // absolute target offset
+                    state <= S_JSLO;
+                end else if (opc == 8'hC2) begin
                     disp[15:8] <= q_byte;                       // pop count
                     eu_addr <= {sr[SEG_SS], 4'h0} + {4'h0, rf[4]};
                     eu_seg  <= SEG_SS;
@@ -714,7 +734,10 @@ always_ff @(posedge clk) begin
             S_JWAIT: begin
                 if (dly == 5'd1) begin
                     state <= wnext;
-                    if (wnext == S_JFLUSH || wnext == S_CALLFL) begin
+                    // near transfers redirect within CS; EA (far) has
+                    // already latched its target in S_JSHI
+                    if ((wnext == S_JFLUSH || wnext == S_CALLFL) &&
+                        opc != 8'hEA) begin
                         fl_cs <= sr[SEG_CS];
                         fl_ip <= disp;
                     end
@@ -722,9 +745,45 @@ always_ff @(posedge clk) begin
                 dly <= dly - 5'd1;
             end
             S_JNT: retire();                                    // not taken
+            // BR far (EA) segment bytes; flush at seghi-pop+2 (measured
+            // on the boot capture; reservation from pop+1 via S_JWAIT)
+            S_JSLO: if (q_pop) begin
+                immb <= q_byte;
+                pc   <= pc + 16'd1;
+                state <= S_JSHI;
+            end
+            S_JSHI: if (q_pop) begin
+                pc    <= pc + 16'd1;
+                fl_cs <= {q_byte, immb};
+                fl_ip <= disp;
+                dly   <= 5'd1; wnext <= S_JFLUSH; state <= S_JWAIT;
+            end
+            // MOV AL/AW, moffs16 (A0/A1): direct address pops at F+2/F+3,
+            // read ready hi+1, retire at done (boot capture)
+            S_MLO: if (q_pop) begin
+                disp[7:0] <= q_byte;
+                pc <= pc + 16'd1;
+                state <= S_MHI;
+            end
+            S_MHI: if (q_pop) begin
+                pc <= pc + 16'd1;
+                eu_addr <= {sr[SEG_DS], 4'h0} + {4'h0, {q_byte, disp[7:0]}};
+                eu_seg  <= SEG_DS;
+                eu_wr   <= 1'b0;
+                eu_word <= opc[0];
+                state   <= S_REQ;
+            end
+            // reset flow: 7 idle cycles after RESET release, then the
+            // standard flush machinery redirects to FFFF:0000 (measured:
+            // QS=E at release+7, first fetch T1 at release+9)
+            S_RESET: begin
+                if (dly == 5'd1) state <= S_JFLUSH;
+                dly <= dly - 5'd1;
+            end
             S_JFLUSH: begin      // q_flush high this cycle (comb)
                 pc      <= fl_ip;
                 arch_ip <= fl_ip;
+                sr[SEG_CS] <= fl_cs;   // no-op for near flushes
                 state   <= S_FIRST;
             end
             S_CALLFL: begin      // q_flush high this cycle (comb)
@@ -906,7 +965,11 @@ always_ff @(posedge clk) begin
             end
             S_REQ: if (eu_started) state <= S_BUSW;
             S_BUSW: if (eu_done) begin
-                if (op_ret) begin                         // C3 / C2
+                if (op_moff) begin                        // A0 / A1
+                    if (opc[0]) rf[0] <= eu_rdata;
+                    else        rf[0][7:0] <= eu_rdata[7:0];
+                    retire();
+                end else if (op_ret) begin                // C3 / C2
                     rf[4] <= rf[4] + 16'd2 +
                              ((opc == 8'hC2) ? disp : 16'd0);
                     fl_cs <= sr[SEG_CS];

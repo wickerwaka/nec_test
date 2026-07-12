@@ -228,7 +228,35 @@ task automatic read_hex(output logic [31:0] v);
     v = t;
 endtask
 
+// boot-replay mode (+bootimg=<hex byte file> +bootn=<cycles>): load the
+// 64 KB image, run the real reset flow (no backdoor), record bootn cycles
+string  bootimg_path;
+integer bootn;
+
 initial begin
+    if ($value$plusargs("bootimg=%s", bootimg_path)) begin
+        if (!$value$plusargs("bootn=%d", bootn)) bootn = 300;
+        if (!$value$plusargs("out=%s", out_path)) out_path = "core_out.txt";
+        fo = $fopen(out_path, "w");
+        $readmemh(bootimg_path, mem);
+        reset = 1;
+        bkd_load = 0;
+        case_active = 1;   // let CPU writes hit mem (no undo needed)
+        repeat (8) @(posedge clk);
+        @(negedge clk);
+        reset = 0;
+        recording = 1;
+        repeat (bootn) @(posedge clk);
+        recording = 0;
+        $fdisplay(fo, ".");
+        $fclose(fo);
+        $display("BOOT DONE");
+        $finish;
+    end
+end
+
+initial begin
+    if ($test$plusargs("bootimg")) wait (0);
     if (!$value$plusargs("batch=%s", batch_path)) batch_path = "batch.txt";
     if (!$value$plusargs("out=%s", out_path))     out_path = "core_out.txt";
     fi = $fopen(batch_path, "r");
