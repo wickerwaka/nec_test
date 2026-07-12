@@ -51,6 +51,26 @@ sw/make_boot.py unless stated.
   - Not yet decomposed into per-instruction times (needs queue
     visibility or single-instruction tests).
 
+## Large (max) mode — first queue-status measurements (2026-07-11, post RQ/AK rework)
+
+Source: `sw/testdata/largemode_boot_real.hex` (boot image, 4 MHz, zero waits,
+max mode via CFG.small_mode=0 → S/LG̅ low).
+
+- **Queue status works**: QS reports F/S/E ops; 442 instruction first-byte
+  ops in the trace; queue flush (E) once per loop iteration (the short jump).
+- **Reconstructed queue depth peaks at 5** (documented depth 6; this loop
+  never lets it saturate — dedicated queue-limit experiment pending).
+- **Per-instruction times from F-to-F spacing** (queue-supply constrained,
+  not yet decomposed into EU vs BIU bound): the 7-instruction loop
+  (MOV AW,imm / MOV BW,imm / MOV [BW],AW / MOV AL,dmem / MOV AW,odd-dmem /
+  NOP / BR short) shows gaps {3, 5, 7, 11, 12, 12, 14} clocks, sum = 64 —
+  matching the bus-side loop measurement exactly. Attribution of each gap
+  to its instruction awaits the shadow-queue parser (loadstore_design.md
+  stage 2).
+- Float-window artifact: the ~8 cycles between reset release and first
+  drive decode as phantom INTA transactions in max mode (BS floats to 000),
+  analogous to the small-mode phantom reads. Parser must tolerate.
+
 ## Divide-overflow semantics (prior work, large context)
 
 - MAME's divide-overflow behavior for V30 (CY/V = !overflow, registers

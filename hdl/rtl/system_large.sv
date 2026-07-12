@@ -80,6 +80,11 @@ module system_large
     input             axs_rready,
 `endif
 
+    output        NEC_LG_N,     // S/LG strap: 1 = small-scale, 0 = large-scale.
+                                // Follows CFG.small_mode so the physical strap
+                                // and the harness datapath cannot disagree.
+                                // Change only while host_reset is held.
+
     output        dbg_led       // capture-full status (needs IO board to see)
 );
 
@@ -330,6 +335,8 @@ capture_buf #(.LOG2_DEPTH(12)) capture
     .rd_addr(h_cap_addr),
     .rd_data(h_cap_rdata)
 );
+
+assign NEC_LG_N = cfg_small_mode;
 
 assign dbg_led = cap_full;
 

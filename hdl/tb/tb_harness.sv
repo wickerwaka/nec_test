@@ -96,8 +96,10 @@ system_large dut
     .axs_rid(axs_rid), .axs_rdata(axs_rdata), .axs_rresp(axs_rresp),
     .axs_rlast(axs_rlast), .axs_rvalid(axs_rvalid), .axs_rready(axs_rready),
 
+    .NEC_LG_N(nec_lg_n),
     .dbg_led()
 );
+wire nec_lg_n;
 
 int errors = 0;
 
@@ -349,6 +351,7 @@ initial begin
     while (NEC_RESET) @(posedge NEC_CLK);
     $display("-- large-scale mode --");
 
+    check(!nec_lg_n, "S/LG strap follows CFG into large mode");
     bus_cycle(BS_CODE, 20'hFFFF0, 1'b0, 16'h0, rd);
     check(rd == 16'h00EA, $sformatf("lg: vector fetch returned %04x (expect 00EA)", rd));
     bus_cycle(BS_MEMW, 20'h02100, 1'b0, 16'h1234, rd);

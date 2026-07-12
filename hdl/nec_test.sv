@@ -302,10 +302,8 @@ assign VGA_B  = (!col || col == 3) ? video : 8'd0;
 wire nec_dbg_led;
 assign LED_USER = nec_dbg_led;
 
-// S/LG strap: 1 = small-scale mode, 0 = large-scale (max) mode.
-// Small mode until the RQ/AK0-1 ground ties are reworked (bringup_log.md).
-// Must match cfg_small_mode in system_large.sv.
-assign NEC_LG_N = 1;
+// S/LG strap: driven by system_large from CFG.small_mode (RQ/AK0-1 pins
+// reworked 2026-07-11; both modes now electrically valid).
 
 system_large system_large
 (
@@ -338,6 +336,7 @@ system_large system_large
     .NEC_RD_N(NEC_RD_N),
     .NEC_ENABLE_N(NEC_ENABLE_N),
 
+    .NEC_LG_N(NEC_LG_N),
     .dbg_led(nec_dbg_led)
 );
 

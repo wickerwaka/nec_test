@@ -137,6 +137,24 @@ Remaining before suite-grade data: load/store routines (designed,
 docs/notes/loadstore_design.md), RQ/AK rework for large mode + queue
 status.
 
+## 2026-07-11 (night) — LARGE MODE LIVE: real queue status
+
+RQ/AK0-1 rework done (pins lifted + pulled up). S/LG̅ strap rewired to
+follow CFG.small_mode so mode is host-switchable (change only in
+host_reset). First max-mode run: BS status + T-states decode cleanly,
+QS0/QS1 report real queue ops, queue-depth reconstruction works (peak 5),
+442 instruction boundaries visible, per-instruction F-to-F times
+{3,5,7,11,12,12,14} sum to the 64-clock loop measured independently on
+the bus side. See docs/facts/measurements.md.
+
+One transient: the first large-mode `v30ctl run` invocation hung in
+load_mem (>45 s); an identical retry completed in 0.7 s. Unexplained —
+watch for recurrence.
+
+Everything is now in place for the decode/prefetch research program and
+the load/store implementation (stage 1+2 together, since queue status
+is available).
+
 **Tooling notes:**
 - `read_content_from_memory` returns content highest-address-first; bulk
   reads intermittently return all-zeros on Quartus 17.1 even with re-read
