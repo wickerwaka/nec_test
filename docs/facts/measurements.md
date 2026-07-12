@@ -313,6 +313,56 @@ no prefix / DS0: / REP(F3) / DS0:+REP pushes 0502/0503/0503/0504 for
 the instruction starting at 0500. No restart semantics on V30 divide
 traps, prefixes are not dropped from the accounting.
 
+## Timing sweep part 3: 0F set, prefixes, stack/trap paths (2026-07-11, mission 10)
+
+sw/sweep_timing.py more; 56 records into timing_measured.json (0F
+extension timings, prefix costs, trap paths, HALT). Same conditions.
+
+| Form class | Measured | Documented | Delta |
+|---|---|---|---|
+| TEST1 reg,CL / reg,imm (byte=word) | 6 | 3 / 4 | +3 / +2 (joins the uniform 6-cycle reg-bit-op class) |
+| TEST1 mem, all 4 forms | **14** | 12 / 13 | +2 / +1 |
+| NOT1 mem,CL / mem,imm | 21 | 18 / 19 | +3 / +2 |
+| SET1 mem,CL / mem,imm | 21 | 13 / 14 | **+8 / +7** |
+| CLR1 mem,CL / mem,imm | 21 / 23 | 14 / 15 | +7 / +8 |
+| ROL4 / ROR4 reg8 | 16 / 20 | 25 / 29 | **-9 both** |
+| ROL4 / ROR4 mem8 | 27 / 31 | 28 / 33 | -1 / -2 |
+| INS reg,reg / reg,imm4 (len 3-4) | 51 / 54 | 31-117 / 67-87 | in range / **-13 below range** |
+| EXT reg,reg / reg,imm4 (len 4-7) | 43 / 43 | 26-55 / 21-44 | in range |
+| ADD4S/SUB4S/CMP4S (n byte pairs) | **13+22n** | 7+19n | slope +3, intercept +6 (ADD4S 35/57/79 at n=1/2/3; SUB4S 56, CMP4S 55 at n=2) |
+| PUSH mem16 / POP mem16 | 21 / 15 | 18 / 17 | +3 / -2 |
+| PUSH sreg (PS) / POP sreg (DS0) | 9 | 8 | +1 (= PUSH/POP reg class) |
+| LDEA [BW+IX] / direct dmem | 3 / 5 | 4 | **-1 / +1 — LDEA is EA-mode-dependent** (unlike loads) |
+| PREPARE imm8=0 / 1 / 2 | 12 / 22 / 30 | 12 / (no row) / 27 | 0 / manual gap filled / +3 |
+| DISPOSE | 9 | 6 | +3 |
+| CHKIND in-bounds | 22 | 18 | +4 |
+| CHKIND trap (to handler F) | 63 | 53-56 | +8 |
+| RETI (frame pop + flush) | 22 | 27 | **-5** (negative like RET pop-value) |
+| BRK 3 trap (to handler F) | 43 | 38 | +5 |
+| BRKV V=1 trap / V=0 fall-through | 44 / 3 | garbled 52/40 rows | see note |
+| HALT (F-pop to HALT bus cycle T1) | 4 | 2 | +2, different metric; bus then idle forever, done marker never arrives |
+
+**NEW CLASS — prefix cost is context-dependent.** A segment override
+retires as its own instruction (own F pop, 2 cycles — same as REP), and
+the following instruction's own time can absorb it:
+
+- DS0:/DS1:/SS: + MOV AW,[BW]: prefix 2 + MOV **11** = 13 total = the
+  unprefixed time. **Net cost of one segment prefix on an EA load: 0.**
+- Stacked DS1: DS0: + MOV AW,[BW]: 2+2+12 = 16 (net +3).
+- DS0: + ADD BW,DW (no memory ref): 2+3 = 5 (net +2).
+- BUSLOCK + NOP: 2+3 (net +2; doc charges BUSLOCK 2).
+
+The absorption means per-instruction cycle models must treat prefixes as
+pipeline events, not additive constants.
+
+Other structure: silicon again uniform where the manual is not (all four
+TEST1 mem forms = 14; SET1/NOT1/CLR1 mem,CL all = 21); ROL4/ROR4 reg
+beat their documentation by 9 cycles — the largest negative deviation
+yet; INS reg,imm4 at 54 is below the manual's own 67-87 range.
+**CHKIND bounds comparison is SIGNED**: upper bound 0xFFFF (=-1) traps
+DW=5, caught when the first "in bounds" attempt ran away through
+unhooked vector 5.
+
 ## Undefined-flag survey (2026-07-11, mission 8)
 
 sw/probe_flags.py: 53 cases / 275 runs covering every U-flag class in

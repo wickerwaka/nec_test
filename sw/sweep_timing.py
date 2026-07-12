@@ -412,12 +412,13 @@ def cmd_sweep(host):
 STRING_REGS = {"DS0": 0, "IX": 0x0800, "DS1": 0, "IY": 0x0900}
 
 
-def fgap_run(a, host, src, regs=None, tag="fl", ram=None, stub_linear=None):
+def fgap_run(a, host, src, regs=None, tag="fl", ram=None, stub_linear=None,
+             ivt=None):
     """Assemble a full sled at 0x0500, run, return (gaps, fpops)."""
     code = a.assemble(src, org=0x0500)
     regs_full = dict({"PS": 0, "PC": 0x0500}, **(regs or {}))
     res = run_test(regs=regs_full, instr=code, host=host, tag=tag, ram=ram,
-                   stub_linear=stub_linear)
+                   stub_linear=stub_linear, ivt=ivt)
     ev = queue_timeline(res["recs"], res["meta"])
     fpops = [e["idx"] for e in ev if e["q"] == "F"]
     gaps = [b - x for x, b in zip(fpops, fpops[1:])]
@@ -425,11 +426,12 @@ def fgap_run(a, host, src, regs=None, tag="fl", ram=None, stub_linear=None):
 
 
 def measure_flow(a, host, name, form_rec, src, regs, doc_expect, tag,
-                 note=None, ram=None, stub_linear=None, x_bytes=None):
+                 note=None, ram=None, stub_linear=None, x_bytes=None,
+                 ivt=None):
     """One control-flow case: X at F-pop index 16, gap 16 = its time.
     doc_expect: the single documented value applicable to this case."""
     gaps, fpops = fgap_run(a, host, src, regs, tag=tag, ram=ram,
-                           stub_linear=stub_linear)
+                           stub_linear=stub_linear, ivt=ivt)
     gap = gaps[16] if len(gaps) > 16 else None
     nop_t = sorted(gaps[8:15])[3] if len(gaps) > 15 else None
     print(f"{name:<28} F-gap {gap!s:>4}  (NOP baseline {nop_t}, "
@@ -682,15 +684,300 @@ def cmd_odd(host):
     return 0
 
 
+#----------------------------------------------------------------------------
+# mission 10: remaining coverage — 0F extension set, prefixes, stack/misc,
+# trap paths, HALT
+#----------------------------------------------------------------------------
+
+def measure_raw(a, host, name, mnem, pattern, x_src, regs, doc_vals, tag,
+                ram=None, note=None):
+    """fspacing for a DB-encoded form the assembler can't emit; documented
+    values supplied by the caller (from the form's instructions.json row)."""
+    rec = form_lookup(a, mnem, pattern)
+    gap, nop_t = fspacing_case(a, host, name, x_src, regs_extra=regs,
+                               tag=tag, ram=ram)
+    vals = set(doc_vals or [])
+    out = {
+        "nec_form": rec["nec_form"],
+        "asm": name,
+        "bytes": a.assemble(x_src, org=0x0510).hex(" "),
+        "operands": {k: f"0x{v:04X}" for k, v in (regs or {}).items()},
+        "measured_cycles": gap,
+        "nop_baseline": nop_t,
+        "documented_clocks": [(c["when"] + ": " if c["when"] else "")
+                              + c["value"] for c in rec["clocks"]],
+        "documented_values": sorted(vals),
+        "match": gap in vals if vals and gap is not None else None,
+        "deviation": (0 if gap in vals else
+                      min((gap - v for v in vals), key=abs))
+                     if vals and gap is not None else None,
+    }
+    if note:
+        out["note"] = note
+    if nop_t != 3:
+        out["warn"] = f"NOP baseline {nop_t} != 3 (queue not saturated?)"
+    if out["match"] is False:
+        print(f"    ^ DEVIATION {out['deviation']:+d} vs "
+              f"{out['documented_values']}")
+    return out
+
+
+def measure_prefixed(a, host, name, x_src, n_prefix, regs, tag, note=None):
+    """Prefixed instruction: each prefix retires with its own F pop (REP
+    finding, measurements.md). Record per-F gaps and the total."""
+    gaps, fpops = fgap_run(a, host,
+                           "    NOP\n" * 16 + x_src + "    NOP\n" * 8,
+                           regs, tag=tag)
+    parts = gaps[16:16 + n_prefix + 1]
+    total = sum(parts) if len(parts) == n_prefix + 1 else None
+    print(f"{name:<28} parts={parts} total={total}")
+    return {
+        "nec_form": "prefix measurement",
+        "asm": name,
+        "bytes": a.assemble(x_src, org=0x0510).hex(" "),
+        "operands": {k: f"0x{v:04X}" for k, v in (regs or {}).items()},
+        "measured_cycles": total,
+        "per_f_gaps": parts,
+        "nop_baseline": sorted(gaps[8:15])[3] if len(gaps) > 15 else None,
+        "documented_clocks": [],
+        "documented_values": [],
+        "match": None,
+        "deviation": None,
+        "note": note or "prefix pops its own F; total = prefix(es) + insn",
+    }
+
+
+def cmd_more(host):
+    a = Assembler()
+    results, skipped = [], []
+    bit_regs = dict(MEM_REGS, CW=3)      # CL=3 for reg,CL / mem,CL forms
+
+    # --- (a) documented 0F extension set: assembler-supported forms ---
+    cases = [
+        # TEST1 (never timed)
+        ("TEST1 AL, CL", dict(CW=3), {"note": "CL=3"}),
+        ("TEST1 AW, CL", dict(CW=3), {"note": "CL=3"}),
+        ("TEST1 AL, 3", None, {}),
+        ("TEST1 AW, 5", None, {}),
+        ("TEST1 byte [BW], CL", bit_regs, {"note": "CL=3"}),
+        ("TEST1 word [BW], CL", bit_regs, {"note": "CL=3, even mem"}),
+        ("TEST1 byte [BW], 3", dict(MEM_REGS), {}),
+        ("TEST1 word [BW], 5", dict(MEM_REGS), {"note": "even mem"}),
+        # NOT1/CLR1/SET1 mem forms (reg forms measured in mission 3)
+        ("NOT1 byte [BW], CL", bit_regs, {"note": "CL=3"}),
+        ("NOT1 word [BW], CL", bit_regs, {"note": "CL=3, even mem"}),
+        ("NOT1 byte [BW], 3", dict(MEM_REGS), {}),
+        ("NOT1 word [BW], 5", dict(MEM_REGS), {"note": "even mem"}),
+        ("CLR1 byte [BW], CL", bit_regs, {"note": "CL=3"}),
+        ("CLR1 word [BW], CL", bit_regs, {"note": "CL=3, even mem"}),
+        ("CLR1 byte [BW], 3", dict(MEM_REGS), {}),
+        ("CLR1 word [BW], 5", dict(MEM_REGS), {"note": "even mem"}),
+        ("SET1 byte [BW], CL", bit_regs, {"note": "CL=3"}),
+        ("SET1 word [BW], CL", bit_regs, {"note": "CL=3, even mem"}),
+        ("SET1 byte [BW], 3", dict(MEM_REGS), {}),
+        ("SET1 word [BW], 5", dict(MEM_REGS), {"note": "even mem"}),
+        # ROL4/ROR4
+        ("ROL4 AL", {"AW": 0x0005}, {}),
+        ("ROL4 byte [BW]", dict(MEM_REGS, AW=0x0005), {}),
+        ("ROR4 AL", {"AW": 0x0005}, {}),
+        ("ROR4 byte [BW]", dict(MEM_REGS, AW=0x0005), {}),
+        # EXT reg,imm4 (assembler-supported INS/EXT form)
+        ("EXT DL, 4", {"DS0": 0, "IX": 0x0800, "DW": 0},
+         {"ram": [(0x0800, 0xA5), (0x0801, 0x3C)],
+          "note": "bit offset DL=0, len 4; src 0x0800"}),
+        # --- (c) stack/misc forms ---
+        ("PUSH word [BW]", dict(MEM_REGS, **STACK_REGS), {}),
+        ("POP word [BW]", dict(MEM_REGS, **STACK_REGS),
+         {"note": "pops fill into [BW]"}),
+        ("PUSH PS", STACK_REGS, {}),
+        ("POP DS0", STACK_REGS,
+         {"note": "DS0=0x9090 after; unused by sled (code via PS)"}),
+        ("LDEA BW, [BW+IX]", MEM_REGS, {}),
+        ("LDEA BW, [0x0800]", MEM_REGS, {}),
+        ("CHKIND DW, [BW]", dict(MEM_REGS, DW=5),
+         {"ram": word_ram(0x0800, 0x0000) + word_ram(0x0802, 0xFFFF),
+          "note": "in bounds [0,FFFF] - no trap"}),
+        ("DISPOSE", {"SS": 0, "SP": 0x0F00, "BP": 0x0F10},
+         {"note": "SP=BP; pops fill into BP"}),
+        ("BRKV", {"PSW": 0x0000}, {"note": "V=0, no trap (doc row garbled; "
+                                   "V=1 path measured separately)"}),
+    ]
+    r, s = run_cases(host, cases)
+    results += r
+    skipped += s
+
+    # --- (a) INS/EXT and 4S forms the assembler can't emit: DB-encoded ---
+    ins_regs = {"DS1": 0, "IY": 0x0900, "AW": 0x5555, "DW": 0, "CW": 3}
+    ext_regs = {"DS0": 0, "IX": 0x0800, "DW": 0, "CW": 7}
+    s4_regs = {"DS0": 0, "IX": 0x0800, "DS1": 0, "IY": 0x0900}
+    s4_ram = [(0x0800, 0x34), (0x0801, 0x12), (0x0802, 0x78),
+              (0x0803, 0x56), (0x0900, 0x11), (0x0901, 0x11),
+              (0x0902, 0x11), (0x0903, 0x11)]
+    raw_cases = [
+        ("INS DL, CL", "INS", "reg1, reg2", "    DB 0x0F, 0x31, 0xCA\n",
+         ins_regs, range(31, 118), None,
+         "offset DL=0, len CL=3, dst DS1:IY=0x0900"),
+        ("INS DL, 4", "INS", "reg8,imm4",
+         "    DB 0x0F, 0x39, 0xC2, 0x04\n",
+         ins_regs, range(67, 88), None, "offset DL=0, len 4"),
+        ("EXT DL, CL", "EXT", "reg1, reg2", "    DB 0x0F, 0x33, 0xCA\n",
+         ext_regs, range(26, 56), [(0x0800, 0xA5), (0x0801, 0x3C)],
+         "offset DL=0, len CL=7, src DS0:IX=0x0800"),
+        ("ADD4S (CL=2)", "ADD4S", "[DS1-spec:]dst-string,[seg-spec:]src-string",
+         "    DB 0x0F, 0x20\n", dict(s4_regs, CW=2), [7 + 19 * 1], s4_ram,
+         "n=1 byte pair; doc 7+19n"),
+        ("ADD4S (CL=4)", "ADD4S", "[DS1-spec:]dst-string,[seg-spec:]src-string",
+         "    DB 0x0F, 0x20\n", dict(s4_regs, CW=4), [7 + 19 * 2], s4_ram,
+         "n=2; doc 7+19n"),
+        ("ADD4S (CL=6)", "ADD4S", "[DS1-spec:]dst-string,[seg-spec:]src-string",
+         "    DB 0x0F, 0x20\n", dict(s4_regs, CW=6), [7 + 19 * 3], s4_ram,
+         "n=3; doc 7+19n"),
+        ("SUB4S (CL=4)", "SUB4S", "[DS1-spec:]dst-string,[seg-spec:]src-string",
+         "    DB 0x0F, 0x22\n", dict(s4_regs, CW=4), [7 + 19 * 2], s4_ram,
+         "n=2; doc 7+19n"),
+        ("CMP4S (CL=4)", "CMP4S", "[DS1-spec:]dst-string,[seg-spec:]src-string",
+         "    DB 0x0F, 0x26\n", dict(s4_regs, CW=4), [7 + 19 * 2], s4_ram,
+         "n=2; doc 7+19n"),
+        # PREPARE via DB (assembler mis-encodes imm16 operand order)
+        ("PREPARE 8, 0", "PREPARE", "imm16,imm8",
+         "    DB 0xC8, 0x08, 0x00, 0x00\n",
+         {"SS": 0, "SP": 0x0F00, "BP": 0x0F20}, [12],
+         None, "imm8=0: doc 12; DB-encoded (assembler imm16 bug)"),
+        ("PREPARE 8, 1", "PREPARE", "imm16,imm8",
+         "    DB 0xC8, 0x08, 0x00, 0x01\n",
+         {"SS": 0, "SP": 0x0F00, "BP": 0x0F20}, None,
+         None, "imm8=1: no doc row (manual gap)"),
+        ("PREPARE 8, 2", "PREPARE", "imm16,imm8",
+         "    DB 0xC8, 0x08, 0x00, 0x02\n",
+         {"SS": 0, "SP": 0x0F00, "BP": 0x0F20}, [19 + 8 * 1],
+         None, "imm8=2: doc 19+8(imm8-1)"),
+    ]
+    for i, (name, mnem, pat, src, regs, doc, ram, note) in \
+            enumerate(raw_cases):
+        try:
+            results.append(measure_raw(a, host, name, mnem, pat, src, regs,
+                                       doc, tag=f"mr{i}", ram=ram,
+                                       note=note))
+        except Exception as e:                        # noqa: BLE001
+            print(f"{name:<28} SKIPPED: {e}")
+            skipped.append({"asm": name, "reason": str(e)})
+
+    # --- (b) segment-override prefix cost (prefix = own F pop) ---
+    pfx_cases = [
+        ("DS0: MOV AW,[BW] (redundant)", "    DB 0x3E\n    MOV AW, [BW]\n",
+         1, dict(MEM_REGS), "baseline MOV AW,[BW] = 13"),
+        ("DS1: MOV AW,[BW]", "    DB 0x26\n    MOV AW, [BW]\n",
+         1, dict(MEM_REGS, DS1=0), "override to DS1=0 (same phys)"),
+        ("SS: MOV AW,[BW]", "    DB 0x36\n    MOV AW, [BW]\n",
+         1, dict(MEM_REGS, SS=0), "override to SS=0"),
+        ("DS1: DS0: MOV AW,[BW] (stacked)",
+         "    DB 0x26\n    DB 0x3E\n    MOV AW, [BW]\n",
+         2, dict(MEM_REGS, DS1=0), "two prefixes, last wins"),
+        ("DS0: ADD BW,DW (no mem ref)", "    DB 0x3E\n    ADD BW, DW\n",
+         1, None, "prefix on pure register op (baseline 3)"),
+        ("BUSLOCK NOP", "    BUSLOCK\n    NOP\n",
+         1, None, "LOCK prefix (doc 2) + NOP (3)"),
+    ]
+    for i, (name, src, npfx, regs, note) in enumerate(pfx_cases):
+        try:
+            results.append(measure_prefixed(a, host, name, src, npfx, regs,
+                                            tag=f"px{i}", note=note))
+        except Exception as e:                        # noqa: BLE001
+            print(f"{name:<28} SKIPPED: {e}")
+            skipped.append({"asm": name, "reason": str(e)})
+
+    # --- (c) trap/return paths via flow measurement (IVT hooked) ---
+    stk = dict(STACK_REGS)
+    flow_cases = [
+        # RETI: frame PC=0x0511 (next byte), PS=0, PSW=0xF002 at SP
+        ("RETI", "RETI", "", "    RETI\n" + "    NOP\n" * 8, stk,
+         word_ram(0x0F00, 0x0511) + word_ram(0x0F02, 0x0000) +
+         word_ram(0x0F04, 0xF002), None, 27,
+         "frame pops to 0x0511; includes flush like RET"),
+        ("BRK 3 (trap)", "BRK", "3", "    BRK 3\n" + "    NOP\n" * 8, stk,
+         None, {3: (0x0000, 0x0511)}, 38,
+         "vector 3 hooked to next byte 0x0511"),
+        ("BRKV (V=1, trap)", "BRKV", "", "    BRKV\n" + "    NOP\n" * 8,
+         dict(stk, PSW=0x0800), None, {4: (0x0000, 0x0511)}, 52,
+         "V=1; vector 4 hooked to 0x0511; doc row garbled (52 is the "
+         "70108 V=1 row)"),
+        ("CHKIND DW,[BW] (trap)", "CHKIND", "reg16,mem32",
+         "    CHKIND DW, [BW]\n" + "    NOP\n" * 8,
+         dict(stk, **MEM_REGS, DW=0x0005),
+         word_ram(0x0800, 0x0000) + word_ram(0x0802, 0x0004),
+         {5: (0x0000, 0x0512)}, 55,
+         "DW=5 > upper bound 4; vector 5 hooked past the 2-byte insn; "
+         "doc 53-56"),
+    ]
+    nop16 = "    NOP\n" * 16
+    for i, (name, mnem, pat, xline, regs, ram, ivt, doc, note) in \
+            enumerate(flow_cases):
+        try:
+            rec = form_lookup(a, mnem, pat) if pat != "3" else \
+                form_lookup(a, "BRK", "3")
+            results.append(measure_flow(a, host, name, rec,
+                                        nop16 + xline, regs, doc,
+                                        tag=f"tf{i}", ram=ram, ivt=ivt,
+                                        note=note))
+        except Exception as e:                        # noqa: BLE001
+            print(f"{name:<28} SKIPPED: {e}")
+            skipped.append({"asm": name, "reason": str(e)})
+
+    # --- (d) HALT: no done marker ever; measure from the raw capture ---
+    try:
+        import testimage
+        from v30run import run_image, extract_txns_large, KIND
+        src = "    NOP\n" * 16 + "    HALT\n" + "    NOP\n" * 8
+        code = a.assemble(src, org=0x0500)
+        image, meta = testimage.compose(regs={"PS": 0, "PC": 0x0500},
+                                        instr=code)
+        recs = run_image(image, host, tag="halt")
+        ev = queue_timeline(recs, meta)
+        fpops = [e["idx"] for e in ev if e["q"] == "F"]
+        txns = extract_txns_large(recs)
+        halts = [t for t in txns if KIND[t["kind"]] == "HALT"]
+        f16 = fpops[16] if len(fpops) > 16 else None
+        h0 = halts[0]["start"] if halts else None
+        gap = (h0 - f16) if (f16 is not None and h0 is not None) else None
+        last_bus = max((t["end"] for t in txns), default=None)
+        print(f"HALT: F-pop@{f16} first HALT bus cycle T1@{h0} "
+              f"delta={gap}; {len(halts)} HALT txns; last bus activity "
+              f"rec {last_bus} of {recs[-1]['idx']}")
+        results.append({
+            "nec_form": "HALT (no operand)", "asm": "HALT",
+            "bytes": "f4", "operands": {},
+            "measured_cycles": gap, "nop_baseline": None,
+            "documented_clocks": ["2"], "documented_values": [2],
+            "match": gap == 2 if gap is not None else None,
+            "deviation": (gap - 2) if gap is not None else None,
+            "note": "metric = F-pop to HALT bus-cycle T1 (no next F "
+                    "exists); bus idles after, done marker never arrives "
+                    "(quarantined by design)",
+        })
+    except Exception as e:                            # noqa: BLE001
+        print(f"HALT SKIPPED: {e}")
+        skipped.append({"asm": "HALT", "reason": str(e)})
+
+    save(results, skipped)
+    dev = [r for r in results if r["match"] is False]
+    print(f"\n{len(results)} measured, {len(dev)} deviations, "
+          f"{len(skipped)} skipped")
+    for r in dev:
+        print(f"  {r['nec_form']:<24} {r['asm']:<28} measured "
+              f"{r['measured_cycles']} vs {r['documented_values']} "
+              f"({r['deviation']:+d})")
+    return 0
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("cmd", choices=["mul", "sweep", "flow", "string", "misc",
-                                    "odd"])
+                                    "odd", "more"])
     ap.add_argument("--host", default="root@mister-nec")
     args = ap.parse_args()
     sys.exit({"mul": cmd_mul, "sweep": cmd_sweep, "flow": cmd_flow,
               "string": cmd_string, "misc": cmd_misc,
-              "odd": cmd_odd}[args.cmd](args.host))
+              "odd": cmd_odd, "more": cmd_more}[args.cmd](args.host))
 
 
 if __name__ == "__main__":

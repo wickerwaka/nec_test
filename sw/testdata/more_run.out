@@ -1,0 +1,147 @@
+TEST1 AL, CL                 F-gap   6  (NOP baseline 3, 32 F ops)
+    ^ DEVIATION +3 vs documented [3]
+TEST1 AW, CL                 F-gap   6  (NOP baseline 3, 32 F ops)
+    ^ DEVIATION +3 vs documented [3]
+TEST1 AL, 3                  F-gap   6  (NOP baseline 3, 32 F ops)
+    ^ DEVIATION +2 vs documented [4]
+TEST1 AW, 5                  F-gap   6  (NOP baseline 3, 32 F ops)
+    ^ DEVIATION +2 vs documented [4]
+TEST1 byte [BW], CL          F-gap  14  (NOP baseline 3, 32 F ops)
+    ^ DEVIATION +2 vs documented [12]
+TEST1 word [BW], CL          F-gap  14  (NOP baseline 3, 32 F ops)
+    ^ DEVIATION +2 vs documented [12]
+TEST1 byte [BW], 3           F-gap  14  (NOP baseline 3, 32 F ops)
+    ^ DEVIATION +1 vs documented [13]
+TEST1 word [BW], 5           F-gap  14  (NOP baseline 3, 32 F ops)
+    ^ DEVIATION +1 vs documented [13]
+NOT1 byte [BW], CL           F-gap  21  (NOP baseline 3, 32 F ops)
+    ^ DEVIATION +3 vs documented [18]
+NOT1 word [BW], CL           F-gap  21  (NOP baseline 3, 32 F ops)
+    ^ DEVIATION +3 vs documented [18]
+NOT1 byte [BW], 3            F-gap  21  (NOP baseline 3, 32 F ops)
+    ^ DEVIATION +2 vs documented [19]
+NOT1 word [BW], 5            F-gap  21  (NOP baseline 3, 32 F ops)
+    ^ DEVIATION +2 vs documented [19]
+CLR1 byte [BW], CL           F-gap  21  (NOP baseline 3, 32 F ops)
+    ^ DEVIATION +7 vs documented [14]
+CLR1 word [BW], CL           F-gap  21  (NOP baseline 3, 32 F ops)
+    ^ DEVIATION +7 vs documented [14]
+CLR1 byte [BW], 3            F-gap  23  (NOP baseline 3, 32 F ops)
+    ^ DEVIATION +8 vs documented [15]
+CLR1 word [BW], 5            F-gap  23  (NOP baseline 3, 32 F ops)
+    ^ DEVIATION +8 vs documented [15]
+SET1 byte [BW], CL           F-gap  21  (NOP baseline 3, 32 F ops)
+    ^ DEVIATION +8 vs documented [13]
+SET1 word [BW], CL           F-gap  21  (NOP baseline 3, 32 F ops)
+    ^ DEVIATION +8 vs documented [13]
+SET1 byte [BW], 3            F-gap  21  (NOP baseline 3, 32 F ops)
+    ^ DEVIATION +7 vs documented [14]
+SET1 word [BW], 5            F-gap  21  (NOP baseline 3, 32 F ops)
+    ^ DEVIATION +7 vs documented [14]
+ROL4 AL                      F-gap  16  (NOP baseline 3, 32 F ops)
+    ^ DEVIATION -9 vs documented [25]
+ROL4 byte [BW]               F-gap  27  (NOP baseline 3, 32 F ops)
+    ^ DEVIATION -1 vs documented [28]
+ROR4 AL                      F-gap  20  (NOP baseline 3, 32 F ops)
+    ^ DEVIATION -9 vs documented [29]
+ROR4 byte [BW]               F-gap  31  (NOP baseline 3, 32 F ops)
+    ^ DEVIATION -2 vs documented [33]
+EXT DL, 4                    F-gap  43  (NOP baseline 3, 32 F ops)
+PUSH word [BW]               F-gap  21  (NOP baseline 3, 32 F ops)
+    ^ DEVIATION +3 vs documented [18]
+POP word [BW]                F-gap  15  (NOP baseline 3, 32 F ops)
+    ^ DEVIATION -2 vs documented [17]
+PUSH PS                      F-gap   9  (NOP baseline 3, 32 F ops)
+    ^ DEVIATION +1 vs documented [8]
+POP DS0                      F-gap   9  (NOP baseline 3, 32 F ops)
+    ^ DEVIATION +1 vs documented [8]
+LDEA BW, [BW+IX]             F-gap   3  (NOP baseline 3, 32 F ops)
+    ^ DEVIATION -1 vs documented [4]
+LDEA BW, [0x0800]            F-gap   5  (NOP baseline 3, 32 F ops)
+    ^ DEVIATION +1 vs documented [4]
+CHKIND DW, [BW]              SKIPPED: no done marker in trace (runaway test?) — quarantine
+DISPOSE                      F-gap   9  (NOP baseline 3, 32 F ops)
+    ^ DEVIATION +3 vs documented [6]
+BRKV                         F-gap   3  (NOP baseline 3, 32 F ops)
+    ^ DEVIATION -37 vs documented [40]
+INS DL, CL                   F-gap  51  (NOP baseline 3, 32 F ops)
+INS DL, 4                    F-gap  54  (NOP baseline 3, 32 F ops)
+    ^ DEVIATION -13 vs [67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87]
+EXT DL, CL                   F-gap  43  (NOP baseline 3, 32 F ops)
+ADD4S (CL=2)                 F-gap  35  (NOP baseline 3, 32 F ops)
+    ^ DEVIATION +9 vs [26]
+ADD4S (CL=4)                 F-gap  57  (NOP baseline 3, 32 F ops)
+    ^ DEVIATION +12 vs [45]
+ADD4S (CL=6)                 F-gap  79  (NOP baseline 3, 32 F ops)
+    ^ DEVIATION +15 vs [64]
+SUB4S (CL=4)                 F-gap  56  (NOP baseline 3, 32 F ops)
+    ^ DEVIATION +11 vs [45]
+CMP4S (CL=4)                 F-gap  55  (NOP baseline 3, 32 F ops)
+    ^ DEVIATION +10 vs [45]
+PREPARE 8, 0                 F-gap  12  (NOP baseline 3, 32 F ops)
+PREPARE 8, 1                 F-gap  22  (NOP baseline 3, 32 F ops)
+PREPARE 8, 2                 F-gap  30  (NOP baseline 3, 32 F ops)
+    ^ DEVIATION +3 vs [27]
+DS0: MOV AW,[BW] (redundant) parts=[2, 11] total=13
+DS1: MOV AW,[BW]             parts=[2, 11] total=13
+SS: MOV AW,[BW]              parts=[2, 11] total=13
+DS1: DS0: MOV AW,[BW] (stacked) parts=[2, 2, 12] total=16
+DS0: ADD BW,DW (no mem ref)  parts=[2, 3] total=5
+BUSLOCK NOP                  parts=[2, 3] total=5
+RETI                         F-gap   22  (NOP baseline 3, 32 F ops)
+    ^ DEVIATION -5 vs documented [27]
+BRK 3 (trap)                 F-gap   43  (NOP baseline 3, 32 F ops)
+    ^ DEVIATION +5 vs documented [38]
+BRKV (V=1, trap)             F-gap   44  (NOP baseline 3, 32 F ops)
+    ^ DEVIATION -8 vs documented [52]
+CHKIND DW,[BW] (trap)        F-gap   63  (NOP baseline 3, 32 F ops)
+    ^ DEVIATION +8 vs documented [55]
+HALT: F-pop@231 first HALT bus cycle T1@235 delta=4; 1 HALT txns; last bus activity rec 238 of 4095
+
+wrote 305 results, 1 skipped -> /home/wickerwaka/src/nec_test/docs/facts/timing_measured.json
+
+55 measured, 44 deviations, 1 skipped
+  TEST1 reg8,CL            TEST1 AL, CL                 measured 6 vs [3] (+3)
+  TEST1 reg16,CL           TEST1 AW, CL                 measured 6 vs [3] (+3)
+  TEST1 reg8,imm3          TEST1 AL, 3                  measured 6 vs [4] (+2)
+  TEST1 reg16,imm4         TEST1 AW, 5                  measured 6 vs [4] (+2)
+  TEST1 mem8,CL            TEST1 byte [BW], CL          measured 14 vs [12] (+2)
+  TEST1 mem16,CL           TEST1 word [BW], CL          measured 14 vs [12] (+2)
+  TEST1 mem8,imm3          TEST1 byte [BW], 3           measured 14 vs [13] (+1)
+  TEST1 mem16,imm4         TEST1 word [BW], 5           measured 14 vs [13] (+1)
+  NOT1 mem8,CL             NOT1 byte [BW], CL           measured 21 vs [18] (+3)
+  NOT1 mem16,CL            NOT1 word [BW], CL           measured 21 vs [18] (+3)
+  NOT1 mem8,imm3           NOT1 byte [BW], 3            measured 21 vs [19] (+2)
+  NOT1 mem16,imm4          NOT1 word [BW], 5            measured 21 vs [19] (+2)
+  CLR1 mem8,CL             CLR1 byte [BW], CL           measured 21 vs [14] (+7)
+  CLR1 mem16,CL            CLR1 word [BW], CL           measured 21 vs [14] (+7)
+  CLR1 mem8,imm3           CLR1 byte [BW], 3            measured 23 vs [15] (+8)
+  CLR1 mem16,imm4          CLR1 word [BW], 5            measured 23 vs [15] (+8)
+  SET1 mem8,CL             SET1 byte [BW], CL           measured 21 vs [13] (+8)
+  SET1 mem16,CL            SET1 word [BW], CL           measured 21 vs [13] (+8)
+  SET1 mem8,imm3           SET1 byte [BW], 3            measured 21 vs [14] (+7)
+  SET1 mem16,imm4          SET1 word [BW], 5            measured 21 vs [14] (+7)
+  ROL4 reg8                ROL4 AL                      measured 16 vs [25] (-9)
+  ROL4 mem8                ROL4 byte [BW]               measured 27 vs [28] (-1)
+  ROR4 reg8                ROR4 AL                      measured 20 vs [29] (-9)
+  ROR4 mem8                ROR4 byte [BW]               measured 31 vs [33] (-2)
+  PUSH mem16               PUSH word [BW]               measured 21 vs [18] (+3)
+  POP mem16                POP word [BW]                measured 15 vs [17] (-2)
+  PUSH sreg                PUSH PS                      measured 9 vs [8] (+1)
+  POP sreg                 POP DS0                      measured 9 vs [8] (+1)
+  LDEA reg16,mem16         LDEA BW, [BW+IX]             measured 3 vs [4] (-1)
+  LDEA reg16,mem16         LDEA BW, [0x0800]            measured 5 vs [4] (+1)
+  DISPOSE (no operand)     DISPOSE                      measured 9 vs [6] (+3)
+  BRKV (no operand)        BRKV                         measured 3 vs [40] (-37)
+  INS reg8,imm4            INS DL, 4                    measured 54 vs [67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87] (-13)
+  ADD4S [DS1-spec:]dst-string,[seg-spec:]src-string ADD4S (CL=2)                 measured 35 vs [26] (+9)
+  ADD4S [DS1-spec:]dst-string,[seg-spec:]src-string ADD4S (CL=4)                 measured 57 vs [45] (+12)
+  ADD4S [DS1-spec:]dst-string,[seg-spec:]src-string ADD4S (CL=6)                 measured 79 vs [64] (+15)
+  SUB4S [DS1-spec:]dst-string,[seg-spec:]src-string SUB4S (CL=4)                 measured 56 vs [45] (+11)
+  CMP4S [DS1-spec:]dst-string,[seg-spec:]src-string CMP4S (CL=4)                 measured 55 vs [45] (+10)
+  PREPARE imm16,imm8       PREPARE 8, 2                 measured 30 vs [27] (+3)
+  RETI (no operand)        RETI                         measured 22 vs [27] (-5)
+  BRK 3                    BRK 3 (trap)                 measured 43 vs [38] (+5)
+  BRKV (no operand)        BRKV (V=1, trap)             measured 44 vs [52] (-8)
+  CHKIND reg16,mem32       CHKIND DW,[BW] (trap)        measured 63 vs [55] (+8)
+  HALT (no operand)        HALT                         measured 4 vs [2] (+2)

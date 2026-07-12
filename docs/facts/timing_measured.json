@@ -296,6 +296,75 @@
    "note": "verify reg,reg=3 on other regs"
   },
   {
+   "nec_form": "ADD4S [DS1-spec:]dst-string,[seg-spec:]src-string",
+   "asm": "ADD4S (CL=2)",
+   "bytes": "0f 20",
+   "operands": {
+    "DS0": "0x0000",
+    "IX": "0x0800",
+    "DS1": "0x0000",
+    "IY": "0x0900",
+    "CW": "0x0002"
+   },
+   "measured_cycles": 35,
+   "nop_baseline": 3,
+   "documented_clocks": [
+    "n = one-half the number of BCD digits: 7+19n"
+   ],
+   "documented_values": [
+    26
+   ],
+   "match": false,
+   "deviation": 9,
+   "note": "n=1 byte pair; doc 7+19n"
+  },
+  {
+   "nec_form": "ADD4S [DS1-spec:]dst-string,[seg-spec:]src-string",
+   "asm": "ADD4S (CL=4)",
+   "bytes": "0f 20",
+   "operands": {
+    "DS0": "0x0000",
+    "IX": "0x0800",
+    "DS1": "0x0000",
+    "IY": "0x0900",
+    "CW": "0x0004"
+   },
+   "measured_cycles": 57,
+   "nop_baseline": 3,
+   "documented_clocks": [
+    "n = one-half the number of BCD digits: 7+19n"
+   ],
+   "documented_values": [
+    45
+   ],
+   "match": false,
+   "deviation": 12,
+   "note": "n=2; doc 7+19n"
+  },
+  {
+   "nec_form": "ADD4S [DS1-spec:]dst-string,[seg-spec:]src-string",
+   "asm": "ADD4S (CL=6)",
+   "bytes": "0f 20",
+   "operands": {
+    "DS0": "0x0000",
+    "IX": "0x0800",
+    "DS1": "0x0000",
+    "IY": "0x0900",
+    "CW": "0x0006"
+   },
+   "measured_cycles": 79,
+   "nop_baseline": 3,
+   "documented_clocks": [
+    "n = one-half the number of BCD digits: 7+19n"
+   ],
+   "documented_values": [
+    64
+   ],
+   "match": false,
+   "deviation": 15,
+   "note": "n=3; doc 7+19n"
+  },
+  {
    "nec_form": "ADDC acc,imm",
    "asm": "ADDC AW, 0x1111",
    "bytes": "15 11 11",
@@ -777,6 +846,70 @@
    "note": "target 0x0515 ODD"
   },
   {
+   "nec_form": "BRK 3",
+   "asm": "BRK 3 (trap)",
+   "bytes": "",
+   "operands": {
+    "SS": "0x0000",
+    "SP": "0x0F00"
+   },
+   "measured_cycles": 43,
+   "nop_baseline": 3,
+   "documented_clocks": [
+    "uPD70108: 50",
+    "uPD70116 odd addresses: 50",
+    "uPD70116 even addresses: 38"
+   ],
+   "documented_values": [
+    38
+   ],
+   "match": false,
+   "deviation": 5,
+   "note": "vector 3 hooked to next byte 0x0511"
+  },
+  {
+   "nec_form": "BRKV (no operand)",
+   "asm": "BRKV",
+   "bytes": "ce",
+   "operands": {
+    "PSW": "0x0000"
+   },
+   "measured_cycles": 3,
+   "nop_baseline": 3,
+   "documented_clocks": [
+    "V = 0, uPD70116 even addresses (as printed): 40"
+   ],
+   "documented_values": [
+    40
+   ],
+   "match": false,
+   "deviation": -37,
+   "note": "V=0, no trap (doc row garbled; V=1 path measured separately)"
+  },
+  {
+   "nec_form": "BRKV (no operand)",
+   "asm": "BRKV (V=1, trap)",
+   "bytes": "",
+   "operands": {
+    "SS": "0x0000",
+    "SP": "0x0F00",
+    "PSW": "0x0800"
+   },
+   "measured_cycles": 44,
+   "nop_baseline": 3,
+   "documented_clocks": [
+    "V = 1, uPD70108: 52",
+    "V = 1, uPD70116 odd addresses: 52",
+    "V = 0, uPD70116 even addresses (as printed): 40"
+   ],
+   "documented_values": [
+    52
+   ],
+   "match": false,
+   "deviation": -8,
+   "note": "V=1; vector 4 hooked to 0x0511; doc row garbled (52 is the 70108 V=1 row)"
+  },
+  {
    "nec_form": "BZ short-label",
    "asm": "BZ t (not-taken)",
    "bytes": "",
@@ -929,6 +1062,76 @@
    "note": "stub at target"
   },
   {
+   "nec_form": "CHKIND reg16,mem32",
+   "asm": "CHKIND DW, [BW]",
+   "bytes": "62 17",
+   "operands": {
+    "BW": "0x0800",
+    "IX": "0x0010",
+    "DS0": "0x0000",
+    "DW": "0x0005"
+   },
+   "measured_cycles": 22,
+   "nop_baseline": 3,
+   "documented_clocks": [
+    "interrupt condition fulfilled, uPD70116 even addresses: 53-56",
+    "interrupt condition not fulfilled, uPD70116 even addresses: 18"
+   ],
+   "documented_values": [
+    18
+   ],
+   "match": false,
+   "deviation": 4,
+   "ram": [
+    [
+     "0x0800",
+     "0x00"
+    ],
+    [
+     "0x0801",
+     "0x00"
+    ],
+    [
+     "0x0802",
+     "0xFF"
+    ],
+    [
+     "0x0803",
+     "0x7F"
+    ]
+   ],
+   "note": "in bounds [0,0x7FFF] signed - no trap. First attempt with upper=0xFFFF trapped: CHKIND bounds compare is SIGNED"
+  },
+  {
+   "nec_form": "CHKIND reg16,mem32",
+   "asm": "CHKIND DW,[BW] (trap)",
+   "bytes": "",
+   "operands": {
+    "SS": "0x0000",
+    "SP": "0x0F00",
+    "BW": "0x0800",
+    "IX": "0x0010",
+    "DS0": "0x0000",
+    "DW": "0x0005"
+   },
+   "measured_cycles": 63,
+   "nop_baseline": 3,
+   "documented_clocks": [
+    "interrupt condition fulfilled, uPD70108: 73-76",
+    "interrupt condition fulfilled, uPD70116 odd addresses: 73-76",
+    "interrupt condition fulfilled, uPD70116 even addresses: 53-56",
+    "interrupt condition not fulfilled, uPD70108: 26",
+    "interrupt condition not fulfilled, uPD70116 odd addresses: 26",
+    "interrupt condition not fulfilled, uPD70116 even addresses: 18"
+   ],
+   "documented_values": [
+    55
+   ],
+   "match": false,
+   "deviation": 8,
+   "note": "DW=5 > upper bound 4; vector 5 hooked past the 2-byte insn; doc 53-56"
+  },
+  {
    "nec_form": "CLR1 CY",
    "asm": "CLR1 CY",
    "bytes": "f8",
@@ -959,6 +1162,91 @@
    ],
    "match": true,
    "deviation": 0
+  },
+  {
+   "nec_form": "CLR1 mem16,CL",
+   "asm": "CLR1 word [BW], CL",
+   "bytes": "0f 13 07",
+   "operands": {
+    "BW": "0x0800",
+    "IX": "0x0010",
+    "DS0": "0x0000",
+    "CW": "0x0003"
+   },
+   "measured_cycles": 21,
+   "nop_baseline": 3,
+   "documented_clocks": [
+    "uPD70116 even addresses: 14"
+   ],
+   "documented_values": [
+    14
+   ],
+   "match": false,
+   "deviation": 7,
+   "note": "CL=3, even mem"
+  },
+  {
+   "nec_form": "CLR1 mem16,imm4",
+   "asm": "CLR1 word [BW], 5",
+   "bytes": "0f 1b 07 05",
+   "operands": {
+    "BW": "0x0800",
+    "IX": "0x0010",
+    "DS0": "0x0000"
+   },
+   "measured_cycles": 23,
+   "nop_baseline": 3,
+   "documented_clocks": [
+    "uPD70116 even addresses: 15"
+   ],
+   "documented_values": [
+    15
+   ],
+   "match": false,
+   "deviation": 8,
+   "note": "even mem"
+  },
+  {
+   "nec_form": "CLR1 mem8,CL",
+   "asm": "CLR1 byte [BW], CL",
+   "bytes": "0f 12 07",
+   "operands": {
+    "BW": "0x0800",
+    "IX": "0x0010",
+    "DS0": "0x0000",
+    "CW": "0x0003"
+   },
+   "measured_cycles": 21,
+   "nop_baseline": 3,
+   "documented_clocks": [
+    "14"
+   ],
+   "documented_values": [
+    14
+   ],
+   "match": false,
+   "deviation": 7,
+   "note": "CL=3"
+  },
+  {
+   "nec_form": "CLR1 mem8,imm3",
+   "asm": "CLR1 byte [BW], 3",
+   "bytes": "0f 1a 07 03",
+   "operands": {
+    "BW": "0x0800",
+    "IX": "0x0010",
+    "DS0": "0x0000"
+   },
+   "measured_cycles": 23,
+   "nop_baseline": 3,
+   "documented_clocks": [
+    "15"
+   ],
+   "documented_values": [
+    15
+   ],
+   "match": false,
+   "deviation": 8
   },
   {
    "nec_form": "CLR1 reg16,CL",
@@ -1123,6 +1411,29 @@
    ],
    "match": false,
    "deviation": 1
+  },
+  {
+   "nec_form": "CMP4S [DS1-spec:]dst-string,[seg-spec:]src-string",
+   "asm": "CMP4S (CL=4)",
+   "bytes": "0f 26",
+   "operands": {
+    "DS0": "0x0000",
+    "IX": "0x0800",
+    "DS1": "0x0000",
+    "IY": "0x0900",
+    "CW": "0x0004"
+   },
+   "measured_cycles": 55,
+   "nop_baseline": 3,
+   "documented_clocks": [
+    "n = one-half the number of BCD digits: 7+19n"
+   ],
+   "documented_values": [
+    45
+   ],
+   "match": false,
+   "deviation": 10,
+   "note": "n=2; doc 7+19n"
   },
   {
    "nec_form": "CMPBK/CMPBKB/CMPBKW",
@@ -1460,6 +1771,27 @@
    "deviation": 2
   },
   {
+   "nec_form": "DISPOSE (no operand)",
+   "asm": "DISPOSE",
+   "bytes": "c9",
+   "operands": {
+    "SS": "0x0000",
+    "SP": "0x0F00",
+    "BP": "0x0F10"
+   },
+   "measured_cycles": 9,
+   "nop_baseline": 3,
+   "documented_clocks": [
+    "uPD70116 even addresses: 6"
+   ],
+   "documented_values": [
+    6
+   ],
+   "match": false,
+   "deviation": 3,
+   "note": "SP=BP; pops fill into BP"
+  },
+  {
    "nec_form": "DIVU reg16",
    "asm": "DIVU CW",
    "bytes": "f7 f1",
@@ -1500,6 +1832,105 @@
    "deviation": 3,
    "anchor": "0x0501",
    "note": "odd anchor"
+  },
+  {
+   "nec_form": "EXT reg1, reg2",
+   "asm": "EXT DL, CL",
+   "bytes": "0f 33 ca",
+   "operands": {
+    "DS0": "0x0000",
+    "IX": "0x0800",
+    "DW": "0x0000",
+    "CW": "0x0007"
+   },
+   "measured_cycles": 43,
+   "nop_baseline": 3,
+   "documented_clocks": [
+    "uPD70108: 34-59",
+    "uPD70116 odd addresses: 34-59",
+    "uPD70116 even addresses: 26-55"
+   ],
+   "documented_values": [
+    26,
+    27,
+    28,
+    29,
+    30,
+    31,
+    32,
+    33,
+    34,
+    35,
+    36,
+    37,
+    38,
+    39,
+    40,
+    41,
+    42,
+    43,
+    44,
+    45,
+    46,
+    47,
+    48,
+    49,
+    50,
+    51,
+    52,
+    53,
+    54,
+    55
+   ],
+   "match": true,
+   "deviation": 0,
+   "note": "offset DL=0, len CL=7, src DS0:IX=0x0800"
+  },
+  {
+   "nec_form": "EXT reg8,imm4",
+   "asm": "EXT DL, 4",
+   "bytes": "0f 3b c2 04",
+   "operands": {
+    "DS0": "0x0000",
+    "IX": "0x0800",
+    "DW": "0x0000"
+   },
+   "measured_cycles": 43,
+   "nop_baseline": 3,
+   "documented_clocks": [
+    "uPD70116 even addresses: 21-44"
+   ],
+   "documented_values": [],
+   "match": null,
+   "deviation": null,
+   "ram": [
+    [
+     "0x0800",
+     "0xA5"
+    ],
+    [
+     "0x0801",
+     "0x3C"
+    ]
+   ],
+   "note": "bit offset DL=0, len 4; src 0x0800"
+  },
+  {
+   "nec_form": "HALT (no operand)",
+   "asm": "HALT",
+   "bytes": "f4",
+   "operands": {},
+   "measured_cycles": 4,
+   "nop_baseline": null,
+   "documented_clocks": [
+    "2"
+   ],
+   "documented_values": [
+    2
+   ],
+   "match": false,
+   "deviation": 2,
+   "note": "metric = F-pop to HALT bus-cycle T1 (no next F exists); bus idles after, done marker never arrives (quarantined by design)"
   },
   {
    "nec_form": "IN acc,DW",
@@ -1662,6 +2093,202 @@
    ],
    "match": false,
    "deviation": 2
+  },
+  {
+   "nec_form": "INS reg1, reg2",
+   "asm": "INS DL, CL",
+   "bytes": "0f 31 ca",
+   "operands": {
+    "DS1": "0x0000",
+    "IY": "0x0900",
+    "AW": "0x5555",
+    "DW": "0x0000",
+    "CW": "0x0003"
+   },
+   "measured_cycles": 51,
+   "nop_baseline": 3,
+   "documented_clocks": [
+    "uPD70108: 35-113",
+    "uPD70116 odd addresses: 35-113",
+    "uPD70116 even addresses: 31-117"
+   ],
+   "documented_values": [
+    31,
+    32,
+    33,
+    34,
+    35,
+    36,
+    37,
+    38,
+    39,
+    40,
+    41,
+    42,
+    43,
+    44,
+    45,
+    46,
+    47,
+    48,
+    49,
+    50,
+    51,
+    52,
+    53,
+    54,
+    55,
+    56,
+    57,
+    58,
+    59,
+    60,
+    61,
+    62,
+    63,
+    64,
+    65,
+    66,
+    67,
+    68,
+    69,
+    70,
+    71,
+    72,
+    73,
+    74,
+    75,
+    76,
+    77,
+    78,
+    79,
+    80,
+    81,
+    82,
+    83,
+    84,
+    85,
+    86,
+    87,
+    88,
+    89,
+    90,
+    91,
+    92,
+    93,
+    94,
+    95,
+    96,
+    97,
+    98,
+    99,
+    100,
+    101,
+    102,
+    103,
+    104,
+    105,
+    106,
+    107,
+    108,
+    109,
+    110,
+    111,
+    112,
+    113,
+    114,
+    115,
+    116,
+    117
+   ],
+   "match": true,
+   "deviation": 0,
+   "note": "offset DL=0, len CL=3, dst DS1:IY=0x0900"
+  },
+  {
+   "nec_form": "INS reg8,imm4",
+   "asm": "INS DL, 4",
+   "bytes": "0f 39 c2 04",
+   "operands": {
+    "DS1": "0x0000",
+    "IY": "0x0900",
+    "AW": "0x5555",
+    "DW": "0x0000",
+    "CW": "0x0003"
+   },
+   "measured_cycles": 54,
+   "nop_baseline": 3,
+   "documented_clocks": [
+    "uPD70108: 75-103",
+    "uPD70116 odd addresses: 75-103",
+    "uPD70116 even addresses: 67-87"
+   ],
+   "documented_values": [
+    67,
+    68,
+    69,
+    70,
+    71,
+    72,
+    73,
+    74,
+    75,
+    76,
+    77,
+    78,
+    79,
+    80,
+    81,
+    82,
+    83,
+    84,
+    85,
+    86,
+    87
+   ],
+   "match": false,
+   "deviation": -13,
+   "note": "offset DL=0, len 4"
+  },
+  {
+   "nec_form": "LDEA reg16,mem16",
+   "asm": "LDEA BW, [0x0800]",
+   "bytes": "8d 1e 00 08",
+   "operands": {
+    "BW": "0x0800",
+    "IX": "0x0010",
+    "DS0": "0x0000"
+   },
+   "measured_cycles": 5,
+   "nop_baseline": 3,
+   "documented_clocks": [
+    "4"
+   ],
+   "documented_values": [
+    4
+   ],
+   "match": false,
+   "deviation": 1
+  },
+  {
+   "nec_form": "LDEA reg16,mem16",
+   "asm": "LDEA BW, [BW+IX]",
+   "bytes": "8d 18",
+   "operands": {
+    "BW": "0x0800",
+    "IX": "0x0010",
+    "DS0": "0x0000"
+   },
+   "measured_cycles": 3,
+   "nop_baseline": 3,
+   "documented_clocks": [
+    "4"
+   ],
+   "documented_values": [
+    4
+   ],
+   "match": false,
+   "deviation": -1
   },
   {
    "nec_form": "LDM/LDMB/LDMW",
@@ -3543,6 +4170,91 @@
    "deviation": 0
   },
   {
+   "nec_form": "NOT1 mem16,CL",
+   "asm": "NOT1 word [BW], CL",
+   "bytes": "0f 17 07",
+   "operands": {
+    "BW": "0x0800",
+    "IX": "0x0010",
+    "DS0": "0x0000",
+    "CW": "0x0003"
+   },
+   "measured_cycles": 21,
+   "nop_baseline": 3,
+   "documented_clocks": [
+    "uPD70116 even addresses: 18"
+   ],
+   "documented_values": [
+    18
+   ],
+   "match": false,
+   "deviation": 3,
+   "note": "CL=3, even mem"
+  },
+  {
+   "nec_form": "NOT1 mem16,imm4",
+   "asm": "NOT1 word [BW], 5",
+   "bytes": "0f 1f 07 05",
+   "operands": {
+    "BW": "0x0800",
+    "IX": "0x0010",
+    "DS0": "0x0000"
+   },
+   "measured_cycles": 21,
+   "nop_baseline": 3,
+   "documented_clocks": [
+    "uPD70116 even addresses: 19"
+   ],
+   "documented_values": [
+    19
+   ],
+   "match": false,
+   "deviation": 2,
+   "note": "even mem"
+  },
+  {
+   "nec_form": "NOT1 mem8,CL",
+   "asm": "NOT1 byte [BW], CL",
+   "bytes": "0f 16 07",
+   "operands": {
+    "BW": "0x0800",
+    "IX": "0x0010",
+    "DS0": "0x0000",
+    "CW": "0x0003"
+   },
+   "measured_cycles": 21,
+   "nop_baseline": 3,
+   "documented_clocks": [
+    "18"
+   ],
+   "documented_values": [
+    18
+   ],
+   "match": false,
+   "deviation": 3,
+   "note": "CL=3"
+  },
+  {
+   "nec_form": "NOT1 mem8,imm3",
+   "asm": "NOT1 byte [BW], 3",
+   "bytes": "0f 1e 07 03",
+   "operands": {
+    "BW": "0x0800",
+    "IX": "0x0010",
+    "DS0": "0x0000"
+   },
+   "measured_cycles": 21,
+   "nop_baseline": 3,
+   "documented_clocks": [
+    "19"
+   ],
+   "documented_values": [
+    19
+   ],
+   "match": false,
+   "deviation": 2
+  },
+  {
    "nec_form": "NOT1 reg16,CL",
    "asm": "NOT1 AW, CL",
    "bytes": "0f 17 c0",
@@ -3775,6 +4487,29 @@
    "note": "8 words popped (fill); regs junk after, stub does not care"
   },
   {
+   "nec_form": "POP mem16",
+   "asm": "POP word [BW]",
+   "bytes": "8f 07",
+   "operands": {
+    "BW": "0x0800",
+    "IX": "0x0010",
+    "DS0": "0x0000",
+    "SS": "0x0000",
+    "SP": "0x0F00"
+   },
+   "measured_cycles": 15,
+   "nop_baseline": 3,
+   "documented_clocks": [
+    "uPD70116 even addresses: 17"
+   ],
+   "documented_values": [
+    17
+   ],
+   "match": false,
+   "deviation": -2,
+   "note": "pops fill into [BW]"
+  },
+  {
    "nec_form": "POP reg16",
    "asm": "POP BW",
    "bytes": "5b",
@@ -3817,6 +4552,26 @@
   },
   {
    "nec_form": "POP sreg",
+   "asm": "POP DS0",
+   "bytes": "1f",
+   "operands": {
+    "SS": "0x0000",
+    "SP": "0x0F00"
+   },
+   "measured_cycles": 9,
+   "nop_baseline": 3,
+   "documented_clocks": [
+    "uPD70116 even addresses: 8"
+   ],
+   "documented_values": [
+    8
+   ],
+   "match": false,
+   "deviation": 1,
+   "note": "DS0=0x9090 after; unused by sled (code via PS)"
+  },
+  {
+   "nec_form": "POP sreg",
    "asm": "POP DS1",
    "bytes": "07",
    "operands": {
@@ -3834,6 +4589,82 @@
    "match": false,
    "deviation": 1,
    "note": "pops fill; DS1 unused after"
+  },
+  {
+   "nec_form": "PREPARE imm16,imm8",
+   "asm": "PREPARE 8, 0",
+   "bytes": "c8 08 00 00",
+   "operands": {
+    "SS": "0x0000",
+    "SP": "0x0F00",
+    "BP": "0x0F20"
+   },
+   "measured_cycles": 12,
+   "nop_baseline": 3,
+   "documented_clocks": [
+    "imm8 = 0, uPD70108: 16",
+    "imm8 = 0, uPD70116 odd addresses: 16",
+    "imm8 = 0, uPD70116 even addresses: 12",
+    "imm8 > 1 (as printed 'When 8 > 1'), uPD70108: 23 + 16 (imm8 - 1)",
+    "imm8 > 1 (as printed 'When 8 > 1'), uPD70116 odd addresses: 23 + 16 (imm8 - 1)",
+    "imm8 > 1 (as printed 'When 8 > 1'), uPD70116 even addresses: 19 + 8 (imm8 - 1)"
+   ],
+   "documented_values": [
+    12
+   ],
+   "match": true,
+   "deviation": 0,
+   "note": "imm8=0: doc 12; DB-encoded (assembler imm16 bug)"
+  },
+  {
+   "nec_form": "PREPARE imm16,imm8",
+   "asm": "PREPARE 8, 1",
+   "bytes": "c8 08 00 01",
+   "operands": {
+    "SS": "0x0000",
+    "SP": "0x0F00",
+    "BP": "0x0F20"
+   },
+   "measured_cycles": 22,
+   "nop_baseline": 3,
+   "documented_clocks": [
+    "imm8 = 0, uPD70108: 16",
+    "imm8 = 0, uPD70116 odd addresses: 16",
+    "imm8 = 0, uPD70116 even addresses: 12",
+    "imm8 > 1 (as printed 'When 8 > 1'), uPD70108: 23 + 16 (imm8 - 1)",
+    "imm8 > 1 (as printed 'When 8 > 1'), uPD70116 odd addresses: 23 + 16 (imm8 - 1)",
+    "imm8 > 1 (as printed 'When 8 > 1'), uPD70116 even addresses: 19 + 8 (imm8 - 1)"
+   ],
+   "documented_values": [],
+   "match": null,
+   "deviation": null,
+   "note": "imm8=1: no doc row (manual gap)"
+  },
+  {
+   "nec_form": "PREPARE imm16,imm8",
+   "asm": "PREPARE 8, 2",
+   "bytes": "c8 08 00 02",
+   "operands": {
+    "SS": "0x0000",
+    "SP": "0x0F00",
+    "BP": "0x0F20"
+   },
+   "measured_cycles": 30,
+   "nop_baseline": 3,
+   "documented_clocks": [
+    "imm8 = 0, uPD70108: 16",
+    "imm8 = 0, uPD70116 odd addresses: 16",
+    "imm8 = 0, uPD70116 even addresses: 12",
+    "imm8 > 1 (as printed 'When 8 > 1'), uPD70108: 23 + 16 (imm8 - 1)",
+    "imm8 > 1 (as printed 'When 8 > 1'), uPD70116 odd addresses: 23 + 16 (imm8 - 1)",
+    "imm8 > 1 (as printed 'When 8 > 1'), uPD70116 even addresses: 19 + 8 (imm8 - 1)"
+   ],
+   "documented_values": [
+    27
+   ],
+   "match": false,
+   "deviation": 3,
+   "note": "imm8=2: doc 19+8(imm8-1)"
   },
   {
    "nec_form": "PUSH PSW",
@@ -3933,6 +4764,28 @@
    "deviation": 2
   },
   {
+   "nec_form": "PUSH mem16",
+   "asm": "PUSH word [BW]",
+   "bytes": "ff 37",
+   "operands": {
+    "BW": "0x0800",
+    "IX": "0x0010",
+    "DS0": "0x0000",
+    "SS": "0x0000",
+    "SP": "0x0F00"
+   },
+   "measured_cycles": 21,
+   "nop_baseline": 3,
+   "documented_clocks": [
+    "uPD70116 even addresses: 18"
+   ],
+   "documented_values": [
+    18
+   ],
+   "match": false,
+   "deviation": 3
+  },
+  {
    "nec_form": "PUSH reg16",
    "asm": "PUSH BW",
    "bytes": "53",
@@ -4013,6 +4866,25 @@
    "deviation": 1
   },
   {
+   "nec_form": "PUSH sreg",
+   "asm": "PUSH PS",
+   "bytes": "0e",
+   "operands": {
+    "SS": "0x0000",
+    "SP": "0x0F00"
+   },
+   "measured_cycles": 9,
+   "nop_baseline": 3,
+   "documented_clocks": [
+    "uPD70116 even addresses: 8"
+   ],
+   "documented_values": [
+    8
+   ],
+   "match": false,
+   "deviation": 1
+  },
+  {
    "nec_form": "RET (no operand)",
    "asm": "RET",
    "bytes": "",
@@ -4057,6 +4929,28 @@
    "note": "returns to 0x0513; SP += 4 extra"
   },
   {
+   "nec_form": "RETI (no operand)",
+   "asm": "RETI",
+   "bytes": "",
+   "operands": {
+    "SS": "0x0000",
+    "SP": "0x0F00"
+   },
+   "measured_cycles": 22,
+   "nop_baseline": 3,
+   "documented_clocks": [
+    "uPD70108: 39",
+    "uPD70116 odd addresses: 39",
+    "uPD70116 even addresses: 27"
+   ],
+   "documented_values": [
+    27
+   ],
+   "match": false,
+   "deviation": -5,
+   "note": "frame pops to 0x0511; includes flush like RET"
+  },
+  {
    "nec_form": "ROL reg,1",
    "asm": "ROL AW, 1",
    "bytes": "d1 c0",
@@ -4091,6 +4985,45 @@
    "deviation": 3,
    "n": 4,
    "note": "CL=4"
+  },
+  {
+   "nec_form": "ROL4 mem8",
+   "asm": "ROL4 byte [BW]",
+   "bytes": "0f 28 07",
+   "operands": {
+    "BW": "0x0800",
+    "IX": "0x0010",
+    "DS0": "0x0000",
+    "AW": "0x0005"
+   },
+   "measured_cycles": 27,
+   "nop_baseline": 3,
+   "documented_clocks": [
+    "28"
+   ],
+   "documented_values": [
+    28
+   ],
+   "match": false,
+   "deviation": -1
+  },
+  {
+   "nec_form": "ROL4 reg8",
+   "asm": "ROL4 AL",
+   "bytes": "0f 28 c0",
+   "operands": {
+    "AW": "0x0005"
+   },
+   "measured_cycles": 16,
+   "nop_baseline": 3,
+   "documented_clocks": [
+    "25"
+   ],
+   "documented_values": [
+    25
+   ],
+   "match": false,
+   "deviation": -9
   },
   {
    "nec_form": "ROLC reg,1",
@@ -4185,6 +5118,45 @@
    "n": 4
   },
   {
+   "nec_form": "ROR4 mem8",
+   "asm": "ROR4 byte [BW]",
+   "bytes": "0f 2a 07",
+   "operands": {
+    "BW": "0x0800",
+    "IX": "0x0010",
+    "DS0": "0x0000",
+    "AW": "0x0005"
+   },
+   "measured_cycles": 31,
+   "nop_baseline": 3,
+   "documented_clocks": [
+    "33"
+   ],
+   "documented_values": [
+    33
+   ],
+   "match": false,
+   "deviation": -2
+  },
+  {
+   "nec_form": "ROR4 reg8",
+   "asm": "ROR4 AL",
+   "bytes": "0f 2a c0",
+   "operands": {
+    "AW": "0x0005"
+   },
+   "measured_cycles": 20,
+   "nop_baseline": 3,
+   "documented_clocks": [
+    "29"
+   ],
+   "documented_values": [
+    29
+   ],
+   "match": false,
+   "deviation": -9
+  },
+  {
    "nec_form": "RORC reg,1",
    "asm": "RORC AW, 1",
    "bytes": "d1 d8",
@@ -4251,6 +5223,91 @@
    ],
    "match": true,
    "deviation": 0
+  },
+  {
+   "nec_form": "SET1 mem16,CL",
+   "asm": "SET1 word [BW], CL",
+   "bytes": "0f 15 07",
+   "operands": {
+    "BW": "0x0800",
+    "IX": "0x0010",
+    "DS0": "0x0000",
+    "CW": "0x0003"
+   },
+   "measured_cycles": 21,
+   "nop_baseline": 3,
+   "documented_clocks": [
+    "uPD70116 even addresses: 13"
+   ],
+   "documented_values": [
+    13
+   ],
+   "match": false,
+   "deviation": 8,
+   "note": "CL=3, even mem"
+  },
+  {
+   "nec_form": "SET1 mem16,imm4",
+   "asm": "SET1 word [BW], 5",
+   "bytes": "0f 1d 07 05",
+   "operands": {
+    "BW": "0x0800",
+    "IX": "0x0010",
+    "DS0": "0x0000"
+   },
+   "measured_cycles": 21,
+   "nop_baseline": 3,
+   "documented_clocks": [
+    "uPD70116 even addresses: 14"
+   ],
+   "documented_values": [
+    14
+   ],
+   "match": false,
+   "deviation": 7,
+   "note": "even mem"
+  },
+  {
+   "nec_form": "SET1 mem8,CL",
+   "asm": "SET1 byte [BW], CL",
+   "bytes": "0f 14 07",
+   "operands": {
+    "BW": "0x0800",
+    "IX": "0x0010",
+    "DS0": "0x0000",
+    "CW": "0x0003"
+   },
+   "measured_cycles": 21,
+   "nop_baseline": 3,
+   "documented_clocks": [
+    "13"
+   ],
+   "documented_values": [
+    13
+   ],
+   "match": false,
+   "deviation": 8,
+   "note": "CL=3"
+  },
+  {
+   "nec_form": "SET1 mem8,imm3",
+   "asm": "SET1 byte [BW], 3",
+   "bytes": "0f 1c 07 03",
+   "operands": {
+    "BW": "0x0800",
+    "IX": "0x0010",
+    "DS0": "0x0000"
+   },
+   "measured_cycles": 21,
+   "nop_baseline": 3,
+   "documented_clocks": [
+    "14"
+   ],
+   "documented_values": [
+    14
+   ],
+   "match": false,
+   "deviation": 7
   },
   {
    "nec_form": "SET1 reg16,CL",
@@ -4795,6 +5852,29 @@
    "deviation": 1
   },
   {
+   "nec_form": "SUB4S [DS1-spec:]dst-string,[seg-spec:]src-string",
+   "asm": "SUB4S (CL=4)",
+   "bytes": "0f 22",
+   "operands": {
+    "DS0": "0x0000",
+    "IX": "0x0800",
+    "DS1": "0x0000",
+    "IY": "0x0900",
+    "CW": "0x0004"
+   },
+   "measured_cycles": 56,
+   "nop_baseline": 3,
+   "documented_clocks": [
+    "n = one-half the number of BCD digits: 7+19n"
+   ],
+   "documented_values": [
+    45
+   ],
+   "match": false,
+   "deviation": 11,
+   "note": "n=2; doc 7+19n"
+  },
+  {
    "nec_form": "SUBC acc,imm",
    "asm": "SUBC AW, 0x1111",
    "bytes": "1d 11 11",
@@ -4894,6 +5974,161 @@
    "match": true,
    "deviation": 0,
    "note": "verify TEST reg,reg=2 on other regs"
+  },
+  {
+   "nec_form": "TEST1 mem16,CL",
+   "asm": "TEST1 word [BW], CL",
+   "bytes": "0f 11 07",
+   "operands": {
+    "BW": "0x0800",
+    "IX": "0x0010",
+    "DS0": "0x0000",
+    "CW": "0x0003"
+   },
+   "measured_cycles": 14,
+   "nop_baseline": 3,
+   "documented_clocks": [
+    "uPD70116 even addresses: 12"
+   ],
+   "documented_values": [
+    12
+   ],
+   "match": false,
+   "deviation": 2,
+   "note": "CL=3, even mem"
+  },
+  {
+   "nec_form": "TEST1 mem16,imm4",
+   "asm": "TEST1 word [BW], 5",
+   "bytes": "0f 19 07 05",
+   "operands": {
+    "BW": "0x0800",
+    "IX": "0x0010",
+    "DS0": "0x0000"
+   },
+   "measured_cycles": 14,
+   "nop_baseline": 3,
+   "documented_clocks": [
+    "uPD70116 even addresses: 13"
+   ],
+   "documented_values": [
+    13
+   ],
+   "match": false,
+   "deviation": 1,
+   "note": "even mem"
+  },
+  {
+   "nec_form": "TEST1 mem8,CL",
+   "asm": "TEST1 byte [BW], CL",
+   "bytes": "0f 10 07",
+   "operands": {
+    "BW": "0x0800",
+    "IX": "0x0010",
+    "DS0": "0x0000",
+    "CW": "0x0003"
+   },
+   "measured_cycles": 14,
+   "nop_baseline": 3,
+   "documented_clocks": [
+    "12"
+   ],
+   "documented_values": [
+    12
+   ],
+   "match": false,
+   "deviation": 2,
+   "note": "CL=3"
+  },
+  {
+   "nec_form": "TEST1 mem8,imm3",
+   "asm": "TEST1 byte [BW], 3",
+   "bytes": "0f 18 07 03",
+   "operands": {
+    "BW": "0x0800",
+    "IX": "0x0010",
+    "DS0": "0x0000"
+   },
+   "measured_cycles": 14,
+   "nop_baseline": 3,
+   "documented_clocks": [
+    "13"
+   ],
+   "documented_values": [
+    13
+   ],
+   "match": false,
+   "deviation": 1
+  },
+  {
+   "nec_form": "TEST1 reg16,CL",
+   "asm": "TEST1 AW, CL",
+   "bytes": "0f 11 c0",
+   "operands": {
+    "CW": "0x0003"
+   },
+   "measured_cycles": 6,
+   "nop_baseline": 3,
+   "documented_clocks": [
+    "3"
+   ],
+   "documented_values": [
+    3
+   ],
+   "match": false,
+   "deviation": 3,
+   "note": "CL=3"
+  },
+  {
+   "nec_form": "TEST1 reg16,imm4",
+   "asm": "TEST1 AW, 5",
+   "bytes": "0f 19 c0 05",
+   "operands": {},
+   "measured_cycles": 6,
+   "nop_baseline": 3,
+   "documented_clocks": [
+    "4"
+   ],
+   "documented_values": [
+    4
+   ],
+   "match": false,
+   "deviation": 2
+  },
+  {
+   "nec_form": "TEST1 reg8,CL",
+   "asm": "TEST1 AL, CL",
+   "bytes": "0f 10 c0",
+   "operands": {
+    "CW": "0x0003"
+   },
+   "measured_cycles": 6,
+   "nop_baseline": 3,
+   "documented_clocks": [
+    "3"
+   ],
+   "documented_values": [
+    3
+   ],
+   "match": false,
+   "deviation": 3,
+   "note": "CL=3"
+  },
+  {
+   "nec_form": "TEST1 reg8,imm3",
+   "asm": "TEST1 AL, 3",
+   "bytes": "0f 18 c0 03",
+   "operands": {},
+   "measured_cycles": 6,
+   "nop_baseline": 3,
+   "documented_clocks": [
+    "4"
+   ],
+   "documented_values": [
+    4
+   ],
+   "match": false,
+   "deviation": 2
   },
   {
    "nec_form": "TRANS no operand / TRANS src-table / TRANSB no operand",
@@ -5075,6 +6310,128 @@
    ],
    "match": false,
    "deviation": 1
+  },
+  {
+   "nec_form": "prefix measurement",
+   "asm": "BUSLOCK NOP",
+   "bytes": "f0 90",
+   "operands": {},
+   "measured_cycles": 5,
+   "per_f_gaps": [
+    2,
+    3
+   ],
+   "nop_baseline": 3,
+   "documented_clocks": [],
+   "documented_values": [],
+   "match": null,
+   "deviation": null,
+   "note": "LOCK prefix (doc 2) + NOP (3)"
+  },
+  {
+   "nec_form": "prefix measurement",
+   "asm": "DS0: ADD BW,DW (no mem ref)",
+   "bytes": "3e 03 da",
+   "operands": {},
+   "measured_cycles": 5,
+   "per_f_gaps": [
+    2,
+    3
+   ],
+   "nop_baseline": 3,
+   "documented_clocks": [],
+   "documented_values": [],
+   "match": null,
+   "deviation": null,
+   "note": "prefix on pure register op (baseline 3)"
+  },
+  {
+   "nec_form": "prefix measurement",
+   "asm": "DS0: MOV AW,[BW] (redundant)",
+   "bytes": "3e 8b 07",
+   "operands": {
+    "BW": "0x0800",
+    "IX": "0x0010",
+    "DS0": "0x0000"
+   },
+   "measured_cycles": 13,
+   "per_f_gaps": [
+    2,
+    11
+   ],
+   "nop_baseline": 3,
+   "documented_clocks": [],
+   "documented_values": [],
+   "match": null,
+   "deviation": null,
+   "note": "baseline MOV AW,[BW] = 13"
+  },
+  {
+   "nec_form": "prefix measurement",
+   "asm": "DS1: DS0: MOV AW,[BW] (stacked)",
+   "bytes": "26 3e 8b 07",
+   "operands": {
+    "BW": "0x0800",
+    "IX": "0x0010",
+    "DS0": "0x0000",
+    "DS1": "0x0000"
+   },
+   "measured_cycles": 16,
+   "per_f_gaps": [
+    2,
+    2,
+    12
+   ],
+   "nop_baseline": 3,
+   "documented_clocks": [],
+   "documented_values": [],
+   "match": null,
+   "deviation": null,
+   "note": "two prefixes, last wins"
+  },
+  {
+   "nec_form": "prefix measurement",
+   "asm": "DS1: MOV AW,[BW]",
+   "bytes": "26 8b 07",
+   "operands": {
+    "BW": "0x0800",
+    "IX": "0x0010",
+    "DS0": "0x0000",
+    "DS1": "0x0000"
+   },
+   "measured_cycles": 13,
+   "per_f_gaps": [
+    2,
+    11
+   ],
+   "nop_baseline": 3,
+   "documented_clocks": [],
+   "documented_values": [],
+   "match": null,
+   "deviation": null,
+   "note": "override to DS1=0 (same phys)"
+  },
+  {
+   "nec_form": "prefix measurement",
+   "asm": "SS: MOV AW,[BW]",
+   "bytes": "36 8b 07",
+   "operands": {
+    "BW": "0x0800",
+    "IX": "0x0010",
+    "DS0": "0x0000",
+    "SS": "0x0000"
+   },
+   "measured_cycles": 13,
+   "per_f_gaps": [
+    2,
+    11
+   ],
+   "nop_baseline": 3,
+   "documented_clocks": [],
+   "documented_values": [],
+   "match": null,
+   "deviation": null,
+   "note": "override to SS=0"
   }
  ],
  "skipped": []
