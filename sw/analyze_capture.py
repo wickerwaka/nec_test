@@ -202,26 +202,25 @@ T_STATES = {0: "TI", 1: "T1", 2: "T2", 3: "T3", 4: "TW", 5: "T4"}
 QOPS = {0: None, 1: "F", 2: "E", 3: "S"}
 
 
+def decode_words(words):
+    """Decode raw 64-bit capture records (ints) into field dicts."""
+    return [{
+        "idx": i,
+        "ad_addr": r & 0xFFFFF,
+        "ad_data": (r >> 20) & 0xFFFF,
+        "bs_early": (r >> 40) & 7,
+        "bs_late": (r >> 43) & 7,
+        "qs": (r >> 46) & 3,
+        "ube_n": (r >> 49) & 1,
+        "rst": (r >> 55) & 1,
+        "t": (r >> 56) & 7,
+    } for i, r in enumerate(words)]
+
+
 def decode_large(path):
-    recs = []
     with open(path) as fh:
-        for i, line in enumerate(fh):
-            line = line.strip()
-            if not line:
-                continue
-            r = int(line, 16)
-            recs.append({
-                "idx": i,
-                "ad_addr": r & 0xFFFFF,
-                "ad_data": (r >> 20) & 0xFFFF,
-                "bs_early": (r >> 40) & 7,
-                "bs_late": (r >> 43) & 7,
-                "qs": (r >> 46) & 3,
-                "ube_n": (r >> 49) & 1,
-                "rst": (r >> 55) & 1,
-                "t": (r >> 56) & 7,
-            })
-    return recs
+        words = [int(line, 16) for line in fh if line.strip()]
+    return decode_words(words)
 
 
 def analyze_large(recs, show_cycles=False):

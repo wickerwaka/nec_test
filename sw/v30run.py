@@ -14,14 +14,20 @@ Usage:
 """
 
 import argparse
+import base64
+import os
+import queue
+import struct
 import subprocess
 import sys
 import tempfile
+import threading
+import time
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import testimage                                    # noqa: E402
-from analyze_capture import decode_large            # noqa: E402
+from analyze_capture import decode_large, decode_words  # noqa: E402
 
 REMOTE_DIR = "/media/fat/v30"
 
@@ -30,8 +36,96 @@ class RunError(Exception):
     pass
 
 
-def run_image(image, host, tag="test", waits=0):
-    """Ship the image, run it, return the capture records."""
+class ServeRunner:
+    """Persistent `v30ctl.py serve` session over one ssh connection.
+    Eliminates the per-case ssh handshakes, remote python start-ups, and
+    scp round trips of the legacy path (mission 13). Every RUN still does
+    the full stop/load/start/host-reset cycle on the harness."""
+
+    def __init__(self, host):
+        self.host = host
+        self.proc = None
+        self.q = None
+        self.last_waits = None
+
+    def _reader(self, proc, q):
+        for line in proc.stdout:
+            q.put(line)
+        q.put(None)
+
+    def _readline(self, timeout):
+        try:
+            line = self.q.get(timeout=timeout)
+        except queue.Empty:
+            self.close()
+            raise RunError("serve: response timeout") from None
+        if line is None:
+            self.close()
+            raise RunError("serve: connection closed")
+        return line.strip()
+
+    def _send(self, s):
+        try:
+            self.proc.stdin.write(s + "\n")
+            self.proc.stdin.flush()
+        except (BrokenPipeError, OSError) as e:
+            self.close()
+            raise RunError(f"serve: send failed: {e}") from None
+
+    def ensure(self):
+        if self.proc and self.proc.poll() is None:
+            return
+        self.close()
+        self.proc = subprocess.Popen(
+            ["ssh", self.host,
+             f"cd {REMOTE_DIR} && exec python3 v30ctl.py serve"],
+            stdin=subprocess.PIPE, stdout=subprocess.PIPE,
+            stderr=subprocess.DEVNULL, text=True, bufsize=1)
+        self.q = queue.Queue()
+        threading.Thread(target=self._reader, args=(self.proc, self.q),
+                         daemon=True).start()
+        banner = self._readline(20)
+        if not banner.startswith("OK SERVE"):
+            self.close()
+            raise RunError(f"serve: bad banner {banner[:80]!r}")
+        self.last_waits = None
+
+    def cfg(self, waits):
+        if self.last_waits == waits:
+            return
+        self._send(f"CFG - {waits} - 0")
+        line = self._readline(10)
+        if line != "OK CFG":
+            self.close()
+            raise RunError(f"serve: cfg failed: {line[:120]}")
+        self.last_waits = waits
+
+    def run(self, image, timeout=3.0):
+        self._send(f"RUN {timeout}")
+        self._send(base64.b64encode(image).decode())
+        hdr = self._readline(timeout + 10)
+        if not hdr.startswith("OK "):
+            self.close()
+            raise RunError(f"serve: run failed: {hdr[:120]}")
+        blob = base64.b64decode(self._readline(10))
+        words = struct.unpack(f"<{len(blob) // 8}Q", blob)
+        return decode_words(words)
+
+    def close(self):
+        if self.proc:
+            try:
+                self.proc.kill()
+            except OSError:
+                pass
+        self.proc = None
+        self.q = None
+
+
+_runners = {}
+
+
+def _run_image_legacy(image, host, tag="test", waits=0):
+    """Original per-case scp+ssh path (fallback)."""
     with tempfile.TemporaryDirectory() as td:
         binp = Path(td) / f"{tag}.bin"
         capp = Path(td) / f"{tag}.hex"
@@ -51,6 +145,28 @@ def run_image(image, host, tag="test", waits=0):
         subprocess.run(["scp", "-q", f"{host}:{REMOTE_DIR}/{tag}.hex",
                         str(capp)], check=True, timeout=60)
         return decode_large(str(capp))
+
+
+def run_image(image, host, tag="test", waits=0):
+    """Run an image, return capture records. Uses the persistent serve
+    session unless V30_NO_SERVE=1; transport errors get one reconnect,
+    then one legacy-path attempt before giving up."""
+    if os.environ.get("V30_NO_SERVE") == "1":
+        return _run_image_legacy(image, host, tag, waits)
+    r = _runners.get(host)
+    if r is None:
+        r = _runners[host] = ServeRunner(host)
+    for attempt in (1, 2):
+        try:
+            r.ensure()
+            r.cfg(waits)
+            return r.run(image)
+        except RunError as e:
+            r.close()
+            if attempt == 2:
+                print(f"serve path failed twice ({e}); trying legacy path",
+                      file=sys.stderr)
+    return _run_image_legacy(image, host, tag, waits)
 
 
 def extract_txns_large(recs):
@@ -175,15 +291,85 @@ def cmd_psw_probe(host):
     return 0
 
 
+def cmd_profile(host):
+    """Mission 13: time the legacy path's stages, then the serve path,
+    then a 50-case verified echo burst."""
+    inject = {"AW": 0x1111, "BW": 0x2222, "CW": 0x3333, "DW": 0x4444,
+              "SP": 0x5555, "BP": 0x6666, "IX": 0x7777, "IY": 0x8888,
+              "DS0": 0x9999, "DS1": 0xAAAA, "SS": 0xBBBB,
+              "PS": 0x0000, "PC": 0x0400, "PSW": 0x0000}
+    image, meta = testimage.compose(regs=inject, instr=b"")
+
+    print("legacy path stages (one case):")
+    with tempfile.TemporaryDirectory() as td:
+        binp = Path(td) / "prof.bin"
+        capp = Path(td) / "prof.hex"
+        binp.write_bytes(image)
+        t0 = time.time()
+        subprocess.run(["scp", "-q", str(binp), f"{host}:{REMOTE_DIR}/"],
+                       check=True, timeout=60)
+        t_scp = time.time() - t0
+        t0 = time.time()
+        subprocess.run(["ssh", host, f"cd {REMOTE_DIR} && timeout 10 "
+                        "python3 v30ctl.py cfg --small 0 --waits 0 "
+                        ">/dev/null"], check=True, timeout=60)
+        t_cfg = time.time() - t0
+        t0 = time.time()
+        subprocess.run(["ssh", host, f"cd {REMOTE_DIR} && timeout 30 "
+                        "python3 v30ctl.py run prof.bin --cap prof.hex "
+                        "--timeout 3"], capture_output=True, timeout=60)
+        t_run = time.time() - t0
+        t0 = time.time()
+        subprocess.run(["scp", "-q", f"{host}:{REMOTE_DIR}/prof.hex",
+                        str(capp)], check=True, timeout=60)
+        t_back = time.time() - t0
+    total = t_scp + t_cfg + t_run + t_back
+    print(f"  scp image     {t_scp * 1000:7.0f} ms")
+    print(f"  ssh cfg       {t_cfg * 1000:7.0f} ms")
+    print(f"  ssh run       {t_run * 1000:7.0f} ms")
+    print(f"  scp capture   {t_back * 1000:7.0f} ms")
+    print(f"  TOTAL         {total * 1000:7.0f} ms/case")
+
+    print("\nserve path:")
+    r = ServeRunner(host)
+    t0 = time.time()
+    r.ensure()
+    r.cfg(0)
+    print(f"  connect+cfg   {(time.time() - t0) * 1000:7.0f} ms (once)")
+    t0 = time.time()
+    r.run(image)
+    print(f"  first run     {(time.time() - t0) * 1000:7.0f} ms")
+    r.close()
+
+    print("\n50-case verified echo burst (serve, full compose+parse):")
+    n, fails = 50, 0
+    t0 = time.time()
+    for i in range(n):
+        res = run_test(regs=inject, instr=b"", host=host, tag=f"b{i}")
+        got = res["regs"]
+        exp = res["meta"]["regs_in"]
+        ok = all(got.get(k) == exp[k] for k in testimage.STORE_ORDER) and \
+            got["PSW"] == exp["PSW"] and \
+            got["PC"] == (exp["PC"] + 6) & 0xFFFF
+        if not ok:
+            fails += 1
+    per = (time.time() - t0) / n
+    print(f"  {n} cases, {fails} failures, {per * 1000:.0f} ms/case "
+          f"({1 / per:.1f} cases/s)")
+    return 1 if fails else 0
+
+
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("cmd", choices=["echo", "psw-probe"])
+    ap.add_argument("cmd", choices=["echo", "psw-probe", "profile"])
     ap.add_argument("--host", default="root@mister-nec")
     args = ap.parse_args()
     if args.cmd == "echo":
         sys.exit(cmd_echo(args.host))
     if args.cmd == "psw-probe":
         sys.exit(cmd_psw_probe(args.host))
+    if args.cmd == "profile":
+        sys.exit(cmd_profile(args.host))
 
 
 if __name__ == "__main__":

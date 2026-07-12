@@ -363,6 +363,29 @@ yet; INS reg,imm4 at 54 is below the manual's own 67-87 range.
 DW=5, caught when the first "in bounds" attempt ran away through
 unhooked vector 5.
 
+## Throughput: persistent serve runner (2026-07-11, mission 13)
+
+Profile of the legacy per-case path (sw/v30run.py profile,
+sw/testdata/profile_run.out): 2263 ms/case = scp image 315 + ssh cfg 667
++ ssh run 964 + scp capture 316 — dominated by per-case ssh handshakes
+and remote python start-ups, not data volume.
+
+Fix: `v30ctl.py serve` (persistent stdin/stdout batch mode on the HPS,
+base64 image in / base64 capture records out over ONE ssh connection)
+plus a ServeRunner client in v30run.py (reader thread, per-response
+timeouts, reconnect-once then legacy-path fallback; V30_NO_SERVE=1
+forces the old path). Every RUN still performs the full
+stop/load/start/host-reset cycle, so board-recovery semantics are
+unchanged.
+
+Result: **307 ms/case over a 50-case fully-verified echo burst**
+(compose+run+parse+register compare each case, 0 failures; 3.3 cases/s;
+first-connect overhead 607 ms once) — 7.4x over legacy, at the <300 ms
+target within noise. Remaining cost is the server-side width-exact
+4-byte word loops (16K writes to load, 8K reads to dump, ~C-loop
+candidates via memoryview.cast if suite emission needs more; bulk
+memcpy is deliberately avoided — alignment faults on device memory).
+
 ## instructions.json uncertainties: list closed (2026-07-11, mission 11)
 
 sw/probe_uncertain.py batch2 (15 probes, sw/testdata/uncertain_batch2.out)

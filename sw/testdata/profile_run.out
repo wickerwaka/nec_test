@@ -1,0 +1,13 @@
+legacy path stages (one case):
+  scp image         315 ms
+  ssh cfg           667 ms
+  ssh run           964 ms
+  scp capture       316 ms
+  TOTAL            2263 ms/case
+
+serve path:
+  connect+cfg       607 ms (once)
+  first run         279 ms
+
+50-case verified echo burst (serve, full compose+parse):
+  50 cases, 0 failures, 307 ms/case (3.3 cases/s)

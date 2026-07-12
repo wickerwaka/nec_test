@@ -25,6 +25,16 @@ Usage:
   v30ctl.py dump-cap FILE            # write capture records, decode with decode_capture.py
   v30ctl.py run FILE [--timeout S]   # stop -> load -> start -> wait full -> dump to stdout name
   v30ctl.py cfg [--div N] [--waits N] [--vector V] [--small 0|1]
+  v30ctl.py serve                    # persistent stdin/stdout batch mode:
+                                     #   PING                     -> OK PONG
+                                     #   CFG <div> <waits> <vector> <small>
+                                     #     ('-' keeps a field)    -> OK CFG
+                                     #   RUN <timeout_s>\\n<base64 image>
+                                     #     -> OK <cap_count> <full>\\n<base64
+                                     #        of 4096 LE uint64 records>
+                                     #   EXIT                     -> OK BYE
+                                     # errors: ERR <message>; one command per
+                                     # line, all responses flushed
 """
 
 import argparse
@@ -154,10 +164,60 @@ def write_cap_file(recs, path):
             fh.write(f"{r:016x}\n")
 
 
+def serve(h):
+    """Persistent batch mode over stdin/stdout (one ssh connection serves
+    many runs; each RUN still does the full stop/load/start/reset cycle)."""
+    import base64
+    out = sys.stdout
+
+    def reply(s):
+        out.write(s + "\n")
+        out.flush()
+
+    reply("OK SERVE v1")
+    for line in sys.stdin:
+        parts = line.split()
+        if not parts:
+            continue
+        try:
+            if parts[0] == "PING":
+                reply("OK PONG")
+            elif parts[0] == "EXIT":
+                reply("OK BYE")
+                break
+            elif parts[0] == "CFG":
+                vals = [None if p == "-" else int(p, 0) for p in parts[1:5]]
+                h.stop()
+                h.set_cfg(*vals)
+                reply("OK CFG")
+            elif parts[0] == "RUN":
+                timeout = float(parts[1]) if len(parts) > 1 else 3.0
+                img = base64.b64decode(sys.stdin.readline().strip())
+                h.stop()
+                h.load_mem(img, 0)
+                h.start()
+                t0 = time.time()
+                while time.time() - t0 < timeout:
+                    if h.status()["cap_full"]:
+                        break
+                    time.sleep(0.002)
+                st = h.status()
+                h.stop()
+                recs = h.dump_capture()
+                blob = struct.pack(f"<{len(recs)}Q", *recs)
+                reply(f"OK {st['cap_count']} {int(st['cap_full'])}")
+                reply(base64.b64encode(blob).decode())
+            else:
+                reply(f"ERR unknown command {parts[0]!r}")
+        except Exception as e:                        # noqa: BLE001
+            reply(f"ERR {type(e).__name__}: {e}")
+
+
 def main():
     ap = argparse.ArgumentParser()
     sub = ap.add_subparsers(dest="cmd", required=True)
     sub.add_parser("prep")
+    sub.add_parser("serve")
     sub.add_parser("status")
     sub.add_parser("stop")
     p = sub.add_parser("start")
@@ -231,6 +291,8 @@ def main():
         h.stop()
         h.set_cfg(args.div, args.waits, args.vector, args.small)
         print(f"cfg = {h.read32(R_CFG):08x} (harness stopped; 'start' to run)")
+    elif args.cmd == "serve":
+        serve(h)
 
 
 if __name__ == "__main__":
