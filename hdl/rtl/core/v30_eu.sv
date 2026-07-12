@@ -245,6 +245,7 @@ reg         rep_en;
 reg         flush_now;   // registered flush (trap path)
 reg         str_wr;      // MOVBK phase: write half of the element
 reg  [5:0]  rslot;       // REP retire slot: counts from the opcode pop
+reg         rep1_abort;  // REP boundary-1 abort decision (latched pop+7)
 reg         str_done;    // final string access completed (S_STRE)
 reg [15:0]  fl_cs, fl_ip; // flush redirect target
 // external-event machinery (block 4). The recognition sample is the
@@ -308,6 +309,8 @@ wire jcc_taken = (opc == 8'h74) ?  psw[FB_Z] :
                                    psw[FB_S] ^ psw[FB_V];   // 7C BLT
 wire op_in     = opc == 8'hE4 || opc == 8'hE5 ||
                  opc == 8'hEC || opc == 8'hED;   // IN acc,imm8 / acc,DW
+wire op_out    = opc == 8'hE6 || opc == 8'hE7 ||
+                 opc == 8'hEE || opc == 8'hEF;   // OUT imm8,acc / DW,acc
 wire op_0f     = opc == 8'h0F;                       // two-byte forms
 wire op_test1  = op_0f && opc2 == 8'h18;             // TEST1 rm8,imm3
 wire op_rol4   = op_0f && opc2 == 8'h28;             // ROL4 rm8
@@ -681,7 +684,8 @@ always_comb begin
         S_DEC:  eu_req = !op_modrm && (opc[7:3] == 5'b01011 ||
                                        opc == 8'hC3 || opc == 8'h9D ||
                                        opc == 8'hF4 ||
-                                       opc == 8'hEC || opc == 8'hED);
+                                       opc == 8'hEC || opc == 8'hED ||
+                                       opc == 8'hEE || opc == 8'hEF);
         // reservation start (measured per opcode from old-stream commits
         // inside the resolution window): EB/E8 at the final pop cycle,
         // E9 at pop+1, Jcc/E2 at pop+2
@@ -773,6 +777,11 @@ always_ff @(posedge clk) begin
     if (nmi_p[2] && !nmi_p[3]) nmi_latch <= 1'b1;   // set at edge+3
     poll_s1 <= pin_poll_n;
     ie_p    <= {ie_p[1:0], psw[9]};
+    // REP first-iteration-boundary abort decision, latched at the fixed
+    // pop-anchored edge pop+7 (rslot==6) with the standard edge-4 pin
+    // tap (interrupt_model.md "REP abort"); consumed by the string
+    // states below for accepts that land after the edge
+    if (rslot == 6'd6) rep1_abort <= irq_rep;
 
     if (srst) begin
         // real reset flow: PS=FFFF, PC=0, PSW cleared; the sequencer
@@ -805,6 +814,7 @@ always_ff @(posedge clk) begin
         int_p    <= '0;
         nmi_p    <= '0;
         nmi_latch <= 1'b0;
+        rep1_abort <= 1'b0;
         poll_s1  <= 1'b1;
         shadow   <= 1'b0;
         ie_p     <= '0;
@@ -1115,13 +1125,14 @@ always_ff @(posedge clk) begin
                         eu_wr   <= 1'b0;
                         eu_word <= 1'b1;
                         state   <= S_REQ;
-                    end else if (op_in) begin             // IN
-                        if (opc[3]) begin                 // EC/ED: port=DW
+                    end else if (op_in || op_out) begin   // IN / OUT
+                        if (opc[3]) begin            // EC/ED/EE/EF: port=DW
                             eu_addr <= {4'h0, rf[2]};
                             eu_seg  <= SEG_CS;
-                            eu_wr   <= 1'b0;
+                            eu_wr   <= op_out;
                             eu_word <= opc[0];
                             eu_kind <= K_IO;
+                            if (op_out) eu_wdata <= rf[0];
                             state   <= S_REQ;
                         end else
                             state <= S_IN_PORT;           // imm8 pops @F+2
@@ -1479,13 +1490,26 @@ always_ff @(posedge clk) begin
                     rf[7] <= rf[7] + str_step;
                     if (rep_en) begin
                         rf[1] <= rf[1] - 16'd1;
-                        if (rf[1] != 16'd1 && irq_rep) begin
-                            // interrupted between iterations: finish the
-                            // in-flight write, rewind to the first
-                            // prefix, refetch, then vector at
-                            // decision+9 (fitted; see interrupt_model)
+                        if (rf[1] != 16'd1 &&
+                            ((rslot == 6'd6 && irq_rep) ||
+                             (rslot <  6'd6 && rep1_abort))) begin
+                            // FIRST-boundary abort. The decision edge
+                            // is POP-ANCHORED at pop+7 (rslot==6) with
+                            // the edge-4 pin tap, and the flush is
+                            // invariant at pop+16 = edge+9 (all 35
+                            // first-iter aborts of the INT.F3AA
+                            // tranche; the write-accept slot floats
+                            // +-1 beneath both). Accept at the edge:
+                            // decide live; accept after: use the
+                            // latched rep1_abort. Accept BEFORE the
+                            // edge issues the next write and the
+                            // parallel pop+7 check below withdraws it.
+                            // flush = accept+dly+1 = pop+16 with
+                            // dly = rslot+2 (rslot reads 13-j at
+                            // pop+j). Chained-iteration aborts
+                            // (S_STRS) stay write-anchored, accept+9.
                             state <= S_IRQ_REPW;
-                            dly   <= 6'd8;
+                            dly   <= rslot + 6'd2;
                         end else if (rf[1] != 16'd1) begin
                             eu_addr <= {sr[SEG_ES], 4'h0} +
                                        {4'h0, rf[7] + str_step};
@@ -1571,6 +1595,9 @@ always_ff @(posedge clk) begin
                 end else if (op_in) begin                 // IN acc
                     if (opc[0]) rf[0] <= eu_rdata;
                     else        rf[0][7:0] <= eu_rdata[7:0];
+                    eu_kind <= K_MEM;
+                    retire();
+                end else if (op_out) begin                // OUT
                     eu_kind <= K_MEM;
                     retire();
                 end else if (opc[7:3] == 5'b01011) begin  // POP r16
@@ -1978,13 +2005,14 @@ always_ff @(posedge clk) begin
                 dly <= dly - 6'd1;
             end
 
-            S_IN_PORT: if (q_pop) begin        // E4/E5 imm8 port @F+2
+            S_IN_PORT: if (q_pop) begin     // E4-E7 imm8 port @F+2
                 pc <= pc + 16'd1;
                 eu_addr <= {12'h0, q_byte};
                 eu_seg  <= SEG_CS;
-                eu_wr   <= 1'b0;
+                eu_wr   <= op_out;
                 eu_word <= opc[0];
                 eu_kind <= K_IO;
+                if (op_out) eu_wdata <= rf[0];
                 state   <= S_REQ;
             end
 
@@ -1997,6 +2025,19 @@ always_ff @(posedge clk) begin
 
             default: state <= S_HALT;
         endcase
+
+        // REP first-boundary abort, pop-anchored parallel check: when
+        // the first write was accepted BEFORE the pop+7 decision edge,
+        // the FSM is already in S_STRS with the next write pending
+        // (its accept is >= pop+9, so no clash with the accept branch
+        // above). On an abort decision the pending request is
+        // withdrawn (eu_req is combinational from state) and the
+        // flush lands at pop+16 = edge+9 (dly=8 from the edge).
+        if (state == S_STRS && rslot == 6'd6 && irq_rep &&
+            rep_en && op_stostr) begin
+            state <= S_IRQ_REPW;
+            dly   <= 6'd8;
+        end
     end
 end
 

@@ -69,7 +69,9 @@ DEFAULT_OPS = ["B8", "40", "48", "50", "58", "86", "87", "88", "89",
                "INT.90", "INT.B8", "INT.8ED0", "INT.8ED8", "INT.FB",
                "INT.9D", "INT.F3AA", "NMI.90", "NMI.B8", "IE0.90",
                "POLL.LO", "POLL.REL", "HLT.INT", "HLT.NMI", "HLT.RES",
-               "E4", "E5", "EC", "ED"]
+               "E4", "E5", "EC", "ED",
+               # Campaign 3 closure: full documented-form emission
+               "E6", "E7", "EE", "EF"]
 
 
 def build(force=False):
@@ -85,7 +87,7 @@ def build(force=False):
     subprocess.run(cmd, check=True, cwd=ROOT)
 
 
-PREFIXES = {0xF3, 0xF2, 0xF0, 0x26, 0x2E, 0x36, 0x3E}
+PREFIXES = {0xF3, 0xF2, 0xF0, 0x64, 0x65, 0x26, 0x2E, 0x36, 0x3E}
 
 
 def n_prefix(case):

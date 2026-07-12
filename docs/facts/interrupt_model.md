@@ -165,6 +165,15 @@ passing corpus (v30_eu.sv / v30_biu.sv are the executable reference).
   (pin@edge-4); on recognition the in-flight write completes, the
   internal flush fires 9 cycles after the abort decision edge, the
   resume refetch T1 follows the flush display by 2, and INTA1 T1 by 6.
+- **REP abort, FIRST boundary is pop-anchored** (closure block, fitted
+  on all 56 INT.F3AA abort cases): the boundary-1 decision edge sits at
+  a fixed opcode-pop+7 (sampling pin@pop+3 per the edge-4 tap), and its
+  flush is invariant at pop+16 = edge+9 - the first write's commit slot
+  floats +-1 beneath both without moving them. A write already accepted
+  before the edge still completes; a next-iteration write issued but
+  not yet committed at the edge is withdrawn (no bus activity). Chained
+  boundaries (>= 2) are write-accept-anchored: decision at the accept
+  edge, flush at accept+9, as before.
 
 ### Known residuals (documented, not yet modeled)
 
@@ -174,10 +183,10 @@ passing corpus (v30_eu.sv / v30_biu.sv are the executable reference).
   pushed PSW is the popped value in both classes). Identical stimulus
   timing signatures show both classes, so the discriminator is a data
   or deeper-state condition; needs targeted bench sweeps.
-- **REP STM abort flush slot** (INT.F3AA, 33/200): first-iteration
-  aborts show the flush at decision+9 or +10 depending on a condition
-  correlated with the first write's commit type; chained-iteration
-  aborts are uniformly +9 (modeled).
+- ~~REP STM abort flush slot~~ RESOLVED (closure block): the apparent
+  +-1 was the write-accept slot floating beneath a pop-anchored
+  first-boundary decision/flush - see "REP abort, FIRST boundary is
+  pop-anchored" above. INT.F3AA is 200/200.
 
 ## Priority / notes
 

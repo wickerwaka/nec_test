@@ -74,12 +74,14 @@ HANDLER_OFF = 0x0400              # IVT-0 handler (V20 convention)
 def SPEC(key, mnem, base, modrm=None, w=0, imm=0, group=None,
          stack=False, divtrap=False, string4s=False, imm_mask=None,
          branch=None, moffs=None, sreg=None, lea=False, xlat=False,
-         string1=None, rep=False, segpfx=None):
+         string1=None, rep=False, segpfx=None, io_port=False,
+         io_dx=False):
     return dict(key=key, mnem=mnem, base=base, modrm=modrm, w=w, imm=imm,
                 group=group, stack=stack, divtrap=divtrap,
                 string4s=string4s, imm_mask=imm_mask, branch=branch,
                 moffs=moffs, sreg=sreg, lea=lea, xlat=xlat,
-                string1=string1, rep=rep, segpfx=segpfx)
+                string1=string1, rep=rep, segpfx=segpfx, io_port=io_port,
+                io_dx=io_dx)
 
 
 ALU = ["add", "or", "adc", "sbb", "and", "sub", "xor", "cmp"]
@@ -140,6 +142,28 @@ OPCODES["AA"] = SPEC("AA", "stosb", [0xAA], string1="stos", w=0)
 OPCODES["AB"] = SPEC("AB", "stosw", [0xAB], string1="stos", w=1)
 OPCODES["AC"] = SPEC("AC", "lodsb", [0xAC], string1="lods", w=0)
 OPCODES["AD"] = SPEC("AD", "lodsw", [0xAD], string1="lods", w=1)
+# CMPBK (A6/A7) and CMPM (AE/AF) singles + all four repeat prefixes
+# (F3 REPE / F2 REPNE / 65 REPC / 64 REPNC - V-series adds the carry
+# variants, CMPBK/CMPM only)
+for _b, _nm, _st, _w in ((0xA6, "cmpsb", "cmps", 0), (0xA7, "cmpsw", "cmps", 1),
+                         (0xAE, "scasb", "scas", 0), (0xAF, "scasw", "scas", 1)):
+    OPCODES[f"{_b:02X}"] = SPEC(f"{_b:02X}", _nm, [_b], string1=_st, w=_w)
+    for _p, _pn in ((0xF3, "repe"), (0xF2, "repne"),
+                    (0x65, "repc"), (0x64, "repnc")):
+        _k = f"{_p:02X}{_b:02X}"
+        OPCODES[_k] = SPEC(_k, f"{_pn} {_nm}", [_p, _b], string1=_st,
+                           w=_w, rep=True)
+# remaining REP variants of the non-compare strings (word forms + LODS)
+OPCODES["F3A5"] = SPEC("F3A5", "rep movsw", [0xF3, 0xA5],
+                       string1="movs", w=1, rep=True)
+OPCODES["F3AB"] = SPEC("F3AB", "rep stosw", [0xF3, 0xAB],
+                       string1="stos", w=1, rep=True)
+OPCODES["F3AC"] = SPEC("F3AC", "rep lodsb", [0xF3, 0xAC],
+                       string1="lods", w=0, rep=True)
+OPCODES["F3AD"] = SPEC("F3AD", "rep lodsw", [0xF3, 0xAD],
+                       string1="lods", w=1, rep=True)
+OPCODES["F2AA"] = SPEC("F2AA", "repne stosb", [0xF2, 0xAA],
+                       string1="stos", w=0, rep=True)
 OPCODES["F3AA"] = SPEC("F3AA", "rep stosb", [0xF3, 0xAA],
                        string1="stos", w=0, rep=True)
 OPCODES["F3A4"] = SPEC("F3A4", "rep movsb", [0xF3, 0xA4],
@@ -155,6 +179,13 @@ OPCODES["3E.8B"] = SPEC("3E.8B", "mov", [0x3E, 0x8B], modrm="rm16", w=1,
 
 OPCODES["E4"] = SPEC("E4", "in al,", [0xE4], imm=1)
 OPCODES["E5"] = SPEC("E5", "in ax,", [0xE5], imm=1)
+# OUT: the port must stay clear of the harness store-routine ports
+# (IOW 0xFE = register dump, 0xFC = done marker; a word OUT to 0xFB/0xFD
+# splits onto them) - io_port/io_dx keep test ports out of 0x00F8-0x00FF
+OPCODES["E6"] = SPEC("E6", "out imm8,al", [0xE6], imm=1, io_port=True)
+OPCODES["E7"] = SPEC("E7", "out imm8,ax", [0xE7], imm=1, w=1, io_port=True)
+OPCODES["EE"] = SPEC("EE", "out dx,al", [0xEE], io_dx=True)
+OPCODES["EF"] = SPEC("EF", "out dx,ax", [0xEF], w=1, io_dx=True)
 OPCODES["EC"] = SPEC("EC", "in al, dx", [0xEC])
 OPCODES["ED"] = SPEC("ED", "in ax, dx", [0xED])
 IO_IN_OPS = {"E4", "E5", "EC", "ED"}
@@ -353,8 +384,13 @@ def gen_case(spec, rng):
             imm_v = rng.getrandbits(8 * spec["imm"])
             if spec["imm_mask"] is not None:
                 imm_v &= spec["imm_mask"]
+            if spec["io_port"]:
+                while imm_v >= 0xF8:        # harness store ports
+                    imm_v = rng.getrandbits(8)
             instr += imm_v.to_bytes(spec["imm"], "little")
             name += f" {imm_v:0{2 * spec['imm']}x}h"
+        if spec["io_dx"] and 0x00F8 <= regs["dx"] <= 0x00FF:
+            continue                        # harness store ports
         if spec["string4s"]:
             regs["cx"] = (regs["cx"] & 0xFF00) | rng.randrange(1, 7)
             name = f"{spec['mnem']} (cl={regs['cx'] & 0xFF})"
@@ -463,12 +499,28 @@ def gen_case(spec, rng):
             st = spec["string1"]
             for i in range(cnt):
                 step = -i * nb if df else i * nb
-                if st in ("movs", "lods"):
+                sbytes = []
+                if st in ("movs", "lods", "cmps"):
                     so = (regs["si"] + step) & 0xFFFF
                     for k in range(nb):
-                        ram.append((lin("ds", so + k), rng.getrandbits(8)))
+                        sbytes.append(rng.getrandbits(8))
+                        ram.append((lin("ds", so + k), sbytes[-1]))
                     spans.append(range(lin("ds", so) & 0xFFFF,
                                        (lin("ds", so) & 0xFFFF) + nb))
+                if st in ("cmps", "scas"):
+                    # read side at es:di; bias toward equality so REPE/
+                    # REPNE/REPC/REPNC terminations vary
+                    do = (regs["di"] + step) & 0xFFFF
+                    eq = rng.random() < (0.6 if spec["rep"] else 0.35)
+                    for k in range(nb):
+                        if eq:
+                            v = sbytes[k] if st == "cmps" else \
+                                (regs["ax"] >> (8 * k)) & 0xFF
+                        else:
+                            v = rng.getrandbits(8)
+                        ram.append((lin("es", do + k), v))
+                    spans.append(range(lin("es", do) & 0xFFFF,
+                                       (lin("es", do) & 0xFFFF) + nb))
                 if st in ("movs", "stos"):
                     do = (regs["di"] + step) & 0xFFFF
                     spans.append(range(lin("es", do) & 0xFFFF,
