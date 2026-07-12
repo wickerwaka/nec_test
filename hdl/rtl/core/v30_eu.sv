@@ -29,12 +29,14 @@
 //     handler prefetch then wins the slot after the PC push by itself.
 //
 //  Implemented opcodes: 00/08/10/18/20/28/30/38 (ALU rm8,r8), 40-4F,
-//  50-57, 58-5F, 88/89/8A/8B, 90, B8-BF, D0/4, F6/4, F7/6, FE/0.
-//  Unknown opcodes park the sequencer (S_HALT).
+//  50-57, 58-5F, 86/87 (XCHG), 88/89/8A/8B, 90, B8-BF, D0/4, F6/4,
+//  F7/6, FE/0, and the V30 0F forms 0F18 (TEST1 rm8,imm3), 0F20
+//  (ADD4S), 0F28 (ROL4 rm8). Unknown opcodes park the sequencer
+//  (S_HALT). 0F forms pop the second byte at F+2 and the modrm at F+3;
+//  the standard EA machinery then applies unchanged.
 //
-//  Undefined-flag behavior per docs/facts/undefined_flags.md, with two
-//  laws discovered from the golden traces (verified on all 500 cases
-//  each, see the correction note in undefined_flags.md):
+//  Undefined-flag behavior per docs/facts/undefined_flags.md, with laws
+//  discovered from the golden traces (each verified on all 500 cases):
 //   - DIVU's entire flag residue = the flags of its 16-bit overflow
 //     pre-check compare SUB(DW, divisor); the trap condition is that
 //     compare's !borrow, and the trapped and non-trapped paths leave
@@ -43,6 +45,19 @@
 //     ({sibling, byte}, source pair likewise) and drive the whole
 //     16-bit result on the bus; carries/shifts propagate into the
 //     driven (unwritten) sibling lane. Flags come from the byte op.
+//   - XCHG mem timing = the ALU RMW path (write ready done+3); the
+//     write drives the pre-exchange register pair, no flags.
+//   - ROL4 rotates the WHOLE AL: rm <- {rm[3:0], AL[3:0]},
+//     AL <- {AL[3:0], rm[7:4]} (manual implies AL[7:4] preserved; it
+//     is not). Mem form drives {AL_new, mem_new}; write ready done+11;
+//     reg form takes 11 wait cycles. No flags.
+//   - ADD4S is a nibble-serial BCD adder: see bcd_add8 below for the
+//     carry-rail quirk, pre-adjust Z, and the driven-sibling law.
+//     Flags: CY=S=AC=carry, Z=P=zacc, V=0. Loop: src(DS0:IX+k) rd,
+//     dst(DS1:IY+k) rd, wr per byte; ready offsets src=pop2+5 /
+//     wrdone+1, dst=srcdone+2, wr=dstdone+4; the EU holds a bus
+//     reservation from the first src request through retire; retire
+//     at last wrdone+4 (carry) / +5 (no carry).
 //
 //============================================================================
 
@@ -113,6 +128,9 @@ typedef enum logic [5:0] {
     S_LD_W1, S_LD_W2,
     S_WAITX, S_EX,
     S_RMWX, S_WREQ, S_WBUSW,
+    S_0F, S_DEC2, S_T1GAP, S_IMM3,
+    S_A4_SETUP, S_A4_SRC, S_A4_SRCW, S_A4_G1, S_A4_DST, S_A4_DSTW,
+    S_A4_G2, S_A4_WR, S_A4_WRW, S_A4_END,
     S_TRAP_IVT1, S_TRAP_IVT2, S_TRAP_IVT2W,
     S_TRAP_W1, S_TRAP_PSW, S_TRAP_PSWW,
     S_TRAP_W2, S_TRAP_PS, S_TRAP_PSW2W,
@@ -125,8 +143,16 @@ state_e     wnext;       // state entered when S_WAITX expires
 state_e     dret;        // disp-pop state resumed after a queue-dry stall
 
 reg  [7:0]  opc;
+reg  [7:0]  opc2;        // 0F-prefixed second byte
 reg  [7:0]  mrm;
+reg  [7:0]  immb;        // TEST1 imm3 byte
 reg [15:0]  disp;
+// ADD4S loop state
+reg  [7:0]  a4_cnt;      // bytes remaining
+reg  [7:0]  a4_k;        // byte index (address offset)
+reg [15:0]  a4_src;      // latched source read ({other lane, byte})
+reg         a4_carry;    // BCD carry chain
+reg         a4_z;        // accumulated zero flag (pre-adjust bytes)
 reg [15:0]  mem_op;      // operand as read ({sibling, byte} for byte ops)
 reg [15:0]  ivt_off, ivt_seg;
 reg [15:0]  trap_psw;
@@ -148,12 +174,19 @@ wire op_grpf6  = opc == 8'hF6;                       // /4 MULU8 only
 wire op_grpf7  = opc == 8'hF7;                       // /6 DIVU16 only
 wire op_grpd0  = opc == 8'hD0;                       // /4 SHL8,1 only
 wire op_grpfe  = opc == 8'hFE;                       // /0 INC8 only
+wire op_xchg8  = opc == 8'h86;
+wire op_xchg16 = opc == 8'h87;
+wire op_0f     = opc == 8'h0F;                       // two-byte forms
+wire op_test1  = op_0f && opc2 == 8'h18;             // TEST1 rm8,imm3
+wire op_rol4   = op_0f && opc2 == 8'h28;             // ROL4 rm8
 wire op_modrm  = op_alu | op_movs8 | op_movs16 | op_movl8 | op_movl16 |
-                 op_grpf6 | op_grpf7 | op_grpd0 | op_grpfe;
+                 op_grpf6 | op_grpf7 | op_grpd0 | op_grpfe |
+                 op_xchg8 | op_xchg16;
 
 wire is_store  = op_movs8 | op_movs16;               // write-only mem access
 wire is_load   = op_movl8 | op_movl16;
-wire is_word_t = op_movs16 | op_movl16 | op_grpf7;   // word transfer
+wire is_word_t = op_movs16 | op_movl16 | op_grpf7 |  // word transfer
+                 op_xchg16;
 wire is_reader = !is_store;                          // mem forms read first
 
 //----------------------------------------------------------------------------
@@ -293,6 +326,37 @@ function automatic [32:0] divu32(input [31:0] num, input [15:0] den);
     end
 endfunction
 
+// ADD4S packed-BCD byte add, nibble-serial as the silicon does it
+// (fitted bit-exact on all 1020 golden byte iterations):
+//  - low digit: binary nibble add; +6 adjust if it carried (c1) or
+//    exceeded 9 (c2);
+//  - high digit SUM takes c1+c2 as two carries, but the high ADJUST
+//    DECISION sees only c1|c2 (single carry rail): fire = ahi+bhi+
+//    (c1|c2) > 9. CY out = fire.
+//  - sibx marks the extra +1 the driven sibling lane picks up when the
+//    high sum carried (c3) and its pre-adjust digit exceeds 9.
+//  - prez: the PRE-adjust byte was zero (Z accumulates on this, not on
+//    the adjusted result).
+// Returns {fire, sibx, prez, result}.
+function automatic [10:0] bcd_add8(input [7:0] a, input [7:0] b, input cin);
+    logic [4:0] lo, hi;
+    logic       c1, c2, c3, fire, sibx, prez;
+    logic [3:0] dlo0, dlo, dhi0, dhi;
+    lo = {1'b0, a[3:0]} + {1'b0, b[3:0]} + {4'd0, cin};
+    c1 = lo[4];
+    dlo0 = lo[3:0];
+    c2 = dlo0 > 4'd9;
+    dlo = (c1 || c2) ? dlo0 + 4'd6 : dlo0;
+    hi = {1'b0, a[7:4]} + {1'b0, b[7:4]} + {4'd0, c1} + {4'd0, c2};
+    c3 = hi[4];
+    dhi0 = hi[3:0];
+    fire = ({1'b0, a[7:4]} + {1'b0, b[7:4]} + {4'd0, c1 | c2}) > 5'd9;
+    dhi = fire ? dhi0 + 4'd6 : dhi0;
+    sibx = c3 && (dhi0 > 4'd9);
+    prez = (dhi0 == 4'd0) && (dlo0 == 4'd0);
+    bcd_add8 = {fire, sibx, prez, dhi, dlo};
+endfunction
+
 // DIVU leaves the flags of its 16-bit overflow pre-check compare
 // SUB(DW, divisor) - verified bit-exact on all 500 golden cases, both
 // the trap residue (pushed PSW) and the non-trap final flags. The
@@ -342,6 +406,7 @@ wire [15:0] rmw_wide =
 //----------------------------------------------------------------------------
 wire pop_want = (state == S_FIRST) ||
                 (state == S_DEC && op_modrm) ||
+                (state == S_0F) || (state == S_DEC2) || (state == S_IMM3) ||
                 (state == S_IMM_LO) || (state == S_IMM_HI) ||
                 (state == S_DISP8) || (state == S_DLO) || (state == S_DHI);
 
@@ -370,11 +435,16 @@ always_comb begin
         // cold-start POP suppresses the prefetch commit at cycle 1)
         S_DEC:  eu_req = !op_modrm && opc[7:3] == 5'b01011;
         S_REQ, S_WREQ,
+        S_A4_SRC, S_A4_DST, S_A4_WR,
         S_TRAP_IVT1, S_TRAP_IVT2,
         S_TRAP_PSW, S_TRAP_PS, S_TRAP_FLUSH, S_TRAP_PC: begin
             eu_req   = 1'b1;
             eu_ready = 1'b1;
         end
+        // ADD4S holds the bus reservation between its accesses through
+        // retire (measured: no prefetch commit inside the loop)
+        S_A4_SRCW, S_A4_G1, S_A4_DSTW, S_A4_G2, S_A4_WRW, S_A4_END:
+            eu_req = 1'b1;
         default: ;
     endcase
 end
@@ -418,8 +488,15 @@ always_ff @(posedge clk) begin
         dly      <= '0;
         wnext    <= S_HALT;
         opc      <= '0;
+        opc2     <= '0;
         mrm      <= '0;
+        immb     <= '0;
         disp     <= '0;
+        a4_cnt   <= '0;
+        a4_k     <= '0;
+        a4_src   <= '0;
+        a4_carry <= 1'b0;
+        a4_z     <= 1'b0;
         mem_op   <= '0;
         ivt_off  <= '0;
         ivt_seg  <= '0;
@@ -460,7 +537,8 @@ always_ff @(posedge clk) begin
                         if (q_byte[7:6] == 2'd3) begin
                             // register form
                             if (op_alu | op_movs8 | op_movs16 |
-                                op_movl8 | op_movl16)
+                                op_movl8 | op_movl16 |
+                                op_xchg8 | op_xchg16)
                                 state <= S_EX;
                             else if (op_grpfe && q_byte[5:3] == 3'd0) begin
                                 dly <= 5'd1;  wnext <= S_EX; state <= S_WAITX;
@@ -499,7 +577,8 @@ always_ff @(posedge clk) begin
                     end
                 end else begin
                     // no modrm
-                    if (opc[7:3] == 5'b10111) state <= S_IMM_LO;    // B8-BF
+                    if (op_0f) state <= S_0F;       // 2nd byte pops at F+2
+                    else if (opc[7:3] == 5'b10111) state <= S_IMM_LO; // B8-BF
                     else if (opc[7:3] == 5'b01000) begin            // INC r16
                         {psw, rf[opc[2:0]]} <=
                             incdec16(1'b0, rf[opc[2:0]], psw);
@@ -534,6 +613,120 @@ always_ff @(posedge clk) begin
             end
 
             S_NOP: retire();
+
+            //----------------------------------------------------------------
+            // 0F-prefixed forms: second byte pops at F+2, modrm at F+3
+            //----------------------------------------------------------------
+            S_0F: if (q_pop) begin
+                opc2 <= q_byte;
+                pc   <= pc + 16'd1;
+                if (q_byte == 8'h18 || q_byte == 8'h28)
+                    state <= S_DEC2;
+                else if (q_byte == 8'h20) begin        // ADD4S
+                    a4_cnt  <= 8'(({1'b0, rf[1][7:0]} + 9'd1) >> 1);
+                    a4_k    <= 8'd0;
+                    a4_carry <= 1'b0;
+                    a4_z    <= 1'b1;
+                    dly     <= 5'd4;                   // src ready @ pop+5
+                    state   <= S_A4_SETUP;
+                end else
+                    state <= S_HALT;
+            end
+            S_DEC2: if (q_pop) begin
+                mrm <= q_byte;
+                pc  <= pc + 16'd1;
+                if (q_byte[7:6] == 2'd3) begin
+                    if (op_test1) state <= S_IMM3;     // imm pops at F+4
+                    else begin                         // ROL4 reg: EX @ F+15
+                        dly <= 5'd11; wnext <= S_EX; state <= S_WAITX;
+                    end
+                end else if ((q_byte[7:6] == 2'd0 && q_byte[2:0] == 3'd6) ||
+                             q_byte[7:6] == 2'd2)
+                    state <= S_DLO;
+                else
+                    state <= S_EA1;
+            end
+            S_T1GAP: state <= S_IMM3;                  // mem TEST1: done+2 pop
+            S_IMM3: if (q_pop) begin
+                immb <= q_byte;
+                pc   <= pc + 16'd1;
+                state <= S_EX;
+            end
+
+            //----------------------------------------------------------------
+            // ADD4S: per-byte loop src(DS0:IX+k) rd, dst(DS1:IY+k) rd, wr.
+            // Ready offsets measured: src @ pop2+5 / wrdone+1, dst @
+            // srcdone+2, write @ dstdone+4, retire @ last wrdone+4.
+            //----------------------------------------------------------------
+            S_A4_SETUP: begin
+                if (dly == 5'd1) begin
+                    eu_addr <= {sr[SEG_DS], 4'h0} + {4'h0, rf[6]};
+                    eu_seg  <= SEG_DS;
+                    eu_wr   <= 1'b0;
+                    eu_word <= 1'b0;
+                    state   <= (a4_cnt == 8'd0) ? S_HALT : S_A4_SRC;
+                end
+                dly <= dly - 5'd1;
+            end
+            S_A4_SRC: if (eu_started) state <= S_A4_SRCW;
+            S_A4_SRCW: if (eu_done) begin
+                a4_src  <= eu_rdata;
+                eu_addr <= {sr[SEG_ES], 4'h0} + {4'h0, rf[7] + {8'd0, a4_k}};
+                eu_seg  <= SEG_ES;
+                state   <= S_A4_G1;
+            end
+            S_A4_G1: state <= S_A4_DST;
+            S_A4_DST: if (eu_started) state <= S_A4_DSTW;
+            S_A4_DSTW: if (eu_done) begin
+                // {fire, sibx, prez, res}; driven sibling lane =
+                // src_other + dst_other + fire + sibx - 1 (measured law)
+                logic [10:0] s;
+                s = bcd_add8(eu_rdata[7:0], a4_src[7:0], a4_carry);
+                a4_carry <= s[10];
+                a4_z     <= a4_z && s[8];
+                mem_op   <= {a4_src[15:8] + eu_rdata[15:8] +
+                             {7'd0, s[10]} + {7'd0, s[9]} - 8'd1, s[7:0]};
+                dly      <= 5'd3;
+                state    <= S_A4_G2;
+            end
+            S_A4_G2: begin
+                if (dly == 5'd1) begin
+                    eu_wr    <= 1'b1;
+                    eu_wdata <= mem_op;
+                    state    <= S_A4_WR;
+                end
+                dly <= dly - 5'd1;
+            end
+            S_A4_WR: if (eu_started) state <= S_A4_WRW;
+            S_A4_WRW: if (eu_done) begin
+                if (a4_cnt > 8'd1) begin
+                    a4_cnt  <= a4_cnt - 8'd1;
+                    a4_k    <= a4_k + 8'd1;
+                    eu_addr <= {sr[SEG_DS], 4'h0} +
+                               {4'h0, rf[6] + {8'd0, a4_k} + 16'd1};
+                    eu_seg  <= SEG_DS;
+                    eu_wr   <= 1'b0;
+                    state   <= S_A4_SRC;
+                end else begin
+                    // retire at wrdone+4 with final carry, +5 without
+                    // (measured: the no-carry path costs one extra cycle)
+                    dly   <= a4_carry ? 5'd4 : 5'd5;
+                    state <= S_A4_END;
+                end
+            end
+            S_A4_END: begin
+                if (dly == 5'd1) begin
+                    // undefined-flag law: S=AC=CY(out), P=Z(out), V=0
+                    psw[FB_CY] <= a4_carry;
+                    psw[FB_S]  <= a4_carry;
+                    psw[FB_AC] <= a4_carry;
+                    psw[FB_Z]  <= a4_z;
+                    psw[FB_P]  <= a4_z;
+                    psw[FB_V]  <= 1'b0;
+                    retire();
+                end
+                dly <= dly - 5'd1;
+            end
 
             //----------------------------------------------------------------
             // effective-address path
@@ -596,7 +789,11 @@ always_ff @(posedge clk) begin
                     mem_op <= eu_rdata;
                     if (is_load || (op_alu && opc[5:3] == 3'd7))
                         state <= S_LD_W1;                 // MOV load / CMP
-                    else if (op_alu) begin
+                    else if (op_test1)
+                        state <= S_T1GAP;                 // imm pop done+2
+                    else if (op_rol4) begin
+                        dly <= 5'd10; state <= S_RMWX;    // wr ready done+11
+                    end else if (op_alu || op_xchg8 || op_xchg16) begin
                         dly <= 5'd2; state <= S_RMWX;     // wr ready done+3
                     end else if (op_grpfe) begin
                         dly <= 5'd3; state <= S_RMWX;     // done+4
@@ -645,7 +842,27 @@ always_ff @(posedge clk) begin
             end
 
             S_EX: begin
-                if (op_alu) begin
+                if (op_test1) begin
+                    // t = op AND (1<<n): Z=(t==0), S=t[7], P=par(t),
+                    // AC=CY=V=0 (undefined_flags.md TEST1 law)
+                    logic [7:0] t;
+                    t = rm_byte & (8'd1 << immb[2:0]);
+                    psw[FB_Z]  <= t == 8'd0;
+                    psw[FB_S]  <= t[7];
+                    psw[FB_P]  <= ~^t;
+                    psw[FB_AC] <= 1'b0;
+                    psw[FB_CY] <= 1'b0;
+                    psw[FB_V]  <= 1'b0;
+                end else if (op_rol4) begin            // reg form
+                    wr_reg8(mrm_rm, {rm_byte[3:0], rf[0][3:0]});
+                    rf[0][7:0] <= {rf[0][3:0], rm_byte[7:4]};
+                end else if (op_xchg8) begin
+                    wr_reg8(mrm_rm, reg8_get(mrm_reg));
+                    wr_reg8(mrm_reg, reg8_get(mrm_rm));
+                end else if (op_xchg16) begin
+                    rf[mrm_rm]  <= rf[mrm_reg];
+                    rf[mrm_reg] <= rf[mrm_rm];
+                end else if (op_alu) begin
                     psw <= ex_alu[23:8];
                     if (opc[5:3] != 3'd7) wr_reg8(mrm_rm, ex_alu[7:0]);
                 end else if (op_movs8)  wr_reg8(mrm_rm, reg8_get(mrm_reg));
@@ -682,10 +899,24 @@ always_ff @(posedge clk) begin
                 if (dly == 5'd1) begin
                     state <= S_WREQ;
                     eu_wr <= 1'b1;
-                    eu_wdata <= rmw_wide;
-                    if (op_alu)        psw <= ex_alu[23:8];
-                    else if (op_grpfe) psw <= ex_inc[23:8];
-                    else               psw <= ex_shl[23:8];
+                    if (op_xchg8) begin
+                        eu_wdata <= src_pair;
+                        wr_reg8(mrm_reg, mem_op[7:0]);
+                    end else if (op_xchg16) begin
+                        eu_wdata <= rf[mrm_reg];
+                        rf[mrm_reg] <= mem_op;
+                    end else if (op_rol4) begin
+                        // driven pair = {AL_new, mem_new}: AL rides the
+                        // sibling lane of the internal operand pair
+                        eu_wdata <= {rf[0][3:0], mem_op[7:4],
+                                     mem_op[3:0], rf[0][3:0]};
+                        rf[0][7:0] <= {rf[0][3:0], mem_op[7:4]};
+                    end else begin
+                        eu_wdata <= rmw_wide;
+                        if (op_alu)        psw <= ex_alu[23:8];
+                        else if (op_grpfe) psw <= ex_inc[23:8];
+                        else               psw <= ex_shl[23:8];
+                    end
                 end
                 dly <= dly - 5'd1;
             end

@@ -99,6 +99,21 @@ ADD4S/SUB4S/CMP4S: undefined S and AC always equal the defined CY output
 Probed with carry/no-carry (ADD4S), borrow/no-borrow (SUB4S),
 greater/equal (CMP4S) datasets.
 
+**Correction (Campaign 3, 0F20 golden tranche, all 500 cases / 1020 byte
+iterations bit-exact):** on non-BCD inputs ADD4S is a nibble-serial
+adder with a one-carry-rail decision quirk. Per byte (a=dst, b=src, cin):
+low digit = binary nibble add, +6 adjust if it carried (c1) or exceeded
+9 (c2). The high digit SUM receives c1+c2 as two carries, but the high
+ADJUST DECISION computes ahi+bhi+(c1|c2) and fires >9 — so when both
+carries land on a 9 the high digit becomes 0xA unadjusted. CY out =
+that decision. **Z accumulates on the PRE-adjust bytes** (an adjust
+that wraps a byte to 00 still gives Z=0), P mirrors that Z, S=AC=CY as
+above. The byte written to memory drives its sibling lane with
+src_other + dst_other + fire + (high-sum-carry AND pre-adjust-high>9)
+- 1 (the internal 16-bit adder's other lane, one short when no adjust
+fired). Timing: retire is one cycle slower when the final carry is 0
+(13+22n becomes 14+22n).
+
 ### "Undefined" that is really "unchanged"
 The manual marks V,S,Z,AC,P undefined on NOT1/CLR1/SET1 CY (F5/F8/F9) and
 on the 0F-prefixed NOT1/CLR1/SET1 reg forms — silicon **preserves** all of
