@@ -117,6 +117,26 @@ Hardening now in place (sim-verified, awaiting hardware retest):
 Safe flow after every boot: killall MiSTer → v30ctl.py prep → make run →
 v30ctl.py status.
 
+## 2026-07-11 (evening) — HPS bridge verified: full discovery loop live
+
+After the power cycle, the hardened bridge worked first try (prep →
+flash → status, no lockup). Verified end-to-end on hardware:
+
+- `v30ctl.py run boot.bin`: stop → load 64 KB over the bridge → fast
+  restart → capture full → dump, in seconds (vs minutes over JTAG).
+  Results identical to the JTAG-era captures (8-clk reset latency,
+  64-clk boot loop).
+- **Full toolchain loop**: a new program assembled with v30asm
+  (MOV CW,0AAAAh; MOV BW,3000h; loop: MOV [BW],CW; INC CW; BR loop),
+  loaded and run via the bridge — capture shows 161 iterations with the
+  write data incrementing aaaa, aaab, aaac... (live execution proof).
+  Loop period: **25 CPU clocks** for MOV [BW],CW + INC CW + BR short.
+
+The write-test → run-on-silicon → measure loop is fully operational.
+Remaining before suite-grade data: load/store routines (designed,
+docs/notes/loadstore_design.md), RQ/AK rework for large mode + queue
+status.
+
 **Tooling notes:**
 - `read_content_from_memory` returns content highest-address-first; bulk
   reads intermittently return all-zeros on Quartus 17.1 even with re-read
