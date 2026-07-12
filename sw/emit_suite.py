@@ -77,7 +77,8 @@ def SPEC(key, mnem, base, modrm=None, w=0, imm=0, group=None,
          string1=None, rep=False, segpfx=None, io_port=False,
          io_dx=False, clcount=False, shiftimm=False, bcdbase=False,
          swint=None, membytes=None, memonly=False, popmem=False,
-         chkind=False, prep=False, dispose=False):
+         chkind=False, prep=False, dispose=False, regonly=False,
+         insext=None, popf=False, pushr=False, popr=False):
     return dict(key=key, mnem=mnem, base=base, modrm=modrm, w=w, imm=imm,
                 group=group, stack=stack, divtrap=divtrap,
                 string4s=string4s, imm_mask=imm_mask, branch=branch,
@@ -86,7 +87,8 @@ def SPEC(key, mnem, base, modrm=None, w=0, imm=0, group=None,
                 io_dx=io_dx, clcount=clcount, shiftimm=shiftimm,
                 bcdbase=bcdbase, swint=swint, membytes=membytes,
                 memonly=memonly, popmem=popmem, chkind=chkind, prep=prep,
-                dispose=dispose)
+                dispose=dispose, regonly=regonly, insext=insext,
+                popf=popf, pushr=pushr, popr=popr)
 
 
 ALU = ["add", "or", "adc", "sbb", "and", "sub", "xor", "cmp"]
@@ -197,6 +199,87 @@ for _i, _bm in enumerate(("test1", "clr1", "set1", "not1")):
             OPCODES[k2] = SPEC(k2, f"{_bm} imm", [0x0F, _im],
                                modrm="grp16" if _w else "grp8", group=0,
                                w=_w, imm=1, imm_mask=0x0F if _w else 0x07)
+# full Jcc set (70-7F; 74/75/7C keep their original entries)
+JCC_NAMES = ["bv", "bnv", "bc", "bnc", "be", "bne", "bnh", "bh",
+             "bn", "bp", "bpe", "bpo", "blt", "bge", "ble", "bgt"]
+for _cc in range(16):
+    _k = f"{0x70 + _cc:02X}"
+    if _k not in OPCODES:
+        OPCODES[_k] = SPEC(_k, JCC_NAMES[_cc], [0x70 + _cc], branch="jcc")
+# LOOPE/LOOPNE/JCXZ (DBNZE/DBNZNE/BCWZ)
+OPCODES["E1"] = SPEC("E1", "dbnze", [0xE1], branch="loopz")
+OPCODES["E0"] = SPEC("E0", "dbnzne", [0xE0], branch="loopnz")
+OPCODES["E3"] = SPEC("E3", "bcwz", [0xE3], branch="jcxz")
+# ALU acc,imm (04..3C / 05..3D)
+for _i, _m in enumerate(ALU):
+    _b8, _b16 = _i * 8 + 4, _i * 8 + 5
+    OPCODES[f"{_b8:02X}"] = SPEC(f"{_b8:02X}", f"{_m} al,imm8", [_b8],
+                                 imm=1)
+    OPCODES[f"{_b16:02X}"] = SPEC(f"{_b16:02X}", f"{_m} aw,imm16",
+                                  [_b16], imm=2)
+# TEST family
+OPCODES["84"] = SPEC("84", "test", [0x84], modrm="mr8", w=0)
+OPCODES["85"] = SPEC("85", "test", [0x85], modrm="mr16", w=1)
+OPCODES["A8"] = SPEC("A8", "test al,imm8", [0xA8], imm=1)
+OPCODES["A9"] = SPEC("A9", "test aw,imm16", [0xA9], imm=2)
+# F6/F7 remaining groups: TEST imm / NOT / NEG / MULU16 / MUL(signed)
+OPCODES["F6.0"] = SPEC("F6.0", "test b,imm8", [0xF6], modrm="grp8",
+                       group=0, imm=1)
+OPCODES["F7.0"] = SPEC("F7.0", "test w,imm16", [0xF7], modrm="grp16",
+                       group=0, w=1, imm=2)
+for _g, _m in ((2, "not"), (3, "neg"), (5, "mul")):
+    OPCODES[f"F6.{_g}"] = SPEC(f"F6.{_g}", f"{_m} b", [0xF6],
+                               modrm="grp8", group=_g)
+    OPCODES[f"F7.{_g}"] = SPEC(f"F7.{_g}", f"{_m} w", [0xF7],
+                               modrm="grp16", group=_g, w=1)
+OPCODES["F7.4"] = SPEC("F7.4", "mulu w", [0xF7], modrm="grp16", group=4,
+                       w=1)
+# IMUL reg,rm,imm
+OPCODES["69"] = SPEC("69", "mul r,rm,imm16", [0x69], modrm="rm16", w=1,
+                     imm=2)
+OPCODES["6B"] = SPEC("6B", "mul r,rm,simm8", [0x6B], modrm="rm16", w=1,
+                     imm=1)
+# XCHG AW,reg + NOP
+OPCODES["90"] = SPEC("90", "nop", [0x90])
+for _r in range(1, 8):
+    _k = f"{0x90 + _r:02X}"
+    OPCODES[_k] = SPEC(_k, f"xch aw,{REG16[_r]}", [0x90 + _r])
+# PUSH/POP sreg, PUSHF/POPF, LAHF/SAHF, PUSH imm, PUSH R/POP R
+for _s, _nm in ((0, "ds1"), (2, "ss"), (3, "ds0")):
+    OPCODES[f"{6 + _s * 8:02X}"] = SPEC(f"{6 + _s * 8:02X}",
+                                        f"push {_nm}", [6 + _s * 8],
+                                        stack=True)
+    OPCODES[f"{7 + _s * 8:02X}"] = SPEC(f"{7 + _s * 8:02X}",
+                                        f"pop {_nm}", [7 + _s * 8],
+                                        stack=True, popmem=True)
+OPCODES["0E"] = SPEC("0E", "push ps", [0x0E], stack=True)
+OPCODES["9C"] = SPEC("9C", "push psw", [0x9C], stack=True)
+OPCODES["9D"] = SPEC("9D", "pop psw", [0x9D], stack=True, popf=True)
+OPCODES["9E"] = SPEC("9E", "mov psw,ah", [0x9E])
+OPCODES["9F"] = SPEC("9F", "mov ah,psw", [0x9F])
+OPCODES["68"] = SPEC("68", "push imm16", [0x68], imm=2, stack=True)
+OPCODES["6A"] = SPEC("6A", "push simm8", [0x6A], imm=1, stack=True)
+OPCODES["60"] = SPEC("60", "push r", [0x60], pushr=True)
+OPCODES["61"] = SPEC("61", "pop r", [0x61], popr=True)
+# CY/direction/IE flag ops
+for _b, _nm in ((0xF5, "not1 cy"), (0xF8, "clr1 cy"), (0xF9, "set1 cy"),
+                (0xFC, "clr1 dir"), (0xFD, "set1 dir"),
+                (0xFA, "di"), (0xFB, "ei")):
+    OPCODES[f"{_b:02X}"] = SPEC(f"{_b:02X}", _nm, [_b])
+# FPO2 (66/67)
+OPCODES["66"] = SPEC("66", "fpo2.0", [0x66], modrm="rm16", w=1)
+OPCODES["67"] = SPEC("67", "fpo2.1", [0x67], modrm="rm16", w=1)
+# INS/EXT bit-field forms (register + imm4 length)
+OPCODES["0F31"] = SPEC("0F31", "ins", [0x0F, 0x31], modrm="rm8",
+                       regonly=True, insext="ins")
+OPCODES["0F33"] = SPEC("0F33", "ext", [0x0F, 0x33], modrm="rm8",
+                       regonly=True, insext="ext")
+OPCODES["0F39"] = SPEC("0F39", "ins imm4", [0x0F, 0x39], modrm="grp8",
+                       group=0, regonly=True, imm=1, imm_mask=0x0F,
+                       insext="ins")
+OPCODES["0F3B"] = SPEC("0F3B", "ext imm4", [0x0F, 0x3B], modrm="grp8",
+                       group=0, regonly=True, imm=1, imm_mask=0x0F,
+                       insext="ext")
 # 0F BCD strings + ROR4
 OPCODES["0F22"] = SPEC("0F22", "sub4s", [0x0F, 0x22], string4s=True)
 OPCODES["0F26"] = SPEC("0F26", "cmp4s", [0x0F, 0x26], string4s=True)
@@ -458,7 +541,8 @@ def gen_case(spec, rng):
         name = spec["mnem"]
         ram = []
         if spec["modrm"]:
-            mod = rng.randrange(3) if (spec["lea"] or spec["memonly"]) \
+            mod = 3 if spec["regonly"] else \
+                rng.randrange(3) if (spec["lea"] or spec["memonly"]) \
                 else rng.randrange(4)
             rm = rng.randrange(8)
             if spec["sreg"] == "st":
@@ -550,7 +634,7 @@ def gen_case(spec, rng):
             br = spec["branch"]
             taken = True
             sd = 0
-            if br in ("jmp8", "jcc", "loop"):
+            if br in ("jmp8", "jcc", "loop", "loopz", "loopnz", "jcxz"):
                 d8 = rng.getrandbits(8)
                 instr += bytes([d8])
                 sd = d8 - 0x100 if d8 & 0x80 else d8
@@ -563,9 +647,28 @@ def gen_case(spec, rng):
             fall = (regs["ip"] + len(instr)) & 0xFFFF
             if br == "jcc":
                 f = regs["flags"]
+                cf, pf = f & 1, (f >> 2) & 1
                 zf, sf, of = (f >> 6) & 1, (f >> 7) & 1, (f >> 11) & 1
-                taken = {0x74: zf == 1, 0x75: zf == 0,
-                         0x7C: (sf ^ of) == 1}[spec["base"][0]]
+                cc = spec["base"][0] & 0x0F
+                base_t = [of == 1, of == 0, cf == 1, cf == 0,
+                          zf == 1, zf == 0, cf | zf == 1, cf | zf == 0,
+                          sf == 1, sf == 0, pf == 1, pf == 0,
+                          (sf ^ of) == 1, (sf ^ of) == 0,
+                          ((sf ^ of) | zf) == 1,
+                          ((sf ^ of) | zf) == 0][cc]
+                taken = bool(base_t)
+            elif br == "jcxz":
+                if rng.random() < 0.4:
+                    regs["cx"] = 0
+                taken = (regs["cx"] & 0xFFFF) == 0
+            elif br in ("loopz", "loopnz"):
+                if rng.random() < 0.3:
+                    regs["cx"] = 1                     # cx side not taken
+                elif (regs["cx"] & 0xFFFF) < 2:
+                    regs["cx"] = rng.randrange(2, 0x10000)
+                zf = (regs["flags"] >> 6) & 1
+                taken = ((regs["cx"] - 1) & 0xFFFF) != 0 and \
+                    (zf == 1 if br == "loopz" else zf == 0)
             elif br == "loop":
                 if rng.random() < 0.3:
                     regs["cx"] = 1                     # not taken
@@ -580,7 +683,7 @@ def gen_case(spec, rng):
                 next_ip = (fall + sd) & 0xFFFF if taken else fall
             if br in ("jmp8", "jmp16", "call"):
                 name += f" {next_ip:04x}h"
-            elif br == "jcc" or br == "loop":
+            elif br in ("jcc", "loop", "loopz", "loopnz", "jcxz"):
                 name += f" {(fall + sd) & 0xFFFF:04x}h" + \
                         ("" if taken else " (not taken)")
             elif spec["key"] == "C2":
@@ -707,6 +810,29 @@ def gen_case(spec, rng):
                                (lin("ds", regs["si"]) & 0xFFFF) + n))
             spans.append(range(lin("es", regs["di"]) & 0xFFFF,
                                (lin("es", regs["di"]) & 0xFFFF) + n))
+        if spec["insext"]:
+            # INS: bit field to DS1:IY; EXT: bit field from DS0:IX.
+            # Offset (rm-field reg8) and register-form length (reg-field
+            # reg8) constrained to 0-15 for this tranche (silicon uses
+            # the low 4 bits; wider values deferred)
+            mb = instr[2]
+
+            def s8(i, v):
+                r16 = REG16[i & 3]
+                if i & 4:
+                    regs[r16] = (regs[r16] & 0x00FF) | (v << 8)
+                else:
+                    regs[r16] = (regs[r16] & 0xFF00) | v
+            s8(mb & 7, rng.randrange(16))
+            if spec["imm"] == 0:
+                s8((mb >> 3) & 7, rng.randrange(16))
+            iseg, ibase = ("es", "di") if spec["insext"] == "ins" \
+                else ("ds", "si")
+            for k in range(6):
+                ram.append((lin(iseg, regs[ibase] + k),
+                            rng.getrandbits(8)))
+            ilo = lin(iseg, regs[ibase]) & 0xFFFF
+            spans.append(range(ilo, ilo + 6))
         if spec["prep"]:
             # PREPARE size16, level8: push BP (+ level-1 frame temps
             # read at BP-2k + the new frame ptr); SP -= size after
@@ -735,6 +861,19 @@ def gen_case(spec, rng):
         if spec["key"] == "58" or spec["popmem"]:   # POP reads [ss:sp]
             ram.append((lin("ss", regs["sp"]), rng.getrandbits(8)))
             ram.append((lin("ss", regs["sp"] + 1), rng.getrandbits(8)))
+        if spec["popf"]:      # POP PSW: normalized image, BRK=0
+            pfv = (rng.getrandbits(16) & 0x0ED5) | 0xF002
+            ram.append((lin("ss", regs["sp"]), pfv & 0xFF))
+            ram.append((lin("ss", regs["sp"] + 1), pfv >> 8))
+            name += f" ({pfv:04x})"
+        if spec["pushr"]:     # PUSH R: 8 words at sp-16..sp-1
+            plo = lin("ss", regs["sp"] - 16) & 0xFFFF
+            spans.append(range(plo, plo + 18))
+        if spec["popr"]:      # POP R: 8 words read at sp..sp+15
+            for k in range(16):
+                ram.append((lin("ss", regs["sp"] + k), rng.getrandbits(8)))
+            plo = lin("ss", regs["sp"]) & 0xFFFF
+            spans.append(range(plo, plo + 16))
         if spec["stack"]:
             lo = (lin("ss", regs["sp"] - 8)) & 0xFFFF
             spans.append(range(lo, lo + 12))
