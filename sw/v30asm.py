@@ -101,6 +101,14 @@ def parse_operand(text):
             raise AsmError(f"unencodable address {text!r}")
         return Operand("mem", direct=False, mem=MEM_COMBO[key], regs=key,
                        disp=disp, has_disp=has_disp, force=force)
+    # far pointer seg:offset (both numeric)
+    m = re.fullmatch(r"([^:\s]+)\s*:\s*([^:\s]+)", t)
+    if m:
+        try:
+            return Operand("farptr", seg=parse_int(m.group(1)),
+                           off=parse_int(m.group(2)))
+        except ValueError:
+            pass
     # immediate or label
     try:
         return Operand("imm", value=parse_int(t))
@@ -140,6 +148,8 @@ def atom_match(atom, op, mnemonic):
         return 0
     if a == "CL" and k == "reg8" and op.reg == 1:
         return 0
+    if a in ("far-label", "far-proc") and k == "farptr":
+        return 1
     if a == "short-label" and k in ("label", "imm"):
         return 1
     if a in ("near-label", "near-proc") and k in ("label", "imm"):
@@ -379,6 +389,12 @@ class Assembler:
                 continue
             if t in ("addr-high",):
                 body.append((memop.disp >> 8) & 0xFF)
+                continue
+            if t in ("offset-low", "offset-high", "seg-low", "seg-high"):
+                fp = next(o for o in ops if o.kind == "farptr")
+                v = {"offset-low": fp.off, "offset-high": fp.off >> 8,
+                     "seg-low": fp.seg, "seg-high": fp.seg >> 8}[t]
+                body.append(v & 0xFF)
                 continue
             if t == "imm3" or t == "imm4":
                 body.append(immop[1].value & 0xFF)

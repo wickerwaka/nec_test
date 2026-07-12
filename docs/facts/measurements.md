@@ -71,6 +71,23 @@ max mode via CFG.small_mode=0 → S/LG̅ low).
   drive decode as phantom INTA transactions in max mode (BS floats to 000),
   analogous to the small-mode phantom reads. Parser must tolerate.
 
+## State injection/extraction verified (2026-07-11, max mode)
+
+- **Register echo test passes**: all 8 GPRs, all 4 segment registers, PSW,
+  and PC injected via the load routine (POP PSW + MOV sequence +
+  terminal far jump) and extracted via OUT-port stores read back exactly
+  (sw/v30run.py echo).
+- **PSW writable bits**: patterns exercising V/DIR/IE/S/Z/AC/P/CY all echo
+  with zero diff after normalization (psw = (req & 0x0ED5) | 0xF002).
+  Reserved bits (15:12 forced 1, 5/3 forced 0, 1 forced 1) read back as
+  forced. NOT yet probed: whether bit 15 (MD) can be cleared by POP PSW in
+  native mode — deferred until a recovery path for accidental
+  8080-emulation entry exists.
+- **Word OUT to an odd port splits into two byte I/O cycles** (measured:
+  OUT 0xFD,AW produced byte writes at 0xFD and 0xFE, operand low byte
+  first on the upper lane) — same split rule as odd memory words. Harness
+  convention: keep exfiltration ports even.
+
 ## Divide-overflow semantics (prior work, large context)
 
 - MAME's divide-overflow behavior for V30 (CY/V = !overflow, registers
