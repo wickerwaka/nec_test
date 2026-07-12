@@ -342,7 +342,9 @@ def check_case(c, sim, flags_mask):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--build", action="store_true")
-    ap.add_argument("--opcodes", default=",".join(DEFAULT_OPS))
+    ap.add_argument("--opcodes", default="all",
+                    help="comma list; 'all' = every form in the suite "
+                         "dir; 'legacy' = the historic DEFAULT_OPS")
     ap.add_argument("--cases", type=int, default=0, help="0 = all")
     ap.add_argument("--variant", choices=["all", "cold", "pf"],
                     default="all")
@@ -362,8 +364,15 @@ def main():
         meta_fn = SUITE / "metadata.json"
     meta = json.load(open(meta_fn))
 
+    if args.opcodes == "all":
+        ops = sorted(p.name[:-8] for p in suite.glob("*.json.gz"))
+    elif args.opcodes == "legacy":
+        ops = DEFAULT_OPS
+    else:
+        ops = args.opcodes.split(",")
+
     grand = Counter()
-    for op in args.opcodes.split(","):
+    for op in ops:
         fn = suite / f"{op}.json.gz"
         if not fn.exists():
             print(f"{op}: no suite file")

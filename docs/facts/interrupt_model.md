@@ -175,18 +175,51 @@ passing corpus (v30_eu.sv / v30_biu.sv are the executable reference).
   boundaries (>= 2) are write-accept-anchored: decision at the accept
   edge, flush at accept+9, as before.
 
-### Known residuals (documented, not yet modeled)
+### Known residuals
 
-- **POP PSW + interrupt at its own boundary** (INT.9D, 53/200): the
-  tranche splits into two classes - final live PSW = popped value
-  (majority, modeled) vs = PRE-pop value (both with IE/BRK cleared; the
-  pushed PSW is the popped value in both classes). Identical stimulus
-  timing signatures show both classes, so the discriminator is a data
-  or deeper-state condition; needs targeted bench sweeps.
-- ~~REP STM abort flush slot~~ RESOLVED (closure block): the apparent
-  +-1 was the write-accept slot floating beneath a pop-anchored
-  first-boundary decision/flush - see "REP abort, FIRST boundary is
-  pop-anchored" above. INT.F3AA is 200/200.
+None. Both block-4 residuals are resolved (closure block); the whole
+interrupt corpus is cycle- and state-exact.
+
+- ~~REP STM abort flush slot~~ RESOLVED: the apparent +-1 was the
+  write-accept slot floating beneath a pop-anchored first-boundary
+  decision/flush - see "REP abort, FIRST boundary is pop-anchored"
+  above. INT.F3AA is 200/200.
+- ~~POP PSW boundary race~~ RESOLVED: see the section below.
+
+### POP PSW boundary race (closure block: RESOLVED, exhaustively measured)
+
+- When INT recognition lands on POP PSW's own boundary (or one NOP
+  later - same law, 7/7 tranche late races) with **pre-pop IE=1**, the
+  final LIVE PSW is either the popped image (class A) or the PRE-pop
+  image (class B), IE/BRK cleared either way; the pushed PSW is the
+  popped image in both classes, pushed PC = IP+1 (POP retires fully
+  either way).
+- The class is **deterministic in the two flag words' data** and
+  nothing else: single-bit flips of pre.DIR / pre.P / pop.S flip the
+  class at bit-identical bus timing; register values are inert (bench
+  factorial + 21/21 repeatability check).
+- The law resists compact algebra: not GF(2)-linear or quadratic, no
+  <=4-variable dependence, no masked compare/carry predicate fits; the
+  ANF of the full table has ~2000 terms up to degree 13 and the
+  function is asymmetric in (pre, pop). Implemented as the
+  exhaustively measured 2^14 truth table over {V,DIR,S,Z,AC,P,CY} of
+  both words (hdl/rtl/core/int9d_race.hex; provenance
+  docs/facts/int9d_race_table.json.gz; one board run per cell at the
+  d=5 own-boundary geometry, corrupted cells re-measured).
+- pre-IE=0 pops never race (recognition waits for the popped IE;
+  89/89 class A in the tranche).
+- **Ghost pending INT** (224 table cells at specific pop patterns,
+  e.g. pop {Z,S,DIR,V}): the entry ALSO fails to clear the internal
+  INT-pending latch. Architectural state = class A (verified on the
+  bus: normal pushes, store-routine PSW capture = pop & ~(IE|BRK)),
+  but any later IE=1 re-dispatches a spurious INTA with the pin long
+  released, and HALT falls through via the masked-INT resume path.
+  Out of scope for the golden windows (they close at handler entry);
+  flagged for Campaign 4 A/B runs. The ghost is also why 3 tranche
+  finals (INT.9D idx 45/94, INT.FB idx 55) carried corrupted
+  extractions: the run loops through the loader and the last
+  scratch-page write is no longer the PSW capture. All three patched
+  from the measured table/law.
 
 ## Priority / notes
 

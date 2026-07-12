@@ -270,6 +270,28 @@ reg         pop_pend;            // POP PSW committed early; an interrupt
 reg  [2:0]  ie_p;                // IE history: the boundary decision
                                  // uses IE@B-3 (this delay IS the EI /
                                  // POP-PSW enable shadow - measured)
+
+// POP-PSW boundary-race law (closure block): when INT recognition
+// lands on POP PSW's own boundary, the LIVE flags commit either the
+// popped value (class A) or the pre-pop value (class B), IE/BRK
+// cleared either way; the pushed PSW is the popped value in both.
+// DETERMINISTIC in the two flag words' data (proved by bench
+// factorial at fixed timing), but algebraically dense (ANF ~2000
+// terms, asymmetric, high-order) - implemented as the exhaustively
+// measured 2^14 truth table (one bit per (pre,pop) flag-bit pair;
+// provenance docs/facts/int9d_race_table.json.gz). Address =
+// {pre,pop} x {V,DIR,S,Z,AC,P,CY}. Cells where the silicon also
+// leaves the INT-pending latch set (ghost re-dispatch once IE=1;
+// arch state = class A) are stored as A; the ghost latch itself is
+// out of scope for the golden windows (see interrupt_model.md).
+reg [15:0] race_rom [0:1023];
+initial $readmemh("hdl/rtl/core/int9d_race.hex", race_rom);
+wire [6:0] r9d_pre = {psw_old[11], psw_old[10], psw_old[7],
+                      psw_old[6], psw_old[4], psw_old[2], psw_old[0]};
+wire [6:0] r9d_pop = {psw[11], psw[10], psw[7],
+                      psw[6], psw[4], psw[2], psw[0]};
+wire [13:0] r9d_addr = {r9d_pre, r9d_pop};
+wire race_B = race_rom[r9d_addr[13:4]][r9d_addr[3:0]];
 reg [15:0]  insn_ip;             // first byte of the current instruction
                                  // INCLUDING prefixes (REP resume point)
 reg  [7:0]  ivt_vec;             // vector for the S_TRAP_IVT1 chain
@@ -1070,7 +1092,15 @@ always_ff @(posedge clk) begin
                     irq_disp <= 1'b0;
                     eu_kind  <= K_MEM;
                     halt_disp <= (q_byte == 8'hF4);
-                    pop_pend <= 1'b0;
+                    // the POP-PSW provisional window SURVIVES across
+                    // intervening NOPs (measured: d=9/10 tranche cases
+                    // recognized one boundary late still revert to the
+                    // pre-pop image per the race table). Physically the
+                    // pre-pop latch lives until the next flags write;
+                    // only NOP margins are exercised by the corpus, so
+                    // clear on any non-NOP opcode (wider spans are
+                    // mission-S fuzz territory)
+                    if (q_byte != 8'h90) pop_pend <= 1'b0;
                     // EI/DI commit IE when the NEXT opcode byte is
                     // present: at the pop edge if a byte remains, else
                     // when the queue refills (measured on dry-queue EI)
@@ -2249,13 +2279,20 @@ always_ff @(posedge clk) begin
                 // the live IE/TF at once - the PS status bits of the push
                 // cycles already show IE=0 (measured)
                 trap_psw <= psw;
-                // KNOWN RESIDUAL (block 4): when the interrupt lands on
-                // POP PSW's own boundary the silicon splits ~50/50
-                // between keeping the popped value and reverting to the
-                // pre-pop value (with IE/BRK cleared); the discriminator
-                // is not timing (identical stimulus signatures show both
-                // classes). Majority rule implemented: popped value kept.
-                psw <= psw & ~16'h0300;
+                // POP-PSW boundary race (closure block): pop_pend marks
+                // recognition at POP PSW's own boundary; the measured
+                // race table picks class B (revert to the pre-pop
+                // image) vs class A (keep the popped image) from the
+                // two flag words - see the race_rom declaration
+                // the revert needs pre-IE=1 (a pre-IE=0 pop cannot race:
+                // recognition waited for the popped IE, silicon commits
+                // the popped image; measured 89/89) - and the same
+                // table covers own-boundary AND one-NOP-late
+                // recognitions (7/7 tranche late races)
+                if (pop_pend && psw_old[9] && race_B)
+                    psw <= psw_old & ~16'h0300;
+                else
+                    psw <= psw & ~16'h0300;
                 pop_pend <= 1'b0;
                 dly <= 6'd2; state <= S_TRAP_W1;
             end
