@@ -34,7 +34,7 @@ Retire entries by moving them to `docs/facts/` files with provenance (datasheet 
 
 ### Q6: Decode time per opcode?
 - Datasheets give execution clocks but not decode latency. Measure instruction-start-to-first-effect via queue status + bus activity for every opcode.
-- **Status**: IN PROGRESS — 113-form starter sweep measured 2026-07-11 (sw/sweep_timing.py, docs/facts/timing_measured.json; class-consistent deviation summary in measurements.md). MUL/MULU fully characterized (data-independence + signed sign-fixup rule, biu_model.md). Remaining: control flow, string ops, I/O, BCD, CALL/RET/BRK, mem,CL shift forms, odd-aligned operands.
+- **Status**: LARGELY ANSWERED — 306 measured forms in docs/facts/timing_measured.json (missions 1-5, 10): ALU/MOV/stack/control flow/strings/REP/BCD/I-O/bit-ops/0F set/traps/prefixes/alignment; class-consistent deviation tables in measurements.md; prefix cost characterized as a pipeline event (own F pop, absorbable by a following EA op). Remaining: POLL (needs pin-event infra), interrupt-entry timing (Q14), and per-form gaps surfaced during suite emission.
 
 ### Q7: When exactly does a jump flush the queue, and what is the refetch penalty?
 - **Status**: ANSWERED (exp 2): flush→fetch-T1 = 1 cycle, flush→first-byte-consumed = 6 cycles, both parities; odd targets get a 1-byte first fetch.
@@ -50,11 +50,11 @@ Retire entries by moving them to `docs/facts/` files with provenance (datasheet 
 
 ### Q11: Undefined flag behavior per opcode?
 - V20 SingleStepTests metadata.json has masks; verify V30 matches V20.
-- **Status**: ANSWERED (2026-07-11, mission 8) — every U-flag class measured
-  and classified in `docs/facts/undefined_flags.md` (preserved / constant /
-  SZP-of-result / operand-dependent with samples). Remaining follow-up:
-  unmasked comparison against the V20 suite's raw flag values to confirm
-  exact V20==V30 undefined-flag equality (expected per suite notes).
+- **Status**: ANSWERED (2026-07-11, missions 8+12) — every U-flag class
+  measured and classified in `docs/facts/undefined_flags.md` (preserved /
+  constant / SZP-of-result / operand-dependent with samples), and the
+  unmasked V20 comparison passed 75/75 (pilot_v20.py --raw-flags): **V30
+  undefined-flag behavior is bit-exact with V20**.
 
 ### Q12: Undocumented 0F-range opcodes and invalid-form behavior?
 - **Status**: MEASURED (2026-07-11, mission 9) — 16-byte spread survey in
