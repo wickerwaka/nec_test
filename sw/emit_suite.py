@@ -598,10 +598,13 @@ def cmd_emit(host, opcodes, n_cases, out_dir, seed_base, preload_n):
         while len(tests) < n_cases and rerolls < n_cases * 3:
             rng = random.Random(f"{seed_base}/{op}/{i}")
             i += 1
+            # V20 convention: every other case runs from a full queue
+            pn = preload_n if preload_n >= 0 else \
+                (2 if len(tests) % 2 == 1 else 0)
             try:
                 case = gen_case(spec, rng)
                 t = emit_case(spec, case, host, tag=f"em{op}",
-                              preload_n=preload_n)
+                              preload_n=pn)
             except (ComposeError, RunError) as e:
                 rerolls += 1
                 with log.open("a") as f:
@@ -630,8 +633,10 @@ def main():
     ap.add_argument("--cases", type=int, default=500)
     ap.add_argument("--out", default=str(DEFAULT_OUT))
     ap.add_argument("--seed", default="v30-v0.1")
-    ap.add_argument("--preload", type=int, default=0,
-                    help="prefetched variants: N 63C0 preload repetitions")
+    ap.add_argument("--preload", type=int, default=-1,
+                    help="-1 = alternate non-prefetched / prefetched(N=2) "
+                         "per V20 convention (default); 0 = none; N>0 = "
+                         "always N 63C0 preload repetitions")
     args = ap.parse_args()
     if args.cmd == "validate":
         return cmd_validate(args.host)
