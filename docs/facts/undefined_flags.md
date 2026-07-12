@@ -66,6 +66,18 @@ pattern S=AC=CY=V=0, P=1, with Z tracking quotient==0 (verified with
 quotient-0 cases in both widths). Deterministic, so SingleStepTests-style
 tests will capture them exactly.
 
+**CORRECTION (2026-07-12, Campaign 3): the DIVU "constants" are a
+sampling artifact.** Fitting the full v0.1 F7.6 corpus (500 cases, both
+trap and non-trap) shows the complete law: **DIVU leaves exactly the
+flags of its 16-bit overflow pre-check compare `SUB(DW, divisor)`** —
+all six of S, Z, AC, P, CY, V — and the trap condition is that compare's
+"no borrow" (which also covers divisor=0). The trapped path pushes those
+compare flags as the PSW; the divide loop itself never touches flags.
+For non-trap cases DW < divisor always holds, so the borrow forces CY=1,
+Z=0, and (for this probe's operand mix) S=1/AC=1 — hence the earlier
+constant reading. Verified bit-exact 500/500 by the RTL core replay
+(sw/check_core.py). The DIV (signed) row above has not been re-fitted.
+
 ### Shift/rotate V (the "o" the V20 suite masks)
 All samples fit the 8086's single-step OF formula applied to the **final**
 state:
