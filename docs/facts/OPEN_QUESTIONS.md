@@ -50,13 +50,25 @@ Retire entries by moving them to `docs/facts/` files with provenance (datasheet 
 
 ### Q11: Undefined flag behavior per opcode?
 - V20 SingleStepTests metadata.json has masks; verify V30 matches V20.
-- **Status**: open
+- **Status**: ANSWERED (2026-07-11, mission 8) — every U-flag class measured
+  and classified in `docs/facts/undefined_flags.md` (preserved / constant /
+  SZP-of-result / operand-dependent with samples). Remaining follow-up:
+  unmasked comparison against the V20 suite's raw flag values to confirm
+  exact V20==V30 undefined-flag equality (expected per suite notes).
 
 ### Q12: Undocumented 0F-range opcodes and invalid-form behavior?
-- **Status**: open
+- **Status**: MEASURED (2026-07-11, mission 9) — 16-byte spread survey in
+  `docs/facts/undocumented_0f.md`: no-op class, string/bit-field siblings
+  (0F 24/2C/30), one silent lockup (0F 34), and BRKEM aliases across the
+  whole >=40h sample (vector = third byte, enters 8080 mode). No
+  invalid-opcode trap. Remaining: denser second-byte map (boundaries of
+  each class), non-0F invalid forms (V20 suite lists halting forms).
 
 ### Q13: 8080 emulation mode (BRKEM) — entry/exit timing, interrupt behavior during emulation, per-8080-opcode timing?
-- **Status**: open
+- **Status**: open — but mission 9 accidentally demonstrated entry semantics
+  (BRKEM aliases push PSW/PS/PC+3, vector=imm8, 8080-mode RST/stack=BP
+  behavior observed in captures). Deliberate work still blocked on a
+  recovery path (RETEM/CALLN handler infrastructure).
 
 ### Q14: Interrupt/NMI/POLL recognition points and priority; string-instruction interruption/resume behavior?
 - **Status**: open

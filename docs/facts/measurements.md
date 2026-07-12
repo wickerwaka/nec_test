@@ -313,6 +313,38 @@ no prefix / DS0: / REP(F3) / DS0:+REP pushes 0502/0503/0503/0504 for
 the instruction starting at 0500. No restart semantics on V30 divide
 traps, prefixes are not dropped from the accounting.
 
+## Undefined-flag survey (2026-07-11, mission 8)
+
+sw/probe_flags.py: 53 cases / 275 runs covering every U-flag class in
+instructions.json; full classification in docs/facts/undefined_flags.md
+(provenance: sw/testdata/flags_log.jsonl, flags_report.json). Headlines:
+
+- **MULU preserves its four undefined flags** (S/Z/AC/P pass through);
+  signed MUL overwrites them with microcode residue matching no simple
+  function of the result (e.g. Z=1 with product C080h).
+- **DIVU forces S=1 AC=1 CY=1 Z=0 V=0; DIV forces S=AC=CY=V=0 P=1 and
+  Z=(quotient==0)** — complementary constant patterns.
+- **Shift/rotate undefined V follows the single-step OF formula on the
+  final state** (left: MSB^CY; right: top-two-bits XOR); count=0
+  preserves all flags; shifter AC is always 0, as is logic-op AC.
+- **NOT1/CLR1/SET1 (CY and 0F reg forms): "undefined" = untouched.**
+- **TEST1 sets S/Z/P of the masked test value.**
+- **ADD4S/SUB4S/CMP4S: S=AC=CY(out), P=Z(out), V=0** (7 configurations).
+
+## Undocumented 0F survey (2026-07-11, mission 9)
+
+sw/probe_0f.py (all + followup): 16 spread second bytes + raw-capture
+classification; docs/facts/undocumented_0f.md (provenance:
+sw/testdata/0f_log.jsonl). Headlines:
+
+- 0F 00/04/08/0C/21/27: 2-byte no-ops. 0F 24: CMP4S-like string read
+  (2 bytes); 0F 2C / 0F 30: modrm-consuming ops that RMW a byte at [IY]
+  (INS/ROR4-family siblings). 0F 34: **silent lockup**, no HALT bus state.
+- **0F 40/60/80/A0/C0/E4 are BRKEM aliases** (`0F xx imm8`): push
+  PSW/PS/PC+3, vector = imm8, clear MD, enter 8080 emulation mode —
+  proven by the stub byte E7 executing as 8080 RST 4 (push to BP-stack,
+  jump 0020h). No invalid-opcode trap exists in the 0F space.
+
 ## Divide-overflow semantics (prior work, large context)
 
 - MAME's divide-overflow behavior for V30 (CY/V = !overflow, registers
