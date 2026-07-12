@@ -153,7 +153,108 @@ OPCODES["36.8B"] = SPEC("36.8B", "mov", [0x36, 0x8B], modrm="rm16", w=1,
 OPCODES["3E.8B"] = SPEC("3E.8B", "mov", [0x3E, 0x8B], modrm="rm16", w=1,
                         segpfx="ds")
 
+OPCODES["E4"] = SPEC("E4", "in al,", [0xE4], imm=1)
+OPCODES["E5"] = SPEC("E5", "in ax,", [0xE5], imm=1)
+OPCODES["EC"] = SPEC("EC", "in al, dx", [0xEC])
+OPCODES["ED"] = SPEC("ED", "in ax, dx", [0xED])
+IO_IN_OPS = {"E4", "E5", "EC", "ED"}
+
 BRANCH_OPS = ["EB", "E9", "74", "75", "7C", "E2", "E8", "C3", "C2"]
+
+#----------------------------------------------------------------------------
+# pin-event (interrupt/NMI/POLL/HALT) forms - Campaign 3 block 4
+#----------------------------------------------------------------------------
+# JSON extensions per test:
+#   "evt":  {"pin": 0|1|2, "hold": H, "trigger": "fetch"|"fpop",
+#            "addr": linear (fetch mode), "delay": D}
+#     fetch: pin asserted during cycle idx(CODE T1 at addr) + 2 + D
+#            (the harness scheduler law; cold variants)
+#     fpop:  pin asserted during cycle idx(window-opening F pop) + D,
+#            D >= 0 (prefetched variants: the preload instructions do
+#            not exist in TB replay, so no fetch anchor is available)
+#   "pins": static pin levels before the event {"poll_n": 1}
+#   "iord": 16-bit data the system returns for I/O reads (IN forms)
+# Vectored forms point the IVT entry directly at the store stub; the
+# row window closes at the first F pop FROM that address (the handler
+# entry) instead of a fixed pop count.
+def EVT(key, mnem, pin, hold, dmin, dmax, ie=None, vec=0xFF,
+        close="handler", pins=0, builder=None):
+    return dict(key=key, mnem=mnem, pin=pin, hold=hold, dmin=dmin,
+                dmax=dmax, ie=ie, vec=vec, close=close, pins=pins,
+                builder=builder, evtform=True)
+
+
+def _b_nop(rng, regs):
+    return bytes([0x90]), [], "nop"
+
+
+def _b_b8(rng, regs):
+    v = rng.getrandbits(16)
+    return bytes([0xB8]) + v.to_bytes(2, "little"), [], f"mov ax, {v:04x}h"
+
+
+def _b_movss(rng, regs):
+    return bytes([0x8E, 0xD0]), [], "mov ss, ax"
+
+
+def _b_movds(rng, regs):
+    return bytes([0x8E, 0xD8]), [], "mov ds, ax"
+
+
+def _b_ei(rng, regs):
+    return bytes([0xFB]), [], "ei"
+
+
+def _b_poppsw(rng, regs):
+    # popped image: normalized, IE forced 1 (never TF/MD games)
+    v = (rng.getrandbits(16) & 0x0ED5) | 0xF202
+    lin = ((regs["ss"] << 4) + regs["sp"]) & 0xFFFFF
+    ram = [(lin, v & 0xFF), ((lin + 1) & 0xFFFFF, v >> 8)]
+    return bytes([0x9D]), ram, f"pop psw ({v:04x})"
+
+
+def _b_repstm(rng, regs):
+    regs["cx"] = rng.randrange(1, 5)
+    return bytes([0xF3, 0xAA]), [], f"rep stosb (cx={regs['cx']})"
+
+
+def _b_halt(rng, regs):
+    return bytes([0xF4]), [], "halt"
+
+
+def _b_poll(rng, regs):
+    return bytes([0x9B]), [], "poll"
+
+
+EVT_FORMS = {
+    "INT.90":   EVT("INT.90", "int", 0, 0, 1, 7, ie=1, builder=_b_nop),
+    "INT.B8":   EVT("INT.B8", "int", 0, 0, 1, 8, ie=1, builder=_b_b8),
+    "INT.8ED0": EVT("INT.8ED0", "int", 0, 0, 1, 8, ie=1,
+                    builder=_b_movss),
+    "INT.8ED8": EVT("INT.8ED8", "int", 0, 0, 1, 8, ie=1,
+                    builder=_b_movds),
+    "INT.FB":   EVT("INT.FB", "int", 0, 0, 1, 6, ie=0, builder=_b_ei),
+    "INT.9D":   EVT("INT.9D", "int", 0, 0, 1, 10, ie=None,
+                    builder=_b_poppsw),
+    "INT.F3AA": EVT("INT.F3AA", "int", 0, 0, 1, 28, ie=1,
+                    builder=_b_repstm),
+    "NMI.90":   EVT("NMI.90", "nmi", 1, 2, 1, 7, ie=None, vec=2,
+                    builder=_b_nop),
+    "NMI.B8":   EVT("NMI.B8", "nmi", 1, 2, 1, 8, ie=None, vec=2,
+                    builder=_b_b8),
+    "HLT.INT":  EVT("HLT.INT", "halt/int", 0, 0, 14, 40, ie=1,
+                    builder=_b_halt),
+    "HLT.NMI":  EVT("HLT.NMI", "halt/nmi", 1, 2, 14, 40, ie=None, vec=2,
+                    builder=_b_halt),
+    "HLT.RES":  EVT("HLT.RES", "halt/resume", 0, 0, 14, 40, ie=0,
+                    close="next", builder=_b_halt),
+    "IE0.90":   EVT("IE0.90", "masked int", 0, 0, 1, 7, ie=0,
+                    close="next", builder=_b_nop),
+    "POLL.LO":  EVT("POLL.LO", "poll (low)", None, 0, 0, 0, ie=None,
+                    close="next", builder=_b_poll),
+    "POLL.REL": EVT("POLL.REL", "poll release", 2, 6, 4, 30, ie=None,
+                    close="next", pins=4, builder=_b_poll),
+}
 
 SREG_STR = ["es", "cs", "ss", "ds"]
 
@@ -412,9 +513,260 @@ def gen_case(spec, rng):
                 bad = True
         if bad:
             continue
-        return dict(regs=regs, instr=instr, ram=ram, name=name, ivt=ivt,
-                    next_ip=next_ip)
+        c = dict(regs=regs, instr=instr, ram=ram, name=name, ivt=ivt,
+                 next_ip=next_ip)
+        if spec["key"] in IO_IN_OPS:
+            c["iord"] = rng.getrandbits(16)
+            c["name"] += f" (iord={c['iord']:04x})"
+        return c
     raise ComposeError("could not place case after 64 rerolls")
+
+
+def gen_evt_case(spec, rng):
+    """Random initial state + fixed-ish instruction for a pin-event form.
+    Vectored forms park the store stub at a random location and point
+    the IVT entry straight at it; execution between the test
+    instruction and recognition runs image-fill NOPs."""
+    for _ in range(64):
+        regs = {r: rnd16(rng) for r in REG16}
+        regs["cs"] = rng.getrandbits(16)
+        regs["ip"] = rng.getrandbits(16)
+        for sr in ("ds", "es", "ss"):
+            regs[sr] = rng.getrandbits(16)
+        f = (rng.getrandbits(16) & 0x0ED5) | 0xF002
+        if spec["ie"] is not None:
+            f = (f & ~0x0200) | (0x0200 if spec["ie"] else 0)
+        regs["flags"] = f
+
+        instr, ram, opname = spec["builder"](rng, regs)
+        anchor = ((regs["cs"] << 4) + regs["ip"]) & 0xFFFFF
+        a_phys = anchor & 0xFFFF
+
+        def lin(seg, off):
+            return ((regs[seg] << 4) + (off & 0xFFFF)) & 0xFFFFF
+
+        delay = rng.randrange(spec["dmin"], spec["dmax"] + 1) \
+            if spec["pin"] is not None else 0
+
+        # execution margin: test instr + fill NOPs run until recognition
+        spans = [range(a_phys, a_phys + len(instr) + 24)]
+        ivt = None
+        stub_linear = None
+        if spec["close"] == "handler":
+            stub_linear = rng.randrange(0x0800, 0xEF00) & 0xFFFE
+            ivt = {spec["vec"]: (0x0000, stub_linear)}
+            spans.append(range(4 * spec["vec"], 4 * spec["vec"] + 4))
+            spans.append(range(stub_linear, stub_linear + 24))
+            # interrupt pushes: 3 words below SS:SP; MOV SS,AW moves the
+            # stack to AW:SP before the pushes
+            pss = "ss"
+            pv = regs["ss"]
+            if spec["key"] == "INT.8ED0":
+                pv = regs["ax"]
+            plo = ((pv << 4) + ((regs["sp"] - 6) & 0xFFFF)) & 0xFFFFF
+            spans.append(range(plo & 0xFFFF, (plo & 0xFFFF) + 8))
+            _ = pss
+        # (close="next" forms: the stub sits inside the margin span)
+        if spec["key"] == "INT.9D":
+            # POP PSW read at ss:sp; pushes at sp-4..sp+1 (post-pop SP):
+            # the handler-push span above covers sp-6..sp+1 already
+            pass
+        if spec["key"] == "INT.F3AA":   # STM writes cx bytes from es:di
+            df = (regs["flags"] >> 10) & 1
+            for i in range(regs["cx"]):
+                step = -i if df else i
+                do = (regs["di"] + step) & 0xFFFF
+                spans.append(range(lin("es", do) & 0xFFFF,
+                                   (lin("es", do) & 0xFFFF) + 1))
+
+        bad = False
+        seen = set()
+        for sp in spans:
+            for a in sp:
+                if a in testimage.RESERVED or a in seen:
+                    bad = True
+                    break
+                seen.add(a)
+            if bad:
+                break
+        for a, _v in ram:
+            if (a & 0xFFFF) in testimage.RESERVED:
+                bad = True
+        if bad:
+            continue
+        name = f"{opname} <{spec['mnem']} d={delay}>"
+        return dict(regs=regs, instr=instr, ram=ram, name=name, ivt=ivt,
+                    stub_linear=stub_linear, delay=delay)
+    raise ComposeError("could not place evt case after 64 rerolls")
+
+
+# empirical execution time of one 63 C0 preload (cycles): shifts the
+# pf-variant event delay so the assert still lands around the test
+# instruction (measured: 63 C0 retires in 50 cycles)
+PRELOAD_CYCLES = 50
+
+
+def emit_evt_case(spec, case, host, tag, preload_n=0, waits=0):
+    """Run one pin-event case on hardware, return the suite test object."""
+    nec_regs = {INTEL2NEC[k]: v for k, v in case["regs"].items()}
+    instr = case["instr"]
+    ivt = case["ivt"]
+    anchor = ((case["regs"]["cs"] << 4) + case["regs"]["ip"]) & 0xFFFFF
+
+    if preload_n:
+        nec_regs["PC"] = (nec_regs["PC"] - 2 * preload_n) & 0xFFFF
+        run_instr = PRELOAD_BYTES * preload_n + instr
+    else:
+        run_instr = instr
+
+    if spec["close"] == "handler":
+        stub_linear = case["stub_linear"]
+    else:
+        stub_linear = (anchor + len(instr)) & 0xFFFF
+
+    trig = ((case["regs"]["cs"] << 4) + nec_regs["PC"]) & 0xFFFFF
+    delay_hw = case["delay"] + (PRELOAD_CYCLES * preload_n)
+    evt = None
+    if spec["pin"] is not None:
+        evt = (trig, delay_hw, spec["hold"], spec["pin"])
+    pins = spec["pins"]
+
+    image, meta = testimage.compose(regs=nec_regs, instr=run_instr,
+                                    ram=case["ram"], ivt=ivt,
+                                    stub_linear=stub_linear)
+    recs, fired = run_image(image, host, tag, waits=waits, evt=evt,
+                            iord=None, pins=pins or None, want_fired=True)
+    if evt and not fired:
+        raise RunError("event did not fire")
+    res = parse_result(recs, meta)
+
+    close_addr = stub_linear if spec["close"] == "handler" else None
+    rows, events, i0, i1, q0, qf, fetched, memrd = \
+        build_rows(recs, meta["anchor_linear"], n_skip_f=preload_n,
+                   n_close=1, close_addr=close_addr)
+
+    # event timing for replay: cold cases use the harness fetch-trigger
+    # law; prefetched cases anchor on the window-opening F pop (the
+    # preloads do not exist in TB replay)
+    evt_json = None
+    if evt:
+        if preload_n == 0:
+            evt_json = {"pin": spec["pin"], "hold": spec["hold"],
+                        "trigger": "fetch", "addr": trig,
+                        "delay": case["delay"]}
+        else:
+            t1 = next(r["idx"] for r in recs
+                      if r["t"] == 1 and r["bs_early"] == 4
+                      and r["ad_addr"] == trig)
+            assert_cyc = t1 + 2 + delay_hw
+            fpop0 = events[i0][0]["idx"]
+            d = assert_cyc - fpop0
+            if d < 1:
+                # d=0 (assert exactly at the window-opening pop) is not
+                # schedulable in TB replay; reroll
+                raise RunError(f"pf assert before window ({d})")
+            evt_json = {"pin": spec["pin"], "hold": spec["hold"],
+                        "trigger": "fpop", "delay": d}
+
+    # sanity: vectored forms must push a PC at/after the test instruction
+    if spec["close"] == "handler":
+        writes = window_writes(events, i0, i1)
+        wb = []
+        for t in writes:
+            wb += write_bytes(t)
+        if len(wb) < 6:
+            raise RunError("fewer than 3 pushed words in window")
+        last2 = dict(wb[-2:])
+        lo_a = min(last2)
+        if lo_a + 1 not in last2:
+            raise RunError("PC push bytes not contiguous")
+        pushed_pc = last2[lo_a] | (last2[lo_a + 1] << 8)
+        min_pc = case["regs"]["ip"] if spec["key"] == "INT.F3AA" else \
+            (case["regs"]["ip"] + len(instr)) & 0xFFFF
+        if pushed_pc < min_pc or pushed_pc > min_pc + 12:
+            raise RunError(f"recognition off-window: pushed {pushed_pc:04x}"
+                           f" vs min {min_pc:04x}")
+
+    # initial ram: instr + placed operands + IVT + fill actually read
+    init_ram = []
+    placed = {}
+    for k, b in enumerate(instr):
+        placed[(anchor + k) & 0xFFFFF] = b
+        init_ram.append([(anchor + k) & 0xFFFFF, b])
+    for a, v in case["ram"]:
+        placed[a & 0xFFFFF] = v
+        init_ram.append([a & 0xFFFFF, v])
+    if ivt:
+        for n, (seg, off) in ivt.items():
+            for k, b in enumerate(off.to_bytes(2, "little") +
+                                  seg.to_bytes(2, "little")):
+                placed[4 * n + k] = b
+                init_ram.append([4 * n + k, b])
+    for a in sorted(fetched | memrd):
+        a20 = a & 0xFFFFF
+        if a20 not in placed:
+            v = image[a20 & 0xFFFF]
+            placed[a20] = v
+            init_ram.append([a20, v])
+
+    writes = window_writes(events, i0, i1)
+    mem = dict(placed)
+    fin_ram = []
+    for t in writes:
+        for a, b in write_bytes(t):
+            a20 = a & 0xFFFFF
+            if mem.get(a20) != b:
+                mem[a20] = b
+                fin_ram.append([a20, b])
+
+    got = res["regs"]
+    if got.get("PSW") is None or (got["PSW"] & 0xF002) != 0xF002:
+        # PSW extraction corrupted (stack mirror collided with the
+        # scratch page) - reroll
+        raise RunError(f"implausible final PSW {got.get('PSW')}")
+    fin_regs = {}
+    for ik, nk in INTEL2NEC.items():
+        if ik == "ip":
+            fin_ip = stub_linear if spec["close"] == "handler" else \
+                (case["regs"]["ip"] + len(instr)) & 0xFFFF
+            if fin_ip != case["regs"]["ip"]:
+                fin_regs["ip"] = fin_ip
+        elif ik == "cs":
+            fin_cs = 0x0000 if spec["close"] == "handler" else \
+                case["regs"]["cs"]
+            if fin_cs != case["regs"]["cs"]:
+                fin_regs["cs"] = fin_cs
+        else:
+            g = got.get(nk)
+            if g is not None and g != case["regs"][ik]:
+                fin_regs[ik] = g
+
+    test = {
+        "name": case["name"],
+        "bytes": list(instr),
+        "initial": {
+            "regs": dict(case["regs"]),
+            "ram": init_ram,
+            "queue": q0 if preload_n else [],
+        },
+        "final": {
+            "regs": fin_regs,
+            "ram": fin_ram,
+            "queue": qf,
+        },
+        "cycles": rows,
+    }
+    if evt_json:
+        test["evt"] = evt_json
+    if pins:
+        test["pins"] = pins
+    if spec["close"] == "handler":
+        test["close_addr"] = stub_linear
+    test["hash"] = hashlib.sha1(
+        json.dumps([test["name"], test["bytes"], test["initial"],
+                    test["final"], test["cycles"]],
+                   separators=(",", ":")).encode()).hexdigest()
+    return test
 
 
 #----------------------------------------------------------------------------
@@ -425,12 +777,15 @@ def fetch_width(rec):
     return 2 if (rec["ad_addr"] & 1) == 0 and not rec["ube_n"] else 1
 
 
-def build_rows(recs, anchor_linear, n_skip_f=0, n_close=1):
+def build_rows(recs, anchor_linear, n_skip_f=0, n_close=1,
+               close_addr=None):
     """Walk recs from the test anchor, reconstructing the shadow queue.
     Returns (rows, i0, i1, q_at_start, q_final, fetched, memr_bytes):
     rows = cycle rows for the window [F pop #n_skip_f .. F pop
     #n_skip_f+n_close]; prefixed instructions pop one F per prefix
     byte, so their windows close n_close = 1+nprefix pops later.
+    close_addr (linear): close instead at the first F pop AFTER i0
+    whose byte was fetched from close_addr (interrupt-handler entry).
     fetched/memr = byte addresses read during the window."""
     started = False
     queue = []
@@ -467,10 +822,20 @@ def build_rows(recs, anchor_linear, n_skip_f=0, n_close=1):
         events.append((r, popped, list(queue)))
 
     fpop_is = [i for i, (r, _, _) in enumerate(events) if r["qs"] == 1]
-    if len(fpop_is) < n_skip_f + n_close + 1:
+    if len(fpop_is) < n_skip_f + 2:
         raise RunError(f"only {len(fpop_is)} F pops after anchor")
     i0 = fpop_is[n_skip_f]
-    i1 = fpop_is[n_skip_f + n_close]
+    if close_addr is not None:
+        i1 = next((i for i in fpop_is
+                   if i > i0 and events[i][1] is not None
+                   and events[i][1][0] is not None
+                   and (events[i][1][0] & 0xFFFFF) == close_addr), None)
+        if i1 is None:
+            raise RunError(f"no F pop from close addr {close_addr:05x}")
+    else:
+        if len(fpop_is) < n_skip_f + n_close + 1:
+            raise RunError(f"only {len(fpop_is)} F pops after anchor")
+        i1 = fpop_is[n_skip_f + n_close]
 
     q_at_start = [b for _, b in events[i0 - 1][2]] if i0 else []
     # queue contents just BEFORE the window's first pop, i.e. including
@@ -568,7 +933,8 @@ def emit_case(spec, case, host, tag, preload_n=0, waits=0):
     image, meta = testimage.compose(regs=nec_regs, instr=run_instr,
                                     ram=ram, ivt=ivt,
                                     stub_linear=stub_linear)
-    recs = run_image(image, host, tag, waits=waits)
+    recs = run_image(image, host, tag, waits=waits,
+                     iord=case.get("iord"))
     res = parse_result(recs, meta)
 
     rows, events, i0, i1, q0, qf, fetched, memrd = \
@@ -660,6 +1026,8 @@ def emit_case(spec, case, host, tag, preload_n=0, waits=0):
         },
         "cycles": rows,
     }
+    if case.get("iord") is not None:
+        test["iord"] = case["iord"]
     test["hash"] = hashlib.sha1(
         json.dumps([test["name"], test["bytes"], test["initial"],
                     test["final"], test["cycles"]],
@@ -768,7 +1136,8 @@ def cmd_emit(host, opcodes, n_cases, out_dir, seed_base, preload_n,
     out_dir.mkdir(parents=True, exist_ok=True)
     log = out_dir / "emit_log.txt"
     for op in opcodes:
-        spec = OPCODES[op]
+        is_evt = op in EVT_FORMS
+        spec = EVT_FORMS[op] if is_evt else OPCODES[op]
         rng_master = random.Random(f"{seed_base}/{op}")
         tests = []
         rerolls = 0
@@ -781,9 +1150,14 @@ def cmd_emit(host, opcodes, n_cases, out_dir, seed_base, preload_n,
             pn = preload_n if preload_n >= 0 else \
                 (2 if len(tests) % 2 == 1 else 0)
             try:
-                case = gen_case(spec, rng)
-                t = emit_case(spec, case, host, tag=f"em{op}",
-                              preload_n=pn, waits=waits)
+                if is_evt:
+                    case = gen_evt_case(spec, rng)
+                    t = emit_evt_case(spec, case, host, tag=f"em{op}",
+                                      preload_n=pn, waits=waits)
+                else:
+                    case = gen_case(spec, rng)
+                    t = emit_case(spec, case, host, tag=f"em{op}",
+                                  preload_n=pn, waits=waits)
             except (ComposeError, RunError) as e:
                 rerolls += 1
                 with log.open("a") as f:

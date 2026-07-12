@@ -10,6 +10,32 @@ rerolled seeds logged in `emit_log.txt`).
 This tranche is a 35-opcode / 500-cases-each sample (26 Campaign-2 forms + 9 Campaign-3 control-flow forms: EB E9 74 75 7C E2 E8 C3 C2, whose continuations the emitter predicts from the initial state): the emitter is the
 product; full-scale emission is a Campaign 2 residual.
 
+Campaign 3 block 4 adds 19 forms: pin-event (interrupt) forms at 200
+cases each — `INT.90 INT.B8 INT.8ED0 INT.8ED8 INT.FB INT.9D INT.F3AA`
+(maskable INT against NOP / MOV imm / sreg-load shadows / EI / POP PSW /
+REP STM), `NMI.90 NMI.B8` (edge NMI), `IE0.90` (masked INT), `POLL.LO
+POLL.REL` (POLL pin low / released while waiting), `HLT.INT HLT.NMI
+HLT.RES` (HALT wake by INT / NMI / masked-INT resume) — plus the I/O
+read forms `E4 E5 EC ED` (IN) at 500 cases each.
+
+Pin-event schema extensions (see `docs/facts/interrupt_model.md`):
+
+- `evt`: `{pin: 0|1|2 (INT/NMI/POLL), hold: N (0 = held to end),
+  trigger: "fetch"|"fpop", addr: linear (fetch), delay: D}` — fetch
+  mode asserts the pin during cycle `idx(CODE T1 at addr) + 2 + D`
+  (the harness scheduler law); fpop mode during cycle
+  `idx(window-opening F pop) + D`, `D >= 1` (used for prefetched
+  variants, whose preload run-up does not exist in replay).
+- `pins`: static pin levels before the event (bit2 = POLL_N high).
+- `iord`: the 16-bit value the system returns for I/O reads (IN forms;
+  default FFFF elsewhere).
+- `close_addr`: vectored cases close their cycle window at the first
+  F pop fetched from this (handler) address instead of a fixed pop
+  count; the IVT entry points directly at the store location, so
+  `final.cs:ip` is the handler entry.
+- Interrupt entry pushes appear in `final.ram` (PSW/PS/PC at SS:SP-2/
+  -4/-6); `final.flags` has IE and BRK cleared.
+
 ## Files
 
 `XX.json.gz` / `XX.N.json.gz` (modrm-group) / `0FXX.json.gz` — one JSON
