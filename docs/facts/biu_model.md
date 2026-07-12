@@ -103,11 +103,17 @@ error: 21-22 is the reg8 figure; resolved 2026-07-11, see below) |
   own measurement, which suggests the manual's imm8 row understates by
   a constant.
 
-Interpretation (working hypothesis): the manual's claim that clock counts
-"include decoding" holds for register/immediate forms but understates
-modrm/memory forms by ~2 cycles and MULU/DIVU by more — exactly the
-decode/EA gap this project exists to measure. Campaign 2 sweeps this per
-opcode.
+Interpretation — CONFIRMED AND REFINED by the Campaign 2 sweep of 113
+forms (2026-07-11, docs/facts/timing_measured.json, summary table in
+measurements.md): the deviations are class-consistent, not per-opcode
+noise. No-modrm reg/imm forms hit documentation exactly; modrm reg,reg
+pays +1; immediate-with-modrm and unary-group reg forms +2; modrm EA
+loads +2, RMW +3..4; shifts-by-1 +4 (6 vs 2!); PUSH R/POP R deviate
++17/-10. Where the silicon is uniform the manual sometimes is not
+(store forms all 11 vs documented 9/10/11), and TEST reg,reg (2),
+XCH reg,reg (3) and the sreg MOVs (2) are genuinely faster than the
+other reg,reg ops (3). The "clock counts include decoding" claim holds
+only for the simplest encodings.
 
 ## Open items carried to Campaign 2
 

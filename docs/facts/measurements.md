@@ -119,6 +119,62 @@ Method: saturated-queue F-spacing (sw/sweep_timing.py mul), max mode,
 - The earlier "MULU CW = 31 vs 21-22 (+9)" open item was a doc-lookup
   error: 21-22 is MULU reg8; MULU reg16 is documented 29-30.
 
+## Per-opcode timing sweep, 113 forms (2026-07-11, Campaign 2 mission 2)
+
+sw/sweep_timing.py sweep; all data with operands and provenance in
+docs/facts/timing_measured.json. Conditions: max mode, 4 MHz, 0 waits,
+even-aligned code/data, saturated-queue F-spacing. 113 measured + 7
+verification re-runs (different registers / SP) — every value reproduced
+exactly; 0 forms unassemblable. 84/113 deviate from the User's Manual.
+
+**Deviations are class-consistent** (every op in a class shows the same
+delta):
+
+| Form class | Measured | Documented | Delta |
+|---|---|---|---|
+| No-modrm reg/imm forms (NOP, MOV reg,imm, acc,imm ALU, INC/DEC reg16, XCH AW,r, CY/DIR flag ops) | doc | — | **0** |
+| ALU/MOV reg,reg (modrm) | 3 | 2 | +1 |
+| ALU reg,imm (group 80/81/83) | 6 | 4 | +2 |
+| Unary reg: NOT/NEG reg, INC/DEC reg8 (F6/FE groups) | 4 | 2 | +2 |
+| Loads reg,mem [BW] (MOV/ALU/CMP) | 13 | 11 | +2 |
+| TEST mem,reg | 12 | 10 | +2 |
+| Stores mem,reg / mem,imm / mem16,sreg | **all 11** | 9 / 11 / 10 | +2 / 0 / +1 |
+| MOV acc,dmem (direct load) | 10 | 10 | 0 |
+| MOV dmem,acc (direct store) | 10 | 9 | +1 |
+| RMW mem,reg (ALU), XCH mem,reg | 19 | 16 | +3 |
+| RMW unary mem (INC/DEC/NEG), ALU mem,imm | 20 / 22 | 16 / 18 | +4 |
+| Shift/rotate reg,1 (all 8 ops, byte+word) | **6** | 2 | **+4** |
+| Shift/rotate reg,CL or reg,imm8, n≥1 | 10+n | 7+n | +3 |
+| Shift reg,CL with CL=0 | 9 | 7 | +2 |
+| Shift/rotate mem,1 | 22 | 16 | +6 |
+| PUSH/POP reg16/sreg/PSW (SP even) | 9 | 8 | +1 |
+| PUSH imm8 / imm16 | 9 / 10 | 7 / 8 | +2 |
+| PUSH R (even) | **52** | 35 | **+17** |
+| POP R (even) | **33** | 43 | **-10** (only negative deviation) |
+| Bit ops SET1/NOT1 reg,CL and reg,imm | 6 | 4 / 5 | +2 / +1 |
+| CLR1 reg,CL and reg,imm3 | 7 | 5 / 6 | +2 / +1 |
+| DIVU reg16 | 28 | 25 | +3 |
+| MULU reg8/reg16, mem8/mem16 | 24/31/34/41 | 21-22/29-30/27-28/35-36 | +2/+1/+6/+5 |
+
+Notable structure:
+
+- **Silicon is uniform where the manual is not.** All three 2-byte-EA
+  store forms measure 11 though the manual says 9/10/11; SET1/NOT1
+  CL-forms and imm-forms measure identically though the manual charges
+  the imm forms +1; all eight shift/rotate ops match each other exactly.
+- **TEST reg,reg (2), XCH reg,reg (3), MOV sreg,reg16 / reg16,sreg (2)
+  match documentation** while every other modrm reg,reg op takes 3 —
+  TEST and the sreg MOVs are genuinely 1 cycle faster than ADD reg,reg
+  on silicon (verified across register choices).
+- Shift-by-1 at 6 cycles (vs documented 2) is the largest relative
+  register-form deviation; shift-by-CL measures 10+n (n>=1), 9 (n=0).
+- PUSH R/POP R: 52/33 vs documented 35/43. POP R (reads) runs near the
+  4-cycle/word bus floor (33 ~= 8x4+1); PUSH R (writes) at 52 ~= 6.5
+  cycles/word matches the writes-do-not-overlap-fetch arbitration
+  pattern (biu_model.md exp 4).
+- Direct-address loads (MOV acc,dmem) are the only memory reads with
+  zero deviation; modrm EA loads all pay +2.
+
 ## Divide-overflow semantics (prior work, large context)
 
 - MAME's divide-overflow behavior for V30 (CY/V = !overflow, registers

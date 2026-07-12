@@ -34,7 +34,7 @@ Retire entries by moving them to `docs/facts/` files with provenance (datasheet 
 
 ### Q6: Decode time per opcode?
 - Datasheets give execution clocks but not decode latency. Measure instruction-start-to-first-effect via queue status + bus activity for every opcode.
-- **Status**: METHOD VALIDATED (exp 3, biu_model.md): saturated-queue F-spacing matches documented values exactly for reg/imm forms; modrm memory forms measure +2 vs documentation, MULU +9. Full per-opcode sweep = Campaign 2.
+- **Status**: IN PROGRESS — 113-form starter sweep measured 2026-07-11 (sw/sweep_timing.py, docs/facts/timing_measured.json; class-consistent deviation summary in measurements.md). MUL/MULU fully characterized (data-independence + signed sign-fixup rule, biu_model.md). Remaining: control flow, string ops, I/O, BCD, CALL/RET/BRK, mem,CL shift forms, odd-aligned operands.
 
 ### Q7: When exactly does a jump flush the queue, and what is the refetch penalty?
 - **Status**: ANSWERED (exp 2): flush→fetch-T1 = 1 cycle, flush→first-byte-consumed = 6 cycles, both parities; odd targets get a 1-byte first fetch.
