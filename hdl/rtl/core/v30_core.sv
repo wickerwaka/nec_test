@@ -67,11 +67,11 @@ wire  [7:0] q_byte;
 wire        q_avail;
 wire        eu_pop, eu_first, eu_flush;
 wire [15:0] eu_flush_cs, eu_flush_ip;
-wire        eu_req, eu_ready, eu_wr, eu_word;
+wire        eu_req, eu_hold, eu_ready, eu_wr, eu_word;
 wire [19:0] eu_addr;
 wire  [1:0] eu_seg;
 wire [15:0] eu_wdata;
-wire        eu_started, eu_done;
+wire        eu_started, eu_done, eu_wdone, eu_t1;
 wire [15:0] eu_rdata;
 wire        psw_ie;
 
@@ -110,6 +110,7 @@ v30_biu u_biu (
     .flush_cs   (eu_flush_cs),
     .flush_ip   (eu_flush_ip),
     .eu_req     (scr_en ? 1'b0 : eu_req),
+    .eu_hold    (scr_en ? 1'b0 : eu_hold),
     .eu_ready   (eu_ready),
     .eu_wr      (eu_wr),
     .eu_word    (eu_word),
@@ -118,6 +119,8 @@ v30_biu u_biu (
     .eu_wdata   (eu_wdata),
     .eu_started (eu_started),
     .eu_done    (eu_done),
+    .eu_wdone   (eu_wdone),
+    .eu_t1      (eu_t1),
     .eu_rdata   (eu_rdata),
     .bkd_load   (bkd_load),
     .bkd_cs     (bkd_regs[144 +: 16]),
@@ -137,6 +140,7 @@ v30_eu u_eu (
     .flush_cs   (eu_flush_cs),
     .flush_ip   (eu_flush_ip),
     .eu_req     (eu_req),
+    .eu_hold    (eu_hold),
     .eu_ready   (eu_ready),
     .eu_wr      (eu_wr),
     .eu_word    (eu_word),
@@ -145,6 +149,8 @@ v30_eu u_eu (
     .eu_wdata   (eu_wdata),
     .eu_started (eu_started),
     .eu_done    (eu_done),
+    .eu_wdone   (eu_wdone),
+    .eu_t1      (eu_t1),
     .eu_rdata   (eu_rdata),
     .psw_ie     (psw_ie),
     .bkd_load   (bkd_load),

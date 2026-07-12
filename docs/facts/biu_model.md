@@ -74,6 +74,57 @@ cycle" and the divide-trap traces' E+2 shape are both special cases of:
   BIU-boundedness (beware median statistics — the 3/5 alternation medians
   to 3).
 
+## Wait states, cycle-level laws (Campaign 3 mission H)
+
+Extracted from 200-case golden tranches per form (B8/8B/89/F7.6/EB/E8)
+at waits=1 and waits=3 (tests/v30/v0.1-w1, -w3), RTL core cycle-exact
+against all 2,400 cases plus the full zero-wait regression. The harness
+inserts N Tw states per bus cycle via READY (armed at T1, sampled at the
+end of T3/Tw).
+
+- **Status display**: the bus status stays ACTIVE through T3 and every
+  Tw while READY has not yet been sampled high in the cycle; it drops to
+  passive from the cycle after the ready-high sample. At zero waits
+  READY is already high at the end of T2, so T3 displays passive — the
+  familiar law is the degenerate case.
+- **Completion-eval deferral**: the commit evaluation at the "T3->T4
+  edge" exists only for zero-wait cycles (READY high at two consecutive
+  sampling edges). A waited cycle's completion eval instead runs DURING
+  the cycle following T4: it evaluates requests live (sees EU requests
+  that assert in that very cycle), drives the committed status/address
+  mid-cycle (bs_early sample), and the winner's T1 starts at the cycle's
+  end. The end of that deferred-eval cycle is NOT an eval point — a
+  request that first asserts inside it waits for the next idle-cycle
+  end.
+- **Mid-cycle qualification**: the deferred eval picks up an EU request
+  only if (A) its readiness was registered during T4, or (B) its req
+  line was registered during both T4 and the cycle before (an armed
+  reservation) with readiness arriving live. A flush raised at the T4
+  edge consumes the rule-B slot (CALL's push commits one idle later).
+  Prefetch commits qualify unconditionally.
+- **Queue push / EU handover defer with the eval**: the push lands one
+  cycle after the completion eval (zero waits: end of T4; waited: end of
+  the deferred-eval cycle), poppable two cycles after the push edge, and
+  eu_done (read data handover, store/RMW retire) shifts identically —
+  post-access EU schedules stretch by exactly one cycle per waited
+  access.
+- **Trap-chain pace (eu_wdone)**: the divide-trap microcode does NOT
+  wait for its pushes' stretched completion: it marches on from the
+  zero-wait completion point (the cycle after the first T3). Under
+  waits the next push request is therefore already ready and registered
+  when the current push's deferred eval runs, and commits mid-cycle by
+  rule A (measured: at waits=3 the PS push's T1 lands 2 cycles after
+  the PSW push's T4; the flush/PC-push raise migrates into the PS
+  push's own Tw window). The trap chain also holds a PURE bus
+  reservation (blocks prefetch, no request history) across its whole
+  IVT-read/push sequence — invisible at zero waits where the queue is
+  full by trap time.
+- **QS=E under waits**: a doomed fetch counts as busy through its
+  (deferred) completion eval — E moves from the doomed fetch's T4 to
+  the following cycle; a cleanly completed fetch defers E while its
+  queue push is pending; a mid-cycle-committed push shows E during its
+  own status cycle (the (c) exception generalizes).
+
 ## Self-modifying code (exp 6b: smc)
 
 - After `MOV byte [T],imm`, targets **≤2 bytes past the instruction's end

@@ -449,7 +449,7 @@ def write_bytes(txn):
     return out
 
 
-def emit_case(spec, case, host, tag, preload_n=0):
+def emit_case(spec, case, host, tag, preload_n=0, waits=0):
     """Run one generated case on hardware, return the suite test object."""
     nec_regs = {INTEL2NEC[k]: v for k, v in case["regs"].items()}
     instr = case["instr"]
@@ -475,7 +475,7 @@ def emit_case(spec, case, host, tag, preload_n=0):
     image, meta = testimage.compose(regs=nec_regs, instr=run_instr,
                                     ram=ram, ivt=ivt,
                                     stub_linear=stub_linear)
-    recs = run_image(image, host, tag)
+    recs = run_image(image, host, tag, waits=waits)
     res = parse_result(recs, meta)
 
     rows, events, i0, i1, q0, qf, fetched, memrd = \
@@ -668,7 +668,8 @@ def cmd_preload_cal(host):
     return 0
 
 
-def cmd_emit(host, opcodes, n_cases, out_dir, seed_base, preload_n):
+def cmd_emit(host, opcodes, n_cases, out_dir, seed_base, preload_n,
+             waits=0):
     out_dir = Path(out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
     log = out_dir / "emit_log.txt"
@@ -688,7 +689,7 @@ def cmd_emit(host, opcodes, n_cases, out_dir, seed_base, preload_n):
             try:
                 case = gen_case(spec, rng)
                 t = emit_case(spec, case, host, tag=f"em{op}",
-                              preload_n=pn)
+                              preload_n=pn, waits=waits)
             except (ComposeError, RunError) as e:
                 rerolls += 1
                 with log.open("a") as f:
@@ -768,6 +769,8 @@ def main():
                     help="-1 = alternate non-prefetched / prefetched(N=2) "
                          "per V20 convention (default); 0 = none; N>0 = "
                          "always N 63C0 preload repetitions")
+    ap.add_argument("--waits", type=int, default=0,
+                    help="harness wait states per bus cycle (CFG waits)")
     args = ap.parse_args()
     if args.cmd == "validate":
         return cmd_validate(args.host)
@@ -776,7 +779,7 @@ def main():
     if args.cmd == "preload-cal":
         return cmd_preload_cal(args.host)
     return cmd_emit(args.host, args.opcodes.split(","), args.cases,
-                    args.out, args.seed, args.preload)
+                    args.out, args.seed, args.preload, args.waits)
 
 
 if __name__ == "__main__":

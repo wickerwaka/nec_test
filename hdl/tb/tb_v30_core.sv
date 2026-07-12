@@ -54,6 +54,20 @@ initial forever #5 clk = ~clk;
 logic reset = 1;
 
 // backdoor
+// wait-state insertion (+waits=N): mirrors hdl/rtl/nec_bus.sv - the
+// counter arms when a cycle's T1 is entered and decrements at the end of
+// T3/TW, so the CPU sees exactly N Tw states per bus cycle. ready_r
+// updated at the posedge entering T3 is the value the CPU samples at the
+// posedge ending T3 (the harness re-registers on the falling edge only
+// for setup margin).
+integer     waits_cfg = 0;
+logic [4:0] wait_cnt = '0;
+logic       ready_r = 1'b1;
+
+initial begin
+    if (!$value$plusargs("waits=%d", waits_cfg)) waits_cfg = 0;
+end
+
 logic         bkd_load = 0;
 logic [223:0] bkd_regs = '0;
 logic  [47:0] bkd_queue = '0;
@@ -73,7 +87,7 @@ wire        RD_N, UBE_N, BUSLOCK_N;
 v30_core dut (
     .CLK       (clk),
     .RESET     (reset),
-    .READY     (1'b1),
+    .READY     (ready_r),
     .INT       (1'b0),
     .NMI       (1'b0),
     .POLL_N    (1'b1),
@@ -114,8 +128,8 @@ wire [2:0] tb_t_next =
     (tb_t == ST_TI) ? (bs_active ? ST_T1 : ST_TI) :
     (tb_t == ST_T1) ? ST_T2 :
     (tb_t == ST_T2) ? ST_T3 :
-    (tb_t == ST_T3) ? ST_T4 :          // READY tied high: no Tw
-    (tb_t == ST_TW) ? ST_T4 :
+    (tb_t == ST_T3) ? (ready_r ? ST_T4 : ST_TW) :
+    (tb_t == ST_TW) ? (ready_r ? ST_T4 : ST_TW) :
     /* ST_T4 */       (bs_active ? ST_T1 : ST_TI);
 
 logic  [2:0] lat_type = BS_PASV;
@@ -126,8 +140,9 @@ wire lat_read  = lat_type == 3'b100 || lat_type == 3'b101 ||
                  lat_type == 3'b001 || lat_type == 3'b000;
 wire lat_write = lat_type == 3'b110 || lat_type == 3'b010;
 
-// memory read drive during T2/T3 of read cycles (nec_bus-equivalent)
-wire        mem_drive = (tb_t == ST_T2 || tb_t == ST_T3) && lat_read;
+// memory read drive during T2/T3/Tw of read cycles (nec_bus-equivalent)
+wire        mem_drive = (tb_t == ST_T2 || tb_t == ST_T3 ||
+                         tb_t == ST_TW) && lat_read;
 wire [15:0] mem_word  = {mem[{lat_addr[15:1], 1'b1}],
                          mem[{lat_addr[15:1], 1'b0}]};
 assign AD[15:0] = mem_drive ? mem_word : 16'hzzzz;
@@ -182,6 +197,16 @@ always @(posedge clk) begin
         if (tb_t_next == ST_T1) lat_type <= BS;
         else if (tb_t_next == ST_TI) lat_type <= BS_PASV;
 
+        // wait-state counter (see comment at ready_r)
+        if (tb_t_next == ST_T1) begin
+            wait_cnt <= 5'(waits_cfg);
+            ready_r  <= waits_cfg == 0;
+        end else if ((tb_t == ST_T3 || tb_t == ST_TW) &&
+                     wait_cnt != 0) begin
+            wait_cnt <= wait_cnt - 5'd1;
+            ready_r  <= wait_cnt == 5'd1;
+        end
+
         hold <= {eff_hi, eff_lo};
 
         // apply CPU writes at the end of the first T3 (as nec_bus does)
@@ -206,6 +231,8 @@ always @(posedge clk) begin
         lat_type <= BS_PASV;
         hold     <= '0;
         fcount   <= 0;
+        wait_cnt <= '0;
+        ready_r  <= 1'b1;
     end
 end
 

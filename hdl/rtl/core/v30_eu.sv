@@ -85,6 +85,8 @@ module v30_eu (
 
     // BIU access side
     output reg        eu_req,
+    output            eu_hold,     // blocks prefetch without counting as
+                                   // request history (trap-chain gaps)
     output reg        eu_ready,
     output reg        eu_wr,
     output reg        eu_word,
@@ -93,6 +95,8 @@ module v30_eu (
     output reg [15:0] eu_wdata,
     input             eu_started,
     input             eu_done,
+    input             eu_wdone,   // early write completion (trap chain law)
+    input             eu_t1,      // pulse: first T1 of the current EU access
     input      [15:0] eu_rdata,
 
     output            psw_ie,
@@ -474,6 +478,7 @@ always_comb begin
         // RET holds its reservation through the stack read (measured: no
         // prefetch commit at the read's T3 edge; plain POP r16 allows it)
         S_BUSW: eu_req = op_ret;
+
         // reset countdown: the bus stays quiet until the reset flush
         S_RESET: eu_req = 1'b1;
         S_REQ, S_WREQ,
@@ -1160,9 +1165,26 @@ always_ff @(posedge clk) begin
                 end
                 dly <= dly - 5'd1;
             end
-            S_TRAP_PSW: if (eu_started) state <= S_TRAP_PSWW;
-            S_TRAP_PSWW: if (eu_done) begin
-                dly <= 5'd1; state <= S_TRAP_W2;
+            S_TRAP_PSW: if (eu_started) begin
+                state <= S_TRAP_PSWW;
+                dly   <= 5'd11;      // fixed microcode slot: PS at started+12
+            end
+            // The trap chain issues the next push at the EARLIER of two
+            // paths (measured on the F7.6 waits tranches): the
+            // completion-gated path - early write-done strobe (ready
+            // edge under waits, the old T4 law at zero waits) + 2 - and
+            // the microcode's own fixed 12-cycle push slot from
+            // eu_started. Splits + waits can stretch the bus cycle past
+            // the slot; the request then waits only on BIU arbitration.
+            S_TRAP_PSWW: begin
+                if (eu_wdone) begin
+                    dly <= 5'd1; state <= S_TRAP_W2;
+                end else if (dly == 5'd1) begin
+                    state <= S_TRAP_PS;
+                    issue_push(sr[SEG_CS]);
+                end else begin
+                    dly <= dly - 5'd1;
+                end
             end
             S_TRAP_W2: begin
                 if (dly == 5'd1) begin
@@ -1172,7 +1194,7 @@ always_ff @(posedge clk) begin
                 dly <= dly - 5'd1;
             end
             S_TRAP_PS: if (eu_started) state <= S_TRAP_PSW2W;
-            S_TRAP_PSW2W: if (eu_done) begin
+            S_TRAP_PSW2W: if (eu_wdone) begin
                 state <= S_TRAP_FLUSH;
                 flush_now <= 1'b1;
                 issue_push(pc);
@@ -1194,6 +1216,18 @@ end
 //----------------------------------------------------------------------------
 // backdoor observation
 //----------------------------------------------------------------------------
+// The divide-trap chain holds the bus across its whole IVT-read/push
+// sequence up to the flush (measured on the waits tranches: cold traps
+// with a non-full queue show no prefetch in the inter-access gaps).
+// This hold blocks prefetch commits but is NOT an EU request: it must
+// not feed the mid-cycle-commit request history (eu_req_p1/p2) - the
+// w1 traps' PS push takes the idle-end slot, not the mid-cycle one.
+// The post-flush PC-push wait (S_TRAP_PCW) does not hold: the handler
+// prefetch commits at that push's T3 edge.
+assign eu_hold = state == S_TRAP_IVT2W || state == S_TRAP_W1 ||
+                 state == S_TRAP_PSWW  || state == S_TRAP_W2 ||
+                 state == S_TRAP_PSW2W;
+
 assign dbg_regs = {psw, arch_ip, sr[SEG_DS], sr[SEG_SS], sr[SEG_CS],
                    sr[SEG_ES], rf[7], rf[6], rf[5], rf[4], rf[3], rf[2],
                    rf[1], rf[0]};

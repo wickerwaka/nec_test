@@ -20,6 +20,11 @@ Row-compare policy (hardware sampling artifacts):
 Usage:
   check_core.py [--build] [--opcodes B8,40,...] [--cases N] [--variant all]
                 [--details N] [--out-dir DIR]
+                [--suite-dir tests/v30/v0.1-w1] [--waits N]
+
+--waits N drives the TB's READY wait-state model (+waits plusarg,
+mirroring the harness nec_bus insertion); use with a golden suite that
+was emitted at the same CFG waits setting (--suite-dir).
 """
 
 import argparse
@@ -298,14 +303,22 @@ def main():
     ap.add_argument("--details", type=int, default=3)
     ap.add_argument("--keep", action="store_true",
                     help="keep batch/output temp files")
+    ap.add_argument("--suite-dir", default=str(SUITE))
+    ap.add_argument("--waits", type=int, default=0,
+                    help="TB READY wait states (match the suite's setting)")
     args = ap.parse_args()
 
+    suite = Path(args.suite_dir)
     build(args.build)
-    meta = json.load(open(SUITE / "metadata.json"))
+    # wait-state suites carry no metadata of their own; fall back to v0.1
+    meta_fn = suite / "metadata.json"
+    if not meta_fn.exists():
+        meta_fn = SUITE / "metadata.json"
+    meta = json.load(open(meta_fn))
 
     grand = Counter()
     for op in args.opcodes.split(","):
-        fn = SUITE / f"{op}.json.gz"
+        fn = suite / f"{op}.json.gz"
         if not fn.exists():
             print(f"{op}: no suite file")
             continue
@@ -325,7 +338,7 @@ def main():
             outf = Path(td) / "out.txt"
             compose_batch(cases, batch)
             r = subprocess.run([str(BIN), f"+batch={batch}",
-                                f"+out={outf}"],
+                                f"+out={outf}", f"+waits={args.waits}"],
                                cwd=ROOT, capture_output=True, text=True)
             if r.returncode != 0 or not outf.exists():
                 print(f"{op}: SIM FAILED\n{r.stdout}\n{r.stderr}")

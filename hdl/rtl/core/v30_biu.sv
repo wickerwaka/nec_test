@@ -42,6 +42,25 @@
 //  release+9), verified cycle-exact against the real boot capture
 //  (sw/check_boot.py).
 //
+//  Wait states (mission H, verified cycle-exact on the waits=1 and
+//  waits=3 tranches, tests/v30/v0.1-w1/-w3; biu_model.md "Wait states"):
+//   - READY low at the end of T3/Tw inserts Tw states; the status pins
+//     stay ACTIVE through T3/Tw until READY has been sampled high
+//     (ready_prev display law) - at zero waits T3 already shows passive.
+//   - The completion eval fires at the T3->T4 edge only in a zero-wait
+//     cycle (READY high at two consecutive edges). A waited cycle's
+//     eval runs DURING the cycle after T4 (eval_ext): it drives the
+//     picked status/address mid-cycle and enters T1 directly; its own
+//     cycle end is NOT an eval point. EU requests qualify mid-cycle
+//     only with readiness registered during T4, or a 2-cycle-registered
+//     req line with live readiness (flush at the T4 edge kills the
+//     latter). The queue push and the EU handover (eu_done) follow the
+//     eval by one cycle in all cases.
+//   - eu_wdone (trap-chain law): the EU microcode marches from the
+//     zero-wait completion point of its writes - the cycle after the
+//     first T3 - so under waits its next push request sits ready and
+//     is picked up by the deferred eval (mid-cycle rule A).
+//
 //============================================================================
 
 module v30_biu (
@@ -75,6 +94,7 @@ module v30_biu (
     // EU bus access. eu_req refers to an access that has not started yet;
     // the EU drops it (or moves to the next access) on eu_started.
     input             eu_req,
+    input             eu_hold,      // blocks prefetch, not request history
     input             eu_ready,
     input             eu_wr,
     input             eu_word,
@@ -82,7 +102,13 @@ module v30_biu (
     input       [1:0] eu_seg,
     input      [15:0] eu_wdata,
     output reg        eu_started,    // pulse: request accepted, params latched
-    output            eu_done,       // high during the access's final T4
+    output            eu_t1,         // first T1 cycle of the current EU access
+    output            eu_done,       // handover: final T4 (zero-wait) or the
+                                     // cycle after it (waited access)
+    output            eu_wdone,      // early write completion: the READY
+                                     // cycle of a waited write's final half,
+                                     // its T4 at zero waits (trap chain law)
+                                     // access (trap-chain slot anchor)
     output reg [15:0] eu_rdata,
 
     // TB backdoor: load fetch/queue state while in reset (see v30_core)
@@ -158,8 +184,14 @@ wire        fetch_word    = ~fetch_phys[0];
 
 wire       pop_now  = q_pop && q_avl != 0;
 wire       cur_word = ~cur_addr[0] && !cur_split2;
-wire [1:0] push_now = (state == ST_T4 && cur_fetch && !fetch_discard)
-                      ? (cur_word ? 2'd2 : 2'd1) : 2'd0;
+// The queue push happens one cycle after the bus cycle's completion eval
+// (measured, mission H): at zero waits the eval is the T3->T4 edge and
+// the push lands at the end of T4; a waited cycle's eval is deferred to
+// the end of T4 (see eval_at_t3/evald below), so its push lands at the
+// end of the following cycle. push_pend carries the bytes across.
+reg  [1:0] push_pend;      // bytes to push at this cycle's end
+reg        push_pend_hi;   // pending byte came from an odd (upper) lane
+wire [1:0] push_now = push_pend;
 wire [2:0] cnt_next = q_cnt - {2'b0, pop_now} + {1'b0, push_now};
 // bytes of an in-flight fetch not yet pushed (committed-next fetches never
 // coincide with a commit evaluation, so only the current cycle counts)
@@ -169,9 +201,9 @@ wire [3:0] occupied = {1'b0, cnt_next} + {2'b0, infl};
 // a prefetch cannot commit during a push-absorb cycle (q_aged nonzero,
 // the cycle after a fetch T4) - measured on the boot loop; flush
 // redirects are exempt (measured on the branch tranches)
-wire       prefetch_ok = !q_flush ? (!eu_req && occupied <= 4 &&
+wire       prefetch_ok = !q_flush ? (!(eu_req || eu_hold) && occupied <= 4 &&
                                      q_aged == 2'd0)
-                                  : !eu_req;   // flushed queue is empty
+                                  : !(eu_req || eu_hold);   // flushed queue is empty
 
 assign q_byte  = q_mem[q_rd];
 assign q_avail = q_avl != 0;
@@ -184,19 +216,51 @@ assign q_avail = q_avl != 0;
 // raised together with an EU request - the trap - still shows at once).
 //----------------------------------------------------------------------------
 reg e_wait;
-wire flush_busy_fetch = cur_fetch && (state == ST_T1 || state == ST_T2 ||
+// a flush during T1-T3/TW dooms the in-flight fetch (its data is dropped
+// via fetch_discard; a flush at the T4 edge instead suppresses the
+// pending queue push directly)
+wire flush_doom_fetch = cur_fetch && (state == ST_T1 || state == ST_T2 ||
                                       state == ST_T3 || state == ST_TW);
-wire flush_quiet = !(cur_fetch && state != ST_TI) && (q_aged == 2'd0);
+// for the E display, a doomed fetch counts as busy until its completion
+// eval - which a waited cycle defers to the end of T4 (measured: the E
+// display moves to the following Ti on the waits tranches). A cleanly
+// completed fetch additionally counts as busy while its queue push is
+// pending (push_pend, the eval_ext cycle) - a DISCARDED fetch has no
+// pending push and shows E during its eval_ext cycle (measured: EB vs
+// CALL under waits).
+wire flush_busy_fetch = flush_doom_fetch ||
+                        (cur_fetch && state == ST_T4 && !evald);
+wire flush_quiet = !(cur_fetch && state != ST_TI) && (q_aged == 2'd0) &&
+                   (push_pend == 2'd0);
+// (c) ready-but-not-started EU request defers E - except when that
+// request is being mid-cycle-committed this very cycle (its status
+// cycle, measured: CALL's E under waits shows with the push status)
 wire e_wait_show = e_wait && !flush_busy_fetch && (q_aged == 2'd0) &&
-                   !(eu_ready && !eu_started);
+                   (push_pend == 2'd0) &&
+                   !(eu_ready && !eu_started && !(eval_ext && want_eu));
 assign qs_e = (q_flush && flush_quiet) || e_wait_show;
 
 //----------------------------------------------------------------------------
 // commit selection (combinational). Priority: second half of a split EU
 // access, then a ready EU request, then prefetch.
 //----------------------------------------------------------------------------
-wire want_half2 = cur_split1 && !cur_fetch && state != ST_TI;
-wire want_eu    = eu_req && eu_ready;
+wire want_half2 = cur_split1 && !cur_fetch &&
+                  (state != ST_TI || eval_ext);
+// The deferred (eval_ext) mid-cycle commit only picks up EU requests
+// that were visible early enough: either (A) readiness registered during
+// T4, or (B) the req line registered for the two cycles before (up
+// during T4 AND the cycle before T4) with readiness arriving live -
+// and a flush raised at the T4 edge kills the rule-B slot (CALL's push
+// commits one idle later). A request asserting later waits for the next
+// idle-cycle-end eval - the eval_ext cycle's own end is NOT an eval
+// point. All measured on the waits tranches: load d0 / store d2
+// (2-cycle reservations) and requests ready during T4 commit mid-cycle;
+// store d0/d1 and CALL's push commit at the following idle end.
+reg  eu_req_p1, eu_req_p2, eu_ready_p1;
+reg  ext_flushed;
+wire ext_ok     = eu_ready_p1 ||
+                  (eu_req_p1 && eu_req_p2 && !ext_flushed);
+wire want_eu    = eu_req && eu_ready && !(eval_ext && !ext_ok);
 
 // EU access geometry
 wire eu_split   = eu_word && eu_addr[0];
@@ -245,12 +309,43 @@ endtask
 //----------------------------------------------------------------------------
 wire t3_done = (state == ST_T3 || state == ST_TW) && ready;
 
+// Commit-eval deferral under wait states (measured on the waits=1/3
+// tranches): the completion eval fires at the T3->T4 edge only when READY
+// was high at two consecutive sampling edges - i.e. only in a zero-wait
+// cycle. A cycle that took any Tw defers its completion eval to the end
+// of T4 (commits there at the same edge as the queue push; the following
+// push-absorb cycle still blocks prefetch commits as at zero waits).
+// evald tracks whether the current bus cycle's completion eval has fired.
+wire eval_at_t3 = t3_done && ready_prev;
+reg  evald;
+reg  eval_ext;     // deferred eval runs during this (post-T4) cycle
+
 // a committed-but-stale prefetch dies in the flush cycle: transitions must
 // not consume it
 wire nxt_live = nxt_valid && !(q_flush && nxt_fetch);
 
-assign eu_done = (state == ST_T4) && !cur_fetch && cur_type != BS_PASV
-                 && !cur_split1;
+// EU handover follows the completion eval by one cycle, exactly like the
+// queue push (measured, mission H): at zero waits eu_done is the T4
+// cycle; a waited access hands over during the cycle after T4.
+reg eu_hand;
+assign eu_done = eu_hand;
+assign eu_t1 = state == ST_T1 && !cur_fetch && cur_type != BS_PASV;
+
+wire eu_completing = !cur_fetch && cur_type != BS_PASV && !cur_split1;
+
+// Early write completion (measured on the F7.6 waits tranches): the trap
+// chain's microcode marches on from the write's zero-wait completion
+// point - the cycle after the FIRST T3 - while the BIU stretches the
+// cycle with Tw states; the next push request then sits ready for the
+// (deferred) commit eval. At zero waits that cycle is T4, making
+// eu_wdone == the old T4-cycle done there. Reads and the store/RMW
+// retire path stay on eu_done. (w3 evidence: PS push T1 lands 2 cycles
+// after the PSW push's T4, which needs the request up during T4 and the
+// cycle before.)
+reg tw_any;    // a Tw of the current bus cycle has already elapsed
+assign eu_wdone = eu_completing && cur_wr &&
+                  ((state == ST_TW && !tw_any) ||
+                   (state == ST_T4 && evald));
 
 always_ff @(posedge clk) begin
     eu_started <= 1'b0;
@@ -281,6 +376,13 @@ always_ff @(posedge clk) begin
         fetch_data <= '0;
         eu_rdata   <= '0;
         e_wait     <= 1'b0;
+        tw_any     <= 1'b0;
+        evald      <= 1'b0;
+        push_pend  <= 2'd0;
+        push_pend_hi <= 1'b0;
+        eu_hand    <= 1'b0;
+        eval_ext   <= 1'b0;
+        ext_flushed <= 1'b0;
         if (bkd_load) begin
             fetch_cs  <= bkd_cs;
             fetch_off <= bkd_ip;
@@ -297,8 +399,11 @@ always_ff @(posedge clk) begin
         q_aged <= push_now;
         if (pop_now)
             q_rd <= (q_rd == 3'd5) ? 3'd0 : q_rd + 3'd1;
+        push_pend <= 2'd0;      // pend is consumed one edge after it is set
+        eu_hand   <= 1'b0;      // eu_done is a single handover cycle
+        eval_ext  <= 1'b0;      // deferred eval lasts a single cycle
         if (push_now != 0) begin
-            q_mem[q_wr] <= cur_addr[0] ? fetch_data[15:8] : fetch_data[7:0];
+            q_mem[q_wr] <= push_pend_hi ? fetch_data[15:8] : fetch_data[7:0];
             if (push_now == 2'd2) begin
                 q_mem[(q_wr == 3'd5) ? 3'd0 : q_wr + 3'd1] <= fetch_data[15:8];
                 q_wr <= (q_wr >= 3'd4) ? q_wr - 3'd4 : q_wr + 3'd2;
@@ -316,7 +421,7 @@ always_ff @(posedge clk) begin
             q_wr   <= '0;
             fetch_cs  <= flush_cs;
             fetch_off <= flush_ip;
-            if (flush_busy_fetch)
+            if (flush_doom_fetch)
                 fetch_discard <= 1'b1;    // let the bus cycle finish, drop data
             if (nxt_valid && nxt_fetch)
                 nxt_valid <= 1'b0;        // uncommit a stale fetch
@@ -330,6 +435,8 @@ always_ff @(posedge clk) begin
             ST_TI: begin
                 if (nxt_live) begin
                     state      <= ST_T1;
+                    tw_any     <= 1'b0;
+                    evald      <= 1'b0;
                     cur_type   <= nxt_type;
                     cur_addr   <= nxt_addr;
                     cur_fetch  <= nxt_fetch;
@@ -342,13 +449,48 @@ always_ff @(posedge clk) begin
                     cur_ube_n  <= nxt_ube_n;
                     ube_n      <= nxt_ube_n;
                     nxt_valid  <= 1'b0;
-                end else if (pick_any) begin
-                    do_commit();
+                end else if (eval_ext && pick_any) begin
+                    // deferred (waited-cycle) completion eval: the picked
+                    // cycle was displayed during this cycle; enter its T1
+                    // directly
+                    state      <= ST_T1;
+                    tw_any     <= 1'b0;
+                    evald      <= 1'b0;
+                    cur_type   <= pick_type;
+                    cur_addr   <= pick_addr;
+                    cur_fetch  <= pick_fetch;
+                    cur_wr     <= pick_wr;
+                    cur_swap   <= pick_swap;
+                    cur_split1 <= pick_split1;
+                    cur_split2 <= pick_split2;
+                    cur_wdata  <= pick_wdata;
+                    cur_seg    <= pick_seg;
+                    cur_ube_n  <= pick_ube_n;
+                    ube_n      <= pick_ube_n;
+                    if (pick_fetch) begin
+                        fetch_off <= fetch_off_sel +
+                                     (fetch_word ? 16'd2 : 16'd1);
+                    end else if (want_eu && !want_half2) begin
+                        eu_started <= 1'b1;
+                    end
+                end else begin
+                    if (eval_ext) begin
+                        // deferred eval found nothing: cycle teardown
+                        // deferred from the end of T4
+                        cur_type   <= BS_PASV;
+                        cur_fetch  <= 1'b0;
+                        cur_split1 <= 1'b0;
+                        cur_split2 <= 1'b0;
+                        cur_wr     <= 1'b0;
+                    end else if (pick_any) begin
+                        do_commit();
+                    end
                 end
             end
             ST_T1: state <= ST_T2;
             ST_T2: state <= ST_T3;
             ST_T3, ST_TW: begin
+                if (state == ST_TW) tw_any <= 1'b1;
                 if (ready) begin
                     state <= ST_T4;
                     // read-data sample at the end of T3/TW
@@ -364,16 +506,37 @@ always_ff @(posedge clk) begin
                         else
                             eu_rdata <= ad_i;
                     end
-                    // commit evaluation for the cycle after T4
-                    if (pick_any) do_commit();
+                    // commit evaluation for the cycle after T4 - only in
+                    // a zero-wait cycle (see eval_at_t3 above); a waited
+                    // cycle evaluates at the end of T4 instead. The queue
+                    // push of a completed fetch follows one cycle later.
+                    if (eval_at_t3) begin
+                        evald <= 1'b1;
+                        if (cur_fetch && !fetch_discard && !q_flush) begin
+                            push_pend    <= cur_word ? 2'd2 : 2'd1;
+                            push_pend_hi <= cur_addr[0];
+                        end
+                        if (eu_completing) eu_hand <= 1'b1;
+                        if (pick_any) do_commit();
+                    end
                 end else begin
                     state <= ST_TW;
                 end
             end
             ST_T4: begin
                 if (cur_fetch && fetch_discard) fetch_discard <= 1'b0;
+                // waited cycle: deferred eval edge - schedule the queue
+                // push of a completed fetch for the end of the next
+                // cycle, or the EU handover for the next cycle
+                if (!evald && cur_fetch && !fetch_discard && !q_flush) begin
+                    push_pend    <= cur_word ? 2'd2 : 2'd1;
+                    push_pend_hi <= cur_addr[0];
+                end
+                if (!evald && eu_completing) eu_hand <= 1'b1;
                 if (nxt_live) begin
                     state      <= ST_T1;
+                    tw_any     <= 1'b0;
+                    evald      <= 1'b0;
                     cur_type   <= nxt_type;
                     cur_addr   <= nxt_addr;
                     cur_fetch  <= nxt_fetch;
@@ -387,17 +550,35 @@ always_ff @(posedge clk) begin
                     ube_n      <= nxt_ube_n;
                     nxt_valid  <= 1'b0;
                 end else begin
-                    state    <= ST_TI;
-                    cur_type <= BS_PASV;
-                    cur_fetch  <= 1'b0;
-                    cur_split1 <= 1'b0;
-                    cur_split2 <= 1'b0;
-                    cur_wr     <= 1'b0;
-                    // NOTE: no commit evaluation at the T4 edge normally
-                    // (measured) - EXCEPT a flush redirect at a prefetch
-                    // T4, which commits immediately (measured, mission E).
-                    // An EU access's T4 still defers to the next Ti eval.
-                    if (q_flush && cur_fetch && pick_any) do_commit();
+                    state <= ST_TI;
+                    // NOTE: no commit evaluation at the T4 edge of a
+                    // zero-wait cycle (measured) - EXCEPT a flush
+                    // redirect at a prefetch T4, which commits
+                    // immediately (measured, mission E). A WAITED cycle's
+                    // deferred completion eval instead runs DURING the
+                    // following cycle (eval_ext): it sees EU requests
+                    // that assert in that cycle, drives the committed
+                    // status/address mid-cycle, and enters T1 directly at
+                    // its end (measured, mission H waits tranches). The
+                    // completed cycle's identity (split flags etc.) is
+                    // kept across the eval_ext cycle.
+                    if (q_flush && cur_fetch && pick_any) begin
+                        do_commit();
+                        cur_type   <= BS_PASV;
+                        cur_fetch  <= 1'b0;
+                        cur_split1 <= 1'b0;
+                        cur_split2 <= 1'b0;
+                        cur_wr     <= 1'b0;
+                    end else if (!evald) begin
+                        eval_ext    <= 1'b1;
+                        ext_flushed <= q_flush;
+                    end else begin
+                        cur_type   <= BS_PASV;
+                        cur_fetch  <= 1'b0;
+                        cur_split1 <= 1'b0;
+                        cur_split2 <= 1'b0;
+                        cur_wr     <= 1'b0;
+                    end
                 end
             end
             default: state <= ST_TI;
@@ -410,8 +591,28 @@ end
 //----------------------------------------------------------------------------
 wire cycle_active = (state != ST_TI) && cur_type != BS_PASV;
 
+// Status display: active from commit through T2 always; through T3/TW
+// while READY has not yet been sampled high in this bus cycle (measured
+// on the waits=1/3 tranches: T3 and every Tw of a waited cycle show the
+// active status mid-cycle, T4 is passive again). At zero waits READY is
+// already high at the end of T2, so T3 displays passive - the pre-waits
+// law. ready_prev is READY at the last sampling edge.
+reg ready_prev;
+always_ff @(posedge clk) ready_prev <= ready;
+always_ff @(posedge clk) begin
+    eu_req_p1   <= eu_req && !eu_started;
+    eu_req_p2   <= eu_req_p1;
+    eu_ready_p1 <= eu_ready && !eu_started;
+end
+
+// ext_show: the deferred eval displays the picked cycle's status/address
+// during the eval_ext cycle itself (mid-cycle commit)
+wire ext_show = eval_ext && pick_any;
+
 assign bs = nxt_live ? nxt_type
+          : ext_show ? pick_type
           : (state == ST_T1 || state == ST_T2) ? cur_type
+          : ((state == ST_T3 || state == ST_TW) && !ready_prev) ? cur_type
           : BS_PASV;
 
 wire [15:0] wdata_lanes = cur_swap ? {cur_wdata[7:0], cur_wdata[15:8]}
@@ -424,13 +625,14 @@ wire [15:0] wdata_lanes = cur_swap ? {cur_wdata[7:0], cur_wdata[15:8]}
 reg t1_half2;
 always @(negedge clk) t1_half2 <= (state == ST_T1);
 
-assign ad_oe_addr = nxt_live || state == ST_T1;
+assign ad_oe_addr = nxt_live || ext_show || state == ST_T1;
 assign ad_oe_ps   = !ad_oe_addr && cycle_active &&
                     (state == ST_T2 || state == ST_T3 ||
                      state == ST_TW || state == ST_T4);
 assign ad_oe_data = ad_oe_ps && cur_wr;
 
 assign ad_o = nxt_live           ? nxt_addr
+            : ext_show           ? pick_addr
             : (state == ST_T1)   ? (cur_wr && t1_half2
                                     ? {cur_addr[19:16], wdata_lanes}
                                     : cur_addr)
