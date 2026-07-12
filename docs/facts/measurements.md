@@ -175,6 +175,56 @@ Notable structure:
 - Direct-address loads (MOV acc,dmem) are the only memory reads with
   zero deviation; modrm EA loads all pay +2.
 
+## Timing sweep part 2: control flow, strings, BCD, I/O (2026-07-11, mission 4)
+
+sw/sweep_timing.py flow/string/misc (+ REP probes); 63 more records in
+timing_measured.json. Taken-branch times are F-pop-to-target-first-F,
+i.e. they INCLUDE the queue flush + refetch — the real effective cost.
+
+| Form class | Measured | Documented | Delta |
+|---|---|---|---|
+| Bcond taken (BZ/BNZ/BC/BNC) | **13** | 14 | **-1** |
+| Bcond not-taken | 4 | 4 | 0 |
+| BCWZ / DBNZ taken | 15 | 13 | +2 |
+| DBNZE / DBNZNE taken | 16 | 14 | +2 |
+| BCWZ / DBNZ / DBNZE/NE not-taken | 5 | 5 | 0 |
+| BR short / BR far / BR [BW] (memptr16) | 12 / 15 / 20 | same | 0 |
+| BR near (disp16) | 13 | 12 | +1 (even or odd target) |
+| BR DW (regptr16) | 12 | 11 | +1 |
+| CALL near / CALL DW | 18 / 16 | 16 / 14 | +2 |
+| CALL [BW] (memptr16) / CALL far | 26 / 27 | 23 / 21 | +3 / +6 |
+| RET | 16 | 15 | +1 |
+| RET pop-value | **17** | 20 | **-3** |
+| MOVBKB/W, LDMB/W, STMB/W single | 13 / 9 / 9 | 11 / 7 / 7 | +2 |
+| CMPBKB/W single | 13 | 13 | 0 |
+| REP prefix (own F pop, retires separately) | 2 | 2 | 0 |
+| REP STMW (n=1,2,3,5) | **9+4n** | 7+4n | slope exact, +2 |
+| REP MOVBKB/W | **9+8n** | 11+8n | slope exact, **-2** |
+| REPE CMPBKW | **11+14n** | 7+14n | slope exact, +4 |
+| REP xxx with CW=0 | 12 | 7 | +5 (uniform early-out) |
+| ADJ4A / ADJ4S (DAA/DAS) | 3 / **3** | 3 / 7 | 0 / **-4** |
+| ADJBA / ADJBS (AAA/AAS) | **7** / 7 | 3 / 7 | **+4** / 0 |
+| CVTBD (AAM) / CVTDB (AAD) | 15 / 8 | 15 / 7 | 0 / +1 |
+| CVTBW / CVTWL | 2 / 5 | 2 / "4 or 5" | 0 (CVTWL data-independent at 5) |
+| TRANS | 9 | 9 | 0 |
+| IN/OUT, all 8 forms | **all 9** | 8 or 9 by form | 0..+1 |
+| Shift/rotate mem,CL | 25+n | 19+n | +6 (same class as mem,1) |
+
+Notable:
+
+- **Conditional taken branches beat their documentation** (13 vs 14) —
+  the first systematic negative deviation; not-taken times are exact.
+- **The manual's ADJBA/ADJ4S values appear transposed**: silicon groups
+  by family (decimal ADJ4A=ADJ4S=3, ASCII ADJBA=ADJBS=7), the manual
+  by direction (A=3, S=7). Data-independent on both paths tested.
+- **REP per-iteration slopes match documentation exactly** (4/8/14);
+  only the setup intercepts deviate, REP MOVBK actually 2 BELOW doc.
+  The REP prefix retires as its own instruction (own F pop, 2 cycles).
+- Taken-branch target parity does not matter (even/odd targets timed
+  identically for BR short and BZ) — matches the exp-2 flush result.
+- IN/OUT: silicon charges 9 uniformly; the manual's 8-cycle rows
+  (DW-indirect, all OUT) are 1 low.
+
 ## Divide-overflow semantics (prior work, large context)
 
 - MAME's divide-overflow behavior for V30 (CY/V = !overflow, registers

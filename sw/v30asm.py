@@ -124,7 +124,11 @@ def atom_match(atom, op, mnemonic):
     """Does operand `op` satisfy pattern atom `atom`? Returns None or a
     weight (lower = more specific form, preferred)."""
     a = atom.strip()
+    a = re.sub(r"\s*\(.*\)$", "", a)   # strip annotations: "imm8 (!=3)"
     k = op.kind
+    # literal immediate atoms ("1" in shifts, "3" in BRK 3)
+    if a.isdigit() and k == "imm":
+        return 0 if op.value == int(a) else None
     # literal atoms: a specific register or flag named in the form
     if a.upper() == getattr(op, "name", None):
         return 0
@@ -170,6 +174,8 @@ def atom_match(atom, op, mnemonic):
 def op_width(pattern_atoms, ops):
     """Determine W (0=byte, 1=word) from the operands."""
     for a, op in zip(pattern_atoms, ops):
+        if a.strip().upper() in ("CL", "1"):
+            continue    # shift counts don't set the operand width
         if op.kind == "reg16":
             return 1
         if op.kind == "reg8":
@@ -207,11 +213,13 @@ class Assembler:
             # dual-form separators: " / " usually, " or " in one TEST entry
             for form in re.split(r" / | or ", rec["nec_form"]):
                 parts = form.split(None, 1)
-                mnem = parts[0].upper()
                 ops = parts[1] if len(parts) > 1 else ""
-                if ops.startswith("(no operand)"):
+                if ops.startswith("(no operand)") or ops == "no operand":
                     ops = ""
-                self.forms.setdefault(mnem, []).append((ops, rec))
+                # slash-joined mnemonic aliases without operands
+                # ("MOVBK/MOVBKB/MOVBKW", "REP/REPE/REPZ")
+                for mnem in parts[0].upper().split("/"):
+                    self.forms.setdefault(mnem, []).append((ops, rec))
 
     # ------------------------------------------------------------------
     def assemble(self, source, org=0):
@@ -326,12 +334,13 @@ class Assembler:
         _, atoms, rec = best
         self.last_rec = rec     # instructions.json record of the matched form
         try:
-            return self._emit(rec, atoms, ops, pc, final=(_pass == 2))
+            return self._emit(rec, atoms, ops, pc, final=(_pass == 2),
+                              mnem=mnem)
         except AsmError as e:
             raise AsmError(f"{line!r}: {e}") from None
 
     # ------------------------------------------------------------------
-    def _emit(self, rec, atoms, ops, pc, final=True):
+    def _emit(self, rec, atoms, ops, pc, final=True, mnem=""):
         """Fill the encoding byte templates with field values."""
         # operand roles
         regop = next((o for o in ops if o.kind in ("reg8", "reg16")), None)
@@ -350,6 +359,14 @@ class Assembler:
         if regop is not None and regop not in regs:
             regop = regs[0] if regs else None
         w = op_width(atoms, ops)
+        # no-operand string forms carry width in the mnemonic suffix
+        # (MOVBKB/MOVBKW, LDMB/..., only when the encoding has a W bit)
+        if w is None and not ops and "W" in rec["encoding"][0]:
+            if mnem.endswith("W"):
+                w = 1
+            elif mnem.endswith("B"):
+                w = 0
+        self.last_w = w     # W bit actually emitted (None if encoding has none)
 
         # instruction length estimate for PC-relative operands: computed
         # after emission; use two-step emit with placeholder then patch
