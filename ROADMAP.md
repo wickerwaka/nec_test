@@ -66,7 +66,7 @@ the core, diffs per-cycle bus/queue behavior against the real chip's
 capture. Grow opcode by opcode using campaign 2's corpus, BIU first
 (campaign 1's model).
 
-Status (2026-07-12, blocks 1-3 complete):
+Status (2026-07-12, blocks 1-4 complete):
 - **59 opcode forms cycle- and state-exact**, 500 golden cases each
   (29,500/29,500 full): ALU rm8,r8 x8, MOV family (88/89/8A/8B, sreg
   8C/8E, moffs A0-A3), XCHG 86/87, LDEA, TRANS, CVTBW/CVTWL, INC/DEC/
@@ -78,16 +78,38 @@ Status (2026-07-12, blocks 1-3 complete):
   waits=3 (2x 1200/1200); the deferred-completion-eval laws are in
   biu_model.md "Wait states, cycle-level laws" — Campaign 4 runs behind
   the same READY path.
-- Remaining for campaign completion (blocked on harness RTL, both need
-  a SUPERVISED harness change + reflash — do NOT attempt from the
-  agent loop):
-  - INT/NMI/POLL and HALT paths — need the pin-event scheduler (RTL
-    item: schedule INT/NMI/POLL edges at captured cycle offsets).
-  - IN/port-read opcodes — need configurable IOR data (RTL item 1).
-- Other residuals: full-scale emission of every documented form (the
-  59-form corpus is the systematic sample), denser undocumented-0F
-  mapping, stacked/randomized prefixes, CMPBK/SCAS-class string ops
-  (flag-writing string forms), 8080-emulation mode.
+- **Block 4 (missions L/M/N): interrupts, HALT, POLL, IN** — Q14
+  answered (docs/facts/interrupt_model.md); harness pin-event
+  scheduler + IORD in service (serve protocol v2 with per-RUN
+  evt/pins/iord); 15 interrupt-form tranches (200 cases each) + 4 IN
+  forms (500 each) emitted with evt/pins/iord/close_addr schema
+  extensions; INT/NMI recognition + INTA pair + vectoring, HALT
+  entry/wake (incl. the V30-specific masked-INT resume), POLL, EI/DI/
+  POP-PSW IE laws, REP interruption, and IN implemented in the core.
+  13 of 15 interrupt forms + all IN forms are 100% cycle- and
+  state-exact; cycle rows are 100% on everything except INT.F3AA.
+  Known residuals (documented in interrupt_model.md): the POP-PSW
+  boundary-race PSW commit (bimodal, 53/200 arch) and the REP-abort
+  flush-slot ±1 (33/200 cycles).
+- Remaining for campaign completion:
+  - Full-scale emission of every documented form (the 78-form corpus
+    is the systematic sample). With the emitter, serve runner, and
+    event scheduler proven at ~0.4 s/case, a final full-scale emission
+    block (~150 documented forms x 500 cases ≈ 10-12 h of board time)
+    plus per-form spec additions is the single largest remaining item
+    and would close the campaign's behavioral coverage.
+  - Residual documented forms not yet golden-tested: OUT (E6/E7/EE/EF)
+    and the remaining IO family, CMPBK/SCAS-class flag-writing string
+    ops + their REP forms, remaining REP variants (F2/REPNE, word
+    strings), ALU imm/rm forms (80-83), TEST/NOT/NEG/MUL signed
+    variants beyond the sampled set, rotates/shift-by-CL (D1-D3),
+    BCD adjust ops (27/2F/37/3F, 0F 22/26/2A/2E), PUSH/POP sreg +
+    PUSHF/POPF, far CALL/RET/JMP + software INT (CC/CD/CE) + IRET
+    (RETI), Jcc full set, LDS/LES (C4/C5), IMUL forms 69/6B, INS/EXT
+    (0F 31/33/39/3B), BRK3/BRKV vectoring, and the two block-4
+    residual laws above.
+  - Denser undocumented-0F mapping, stacked/randomized prefixes,
+    8080-emulation mode (needs the RETEM recovery path).
 
 ### Campaign 4 — in-FPGA A/B verification
 The core instantiated in the harness FPGA behind the same bus interface;
