@@ -358,12 +358,49 @@ initial begin
     bus_cycle(BS_MEMR, 20'h02100, 1'b0, 16'h0, rd);
     check(rd == 16'h1234, $sformatf("lg: write/readback returned %04x (expect 1234)", rd));
     bus_cycle(BS_IOR, 20'h00080, 1'b0, 16'h0, rd);
-    check(rd == 16'h0000, $sformatf("lg: io read returned %04x (expect 0000)", rd));
+    check(rd == 16'hFFFF, $sformatf("lg: io read returned %04x (expect FFFF, IORD default)", rd));
 
     // host reclaims memory and sees the CPU's write
     axi_write32(R_CTRL, 32'h5);
     axi_read32(A_MEM + 21'h2100, w);
     check(w[15:0] == 16'h1234, $sformatf("cpu write visible via bridge %04x (expect 1234)", w[15:0]));
+
+    //------------------------------------------------------------------
+    // IORD config + pin-event scheduler (large mode)
+    //------------------------------------------------------------------
+    begin
+        int t_fire, t_seen;
+        axi_write32(21'h180018, 32'h0000_ABCD);        // IORD = ABCD
+        axi_write32(21'h18001C, 32'h000FFFF0);         // EVT_ADDR = FFFF0
+        axi_write32(21'h180020, 32'h8000_0000 | (8 << 16) | 16'd3);
+                                                       // arm, INT, hold 8, delay 3
+        axi_write32(R_CTRL, 32'h4);                    // run
+        while (NEC_RESET !== 1'b1) @(posedge clk);
+        while (NEC_RESET) @(posedge NEC_CLK);
+
+        // IOR returns the configured data
+        bus_cycle(BS_IOR, 20'h00080, 1'b0, 16'h0, rd);
+        check(rd == 16'hABCD, $sformatf("IORD config returned %04x (expect ABCD)", rd));
+
+        // CODE fetch at the trigger address fires INT after 3 CPU clocks
+        check(!NEC_INT, "INT idle before trigger");
+        fork
+            bus_cycle(BS_CODE, 20'hFFFF0, 1'b0, 16'h0, rd);
+            begin
+                t_fire = nec_clks;
+                while (!NEC_INT && (nec_clks - t_fire) < 40) @(posedge NEC_CLK);
+                t_seen = nec_clks - t_fire;
+            end
+        join
+        while (!NEC_INT && (nec_clks - t_fire) < 40) @(posedge NEC_CLK);
+        check(NEC_INT, "pin event fired INT");
+        axi_read32(R_STATUS, w);
+        check(w[3], "STATUS.evt_fired set");
+        repeat (12) @(posedge NEC_CLK);
+        check(!NEC_INT, "INT released after hold");
+        axi_write32(21'h180020, 32'h0);                // disarm
+        axi_write32(R_CTRL, 32'h5);
+    end
 
     //------------------------------------------------------------------
     // synthetic large-mode trace with scripted queue status, dumped via

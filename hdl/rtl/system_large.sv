@@ -104,6 +104,12 @@ wire  [3:0] cfg_wait_states;
 wire  [7:0] cfg_int_vector;
 wire        cfg_small_mode;
 wire        int_req, nmi_req, poll_n_host;
+wire [15:0] cfg_iord;
+wire [19:0] evt_addr;
+wire [15:0] evt_delay;
+wire  [7:0] evt_hold;
+wire  [2:0] evt_pin;
+wire        evt_arm, evt_fired;
 
 wire [19:0] h_mem_addr;
 wire        h_mem_wr_req;
@@ -229,6 +235,13 @@ hps_axi_slave bridge
     .int_req(int_req),
     .nmi_req(nmi_req),
     .poll_n_out(poll_n_host),
+    .cfg_iord(cfg_iord),
+    .evt_addr(evt_addr),
+    .evt_delay(evt_delay),
+    .evt_hold(evt_hold),
+    .evt_pin(evt_pin),
+    .evt_arm(evt_arm),
+    .evt_fired(evt_fired),
 
     .pwr_good(pwr_good),
     .cpu_running(cpu_running),
@@ -269,6 +282,13 @@ nec_bus bus
     .int_req(int_req),
     .nmi_req(nmi_req),
     .poll_n_in(poll_n_host),
+
+    .evt_arm(evt_arm & ~harness_reset),
+    .evt_addr(evt_addr),
+    .evt_delay(evt_delay),
+    .evt_hold(evt_hold),
+    .evt_pin(evt_pin),
+    .evt_fired(evt_fired),
 
     .NEC_AD(NEC_AD),
     .NEC_AD_DIR(NEC_AD_DIR),
@@ -313,7 +333,8 @@ test_mem mem
     .rdata(mem_rdata),
     .wr_req    (host_owns ? h_mem_wr_req : mem_wr_req_cpu),
     .wdata     (host_owns ? h_mem_wdata  : mem_wdata_cpu),
-    .be        (host_owns ? h_mem_be     : mem_be_cpu)
+    .be        (host_owns ? h_mem_be     : mem_be_cpu),
+    .cfg_iord  (cfg_iord)
 );
 
 //----------------------------------------------------------------------------

@@ -18,6 +18,13 @@
 //                            [23:16] int_vector  [24] small_mode
 //                            (change only while host_reset is set)
 //        0x0C  PINS      RW  [0] int_req  [1] nmi_req  [2] poll_n
+//        0x18  IORD      RW  [15:0] data returned for I/O reads (dflt FFFF)
+//        0x1C  EVT_ADDR  RW  [19:0] fetch-address trigger for the pin-event
+//                            scheduler (CODE T1 linear-address match)
+//        0x20  EVT_CFG   RW  [15:0] delay (CPU clocks after match)
+//                            [23:16] hold (CPU clocks; 0 = until disarmed)
+//                            [26:24] pin (0=INT 1=NMI 2=POLL_N active-low)
+//                            [31] arm (STATUS[3] = fired; disarm deasserts)
 //        0x10  STATUS    RO  [0] pwr_good  [1] cpu_running  [2] cap_full
 //        0x14  CAPCOUNT  RO  records captured
 //
@@ -68,6 +75,13 @@ module hps_axi_slave
     output reg        int_req,
     output reg        nmi_req,
     output reg        poll_n_out,
+    output reg [15:0] cfg_iord,
+    output reg [19:0] evt_addr,
+    output reg [15:0] evt_delay,
+    output reg  [7:0] evt_hold,
+    output reg  [2:0] evt_pin,
+    output reg        evt_arm,
+    input             evt_fired,
 
     // harness status inputs
     input             pwr_good,
@@ -143,6 +157,12 @@ always_ff @(posedge clk) begin
         int_req         <= 1'b0;
         nmi_req         <= 1'b0;
         poll_n_out      <= 1'b0;
+        cfg_iord        <= 16'hFFFF;
+        evt_addr        <= '0;
+        evt_delay       <= '0;
+        evt_hold        <= '0;
+        evt_pin         <= '0;
+        evt_arm         <= 1'b0;
     end else begin
         awready      <= 1'b0;
         arready      <= 1'b0;
@@ -194,6 +214,14 @@ always_ff @(posedge clk) begin
                         int_req    <= wdata[0];
                         nmi_req    <= wdata[1];
                         poll_n_out <= wdata[2];
+                    end
+                    8'h18: cfg_iord <= wdata[15:0];
+                    8'h1C: evt_addr <= wdata[19:0];
+                    8'h20: begin
+                        evt_delay <= wdata[15:0];
+                        evt_hold  <= wdata[23:16];
+                        evt_pin   <= wdata[26:24];
+                        evt_arm   <= wdata[31];
                     end
                     default: ;
                     endcase
@@ -277,8 +305,11 @@ always_ff @(posedge clk) begin
                     8'h08: rdata <= {7'd0, cfg_small_mode, cfg_int_vector,
                                      4'd0, cfg_wait_states, 2'd0, cfg_clk_div};
                     8'h0C: rdata <= {29'd0, poll_n_out, nmi_req, int_req};
-                    8'h10: rdata <= {29'd0, cap_full, cpu_running, pwr_good};
+                    8'h10: rdata <= {28'd0, evt_fired, cap_full, cpu_running, pwr_good};
                     8'h14: rdata <= {19'd0, cap_count};
+                    8'h18: rdata <= {16'd0, cfg_iord};
+                    8'h1C: rdata <= {12'd0, evt_addr};
+                    8'h20: rdata <= {evt_arm, 4'd0, evt_pin, evt_hold, evt_delay};
                     default: rdata <= 32'hDEADBEEF;
                     endcase
                     st <= R_DATA;

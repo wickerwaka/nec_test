@@ -59,6 +59,9 @@ R_CFG      = REG_OFF + 0x08
 R_PINS     = REG_OFF + 0x0C
 R_STATUS   = REG_OFF + 0x10
 R_CAPCOUNT = REG_OFF + 0x14
+R_IORD     = REG_OFF + 0x18
+R_EVT_ADDR = REG_OFF + 0x1C
+R_EVT_CFG  = REG_OFF + 0x20
 
 MAGIC = 0x56333031
 
@@ -148,6 +151,23 @@ class Harness:
             hi = self.read32(CAP_OFF + i * 8 + 4)
             recs.append((hi << 32) | lo)
         return recs
+
+    def set_iord(self, val):
+        self.write32(R_IORD, val & 0xFFFF)
+
+    def set_event(self, addr=None, delay=0, hold=0, pin=0, arm=True):
+        """Arm the pin-event scheduler: on a CODE T1 at linear `addr`,
+        wait `delay` CPU clocks, drive pin (0=INT 1=NMI 2=POLL) for `hold`
+        clocks (0 = until disarmed). arm=False disarms."""
+        if addr is not None:
+            self.write32(R_EVT_ADDR, addr & 0xFFFFF)
+        v = (delay & 0xFFFF) | ((hold & 0xFF) << 16) | ((pin & 7) << 24)
+        if arm:
+            v |= 1 << 31
+        self.write32(R_EVT_CFG, v)
+
+    def event_fired(self):
+        return bool(self.read32(R_STATUS) & 8)
 
     def set_cfg(self, div=None, waits=None, vector=None, small=None):
         v = self.read32(R_CFG)

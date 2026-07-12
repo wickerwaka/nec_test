@@ -40,6 +40,16 @@ module nec_bus
     input             nmi_req,
     input             poll_n_in,
 
+    // Pin-event scheduler: on a CODE T1 at evt_addr, wait evt_delay CPU
+    // clocks, then drive the selected pin for evt_hold clocks (0 = until
+    // disarmed). Gives interrupt tests a cycle-deterministic stimulus.
+    input             evt_arm,
+    input      [19:0] evt_addr,
+    input      [15:0] evt_delay,
+    input       [7:0] evt_hold,
+    input       [2:0] evt_pin,     // 0=INT 1=NMI 2=POLL_N(active low)
+    output reg        evt_fired,
+
     // NEC processor pins
     inout      [19:0] NEC_AD,
     output            NEC_AD_DIR,      // 0 - input, 1 - output (AD[15:0] transceivers)
@@ -361,6 +371,65 @@ assign NEC_AD[19:16] = 4'hz;
 assign NEC_AD_DIR    = drive_en;
 
 //----------------------------------------------------------------------------
+// Pin-event scheduler
+//----------------------------------------------------------------------------
+localparam bit [1:0] EV_IDLE = 2'd0, EV_DELAY = 2'd1, EV_ACTIVE = 2'd2,
+                     EV_DONE = 2'd3;
+reg  [1:0] ev_st;
+reg [15:0] ev_cnt;
+reg  [7:0] ev_hold_cnt;
+reg        ev_drive;
+
+// address match latched at the falling edge (address phase) so the
+// trigger evaluates at the edge that ENDS the matching CODE T1 cycle
+reg mem_addr_match;
+always_ff @(posedge clk) begin
+    if (tick_fall) mem_addr_match <= (ad_in_q == evt_addr);
+end
+
+wire ev_match = (t_state == ST_T1) && mem_cycle_type == BS_CODE &&
+                mem_addr_match;
+
+always_ff @(posedge clk) begin
+    if (reset || !evt_arm) begin
+        ev_st       <= EV_IDLE;
+        ev_drive    <= 1'b0;
+        evt_fired   <= 1'b0;
+        ev_cnt      <= '0;
+        ev_hold_cnt <= '0;
+    end else if (tick_rise) begin
+        case (ev_st)
+        EV_IDLE: if (ev_match) begin
+            ev_cnt <= evt_delay;
+            ev_st  <= EV_DELAY;
+        end
+        EV_DELAY: begin
+            if (ev_cnt == 0) begin
+                ev_drive    <= 1'b1;
+                evt_fired   <= 1'b1;
+                ev_hold_cnt <= evt_hold;
+                ev_st       <= EV_ACTIVE;
+            end else ev_cnt <= ev_cnt - 16'd1;
+        end
+        EV_ACTIVE: begin
+            if (evt_hold != 0) begin
+                if (ev_hold_cnt <= 1) begin
+                    ev_drive <= 1'b0;
+                    ev_st    <= EV_DONE;
+                end else ev_hold_cnt <= ev_hold_cnt - 8'd1;
+            end
+            // evt_hold==0: hold until disarmed
+        end
+        EV_DONE: ;
+        endcase
+    end
+end
+
+wire ev_int    = ev_drive && evt_pin == 3'd0;
+wire ev_nmi    = ev_drive && evt_pin == 3'd1;
+wire ev_poll   = ev_drive && evt_pin == 3'd2;
+
+//----------------------------------------------------------------------------
 // Static request outputs
 //----------------------------------------------------------------------------
 // READY is re-registered on the falling CLK edge so it changes a half CPU
@@ -372,9 +441,9 @@ always_ff @(posedge clk) begin
 end
 
 assign NEC_READY  = ready_pin;
-assign NEC_INT    = int_req;
-assign NEC_NMI    = nmi_req;
-assign NEC_POLL_N = poll_n_in;
+assign NEC_INT    = int_req | ev_int;
+assign NEC_NMI    = nmi_req | ev_nmi;
+assign NEC_POLL_N = poll_n_in & ~ev_poll;
 
 //----------------------------------------------------------------------------
 // Capture record, one per CPU clock cycle

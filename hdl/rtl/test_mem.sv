@@ -33,7 +33,9 @@ module test_mem #(
 
     input             wr_req,        // 1-clk pulse
     input      [15:0] wdata,
-    input       [1:0] be             // [0] even lane, [1] odd lane
+    input       [1:0] be,            // [0] even lane, [1] odd lane
+
+    input      [15:0] cfg_iord       // data returned for I/O reads
 );
 
 localparam bit [2:0] BS_IOR  = 3'b001;
@@ -50,7 +52,7 @@ wire [7:0] rdata_even, rdata_odd;
 reg is_io_read;
 always_ff @(posedge clk) is_io_read <= cycle_type == BS_IOR;
 
-assign rdata = is_io_read ? 16'h0000 : {rdata_odd, rdata_even};
+assign rdata = is_io_read ? cfg_iord : {rdata_odd, rdata_even};
 
 `ifdef VERILATOR
 
