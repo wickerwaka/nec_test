@@ -35,12 +35,39 @@
 //     handler prefetch then wins the slot after the PC push by itself.
 //
 //  Implemented opcodes: 00/08/10/18/20/28/30/38 (ALU rm8,r8), 40-4F,
-//  50-57, 58-5F, 86/87 (XCHG), 88/89/8A/8B, 90, B8-BF, D0/4, F6/4,
-//  F7/6, FE/0, the V30 0F forms 0F18 (TEST1 rm8,imm3), 0F20 (ADD4S),
-//  0F28 (ROL4 rm8), and control flow EB/E9 (BR), 74/75/7C (Bcc), E2
-//  (DBNZ), E8 (CALL near), C3/C2 (RET). Unknown opcodes park the
-//  sequencer (S_HALT). 0F forms pop the second byte at F+2 and the
-//  modrm at F+3; the standard EA machinery then applies unchanged.
+//  50-57, 58-5F, 86/87 (XCHG), 88/89/8A/8B, 8C/8E (sreg MOV), 8D
+//  (LDEA), 90, 98/99 (CVTBW/CVTWL), A0-A3 (acc moffs), A4/A5/AA/AB/
+//  AC/AD (MOVBK/STM/LDM singles), B8-BF, D0/4, D7 (TRANS), F6/4,
+//  F6/7 F7/7 (IDIV), F7/6, FE/0, the prefixes 26/2E/36/3E (segment
+//  override) and F3 (REP), the V30 0F forms 0F18 (TEST1 rm8,imm3),
+//  0F20 (ADD4S), 0F28 (ROL4 rm8), and control flow EB/E9 (BR),
+//  74/75/7C (Bcc), E2 (DBNZ), E8 (CALL near), C3/C2 (RET). Unknown
+//  opcodes park the sequencer (S_HALT). 0F forms pop the second byte
+//  at F+2 and the modrm at F+3; the standard EA machinery applies.
+//
+//  Mission J laws (per-form goldens, 500 cases each, all cycle-exact):
+//   - prefixes retire as their own instruction (own F pop, 2 cycles);
+//     the override/REP latch lives until the prefixed instruction
+//     retires. A segment override absorbs into the EA machinery
+//     (ea_seg_sel mux) at no extra cost - measurements.md law.
+//   - moffs forms (A0-A3): address pops @2/3, reservation during the
+//     hi pop (like disp pops), access ready hi+1, loads retire at
+//     done, stores at done (store data = acc pair).
+//   - sreg MOVs: reg forms retire in 2 cycles (S_DEC); 8C mem follows
+//     the READER reservation+ready schedule (d0/d1 @4, d2 @5); 8E
+//     writeback at done+1 (one faster than 8B).
+//   - LDEA: no bus access or reservation; mod0 retires at cycle 2,
+//     disp forms at their final disp pop.
+//   - TRANS: BX+AL byte read ready @3, retire at done (9 cycles).
+//   - string singles: access ready @3 (LDM/STM), retire at done;
+//     MOVBK queues its WRITE while the read is in flight - it commits
+//     at the read's own T3 edge with the data forwarded inside the
+//     BIU (eu_fwd), retire at write done (13 cycles).
+//   - REP: first access 2 cycles later than the single form (the
+//     extra wait does not reserve the bus); iterations chain via
+//     requests raised during the running access (slopes 8/4); CW=0
+//     early-out retires at pop+11; REP STM CW=1 retires at the pop+12
+//     slot (or completion if later), all other REP retires done+1.
 //
 //  Control-flow timing (mission E; see docs/facts/biu_model.md for the
 //  unified flush law): internal flush X = lastpop+3 (EB/E9), pop+4
@@ -95,6 +122,8 @@ module v30_eu (
                                    // request history (trap-chain gaps)
     output reg        eu_ready,
     output reg        eu_wr,
+    output            eu_fwd,     // write data = the BIU's last read data
+                                  // (string-op read->write forwarding)
     output reg        eu_word,
     output reg [19:0] eu_addr,
     output reg  [1:0] eu_seg,
@@ -152,6 +181,7 @@ typedef enum logic [6:0] {
     S_A4_G2, S_A4_WR, S_A4_WRW, S_A4_END,
     S_JDISP, S_JDLO, S_JDHI, S_JWAIT, S_JNT, S_JFLUSH,
     S_JSLO, S_JSHI, S_MLO, S_MHI, S_RESET,
+    S_STRW, S_STRR, S_STRS, S_STRE,
     S_CALLFL, S_CALLPUSH, S_CALLW, S_RETF,
     S_TRAP_IVT1, S_TRAP_IVT2, S_TRAP_IVT2W,
     S_TRAP_W1, S_TRAP_PSW, S_TRAP_PSWW,
@@ -178,7 +208,15 @@ reg         a4_z;        // accumulated zero flag (pre-adjust bytes)
 reg [15:0]  mem_op;      // operand as read ({sibling, byte} for byte ops)
 reg [15:0]  ivt_off, ivt_seg;
 reg [15:0]  trap_psw;
+// prefix latches (segment override / REP), cleared when the prefixed
+// instruction retires
+reg         seg_ovr_en;
+reg  [1:0]  seg_ovr;
+reg         rep_en;
 reg         flush_now;   // registered flush (trap path)
+reg         str_wr;      // MOVBK phase: write half of the element
+reg  [5:0]  rslot;       // REP retire slot: counts from the opcode pop
+reg         str_done;    // final string access completed (S_STRE)
 reg [15:0]  fl_cs, fl_ip; // flush redirect target
 
 wire [2:0] mrm_reg = mrm[5:3];
@@ -202,6 +240,18 @@ wire op_xchg16 = opc == 8'h87;
 wire op_jcc    = opc == 8'h74 || opc == 8'h75 || opc == 8'h7C;
 wire op_ret    = opc == 8'hC3 || opc == 8'hC2;
 wire op_moff   = opc == 8'hA0 || opc == 8'hA1;   // MOV AL/AW, moffs16
+wire op_moffw  = opc == 8'hA2 || opc == 8'hA3;   // MOV moffs16, AL/AW
+wire op_lea    = opc == 8'h8D;                   // LDEA
+wire op_srst   = opc == 8'h8C;                   // MOV rm16, sreg
+wire op_srld   = opc == 8'h8E;                   // MOV sreg, rm16
+wire op_xlat   = opc == 8'hD7;                   // TRANS
+wire op_movstr = opc == 8'hA4 || opc == 8'hA5;   // MOVBK
+wire op_stostr = opc == 8'hAA || opc == 8'hAB;   // STM
+wire op_lodstr = opc == 8'hAC || opc == 8'hAD;   // LDM
+wire op_str    = op_movstr | op_stostr | op_lodstr;
+wire op_segp   = opc == 8'h26 || opc == 8'h2E ||
+                 opc == 8'h36 || opc == 8'h3E;   // segment override
+wire op_repp   = opc == 8'hF3;                   // REP/REPE prefix
 wire jcc_taken = (opc == 8'h74) ?  psw[FB_Z] :
                  (opc == 8'h75) ? !psw[FB_Z] :
                                    psw[FB_S] ^ psw[FB_V];   // 7C BLT
@@ -210,12 +260,12 @@ wire op_test1  = op_0f && opc2 == 8'h18;             // TEST1 rm8,imm3
 wire op_rol4   = op_0f && opc2 == 8'h28;             // ROL4 rm8
 wire op_modrm  = op_alu | op_movs8 | op_movs16 | op_movl8 | op_movl16 |
                  op_grpf6 | op_grpf7 | op_grpd0 | op_grpfe |
-                 op_xchg8 | op_xchg16;
+                 op_xchg8 | op_xchg16 | op_lea | op_srst | op_srld;
 
-wire is_store  = op_movs8 | op_movs16;               // write-only mem access
-wire is_load   = op_movl8 | op_movl16;
+wire is_store  = op_movs8 | op_movs16 | op_srst;     // write-only mem access
+wire is_load   = op_movl8 | op_movl16 | op_srld;
 wire is_word_t = op_movs16 | op_movl16 | op_grpf7 |  // word transfer
-                 op_xchg16;
+                 op_xchg16 | op_srst | op_srld;
 wire is_reader = !is_store;                          // mem forms read first
 
 //----------------------------------------------------------------------------
@@ -231,9 +281,16 @@ wire [15:0] ea_base =
     (mrm_rm == 3'd6) ? ((mrm_mod == 2'd0) ? 16'd0 : rf[5]) :
                        rf[3];
 
-wire [1:0] ea_seg_sel =
+wire [1:0] ea_seg_def =
     (mrm_rm == 3'd2 || mrm_rm == 3'd3 ||
      (mrm_rm == 3'd6 && mrm_mod != 2'd0)) ? SEG_SS : SEG_DS;
+// a segment-override prefix absorbs the default (measurements.md law)
+wire [1:0] ea_seg_sel = seg_ovr_en ? seg_ovr : ea_seg_def;
+
+// modrm sreg field (0=ES 1=CS 2=SS 3=DS) -> sr[] index
+function automatic [1:0] srmap(input [1:0] f);
+    srmap = (f == 2'd1) ? SEG_CS : (f == 2'd2) ? SEG_SS : f;
+endfunction
 
 //----------------------------------------------------------------------------
 // register-operand helpers
@@ -539,9 +596,17 @@ always_comb begin
         // reader reservations (measured on cold-start traces): no-disp
         // forms reserve through the EA-compute cycles; disp forms only
         // in the cycle their final displacement byte actually pops
-        S_EA1: eu_req = is_reader && mrm_mod == 2'd0;
-        S_EA2: eu_req = is_reader;
-        S_DISP8, S_DHI: eu_req = is_reader && q_pop;
+        // the sreg store (8C) follows the READER reservation + ready
+        // schedule throughout (measured); LEA reserves nothing
+        S_EA1: eu_req = (is_reader || op_srst) && !op_lea &&
+                        mrm_mod == 2'd0;
+        S_EA2: eu_req = (is_reader || op_srst) && !op_lea;
+        S_DISP8, S_DHI: eu_req = (is_reader || op_srst) && !op_lea &&
+                                 q_pop;
+        // moffs forms (A0-A3) reserve during their final address-byte
+        // pop, exactly like the disp pops (measured: cold A2 blocks the
+        // prefetch commit at the in-flight fetch's T3 edge)
+        S_MHI: eu_req = q_pop;
         // POP r16 / RET reserve the bus already during decode (measured:
         // cold-start POP suppresses the prefetch commit at cycle 1)
         S_DEC:  eu_req = !op_modrm && (opc[7:3] == 5'b01011 ||
@@ -566,6 +631,7 @@ always_comb begin
         S_REQ, S_WREQ,
         S_A4_SRC, S_A4_DST, S_A4_WR,
         S_CALLPUSH,
+        S_STRW, S_STRR, S_STRS,
         S_TRAP_IVT1, S_TRAP_IVT2,
         S_TRAP_PSW, S_TRAP_PS, S_TRAP_FLUSH, S_TRAP_PC: begin
             eu_req   = 1'b1;
@@ -585,6 +651,8 @@ end
 task automatic retire();
     arch_ip <= pc;
     state   <= S_FIRST;
+    seg_ovr_en <= 1'b0;      // prefix latches end with their instruction
+    rep_en     <= 1'b0;
 endtask
 
 // latch memory-operand access parameters (EA paths); off = 16-bit offset
@@ -595,7 +663,16 @@ task automatic setup_access(input [15:0] off);
     eu_wr   <= is_store;
     if (op_movs8)  eu_wdata <= reg8_pair(mrm_reg);
     if (op_movs16) eu_wdata <= rf[mrm_reg];
+    if (op_srst)   eu_wdata <= sr[srmap(mrm_reg[1:0])];
 endtask
+
+// string-op element step (DF = PSW bit 10)
+wire [15:0] str_step = opc[0] ? (psw[10] ? 16'hFFFE : 16'd2)
+                              : (psw[10] ? 16'hFFFF : 16'd1);
+
+// MOVBK's write takes its data from the BIU's read latch (forwarded at
+// the commit edge - the write commits at the read's own T3 edge)
+assign eu_fwd = state == S_STRW;
 
 // stack push at SP-2 (also decrements SP)
 task automatic issue_push(input [15:0] wdata);
@@ -612,6 +689,7 @@ endtask
 //----------------------------------------------------------------------------
 always_ff @(posedge clk) begin
     flush_now <= 1'b0;
+    if (rslot != 6'd0) rslot <= rslot - 6'd1;
 
     if (srst) begin
         // real reset flow: PS=FFFF, PC=0, PSW cleared; the sequencer
@@ -635,6 +713,12 @@ always_ff @(posedge clk) begin
         trap_psw <= '0;
         fl_cs    <= 16'hFFFF;
         fl_ip    <= '0;
+        seg_ovr_en <= 1'b0;
+        seg_ovr  <= 2'd0;
+        rep_en   <= 1'b0;
+        str_wr   <= 1'b0;
+        rslot    <= 6'd0;
+        str_done <= 1'b0;
         eu_wr    <= 1'b0;
         eu_word  <= 1'b0;
         eu_addr  <= '0;
@@ -667,6 +751,7 @@ always_ff @(posedge clk) begin
             S_FIRST: if (q_pop) begin
                 opc <= q_byte;
                 pc  <= pc + 16'd1;
+                rslot <= 6'd12;    // REP retire-slot anchor (pop+12)
                 state <= S_DEC;
             end
 
@@ -678,7 +763,20 @@ always_ff @(posedge clk) begin
                         pc  <= pc + 16'd1;
                         if (q_byte[7:6] == 2'd3) begin
                             // register form
-                            if (op_alu | op_movs8 | op_movs16 |
+                            if (op_srst || op_srld) begin
+                                // sreg MOV reg forms retire in 2 cycles
+                                // (faster than reg,reg MOV - measured)
+                                logic [1:0] sx;
+                                sx = srmap(q_byte[4:3]);
+                                if (op_srst)
+                                    rf[q_byte[2:0]] <= sr[sx];
+                                else
+                                    sr[sx] <= rf[q_byte[2:0]];
+                                arch_ip <= pc + 16'd1;
+                                seg_ovr_en <= 1'b0;
+                                rep_en     <= 1'b0;
+                                state <= S_FIRST;
+                            end else if (op_alu | op_movs8 | op_movs16 |
                                 op_movl8 | op_movl16 |
                                 op_xchg8 | op_xchg16)
                                 state <= S_EX;
@@ -788,7 +886,67 @@ always_ff @(posedge clk) begin
                     else if (opc == 8'hE9 || opc == 8'hE8 ||
                              opc == 8'hC2 || opc == 8'hEA)
                         state <= S_JDLO;
-                    else if (op_moff) state <= S_MLO;
+                    else if (op_moff || op_moffw) state <= S_MLO;
+                    else if (op_segp) begin
+                        // segment override: retires as its own
+                        // instruction (2 cycles, own F pop); the latch
+                        // lives until the prefixed instruction retires
+                        seg_ovr_en <= 1'b1;
+                        seg_ovr    <= srmap(opc[4:3]);
+                        arch_ip    <= pc;
+                        state      <= S_FIRST;
+                    end else if (op_repp) begin
+                        rep_en  <= 1'b1;
+                        arch_ip <= pc;
+                        state   <= S_FIRST;
+                    end else if (opc == 8'h98) begin      // CVTBW
+                        rf[0][15:8] <= {8{rf[0][7]}};
+                        retire();
+                    end else if (opc == 8'h99) begin      // CVTWL
+                        dly <= 6'd2; wnext <= S_EX; state <= S_WAITX;
+                    end else if (op_xlat) begin           // TRANS
+                        eu_addr <= {sr[seg_ovr_en ? seg_ovr : SEG_DS],
+                                    4'h0} +
+                                   {4'h0, rf[3] + {8'd0, rf[0][7:0]}};
+                        eu_seg  <= seg_ovr_en ? seg_ovr : SEG_DS;
+                        eu_wr   <= 1'b0;
+                        eu_word <= 1'b0;
+                        dly <= 6'd1; state <= S_RSV;
+                    end else if (op_str) begin
+                        if (rep_en && rf[1] == 16'd0) begin
+                            // REP with CW=0: uniform early-out
+                            dly <= 6'd9; wnext <= S_EX; state <= S_WAITX;
+                        end else if (op_stostr) begin
+                            eu_addr <= {sr[SEG_ES], 4'h0} + {4'h0, rf[7]};
+                            eu_seg  <= SEG_ES;
+                            eu_wr   <= 1'b1;
+                            eu_word <= opc[0];
+                            eu_wdata <= rf[0];
+                            // REP setup: first access 2 cycles later
+                            // than the single form, and the extra wait
+                            // does NOT reserve the bus (measured: a
+                            // prefetch commits inside it)
+                            if (rep_en) begin
+                                dly <= 6'd2; wnext <= S_RSV;
+                                state <= S_WAITX;
+                            end else begin
+                                dly <= 6'd1; state <= S_RSV;
+                            end
+                        end else begin                    // MOVBK / LDM
+                            eu_addr <= {sr[seg_ovr_en ? seg_ovr : SEG_DS],
+                                        4'h0} + {4'h0, rf[6]};
+                            eu_seg  <= seg_ovr_en ? seg_ovr : SEG_DS;
+                            eu_wr   <= 1'b0;
+                            eu_word <= opc[0];
+                            str_wr  <= 1'b0;
+                            if (rep_en) begin  // REP setup (see STM note)
+                                dly <= 6'd2; wnext <= S_RSV;
+                                state <= S_WAITX;
+                            end else begin
+                                dly <= 6'd1; state <= S_RSV;
+                            end
+                        end
+                    end
                     else state <= S_HALT;
                 end
             end
@@ -899,10 +1057,12 @@ always_ff @(posedge clk) begin
             end
             S_MHI: if (q_pop) begin
                 pc <= pc + 16'd1;
-                eu_addr <= {sr[SEG_DS], 4'h0} + {4'h0, {q_byte, disp[7:0]}};
-                eu_seg  <= SEG_DS;
-                eu_wr   <= 1'b0;
+                eu_addr <= {sr[seg_ovr_en ? seg_ovr : SEG_DS], 4'h0} +
+                           {4'h0, {q_byte, disp[7:0]}};
+                eu_seg  <= seg_ovr_en ? seg_ovr : SEG_DS;
+                eu_wr   <= op_moffw;
                 eu_word <= opc[0];
+                if (op_moffw) eu_wdata <= rf[0];
                 state   <= S_REQ;
             end
             // reset flow: 7 idle cycles after RESET release, then the
@@ -1051,7 +1211,15 @@ always_ff @(posedge clk) begin
             //----------------------------------------------------------------
             // effective-address path
             //----------------------------------------------------------------
-            S_EA1: state <= (mrm_mod == 2'd1) ? S_DISP8 : S_EA2;
+            S_EA1: begin
+                if (op_lea && mrm_mod == 2'd0) begin
+                    // LDEA mod0: one EA cycle, retire at cycle 2, no
+                    // bus access or reservation (measured: F@3)
+                    rf[mrm_reg] <= ea_base;
+                    retire();
+                end else
+                    state <= (mrm_mod == 2'd1) ? S_DISP8 : S_EA2;
+            end
             S_EA2: begin                                  // mod0, reg EA
                 setup_access(ea_base);
                 state <= S_REQ;                           // ready @ 4
@@ -1062,10 +1230,20 @@ always_ff @(posedge clk) begin
             S_DISP8: if (q_pop) begin                     // mod1 disp pop @ 3
                 disp <= {{8{q_byte[7]}}, q_byte};
                 pc <= pc + 16'd1;
-                setup_access(ea_base + {{8{q_byte[7]}}, q_byte});
-                if (is_store) begin                       // d1 store: rdy @ 5
-                    dly <= 6'd1; state <= S_RSV;
-                end else state <= S_REQ;                  // d1 load: rdy @ 4
+                if (op_lea) begin
+                    rf[mrm_reg] <= ea_base + {{8{q_byte[7]}}, q_byte};
+                    arch_ip <= pc + 16'd1;
+                    seg_ovr_en <= 1'b0;
+                    rep_en     <= 1'b0;
+                    state <= S_FIRST;
+                end else begin
+                    setup_access(ea_base + {{8{q_byte[7]}}, q_byte});
+                    // the sreg store (8C) follows the READER ready
+                    // schedule (d0/d1 @ 4, d2 @ 5 - measured)
+                    if (is_store && !op_srst) begin       // d1 store: rdy @ 5
+                        dly <= 6'd1; state <= S_RSV;
+                    end else state <= S_REQ;              // d1 load: rdy @ 4
+                end
             end else begin
                 dret <= S_DISP8; state <= S_DSTALL;
             end
@@ -1080,9 +1258,19 @@ always_ff @(posedge clk) begin
             S_DHI: if (q_pop) begin                       // disp16 high @ 4
                 disp[15:8] <= q_byte;
                 pc <= pc + 16'd1;
-                setup_access(ea_base + {q_byte, disp[7:0]});
-                if (is_reader) state <= S_REQ;            // d2 load: rdy @ 5
-                else begin dly <= 6'd2; state <= S_RSV; end // d2 store: rdy @ 7
+                if (op_lea) begin
+                    rf[mrm_reg] <= ea_base + {q_byte, disp[7:0]};
+                    arch_ip <= pc + 16'd1;
+                    seg_ovr_en <= 1'b0;
+                    rep_en     <= 1'b0;
+                    state <= S_FIRST;
+                end else begin
+                    setup_access(ea_base + {q_byte, disp[7:0]});
+                    // d2 loads and the sreg store (uniform @5): rdy @ 5;
+                    // other d2 stores: rdy @ 7
+                    if (is_reader || op_srst) state <= S_REQ;
+                    else begin dly <= 6'd2; state <= S_RSV; end
+                end
             end else begin
                 dret <= S_DHI; state <= S_DSTALL;
             end
@@ -1095,12 +1283,93 @@ always_ff @(posedge clk) begin
                 if (dly == 6'd1) state <= S_REQ;
                 dly <= dly - 6'd1;
             end
-            S_REQ: if (eu_started) state <= S_BUSW;
+            //----------------------------------------------------------------
+            // string micro-loop (mission J): the MOVBK write is requested
+            // WHILE its read is in flight and commits at the read's T3
+            // edge (data forwarded inside the BIU, eu_fwd); REP chains
+            // the next element's access the same way - reads and writes
+            // run back to back (slopes 8/4, measured).
+            //----------------------------------------------------------------
+            S_REQ: if (eu_started) begin
+                if (op_movstr) begin           // read accepted: queue write
+                    eu_addr <= {sr[SEG_ES], 4'h0} + {4'h0, rf[7]};
+                    eu_seg  <= SEG_ES;
+                    eu_wr   <= 1'b1;
+                    state   <= S_STRW;
+                end else if (op_stostr) begin  // write accepted
+                    rf[7] <= rf[7] + str_step;
+                    if (rep_en) begin
+                        rf[1] <= rf[1] - 16'd1;
+                        if (rf[1] != 16'd1) begin
+                            eu_addr <= {sr[SEG_ES], 4'h0} +
+                                       {4'h0, rf[7] + str_step};
+                            state <= S_STRS;
+                        end else begin
+                            // REP cx=1: retire at the pop+12 slot or
+                            // the write's completion, whichever later
+                            str_done <= 1'b0;
+                            state <= S_STRE;
+                        end
+                    end else state <= S_BUSW;
+                end else state <= S_BUSW;
+            end
+            // REP cx=1 slot-bound retire (measured: the closing F sits
+            // at pop+13 regardless of when the single write completes)
+            S_STRE: begin
+                if (eu_done) str_done <= 1'b1;
+                if (rslot <= 6'd1 && (str_done || eu_done)) retire();
+            end
+            S_STRW: if (eu_started) begin      // MOVBK write accepted
+                rf[6] <= rf[6] + str_step;
+                rf[7] <= rf[7] + str_step;
+                if (rep_en) begin
+                    rf[1] <= rf[1] - 16'd1;
+                    if (rf[1] != 16'd1) begin
+                        eu_addr <= {sr[seg_ovr_en ? seg_ovr : SEG_DS],
+                                    4'h0} + {4'h0, rf[6] + str_step};
+                        eu_seg  <= seg_ovr_en ? seg_ovr : SEG_DS;
+                        eu_wr   <= 1'b0;
+                        state <= S_STRR;
+                    end else state <= S_BUSW;
+                end else state <= S_BUSW;
+            end
+            S_STRR: if (eu_started) begin      // next read accepted
+                eu_addr <= {sr[SEG_ES], 4'h0} + {4'h0, rf[7]};
+                eu_seg  <= SEG_ES;
+                eu_wr   <= 1'b1;
+                state   <= S_STRW;
+            end
+            S_STRS: if (eu_started) begin      // next STM write accepted
+                rf[7] <= rf[7] + str_step;
+                if (rep_en) begin
+                    rf[1] <= rf[1] - 16'd1;
+                    if (rf[1] != 16'd1) begin
+                        eu_addr <= {sr[SEG_ES], 4'h0} +
+                                   {4'h0, rf[7] + str_step};
+                        state <= S_STRS;
+                    end else state <= S_BUSW;
+                end else state <= S_BUSW;
+            end
             S_BUSW: if (eu_done) begin
                 if (op_moff) begin                        // A0 / A1
                     if (opc[0]) rf[0] <= eu_rdata;
                     else        rf[0][7:0] <= eu_rdata[7:0];
                     retire();
+                end else if (op_moffw) begin              // A2 / A3
+                    retire();
+                end else if (op_xlat) begin               // TRANS
+                    rf[0][7:0] <= eu_rdata[7:0];
+                    retire();
+                end else if (op_lodstr) begin             // LDM
+                    if (opc[0]) rf[0] <= eu_rdata;
+                    else        rf[0][7:0] <= eu_rdata[7:0];
+                    rf[6] <= rf[6] + str_step;
+                    retire();
+                end else if (op_stostr || op_movstr) begin // STM / MOVBK end
+                    // REP (cx>=2) termination: one extra cycle after the
+                    // last write's done (measured); singles retire at done
+                    if (rep_en) state <= S_EX;
+                    else retire();
                 end else if (op_ret) begin                // C3 / C2
                     rf[4] <= rf[4] + 16'd2 +
                              ((opc == 8'hC2) ? disp : 16'd0);
@@ -1117,7 +1386,9 @@ always_ff @(posedge clk) begin
                     retire();
                 end else begin
                     mem_op <= eu_rdata;
-                    if (is_load || (op_alu && opc[5:3] == 3'd7))
+                    if (op_srld)
+                        state <= S_LD_W2;   // sreg load: writeback done+1
+                    else if (is_load || (op_alu && opc[5:3] == 3'd7))
                         state <= S_LD_W1;                 // MOV load / CMP
                     else if (op_test1)
                         state <= S_T1GAP;                 // imm pop done+2
@@ -1180,8 +1451,11 @@ always_ff @(posedge clk) begin
 
             S_LD_W1: state <= S_LD_W2;
             S_LD_W2: begin
+                logic [1:0] sx;
+                sx = srmap(mrm_reg[1:0]);
                 if (op_movl8)       wr_reg8(mrm_reg, mem_op[7:0]);
                 else if (op_movl16) rf[mrm_reg] <= mem_op;
+                else if (op_srld)   sr[sx] <= mem_op;
                 else if (op_alu)    psw <= ex_alu[23:8];  // CMP mem
                 retire();
             end
@@ -1199,12 +1473,18 @@ always_ff @(posedge clk) begin
                         eu_wr   <= 1'b0;
                         eu_word <= 1'b1;
                     end
+                    if (wnext == S_RSV) dly <= 6'd1;   // REP setup tail
                 end
-                dly <= dly - 6'd1;
+                if (!(dly == 6'd1 && wnext == S_RSV))
+                    dly <= dly - 6'd1;
             end
 
             S_EX: begin
-                if (op_test1) begin
+                if (opc == 8'h99) begin                // CVTWL
+                    rf[2] <= {16{rf[0][15]}};
+                end else if (op_str) begin
+                    // REP with CW=0 early-out: no effects
+                end else if (op_test1) begin
                     // t = op AND (1<<n): Z=(t==0), S=t[7], P=par(t),
                     // AC=CY=V=0 (undefined_flags.md TEST1 law)
                     logic [7:0] t;

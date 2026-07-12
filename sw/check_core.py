@@ -61,7 +61,10 @@ DEFAULT_OPS = ["B8", "40", "48", "50", "58", "86", "87", "88", "89",
                "8A", "8B", "00", "08", "10", "18", "20", "28", "30", "38",
                "F6.4", "F7.6", "F6.7", "F7.7", "D0.4", "FE.0",
                "0F18", "0F20", "0F28",
-               "EB", "E9", "74", "75", "7C", "E2", "E8", "C3", "C2"]
+               "EB", "E9", "74", "75", "7C", "E2", "E8", "C3", "C2",
+               "98", "99", "8C", "8D", "8E", "D7",
+               "A0", "A1", "A2", "A3", "A4", "A5", "AA", "AB", "AC", "AD",
+               "F3AA", "F3A4", "26.8B", "2E.8B", "36.8B", "3E.8B"]
 
 
 def build(force=False):
@@ -75,6 +78,20 @@ def build(force=False):
            "-Mdir", str(OBJ)] + [str(p) for p in RTL]
     print("building:", " ".join(cmd))
     subprocess.run(cmd, check=True, cwd=ROOT)
+
+
+PREFIXES = {0xF3, 0xF2, 0xF0, 0x26, 0x2E, 0x36, 0x3E}
+
+
+def n_prefix(case):
+    """Leading prefix bytes (each pops as an extra F)."""
+    n = 0
+    for b in case["bytes"]:
+        if b in PREFIXES:
+            n += 1
+        else:
+            break
+    return n
 
 
 def compose_batch(cases, path):
@@ -94,7 +111,7 @@ def compose_batch(cases, path):
             f.write(f"{len(ram):x}\n")
             for a, v in ram:
                 f.write(f"{a & 0xFFFFF:05x} {v:02x}\n")
-            f.write(f"{len(c['cycles']) + 96:x}\n")
+            f.write(f"{len(c['cycles']) + 96:x} {2 + n_prefix(c):x}\n")
 
 
 def parse_out(path):
@@ -120,11 +137,12 @@ def parse_out(path):
     return out
 
 
-def build_rows_sim(recs, init_queue):
+def build_rows_sim(recs, init_queue, n_close=1):
     """Shadow-queue reconstruction + 11-column row synthesis over the sim
     records, mirroring sw/emit_suite.build_rows. The shadow queue is
     seeded with the injected initial queue. Returns
-    (rows, events, i0, i1) for the window [first F .. second F]."""
+    (rows, events, i0, i1) for the window [first F .. F #n_close]
+    (prefix bytes pop one extra F each)."""
     queue = [(None, b) for b in init_queue]
     pend = None
     pend_data = None
@@ -154,9 +172,9 @@ def build_rows_sim(recs, init_queue):
         events.append((r, popped, list(queue)))
 
     fpop_is = [i for i, (r, _, _) in enumerate(events) if r["qs"] == 1]
-    if len(fpop_is) < 2:
+    if len(fpop_is) < n_close + 1:
         return None, events, None, None
-    i0, i1 = fpop_is[0], fpop_is[1]
+    i0, i1 = fpop_is[0], fpop_is[n_close]
 
     rows = []
     for r, popped, _ in events[i0:i1 + 1]:
@@ -248,7 +266,8 @@ def check_case(c, sim, flags_mask):
         res["notes"].append("no sim output / no 2nd F pop")
         return res
     rows, events, i0, i1 = build_rows_sim(sim["recs"],
-                                          c["initial"]["queue"])
+                                          c["initial"]["queue"],
+                                          n_close=1 + n_prefix(c))
     if rows is None:
         res["notes"].append("fewer than 2 F pops in sim")
         return res

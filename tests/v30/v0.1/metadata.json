@@ -24,7 +24,8 @@
  "notes": [
   "V20 flags-masks carry over: V30 undefined-flag behavior is bit-exact with the V20 (docs/facts/undefined_flags.md).",
   "Odd-indexed cases are prefetched (63 C0 preload); even-indexed start from an empty queue.",
-  "No IN/port-read opcodes in v0.1 (harness IOR data fixed)."
+  "No IN/port-read opcodes in v0.1 (harness IOR data fixed).",
+  "Mission J growth: moffs A0-A3, sreg MOVs 8C/8E, LDEA 8D, TRANS D7, CVTBW/CVTWL 98/99, string singles A4/A5/AA/AB/AC/AD, REP F3AA/F3A4 (CW 0-3), segment-prefixed 26.8B/2E.8B/36.8B/3E.8B. Prefixed forms pop one F per prefix byte; their windows span [prefix F .. next-instruction F] and contain interior F pops."
  ],
  "opcodes": {
   "00": {
@@ -193,6 +194,110 @@
    "status": "normal",
    "arch": "86",
    "mnemonic-nec": "RET pop-value"
+  },
+  "98": {
+   "status": "normal",
+   "arch": "86"
+  },
+  "99": {
+   "status": "normal",
+   "arch": "86"
+  },
+  "8C": {
+   "status": "normal",
+   "arch": "86"
+  },
+  "8D": {
+   "status": "normal",
+   "arch": "86"
+  },
+  "8E": {
+   "status": "normal",
+   "arch": "86"
+  },
+  "D7": {
+   "status": "normal",
+   "arch": "86"
+  },
+  "A0": {
+   "status": "normal",
+   "arch": "86"
+  },
+  "A1": {
+   "status": "normal",
+   "arch": "86"
+  },
+  "A2": {
+   "status": "normal",
+   "arch": "86"
+  },
+  "A3": {
+   "status": "normal",
+   "arch": "86"
+  },
+  "A4": {
+   "status": "normal",
+   "arch": "86"
+  },
+  "A5": {
+   "status": "normal",
+   "arch": "86"
+  },
+  "AA": {
+   "status": "normal",
+   "arch": "86"
+  },
+  "AB": {
+   "status": "normal",
+   "arch": "86"
+  },
+  "AC": {
+   "status": "normal",
+   "arch": "86"
+  },
+  "AD": {
+   "status": "normal",
+   "arch": "86"
+  },
+  "F3AA": {
+   "status": "normal",
+   "arch": "86",
+   "note": "REP prefix + STOSB, CW restricted to 0-3"
+  },
+  "F3A4": {
+   "status": "normal",
+   "arch": "86",
+   "note": "REP prefix + MOVSB, CW restricted to 0-3"
+  },
+  "26.8B": {
+   "status": "normal",
+   "arch": "86",
+   "note": "ES-override MOV r16,rm16"
+  },
+  "2E.8B": {
+   "status": "normal",
+   "arch": "86",
+   "note": "CS-override MOV r16,rm16"
+  },
+  "36.8B": {
+   "status": "normal",
+   "arch": "86",
+   "note": "SS-override MOV r16,rm16"
+  },
+  "3E.8B": {
+   "status": "normal",
+   "arch": "86",
+   "note": "DS-override MOV r16,rm16"
+  },
+  "F6.7": {
+   "status": "normal",
+   "arch": "86",
+   "note": "IDIV rm8; trap cases vector through IVT 0 like F7.6"
+  },
+  "F7.7": {
+   "status": "normal",
+   "arch": "86",
+   "note": "IDIV rm16; trap cases vector through IVT 0 like F7.6"
   }
  }
 }

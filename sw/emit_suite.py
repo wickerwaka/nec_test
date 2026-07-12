@@ -73,10 +73,13 @@ HANDLER_OFF = 0x0400              # IVT-0 handler (V20 convention)
 # imm: byte count appended after modrm/opcode
 def SPEC(key, mnem, base, modrm=None, w=0, imm=0, group=None,
          stack=False, divtrap=False, string4s=False, imm_mask=None,
-         branch=None):
+         branch=None, moffs=None, sreg=None, lea=False, xlat=False,
+         string1=None, rep=False, segpfx=None):
     return dict(key=key, mnem=mnem, base=base, modrm=modrm, w=w, imm=imm,
                 group=group, stack=stack, divtrap=divtrap,
-                string4s=string4s, imm_mask=imm_mask, branch=branch)
+                string4s=string4s, imm_mask=imm_mask, branch=branch,
+                moffs=moffs, sreg=sreg, lea=lea, xlat=xlat,
+                string1=string1, rep=rep, segpfx=segpfx)
 
 
 ALU = ["add", "or", "adc", "sbb", "and", "sub", "xor", "cmp"]
@@ -120,7 +123,45 @@ OPCODES["E8"] = SPEC("E8", "call near", [0xE8], branch="call", stack=True)
 OPCODES["C3"] = SPEC("C3", "ret", [0xC3], branch="ret", stack=True)
 OPCODES["C2"] = SPEC("C2", "ret pop", [0xC2], branch="ret", stack=True)
 
+# Mission J coverage growth
+OPCODES["A0"] = SPEC("A0", "mov al,", [0xA0], moffs="r8")
+OPCODES["A1"] = SPEC("A1", "mov ax,", [0xA1], moffs="r16")
+OPCODES["A2"] = SPEC("A2", "mov moffs,al", [0xA2], moffs="w8")
+OPCODES["A3"] = SPEC("A3", "mov moffs,ax", [0xA3], moffs="w16")
+OPCODES["8C"] = SPEC("8C", "mov", [0x8C], modrm="mr16", w=1, sreg="st")
+OPCODES["8E"] = SPEC("8E", "mov", [0x8E], modrm="rm16", w=1, sreg="ld")
+OPCODES["8D"] = SPEC("8D", "lea", [0x8D], modrm="rm16", w=1, lea=True)
+OPCODES["D7"] = SPEC("D7", "xlat", [0xD7], xlat=True)
+OPCODES["98"] = SPEC("98", "cbw", [0x98])
+OPCODES["99"] = SPEC("99", "cwd", [0x99])
+OPCODES["A4"] = SPEC("A4", "movsb", [0xA4], string1="movs", w=0)
+OPCODES["A5"] = SPEC("A5", "movsw", [0xA5], string1="movs", w=1)
+OPCODES["AA"] = SPEC("AA", "stosb", [0xAA], string1="stos", w=0)
+OPCODES["AB"] = SPEC("AB", "stosw", [0xAB], string1="stos", w=1)
+OPCODES["AC"] = SPEC("AC", "lodsb", [0xAC], string1="lods", w=0)
+OPCODES["AD"] = SPEC("AD", "lodsw", [0xAD], string1="lods", w=1)
+OPCODES["F3AA"] = SPEC("F3AA", "rep stosb", [0xF3, 0xAA],
+                       string1="stos", w=0, rep=True)
+OPCODES["F3A4"] = SPEC("F3A4", "rep movsb", [0xF3, 0xA4],
+                       string1="movs", w=0, rep=True)
+OPCODES["26.8B"] = SPEC("26.8B", "mov", [0x26, 0x8B], modrm="rm16", w=1,
+                        segpfx="es")
+OPCODES["2E.8B"] = SPEC("2E.8B", "mov", [0x2E, 0x8B], modrm="rm16", w=1,
+                        segpfx="cs")
+OPCODES["36.8B"] = SPEC("36.8B", "mov", [0x36, 0x8B], modrm="rm16", w=1,
+                        segpfx="ss")
+OPCODES["3E.8B"] = SPEC("3E.8B", "mov", [0x3E, 0x8B], modrm="rm16", w=1,
+                        segpfx="ds")
+
 BRANCH_OPS = ["EB", "E9", "74", "75", "7C", "E2", "E8", "C3", "C2"]
+
+SREG_STR = ["es", "cs", "ss", "ds"]
+
+
+def n_prefix(spec):
+    """Prefix bytes ahead of the opcode (each pops as an extra F)."""
+    n = 1 if spec["rep"] or spec["segpfx"] else 0
+    return n
 
 TRANCHE = ["00", "08", "10", "18", "20", "28", "30", "38", "B8", "40",
            "48", "50", "58", "86", "87", "88", "89", "8A", "8B", "D0.4",
@@ -175,10 +216,15 @@ def gen_case(spec, rng):
         name = spec["mnem"]
         ram = []
         if spec["modrm"]:
-            mod = rng.randrange(4)
+            mod = rng.randrange(3) if spec["lea"] else rng.randrange(4)
             rm = rng.randrange(8)
-            reg = spec["group"] if spec["group"] is not None \
-                else rng.randrange(8)
+            if spec["sreg"] == "st":
+                reg = rng.randrange(4)
+            elif spec["sreg"] == "ld":
+                reg = rng.choice([0, 2, 3])      # never load CS
+            else:
+                reg = spec["group"] if spec["group"] is not None \
+                    else rng.randrange(8)
             disp = 0
             ndisp = 0
             if mod == 1:
@@ -188,7 +234,8 @@ def gen_case(spec, rng):
             instr += bytes([(mod << 6) | (reg << 3) | rm])
             instr += disp.to_bytes(ndisp, "little") if ndisp else b""
             wide = spec["modrm"] in ("mr16", "rm16", "grp16")
-            rn = (REG16 if wide else REG8)[reg]
+            rn = SREG_STR[reg] if spec["sreg"] else \
+                (REG16 if wide else REG8)[reg]
             if mod == 3:
                 on = (REG16 if wide else REG8)[rm]
             else:
@@ -269,8 +316,9 @@ def gen_case(spec, rng):
         else:
             spans = [range(a_phys, a_phys + len(instr) + 24)]  # instr+stub
 
-        # memory operand placement
-        if spec["modrm"] and (instr[len(spec["base"])] >> 6) != 3:
+        # memory operand placement (LEA computes but never accesses)
+        if spec["modrm"] and (instr[len(spec["base"])] >> 6) != 3 \
+                and not spec["lea"]:
             mb = instr[len(spec["base"])]
             mod, rm = mb >> 6, mb & 7
             nd = {0: 2 if rm == 6 else 0, 1: 1, 2: 2, 3: 0}[mod]
@@ -278,11 +326,54 @@ def gen_case(spec, rng):
                 instr[len(spec["base"]) + 1:len(spec["base"]) + 1 + nd],
                 "little")
             ea, seg = ea_of(rm, mod, d, regs)
+            if spec["segpfx"]:
+                seg = spec["segpfx"]           # override absorbs default
             nbytes = 2 if spec["w"] else 1
             for k in range(nbytes):
                 ram.append((lin(seg, ea + k), rng.getrandbits(8)))
             spans.append(range(lin(seg, ea) & 0xFFFF,
                                (lin(seg, ea) & 0xFFFF) + nbytes))
+        # direct-address (moffs) forms A0-A3
+        if spec["moffs"]:
+            a16 = rng.getrandbits(16)
+            instr += a16.to_bytes(2, "little")
+            nb = 2 if spec["moffs"] in ("r16", "w16") else 1
+            if spec["moffs"][0] == "r":
+                for k in range(nb):
+                    ram.append((lin("ds", a16 + k), rng.getrandbits(8)))
+                name += f" [{a16:04x}h]"
+            else:
+                name = f"{spec['mnem']} [{a16:04x}h]"
+            spans.append(range(lin("ds", a16) & 0xFFFF,
+                               (lin("ds", a16) & 0xFFFF) + nb))
+        # XLAT reads ds:[bx+al]
+        if spec["xlat"]:
+            xea = (regs["bx"] + (regs["ax"] & 0xFF)) & 0xFFFF
+            ram.append((lin("ds", xea), rng.getrandbits(8)))
+            spans.append(range(lin("ds", xea) & 0xFFFF,
+                               (lin("ds", xea) & 0xFFFF) + 1))
+        # single/REP string ops (MOVBK/STM/LDM); DF from the random flags
+        if spec["string1"]:
+            nb = 2 if spec["w"] else 1
+            if spec["rep"]:
+                regs["cx"] = rng.randrange(0, 4)
+            cnt = (regs["cx"] & 0xFFFF) if spec["rep"] else 1
+            df = (regs["flags"] >> 10) & 1
+            st = spec["string1"]
+            for i in range(cnt):
+                step = -i * nb if df else i * nb
+                if st in ("movs", "lods"):
+                    so = (regs["si"] + step) & 0xFFFF
+                    for k in range(nb):
+                        ram.append((lin("ds", so + k), rng.getrandbits(8)))
+                    spans.append(range(lin("ds", so) & 0xFFFF,
+                                       (lin("ds", so) & 0xFFFF) + nb))
+                if st in ("movs", "stos"):
+                    do = (regs["di"] + step) & 0xFFFF
+                    spans.append(range(lin("es", do) & 0xFFFF,
+                                       (lin("es", do) & 0xFFFF) + nb))
+            name += f" (df={df}" + \
+                    (f", cx={cnt})" if spec["rep"] else ")")
         if spec["string4s"]:
             n = ((regs["cx"] & 0xFF) + 1) // 2
             for k in range(n):
@@ -334,10 +425,12 @@ def fetch_width(rec):
     return 2 if (rec["ad_addr"] & 1) == 0 and not rec["ube_n"] else 1
 
 
-def build_rows(recs, anchor_linear, n_skip_f=0):
+def build_rows(recs, anchor_linear, n_skip_f=0, n_close=1):
     """Walk recs from the test anchor, reconstructing the shadow queue.
     Returns (rows, i0, i1, q_at_start, q_final, fetched, memr_bytes):
-    rows = cycle rows for the window [F pop #n_skip_f .. next F];
+    rows = cycle rows for the window [F pop #n_skip_f .. F pop
+    #n_skip_f+n_close]; prefixed instructions pop one F per prefix
+    byte, so their windows close n_close = 1+nprefix pops later.
     fetched/memr = byte addresses read during the window."""
     started = False
     queue = []
@@ -374,10 +467,10 @@ def build_rows(recs, anchor_linear, n_skip_f=0):
         events.append((r, popped, list(queue)))
 
     fpop_is = [i for i, (r, _, _) in enumerate(events) if r["qs"] == 1]
-    if len(fpop_is) < n_skip_f + 2:
+    if len(fpop_is) < n_skip_f + n_close + 1:
         raise RunError(f"only {len(fpop_is)} F pops after anchor")
     i0 = fpop_is[n_skip_f]
-    i1 = fpop_is[n_skip_f + 1]
+    i1 = fpop_is[n_skip_f + n_close]
 
     q_at_start = [b for _, b in events[i0 - 1][2]] if i0 else []
     # queue contents just BEFORE the window's first pop, i.e. including
@@ -479,7 +572,8 @@ def emit_case(spec, case, host, tag, preload_n=0, waits=0):
     res = parse_result(recs, meta)
 
     rows, events, i0, i1, q0, qf, fetched, memrd = \
-        build_rows(recs, meta["anchor_linear"], n_skip_f=preload_n)
+        build_rows(recs, meta["anchor_linear"], n_skip_f=preload_n,
+                   n_close=1 + n_prefix(spec))
 
     # continuation check: the window-closing F pop must come from the
     # predicted next_ip (guards branch/ret prediction and stub placement)

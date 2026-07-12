@@ -22,7 +22,9 @@
 //      <ip> <flags>
 //      <qlen> <q0> <q1> <q2> <q3> <q4> <q5> <fetch_ip>
 //      <nram>  { <addr20> <byte> } * nram
-//      <max_cycles>
+//      <max_cycles> <nf>
+//    nf = F pops closing the window (2 + one per prefix byte; prefix
+//    bytes pop as extra F's)
 //
 //  Output stream:
 //      = <idx>
@@ -189,7 +191,8 @@ always @(posedge clk) begin
                       tb_t, BS, QS, UBE_N, ad_mid, eff_lo, eff_hi);
         if (recording && QS == 2'b01) begin
             fcount <= fcount + 1;
-            if (fcount == 1) fin_regs <= dbg_regs;  // state at the 2nd F pop
+            if (fcount == nf - 1)
+                fin_regs <= dbg_regs;   // state at the window-closing F pop
         end
 
         // observer FSM / cycle-type latch
@@ -240,7 +243,8 @@ end
 // batch runner
 //----------------------------------------------------------------------------
 string batch_path, out_path;
-integer fi, ncases, nram, maxcyc, idx, cyc;
+integer fi, ncases, nram, maxcyc, idx, cyc, nf;
+initial nf = 2;
 logic [15:0] rv [0:13];
 integer i, k, rc;
 logic [31:0] t32, t32b;
@@ -318,6 +322,7 @@ initial begin
             mem[t32[15:0]] = t32b[7:0];
         end
         read_hex(t32); maxcyc = int'(t32);
+        read_hex(t32); nf = int'(t32);
 
         for (i = 0; i < 14; i++) bkd_regs[i*16 +: 16] = rv[i];
 
@@ -334,7 +339,7 @@ initial begin
         bkd_load = 0;
         recording = 1;
         // (the first posedge after release emits one benign pre-window row)
-        while (fcount < 2 && cyc < maxcyc) begin
+        while (fcount < nf && cyc < maxcyc) begin
             @(posedge clk);
             cyc = cyc + 1;
         end

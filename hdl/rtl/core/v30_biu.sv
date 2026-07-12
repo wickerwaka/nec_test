@@ -97,6 +97,8 @@ module v30_biu (
     input             eu_hold,      // blocks prefetch, not request history
     input             eu_ready,
     input             eu_wr,
+    input             eu_fwd,       // write data = last read data (string
+                                    // read->write forwarding at commit)
     input             eu_word,
     input      [19:0] eu_addr,
     input       [1:0] eu_seg,
@@ -278,7 +280,16 @@ wire        pick_wr    = want_half2 ? cur_wr : (want_eu && eu_wr);
 wire        pick_swap  = want_half2 ? cur_swap : (want_eu && eu_addr[0]);
 wire        pick_split1 = !want_half2 && want_eu && eu_split;
 wire        pick_split2 = want_half2;
-wire [15:0] pick_wdata = want_half2 ? cur_wdata : eu_wdata;
+// string read->write forwarding (eu_fwd): the write's data is the last
+// read's data - taken live off the bus when the commit coincides with
+// the read's own T3/Tw sampling edge, else from the read-data latch
+wire [15:0] rd_asm  = cur_split2   ? {ad_i[7:0], eu_rdata[7:0]}
+                    : cur_addr[0]  ? {ad_i[7:0], ad_i[15:8]}
+                    :                ad_i;
+wire [15:0] rd_fwd  = (t3_done && cur_fetch == 1'b0 && !cur_wr)
+                      ? rd_asm : eu_rdata;
+wire [15:0] pick_wdata = want_half2 ? cur_wdata
+                       : (eu_fwd ? rd_fwd : eu_wdata);
 wire  [1:0] pick_seg   = want_half2 ? cur_seg
                        : want_eu    ? eu_seg : SEG_CS;
 wire        pick_ube_n = want_half2 ? 1'b1
