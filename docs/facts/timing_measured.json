@@ -1,0 +1,1118 @@
+{
+ "_provenance": {
+  "method": "fspacing",
+  "description": "saturated-queue F-to-F spacing: 16-NOP runway + target instruction + 8-NOP tail; gap between the target's first-byte queue pop (QS=F) and the next instruction's = retirement-to-retirement time. Validated exactly against documented reg/imm timings (biu_model.md exp 3).",
+  "conditions": {
+   "chip": "uPD70116C-8 (V30), socketed harness",
+   "mode": "max (large), S/LG# low",
+   "clk_mhz": 4,
+   "waits": 0,
+   "anchor": "0000:0500 (even, code even-aligned)",
+   "mem_operand": "DS0=0, BW=0x0800 (even); memory fill 0x90 unless ram noted",
+   "stack": "SS=0, SP=0x0F00 (even) for stack cases"
+  },
+  "script": "sw/sweep_timing.py",
+  "documented_source": "docs/facts/instructions.json (User's Manual); uPD70116 even-address values used",
+  "date": "2026-07-11"
+ },
+ "results": [
+  {
+   "nec_form": "MUL mem16",
+   "asm": "MUL word [BW]",
+   "bytes": "f7 2f",
+   "operands": {
+    "BW": "0x0800",
+    "IX": "0x0010",
+    "DS0": "0x0000",
+    "AW": "0x7FFF"
+   },
+   "measured_cycles": 51,
+   "nop_baseline": 3,
+   "documented_clocks": [
+    "uPD70116 even addresses: 47 to 53"
+   ],
+   "documented_values": [
+    47,
+    48,
+    49,
+    50,
+    51,
+    52,
+    53
+   ],
+   "match": true,
+   "deviation": 0,
+   "ram": [
+    [
+     "0x0800",
+     "0xFF"
+    ],
+    [
+     "0x0801",
+     "0x7F"
+    ]
+   ],
+   "note": "AW=0x7fff mem16=0x7fff"
+  },
+  {
+   "nec_form": "MUL mem16",
+   "asm": "MUL word [BW]",
+   "bytes": "f7 2f",
+   "operands": {
+    "BW": "0x0800",
+    "IX": "0x0010",
+    "DS0": "0x0000",
+    "AW": "0xFFFF"
+   },
+   "measured_cycles": 51,
+   "nop_baseline": 3,
+   "documented_clocks": [
+    "uPD70116 even addresses: 47 to 53"
+   ],
+   "documented_values": [
+    47,
+    48,
+    49,
+    50,
+    51,
+    52,
+    53
+   ],
+   "match": true,
+   "deviation": 0,
+   "ram": [
+    [
+     "0x0800",
+     "0xFF"
+    ],
+    [
+     "0x0801",
+     "0xFF"
+    ]
+   ],
+   "note": "AW=0xffff mem16=0xffff"
+  },
+  {
+   "nec_form": "MUL mem8",
+   "asm": "MUL byte [BW]",
+   "bytes": "f6 2f",
+   "operands": {
+    "BW": "0x0800",
+    "IX": "0x0010",
+    "DS0": "0x0000",
+    "AW": "0x007F"
+   },
+   "measured_cycles": 44,
+   "nop_baseline": 3,
+   "documented_clocks": [
+    "39 to 45 (according to data)"
+   ],
+   "documented_values": [
+    39,
+    40,
+    41,
+    42,
+    43,
+    44,
+    45
+   ],
+   "match": true,
+   "deviation": 0,
+   "ram": [
+    [
+     "0x0800",
+     "0x7F"
+    ]
+   ],
+   "note": "AL=0x7f mem8=0x7f"
+  },
+  {
+   "nec_form": "MUL mem8",
+   "asm": "MUL byte [BW]",
+   "bytes": "f6 2f",
+   "operands": {
+    "BW": "0x0800",
+    "IX": "0x0010",
+    "DS0": "0x0000",
+    "AW": "0x00FF"
+   },
+   "measured_cycles": 44,
+   "nop_baseline": 3,
+   "documented_clocks": [
+    "39 to 45 (according to data)"
+   ],
+   "documented_values": [
+    39,
+    40,
+    41,
+    42,
+    43,
+    44,
+    45
+   ],
+   "match": true,
+   "deviation": 0,
+   "ram": [
+    [
+     "0x0800",
+     "0xFF"
+    ]
+   ],
+   "note": "AL=0xff mem8=0xff"
+  },
+  {
+   "nec_form": "MUL reg16",
+   "asm": "MUL CW",
+   "bytes": "f7 e9",
+   "operands": {
+    "AW": "0x0000",
+    "CW": "0x0000"
+   },
+   "measured_cycles": 41,
+   "nop_baseline": 3,
+   "documented_clocks": [
+    "41 to 47 (according to data)"
+   ],
+   "documented_values": [
+    41,
+    42,
+    43,
+    44,
+    45,
+    46,
+    47
+   ],
+   "match": true,
+   "deviation": 0,
+   "note": "AW=0x0000 CW=0x0000"
+  },
+  {
+   "nec_form": "MUL reg16",
+   "asm": "MUL CW",
+   "bytes": "f7 e9",
+   "operands": {
+    "AW": "0x0001",
+    "CW": "0x0001"
+   },
+   "measured_cycles": 41,
+   "nop_baseline": 3,
+   "documented_clocks": [
+    "41 to 47 (according to data)"
+   ],
+   "documented_values": [
+    41,
+    42,
+    43,
+    44,
+    45,
+    46,
+    47
+   ],
+   "match": true,
+   "deviation": 0,
+   "note": "AW=0x0001 CW=0x0001"
+  },
+  {
+   "nec_form": "MUL reg16",
+   "asm": "MUL CW",
+   "bytes": "f7 e9",
+   "operands": {
+    "AW": "0x7FFF",
+    "CW": "0x7FFF"
+   },
+   "measured_cycles": 41,
+   "nop_baseline": 3,
+   "documented_clocks": [
+    "41 to 47 (according to data)"
+   ],
+   "documented_values": [
+    41,
+    42,
+    43,
+    44,
+    45,
+    46,
+    47
+   ],
+   "match": true,
+   "deviation": 0,
+   "note": "AW=0x7fff CW=0x7fff"
+  },
+  {
+   "nec_form": "MUL reg16",
+   "asm": "MUL CW",
+   "bytes": "f7 e9",
+   "operands": {
+    "AW": "0x8000",
+    "CW": "0x0000"
+   },
+   "measured_cycles": 45,
+   "nop_baseline": 3,
+   "documented_clocks": [
+    "41 to 47 (according to data)"
+   ],
+   "documented_values": [
+    41,
+    42,
+    43,
+    44,
+    45,
+    46,
+    47
+   ],
+   "match": true,
+   "deviation": 0,
+   "note": "AW=-32768 CW=0 (product 0)"
+  },
+  {
+   "nec_form": "MUL reg16",
+   "asm": "MUL CW",
+   "bytes": "f7 e9",
+   "operands": {
+    "AW": "0x8000",
+    "CW": "0x7FFF"
+   },
+   "measured_cycles": 45,
+   "nop_baseline": 3,
+   "documented_clocks": [
+    "41 to 47 (according to data)"
+   ],
+   "documented_values": [
+    41,
+    42,
+    43,
+    44,
+    45,
+    46,
+    47
+   ],
+   "match": true,
+   "deviation": 0,
+   "note": "AW=0x8000 CW=0x7fff"
+  },
+  {
+   "nec_form": "MUL reg16",
+   "asm": "MUL CW",
+   "bytes": "f7 e9",
+   "operands": {
+    "AW": "0xFFFF",
+    "CW": "0x0001"
+   },
+   "measured_cycles": 45,
+   "nop_baseline": 3,
+   "documented_clocks": [
+    "41 to 47 (according to data)"
+   ],
+   "documented_values": [
+    41,
+    42,
+    43,
+    44,
+    45,
+    46,
+    47
+   ],
+   "match": true,
+   "deviation": 0,
+   "note": "AW=0xffff CW=0x0001"
+  },
+  {
+   "nec_form": "MUL reg16",
+   "asm": "MUL CW",
+   "bytes": "f7 e9",
+   "operands": {
+    "AW": "0xFFFF",
+    "CW": "0xFFFF"
+   },
+   "measured_cycles": 41,
+   "nop_baseline": 3,
+   "documented_clocks": [
+    "41 to 47 (according to data)"
+   ],
+   "documented_values": [
+    41,
+    42,
+    43,
+    44,
+    45,
+    46,
+    47
+   ],
+   "match": true,
+   "deviation": 0,
+   "note": "AW=0xffff CW=0xffff"
+  },
+  {
+   "nec_form": "MUL reg16,reg16,imm16",
+   "asm": "MUL BW, CW, 0x1234",
+   "bytes": "69 d9 34 12",
+   "operands": {
+    "CW": "0x0000"
+   },
+   "measured_cycles": 40,
+   "nop_baseline": 3,
+   "documented_clocks": [
+    "36 to 42 (according to data)"
+   ],
+   "documented_values": [
+    36,
+    37,
+    38,
+    39,
+    40,
+    41,
+    42
+   ],
+   "match": true,
+   "deviation": 0,
+   "note": "CW=0x0000 imm16=0x1234"
+  },
+  {
+   "nec_form": "MUL reg16,reg16,imm16",
+   "asm": "MUL BW, CW, 0x7FFF",
+   "bytes": "69 d9 ff 7f",
+   "operands": {
+    "CW": "0x7FFF"
+   },
+   "measured_cycles": 40,
+   "nop_baseline": 3,
+   "documented_clocks": [
+    "36 to 42 (according to data)"
+   ],
+   "documented_values": [
+    36,
+    37,
+    38,
+    39,
+    40,
+    41,
+    42
+   ],
+   "match": true,
+   "deviation": 0,
+   "note": "CW=0x7fff imm16=0x7fff"
+  },
+  {
+   "nec_form": "MUL reg16,reg16,imm8",
+   "asm": "MUL BW, CW, 0x10",
+   "bytes": "6b d9 10",
+   "operands": {
+    "CW": "0x0000"
+   },
+   "measured_cycles": 40,
+   "nop_baseline": 3,
+   "documented_clocks": [
+    "28 to 34 (according to data)"
+   ],
+   "documented_values": [
+    28,
+    29,
+    30,
+    31,
+    32,
+    33,
+    34
+   ],
+   "match": false,
+   "deviation": 6,
+   "note": "CW=0x0000 imm8=0x10"
+  },
+  {
+   "nec_form": "MUL reg16,reg16,imm8",
+   "asm": "MUL BW, CW, 0x10",
+   "bytes": "6b d9 10",
+   "operands": {
+    "CW": "0xFFFF"
+   },
+   "measured_cycles": 44,
+   "nop_baseline": 3,
+   "documented_clocks": [
+    "28 to 34 (according to data)"
+   ],
+   "documented_values": [
+    28,
+    29,
+    30,
+    31,
+    32,
+    33,
+    34
+   ],
+   "match": false,
+   "deviation": 10,
+   "note": "CW=0xffff imm8=0x10"
+  },
+  {
+   "nec_form": "MUL reg16,reg16,imm8",
+   "asm": "MUL BW, CW, 0x7F",
+   "bytes": "6b d9 7f",
+   "operands": {
+    "CW": "0x7FFF"
+   },
+   "measured_cycles": 40,
+   "nop_baseline": 3,
+   "documented_clocks": [
+    "28 to 34 (according to data)"
+   ],
+   "documented_values": [
+    28,
+    29,
+    30,
+    31,
+    32,
+    33,
+    34
+   ],
+   "match": false,
+   "deviation": 6,
+   "note": "CW=0x7fff imm8=0x7f"
+  },
+  {
+   "nec_form": "MUL reg8",
+   "asm": "MUL CL",
+   "bytes": "f6 e9",
+   "operands": {
+    "AW": "0x0000",
+    "CW": "0x0000"
+   },
+   "measured_cycles": 34,
+   "nop_baseline": 3,
+   "documented_clocks": [
+    "33 to 39 (according to data)"
+   ],
+   "documented_values": [
+    33,
+    34,
+    35,
+    36,
+    37,
+    38,
+    39
+   ],
+   "match": true,
+   "deviation": 0,
+   "note": "AL=0x00 CL=0x00"
+  },
+  {
+   "nec_form": "MUL reg8",
+   "asm": "MUL CL",
+   "bytes": "f6 e9",
+   "operands": {
+    "AW": "0x0001",
+    "CW": "0x0001"
+   },
+   "measured_cycles": 34,
+   "nop_baseline": 3,
+   "documented_clocks": [
+    "33 to 39 (according to data)"
+   ],
+   "documented_values": [
+    33,
+    34,
+    35,
+    36,
+    37,
+    38,
+    39
+   ],
+   "match": true,
+   "deviation": 0,
+   "note": "AL=0x01 CL=0x01"
+  },
+  {
+   "nec_form": "MUL reg8",
+   "asm": "MUL CL",
+   "bytes": "f6 e9",
+   "operands": {
+    "AW": "0x0002",
+    "CW": "0x00C0"
+   },
+   "measured_cycles": 38,
+   "nop_baseline": 3,
+   "documented_clocks": [
+    "33 to 39 (according to data)"
+   ],
+   "documented_values": [
+    33,
+    34,
+    35,
+    36,
+    37,
+    38,
+    39
+   ],
+   "match": true,
+   "deviation": 0,
+   "note": "AL=+2 CL=-64 (product -128)"
+  },
+  {
+   "nec_form": "MUL reg8",
+   "asm": "MUL CL",
+   "bytes": "f6 e9",
+   "operands": {
+    "AW": "0x007F",
+    "CW": "0x007F"
+   },
+   "measured_cycles": 34,
+   "nop_baseline": 3,
+   "documented_clocks": [
+    "33 to 39 (according to data)"
+   ],
+   "documented_values": [
+    33,
+    34,
+    35,
+    36,
+    37,
+    38,
+    39
+   ],
+   "match": true,
+   "deviation": 0,
+   "note": "AL=0x7f CL=0x7f"
+  },
+  {
+   "nec_form": "MUL reg8",
+   "asm": "MUL CL",
+   "bytes": "f6 e9",
+   "operands": {
+    "AW": "0x0080",
+    "CW": "0x007F"
+   },
+   "measured_cycles": 38,
+   "nop_baseline": 3,
+   "documented_clocks": [
+    "33 to 39 (according to data)"
+   ],
+   "documented_values": [
+    33,
+    34,
+    35,
+    36,
+    37,
+    38,
+    39
+   ],
+   "match": true,
+   "deviation": 0,
+   "note": "AL=0x80 CL=0x7f"
+  },
+  {
+   "nec_form": "MUL reg8",
+   "asm": "MUL CL",
+   "bytes": "f6 e9",
+   "operands": {
+    "AW": "0x00FF",
+    "CW": "0x0000"
+   },
+   "measured_cycles": 38,
+   "nop_baseline": 3,
+   "documented_clocks": [
+    "33 to 39 (according to data)"
+   ],
+   "documented_values": [
+    33,
+    34,
+    35,
+    36,
+    37,
+    38,
+    39
+   ],
+   "match": true,
+   "deviation": 0,
+   "note": "AL=-1 CL=0 (product 0, signs mixed)"
+  },
+  {
+   "nec_form": "MUL reg8",
+   "asm": "MUL CL",
+   "bytes": "f6 e9",
+   "operands": {
+    "AW": "0x00FF",
+    "CW": "0x0001"
+   },
+   "measured_cycles": 38,
+   "nop_baseline": 3,
+   "documented_clocks": [
+    "33 to 39 (according to data)"
+   ],
+   "documented_values": [
+    33,
+    34,
+    35,
+    36,
+    37,
+    38,
+    39
+   ],
+   "match": true,
+   "deviation": 0,
+   "note": "AL=0xff CL=0x01"
+  },
+  {
+   "nec_form": "MUL reg8",
+   "asm": "MUL CL",
+   "bytes": "f6 e9",
+   "operands": {
+    "AW": "0x00FF",
+    "CW": "0x00FF"
+   },
+   "measured_cycles": 34,
+   "nop_baseline": 3,
+   "documented_clocks": [
+    "33 to 39 (according to data)"
+   ],
+   "documented_values": [
+    33,
+    34,
+    35,
+    36,
+    37,
+    38,
+    39
+   ],
+   "match": true,
+   "deviation": 0,
+   "note": "AL=0xff CL=0xff"
+  },
+  {
+   "nec_form": "MULU mem16",
+   "asm": "MULU word [BW]",
+   "bytes": "f7 27",
+   "operands": {
+    "BW": "0x0800",
+    "IX": "0x0010",
+    "DS0": "0x0000",
+    "AW": "0x0000"
+   },
+   "measured_cycles": 41,
+   "nop_baseline": 3,
+   "documented_clocks": [
+    "uPD70116 even addresses (according to data): 35 or 36"
+   ],
+   "documented_values": [
+    35,
+    36
+   ],
+   "match": false,
+   "deviation": 5,
+   "ram": [
+    [
+     "0x0800",
+     "0x00"
+    ],
+    [
+     "0x0801",
+     "0x00"
+    ]
+   ],
+   "note": "AW=0x0000 mem16=0x0000"
+  },
+  {
+   "nec_form": "MULU mem16",
+   "asm": "MULU word [BW]",
+   "bytes": "f7 27",
+   "operands": {
+    "BW": "0x0800",
+    "IX": "0x0010",
+    "DS0": "0x0000",
+    "AW": "0x0007"
+   },
+   "measured_cycles": 41,
+   "nop_baseline": 3,
+   "documented_clocks": [
+    "uPD70116 even addresses (according to data): 35 or 36"
+   ],
+   "documented_values": [
+    35,
+    36
+   ],
+   "match": false,
+   "deviation": 5,
+   "ram": [
+    [
+     "0x0800",
+     "0x05"
+    ],
+    [
+     "0x0801",
+     "0x00"
+    ]
+   ],
+   "note": "AW=0x0007 mem16=0x0005"
+  },
+  {
+   "nec_form": "MULU mem16",
+   "asm": "MULU word [BW]",
+   "bytes": "f7 27",
+   "operands": {
+    "BW": "0x0800",
+    "IX": "0x0010",
+    "DS0": "0x0000",
+    "AW": "0xFFFF"
+   },
+   "measured_cycles": 41,
+   "nop_baseline": 3,
+   "documented_clocks": [
+    "uPD70116 even addresses (according to data): 35 or 36"
+   ],
+   "documented_values": [
+    35,
+    36
+   ],
+   "match": false,
+   "deviation": 5,
+   "ram": [
+    [
+     "0x0800",
+     "0xFF"
+    ],
+    [
+     "0x0801",
+     "0xFF"
+    ]
+   ],
+   "note": "AW=0xffff mem16=0xffff"
+  },
+  {
+   "nec_form": "MULU mem8",
+   "asm": "MULU byte [BW]",
+   "bytes": "f6 27",
+   "operands": {
+    "BW": "0x0800",
+    "IX": "0x0010",
+    "DS0": "0x0000",
+    "AW": "0x0000"
+   },
+   "measured_cycles": 34,
+   "nop_baseline": 3,
+   "documented_clocks": [
+    "according to data: 27 or 28"
+   ],
+   "documented_values": [
+    27,
+    28
+   ],
+   "match": false,
+   "deviation": 6,
+   "ram": [
+    [
+     "0x0800",
+     "0x00"
+    ]
+   ],
+   "note": "AL=0x00 mem8=0x00"
+  },
+  {
+   "nec_form": "MULU mem8",
+   "asm": "MULU byte [BW]",
+   "bytes": "f6 27",
+   "operands": {
+    "BW": "0x0800",
+    "IX": "0x0010",
+    "DS0": "0x0000",
+    "AW": "0x0007"
+   },
+   "measured_cycles": 34,
+   "nop_baseline": 3,
+   "documented_clocks": [
+    "according to data: 27 or 28"
+   ],
+   "documented_values": [
+    27,
+    28
+   ],
+   "match": false,
+   "deviation": 6,
+   "ram": [
+    [
+     "0x0800",
+     "0x05"
+    ]
+   ],
+   "note": "AL=0x07 mem8=0x05"
+  },
+  {
+   "nec_form": "MULU mem8",
+   "asm": "MULU byte [BW]",
+   "bytes": "f6 27",
+   "operands": {
+    "BW": "0x0800",
+    "IX": "0x0010",
+    "DS0": "0x0000",
+    "AW": "0x00FF"
+   },
+   "measured_cycles": 34,
+   "nop_baseline": 3,
+   "documented_clocks": [
+    "according to data: 27 or 28"
+   ],
+   "documented_values": [
+    27,
+    28
+   ],
+   "match": false,
+   "deviation": 6,
+   "ram": [
+    [
+     "0x0800",
+     "0xFF"
+    ]
+   ],
+   "note": "AL=0xff mem8=0xff"
+  },
+  {
+   "nec_form": "MULU reg16",
+   "asm": "MULU CW",
+   "bytes": "f7 e1",
+   "operands": {
+    "AW": "0x0000",
+    "CW": "0x0000"
+   },
+   "measured_cycles": 31,
+   "nop_baseline": 3,
+   "documented_clocks": [
+    "according to data: 29 or 30"
+   ],
+   "documented_values": [
+    29,
+    30
+   ],
+   "match": false,
+   "deviation": 1,
+   "note": "AW=0x0000 CW=0x0000"
+  },
+  {
+   "nec_form": "MULU reg16",
+   "asm": "MULU CW",
+   "bytes": "f7 e1",
+   "operands": {
+    "AW": "0x0001",
+    "CW": "0x0001"
+   },
+   "measured_cycles": 31,
+   "nop_baseline": 3,
+   "documented_clocks": [
+    "according to data: 29 or 30"
+   ],
+   "documented_values": [
+    29,
+    30
+   ],
+   "match": false,
+   "deviation": 1,
+   "note": "AW=0x0001 CW=0x0001"
+  },
+  {
+   "nec_form": "MULU reg16",
+   "asm": "MULU CW",
+   "bytes": "f7 e1",
+   "operands": {
+    "AW": "0x0007",
+    "CW": "0x0005"
+   },
+   "measured_cycles": 31,
+   "nop_baseline": 3,
+   "documented_clocks": [
+    "according to data: 29 or 30"
+   ],
+   "documented_values": [
+    29,
+    30
+   ],
+   "match": false,
+   "deviation": 1,
+   "note": "AW=0x0007 CW=0x0005"
+  },
+  {
+   "nec_form": "MULU reg16",
+   "asm": "MULU CW",
+   "bytes": "f7 e1",
+   "operands": {
+    "AW": "0x1234",
+    "CW": "0x5678"
+   },
+   "measured_cycles": 31,
+   "nop_baseline": 3,
+   "documented_clocks": [
+    "according to data: 29 or 30"
+   ],
+   "documented_values": [
+    29,
+    30
+   ],
+   "match": false,
+   "deviation": 1,
+   "note": "AW=0x1234 CW=0x5678"
+  },
+  {
+   "nec_form": "MULU reg16",
+   "asm": "MULU CW",
+   "bytes": "f7 e1",
+   "operands": {
+    "AW": "0x8000",
+    "CW": "0x0002"
+   },
+   "measured_cycles": 31,
+   "nop_baseline": 3,
+   "documented_clocks": [
+    "according to data: 29 or 30"
+   ],
+   "documented_values": [
+    29,
+    30
+   ],
+   "match": false,
+   "deviation": 1,
+   "note": "AW=0x8000 CW=0x0002"
+  },
+  {
+   "nec_form": "MULU reg16",
+   "asm": "MULU CW",
+   "bytes": "f7 e1",
+   "operands": {
+    "AW": "0xFFFF",
+    "CW": "0xFFFF"
+   },
+   "measured_cycles": 31,
+   "nop_baseline": 3,
+   "documented_clocks": [
+    "according to data: 29 or 30"
+   ],
+   "documented_values": [
+    29,
+    30
+   ],
+   "match": false,
+   "deviation": 1,
+   "note": "AW=0xffff CW=0xffff"
+  },
+  {
+   "nec_form": "MULU reg8",
+   "asm": "MULU CL",
+   "bytes": "f6 e1",
+   "operands": {
+    "AW": "0x0000",
+    "CW": "0x0000"
+   },
+   "measured_cycles": 24,
+   "nop_baseline": 3,
+   "documented_clocks": [
+    "according to data: 21 or 22"
+   ],
+   "documented_values": [
+    21,
+    22
+   ],
+   "match": false,
+   "deviation": 2,
+   "note": "AL=0x00 CL=0x00"
+  },
+  {
+   "nec_form": "MULU reg8",
+   "asm": "MULU CL",
+   "bytes": "f6 e1",
+   "operands": {
+    "AW": "0x0001",
+    "CW": "0x0001"
+   },
+   "measured_cycles": 24,
+   "nop_baseline": 3,
+   "documented_clocks": [
+    "according to data: 21 or 22"
+   ],
+   "documented_values": [
+    21,
+    22
+   ],
+   "match": false,
+   "deviation": 2,
+   "note": "AL=0x01 CL=0x01"
+  },
+  {
+   "nec_form": "MULU reg8",
+   "asm": "MULU CL",
+   "bytes": "f6 e1",
+   "operands": {
+    "AW": "0x0007",
+    "CW": "0x0005"
+   },
+   "measured_cycles": 24,
+   "nop_baseline": 3,
+   "documented_clocks": [
+    "according to data: 21 or 22"
+   ],
+   "documented_values": [
+    21,
+    22
+   ],
+   "match": false,
+   "deviation": 2,
+   "note": "AL=0x07 CL=0x05"
+  },
+  {
+   "nec_form": "MULU reg8",
+   "asm": "MULU CL",
+   "bytes": "f6 e1",
+   "operands": {
+    "AW": "0x0080",
+    "CW": "0x0080"
+   },
+   "measured_cycles": 24,
+   "nop_baseline": 3,
+   "documented_clocks": [
+    "according to data: 21 or 22"
+   ],
+   "documented_values": [
+    21,
+    22
+   ],
+   "match": false,
+   "deviation": 2,
+   "note": "AL=0x80 CL=0x80"
+  },
+  {
+   "nec_form": "MULU reg8",
+   "asm": "MULU CL",
+   "bytes": "f6 e1",
+   "operands": {
+    "AW": "0x00AA",
+    "CW": "0x000F"
+   },
+   "measured_cycles": 24,
+   "nop_baseline": 3,
+   "documented_clocks": [
+    "according to data: 21 or 22"
+   ],
+   "documented_values": [
+    21,
+    22
+   ],
+   "match": false,
+   "deviation": 2,
+   "note": "AL=0xaa CL=0x0f"
+  },
+  {
+   "nec_form": "MULU reg8",
+   "asm": "MULU CL",
+   "bytes": "f6 e1",
+   "operands": {
+    "AW": "0x00FF",
+    "CW": "0x00FF"
+   },
+   "measured_cycles": 24,
+   "nop_baseline": 3,
+   "documented_clocks": [
+    "according to data: 21 or 22"
+   ],
+   "documented_values": [
+    21,
+    22
+   ],
+   "match": false,
+   "deviation": 2,
+   "note": "AL=0xff CL=0xff"
+  }
+ ],
+ "skipped": []
+}

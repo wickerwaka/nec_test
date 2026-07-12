@@ -69,7 +69,39 @@ against four documented values** — the method has no fixed offset:
 | MOV AW,dmem (A1 direct) | **10** | 10 ✓ (direct form is 3 faster than modrm) |
 | MOV [BW],AW | **11** | 9 — +2 |
 | DIVU CW (reg16) | **28** | 25 — +3, and **data-independent** (4 operand sets) |
-| MULU CW (reg16) | **31** | 21-22 — **+9?** needs dedicated follow-up |
+| MULU CW (reg16) | **31** | 29-30 — +1..2 (early "+9 anomaly" was a doc-lookup
+error: 21-22 is the reg8 figure; resolved 2026-07-11, see below) |
+
+### MUL/MULU characterization (Campaign 2 mission 1, 2026-07-11)
+
+42 measurements via sw/sweep_timing.py mul (docs/facts/timing_measured.json):
+
+| Form | Measured | Documented | Delta |
+|---|---|---|---|
+| MULU reg8  | 24 (all 6 operand sets) | 21-22 | +2..3 |
+| MULU reg16 | 31 (all 6 operand sets) | 29-30 | +1..2 |
+| MULU mem8 [BW] | 34 | 27-28 | **+6** |
+| MULU mem16 [BW] even | 41 | 35-36 | **+5** |
+| MUL reg8   | 34 / 38 | 33-39 "according to data" | in range |
+| MUL reg16  | 41 / 45 | 41-47 | in range |
+| MUL mem8   | 44 | 39-45 | in range |
+| MUL mem16 even | 51 | 47-53 | in range |
+| MUL reg16,reg16,imm8  | 40 / 44 | 28-34 | **+6..+10** |
+| MUL reg16,reg16,imm16 | 40 | 36-42 | in range |
+
+- **MULU is fully data-independent** (0x0000..0xFFFF operands, zeros,
+  all-ones: identical timing per form).
+- **MUL (signed) costs exactly +4 when the operand sign bits differ**,
+  zero counting as positive: -1 x -1 is fast (34), -1 x 0 is slow (38),
+  +2 x -64 slow, -32768 x 0 slow (45). It is NOT the product's sign —
+  a zero product from a negative operand still pays the +4. Consistent
+  across reg8/reg16/imm8/imm16 forms (13/13 measurements). Reads as a
+  fixed sign-fixup pass keyed on sign(a) XOR sign(b).
+- MUL form = matching MULU form + 10 (fast case), uniformly.
+- The 3-operand **MUL reg16,reg16,imm8 documentation (28-34) is wrong**
+  by +6..+10; the imm16 variant's range (36-42) is consistent with its
+  own measurement, which suggests the manual's imm8 row understates by
+  a constant.
 
 Interpretation (working hypothesis): the manual's claim that clock counts
 "include decoding" holds for register/immediate forms but understates
@@ -79,8 +111,9 @@ opcode.
 
 ## Open items carried to Campaign 2
 
-- MULU discrepancy (31 vs 21-22): verify against operand values, byte
-  forms, and the mem variants; check the manual's per-case notes.
+- ~~MULU discrepancy~~ RESOLVED 2026-07-11 (see MUL/MULU section above):
+  doc-lookup error plus the ordinary +1..3 deviation; MULU data-independent,
+  signed MUL +4 on differing operand signs.
 - Post-flush fetch scheduling with wait states; INTA-cycle anatomy.
 - Odd-anchor F-spacing (all exp-3 anchors were even).
 - SMC boundary vs instruction sequence (generalize with queue-state data).

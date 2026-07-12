@@ -159,7 +159,7 @@ def cmd_flush(host):
 # exp 3: saturated-queue F-spacing — per-instruction times + EA deltas
 #----------------------------------------------------------------------------
 
-def fspacing_case(a, host, name, x_src, regs_extra=None, tag="fsp"):
+def fspacing_case(a, host, name, x_src, regs_extra=None, tag="fsp", ram=None):
     """16 NOPs, then X, then 8 NOPs; X's time = its F-to-next-F gap."""
     src = "    NOP\n" * 16 + x_src + "    NOP\n" * 8
     code = a.assemble(src, org=0x0500)
@@ -167,7 +167,7 @@ def fspacing_case(a, host, name, x_src, regs_extra=None, tag="fsp"):
     regs = {"PS": 0, "PC": 0x0500}
     if regs_extra:
         regs.update(regs_extra)
-    res = run_test(regs=regs, instr=code, host=host, tag=tag)
+    res = run_test(regs=regs, instr=code, host=host, tag=tag, ram=ram)
     ev = queue_timeline(res["recs"], res["meta"])
     fpops = [e["idx"] for e in ev if e["q"] == "F"]
     gaps = [b - a2 for a2, b in zip(fpops, fpops[1:])]

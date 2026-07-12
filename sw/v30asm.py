@@ -139,10 +139,20 @@ def atom_match(atom, op, mnemonic):
     if a == "acc" and k in ("reg8", "reg16") and op.reg == 0:
         return 0
     if a in ("mem", "mem8", "mem16", "memptr16", "mem32", "memptr32") and k == "mem":
+        f = getattr(op, "force", None)
+        if a == "mem8" and f == 16:
+            return None
+        if a == "mem16" and f == 8:
+            return None
+        if (a == "mem8" and f == 8) or (a == "mem16" and f == 16):
+            return 1        # explicit byte/word force selects the sized form
         return 2
     if a == "dmem" and k == "mem" and getattr(op, "direct", False):
         return 1
-    if a in ("imm", "imm8", "imm16", "imm3", "imm4", "pop-value") and k == "imm":
+    if a == "imm8" and k == "imm":
+        # sized immediate: prefer when the value fits, reject when it can't
+        return 1 if -128 <= op.value <= 255 else None
+    if a in ("imm", "imm16", "imm3", "imm4", "pop-value") and k == "imm":
         return 2
     if a == "1" and k == "imm" and op.value == 1:
         return 0
@@ -194,7 +204,8 @@ class Assembler:
             ]
             # dual-form headings ("XCH AW,reg16 / XCH reg16,AW") become
             # separate aliases sharing one encoding
-            for form in rec["nec_form"].split(" / "):
+            # dual-form separators: " / " usually, " or " in one TEST entry
+            for form in re.split(r" / | or ", rec["nec_form"]):
                 parts = form.split(None, 1)
                 mnem = parts[0].upper()
                 ops = parts[1] if len(parts) > 1 else ""
@@ -313,6 +324,7 @@ class Assembler:
             raise AsmError(f"no matching form for {line!r} "
                            f"(available: {[p for p, _ in self.forms[mnem]]})")
         _, atoms, rec = best
+        self.last_rec = rec     # instructions.json record of the matched form
         try:
             return self._emit(rec, atoms, ops, pc, final=(_pass == 2))
         except AsmError as e:

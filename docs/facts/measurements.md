@@ -100,6 +100,25 @@ with the documented architectural equivalence of the V20/V30 execution
 cores. Throughput ~2-3 s/case over SSH (unbatched); suite-scale
 campaigns need the batching work from loadstore_design.md stage 3.
 
+## MUL/MULU timing characterization (2026-07-11, Campaign 2 mission 1)
+
+Method: saturated-queue F-spacing (sw/sweep_timing.py mul), max mode,
+4 MHz, 0 waits; 42 measurements in docs/facts/timing_measured.json.
+
+- **MULU (unsigned) is data-independent**: reg8 = 24 cycles, reg16 = 31,
+  mem8 [BW] = 34, mem16 [BW] even = 41 — identical across operand sets
+  including 0, 1, and all-ones.
+- **MUL (signed) = MULU + 10, plus exactly +4 when the operand sign bits
+  differ** (zero counts as positive; the product's own sign is
+  irrelevant): reg8 = 34/38, reg16 = 41/45, mem8 = 44, mem16 = 51,
+  reg16,reg16,imm8 = 40/44, reg16,reg16,imm16 = 40.
+- vs documentation: MULU reg forms +1..3 (like other reg ops), MULU mem
+  forms +5..6; all signed-MUL measurements fall inside the manual's
+  "according to data" ranges EXCEPT **MUL reg16,reg16,imm8: measured
+  40/44 vs documented 28-34** — a genuine documentation error.
+- The earlier "MULU CW = 31 vs 21-22 (+9)" open item was a doc-lookup
+  error: 21-22 is MULU reg8; MULU reg16 is documented 29-30.
+
 ## Divide-overflow semantics (prior work, large context)
 
 - MAME's divide-overflow behavior for V30 (CY/V = !overflow, registers
