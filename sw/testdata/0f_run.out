@@ -1,0 +1,260 @@
+0F 00:
+  len=2 markers=['AW', 'CW', 'DW', 'BW'] other={} psw=F002->F002 txns=[]
+0F 04:
+  len=2 markers=['AW', 'CW', 'DW', 'BW'] other={} psw=F002->F002 txns=[]
+0F 08:
+  len=2 markers=['AW', 'CW', 'DW', 'BW'] other={} psw=F002->F002 txns=[]
+0F 0C:
+  len=2 markers=['AW', 'CW', 'DW', 'BW'] other={} psw=F002->F002 txns=[]
+0F 21:
+  len=2 markers=['AW', 'CW', 'DW', 'BW'] other={} psw=F002->F002 txns=[]
+0F 24:
+    attempt 1: no done marker in trace (runaway test?) — quarantine
+    attempt 2: no done marker in trace (runaway test?) — quarantine
+  RUNAWAY (NO DONE MARKER) no done marker in trace (runaway test?) — quarantine
+0F 27:
+  len=2 markers=['AW', 'CW', 'DW', 'BW'] other={} psw=F002->F002 txns=[]
+0F 2C:
+  len=4 markers=['DW', 'BW'] other={} psw=F002->F002 txns=[{'kind': 'MEMR', 'addr': 2129, 'data': 37008, 'ube_n': 0}, {'kind': 'MEMR', 'addr': 32, 'data': 37008, 'ube_n': 1}, {'kind': 'MEMR', 'addr': 32, 'data': 37008, 'ube_n': 1}, {'kind': 'MEMW', 'addr': 32, 'data': 37008, 'ube_n': 1}]
+0F 30:
+  len=4 markers=['DW', 'BW'] other={} psw=F002->F002 txns=[{'kind': 'MEMR', 'addr': 32, 'data': 37008, 'ube_n': 1}, {'kind': 'MEMR', 'addr': 32, 'data': 37008, 'ube_n': 1}, {'kind': 'MEMW', 'addr': 32, 'data': 37008, 'ube_n': 1}]
+0F 34:
+    attempt 1: no done marker in trace (runaway test?) — quarantine
+    attempt 2: no done marker in trace (runaway test?) — quarantine
+  RUNAWAY (NO DONE MARKER) no done marker in trace (runaway test?) — quarantine
+0F 40:
+    attempt 1: no done marker in trace (runaway test?) — quarantine
+    attempt 2: no done marker in trace (runaway test?) — quarantine
+  RUNAWAY (NO DONE MARKER) no done marker in trace (runaway test?) — quarantine
+0F 60:
+    attempt 1: no done marker in trace (runaway test?) — quarantine
+    attempt 2: no done marker in trace (runaway test?) — quarantine
+  RUNAWAY (NO DONE MARKER) no done marker in trace (runaway test?) — quarantine
+0F 80:
+    attempt 1: no done marker in trace (runaway test?) — quarantine
+    attempt 2: no done marker in trace (runaway test?) — quarantine
+  RUNAWAY (NO DONE MARKER) no done marker in trace (runaway test?) — quarantine
+0F A0:
+    attempt 1: no done marker in trace (runaway test?) — quarantine
+    attempt 2: no done marker in trace (runaway test?) — quarantine
+  RUNAWAY (NO DONE MARKER) no done marker in trace (runaway test?) — quarantine
+0F C0:
+    attempt 1: no done marker in trace (runaway test?) — quarantine
+    attempt 2: no done marker in trace (runaway test?) — quarantine
+  RUNAWAY (NO DONE MARKER) no done marker in trace (runaway test?) — quarantine
+0F E4:
+    attempt 1: no done marker in trace (runaway test?) — quarantine
+    attempt 2: no done marker in trace (runaway test?) — quarantine
+  RUNAWAY (NO DONE MARKER) no done marker in trace (runaway test?) — quarantine
+
+JSON summary:
+[
+ {
+  "b": 0,
+  "status": "executed",
+  "markers_inc": [
+   "AW",
+   "CW",
+   "DW",
+   "BW"
+  ],
+  "length": 2,
+  "other_reg_changes": {},
+  "psw": "F002->F002",
+  "pc_final": "050C",
+  "noncode_txns": [],
+  "test_txn_cycles": 36
+ },
+ {
+  "b": 4,
+  "status": "executed",
+  "markers_inc": [
+   "AW",
+   "CW",
+   "DW",
+   "BW"
+  ],
+  "length": 2,
+  "other_reg_changes": {},
+  "psw": "F002->F002",
+  "pc_final": "050C",
+  "noncode_txns": [],
+  "test_txn_cycles": 36
+ },
+ {
+  "b": 8,
+  "status": "executed",
+  "markers_inc": [
+   "AW",
+   "CW",
+   "DW",
+   "BW"
+  ],
+  "length": 2,
+  "other_reg_changes": {},
+  "psw": "F002->F002",
+  "pc_final": "050C",
+  "noncode_txns": [],
+  "test_txn_cycles": 36
+ },
+ {
+  "b": 12,
+  "status": "executed",
+  "markers_inc": [
+   "AW",
+   "CW",
+   "DW",
+   "BW"
+  ],
+  "length": 2,
+  "other_reg_changes": {},
+  "psw": "F002->F002",
+  "pc_final": "050C",
+  "noncode_txns": [],
+  "test_txn_cycles": 36
+ },
+ {
+  "b": 33,
+  "status": "executed",
+  "markers_inc": [
+   "AW",
+   "CW",
+   "DW",
+   "BW"
+  ],
+  "length": 2,
+  "other_reg_changes": {},
+  "psw": "F002->F002",
+  "pc_final": "050C",
+  "noncode_txns": [],
+  "test_txn_cycles": 36
+ },
+ {
+  "b": 36,
+  "status": "runaway (no done marker)",
+  "error": "no done marker in trace (runaway test?) \u2014 quarantine"
+ },
+ {
+  "b": 39,
+  "status": "executed",
+  "markers_inc": [
+   "AW",
+   "CW",
+   "DW",
+   "BW"
+  ],
+  "length": 2,
+  "other_reg_changes": {},
+  "psw": "F002->F002",
+  "pc_final": "050C",
+  "noncode_txns": [],
+  "test_txn_cycles": 36
+ },
+ {
+  "b": 44,
+  "status": "executed",
+  "markers_inc": [
+   "DW",
+   "BW"
+  ],
+  "length": 4,
+  "other_reg_changes": {},
+  "psw": "F002->F002",
+  "pc_final": "050C",
+  "noncode_txns": [
+   {
+    "kind": "MEMR",
+    "addr": 2129,
+    "data": 37008,
+    "ube_n": 0
+   },
+   {
+    "kind": "MEMR",
+    "addr": 32,
+    "data": 37008,
+    "ube_n": 1
+   },
+   {
+    "kind": "MEMR",
+    "addr": 32,
+    "data": 37008,
+    "ube_n": 1
+   },
+   {
+    "kind": "MEMW",
+    "addr": 32,
+    "data": 37008,
+    "ube_n": 1
+   }
+  ],
+  "test_txn_cycles": 52
+ },
+ {
+  "b": 48,
+  "status": "executed",
+  "markers_inc": [
+   "DW",
+   "BW"
+  ],
+  "length": 4,
+  "other_reg_changes": {},
+  "psw": "F002->F002",
+  "pc_final": "050C",
+  "noncode_txns": [
+   {
+    "kind": "MEMR",
+    "addr": 32,
+    "data": 37008,
+    "ube_n": 1
+   },
+   {
+    "kind": "MEMR",
+    "addr": 32,
+    "data": 37008,
+    "ube_n": 1
+   },
+   {
+    "kind": "MEMW",
+    "addr": 32,
+    "data": 37008,
+    "ube_n": 1
+   }
+  ],
+  "test_txn_cycles": 48
+ },
+ {
+  "b": 52,
+  "status": "runaway (no done marker)",
+  "error": "no done marker in trace (runaway test?) \u2014 quarantine"
+ },
+ {
+  "b": 64,
+  "status": "runaway (no done marker)",
+  "error": "no done marker in trace (runaway test?) \u2014 quarantine"
+ },
+ {
+  "b": 96,
+  "status": "runaway (no done marker)",
+  "error": "no done marker in trace (runaway test?) \u2014 quarantine"
+ },
+ {
+  "b": 128,
+  "status": "runaway (no done marker)",
+  "error": "no done marker in trace (runaway test?) \u2014 quarantine"
+ },
+ {
+  "b": 160,
+  "status": "runaway (no done marker)",
+  "error": "no done marker in trace (runaway test?) \u2014 quarantine"
+ },
+ {
+  "b": 192,
+  "status": "runaway (no done marker)",
+  "error": "no done marker in trace (runaway test?) \u2014 quarantine"
+ },
+ {
+  "b": 228,
+  "status": "runaway (no done marker)",
+  "error": "no done marker in trace (runaway test?) \u2014 quarantine"
+ }
+]
