@@ -75,13 +75,14 @@ def SPEC(key, mnem, base, modrm=None, w=0, imm=0, group=None,
          stack=False, divtrap=False, string4s=False, imm_mask=None,
          branch=None, moffs=None, sreg=None, lea=False, xlat=False,
          string1=None, rep=False, segpfx=None, io_port=False,
-         io_dx=False):
+         io_dx=False, clcount=False, shiftimm=False, bcdbase=False):
     return dict(key=key, mnem=mnem, base=base, modrm=modrm, w=w, imm=imm,
                 group=group, stack=stack, divtrap=divtrap,
                 string4s=string4s, imm_mask=imm_mask, branch=branch,
                 moffs=moffs, sreg=sreg, lea=lea, xlat=xlat,
                 string1=string1, rep=rep, segpfx=segpfx, io_port=io_port,
-                io_dx=io_dx)
+                io_dx=io_dx, clcount=clcount, shiftimm=shiftimm,
+                bcdbase=bcdbase)
 
 
 ALU = ["add", "or", "adc", "sbb", "and", "sub", "xor", "cmp"]
@@ -177,6 +178,42 @@ OPCODES["36.8B"] = SPEC("36.8B", "mov", [0x36, 0x8B], modrm="rm16", w=1,
 OPCODES["3E.8B"] = SPEC("3E.8B", "mov", [0x3E, 0x8B], modrm="rm16", w=1,
                         segpfx="ds")
 
+# ALU r/m,imm groups: 80 (rm8,imm8), 81 (rm16,imm16), 83 (rm16,simm8)
+for _g, _m in enumerate(ALU):
+    OPCODES[f"80.{_g}"] = SPEC(f"80.{_g}", f"{_m} b,imm8", [0x80],
+                               modrm="grp8", group=_g, imm=1)
+    OPCODES[f"81.{_g}"] = SPEC(f"81.{_g}", f"{_m} w,imm16", [0x81],
+                               modrm="grp16", group=_g, w=1, imm=2)
+    OPCODES[f"83.{_g}"] = SPEC(f"83.{_g}", f"{_m} w,simm8", [0x83],
+                               modrm="grp16", group=_g, w=1, imm=1)
+# shift/rotate groups (all 8 sub-ops incl. the undocumented alias 6):
+# D0/D1 by 1, D2/D3 by CL, C0/C1 by imm8
+SHOPS = ["rol", "ror", "rcl", "rcr", "shl", "shr", "shl6", "sar"]
+for _g, _m in enumerate(SHOPS):
+    if f"D0.{_g}" not in OPCODES:
+        OPCODES[f"D0.{_g}"] = SPEC(f"D0.{_g}", f"{_m} b,1", [0xD0],
+                                   modrm="grp8", group=_g)
+    OPCODES[f"D1.{_g}"] = SPEC(f"D1.{_g}", f"{_m} w,1", [0xD1],
+                               modrm="grp16", group=_g, w=1)
+    OPCODES[f"D2.{_g}"] = SPEC(f"D2.{_g}", f"{_m} b,cl", [0xD2],
+                               modrm="grp8", group=_g, clcount=True)
+    OPCODES[f"D3.{_g}"] = SPEC(f"D3.{_g}", f"{_m} w,cl", [0xD3],
+                               modrm="grp16", group=_g, w=1, clcount=True)
+    OPCODES[f"C0.{_g}"] = SPEC(f"C0.{_g}", f"{_m} b,imm8", [0xC0],
+                               modrm="grp8", group=_g, imm=1,
+                               shiftimm=True)
+    OPCODES[f"C1.{_g}"] = SPEC(f"C1.{_g}", f"{_m} w,imm8", [0xC1],
+                               modrm="grp16", group=_g, w=1, imm=1,
+                               shiftimm=True)
+# BCD adjusts: ADJ4A/ADJ4S/ADJBA/ADJBS + CVTBD/CVTDB (imm base; biased
+# to 0x0A, base 0 excluded on the first pass - div0 trap path is the
+# divtrap family's)
+OPCODES["27"] = SPEC("27", "adj4a", [0x27])
+OPCODES["2F"] = SPEC("2F", "adj4s", [0x2F])
+OPCODES["37"] = SPEC("37", "adjba", [0x37])
+OPCODES["3F"] = SPEC("3F", "adjbs", [0x3F])
+OPCODES["D4"] = SPEC("D4", "cvtbd", [0xD4], imm=1, bcdbase=True)
+OPCODES["D5"] = SPEC("D5", "cvtdb", [0xD5], imm=1, bcdbase=True)
 OPCODES["E4"] = SPEC("E4", "in al,", [0xE4], imm=1)
 OPCODES["E5"] = SPEC("E5", "in ax,", [0xE5], imm=1)
 # OUT: the port must stay clear of the harness store-routine ports
@@ -387,10 +424,19 @@ def gen_case(spec, rng):
             if spec["io_port"]:
                 while imm_v >= 0xF8:        # harness store ports
                     imm_v = rng.getrandbits(8)
+            if spec["shiftimm"] and rng.random() < 0.5:
+                imm_v &= 0x0F               # bias toward short counts
+            if spec["bcdbase"]:
+                imm_v = 0x0A if rng.random() < 0.5 else \
+                    rng.randrange(1, 256)   # base 0 = div0 trap, excluded
             instr += imm_v.to_bytes(spec["imm"], "little")
             name += f" {imm_v:0{2 * spec['imm']}x}h"
         if spec["io_dx"] and 0x00F8 <= regs["dx"] <= 0x00FF:
             continue                        # harness store ports
+        if spec["clcount"]:
+            if rng.random() < 0.5:
+                regs["cx"] = (regs["cx"] & 0xFF00) | rng.randrange(0, 9)
+            name += f" (cl={regs['cx'] & 0xFF:02x}h)"
         if spec["string4s"]:
             regs["cx"] = (regs["cx"] & 0xFF00) | rng.randrange(1, 7)
             name = f"{spec['mnem']} (cl={regs['cx'] & 0xFF})"
@@ -772,9 +818,11 @@ def emit_evt_case(spec, case, host, tag, preload_n=0, waits=0):
                 fin_ram.append([a20, b])
 
     got = res["regs"]
-    if got.get("PSW") is None or (got["PSW"] & 0xF002) != 0xF002:
+    if got.get("PSW") is None or (got["PSW"] & 0xF002) != 0xF002 or \
+            (got["PSW"] & 0x0028) != 0:
         # PSW extraction corrupted (stack mirror collided with the
-        # scratch page) - reroll
+        # scratch page) - reroll. Reserved bits: 15-12 and 1 read as 1,
+        # 5 and 3 as 0 (closure block: f017/ffee/9e4d-style corruptions)
         raise RunError(f"implausible final PSW {got.get('PSW')}")
     fin_regs = {}
     for ik, nk in INTEL2NEC.items():
@@ -1048,6 +1096,10 @@ def emit_case(spec, case, host, tag, preload_n=0, waits=0):
         for r, _, _ in events[i0:i1 + 1])
 
     got = res["regs"]
+    if got.get("PSW") is not None and \
+            ((got["PSW"] & 0xF002) != 0xF002 or (got["PSW"] & 0x0028) != 0):
+        # PSW extraction corruption (see the evt-path check) - reroll
+        raise RunError(f"implausible final PSW {got['PSW']:04x}")
     fin_regs = {}
     for ik, nk in INTEL2NEC.items():
         if ik == "ip":

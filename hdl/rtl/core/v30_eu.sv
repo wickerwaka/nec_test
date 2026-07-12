@@ -194,6 +194,7 @@ assign psw_ie = psw[9];
 typedef enum logic [6:0] {
     S_HALT, S_FIRST, S_DEC,
     S_IMM_LO, S_IMM_HI, S_NOP,
+    S_AI_I8, S_AI_I16, S_BCD_IMM,
     S_EA1, S_EA2, S_DISP8, S_DLO, S_DGAP, S_DHI, S_DSTALL,
     S_RSV, S_REQ, S_BUSW,
     S_PUSH_CALC,
@@ -206,6 +207,7 @@ typedef enum logic [6:0] {
     S_JDISP, S_JDLO, S_JDHI, S_JWAIT, S_JNT, S_JFLUSH,
     S_JSLO, S_JSHI, S_MLO, S_MHI, S_RESET,
     S_STRW, S_STRR, S_STRS, S_STRE,
+    S_CMPW1, S_CMPW2, S_CMPNXT, S_SCASW, S_SCASNXT,
     S_CALLFL, S_CALLPUSH, S_CALLW, S_RETF,
     S_TRAP_IVT1, S_TRAP_IVT2, S_TRAP_IVT2W,
     S_TRAP_W1, S_TRAP_PSW, S_TRAP_PSWW,
@@ -242,11 +244,14 @@ reg [15:0]  trap_psw;
 reg         seg_ovr_en;
 reg  [1:0]  seg_ovr;
 reg         rep_en;
+reg  [1:0]  rep_kind;    // 0=REP/REPE(F3) 1=REPNE(F2) 2=REPC(65) 3=REPNC(64)
 reg         flush_now;   // registered flush (trap path)
 reg         str_wr;      // MOVBK phase: write half of the element
 reg  [5:0]  rslot;       // REP retire slot: counts from the opcode pop
 reg         rep1_abort;  // REP boundary-1 abort decision (latched pop+7)
 reg         str_done;    // final string access completed (S_STRE)
+reg [15:0]  cmp1;        // CMPBK: first (DS:IX) operand
+reg         cmp_r2s;     // CMPBK: second read accepted
 reg [15:0]  fl_cs, fl_ip; // flush redirect target
 // external-event machinery (block 4). The recognition sample is the
 // boundary-decision cycle reading a 4-deep pin pipeline (fitted: the
@@ -300,10 +305,13 @@ wire op_xlat   = opc == 8'hD7;                   // TRANS
 wire op_movstr = opc == 8'hA4 || opc == 8'hA5;   // MOVBK
 wire op_stostr = opc == 8'hAA || opc == 8'hAB;   // STM
 wire op_lodstr = opc == 8'hAC || opc == 8'hAD;   // LDM
-wire op_str    = op_movstr | op_stostr | op_lodstr;
+wire op_cmpstr = opc == 8'hA6 || opc == 8'hA7;   // CMPBK
+wire op_scastr = opc == 8'hAE || opc == 8'hAF;   // CMPM
+wire op_str    = op_movstr | op_stostr | op_lodstr | op_cmpstr | op_scastr;
 wire op_segp   = opc == 8'h26 || opc == 8'h2E ||
                  opc == 8'h36 || opc == 8'h3E;   // segment override
-wire op_repp   = opc == 8'hF3;                   // REP/REPE prefix
+wire op_repp   = opc == 8'hF3 || opc == 8'hF2 ||     // REP/REPE, REPNE
+                 opc == 8'h65 || opc == 8'h64;       // REPC, REPNC
 wire jcc_taken = (opc == 8'h74) ?  psw[FB_Z] :
                  (opc == 8'h75) ? !psw[FB_Z] :
                                    psw[FB_S] ^ psw[FB_V];   // 7C BLT
@@ -314,13 +322,30 @@ wire op_out    = opc == 8'hE6 || opc == 8'hE7 ||
 wire op_0f     = opc == 8'h0F;                       // two-byte forms
 wire op_test1  = op_0f && opc2 == 8'h18;             // TEST1 rm8,imm3
 wire op_rol4   = op_0f && opc2 == 8'h28;             // ROL4 rm8
+wire op_grp80  = opc == 8'h80;                       // ALU rm8, imm8
+wire op_grp81  = opc == 8'h81;                       // ALU rm16, imm16
+wire op_grp83  = opc == 8'h83;                       // ALU rm16, simm8
+wire op_alui   = op_grp80 | op_grp81 | op_grp83;
+wire op_grpd1  = opc == 8'hD1;                       // shrot rm16, 1
+wire op_grpd2  = opc == 8'hD2;                       // shrot rm8, CL
+wire op_grpd3  = opc == 8'hD3;                       // shrot rm16, CL
+wire op_grpc0  = opc == 8'hC0;                       // shrot rm8, imm8
+wire op_grpc1  = opc == 8'hC1;                       // shrot rm16, imm8
+wire op_shift  = op_grpd0 | op_grpd1 | op_grpd2 | op_grpd3 |
+                 op_grpc0 | op_grpc1;
+wire op_shimm  = op_grpc0 | op_grpc1;
+// D0 group 4 keeps its original fitted path (shl8_1); everything else
+// in the shifter family runs through shrot
+wire op_shrot  = op_shift && !(op_grpd0 && mrm_reg == 3'd4);
 wire op_modrm  = op_alu | op_movs8 | op_movs16 | op_movl8 | op_movl16 |
-                 op_grpf6 | op_grpf7 | op_grpd0 | op_grpfe |
+                 op_grpf6 | op_grpf7 | op_grpd0 | op_grpfe | op_alui |
+                 op_grpd1 | op_grpd2 | op_grpd3 | op_grpc0 | op_grpc1 |
                  op_xchg8 | op_xchg16 | op_lea | op_srst | op_srld;
 
 wire is_store  = op_movs8 | op_movs16 | op_srst;     // write-only mem access
 wire is_load   = op_movl8 | op_movl16 | op_srld;
 wire is_word_t = op_movs16 | op_movl16 | op_grpf7 |  // word transfer
+                 op_grp81 | op_grp83 | op_grpd1 | op_grpd3 | op_grpc1 |
                  op_xchg16 | op_srst | op_srld;
 wire is_reader = !is_store;                          // mem forms read first
 
@@ -412,6 +437,119 @@ function automatic [23:0] alu8(input [2:0] op, input [7:0] a, input [7:0] b,
     nf[FB_Z] = r == 8'd0;
     nf[FB_P] = ~^r;
     alu8 = {nf, r};
+endfunction
+
+// Shift/rotate unit (D0-D3, C0/C1, all 8 sub-ops; 6 = SHL alias).
+// Count pre-masked to 5 bits (V30 masks CL and imm8 with 0x1F).
+// Flag laws per undefined_flags.md: count=0 preserves everything;
+// shifts (4-7) set S/Z/P of the result and AC=0; V by the final-state
+// single-step formula (left: MSB^CY, right: MSB^MSB-1); rotates
+// (0-3) touch CY/V only. {new_psw, result}.
+function automatic [31:0] shrot(input [2:0] op, input word,
+                                input [15:0] a, input [4:0] cnt,
+                                input [15:0] f);
+    logic [15:0] r;
+    logic [15:0] nf;
+    logic cy, msb, lsb, oc;
+    r = a;
+    nf = f;
+    cy = f[FB_CY];
+    for (int i = 0; i < 31; i++) begin
+        if (i < {27'd0, cnt}) begin
+            msb = word ? r[15] : r[7];
+            lsb = r[0];
+            unique case (op)
+                3'd0: begin                              // ROL
+                    r = word ? {r[14:0], msb} : {r[15:8], r[6:0], msb};
+                    cy = msb;
+                end
+                3'd1: begin                              // ROR
+                    r = word ? {lsb, r[15:1]} : {r[15:8], lsb, r[7:1]};
+                    cy = lsb;
+                end
+                3'd2: begin                              // ROLC (RCL)
+                    oc = cy; cy = msb;
+                    r = word ? {r[14:0], oc} : {r[15:8], r[6:0], oc};
+                end
+                3'd3: begin                              // RORC (RCR)
+                    oc = cy; cy = lsb;
+                    r = word ? {oc, r[15:1]} : {r[15:8], oc, r[7:1]};
+                end
+                3'd4, 3'd6: begin                        // SHL (+alias)
+                    cy = msb;
+                    r = word ? {r[14:0], 1'b0} : {r[15:8], r[6:0], 1'b0};
+                end
+                3'd5: begin                              // SHR
+                    cy = lsb;
+                    r = word ? {1'b0, r[15:1]} : {r[15:8], 1'b0, r[7:1]};
+                end
+                default: begin                           // 7 = SHRA (SAR)
+                    cy = lsb;
+                    r = word ? {r[15], r[15:1]} : {r[15:8], r[7], r[7:1]};
+                end
+            endcase
+        end
+    end
+    if (cnt != 5'd0) begin
+        nf[FB_CY] = cy;
+        msb = word ? r[15] : r[7];
+        if (op == 3'd0 || op == 3'd2 || op == 3'd4 || op == 3'd6)
+            nf[FB_V] = msb ^ cy;                         // left family
+        else
+            nf[FB_V] = msb ^ (word ? r[14] : r[6]);      // right family
+        if (op[2]) begin                                 // shifts 4-7
+            nf[FB_S]  = msb;
+            nf[FB_Z]  = word ? (r == 16'd0) : (r[7:0] == 8'd0);
+            nf[FB_P]  = ~^r[7:0];
+            nf[FB_AC] = 1'b0;
+        end
+    end
+    shrot = {nf, r};
+endfunction
+
+// 16-bit twin of alu8: {new_psw, result}; P from the LOW byte only
+function automatic [31:0] alu16(input [2:0] op, input [15:0] a,
+                                input [15:0] b, input [15:0] f);
+    logic [16:0] t;
+    logic [4:0]  tn;
+    logic [15:0] r;
+    logic [15:0] nf;
+    logic        logic_op;
+    logic_op = (op == 3'd1) || (op == 3'd4) || (op == 3'd6);
+    tn = '0;
+    unique case (op)
+        3'd0: begin t = {1'b0,a} + {1'b0,b};
+                    tn = {1'b0,a[3:0]} + {1'b0,b[3:0]}; end
+        3'd2: begin t = {1'b0,a} + {1'b0,b} + {16'd0, f[FB_CY]};
+                    tn = {1'b0,a[3:0]} + {1'b0,b[3:0]} + {4'd0, f[FB_CY]}; end
+        3'd3: begin t = {1'b0,a} - {1'b0,b} - {16'd0, f[FB_CY]};
+                    tn = {1'b0,a[3:0]} - {1'b0,b[3:0]} - {4'd0, f[FB_CY]}; end
+        3'd5, 3'd7:
+              begin t = {1'b0,a} - {1'b0,b};
+                    tn = {1'b0,a[3:0]} - {1'b0,b[3:0]}; end
+        3'd1: t = {1'b0, a | b};
+        3'd4: t = {1'b0, a & b};
+        3'd6: t = {1'b0, a ^ b};
+        default: t = '0;
+    endcase
+    r = t[15:0];
+    nf = f;
+    if (logic_op) begin
+        nf[FB_CY] = 1'b0;
+        nf[FB_AC] = 1'b0;
+        nf[FB_V]  = 1'b0;
+    end else begin
+        nf[FB_CY] = t[16];
+        nf[FB_AC] = tn[4];
+        if (op == 3'd0 || op == 3'd2)
+            nf[FB_V] = (~(a[15] ^ b[15])) & (a[15] ^ r[15]);
+        else
+            nf[FB_V] = (a[15] ^ b[15]) & (a[15] ^ r[15]);
+    end
+    nf[FB_S] = r[15];
+    nf[FB_Z] = r == 16'd0;
+    nf[FB_P] = ~^r[7:0];
+    alu16 = {nf, r};
 endfunction
 
 function automatic [23:0] inc8(input [7:0] a, input [15:0] f);
@@ -603,6 +741,34 @@ wire [23:0] ex_alu  = alu8(opc[5:3], rm_byte, reg8_get(mrm_reg), psw);
 wire [23:0] ex_inc  = inc8(rm_byte, psw);
 wire [23:0] ex_shl  = shl8_1(rm_byte, psw);
 
+// ALU rm,imm groups (80/81/83): imm collected in disp; op = mrm_reg
+wire [15:0] ai_imm  = op_grp83 ? {{8{disp[7]}}, disp[7:0]} : disp;
+wire [23:0] ex_ai8  = alu8(mrm_reg, rm_byte, disp[7:0], psw);
+wire [31:0] ex_ai16 = alu16(mrm_reg, (mrm_mod == 2'd3) ? rf[mrm_rm]
+                                                       : mem_op,
+                            ai_imm, psw);
+// shifter operands: count masked to 5 bits (CL or imm8 in disp)
+wire sh_word = op_grpd1 | op_grpd3 | op_grpc1;
+wire [4:0] sh_cnt = (op_grpd0 | op_grpd1) ? 5'd1 :
+                    (op_grpd2 | op_grpd3) ? rf[1][4:0] : disp[4:0];
+wire [31:0] ex_shr  = shrot(mrm_reg, sh_word,
+                            sh_word ? ((mrm_mod == 2'd3) ? rf[mrm_rm]
+                                                         : mem_op)
+                                    : {8'h00, rm_byte},
+                            sh_cnt, psw);
+wire [31:0] ex_shrp = shrot(mrm_reg, 1'b1, mem_op, sh_cnt, psw);
+// byte-form mem write: 16-bit pair arithmetic with the imm byte on
+// both lanes (sibling-lane GUESS - fit against the 80.x goldens)
+wire [15:0] ai_pair = op_grp80 ? {disp[7:0], disp[7:0]} : ai_imm;
+wire [15:0] ai_wide =
+    (mrm_reg == 3'd0) ? mem_op + ai_pair :
+    (mrm_reg == 3'd2) ? mem_op + ai_pair + {15'd0, psw[FB_CY]} :
+    (mrm_reg == 3'd3) ? mem_op - ai_pair - {15'd0, psw[FB_CY]} :
+    (mrm_reg == 3'd5) ? mem_op - ai_pair :
+    (mrm_reg == 3'd1) ? (mem_op | ai_pair) :
+    (mrm_reg == 3'd4) ? (mem_op & ai_pair) :
+                        (mem_op ^ ai_pair);   // 6=XOR (7 never writes)
+
 // Byte RMW mem ops run their operation across the full 16-bit internal
 // pair ({sibling, byte}) and drive the whole result onto the bus; only
 // the active lane commits to memory but carries/shifts propagate into
@@ -639,6 +805,8 @@ wire pop_want = (state == S_FIRST && !irq_take) ||
                 (state == S_DEC && op_modrm) ||
                 (state == S_0F) || (state == S_DEC2) || (state == S_IMM3) ||
                 (state == S_IMM_LO) || (state == S_IMM_HI) ||
+                (state == S_AI_I8) || (state == S_AI_I16) ||
+                (state == S_BCD_IMM) ||
                 (state == S_IN_PORT) ||
                 (state == S_DISP8) || (state == S_DLO) || (state == S_DHI) ||
                 (state == S_JDISP) || (state == S_JDLO) ||
@@ -707,11 +875,18 @@ always_comb begin
         S_A4_SRC, S_A4_DST, S_A4_WR,
         S_CALLPUSH,
         S_STRW, S_STRR, S_STRS,
+        S_SCASW, S_CMPNXT, S_SCASNXT,
         S_TRAP_IVT1, S_TRAP_IVT2,
         S_TRAP_PSW, S_TRAP_PS, S_TRAP_FLUSH, S_TRAP_PC,
         S_INT_A1, S_INT_A2: begin
             eu_req   = 1'b1;
             eu_ready = 1'b1;
+        end
+        // CMPBK: the ES:IY read request stays up until accepted while
+        // the DS:IX data is still in flight (structural; fit pending)
+        S_CMPW1: begin
+            eu_req   = !cmp_r2s;
+            eu_ready = !cmp_r2s;
         end
         // INTA sequence holds the bus between its cycles (measured: no
         // prefetch in the inter-INTA gap); the wake-wait states hold too
@@ -937,10 +1112,18 @@ always_ff @(posedge clk) begin
                                 op_movl8 | op_movl16 |
                                 op_xchg8 | op_xchg16)
                                 state <= S_EX;
+                            else if (op_alui || op_shimm)
+                                state <= S_AI_I8;   // imm byte(s) next
                             else if (op_grpfe && q_byte[5:3] == 3'd0) begin
                                 dly <= 6'd1;  wnext <= S_EX; state <= S_WAITX;
-                            end else if (op_grpd0 && q_byte[5:3] == 3'd4) begin
+                            end else if (op_grpd0 || op_grpd1) begin
+                                // by-1 forms: D0.4's fitted slot reused
+                                // for the whole family (fit pending)
                                 dly <= 6'd3;  wnext <= S_EX; state <= S_WAITX;
+                            end else if (op_grpd2 || op_grpd3) begin
+                                // by-CL reg: base + count (fit pending)
+                                dly <= 6'd5 + {1'd0, rf[1][4:0]};
+                                wnext <= S_EX; state <= S_WAITX;
                             end else if (op_grpf6 && q_byte[5:3] == 3'd4) begin
                                 dly <= 6'd21; wnext <= S_EX; state <= S_WAITX;
                             end else if (op_grpf7 && q_byte[5:3] == 3'd6) begin
@@ -1006,7 +1189,6 @@ always_ff @(posedge clk) begin
                                  q_byte[5:3] != 3'd7) ||
                                 (op_grpf7 && q_byte[5:3] != 3'd6 &&
                                  q_byte[5:3] != 3'd7) ||
-                                (op_grpd0 && q_byte[5:3] != 3'd4) ||
                                 (op_grpfe && q_byte[5:3] != 3'd0))
                                 state <= S_HALT;
                             else if ((q_byte[7:6] == 2'd0 &&
@@ -1054,8 +1236,17 @@ always_ff @(posedge clk) begin
                         state      <= S_FIRST;
                     end else if (op_repp) begin
                         rep_en  <= 1'b1;
+                        rep_kind <= opc == 8'hF3 ? 2'd0 :
+                                    opc == 8'hF2 ? 2'd1 :
+                                    opc == 8'h65 ? 2'd2 : 2'd3;
                         arch_ip <= pc;
                         state   <= S_FIRST;
+                    end else if (opc == 8'h27 || opc == 8'h2F ||
+                                 opc == 8'h37 || opc == 8'h3F) begin
+                        // BCD adjusts: execute in S_EX (fit pending)
+                        dly <= 6'd1; wnext <= S_EX; state <= S_WAITX;
+                    end else if (opc == 8'hD4 || opc == 8'hD5) begin
+                        state <= S_BCD_IMM;   // base byte pops next
                     end else if (opc == 8'h98) begin      // CVTBW
                         rf[0][15:8] <= {8{rf[0][7]}};
                         retire();
@@ -1089,13 +1280,25 @@ always_ff @(posedge clk) begin
                             end else begin
                                 dly <= 6'd1; state <= S_RSV;
                             end
-                        end else begin                    // MOVBK / LDM
+                        end else if (op_scastr) begin     // CMPM: ES:IY rd
+                            eu_addr <= {sr[SEG_ES], 4'h0} + {4'h0, rf[7]};
+                            eu_seg  <= SEG_ES;
+                            eu_wr   <= 1'b0;
+                            eu_word <= opc[0];
+                            if (rep_en) begin
+                                dly <= 6'd2; wnext <= S_RSV;
+                                state <= S_WAITX;
+                            end else begin
+                                dly <= 6'd1; state <= S_RSV;
+                            end
+                        end else begin              // MOVBK / LDM / CMPBK
                             eu_addr <= {sr[seg_ovr_en ? seg_ovr : SEG_DS],
                                         4'h0} + {4'h0, rf[6]};
                             eu_seg  <= seg_ovr_en ? seg_ovr : SEG_DS;
                             eu_wr   <= 1'b0;
                             eu_word <= opc[0];
                             str_wr  <= 1'b0;
+                            cmp_r2s <= 1'b0;
                             if (rep_en) begin  // REP setup (see STM note)
                                 dly <= 6'd2; wnext <= S_RSV;
                                 state <= S_WAITX;
@@ -1146,6 +1349,44 @@ always_ff @(posedge clk) begin
                 disp[7:0] <= q_byte;
                 pc <= pc + 16'd1;
                 state <= S_IMM_HI;
+            end
+
+            //----------------------------------------------------------------
+            // ALU rm,imm (80/81/83): imm byte(s) pop after the modrm/
+            // displacement (reg forms) or after the operand read (mem
+            // forms); execute in S_EX / write via S_RMWX. Structural
+            // timing first pass - fit against the 80/81/83 goldens.
+            //----------------------------------------------------------------
+            S_AI_I8: if (q_pop) begin
+                disp[7:0] <= q_byte;
+                pc <= pc + 16'd1;
+                if (op_grp81) state <= S_AI_I16;
+                else if (op_shimm) begin
+                    // C0/C1 count byte (masked to 5 bits by sh_cnt)
+                    if (mrm_mod != 2'd3) begin
+                        dly <= 6'd2 + {1'd0, q_byte[4:0]};
+                        state <= S_RMWX;            // fit pending
+                    end else begin
+                        dly <= 6'd3 + {1'd0, q_byte[4:0]};
+                        wnext <= S_EX; state <= S_WAITX;
+                    end
+                end else if (mrm_mod != 2'd3 && mrm_reg != 3'd7) begin
+                    dly <= 6'd2; state <= S_RMWX;   // write ready pop+3
+                end else state <= S_EX;
+            end
+            S_BCD_IMM: if (q_pop) begin        // D4/D5 base byte
+                disp[7:0] <= q_byte;
+                pc <= pc + 16'd1;
+                // CVTBD divides, CVTDB multiply-adds (fit pending)
+                dly <= (opc == 8'hD4) ? 6'd15 : 6'd6;
+                wnext <= S_EX; state <= S_WAITX;
+            end
+            S_AI_I16: if (q_pop) begin
+                disp[15:8] <= q_byte;
+                pc <= pc + 16'd1;
+                if (mrm_mod != 2'd3 && mrm_reg != 3'd7) begin
+                    dly <= 6'd2; state <= S_RMWX;   // write ready pop+3
+                end else state <= S_EX;
             end
             S_IMM_HI: if (q_pop) begin
                 rf[opc[2:0]] <= {q_byte, disp[7:0]};
@@ -1486,6 +1727,14 @@ always_ff @(posedge clk) begin
                     eu_seg  <= SEG_ES;
                     eu_wr   <= 1'b1;
                     state   <= S_STRW;
+                end else if (op_cmpstr) begin  // rd1 accepted: queue rd2
+                    eu_addr <= {sr[SEG_ES], 4'h0} + {4'h0, rf[7]};
+                    eu_seg  <= SEG_ES;
+                    eu_wr   <= 1'b0;
+                    cmp_r2s <= 1'b0;
+                    state   <= S_CMPW1;
+                end else if (op_scastr) begin  // ES:IY read accepted
+                    state   <= S_SCASW;
                 end else if (op_stostr) begin  // write accepted
                     rf[7] <= rf[7] + str_step;
                     if (rep_en) begin
@@ -1529,6 +1778,83 @@ always_ff @(posedge clk) begin
                 if (eu_done) str_done <= 1'b1;
                 if (rslot <= 6'd1 && (str_done || eu_done)) retire();
             end
+            //----------------------------------------------------------------
+            // CMPBK/CMPM (A6/A7/AE/AF) + REPE/REPNE/REPC/REPNC.
+            // Structural first pass (fit against goldens pending):
+            // singles set flags at the (last) read's done and retire;
+            // REP iterations chain the next read at the compare.
+            //----------------------------------------------------------------
+            S_CMPW1: begin                     // await DS:IX data
+                if (eu_started) cmp_r2s <= 1'b1;
+                if (eu_done) begin
+                    cmp1  <= eu_rdata;
+                    state <= S_CMPW2;
+                end
+            end
+            S_CMPW2: if (eu_done) begin        // ES:IY data: compare
+                logic [15:0] nf;
+                logic        cont;
+                if (opc[0]) begin
+                    logic [31:0] c16;
+                    c16 = alu16(3'd7, cmp1, eu_rdata, psw);
+                    nf = c16[31:16];
+                end else begin
+                    logic [23:0] c8;
+                    c8 = alu8(3'd7, cmp1[7:0], eu_rdata[7:0], psw);
+                    nf = c8[23:8];
+                end
+                psw   <= nf;
+                rf[6] <= rf[6] + str_step;
+                rf[7] <= rf[7] + str_step;
+                if (rep_en) begin
+                    rf[1] <= rf[1] - 16'd1;
+                    cont = (rf[1] != 16'd1) &&
+                           (rep_kind == 2'd0 ?  nf[FB_Z]  :
+                            rep_kind == 2'd1 ? !nf[FB_Z]  :
+                            rep_kind == 2'd2 ?  nf[FB_CY] : !nf[FB_CY]);
+                    if (cont) begin
+                        eu_addr <= {sr[seg_ovr_en ? seg_ovr : SEG_DS],
+                                    4'h0} + {4'h0, rf[6] + str_step};
+                        eu_seg  <= seg_ovr_en ? seg_ovr : SEG_DS;
+                        eu_wr   <= 1'b0;
+                        state   <= S_REQ;
+                    end else begin
+                        dly <= 6'd2; wnext <= S_EX; state <= S_WAITX;
+                    end
+                end else retire();
+            end
+            S_SCASW: if (eu_done) begin        // CMPM: acc - [ES:IY]
+                logic [15:0] nf;
+                logic        cont;
+                if (opc[0]) begin
+                    logic [31:0] c16;
+                    c16 = alu16(3'd7, rf[0], eu_rdata, psw);
+                    nf = c16[31:16];
+                end else begin
+                    logic [23:0] c8;
+                    c8 = alu8(3'd7, rf[0][7:0], eu_rdata[7:0], psw);
+                    nf = c8[23:8];
+                end
+                psw   <= nf;
+                rf[7] <= rf[7] + str_step;
+                if (rep_en) begin
+                    rf[1] <= rf[1] - 16'd1;
+                    cont = (rf[1] != 16'd1) &&
+                           (rep_kind == 2'd0 ?  nf[FB_Z]  :
+                            rep_kind == 2'd1 ? !nf[FB_Z]  :
+                            rep_kind == 2'd2 ?  nf[FB_CY] : !nf[FB_CY]);
+                    if (cont) begin
+                        eu_addr <= {sr[SEG_ES], 4'h0} +
+                                   {4'h0, rf[7] + str_step};
+                        eu_seg  <= SEG_ES;
+                        eu_wr   <= 1'b0;
+                        state   <= S_REQ;
+                    end else begin
+                        dly <= 6'd2; wnext <= S_EX; state <= S_WAITX;
+                    end
+                end else retire();
+            end
+            S_CMPNXT, S_SCASNXT: state <= S_HALT;  // placeholders
             S_STRW: if (eu_started) begin      // MOVBK write accepted
                 rf[6] <= rf[6] + str_step;
                 rf[7] <= rf[7] + str_step;
@@ -1614,6 +1940,8 @@ always_ff @(posedge clk) begin
                         state <= S_LD_W2;   // sreg load: writeback done+1
                     else if (is_load || (op_alu && opc[5:3] == 3'd7))
                         state <= S_LD_W1;                 // MOV load / CMP
+                    else if (op_alui)
+                        state <= S_AI_I8;   // imm pops after the read
                     else if (op_test1)
                         state <= S_T1GAP;                 // imm pop done+2
                     else if (op_rol4) begin
@@ -1622,8 +1950,14 @@ always_ff @(posedge clk) begin
                         dly <= 6'd2; state <= S_RMWX;     // wr ready done+3
                     end else if (op_grpfe) begin
                         dly <= 6'd3; state <= S_RMWX;     // done+4
-                    end else if (op_grpd0) begin
+                    end else if (op_grpd0 || op_grpd1) begin
                         dly <= 6'd5; state <= S_RMWX;     // done+6
+                    end else if (op_grpd2 || op_grpd3) begin
+                        // by-CL mem: base + count (fit pending)
+                        dly <= 6'd5 + {1'd0, rf[1][4:0]};
+                        state <= S_RMWX;
+                    end else if (op_shimm) begin
+                        state <= S_AI_I8;   // count byte pops next
                     end else if (op_grpf6 && mrm_reg == 3'd7) begin
                         // IDIV8 mem: reg-form law + 1 (like DIVU)
                         logic [33:0] dv8;
@@ -1706,7 +2040,76 @@ always_ff @(posedge clk) begin
             end
 
             S_EX: begin
-                if (opc == 8'h99) begin                // CVTWL
+                if (opc == 8'h27 || opc == 8'h2F) begin  // ADJ4A/ADJ4S
+                    // DAA/DAS; V = sign flip of the wide-fix step
+                    // (GUESS - fit vs goldens); flag laws per
+                    // undefined_flags.md ADJ4A/ADJ4S note
+                    logic [7:0] al, r1, r2;
+                    logic lowfix, hifix;
+                    al = rf[0][7:0];
+                    lowfix = (al[3:0] > 4'd9) || psw[FB_AC];
+                    hifix  = (al > 8'h99) || psw[FB_CY];
+                    if (opc == 8'h27) begin
+                        r1 = al + (lowfix ? 8'h06 : 8'h00);
+                        r2 = r1 + (hifix ? 8'h60 : 8'h00);
+                    end else begin
+                        r1 = al - (lowfix ? 8'h06 : 8'h00);
+                        r2 = r1 - (hifix ? 8'h60 : 8'h00);
+                    end
+                    rf[0][7:0] <= r2;
+                    psw[FB_AC] <= lowfix;
+                    psw[FB_CY] <= hifix;
+                    psw[FB_S]  <= r2[7];
+                    psw[FB_Z]  <= r2 == 8'd0;
+                    psw[FB_P]  <= ~^r2;
+                    psw[FB_V]  <= r1[7] ^ r2[7];
+                end else if (opc == 8'h37 || opc == 8'h3F) begin
+                    // ADJBA/ADJBS: V=0; ADJBA S=0,Z=(AW==0);
+                    // ADJBS Z=(AL==0); P=parity(AL) (fit pending)
+                    logic fire;
+                    logic [15:0] aw;
+                    fire = (rf[0][3:0] > 4'd9) || psw[FB_AC];
+                    if (opc == 8'h37)
+                        aw = fire ? {rf[0][15:8] + 8'd1,
+                                     (rf[0][7:0] + 8'h06)} : rf[0];
+                    else
+                        aw = fire ? {rf[0][15:8] - 8'd1,
+                                     (rf[0][7:0] - 8'h06)} : rf[0];
+                    aw[7:4] = 4'd0;
+                    rf[0] <= aw;
+                    psw[FB_AC] <= fire;
+                    psw[FB_CY] <= fire;
+                    psw[FB_V]  <= 1'b0;
+                    psw[FB_P]  <= ~^aw[7:0];
+                    if (opc == 8'h37) begin
+                        psw[FB_S] <= 1'b0;
+                        psw[FB_Z] <= aw == 16'd0;
+                    end else begin
+                        psw[FB_S] <= aw[7];
+                        psw[FB_Z] <= aw[7:0] == 8'd0;
+                    end
+                end else if (opc == 8'hD4) begin       // CVTBD (AAM)
+                    logic [7:0] q8, r8;
+                    q8 = rf[0][7:0] / disp[7:0];
+                    r8 = rf[0][7:0] % disp[7:0];
+                    rf[0] <= {q8, r8};
+                    psw[FB_S] <= r8[7];
+                    psw[FB_Z] <= r8 == 8'd0;
+                    psw[FB_P] <= ~^r8;
+                    psw[FB_V] <= 1'b0;
+                    psw[FB_AC] <= 1'b0;
+                    psw[FB_CY] <= 1'b0;
+                end else if (opc == 8'hD5) begin       // CVTDB (AAD)
+                    // AL = AH*base + AL; AC/CY from the final 8-bit
+                    // add (internal residue, undefined_flags.md)
+                    logic [7:0] mulb;
+                    logic [23:0] ad;
+                    mulb = rf[0][15:8] * disp[7:0];
+                    ad = alu8(3'd0, mulb, rf[0][7:0], psw);
+                    rf[0] <= {8'd0, ad[7:0]};
+                    psw <= ad[23:8];
+                    psw[FB_V] <= 1'b0;
+                end else if (opc == 8'h99) begin                // CVTWL
                     rf[2] <= {16{rf[0][15]}};
                 end else if (op_str) begin
                     // REP with CW=0 early-out: no effects
@@ -1733,6 +2136,17 @@ always_ff @(posedge clk) begin
                 end else if (op_alu) begin
                     psw <= ex_alu[23:8];
                     if (opc[5:3] != 3'd7) wr_reg8(mrm_rm, ex_alu[7:0]);
+                end else if (op_alui) begin
+                    // reg forms + CMP-mem: flags (and reg writeback)
+                    if (op_grp80) begin
+                        psw <= ex_ai8[23:8];
+                        if (mrm_mod == 2'd3 && mrm_reg != 3'd7)
+                            wr_reg8(mrm_rm, ex_ai8[7:0]);
+                    end else begin
+                        psw <= ex_ai16[31:16];
+                        if (mrm_mod == 2'd3 && mrm_reg != 3'd7)
+                            rf[mrm_rm] <= ex_ai16[15:0];
+                    end
                 end else if (op_movs8)  wr_reg8(mrm_rm, reg8_get(mrm_reg));
                 else if (op_movs16) rf[mrm_rm]  <= rf[mrm_reg];
                 else if (op_movl8)  wr_reg8(mrm_reg, reg8_get(mrm_rm));
@@ -1740,6 +2154,10 @@ always_ff @(posedge clk) begin
                 else if (op_grpfe) begin
                     psw <= ex_inc[23:8];
                     wr_reg8(mrm_rm, ex_inc[7:0]);
+                end else if (op_shrot) begin
+                    psw <= ex_shr[31:16];
+                    if (sh_word) rf[mrm_rm] <= ex_shr[15:0];
+                    else         wr_reg8(mrm_rm, ex_shr[7:0]);
                 end else if (op_grpd0) begin
                     psw <= ex_shl[23:8];
                     wr_reg8(mrm_rm, ex_shl[7:0]);
@@ -1782,6 +2200,14 @@ always_ff @(posedge clk) begin
                         eu_wdata <= {rf[0][3:0], mem_op[7:4],
                                      mem_op[3:0], rf[0][3:0]};
                         rf[0][7:0] <= {rf[0][3:0], mem_op[7:4]};
+                    end else if (op_alui) begin
+                        eu_wdata <= ai_wide;
+                        psw <= op_grp80 ? ex_ai8[23:8] : ex_ai16[31:16];
+                    end else if (op_shrot) begin
+                        // byte forms drive the full internal pair
+                        // (sibling-lane GUESS - fit vs goldens)
+                        eu_wdata <= sh_word ? ex_shr[15:0] : ex_shrp[15:0];
+                        psw <= ex_shr[31:16];
                     end else begin
                         eu_wdata <= rmw_wide;
                         if (op_alu)        psw <= ex_alu[23:8];
