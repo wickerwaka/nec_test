@@ -259,6 +259,37 @@ to the EU's bus slot moves data-access arbitration by one cycle. A
 per-instruction cycle model must account for fetch-phase alignment,
 not just the instruction itself.
 
+## instructions.json uncertainty probes (2026-07-11, mission 6)
+
+sw/probe_uncertain.py: architectural hardware tests retiring 17 of the
+53 _uncertain transcription items (each entry now carries a RESOLVED
+note in docs/facts/instructions.json). Highlights:
+
+- **SHR shifts the LSB into CY** (AL=80h -> CY=0, AL=01h -> CY=1,
+  multi-bit consistent). The manual's operation formulas print
+  "CY <- MSB" on six pages — systematic misprint; prose/diagrams right.
+- **BRK imm8 is 2 bytes** ("Bytes: 1" misprint): a RETI handler resumes
+  past the immediate; the imm byte does not execute.
+- **Divide traps**: quotient == FFH exactly does NOT trap DIVU reg8
+  ("<= FFH" reading confirmed); signed DIV traps only when the quotient
+  exceeds the signed range (printed '< 7FFFH' is a misprint for '>').
+  On trap, registers are preserved (matches MAME PR #15620) and the
+  **pushed PC is the address AFTER the divide instruction** (0502 for a
+  2-byte DIV at 0500; pushed PS=0, PSW pushed pre-trap) — answers
+  OPEN_QUESTIONS Q10 for the unprefixed case.
+- **MUL CY/V rule**: CY=V=0 iff the high half equals the sign extension
+  of the low half (the "sign extension of AH" texts are typos).
+- **ADJ4A adjusts when low nibble > 9** (0Ah -> 10h with AC=1; 09h
+  unchanged); printed '< 9' is a misprint.
+- **RORC V-flag U/X inconsistency is an erratum**: reg,imm8 and
+  mem,imm8 forms produce identical results and identical data-dependent
+  V on the same inputs — both behave as X.
+- The four scan-illegible bit-op encodings (TEST1/NOT1/CLR1 mem16,imm4;
+  SET1 mem8,CL with displacement) execute correctly as transcribed —
+  encodings verified architecturally, including the disp8 form.
+- ROLC reg,CL '7 = n' misprint: measures 14 at CL=4, same as sibling
+  rotates -> '7 + n'.
+
 ## Divide-overflow semantics (prior work, large context)
 
 - MAME's divide-overflow behavior for V30 (CY/V = !overflow, registers
