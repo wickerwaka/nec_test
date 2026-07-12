@@ -30,7 +30,7 @@ Retire entries by moving them to `docs/facts/` files with provenance (datasheet 
 
 ### Q5: Prefetch queue: exact refill policy?
 - Depth is documented as 6 bytes — verify. When does the BIU issue a fetch (queue space threshold)? Does it fetch words always, or a byte when starting at an odd address? What delays refill after a flush?
-- **Status**: open
+- **Status**: largely ANSWERED (exp 1, biu_model.md): depth = 6 confirmed; fetch initiated only when ≥2 bytes free. Remaining: odd-address fetch width, post-flush delay (exp 2/6).
 
 ### Q6: Decode time per opcode?
 - Datasheets give execution clocks but not decode latency. Measure instruction-start-to-first-effect via queue status + bus activity for every opcode.
@@ -43,7 +43,7 @@ Retire entries by moving them to `docs/facts/` files with provenance (datasheet 
 - **Status**: open
 
 ### Q9: MUL/DIV timing — data-dependent? (V30 algorithm differs from Intel's.)
-- **Status**: open
+- **Status**: DIVU reg16 measured data-INDEPENDENT at 28 cycles F-to-F across 4 operand sets (biu_model.md). MUL and remaining forms pending.
 
 ### Q10: Division-exception semantics — pushed CS:IP points where? (V20/V30 differ from 8086.)
 - **Status**: open

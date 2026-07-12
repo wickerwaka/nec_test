@@ -119,11 +119,13 @@ def parse_result(recs, meta):
 
 
 def run_test(regs=None, instr=b"", host="root@mister-nec", tag="test",
-             ivt=None):
-    image, meta = testimage.compose(regs=regs, instr=instr, ivt=ivt)
+             ivt=None, stub_linear=None):
+    image, meta = testimage.compose(regs=regs, instr=instr, ivt=ivt,
+                                    stub_linear=stub_linear)
     recs = run_image(image, host, tag)
     res = parse_result(recs, meta)
     res["meta"] = meta
+    res["recs"] = recs
     return res
 
 
