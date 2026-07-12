@@ -1,0 +1,289 @@
+{
+ "MULU reg8": {
+  "S": "preserved (out == in)",
+  "Z": "preserved (out == in)",
+  "AC": "preserved (out == in)",
+  "P": "preserved (out == in)"
+ },
+ "MULU reg16": {
+  "S": "preserved (out == in)",
+  "Z": "preserved (out == in)",
+  "AC": "preserved (out == in)",
+  "P": "preserved (out == in)"
+ },
+ "MUL reg8": {
+  "S": "operand-dependent: [in=0 out=0 AW=0000 CW=0000 DW=0000] [in=1 out=0 AW=0000 CW=0000 DW=0000] [in=0 out=0 AW=0001 CW=00ff DW=0000] [in=1 out=0 AW=0001 CW=00ff DW=0000] [in=0 out=0 AW=3f01 CW=007f DW=0000] [in=0 out=0 AW=c080 CW=007f DW=0000] [in=0 out=1 AW=ffff CW=0001 DW=0000]",
+  "Z": "operand-dependent: [in=0 out=1 AW=0000 CW=0000 DW=0000] [in=1 out=1 AW=0000 CW=0000 DW=0000] [in=0 out=0 AW=0001 CW=00ff DW=0000] [in=1 out=0 AW=0001 CW=00ff DW=0000] [in=0 out=0 AW=3f01 CW=007f DW=0000] [in=0 out=1 AW=c080 CW=007f DW=0000] [in=0 out=0 AW=ffff CW=0001 DW=0000]",
+  "AC": "operand-dependent: [in=0 out=0 AW=0000 CW=0000 DW=0000] [in=1 out=0 AW=0000 CW=0000 DW=0000] [in=0 out=0 AW=0001 CW=00ff DW=0000] [in=1 out=0 AW=0001 CW=00ff DW=0000] [in=0 out=0 AW=3f01 CW=007f DW=0000] [in=0 out=0 AW=c080 CW=007f DW=0000] [in=0 out=1 AW=ffff CW=0001 DW=0000]",
+  "P": "operand-dependent: [in=0 out=1 AW=0000 CW=0000 DW=0000] [in=1 out=1 AW=0000 CW=0000 DW=0000] [in=0 out=0 AW=0001 CW=00ff DW=0000] [in=1 out=0 AW=0001 CW=00ff DW=0000] [in=0 out=0 AW=3f01 CW=007f DW=0000] [in=0 out=1 AW=c080 CW=007f DW=0000] [in=0 out=0 AW=ffff CW=0001 DW=0000]"
+ },
+ "MUL reg16": {
+  "S": "acts defined: S=MSB(AL)",
+  "Z": "acts defined: Z=(AL==0)",
+  "AC": "operand-dependent: [in=0 out=0 AW=0000 CW=0000 DW=0000] [in=1 out=0 AW=0000 CW=0000 DW=0000] [in=0 out=0 AW=0001 CW=ffff DW=0000] [in=1 out=0 AW=0001 CW=ffff DW=0000] [in=0 out=0 AW=0001 CW=7fff DW=3fff] [in=0 out=0 AW=8000 CW=7fff DW=c000] [in=0 out=1 AW=ffff CW=0001 DW=ffff]",
+  "P": "operand-dependent: [in=0 out=1 AW=0000 CW=0000 DW=0000] [in=1 out=1 AW=0000 CW=0000 DW=0000] [in=0 out=0 AW=0001 CW=ffff DW=0000] [in=1 out=0 AW=0001 CW=ffff DW=0000] [in=0 out=0 AW=0001 CW=7fff DW=3fff] [in=0 out=1 AW=8000 CW=7fff DW=c000] [in=0 out=0 AW=ffff CW=0001 DW=ffff]"
+ },
+ "MUL reg16,reg16,imm8": {
+  "S": "acts defined: S=MSB(CL) and S=MSB(DL)",
+  "Z": "operand-dependent: [in=0 out=1 AW=0000 CW=0000 DW=0000] [in=1 out=1 AW=0000 CW=0000 DW=0000] [in=0 out=0 AW=0000 CW=fffb DW=ffff] [in=1 out=0 AW=0000 CW=fffb DW=ffff] [in=0 out=0 AW=0000 CW=0023 DW=0007] [in=0 out=0 AW=0000 CW=a000 DW=2000] [in=0 out=1 AW=0000 CW=8000 DW=8000]",
+  "AC": "operand-dependent: [in=0 out=0 AW=0000 CW=0000 DW=0000] [in=1 out=0 AW=0000 CW=0000 DW=0000] [in=0 out=1 AW=0000 CW=fffb DW=ffff] [in=1 out=1 AW=0000 CW=fffb DW=ffff] [in=0 out=0 AW=0000 CW=0023 DW=0007] [in=0 out=0 AW=0000 CW=a000 DW=2000] [in=0 out=0 AW=0000 CW=8000 DW=8000]",
+  "P": "acts defined: P=parity(DL.lo8) and P=parity(DW.lo8)"
+ },
+ "MUL reg16,reg16,imm16": {
+  "S": "acts defined: S=MSB(CW)",
+  "Z": "acts defined: Z=(CW==0) and Z=(DL==0) and Z=(DW==0)",
+  "AC": "always 0",
+  "P": "always 1"
+ },
+ "DIVU reg8": {
+  "V": "always 0",
+  "S": "always 1",
+  "Z": "always 0",
+  "AC": "always 1",
+  "P": "operand-dependent: [in=0 out=0 AW=0003 CW=0003 DW=0000] [in=1 out=0 AW=0003 CW=0003 DW=0000] [in=0 out=0 AW=0155 CW=0003 DW=0000] [in=1 out=0 AW=0155 CW=0003 DW=0000] [in=0 out=1 AW=00ff CW=00ff DW=0000] [in=0 out=0 AW=0103 CW=0002 DW=0000] [in=0 out=1 AW=0000 CW=0001 DW=0000]",
+  "CY": "always 1"
+ },
+ "DIVU reg16": {
+  "V": "always 0",
+  "S": "always 1",
+  "Z": "always 0",
+  "AC": "always 1",
+  "P": "operand-dependent: [in=0 out=0 AW=0003 CW=0003 DW=0000] [in=1 out=0 AW=0003 CW=0003 DW=0000] [in=0 out=0 AW=5555 CW=0003 DW=0001] [in=1 out=0 AW=5555 CW=0003 DW=0001] [in=0 out=1 AW=ffff CW=0001 DW=0000] [in=0 out=0 AW=0003 CW=0002 DW=0001]",
+  "CY": "always 1"
+ },
+ "DIV reg8": {
+  "V": "always 0",
+  "S": "always 0",
+  "Z": "acts defined: Z=(AL==0) and Z=(AW==0)",
+  "AC": "always 0",
+  "P": "always 1",
+  "CY": "always 0"
+ },
+ "DIV reg16": {
+  "V": "always 0",
+  "S": "always 0",
+  "Z": "always 0",
+  "AC": "always 0",
+  "P": "always 1",
+  "CY": "always 0"
+ },
+ "ADJBA": {
+  "V": "always 0",
+  "S": "always 0",
+  "Z": "acts defined: Z=(AW==0)",
+  "P": "operand-dependent: [in=0 out=1 AW=0101 CW=0000 DW=0000] [in=1 out=1 AW=0101 CW=0000 DW=0000] [in=0 out=0 AW=0004 CW=0000 DW=0000] [in=1 out=1 AW=010a CW=0000 DW=0000] [in=0 out=0 AW=0200 CW=0000 DW=0000] [in=0 out=1 AW=0105 CW=0000 DW=0000] [in=0 out=1 AW=0000 CW=0000 DW=0000]"
+ },
+ "ADJBS": {
+  "V": "always 0",
+  "S": "operand-dependent: [in=0 out=0 AW=ff05 CW=0000 DW=0000] [in=1 out=0 AW=ff05 CW=0000 DW=0000] [in=0 out=0 AW=0004 CW=0000 DW=0000] [in=1 out=1 AW=ff0e CW=0000 DW=0000] [in=0 out=0 AW=0004 CW=0000 DW=0000] [in=0 out=1 AW=ff09 CW=0000 DW=0000] [in=0 out=0 AW=0000 CW=0000 DW=0000]",
+  "Z": "acts defined: Z=(AL==0) and Z=(AW==0)",
+  "P": "acts defined: P=parity(AL.lo8) and P=parity(AW.lo8)"
+ },
+ "ADJ4A": {
+  "V": "operand-dependent: [in=0 out=0 AW=0000 CW=0000 DW=0000] [in=1 out=0 AW=0000 CW=0000 DW=0000] [in=0 out=0 AW=0033 CW=0000 DW=0000] [in=1 out=1 AW=0099 CW=0000 DW=0000] [in=0 out=0 AW=0065 CW=0000 DW=0000] [in=0 out=0 AW=0010 CW=0000 DW=0000]"
+ },
+ "ADJ4S": {
+  "V": "operand-dependent: [in=0 out=1 AW=0034 CW=0000 DW=0000] [in=1 out=1 AW=0034 CW=0000 DW=0000] [in=0 out=0 AW=0033 CW=0000 DW=0000] [in=1 out=0 AW=00cd CW=0000 DW=0000] [in=0 out=0 AW=0099 CW=0000 DW=0000] [in=0 out=0 AW=0004 CW=0000 DW=0000]"
+ },
+ "CVTBD": {
+  "V": "always 0",
+  "AC": "always 0",
+  "CY": "always 0"
+ },
+ "CVTDB": {
+  "V": "always 0",
+  "AC": "operand-dependent: [in=0 out=0 AW=0035 CW=0000 DW=0000] [in=1 out=0 AW=0035 CW=0000 DW=0000] [in=0 out=0 AW=0000 CW=0000 DW=0000] [in=1 out=0 AW=0000 CW=0000 DW=0000] [in=0 out=1 AW=0059 CW=0000 DW=0000] [in=0 out=0 AW=00f9 CW=0000 DW=0000]",
+  "CY": "operand-dependent: [in=0 out=0 AW=0035 CW=0000 DW=0000] [in=1 out=0 AW=0035 CW=0000 DW=0000] [in=0 out=0 AW=0000 CW=0000 DW=0000] [in=1 out=0 AW=0000 CW=0000 DW=0000] [in=0 out=1 AW=0059 CW=0000 DW=0000] [in=0 out=0 AW=00f9 CW=0000 DW=0000]"
+ },
+ "AND reg8,reg8": {
+  "AC": "always 0"
+ },
+ "OR reg8,reg8": {
+  "AC": "always 0"
+ },
+ "XOR reg8,reg8": {
+  "AC": "always 0"
+ },
+ "TEST reg8,reg8": {
+  "AC": "always 0"
+ },
+ "AND reg16,reg16": {
+  "AC": "always 0"
+ },
+ "SHL reg,CL n=3": {
+  "V": "operand-dependent: [in=0 out=1 AW=00f8 CW=0003 DW=0000] [in=1 out=1 AW=00f8 CW=0003 DW=0000] [in=0 out=0 AW=0000 CW=0003 DW=0000] [in=1 out=0 AW=0000 CW=0003 DW=0000] [in=0 out=0 AW=00f8 CW=0003 DW=0000] [in=0 out=0 AW=0000 CW=0003 DW=0000]",
+  "AC": "always 0"
+ },
+ "SHL reg,CL n=9 (>width)": {
+  "V": "always 0",
+  "AC": "always 0"
+ },
+ "SHL reg,CL n=0": {
+  "V": "preserved (out == in)",
+  "AC": "preserved (out == in)"
+ },
+ "SHR reg,CL n=3": {
+  "V": "always 0",
+  "AC": "always 0"
+ },
+ "SHRA reg,CL n=3": {
+  "V": "always 0",
+  "AC": "always 0"
+ },
+ "SHL reg,1": {
+  "AC": "always 0"
+ },
+ "SHR reg,1": {
+  "AC": "always 0"
+ },
+ "SHL reg,imm8 n=4": {
+  "V": "operand-dependent: [in=0 out=1 AW=0080 CW=0000 DW=0000] [in=1 out=1 AW=0080 CW=0000 DW=0000] [in=0 out=1 AW=0080 CW=0000 DW=0000] [in=1 out=1 AW=0080 CW=0000 DW=0000] [in=0 out=0 AW=00f0 CW=0000 DW=0000]",
+  "AC": "always 0"
+ },
+ "ROL reg,CL n=3": {
+  "V": "operand-dependent: [in=0 out=0 AW=0004 CW=0003 DW=0000] [in=1 out=0 AW=0004 CW=0003 DW=0000] [in=0 out=1 AW=0088 CW=0003 DW=0000] [in=1 out=1 AW=0088 CW=0003 DW=0000] [in=0 out=0 AW=00ff CW=0003 DW=0000]"
+ },
+ "ROR reg,CL n=3": {
+  "V": "always 0"
+ },
+ "ROLC reg,CL n=3": {
+  "V": "operand-dependent: [in=0 out=0 AW=0002 CW=0003 DW=0000] [in=1 out=0 AW=0006 CW=0003 DW=0000] [in=0 out=1 AW=0088 CW=0003 DW=0000] [in=1 out=1 AW=008c CW=0003 DW=0000]"
+ },
+ "RORC reg,CL n=3": {
+  "V": "operand-dependent: [in=0 out=0 AW=0010 CW=0003 DW=0000] [in=1 out=0 AW=0030 CW=0003 DW=0000] [in=0 out=1 AW=0042 CW=0003 DW=0000] [in=1 out=1 AW=0062 CW=0003 DW=0000]"
+ },
+ "NOT1 CY": {
+  "V": "preserved (out == in)",
+  "S": "preserved (out == in)",
+  "Z": "preserved (out == in)",
+  "AC": "preserved (out == in)",
+  "P": "preserved (out == in)"
+ },
+ "CLR1 CY": {
+  "V": "preserved (out == in)",
+  "S": "preserved (out == in)",
+  "Z": "preserved (out == in)",
+  "AC": "preserved (out == in)",
+  "P": "preserved (out == in)"
+ },
+ "SET1 CY": {
+  "V": "preserved (out == in)",
+  "S": "preserved (out == in)",
+  "Z": "preserved (out == in)",
+  "AC": "preserved (out == in)",
+  "P": "preserved (out == in)"
+ },
+ "TEST1 reg16,CL": {
+  "S": "operand-dependent: [in=0 out=1 AW=0000 CW=000f DW=8000] [in=1 out=1 AW=0000 CW=000f DW=8000] [in=0 out=0 AW=0000 CW=0000 DW=0000] [in=1 out=0 AW=0000 CW=0000 DW=0000] [in=0 out=0 AW=0000 CW=0004 DW=ffff] [in=0 out=0 AW=0000 CW=0000 DW=0001]",
+  "AC": "always 0",
+  "P": "operand-dependent: [in=0 out=1 AW=0000 CW=000f DW=8000] [in=1 out=1 AW=0000 CW=000f DW=8000] [in=0 out=1 AW=0000 CW=0000 DW=0000] [in=1 out=1 AW=0000 CW=0000 DW=0000] [in=0 out=0 AW=0000 CW=0004 DW=ffff] [in=0 out=0 AW=0000 CW=0000 DW=0001]"
+ },
+ "TEST1 reg8,imm3": {
+  "S": "always 0",
+  "AC": "always 0",
+  "P": "operand-dependent: [in=0 out=0 AW=0000 CW=0000 DW=0008] [in=1 out=0 AW=0000 CW=0000 DW=0008] [in=0 out=1 AW=0000 CW=0000 DW=0000] [in=1 out=1 AW=0000 CW=0000 DW=0000] [in=0 out=1 AW=0000 CW=0000 DW=00f7]"
+ },
+ "NOT1 reg8,CL": {
+  "V": "preserved (out == in)",
+  "S": "preserved (out == in)",
+  "Z": "preserved (out == in)",
+  "AC": "preserved (out == in)",
+  "P": "preserved (out == in)"
+ },
+ "CLR1 reg16,imm4": {
+  "V": "preserved (out == in)",
+  "S": "preserved (out == in)",
+  "Z": "preserved (out == in)",
+  "AC": "preserved (out == in)",
+  "P": "preserved (out == in)"
+ },
+ "SET1 reg8,imm3": {
+  "V": "preserved (out == in)",
+  "S": "preserved (out == in)",
+  "Z": "preserved (out == in)",
+  "AC": "preserved (out == in)",
+  "P": "preserved (out == in)"
+ },
+ "INS reg8,reg8": {
+  "V": "always 0",
+  "S": "always 0",
+  "Z": "always 0",
+  "AC": "always 0",
+  "P": "always 0",
+  "CY": "always 0"
+ },
+ "INS reg8,imm4": {
+  "V": "always 0",
+  "S": "always 0",
+  "Z": "always 0",
+  "AC": "always 0",
+  "P": "acts defined: P=parity(DL.lo8) and P=parity(DW.lo8)",
+  "CY": "always 0"
+ },
+ "EXT reg8,reg8": {
+  "V": "always 0",
+  "S": "always 0",
+  "Z": "acts defined: Z=(DL==0) and Z=(DW==0)",
+  "AC": "always 0",
+  "P": "acts defined: P=parity(DL.lo8) and P=parity(DW.lo8)",
+  "CY": "always 0"
+ },
+ "EXT reg8,imm4": {
+  "V": "always 0",
+  "S": "always 0",
+  "Z": "always 0",
+  "AC": "always 0",
+  "P": "operand-dependent: [in=0 out=0 AW=0005 CW=0000 DW=0005] [in=1 out=0 AW=0005 CW=0000 DW=0005] [in=0 out=1 AW=0005 CW=0000 DW=000a] [in=1 out=1 AW=0005 CW=0000 DW=000a]",
+  "CY": "always 0"
+ },
+ "ADD4S": {
+  "V": "always 0",
+  "S": "always 1",
+  "AC": "always 1",
+  "P": "always 0"
+ },
+ "SUB4S": {
+  "V": "always 0",
+  "S": "always 0",
+  "AC": "always 0",
+  "P": "always 0"
+ },
+ "CMP4S": {
+  "V": "always 0",
+  "S": "always 0",
+  "AC": "always 0",
+  "P": "always 0"
+ },
+ "DIV reg16 q0": {
+  "V": "always 0",
+  "S": "always 0",
+  "Z": "always 1",
+  "AC": "always 0",
+  "P": "always 1",
+  "CY": "always 0"
+ },
+ "MUL reg16,reg16,imm16 b": {
+  "S": "acts defined: S=MSB(CW) and S=MSB(DW)",
+  "Z": "acts defined: Z=(CL==0) and Z=(CW==0) and Z=(DL==0) and Z=(DW==0)",
+  "AC": "operand-dependent: [in=0 out=0 AW=0000 CW=0000 DW=0000] [in=1 out=0 AW=0000 CW=0000 DW=0000] [in=0 out=0 AW=0000 CW=07f5 DW=0007] [in=1 out=0 AW=0000 CW=07f5 DW=0007] [in=0 out=1 AW=0000 CW=fedd DW=ffff] [in=0 out=1 AW=0000 CW=21dd DW=00ff]",
+  "P": "operand-dependent: [in=0 out=1 AW=0000 CW=0000 DW=0000] [in=1 out=1 AW=0000 CW=0000 DW=0000] [in=0 out=0 AW=0000 CW=07f5 DW=0007] [in=1 out=0 AW=0000 CW=07f5 DW=0007] [in=0 out=0 AW=0000 CW=fedd DW=ffff] [in=0 out=0 AW=0000 CW=21dd DW=00ff]"
+ },
+ "ADD4S nocarry": {
+  "V": "always 0",
+  "S": "always 0",
+  "AC": "always 0",
+  "P": "always 0"
+ },
+ "SUB4S borrow": {
+  "V": "always 0",
+  "S": "always 1",
+  "AC": "always 1",
+  "P": "always 0"
+ },
+ "CMP4S equal": {
+  "V": "always 0",
+  "S": "always 0",
+  "AC": "always 0",
+  "P": "always 1"
+ }
+}

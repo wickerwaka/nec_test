@@ -1,0 +1,511 @@
+
+=== MULU reg8 [f6 e1] ===
+  {"AW": 0, "CW": 0}                           psw_in=f002 -> AW=0000 CW=0000 DW=0000 PSW=f002 []
+  {"AW": 0, "CW": 0}                           psw_in=fed7 -> AW=0000 CW=0000 DW=0000 PSW=f6d6 [PACZS]
+  {"AW": 255, "CW": 255}                       psw_in=f002 -> AW=fe01 CW=00ff DW=0000 PSW=f803 [CYV]
+  {"AW": 255, "CW": 255}                       psw_in=fed7 -> AW=fe01 CW=00ff DW=0000 PSW=fed7 [CYPACZSV]
+  {"AW": 7, "CW": 5}                           psw_in=f002 -> AW=0023 CW=0005 DW=0000 PSW=f002 []
+  {"AW": 128, "CW": 2}                         psw_in=f002 -> AW=0100 CW=0002 DW=0000 PSW=f803 [CYV]
+  {"AW": 16, "CW": 16}                         psw_in=f002 -> AW=0100 CW=0010 DW=0000 PSW=f803 [CYV]
+  U-flag S  : preserved (out == in)
+  U-flag Z  : preserved (out == in)
+  U-flag AC : preserved (out == in)
+  U-flag P  : preserved (out == in)
+
+=== MULU reg16 [f7 e1] ===
+  {"AW": 0, "CW": 0}                           psw_in=f002 -> AW=0000 CW=0000 DW=0000 PSW=f002 []
+  {"AW": 0, "CW": 0}                           psw_in=fed7 -> AW=0000 CW=0000 DW=0000 PSW=f6d6 [PACZS]
+  {"AW": 65535, "CW": 65535}                   psw_in=f002 -> AW=0001 CW=ffff DW=fffe PSW=f803 [CYV]
+  {"AW": 65535, "CW": 65535}                   psw_in=fed7 -> AW=0001 CW=ffff DW=fffe PSW=fed7 [CYPACZSV]
+  {"AW": 7, "CW": 5}                           psw_in=f002 -> AW=0023 CW=0005 DW=0000 PSW=f002 []
+  {"AW": 32768, "CW": 2}                       psw_in=f002 -> AW=0000 CW=0002 DW=0001 PSW=f803 [CYV]
+  {"AW": 256, "CW": 256}                       psw_in=f002 -> AW=0000 CW=0100 DW=0001 PSW=f803 [CYV]
+  U-flag S  : preserved (out == in)
+  U-flag Z  : preserved (out == in)
+  U-flag AC : preserved (out == in)
+  U-flag P  : preserved (out == in)
+
+=== MUL reg8 [f6 e9] ===
+  {"AW": 0, "CW": 0}                           psw_in=f002 -> AW=0000 CW=0000 DW=0000 PSW=f046 [PZ]
+  {"AW": 0, "CW": 0}                           psw_in=fed7 -> AW=0000 CW=0000 DW=0000 PSW=f646 [PZ]
+  {"AW": 255, "CW": 255}                       psw_in=f002 -> AW=0001 CW=00ff DW=0000 PSW=f002 []
+  {"AW": 255, "CW": 255}                       psw_in=fed7 -> AW=0001 CW=00ff DW=0000 PSW=f602 []
+  {"AW": 127, "CW": 127}                       psw_in=f002 -> AW=3f01 CW=007f DW=0000 PSW=f803 [CYV]
+  {"AW": 128, "CW": 127}                       psw_in=f002 -> AW=c080 CW=007f DW=0000 PSW=f847 [CYPZV]
+  {"AW": 255, "CW": 1}                         psw_in=f002 -> AW=ffff CW=0001 DW=0000 PSW=f092 [ACS]
+  U-flag S  : operand-dependent: [in=0 out=0 AW=0000 CW=0000 DW=0000] [in=1 out=0 AW=0000 CW=0000 DW=0000] [in=0 out=0 AW=0001 CW=00ff DW=0000] [in=1 out=0 AW=0001 CW=00ff DW=0000] [in=0 out=0 AW=3f01 CW=007f DW=0000] [in=0 out=0 AW=c080 CW=007f DW=0000] [in=0 out=1 AW=ffff CW=0001 DW=0000]
+  U-flag Z  : operand-dependent: [in=0 out=1 AW=0000 CW=0000 DW=0000] [in=1 out=1 AW=0000 CW=0000 DW=0000] [in=0 out=0 AW=0001 CW=00ff DW=0000] [in=1 out=0 AW=0001 CW=00ff DW=0000] [in=0 out=0 AW=3f01 CW=007f DW=0000] [in=0 out=1 AW=c080 CW=007f DW=0000] [in=0 out=0 AW=ffff CW=0001 DW=0000]
+  U-flag AC : operand-dependent: [in=0 out=0 AW=0000 CW=0000 DW=0000] [in=1 out=0 AW=0000 CW=0000 DW=0000] [in=0 out=0 AW=0001 CW=00ff DW=0000] [in=1 out=0 AW=0001 CW=00ff DW=0000] [in=0 out=0 AW=3f01 CW=007f DW=0000] [in=0 out=0 AW=c080 CW=007f DW=0000] [in=0 out=1 AW=ffff CW=0001 DW=0000]
+  U-flag P  : operand-dependent: [in=0 out=1 AW=0000 CW=0000 DW=0000] [in=1 out=1 AW=0000 CW=0000 DW=0000] [in=0 out=0 AW=0001 CW=00ff DW=0000] [in=1 out=0 AW=0001 CW=00ff DW=0000] [in=0 out=0 AW=3f01 CW=007f DW=0000] [in=0 out=1 AW=c080 CW=007f DW=0000] [in=0 out=0 AW=ffff CW=0001 DW=0000]
+
+=== MUL reg16 [f7 e9] ===
+  {"AW": 0, "CW": 0}                           psw_in=f002 -> AW=0000 CW=0000 DW=0000 PSW=f046 [PZ]
+  {"AW": 0, "CW": 0}                           psw_in=fed7 -> AW=0000 CW=0000 DW=0000 PSW=f646 [PZ]
+  {"AW": 65535, "CW": 65535}                   psw_in=f002 -> AW=0001 CW=ffff DW=0000 PSW=f002 []
+  {"AW": 65535, "CW": 65535}                   psw_in=fed7 -> AW=0001 CW=ffff DW=0000 PSW=f602 []
+  {"AW": 32767, "CW": 32767}                   psw_in=f002 -> AW=0001 CW=7fff DW=3fff PSW=f803 [CYV]
+  {"AW": 32768, "CW": 32767}                   psw_in=f002 -> AW=8000 CW=7fff DW=c000 PSW=f847 [CYPZV]
+  {"AW": 65535, "CW": 1}                       psw_in=f002 -> AW=ffff CW=0001 DW=ffff PSW=f092 [ACS]
+  U-flag S  : acts defined: S=MSB(AL)
+  U-flag Z  : acts defined: Z=(AL==0)
+  U-flag AC : operand-dependent: [in=0 out=0 AW=0000 CW=0000 DW=0000] [in=1 out=0 AW=0000 CW=0000 DW=0000] [in=0 out=0 AW=0001 CW=ffff DW=0000] [in=1 out=0 AW=0001 CW=ffff DW=0000] [in=0 out=0 AW=0001 CW=7fff DW=3fff] [in=0 out=0 AW=8000 CW=7fff DW=c000] [in=0 out=1 AW=ffff CW=0001 DW=ffff]
+  U-flag P  : operand-dependent: [in=0 out=1 AW=0000 CW=0000 DW=0000] [in=1 out=1 AW=0000 CW=0000 DW=0000] [in=0 out=0 AW=0001 CW=ffff DW=0000] [in=1 out=0 AW=0001 CW=ffff DW=0000] [in=0 out=0 AW=0001 CW=7fff DW=3fff] [in=0 out=1 AW=8000 CW=7fff DW=c000] [in=0 out=0 AW=ffff CW=0001 DW=ffff]
+
+=== MUL reg16,reg16,imm8 [6b ca 05] ===
+  {"DW": 0}                                    psw_in=f002 -> AW=0000 CW=0000 DW=0000 PSW=f046 [PZ]
+  {"DW": 0}                                    psw_in=fed7 -> AW=0000 CW=0000 DW=0000 PSW=f646 [PZ]
+  {"DW": 65535}                                psw_in=f002 -> AW=0000 CW=fffb DW=ffff PSW=f096 [PACS]
+  {"DW": 65535}                                psw_in=fed7 -> AW=0000 CW=fffb DW=ffff PSW=f696 [PACS]
+  {"DW": 7}                                    psw_in=f002 -> AW=0000 CW=0023 DW=0007 PSW=f002 []
+  {"DW": 8192}                                 psw_in=f002 -> AW=0000 CW=a000 DW=2000 PSW=f807 [CYPV]
+  {"DW": 32768}                                psw_in=f002 -> AW=0000 CW=8000 DW=8000 PSW=f847 [CYPZV]
+  U-flag S  : acts defined: S=MSB(CL) and S=MSB(DL)
+  U-flag Z  : operand-dependent: [in=0 out=1 AW=0000 CW=0000 DW=0000] [in=1 out=1 AW=0000 CW=0000 DW=0000] [in=0 out=0 AW=0000 CW=fffb DW=ffff] [in=1 out=0 AW=0000 CW=fffb DW=ffff] [in=0 out=0 AW=0000 CW=0023 DW=0007] [in=0 out=0 AW=0000 CW=a000 DW=2000] [in=0 out=1 AW=0000 CW=8000 DW=8000]
+  U-flag AC : operand-dependent: [in=0 out=0 AW=0000 CW=0000 DW=0000] [in=1 out=0 AW=0000 CW=0000 DW=0000] [in=0 out=1 AW=0000 CW=fffb DW=ffff] [in=1 out=1 AW=0000 CW=fffb DW=ffff] [in=0 out=0 AW=0000 CW=0023 DW=0007] [in=0 out=0 AW=0000 CW=a000 DW=2000] [in=0 out=0 AW=0000 CW=8000 DW=8000]
+  U-flag P  : acts defined: P=parity(DL.lo8) and P=parity(DW.lo8)
+
+=== MUL reg16,reg16,imm16 [69 ca 00 03] ===
+  {"DW": 0}                                    psw_in=f002 -> AW=0000 CW=0000 DW=0000 PSW=f046 [PZ]
+  {"DW": 0}                                    psw_in=fed7 -> AW=0000 CW=0000 DW=0000 PSW=f646 [PZ]
+  {"DW": 255}                                  psw_in=f002 -> AW=0000 CW=fd00 DW=00ff PSW=f887 [CYPSV]
+  {"DW": 255}                                  psw_in=fed7 -> AW=0000 CW=fd00 DW=00ff PSW=fe87 [CYPSV]
+  {"DW": 65535}                                psw_in=f002 -> AW=0000 CW=fd00 DW=ffff PSW=f086 [PS]
+  {"DW": 21845}                                psw_in=f002 -> AW=0000 CW=ff00 DW=5555 PSW=f887 [CYPSV]
+  U-flag S  : acts defined: S=MSB(CW)
+  U-flag Z  : acts defined: Z=(CW==0) and Z=(DL==0) and Z=(DW==0)
+  U-flag AC : always 0
+  U-flag P  : always 1
+
+=== DIVU reg8 [f6 f1] ===
+  {"AW": 9, "CW": 3}                           psw_in=f002 -> AW=0003 CW=0003 DW=0000 PSW=f093 [CYACS]
+  {"AW": 9, "CW": 3}                           psw_in=fed7 -> AW=0003 CW=0003 DW=0000 PSW=f693 [CYACS]
+  {"AW": 256, "CW": 3}                         psw_in=f002 -> AW=0155 CW=0003 DW=0000 PSW=f093 [CYACS]
+  {"AW": 256, "CW": 3}                         psw_in=fed7 -> AW=0155 CW=0003 DW=0000 PSW=f693 [CYACS]
+  {"AW": 65025, "CW": 255}                     psw_in=f002 -> AW=00ff CW=00ff DW=0000 PSW=f097 [CYPACS]
+  {"AW": 7, "CW": 2}                           psw_in=f002 -> AW=0103 CW=0002 DW=0000 PSW=f093 [CYACS]
+  {"AW": 0, "CW": 1}                           psw_in=f002 -> AW=0000 CW=0001 DW=0000 PSW=f097 [CYPACS]
+  U-flag V  : always 0
+  U-flag S  : always 1
+  U-flag Z  : always 0
+  U-flag AC : always 1
+  U-flag P  : operand-dependent: [in=0 out=0 AW=0003 CW=0003 DW=0000] [in=1 out=0 AW=0003 CW=0003 DW=0000] [in=0 out=0 AW=0155 CW=0003 DW=0000] [in=1 out=0 AW=0155 CW=0003 DW=0000] [in=0 out=1 AW=00ff CW=00ff DW=0000] [in=0 out=0 AW=0103 CW=0002 DW=0000] [in=0 out=1 AW=0000 CW=0001 DW=0000]
+  U-flag CY : always 1
+
+=== DIVU reg16 [f7 f1] ===
+  {"AW": 9, "DW": 0, "CW": 3}                  psw_in=f002 -> AW=0003 CW=0003 DW=0000 PSW=f093 [CYACS]
+  {"AW": 9, "DW": 0, "CW": 3}                  psw_in=fed7 -> AW=0003 CW=0003 DW=0000 PSW=f693 [CYACS]
+  {"AW": 0, "DW": 1, "CW": 3}                  psw_in=f002 -> AW=5555 CW=0003 DW=0001 PSW=f093 [CYACS]
+  {"AW": 0, "DW": 1, "CW": 3}                  psw_in=fed7 -> AW=5555 CW=0003 DW=0001 PSW=f693 [CYACS]
+  {"AW": 65535, "DW": 0, "CW": 1}              psw_in=f002 -> AW=ffff CW=0001 DW=0000 PSW=f097 [CYPACS]
+  {"AW": 7, "DW": 0, "CW": 2}                  psw_in=f002 -> AW=0003 CW=0002 DW=0001 PSW=f093 [CYACS]
+  U-flag V  : always 0
+  U-flag S  : always 1
+  U-flag Z  : always 0
+  U-flag AC : always 1
+  U-flag P  : operand-dependent: [in=0 out=0 AW=0003 CW=0003 DW=0000] [in=1 out=0 AW=0003 CW=0003 DW=0000] [in=0 out=0 AW=5555 CW=0003 DW=0001] [in=1 out=0 AW=5555 CW=0003 DW=0001] [in=0 out=1 AW=ffff CW=0001 DW=0000] [in=0 out=0 AW=0003 CW=0002 DW=0001]
+  U-flag CY : always 1
+
+=== DIV reg8 [f6 f9] ===
+  {"AW": 9, "CW": 3}                           psw_in=f002 -> AW=0003 CW=0003 DW=0000 PSW=f006 [P]
+  {"AW": 9, "CW": 3}                           psw_in=fed7 -> AW=0003 CW=0003 DW=0000 PSW=f606 [P]
+  {"AW": 65527, "CW": 3}                       psw_in=f002 -> AW=00fd CW=0003 DW=0000 PSW=f006 [P]
+  {"AW": 65527, "CW": 3}                       psw_in=fed7 -> AW=00fd CW=0003 DW=0000 PSW=f606 [P]
+  {"AW": 65527, "CW": 253}                     psw_in=f002 -> AW=0003 CW=00fd DW=0000 PSW=f006 [P]
+  {"AW": 7, "CW": 254}                         psw_in=f002 -> AW=01fd CW=00fe DW=0000 PSW=f006 [P]
+  {"AW": 0, "CW": 1}                           psw_in=f002 -> AW=0000 CW=0001 DW=0000 PSW=f046 [PZ]
+  U-flag V  : always 0
+  U-flag S  : always 0
+  U-flag Z  : acts defined: Z=(AL==0) and Z=(AW==0)
+  U-flag AC : always 0
+  U-flag P  : always 1
+  U-flag CY : always 0
+
+=== DIV reg16 [f7 f9] ===
+  {"AW": 9, "DW": 0, "CW": 3}                  psw_in=f002 -> AW=0003 CW=0003 DW=0000 PSW=f006 [P]
+  {"AW": 9, "DW": 0, "CW": 3}                  psw_in=fed7 -> AW=0003 CW=0003 DW=0000 PSW=f606 [P]
+  {"AW": 65527, "DW": 65535, "CW": 3}          psw_in=f002 -> AW=fffd CW=0003 DW=0000 PSW=f006 [P]
+  {"AW": 65527, "DW": 65535, "CW": 3}          psw_in=fed7 -> AW=fffd CW=0003 DW=0000 PSW=f606 [P]
+  {"AW": 65527, "DW": 65535, "CW": 65533}      psw_in=f002 -> AW=0003 CW=fffd DW=0000 PSW=f006 [P]
+  {"AW": 7, "DW": 0, "CW": 65534}              psw_in=f002 -> AW=fffd CW=fffe DW=0001 PSW=f006 [P]
+  U-flag V  : always 0
+  U-flag S  : always 0
+  U-flag Z  : always 0
+  U-flag AC : always 0
+  U-flag P  : always 1
+  U-flag CY : always 0
+
+=== ADJBA [37] ===
+  {"AW": 11}                                   psw_in=f002 -> AW=0101 CW=0000 DW=0000 PSW=f017 [CYPAC]
+  {"AW": 11}                                   psw_in=fed7 -> AW=0101 CW=0000 DW=0000 PSW=f617 [CYPAC]
+  {"AW": 4}                                    psw_in=f002 -> AW=0004 CW=0000 DW=0000 PSW=f002 []
+  {"AW": 4}                                    psw_in=fed7 -> AW=010a CW=0000 DW=0000 PSW=f617 [CYPAC]
+  {"AW": 266}                                  psw_in=f002 -> AW=0200 CW=0000 DW=0000 PSW=f013 [CYAC]
+  {"AW": 255}                                  psw_in=f002 -> AW=0105 CW=0000 DW=0000 PSW=f017 [CYPAC]
+  {"AW": 0}                                    psw_in=f002 -> AW=0000 CW=0000 DW=0000 PSW=f046 [PZ]
+  U-flag V  : always 0
+  U-flag S  : always 0
+  U-flag Z  : acts defined: Z=(AW==0)
+  U-flag P  : operand-dependent: [in=0 out=1 AW=0101 CW=0000 DW=0000] [in=1 out=1 AW=0101 CW=0000 DW=0000] [in=0 out=0 AW=0004 CW=0000 DW=0000] [in=1 out=1 AW=010a CW=0000 DW=0000] [in=0 out=0 AW=0200 CW=0000 DW=0000] [in=0 out=1 AW=0105 CW=0000 DW=0000] [in=0 out=1 AW=0000 CW=0000 DW=0000]
+
+=== ADJBS [3f] ===
+  {"AW": 11}                                   psw_in=f002 -> AW=ff05 CW=0000 DW=0000 PSW=f017 [CYPAC]
+  {"AW": 11}                                   psw_in=fed7 -> AW=ff05 CW=0000 DW=0000 PSW=f617 [CYPAC]
+  {"AW": 4}                                    psw_in=f002 -> AW=0004 CW=0000 DW=0000 PSW=f002 []
+  {"AW": 4}                                    psw_in=fed7 -> AW=ff0e CW=0000 DW=0000 PSW=f693 [CYACS]
+  {"AW": 266}                                  psw_in=f002 -> AW=0004 CW=0000 DW=0000 PSW=f013 [CYAC]
+  {"AW": 255}                                  psw_in=f002 -> AW=ff09 CW=0000 DW=0000 PSW=f097 [CYPACS]
+  {"AW": 0}                                    psw_in=f002 -> AW=0000 CW=0000 DW=0000 PSW=f046 [PZ]
+  U-flag V  : always 0
+  U-flag S  : operand-dependent: [in=0 out=0 AW=ff05 CW=0000 DW=0000] [in=1 out=0 AW=ff05 CW=0000 DW=0000] [in=0 out=0 AW=0004 CW=0000 DW=0000] [in=1 out=1 AW=ff0e CW=0000 DW=0000] [in=0 out=0 AW=0004 CW=0000 DW=0000] [in=0 out=1 AW=ff09 CW=0000 DW=0000] [in=0 out=0 AW=0000 CW=0000 DW=0000]
+  U-flag Z  : acts defined: Z=(AL==0) and Z=(AW==0)
+  U-flag P  : acts defined: P=parity(AL.lo8) and P=parity(AW.lo8)
+
+=== ADJ4A [27] ===
+  {"AW": 154}                                  psw_in=f002 -> AW=0000 CW=0000 DW=0000 PSW=f057 [CYPACZ]
+  {"AW": 154}                                  psw_in=fed7 -> AW=0000 CW=0000 DW=0000 PSW=f657 [CYPACZ]
+  {"AW": 51}                                   psw_in=f002 -> AW=0033 CW=0000 DW=0000 PSW=f006 [P]
+  {"AW": 51}                                   psw_in=fed7 -> AW=0099 CW=0000 DW=0000 PSW=fe97 [CYPACSV]
+  {"AW": 255}                                  psw_in=f002 -> AW=0065 CW=0000 DW=0000 PSW=f017 [CYPAC]
+  {"AW": 10}                                   psw_in=f002 -> AW=0010 CW=0000 DW=0000 PSW=f012 [AC]
+  U-flag V  : operand-dependent: [in=0 out=0 AW=0000 CW=0000 DW=0000] [in=1 out=0 AW=0000 CW=0000 DW=0000] [in=0 out=0 AW=0033 CW=0000 DW=0000] [in=1 out=1 AW=0099 CW=0000 DW=0000] [in=0 out=0 AW=0065 CW=0000 DW=0000] [in=0 out=0 AW=0010 CW=0000 DW=0000]
+
+=== ADJ4S [2f] ===
+  {"AW": 154}                                  psw_in=f002 -> AW=0034 CW=0000 DW=0000 PSW=f813 [CYACV]
+  {"AW": 154}                                  psw_in=fed7 -> AW=0034 CW=0000 DW=0000 PSW=fe13 [CYACV]
+  {"AW": 51}                                   psw_in=f002 -> AW=0033 CW=0000 DW=0000 PSW=f006 [P]
+  {"AW": 51}                                   psw_in=fed7 -> AW=00cd CW=0000 DW=0000 PSW=f693 [CYACS]
+  {"AW": 255}                                  psw_in=f002 -> AW=0099 CW=0000 DW=0000 PSW=f097 [CYPACS]
+  {"AW": 10}                                   psw_in=f002 -> AW=0004 CW=0000 DW=0000 PSW=f012 [AC]
+  U-flag V  : operand-dependent: [in=0 out=1 AW=0034 CW=0000 DW=0000] [in=1 out=1 AW=0034 CW=0000 DW=0000] [in=0 out=0 AW=0033 CW=0000 DW=0000] [in=1 out=0 AW=00cd CW=0000 DW=0000] [in=0 out=0 AW=0099 CW=0000 DW=0000] [in=0 out=0 AW=0004 CW=0000 DW=0000]
+
+=== CVTBD [d4 0a] ===
+  {"AW": 83}                                   psw_in=f002 -> AW=0803 CW=0000 DW=0000 PSW=f006 [P]
+  {"AW": 83}                                   psw_in=fed7 -> AW=0803 CW=0000 DW=0000 PSW=f606 [P]
+  {"AW": 255}                                  psw_in=f002 -> AW=1905 CW=0000 DW=0000 PSW=f006 [P]
+  {"AW": 255}                                  psw_in=fed7 -> AW=1905 CW=0000 DW=0000 PSW=f606 [P]
+  {"AW": 0}                                    psw_in=f002 -> AW=0000 CW=0000 DW=0000 PSW=f046 [PZ]
+  {"AW": 10}                                   psw_in=f002 -> AW=0100 CW=0000 DW=0000 PSW=f046 [PZ]
+  U-flag V  : always 0
+  U-flag AC : always 0
+  U-flag CY : always 0
+
+=== CVTDB [d5 0a] ===
+  {"AW": 1283}                                 psw_in=f002 -> AW=0035 CW=0000 DW=0000 PSW=f006 [P]
+  {"AW": 1283}                                 psw_in=fed7 -> AW=0035 CW=0000 DW=0000 PSW=f606 [P]
+  {"AW": 0}                                    psw_in=f002 -> AW=0000 CW=0000 DW=0000 PSW=f046 [PZ]
+  {"AW": 0}                                    psw_in=fed7 -> AW=0000 CW=0000 DW=0000 PSW=f646 [PZ]
+  {"AW": 2559}                                 psw_in=f002 -> AW=0059 CW=0000 DW=0000 PSW=f017 [CYPAC]
+  {"AW": 65283}                                psw_in=f002 -> AW=00f9 CW=0000 DW=0000 PSW=f086 [PS]
+  U-flag V  : always 0
+  U-flag AC : operand-dependent: [in=0 out=0 AW=0035 CW=0000 DW=0000] [in=1 out=0 AW=0035 CW=0000 DW=0000] [in=0 out=0 AW=0000 CW=0000 DW=0000] [in=1 out=0 AW=0000 CW=0000 DW=0000] [in=0 out=1 AW=0059 CW=0000 DW=0000] [in=0 out=0 AW=00f9 CW=0000 DW=0000]
+  U-flag CY : operand-dependent: [in=0 out=0 AW=0035 CW=0000 DW=0000] [in=1 out=0 AW=0035 CW=0000 DW=0000] [in=0 out=0 AW=0000 CW=0000 DW=0000] [in=1 out=0 AW=0000 CW=0000 DW=0000] [in=0 out=1 AW=0059 CW=0000 DW=0000] [in=0 out=0 AW=00f9 CW=0000 DW=0000]
+
+=== AND reg8,reg8 [22 c1] ===
+  {"AW": 255, "CW": 15}                        psw_in=f002 -> AW=000f CW=000f DW=0000 PSW=f006 [P]
+  {"AW": 255, "CW": 15}                        psw_in=fed7 -> AW=000f CW=000f DW=0000 PSW=f606 [P]
+  {"AW": 0, "CW": 0}                           psw_in=f002 -> AW=0000 CW=0000 DW=0000 PSW=f046 [PZ]
+  {"AW": 0, "CW": 0}                           psw_in=fed7 -> AW=0000 CW=0000 DW=0000 PSW=f646 [PZ]
+  {"AW": 170, "CW": 85}                        psw_in=f002 -> AW=0000 CW=0055 DW=0000 PSW=f046 [PZ]
+  U-flag AC : always 0
+
+=== OR reg8,reg8 [0a c1] ===
+  {"AW": 255, "CW": 15}                        psw_in=f002 -> AW=00ff CW=000f DW=0000 PSW=f086 [PS]
+  {"AW": 255, "CW": 15}                        psw_in=fed7 -> AW=00ff CW=000f DW=0000 PSW=f686 [PS]
+  {"AW": 0, "CW": 0}                           psw_in=f002 -> AW=0000 CW=0000 DW=0000 PSW=f046 [PZ]
+  {"AW": 0, "CW": 0}                           psw_in=fed7 -> AW=0000 CW=0000 DW=0000 PSW=f646 [PZ]
+  {"AW": 170, "CW": 85}                        psw_in=f002 -> AW=00ff CW=0055 DW=0000 PSW=f086 [PS]
+  U-flag AC : always 0
+
+=== XOR reg8,reg8 [32 c1] ===
+  {"AW": 255, "CW": 15}                        psw_in=f002 -> AW=00f0 CW=000f DW=0000 PSW=f086 [PS]
+  {"AW": 255, "CW": 15}                        psw_in=fed7 -> AW=00f0 CW=000f DW=0000 PSW=f686 [PS]
+  {"AW": 0, "CW": 0}                           psw_in=f002 -> AW=0000 CW=0000 DW=0000 PSW=f046 [PZ]
+  {"AW": 0, "CW": 0}                           psw_in=fed7 -> AW=0000 CW=0000 DW=0000 PSW=f646 [PZ]
+  {"AW": 170, "CW": 85}                        psw_in=f002 -> AW=00ff CW=0055 DW=0000 PSW=f086 [PS]
+  U-flag AC : always 0
+
+=== TEST reg8,reg8 [84 c1] ===
+  {"AW": 255, "CW": 15}                        psw_in=f002 -> AW=00ff CW=000f DW=0000 PSW=f006 [P]
+  {"AW": 255, "CW": 15}                        psw_in=fed7 -> AW=00ff CW=000f DW=0000 PSW=f606 [P]
+  {"AW": 0, "CW": 0}                           psw_in=f002 -> AW=0000 CW=0000 DW=0000 PSW=f046 [PZ]
+  {"AW": 0, "CW": 0}                           psw_in=fed7 -> AW=0000 CW=0000 DW=0000 PSW=f646 [PZ]
+  {"AW": 170, "CW": 85}                        psw_in=f002 -> AW=00aa CW=0055 DW=0000 PSW=f046 [PZ]
+  U-flag AC : always 0
+
+=== AND reg16,reg16 [23 c1] ===
+  {"AW": 32768, "CW": 32768}                   psw_in=f002 -> AW=8000 CW=8000 DW=0000 PSW=f086 [PS]
+  {"AW": 32768, "CW": 32768}                   psw_in=fed7 -> AW=8000 CW=8000 DW=0000 PSW=f686 [PS]
+  {"AW": 0, "CW": 0}                           psw_in=f002 -> AW=0000 CW=0000 DW=0000 PSW=f046 [PZ]
+  {"AW": 0, "CW": 0}                           psw_in=fed7 -> AW=0000 CW=0000 DW=0000 PSW=f646 [PZ]
+  {"AW": 43690, "CW": 21845}                   psw_in=f002 -> AW=0000 CW=5555 DW=0000 PSW=f046 [PZ]
+  U-flag AC : always 0
+
+=== SHL reg,CL n=3 [d2 e0] ===
+  {"AW": 31, "CW": 3}                          psw_in=f002 -> AW=00f8 CW=0003 DW=0000 PSW=f882 [SV]
+  {"AW": 31, "CW": 3}                          psw_in=fed7 -> AW=00f8 CW=0003 DW=0000 PSW=fe82 [SV]
+  {"AW": 128, "CW": 3}                         psw_in=f002 -> AW=0000 CW=0003 DW=0000 PSW=f046 [PZ]
+  {"AW": 128, "CW": 3}                         psw_in=fed7 -> AW=0000 CW=0003 DW=0000 PSW=f646 [PZ]
+  {"AW": 255, "CW": 3}                         psw_in=f002 -> AW=00f8 CW=0003 DW=0000 PSW=f083 [CYS]
+  {"AW": 0, "CW": 3}                           psw_in=f002 -> AW=0000 CW=0003 DW=0000 PSW=f046 [PZ]
+  U-flag V  : operand-dependent: [in=0 out=1 AW=00f8 CW=0003 DW=0000] [in=1 out=1 AW=00f8 CW=0003 DW=0000] [in=0 out=0 AW=0000 CW=0003 DW=0000] [in=1 out=0 AW=0000 CW=0003 DW=0000] [in=0 out=0 AW=00f8 CW=0003 DW=0000] [in=0 out=0 AW=0000 CW=0003 DW=0000]
+  U-flag AC : always 0
+
+=== SHL reg,CL n=9 (>width) [d2 e0] ===
+  {"AW": 255, "CW": 9}                         psw_in=f002 -> AW=0000 CW=0009 DW=0000 PSW=f046 [PZ]
+  {"AW": 255, "CW": 9}                         psw_in=fed7 -> AW=0000 CW=0009 DW=0000 PSW=f646 [PZ]
+  {"AW": 1, "CW": 9}                           psw_in=f002 -> AW=0000 CW=0009 DW=0000 PSW=f046 [PZ]
+  {"AW": 1, "CW": 9}                           psw_in=fed7 -> AW=0000 CW=0009 DW=0000 PSW=f646 [PZ]
+  U-flag V  : always 0
+  U-flag AC : always 0
+
+=== SHL reg,CL n=0 [d2 e0] ===
+  {"AW": 255, "CW": 0}                         psw_in=f002 -> AW=00ff CW=0000 DW=0000 PSW=f002 []
+  {"AW": 255, "CW": 0}                         psw_in=fed7 -> AW=00ff CW=0000 DW=0000 PSW=fed7 [CYPACZSV]
+  {"AW": 128, "CW": 0}                         psw_in=f002 -> AW=0080 CW=0000 DW=0000 PSW=f002 []
+  {"AW": 128, "CW": 0}                         psw_in=fed7 -> AW=0080 CW=0000 DW=0000 PSW=fed7 [CYPACZSV]
+  U-flag V  : preserved (out == in)
+  U-flag AC : preserved (out == in)
+
+=== SHR reg,CL n=3 [d2 e8] ===
+  {"AW": 31, "CW": 3}                          psw_in=f002 -> AW=0003 CW=0003 DW=0000 PSW=f007 [CYP]
+  {"AW": 31, "CW": 3}                          psw_in=fed7 -> AW=0003 CW=0003 DW=0000 PSW=f607 [CYP]
+  {"AW": 128, "CW": 3}                         psw_in=f002 -> AW=0010 CW=0003 DW=0000 PSW=f002 []
+  {"AW": 128, "CW": 3}                         psw_in=fed7 -> AW=0010 CW=0003 DW=0000 PSW=f602 []
+  {"AW": 255, "CW": 3}                         psw_in=f002 -> AW=001f CW=0003 DW=0000 PSW=f003 [CY]
+  U-flag V  : always 0
+  U-flag AC : always 0
+
+=== SHRA reg,CL n=3 [d2 f8] ===
+  {"AW": 128, "CW": 3}                         psw_in=f002 -> AW=00f0 CW=0003 DW=0000 PSW=f086 [PS]
+  {"AW": 128, "CW": 3}                         psw_in=fed7 -> AW=00f0 CW=0003 DW=0000 PSW=f686 [PS]
+  {"AW": 31, "CW": 3}                          psw_in=f002 -> AW=0003 CW=0003 DW=0000 PSW=f007 [CYP]
+  {"AW": 31, "CW": 3}                          psw_in=fed7 -> AW=0003 CW=0003 DW=0000 PSW=f607 [CYP]
+  {"AW": 255, "CW": 3}                         psw_in=f002 -> AW=00ff CW=0003 DW=0000 PSW=f087 [CYPS]
+  U-flag V  : always 0
+  U-flag AC : always 0
+
+=== SHL reg,1 [d0 e0] ===
+  {"AW": 8}                                    psw_in=f002 -> AW=0010 CW=0000 DW=0000 PSW=f002 []
+  {"AW": 8}                                    psw_in=fed7 -> AW=0010 CW=0000 DW=0000 PSW=f602 []
+  {"AW": 136}                                  psw_in=f002 -> AW=0010 CW=0000 DW=0000 PSW=f803 [CYV]
+  {"AW": 136}                                  psw_in=fed7 -> AW=0010 CW=0000 DW=0000 PSW=fe03 [CYV]
+  {"AW": 255}                                  psw_in=f002 -> AW=00fe CW=0000 DW=0000 PSW=f083 [CYS]
+  U-flag AC : always 0
+
+=== SHR reg,1 [d0 e8] ===
+  {"AW": 8}                                    psw_in=f002 -> AW=0004 CW=0000 DW=0000 PSW=f002 []
+  {"AW": 8}                                    psw_in=fed7 -> AW=0004 CW=0000 DW=0000 PSW=f602 []
+  {"AW": 129}                                  psw_in=f002 -> AW=0040 CW=0000 DW=0000 PSW=f803 [CYV]
+  {"AW": 129}                                  psw_in=fed7 -> AW=0040 CW=0000 DW=0000 PSW=fe03 [CYV]
+  {"AW": 255}                                  psw_in=f002 -> AW=007f CW=0000 DW=0000 PSW=f803 [CYV]
+  U-flag AC : always 0
+
+=== SHL reg,imm8 n=4 [c0 e0 04] ===
+  {"AW": 8}                                    psw_in=f002 -> AW=0080 CW=0000 DW=0000 PSW=f882 [SV]
+  {"AW": 8}                                    psw_in=fed7 -> AW=0080 CW=0000 DW=0000 PSW=fe82 [SV]
+  {"AW": 136}                                  psw_in=f002 -> AW=0080 CW=0000 DW=0000 PSW=f882 [SV]
+  {"AW": 136}                                  psw_in=fed7 -> AW=0080 CW=0000 DW=0000 PSW=fe82 [SV]
+  {"AW": 255}                                  psw_in=f002 -> AW=00f0 CW=0000 DW=0000 PSW=f087 [CYPS]
+  U-flag V  : operand-dependent: [in=0 out=1 AW=0080 CW=0000 DW=0000] [in=1 out=1 AW=0080 CW=0000 DW=0000] [in=0 out=1 AW=0080 CW=0000 DW=0000] [in=1 out=1 AW=0080 CW=0000 DW=0000] [in=0 out=0 AW=00f0 CW=0000 DW=0000]
+  U-flag AC : always 0
+
+=== ROL reg,CL n=3 [d2 c0] ===
+  {"AW": 128, "CW": 3}                         psw_in=f002 -> AW=0004 CW=0003 DW=0000 PSW=f002 []
+  {"AW": 128, "CW": 3}                         psw_in=fed7 -> AW=0004 CW=0003 DW=0000 PSW=f6d6 [PACZS]
+  {"AW": 17, "CW": 3}                          psw_in=f002 -> AW=0088 CW=0003 DW=0000 PSW=f802 [V]
+  {"AW": 17, "CW": 3}                          psw_in=fed7 -> AW=0088 CW=0003 DW=0000 PSW=fed6 [PACZSV]
+  {"AW": 255, "CW": 3}                         psw_in=f002 -> AW=00ff CW=0003 DW=0000 PSW=f003 [CY]
+  U-flag V  : operand-dependent: [in=0 out=0 AW=0004 CW=0003 DW=0000] [in=1 out=0 AW=0004 CW=0003 DW=0000] [in=0 out=1 AW=0088 CW=0003 DW=0000] [in=1 out=1 AW=0088 CW=0003 DW=0000] [in=0 out=0 AW=00ff CW=0003 DW=0000]
+
+=== ROR reg,CL n=3 [d2 c8] ===
+  {"AW": 128, "CW": 3}                         psw_in=f002 -> AW=0010 CW=0003 DW=0000 PSW=f002 []
+  {"AW": 128, "CW": 3}                         psw_in=fed7 -> AW=0010 CW=0003 DW=0000 PSW=f6d6 [PACZS]
+  {"AW": 17, "CW": 3}                          psw_in=f002 -> AW=0022 CW=0003 DW=0000 PSW=f002 []
+  {"AW": 17, "CW": 3}                          psw_in=fed7 -> AW=0022 CW=0003 DW=0000 PSW=f6d6 [PACZS]
+  {"AW": 255, "CW": 3}                         psw_in=f002 -> AW=00ff CW=0003 DW=0000 PSW=f003 [CY]
+  U-flag V  : always 0
+
+=== ROLC reg,CL n=3 [d2 d0] ===
+  {"AW": 128, "CW": 3}                         psw_in=f002 -> AW=0002 CW=0003 DW=0000 PSW=f002 []
+  {"AW": 128, "CW": 3}                         psw_in=fed7 -> AW=0006 CW=0003 DW=0000 PSW=f6d6 [PACZS]
+  {"AW": 17, "CW": 3}                          psw_in=f002 -> AW=0088 CW=0003 DW=0000 PSW=f802 [V]
+  {"AW": 17, "CW": 3}                          psw_in=fed7 -> AW=008c CW=0003 DW=0000 PSW=fed6 [PACZSV]
+  U-flag V  : operand-dependent: [in=0 out=0 AW=0002 CW=0003 DW=0000] [in=1 out=0 AW=0006 CW=0003 DW=0000] [in=0 out=1 AW=0088 CW=0003 DW=0000] [in=1 out=1 AW=008c CW=0003 DW=0000]
+
+=== RORC reg,CL n=3 [d2 d8] ===
+  {"AW": 128, "CW": 3}                         psw_in=f002 -> AW=0010 CW=0003 DW=0000 PSW=f002 []
+  {"AW": 128, "CW": 3}                         psw_in=fed7 -> AW=0030 CW=0003 DW=0000 PSW=f6d6 [PACZS]
+  {"AW": 17, "CW": 3}                          psw_in=f002 -> AW=0042 CW=0003 DW=0000 PSW=f802 [V]
+  {"AW": 17, "CW": 3}                          psw_in=fed7 -> AW=0062 CW=0003 DW=0000 PSW=fed6 [PACZSV]
+  U-flag V  : operand-dependent: [in=0 out=0 AW=0010 CW=0003 DW=0000] [in=1 out=0 AW=0030 CW=0003 DW=0000] [in=0 out=1 AW=0042 CW=0003 DW=0000] [in=1 out=1 AW=0062 CW=0003 DW=0000]
+
+=== NOT1 CY [f5] ===
+  {}                                           psw_in=f002 -> AW=0000 CW=0000 DW=0000 PSW=f003 [CY]
+  {}                                           psw_in=fed7 -> AW=0000 CW=0000 DW=0000 PSW=fed6 [PACZSV]
+  {"AW": 1}                                    psw_in=f002 -> AW=0001 CW=0000 DW=0000 PSW=f003 [CY]
+  {"AW": 1}                                    psw_in=fed7 -> AW=0001 CW=0000 DW=0000 PSW=fed6 [PACZSV]
+  U-flag V  : preserved (out == in)
+  U-flag S  : preserved (out == in)
+  U-flag Z  : preserved (out == in)
+  U-flag AC : preserved (out == in)
+  U-flag P  : preserved (out == in)
+
+=== CLR1 CY [f8] ===
+  {}                                           psw_in=f002 -> AW=0000 CW=0000 DW=0000 PSW=f002 []
+  {}                                           psw_in=fed7 -> AW=0000 CW=0000 DW=0000 PSW=fed6 [PACZSV]
+  {"AW": 1}                                    psw_in=f002 -> AW=0001 CW=0000 DW=0000 PSW=f002 []
+  {"AW": 1}                                    psw_in=fed7 -> AW=0001 CW=0000 DW=0000 PSW=fed6 [PACZSV]
+  U-flag V  : preserved (out == in)
+  U-flag S  : preserved (out == in)
+  U-flag Z  : preserved (out == in)
+  U-flag AC : preserved (out == in)
+  U-flag P  : preserved (out == in)
+
+=== SET1 CY [f9] ===
+  {}                                           psw_in=f002 -> AW=0000 CW=0000 DW=0000 PSW=f003 [CY]
+  {}                                           psw_in=fed7 -> AW=0000 CW=0000 DW=0000 PSW=fed7 [CYPACZSV]
+  {"AW": 1}                                    psw_in=f002 -> AW=0001 CW=0000 DW=0000 PSW=f003 [CY]
+  {"AW": 1}                                    psw_in=fed7 -> AW=0001 CW=0000 DW=0000 PSW=fed7 [CYPACZSV]
+  U-flag V  : preserved (out == in)
+  U-flag S  : preserved (out == in)
+  U-flag Z  : preserved (out == in)
+  U-flag AC : preserved (out == in)
+  U-flag P  : preserved (out == in)
+
+=== TEST1 reg16,CL [0f 11 c2] ===
+  {"DW": 32768, "CW": 15}                      psw_in=f002 -> AW=0000 CW=000f DW=8000 PSW=f086 [PS]
+  {"DW": 32768, "CW": 15}                      psw_in=fed7 -> AW=0000 CW=000f DW=8000 PSW=f686 [PS]
+  {"DW": 0, "CW": 0}                           psw_in=f002 -> AW=0000 CW=0000 DW=0000 PSW=f046 [PZ]
+  {"DW": 0, "CW": 0}                           psw_in=fed7 -> AW=0000 CW=0000 DW=0000 PSW=f646 [PZ]
+  {"DW": 65535, "CW": 4}                       psw_in=f002 -> AW=0000 CW=0004 DW=ffff PSW=f002 []
+  {"DW": 1, "CW": 0}                           psw_in=f002 -> AW=0000 CW=0000 DW=0001 PSW=f002 []
+  U-flag S  : operand-dependent: [in=0 out=1 AW=0000 CW=000f DW=8000] [in=1 out=1 AW=0000 CW=000f DW=8000] [in=0 out=0 AW=0000 CW=0000 DW=0000] [in=1 out=0 AW=0000 CW=0000 DW=0000] [in=0 out=0 AW=0000 CW=0004 DW=ffff] [in=0 out=0 AW=0000 CW=0000 DW=0001]
+  U-flag AC : always 0
+  U-flag P  : operand-dependent: [in=0 out=1 AW=0000 CW=000f DW=8000] [in=1 out=1 AW=0000 CW=000f DW=8000] [in=0 out=1 AW=0000 CW=0000 DW=0000] [in=1 out=1 AW=0000 CW=0000 DW=0000] [in=0 out=0 AW=0000 CW=0004 DW=ffff] [in=0 out=0 AW=0000 CW=0000 DW=0001]
+
+=== TEST1 reg8,imm3 [0f 18 c2 03] ===
+  {"DW": 8}                                    psw_in=f002 -> AW=0000 CW=0000 DW=0008 PSW=f002 []
+  {"DW": 8}                                    psw_in=fed7 -> AW=0000 CW=0000 DW=0008 PSW=f602 []
+  {"DW": 0}                                    psw_in=f002 -> AW=0000 CW=0000 DW=0000 PSW=f046 [PZ]
+  {"DW": 0}                                    psw_in=fed7 -> AW=0000 CW=0000 DW=0000 PSW=f646 [PZ]
+  {"DW": 247}                                  psw_in=f002 -> AW=0000 CW=0000 DW=00f7 PSW=f046 [PZ]
+  U-flag S  : always 0
+  U-flag AC : always 0
+  U-flag P  : operand-dependent: [in=0 out=0 AW=0000 CW=0000 DW=0008] [in=1 out=0 AW=0000 CW=0000 DW=0008] [in=0 out=1 AW=0000 CW=0000 DW=0000] [in=1 out=1 AW=0000 CW=0000 DW=0000] [in=0 out=1 AW=0000 CW=0000 DW=00f7]
+
+=== NOT1 reg8,CL [0f 16 c2] ===
+  {"DW": 1, "CW": 0}                           psw_in=f002 -> AW=0000 CW=0000 DW=0000 PSW=f002 []
+  {"DW": 1, "CW": 0}                           psw_in=fed7 -> AW=0000 CW=0000 DW=0000 PSW=fed7 [CYPACZSV]
+  {"DW": 0, "CW": 7}                           psw_in=f002 -> AW=0000 CW=0007 DW=0080 PSW=f002 []
+  {"DW": 0, "CW": 7}                           psw_in=fed7 -> AW=0000 CW=0007 DW=0080 PSW=fed7 [CYPACZSV]
+  U-flag V  : preserved (out == in)
+  U-flag S  : preserved (out == in)
+  U-flag Z  : preserved (out == in)
+  U-flag AC : preserved (out == in)
+  U-flag P  : preserved (out == in)
+
+=== CLR1 reg16,imm4 [0f 1b c2 05] ===
+  {"DW": 65535}                                psw_in=f002 -> AW=0000 CW=0000 DW=ffdf PSW=f002 []
+  {"DW": 65535}                                psw_in=fed7 -> AW=0000 CW=0000 DW=ffdf PSW=fed7 [CYPACZSV]
+  {"DW": 32}                                   psw_in=f002 -> AW=0000 CW=0000 DW=0000 PSW=f002 []
+  {"DW": 32}                                   psw_in=fed7 -> AW=0000 CW=0000 DW=0000 PSW=fed7 [CYPACZSV]
+  {"DW": 0}                                    psw_in=f002 -> AW=0000 CW=0000 DW=0000 PSW=f002 []
+  U-flag V  : preserved (out == in)
+  U-flag S  : preserved (out == in)
+  U-flag Z  : preserved (out == in)
+  U-flag AC : preserved (out == in)
+  U-flag P  : preserved (out == in)
+
+=== SET1 reg8,imm3 [0f 1c c2 02] ===
+  {"DW": 0}                                    psw_in=f002 -> AW=0000 CW=0000 DW=0004 PSW=f002 []
+  {"DW": 0}                                    psw_in=fed7 -> AW=0000 CW=0000 DW=0004 PSW=fed7 [CYPACZSV]
+  {"DW": 255}                                  psw_in=f002 -> AW=0000 CW=0000 DW=00ff PSW=f002 []
+  {"DW": 255}                                  psw_in=fed7 -> AW=0000 CW=0000 DW=00ff PSW=fed7 [CYPACZSV]
+  U-flag V  : preserved (out == in)
+  U-flag S  : preserved (out == in)
+  U-flag Z  : preserved (out == in)
+  U-flag AC : preserved (out == in)
+  U-flag P  : preserved (out == in)
+
+=== INS reg8,reg8 [0f 31 ca] ===
+  {"AW": 65535, "DW": 0, "CW": 3, "IY": 1568}  psw_in=f002 -> AW=ffff CW=0003 DW=0004 PSW=f002 []
+  {"AW": 65535, "DW": 0, "CW": 3, "IY": 1568}  psw_in=fed7 -> AW=ffff CW=0003 DW=0004 PSW=f602 []
+  {"AW": 0, "DW": 0, "CW": 7, "IY": 1568}      psw_in=f002 -> AW=0000 CW=0007 DW=0008 PSW=f002 []
+  {"AW": 0, "DW": 0, "CW": 7, "IY": 1568}      psw_in=fed7 -> AW=0000 CW=0007 DW=0008 PSW=f602 []
+  {"AW": 21845, "DW": 4, "CW": 3, "IY": 1568}  psw_in=f002 -> AW=5555 CW=0003 DW=0008 PSW=f002 []
+  U-flag V  : always 0
+  U-flag S  : always 0
+  U-flag Z  : always 0
+  U-flag AC : always 0
+  U-flag P  : always 0
+  U-flag CY : always 0
+
+=== INS reg8,imm4 [0f 39 c2 04] ===
+  {"AW": 15, "DW": 0, "IY": 1568}              psw_in=f002 -> AW=000f CW=0000 DW=0005 PSW=f006 [P]
+  {"AW": 15, "DW": 0, "IY": 1568}              psw_in=fed7 -> AW=000f CW=0000 DW=0005 PSW=f606 [P]
+  {"AW": 65535, "DW": 3, "IY": 1568}           psw_in=f002 -> AW=ffff CW=0000 DW=0008 PSW=f002 []
+  {"AW": 65535, "DW": 3, "IY": 1568}           psw_in=fed7 -> AW=ffff CW=0000 DW=0008 PSW=f602 []
+  U-flag V  : always 0
+  U-flag S  : always 0
+  U-flag Z  : always 0
+  U-flag AC : always 0
+  U-flag P  : acts defined: P=parity(DL.lo8) and P=parity(DW.lo8)
+  U-flag CY : always 0
+
+=== EXT reg8,reg8 [0f 33 ca] ===
+  {"DW": 0, "CW": 7, "IX": 1536}               psw_in=f002 -> AW=00a5 CW=0007 DW=0008 PSW=f002 []
+  {"DW": 0, "CW": 7, "IX": 1536}               psw_in=fed7 -> AW=00a5 CW=0007 DW=0008 PSW=f602 []
+  {"DW": 4, "CW": 3, "IX": 1536}               psw_in=f002 -> AW=000a CW=0003 DW=0008 PSW=f002 []
+  {"DW": 4, "CW": 3, "IX": 1536}               psw_in=fed7 -> AW=000a CW=0003 DW=0008 PSW=f602 []
+  {"DW": 0, "CW": 15, "IX": 1536}              psw_in=f002 -> AW=3ca5 CW=000f DW=0000 PSW=f046 [PZ]
+  U-flag V  : always 0
+  U-flag S  : always 0
+  U-flag Z  : acts defined: Z=(DL==0) and Z=(DW==0)
+  U-flag AC : always 0
+  U-flag P  : acts defined: P=parity(DL.lo8) and P=parity(DW.lo8)
+  U-flag CY : always 0
+
+=== EXT reg8,imm4 [0f 3b c2 04] ===
+  {"DW": 0, "IX": 1536}                        psw_in=f002 -> AW=0005 CW=0000 DW=0005 PSW=f002 []
+  {"DW": 0, "IX": 1536}                        psw_in=fed7 -> AW=0005 CW=0000 DW=0005 PSW=f602 []
+  {"DW": 5, "IX": 1536}                        psw_in=f002 -> AW=0005 CW=0000 DW=000a PSW=f006 [P]
+  {"DW": 5, "IX": 1536}                        psw_in=fed7 -> AW=0005 CW=0000 DW=000a PSW=f606 [P]
+  U-flag V  : always 0
+  U-flag S  : always 0
+  U-flag Z  : always 0
+  U-flag AC : always 0
+  U-flag P  : operand-dependent: [in=0 out=0 AW=0005 CW=0000 DW=0005] [in=1 out=0 AW=0005 CW=0000 DW=0005] [in=0 out=1 AW=0005 CW=0000 DW=000a] [in=1 out=1 AW=0005 CW=0000 DW=000a]
+  U-flag CY : always 0
+
+=== ADD4S [0f 20] ===
+  {"CW": 4, "IX": 1536, "IY": 1568}            psw_in=f002 -> AW=0000 CW=0004 DW=0000 PSW=f093 [CYACS]
+  {"CW": 4, "IX": 1536, "IY": 1568}            psw_in=fed7 -> AW=0000 CW=0004 DW=0000 PSW=f693 [CYACS]
+  {"CW": 2, "IX": 1536, "IY": 1568}            psw_in=f002 -> AW=0000 CW=0002 DW=0000 PSW=f093 [CYACS]
+  {"CW": 2, "IX": 1536, "IY": 1568}            psw_in=fed7 -> AW=0000 CW=0002 DW=0000 PSW=f693 [CYACS]
+  U-flag V  : always 0
+  U-flag S  : always 1
+  U-flag AC : always 1
+  U-flag P  : always 0
+
+=== SUB4S [0f 22] ===
+  {"CW": 4, "IX": 1536, "IY": 1568}            psw_in=f002 -> AW=0000 CW=0004 DW=0000 PSW=f002 []
+  {"CW": 4, "IX": 1536, "IY": 1568}            psw_in=fed7 -> AW=0000 CW=0004 DW=0000 PSW=f602 []
+  {"CW": 2, "IX": 1536, "IY": 1568}            psw_in=f002 -> AW=0000 CW=0002 DW=0000 PSW=f002 []
+  {"CW": 2, "IX": 1536, "IY": 1568}            psw_in=fed7 -> AW=0000 CW=0002 DW=0000 PSW=f602 []
+  U-flag V  : always 0
+  U-flag S  : always 0
+  U-flag AC : always 0
+  U-flag P  : always 0
+
+=== CMP4S [0f 26] ===
+  {"CW": 4, "IX": 1536, "IY": 1568}            psw_in=f002 -> AW=0000 CW=0004 DW=0000 PSW=f002 []
+  {"CW": 4, "IX": 1536, "IY": 1568}            psw_in=fed7 -> AW=0000 CW=0004 DW=0000 PSW=f602 []
+  {"CW": 2, "IX": 1536, "IY": 1568}            psw_in=f002 -> AW=0000 CW=0002 DW=0000 PSW=f002 []
+  {"CW": 2, "IX": 1536, "IY": 1568}            psw_in=fed7 -> AW=0000 CW=0002 DW=0000 PSW=f602 []
+  U-flag V  : always 0
+  U-flag S  : always 0
+  U-flag AC : always 0
+  U-flag P  : always 0
+
+report -> /home/wickerwaka/src/nec_test/sw/testdata/flags_report.json
+total 509s
