@@ -625,9 +625,56 @@ def cmd_emit(host, opcodes, n_cases, out_dir, seed_base, preload_n):
     return 0
 
 
+def cmd_spotcheck(host, out_dir, per_op=3):
+    """Mission 16 validation: replay emitted cases' initial states
+    (non-prefetched) and compare architectural finals with the records.
+    Prefetched records thereby also get an architectural cross-check."""
+    out_dir = Path(out_dir)
+    total = bad = 0
+    for gz in sorted(out_dir.glob("*.json.gz")):
+        op = gz.name[:-len(".json.gz")]
+        if op not in OPCODES:
+            continue
+        spec = OPCODES[op]
+        tests = json.load(gzip.open(gz))
+        rng = random.Random(f"spot/{op}")
+        for t in rng.sample(tests, min(per_op, len(tests))):
+            regs = dict(t["initial"]["regs"])
+            instr = bytes(t["bytes"])
+            anchor = ((regs["cs"] << 4) + regs["ip"]) & 0xFFFFF
+            ibytes = set(range(anchor, anchor + len(instr)))
+            hbytes = set(range(HANDLER_OFF, HANDLER_OFF + 5)) | \
+                set(range(0, 4)) if spec["divtrap"] else set()
+            ram = [(a, v) for a, v in t["initial"]["ram"]
+                   if a not in ibytes and a not in hbytes]
+            ivt = {0: (0x0000, HANDLER_OFF)} if spec["divtrap"] else None
+            case = dict(regs=regs, instr=instr, ram=ram,
+                        name=t["name"], ivt=ivt)
+            total += 1
+            try:
+                t2 = emit_case(spec, case, host, tag=f"sp{op}")
+            except (ComposeError, RunError) as e:
+                print(f"{op} idx {t['idx']}: replay failed {str(e)[:80]}")
+                bad += 1
+                continue
+            r_ok = t2["final"]["regs"] == t["final"]["regs"]
+            m1 = {a: v for a, v in t["final"]["ram"]}
+            m2 = {a: v for a, v in t2["final"]["ram"]}
+            m_ok = m1 == m2
+            if not (r_ok and m_ok):
+                bad += 1
+                print(f"{op} idx {t['idx']} {t['name']!r}: MISMATCH "
+                      f"regs {t['final']['regs']} vs {t2['final']['regs']}"
+                      f" ram {m1} vs {m2}")
+        print(f"{op}: checked", flush=True)
+    print(f"\nspotcheck: {total - bad}/{total} replays match")
+    return 1 if bad else 0
+
+
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("cmd", choices=["validate", "preload-cal", "emit"])
+    ap.add_argument("cmd",
+                    choices=["validate", "preload-cal", "emit", "spotcheck"])
     ap.add_argument("--host", default="root@mister-nec")
     ap.add_argument("--opcodes", default=",".join(TRANCHE))
     ap.add_argument("--cases", type=int, default=500)
@@ -640,6 +687,8 @@ def main():
     args = ap.parse_args()
     if args.cmd == "validate":
         return cmd_validate(args.host)
+    if args.cmd == "spotcheck":
+        return cmd_spotcheck(args.host, args.out)
     if args.cmd == "preload-cal":
         return cmd_preload_cal(args.host)
     return cmd_emit(args.host, args.opcodes.split(","), args.cases,

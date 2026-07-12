@@ -24,7 +24,7 @@ per-cycle bus/queue behavior).
 
 ## The path
 
-### Campaign 1 — BIU characterization sprint  ← CURRENT
+### Campaign 1 — BIU characterization sprint  ✅ COMPLETE (2026-07-12)
 The closed set of designed experiments that no documentation ever captured.
 Exit criteria: docs/facts/biu_model.md states, with measurements behind
 each claim: queue depth and refill threshold; fetch/EU bus arbitration and
@@ -42,17 +42,24 @@ Experiment list:
 5. Wait-state sweep on 1-4 (BIU-bound vs EU-bound separation).
 6. Odd-target first-fetch width; SMC distance probe.
 
-### Campaign 2 — per-opcode database at scale
-The agent loop's home. Exit: every documented opcode form has measured
-decode+execute timing (docs/facts, provenance to captures) and an
-architectural test set cross-checked against the V20 suite where
-applicable; the 53 instructions.json uncertainties resolved; V30
-SingleStepTests-format suite emitted. Prereqs from campaign 1: the shadow
-queue parser and the timing-attribution method. Throughput work (batch
-patching, store-done latch, capture windowing) happens here, only as
-needed.
+### Campaign 2 — per-opcode database at scale  ✅ COMPLETE (2026-07-12)
+Delivered: 306 measured timing forms with class-consistent deviation
+tables (docs/facts/timing_measured.json, measurements.md); all 53
+instructions.json uncertainties resolved; undefined flags classified per
+class and proven bit-exact with the V20 (docs/facts/undefined_flags.md);
+undocumented 0F space mapped (docs/facts/undocumented_0f.md); persistent
+serve runner at ~0.3 s/case; SingleStepTests-format emitter
+(sw/emit_suite.py) with prefetched variants via the 63 C0 preload, and a
+26-opcode x 500-case sample tranche (tests/v30/v0.1).
 
-### Campaign 3 — the core
+Residuals (pick up during Campaign 3 as needed):
+- Full-scale emission runs (all documented forms; tranche is a sample)
+- IN/port-read opcodes blocked on configurable IOR data (RTL item 1)
+- Denser undocumented-0F second-byte map (class boundaries)
+- Prefix/REP randomization in emitted cases
+- POLL timing (needs the pin-event scheduler, RTL item 3)
+
+### Campaign 3 — the core  ← CURRENT
 v30_core.sv (EU + BIU) developed against trace replay in the Verilator TB:
 a golden-trace checker feeds captured initial state + memory image, runs
 the core, diffs per-cycle bus/queue behavior against the real chip's

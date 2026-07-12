@@ -1,0 +1,153 @@
+{
+ "github": "https://github.com/wickerwaka/nec_test",
+ "version": "0.1.0",
+ "syntax_version": 2,
+ "cpu": "V30",
+ "cpu_detail": "NEC uPD70116C-8, socketed, max mode, 4 MHz, 0 waits",
+ "generator": "nec_test sw/emit_suite.py (seed base v30-v0.1)",
+ "author": "Martin Donlon (wickerwaka), with Claude",
+ "date": "2026-07-12",
+ "bus": "16-bit (8086-suite column semantics; see README.md)",
+ "reg_aliases_nec": {
+  "ax": "AW",
+  "bx": "BW",
+  "cx": "CW",
+  "dx": "DW",
+  "si": "IX",
+  "di": "IY",
+  "ds": "DS0",
+  "es": "DS1",
+  "cs": "PS",
+  "ip": "PC",
+  "flags": "PSW"
+ },
+ "notes": [
+  "V20 flags-masks carry over: V30 undefined-flag behavior is bit-exact with the V20 (docs/facts/undefined_flags.md).",
+  "Odd-indexed cases are prefetched (63 C0 preload); even-indexed start from an empty queue.",
+  "No IN/port-read opcodes in v0.1 (harness IOR data fixed)."
+ ],
+ "opcodes": {
+  "00": {
+   "status": "normal",
+   "arch": "86"
+  },
+  "08": {
+   "status": "normal",
+   "arch": "86",
+   "flags": ".....a..",
+   "flags-mask": 65519
+  },
+  "10": {
+   "status": "normal",
+   "arch": "86"
+  },
+  "18": {
+   "status": "normal",
+   "arch": "86"
+  },
+  "20": {
+   "status": "normal",
+   "arch": "86",
+   "flags": ".....a..",
+   "flags-mask": 65519
+  },
+  "28": {
+   "status": "normal",
+   "arch": "86"
+  },
+  "30": {
+   "status": "normal",
+   "arch": "86",
+   "flags": ".....a..",
+   "flags-mask": 65519
+  },
+  "38": {
+   "status": "normal",
+   "arch": "86"
+  },
+  "B8": {
+   "status": "normal",
+   "arch": "86"
+  },
+  "40": {
+   "status": "normal",
+   "arch": "86"
+  },
+  "48": {
+   "status": "normal",
+   "arch": "86"
+  },
+  "50": {
+   "status": "normal",
+   "arch": "86"
+  },
+  "58": {
+   "status": "normal",
+   "arch": "86"
+  },
+  "86": {
+   "status": "normal",
+   "arch": "86"
+  },
+  "87": {
+   "status": "normal",
+   "arch": "86"
+  },
+  "88": {
+   "status": "normal",
+   "arch": "86"
+  },
+  "89": {
+   "status": "normal",
+   "arch": "86"
+  },
+  "8A": {
+   "status": "normal",
+   "arch": "86"
+  },
+  "8B": {
+   "status": "normal",
+   "arch": "86"
+  },
+  "D0.4": {
+   "status": "normal",
+   "arch": "86",
+   "flags": ".....a..",
+   "flags-mask": 65519
+  },
+  "F6.4": {
+   "status": "normal",
+   "arch": "86",
+   "flags": "...szap.",
+   "flags-mask": 65323
+  },
+  "F7.6": {
+   "status": "normal",
+   "arch": "86",
+   "flags": "o..szapc",
+   "flags-mask": 63274,
+   "note": "divide-trap cases vector through IVT 0 to 0000:0400 (handler far-jump in initial.ram); pushed PC = address after the instruction incl. prefixes"
+  },
+  "FE.0": {
+   "status": "normal",
+   "arch": "86"
+  },
+  "0F18": {
+   "status": "normal",
+   "arch": "v30",
+   "note": "TEST1 r/m8, imm3 (imm masked to 0-7)"
+  },
+  "0F28": {
+   "status": "normal",
+   "arch": "v30",
+   "note": "ROL4 r/m8"
+  },
+  "0F20": {
+   "status": "normal",
+   "arch": "v30",
+   "flags": "o..s.ap.",
+   "flags-mask": 63339,
+   "note": "ADD4S with CL limited to 1-6 digits"
+  }
+ }
+}
