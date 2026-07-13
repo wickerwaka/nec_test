@@ -96,9 +96,18 @@ echo`). NEVER reprogram the FPGA; one board user at a time.
   final imm pop; the write lands on the next phase-0 grid cycle (6A
   ready pop+1; 68 pop+1 from a phase-1 pop / pop+2 from phase-0 via
   S_PUSH_CALC).
+- FITTED since: INC/DEC complete (FE.0/1, FF.0/1, 40-4F): incdec16
+  polarity was INVERTED (real core bug caught by goldens) + FE.1 DEC8
+  added. FF.6 PUSH mem/reg: mem write ready done+5; reg write ready on
+  the next phase-0 grid slot (pop+4/5); S_BUSW retire arm gated on
+  eu_wr. PHASE ANCHOR refined: a committed-pending idle cycle
+  (nxt_valid) is a phase-1 (pre-T1) slot.
+- PARKED: FF.6 39-case residual - q6-prefetched idle-run-in cases
+  where the TB's carried pre-capture grid parity differs from
+  silicon's (environment alignment, not a core law; 461/500 validate
+  the law).
 - REMAINING fit queue (bulk-score for current truth): 8F.0 partial,
-  9A pushes, C8 PREPARE (arch 0 - debug), F6.6 cycles, FE.1/FF.0/FF.1
-  write DATA wrong (arch 0 - real bug, incdec16?), FF.2-6 slots,
+  9A pushes, C8 PREPARE (arch 0 - debug), F6.6 cycles, FF.2-5 slots,
   0F22 sibling residue (parked), 0F26 2-case residue (parked).
 - NOT IMPLEMENTED but tranches LANDED: 60/61 (PUSH R/POP R),
   INS/EXT 0F31/33/39/3B.

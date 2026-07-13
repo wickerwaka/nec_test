@@ -638,17 +638,18 @@ function automatic [31:0] alu16(input [2:0] op, input [15:0] a,
     alu16 = {nf, r};
 endfunction
 
-function automatic [23:0] inc8(input [7:0] a, input [15:0] f);
+function automatic [23:0] incdec8(input dec, input [7:0] a,
+                                  input [15:0] f);
     logic [7:0] r;
     logic [15:0] nf;
-    r = a + 8'd1;
+    r = dec ? a - 8'd1 : a + 8'd1;
     nf = f;
-    nf[FB_AC] = a[3:0] == 4'hF;
-    nf[FB_V]  = r == 8'h80;
+    nf[FB_AC] = dec ? (a[3:0] == 4'h0) : (a[3:0] == 4'hF);
+    nf[FB_V]  = dec ? (a == 8'h80) : (r == 8'h80);
     nf[FB_S]  = r[7];
     nf[FB_Z]  = r == 8'd0;
     nf[FB_P]  = ~^r;
-    inc8 = {nf, r};
+    incdec8 = {nf, r};
 endfunction
 
 function automatic [23:0] shl8_1(input [7:0] a, input [15:0] f);
@@ -880,7 +881,7 @@ endfunction
 //----------------------------------------------------------------------------
 wire [7:0]  rm_byte = (mrm_mod == 2'd3) ? reg8_get(mrm_rm) : mem_op[7:0];
 wire [23:0] ex_alu  = alu8(opc[5:3], rm_byte, reg8_get(mrm_reg), psw);
-wire [23:0] ex_inc  = inc8(rm_byte, psw);
+wire [23:0] ex_inc  = incdec8(mrm_reg == 3'd1, rm_byte, psw);
 wire [23:0] ex_shl  = shl8_1(rm_byte, psw);
 
 // ALU rm,imm groups (80/81/83): imm collected in disp; op = mrm_reg
@@ -918,7 +919,7 @@ wire [15:0] ai_wide =
 // the driven sibling byte (measured). Flags still come from the byte op.
 wire [15:0] src_pair = reg8_pair(mrm_reg);
 wire [15:0] rmw_wide =
-    op_grpfe ? mem_op + 16'd1 :
+    op_grpfe ? (mrm_reg == 3'd1 ? mem_op - 16'd1 : mem_op + 16'd1) :
     op_grpd0 ? {mem_op[14:0], 1'b0} :
     (opc[5:3] == 3'd0) ? mem_op + src_pair :
     (opc[5:3] == 3'd2) ? mem_op + src_pair + {15'd0, psw[FB_CY]} :
@@ -1346,7 +1347,7 @@ always_ff @(posedge clk) begin
                             end
                             else if (op_alui || op_shimm)
                                 state <= S_AI_I8;   // imm byte(s) next
-                            else if (op_grpfe && q_byte[5:3] == 3'd0) begin
+                            else if (op_grpfe && q_byte[5:3] <= 3'd1) begin
                                 dly <= 6'd1;  wnext <= S_EX; state <= S_WAITX;
                             end else if (op_grpd0 || op_grpd1) begin
                                 // by-1 forms: D0.4's fitted slot reused
@@ -1392,8 +1393,11 @@ always_ff @(posedge clk) begin
                                 state <= S_WAITX;
                             end else if (op_grpff &&
                                          q_byte[5:3] == 3'd6) begin
-                                issue_push(rf[q_byte[2:0]]);
-                                state <= S_REQ;     // PUSH reg via FF
+                                // PUSH reg via FF: write ready on the
+                                // next phase-0 grid slot (pop+4/pop+5)
+                                dly <= bus_phase ? 6'd3 : 6'd2;
+                                wnext <= S_PUSH_CALC;
+                                state <= S_WAITX;
                             end else if (op_grpff &&
                                          q_byte[5:3] == 3'd2) begin
                                 // CALL rm (reg): fit pending
@@ -2616,8 +2620,8 @@ always_ff @(posedge clk) begin
                     rf[4] <= rf[4] + 16'd2;
                     shadow <= 1'b1;      // sreg loads shadow recognition
                     retire();
-                end else if (op_pushsr || opc == 8'h9C ||
-                             op_pushi) begin              // pushes
+                end else if (op_pushsr || opc == 8'h9C || op_pushi ||
+                             (op_grpff && mrm_reg == 3'd6 && eu_wr)) begin
                     retire();
                 end else if (opc[7:3] == 5'b01011) begin  // POP r16
                     rf[4] <= rf[4] + 16'd2;
@@ -2663,8 +2667,11 @@ always_ff @(posedge clk) begin
                     end else if (op_grpff && mrm_reg <= 3'd1) begin
                         dly <= 6'd3; state <= S_RMWX;   // INC/DEC mem16
                     end else if (op_grpff && mrm_reg == 3'd6) begin
-                        issue_push(eu_rdata);           // PUSH mem
-                        state <= S_REQ;
+                        // PUSH mem: write ready done+5 (write commits
+                        // read-end+8, all 365 golden mem cases)
+                        issue_push(eu_rdata);
+                        dly <= 6'd4; wnext <= S_REQ;
+                        state <= S_WAITX;
                     end else if (op_grpff && (mrm_reg == 3'd2 ||
                                               mrm_reg == 3'd4)) begin
                         // CALL/BR rm (mem): target read (fit pending)
@@ -3178,7 +3185,7 @@ always_ff @(posedge clk) begin
                 end else if (op_grpff) begin
                     // FF.0/FF.1 INC/DEC rm16 (reg form)
                     {psw, rf[mrm_rm]} <=
-                        incdec16(mrm_reg == 3'd0, rf[mrm_rm], psw);
+                        incdec16(mrm_reg == 3'd1, rf[mrm_rm], psw);
                 end else if (op_grpf7) begin
                     // DIVU16 (no trap): AW=quot (mem_op), DW=rem (disp);
                     // flags were set by the pre-check compare at dispatch
@@ -3246,7 +3253,7 @@ always_ff @(posedge clk) begin
                         logic [31:0] idw;
                         idw = {16'd0, 16'd0};
                         {idw[31:16], idw[15:0]} =
-                            incdec16(mrm_reg == 3'd0, mem_op, psw);
+                            incdec16(mrm_reg == 3'd1, mem_op, psw);
                         eu_wdata <= idw[15:0];
                         psw <= idw[31:16];
                     end else if (op_shrot) begin
@@ -3278,6 +3285,9 @@ always_ff @(posedge clk) begin
                     issue_push(disp);            // 68 imm16
                 else if (op_pushsr)
                     issue_push(sr[srmap(opc[4:3])]);
+                else if (op_grpff)               // FF.6 reg
+                    issue_push(rf[mrm_rm] -
+                               ((mrm_rm == 3'd4) ? 16'd2 : 16'd0));
                 else
                     issue_push(rf[opc[2:0]] -
                                ((opc[2:0] == 3'd4) ? 16'd2 : 16'd0));

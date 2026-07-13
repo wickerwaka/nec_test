@@ -705,6 +705,7 @@ wire cycle_active = (state != ST_TI) && cur_type != BS_PASV;
 reg  ph_ff;
 wire ph_now = (state == ST_T1 || state == ST_T3) ? 1'b0
             : (state == ST_T2 || state == ST_T4) ? 1'b1
+            : (state == ST_TI && nxt_live) ? 1'b1   // committed pre-T1 slot
             : ph_ff;
 always_ff @(posedge clk) ph_ff <= ~ph_now;
 assign bus_phase = ph_now;
