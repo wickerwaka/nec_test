@@ -41,7 +41,9 @@
 //  D0/4, D7 (TRANS), E4/E5/EC/ED (IN), F4 (HALT), F6/4, F6/7 F7/7
 //  (IDIV), F7/6, FA/FB (DI/EI), FE/0, the prefixes 26/2E/36/3E
 //  (segment override) and F3 (REP), the V30 0F forms 0F18 (TEST1
-//  rm8,imm3), 0F20 (ADD4S), 0F28 (ROL4 rm8), and control flow EB/E9
+//  rm8,imm3), 0F20 (ADD4S), 0F28 (ROL4 rm8), 0F 31/33/39/3B
+//  (INS/EXT bit-field, mod3; laws at the op_insext decode comment),
+//  and control flow EB/E9
 //  (BR), 74/75/7C (Bcc), E2 (DBNZ), E8 (CALL near), C3/C2 (RET).
 //  Unknown opcodes park the sequencer (S_HALT). 0F forms pop the
 //  second byte at F+2 and the modrm at F+3; standard EA machinery.

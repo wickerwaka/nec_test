@@ -59,12 +59,26 @@ Residuals (pick up during Campaign 3 as needed):
 - Prefix/REP randomization in emitted cases
 - POLL timing (needs the pin-event scheduler, RTL item 3)
 
-### Campaign 3 — the core  ← CURRENT
+### Campaign 3 — the core  ← CURRENT (form matrix COMPLETE 2026-07-13;
+exit gate = the sequence-fuzz run, reassigned, still pending)
 v30_core.sv (EU + BIU) developed against trace replay in the Verilator TB:
 a golden-trace checker feeds captured initial state + memory image, runs
 the core, diffs per-cycle bus/queue behavior against the real chip's
 capture. Grow opcode by opcode using campaign 2's corpus, BIU first
 (campaign 1's model).
+
+**Closure block final (2026-07-13): 155440/155500 cycle-exact (99.96%),
+architectural state 155500/155500 (100.0%) over all 311 documented-form
+tranches; wait-state suites 2x 1200/1200.** 310/311 forms are 100%
+cycle- and state-exact, including the final four implemented forms
+INS/EXT (0F 31/33/39/3B) and every previously parked residual
+(SUB4S/CMP4S carry+sibling rails, FF.2/FF.6 push slot, C8 PREPARE,
+8F.0 reservations, POP-PSW race, REP-abort). Single characterized
+residual: 8F.0's mod3 ghost-read ADDRESS on the final captured row
+(60 cases, cycles-only; pre-window harness-stub latch state invisible
+to the golden schema - see docs/notes/closure_checkpoint.md). The
+campaign exit gate (>=500-sequence fuzz run with zero divergences)
+was reassigned by the coordinator and remains open.
 
 Status (2026-07-12, blocks 1-4 complete):
 - **59 opcode forms cycle- and state-exact**, 500 golden cases each
@@ -91,25 +105,20 @@ Status (2026-07-12, blocks 1-4 complete):
   Known residuals (documented in interrupt_model.md): the POP-PSW
   boundary-race PSW commit (bimodal, 53/200 arch) and the REP-abort
   flush-slot ±1 (33/200 cycles).
+- ~~Full-scale emission + residual documented forms~~ DONE (closure
+  blocks, 2026-07-12/13): all 311 documented-form tranches emitted and
+  fitted; coverage numbers above. Per-form laws live in the RTL
+  headers/comments and the git log.
 - Remaining for campaign completion:
-  - Full-scale emission of every documented form (the 78-form corpus
-    is the systematic sample). With the emitter, serve runner, and
-    event scheduler proven at ~0.4 s/case, a final full-scale emission
-    block (~150 documented forms x 500 cases ≈ 10-12 h of board time)
-    plus per-form spec additions is the single largest remaining item
-    and would close the campaign's behavioral coverage.
-  - Residual documented forms not yet golden-tested: OUT (E6/E7/EE/EF)
-    and the remaining IO family, CMPBK/SCAS-class flag-writing string
-    ops + their REP forms, remaining REP variants (F2/REPNE, word
-    strings), ALU imm/rm forms (80-83), TEST/NOT/NEG/MUL signed
-    variants beyond the sampled set, rotates/shift-by-CL (D1-D3),
-    BCD adjust ops (27/2F/37/3F, 0F 22/26/2A/2E), PUSH/POP sreg +
-    PUSHF/POPF, far CALL/RET/JMP + software INT (CC/CD/CE) + IRET
-    (RETI), Jcc full set, LDS/LES (C4/C5), IMUL forms 69/6B, INS/EXT
-    (0F 31/33/39/3B), BRK3/BRKV vectoring, and the two block-4
-    residual laws above.
+  - **Exit gate: sequence-fuzz divergence hunt** (sw/gen_seq.py +
+    sw/check_seq.py; reassigned) - >=500 random multi-instruction
+    sequences chip-vs-core with zero divergences.
+  - 8F.0 ghost-read address residual (characterized; needs a schema
+    extension or the injection stub modeled - or defer to Campaign 4
+    where the stub runs for real).
   - Denser undocumented-0F mapping, stacked/randomized prefixes,
-    8080-emulation mode (needs the RETEM recovery path).
+    8080-emulation mode (needs the RETEM recovery path), INS/EXT
+    mem-mod encodings (undocumented; parked in the core).
 
 ### Campaign 4 — in-FPGA A/B verification
 The core instantiated in the harness FPGA behind the same bus interface;
