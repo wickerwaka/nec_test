@@ -342,6 +342,18 @@ endtask
 string  bootimg_path;
 integer bootn;
 
+// +eudbg: per-cycle EU/BIU state dump alongside the r rows ("d <state>
+// <q_pop> <q_avl> <q_cnt>") for phase-fit debugging (bootimg mode only)
+logic eudbg_en;
+initial eudbg_en = $test$plusargs("eudbg");
+
+always @(posedge clk) begin
+    if (!reset && recording && eudbg_en && fo != 0)
+        $fdisplay(fo, "d %0d %0d %0d %0d",
+                  dut.u_eu.state, dut.u_eu.q_pop,
+                  dut.u_biu.q_avl, dut.u_biu.q_cnt);
+end
+
 initial begin
     if ($value$plusargs("bootimg=%s", bootimg_path)) begin
         if (!$value$plusargs("bootn=%d", bootn)) bootn = 300;

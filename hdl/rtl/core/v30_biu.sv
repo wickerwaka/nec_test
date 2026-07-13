@@ -88,6 +88,7 @@ module v30_biu (
     output      [7:0] q_byte,
     output            q_avail,
     output            q_avail2,     // >= 2 poppable bytes
+    output            q_fresh,      // head byte became poppable this cycle
     output            q_any,        // queue occupancy (incl. un-aged)
     output            qs_e,
     input             q_pop,
@@ -235,6 +236,13 @@ assign q_byte  = q_mem[q_rd];
 assign q_avail = q_avl != 0;
 assign q_avail2 = q_avl >= 3'd2;   // a byte remains after this pop
 assign q_any    = q_cnt != 3'd0;   // fetched (not yet poppable) counts
+
+// head byte became poppable THIS cycle (head was dry last cycle): the
+// final-displacement pops (S_DISP8/S_DHI) defer one cycle when this
+// coincides with an in-flight fetch's T2 (Campaign 4 disp-phase law)
+reg q_head_dry_q;
+always_ff @(posedge clk) q_head_dry_q <= srst ? 1'b1 : (q_avl == 3'd0);
+assign q_fresh = q_head_dry_q;
 
 //----------------------------------------------------------------------------
 // QS=E display law (measured, mission E): the E code appears on the pins

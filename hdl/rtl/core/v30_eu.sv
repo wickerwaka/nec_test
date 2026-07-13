@@ -120,6 +120,7 @@ module v30_eu (
     input       [7:0] q_byte,
     input             q_avail,
     input             q_avail2,
+    input             q_fresh,    // head byte became poppable this cycle
     input             q_any,
     output            q_pop,
     output            q_first,
@@ -322,7 +323,12 @@ reg  [2:0]  ie_p;                // IE history: the boundary decision
 // arch state = class A) are stored as A; the ghost latch itself is
 // out of scope for the golden windows (see interrupt_model.md).
 reg [15:0] race_rom [0:1023];
+// sim runs from the repo root; Quartus resolves relative to hdl/
+`ifdef VERILATOR
 initial $readmemh("hdl/rtl/core/int9d_race.hex", race_rom);
+`else
+initial $readmemh("rtl/core/int9d_race.hex", race_rom);
+`endif
 wire [6:0] r9d_pre = {psw_old[11], psw_old[10], psw_old[7],
                       psw_old[6], psw_old[4], psw_old[2], psw_old[0]};
 wire [6:0] r9d_pop = {psw[11], psw[10], psw[7],
@@ -1019,7 +1025,20 @@ wire pop_want = (state == S_FIRST && !irq_take) ||
                 (state == S_AI_I8) || (state == S_AI_I16) ||
                 (state == S_BCD_IMM) ||
                 (state == S_IN_PORT) ||
-                (state == S_DISP8) || (state == S_DLO) || (state == S_DHI) ||
+                // the FINAL displacement pop (disp8 / disp16-high) defers
+                // one cycle when the head byte became poppable THIS cycle
+                // (head was dry last cycle) AND the pop lands on an
+                // in-flight fetch's T2 - i.e. a freshly-landed word whose
+                // first-availability cycle collides with the next
+                // back-to-back fetch's T2. Measured, Campaign 4 disp-phase
+                // matrix (96 cells): blocked cells all fresh+T2; chip pops
+                // normally on T2 when the head byte was already available,
+                // and the disp16 LOW pop is never blocked (chip popped a
+                // fresh byte on T2). The old "2-cycle dry-retry grain" was
+                // an aliased fit of this block + availability.
+                ((state == S_DISP8 || state == S_DHI) &&
+                 !(bus_ts == 3'd2 && q_fresh)) ||
+                (state == S_DLO) ||
                 (state == S_JDISP) || (state == S_JDLO) ||
                 (state == S_JDHI) || (state == S_JSLO) ||
                 (state == S_JSHI) || (state == S_MLO) ||
@@ -1584,8 +1603,12 @@ always_ff @(posedge clk) begin
                                 state <= S_WAITX;
                             end else if (op_grpf6 && q_byte[5:3] == 3'd5) begin
                                 // IMUL8 reg: +4 when operand signs differ
-                                // (extra correction pass; measured)
-                                dly <= (reg8_get(q_byte[2:0])[7] ^ rf[0][7])
+                                // (extra correction pass; measured).
+                                // ((a^b)&80h)!=0 == a[7]^b[7]: Quartus
+                                // 17.1 can't parse a bit-select applied
+                                // to a function-call result.
+                                dly <= (((reg8_get(q_byte[2:0])
+                                          ^ rf[0][7:0]) & 8'h80) != 8'h00)
                                        ? 6'd35 : 6'd31;
                                 wnext <= S_EX;
                                 state <= S_WAITX;
@@ -2487,9 +2510,12 @@ always_ff @(posedge clk) begin
                 logic [4:0] l;
                 logic [5:0] ss;
                 logic [15:0] awn;
-                o  = reg8_get(mrm_rm)[3:0];
+                logic [7:0] rm8v, rg8v;   // Quartus 17.1: no bit-select
+                rm8v = reg8_get(mrm_rm);  // on a function-call result
+                rg8v = reg8_get(mrm_reg);
+                o  = rm8v[3:0];
                 l  = {1'b0, ie_immf ? immb[3:0]
-                                    : reg8_get(mrm_reg)[3:0]} + 5'd1;
+                                    : rg8v[3:0]} + 5'd1;
                 ss = {2'd0, o} + {1'd0, l};
                 ie_ph2 <= 1'b0;
                 ie_rdyhold <= 1'b0;
@@ -2869,16 +2895,18 @@ always_ff @(posedge clk) begin
                         dly <= 6'd1; state <= S_RSV;
                     end else state <= S_REQ;              // d1 load: rdy @ 4
                 end
-            end else begin
+            end else if (!q_avail) begin
                 dret <= S_DISP8; state <= S_DSTALL;
             end
+            // else: T2-blocked with data available - retry next cycle
             S_DLO: if (q_pop) begin                       // disp16 low @ 2
                 disp[7:0] <= q_byte;
                 pc <= pc + 16'd1;
                 state <= S_DGAP;
-            end else begin
-                dret <= S_DLO; state <= S_DSTALL;
             end
+            // dry: re-poll every cycle (chip pops at first availability -
+            // measured, Campaign 4 phase matrix 3e:disp16 ph1; the old
+            // DSTALL 2-grain here was an aliased cold-trace fit)
             S_DGAP: state <= S_DHI;
             S_DHI: if (q_pop) begin                       // disp16 high @ 4
                 disp[15:8] <= q_byte;
@@ -2899,9 +2927,10 @@ always_ff @(posedge clk) begin
                     end else if (is_reader || op_srst) state <= S_REQ;
                     else begin dly <= 6'd2; state <= S_RSV; end
                 end
-            end else begin
+            end else if (!q_avail) begin
                 dret <= S_DHI; state <= S_DSTALL;
             end
+            // else: T2-blocked with data available - retry next cycle
             S_DSTALL: state <= dret;
 
             //----------------------------------------------------------------

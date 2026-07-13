@@ -65,7 +65,7 @@ logic   [1:0] scr_qop = '0;
 `endif
 
 wire  [7:0] q_byte;
-wire        q_avail, q_avail2, q_any;
+wire        q_avail, q_avail2, q_fresh, q_any;
 wire        eu_pop, eu_first, eu_flush;
 wire [15:0] eu_flush_cs, eu_flush_ip;
 wire        eu_req, eu_hold, eu_ready, eu_wr, eu_fwd, eu_word;
@@ -113,6 +113,7 @@ v30_biu u_biu (
     .q_byte     (q_byte),
     .q_avail    (q_avail),
     .q_avail2   (q_avail2),
+    .q_fresh    (q_fresh),
     .q_any      (q_any),
     .qs_e       (qs_e),
     .q_pop      (q_pop),
@@ -154,6 +155,7 @@ v30_eu u_eu (
     .q_byte     (q_byte),
     .q_avail    (q_avail),
     .q_avail2   (q_avail2),
+    .q_fresh    (q_fresh),
     .q_any      (q_any),
     .q_pop      (eu_pop),
     .q_first    (eu_first),
