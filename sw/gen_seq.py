@@ -587,13 +587,18 @@ SWINT_VEC = 0x20                     # software INTn vector
 FAR_INT_EXTS = ("farcall", "swint", "farjmp")
 
 
+HW_INT_VEC = 0xFF                   # CFG default INT-pin vector
+NMI_VEC = 2                         # NMI IVT slot
+
+
 def far_int_support():
-    """(ivt dict, handler ram bytes). Vectors 3 (INT3), 4 (INTO), and
-    SWINT_VEC (INTn) -> the IRET handler."""
+    """(ivt dict, handler ram bytes). All exercised vectors -> the bare
+    IRET handler (software INT3/INTO/INTn AND the injected hardware INT
+    (0xFF) / NMI (2) pins). RETF stub follows for far CALL."""
     handler = [(HANDLER_AT, 0xCF),          # IRET
                (HANDLER_AT + 1, 0xCB)]      # RETF
-    ivt = {3: (0, HANDLER_AT), 4: (0, HANDLER_AT),
-           SWINT_VEC: (0, HANDLER_AT)}
+    ivt = {n: (0, HANDLER_AT)
+           for n in (3, 4, SWINT_VEC, NMI_VEC, HW_INT_VEC)}
     return ivt, handler
 
 

@@ -25,10 +25,23 @@ from pathlib import Path
 
 SW = Path(__file__).resolve().parent
 sys.path.insert(0, str(SW))
+import random                                          # noqa: E402
 import testimage                                       # noqa: E402
-from gen_seq import generate, form_universe            # noqa: E402
+from gen_seq import generate, form_universe, far_int_support  # noqa: E402
 from v30run import run_image                           # noqa: E402
 from fuzz_cov import Coverage, DEFAULT_COV, DEFAULT_DIV  # noqa: E402
+
+
+def make_evt(seed, anchor_linear):
+    """Seeded pin-event for interrupt injection: fire INT (mostly) or NMI
+    at a random point after the anchor. Trigger = the anchor CODE fetch;
+    the scheduler asserts at idx(trigger T1)+2+delay. Short hold so a
+    level-sensitive INT releases before the handler IRETs (no re-entry).
+    Returns (linear, delay, hold, pin)."""
+    r = random.Random(f"int/{seed}")
+    pin = 1 if r.random() < 0.25 else 0          # 0=INT (IE=1), 1=NMI
+    delay = r.randrange(8, 160)
+    return (anchor_linear & 0xFFFFF, delay, 2, pin)
 
 ROOT = SW.parent
 BIN = ROOT / "hdl" / "tb" / "obj_dir" / "Vtb_v30_core"
@@ -112,7 +125,14 @@ def diff(real, sim, limit=4000, maxprint=10, strict_qs=False):
             if r["ube_n"] != s["ube_n"]:
                 other.append(f"ube {r['ube_n']}!={s['ube_n']}")
             active = r["bs_early"] != 7
-            if rt == 1 and r["ad_addr"] != s["ad_addr"]:
+            # INTA cycle (bs=INTA) drives NO address on T1: AD float-retains
+            # the previous bus value (interrupt_model.md), which is
+            # history-dependent - the chip retains the prior fetch address,
+            # the core drives its modeled vector pointer. Architecturally
+            # inert (the vector rides the data lanes), so the INTA-T1 address
+            # is a documented don't-care (cf. the 8F.0 ghost-read address).
+            if rt == 1 and r["bs_early"] != 0 and \
+                    r["ad_addr"] != s["ad_addr"]:
                 other.append(f"addr {r['ad_addr']:05x}!={s['ad_addr']:05x}")
             if rt in (2, 3) and r["ad_data"] != s["ad_data"]:
                 other.append(f"data {r['ad_data']:04x}!={s['ad_data']:04x}")
@@ -141,15 +161,27 @@ def diff(real, sim, limit=4000, maxprint=10, strict_qs=False):
 
 
 def check_seed(seed, host, sim_only=False, strict_qs=False, exts=(),
-               hw_ab=False, waits=0, cov=None, div_file=None):
+               hw_ab=False, waits=0, cov=None, div_file=None,
+               inject_int=False):
     g = generate(seed, exts=exts)
-    image, meta = compose(g)
+    evt = None
+    if inject_int:
+        # force a composed IVT + IRET/RETF handler so the injected INT/NMI
+        # returns cleanly and the sequence continues; fire on BOTH positions
+        if g.get("ivt") is None:
+            ivt, handler = far_int_support()
+            g["ivt"] = ivt
+            g["ram"] = g["ram"] + handler
+        image, meta = compose(g)
+        evt = make_evt(seed, meta["anchor_linear"])
+    else:
+        image, meta = compose(g)
     if hw_ab:
         # True in-silicon A/B: BOTH positions on the board (same FPGA,
         # same image). "real" = socketed chip (use_core=0); "sim" = the
         # fabric core (use_core=1). No Verilator involved.
-        real = run_chip(image, host, use_core=False, waits=waits)
-        sim = run_chip(image, host, use_core=True, waits=waits)
+        real = run_chip(image, host, use_core=False, waits=waits, evt=evt)
+        sim = run_chip(image, host, use_core=True, waits=waits, evt=evt)
     else:
         if sim_only:
             real = run_tb(image, 4200)
@@ -174,7 +206,8 @@ def check_seed(seed, host, sim_only=False, strict_qs=False, exts=(),
         with open(div_file, "a") as fh:
             fh.write(json.dumps({
                 "seed": seed, "exts": list(exts), "waits": waits,
-                "hw_ab": hw_ab, "n_ins": g["n_ins"], "first_row": first,
+                "inject_int": inject_int, "hw_ab": hw_ab,
+                "n_ins": g["n_ins"], "first_row": first,
                 "bad_rows": bad, "flick": flick}) + "\n")
     return bad == 0
 
@@ -213,6 +246,10 @@ def main():
                     help="start coverage fresh (ignore existing --cov-file)")
     ap.add_argument("--div-file", default=str(DEFAULT_DIV),
                     help="append divergence-triggering seeds here (corpus)")
+    ap.add_argument("--inject-int", action="store_true",
+                    help="fire a seeded INT/NMI mid-sequence on BOTH A/B "
+                         "positions (composed IVT + IRET handler); stresses "
+                         "recognition/REP-abort/POP-PSW-race in random ctx")
     a = ap.parse_args()
 
     if a.cov_report:
@@ -231,7 +268,7 @@ def main():
             w = (k % 4) if a.waits_sweep else a.waits
             ok = check_seed(f"fz{k}", a.host, a.sim_only, a.strict_qs,
                             exts, a.hw_ab, waits=w, cov=cov,
-                            div_file=div_file)
+                            div_file=div_file, inject_int=a.inject_int)
             if not ok:
                 fails.append(f"fz{k}")
                 if a.stop_after and len(fails) >= a.stop_after:
@@ -248,7 +285,8 @@ def main():
     for s in a.seeds:
         w = a.waits
         ok &= check_seed(s, a.host, a.sim_only, a.strict_qs, exts, a.hw_ab,
-                         waits=w, cov=cov, div_file=div_file)
+                         waits=w, cov=cov, div_file=div_file,
+                         inject_int=a.inject_int)
     if cov is not None:
         cov.save(a.cov_file)
     return 0 if ok else 1

@@ -374,7 +374,40 @@ off at ~3% of phases - same class as the documented far-jump qs_e artifact):
   discarded, execution + done-cycle IDENTICAL. Corpus: fz7203, fz7207.
 All three need the same commit-phase RTL fit + reflash to gate strictly.
 
-### Priorities 3-6 (interrupt injection / wait sweep / IN-OUT / deeper)
-NOT reached this session. The swint IVT+handler infra (gen_seq
-far_int_support) and the --waits/--waits-sweep check_seq plumbing are in
-place for priority 3-4; IN/OUT (priority 5) still excluded.
+### Priority 3 - interrupt injection (DONE infra + characterized finding)
+check_seq --inject-int fires a seeded INT (IE=1) or NMI mid-sequence on
+BOTH A/B positions via the pin-event scheduler, with far_int_support's IVT
++ IRET handler (vectors 2/3/4/0x20/0xFF -> 0x0480) so delivery returns
+cleanly and the sequence continues. Added a documented differ don't-care:
+the INTA-cycle T1 address (bs=INTA) is float-retained/history-dependent
+(interrupt_model.md) and architecturally inert - the chip retains the
+prior fetch addr, the core drives its modeled vector pointer; masked like
+the 8F.0 ghost-read. With that, injection on the base corpus is clean.
+GATE (inject + clean exts, fz10000-10499): 476/500. The 24 divergences are
+interrupt RECOGNITION / VECTORING / INTA-ARBITRATION timing in RANDOM
+contexts (NMI IVT-read commit, INTA-vs-CODE recognition-point, doomed-
+prefetch during the INT flush) - the fitted interrupt laws (fitted on
+NOP-sled geometries, INT.* tranches) do not fully generalize; 1-2 cycle,
+execution otherwise correct. Corpus: fz10041 (NMI), fz10059 (INTA recog),
+fz10055 (prefetch). Needs a deeper interrupt-timing fit + reflash.
+
+### Priority 4 - wait-state variation (characterized, NOT gated)
+check_seq --waits N / --waits-sweep threads waits through the A/B path.
+The ENTIRE fuzz corpus (base AND expanded) diverges at waits>=1: real
+mid-program timing divergences (done delta +-1, hundreds of rows, first
+divergence well before the store stub). The wait-state deferred-completion-
+eval laws (biu_model mission H) were fitted only for a handful of single
+forms (B8/8B/89/F7.6/EB/E8) and do NOT hold across arbitrary multi-
+instruction sequences. This is a Mission-H-scale wait-state RTL fit +
+reflash - out of this session's safe (no-reflash) scope. Corpus: fz9700
+(waits=1). The zero-wait path remains the verified one.
+
+### Priorities 5-6 (IN/OUT, deeper/prefixes) - NOT reached
+IN/OUT still excluded (needs port-config wiring into the fuzz). Deeper/
+stacked-prefix sequences deferred.
+
+### Regression corpus (sw/testdata/fuzz_divergences.jsonl)
+9 curated representative divergence-triggering seeds, one/two per class
+(swint/farjmp cadence, loop doomed-prefetch, inject recognition/vectoring,
+waits-sequence). Replay: check_seq <seed> --hw-ab [--inject-int|--waits N]
+--exts <...>. Re-check these after any interrupt/wait/flush RTL fit.
