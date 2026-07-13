@@ -17,6 +17,7 @@ Usage:
   check_seq.py --sim-only SEED    TB-vs-TB plumbing self-test
 """
 import argparse
+import json
 import subprocess
 import sys
 import tempfile
@@ -25,8 +26,9 @@ from pathlib import Path
 SW = Path(__file__).resolve().parent
 sys.path.insert(0, str(SW))
 import testimage                                       # noqa: E402
-from gen_seq import generate                           # noqa: E402
+from gen_seq import generate, form_universe            # noqa: E402
 from v30run import run_image                           # noqa: E402
+from fuzz_cov import Coverage, DEFAULT_COV, DEFAULT_DIV  # noqa: E402
 
 ROOT = SW.parent
 BIN = ROOT / "hdl" / "tb" / "obj_dir" / "Vtb_v30_core"
@@ -62,8 +64,9 @@ def run_tb(image, n):
     return sim
 
 
-def run_chip(image, host, use_core=None):
-    recs = run_image(bytes(image), host, tag="seq", use_core=use_core)
+def run_chip(image, host, use_core=None, waits=0, evt=None):
+    recs = run_image(bytes(image), host, tag="seq", use_core=use_core,
+                     waits=waits, evt=evt)
     rel = next(i for i, r in enumerate(recs) if not r["rst"])
     return recs[rel:]
 
@@ -138,23 +141,26 @@ def diff(real, sim, limit=4000, maxprint=10, strict_qs=False):
 
 
 def check_seed(seed, host, sim_only=False, strict_qs=False, exts=(),
-               hw_ab=False):
+               hw_ab=False, waits=0, cov=None, div_file=None):
     g = generate(seed, exts=exts)
     image, meta = compose(g)
     if hw_ab:
         # True in-silicon A/B: BOTH positions on the board (same FPGA,
         # same image). "real" = socketed chip (use_core=0); "sim" = the
         # fabric core (use_core=1). No Verilator involved.
-        real = run_chip(image, host, use_core=False)
-        sim = run_chip(image, host, use_core=True)
+        real = run_chip(image, host, use_core=False, waits=waits)
+        sim = run_chip(image, host, use_core=True, waits=waits)
     else:
         if sim_only:
             real = run_tb(image, 4200)
             real = [dict(r, t_state=r["t"]) for r in real]
         else:
-            real = run_chip(image, host)
+            real = run_chip(image, host, waits=waits)
         sim = run_tb(image, 4200)
     bad, first, n, flick = diff(real, sim, strict_qs=strict_qs)
+    if cov is not None:
+        cov.add_program(g["forms"], g["ins"], waits=waits)
+        cov.add_trace(real)
     status = "MATCH" if bad == 0 else f"DIVERGE@{first}"
     extra = ""
     if bad:
@@ -163,6 +169,13 @@ def check_seed(seed, host, sim_only=False, strict_qs=False, exts=(),
         extra += f" [+{flick} qs-flicker]"
     print(f"seed {seed}: {g['n_ins']} ins, {n} rows compared -> {status}"
           f"{extra}")
+    if bad and div_file is not None:
+        # persist the divergence-triggering seed for regression
+        with open(div_file, "a") as fh:
+            fh.write(json.dumps({
+                "seed": seed, "exts": list(exts), "waits": waits,
+                "hw_ab": hw_ab, "n_ins": g["n_ins"], "first_row": first,
+                "bad_rows": bad, "flick": flick}) + "\n")
     return bad == 0
 
 
@@ -184,24 +197,60 @@ def main():
                          "(default: classified as QS-pin sampling artifacts)")
     ap.add_argument("--exts", default="",
                     help="comma list of gen_seq EXT_MENU families "
-                         "(callret,sregw,popf) - staged Mission E gates")
+                         "(staged expansion gates)")
+    ap.add_argument("--waits", type=int, default=0,
+                    help="wait-state setting for the run (0-3); with "
+                         "--waits-sweep this is ignored")
+    ap.add_argument("--waits-sweep", action="store_true",
+                    help="vary waits 0-3 across fuzz seeds (seed k -> k%%4)")
+    ap.add_argument("--cov-file", default=str(DEFAULT_COV),
+                    help="coverage accumulator JSON (persists across runs)")
+    ap.add_argument("--no-cov", action="store_true",
+                    help="disable coverage accumulation")
+    ap.add_argument("--cov-report", action="store_true",
+                    help="print the coverage report from --cov-file and exit")
+    ap.add_argument("--cov-reset", action="store_true",
+                    help="start coverage fresh (ignore existing --cov-file)")
+    ap.add_argument("--div-file", default=str(DEFAULT_DIV),
+                    help="append divergence-triggering seeds here (corpus)")
     a = ap.parse_args()
+
+    if a.cov_report:
+        c = Coverage.load(a.cov_file)
+        print(c.report(universe={"form": form_universe()}))
+        return 0
+
     exts = tuple(x for x in a.exts.split(",") if x)
+    cov = None
+    if not a.no_cov:
+        cov = Coverage() if a.cov_reset else Coverage.load(a.cov_file)
+    div_file = a.div_file
     fails = []
     if a.fuzz:
         for k in range(a.start, a.start + a.fuzz):
+            w = (k % 4) if a.waits_sweep else a.waits
             ok = check_seed(f"fz{k}", a.host, a.sim_only, a.strict_qs,
-                            exts, a.hw_ab)
+                            exts, a.hw_ab, waits=w, cov=cov,
+                            div_file=div_file)
             if not ok:
                 fails.append(f"fz{k}")
                 if a.stop_after and len(fails) >= a.stop_after:
                     break
         print(f"\nfuzz: {a.fuzz - len(fails)}/{a.fuzz} clean; "
               f"divergent seeds: {fails}")
+        if cov is not None:
+            cov.save(a.cov_file)
+            print(f"coverage -> {a.cov_file} "
+                  f"({cov.seeds} seeds, {cov.instrs} instrs, "
+                  f"{len(cov.form)} forms, {len(cov.opsig)} opsigs)")
         return 1 if fails else 0
     ok = True
     for s in a.seeds:
-        ok &= check_seed(s, a.host, a.sim_only, a.strict_qs, exts, a.hw_ab)
+        w = a.waits
+        ok &= check_seed(s, a.host, a.sim_only, a.strict_qs, exts, a.hw_ab,
+                         waits=w, cov=cov, div_file=div_file)
+    if cov is not None:
+        cov.save(a.cov_file)
     return 0 if ok else 1
 
 

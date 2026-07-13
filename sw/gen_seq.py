@@ -105,6 +105,7 @@ def _gen_alu_rr(p, rng):
     d = rng.getrandbits(1)
     reg, rm = rng.choice(NOSP), rng.choice(NOSP)
     p.emit([op * 8 + (2 * d) + w, 0xC0 | (reg << 3) | rm])
+    return "alu_rr"
 
 
 def _gen_alu_mem(p, rng):
@@ -116,6 +117,7 @@ def _gen_alu_mem(p, rng):
     if rng.random() < 0.25:
         pre = bytes([rng.choice([0x26, 0x2E, 0x36, 0x3E])])
     p.emit(pre + bytes([op * 8 + (2 * d) + w]) + _modrm_direct(reg, rng))
+    return "alu_mem"
 
 
 def _gen_alu_imm(p, rng):
@@ -126,16 +128,19 @@ def _gen_alu_imm(p, rng):
         imm = rng.getrandbits(16 if w else 8)
         p.emit(bytes([op * 8 + 4 + w]) +
                imm.to_bytes(2 if w else 1, "little"))
+        return "alu_acc_imm"
     elif kind == 1:          # 80/81/83 reg
         g = rng.choice([0x80, 0x81, 0x83])
         n = 2 if g == 0x81 else 1
         p.emit(bytes([g, 0xC0 | (op << 3) | rng.choice(NOSP)]) +
                rng.getrandbits(8 * n).to_bytes(n, "little"))
+        return "alu_grp_imm_r"
     else:                    # 80/81/83 mem
         g = rng.choice([0x80, 0x81, 0x83])
         n = 2 if g == 0x81 else 1
         p.emit(bytes([g]) + _modrm_direct(op, rng) +
                rng.getrandbits(8 * n).to_bytes(n, "little"))
+        return "alu_grp_imm_m"
 
 
 def _gen_mov(p, rng):
@@ -143,26 +148,31 @@ def _gen_mov(p, rng):
     if kind == 0:            # B8+r imm16
         p.emit(bytes([0xB8 + rng.choice(NOSP)]) +
                rng.getrandbits(16).to_bytes(2, "little"))
+        return "mov_imm16"
     elif kind == 1:          # mov r,r / r,m / m,r
         w = rng.getrandbits(1)
         d = rng.getrandbits(1)
         if rng.random() < 0.5:
             p.emit([0x88 + 2 * d + w,
                     0xC0 | (rng.choice(NOSP) << 3) | rng.choice(NOSP)])
-        else:
-            p.emit(bytes([0x88 + 2 * d + w]) +
-                   _modrm_direct(rng.randrange(8), rng))
+            return "mov_rr"
+        p.emit(bytes([0x88 + 2 * d + w]) +
+               _modrm_direct(rng.randrange(8), rng))
+        return "mov_rm"
     elif kind == 2:          # moffs
         w = rng.getrandbits(1)
         d = rng.getrandbits(1)
         ea = _mem_ea(rng)
         p.emit(bytes([0xA0 + 2 * d + w, ea & 0xFF, ea >> 8]))
+        return "mov_moffs"
     else:                    # lea
         p.emit(bytes([0x8D]) + _modrm_direct(rng.choice(NOSP), rng))
+        return "lea"
 
 
 def _gen_incdec(p, rng):
     p.emit([rng.choice([0x40, 0x48]) + rng.randrange(8)])
+    return "incdec_r16"
 
 
 def _gen_pushpop(p, rng, state):
@@ -172,26 +182,30 @@ def _gen_pushpop(p, rng, state):
     if rng.random() < 0.5:
         p.emit([0x50 + rng.randrange(8)])
         state["depth"] += 1
-    else:
-        r = rng.randrange(8)
-        if r == 4:            # POP SP: allowed (load wins law) but
-            r = 0             # keep SP inside the window - swap to AX
-        p.emit([0x58 + r])
-        state["depth"] -= 1
+        return "push_r16"
+    r = rng.randrange(8)
+    if r == 4:                # POP SP: allowed (load wins law) but
+        r = 0                 # keep SP inside the window - swap to AX
+    p.emit([0x58 + r])
+    state["depth"] -= 1
+    return "pop_r16"
 
 
 def _gen_xchg(p, rng):
     w = rng.getrandbits(1)
     p.emit([0x86 + w, 0xC0 | (rng.choice(NOSP) << 3) | rng.choice(NOSP)])
+    return "xchg_rr"
 
 
 def _gen_shift(p, rng):
     w = rng.getrandbits(1)
     p.emit([0xD0 + w, 0xC0 | (4 << 3) | rng.choice(NOSP)])
+    return "shift_by1"
 
 
 def _gen_mul(p, rng):
     p.emit([0xF6, 0xC0 | (4 << 3) | rng.randrange(4)])   # MULU8 reg
+    return "mulu8_r"
 
 
 def _gen_div_safe(p, rng):
@@ -204,16 +218,19 @@ def _gen_div_safe(p, rng):
         bytes([0xB9]) + d.to_bytes(2, "little"),            # MOV CX,div
         [0xF7, 0xF1],                                       # DIV CX
     ])
+    return "divu16_safe"
 
 
 def _gen_test(p, rng):
     w = rng.getrandbits(1)
     p.emit([0x84 + w, 0xC0 | (rng.randrange(8) << 3) | rng.randrange(8)])
+    return "test_rr"
 
 
 def _gen_branch(p, rng):
     opc = rng.choice([0xEB] + [0x70 + c for c in range(16)])
     p.branch(opc)
+    return "jcc" if opc != 0xEB else "jmp_short"
 
 
 def _gen_string(p, rng):
@@ -233,14 +250,18 @@ def _gen_string(p, rng):
         cw = rng.randrange(0, 4)
         seq.append(bytes([0xB9, cw, 0x00]))               # MOV CX,cw
         seq.append([0xF3, op])                            # REP op
+        tag = "rep_string"
     else:
         seq.append([op])
+        tag = "string_single"
     p.emit_atomic(seq)
+    return tag
 
 
 def _gen_nops(p, rng):
     for _ in range(rng.randrange(1, 4)):
         p.emit([0x90])
+    return "nops"
 
 
 #----------------------------------------------------------------------------
@@ -268,6 +289,7 @@ def _gen_callret(p, rng):
         bytes([0xC3]),                       # RET
     ]
     p.emit_atomic(seq)
+    return "callret_near"
 
 
 def _gen_sregw(p, rng):
@@ -280,6 +302,7 @@ def _gen_sregw(p, rng):
         bytes([0x8C, 0xC0 | (sreg << 3)]),   # MOV AX,sreg
         bytes([0x8E, 0xC0 | (sreg << 3)]),   # MOV sreg,AX
     ])
+    return "sreg_rw"
 
 
 def _gen_pushf_popf(p, rng):
@@ -287,6 +310,7 @@ def _gen_pushf_popf(p, rng):
     preserved; exercises the POP-PSW commit path). Atomic: a lone POP PSW
     from random stack data could set TF/DIR."""
     p.emit_atomic([bytes([0x9C]), bytes([0x9D])])
+    return "pushf_popf"
 
 
 MENU = [(_gen_alu_rr, 14), (_gen_alu_mem, 12), (_gen_alu_imm, 10),
@@ -297,16 +321,32 @@ MENU = [(_gen_alu_rr, 14), (_gen_alu_mem, 12), (_gen_alu_imm, 10),
 MENU_STACK_W = 6
 
 EXT_MENU = {
-    "callret": (_gen_callret, 5),
-    "sregw":   (_gen_sregw, 4),
-    "popf":    (_gen_pushf_popf, 4),
+    "callret": (_gen_callret, 5, "callret_near"),
+    "sregw":   (_gen_sregw, 4, "sreg_rw"),
+    "popf":    (_gen_pushf_popf, 4, "pushf_popf"),
 }
 
 
+def form_universe(exts=None):
+    """All form tags the generator can emit (base menu + given exts, or
+    ALL exts when exts is None). Lets the coverage report show families
+    that have never been exercised."""
+    base = ["alu_rr", "alu_mem", "alu_acc_imm", "alu_grp_imm_r",
+            "alu_grp_imm_m", "mov_imm16", "mov_rr", "mov_rm", "mov_moffs",
+            "lea", "incdec_r16", "push_r16", "pop_r16", "xchg_rr",
+            "shift_by1", "mulu8_r", "divu16_safe", "test_rr", "jcc",
+            "jmp_short", "string_single", "rep_string", "nops"]
+    keys = EXT_MENU.keys() if exts is None else exts
+    return base + [EXT_MENU[e][2] for e in keys]
+
+
 def generate(seed, nmin=20, nmax=100, exts=()):
-    """-> dict(seed, instr, regs, ram). exts = iterable of EXT_MENU keys
-    (staged Mission E expansions; each changes the program stream for the
-    same seed, so gate runs must pin their exts set)."""
+    """-> dict(seed, instr, regs, ram, forms, ins). exts = iterable of
+    EXT_MENU keys (staged expansions; each changes the program stream for
+    the same seed, so gate runs must pin their exts set).
+
+    forms = per-gadget form tags (coverage); ins = per-instruction byte
+    strings (objective opsig/prefix coverage)."""
     rng = random.Random(f"seq/{seed}")
     p = Prog(rng)
     state = {"stackops": 0, "depth": 0}
@@ -315,11 +355,14 @@ def generate(seed, nmin=20, nmax=100, exts=()):
     funcs = list(funcs) + [lambda pp, rr: _gen_pushpop(pp, rr, state)]
     weights = list(weights) + [MENU_STACK_W]
     for e in exts:
-        f, w = EXT_MENU[e]
+        f, w = EXT_MENU[e][:2]
         funcs.append(f)
         weights.append(w)
+    forms = []
     while len(p.ins) < n:
-        rng.choices(funcs, weights=weights)[0](p, rng)
+        tag = rng.choices(funcs, weights=weights)[0](p, rng)
+        if tag:
+            forms.append(tag)
     instr = p.assemble()
     regs = {"PS": 0, "PC": PC0, "SS": 0, "SP": SP0,
             "DS0": 0, "DS1": 0, "PSW": 0xF202,
@@ -331,7 +374,8 @@ def generate(seed, nmin=20, nmax=100, exts=()):
     ram = [(a, rng.getrandbits(8)) for a in range(DATA_LO, DATA_HI + 0x100)]
     ram += [(a, rng.getrandbits(8)) for a in range(0x3E00, 0x4000)]
     return dict(seed=seed, instr=instr, regs=regs, ram=ram,
-                n_ins=len(p.ins))
+                n_ins=len(p.ins), forms=forms,
+                ins=[bytes(b) for b in p.ins])
 
 
 def main():
