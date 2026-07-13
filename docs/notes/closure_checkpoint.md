@@ -147,8 +147,18 @@ echo`). NEVER reprogram the FPGA; one board user at a time.
   T4-end-eval-after-blocked-T3 BIU rule, not implemented).
 - REMAINING fit queue:
   0F22 sibling residue (parked), 0F26 2-case residue (parked).
-- NOT IMPLEMENTED but tranches LANDED: 60/61 (PUSH R/POP R),
-  INS/EXT 0F31/33/39/3B.
+- FITTED since: 60/61 PUSH R/POP R implemented + 500/500. LAWS:
+  PUSH R first write ready pop+4, then a fixed cadence (each next
+  push issued at the previous write's done, ready done+1); reg order
+  AW,CW,DW,BW,SP-original,BP,IX,IY. POP R holds a decode reservation,
+  first read ready pop+2 (phase-0 pop) / pop+3 (phase-1), then SEVEN
+  chained back-to-back reads - the saved-SP slot is SKIPPED (never
+  read, SP still advances 16); the request drops after the 7th accept
+  so the prefetch chains at the last read's T3; 16-bit offset wrap
+  within SS.
+- NOT IMPLEMENTED but tranches LANDED: INS/EXT 0F31/33/39/3B (bit
+  string insert/extract - needs a from-scratch EU build; traces in
+  tests/v30/v0.1).
 - (batch-2 fully fitted as of this commit)
 
 ## Pending fit (batch-3, skeletons in core, timing guessed)

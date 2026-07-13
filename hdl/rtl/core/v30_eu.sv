@@ -203,6 +203,7 @@ typedef enum logic [6:0] {
     S_AI_I8, S_AI_I16, S_AIGAP, S_TESTGAP, S_BCD_IMM, S_SHWAIT,
     S_EA1, S_EA2, S_DISP8, S_DLO, S_DGAP, S_DHI, S_DSTALL,
     S_RSV, S_REQ, S_BUSW, S_FRETW, S_POPMW, S_POPR,
+    S_61G, S_61W,
     S_PUSH_CALC,
     S_LD_W1, S_LD_W2,
     S_WAITX, S_EX,
@@ -269,6 +270,7 @@ reg  [1:0]  facc;        // RETF/RETI stack reads accepted
 reg         iret_pw;     // RETI: PSW stack read still in flight post-flush
 reg         popr_pend;   // 8F.0 reg: stack read in flight post-retire
 reg         prep_acc;    // PREPARE: BP push accepted
+reg  [2:0]  pracc;       // POP R: reads accepted
 reg         w4skip;      // PREPARE: swallow the last copy's eu_done
 reg         prep_bpd;    // PREPARE: BP push done (latched)
 reg  [8:0]  shw;         // shift/rotate full-count burn counter
@@ -1027,7 +1029,8 @@ always_comb begin
                                        opc == 8'hEC || opc == 8'hED ||
                                        opc == 8'hEE || opc == 8'hEF ||
                                        opc == 8'hC9 || opc == 8'hCB ||
-                                       opc == 8'hCC || opc == 8'hCF);
+                                       opc == 8'hCC || opc == 8'hCF ||
+                                       opc == 8'h61);
         // reservation start (measured per opcode from old-stream commits
         // inside the resolution window): EB/E8 at the final pop cycle,
         // E9 at pop+1, Jcc/E2 at pop+2
@@ -1098,6 +1101,13 @@ always_comb begin
         S_POPMW: begin              // drop once the write is accepted
             eu_req   = facc == 2'd0;
             eu_ready = facc == 2'd0;
+        end
+        // POP R: seven chained stack reads (the saved-SP slot is
+        // skipped), request pipelined during the current read
+        S_61G: eu_req = 1'b1;
+        S_61W: begin
+            eu_req   = pracc < 3'd7;
+            eu_ready = pracc < 3'd7;
         end
         // CMPBK: the ES:IY read request stays up until accepted while
         // the DS:IX data is still in flight (structural; fit pending)
@@ -1592,6 +1602,24 @@ always_ff @(posedge clk) begin
                         retire();
                     end else if (opc == 8'h90) state <= S_NOP;
                     else if (opc[7:3] == 5'b01010) state <= S_PUSH_CALC;
+                    else if (opc == 8'h60) begin      // PUSH R
+                        // first write ready pop+4 (measured)
+                        issue_push(rf[0]);            // AW first
+                        a4_cnt <= 8'd1;
+                        dly <= 6'd2; wnext <= S_REQ;
+                        state <= S_WAITX;
+                    end else if (opc == 8'h61) begin  // POP R
+                        eu_addr <= {sr[SEG_SS], 4'h0} + {4'h0, rf[4]};
+                        eu_seg  <= SEG_SS;
+                        eu_wr   <= 1'b0;
+                        eu_word <= 1'b1;
+                        mem_op  <= rf[4];             // 16-bit offset walk
+                        pracc   <= 3'd0;
+                        a4_cnt  <= 8'd0;
+                        // first read ready pop+2 (phase-0 pop) or
+                        // pop+3 (phase-1; measured)
+                        state   <= bus_phase ? S_61G : S_61W;
+                    end
                     else if (opc[7:3] == 5'b01011 ||
                              opc == 8'hC3) begin      // POP r16 / RET
                         eu_addr <= {sr[SEG_SS], 4'h0} + {4'h0, rf[4]};
@@ -2537,6 +2565,34 @@ always_ff @(posedge clk) begin
                 end else state <= S_BUSW;
             end
             S_POPR: retire();
+            S_61G: state <= S_61W;
+            S_61W: begin
+                if (eu_started) begin
+                    logic [15:0] noff;
+                    pracc <= pracc + 3'd1;
+                    // the saved-SP slot is never read (measured);
+                    // the offset wraps at 64K within SS
+                    noff = mem_op + ((pracc == 3'd2) ? 16'd4 : 16'd2);
+                    mem_op <= noff;
+                    eu_addr <= {sr[SEG_SS], 4'h0} + {4'h0, noff};
+                end
+                if (eu_done) begin
+                    // pop order: IY,IX,BP,(skip SP),BW,DW,CW,AW
+                    case (a4_cnt[2:0])
+                        3'd0: rf[7] <= eu_rdata;
+                        3'd1: rf[6] <= eu_rdata;
+                        3'd2: rf[5] <= eu_rdata;
+                        3'd3: rf[3] <= eu_rdata;
+                        3'd4: rf[2] <= eu_rdata;
+                        3'd5: rf[1] <= eu_rdata;
+                        default: rf[0] <= eu_rdata;
+                    endcase
+                    rf[4] <= rf[4] + ((a4_cnt[2:0] == 3'd2) ? 16'd4
+                                                            : 16'd2);
+                    a4_cnt <= a4_cnt + 8'd1;
+                    if (a4_cnt[2:0] == 3'd6) retire();
+                end
+            end
             S_POPMW: begin
                 if (eu_started) facc <= 2'd1;
                 if (eu_done) begin
@@ -2770,6 +2826,15 @@ always_ff @(posedge clk) begin
                 end else if (op_pushsr || opc == 8'h9C || op_pushi ||
                              (op_grpff && mrm_reg == 3'd6 && eu_wr)) begin
                     retire();
+                end else if (opc == 8'h60) begin          // PUSH R next
+                    if (a4_cnt < 8'd8) begin
+                        // reg order AW,CW,DW,BW,SP(orig),BP,IX,IY;
+                        // next write ready at done+1 (measured cadence)
+                        issue_push((a4_cnt == 8'd4) ? rf[4] + 16'd8
+                                                    : rf[a4_cnt[2:0]]);
+                        a4_cnt <= a4_cnt + 8'd1;
+                        state <= S_REQ;
+                    end else retire();
                 end else if (opc[7:3] == 5'b01011) begin  // POP r16
                     rf[4] <= rf[4] + 16'd2;
                     rf[opc[2:0]] <= eu_rdata;             // POP SP: load wins
