@@ -134,7 +134,18 @@ echo`). NEVER reprogram the FPGA; one board user at a time.
   an unmodeled internal latch - final captured row only).
 - PARKED: FF.2 11-case + FF.6 27-case pre-first-T1 carried-phase
   artifact (TB pre-capture grid alignment, same class as before).
-- REMAINING fit queue: C8 PREPARE (arch 0 - debug), F6.6 cycles,
+- FITTED since: F6.6 DIVU8 500/500 (mem no-trap dly20/trap 14; reg
+  19/13). C8 PREPARE rebuilt: ARCH NOW 100%-correct-per-186-semantics
+  (old code dropped the level pushes from SP; fixed) + flow: BP push
+  ready hi-pop+1 with a pop-cycle reservation, level byte pops at
+  hi-pop+4 (during the BP write), level-0 retire AT BP-done,
+  level>=1: frame push/first copy read mature ~levelpop+8, copies
+  pipeline read->write->read back-to-back with BIU data forwarding,
+  retire at the frame push's done. C8 PARKED at 276/500 cycles (arch
+  432): the frame-push slot for level>=1 is bimodal in a way that
+  resists a single pop/done anchor (idx3 vs idx35 classes; suspected
+  T4-end-eval-after-blocked-T3 BIU rule, not implemented).
+- REMAINING fit queue:
   0F22 sibling residue (parked), 0F26 2-case residue (parked).
 - NOT IMPLEMENTED but tranches LANDED: 60/61 (PUSH R/POP R),
   INS/EXT 0F31/33/39/3B.

@@ -213,8 +213,8 @@ typedef enum logic [6:0] {
     S_JDISP, S_JDLO, S_JDHI, S_JWAIT, S_JNT, S_JFLUSH,
     S_JSLO, S_JSHI, S_MLO, S_MHI, S_RESET,
     S_FCALLFL, S_FCALLP1, S_FCALLP2, S_INTV,
-    S_PREP_L, S_PREP_W1, S_PREP_W2, S_PREP_RD, S_PREP_RDW,
-    S_PREP_PW, S_PREP_PWW, S_PREP_W3, S_PREP_W4,
+    S_PREP_L, S_PREP_W2, S_PREP_RD, S_PREP_RDGO, S_PREP_W3A,
+    S_PREP_PW2, S_PREP_W3, S_PREP_W4,
     S_STRW, S_STRR, S_STRS, S_STRE,
     S_CMPW1, S_CMPW2, S_CMPNXT, S_SCASW, S_SCASNXT,
     S_CALLFL, S_CALLPUSH, S_CALLW, S_RETF, S_FCFL2,
@@ -268,6 +268,9 @@ reg  [1:0]  fret_ph;     // RETI stack-read phase (completed reads)
 reg  [1:0]  facc;        // RETF/RETI stack reads accepted
 reg         iret_pw;     // RETI: PSW stack read still in flight post-flush
 reg         popr_pend;   // 8F.0 reg: stack read in flight post-retire
+reg         prep_acc;    // PREPARE: BP push accepted
+reg         w4skip;      // PREPARE: swallow the last copy's eu_done
+reg         prep_bpd;    // PREPARE: BP push done (latched)
 reg  [8:0]  shw;         // shift/rotate full-count burn counter
 reg [15:0]  fl_cs, fl_ip; // flush redirect target
 // external-event machinery (block 4). The recognition sample is the
@@ -961,7 +964,7 @@ wire pop_want = (state == S_FIRST && !irq_take) ||
                 (state == S_JDHI) || (state == S_JSLO) ||
                 (state == S_JSHI) || (state == S_MLO) ||
                 (state == S_MHI) || (state == S_INTV) ||
-                (state == S_PREP_L);
+                (state == S_PREP_L && dly == 6'd0);
 
 assign q_pop   = pop_want && q_avail;
 assign q_first = state == S_FIRST;
@@ -1053,7 +1056,7 @@ always_comb begin
         S_JSHI:  eu_req = q_pop && opc == 8'hEA;
         // PUSH imm reserves at its final imm pop (measured, 68/6A)
         S_AI_I8:  eu_req = q_pop && opc == 8'h6A;
-        S_AI_I16: eu_req = q_pop && opc == 8'h68;
+        S_AI_I16: eu_req = q_pop && (opc == 8'h68 || op_prep);
         S_JWAIT: eu_req = !(op_jcc && dly == 6'd3) &&
                           !(opc == 8'hE2 &&
                             (dly == 6'd5 || wnext == S_JNT)) &&
@@ -1084,7 +1087,7 @@ always_comb begin
         S_REQ, S_WREQ,
         S_A4_SRC, S_A4_DST, S_A4_WR,
         S_CALLPUSH, S_FCALLP1, S_FCALLP2, S_FCFL2,
-        S_PREP_W1, S_PREP_RD, S_PREP_PW, S_PREP_W3,
+        S_PREP_RD, S_PREP_PW2, S_PREP_W3,
         S_STRW, S_STRR, S_STRS,
         S_TRAP_IVT1, S_TRAP_IVT2,
         S_TRAP_PSW, S_TRAP_PS, S_TRAP_FLUSH, S_TRAP_PC,
@@ -1102,6 +1105,13 @@ always_comb begin
             eu_req   = !cmp_r2s;
             eu_ready = !cmp_r2s;
         end
+        // PREPARE: the BP push request rides through the level-pop wait
+        S_PREP_L: begin
+            eu_req   = !prep_acc;
+            eu_ready = !prep_acc;
+        end
+        // one-cycle reservation before the frame push / first copy read
+        S_PREP_W3A, S_PREP_RDGO: eu_req = 1'b1;
         // INTA sequence holds the bus between its cycles (measured: no
         // prefetch in the inter-INTA gap); the wake-wait states hold too
         S_IRQ_D, S_INT_W0, S_INT_A1W, S_INT_G, S_INT_A2W: eu_req = 1'b1;
@@ -1165,7 +1175,8 @@ wire [15:0] str_step = opc[0] ? (psw[10] ? 16'hFFFE : 16'd2)
 
 // MOVBK's write takes its data from the BIU's read latch (forwarded at
 // the commit edge - the write commits at the read's own T3 edge)
-assign eu_fwd = state == S_STRW || state == S_POPMW;
+assign eu_fwd = state == S_STRW || state == S_POPMW ||
+                state == S_PREP_PW2;
 
 // stack push at SP-2 (also decrements SP)
 task automatic issue_push(input [15:0] wdata);
@@ -1487,9 +1498,9 @@ always_ff @(posedge clk) begin
                                                  reg8_get(q_byte[2:0]),
                                                  psw);
                                 if (dv8u[16]) begin
-                                    dly <= 6'd12; wnext <= S_TRAP_IVT1;
+                                    dly <= 6'd13; wnext <= S_TRAP_IVT1;
                                 end else begin
-                                    dly <= 6'd25; wnext <= S_EX;
+                                    dly <= 6'd19; wnext <= S_EX;
                                 end
                                 state <= S_WAITX;
                             end else if (op_grpf6 && q_byte[5:3] == 3'd4) begin
@@ -1882,7 +1893,14 @@ always_ff @(posedge clk) begin
                     end else
                         state <= S_PUSH_CALC;
                 end else if (op_prep) begin
-                    state <= S_PREP_L;                // level byte next
+                    // PREPARE: BP push ready hi-pop+1; level byte
+                    // pops at hi-pop+4 (measured)
+                    issue_push(rf[5]);
+                    cmp1 <= rf[4] - 16'd2;            // frame pointer
+                    prep_acc <= 1'b0;
+                    prep_bpd <= 1'b0;
+                    dly <= 6'd3;
+                    state <= S_PREP_L;
                 end else if (op_accimm || op_testai) begin
                     // word acc-imm: execute AND retire on the hi-imm
                     // pop edge (close = open+4, fitted on 05)
@@ -2067,37 +2085,50 @@ always_ff @(posedge clk) begin
             // frame pointer; BP=frame, SP=frame-size. Structural
             // timing, fit pending the C8 goldens.
             //----------------------------------------------------------------
-            S_PREP_L: if (q_pop) begin
-                a4_k <= {3'd0, q_byte[4:0]};      // level (mod 32)
-                pc <= pc + 16'd1;
-                issue_push(rf[5]);                // push BP
-                cmp1 <= rf[4] - 16'd2;            // frame pointer
-                a4_cnt <= 8'd1;
-                state <= S_PREP_W1;
-            end
-            S_PREP_W1: if (eu_started) state <= S_PREP_W2;
-            S_PREP_W2: if (eu_done) begin
-                if (a4_k == 8'd0) begin           // level 0: no frame push
-                    rf[5] <= cmp1;
-                    rf[4] <= cmp1 - disp;
-                    dly <= 6'd2; wnext <= S_EX; state <= S_WAITX;  // fit
-                end else if (a4_k == 8'd1) begin
-                    issue_push(cmp1);             // frame ptr push
-                    state <= S_PREP_W3;
-                end else begin                    // read frame temp k=1
-                    eu_addr <= {sr[SEG_SS], 4'h0} +
-                               {4'h0, rf[5] - 16'd2};
-                    eu_seg <= SEG_SS; eu_wr <= 1'b0; eu_word <= 1'b1;
-                    state <= S_PREP_RD;
+            S_PREP_L: begin
+                if (eu_started) prep_acc <= 1'b1;
+                if (eu_done) prep_bpd <= 1'b1;
+                if (dly != 6'd0) dly <= dly - 6'd1;
+                else if (q_pop) begin
+                    a4_k <= {3'd0, q_byte[4:0]};  // level (mod 32)
+                    pc <= pc + 16'd1;
+                    a4_cnt <= 8'd1;
+                    w4skip <= 1'b0;
+                    if (q_byte[4:0] == 5'd0)
+                        state <= S_PREP_W2;       // await BP push done
+                    else begin
+                        // frame push ready pop+7 (level 1), first
+                        // pointer-copy read ready pop+8 (measured)
+                        dly <= (q_byte[4:0] == 5'd1) ? 6'd6 : 6'd6;
+                        wnext <= (q_byte[4:0] == 5'd1) ? S_PREP_W3A
+                                                       : S_PREP_RDGO;
+                        state <= S_WAITX;
+                    end
                 end
             end
-            S_PREP_RD: if (eu_started) state <= S_PREP_RDW;
-            S_PREP_RDW: if (eu_done) begin
-                issue_push(eu_rdata);
-                state <= S_PREP_PW;
+            S_PREP_W2: if (eu_done || prep_bpd) begin // BP push done (lvl 0)
+                rf[5] <= cmp1;
+                rf[4] <= rf[4] - disp;
+                retire();                         // retire AT done
             end
-            S_PREP_PW: if (eu_started) state <= S_PREP_PWW;
-            S_PREP_PWW: if (eu_done) begin
+            S_PREP_W3A: begin                     // frame push (level 1)
+                issue_push(cmp1);
+                state <= S_PREP_W3;
+            end
+            S_PREP_RDGO: begin                    // first pointer copy read
+                eu_addr <= {sr[SEG_SS], 4'h0} + {4'h0, rf[5] - 16'd2};
+                eu_seg <= SEG_SS; eu_wr <= 1'b0; eu_word <= 1'b1;
+                state <= S_PREP_RD;
+            end
+            // pointer copies pipeline read->write->read back-to-back:
+            // the copy write commits at the read's T3 end with BIU
+            // data forwarding; the next read (or the frame push)
+            // chains at the write's T3 end (measured, level>=2)
+            S_PREP_RD: if (eu_started) begin      // read accepted
+                issue_push(16'h0);                // data forwarded (eu_fwd)
+                state <= S_PREP_PW2;
+            end
+            S_PREP_PW2: if (eu_started) begin     // copy write accepted
                 if ({1'b0, a4_cnt} < {1'b0, a4_k} - 9'd1) begin
                     a4_cnt <= a4_cnt + 8'd1;
                     eu_addr <= {sr[SEG_SS], 4'h0} +
@@ -2107,14 +2138,22 @@ always_ff @(posedge clk) begin
                     state <= S_PREP_RD;
                 end else begin
                     issue_push(cmp1);             // frame ptr push
+                    w4skip <= 1'b1;               // a copy done is pending
                     state <= S_PREP_W3;
                 end
             end
-            S_PREP_W3: if (eu_started) state <= S_PREP_W4;
+            S_PREP_W3: begin
+                if (eu_done) w4skip <= 1'b0;      // the last copy's done
+                if (eu_started) state <= S_PREP_W4;
+            end
             S_PREP_W4: if (eu_done) begin
-                rf[5] <= cmp1;
-                rf[4] <= cmp1 - disp;
-                dly <= 6'd2; wnext <= S_EX; state <= S_WAITX;   // fit
+                if (w4skip) w4skip <= 1'b0;       // the last copy's done
+                else begin
+                    // frame push done: BP/SP update, retire AT done
+                    rf[5] <= cmp1;
+                    rf[4] <= rf[4] - disp;
+                    retire();
+                end
             end
             S_INTV: if (q_pop) begin              // BRK imm8 vector
                 ivt_vec <= q_byte;
@@ -2932,9 +2971,9 @@ always_ff @(posedge clk) begin
                         disp   <= {8'd0, dv8u[7:0]};
                         psw <= psw_sub8f(rf[0][15:8], eu_rdata[7:0], psw);
                         if (dv8u[16]) begin
-                            dly <= 6'd13; wnext <= S_TRAP_IVT1;  // fit
+                            dly <= 6'd14; wnext <= S_TRAP_IVT1;
                         end else begin
-                            dly <= 6'd26; wnext <= S_EX;         // fit
+                            dly <= 6'd20; wnext <= S_EX;
                         end
                         state <= S_WAITX;
                     end else if (op_grpf6) begin
