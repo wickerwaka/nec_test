@@ -190,9 +190,12 @@ Progress (mission block 1):
   the golden over 800 rows (known-good path undisturbed); **the in-fabric
   core boot MATCHES the socketed chip over 800 rows (first light)**; and
   the in-silicon A/B sequence fuzz (chip vs fabric core, both on the
-  FPGA) is fz4000-4039 40/40 clean - the definitive in-silicon
-  confirmation of the Mission D disp/split laws. Driving the A/B fuzz
-  toward the >=500 zero-divergence done-criterion.
+  FPGA) is fz4000-4539 540/540 clean - the definitive in-silicon
+  confirmation of the Mission D disp/split laws. **Campaign 4 A/B
+  done-criterion SATISFIED: fz4040-4539 500/500 zero-divergence, the
+  true-silicon analogue of the Campaign 3 exit gate.** The in-fabric V30
+  core is cycle-for-cycle indistinguishable from the socketed chip
+  across the fuzz corpus in real silicon.
 
 ## Standing infrastructure (build only when a campaign demands)
 - Agent-loop orchestration (campaign 2)

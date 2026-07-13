@@ -223,3 +223,41 @@ above (undocumented FE /7 park - the pre-existing residual, not timing).
 Next expansion candidates (still excluded): IN/OUT in sequences, REP
 randomization, far CALL/RET, undocumented encodings (need silicon
 characterization first), 8080-mode.
+
+## Campaign 4 Mission C — synthesis + IN-SILICON FIRST LIGHT (2026-07-13)
+
+Board = root@mister-nec, now on the NEW full-RTL A/B bitstream
+(hdl/output_files/nec_test.sof, safe_flash'd; cfg 0x1ff0008). Health via
+`python3 sw/v30run.py echo`. Single writer.
+
+**Synthesis anti-pattern #2 fixed (commit e7c315a).** After the iterative
+divider (c2beb6a), quartus_map was still slow: the 255-deep combinational
+`shrot` shift/rotate unroll (D0-D3/C0/C1, all 8 sub-ops) was the second
+giant cone. Replaced with one iterative shift stage (divider pattern):
+loaded at dispatch, one single-bit shift per clock through the existing
+S_SHWAIT/S_WAITX window, result+flags into sh_res/sh_fl before S_EX/
+S_RMWX. All shift semantics/flag laws preserved bit-for-bit. Golden
+155440/155500 (per-op byte-identical to baseline); shifts 13000/13000;
+mem operand loads from eu_rdata (mem_op NBA not yet visible at read-done).
+Audit: the 255 shifter was the ONLY large combinational unroll (INS/EXT,
+ROL4/ROR4, 4S are burn-counter sequential machines).
+
+**Build (Task 2).** Analysis&Synthesis (quartus_map) 00:03:47 (was
+~25 min); Fitter 00:03:57; total 00:08:01. Megafunctions: 2 lpm_divide,
+BOTH the small 8-bit AAM (D4/CVTBD) - no wide/group dividers, no giant
+cones. Fmax 84.82 MHz emu/core clock, setup slack +9.151 ns (timing met);
+9,835/41,910 ALMs (23%), 5079 regs, 13 DSP; 0 errors.
+
+**First light (Task 3).** check_ab_hw.py all 800: chip-vs-golden MATCH/800
+(known-good chip path undisturbed); **core-vs-chip MATCH/800 (the
+in-fabric core matches the socketed part in real silicon)**; core-vs-gold
+MATCH/800. In-silicon A/B sequence fuzz (check_seq --hw-ab, chip vs
+fabric core both on the FPGA): **fz4000-4539 540/540 clean, zero
+divergence** - confirms the Mission D disp/split laws in silicon and
+**SATISFIES the Campaign 4 A/B done-criterion (>=500 zero-divergence,
+fz4040-4539 500/500)**. The core is cycle-for-cycle indistinguishable
+from the chip across the fuzz corpus in real silicon.
+
+Residuals unchanged: 8F.0 ghost-read address (60 golden cases, cycles-
+only, pre-window latch); undocumented encodings parked (FE/7 etc.);
+waits>=1 qs_e flush-display artifact at far jumps (execution identical).

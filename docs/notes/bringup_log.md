@@ -348,5 +348,14 @@ check_ab_hw.py all 800 (boot image, both selector positions in silicon):
 In-silicon A/B sequence fuzz (check_seq --hw-ab, chip vs fabric core
 BOTH on the FPGA, no Verilator): **fz4000-4039 40/40 clean** - the
 definitive in-silicon confirmation of the Mission D disp-reader /
-disp16-store / split-wrap laws (previously chip-vs-TB only). Driving
-toward the Campaign 4 done-criterion (>=500 zero-divergence).
+disp16-store / split-wrap laws (previously chip-vs-TB only).
+
+### Campaign 4 A/B done-criterion SATISFIED (2026-07-13)
+**In-silicon A/B sequence fuzz, chip (use_core=0) vs fabric core
+(use_core=1) both on the same FPGA, no Verilator: fz4040-4539 500/500
+clean, zero divergence, zero QS flickers** (with fz4000-4039 = 540
+consecutive). This is the true-silicon analogue of the Campaign 3 exit
+gate and satisfies the Campaign 4 done-criterion (>=500 zero-divergence
+across the corpus). Board echo-healthy after the run. The in-fabric V30
+core is now cycle-for-cycle indistinguishable from the socketed chip
+across the fuzz corpus in real silicon.
