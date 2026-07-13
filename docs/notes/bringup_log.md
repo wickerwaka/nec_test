@@ -274,3 +274,34 @@ Review items folded in (commit 2035cce):
   separates a 1-cycle F<->S QS-only disagreement into a tolerated `flick`
   count (real divergence always shows in the other columns); --strict-qs
   to investigate; the A/B run is the definitive confirmation.
+
+## 2026-07-13 (block 2) — Mission A2/D/E: laws landed, gate satisfied
+
+Mission A2 (hold fix): the core<->harness desync was the predicted
+delta-cycle race - the core's derived CLK posedge saw POST-edge values
+of nec_bus outputs (zero hold), where the chip sees pre-edge values via
+board propagation. Fix = one sys-clock input pipeline on every
+nec_bus->core signal (system_large only). check_ab_sim: core boot now
+MATCHES the chip golden in-harness (187 rows, loop-aligned). Chip path
+bit-identical (tb_harness 25/25, synth hex byte-identical).
+
+Mission D (three laws, all golden-neutral at 155440/155500 exact):
+1. disp-reader final-pop defer: fresh queue head (dry last cycle) + pop
+   on fetch T2 -> defer 1 (the 2-cycle read shift is mechanical).
+   S_DLO polls dry queues every cycle (old 2-grain was aliased).
+2. disp16 store ready @ hi-pop+2 (old @+3 was a phase-aliased fit).
+3. split word access at offset FFFFh: 2nd byte at offset 0 of the SAME
+   segment (found by fz494; real functional bug, was 20-bit linear +1).
+Method: sw/sweep_dispphase.py (168-cell matrix: 4 reader + 3 store EA
+modes x 3 prefixes x 8 phases) + tb_v30_core +eudbg state dump; three
+law iterations to 168/168. All measured chip-vs-TB through serve -
+no flash needed; silicon A/B confirmation rides with Mission C.
+
+Mission E: **Campaign 3 exit gate SATISFIED - 500/500 consecutive
+clean (fz600-1099), zero flickers.** Expansions: callret 500/500
+(fz1100-1599); sregw/popf gating in progress. Cumulative session fuzz:
+~2400 board-vs-TB sequences.
+
+Known open (non-gate): waits>=1 qs_e flush-display timing at far jumps
+(2 rows/trace, phase-parity; execution identical) - the only class the
+w1 matrix shows; reader/store laws are wait-clean.
