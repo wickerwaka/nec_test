@@ -85,7 +85,16 @@ module nec_bus
     output reg [63:0] cap_record,
 
     output            cpu_running,     // reset sequence finished
-    output            pwr_good_o       // 5V rail settle time elapsed
+    output            pwr_good_o,      // 5V rail settle time elapsed
+
+    // CPU-clock cadence strobes (Campaign 4 CE refactor): tick_rise is high
+    // on the sys clock at which NEC_CLK rises (start of a CPU cycle),
+    // tick_fall on the sys clock at which NEC_CLK falls (mid-cycle). Used as
+    // the internal v30_core's CE / CE_HALF so the core advances on the same
+    // sys edges the old core-on-NEC_CLK did. Purely observational: the
+    // socketed-chip datapath is unchanged.
+    output            tick_rise_o,
+    output            tick_fall_o
 );
 
 // Bus status (BS2,BS1,BS0), 8086 S2-S0 compatible
@@ -116,6 +125,8 @@ wire [5:0] half    = {1'b0, cfg_clk_div[5:1]};
 
 wire tick_rise  = div_cnt == div_max;      // next sys edge starts a CPU cycle
 wire tick_fall  = div_cnt == half - 6'd1;  // next sys edge is the falling CLK edge
+assign tick_rise_o = tick_rise;
+assign tick_fall_o = tick_fall;
 
 always_ff @(posedge clk) begin
     if (reset) begin

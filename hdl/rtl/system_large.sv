@@ -286,6 +286,11 @@ wire  [1:0] hb_qs;
 wire  [2:0] hb_bs;
 wire        hb_buslock_n, hb_ube_n, hb_rd_n;
 
+// CPU-clock cadence strobes from nec_bus: the internal core runs on the
+// fast sys clk but only advances state on these (CE = tick_rise, CE_HALF =
+// tick_fall), so it steps on the same sys edges the old core-on-NEC_CLK did.
+wire        bus_tick_rise, bus_tick_fall;
+
 // shared internal AD bus for the core (like tb_v30_core's memory-driven AD)
 tri  [19:0] core_ad;
 wire  [1:0] core_qs;
@@ -338,7 +343,9 @@ assign core_ad[15:0] = c_addrv_q ? c_rdata_q : 16'hzzzz;
 
 v30_core u_core
 (
-    .CLK       (hb_clk),
+    .CLK       (clk),
+    .CE        (bus_tick_rise),
+    .CE_HALF   (bus_tick_fall),
     .RESET     (core_reset),
     .READY     (c_ready_q),
     .INT       (c_int_q),
@@ -429,7 +436,10 @@ nec_bus bus
     .cap_record(cap_record),
 
     .cpu_running(cpu_running),
-    .pwr_good_o(pwr_good)
+    .pwr_good_o(pwr_good),
+
+    .tick_rise_o(bus_tick_rise),
+    .tick_fall_o(bus_tick_fall)
 );
 
 //----------------------------------------------------------------------------
