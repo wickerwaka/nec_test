@@ -346,6 +346,13 @@ OPCODES["C4"] = SPEC("C4", "mov ds1+reg", [0xC4], modrm="rm16", w=1,
                      membytes=4, memonly=True)
 OPCODES["C5"] = SPEC("C5", "mov ds0+reg", [0xC5], modrm="rm16", w=1,
                      membytes=4, memonly=True)
+# 8F /0 = POP r/m16. The mem forms (mod 0/1/2) pop to memory; mod3
+# (0xC0-0xC7) is the undocumented register-destination alias which writes
+# NO register (only SP += 2) and issues one stack read whose word is
+# discarded. That read's committed ADDRESS and data are stale internal
+# EA/address-latch state (pre-window injection-stub history) - recorded
+# faithfully here but flagged a golden-schema don't-care for the replay
+# comparison; see metadata.json 8F.0 dont_care + check_core.dontcare_cells.
 OPCODES["8F.0"] = SPEC("8F.0", "pop mem", [0x8F], modrm="grp16", group=0,
                        w=1, stack=True, popmem=True)
 OPCODES["FE.1"] = SPEC("FE.1", "dec b", [0xFE], modrm="grp8", group=1)

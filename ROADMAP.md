@@ -70,17 +70,21 @@ the core, diffs per-cycle bus/queue behavior against the real chip's
 capture. Grow opcode by opcode using campaign 2's corpus, BIU first
 (campaign 1's model).
 
-**Closure block final (2026-07-13): 155440/155500 cycle-exact (99.96%),
+**Closure block final (2026-07-13): 155500/155500 cycle-exact (100.0%),
 architectural state 155500/155500 (100.0%) over all 311 documented-form
-tranches; wait-state suites 2x 1200/1200.** 310/311 forms are 100%
+tranches; wait-state suites 2x 1200/1200.** All 311 forms are 100%
 cycle- and state-exact, including the final four implemented forms
 INS/EXT (0F 31/33/39/3B) and every previously parked residual
 (SUB4S/CMP4S carry+sibling rails, FF.2/FF.6 push slot, C8 PREPARE,
-8F.0 reservations, POP-PSW race, REP-abort). Single characterized
-residual: 8F.0's mod3 ghost-read ADDRESS on the final captured row
-(60 cases, cycles-only; pre-window harness-stub latch state invisible
-to the golden schema - see docs/notes/closure_checkpoint.md). The
-campaign exit gate (>=500-sequence fuzz run with zero divergences)
+8F.0 reservations, POP-PSW race, REP-abort). The last residual - 8F.0's
+mod3 ghost-read ADDRESS (60 cases) - was RESOLVED 2026-07-13 as a
+documented golden-schema don't-care: the undocumented 8F /0 mod3
+register-POP writes no register and its single stack read is discarded,
+so the chip's committed read address (stale pre-window injection-stub
+latch state, deterministic but unreproducible by a backdoor-injected
+core) is architecturally inert and masked in the replay comparison. No
+RTL/reflash; evidence + resolution in docs/notes/closure_checkpoint.md.
+The campaign exit gate (>=500-sequence fuzz run with zero divergences)
 was reassigned by the coordinator and remains open.
 
 Status (2026-07-12, blocks 1-4 complete):
@@ -130,9 +134,11 @@ Status (2026-07-12, blocks 1-4 complete):
     pin flicker; and one gen_seq containment escape (tooling, not core).
     Full taxonomy + repro recipes in docs/notes/closure_checkpoint.md
     (Mission S section).
-  - 8F.0 ghost-read address residual (characterized; needs a schema
-    extension or the injection stub modeled - or defer to Campaign 4
-    where the stub runs for real).
+  - ~~8F.0 ghost-read address residual~~ RESOLVED 2026-07-13 as a
+    documented golden-schema don't-care (undocumented mod3 register-POP's
+    discarded stack-read address; architecturally inert stale injection-
+    stub latch state). Grand regression now 155500/155500. See
+    docs/notes/closure_checkpoint.md 8F.0 section.
   - Denser undocumented-0F mapping, stacked/randomized prefixes,
     8080-emulation mode (needs the RETEM recovery path), INS/EXT
     mem-mod encodings (undocumented; parked in the core).

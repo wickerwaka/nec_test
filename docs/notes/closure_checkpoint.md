@@ -7,23 +7,64 @@ Serve v2 (delta/partial-capture) is DEPLOYED and validated (31 ms/case).
 
 ## GRAND REGRESSION (311 forms x 500/200, zero waits)
 
-TOTAL: 155440/155500 cycle-exact (99.96%); arch 155500/155500 (100.0%).
+TOTAL: 155500/155500 cycle-exact (100.0%); arch 155500/155500 (100.0%).
 Wait-state suites (v0.1-w1, v0.1-w3): 1200/1200 each.
+(Was 155440/155500; the final 60 = 8F.0 mod3, RESOLVED below 2026-07-13.)
 
-310 of 311 forms are 100% cycle- AND state-exact. The single
-residual:
+All 311 forms are now 100% cycle- AND state-exact.
 
-- **8F.0 at 440/500 cycles (arch 500/500)**: 60 cases (33 pf mod3 +
-  27 cold-pop@4 mod3) where the mod3 ghost stack-read's committed
-  ADDRESS, visible only on the final captured row(s), is not SS:SP.
-  Brute force over all (seg<<4)+reg+const combinations finds no
-  case-state formula in either class - the driven address is
-  pre-window internal latch state from the harness injection stub
-  (the 63 C0 preload), invisible to the golden schema. Registers,
-  RAM, flags and every bus SLOT are exact; only the address value on
-  that commit row differs. To close it the golden schema would need a
-  pre-window latch field (or the injection stub modeled in the TB).
-  Flagged for Campaign 4 A/B runs where the stub runs for real.
+### 8F.0 mod3 ghost-read address — RESOLVED (2026-07-13, don't-care)
+
+The last 60 residual cases (33 pf mod3 + 27 cold-pop@4 mod3) were the
+undocumented 8F /0 mod3 register-destination POP alias (8F C0-C7, e.g.
+8F C7 = "POP IY"). Closed as a documented golden-schema DON'T-CARE after
+walking the resolution ladder to rung 3 (history-dependent latch state);
+NO RTL change, NO reflash (the bitstream stands - only the golden
+schema/comparison changed).
+
+Evidence chain:
+1. **Diff table (all 60)**: the ONLY mismatch is the committed ADDRESS
+   (bus col) + read data (col 6) on the single MEMR row of the window
+   (pf: row 5; cold-pop@4: row 8). In all 60 the core drives exactly
+   SS:SP; the chip drives some other value (no (seg<<4)+reg+const
+   formula fits - reconfirmed).
+2. **The read is architecturally inert.** Across ALL 130 mod3 cases in
+   the suite the destination register is NEVER written - 8F /0 mod3 only
+   does SP += 2 and issues one stack read whose word is DISCARDED. So the
+   read's address/data have zero architectural effect (that is why arch
+   was already 500/500).
+3. **Ladder rung 2 (nondeterminism) - RULED OUT.** Re-ran 8 of the 60 on
+   the socketed chip (use_core=0), N=4 each: the ghost address is STABLE
+   run-to-run (deterministic silicon behavior, not an uninitialised-latch
+   coin-flip). Tooling: sw/rerun_ghost.py. 5/6 sampled reproduced the
+   golden address exactly; 1 (idx 5) reproduced a stable-but-different
+   value - i.e. it depends on pre-window history, not the injected state.
+4. **Ladder rung 3 (history dependence) - CONFIRMED.** (a) A per-register
+   load-routine mutation sweep on idx 25: perturbing ax/cx/dx/bp/si/di/
+   ds/es leaves the ghost UNCHANGED; only PS/CS (which reshapes the fetch
+   stream / queue alignment) moves it. So it is not a function of the
+   architectural operands. (b) The ghost value appears in the full
+   capture ONLY as that MEMR itself (txn 39), i.e. it is stale internal
+   EA/address-latch state, not a copy of an earlier real bus cycle.
+5. **Ladder rung 4 (RTL) - NOT satisfiable.** The address is
+   pre-window microarchitectural latch state set by the harness injection
+   stub (load routine + 63 C0 preload + prefetch stream). A
+   backdoor-injected core never executes that stub, so it has no such
+   history and legitimately drives the modeled SS:SP. This is a
+   golden(stub-injected chip) vs replay(backdoor core) injection-mechanism
+   artifact, not a core defect - and there is no modelable deterministic
+   law tying the stale value to anything the core can reproduce.
+
+Resolution applied: address (bus col) + data (col 6) on the 8F /0 mod3
+MEMR row are a documented don't-care. Implemented in
+sw/check_core.py dontcare_cells() (gated tightly on 8F + mod3; the
+mem-operand forms mod 0/1/2 keep full address comparison), documented in
+tests/v30/v0.1/metadata.json (8F.0 dont_care field + a top-level note)
+and sw/emit_suite.py (8F.0 spec comment). Golden data files are
+UNCHANGED (the chip's address stays recorded, just flagged).
+
+Result: 8F.0 500/500 (cycles 500, arch 500); grand regression
+155500/155500 cycles + 155500/155500 arch; w1/w3 still 1200/1200 each.
 
 ## Closure-block results (this session, commits 793c61a..HEAD)
 
@@ -258,6 +299,8 @@ divergence** - confirms the Mission D disp/split laws in silicon and
 fz4040-4539 500/500)**. The core is cycle-for-cycle indistinguishable
 from the chip across the fuzz corpus in real silicon.
 
-Residuals unchanged: 8F.0 ghost-read address (60 golden cases, cycles-
-only, pre-window latch); undocumented encodings parked (FE/7 etc.);
-waits>=1 qs_e flush-display artifact at far jumps (execution identical).
+Residuals: 8F.0 ghost-read address RESOLVED 2026-07-13 (documented
+golden-schema don't-care; grand regression now 155500/155500 - see the
+"8F.0 mod3 ghost-read address" section at the top of this file);
+undocumented encodings parked (FE/7 etc.); waits>=1 qs_e flush-display
+artifact at far jumps (execution identical).

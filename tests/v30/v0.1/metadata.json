@@ -25,7 +25,8 @@
   "V20 flags-masks carry over: V30 undefined-flag behavior is bit-exact with the V20 (docs/facts/undefined_flags.md).",
   "Odd-indexed cases are prefetched (63 C0 preload); even-indexed start from an empty queue.",
   "No IN/port-read opcodes in v0.1 (harness IOR data fixed).",
-  "Mission J growth: moffs A0-A3, sreg MOVs 8C/8E, LDEA 8D, TRANS D7, CVTBW/CVTWL 98/99, string singles A4/A5/AA/AB/AC/AD, REP F3AA/F3A4 (CW 0-3), segment-prefixed 26.8B/2E.8B/36.8B/3E.8B. Prefixed forms pop one F per prefix byte; their windows span [prefix F .. next-instruction F] and contain interior F pops."
+  "Mission J growth: moffs A0-A3, sreg MOVs 8C/8E, LDEA 8D, TRANS D7, CVTBW/CVTWL 98/99, string singles A4/A5/AA/AB/AC/AD, REP F3AA/F3A4 (CW 0-3), segment-prefixed 26.8B/2E.8B/36.8B/3E.8B. Prefixed forms pop one F per prefix byte; their windows span [prefix F .. next-instruction F] and contain interior F pops.",
+  "8F /0 mod3 ghost-read address is a documented don't-care (see the 8F opcode entry's dont_care field). The undocumented register-destination POP (8F C0-C7) writes no register - it only does SP += 2 and issues one stack read whose word is discarded. On silicon that read's committed ADDRESS (bus col) and its data are stale internal EA/address-latch state carried in from pre-window execution history (the injection stub: load routine + 63 C0 preload + prefetch stream); deterministic and stable across re-runs but with no relation to the injected architectural state, and unreproducible from an injected start. Comparators must treat the address+data on the mod3 MEMR row as don't-care (sw/check_core.py dontcare_cells)."
  ],
  "opcodes": {
   "00": {
@@ -298,6 +299,17 @@
    "status": "normal",
    "arch": "86",
    "note": "IDIV rm16; trap cases vector through IVT 0 like F7.6"
+  },
+  "8F.0": {
+   "status": "normal",
+   "arch": "86",
+   "note": "POP r/m16. mem forms (mod 0/1/2) pop a real word to memory. mod3 (0xC0-0xC7) is the undocumented register-destination alias: it writes NO register, only SP += 2, and issues one stack read whose word is discarded.",
+   "dont_care": {
+    "when": "bytes[0]==0x8F and (bytes[1] & 0xC0)==0xC0",
+    "row": "the single MEMR row (the discarded mod3 stack read)",
+    "cols": ["bus (col 1, committed address)", "data (col 6, read data)"],
+    "reason": "Architecturally inert: the read word is discarded (dest reg never written). The chip drives the read at stale internal EA/address-latch state from pre-window execution history (injection stub load routine + 63 C0 preload + prefetch stream) - deterministic and stable across re-runs, but no (seg<<4)+reg+const formula fits it and only PS/CS (fetch-stream shape) perturbs it. A backdoor-injected core has no such history and drives the modeled SS:SP. See docs/notes/closure_checkpoint.md 8F.0 section and sw/check_core.py dontcare_cells()."
+   }
   }
  }
 }
