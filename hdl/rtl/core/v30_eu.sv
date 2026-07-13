@@ -1644,14 +1644,22 @@ always_ff @(posedge clk) begin
             //----------------------------------------------------------------
             S_AIGAP: state <= S_AI_I8;     // mem imm forms: pop done+2
             S_SHWAIT: begin
-                // one cycle per count step, then the fitted base slots
+                // one cycle per count step, then the fitted base
+                // slots. C0/C1 anchor at the count-imm pop (= mem
+                // read done+2); D2/D3 anchor at the modrm pop / read
+                // done, one slot later (fitted: D2.0 reg pop+9+CL,
+                // +8 at 0; mem write T1 = read done+11+CL, cl=0
+                // close done+9)
                 if (shw != 9'd0) shw <= shw - 9'd1;
                 else if (mrm_mod != 2'd3 && sh_cnt != 8'd0) begin
-                    dly <= 6'd5; state <= S_RMWX;
+                    dly <= op_shimm ? 6'd5 : 6'd7;
+                    state <= S_RMWX;
                 end else if (mrm_mod != 2'd3) begin
-                    dly <= 6'd4; wnext <= S_EX; state <= S_WAITX;
+                    dly <= op_shimm ? 6'd4 : 6'd6;
+                    wnext <= S_EX; state <= S_WAITX;
                 end else begin
-                    dly <= (sh_cnt == 8'd0) ? 6'd4 : 6'd5;
+                    dly <= op_shimm ? ((sh_cnt == 8'd0) ? 6'd4 : 6'd5)
+                                    : ((sh_cnt == 8'd0) ? 6'd5 : 6'd6);
                     wnext <= S_EX; state <= S_WAITX;
                 end
             end

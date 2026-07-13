@@ -35,10 +35,11 @@ echo`). NEVER reprogram the FPGA; one board user at a time.
   see f956250 commit message and shrot() header).
 
 ## Pending arrival (laws fitted, expect pass; re-check on landing)
-- 80.7, C1.x (word shift-imm), D0.0-D0.7/D1.x (by-1), D2/D3 (CL, routed
-  through S_SHWAIT; BASE SLOTS UNFITTED - will need the C0-style fit:
-  extract pop->write/close deltas, adjust S_SHWAIT dispatch constants
-  which currently assume the C0 anchor).
+- Remaining D2.x/D3.x arrivals (D2.0/D2.1 fitted+green: reg close =
+  modrm-pop+9+CL (+8 at 0), mem write T1 = read-done+11+CL, cl=0 mem
+  close done+9; S_SHWAIT bases split op_shimm vs D2/D3).
+- 80.7, remaining C1.x/D0.x/D1.x arrivals (laws fitted, passing on
+  arrival so far).
 - BCD 27/2F/37/3F/D4/D5 (skeletons + documented flag laws; timing
   guesses dly1/15/6 in S_DEC + S_BCD_IMM).
 
