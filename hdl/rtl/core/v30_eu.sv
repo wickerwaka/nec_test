@@ -342,7 +342,11 @@ wire [1:0] mrm_mod = mrm[7:6];
 //----------------------------------------------------------------------------
 // decode
 //----------------------------------------------------------------------------
-wire op_alu    = (opc & 8'hC7) == 8'h00;             // 00,08,..,38 rm8,r8
+// ALU r/m forms: all 32 encodings (8 ops x {rm8,r8 / rm16,r16 / r8,rm8 /
+// r16,rm16}). opc[0]=w (byte/word), opc[1]=d (0: dest=rm, 1: dest=reg).
+// Mission S found the word/direction forms unimplemented (parked S_HALT);
+// the golden suite only covered the rm8,r8 representative.
+wire op_alu    = (opc & 8'hC4) == 8'h00;
 wire op_movs8  = opc == 8'h88;
 wire op_movs16 = opc == 8'h89;
 wire op_movl8  = opc == 8'h8A;
@@ -452,6 +456,7 @@ wire op_modrm  = op_alu | op_movs8 | op_movs16 | op_movl8 | op_movl16 |
 wire is_store  = op_movs8 | op_movs16 | op_srst;     // write-only mem access
 wire is_load   = op_movl8 | op_movl16 | op_srld;
 wire is_word_t = op_movs16 | op_movl16 | op_grpf7 |  // word transfer
+                 (op_alu & opc[0]) |
                  op_grp81 | op_grp83 | op_grpd1 | op_grpd3 | op_grpc1 |
                  (op_test && opc[0]) | op_popm | op_grpff | op_imuli |
                  op_ldptr | (op_bit1 && opc2[0]) | op_fpo | op_chk |
@@ -932,7 +937,16 @@ endfunction
 // execute-stage combinational results (operand a = rm, b = reg)
 //----------------------------------------------------------------------------
 wire [7:0]  rm_byte = (mrm_mod == 2'd3) ? reg8_get(mrm_rm) : mem_op[7:0];
-wire [23:0] ex_alu  = alu8(opc[5:3], rm_byte, reg8_get(mrm_reg), psw);
+wire [15:0] rm_word = (mrm_mod == 2'd3) ? rf[mrm_rm] : mem_op;
+// ALU r/m operand order by the direction bit (opc[1]): d=0 dest=rm
+// (a=rm, b=reg), d=1 dest=reg (a=reg, b=rm). SUB/SBB/CMP are
+// non-commutative so the order sets the flags too.
+wire [7:0]  alu_a8  = opc[1] ? reg8_get(mrm_reg) : rm_byte;
+wire [7:0]  alu_b8  = opc[1] ? rm_byte : reg8_get(mrm_reg);
+wire [15:0] alu_a16 = opc[1] ? rf[mrm_reg] : rm_word;
+wire [15:0] alu_b16 = opc[1] ? rm_word : rf[mrm_reg];
+wire [23:0] ex_alu  = alu8(opc[5:3], alu_a8, alu_b8, psw);
+wire [31:0] ex_alu16 = alu16(opc[5:3], alu_a16, alu_b16, psw);
 wire [23:0] ex_inc  = incdec8(mrm_reg == 3'd1, rm_byte, psw);
 wire [23:0] ex_shl  = shl8_1(rm_byte, psw);
 
@@ -3259,8 +3273,10 @@ always_ff @(posedge clk) begin
                         psw <= opc[0] ? tm16[31:16] : tm8[23:8];
                         state <= S_NOP;   // close done+3
                     end
-                    else if (is_load || (op_alu && opc[5:3] == 3'd7))
-                        state <= S_LD_W1;   // MOV load / CMP mem
+                    else if (is_load ||
+                             (op_alu && (opc[5:3] == 3'd7 || opc[1])))
+                        state <= S_LD_W1;   // MOV load / CMP mem /
+                                            // ALU reg,mem load-op (d=1)
                     else if ((op_grpf6 || op_grpf7) && mrm_reg == 3'd0)
                         state <= S_TESTGAP; // TEST imm pops at done+3
                     else if (op_alui || op_imuli)
@@ -3486,7 +3502,20 @@ always_ff @(posedge clk) begin
                     t8  = alu8(3'd4, mem_op[7:0], reg8_get(mrm_reg), psw);
                     psw <= opc[0] ? t16[31:16] : t8[23:8];
                 end
-                else if (op_alu)    psw <= ex_alu[23:8];  // CMP mem
+                else if (op_alu) begin
+                    // CMP mem (op 7): flags only. ALU reg,mem load-op
+                    // (d=1): flags + register writeback. Width = opc[0].
+                    // mem_op holds the read operand (rm_word/rm_byte).
+                    if (opc[0]) begin
+                        psw <= ex_alu16[31:16];
+                        if (opc[5:3] != 3'd7 && opc[1])
+                            rf[mrm_reg] <= ex_alu16[15:0];
+                    end else begin
+                        psw <= ex_alu[23:8];
+                        if (opc[5:3] != 3'd7 && opc[1])
+                            wr_reg8(mrm_reg, ex_alu[7:0]);
+                    end
+                end
                 retire();
                 if (op_srld) shadow <= 1'b1;   // sreg-load shadow
             end
@@ -3668,8 +3697,21 @@ always_ff @(posedge clk) begin
                     rf[mrm_rm]  <= rf[mrm_reg];
                     rf[mrm_reg] <= rf[mrm_rm];
                 end else if (op_alu) begin
-                    psw <= ex_alu[23:8];
-                    if (opc[5:3] != 3'd7) wr_reg8(mrm_rm, ex_alu[7:0]);
+                    // reg-form ALU: width (opc[0]) + direction (opc[1]);
+                    // CMP (op 7) writes flags only
+                    if (opc[0]) begin
+                        psw <= ex_alu16[31:16];
+                        if (opc[5:3] != 3'd7) begin
+                            if (opc[1]) rf[mrm_reg] <= ex_alu16[15:0];
+                            else        rf[mrm_rm]  <= ex_alu16[15:0];
+                        end
+                    end else begin
+                        psw <= ex_alu[23:8];
+                        if (opc[5:3] != 3'd7) begin
+                            if (opc[1]) wr_reg8(mrm_reg, ex_alu[7:0]);
+                            else        wr_reg8(mrm_rm,  ex_alu[7:0]);
+                        end
+                    end
                 end else if (op_alui) begin
                     // reg forms + CMP-mem: flags (and reg writeback)
                     if (op_grp80) begin
@@ -3906,6 +3948,10 @@ always_ff @(posedge clk) begin
                         // sibling lane (C0.0 goldens)
                         eu_wdata <= ex_shr[15:0];
                         psw <= ex_shr[31:16];
+                    end else if (op_alu && opc[0]) begin
+                        // word ALU RMW (d=0): drive the 16-bit result
+                        eu_wdata <= ex_alu16[15:0];
+                        psw      <= ex_alu16[31:16];
                     end else begin
                         eu_wdata <= rmw_wide;
                         if (op_alu)        psw <= ex_alu[23:8];
