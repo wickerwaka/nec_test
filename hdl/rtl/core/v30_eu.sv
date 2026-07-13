@@ -349,6 +349,9 @@ wire op_out    = opc == 8'hE6 || opc == 8'hE7 ||
 wire op_0f     = opc == 8'h0F;                       // two-byte forms
 wire op_test1  = op_0f && opc2 == 8'h18;             // TEST1 rm8,imm3
 wire op_rol4   = op_0f && opc2 == 8'h28;             // ROL4 rm8
+wire op_ror4   = op_0f && opc2 == 8'h2A;             // ROR4 rm8
+wire op_bit1   = op_0f && opc2[7:4] == 4'h1;         // 0F 10-1F bit ops
+wire b1_imm    = opc2[3];                            // imm4 vs CL index
 wire op_accimm = (opc & 8'hC6) == 8'h04;             // ALU acc, imm
 wire op_testai = opc == 8'hA8 || opc == 8'hA9;       // TEST acc, imm
 wire op_test   = opc == 8'h84 || opc == 8'h85;       // TEST rm, reg
@@ -390,7 +393,7 @@ wire is_load   = op_movl8 | op_movl16 | op_srld;
 wire is_word_t = op_movs16 | op_movl16 | op_grpf7 |  // word transfer
                  op_grp81 | op_grp83 | op_grpd1 | op_grpd3 | op_grpc1 |
                  (op_test && opc[0]) | op_popm | op_grpff | op_imuli |
-                 op_ldptr |
+                 op_ldptr | (op_bit1 && opc2[0]) |
                  op_xchg16 | op_srst | op_srld;
 wire is_reader = !is_store;                          // mem forms read first
 
@@ -756,6 +759,27 @@ function automatic [10:0] bcd_add8(input [7:0] a, input [7:0] b, input cin);
     sibx = c3 && (dhi0 > 4'd9);
     prez = (dhi0 == 4'd0) && (dlo0 == 4'd0);
     bcd_add8 = {fire, sibx, prez, dhi, dlo};
+endfunction
+
+// SUB4S/CMP4S nibble-serial subtract (structural mirror of bcd_add8;
+// adjust = -6 on borrow; fit against the 0F22/0F26 goldens)
+function automatic [10:0] bcd_sub8(input [7:0] a, input [7:0] b, input bin);
+    logic [4:0] lo, hi;
+    logic       c1, c2, c3, fire, sibx, prez;
+    logic [3:0] dlo0, dlo, dhi0, dhi;
+    lo = {1'b0, a[3:0]} - {1'b0, b[3:0]} - {4'd0, bin};
+    c1 = lo[4];
+    dlo0 = lo[3:0];
+    c2 = dlo0 > 4'd9;
+    dlo = (c1 || c2) ? dlo0 - 4'd6 : dlo0;
+    hi = {1'b0, a[7:4]} - {1'b0, b[7:4]} - {4'd0, c1} - {4'd0, c2};
+    c3 = hi[4];
+    dhi0 = hi[3:0];
+    fire = ({1'b0, a[7:4]} - {1'b0, b[7:4]} - {4'd0, c1 | c2}) > 5'd9;
+    dhi = fire ? dhi0 - 4'd6 : dhi0;
+    sibx = c3 && (dhi0 > 4'd9);
+    prez = (dhi0 == 4'd0) && (dlo0 == 4'd0);
+    bcd_sub8 = {fire, sibx, prez, dhi, dlo};
 endfunction
 
 // DIVU leaves the flags of its 16-bit overflow pre-check compare
@@ -1751,9 +1775,11 @@ always_ff @(posedge clk) begin
             S_0F: if (q_pop) begin
                 opc2 <= q_byte;
                 pc   <= pc + 16'd1;
-                if (q_byte == 8'h18 || q_byte == 8'h28)
-                    state <= S_DEC2;
-                else if (q_byte == 8'h20) begin        // ADD4S
+                if (q_byte[7:4] == 4'h1 || q_byte == 8'h28 ||
+                    q_byte == 8'h2A)
+                    state <= S_DEC2;   // bit ops / ROL4 / ROR4
+                else if (q_byte == 8'h20 || q_byte == 8'h22 ||
+                         q_byte == 8'h26) begin        // ADD4S/SUB4S/CMP4S
                     a4_cnt  <= 8'(({1'b0, rf[1][7:0]} + 9'd1) >> 1);
                     a4_k    <= 8'd0;
                     a4_carry <= 1'b0;
@@ -1767,8 +1793,11 @@ always_ff @(posedge clk) begin
                 mrm <= q_byte;
                 pc  <= pc + 16'd1;
                 if (q_byte[7:6] == 2'd3) begin
-                    if (op_test1) state <= S_IMM3;     // imm pops at F+4
-                    else begin                         // ROL4 reg: EX @ F+15
+                    if (op_bit1 && b1_imm)
+                        state <= S_IMM3;               // imm pops at F+4
+                    else if (op_bit1) begin            // CL form (fit)
+                        dly <= 6'd2; wnext <= S_EX; state <= S_WAITX;
+                    end else begin                     // ROL4/ROR4 reg
                         dly <= 6'd11; wnext <= S_EX; state <= S_WAITX;
                     end
                 end else if ((q_byte[7:6] == 2'd0 && q_byte[2:0] == 3'd6) ||
@@ -1781,7 +1810,10 @@ always_ff @(posedge clk) begin
             S_IMM3: if (q_pop) begin
                 immb <= q_byte;
                 pc   <= pc + 16'd1;
-                state <= S_EX;
+                if (op_bit1 && opc2[2:1] != 2'd0 && mrm_mod != 2'd3) begin
+                    dly <= 6'd2; state <= S_RMWX;      // bit RMW (fit)
+                end else
+                    state <= S_EX;
             end
 
             //----------------------------------------------------------------
@@ -1810,15 +1842,39 @@ always_ff @(posedge clk) begin
             S_A4_DST: if (eu_started) state <= S_A4_DSTW;
             S_A4_DSTW: if (eu_done) begin
                 // {fire, sibx, prez, res}; driven sibling lane =
-                // src_other + dst_other + fire + sibx - 1 (measured law)
+                // src_other + dst_other + fire + sibx - 1 (measured law;
+                // SUB4S sibling mirrored structurally, fit pending)
                 logic [10:0] s;
-                s = bcd_add8(eu_rdata[7:0], a4_src[7:0], a4_carry);
+                if (opc2 == 8'h20)
+                    s = bcd_add8(eu_rdata[7:0], a4_src[7:0], a4_carry);
+                else
+                    s = bcd_sub8(eu_rdata[7:0], a4_src[7:0], a4_carry);
                 a4_carry <= s[10];
                 a4_z     <= a4_z && s[8];
-                mem_op   <= {a4_src[15:8] + eu_rdata[15:8] +
-                             {7'd0, s[10]} + {7'd0, s[9]} - 8'd1, s[7:0]};
-                dly      <= 6'd3;
-                state    <= S_A4_G2;
+                if (opc2 == 8'h20)
+                    mem_op <= {a4_src[15:8] + eu_rdata[15:8] +
+                               {7'd0, s[10]} + {7'd0, s[9]} - 8'd1, s[7:0]};
+                else
+                    mem_op <= {eu_rdata[15:8] - a4_src[15:8] -
+                               {7'd0, s[10]} - {7'd0, s[9]} + 8'd1, s[7:0]};
+                if (opc2 == 8'h26) begin        // CMP4S: no write-back
+                    if (a4_cnt > 8'd1) begin
+                        a4_cnt  <= a4_cnt - 8'd1;
+                        a4_k    <= a4_k + 8'd1;
+                        eu_addr <= {sr[SEG_DS], 4'h0} +
+                                   {4'h0, rf[6] + {8'd0, a4_k} + 16'd1};
+                        eu_seg  <= SEG_DS;
+                        eu_wr   <= 1'b0;
+                        dly <= 6'd2; wnext <= S_A4_SRC;  // fit pending
+                        state <= S_WAITX;
+                    end else begin
+                        dly   <= s[10] ? 6'd4 : 6'd5;    // fit pending
+                        state <= S_A4_END;
+                    end
+                end else begin
+                    dly      <= 6'd3;
+                    state    <= S_A4_G2;
+                end
             end
             S_A4_G2: begin
                 if (dly == 6'd1) begin
@@ -2292,9 +2348,15 @@ always_ff @(posedge clk) begin
                         shadow <= 1'b1;      // sreg load shadow
                         retire();
                     end
-                    else if (op_test1)
+                    else if (op_bit1 && b1_imm)
                         state <= S_T1GAP;                 // imm pop done+2
-                    else if (op_rol4) begin
+                    else if (op_bit1 && opc2[2:1] == 2'd0) begin
+                        dly <= 6'd2; wnext <= S_EX;       // TEST1 CL mem
+                        state <= S_WAITX;                 // (fit pending)
+                    end else if (op_bit1) begin
+                        dly <= 6'd2; state <= S_RMWX;     // bit RMW CL mem
+                    end
+                    else if (op_rol4 || op_ror4) begin
                         dly <= 6'd10; state <= S_RMWX;    // wr ready done+11
                     end else if (op_alu || op_xchg8 || op_xchg16) begin
                         dly <= 6'd2; state <= S_RMWX;     // wr ready done+3
@@ -2481,9 +2543,43 @@ always_ff @(posedge clk) begin
                     psw[FB_AC] <= 1'b0;
                     psw[FB_CY] <= 1'b0;
                     psw[FB_V]  <= 1'b0;
+                end else if (op_bit1) begin
+                    // TEST1/CLR1/SET1/NOT1 generalized (CL and imm
+                    // forms, byte/word; 0F18 keeps its fitted branch
+                    // above). Laws: TEST1 sets Z/S/P of the masked
+                    // value, AC=CY=V=0; the others touch NO flags.
+                    logic [3:0] bidx;
+                    logic [15:0] bmask, bop, bt;
+                    bidx = b1_imm ? (opc2[0] ? immb[3:0]
+                                             : {1'b0, immb[2:0]})
+                                  : (opc2[0] ? rf[1][3:0]
+                                             : {1'b0, rf[1][2:0]});
+                    bmask = 16'd1 << bidx;
+                    bop = (mrm_mod == 2'd3)
+                          ? (opc2[0] ? rf[mrm_rm] : {8'd0, reg8_get(mrm_rm)})
+                          : mem_op;
+                    if (opc2[2:1] == 2'd0) begin       // TEST1
+                        bt = bop & bmask;
+                        psw[FB_Z]  <= bt == 16'd0;
+                        psw[FB_S]  <= opc2[0] ? bt[15] : bt[7];
+                        psw[FB_P]  <= ~^bt[7:0];
+                        psw[FB_AC] <= 1'b0;
+                        psw[FB_CY] <= 1'b0;
+                        psw[FB_V]  <= 1'b0;
+                    end else if (mrm_mod == 2'd3) begin
+                        logic [15:0] br;
+                        br = (opc2[2:1] == 2'd1) ? (bop & ~bmask) :
+                             (opc2[2:1] == 2'd2) ? (bop | bmask)  :
+                                                   (bop ^ bmask);
+                        if (opc2[0]) rf[mrm_rm] <= br;
+                        else         wr_reg8(mrm_rm, br[7:0]);
+                    end
                 end else if (op_rol4) begin            // reg form
                     wr_reg8(mrm_rm, {rm_byte[3:0], rf[0][3:0]});
                     rf[0][7:0] <= {rf[0][3:0], rm_byte[7:4]};
+                end else if (op_ror4) begin            // reg form
+                    wr_reg8(mrm_rm, {rf[0][3:0], rm_byte[7:4]});
+                    rf[0][7:0] <= {rf[0][7:4], rm_byte[3:0]};
                 end else if (op_xchg8) begin
                     wr_reg8(mrm_rm, reg8_get(mrm_reg));
                     wr_reg8(mrm_reg, reg8_get(mrm_rm));
@@ -2659,6 +2755,24 @@ always_ff @(posedge clk) begin
                         eu_wdata <= {rf[0][3:0], mem_op[7:4],
                                      mem_op[3:0], rf[0][3:0]};
                         rf[0][7:0] <= {rf[0][3:0], mem_op[7:4]};
+                    end else if (op_ror4) begin
+                        // ROR4 mem: pair mirror of ROL4 (fit pending)
+                        eu_wdata <= {rf[0][7:4], mem_op[3:0],
+                                     rf[0][3:0], mem_op[7:4]};
+                        rf[0][7:0] <= {rf[0][7:4], mem_op[3:0]};
+                    end else if (op_bit1) begin
+                        // CLR1/SET1/NOT1 mem: only the addressed bit
+                        // changes; sibling lane preserved from the read
+                        logic [3:0] bidx;
+                        logic [15:0] bmask;
+                        bidx = b1_imm ? (opc2[0] ? immb[3:0]
+                                                 : {1'b0, immb[2:0]})
+                                      : (opc2[0] ? rf[1][3:0]
+                                                 : {1'b0, rf[1][2:0]});
+                        bmask = 16'd1 << bidx;
+                        eu_wdata <= (opc2[2:1] == 2'd1) ? (mem_op & ~bmask)
+                                  : (opc2[2:1] == 2'd2) ? (mem_op | bmask)
+                                  :                       (mem_op ^ bmask);
                     end else if (op_alui) begin
                         eu_wdata <= ai_wide;
                         psw <= op_grp80 ? ex_ai8[23:8] : ex_ai16[31:16];
