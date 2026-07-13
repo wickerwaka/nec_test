@@ -83,6 +83,7 @@ logic         scr_en = 0;
 logic   [1:0] scr_qop = 2'b00;
 wire  [223:0] dbg_regs;
 wire          dbg_first_pop;
+wire          dbg_pend;
 
 // pins
 wire [19:0] AD;
@@ -131,7 +132,8 @@ v30_core dut (
     .scr_en    (scr_en),
     .scr_qop   (scr_qop),
     .dbg_regs  (dbg_regs),
-    .dbg_first_pop (dbg_first_pop)
+    .dbg_first_pop (dbg_first_pop),
+    .dbg_pend      (dbg_pend)
 );
 
 //----------------------------------------------------------------------------
@@ -217,6 +219,8 @@ integer fo = 0;
 logic   recording = 0;
 integer fcount = 0;
 logic [223:0] fin_regs = '0;
+logic         fin_ghost = 0;    // a ghost load was pending at the close
+logic [4:0]   fin_wait = 0;
 
 always @(posedge clk) begin
     if (!reset) begin
@@ -226,8 +230,22 @@ always @(posedge clk) begin
                       tb_t, BS, QS, UBE_N, ad_mid, eff_lo, eff_hi);
         if (recording && QS == 2'b01) begin
             fcount <= fcount + 1;
-            if (fcount == nf - 1)
+            if (fcount == nf - 1) begin
                 fin_regs <= dbg_regs;   // state at the window-closing F pop
+                fin_wait <= 5'd16;
+            end
+        end
+        // ghost loads (POP-to-reg data still in flight at the closing F)
+        // complete within the settle window; re-latch everything except
+        // the retired IP (the following NOPs keep retiring)
+        if (fin_wait != 0) begin
+            fin_wait <= fin_wait - 5'd1;
+            if (dbg_pend) fin_ghost <= 1;
+            else if (fin_ghost) begin
+                fin_ghost <= 0;
+                fin_regs[191:0]   <= dbg_regs[191:0];
+                fin_regs[223:208] <= dbg_regs[223:208];
+            end
         end
 
         // observer FSM / cycle-type latch
@@ -419,6 +437,7 @@ initial begin
         end
         repeat (2) @(posedge clk);    // flush the F#1 row itself
         recording = 0;
+        repeat (16) @(posedge clk);   // ghost-load settle window
         case_active = 0;
         $fdisplay(fo, "f %04x %04x %04x %04x %04x %04x %04x %04x %04x %04x %04x %04x %04x %04x",
                   fin_regs[15:0],    fin_regs[31:16],  fin_regs[47:32],

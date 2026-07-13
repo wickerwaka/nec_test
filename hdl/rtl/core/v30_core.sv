@@ -49,7 +49,8 @@ module v30_core (
     input             scr_en,       // scripted-consumer mode (BIU-only test)
     input       [1:0] scr_qop,      // per-cycle queue op, QS encoding
     output    [223:0] dbg_regs,     // ip slot holds the retired-instruction IP
-    output            dbg_first_pop
+    output            dbg_first_pop,
+    output            dbg_pend
 `endif
 );
 
@@ -69,6 +70,7 @@ wire        eu_pop, eu_first, eu_flush;
 wire [15:0] eu_flush_cs, eu_flush_ip;
 wire        eu_req, eu_hold, eu_ready, eu_wr, eu_fwd, eu_word;
 wire        eu_soon, bus_phase, bus_t4, flush_fast;
+wire [2:0]  bus_ts;
 wire  [1:0] eu_kind;
 wire [19:0] eu_addr;
 wire  [1:0] eu_seg;
@@ -122,6 +124,7 @@ v30_biu u_biu (
     .flush_fast (scr_en ? 1'b0 : flush_fast),
     .bus_phase  (bus_phase),
     .bus_t4     (bus_t4),
+    .bus_ts     (bus_ts),
     .eu_hold    (scr_en ? 1'b0 : eu_hold),
     .eu_ready   (eu_ready),
     .eu_wr      (eu_wr),
@@ -162,6 +165,7 @@ v30_eu u_eu (
     .flush_fast (flush_fast),
     .bus_phase  (bus_phase),
     .bus_t4     (bus_t4),
+    .bus_ts     (bus_ts),
     .eu_hold    (eu_hold),
     .eu_ready   (eu_ready),
     .eu_wr      (eu_wr),
@@ -188,12 +192,14 @@ v30_eu u_eu (
 `ifdef V30_BACKDOOR
     ,
     .dbg_regs      (dbg_regs),
-    .dbg_first_pop (dbg_first_pop)
+    .dbg_first_pop (dbg_first_pop),
+    .dbg_pend      (dbg_pend)
 `else
     ,
     /* verilator lint_off PINCONNECTEMPTY */
     .dbg_regs      (),
-    .dbg_first_pop ()
+    .dbg_first_pop (),
+    .dbg_pend      ()
     /* verilator lint_on PINCONNECTEMPTY */
 `endif
 );

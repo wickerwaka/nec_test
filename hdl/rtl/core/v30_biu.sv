@@ -102,6 +102,7 @@ module v30_biu (
     input             flush_fast,     // far-flush: redirect commits mid-cycle
     output            bus_phase,      // 2-cycle bus grid parity (T1=0)
     output            bus_t4,         // current cycle is a bus T4
+    output      [2:0] bus_ts,         // T-state: 0=Ti 1=T1 2=T2 3=T3 4=T4 5=cTi
     input             eu_hold,      // blocks prefetch, not request history
     input             eu_ready,
     input             eu_wr,
@@ -711,6 +712,11 @@ wire ph_now = (state == ST_T1 || state == ST_T3) ? 1'b0
 always_ff @(posedge clk) ph_ff <= ~ph_now;
 assign bus_phase = ph_now;
 assign bus_t4 = state == ST_T4;
+assign bus_ts = (state == ST_T1) ? 3'd1
+              : (state == ST_T2) ? 3'd2
+              : (state == ST_T3 || state == ST_TW) ? 3'd3
+              : (state == ST_T4) ? 3'd4
+              : nxt_live ? 3'd5 : 3'd0;
 
 // Status display: active from commit through T2 always; through T3/TW
 // while READY has not yet been sampled high in this bus cycle (measured

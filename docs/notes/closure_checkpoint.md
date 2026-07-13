@@ -121,8 +121,20 @@ echo`). NEVER reprogram the FPGA; one board user at a time.
   chained fetch IS allowed at the pop-cycle end (unlike EA); then the
   FF.3 tail (flush at write-done+1, PC push at flush end). New BIU
   output bus_t4.
-- REMAINING fit queue (bulk-score for current truth): 8F.0 partial,
-  C8 PREPARE (arch 0 - debug), F6.6 cycles,
+- FITTED since: 8F.0 POP mem/reg at 413/500 (arch 473). LAWS: mem
+  form pipelines the EA write DURING the stack read with BIU data
+  forwarding (eu_fwd; write commits at the read's T3 end); stack read
+  matures pop+2 (T1/T2 disp pop) / pop+3 (else); reservation from
+  disp-pop+1 (pop-cycle end commit allowed); reg form (mod3) QUIRK:
+  the popped DATA IS DISCARDED - only SP+2 commits, dest reg
+  untouched; retire at pop+3 with the read completing IN FLIGHT
+  post-retire (ghost pop; new dbg_pend export + TB settle window that
+  re-latches final regs except IP). PARKED: ~87 cycle-residuals
+  (pop-end occupancy off-by-one class + mod3 ghost-read ADDRESS from
+  an unmodeled internal latch - final captured row only).
+- PARKED: FF.2 11-case + FF.6 27-case pre-first-T1 carried-phase
+  artifact (TB pre-capture grid alignment, same class as before).
+- REMAINING fit queue: C8 PREPARE (arch 0 - debug), F6.6 cycles,
   0F22 sibling residue (parked), 0F26 2-case residue (parked).
 - NOT IMPLEMENTED but tranches LANDED: 60/61 (PUSH R/POP R),
   INS/EXT 0F31/33/39/3B.

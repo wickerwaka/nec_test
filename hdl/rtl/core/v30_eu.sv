@@ -143,6 +143,7 @@ module v30_eu (
     input             eu_started,
     input             bus_phase,   // BIU 2-cycle grid parity (T1=0)
     input             bus_t4,      // BIU cycle is a T4
+    input       [2:0] bus_ts,      // BIU T-state (0=Ti 1..4=T1-T4 5=cTi)
     input             eu_done,
     input             eu_wdone,   // early write completion (trap chain law)
     input             eu_t1,      // pulse: first T1 of the current EU access
@@ -163,7 +164,8 @@ module v30_eu (
     input             bkd_load,
     input     [223:0] bkd_regs,   // {psw,ip,ds,ss,cs,es,di,si,bp,sp,bx,dx,cx,ax}
     output    [223:0] dbg_regs,
-    output            dbg_first_pop
+    output            dbg_first_pop,
+    output            dbg_pend       // ghost load still in flight
 );
 
 // PS1:0 segment-status codes (= AD17:16 during T2-T4)
@@ -200,7 +202,7 @@ typedef enum logic [6:0] {
     S_IMM_LO, S_IMM_HI, S_NOP,
     S_AI_I8, S_AI_I16, S_AIGAP, S_TESTGAP, S_BCD_IMM, S_SHWAIT,
     S_EA1, S_EA2, S_DISP8, S_DLO, S_DGAP, S_DHI, S_DSTALL,
-    S_RSV, S_REQ, S_BUSW, S_FRETW,
+    S_RSV, S_REQ, S_BUSW, S_FRETW, S_POPMW, S_POPR,
     S_PUSH_CALC,
     S_LD_W1, S_LD_W2,
     S_WAITX, S_EX,
@@ -265,6 +267,7 @@ reg         ldp2;        // LES/LDS: second (segment) word in flight
 reg  [1:0]  fret_ph;     // RETI stack-read phase (completed reads)
 reg  [1:0]  facc;        // RETF/RETI stack reads accepted
 reg         iret_pw;     // RETI: PSW stack read still in flight post-flush
+reg         popr_pend;   // 8F.0 reg: stack read in flight post-retire
 reg  [8:0]  shw;         // shift/rotate full-count burn counter
 reg [15:0]  fl_cs, fl_ip; // flush redirect target
 // external-event machinery (block 4). The recognition sample is the
@@ -991,11 +994,16 @@ always_comb begin
         // in the cycle their final displacement byte actually pops
         // the sreg store (8C) follows the READER reservation + ready
         // schedule throughout (measured); LEA reserves nothing
+        // POP mem starts its reservation one cycle AFTER the disp pop
+        // (a prefetch may commit at the pop-cycle end; measured) - its
+        // S_WAITX wait below carries the reservation instead
         S_EA1: eu_req = (is_reader || op_srst) && !op_lea &&
                         mrm_mod == 2'd0;
         S_EA2: eu_req = (is_reader || op_srst) && !op_lea;
+        // POP mem reserves at its disp pop only on phase-1 pops
+        // (T2/T4-aligned; phase-0 pops let the pop-end commit pass)
         S_DISP8, S_DHI: eu_req = (is_reader || op_srst) && !op_lea &&
-                                 q_pop;
+                                 q_pop && (!op_popm || bus_phase);
         // moffs forms (A0-A3) reserve during their final address-byte
         // pop, exactly like the disp pops (measured: cold A2 blocks the
         // prefetch commit at the in-flight fetch's T3 edge); IN's port
@@ -1031,8 +1039,9 @@ always_comb begin
                       (opc == 8'hCC ||
                        ((opc == 8'hCD || opc == 8'hCE) && dly <= 6'd2))) ||
                      // CALL far imm holds the bus from the seg-hi pop
-                     // to its PS push (measured: no prefetch commit)
-                     (wnext == S_REQ && opc == 8'h9A);
+                     // to its PS push (measured: no prefetch commit);
+                     // POP mem holds from disp-pop+1 to its stack read
+                     (wnext == S_REQ && (opc == 8'h9A || op_popm));
             eu_soon = eu_req && dly == 6'd1 && wnext == S_TRAP_IVT1;
         end
         S_JDISP: eu_req = q_pop && opc == 8'hEB;
@@ -1083,6 +1092,10 @@ always_comb begin
             eu_req   = 1'b1;
             eu_ready = 1'b1;
         end
+        S_POPMW: begin              // drop once the write is accepted
+            eu_req   = facc == 2'd0;
+            eu_ready = facc == 2'd0;
+        end
         // CMPBK: the ES:IY read request stays up until accepted while
         // the DS:IX data is still in flight (structural; fit pending)
         S_CMPW1: begin
@@ -1098,6 +1111,13 @@ always_comb begin
             eu_req = 1'b1;
         default: ;
     endcase
+    // 8F.0 reg form: the stack read request stays up across retire
+    // (the register loads in flight; measured: retire at pop+3 with
+    // the MEMR completing after the next instruction begins)
+    if (popr_pend && !(state == S_WAITX && dly == 6'd2)) begin
+        eu_req   = 1'b1;
+        eu_ready = 1'b1;
+    end
 end
 
 //----------------------------------------------------------------------------
@@ -1110,6 +1130,12 @@ task automatic retire();
     rep_en     <= 1'b0;
     shadow     <= 1'b0;      // shadowing instructions re-set it after
 endtask
+
+// POP mem (8F.0): the stack read matures at pop+2 from a T1/T2 pop,
+// pop+3 otherwise (measured over all 500 golden mem cases)
+wire [5:0] popm_rdy =
+    (bus_ts == 3'd1 || bus_ts == 3'd2) ? 6'd2 : 6'd3;
+reg  [5:0] popm_hold;   // popm_rdy latched at the last queue pop
 
 // latch memory-operand access parameters (EA paths); off = 16-bit offset
 task automatic setup_access(input [15:0] off);
@@ -1139,7 +1165,7 @@ wire [15:0] str_step = opc[0] ? (psw[10] ? 16'hFFFE : 16'd2)
 
 // MOVBK's write takes its data from the BIU's read latch (forwarded at
 // the commit edge - the write commits at the read's own T3 edge)
-assign eu_fwd = state == S_STRW;
+assign eu_fwd = state == S_STRW || state == S_POPMW;
 
 // stack push at SP-2 (also decrements SP)
 task automatic issue_push(input [15:0] wdata);
@@ -1169,6 +1195,15 @@ always_ff @(posedge clk) begin
     // tap (interrupt_model.md "REP abort"); consumed by the string
     // states below for accepts that land after the edge
     if (rslot == 6'd6) rep1_abort <= irq_rep;
+    if (q_pop) popm_hold <= popm_rdy;
+    // 8F.0 reg ghost pop (runs in any state). QUIRK (measured, all
+    // 130 golden mod3 cases): the popped DATA IS DISCARDED - only
+    // SP+2 commits; the destination register is untouched (POP SP
+    // sees just the increment).
+    if (popr_pend && eu_done) begin
+        rf[4] <= rf[4] + 16'd2;
+        popr_pend <= 1'b0;
+    end
 
     // RETI's PSW stack pop completes after the flush (runs in any state)
     if (iret_pw && eu_done) begin
@@ -1182,6 +1217,7 @@ always_ff @(posedge clk) begin
         // idles 7 cycles after release, then flush-redirects to FFFF0
         state    <= S_RESET;
         iret_pw  <= 1'b0;
+        popr_pend <= 1'b0;
         dly      <= 6'd7;
         wnext    <= S_HALT;
         opc      <= '0;
@@ -1403,6 +1439,18 @@ always_ff @(posedge clk) begin
                                          q_byte[5:3] <= 3'd1) begin
                                 // INC/DEC rm16 reg (fit pending)
                                 dly <= 6'd1; wnext <= S_EX;
+                                state <= S_WAITX;
+                            end else if (op_popm) begin
+                                // POP reg via 8F.0: retire at pop+3;
+                                // the stack read completes in flight
+                                // (ghost load, measured)
+                                eu_addr <= {sr[SEG_SS], 4'h0} +
+                                           {4'h0, rf[4]};
+                                eu_seg  <= SEG_SS;
+                                eu_wr   <= 1'b0;
+                                eu_word <= 1'b1;
+                                popr_pend <= 1'b1;
+                                dly <= 6'd2; wnext <= S_POPR;
                                 state <= S_WAITX;
                             end else if (op_grpff &&
                                          q_byte[5:3] == 3'd6) begin
@@ -2301,7 +2349,7 @@ always_ff @(posedge clk) begin
             end
             S_EA2: begin                                  // mod0, reg EA
                 setup_access(ea_base);
-                state <= S_REQ;                           // ready @ 4
+                state <= S_REQ;                       // ready @ 4
             end
             // displacement pops retry on a 2-cycle grain when the queue
             // runs dry (measured on cold-start traces; modrm/imm/F pops
@@ -2319,7 +2367,10 @@ always_ff @(posedge clk) begin
                     setup_access(ea_base + {{8{q_byte[7]}}, q_byte});
                     // the sreg store (8C) follows the READER ready
                     // schedule (d0/d1 @ 4, d2 @ 5 - measured)
-                    if (is_store && !op_srst) begin       // d1 store: rdy @ 5
+                    if (op_popm) begin
+                        dly <= popm_rdy - 6'd1;
+                        wnext <= S_REQ; state <= S_WAITX;
+                    end else if (is_store && !op_srst) begin // d1 store
                         dly <= 6'd1; state <= S_RSV;
                     end else state <= S_REQ;              // d1 load: rdy @ 4
                 end
@@ -2347,7 +2398,10 @@ always_ff @(posedge clk) begin
                     setup_access(ea_base + {q_byte, disp[7:0]});
                     // d2 loads and the sreg store (uniform @5): rdy @ 5;
                     // other d2 stores: rdy @ 7
-                    if (is_reader || op_srst) state <= S_REQ;
+                    if (op_popm) begin
+                        dly <= popm_rdy - 6'd1;
+                        wnext <= S_REQ; state <= S_WAITX;
+                    end else if (is_reader || op_srst) state <= S_REQ;
                     else begin dly <= 6'd2; state <= S_RSV; end
                 end
             end else begin
@@ -2424,6 +2478,17 @@ always_ff @(posedge clk) begin
                             state <= S_STRE;
                         end
                     end else state <= S_BUSW;
+                end else if (op_popm && mrm_mod != 2'd3) begin
+                    // POP mem: stack read accepted; pipeline the EA
+                    // write with forwarded data (commits at the
+                    // read's T3 end; measured, all 500 golden cases)
+                    eu_addr <= ea_save;
+                    eu_seg  <= ea_save_seg;
+                    eu_wr   <= 1'b1;
+                    eu_word <= 1'b1;
+                    ldp2    <= 1'b0;
+                    facc    <= 2'd0;
+                    state   <= S_POPMW;
                 end else if (op_retf || op_iret) begin
                     // rd1 accepted: pipeline rd2 (CS / IP+CS+PSW pops)
                     facc <= 2'd1;
@@ -2431,6 +2496,16 @@ always_ff @(posedge clk) begin
                                {4'h0, rf[4] + 16'd2};
                     state <= S_FRETW;
                 end else state <= S_BUSW;
+            end
+            S_POPR: retire();
+            S_POPMW: begin
+                if (eu_started) facc <= 2'd1;
+                if (eu_done) begin
+                    if (!ldp2) begin           // stack read done
+                        ldp2 <= 1'b1;
+                        rf[4] <= rf[4] + 16'd2;
+                    end else retire();         // EA write done
+                end
             end
             S_FRETW: begin
                 if (eu_started) begin
@@ -2659,6 +2734,10 @@ always_ff @(posedge clk) begin
                 end else if (opc[7:3] == 5'b01011) begin  // POP r16
                     rf[4] <= rf[4] + 16'd2;
                     rf[opc[2:0]] <= eu_rdata;             // POP SP: load wins
+                    retire();
+                end else if (op_popm) begin               // POP r16 via 8F
+                    rf[4] <= rf[4] + 16'd2;
+                    rf[mrm_rm] <= eu_rdata;
                     retire();
                 end else if (opc[7:3] == 5'b01010) begin  // PUSH r16
                     retire();
@@ -3606,5 +3685,6 @@ assign eu_hold = state == S_TRAP_IVT2W || state == S_TRAP_W1 ||
 assign dbg_regs = {psw, arch_ip, sr[SEG_DS], sr[SEG_SS], sr[SEG_CS],
                    sr[SEG_ES], rf[7], rf[6], rf[5], rf[4], rf[3], rf[2],
                    rf[1], rf[0]};
+assign dbg_pend = popr_pend || iret_pw;
 
 endmodule
