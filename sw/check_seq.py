@@ -137,8 +137,8 @@ def diff(real, sim, limit=4000, maxprint=10, strict_qs=False):
     return bad, first, n, flick
 
 
-def check_seed(seed, host, sim_only=False, strict_qs=False):
-    g = generate(seed)
+def check_seed(seed, host, sim_only=False, strict_qs=False, exts=()):
+    g = generate(seed, exts=exts)
     image, meta = compose(g)
     if sim_only:
         real = run_tb(image, 4200)
@@ -170,11 +170,16 @@ def main():
     ap.add_argument("--strict-qs", action="store_true",
                     help="count F<->S queue-status flickers as divergences "
                          "(default: classified as QS-pin sampling artifacts)")
+    ap.add_argument("--exts", default="",
+                    help="comma list of gen_seq EXT_MENU families "
+                         "(callret,sregw,popf) - staged Mission E gates")
     a = ap.parse_args()
+    exts = tuple(x for x in a.exts.split(",") if x)
     fails = []
     if a.fuzz:
         for k in range(a.start, a.start + a.fuzz):
-            ok = check_seed(f"fz{k}", a.host, a.sim_only, a.strict_qs)
+            ok = check_seed(f"fz{k}", a.host, a.sim_only, a.strict_qs,
+                            exts)
             if not ok:
                 fails.append(f"fz{k}")
                 if a.stop_after and len(fails) >= a.stop_after:
@@ -184,7 +189,7 @@ def main():
         return 1 if fails else 0
     ok = True
     for s in a.seeds:
-        ok &= check_seed(s, a.host, a.sim_only, a.strict_qs)
+        ok &= check_seed(s, a.host, a.sim_only, a.strict_qs, exts)
     return 0 if ok else 1
 
 

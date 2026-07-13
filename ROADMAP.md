@@ -59,9 +59,11 @@ Residuals (pick up during Campaign 3 as needed):
 - Prefix/REP randomization in emitted cases
 - POLL timing (needs the pin-event scheduler, RTL item 3)
 
-### Campaign 3 — the core  ✅ form matrix COMPLETE (2026-07-13)
-(exit gate = the >=500-sequence fuzz run; reassigned into Campaign 4's
-in-FPGA A/B path, which gives fast chip-vs-core iteration)
+### Campaign 3 — the core  ✅ COMPLETE (2026-07-13, incl. exit gate)
+Exit gate SATISFIED: 500/500 consecutive sequences (fz600-fz1099) with
+zero divergence on the real board (chip vs core full-trace diff), after
+the Campaign 4 Mission D laws landed (disp-reader pop defer, disp16
+store-ready, split-access segment wrap). Zero QS flickers in the run.
 v30_core.sv (EU + BIU) developed against trace replay in the Verilator TB:
 a golden-trace checker feeds captured initial state + memory image, runs
 the core, diffs per-cycle bus/queue behavior against the real chip's
@@ -161,13 +163,22 @@ Progress (mission block 1):
 - **Fuzz prep**: gen_seq containment escape fixed (atomic DIV/string
   gadgets, branch-target snap); QS-flicker classified as a display
   artifact in check_seq (--strict-qs to override).
-- **C/D/E (blocked on A's desync)**: first A/B light-up, disp-reader
-  commit-phase measurement, and the >=500 fuzz gate all need the core to
-  run correctly in-harness first. Priority after the desync fix:
-  disp8/disp16 phase matrix (EA-mode x prefix x queue-fill x waits) via
-  the A/B path -> encode law -> full golden regression -> resume fuzz to
-  the gate, then expand the generator's excluded families + add
-  corpus/coverage tracking.
+- **A2 (done)**: core-side input hold-margin pipeline; core boot-matches
+  the chip golden in-harness in sim; chip path bit-identical.
+- **D (done, chip-vs-TB; silicon A/B confirmation rides with C)**: THREE
+  laws measured via sw/sweep_dispphase.py (168-cell matrix) + the
+  tb_v30_core +eudbg state dump, all golden-neutral (155440/155500
+  exact baseline):
+  1. disp-reader final-pop defer (fresh queue head + fetch T2) - the
+     Mission S blocker;
+  2. disp16 store ready @ hi-pop+2 (old rdy@+3 was phase-aliased);
+  3. split word access at offset FFFFh wraps to offset 0 of the same
+     segment (16-bit offset math; core was doing 20-bit linear +1).
+- **E (gate PASSED)**: 500/500 consecutive clean (fz600-1099); staged
+  generator expansions (callret/sregw/popf gadgets) re-gating next.
+- **C (pending)**: final-RTL bitstream in Quartus; then safe_flash,
+  chip-position regression (boot golden + A/A seed baseline), first
+  A/B light-up, and the in-silicon confirmation of the D laws.
 
 ## Standing infrastructure (build only when a campaign demands)
 - Agent-loop orchestration (campaign 2)

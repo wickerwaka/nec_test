@@ -187,3 +187,15 @@ flush-display timing artifact at the store stub's far jump (chip shows
 QS=E one row earlier than the core in phase-parity-dependent cells;
 2 rows per affected trace, execution identical). Not covered by the
 golden windows (they close before the stub). Untouched by the disp laws.
+
+## Campaign 3 EXIT GATE — SATISFIED (2026-07-13)
+
+500/500 consecutive sequence-fuzz seeds clean (fz600-fz1099, fresh seeds,
+all post-fix laws in): zero divergence, zero QS flickers, on the real
+board via the serve pipeline vs the Verilator TB. Two additional laws
+found and fixed on the way to the gate (beyond the disp-reader class):
+disp16 store-ready @ hi+2 (fz151) and the split-access segment wrap
+(fz494, a REAL functional bug - second byte of a word access at offset
+FFFFh must wrap to offset 0 of the same segment). Full history: fz100-139
+40/40 after the reader law; fz140-493 clean; fz494 wrap; fz600-1099
+500/500. Generator expansions (callret/sregw/popf) re-gating separately.
