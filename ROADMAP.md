@@ -59,8 +59,9 @@ Residuals (pick up during Campaign 3 as needed):
 - Prefix/REP randomization in emitted cases
 - POLL timing (needs the pin-event scheduler, RTL item 3)
 
-### Campaign 3 — the core  ← CURRENT (form matrix COMPLETE 2026-07-13;
-exit gate = the sequence-fuzz run, reassigned, still pending)
+### Campaign 3 — the core  ✅ form matrix COMPLETE (2026-07-13)
+(exit gate = the >=500-sequence fuzz run; reassigned into Campaign 4's
+in-FPGA A/B path, which gives fast chip-vs-core iteration)
 v30_core.sv (EU + BIU) developed against trace replay in the Verilator TB:
 a golden-trace checker feeds captured initial state + memory image, runs
 the core, diffs per-cycle bus/queue behavior against the real chip's
@@ -134,12 +135,39 @@ Status (2026-07-12, blocks 1-4 complete):
     8080-emulation mode (needs the RETEM recovery path), INS/EXT
     mem-mod encodings (undocumented; parked in the core).
 
-### Campaign 4 — in-FPGA A/B verification
+### Campaign 4 — in-FPGA A/B verification  ← CURRENT (2026-07-13)
 The core instantiated in the harness FPGA behind the same bus interface;
 harness runs identical images against core and socketed chip, diffs
 captures automatically. Agent loop drives divergence hunting. Done = no
 divergence across the corpus, including edge cases (interrupts, 8080
 mode, undocumented opcodes, wait-state sweeps).
+
+Progress (mission block 1):
+- **A. Integration + sim (landed, 61185d0)**: v30_core instantiated in
+  system_large behind CFG.use_core (bit 25). nec_bus AD refactored to a
+  unidirectional trio so the A/B mux has no tri-state loop and the
+  chip datapath stays bit-identical (tb_harness green, 155440/155500
+  golden untouched). tb_ab.sv + sw/check_ab_sim.py exercise both selector
+  positions in Verilator. Chip position passes; CORE position boots and
+  fetches correct bytes but DESYNCS (EU pops one cycle early) - a
+  read-data hold-margin race at the core's T3->T4 sampling edge vs
+  nec_bus releasing drive_en at that edge. This is the gate; fix before
+  hardware. (Details: docs/notes/bringup_log.md 2026-07-13.)
+- **B. Safe-flash (done, tested)**: sw/safe_flash.sh (prep -> quartus_pgm
+  -> status/magic verify, timeouts, STOP-on-unreachable). Validated once
+  with the known-good bitstream; board round-trips + echo passes.
+- **Host path**: CFG.use_core plumbed through v30ctl.py / v30run.py; board
+  v30ctl.py updated.
+- **Fuzz prep**: gen_seq containment escape fixed (atomic DIV/string
+  gadgets, branch-target snap); QS-flicker classified as a display
+  artifact in check_seq (--strict-qs to override).
+- **C/D/E (blocked on A's desync)**: first A/B light-up, disp-reader
+  commit-phase measurement, and the >=500 fuzz gate all need the core to
+  run correctly in-harness first. Priority after the desync fix:
+  disp8/disp16 phase matrix (EA-mode x prefix x queue-fill x waits) via
+  the A/B path -> encode law -> full golden regression -> resume fuzz to
+  the gate, then expand the generator's excluded families + add
+  corpus/coverage tracking.
 
 ## Standing infrastructure (build only when a campaign demands)
 - Agent-loop orchestration (campaign 2)

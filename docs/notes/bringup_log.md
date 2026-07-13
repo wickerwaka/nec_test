@@ -237,3 +237,40 @@ Tested once with the CURRENT known-good bitstream
 echo test passed afterward. On an unreachable board after flashing the
 script STOPs and demands a physical power cycle (no retry). This is the
 ONLY sanctioned path to reprogram the FPGA.
+
+### 2026-07-13 (cont.) — desync root-cause refinement + review items
+
+Refined hypothesis for the core<->harness desync (leading candidate): a
+read-data HOLD-margin race at the core's sampling edge. The BIU latches
+fetch/read data at the rising CLK edge that ends T3 (t3_done). nec_bus
+drives read data under `drive_en`, which it DEASSERTS entering T4 - i.e.
+at essentially the same NEC_CLK edge the core samples on. The real chip
+samples with its ~65 ns internal output/again-input delay, so it reads the
+data mid-T3 with margin; the synchronous core samples AT the T3->T4 edge,
+where nec_bus is simultaneously releasing the drive - zero hold margin, a
+phase race that resolves per-fetch depending on micro-alignment (explains
+why the first fetches read correct bytes but a later one desyncs the queue
+pop by one cycle). Fix direction: hold the harness read-data drive to the
+core through (past) its T3->T4 sampling edge - i.e. present read data to
+the core the way tb_v30_core does (valid across T2/T3 and stably past the
+sampling edge), NOT gated to release exactly at T4. This must hold on
+hardware too (the FPGA-internal core sampling the harness-driven bus).
+Next iteration: implement the core-side read-data hold, re-run
+check_ab_sim to green, THEN proceed to Mission C (flash) / D (disp phase
+matrix) via the now-plumbed CFG.use_core. A debug build exposing the
+core's V30_BACKDOOR dbg_regs through system_large would pinpoint the first
+divergent EU/BIU microstate if the hold fix is insufficient.
+
+Review items folded in (commit 2035cce):
+- HOST PATH: CFG.use_core (bit 25) now plumbed through v30ctl.py (set_cfg,
+  serve CFG 5th field, cfg --use-core, status), v30run.py
+  (ServeRunner.cfg + run_image use_core=). Backward compatible; updated
+  v30ctl.py scp'd to the board.
+- gen_seq CONTAINMENT: forward branches could land inside a safe-gadget
+  (DIV / string), skipping trap-safe setup and escaping via the untouched
+  IVT (fz101 -> 0x99xxx). Gadgets are now atomic (emit_atomic + branch
+  target snap-forward). 120 seeds clean.
+- QS-FLICKER: classified as a queue-status display artifact - check_seq
+  separates a 1-cycle F<->S QS-only disagreement into a tolerated `flick`
+  count (real divergence always shows in the other columns); --strict-qs
+  to investigate; the A/B run is the definitive confirmation.
