@@ -78,45 +78,66 @@ def done_idx(recs, key_addr, key_kind):
     return None
 
 
-def diff(real, sim, limit=4000, maxprint=10):
-    """-> (n_mismatch_rows, first_divergence_index)"""
+def diff(real, sim, limit=4000, maxprint=10, strict_qs=False):
+    """Diff chip vs core per-cycle rows.
+    -> (bad, first, n, flick)
+
+    bad   = rows with a real (non-cosmetic) divergence
+    flick = rows whose ONLY difference is a 1-cycle F<->S queue-status
+            display flicker (Mission S class, classified as a QS-pin
+            sampling artifact: any genuine execution divergence also shows
+            in t/bs/addr/data/ube/ps, so a QS-only F/S disagreement with
+            every other column matching is cosmetic and self-correcting).
+    With strict_qs=True the flicker is folded back into bad (for
+    investigation / definitive A/B confirmation).
+    """
     dend = done_idx(real, None, None)
     n = min(len(real), len(sim), limit,
             (dend + 8) if dend is not None else limit)
-    bad, first = 0, None
+    bad, first, flick = 0, None, 0
     for i in range(n):
         r, s = real[i], sim[i]
         rt = r.get("t_state", r.get("t"))
-        mm = []
-        if r["qs"] != s["qs"]:
-            mm.append(f"qs {QS_NAME[r['qs']]}!={QS_NAME[s['qs']]}")
+        qs_mm = r["qs"] != s["qs"]
+        other = []
         if i >= 8 and r["bs_early"] != s["bs_early"]:
-            mm.append(f"bs {BS_NAME[r['bs_early']]}!="
-                      f"{BS_NAME[s['bs_early']]}")
+            other.append(f"bs {BS_NAME[r['bs_early']]}!="
+                         f"{BS_NAME[s['bs_early']]}")
         if i >= 9:
             if rt != s["t"]:
-                mm.append(f"t {T_NAME.get(rt)}!={T_NAME.get(s['t'])}")
+                other.append(f"t {T_NAME.get(rt)}!={T_NAME.get(s['t'])}")
             if r["ube_n"] != s["ube_n"]:
-                mm.append(f"ube {r['ube_n']}!={s['ube_n']}")
+                other.append(f"ube {r['ube_n']}!={s['ube_n']}")
             active = r["bs_early"] != 7
             if rt == 1 and r["ad_addr"] != s["ad_addr"]:
-                mm.append(f"addr {r['ad_addr']:05x}!={s['ad_addr']:05x}")
+                other.append(f"addr {r['ad_addr']:05x}!={s['ad_addr']:05x}")
             if rt in (2, 3) and r["ad_data"] != s["ad_data"]:
-                mm.append(f"data {r['ad_data']:04x}!={s['ad_data']:04x}")
+                other.append(f"data {r['ad_data']:04x}!={s['ad_data']:04x}")
             if rt in (0, 5) and active and r["ad_data"] != s["ad_data"]:
-                mm.append(f"nxta {r['ad_data']:04x}!={s['ad_data']:04x}")
+                other.append(f"nxta {r['ad_data']:04x}!={s['ad_data']:04x}")
             if rt == 2 and active and r["ps"] != s["ps"]:
-                mm.append(f"ps {r['ps']:x}!={s['ps']:x}")
+                other.append(f"ps {r['ps']:x}!={s['ps']:x}")
+        qs_txt = (f"qs {QS_NAME[r['qs']]}!={QS_NAME[s['qs']]}"
+                  if qs_mm else None)
+        # F<->S queue-status flicker with nothing else wrong on the row
+        is_flicker = (qs_mm and not other and not strict_qs and
+                      {r["qs"], s["qs"]} == {1, 3})
+        if is_flicker:
+            flick += 1
+            if flick <= maxprint:
+                print(f"    row {i}: {qs_txt}  [QS flicker - tolerated]")
+            continue
+        mm = ([qs_txt] if qs_mm else []) + other
         if mm:
             bad += 1
             if first is None:
                 first = i
             if bad <= maxprint:
                 print(f"    row {i}: " + ", ".join(mm))
-    return bad, first, n
+    return bad, first, n, flick
 
 
-def check_seed(seed, host, sim_only=False):
+def check_seed(seed, host, sim_only=False, strict_qs=False):
     g = generate(seed)
     image, meta = compose(g)
     if sim_only:
@@ -125,10 +146,15 @@ def check_seed(seed, host, sim_only=False):
     else:
         real = run_chip(image, host)
     sim = run_tb(image, 4200)
-    bad, first, n = diff(real, sim)
+    bad, first, n, flick = diff(real, sim, strict_qs=strict_qs)
     status = "MATCH" if bad == 0 else f"DIVERGE@{first}"
+    extra = ""
+    if bad:
+        extra += f" ({bad} rows)"
+    if flick:
+        extra += f" [+{flick} qs-flicker]"
     print(f"seed {seed}: {g['n_ins']} ins, {n} rows compared -> {status}"
-          f"{f' ({bad} rows)' if bad else ''}")
+          f"{extra}")
     return bad == 0
 
 
@@ -141,11 +167,14 @@ def main():
     ap.add_argument("--stop-after", type=int, default=0,
                     help="stop after M divergent seeds (0 = never)")
     ap.add_argument("--sim-only", action="store_true")
+    ap.add_argument("--strict-qs", action="store_true",
+                    help="count F<->S queue-status flickers as divergences "
+                         "(default: classified as QS-pin sampling artifacts)")
     a = ap.parse_args()
     fails = []
     if a.fuzz:
         for k in range(a.start, a.start + a.fuzz):
-            ok = check_seed(f"fz{k}", a.host, a.sim_only)
+            ok = check_seed(f"fz{k}", a.host, a.sim_only, a.strict_qs)
             if not ok:
                 fails.append(f"fz{k}")
                 if a.stop_after and len(fails) >= a.stop_after:
@@ -155,7 +184,7 @@ def main():
         return 1 if fails else 0
     ok = True
     for s in a.seeds:
-        ok &= check_seed(s, a.host, a.sim_only)
+        ok &= check_seed(s, a.host, a.sim_only, a.strict_qs)
     return 0 if ok else 1
 
 

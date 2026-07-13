@@ -47,7 +47,7 @@ class ServeRunner:
         self.host = host
         self.proc = None
         self.q = None
-        self.last_waits = None
+        self.last_waits = None  # (waits, use_core) tuple key
         self.v2 = False          # serve protocol >= v2 (BASE/DELTA/cap)
         self.base = None         # image cached device-side via BASE
 
@@ -93,17 +93,21 @@ class ServeRunner:
             raise RunError(f"serve: bad banner {banner[:80]!r}")
         self.v2 = "v2" in banner
         self.base = None         # device-side cache gone on reconnect
-        self.last_waits = None
+        self.last_waits = None  # (waits, use_core) tuple key
 
-    def cfg(self, waits):
-        if self.last_waits == waits:
+    def cfg(self, waits, use_core=None):
+        key = (waits, use_core)
+        if self.last_waits == key:
             return
-        self._send(f"CFG - {waits} - 0")
+        uc = "-" if use_core is None else str(int(bool(use_core)))
+        # CFG <div> <waits> <vector> <small> [use_core]; keep div/vector,
+        # force large mode (small=0). use_core '-' leaves the board default.
+        self._send(f"CFG - {waits} - 0 {uc}")
         line = self._readline(10)
         if line != "OK CFG":
             self.close()
             raise RunError(f"serve: cfg failed: {line[:120]}")
-        self.last_waits = waits
+        self.last_waits = key
 
     @staticmethod
     def _delta(base, image, gran=256):
@@ -219,14 +223,20 @@ def _run_image_legacy(image, host, tag="test", waits=0):
 
 
 def run_image(image, host, tag="test", waits=0, evt=None, iord=None,
-              pins=None, want_fired=False, cap=None):
+              pins=None, want_fired=False, cap=None, use_core=None):
     """Run an image, return capture records (or (recs, evt_fired) with
     want_fired). Uses the persistent serve session unless V30_NO_SERVE=1;
     transport errors get one reconnect, then one legacy-path attempt
-    before giving up (legacy path supports no evt/iord/pins)."""
+    before giving up (legacy path supports no evt/iord/pins).
+
+    use_core selects the Campaign 4 A/B position (True = internal v30_core,
+    False = socketed chip, None = leave the board default). It requires a
+    board bitstream that carries CFG.use_core (bit 25) and the serve v2
+    5-field CFG command; the legacy path cannot set it."""
     if os.environ.get("V30_NO_SERVE") == "1":
-        if evt is not None or iord is not None or pins is not None:
-            raise RunError("evt/iord/pins require the serve path")
+        if evt is not None or iord is not None or pins is not None \
+                or use_core is not None:
+            raise RunError("evt/iord/pins/use_core require the serve path")
         return _run_image_legacy(image, host, tag, waits)
     r = _runners.get(host)
     if r is None:
@@ -234,7 +244,7 @@ def run_image(image, host, tag="test", waits=0, evt=None, iord=None,
     for attempt in (1, 2):
         try:
             r.ensure()
-            r.cfg(waits)
+            r.cfg(waits, use_core)
             recs, fired = r.run(image, evt=evt, iord=iord, pins=pins,
                                 cap=cap)
             return (recs, fired) if want_fired else recs
@@ -243,9 +253,10 @@ def run_image(image, host, tag="test", waits=0, evt=None, iord=None,
             if attempt == 2:
                 print(f"serve path failed twice ({e}); trying legacy path",
                       file=sys.stderr)
-    if evt is not None or iord is not None or pins is not None:
-        raise RunError("serve path failed and evt/iord/pins have no "
-                       "legacy fallback")
+    if evt is not None or iord is not None or pins is not None \
+            or use_core is not None:
+        raise RunError("serve path failed and evt/iord/pins/use_core have "
+                       "no legacy fallback")
     return _run_image_legacy(image, host, tag, waits)
 
 

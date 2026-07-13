@@ -24,10 +24,10 @@ Usage:
   v30ctl.py peek ADDR [COUNT]        # hex dump of test memory (while stopped)
   v30ctl.py dump-cap FILE            # write capture records, decode with decode_capture.py
   v30ctl.py run FILE [--timeout S]   # stop -> load -> start -> wait full -> dump to stdout name
-  v30ctl.py cfg [--div N] [--waits N] [--vector V] [--small 0|1]
+  v30ctl.py cfg [--div N] [--waits N] [--vector V] [--small 0|1] [--use-core 0|1]
   v30ctl.py serve                    # persistent stdin/stdout batch mode:
                                      #   PING                     -> OK PONG
-                                     #   CFG <div> <waits> <vector> <small>
+                                     #   CFG <div> <waits> <vector> <small> [use_core]
                                      #     ('-' keeps a field)    -> OK CFG
                                      #   RUN <timeout_s> [k=v ...]\\n<base64>
                                      #     -> OK <cap_count> <full> <evt>
@@ -141,6 +141,7 @@ class Harness:
             "cap_count":   self.read32(R_CAPCOUNT),
             "ctrl":        self.read32(R_CTRL),
             "cfg":         self.read32(R_CFG),
+            "use_core":    bool(self.read32(R_CFG) & (1 << 25)),
         }
 
     def load_mem(self, data: bytes, addr=0):
@@ -193,12 +194,16 @@ class Harness:
     def event_fired(self):
         return bool(self.read32(R_STATUS) & 8)
 
-    def set_cfg(self, div=None, waits=None, vector=None, small=None):
+    def set_cfg(self, div=None, waits=None, vector=None, small=None,
+                use_core=None):
         v = self.read32(R_CFG)
         if div is not None:    v = (v & ~0x3F) | (div & 0x3F)
         if waits is not None:  v = (v & ~0xF00) | ((waits & 0xF) << 8)
         if vector is not None: v = (v & ~0xFF0000) | ((vector & 0xFF) << 16)
         if small is not None:  v = (v & ~(1 << 24)) | ((1 if small else 0) << 24)
+        # Campaign 4 A/B selector: bit 25 = use_core (1 = internal v30_core)
+        if use_core is not None:
+            v = (v & ~(1 << 25)) | ((1 if use_core else 0) << 25)
         self.write32(R_CFG, v)
 
 
@@ -287,7 +292,8 @@ def serve(h):
                 reply("OK BYE")
                 break
             elif parts[0] == "CFG":
-                vals = [None if p == "-" else int(p, 0) for p in parts[1:5]]
+                # CFG <div> <waits> <vector> <small> [use_core]  ('-' keeps)
+                vals = [None if p == "-" else int(p, 0) for p in parts[1:6]]
                 h.stop()
                 h.set_cfg(*vals)
                 reply("OK CFG")
@@ -346,6 +352,8 @@ def main():
     p.add_argument("--waits", type=lambda x: int(x, 0))
     p.add_argument("--vector", type=lambda x: int(x, 0))
     p.add_argument("--small", type=int, choices=(0, 1))
+    p.add_argument("--use-core", type=int, choices=(0, 1),
+                   help="A/B: 1 = internal v30_core, 0 = socketed chip")
     args = ap.parse_args()
 
     if args.cmd == "prep":
@@ -395,7 +403,7 @@ def main():
         print(f"cap_count={st['cap_count']} full={st['cap_full']} -> {args.cap}")
     elif args.cmd == "cfg":
         h.stop()
-        h.set_cfg(args.div, args.waits, args.vector, args.small)
+        h.set_cfg(args.div, args.waits, args.vector, args.small, args.use_core)
         print(f"cfg = {h.read32(R_CFG):08x} (harness stopped; 'start' to run)")
     elif args.cmd == "serve":
         serve(h)

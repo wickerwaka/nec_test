@@ -52,9 +52,24 @@ class Prog:
         self.rng = rng
         self.ins = []          # list of bytes objects (one per instruction)
         self.fixups = []       # (ins_index, target_ins_index) for disp8
+        self.noland = set()    # indices illegal as branch targets: landing
+                               # here would skip a safe-gadget's setup
 
     def emit(self, b):
         self.ins.append(bytes(b))
+
+    def emit_atomic(self, instrs):
+        """Emit a multi-instruction safe gadget (e.g. DIV or a string op).
+        Only the first instruction is a legal branch target; landing after
+        it would skip the setup that keeps the gadget trap-safe and
+        windowed (skipping MOV CX,div -> divide error; skipping MOV SI/DI/
+        CLD/MOV CX,cw -> REP with garbage count / pointer walks out of the
+        data window). Both escape via the untouched IVT."""
+        start = len(self.ins)
+        for b in instrs:
+            self.ins.append(bytes(b))
+        for i in range(start + 1, len(self.ins)):
+            self.noland.add(i)
 
     def branch(self, opc):
         """Forward branch to 1..4 instructions ahead (patched later)."""
@@ -65,13 +80,16 @@ class Prog:
 
     def assemble(self):
         # patch forward displacements (target = boundary after skipping
-        # `skip` following instructions; cap at program end)
+        # `skip` following instructions; cap at program end). Snap the
+        # target forward out of any safe-gadget interior so a branch can
+        # never skip a gadget's setup instructions.
         sizes = [len(b) for b in self.ins]
-        out = []
-        for i, b in enumerate(self.ins):
-            out.append(bytearray(b))
+        out = [bytearray(b) for b in self.ins]
+        n = len(self.ins)
         for idx, skip in self.fixups:
-            tgt = min(idx + 1 + skip, len(self.ins))
+            tgt = min(idx + 1 + skip, n)
+            while tgt < n and tgt in self.noland:
+                tgt += 1
             disp = sum(sizes[k] for k in range(idx + 1, tgt))
             assert disp < 0x80
             out[idx][1] = disp
@@ -177,13 +195,15 @@ def _gen_mul(p, rng):
 
 
 def _gen_div_safe(p, rng):
-    """Canned trap-safe DIVU16: DX=0, AX small, divisor nonzero."""
-    p.emit(bytes([0xBA, 0x00, 0x00]))                     # MOV DX,0
-    p.emit(bytes([0xB8]) +
-           rng.getrandbits(12).to_bytes(2, "little"))     # MOV AX,small
+    """Canned trap-safe DIVU16: DX=0, AX small, divisor nonzero. Atomic so
+    a branch cannot land on the DIV while skipping its operand setup."""
     d = rng.randrange(0x100, 0xFFFF)
-    p.emit(bytes([0xB9]) + d.to_bytes(2, "little"))       # MOV CX,div
-    p.emit([0xF7, 0xF1])                                  # DIV CX
+    p.emit_atomic([
+        bytes([0xBA, 0x00, 0x00]),                          # MOV DX,0
+        bytes([0xB8]) + rng.getrandbits(12).to_bytes(2, "little"),  # MOV AX
+        bytes([0xB9]) + d.to_bytes(2, "little"),            # MOV CX,div
+        [0xF7, 0xF1],                                       # DIV CX
+    ])
 
 
 def _gen_test(p, rng):
@@ -197,19 +217,25 @@ def _gen_branch(p, rng):
 
 
 def _gen_string(p, rng):
-    # window the pointers, bound the count, fix the direction
+    # window the pointers, bound the count, fix the direction. Atomic: a
+    # branch must not land past the SI/DI/CLD (or MOV CX,cw) setup, which
+    # would run the op / REP with garbage pointers or count and walk out of
+    # the data window (STOSW into the program or IVT -> escape).
     si = rng.randrange(0x2400, 0x2800)
     di = rng.randrange(0x2900, 0x2D00)
-    p.emit(bytes([0xBE, si & 0xFF, si >> 8]))             # MOV SI
-    p.emit(bytes([0xBF, di & 0xFF, di >> 8]))             # MOV DI
-    p.emit([0xFC] if rng.random() < 0.8 else [0xFD])      # CLD/STD
+    seq = [
+        bytes([0xBE, si & 0xFF, si >> 8]),                # MOV SI
+        bytes([0xBF, di & 0xFF, di >> 8]),                # MOV DI
+        [0xFC] if rng.random() < 0.8 else [0xFD],         # CLD/STD
+    ]
     op = rng.choice([0xA4, 0xA5, 0xAA, 0xAB, 0xAC, 0xAD])
     if rng.random() < 0.5:
         cw = rng.randrange(0, 4)
-        p.emit(bytes([0xB9, cw, 0x00]))                   # MOV CX,cw
-        p.emit([0xF3, op])
+        seq.append(bytes([0xB9, cw, 0x00]))               # MOV CX,cw
+        seq.append([0xF3, op])                            # REP op
     else:
-        p.emit([op])
+        seq.append([op])
+    p.emit_atomic(seq)
 
 
 def _gen_nops(p, rng):
