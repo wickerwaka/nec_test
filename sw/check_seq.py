@@ -62,8 +62,8 @@ def run_tb(image, n):
     return sim
 
 
-def run_chip(image, host):
-    recs = run_image(bytes(image), host, tag="seq")
+def run_chip(image, host, use_core=None):
+    recs = run_image(bytes(image), host, tag="seq", use_core=use_core)
     rel = next(i for i, r in enumerate(recs) if not r["rst"])
     return recs[rel:]
 
@@ -137,15 +137,23 @@ def diff(real, sim, limit=4000, maxprint=10, strict_qs=False):
     return bad, first, n, flick
 
 
-def check_seed(seed, host, sim_only=False, strict_qs=False, exts=()):
+def check_seed(seed, host, sim_only=False, strict_qs=False, exts=(),
+               hw_ab=False):
     g = generate(seed, exts=exts)
     image, meta = compose(g)
-    if sim_only:
-        real = run_tb(image, 4200)
-        real = [dict(r, t_state=r["t"]) for r in real]
+    if hw_ab:
+        # True in-silicon A/B: BOTH positions on the board (same FPGA,
+        # same image). "real" = socketed chip (use_core=0); "sim" = the
+        # fabric core (use_core=1). No Verilator involved.
+        real = run_chip(image, host, use_core=False)
+        sim = run_chip(image, host, use_core=True)
     else:
-        real = run_chip(image, host)
-    sim = run_tb(image, 4200)
+        if sim_only:
+            real = run_tb(image, 4200)
+            real = [dict(r, t_state=r["t"]) for r in real]
+        else:
+            real = run_chip(image, host)
+        sim = run_tb(image, 4200)
     bad, first, n, flick = diff(real, sim, strict_qs=strict_qs)
     status = "MATCH" if bad == 0 else f"DIVERGE@{first}"
     extra = ""
@@ -167,6 +175,10 @@ def main():
     ap.add_argument("--stop-after", type=int, default=0,
                     help="stop after M divergent seeds (0 = never)")
     ap.add_argument("--sim-only", action="store_true")
+    ap.add_argument("--hw-ab", action="store_true",
+                    help="true in-silicon A/B: chip (use_core=0) vs "
+                         "fabric core (use_core=1), both on the board, "
+                         "same image - no Verilator TB (Mission C)")
     ap.add_argument("--strict-qs", action="store_true",
                     help="count F<->S queue-status flickers as divergences "
                          "(default: classified as QS-pin sampling artifacts)")
@@ -179,7 +191,7 @@ def main():
     if a.fuzz:
         for k in range(a.start, a.start + a.fuzz):
             ok = check_seed(f"fz{k}", a.host, a.sim_only, a.strict_qs,
-                            exts)
+                            exts, a.hw_ab)
             if not ok:
                 fails.append(f"fz{k}")
                 if a.stop_after and len(fails) >= a.stop_after:
@@ -189,7 +201,7 @@ def main():
         return 1 if fails else 0
     ok = True
     for s in a.seeds:
-        ok &= check_seed(s, a.host, a.sim_only, a.strict_qs, exts)
+        ok &= check_seed(s, a.host, a.sim_only, a.strict_qs, exts, a.hw_ab)
     return 0 if ok else 1
 
 
