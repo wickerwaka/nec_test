@@ -72,6 +72,7 @@ wire        eu_req, eu_hold, eu_ready, eu_wr, eu_fwd, eu_word;
 wire        eu_soon, bus_phase, bus_t4, flush_fast;
 wire [2:0]  bus_ts;
 wire  [1:0] eu_kind;
+wire        eu_wrap;
 wire [19:0] eu_addr;
 wire  [1:0] eu_seg;
 wire [15:0] eu_wdata;
@@ -132,6 +133,7 @@ v30_biu u_biu (
     .eu_fwd     (eu_fwd),
     .eu_word    (eu_word),
     .eu_kind    (eu_kind),
+    .eu_wrap    (eu_wrap),
     .eu_addr    (eu_addr),
     .eu_seg     (eu_seg),
     .eu_wdata   (eu_wdata),
@@ -174,6 +176,7 @@ v30_eu u_eu (
     .eu_fwd     (eu_fwd),
     .eu_word    (eu_word),
     .eu_kind    (eu_kind),
+    .eu_wrap    (eu_wrap),
     .eu_addr    (eu_addr),
     .eu_seg     (eu_seg),
     .eu_wdata   (eu_wdata),

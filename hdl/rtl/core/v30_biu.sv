@@ -111,6 +111,8 @@ module v30_biu (
                                     // read->write forwarding at commit)
     input             eu_word,
     input       [1:0] eu_kind,     // 0=mem 1=io 2=inta 3=halt
+    input             eu_wrap,     // offset==FFFF: split half2 wraps to
+                                   // offset 0 of the same segment
     input      [19:0] eu_addr,
     input       [1:0] eu_seg,
     input      [15:0] eu_wdata,
@@ -171,6 +173,7 @@ reg        cur_wr;
 reg        cur_swap;       // access started at an odd address: swap lanes
 reg        cur_split1;     // first half of a split word access
 reg        cur_split2;     // second half of a split word access
+reg        cur_wrap;       // split half2 wraps to offset 0 (eu_wrap)
 reg [15:0] cur_wdata;
 reg  [1:0] cur_seg;
 reg        cur_ube_n;
@@ -185,6 +188,7 @@ reg        nxt_wr;
 reg        nxt_swap;
 reg        nxt_split1;
 reg        nxt_split2;
+reg        nxt_wrap;
 reg [15:0] nxt_wdata;
 reg  [1:0] nxt_seg;
 reg        nxt_ube_n;
@@ -336,7 +340,8 @@ wire  [1:0] pick_kind  = want_half2 ? cur_kind
                        : want_eu    ? eu_kind : K_MEM;
 // the HALT pseudo-cycle's T1 drives the last bus cycle's address on
 // AD15:0 (measured: the stale address latch rides out on the pins)
-wire [19:0] pick_addr  = want_half2 ? cur_addr + 20'd1
+wire [19:0] pick_addr  = want_half2 ? (cur_wrap ? cur_addr - 20'h0FFFF
+                                                 : cur_addr + 20'd1)
                        : want_eu    ? (eu_kind == K_HALT ? cur_addr
                                                          : eu_addr)
                                     : fetch_phys;
@@ -346,6 +351,7 @@ wire        pick_swap  = want_half2 ? cur_swap : (want_eu && eu_addr[0]);
 wire        pick_split1 = !want_half2 && want_eu && eu_split &&
                           eu_kind != K_INTA && eu_kind != K_HALT;
 wire        pick_split2 = want_half2;
+wire        pick_wrap  = !want_half2 && want_eu && eu_wrap;
 // string read->write forwarding (eu_fwd): the write's data is the last
 // read's data - taken live off the bus when the commit coincides with
 // the read's own T3/Tw sampling edge, else from the read-data latch
@@ -374,6 +380,7 @@ task automatic do_commit();
     nxt_swap   <= pick_swap;
     nxt_split1 <= pick_split1;
     nxt_split2 <= pick_split2;
+    nxt_wrap   <= pick_wrap;
     nxt_wdata  <= pick_wdata;
     nxt_seg    <= pick_seg;
     nxt_ube_n  <= pick_ube_n;
@@ -442,6 +449,7 @@ always_ff @(posedge clk) begin
         cur_wr     <= 1'b0;
         cur_split1 <= 1'b0;
         cur_split2 <= 1'b0;
+        cur_wrap   <= 1'b0;
         cur_swap   <= 1'b0;
         cur_seg    <= SEG_CS;
         cur_addr   <= '0;
@@ -533,6 +541,7 @@ always_ff @(posedge clk) begin
                     cur_swap   <= nxt_swap;
                     cur_split1 <= nxt_split1;
                     cur_split2 <= nxt_split2;
+                    cur_wrap   <= nxt_wrap;
                     cur_wdata  <= nxt_wdata;
                     cur_seg    <= nxt_seg;
                     cur_ube_n  <= nxt_ube_n;
@@ -553,6 +562,7 @@ always_ff @(posedge clk) begin
                     cur_swap   <= pick_swap;
                     cur_split1 <= pick_split1;
                     cur_split2 <= pick_split2;
+                    cur_wrap   <= pick_wrap;
                     cur_wdata  <= pick_wdata;
                     cur_seg    <= pick_seg;
                     cur_ube_n  <= pick_ube_n;
@@ -642,6 +652,7 @@ always_ff @(posedge clk) begin
                         cur_swap   <= pick_swap;
                         cur_split1 <= pick_split1;
                         cur_split2 <= pick_split2;
+                        cur_wrap   <= pick_wrap;
                         cur_wdata  <= pick_wdata;
                         cur_seg    <= pick_seg;
                         cur_ube_n  <= pick_ube_n;
@@ -660,6 +671,7 @@ always_ff @(posedge clk) begin
                     cur_swap   <= nxt_swap;
                     cur_split1 <= nxt_split1;
                     cur_split2 <= nxt_split2;
+                    cur_wrap   <= nxt_wrap;
                     cur_wdata  <= nxt_wdata;
                     cur_seg    <= nxt_seg;
                     cur_ube_n  <= nxt_ube_n;

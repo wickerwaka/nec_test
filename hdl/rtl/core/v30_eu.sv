@@ -142,7 +142,11 @@ module v30_eu (
     output reg [19:0] eu_addr,
     output reg  [1:0] eu_seg,
     output reg [15:0] eu_wdata,
-    output reg  [1:0] eu_kind,    // 0=mem 1=io 2=inta 3=halt
+    output reg  [1:0] eu_kind,
+    output            eu_wrap,     // access offset == FFFFh: the split
+                                   // second byte wraps to offset 0 of the
+                                   // same segment (16-bit offset math;
+                                   // IO wraps in port space)    // 0=mem 1=io 2=inta 3=halt
     input             eu_started,
     input             bus_phase,   // BIU 2-cycle grid parity (T1=0)
     input             bus_t4,      // BIU cycle is a T4
@@ -1044,6 +1048,14 @@ wire pop_want = (state == S_FIRST && !irq_take) ||
                 (state == S_JSHI) || (state == S_MLO) ||
                 (state == S_MHI) || (state == S_INTV) ||
                 (state == S_PREP_L && dly == 6'd0);
+
+// split-access segment wrap (measured, fz494): a word access at offset
+// FFFFh reads/writes its second byte at offset 0 of the SAME segment -
+// 16-bit offset arithmetic, not 20-bit linear increment. IO ports wrap
+// in 16-bit port space.
+assign eu_wrap = (eu_kind == K_IO)
+               ? (eu_addr[15:0] == 16'hFFFF)
+               : ((eu_addr[15:0] - {sr[eu_seg][11:0], 4'h0}) == 16'hFFFF);
 
 assign q_pop   = pop_want && q_avail;
 assign q_first = state == S_FIRST;

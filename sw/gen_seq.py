@@ -243,6 +243,52 @@ def _gen_nops(p, rng):
         p.emit([0x90])
 
 
+#----------------------------------------------------------------------------
+# staged extensions (Campaign 4 Mission E): enabled per-family via
+# generate(exts=...) so each expansion can be re-gated independently.
+#----------------------------------------------------------------------------
+
+def _gen_callret(p, rng):
+    """CALL near + RET near, fully contained:
+        CALL sub  (rel16, +2 over the JMP)
+        JMP after (executed on return; skips body+RET)
+        sub: <body> RET
+        after:
+    Stack balanced +2/-2; all control flow forward; atomic (landing
+    inside would call/ret with unbalanced stack)."""
+    body = []
+    for _ in range(rng.randrange(1, 3)):
+        r = rng.randrange(8)
+        body.append(bytes([rng.choice([0x40, 0x48]) + (0 if r == 4 else r)]))
+    body_len = sum(len(b) for b in body)
+    seq = [
+        bytes([0xE8, 0x02, 0x00]),           # CALL +2 (to sub)
+        bytes([0xEB, body_len + 1]),         # JMP after (over body+RET)
+        *body,
+        bytes([0xC3]),                       # RET
+    ]
+    p.emit_atomic(seq)
+
+
+def _gen_sregw(p, rng):
+    """Segment-register write: read sreg into AX, write it back (value
+    unchanged -> addressing preserved; SS write also exercises the
+    interrupt-shadow path harmlessly). Atomic: landing on the write with
+    arbitrary AX would wreck addressing."""
+    sreg = rng.choice([0, 2, 3])   # ES, SS, DS (skip CS)
+    p.emit_atomic([
+        bytes([0x8C, 0xC0 | (sreg << 3)]),   # MOV AX,sreg
+        bytes([0x8E, 0xC0 | (sreg << 3)]),   # MOV sreg,AX
+    ])
+
+
+def _gen_pushf_popf(p, rng):
+    """PUSH PSW / POP PSW pair (flags unchanged -> TF stays clear, DIR
+    preserved; exercises the POP-PSW commit path). Atomic: a lone POP PSW
+    from random stack data could set TF/DIR."""
+    p.emit_atomic([bytes([0x9C]), bytes([0x9D])])
+
+
 MENU = [(_gen_alu_rr, 14), (_gen_alu_mem, 12), (_gen_alu_imm, 10),
         (_gen_mov, 16), (_gen_incdec, 6), (_gen_xchg, 4),
         (_gen_shift, 5), (_gen_mul, 3), (_gen_div_safe, 2),
@@ -250,9 +296,17 @@ MENU = [(_gen_alu_rr, 14), (_gen_alu_mem, 12), (_gen_alu_imm, 10),
         (_gen_nops, 6)]
 MENU_STACK_W = 6
 
+EXT_MENU = {
+    "callret": (_gen_callret, 5),
+    "sregw":   (_gen_sregw, 4),
+    "popf":    (_gen_pushf_popf, 4),
+}
 
-def generate(seed, nmin=20, nmax=100):
-    """-> dict(seed, instr, regs, ram)"""
+
+def generate(seed, nmin=20, nmax=100, exts=()):
+    """-> dict(seed, instr, regs, ram). exts = iterable of EXT_MENU keys
+    (staged Mission E expansions; each changes the program stream for the
+    same seed, so gate runs must pin their exts set)."""
     rng = random.Random(f"seq/{seed}")
     p = Prog(rng)
     state = {"stackops": 0, "depth": 0}
@@ -260,6 +314,10 @@ def generate(seed, nmin=20, nmax=100):
     funcs, weights = zip(*MENU)
     funcs = list(funcs) + [lambda pp, rr: _gen_pushpop(pp, rr, state)]
     weights = list(weights) + [MENU_STACK_W]
+    for e in exts:
+        f, w = EXT_MENU[e]
+        funcs.append(f)
+        weights.append(w)
     while len(p.ins) < n:
         rng.choices(funcs, weights=weights)[0](p, rng)
     instr = p.assemble()
