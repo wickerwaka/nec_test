@@ -974,6 +974,12 @@ always_comb begin
         // pop reserves identically
         S_MHI: eu_req = q_pop;
         S_IN_PORT: eu_req = q_pop;
+        // SET1/NOT1 imm-mem reserve (req without ready) from pop+1
+        // through the RMW write: an idle-end eval AT the pop still
+        // goes to the prefetcher, an in-flight fetch's T3 eval a
+        // cycle later is blocked (measured on 0F1C-1F)
+        S_RMWX: eu_req = op_bit1 && opc2[2] && mrm_mod != 2'd3;
+
         // POP r16 / RET reserve the bus already during decode (measured:
         // cold-start POP suppresses the prefetch commit at cycle 1)
         S_DEC:  eu_req = !op_modrm && (opc[7:3] == 5'b01011 ||
@@ -1475,12 +1481,10 @@ always_ff @(posedge clk) begin
                         state <= S_NOP;                   // fit pending
                     end else if (op_accimm || op_testai || op_pushi) begin
                         state <= S_AI_I8;                 // imm byte(s)
-                    end else if (opc == 8'h9C) begin      // PUSH PSW
-                        issue_push(psw);
-                        state <= S_REQ;
-                    end else if (op_pushsr) begin         // PUSH sreg
-                        issue_push(sr[srmap(opc[4:3])]);
-                        state <= S_REQ;
+                    end else if (opc == 8'h9C || op_pushsr) begin
+                        // PUSH PSW / sreg: r16-push pattern (write
+                        // ready pop+2, fitted on 06/0E/16/1E)
+                        state <= S_PUSH_CALC;
                     end else if (op_popsr) begin          // POP sreg
                         eu_addr <= {sr[SEG_SS], 4'h0} + {4'h0, rf[4]};
                         eu_seg  <= SEG_SS;
@@ -1979,8 +1983,12 @@ always_ff @(posedge clk) begin
                 if (q_byte[7:6] == 2'd3) begin
                     if (op_bit1 && b1_imm)
                         state <= S_IMM3;               // imm pops at F+4
-                    else if (op_bit1) begin            // CL form (fit)
+                    else if (op_bit1 && opc2[2:1] == 2'd1) begin
+                        // CLR1 CL reg: close pop+4 (fitted 0F12/13)
                         dly <= 6'd2; wnext <= S_EX; state <= S_WAITX;
+                    end else if (op_bit1) begin
+                        // TEST1/SET1/NOT1 CL reg: close pop+3
+                        dly <= 6'd1; wnext <= S_EX; state <= S_WAITX;
                     end else begin                     // ROL4/ROR4 reg
                         dly <= 6'd11; wnext <= S_EX; state <= S_WAITX;
                     end
@@ -1995,7 +2003,13 @@ always_ff @(posedge clk) begin
                 immb <= q_byte;
                 pc   <= pc + 16'd1;
                 if (op_bit1 && opc2[2:1] != 2'd0 && mrm_mod != 2'd3) begin
-                    dly <= 6'd2; state <= S_RMWX;      // bit RMW (fit)
+                    // bit-op imm mem RMW: CLR1 done+7 (dly2);
+                    // SET1/NOT1 slot swept vs goldens
+                    dly <= (opc2[2:1] == 2'd1) ? 6'd2 : 6'd1;
+                    state <= S_RMWX;
+                end else if (op_bit1 && opc2[2:1] == 2'd1) begin
+                    // CLR1 imm reg: close pop+3 (one hop)
+                    dly <= 6'd1; wnext <= S_EX; state <= S_WAITX;
                 end else
                     state <= S_EX;
             end
@@ -2566,7 +2580,9 @@ always_ff @(posedge clk) begin
                         dly <= 6'd2; wnext <= S_EX;       // TEST1 CL mem
                         state <= S_WAITX;                 // (fit pending)
                     end else if (op_bit1) begin
-                        dly <= 6'd2; state <= S_RMWX;     // bit RMW CL mem
+                        // CLR1 CL mem wT1 done+7; SET1/NOT1 done+6
+                        dly <= (opc2[2:1] == 2'd1) ? 6'd4 : 6'd3;
+                        state <= S_RMWX;
                     end
                     else if (op_rol4 || op_ror4) begin
                         dly <= 6'd10; state <= S_RMWX;    // wr ready done+11
@@ -3058,8 +3074,13 @@ always_ff @(posedge clk) begin
             // PUSH r16 (PUSH SP pushes the decremented value, 8086-style)
             //----------------------------------------------------------------
             S_PUSH_CALC: begin
-                issue_push(rf[opc[2:0]] -
-                           ((opc[2:0] == 3'd4) ? 16'd2 : 16'd0));
+                if (opc == 8'h9C)
+                    issue_push(psw);
+                else if (op_pushsr)
+                    issue_push(sr[srmap(opc[4:3])]);
+                else
+                    issue_push(rf[opc[2:0]] -
+                               ((opc[2:0] == 3'd4) ? 16'd2 : 16'd0));
                 state <= S_REQ;
             end
 

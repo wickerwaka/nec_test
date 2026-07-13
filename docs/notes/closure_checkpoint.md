@@ -48,10 +48,16 @@ echo`). NEVER reprogram the FPGA; one board user at a time.
 - fitwatch3 KILLED during active fitting (rebuild races); re-arm from
   the checkpoint recipe when idle. Monitor also stopped - use
   fitwatch.log + ls of tests/v30/v0.1 for the to-do queue.
-- BATCH-3 fitting backlog (landed, failing, grouped by path):
-  06/0E (PUSH sreg ~75 percent - decode-reservation or push slot),
-  0F10-0F17 (bit-op CL forms: reg slot + mem RMW slot),
-  0F19-0F1F imm variants, and everything after - check fitwatch.log.
+- FITTED since: PUSH sreg/PSW (r16-push staging pattern), the entire
+  0F bit-op family 0F10-0F1F (laws: TEST1/SET1/NOT1 CL reg close
+  pop+3, CLR1 +4; TEST1 imm-word/SET1/NOT1 imm reg +2, CLR1 imm +3;
+  mem wT1 done+7 CLR1 / done+6 SET1-NOT1; SET1/NOT1 imm-mem hold a
+  req-not-ready bus reservation from pop+1 - idle-end evals at the
+  pop go to the prefetcher, later fetch-T3 evals are blocked).
+- REMAINING known: 0F22 (SUB4S sibling/borrow law), 0F26 (CMP4S
+  timing), 0F2A (ROR4 mem law wrong + timing), 0F31/33/39/3B
+  (INS/EXT: BUILD from traces), + rescore-all for late batch-3
+  arrivals (bulk: check_core --details 0, grep -v 500/500).
 - (batch-2 fully fitted as of this commit)
 
 ## Pending fit (batch-3, skeletons in core, timing guessed)
