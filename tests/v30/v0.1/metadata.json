@@ -307,9 +307,138 @@
    "dont_care": {
     "when": "bytes[0]==0x8F and (bytes[1] & 0xC0)==0xC0",
     "row": "the single MEMR row (the discarded mod3 stack read)",
-    "cols": ["bus (col 1, committed address)", "data (col 6, read data)"],
+    "cols": [
+     "bus (col 1, committed address)",
+     "data (col 6, read data)"
+    ],
     "reason": "Architecturally inert: the read word is discarded (dest reg never written). The chip drives the read at stale internal EA/address-latch state from pre-window execution history (injection stub load routine + 63 C0 preload + prefetch stream) - deterministic and stable across re-runs, but no (seg<<4)+reg+const formula fits it and only PS/CS (fetch-stream shape) perturbs it. A backdoor-injected core has no such history and drives the modeled SS:SP. See docs/notes/closure_checkpoint.md 8F.0 section and sw/check_core.py dontcare_cells()."
    }
+  },
+  "01": {
+   "status": "normal",
+   "arch": "86"
+  },
+  "02": {
+   "status": "normal",
+   "arch": "86"
+  },
+  "03": {
+   "status": "normal",
+   "arch": "86"
+  },
+  "09": {
+   "status": "normal",
+   "arch": "86",
+   "flags": ".....a..",
+   "flags-mask": 65519
+  },
+  "0A": {
+   "status": "normal",
+   "arch": "86",
+   "flags": ".....a..",
+   "flags-mask": 65519
+  },
+  "0B": {
+   "status": "normal",
+   "arch": "86",
+   "flags": ".....a..",
+   "flags-mask": 65519
+  },
+  "11": {
+   "status": "normal",
+   "arch": "86"
+  },
+  "12": {
+   "status": "normal",
+   "arch": "86"
+  },
+  "13": {
+   "status": "normal",
+   "arch": "86"
+  },
+  "19": {
+   "status": "normal",
+   "arch": "86"
+  },
+  "1A": {
+   "status": "normal",
+   "arch": "86"
+  },
+  "1B": {
+   "status": "normal",
+   "arch": "86"
+  },
+  "21": {
+   "status": "normal",
+   "arch": "86",
+   "flags": ".....a..",
+   "flags-mask": 65519
+  },
+  "22": {
+   "status": "normal",
+   "arch": "86",
+   "flags": ".....a..",
+   "flags-mask": 65519
+  },
+  "23": {
+   "status": "normal",
+   "arch": "86",
+   "flags": ".....a..",
+   "flags-mask": 65519
+  },
+  "29": {
+   "status": "normal",
+   "arch": "86"
+  },
+  "2A": {
+   "status": "normal",
+   "arch": "86"
+  },
+  "2B": {
+   "status": "normal",
+   "arch": "86"
+  },
+  "31": {
+   "status": "normal",
+   "arch": "86",
+   "flags": ".....a..",
+   "flags-mask": 65519
+  },
+  "32": {
+   "status": "normal",
+   "arch": "86",
+   "flags": ".....a..",
+   "flags-mask": 65519
+  },
+  "33": {
+   "status": "normal",
+   "arch": "86",
+   "flags": ".....a..",
+   "flags-mask": 65519
+  },
+  "39": {
+   "status": "normal",
+   "arch": "86"
+  },
+  "3A": {
+   "status": "normal",
+   "arch": "86"
+  },
+  "3B": {
+   "status": "normal",
+   "arch": "86"
+  },
+  "B0": {
+   "status": "normal",
+   "arch": "86"
+  },
+  "C6.0": {
+   "status": "normal",
+   "arch": "86"
+  },
+  "C7.0": {
+   "status": "normal",
+   "arch": "86"
   }
  }
 }

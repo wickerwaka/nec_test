@@ -101,7 +101,30 @@ OPCODES = {}
 for i, m in enumerate(ALU):
     OPCODES[f"{i * 8:02X}"] = SPEC(f"{i * 8:02X}", m, [i * 8],
                                    modrm="mr8", w=0)
+    # golden-coverage audit (2026-07-13): the word (X1: rm16,r16) and both
+    # direction-reversed forms (X2: r8,rm8 / X3: r16,rm16) were implemented
+    # in the core by Mission S (op_alu = (opc & C4)==0) but never emitted -
+    # the suite only had the rm8,r8 representative. Add all 24 so they enter
+    # the permanent regression.
+    OPCODES[f"{i * 8 + 1:02X}"] = SPEC(f"{i * 8 + 1:02X}", m, [i * 8 + 1],
+                                       modrm="mr16", w=1)
+    OPCODES[f"{i * 8 + 2:02X}"] = SPEC(f"{i * 8 + 2:02X}", m, [i * 8 + 2],
+                                       modrm="rm8", w=0)
+    OPCODES[f"{i * 8 + 3:02X}"] = SPEC(f"{i * 8 + 3:02X}", m, [i * 8 + 3],
+                                       modrm="rm16", w=1)
 OPCODES["B8"] = SPEC("B8", "mov ax,", [0xB8], imm=2)
+# MOV reg8, imm8 (B0-B7): the reg8 half of the "1011 W reg" encoding. Only
+# the reg16 half (B8-BF, key B8) was emitted; B0-B7 had NO core dispatch
+# and DEADLOCKED (breadth-fuzz find). B0 (mov al) is the representative
+# (the core decodes B0-B7 uniformly via opc[7:3]==5'b10110, like B8-BF).
+OPCODES["B0"] = SPEC("B0", "mov al,", [0xB0], imm=1)
+# MOV r/m, imm (C6 rm8,imm8 / C7 rm16,imm16), group /0. reg AND mem forms
+# had NO core dispatch and DEADLOCKED (breadth-fuzz find). Write-only store
+# (no operand read) with the imm popped after the modrm/displacement.
+OPCODES["C6.0"] = SPEC("C6.0", "mov b,imm8", [0xC6], modrm="grp8",
+                       group=0, imm=1)
+OPCODES["C7.0"] = SPEC("C7.0", "mov w,imm16", [0xC7], modrm="grp16",
+                       group=0, w=1, imm=2)
 OPCODES["40"] = SPEC("40", "inc ax", [0x40])
 OPCODES["48"] = SPEC("48", "dec ax", [0x48])
 OPCODES["50"] = SPEC("50", "push ax", [0x50], stack=True)

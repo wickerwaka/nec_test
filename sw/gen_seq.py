@@ -178,11 +178,24 @@ def _gen_alu_imm(p, rng):
 
 
 def _gen_mov(p, rng):
-    kind = rng.randrange(4)
+    kind = rng.randrange(6)
     if kind == 0:            # B8+r imm16
         p.emit(bytes([0xB8 + rng.choice(NOSP)]) +
                rng.getrandbits(16).to_bytes(2, "little"))
         return "mov_imm16"
+    elif kind == 4:          # B0+r imm8 (MOV reg8, imm8) - re-enabled
+        p.emit(bytes([0xB0 + rng.randrange(8)]) +
+               bytes([rng.getrandbits(8)]))
+        return "mov_imm8"
+    elif kind == 5:          # C6/C7 /0 (MOV r/m, imm) - re-enabled
+        w = rng.getrandbits(1)
+        n = 2 if w else 1
+        imm = rng.getrandbits(8 * n).to_bytes(n, "little")
+        if rng.random() < 0.5:      # register destination (never SP)
+            p.emit(bytes([0xC6 + w, 0xC0 | rng.choice(NOSP)]) + imm)
+            return "mov_ri_r"
+        p.emit(bytes([0xC6 + w]) + _modrm_direct(0, rng) + imm)
+        return "mov_ri_m"
     elif kind == 1:          # mov r,r / r,m / m,r
         w = rng.getrandbits(1)
         d = rng.getrandbits(1)

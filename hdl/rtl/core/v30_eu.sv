@@ -207,7 +207,7 @@ assign psw_ie = psw[9];
 //----------------------------------------------------------------------------
 typedef enum logic [6:0] {
     S_HALT, S_FIRST, S_DEC,
-    S_IMM_LO, S_IMM_HI, S_NOP,
+    S_IMM_LO, S_IMM_HI, S_IMM8, S_NOP,
     S_AI_I8, S_AI_I16, S_AIGAP, S_TESTGAP, S_BCD_IMM, S_SHWAIT,
     S_EA1, S_EA2, S_DISP8, S_DLO, S_DGAP, S_DHI, S_DSTALL,
     S_RSV, S_REQ, S_BUSW, S_FRETW, S_POPMW, S_POPR,
@@ -411,6 +411,7 @@ wire op_movs8  = opc == 8'h88;
 wire op_movs16 = opc == 8'h89;
 wire op_movl8  = opc == 8'h8A;
 wire op_movl16 = opc == 8'h8B;
+wire op_movri  = opc == 8'hC6 || opc == 8'hC7;      // MOV r/m, imm (grp /0)
 wire op_grpf6  = opc == 8'hF6;                       // /4 MULU8 only
 wire op_grpf7  = opc == 8'hF7;                       // /6 DIVU16 only
 wire op_grpd0  = opc == 8'hD0;                       // /4 SHL8,1 only
@@ -510,7 +511,7 @@ wire op_modrm  = op_alu | op_movs8 | op_movs16 | op_movl8 | op_movl16 |
                  op_grpf6 | op_grpf7 | op_grpd0 | op_grpfe | op_alui |
                  op_grpd1 | op_grpd2 | op_grpd3 | op_grpc0 | op_grpc1 |
                  op_test | op_popm | op_grpff | op_imuli | op_ldptr |
-                 op_fpo | op_chk |
+                 op_fpo | op_chk | op_movri |
                  op_xchg8 | op_xchg16 | op_lea | op_srst | op_srld;
 
 wire is_store  = op_movs8 | op_movs16 | op_srst;     // write-only mem access
@@ -520,6 +521,7 @@ wire is_word_t = op_movs16 | op_movl16 | op_grpf7 |  // word transfer
                  op_grp81 | op_grp83 | op_grpd1 | op_grpd3 | op_grpc1 |
                  (op_test && opc[0]) | op_popm | op_grpff | op_imuli |
                  op_ldptr | (op_bit1 && opc2[0]) | op_fpo | op_chk |
+                 (op_movri && opc[0]) |
                  op_xchg16 | op_srst | op_srld;
 wire is_reader = !is_store;                          // mem forms read first
 
@@ -1013,6 +1015,7 @@ wire pop_want = (state == S_FIRST && !irq_take) ||
                 (state == S_0F) || (state == S_DEC2) || (state == S_IMM3) ||
                 (state == S_IE_IMM) ||
                 (state == S_IMM_LO) || (state == S_IMM_HI) ||
+                (state == S_IMM8) ||
                 (state == S_AI_I8) || (state == S_AI_I16) ||
                 (state == S_BCD_IMM) ||
                 (state == S_IN_PORT) ||
@@ -1082,9 +1085,10 @@ always_comb begin
         // queue-dry mod0 pop's in-flight fetch chain proceeds and the
         // read commits at the next fetch's T3 edge (closure block)
         S_EA1: eu_req = (is_reader || op_srst) && !op_lea && !op_popm &&
-                        mrm_mod == 2'd0;
+                        !op_movri && mrm_mod == 2'd0;
         S_EA2: begin
-            eu_req = (is_reader || op_srst) && !op_lea && !op_popm;
+            eu_req = (is_reader || op_srst) && !op_lea && !op_popm &&
+                     !op_movri;
             // the read is ready next cycle (S_REQ): mark eu_soon so a
             // fetch T3 completion-eval coinciding with S_EA2 defers to T4
             // and the read commits back-to-back instead of waiting an
@@ -1095,6 +1099,7 @@ always_comb begin
         // POP mem reserves at its disp pop only on phase-1 pops
         // (T2/T4-aligned; phase-0 pops let the pop-end commit pass)
         S_DISP8, S_DHI: eu_req = (is_reader || op_srst) && !op_lea &&
+                                 !op_movri &&
                                  q_pop && (!op_popm || bus_phase);
         // moffs forms (A0-A3) reserve during their final address-byte
         // pop, exactly like the disp pops (measured: cold A2 blocks the
@@ -1148,9 +1153,14 @@ always_comb begin
         // commit after the pop); 9A allows a chained fetch there and
         // reserves only from pop+1 (S_WAITX arm)
         S_JSHI:  eu_req = q_pop && opc == 8'hEA;
-        // PUSH imm reserves at its final imm pop (measured, 68/6A)
+        // PUSH imm reserves at its final imm pop (measured, 68/6A).
+        // MOV r/m,imm store reserves at its final imm pop too, so the
+        // write slot is held against a coincident prefetch T3 eval (fitted
+        // vs the C6/C7 goldens): C6 (byte) final pop is S_AI_I8, C7 (word)
+        // S_AI_I16. Guarded on the mem form (mod != 3).
         S_AI_I8:  eu_req = q_pop && opc == 8'h6A;
-        S_AI_I16: eu_req = q_pop && (opc == 8'h68 || op_prep);
+        S_AI_I16: eu_req = q_pop && (opc == 8'h68 || op_prep ||
+                                     (op_movri && mrm_mod != 2'd3));
         // PUSH forms reserve the bus one cycle early: the write is ready
         // the next cycle (S_REQ), and a prefetch T3 completion eval that
         // coincides with S_PUSH_CALC must not steal the slot ahead of it
@@ -1728,7 +1738,7 @@ always_ff @(posedge clk) begin
                                 arch_ip <= pc + 16'd1;
                                 state <= S_FIRST;
                             end
-                            else if (op_alui || op_shimm)
+                            else if (op_alui || op_shimm || op_movri)
                                 state <= S_AI_I8;   // imm byte(s) next
                             else if (op_grpfe && q_byte[5:3] <= 3'd1) begin
                                 dly <= 6'd1;  wnext <= S_EX; state <= S_WAITX;
@@ -1956,6 +1966,7 @@ always_ff @(posedge clk) begin
                     // no modrm
                     if (op_0f) state <= S_0F;       // 2nd byte pops at F+2
                     else if (opc[7:3] == 5'b10111) state <= S_IMM_LO; // B8-BF
+                    else if (opc[7:3] == 5'b10110) state <= S_IMM8;   // B0-B7
                     else if (opc[7:3] == 5'b01000) begin            // INC r16
                         {psw, rf[opc[2:0]]} <=
                             incdec16(1'b0, rf[opc[2:0]], psw);
@@ -2232,7 +2243,25 @@ always_ff @(posedge clk) begin
             S_AI_I8: if (q_pop) begin
                 disp[7:0] <= q_byte;
                 pc <= pc + 16'd1;
-                if (op_grp81 || ((op_accimm || op_testai) && opc[0]) ||
+                if (op_movri) begin
+                    // MOV r/m,imm: C7 (word) pops a second imm byte; C6
+                    // (byte) either writes the reg (mod3) or stores to the
+                    // latched EA. Cadence fitted vs the C6.0 goldens.
+                    if (opc[0]) state <= S_AI_I16;
+                    else if (mrm_mod == 2'd3) begin
+                        // C6 reg8: same one-idle-cycle tail as B0 (byte
+                        // imm -> reg8); S_NOP supplies the extra cycle.
+                        wr_reg8(mrm_rm, q_byte);
+                        state <= S_NOP;
+                    end else begin
+                        // C6 byte store: reserve the bus (S_RSV) so the
+                        // prefetcher cannot steal the write slot; write data
+                        // is the sign-extended imm8 (unused lane = {8{s7}}).
+                        eu_wr    <= 1'b1;
+                        eu_wdata <= {{8{q_byte[7]}}, q_byte};
+                        dly <= 6'd1; state <= S_RSV;
+                    end
+                end else if (op_grp81 || ((op_accimm || op_testai) && opc[0]) ||
                     opc == 8'h68 || opc == 8'h69 || op_prep ||
                     (op_grpf7 && mrm_reg == 3'd0))
                     state <= S_AI_I16;
@@ -2275,7 +2304,21 @@ always_ff @(posedge clk) begin
             S_AI_I16: if (q_pop) begin
                 disp[15:8] <= q_byte;
                 pc <= pc + 16'd1;
-                if (op_pushi) begin
+                if (op_movri) begin        // MOV rm16,imm16 (C7)
+                    if (mrm_mod == 2'd3) begin
+                        rf[mrm_rm] <= {q_byte, disp[7:0]};
+                        arch_ip <= pc + 16'd1;
+                        state <= S_FIRST;
+                    end else begin
+                        // C7 word store: the write is ready at the imm-hi
+                        // pop's T3 eval (go straight to S_REQ; the pop-cycle
+                        // reservation holds the bus). Measured: the write
+                        // commits one eval earlier than an S_RSV lead-in.
+                        eu_wr    <= 1'b1;
+                        eu_wdata <= {q_byte, disp[7:0]};
+                        state <= S_REQ;
+                    end
+                end else if (op_pushi) begin
                     // 68: the push write lands on the next phase-0
                     // grid cycle (ready pop+1 from a phase-1 pop,
                     // pop+2 from phase-0; measured)
@@ -2337,6 +2380,18 @@ always_ff @(posedge clk) begin
                 pc <= pc + 16'd1;
                 arch_ip <= pc + 16'd1;   // retire on the same edge as the pop
                 state <= S_FIRST;
+            end
+
+            // MOV reg8, imm8 (B0-B7): single imm byte -> reg8. Unlike the
+            // two-byte B8-BF (which retire ON the imm-hi pop), the byte-imm
+            // form inserts ONE extra idle cycle before the next opcode can
+            // pop (measured on the B0 goldens: the closing F pops one Ti
+            // later than a naive pop-edge retire; absorbed when the queue is
+            // dry, visible on prefetched variants). S_NOP supplies the cycle.
+            S_IMM8: if (q_pop) begin
+                wr_reg8(opc[2:0], q_byte);
+                pc <= pc + 16'd1;
+                state <= S_NOP;
             end
 
             S_NOP: retire();
@@ -3059,12 +3114,21 @@ always_ff @(posedge clk) begin
                     // bus access or reservation (measured: F@3)
                     rf[mrm_reg] <= ea_base;
                     retire();
+                end else if (op_movri && mrm_mod == 2'd0) begin
+                    // MOV r/m,imm mod0 reg-EA: no operand read, so the EA
+                    // is latched in this single cycle and the imm pops next
+                    // (the read forms need the extra S_EA2 cycle; measured:
+                    // the imm pops at modrm-pop+2 for the no-disp form).
+                    setup_access(ea_base);
+                    state <= S_AI_I8;
                 end else
                     state <= (mrm_mod == 2'd1) ? S_DISP8 : S_EA2;
             end
             S_EA2: begin                                  // mod0, reg EA
                 setup_access(ea_base);
-                state <= S_REQ;                       // ready @ 4
+                // MOV r/m,imm: latch EA now, pop the imm, THEN write
+                // (no operand read). Cadence fitted vs the C6/C7 goldens.
+                state <= op_movri ? S_AI_I8 : S_REQ;  // ready @ 4
             end
             // displacement pops retry on a 2-cycle grain when the queue
             // runs dry (measured on cold-start traces; modrm/imm/F pops
@@ -3082,7 +3146,8 @@ always_ff @(posedge clk) begin
                     setup_access(ea_base + {{8{q_byte[7]}}, q_byte});
                     // the sreg store (8C) follows the READER ready
                     // schedule (d0/d1 @ 4, d2 @ 5 - measured)
-                    if (op_popm) begin
+                    if (op_movri) state <= S_AI_I8;  // pop imm, then write
+                    else if (op_popm) begin
                         dly <= popm_rdy - 6'd1;
                         wnext <= S_REQ; state <= S_WAITX;
                     end else if (is_store && !op_srst) begin // d1 store
@@ -3115,7 +3180,8 @@ always_ff @(posedge clk) begin
                     setup_access(ea_base + {q_byte, disp[7:0]});
                     // d2 loads and the sreg store (uniform @5): rdy @ 5;
                     // other d2 stores: rdy @ 7
-                    if (op_popm) begin
+                    if (op_movri) state <= S_AI_I8;  // pop imm, then write
+                    else if (op_popm) begin
                         dly <= popm_rdy - 6'd1;
                         wnext <= S_REQ; state <= S_WAITX;
                     end else if (is_reader || op_srst) state <= S_REQ;
@@ -3501,7 +3567,7 @@ always_ff @(posedge clk) begin
                     retire();
                 end else if (opc[7:3] == 5'b01010) begin  // PUSH r16
                     retire();
-                end else if (is_store) begin              // MOV 88/89 store
+                end else if (is_store || op_movri) begin  // MOV 88/89 / C6/C7 store
                     retire();
                 end else begin
                     mem_op <= eu_rdata;
