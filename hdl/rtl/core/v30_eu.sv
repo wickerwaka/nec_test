@@ -1569,18 +1569,21 @@ always_ff @(posedge clk) begin
                                 state <= S_WAITX;
                             end else if (op_grpff &&
                                          q_byte[5:3] == 3'd6) begin
-                                // PUSH reg via FF: write ready on the
-                                // next phase-0 grid slot (pop+4/pop+5)
-                                dly <= bus_phase ? 6'd3 : 6'd2;
+                                // PUSH reg via FF: write ready pop+4
+                                // (closure block: the earlier phase-
+                                // dependent fit was aliased by the
+                                // fetch alignment; constant slot fits
+                                // all four golden geometries)
+                                dly <= 6'd2;
                                 wnext <= S_PUSH_CALC;
                                 state <= S_WAITX;
                             end else if (op_grpff &&
                                          q_byte[5:3] == 3'd2) begin
-                                // CALL rm (reg): push ready on the next
-                                // phase-0 grid slot (pop+4/pop+5)
+                                // CALL rm (reg): push ready pop+4
+                                // (constant slot - see FF.6 note)
                                 fl_ip <= rf[q_byte[2:0]];
                                 fl_cs <= sr[SEG_CS];
-                                dly <= bus_phase ? 6'd3 : 6'd2;
+                                dly <= 6'd2;
                                 wnext <= S_CALLFL;
                                 state <= S_JWAIT;
                             end else if (op_grpff &&
