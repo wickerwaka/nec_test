@@ -60,14 +60,20 @@ echo`). NEVER reprogram the FPGA; one board user at a time.
   reservation), E3 (not-taken pop+3, taken dly5 with the E2-style
   reservation exception dly==5), ROR4 (AL takes the WHOLE byte -
   undocumented; reg pop+17, mem done+17), SUB4S/CMP4S laws.
-- REMAINING fit queue (bulk-score for current truth): FPO 66/67/D8-DF
-  (reg slot qop15/11/2 + mem), TEST 84/85/F6.0/F7.0 (slots), NOT/NEG
+- FITTED since: FPO 66/67/D8-DF x10 (reg: retire ON the modrm pop,
+  arch_ip=pc+1; mem: S_NOP after read done), TEST 84/85 (reg: flags+
+  retire ON modrm pop; mem: flags at read done + S_NOP), A8/A9,
+  F6.0/F7.0 TEST rm,imm (mem imm pops done+3 = one gap MORE than the
+  80.x ALU-imm done+2; reg imm pops modrm-pop+2 via the same gap; F7.0
+  retires ON the hi-imm pop, B8 pattern), flag ops F5/F8/F9/FC/FD/9F
+  (retire in S_DEC = close pop+2), 9E SAHF (pop+3).
+- REMAINING fit queue (bulk-score for current truth): NOT/NEG
   F6.2/3 F7.2/3 mem RMW slots, IMUL F6.5/69/6B (ARCH laws wrong -
   flags likely preserved-style + timing), 8F.0 partial, 9A pushes,
   C4/C5 second-read slot, C8 PREPARE (arch 0 - debug), C9/CB/CA/CF/
   CC/CD/CE cold-half decode-reservation (add opcodes to the S_DEC
   eu_req list like C3) + slots, 62 CHKIND slots, EA variant, 68/6A
-  push slot cold quarter, 9F LAHF/F5-FD flag ops retire +1 too slow,
+  push slot cold quarter,
   0F22 sibling residue (parked), 0F26 2-case residue (parked).
 - NOT IMPLEMENTED: 60/61 (PUSH R/POP R), INS/EXT 0F31/33/39/3B.
 - (batch-2 fully fitted as of this commit)
