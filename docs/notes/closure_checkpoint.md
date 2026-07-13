@@ -115,8 +115,14 @@ echo`). NEVER reprogram the FPGA; one board user at a time.
   (mid-cycle-commit) flush, mem branches the normal one; CALL far mem
   order = PS push (ready done+5), flush at write-done+1 (new S_FCFL2),
   PC push committing at the flush cycle end.
+- FITTED since: 9A CALL far imm 500/500. LAWS: PS push ready pop+4
+  (pop+5 when the seg-hi pop rides a bus T4 = freshly pushed byte -
+  NOT the parity law); bus held from pop+1 through the PS write; a
+  chained fetch IS allowed at the pop-cycle end (unlike EA); then the
+  FF.3 tail (flush at write-done+1, PC push at flush end). New BIU
+  output bus_t4.
 - REMAINING fit queue (bulk-score for current truth): 8F.0 partial,
-  9A pushes, C8 PREPARE (arch 0 - debug), F6.6 cycles,
+  C8 PREPARE (arch 0 - debug), F6.6 cycles,
   0F22 sibling residue (parked), 0F26 2-case residue (parked).
 - NOT IMPLEMENTED but tranches LANDED: 60/61 (PUSH R/POP R),
   INS/EXT 0F31/33/39/3B.

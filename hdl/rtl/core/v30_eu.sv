@@ -142,6 +142,7 @@ module v30_eu (
     output reg  [1:0] eu_kind,    // 0=mem 1=io 2=inta 3=halt
     input             eu_started,
     input             bus_phase,   // BIU 2-cycle grid parity (T1=0)
+    input             bus_t4,      // BIU cycle is a T4
     input             eu_done,
     input             eu_wdone,   // early write completion (trap chain law)
     input             eu_t1,      // pulse: first T1 of the current EU access
@@ -1026,17 +1027,21 @@ always_comb begin
         // commits at dly==3 on the CE tranche). eu_soon marks the final
         // wait cycle so a completing fetch's T3 eval defers into T4.
         S_WAITX: begin
-            eu_req = wnext == S_TRAP_IVT1 &&
-                     (opc == 8'hCC ||
-                      ((opc == 8'hCD || opc == 8'hCE) && dly <= 6'd2));
-            eu_soon = eu_req && dly == 6'd1;
+            eu_req = (wnext == S_TRAP_IVT1 &&
+                      (opc == 8'hCC ||
+                       ((opc == 8'hCD || opc == 8'hCE) && dly <= 6'd2))) ||
+                     // CALL far imm holds the bus from the seg-hi pop
+                     // to its PS push (measured: no prefetch commit)
+                     (wnext == S_REQ && opc == 8'h9A);
+            eu_soon = eu_req && dly == 6'd1 && wnext == S_TRAP_IVT1;
         end
         S_JDISP: eu_req = q_pop && opc == 8'hEB;
         S_JDHI:  eu_req = q_pop && (opc == 8'hE8 || opc == 8'hC2 ||
                                     opc == 8'hCA);
-        // far transfers reserve at the last seg-byte pop (measured: no
-        // prefetch commit after the pop on the EA tranche)
-        S_JSHI:  eu_req = q_pop;
+        // EA reserves at the last seg-byte pop (measured: no prefetch
+        // commit after the pop); 9A allows a chained fetch there and
+        // reserves only from pop+1 (S_WAITX arm)
+        S_JSHI:  eu_req = q_pop && opc == 8'hEA;
         // PUSH imm reserves at its final imm pop (measured, 68/6A)
         S_AI_I8:  eu_req = q_pop && opc == 8'h6A;
         S_AI_I16: eu_req = q_pop && opc == 8'h68;
@@ -1055,7 +1060,8 @@ always_comb begin
         S_CALLFL: eu_req = 1'b1;
         // RET holds its reservation through the stack read (measured: no
         // prefetch commit at the read's T3 edge; plain POP r16 allows it)
-        S_BUSW: eu_req = op_ret || op_retf || op_iret;
+        S_BUSW: eu_req = op_ret || op_retf || op_iret ||
+                         (opc == 8'h9A && eu_wr);
         // RETF/RETI chain their stack pops back-to-back: the next read's
         // request+address are up during the current read (measured: the
         // second/third MEMR begins at the previous read's T4)
@@ -1976,9 +1982,15 @@ always_ff @(posedge clk) begin
                 pc    <= pc + 16'd1;
                 fl_cs <= {q_byte, immb};
                 fl_ip <= disp;
-                if (opc == 8'h9A) begin           // CALL far: pushes first
-                    dly <= 6'd1; wnext <= S_FCALLFL;   // fit
-                    state <= S_JWAIT;
+                if (opc == 8'h9A) begin
+                    // CALL far: PS push ready pop+4 (pop+5 when the
+                    // seg-hi pop rides a bus T4 - a freshly pushed
+                    // byte), then the FF.3 tail (flush at
+                    // write-done+1, PC push at the flush end)
+                    issue_push(sr[SEG_CS]);
+                    dly <= bus_t4 ? 6'd4 : 6'd3;
+                    wnext <= S_REQ;
+                    state <= S_WAITX;
                 end else begin
                     // EA: flush at pop+3 (measured)
                     dly <= 6'd2; wnext <= S_JFLUSH; state <= S_JWAIT;
@@ -2635,9 +2647,10 @@ always_ff @(posedge clk) begin
                     rf[4] <= rf[4] + 16'd2;
                     shadow <= 1'b1;      // sreg loads shadow recognition
                     retire();
-                end else if (op_grpff && mrm_reg == 3'd3 && eu_wr) begin
-                    // CALL far mem: PS push done; pre-issue the PC
-                    // push and flush next cycle
+                end else if (((op_grpff && mrm_reg == 3'd3) ||
+                              opc == 8'h9A) && eu_wr) begin
+                    // CALL far: PS push done; pre-issue the PC push
+                    // and flush next cycle
                     issue_push(pc);
                     state <= S_FCFL2;
                 end else if (op_pushsr || opc == 8'h9C || op_pushi ||
