@@ -304,3 +304,77 @@ golden-schema don't-care; grand regression now 155500/155500 - see the
 "8F.0 mod3 ghost-read address" section at the top of this file);
 undocumented encodings parked (FE/7 etc.); waits>=1 qs_e flush-display
 artifact at far jumps (execution identical).
+
+## Campaign 4 breadth expansion (2026-07-13, this session)
+
+Widened the in-silicon A/B fuzz corpus per ROADMAP Campaign 4 priorities
+1-2. Board = root@mister-nec, unchanged post-CE bitstream (NO reflash this
+session). Two tools + generator work; two REAL core bugs found.
+
+### Priority 1 - coverage tracking (DONE, commit 18d9ec6)
+sw/fuzz_cov.py: 5-axis coverage accumulator (form / opsig / prefix / qfill
+/ waits) persisted to sw/testdata/fuzz_coverage.json; --cov-report renders
+it and flags UNEXERCISED/undersampled corners. gen_seq tags each gadget
+(forms) and exposes per-instruction bytes; check_seq accumulates + persists
+a divergence-seed corpus (sw/testdata/fuzz_divergences.jsonl). Base A/B
+re-gate fz6000-6499 500/500.
+
+### Priority 2 - instruction-family expansion (generator)
+Added the remaining SAFE families to gen_seq EXT_MENU, grouped per roadmap
+(a)-(f): bitops (0F 10-1F), rol4 (0F 28/2A), bcd4s (0F 20/22/26), insext
+(0F 31/33/39/3B reg-form), adjust (27/2F/37/3F/D4/D5/98/99), ldsxlat
+(D7/C4/C5), muls (F6/F7 /4-5, 69/6B), shifts (D0-D3/C0/C1 all 8 sub-ops),
+pushpopm (FF/6, 8F/0, PUSH/POP sreg), prepare (C8/C9), bound (62), farcall
+(9A+RETF), swint (CC/CD/CE via a composed IVT+IRET handler), farjmp (EA),
+loop (E0-E3). Gadgets are self-containing (windowed pointers, bounded
+counts, IVT handler for INT/BOUND, SP re-window for PREPARE).
+
+**GATE: fz9000-9499 500/500 zero-divergence in silicon** on the
+strictly-cycle-exact set: callret, sregw, popf, bitops, rol4, bcd4s,
+insext, adjust, ldsxlat, muls, shifts, pushpopm, prepare, bound, farcall.
+Coverage after: 1500 A/B seeds, 91430 instrs, 47 forms, 395 opsigs, qfill
+q0-q6.
+
+### TWO REAL CORE BUGS FOUND (unimplemented instructions -> HANG)
+Both are ubiquitous instructions ABSENT from the golden 155500 suite (never
+tested), so invisible until the fuzz emitted them. Both DEADLOCK the core
+(TB and fabric): the decode falls through with no dispatch case.
+
+1. **B0-B7 (MOV reg8, imm8)** - `opc[7:3]==5'b10110` has no case in the
+   v30_eu no-modrm dispatch (only B8-BF `10111` -> S_IMM_LO exists). Minimal
+   repro: `MOV BL,3` alone hangs; chip completes. Every earlier "shift/4S/
+   insext hang" was collateral (those gadgets set CL/reg8 via B0-B7).
+2. **C6/C7 (MOV rm8/rm16, imm8/imm16)** - reg AND mem forms hang. Minimal
+   repro: `C7 06 00 21 34 12` (MOV word[2100],0x1234) hangs; chip completes.
+   Was collateral for LES/LDS/BOUND (C7-built pointer/bounds).
+
+**Proven fix direction for B0-B7** (implemented + reverted this session to
+keep tree==flashed): add S_IMM8 (mirror of S_IMM_HI, one imm byte ->
+wr_reg8, retire on the pop edge) + dispatch case `opc[7:3]==5'b10110`. It
+is FUNCTIONALLY correct and golden-NEUTRAL (rebuilt TB ran 155500/155500),
+and cycle-exact at flush-aligned phases, BUT the opcode-pop-after-retire
+cadence is ~1 cycle off at queued phases (the fresh-head/T2 defer guard did
+NOT fix it) - needs a Mission-D-style commit-phase fit before reflashing.
+C6/C7 is a larger similar job (modrm + EA + imm-pop + mem-write timing).
+These are the recommended next dedicated fit+reflash mini-campaign. Repro
+harness: compose a 2-3 byte image, diff run_chip(use_core=False) vs
+run_tb (chip-vs-TB) via check_seq.diff (all in this session's git history).
+
+### THREE characterized cadence-marginal families (NOT gated; execution
+correct, done-cycle within 1-2, prefetch/flush/vectoring DISPLAY cadence
+off at ~3% of phases - same class as the documented far-jump qs_e artifact):
+- **swint** (software-INT vectoring): the IVT-read/push/handler-fetch
+  commit is 1-2 cycles off vs the chip at some queue phases (CC/CD/CE are
+  not in the golden). Corpus: fz8007, fz8032.
+- **farjmp** (EA far jump): post-flush prefetch cadence 1 cycle off at some
+  phases (the zero-wait analogue of the known waits>=1 far-jump artifact).
+  Corpus: fz8304.
+- **loop** (E0-E2 taken backward): the chip issues one doomed speculative
+  prefetch during the backward-branch flush that the core does not model;
+  discarded, execution + done-cycle IDENTICAL. Corpus: fz7203, fz7207.
+All three need the same commit-phase RTL fit + reflash to gate strictly.
+
+### Priorities 3-6 (interrupt injection / wait sweep / IN-OUT / deeper)
+NOT reached this session. The swint IVT+handler infra (gen_seq
+far_int_support) and the --waits/--waits-sweep check_seq plumbing are in
+place for priority 3-4; IN/OUT (priority 5) still excluded.

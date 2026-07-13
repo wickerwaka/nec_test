@@ -40,7 +40,7 @@ QS_NAME = {0: "-", 1: "F", 2: "E", 3: "S"}
 
 def compose(g):
     return testimage.compose(regs=g["regs"], instr=g["instr"],
-                             ram=g["ram"])
+                             ram=g["ram"], ivt=g.get("ivt"))
 
 
 def run_tb(image, n):

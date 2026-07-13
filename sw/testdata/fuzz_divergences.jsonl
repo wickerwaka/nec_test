@@ -1,0 +1,5 @@
+{"seed": "fz8007", "exts": ["callret", "sregw", "popf", "bitops", "rol4", "bcd4s", "insext", "adjust", "ldsxlat", "muls", "shifts", "pushpopm", "prepare", "bound", "farcall", "swint", "farjmp"], "waits": 0, "hw_ab": true, "n_ins": 71, "first_row": 835, "bad_rows": 324, "flick": 0}
+{"seed": "fz8032", "exts": ["callret", "sregw", "popf", "bitops", "rol4", "bcd4s", "insext", "adjust", "ldsxlat", "muls", "shifts", "pushpopm", "prepare", "bound", "farcall", "swint", "farjmp"], "waits": 0, "hw_ab": true, "n_ins": 67, "first_row": 758, "bad_rows": 406, "flick": 1}
+{"seed": "fz8304", "exts": ["callret", "sregw", "popf", "bitops", "rol4", "bcd4s", "insext", "adjust", "ldsxlat", "muls", "shifts", "pushpopm", "prepare", "bound", "farcall", "swint", "farjmp"], "waits": 0, "hw_ab": true, "n_ins": 68, "first_row": 633, "bad_rows": 523, "flick": 2}
+{"seed": "fz7203", "exts": ["loop"], "waits": 0, "hw_ab": true, "n_ins": 81, "first_row": 393, "bad_rows": 5, "flick": 0}
+{"seed": "fz7207", "exts": ["loop"], "waits": 0, "hw_ab": true, "n_ins": 59, "first_row": 207, "bad_rows": 5, "flick": 0}

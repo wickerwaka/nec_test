@@ -42,9 +42,20 @@ def _mem_ea(rng):
     return rng.randrange(DATA_LO, DATA_HI) & 0xFFFE | (rng.random() < 0.3)
 
 
-def _modrm_direct(reg, rng):
-    ea = _mem_ea(rng)
+def _data_word_ea(rng):
+    """even direct address with >=4 bytes of headroom in the data window
+    (for controlled word/dword setups: pointers, BOUND bounds)."""
+    return rng.randrange(DATA_LO, DATA_HI - 4) & 0xFFFE
+
+
+def _modrm_direct(reg, rng, ea=None):
+    if ea is None:
+        ea = _mem_ea(rng)
     return bytes([(reg << 3) | 6, ea & 0xFF, ea >> 8])
+
+
+def _modrm_reg(reg, rm):
+    return bytes([0xC0 | (reg << 3) | rm])
 
 
 class Prog:
@@ -52,11 +63,26 @@ class Prog:
         self.rng = rng
         self.ins = []          # list of bytes objects (one per instruction)
         self.fixups = []       # (ins_index, target_ins_index) for disp8
+        self.abs_fixups = []   # ins_index of a far JMP whose off word must
+                               # be patched to the NEXT instruction's IP
         self.noland = set()    # indices illegal as branch targets: landing
                                # here would skip a safe-gadget's setup
+        self.ram_over = []     # (addr, bytes) controlled data-window bytes a
+                               # gadget needs (e.g. a seg-0 far pointer, BOUND
+                               # bounds) - applied over the random fill so we
+                               # never need a MOV rm,imm (C6/C7) to set them
+
+    def ram_set(self, addr, data):
+        self.ram_over.append((addr, bytes(data)))
 
     def emit(self, b):
         self.ins.append(bytes(b))
+
+    def emit_farjmp_next(self):
+        """Far JMP to (0, next-instruction): a contained CS reload that
+        continues the stream. Patched to an absolute IP in assemble()."""
+        self.abs_fixups.append(len(self.ins))
+        self.ins.append(bytes([0xEA, 0, 0, 0, 0]))
 
     def emit_atomic(self, instrs):
         """Emit a multi-instruction safe gadget (e.g. DIV or a string op).
@@ -93,6 +119,14 @@ class Prog:
             disp = sum(sizes[k] for k in range(idx + 1, tgt))
             assert disp < 0x80
             out[idx][1] = disp
+        # far JMP: absolute IP of the following instruction (CS=0, program
+        # based at PC0). Falls to the store stub when it is the last instr.
+        for idx in self.abs_fixups:
+            off = (PC0 + sum(sizes[k] for k in range(0, idx + 1))) & 0xFFFF
+            out[idx][1] = off & 0xFF
+            out[idx][2] = off >> 8
+            out[idx][3] = 0x00
+            out[idx][4] = 0x00
         return b"".join(bytes(b) for b in out)
 
 
@@ -313,6 +347,307 @@ def _gen_pushf_popf(p, rng):
     return "pushf_popf"
 
 
+#----------------------------------------------------------------------------
+# Campaign 4 breadth expansion (priority 2): the remaining SAFE documented
+# families. Each gadget is either intrinsically windowed or forces its own
+# operand/pointer state so behaviour is contained regardless of the random
+# register/RAM context. Forbidden encodings (0F 2nd byte >= 0x40 / BRKEM,
+# 0F 34, 0F FF, HALT, 8080-mode, undocumented FE/7, INS/EXT mem-mod) are
+# NEVER emitted. Grouped to match the roadmap (a)-(f).
+#----------------------------------------------------------------------------
+
+# --- group (a): the 0F extension set ---------------------------------------
+
+def _gen_bitops(p, rng):
+    """TEST1/CLR1/SET1/NOT1 (0F 10-1F), reg or direct-mem operand, bit
+    index from CL (0F 10-17) or imm (0F 18-1F). The index is taken modulo
+    the operand size, so writes never leave the operand -> contained."""
+    i = rng.randrange(4)                 # test1/clr1/set1/not1
+    w = rng.getrandbits(1)
+    use_imm = rng.getrandbits(1)
+    op = (0x18 if use_imm else 0x10) + 2 * i + w
+    if rng.random() < 0.5:
+        ins = bytes([0x0F, op]) + _modrm_reg(0, rng.choice(NOSP))
+    else:
+        ins = bytes([0x0F, op]) + _modrm_direct(0, rng)
+    if use_imm:
+        ins += bytes([rng.getrandbits(4 if w else 3)])
+    p.emit(ins)
+    return "bitop"
+
+
+def _gen_rol4(p, rng):
+    """ROL4/ROR4 (0F 28 / 0F 2A, grp8 /0): rotate a BCD nibble through AL;
+    byte operand reg or direct-mem. Contained (single byte touched)."""
+    op = rng.choice([0x28, 0x2A])
+    if rng.random() < 0.5:
+        ins = bytes([0x0F, op]) + _modrm_reg(0, rng.randrange(8))
+    else:
+        ins = bytes([0x0F, op]) + _modrm_direct(0, rng)
+    p.emit(ins)
+    return "rol4"
+
+
+def _gen_bcd4s(p, rng):
+    """ADD4S/SUB4S/CMP4S (0F 20/22/26). BCD string add/sub/cmp over CL/2
+    bytes at DS0:IX and DS1:IY. Force IX/IY into the data window and CL to
+    1..6 (CL=0 underflows into a ~256-digit runaway). Atomic."""
+    op = rng.choice([0x20, 0x22, 0x26])
+    ix = rng.randrange(0x2400, 0x2800)
+    iy = rng.randrange(0x2900, 0x2D00)
+    p.emit_atomic([
+        bytes([0xBE, ix & 0xFF, ix >> 8]),          # MOV IX(SI), window
+        bytes([0xBF, iy & 0xFF, iy >> 8]),          # MOV IY(DI), window
+        bytes([0xB9, rng.randrange(1, 7), 0x00]),   # MOV CW, 1..6 (CL=count)
+        bytes([0x0F, op]),                          # 4S op
+    ])
+    return "bcd4s"
+
+
+def _gen_insext(p, rng):
+    """INS/EXT bit-field (0F 31/33 reg-form, 0F 39/3B imm4-form). ONLY the
+    reg forms (mem-mod is parked in the core). Offset src = AL, length src =
+    CL (never AH - AH-offset with len<16 burns 256*len cycles); set the low
+    bytes via the 16-bit MOV imm (B8/B9), offset 0..7 and length 1..8,
+    target pointer windowed. Atomic."""
+    ins_op = rng.random() < 0.5           # INS vs EXT
+    use_imm = rng.random() < 0.5
+    setup = [bytes([0xB8, rng.randrange(0, 8), 0x00])]  # MOV AW (AL=offset)
+    if use_imm:
+        modrm = 0xC0 | 0                  # grp8 /0, rm=AL
+        core = bytes([0x0F, 0x39 if ins_op else 0x3B, modrm,
+                      rng.randrange(1, 9)])
+    else:
+        setup.append(bytes([0xB9, rng.randrange(1, 9), 0x00]))  # MOV CW(CL=len)
+        modrm = 0xC0 | (1 << 3) | 0       # reg=CL(len), rm=AL(offset)
+        core = bytes([0x0F, 0x31 if ins_op else 0x33, modrm])
+    if ins_op:                            # INS writes field at DS1:IY
+        iy = rng.randrange(0x2900, 0x2D00)
+        setup.append(bytes([0xBF, iy & 0xFF, iy >> 8]))
+    else:                                 # EXT reads field at DS0:IX
+        ix = rng.randrange(0x2400, 0x2800)
+        setup.append(bytes([0xBE, ix & 0xFF, ix >> 8]))
+    p.emit_atomic(setup + [core])
+    return "insext"
+
+
+# --- group (b): BCD/adjust + CVT -------------------------------------------
+
+def _gen_adjust(p, rng):
+    """DAA/DAS/AAA/AAS (27/2F/37/3F), AAM/AAD (D4/D5 imm base, nonzero -
+    base 0 is a divide trap), CBW/CWD (98/99). All accumulator-only."""
+    op = rng.choice([0x27, 0x2F, 0x37, 0x3F, 0x98, 0x99, 0xD4, 0xD5])
+    if op in (0xD4, 0xD5):
+        p.emit(bytes([op, rng.randrange(1, 256)]))
+    else:
+        p.emit(bytes([op]))
+    return "adjust"
+
+
+# --- group (c): LDS/LES/XLAT, multiply, shift/rotate -----------------------
+
+def _gen_ldsxlat(p, rng):
+    """XLAT (D7, read-only) or LDS/LES (C5/C4). The far-pointer load reads
+    a controlled {offset, seg=0} word pair from the data window so the
+    loaded segment stays 0 and addressing is preserved. Atomic."""
+    if rng.random() < 0.4:
+        p.emit(bytes([0xD7]))             # XLAT AL,[BW+AL] - read only
+        return "xlat"
+    op = rng.choice([0xC4, 0xC5])         # LES / LDS
+    ea = _data_word_ea(rng)
+    off = rng.getrandbits(16)
+    # inject the {offset, seg=0} far pointer via the data window (no C6/C7);
+    # loading seg=0 keeps DS/ES at 0 so addressing is preserved.
+    p.ram_set(ea, [off & 0xFF, off >> 8, 0x00, 0x00])
+    p.emit(bytes([op]) + _modrm_direct(rng.choice(NOSP), rng, ea))  # LDS/LES
+    return "ldsles"
+
+
+def _gen_muls(p, rng):
+    """Full multiply family: MULU/MUL r/m8 & r/m16 (F6/F7 /4,/5), and the
+    3-operand IMUL reg16,rm16,imm8/imm16 (6B/69). Reg or direct-mem."""
+    kind = rng.randrange(4)
+    if kind == 0:                         # F6/F7 /4 MULU or /5 MUL, reg
+        w = rng.getrandbits(1)
+        p.emit(bytes([0xF6 + w]) + _modrm_reg(rng.choice([4, 5]),
+                                              rng.choice(NOSP)))
+    elif kind == 1:                       # F6/F7 /4-5 mem
+        w = rng.getrandbits(1)
+        p.emit(bytes([0xF6 + w]) + _modrm_direct(rng.choice([4, 5]), rng))
+    elif kind == 2:                       # 6B IMUL reg16,rm16,imm8
+        reg = rng.choice(NOSP)
+        if rng.random() < 0.5:
+            p.emit(bytes([0x6B]) + _modrm_reg(reg, rng.choice(NOSP)) +
+                   bytes([rng.getrandbits(8)]))
+        else:
+            p.emit(bytes([0x6B]) + _modrm_direct(reg, rng) +
+                   bytes([rng.getrandbits(8)]))
+    else:                                 # 69 IMUL reg16,rm16,imm16
+        reg = rng.choice(NOSP)
+        imm = rng.getrandbits(16).to_bytes(2, "little")
+        if rng.random() < 0.5:
+            p.emit(bytes([0x69]) + _modrm_reg(reg, rng.choice(NOSP)) + imm)
+        else:
+            p.emit(bytes([0x69]) + _modrm_direct(reg, rng) + imm)
+    return "mul"
+
+
+def _gen_shifts(p, rng):
+    """Full shift/rotate (all 8 sub-ops ROL..SAR): by 1 (D0/D1), by CL
+    (D2/D3, CL forced to 0..31), by imm8 (C0/C1, 0..31). Reg or mem."""
+    sub = rng.randrange(8)
+    w = rng.getrandbits(1)
+    mode = rng.randrange(3)
+    if mode == 0:                         # by 1
+        opc = 0xD0 + w
+        if rng.random() < 0.5:
+            p.emit(bytes([opc]) + _modrm_reg(sub, rng.choice(NOSP)))
+        else:
+            p.emit(bytes([opc]) + _modrm_direct(sub, rng))
+        return "shift_by1_full"
+    if mode == 1:                         # by CL (bounded)
+        opc = 0xD2 + w
+        tgt = (bytes([opc]) + _modrm_reg(sub, rng.choice(NOSP))
+               if rng.random() < 0.5
+               else bytes([opc]) + _modrm_direct(sub, rng))
+        # MOV CW imm16 sets CL to the (bounded) count (avoids MOV reg8,imm8)
+        p.emit_atomic([bytes([0xB9, rng.randrange(0, 32), 0x00]), tgt])
+        return "shift_cl"
+    opc = 0xC0 + w                        # by imm8 (small)
+    imm = rng.randrange(0, 32)
+    if rng.random() < 0.5:
+        p.emit(bytes([opc]) + _modrm_reg(sub, rng.choice(NOSP)) + bytes([imm]))
+    else:
+        p.emit(bytes([opc]) + _modrm_direct(sub, rng) + bytes([imm]))
+    return "shift_imm"
+
+
+# --- group (d): PUSH/POP mem + sreg, PREPARE/DISPOSE, CHKIND ----------------
+
+def _gen_pushpopm(p, rng, state):
+    """PUSH mem (FF/6), POP mem (8F/0 mod0 direct - NOT the mod3 register
+    alias), or a balanced PUSH sreg / POP sreg pair (value preserved so
+    addressing is unchanged; POP SS exercises the interrupt shadow)."""
+    if state["stackops"] >= 20:
+        return _gen_nops(p, rng)
+    k = rng.randrange(3)
+    if k == 0:
+        state["stackops"] += 1
+        p.emit(bytes([0xFF]) + _modrm_direct(6, rng))    # PUSH word[ea]
+        state["depth"] += 1
+        return "push_mem"
+    if k == 1:
+        state["stackops"] += 1
+        p.emit(bytes([0x8F]) + _modrm_direct(0, rng))    # POP word[ea]
+        state["depth"] -= 1
+        return "pop_mem"
+    sreg = rng.choice([0, 2, 3])                          # ES, SS, DS
+    p.emit_atomic([bytes([0x06 | (sreg << 3)]),          # PUSH sreg
+                   bytes([0x07 | (sreg << 3)])])         # POP sreg
+    return "pushpop_sreg"
+
+
+def _gen_prepare(p, rng):
+    """PREPARE (C8 iw,ib, ENTER) + optional DISPOSE (C9, LEAVE), bounded
+    frame size and level, BP forced into the stack window. SP is
+    re-windowed afterwards so any residual (level>0 ENTER without a
+    matching LEAVE) can never walk the stack out. Atomic."""
+    size = rng.randrange(0, 0x20) & 0xFFFE
+    level = rng.randrange(0, 4)
+    seq = [bytes([0xBD, 0xE0, 0x3F]),                    # MOV BP, 0x3FE0
+           bytes([0xC8, size & 0xFF, size >> 8, level])]  # PREPARE size,lvl
+    if rng.random() < 0.5:
+        seq.append(bytes([0xC9]))                        # DISPOSE
+    seq.append(bytes([0xBC, 0x00, 0x3F]))                # MOV SP, 0x3F00
+    p.emit_atomic(seq)
+    return "prepare"
+
+
+def _gen_bound(p, rng):
+    """CHKIND/BOUND (62 /r): check reg16 against [ea]..[ea+2]. Bounds are
+    forced to the full signed range (0x8000..0x7FFF) so the index is always
+    in range and never traps to INT 5. Atomic."""
+    ea = _data_word_ea(rng)
+    reg = rng.choice(NOSP)
+    # inject full signed-range bounds via the data window (no C6/C7) so the
+    # index is always in range and BOUND never traps to INT 5.
+    p.ram_set(ea, [0x00, 0x80, 0xFF, 0x7F])            # lo=0x8000 hi=0x7FFF
+    p.emit(bytes([0x62, (reg << 3) | 0x06, ea & 0xFF, ea >> 8]))  # BOUND
+    return "bound"
+
+
+# --- group (e): far transfers + software interrupts + IRET -----------------
+# These need a composed IVT + handler so delivery returns cleanly. The
+# handler is a bare IRET (software INT return) followed by a RETF (far CALL
+# return); every used vector points at it. generate() injects both when a
+# far/int family is enabled. Priority 3 (interrupt injection) reuses this.
+
+HANDLER_AT = 0x0480                  # below the program (PC0=0x0500)
+SWINT_VEC = 0x20                     # software INTn vector
+FAR_INT_EXTS = ("farcall", "swint", "farjmp")
+
+
+def far_int_support():
+    """(ivt dict, handler ram bytes). Vectors 3 (INT3), 4 (INTO), and
+    SWINT_VEC (INTn) -> the IRET handler."""
+    handler = [(HANDLER_AT, 0xCF),          # IRET
+               (HANDLER_AT + 1, 0xCB)]      # RETF
+    ivt = {3: (0, HANDLER_AT), 4: (0, HANDLER_AT),
+           SWINT_VEC: (0, HANDLER_AT)}
+    return ivt, handler
+
+
+def _gen_farcall(p, rng):
+    """far CALL (9A) to the RETF stub -> returns after the call, stack
+    balanced (+4/-4)."""
+    off = HANDLER_AT + 1
+    p.emit(bytes([0x9A, off & 0xFF, off >> 8, 0x00, 0x00]))
+    return "far_call"
+
+
+def _gen_swint(p, rng):
+    """software interrupt: INT3 (CC -> vec 3), INTn (CD ib -> SWINT_VEC),
+    or INTO (CE -> vec 4 iff OF, else a no-op). Handler IRETs, so each
+    returns to the following instruction; stack net-zero."""
+    k = rng.randrange(3)
+    if k == 0:
+        p.emit(bytes([0xCC]))
+        return "int3"
+    if k == 1:
+        p.emit(bytes([0xCD, SWINT_VEC]))
+        return "intn"
+    p.emit(bytes([0xCE]))
+    return "into"
+
+
+def _gen_farjmp(p, rng):
+    """far JMP (EA) to (0, next-instruction): a contained CS reload that
+    continues the stream (target patched in assemble)."""
+    p.emit_farjmp_next()
+    return "far_jmp"
+
+
+# --- group (f): loop family ------------------------------------------------
+
+def _gen_loop(p, rng):
+    """JCXZ (E3, forward like a Jcc) or a bounded backward LOOP/LOOPE/
+    LOOPNE (E2/E1/E0): CX forced to 1..4, a tiny INC/DEC body, backward
+    disp computed within the gadget. Atomic (interior is no-land)."""
+    if rng.random() < 0.3:
+        p.branch(0xE3)                       # JCXZ forward
+        return "jcxz"
+    op = rng.choice([0xE0, 0xE1, 0xE2])
+    body = []
+    for _ in range(rng.randrange(1, 3)):
+        r = rng.randrange(8)
+        body.append(bytes([rng.choice([0x40, 0x48]) + (0 if r == 4 else r)]))
+    body_len = sum(len(b) for b in body)
+    disp = (-(body_len + 2)) & 0xFF          # back to body start
+    p.emit_atomic([bytes([0xB9, rng.randrange(1, 5), 0x00])] + body +
+                  [bytes([op, disp])])
+    return "loop"
+
+
 MENU = [(_gen_alu_rr, 14), (_gen_alu_mem, 12), (_gen_alu_imm, 10),
         (_gen_mov, 16), (_gen_incdec, 6), (_gen_xchg, 4),
         (_gen_shift, 5), (_gen_mul, 3), (_gen_div_safe, 2),
@@ -321,10 +656,34 @@ MENU = [(_gen_alu_rr, 14), (_gen_alu_mem, 12), (_gen_alu_imm, 10),
 MENU_STACK_W = 6
 
 EXT_MENU = {
-    "callret": (_gen_callret, 5, "callret_near"),
-    "sregw":   (_gen_sregw, 4, "sreg_rw"),
-    "popf":    (_gen_pushf_popf, 4, "pushf_popf"),
+    "callret":  (_gen_callret, 5, ["callret_near"]),
+    "sregw":    (_gen_sregw, 4, ["sreg_rw"]),
+    "popf":     (_gen_pushf_popf, 4, ["pushf_popf"]),
+    # group (a): 0F extension set
+    "bitops":   (_gen_bitops, 6, ["bitop"]),
+    "rol4":     (_gen_rol4, 3, ["rol4"]),
+    "bcd4s":    (_gen_bcd4s, 3, ["bcd4s"]),
+    "insext":   (_gen_insext, 3, ["insext"]),
+    # group (b): BCD/adjust + CVT
+    "adjust":   (_gen_adjust, 5, ["adjust"]),
+    # group (c): LDS/LES/XLAT, multiply, shift/rotate
+    "ldsxlat":  (_gen_ldsxlat, 4, ["xlat", "ldsles"]),
+    "muls":     (_gen_muls, 4, ["mul"]),
+    "shifts":   (_gen_shifts, 6, ["shift_by1_full", "shift_cl",
+                                  "shift_imm"]),
+    # group (d): PUSH/POP mem + sreg, PREPARE/DISPOSE, CHKIND
+    "pushpopm": (_gen_pushpopm, 5, ["push_mem", "pop_mem",
+                                    "pushpop_sreg"]),
+    "prepare":  (_gen_prepare, 3, ["prepare"]),
+    "bound":    (_gen_bound, 3, ["bound"]),
+    # group (e): far transfers + software INT + IRET (need IVT + handler)
+    "farcall":  (_gen_farcall, 4, ["far_call"]),
+    "swint":    (_gen_swint, 4, ["int3", "intn", "into"]),
+    "farjmp":   (_gen_farjmp, 3, ["far_jmp"]),
+    # group (f): loop family
+    "loop":     (_gen_loop, 5, ["jcxz", "loop"]),
 }
+STATE_EXTS = ("pushpopm",)   # exts whose generator takes the shared state
 
 
 def form_universe(exts=None):
@@ -337,7 +696,10 @@ def form_universe(exts=None):
             "shift_by1", "mulu8_r", "divu16_safe", "test_rr", "jcc",
             "jmp_short", "string_single", "rep_string", "nops"]
     keys = EXT_MENU.keys() if exts is None else exts
-    return base + [EXT_MENU[e][2] for e in keys]
+    out = list(base)
+    for e in keys:
+        out += EXT_MENU[e][2]
+    return out
 
 
 def generate(seed, nmin=20, nmax=100, exts=()):
@@ -356,7 +718,10 @@ def generate(seed, nmin=20, nmax=100, exts=()):
     weights = list(weights) + [MENU_STACK_W]
     for e in exts:
         f, w = EXT_MENU[e][:2]
-        funcs.append(f)
+        if e in STATE_EXTS:
+            funcs.append(lambda pp, rr, ff=f: ff(pp, rr, state))
+        else:
+            funcs.append(f)
         weights.append(w)
     forms = []
     while len(p.ins) < n:
@@ -373,7 +738,15 @@ def generate(seed, nmin=20, nmax=100, exts=()):
             "IY": rng.randrange(0x2900, 0x2D00)}
     ram = [(a, rng.getrandbits(8)) for a in range(DATA_LO, DATA_HI + 0x100)]
     ram += [(a, rng.getrandbits(8)) for a in range(0x3E00, 0x4000)]
-    return dict(seed=seed, instr=instr, regs=regs, ram=ram,
+    # gadget-controlled bytes win over the random fill (appended last; compose
+    # takes the last write per physical address for same-address duplicates)
+    for addr, data in p.ram_over:
+        ram += [(addr + i, b) for i, b in enumerate(data)]
+    ivt = None
+    if any(e in FAR_INT_EXTS for e in exts):
+        ivt, handler = far_int_support()
+        ram += handler                    # IRET + RETF handler stub bytes
+    return dict(seed=seed, instr=instr, regs=regs, ram=ram, ivt=ivt,
                 n_ins=len(p.ins), forms=forms,
                 ins=[bytes(b) for b in p.ins])
 
