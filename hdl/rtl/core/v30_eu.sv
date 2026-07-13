@@ -131,6 +131,7 @@ module v30_eu (
                                    // request history (trap-chain gaps)
     output reg        eu_ready,
     output reg        eu_soon,     // ready will assert next cycle (held resv)
+    output            flush_fast,  // far flush commits redirect mid-cycle
     output reg        eu_wr,
     output            eu_fwd,     // write data = the BIU's last read data
                                   // (string-op read->write forwarding)
@@ -965,6 +966,9 @@ assign q_flush = flush_now || (state == S_JFLUSH) || (state == S_RETF) ||
                  (state == S_CALLFL) || (state == S_FCALLFL) ||
                  (state == S_IRQ_REPFL);
 assign flush_cs = fl_cs;
+// EA far jump: the flush cycle commits the redirected prefetch
+// mid-cycle (measured; near flushes commit at the cycle end)
+assign flush_fast = state == S_JFLUSH && opc == 8'hEA;
 assign flush_ip = fl_ip;
 assign dbg_first_pop = q_pop && q_first;
 
@@ -1026,6 +1030,12 @@ always_comb begin
         S_JDISP: eu_req = q_pop && opc == 8'hEB;
         S_JDHI:  eu_req = q_pop && (opc == 8'hE8 || opc == 8'hC2 ||
                                     opc == 8'hCA);
+        // far transfers reserve at the last seg-byte pop (measured: no
+        // prefetch commit after the pop on the EA tranche)
+        S_JSHI:  eu_req = q_pop;
+        // PUSH imm reserves at its final imm pop (measured, 68/6A)
+        S_AI_I8:  eu_req = q_pop && opc == 8'h6A;
+        S_AI_I16: eu_req = q_pop && opc == 8'h68;
         S_JWAIT: eu_req = !(op_jcc && dly == 6'd3) &&
                           !(opc == 8'hE2 &&
                             (dly == 6'd5 || wnext == S_JNT)) &&
@@ -1794,9 +1804,16 @@ always_ff @(posedge clk) begin
             S_AI_I16: if (q_pop) begin
                 disp[15:8] <= q_byte;
                 pc <= pc + 16'd1;
-                if (op_pushi) begin                   // 68: push imm16
-                    issue_push({q_byte, disp[7:0]});
-                    state <= S_REQ;
+                if (op_pushi) begin
+                    // 68: the push write lands on the next phase-0
+                    // grid cycle (ready pop+1 from a phase-1 pop,
+                    // pop+2 from phase-0; measured)
+                    disp[15:8] <= q_byte;
+                    if (bus_phase) begin
+                        issue_push({q_byte, disp[7:0]});
+                        state <= S_REQ;
+                    end else
+                        state <= S_PUSH_CALC;
                 end else if (op_prep) begin
                     state <= S_PREP_L;                // level byte next
                 end else if (op_accimm || op_testai) begin
@@ -1949,7 +1966,8 @@ always_ff @(posedge clk) begin
                     dly <= 6'd1; wnext <= S_FCALLFL;   // fit
                     state <= S_JWAIT;
                 end else begin
-                    dly <= 6'd1; wnext <= S_JFLUSH; state <= S_JWAIT;
+                    // EA: flush at pop+3 (measured)
+                    dly <= 6'd2; wnext <= S_JFLUSH; state <= S_JWAIT;
                 end
             end
             S_FCALLFL: begin     // q_flush high this cycle (comb)
@@ -3256,6 +3274,8 @@ always_ff @(posedge clk) begin
             S_PUSH_CALC: begin
                 if (opc == 8'h9C)
                     issue_push(psw);
+                else if (op_pushi)
+                    issue_push(disp);            // 68 imm16
                 else if (op_pushsr)
                     issue_push(sr[srmap(opc[4:3])]);
                 else

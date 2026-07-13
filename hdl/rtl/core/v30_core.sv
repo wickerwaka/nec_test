@@ -68,7 +68,7 @@ wire        q_avail, q_avail2, q_any;
 wire        eu_pop, eu_first, eu_flush;
 wire [15:0] eu_flush_cs, eu_flush_ip;
 wire        eu_req, eu_hold, eu_ready, eu_wr, eu_fwd, eu_word;
-wire        eu_soon, bus_phase;
+wire        eu_soon, bus_phase, flush_fast;
 wire  [1:0] eu_kind;
 wire [19:0] eu_addr;
 wire  [1:0] eu_seg;
@@ -119,6 +119,7 @@ v30_biu u_biu (
     .flush_ip   (eu_flush_ip),
     .eu_req     (scr_en ? 1'b0 : eu_req),
     .eu_soon    (scr_en ? 1'b0 : eu_soon),
+    .flush_fast (scr_en ? 1'b0 : flush_fast),
     .bus_phase  (bus_phase),
     .eu_hold    (scr_en ? 1'b0 : eu_hold),
     .eu_ready   (eu_ready),
@@ -157,6 +158,7 @@ v30_eu u_eu (
     .flush_ip   (eu_flush_ip),
     .eu_req     (eu_req),
     .eu_soon    (eu_soon),
+    .flush_fast (flush_fast),
     .bus_phase  (bus_phase),
     .eu_hold    (eu_hold),
     .eu_ready   (eu_ready),

@@ -99,6 +99,7 @@ module v30_biu (
     // the EU drops it (or moves to the next access) on eu_started.
     input             eu_req,
     input             eu_soon,        // request asserts ready next cycle
+    input             flush_fast,     // far-flush: redirect commits mid-cycle
     output            bus_phase,      // 2-cycle bus grid parity (T1=0)
     input             eu_hold,      // blocks prefetch, not request history
     input             eu_ready,
@@ -263,7 +264,9 @@ wire flush_quiet = !(cur_fetch && state != ST_TI) && (q_aged == 2'd0) &&
 wire e_wait_show = e_wait && !flush_busy_fetch && (q_aged == 2'd0) &&
                    (push_pend == 2'd0) &&
                    !(eu_ready && !eu_started && !(eval_ext && want_eu));
-assign qs_e = (q_flush && flush_quiet) || e_wait_show;
+// the far-flush mid-cycle commit displays E with the commit, even
+// during a push-absorb cycle (measured, EA tranche)
+assign qs_e = (q_flush && flush_quiet) || e_wait_show || ff_show;
 
 //----------------------------------------------------------------------------
 // HALT pseudo-cycle display (measured, block 4): the HALT status shows
@@ -501,7 +504,7 @@ always_ff @(posedge clk) begin
         end
 
         // QS=E display deferral
-        if (q_flush && !flush_quiet) e_wait <= 1'b1;
+        if (q_flush && !flush_quiet && !ff_show) e_wait <= 1'b1;
         else if (e_wait_show)        e_wait <= 1'b0;
 
         // HALT pseudo-T1 releases UBE_N high
@@ -526,7 +529,7 @@ always_ff @(posedge clk) begin
                     cur_kind   <= nxt_kind;
                     ube_n      <= nxt_ube_n;
                     nxt_valid  <= 1'b0;
-                end else if (eval_ext && pick_any) begin
+                end else if ((eval_ext || ff_show) && pick_any) begin
                     // deferred (waited-cycle) completion eval: the picked
                     // cycle was displayed during this cycle; enter its T1
                     // directly
@@ -727,7 +730,11 @@ end
 // its status/address mid-T4 and enters T1 directly at the T4 edge
 // (measured on the BRK/BRKV tranches).
 wire defer_show = defer_t4 && state == ST_T4 && eu_req && eu_ready;
-wire ext_show = (eval_ext && pick_any) || defer_show;
+// far-transfer flush (EA): the redirected prefetch commits mid-cycle in
+// the flush cycle itself (E and the CODE commit share the row; measured)
+wire ff_show = flush_fast && q_flush && state == ST_TI && !nxt_live &&
+               !eval_ext && pick_any;
+wire ext_show = (eval_ext && pick_any) || defer_show || ff_show;
 
 assign bs = (halt_show || halt_t1) ? BS_HALT
           : nxt_live ? nxt_type

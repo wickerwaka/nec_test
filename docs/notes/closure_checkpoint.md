@@ -89,10 +89,16 @@ echo`). NEVER reprogram the FPGA; one board user at a time.
   reads chain with the 2nd request ready done+3 (2nd bus cycle commits
   uniformly at 1st-read-end+6); CHKIND no-trap close done+3; trap:
   below-lower early-out = IVT read 3 cycles sooner than above-upper.
+- FITTED since: EA + 68/6A 500/500. LAWS: EA reserves at the last
+  seg-byte pop, flushes at pop+3, and the flush cycle commits the
+  redirected prefetch MID-CYCLE with the E display (new BIU flush_fast
+  path; near flushes commit at cycle end). PUSH imm reserves at its
+  final imm pop; the write lands on the next phase-0 grid cycle (6A
+  ready pop+1; 68 pop+1 from a phase-1 pop / pop+2 from phase-0 via
+  S_PUSH_CALC).
 - REMAINING fit queue (bulk-score for current truth): 8F.0 partial,
-  9A pushes, C8 PREPARE (arch 0 - debug), EA variant, 68/6A push slot
-  cold quarter, F6.6 cycles, FE.1/FF.0/FF.1 write DATA wrong (arch 0
-  - real bug, incdec16?), FF.2-6 slots,
+  9A pushes, C8 PREPARE (arch 0 - debug), F6.6 cycles, FE.1/FF.0/FF.1
+  write DATA wrong (arch 0 - real bug, incdec16?), FF.2-6 slots,
   0F22 sibling residue (parked), 0F26 2-case residue (parked).
 - NOT IMPLEMENTED but tranches LANDED: 60/61 (PUSH R/POP R),
   INS/EXT 0F31/33/39/3B.
