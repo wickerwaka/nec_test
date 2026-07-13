@@ -97,3 +97,39 @@ t1_half2 CE_HALF timing (write-data AD phase) → validate on write-heavy fuzz;
 pulse-default collapse (bug #1 above); pin edge detectors at fabric rate;
 input hold-margin re-validation on clock-source switch; race_rom BRAM
 inference. All caught by the golden gate + CE-hold sanity + hardware A/B.
+
+## Outcome (2026-07-13, IMPLEMENTED — all gates passed)
+
+The refactor landed exactly as planned; both subtle bugs were handled
+(eu_started moved into the ce branch + added to biu reset; the eu
+every-state block moved inside `else if(ce)` with flush_now<=0 added to eu
+reset; t1_half2 gated by ce_half). Commits e15492d / 9716b01 / 6f7cdd2.
+
+1. GOLDEN GATE (CE-high, N=1): bit- AND cycle-identical to baseline.
+   v0.1 155440/155500 full (cycles 155440, arch 155500) — the only
+   residual is the pre-existing 8F.0 (60 cycles); wait suites w1/w3 both
+   1200/1200. No new divergence from the gating.
+2. CE-HOLD SANITY (+ce_div=N>1, +ce_hold_check): N=3 over a 20-opcode
+   spread = 9940/10000, BIT-identical to N=1 (same 8F.0 residual), zero
+   freeze violations; N=7 on the iterative machines (div/shift/REP/PREP/
+   ROL4/ADD4S) 5000/5000, zero violations. Per-CPU-cycle output is
+   independent of the fabric/CE ratio; u_eu.state / u_biu.state / q_cnt /
+   div_cnt do not change on CE-low clocks.
+3. HARNESS: nec_bus exposes tick_rise_o / tick_fall_o (only change);
+   system_large u_core → .CLK(clk)/.CE(bus_tick_rise)/.CE_HALF(bus_tick_fall).
+   check_ab_sim: core boot MATCHES chip golden over 287 rows (no phase
+   adjustment needed — the A2 input pipe carried over unchanged).
+   tb_harness ALL PASSED; largemode_synth.hex byte-identical.
+4. BUILD: full compile 0 errors, 8m40s total (quartus_map 3m52s, Fitter
+   4m24s) — no synthesis spike. Timing MET: emu/core clock target 32 MHz,
+   Fmax 48.09 MHz (setup slack +5.227 ns, hold +0.263 ns). Fmax fell from
+   the pre-CE 84.82 MHz because the core now lives on the 32 MHz fabric
+   domain by design (its cones close within a sys-clock period, with 50%
+   headroom). Util 9,690 ALMs (23%), 5117 regs, 13 DSP; only the 2 intended
+   small AAM lpm_divide units. safe_flash'd (VERIFY ok, use_core=False).
+5. HARDWARE A/B (real silicon): chip position (use_core=0) vs golden
+   MATCH 800/800 (chip path undisturbed); FIRST LIGHT — CE-driven fabric
+   core (use_core=1) vs socketed chip MATCH 800/800; in-silicon A/B
+   sequence fuzz fz5000-5499 500/500 clean, zero divergence, zero QS
+   flickers. Board echo-healthy after the run. The CE-driven in-fabric
+   core is cycle-for-cycle indistinguishable from the socketed chip.

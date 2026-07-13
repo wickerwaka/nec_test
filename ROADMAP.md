@@ -196,6 +196,22 @@ Progress (mission block 1):
   true-silicon analogue of the Campaign 3 exit gate.** The in-fabric V30
   core is cycle-for-cycle indistinguishable from the socketed chip
   across the fuzz corpus in real silicon.
+- **F. Clock-enable (CE) refactor (DONE, 2026-07-13, all gates passed)**:
+  the in-fabric core now runs on the fast sys clk and only advances state
+  when CE is asserted (CE=nec_bus tick_rise, CE_HALF=tick_fall), decoupling
+  execution rate from the fabric clock while staying lock-step with the
+  socketed chip. Every sequential process gated `if(srst) ... else if(ce)`,
+  reset ungated (bkd_load still fires on RESET); the two subtle desync bugs
+  (pulse-default collapse, negedge t1_half2) handled per docs/notes/
+  ce_plan.md. Gates: golden 155440/155500 bit+cycle-identical (w1/w3
+  1200/1200); CE-hold sanity (+ce_div>1) rows identical + state frozen on
+  CE-low clocks; check_ab_sim core boot MATCH 287 rows; tb_harness ALL
+  PASSED + largemode_synth.hex byte-identical (chip path undisturbed);
+  build 8m40s, timing MET (emu 32 MHz, Fmax 48.09 MHz, setup +5.227 ns),
+  util 23% ALMs. In silicon: chip-vs-golden 800/800, FIRST LIGHT
+  CE-core-vs-chip 800/800, A/B fuzz fz5000-5499 500/500 zero-divergence.
+  Deferred follow-on: a host-selectable independent core-rate CE divider
+  (feed the core CE from a host-controllable divider instead of tick_rise).
 
 ## Standing infrastructure (build only when a campaign demands)
 - Agent-loop orchestration (campaign 2)
