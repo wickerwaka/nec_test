@@ -349,11 +349,12 @@ initial eudbg_en = $test$plusargs("eudbg");
 
 always @(posedge clk) begin
     if (!reset && recording && eudbg_en && fo != 0)
-        $fdisplay(fo, "d %0d %0d %0d %0d %0d %0d %05x %0d",
+        $fdisplay(fo, "d %0d %0d %0d %0d %0d %0d %05x %0d %02x %02x",
                   dut.u_eu.state, dut.u_eu.q_pop,
                   dut.u_biu.q_avl, dut.u_biu.q_cnt,
                   dut.u_eu.eu_wrap, dut.u_biu.cur_wrap,
-                  dut.u_eu.eu_addr, dut.u_eu.eu_seg);
+                  dut.u_eu.eu_addr, dut.u_eu.eu_seg,
+                  dut.u_eu.opc, dut.u_eu.q_byte);
 end
 
 initial begin

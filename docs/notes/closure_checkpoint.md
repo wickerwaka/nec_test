@@ -199,3 +199,17 @@ disp16 store-ready @ hi+2 (fz151) and the split-access segment wrap
 FFFFh must wrap to offset 0 of the same segment). Full history: fz100-139
 40/40 after the reader law; fz140-493 clean; fz494 wrap; fz600-1099
 500/500. Generator expansions (callret/sregw/popf) re-gating separately.
+
+## fz2263 (popf-ext gate run) — undocumented-encoding park, NOT timing
+
+fz2263 (exts=callret,sregw,popf; the seed's program contains only a
+callret gadget) wanders into deterministic-but-skewed execution (both
+chip and core agree bit-for-bit: same XOR AX,E705, same DEC byte
+[BP+DI+disp16] RMW at 001e5) until the stream reaches FE /7 - an
+UNDOCUMENTED group-FE encoding. The core parks (S_HALT) by the standing
+Campaign 3 policy; the chip executes it and continues. Classified into
+the existing "undocumented encodings parked pending characterization"
+residual - the fix is to characterize/implement undocumented grp-FE
+(and friends) on silicon, not a containment or timing change. Repro:
+check_seq fz2263 --exts callret,sregw,popf; eudbg shows the park at the
+FE/7 modrm pop.
