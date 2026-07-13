@@ -1065,7 +1065,15 @@ always_comb begin
         // read commits at the next fetch's T3 edge (closure block)
         S_EA1: eu_req = (is_reader || op_srst) && !op_lea && !op_popm &&
                         mrm_mod == 2'd0;
-        S_EA2: eu_req = (is_reader || op_srst) && !op_lea && !op_popm;
+        S_EA2: begin
+            eu_req = (is_reader || op_srst) && !op_lea && !op_popm;
+            // the read is ready next cycle (S_REQ): mark eu_soon so a
+            // fetch T3 completion-eval coinciding with S_EA2 defers to T4
+            // and the read commits back-to-back instead of waiting an
+            // extra idle (Mission S: reg-EA readers whose ready lands on a
+            // prefetch T4 read two cycles late otherwise)
+            eu_soon = eu_req;
+        end
         // POP mem reserves at its disp pop only on phase-1 pops
         // (T2/T4-aligned; phase-0 pops let the pop-end commit pass)
         S_DISP8, S_DHI: eu_req = (is_reader || op_srst) && !op_lea &&
