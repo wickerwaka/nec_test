@@ -213,3 +213,13 @@ residual - the fix is to characterize/implement undocumented grp-FE
 (and friends) on silicon, not a containment or timing change. Repro:
 check_seq fz2263 --exts callret,sregw,popf; eudbg shows the park at the
 FE/7 modrm pop.
+
+## Mission E expansion gates — ALL PASSED (2026-07-13)
+
+base 500/500 (fz600-1099) | callret 500/500 (fz1100-1599) |
+callret+sregw 500/500 (fz1600-2099) | callret+sregw+popf 500/500
+(fz2264-2763). Single non-clean seed across all runs: fz2263, classified
+above (undocumented FE /7 park - the pre-existing residual, not timing).
+Next expansion candidates (still excluded): IN/OUT in sequences, REP
+randomization, far CALL/RET, undocumented encodings (need silicon
+characterization first), 8080-mode.

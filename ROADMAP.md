@@ -174,8 +174,12 @@ Progress (mission block 1):
   2. disp16 store ready @ hi-pop+2 (old rdy@+3 was phase-aliased);
   3. split word access at offset FFFFh wraps to offset 0 of the same
      segment (16-bit offset math; core was doing 20-bit linear +1).
-- **E (gate PASSED)**: 500/500 consecutive clean (fz600-1099); staged
-  generator expansions (callret/sregw/popf gadgets) re-gating next.
+- **E (ALL GATES PASSED)**: base 500/500 (fz600-1099); expansions each
+  re-gated at 500/500: callret (fz1100-1599), +sregw (fz1600-2099),
+  +popf (fz2264-2763). fz2263 = the documented undocumented-encoding
+  park residual (FE /7 reached via deterministic garbage execution; the
+  core matched silicon bit-for-bit up to the undocumented opcode).
+  ~2560 board-vs-TB sequences total this session; zero QS flickers.
 - **C (pending)**: final-RTL bitstream in Quartus; then safe_flash,
   chip-position regression (boot golden + A/A seed baseline), first
   A/B light-up, and the in-silicon confirmation of the D laws.
