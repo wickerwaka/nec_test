@@ -50,9 +50,13 @@ module nec_bus
     input       [2:0] evt_pin,     // 0=INT 1=NMI 2=POLL_N(active low)
     output reg        evt_fired,
 
-    // NEC processor pins
-    inout      [19:0] NEC_AD,
-    output            NEC_AD_DIR,      // 0 - input, 1 - output (AD[15:0] transceivers)
+    // NEC processor pins. AD is presented as a unidirectional trio so the
+    // pin-side can be muxed (chip vs. internal v30_core, Campaign 4) without
+    // an inout-to-inout bridge: the parent forms AD[15:0] from ad_drive under
+    // ad_drive_en and feeds the sampled bus back on ad_sample.
+    output     [15:0] ad_drive,        // read/INTA data to drive on AD[15:0]
+    output            ad_drive_en,     // 1 = harness driving AD (= AD_DIR)
+    input      [19:0] ad_sample,       // AD as sampled this sys clock
     output            NEC_CLK,
     output            NEC_POLL_N,
     output            NEC_READY,
@@ -135,7 +139,7 @@ reg  [1:0] qs_q;
 reg        buslock_n_q, ube_n_q, rd_n_q;
 
 always_ff @(posedge clk) begin
-    ad_in_q     <= NEC_AD;
+    ad_in_q     <= ad_sample;
     ad_in_q2    <= ad_in_q;    // aligned with strobe edge detectors
     bs_q        <= NEC_BS;
     qs_q        <= NEC_QS;
@@ -366,9 +370,8 @@ always_ff @(posedge clk) begin
     rdata_q <= mem_cycle_type == BS_INTA ? {8'h00, cfg_int_vector} : mem_rdata;
 end
 
-assign NEC_AD[15:0]  = drive_en ? rdata_q : 16'hzzzz;
-assign NEC_AD[19:16] = 4'hz;
-assign NEC_AD_DIR    = drive_en;
+assign ad_drive    = rdata_q;
+assign ad_drive_en = drive_en;
 
 //----------------------------------------------------------------------------
 // Pin-event scheduler

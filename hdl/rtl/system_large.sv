@@ -103,6 +103,7 @@ wire  [5:0] cfg_clk_div;
 wire  [3:0] cfg_wait_states;
 wire  [7:0] cfg_int_vector;
 wire        cfg_small_mode;
+wire        cfg_use_core;    // Campaign 4 A/B: 1 = internal v30_core
 wire        int_req, nmi_req, poll_n_host;
 wire [15:0] cfg_iord;
 wire [19:0] evt_addr;
@@ -232,6 +233,7 @@ hps_axi_slave bridge
     .cfg_wait_states(cfg_wait_states),
     .cfg_int_vector(cfg_int_vector),
     .cfg_small_mode(cfg_small_mode),
+    .cfg_use_core(cfg_use_core),
     .int_req(int_req),
     .nmi_req(nmi_req),
     .poll_n_out(poll_n_host),
@@ -265,6 +267,76 @@ wire host_attached;
 wire harness_reset = por | host_reset | (reset & ~host_attached);
 
 //----------------------------------------------------------------------------
+// A/B pin mux (Campaign 4). nec_bus talks to a "harness-bus" pin bundle
+// (hb_*) that is routed either to the socketed chip (physical NEC_* pins)
+// or to the internally instantiated v30_core, selected by cfg_use_core.
+//
+// Every one-directional signal muxes with a plain 2:1. AD uses nec_bus's
+// unidirectional trio (ad_drive / ad_drive_en / ad_sample), so there is no
+// inout-to-inout bridge and no combinational loop: the harness read data
+// (registered inside nec_bus) drives the selected device's AD, and the
+// device's AD is muxed back onto ad_sample. Chip-mode behavior is thus
+// bit-identical to the known-good build.
+//----------------------------------------------------------------------------
+wire [15:0] hb_ad_drive;    // read/INTA data from nec_bus
+wire        hb_ad_dir;      // ad_drive_en: 1 = harness driving AD
+wire [19:0] hb_ad_sample;   // AD fed back to nec_bus
+wire        hb_clk, hb_poll_n, hb_ready, hb_reset, hb_int, hb_nmi, hb_enable_n;
+wire  [1:0] hb_qs;
+wire  [2:0] hb_bs;
+wire        hb_buslock_n, hb_ube_n, hb_rd_n;
+
+// shared internal AD bus for the core (like tb_v30_core's memory-driven AD)
+tri  [19:0] core_ad;
+wire  [1:0] core_qs;
+wire  [2:0] core_bs;
+wire        core_rd_n, core_ube_n, core_buslock_n;
+wire        core_reset = hb_reset | ~cfg_use_core;   // held in reset unless A
+
+// harness read data driven onto the core's AD[15:0] during its read cycles
+assign core_ad[15:0] = hb_ad_dir ? hb_ad_drive : 16'hzzzz;
+
+v30_core u_core
+(
+    .CLK       (hb_clk),
+    .RESET     (core_reset),
+    .READY     (hb_ready),
+    .INT       (hb_int),
+    .NMI       (hb_nmi),
+    .POLL_N    (hb_poll_n),
+    .AD        (core_ad),
+    .QS        (core_qs),
+    .BS        (core_bs),
+    .RD_N      (core_rd_n),
+    .UBE_N     (core_ube_n),
+    .BUSLOCK_N (core_buslock_n)
+);
+
+// one-directional status pins: chip vs core
+assign hb_qs        = cfg_use_core ? core_qs        : NEC_QS;
+assign hb_bs        = cfg_use_core ? core_bs        : NEC_BS;
+assign hb_rd_n      = cfg_use_core ? core_rd_n      : NEC_RD_N;
+assign hb_ube_n     = cfg_use_core ? core_ube_n     : NEC_UBE_N;
+assign hb_buslock_n = cfg_use_core ? core_buslock_n : NEC_BUSLOCK_N;
+
+// AD sample fed back to nec_bus, and the physical drive to the chip. No
+// feedback loop: NEC_AD's driver (hb_ad_drive) is registered inside nec_bus.
+assign hb_ad_sample  = cfg_use_core ? core_ad : NEC_AD;
+assign NEC_AD[15:0]  = (!cfg_use_core && hb_ad_dir) ? hb_ad_drive : 16'hzzzz;
+assign NEC_AD[19:16] = 4'hz;
+
+// nec_bus outputs fan out to the physical pins (chip) and, via hb_*, the
+// core. The chip is powered off while the core is selected.
+assign NEC_CLK      = hb_clk;
+assign NEC_POLL_N   = hb_poll_n;
+assign NEC_READY    = hb_ready;
+assign NEC_RESET    = hb_reset;
+assign NEC_INT      = hb_int;
+assign NEC_NMI      = hb_nmi;
+assign NEC_AD_DIR   = hb_ad_dir;
+assign NEC_ENABLE_N = hb_enable_n | cfg_use_core;
+
+//----------------------------------------------------------------------------
 // Bus interface
 //----------------------------------------------------------------------------
 nec_bus bus
@@ -290,20 +362,21 @@ nec_bus bus
     .evt_pin(evt_pin),
     .evt_fired(evt_fired),
 
-    .NEC_AD(NEC_AD),
-    .NEC_AD_DIR(NEC_AD_DIR),
-    .NEC_CLK(NEC_CLK),
-    .NEC_POLL_N(NEC_POLL_N),
-    .NEC_READY(NEC_READY),
-    .NEC_RESET(NEC_RESET),
-    .NEC_INT(NEC_INT),
-    .NEC_NMI(NEC_NMI),
-    .NEC_QS(NEC_QS),
-    .NEC_BS(NEC_BS),
-    .NEC_BUSLOCK_N(NEC_BUSLOCK_N),
-    .NEC_UBE_N(NEC_UBE_N),
-    .NEC_RD_N(NEC_RD_N),
-    .NEC_ENABLE_N(NEC_ENABLE_N),
+    .ad_drive(hb_ad_drive),
+    .ad_drive_en(hb_ad_dir),
+    .ad_sample(hb_ad_sample),
+    .NEC_CLK(hb_clk),
+    .NEC_POLL_N(hb_poll_n),
+    .NEC_READY(hb_ready),
+    .NEC_RESET(hb_reset),
+    .NEC_INT(hb_int),
+    .NEC_NMI(hb_nmi),
+    .NEC_QS(hb_qs),
+    .NEC_BS(hb_bs),
+    .NEC_BUSLOCK_N(hb_buslock_n),
+    .NEC_UBE_N(hb_ube_n),
+    .NEC_RD_N(hb_rd_n),
+    .NEC_ENABLE_N(hb_enable_n),
 
     .mem_addr(mem_addr_cpu),
     .mem_cycle_type(mem_cycle_type_cpu),

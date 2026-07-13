@@ -16,6 +16,8 @@
 //                            [2] skip_pwrup (short rail-settle wait)
 //        0x08  CFG       RW  [5:0] clk_div  [11:8] wait_states
 //                            [23:16] int_vector  [24] small_mode
+//                            [25] use_core (A/B: 1 = internal v30_core,
+//                                 0 = socketed chip) — Campaign 4
 //                            (change only while host_reset is set)
 //        0x0C  PINS      RW  [0] int_req  [1] nmi_req  [2] poll_n
 //        0x18  IORD      RW  [15:0] data returned for I/O reads (dflt FFFF)
@@ -72,6 +74,7 @@ module hps_axi_slave
     output reg  [3:0] cfg_wait_states,
     output reg  [7:0] cfg_int_vector,
     output reg        cfg_small_mode,
+    output reg        cfg_use_core,    // Campaign 4 A/B: 1 = internal core
     output reg        int_req,
     output reg        nmi_req,
     output reg        poll_n_out,
@@ -154,6 +157,7 @@ always_ff @(posedge clk) begin
         cfg_wait_states <= 4'd0;
         cfg_int_vector  <= 8'hFF;
         cfg_small_mode  <= 1'b1;      // board runs small mode until RQ/AK rework
+        cfg_use_core    <= 1'b0;      // default: socketed chip (known-good path)
         int_req         <= 1'b0;
         nmi_req         <= 1'b0;
         poll_n_out      <= 1'b0;
@@ -209,6 +213,7 @@ always_ff @(posedge clk) begin
                         cfg_wait_states <= wdata[11:8];
                         cfg_int_vector  <= wdata[23:16];
                         cfg_small_mode  <= wdata[24];
+                        cfg_use_core    <= wdata[25];
                     end
                     8'h0C: begin
                         int_req    <= wdata[0];
@@ -302,7 +307,8 @@ always_ff @(posedge clk) begin
                     case (addr[7:0])
                     8'h00: rdata <= MAGIC;
                     8'h04: rdata <= {29'd0, skip_pwrup, cpu_power_off, host_reset};
-                    8'h08: rdata <= {7'd0, cfg_small_mode, cfg_int_vector,
+                    8'h08: rdata <= {6'd0, cfg_use_core, cfg_small_mode,
+                                     cfg_int_vector,
                                      4'd0, cfg_wait_states, 2'd0, cfg_clk_div};
                     8'h0C: rdata <= {29'd0, poll_n_out, nmi_req, int_req};
                     8'h10: rdata <= {28'd0, evt_fired, cap_full, cpu_running, pwr_good};
