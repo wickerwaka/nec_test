@@ -162,3 +162,78 @@ is available).
   64-word chunks + retry; treat all-zero regions in dumps with suspicion —
   a genuine record always has the READY bit (51) set.
 - A valid capture record can never be 0x0000000000000000.
+
+## 2026-07-13 — Campaign 4 kickoff: in-FPGA A/B integration + safe-flash
+
+### A/B integration architecture (landed, commit 61185d0)
+The v30_core is instantiated inside system_large behind a CFG selector so
+nec_bus's pin side drives either the socketed chip or the internal core:
+
+- **CFG.use_core (bit 25)** in hps_axi_slave (default 0 = chip). Change
+  only under host_reset, like the other CFG fields.
+- **nec_bus AD refactor**: the inout `NEC_AD` port became a unidirectional
+  trio `ad_drive` / `ad_drive_en` / `ad_sample`. This removes the
+  inout<->inout bridge that a naive A/B mux would need (Verilator flagged
+  UNOPTFLAT/circular; Quartus would cut the false loop arbitrarily). The
+  chip datapath is bit-identical: `ad_sample` = NEC_AD in chip mode, the
+  drive is the same registered `rdata_q` under the same `drive_en`.
+  tb_harness passes unchanged; largemode_synth.hex regenerates byte-
+  identical; the 155440/155500 core golden regression is untouched.
+- **system_large mux**: one-directional status pins (BS/QS/RD_N/UBE_N/
+  BUSLOCK_N) mux chip<->core with plain 2:1s; the harness read data is
+  injected on the core's shared AD net under `ad_drive_en`; nec_bus's
+  outputs fan out to both the physical pins and the core; the socketed
+  chip is powered off (ENABLE_N) while the core is selected. The core is
+  clocked by NEC_CLK (same 4 MHz cadence the chip sees) and held in reset
+  unless selected.
+
+### Sim A/B (Mission A) — tb_ab.sv + sw/check_ab_sim.py
+tb_ab drives the real integration (system_large) from the AXI master BFM
+only and exercises BOTH selector positions. check_ab_sim runs the core
+position, drains the harness capture, and diffs it against the real-chip
+boot golden (sw/testdata/largemode_boot_real.hex) with check_boot's column
+policy.
+
+- **Chip position**: passes (large-mode BFM vector fetch + write/readback).
+- **Core position**: the core boots from the in-memory image behind the
+  real capture path, but DESYNCS. This is the current gate.
+
+### FINDING — core<->harness commit-phase desync (gates hardware)
+Aligned at the first vector fetch, the harness-core trace is identical to
+the `+bootimg` replay (which matches the chip, mission G) for cycles 0-5,
+including the fetched data words (00ea/0001/9000). Then it diverges: the
+core's EU pops the 2nd queue byte one cycle EARLY (at T3 rather than T4),
+loses far-jump alignment, and runs off into spurious MEMR/MEMW at 00000
+instead of taking JMP FAR 0000:0100.
+
+Ruled out: READY is clean (1 every cycle, no phantom Tw); read data is
+correct (right bytes fetched); boot images are byte-identical
+(boot_even/odd.hex == boot.bin). Correlated signal: the harness-core
+starts its first fetch one NEC_CLK earlier relative to RESET release
+(release+8 vs the +bootimg release+9). Since a deterministic FSM with
+matching inputs must match, an input differs at a cycle <=5 — the suspects
+are the RESET-release phase (NEC_CLK-domain core vs nec_bus sys-clock
+release) and the exact edge at which the BIU consumes ad_i.
+
+BIU read-data contract (v30_biu): `fetch_data <= ad_i` (prefetch) and the
+`eu_rdata` latch fire at the SINGLE clock edge that ends T3 or the final
+Tw, guarded by `ready` sampled high at that edge (t3_done). `ad_i` and
+`ready` must both be valid at that NEC_CLK posedge. An idealized TB drives
+read data combinationally through T2/T3/Tw and trivially satisfies this;
+nec_bus must present the same stability at the core's sampling edge.
+
+Next step before any new-bitstream flash: align the core's RESET-release
+phase / read-data presentation so the harness-core matches the golden in
+sim (Mission A's own gate), likely aided by exposing the core's
+V30_BACKDOOR dbg state through system_large in a debug build to pinpoint
+the first EU/BIU state that diverges. Only then flash (Mission C).
+
+### Safe-flash (Mission B) — sw/safe_flash.sh, TESTED
+Atomic prep -> quartus_pgm -> status(magic) verify, per-step timeouts.
+Tested once with the CURRENT known-good bitstream
+(hdl/output_files/nec_test.sof, built 2026-07-12): prep OK, quartus_pgm
+"Configuration succeeded", verify OK (MAGIC confirmed, cfg readback
+0x01ff0008 = known-good small-mode design, use_core bit reads 0). Board
+echo test passed afterward. On an unreachable board after flashing the
+script STOPs and demands a physical power cycle (no retry). This is the
+ONLY sanctioned path to reprogram the FPGA.
