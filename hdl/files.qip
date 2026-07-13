@@ -7,5 +7,8 @@ set_global_assignment -name SYSTEMVERILOG_FILE rtl/hps_axi_slave.sv
 set_global_assignment -name SYSTEMVERILOG_FILE rtl/core/v30_core.sv
 set_global_assignment -name SYSTEMVERILOG_FILE rtl/core/v30_biu.sv
 set_global_assignment -name SYSTEMVERILOG_FILE rtl/core/v30_eu.sv
+# So $readmemh in v30_eu.sv (int9d_race.hex) resolves by basename via the
+# project-relative search path, independent of the compiler's cwd.
+set_global_assignment -name SEARCH_PATH rtl/core
 set_global_assignment -name SDC_FILE nec_test.sdc
 set_global_assignment -name SYSTEMVERILOG_FILE nec_test.sv

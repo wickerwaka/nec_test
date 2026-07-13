@@ -244,6 +244,30 @@ reg  [5:0]  dly;         // countdown for S_WAITX / S_RMWX / S_RSV / S_TRAP_W*
 state_e     wnext;       // state entered when S_WAITX expires
 state_e     dret;        // disp-pop state resumed after a queue-dry stall
 
+// ---- shared iterative (bit-serial) divider ------------------------------
+// Campaign 4 synthesis: replaces the 9 combinational lpm_divide instances
+// (4 of them 32-bit) with ONE restoring shift-subtract unit. The DIV
+// microsequence already spends its measured wait window idle; the unit is
+// loaded at dispatch (reg form in S_DEC, mem form in S_BUSW) and stepped
+// one iteration per clock through that window (16 iters word / 8 byte -
+// both comfortably inside the smallest non-trap window), landing the
+// quotient/remainder in mem_op/disp (and, for IDIV, psw/late-trap) before
+// the S_EX retirement reads them. Cycle counts and results are unchanged.
+// The early trap (den==0 / high-half overflow) stays a cheap combinational
+// pre-check at dispatch and gates whether the unit runs at all. AAM's 8/8
+// divide (S_EX) stays a small combinational divide.
+reg  [16:0] div_rem;     // working remainder (17-bit for the shift headroom)
+reg  [15:0] div_quo;     // quotient shift reg (dividend low shifts through)
+reg  [15:0] div_den;     // divisor magnitude
+reg  [5:0]  div_cnt;     // iterations remaining (16 word / 8 byte)
+reg         div_busy;    // unit stepping
+reg         div_word;    // 1 = 16-bit (word) form, 0 = 8-bit (byte) form
+reg         div_signed;  // IDIV: apply sign fixup, late-trap and quot flags
+reg         div_nsign;   // dividend sign (remainder + quotient fixup)
+reg         div_dsign;   // divisor sign (quotient fixup)
+reg         div_pend;    // a divide is heading to retire via S_WAITX
+reg         div_late;    // latched late-trap (signed quotient magnitude ovf)
+
 reg  [7:0]  opc;
 reg  [7:0]  opc2;        // 0F-prefixed second byte
 reg  [7:0]  mrm;
@@ -327,11 +351,14 @@ reg  [2:0]  ie_p;                // IE history: the boundary decision
 // arch state = class A) are stored as A; the ghost latch itself is
 // out of scope for the golden windows (see interrupt_model.md).
 reg [15:0] race_rom [0:1023];
-// sim runs from the repo root; Quartus resolves relative to hdl/
+// Robust across cwd: Verilator sims run from the repo root; Quartus finds
+// the hex by basename via the SEARCH_PATH set in hdl/files.qip (resolved
+// relative to the project dir, not the invocation cwd - fixes the Error
+// 10054 map abort when quartus ran from an unexpected directory).
 `ifdef VERILATOR
 initial $readmemh("hdl/rtl/core/int9d_race.hex", race_rom);
 `else
-initial $readmemh("rtl/core/int9d_race.hex", race_rom);
+initial $readmemh("int9d_race.hex", race_rom);
 `endif
 wire [6:0] r9d_pre = {psw_old[11], psw_old[10], psw_old[7],
                       psw_old[6], psw_old[4], psw_old[2], psw_old[0]};
@@ -1454,6 +1481,9 @@ always_ff @(posedge clk) begin
         ivt_vec  <= '0;
         hwake_ie0 <= 1'b0;
         irq_disp <= 1'b0;
+        div_busy <= 1'b0;
+        div_pend <= 1'b0;
+        div_late <= 1'b0;
         eu_kind  <= K_MEM;
         halt_disp <= 1'b0;
         eu_wr    <= 1'b0;
@@ -1494,6 +1524,73 @@ always_ff @(posedge clk) begin
         if (ie_pend && q_any) begin
             psw[9] <= ie_val;
             ie_pend <= 1'b0;
+        end
+
+        // ---- iterative divider: one restoring shift-subtract per clock ----
+        // Runs while a divide is dispatched; the microsequence is idle in
+        // S_WAITX meanwhile. On the final iteration it assembles the exact
+        // architectural result into mem_op/disp (byte/word/signed arranged
+        // just as the old combinational path did) so S_EX retires unchanged;
+        // for IDIV it also latches the quotient-magnitude flags and the
+        // late-trap decision (consumed at the S_WAITX terminal cycle).
+        if (div_busy) begin
+            logic        shin, qbit;
+            logic [16:0] rsh;
+            logic [15:0] magq, magr;
+            shin = div_word ? div_quo[15] : div_quo[7];
+            rsh  = {div_rem[15:0], shin};
+            if (rsh >= {1'b0, div_den}) begin
+                div_rem <= rsh - {1'b0, div_den};
+                qbit = 1'b1;
+            end else begin
+                div_rem <= rsh;
+                qbit = 1'b0;
+            end
+            div_quo <= {div_quo[14:0], qbit};
+            div_cnt <= div_cnt - 6'd1;
+            if (div_cnt == 6'd1) begin
+                // final step: magq/magr are the values just latched above
+                magq = {div_quo[14:0], qbit};
+                magr = qbit ? (rsh[15:0] - div_den) : rsh[15:0];
+                div_busy <= 1'b0;
+                if (!div_signed) begin
+                    // DIVU: unsigned; flags already set by the pre-check
+                    if (div_word) begin
+                        mem_op <= magq;            // AW = quotient
+                        disp   <= magr;            // DW = remainder
+                    end else begin
+                        mem_op <= {8'd0, magq[7:0]};  // AL = quotient
+                        disp   <= {8'd0, magr[7:0]};  // AH = remainder
+                    end
+                end else begin
+                    // IDIV: sign fixup + quotient-magnitude flags + late trap
+                    logic [15:0] qfix, rfix;
+                    logic        qneg;
+                    qneg = div_nsign ^ div_dsign;
+                    if (div_word) begin
+                        qfix = qneg      ? (~magq + 16'd1) : magq;
+                        rfix = div_nsign ? (~magr + 16'd1) : magr;
+                        mem_op <= qfix;            // AW = quotient
+                        disp   <= rfix;            // DW = remainder
+                        div_late <= magq > 16'd32767;
+                        psw[FB_S]  <= magq[15];
+                        psw[FB_Z]  <= magq == 16'd0;
+                        psw[FB_P]  <= ~^magq[7:0];
+                    end else begin
+                        logic [7:0] q8, r8;
+                        q8 = qneg      ? (~magq[7:0] + 8'd1) : magq[7:0];
+                        r8 = div_nsign ? (~magr[7:0] + 8'd1) : magr[7:0];
+                        mem_op <= {r8, q8};        // {AH=rem, AL=quot}
+                        div_late <= magq[7:0] > 8'd127;
+                        psw[FB_S]  <= magq[7];
+                        psw[FB_Z]  <= magq[7:0] == 8'd0;
+                        psw[FB_P]  <= ~^magq[7:0];
+                    end
+                    psw[FB_CY] <= 1'b0;
+                    psw[FB_AC] <= 1'b0;
+                    psw[FB_V]  <= 1'b0;
+                end
+            end
         end
 
         unique case (state)
@@ -1680,76 +1777,112 @@ always_ff @(posedge clk) begin
                                 dly <= 6'd2; wnext <= S_JFLUSH;
                                 state <= S_JWAIT;
                             end else if (op_grpf6 && q_byte[5:3] == 3'd6) begin
-                                // DIVU8 reg (structural mirror of F7.6;
-                                // fit pending the F6.6 goldens)
-                                logic [16:0] dv8u;
-                                dv8u = divu16_8(rf[0],
-                                                reg8_get(q_byte[2:0]));
-                                mem_op <= {8'd0, dv8u[15:8]};
-                                disp   <= {8'd0, dv8u[7:0]};
-                                psw <= psw_sub8f(rf[0][15:8],
-                                                 reg8_get(q_byte[2:0]),
-                                                 psw);
-                                if (dv8u[16]) begin
+                                // DIVU8 reg -> shared iterative unit
+                                logic [7:0] den8;
+                                logic       early8;
+                                den8   = reg8_get(q_byte[2:0]);
+                                early8 = (den8 == 8'd0) ||
+                                         (rf[0][15:8] >= den8);
+                                psw <= psw_sub8f(rf[0][15:8], den8, psw);
+                                if (early8) begin
                                     dly <= 6'd13; wnext <= S_TRAP_IVT1;
                                 end else begin
+                                    div_rem <= {9'd0, rf[0][15:8]};
+                                    div_quo <= {8'd0, rf[0][7:0]};
+                                    div_den <= {8'd0, den8};
+                                    div_cnt <= 6'd8;
+                                    div_word <= 1'b0; div_signed <= 1'b0;
+                                    div_busy <= 1'b1; div_pend <= 1'b1;
+                                    div_late <= 1'b0;
                                     dly <= 6'd19; wnext <= S_EX;
                                 end
                                 state <= S_WAITX;
                             end else if (op_grpf6 && q_byte[5:3] == 3'd4) begin
                                 dly <= 6'd21; wnext <= S_EX; state <= S_WAITX;
                             end else if (op_grpf7 && q_byte[5:3] == 3'd6) begin
-                                logic [32:0] dv;
-                                dv = divu32({rf[2], rf[0]}, rf[q_byte[2:0]]);
-                                {mem_op, disp} <= dv[31:0];  // q, r temp
-                                psw <= psw_sub16(rf[2], rf[q_byte[2:0]], psw);
-                                if (dv[32]) begin
+                                // DIVU16 reg -> shared iterative unit
+                                logic [15:0] den16;
+                                logic        early16;
+                                den16   = rf[q_byte[2:0]];
+                                early16 = (den16 == 16'd0) || (rf[2] >= den16);
+                                psw <= psw_sub16(rf[2], den16, psw);
+                                if (early16) begin
                                     dly <= 6'd12; wnext <= S_TRAP_IVT1;
                                 end else begin
+                                    div_rem <= {1'b0, rf[2]};
+                                    div_quo <= rf[0];
+                                    div_den <= den16;
+                                    div_cnt <= 6'd16;
+                                    div_word <= 1'b1; div_signed <= 1'b0;
+                                    div_busy <= 1'b1; div_pend <= 1'b1;
+                                    div_late <= 1'b0;
                                     dly <= 6'd25; wnext <= S_EX;
                                 end
                                 state <= S_WAITX;
                             end else if (op_grpf7 && q_byte[5:3] == 3'd7) begin
                                 // IDIV16 reg (mission I timing law):
                                 // early trap IVT ready @ +21, late trap
-                                // and EX @ +44; +3 if dividend < 0
-                                logic [49:0] dv;
-                                logic [5:0] sfix;
-                                dv = idiv32({rf[2], rf[0]},
-                                            rf[q_byte[2:0]], psw);
-                                sfix = rf[2][15] ? 6'd3 : 6'd0;
-                                {mem_op, disp} <= dv[31:0];  // q, r temp
-                                psw <= dv[47:32];
-                                if (dv[49]) begin            // early trap
-                                    dly <= 6'd21 + sfix;
-                                    wnext <= S_TRAP_IVT1;
-                                end else if (dv[48]) begin   // late trap
-                                    dly <= 6'd44 + sfix;
-                                    wnext <= S_TRAP_IVT1;
+                                // and EX @ +44; +3 if dividend < 0. Late
+                                // trap vs EX decided at the S_WAITX terminal
+                                // cycle (both @ +44 - only the dest differs).
+                                logic [31:0] num32, anum;
+                                logic [15:0] den16, ad;
+                                logic [5:0]  sfix;
+                                logic        early;
+                                num32 = {rf[2], rf[0]};
+                                den16 = rf[q_byte[2:0]];
+                                anum  = num32[31] ? (~num32 + 32'd1) : num32;
+                                ad    = den16[15] ? (~den16 + 16'd1) : den16;
+                                sfix  = rf[2][15] ? 6'd3 : 6'd0;
+                                early = (den16 == 16'd0) ||
+                                        (anum[31:16] >= ad);
+                                if (early) begin
+                                    psw <= psw_sub16(anum[31:16], ad, psw);
+                                    dly <= 6'd21 + sfix; wnext <= S_TRAP_IVT1;
                                 end else begin
-                                    dly <= 6'd44 + sfix;
-                                    wnext <= S_EX;
+                                    div_rem <= {1'b0, anum[31:16]};
+                                    div_quo <= anum[15:0];
+                                    div_den <= ad;
+                                    div_cnt <= 6'd16;
+                                    div_word <= 1'b1; div_signed <= 1'b1;
+                                    div_nsign <= num32[31];
+                                    div_dsign <= den16[15];
+                                    div_busy <= 1'b1; div_pend <= 1'b1;
+                                    div_late <= 1'b0;
+                                    dly <= 6'd44 + sfix; wnext <= S_EX;
                                 end
                                 state <= S_WAITX;
                             end else if (op_grpf6 && q_byte[5:3] == 3'd7) begin
                                 // IDIV8 reg: early @ +21, late @ +36,
-                                // EX @ +37; +3 if dividend < 0
-                                logic [33:0] dv8;
-                                logic [5:0] sfix;
-                                dv8 = idiv16(rf[0], reg8_get(q_byte[2:0]),
-                                             psw);
-                                sfix = rf[0][15] ? 6'd3 : 6'd0;
-                                mem_op <= {dv8[7:0], dv8[15:8]}; // {AH=r,AL=q}
-                                psw <= dv8[31:16];
-                                if (dv8[33]) begin           // early trap
-                                    dly <= 6'd21 + sfix;
-                                    wnext <= S_TRAP_IVT1;
-                                end else if (dv8[32]) begin  // late trap
-                                    dly <= 6'd36 + sfix;
-                                    wnext <= S_TRAP_IVT1;
+                                // EX @ +37; +3 if dividend < 0. Byte form:
+                                // late trap retires one cycle before EX
+                                // (handled at the S_WAITX terminal).
+                                logic [15:0] anum16;
+                                logic  [7:0] den8, ad8;
+                                logic [23:0] t8;
+                                logic [5:0]  sfix;
+                                logic        early;
+                                den8   = reg8_get(q_byte[2:0]);
+                                anum16 = rf[0][15] ? (~rf[0] + 16'd1) : rf[0];
+                                ad8    = den8[7] ? (~den8 + 8'd1) : den8;
+                                sfix   = rf[0][15] ? 6'd3 : 6'd0;
+                                early  = (den8 == 8'd0) ||
+                                         (anum16[15:8] >= ad8);
+                                if (early) begin
+                                    t8  = alu8(3'd5, anum16[15:8], ad8, psw);
+                                    psw <= t8[23:8];
+                                    dly <= 6'd21 + sfix; wnext <= S_TRAP_IVT1;
                                 end else begin
-                                    dly <= 6'd37 + sfix;
-                                    wnext <= S_EX;
+                                    div_rem <= {9'd0, anum16[15:8]};
+                                    div_quo <= {8'd0, anum16[7:0]};
+                                    div_den <= {8'd0, ad8};
+                                    div_cnt <= 6'd8;
+                                    div_word <= 1'b0; div_signed <= 1'b1;
+                                    div_nsign <= rf[0][15];
+                                    div_dsign <= den8[7];
+                                    div_busy <= 1'b1; div_pend <= 1'b1;
+                                    div_late <= 1'b0;
+                                    dly <= 6'd37 + sfix; wnext <= S_EX;
                                 end
                                 state <= S_WAITX;
                             end else
@@ -3489,60 +3622,99 @@ always_ff @(posedge clk) begin
                     end else if (op_shimm) begin
                         state <= S_AIGAP;   // count byte pops at done+2
                     end else if (op_grpf6 && mrm_reg == 3'd7) begin
-                        // IDIV8 mem: reg-form law + 1 (like DIVU)
-                        logic [33:0] dv8;
-                        logic [5:0] sfix;
-                        dv8 = idiv16(rf[0], eu_rdata[7:0], psw);
-                        sfix = rf[0][15] ? 6'd3 : 6'd0;
-                        mem_op <= {dv8[7:0], dv8[15:8]};  // {AH=r, AL=q}
-                        psw <= dv8[31:16];
-                        if (dv8[33]) begin
+                        // IDIV8 mem: reg-form law + 1 -> shared iterative unit
+                        logic [15:0] anum16;
+                        logic  [7:0] den8, ad8;
+                        logic [23:0] t8;
+                        logic [5:0]  sfix;
+                        logic        early;
+                        den8   = eu_rdata[7:0];
+                        anum16 = rf[0][15] ? (~rf[0] + 16'd1) : rf[0];
+                        ad8    = den8[7] ? (~den8 + 8'd1) : den8;
+                        sfix   = rf[0][15] ? 6'd3 : 6'd0;
+                        early  = (den8 == 8'd0) || (anum16[15:8] >= ad8);
+                        if (early) begin
+                            t8  = alu8(3'd5, anum16[15:8], ad8, psw);
+                            psw <= t8[23:8];
                             dly <= 6'd22 + sfix; wnext <= S_TRAP_IVT1;
-                        end else if (dv8[32]) begin
-                            dly <= 6'd37 + sfix; wnext <= S_TRAP_IVT1;
                         end else begin
+                            div_rem <= {9'd0, anum16[15:8]};
+                            div_quo <= {8'd0, anum16[7:0]};
+                            div_den <= {8'd0, ad8};
+                            div_cnt <= 6'd8;
+                            div_word <= 1'b0; div_signed <= 1'b1;
+                            div_nsign <= rf[0][15]; div_dsign <= den8[7];
+                            div_busy <= 1'b1; div_pend <= 1'b1;
+                            div_late <= 1'b0;
                             dly <= 6'd38 + sfix; wnext <= S_EX;
                         end
                         state <= S_WAITX;
                     end else if (op_grpf6 && mrm_reg == 3'd6) begin
-                        // DIVU8 mem (reg law + 1, like DIVU16 mem)
-                        logic [16:0] dv8u;
-                        dv8u = divu16_8(rf[0], eu_rdata[7:0]);
-                        mem_op <= {8'd0, dv8u[15:8]};
-                        disp   <= {8'd0, dv8u[7:0]};
-                        psw <= psw_sub8f(rf[0][15:8], eu_rdata[7:0], psw);
-                        if (dv8u[16]) begin
+                        // DIVU8 mem (reg law + 1) -> shared iterative unit
+                        logic [7:0] den8;
+                        logic       early8;
+                        den8   = eu_rdata[7:0];
+                        early8 = (den8 == 8'd0) || (rf[0][15:8] >= den8);
+                        psw <= psw_sub8f(rf[0][15:8], den8, psw);
+                        if (early8) begin
                             dly <= 6'd14; wnext <= S_TRAP_IVT1;
                         end else begin
+                            div_rem <= {9'd0, rf[0][15:8]};
+                            div_quo <= {8'd0, rf[0][7:0]};
+                            div_den <= {8'd0, den8};
+                            div_cnt <= 6'd8;
+                            div_word <= 1'b0; div_signed <= 1'b0;
+                            div_busy <= 1'b1; div_pend <= 1'b1;
+                            div_late <= 1'b0;
                             dly <= 6'd20; wnext <= S_EX;
                         end
                         state <= S_WAITX;
                     end else if (op_grpf6) begin
                         dly <= 6'd22; wnext <= S_EX; state <= S_WAITX;
                     end else if (op_grpf7 && mrm_reg == 3'd7) begin
-                        // IDIV16 mem: reg-form law + 1 (like DIVU)
-                        logic [49:0] dv;
-                        logic [5:0] sfix;
-                        dv = idiv32({rf[2], rf[0]}, eu_rdata, psw);
-                        sfix = rf[2][15] ? 6'd3 : 6'd0;
-                        {mem_op, disp} <= dv[31:0];
-                        psw <= dv[47:32];
-                        if (dv[49]) begin
+                        // IDIV16 mem: reg-form law + 1 -> shared iterative unit
+                        logic [31:0] num32, anum;
+                        logic [15:0] den16, ad;
+                        logic [5:0]  sfix;
+                        logic        early;
+                        num32 = {rf[2], rf[0]};
+                        den16 = eu_rdata;
+                        anum  = num32[31] ? (~num32 + 32'd1) : num32;
+                        ad    = den16[15] ? (~den16 + 16'd1) : den16;
+                        sfix  = rf[2][15] ? 6'd3 : 6'd0;
+                        early = (den16 == 16'd0) || (anum[31:16] >= ad);
+                        if (early) begin
+                            psw <= psw_sub16(anum[31:16], ad, psw);
                             dly <= 6'd22 + sfix; wnext <= S_TRAP_IVT1;
-                        end else if (dv[48]) begin
-                            dly <= 6'd45 + sfix; wnext <= S_TRAP_IVT1;
                         end else begin
+                            div_rem <= {1'b0, anum[31:16]};
+                            div_quo <= anum[15:0];
+                            div_den <= ad;
+                            div_cnt <= 6'd16;
+                            div_word <= 1'b1; div_signed <= 1'b1;
+                            div_nsign <= num32[31]; div_dsign <= den16[15];
+                            div_busy <= 1'b1; div_pend <= 1'b1;
+                            div_late <= 1'b0;
                             dly <= 6'd45 + sfix; wnext <= S_EX;
                         end
                         state <= S_WAITX;
                     end else if (op_grpf7) begin
-                        logic [32:0] dv;
-                        dv = divu32({rf[2], rf[0]}, eu_rdata);
-                        {mem_op, disp} <= dv[31:0];
-                        psw <= psw_sub16(rf[2], eu_rdata, psw);
-                        if (dv[32]) begin
+                        // DIVU16 mem -> shared iterative unit
+                        logic [15:0] den16;
+                        logic        early16;
+                        den16   = eu_rdata;
+                        early16 = (den16 == 16'd0) || (rf[2] >= den16);
+                        psw <= psw_sub16(rf[2], den16, psw);
+                        if (early16) begin
                             dly <= 6'd13; wnext <= S_TRAP_IVT1;
                         end else begin
+                            div_rem <= {1'b0, rf[2]};
+                            div_quo <= rf[0];
+                            div_den <= den16;
+                            div_cnt <= 6'd16;
+                            div_word <= 1'b1; div_signed <= 1'b0;
+                            div_busy <= 1'b1; div_pend <= 1'b1;
+                            div_late <= 1'b0;
                             dly <= 6'd26; wnext <= S_EX;
                         end
                         state <= S_WAITX;
@@ -3586,30 +3758,60 @@ always_ff @(posedge clk) begin
             // generic wait, then execute (reg forms, MUL/DIV finish)
             //----------------------------------------------------------------
             S_WAITX: begin
-                if (dly == 6'd1) begin
-                    state <= wnext;
-                    if (wnext == S_TRAP_IVT1) begin
-                        // request params must be valid on state entry
-                        eu_addr <= {10'h0, ivt_vec, 2'b00};
-                        eu_seg  <= SEG_CS;
-                        eu_wr   <= 1'b0;
-                        eu_word <= 1'b1;
-                        eu_kind <= K_MEM;
+                if (div_pend) begin
+                    // divide retirement: the iterative unit has long since
+                    // finished and latched q/r/flags + the late-trap flag.
+                    // word forms: late trap and normal EX share the terminal
+                    // cycle (dly==1), only the destination differs. byte
+                    // forms: late trap retires one cycle earlier (dly==2)
+                    // than EX (dly==1) - the measured +1 EX/late split.
+                    if (!div_word && div_late && dly == 6'd2) begin
+                        state    <= S_TRAP_IVT1;
+                        div_pend <= 1'b0;
+                        eu_addr  <= {10'h0, ivt_vec, 2'b00};
+                        eu_seg   <= SEG_CS;
+                        eu_wr    <= 1'b0;
+                        eu_word  <= 1'b1;
+                        eu_kind  <= K_MEM;
+                    end else if (dly == 6'd1) begin
+                        div_pend <= 1'b0;
+                        if (div_late) begin
+                            state   <= S_TRAP_IVT1;
+                            eu_addr <= {10'h0, ivt_vec, 2'b00};
+                            eu_seg  <= SEG_CS;
+                            eu_wr   <= 1'b0;
+                            eu_word <= 1'b1;
+                            eu_kind <= K_MEM;
+                        end else
+                            state <= S_EX;
                     end
-                    if (wnext == S_PREP_RDGO) begin
-                        // first pointer-copy read: ready ON state
-                        // entry (level-pop+7; closure block)
-                        eu_addr <= {sr[SEG_SS], 4'h0} +
-                                   {4'h0, rf[5] - 16'd2};
-                        eu_seg  <= SEG_SS;
-                        eu_wr   <= 1'b0;
-                        eu_word <= 1'b1;
-                        eu_kind <= K_MEM;
-                    end
-                    if (wnext == S_RSV) dly <= 6'd1;   // REP setup tail
-                end
-                if (!(dly == 6'd1 && wnext == S_RSV))
                     dly <= dly - 6'd1;
+                end else begin
+                    if (dly == 6'd1) begin
+                        state <= wnext;
+                        if (wnext == S_TRAP_IVT1) begin
+                            // request params must be valid on state entry
+                            eu_addr <= {10'h0, ivt_vec, 2'b00};
+                            eu_seg  <= SEG_CS;
+                            eu_wr   <= 1'b0;
+                            eu_word <= 1'b1;
+                            eu_kind <= K_MEM;
+                        end
+                        if (wnext == S_PREP_RDGO) begin
+                            // first pointer-copy read: ready ON state
+                            // entry (level-pop+7; closure block)
+                            eu_addr <= {sr[SEG_SS], 4'h0} +
+                                       {4'h0, rf[5] - 16'd2};
+                            eu_seg  <= SEG_SS;
+                            eu_wr   <= 1'b0;
+                            eu_word <= 1'b1;
+                            eu_kind <= K_MEM;
+                        end
+                        if (wnext == S_RSV) dly <= 6'd1;   // REP setup tail
+                    end
+                    if (!(dly == 6'd1 && wnext == S_RSV))
+                        dly <= dly - 6'd1;
+                end
             end
 
             S_EX: begin
