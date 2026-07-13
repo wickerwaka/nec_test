@@ -209,6 +209,8 @@ typedef enum logic [6:0] {
     S_WAITX, S_EX,
     S_RMWX, S_WREQ, S_WBUSW,
     S_0F, S_DEC2, S_T1GAP, S_IMM3,
+    S_IE_SET, S_IE_WAIT, S_IE_R1, S_IE_R1W, S_IE_R2, S_IE_R2W,
+    S_IE_WR, S_IE_WRW, S_IE_IMM,
     S_A4_SETUP, S_A4_SRC, S_A4_SRCW, S_A4_G1, S_A4_DST, S_A4_DSTW,
     S_A4_G2, S_A4_WR, S_A4_WRW, S_A4_END,
     S_JDISP, S_JDLO, S_JDHI, S_JWAIT, S_JNT, S_JFLUSH,
@@ -274,6 +276,17 @@ reg  [2:0]  pracc;       // POP R: reads accepted
 reg         w4skip;      // PREPARE: swallow the last copy's eu_done
 reg         prep_bpd;    // PREPARE: BP push done (latched)
 reg  [8:0]  shw;         // shift/rotate full-count burn counter
+// INS/EXT (0F 31/33/39/3B) bit-field state
+reg  [3:0]  ie_off;      // effective bit offset (offset reg & 15)
+reg  [4:0]  ie_len;      // effective field length 1..16
+reg  [15:0] ie_fld;      // INS: source field / EXT: extracted result
+reg  [15:0] ie_w0;       // EXT s>16: first-word latch
+reg  [1:0]  ie_mode;     // 0=normal 1=alias-raw(off0/len16) 2=runaway
+reg         ie_ph2;      // INS: second-word (carry-out) phase
+reg  [11:0] ie_dly;      // burn counter (runaway needs 256*len)
+reg         ie_chain;    // INS split W1: word-1 read chained in-flight
+reg         ie_rdyhold;  // EXT late-pop: reserve one cycle before ready
+reg         ie_lgot;     // INS imm form: length byte has been popped
 reg [15:0]  fl_cs, fl_ip; // flush redirect target
 // external-event machinery (block 4). The recognition sample is the
 // boundary-decision cycle reading a 4-deep pin pipeline (fitted: the
@@ -373,6 +386,21 @@ wire op_out    = opc == 8'hE6 || opc == 8'hE7 ||
                  opc == 8'hEE || opc == 8'hEF;   // OUT imm8,acc / DW,acc
 wire op_0f     = opc == 8'h0F;                       // two-byte forms
 wire op_test1  = op_0f && opc2 == 8'h18;             // TEST1 rm8,imm3
+// INS/EXT bit-field forms (0F 31/39 = INS, 0F 33/3B = EXT). Measured
+// laws (fitted on all 4 x 500 goldens, see docs/facts below + git log):
+//  off = offreg(rm reg8) & 15, len = (lenval & 15) + 1, s = off+len;
+//  the offset reg is written s&15 BEFORE the AW source read (INS) -
+//  an AL/AH offset reg inserts the UPDATED AW field. EXT with offset
+//  reg AL, or AH with len=16, degenerates to off=0/len=16 (AW <- raw
+//  word at DS0:IX, IX+=2); EXT offset reg AH with len<16 is a runaway
+//  internal loop: AW <- 0, IX/offreg untouched, 256*len cycle burn.
+//  Flags: AC=V=0; INS: Z=(s==15), CY=S=(s>15), P=par8(s-16);
+//  EXT: Z=(s==16), CY=S=(s>16), P=par8(s-17); runaway: only P=par8(-len).
+//  INS dest is ES:IY (no override); EXT src DS0:IX (override applies).
+wire op_insext = op_0f && (opc2 == 8'h31 || opc2 == 8'h33 ||
+                           opc2 == 8'h39 || opc2 == 8'h3B);
+wire ie_ins    = !opc2[1];                           // 31/39 vs 33/3B
+wire ie_immf   = opc2[3];                            // 39/3B imm4 len
 wire op_rol4   = op_0f && opc2 == 8'h28;             // ROL4 rm8
 wire op_ror4   = op_0f && opc2 == 8'h2A;             // ROR4 rm8
 wire op_bit1   = op_0f && opc2[7:4] == 4'h1;         // 0F 10-1F bit ops
@@ -957,6 +985,7 @@ wire irq_rep  = nmi_latch || (int_p[3] && psw[9]);
 wire pop_want = (state == S_FIRST && !irq_take) ||
                 (state == S_DEC && op_modrm) ||
                 (state == S_0F) || (state == S_DEC2) || (state == S_IMM3) ||
+                (state == S_IE_IMM) ||
                 (state == S_IMM_LO) || (state == S_IMM_HI) ||
                 (state == S_AI_I8) || (state == S_AI_I16) ||
                 (state == S_BCD_IMM) ||
@@ -1087,6 +1116,20 @@ always_comb begin
 
         // reset countdown: the bus stays quiet until the reset flush
         S_RESET: eu_req = 1'b1;
+        // INS/EXT accesses; the INS carry-path word-1 read gap holds a
+        // reservation (fitted: R2 T1 = W1 T1 + 8, no prefetch steal)
+        S_IE_WAIT: eu_req = ie_ph2 && wnext == S_IE_R2;
+        // split word-0 write: the word-1 read request rides in-flight
+        // (accepted at the write's second-sub T3 edge, T1 back-to-back)
+        S_IE_WRW: begin
+            eu_req   = ie_chain;
+            eu_ready = ie_chain;
+        end
+        S_IE_R1: begin
+            eu_req   = 1'b1;
+            eu_ready = !ie_rdyhold;
+        end
+        S_IE_R2, S_IE_WR,
         S_REQ, S_WREQ,
         S_A4_SRC, S_A4_DST, S_A4_WR,
         S_CALLPUSH, S_FCALLP1, S_FCALLP2, S_FCFL2,
@@ -1139,6 +1182,43 @@ always_comb begin
         eu_ready = 1'b1;
     end
 end
+
+//----------------------------------------------------------------------------
+// INS/EXT combinational helpers (laws in the decode-section comment)
+//----------------------------------------------------------------------------
+wire [5:0]  ie_s      = {2'd0, ie_off} + {1'd0, ie_len};
+wire [31:0] ie_mask32 = ((32'd1 << ie_len) - 32'd1) << ie_off;
+wire [31:0] ie_fsh    = {16'd0, ie_fld} << ie_off;
+wire [7:0]  ie_pv_ins = {2'd0, ie_s} - 8'd16;
+wire [7:0]  ie_pv_ext = {2'd0, ie_s} - 8'd17;
+wire [7:0]  ie_pv_run = 8'd0 - {3'd0, ie_len};
+wire [15:0] ie_psw_b  = (psw & 16'h0700) | 16'hF002;
+wire [15:0] ie_psw_ins = ie_psw_b
+    | (ie_s > 6'd15 ? 16'h0081 : 16'h0000)      // CY + S = carry
+    | (ie_s == 6'd15 ? 16'h0040 : 16'h0000)     // Z
+    | {13'd0, ~^ie_pv_ins, 2'd0};               // P
+wire [15:0] ie_psw_ext = ie_psw_b
+    | (ie_s > 6'd16 ? 16'h0081 : 16'h0000)
+    | (ie_s == 6'd16 ? 16'h0040 : 16'h0000)
+    | {13'd0, ~^ie_pv_ext, 2'd0};
+wire [15:0] ie_psw_run = ie_psw_b | {13'd0, ~^ie_pv_run, 2'd0};
+
+// fitted burn constants (cycles; see the schedule laws in the header)
+localparam int unsigned IE_R1D   = 1;   // operand pop -> read request
+localparam int unsigned IE_R1D0  = 15;  // INS off=0 s<16 pre-read burn
+localparam int unsigned IE_G1    = 14;  // INS re-read burn base (+off)
+localparam int unsigned IE_GW    = 5;   // INS write base (+3len+2(off-1))
+localparam int unsigned IE_GW0   = 5;   // INS off=0 write base (+3len)
+localparam int unsigned IE_GW16  = 34;  // INS s>=16 word-0 write slot
+localparam int unsigned IE_W2R2  = 1;   // INS write-0 -> word-1 read
+localparam int unsigned IE_R2G   = 2;   // EXT word-1 read gap
+localparam int unsigned IE_TAIL  = 27;  // EXT retire base (+off; +256len)
+localparam int unsigned IE_TAIL2 = 9;   // EXT s>16 retire base (+off)
+localparam int unsigned IEI_IMM0 = 3;   // 0F39 off=0: mrm -> imm pop
+localparam int unsigned IEI_R1   = 10;   // 0F39 off=0: imm -> read
+localparam int unsigned IEI_W16  = 30;  // 0F39 off=0 len=16: imm -> write
+localparam int unsigned IEI_R2   = 10;   // 0F39 off>0 s<16: imm -> re-read
+localparam int unsigned IEI_W1   = 30;  // 0F39 s>=16: imm -> write (-off)
 
 //----------------------------------------------------------------------------
 // edge-time helper tasks
@@ -1239,6 +1319,7 @@ always_ff @(posedge clk) begin
         state    <= S_RESET;
         iret_pw  <= 1'b0;
         popr_pend <= 1'b0;
+        ie_chain <= 1'b0;
         dly      <= 6'd7;
         wnext    <= S_HALT;
         opc      <= '0;
@@ -2246,8 +2327,10 @@ always_ff @(posedge clk) begin
                 opc2 <= q_byte;
                 pc   <= pc + 16'd1;
                 if (q_byte[7:4] == 4'h1 || q_byte == 8'h28 ||
-                    q_byte == 8'h2A)
-                    state <= S_DEC2;   // bit ops / ROL4 / ROR4
+                    q_byte == 8'h2A ||
+                    q_byte == 8'h31 || q_byte == 8'h33 ||
+                    q_byte == 8'h39 || q_byte == 8'h3B)
+                    state <= S_DEC2;   // bit ops / ROL4 / ROR4 / INS/EXT
                 else if (q_byte == 8'h20 || q_byte == 8'h22 ||
                          q_byte == 8'h26) begin        // ADD4S/SUB4S/CMP4S
                     a4_cnt  <= 8'(({1'b0, rf[1][7:0]} + 9'd1) >> 1);
@@ -2263,7 +2346,13 @@ always_ff @(posedge clk) begin
                 mrm <= q_byte;
                 pc  <= pc + 16'd1;
                 if (q_byte[7:6] == 2'd3) begin
-                    if (op_bit1 && b1_imm)
+                    if (op_insext)
+                        // EXT imm4 (3B) pops its imm right after the
+                        // mrm; INS imm4 (39) pops it mid-flow (fitted:
+                        // mrm+6 when off=0, read-done+4+off otherwise)
+                        state <= (ie_immf && !ie_ins) ? S_T1GAP
+                                                      : S_IE_SET;
+                    else if (op_bit1 && b1_imm)
                         state <= S_IMM3;               // imm pops at F+4
                     else if (op_bit1 && opc2[2:1] == 2'd1) begin
                         // CLR1 CL reg: close pop+4 (fitted 0F12/13)
@@ -2276,8 +2365,10 @@ always_ff @(posedge clk) begin
                     end else begin                     // ROL4 reg
                         dly <= 6'd11; wnext <= S_EX; state <= S_WAITX;
                     end
-                end else if ((q_byte[7:6] == 2'd0 && q_byte[2:0] == 3'd6) ||
-                             q_byte[7:6] == 2'd2)
+                end else if (op_insext)
+                    state <= S_HALT;   // mem-mod INS/EXT: undefined, parked
+                else if ((q_byte[7:6] == 2'd0 && q_byte[2:0] == 3'd6) ||
+                         q_byte[7:6] == 2'd2)
                     state <= S_DLO;
                 else
                     state <= S_EA1;
@@ -2294,8 +2385,266 @@ always_ff @(posedge clk) begin
                 end else if (op_bit1 && opc2[2:1] == 2'd1) begin
                     // CLR1 imm reg: close pop+3 (one hop)
                     dly <= 6'd1; wnext <= S_EX; state <= S_WAITX;
-                end else
+                end else if (op_insext)
+                    state <= S_IE_SET;
+                else
                     state <= S_EX;
+            end
+
+            //----------------------------------------------------------------
+            // INS/EXT (0F 31/33/39/3B): bit-field insert/extract, mod3
+            // only. Schedules (fitted, even-aligned; odd splits ride the
+            // BIU): INS s<16 off>0: R1, re-read at R1+21+off, write at
+            // R2+12+3len+2(off-1); off=0: late R1 (+~14), write at
+            // R1+12+3len; s=16: write at R1+41; s>16: word-0 write at
+            // R1+41, word-1 read at W1+8, word-1 write (off=0 law) at
+            // R2+12+3(s-16); store-retire at the final write done.
+            // EXT: single read, retire F = R1+33+off (s<16), +34+off
+            // (s=16, incl. alias-raw), s>16: R2 at R1+9/10, F = R2+15
+            // +off; runaway: F = R1+33+256*len.
+            //----------------------------------------------------------------
+            S_IE_SET: begin
+                logic [3:0] o;
+                logic [4:0] l;
+                logic [5:0] ss;
+                logic [15:0] awn;
+                o  = reg8_get(mrm_rm)[3:0];
+                l  = {1'b0, ie_immf ? immb[3:0]
+                                    : reg8_get(mrm_reg)[3:0]} + 5'd1;
+                ss = {2'd0, o} + {1'd0, l};
+                ie_ph2 <= 1'b0;
+                ie_rdyhold <= 1'b0;
+                ie_lgot    <= 1'b1;
+                if (ie_ins) begin
+                    ie_off  <= o;
+                    ie_mode <= 2'd0;
+                    eu_addr <= {sr[SEG_ES], 4'h0} + {4'h0, rf[7]};
+                    eu_seg  <= SEG_ES;
+                    if (ie_immf) begin
+                        // 0F39: length rides in later (see S_IE_IMM);
+                        // off=0 pops it at mrm+6 before the read
+                        ie_lgot <= 1'b0;
+                        ie_dly  <= (o == 4'd0) ? 12'(IEI_IMM0)
+                                               : 12'(IE_R1D);
+                    end else begin
+                        // offset reg <- s mod 16 BEFORE the AW source
+                        // read (aliased offset regs insert the updated
+                        // field - measured)
+                        wr_reg8(mrm_rm, {4'd0, ss[3:0]});
+                        awn = rf[0];
+                        if (mrm_rm == 3'd0)
+                            awn = {rf[0][15:8], 4'd0, ss[3:0]};
+                        if (mrm_rm == 3'd4)
+                            awn = {4'd0, ss[3:0], rf[0][7:0]};
+                        ie_fld <= awn & 16'((32'd1 << l) - 32'd1);
+                        ie_len <= l;
+                        ie_dly <= (o == 4'd0 && ss < 6'd16)
+                                  ? 12'(IE_R1D0) : 12'(IE_R1D);
+                    end
+                end else begin
+                    if (mrm_rm == 3'd0 || (mrm_rm == 3'd4 && l == 5'd16))
+                    begin
+                        ie_mode <= 2'd1;    // alias-raw: off=0, len=16
+                        ie_off  <= 4'd0;
+                        ie_len  <= 5'd16;
+                    end else if (mrm_rm == 3'd4) begin
+                        ie_mode <= 2'd2;    // runaway internal loop
+                        ie_off  <= 4'd0;
+                        ie_len  <= l;
+                    end else begin
+                        ie_mode <= 2'd0;
+                        wr_reg8(mrm_rm, {4'd0, ss[3:0]});
+                        ie_off  <= o;
+                        ie_len  <= l;
+                    end
+                    eu_addr <= {sr[seg_ovr_en ? seg_ovr : SEG_DS], 4'h0} +
+                               {4'h0, rf[6]};
+                    eu_seg  <= seg_ovr_en ? seg_ovr : SEG_DS;
+                    // EXT reg-form read maturity rides the mrm pop's
+                    // bus phase (T1/T2 pop: ready pop+4; else the
+                    // request reserves at pop+4 and matures pop+5) -
+                    // the POP-mem law; INS does not (0F31 cold
+                    // variants). The imm form (0F3B) is simpler:
+                    // ready = imm pop + 3, no reservation (fitted)
+                    ie_dly     <= ie_immf ? 12'd0 : 12'(IE_R1D);
+                    ie_rdyhold <= !ie_immf && popm_hold != 6'd2;
+                end
+                eu_wr   <= 1'b0;
+                eu_word <= 1'b1;
+                eu_kind <= K_MEM;
+                wnext   <= (ie_ins && ie_immf && o == 4'd0) ? S_IE_IMM
+                                                            : S_IE_R1;
+                state   <= S_IE_WAIT;
+            end
+            // 0F39 deferred imm4 pop (fitted: mrm+6 when off=0, read-
+            // done+4+off otherwise); all later burns anchor at this pop
+            S_IE_IMM: if (q_pop) begin
+                logic [4:0] l;
+                logic [5:0] ss;
+                logic [15:0] awn, fld, mask;
+                logic [31:0] msk32, fsh32;
+                l  = {1'b0, q_byte[3:0]} + 5'd1;
+                ss = {2'd0, ie_off} + {1'd0, l};
+                pc <= pc + 16'd1;
+                wr_reg8(mrm_rm, {4'd0, ss[3:0]});
+                awn = rf[0];
+                if (mrm_rm == 3'd0) awn = {rf[0][15:8], 4'd0, ss[3:0]};
+                if (mrm_rm == 3'd4) awn = {4'd0, ss[3:0], rf[0][7:0]};
+                mask = 16'((32'd1 << l) - 32'd1);
+                fld  = awn & mask;
+                ie_fld  <= fld;
+                ie_len  <= l;
+                ie_lgot <= 1'b1;
+                msk32 = {16'd0, mask} << ie_off;
+                fsh32 = {16'd0, fld} << ie_off;
+                if (ie_off == 4'd0 && l == 5'd16) begin
+                    // full-word insert: NO read - lone write at imm+34
+                    eu_wdata <= fld;
+                    ie_dly   <= 12'(IEI_W16);
+                    wnext    <= S_IE_WR;
+                end else if (ie_off == 4'd0) begin
+                    ie_dly <= 12'(IEI_R1);   // late read at imm+14
+                    wnext  <= S_IE_R1;
+                end else if (ss < 6'd16) begin
+                    ie_dly <= 12'(IEI_R2);   // re-read at imm+14
+                    wnext  <= S_IE_R2;
+                end else begin
+                    // word-0 write at imm+34-off (merge the R1 data)
+                    eu_wdata <= (eu_rdata & ~msk32[15:0]) | fsh32[15:0];
+                    ie_dly   <= 12'(IEI_W1) - {8'd0, ie_off};
+                    wnext    <= S_IE_WR;
+                end
+                state <= S_IE_WAIT;
+            end
+            S_IE_WAIT: begin
+                if (ie_dly == 12'd0) begin
+                    state <= wnext;
+                    if (wnext == S_IE_WR) eu_wr <= 1'b1;
+                end else
+                    ie_dly <= ie_dly - 12'd1;
+            end
+            S_IE_R1: begin
+                ie_rdyhold <= 1'b0;
+                if (eu_started) state <= S_IE_R1W;
+            end
+            S_IE_R1W: if (eu_done) begin
+                if (ie_ins && !ie_lgot) begin
+                    // 0F39 off>0: imm pops at read-done + 4 + off
+                    ie_dly <= 12'd2 + {8'd0, ie_off};
+                    wnext  <= S_IE_IMM;
+                    state  <= S_IE_WAIT;
+                end else if (ie_ins) begin
+                    eu_wdata <= (eu_rdata & ~ie_mask32[15:0]) |
+                                ie_fsh[15:0];
+                    if (ie_s < 6'd16 && ie_off != 4'd0) begin
+                        ie_dly <= 12'(IE_G1) + {8'd0, ie_off};
+                        wnext  <= S_IE_R2;      // re-read the same word
+                    end else if (ie_s < 6'd16) begin
+                        // split (odd) accesses: write burns anchor at
+                        // the read's FIRST sub-cycle (-4) with a small-
+                        // field floor +max(0, 4-len) (fitted, odd goldens)
+                        ie_dly <= 12'(IE_GW0) +
+                                  {5'd0, ie_len, 1'b0} + {6'd0, ie_len} -
+                                  (eu_addr[0]
+                                   ? 12'd4 - (ie_len < 5'd4
+                                              ? 12'(6'd4 - {1'b0, ie_len})
+                                              : 12'd0)
+                                   : 12'd0);
+                        wnext  <= S_IE_WR;
+                    end else begin
+                        ie_dly <= 12'(IE_GW16); // fixed word-0 write slot
+                        wnext  <= S_IE_WR;
+                    end
+                    state <= S_IE_WAIT;
+                end else if (ie_mode == 2'd0 && ie_s > 6'd16) begin
+                    ie_w0   <= eu_rdata;
+                    eu_addr <= eu_addr + 20'd2;
+                    ie_dly  <= 12'(IE_R2G);
+                    wnext   <= S_IE_R2;
+                    state   <= S_IE_WAIT;
+                end else begin
+                    ie_fld <= (ie_mode == 2'd2) ? 16'd0
+                              : 16'(({16'd0, eu_rdata} >> ie_off) &
+                                    ((32'd1 << ie_len) - 32'd1));
+                    ie_dly <= (ie_mode == 2'd2)
+                              ? 12'(IE_TAIL) + {ie_len[3:0], 8'd0}
+                              : (ie_s == 6'd16)
+                                ? 12'(IE_TAIL) + 12'd1 + {8'd0, ie_off}
+                                : 12'(IE_TAIL) + {8'd0, ie_off};
+                    wnext <= S_EX;
+                    state <= S_IE_WAIT;
+                end
+            end
+            S_IE_R2: if (eu_started) state <= S_IE_R2W;
+            S_IE_R2W: if (eu_done) begin
+                if (ie_ins && !ie_ph2) begin
+                    // no-carry path re-read: merge from the fresh data
+                    eu_wdata <= (eu_rdata & ~ie_mask32[15:0]) |
+                                ie_fsh[15:0];
+                    ie_dly <= 12'(IE_GW) +
+                              {5'd0, ie_len, 1'b0} + {6'd0, ie_len} +
+                              {7'd0, ie_off, 1'b0} -
+                              (eu_addr[0]
+                               ? 12'd4 - (ie_len < 5'd4
+                                          ? 12'(6'd4 - {1'b0, ie_len})
+                                          : 12'd0)
+                               : 12'd0);
+                    wnext  <= S_IE_WR;
+                    state  <= S_IE_WAIT;
+                end else if (ie_ins) begin
+                    // carry-out word 1: an off=0 insert of s-16 bits
+                    logic [4:0] l2;
+                    l2 = 5'(ie_s - 6'd16);
+                    eu_wdata <= (eu_rdata & ~ie_mask32[31:16]) |
+                                ie_fsh[31:16];
+                    ie_dly <= 12'(IE_GW0) +
+                              {5'd0, l2, 1'b0} + {6'd0, l2} -
+                              (eu_addr[0]
+                               ? 12'd4 - (l2 < 5'd4
+                                          ? 12'(6'd4 - {1'b0, l2})
+                                          : 12'd0)
+                               : 12'd0);
+                    wnext  <= S_IE_WR;
+                    state  <= S_IE_WAIT;
+                end else begin
+                    ie_fld <= 16'(({eu_rdata, ie_w0} >> ie_off) &
+                                  ((32'd1 << ie_len) - 32'd1));
+                    ie_dly <= 12'(IE_TAIL2) + {8'd0, ie_off};
+                    wnext  <= S_EX;
+                    state  <= S_IE_WAIT;
+                end
+            end
+            S_IE_WR: if (eu_started) begin
+                state <= S_IE_WRW;
+                // split word-0 write with a word-1 leg: chain the read
+                // request in-flight (fitted: R2 T1 = W1 first-sub T1 + 8)
+                if (eu_addr[0] && ie_s > 6'd16 && !ie_ph2) begin
+                    ie_chain <= 1'b1;
+                    eu_wr    <= 1'b0;
+                    eu_addr  <= eu_addr + 20'd2;
+                end
+            end
+            S_IE_WRW: begin
+                if (ie_chain) begin
+                    if (eu_started) begin   // chained word-1 read accepted
+                        ie_chain <= 1'b0;   // (write completes this cycle)
+                        ie_ph2   <= 1'b1;
+                        state    <= S_IE_R2W;
+                    end
+                end else if (eu_done) begin
+                    if (ie_s > 6'd16 && !ie_ph2) begin
+                        ie_ph2  <= 1'b1;
+                        eu_wr   <= 1'b0;
+                        eu_addr <= eu_addr + 20'd2;
+                        ie_dly  <= 12'(IE_W2R2);
+                        wnext   <= S_IE_R2;
+                        state   <= S_IE_WAIT;
+                    end else begin
+                        if (ie_s >= 6'd16) rf[7] <= rf[7] + 16'd2;
+                        psw <= ie_psw_ins;
+                        retire();
+                    end
+                end
             end
 
             //----------------------------------------------------------------
@@ -3238,6 +3587,13 @@ always_ff @(posedge clk) begin
                         if (opc2[0]) rf[mrm_rm] <= br;
                         else         wr_reg8(mrm_rm, br[7:0]);
                     end
+                end else if (op_insext) begin
+                    // EXT retire: AW <- field (0 on runaway); IX +2 on
+                    // carry (alias-raw counts as s=16); flags per law
+                    rf[0] <= ie_fld;
+                    if (ie_mode != 2'd2 && ie_s >= 6'd16)
+                        rf[6] <= rf[6] + 16'd2;
+                    psw <= (ie_mode == 2'd2) ? ie_psw_run : ie_psw_ext;
                 end else if (op_rol4) begin            // reg form
                     wr_reg8(mrm_rm, {rm_byte[3:0], rf[0][3:0]});
                     rf[0][7:0] <= {rf[0][3:0], rm_byte[7:4]};
