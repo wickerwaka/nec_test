@@ -59,6 +59,27 @@ initial forever #5 clk = ~clk;
 
 logic reset = 1;
 
+//----------------------------------------------------------------------------
+// clock-enable train (Campaign 4 CE refactor). The core runs on the fast
+// fabric clk but only advances state when CE is asserted.
+//   +ce_div=1 (default): CE and CE_HALF high every clk = the pre-CE core
+//     exactly, the golden path (bit- and cycle-identical baseline).
+//   +ce_div=N (N>1): CE asserts one posedge in N; CE_HALF is its negedge
+//     partner (the clk-low half right after the CE-high posedge). The core
+//     AND the TB's own clocked observer/latches below advance only on those
+//     enabled clocks, so per-CPU-cycle output must match N=1 and the core's
+//     internal state must NOT change on CE-low fabric clocks.
+//----------------------------------------------------------------------------
+integer ce_div = 1;
+initial if (!$value$plusargs("ce_div=%d", ce_div)) ce_div = 1;
+integer ce_cnt = 0;
+wire    ce = (ce_cnt == 0);
+logic   ce_half = 1'b1;
+always @(posedge clk) begin
+    ce_cnt  <= (ce_cnt >= ce_div - 1) ? 0 : ce_cnt + 1;
+    ce_half <= ce;   // high through the clk-low half after a CE-high posedge
+end
+
 // backdoor
 // wait-state insertion (+waits=N): mirrors hdl/rtl/nec_bus.sv - the
 // counter arms when a cycle's T1 is entered and decrements at the end of
@@ -113,6 +134,8 @@ wire pin_poll_n = (pins_cfg[2] != 0) & ~(ev_drive && ev_pin == 2);
 
 v30_core dut (
     .CLK       (clk),
+    .CE        (ce),
+    .CE_HALF   (ce_half),
     .RESET     (reset),
     .READY     (ready_r),
     .INT       (pin_int),
@@ -182,7 +205,7 @@ assign AD[15:0] = mem_drive ? mem_word : 16'hzzzz;
 
 // address/UBE latch at the falling edge of T1 (address phase)
 always @(negedge clk) begin
-    if (tb_t == ST_T1) begin
+    if (ce_half && tb_t == ST_T1) begin
         lat_addr <= AD;
         lat_ube  <= UBE_N;
     end
@@ -210,7 +233,7 @@ wire  [3:0] eff_hi = (drive_hi_a || core_ps_drive)
 
 // mid-cycle (address-phase) sample of the composed bus
 logic [19:0] ad_mid = '0;
-always @(negedge clk) ad_mid <= {eff_hi, eff_lo};
+always @(negedge clk) if (ce_half) ad_mid <= {eff_hi, eff_lo};
 
 //----------------------------------------------------------------------------
 // per-cycle bookkeeping at the end of each cycle
@@ -223,7 +246,7 @@ logic         fin_ghost = 0;    // a ghost load was pending at the close
 logic [4:0]   fin_wait = 0;
 
 always @(posedge clk) begin
-    if (!reset) begin
+    if (!reset && ce) begin
         // record for the cycle just ending (pre-edge values throughout)
         if (recording && fo != 0)
             $fdisplay(fo, "r %0d %0d %0d %0d %05x %04x %01x",
@@ -308,7 +331,7 @@ always @(posedge clk) begin
                 mem[lat_addr[15:0]] <= AD[15:8];
             end
         end
-    end else begin
+    end else if (reset) begin
         tb_t     <= ST_TI;
         lat_type <= BS_PASV;
         fcount   <= 0;
@@ -348,7 +371,7 @@ logic eudbg_en;
 initial eudbg_en = $test$plusargs("eudbg");
 
 always @(posedge clk) begin
-    if (!reset && recording && eudbg_en && fo != 0)
+    if (!reset && ce && recording && eudbg_en && fo != 0)
         $fdisplay(fo, "d %0d %0d %0d %0d %0d %0d %05x %0d %02x %02x",
                   dut.u_eu.state, dut.u_eu.q_pop,
                   dut.u_biu.q_avl, dut.u_biu.q_cnt,
@@ -370,7 +393,7 @@ initial begin
         @(negedge clk);
         reset = 0;
         recording = 1;
-        repeat (bootn) @(posedge clk);
+        repeat (bootn * ce_div) @(posedge clk);   // bootn is CPU cycles
         recording = 0;
         $fdisplay(fo, ".");
         $fclose(fo);
@@ -446,13 +469,17 @@ initial begin
         bkd_load = 0;
         recording = 1;
         // (the first posedge after release emits one benign pre-window row)
-        while (fcount < nf && cyc < maxcyc) begin
+        // fabric-clock budgets scale with ce_div: the window still closes
+        // on fcount (CPU-cycle F pops via the CE-gated observer), maxcyc and
+        // the settle repeats are in CPU cycles so multiply by ce_div. All
+        // ce_div==1 (default) => unchanged.
+        while (fcount < nf && cyc < maxcyc * ce_div) begin
             @(posedge clk);
             cyc = cyc + 1;
         end
-        repeat (2) @(posedge clk);    // flush the F#1 row itself
+        repeat (2 * ce_div) @(posedge clk);    // flush the F#1 row itself
         recording = 0;
-        repeat (16) @(posedge clk);   // ghost-load settle window
+        repeat (16 * ce_div) @(posedge clk);   // ghost-load settle window
         case_active = 0;
         $fdisplay(fo, "f %04x %04x %04x %04x %04x %04x %04x %04x %04x %04x %04x %04x %04x %04x",
                   fin_regs[15:0],    fin_regs[31:16],  fin_regs[47:32],

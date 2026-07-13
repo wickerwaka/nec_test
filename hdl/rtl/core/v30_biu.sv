@@ -65,6 +65,8 @@
 
 module v30_biu (
     input             clk,
+    input             ce,            // clock-enable: advance state this clk
+    input             ce_half,       // clock-enable for the T1 negedge process
     input             srst,          // synchronous reset (RESET pin level)
 
     // pin-side values for the current CPU cycle (muxed onto AD by v30_core)
@@ -245,7 +247,9 @@ assign q_any    = q_cnt != 3'd0;   // fetched (not yet poppable) counts
 // final-displacement pops (S_DISP8/S_DHI) defer one cycle when this
 // coincides with an in-flight fetch's T2 (Campaign 4 disp-phase law)
 reg q_head_dry_q;
-always_ff @(posedge clk) q_head_dry_q <= srst ? 1'b1 : (q_avl == 3'd0);
+always_ff @(posedge clk)
+    if (srst) q_head_dry_q <= 1'b1;
+    else if (ce) q_head_dry_q <= (q_avl == 3'd0);
 assign q_fresh = q_head_dry_q;
 
 //----------------------------------------------------------------------------
@@ -296,7 +300,7 @@ always_ff @(posedge clk) begin
     if (srst || !halt_disp) begin
         halt_t1   <= 1'b0;
         halt_done <= 1'b0;
-    end else begin
+    end else if (ce) begin
         halt_t1 <= halt_show;
         if (halt_show) halt_done <= 1'b1;
     end
@@ -438,9 +442,8 @@ assign eu_wdone = eu_completing && cur_wr &&
                    (state == ST_T4 && evald));
 
 always_ff @(posedge clk) begin
-    eu_started <= 1'b0;
-
     if (srst) begin
+        eu_started <= 1'b0;
         defer_t4   <= 1'b0;
         state      <= ST_TI;
         nxt_valid  <= 1'b0;
@@ -486,7 +489,8 @@ always_ff @(posedge clk) begin
             for (int i = 0; i < 6; i++)
                 q_mem[i] <= bkd_queue[i*8 +: 8];
         end
-    end else begin
+    end else if (ce) begin
+        eu_started <= 1'b0;
         // queue occupancy / availability pipeline
         q_cnt  <= cnt_next;
         q_avl  <= q_avl - {2'b0, pop_now} + {1'b0, q_aged};
@@ -729,7 +733,7 @@ wire ph_now = (state == ST_T1 || state == ST_T3) ? 1'b0
             : (state == ST_T2 || state == ST_T4) ? 1'b1
             : (state == ST_TI && nxt_live) ? 1'b1   // committed pre-T1 slot
             : ph_ff;
-always_ff @(posedge clk) ph_ff <= ~ph_now;
+always_ff @(posedge clk) if (ce) ph_ff <= ~ph_now;
 assign bus_phase = ph_now;
 assign bus_t4 = state == ST_T4;
 assign bus_ts = (state == ST_T1) ? 3'd1
@@ -745,8 +749,8 @@ assign bus_ts = (state == ST_T1) ? 3'd1
 // already high at the end of T2, so T3 displays passive - the pre-waits
 // law. ready_prev is READY at the last sampling edge.
 reg ready_prev;
-always_ff @(posedge clk) ready_prev <= ready;
-always_ff @(posedge clk) begin
+always_ff @(posedge clk) if (ce) ready_prev <= ready;
+always_ff @(posedge clk) if (ce) begin
     eu_req_p1   <= eu_req && !eu_started;
     eu_req_p2   <= eu_req_p1;
     eu_ready_p1 <= eu_ready && !eu_started;
@@ -780,7 +784,7 @@ wire [15:0] wdata_lanes = cur_swap ? {cur_wdata[7:0], cur_wdata[15:8]}
 // data-phase sample). Negedge-registered so the external T1-falling-edge
 // address latch still sees the address.
 reg t1_half2;
-always @(negedge clk) t1_half2 <= (state == ST_T1);
+always @(negedge clk) if (ce_half) t1_half2 <= (state == ST_T1);
 
 // INTA cycles drive no address: the commit display and T1 leave AD15:0
 // floating; T1 drives AD19:16 = 0 only (measured float pattern). HALT

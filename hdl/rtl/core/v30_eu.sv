@@ -114,6 +114,7 @@
 
 module v30_eu (
     input             clk,
+    input             ce,           // clock-enable: advance state this clk
     input             srst,
 
     // queue side
@@ -1363,38 +1364,10 @@ endtask
 // main FSM
 //----------------------------------------------------------------------------
 always_ff @(posedge clk) begin
-    flush_now <= 1'b0;
-    if (rslot != 6'd0) rslot <= rslot - 6'd1;
-
-    // pin pipelines + NMI edge latch (run in every state)
-    int_p   <= {int_p[2:0], pin_int};
-    nmi_p   <= {nmi_p[3:0], pin_nmi};
-    if (nmi_p[2] && !nmi_p[3]) nmi_latch <= 1'b1;   // set at edge+3
-    poll_s1 <= pin_poll_n;
-    ie_p    <= {ie_p[1:0], psw[9]};
-    // REP first-iteration-boundary abort decision, latched at the fixed
-    // pop-anchored edge pop+7 (rslot==6) with the standard edge-4 pin
-    // tap (interrupt_model.md "REP abort"); consumed by the string
-    // states below for accepts that land after the edge
-    if (rslot == 6'd6) rep1_abort <= irq_rep;
-    if (q_pop) popm_hold <= popm_rdy;
-    // 8F.0 reg ghost pop (runs in any state). QUIRK (measured, all
-    // 130 golden mod3 cases): the popped DATA IS DISCARDED - only
-    // SP+2 commits; the destination register is untouched (POP SP
-    // sees just the increment).
-    if (popr_pend && eu_done) begin
-        rf[4] <= rf[4] + 16'd2;
-        popr_pend <= 1'b0;
-    end
-
-    // RETI's PSW stack pop completes after the flush (runs in any state)
-    if (iret_pw && eu_done) begin
-        psw <= (eu_rdata & 16'h0FD5) | 16'hF002;
-        rf[4] <= rf[4] + 16'd6;
-        iret_pw <= 1'b0;
-    end
-
     if (srst) begin
+        // flush_now defaults to 0 every cycle (was an ungated pulse
+        // default); keep that at reset so q_flush is clean during RESET.
+        flush_now <= 1'b0;
         // real reset flow: PS=FFFF, PC=0, PSW cleared; the sequencer
         // idles 7 cycles after release, then flush-redirects to FFFF0
         state    <= S_RESET;
@@ -1470,7 +1443,43 @@ always_ff @(posedge clk) begin
             psw        <= (bkd_regs[208 +: 16] & 16'h0FD5) | 16'hF002;
             state      <= S_FIRST;
         end
-    end else begin
+    end else if (ce) begin
+        // ---- "every-state" block: pulse defaults + pin pipelines ----
+        // These run on every enabled clock (CE), NOT on CE-low fabric
+        // clocks - moved inside the CE branch so one-cycle pulses are not
+        // consumed by a default that fires faster than their CE-gated
+        // producers/consumers (CE desync bug #1).
+        flush_now <= 1'b0;
+        if (rslot != 6'd0) rslot <= rslot - 6'd1;
+
+        // pin pipelines + NMI edge latch (run in every state)
+        int_p   <= {int_p[2:0], pin_int};
+        nmi_p   <= {nmi_p[3:0], pin_nmi};
+        if (nmi_p[2] && !nmi_p[3]) nmi_latch <= 1'b1;   // set at edge+3
+        poll_s1 <= pin_poll_n;
+        ie_p    <= {ie_p[1:0], psw[9]};
+        // REP first-iteration-boundary abort decision, latched at the fixed
+        // pop-anchored edge pop+7 (rslot==6) with the standard edge-4 pin
+        // tap (interrupt_model.md "REP abort"); consumed by the string
+        // states below for accepts that land after the edge
+        if (rslot == 6'd6) rep1_abort <= irq_rep;
+        if (q_pop) popm_hold <= popm_rdy;
+        // 8F.0 reg ghost pop (runs in any state). QUIRK (measured, all
+        // 130 golden mod3 cases): the popped DATA IS DISCARDED - only
+        // SP+2 commits; the destination register is untouched (POP SP
+        // sees just the increment).
+        if (popr_pend && eu_done) begin
+            rf[4] <= rf[4] + 16'd2;
+            popr_pend <= 1'b0;
+        end
+
+        // RETI's PSW stack pop completes after the flush (runs in any state)
+        if (iret_pw && eu_done) begin
+            psw <= (eu_rdata & 16'h0FD5) | 16'hF002;
+            rf[4] <= rf[4] + 16'd6;
+            iret_pw <= 1'b0;
+        end
+
         // POP PSW consumes the popped image at the read's own data
         // edge (measured: the new IE shows in the PS bits during T4).
         // The commit is provisional until the next boundary (pop_pend).

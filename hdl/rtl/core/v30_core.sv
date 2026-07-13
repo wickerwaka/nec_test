@@ -28,6 +28,8 @@
 
 module v30_core (
     input             CLK,
+    input             CE,        // clock-enable: advance core state this clk
+    input             CE_HALF,   // clock-enable for the T1 negedge half-cycle
     input             RESET,
     input             READY,
     input             INT,
@@ -99,6 +101,8 @@ wire        ad_oe_addr, ad_oe_ps, ad_oe_data;
 
 v30_biu u_biu (
     .clk        (CLK),
+    .ce         (CE),
+    .ce_half    (CE_HALF),
     .srst       (RESET),
     .bs         (BS),
     .ad_o       (ad_o),
@@ -153,6 +157,7 @@ v30_biu u_biu (
 
 v30_eu u_eu (
     .clk        (CLK),
+    .ce         (CE),
     .srst       (RESET),
     .q_byte     (q_byte),
     .q_avail    (q_avail),
