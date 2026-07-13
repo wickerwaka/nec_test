@@ -207,6 +207,8 @@ typedef enum logic [6:0] {
     S_JDISP, S_JDLO, S_JDHI, S_JWAIT, S_JNT, S_JFLUSH,
     S_JSLO, S_JSHI, S_MLO, S_MHI, S_RESET,
     S_FCALLFL, S_FCALLP1, S_FCALLP2, S_INTV,
+    S_PREP_L, S_PREP_W1, S_PREP_W2, S_PREP_RD, S_PREP_RDW,
+    S_PREP_PW, S_PREP_PWW, S_PREP_W3, S_PREP_W4,
     S_STRW, S_STRR, S_STRS, S_STRE,
     S_CMPW1, S_CMPW2, S_CMPNXT, S_SCASW, S_SCASNXT,
     S_CALLFL, S_CALLPUSH, S_CALLW, S_RETF,
@@ -365,6 +367,11 @@ wire op_popm   = opc == 8'h8F;                       // POP mem (/0)
 wire op_grpff  = opc == 8'hFF;                       // INC/DEC/PUSH/... rm16
 wire op_imuli  = opc == 8'h69 || opc == 8'h6B;       // MUL reg,rm,imm
 wire op_ldptr  = opc == 8'hC4 || opc == 8'hC5;       // LES/LDS (mem only)
+wire op_fpo    = (opc & 8'hF8) == 8'hD8 ||
+                 opc == 8'h66 || opc == 8'h67;       // FPO1 / FPO2 (ESC)
+wire op_chk    = opc == 8'h62;                       // CHKIND (mem only)
+wire op_prep   = opc == 8'hC8;                       // PREPARE
+wire op_disp   = opc == 8'hC9;                       // DISPOSE
 wire op_retf   = opc == 8'hCB || opc == 8'hCA;       // RETF / RETF pop
 wire op_iret   = opc == 8'hCF;                       // RETI
 wire op_grp80  = opc == 8'h80;                       // ALU rm8, imm8
@@ -386,6 +393,7 @@ wire op_modrm  = op_alu | op_movs8 | op_movs16 | op_movl8 | op_movl16 |
                  op_grpf6 | op_grpf7 | op_grpd0 | op_grpfe | op_alui |
                  op_grpd1 | op_grpd2 | op_grpd3 | op_grpc0 | op_grpc1 |
                  op_test | op_popm | op_grpff | op_imuli | op_ldptr |
+                 op_fpo | op_chk |
                  op_xchg8 | op_xchg16 | op_lea | op_srst | op_srld;
 
 wire is_store  = op_movs8 | op_movs16 | op_srst;     // write-only mem access
@@ -393,7 +401,7 @@ wire is_load   = op_movl8 | op_movl16 | op_srld;
 wire is_word_t = op_movs16 | op_movl16 | op_grpf7 |  // word transfer
                  op_grp81 | op_grp83 | op_grpd1 | op_grpd3 | op_grpc1 |
                  (op_test && opc[0]) | op_popm | op_grpff | op_imuli |
-                 op_ldptr | (op_bit1 && opc2[0]) |
+                 op_ldptr | (op_bit1 && opc2[0]) | op_fpo | op_chk |
                  op_xchg16 | op_srst | op_srld;
 wire is_reader = !is_store;                          // mem forms read first
 
@@ -654,6 +662,35 @@ function automatic [32:0] divu32(input [31:0] num, input [15:0] den);
     end
 endfunction
 
+// DIVU8: AX / den8 -> {trap, q8, r8} (structural mirror of divu32;
+// timing/flag residue fit pending the F6.6 goldens)
+function automatic [16:0] divu16_8(input [15:0] num, input [7:0] den);
+    logic [15:0] q16, r16;
+    if (den == 8'd0 || {8'd0, num[15:8]} >= {8'd0, den}) begin
+        divu16_8 = {1'b1, 16'd0};
+    end else begin
+        q16 = num / {8'd0, den};
+        r16 = num % {8'd0, den};
+        divu16_8 = {1'b0, q16[7:0], r16[7:0]};
+    end
+endfunction
+
+// 8-bit compare residue for the DIVU8 pre-check (mirrors psw_sub16)
+function automatic [15:0] psw_sub8f(input [7:0] a, input [7:0] b,
+                                    input [15:0] f);
+    logic [7:0] r;
+    logic [15:0] nf;
+    r = a - b;
+    nf = f;
+    nf[FB_CY] = b > a;
+    nf[FB_AC] = b[3:0] > a[3:0];
+    nf[FB_V]  = ((a[7] ^ b[7]) & (a[7] ^ r[7]));
+    nf[FB_S]  = r[7];
+    nf[FB_Z]  = r == 8'd0;
+    nf[FB_P]  = ~^r;
+    psw_sub8f = nf;
+endfunction
+
 // Signed divides (IDIV): magnitude divide + sign fixups, per the laws in
 // docs/facts/undefined_flags.md (mission F) and the mission-I timing fit.
 // Returns {early, late, flags, quotient, remainder}:
@@ -882,7 +919,8 @@ wire pop_want = (state == S_FIRST && !irq_take) ||
                 (state == S_JDISP) || (state == S_JDLO) ||
                 (state == S_JDHI) || (state == S_JSLO) ||
                 (state == S_JSHI) || (state == S_MLO) ||
-                (state == S_MHI) || (state == S_INTV);
+                (state == S_MHI) || (state == S_INTV) ||
+                (state == S_PREP_L);
 
 assign q_pop   = pop_want && q_avail;
 assign q_first = state == S_FIRST;
@@ -947,6 +985,7 @@ always_comb begin
         S_REQ, S_WREQ,
         S_A4_SRC, S_A4_DST, S_A4_WR,
         S_CALLPUSH, S_FCALLP1, S_FCALLP2,
+        S_PREP_W1, S_PREP_RD, S_PREP_PW, S_PREP_W3,
         S_STRW, S_STRR, S_STRS,
         S_TRAP_IVT1, S_TRAP_IVT2,
         S_TRAP_PSW, S_TRAP_PS, S_TRAP_FLUSH, S_TRAP_PC,
@@ -1204,6 +1243,8 @@ always_ff @(posedge clk) begin
                                 op_movl8 | op_movl16 | op_test |
                                 op_xchg8 | op_xchg16)
                                 state <= S_EX;
+                            else if (op_fpo)
+                                state <= S_NOP;   // ESC reg: fit pending
                             else if (op_alui || op_shimm)
                                 state <= S_AI_I8;   // imm byte(s) next
                             else if (op_grpfe && q_byte[5:3] == 3'd0) begin
@@ -1260,6 +1301,23 @@ always_ff @(posedge clk) begin
                                 fl_cs <= sr[SEG_CS];
                                 dly <= 6'd2; wnext <= S_JFLUSH;
                                 state <= S_JWAIT;
+                            end else if (op_grpf6 && q_byte[5:3] == 3'd6) begin
+                                // DIVU8 reg (structural mirror of F7.6;
+                                // fit pending the F6.6 goldens)
+                                logic [16:0] dv8u;
+                                dv8u = divu16_8(rf[0],
+                                                reg8_get(q_byte[2:0]));
+                                mem_op <= {8'd0, dv8u[15:8]};
+                                disp   <= {8'd0, dv8u[7:0]};
+                                psw <= psw_sub8f(rf[0][15:8],
+                                                 reg8_get(q_byte[2:0]),
+                                                 psw);
+                                if (dv8u[16]) begin
+                                    dly <= 6'd12; wnext <= S_TRAP_IVT1;
+                                end else begin
+                                    dly <= 6'd25; wnext <= S_EX;
+                                end
+                                state <= S_WAITX;
                             end else if (op_grpf6 && q_byte[5:3] == 3'd4) begin
                                 dly <= 6'd21; wnext <= S_EX; state <= S_WAITX;
                             end else if (op_grpf7 && q_byte[5:3] == 3'd6) begin
@@ -1321,8 +1379,7 @@ always_ff @(posedge clk) begin
                         end else begin
                             // memory form; group ops with an unimplemented
                             // /reg field park the sequencer
-                            if ((op_grpf6 && (q_byte[5:3] == 3'd1 ||
-                                              q_byte[5:3] == 3'd6)) ||
+                            if ((op_grpf6 && q_byte[5:3] == 3'd1) ||
                                 (op_grpf7 && q_byte[5:3] == 3'd1) ||
                                 (op_grpfe && q_byte[5:3] > 3'd1) ||
                                 (op_popm && q_byte[5:3] != 3'd0) ||
@@ -1416,6 +1473,14 @@ always_ff @(posedge clk) begin
                         // RETF / RETI: first stack word (fit pending)
                         fret_ph <= 2'd0;
                         eu_addr <= {sr[SEG_SS], 4'h0} + {4'h0, rf[4]};
+                        eu_seg  <= SEG_SS;
+                        eu_wr   <= 1'b0;
+                        eu_word <= 1'b1;
+                        state   <= S_REQ;
+                    end else if (op_prep) begin           // PREPARE
+                        state <= S_AI_I8;   // size16 + level8 follow
+                    end else if (op_disp) begin           // DISPOSE
+                        eu_addr <= {sr[SEG_SS], 4'h0} + {4'h0, rf[5]};
                         eu_seg  <= SEG_SS;
                         eu_wr   <= 1'b0;
                         eu_word <= 1'b1;
@@ -1564,7 +1629,7 @@ always_ff @(posedge clk) begin
                 disp[7:0] <= q_byte;
                 pc <= pc + 16'd1;
                 if (op_grp81 || ((op_accimm || op_testai) && opc[0]) ||
-                    opc == 8'h68 || opc == 8'h69 ||
+                    opc == 8'h68 || opc == 8'h69 || op_prep ||
                     (op_grpf7 && mrm_reg == 3'd0))
                     state <= S_AI_I16;
                 else if (op_pushi) begin              // 6A: push simm8
@@ -1605,6 +1670,8 @@ always_ff @(posedge clk) begin
                 if (op_pushi) begin                   // 68: push imm16
                     issue_push({q_byte, disp[7:0]});
                     state <= S_REQ;
+                end else if (op_prep) begin
+                    state <= S_PREP_L;                // level byte next
                 end else if (op_accimm || op_testai ||
                              (op_grpf7 && mrm_reg == 3'd0))
                     state <= S_EX;
@@ -1726,6 +1793,61 @@ always_ff @(posedge clk) begin
                 state <= S_FCALLP2;
             end
             S_FCALLP2: if (eu_started) state <= S_CALLW;
+            //----------------------------------------------------------------
+            // PREPARE (C8 size16, level8): push BP; for level>0 read
+            // level-1 frame temps at BP-2k and push them, then push the
+            // frame pointer; BP=frame, SP=frame-size. Structural
+            // timing, fit pending the C8 goldens.
+            //----------------------------------------------------------------
+            S_PREP_L: if (q_pop) begin
+                a4_k <= {3'd0, q_byte[4:0]};      // level (mod 32)
+                pc <= pc + 16'd1;
+                issue_push(rf[5]);                // push BP
+                cmp1 <= rf[4] - 16'd2;            // frame pointer
+                a4_cnt <= 8'd1;
+                state <= S_PREP_W1;
+            end
+            S_PREP_W1: if (eu_started) state <= S_PREP_W2;
+            S_PREP_W2: if (eu_done) begin
+                if (a4_k == 8'd0) begin           // level 0: no frame push
+                    rf[5] <= cmp1;
+                    rf[4] <= cmp1 - disp;
+                    dly <= 6'd2; wnext <= S_EX; state <= S_WAITX;  // fit
+                end else if (a4_k == 8'd1) begin
+                    issue_push(cmp1);             // frame ptr push
+                    state <= S_PREP_W3;
+                end else begin                    // read frame temp k=1
+                    eu_addr <= {sr[SEG_SS], 4'h0} +
+                               {4'h0, rf[5] - 16'd2};
+                    eu_seg <= SEG_SS; eu_wr <= 1'b0; eu_word <= 1'b1;
+                    state <= S_PREP_RD;
+                end
+            end
+            S_PREP_RD: if (eu_started) state <= S_PREP_RDW;
+            S_PREP_RDW: if (eu_done) begin
+                issue_push(eu_rdata);
+                state <= S_PREP_PW;
+            end
+            S_PREP_PW: if (eu_started) state <= S_PREP_PWW;
+            S_PREP_PWW: if (eu_done) begin
+                if ({1'b0, a4_cnt} < {1'b0, a4_k} - 9'd1) begin
+                    a4_cnt <= a4_cnt + 8'd1;
+                    eu_addr <= {sr[SEG_SS], 4'h0} +
+                               {4'h0, rf[5] - 16'd2 -
+                                {7'd0, a4_cnt, 1'b0}};
+                    eu_seg <= SEG_SS; eu_wr <= 1'b0; eu_word <= 1'b1;
+                    state <= S_PREP_RD;
+                end else begin
+                    issue_push(cmp1);             // frame ptr push
+                    state <= S_PREP_W3;
+                end
+            end
+            S_PREP_W3: if (eu_started) state <= S_PREP_W4;
+            S_PREP_W4: if (eu_done) begin
+                rf[5] <= cmp1;
+                rf[4] <= cmp1 - disp;
+                dly <= 6'd2; wnext <= S_EX; state <= S_WAITX;   // fit
+            end
             S_INTV: if (q_pop) begin              // BRK imm8 vector
                 ivt_vec <= q_byte;
                 pc <= pc + 16'd1;
@@ -2343,6 +2465,34 @@ always_ff @(posedge clk) begin
                         eu_word <= 1'b1;
                         eu_wdata <= eu_rdata;
                         state <= S_WREQ;
+                    end else if (op_fpo) begin
+                        retire();            // ESC mem: read + discard
+                    end else if (op_chk && !ldp2) begin
+                        // CHKIND: lower bound read; upper at EA+2
+                        ldp2 <= 1'b1;
+                        cmp1 <= eu_rdata;
+                        eu_addr <= eu_addr + 20'd2;
+                        eu_wr <= 1'b0;
+                        state <= S_REQ;
+                    end else if (op_chk) begin
+                        // signed bounds check (0xFFFF upper = -1 traps)
+                        logic [15:0] xi, xl, xh;
+                        xi = rf[mrm_reg] ^ 16'h8000;
+                        xl = cmp1 ^ 16'h8000;
+                        xh = eu_rdata ^ 16'h8000;
+                        if (xi < xl || xi > xh) begin
+                            ivt_vec <= 8'd5;
+                            dly <= 6'd8; wnext <= S_TRAP_IVT1;  // fit
+                            state <= S_WAITX;
+                        end else begin
+                            dly <= 6'd2; wnext <= S_EX;         // fit
+                            state <= S_WAITX;
+                        end
+                    end else if (op_disp) begin
+                        // DISPOSE: SP = BP + 2 (pop), BP = popped word
+                        rf[4] <= rf[5] + 16'd2;
+                        rf[5] <= eu_rdata;
+                        retire();            // fit pending
                     end else if (op_ldptr && !ldp2) begin
                         // LES/LDS: offset word read; chain the segment
                         // word at EA+2 (fit pending)
@@ -2393,6 +2543,19 @@ always_ff @(posedge clk) begin
                             dly <= 6'd37 + sfix; wnext <= S_TRAP_IVT1;
                         end else begin
                             dly <= 6'd38 + sfix; wnext <= S_EX;
+                        end
+                        state <= S_WAITX;
+                    end else if (op_grpf6 && mrm_reg == 3'd6) begin
+                        // DIVU8 mem (reg law + 1, like DIVU16 mem)
+                        logic [16:0] dv8u;
+                        dv8u = divu16_8(rf[0], eu_rdata[7:0]);
+                        mem_op <= {8'd0, dv8u[15:8]};
+                        disp   <= {8'd0, dv8u[7:0]};
+                        psw <= psw_sub8f(rf[0][15:8], eu_rdata[7:0], psw);
+                        if (dv8u[16]) begin
+                            dly <= 6'd13; wnext <= S_TRAP_IVT1;  // fit
+                        end else begin
+                            dly <= 6'd26; wnext <= S_EX;         // fit
                         end
                         state <= S_WAITX;
                     end else if (op_grpf6) begin
@@ -2710,6 +2873,9 @@ always_ff @(posedge clk) begin
                     rf[2] <= mws[31:16];
                     psw[FB_CY] <= mws[31:16] != {16{mws[15]}};
                     psw[FB_V]  <= mws[31:16] != {16{mws[15]}};
+                end else if (op_grpf6 && mrm_reg == 3'd6) begin
+                    // DIVU8 writeback: AL=q, AH=r
+                    rf[0] <= {disp[7:0], mem_op[7:0]};
                 end else if (op_grpf6 && mrm_reg == 3'd7) begin
                     // IDIV8 writeback: AL=q, AH=r (flags set at dispatch)
                     rf[0] <= mem_op;
