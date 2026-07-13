@@ -1699,7 +1699,7 @@ always_ff @(posedge clk) begin
                 disp[7:0] <= q_byte;
                 pc <= pc + 16'd1;
                 // CVTBD divides, CVTDB multiply-adds (fit pending)
-                dly <= (opc == 8'hD4) ? 6'd15 : 6'd6;
+                dly <= (opc == 8'hD4) ? 6'd11 : 6'd4;
                 wnext <= S_EX; state <= S_WAITX;
             end
             S_AI_I16: if (q_pop) begin
@@ -1710,8 +1710,21 @@ always_ff @(posedge clk) begin
                     state <= S_REQ;
                 end else if (op_prep) begin
                     state <= S_PREP_L;                // level byte next
-                end else if (op_accimm || op_testai ||
-                             (op_grpf7 && mrm_reg == 3'd0))
+                end else if (op_accimm || op_testai) begin
+                    // word acc-imm: execute AND retire on the hi-imm
+                    // pop edge (close = open+4, fitted on 05)
+                    logic [31:0] c16a;
+                    logic [2:0] aop2;
+                    aop2 = op_testai ? 3'd4 : opc[5:3];
+                    c16a = alu16(aop2, rf[0], {q_byte, disp[7:0]}, psw);
+                    psw <= c16a[31:16];
+                    if (!op_testai && aop2 != 3'd7)
+                        rf[0] <= c16a[15:0];
+                    // retire on the pop edge (B8 pattern): pc is
+                    // incremented THIS cycle, so arch_ip needs +1
+                    arch_ip <= pc + 16'd1;
+                    state <= S_FIRST;
+                end else if (op_grpf7 && mrm_reg == 3'd0)
                     state <= S_EX;
                 else if (op_imuli) begin              // 69 (fit pending)
                     dly <= 6'd9; wnext <= S_EX; state <= S_WAITX;
@@ -2738,15 +2751,17 @@ always_ff @(posedge clk) begin
                     psw[FB_AC] <= 1'b0;
                     psw[FB_CY] <= 1'b0;
                 end else if (opc == 8'hD5) begin       // CVTDB (AAD)
-                    // AL = AH*base + AL; AC/CY from the final 8-bit
-                    // add (internal residue, undefined_flags.md)
+                    // V30: the immediate base is IGNORED - always
+                    // AH*10+AL (measured on the D5 goldens; CVTBD
+                    // does use its base). AC/CY from the final add.
                     logic [7:0] mulb;
                     logic [23:0] ad;
-                    mulb = rf[0][15:8] * disp[7:0];
+                    mulb = rf[0][15:8] * 8'd10;
                     ad = alu8(3'd0, mulb, rf[0][7:0], psw);
                     rf[0] <= {8'd0, ad[7:0]};
+                    // V = the add's signed overflow (measured; the
+                    // manual's V=0 is wrong for CVTDB)
                     psw <= ad[23:8];
-                    psw[FB_V] <= 1'b0;
                 end else if (opc == 8'h99) begin                // CVTWL
                     rf[2] <= {16{rf[0][15]}};
                 end else if (op_str) begin

@@ -40,13 +40,19 @@ echo`). NEVER reprogram the FPGA; one board user at a time.
   the fast path - expect completion within ~1-2 h of 21:00.
 
 ## Pending arrival (laws fitted, expect pass; re-check on landing)
-- Remaining D2.x/D3.x arrivals (D2.0/D2.1 fitted+green: reg close =
-  modrm-pop+9+CL (+8 at 0), mem write T1 = read-done+11+CL, cl=0 mem
-  close done+9; S_SHWAIT bases split op_shimm vs D2/D3).
-- 80.7, remaining C1.x/D0.x/D1.x arrivals (laws fitted, passing on
-  arrival so far).
-- D4/D5 (CVTBD/CVTDB): arch green on arrival; timing fit in progress
-  (D4 close at +15/+17 split - see fitwatch).
+- BATCH-2 COMPLETE: all 102 forms fitted+green. Additional laws:
+  D4 close imm-pop+13ish (dly 11), D5 dly 4; CVTDB IGNORES its
+  immediate base (always AH*10+AL) and V = the final add's signed
+  overflow (manual wrong); word acc-imm (05-3D odd) executes AND
+  retires on the hi-imm pop edge (B8 pattern, arch_ip = pc+1).
+- fitwatch3 KILLED during active fitting (rebuild races); re-arm from
+  the checkpoint recipe when idle. Monitor also stopped - use
+  fitwatch.log + ls of tests/v30/v0.1 for the to-do queue.
+- BATCH-3 fitting backlog (landed, failing, grouped by path):
+  06/0E (PUSH sreg ~75 percent - decode-reservation or push slot),
+  0F10-0F17 (bit-op CL forms: reg slot + mem RMW slot),
+  0F19-0F1F imm variants, and everything after - check fitwatch.log.
+- (batch-2 fully fitted as of this commit)
 
 ## Pending fit (batch-3, skeletons in core, timing guessed)
 acc-imm ALU (04..3D), TEST (84/85/A8/A9/F6.0/F7.0), XCHG 91-97,
