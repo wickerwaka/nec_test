@@ -1385,11 +1385,12 @@ def emit_case(spec, case, host, tag, preload_n=0, waits=0):
         placed[a & 0xFFFFF] = v
         init_ram.append([a & 0xFFFFF, v])
     if ivt:
-        seg, off = ivt[0]
+        vec = next(iter(ivt))
+        seg, off = ivt[vec]
         for k, b in enumerate(off.to_bytes(2, "little") +
                               seg.to_bytes(2, "little")):
-            placed[k] = b
-            init_ram.append([k, b])
+            placed[4 * vec + k] = b
+            init_ram.append([4 * vec + k, b])
         h = bytes([0xEA, stub_linear & 0xFF, stub_linear >> 8, 0, 0])
         for k, b in enumerate(h):
             placed[(HANDLER_OFF + k) & 0xFFFFF] = b
