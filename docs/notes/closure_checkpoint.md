@@ -54,10 +54,22 @@ echo`). NEVER reprogram the FPGA; one board user at a time.
   mem wT1 done+7 CLR1 / done+6 SET1-NOT1; SET1/NOT1 imm-mem hold a
   req-not-ready bus reservation from pop+1 - idle-end evals at the
   pop go to the prefetcher, later fetch-T3 evals are blocked).
-- REMAINING known: 0F22 (SUB4S sibling/borrow law), 0F26 (CMP4S
-  timing), 0F2A (ROR4 mem law wrong + timing), 0F31/33/39/3B
-  (INS/EXT: BUILD from traces), + rescore-all for late batch-3
-  arrivals (bulk: check_core --details 0, grep -v 500/500).
+- FITTED since: full Jcc 70-7F (one condition matrix - the 74/75/7C
+  timing laws generalize), E0/E1 (2-cycle decode lead-in, disp pops
+  F+4, not-taken retires ON the pop, taken dly4, NO JWAIT
+  reservation), E3 (not-taken pop+3, taken dly5 with the E2-style
+  reservation exception dly==5), ROR4 (AL takes the WHOLE byte -
+  undocumented; reg pop+17, mem done+17), SUB4S/CMP4S laws.
+- REMAINING fit queue (bulk-score for current truth): FPO 66/67/D8-DF
+  (reg slot qop15/11/2 + mem), TEST 84/85/F6.0/F7.0 (slots), NOT/NEG
+  F6.2/3 F7.2/3 mem RMW slots, IMUL F6.5/69/6B (ARCH laws wrong -
+  flags likely preserved-style + timing), 8F.0 partial, 9A pushes,
+  C4/C5 second-read slot, C8 PREPARE (arch 0 - debug), C9/CB/CA/CF/
+  CC/CD/CE cold-half decode-reservation (add opcodes to the S_DEC
+  eu_req list like C3) + slots, 62 CHKIND slots, EA variant, 68/6A
+  push slot cold quarter, 9F LAHF/F5-FD flag ops retire +1 too slow,
+  0F22 sibling residue (parked), 0F26 2-case residue (parked).
+- NOT IMPLEMENTED: 60/61 (PUSH R/POP R), INS/EXT 0F31/33/39/3B.
 - (batch-2 fully fitted as of this commit)
 
 ## Pending fit (batch-3, skeletons in core, timing guessed)

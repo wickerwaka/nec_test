@@ -324,7 +324,7 @@ wire op_grpd0  = opc == 8'hD0;                       // /4 SHL8,1 only
 wire op_grpfe  = opc == 8'hFE;                       // /0 INC8 only
 wire op_xchg8  = opc == 8'h86;
 wire op_xchg16 = opc == 8'h87;
-wire op_jcc    = opc == 8'h74 || opc == 8'h75 || opc == 8'h7C;
+wire op_jcc    = opc[7:4] == 4'h7;               // full Jcc set 70-7F
 wire op_ret    = opc == 8'hC3 || opc == 8'hC2;
 wire op_moff   = opc == 8'hA0 || opc == 8'hA1;   // MOV AL/AW, moffs16
 wire op_moffw  = opc == 8'hA2 || opc == 8'hA3;   // MOV moffs16, AL/AW
@@ -342,9 +342,17 @@ wire op_segp   = opc == 8'h26 || opc == 8'h2E ||
                  opc == 8'h36 || opc == 8'h3E;   // segment override
 wire op_repp   = opc == 8'hF3 || opc == 8'hF2 ||     // REP/REPE, REPNE
                  opc == 8'h65 || opc == 8'h64;       // REPC, REPNC
-wire jcc_taken = (opc == 8'h74) ?  psw[FB_Z] :
-                 (opc == 8'h75) ? !psw[FB_Z] :
-                                   psw[FB_S] ^ psw[FB_V];   // 7C BLT
+// full x86 condition matrix over the low opcode nibble
+wire jcc_base =
+    (opc[3:1] == 3'd0) ? psw[FB_V] :
+    (opc[3:1] == 3'd1) ? psw[FB_CY] :
+    (opc[3:1] == 3'd2) ? psw[FB_Z] :
+    (opc[3:1] == 3'd3) ? (psw[FB_CY] | psw[FB_Z]) :
+    (opc[3:1] == 3'd4) ? psw[FB_S] :
+    (opc[3:1] == 3'd5) ? psw[FB_P] :
+    (opc[3:1] == 3'd6) ? (psw[FB_S] ^ psw[FB_V]) :
+                         ((psw[FB_S] ^ psw[FB_V]) | psw[FB_Z]);
+wire jcc_taken = jcc_base ^ opc[0];
 wire op_in     = opc == 8'hE4 || opc == 8'hE5 ||
                  opc == 8'hEC || opc == 8'hED;   // IN acc,imm8 / acc,DW
 wire op_out    = opc == 8'hE6 || opc == 8'hE7 ||
@@ -1001,6 +1009,9 @@ always_comb begin
                                     opc == 8'hCA);
         S_JWAIT: eu_req = !(op_jcc && dly == 6'd3) &&
                           !(opc == 8'hE2 &&
+                            (dly == 6'd5 || wnext == S_JNT)) &&
+                          !(opc == 8'hE0 || opc == 8'hE1) &&
+                          !(opc == 8'hE3 &&
                             (dly == 6'd5 || wnext == S_JNT));
         // CALL: the flush cycle keeps the reservation so the push (ready
         // next cycle) wins the first slot ahead of the redirected prefetch
@@ -1444,8 +1455,14 @@ always_ff @(posedge clk) begin
                         eu_wr   <= 1'b0;
                         eu_word <= 1'b1;
                         state   <= S_REQ;
-                    end else if (opc == 8'hEB || op_jcc || opc == 8'hE2)
+                    end else if (opc == 8'hEB || op_jcc ||
+                                 opc == 8'hE2 || opc == 8'hE3)
                         state <= S_JDISP;
+                    else if (opc == 8'hE0 || opc == 8'hE1) begin
+                        // DBNZNE/DBNZE: disp pops at F+4 (measured -
+                        // two-cycle decode lead-in)
+                        dly <= 6'd2; wnext <= S_JDISP; state <= S_WAITX;
+                    end
                     else if (opc == 8'hE9 || opc == 8'hE8 ||
                              opc == 8'hC2 || opc == 8'hEA ||
                              opc == 8'hCA || opc == 8'h9A)
@@ -1774,6 +1791,24 @@ always_ff @(posedge clk) begin
                 end else if (opc == 8'hE2) begin                // DBNZ
                     rf[1] <= rf[1] - 16'd1;
                     if (rf[1] != 16'd1) begin
+                        dly <= 6'd5; wnext <= S_JFLUSH; state <= S_JWAIT;
+                    end else begin
+                        dly <= 6'd1; wnext <= S_JNT; state <= S_JWAIT;
+                    end
+                end else if (opc == 8'hE0 || opc == 8'hE1) begin
+                    // DBNZNE/DBNZE (fitted: disp pop F+4; not-taken
+                    // closes at pop+1, taken at open+16)
+                    rf[1] <= rf[1] - 16'd1;
+                    if (rf[1] != 16'd1 &&
+                        (psw[FB_Z] == opc[0])) begin
+                        dly <= 6'd4; wnext <= S_JFLUSH; state <= S_JWAIT;
+                    end else begin
+                        arch_ip <= pc + 16'd1;
+                        state <= S_FIRST;
+                    end
+                end else if (opc == 8'hE3) begin                // BCWZ
+                    // fitted: taken close open+15, not-taken pop+3
+                    if (rf[1] == 16'd0) begin
                         dly <= 6'd5; wnext <= S_JFLUSH; state <= S_JWAIT;
                     end else begin
                         dly <= 6'd1; wnext <= S_JNT; state <= S_JWAIT;
