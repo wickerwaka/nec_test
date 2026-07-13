@@ -1679,9 +1679,11 @@ always_ff @(posedge clk) begin
                     dly <= 6'd9; wnext <= S_EX; state <= S_WAITX;
                 end else if (op_alui &&
                              (mrm_mod == 2'd3 || mrm_reg == 3'd7)) begin
-                    dly <= 6'd2; wnext <= S_EX; state <= S_WAITX;
+                    // 81.x reg/CMP-mem retire at imm-pop+3 (one
+                    // earlier than the byte-imm forms; measured)
+                    dly <= 6'd1; wnext <= S_EX; state <= S_WAITX;
                 end else if (mrm_mod != 2'd3 && mrm_reg != 3'd7) begin
-                    dly <= 6'd3; state <= S_RMWX;   // write ready pop+4
+                    dly <= 6'd1; state <= S_RMWX;   // write ready pop+2
                 end else state <= S_EX;
             end
             S_IMM_HI: if (q_pop) begin
