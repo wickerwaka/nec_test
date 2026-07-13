@@ -2569,7 +2569,7 @@ always_ff @(posedge clk) begin
                         state <= S_AIGAP;   // imm pops at done+2
                     else if ((op_grpf6 || op_grpf7) &&
                              (mrm_reg == 3'd2 || mrm_reg == 3'd3)) begin
-                        dly <= 6'd2; state <= S_RMWX;   // NOT/NEG mem
+                        dly <= 6'd3; state <= S_RMWX;   // NOT/NEG mem
                     end else if (op_grpf6 && mrm_reg == 3'd5) begin
                         dly <= 6'd22; wnext <= S_EX; state <= S_WAITX;
                     end else if (op_grpf7 && (mrm_reg == 3'd4 ||

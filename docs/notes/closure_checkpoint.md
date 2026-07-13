@@ -67,8 +67,9 @@ echo`). NEVER reprogram the FPGA; one board user at a time.
   80.x ALU-imm done+2; reg imm pops modrm-pop+2 via the same gap; F7.0
   retires ON the hi-imm pop, B8 pattern), flag ops F5/F8/F9/FC/FD/9F
   (retire in S_DEC = close pop+2), 9E SAHF (pop+3).
-- REMAINING fit queue (bulk-score for current truth): NOT/NEG
-  F6.2/3 F7.2/3 mem RMW slots, IMUL F6.5/69/6B (ARCH laws wrong -
+- FITTED since: NOT/NEG mem F6.2/3 F7.2/3 (RMW write req at read
+  done+3 = S_WREQ; the BIU eu_ready_p1 gate makes the busy-bus slot).
+- REMAINING fit queue (bulk-score for current truth): IMUL F6.5/69/6B (ARCH laws wrong -
   flags likely preserved-style + timing), 8F.0 partial, 9A pushes,
   C4/C5 second-read slot, C8 PREPARE (arch 0 - debug), C9/CB/CA/CF/
   CC/CD/CE cold-half decode-reservation (add opcodes to the S_DEC
