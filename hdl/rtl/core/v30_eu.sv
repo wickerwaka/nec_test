@@ -2140,23 +2140,27 @@ always_ff @(posedge clk) begin
                     if (opc[0]) rf[0] <= eu_rdata;
                     else        rf[0][7:0] <= eu_rdata[7:0];
                     rf[6] <= rf[6] + str_step;
-                    if (rep_en) begin       // REP LDM loop (fit pending)
+                    if (rep_en) begin       // REP LDM loop (fitted)
                         rf[1] <= rf[1] - 16'd1;
                         if (rf[1] != 16'd1) begin
                             eu_addr <= {sr[seg_ovr_en ? seg_ovr : SEG_DS],
                                         4'h0} + {4'h0, rf[6] + str_step};
                             eu_seg  <= seg_ovr_en ? seg_ovr : SEG_DS;
                             eu_wr   <= 1'b0;
-                            dly <= 6'd3; wnext <= S_RSV; state <= S_WAITX;
+                            dly <= 6'd2; wnext <= S_RSV; state <= S_WAITX;
                         end else begin
-                            dly <= 6'd8; wnext <= S_EX; state <= S_WAITX;
+                            dly <= 6'd7; wnext <= S_EX; state <= S_WAITX;
                         end
                     end else retire();
                 end else if (op_stostr || op_movstr) begin // STM / MOVBK end
                     // REP (cx>=2) termination: one extra cycle after the
-                    // last write's done (measured); singles retire at done
-                    if (rep_en) state <= S_EX;
-                    else retire();
+                    // last write's done (measured); singles retire at
+                    // done. Split (odd word) writes close at done
+                    // directly (measured on the F3A5/F3AB tranches)
+                    if (rep_en) begin
+                        if (opc[0] && eu_addr[0]) retire();
+                        else state <= S_EX;
+                    end else retire();
                 end else if (op_retf || op_iret) begin    // CB/CA/CF pops
                     if (fret_ph == 2'd0) begin
                         fl_ip <= eu_rdata;
