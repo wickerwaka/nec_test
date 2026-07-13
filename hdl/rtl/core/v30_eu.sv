@@ -194,7 +194,7 @@ assign psw_ie = psw[9];
 typedef enum logic [6:0] {
     S_HALT, S_FIRST, S_DEC,
     S_IMM_LO, S_IMM_HI, S_NOP,
-    S_AI_I8, S_AI_I16, S_AIGAP, S_BCD_IMM,
+    S_AI_I8, S_AI_I16, S_AIGAP, S_BCD_IMM, S_SHWAIT,
     S_EA1, S_EA2, S_DISP8, S_DLO, S_DGAP, S_DHI, S_DSTALL,
     S_RSV, S_REQ, S_BUSW,
     S_PUSH_CALC,
@@ -259,6 +259,7 @@ reg [19:0]  ea_save;     // POP-mem: EA write target (stack read first)
 reg  [1:0]  ea_save_seg;
 reg         ldp2;        // LES/LDS: second (segment) word in flight
 reg  [1:0]  fret_ph;     // RETI stack-read phase
+reg  [8:0]  shw;         // shift/rotate full-count burn counter
 reg [15:0]  fl_cs, fl_ip; // flush redirect target
 // external-event machinery (block 4). The recognition sample is the
 // boundary-decision cycle reading a 4-deep pin pipeline (fitted: the
@@ -496,67 +497,83 @@ function automatic [23:0] alu8(input [2:0] op, input [7:0] a, input [7:0] b,
 endfunction
 
 // Shift/rotate unit (D0-D3, C0/C1, all 8 sub-ops; 6 = SHL alias).
-// Count pre-masked to 5 bits (V30 masks CL and imm8 with 0x1F).
-// Flag laws per undefined_flags.md: count=0 preserves everything;
-// shifts (4-7) set S/Z/P of the result and AC=0; V by the final-state
-// single-step formula (left: MSB^CY, right: MSB^MSB-1); rotates
-// (0-3) touch CY/V only. {new_psw, result}.
+// V30 iterates the FULL 8-bit count (no masking - measured, C0.x).
+// Word forms operate on the 16-bit value. Byte forms operate on the
+// addressed byte (x) with 8-bit semantics while the OTHER bus lane
+// acts as a shift register: left-family ops shift it left taking x's
+// outgoing MSB (seeded by the read's sibling lane - measured on the
+// C0.0 n=1/6/9/12 families), right-family ops shift it right pure.
+// Flags come from the x lane; count=0 preserves everything; shifts
+// set S/Z/P of the result and AC=0; V by the final-state single-step
+// formula. {new_psw, pair_result}.
 function automatic [31:0] shrot(input [2:0] op, input word,
-                                input [15:0] a, input [4:0] cnt,
+                                input x_hi,
+                                input [15:0] a, input [7:0] cnt,
                                 input [15:0] f);
     logic [15:0] r;
     logic [15:0] nf;
-    logic cy, msb, lsb, oc;
-    r = a;
+    logic [7:0] x, oth;
+    logic cy, msb, lsb, oc, outb;
+    if (word) begin
+        r = a;
+        x = 8'h0;
+        oth = 8'h0;
+    end else begin
+        x = x_hi ? a[15:8] : a[7:0];
+        oth = x_hi ? a[7:0] : a[15:8];
+        r = a;
+    end
     nf = f;
     cy = f[FB_CY];
-    for (int i = 0; i < 31; i++) begin
-        if (i < {27'd0, cnt}) begin
-            msb = word ? r[15] : r[7];
-            lsb = r[0];
-            unique case (op)
-                3'd0: begin                              // ROL
-                    r = word ? {r[14:0], msb} : {r[15:8], r[6:0], msb};
-                    cy = msb;
-                end
-                3'd1: begin                              // ROR
-                    r = word ? {lsb, r[15:1]} : {r[15:8], lsb, r[7:1]};
-                    cy = lsb;
-                end
-                3'd2: begin                              // ROLC (RCL)
-                    oc = cy; cy = msb;
-                    r = word ? {r[14:0], oc} : {r[15:8], r[6:0], oc};
-                end
-                3'd3: begin                              // RORC (RCR)
-                    oc = cy; cy = lsb;
-                    r = word ? {oc, r[15:1]} : {r[15:8], oc, r[7:1]};
-                end
-                3'd4, 3'd6: begin                        // SHL (+alias)
-                    cy = msb;
-                    r = word ? {r[14:0], 1'b0} : {r[15:8], r[6:0], 1'b0};
-                end
-                3'd5: begin                              // SHR
-                    cy = lsb;
-                    r = word ? {1'b0, r[15:1]} : {r[15:8], 1'b0, r[7:1]};
-                end
-                default: begin                           // 7 = SHRA (SAR)
-                    cy = lsb;
-                    r = word ? {r[15], r[15:1]} : {r[15:8], r[7], r[7:1]};
-                end
-            endcase
+    for (int i = 0; i < 255; i++) begin
+        if (i < {24'd0, cnt}) begin
+            if (word) begin
+                msb = r[15];
+                lsb = r[0];
+                unique case (op)
+                    3'd0: begin r = {r[14:0], msb}; cy = msb; end
+                    3'd1: begin r = {lsb, r[15:1]}; cy = lsb; end
+                    3'd2: begin oc = cy; cy = msb; r = {r[14:0], oc}; end
+                    3'd3: begin oc = cy; cy = lsb; r = {oc, r[15:1]}; end
+                    3'd4, 3'd6: begin cy = msb; r = {r[14:0], 1'b0}; end
+                    3'd5: begin cy = lsb; r = {1'b0, r[15:1]}; end
+                    default: begin cy = lsb; r = {r[15], r[15:1]}; end
+                endcase
+            end else begin
+                msb = x[7];
+                lsb = x[0];
+                unique case (op)
+                    3'd0: begin x = {x[6:0], msb}; cy = msb;
+                                oth = {oth[6:0], msb}; end
+                    3'd1: begin x = {lsb, x[7:1]}; cy = lsb;
+                                oth = {lsb, oth[7:1]}; end
+                    3'd2: begin oc = cy; cy = msb; x = {x[6:0], oc};
+                                oth = {oth[6:0], msb}; end
+                    3'd3: begin oc = cy; cy = lsb; x = {oc, x[7:1]};
+                                oth = {oc, oth[7:1]}; end
+                    3'd4, 3'd6: begin cy = msb; x = {x[6:0], 1'b0};
+                                oth = {oth[6:0], msb}; end
+                    3'd5: begin cy = lsb; x = {1'b0, x[7:1]};
+                                oth = {1'b0, oth[7:1]}; end
+                    default: begin cy = lsb; x = {x[7], x[7:1]};
+                                oth = {1'b0, oth[7:1]}; end
+                endcase
+            end
         end
     end
-    if (cnt != 5'd0) begin
+    if (!word)
+        r = x_hi ? {x, oth} : {oth, x};
+    if (cnt != 8'd0) begin
         nf[FB_CY] = cy;
-        msb = word ? r[15] : r[7];
+        msb = word ? r[15] : x[7];
         if (op == 3'd0 || op == 3'd2 || op == 3'd4 || op == 3'd6)
             nf[FB_V] = msb ^ cy;                         // left family
         else
-            nf[FB_V] = msb ^ (word ? r[14] : r[6]);      // right family
+            nf[FB_V] = msb ^ (word ? r[14] : x[6]);      // right family
         if (op[2]) begin                                 // shifts 4-7
             nf[FB_S]  = msb;
-            nf[FB_Z]  = word ? (r == 16'd0) : (r[7:0] == 8'd0);
-            nf[FB_P]  = ~^r[7:0];
+            nf[FB_Z]  = word ? (r == 16'd0) : (x == 8'd0);
+            nf[FB_P]  = word ? (~^r[7:0]) : (~^x);
             nf[FB_AC] = 1'b0;
         end
     end
@@ -855,14 +872,14 @@ wire [31:0] ex_ai16 = alu16(mrm_reg, (mrm_mod == 2'd3) ? rf[mrm_rm]
                             ai_imm, psw);
 // shifter operands: count masked to 5 bits (CL or imm8 in disp)
 wire sh_word = op_grpd1 | op_grpd3 | op_grpc1;
-wire [4:0] sh_cnt = (op_grpd0 | op_grpd1) ? 5'd1 :
-                    (op_grpd2 | op_grpd3) ? rf[1][4:0] : disp[4:0];
-wire [31:0] ex_shr  = shrot(mrm_reg, sh_word,
+wire [7:0] sh_cnt = (op_grpd0 | op_grpd1) ? 8'd1 :
+                    (op_grpd2 | op_grpd3) ? rf[1][7:0] : disp[7:0];
+wire [31:0] ex_shr  = shrot(mrm_reg, sh_word, 1'b0,
                             sh_word ? ((mrm_mod == 2'd3) ? rf[mrm_rm]
                                                          : mem_op)
-                                    : {8'h00, rm_byte},
+                            : ((mrm_mod == 2'd3)
+                               ? {8'h00, reg8_get(mrm_rm)} : mem_op),
                             sh_cnt, psw);
-wire [31:0] ex_shrp = shrot(mrm_reg, 1'b1, mem_op, sh_cnt, psw);
 // byte-form mem write: 16-bit pair arithmetic with the imm byte
 // SIGN-EXTENDED onto the sibling lane (measured: 80.0 ADD imm=08
 // sibling +carry only; 80.1 OR imm=f0 sibling -> FF; 80.2 ADC borrow)
@@ -1254,9 +1271,10 @@ always_ff @(posedge clk) begin
                                 // for the whole family (fit pending)
                                 dly <= 6'd3;  wnext <= S_EX; state <= S_WAITX;
                             end else if (op_grpd2 || op_grpd3) begin
-                                // by-CL reg: base + count (fit pending)
-                                dly <= 6'd5 + {1'd0, rf[1][4:0]};
-                                wnext <= S_EX; state <= S_WAITX;
+                                // by-CL reg: full 8-bit count via the
+                                // shift-burn state (base fit pending)
+                                shw <= {1'b0, rf[1][7:0]};
+                                state <= S_SHWAIT;
                             end else if ((op_grpf6 || op_grpf7) &&
                                          q_byte[5:3] == 3'd0) begin
                                 state <= S_AI_I8;   // TEST rm,imm
@@ -1625,6 +1643,18 @@ always_ff @(posedge clk) begin
             // timing first pass - fit against the 80/81/83 goldens.
             //----------------------------------------------------------------
             S_AIGAP: state <= S_AI_I8;     // mem imm forms: pop done+2
+            S_SHWAIT: begin
+                // one cycle per count step, then the fitted base slots
+                if (shw != 9'd0) shw <= shw - 9'd1;
+                else if (mrm_mod != 2'd3 && sh_cnt != 8'd0) begin
+                    dly <= 6'd5; state <= S_RMWX;
+                end else if (mrm_mod != 2'd3) begin
+                    dly <= 6'd4; wnext <= S_EX; state <= S_WAITX;
+                end else begin
+                    dly <= (sh_cnt == 8'd0) ? 6'd4 : 6'd5;
+                    wnext <= S_EX; state <= S_WAITX;
+                end
+            end
             S_AI_I8: if (q_pop) begin
                 disp[7:0] <= q_byte;
                 pc <= pc + 16'd1;
@@ -1645,14 +1675,12 @@ always_ff @(posedge clk) begin
                     // reg forms + CMP-mem retire at imm-pop+4 (80.0)
                     dly <= 6'd2; wnext <= S_EX; state <= S_WAITX;
                 end else if (op_shimm) begin
-                    // C0/C1 count byte (masked to 5 bits by sh_cnt)
-                    if (mrm_mod != 2'd3) begin
-                        dly <= 6'd2 + {1'd0, q_byte[4:0]};
-                        state <= S_RMWX;            // fit pending
-                    end else begin
-                        dly <= 6'd3 + {1'd0, q_byte[4:0]};
-                        wnext <= S_EX; state <= S_WAITX;
-                    end
+                    // C0/C1 fitted laws (FULL 8-bit count, no
+                    // masking): mem write T1 = count-pop + 9 + count
+                    // (count=0 writes nothing); reg close =
+                    // count-pop + 8 + count (+7 at 0)
+                    shw <= {1'b0, q_byte};
+                    state <= S_SHWAIT;
                 end else if (mrm_mod != 2'd3 && mrm_reg != 3'd7) begin
                     dly <= 6'd3; state <= S_RMWX;   // write ready pop+4
                 end else state <= S_EX;
@@ -2526,11 +2554,11 @@ always_ff @(posedge clk) begin
                     end else if (op_grpd0 || op_grpd1) begin
                         dly <= 6'd5; state <= S_RMWX;     // done+6
                     end else if (op_grpd2 || op_grpd3) begin
-                        // by-CL mem: base + count (fit pending)
-                        dly <= 6'd5 + {1'd0, rf[1][4:0]};
-                        state <= S_RMWX;
+                        // by-CL mem: full count via the burn state
+                        shw <= {1'b0, rf[1][7:0]};
+                        state <= S_SHWAIT;
                     end else if (op_shimm) begin
-                        state <= S_AI_I8;   // count byte pops next
+                        state <= S_AIGAP;   // count byte pops at done+2
                     end else if (op_grpf6 && mrm_reg == 3'd7) begin
                         // IDIV8 mem: reg-form law + 1 (like DIVU)
                         logic [33:0] dv8;
@@ -2814,8 +2842,10 @@ always_ff @(posedge clk) begin
                     wr_reg8(mrm_rm, ex_inc[7:0]);
                 end else if (op_shrot) begin
                     psw <= ex_shr[31:16];
-                    if (sh_word) rf[mrm_rm] <= ex_shr[15:0];
-                    else         wr_reg8(mrm_rm, ex_shr[7:0]);
+                    if (mrm_mod == 2'd3) begin
+                        if (sh_word) rf[mrm_rm] <= ex_shr[15:0];
+                        else         wr_reg8(mrm_rm, ex_shr[7:0]);
+                    end
                 end else if (op_grpd0) begin
                     psw <= ex_shl[23:8];
                     wr_reg8(mrm_rm, ex_shl[7:0]);
@@ -2974,9 +3004,11 @@ always_ff @(posedge clk) begin
                         eu_wdata <= idw[15:0];
                         psw <= idw[31:16];
                     end else if (op_shrot) begin
-                        // byte forms drive the full internal pair
-                        // (sibling-lane GUESS - fit vs goldens)
-                        eu_wdata <= sh_word ? ex_shr[15:0] : ex_shrp[15:0];
+                        // measured split: by-1 forms (D0/D1) operate on
+                        // the full internal pair; count forms (C0/C1/
+                        // D2/D3) loop on the byte and PRESERVE the
+                        // sibling lane (C0.0 goldens)
+                        eu_wdata <= ex_shr[15:0];
                         psw <= ex_shr[31:16];
                     end else begin
                         eu_wdata <= rmw_wide;
