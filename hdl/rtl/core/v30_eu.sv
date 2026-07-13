@@ -1125,6 +1125,14 @@ always_comb begin
         // PUSH imm reserves at its final imm pop (measured, 68/6A)
         S_AI_I8:  eu_req = q_pop && opc == 8'h6A;
         S_AI_I16: eu_req = q_pop && (opc == 8'h68 || op_prep);
+        // PUSH forms reserve the bus one cycle early: the write is ready
+        // the next cycle (S_REQ), and a prefetch T3 completion eval that
+        // coincides with S_PUSH_CALC must not steal the slot ahead of it
+        // (Mission S: PUSH r16 whose calc cycle lands on a prefetch T3 let
+        // the prefetch commit, pushing the write two cycles late). req
+        // without ready = reservation; the actual commit still fires in
+        // S_REQ where eu_ready is high.
+        S_PUSH_CALC: eu_req = 1'b1;
         S_JWAIT: eu_req = !(op_jcc && dly == 6'd3) &&
                           !(opc == 8'hE2 &&
                             (dly == 6'd5 || wnext == S_JNT)) &&
