@@ -30,9 +30,14 @@ echo`). NEVER reprogram the FPGA; one board user at a time.
   ghost-INT documented in interrupt_model.md).
 - OUT E6/E7/EE/EF; all strings (singles, REP byte/word, REP LODS,
   compare strings x16 incl. REPC/REPNC); ALU-imm 80.0-80.6/81.x/83.x;
-  shift-imm C0.0-C0.7 (major laws: full 8-bit count, no 5-bit masking;
-  linear count timing; byte-RMW other-lane shift-register semantics -
-  see f956250 commit message and shrot() header).
+  shift-imm C0.0-C0.7 + word C1.x + by-1 D0/D1 + CL D2/D3 (full-count
+  laws, see f956250/b194cd0); BCD adjusts 27/2F/37/3F (V = signed
+  overflow of either fix step; V30 DEVIATION: AC moves the DAA/DAS
+  high-fix threshold to >0x9F; ADJBA/ADJBS S/Z/P from the pre-mask
+  adjusted byte; slots +3 / +7).
+- Serve-v2 DEPLOYED+VALIDATED on-board at the batch-2/3 boundary:
+  RUN-vs-DELTA byte-match 8/8, 31 ms/case (9x). Batch-3 emitting on
+  the fast path - expect completion within ~1-2 h of 21:00.
 
 ## Pending arrival (laws fitted, expect pass; re-check on landing)
 - Remaining D2.x/D3.x arrivals (D2.0/D2.1 fitted+green: reg close =
@@ -40,8 +45,8 @@ echo`). NEVER reprogram the FPGA; one board user at a time.
   close done+9; S_SHWAIT bases split op_shimm vs D2/D3).
 - 80.7, remaining C1.x/D0.x/D1.x arrivals (laws fitted, passing on
   arrival so far).
-- BCD 27/2F/37/3F/D4/D5 (skeletons + documented flag laws; timing
-  guesses dly1/15/6 in S_DEC + S_BCD_IMM).
+- D4/D5 (CVTBD/CVTDB): arch green on arrival; timing fit in progress
+  (D4 close at +15/+17 split - see fitwatch).
 
 ## Pending fit (batch-3, skeletons in core, timing guessed)
 acc-imm ALU (04..3D), TEST (84/85/A8/A9/F6.0/F7.0), XCHG 91-97,

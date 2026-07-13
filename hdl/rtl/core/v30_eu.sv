@@ -1515,10 +1515,12 @@ always_ff @(posedge clk) begin
                             dly <= 6'd5; wnext <= S_TRAP_IVT1;  // fit
                             state <= S_WAITX;
                         end else state <= S_NOP;             // fit
-                    end else if (opc == 8'h27 || opc == 8'h2F ||
-                                 opc == 8'h37 || opc == 8'h3F) begin
-                        // BCD adjusts: execute in S_EX (fit pending)
-                        dly <= 6'd1; wnext <= S_EX; state <= S_WAITX;
+                    end else if (opc == 8'h27 || opc == 8'h2F) begin
+                        // ADJ4A/ADJ4S: close pop at +3 (fitted, 27)
+                        state <= S_EX;
+                    end else if (opc == 8'h37 || opc == 8'h3F) begin
+                        // ADJBA/ADJBS: close pop at +7 (fitted, 37)
+                        dly <= 6'd4; wnext <= S_EX; state <= S_WAITX;
                     end else if (opc == 8'hD4 || opc == 8'hD5) begin
                         state <= S_BCD_IMM;   // base byte pops next
                     end else if (opc == 8'h98) begin      // CVTBW
@@ -2670,20 +2672,28 @@ always_ff @(posedge clk) begin
 
             S_EX: begin
                 if (opc == 8'h27 || opc == 8'h2F) begin  // ADJ4A/ADJ4S
-                    // DAA/DAS; V = sign flip of the wide-fix step
-                    // (GUESS - fit vs goldens); flag laws per
-                    // undefined_flags.md ADJ4A/ADJ4S note
+                    // DAA/DAS. V = signed overflow of EITHER fix add
+                    // (measured on the 27 goldens: +6 crossing 0x80
+                    // OR +60 crossing 0x80; DAS mirrored)
                     logic [7:0] al, r1, r2;
                     logic lowfix, hifix;
                     al = rf[0][7:0];
                     lowfix = (al[3:0] > 4'd9) || psw[FB_AC];
-                    hifix  = (al > 8'h99) || psw[FB_CY];
+                    // V30 deviation from the 8086: with AC set the
+                    // high-fix threshold moves to >0x9F (measured
+                    // exactly on the 27/2F goldens, 1000/1000)
+                    hifix  = (al > (psw[FB_AC] ? 8'h9F : 8'h99)) ||
+                             psw[FB_CY];
                     if (opc == 8'h27) begin
                         r1 = al + (lowfix ? 8'h06 : 8'h00);
                         r2 = r1 + (hifix ? 8'h60 : 8'h00);
+                        psw[FB_V] <= (lowfix && !al[7] && r1[7]) ||
+                                     (hifix && !r1[7] && r2[7]);
                     end else begin
                         r1 = al - (lowfix ? 8'h06 : 8'h00);
                         r2 = r1 - (hifix ? 8'h60 : 8'h00);
+                        psw[FB_V] <= (lowfix && al[7] && !r1[7]) ||
+                                     (hifix && r1[7] && !r2[7]);
                     end
                     rf[0][7:0] <= r2;
                     psw[FB_AC] <= lowfix;
@@ -2691,32 +2701,31 @@ always_ff @(posedge clk) begin
                     psw[FB_S]  <= r2[7];
                     psw[FB_Z]  <= r2 == 8'd0;
                     psw[FB_P]  <= ~^r2;
-                    psw[FB_V]  <= r1[7] ^ r2[7];
                 end else if (opc == 8'h37 || opc == 8'h3F) begin
-                    // ADJBA/ADJBS: V=0; ADJBA S=0,Z=(AW==0);
-                    // ADJBS Z=(AL==0); P=parity(AL) (fit pending)
+                    // ADJBA/ADJBS (fitted on the 37/3F goldens):
+                    // r1 = AL +/- 6 when firing; AL' = r1 & 0F,
+                    // AH' = AH +/- 1; CY=AC=fire; S/Z/P of the
+                    // PRE-MASK r1; V = signed overflow of the +/-6
+                    // step (same family law as ADJ4A/ADJ4S)
                     logic fire;
-                    logic [15:0] aw;
-                    fire = (rf[0][3:0] > 4'd9) || psw[FB_AC];
-                    if (opc == 8'h37)
-                        aw = fire ? {rf[0][15:8] + 8'd1,
-                                     (rf[0][7:0] + 8'h06)} : rf[0];
-                    else
-                        aw = fire ? {rf[0][15:8] - 8'd1,
-                                     (rf[0][7:0] - 8'h06)} : rf[0];
-                    aw[7:4] = 4'd0;
-                    rf[0] <= aw;
+                    logic [7:0] al, r1;
+                    al = rf[0][7:0];
+                    fire = (al[3:0] > 4'd9) || psw[FB_AC];
+                    if (opc == 8'h37) begin
+                        r1 = fire ? al + 8'h06 : al;
+                        if (fire) rf[0][15:8] <= rf[0][15:8] + 8'd1;
+                        psw[FB_V] <= fire && !al[7] && r1[7];
+                    end else begin
+                        r1 = fire ? al - 8'h06 : al;
+                        if (fire) rf[0][15:8] <= rf[0][15:8] - 8'd1;
+                        psw[FB_V] <= fire && al[7] && !r1[7];
+                    end
+                    rf[0][7:0] <= {4'd0, r1[3:0]};
                     psw[FB_AC] <= fire;
                     psw[FB_CY] <= fire;
-                    psw[FB_V]  <= 1'b0;
-                    psw[FB_P]  <= ~^aw[7:0];
-                    if (opc == 8'h37) begin
-                        psw[FB_S] <= 1'b0;
-                        psw[FB_Z] <= aw == 16'd0;
-                    end else begin
-                        psw[FB_S] <= aw[7];
-                        psw[FB_Z] <= aw[7:0] == 8'd0;
-                    end
+                    psw[FB_S]  <= r1[7];
+                    psw[FB_Z]  <= r1 == 8'd0;
+                    psw[FB_P]  <= ~^r1;
                 end else if (opc == 8'hD4) begin       // CVTBD (AAM)
                     logic [7:0] q8, r8;
                     q8 = rf[0][7:0] / disp[7:0];
