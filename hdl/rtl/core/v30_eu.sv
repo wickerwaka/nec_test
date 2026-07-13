@@ -872,10 +872,11 @@ endfunction
 // wrap-borrow joins c1 in the HIGH SUM, while the high ADJUST
 // DECISION runs on a single-borrow rail (c1 only) and fires on
 // borrow OR >9 - the mirror image of ADD4S's one-carry-rail quirk.
-function automatic [10:0] bcd_sub8(input [7:0] a, input [7:0] b, input bin);
+function automatic [12:0] bcd_sub8(input [7:0] a, input [7:0] b, input bin);
     logic [4:0] lo, hi, dec;
     logic       c1, c2, fl, wrapb, fire, sibx, prez;
     logic [3:0] dlo0, dlo, dhi0, dhi;
+    logic [8:0] rawx, adjx;
     lo = {1'b0, a[3:0]} - {1'b0, b[3:0]} - {4'd0, bin};
     c1 = lo[4];
     dlo0 = lo[3:0];
@@ -886,11 +887,23 @@ function automatic [10:0] bcd_sub8(input [7:0] a, input [7:0] b, input bin);
     hi = {1'b0, a[7:4]} - {1'b0, b[7:4]} - {4'd0, c1} - {4'd0, wrapb};
     dhi0 = hi[3:0];
     dec = {1'b0, a[7:4]} - {1'b0, b[7:4]} - {4'd0, c1};
-    fire = dec[4] || (dec > 5'd9);
+    // closure block: the high-adjust decision also fires at dec==9
+    // with an invalid low nibble - but ONLY when the low compare did
+    // not borrow (the pre-adjust >0x99 DAS threshold gated by !c1;
+    // fitted exactly on all 1000 0F22/0F26 goldens)
+    fire = dec[4] || (dec > 5'd9) ||
+           (dec[3:0] == 4'd9 && c2 && !c1);
     dhi = fire ? dhi0 - 4'd6 : dhi0;
     sibx = hi[4] && (dhi0 > 4'd9);
     prez = (dhi0 == 4'd0) && (dlo0 == 4'd0);
-    bcd_sub8 = {fire, sibx, prez, dhi, dlo};
+    // byte-boundary borrows for the driven sibling lane (closure
+    // block; sib = dst_o - src_o - braw - badj + 1, exact on all
+    // 1020 golden SUB4S writes): braw = the raw byte subtract's
+    // borrow, badj = the -6/-60h adjust step's borrow
+    rawx = {1'b0, a} - {1'b0, b} - {8'd0, bin};
+    adjx = {1'b0, rawx[7:0]} - (fl ? 9'd6 : 9'd0) -
+           (fire ? 9'h60 : 9'h0);
+    bcd_sub8 = {adjx[8], rawx[8], fire, sibx, prez, dhi, dlo};
 endfunction
 
 // DIVU leaves the flags of its 16-bit overflow pre-check compare
@@ -2672,12 +2685,14 @@ always_ff @(posedge clk) begin
             S_A4_G1: state <= S_A4_DST;
             S_A4_DST: if (eu_started) state <= S_A4_DSTW;
             S_A4_DSTW: if (eu_done) begin
-                // {fire, sibx, prez, res}; driven sibling lane =
-                // src_other + dst_other + fire + sibx - 1 (measured law;
-                // SUB4S sibling mirrored structurally, fit pending)
-                logic [10:0] s;
+                // {badj, braw, fire, sibx, prez, res}; ADD4S driven
+                // sibling = src_o + dst_o + fire + sibx - 1 (measured);
+                // SUB4S sibling = dst_o - src_o - braw - badj + 1
+                // (closure block: exact on all 1020 golden writes)
+                logic [12:0] s;
                 if (opc2 == 8'h20)
-                    s = bcd_add8(eu_rdata[7:0], a4_src[7:0], a4_carry);
+                    s = {2'b00,
+                         bcd_add8(eu_rdata[7:0], a4_src[7:0], a4_carry)};
                 else
                     s = bcd_sub8(eu_rdata[7:0], a4_src[7:0], a4_carry);
                 a4_carry <= s[10];
@@ -2686,11 +2701,9 @@ always_ff @(posedge clk) begin
                     mem_op <= {a4_src[15:8] + eu_rdata[15:8] +
                                {7'd0, s[10]} + {7'd0, s[9]} - 8'd1, s[7:0]};
                 else
-                    // sibling lane: dst_o - src_o - fire + 1 fits the
-                    // majority (633/1020); ~90 samples sit +-1 off on
-                    // an unresolved rail - parked, see checkpoint
                     mem_op <= {eu_rdata[15:8] - a4_src[15:8] -
-                               {7'd0, s[10]} + 8'd1, s[7:0]};
+                               {7'd0, s[11]} - {7'd0, s[12]} + 8'd1,
+                               s[7:0]};
                 if (opc2 == 8'h26) begin        // CMP4S: no write-back
                     if (a4_cnt > 8'd1) begin
                         a4_cnt  <= a4_cnt - 8'd1;
