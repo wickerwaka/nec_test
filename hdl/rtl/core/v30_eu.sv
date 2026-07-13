@@ -1044,9 +1044,12 @@ always_comb begin
         // POP mem starts its reservation one cycle AFTER the disp pop
         // (a prefetch may commit at the pop-cycle end; measured) - its
         // S_WAITX wait below carries the reservation instead
-        S_EA1: eu_req = (is_reader || op_srst) && !op_lea &&
+        // POP mem (8F.0) does NOT reserve during the EA compute: a
+        // queue-dry mod0 pop's in-flight fetch chain proceeds and the
+        // read commits at the next fetch's T3 edge (closure block)
+        S_EA1: eu_req = (is_reader || op_srst) && !op_lea && !op_popm &&
                         mrm_mod == 2'd0;
-        S_EA2: eu_req = (is_reader || op_srst) && !op_lea;
+        S_EA2: eu_req = (is_reader || op_srst) && !op_lea && !op_popm;
         // POP mem reserves at its disp pop only on phase-1 pops
         // (T2/T4-aligned; phase-0 pops let the pop-end commit pass)
         S_DISP8, S_DHI: eu_req = (is_reader || op_srst) && !op_lea &&
@@ -1189,10 +1192,16 @@ always_comb begin
     endcase
     // 8F.0 reg form: the stack read request stays up across retire
     // (the register loads in flight; measured: retire at pop+3 with
-    // the MEMR completing after the next instruction begins)
-    if (popr_pend && !(state == S_WAITX && dly == 6'd2)) begin
+    // the MEMR completing after the next instruction begins).
+    // Closure block: the RESERVATION is up from pop+1 (a queue-dry
+    // pop's in-flight fetch is blocked at its T3 edge) while ready
+    // matures at the POP-mem pop-phase slot (pop+2 from a T1/T2 pop,
+    // pop+3 otherwise) - fitted on all four golden geometries
+    if (popr_pend) begin
         eu_req   = 1'b1;
-        eu_ready = 1'b1;
+        eu_ready = !(state == S_WAITX &&
+                     (dly == 6'd2 ||
+                      (dly == 6'd1 && popm_hold == 6'd3)));
     end
 end
 
