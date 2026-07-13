@@ -180,9 +180,19 @@ Progress (mission block 1):
   park residual (FE /7 reached via deterministic garbage execution; the
   core matched silicon bit-for-bit up to the undocumented opcode).
   ~2560 board-vs-TB sequences total this session; zero QS flickers.
-- **C (pending)**: final-RTL bitstream in Quartus; then safe_flash,
-  chip-position regression (boot golden + A/A seed baseline), first
-  A/B light-up, and the in-silicon confirmation of the D laws.
+- **C (FIRST LIGHT achieved, 2026-07-13)**: after a second synthesis fix
+  (iterative shifter, commit e7c315a - the 255-deep `shrot` cone that
+  still dominated quartus_map after the divider), the full-RTL bitstream
+  built clean: **quartus_map 3m47s** (was ~25 min), Fmax 84.82 MHz emu
+  clock (setup slack +9.151 ns), 23% ALMs; only 2 megafunction dividers
+  left, both the intended small 8-bit AAM. safe_flash'd the .sof
+  (VERIFY ok, use_core=False). In silicon: chip-position boot MATCHES
+  the golden over 800 rows (known-good path undisturbed); **the in-fabric
+  core boot MATCHES the socketed chip over 800 rows (first light)**; and
+  the in-silicon A/B sequence fuzz (chip vs fabric core, both on the
+  FPGA) is fz4000-4039 40/40 clean - the definitive in-silicon
+  confirmation of the Mission D disp/split laws. Driving the A/B fuzz
+  toward the >=500 zero-divergence done-criterion.
 
 ## Standing infrastructure (build only when a campaign demands)
 - Agent-loop orchestration (campaign 2)

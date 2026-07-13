@@ -305,3 +305,48 @@ clean (fz600-1099), zero flickers.** Expansions: callret 500/500
 Known open (non-gate): waits>=1 qs_e flush-display timing at far jumps
 (2 rows/trace, phase-parity; execution identical) - the only class the
 w1 matrix shows; reader/store laws are wait-clean.
+
+## 2026-07-13 (block 3) — synthesis fix + Mission C FIRST LIGHT
+
+### Iterative shifter (second synth anti-pattern, commit e7c315a)
+After the iterative divider (c2beb6a) the Quartus build was still slow:
+a SECOND 255-deep combinational unroll dominated - the `shrot` shift/
+rotate function (D0-D3/C0/C1, all 8 sub-ops), evaluated as one giant
+cone at retirement. Replaced with ONE iterative shift stage (the divider
+pattern): loaded at each dispatch site, one single-bit shift per clock
+through the S_SHWAIT/S_WAITX window already spent, result+flags landing
+in sh_res/sh_fl before S_EX/S_RMWX. Full-8-bit-count/no-masking, the
+byte sibling-lane shift register, and every fitted flag law preserved
+bit-for-bit. GATE: golden 155440/155500 (per-op BYTE-IDENTICAL to
+baseline), all shift forms 500/500 (13000/13000), fuzz 30/30 chip-vs-TB.
+Also audited the EU: the 255 shifter was the ONLY large combinational
+unroll; INS/EXT, ROL4/ROR4, 4S are sequential (burn-counter) machines.
+
+### Quartus build (Task 2) - the spike is GONE
+Full compile clean (0 errors, 0 critical warnings), .sof produced:
+- **Analysis & Synthesis (quartus_map): 00:03:47** (was ~25 min).
+- Fitter 00:03:57, Assembler 12s, STA 5s; total 00:08:01.
+- Megafunctions: 2 lpm_divide, BOTH the small 8-bit AAM (D4/CVTBD)
+  `/` and `%` (the intended small combinational unit, c2beb6a) - no
+  wide/group dividers, no giant combinational cones.
+- Fmax emu/core clock 84.82 MHz (FPGA_CLK2_50 137 MHz); worst-case
+  setup slack +9.151 ns, hold +0.268 ns - timing MET.
+- Utilization 9,835/41,910 ALMs (23%), 5079 registers, 13 DSP (12%).
+
+### Mission C - safe_flash + IN-SILICON FIRST LIGHT
+safe_flash.sh hdl/output_files/nec_test.sof: PREP/FLASH/VERIFY all OK
+(cfg 0x1ff0008, use_core=False, pwr_good, cpu_running). Board reachable.
+
+check_ab_hw.py all 800 (boot image, both selector positions in silicon):
+- **chip position (use_core=0) vs boot golden: MATCH over 800 rows** -
+  the new bitstream did NOT disturb the known-good chip path.
+- **core position (use_core=1) vs chip: MATCH over 800 rows** - FIRST
+  LIGHT: the in-fabric V30 core matches the socketed part, same harness,
+  same run, in real silicon.
+- core vs golden: MATCH over 800 rows.
+
+In-silicon A/B sequence fuzz (check_seq --hw-ab, chip vs fabric core
+BOTH on the FPGA, no Verilator): **fz4000-4039 40/40 clean** - the
+definitive in-silicon confirmation of the Mission D disp-reader /
+disp16-store / split-wrap laws (previously chip-vs-TB only). Driving
+toward the Campaign 4 done-criterion (>=500 zero-divergence).
