@@ -74,6 +74,17 @@ echo`). NEVER reprogram the FPGA; one board user at a time.
   flags of an internal lo+lo self-add of the result low half
   (S=bit6/14, Z=low-7/15-bits==0, AC=bit3, P=parity(lo<<1)); timing
   +4 cycles iff operand sign bits differ.
+- FITTED since: DISPOSE C9 + RETF CB/CA + RETI CF + BRK3/BRK/BRKV
+  CC/CD/CE all 500/500. LAWS: C9/CB/CC/CF join the S_DEC decode
+  reservation (CA does NOT - it pops imm first); RETF/RETI chain their
+  stack pops BACK-TO-BACK (next request+address pipelined during the
+  current read - S_FRETW); RETF flush = last-done+3, RETI flushes at
+  the CS pop with the PSW pop completing in flight (iret_pw); software
+  INT holds a pre-IVT bus reservation (CC full, CD/CE last 3 wait
+  cycles) and the IVT read slot rides the 2-cycle bus grid parity at
+  the vector pop (bus_phase: T1/T3=0 fast dly3, T2/T4=1 dly4). NEW BIU
+  machinery: defer_t4 (a fetch-T3 eval finding a held-not-ready
+  request with eu_soon re-runs mid-T4) + bus_phase output.
 - REMAINING fit queue (bulk-score for current truth): 8F.0 partial, 9A pushes,
   C4/C5 second-read slot, C8 PREPARE (arch 0 - debug), C9/CB/CA/CF/
   CC/CD/CE cold-half decode-reservation (add opcodes to the S_DEC

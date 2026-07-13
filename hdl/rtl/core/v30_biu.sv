@@ -98,6 +98,8 @@ module v30_biu (
     // EU bus access. eu_req refers to an access that has not started yet;
     // the EU drops it (or moves to the next access) on eu_started.
     input             eu_req,
+    input             eu_soon,        // request asserts ready next cycle
+    output            bus_phase,      // 2-cycle bus grid parity (T1=0)
     input             eu_hold,      // blocks prefetch, not request history
     input             eu_ready,
     input             eu_wr,
@@ -385,6 +387,7 @@ wire t3_done = (state == ST_T3 || state == ST_TW) && ready;
 // evald tracks whether the current bus cycle's completion eval has fired.
 wire eval_at_t3 = t3_done && ready_prev;
 reg  evald;
+reg  defer_t4;     // fetch-T3 eval deferred into T4 (eu_soon reservation)
 reg  eval_ext;     // deferred eval runs during this (post-T4) cycle
 
 // a committed-but-stale prefetch dies in the flush cycle: transitions must
@@ -418,6 +421,7 @@ always_ff @(posedge clk) begin
     eu_started <= 1'b0;
 
     if (srst) begin
+        defer_t4   <= 1'b0;
         state      <= ST_TI;
         nxt_valid  <= 1'b0;
         cur_type   <= BS_PASV;
@@ -592,6 +596,9 @@ always_ff @(posedge clk) begin
                         end
                         if (eu_completing) eu_hand <= 1'b1;
                         if (pick_any) do_commit();
+                        else if (cur_fetch && eu_req && eu_soon &&
+                                 !eu_ready)
+                            defer_t4 <= 1'b1;   // re-eval during T4
                     end
                 end else begin
                     state <= ST_TW;
@@ -607,7 +614,29 @@ always_ff @(posedge clk) begin
                     push_pend_hi <= cur_addr[0];
                 end
                 if (!evald && eu_completing) eu_hand <= 1'b1;
-                if (nxt_live) begin
+                if (defer_t4) begin
+                    // deferred fetch-T3 eval (eu_soon): the request is
+                    // ready now - commit mid-T4, enter T1 directly
+                    defer_t4 <= 1'b0;
+                    if (eu_req && eu_ready) begin
+                        state      <= ST_T1;
+                        tw_any     <= 1'b0;
+                        evald      <= 1'b0;
+                        cur_type   <= pick_type;
+                        cur_addr   <= pick_addr;
+                        cur_fetch  <= pick_fetch;
+                        cur_wr     <= pick_wr;
+                        cur_swap   <= pick_swap;
+                        cur_split1 <= pick_split1;
+                        cur_split2 <= pick_split2;
+                        cur_wdata  <= pick_wdata;
+                        cur_seg    <= pick_seg;
+                        cur_ube_n  <= pick_ube_n;
+                        cur_kind   <= pick_kind;
+                        ube_n      <= pick_ube_n;
+                        eu_started <= 1'b1;
+                    end else state <= ST_TI;
+                end else if (nxt_live) begin
                     state      <= ST_T1;
                     tw_any     <= 1'b0;
                     evald      <= 1'b0;
@@ -666,6 +695,17 @@ end
 //----------------------------------------------------------------------------
 wire cycle_active = (state != ST_TI) && cur_type != BS_PASV;
 
+// Internal 2-cycle grid parity: T1/T3 = 0, T2/T4 = 1; idle cycles keep
+// toggling freely from the last bus cycle (measured on the BRK tranche:
+// the vector-pop cycle's parity selects the IVT-read slot). Zero-wait
+// definition; Tw phases not calibrated.
+reg  ph_ff;
+wire ph_now = (state == ST_T1 || state == ST_T3) ? 1'b0
+            : (state == ST_T2 || state == ST_T4) ? 1'b1
+            : ph_ff;
+always_ff @(posedge clk) ph_ff <= ~ph_now;
+assign bus_phase = ph_now;
+
 // Status display: active from commit through T2 always; through T3/TW
 // while READY has not yet been sampled high in this bus cycle (measured
 // on the waits=1/3 tranches: T3 and every Tw of a waited cycle show the
@@ -681,8 +721,13 @@ always_ff @(posedge clk) begin
 end
 
 // ext_show: the deferred eval displays the picked cycle's status/address
-// during the eval_ext cycle itself (mid-cycle commit)
-wire ext_show = eval_ext && pick_any;
+// during the eval_ext cycle itself (mid-cycle commit).
+// defer_show: a fetch T3 eval that found a held-but-not-yet-ready EU
+// request (eu_soon) re-runs during T4: the (now ready) request drives
+// its status/address mid-T4 and enters T1 directly at the T4 edge
+// (measured on the BRK/BRKV tranches).
+wire defer_show = defer_t4 && state == ST_T4 && eu_req && eu_ready;
+wire ext_show = (eval_ext && pick_any) || defer_show;
 
 assign bs = (halt_show || halt_t1) ? BS_HALT
           : nxt_live ? nxt_type

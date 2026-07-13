@@ -130,6 +130,7 @@ module v30_eu (
     output            eu_hold,     // blocks prefetch without counting as
                                    // request history (trap-chain gaps)
     output reg        eu_ready,
+    output reg        eu_soon,     // ready will assert next cycle (held resv)
     output reg        eu_wr,
     output            eu_fwd,     // write data = the BIU's last read data
                                   // (string-op read->write forwarding)
@@ -139,6 +140,7 @@ module v30_eu (
     output reg [15:0] eu_wdata,
     output reg  [1:0] eu_kind,    // 0=mem 1=io 2=inta 3=halt
     input             eu_started,
+    input             bus_phase,   // BIU 2-cycle grid parity (T1=0)
     input             eu_done,
     input             eu_wdone,   // early write completion (trap chain law)
     input             eu_t1,      // pulse: first T1 of the current EU access
@@ -196,7 +198,7 @@ typedef enum logic [6:0] {
     S_IMM_LO, S_IMM_HI, S_NOP,
     S_AI_I8, S_AI_I16, S_AIGAP, S_TESTGAP, S_BCD_IMM, S_SHWAIT,
     S_EA1, S_EA2, S_DISP8, S_DLO, S_DGAP, S_DHI, S_DSTALL,
-    S_RSV, S_REQ, S_BUSW,
+    S_RSV, S_REQ, S_BUSW, S_FRETW,
     S_PUSH_CALC,
     S_LD_W1, S_LD_W2,
     S_WAITX, S_EX,
@@ -258,7 +260,9 @@ reg         cmp_r2s;     // CMPBK: second read accepted
 reg [19:0]  ea_save;     // POP-mem: EA write target (stack read first)
 reg  [1:0]  ea_save_seg;
 reg         ldp2;        // LES/LDS: second (segment) word in flight
-reg  [1:0]  fret_ph;     // RETI stack-read phase
+reg  [1:0]  fret_ph;     // RETI stack-read phase (completed reads)
+reg  [1:0]  facc;        // RETF/RETI stack reads accepted
+reg         iret_pw;     // RETI: PSW stack read still in flight post-flush
 reg  [8:0]  shw;         // shift/rotate full-count burn counter
 reg [15:0]  fl_cs, fl_ip; // flush redirect target
 // external-event machinery (block 4). The recognition sample is the
@@ -970,6 +974,7 @@ assign dbg_first_pop = q_pop && q_first;
 always_comb begin
     eu_req   = 1'b0;
     eu_ready = 1'b0;
+    eu_soon  = 1'b0;
     unique case (state)
         S_RSV:  eu_req = 1'b1;
         // reader reservations (measured on cold-start traces): no-disp
@@ -1000,10 +1005,24 @@ always_comb begin
                                        opc == 8'hC3 || opc == 8'h9D ||
                                        opc == 8'hF4 || op_popsr ||
                                        opc == 8'hEC || opc == 8'hED ||
-                                       opc == 8'hEE || opc == 8'hEF);
+                                       opc == 8'hEE || opc == 8'hEF ||
+                                       opc == 8'hC9 || opc == 8'hCB ||
+                                       opc == 8'hCC || opc == 8'hCF);
         // reservation start (measured per opcode from old-stream commits
         // inside the resolution window): EB/E8 at the final pop cycle,
         // E9 at pop+1, Jcc/E2 at pop+2
+        // software INT (BRK3/BRK/BRKV): the pre-IVT wait holds the bus
+        // (measured: no prefetch commit between the pop and the IVT read).
+        // BRKV joins the reservation only for its last three wait cycles
+        // (the V-check lead-in leaves the bus free; measured: a prefetch
+        // commits at dly==3 on the CE tranche). eu_soon marks the final
+        // wait cycle so a completing fetch's T3 eval defers into T4.
+        S_WAITX: begin
+            eu_req = wnext == S_TRAP_IVT1 &&
+                     (opc == 8'hCC ||
+                      ((opc == 8'hCD || opc == 8'hCE) && dly <= 6'd2));
+            eu_soon = eu_req && dly == 6'd1;
+        end
         S_JDISP: eu_req = q_pop && opc == 8'hEB;
         S_JDHI:  eu_req = q_pop && (opc == 8'hE8 || opc == 8'hC2 ||
                                     opc == 8'hCA);
@@ -1019,6 +1038,13 @@ always_comb begin
         // RET holds its reservation through the stack read (measured: no
         // prefetch commit at the read's T3 edge; plain POP r16 allows it)
         S_BUSW: eu_req = op_ret || op_retf || op_iret;
+        // RETF/RETI chain their stack pops back-to-back: the next read's
+        // request+address are up during the current read (measured: the
+        // second/third MEMR begins at the previous read's T4)
+        S_FRETW: begin
+            eu_req   = 1'b1;
+            eu_ready = facc < (op_iret ? 2'd3 : 2'd2);
+        end
 
         // reset countdown: the bus stays quiet until the reset flush
         S_RESET: eu_req = 1'b1;
@@ -1120,10 +1146,18 @@ always_ff @(posedge clk) begin
     // states below for accepts that land after the edge
     if (rslot == 6'd6) rep1_abort <= irq_rep;
 
+    // RETI's PSW stack pop completes after the flush (runs in any state)
+    if (iret_pw && eu_done) begin
+        psw <= (eu_rdata & 16'h0FD5) | 16'hF002;
+        rf[4] <= rf[4] + 16'd6;
+        iret_pw <= 1'b0;
+    end
+
     if (srst) begin
         // real reset flow: PS=FFFF, PC=0, PSW cleared; the sequencer
         // idles 7 cycles after release, then flush-redirects to FFFF0
         state    <= S_RESET;
+        iret_pw  <= 1'b0;
         dly      <= 6'd7;
         wnext    <= S_HALT;
         opc      <= '0;
@@ -1561,7 +1595,7 @@ always_ff @(posedge clk) begin
                     end else if (opc == 8'hCE) begin      // BRKV
                         if (psw[11]) begin
                             ivt_vec <= 8'd4;
-                            dly <= 6'd5; wnext <= S_TRAP_IVT1;  // fit
+                            dly <= 6'd6; wnext <= S_TRAP_IVT1;
                             state <= S_WAITX;
                         end else state <= S_NOP;             // fit
                     end else if (opc == 8'h27 || opc == 8'h2F) begin
@@ -1988,7 +2022,11 @@ always_ff @(posedge clk) begin
             S_INTV: if (q_pop) begin              // BRK imm8 vector
                 ivt_vec <= q_byte;
                 pc <= pc + 16'd1;
-                dly <= 6'd5; wnext <= S_TRAP_IVT1;    // fit
+                // IVT read slot rides the bus grid: a pop on even
+                // parity (T1/T3-aligned) reaches the arbiter one
+                // cycle sooner (measured, 500-case CD tranche)
+                dly <= bus_phase ? 6'd4 : 6'd3;
+                wnext <= S_TRAP_IVT1;
                 state <= S_WAITX;
             end
             // MOV AL/AW, moffs16 (A0/A1): direct address pops at F+2/F+3,
@@ -2337,7 +2375,41 @@ always_ff @(posedge clk) begin
                             state <= S_STRE;
                         end
                     end else state <= S_BUSW;
+                end else if (op_retf || op_iret) begin
+                    // rd1 accepted: pipeline rd2 (CS / IP+CS+PSW pops)
+                    facc <= 2'd1;
+                    eu_addr <= {sr[SEG_SS], 4'h0} +
+                               {4'h0, rf[4] + 16'd2};
+                    state <= S_FRETW;
                 end else state <= S_BUSW;
+            end
+            S_FRETW: begin
+                if (eu_started) begin
+                    facc <= facc + 2'd1;
+                    eu_addr <= {sr[SEG_SS], 4'h0} +
+                               {4'h0, rf[4] + 16'd4};   // rd3 (RETI PSW)
+                end
+                if (eu_done) begin
+                    if (fret_ph == 2'd0) begin
+                        fl_ip <= eu_rdata;
+                        fret_ph <= 2'd1;
+                    end else begin
+                        fl_cs <= eu_rdata;
+                        fret_ph <= 2'd2;
+                        if (!op_iret) begin           // RETF: flush done+3
+                            rf[4] <= rf[4] + 16'd4 +
+                                     ((opc == 8'hCA) ? disp : 16'd0);
+                            dly <= 6'd1; wnext <= S_JFLUSH;
+                            state <= S_WAITX;
+                        end else begin
+                            // RETI flushes at the CS pop; the PSW read
+                            // completes in flight (measured: prefetch
+                            // chains at the PSW read's T3)
+                            iret_pw <= 1'b1;
+                            state <= S_JFLUSH;
+                        end
+                    end
+                end
             end
             // REP cx=1 slot-bound retire (measured: the closing F sits
             // at pop+13 regardless of when the single write completes)
@@ -2502,31 +2574,6 @@ always_ff @(posedge clk) begin
                         if (opc[0] && eu_addr[0]) retire();
                         else state <= S_EX;
                     end else retire();
-                end else if (op_retf || op_iret) begin    // CB/CA/CF pops
-                    if (fret_ph == 2'd0) begin
-                        fl_ip <= eu_rdata;
-                        fret_ph <= 2'd1;
-                        eu_addr <= {sr[SEG_SS], 4'h0} +
-                                   {4'h0, rf[4] + 16'd2};
-                        eu_seg <= SEG_SS; eu_wr <= 1'b0;
-                        state <= S_REQ;
-                    end else if (fret_ph == 2'd1 && op_iret) begin
-                        fl_cs <= eu_rdata;
-                        fret_ph <= 2'd2;
-                        eu_addr <= {sr[SEG_SS], 4'h0} +
-                                   {4'h0, rf[4] + 16'd4};
-                        eu_seg <= SEG_SS; eu_wr <= 1'b0;
-                        state <= S_REQ;
-                    end else if (op_iret) begin           // PSW word
-                        psw <= (eu_rdata & 16'h0FD5) | 16'hF002;
-                        rf[4] <= rf[4] + 16'd6;
-                        state <= S_JFLUSH;                // fit
-                    end else begin                        // RETF final
-                        fl_cs <= eu_rdata;
-                        rf[4] <= rf[4] + 16'd4 +
-                                 ((opc == 8'hCA) ? disp : 16'd0);
-                        state <= S_JFLUSH;                // fit
-                    end
                 end else if (op_ret) begin                // C3 / C2
                     rf[4] <= rf[4] + 16'd2 +
                              ((opc == 8'hC2) ? disp : 16'd0);
