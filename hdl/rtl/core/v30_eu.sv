@@ -1092,7 +1092,11 @@ always_comb begin
                      // CALL far imm holds the bus from the seg-hi pop
                      // to its PS push (measured: no prefetch commit);
                      // POP mem holds from disp-pop+1 to its stack read
-                     (wnext == S_REQ && (opc == 8'h9A || op_popm));
+                     (wnext == S_REQ && (opc == 8'h9A || op_popm)) ||
+                     // PREPARE level>=2: the copy-read reservation is
+                     // up only in the last wait cycle (with eu_soon) -
+                     // earlier fetch commits proceed (closure block)
+                     (dly == 6'd1 && wnext == S_PREP_RDGO);
             eu_soon = eu_req && dly == 6'd1 && wnext == S_TRAP_IVT1;
         end
         S_JDISP: eu_req = q_pop && opc == 8'hEB;
@@ -1179,8 +1183,14 @@ always_comb begin
             eu_req   = !prep_acc;
             eu_ready = !prep_acc;
         end
-        // one-cycle reservation before the frame push / first copy read
-        S_PREP_W3A, S_PREP_RDGO: eu_req = 1'b1;
+        // one-cycle reservation before the frame push; the first copy
+        // read is ready in S_PREP_RDGO itself (address set up in the
+        // preceding wait cycle - closure block)
+        S_PREP_W3A: eu_req = 1'b1;
+        S_PREP_RDGO: begin
+            eu_req   = 1'b1;
+            eu_ready = 1'b1;
+        end
         // INTA sequence holds the bus between its cycles (measured: no
         // prefetch in the inter-INTA gap); the wake-wait states hold too
         S_IRQ_D, S_INT_W0, S_INT_A1W, S_INT_G, S_INT_A2W: eu_req = 1'b1;
@@ -2228,11 +2238,18 @@ always_ff @(posedge clk) begin
                     pc <= pc + 16'd1;
                     a4_cnt <= 8'd1;
                     w4skip <= 1'b0;
-                    if (q_byte[4:0] == 5'd0)
+                    if (q_byte[4:0] == 5'd0) begin
+                        // retire at max(level-pop+4, push done) -
+                        // fitted on all four level-0 geometries
+                        // (queue-limited cases had masked the floor)
+                        dly   <= 6'd3;
                         state <= S_PREP_W2;       // await BP push done
+                    end
                     else begin
-                        // frame push ready pop+7 (level 1), first
-                        // pointer-copy read ready pop+8 (measured)
+                        // frame push ready pop+7 (level 1); first
+                        // pointer-copy read ready pop+7 with the bus
+                        // reserved through the BP push (closure block:
+                        // both split geometries pin the slot)
                         dly <= (q_byte[4:0] == 5'd1) ? 6'd6 : 6'd6;
                         wnext <= (q_byte[4:0] == 5'd1) ? S_PREP_W3A
                                                        : S_PREP_RDGO;
@@ -2240,20 +2257,25 @@ always_ff @(posedge clk) begin
                     end
                 end
             end
-            S_PREP_W2: if (eu_done || prep_bpd) begin // BP push done (lvl 0)
-                rf[5] <= cmp1;
-                rf[4] <= rf[4] - disp;
-                retire();                         // retire AT done
+            S_PREP_W2: begin
+                if (eu_done) prep_bpd <= 1'b1;
+                if (dly != 6'd0) dly <= dly - 6'd1;
+                else if (eu_done || prep_bpd) begin // BP push done
+                    rf[5] <= cmp1;
+                    rf[4] <= rf[4] - disp;
+                    retire();
+                end
             end
             S_PREP_W3A: begin                     // frame push (level 1)
                 issue_push(cmp1);
                 state <= S_PREP_W3;
             end
-            S_PREP_RDGO: begin                    // first pointer copy read
-                eu_addr <= {sr[SEG_SS], 4'h0} + {4'h0, rf[5] - 16'd2};
-                eu_seg <= SEG_SS; eu_wr <= 1'b0; eu_word <= 1'b1;
-                state <= S_PREP_RD;
-            end
+            S_PREP_RDGO: if (eu_started) begin    // first pointer copy read
+                issue_push(16'h0);                // data forwarded (eu_fwd)
+                state <= S_PREP_PW2;
+            end else
+                state <= S_PREP_RD;               // not accepted: keep
+                                                  // the request up
             // pointer copies pipeline read->write->read back-to-back:
             // the copy write commits at the read's T3 end with BIU
             // data forwarding; the next read (or the frame push)
@@ -3477,6 +3499,16 @@ always_ff @(posedge clk) begin
                         // request params must be valid on state entry
                         eu_addr <= {10'h0, ivt_vec, 2'b00};
                         eu_seg  <= SEG_CS;
+                        eu_wr   <= 1'b0;
+                        eu_word <= 1'b1;
+                        eu_kind <= K_MEM;
+                    end
+                    if (wnext == S_PREP_RDGO) begin
+                        // first pointer-copy read: ready ON state
+                        // entry (level-pop+7; closure block)
+                        eu_addr <= {sr[SEG_SS], 4'h0} +
+                                   {4'h0, rf[5] - 16'd2};
+                        eu_seg  <= SEG_SS;
                         eu_wr   <= 1'b0;
                         eu_word <= 1'b1;
                         eu_kind <= K_MEM;
