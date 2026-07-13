@@ -897,7 +897,6 @@ always_comb begin
         S_A4_SRC, S_A4_DST, S_A4_WR,
         S_CALLPUSH,
         S_STRW, S_STRR, S_STRS,
-        S_SCASW, S_CMPNXT, S_SCASNXT,
         S_TRAP_IVT1, S_TRAP_IVT2,
         S_TRAP_PSW, S_TRAP_PS, S_TRAP_FLUSH, S_TRAP_PC,
         S_INT_A1, S_INT_A2: begin
@@ -1322,9 +1321,20 @@ always_ff @(posedge clk) begin
                                 dly <= 6'd1; state <= S_RSV;
                             end
                         end else begin              // MOVBK / LDM / CMPBK
-                            eu_addr <= {sr[seg_ovr_en ? seg_ovr : SEG_DS],
-                                        4'h0} + {4'h0, rf[6]};
-                            eu_seg  <= seg_ovr_en ? seg_ovr : SEG_DS;
+                            // REP CMPBK reads ES:IY FIRST, then DS:IX
+                            // (measured - the single form reads DS:IX
+                            // first); MOVBK/LDM/single-CMPBK read the
+                            // DS(sov):IX side first
+                            if (op_cmpstr && rep_en) begin
+                                eu_addr <= {sr[SEG_ES], 4'h0} +
+                                           {4'h0, rf[7]};
+                                eu_seg  <= SEG_ES;
+                            end else begin
+                                eu_addr <= {sr[seg_ovr_en ? seg_ovr
+                                               : SEG_DS],
+                                            4'h0} + {4'h0, rf[6]};
+                                eu_seg  <= seg_ovr_en ? seg_ovr : SEG_DS;
+                            end
                             eu_wr   <= 1'b0;
                             eu_word <= opc[0];
                             str_wr  <= 1'b0;
@@ -1758,8 +1768,14 @@ always_ff @(posedge clk) begin
                     eu_wr   <= 1'b1;
                     state   <= S_STRW;
                 end else if (op_cmpstr) begin  // rd1 accepted: queue rd2
-                    eu_addr <= {sr[SEG_ES], 4'h0} + {4'h0, rf[7]};
-                    eu_seg  <= SEG_ES;
+                    if (rep_en) begin          // REP order: ES then DS
+                        eu_addr <= {sr[seg_ovr_en ? seg_ovr : SEG_DS],
+                                    4'h0} + {4'h0, rf[6]};
+                        eu_seg  <= seg_ovr_en ? seg_ovr : SEG_DS;
+                    end else begin
+                        eu_addr <= {sr[SEG_ES], 4'h0} + {4'h0, rf[7]};
+                        eu_seg  <= SEG_ES;
+                    end
                     eu_wr   <= 1'b0;
                     cmp_r2s <= 1'b0;
                     state   <= S_CMPW1;
@@ -1821,16 +1837,21 @@ always_ff @(posedge clk) begin
                     state <= S_CMPW2;
                 end
             end
-            S_CMPW2: if (eu_done) begin        // ES:IY data: compare
+            S_CMPW2: if (eu_done) begin        // 2nd data: compare
+                // operand roles follow the read order: single form
+                // cmp1=DS:IX (a), rdata=ES:IY (b); REP form reversed
                 logic [15:0] nf;
+                logic [15:0] a_op, b_op;
                 logic        cont;
+                a_op = rep_en ? eu_rdata : cmp1;
+                b_op = rep_en ? cmp1 : eu_rdata;
                 if (opc[0]) begin
                     logic [31:0] c16;
-                    c16 = alu16(3'd7, cmp1, eu_rdata, psw);
+                    c16 = alu16(3'd7, a_op, b_op, psw);
                     nf = c16[31:16];
                 end else begin
                     logic [23:0] c8;
-                    c8 = alu8(3'd7, cmp1[7:0], eu_rdata[7:0], psw);
+                    c8 = alu8(3'd7, a_op[7:0], b_op[7:0], psw);
                     nf = c8[23:8];
                 end
                 psw   <= nf;
@@ -1843,13 +1864,17 @@ always_ff @(posedge clk) begin
                             rep_kind == 2'd1 ? !nf[FB_Z]  :
                             rep_kind == 2'd2 ?  nf[FB_CY] : !nf[FB_CY]);
                     if (cont) begin
-                        eu_addr <= {sr[seg_ovr_en ? seg_ovr : SEG_DS],
-                                    4'h0} + {4'h0, rf[6] + str_step};
-                        eu_seg  <= seg_ovr_en ? seg_ovr : SEG_DS;
+                        // next iteration leads with ES:IY again; its
+                        // read T1 lands at the previous T1+10
+                        eu_addr <= {sr[SEG_ES], 4'h0} +
+                                   {4'h0, rf[7] + str_step};
+                        eu_seg  <= SEG_ES;
                         eu_wr   <= 1'b0;
-                        state   <= S_REQ;
+                        dly <= 6'd3; wnext <= S_RSV; state <= S_WAITX;
                     end else begin
-                        dly <= 6'd2; wnext <= S_EX; state <= S_WAITX;
+                        // termination close = last done + 10 (measured,
+                        // cx-exhaust and condition-fail alike)
+                        dly <= 6'd8; wnext <= S_EX; state <= S_WAITX;
                     end
                 end else retire();
             end
@@ -1874,15 +1899,17 @@ always_ff @(posedge clk) begin
                             rep_kind == 2'd1 ? !nf[FB_Z]  :
                             rep_kind == 2'd2 ?  nf[FB_CY] : !nf[FB_CY]);
                     if (cont) begin
+                        // next ES:IY read T1 = previous T1+10 (measured)
                         eu_addr <= {sr[SEG_ES], 4'h0} +
                                    {4'h0, rf[7] + str_step};
                         eu_seg  <= SEG_ES;
                         eu_wr   <= 1'b0;
-                        state   <= S_REQ;
+                        dly <= 6'd3; wnext <= S_RSV; state <= S_WAITX;
                     end else begin
-                        dly <= 6'd2; wnext <= S_EX; state <= S_WAITX;
+                        // termination close = last done + 12 (measured)
+                        dly <= 6'd10; wnext <= S_EX; state <= S_WAITX;
                     end
-                end else retire();
+                end else state <= S_EX;    // single: retire at done+1
             end
             S_CMPNXT, S_SCASNXT: state <= S_HALT;  // placeholders
             S_STRW: if (eu_started) begin      // MOVBK write accepted
