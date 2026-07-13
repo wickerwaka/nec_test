@@ -1995,7 +1995,9 @@ always_ff @(posedge clk) begin
                     end else if (op_bit1) begin
                         // TEST1/SET1/NOT1 CL reg: close pop+3
                         dly <= 6'd1; wnext <= S_EX; state <= S_WAITX;
-                    end else begin                     // ROL4/ROR4 reg
+                    end else if (op_ror4) begin        // ROR4 reg
+                        dly <= 6'd15; wnext <= S_EX; state <= S_WAITX;
+                    end else begin                     // ROL4 reg
                         dly <= 6'd11; wnext <= S_EX; state <= S_WAITX;
                     end
                 end else if ((q_byte[7:6] == 2'd0 && q_byte[2:0] == 3'd6) ||
@@ -2595,8 +2597,10 @@ always_ff @(posedge clk) begin
                         dly <= (opc2[2:1] == 2'd1) ? 6'd4 : 6'd3;
                         state <= S_RMWX;
                     end
-                    else if (op_rol4 || op_ror4) begin
+                    else if (op_rol4) begin
                         dly <= 6'd10; state <= S_RMWX;    // wr ready done+11
+                    end else if (op_ror4) begin
+                        dly <= 6'd14; state <= S_RMWX;    // wT1 done+17
                     end else if (op_alu || op_xchg8 || op_xchg16) begin
                         dly <= 6'd2; state <= S_RMWX;     // wr ready done+3
                     end else if (op_grpfe) begin
@@ -2839,8 +2843,10 @@ always_ff @(posedge clk) begin
                     wr_reg8(mrm_rm, {rm_byte[3:0], rf[0][3:0]});
                     rf[0][7:0] <= {rf[0][3:0], rm_byte[7:4]};
                 end else if (op_ror4) begin            // reg form
+                    // measured: AL takes the ENTIRE operand byte
+                    // (upper nibble too - undocumented side effect)
                     wr_reg8(mrm_rm, {rf[0][3:0], rm_byte[7:4]});
-                    rf[0][7:0] <= {rf[0][7:4], rm_byte[3:0]};
+                    rf[0][7:0] <= rm_byte;
                 end else if (op_xchg8) begin
                     wr_reg8(mrm_rm, reg8_get(mrm_reg));
                     wr_reg8(mrm_reg, reg8_get(mrm_rm));
@@ -3022,10 +3028,11 @@ always_ff @(posedge clk) begin
                                      mem_op[3:0], rf[0][3:0]};
                         rf[0][7:0] <= {rf[0][3:0], mem_op[7:4]};
                     end else if (op_ror4) begin
-                        // ROR4 mem: pair mirror of ROL4 (fit pending)
-                        eu_wdata <= {rf[0][7:4], mem_op[3:0],
+                        // ROR4 mem: AL' = whole mem byte; driven pair
+                        // = {AL_new, mem_new} (measured)
+                        eu_wdata <= {mem_op[7:0],
                                      rf[0][3:0], mem_op[7:4]};
-                        rf[0][7:0] <= {rf[0][7:4], mem_op[3:0]};
+                        rf[0][7:0] <= mem_op[7:0];
                     end else if (op_bit1) begin
                         // CLR1/SET1/NOT1 mem: only the addressed bit
                         // changes; sibling lane preserved from the read
