@@ -239,6 +239,8 @@ for _g, _m in ((2, "not"), (3, "neg"), (5, "mul")):
                                modrm="grp16", group=_g, w=1)
 OPCODES["F7.4"] = SPEC("F7.4", "mulu w", [0xF7], modrm="grp16", group=4,
                        w=1)
+OPCODES["F6.6"] = SPEC("F6.6", "divu b", [0xF6], modrm="grp8", group=6,
+                       divtrap=True, stack=True)
 # IMUL reg,rm,imm
 OPCODES["69"] = SPEC("69", "mul r,rm,imm16", [0x69], modrm="rm16", w=1,
                      imm=2)

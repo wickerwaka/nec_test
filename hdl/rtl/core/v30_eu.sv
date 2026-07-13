@@ -206,6 +206,7 @@ typedef enum logic [6:0] {
     S_A4_G2, S_A4_WR, S_A4_WRW, S_A4_END,
     S_JDISP, S_JDLO, S_JDHI, S_JWAIT, S_JNT, S_JFLUSH,
     S_JSLO, S_JSHI, S_MLO, S_MHI, S_RESET,
+    S_FCALLFL, S_FCALLP1, S_FCALLP2, S_INTV,
     S_STRW, S_STRR, S_STRS, S_STRE,
     S_CMPW1, S_CMPW2, S_CMPNXT, S_SCASW, S_SCASNXT,
     S_CALLFL, S_CALLPUSH, S_CALLW, S_RETF,
@@ -254,6 +255,8 @@ reg [15:0]  cmp1;        // CMPBK: first (DS:IX) operand
 reg         cmp_r2s;     // CMPBK: second read accepted
 reg [19:0]  ea_save;     // POP-mem: EA write target (stack read first)
 reg  [1:0]  ea_save_seg;
+reg         ldp2;        // LES/LDS: second (segment) word in flight
+reg  [1:0]  fret_ph;     // RETI stack-read phase
 reg [15:0]  fl_cs, fl_ip; // flush redirect target
 // external-event machinery (block 4). The recognition sample is the
 // boundary-decision cycle reading a 4-deep pin pipeline (fitted: the
@@ -358,6 +361,9 @@ wire op_pushi  = opc == 8'h68 || opc == 8'h6A;       // PUSH imm16/simm8
 wire op_popm   = opc == 8'h8F;                       // POP mem (/0)
 wire op_grpff  = opc == 8'hFF;                       // INC/DEC/PUSH/... rm16
 wire op_imuli  = opc == 8'h69 || opc == 8'h6B;       // MUL reg,rm,imm
+wire op_ldptr  = opc == 8'hC4 || opc == 8'hC5;       // LES/LDS (mem only)
+wire op_retf   = opc == 8'hCB || opc == 8'hCA;       // RETF / RETF pop
+wire op_iret   = opc == 8'hCF;                       // RETI
 wire op_grp80  = opc == 8'h80;                       // ALU rm8, imm8
 wire op_grp81  = opc == 8'h81;                       // ALU rm16, imm16
 wire op_grp83  = opc == 8'h83;                       // ALU rm16, simm8
@@ -376,7 +382,7 @@ wire op_shrot  = op_shift && !(op_grpd0 && mrm_reg == 3'd4);
 wire op_modrm  = op_alu | op_movs8 | op_movs16 | op_movl8 | op_movl16 |
                  op_grpf6 | op_grpf7 | op_grpd0 | op_grpfe | op_alui |
                  op_grpd1 | op_grpd2 | op_grpd3 | op_grpc0 | op_grpc1 |
-                 op_test | op_popm | op_grpff | op_imuli |
+                 op_test | op_popm | op_grpff | op_imuli | op_ldptr |
                  op_xchg8 | op_xchg16 | op_lea | op_srst | op_srld;
 
 wire is_store  = op_movs8 | op_movs16 | op_srst;     // write-only mem access
@@ -384,6 +390,7 @@ wire is_load   = op_movl8 | op_movl16 | op_srld;
 wire is_word_t = op_movs16 | op_movl16 | op_grpf7 |  // word transfer
                  op_grp81 | op_grp83 | op_grpd1 | op_grpd3 | op_grpc1 |
                  (op_test && opc[0]) | op_popm | op_grpff | op_imuli |
+                 op_ldptr |
                  op_xchg16 | op_srst | op_srld;
 wire is_reader = !is_store;                          // mem forms read first
 
@@ -849,14 +856,16 @@ wire pop_want = (state == S_FIRST && !irq_take) ||
                 (state == S_DISP8) || (state == S_DLO) || (state == S_DHI) ||
                 (state == S_JDISP) || (state == S_JDLO) ||
                 (state == S_JDHI) || (state == S_JSLO) ||
-                (state == S_JSHI) || (state == S_MLO) || (state == S_MHI);
+                (state == S_JSHI) || (state == S_MLO) ||
+                (state == S_MHI) || (state == S_INTV);
 
 assign q_pop   = pop_want && q_avail;
 assign q_first = state == S_FIRST;
 // flush: registered for the trap path; combinational for branch flush
 // cycles (S_JFLUSH/S_RETF) and CALL's push-status cycle
 assign q_flush = flush_now || (state == S_JFLUSH) || (state == S_RETF) ||
-                 (state == S_CALLFL) || (state == S_IRQ_REPFL);
+                 (state == S_CALLFL) || (state == S_FCALLFL) ||
+                 (state == S_IRQ_REPFL);
 assign flush_cs = fl_cs;
 assign flush_ip = fl_ip;
 assign dbg_first_pop = q_pop && q_first;
@@ -896,7 +905,8 @@ always_comb begin
         // inside the resolution window): EB/E8 at the final pop cycle,
         // E9 at pop+1, Jcc/E2 at pop+2
         S_JDISP: eu_req = q_pop && opc == 8'hEB;
-        S_JDHI:  eu_req = q_pop && (opc == 8'hE8 || opc == 8'hC2);
+        S_JDHI:  eu_req = q_pop && (opc == 8'hE8 || opc == 8'hC2 ||
+                                    opc == 8'hCA);
         S_JWAIT: eu_req = !(op_jcc && dly == 6'd3) &&
                           !(opc == 8'hE2 &&
                             (dly == 6'd5 || wnext == S_JNT));
@@ -905,13 +915,13 @@ always_comb begin
         S_CALLFL: eu_req = 1'b1;
         // RET holds its reservation through the stack read (measured: no
         // prefetch commit at the read's T3 edge; plain POP r16 allows it)
-        S_BUSW: eu_req = op_ret;
+        S_BUSW: eu_req = op_ret || op_retf || op_iret;
 
         // reset countdown: the bus stays quiet until the reset flush
         S_RESET: eu_req = 1'b1;
         S_REQ, S_WREQ,
         S_A4_SRC, S_A4_DST, S_A4_WR,
-        S_CALLPUSH,
+        S_CALLPUSH, S_FCALLP1, S_FCALLP2,
         S_STRW, S_STRR, S_STRS,
         S_TRAP_IVT1, S_TRAP_IVT2,
         S_TRAP_PSW, S_TRAP_PS, S_TRAP_FLUSH, S_TRAP_PC,
@@ -1118,6 +1128,7 @@ always_ff @(posedge clk) begin
                     irq_disp <= 1'b0;
                     eu_kind  <= K_MEM;
                     halt_disp <= (q_byte == 8'hF4);
+                    ldp2 <= 1'b0;
                     // the POP-PSW provisional window SURVIVES across
                     // intervening NOPs (measured: d=9/10 tranche cases
                     // recognized one boundary late still revert to the
@@ -1210,6 +1221,20 @@ always_ff @(posedge clk) begin
                                          q_byte[5:3] == 3'd6) begin
                                 issue_push(rf[q_byte[2:0]]);
                                 state <= S_REQ;     // PUSH reg via FF
+                            end else if (op_grpff &&
+                                         q_byte[5:3] == 3'd2) begin
+                                // CALL rm (reg): fit pending
+                                fl_ip <= rf[q_byte[2:0]];
+                                fl_cs <= sr[SEG_CS];
+                                dly <= 6'd2; wnext <= S_CALLFL;
+                                state <= S_JWAIT;
+                            end else if (op_grpff &&
+                                         q_byte[5:3] == 3'd4) begin
+                                // BR rm (reg): fit pending
+                                fl_ip <= rf[q_byte[2:0]];
+                                fl_cs <= sr[SEG_CS];
+                                dly <= 6'd2; wnext <= S_JFLUSH;
+                                state <= S_JWAIT;
                             end else if (op_grpf6 && q_byte[5:3] == 3'd4) begin
                                 dly <= 6'd21; wnext <= S_EX; state <= S_WAITX;
                             end else if (op_grpf7 && q_byte[5:3] == 3'd6) begin
@@ -1276,8 +1301,7 @@ always_ff @(posedge clk) begin
                                 (op_grpf7 && q_byte[5:3] == 3'd1) ||
                                 (op_grpfe && q_byte[5:3] > 3'd1) ||
                                 (op_popm && q_byte[5:3] != 3'd0) ||
-                                (op_grpff && q_byte[5:3] >= 3'd2 &&
-                                 q_byte[5:3] <= 3'd5))
+                                (op_grpff && q_byte[5:3] == 3'd7))
                                 state <= S_HALT;
                             else if ((q_byte[7:6] == 2'd0 &&
                                       q_byte[2:0] == 3'd6) ||
@@ -1311,7 +1335,8 @@ always_ff @(posedge clk) begin
                     end else if (opc == 8'hEB || op_jcc || opc == 8'hE2)
                         state <= S_JDISP;
                     else if (opc == 8'hE9 || opc == 8'hE8 ||
-                             opc == 8'hC2 || opc == 8'hEA)
+                             opc == 8'hC2 || opc == 8'hEA ||
+                             opc == 8'hCA || opc == 8'h9A)
                         state <= S_JDLO;
                     else if (op_moff || op_moffw) state <= S_MLO;
                     else if (op_segp) begin
@@ -1362,6 +1387,26 @@ always_ff @(posedge clk) begin
                         eu_wr   <= 1'b0;
                         eu_word <= 1'b1;
                         state   <= S_REQ;
+                    end else if (opc == 8'hCB || op_iret) begin
+                        // RETF / RETI: first stack word (fit pending)
+                        fret_ph <= 2'd0;
+                        eu_addr <= {sr[SEG_SS], 4'h0} + {4'h0, rf[4]};
+                        eu_seg  <= SEG_SS;
+                        eu_wr   <= 1'b0;
+                        eu_word <= 1'b1;
+                        state   <= S_REQ;
+                    end else if (opc == 8'hCC) begin      // BRK3
+                        ivt_vec <= 8'd3;
+                        dly <= 6'd5; wnext <= S_TRAP_IVT1;   // fit
+                        state <= S_WAITX;
+                    end else if (opc == 8'hCD) begin      // BRK imm8
+                        state <= S_INTV;
+                    end else if (opc == 8'hCE) begin      // BRKV
+                        if (psw[11]) begin
+                            ivt_vec <= 8'd4;
+                            dly <= 6'd5; wnext <= S_TRAP_IVT1;  // fit
+                            state <= S_WAITX;
+                        end else state <= S_NOP;             // fit
                     end else if (opc == 8'h27 || opc == 8'h2F ||
                                  opc == 8'h37 || opc == 8'h3F) begin
                         // BCD adjusts: execute in S_EX (fit pending)
@@ -1583,11 +1628,12 @@ always_ff @(posedge clk) begin
             end
             S_JDHI: if (q_pop) begin
                 pc <= pc + 16'd1;
-                if (opc == 8'hEA) begin           // BR far: seg follows
-                    disp[15:8] <= q_byte;         // absolute target offset
-                    state <= S_JSLO;
-                end else if (opc == 8'hC2) begin
+                if (opc == 8'hEA || opc == 8'h9A) begin
+                    disp[15:8] <= q_byte;         // far target offset
+                    state <= S_JSLO;              // seg words follow
+                end else if (opc == 8'hC2 || opc == 8'hCA) begin
                     disp[15:8] <= q_byte;                       // pop count
+                    fret_ph <= 2'd0;
                     eu_addr <= {sr[SEG_SS], 4'h0} + {4'h0, rf[4]};
                     eu_seg  <= SEG_SS;
                     eu_wr   <= 1'b0;
@@ -1628,7 +1674,30 @@ always_ff @(posedge clk) begin
                 pc    <= pc + 16'd1;
                 fl_cs <= {q_byte, immb};
                 fl_ip <= disp;
-                dly   <= 6'd1; wnext <= S_JFLUSH; state <= S_JWAIT;
+                if (opc == 8'h9A) begin           // CALL far: pushes first
+                    dly <= 6'd1; wnext <= S_FCALLFL;   // fit
+                    state <= S_JWAIT;
+                end else begin
+                    dly <= 6'd1; wnext <= S_JFLUSH; state <= S_JWAIT;
+                end
+            end
+            S_FCALLFL: begin     // q_flush high this cycle (comb)
+                issue_push(sr[SEG_CS]);           // PS first, then PC
+                mem_op <= pc;                     // return offset
+                pc <= fl_ip;
+                sr[SEG_CS] <= fl_cs;
+                state <= S_FCALLP1;
+            end
+            S_FCALLP1: if (eu_started) begin
+                issue_push(mem_op);
+                state <= S_FCALLP2;
+            end
+            S_FCALLP2: if (eu_started) state <= S_CALLW;
+            S_INTV: if (q_pop) begin              // BRK imm8 vector
+                ivt_vec <= q_byte;
+                pc <= pc + 16'd1;
+                dly <= 6'd5; wnext <= S_TRAP_IVT1;    // fit
+                state <= S_WAITX;
             end
             // MOV AL/AW, moffs16 (A0/A1): direct address pops at F+2/F+3,
             // read ready hi+1, retire at done (boot capture)
@@ -2088,6 +2157,31 @@ always_ff @(posedge clk) begin
                     // last write's done (measured); singles retire at done
                     if (rep_en) state <= S_EX;
                     else retire();
+                end else if (op_retf || op_iret) begin    // CB/CA/CF pops
+                    if (fret_ph == 2'd0) begin
+                        fl_ip <= eu_rdata;
+                        fret_ph <= 2'd1;
+                        eu_addr <= {sr[SEG_SS], 4'h0} +
+                                   {4'h0, rf[4] + 16'd2};
+                        eu_seg <= SEG_SS; eu_wr <= 1'b0;
+                        state <= S_REQ;
+                    end else if (fret_ph == 2'd1 && op_iret) begin
+                        fl_cs <= eu_rdata;
+                        fret_ph <= 2'd2;
+                        eu_addr <= {sr[SEG_SS], 4'h0} +
+                                   {4'h0, rf[4] + 16'd4};
+                        eu_seg <= SEG_SS; eu_wr <= 1'b0;
+                        state <= S_REQ;
+                    end else if (op_iret) begin           // PSW word
+                        psw <= (eu_rdata & 16'h0FD5) | 16'hF002;
+                        rf[4] <= rf[4] + 16'd6;
+                        state <= S_JFLUSH;                // fit
+                    end else begin                        // RETF final
+                        fl_cs <= eu_rdata;
+                        rf[4] <= rf[4] + 16'd4 +
+                                 ((opc == 8'hCA) ? disp : 16'd0);
+                        state <= S_JFLUSH;                // fit
+                    end
                 end else if (op_ret) begin                // C3 / C2
                     rf[4] <= rf[4] + 16'd2 +
                              ((opc == 8'hC2) ? disp : 16'd0);
@@ -2147,6 +2241,30 @@ always_ff @(posedge clk) begin
                     end else if (op_grpff && mrm_reg == 3'd6) begin
                         issue_push(eu_rdata);           // PUSH mem
                         state <= S_REQ;
+                    end else if (op_grpff && (mrm_reg == 3'd2 ||
+                                              mrm_reg == 3'd4)) begin
+                        // CALL/BR rm (mem): target read (fit pending)
+                        fl_ip <= eu_rdata;
+                        fl_cs <= sr[SEG_CS];
+                        dly <= 6'd2;
+                        wnext <= (mrm_reg == 3'd2) ? S_CALLFL : S_JFLUSH;
+                        state <= S_JWAIT;
+                    end else if (op_grpff && (mrm_reg == 3'd3 ||
+                                              mrm_reg == 3'd5)) begin
+                        // CALL/BR far mem: two pointer words
+                        if (!ldp2) begin
+                            ldp2 <= 1'b1;
+                            fl_ip <= eu_rdata;
+                            eu_addr <= eu_addr + 20'd2;
+                            eu_wr <= 1'b0;
+                            state <= S_REQ;
+                        end else begin
+                            fl_cs <= eu_rdata;
+                            dly <= 6'd2;                // fit pending
+                            wnext <= (mrm_reg == 3'd3) ? S_FCALLFL
+                                                       : S_JFLUSH;
+                            state <= S_JWAIT;
+                        end
                     end else if (op_popm) begin
                         // stack word read; now write it to the saved EA
                         rf[4] <= rf[4] + 16'd2;
@@ -2156,6 +2274,19 @@ always_ff @(posedge clk) begin
                         eu_word <= 1'b1;
                         eu_wdata <= eu_rdata;
                         state <= S_WREQ;
+                    end else if (op_ldptr && !ldp2) begin
+                        // LES/LDS: offset word read; chain the segment
+                        // word at EA+2 (fit pending)
+                        ldp2 <= 1'b1;
+                        eu_addr <= eu_addr + 20'd2;
+                        eu_wr <= 1'b0;
+                        state <= S_REQ;
+                    end else if (op_ldptr) begin
+                        rf[mrm_reg] <= mem_op;
+                        if (opc[0]) sr[SEG_DS] <= eu_rdata;   // C5 LDS
+                        else        sr[SEG_ES] <= eu_rdata;   // C4 LES
+                        shadow <= 1'b1;      // sreg load shadow
+                        retire();
                     end
                     else if (op_test1)
                         state <= S_T1GAP;                 // imm pop done+2
