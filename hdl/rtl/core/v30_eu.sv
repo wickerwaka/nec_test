@@ -252,6 +252,8 @@ reg         rep1_abort;  // REP boundary-1 abort decision (latched pop+7)
 reg         str_done;    // final string access completed (S_STRE)
 reg [15:0]  cmp1;        // CMPBK: first (DS:IX) operand
 reg         cmp_r2s;     // CMPBK: second read accepted
+reg [19:0]  ea_save;     // POP-mem: EA write target (stack read first)
+reg  [1:0]  ea_save_seg;
 reg [15:0]  fl_cs, fl_ip; // flush redirect target
 // external-event machinery (block 4). The recognition sample is the
 // boundary-decision cycle reading a 4-deep pin pipeline (fitted: the
@@ -344,6 +346,18 @@ wire op_out    = opc == 8'hE6 || opc == 8'hE7 ||
 wire op_0f     = opc == 8'h0F;                       // two-byte forms
 wire op_test1  = op_0f && opc2 == 8'h18;             // TEST1 rm8,imm3
 wire op_rol4   = op_0f && opc2 == 8'h28;             // ROL4 rm8
+wire op_accimm = (opc & 8'hC6) == 8'h04;             // ALU acc, imm
+wire op_testai = opc == 8'hA8 || opc == 8'hA9;       // TEST acc, imm
+wire op_test   = opc == 8'h84 || opc == 8'h85;       // TEST rm, reg
+wire op_xchga  = opc[7:3] == 5'b10010 &&
+                 opc[2:0] != 3'd0;                   // XCH AW, reg
+wire op_pushsr = (opc & 8'hE7) == 8'h06;             // PUSH sreg
+wire op_popsr  = (opc & 8'hE7) == 8'h07 &&
+                 opc != 8'h0F;                       // POP sreg (not 0F)
+wire op_pushi  = opc == 8'h68 || opc == 8'h6A;       // PUSH imm16/simm8
+wire op_popm   = opc == 8'h8F;                       // POP mem (/0)
+wire op_grpff  = opc == 8'hFF;                       // INC/DEC/PUSH/... rm16
+wire op_imuli  = opc == 8'h69 || opc == 8'h6B;       // MUL reg,rm,imm
 wire op_grp80  = opc == 8'h80;                       // ALU rm8, imm8
 wire op_grp81  = opc == 8'h81;                       // ALU rm16, imm16
 wire op_grp83  = opc == 8'h83;                       // ALU rm16, simm8
@@ -362,12 +376,14 @@ wire op_shrot  = op_shift && !(op_grpd0 && mrm_reg == 3'd4);
 wire op_modrm  = op_alu | op_movs8 | op_movs16 | op_movl8 | op_movl16 |
                  op_grpf6 | op_grpf7 | op_grpd0 | op_grpfe | op_alui |
                  op_grpd1 | op_grpd2 | op_grpd3 | op_grpc0 | op_grpc1 |
+                 op_test | op_popm | op_grpff | op_imuli |
                  op_xchg8 | op_xchg16 | op_lea | op_srst | op_srld;
 
 wire is_store  = op_movs8 | op_movs16 | op_srst;     // write-only mem access
 wire is_load   = op_movl8 | op_movl16 | op_srld;
 wire is_word_t = op_movs16 | op_movl16 | op_grpf7 |  // word transfer
                  op_grp81 | op_grp83 | op_grpd1 | op_grpd3 | op_grpc1 |
+                 (op_test && opc[0]) | op_popm | op_grpff | op_imuli |
                  op_xchg16 | op_srst | op_srld;
 wire is_reader = !is_store;                          // mem forms read first
 
@@ -873,7 +889,7 @@ always_comb begin
         // cold-start POP suppresses the prefetch commit at cycle 1)
         S_DEC:  eu_req = !op_modrm && (opc[7:3] == 5'b01011 ||
                                        opc == 8'hC3 || opc == 8'h9D ||
-                                       opc == 8'hF4 ||
+                                       opc == 8'hF4 || op_popsr ||
                                        opc == 8'hEC || opc == 8'hED ||
                                        opc == 8'hEE || opc == 8'hEF);
         // reservation start (measured per opcode from old-stream commits
@@ -933,10 +949,21 @@ endtask
 
 // latch memory-operand access parameters (EA paths); off = 16-bit offset
 task automatic setup_access(input [15:0] off);
-    eu_addr <= {sr[ea_seg_sel], 4'h0} + {4'h0, off};
-    eu_seg  <= ea_seg_sel;
-    eu_word <= is_word_t;
-    eu_wr   <= is_store;
+    if (op_popm) begin
+        // POP mem: the stack read goes first; the EA write follows
+        // with the popped data (ea target saved here)
+        ea_save <= {sr[ea_seg_sel], 4'h0} + {4'h0, off};
+        ea_save_seg <= ea_seg_sel;
+        eu_addr <= {sr[SEG_SS], 4'h0} + {4'h0, rf[4]};
+        eu_seg  <= SEG_SS;
+        eu_word <= 1'b1;
+        eu_wr   <= 1'b0;
+    end else begin
+        eu_addr <= {sr[ea_seg_sel], 4'h0} + {4'h0, off};
+        eu_seg  <= ea_seg_sel;
+        eu_word <= is_word_t;
+        eu_wr   <= is_store;
+    end
     if (op_movs8)  eu_wdata <= reg8_pair(mrm_reg);
     if (op_movs16) eu_wdata <= rf[mrm_reg];
     if (op_srst)   eu_wdata <= sr[srmap(mrm_reg[1:0])];
@@ -1138,7 +1165,7 @@ always_ff @(posedge clk) begin
                                 rep_en     <= 1'b0;
                                 state <= S_FIRST;
                             end else if (op_alu | op_movs8 | op_movs16 |
-                                op_movl8 | op_movl16 |
+                                op_movl8 | op_movl16 | op_test |
                                 op_xchg8 | op_xchg16)
                                 state <= S_EX;
                             else if (op_alui || op_shimm)
@@ -1153,6 +1180,36 @@ always_ff @(posedge clk) begin
                                 // by-CL reg: base + count (fit pending)
                                 dly <= 6'd5 + {1'd0, rf[1][4:0]};
                                 wnext <= S_EX; state <= S_WAITX;
+                            end else if ((op_grpf6 || op_grpf7) &&
+                                         q_byte[5:3] == 3'd0) begin
+                                state <= S_AI_I8;   // TEST rm,imm
+                            end else if ((op_grpf6 || op_grpf7) &&
+                                         (q_byte[5:3] == 3'd2 ||
+                                          q_byte[5:3] == 3'd3)) begin
+                                // NOT/NEG reg (fit pending)
+                                dly <= 6'd1; wnext <= S_EX;
+                                state <= S_WAITX;
+                            end else if (op_grpf6 && q_byte[5:3] == 3'd5) begin
+                                // IMUL8 reg (fit pending)
+                                dly <= 6'd21; wnext <= S_EX;
+                                state <= S_WAITX;
+                            end else if (op_grpf7 &&
+                                         (q_byte[5:3] == 3'd4 ||
+                                          q_byte[5:3] == 3'd5)) begin
+                                // MULU16/IMUL16 reg (fit pending)
+                                dly <= 6'd29; wnext <= S_EX;
+                                state <= S_WAITX;
+                            end else if (op_imuli) begin
+                                state <= S_AI_I8;   // imm then multiply
+                            end else if (op_grpff &&
+                                         q_byte[5:3] <= 3'd1) begin
+                                // INC/DEC rm16 reg (fit pending)
+                                dly <= 6'd1; wnext <= S_EX;
+                                state <= S_WAITX;
+                            end else if (op_grpff &&
+                                         q_byte[5:3] == 3'd6) begin
+                                issue_push(rf[q_byte[2:0]]);
+                                state <= S_REQ;     // PUSH reg via FF
                             end else if (op_grpf6 && q_byte[5:3] == 3'd4) begin
                                 dly <= 6'd21; wnext <= S_EX; state <= S_WAITX;
                             end else if (op_grpf7 && q_byte[5:3] == 3'd6) begin
@@ -1214,11 +1271,13 @@ always_ff @(posedge clk) begin
                         end else begin
                             // memory form; group ops with an unimplemented
                             // /reg field park the sequencer
-                            if ((op_grpf6 && q_byte[5:3] != 3'd4 &&
-                                 q_byte[5:3] != 3'd7) ||
-                                (op_grpf7 && q_byte[5:3] != 3'd6 &&
-                                 q_byte[5:3] != 3'd7) ||
-                                (op_grpfe && q_byte[5:3] != 3'd0))
+                            if ((op_grpf6 && (q_byte[5:3] == 3'd1 ||
+                                              q_byte[5:3] == 3'd6)) ||
+                                (op_grpf7 && q_byte[5:3] == 3'd1) ||
+                                (op_grpfe && q_byte[5:3] > 3'd1) ||
+                                (op_popm && q_byte[5:3] != 3'd0) ||
+                                (op_grpff && q_byte[5:3] >= 3'd2 &&
+                                 q_byte[5:3] <= 3'd5))
                                 state <= S_HALT;
                             else if ((q_byte[7:6] == 2'd0 &&
                                       q_byte[2:0] == 3'd6) ||
@@ -1270,6 +1329,39 @@ always_ff @(posedge clk) begin
                                     opc == 8'h65 ? 2'd2 : 2'd3;
                         arch_ip <= pc;
                         state   <= S_FIRST;
+                    end else if (opc == 8'hF5) begin      // NOT1 CY
+                        psw[0] <= ~psw[0];
+                        state <= S_NOP;                   // fit pending
+                    end else if (opc == 8'hF8 || opc == 8'hF9) begin
+                        psw[0] <= opc[0];                 // CLR1/SET1 CY
+                        state <= S_NOP;
+                    end else if (opc == 8'hFC || opc == 8'hFD) begin
+                        psw[10] <= opc[0];                // CLR1/SET1 DIR
+                        state <= S_NOP;
+                    end else if (opc == 8'h9F) begin      // MOV AH, PSW
+                        rf[0][15:8] <= psw[7:0];
+                        state <= S_NOP;
+                    end else if (opc == 8'h9E) begin      // MOV PSW, AH
+                        psw[7:0] <= (rf[0][15:8] & 8'hD5) | 8'h02;
+                        state <= S_NOP;
+                    end else if (op_xchga) begin          // XCH AW, reg
+                        rf[0] <= rf[opc[2:0]];
+                        rf[opc[2:0]] <= rf[0];
+                        state <= S_NOP;                   // fit pending
+                    end else if (op_accimm || op_testai || op_pushi) begin
+                        state <= S_AI_I8;                 // imm byte(s)
+                    end else if (opc == 8'h9C) begin      // PUSH PSW
+                        issue_push(psw);
+                        state <= S_REQ;
+                    end else if (op_pushsr) begin         // PUSH sreg
+                        issue_push(sr[srmap(opc[4:3])]);
+                        state <= S_REQ;
+                    end else if (op_popsr) begin          // POP sreg
+                        eu_addr <= {sr[SEG_SS], 4'h0} + {4'h0, rf[4]};
+                        eu_seg  <= SEG_SS;
+                        eu_wr   <= 1'b0;
+                        eu_word <= 1'b1;
+                        state   <= S_REQ;
                     end else if (opc == 8'h27 || opc == 8'h2F ||
                                  opc == 8'h37 || opc == 8'h3F) begin
                         // BCD adjusts: execute in S_EX (fit pending)
@@ -1400,8 +1492,19 @@ always_ff @(posedge clk) begin
             S_AI_I8: if (q_pop) begin
                 disp[7:0] <= q_byte;
                 pc <= pc + 16'd1;
-                if (op_grp81) state <= S_AI_I16;
-                else if (op_shimm) begin
+                if (op_grp81 || ((op_accimm || op_testai) && opc[0]) ||
+                    opc == 8'h68 || opc == 8'h69 ||
+                    (op_grpf7 && mrm_reg == 3'd0))
+                    state <= S_AI_I16;
+                else if (op_pushi) begin              // 6A: push simm8
+                    issue_push({{8{q_byte[7]}}, q_byte});
+                    state <= S_REQ;
+                end else if (op_accimm || op_testai ||
+                             (op_grpf6 && mrm_reg == 3'd0))
+                    state <= S_EX;
+                else if (op_imuli) begin              // 6B (fit pending)
+                    dly <= 6'd9; wnext <= S_EX; state <= S_WAITX;
+                end else if (op_shimm) begin
                     // C0/C1 count byte (masked to 5 bits by sh_cnt)
                     if (mrm_mod != 2'd3) begin
                         dly <= 6'd2 + {1'd0, q_byte[4:0]};
@@ -1424,7 +1527,15 @@ always_ff @(posedge clk) begin
             S_AI_I16: if (q_pop) begin
                 disp[15:8] <= q_byte;
                 pc <= pc + 16'd1;
-                if (mrm_mod != 2'd3 && mrm_reg != 3'd7) begin
+                if (op_pushi) begin                   // 68: push imm16
+                    issue_push({q_byte, disp[7:0]});
+                    state <= S_REQ;
+                end else if (op_accimm || op_testai ||
+                             (op_grpf7 && mrm_reg == 3'd0))
+                    state <= S_EX;
+                else if (op_imuli) begin              // 69 (fit pending)
+                    dly <= 6'd9; wnext <= S_EX; state <= S_WAITX;
+                end else if (mrm_mod != 2'd3 && mrm_reg != 3'd7) begin
                     dly <= 6'd2; state <= S_RMWX;   // write ready pop+3
                 end else state <= S_EX;
             end
@@ -1960,7 +2071,18 @@ always_ff @(posedge clk) begin
                     if (opc[0]) rf[0] <= eu_rdata;
                     else        rf[0][7:0] <= eu_rdata[7:0];
                     rf[6] <= rf[6] + str_step;
-                    retire();
+                    if (rep_en) begin       // REP LDM loop (fit pending)
+                        rf[1] <= rf[1] - 16'd1;
+                        if (rf[1] != 16'd1) begin
+                            eu_addr <= {sr[seg_ovr_en ? seg_ovr : SEG_DS],
+                                        4'h0} + {4'h0, rf[6] + str_step};
+                            eu_seg  <= seg_ovr_en ? seg_ovr : SEG_DS;
+                            eu_wr   <= 1'b0;
+                            dly <= 6'd3; wnext <= S_RSV; state <= S_WAITX;
+                        end else begin
+                            dly <= 6'd8; wnext <= S_EX; state <= S_WAITX;
+                        end
+                    end else retire();
                 end else if (op_stostr || op_movstr) begin // STM / MOVBK end
                     // REP (cx>=2) termination: one extra cycle after the
                     // last write's done (measured); singles retire at done
@@ -1983,6 +2105,16 @@ always_ff @(posedge clk) begin
                 end else if (op_out) begin                // OUT
                     eu_kind <= K_MEM;
                     retire();
+                end else if (op_popsr) begin              // POP sreg
+                    logic [1:0] sx2;
+                    sx2 = srmap(opc[4:3]);
+                    sr[sx2] <= eu_rdata;
+                    rf[4] <= rf[4] + 16'd2;
+                    shadow <= 1'b1;      // sreg loads shadow recognition
+                    retire();
+                end else if (op_pushsr || opc == 8'h9C ||
+                             op_pushi) begin              // pushes
+                    retire();
                 end else if (opc[7:3] == 5'b01011) begin  // POP r16
                     rf[4] <= rf[4] + 16'd2;
                     rf[opc[2:0]] <= eu_rdata;             // POP SP: load wins
@@ -1995,10 +2127,36 @@ always_ff @(posedge clk) begin
                     mem_op <= eu_rdata;
                     if (op_srld)
                         state <= S_LD_W2;   // sreg load: writeback done+1
-                    else if (is_load || (op_alu && opc[5:3] == 3'd7))
-                        state <= S_LD_W1;                 // MOV load / CMP
-                    else if (op_alui)
+                    else if (is_load || (op_alu && opc[5:3] == 3'd7) ||
+                             op_test)
+                        state <= S_LD_W1;   // MOV load / CMP / TEST mem
+                    else if (op_alui ||
+                             ((op_grpf6 || op_grpf7) && mrm_reg == 3'd0) ||
+                             op_imuli)
                         state <= S_AI_I8;   // imm pops after the read
+                    else if ((op_grpf6 || op_grpf7) &&
+                             (mrm_reg == 3'd2 || mrm_reg == 3'd3)) begin
+                        dly <= 6'd2; state <= S_RMWX;   // NOT/NEG mem
+                    end else if (op_grpf6 && mrm_reg == 3'd5) begin
+                        dly <= 6'd22; wnext <= S_EX; state <= S_WAITX;
+                    end else if (op_grpf7 && (mrm_reg == 3'd4 ||
+                                              mrm_reg == 3'd5)) begin
+                        dly <= 6'd30; wnext <= S_EX; state <= S_WAITX;
+                    end else if (op_grpff && mrm_reg <= 3'd1) begin
+                        dly <= 6'd3; state <= S_RMWX;   // INC/DEC mem16
+                    end else if (op_grpff && mrm_reg == 3'd6) begin
+                        issue_push(eu_rdata);           // PUSH mem
+                        state <= S_REQ;
+                    end else if (op_popm) begin
+                        // stack word read; now write it to the saved EA
+                        rf[4] <= rf[4] + 16'd2;
+                        eu_addr <= ea_save;
+                        eu_seg  <= ea_save_seg;
+                        eu_wr   <= 1'b1;
+                        eu_word <= 1'b1;
+                        eu_wdata <= eu_rdata;
+                        state <= S_WREQ;
+                    end
                     else if (op_test1)
                         state <= S_T1GAP;                 // imm pop done+2
                     else if (op_rol4) begin
@@ -2071,6 +2229,13 @@ always_ff @(posedge clk) begin
                 if (op_movl8)       wr_reg8(mrm_reg, mem_op[7:0]);
                 else if (op_movl16) rf[mrm_reg] <= mem_op;
                 else if (op_srld)   sr[sx] <= mem_op;
+                else if (op_test) begin                   // TEST mem
+                    logic [31:0] t16;
+                    logic [23:0] t8;
+                    t16 = alu16(3'd4, mem_op, rf[mrm_reg], psw);
+                    t8  = alu8(3'd4, mem_op[7:0], reg8_get(mrm_reg), psw);
+                    psw <= opc[0] ? t16[31:16] : t8[23:8];
+                end
                 else if (op_alu)    psw <= ex_alu[23:8];  // CMP mem
                 retire();
                 if (op_srld) shadow <= 1'b1;   // sreg-load shadow
@@ -2204,6 +2369,37 @@ always_ff @(posedge clk) begin
                         if (mrm_mod == 2'd3 && mrm_reg != 3'd7)
                             rf[mrm_rm] <= ex_ai16[15:0];
                     end
+                end else if (op_accimm || op_testai) begin
+                    // ALU acc,imm / TEST acc,imm: op from the opcode
+                    // (TEST = AND flags, no writeback)
+                    logic [2:0] aop;
+                    aop = op_testai ? 3'd4 : opc[5:3];
+                    if (opc[0]) begin
+                        logic [31:0] c16;
+                        c16 = alu16(aop, rf[0], disp, psw);
+                        psw <= c16[31:16];
+                        if (!op_testai && aop != 3'd7)
+                            rf[0] <= c16[15:0];
+                    end else begin
+                        logic [23:0] c8;
+                        c8 = alu8(aop, rf[0][7:0], disp[7:0], psw);
+                        psw <= c8[23:8];
+                        if (!op_testai && aop != 3'd7)
+                            rf[0][7:0] <= c8[7:0];
+                    end
+                end else if (op_test) begin
+                    // TEST rm,reg: AND flags only
+                    if (opc[0]) begin
+                        logic [31:0] c16;
+                        c16 = alu16(3'd4, (mrm_mod == 2'd3) ? rf[mrm_rm]
+                                                            : mem_op,
+                                    rf[mrm_reg], psw);
+                        psw <= c16[31:16];
+                    end else begin
+                        logic [23:0] c8;
+                        c8 = alu8(3'd4, rm_byte, reg8_get(mrm_reg), psw);
+                        psw <= c8[23:8];
+                    end
                 end else if (op_movs8)  wr_reg8(mrm_rm, reg8_get(mrm_reg));
                 else if (op_movs16) rf[mrm_rm]  <= rf[mrm_reg];
                 else if (op_movl8)  wr_reg8(mrm_reg, reg8_get(mrm_rm));
@@ -2218,6 +2414,62 @@ always_ff @(posedge clk) begin
                 end else if (op_grpd0) begin
                     psw <= ex_shl[23:8];
                     wr_reg8(mrm_rm, ex_shl[7:0]);
+                end else if ((op_grpf6 || op_grpf7) &&
+                             mrm_reg == 3'd0) begin
+                    // TEST rm,imm: AND flags only (imm in disp)
+                    logic [31:0] t16;
+                    logic [23:0] t8;
+                    t16 = alu16(3'd4, (mrm_mod == 2'd3) ? rf[mrm_rm]
+                                                        : mem_op,
+                                disp, psw);
+                    t8  = alu8(3'd4, rm_byte, disp[7:0], psw);
+                    psw <= op_grpf7 ? t16[31:16] : t8[23:8];
+                end else if ((op_grpf6 || op_grpf7) &&
+                             mrm_reg == 3'd2) begin
+                    // NOT rm (reg form): no flags
+                    if (op_grpf7) rf[mrm_rm] <= ~rf[mrm_rm];
+                    else          wr_reg8(mrm_rm, ~rm_byte);
+                end else if ((op_grpf6 || op_grpf7) &&
+                             mrm_reg == 3'd3) begin
+                    // NEG rm (reg form): 0 - rm
+                    logic [31:0] n16;
+                    logic [23:0] n8;
+                    n16 = alu16(3'd5, 16'd0, rf[mrm_rm], psw);
+                    n8  = alu8(3'd5, 8'd0, rm_byte, psw);
+                    if (op_grpf7) begin
+                        psw <= n16[31:16];
+                        rf[mrm_rm] <= n16[15:0];
+                    end else begin
+                        psw <= n8[23:8];
+                        wr_reg8(mrm_rm, n8[7:0]);
+                    end
+                end else if (op_grpf6 && mrm_reg == 3'd5) begin
+                    // MUL (IMUL8): AW = AL x rm8 signed;
+                    // CY=V = AH != sext(AL) (fit pending)
+                    logic signed [15:0] ms;
+                    ms = $signed({{8{rm_byte[7]}}, rm_byte}) *
+                         $signed({{8{rf[0][7]}}, rf[0][7:0]});
+                    rf[0] <= ms;
+                    psw[FB_CY] <= ms[15:8] != {8{ms[7]}};
+                    psw[FB_V]  <= ms[15:8] != {8{ms[7]}};
+                end else if (op_grpf7 && mrm_reg == 3'd4) begin
+                    // MULU16: {DW,AW} = AW x rm16; CY=V=(DW!=0)
+                    logic [31:0] mw;
+                    mw = {16'd0, (mrm_mod == 2'd3) ? rf[mrm_rm] : mem_op}
+                         * {16'd0, rf[0]};
+                    rf[0] <= mw[15:0];
+                    rf[2] <= mw[31:16];
+                    psw[FB_CY] <= mw[31:16] != 16'd0;
+                    psw[FB_V]  <= mw[31:16] != 16'd0;
+                end else if (op_grpf7 && mrm_reg == 3'd5) begin
+                    // MUL (IMUL16): {DW,AW} signed; CY=V on overflow
+                    logic signed [31:0] mws;
+                    mws = $signed((mrm_mod == 2'd3) ? rf[mrm_rm] : mem_op)
+                          * $signed(rf[0]);
+                    rf[0] <= mws[15:0];
+                    rf[2] <= mws[31:16];
+                    psw[FB_CY] <= mws[31:16] != {16{mws[15]}};
+                    psw[FB_V]  <= mws[31:16] != {16{mws[15]}};
                 end else if (op_grpf6 && mrm_reg == 3'd7) begin
                     // IDIV8 writeback: AL=q, AH=r (flags set at dispatch)
                     rf[0] <= mem_op;
@@ -2229,6 +2481,21 @@ always_ff @(posedge clk) begin
                     rf[0] <= m;
                     psw[FB_CY] <= m[15:8] != 8'd0;
                     psw[FB_V]  <= m[15:8] != 8'd0;
+                end else if (op_imuli) begin
+                    // MUL reg,rm,imm: reg = rm x imm signed (fit pending)
+                    logic signed [31:0] mi;
+                    logic [15:0] iop;
+                    iop = (opc == 8'h6B) ? {{8{disp[7]}}, disp[7:0]}
+                                         : disp;
+                    mi = $signed((mrm_mod == 2'd3) ? rf[mrm_rm] : mem_op)
+                         * $signed(iop);
+                    rf[mrm_reg] <= mi[15:0];
+                    psw[FB_CY] <= mi[31:16] != {16{mi[15]}};
+                    psw[FB_V]  <= mi[31:16] != {16{mi[15]}};
+                end else if (op_grpff) begin
+                    // FF.0/FF.1 INC/DEC rm16 (reg form)
+                    {psw, rf[mrm_rm]} <=
+                        incdec16(mrm_reg == 3'd0, rf[mrm_rm], psw);
                 end else if (op_grpf7) begin
                     // DIVU16 (no trap): AW=quot (mem_op), DW=rem (disp);
                     // flags were set by the pre-check compare at dispatch
@@ -2260,6 +2527,26 @@ always_ff @(posedge clk) begin
                     end else if (op_alui) begin
                         eu_wdata <= ai_wide;
                         psw <= op_grp80 ? ex_ai8[23:8] : ex_ai16[31:16];
+                    end else if ((op_grpf6 || op_grpf7) &&
+                                 mrm_reg == 3'd2) begin
+                        eu_wdata <= ~mem_op;    // NOT mem: no flags
+                    end else if ((op_grpf6 || op_grpf7) &&
+                                 mrm_reg == 3'd3) begin
+                        // NEG mem (byte forms drive the negated pair -
+                        // sibling GUESS, fit vs goldens)
+                        logic [31:0] n16;
+                        logic [23:0] n8;
+                        n16 = alu16(3'd5, 16'd0, mem_op, psw);
+                        n8  = alu8(3'd5, 8'd0, mem_op[7:0], psw);
+                        eu_wdata <= n16[15:0];
+                        psw <= op_grpf7 ? n16[31:16] : n8[23:8];
+                    end else if (op_grpff) begin
+                        logic [31:0] idw;
+                        idw = {16'd0, 16'd0};
+                        {idw[31:16], idw[15:0]} =
+                            incdec16(mrm_reg == 3'd0, mem_op, psw);
+                        eu_wdata <= idw[15:0];
+                        psw <= idw[31:16];
                     end else if (op_shrot) begin
                         // byte forms drive the full internal pair
                         // (sibling-lane GUESS - fit vs goldens)
