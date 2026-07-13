@@ -411,3 +411,76 @@ stacked-prefix sequences deferred.
 (swint/farjmp cadence, loop doomed-prefetch, inject recognition/vectoring,
 waits-sequence). Replay: check_seq <seed> --hw-ab [--inject-int|--waits N]
 --exts <...>. Re-check these after any interrupt/wait/flush RTL fit.
+
+## Golden-coverage audit + B0-B7/C6/C7 deadlock fix (2026-07-13, this session)
+
+Bounded correctness pass. Fixed the two breadth-fuzz deadlocks, audited the
+golden suite against docs/facts/instructions.json for ALL silently-omitted
+documented forms, added them, reflashed once, and re-confirmed on hardware.
+
+### AUDIT - every documented form NOT previously in the golden suite
+Cross-checked emit_suite's OPCODES matrix (form granularity) vs the 288
+instructions.json entries. Findings:
+
+- **B0-B7 MOV reg8,imm8** - NO core dispatch -> DEADLOCK. FIXED + golden (B0).
+- **C6/C7 MOV r/m,imm** (reg + mem) - NO core dispatch -> DEADLOCK. FIXED +
+  golden (C6.0, C7.0).
+- **24 ALU word/direction forms** (X1 rm16,r16 / X2 r8,rm8 / X3 r16,rm16 for
+  all 8 of ADD/OR/ADC/SBB/AND/SUB/XOR/CMP: 01/02/03 ... 39/3A/3B). The core
+  IMPLEMENTED these (Mission S, op_alu=(opc&C4)==0) but no golden tranche
+  ever existed - the suite only had the rm8,r8 representative (00/08/../38).
+  ADDED all 24; every one passed 500/500 cycle+arch with ZERO RTL change.
+- DEFERRED / not added (documented, out of the bounded scope):
+  * **INM/OUTM 6C-6F** (INS/OUTS string I/O) - no core dispatch (would
+    deadlock). Needs IOR-data config + a string-port engine; the whole
+    IN/OUT port area is excluded from the suite/fuzz. Not fuzz-reachable.
+    DEFERRED to a dedicated I/O-string campaign.
+  * **BUSLOCK F0** (LOCK prefix) - no core dispatch (would deadlock). Needs
+    the BUSLOCK-pin behavior characterized. Not in suite/fuzz. DEFERRED.
+  * **BRKEM 0F FF** - 8080-emulation entry; project policy parks it (needs
+    the RETEM recovery path). DEFERRED.
+  * **0x82** (ALU r/m,imm8, the 100000SW S=1/W=0 alias of 0x80) - latent
+    deadlock on an UNDOCUMENTED alias, NOT reachable by gen_seq (only
+    documented opcodes emitted). Parked per the standing undocumented-
+    encoding policy (same class as FE/7, 8F mod3).
+  * bare REP/REPC prefixes (F3/F2/65/64), HALT (F4), POLL (9B) - false
+    positives: covered as composite/EVT forms, core handles them.
+
+### RTL fixes (v30_eu.sv) - cadence laws
+- **B0-B7**: new S_IMM8. Law: the byte-imm reg load inserts ONE extra idle
+  cycle before the next opcode pops (S_NOP), unlike two-byte B8-BF which
+  retire ON the imm-hi pop. Absorbed on a dry queue, visible on prefetched
+  variants (the "~1 cycle off" the predecessor saw).
+- **C6/C7 (op_movri)**: write-only store, imm popped after the modrm/disp
+  (no operand read). C6 reg8 shares B0's one-idle tail; C7 reg16 retires on
+  the imm-hi pop like B8. Mem: mod0 reg-EA latches in a single S_EA1 cycle
+  (no read -> the extra S_EA2 read-setup cycle is skipped; imm pops at
+  modrm-pop+2). Byte store: dly=1 -> S_RSV (reservation) -> S_REQ. Word
+  store: reserves at the imm-hi pop and issues straight to S_REQ so the
+  write is ready at that pop's T3 eval (an S_RSV lead-in put it one eval /
+  two cycles late). **Byte-store data law**: the 16-bit internal value is
+  the SIGN-EXTENDED imm8 - the unused byte lane on a byte write is
+  {8{imm8[7]}} (00 for positive, FF for negative imm; measured on the C6.0
+  goldens). Word store drives {imm_hi, imm_lo}.
+
+### Results
+- **Sim (Verilator, zero waits): 169000/169000 cycle- AND arch-exact**
+  (155500 prior + 13500 new, 347 tranches). No regression; every new form
+  passes. Committed (352fa85) before the reflash.
+- **ONE reflash**: quartus compile 0 errors, timing MET (tightest setup
+  slack +4.185 ns on the emu/core clock; holds all positive); safe_flash
+  VERIFY ok, use_core=False, cfg 0x1ff0008.
+- **Hardware A/B (zero waits)**: chip-vs-golden boot MATCH 400; core-vs-chip
+  FIRST LIGHT MATCH 400; core-vs-golden MATCH 400. Direct chip-vs-core
+  spot-check B0/C6.0/C7.0 = 6/6 each. **A/B sequence fuzz fz11000-11499
+  500/500 clean** (zero divergence) now exercising the fixed forms
+  (mov_imm8 x335, mov_ri_r x156, mov_ri_m x167 instances). gen_seq _gen_mov
+  re-enabled B0-B7 and C6/C7.
+
+### Still DEFERRED (unchanged, separately-scoped future campaigns)
+- Wait-state timing generalization (waits>=1 across arbitrary sequences).
+- Interrupt recognition/vectoring/INTA timing generalization in random
+  contexts (fz10000-10499 was 476/500).
+- The 3 cadence-marginal families: swint, farjmp, loop (execution correct,
+  display cadence 1-2 off at ~3% of phases).
+- INM/OUTM, BUSLOCK, BRKEM/8080-mode, 0x82 alias (audit finds above).

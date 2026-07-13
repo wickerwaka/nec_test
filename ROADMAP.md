@@ -218,6 +218,26 @@ Progress (mission block 1):
   CE-core-vs-chip 800/800, A/B fuzz fz5000-5499 500/500 zero-divergence.
   Deferred follow-on: a host-selectable independent core-rate CE divider
   (feed the core CE from a host-controllable divider instead of tick_rise).
+- **G. Golden-coverage audit + B0-B7/C6/C7 deadlock fix (DONE, 2026-07-13,
+  all gates passed)**: a bounded correctness pass. Audited emit_suite's form
+  matrix against docs/facts/instructions.json and found the two breadth-fuzz
+  deadlocks (B0-B7 MOV reg8,imm8; C6/C7 MOV r/m,imm - no core dispatch) plus
+  24 silently-omitted ALU word/direction forms (the core implemented them in
+  Mission S but no golden tranche existed - the suite only had the rm8,r8
+  representative). Implemented B0-B7 (S_IMM8 + one-idle tail) and C6/C7
+  (op_movri store, byte-lane sign-extend law, reserve-then-write cadence);
+  emitted all 27 as golden tranches (500 each, both queue variants) from the
+  socketed chip. **Grand regression now 169000/169000 cycle- AND arch-exact
+  (was 155500; +13500 from the new forms), 347 tranches, no regression.**
+  The 24 ALU forms passed with ZERO RTL change - closing the integrity gap
+  in the old "155,500 complete" claim. ONE reflash (0 errors, timing MET,
+  setup slack +4.185 ns emu clock). Hardware A/B: chip-vs-golden 400,
+  core-vs-chip FIRST LIGHT 400, core-vs-golden 400; direct chip-vs-core
+  spot-check B0/C6/C7 6/6 each; A/B fuzz fz11000-11499 500/500 zero-
+  divergence (now exercising the fixed forms via gen_seq _gen_mov). Deferred
+  (documented in closure_checkpoint.md): INM/OUTM 6C-6F, BUSLOCK F0, BRKEM/
+  8080-mode, the 0x82 undocumented alias, and the pre-existing wait-state /
+  interrupt / 3-cadence-marginal-family generalization gaps.
 
 ## Standing infrastructure (build only when a campaign demands)
 - Agent-loop orchestration (campaign 2)

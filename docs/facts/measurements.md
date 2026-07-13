@@ -472,3 +472,34 @@ negative:
   magnitude with CY=AC=V=0; quotient truncates toward zero, remainder
   sign follows the dividend; trap = vector 0 with the standard push
   sequence.
+
+## MOV reg8,imm8 (B0-B7) and MOV r/m,imm (C6/C7) - 2026-07-13
+
+Measured from the golden tranches (B0, C6.0, C7.0; 500 cases each, both
+queue variants, zero waits) and confirmed cycle-exact in-silicon A/B.
+
+- **B0-B7 (MOV reg8,imm8)**: the single-imm-byte reg load takes ONE extra
+  idle cycle before the next opcode pops, unlike the two-byte B8-BF which
+  retire ON the imm-hi pop. On a dry queue the extra cycle overlaps the
+  fetch wait (invisible); on a prefetched/queue-available start it shows as
+  the closing F pop landing one Ti later. C6 reg8 (mod3) shares this tail;
+  C7 reg16 retires on the imm-hi pop (B8 pattern, no extra cycle).
+- **MOV r/m,imm (C6/C7) is a write-only store** (no operand read) with the
+  imm popped AFTER the modrm/displacement. mod0 reg-EA latches the EA in a
+  single cycle (the read forms' second EA-setup cycle is skipped): the imm
+  pops at modrm-pop+2.
+- **Byte-store data lane law**: for a byte write (C6, and by extension any
+  imm8->mem byte store) the CPU drives the SIGN-EXTENDED imm8 as its 16-bit
+  internal value - the UNUSED byte lane carries {8{imm8[7]}} (0x00 for a
+  positive imm, 0xFF for a negative one), not a replicate and not the
+  addressed byte. The addressed lane carries the imm per bus parity. (The
+  register-operand byte stores 88/8A instead drive the sibling register
+  byte on the unused lane - reg8_pair.)
+- **C6/C7 store commit cadence (zero waits)**: the byte store is ready at
+  imm-pop+2 via a one-cycle reservation (S_RSV) then S_REQ; the word store
+  reserves at the imm-hi pop itself and is ready at that pop's T3 eval
+  (issued straight to S_REQ - an S_RSV reservation-only lead-in delays the
+  commit by one BIU eval, i.e. two cycles, and lets a prefetch steal the
+  slot). The reservation blocks the prefetch the chip holds off; when a
+  fetch is genuinely due the BIU arbitrates it ahead of the write exactly
+  as for the 88/89 stores.
