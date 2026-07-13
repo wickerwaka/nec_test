@@ -55,6 +55,10 @@ EA_MODES = {
     "disp8bx": bytes([0x8B, 0x47, D8]),
     "disp8bp": bytes([0x8B, 0x46, D8]),
     "alu16":   bytes([0x03, 0x06, TGT_EA & 0xFF, TGT_EA >> 8]),
+    # stores (fz151 class): MEMW T1 is the anchor
+    "st8":     bytes([0x88, 0x0E, TGT_EA & 0xFF, TGT_EA >> 8]),  # MOV [d16],CL
+    "st16":    bytes([0x89, 0x0E, TGT_EA & 0xFF, TGT_EA >> 8]),  # MOV [d16],CX
+    "st8bx":   bytes([0x88, 0x4F, D8]),                          # MOV [BX+d8],CL
 }
 PREFIXES = {"none": b"", "3e": b"\x3e", "26": b"\x26"}
 
@@ -99,7 +103,7 @@ def run_tb(image, waits):
 def reader_t1(recs):
     """Cycle index of the reader's MEMR T1 at the target address."""
     for i, r in enumerate(recs):
-        if r.get("t", r.get("t_state")) == 1 and r["bs_early"] == 5 and \
+        if r.get("t", r.get("t_state")) == 1 and r["bs_early"] in (5, 6) and \
                 (r["ad_addr"] & 0xFFFFF) == TGT_EA:
             return i
     return None

@@ -2925,7 +2925,12 @@ always_ff @(posedge clk) begin
                         dly <= popm_rdy - 6'd1;
                         wnext <= S_REQ; state <= S_WAITX;
                     end else if (is_reader || op_srst) state <= S_REQ;
-                    else begin dly <= 6'd2; state <= S_RSV; end
+                    // d2 stores: ready @ 6 (hi-pop+2, same as the d1
+                    // store schedule). The old rdy@7 was a phase-aliased
+                    // golden fit - the Campaign 4 store phase matrix
+                    // (st8/st16 x prefix x phase) shows the chip's write
+                    // catching a T3 eval at hi+2 (fz151 class).
+                    else begin dly <= 6'd1; state <= S_RSV; end
                 end
             end else if (!q_avail) begin
                 dret <= S_DHI; state <= S_DSTALL;

@@ -150,3 +150,40 @@ with the full 155440/155500 golden regression re-verified unchanged):
   git history if re-adding) trivializes phase debugging.
 - The 3 fixes are orthogonal and safe; the ALU-forms fix in particular
   closes a real 24-opcode functional gap (not just timing).
+
+## Campaign 4 Mission D — the disp commit-phase laws (2026-07-13, RESOLVED)
+
+The Mission S blocker is retired. Measured via sw/sweep_dispphase.py (the
+(EA-mode x prefix x queue-fill-phase x waits) micro-sequence matrix, chip
+via serve vs core via TB, with the new +eudbg per-cycle EU/BIU state dump
+in tb_v30_core):
+
+**Reader law (the 16/23 class):** the FINAL displacement pop (S_DISP8 /
+S_DHI) defers exactly one cycle iff (a) the queue-head byte became
+poppable THIS cycle (head was dry the cycle before - a freshly-landed
+fetch word), and (b) that cycle is an in-flight fetch's T2 (the next
+fetch started back-to-back). The 2-cycle read shift the fuzz saw is
+mechanical: the deferred pop's read misses the prefetch T3 eval and waits
+through idle-entry. The disp16 LOW pop (S_DLO) is never blocked and
+re-polls a dry queue EVERY cycle - the old "2-cycle dry-retry grain" was
+an aliased fit of block+availability. Implemented as q_fresh (BIU export)
+gating pop_want. Discovery: 3 law iterations against the 96-cell matrix
+(pure-T2 block -2/+14; avl<3 gate -6; fresh-head gate 96/96).
+
+**Store law (found by the resumed fuzz, fz151):** the disp16 store's
+write is ready at hi-pop+2 (dly=1), same as the disp8 store schedule.
+The old rdy@hi+3 ("d2 stores rdy @ 7") was a phase-aliased golden fit -
+at the fz151 phase the chip's write catches a T3 eval at hi+2 that the
+core missed. 72-cell store matrix (st8/st16/st8bx): 0 divergent after
+the fix; disp8 stores were already correct.
+
+Verification: 168/168 matrix cells (4 reader + 3 store EA modes x 3
+prefixes x 8 phases, waits=0); at waits=1 the disp-reader matches in all
+96 reader cells; full golden regression 155440/155500 (exact baseline);
+fz100-139: 40/40 MATCH (was ~42% clean).
+
+**New (pre-existing) class, LOW priority:** at waits=1, a qs_e
+flush-display timing artifact at the store stub's far jump (chip shows
+QS=E one row earlier than the core in phase-parity-dependent cells;
+2 rows per affected trace, execution identical). Not covered by the
+golden windows (they close before the stub). Untouched by the disp laws.
