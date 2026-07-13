@@ -80,3 +80,73 @@ residual:
   rebuild, rescore; commit per family; keep neighbors green.
 - Infrastructure notes (defer_t4/bus_phase/flush_fast etc.) unchanged
   from the predecessor block - see git history of this file.
+
+## Mission S — sequence fuzz (2026-07-13, this session)
+
+Pipeline validated end-to-end (sw/gen_seq.py + sw/check_seq.py): sim-only
+plumbing OK, board side newly exercised and working. Ran ~110 random
+sequence seeds (10-99 ins) + ~150 isolated single/paired repros on the
+real board. THREE divergence classes found and FIXED (committed, each
+with the full 155440/155500 golden regression re-verified unchanged):
+
+1. **ALU r/m word + direction forms (24 opcodes) - UNIMPLEMENTED**
+   (commit 84a7d2b). op_alu was (opc&C7)==0 -> only rm8,r8 (00,08,..,38).
+   The word (rm16,r16) and both direction-reversed forms (r8,rm8 /
+   r16,rm16) for all 8 ops parked S_HALT and deadlocked the BIU. The
+   golden suite only ever had "ALU rm8,r8 x8" so the gap was invisible.
+   Fix: op_alu=(opc&C4)==0; direction-aware operands (opc[1]); width via
+   new ex_alu16; d=0 mem->S_RMWX (word path), d=1 mem->S_LD_W1/W2 load-op,
+   CMP->flags. All 64 new forms verified cycle-exact vs chip.
+
+2. **PUSH reservation phase** (commit 159fc51). PUSH r16 whose
+   S_PUSH_CALC cycle lands on a prefetch T3 eval let the prefetch steal
+   the slot -> stack write 2 cycles late. Fix: assert eu_req (reservation)
+   in S_PUSH_CALC. Pre-existing; golden injection phase never hit it.
+
+3. **reg-EA reader commit-at-T4** (commit 3142e97). A mod0 register-EA
+   reader (ALU RMW / MOV load) whose read becomes ready (S_REQ) on a
+   prefetch T4 missed that fetch's T3 eval and read 2 cycles late. The
+   chip commits back-to-back off the T4. Fix: assert eu_soon in S_EA2
+   (the BIU defer_t4 path then commits at T4). Clean, no regression.
+
+### OPEN — gate NOT reached. Remaining taxonomy (measured fz100-139,
+23/40 divergent with the 3 fixes in place = 42.5% clean):
+
+- **timing-shift (16/23, DOMINANT): disp8/disp16 reader commit-phase.**
+  A disp-form reader whose read becomes ready EXACTLY on a prefetch T3
+  commits there on the core (want_eu) but the chip DEFERS ~2 cycles
+  (fetch completes + push absorb, read at the 2nd following Ti). Strongly
+  phase- and segment-prefix-dependent: no-prefix disp16 matches at ALL
+  phases 0-7; 3e:disp16 and 3e:mod1-disp8 diverge; even no-prefix reg-EA
+  diverged at the 2NOP phase before fix 3. NOT the same direction as the
+  reg-EA case (that read LATE; disp reads EARLY), so eu_soon does NOT
+  apply - tried eu_soon at S_DHI/S_DISP8: regressed 30 to 396/500.
+  Tried gating the T3-eval EU commit on ext_ok (registered readiness,
+  mirroring the eval_ext rule): regressed goldens to 2071/3000 - the
+  exact deferral (how many Ti before the read) is a multi-phase fit
+  entangled with push-absorb/q_aged that needs real A/B measurement, not
+  a blind BIU edit. This is the gate blocker.
+- **qs-flicker (6/23, minor): QS pin (F/S) 1-cycle display flicker**,
+  self-correcting - both chip and core reach done at the SAME cycle;
+  only the queue-status pin momentarily disagrees (odd-fetch-after-branch
+  regions). Cosmetic-ish but counts as a divergence.
+- **generator escape (1/23, TOOLING not core): fz101 ran wild into
+  0x99xxx on BOTH chip and core** (done=None both). gen_seq's safety
+  constraints (forward-bounded branches, no CALL/RET) do NOT fully
+  contain control flow - a program escaped its window into uninitialized
+  memory and executed garbage. Tighten gen_seq containment (or filter
+  escaped seeds) before counting these against the core.
+
+### For the next agent / Campaign 4
+- The dominant blocker (disp reader T3-defer) is the right first target
+  for the in-FPGA A/B harness: run identical images on core+silicon,
+  sweep the reader's ready phase against the prefetch grid, and measure
+  the exact deferred-Ti count per (EA-mode, prefix, queue-fill). That
+  gives the law directly instead of guessing dly/commit gates.
+- Repro recipe: sw/check_seq.py SEED for a full seed; for isolation use
+  the /tmp repro pattern (compose a short instr with N leading NOPs to
+  sweep bus phase, diff via check_seq.diff). A temporary EU/BIU state
+  dump gated on +eudbg in tb_v30_core's bootimg loop (see this session's
+  git history if re-adding) trivializes phase debugging.
+- The 3 fixes are orthogonal and safe; the ALU-forms fix in particular
+  closes a real 24-opcode functional gap (not just timing).

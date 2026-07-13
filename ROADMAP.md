@@ -111,8 +111,22 @@ Status (2026-07-12, blocks 1-4 complete):
   headers/comments and the git log.
 - Remaining for campaign completion:
   - **Exit gate: sequence-fuzz divergence hunt** (sw/gen_seq.py +
-    sw/check_seq.py; reassigned) - >=500 random multi-instruction
-    sequences chip-vs-core with zero divergences.
+    sw/check_seq.py) - Mission S RAN (2026-07-13), gate NOT yet passed.
+    ~110 random sequences + ~150 isolated repros on the real board.
+    THREE divergence classes found & FIXED (golden regression held at
+    155440/155500 throughout): (1) ALU r/m word+direction forms - 24
+    opcodes were UNIMPLEMENTED (parked S_HALT), a real functional gap the
+    single-instruction suite missed; (2) PUSH bus-reservation phase; (3)
+    reg-EA reader commit-at-T4. Clean rate rose to ~42% (17/40 fresh
+    seeds). OPEN blocker: the disp8/disp16 reader commit-phase timing
+    class (16/23 of remaining divergences) - a reader read that becomes
+    ready exactly on a prefetch T3 commits early on the core but the chip
+    defers ~2 cycles; a multi-phase fit entangled with push-absorb that
+    needs the Campaign-4 in-FPGA A/B measurement to resolve safely (blind
+    BIU edits regress the 155,500 goldens). Minor: a self-correcting QS
+    pin flicker; and one gen_seq containment escape (tooling, not core).
+    Full taxonomy + repro recipes in docs/notes/closure_checkpoint.md
+    (Mission S section).
   - 8F.0 ghost-read address residual (characterized; needs a schema
     extension or the injection stub modeled - or defer to Campaign 4
     where the stub runs for real).
