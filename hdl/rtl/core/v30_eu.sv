@@ -194,7 +194,7 @@ assign psw_ie = psw[9];
 typedef enum logic [6:0] {
     S_HALT, S_FIRST, S_DEC,
     S_IMM_LO, S_IMM_HI, S_NOP,
-    S_AI_I8, S_AI_I16, S_BCD_IMM,
+    S_AI_I8, S_AI_I16, S_AIGAP, S_BCD_IMM,
     S_EA1, S_EA2, S_DISP8, S_DLO, S_DGAP, S_DHI, S_DSTALL,
     S_RSV, S_REQ, S_BUSW,
     S_PUSH_CALC,
@@ -826,9 +826,10 @@ wire [31:0] ex_shr  = shrot(mrm_reg, sh_word,
                                     : {8'h00, rm_byte},
                             sh_cnt, psw);
 wire [31:0] ex_shrp = shrot(mrm_reg, 1'b1, mem_op, sh_cnt, psw);
-// byte-form mem write: 16-bit pair arithmetic with the imm byte on
-// both lanes (sibling-lane GUESS - fit against the 80.x goldens)
-wire [15:0] ai_pair = op_grp80 ? {disp[7:0], disp[7:0]} : ai_imm;
+// byte-form mem write: 16-bit pair arithmetic with the imm byte
+// SIGN-EXTENDED onto the sibling lane (measured: 80.0 ADD imm=08
+// sibling +carry only; 80.1 OR imm=f0 sibling -> FF; 80.2 ADC borrow)
+wire [15:0] ai_pair = op_grp80 ? {{8{disp[7]}}, disp[7:0]} : ai_imm;
 wire [15:0] ai_wide =
     (mrm_reg == 3'd0) ? mem_op + ai_pair :
     (mrm_reg == 3'd2) ? mem_op + ai_pair + {15'd0, psw[FB_CY]} :
@@ -1558,6 +1559,7 @@ always_ff @(posedge clk) begin
             // forms); execute in S_EX / write via S_RMWX. Structural
             // timing first pass - fit against the 80/81/83 goldens.
             //----------------------------------------------------------------
+            S_AIGAP: state <= S_AI_I8;     // mem imm forms: pop done+2
             S_AI_I8: if (q_pop) begin
                 disp[7:0] <= q_byte;
                 pc <= pc + 16'd1;
@@ -1573,6 +1575,10 @@ always_ff @(posedge clk) begin
                     state <= S_EX;
                 else if (op_imuli) begin              // 6B (fit pending)
                     dly <= 6'd9; wnext <= S_EX; state <= S_WAITX;
+                end else if (op_alui &&
+                             (mrm_mod == 2'd3 || mrm_reg == 3'd7)) begin
+                    // reg forms + CMP-mem retire at imm-pop+4 (80.0)
+                    dly <= 6'd2; wnext <= S_EX; state <= S_WAITX;
                 end else if (op_shimm) begin
                     // C0/C1 count byte (masked to 5 bits by sh_cnt)
                     if (mrm_mod != 2'd3) begin
@@ -1583,7 +1589,7 @@ always_ff @(posedge clk) begin
                         wnext <= S_EX; state <= S_WAITX;
                     end
                 end else if (mrm_mod != 2'd3 && mrm_reg != 3'd7) begin
-                    dly <= 6'd2; state <= S_RMWX;   // write ready pop+3
+                    dly <= 6'd3; state <= S_RMWX;   // write ready pop+4
                 end else state <= S_EX;
             end
             S_BCD_IMM: if (q_pop) begin        // D4/D5 base byte
@@ -1604,8 +1610,11 @@ always_ff @(posedge clk) begin
                     state <= S_EX;
                 else if (op_imuli) begin              // 69 (fit pending)
                     dly <= 6'd9; wnext <= S_EX; state <= S_WAITX;
+                end else if (op_alui &&
+                             (mrm_mod == 2'd3 || mrm_reg == 3'd7)) begin
+                    dly <= 6'd2; wnext <= S_EX; state <= S_WAITX;
                 end else if (mrm_mod != 2'd3 && mrm_reg != 3'd7) begin
-                    dly <= 6'd2; state <= S_RMWX;   // write ready pop+3
+                    dly <= 6'd3; state <= S_RMWX;   // write ready pop+4
                 end else state <= S_EX;
             end
             S_IMM_HI: if (q_pop) begin
@@ -2287,7 +2296,7 @@ always_ff @(posedge clk) begin
                     else if (op_alui ||
                              ((op_grpf6 || op_grpf7) && mrm_reg == 3'd0) ||
                              op_imuli)
-                        state <= S_AI_I8;   // imm pops after the read
+                        state <= S_AIGAP;   // imm pops at done+2
                     else if ((op_grpf6 || op_grpf7) &&
                              (mrm_reg == 3'd2 || mrm_reg == 3'd3)) begin
                         dly <= 6'd2; state <= S_RMWX;   // NOT/NEG mem
