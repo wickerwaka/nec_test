@@ -291,19 +291,59 @@ tri  [19:0] core_ad;
 wire  [1:0] core_qs;
 wire  [2:0] core_bs;
 wire        core_rd_n, core_ube_n, core_buslock_n;
-wire        core_reset = hb_reset | ~cfg_use_core;   // held in reset unless A
+
+//----------------------------------------------------------------------------
+// Core-side input pipeline (hold-margin fix, Campaign 4 Mission A2).
+//
+// The physical chip samples its inputs at its internal clock edge; board
+// propagation (FPGA output register + IO + level shifters, ~10-15 ns)
+// naturally holds each signal PAST that edge, so the chip always sees the
+// pre-edge value. The internal core's CLK posedge derives from the very
+// sys-clock edge that updates nec_bus's outputs (drive_en/rdata, RESET,
+// READY, INT/NMI/POLL), so in delta-cycle semantics the core would sample
+// the POST-edge values with zero hold: it saw RESET released one CPU cycle
+// early and lost the read-data race at the T3->T4 sampling edge (the boot
+// desync, bringup_log 2026-07-13). Re-registering every nec_bus->core
+// input once on the sys clock hands the core the pre-edge value at its
+// sampling edge, reproducing the chip's electrical hold margin.
+//
+// The piped AD drive enable extends one sys clock into T4, so the core's
+// own next-address drive can overlap it for that single sys clock on the
+// internal net. Harmless: the core samples ad_i only at its CLK posedges
+// (a full CPU cycle away) and nec_bus's address/data samples land at
+// tick_fall / end-of-cycle strobes, never on the first sys clock of T4
+// (cfg_clk_div >= 4).
+//
+// Core-side only: the physical NEC_* datapath below uses the un-piped
+// signals and stays bit-identical to the known-good chip build.
+//----------------------------------------------------------------------------
+reg        c_ready_q, c_reset_q, c_int_q, c_nmi_q, c_polln_q;
+reg [15:0] c_rdata_q;
+reg        c_addrv_q;
+
+always_ff @(posedge clk) begin
+    c_ready_q <= hb_ready;
+    c_reset_q <= hb_reset;
+    c_int_q   <= hb_int;
+    c_nmi_q   <= hb_nmi;
+    c_polln_q <= hb_poll_n;
+    c_rdata_q <= hb_ad_drive;
+    c_addrv_q <= hb_ad_dir;
+end
+
+wire core_reset = c_reset_q | ~cfg_use_core;   // held in reset unless A/B=core
 
 // harness read data driven onto the core's AD[15:0] during its read cycles
-assign core_ad[15:0] = hb_ad_dir ? hb_ad_drive : 16'hzzzz;
+assign core_ad[15:0] = c_addrv_q ? c_rdata_q : 16'hzzzz;
 
 v30_core u_core
 (
     .CLK       (hb_clk),
     .RESET     (core_reset),
-    .READY     (hb_ready),
-    .INT       (hb_int),
-    .NMI       (hb_nmi),
-    .POLL_N    (hb_poll_n),
+    .READY     (c_ready_q),
+    .INT       (c_int_q),
+    .NMI       (c_nmi_q),
+    .POLL_N    (c_polln_q),
     .AD        (core_ad),
     .QS        (core_qs),
     .BS        (core_bs),
