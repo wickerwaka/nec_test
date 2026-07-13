@@ -2684,23 +2684,32 @@ always_ff @(posedge clk) begin
                         state <= S_NOP;      // ESC mem: close done+3
                     end else if (op_chk && !ldp2) begin
                         // CHKIND: lower bound read; upper at EA+2
+                        // ready done+3 (hi read commits lo-end+6, all
+                        // 500 golden cases)
                         ldp2 <= 1'b1;
                         cmp1 <= eu_rdata;
                         eu_addr <= eu_addr + 20'd2;
                         eu_wr <= 1'b0;
-                        state <= S_REQ;
+                        dly <= 6'd2; wnext <= S_REQ;
+                        state <= S_WAITX;
                     end else if (op_chk) begin
                         // signed bounds check (0xFFFF upper = -1 traps)
                         logic [15:0] xi, xl, xh;
                         xi = rf[mrm_reg] ^ 16'h8000;
                         xl = cmp1 ^ 16'h8000;
                         xh = eu_rdata ^ 16'h8000;
-                        if (xi < xl || xi > xh) begin
+                        if (xi < xl) begin
+                            // below-lower trap: early-out, IVT read
+                            // 3 cycles sooner than above-upper (measured)
                             ivt_vec <= 8'd5;
-                            dly <= 6'd8; wnext <= S_TRAP_IVT1;  // fit
+                            dly <= 6'd5; wnext <= S_TRAP_IVT1;
+                            state <= S_WAITX;
+                        end else if (xi > xh) begin
+                            ivt_vec <= 8'd5;
+                            dly <= 6'd8; wnext <= S_TRAP_IVT1;
                             state <= S_WAITX;
                         end else begin
-                            dly <= 6'd2; wnext <= S_EX;         // fit
+                            dly <= 6'd2; wnext <= S_EX;  // close done+3
                             state <= S_WAITX;
                         end
                     end else if (op_disp) begin
@@ -2709,12 +2718,14 @@ always_ff @(posedge clk) begin
                         rf[5] <= eu_rdata;
                         retire();            // fit pending
                     end else if (op_ldptr && !ldp2) begin
-                        // LES/LDS: offset word read; chain the segment
-                        // word at EA+2 (fit pending)
+                        // LES/LDS: offset word read; segment word at
+                        // EA+2 ready done+3 (commits lo-end+6; all
+                        // 1000 golden cases C4+C5)
                         ldp2 <= 1'b1;
                         eu_addr <= eu_addr + 20'd2;
                         eu_wr <= 1'b0;
-                        state <= S_REQ;
+                        dly <= 6'd2; wnext <= S_REQ;
+                        state <= S_WAITX;
                     end else if (op_ldptr) begin
                         rf[mrm_reg] <= mem_op;
                         if (opc[0]) sr[SEG_DS] <= eu_rdata;   // C5 LDS

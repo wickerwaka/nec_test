@@ -85,13 +85,17 @@ echo`). NEVER reprogram the FPGA; one board user at a time.
   the vector pop (bus_phase: T1/T3=0 fast dly3, T2/T4=1 dly4). NEW BIU
   machinery: defer_t4 (a fetch-T3 eval finding a held-not-ready
   request with eu_soon re-runs mid-T4) + bus_phase output.
-- REMAINING fit queue (bulk-score for current truth): 8F.0 partial, 9A pushes,
-  C4/C5 second-read slot, C8 PREPARE (arch 0 - debug), C9/CB/CA/CF/
-  CC/CD/CE cold-half decode-reservation (add opcodes to the S_DEC
-  eu_req list like C3) + slots, 62 CHKIND slots, EA variant, 68/6A
-  push slot cold quarter,
+- FITTED since: 62 CHKIND + C4/C5 LDS/LES 500/500. LAWS: two-word mem
+  reads chain with the 2nd request ready done+3 (2nd bus cycle commits
+  uniformly at 1st-read-end+6); CHKIND no-trap close done+3; trap:
+  below-lower early-out = IVT read 3 cycles sooner than above-upper.
+- REMAINING fit queue (bulk-score for current truth): 8F.0 partial,
+  9A pushes, C8 PREPARE (arch 0 - debug), EA variant, 68/6A push slot
+  cold quarter, F6.6 cycles, FE.1/FF.0/FF.1 write DATA wrong (arch 0
+  - real bug, incdec16?), FF.2-6 slots,
   0F22 sibling residue (parked), 0F26 2-case residue (parked).
-- NOT IMPLEMENTED: 60/61 (PUSH R/POP R), INS/EXT 0F31/33/39/3B.
+- NOT IMPLEMENTED but tranches LANDED: 60/61 (PUSH R/POP R),
+  INS/EXT 0F31/33/39/3B.
 - (batch-2 fully fitted as of this commit)
 
 ## Pending fit (batch-3, skeletons in core, timing guessed)
