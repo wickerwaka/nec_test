@@ -1323,14 +1323,21 @@ always_ff @(posedge clk) begin
                                 dly <= 6'd1; wnext <= S_EX;
                                 state <= S_WAITX;
                             end else if (op_grpf6 && q_byte[5:3] == 3'd5) begin
-                                // IMUL8 reg (fit pending)
-                                dly <= 6'd21; wnext <= S_EX;
+                                // IMUL8 reg: +4 when operand signs differ
+                                // (extra correction pass; measured)
+                                dly <= (reg8_get(q_byte[2:0])[7] ^ rf[0][7])
+                                       ? 6'd35 : 6'd31;
+                                wnext <= S_EX;
                                 state <= S_WAITX;
-                            end else if (op_grpf7 &&
-                                         (q_byte[5:3] == 3'd4 ||
-                                          q_byte[5:3] == 3'd5)) begin
-                                // MULU16/IMUL16 reg (fit pending)
-                                dly <= 6'd29; wnext <= S_EX;
+                            end else if (op_grpf7 && q_byte[5:3] == 3'd4) begin
+                                // MULU16 reg
+                                dly <= 6'd28; wnext <= S_EX;
+                                state <= S_WAITX;
+                            end else if (op_grpf7 && q_byte[5:3] == 3'd5) begin
+                                // IMUL16 reg: +4 on sign mismatch (measured)
+                                dly <= (rf[q_byte[2:0]][15] ^ rf[0][15])
+                                       ? 6'd42 : 6'd38;
+                                wnext <= S_EX;
                                 state <= S_WAITX;
                             end else if (op_imuli) begin
                                 state <= S_AI_I8;   // imm then multiply
@@ -1722,8 +1729,12 @@ always_ff @(posedge clk) begin
                     state <= S_EX;
                 else if (op_grpf6 && mrm_reg == 3'd0)
                     state <= S_EX;
-                else if (op_imuli) begin              // 6B (fit pending)
-                    dly <= 6'd9; wnext <= S_EX; state <= S_WAITX;
+                else if (op_imuli) begin
+                    // 6B: +4 on sign mismatch rm vs simm8 (measured)
+                    dly <= (q_byte[7] ^ ((mrm_mod == 2'd3)
+                            ? rf[mrm_rm][15] : mem_op[15]))
+                           ? 6'd40 : 6'd36;
+                    wnext <= S_EX; state <= S_WAITX;
                 end else if (op_alui &&
                              (mrm_mod == 2'd3 || mrm_reg == 3'd7)) begin
                     // reg forms + CMP-mem retire at imm-pop+4 (80.0)
@@ -1777,8 +1788,12 @@ always_ff @(posedge clk) begin
                     psw <= tw16[31:16];
                     arch_ip <= pc + 16'd1;
                     state <= S_FIRST;
-                end else if (op_imuli) begin          // 69 (fit pending)
-                    dly <= 6'd9; wnext <= S_EX; state <= S_WAITX;
+                end else if (op_imuli) begin
+                    // 69: +4 on sign mismatch rm vs imm16 (measured)
+                    dly <= (q_byte[7] ^ ((mrm_mod == 2'd3)
+                            ? rf[mrm_rm][15] : mem_op[15]))
+                           ? 6'd39 : 6'd35;
+                    wnext <= S_EX; state <= S_WAITX;
                 end else if (op_alui &&
                              (mrm_mod == 2'd3 || mrm_reg == 3'd7)) begin
                     // 81.x reg/CMP-mem retire at imm-pop+3 (one
@@ -2571,10 +2586,15 @@ always_ff @(posedge clk) begin
                              (mrm_reg == 3'd2 || mrm_reg == 3'd3)) begin
                         dly <= 6'd3; state <= S_RMWX;   // NOT/NEG mem
                     end else if (op_grpf6 && mrm_reg == 3'd5) begin
-                        dly <= 6'd22; wnext <= S_EX; state <= S_WAITX;
-                    end else if (op_grpf7 && (mrm_reg == 3'd4 ||
-                                              mrm_reg == 3'd5)) begin
-                        dly <= 6'd30; wnext <= S_EX; state <= S_WAITX;
+                        // IMUL8 mem: +4 on sign mismatch (measured)
+                        dly <= (eu_rdata[7] ^ rf[0][7]) ? 6'd36 : 6'd32;
+                        wnext <= S_EX; state <= S_WAITX;
+                    end else if (op_grpf7 && mrm_reg == 3'd4) begin
+                        dly <= 6'd29; wnext <= S_EX; state <= S_WAITX;
+                    end else if (op_grpf7 && mrm_reg == 3'd5) begin
+                        // IMUL16 mem: +4 on sign mismatch (measured)
+                        dly <= (eu_rdata[15] ^ rf[0][15]) ? 6'd43 : 6'd39;
+                        wnext <= S_EX; state <= S_WAITX;
                     end else if (op_grpff && mrm_reg <= 3'd1) begin
                         dly <= 6'd3; state <= S_RMWX;   // INC/DEC mem16
                     end else if (op_grpff && mrm_reg == 3'd6) begin
@@ -3020,6 +3040,12 @@ always_ff @(posedge clk) begin
                     rf[0] <= ms;
                     psw[FB_CY] <= ms[15:8] != {8{ms[7]}};
                     psw[FB_V]  <= ms[15:8] != {8{ms[7]}};
+                    // S/Z/AC/P = flags of the internal self-add
+                    // lo+lo (last multiplier shift stage; measured)
+                    psw[FB_S]  <= ms[6];
+                    psw[FB_Z]  <= ms[6:0] == 7'd0;
+                    psw[FB_AC] <= ms[3];
+                    psw[FB_P]  <= ~(^ms[6:0]);
                 end else if (op_grpf7 && mrm_reg == 3'd4) begin
                     // MULU16: {DW,AW} = AW x rm16; CY=V=(DW!=0)
                     logic [31:0] mw;
@@ -3038,6 +3064,11 @@ always_ff @(posedge clk) begin
                     rf[2] <= mws[31:16];
                     psw[FB_CY] <= mws[31:16] != {16{mws[15]}};
                     psw[FB_V]  <= mws[31:16] != {16{mws[15]}};
+                    // S/Z/AC/P from the internal lo+lo self-add (measured)
+                    psw[FB_S]  <= mws[14];
+                    psw[FB_Z]  <= mws[14:0] == 15'd0;
+                    psw[FB_AC] <= mws[3];
+                    psw[FB_P]  <= ~(^mws[6:0]);
                 end else if (op_grpf6 && mrm_reg == 3'd6) begin
                     // DIVU8 writeback: AL=q, AH=r
                     rf[0] <= {disp[7:0], mem_op[7:0]};
@@ -3063,6 +3094,11 @@ always_ff @(posedge clk) begin
                     rf[mrm_reg] <= mi[15:0];
                     psw[FB_CY] <= mi[31:16] != {16{mi[15]}};
                     psw[FB_V]  <= mi[31:16] != {16{mi[15]}};
+                    // S/Z/AC/P from the internal lo+lo self-add (measured)
+                    psw[FB_S]  <= mi[14];
+                    psw[FB_Z]  <= mi[14:0] == 15'd0;
+                    psw[FB_AC] <= mi[3];
+                    psw[FB_P]  <= ~(^mi[6:0]);
                 end else if (op_grpff) begin
                     // FF.0/FF.1 INC/DEC rm16 (reg form)
                     {psw, rf[mrm_rm]} <=

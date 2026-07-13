@@ -69,8 +69,12 @@ echo`). NEVER reprogram the FPGA; one board user at a time.
   (retire in S_DEC = close pop+2), 9E SAHF (pop+3).
 - FITTED since: NOT/NEG mem F6.2/3 F7.2/3 (RMW write req at read
   done+3 = S_WREQ; the BIU eu_ready_p1 gate makes the busy-bus slot).
-- REMAINING fit queue (bulk-score for current truth): IMUL F6.5/69/6B (ARCH laws wrong -
-  flags likely preserved-style + timing), 8F.0 partial, 9A pushes,
+- FITTED since: whole multiply family F6.4/F6.5/F7.4/F7.5/69/6B
+  3000/3000. LAWS (undefined_flags.md): signed-MUL S/Z/AC/P = ALU
+  flags of an internal lo+lo self-add of the result low half
+  (S=bit6/14, Z=low-7/15-bits==0, AC=bit3, P=parity(lo<<1)); timing
+  +4 cycles iff operand sign bits differ.
+- REMAINING fit queue (bulk-score for current truth): 8F.0 partial, 9A pushes,
   C4/C5 second-read slot, C8 PREPARE (arch 0 - debug), C9/CB/CA/CF/
   CC/CD/CE cold-half decode-reservation (add opcodes to the S_DEC
   eu_req list like C3) + slots, 62 CHKIND slots, EA variant, 68/6A

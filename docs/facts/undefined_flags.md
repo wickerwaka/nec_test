@@ -50,15 +50,26 @@ Verdict vocabulary:
 
 ### MULU vs MUL asymmetry
 Unsigned multiply **does not write** its undefined flags — S/Z/AC/P pass
-through unchanged (CY/V behave as documented). Signed MUL overwrites all
-four with values that match no simple function of the result: e.g. MUL reg8
-0x80*0x7F -> AW=C080 gives **Z=1** with a non-zero result and S=0 with MSB
-set; 3-operand MUL 0x2000*5 -> CW=A000 gives S=0. S/Z looked
-result-derived in most samples (and exactly result-derived in all 3-operand
-samples), but the violations above rule out SZP-of-result for the 2-operand
-forms — consistent with residue of the internal sign-fixup micro-ops (the
-same fixup that costs MUL +10/+4 cycles over MULU, measurements.md). An RTL
-core must reproduce these per-form, not via a generic flag rule.
+through unchanged (CY/V behave as documented).
+
+**SOLVED (2026-07-12, Campaign 3, 3000 golden cases):** signed MUL
+(F6.5/F7.5/69/6B) writes S/Z/AC/P as the ALU flags of an internal
+**self-add of the result's low half** (lo+lo, i.e. the last multiplier
+shift stage executed as an add):
+- S = bit6 (byte) / bit14 (word) of the result
+- Z = (result & 0x7F) == 0 (byte) / (result & 0x7FFF) == 0 (word)
+- AC = bit3 of the result (carry out of bit3 in lo+lo)
+- P = parity of ((result << 1) & 0xFF)
+This exactly explains the old anomalies: 0x80*0x7F -> AW=C080 has
+lo=0x80, so Z=1 (0x80&0x7F==0) and S=bit6(0x80)=0. CY/V remain the
+documented extension test. Verified 500/500 on each of F6.5, F7.5,
+69, 6B (reg and mem forms).
+
+**Timing law (same corpus):** signed MUL costs **+4 cycles when the
+two operands' sign bits differ** (negative product -> extra correction
+pass); perfectly bimodal, no other data dependence. Bases (EU dly):
+IMUL8 reg 31 / mem 32; IMUL16 reg 38 / mem 39; 69 imm16 35; 6B simm8
+36; MULU16 reg 28 / mem 29 (no data dependence for unsigned).
 
 ### Signed/unsigned divide constants
 DIVU forces S=1, AC=1, CY=1, Z=0, V=0 (P varies); DIV forces the complement
