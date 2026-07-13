@@ -106,8 +106,17 @@ echo`). NEVER reprogram the FPGA; one board user at a time.
   where the TB's carried pre-capture grid parity differs from
   silicon's (environment alignment, not a core law; 461/500 validate
   the law).
+- FITTED since: FF.2/3/4/5 all 500/500. LAWS: JWAIT-exit was
+  clobbering fl_ip with disp for FF rm forms (arch bug); far-mem
+  pointer chain: BR 2nd word ready done+4, CALL done+5; BR far mem
+  flush CS-done+2; CALL rm reg push ready on next phase-0 slot
+  (pop+4/5), NO JWAIT reservation (prefetch commits in the wait);
+  CALL rm mem flush done+4; FF REG branches use the fast
+  (mid-cycle-commit) flush, mem branches the normal one; CALL far mem
+  order = PS push (ready done+5), flush at write-done+1 (new S_FCFL2),
+  PC push committing at the flush cycle end.
 - REMAINING fit queue (bulk-score for current truth): 8F.0 partial,
-  9A pushes, C8 PREPARE (arch 0 - debug), F6.6 cycles, FF.2-5 slots,
+  9A pushes, C8 PREPARE (arch 0 - debug), F6.6 cycles,
   0F22 sibling residue (parked), 0F26 2-case residue (parked).
 - NOT IMPLEMENTED but tranches LANDED: 60/61 (PUSH R/POP R),
   INS/EXT 0F31/33/39/3B.

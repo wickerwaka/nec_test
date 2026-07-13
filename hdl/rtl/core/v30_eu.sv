@@ -214,7 +214,7 @@ typedef enum logic [6:0] {
     S_PREP_PW, S_PREP_PWW, S_PREP_W3, S_PREP_W4,
     S_STRW, S_STRR, S_STRS, S_STRE,
     S_CMPW1, S_CMPW2, S_CMPNXT, S_SCASW, S_SCASNXT,
-    S_CALLFL, S_CALLPUSH, S_CALLW, S_RETF,
+    S_CALLFL, S_CALLPUSH, S_CALLW, S_RETF, S_FCFL2,
     S_TRAP_IVT1, S_TRAP_IVT2, S_TRAP_IVT2W,
     S_TRAP_W1, S_TRAP_PSW, S_TRAP_PSWW,
     S_TRAP_W2, S_TRAP_PS, S_TRAP_PSW2W,
@@ -965,11 +965,14 @@ assign q_first = state == S_FIRST;
 // cycles (S_JFLUSH/S_RETF) and CALL's push-status cycle
 assign q_flush = flush_now || (state == S_JFLUSH) || (state == S_RETF) ||
                  (state == S_CALLFL) || (state == S_FCALLFL) ||
-                 (state == S_IRQ_REPFL);
+                 (state == S_FCFL2) || (state == S_IRQ_REPFL);
 assign flush_cs = fl_cs;
 // EA far jump: the flush cycle commits the redirected prefetch
 // mid-cycle (measured; near flushes commit at the cycle end)
-assign flush_fast = state == S_JFLUSH && opc == 8'hEA;
+// fast (mid-cycle-commit) flush: EA and the FF rm REG branches; the
+// FF mem branches flush with the normal end-of-cycle commit (measured)
+assign flush_fast = state == S_JFLUSH &&
+                    (opc == 8'hEA || (op_grpff && mrm_mod == 2'd3));
 assign flush_ip = fl_ip;
 assign dbg_first_pop = q_pop && q_first;
 
@@ -1042,7 +1045,11 @@ always_comb begin
                             (dly == 6'd5 || wnext == S_JNT)) &&
                           !(opc == 8'hE0 || opc == 8'hE1) &&
                           !(opc == 8'hE3 &&
-                            (dly == 6'd5 || wnext == S_JNT));
+                            (dly == 6'd5 || wnext == S_JNT)) &&
+                          // CALL rm reg: no reservation (measured: a
+                          // prefetch commits inside the wait)
+                          !(op_grpff && mrm_reg == 3'd2 &&
+                            mrm_mod == 2'd3);
         // CALL: the flush cycle keeps the reservation so the push (ready
         // next cycle) wins the first slot ahead of the redirected prefetch
         S_CALLFL: eu_req = 1'b1;
@@ -1061,7 +1068,7 @@ always_comb begin
         S_RESET: eu_req = 1'b1;
         S_REQ, S_WREQ,
         S_A4_SRC, S_A4_DST, S_A4_WR,
-        S_CALLPUSH, S_FCALLP1, S_FCALLP2,
+        S_CALLPUSH, S_FCALLP1, S_FCALLP2, S_FCFL2,
         S_PREP_W1, S_PREP_RD, S_PREP_PW, S_PREP_W3,
         S_STRW, S_STRR, S_STRS,
         S_TRAP_IVT1, S_TRAP_IVT2,
@@ -1400,10 +1407,12 @@ always_ff @(posedge clk) begin
                                 state <= S_WAITX;
                             end else if (op_grpff &&
                                          q_byte[5:3] == 3'd2) begin
-                                // CALL rm (reg): fit pending
+                                // CALL rm (reg): push ready on the next
+                                // phase-0 grid slot (pop+4/pop+5)
                                 fl_ip <= rf[q_byte[2:0]];
                                 fl_cs <= sr[SEG_CS];
-                                dly <= 6'd2; wnext <= S_CALLFL;
+                                dly <= bus_phase ? 6'd3 : 6'd2;
+                                wnext <= S_CALLFL;
                                 state <= S_JWAIT;
                             end else if (op_grpff &&
                                          q_byte[5:3] == 3'd4) begin
@@ -1946,8 +1955,9 @@ always_ff @(posedge clk) begin
                     state <= wnext;
                     // near transfers redirect within CS; EA (far) has
                     // already latched its target in S_JSHI
+                    // (FF rm forms latch fl_ip/fl_cs at dispatch)
                     if ((wnext == S_JFLUSH || wnext == S_CALLFL) &&
-                        opc != 8'hEA) begin
+                        opc != 8'hEA && !op_grpff) begin
                         fl_cs <= sr[SEG_CS];
                         fl_ip <= disp;
                     end
@@ -1980,6 +1990,11 @@ always_ff @(posedge clk) begin
                 pc <= fl_ip;
                 sr[SEG_CS] <= fl_cs;
                 state <= S_FCALLP1;
+            end
+            S_FCFL2: begin       // FF.3 flush cycle (PC push pending)
+                pc <= fl_ip;
+                sr[SEG_CS] <= fl_cs;
+                state <= S_CALLPUSH;
             end
             S_FCALLP1: if (eu_started) begin
                 issue_push(mem_op);
@@ -2620,6 +2635,11 @@ always_ff @(posedge clk) begin
                     rf[4] <= rf[4] + 16'd2;
                     shadow <= 1'b1;      // sreg loads shadow recognition
                     retire();
+                end else if (op_grpff && mrm_reg == 3'd3 && eu_wr) begin
+                    // CALL far mem: PS push done; pre-issue the PC
+                    // push and flush next cycle
+                    issue_push(pc);
+                    state <= S_FCFL2;
                 end else if (op_pushsr || opc == 8'h9C || op_pushi ||
                              (op_grpff && mrm_reg == 3'd6 && eu_wr)) begin
                     retire();
@@ -2674,27 +2694,39 @@ always_ff @(posedge clk) begin
                         state <= S_WAITX;
                     end else if (op_grpff && (mrm_reg == 3'd2 ||
                                               mrm_reg == 3'd4)) begin
-                        // CALL/BR rm (mem): target read (fit pending)
+                        // CALL/BR rm (mem): flush at read done+4
                         fl_ip <= eu_rdata;
                         fl_cs <= sr[SEG_CS];
-                        dly <= 6'd2;
+                        dly <= (mrm_reg == 3'd2) ? 6'd3 : 6'd2;
                         wnext <= (mrm_reg == 3'd2) ? S_CALLFL : S_JFLUSH;
                         state <= S_JWAIT;
                     end else if (op_grpff && (mrm_reg == 3'd3 ||
                                               mrm_reg == 3'd5)) begin
                         // CALL/BR far mem: two pointer words
                         if (!ldp2) begin
+                            // second pointer word: BR ready done+4,
+                            // CALL done+5 (measured)
                             ldp2 <= 1'b1;
                             fl_ip <= eu_rdata;
                             eu_addr <= eu_addr + 20'd2;
                             eu_wr <= 1'b0;
-                            state <= S_REQ;
-                        end else begin
+                            dly <= (mrm_reg == 3'd3) ? 6'd4 : 6'd3;
+                            wnext <= S_REQ;
+                            state <= S_WAITX;
+                        end else if (mrm_reg == 3'd5) begin
+                            // BR far mem: flush at CS-done+2
                             fl_cs <= eu_rdata;
-                            dly <= 6'd2;                // fit pending
-                            wnext <= (mrm_reg == 3'd3) ? S_FCALLFL
-                                                       : S_JFLUSH;
+                            dly <= 6'd1;
+                            wnext <= S_JFLUSH;
                             state <= S_JWAIT;
+                        end else begin
+                            // CALL far mem: PS push ready done+5, then
+                            // flush at write-done+1 with the PC push
+                            // committing at the flush cycle end
+                            fl_cs <= eu_rdata;
+                            issue_push(sr[SEG_CS]);
+                            dly <= 6'd4; wnext <= S_REQ;
+                            state <= S_WAITX;
                         end
                     end else if (op_popm) begin
                         // stack word read; now write it to the saved EA
