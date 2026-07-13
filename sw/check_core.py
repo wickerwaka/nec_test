@@ -352,6 +352,11 @@ def main():
     ap.add_argument("--keep", action="store_true",
                     help="keep batch/output temp files")
     ap.add_argument("--suite-dir", default=str(SUITE))
+    ap.add_argument("--ce-div", type=int, default=1,
+                    help="core clock-enable divisor (1=CE high every clk); "
+                         ">1 exercises the CE-hold path (rows must match N=1)")
+    ap.add_argument("--ce-hold-check", action="store_true",
+                    help="assert core internal state freezes on CE-low clocks")
     ap.add_argument("--waits", type=int, default=0,
                     help="TB READY wait states (match the suite's setting)")
     args = ap.parse_args()
@@ -392,12 +397,19 @@ def main():
             batch = Path(td) / "batch.txt"
             outf = Path(td) / "out.txt"
             compose_batch(cases, batch)
-            r = subprocess.run([str(BIN), f"+batch={batch}",
-                                f"+out={outf}", f"+waits={args.waits}"],
-                               cwd=ROOT, capture_output=True, text=True)
+            sim_args = [str(BIN), f"+batch={batch}", f"+out={outf}",
+                        f"+waits={args.waits}", f"+ce_div={args.ce_div}"]
+            if args.ce_hold_check:
+                sim_args.append("+ce_hold_check")
+            r = subprocess.run(sim_args, cwd=ROOT, capture_output=True,
+                               text=True)
             if r.returncode != 0 or not outf.exists():
                 print(f"{op}: SIM FAILED\n{r.stdout}\n{r.stderr}")
                 continue
+            if args.ce_hold_check:
+                for ln in r.stdout.splitlines():
+                    if "CE_HOLD_VIOL" in ln or "CE-HOLD VIOLATION" in ln:
+                        print(f"  {op}: {ln.strip()}")
             sims = parse_out(outf)
             if args.keep:
                 import shutil

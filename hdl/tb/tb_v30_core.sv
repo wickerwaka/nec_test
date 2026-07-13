@@ -514,6 +514,49 @@ initial begin
     $finish;
 end
 
+//----------------------------------------------------------------------------
+// CE-hold assertion (+ce_hold_check): the core must NOT advance on a
+// CE-low fabric clock. Snapshot the watched internal state every fabric
+// clock; on any clock whose PRECEDING edge had CE low (ce_p==0) and was
+// out of reset, the watched state must be unchanged from that edge. Any
+// change is a gating bug (the core ran on a disabled clock). Used with
+// +ce_div=N (N>1); harmless at N=1 (ce_p is always high so never checks).
+//----------------------------------------------------------------------------
+logic       ce_hold_check;
+initial     ce_hold_check = $test$plusargs("ce_hold_check");
+logic [6:0] eu_state_p  = '0;
+logic [2:0] biu_state_p = '0;
+logic [2:0] q_cnt_p     = '0;
+logic [5:0] div_cnt_p   = '0;
+logic       ce_p = 1'b1, reset_p = 1'b1;
+integer     ce_hold_viol = 0;
+
+always @(posedge clk) begin
+    if (ce_hold_check && !reset_p && !ce_p) begin
+        if (dut.u_eu.state  !== eu_state_p  ||
+            dut.u_biu.state !== biu_state_p ||
+            dut.u_biu.q_cnt !== q_cnt_p     ||
+            dut.u_eu.div_cnt !== div_cnt_p) begin
+            ce_hold_viol <= ce_hold_viol + 1;
+            if (ce_hold_viol <= 10)
+                $display("CE-HOLD VIOLATION @%0t: eu %0d->%0d biu %0d->%0d qcnt %0d->%0d div %0d->%0d",
+                         $time, eu_state_p, dut.u_eu.state,
+                         biu_state_p, dut.u_biu.state,
+                         q_cnt_p, dut.u_biu.q_cnt,
+                         div_cnt_p, dut.u_eu.div_cnt);
+        end
+    end
+    eu_state_p  <= dut.u_eu.state;
+    biu_state_p <= dut.u_biu.state;
+    q_cnt_p     <= dut.u_biu.q_cnt;
+    div_cnt_p   <= dut.u_eu.div_cnt;
+    ce_p        <= ce;
+    reset_p     <= reset;
+end
+
+final if (ce_hold_check)
+    $display("CE_HOLD_VIOL %0d (ce_div=%0d)", ce_hold_viol, ce_div);
+
 wire _unused = &{1'b0, RD_N, BUSLOCK_N, dbg_first_pop, scr_en, scr_qop};
 
 endmodule
