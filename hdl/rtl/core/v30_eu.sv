@@ -268,6 +268,28 @@ reg         div_dsign;   // divisor sign (quotient fixup)
 reg         div_pend;    // a divide is heading to retire via S_WAITX
 reg         div_late;    // latched late-trap (signed quotient magnitude ovf)
 
+// ---- shared iterative shift/rotate unit -------------------------------
+// Campaign 4 synthesis: replaces the single 255-deep combinational
+// `shrot` unroll (D0-D3/C0/C1, all 8 sub-ops) with ONE shift stage that
+// steps exactly n single-bit shifts (n = the FULL 8-bit count 0-255, NO
+// masking preserved), one per clock through the shift micro-op's already
+// idle wait window (the same window S_SHWAIT/S_WAITX already burn). The
+// unit is loaded at each dispatch site (reg forms in S_DEC, C0/C1 at the
+// count-imm pop, mem forms at read-done) and assembles the architectural
+// result + flags into sh_res/sh_fl before the S_EX / S_RMWX retirement
+// reads them. Bit- and cycle-identical to the old combinational path.
+reg  [15:0] sh_r;        // word working value
+reg  [7:0]  sh_x;        // byte working value (active lane, x_hi=0)
+reg  [7:0]  sh_oth;      // byte sibling lane (shift register)
+reg         sh_cy;       // working carry
+reg  [2:0]  sh_op;       // sub-op (mrm_reg): 0..7
+reg         sh_wf;       // word form
+reg  [7:0]  sh_n;        // shifts remaining (full 8-bit count)
+reg         sh_busy;     // unit stepping
+reg  [15:0] sh_fbase;    // base flags (psw at dispatch; count=0 preserves)
+reg  [15:0] sh_res;      // assembled result value (byte = {oth, x})
+reg  [15:0] sh_fl;       // assembled new flags
+
 reg  [7:0]  opc;
 reg  [7:0]  opc2;        // 0F-prefixed second byte
 reg  [7:0]  mrm;
@@ -543,6 +565,27 @@ task automatic wr_reg8(input [2:0] r, input [7:0] v);
     else      rf[{1'b0, r[1:0]}][7:0]  <= v;
 endtask
 
+// Load the iterative shift/rotate unit at dispatch. `a` is the operand
+// pair ({sibling, byte} for byte forms, x_hi=0 so x=a[7:0], oth=a[15:8]);
+// `cnt` is the FULL 8-bit shift count (0-255, no masking). count=0
+// preserves both the value and every flag (result = a, flags = psw).
+task automatic sh_load(input [2:0] op, input wf,
+                       input [15:0] a, input [7:0] cnt);
+    sh_op    <= op;
+    sh_wf    <= wf;
+    sh_cy    <= psw[FB_CY];
+    sh_fbase <= psw;
+    sh_n     <= cnt;
+    if (wf) sh_r <= a;
+    else begin sh_x <= a[7:0]; sh_oth <= a[15:8]; end
+    if (cnt == 8'd0) begin
+        sh_busy <= 1'b0;
+        sh_res  <= a;
+        sh_fl   <= psw;
+    end else
+        sh_busy <= 1'b1;
+endtask
+
 //----------------------------------------------------------------------------
 // flag/ALU helpers. Return {new_psw[15:0], result}.
 //----------------------------------------------------------------------------
@@ -588,90 +631,6 @@ function automatic [23:0] alu8(input [2:0] op, input [7:0] a, input [7:0] b,
     nf[FB_Z] = r == 8'd0;
     nf[FB_P] = ~^r;
     alu8 = {nf, r};
-endfunction
-
-// Shift/rotate unit (D0-D3, C0/C1, all 8 sub-ops; 6 = SHL alias).
-// V30 iterates the FULL 8-bit count (no masking - measured, C0.x).
-// Word forms operate on the 16-bit value. Byte forms operate on the
-// addressed byte (x) with 8-bit semantics while the OTHER bus lane
-// acts as a shift register: left-family ops shift it left taking x's
-// outgoing MSB (seeded by the read's sibling lane - measured on the
-// C0.0 n=1/6/9/12 families), right-family ops shift it right pure.
-// Flags come from the x lane; count=0 preserves everything; shifts
-// set S/Z/P of the result and AC=0; V by the final-state single-step
-// formula. {new_psw, pair_result}.
-function automatic [31:0] shrot(input [2:0] op, input word,
-                                input x_hi,
-                                input [15:0] a, input [7:0] cnt,
-                                input [15:0] f);
-    logic [15:0] r;
-    logic [15:0] nf;
-    logic [7:0] x, oth;
-    logic cy, msb, lsb, oc, outb;
-    if (word) begin
-        r = a;
-        x = 8'h0;
-        oth = 8'h0;
-    end else begin
-        x = x_hi ? a[15:8] : a[7:0];
-        oth = x_hi ? a[7:0] : a[15:8];
-        r = a;
-    end
-    nf = f;
-    cy = f[FB_CY];
-    for (int i = 0; i < 255; i++) begin
-        if (i < {24'd0, cnt}) begin
-            if (word) begin
-                msb = r[15];
-                lsb = r[0];
-                unique case (op)
-                    3'd0: begin r = {r[14:0], msb}; cy = msb; end
-                    3'd1: begin r = {lsb, r[15:1]}; cy = lsb; end
-                    3'd2: begin oc = cy; cy = msb; r = {r[14:0], oc}; end
-                    3'd3: begin oc = cy; cy = lsb; r = {oc, r[15:1]}; end
-                    3'd4, 3'd6: begin cy = msb; r = {r[14:0], 1'b0}; end
-                    3'd5: begin cy = lsb; r = {1'b0, r[15:1]}; end
-                    default: begin cy = lsb; r = {r[15], r[15:1]}; end
-                endcase
-            end else begin
-                msb = x[7];
-                lsb = x[0];
-                unique case (op)
-                    3'd0: begin x = {x[6:0], msb}; cy = msb;
-                                oth = {oth[6:0], msb}; end
-                    3'd1: begin x = {lsb, x[7:1]}; cy = lsb;
-                                oth = {lsb, oth[7:1]}; end
-                    3'd2: begin oc = cy; cy = msb; x = {x[6:0], oc};
-                                oth = {oth[6:0], msb}; end
-                    3'd3: begin oc = cy; cy = lsb; x = {oc, x[7:1]};
-                                oth = {oc, oth[7:1]}; end
-                    3'd4, 3'd6: begin cy = msb; x = {x[6:0], 1'b0};
-                                oth = {oth[6:0], msb}; end
-                    3'd5: begin cy = lsb; x = {1'b0, x[7:1]};
-                                oth = {1'b0, oth[7:1]}; end
-                    default: begin cy = lsb; x = {x[7], x[7:1]};
-                                oth = {1'b0, oth[7:1]}; end
-                endcase
-            end
-        end
-    end
-    if (!word)
-        r = x_hi ? {x, oth} : {oth, x};
-    if (cnt != 8'd0) begin
-        nf[FB_CY] = cy;
-        msb = word ? r[15] : x[7];
-        if (op == 3'd0 || op == 3'd2 || op == 3'd4 || op == 3'd6)
-            nf[FB_V] = msb ^ cy;                         // left family
-        else
-            nf[FB_V] = msb ^ (word ? r[14] : x[6]);      // right family
-        if (op[2]) begin                                 // shifts 4-7
-            nf[FB_S]  = msb;
-            nf[FB_Z]  = word ? (r == 16'd0) : (x == 8'd0);
-            nf[FB_P]  = word ? (~^r[7:0]) : (~^x);
-            nf[FB_AC] = 1'b0;
-        end
-    end
-    shrot = {nf, r};
 endfunction
 
 // 16-bit twin of alu8: {new_psw, result}; P from the LOW byte only
@@ -997,12 +956,12 @@ wire [31:0] ex_ai16 = alu16(mrm_reg, (mrm_mod == 2'd3) ? rf[mrm_rm]
 wire sh_word = op_grpd1 | op_grpd3 | op_grpc1;
 wire [7:0] sh_cnt = (op_grpd0 | op_grpd1) ? 8'd1 :
                     (op_grpd2 | op_grpd3) ? rf[1][7:0] : disp[7:0];
-wire [31:0] ex_shr  = shrot(mrm_reg, sh_word, 1'b0,
-                            sh_word ? ((mrm_mod == 2'd3) ? rf[mrm_rm]
-                                                         : mem_op)
-                            : ((mrm_mod == 2'd3)
-                               ? {8'h00, reg8_get(mrm_rm)} : mem_op),
-                            sh_cnt, psw);
+// operand pair fed to the iterative shift unit at dispatch: byte forms
+// pass {sibling, byte} (mem read pair, or {0, reg}); word forms the value.
+// (mrm is latched at the mem/C0-C1 dispatch sites that use this wire.)
+wire [15:0] sh_operand =
+    sh_word ? ((mrm_mod == 2'd3) ? rf[mrm_rm] : mem_op)
+            : ((mrm_mod == 2'd3) ? {8'h00, reg8_get(mrm_rm)} : mem_op);
 // byte-form mem write: 16-bit pair arithmetic with the imm byte
 // SIGN-EXTENDED onto the sibling lane (measured: 80.0 ADD imm=08
 // sibling +carry only; 80.1 OR imm=f0 sibling -> FF; 80.2 ADC borrow)
@@ -1484,6 +1443,7 @@ always_ff @(posedge clk) begin
         div_busy <= 1'b0;
         div_pend <= 1'b0;
         div_late <= 1'b0;
+        sh_busy  <= 1'b0;
         eu_kind  <= K_MEM;
         halt_disp <= 1'b0;
         eu_wr    <= 1'b0;
@@ -1593,6 +1553,77 @@ always_ff @(posedge clk) begin
             end
         end
 
+        // ---- iterative shift/rotate: one single-bit shift per clock ----
+        // Steps the shift micro-op's operand exactly sh_n times through the
+        // wait window S_SHWAIT/S_WAITX already burns; each step mirrors one
+        // iteration of the old combinational `shrot` loop body (word: 16-bit
+        // value; byte: active lane x plus the shift-register sibling oth).
+        // On the final step it assembles the architectural result (sh_res)
+        // and the fitted flag laws (sh_fl) - CY, the SHL-vs-rotate V-flag,
+        // and S/Z/P/AC for the shift sub-ops - from the final state, exactly
+        // as shrot did. count=0 is handled at load (sh_load) and never runs.
+        if (sh_busy) begin
+            logic [15:0] rN;
+            logic [7:0]  xN, othN;
+            logic        cyN, msb, lsb, oc, msbf;
+            logic [15:0] fl;
+            rN = sh_r; xN = sh_x; othN = sh_oth; cyN = sh_cy;
+            if (sh_wf) begin
+                msb = sh_r[15]; lsb = sh_r[0];
+                unique case (sh_op)
+                    3'd0: begin rN = {sh_r[14:0], msb}; cyN = msb; end
+                    3'd1: begin rN = {lsb, sh_r[15:1]}; cyN = lsb; end
+                    3'd2: begin oc = sh_cy; cyN = msb; rN = {sh_r[14:0], oc}; end
+                    3'd3: begin oc = sh_cy; cyN = lsb; rN = {oc, sh_r[15:1]}; end
+                    3'd4, 3'd6: begin cyN = msb; rN = {sh_r[14:0], 1'b0}; end
+                    3'd5: begin cyN = lsb; rN = {1'b0, sh_r[15:1]}; end
+                    default: begin cyN = lsb; rN = {sh_r[15], sh_r[15:1]}; end
+                endcase
+                sh_r <= rN;
+            end else begin
+                msb = sh_x[7]; lsb = sh_x[0];
+                unique case (sh_op)
+                    3'd0: begin xN = {sh_x[6:0], msb}; cyN = msb;
+                                othN = {sh_oth[6:0], msb}; end
+                    3'd1: begin xN = {lsb, sh_x[7:1]}; cyN = lsb;
+                                othN = {lsb, sh_oth[7:1]}; end
+                    3'd2: begin oc = sh_cy; cyN = msb; xN = {sh_x[6:0], oc};
+                                othN = {sh_oth[6:0], msb}; end
+                    3'd3: begin oc = sh_cy; cyN = lsb; xN = {oc, sh_x[7:1]};
+                                othN = {oc, sh_oth[7:1]}; end
+                    3'd4, 3'd6: begin cyN = msb; xN = {sh_x[6:0], 1'b0};
+                                othN = {sh_oth[6:0], msb}; end
+                    3'd5: begin cyN = lsb; xN = {1'b0, sh_x[7:1]};
+                                othN = {1'b0, sh_oth[7:1]}; end
+                    default: begin cyN = lsb; xN = {sh_x[7], sh_x[7:1]};
+                                othN = {1'b0, sh_oth[7:1]}; end
+                endcase
+                sh_x   <= xN;
+                sh_oth <= othN;
+            end
+            sh_cy <= cyN;
+            sh_n  <= sh_n - 8'd1;
+            if (sh_n == 8'd1) begin
+                sh_busy <= 1'b0;
+                msbf = sh_wf ? rN[15] : xN[7];
+                fl = sh_fbase;
+                fl[FB_CY] = cyN;
+                if (sh_op == 3'd0 || sh_op == 3'd2 ||
+                    sh_op == 3'd4 || sh_op == 3'd6)
+                    fl[FB_V] = msbf ^ cyN;                 // left family
+                else
+                    fl[FB_V] = msbf ^ (sh_wf ? rN[14] : xN[6]);
+                if (sh_op[2]) begin                        // shifts 4-7
+                    fl[FB_S]  = msbf;
+                    fl[FB_Z]  = sh_wf ? (rN == 16'd0) : (xN == 8'd0);
+                    fl[FB_P]  = sh_wf ? (~^rN[7:0]) : (~^xN);
+                    fl[FB_AC] = 1'b0;
+                end
+                sh_fl  <= fl;
+                sh_res <= sh_wf ? rN : {othN, xN};
+            end
+        end
+
         unique case (state)
             S_HALT: ;
 
@@ -1695,10 +1726,18 @@ always_ff @(posedge clk) begin
                             end else if (op_grpd0 || op_grpd1) begin
                                 // by-1 forms: D0.4's fitted slot reused
                                 // for the whole family (fit pending)
+                                sh_load(q_byte[5:3], sh_word,
+                                        sh_word ? rf[q_byte[2:0]]
+                                        : {8'h00, reg8_get(q_byte[2:0])},
+                                        8'd1);
                                 dly <= 6'd3;  wnext <= S_EX; state <= S_WAITX;
                             end else if (op_grpd2 || op_grpd3) begin
                                 // by-CL reg: full 8-bit count via the
                                 // shift-burn state (base fit pending)
+                                sh_load(q_byte[5:3], sh_word,
+                                        sh_word ? rf[q_byte[2:0]]
+                                        : {8'h00, reg8_get(q_byte[2:0])},
+                                        rf[1][7:0]);
                                 shw <= {1'b0, rf[1][7:0]};
                                 state <= S_SHWAIT;
                             end else if ((op_grpf6 || op_grpf7) &&
@@ -2210,6 +2249,7 @@ always_ff @(posedge clk) begin
                     // masking): mem write T1 = count-pop + 9 + count
                     // (count=0 writes nothing); reg close =
                     // count-pop + 8 + count (+7 at 0)
+                    sh_load(mrm_reg, sh_word, sh_operand, q_byte);
                     shw <= {1'b0, q_byte};
                     state <= S_SHWAIT;
                 end else if (mrm_mod != 2'd3 && mrm_reg != 3'd7) begin
@@ -3614,9 +3654,13 @@ always_ff @(posedge clk) begin
                     end else if (op_grpfe) begin
                         dly <= 6'd3; state <= S_RMWX;     // done+4
                     end else if (op_grpd0 || op_grpd1) begin
+                        // operand from eu_rdata: mem_op is only assigned
+                        // (NBA) this cycle and not yet visible
+                        sh_load(mrm_reg, sh_word, eu_rdata, 8'd1);
                         dly <= 6'd5; state <= S_RMWX;     // done+6
                     end else if (op_grpd2 || op_grpd3) begin
                         // by-CL mem: full count via the burn state
+                        sh_load(mrm_reg, sh_word, eu_rdata, rf[1][7:0]);
                         shw <= {1'b0, rf[1][7:0]};
                         state <= S_SHWAIT;
                     end else if (op_shimm) begin
@@ -4026,10 +4070,10 @@ always_ff @(posedge clk) begin
                     psw <= ex_inc[23:8];
                     wr_reg8(mrm_rm, ex_inc[7:0]);
                 end else if (op_shrot) begin
-                    psw <= ex_shr[31:16];
+                    psw <= sh_fl;                       // iterative unit
                     if (mrm_mod == 2'd3) begin
-                        if (sh_word) rf[mrm_rm] <= ex_shr[15:0];
-                        else         wr_reg8(mrm_rm, ex_shr[7:0]);
+                        if (sh_word) rf[mrm_rm] <= sh_res;
+                        else         wr_reg8(mrm_rm, sh_res[7:0]);
                     end
                 end else if (op_grpd0) begin
                     psw <= ex_shl[23:8];
@@ -4209,9 +4253,10 @@ always_ff @(posedge clk) begin
                         // measured split: by-1 forms (D0/D1) operate on
                         // the full internal pair; count forms (C0/C1/
                         // D2/D3) loop on the byte and PRESERVE the
-                        // sibling lane (C0.0 goldens)
-                        eu_wdata <= ex_shr[15:0];
-                        psw <= ex_shr[31:16];
+                        // sibling lane (C0.0 goldens). Value/flags now
+                        // come from the iterative unit (sh_res/sh_fl).
+                        eu_wdata <= sh_res;
+                        psw <= sh_fl;
                     end else if (op_alu && opc[0]) begin
                         // word ALU RMW (d=0): drive the 16-bit result
                         eu_wdata <= ex_alu16[15:0];
