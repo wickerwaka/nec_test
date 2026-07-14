@@ -380,6 +380,41 @@ write + trailing-read arbitration characterized with numbers and deferred
 (phase-swept laws). The waits>=1 arbitrary-sequence surface is PARTIALLY
 closed (drift rate cut, not eliminated); the gate is not yet met.
 
+### EU bus-grid-aware timing campaign — primitives + direction law (2026-07-14)
+
+Structural campaign to close the waits>=1 arbitrary-sequence drift (design:
+docs/notes/waits_structural_plan.md). Round 1 landed two BIU primitives and
+established the closing-direction law.
+
+- **`eu_rdone`** (v30_biu): read-completion mirror of `eu_wdone`
+  (`eu_completing && !cur_wr && ((TW && !tw_any) || (T4 && evald))`).
+  == eu_done at w0 (fires at T4 there); one cycle earlier under waits (first
+  Tw). Read DATA is NOT available at first Tw — decouple via eu_rd_now.
+- **`bus_tw`** (v30_biu): `state==ST_TW`, the wait-cycle stretch tick. Zero
+  at w0. Gate a dly `if (!bus_tw) dly<=dly-1` to count BUS cycles (stay on
+  the grid) instead of CPU cycles. This is the general closing lever.
+- Both proven w0-neutral: full 169000 golden + w1/w3 drift EXACTLY baseline
+  with them present-but-inert.
+
+- **DIRECTION LAW (measured this round).** The residual waits>=1 drift is
+  core-FASTER-than-chip (core runs fewer cycles). Closing it requires making
+  the core SLOWER under waits = STRETCH a fixed dly offset via `bus_tw`. The
+  `eu_wdone`/`eu_rdone` strobes move EARLIER (faster) and only help the
+  narrow class where the core inserts a SPURIOUS extra bus cycle at eu_done
+  (PUSHA / far-CALL push chains, already landed). Applying strobes elsewhere
+  overshoots. Verified negative on ADD4S: marching S_A4_SRCW read->read on
+  eu_rdone (w1 mean 818->845) and S_A4_WRW write->read on eu_wdone (w3
+  923->934) both WORSEN drift — ADD4S's "dst @ srcdone+2 / write @ dstdone+4"
+  laws track the STRETCHED eu_done, not a bus-grid-early point. Reverted.
+- **Empirical drift-context histogram (localize.py, 60 w1 seeds).** Dominant
+  drift is the retire / prefetch-resume / decode cadence shared by every
+  instruction: S_FIRST/S_DEC/S_NOP (217), MOV-imm S_IMM_LO/HI (183),
+  S_WAITX/S_EX retire (118), branch S_JWAIT (75), disp16 reader
+  S_DLO/DGAP/DHI (73). ADD4S is NOT in the top 25 (niche). The dominant mass
+  is the bus-grid prefetch-resume law (exp4 "3 idle cycles after an EU
+  access") not stretching under waits — a bus_tw/BIU-cadence target, the
+  round-2 focus.
+
 ## Self-modifying code (exp 6b: smc)
 
 - After `MOV byte [T],imm`, targets **≤2 bytes past the instruction's end

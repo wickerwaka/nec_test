@@ -168,9 +168,13 @@ module v30_eu (
     input             eu_started,
     input             bus_phase,   // BIU 2-cycle grid parity (T1=0)
     input             bus_t4,      // BIU cycle is a T4
+    input             bus_tw,      // BIU is inserting a wait cycle (0 at w0);
+                                   // gate a dly with !bus_tw to count bus cyc
     input       [2:0] bus_ts,      // BIU T-state (0=Ti 1..4=T1-T4 5=cTi)
     input             eu_done,
     input             eu_wdone,   // early write completion (trap chain law)
+    input             eu_rdone,   // early read completion (mirror of eu_wdone,
+                                  // == eu_done at w0; read data via eu_rd_now)
     input             eu_t1,      // pulse: first T1 of the current EU access
     input      [15:0] eu_rdata,
     input             eu_rd_now,   // early strobe: read data edge (end T3)
@@ -3180,6 +3184,11 @@ always_ff @(posedge clk) begin
                 dly <= dly - 6'd1;
             end
             S_A4_SRC: if (eu_started) state <= S_A4_SRCW;
+            // src->dst read->read: STAYS on eu_done. MEASURED (this campaign):
+            // marching the dst read early on eu_rdone made w1/w3 drift WORSE
+            // (core overshoots faster) - the chip's "dst @ srcdone+2" law
+            // tracks the src read's STRETCHED completion (eu_done), NOT the
+            // bus-grid-early point. Read->read here is not a bus-grid march.
             S_A4_SRCW: if (eu_done) begin
                 a4_src  <= eu_rdata;
                 eu_addr <= {sr[SEG_ES], 4'h0} + {4'h0, rf[7] + {8'd0, a4_k}};

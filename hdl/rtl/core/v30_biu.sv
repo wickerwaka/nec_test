@@ -135,6 +135,18 @@ module v30_biu (
                                      // cycle of a waited write's final half,
                                      // its T4 at zero waits (trap chain law)
                                      // access (trap-chain slot anchor)
+    output            eu_rdone,      // early READ completion (mirror of
+                                     // eu_wdone, cur_wr==0): the read's
+                                     // zero-wait completion point (T4 at w0,
+                                     // first Tw under waits). == eu_done at w0.
+                                     // Marches read->read address chains on
+                                     // the bus grid; read DATA is decoupled to
+                                     // eu_rd_now (see biu_model / waits plan).
+    output            bus_tw,        // "bus stretched this cycle" = state==TW.
+                                     // Zero at w0; under waits it is the extra
+                                     // wait cycles. Gate a dly countdown with
+                                     // !bus_tw to make it count BUS cycles
+                                     // (stay on the grid) instead of CPU cycles.
     output reg [15:0] eu_rdata,
     output            eu_rd_now,     // comb: EU read final data edge (end
                                      // of T3/TW) - early-consume strobe
@@ -467,6 +479,17 @@ wire eu_completing = !cur_fetch && cur_type != BS_PASV && !cur_split1;
 // cycle before.)
 reg tw_any;    // a Tw of the current bus cycle has already elapsed
 assign eu_wdone = eu_completing && cur_wr &&
+                  ((state == ST_TW && !tw_any) ||
+                   (state == ST_T4 && evald));
+// Read-completion mirror of eu_wdone (cur_wr==0). At w0 there is no Tw so
+// this is (T4 && evald) - the same cycle eu_done (eu_hand) asserts, i.e.
+// bit-identical to eu_done at zero waits. Under waits it fires at the FIRST
+// Tw (the zero-wait completion point), one cycle ahead of eu_done, so a
+// read->read address chain marched on it keeps the next request/reservation
+// up in time for the deferred completion eval to place it on the bus grid.
+// The read DATA is NOT available at the first Tw (it lands at the last
+// Tw/eu_rd_now); consumers must decouple the data via eu_rd_now/eu_rdata_now.
+assign eu_rdone = eu_completing && !cur_wr &&
                   ((state == ST_TW && !tw_any) ||
                    (state == ST_T4 && evald));
 
@@ -827,6 +850,10 @@ wire ph_now = (state == ST_T1 || state == ST_T3) ? 1'b0
 always_ff @(posedge clk) if (ce) ph_ff <= ~ph_now;
 assign bus_phase = ph_now;
 assign bus_t4 = state == ST_T4;
+// "bus stretched this cycle" tick: exactly the extra wait cycles a waited
+// bus cycle inserts. Zero at w0 (no Tw), so a dly gated `if(!bus_tw)` is
+// bit-identical at w0 and stays on the bus grid under waits.
+assign bus_tw = state == ST_TW;
 assign bus_ts = (state == ST_T1) ? 3'd1
               : (state == ST_T2) ? 3'd2
               : (state == ST_T3 || state == ST_TW) ? 3'd3

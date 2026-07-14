@@ -76,6 +76,7 @@ wire        eu_pop, eu_first, eu_flush;
 wire [15:0] eu_flush_cs, eu_flush_ip;
 wire        eu_req, eu_hold, eu_ready, eu_wr, eu_fwd, eu_word;
 wire        eu_soon, eu_soon_ea, eu_soon_ivt, bus_phase, bus_t4, flush_fast;
+wire        eu_rdone, bus_tw;
 wire        eu_defer_wr;
 wire [2:0]  bus_ts;
 wire  [1:0] eu_kind;
@@ -138,6 +139,7 @@ v30_biu u_biu (
     .eu_defer_wr(scr_en ? 1'b0 : eu_defer_wr),
     .bus_phase  (bus_phase),
     .bus_t4     (bus_t4),
+    .bus_tw     (bus_tw),
     .bus_ts     (bus_ts),
     .eu_hold    (scr_en ? 1'b0 : eu_hold),
     .eu_ready   (eu_ready),
@@ -152,6 +154,7 @@ v30_biu u_biu (
     .eu_started (eu_started),
     .eu_done    (eu_done),
     .eu_wdone   (eu_wdone),
+    .eu_rdone   (eu_rdone),
     .eu_t1      (eu_t1),
     .eu_rdata   (eu_rdata),
     .eu_rd_now  (eu_rd_now),
@@ -185,6 +188,7 @@ v30_eu u_eu (
     .eu_defer_wr(eu_defer_wr),
     .bus_phase  (bus_phase),
     .bus_t4     (bus_t4),
+    .bus_tw     (bus_tw),
     .bus_ts     (bus_ts),
     .eu_hold    (eu_hold),
     .eu_ready   (eu_ready),
@@ -199,6 +203,7 @@ v30_eu u_eu (
     .eu_started (eu_started),
     .eu_done    (eu_done),
     .eu_wdone   (eu_wdone),
+    .eu_rdone   (eu_rdone),
     .eu_t1      (eu_t1),
     .eu_rdata   (eu_rdata),
     .eu_rd_now  (eu_rd_now),
