@@ -151,6 +151,24 @@ passing corpus (v30_eu.sv / v30_biu.sv are the executable reference).
   (v30_eu.sv) arming the BIU defer_idle when q_cnt<=2 (v30_biu.sv). Applies
   ONLY to the NMI running-boundary IVT wait (irq_nmi_ivt), NOT the INT
   INTA2->IVT gap.
+- **Recognition-shadow drop in fetch-limited contexts (OPEN residual,
+  chip-vs-TB)**: when an INT/NMI lands while shadow=1 (a segment-register
+  load or far-CALL defers recognition), the chip drops the shadow (=
+  retires the intervening instruction, re-enabling the boundary sample)
+  ~2 cycles EARLIER than the RTL in a QUEUE-STARVED stream. The int_p[2]
+  pin-sample tap is correct; the gap is the internal shadow-drop/retire
+  cadence, bus-invisible in normal execution (non-int fuzz is clean). It
+  surfaces two chip-vs-TB residual classes in random contexts: INT
+  recognition-point (the RTL misses the int_p[2] window -> INTA commits
+  2-3 cyc late, an extra prefetch slips in) and NMI-during-far-CALL
+  doomed-prefetch (one extra speculative CODE fetch before vectoring). A
+  queue-starved shadow-bypass closes the fuzz cases but architecturally
+  regresses the saturated golden sreg-load tranches INT.8ED0/8ED8 (their
+  NOP sled also has queue-starved S_FIRST boundaries; q_avail cannot tell
+  the skipped sreg-load boundary from the next one). A clean fit needs the
+  chip's exact internal shadow-drop cadence - re-measure with an exp_int.py
+  fetch-limited sweep before attempting. Deferred (11 seeds: fz10066 et al.
+  INT; fz10486 et al. NMI) rather than regress golden.
 - **IE gating is itself pipelined**: the decision at B uses IE@B-3.
   This single law IS the "EI shadow" AND explains POP PSW's behavior on
   an IE 0->1 transition (the immediately following boundary still sees

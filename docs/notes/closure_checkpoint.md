@@ -415,15 +415,36 @@ fabric synth float floor). Regression corpus replay chip-vs-TB all d=0
 (inject fz10041/10055/10059, loop fz7203/7207, farjmp fz8304, swint
 fz8007/8032 - the flush seeds closed for free by 006b257/a9f1468).
 
-REMAINING (11, characterized, chip-vs-TB): two sub-classes -
-- INT INTA-commit (7): fz10066/10117/10251/10283/10317/10459/10460 - the
-  maskable-INT INTA cycle commit / prefetch-kill lands 1 cycle off the chip
-  at the recognition boundary (chip=T4/INTA|PASV vs tb=T4/CODE). Separate
-  arbitration from the NMI IVT read (S_IRQ_D/S_INT_A1 path, not S_WAITX).
-- NMI doomed-prefetch cadence (4): fz10175/10248/10431/10486 - a fuller
-  queue (q_cnt 4-6); the divergence is the doomed-prefetch/flush CODE
-  cadence around the vectoring, NOT the IVT-read commit (that one is E+1
-  here, already correct). The "doomed-prefetch during the INT flush" class.
+REMAINING (11, DEFERRED - shared root cause, chip-vs-TB): both sub-classes
+reduce to the SAME mechanism - the interrupt lands while shadow=1 (a
+segment-register load / far-CALL shadows recognition), and the RTL's
+internal shadow-drop (= the intervening instruction's retire) lands ~2
+cycles LATER than the chip in QUEUE-STARVED (fetch-limited) contexts. The
+int_p[2] pin-sample pipeline is correct (verified: at fz10066 cycle 162 the
+TB is at S_FIRST with int_p[2]=1 (pin@159) and ie_p[2]=1 - recognition WOULD
+fire, but shadow=1 blocks it; by 164 when shadow drops, int_p[2]=0, pin
+released -> missed). The shadow-drop is an INTERNAL retire timing, bus-
+invisible in normal execution (non-int fuzz is 1500/1500 clean) but exposed
+by the recognition sample.
+- INT recognition-point (7): fz10066/10117/10251/10283/10317/10459/10460 -
+  the late shadow-drop misses the int_p[2] window, so recognition/INTA
+  commits ~2-3 cyc late and an extra prefetch commits first (chip=T4/INTA
+  vs tb=T4/CODE). Path S_FIRST->S_IRQ_D->S_INT_A1.
+- NMI doomed-prefetch (4): fz10175/10248/10431/10486 - the NMI lands during
+  a far-CALL (shadow=1, state S_CALLW/FCFL2); the same late shadow-drop lets
+  the RTL issue ONE extra doomed CODE prefetch before vectoring (the
+  documented doomed-prefetch/flush class, biu_model.md).
+CONCRETE GOLDEN CONFLICT (why deferred, not forced): probed a queue-starved
+shadow-bypass (irq_take |= irq_int && state==S_FIRST && !q_avail). It CLOSES
+fz10066 (MATCH) but ARCHITECTURALLY regresses the saturated golden sreg-load
+tranches INT.8ED0 184/200 and INT.8ED8 180/200 (first-div 'qop'/arch = wrong
+PC pushed): those NOP-sled tranches ALSO have queue-starved S_FIRST
+boundaries, so a q_avail gate cannot tell the sreg-load's OWN boundary (must
+skip) from the next (recognize) - it lets recognition fire on the skipped
+boundary. The fetch-limited-vs-saturated distinction alone does NOT separate
+the cases; a clean fit needs the chip's exact internal shadow-drop cadence
+(unmeasured, would need an exp_int.py internal-timing sweep). Deferred rather
+than regress golden, per the closure guard.
 
 ### Priority 4 - wait-state variation (characterized, NOT gated)
 check_seq --waits N / --waits-sweep threads waits through the A/B path.
