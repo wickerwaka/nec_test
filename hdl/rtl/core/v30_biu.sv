@@ -109,6 +109,9 @@ module v30_biu (
                                       // commit lead (pre-IVT S_WAITX dly==1);
                                       // arms defer_idle like eu_soon_ea
     input             flush_fast,     // far-flush: redirect commits mid-cycle
+    input             eu_defer_wr,    // RMW write: exclude from the deferred
+                                      // (eval_ext) commit; take the next plain
+                                      // idle do_commit instead (measured law)
     output            bus_phase,      // 2-cycle bus grid parity (T1=0)
     output            bus_t4,         // current cycle is a bus T4
     output      [2:0] bus_ts,         // T-state: 0=Ti 1=T1 2=T2 3=T3 4=T4 5=cTi
@@ -328,11 +331,26 @@ wire want_half2 = cur_split1 && !cur_fetch &&
 // point. All measured on the waits tranches: load d0 / store d2
 // (2-cycle reservations) and requests ready during T4 commit mid-cycle;
 // store d0/d1 and CALL's push commit at the following idle end.
-reg  eu_req_p1, eu_req_p2, eu_ready_p1;
+reg  eu_req_p1, eu_req_p2, eu_ready_p1, eu_ready_p2;
 reg  ext_flushed;
 wire ext_ok     = eu_ready_p1 ||
                   (eu_req_p1 && eu_req_p2 && !ext_flushed);
-wire want_eu    = eu_req && eu_ready && !(eval_ext && !ext_ok);
+// The RMW mem write (eu_defer_wr) qualifies for the deferred (eval_ext)
+// commit under a STRICTER rule than the fitted store/load forms: only if
+// its readiness was registered for the two sampling edges ending at T4
+// (eu_ready_p1 && eu_ready_p2, i.e. ready ENTERING T4), not via rule A
+// (ready only AT the T4 edge) or rule B (req-only reservation). Measured
+// (sweep_rmw.py, ADD word[mem],imm w0-w5): when the write-ready asserts
+// exactly AT the post-read prefetch's T4 (w1: rdy first high at that T4),
+// the chip does NOT take the deferred eval - it commits at the next plain
+// idle (rdT1->wrT1 = 14). When readiness asserts one+ cycle BEFORE T4
+// (w3: rdy high through the prefetch's Tw), the chip DOES commit at the
+// deferred eval (16). ext_ok_wr captures exactly this. The eu_req
+// reservation blocks prefetch through the gap either way. S_WREQ is
+// RMW-write-only (88/89 stores use S_REQ) so the fitted forms keep ext_ok.
+wire ext_ok_wr  = eu_ready_p1 && eu_ready_p2;
+wire want_eu    = eu_req && eu_ready &&
+                  !(eval_ext && !(eu_defer_wr ? ext_ok_wr : ext_ok));
 
 // EU access geometry
 wire eu_split   = eu_word && eu_addr[0];
@@ -827,6 +845,7 @@ always_ff @(posedge clk) if (ce) begin
     eu_req_p1   <= eu_req && !eu_started;
     eu_req_p2   <= eu_req_p1;
     eu_ready_p1 <= eu_ready && !eu_started;
+    eu_ready_p2 <= eu_ready_p1;
 end
 
 // ext_show: the deferred eval displays the picked cycle's status/address

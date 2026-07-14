@@ -148,6 +148,11 @@ module v30_eu (
                                    // the IVT read commits one cycle earlier in
                                    // a pure idle window (reg-EA analogue)
     output            flush_fast,  // far flush commits redirect mid-cycle
+    output            eu_defer_wr, // RMW mem write (S_WREQ): must NOT take a
+                                   // waited-cycle deferred eval (eval_ext)
+                                   // commit - the chip commits it at the next
+                                   // PLAIN idle do_commit, not at a post-read
+                                   // prefetch's deferred eval (measured, w1)
     output reg        eu_wr,
     output            eu_fwd,     // write data = the BIU's last read data
                                   // (string-op read->write forwarding)
@@ -1347,6 +1352,19 @@ end
 // Qualified to S_EA2 so the S_WAITX/INT eu_soon (deferred swint) is
 // untouched.
 assign eu_soon_ea = (state == S_EA2) && eu_soon;
+
+// RMW mem write (S_WREQ): exclude it from the waited-cycle deferred eval
+// (eval_ext) commit. Measured (sweep_rmw.py, ADD word[mem],imm w0-w5): the
+// chip commits the RMW write at read-T1 + 12 + 2*W_effective, landing on a
+// PLAIN idle do_commit AFTER the post-read prefetch - never at that
+// prefetch's deferred eval. The TB's rule-A/B (the S_RMWX lead reservation
+// registered across S_RMWX+S_WREQ) otherwise commits it 2 cycles early
+// whenever the write-ready coincides with the post-read prefetch's T4 (the
+// w1 phase). The eu_req reservation still blocks prefetch through the gap,
+// so the write simply commits at the next idle. S_WREQ is RMW-write-only
+// (the fitted 88/89 stores use S_REQ), so no golden w0/w1/w3 form is
+// affected. Reader (S_REQ read) and store (S_REQ write) paths untouched.
+assign eu_defer_wr = (state == S_WREQ);
 
 // Hardware-interrupt (NMI/INT) IVT-read idle-window early commit: on the
 // last pre-IVT wait cycle (S_WAITX dly==1 with wnext==S_TRAP_IVT1 and the
