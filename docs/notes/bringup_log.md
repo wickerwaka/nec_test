@@ -1,5 +1,27 @@
 # Bring-up log
 
+## 2026-07-14 — reflash: WAITS>=1 RMW-write deferred-eval qualification
+
+- SCOPE: one waits>=1 core-RTL fix (commit d339204) - the RMW mem write
+  (S_WREQ) takes the deferred (eval_ext) commit only if readiness was
+  registered ENTERING T4 (new eu_defer_wr -> stricter ext_ok_wr in v30_biu).
+  Cycle-exact vs chip at w0-w5 (sweep_rmw.py) for ADD/NEG/INC word forms;
+  byte forms exact at w1/w3 (gate levels). Context 2 (trailing POP read)
+  investigated + found NOT a distinct bug (accumulated drift); remaining is
+  a diverse phase tail - characterized + deferred (biu_model.md).
+- BUILD: 0 errors. Timing MET: setup slack +4.958 ns, hold +0.265 ns
+  (Full Compilation successful). sof fresh (mtime > RTL).
+- REFLASH: safe_flash OK (0 errors, VERIFY ok cfg 0x1ff0008). echo-healthy
+  BEFORE and AFTER.
+- HARDWARE A/B (real silicon, chip vs fabric):
+  * waits=0 fz30000-30199 200/200 clean (unregressed - critical gate).
+  * waits=1 fz84000-84049: first-divergence median row 385 -> 408.5
+    (RMW fix live; drift reduced a touch deeper). Still 0/50 fully clean.
+  * waits=3 fz84000-84049: 4/50 clean, first-divergence median 527.
+- Golden 169000/169000 + w1/w3 1200/1200 held (TB); waits=0 chip-vs-TB fuzz
+  120/120 clean. 3 contexts now generalized (far-flush, PUSHA, RMW write);
+  waits>=1 arbitrary-sequence gate still NOT met (diverse phase tail).
+
 ## 2026-07-14 — reflash: WAITS>=1 cadence generalization (far-flush + PUSHA)
 
 - SCOPE: two waits>=1 core-RTL cadence fixes (commits 84d59ee far-flush

@@ -334,21 +334,38 @@ points. Contexts (summed drift cycles over 20 seeds, w1):
   the write's zero-wait completion point - the trap-chain law generalized;
   eu_wdone==eu_done at w0 so golden bit-exact). fz84007 w1.
 - **RMW memory write (op80/81 ALU-imm, NOT/NEG/INC/DEC mem, XCHG mem):
-  S_RMWX->S_WREQ->S_WBUSW** — the read commits correctly at the read-fetch's
-  deferred eval, but the WRITE commits ~2 cycles LATE on the chip vs the TB
-  (TB commits at the fetch's eval_ext via rule A/B; chip defers). Measured
-  read-T4 -> write-T1 gap: **9 (w0), 10 (w1), 10 (w3)** - a +1 step at w1
-  then flat, i.e. PHASE-dependent write-commit latency, not a clean +N/wait.
-  DEFERRED (needs a Mission-D-style write-ready x prefetch-phase x waits
-  sweep to fit the exact deferral; a blind eval-qualification change risks
-  the fitted 89/8B forms). Context [16,17,18,21,22,33] / [1,7,8,9,33,34,35].
-- **Trailing POP/stack read losing arbitration** — a POP r16 read that
-  overlaps the next instruction's decode commits at the fetch's deferred
-  eval on the chip, but under waits its request asserts one cycle too late
-  for rule A/B (eu_req_p1==0 at the fetch T4) so a queue-empty prefetch wins
-  the eval_ext slot and the read commits later. Phase/queue-dependent.
-  DEFERRED (same class - needs the swept lead-reservation law). Context
-  [1,2,3,4]-labelled intervals with a trailing MEMR.
+  S_RMWX->S_WREQ->S_WBUSW** — GENERALIZED (2026-07-14, commit d339204).
+  Full sweep (sweep_rmw.py, read-T1 -> write-T1, ADD word[mem],imm w0-w5):
+  chip = **12,14,14,16,18,20** (a w1==w2 quantization). The TB matched
+  everywhere except w1 (gave 12): whenever the write-ready coincided with
+  the post-read prefetch's T4, the mission-H rule A/B (the S_RMWX lead
+  reservation) took the deferred eval 2 cycles early. Mechanism pinned by
+  the +eudbg trace: at w1 the write-ready first asserts AT the prefetch T4
+  (rdy high only at T4); at w3 it asserts during the prefetch's Tw (ready
+  ENTERING T4). LAW: the RMW write takes the deferred (eval_ext) commit
+  ONLY if readiness was registered for the two edges ending at T4
+  (eu_ready_p1 && eu_ready_p2), else it commits at the next plain idle.
+  Implemented via eu_defer_wr (=state S_WREQ, RMW-write-only; the fitted
+  88/89 stores use S_REQ) gating a stricter ext_ok_wr in v30_biu. eval_ext
+  is waits-only so w0 is untouched; no golden form is an RMW write. Sweep
+  now delta-0 chip-vs-TB at w0-w5 for ADD/NEG/INC word; byte NEG exact;
+  byte ALU-imm exact at ALL phases for w1 AND w3 (the gate levels) with a
+  residual only at even waits>=2 (byte-vs-word phase diff, out of gate
+  scope). Context [16,17,18,21,22,33] / [1,7,8,9,33,34,35].
+- **Trailing POP/stack read "arbitration" — NOT a distinct bug (verified
+  2026-07-14).** Chased as the read-side mirror of the RMW write, but: a
+  controlled POP r16 (NOP-runway sweep) matches chip-vs-TB bit-exact at
+  w1; and in the fuzz (fz84009) the POP stack-read (03efe) T1 rows match
+  chip-vs-TB for its first occurrences - only the LATER one drifts, purely
+  from accumulated upstream drift. The "trailing MEMR" the localizer
+  flagged is the manifestation of earlier phase-context drift reaching a
+  POP region, not a fresh late-request bug. NO reservation fix warranted.
+- **Remaining after the 3 fixes: a DIVERSE phase-dependent long tail.**
+  Genuine first-divergence contexts across fz84000-84019 w1 are now spread
+  (rows 230-681, past the loader): S_WAITX/S_EX retire timing (31/32),
+  INS/EXT bitfield reads (S_IE_* 40-48), disp-EA readers (16-19), a couple
+  residual RMW phases - each hitting 1-2 seeds, none dominant. No single
+  high-value target remains; each needs its own micro-sweep. DEFERRED.
 - **Near-jump (E9/Jcc) flush** — mostly CORRECT under waits (clean forward
   jumps match bit-exact at w1: the redirect lands on the normal post-T4 Ti
   commit slot). The histogram's [1,2,6,59,62,63] mass is DEGENERATE cases

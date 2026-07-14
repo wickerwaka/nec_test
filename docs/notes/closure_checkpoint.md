@@ -156,24 +156,40 @@ held, waits=0 fuzz fz84000-84119 120/120 clean):**
    letting a prefetch splice between writes; generalized the trap-chain law
    to march on `eu_wdone` (zero-wait completion). commit de18d78.
 
-**Characterized + DEFERRED (need Mission-D-style sweeps; opposite-direction
-/ phase-dependent laws, high golden-regression risk to guess):**
-- RMW memory write (op80/81, NOT/NEG/INC/DEC mem, XCHG mem): the chip
-  commits the write ~2 cyc LATER than the TB under waits. Measured chip
-  read-T4 -> write-T1 gap = 9 (w0) / 10 (w1) / 10 (w3) — +1 at w1 then flat
-  (phase-dependent write-commit latency, not +N/wait).
-- Trailing POP/stack read overlapping the next decode loses the eval_ext
-  arbitration to a queue-empty prefetch under waits (request asserts one
-  cycle too late for rule A/B). Phase/queue-dependent.
-- Near-jump (E9/Jcc) flush: mostly CORRECT (clean forward jumps match at w1);
-  residual mass is degenerate jmp+0 / target==doomed-prefetch cases.
+**THIRD context GENERALIZED (2026-07-14, commit d339204, cycle-exact):**
+3. RMW memory write deferred-eval qualification. Full sweep (sweep_rmw.py):
+   chip read-T1->write-T1 = 12,14,14,16,18,20 (w0-w5). The RMW write takes
+   the deferred (eval_ext) commit ONLY if readiness was registered ENTERING
+   T4 (eu_ready_p1 && eu_ready_p2), else it waits for the next plain idle -
+   the chip defers the write when its readiness first asserts AT the
+   post-read prefetch's T4 (w1 phase). New signal eu_defer_wr (=S_WREQ,
+   RMW-write-only) gates a stricter ext_ok_wr in v30_biu; the fitted 88/89
+   stores use S_REQ (untouched), eval_ext is waits-only (w0 untouched), no
+   golden form is an RMW write. Delta-0 chip-vs-TB at w0-w5 for word forms;
+   byte forms exact at w1 AND w3 (all phases). Golden 169000/169000 + w1/w3
+   1200/1200 held; waits=0 fuzz 120/120 clean.
+
+**Context 2 (trailing POP read) — NOT a distinct bug (verified).** The
+controlled POP matches chip-vs-TB at w1; the fuzz POP stack-read T1s match
+for their first occurrences (only later ones drift from accumulated
+upstream drift). No reservation fix warranted - the localizer's "trailing
+MEMR" is downstream manifestation of the diverse phase tail.
+
+**Remaining: a DIVERSE phase-dependent long tail (DEFERRED).** After the
+3 fixes the genuine first-divergences (fz84000-84019 w1, rows 230-681,
+past the loader) are spread across S_WAITX/S_EX retire timing, INS/EXT
+bitfield reads (S_IE_*), disp-EA readers, residual RMW even-wait phases -
+each 1-2 seeds, none dominant. No single high-value target; each needs its
+own micro-sweep. Honest partial closure: the gate is not met.
 
 **Drift before -> after (120-seed cached-chip w1 / 60-seed w3, bad-rows =
-diff() divergent rows):** w1 mean 1286.5 -> 864.5, median 1214.5 -> 867.5,
-net-drift@fetch80 spread +-30 -> +-10; w3 mean 1025.4 -> 931.1. The
-waits>=1 arbitrary-sequence surface is PARTIALLY closed — drift rate cut,
-NOT eliminated; the arbitrary-sequence chip-vs-TB gate is not yet met.
-Tools: /tmp/consolidation/{localize,measure,dumpctx,trace_instr,trace_ab}.py.
+diff() divergent rows):** w1 mean 1286.5 -> 849.7, median 1214.5 -> 845.5,
+net-drift@fetch80 spread +-30 -> +-10; w3 mean 1025.4 -> 917.7. The
+waits>=1 arbitrary-sequence surface is PARTIALLY closed — drift rate cut
+(~34% fewer w1 bad-rows), loader bit-clean, 3 contexts cycle-exact; the
+arbitrary-sequence chip-vs-TB gate is NOT met (diverse phase tail remains).
+Tools: /tmp/consolidation/{localize,measure,dumpctx,trace_instr,trace_ab,
+sweep_rmw}.py + cached chip_refs*.pkl.
 
 ## Reproduction commands (exact)
 
