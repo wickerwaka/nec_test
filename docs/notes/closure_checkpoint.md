@@ -175,21 +175,52 @@ for their first occurrences (only later ones drift from accumulated
 upstream drift). No reservation fix warranted - the localizer's "trailing
 MEMR" is downstream manifestation of the diverse phase tail.
 
-**Remaining: a DIVERSE phase-dependent long tail (DEFERRED).** After the
-3 fixes the genuine first-divergences (fz84000-84019 w1, rows 230-681,
-past the loader) are spread across S_WAITX/S_EX retire timing, INS/EXT
-bitfield reads (S_IE_*), disp-EA readers, residual RMW even-wait phases -
-each 1-2 seeds, none dominant. No single high-value target; each needs its
-own micro-sweep. Honest partial closure: the gate is not met.
+**GRIND round 2 (2026-07-14) - two more contexts GENERALIZED (eu_wdone class):**
+4. Far CALL (9A / FF.3) PC push marched on eu_wdone not eu_done (commit
+   above). The two CS;IP pushes run contiguous on the chip; the eu_done TB
+   inserted 2 idle cycles. fz84007 first-div 280->493.
+5. RMW deferred-eval defer narrowed to op_alui (ALU-imm 80/81/83) only -
+   the imm-less RMW forms (NOT/NEG/INC/DEC/0F-bit/XCHG mem) commit EARLY via
+   rule A (the round-1 all-S_WREQ defer had regressed the 0F NOT1 case,
+   fz84001 419->703). Sweep: 81 = 12,14,14,16; NOT1 = 10,12,14,16 both exact.
 
-**Drift before -> after (120-seed cached-chip w1 / 60-seed w3, bad-rows =
-diff() divergent rows):** w1 mean 1286.5 -> 849.7, median 1214.5 -> 845.5,
-net-drift@fetch80 spread +-30 -> +-10; w3 mean 1025.4 -> 917.7. The
-waits>=1 arbitrary-sequence surface is PARTIALLY closed — drift rate cut
-(~34% fewer w1 bad-rows), loader bit-clean, 3 contexts cycle-exact; the
-arbitrary-sequence chip-vs-TB gate is NOT met (diverse phase tail remains).
-Tools: /tmp/consolidation/{localize,measure,dumpctx,trace_instr,trace_ab,
-sweep_rmw}.py + cached chip_refs*.pkl.
+**GENUINE FLOOR for clean generalization (remaining tail, DEFERRED with
+reason).** After the 5 fixes the w1 first-divergences are a diverse tail;
+each remaining context wants a WAIT-AWARE reservation / eval-qualification
+that CONFLICTS with a fitted form sharing its state/path (the EU cannot see
+the bus wait count directly), or needs per-context restructuring:
+- **Near-jump / Jcc-taken resolution** (top, ~4 seeds): the chip flushes
+  ~2 cycles EARLIER than the model under waits (S_JWAIT dly counts fixed CPU
+  cycles; the chip's resolution tracks the bus grid). High risk - the branch
+  tranches (EB/E9/Jcc/loop/CALL) are the most heavily w0-fitted golden family.
+- **disp-EA reader** (shift mem c0/c1, ALU RMW read): the reader's eu_req
+  reservation (S_DHI/S_DGAP) is PREMATURE under waits - it blocks a prefetch
+  the chip lets through (chip: prefetch then read; TB: read then prefetch).
+  Shares S_REQ/reservation with the fitted 8B/disp readers.
+- **ADD4S** (BCD 4-byte string): every inter-access transition (read->read,
+  read->write, write->read) is on eu_done; the read->X ones can't march on
+  eu_wdone (write-only) - they need read-address-early decoupling (issue the
+  next address before the read data lands). Niche.
+- **INS/EXT bitfield reads (S_IE_*), S_WAITX/S_EX retire timing**: various
+  per-op cadence, 1-2 seeds each.
+None generalize without a per-context wait-aware reservation sweep + real
+golden-regression risk. This is the honest floor: the gate is NOT met; the
+remaining tail is a set of shared-path wait-aware reservation fits.
+
+**Drift trajectory (120-seed cached-chip w1 / 60-seed w3, bad-rows =
+diff() divergent rows):**
+| checkpoint | w1 mean | w1 median | w3 mean | w3 clean |
+|---|---|---|---|---|
+| campaign start | 1286.5 | 1214.5 | 1025.4 | 5/60 |
+| far-flush+PUSHA | 864.5 | 867.5 | 931.1 | - |
+| +RMW write | 849.7 | 845.5 | 917.7 | 5/60 |
+| +far-CALL | 840.6 | 791.0 | 913.1 | 7/60 |
+| +RMW-narrow (now) | 818.3 | 743.0 | 922.9 | 7/60 |
+The waits>=1 arbitrary-sequence surface is PARTIALLY closed - w1 bad-rows
+cut ~36%, median ~39%, loader bit-clean, 5 contexts cycle-exact; the
+chip-vs-TB gate is NOT met (the shared-path wait-aware reservation tail is
+the floor). Tools: /tmp/consolidation/{localize,measure,dumpctx,dumpfd,
+firstdiv,trace_instr,trace_ab,sweep_rmw}.py + cached chip_refs*.pkl.
 
 ## Reproduction commands (exact)
 
