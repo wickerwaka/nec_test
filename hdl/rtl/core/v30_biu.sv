@@ -730,7 +730,8 @@ always_ff @(posedge clk) begin
                     // its end (measured, mission H waits tranches). The
                     // completed cycle's identity (split flags etc.) is
                     // kept across the eval_ext cycle.
-                    if (q_flush && cur_fetch && pick_any && flush_fast) begin
+                    if (q_flush && cur_fetch && pick_any && flush_fast &&
+                        evald) begin
                         // EA far flush landing squarely on a prefetch T4: the
                         // redirect commits MID-T4 - the target CODE status/
                         // address ride THIS T4 row (ff_t4 display below, with
@@ -738,6 +739,16 @@ always_ff @(posedge clk) begin
                         // the near-flush nxt_live path below (measured,
                         // fz8304 far-jump; near flushes keep the deferred
                         // display - E9/Jcc/loop golden + sweep exact).
+                        // GATED ON evald (zero-wait cycle): at zero waits a
+                        // fetch's completion eval always fires at the T3->T4
+                        // edge (READY high), so evald==1 here - the fast
+                        // mid-T4 commit is preserved. Under WAITS the eval is
+                        // deferred (evald==0), and the chip likewise defers
+                        // the far-flush redirect by one cycle (measured:
+                        // fz84xxx w1 - the redirect commits during the cycle
+                        // after T4, not mid-T4); evald==0 falls through to
+                        // the near-flush do_commit path below (one cycle
+                        // later), matching the chip's deferred display.
                         state      <= ST_T1;
                         tw_any     <= 1'b0;
                         evald      <= 1'b0;
@@ -832,7 +843,8 @@ wire ff_show = flush_fast && q_flush && state == ST_TI && !nxt_live &&
 // ff_t4: the same EA far flush landing on a prefetch T4 (not an idle Ti) -
 // the redirect status/address ride that T4 row and T1 follows next cycle
 // (measured, fz8304). Mirrors the mid-T4 commit taken in the state machine.
-wire ff_t4   = flush_fast && q_flush && state == ST_T4 && cur_fetch && pick_any;
+wire ff_t4   = flush_fast && q_flush && state == ST_T4 && cur_fetch &&
+               pick_any && evald;
 // idle-window reg-EA reader early commit: the armed request (defer_idle,
 // now ready) drives its status/address during THIS idle cycle and enters
 // T1 next cycle - the mid-cycle commit analogue of defer_show for a
