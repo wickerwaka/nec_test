@@ -646,11 +646,12 @@ same way as 8F.0 (comparison-level don't-care), NOT an RTL/reflash change.
   backward-branch flush the core does not model - a flush-MODELING gap, a
   different law than commit-phase; fz7207. fz7203 incidentally now MATCHes).
   farjmp post-flush cadence, swint vectoring - same deferred flush class.
-- reg-EA READER idle-window +1: the mod0 reg-EA reader commits 1 cycle late
-  when its whole 2-cycle EA compute (S_EA1->S_EA2->S_REQ) falls in bus idle
-  (no in-flight fetch for eu_soon's T4-defer). Rare in dense code; a clean
-  fix needs restructuring the EA-addr settle, risking the reader-heavy
-  suite - characterized, not forced.
+- reg-EA READER idle-window +1: RESOLVED 2026-07-13 (commit 006b257,
+  reflashed). See the "reg-EA reader idle-window +1 - RESOLVED" section
+  at the bottom of this file. The mod0 reg-EA reader now commits directly
+  in the bus-idle window, cycle-exact TB + silicon; golden 169000/169000
+  held. A NEW, separately-scoped write-path residual (store/push
+  commit-phase reorder) was quantified in the same pass - see that section.
 - fz60249: RESOLVED as the inert chip-vs-FABRIC floor, NOT a chip-vs-TB
   divergence (see the fz60249 STEP-0 section below). No RTL change, no
   reflash.
@@ -708,3 +709,75 @@ separately-scoped reg-EA-reader idle-window case (needs an EA-addr-settle
 restructure that risks the reader-heavy suite) - LEFT DEFERRED per scope,
 NOT folded into this pass. It is orthogonal to fz60249 (which is
 fabric-only; this reader case is a genuine but rare chip-vs-TB residual).
+
+## reg-EA reader idle-window +1 — RESOLVED (2026-07-13, commit 006b257, reflashed)
+
+The reg-EA READER idle-window residual above is fixed. Board = root@mister-nec;
+ONE reflash this session (new full-RTL A/B bitstream, safe_flash'd, cfg
+0x1ff0008, use_core=0, VERIFY MAGIC ok); single writer.
+
+### Measured law
+A mod0 register-indirect / based-indexed EA reader (MOV/ALU reg,[mem]; and
+the 8C sreg store, which shares the reader reservation schedule) whose whole
+2-cycle EA compute (S_EA1->S_EA2->S_REQ) falls in a bus-idle window read +1
+late. The eu_soon mechanism defers the read's commit to an in-flight
+prefetch's T4 (defer_t4); with NO fetch in flight there is no T4 to land on,
+so the core fell through to the plain idle do_commit - which schedules a
+SEPARATE address-display cycle (eval cycle N -> display N+1 -> T1 N+2). The
+chip instead commits the read directly in the idle window one cycle earlier
+(mid-cycle display at the S_REQ idle cycle, its address-settle cycle -> T1
+next). Measured pin-exact via sweep_regea (phase 7: chip MEMR display @175 /
+T1 @176 vs core @176/@177). Systematic - every reader form (rd_bx/rd_bxsi/
+rd_si/rd_di/alurd_bx) + 8C read +1 at the idle-landing phase.
+
+### Fix (v30_biu defer_idle; minimal, idle-window only)
+New EU output eu_soon_ea = eu_soon qualified to S_EA2 (so the S_WAITX/INT
+eu_soon of the deferred swint case is UNTOUCHED). In v30_biu, when a reg-EA
+reader's soon-ready request sits in a pure idle window (ST_TI, no in-flight
+fetch) it arms defer_idle; the next idle cycle commits it mid-cycle (via
+ext_show) and enters T1 directly - the idle-window analogue of defer_t4's
+mid-T4 commit. The in-flight-fetch reader path (defer_t4) and the disp-form
+reader path (q_fresh) are unchanged. S_EA2 is reached ONLY for mod0
+reg-indirect/based-indexed EA (rm!=6); mod1/mod2/direct use the disp path.
+
+### Verification
+- sweep_regea --tb, all reader+store forms phases 0-23: 216/216, 0 divergent
+  (was rd_* d=+1 at ph7). Odd-EA split reader + 8C ph6/7/8 exact.
+- **Golden gate: 169000/169000 cycle+arch, bit+cycle-identical - NO reader
+  regression** (the load-bearing guard held).
+- Quartus: 0 errors, timing MET (setup slack +5.457 ns; all hold/recovery/
+  removal/pulse positive). safe_flash VERIFY ok.
+- **In-silicon chip-vs-fabric reader sweep: 60/60, d=0 at every phase incl.
+  ph7** - the fix is live in the fabric.
+- **Deterministic chip-vs-TB gate: fz80200-81199 = 1000/1000 clean**
+  (contiguous), reg-EA readers heavily exercised (base MOV/ALU + earich +
+  indirect addressing-mode expansion). Over 1200 fresh seeds (fz80000-81199)
+  1195 clean; the 5 divergent are the pre-existing low-rate class below.
+
+### NEW finding, still DEFERRED — store/push commit-phase reorder (write path)
+The reader fix does NOT close the whole zero-wait deterministic surface. The
+same fresh fuzz surfaced a WRITE-path analogue of the idle-window early
+commit at ~0.4% (5/1200: fz80008, fz80103, fz80169, fz80172 store/push
+reorder + fz80014 a 1-row PS-display transient). In these the chip commits a
+MEMW (reg-EA store / stack push) one arbitration slot EARLIER than the core,
+which inserts a CODE prefetch first, then the 1-cycle shift persists (up to
+642 rows before resync). PROVEN pre-existing and NOT this fix's regression:
+each diverges IDENTICALLY on baseline HEAD~1 and HEAD (same bad-count, same
+first row), and reproduces STABLY across 5 fresh chip captures (so it is a
+genuine deterministic chip-vs-TB divergence, NOT the fz60249-class inert
+capture/fabric floor). This is the previously-documented ~0.4% "reg-EA RMW
+store / stack-push / near-indirect-flush commit-phase" background that prior
+smaller gates under-sampled (fz73000-73039 40/40, fz72000-72999 1000/1000
+got lucky). Stores use a bare eu_req reservation (no eu_soon), and the
+reg-EA STORE sweep (st_bx/st_bxsi/st_si/st8_bx) is 0 divergent at all swept
+NOP-sled phases - the fuzz reorder lands in an idle/arbitration window the
+sweep geometry does not produce. A clean fit needs its own phase-matrix
+measurement (which store/push form + queue-state) and risks the cycle-exact
+store suite - LEFT DEFERRED per scope, characterized not forced. This is a
+distinct commit-phase mission, the write-path sibling of this reader fix.
+
+### Still DEFERRED (unchanged, separately-scoped)
+waits>=1 generalization; interrupt recognition/vectoring/INTA timing;
+swint CD-imm pre-IVT doomed prefetch; loop/farjmp flush-modeling; the
+store/push commit-phase reorder above; INM/OUTM, BUSLOCK, BRKEM/8080, 0x82;
+parked undocumented encodings (FE/7, 8F mod3 ghost-read don't-care).

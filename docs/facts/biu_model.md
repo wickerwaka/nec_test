@@ -101,6 +101,31 @@ diverge across phases.
   across a MOV [BW],AW stream; steady state 11 cycles/write = 4 MEMW +
   4 CODE + 3 idle, matching the instruction's 11-cycle F-gap).
 
+### Idle-window reg-EA reader commit law (Campaign 5 closure, 2026-07-13)
+
+Measured with sweep_regea.py (mod0 register-indirect / based-indexed EA
+readers - MOV/ALU reg,[mem] - and the 8C sreg store that shares the reader
+reservation schedule; the +eudbg per-cycle EU/BIU dump). A reg-EA reader's
+read becomes ready one cycle after its EA settles (S_EA2 -> S_REQ).
+
+- **When the read becomes ready with an in-flight prefetch present** the
+  read commits back-to-back off that fetch's T4 (the eu_soon / defer_t4
+  reservation: a fetch-T3 completion eval coinciding with S_EA2 is deferred
+  into T4 and the read's T1 follows). Cycle-exact at every non-idle phase.
+- **When the whole 2-cycle EA compute falls in a BUS-IDLE window** (no
+  in-flight fetch for defer_t4's T4 to land on) the chip still commits the
+  read ONE eval earlier - directly in the idle window: the read's address
+  strobe rides the S_REQ idle cycle (the cycle its address first settles)
+  and its T1 follows the next cycle. It does NOT wait for a fresh idle-end
+  do_commit (which would insert a separate display cycle -> +1 late). This
+  is the idle-window analogue of the fetch-T4 defer: the eu_soon reservation
+  arms an early mid-cycle commit that fires on the next idle cycle when the
+  request goes ready (v30_biu defer_idle / eu_soon_ea, gated to the S_EA2
+  reg-EA case so the S_WAITX/INT eu_soon is untouched). Systematic: every
+  reg-EA reader form reads +1 late at the one idle-landing phase (ph7 on the
+  NOP-sled sweep) before the fix; cycle-exact at all phases after
+  (sweep_regea --tb 216/216; in-silicon chip-vs-fabric 60/60, d=0 all phases).
+
 ## Wait-state interaction (exp 5: waits + long-sled follow-up)
 
 - Wait states lengthen bus cycles exactly as configured (4 → 4+N cycles,
