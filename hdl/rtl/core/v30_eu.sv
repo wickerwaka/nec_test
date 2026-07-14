@@ -423,6 +423,8 @@ wire op_grpfe  = opc == 8'hFE;   // group-4 byte: /0 INC, /1 DEC (/2-/7 undefine
 wire op_xchg8  = opc == 8'h86;
 wire op_xchg16 = opc == 8'h87;
 wire op_jcc    = opc[7:4] == 4'h7;               // full Jcc set 70-7F
+wire op_loopf  = opc == 8'hE0 || opc == 8'hE1 ||  // DBNZNE/DBNZE/DBNZ/BCWZ
+                 opc == 8'hE2 || opc == 8'hE3;    // (LOOP/LOOPE/LOOPNE/JCXZ)
 wire op_ret    = opc == 8'hC3 || opc == 8'hC2;
 wire op_moff   = opc == 8'hA0 || opc == 8'hA1;   // MOV AL/AW, moffs16
 wire op_moffw  = opc == 8'hA2 || opc == 8'hA3;   // MOV moffs16, AL/AW
@@ -1185,12 +1187,23 @@ always_comb begin
         // without ready = reservation; the actual commit still fires in
         // S_REQ where eu_ready is high.
         S_PUSH_CALC: eu_req = 1'b1;
+        // Loop family (E0-E3, taken) doomed-prefetch law (sweep_loop.py, the
+        // E0/E1/E2/E3 x prefetch-phase x body matrix, chip-vs-TB): the
+        // resolution wait HARD-reserves the bus (no prefetch of any kind)
+        // ONLY in the last 3 cycles before the flush (dly<=3); at dly>=4 the
+        // prefetcher runs FREELY. A prefetch (idle-start OR an in-flight
+        // fetch's back-to-back successor) committed at dly>=4 survives as the
+        // one doomed fetch the flush later discards (its T4 becomes the
+        // redirect commit point); a commit whose eval would land at dly<=3 is
+        // blocked. The measured cutoff is exactly dly=4 free / dly=3 blocked
+        // for BOTH commit kinds (idle-start: E0 body2 ph3/9/15/21 at dly=4;
+        // back-to-back: E2 ph2/8/14 at dly=4 vs ph0/4/10 at dly=3). The old
+        // per-opcode reservation-start (E2 reserved from dly=4, E0/E1 had no
+        // reservation) was a golden-phase alias of this. EB/E9/Jcc are not in
+        // the doomed class and keep their own hard reservation above.
         S_JWAIT: eu_req = !(op_jcc && dly == 6'd3) &&
-                          !(opc == 8'hE2 &&
-                            (dly == 6'd5 || wnext == S_JNT)) &&
-                          !(opc == 8'hE0 || opc == 8'hE1) &&
-                          !(opc == 8'hE3 &&
-                            (dly == 6'd5 || wnext == S_JNT)) &&
+                          (!op_loopf ||
+                           (wnext == S_JFLUSH && dly <= 6'd3)) &&
                           // CALL rm reg: no reservation (measured: a
                           // prefetch commits inside the wait)
                           !(op_grpff && mrm_reg == 3'd2 &&
