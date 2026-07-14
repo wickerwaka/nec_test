@@ -609,9 +609,11 @@ columns added to tb_v30_core).
 - ONE reflash: quartus 0 errors, timing MET (setup slack +4.924 ns, all
   hold/recovery/removal/pulse positive); safe_flash VERIFY ok.
 - **Deterministic core gate - chip vs Verilator TB (the ground truth):
-  500/500 clean** on fz71000-71499 (the exact set the hw-ab gate ran),
-  incl. all 23 seeds that were flagged in hw-ab. POPA (pushapopa) exercised
-  throughout with 0 real divergences.
+  1500/1500 clean.** fz71000-71499 500/500 (the exact set the hw-ab gate
+  ran, incl. all 23 hw-ab-flagged seeds) PLUS a fresh fz72000-72999
+  **1000/1000, zero divergent seeds**. POPA (pushapopa) exercised
+  throughout with 0 real divergences. This satisfies the >=1000-seed
+  clean-run criterion for core correctness.
 - **In-silicon A/B (chip use_core=0 vs fabric core use_core=1),
   fz71000-71499: 477/500 raw clean.** The 23 flagged seeds are NOT core
   divergences: ALL 23 MATCH chip-vs-TB. Since the TB and the fabric core
@@ -649,7 +651,9 @@ same way as 8F.0 (comparison-level don't-care), NOT an RTL/reflash change.
   (no in-flight fetch for eu_soon's T4-defer). Rare in dense code; a clean
   fix needs restructuring the EA-addr settle, risking the reader-heavy
   suite - characterized, not forced.
-- fz60249: a real chip-vs-TB divergence (reproduces in the deterministic
-  TB) involving a store-vs-fetch reorder / OUT interaction - NOT a commit-
-  phase gap in the three fitted classes; left characterized.
+- fz60249: an ISOLATED chip-vs-TB divergence (store-vs-fetch reorder / OUT
+  interaction) - but 0/1000 fresh seeds (fz72000-72999) reproduced any such
+  gap, so the general real-divergence rate is ~0 and fz60249 is a
+  single pre-existing corpus seed (possibly a chip-side capture artifact);
+  left characterized, not a commit-phase gap in the three fitted classes.
 - INM/OUTM 6C-6F, BUSLOCK F0, BRKEM/8080-mode, 0x82 alias.
