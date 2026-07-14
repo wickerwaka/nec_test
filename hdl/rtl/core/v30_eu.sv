@@ -412,10 +412,10 @@ wire op_movs16 = opc == 8'h89;
 wire op_movl8  = opc == 8'h8A;
 wire op_movl16 = opc == 8'h8B;
 wire op_movri  = opc == 8'hC6 || opc == 8'hC7;      // MOV r/m, imm (grp /0)
-wire op_grpf6  = opc == 8'hF6;                       // /4 MULU8 only
-wire op_grpf7  = opc == 8'hF7;                       // /6 DIVU16 only
-wire op_grpd0  = opc == 8'hD0;                       // /4 SHL8,1 only
-wire op_grpfe  = opc == 8'hFE;                       // /0 INC8 only
+wire op_grpf6  = opc == 8'hF6;   // group-3 byte: /reg = TEST/-/NOT/NEG/MULU/MUL/DIVU/DIV (/1 undoc, parked)
+wire op_grpf7  = opc == 8'hF7;   // group-3 word: same /reg map as F6 (/1 undoc, parked)
+wire op_grpd0  = opc == 8'hD0;   // group-2 byte shift/rotate by 1: all 8 /reg ops (/4 SHL fast path, rest via shrot)
+wire op_grpfe  = opc == 8'hFE;   // group-4 byte: /0 INC, /1 DEC (/2-/7 undefined, parked)
 wire op_xchg8  = opc == 8'h86;
 wire op_xchg16 = opc == 8'h87;
 wire op_jcc    = opc[7:4] == 4'h7;               // full Jcc set 70-7F
