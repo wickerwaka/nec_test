@@ -1,5 +1,26 @@
 # Bring-up log
 
+## 2026-07-14 — reflash: WAITS>=1 grind round 2 (far-CALL + RMW-narrow)
+
+- SCOPE: two waits>=1 fixes since the prior reflash - far CALL (9A/FF.3) PC
+  push marched on eu_wdone (trap-chain law, like PUSHA); RMW deferred-eval
+  defer narrowed to op_alui (imm-less RMW forms commit early via rule A -
+  the round-1 all-S_WREQ defer had regressed the 0F NOT1 case).
+- BUILD: 0 errors. Timing MET: setup slack +5.813 ns, hold +0.267 ns. sof
+  fresh (mtime > RTL).
+- REFLASH: safe_flash OK, echo-healthy BEFORE and AFTER.
+- HARDWARE A/B (real silicon, chip vs fabric):
+  * waits=0 fz40000-40199 199/200 (the 1 = fz40173, documented 1-row PS
+    transient @ row 754 ps 2!=6, confirmed cosmetic chip-vs-TB - NOT a
+    regression). waits=0 surface unregressed.
+  * waits=1 fz84000-84049: first-div median 408.5 -> 443.0 (fixes live,
+    drift pushed deeper). Still 0/50 fully clean.
+  * waits=3 fz84000-84049: clean 4/50 -> 6/50, first-div median 527 -> 558.5.
+- Golden 169000/169000 + w1/w3 1200/1200 held (TB); waits=0 chip-vs-TB fuzz
+  80/80 clean. 5 contexts now cycle-exact (far-flush, PUSHA, RMW write,
+  far-CALL, RMW-narrow); waits>=1 gate NOT met - the remaining tail is the
+  shared-path wait-aware reservation FLOOR (biu_model.md / closure_checkpoint).
+
 ## 2026-07-14 — reflash: WAITS>=1 RMW-write deferred-eval qualification
 
 - SCOPE: one waits>=1 core-RTL fix (commit d339204) - the RMW mem write
