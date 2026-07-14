@@ -3650,6 +3650,19 @@ always_ff @(posedge clk) begin
                                             : rf[a4_cnt[2:0]]);
                 a4_cnt <= a4_cnt + 8'd1;
                 state <= S_REQ;
+            end else if (((op_grpff && mrm_reg == 3'd3) || opc == 8'h9A) &&
+                         eu_wr && eu_wdone) begin
+                // CALL far (9A / FF.3): march the PC push from the CS push's
+                // ZERO-WAIT completion (eu_wdone), not eu_done - the same
+                // trap-chain law as PUSHA. Under waits eu_done stretches +1
+                // per waited access, so issuing the PC push at eu_done lands
+                // its request late and the chip's contiguous CS;IP pushes get
+                // an idle gap (measured fz84007 w1: chip runs the two pushes
+                // back-to-back, the eu_done TB inserts 2 idle cycles). At zero
+                // waits eu_wdone==eu_done so golden is bit-exact (the eu_done
+                // far-CALL branch below becomes unreachable, harmless).
+                issue_push(pc);
+                state <= S_FCFL2;
             end else if (eu_done) begin
                 if (op_moff) begin                        // A0 / A1
                     if (opc[0]) rf[0] <= eu_rdata;
