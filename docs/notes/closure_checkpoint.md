@@ -405,9 +405,15 @@ clean chip-vs-TB; per the task's "chip-vs-TB is ground truth, hw-ab carries
 the inert float floor"). The recent idle-window/lead-reservation commits
 (006b257/a9f1468) had closed only 1 of the 24 (fz10059).
 
-LANDED - NMI IVT-read idle-window early commit (11 seeds): see
+LANDED + REFLASHED - NMI IVT-read idle-window early commit (11 seeds): see
 interrupt_model.md. eu_soon_ivt (v30_eu.sv) + q_cnt<=2 BIU defer_idle arm
-(v30_biu.sv); golden 169000/169000 held. Gate 478 -> 489/500.
+(v30_biu.sv); golden 169000/169000 held. chip-vs-TB gate 478 -> 489/500.
+Reflashed 2026-07-14 (safe_flash, timing MET setup +3.829/hold +0.265 ns,
+echo-healthy before/after; bringup_log). HARDWARE A/B (chip vs fabric)
+477 -> 488/500 (fix live in silicon; the +1 vs chip-vs-TB is fz10055, the
+fabric synth float floor). Regression corpus replay chip-vs-TB all d=0
+(inject fz10041/10055/10059, loop fz7203/7207, farjmp fz8304, swint
+fz8007/8032 - the flush seeds closed for free by 006b257/a9f1468).
 
 REMAINING (11, characterized, chip-vs-TB): two sub-classes -
 - INT INTA-commit (7): fz10066/10117/10251/10283/10317/10459/10460 - the

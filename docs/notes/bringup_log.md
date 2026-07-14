@@ -1,5 +1,23 @@
 # Bring-up log
 
+## 2026-07-14 — reflash: NMI IVT-read idle-window early commit (Mission-D)
+
+- BUILD: quartus_sh --flow compile, 0 errors, 305 warnings. Timing MET:
+  worst-case setup slack +3.829 ns, hold +0.265 ns (recovery +29.171,
+  removal +0.944, min-pulse +1.196). All positive.
+- safe_flash: PREP ok, quartus_pgm Configuration succeeded (0 errors),
+  VERIFY ok (pwr_good/cpu_running/MAGIC). Board echo-healthy BEFORE and
+  AFTER; final echo PASSED. No wedge.
+- Fabric now carries commit 07f65f6 (eu_soon_ivt + q_cnt<=2 defer_idle arm).
+- HARDWARE A/B (chip vs fabric, fz10000-10499 --inject-int): 488/500 (was
+  477/500). The 11 NMI IVT-read seeds now clean in silicon; residual 12 =
+  fz10055 (fabric synth float floor, chip-vs-TB clean) + the 11 chip-vs-TB
+  residuals (7 INT INTA-commit, 4 NMI doomed-prefetch).
+- chip-vs-TB (ground truth, socketed chip forced): 489/500. Regression
+  corpus replay (chip-vs-TB): inject fz10041/10055/10059, loop fz7203/7207,
+  farjmp fz8304, swint fz8007/8032 all d=0 (the flush seeds closed for free
+  by 006b257/a9f1468 as anticipated).
+
 ## 2026-07-11 — first deployment: harness verified, CPU not driving pins
 
 Deployed the phase-3 harness (4 MHz CPU clock, zero wait states, bring-up
