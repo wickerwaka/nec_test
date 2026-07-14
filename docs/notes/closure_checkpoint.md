@@ -207,6 +207,73 @@ None generalize without a per-context wait-aware reservation sweep + real
 golden-regression risk. This is the honest floor: the gate is NOT met; the
 remaining tail is a set of shared-path wait-aware reservation fits.
 
+## GRIND round 3 (2026-07-14) - both targets hit the structural floor; 0 landed
+
+Attacked the 2 flagged-tractable targets with proper Mission-D sweeps; both
+DEFERRED (characterized). No reflash (nothing landed).
+
+**Target 1 - disp-EA reader premature reservation: DEFERRED.** Swept the
+plain disp-load (8B 06 disp16) AND the shift-mem RMW read (c0 06 disp16 imm8),
+metric = anchor-fetch-T1 -> read-T1, phases 0-5 x waits 1/3: BOTH delta-0
+chip-vs-TB at every cell (the plain/shift disp readers are cycle-exact under
+waits). The fz84023 divergence needs a NARROW queue-dry-at-the-disp-pop phase
+(S_DHI wants the high disp byte with q==0, so the reservation lands on a
+prefetch-eval the chip lets through) that neither the NOP-runway sweep nor a
+store-drained-queue repro reproduces. The S_DHI reservation is shared with the
+fitted 8B/disp readers (all exact), so no clean wait-aware gate distinguishes
+the divergent phase without risking them. Narrow-phase shared-path floor.
+
+**Target 2 - ADD4S read-address-early decoupling: DEFERRED.** The loop
+(SRC read -> DST read -> compute -> WRITE -> next SRC) transitions all on
+eu_done; the read->read (S_A4_SRCW->DST) drifts FIRST per byte. A read-side
+eu_rdone (read zero-wait completion, == eu_done at w0, early under waits)
+would need address-data DECOUPLING: issue the next address at eu_rdone (early,
+no data), latch the read data separately at eu_rd_now. BUT the dst-read->WRITE
+transition (S_A4_DSTW->G2) has a DATA-DEPENDENT write (write data = the BCD
+compute result of the read), which cannot be issued before the data lands -
+so eu_rdone alone does not close ADD4S. Plus the ADD4S golden is intricately
+fitted (1020 cases). High risk, niche (2-4 seeds), does not fully close.
+
+**Also confirmed same-family:** S_WAITX/S_EX retire + prefetch-resume timing
+(op99 CWD etc.): after a register-op retire on an empty queue the chip inserts
+~3 idle cycles before resuming prefetch (bus-grid prefetch-resume law) that the
+TB does not model under waits (fz84009 row 587). Shared prefetch-resume timing.
+
+## ARCHITECTURAL READ - the tail needs a STRUCTURAL change (EU bus-grid-aware)
+
+Every remaining context has ONE root cause: **the chip's prefetch / EU-access /
+reservation / retire / branch-resolution timing tracks the BUS GRID (each bus
+cycle 4+N long under N waits), while the EU issues these off FIXED CPU-cycle
+offsets** - dly countdowns (S_WAITX/S_JWAIT/S_A4_G*), fixed per-state
+reservations (S_DHI/S_EA/S_RMWX eu_req), and eu_done-keyed multi-access
+transitions. At waits=0 the two coincide (the offsets were fitted there); under
+waits the bus grid stretches but the fixed offsets do not, so the EU's events
+land on the wrong bus slot.
+
+The 5 LANDED fixes all work by re-keying a specific event off a BUS-COMPLETION
+STROBE instead of a fixed offset: eu_wdone (write zero-wait completion) for the
+PUSHA/far-CALL push chains, and the T4-registration eval-qualifier (ext_ok_wr)
+for the RMW write. That IS the structural pattern - and it does NOT extend to
+the tail incrementally because: reads need an eu_rdone strobe AND address-data
+decoupling, and data-dependent writes (ADD4S) can't be issued early at all;
+reservations (disp-reader/loop/EA) are per-phase-fitted at w0 and share their
+state/path with fitted forms (no wait-independent form); branch resolution (Jcc)
+counts fixed dly while the chip's flush tracks the bus grid.
+
+**Honest call: the remaining tail is NOT closable by more per-context wait-aware
+reservation sweeps.** A truly-clean gate requires the STRUCTURAL change: make the
+EU bus-grid-aware - key ALL multi-access transitions off bus-completion strobes
+(eu_wdone / a new eu_rdone), and make the dly countdowns + reservations count
+BUS cycles (or gate on a BIU "bus stretched this cycle" signal) rather than CPU
+cycles. **Blast radius is large:** every dly-based timing and every reservation
+across the 169000-case w0 golden must be re-validated (reduce to today at w0)
+AND re-fitted at w1/w3 - a Campaign-scale undertaking with real w0-regression
+risk, not incremental fixes. Feasible (eu_wdone proves the pattern) but a
+deliberate structural campaign. RECOMMENDATION: bank the 5-fix partial closure
+(w1 median 1214->743, loader bit-clean, 5 contexts cycle-exact, golden+waits=0
+held) as the floor unless a dedicated "EU bus-grid-aware timing" campaign is
+authorized.
+
 **Drift trajectory (120-seed cached-chip w1 / 60-seed w3, bad-rows =
 diff() divergent rows):**
 | checkpoint | w1 mean | w1 median | w3 mean | w3 clean |
