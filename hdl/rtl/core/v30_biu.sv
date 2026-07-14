@@ -102,6 +102,9 @@ module v30_biu (
     // the EU drops it (or moves to the next access) on eu_started.
     input             eu_req,
     input             eu_soon,        // request asserts ready next cycle
+    input             eu_soon_ea,     // eu_soon from an S_EA2 reg-EA reader/
+                                      // sreg-store: enables the idle-window
+                                      // early-commit path (defer_idle)
     input             flush_fast,     // far-flush: redirect commits mid-cycle
     output            bus_phase,      // 2-cycle bus grid parity (T1=0)
     output            bus_t4,         // current cycle is a bus T4
@@ -412,6 +415,11 @@ wire t3_done = (state == ST_T3 || state == ST_TW) && ready;
 wire eval_at_t3 = t3_done && ready_prev;
 reg  evald;
 reg  defer_t4;     // fetch-T3 eval deferred into T4 (eu_soon reservation)
+reg  defer_idle;   // idle-window eu_soon reservation armed: commit the
+                   // reg-EA read on the NEXT idle cycle (when it becomes
+                   // ready), one cycle ahead of the plain idle do_commit -
+                   // the chip's idle-window reader-commit law (no in-flight
+                   // fetch for defer_t4's T4 to land on)
 reg  eval_ext;     // deferred eval runs during this (post-T4) cycle
 
 // a committed-but-stale prefetch dies in the flush cycle: transitions must
@@ -445,6 +453,7 @@ always_ff @(posedge clk) begin
     if (srst) begin
         eu_started <= 1'b0;
         defer_t4   <= 1'b0;
+        defer_idle <= 1'b0;
         state      <= ST_TI;
         nxt_valid  <= 1'b0;
         cur_type   <= BS_PASV;
@@ -552,10 +561,14 @@ always_ff @(posedge clk) begin
                     cur_kind   <= nxt_kind;
                     ube_n      <= nxt_ube_n;
                     nxt_valid  <= 1'b0;
-                end else if ((eval_ext || ff_show) && pick_any) begin
-                    // deferred (waited-cycle) completion eval: the picked
-                    // cycle was displayed during this cycle; enter its T1
-                    // directly
+                end else if (((eval_ext || ff_show) && pick_any) ||
+                             (defer_idle && want_eu)) begin
+                    // deferred (waited-cycle) completion eval OR the
+                    // idle-window reg-EA reader early commit (defer_idle):
+                    // the picked cycle is displayed during THIS idle cycle
+                    // and enters its T1 directly - one cycle ahead of the
+                    // plain do_commit idle path (measured reader-commit law).
+                    defer_idle <= 1'b0;
                     state      <= ST_T1;
                     tw_any     <= 1'b0;
                     evald      <= 1'b0;
@@ -579,6 +592,7 @@ always_ff @(posedge clk) begin
                         eu_started <= 1'b1;
                     end
                 end else begin
+                    defer_idle <= 1'b0;
                     if (eval_ext) begin
                         // deferred eval found nothing: cycle teardown
                         // deferred from the end of T4
@@ -589,6 +603,12 @@ always_ff @(posedge clk) begin
                         cur_wr     <= 1'b0;
                     end else if (pick_any) begin
                         do_commit();
+                    end else if (eu_req && eu_soon_ea && !eu_ready) begin
+                        // idle window with a reg-EA reader reservation that
+                        // becomes ready NEXT cycle and has no in-flight fetch
+                        // for defer_t4 to land on: arm the early commit so the
+                        // read commits directly in the idle window next cycle.
+                        defer_idle <= 1'b1;
                     end
                 end
             end
@@ -798,7 +818,13 @@ wire ff_show = flush_fast && q_flush && state == ST_TI && !nxt_live &&
 // the redirect status/address ride that T4 row and T1 follows next cycle
 // (measured, fz8304). Mirrors the mid-T4 commit taken in the state machine.
 wire ff_t4   = flush_fast && q_flush && state == ST_T4 && cur_fetch && pick_any;
-wire ext_show = (eval_ext && pick_any) || defer_show || ff_show || ff_t4;
+// idle-window reg-EA reader early commit: the armed request (defer_idle,
+// now ready) drives its status/address during THIS idle cycle and enters
+// T1 next cycle - the mid-cycle commit analogue of defer_show for a
+// bus-idle landing rather than a fetch T4.
+wire idle_commit = defer_idle && state == ST_TI && !nxt_live && want_eu;
+wire ext_show = (eval_ext && pick_any) || defer_show || ff_show || ff_t4 ||
+                idle_commit;
 
 assign bs = (halt_show || halt_t1) ? BS_HALT
           : nxt_live ? nxt_type

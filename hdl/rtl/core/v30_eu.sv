@@ -138,6 +138,9 @@ module v30_eu (
                                    // request history (trap-chain gaps)
     output reg        eu_ready,
     output reg        eu_soon,     // ready will assert next cycle (held resv)
+    output            eu_soon_ea,  // eu_soon specifically from an S_EA2 reg-EA
+                                   // reader/sreg-store (idle-window early
+                                   // commit; excludes the S_WAITX/INT eu_soon)
     output            flush_fast,  // far flush commits redirect mid-cycle
     output reg        eu_wr,
     output            eu_fwd,     // write data = the BIU's last read data
@@ -1303,6 +1306,14 @@ always_comb begin
                       (dly == 6'd1 && popm_hold == 6'd3)));
     end
 end
+
+// eu_soon raised specifically by an S_EA2 reg-EA reader / sreg-store: the
+// idle-window early-commit signal (a whole-EA-compute-in-bus-idle read
+// commits one cycle earlier on the chip, directly in the idle window,
+// where the fetch-T4 defer_t4 path has no in-flight fetch to land on).
+// Qualified to S_EA2 so the S_WAITX/INT eu_soon (deferred swint) is
+// untouched.
+assign eu_soon_ea = (state == S_EA2) && eu_soon;
 
 //----------------------------------------------------------------------------
 // INS/EXT combinational helpers (laws in the decode-section comment)
