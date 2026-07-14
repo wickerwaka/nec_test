@@ -284,7 +284,7 @@ wire e_wait_show = e_wait && !flush_busy_fetch && (q_aged == 2'd0) &&
                    !(eu_ready && !eu_started && !(eval_ext && want_eu));
 // the far-flush mid-cycle commit displays E with the commit, even
 // during a push-absorb cycle (measured, EA tranche)
-assign qs_e = (q_flush && flush_quiet) || e_wait_show || ff_show;
+assign qs_e = (q_flush && flush_quiet) || e_wait_show || ff_show || ff_t4;
 
 //----------------------------------------------------------------------------
 // HALT pseudo-cycle display (measured, block 4): the HALT status shows
@@ -526,7 +526,7 @@ always_ff @(posedge clk) begin
         end
 
         // QS=E display deferral
-        if (q_flush && !flush_quiet && !ff_show) e_wait <= 1'b1;
+        if (q_flush && !flush_quiet && !ff_show && !ff_t4) e_wait <= 1'b1;
         else if (e_wait_show)        e_wait <= 1'b0;
 
         // HALT pseudo-T1 releases UBE_N high
@@ -695,7 +695,34 @@ always_ff @(posedge clk) begin
                     // its end (measured, mission H waits tranches). The
                     // completed cycle's identity (split flags etc.) is
                     // kept across the eval_ext cycle.
-                    if (q_flush && cur_fetch && pick_any) begin
+                    if (q_flush && cur_fetch && pick_any && flush_fast) begin
+                        // EA far flush landing squarely on a prefetch T4: the
+                        // redirect commits MID-T4 - the target CODE status/
+                        // address ride THIS T4 row (ff_t4 display below, with
+                        // QS=E) and T1 follows next cycle, one cycle ahead of
+                        // the near-flush nxt_live path below (measured,
+                        // fz8304 far-jump; near flushes keep the deferred
+                        // display - E9/Jcc/loop golden + sweep exact).
+                        state      <= ST_T1;
+                        tw_any     <= 1'b0;
+                        evald      <= 1'b0;
+                        cur_type   <= pick_type;
+                        cur_addr   <= pick_addr;
+                        cur_fetch  <= pick_fetch;
+                        cur_wr     <= pick_wr;
+                        cur_swap   <= pick_swap;
+                        cur_split1 <= pick_split1;
+                        cur_split2 <= pick_split2;
+                        cur_wrap   <= pick_wrap;
+                        cur_wdata  <= pick_wdata;
+                        cur_seg    <= pick_seg;
+                        cur_ube_n  <= pick_ube_n;
+                        cur_kind   <= pick_kind;
+                        ube_n      <= pick_ube_n;
+                        if (pick_fetch)
+                            fetch_off <= fetch_off_sel +
+                                         (fetch_word ? 16'd2 : 16'd1);
+                    end else if (q_flush && cur_fetch && pick_any) begin
                         do_commit();
                         cur_type   <= BS_PASV;
                         cur_fetch  <= 1'b0;
@@ -767,7 +794,11 @@ wire defer_show = defer_t4 && state == ST_T4 && eu_req && eu_ready;
 // the flush cycle itself (E and the CODE commit share the row; measured)
 wire ff_show = flush_fast && q_flush && state == ST_TI && !nxt_live &&
                !eval_ext && pick_any;
-wire ext_show = (eval_ext && pick_any) || defer_show || ff_show;
+// ff_t4: the same EA far flush landing on a prefetch T4 (not an idle Ti) -
+// the redirect status/address ride that T4 row and T1 follows next cycle
+// (measured, fz8304). Mirrors the mid-T4 commit taken in the state machine.
+wire ff_t4   = flush_fast && q_flush && state == ST_T4 && cur_fetch && pick_any;
+wire ext_show = (eval_ext && pick_any) || defer_show || ff_show || ff_t4;
 
 assign bs = (halt_show || halt_t1) ? BS_HALT
           : nxt_live ? nxt_type
