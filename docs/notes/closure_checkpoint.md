@@ -32,7 +32,12 @@ outside `sw/safe_flash.sh`. Serve v2 (delta/partial capture) deployed.
   the TB), but a live waits>=1 chip-vs-TB fuzz gate over arbitrary sequences
   DIVERGES — a real, accumulating core-vs-chip cycle drift (see the WAITS>=1
   caveat below). Execution is arch-correct under waits; only cycle timing
-  drifts. This is a deferred CORE-RTL/reflash item, NOT a waits=0 problem.
+  drifts. **PARTIALLY CLOSED 2026-07-14 + REFLASHED** (two contexts
+  generalized: far-flush ff_t4 defer + PUSHA eu_wdone march; w1 drift
+  bad-rows 1286->864, loader now bit-clean; RMW-write + trailing-read
+  arbitration characterized + deferred — see the "WAITS>=1 CADENCE
+  GENERALIZATION campaign" section). The gate is NOT yet met; still a
+  CORE-RTL/reflash item for the remaining contexts, NOT a waits=0 problem.
 
 ## The ONE remaining deferred class
 
@@ -125,7 +130,50 @@ achievement) is completely unaffected**; execution under waits is
 architecturally correct (only cycle timing drifts). Repro: `python3
 sw/check_seq.py --fuzz N --waits 1 --exts <strict> --no-cov` diverges;
 inspect via a fetch#->capture-row-offset probe (the chip-vs-core delta grows
-monotonically while all fetch addresses match).
+monotonically while all fetch addresses match). **UPDATE: partially closed
+2026-07-14 — see the WAITS>=1 CADENCE GENERALIZATION section below (two
+contexts generalized, drift rate cut ~30%, golden+waits=0 held; RMW write +
+trailing-read arbitration characterized and deferred).**
+
+## WAITS>=1 CADENCE GENERALIZATION campaign (2026-07-14) — partial closure
+
+Opened the mission-H-scale core-RTL wait-cadence fit. Measured-first
+(Mission-D method): live-chip waits=1 refs (fz84000-84119) + waits=3 refs
+(fz84000-84059) captured on the strict fuzz menu (reflash-free, socketed
+chip = ground truth, cached /tmp/consolidation/chip_refs*.pkl); per-change
+the Verilator TB is rebuilt and drift is localized per inter-fetch interval
+(chip_gap vs tb_gap, EU-state context via +eudbg). The accumulating drift
+is a CATALOG of per-context miscadences, not one bug — the full measured law
+is in biu_model.md "WAITS>=1 CADENCE GENERALIZATION campaign".
+
+**Two contexts generalized (LANDED, golden 169000/169000 + w1/w3 1200/1200
+held, waits=0 fuzz fz84000-84119 120/120 clean):**
+1. Far-transfer flush (flush_fast) on a prefetch T4 committed the redirect
+   mid-T4 (the zero-wait law) even under waits; the chip defers it one cycle.
+   Gated `ff_t4` on `evald` (v30_biu). This is the FIRST drift in every seed
+   (loader BR); the w1 loader is now bit-clean. commit 84d59ee.
+2. PUSHA (0x60) marched its 8-write chain on `eu_done` (stretched +1/wait),
+   letting a prefetch splice between writes; generalized the trap-chain law
+   to march on `eu_wdone` (zero-wait completion). commit de18d78.
+
+**Characterized + DEFERRED (need Mission-D-style sweeps; opposite-direction
+/ phase-dependent laws, high golden-regression risk to guess):**
+- RMW memory write (op80/81, NOT/NEG/INC/DEC mem, XCHG mem): the chip
+  commits the write ~2 cyc LATER than the TB under waits. Measured chip
+  read-T4 -> write-T1 gap = 9 (w0) / 10 (w1) / 10 (w3) — +1 at w1 then flat
+  (phase-dependent write-commit latency, not +N/wait).
+- Trailing POP/stack read overlapping the next decode loses the eval_ext
+  arbitration to a queue-empty prefetch under waits (request asserts one
+  cycle too late for rule A/B). Phase/queue-dependent.
+- Near-jump (E9/Jcc) flush: mostly CORRECT (clean forward jumps match at w1);
+  residual mass is degenerate jmp+0 / target==doomed-prefetch cases.
+
+**Drift before -> after (120-seed cached-chip w1 / 60-seed w3, bad-rows =
+diff() divergent rows):** w1 mean 1286.5 -> 864.5, median 1214.5 -> 867.5,
+net-drift@fetch80 spread +-30 -> +-10; w3 mean 1025.4 -> 931.1. The
+waits>=1 arbitrary-sequence surface is PARTIALLY closed — drift rate cut,
+NOT eliminated; the arbitrary-sequence chip-vs-TB gate is not yet met.
+Tools: /tmp/consolidation/{localize,measure,dumpctx,trace_instr,trace_ab}.py.
 
 ## Reproduction commands (exact)
 

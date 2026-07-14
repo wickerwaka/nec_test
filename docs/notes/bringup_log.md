@@ -1,5 +1,26 @@
 # Bring-up log
 
+## 2026-07-14 — reflash: WAITS>=1 cadence generalization (far-flush + PUSHA)
+
+- SCOPE: two waits>=1 core-RTL cadence fixes (commits 84d59ee far-flush
+  ff_t4 gated on evald; de18d78 PUSHA marches inter-write chain on eu_wdone).
+- BUILD: 0 errors. Timing MET: setup slack +5.000 ns, hold +0.264 ns
+  (Full Compilation successful, 305 warnings). Util 9,776 ALMs (23%),
+  5153 regs, 13 DSP. sof fresh (verified mtime > RTL edits).
+- REFLASH: safe_flash OK (quartus_pgm 0 errors, VERIFY ok cfg 0x1ff0008,
+  use_core=False). echo-healthy BEFORE and AFTER (ECHO TEST PASSED both).
+- HARDWARE A/B (real silicon, chip vs fabric):
+  * waits=0 fz20000-20199 200/200 clean (unregressed - critical gate).
+  * waits=1 fz84000-84049: first-divergence row min 224 / median 385
+    (pre-fix the first drift was the loader far-flush at ~row 30 in EVERY
+    seed; the fix pushed it to row 385 median - loader + early stream now
+    bit-clean in silicon). Not fully closed (RMW-write / trailing-read
+    contexts remain deeper - characterized + deferred, biu_model.md).
+  * waits=3 fz84000-84049: 4/50 fully clean, first-divergence median 527.
+- Golden 169000/169000 + w1/w3 1200/1200 held (TB); waits=0 chip-vs-TB
+  fuzz 120/120 clean. PARTIAL closure of the waits>=1 arbitrary-sequence
+  surface - drift rate cut, gate not yet met.
+
 ## 2026-07-14 — reflash: taken-branch flush + 8C-store recognition fits
 
 - BUILD: 0 errors. Timing MET: setup slack +5.562 ns, hold +0.267 ns.

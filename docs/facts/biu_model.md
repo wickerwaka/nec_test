@@ -308,6 +308,61 @@ holds UNCHANGED — no new wait-state law and no RTL change were needed.
   caveat". The parametric model below holds only in N for those fitted
   forms, not across arbitrary sequences.
 
+### WAITS>=1 CADENCE GENERALIZATION campaign (2026-07-14) — measured law + partial fit
+
+Method (Mission-D style, measure-first): captured live-chip waits=1 refs
+(fz84000-84119) and waits=3 refs (fz84000-84059) on the strict fuzz menu
+(reflash-free, socketed chip = ground truth), rebuilt the Verilator TB per
+RTL change, and localized drift per inter-fetch interval (chip_gap vs
+tb_gap, EU-state-set context via the +eudbg dump). The accumulating drift
+is NOT one bug — it is a CATALOG of per-context cycle miscadences under
+waits, several the zero-wait "mid-cycle / immediate commit" laws that the
+mission-H deferred-completion-eval rule stretches everywhere EXCEPT these
+points. Contexts (summed drift cycles over 20 seeds, w1):
+
+- **Far-transfer flush on a prefetch T4 (flush_fast: EA/BR/far-CALL)** —
+  the `ff_t4` mid-T4 redirect commit is the ZERO-WAIT law; under waits the
+  chip defers the redirect one cycle (redirect target rides the Ti ad_data,
+  T1 one later). **FIXED** (v30_biu `ff_t4` gated on `evald`: at zero waits
+  a fetch T4 always has evald==1 so bit-exact; under waits evald==0 falls
+  to the near-flush do_commit path). The FIRST drift in every seed (the
+  loader's reset-vector + terminal BR, fetch 3). w1 loader now bit-clean.
+- **PUSHA (0x60) inter-write chain** — issued each of its 8 stack writes
+  from the previous write's `eu_done`; under waits eu_done stretches +1/wait
+  so the next write lands late and a prefetch splices between writes (chip:
+  8 contiguous MEMW). **FIXED** (v30_eu: march the next write on `eu_wdone`,
+  the write's zero-wait completion point - the trap-chain law generalized;
+  eu_wdone==eu_done at w0 so golden bit-exact). fz84007 w1.
+- **RMW memory write (op80/81 ALU-imm, NOT/NEG/INC/DEC mem, XCHG mem):
+  S_RMWX->S_WREQ->S_WBUSW** — the read commits correctly at the read-fetch's
+  deferred eval, but the WRITE commits ~2 cycles LATE on the chip vs the TB
+  (TB commits at the fetch's eval_ext via rule A/B; chip defers). Measured
+  read-T4 -> write-T1 gap: **9 (w0), 10 (w1), 10 (w3)** - a +1 step at w1
+  then flat, i.e. PHASE-dependent write-commit latency, not a clean +N/wait.
+  DEFERRED (needs a Mission-D-style write-ready x prefetch-phase x waits
+  sweep to fit the exact deferral; a blind eval-qualification change risks
+  the fitted 89/8B forms). Context [16,17,18,21,22,33] / [1,7,8,9,33,34,35].
+- **Trailing POP/stack read losing arbitration** — a POP r16 read that
+  overlaps the next instruction's decode commits at the fetch's deferred
+  eval on the chip, but under waits its request asserts one cycle too late
+  for rule A/B (eu_req_p1==0 at the fetch T4) so a queue-empty prefetch wins
+  the eval_ext slot and the read commits later. Phase/queue-dependent.
+  DEFERRED (same class - needs the swept lead-reservation law). Context
+  [1,2,3,4]-labelled intervals with a trailing MEMR.
+- **Near-jump (E9/Jcc) flush** — mostly CORRECT under waits (clean forward
+  jumps match bit-exact at w1: the redirect lands on the normal post-T4 Ti
+  commit slot). The histogram's [1,2,6,59,62,63] mass is DEGENERATE cases
+  (jmp+0 / target == in-flight doomed-prefetch address) and phase edges,
+  not a systematic law. DEFERRED as low-value phase cases.
+
+Result (120-seed cached-chip w1 / 60-seed w3, bad-rows = diff() divergent
+rows): w1 mean 1286->864, median 1214->867, net-drift@fetch80 spread
++-30 -> +-10; w3 mean 1025->931. Two contexts generalized (golden
+169000/169000 + w1/w3 1200/1200 held, waits=0 fuzz 120/120 clean); RMW
+write + trailing-read arbitration characterized with numbers and deferred
+(phase-swept laws). The waits>=1 arbitrary-sequence surface is PARTIALLY
+closed (drift rate cut, not eliminated); the gate is not yet met.
+
 ## Self-modifying code (exp 6b: smc)
 
 - After `MOV byte [T],imm`, targets **≤2 bytes past the instruction's end
