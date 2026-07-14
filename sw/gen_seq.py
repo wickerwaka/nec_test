@@ -688,8 +688,11 @@ def _gen_loop(p, rng):
     op = rng.choice([0xE0, 0xE1, 0xE2])
     body = []
     for _ in range(rng.randrange(1, 3)):
-        r = rng.randrange(8)
-        body.append(bytes([rng.choice([0x40, 0x48]) + (0 if r == 4 else r)]))
+        # NEVER INC/DEC CW: it is the loop counter. A body INC CW cancels
+        # the LOOP's decrement -> the count never reaches 0 -> the gadget
+        # spins forever (an uncontained hang, not a bounded loop).
+        body.append(bytes([rng.choice([0x40, 0x48])
+                           + rng.choice([0, 2, 3, 5, 6, 7])]))
     body_len = sum(len(b) for b in body)
     disp = (-(body_len + 2)) & 0xFF          # back to body start
     p.emit_atomic([bytes([0xB9, rng.randrange(1, 5), 0x00])] + body +
