@@ -842,6 +842,23 @@ blocks it there - so golden phases (no competing prefetch) are untouched.
   UNDOCUMENTED FE encoding (S_HALT); fz82605 = 1-row PS/status transient;
   fz82300 = pre-existing 2-row 4S BCD store (0F2x, S_A4_* write path).
 
+### Reflash + hardware A/B (2026-07-14)
+ONE reflash this session (new full-RTL A/B bitstream, safe_flash'd, cfg
+0x1ff0008, use_core=0, VERIFY MAGIC ok; echo health-checked before AND after).
+Quartus: 0 errors, timing MET (setup slack +5.273 ns; hold +0.186, recovery
++29.251, removal +1.006, min-pulse +1.196 - all positive).
+- **In-silicon chip-vs-fabric (hw-ab) on the 22 reorder seeds: 22/22 MATCH,
+  d=0** - the PUSHA/RMW fix is live in the fabric (was the reorder before).
+- **Fresh deterministic chip-vs-TB gate fz83000-83999: 1000/1000 clean**
+  (post-flash, full strict ext set - PUSHA/RMW/reg-EA writes heavy). Plus
+  fz82000-82999 997/1000 pre-flash (3 residuals = the separate classes below).
+
+**The waits=0 deterministic chip-vs-TB surface is now CLOSED for the
+store/push commit-phase reorder class** (the write half); the reader half
+closed in 006b257. What remains at waits=0 are the separate low-rate classes
+below (4S store, 1-row status transient) and the parked/deferred items - none
+is the PUSHA/RMW / reg-EA store-vs-prefetch reorder.
+
 ### NEW / still DEFERRED (separately-scoped, low-rate)
 - **4S BCD store (0F20/22/26) commit-phase** (fz82300, ~2 rows): a distinct
   write path (S_A4_WR/WRW), reserved but with a residual reorder at some
