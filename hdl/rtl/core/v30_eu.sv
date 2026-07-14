@@ -2004,9 +2004,17 @@ always_ff @(posedge clk) begin
                         mem_op  <= rf[4];             // 16-bit offset walk
                         pracc   <= 3'd0;
                         a4_cnt  <= 8'd0;
-                        // first read ready pop+2 (phase-0 pop) or
-                        // pop+3 (phase-1; measured)
-                        state   <= bus_phase ? S_61G : S_61W;
+                        // The first stack read commits via the natural BIU
+                        // eval-point mechanism (identical to POP r16 / S_REQ):
+                        // measured A/B, POPA's chip read-start cycle equals a
+                        // plain POP r16's at every prefetch phase. The old
+                        // `bus_phase ? S_61G : S_61W` split forced a +1
+                        // lead-in on every odd-parity dispatch, which only
+                        // matches the chip when S_DEC lands on a fetch T4;
+                        // it read 1-2 cycles late at T2/Ti phases. Dispatch
+                        // straight to S_61W: its request-commit is phase-
+                        // natural (S_61G retained only for its transition).
+                        state   <= S_61W;
                     end
                     else if (opc[7:3] == 5'b01011 ||
                              opc == 8'hC3) begin      // POP r16 / RET
