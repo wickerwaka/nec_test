@@ -191,10 +191,27 @@ passing corpus (v30_eu.sv / v30_biu.sv are the executable reference).
   recognized one boundary early (opposite sign to the fetch-limited class).
   Fixed: op_srst sets shadow at its reg-form completion AND its mem-store
   completion (S_WBUSW). Golden 169000/169000 held; closed fz10317.
-- **Remaining recognition-point residuals (OPEN, 2 seeds, chip-vs-TB, two
-  DISTINCT mechanisms)**: fz10460 REP/string abort (LODSB - irq_take gated by
-  rep_en, the abort element-count differs by one); fz10175 NMI. Each a
-  separate fit; not yet done.
+- **REP READ-strings (LODS) are individually interruptible too** (measured,
+  fit DEFERRED): a controlled REP LODSB (F3 AC, CW=6) delay sweep on the chip
+  shows the same interruptibility as the write strings - elements complete
+  1,2,3,4 as the INT delay grows, pushedPC = the F3 prefix, and the abort
+  bus tail is: last read T4 -> +12 queue flush -> +1 resume CODE fetch at the
+  prefix -> INTA. The RTL's REP LDM loop (S_BUSW op_lodstr) has NO abort
+  check at all (unlike op_stostr/S_STRS), so it always runs to completion.
+  Adding the abort (decision at the next read's issue S_RSV, irq_rep tap,
+  S_IRQ_REPW with flush delay 8) reproduced the element count AND the flush
+  cycle-exactly on the controlled sweep and did NOT touch golden (INT.F3AA
+  200/200). BUT it did NOT close fz10460: there the chip does NOT withdraw
+  the last element - it COMPLETES the CW=1 read (@243f) and vectors at the
+  REP's end (a read already ACCEPTED before the abort edge completes, the
+  write-law accept-anchoring), AND the vectoring tail issues several resume
+  prefetches before INTA (the doomed-prefetch/flush class). A cycle-exact
+  read-string abort needs both the accept-edge anchoring and the doomed-
+  prefetch tail - a mini-campaign like the write-string fit. Deferred.
+- **Remaining residuals (OPEN, 2 seeds, chip-vs-TB)**: fz10460 REP-LODS
+  abort (above); fz10175 NMI doomed-prefetch during the vectoring flush
+  (biu_model.md doomed-prefetch class, POP ES sreg-load context). Both are
+  the doomed-prefetch/accept-edge flush machinery; deferred honestly.
 - **IE gating is itself pipelined**: the decision at B uses IE@B-3.
   This single law IS the "EI shadow" AND explains POP PSW's behavior on
   an IE 0->1 transition (the immediately following boundary still sees

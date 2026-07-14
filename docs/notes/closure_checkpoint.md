@@ -471,13 +471,23 @@ timing MET setup +5.562/hold +0.267 ns, echo-healthy): HARDWARE A/B 494 ->
 497/500 (fz10117/10283/10317 live in silicon). chip-vs-TB 498/500. Corpus
 replay all d=0.
 
-STILL OPEN (2, distinct, chip-vs-TB, deferred - documented-hard classes each
-needing its own measurement + a golden-risk fit): fz10460 REP/string abort
-(AC LODSB, irq_take gated by rep_en - the read-string abort element-count is
-off by one; the abort law was fitted on REP STOSB/writes, INT.F3AA); fz10175
-NMI doomed-prefetch during the vectoring flush (chip issues one resume CODE
-prefetch the RTL does not model - the biu_model.md doomed-prefetch class,
-here with a POP ES sreg-load). Corpus reps added (fz10175, fz10460).
+STILL OPEN (2, distinct, chip-vs-TB, deferred). Both were ATTEMPTED with the
+measure-then-correct method and both bottom out on the doomed-prefetch /
+accept-edge flush machinery:
+- fz10460 REP-LODS abort: MEASURED that REP read-strings ARE interruptible
+  (controlled LODSB sweep - element count + abort flush cycle-exact, prefix
+  resume; see interrupt_model.md). Added the missing abort to the RTL's REP
+  LDM loop (S_RSV decision, S_IRQ_REPW, flush delay 8): reproduced the count
+  AND flush on the sweep, golden held (INT.F3AA 200/200). But it did NOT
+  close fz10460 - there the chip COMPLETES the last element (accept-anchored:
+  a read accepted before the abort edge is not withdrawn) and the vectoring
+  tail issues several resume prefetches before INTA (doomed-prefetch class).
+  Reverted the partial fit (added complexity, no gate win); deferred. A clean
+  fit needs the write-law accept-anchoring + the doomed-prefetch tail.
+- fz10175 NMI doomed-prefetch during the vectoring flush (chip issues resume
+  CODE prefetches the RTL does not model - biu_model.md doomed-prefetch
+  class, POP ES sreg-load context). Same machinery; deferred.
+Corpus reps added (fz10175, fz10460).
 
 ### waits=0 interrupt surface: settled at 498/500 chip-vs-TB (497/500 hw-ab)
 Five landed, golden-safe, silicon-confirmed RTL fits this campaign (478 ->
