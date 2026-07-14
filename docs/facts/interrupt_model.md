@@ -171,12 +171,23 @@ passing corpus (v30_eu.sv / v30_biu.sv are the executable reference).
   attempt regressed them because it fired on the skipped boundary itself).
   Closed 6 of the 11 chip-vs-TB residuals (INT fz10066/10251/10459; NMI
   fz10248/10431/10486). Remaining 5 are a DIFFERENT mechanism (below).
-- **INT recognition after a taken branch / sreg-store phase (OPEN residual,
-  5 seeds, chip-vs-TB)**: with shadow=0, the INTA commit / recognition after
-  a taken JMP-short (EB) or Jcc (7x) or an 8C sreg-store lands 1-2 cyc off
-  the chip in random contexts (fz10117/10283 branch, fz10317 8C, fz10460,
-  fz10175 NMI) - the branch-flush / store recognition-point cadence, NOT the
-  shadow. Not yet fit; deferred.
+- **Taken-branch recognition boundary = the FLUSH cycle** (RESOLVED, 2
+  seeds): the recognition sample after a taken branch is anchored to the
+  branch's flush (pin@flush-3), NOT to the fetch-limited target pop.
+  Measured on a controlled JMP-short delay sweep (chip vs TB pushedPC):
+  recognition maps NOP@500 -> NOP@501 -> JMP@502 -> [3-delay GAP, the flush,
+  INT dropped, no latch] -> target@50A, and the chip's target window opens
+  one delay EARLIER than a pop-anchored boundary. The RTL sampled int_p[2]
+  (pin@pop-3) at the first post-flush S_FIRST and so recognized 1 cyc late
+  (missing the pin in fetch-limited streams). Fixed with a 1-cycle post_flush
+  pulse (the S_FIRST after S_JFLUSH) that taps int_p[3]/ie_p[3] (= pin/IE at
+  flush-3). Golden 169000/169000 held; closed fz10117 (JMP-short), fz10283
+  (Jcc). Controlled sweep now chip==TB at every delay incl the 3-delay gap.
+- **Remaining recognition-point residuals (OPEN, 3 seeds, chip-vs-TB, three
+  DISTINCT mechanisms)**: fz10460 REP/string abort (LODSB - irq_take gated by
+  rep_en, the abort element-count differs by one); fz10317 8C sreg-STORE (TB
+  commits INTA EARLY, opposite sign); fz10175 NMI. Each a separate fit; not
+  yet done.
 - **IE gating is itself pipelined**: the decision at B uses IE@B-3.
   This single law IS the "EI shadow" AND explains POP PSW's behavior on
   an IE 0->1 transition (the immediately following boundary still sees

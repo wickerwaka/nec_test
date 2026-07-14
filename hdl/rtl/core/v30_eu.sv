@@ -368,9 +368,13 @@ reg         pop_pend;            // POP PSW committed early; an interrupt
                                  // at its boundary pushes the NEW value
                                  // but the LIVE psw reverts to psw_old
                                  // before the IE/BRK clear (measured)
-reg  [2:0]  ie_p;                // IE history: the boundary decision
+reg  [3:0]  ie_p;                // IE history: the boundary decision
                                  // uses IE@B-3 (this delay IS the EI /
-                                 // POP-PSW enable shadow - measured)
+                                 // POP-PSW enable shadow - measured); bit 3
+                                 // is the post-flush (flush-3) tap
+reg         post_flush;          // 1-cycle pulse at the first S_FIRST after
+                                 // a taken-branch S_JFLUSH: recognition taps
+                                 // the pin/IE at flush-3 (int_p[3]/ie_p[3])
 
 // POP-PSW boundary-race law (closure block): when INT recognition
 // lands on POP PSW's own boundary, the LIVE flags commit either the
@@ -1029,7 +1033,7 @@ wire [15:0] rmw_wide =
 //   between a prefix and its instruction (live prefix latches)
 // - NMI is edge-latched and ignores IE; INT is a level gated by IE
 //----------------------------------------------------------------------------
-wire irq_int  = int_p[2] && ie_p[2];
+wire irq_int  = post_flush ? (int_p[3] && ie_p[3]) : (int_p[2] && ie_p[2]);
 wire irq_any  = nmi_latch || irq_int;
 wire irq_take = irq_any && !shadow && !rep_en && !seg_ovr_en;
 // REP iteration-boundary sampling runs one stage deeper (fitted)
@@ -1503,6 +1507,7 @@ always_ff @(posedge clk) begin
         poll_s1  <= 1'b1;
         shadow   <= 1'b0;
         ie_p     <= '0;
+        post_flush <= 1'b0;
         ie_pend  <= 1'b0;
         ie_val   <= 1'b0;
         psw_old  <= '0;
@@ -1554,9 +1559,17 @@ always_ff @(posedge clk) begin
         // pin pipelines + NMI edge latch (run in every state)
         int_p   <= {int_p[2:0], pin_int};
         nmi_p   <= {nmi_p[3:0], pin_nmi};
+        // Taken-branch recognition boundary = the FLUSH cycle: the first
+        // S_FIRST after S_JFLUSH samples the pin at flush-3 (measured: on a
+        // controlled JMP-short sweep the chip recognizes the INT at the
+        // target one delay EARLIER than the pop-anchored boundary - it is
+        // anchored to the flush, not the fetch-limited target pop). One-cycle
+        // pulse the cycle after any S_JFLUSH so irq_int taps int_p[3]/ie_p[3]
+        // (= pin/IE at flush-3) there instead of the normal [2].
+        post_flush <= (state == S_JFLUSH);
         if (nmi_p[2] && !nmi_p[3]) nmi_latch <= 1'b1;   // set at edge+3
         poll_s1 <= pin_poll_n;
-        ie_p    <= {ie_p[1:0], psw[9]};
+        ie_p    <= {ie_p[2:0], psw[9]};
         // REP first-iteration-boundary abort decision, latched at the fixed
         // pop-anchored edge pop+7 (rslot==6) with the standard edge-4 pin
         // tap (interrupt_model.md "REP abort"); consumed by the string

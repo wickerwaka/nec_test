@@ -451,12 +451,19 @@ gate 489 -> 495/500. Closed: INT fz10066/10251/10459, NMI fz10248/10431/
 live in silicon; the +1 vs chip-vs-TB is fz10055 float floor). Corpus
 replay all d=0.
 
-STILL OPEN (5, DIFFERENT mechanism - branch-flush/store recognition-point,
-shadow=0): fz10117 (JMP-short EB), fz10283 (Jcc 70), fz10460 - the INT INTA
-commit after a taken-branch flush arbitrates 1-3 cyc late vs the chip
-against the post-flush target prefetch; fz10317 (8C sreg-STORE, TB commits
-INTA EARLY - opposite sign); fz10175 (NMI). Not the shadow path; a separate
-INTA-commit-vs-post-flush-prefetch arbitration fit. Deferred.
+RESOLVED (branch-flush half, 2 of the 5): the taken-branch recognition
+boundary is the FLUSH cycle (pin@flush-3), not the fetch-limited target pop.
+Measured on a controlled JMP-short sweep (chip-vs-TB pushedPC: NOP->NOP->JMP
+->[3-delay flush gap, no latch]->target, chip's target window opens 1 delay
+earlier). RTL sampled int_p[2] at the first post-flush S_FIRST -> 1 cyc late.
+Fixed: a 1-cycle post_flush pulse (S_FIRST after S_JFLUSH) taps int_p[3]/
+ie_p[3]. Golden 169000/169000 HELD; gate 495 -> 497/500. Closed fz10117
+(JMP-short), fz10283 (Jcc). Controlled sweep chip==TB at every delay.
+
+STILL OPEN (3, THREE distinct mechanisms, chip-vs-TB): fz10460 REP/string
+abort (AC LODSB, irq_take gated by rep_en - the string abort element-count
+is off by one); fz10317 8C sreg-STORE (TB commits INTA EARLY, opposite
+sign); fz10175 NMI. Each a separate recognition-point fit; deferred.
 
 ### Priority 4 - wait-state variation (characterized, NOT gated)
 check_seq --waits N / --waits-sweep threads waits through the A/B path.
