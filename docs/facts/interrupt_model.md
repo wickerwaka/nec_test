@@ -151,24 +151,32 @@ passing corpus (v30_eu.sv / v30_biu.sv are the executable reference).
   (v30_eu.sv) arming the BIU defer_idle when q_cnt<=2 (v30_biu.sv). Applies
   ONLY to the NMI running-boundary IVT wait (irq_nmi_ivt), NOT the INT
   INTA2->IVT gap.
-- **Recognition-shadow drop in fetch-limited contexts (OPEN residual,
-  chip-vs-TB)**: when an INT/NMI lands while shadow=1 (a segment-register
-  load or far-CALL defers recognition), the chip drops the shadow (=
-  retires the intervening instruction, re-enabling the boundary sample)
-  ~2 cycles EARLIER than the RTL in a QUEUE-STARVED stream. The int_p[2]
-  pin-sample tap is correct; the gap is the internal shadow-drop/retire
-  cadence, bus-invisible in normal execution (non-int fuzz is clean). It
-  surfaces two chip-vs-TB residual classes in random contexts: INT
-  recognition-point (the RTL misses the int_p[2] window -> INTA commits
-  2-3 cyc late, an extra prefetch slips in) and NMI-during-far-CALL
-  doomed-prefetch (one extra speculative CODE fetch before vectoring). A
-  queue-starved shadow-bypass closes the fuzz cases but architecturally
-  regresses the saturated golden sreg-load tranches INT.8ED0/8ED8 (their
-  NOP sled also has queue-starved S_FIRST boundaries; q_avail cannot tell
-  the skipped sreg-load boundary from the next one). A clean fit needs the
-  chip's exact internal shadow-drop cadence - re-measure with an exp_int.py
-  fetch-limited sweep before attempting. Deferred (11 seeds: fz10066 et al.
-  INT; fz10486 et al. NMI) rather than regress golden.
+- **Recognition-shadow lasts exactly ONE boundary** (RESOLVED, was the
+  fetch-limited residual): the sreg-load / far-CALL recognition shadow must
+  drop as soon as the NEXT opcode is popped past the shadowed S_FIRST - it
+  is a single-boundary skip, NOT tied to the intervening instruction's
+  retire. The chip re-enables the boundary sample at the shadowed
+  instruction's successor pop, uniformly (saturated AND queue-starved);
+  measured chip-vs-TB (fz10066: chip commits INTA at the boundary the RTL
+  was still shadowing). The RTL previously cleared shadow only in retire(),
+  but several completion paths reach S_FIRST WITHOUT retire() - MOV reg,imm,
+  the MOV Sreg fast path, and the far-JMP S_JFLUSH - so a shadow set in one
+  of them (or leaked across a far JMP into the anchor) persisted across
+  MANY instructions in fetch-limited streams, deferring INT/NMI recognition
+  ~2 cyc too long. Fixed by clearing shadow at the S_FIRST opcode pop (the
+  block that cycle is combinational so it still holds; the clear is
+  registered; a sreg load re-sets shadow at its own later completion). This
+  is UNIFORM - the saturated golden sreg-load tranches INT.8ED0/8ED8 stay
+  200/200 on the SAME corrected timing (the earlier queue-starved bypass
+  attempt regressed them because it fired on the skipped boundary itself).
+  Closed 6 of the 11 chip-vs-TB residuals (INT fz10066/10251/10459; NMI
+  fz10248/10431/10486). Remaining 5 are a DIFFERENT mechanism (below).
+- **INT recognition after a taken branch / sreg-store phase (OPEN residual,
+  5 seeds, chip-vs-TB)**: with shadow=0, the INTA commit / recognition after
+  a taken JMP-short (EB) or Jcc (7x) or an 8C sreg-store lands 1-2 cyc off
+  the chip in random contexts (fz10117/10283 branch, fz10317 8C, fz10460,
+  fz10175 NMI) - the branch-flush / store recognition-point cadence, NOT the
+  shadow. Not yet fit; deferred.
 - **IE gating is itself pipelined**: the decision at B uses IE@B-3.
   This single law IS the "EI shadow" AND explains POP PSW's behavior on
   an IE 0->1 transition (the immediately following boundary still sees

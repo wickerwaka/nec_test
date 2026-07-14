@@ -434,17 +434,26 @@ by the recognition sample.
   a far-CALL (shadow=1, state S_CALLW/FCFL2); the same late shadow-drop lets
   the RTL issue ONE extra doomed CODE prefetch before vectoring (the
   documented doomed-prefetch/flush class, biu_model.md).
-CONCRETE GOLDEN CONFLICT (why deferred, not forced): probed a queue-starved
-shadow-bypass (irq_take |= irq_int && state==S_FIRST && !q_avail). It CLOSES
-fz10066 (MATCH) but ARCHITECTURALLY regresses the saturated golden sreg-load
-tranches INT.8ED0 184/200 and INT.8ED8 180/200 (first-div 'qop'/arch = wrong
-PC pushed): those NOP-sled tranches ALSO have queue-starved S_FIRST
-boundaries, so a q_avail gate cannot tell the sreg-load's OWN boundary (must
-skip) from the next (recognize) - it lets recognition fire on the skipped
-boundary. The fetch-limited-vs-saturated distinction alone does NOT separate
-the cases; a clean fit needs the chip's exact internal shadow-drop cadence
-(unmeasured, would need an exp_int.py internal-timing sweep). Deferred rather
-than regress golden, per the closure guard.
+RESOLVED (shadow half, 6 of the 11): the recognition shadow is a SINGLE-
+boundary skip, and must drop as the next opcode is popped past the shadowed
+S_FIRST - NOT at the intervening instruction's retire. The RTL cleared it
+only in retire(), but MOV reg,imm / MOV Sreg fast / far-JMP S_JFLUSH reach
+S_FIRST without retire(), so a shadow (e.g. from the loader's far JMP into
+the anchor) leaked across many instructions in fetch-limited streams,
+deferring recognition ~2 cyc. Fixed UNIFORMLY by clearing shadow at the
+S_FIRST opcode pop (the same-cycle block is combinational; a sreg load
+re-sets it at its own completion). Golden 169000/169000 HELD - the saturated
+sreg-load tranches INT.8ED0/8ED8 land on the SAME corrected timing (this is
+the uniform-fix test the earlier queue-starved bypass failed). chip-vs-TB
+gate 489 -> 495/500. Closed: INT fz10066/10251/10459, NMI fz10248/10431/
+10486.
+
+STILL OPEN (5, DIFFERENT mechanism - branch-flush/store recognition-point,
+shadow=0): fz10117 (JMP-short EB), fz10283 (Jcc 70), fz10460 - the INT INTA
+commit after a taken-branch flush arbitrates 1-3 cyc late vs the chip
+against the post-flush target prefetch; fz10317 (8C sreg-STORE, TB commits
+INTA EARLY - opposite sign); fz10175 (NMI). Not the shadow path; a separate
+INTA-commit-vs-post-flush-prefetch arbitration fit. Deferred.
 
 ### Priority 4 - wait-state variation (characterized, NOT gated)
 check_seq --waits N / --waits-sweep threads waits through the A/B path.

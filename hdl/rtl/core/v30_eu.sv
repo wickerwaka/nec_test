@@ -1759,6 +1759,19 @@ always_ff @(posedge clk) begin
                     ivt_vec  <= '0;    // divide trap uses vector 0
                     irq_disp <= 1'b0;
                     irq_nmi_ivt <= 1'b0;
+                    // Recognition shadow lasts exactly ONE boundary: it is
+                    // consumed as the next opcode is popped past the shadowed
+                    // S_FIRST (the block this cycle is combinational, so it
+                    // still holds; the clear is registered). This makes the
+                    // shadow lifetime independent of the completion path -
+                    // several paths (MOV reg,imm, MOV Sreg fast, far-JMP
+                    // S_JFLUSH) reach S_FIRST WITHOUT retire() and so used to
+                    // leak a stale sreg-load/far-CALL shadow across many
+                    // instructions in fetch-limited streams, deferring INT/NMI
+                    // recognition ~2 cyc too long (measured chip-vs-TB). A
+                    // sreg load re-sets shadow at its own completion, after
+                    // this pop, so its one-boundary shadow is preserved.
+                    shadow <= 1'b0;
                     eu_kind  <= K_MEM;
                     halt_disp <= (q_byte == 8'hF4);
                     ldp2 <= 1'b0;
