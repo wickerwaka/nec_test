@@ -1353,7 +1353,18 @@ end
 // untouched.
 assign eu_soon_ea = (state == S_EA2) && eu_soon;
 
-// RMW mem write (S_WREQ): exclude it from the waited-cycle deferred eval
+// RMW mem write, ALU-imm forms ONLY (op80/81/83; op_alui): apply the
+// stricter deferred-eval qualifier. Measured: only the ALU-imm RMW defers
+// its write under waits (sweep_rmw.py: chip 12,14,14,16,18,20 - the w1==w2
+// quantization). The immediate pop AFTER the operand read (S_AI_I8/I16)
+// pushes the ALU-imm write-ready one slot later so it coincides with the
+// post-read prefetch's T4 at w1; the chip then waits for the next plain
+// idle. The imm-less RMW forms (NOT/NEG/INC/DEC mem, 0F CLR1/SET1/NOT1 mem,
+// XCHG mem) have their write-ready one slot EARLIER (before that T4) and
+// commit at the deferred eval via rule A - clean +2/wait, NO quantization
+// (sweep NOT1 byte[mem] = 10,12,14,16). Gating on op_alui keeps those on
+// the fitted rule A (fz84001 0F NOT1 regressed when all S_WREQ deferred).
+// Exclude it from the waited-cycle deferred eval
 // (eval_ext) commit. Measured (sweep_rmw.py, ADD word[mem],imm w0-w5): the
 // chip commits the RMW write at read-T1 + 12 + 2*W_effective, landing on a
 // PLAIN idle do_commit AFTER the post-read prefetch - never at that
@@ -1364,7 +1375,7 @@ assign eu_soon_ea = (state == S_EA2) && eu_soon;
 // so the write simply commits at the next idle. S_WREQ is RMW-write-only
 // (the fitted 88/89 stores use S_REQ), so no golden w0/w1/w3 form is
 // affected. Reader (S_REQ read) and store (S_REQ write) paths untouched.
-assign eu_defer_wr = (state == S_WREQ);
+assign eu_defer_wr = (state == S_WREQ) && op_alui;
 
 // Hardware-interrupt (NMI/INT) IVT-read idle-window early commit: on the
 // last pre-IVT wait cycle (S_WAITX dly==1 with wnext==S_TRAP_IVT1 and the
