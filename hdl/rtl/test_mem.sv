@@ -5,15 +5,16 @@
 //  64 KB of BRAM organized as two byte lanes (even = AD7:0, odd = AD15:8),
 //  mirrored across the full 1 MB address space. Initialized from the boot
 //  image so the reset vector at FFFF0h (mirrored to FFF0h) holds the
-//  bring-up program. I/O cycles are stubbed: reads return 0000h, writes are
+//  bring-up program. I/O cycles are stubbed: reads return the host-
+//  configurable cfg_iord value (default FFFFh), writes are
 //  dropped (the capture buffer records them regardless, which is how
-//  store-routine style register exfiltration will work).
+//  store-routine style register exfiltration works).
 //
 //  Both lanes are altsyncram instances with ENABLE_RUNTIME_MOD (instance IDs
-//  "ME0" even / "ME1" odd): until the HPS bridge exists, test programs can
-//  be loaded and memory inspected over JTAG with the In-System Memory
-//  Content Editor. Regenerate the .mif/.hex boot images with
-//  sw/make_boot.py.
+//  "ME0" even / "ME1" odd): the host normally loads test programs and
+//  inspects memory over the HPS bridge, but these instances also allow it
+//  over JTAG with the In-System Memory Content Editor. Regenerate the
+//  .mif/.hex boot images with sw/make_boot.py.
 //
 //============================================================================
 

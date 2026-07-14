@@ -34,7 +34,10 @@
 //     the queue flush (QS=E) together with the PC push request; the
 //     handler prefetch then wins the slot after the PC push by itself.
 //
-//  Implemented opcodes: 00/08/10/18/20/28/30/38 (ALU rm8,r8), 40-4F,
+//  Implemented opcodes (PARTIAL snapshot - the op_* decode wires in the
+//  decode section below are the authoritative implemented set; the core
+//  now covers 300+ forms and this list is no longer exhaustive):
+//  00-3B (all 32 ALU r/m byte/word/direction forms), 40-4F,
 //  50-57, 58-5F, 86/87 (XCHG), 88/89/8A/8B, 8C/8E (sreg MOV), 8D
 //  (LDEA), 90, 98/99 (CVTBW/CVTWL), 9B (POLL), 9D (POP PSW), A0-A3
 //  (acc moffs), A4/A5/AA/AB/AC/AD (MOVBK/STM/LDM singles), B8-BF,
@@ -44,7 +47,7 @@
 //  rm8,imm3), 0F20 (ADD4S), 0F28 (ROL4 rm8), 0F 31/33/39/3B
 //  (INS/EXT bit-field, mod3; laws at the op_insext decode comment),
 //  and control flow EB/E9
-//  (BR), 74/75/7C (Bcc), E2 (DBNZ), E8 (CALL near), C3/C2 (RET).
+//  (BR), 70-7F (full Bcc set), E2 (DBNZ), E8 (CALL near), C3/C2 (RET).
 //  Unknown opcodes park the sequencer (S_HALT). 0F forms pop the
 //  second byte at F+2 and the modrm at F+3; standard EA machinery.
 //
@@ -404,8 +407,9 @@ wire [1:0] mrm_mod = mrm[7:6];
 //----------------------------------------------------------------------------
 // ALU r/m forms: all 32 encodings (8 ops x {rm8,r8 / rm16,r16 / r8,rm8 /
 // r16,rm16}). opc[0]=w (byte/word), opc[1]=d (0: dest=rm, 1: dest=reg).
-// Mission S found the word/direction forms unimplemented (parked S_HALT);
-// the golden suite only covered the rm8,r8 representative.
+// Mission S implemented the word/direction forms (they were previously
+// parked at S_HALT, and at that time the golden suite only covered the
+// rm8,r8 representative; Mission G later emitted the full 32-form matrix).
 wire op_alu    = (opc & 8'hC4) == 8'h00;
 wire op_movs8  = opc == 8'h88;
 wire op_movs16 = opc == 8'h89;
@@ -725,6 +729,9 @@ endfunction
 
 // 32/16 unsigned divide: {trap, quotient, remainder}. The trap condition
 // is "no borrow" from the overflow pre-check compare (below).
+// SUPERSEDED and unused: the divide path now runs through the shared
+// iterative div_* unit (commit c2beb6a). This combinational function and
+// divu16_8 below are retained but no longer called by any active path.
 function automatic [32:0] divu32(input [31:0] num, input [15:0] den);
     logic [31:0] q32, r32;
     if (den == 16'd0 || num[31:16] >= den) begin
@@ -736,8 +743,9 @@ function automatic [32:0] divu32(input [31:0] num, input [15:0] den);
     end
 endfunction
 
-// DIVU8: AX / den8 -> {trap, q8, r8} (structural mirror of divu32;
-// timing/flag residue fit pending the F6.6 goldens)
+// DIVU8: AX / den8 -> {trap, q8, r8} (structural mirror of divu32).
+// SUPERSEDED and unused - see the note on divu32 above; F6.6 DIVU8 now
+// runs on the iterative unit and passes its goldens 500/500.
 function automatic [16:0] divu16_8(input [15:0] num, input [7:0] den);
     logic [15:0] q16, r16;
     if (den == 8'd0 || {8'd0, num[15:8]} >= {8'd0, den}) begin
@@ -777,6 +785,10 @@ endfunction
 //    CY=AC=V=0 (the sign-fixup micro-ops never touch flags).
 //  - quotient truncates toward zero, remainder sign follows the
 //    dividend.
+// The laws above still govern IDIV, but idiv32/idiv16 themselves are
+// SUPERSEDED and unused: the active IDIV path is the iterative div_*
+// unit plus the inline early-trap pre-check (commit c2beb6a). These two
+// combinational reference functions are retained but never called.
 function automatic [49:0] idiv32(input [31:0] num, input [15:0] den,
                                  input [15:0] f);
     logic [31:0] an, q32, r32;
@@ -955,7 +967,8 @@ wire [23:0] ex_ai8  = alu8(mrm_reg, rm_byte, disp[7:0], psw);
 wire [31:0] ex_ai16 = alu16(mrm_reg, (mrm_mod == 2'd3) ? rf[mrm_rm]
                                                        : mem_op,
                             ai_imm, psw);
-// shifter operands: count masked to 5 bits (CL or imm8 in disp)
+// shifter count: the FULL 8-bit count, NO masking (V30 does not mask to
+// 5 bits; 1 for the by-1 forms, CL for D2/D3, imm8 in disp for C0/C1)
 wire sh_word = op_grpd1 | op_grpd3 | op_grpc1;
 wire [7:0] sh_cnt = (op_grpd0 | op_grpd1) ? 8'd1 :
                     (op_grpd2 | op_grpd3) ? rf[1][7:0] : disp[7:0];

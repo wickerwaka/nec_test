@@ -7,9 +7,10 @@
 //  earliest cycles (reset release, first fetch) are always retained.
 //
 //  The buffer is a single-port altsyncram with ENABLE_RUNTIME_MOD, instance
-//  ID "CAPT": until the HPS bridge exists, dump it over JTAG with the
-//  In-System Memory Content Editor (sw/dump_capture.tcl). The port address
-//  muxes to the write pointer while armed and to rd_addr afterwards.
+//  ID "CAPT": the host normally reads it over the HPS bridge, but it can
+//  also be dumped over JTAG with the In-System Memory Content Editor
+//  (sw/dump_capture.tcl). The port address muxes to the write pointer
+//  while armed and to rd_addr afterwards.
 //
 //  4096 x 64 = 256 Kbit of BRAM at the default depth (~1 ms of trace at
 //  4 MHz CPU clock).

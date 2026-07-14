@@ -18,11 +18,15 @@
 //  an arbitrary architectural state without a load routine, plus a
 //  scripted queue-consumer mode that replaces the EU for BIU-only
 //  verification. The backdoor is compiled out of synthesis builds; the
-//  normal reset flow (vector fetch at FFFF0h) is a Campaign 4 item and
-//  is not implemented yet.
+//  normal reset flow (vector fetch at FFFF0h) runs in synthesis builds
+//  (implemented in Campaign 3 mission G; see v30_biu's reset-vector
+//  sequencing note, boot-capture verified by sw/check_boot.py).
 //
-//  Not yet implemented (later Campaign 3 mission blocks): INT/NMI/POLL,
-//  HALT, BUSLOCK, wait-state-heavy paths beyond READY sampling in T3.
+//  INT/NMI/POLL, HALT, and wait states are now implemented (Campaign 3
+//  mission blocks 3-4). Still not implemented: BUSLOCK (BUSLOCK_N is
+//  tied high), and the deferred opcode families noted in the closure
+//  checkpoint (INM/OUTM 6C-6F, BRKEM/8080-emulation mode, the 0x82
+//  alias).
 //
 //============================================================================
 
