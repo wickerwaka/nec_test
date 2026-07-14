@@ -1,5 +1,20 @@
 # Bring-up log
 
+## 2026-07-14 — reflash: recognition-shadow single-boundary fix
+
+- BUILD: 0 errors, 305 warnings. Timing MET: setup slack +4.242 ns, hold
+  +0.255 ns.
+- safe_flash: quartus_pgm Configuration succeeded (0 errors), VERIFY ok
+  (pwr_good/cpu_running/MAGIC). Echo-healthy before/after; no wedge.
+- Fabric now carries commit 1a7f601 (shadow cleared at S_FIRST opcode pop).
+- HARDWARE A/B (chip vs fabric, fz10000-10499 --inject-int): 488 -> 494/500.
+  The 6 shadow-caused seeds now clean in silicon (INT fz10066/10251/10459,
+  NMI fz10248/10431/10486); residual 6 = fz10055 (fabric synth float floor)
+  + the 5 branch-flush/8C-store recognition-point residuals.
+- chip-vs-TB (ground truth): 495/500. Regression corpus replay chip-vs-TB
+  all d=0 (inject fz10041/10055/10059/10066/10486, loop fz7203/7207, farjmp
+  fz8304, swint fz8007/8032).
+
 ## 2026-07-14 — reflash: NMI IVT-read idle-window early commit (Mission-D)
 
 - BUILD: quartus_sh --flow compile, 0 errors, 305 warnings. Timing MET:

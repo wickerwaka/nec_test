@@ -446,7 +446,10 @@ re-sets it at its own completion). Golden 169000/169000 HELD - the saturated
 sreg-load tranches INT.8ED0/8ED8 land on the SAME corrected timing (this is
 the uniform-fix test the earlier queue-starved bypass failed). chip-vs-TB
 gate 489 -> 495/500. Closed: INT fz10066/10251/10459, NMI fz10248/10431/
-10486.
+10486. REFLASHED 2026-07-14 (commit 1a7f601, safe_flash timing MET setup
++4.242/hold +0.255 ns, echo-healthy): HARDWARE A/B 488 -> 494/500 (6 seeds
+live in silicon; the +1 vs chip-vs-TB is fz10055 float floor). Corpus
+replay all d=0.
 
 STILL OPEN (5, DIFFERENT mechanism - branch-flush/store recognition-point,
 shadow=0): fz10117 (JMP-short EB), fz10283 (Jcc 70), fz10460 - the INT INTA
