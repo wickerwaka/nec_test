@@ -3614,7 +3614,25 @@ always_ff @(posedge clk) begin
                     end else state <= S_BUSW;
                 end else state <= S_BUSW;
             end
-            S_BUSW: if (eu_done) begin
+            S_BUSW: if (opc == 8'h60 && a4_cnt < 8'd8 && eu_wdone) begin
+                // PUSHA (0x60) inter-write march: issue the next stack write
+                // from the current write's ZERO-WAIT completion point
+                // (eu_wdone) instead of eu_done - the trap-chain law
+                // (biu_model mission H). Under waits eu_done is stretched by
+                // one per waited access, so issuing the next write on eu_done
+                // lands its request one cycle late per wait and a prefetch
+                // commits in the widened inter-write gap (measured fz84007
+                // w1: chip runs 8 contiguous MEMW, the eu_done TB spliced a
+                // CODE fetch between writes). eu_wdone fires at the write's
+                // T4 at zero waits (== eu_done there, so golden is bit-exact)
+                // and at the first Tw under waits, keeping the next request
+                // ready for the deferred completion eval. reg order
+                // AW,CW,DW,BW,SP(orig),BP,IX,IY.
+                issue_push((a4_cnt == 8'd4) ? rf[4] + 16'd8
+                                            : rf[a4_cnt[2:0]]);
+                a4_cnt <= a4_cnt + 8'd1;
+                state <= S_REQ;
+            end else if (eu_done) begin
                 if (op_moff) begin                        // A0 / A1
                     if (opc[0]) rf[0] <= eu_rdata;
                     else        rf[0][7:0] <= eu_rdata[7:0];
