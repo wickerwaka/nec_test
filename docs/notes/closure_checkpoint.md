@@ -651,9 +651,60 @@ same way as 8F.0 (comparison-level don't-care), NOT an RTL/reflash change.
   (no in-flight fetch for eu_soon's T4-defer). Rare in dense code; a clean
   fix needs restructuring the EA-addr settle, risking the reader-heavy
   suite - characterized, not forced.
-- fz60249: an ISOLATED chip-vs-TB divergence (store-vs-fetch reorder / OUT
-  interaction) - but 0/1000 fresh seeds (fz72000-72999) reproduced any such
-  gap, so the general real-divergence rate is ~0 and fz60249 is a
-  single pre-existing corpus seed (possibly a chip-side capture artifact);
-  left characterized, not a commit-phase gap in the three fitted classes.
+- fz60249: RESOLVED as the inert chip-vs-FABRIC floor, NOT a chip-vs-TB
+  divergence (see the fz60249 STEP-0 section below). No RTL change, no
+  reflash.
 - INM/OUTM 6C-6F, BUSLOCK F0, BRKEM/8080-mode, 0x82 alias.
+
+## fz60249 reg-EA store/fetch reorder — STEP-0 verdict: INERT FLOOR (2026-07-13)
+
+Dedicated pass to fit "fz60249 / reg-EA STORE-FETCH REORDER". STEP 0
+(reproduce + confirm it is a REAL deterministic chip-vs-TB divergence, not
+merely the chip-vs-fabric floor) DISPROVED the divergence. NO RTL change,
+NO reflash. HEAD 8998f8e; board root@mister-nec, echo-verified; single
+writer; nothing flashed.
+
+### Measured facts (all reproducible)
+- **chip-vs-TB (deterministic, HEAD): MATCH.** fz60249 (94 ins, full strict
+  ext set) compared clean 3x, 1324 rows, incl. --strict-qs (the 3 old
+  QS-flickers are gone too). bad=0.
+- **chip-vs-TB at commit 1358b3b (the EXACT commit where fz60249 was
+  recorded as an 875-row chip-vs-TB divergence, corpus first_row 371):
+  rebuilt that RTL's Verilator TB in an isolated worktree, re-ran vs the
+  chip TODAY -> MATCH, 1324 rows.** gen_seq is unchanged since c221596
+  (before 1358b3b), so the seed emits the identical program. Since the TB
+  is deterministic given RTL, and BOTH the current AND the recording-commit
+  RTL match the chip today, the ONLY variable vs the old 875-row record is
+  the CHIP capture. => the recorded chip-vs-TB divergence was a chip-side
+  capture-alignment transient, not a model/transaction-order divergence.
+- **chip-vs-FABRIC (hw-ab, HEAD): DIVERGE@371, 875 rows, 3 flickers** -
+  reproduces the corpus signature EXACTLY. Rows 371-380: a MEMW (reg-EA
+  store, addr 02996) and the adjacent CODE prefetch issue ~2 cycles shifted
+  in the fabric bitstream vs the chip, cascading to the done marker. This
+  is the documented synth-vs-chip floor: the fabric bitstream (synthesized
+  ~1358b3b) diverges from the chip on a store/fetch boundary in a way the
+  TB (same RTL) does NOT - so it is a synthesis artifact, not a core-logic
+  law. Reflashing would reproduce the same synth-vs-sim gap (RTL identical);
+  same don't-care class as 8F.0 ghost-read and the passive-bus-float floor.
+
+### Verdict
+fz60249 is the INERT chip-vs-fabric floor. The RTL model reproduces the
+chip cycle-exactly on this seed. The corpus's hw_ab:false (chip-vs-TB)
+entries for fz60249 were chip-capture transients that do not reproduce
+across 4 fresh chip captures (3 at HEAD + 1 at 1358b3b), all MATCH.
+
+### reg-EA STORE cadence class is already cycle-exact chip-vs-TB
+sweep_regea.py --tb, all 12 prefetch phases: st_bx/st_bxsi/st_si/st8_bx =
+0 divergent (the 848250b S_EA2 bare-eu_req reservation baseline holds at
+every phase). Fresh deterministic gate fz73000-73039 (full strict ext set,
+reg-EA stores heavily exercised via earich/indirect/addressing-mode
+expansion): **40/40 chip-vs-TB clean** (on top of the predecessor's
+fz72000-72999 1000/1000). Nothing to fit for the store class.
+
+### reg-EA READER idle-window +1 — still deferred (unchanged)
+sweep_regea.py --tb still shows the one documented chip-vs-TB reader
+residual: rd_bx / rd_bxsi at phase 7 read +1 late (d=+1). This is the
+separately-scoped reg-EA-reader idle-window case (needs an EA-addr-settle
+restructure that risks the reader-heavy suite) - LEFT DEFERRED per scope,
+NOT folded into this pass. It is orthogonal to fz60249 (which is
+fabric-only; this reader case is a genuine but rare chip-vs-TB residual).
