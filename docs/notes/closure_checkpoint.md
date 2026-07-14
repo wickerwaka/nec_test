@@ -466,9 +466,25 @@ mem forms - controlled pushedPC sweep). The RTL shadowed only the load path;
 op_srst (store) now sets shadow at its reg-form and mem-store (S_WBUSW)
 completions. Golden HELD; gate 497 -> 498/500. Closed fz10317.
 
-STILL OPEN (2, distinct, chip-vs-TB): fz10460 REP/string abort (AC LODSB,
-irq_take gated by rep_en - the string abort element-count off by one);
-fz10175 NMI. Deferred.
+REFLASHED 2026-07-14 (post_flush + 8C batch, commit 5568052, safe_flash
+timing MET setup +5.562/hold +0.267 ns, echo-healthy): HARDWARE A/B 494 ->
+497/500 (fz10117/10283/10317 live in silicon). chip-vs-TB 498/500. Corpus
+replay all d=0.
+
+STILL OPEN (2, distinct, chip-vs-TB, deferred - documented-hard classes each
+needing its own measurement + a golden-risk fit): fz10460 REP/string abort
+(AC LODSB, irq_take gated by rep_en - the read-string abort element-count is
+off by one; the abort law was fitted on REP STOSB/writes, INT.F3AA); fz10175
+NMI doomed-prefetch during the vectoring flush (chip issues one resume CODE
+prefetch the RTL does not model - the biu_model.md doomed-prefetch class,
+here with a POP ES sreg-load). Corpus reps added (fz10175, fz10460).
+
+### waits=0 interrupt surface: settled at 498/500 chip-vs-TB (497/500 hw-ab)
+Five landed, golden-safe, silicon-confirmed RTL fits this campaign (478 ->
+498): NMI IVT-read idle-window commit; recognition-shadow single-boundary
+skip; taken-branch flush recognition (post_flush pin tap); 8C sreg-store
+shadow. Residual 2 = REP-LODSB abort + NMI doomed-prefetch (distinct classes,
+honestly deferred). Golden 169000/169000 held throughout.
 
 ### Priority 4 - wait-state variation (characterized, NOT gated)
 check_seq --waits N / --waits-sweep threads waits through the A/B path.

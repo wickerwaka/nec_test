@@ -1,5 +1,18 @@
 # Bring-up log
 
+## 2026-07-14 — reflash: taken-branch flush + 8C-store recognition fits
+
+- BUILD: 0 errors. Timing MET: setup slack +5.562 ns, hold +0.267 ns.
+- safe_flash: Configuration succeeded, VERIFY ok; echo-healthy before/after;
+  no wedge. Fabric now carries commit 5568052 (post_flush pin tap + 8C
+  sreg-store shadow, on top of the shadow single-boundary fix).
+- HARDWARE A/B (chip vs fabric, fz10000-10499 --inject-int): 494 -> 497/500
+  (fz10117/10283 branch-flush + fz10317 8C-store now clean in silicon;
+  residual 3 = fz10055 float floor + fz10175 NMI + fz10460 REP-LODSB).
+- chip-vs-TB (ground truth): 498/500. Regression corpus replay chip-vs-TB
+  all d=0 (incl now-closed fz10066/10117/10283/10317/10486, loop/farjmp/
+  swint). Added fz10175/fz10460 residual reps to the corpus.
+
 ## 2026-07-14 — reflash: recognition-shadow single-boundary fix
 
 - BUILD: 0 errors, 305 warnings. Timing MET: setup slack +4.242 ns, hold
