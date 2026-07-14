@@ -58,6 +58,21 @@ def _modrm_reg(reg, rm):
     return bytes([0xC0 | (reg << 3) | rm])
 
 
+def _imm_biased(rng, bits):
+    """Immediate value biased toward the interesting boundaries (0, 1, -1,
+    sign bit, signed/unsigned max, byte carry edges) so ALU/shift/mul
+    operands land on carry/overflow/sign transitions instead of only in the
+    uniform-random interior. ~55% boundary, ~45% uniform."""
+    if rng.random() < 0.55:
+        if bits == 16:
+            return rng.choice([0x0000, 0x0001, 0xFFFF, 0x8000, 0x7FFF,
+                               0x8001, 0x7FFE, 0x00FF, 0x0100, 0x0080,
+                               0x007F, 0xFF00, 0xFFFE, 0x0002, 0xFF80])
+        return rng.choice([0x00, 0x01, 0xFF, 0x80, 0x7F, 0x81, 0x7E, 0x02,
+                           0xFE, 0x0F, 0xF0])
+    return rng.getrandbits(bits)
+
+
 class Prog:
     def __init__(self, rng):
         self.rng = rng
@@ -65,6 +80,10 @@ class Prog:
         self.fixups = []       # (ins_index, target_ins_index) for disp8
         self.abs_fixups = []   # ins_index of a far JMP whose off word must
                                # be patched to the NEXT instruction's IP
+        self.reg_ip_fixups = []  # (mov_index, upto_index): patch a B8+r MOV
+                               # imm16 to the absolute IP of the boundary
+                               # AFTER instruction upto_index-1 (near
+                               # indirect CALL/JMP self-continuation target)
         self.noland = set()    # indices illegal as branch targets: landing
                                # here would skip a safe-gadget's setup
         self.ram_over = []     # (addr, bytes) controlled data-window bytes a
@@ -117,8 +136,12 @@ class Prog:
             while tgt < n and tgt in self.noland:
                 tgt += 1
             disp = sum(sizes[k] for k in range(idx + 1, tgt))
-            assert disp < 0x80
-            out[idx][1] = disp
+            if len(out[idx]) >= 3 and out[idx][0] == 0xE9:   # BR near rel16
+                out[idx][1] = disp & 0xFF
+                out[idx][2] = (disp >> 8) & 0xFF
+            else:
+                assert disp < 0x80
+                out[idx][1] = disp
         # far JMP: absolute IP of the following instruction (CS=0, program
         # based at PC0). Falls to the store stub when it is the last instr.
         for idx in self.abs_fixups:
@@ -127,6 +150,12 @@ class Prog:
             out[idx][2] = off >> 8
             out[idx][3] = 0x00
             out[idx][4] = 0x00
+        # near-indirect target: a B8+r MOV whose imm16 must equal the
+        # absolute IP of the boundary after instruction (upto-1).
+        for mov_idx, upto in self.reg_ip_fixups:
+            off = (PC0 + sum(sizes[k] for k in range(0, upto))) & 0xFFFF
+            out[mov_idx][1] = off & 0xFF
+            out[mov_idx][2] = off >> 8
         return b"".join(bytes(b) for b in out)
 
 
@@ -159,7 +188,7 @@ def _gen_alu_imm(p, rng):
     kind = rng.randrange(3)
     if kind == 0:            # acc,imm
         w = rng.getrandbits(1)
-        imm = rng.getrandbits(16 if w else 8)
+        imm = _imm_biased(rng, 16 if w else 8)
         p.emit(bytes([op * 8 + 4 + w]) +
                imm.to_bytes(2 if w else 1, "little"))
         return "alu_acc_imm"
@@ -167,13 +196,13 @@ def _gen_alu_imm(p, rng):
         g = rng.choice([0x80, 0x81, 0x83])
         n = 2 if g == 0x81 else 1
         p.emit(bytes([g, 0xC0 | (op << 3) | rng.choice(NOSP)]) +
-               rng.getrandbits(8 * n).to_bytes(n, "little"))
+               _imm_biased(rng, 8 * n).to_bytes(n, "little"))
         return "alu_grp_imm_r"
     else:                    # 80/81/83 mem
         g = rng.choice([0x80, 0x81, 0x83])
         n = 2 if g == 0x81 else 1
         p.emit(bytes([g]) + _modrm_direct(op, rng) +
-               rng.getrandbits(8 * n).to_bytes(n, "little"))
+               _imm_biased(rng, 8 * n).to_bytes(n, "little"))
         return "alu_grp_imm_m"
 
 
@@ -181,16 +210,16 @@ def _gen_mov(p, rng):
     kind = rng.randrange(6)
     if kind == 0:            # B8+r imm16
         p.emit(bytes([0xB8 + rng.choice(NOSP)]) +
-               rng.getrandbits(16).to_bytes(2, "little"))
+               _imm_biased(rng, 16).to_bytes(2, "little"))
         return "mov_imm16"
     elif kind == 4:          # B0+r imm8 (MOV reg8, imm8) - re-enabled
         p.emit(bytes([0xB0 + rng.randrange(8)]) +
-               bytes([rng.getrandbits(8)]))
+               bytes([_imm_biased(rng, 8)]))
         return "mov_imm8"
     elif kind == 5:          # C6/C7 /0 (MOV r/m, imm) - re-enabled
         w = rng.getrandbits(1)
         n = 2 if w else 1
-        imm = rng.getrandbits(8 * n).to_bytes(n, "little")
+        imm = _imm_biased(rng, 8 * n).to_bytes(n, "little")
         if rng.random() < 0.5:      # register destination (never SP)
             p.emit(bytes([0xC6 + w, 0xC0 | rng.choice(NOSP)]) + imm)
             return "mov_ri_r"
@@ -275,9 +304,11 @@ def _gen_test(p, rng):
 
 
 def _gen_branch(p, rng):
-    opc = rng.choice([0xEB] + [0x70 + c for c in range(16)])
+    opc = rng.choice([0xEB, 0xE3] + [0x70 + c for c in range(16)])
     p.branch(opc)
-    return "jcc" if opc != 0xEB else "jmp_short"
+    if opc == 0xEB:
+        return "jmp_short"
+    return "jcxz" if opc == 0xE3 else "jcc"
 
 
 def _gen_string(p, rng):
@@ -666,6 +697,285 @@ def _gen_loop(p, rng):
     return "loop"
 
 
+# ---------------------------------------------------------------------------
+# Campaign 5 breadth: addressing-mode coverage + the remaining safe forms.
+# The generator previously emitted ONLY mod0/rm6 (direct) and mod3 (register)
+# EAs; the whole register-indirect / based / indexed / disp8 / disp16 /
+# BP-relative (SS-default) addressing space was unexercised. _windowed_ea
+# builds any (mod,rm,disp) form and forces the computed effective address to
+# a chosen in-window target by pre-loading the base/index registers, so
+# writes stay contained regardless of the random register context. Reads may
+# also be aimed at offset 0xFFFF to exercise the segment-wrap split access.
+# ---------------------------------------------------------------------------
+
+EA_LO, EA_HI = 0x2100, 0x2E00      # write-safe EA target band (word headroom)
+
+# (base_reg, index_reg) in REG16 numbering for mod!=0; rm6 special-cased
+_RM_BASEIDX = {0: (3, 6), 1: (3, 7), 2: (5, 6), 3: (5, 7),
+               4: (None, 6), 5: (None, 7), 6: (5, None), 7: (3, None)}
+
+
+def _pick_target(rng, write, straddle_ok):
+    """EA target: normally in the data window (~40% odd, for odd-alignment
+    timing); for reads, occasionally 0xFFFF so a word access wraps to offset
+    0 of the segment (the fz494 split-access path - never for a write, which
+    would corrupt the IVT at 0x0000)."""
+    if straddle_ok and not write and rng.random() < 0.12:
+        return 0xFFFF
+    t = rng.randrange(EA_LO, EA_HI)
+    return (t | 1) if rng.random() < 0.4 else (t & 0xFFFE)
+
+
+def _windowed_ea(rng, reg_field, write, straddle_ok=True):
+    """(setup_instrs, ea_bytes) for a random (mod,rm,disp) EA forced to a
+    contained target. setup_instrs = MOV imm16 loading the base/index regs;
+    ea_bytes = modrm + disp. EA = (base+index+disp) mod 2^16 == target."""
+    mod = rng.randrange(3)
+    rm = rng.randrange(8)
+    t = _pick_target(rng, write, straddle_ok)
+    if mod == 0 and rm == 6:           # direct disp16 (no base/index regs)
+        return [], bytes([(reg_field << 3) | 6, t & 0xFF, t >> 8])
+    if rm == 6:                        # mod1/2 rm6 => [BP+disp], SS default
+        base, index = 5, None
+    else:
+        base, index = _RM_BASEIDX[rm]
+    if mod == 0:
+        disp, dispb = 0, b""
+    elif mod == 1:
+        disp = rng.randrange(-0x20, 0x20)
+        dispb = bytes([disp & 0xFF])
+    else:
+        disp = rng.randrange(0, 0x10000)
+        dispb = bytes([disp & 0xFF, (disp >> 8) & 0xFF])
+    regs = [r for r in (base, index) if r is not None]
+    setup, acc = [], 0
+    for r in regs[:-1]:
+        v = rng.randrange(0, 0x40)
+        setup.append(bytes([0xB8 + r]) + v.to_bytes(2, "little"))
+        acc += v
+    val = (t - disp - acc) & 0xFFFF
+    setup.append(bytes([0xB8 + regs[-1]]) + val.to_bytes(2, "little"))
+    return setup, bytes([(mod << 6) | (reg_field << 3) | rm]) + dispb
+
+
+def _gen_ea_rich(p, rng):
+    """A memory-operand instruction using the full mod/rm/disp addressing
+    space (register-indirect, based, indexed, BP-relative SS-default,
+    disp8/disp16, odd alignment, segment-wrap reads), optionally under a
+    stack of 0-3 segment-override prefixes. Atomic: base/index setup first."""
+    npfx = rng.choices([0, 1, 2, 3], weights=[58, 30, 8, 4])[0]
+    seg = b"".join(bytes([rng.choice([0x26, 0x2E, 0x36, 0x3E])])
+                   for _ in range(npfx))
+    kind = rng.randrange(8)
+    if kind in (0, 1):                 # ALU rm,r (d=0 RMW) or r,rm (d=1 read)
+        op, w, d = rng.randrange(8), rng.getrandbits(1), kind
+        setup, ea = _windowed_ea(rng, rng.choice(NOSP),
+                                 write=(d == 0 and op != 7))
+        core = bytes([op * 8 + 2 * d + w]) + ea
+    elif kind == 2:                    # MOV mem,reg / reg,mem
+        w, d = rng.getrandbits(1), rng.getrandbits(1)
+        setup, ea = _windowed_ea(rng, rng.choice(NOSP), write=(d == 0))
+        core = bytes([0x88 + 2 * d + w]) + ea
+    elif kind == 3:                    # LEA (address calc, no memory access)
+        setup, ea = _windowed_ea(rng, rng.choice(NOSP), False)
+        core = bytes([0x8D]) + ea
+    elif kind == 4:                    # TEST mem,reg (read only)
+        w = rng.getrandbits(1)
+        setup, ea = _windowed_ea(rng, rng.randrange(8), False)
+        core = bytes([0x84 + w]) + ea
+    elif kind == 5:                    # XCHG reg,mem (RMW write)
+        w = rng.getrandbits(1)
+        setup, ea = _windowed_ea(rng, rng.choice(NOSP), True)
+        core = bytes([0x86 + w]) + ea
+    elif kind == 6:                    # shift/rotate mem by 1 (D0/D1)
+        w, sub = rng.getrandbits(1), rng.randrange(8)
+        setup, ea = _windowed_ea(rng, sub, True)
+        core = bytes([0xD0 + w]) + ea
+    else:                              # ALU grp imm -> mem (80/81/83)
+        op = rng.randrange(8)
+        g = rng.choice([0x80, 0x81, 0x83])
+        n = 2 if g == 0x81 else 1
+        setup, ea = _windowed_ea(rng, op, write=(op != 7))
+        core = bytes([g]) + ea + _imm_biased(rng, 8 * n).to_bytes(n, "little")
+    p.emit_atomic(setup + [seg + core])
+    return "ea_rich"
+
+
+def _gen_unary(p, rng):
+    """NOT / NEG (F6/F7 /2,/3), reg or windowed mem (RMW write)."""
+    w, ext = rng.getrandbits(1), rng.choice([2, 3])
+    if rng.random() < 0.5:
+        p.emit(bytes([0xF6 + w]) + _modrm_reg(ext, rng.choice(NOSP)))
+    else:
+        setup, ea = _windowed_ea(rng, ext, True)
+        p.emit_atomic(setup + [bytes([0xF6 + w]) + ea])
+    return "unary"
+
+
+def _gen_incdec_ext(p, rng):
+    """INC/DEC reg8 (FE /0,/1) or INC/DEC r/m in memory (FE/FF /0,/1)."""
+    ext = rng.getrandbits(1)
+    if rng.random() < 0.5:
+        p.emit(bytes([0xFE, 0xC0 | (ext << 3) | rng.randrange(8)]))
+    else:
+        w = rng.getrandbits(1)
+        setup, ea = _windowed_ea(rng, ext, True)
+        p.emit_atomic(setup + [bytes([0xFE + w]) + ea])
+    return "incdec_ext"
+
+
+def _gen_test_imm(p, rng):
+    """TEST acc,imm (A8/A9) or TEST r/m,imm (F6/F7 /0), reg or mem. Read
+    only - never writes (mem EA still windowed for coverage fidelity)."""
+    k, w = rng.randrange(3), rng.getrandbits(1)
+    n = 2 if w else 1
+    imm = _imm_biased(rng, 8 * n).to_bytes(n, "little")
+    if k == 0:
+        p.emit(bytes([0xA8 + w]) + imm)
+    elif k == 1:
+        p.emit(bytes([0xF6 + w]) + _modrm_reg(0, rng.randrange(8)) + imm)
+    else:
+        setup, ea = _windowed_ea(rng, 0, False)
+        p.emit_atomic(setup + [bytes([0xF6 + w]) + ea + imm])
+    return "test_imm"
+
+
+def _gen_xchg_acc(p, rng):
+    """XCHG AW,reg16 (single-byte 90+r; 91-97, never SP=94)."""
+    p.emit([0x90 + rng.choice([1, 2, 3, 5, 6, 7])])
+    return "xchg_acc"
+
+
+def _gen_pushimm(p, rng, state):
+    """PUSH imm8 (6A, sign-extended) / PUSH imm16 (68). Grows the stack;
+    tracked against the shared stackops cap so SP stays windowed."""
+    if state["stackops"] >= 20:
+        return _gen_nops(p, rng)
+    state["stackops"] += 1
+    state["depth"] += 1
+    if rng.random() < 0.5:
+        p.emit(bytes([0x6A, _imm_biased(rng, 8)]))
+    else:
+        p.emit(bytes([0x68]) + _imm_biased(rng, 16).to_bytes(2, "little"))
+    return "push_imm"
+
+
+def _gen_pushapopa(p, rng):
+    """PUSH R (60) then POP R (61): all-register save/restore, net stack
+    zero, registers preserved. Atomic (SP is -16 only between the pair)."""
+    p.emit_atomic([bytes([0x60]), bytes([0x61])])
+    return "pushapopa"
+
+
+def _gen_flagops(p, rng):
+    """Single-byte flag ops: CMC (F5), CLC (F8), STC (F9), DI (FA), EI (FB),
+    SAHF=MOV PSW,AH (9E), LAHF=MOV AH,PSW (9F). IE toggling is inert with no
+    interrupt injection; SAHF cannot set TF (not in the loadable byte)."""
+    p.emit([rng.choice([0xF5, 0xF8, 0xF9, 0xFA, 0xFB, 0x9E, 0x9F])])
+    return "flagops"
+
+
+def _gen_brnear(p, rng):
+    """BR near (E9 rel16), forward 1..4 instructions - the 16-bit-disp
+    sibling of the short jump. Patched via the forward-branch fixup."""
+    idx = len(p.ins)
+    p.ins.append(bytes([0xE9, 0, 0]))
+    p.fixups.append((idx, rng.randrange(1, 5)))
+    return "br_near"
+
+
+def _gen_inout(p, rng):
+    """IN/OUT family. imm8-port (E4/E5 IN, E6/E7 OUT) or DX-port (EC IN AL,
+    EE/EF OUT). Ports kept in a harness-safe even band (never 0xFC done /
+    0xFE regs); 0xED (=IN AX,DX, the 8080 CALLN/RETEM lead byte) is never
+    emitted, so no accidental 8080-mode escape can form."""
+    port = rng.randrange(0x08, 0xF0) & 0xFE
+    k = rng.randrange(4)
+    if k == 0:                         # IN acc,imm8
+        p.emit(bytes([0xE4 + rng.getrandbits(1), port]))
+    elif k == 1:                       # OUT imm8,acc
+        p.emit(bytes([0xE6 + rng.getrandbits(1), port]))
+    elif k == 2:                       # IN AL,DX (byte; skip ED)
+        p.emit_atomic([bytes([0xBA]) + port.to_bytes(2, "little"),
+                       bytes([0xEC])])
+    else:                              # OUT DX,acc
+        p.emit_atomic([bytes([0xBA]) + port.to_bytes(2, "little"),
+                       bytes([0xEE + rng.getrandbits(1)])])
+    return "inout"
+
+
+def _gen_sregmem(p, rng):
+    """MOV mem16,sreg (8C, store a segment reg to windowed memory) or MOV
+    sreg,mem16 (8E) reading a segment from an injected ZERO word (loaded
+    segment stays 0 so addressing is preserved). Atomic."""
+    sreg = rng.choice([0, 2, 3])       # ES, SS, DS (skip CS)
+    if rng.random() < 0.5:
+        setup, ea = _windowed_ea(rng, sreg, True)
+        p.emit_atomic(setup + [bytes([0x8C]) + ea])
+    else:
+        ea = _data_word_ea(rng)
+        p.ram_set(ea, [0x00, 0x00])
+        p.emit(bytes([0x8E]) + _modrm_direct(sreg, rng, ea))
+    return "sregmem"
+
+
+def _gen_divbound(p, rng):
+    """Division at the quotient boundary WITHOUT tripping the divide trap:
+    unsigned max quotient 0xFF (byte) / 0xFFFF (word) or a small signed
+    divide. Operands forced so DX:AX / divisor stays representable. Atomic."""
+    w = rng.getrandbits(1)
+    signed = rng.random() < 0.4
+    ext = 7 if signed else 6
+    d = rng.randrange(2, 0x80)
+    if not signed:
+        if w == 0:
+            q = rng.choice([0xFF, 0xFE, rng.randrange(0, 0x100)])
+            val = (q * d + rng.randrange(0, d)) & 0xFFFF
+        else:
+            q = rng.choice([0xFFFF, 0xFFFE, rng.randrange(0, 0x10000)])
+            val = q * d + rng.randrange(0, d)
+    else:
+        q = rng.randrange(-0x40, 0x40)
+        r = rng.randrange(0, d)
+        val = (q * d + (r if q >= 0 else -r)) & 0xFFFFFFFF
+    setup = [bytes([0xB8]) + (val & 0xFFFF).to_bytes(2, "little")]
+    if w:
+        setup.append(bytes([0xBA]) + ((val >> 16) & 0xFFFF).to_bytes(2, "little"))
+    setup.append(bytes([0xB9]) + d.to_bytes(2, "little"))    # MOV CX,divisor
+    setup.append(bytes([0xF6 + w, 0xC0 | (ext << 3) | 1]))   # F6/F7 /ext, CX
+    p.emit_atomic(setup)
+    return "divbound"
+
+
+def _gen_indirect(p, rng):
+    """Near indirect CALL (FF /2) / JMP (FF /4) through a register preloaded
+    with the continuation IP (patched at assemble). Contained: JMP
+    self-continues to the next instruction; CALL enters a RET stub and
+    returns (stack balanced +2/-2). Atomic."""
+    reg = rng.choice([0, 1, 2, 3])     # AW/CW/DW/BW hold the target pointer
+    start = len(p.ins)
+    if rng.random() < 0.5:             # JMP reg -> next instruction
+        p.ins.append(bytes([0xB8 + reg, 0, 0]))              # MOV reg,next
+        p.ins.append(bytes([0xFF, 0xC0 | (4 << 3) | reg]))   # JMP reg (near)
+        p.noland.add(start + 1)
+        p.reg_ip_fixups.append((start, start + 2))
+        return "indirect"
+    body = [bytes([rng.choice([0x40, 0x48]) + rng.choice(NOSP)])
+            for _ in range(rng.randrange(1, 3))]
+    body_len = sum(len(b) for b in body)
+    p.ins.append(bytes([0xB8 + reg, 0, 0]))                  # MOV reg,sub
+    p.ins.append(bytes([0xFF, 0xC0 | (2 << 3) | reg]))       # CALL reg (near)
+    p.ins.append(bytes([0xEB, body_len + 1]))                # JMP after
+    sub_i = len(p.ins)
+    for b in body:
+        p.ins.append(b)
+    p.ins.append(bytes([0xC3]))                              # RET
+    for i in range(start + 1, len(p.ins)):
+        p.noland.add(i)
+    p.reg_ip_fixups.append((start, sub_i))
+    return "indirect"
+
+
 MENU = [(_gen_alu_rr, 14), (_gen_alu_mem, 12), (_gen_alu_imm, 10),
         (_gen_mov, 16), (_gen_incdec, 6), (_gen_xchg, 4),
         (_gen_shift, 5), (_gen_mul, 3), (_gen_div_safe, 2),
@@ -700,8 +1010,22 @@ EXT_MENU = {
     "farjmp":   (_gen_farjmp, 3, ["far_jmp"]),
     # group (f): loop family
     "loop":     (_gen_loop, 5, ["jcxz", "loop"]),
+    # Campaign 5 breadth: addressing modes + the remaining safe forms
+    "earich":   (_gen_ea_rich, 16, ["ea_rich"]),
+    "unary":    (_gen_unary, 5, ["unary"]),
+    "incdec8":  (_gen_incdec_ext, 5, ["incdec_ext"]),
+    "testimm":  (_gen_test_imm, 4, ["test_imm"]),
+    "xchgacc":  (_gen_xchg_acc, 3, ["xchg_acc"]),
+    "pushimm":  (_gen_pushimm, 4, ["push_imm"]),
+    "pushapopa": (_gen_pushapopa, 3, ["pushapopa"]),
+    "flagops":  (_gen_flagops, 4, ["flagops"]),
+    "brnear":   (_gen_brnear, 4, ["br_near"]),
+    "inout":    (_gen_inout, 5, ["inout"]),
+    "sregmem":  (_gen_sregmem, 4, ["sregmem"]),
+    "divbound": (_gen_divbound, 3, ["divbound"]),
+    "indirect": (_gen_indirect, 4, ["indirect"]),
 }
-STATE_EXTS = ("pushpopm",)   # exts whose generator takes the shared state
+STATE_EXTS = ("pushpopm", "pushimm")   # exts whose gen takes shared state
 
 
 def form_universe(exts=None):
@@ -712,7 +1036,7 @@ def form_universe(exts=None):
             "alu_grp_imm_m", "mov_imm16", "mov_rr", "mov_rm", "mov_moffs",
             "lea", "incdec_r16", "push_r16", "pop_r16", "xchg_rr",
             "shift_by1", "mulu8_r", "divu16_safe", "test_rr", "jcc",
-            "jmp_short", "string_single", "rep_string", "nops"]
+            "jcxz", "jmp_short", "string_single", "rep_string", "nops"]
     keys = EXT_MENU.keys() if exts is None else exts
     out = list(base)
     for e in keys:
