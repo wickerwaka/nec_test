@@ -90,6 +90,26 @@ is what makes every seed "diverge".
   v30_eu/v30_biu/v30_core) — harness READY routing is unchanged since the
   clean-run bitstream, so there is NO routing regression.
 
+**PRE-EXISTING, not a regression (proven by old-core A/B, 2026-07-14).**
+Captured 120 live-chip references (fz84000-84119, strict menu, waits=1),
+then built the Verilator TB from the PRE-interrupt core (v30_eu/v30_biu/
+v30_core checked out at a9f1468 — the exact core the waits campaign ran
+against — with check_seq's +waits fix and the HEAD tb harness kept) and
+compared BOTH cores against the SAME chip refs (all board-free after the
+capture):
+- OLD core (a9f1468): CLEAN 0/120, bad-rows mean 1286.5 / median 1214,
+  early drift @fetch20 = +1 for every seed.
+- HEAD core: CLEAN 0/120, bad-rows mean 1286.5 / median 1214, early drift
+  @fetch20 = +1 for every seed.
+- **Per-seed results are BIT-IDENTICAL (0 differences across all 120).**
+So the interrupt fits (07f65f6/1a7f601/6799571/5568052, which touched
+v30_eu/v30_biu commit/eval timing) did NOT perturb the wait cadence at all —
+the pre-interrupt core already drifts from the real chip identically. The
+waits campaign's "1000/1000 clean" is therefore confirmed a MEASUREMENT
+ARTIFACT (the same a9f1468 core it ran against gives 0/120 today). No bisect
+needed; the fix is the full mission-H generalization, NOT a cheap
+revert.
+
 **Why golden v0.1-w1/w3 still pass:** those 6 forms (89/8B/B8/E8/EB/F7.6)
 are exactly the mission-H-FITTED forms — short single-instruction programs,
 cycle-exact by construction. Arbitrary multi-instruction sequences
