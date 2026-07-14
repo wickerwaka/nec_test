@@ -869,3 +869,75 @@ is the PUSHA/RMW / reg-EA store-vs-prefetch reorder.
 - unchanged: waits>=1; interrupt timing; swint CD-imm; loop/farjmp flush;
   parked undocumented encodings (FE/7, 8F mod3 don't-care); INM/OUTM,
   BUSLOCK, BRKEM/8080, 0x82.
+
+## WAITS>=1 timing campaign — CLOSED, no RTL change (2026-07-14)
+
+The waits>=1 arbitrary-sequence chip-vs-TB surface is CLEAN. No RTL fit
+and NO reflash: the bitstream is unchanged (the wait model was already
+correct). The one landed change is a fuzz-harness fix.
+
+### Root cause of the predecessor's "entire corpus diverges at waits>=1"
+It was a TOOLING bug, not a core defect. sw/check_seq.py `run_tb()` never
+threaded `+waits` to the Verilator TB, so the deterministic gate compared
+a WAITED chip against a ZERO-WAIT TB — they skew ~2 cycles from the first
+reset-vector fetch (matching the recorded "diverge before the store stub,
+done delta ±1, hundreds of rows" signature exactly). The hw-ab path
+(chip vs fabric, both on-board) DID thread waits, which is why the
+predecessor's Priority-4 note only ever saw it via the buggy chip-vs-TB
+lens. Fix (commit this session): `run_tb(image, n, waits=0)` passes
+`+waits={waits}`; both check_seed callers pass `waits`. Once threaded,
+the divergence vanished.
+
+### Gate results (deterministic chip-vs-TB, ground truth)
+Full strict ext menu (callret,sregw,popf,bitops,rol4,bcd4s,insext,adjust,
+ldsxlat,muls,shifts,pushpopm,prepare,bound,farcall,earich,unary,incdec8,
+testimm,xchgacc,pushimm,pushapopa,flagops,brnear,sregmem,divbound,indirect):
+- waits=1: 1000/1000  (fz84000-84999)
+- waits=2: 1000/1000  (fz87000-87999)  [intermediate level, never before tested]
+- waits=3: 1000/1000  (fz85000-85999)
+- waits=5: 500/500    (fz88000-88499)  [above the mission-H fitted 0-3 range]
+- waits=7: 300/300    (fz89000-89299)  [4-bit knob supports up to 15]
+Flush families (swint,farjmp,loop) alone: 300/300 at EACH of waits=0/1/3
+(fz86000-86299). Documented waits=0-deferred seeds fz7207 (loop
+doomed-prefetch) and fz8304 (farjmp) now MATCH at waits=0 AND waits=1 —
+the flush-modeling deferrals were closed by the reader/write-half
+idle-window commits (006b257/a9f1468/f941815), which generalize to the
+flush redirect since it rides the same eval machinery.
+Combined strict+swint,farjmp,loop menu: waits=1 500/500 (fz90000-90499),
+waits=3 500/500 (fz91000-91499). Total >6000 waited seed-pairs, zero
+divergence, zero QS flickers. Divergence corpus stayed EMPTY.
+
+### Divergence CLASSES cataloged: NONE (at waits>=1, arbitrary sequences)
+The characterization surfaced no wait-state divergence class to fit. The
+parametric mission-H model is general in N (see biu_model.md "Wait-state
+generalization across arbitrary sequences"): READY sampling, the eval_ext
+completion-eval deferral, the push/eu_done/eu_wdone stretch-by-one-per-
+waited-access, and tw_any all hold unchanged across the full wait axis and
+across every deterministic family. The reset-vector-fetch skew that
+appeared before the tooling fix was the artifact of comparing waited-chip
+vs unwaited-TB, not a startup law.
+
+### Coverage limit + what remains
+- The chip capture depth is FIXED in CPU cycles (~4063). At waits=3+ a
+  long (>~30 ins) program's store-stub done marker falls outside the
+  window, so the compare covers the full ~4000-row captured window per
+  seed rather than through program completion (short programs reach done
+  and match). 4000 waited cycles/seed is a deep exercise of the cadence;
+  the predecessor's note that any wait divergence appears "well before the
+  store stub" means the window is more than sufficient. A larger capture
+  would be needed only to compare through the store stub at high waits.
+- **No variable/patterned-wait axis exists on this rig.** cfg_wait_states
+  is a single static per-run 4-bit config applied to every bus cycle;
+  there is no per-address/patterned mechanism in nec_bus, tb_v30_core, or
+  serve/v30ctl. That sub-axis is unmeasurable here, not deferred.
+- **Interrupt injection under waits is OUT OF SCOPE** (pin-injected
+  INT/NMI/POLL timing) and was NOT run. The interrupt laws are fitted at
+  waits=0 and already imperfect there (476/500); a dedicated
+  interrupt-timing pass owns that, at waits=0 first.
+
+### Guard / reflash
+No RTL, no check_core.py, no emit_suite.py, and no TB rebuild — only
+sw/check_seq.py (fuzz harness) + docs changed. The golden 169000 and the
+w1/w3 golden tranches are bit+cycle-identical BY CONSTRUCTION (nothing
+they depend on moved). NO reflash performed or needed; board echo-verified
+before the campaign, single writer, bitstream untouched.

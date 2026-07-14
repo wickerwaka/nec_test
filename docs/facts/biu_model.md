@@ -215,6 +215,49 @@ end of T3/Tw).
   queue push is pending; a mid-cycle-committed push shows E during its
   own status cycle (the (c) exception generalizes).
 
+### Wait-state generalization across arbitrary sequences (2026-07-14)
+
+The mission-H laws above were originally FITTED on 6 single forms
+(B8/8B/89/F7.6/EB/E8) at only waits=1 and waits=3. They were never
+validated on arbitrary multi-instruction sequences or on any other wait
+level. This campaign closes that gap and finds the parametric model
+holds UNCHANGED — no new wait-state law and no RTL change were needed.
+
+- **The wait knob is a single static config**: `cfg_wait_states`
+  (nec_bus.sv, 4-bit) inserts exactly N Tw states in EVERY bus cycle,
+  0-15. The Verilator TB mirrors it via `+waits=N` (waits_cfg). There is
+  NO per-address / patterned / variable-within-a-program wait mechanism
+  anywhere in the harness (nec_bus, tb_v30_core, or serve/v30ctl), so the
+  "variable/patterned waits" axis is not measurable on this rig — only a
+  uniform N-per-cycle setting.
+- **The deterministic chip-vs-TB fuzz gate now threads waits.** The gap
+  that made the predecessor believe "the ENTIRE corpus diverges at
+  waits>=1" was purely a TOOLING bug: sw/check_seq.py `run_tb()` never
+  passed `+waits` to the TB, so the fuzz gate compared a WAITED chip
+  against a ZERO-WAIT TB (they skew by ~2 cycles from the first reset-
+  vector fetch — the exact "diverge well before the store stub, done
+  delta ±1" signature). Threading `waits` into run_tb (and both check_seed
+  callers) makes the gate real. There was never an arbitrary-sequence
+  wait-state divergence to fit.
+- **Result (arbitrary-sequence chip-vs-TB, deterministic ground truth,
+  the full strict + flush ext menu):** cycle-exact at EVERY wait level
+  tested — waits=1 1000/1000, waits=2 1000/1000, waits=3 1000/1000,
+  waits=5 500/500, waits=7 300/300; combined strict+swint/farjmp/loop
+  menu waits=1 500/500 and waits=3 500/500; the swint/farjmp/loop flush
+  families alone 300/300 at each of waits=0/1/3; documented deferred
+  flush seeds fz7207/fz8304 MATCH at waits=0 and waits=1. >6000 waited
+  seed-pairs, zero divergence. The ~4063-cycle chip capture is fixed in
+  CPU cycles, so at high waits a long program's store-stub done marker
+  falls outside the window; the compare still covers the full ~4000-row
+  captured window per seed (short programs reach done and match). The
+  parametric mission-H model (READY sampling / eval_ext deferral / push +
+  eu_done + eu_wdone stretch-by-one-per-waited-access / tw_any) is
+  general in N — it was correct all along; only the fuzz gate was blind.
+- **Out of scope, unmeasured under waits (per campaign scope):** pin-
+  injected INT/NMI recognition/vectoring/INTA timing (`--inject-int`)
+  under waits — the interrupt laws were fitted at waits=0 and already
+  imperfect there (476/500); left for a dedicated interrupt-timing pass.
+
 ## Self-modifying code (exp 6b: smc)
 
 - After `MOV byte [T],imm`, targets **≤2 bytes past the instruction's end

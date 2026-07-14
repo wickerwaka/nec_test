@@ -56,13 +56,14 @@ def compose(g):
                              ram=g["ram"], ivt=g.get("ivt"))
 
 
-def run_tb(image, n):
+def run_tb(image, n, waits=0):
     td = tempfile.mkdtemp(prefix="seq_")
     img = Path(td) / "img.hex"
     out = Path(td) / "out.txt"
     img.write_text("\n".join(f"{b:02x}" for b in image) + "\n")
     r = subprocess.run([str(BIN), f"+bootimg={img}", f"+bootn={n}",
-                        f"+out={out}"], capture_output=True, text=True,
+                        f"+waits={waits}", f"+out={out}"],
+                       capture_output=True, text=True,
                        cwd=ROOT, timeout=300)
     if "BOOT DONE" not in r.stdout:
         raise RuntimeError(f"TB failed: {r.stdout[-300:]} {r.stderr[-200:]}")
@@ -184,11 +185,11 @@ def check_seed(seed, host, sim_only=False, strict_qs=False, exts=(),
         sim = run_chip(image, host, use_core=True, waits=waits, evt=evt)
     else:
         if sim_only:
-            real = run_tb(image, 4200)
+            real = run_tb(image, 4200, waits=waits)
             real = [dict(r, t_state=r["t"]) for r in real]
         else:
             real = run_chip(image, host, waits=waits)
-        sim = run_tb(image, 4200)
+        sim = run_tb(image, 4200, waits=waits)
     bad, first, n, flick = diff(real, sim, strict_qs=strict_qs)
     if cov is not None:
         cov.add_program(g["forms"], g["ins"], waits=waits)
