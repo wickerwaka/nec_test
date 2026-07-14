@@ -126,6 +126,31 @@ read becomes ready one cycle after its EA settles (S_EA2 -> S_REQ).
   NOP-sled sweep) before the fix; cycle-exact at all phases after
   (sweep_regea --tb 216/216; in-silicon chip-vs-fabric 60/60, d=0 all phases).
 
+### Store-vs-prefetch reservation law (WRITE half, 2026-07-13)
+
+The write-path sibling of the idle-window reader law. When a store request
+becomes ready (eu_ready) exactly ONE cycle after a completing prefetch's
+T3->T4 eval, the chip must ALREADY hold an eu_req reservation at that eval so
+the fresh prefetch (queue has room) does NOT win the T4 slot. Without the
+lead reservation the prefetch commits at the fetch T4 and the store is pushed
+~4 cycles late (an extra CODE fetch inserted); the chip blocks the prefetch
+(fetch T4 goes PASV) and commits the store via the normal idle do_commit ~2
+cycles later. This is the same "the reservation must LEAD the request by one
+cycle" rule already fitted for PUSH r16 (S_PUSH_CALC), the reg-EA store
+(S_EA2), and PUSH imm / C6-C7 (S_AI_*). Two forms lacked it and raced in
+fuzz (found fz80200-81199, deterministic per session):
+- **PUSHA (0x60)** first stack write: reserve its last S_WAITX cycle (dly==1,
+  wnext==S_REQ). PUSHA was absent from the NOP-sled push sweep.
+- **mem RMW writes** (NOT/NEG/INC/DEC/shift/ALU-imm/XCHG [mem], via
+  S_RMWX->S_WREQ): reserve the last S_RMWX cycle (dly==1). The RMW compute
+  cycles held no reservation between the operand read and the write.
+Both are bare eu_req (no eu_ready): a no-op unless a prefetch actually
+competes at that eval, and the chip always blocks it - so the golden phases
+(no competing prefetch) stay bit+cycle-identical. Verified: golden
+169000/169000; the 20 PUSHA/RMW reorder seeds cycle-exact; fresh gate
+fz82000-82999 997/1000 (residuals = parked-undoc FE, a 4S BCD store, and
+1-row status transients - all separate classes).
+
 ## Wait-state interaction (exp 5: waits + long-sled follow-up)
 
 - Wait states lengthen bus cycles exactly as configured (4 → 4+N cycles,

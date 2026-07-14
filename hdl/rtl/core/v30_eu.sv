@@ -1131,8 +1131,17 @@ always_comb begin
         // SET1/NOT1 imm-mem reserve (req without ready) from pop+1
         // through the RMW write: an idle-end eval AT the pop still
         // goes to the prefetcher, an in-flight fetch's T3 eval a
-        // cycle later is blocked (measured on 0F1C-1F)
-        S_RMWX: eu_req = op_bit1 && opc2[2] && mrm_mod != 2'd3;
+        // cycle later is blocked (measured on 0F1C-1F).
+        // Every mem RMW write additionally reserves the LAST compute
+        // cycle (dly==1, the cycle before S_WREQ): the write's request
+        // becomes ready in S_WREQ one cycle after a completing prefetch's
+        // T4, so without a lead reservation the coincident fetch-T3 eval
+        // lets a fresh prefetch win the slot and the write commits ~2
+        // cycles late (chip blocks the prefetch and commits the write in
+        // the following idle - the store analogue of the reg-EA S_EA2
+        // reservation; measured fz80300/80560/81065/81117, f6/f7/fe RMW).
+        S_RMWX: eu_req = (op_bit1 && opc2[2] && mrm_mod != 2'd3) ||
+                        (mrm_mod != 2'd3 && dly == 6'd1);
 
         // POP r16 / RET reserve the bus already during decode (measured:
         // cold-start POP suppresses the prefetch commit at cycle 1)
@@ -1164,7 +1173,17 @@ always_comb begin
                      // PREPARE level>=2: the copy-read reservation is
                      // up only in the last wait cycle (with eu_soon) -
                      // earlier fetch commits proceed (closure block)
-                     (dly == 6'd1 && wnext == S_PREP_RDGO);
+                     (dly == 6'd1 && wnext == S_PREP_RDGO) ||
+                     // PUSHA (0x60) first write: reserve the LAST wait
+                     // cycle before S_REQ (dly==1), exactly like PUSH
+                     // r16's S_PUSH_CALC. The first stack write's request
+                     // goes ready in S_REQ one cycle after a completing
+                     // prefetch's T4; without the lead reservation the
+                     // coincident fetch-T3 eval lets a fresh prefetch win
+                     // the slot and the write commits ~2 cycles late
+                     // (chip blocks it and commits the write in the
+                     // following idle; measured fz80256/80282, 16 seeds).
+                     (dly == 6'd1 && wnext == S_REQ && opc == 8'h60);
             eu_soon = eu_req && dly == 6'd1 && wnext == S_TRAP_IVT1;
         end
         S_JDISP: eu_req = q_pop && opc == 8'hEB;

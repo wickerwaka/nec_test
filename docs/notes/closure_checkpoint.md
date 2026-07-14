@@ -781,3 +781,74 @@ waits>=1 generalization; interrupt recognition/vectoring/INTA timing;
 swint CD-imm pre-IVT doomed prefetch; loop/farjmp flush-modeling; the
 store/push commit-phase reorder above; INM/OUTM, BUSLOCK, BRKEM/8080, 0x82;
 parked undocumented encodings (FE/7, 8F mod3 ghost-read don't-care).
+
+## store/push commit-phase reorder (WRITE half) — RESOLVED (2026-07-13, this session)
+
+The write-path sibling of the reg-EA reader idle-window fix (006b257) is
+closed. Board = root@mister-nec; single writer. Two bare-eu_req reservations
+landed in v30_eu.sv; golden 169000/169000 held bit+cycle-identical.
+
+### STEP 0 — the recorded seeds did NOT reproduce; a stable set did
+The 5 characterized seeds (fz80008/80103/80169/80172 reorder + fz80014
+transient) all MATCH chip-vs-TB now, stable across repeated captures
+(fz80000-80199 200/200 clean incl. all five). Same shape as the fz60249
+disproval - those specific recordings were prior-session capture/contention
+noise. BUT a fresh full-span sweep fz80200-81199 = 975/1000 with a
+DETERMINISTIC divergent set (all 25 reproduce IDENTICALLY - same first_row,
+same bad_rows - across two captures). So the phenomenon is real; only the
+particular seeds shift session-to-session (the race occurs when a store's
+readiness lands at a specific bus-grid phase, a deterministic function of the
+preceding instructions). NOT the inert capture floor: each divergence is a
+LOCAL store<->prefetch reorder that RESYNCS after ~11 rows (both traces are
+valid V30 schedules), not a global capture shift.
+
+### Measured law (via +eudbg EU-state dump around the first divergence)
+Two write forms race, identical mechanism: a store request goes ready
+(eu_ready) exactly ONE cycle after a completing prefetch's T3->T4 eval. At
+that eval the write is not yet reserved, so - with queue room - a fresh
+prefetch wins the T4 slot (prefetch_ok) and the write commits ~4 cycles late
+with an extra CODE fetch inserted. The CHIP holds an eu_req reservation one
+cycle earlier, blocks that prefetch (T4 goes PASV), and commits the write via
+the normal idle do_commit ~2 cycles later, NO intervening prefetch. This is
+the write analogue of PUSH r16's S_PUSH_CALC / the reg-EA store's S_EA2 bare
+reservation - the same "reservation must lead the request by one cycle" law:
+- **PUSHA (0x60) first write** (S_WAITX->S_REQ): 16/25 seeds, 11-22 rows.
+  fz80256/80282/80284/80285/80445/80553/80561/80603/80717/80724/80894/80912/
+  81107/81143/81179/81198. PUSHA was NOT in sweep_push (which tests
+  50/53/68/6A/FF6), so this gap was untested.
+- **mem RMW write** (S_RMWX->S_WREQ), opc f6/f7/fe (NOT/NEG/INC/DEC [mem]):
+  4/25 seeds, the big cascades (fz80300 592r, fz80560 251r, fz81065 389r,
+  fz81117 635r). The RMW compute cycles (S_RMWX) held no reservation between
+  the operand read and the write.
+
+### Fix (v30_eu.sv, two bare eu_req reservations, minimal)
+1. **S_RMWX**: add `(mrm_mod != 2'd3 && dly == 6'd1)` - reserve the LAST
+   compute cycle (the one before S_WREQ) for every mem RMW write.
+2. **S_WAITX**: add `(dly == 6'd1 && wnext == S_REQ && opc == 8'h60)` -
+   reserve PUSHA's last wait cycle before S_REQ (its first-write lead-in).
+Both are pure reservations (eu_req without eu_ready): they change nothing
+unless a prefetch actually competes at that exact eval, and the chip ALWAYS
+blocks it there - so golden phases (no competing prefetch) are untouched.
+
+### Verification (Verilator, waits=0)
+- **Golden gate: 169000/169000 cycle+arch, ZERO imperfect forms** - the
+  load-bearing guard held. The 27 S_RMWX/S_WAITX-sharing forms (60/61/F6/F7/
+  FE/FF/86/87/shifts/ALU-imm/ALU-RMW/0F1C-1F/0F28-2A) all 500/500.
+- The 22 store-reorder seeds (16 PUSHA + 4 RMW + fz80735/80736): all MATCH.
+- sweep_push --tb + sweep_regea --tb (all store forms, phases 0-11): 0 divergent.
+- Fresh gate fz82000-82999 = **997/1000** (was ~975/1000 pre-fix). The 3
+  residuals are NOT this class and NOT regressions (my edits touch only
+  S_RMWX/S_WAITX-opc60, which the below paths never enter): fz82817 = parked
+  UNDOCUMENTED FE encoding (S_HALT); fz82605 = 1-row PS/status transient;
+  fz82300 = pre-existing 2-row 4S BCD store (0F2x, S_A4_* write path).
+
+### NEW / still DEFERRED (separately-scoped, low-rate)
+- **4S BCD store (0F20/22/26) commit-phase** (fz82300, ~2 rows): a distinct
+  write path (S_A4_WR/WRW), reserved but with a residual reorder at some
+  phases. Not the PUSHA/RMW class; left deferred (risks the 0F2x goldens).
+- **1-row PS/status-display transients** (fz80014/80521/80882/81074/82605):
+  a single-row status-bus display disagreement, self-resyncing. Cosmetic
+  class, separate from the reorder; deferred.
+- unchanged: waits>=1; interrupt timing; swint CD-imm; loop/farjmp flush;
+  parked undocumented encodings (FE/7, 8F mod3 don't-care); INM/OUTM,
+  BUSLOCK, BRKEM/8080, 0x82.
