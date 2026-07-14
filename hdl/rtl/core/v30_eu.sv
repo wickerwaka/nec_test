@@ -1100,14 +1100,17 @@ always_comb begin
         S_EA1: eu_req = (is_reader || op_srst) && !op_lea && !op_popm &&
                         !op_movri && mrm_mod == 2'd0;
         S_EA2: begin
-            eu_req = (is_reader || op_srst) && !op_lea && !op_popm &&
-                     !op_movri;
-            // the read is ready next cycle (S_REQ): mark eu_soon so a
-            // fetch T3 completion-eval coinciding with S_EA2 defers to T4
-            // and the read commits back-to-back instead of waiting an
-            // extra idle (Mission S: reg-EA readers whose ready lands on a
-            // prefetch T4 read two cycles late otherwise)
-            eu_soon = eu_req;
+            eu_req = !op_lea && !op_popm && !op_movri;
+            // Readers mark eu_soon so a fetch-T3 eval coinciding with S_EA2
+            // defers to T4 and the read commits back-to-back (Mission S:
+            // reg-EA readers whose ready lands on a prefetch T4 read two
+            // cycles late otherwise). Stores do NOT set eu_soon: the bare
+            // eu_req reservation (asserted from S_EA1) blocks the post-EA
+            // prefetch so the write commits at the following idle eval
+            // instead of slipping past a second fetch (Campaign 5: reg-EA
+            // stores whose S_REQ ready lands on a fetch T4 wrote 2 cycles
+            // late at phases 2/8 - the reservation must lead the request).
+            eu_soon = eu_req && (is_reader || op_srst);
         end
         // POP mem reserves at its disp pop only on phase-1 pops
         // (T2/T4-aligned; phase-0 pops let the pop-end commit pass)
