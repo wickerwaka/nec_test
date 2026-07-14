@@ -1826,10 +1826,14 @@ always_ff @(posedge clk) begin
                                 sx = srmap(q_byte[4:3]);
                                 if (op_srst)
                                     rf[q_byte[2:0]] <= sr[sx];
-                                else begin
+                                else
                                     sr[sx] <= rf[q_byte[2:0]];
-                                    shadow <= 1'b1;   // sreg-load shadow
-                                end
+                                // BOTH the sreg store (8C) and load (8E)
+                                // shadow recognition by one boundary
+                                // (measured: an 8C sreg-store skips the
+                                // next boundary's INT sample exactly like
+                                // 8E - controlled pushedPC sweep)
+                                shadow <= 1'b1;
                                 arch_ip <= pc + 16'd1;
                                 seg_ovr_en <= 1'b0;
                                 rep_en     <= 1'b0;
@@ -4476,7 +4480,10 @@ always_ff @(posedge clk) begin
                 dly <= dly - 6'd1;
             end
             S_WREQ: if (eu_started) state <= S_WBUSW;
-            S_WBUSW: if (eu_done) retire();
+            S_WBUSW: if (eu_done) begin
+                retire();
+                if (op_srst) shadow <= 1'b1;  // mem-form 8C also shadows
+            end
 
             //----------------------------------------------------------------
             // PUSH r16 (PUSH SP pushes the decremented value, 8086-style)

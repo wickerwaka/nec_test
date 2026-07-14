@@ -183,11 +183,18 @@ passing corpus (v30_eu.sv / v30_biu.sv are the executable reference).
   pulse (the S_FIRST after S_JFLUSH) that taps int_p[3]/ie_p[3] (= pin/IE at
   flush-3). Golden 169000/169000 held; closed fz10117 (JMP-short), fz10283
   (Jcc). Controlled sweep now chip==TB at every delay incl the 3-delay gap.
-- **Remaining recognition-point residuals (OPEN, 3 seeds, chip-vs-TB, three
+- **8C sreg-STORE shadows recognition too** (RESOLVED, 1 seed): the 8C MOV
+  r/m,Sreg store defers the INT sample by one boundary EXACTLY like the 8E
+  sreg load - measured on controlled pushedPC sweeps for BOTH the reg form
+  (8C DB) and the mem form (8C 1E: 0505/0507 boundary skipped). The RTL set
+  shadow only on the load path; op_srst (store) did not, so the TB
+  recognized one boundary early (opposite sign to the fetch-limited class).
+  Fixed: op_srst sets shadow at its reg-form completion AND its mem-store
+  completion (S_WBUSW). Golden 169000/169000 held; closed fz10317.
+- **Remaining recognition-point residuals (OPEN, 2 seeds, chip-vs-TB, two
   DISTINCT mechanisms)**: fz10460 REP/string abort (LODSB - irq_take gated by
-  rep_en, the abort element-count differs by one); fz10317 8C sreg-STORE (TB
-  commits INTA EARLY, opposite sign); fz10175 NMI. Each a separate fit; not
-  yet done.
+  rep_en, the abort element-count differs by one); fz10175 NMI. Each a
+  separate fit; not yet done.
 - **IE gating is itself pipelined**: the decision at B uses IE@B-3.
   This single law IS the "EI shadow" AND explains POP PSW's behavior on
   an IE 0->1 transition (the immediately following boundary still sees

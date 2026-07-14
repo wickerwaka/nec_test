@@ -460,10 +460,15 @@ Fixed: a 1-cycle post_flush pulse (S_FIRST after S_JFLUSH) taps int_p[3]/
 ie_p[3]. Golden 169000/169000 HELD; gate 495 -> 497/500. Closed fz10117
 (JMP-short), fz10283 (Jcc). Controlled sweep chip==TB at every delay.
 
-STILL OPEN (3, THREE distinct mechanisms, chip-vs-TB): fz10460 REP/string
-abort (AC LODSB, irq_take gated by rep_en - the string abort element-count
-is off by one); fz10317 8C sreg-STORE (TB commits INTA EARLY, opposite
-sign); fz10175 NMI. Each a separate recognition-point fit; deferred.
+RESOLVED (8C sreg-store, 1 of the 3): the 8C MOV r/m,Sreg store shadows
+recognition by one boundary EXACTLY like the 8E load (measured, both reg and
+mem forms - controlled pushedPC sweep). The RTL shadowed only the load path;
+op_srst (store) now sets shadow at its reg-form and mem-store (S_WBUSW)
+completions. Golden HELD; gate 497 -> 498/500. Closed fz10317.
+
+STILL OPEN (2, distinct, chip-vs-TB): fz10460 REP/string abort (AC LODSB,
+irq_take gated by rep_en - the string abort element-count off by one);
+fz10175 NMI. Deferred.
 
 ### Priority 4 - wait-state variation (characterized, NOT gated)
 check_seq --waits N / --waits-sweep threads waits through the A/B path.
