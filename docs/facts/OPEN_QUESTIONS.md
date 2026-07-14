@@ -4,6 +4,20 @@ Living list of unknowns about the NEC V30 (μPD70116) that the discovery process
 Each entry states the question, why it matters, how we expect to answer it, and its status.
 Retire entries by moving them to `docs/facts/` files with provenance (datasheet page or experiment ID).
 
+> **Current modeling state (2026-07-14).** The behavioral questions below
+> are all answered; the remaining *modeling* gap is not a hardware unknown
+> but ONE deferred timing class — the **doomed-prefetch / accept-edge flush
+> machinery** (interrupt residuals fz10460/fz10175 + swint CD-imm), deferred
+> on risk/reward. Full state in docs/notes/closure_checkpoint.md.
+> **Live-harness caveat (Q3-adjacent, owner action):** as of 2026-07-14 the
+> board no longer inserts wait states on the SOCKETED chip (the fabric core
+> and the Verilator TB both do), so a fresh waits>=1 chip-vs-TB gate does
+> not reproduce. The RTL wait model is still validated by the golden
+> v0.1-w1/w3 real-chip captures. Check the on-board serve / chip-path READY
+> wait-routing. Still genuinely open hardware questions: Q4 (clean
+> register load/store side effects), Q13 (8080/BRKEM mode), and the
+> NMI-vs-INT simultaneous-priority tail of Q14.
+
 ## Harness-blocking (resolve first)
 
 ### Q1: What is the minimum clock frequency (f_CLK min)?

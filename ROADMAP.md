@@ -13,6 +13,23 @@ harness interface, produces capture traces indistinguishable from the
 socketed real chip across the full test corpus (architectural state AND
 per-cycle bus/queue behavior).
 
+## CURRENT STATE (re-verified 2026-07-14) — see closure_checkpoint.md
+
+The single-read handoff is **docs/notes/closure_checkpoint.md** (top
+"AUTHORITATIVE PROJECT STATE" block). In brief:
+- The whole **waits=0 deterministic surface** (golden 169000/169000 +
+  arbitrary-sequence fuzz) and the **hardware-interrupt surface**
+  (498/500 chip-vs-TB) are cycle-exact vs silicon; fabric == HEAD
+  (no reflash pending).
+- ONE deferred class remains: the **doomed-prefetch / accept-edge flush
+  machinery** (residuals fz10460 REP-LODS, fz10175 NMI; and swint CD-imm)
+  — deferred on risk/reward, would touch the shared flush/vectoring
+  machinery for <1% gain.
+- **Caveat found 2026-07-14:** the live board no longer wait-states the
+  socketed chip, so a fresh waits>=1 *chip-vs-TB* gate does not reproduce
+  (RTL wait model still validated by golden w1/w3). Owner action item;
+  waits=0 unaffected. Details in closure_checkpoint.md "WAITS caveat".
+
 ## Decisions (2026-07-11)
 
 - **No intermediate software reference model.** The RTL core is developed
@@ -107,11 +124,12 @@ Status (2026-07-12, blocks 1-4 complete):
   extensions; INT/NMI recognition + INTA pair + vectoring, HALT
   entry/wake (incl. the V30-specific masked-INT resume), POLL, EI/DI/
   POP-PSW IE laws, REP interruption, and IN implemented in the core.
-  13 of 15 interrupt forms + all IN forms are 100% cycle- and
-  state-exact; cycle rows are 100% on everything except INT.F3AA.
-  Known residuals (documented in interrupt_model.md): the POP-PSW
-  boundary-race PSW commit (bimodal, 53/200 arch) and the REP-abort
-  flush-slot ±1 (33/200 cycles).
+  ALL 15 interrupt forms + all IN forms are now 100% cycle- AND
+  state-exact in the golden suite (the earlier POP-PSW boundary-race and
+  REP-abort flush-slot ±1 residuals were RESOLVED in the closure block —
+  INT.F3AA is 200/200; see interrupt_model.md). The remaining interrupt
+  imperfection lives only in the arbitrary-context INJECT fuzz gate
+  (498/500 chip-vs-TB), not the golden suite.
 - ~~Full-scale emission + residual documented forms~~ DONE (closure
   blocks, 2026-07-12/13): all 311 documented-form tranches emitted and
   fitted; coverage numbers above. Per-form laws live in the RTL
@@ -143,7 +161,7 @@ Status (2026-07-12, blocks 1-4 complete):
     8080-emulation mode (needs the RETEM recovery path), INS/EXT
     mem-mod encodings (undocumented; parked in the core).
 
-### Campaign 4 — in-FPGA A/B verification  ← CURRENT (2026-07-13)
+### Campaign 4 — in-FPGA A/B verification
 The core instantiated in the harness FPGA behind the same bus interface;
 harness runs identical images against core and socketed chip, diffs
 captures automatically. Agent loop drives divergence hunting. Done = no

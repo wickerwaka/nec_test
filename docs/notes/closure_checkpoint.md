@@ -1,3 +1,101 @@
+# V30 recreation — AUTHORITATIVE PROJECT STATE (re-verified 2026-07-14)
+
+> **Read this block first.** It is the single-read orientation for a fresh
+> session: what is cycle-exact, the one remaining deferred class, the live
+> gate numbers (independently re-verified on 2026-07-14, board unchanged),
+> and the exact reproduction commands. Everything below this block is the
+> dated running campaign log (history, newest sections appended over time);
+> where an old section's *current-state* number disagrees with this block,
+> this block wins.
+
+Board = root@mister-nec. Bitstream = HEAD (commit 5568052-era full-RTL A/B
+core; **NOT reflashed since** — fabric == HEAD). Health: `python3
+sw/v30run.py echo`. Single board user at a time. NEVER reprogram the FPGA
+outside `sw/safe_flash.sh`. Serve v2 (delta/partial capture) deployed.
+
+## What is cycle-exact vs silicon
+
+- **The entire waits=0 deterministic (non-interrupt) surface** — golden
+  suite AND arbitrary sequence fuzz (store / push / reader / callret /
+  flush / reg-EA / PUSHA / RMW / disp / split-wrap). Verified chip-vs-TB
+  and in-silicon chip-vs-fabric. Residual at waits=0 is a documented
+  cosmetic class only: a self-resyncing **1-row PS/status-display
+  transient** (~0.3-0.4% of seeds; e.g. fz95028 `ps 2!=6` @1 row) —
+  architecturally inert, not a timing law.
+- **Hardware-interrupt surface (waits=0):** 498/500 chip-vs-TB
+  (497/500 in-silicon hw-ab; the +1 gap = fz10055, the inert fabric-synth
+  float floor, clean chip-vs-TB). See interrupt_model.md.
+- **The RTL wait-state model** is validated against real waited-chip data:
+  golden TB suites v0.1-w1 (waits=1) 1200/1200 and v0.1-w3 (waits=3)
+  1200/1200 (stored real-chip waited captures, reproduced bit+cycle-exact
+  in the Verilator TB). See the WAITS caveat below before running a *live*
+  waits>=1 chip gate.
+
+## The ONE remaining deferred class
+
+**Doomed-prefetch / accept-edge flush machinery.** Behind BOTH interrupt
+residuals and the swint CD-imm cadence. Measured law in biu_model.md
+("Doomed-prefetch/accept-edge unifying class"): during a vectoring/branch
+flush the chip issues speculative CODE prefetches (and, for interrupted REP
+read-strings, completes the element whose read was accepted before the abort
+edge) that the RTL does not model. Fitting it cleanly requires touching
+`prefetch_ok` / the divide-trap-shared IVT vectoring handoff — the machinery
+the entire waits=0-7 surface rests on — for a sub-1% non-inject-gate gain.
+DEFERRED on principled risk/reward (do not regress the surface to chase it).
+Concrete residuals: **fz10460** (REP-LODS abort) and **fz10175** (NMI
+doomed-prefetch), both inject chip-vs-TB.
+
+## Live gate numbers (re-verified 2026-07-14, board unchanged)
+
+| Gate | Result | Matches docs? |
+|---|---|---|
+| Golden v0.1 (waits=0), `check_core.py` all | **169000/169000** cycle+arch | yes |
+| Golden v0.1-w1 (waits=1) | **1200/1200** | yes |
+| Golden v0.1-w3 (waits=3) | **1200/1200** | yes |
+| Fuzz chip-vs-TB waits=0, strict menu, 300 seeds | 299/300 (1 = 1-row PS transient) | yes (documented cosmetic) |
+| Inject `--inject-int` fz10000-10499 chip-vs-TB | **498/500** (fz10175, fz10460) | yes |
+| Regression corpus replay chip-vs-TB | all as documented **except** fz9700 (see WAITS caveat) | see caveat |
+
+## WAITS caveat — live board no longer wait-states the SOCKETED chip (found 2026-07-14)
+
+A fresh waits>=1 **chip-vs-TB** fuzz gate does **NOT** reproduce the
+"waits>=1 CLOSED / 1000/1000" claim in the WAITS campaign section below.
+Measured 2026-07-14 (board unchanged): at cfg waits=1 the socketed reference
+chip runs T1->T2->T3->T4 with **no Tw**, while the Verilator TB *and* the
+in-fabric core both insert Tw — so `check_seq` chip-vs-TB diverges for
+essentially every seed (and corpus seed fz9700 diverges @31). Isolation:
+sim-only both-TB waits=1 = MATCH (TB honors waits); hw-ab waits=1 in ONE
+board session = chip shows T3 while fabric shows Tw. The RTL routes
+`cfg_wait_states -> NEC_READY` to the external chip and the golden w1/w3
+vectors are real waited-chip captures, so the chip *can* wait — this is a
+**live board / serve-state (or chip-path wait-routing) issue, NOT an RTL
+defect and NOT a waits=0 problem.** The RTL wait model stands (golden w1/w3
+pass). **For the owner:** verify the on-board serve / chip-path READY
+wait-routing before trusting any fresh waits>=1 chip-vs-TB gate. The waits=0
+surface — the whole verified achievement — is unaffected.
+
+## Reproduction commands (exact)
+
+Strict fuzz ext menu (cycle-exact set):
+`callret,sregw,popf,bitops,rol4,bcd4s,insext,adjust,ldsxlat,muls,shifts,pushpopm,prepare,bound,farcall,earich,unary,incdec8,testimm,xchgacc,pushimm,pushapopa,flagops,brnear,sregmem,divbound,indirect`
+Inject / interrupt ext menu (15 families):
+`callret,sregw,popf,bitops,rol4,bcd4s,insext,adjust,ldsxlat,muls,shifts,pushpopm,prepare,bound,farcall`
+
+- Golden (pure Verilator, no board):
+  `python3 sw/check_core.py --opcodes all --suite-dir tests/v30/v0.1`
+  `python3 sw/check_core.py --opcodes all --suite-dir tests/v30/v0.1-w1 --waits 1`
+  `python3 sw/check_core.py --opcodes all --suite-dir tests/v30/v0.1-w3 --waits 3`
+- Fuzz chip-vs-TB (board): `python3 sw/check_seq.py --fuzz 300 --start <S> --exts <strict> --no-cov`
+  (add `--div-file /tmp/scratch.jsonl` and `--no-cov` to avoid mutating the
+  tracked coverage/corpus files.)
+- Inject chip-vs-TB: `python3 sw/check_seq.py --fuzz 500 --start 10000 --inject-int --exts <15-family> --no-cov`
+- Hardware A/B (chip vs fabric, both on board): add `--hw-ab` to any of the above.
+- Corpus replay: iterate `sw/testdata/fuzz_divergences.jsonl`, run each
+  `seed` with its recorded `exts`/`waits`/`inject_int` (chip-vs-TB), `--no-cov`.
+- Board health: `python3 sw/v30run.py echo`.
+
+---
+
 # Campaign 3 closure block — final checkpoint
 
 Closure block complete (2026-07-13). Board = root@mister-nec (health:
