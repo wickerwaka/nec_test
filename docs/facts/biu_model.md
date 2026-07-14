@@ -83,15 +83,45 @@ diverge across phases.
   prefetch T4 keeps the deferred display (redirect at the following idle
   Ti, one cycle later). The NOP-sled EA sweep never hit a completed-fetch
   T4; exposed by fz8304 (chip-vs-TB DIVERGE@565 -> MATCH).
-- **DEFERRED — software INT (CD imm) pre-IVT doomed prefetch.** The BRK-imm
-  vector wait is NOT a clean dly cutoff: the chip idle-starts a doomed
-  prefetch at dly=3 when the queue has room (fz73013) but stays idle at
-  dly=3 when it is full (sweep ph4), i.e. it is queue-state-dependent, and
-  a residual 1-cycle IVT-read idle-commit timing rides the shared
-  S_WAITX->S_TRAP_IVT1 handoff (also the divide-trap path). Three candidate
-  laws (dly<=2 / dly<=3 / free) were measured; none is clean. Left on the
-  golden-proven dly<=2 (~0.8% chip-vs-TB residual). INT3 (CC) and INTO (CE)
-  are clean at all phases.
+- **DEFERRED — software INT (CD imm) pre-IVT doomed prefetch — DISCRIMINATOR
+  RESOLVED, RTL fit deferred (2026-07-14).** The "3 laws none clean" was a
+  false dichotomy: the doomed-prefetch decision is a clean QUEUE-OCCUPANCY
+  threshold, not a dly cutoff. Measured sweep_swint intn ph0-15 q_cnt at the
+  dly=3 decision: the chip idle-starts the fall-through doomed prefetch only
+  when occupancy <= 3; at occ==4 it stays idle. Divergent cells are EXACTLY
+  the occ==4 phases (ph4, ph10); all clean phases are occ 1-3 (both prefetch)
+  or occ 5 (queue full, neither prefetches). So the CD pre-IVT prefetch
+  threshold is occ<=3 - one tighter than the normal prefetch_ok (occ<=4).
+  A bare eu_req reservation at (opc==CD && dly==3 && q_occ>=4) - plumbing
+  q_cnt to the EU - blocks exactly the occ==4 doomed prefetch and holds
+  golden 169000/169000. BUT it only closes the FIRST of two coupled cycles:
+  it exposes a residual 1-cycle IVT-read idle-commit (S_TRAP_IVT1 commits E+1
+  in the RTL, E+0 on the chip for CD). That IVT-commit law is PER-INTERRUPT-
+  TYPE and CONFLICTS on the shared S_WAITX->S_TRAP_IVT1 handoff: NMI commits
+  E+1 at a stale idle window (the eu_soon_ivt/q_cnt<=2 fix), but CD commits
+  E+0 even at occ==4 (stale). Closing swint fully needs both the occ
+  reservation AND a type-gated E+0 IVT commit on the divide-trap-SHARED
+  handoff - too high a regression risk for a 2-cell, non-inject-gate residual
+  (~0.8%). Left on golden-proven dly<=2. INT3 (CC)/INTO (CE) clean all phases.
+
+### Doomed-prefetch/accept-edge unifying class (Mission-D interrupt siblings)
+The two waits=0 interrupt inject residuals reduce to this SAME machinery:
+- **fz10175 (NMI):** during the NMI vectoring flush (POP ES sreg-load context)
+  the chip issues resume CODE prefetches into the flush before the IVT read
+  that the RTL does not model - the doomed-prefetch bus-tail.
+- **fz10460 (REP-LODS):** ACCEPT-EDGE ANCHORING - a read already accepted
+  before the abort edge COMPLETES (the chip reads the CW=1 element @243f and
+  vectors at the REP end, not withdrawing it); then the vectoring tail issues
+  several resume prefetches before INTA (doomed-prefetch bus-tail again).
+  Measured: REP READ-strings ARE individually interruptible (interrupt_model
+  .md) - the RTL LDM loop lacks any abort - but a cycle-exact fit needs the
+  accept-edge anchoring + the doomed-prefetch tail.
+All three (swint CD, fz10175, fz10460) share the prefetch-during-flush issue
++ accept-edge withdrawal. A unified fit means touching prefetch_ok / the
+shared vectoring handoff - the machinery the whole waits=0-7 surface rests
+on - for a sub-1% non-inject-gate gain. DEFERRED as a coherent future
+campaign; the measured law (occ<=3 doomed-prefetch threshold, accept-edge
+completes-if-accepted, per-type IVT commit) is documented here for it.
 
 ## Fetch/EU bus arbitration (exp 4: arbitration)
 

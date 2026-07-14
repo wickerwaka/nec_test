@@ -489,6 +489,25 @@ accept-edge flush machinery:
   class, POP ES sreg-load context). Same machinery; deferred.
 Corpus reps added (fz10175, fz10460).
 
+### Unified doomed-prefetch/accept-edge campaign (2026-07-14) - measured, deferred
+Opened the dedicated campaign on the class behind BOTH inject residuals AND
+the long-deferred swint CD-imm. Consolidated the measured law (biu_model.md
+"Doomed-prefetch/accept-edge unifying class"). Key NEW result: the swint
+CD-imm doomed-prefetch discriminator is RESOLVED - a clean queue-occupancy
+threshold (chip prefetches at occ<=3, idles at occ==4; sweep_swint intn ph4/
+ph10 = the exact occ==4 cells), NOT the "3 laws none clean" it was filed as.
+A bare eu_req reservation (CD && dly==3 && q_occ>=4) blocks it and holds
+golden, reducing the swint divergence 2 cyc -> 1 cyc, but exposes a coupled
+residual: a PER-INTERRUPT-TYPE IVT-read idle commit (CD wants E+0, NMI wants
+E+1) on the divide-trap-SHARED S_WAITX->S_TRAP_IVT1 handoff. Closing any of
+the three siblings cycle-exact needs prefetch_ok / shared-handoff changes -
+the machinery the ENTIRE waits=0-7 surface rests on - for a sub-1% non-inject
+-gate gain. Per the campaign's own guard (do NOT regress the surface to chase
+these), the RTL fits are DEFERRED and the reverted partial swint reservation
+was NOT left in the tree. 0 of 3 siblings landed; the unified law is
+documented for a future dedicated flush-machinery campaign. Golden
+169000/169000 and the 498/500 inject gate are UNCHANGED (no RTL touched).
+
 ### waits=0 interrupt surface: settled at 498/500 chip-vs-TB (497/500 hw-ab)
 Five landed, golden-safe, silicon-confirmed RTL fits this campaign (478 ->
 498): NMI IVT-read idle-window commit; recognition-shadow single-boundary
