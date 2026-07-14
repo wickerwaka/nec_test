@@ -391,6 +391,34 @@ NOP-sled geometries, INT.* tranches) do not fully generalize; 1-2 cycle,
 execution otherwise correct. Corpus: fz10041 (NMI), fz10059 (INTA recog),
 fz10055 (prefetch). Needs a deeper interrupt-timing fit + reflash.
 
+#### UPDATE (Mission-D hardware-interrupt fit, chip-vs-TB, this session)
+CRITICAL HARNESS NOTE: check_seq's INJECTION only fired on the --hw-ab
+(chip-vs-FABRIC) path; the non-hw-ab (chip-vs-TB) path passed evt to
+neither side (run_tb had no evt param; run_chip used use_core=None = board
+default). Extended: tb_v30_core boot mode now arms the (validated batch)
+fetch-trigger scheduler from +evaddr/+evdelay/+evhold/+evpin plusargs;
+run_tb + the chip real-side now inject; the real side is forced use_core=
+False (socketed chip) so a prior --hw-ab run's board state can't silently
+make it fabric-vs-TB. TRUE chip-vs-TB inject gate re-baselined at HEAD:
+478/500 (fz10055's --hw-ab divergence was the fabric synth float floor,
+clean chip-vs-TB; per the task's "chip-vs-TB is ground truth, hw-ab carries
+the inert float floor"). The recent idle-window/lead-reservation commits
+(006b257/a9f1468) had closed only 1 of the 24 (fz10059).
+
+LANDED - NMI IVT-read idle-window early commit (11 seeds): see
+interrupt_model.md. eu_soon_ivt (v30_eu.sv) + q_cnt<=2 BIU defer_idle arm
+(v30_biu.sv); golden 169000/169000 held. Gate 478 -> 489/500.
+
+REMAINING (11, characterized, chip-vs-TB): two sub-classes -
+- INT INTA-commit (7): fz10066/10117/10251/10283/10317/10459/10460 - the
+  maskable-INT INTA cycle commit / prefetch-kill lands 1 cycle off the chip
+  at the recognition boundary (chip=T4/INTA|PASV vs tb=T4/CODE). Separate
+  arbitration from the NMI IVT read (S_IRQ_D/S_INT_A1 path, not S_WAITX).
+- NMI doomed-prefetch cadence (4): fz10175/10248/10431/10486 - a fuller
+  queue (q_cnt 4-6); the divergence is the doomed-prefetch/flush CODE
+  cadence around the vectoring, NOT the IVT-read commit (that one is E+1
+  here, already correct). The "doomed-prefetch during the INT flush" class.
+
 ### Priority 4 - wait-state variation (characterized, NOT gated)
 check_seq --waits N / --waits-sweep threads waits through the A/B path.
 The ENTIRE fuzz corpus (base AND expanded) diverges at waits>=1: real

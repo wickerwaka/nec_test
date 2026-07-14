@@ -105,6 +105,9 @@ module v30_biu (
     input             eu_soon_ea,     // eu_soon from an S_EA2 reg-EA reader/
                                       // sreg-store: enables the idle-window
                                       // early-commit path (defer_idle)
+    input             eu_soon_ivt,    // NMI/INT IVT-read idle-window early-
+                                      // commit lead (pre-IVT S_WAITX dly==1);
+                                      // arms defer_idle like eu_soon_ea
     input             flush_fast,     // far-flush: redirect commits mid-cycle
     output            bus_phase,      // 2-cycle bus grid parity (T1=0)
     output            bus_t4,         // current cycle is a bus T4
@@ -603,11 +606,23 @@ always_ff @(posedge clk) begin
                         cur_wr     <= 1'b0;
                     end else if (pick_any) begin
                         do_commit();
-                    end else if (eu_req && eu_soon_ea && !eu_ready) begin
+                    end else if ((eu_req && eu_soon_ea && !eu_ready) ||
+                                 (eu_soon_ivt && q_cnt <= 3'd2)) begin
                         // idle window with a reg-EA reader reservation that
                         // becomes ready NEXT cycle and has no in-flight fetch
                         // for defer_t4 to land on: arm the early commit so the
                         // read commits directly in the idle window next cycle.
+                        // eu_soon_ivt extends this to the NMI IVT read: its
+                        // request (S_TRAP_IVT1) goes ready next cycle with
+                        // eu_req+eu_ready together, so there is no eu_soon lead
+                        // - the pre-IVT wait cycle supplies the lead directly.
+                        // Gated on q_cnt<=2 (queue-starved): only a near-empty
+                        // queue drove a doomed prefetch through the dispatch
+                        // wait, establishing the live bus grid the chip commits
+                        // the IVT read onto one cycle early (E+0). A saturated
+                        // queue (the NOP-sled golden, occupied>4) runs no such
+                        // prefetch -> stale idle -> the chip commits E+1 via the
+                        // normal do_commit path, so it is excluded here.
                         defer_idle <= 1'b1;
                     end
                 end

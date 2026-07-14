@@ -364,6 +364,8 @@ endtask
 // 64 KB image, run the real reset flow (no backdoor), record bootn cycles
 string  bootimg_path;
 integer bootn;
+integer      ev_boot_tmp;
+logic [31:0] ev_addr_tmp;
 
 // +eudbg: per-cycle EU/BIU state dump alongside the r rows ("d <state>
 // <q_pop> <q_avl> <q_cnt>") for phase-fit debugging (bootimg mode only)
@@ -388,6 +390,22 @@ initial begin
         if (!$value$plusargs("out=%s", out_path)) out_path = "core_out.txt";
         fo = $fopen(out_path, "w");
         $readmemh(bootimg_path, mem);
+        // Optional pin-event injection in boot mode (mirrors the chip serve
+        // path evt=addr:delay:hold:pin). Arms the SAME fetch-trigger (mode 1)
+        // scheduler used by the validated batch INT/NMI tranches: the pin
+        // drives at idx(CODE T1 @ evaddr) + 2 + evdelay for evhold cycles.
+        if ($value$plusargs("evpin=%d", ev_boot_tmp)) begin
+            ev_mode  = 1;
+            ev_pin   = ev_boot_tmp;
+            if (!$value$plusargs("evaddr=%h", ev_addr_tmp)) ev_addr_tmp = 0;
+            ev_addr  = ev_addr_tmp[19:0];
+            if (!$value$plusargs("evdelay=%d", ev_delay)) ev_delay = 0;
+            if (!$value$plusargs("evhold=%d", ev_hold))   ev_hold  = 2;
+            ev_armed = 1;
+            ev_drive = 0;
+            ev_cnt   = 0;
+            ev_hold_cnt = 0;
+        end
         reset = 1;
         bkd_load = 0;
         case_active = 1;   // let CPU writes hit mem (no undo needed)

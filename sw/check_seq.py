@@ -56,14 +56,21 @@ def compose(g):
                              ram=g["ram"], ivt=g.get("ivt"))
 
 
-def run_tb(image, n, waits=0):
+def run_tb(image, n, waits=0, evt=None):
     td = tempfile.mkdtemp(prefix="seq_")
     img = Path(td) / "img.hex"
     out = Path(td) / "out.txt"
     img.write_text("\n".join(f"{b:02x}" for b in image) + "\n")
-    r = subprocess.run([str(BIN), f"+bootimg={img}", f"+bootn={n}",
-                        f"+waits={waits}", f"+out={out}"],
-                       capture_output=True, text=True,
+    args = [str(BIN), f"+bootimg={img}", f"+bootn={n}",
+            f"+waits={waits}", f"+out={out}"]
+    if evt is not None:
+        # evt = (linear_addr, delay, hold, pin 0=INT 1=NMI 2=POLL); feed the
+        # boot-mode fetch-trigger scheduler (same semantics as the chip serve
+        # path evt=addr:delay:hold:pin, asserts at CODE-T1(addr)+2+delay)
+        a, d, ho, p = evt
+        args += [f"+evaddr={a:05x}", f"+evdelay={d}",
+                 f"+evhold={ho}", f"+evpin={p}"]
+    r = subprocess.run(args, capture_output=True, text=True,
                        cwd=ROOT, timeout=300)
     if "BOOT DONE" not in r.stdout:
         raise RuntimeError(f"TB failed: {r.stdout[-300:]} {r.stderr[-200:]}")
@@ -185,11 +192,13 @@ def check_seed(seed, host, sim_only=False, strict_qs=False, exts=(),
         sim = run_chip(image, host, use_core=True, waits=waits, evt=evt)
     else:
         if sim_only:
-            real = run_tb(image, 4200, waits=waits)
+            real = run_tb(image, 4200, waits=waits, evt=evt)
             real = [dict(r, t_state=r["t"]) for r in real]
         else:
-            real = run_chip(image, host, waits=waits)
-        sim = run_tb(image, 4200, waits=waits)
+            # force the socketed chip as ground truth: use_core=None leaves
+            # the board default, which a prior --hw-ab run flips to the fabric
+            real = run_chip(image, host, use_core=False, waits=waits, evt=evt)
+        sim = run_tb(image, 4200, waits=waits, evt=evt)
     bad, first, n, flick = diff(real, sim, strict_qs=strict_qs)
     if cov is not None:
         cov.add_program(g["forms"], g["ins"], waits=waits)

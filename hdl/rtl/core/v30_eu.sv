@@ -141,6 +141,12 @@ module v30_eu (
     output            eu_soon_ea,  // eu_soon specifically from an S_EA2 reg-EA
                                    // reader/sreg-store (idle-window early
                                    // commit; excludes the S_WAITX/INT eu_soon)
+    output            eu_soon_ivt, // hardware-interrupt (NMI/INT) IVT-read
+                                   // idle-window early-commit lead: the last
+                                   // pre-IVT wait cycle (S_WAITX dly==1 ->
+                                   // S_TRAP_IVT1, irq_disp) arms defer_idle so
+                                   // the IVT read commits one cycle earlier in
+                                   // a pure idle window (reg-EA analogue)
     output            flush_fast,  // far flush commits redirect mid-cycle
     output reg        eu_wr,
     output            eu_fwd,     // write data = the BIU's last read data
@@ -400,6 +406,10 @@ reg [15:0]  insn_ip;             // first byte of the current instruction
 reg  [7:0]  ivt_vec;             // vector for the S_TRAP_IVT1 chain
 reg         hwake_ie0;           // HALT released by masked INT: resume
 reg         irq_disp;            // current WAITX is an interrupt dispatch
+reg         irq_nmi_ivt;         // the current S_WAITX->S_TRAP_IVT1 is the
+                                 // NMI running-boundary IVT wait (direct from
+                                 // S_FIRST, NOT the INT INTA2->IVT gap): gates
+                                 // the eu_soon_ivt idle-window early commit
 
 wire [2:0] mrm_reg = mrm[5:3];
 wire [2:0] mrm_rm  = mrm[2:0];
@@ -1334,6 +1344,25 @@ end
 // untouched.
 assign eu_soon_ea = (state == S_EA2) && eu_soon;
 
+// Hardware-interrupt (NMI/INT) IVT-read idle-window early commit: on the
+// last pre-IVT wait cycle (S_WAITX dly==1 with wnext==S_TRAP_IVT1 and the
+// interrupt-dispatch flag), lead the BIU's defer_idle so the IVT read
+// commits directly in a pure idle window one cycle earlier - matching the
+// chip in random contexts where the vectoring request goes ready with no
+// in-flight prefetch to ride (the golden NOP-sled path rides a fetch, so
+// the BIU only arms this in the idle ST_TI branch and stays untouched).
+// Excludes divide-trap/software-INT (irq_disp low there).
+// Phase-gated: the chip commits the IVT-read display on the bus-grid
+// boundary (the next bus_phase==0 cycle). This arming cycle is E-1 (the
+// S_TRAP_IVT1 entry is E); only when E-1 is bus_phase==1 does E land on
+// the boundary, giving the one-cycle-earlier commit. When E-1 is
+// bus_phase==0 (E off-boundary, e.g. the saturated NOP sled) the normal
+// do_commit path already lands the display on the next boundary (E+1) -
+// arming there would commit a cycle too early (would break the golden
+// INT/NMI tranches), so it is excluded.
+assign eu_soon_ivt = (state == S_WAITX) && (dly == 6'd1) &&
+                     (wnext == S_TRAP_IVT1) && irq_nmi_ivt && bus_phase;
+
 //----------------------------------------------------------------------------
 // INS/EXT combinational helpers (laws in the decode-section comment)
 //----------------------------------------------------------------------------
@@ -1482,6 +1511,7 @@ always_ff @(posedge clk) begin
         ivt_vec  <= '0;
         hwake_ie0 <= 1'b0;
         irq_disp <= 1'b0;
+        irq_nmi_ivt <= 1'b0;
         div_busy <= 1'b0;
         div_pend <= 1'b0;
         div_late <= 1'b0;
@@ -1716,6 +1746,7 @@ always_ff @(posedge clk) begin
                         ivt_vec   <= 8'd2;
                         dly <= 6'd6; wnext <= S_TRAP_IVT1;
                         irq_disp <= 1'b1;
+                        irq_nmi_ivt <= 1'b1;   // NMI direct boundary->IVT wait
                         state <= S_WAITX;
                     end else begin
                         state <= S_IRQ_D;   // one internal decision cycle
@@ -1727,6 +1758,7 @@ always_ff @(posedge clk) begin
                     rslot <= 6'd12;    // REP retire-slot anchor (pop+12)
                     ivt_vec  <= '0;    // divide trap uses vector 0
                     irq_disp <= 1'b0;
+                    irq_nmi_ivt <= 1'b0;
                     eu_kind  <= K_MEM;
                     halt_disp <= (q_byte == 8'hF4);
                     ldp2 <= 1'b0;

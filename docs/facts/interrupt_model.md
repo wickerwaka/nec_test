@@ -137,6 +137,20 @@ passing corpus (v30_eu.sv / v30_biu.sv are the executable reference).
 - **NMI latch**: set 3 cycles after the pin edge; latest catching edge =
   B-4. The IVT read request is ready during B+7 (IVT T1 = B+9 on a
   quiet bus).
+- **NMI IVT-read idle-window early commit** (random-context generalization,
+  Mission-D hardware-interrupt fit, chip-vs-TB): the S_TRAP_IVT1 request
+  goes ready (eu_req+eu_ready together) with NO eu_soon lead, and the BIU
+  displays it +2 (do_commit) on a saturated bus. In a QUEUE-STARVED
+  context (q_cnt<=2, so a doomed prefetch ran through the dispatch wait and
+  left the bus grid live) with the pre-IVT wait cycle on bus_phase==1, the
+  chip instead commits the IVT-read display ONE cycle earlier - directly in
+  the idle window (E+0, the reg-EA reader defer_idle analogue). On the
+  saturated NOP sled (q_cnt>=5, no doomed prefetch) it stays at E+1, which
+  is why the golden tranches never exposed this. Measured cycle-exact on 11
+  random-context NMI inject seeds (fz10041 et al.); fitted as eu_soon_ivt
+  (v30_eu.sv) arming the BIU defer_idle when q_cnt<=2 (v30_biu.sv). Applies
+  ONLY to the NMI running-boundary IVT wait (irq_nmi_ivt), NOT the INT
+  INTA2->IVT gap.
 - **IE gating is itself pipelined**: the decision at B uses IE@B-3.
   This single law IS the "EI shadow" AND explains POP PSW's behavior on
   an IE 0->1 transition (the immediately following boundary still sees

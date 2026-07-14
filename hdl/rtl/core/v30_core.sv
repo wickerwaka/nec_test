@@ -75,7 +75,7 @@ wire        q_avail, q_avail2, q_fresh, q_any;
 wire        eu_pop, eu_first, eu_flush;
 wire [15:0] eu_flush_cs, eu_flush_ip;
 wire        eu_req, eu_hold, eu_ready, eu_wr, eu_fwd, eu_word;
-wire        eu_soon, eu_soon_ea, bus_phase, bus_t4, flush_fast;
+wire        eu_soon, eu_soon_ea, eu_soon_ivt, bus_phase, bus_t4, flush_fast;
 wire [2:0]  bus_ts;
 wire  [1:0] eu_kind;
 wire        eu_wrap;
@@ -132,6 +132,7 @@ v30_biu u_biu (
     .eu_req     (scr_en ? 1'b0 : eu_req),
     .eu_soon    (scr_en ? 1'b0 : eu_soon),
     .eu_soon_ea (scr_en ? 1'b0 : eu_soon_ea),
+    .eu_soon_ivt(scr_en ? 1'b0 : eu_soon_ivt),
     .flush_fast (scr_en ? 1'b0 : flush_fast),
     .bus_phase  (bus_phase),
     .bus_t4     (bus_t4),
@@ -177,6 +178,7 @@ v30_eu u_eu (
     .eu_req     (eu_req),
     .eu_soon    (eu_soon),
     .eu_soon_ea (eu_soon_ea),
+    .eu_soon_ivt(eu_soon_ivt),
     .flush_fast (flush_fast),
     .bus_phase  (bus_phase),
     .bus_t4     (bus_t4),
