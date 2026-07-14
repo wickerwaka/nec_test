@@ -2343,11 +2343,16 @@ always_ff @(posedge clk) begin
                         state <= S_REQ;
                     end
                 end else if (op_pushi) begin
-                    // 68: the push write lands on the next phase-0
-                    // grid cycle (ready pop+1 from a phase-1 pop,
-                    // pop+2 from phase-0; measured)
+                    // 68: the push write commits at the next phase-0 grid
+                    // cycle. From a phase-1 imm pop it is ready pop+1
+                    // (S_REQ direct). From a phase-0 pop with an in-flight
+                    // prefetch it takes the S_PUSH_CALC reservation (pop+2)
+                    // so the fetch cannot steal the slot. But a phase-0 pop
+                    // in a bus-idle window (Ti) has no fetch to block: the
+                    // extra calc cycle wrote 1 cycle late (Campaign 5 ph4/10)
+                    // - commit pop+1 there too.
                     disp[15:8] <= q_byte;
-                    if (bus_phase) begin
+                    if (bus_phase || bus_ts == 3'd0) begin
                         issue_push({q_byte, disp[7:0]});
                         state <= S_REQ;
                     end else
