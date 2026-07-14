@@ -484,3 +484,88 @@ instructions.json entries. Findings:
 - The 3 cadence-marginal families: swint, farjmp, loop (execution correct,
   display cadence 1-2 off at ~3% of phases).
 - INM/OUTM, BUSLOCK, BRKEM/8080-mode, 0x82 alias (audit finds above).
+
+## Campaign 5 breadth-fuzz (2026-07-13, this session) — surprise hunt
+
+Aggressively widened opcode/addressing/operand coverage of the A/B
+sequence fuzz and ran high volume on the CURRENT bitstream (chip vs fabric
+core, --hw-ab, waits=0, no interrupts) to hunt UNEXPECTED correctness bugs.
+Board = root@mister-nec, NO reflash this session (find-only). >13000 A/B
+seed-pairs run.
+
+### Generator expansion (gen_seq.py, commit c221596)
+Coverage-driven: cross-checked fuzz_cov's UNEXERCISED/opsig axes against
+docs/facts/instructions.json and added every remaining SAFE documented form
+the generator could not emit.
+- **Addressing modes (_windowed_ea): the whole mod/rm/disp space** — was
+  ONLY mod0/rm6 direct + mod3 register. Now register-indirect, based,
+  indexed, BP-relative (SS-default), disp8/disp16, odd alignment, and
+  segment-wrap (0xFFFF) reads, with the EA forced into the data window by
+  pre-loading base/index regs (writes stay contained; reads may straddle).
+- **_imm_biased**: operand boundary biasing (0/1/-1/0x8000/0x7FFF/byte
+  carry+overflow edges) across ALU/MOV/shift/mul immediates.
+- **14 new families**: earich (rich-EA ops + 0-3 stacked seg prefixes),
+  unary (NOT/NEG F6-F7/2,3), incdec8 (FE/FF/0,1), testimm (A8/A9,F6-F7/0),
+  xchgacc (91-97), pushimm (68/6A), pushapopa (60/61), flagops
+  (F5/F8/F9/FA/FB/9E/9F), brnear (E9), inout (E4-E7/EC/EE/EF; 0xED avoided
+  so no accidental CALLN/RETEM 8080-escape), sregmem (8C/8E), divbound
+  (DIV at the quotient boundary, no trap), indirect (FF/2,4 near CALL/JMP
+  reg). jcxz (E3) added to the base branch generator.
+
+**Coverage before -> after**: 2500 -> 6000 A/B seeds; 153006 -> 365164
+instrs; **50 forms (2 UNEXERCISED: jcxz, loop) -> 65 forms (0 UNEXERCISED)**;
+**405 -> 465 opsigs** (154 distinct memory-operand signatures); prefix axis
+now es/cs/ss/ds/rep/none.
+
+### FINDINGS
+1. **No functional/correctness bugs.** Every divergent seed (430+
+   arch-checked, incl. all 368 from a 1500-seed run and all 62 from a
+   2000-seed strict-set run) is ARCH-MATCH: identical architectural
+   register output chip vs core. Zero deadlocks (after the tooling fix
+   below), zero wrong results, zero wrong flags across all newly-exercised
+   forms. High-confidence clean.
+
+2. **TOOLING BUG FIXED — loop-family containment hang** (commit 19c649f).
+   _gen_loop's bounded-iteration guarantee relied on LOOP decrementing CW
+   from a small count, but the loop BODY drew its INC/DEC register from all
+   8 regs — so it could emit INC CW on the counter, cancelling the LOOP's
+   decrement -> infinite spin (both chip and core hang identically -> no
+   done marker -> spurious "divergence"). ~9.5% of loop-only seeds. Fixed:
+   body regs from {AW,DW,BW,BP,IX,IY} only. Hang rate 0/300 after. This
+   was the sole containment defect; the 14 new families never escape.
+
+3. **Cadence-generalization gaps at waits=0 (all ARCH-EXACT, resync to
+   done) — a Mission-D-scale fit + reflash, DEFERRED.** These are the same
+   class as the pre-documented swint/farjmp/loop cadence-marginals, now
+   extended/quantified. Per-family divergence rate (250 isolated seeds):
+   - **pushapopa / POP R (61): 102/250 (41%)** — the one prevalent NEW
+     gap. Mechanism (NOP-phase sweep, fz20003/fz20011): POPA's 8-word read
+     burst STARTS 2 cycles late on the core at some prefetch phases (the
+     dispatch's existing `bus_phase ? S_61G : S_61W` 2-way split — pop+2 vs
+     pop+3 — does not capture the full queue-fill-phase law). PUSH R (60) is
+     clean at all phases. Reads/addresses/registers identical; done off by
+     2. This is the highest-value RTL target: route S_61 read-start through
+     the Mission-D q_fresh/queue-fill law instead of the single bus_phase
+     bit, measure via the +eudbg matrix, then reflash.
+   - **loop 8.4%, farjmp 3.2%, swint 1.2%** — pre-known deferred class.
+   - Everything else NEW is 0-3% (earich itself 0/250) — the same ~0.4%
+     background rate present even in shipped base families (callret/sregw/
+     popf all 1/250). The low-rate contributors are reg-EA RMW store /
+     stack-push / near-indirect-flush commit-phase (unary 6, pushimm 7,
+     indirect 7, incdec8 4 per 250): the register-indirect/based/indexed EA
+     store & reader commit phase (newly exercised by the addressing-mode
+     expansion) is the Mission-D disp-law path not fully generalized to
+     reg-EA. Exemplars fz60035/fz60249 (multi-row store/fetch shift),
+     fz60221/fz30297 (single-cycle PS/parity status-bus display).
+
+### Regression corpus (sw/testdata/fuzz_divergences.jsonl, now 18)
+Added curated cadence exemplars: fz20003/fz20011 (POPA read-start,
+--exts pushapopa), fz60249/fz60035/fz60221 (reg-EA store+fetch / single-row
+PS, --exts <strict set>). Replay: check_seq <seed> --hw-ab --exts <...>.
+Re-check after any commit-phase RTL fit.
+
+### NEXT (recommended dedicated fit+reflash mini-campaign)
+The POPA read-start law is the cleanest, most prevalent target. Fit it with
+the +eudbg phase matrix (as Mission D did the disp laws), batch with the
+reg-EA store/reader commit-phase generalization, rebuild, validate cycle-
+exact at all phases + full golden 169000/169000, then safe_flash ONCE.
