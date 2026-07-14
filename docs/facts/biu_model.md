@@ -53,6 +53,46 @@ cycle" and the divide-trap traces' E+2 shape are both special cases of:
 - **Odd jump target: the first fetch is a single byte at the odd address**
   (upper lane, UBE̅ low, A0=1), then word-aligned fetching resumes.
 
+### Doomed-prefetch generalization (Campaign 5 flush-modeling, waits=0)
+
+Measured with the per-phase chip-vs-TB sweep tools (sw/sweep_loop.py,
+sweep_farjmp.py, sweep_swint.py) across the prefetch-phase x queue-fill
+grid. These refine the "reservation-start per opcode" bullet above, which
+was a golden-phase alias: the golden injects one queue alignment, so a
+per-opcode `pop+k` reservation and the true cutoff coincided there but
+diverge across phases.
+
+- **Loop family (E0/E1/E2/E3 taken) — the resolution reservation is a
+  fixed cutoff, not a per-opcode start.** During the JWAIT resolution
+  window the bus is HARD-reserved (no prefetch) only in the last 3 cycles
+  before the flush (dly<=3); at dly>=4 the prefetcher runs FREELY. A
+  prefetch committed at dly>=4 — whether a fresh idle-start or an in-flight
+  fetch's back-to-back successor — survives as the one doomed fetch the
+  flush discards; its T4 becomes the redirect commit point. A commit whose
+  eval would land at dly<=3 is blocked. Measured cutoff exactly dly=4 free
+  / dly=3 blocked for both commit kinds (idle-start: E0 body2 ph3/9/15/21;
+  back-to-back: E2 ph2/8/14 free vs ph0/4/10 blocked). Verified 0-divergent
+  across E0-E3, bodies 1-2, phases 0-23, and 1020/1020 in-silicon A/B.
+  The old per-opcode split (E2 reserved from pop+2/dly=4, E0/E1 had no
+  reservation) over-blocked E2 and under-blocked E0/E1 off-phase.
+- **Far transfer flush landing on a prefetch T4 — the fast (EA/FF-rm-reg)
+  flush commits the redirect MID-T4.** When the doomed fetch completes at
+  its T3 and the flush fires at its T4, the fast flush drives the target
+  CODE status/address and QS=E on that T4 row and the redirect T1 follows
+  the next cycle (ff_t4 in v30_biu). A NEAR flush (E9/Jcc/loop) at a
+  prefetch T4 keeps the deferred display (redirect at the following idle
+  Ti, one cycle later). The NOP-sled EA sweep never hit a completed-fetch
+  T4; exposed by fz8304 (chip-vs-TB DIVERGE@565 -> MATCH).
+- **DEFERRED — software INT (CD imm) pre-IVT doomed prefetch.** The BRK-imm
+  vector wait is NOT a clean dly cutoff: the chip idle-starts a doomed
+  prefetch at dly=3 when the queue has room (fz73013) but stays idle at
+  dly=3 when it is full (sweep ph4), i.e. it is queue-state-dependent, and
+  a residual 1-cycle IVT-read idle-commit timing rides the shared
+  S_WAITX->S_TRAP_IVT1 handoff (also the divide-trap path). Three candidate
+  laws (dly<=2 / dly<=3 / free) were measured; none is clean. Left on the
+  golden-proven dly<=2 (~0.8% chip-vs-TB residual). INT3 (CC) and INTO (CE)
+  are clean at all phases.
+
 ## Fetch/EU bus arbitration (exp 4: arbitration)
 
 - An EU data access **never preempts an in-flight prefetch**; it wins
