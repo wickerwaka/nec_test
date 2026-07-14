@@ -1144,16 +1144,23 @@ always_comb begin
         // reservation start (measured per opcode from old-stream commits
         // inside the resolution window): EB/E8 at the final pop cycle,
         // E9 at pop+1, Jcc/E2 at pop+2
-        // software INT (BRK3/BRK/BRKV): the pre-IVT wait holds the bus
-        // (measured: no prefetch commit between the pop and the IVT read).
-        // BRKV joins the reservation only for its last three wait cycles
-        // (the V-check lead-in leaves the bus free; measured: a prefetch
-        // commits at dly==3 on the CE tranche). eu_soon marks the final
-        // wait cycle so a completing fetch's T3 eval defers into T4.
+        // software INT (BRK3 CC / BRK CD / BRKV CE): the pre-IVT wait holds
+        // the bus. CC holds for the whole wait. CD holds for its last 3
+        // cycles (dly<=3) and runs the prefetcher freely before - the SAME
+        // doomed-prefetch cutoff as the loop family (a prefetch committed at
+        // dly>=4 survives, one blocked at dly<=3): the CD vector-pop adds a
+        // wait cycle (dly = bus_phase ? 4 : 3), so at bus_phase=1 a prefetch
+        // commits at dly=4 (sweep_swint intn ph2/8/14) but is blocked at
+        // dly=3 (ph4/10). The old blanket dly<=2 was a golden-phase alias.
+        // BRKV (CE) leaves its longer V-check lead-in free and reserves only
+        // dly<=2 (measured: a prefetch commits at dly==3 on the CE tranche).
+        // eu_soon marks the final wait cycle so a completing fetch's T3 eval
+        // defers into T4.
         S_WAITX: begin
             eu_req = (wnext == S_TRAP_IVT1 &&
                       (opc == 8'hCC ||
-                       ((opc == 8'hCD || opc == 8'hCE) && dly <= 6'd2))) ||
+                       (opc == 8'hCD && dly <= 6'd3) ||
+                       (opc == 8'hCE && dly <= 6'd2))) ||
                      // CALL far imm holds the bus from the seg-hi pop
                      // to its PS push (measured: no prefetch commit);
                      // POP mem holds from disp-pop+1 to its stack read
