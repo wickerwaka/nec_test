@@ -265,3 +265,75 @@ Each: full 169000 w0 golden bit+cycle-identical AND w1/w3 drift SHRINKS
 (bad-rows mean/median down, net@80 toward 0). The DIRECTION LAW says every
 correct conversion here stretches a fixed offset (slower core), reducing the
 core-faster gap.
+
+### Round 2 (this session) — retire/prefetch-resume LOCALIZED to a SHARED-MACHINERY FLOOR
+
+**Cycle-level localization (dumpctx, fz84013 retire ctx + fz84004 MOV-imm ctx,
+w1 AND w3).** The dominant drift masses (retire S_FIRST/S_DEC/S_NOP + S_WAITX/
+S_EX, AND MOV-imm S_IMM_LO/HI) reduce to ONE root cause: the BIU's prefetch-
+resume after a WAITED fetch. After a waited prefetch completes (its T4), the
+core resumes the next prefetch at that fetch's eval_ext (T4+1, the deferred-
+completion mid-cycle commit) with the queue at the refill threshold. The CHIP
+instead inserts the measured ~3-idle bus-grid prefetch-resume gap (biu_model
+exp4 "prefetch resumes after 3 idle cycles") and resumes at ~T4+4 (w1) / T4+3
+(w3). So the core resumes ~3 cyc too EARLY per such interval -> core-faster
+drift. Exact traces:
+- fz84013 @fetch43 (op2f DAS executing): w1 chip_gap 9 vs tb 6; w3 10 vs 8.
+- fz84004 @fetch63 (opba MOV DX,imm16): w1 chip_gap 9 vs tb 6. IDENTICAL shape.
+Both: core commits the resumed prefetch at eval_ext with occupied at the
+threshold; chip idles ~3 then resumes. Not an EU dly (no eu_req) - it is the
+BIU eval_ext prefetch-commit path.
+
+**Attempted w0-neutral fix (ext_pf_defer): HOLDS w0 but REGRESSES the fitted
+w1/w3 golden -> the FLOOR.** Hypothesis (aligned with the swint occ<=3
+urgent-prefetch law): defer the eval_ext prefetch resume when the queue is
+not urgently starved (`occupied > 3`), so the ~3-idle gap is preserved; keep
+it for starved/contiguous streams (`occupied <= 3`). Implemented in v30_biu
+(ext_pf_defer gating the ST_TI eval_ext prefetch commit + ext_show).
+Result: **w0 golden 169000/169000 HELD** (w0-neutral by construction - no
+eval_ext at w0) BUT **w1 golden 1064/1200, w3 1081/1200** (arch still 1200 -
+execution correct, cycles wrong). The fitted golden forms (B8/8B/89/F7.6/EB/E8)
+REQUIRE the resume-at-occupied==4 during QUEUE-FILL (ramping 0->2->4->6, the
+refill threshold restarts fetch at occupied==4); a blanket occ<=3 gate blocks
+those fills. Reverted.
+
+**THE FLOOR, characterized precisely.** The chip's decision "resume prefetch
+now vs insert the 3-idle bus-grid gap" after a waited fetch does NOT reduce to
+queue occupancy: BOTH the queue-FILL case (golden, resume at occupied==4
+needed) and the steady-state fetch-limited case (fuzz, insert 3-idle gap) sit
+at occupied==4 at the decision point. Distinguishing them needs state the
+current BIU model does not cleanly expose (queue-fill-rising vs been-saturated
+history, or a bus-grid phase alignment of the resume) and any simple gate that
+would insert the steady-state gap also breaks the fitted queue-fill golden.
+This is the shared eval_ext/prefetch machinery the entire w0-7 surface rests
+on. It BOUNDS what a local, w0-neutral change can achieve for the dominant
+drift mass. NOT closable by bus_tw or a simple occupancy gate.
+
+**Options for a future round (deeper, not a quick w0-neutral tweak):**
+1. Add a queue-fill-history / saturation state bit to the BIU and gate the
+   3-idle resume gap on "steady-state (been saturated) AND not urgently
+   starved", distinguishing it from initial fill. Speculative; must be proven
+   not to regress the fitted w1/w3 golden AND to actually match the chip's
+   resume phase - needs a CONTROLLED fetch-limited-sled board capture at
+   w0/w1/w3 to pin the exact resume law (occupancy x fill-history x bus phase)
+   before touching the shared path. This is the real "measure-first" next step
+   for this floor.
+2. Model the resume as a bus-grid-phase alignment (the resumed prefetch can
+   only start at a grid boundary under waits) rather than an immediate
+   eval_ext commit - a structural BIU change, high blast radius.
+
+**Distinct remaining lever NOT on this floor: S_JWAIT branch/loop resolution.**
+It is a genuine EU `dly` countdown (not the prefetch-resume path), so it IS a
+bus_tw candidate. Histogram mass 75 ([1,2,6,59,62,63]). Highest golden risk
+(branch tranches most w0-fitted); deferred by grind-round-3. This is the next
+distinct thing to try after the prefetch-resume floor is either modeled
+(option 1/2) or accepted.
+
+**Round 2 net:** no new RTL landed (the one attempt regressed the w1/w3
+golden and was reverted). Round-1 primitives remain the only landed change.
+Drift trajectory UNCHANGED (w1 mean 818.3 median 743.0 clean 1/120; w3 mean
+922.9 clean 7/60). The value delivered is the precise localization + floor
+characterization: the dominant retire/MOV-imm drift is the BIU prefetch-
+resume-under-waits, not closable by a simple w0-neutral gate without a
+queue-fill-history/bus-phase model (needs a controlled-sled board capture to
+pin the resume law first).

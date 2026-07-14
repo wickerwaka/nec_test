@@ -414,6 +414,29 @@ established the closing-direction law.
   is the bus-grid prefetch-resume law (exp4 "3 idle cycles after an EU
   access") not stretching under waits — a bus_tw/BIU-cadence target, the
   round-2 focus.
+- **Round 2 (2026-07-14): the dominant retire/MOV-imm drift is the BIU
+  PREFETCH-RESUME-UNDER-WAITS, a SHARED-MACHINERY FLOOR.** Localized
+  cycle-by-cycle (dumpctx fz84013 retire + fz84004 MOV-imm, w1 AND w3): after
+  a WAITED prefetch completes, the core resumes the next prefetch at that
+  fetch's eval_ext (T4+1, the deferred-completion mid-cycle commit) with the
+  queue at the refill threshold; the CHIP inserts the ~3-idle bus-grid
+  prefetch-resume gap (exp4) and resumes at ~T4+4 (w1) / T4+3 (w3). Core ~3
+  cyc too early -> the core-faster drift. Both dominant masses (retire
+  S_WAITX/S_EX/S_NOP and MOV-imm S_IMM_LO/HI) are the SAME root; NOT an EU
+  dly. Attempted fix (ext_pf_defer: defer the eval_ext prefetch resume when
+  occupied>3, resume-at-eval_ext only when urgently starved, per the swint
+  occ<=3 law): w0 golden 169000/169000 HELD (w0-neutral) but the w1/w3 golden
+  REGRESSED (1064/1200, 1081/1200; arch still 1200) - the fitted forms need
+  resume-at-occupied==4 during initial QUEUE-FILL (threshold restarts fetch at
+  occupied==4). Reverted. THE FLOOR: the "resume now vs 3-idle gap" decision
+  does not reduce to occupancy (queue-FILL and steady-state-fetch-limited both
+  sit at occupied==4); distinguishing them needs fill-history/bus-phase state
+  the model does not expose, and any simple gate that inserts the steady-state
+  gap breaks the fitted queue-fill golden. Bounds the dominant mass. Next: a
+  CONTROLLED fetch-limited-sled board capture at w0/w1/w3 to pin the resume law
+  (occupancy x fill-history x bus phase) before touching the shared
+  eval_ext/prefetch path. Distinct off-floor lever: S_JWAIT branch resolution
+  (a real EU dly, bus_tw candidate, highest golden risk).
 
 ## Self-modifying code (exp 6b: smc)
 
