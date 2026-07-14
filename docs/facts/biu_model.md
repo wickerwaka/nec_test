@@ -290,15 +290,23 @@ holds UNCHANGED — no new wait-state law and no RTL change were needed.
   are the deferred doomed-prefetch/accept-edge class); left for a dedicated
   interrupt-timing pass. (The "476/500" this note originally cited was the
   first-pass number before the five landed interrupt fits.)
-- **RE-VERIFICATION 2026-07-14 (board caveat):** a fresh waits>=1
-  **chip-vs-TB** fuzz gate does NOT reproduce the "all clean" result above.
-  The live socketed chip currently runs with NO Tw at cfg waits>=1 (the TB
-  and the in-fabric core both insert Tw), so the chip-vs-TB gate diverges
-  for ~every seed. The RTL wait model itself is UNCHANGED and still
-  validated (golden v0.1-w1/w3 = real waited-chip captures, reproduced
-  1200/1200 in the TB). This is a live board / serve-state (chip-path
-  READY wait-routing) issue for the owner, not an RTL/model defect — see
-  closure_checkpoint.md "WAITS caveat". The parametric model below stands.
+- **RE-VERIFICATION 2026-07-14 — the "all clean" result above is REFUTED
+  (measurement error).** A fresh waits>=1 **chip-vs-TB** fuzz gate over
+  arbitrary sequences DIVERGES for ~every seed. Root-caused: NOT a wait-
+  routing/board issue (the socketed chip waits correctly — direct probe:
+  waits=1 => 1 Tw, waits=3 => 3 Tw) and NOT tooling (hw-ab chip-vs-FABRIC,
+  both via nec_bus, drifts IDENTICALLY to chip-vs-TB). It is a **real
+  accumulating core-vs-chip cycle-cadence drift under waits**: all fetch
+  addresses match (execution arch-correct) but the core runs ~1 cycle
+  fewer per ~10-20 waited fetches (chip-behind-core = +0/+1/+6/+10 at
+  fetch 0/5/50/100, waits=1). So the parametric mission-H model is
+  fitted-exact for its 6 forms (golden w1/w3 pass) but does NOT generalize
+  to arbitrary streams — this is the ORIGINAL Priority-4 finding, which the
+  WAITS campaign wrongly overturned. Fixing it is a Mission-H-scale CORE
+  RTL fit + reflash (deferred; touches the shared wait/eval machinery).
+  waits=0 unaffected. Full evidence: closure_checkpoint.md "WAITS>=1
+  caveat". The parametric model below holds only in N for those fitted
+  forms, not across arbitrary sequences.
 
 ## Self-modifying code (exp 6b: smc)
 

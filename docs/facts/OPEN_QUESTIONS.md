@@ -9,14 +9,18 @@ Retire entries by moving them to `docs/facts/` files with provenance (datasheet 
 > but ONE deferred timing class — the **doomed-prefetch / accept-edge flush
 > machinery** (interrupt residuals fz10460/fz10175 + swint CD-imm), deferred
 > on risk/reward. Full state in docs/notes/closure_checkpoint.md.
-> **Live-harness caveat (Q3-adjacent, owner action):** as of 2026-07-14 the
-> board no longer inserts wait states on the SOCKETED chip (the fabric core
-> and the Verilator TB both do), so a fresh waits>=1 chip-vs-TB gate does
-> not reproduce. The RTL wait model is still validated by the golden
-> v0.1-w1/w3 real-chip captures. Check the on-board serve / chip-path READY
-> wait-routing. Still genuinely open hardware questions: Q4 (clean
-> register load/store side effects), Q13 (8080/BRKEM mode), and the
-> NMI-vs-INT simultaneous-priority tail of Q14.
+> **WAITS>=1 caveat (Q3/Q6-adjacent, root-caused 2026-07-14):** a live
+> waits>=1 chip-vs-TB fuzz gate over arbitrary sequences DIVERGES. Root
+> cause is NOT wait-routing (the socketed chip waits correctly) and NOT
+> tooling (hw-ab chip-vs-fabric drifts identically) — it is a real,
+> accumulating core-vs-chip cycle-cadence drift under waits (~1 cyc per
+> ~10-20 waited fetches; all fetch addresses match, execution arch-correct).
+> The mission-H wait model is fitted-exact for its 6 forms (golden w1/w3
+> pass) but does NOT generalize. This is a deferred CORE-RTL/reflash item,
+> waits=0 unaffected. See closure_checkpoint.md "WAITS>=1 caveat". Still
+> genuinely open hardware questions: Q4 (clean register load/store side
+> effects), Q13 (8080/BRKEM mode), and the NMI-vs-INT simultaneous-priority
+> tail of Q14.
 
 ## Harness-blocking (resolve first)
 

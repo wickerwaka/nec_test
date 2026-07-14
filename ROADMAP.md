@@ -25,10 +25,13 @@ The single-read handoff is **docs/notes/closure_checkpoint.md** (top
   machinery** (residuals fz10460 REP-LODS, fz10175 NMI; and swint CD-imm)
   — deferred on risk/reward, would touch the shared flush/vectoring
   machinery for <1% gain.
-- **Caveat found 2026-07-14:** the live board no longer wait-states the
-  socketed chip, so a fresh waits>=1 *chip-vs-TB* gate does not reproduce
-  (RTL wait model still validated by golden w1/w3). Owner action item;
-  waits=0 unaffected. Details in closure_checkpoint.md "WAITS caveat".
+- **Caveat root-caused 2026-07-14:** a live waits>=1 *chip-vs-TB* fuzz gate
+  over arbitrary sequences DIVERGES — a real, accumulating core-vs-chip
+  cycle-cadence drift under waits (NOT wait-routing: the chip waits fine;
+  NOT tooling: hw-ab chip-vs-fabric drifts identically). The mission-H wait
+  model is fitted-exact for its 6 forms (golden w1/w3 pass) but does not
+  generalize. Deferred CORE-RTL/reflash item; waits=0 unaffected. Details in
+  closure_checkpoint.md "WAITS>=1 caveat".
 
 ## Decisions (2026-07-11)
 

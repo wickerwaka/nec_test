@@ -25,11 +25,14 @@ outside `sw/safe_flash.sh`. Serve v2 (delta/partial capture) deployed.
 - **Hardware-interrupt surface (waits=0):** 498/500 chip-vs-TB
   (497/500 in-silicon hw-ab; the +1 gap = fz10055, the inert fabric-synth
   float floor, clean chip-vs-TB). See interrupt_model.md.
-- **The RTL wait-state model** is validated against real waited-chip data:
-  golden TB suites v0.1-w1 (waits=1) 1200/1200 and v0.1-w3 (waits=3)
-  1200/1200 (stored real-chip waited captures, reproduced bit+cycle-exact
-  in the Verilator TB). See the WAITS caveat below before running a *live*
-  waits>=1 chip gate.
+- **The RTL wait-state model is fitted-exact for the 6 mission-H forms
+  only, and does NOT generalize** to arbitrary sequences. Golden TB suites
+  v0.1-w1 (waits=1) 1200/1200 and v0.1-w3 (waits=3) 1200/1200 pass (stored
+  real-chip waited captures of those forms, reproduced bit+cycle-exact in
+  the TB), but a live waits>=1 chip-vs-TB fuzz gate over arbitrary sequences
+  DIVERGES — a real, accumulating core-vs-chip cycle drift (see the WAITS>=1
+  caveat below). Execution is arch-correct under waits; only cycle timing
+  drifts. This is a deferred CORE-RTL/reflash item, NOT a waits=0 problem.
 
 ## The ONE remaining deferred class
 
@@ -56,23 +59,53 @@ doomed-prefetch), both inject chip-vs-TB.
 | Inject `--inject-int` fz10000-10499 chip-vs-TB | **498/500** (fz10175, fz10460) | yes |
 | Regression corpus replay chip-vs-TB | all as documented **except** fz9700 (see WAITS caveat) | see caveat |
 
-## WAITS caveat — live board no longer wait-states the SOCKETED chip (found 2026-07-14)
+## WAITS>=1 caveat — real core-vs-chip cadence drift; "CLOSED" claim REFUTED (root-caused 2026-07-14)
 
 A fresh waits>=1 **chip-vs-TB** fuzz gate does **NOT** reproduce the
-"waits>=1 CLOSED / 1000/1000" claim in the WAITS campaign section below.
-Measured 2026-07-14 (board unchanged): at cfg waits=1 the socketed reference
-chip runs T1->T2->T3->T4 with **no Tw**, while the Verilator TB *and* the
-in-fabric core both insert Tw — so `check_seq` chip-vs-TB diverges for
-essentially every seed (and corpus seed fz9700 diverges @31). Isolation:
-sim-only both-TB waits=1 = MATCH (TB honors waits); hw-ab waits=1 in ONE
-board session = chip shows T3 while fabric shows Tw. The RTL routes
-`cfg_wait_states -> NEC_READY` to the external chip and the golden w1/w3
-vectors are real waited-chip captures, so the chip *can* wait — this is a
-**live board / serve-state (or chip-path wait-routing) issue, NOT an RTL
-defect and NOT a waits=0 problem.** The RTL wait model stands (golden w1/w3
-pass). **For the owner:** verify the on-board serve / chip-path READY
-wait-routing before trusting any fresh waits>=1 chip-vs-TB gate. The waits=0
-surface — the whole verified achievement — is unaffected.
+"waits>=1 CLOSED / 1000/1000" claim in the WAITS campaign section below —
+that claim was a **measurement error**. Root-caused 2026-07-14 (board
+unchanged, fabric == HEAD):
+
+**The socketed chip waits correctly** — this is NOT a wait-routing/board
+issue. (An earlier same-session note that said "the board no longer
+wait-states the chip" was WRONG; it misread a cascaded T-state offset as
+"no Tw".) Direct probe: at cfg waits=1 the chip inserts exactly 1 Tw
+(ready_q low through T1-T3), at waits=3 exactly 3 Tw.
+
+**The divergence is a REAL accumulating core-vs-chip cycle-cadence drift
+under wait states.** All fetch **addresses match** (execution is identical /
+architecturally correct), but the core RTL runs progressively FEWER cycles
+than the chip: chip-rows-behind-core = +0 (fetch 0-2), +1 (5-20), +6 (50),
++10 (100+) at waits=1; ~+5 by fetch 100 at waits=3 (slower onset). ~1 cycle
+per ~10-20 waited fetches. This steady accumulation across the whole program
+is what makes every seed "diverge".
+
+**Proven core-RTL, not tooling/routing/board:**
+- hw-ab (chip vs FABRIC core, BOTH served by nec_bus on the board) drifts
+  IDENTICALLY to chip-vs-TB (+0/+1/+6/+10 at w1). Fabric == TB == the same
+  v30_core RTL, so the Verilator TB is faithful and the harness is not at
+  fault — the core's internal wait response doesn't match the real chip.
+- git-diff a9f1468..HEAD of nec_bus.sv / system_large.sv / hps_axi_slave.sv
+  / nec_test.sv is BYTE-IDENTICAL (the 3 interrupt reflashes touched only
+  v30_eu/v30_biu/v30_core) — harness READY routing is unchanged since the
+  clean-run bitstream, so there is NO routing regression.
+
+**Why golden v0.1-w1/w3 still pass:** those 6 forms (89/8B/B8/E8/EB/F7.6)
+are exactly the mission-H-FITTED forms — short single-instruction programs,
+cycle-exact by construction. Arbitrary multi-instruction sequences
+accumulate the drift. So the wait model is fitted-exact for a handful of
+forms but does NOT generalize (this is the ORIGINAL Priority-4 finding; the
+WAITS campaign wrongly overturned it).
+
+**Status / scope:** a Mission-H-scale **CORE RTL wait-cadence generalization
+fit + reflash** — NOT restorable green reflash-free, and it touches the same
+wait/eval machinery the entire waits=0 surface rests on for a sub-gate
+cycle-cadence gain. DEFERRED. The **waits=0 surface (the whole verified
+achievement) is completely unaffected**; execution under waits is
+architecturally correct (only cycle timing drifts). Repro: `python3
+sw/check_seq.py --fuzz N --waits 1 --exts <strict> --no-cov` diverges;
+inspect via a fetch#->capture-row-offset probe (the chip-vs-core delta grows
+monotonically while all fetch addresses match).
 
 ## Reproduction commands (exact)
 
@@ -1093,6 +1126,16 @@ is the PUSHA/RMW / reg-EA store-vs-prefetch reorder.
   BUSLOCK, BRKEM/8080, 0x82.
 
 ## WAITS>=1 timing campaign — CLOSED, no RTL change (2026-07-14)
+
+> **REFUTED 2026-07-14 (see the top "WAITS>=1 caveat" block).** The
+> "1000/1000 / CLEAN / model general in N" conclusion below was a
+> MEASUREMENT ERROR. The run_tb `+waits` threading fix in this section was
+> real and correct, but the arbitrary-sequence surface is NOT clean: a real
+> accumulating core-vs-chip cycle-cadence drift under waits was root-caused
+> (identical in chip-vs-TB and hw-ab chip-vs-fabric; all fetch addresses
+> match; ~1 cyc per ~10-20 waited fetches). The mission-H model is
+> fitted-exact only for its 6 forms and does not generalize. Read the top
+> block, not the claims below.
 
 The waits>=1 arbitrary-sequence chip-vs-TB surface is CLEAN. No RTL fit
 and NO reflash: the bitstream is unchanged (the wait model was already
