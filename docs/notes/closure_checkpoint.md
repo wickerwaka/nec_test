@@ -569,3 +569,87 @@ The POPA read-start law is the cleanest, most prevalent target. Fit it with
 the +eudbg phase matrix (as Mission D did the disp laws), batch with the
 reg-EA store/reader commit-phase generalization, rebuild, validate cycle-
 exact at all phases + full golden 169000/169000, then safe_flash ONCE.
+
+## Campaign 5 fit+reflash mini-campaign (2026-07-13, this session)
+
+Closed the ranked waits=0 cycle-cadence commit-phase gaps from the
+Campaign 5 breadth hunt. Board = root@mister-nec; ONE reflash this session
+(the new full-RTL A/B bitstream, safe_flash'd, cfg 0x1ff0008, use_core=0,
+VERIFY MAGIC ok). Three commit-phase fits landed, each golden-verified
+169000/169000 cycle+arch-exact before the reflash. New phase-matrix tools:
+sw/sweep_popa.py, sw/sweep_regea.py, sw/sweep_push.py (chip-vs-TB/-fabric
+per-phase MEMR/MEMW anchor + the +eudbg bus_phase/bus_ts/q_fresh/eu_started
+columns added to tb_v30_core).
+
+### Fits (all cycle-exact after fix; golden held 169000/169000)
+1. **POPA (61) read-start - the ~41% prize.** Measured law: the chip's POPA
+   first stack read commits via the NATURAL BIU eval mechanism, cycle-
+   identical to a plain POP r16 (S_REQ) at EVERY prefetch phase (proven by
+   sweeping both: same MEMR T1 at all 12 phases). The old
+   `bus_phase ? S_61G : S_61W` split forced a +1 lead-in on every odd-parity
+   S_DEC, correct only when S_DEC lands on a fetch T4; at T2/Ti it read 1-2
+   cycles late (d=+1/+2 at phases 1,5,6,11). Fix: dispatch straight to
+   S_61W. Cycle-exact across 28 swept phases; seeds fz20003/fz20011 MATCH.
+2. **reg-EA store commit-phase.** mod0 reg-indirect/based/indexed stores
+   whose S_REQ ready lands on a fetch T4 (phases 2/8/14/20...) wrote 2 late:
+   a 2nd prefetch slips ahead of the not-yet-armed write. Fix: a bare eu_req
+   reservation in S_EA2 (NOT eu_soon - eu_soon would defer to the fetch's
+   own T4, 2 cycles too early; the bare reservation blocks the 2nd fetch so
+   the write commits at the following idle eval). All 4 store forms clean
+   phases 0-23.
+3. **PUSH imm16 (0x68) idle commit-phase.** PUSH r16/imm8/mem were clean;
+   only 0x68's `bus_phase ? S_REQ : S_PUSH_CALC` split diverged (+1 at ph
+   4/10). A phase-0 imm pop in a bus-idle window (ts=0) has no fetch for
+   S_PUSH_CALC to block - the extra calc cycle wrote late. Fix: commit pop+1
+   when `bus_phase || bus_ts==0`. All PUSH forms clean 0-15; resolves
+   fz60035 (that seed's push was a 0x68).
+
+### Verification
+- Golden (Verilator, zero waits): 169000/169000 cycle+arch after each fit.
+- ONE reflash: quartus 0 errors, timing MET (setup slack +4.924 ns, all
+  hold/recovery/removal/pulse positive); safe_flash VERIFY ok.
+- **Deterministic core gate - chip vs Verilator TB (the ground truth):
+  500/500 clean** on fz71000-71499 (the exact set the hw-ab gate ran),
+  incl. all 23 seeds that were flagged in hw-ab. POPA (pushapopa) exercised
+  throughout with 0 real divergences.
+- **In-silicon A/B (chip use_core=0 vs fabric core use_core=1),
+  fz71000-71499: 477/500 raw clean.** The 23 flagged seeds are NOT core
+  divergences: ALL 23 MATCH chip-vs-TB. Since the TB and the fabric core
+  are the same RTL, any divergence on a defined signal (T-state, active bus
+  status, real transaction addr/data) would show in both; none do.
+
+### STRETCH characterized: the hw-ab background is a fabric-synth-vs-chip
+### floor, NOT a fittable core law.
+The residual hw-ab-only divergences are two inert artifact classes, both
+confirmed absent from the deterministic TB (chip-vs-TB 500/500):
+- **Passive-cycle bus-float (deterministic).** During a bus-idle (Ti,
+  bs=PASV) stretch the fabric core drives its internal prefetch address on
+  AD (e.g. 29090/9090) while the chip AND the TB float-retain the last real
+  value (e.g. 2ff7a/ff7a). Architecturally inert (passive = no transaction;
+  T-state/status/qs/ps all match). Same don't-care class as the documented
+  8F.0 ghost-read and INTA-T1 float-retained address. An undefined AD value
+  that resolves differently in synth vs sim - no core-logic law to fit.
+- **Capture-alignment transients (the "11-row" signature).** A fixed ~11-
+  row window where a store/fetch appears reordered then resyncs; present in
+  hw-ab, absent in the deterministic TB. A serve-harness A/B capture-start
+  effect between the two consecutive board captures, not a core timing
+  difference (the same image on the TB is cycle-identical to the chip).
+Neither is a commit-phase law; both are documented floors, resolved the
+same way as 8F.0 (comparison-level don't-care), NOT an RTL/reflash change.
+
+### Still DEFERRED (unchanged, separately-scoped future campaigns)
+- waits>=1 generalization across arbitrary sequences (Mission-H-scale).
+- interrupt recognition/vectoring/INTA timing in random contexts.
+- loop doomed-prefetch (chip issues one speculative fetch during the
+  backward-branch flush the core does not model - a flush-MODELING gap, a
+  different law than commit-phase; fz7207. fz7203 incidentally now MATCHes).
+  farjmp post-flush cadence, swint vectoring - same deferred flush class.
+- reg-EA READER idle-window +1: the mod0 reg-EA reader commits 1 cycle late
+  when its whole 2-cycle EA compute (S_EA1->S_EA2->S_REQ) falls in bus idle
+  (no in-flight fetch for eu_soon's T4-defer). Rare in dense code; a clean
+  fix needs restructuring the EA-addr settle, risking the reader-heavy
+  suite - characterized, not forced.
+- fz60249: a real chip-vs-TB divergence (reproduces in the deterministic
+  TB) involving a store-vs-fetch reorder / OUT interaction - NOT a commit-
+  phase gap in the three fitted classes; left characterized.
+- INM/OUTM 6C-6F, BUSLOCK F0, BRKEM/8080-mode, 0x82 alias.
