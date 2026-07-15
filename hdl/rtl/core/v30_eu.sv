@@ -158,6 +158,18 @@ module v30_eu (
                                    // lets the BIU distinguish a starved-load
                                    // reservation from a branch-flush reservation
                                    // (both q_cnt=0/K_MEM/eu_wr=0)
+    output            eu_rsv_dhi,   // Phase 3 reservation-CLASS hint (measured
+                                    // Phase 2k, chip ground truth): the CURRENT
+                                    // coincident reservation is the S_DHI
+                                    // reader/RMW-read final-displacement-pop
+                                    // class. This class OWNS the bus slot vs a
+                                    // coincident deferred-eval prefetch (chip
+                                    // IDLEs at q_cnt=1); the BIU vetoes
+                                    // pf_late_rsv on it. Pure Moore of state -
+                                    // meaningful only while eu_req is up.
+    output            eu_rsv_push_calc, // Phase 3: same, the S_PUSH_CALC push
+                                    // class - owns the slot only at q_cnt>=2
+                                    // (the BIU applies the q_cnt gate).
     output reg        eu_wr,
     output            eu_fwd,     // write data = the BIU's last read data
                                   // (string-op read->write forwarding)
@@ -1392,6 +1404,19 @@ end
 // Qualified to S_EA2 so the S_WAITX/INT eu_soon (deferred swint) is
 // untouched.
 assign eu_soon_ea = (state == S_EA2) && eu_soon;
+
+// Phase 3 (measured Phase 2k, chip ground truth; Codex GO): reservation-CLASS
+// hints for the BIU's coincident-reservation arbitration veto. At a coincident
+// (age-0) pending reservation - exactly the pf_late_rsv window (eu_req high,
+// eu_req_p1==0) - the chip's reserve-vs-prefetch decision is a function of the
+// reservation's OWN source state. Only the S_DHI reader/RMW-read final-disp-pop
+// class and the S_PUSH_CALC push class own the bus slot; every other source
+// (S_RSV/S_MHI/S_JWAIT/S_DEC/...) keeps the baseline yield-to-CODE. Exported as
+// two clean 1-bit class hints (NOT the raw 7-bit state - avoid brittle EU->BIU
+// coupling). Pure Moore of the current state; the BIU only consults them inside
+// pf_late_rsv, which already gates on eu_req && !eu_req_p1.
+assign eu_rsv_dhi       = (state == S_DHI);
+assign eu_rsv_push_calc = (state == S_PUSH_CALC);
 
 // RMW mem write, ALU-imm forms ONLY (op80/81/83; op_alui): apply the
 // stricter deferred-eval qualifier. Measured: only the ALU-imm RMW defers

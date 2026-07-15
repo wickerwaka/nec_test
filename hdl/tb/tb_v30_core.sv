@@ -472,7 +472,7 @@ end
 
 always @(posedge clk) begin
     if (!reset && ce && recording && eudbg_en && fo != 0)
-        $fdisplay(fo, "d %0d %0d %0d %0d %0d %0d %05x %0d %02x %02x %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %02x %0d %0d",
+        $fdisplay(fo, "d %0d %0d %0d %0d %0d %0d %05x %0d %02x %02x %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %02x %0d %0d %0d %0d %0d",
                   dut.u_eu.state, dut.u_eu.q_pop,
                   dut.u_biu.q_avl, dut.u_biu.q_cnt,
                   dut.u_eu.eu_wrap, dut.u_biu.cur_wrap,
@@ -487,7 +487,9 @@ always @(posedge clk) begin
                   dut.u_biu.prefetch_ext, dut.u_biu.prefetch_ok,
                   dut.u_biu.eu_wr, dut.u_biu.eu_mem_acc,
                   onset_state_eff, onset_age, onset_opc_eff,
-                  onset_kind_eff, onset_wr_eff);
+                  onset_kind_eff, onset_wr_eff,
+                  dut.u_biu.owns_slot, dut.u_biu.eu_rsv_dhi,
+                  dut.u_biu.eu_rsv_push_calc);
 end
 
 initial begin

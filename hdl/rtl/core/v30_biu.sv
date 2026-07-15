@@ -129,6 +129,11 @@ module v30_biu (
     output            buslock_n,    // max-mode LOCK output pin (active low)
     input             eu_hold,      // blocks prefetch, not request history
     input             eu_ready,
+    input             eu_rsv_dhi,   // Phase 3: current coincident reservation
+                                    // is the S_DHI reader/RMW-read disp-pop
+                                    // class (owns the bus slot vs prefetch)
+    input             eu_rsv_push_calc, // Phase 3: ... the S_PUSH_CALC push
+                                    // class (owns the slot only at q_cnt>=2)
     input             eu_wr,
     input             eu_fwd,       // write data = last read data (string
                                     // read->write forwarding at commit)
@@ -430,10 +435,23 @@ wire        pf_starved = (q_cnt == 3'd0) && !eu_hold && q_aged == 2'd0 &&
 // occupied<=4 (queue has room) so it never fires when the queue is full (the
 // fitted single-store forms sit at occ>4 with a LEADING reservation - both
 // excluded). w0-NEUTRAL: eval_ext never fires at w0.
+// Phase 3 (measured Phase 2k, chip ground truth + Codex GO, session 019f663c):
+// a coincident (age-0) pending reservation OWNS the bus slot - the chip
+// IDLEs/reserves rather than let the deferred-eval prefetch win - for an
+// ENUMERATED source set: the S_DHI reader/RMW-read final-disp-pop class (chip
+// reserves at q_cnt=1, the dominant over-prefetch cell), and the S_PUSH_CALC
+// push class ONLY when the queue can still feed the decoder (q_cnt>=2). Every
+// other/unobserved reservation source (S_RSV/S_MHI/S_JWAIT/S_DEC/...) keeps the
+// baseline pf_late_rsv yield-to-CODE - do NOT force absent sources to reserve.
+// The veto only narrows pf_late_rsv (the eval_ext waited-window override); it
+// leaves prefetch_ok, pf_starved, ext_ok, ext_ok_wr untouched. w0-NEUTRAL:
+// pf_late_rsv already requires eval_ext, which never fires at w0.
+wire        owns_slot   = eu_rsv_dhi ||
+                          (eu_rsv_push_calc && q_cnt >= 3'd2);
 wire        pf_late_rsv = eval_ext && eu_req && !eu_req_p1 && !eu_ready &&
                           eu_mem_acc && eu_kind == K_MEM &&
                           occupied <= 4'd4 && q_aged == 2'd0 &&
-                          !q_flush && !eu_hold;
+                          !q_flush && !eu_hold && !owns_slot;
 wire        prefetch_ext = prefetch_ok ||
                            (eval_ext && pf_starved && eu_req && !eu_ready &&
                             eu_mem_acc && eu_kind == K_MEM) ||

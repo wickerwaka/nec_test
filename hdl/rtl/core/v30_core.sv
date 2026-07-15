@@ -78,6 +78,7 @@ wire        eu_req, eu_hold, eu_ready, eu_wr, eu_fwd, eu_word;
 wire        eu_soon, eu_soon_ea, eu_soon_ivt, bus_phase, bus_t4, flush_fast;
 wire        grid_phase;
 wire        eu_lock, core_buslock_n, eu_mem_acc;
+wire        eu_rsv_dhi, eu_rsv_push_calc;   // Phase 3 reservation-class hints
 wire        eu_rdone, bus_tw;
 wire        eu_defer_wr;
 wire [2:0]  bus_ts;
@@ -149,6 +150,8 @@ v30_biu u_biu (
     .bus_ts     (bus_ts),
     .eu_hold    (scr_en ? 1'b0 : eu_hold),
     .eu_ready   (eu_ready),
+    .eu_rsv_dhi (scr_en ? 1'b0 : eu_rsv_dhi),
+    .eu_rsv_push_calc (scr_en ? 1'b0 : eu_rsv_push_calc),
     .eu_wr      (eu_wr),
     .eu_fwd     (eu_fwd),
     .eu_word    (eu_word),
@@ -193,6 +196,8 @@ v30_eu u_eu (
     .flush_fast (flush_fast),
     .eu_defer_wr(eu_defer_wr),
     .eu_mem_acc (eu_mem_acc),
+    .eu_rsv_dhi (eu_rsv_dhi),
+    .eu_rsv_push_calc (eu_rsv_push_calc),
     .bus_phase  (bus_phase),
     .grid_phase (grid_phase),
     .eu_lock    (eu_lock),

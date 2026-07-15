@@ -793,7 +793,132 @@ arbitration site resolved above).
 Repro (Phase 2k): `python3 sw/causal_wrand.py onset --seeds 90003 90007 90015 90021 90030 --nws 10 --wmaxes 1 2 3 7`
 (held-out: `--seeds 90042 90051 90063 90077 90088`).
 
-Tools: `sw/causal_wrand.py` (`urgency` corrected, `onset` added). Repro:
+# Phase 3 — the source-aware pf_late_rsv veto (FIRST functional RTL; FLASH-READY)
+
+Codex reviewed Phase 2k (gpt-5.6-sol, session 019f663c) and gave GO to author the
+narrow source-aware reserve veto. This is the FIRST functional RTL of the
+campaign. Authored + validated in SIM; reported FLASH-READY (coordinator flashes
++ chip-replays after Codex signs off).
+
+## The RTL edit (clean EU->BIU interface, NOT raw microstate)
+
+- `v30_eu.sv`: export two SEMANTIC 1-bit reservation-class hints (Moore of the
+  current state): `eu_rsv_dhi = (state==S_DHI)`, `eu_rsv_push_calc =
+  (state==S_PUSH_CALC)`. NOT the raw 7-bit state (avoids brittle coupling).
+- `v30_biu.sv`: `owns_slot = eu_rsv_dhi || (eu_rsv_push_calc && q_cnt>=2)`;
+  `pf_late_rsv = <existing conditions> && !owns_slot`. ONLY the eval_ext override
+  is gated - prefetch_ok, pf_starved, ext_ok, ext_ok_wr UNTOUCHED. ENUMERATED
+  reserve-veto set: only S_DHI + S_PUSH_CALC@q_cnt>=2 own the slot; every other/
+  unobserved source keeps baseline behaviour.
+- `v30_core.sv`: wire the two hints EU->BIU (gated to 0 under scr_en like the
+  other reservation signals).
+- Since the veto is a single `&& !owns_slot` AND on pf_late_rsv, by construction
+  ONLY owns_slot edges can change - the diff audit is closed structurally, then
+  verified empirically.
+
+## Why the veto is w0-neutral and safe at q_cnt=0 (no pf_starved conflict)
+
+- pf_late_rsv requires eval_ext, which never fires at w0 -> w0 bit-identical
+  (verified: check_core 169000/169000 full).
+- At q_cnt=0 the INDEPENDENT `pf_starved` term (q_cnt==0 && eu_req && !eu_ready &&
+  eu_mem_acc && K_MEM) keeps prefetch_ext=1 REGARDLESS of owns_slot, so a
+  S_DHI@q_cnt=0 urgent-refill still CODEs - the veto only actually changes the
+  decision at q_cnt>=1 (where pf_starved is off). Young coincident reservations
+  occur only at q_cnt<=1 (Phase 2j), so the veto's live regime is exactly the
+  measured S_DHI@q_cnt=1 IDLE cell + S_PUSH_CALC@q_cnt>=2.
+
+## SOURCE-CAUSALITY verdict (Codex Step 3): SOURCE is CAUSAL, not a proxy
+
+Confirmed from natural corpus diversity (chip ground truth, aligned by
+(BUS TYPE, ADDRESS), live eval_ext==1 rows):
+- COMPLEMENTARY CONTRAST at matched q_cnt=1: **S_DHI -> IDLE** vs **S_MHI -> CODE**
+  vs **S_RSV -> CODE** - all memory final-byte-pop reservations, differing by
+  SOURCE alone. Refutes the 'ready-next-cycle / reaches-S_REQ' proxy (S_MHI also
+  pops its last byte -> access but the chip picks CODE).
+- COVARIATE SPREAD within source (source-consistent): S_DHI holds IDLE across 3
+  opcodes/widths (0x31 XOR-word, 0x09 OR-word, 0x38 CMP-byte); S_RSV holds CODE
+  across 5 string opcodes (a4/a5/aa/ab/ac/ad), BOTH parities, q_cnt {0,1}
+  (66/66 + 38/38); S_JWAIT CODE across both parities and q_cnt {0,2}. At MATCHED
+  parity=0, S_DHI->IDLE but S_RSV->CODE -> parity/width/opcode dissociated from
+  source. The ONLY q_cnt-dependent source is S_PUSH_CALC (q0->CODE, q2->IDLE),
+  exactly the encoded q_cnt>=2 gate.
+
+## DIFF AUDIT + regression check (no golden CODE cell changed)
+
+`vetoaudit` (chip vs PATCHED model) over 4 corpora: discovery 90003/07/15/21/30,
+held-out 90042/51/63/77/88 (nws10 x wmax{1,2,3,7}), plus two expansion batches
+(90101..90197, 90200..90299; nws10 x wmax{1,3,7}) - ~40k contested edges total:
+- owns_slot fires EXACTLY iff source in {S_DHI, S_PUSH_CALC&q_cnt>=2} in ALL four
+  corpora (the base menu already exercises string/branch/TEST-RMW/push/moffs).
+- owns_slot=1 cells: PATCHED model now IDLE, matches chip 100% (S_DHI@q1 22/22,
+  S_PUSH_CALC@q2 6/6). owns_slot=0 cells: model UNCHANGED, match chip.
+- **ZERO owns_slot=1 & chip=CODE anywhere = NO veto-induced regression.** The
+  patch is a single `&& !owns_slot` on pf_late_rsv, so by construction only the
+  enumerated cells can change - confirmed empirically.
+
+## IMPORTANT: the veto is a SAFE PARTIAL fix - the boundary is a per-source
+## q_cnt THRESHOLD, broader than 2 sources (Step-3 probe finding)
+
+The deeper source-causality probe (expansion batches) revealed the reserve-vs-
+prefetch decision is a per-source q_cnt threshold - collision-free as
+f(source, q_cnt) but NOT captured by 2 enumerated sources. Chip-ground-truth
+(source, q_cnt) -> action, merged over all four corpora:
+
+    source        q_cnt=0   q_cnt=1     q_cnt=2
+    S_DHI           -        IDLE(22)      -        (reserve; q0 unobserved)
+    S_PUSH_CALC    CODE      IDLE(6)     IDLE(6)    (reserve q>=1)
+    S_DEC          CODE      CODE        IDLE(6)    (reserve q>=2)
+    S_MHI           -        CODE(18)      -        (CODE at q1)
+    S_RSV          CODE      CODE          -        (CODE through q1)
+    S_JWAIT        CODE       -          CODE(6)    (CODE through q2)
+
+- q2 is NOT uniformly reserve (S_DEC/S_PUSH_CALC reserve, S_JWAIT prefetches) ->
+  source STILL matters at q2; this is a genuine 2-D (source x q_cnt) rule, not a
+  global q_cnt gate (consistent with, and corrects, the old Phase-2i "q>=2 always
+  reserve" which conflated sources).
+- The narrow veto (S_DHI any-q + S_PUSH_CALC@q>=2) is a VALIDATED, REGRESSION-FREE
+  SUBSET: it fixes the DOMINANT over-prefetch (S_DHI@q1 = the resolved 12/24
+  collision) + S_PUSH_CALC@q2. It does NOT close the phenomenon: it still MISSES
+  S_PUSH_CALC@q1 (6 cases, 1 anchor) and S_DEC@q2 (6 cases, 1 anchor), and the
+  higher-q_cnt thresholds of S_MHI/S_RSV are unmapped. These are additional (rarer)
+  over-prefetch cells, each currently a single anchor x 6 waits.
+
+## SIM validation + build
+
+- Golden: check_core w0 169000/169000 full; w1 1200/1200; w3 1200/1200 (w0-neutral
+  as pf_late_rsv is eval_ext-gated; waited goldens unaffected).
+- The narrow-veto target cells (S_DHI@q1 + S_PUSH_CALC@q2) now IDLE in sim, chip-
+  matching; every measured-CODE cell stays CODE; zero regression.
+- Bitstream: quartus_sh --flow compile of the narrow veto, 0 errors, timing MET
+  (all corners positive: setup +4.903 ns, hold +0.248, recovery/removal +1.053,
+  min-pulse +1.196). nec_test.sof built - FLASH-READY (NOT flashed; coordinator
+  flashes after Codex sign-off, then chip-replay confirms the cells switch to
+  IDLE on silicon).
+
+## Verdict for Codex (scope decision before flash)
+
+The narrow source-aware veto is CORRECT, source CONFIRMED CAUSAL (S_DHI vs S_MHI
+at matched q1; covariate-invariant), and REGRESSION-FREE - safe to flash as a
+partial fix that removes the dominant over-prefetch. BUT it is NOT the complete
+fix: the reserve boundary is a per-source q_cnt threshold and additional cells
+(S_PUSH_CALC@q1, S_DEC@q2, unmapped S_MHI/S_RSV) still over-prefetch. DECISION for
+Codex: (a) flash the narrow safe veto now (strictly reduces over-prefetch, zero
+regression), then map the full per-source threshold table as Phase 3b; or (b)
+first map+fit the full (source, q_cnt) threshold table before any flash. Either
+way the RTL interface (per-source class hints -> BIU owns_slot) generalizes:
+Phase 3b widens owns_slot's enumerated set / per-source q_cnt thresholds.
+
+## Tracked follow-ups (do NOT block this fix)
+
+- eu_req=0 late-registration chip-IDLE outliers (EU-side reservation onset TIMING,
+  distinct site; model has no live reservation at the eval row).
+- onset-age>0 boundary (all contested cases are age 0; unobserved).
+
+Repro (Phase 3): `python3 sw/causal_wrand.py vetoaudit --seeds 90003 90007 90015 90021 90030 --nws 10 --wmaxes 1 2 3 7`;
+`python3 sw/causal_wrand.py vetoaudit --seeds 90200 90211 90222 90233 90244 90255 90266 90277 90288 90299 --nws 10 --wmaxes 1 3 7` (surfaces S_DEC@q2);
+`python3 sw/causal_wrand.py onset --seeds 90042 90051 90063 90077 90088 --nws 10 --wmaxes 1 2 3 7` (SOURCE-CAUSALITY block).
+
+Tools: `sw/causal_wrand.py` (`urgency` corrected, `onset`+`vetoaudit` added). Repro:
 `python3 sw/causal_wrand.py urgency --seeds 90003 90007 90015 90021 90030 --nws 10 --wmaxes 1 2 3 7`;
 `python3 sw/causal_wrand.py idleslot --seeds 90003 90007 90015 --nws 8 --wmaxes 1 3 7`;
 `python3 sw/causal_wrand.py leactl --maxn 8`;

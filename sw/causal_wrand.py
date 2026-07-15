@@ -749,7 +749,10 @@ def run_tb_internal(image, n, wvec):
                 onset_age=int(d[32]) if len(d) > 32 else -1,
                 onset_opc=int(d[33], 16) if len(d) > 33 else -1,
                 onset_kind=int(d[34]) if len(d) > 34 else -1,
-                onset_wr=int(d[35]) if len(d) > 35 else -1))
+                onset_wr=int(d[35]) if len(d) > 35 else -1,
+                owns_slot=int(d[36]) if len(d) > 36 else -1,
+                eu_rsv_dhi=int(d[37]) if len(d) > 37 else -1,
+                eu_rsv_push_calc=int(d[38]) if len(d) > 38 else -1))
             pend = None
     return rows
 
@@ -1170,7 +1173,11 @@ def cmd_onset(a):
                                            ad_addr=x["addr"], ad_data=0) for x in kr]))
                 cb, kb = bs_stream(ca), bs_stream(ka)
                 nn = min(len(cb), len(kb))
-                fd = next((i for i in range(nn) if cb[i] != kb[i]), nn)
+                # align by (BUS TYPE, ADDRESS) not bus-type-only (Codex Step 2):
+                # the contested edge must be at/before the absolute first
+                # (bs,addr) divergence so the model's internal state == chip's.
+                fd = next((i for i in range(nn)
+                           if cb[i] != kb[i] or ca[i]["addr"] != ka[i]["addr"]), nn)
                 mt4 = {}
                 bi = -1
                 for ri, x in enumerate(kr):
@@ -1200,6 +1207,10 @@ def cmd_onset(a):
                     if er is None:
                         er = min(mt4[B] + 1, len(kr) - 1)
                     d = kr[er]
+                    # require a LIVE eval_ext==1 on the sampled row (Codex Step 2:
+                    # filter aggregate stats to eval_ext==1 decision rows)
+                    if d["eval_ext"] != 1:
+                        continue
                     recs.append(dict(action=action, qc=d["q_cnt"], qavl=d["q_avl"],
                                      qag=d["q_aged"], infl=d["infl"], occ=d["occupied"],
                                      req=d["eu_req"], reqp1=d["eu_req_p1"],
@@ -1212,6 +1223,8 @@ def cmd_onset(a):
                                      owr=d.get("onset_wr", -1),
                                      oopc=d.get("onset_opc", -1),
                                      fam=BSN[ca[eu]["bs"]],
+                                     par=ca[eu]["addr"] & 1,
+                                     euaddr=ca[eu]["addr"],
                                      seed=seed, ws=ws, wmax=wmax, B=B))
     print(f"onset (Phase 2k): {len(recs)} contested edges "
           f"({sum(1 for r in recs if r['action']=='IDLE')} IDLE / "
@@ -1271,6 +1284,156 @@ def cmd_onset(a):
     absent = [r for r in recs if r["rc"] == "absent"]
     print(f"  eu_req=0 (absent/late-registration) edges: {len(absent)} "
           f"actions={dict(Counter(r['action'] for r in absent))}")
+
+    # SOURCE-CAUSALITY (Codex Step 3): is SOURCE causal, or a proxy for
+    # parity/width/kind/opcode? (1) complementary contrast at MATCHED q_cnt=1:
+    # S_DHI vs S_MHI (both final-byte-pop -> access). If they DIFFER, the
+    # 'ready-next-cycle / reaches-S_REQ' proxy is refuted. (2) covariate spread
+    # WITHIN each source: if S_DHI stays IDLE across varied opcode/parity, the
+    # covariates are not the cause.
+    yq1 = [r for r in recs if r["rc"] == "young" and r["qc"] == 1]
+    print("  [SOURCE-CAUSALITY] young q_cnt=1 by (osrc, onset_opc, chip-EU parity):")
+    ct = defaultdict(Counter)
+    for r in yq1:
+        ct[(r["osrc"], f"{r['oopc']:#04x}", r["par"])][r["action"]] += 1
+    for k, v in sorted(ct.items()):
+        print(f"     osrc={k[0]:<12} opc={k[1]} par={k[2]}: {dict(v)}")
+    # per-source covariate spread (does the source hold its action across covars?)
+    print("  [SOURCE-CAUSALITY] covariate spread within each young source:")
+    for src in sorted(set(r["osrc"] for r in recs if r["rc"] == "young")):
+        sub = [r for r in recs if r["rc"] == "young" and r["osrc"] == src]
+        opcs = sorted(set(f"{r['oopc']:#04x}" for r in sub))
+        pars = sorted(set(r["par"] for r in sub))
+        qcs = sorted(set(r["qc"] for r in sub))
+        acts = dict(Counter(r["action"] for r in sub))
+        print(f"     {src:<12} n={len(sub)} opcs={opcs} parity={pars} "
+              f"q_cnt={qcs} -> action={acts}"
+              f"{'  (source-consistent)' if len(acts)==1 else ''}")
+    return 0
+
+
+def cmd_vetoaudit(a):
+    """Phase 3 DIFF AUDIT: run chip vs the PATCHED model over the corpus and, at
+    each young contested edge, record the CHIP action, the MODEL action (from the
+    model bus stream), and the veto signals (owns_slot / eu_rsv_dhi /
+    eu_rsv_push_calc / onset source / q_cnt). Confirms (a) owns_slot fires
+    EXACTLY iff source in {S_DHI, S_PUSH_CALC & q_cnt>=2}; (b) the model now
+    IDLEs (matches chip) on the veto cells; (c) no non-veto cell's model action
+    changed (still matches chip where it did). The patch is a single !owns_slot
+    AND on pf_late_rsv, so by construction ONLY owns_slot edges can change - this
+    verifies the enumerated set empirically."""
+    import random as _r
+    from collections import defaultdict, Counter
+
+    def action_from(stream, B):
+        eu = next((j for j in range(B + 1, min(B + 6, len(stream)))
+                   if stream[j]["bs"] in (MEMR, MEMW)), None)
+        if eu is None:
+            return None, None
+        act = "CODE" if any(stream[j]["bs"] == CODE
+                            for j in range(B + 1, eu)) else "IDLE"
+        return act, eu
+
+    recs = []
+    for seed in a.seeds:
+        g = generate(f"fz{seed}", exts=())
+        image, meta = compose(g)
+        for ws in range(1, a.nws + 1):
+            for wmax in a.wmaxes:
+                wv = [_r.Random((ws << 8) | wmax).randint(0, wmax) for _ in range(4096)]
+                cr = run_chip(image, a.host, use_core=False, wvec=wv)
+                crel = cr[next(i for i, r in enumerate(cr) if not r["rst"]):]
+                kr = run_tb_internal(image, 4200, wv)
+                ca = _trunc(accesses(crel))
+                ka = _trunc(accesses([dict(t=x["t"], bs_early=x["bs"], qs=x["qs"],
+                                           ad_addr=x["addr"], ad_data=0) for x in kr]))
+                cb, kb = bs_stream(ca), bs_stream(ka)
+                nn = min(len(cb), len(kb))
+                # align by (BUS TYPE, ADDRESS); the model action at B is only a
+                # valid comparison while chip and model agree through B.
+                fd = next((i for i in range(nn)
+                           if cb[i] != kb[i] or ca[i]["addr"] != ka[i]["addr"]), nn)
+                mt4 = {}
+                bi = -1
+                for ri, x in enumerate(kr):
+                    if x["t"] == 1:
+                        bi += 1
+                    if x["t"] == 5:
+                        mt4[bi] = ri
+                for B in range(1, min(fd + 1, nn - 1)):
+                    if ca[B]["bs"] != CODE or ca[B]["tw"] == 0:
+                        continue
+                    caction, ceu = action_from(ca, B)
+                    if caction is None:
+                        continue
+                    if any(ca[j]["bs"] != CODE for j in range(B + 1, ceu)):
+                        continue
+                    if B not in mt4 or kb[B] != CODE or ka[B]["addr"] != ca[B]["addr"]:
+                        continue
+                    maction, _ = action_from(ka, B)
+                    er = None
+                    for ri in range(mt4[B] + 1, min(mt4[B] + 6, len(kr))):
+                        if kr[ri]["eval_ext"] == 1:
+                            er = ri; break
+                        if kr[ri]["t"] == 1:
+                            er = ri; break
+                    if er is None:
+                        er = min(mt4[B] + 1, len(kr) - 1)
+                    d = kr[er]
+                    if d["eval_ext"] != 1:
+                        continue
+                    rc = _reqclass(d["eu_req"], d["eu_req_p1"], d["eu_ready"])
+                    recs.append(dict(caction=caction, maction=maction, rc=rc,
+                                     osrc=_sname(d.get("onset_state", -1)),
+                                     oage=d.get("onset_age", -1), qc=d["q_cnt"],
+                                     owns=d.get("owns_slot", -1),
+                                     dhi=d.get("eu_rsv_dhi", -1),
+                                     pcalc=d.get("eu_rsv_push_calc", -1),
+                                     evx=d["eval_ext"], plr=d["pf_late_rsv"],
+                                     seed=seed, ws=ws, wmax=wmax, B=B))
+    young = [r for r in recs if r["rc"] == "young"]
+    print(f"vetoaudit (PATCHED model): {len(recs)} contested edges, "
+          f"{len(young)} young")
+    # (a) owns_slot fires exactly iff source in the enumerated set
+    print("  (a) owns_slot vs (source,q_cnt) at young eval_ext rows:")
+    ot = defaultdict(Counter)
+    for r in young:
+        ot[(r["osrc"], r["qc"])][r["owns"]] += 1
+    bad = []
+    for k, v in sorted(ot.items()):
+        expect = 1 if (k[0] == "S_DHI" or (k[0] == "S_PUSH_CALC" and k[1] >= 2)) else 0
+        got = list(v.keys())
+        ok = (got == [expect])
+        if not ok:
+            bad.append((k, dict(v), expect))
+        print(f"     {k[0]} q_cnt={k[1]}: owns_slot={dict(v)} "
+              f"(expect {expect}){'  <-- MISMATCH' if not ok else ''}")
+    print(f"     => owns_slot matches the enumerated set: "
+          f"{'YES' if not bad else 'NO ' + str(bad)}")
+    # (b) model action vs chip action on young cells, split by owns_slot
+    print("  (b) young: chip vs PATCHED-model action, by owns_slot:")
+    for owns in (1, 0):
+        sub = [r for r in young if r["owns"] == owns]
+        if not sub:
+            continue
+        agree = sum(1 for r in sub if r["maction"] == r["caction"])
+        print(f"     owns_slot={owns}: n={len(sub)} model==chip {agree}/{len(sub)}")
+        mm = defaultdict(Counter)
+        for r in sub:
+            mm[(r["osrc"], r["qc"], r["caction"])][r["maction"]] += 1
+        for k, v in sorted(mm.items()):
+            dis = "" if list(v.keys()) == [k[2]] else "  <-- MODEL!=CHIP"
+            print(f"       {k[0]} q_cnt={k[1]} chip={k[2]}: model={dict(v)}{dis}")
+    # (c) any young disagreement remaining (should be only eu_req=0 / non-veto)
+    dis = [r for r in young if r["maction"] != r["caction"]]
+    print(f"  (c) remaining young model!=chip disagreements: {len(dis)}")
+    for r in dis:
+        print(f"     seed={r['seed']} ws={r['ws']} wmax={r['wmax']} B={r['B']} "
+              f"osrc={r['osrc']} qc={r['qc']} owns={r['owns']} "
+              f"chip={r['caction']} model={r['maction']}")
+    # overall chip-vs-model agreement on ALL contested edges (regression check)
+    allag = sum(1 for r in recs if r["maction"] == r["caction"])
+    print(f"  overall chip==model on all contested edges: {allag}/{len(recs)}")
     return 0
 
 
@@ -1554,6 +1717,13 @@ def main():
     p.add_argument("--nws", type=int, default=10)
     p.add_argument("--wmaxes", type=int, nargs="+", default=[1, 2, 3, 7])
     p.set_defaults(fn=cmd_onset)
+    p = sub.add_parser("vetoaudit")
+    p.add_argument("--host", default="root@mister-nec")
+    p.add_argument("--seeds", type=int, nargs="+",
+                   default=[90003, 90007, 90015, 90021, 90030])
+    p.add_argument("--nws", type=int, default=10)
+    p.add_argument("--wmaxes", type=int, nargs="+", default=[1, 2, 3, 7])
+    p.set_defaults(fn=cmd_vetoaudit)
     p = sub.add_parser("pfdiff")
     p.add_argument("--host", default="root@mister-nec")
     p.add_argument("--seed", type=int, default=90003)
