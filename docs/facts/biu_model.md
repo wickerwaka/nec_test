@@ -619,6 +619,55 @@ gates the arbiter) but not yet exercised (needs an RQ assertion during a locked
 op); the pin observable is validated. Silicon (fabric) confirmation deferred to
 a batched flash with Stage 2/3 (the plumbing is present; sim = the synth RTL).
 
+## Prefetch-issue-position law — Stage-3 measurement (2026-07-14, VERDICT: no simple mechanism closes it)
+
+Measure-first for the free-running-issue-phase build. Reflash-free chip
+captures (30 seeds, w0/w1/w3, `sw/measure.py` cache) analysed for the exact
+rule governing WHERE the chip issues each prefetch T1. Every prefetch T1 lands
+at grid_phase 0 (verified, all waits). The candidate issue laws, by predictor
+match rate against the chip's own prefetch T1s:
+
+- **State-triggered "first grid_phase-0 slot with queue occupancy <= 4":
+  97.9% (w0) / 98.5% (w1) / 99.0% (w3).** Best simple predictor. BUT the ~1-2%
+  misses are the offset-2..4 cases — precisely the big-gap steady-state resumes
+  that ARE the waits>=1 drift (e.g. seed90001 @383: fetch completes at occ 4,
+  chip idles until occ drains to 1 then issues; the occ<=4 rule fires 4 cycles
+  early). The easy 98.5% are the immediate resumes the current model mostly
+  already gets right; the hard ~1.5% is the drift and this rule does NOT fix it.
+- **Free-running clock counter (issue at a fixed residue mod the bus-cycle
+  length 4+N): REFUTED.** Prefetch-T1 residues are UNIFORM across every period
+  (w1 mod 5: 828/846/820/829/855; big-gap subset equally uniform). There is no
+  fixed absolute-grid issue-phase — the resume position is not a residue of any
+  global counter. This is the decisive negative result: the aperiodic phase
+  that flips the divergence (Round 3) is NOT an absolute free-running phase.
+- **Consumption-triggered (issue at the grid slot following the pop that frees
+  room): REFUTED, 10.4% (w1) / 4.5% (w3).** The prefetch T1 is not anchored to
+  the freeing pop.
+- **Occupancy threshold (occ<=2 for the drain cases): worse overall** (the
+  immediate resumes commit at occ 3-4; a <=2 gate delays them) AND breaks the
+  fitted w1/w3 golden fill (Round 2: forms fill to occ 4 and must resume there).
+- **Completed-cycle-kind (EU-access -> immediate, prefetch -> gap): breaks the
+  loader fill** (also prefetch-after-prefetch), measured first-div 14.
+- **grid_phase / bus_phase landing gate: breaks the loader fill identically**
+  (both signals are re-pinned every bus cycle -> constant at the decision, no
+  aperiodic history).
+
+**VERDICT (Stage-3 go/no-go on a tractable mechanism): the floor does NOT close
+over any simple free-running phase, counter, occupancy threshold, completed-
+kind, or consumption trigger.** The drift-driving big-gap resumes are governed
+by the RELATIVE phase between two rhythms — the bus grid (4+N clocks/cycle) and
+the EU instruction-consumption cadence — whose beat is aperiodic and shows no
+absolute-grid signature. Closing it requires modelling the full two-rhythm
+BIU<->EU consumption-vs-grid interaction (a prefetch scheduler that tracks when
+the queue crosses the issue point RELATIVE to the grid and to the consumption
+history), not a local gate or a single counter. This confirms — now with the
+precise mechanism and four independent refutations — the prior campaign's
+"needs a from-scratch bus-grid-accurate model" and sharpens WHY: the closing
+state is a relative beat phase, not an observable single variable. The Stage-0
+GO ("grid_phase is the flip variable") holds in DIRECTION but the actionable
+state is a two-rhythm relative phase that no pinned OR free-running single
+signal carries. This is the honest structural bound for Stage 3.
+
 ## Consolidated bus-grid law (rebuild Phase 1 — the target model, parameterized in N)
 
 This section states the chip's true bus law as the rebuild must model it, in

@@ -125,6 +125,32 @@ risk. The flag-collapse (eval_ext/defer_t4/defer_idle/ff_t4/ext_ok) is
 subsumed by the free-running-issue-phase model — it should be done AS PART of
 that structural rewrite, not before it. No Stage-2 change landed.
 
+## Stage-3 build round — measure-first Step 1 VERDICT: no simple mechanism closes it
+
+Per the directive, measured the prefetch-issue-position law before building the
+free-running counter (full results + numbers in biu_model.md "Prefetch-issue-
+position law"). Predictor match rates against the chip's own prefetch T1s
+(30 seeds, w0/w1/w3):
+
+| candidate issue law | match | verdict |
+|---|---|---|
+| first grid_phase-0 slot, occ <= 4 | 98.5% (w1) | misses EXACTLY the big-gap drift cases |
+| free-running counter, fixed residue mod (4+N) | uniform residues | REFUTED (no clustering) |
+| consumption-triggered (pop-anchored) | 10.4% (w1) | REFUTED |
+| occ <= 2 threshold | worse overall | breaks fitted golden fill (Round 2) |
+| completed-kind / grid_phase / bus_phase gate | breaks fill @14 | measured last round |
+
+**The free-running counter is REFUTED by measurement** (uniform prefetch-T1
+residues at every period) — the aperiodic flip phase is NOT an absolute grid
+residue. The drift-driving big-gap resumes are a RELATIVE-phase-of-two-rhythms
+phenomenon (bus grid vs EU consumption cadence); no single pinned or free-
+running signal carries it. This is the coordinator's explicit "STOP and report
+— major finding" branch: the mechanism we localized (a free-running issue-phase
+counter) does NOT close the floor. Closing it needs the full two-rhythm
+BIU<->EU consumption-vs-grid scheduler, a from-scratch prefetch model — not the
+counter. No RTL built this round (correctly, per measure-first: the measurement
+said do not build the counter).
+
 ## Net this round
 
 - Landed: `sw/measure.py` (drift harness + chip cache), baseline numbers, and
