@@ -532,6 +532,140 @@ XCH reg,reg (3) and the sreg MOVs (2) are genuinely faster than the
 other reg,reg ops (3). The "clock counts include decoding" claim holds
 only for the simplest encodings.
 
+## BUSLOCK (F0 LOCK prefix) — measured chip behavior (2026-07-14, rebuild Phase 1)
+
+Reflash-free chip capture (socketed uPD70116C-8, max mode, w0). Probe:
+`sw/exp_lock.py` (16-NOP runway to settle the queue, then the op, then 8 NOPs).
+The chip's dedicated max-mode LOCK output pin is capture bit 50, active low
+(`nec_bus.sv`: max mode records `buslock_n_q` directly at [50]; physically the
+NEC_WR_N pin). `analyze_capture.decode_words` now surfaces it as `lock_n`.
+Cases: `F0 ADD [BW],AW`, `F0 XCH [BW],AW`, `F0 INC byte [BW]`, plus the
+non-locked `ADD [BW],AW` / `XCH [BW],AW` baselines (LOCK stays high throughout
+the baselines — confirms the measurement is on the CHIP; the core hardwires
+`BUSLOCK_N=1`).
+
+Measured laws (all three locked RMW forms agree):
+
+- **LOCK is a single continuous low span bracketing the locked op's ENTIRE
+  bus footprint** — from before the read through the final write. For
+  `F0 ADD [BW],AW`: LOCK low idx 231..248; the locked RMW's MEMR T1 is idx 238,
+  the MEMW T3 is idx 248. LOCK spans MEMR + an interleaved CODE prefetch + MEMW
+  as ONE low pulse.
+- **Assertion point: the locked instruction's first EXECUTE cycle**, i.e. one
+  cycle into EU execution of the prefixed op after the F0 prefix and the
+  opcode/modrm have been popped/decoded — NOT at the read's bus T1. It leads
+  the RMW MEMR T1 by the EA-compute latency (7 cycles here for the mod0 `[BW]`
+  reader). Identical assertion cycle (idx 231) across ADD/XCH/INC, since all
+  share the F0-at-0x0510 decode path — so the assertion is keyed to the EU
+  decode boundary, not to the operand access. The pin rides on top of whatever
+  bus cycle (prefetch T2, here) is in flight when the latch is set.
+- **Deassertion: the final locked WRITE's T4 edge.** ADD/XCH (word RMW): LOCK
+  low through the MEMW T3 (idx 248), high again at the MEMW T4 (idx 249). INC
+  byte: low through the MEMW T3 (idx 250), high at T4 (idx 251). Uniform: LOCK
+  releases at the last locked bus cycle's T4 — a BUS-GRID event (corroborates
+  the grid model: even the lock latch clears on a T-state edge, not a CPU
+  count).
+- **LOCK does NOT suppress prefetch.** CODE prefetch cycles run FREELY inside
+  the LOCK span: `F0 ADD` has a full CODE fetch of 0x0516 (T1 idx 242 .. T4
+  idx 245) sitting BETWEEN the locked MEMR (238-241) and MEMW (246-249), all
+  under one continuous LOCK-low. So on the V30 the RMW read->write is NOT bus-
+  contiguous — the queue is refilled between the two halves — and LOCK's role
+  is purely to bar an EXTERNAL master (HOLD / RQ-AK) from the bus between them,
+  exactly the documented datasheet purpose. (HOLD/RQ-AK suppression itself was
+  not exercised — it needs an RQ assertion during the locked op; deferred to
+  the implementation, where the lock latch will gate the arbiter.)
+- **The prefix does not change the RMW bus schedule.** The locked and
+  non-locked ADD have the same read->write cycle spacing; the only difference
+  is the extra F0 fetch/decode shifting queue occupancy (which incidentally let
+  a prefetch splice into the read->write gap in the locked run). LOCK is an
+  overlay, not a scheduler input, at w0.
+
+Model placement: LOCK is an EU-set latch (like a segment/REP prefix — F0
+retires as its own byte and the latch persists to the next instruction) that
+(1) asserts the LOCK pin from the locked instruction's first execute cycle,
+(2) is transparent to the prefetcher, and (3) clears at the final locked bus
+write's T4. In the rebuilt model it is a `lock_latch` bit that the arbiter
+reads to block HOLD/RQ-AK grants (not prefetch) and that the grid slot machine
+clears on the locked write's T4 slot. Forbidden-set note: F0 is a parked-but-
+allowed encoding; still NEVER emit 0F 2nd-byte>=0x40, 0F 34, 0F FF, or
+HALT-without-wake.
+
+## Consolidated bus-grid law (rebuild Phase 1 — the target model, parameterized in N)
+
+This section states the chip's true bus law as the rebuild must model it, in
+terms of the BUS GRID (each bus cycle = 4+N clocks under N uniform waits). It
+consolidates exp1-exp5 + the mission-H waits laws + the Campaign-5 sweeps +
+the Round 1-3 structural findings above. Everything below is measured; the
+open item is the aperiodic-phase prefetch-resume law (the floor), for which
+the exact discriminator is named but not yet closed.
+
+1. **Grid geometry.** A bus cycle is T1,T2,T3,(Tw x N),T4. The chip samples
+   READY at the end of T3 and each Tw; the cycle extends until READY is high.
+   Status is active from commit through T3/last-Tw (drops passive the cycle
+   after READY-high sample); at w0 that makes T3 already passive. A 2-cycle
+   grid PHASE runs underneath (T1/T3 vs T2/T4). Under waits the phase is
+   defined over the STRETCHED grid, NOT the CPU clock — this is exactly what
+   the current `ph_ff` (KB7) fails to represent.
+
+2. **Queue.** 6 bytes; word fetch at even addr (+2 at T4), single upper-lane
+   byte at odd addr (+1). Refill threshold = 2 bytes free. Push lands one grid
+   slot after the cycle's completion eval; poppable ~2 grid slots after the
+   push (measured push-to-pop latency).
+
+3. **Completion eval / commit — grid-keyed, N-general.** The next-cycle commit
+   is evaluated at a WELL-DEFINED grid point: the T3->T4 edge of a ZERO-wait
+   cycle, or (for a waited cycle) one grid slot after T4. The winner's T1 opens
+   the next grid slot. This is the parametric mission-H law and it holds for
+   the 6 fitted forms in N. The `eval_ext` machinery is the fixed-offset
+   IMPLEMENTATION of this that only fires at T4+1; the rebuild expresses it as
+   "commit at the next grid slot" directly.
+
+4. **EU-vs-prefetch arbitration on the grid.** An EU access never preempts an
+   in-flight fetch; it wins the NEXT grid slot after the fetch's T4 (gap 0). A
+   pending EU request holds a reservation that blocks prefetch from the grid
+   slot it will use — the reservation must LEAD by one GRID slot (not one CPU
+   cycle; the current `dly==1` reservations are the CPU-cycle proxy). Registered
+   -readiness qualification (KB4 A/B/RMW rules) is really "was the request up at
+   the grid slot the eval samples."
+
+5. **Prefetch resume after an EU access — THE FLOOR (open).** After an EU
+   access, prefetch resumes after ~3 idle grid slots at w0 (exp4). Under waits
+   the resume is a bus-PHASE-alignment decision, and the current model resumes
+   at `eval_ext` (T4+1) which is phase-wrong: even leading phase => resume ~3
+   cyc too EARLY (chip inserts the gap), odd phase => stall ~8 cyc too LATE
+   (Round 3 A2). MEASURED CONSTRAINTS the rebuilt resume law must satisfy:
+   - It is CORRECT for every phase-STABLE (periodic) stream at all waits
+     (Round 3 A1: homogeneous and periodic-heterogeneous sleds are 0-divergent
+     through fill AND steady state). So the resume law is right in the periodic
+     limit; only the APERIODIC phase transient is wrong.
+   - The decision does NOT reduce to queue occupancy alone (Round 2: fill and
+     steady-state both sit at occupied==4 at the decision point).
+   - It FLIPS DIRECTION with the leading-phase parity of the aperiodic history
+     (Round 3 A2 table). => the resume must be keyed to the TRUE grid phase the
+     sequence arrives at the interval with, carried across the aperiodic
+     instruction-length history — the state the current model does not expose.
+   The rebuild's job: represent grid phase + queue occupancy (+ enough fill
+   history) so the resume slot is chosen by phase, reproducing both directions.
+
+6. **Flush / redirect.** Internal flush clears the queue and redirects the
+   fetch pointer; the redirect commits at the normal grid eval points from the
+   end of the flush cycle, plus a flush-only prefetch-T4 point. Doomed in-flight
+   fetch completes its bus cycle, data discarded. Doomed-prefetch cutoff is a
+   grid-relative decision (Loop family: HARD-reserved only in the last 3 cycles
+   before the flush; CD pre-IVT: occ<=3 threshold). Under waits the flush point
+   moves ~2 cyc EARLIER (Round 3 Track B) — so branch resolution timing is
+   grid-relative AND wrong-signed if merely stretched; the rebuild must model
+   the flush point on the grid, not offset it.
+
+7. **LOCK overlay** (this phase, above): lock latch set at the locked op's
+   execute start, transparent to prefetch, cleared at the final locked write's
+   T4 grid slot; gates HOLD/RQ-AK (to implement), not prefetch.
+
+8. **What legitimately stays fixed-CPU-cycle** (NOT grid-keyed): EU-bound
+   compute burns (DIVU 28, MUL/IDIV, ROL4/4S nibble-serial, INS/EXT field-shift
+   tail) — wait-insensitive by measurement (exp5). The rebuild must keep these
+   as CPU-cycle counts and NOT gate them on the grid.
+
 ## Open items carried to Campaign 2
 
 - ~~MULU discrepancy~~ RESOLVED 2026-07-11 (see MUL/MULU section above):

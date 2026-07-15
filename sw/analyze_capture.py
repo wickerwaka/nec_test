@@ -213,6 +213,8 @@ def decode_words(words):
         "bs_late": (r >> 43) & 7,
         "qs": (r >> 46) & 3,
         "ube_n": (r >> 49) & 1,
+        "rd_n": (r >> 48) & 1,
+        "lock_n": (r >> 50) & 1,     # max-mode LOCK output pin (active low)
         "rst": (r >> 55) & 1,
         "t": (r >> 56) & 7,
     } for i, r in enumerate(words)]
