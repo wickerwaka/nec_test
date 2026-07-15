@@ -17,6 +17,7 @@ a rebuilt-model change moves a w0 golden case, capture a fresh chip reference
 | 1 | grid_phase primitive (inert) | 0 | 0 | 0 | 0 |
 | 6 | BUSLOCK (F0) | 0 | 0 | 0 | 0 |
 | 2/3 | resume-predicate gate attempts | 0 | 0 | 0 | 0 |
+| 3 | two-rhythm scheduler build (pf_drain occ<=2/3) | 0 | 0 | 0 | 0 |
 
 **Total w0 golden deltas landed: 0.** No committed change moved a w0 golden
 case, so nothing required chip adjudication yet. Stages 1 and 6 are w0-neutral

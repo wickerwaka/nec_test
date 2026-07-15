@@ -151,6 +151,53 @@ BIU<->EU consumption-vs-grid scheduler, a from-scratch prefetch model — not th
 counter. No RTL built this round (correctly, per measure-first: the measurement
 said do not build the counter).
 
+## Stage-3 BUILD attempt (2026-07-14) — the drift did NOT drop; f is not determinable
+
+Per the greenlight, built the two-rhythm scheduler mechanism measure-first and
+let the drift-drop be the honest bar. Result: the build FAILED the honest bar
+(the drift got WORSE, not better), and the decision function f could not be
+fit or implemented to close.
+
+**Step 1 (fit f densely) — offline PLATEAU at ~80% on big-gaps.** Enriched the
+predictor key with every RTL-trackable feature (kind, beat-at-crossing, occ,
+occ_end, drain-time, all combinations). Big-gap match: 70.7% (kind,beat,occ) ->
+77.7% (all features) at w1; 77.2% -> 84.2% at w3. It does NOT approach 100% with
+any reconstructable key. The finer key does not close it — the fill-vs-steady
+distinction at IDENTICAL observable (kind, beat, occ, occ_end, drain) persists.
+
+**Step 2/4 (implement + measure) — the occupancy-drain gate WORSENS the drift.**
+Implemented the mechanism's core: `pf_drain` (a post-waited-prefetch tighter
+refill threshold, w0-neutral via Tw-gating) replacing `prefetch_ok`'s bare
+occ<=4 in the drain window. w0 golden HELD 169000/169000 (w0-neutral proven).
+But chip-vs-TB drift:
+| threshold in drain window | w1 mean | w3 mean |
+|---|---|---|
+| baseline (occ<=4) | 613.2 | 613.2 |
+| occ<=3 | 709.5 | 684.9 |
+| occ<=2 | 727.0 | 796.2 |
+Both tighter thresholds make it WORSE and push first-div EARLIER — the occ-3/4
+cases that resume IMMEDIATELY get wrongly delayed, and that hurts more than the
+big-gap fix helps. Reverted. The beat refinement cannot rescue this: grid_phase
+is 1-bit, so a beat-alignment delay adds only 0-2 clocks, while the big-gap
+resumes need 3-4 clocks of OCCUPANCY-drain delay — and the occ threshold that
+would produce it is context-dependent (immediate at occ 3-4 in some cases, wait
+in others) exactly where the beat/occ/kind key cannot separate them.
+
+**VERDICT: f is not determinable from the reconstructable state, and the build
+does not drop the drift.** The w0 control proves f EXISTS (the chip is
+deterministic; the RTL closes w0 100% with its exact state) — but it does not
+tell us WHAT f is under waits, and every method to determine it fails: offline
+fitting plateaus at ~80%, and the RTL occupancy-gate (the mechanism's core)
+raises the drift. The closing distinction (fill-vs-steady at identical
+observable state) is the "been-saturated history / bus-phase-trajectory" that
+Round 3 already refuted as a clean discriminator, now re-confirmed at the RTL
+level. Per the coordinator's own Step-4 criterion ("if the drift does not drop,
+f is still missing state ... do not declare success"), this is the honest signal
+to BANK rather than commit further to a build whose decision function resists
+determination. Determining f would require reverse-engineering the chip's exact
+internal prefetch state machine (decap / much denser isolation sweeps) — a large
+open effort, not a bounded build.
+
 ## Net this round
 
 - Landed: `sw/measure.py` (drift harness + chip cache), baseline numbers, and
