@@ -955,6 +955,67 @@ reserves'). eu_req=0 onset + w0 young-onset stay tracked follow-ups.
 
 Repro (chip-replay): `python3 sw/causal_wrand.py hwreplay --seeds 90003 90007 90015 90021 90030 --nws 10 --wmaxes 1 2 3 7`.
 
+# Phase 3b prelude — RESIDUAL ATTRIBUTION census (attribute before widening)
+
+Codex: the 12-18% is a treatment effect, not a mechanism decomposition; ATTRIBUTE
+the remaining drift before launching per-source-table fitting. `causal_wrand.py
+census`: post-veto ABSOLUTE first (BUS TYPE, ADDRESS) chip-vs-fabric divergence
+per vector, classified from TB internals (fabric==veto-TB), with the seed's
+write-anchored drift MASS attributed to that class. Exact 300 explicit vectors
+(discovery+held-out, ws1..10 x wmax{1,3,7}); reflash-free, chip=ground truth.
+
+## Census result (N=300; 210 clean, total residual mass |final|=260 peak=276)
+
+    class                                     seeds  |final|mass  peakmass
+    5. SAME decisions, WRONG CLOCK              81      196 (75%)   210 (76%)   <== DOMINANT
+    1. eu_req=0 chipIDLE/fabCODE (EU-onset)      7       50 (19%)    52 (19%)
+    7. other                                     2       14 ( 5%)    14 ( 5%)
+    2/3. young per-source (S_PUSH_CALC@q1,
+         S_DEC@q2, unseen source/q_cnt cells)    0        0 ( 0%)     0 ( 0%)   <== NOT a driver here
+
+## Counterfactual attribution (drift removed if each class were oracle-corrected)
+
+- Fix eu_req=0 (class 1): residual |final| 260 -> 210 (**-19%**), peak 276 -> 224.
+- Fix per-source cells (class 2/3): 260 -> 260 (**0%** in this corpus - the
+  S_PUSH_CALC@q1 / S_DEC@q2 cells found in seeds 90175/90200 carry NEGLIGIBLE mass
+  here and are NEVER the first divergence).
+- Fix class 5 (wrong-clock): 260 -> 64 (**-75%**) - the big lever.
+
+## What the two dominant residual classes ARE (characterized, chip vs fabric silicon)
+
+- **Class 5 (DOMINANT, 75%): prefetch/idle-SCHEDULING timing, NOT arbitration.**
+  chip and fabric make byte-identical bus decisions (same access types/addresses/
+  order) but land at different clocks. Exemplar fz90007 ws10 wmax7: the CHIP
+  inserts 3 extra idle (Ti/PASV) cycles before a CODE fetch that the model does
+  NOT (chip 153 clk vs fabric 150 clk for the same segment) -> the model prefetches
+  ~3 cycles too EARLY. Same decision, wrong clock. This is the resume-gap /
+  idle-reservation TIMING model (Phase-2b territory), a DIFFERENT site than both
+  the BIU decision veto and the EU onset.
+- **Class 1 (19%): eu_req=0 late-onset over-prefetch (real decision divergence).**
+  Exemplar fz90015 ws10 wmax7 ord37: chip issues MEMW@02608; fabric prefetches an
+  extra CODE@00508 FIRST then the write - model eu_req=0 at the eval (the write's
+  reservation ONSET asserts a cycle late vs the chip's effective reservation). A
+  distinct EU-side site (reservation-onset timing), NOT the BIU arbitration veto.
+
+## Bottom line for Codex (which residual DRIVES the drift + worst-case)
+
+RANKED: **class 5 wrong-clock timing (75%) >> eu_req=0 EU-onset (19%) > other (5%)
+> per-source table (0%).** The worst-case (unimproved by the veto) is class 5.
+- **DO NOT launch Phase-3b per-source-table widening** - it addresses ~0% of this
+  corpus's residual (attribute-before-widening vindicated).
+- The eu_req=0 EU-onset defect is the leading DECISION defect (19%) - a real fix
+  target (the model's reservation onset asserts ~1 cycle late; characterize which
+  EU states/edges), but it is NOT the biggest lever.
+- The BIGGEST lever is the class-5 prefetch/idle-SCHEDULING timing (75%): same
+  decisions, wrong clock. This is a cycle-timing model refinement (idle-gap /
+  resume scheduling), distinct from the arbitration decision work. Recommend Codex
+  prioritize the class-5 timing attribution next (it dominates both frequency-mass
+  AND the worst-case), with eu_req=0 onset second, per-source table deprioritized.
+  (Caveat: class 5 = 'same bus decisions' so it does NOT re-order execution - a
+  pure cadence/idle-count model target; may split further under finer analysis.)
+
+Repro (census): `python3 sw/causal_wrand.py census --seeds 90003 90007 90015 90021 90030 90042 90051 90063 90077 90088 --nws 10 --wmaxes 1 3 7`.
+
 ## Verdict for Codex (scope decision before flash)
 
 The narrow source-aware veto is CORRECT, source CONFIRMED CAUSAL (S_DHI vs S_MHI

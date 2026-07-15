@@ -1563,6 +1563,164 @@ def cmd_hwreplay(a):
     return 0
 
 
+# Phase-3b census: the measured (source, q_cnt) -> chip action table so far.
+# 'KNOWN' = we have chip ground truth for this cell; the veto covers only
+# S_DHI(any q) and S_PUSH_CALC@q>=2. Cells where chip=IDLE but the veto does NOT
+# fire are the 'known-missing' over-prefetch cells (S_PUSH_CALC@q1, S_DEC@q2).
+KNOWN_CELLS = {
+    ("S_DHI", 1): "IDLE",
+    ("S_MHI", 1): "CODE",
+    ("S_RSV", 0): "CODE", ("S_RSV", 1): "CODE",
+    ("S_DEC", 0): "CODE", ("S_DEC", 1): "CODE", ("S_DEC", 2): "IDLE",
+    ("S_JWAIT", 0): "CODE", ("S_JWAIT", 2): "CODE",
+    ("S_PUSH_CALC", 0): "CODE", ("S_PUSH_CALC", 1): "IDLE",
+    ("S_PUSH_CALC", 2): "IDLE",
+}
+
+
+def _veto_fires(src, qc):
+    return src == "S_DHI" or (src == "S_PUSH_CALC" and qc >= 2)
+
+
+def cmd_census(a):
+    """Phase-3b ATTRIBUTION (Codex): post-veto first-divergence CENSUS over the
+    exact explicit vectors. For each seed/vector find the ABSOLUTE first
+    (BUS TYPE, ADDRESS) chip-vs-fabric divergence (fabric == veto-TB, verified),
+    classify its preceding decision from the TB internals, and attribute the
+    seed's write-anchored drift MASS (|final| + peak-excursion) to that class.
+    Reports both FREQUENCY (seeds first-broken per class) and DRIFT MASS
+    (frequency != value). Reflash-free; chip = ground truth, veto-TB = fabric."""
+    import random as _r
+    from collections import defaultdict, Counter
+    from baseline_wrand import woff
+    CLASSES = {
+        1: "eu_req=0 chipIDLE/fabCODE (EU-onset defect)",
+        2: "young KNOWN source/q_cnt cell",
+        3: "young UNSEEN source/q_cnt cell",
+        4: "ready-request disagreement",
+        5: "same bus decisions, WRONG CLOCK",
+        6: "EU-access ordering/type divergence",
+        7: "other address/bus-stream divergence",
+    }
+    recs = []
+    for seed in a.seeds:
+        g = generate(f"fz{seed}", exts=())
+        image, meta = compose(g)
+        for ws in range(1, a.nws + 1):
+            for wmax in a.wmaxes:
+                wv = [_r.Random((ws << 8) | wmax).randint(0, wmax) for _ in range(4096)]
+                cr = run_chip(image, a.host, use_core=False, wvec=wv)
+                crel = cr[next(i for i, r in enumerate(cr) if not r["rst"]):]
+                kr = run_tb_internal(image, 4200, wv)
+                # drift mass: write-anchored offset chip vs veto-TB (== fabric)
+                w = woff(crel, [dict(t=x["t"], bs_early=x["bs"], qs=x["qs"],
+                                     ad_addr=x["addr"], ad_data=0) for x in kr])
+                mass_f = abs(w["final"]); mass_p = w["absmax"]
+                ca = _trunc(accesses(crel))
+                ka = _trunc(accesses([dict(t=x["t"], bs_early=x["bs"], qs=x["qs"],
+                                           ad_addr=x["addr"], ad_data=0) for x in kr]))
+                cb, kb = bs_stream(ca), bs_stream(ka)
+                nn = min(len(cb), len(kb))
+                B = next((i for i in range(nn)
+                          if cb[i] != kb[i] or ca[i]["addr"] != ka[i]["addr"]), None)
+                # TB bus-cycle T1 rows for internal lookup
+                mt4 = {}; mt1 = {}; bi = -1
+                for ri, x in enumerate(kr):
+                    if x["t"] == 1:
+                        bi += 1; mt1[bi] = ri
+                    if x["t"] == 5:
+                        mt4[bi] = ri
+                cls = 0; info = {}
+                if B is None:
+                    # no (bs,addr) divergence: pure-timing if any drift else clean
+                    cls = 5 if (mass_f or mass_p) else 0
+                else:
+                    cbb, kbb = cb[B], kb[B]
+                    # decision row: TB eval_ext preceding bus B (or its T1)
+                    d = None
+                    if B in mt4 and (B - 1) in mt4:
+                        for ri in range(mt4[B - 1] + 1, min(mt1.get(B, mt4[B-1]+6) + 1, len(kr))):
+                            if kr[ri]["eval_ext"] == 1:
+                                d = kr[ri]; break
+                    if d is None and B in mt1:
+                        d = kr[max(0, mt1[B] - 1)]
+                    if d is None:
+                        d = kr[0]
+                    src = _sname(d.get("onset_state", -1)); qc = d["q_cnt"]
+                    info = dict(chipbs=BSN.get(cbb, cbb), fabbs=BSN.get(kbb, kbb),
+                                src=src, qc=qc, req=d["eu_req"], reqp1=d["eu_req_p1"],
+                                rdy=d["eu_ready"], opc=d.get("onset_opc", -1),
+                                owns=d.get("owns_slot", -1))
+                    over = (cbb in (MEMR, MEMW) and kbb == CODE)   # fabric over-prefetch
+                    under = (cbb == CODE and kbb in (MEMR, MEMW))
+                    if over:
+                        if d["eu_req"] == 0:
+                            cls = 1
+                        elif d["eu_req"] and not d["eu_req_p1"] and not d["eu_ready"]:
+                            cls = 2 if (src, qc) in KNOWN_CELLS else 3
+                        elif d["eu_ready"]:
+                            cls = 4
+                        else:
+                            cls = 7
+                    elif under:
+                        cls = 4 if d["eu_ready"] else 7
+                    elif cbb == kbb:
+                        cls = 6      # same bs, addr differs => ordering/type
+                    else:
+                        cls = 6 if {cbb, kbb} & {MEMR, MEMW} else 7
+                recs.append(dict(seed=seed, ws=ws, wmax=wmax, cls=cls,
+                                 B=B, mass_f=mass_f, mass_p=mass_p, **info))
+    print(f"census (post-veto first-divergence, N={len(recs)} vectors): "
+          f"chip vs FABRIC(==veto-TB)")
+    tot_f = sum(r["mass_f"] for r in recs); tot_p = sum(r["mass_p"] for r in recs)
+    clean = sum(1 for r in recs if r["cls"] == 0)
+    print(f"  clean (no divergence, no drift): {clean}/{len(recs)}; "
+          f"total drift mass |final|={tot_f} peak-exc={tot_p}")
+    print(f"  {'CLASS':<48} {'seeds':>6} {'|final|mass':>11} {'peakmass':>9}")
+    agg = defaultdict(lambda: [0, 0, 0])
+    for r in recs:
+        if r["cls"] == 0:
+            continue
+        a3 = agg[r["cls"]]
+        a3[0] += 1; a3[1] += r["mass_f"]; a3[2] += r["mass_p"]
+    for cls in sorted(agg):
+        n, mf, mp = agg[cls]
+        print(f"  {cls}. {CLASSES[cls]:<45} {n:>6} {mf:>11} {mp:>9}"
+              f"  ({100*mf/max(1,tot_f):.0f}% final, {100*mp/max(1,tot_p):.0f}% peak)")
+    # breakdown of the young classes by (source, q_cnt)
+    print("  young first-divergences by (source, q_cnt) [class 2/3]:")
+    yt = defaultdict(lambda: [0, 0, 0])
+    for r in recs:
+        if r["cls"] in (2, 3):
+            k = (r.get("src"), r.get("qc"))
+            yt[k][0] += 1; yt[k][1] += r["mass_f"]; yt[k][2] += r["mass_p"]
+    for k, (n, mf, mp) in sorted(yt.items(), key=lambda kv: -kv[1][2]):
+        vf = "veto-fires" if _veto_fires(k[0], k[1]) else "MISSED"
+        print(f"     {k[0]:<12} q_cnt={k[1]}: seeds={n} |final|mass={mf} "
+              f"peakmass={mp}  [{vf}]")
+    # class-1 (eu_req=0) source breakdown: which EU states register late?
+    print("  class-1 (eu_req=0 EU-onset) by onset source at the eval row:")
+    c1 = defaultdict(lambda: [0, 0])
+    for r in recs:
+        if r["cls"] == 1:
+            c1[r.get("src")][0] += 1; c1[r.get("src")][1] += r["mass_p"]
+    for k, (n, mp) in sorted(c1.items(), key=lambda kv: -kv[1][1]):
+        print(f"     onset={k}: seeds={n} peakmass={mp}")
+    # exemplars per class (for characterization)
+    print("  exemplars (seed ws wmax busB chip/fab src qc req/p1/rdy mass_f/p):")
+    seen = set()
+    for r in sorted(recs, key=lambda r: (r["cls"], -r["mass_p"])):
+        if r["cls"] == 0 or r["cls"] in seen:
+            continue
+        seen.add(r["cls"])
+        print(f"     cls{r['cls']}: fz{r['seed']} ws{r['ws']} wmax{r['wmax']} "
+              f"B={r['B']} chip={r.get('chipbs')} fab={r.get('fabbs')} "
+              f"src={r.get('src')} qc={r.get('qc')} "
+              f"req={r.get('req')}/{r.get('reqp1')}/{r.get('rdy')} "
+              f"mass={r['mass_f']}/{r['mass_p']}")
+    return 0
+
+
 def cmd_leactl(a):
     """B-vs-C discriminator (Phase 2g Step 1): the no-request LEA control. Build
     a matched 3-variant block - reader (8B07, reserves S_EA1), store (8907,
@@ -1857,6 +2015,14 @@ def main():
     p.add_argument("--nws", type=int, default=10)
     p.add_argument("--wmaxes", type=int, nargs="+", default=[1, 2, 3, 7])
     p.set_defaults(fn=cmd_hwreplay)
+    p = sub.add_parser("census")
+    p.add_argument("--host", default="root@mister-nec")
+    p.add_argument("--seeds", type=int, nargs="+",
+                   default=[90003, 90007, 90015, 90021, 90030,
+                            90042, 90051, 90063, 90077, 90088])
+    p.add_argument("--nws", type=int, default=10)
+    p.add_argument("--wmaxes", type=int, nargs="+", default=[1, 3, 7])
+    p.set_defaults(fn=cmd_census)
     p = sub.add_parser("pfdiff")
     p.add_argument("--host", default="root@mister-nec")
     p.add_argument("--seed", type=int, default=90003)
