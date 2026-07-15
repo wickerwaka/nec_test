@@ -335,8 +335,15 @@ wire e_wait_show = e_wait && !flush_busy_fetch && (q_aged == 2'd0) &&
                    (push_pend == 2'd0) &&
                    !(eu_ready && !eu_started && !(eval_ext && want_eu));
 // the far-flush mid-cycle commit displays E with the commit, even
-// during a push-absorb cycle (measured, EA tranche)
-assign qs_e = (q_flush && flush_quiet) || e_wait_show || ff_show || ff_t4;
+// during a push-absorb cycle (measured, EA tranche). ff_show requires
+// !eval_ext (the idle-Ti far flush); a far flush whose redirect commits
+// during the deferred-completion eval (eval_ext) cycle is the waited analog
+// and must show E on that same commit row too (measured seed90018 w1, opc EA
+// far jump: chip shows E at the eval_ext redirect commit, the TB deferred it
+// to e_wait one cycle late). w0-NEUTRAL: eval_ext never fires at w0.
+wire ff_evalext = flush_fast && q_flush && eval_ext && pick_ext && pick_fetch;
+assign qs_e = (q_flush && flush_quiet) || e_wait_show || ff_show || ff_t4 ||
+              ff_evalext;
 
 //----------------------------------------------------------------------------
 // HALT pseudo-cycle display (measured, block 4): the HALT status shows
@@ -664,7 +671,8 @@ always_ff @(posedge clk) begin
         end
 
         // QS=E display deferral
-        if (q_flush && !flush_quiet && !ff_show && !ff_t4) e_wait <= 1'b1;
+        if (q_flush && !flush_quiet && !ff_show && !ff_t4 && !ff_evalext)
+            e_wait <= 1'b1;
         else if (e_wait_show)        e_wait <= 1'b0;
 
         // HALT pseudo-T1 releases UBE_N high
