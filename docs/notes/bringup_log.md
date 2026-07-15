@@ -1,5 +1,42 @@
 # Bring-up log
 
+## 2026-07-15 — eu_req=0 MOFFS stage: PARITY-GATED S_MLO lead-veto (SILICON-CONFIRMED)
+
+Second stage of the eu_req=0 look-ahead veto (commit 981f3af, bitstream flashed;
+setup slack +5.686 ns, hold +0.248 ns). Unlike the disp16 store (a clean blanket
+reserve), the MOFFS load is PARITY/WIDTH-DEPENDENT - a genuine bus-grid finding
+caught by running the opportunity census BEFORE the RTL (the Gate-A discipline).
+
+Opportunity census (moffs_optcensus.py, chip ground truth, 20 aligned
+eval_ext+S_MLO+q_pop cells):
+  A1 word load, EVEN addr (aligned, 1 bus cycle): chip PREFETCHES 12/12
+  A1 word load, ODD addr  (split,  2 bus cycles): chip RESERVES   4/4
+  A0 byte load:                                    chip RESERVES   4/4
+The chip reserves at S_MLO for a MOFFS load EXCEPT an ALIGNED WORD load (an
+aligned single-cycle read leaves grid room to prefetch; a byte or split read
+does not). A blanket S_MLO veto would have wrongly suppressed 12 legal chip
+prefetches. Discriminator computable at S_MLO: addr LSB = q_byte[0] (low byte
+popping), width = opc[0]; aligned word = opc[0] && !q_byte[0]; veto =
+!(aligned word). eu_rsv_lead += (S_MLO && op_moff && q_pop && (!opc[0] ||
+q_byte[0])). op_moffw stores (A2/A3) excluded (negative control). Same eval_ext
+pf_rsv_lead mechanism -> w0-NEUTRAL.
+
+Validation (chip ground truth):
+  w0 169000/169000, w1 1200/1200, w3 1200/1200 (bit+cycle exact).
+  eu_req=0 census: MOFFS cases eliminated, 6->4 class-1 (only POP r16 remains).
+  fitting census N=300: class-1 42->36 mass; NO over-suppression, NO new class.
+  held-out census N=300: IDENTICAL to pre-MOFFS (class-1=0, no under-prefetch) -
+    the parity gate did NOT break the aligned-word prefetches.
+  SILICON (fabric use_core=1 vs chip use_core=0): fz90063 MOFFS over cases now
+    chip==fabric==TB (doomed prefetch gone). fabric==TB on all 7 vectors; the 2
+    held-out diffs are byte-identical to the store-flash run (pre-existing
+    class-6/7; ZERO new fabric divergence from MOFFS).
+
+eu_req=0 residual now: 4 POP r16 cases (DEFERRED - S_FIRST needs live q_byte
+decode). Whole random-wait residual now DOMINATED by class-5 WRONG-CLOCK (80%
+fitting / 90% held-out) - the campaign PIVOTS there next (structural bus-slot
+scheduling, NOT another eval_ext veto - Codex).
+
 ## 2026-07-15 — eu_req=0 STORE stage: wait-dependent BIU look-ahead veto (SILICON-CONFIRMED)
 
 Landed + flashed + silicon-confirmed the first stage of the eu_req=0 onset fix

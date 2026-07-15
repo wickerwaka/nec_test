@@ -20,12 +20,14 @@ import causal_wrand as C
 from causal_wrand import (generate, compose, run_chip, run_tb_internal,
                           accesses, bs_stream, _trunc, BSN, MEMR, MEMW, CODE)
 
-# (seed, ws, wmax) triples: the store case + a few controls / held-out
+# (seed, ws, wmax) triples: the store + MOFFS cases + controls / held-out
 CASES = [
-    (90015, 10, 7),   # the eu_req=0 store doomed-prefetch case (was class-1)
+    (90015, 10, 7),   # eu_req=0 STORE doomed-prefetch case (store stage)
+    (90063,  3, 3),   # eu_req=0 MOFFS A1 over case (MOFFS stage - now fixed)
+    (90063,  7, 7),   # eu_req=0 MOFFS A1 over case (MOFFS stage - now fixed)
     (90003,  1, 3),   # control (fitting)
     (90042, 10, 7),   # control (fitting, class-5 seed - must be UNCHANGED)
-    (91000,  1, 1),   # held-out
+    (91000,  1, 1),   # held-out (has aligned-word MOFFS - must still prefetch)
     (91003,  3, 3),   # held-out
 ]
 
