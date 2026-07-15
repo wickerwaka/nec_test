@@ -341,7 +341,68 @@ per Codex's decision rule, a request-age / arbitration-phase variable is NECESSA
   target (Phase 3, not now) is the eval_ext override's EU-request priority /
   eu_req assertion timing, unified across w0..wN.
 
+---
+
+# Phase 2f — no-competition control (Hyp A ruled out; B favored; not yet closed)
+
+Method correction accepted: external equivalence is many-to-one, so RTL internals
+label the MODEL only, never the chip. All Phase-2f measures are CHIP-OBSERVABLE
+(bus type + QS F/S pop pulses + absolute clocks); RTL internals only label the
+model side. Tool: `nocomp`.
+
+## Step 1 (the crux) — no-competition control
+
+At reproducible over-prefetch anchors, measure EU-T1 relative to the final
+instruction-byte pop (QS F/S) across diverse backgrounds, and compare chip vs
+model in cells where NEITHER side prefetched (mutual no-competition - clean of
+arbitration):
+
+- fz90003 (target MEMW@03efe): 4/4 mutual cells chip lat == model lat EXACTLY;
+  the over-prefetch cell (r7) has chip EU lat=5 = its no-competition baseline,
+  with the model inserting an EXTRA prefetch (+6 clk).
+- fz90030 (target MEMR@02624): mutual cell matches; divergence cells show the
+  chip issuing EU on its baseline schedule, model inserting a prefetch (+3/+5).
+- fz90007: mutual cells differ by +/-1 in BOTH directions (chip earlier AND later)
+  = measurement noise in the coarse final-pop/EU-T1 anchor, not a systematic lead.
+
+**Verdict: Hypothesis A (chip EU readiness/issue genuinely EARLIER) is RULED OUT
+in its strong/systematic form** - with no competition the chip and model issue
+the EU access at the SAME latency from the final byte pop. The divergence is the
+model inserting an EXTRA prefetch while the chip issues EU on its normal schedule
+and **leaves the queue-eligible slot UNUSED (reserved for the pending EU)** ->
+consistent with **Hypothesis B (pending-reservation priority over prefetch)**.
+Caveat: the coarse fuzz-latency measure carries +/-1 noise, so a 1-cycle
+readiness component cannot be excluded, and B-vs-C is not fully separated by this
+control alone.
+
+## What remains (the decisive Step-2 experiment, not yet run)
+
+The reader/store Factorial-A (8B07 MOV AX,[BX] vs 8907 MOV [BX],AX: equal length,
+same no-disp EA, reader reserves from S_EA1 / store from S_EA2) at MATCHED
+queue-pipeline state is required to (a) confirm reservation/request AGE causally
+and (b) cleanly separate B (distinct pending-reservation signal: chip suppresses
+CODE one cycle BEFORE it can issue EU-T1) from C (arbitration edge premature).
+The observable-measurement tooling is built (`nocomp`); the controlled-image
+construction needs the harness's NEC-named full register setup + precise anchor
+placement + queue-state bucketing (a focused mini-campaign) - flagged for Phase 2g
+rather than rushed (a wrong B/C answer would mis-target the RTL fix).
+
+## Honest bottom line (Phase 2f)
+
+- **Hyp A ruled out** (strong form): EU readiness/issue timing is correct; the
+  defect is ARBITRATION, not readiness. RTL target is NOT eu_ready timing.
+- **Hyp B favored**: the chip reserves the bus for a pending EU request and
+  suppresses the queue-eligible prefetch; the model (via the eval_ext waited-
+  window override, 21/27) issues that prefetch instead. ONE mechanism.
+- **Not closed**: B-vs-C needs the reader/store factorial; a 1-cycle readiness
+  component isn't excluded by the coarse control. No collision-free table yet.
+  Phase 2g: run Factorial-A at matched queue state, resolve B/C + any 1-cycle
+  readiness, then fit+validate the decision table. Likely RTL target (Phase 3):
+  a pending-EU-reservation priority that gates prefetch across w0..wN (replacing
+  the eval_ext priority-bypassing override), pending the factorial.
+
 Tools: `sw/causal_wrand.py`. Repro examples:
+`python3 sw/causal_wrand.py nocomp --seed 90003 --refws 2`;
 `python3 sw/causal_wrand.py predicate --seeds 90003 90007 90015 --nws 8 --wmaxes 1 3 7`;
 `python3 sw/causal_wrand.py determ --seed 90003`;
 `... impulse --seed 90007 --anchor-bus 59 --k 12`;

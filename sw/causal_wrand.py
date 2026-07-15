@@ -806,6 +806,114 @@ def cmd_predicate(a):
     return 0
 
 
+def _eu_event(rows, bs, addr, ordinal):
+    """Return the T1 row index of the `ordinal`-th (bs,addr) EU bus cycle."""
+    d = 0
+    for i, r in enumerate(rows):
+        if r["t"] == 1 and r["bs_early"] == bs and (r["ad_addr"] & 0xFFFFF) == addr:
+            if d == ordinal:
+                return i
+            d += 1
+    return None
+
+
+def _final_pop_before(rows, t1):
+    """Row index of the last queue pop (QS F=1 / S=3) strictly before row t1."""
+    for i in range(t1 - 1, -1, -1):
+        if rows[i].get("qs") in (1, 3):
+            return i
+    return None
+
+
+def _code_between(rows, lo, hi):
+    """Was a CODE fetch T1 issued in (lo, hi)? (competition present)"""
+    return any(rows[i]["t"] == 1 and rows[i]["bs_early"] == CODE
+              for i in range(lo + 1, hi))
+
+
+def cmd_nocomp(a):
+    """DECISIVE no-competition control (Phase 2f Step 1). At a reproducible
+    over-prefetch anchor, measure the chip's and model's EU-T1 relative to an
+    OBSERVABLE anchor (the final instruction-byte pop, QS F/S), across diverse
+    backgrounds. In NO-COMPETITION cells (no competing CODE prefetch between the
+    final pop and the EU on that side) the EU issue latency is uncontaminated by
+    arbitration:
+      chip latency EARLIER than model  => Hyp A (chip EU readiness genuinely early)
+      chip == model latency            => readiness correct => Hyp B/C (arbitration)
+    Everything here is CHIP-OBSERVABLE (bus type + QS + clock); RTL internals are
+    used ONLY to label the model side."""
+    import random as _r
+    g = generate(f"fz{a.seed}", exts=())
+    image, meta = compose(g)
+    # auto-select the target EU: first over-prefetch divergence on a ref bg
+    rr = _r.Random(a.refws)
+    refwv = [rr.randint(0, a.wmax) for _ in range(4096)]
+    cref = _trunc(accesses(run_chip(image, a.host, use_core=False, wvec=refwv)))
+    kref = _trunc(accesses(run_chip(image, a.host, use_core=True, wvec=refwv)))
+    cbs, kbs = bs_stream(cref), bs_stream(kref)
+    n = min(len(cbs), len(kbs))
+    fd = next((i for i in range(n) if cbs[i] != kbs[i]
+               and cbs[i] in (MEMR, MEMW) and kbs[i] == CODE), None)
+    if fd is None:
+        print(f"no over-prefetch divergence on fz{a.seed} ws{a.refws}"); return 1
+    tbs, taddr = cref[fd]["bs"], cref[fd]["addr"]
+    tord = sum(1 for j in range(fd) if cref[j]["bs"] == tbs and cref[j]["addr"] == taddr)
+    print(f"target EU: {BSN[tbs]}@{taddr:05x} #{tord} (fz{a.seed}, divergence @bus{fd})")
+    print(f"  bg: chip[lat comp?] | model[lat comp?]  (lat = EU_T1 - final_pop)")
+    bgs = _bg_vectors(a.bgs, a.wmax)
+    mutual, diverg = [], []       # (bgname, clat, klat) pairs
+    for bgname, wv in bgs.items():
+        cr = run_chip(image, a.host, use_core=False, wvec=wv)
+        crel = cr[next(i for i, r in enumerate(cr) if not r["rst"]):]
+        kr = run_tb_internal(image, 4200, wv)
+        ct1 = _eu_event(crel, tbs, taddr, tord)
+        kt1 = _eu_event([dict(t=x["t"], bs_early=x["bs"], qs=x["qs"],
+                              ad_addr=x["addr"]) for x in kr], tbs, taddr, tord)
+        if ct1 is None or kt1 is None:
+            print(f"  {bgname}: target not found"); continue
+        cpop = _final_pop_before(crel, ct1)
+        kpop = _final_pop_before([dict(qs=x["qs"]) for x in kr], kt1)
+        if cpop is None or kpop is None:
+            print(f"  {bgname}: no pop"); continue
+        clat, klat = ct1 - cpop, kt1 - kpop
+        ccomp = _code_between(crel, cpop, ct1)
+        kcomp = _code_between([dict(t=x["t"], bs_early=x["bs"]) for x in kr], kpop, kt1)
+        print(f"  {bgname}: chip[lat={clat} comp={int(ccomp)}] | "
+              f"model[lat={klat} comp={int(kcomp)}]")
+        if not ccomp and not kcomp:
+            mutual.append((bgname, clat, klat))
+        elif not ccomp and kcomp:
+            diverg.append((bgname, clat, klat))     # over-prefetch: chip EU, model CODE
+    print("  --- MUTUAL no-competition (neither side prefetched) ---")
+    if mutual:
+        eq = all(c == k for _, c, k in mutual)
+        for bg, c, k in mutual:
+            print(f"    {bg}: chip lat={c}  model lat={k}  {'match' if c == k else 'DIFF'}")
+        if eq:
+            print("  => chip == model in every mutual cell => EU readiness/issue "
+                  "timing CORRECT => HYP A RULED OUT (arbitration, not readiness)")
+        else:
+            print("  => chip differs from model with no competition => HYP A "
+                  "(readiness genuinely early)")
+    else:
+        print("    (none - widen backgrounds)")
+    # B vs C hint: in over-prefetch divergence cells, does the chip issue EU at
+    # the SAME latency as its mutual-no-comp baseline (=> chip reserved, never
+    # intended to prefetch: pending-reservation, HYP B) - the model's inserted
+    # prefetch is pure extra.
+    if diverg and mutual:
+        base = mutual[0][1]
+        print("  --- over-prefetch divergence cells (chip EU, model CODE) ---")
+        for bg, c, k in diverg:
+            print(f"    {bg}: chip EU lat={c} (baseline {base}); model inserted "
+                  f"prefetch (+{k - c} clk)")
+        print("  => chip issues EU on its normal schedule and leaves the "
+              "queue-eligible slot UNUSED (reserved for the pending EU) => "
+              "consistent with HYP B (pending-reservation priority); reader/store "
+              "factorial needed to fully separate B from C.")
+    return 0
+
+
 def cmd_pfdiff(a):
     """Localize the prefetch-issue / queue-trajectory divergence: run the same
     wait vector on chip and fabric, find the FIRST bus cycle where their
@@ -1000,6 +1108,14 @@ def main():
     p.add_argument("--nws", type=int, default=8)
     p.add_argument("--wmaxes", type=int, nargs="+", default=[1, 3, 7])
     p.set_defaults(fn=cmd_predicate)
+    p = sub.add_parser("nocomp")
+    p.add_argument("--host", default="root@mister-nec")
+    p.add_argument("--seed", type=int, default=90003)
+    p.add_argument("--refws", type=int, default=2)
+    p.add_argument("--wmax", type=int, default=3)
+    p.add_argument("--bgs", nargs="+",
+                   default=["z", "o", "t", "a", "r2", "r5", "r7", "r11"])
+    p.set_defaults(fn=cmd_nocomp)
     p = sub.add_parser("pfdiff")
     p.add_argument("--host", default="root@mister-nec")
     p.add_argument("--seed", type=int, default=90003)
