@@ -112,6 +112,9 @@ module v30_biu (
     input             eu_defer_wr,    // RMW write: exclude from the deferred
                                       // (eval_ext) commit; take the next plain
                                       // idle do_commit instead (measured law)
+    input             eu_mem_acc,     // eu_req is a real load/store (not a
+                                      // branch reservation) - starved-prefetch
+                                      // override qualifier (F1 load extension)
     output            bus_phase,      // 2-cycle bus grid parity (T1=0)
     output            grid_phase,     // rebuild Stage 1: TRUE stretched-grid
                                       // parity (Tw holds the T3 slot; == bus_
@@ -409,7 +412,7 @@ wire        pf_starved = (q_cnt == 3'd0) && !eu_hold && q_aged == 2'd0 &&
                          !q_flush;
 wire        prefetch_ext = prefetch_ok ||
                            (eval_ext && pf_starved && eu_req && !eu_ready &&
-                            eu_wr && eu_kind == K_MEM);
+                            eu_mem_acc && eu_kind == K_MEM);
 wire        pick_ext   = want_half2 || want_eu || prefetch_ext;
 wire  [2:0] pick_type  = want_half2 ? cur_type
                        : want_eu    ? (eu_kind == K_INTA ? BS_INTA

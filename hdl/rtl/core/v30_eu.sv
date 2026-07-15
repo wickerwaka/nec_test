@@ -153,6 +153,11 @@ module v30_eu (
                                    // commit - the chip commits it at the next
                                    // PLAIN idle do_commit, not at a post-read
                                    // prefetch's deferred eval (measured, w1)
+    output            eu_mem_acc,  // eu_req is a real memory data access (load/
+                                   // store/EA), NOT a branch/jump reservation -
+                                   // lets the BIU distinguish a starved-load
+                                   // reservation from a branch-flush reservation
+                                   // (both q_cnt=0/K_MEM/eu_wr=0)
     output reg        eu_wr,
     output            eu_fwd,     // write data = the BIU's last read data
                                   // (string-op read->write forwarding)
@@ -1411,6 +1416,15 @@ assign eu_soon_ea = (state == S_EA2) && eu_soon;
 // (the fitted 88/89 stores use S_REQ), so no golden w0/w1/w3 form is
 // affected. Reader (S_REQ read) and store (S_REQ write) paths untouched.
 assign eu_defer_wr = (state == S_WREQ) && op_alui;
+// eu_mem_acc: eu_req is a real memory data access, not a branch/jump/flush
+// reservation. Excludes the S_J* branch-resolution states (whose eu_req is a
+// bus hold, not a data access) so the BIU can extend the starved-prefetch
+// override to LOAD reservations (indistinguishable from branch reservations by
+// eu_kind/eu_wr alone).
+assign eu_mem_acc = eu_req &&
+                    !(state == S_JWAIT  || state == S_JDISP || state == S_JDLO ||
+                      state == S_JDHI   || state == S_JSLO  || state == S_JSHI ||
+                      state == S_JNT    || state == S_JFLUSH|| state == S_CALLFL);
 
 // Hardware-interrupt (NMI/INT) IVT-read idle-window early commit: on the
 // last pre-IVT wait cycle (S_WAITX dly==1 with wnext==S_TRAP_IVT1 and the

@@ -77,7 +77,7 @@ wire [15:0] eu_flush_cs, eu_flush_ip;
 wire        eu_req, eu_hold, eu_ready, eu_wr, eu_fwd, eu_word;
 wire        eu_soon, eu_soon_ea, eu_soon_ivt, bus_phase, bus_t4, flush_fast;
 wire        grid_phase;
-wire        eu_lock, core_buslock_n;
+wire        eu_lock, core_buslock_n, eu_mem_acc;
 wire        eu_rdone, bus_tw;
 wire        eu_defer_wr;
 wire [2:0]  bus_ts;
@@ -139,6 +139,7 @@ v30_biu u_biu (
     .eu_soon_ivt(scr_en ? 1'b0 : eu_soon_ivt),
     .flush_fast (scr_en ? 1'b0 : flush_fast),
     .eu_defer_wr(scr_en ? 1'b0 : eu_defer_wr),
+    .eu_mem_acc (scr_en ? 1'b0 : eu_mem_acc),
     .bus_phase  (bus_phase),
     .grid_phase (grid_phase),
     .eu_lock    (scr_en ? 1'b0 : eu_lock),
@@ -191,6 +192,7 @@ v30_eu u_eu (
     .eu_soon_ivt(eu_soon_ivt),
     .flush_fast (flush_fast),
     .eu_defer_wr(eu_defer_wr),
+    .eu_mem_acc (eu_mem_acc),
     .bus_phase  (bus_phase),
     .grid_phase (grid_phase),
     .eu_lock    (eu_lock),
