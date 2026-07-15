@@ -397,6 +397,20 @@ wire eu_split   = eu_word && eu_addr[0];
 wire eu_ube_n   = eu_word ? 1'b0 : (eu_addr[0] ? 1'b0 : 1'b1);
 
 wire        pick_any   = want_half2 || want_eu || prefetch_ok;
+// EU-arbitration front (Stage 3): under waits, when a deferred-completion eval
+// finds the queue STARVED (empty) and the pending EU access still only
+// RESERVING (eu_req high, not yet ready - its address/data delayed by the
+// wait), the chip prefetches to refill BEFORE the EU access (measured:
+// seed90008 STM empties the queue, chip fetches 0x51a then stores; the
+// eu_req reservation must not starve the prefetcher here). prefetch_ext adds
+// exactly that override, and only in the eval_ext (waited) window -> w0-NEUTRAL
+// (at w0 eval_ext never fires, so prefetch_ext == prefetch_ok bit-identical).
+wire        pf_starved = (q_cnt == 3'd0) && !eu_hold && q_aged == 2'd0 &&
+                         !q_flush;
+wire        prefetch_ext = prefetch_ok ||
+                           (eval_ext && pf_starved && eu_req && !eu_ready &&
+                            eu_wr && eu_kind == K_MEM);
+wire        pick_ext   = want_half2 || want_eu || prefetch_ext;
 wire  [2:0] pick_type  = want_half2 ? cur_type
                        : want_eu    ? (eu_kind == K_INTA ? BS_INTA
                                      : eu_kind == K_HALT ? BS_HALT
@@ -636,7 +650,7 @@ always_ff @(posedge clk) begin
                     cur_kind   <= nxt_kind;
                     ube_n      <= nxt_ube_n;
                     nxt_valid  <= 1'b0;
-                end else if (((eval_ext || ff_show) && pick_any) ||
+                end else if (((eval_ext && pick_ext) || (ff_show && pick_any)) ||
                              (defer_idle && want_eu)) begin
                     // deferred (waited-cycle) completion eval OR the
                     // idle-window reg-EA reader early commit (defer_idle):
@@ -1002,7 +1016,7 @@ wire ff_t4   = flush_fast && q_flush && state == ST_T4 && cur_fetch &&
 // T1 next cycle - the mid-cycle commit analogue of defer_show for a
 // bus-idle landing rather than a fetch T4.
 wire idle_commit = defer_idle && state == ST_TI && !nxt_live && want_eu;
-wire ext_show = (eval_ext && pick_any) || defer_show || ff_show || ff_t4 ||
+wire ext_show = (eval_ext && pick_ext) || defer_show || ff_show || ff_t4 ||
                 idle_commit;
 
 assign bs = (halt_show || halt_t1) ? BS_HALT
