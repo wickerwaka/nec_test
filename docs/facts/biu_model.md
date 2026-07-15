@@ -15,6 +15,31 @@ by a measurement on the real chip. Conditions unless stated: max mode,
   Same rule as the 8086's word-fetch BIU.
 - Fetches are words at even addresses (+2 bytes at T4).
 
+## EU micro-sequencer ROM confirmations (docs/V20UC.TXT, 2026-07-15)
+
+Analysis of the µPD70108/70116 EU micro-sequencer ROM (full doc:
+microcode_analysis.md) CONFIRMS the BIU model from the EU side and pins the
+scheduler's EU-side inputs:
+- **The prefetch/queue/resume machinery is NOT microcoded** — 0 tokens for
+  prefetch/queue/refill/resume/idle in the ROM. It is separate BIU hardware, so
+  the resume law must be modeled as hardware (no ROM shortcut).
+- **FLUSH is EU-deterministic per opcode** (26 FLUSH micro-ops at fixed
+  addresses: Jcc 0039, E8 0150, EB 0157, RET/far 015B/0161/01C4, REP 0227) —
+  confirms the flush law + `flush_hold`; the +1-late redirect is a BIU-grid
+  timing layer on the deterministic EU flush.
+- **SUSP (suspend-prefetch)** — 28 surgical uses, ONLY before a FLUSH (0038 SUSP
+  → 0039 FLUSH) and on stack-read/INTA (SP→IND MEMR SS). A hard prefetch bar the
+  scheduler must honor, distinct from phase pacing.
+- **The `F`-flag / OPR data-ready interlock is the ONLY EU↔BIU bus sync** — the
+  EU stalls on OPR reads/writes (`000B OPR→R F`) until the bus transfer
+  completes. This is WHY EU-bound ops are wait-insensitive (F/OPR is the sole
+  coupling; the compute burns have no OPR dependency) — the resume decision is a
+  pure BIU-grid function, not EU-micro-timed.
+- **Queue consumption** = the EU `Q` source read (79×), 1 byte/micro-op + the
+  E-flag opcode-fetch boundary — the EU side of the occupancy drain.
+- LOCK is a decode-time prefix latch (no LOCK micro-op); REP strings are
+  mid-loop interruptible (0223 JMP INTR) — both confirm existing models.
+
 ## Flush / jump behavior (exp 2 + Campaign 3 mission E, unified law)
 
 Refined against the 4,500-case control-flow tranche (EB/E9/74/75/7C/E2/
