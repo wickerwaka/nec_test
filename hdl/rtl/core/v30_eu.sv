@@ -1438,9 +1438,21 @@ assign eu_rsv_push_calc = (state == S_PUSH_CALC);
 //   disp16 store (88/89): reserves at S_DHI, model eu_req rises at S_RSV.
 // q_pop-gated: the reservation intent forms when the disp-high byte pops and
 // the effective address computes (a stalled S_DHI has no address yet). Staged
-// per Codex: store first; moffs (S_MLO, op_moff) is the next stage; POP r16
-// (S_FIRST) deferred (opcode not yet registered there).
-assign eu_rsv_lead      = (state == S_DHI) && (op_movs8 || op_movs16) && q_pop;
+// per Codex: store first; moffs (S_MLO, op_moff) next; POP r16 (S_FIRST)
+// deferred (opcode not yet registered there).
+//   MOFFS load (A0/A1) at S_MLO: the opportunity census (moffs_optcensus.py,
+// chip ground truth, 20 aligned eval_ext+S_MLO cells) found a PARITY/WIDTH
+// discriminator - unlike the store, the moffs load does NOT reserve blanket:
+//   A1 word load, EVEN addr (aligned, 1 bus cycle): chip PREFETCHES (12/12) -
+//     must NOT veto (a blanket veto would wrongly suppress a legal prefetch).
+//   A1 word load, ODD addr (split, 2 bus cycles): chip RESERVES (4/4).
+//   A0 byte load: chip RESERVES (4/4).
+// => reserve unless it is an ALIGNED WORD load. At S_MLO the low-address byte
+// is popping (q_byte = addr[7:0]), so addr LSB = q_byte[0] and width = opc[0]
+// (A1=word). Aligned word = opc[0] && !q_byte[0]; veto = !(aligned word).
+assign eu_rsv_lead      = ((state == S_DHI) && (op_movs8 || op_movs16) && q_pop) ||
+                          ((state == S_MLO) && op_moff && q_pop &&
+                           (!opc[0] || q_byte[0]));
 
 // RMW mem write, ALU-imm forms ONLY (op80/81/83; op_alui): apply the
 // stricter deferred-eval qualifier. Measured: only the ALU-imm RMW defers
