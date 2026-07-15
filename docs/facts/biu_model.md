@@ -437,6 +437,29 @@ established the closing-direction law.
   (occupancy x fill-history x bus phase) before touching the shared
   eval_ext/prefetch path. Distinct off-floor lever: S_JWAIT branch resolution
   (a real EU dly, bus_tw candidate, highest golden risk).
+- **Round 3 (2026-07-14): the controlled-sled measurement -> the dominant
+  mass is a bus-PHASE-alignment TRUE FLOOR.** Captured the socketed chip
+  (reflash-free) on controlled sleds at w0/w1/w3. (A1) NO periodic sled
+  reproduces the divergence: homogeneous register-op sleds (DAS/DAA/INC/CLC/
+  NOP) AND periodic heterogeneous units all give chip==core, ZERO divergence,
+  through initial-fill AND steady-state - so the core's prefetch-resume model
+  is ALREADY correct for phase-stable streams and the fill-history/saturation
+  discriminator is REFUTED. (A2) Phase-sweeping the real fz84013 by prepending
+  k leading NOPs: the divergence FLIPS DIRECTION with phase parity - EVEN k:
+  core resumes too EARLY (chip inserts the ~3-idle gap, chip_gap 9 vs tb 6);
+  ODD k: core STALLS ~8 cyc LONGER than the chip (tb_gap 14 vs 6). Bidirectional
+  bus-phase misalignment. (A3) FLOOR: no single-direction w0-neutral change can
+  close a bidirectional drift (fixing one phase worsens the other; a one-way
+  gate also regresses the fitted golden per round 2). The residual is the
+  aperiodic phase misalignment of the core's queue/prefetch bus-grid vs the
+  chip through arbitrary sequences; closing it needs a from-scratch bus-grid-
+  accurate queue/prefetch model, not a local conversion. Track B (S_JWAIT dly
+  via bus_tw) also floor: w0 held but w1/w3 golden regressed in CYCLE AND ARCH
+  (stretching moves the flush point; chip flushes ~2 cyc EARLIER under waits,
+  so a stretch is backwards). Both reverted. The 5-fix floor (w1 818.3/743.0,
+  w3 922.9, clean 1/120 & 7/60) is at/near the achievable bound for local
+  w0+w1/w3-golden-neutral changes. The strobe (r1), occupancy (r2), and
+  bus_tw/phase (r3) levers are all exhausted; same structural floor.
 
 ## Self-modifying code (exp 6b: smc)
 

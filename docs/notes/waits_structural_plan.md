@@ -337,3 +337,75 @@ characterization: the dominant retire/MOV-imm drift is the BIU prefetch-
 resume-under-waits, not closable by a simple w0-neutral gate without a
 queue-fill-history/bus-phase model (needs a controlled-sled board capture to
 pin the resume law first).
+
+### Round 3 (this session) — CONTROLLED-SLED MEASUREMENT: the dominant mass is a bus-PHASE floor (the campaign pivot verdict)
+
+The make-or-break measurement (Track A). Built controlled sleds and captured
+the socketed chip (reflash-free) at w0/w1/w3 vs the core TB. Tools:
+/tmp/consolidation/{sled,sled2,phase}.py.
+
+**A1. NO periodic sled reproduces the divergence.** Homogeneous sleds of
+every register op tested (2f DAS, 27 DAA, 40 INC, f8 CLC, 90 NOP) x40: chip
+== core, ZERO divergent intervals at w1 - through BOTH the initial queue-FILL
+ramp AND steady state. Periodic HETEROGENEOUS units (2f-bd-35-00 DAS;MOV
+BP,imm16 ; 90-bd-35-00 ; 2f-b8-34-12 ; 40-bd-35-00 ; 2f-2f-bd-35-00) x20:
+also chip == core, ZERO divergence. So the core's prefetch-resume model is
+CORRECT for every stream that settles to a stable bus-phase - including the
+queue-fill case the round-2 golden regression flagged. The fill-history /
+saturation-bit discriminator hypothesis is REFUTED: sleds fill and saturate
+fine. The divergence is an APERIODIC transient, not a systematic steady-state
+law.
+
+**A2. The divergence FLIPS DIRECTION with bus-phase parity (the decisive
+result).** Phase-swept the real fz84013 by prepending k NOPs at the anchor
+(shifts the bus-phase), w1:
+| k NOPs | divergent intervals | first-div gap (chip vs tb) | direction |
+|---|---|---|---|
+| 0 | 5 | fetch43: 9 vs 6 | chip inserts gap (core too FAST) |
+| 1 | 33 | fetch33: 6 vs 14 | tb inserts +8 gap (core too SLOW) |
+| 2 | 3 | fetch44: 9 vs 6 | core too fast |
+| 3 | 8 | fetch34: 6 vs 14 | core too slow |
+| 4 | 5 | fetch45: 9 vs 6 | core too fast |
+| 5 | 5 | fetch35: 6 vs 14 | core too slow |
+| 6 | 3 | fetch46: 9 vs 6 | core too fast |
+EVEN phases: the core resumes prefetch too early (chip inserts the ~3-idle
+bus-grid gap). ODD phases: the core STALLS ~8 cycles longer than the chip
+(tb_gap 14 vs 6). The residual is a bus-PHASE-ALIGNMENT effect that manifests
+in BOTH directions depending on the aperiodic phase history the sequence
+arrives at the interval with.
+
+**A3. THE TRUE FLOOR for the dominant mass (verdict).** Because the drift is
+bidirectional (phase-parity-dependent), NO single-direction w0-neutral change
+can close it: a stretch (bus_tw / occ-gate) that fixes the even-phase
+too-fast case worsens the odd-phase too-slow case, and vice versa; and round
+2 proved a one-direction gate ALSO regresses the fitted queue-fill golden.
+The current model is already correct for all phase-stable (periodic) streams;
+the residual is the aperiodic phase MISALIGNMENT of the core's queue/prefetch
+bus-grid vs the chip's through arbitrary sequences. Closing it would require a
+from-scratch bus-grid-cycle-accurate queue/prefetch model that reproduces the
+chip's exact resume phase through any aperiodic instruction-length history -
+disproportionate machinery with enormous w0-AND-w1/w3-golden regression risk.
+This is the honest structural bound: the 5-fix floor (w1 818.3/743.0, w3
+922.9, clean 1/120 & 7/60) is at/near the achievable limit for local
+w0+golden-neutral changes. NOT closable by the eu_rdone/bus_tw primitives.
+
+**Track B (S_JWAIT branch/loop resolution via bus_tw): also FLOOR, wrong-
+direction.** Gated the S_JWAIT resolution dly with `if(!bus_tw)`. w0 golden
+169000/169000 HELD but w1/w3 golden REGRESSED in CYCLES AND ARCH (w1
+1105/1200 cyc, 1157/1200 arch; w3 946/1200 cyc, 1152/1200 arch). The arch
+regression confirms stretching moves the flush point and changes execution -
+the fitted branch forms (EB/E8 in the w1/w3 golden) require the current
+timing, and (per the grind-round-3 note) the chip flushes ~2 cyc EARLIER
+under waits, so a stretch is backwards. Reverted.
+
+**Round 3 net: no new RTL landed** (both Track-A occ-gate reverted in round
+2, and Track-B S_JWAIT reverted here). Round-1 primitives remain the only
+landed change. Drift trajectory UNCHANGED. The deliverable is the DECISIVE
+measurement: the dominant waits>=1 arbitrary-sequence drift is a bidirectional
+bus-phase-alignment floor in the shared prefetch/eval/queue machinery, not
+closable by any local w0+golden-neutral change (strobe, occupancy gate, or
+bus_tw dly). The campaign has now exhausted the strobe (r1), occupancy (r2),
+and bus_tw/phase (r3) levers; all confirm the same structural floor. A
+truly-clean waits>=1 gate would require a full bus-grid-accurate queue/
+prefetch model rebuild - a separate from-scratch effort, not this campaign's
+incremental w0-neutral conversions.
