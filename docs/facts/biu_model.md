@@ -372,6 +372,43 @@ points. Contexts (summed drift cycles over 20 seeds, w1):
   (jmp+0 / target == in-flight doomed-prefetch address) and phase edges,
   not a systematic law. DEFERRED as low-value phase cases.
 
+### NEAR-flush +1-late redirect under waits — LAW + FIX (2026-07-14, biu-rebuild Stage 5)
+
+The above "mostly CORRECT" was a golden-phase alias; the fuzz exposed a
+systematic +1 for the case where the near flush lands in the deferred-eval
+window. Measured (seed90003/90018/90005, opc 73 JNC, w1, +eudbg q_flush/eval_ext):
+
+- **When a NEAR flush's `q_flush` asserts DURING the deferred-completion eval
+  (eval_ext) cycle** — i.e. the branch resolves the cycle after a waited
+  prefetch's T4 — the chip does NOT commit the redirect prefetch at that
+  eval_ext cycle. It inserts exactly ONE extra idle (Ti PASV) and mid-cycle-
+  commits the redirect at the NEXT idle cycle (redirect status/address + QS=E
+  ride that row, T1 follows). Net: near-flush redirect displays at **T4+2**
+  under waits, vs the far flush (flush_fast EA/BR/far-CALL) at **T4+1**. At w0
+  both collapse to the measured w0 law (far mid-T4, near T4+1).
+- The RTL fix (`flush_hold`) latches the deferral for exactly one cycle and
+  commits via the SAME mid-cycle display path (not a plain do_commit, which
+  lands at T4+3 - the +1 overshoot both prior attempts hit). w0-neutral
+  (eval_ext gate). Only `!flush_fast` flushes get the extra idle.
+- **Far flush committing AT the eval_ext cycle: QS=E must show on that commit
+  row** (`ff_show` requires !eval_ext; the eval_ext analog `ff_evalext` was
+  missing, deferring E one cycle - seed90018 opc EA). Display-only.
+
+This CLOSED the flush drift third: w1 FLUSH first-div count 10->2 (residual =
+resume-floor rows after a flush), w3 FLUSH 8->0. DRIFT w1 414->307, w3 583->476.
+
+### EU-arbitration late-reservation prefetch — LAW + FIX (2026-07-14, biu-rebuild Front 3b)
+
+Sibling of the WRITE-half reservation law, for the OPPOSITE direction. That law
+blocks a fresh prefetch when a store reservation LEADS the completing prefetch's
+T4 eval. Measured (REP-string seeds a4/a5/ab/ac/ad, w1): when the mem-access
+reservation first asserts AT the eval_ext cycle (`eu_req==1` there, `eu_req_p1==0`
+= did NOT lead) and the queue has room (occupied<=4), the chip commits one refill
+CODE prefetch FIRST and the string access takes the next slot. A coincident-but-
+non-leading reservation does not claim the eval_ext slot. Fix `pf_late_rsv`,
+occ<=4 gated so the fitted single-store forms (queue full at store, leading
+reservation) are excluded. w0-neutral. DRIFT w1 459->414, ARB first-div 10->3.
+
 Result (120-seed cached-chip w1 / 60-seed w3, bad-rows = diff() divergent
 rows): w1 mean 1286->864, median 1214->867, net-drift@fetch80 spread
 +-30 -> +-10; w3 mean 1025->931. Two contexts generalized (golden

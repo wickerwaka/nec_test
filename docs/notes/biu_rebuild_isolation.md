@@ -163,6 +163,37 @@ denser flush-point-vs-wait×branch-type measurement. HIGH golden risk (this is
 the front the prior campaign also failed on). DEFERRED with this characterization
 + reverted; Fronts 1 and 3 kept.
 
+### Front 3b — arbitration (late reservation): LANDED (commit 56c1a19)
+Measured (seed90020/90010/90017/90000/90012, all REP-string a4/a5/ab/ac/ad, w1):
+at the last CODE fetch's T4 `eu_req==0`, at the eval_ext Ti `eu_req==1`/
+`eu_ready==0`/`q_cnt==1` - a store/load reservation that first asserts AT the
+deferred eval (did NOT lead it). The chip commits ONE refill CODE prefetch and
+the string access takes the next slot; the TB blocked prefetch on the
+coincident `eu_req`. The fitted WRITE-half reservation law only blocks a
+LEADING reservation (`eu_req_p1==1`). Fix `pf_late_rsv`: at eval_ext, a
+mem-access reservation with `eu_req && !eu_req_p1 && !eu_ready`, `occupied<=4`,
+does not block the refill prefetch. Gated occ<=4 so the fitted single-store
+forms (occ>4, leading reservation) are excluded. w0-neutral (eval_ext).
+Result: w0 169000, w1 800, w3 600, w0 fuzz clean; DRIFT w1 459.3->414.1 (-10%),
+ARB first-div count 10->3, w3 neutral. 0 w0 deltas.
+
+### Front 2b (Stage 5) — near-flush +1-late redirect: LANDED (commit b41fd4d)
+The DEFERRED Jcc-w3 latched +1 redirect - now closed AND generalizing to w1.
+Measured (seed90003/90018/90005, opc 73 Jcc, w1, +eudbg with q_flush/eval_ext):
+a NEAR flush's `q_flush` asserts DURING the eval_ext cycle; the TB committed the
+redirect via the eval_ext mid-cycle path THAT cycle (display @T4+1); the CHIP
+inserts exactly ONE more idle and mid-cycle-commits the redirect the NEXT idle
+(display @T4+2). The prior two attempts overshot because a plain do_commit at
+the next idle lands @T4+3. Fix `flush_hold`: latch the deferral one cycle, then
+commit via the SAME mid-cycle path (state->T1 + display this cycle) - inserts
+ONE idle, not two. `flush_fast` (far) redirect unchanged (already @T4+1).
+Follow-up 5b: a far flush committing AT the eval_ext cycle showed E one cycle
+late (ff_show requires !eval_ext); added `ff_evalext` to qs_e (display-only).
+Result: w0 169000, w1 800, w3 600, w0 fuzz clean; DRIFT w1 414.1->307.3
+(CLEAN 6->18, seed90003 576->0, seed90018 484->0), w3 583.3->475.6
+(CLEAN 15->21, w3 FLUSH first-div count 8->0). 0 w0 deltas. This closes the
+FLUSH third: w1 FLUSH 10->2, w3 FLUSH 8->0.
+
 ### Front 3 — resume: PARTIAL (consumption-gate landed f9c33f6)
 The beat-dominated resume law; consumption-gate handles part. Limited ceiling
 (big beat!=0 gaps are EU-execution-time, already EU-timed). Low priority.

@@ -22,6 +22,9 @@ a rebuilt-model change moves a w0 golden case, capture a fresh chip reference
 | 3-F1 | arbitration starved-store override (LANDED) | 0 | 0 | 0 | 0 |
 | 3-F2 | flush bus_tw stretch (REVERTED - arch regress) | 57w1+ | - | 57 (model-bug, superseded) | - |
 | 3-F2a | Jcc doomed-prefetch flush (LANDED, w1 -10%) | 0 | 0 | 0 | 0 |
+| 3-F3 | late-reservation prefetch override (LANDED, w1 -10%) | 0 | 0 | 0 | 0 |
+| 5   | near-flush +1-late redirect latched hold (LANDED, w1 -26% w3 -18%) | 0 | 0 | 0 | 0 |
+| 5b  | far-flush E-display at eval_ext (LANDED, w1 CLEAN 11->18) | 0 | 0 | 0 | 0 |
 
 **Total w0 golden deltas landed: 0.** No committed change moved a w0 golden
 case, so nothing required chip adjudication yet. Stages 1 and 6 are w0-neutral
