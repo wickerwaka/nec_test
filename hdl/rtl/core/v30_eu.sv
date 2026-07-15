@@ -391,6 +391,9 @@ reg  [3:0]  ie_p;                // IE history: the boundary decision
                                  // uses IE@B-3 (this delay IS the EI /
                                  // POP-PSW enable shadow - measured); bit 3
                                  // is the post-flush (flush-3) tap
+reg         waits_seen;          // latched once any Tw occurs = "waits are
+                                 // configured"; 0 at w0 (w0-neutral gate for the
+                                 // Jcc doomed-prefetch flush law)
 reg         post_flush;          // 1-cycle pulse at the first S_FIRST after
                                  // a taken-branch S_JFLUSH: recognition taps
                                  // the pin/IE at flush-3 (int_p[3]/ie_p[3])
@@ -1263,9 +1266,20 @@ always_comb begin
         // per-opcode reservation-start (E2 reserved from dly=4, E0/E1 had no
         // reservation) was a golden-phase alias of this. EB/E9/Jcc are not in
         // the doomed class and keep their own hard reservation above.
-        S_JWAIT: eu_req = !(op_jcc && dly == 6'd3) &&
-                          (!op_loopf ||
-                           (wnext == S_JFLUSH && dly <= 6'd3)) &&
+        // Flush front (Stage 3): op_jcc joins the doomed-prefetch law (free at
+        // dly>=4, hard-reserve only dly<=3) - measured (sw/exp_flush.py, chip-
+        // vs-TB): under waits the chip runs ONE doomed fall-through prefetch
+        // during Jcc resolution before the flush (Jcc DIVERGES at the flush,
+        // EB/E9/LOOP/CALL MATCH). The old Jcc "reserve except dly==3" hard-
+        // reservation blocked it. EB/E9 (not op_jcc) keep their hard reserve.
+        S_JWAIT: eu_req = (!((op_jcc && waits_seen) || op_loopf) ||
+                           (wnext == S_JFLUSH &&
+                            dly <= ((op_jcc && waits_seen) ? 6'd1 : 6'd3))) &&
+                          // w0 Jcc keeps its single-cycle dly==3 prefetch gap
+                          // (waits_seen==0); under waits Jcc reserves only the
+                          // final cycle (dly<=1) so the chip's doomed
+                          // fall-through prefetch commits (measured exp_flush)
+                          !(op_jcc && !waits_seen && dly == 6'd3) &&
                           // CALL rm reg: no reservation (measured: a
                           // prefetch commits inside the wait)
                           !(op_grpff && mrm_reg == 3'd2 &&
@@ -1560,6 +1574,7 @@ always_ff @(posedge clk) begin
         shadow   <= 1'b0;
         ie_p     <= '0;
         post_flush <= 1'b0;
+        waits_seen <= 1'b0;
         ie_pend  <= 1'b0;
         ie_val   <= 1'b0;
         psw_old  <= '0;
@@ -1619,6 +1634,7 @@ always_ff @(posedge clk) begin
         // pulse the cycle after any S_JFLUSH so irq_int taps int_p[3]/ie_p[3]
         // (= pin/IE at flush-3) there instead of the normal [2].
         post_flush <= (state == S_JFLUSH);
+        if (bus_tw) waits_seen <= 1'b1;
         if (nmi_p[2] && !nmi_p[3]) nmi_latch <= 1'b1;   // set at edge+3
         poll_s1 <= pin_poll_n;
         ie_p    <= {ie_p[2:0], psw[9]};
