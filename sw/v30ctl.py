@@ -25,10 +25,15 @@ Usage:
   v30ctl.py dump-cap FILE            # write capture records, decode with decode_capture.py
   v30ctl.py run FILE [--timeout S]   # stop -> load -> start -> wait full -> dump to stdout name
   v30ctl.py cfg [--div N] [--waits N] [--vector V] [--small 0|1] [--use-core 0|1]
+                [--wrand 0|1] [--wmax K] [--wseed S]
   v30ctl.py serve                    # persistent stdin/stdout batch mode:
                                      #   PING                     -> OK PONG
                                      #   CFG <div> <waits> <vector> <small> [use_core]
                                      #     ('-' keeps a field)    -> OK CFG
+                                     #   WRAND <enable> <wmax> <seed>
+                                     #     ('-' keeps a field)    -> OK WRAND
+                                     #     seeded random per-access waits;
+                                     #     identical pattern across A/B
                                      #   RUN <timeout_s> [k=v ...]\\n<base64>
                                      #     -> OK <cap_count> <full> <evt>
                                      #        \\n<base64 of 4096 LE uint64>
@@ -77,6 +82,7 @@ R_CAPCOUNT = REG_OFF + 0x14
 R_IORD     = REG_OFF + 0x18
 R_EVT_ADDR = REG_OFF + 0x1C
 R_EVT_CFG  = REG_OFF + 0x20
+R_WRAND    = REG_OFF + 0x24   # seeded random per-access waits (Phase 1 rig)
 
 MAGIC = 0x56333031
 
@@ -206,6 +212,18 @@ class Harness:
             v = (v & ~(1 << 25)) | ((1 if use_core else 0) << 25)
         self.write32(R_CFG, v)
 
+    def set_wrand(self, enable=None, wmax=None, seed=None):
+        """Seeded random per-access wait insertion (WRAND, 0x24). enable=1
+        draws each bus cycle's Tw count from a seeded LFSR over 0..wmax
+        (large mode), overriding CFG.wait_states. The SAME seed drives READY
+        for both A/B positions (socketed chip and fabric core), so a run
+        applies the identical wait pattern to both. Set only while stopped."""
+        v = self.read32(R_WRAND)
+        if enable is not None: v = (v & ~0x1) | (1 if enable else 0)
+        if wmax   is not None: v = (v & ~0xF0) | ((wmax & 0xF) << 4)
+        if seed   is not None: v = (v & ~0xFFFF0000) | ((seed & 0xFFFF) << 16)
+        self.write32(R_WRAND, v)
+
 
 def write_cap_file(recs, path):
     with open(path, "w") as fh:
@@ -297,6 +315,16 @@ def serve(h):
                 h.stop()
                 h.set_cfg(*vals)
                 reply("OK CFG")
+            elif parts[0] == "WRAND":
+                # WRAND <enable> <wmax> <seed>  ('-' keeps a field). Seeded
+                # random per-access waits; identical pattern across A/B.
+                raw = parts[1:4]
+                vals = [None if p == "-" else int(p, 0) for p in raw]
+                while len(vals) < 3:
+                    vals.append(None)
+                h.stop()
+                h.set_wrand(*vals)
+                reply("OK WRAND")
             elif parts[0] == "BASE":
                 base_img = bytearray(
                     base64.b64decode(sys.stdin.readline().strip()))
@@ -354,6 +382,12 @@ def main():
     p.add_argument("--small", type=int, choices=(0, 1))
     p.add_argument("--use-core", type=int, choices=(0, 1),
                    help="A/B: 1 = internal v30_core, 0 = socketed chip")
+    p.add_argument("--wrand", type=int, choices=(0, 1),
+                   help="seeded random per-access waits (large mode)")
+    p.add_argument("--wmax", type=lambda x: int(x, 0),
+                   help="max Tw per access in random mode (0..15)")
+    p.add_argument("--wseed", type=lambda x: int(x, 0),
+                   help="random-wait PRNG seed (16-bit; 0 -> 0xACE1)")
     args = ap.parse_args()
 
     if args.cmd == "prep":
@@ -404,7 +438,11 @@ def main():
     elif args.cmd == "cfg":
         h.stop()
         h.set_cfg(args.div, args.waits, args.vector, args.small, args.use_core)
-        print(f"cfg = {h.read32(R_CFG):08x} (harness stopped; 'start' to run)")
+        if args.wrand is not None or args.wmax is not None \
+                or args.wseed is not None:
+            h.set_wrand(args.wrand, args.wmax, args.wseed)
+        print(f"cfg = {h.read32(R_CFG):08x} wrand = {h.read32(R_WRAND):08x} "
+              f"(harness stopped; 'start' to run)")
     elif args.cmd == "serve":
         serve(h)
 

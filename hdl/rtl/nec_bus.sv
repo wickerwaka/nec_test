@@ -35,6 +35,14 @@ module nec_bus
     input       [3:0] cfg_wait_states, // wait states inserted in every bus cycle
     input       [7:0] cfg_int_vector,  // vector byte returned in INTA cycles
 
+    // Random per-access wait insertion (Phase 1 cycle-accuracy rig). When
+    // cfg_wait_rand is set the number of Tw states inserted PER BUS CYCLE is
+    // drawn from a seeded PRNG (0..cfg_wmax) instead of the uniform
+    // cfg_wait_states. See the "SHARED SEEDED RANDOM-WAIT GENERATOR" block.
+    input             cfg_wait_rand,   // 1: random per-access waits (large mode)
+    input       [3:0] cfg_wmax,        // max Tw per access in random mode
+    input      [15:0] cfg_wseed,       // PRNG seed (0 -> 0xACE1)
+
     // Request inputs (synchronous to clk)
     input             int_req,
     input             nmi_req,
@@ -272,6 +280,33 @@ reg       mem_wr_req_done;
 
 wire bs_active = bs_q != BS_PASV;
 
+//----------------------------------------------------------------------------
+// ==== SHARED SEEDED RANDOM-WAIT GENERATOR ====
+// This block MUST stay byte-for-byte equivalent to the mirror in
+// hdl/tb/tb_v30_core.sv so a given seed produces the IDENTICAL per-access
+// wait sequence in the physical harness and the Verilator TB.
+//
+//  - 16-bit Galois LFSR, poly 0xB400 (maximal length, period 65535).
+//  - Seeded at reset from cfg_wseed (0 substituted by 0xACE1 so the LFSR
+//    can never lock in the all-zero state).
+//  - Advanced EXACTLY ONCE per bus cycle, at T1 entry (below).
+//  - The per-access wait count is a bounded reduction of the LFSR low byte:
+//        n = (draw[7:0] * (wmax+1)) >> 8        (uniform-ish over 0..wmax)
+//
+// Because the LFSR is reset-seeded identically and advanced once per bus
+// cycle, bus cycle #k draws the SAME count for the socketed chip
+// (cfg_use_core=0) and the fabric core (cfg_use_core=1) — that is what makes
+// a random-wait A/B a valid cycle-for-cycle comparison. Random waits are
+// applied in LARGE mode only (every A/B / fuzz / waited-golden board run
+// forces small=0); small mode keeps the uniform cfg_wait_states path.
+//----------------------------------------------------------------------------
+reg  [15:0] wlfsr;
+wire [15:0] wseed_eff  = (cfg_wseed == 16'd0) ? 16'hACE1 : cfg_wseed;
+wire [15:0] wlfsr_next = {1'b0, wlfsr[15:1]} ^ (wlfsr[0] ? 16'hB400 : 16'h0000);
+wire  [4:0] wmax_p1    = {1'b0, cfg_wmax} + 5'd1;                 // 1..16
+wire [12:0] wprod      = {5'b0, wlfsr[7:0]} * {8'b0, wmax_p1};    // 8b * 5b
+wire  [4:0] wrand_n    = wprod[12:8];                             // 0..wmax
+
 wire [2:0] next_t_state =
     (t_state == ST_TI) ? (bs_active ? ST_T1 : ST_TI) :
     (t_state == ST_T1) ? ST_T2 :
@@ -296,6 +331,7 @@ always_ff @(posedge clk) begin
         mem_wr_req_done <= 1'b0;
         sm_wr_n_d       <= 1'b1;
         mem_cycle_type  <= BS_PASV;
+        wlfsr           <= wseed_eff;   // reseed each run (held until 1st T1)
     end else if (cfg_small_mode) begin
         // strobe-driven datapath, evaluated every sys clock
         sm_wr_n_d <= sm_wr_n;
@@ -335,8 +371,16 @@ always_ff @(posedge clk) begin
             mem_cycle_type <= bs_q;
             is_read_cycle  <= read_type;
             is_write_cycle <= write_type;
-            wait_cnt       <= {1'b0, cfg_wait_states};
-            ready_q        <= cfg_wait_states == 0;
+            // random mode: draw this access's Tw count from the LFSR and
+            // advance it once (per-bus-cycle). uniform mode: unchanged.
+            if (cfg_wait_rand) begin
+                wait_cnt <= wrand_n;
+                ready_q  <= wrand_n == 5'd0;
+                wlfsr    <= wlfsr_next;
+            end else begin
+                wait_cnt <= {1'b0, cfg_wait_states};
+                ready_q  <= cfg_wait_states == 0;
+            end
         end
 
         if (next_t_state == ST_T2 && is_read_cycle)

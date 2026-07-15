@@ -48,6 +48,7 @@ class ServeRunner:
         self.proc = None
         self.q = None
         self.last_waits = None  # (waits, use_core) tuple key
+        self.last_wrand = None  # WRAND state key (None = never enabled)
         self.v2 = False          # serve protocol >= v2 (BASE/DELTA/cap)
         self.base = None         # image cached device-side via BASE
 
@@ -94,6 +95,7 @@ class ServeRunner:
         self.v2 = "v2" in banner
         self.base = None         # device-side cache gone on reconnect
         self.last_waits = None  # (waits, use_core) tuple key
+        self.last_wrand = None  # WRAND state key (None = never enabled)
 
     def cfg(self, waits, use_core=None):
         key = (waits, use_core)
@@ -108,6 +110,29 @@ class ServeRunner:
             self.close()
             raise RunError(f"serve: cfg failed: {line[:120]}")
         self.last_waits = key
+
+    def wrand(self, spec):
+        """Seeded random per-access waits. spec = None (uniform, board
+        default) or (wmax, seed) to enable random 0..wmax with that seed.
+        The SAME seed drives both A/B positions, so a run applies the
+        identical wait pattern to chip and fabric core. To stay compatible
+        with a serve that predates WRAND, nothing is sent until random is
+        first requested (a fresh session that only runs uniform never emits
+        the command)."""
+        if spec is None and self.last_wrand is None:
+            return
+        key = ('off',) if spec is None else ('on', spec[0], spec[1])
+        if self.last_wrand == key:
+            return
+        if spec is None:
+            self._send("WRAND 0 - -")
+        else:
+            self._send(f"WRAND 1 {spec[0]} {spec[1]}")
+        line = self._readline(10)
+        if line != "OK WRAND":
+            self.close()
+            raise RunError(f"serve: wrand failed: {line[:120]}")
+        self.last_wrand = key
 
     @staticmethod
     def _delta(base, image, gran=256):
@@ -223,7 +248,8 @@ def _run_image_legacy(image, host, tag="test", waits=0):
 
 
 def run_image(image, host, tag="test", waits=0, evt=None, iord=None,
-              pins=None, want_fired=False, cap=None, use_core=None):
+              pins=None, want_fired=False, cap=None, use_core=None,
+              wrand=None):
     """Run an image, return capture records (or (recs, evt_fired) with
     want_fired). Uses the persistent serve session unless V30_NO_SERVE=1;
     transport errors get one reconnect, then one legacy-path attempt
@@ -232,11 +258,16 @@ def run_image(image, host, tag="test", waits=0, evt=None, iord=None,
     use_core selects the Campaign 4 A/B position (True = internal v30_core,
     False = socketed chip, None = leave the board default). It requires a
     board bitstream that carries CFG.use_core (bit 25) and the serve v2
-    5-field CFG command; the legacy path cannot set it."""
+    5-field CFG command; the legacy path cannot set it.
+
+    wrand enables seeded random per-access waits: None = uniform (`waits`),
+    or (wmax, seed) = random 0..wmax with that seed. The same seed drives
+    both A/B positions. Requires the WRAND-capable bitstream + serve; serve
+    path only."""
     if os.environ.get("V30_NO_SERVE") == "1":
         if evt is not None or iord is not None or pins is not None \
-                or use_core is not None:
-            raise RunError("evt/iord/pins/use_core require the serve path")
+                or use_core is not None or wrand is not None:
+            raise RunError("evt/iord/pins/use_core/wrand require the serve path")
         return _run_image_legacy(image, host, tag, waits)
     r = _runners.get(host)
     if r is None:
@@ -245,6 +276,7 @@ def run_image(image, host, tag="test", waits=0, evt=None, iord=None,
         try:
             r.ensure()
             r.cfg(waits, use_core)
+            r.wrand(wrand)
             recs, fired = r.run(image, evt=evt, iord=iord, pins=pins,
                                 cap=cap)
             return (recs, fired) if want_fired else recs
@@ -254,9 +286,9 @@ def run_image(image, host, tag="test", waits=0, evt=None, iord=None,
                 print(f"serve path failed twice ({e}); trying legacy path",
                       file=sys.stderr)
     if evt is not None or iord is not None or pins is not None \
-            or use_core is not None:
-        raise RunError("serve path failed and evt/iord/pins/use_core have "
-                       "no legacy fallback")
+            or use_core is not None or wrand is not None:
+        raise RunError("serve path failed and evt/iord/pins/use_core/wrand "
+                       "have no legacy fallback")
     return _run_image_legacy(image, host, tag, waits)
 
 

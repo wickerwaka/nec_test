@@ -91,8 +91,28 @@ integer     waits_cfg = 0;
 logic [4:0] wait_cnt = '0;
 logic       ready_r = 1'b1;
 
+// ==== SHARED SEEDED RANDOM-WAIT GENERATOR ====
+// MUST stay byte-for-byte equivalent to the mirror in hdl/rtl/nec_bus.sv so
+// a given seed produces the IDENTICAL per-access wait sequence here (chip-
+// vs-TB) and on the board (chip-vs-fabric). 16-bit Galois LFSR poly 0xB400,
+// seeded at reset from +wseed (0 -> 0xACE1), advanced ONCE per bus cycle at
+// T1 entry; per-access Tw count n = (draw[7:0]*(wmax+1))>>8, range 0..wmax.
+// +wrand=1 selects random mode; default 0 keeps the uniform +waits path.
+integer      wrand_cfg = 0;
+integer      wmax_cfg  = 0;
+logic [31:0] wseed_tmp = 32'hACE1;
+logic [15:0] wlfsr = 16'hACE1;
+wire  [15:0] wseed_eff  = (wseed_tmp[15:0] == 16'd0) ? 16'hACE1 : wseed_tmp[15:0];
+wire  [15:0] wlfsr_next = {1'b0, wlfsr[15:1]} ^ (wlfsr[0] ? 16'hB400 : 16'h0000);
+wire  [4:0]  wmax_p1 = 5'(wmax_cfg) + 5'd1;                    // 1..16
+wire  [12:0] wprod   = {5'b0, wlfsr[7:0]} * {8'b0, wmax_p1};   // 8b * 5b
+wire  [4:0]  wrand_n = wprod[12:8];                            // 0..wmax
+
 initial begin
     if (!$value$plusargs("waits=%d", waits_cfg)) waits_cfg = 0;
+    if (!$value$plusargs("wrand=%d", wrand_cfg)) wrand_cfg = 0;
+    if (!$value$plusargs("wmax=%d",  wmax_cfg))  wmax_cfg  = 0;
+    if (!$value$plusargs("wseed=%h", wseed_tmp)) wseed_tmp = 32'hACE1;
 end
 
 logic         bkd_load = 0;
@@ -276,10 +296,18 @@ always @(posedge clk) begin
         if (tb_t_next == ST_T1) lat_type <= BS;
         else if (tb_t_next == ST_TI) lat_type <= BS_PASV;
 
-        // wait-state counter (see comment at ready_r)
+        // wait-state counter (see comment at ready_r). In random mode draw
+        // this access's Tw count from the shared LFSR and advance it once
+        // per bus cycle; uniform (+waits) mode is unchanged.
         if (tb_t_next == ST_T1) begin
-            wait_cnt <= 5'(waits_cfg);
-            ready_r  <= waits_cfg == 0;
+            if (wrand_cfg != 0) begin
+                wait_cnt <= wrand_n;
+                ready_r  <= wrand_n == 5'd0;
+                wlfsr    <= wlfsr_next;
+            end else begin
+                wait_cnt <= 5'(waits_cfg);
+                ready_r  <= waits_cfg == 0;
+            end
         end else if ((tb_t == ST_T3 || tb_t == ST_TW) &&
                      wait_cnt != 0) begin
             wait_cnt <= wait_cnt - 5'd1;
@@ -337,6 +365,7 @@ always @(posedge clk) begin
         fcount   <= 0;
         wait_cnt <= '0;
         ready_r  <= 1'b1;
+        wlfsr    <= wseed_eff;   // reseed each run (held until 1st T1)
     end
 end
 

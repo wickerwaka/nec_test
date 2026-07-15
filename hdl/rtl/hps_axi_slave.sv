@@ -27,6 +27,9 @@
 //                            [23:16] hold (CPU clocks; 0 = until disarmed)
 //                            [26:24] pin (0=INT 1=NMI 2=POLL_N active-low)
 //                            [31] arm (STATUS[3] = fired; disarm deasserts)
+//        0x24  WRAND     RW  seeded random per-access wait insertion
+//                            [0] enable  [7:4] wmax (Tw/access)  [31:16] seed
+//                            (large mode; overrides CFG.wait_states when set)
 //        0x10  STATUS    RO  [0] pwr_good  [1] cpu_running  [2] cap_full
 //        0x14  CAPCOUNT  RO  records captured
 //
@@ -75,6 +78,9 @@ module hps_axi_slave
     output reg  [7:0] cfg_int_vector,
     output reg        cfg_small_mode,
     output reg        cfg_use_core,    // Campaign 4 A/B: 1 = internal core
+    output reg        cfg_wait_rand,   // 1: seeded random per-access waits
+    output reg  [3:0] cfg_wmax,        // max Tw per access in random mode
+    output reg [15:0] cfg_wseed,       // random-wait PRNG seed
     output reg        int_req,
     output reg        nmi_req,
     output reg        poll_n_out,
@@ -158,6 +164,9 @@ always_ff @(posedge clk) begin
         cfg_int_vector  <= 8'hFF;
         cfg_small_mode  <= 1'b1;      // board runs small mode until RQ/AK rework
         cfg_use_core    <= 1'b0;      // default: socketed chip (known-good path)
+        cfg_wait_rand   <= 1'b0;      // default: uniform cfg_wait_states path
+        cfg_wmax        <= 4'd0;
+        cfg_wseed       <= 16'hACE1;
         int_req         <= 1'b0;
         nmi_req         <= 1'b0;
         poll_n_out      <= 1'b0;
@@ -227,6 +236,11 @@ always_ff @(posedge clk) begin
                         evt_hold  <= wdata[23:16];
                         evt_pin   <= wdata[26:24];
                         evt_arm   <= wdata[31];
+                    end
+                    8'h24: begin
+                        cfg_wait_rand <= wdata[0];
+                        cfg_wmax      <= wdata[7:4];
+                        cfg_wseed     <= wdata[31:16];
                     end
                     default: ;
                     endcase
@@ -316,6 +330,7 @@ always_ff @(posedge clk) begin
                     8'h18: rdata <= {16'd0, cfg_iord};
                     8'h1C: rdata <= {12'd0, evt_addr};
                     8'h20: rdata <= {evt_arm, 4'd0, evt_pin, evt_hold, evt_delay};
+                    8'h24: rdata <= {cfg_wseed, 8'd0, cfg_wmax, 3'd0, cfg_wait_rand};
                     default: rdata <= 32'hDEADBEEF;
                     endcase
                     st <= R_DATA;

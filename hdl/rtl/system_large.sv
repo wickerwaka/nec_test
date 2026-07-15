@@ -104,6 +104,9 @@ wire  [3:0] cfg_wait_states;
 wire  [7:0] cfg_int_vector;
 wire        cfg_small_mode;
 wire        cfg_use_core;    // Campaign 4 A/B: 1 = internal v30_core
+wire        cfg_wait_rand;   // Phase 1 rig: seeded random per-access waits
+wire  [3:0] cfg_wmax;
+wire [15:0] cfg_wseed;
 wire        int_req, nmi_req, poll_n_host;
 wire [15:0] cfg_iord;
 wire [19:0] evt_addr;
@@ -234,6 +237,9 @@ hps_axi_slave bridge
     .cfg_int_vector(cfg_int_vector),
     .cfg_small_mode(cfg_small_mode),
     .cfg_use_core(cfg_use_core),
+    .cfg_wait_rand(cfg_wait_rand),
+    .cfg_wmax(cfg_wmax),
+    .cfg_wseed(cfg_wseed),
     .int_req(int_req),
     .nmi_req(nmi_req),
     .poll_n_out(poll_n_host),
@@ -397,6 +403,9 @@ nec_bus bus
     .cfg_clk_div(cfg_clk_div),
     .cfg_wait_states(cfg_wait_states),
     .cfg_int_vector(cfg_int_vector),
+    .cfg_wait_rand(cfg_wait_rand),
+    .cfg_wmax(cfg_wmax),
+    .cfg_wseed(cfg_wseed),
 
     .int_req(int_req),
     .nmi_req(nmi_req),
