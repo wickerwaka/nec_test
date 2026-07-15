@@ -98,6 +98,47 @@ def main():
     nz = [r for r in allrows if r["ge"] != 0]
     print(f"\n=== class-5 gap-error census: {len(allrows)} aligned intervals, "
           f"{len(nz)} nonzero ({100*len(nz)/max(1,len(allrows)):.1f}%) ===")
+
+    # --- DENOMINATOR tables (Codex): the nonzero-only tables below can mislead
+    # (e.g. "always +ve at tw=7" may just mean few tw=7 opportunities). Report,
+    # per cell, TOTAL opportunities and zero/pos/neg split so the ERROR RATE and
+    # sign balance are visible, not just the impulses. ---
+    def denom(keyfn, title, order=None):
+        tot = defaultdict(lambda: [0, 0, 0])  # [zero, pos, neg]
+        for r in allrows:
+            k = keyfn(r)
+            if r["ge"] == 0:
+                tot[k][0] += 1
+            elif r["ge"] > 0:
+                tot[k][1] += 1
+            else:
+                tot[k][2] += 1
+        print(f"\n{title}  [n=total  err%=nonzero/total  +/-=pos/neg]:")
+        keys = order if order else sorted(tot, key=lambda k: -(tot[k][1] + tot[k][2]))
+        for k in keys:
+            z, p, m = tot[k]
+            n = z + p + m
+            if p + m == 0 and n < 50:
+                continue
+            print(f"   {str(k):<22} n={n:6d}  err={100*(p+m)/max(1,n):5.2f}%  "
+                  f"+{p:<4d} -{m:<4d}")
+
+    denom(lambda r: f"{r['prev_bs']}->{r['cur_bs']}", "By transition (denominator)")
+    denom(lambda r: (r["prev_bs"], r["prev_tw"]),
+          "By (prev_bs, prev_tw) (denominator - is prev_tw governing?)")
+    denom(lambda r: (r["cur_bs"], r["prev_tw"]),
+          "By (cur_bs, prev_tw) (denominator)")
+    # CODE->CODE only, by prev_tw: the core prefetch-resume response curve
+    cc = [r for r in allrows if r["prev_bs"] == "CODE" and r["cur_bs"] == "CODE"]
+    print(f"\nCODE->CODE resume response curve (n={len(cc)}): "
+          "prev_tw -> err% (+/-):")
+    ct = defaultdict(lambda: [0, 0, 0])
+    for r in cc:
+        ct[r["prev_tw"]][0 if r["ge"] == 0 else (1 if r["ge"] > 0 else 2)] += 1
+    for tw in sorted(ct):
+        z, p, m = ct[tw]
+        n = z + p + m
+        print(f"   prev_tw={tw}: n={n:6d}  err={100*(p+m)/max(1,n):5.2f}%  +{p} -{m}")
     print("\nsigned gap_error histogram (clocks):")
     for k, c in sorted(Counter(r["ge"] for r in allrows).items()):
         bar = "#" * min(60, c // 2) if k != 0 else ""
