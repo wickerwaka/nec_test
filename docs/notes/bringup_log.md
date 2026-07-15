@@ -1,5 +1,49 @@
 # Bring-up log
 
+## 2026-07-15 — eu_req=0 STORE stage: wait-dependent BIU look-ahead veto (SILICON-CONFIRMED)
+
+Landed + flashed + silicon-confirmed the first stage of the eu_req=0 onset fix
+(commit f145345, bitstream checksum 0x03D40ED0 live in fabric). This corrects a
+class of random-wait over-prefetch where the model committed a DOOMED CODE
+prefetch one EU-state before its own eu_req rose, while the chip had already
+reserved the bus for an imminent store.
+
+KEY DISCOVERY (overturns a prior w0 assumption): the reservation onset is NOT a
+fixed EU-state that can be shifted earlier. The first implementation asserted
+eu_req at S_DHI unconditionally and REGRESSED the w0 golden 168854/169000, every
+failing cell a disp16 store showing exp CODE/T1 at the post-EA cycle. The chip
+DOES prefetch at that cycle at w0 (golden = chip ground truth). The correct model
+(Codex framing): the BIU has a WAITED-completion (eval_ext) look-ahead veto that
+recognizes an imminent store one EU-state before ordinary eu_req; the SAME EU
+state does not suppress a legal w0 prefetch. "May use this slot now" (w0
+prefetch_ok) vs "must preserve the next grid slot for an imminent access"
+(eval_ext). eval_ext is a model proxy for that hardware grid opportunity,
+validated for the measured cells (not proven the chip's mechanism).
+
+Implementation: EU exports eu_rsv_lead = (S_DHI && (op_movs8|op_movs16) &&
+q_pop); BIU pf_rsv_lead = eval_ext && eu_rsv_lead && q_aged==0 && !q_flush &&
+!eu_hold, ANDed as `!pf_rsv_lead` into prefetch_ext. w0-NEUTRAL by construction
+(eval_ext never fires at w0). Distinct from pf_late_rsv/owns_slot (those require
+eu_req==1; here the reservation LEADS with eu_req==0).
+
+Validation (all chip ground truth):
+- Golden chip-vs-TB: w0 **169000/169000**, w1 **1200/1200**, w3 **1200/1200**
+  (bit+cycle exact; the -146 w0 regression was the REJECTED unconditional edit).
+- eu_req=0 census (board): store case fz90015 ELIMINATED, 7->6 class-1.
+- Fitting census N=300: no new divergence, no over-suppression, no new class.
+- Held-out census N=300 (91000-91009): class-1=0, no over-suppression.
+- **SILICON (fabric use_core=1 vs socketed chip use_core=0)**: fz90015 bus 37
+  now MEMW@02608 on chip==fabric==TB (doomed CODE gone; exact idle count/index).
+  fabric==TB on all 5 acceptance vectors (faithful synthesis). Setup slack
+  +4.795 ns, hold +0.246 ns. The 2 held-out chip-vs-fabric diffs (fz91000 b130
+  CODE/CODE addr±1; fz91003 b136 IOW) are PRE-EXISTING class-6/7 residuals, not
+  this fix (fabric==TB on both).
+
+Residual now dominated by class-5 "same bus decisions, WRONG CLOCK" (78% fitting,
+90% held-out). NEXT: MOFFS stage (S_MLO lead-veto, same mechanism, needs its own
+opportunity census); then PIVOT to class-5 as structural bus-slot scheduling (NOT
+another eval_ext veto). Codex thread 019f663c consulted (staged GO, this framing).
+
 ## 2026-07-15 — MERGE biu-rebuild -> master (BIU rebuild banked to mainline)
 
 The BIU bus-model rebuild campaign merged to master (fast-forward; master was at
