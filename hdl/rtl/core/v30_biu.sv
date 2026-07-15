@@ -132,6 +132,10 @@ module v30_biu (
     input             eu_rsv_dhi,   // Phase 3: current coincident reservation
                                     // is the S_DHI reader/RMW-read disp-pop
                                     // class (owns the bus slot vs prefetch)
+    input             eu_rsv_lead,  // eu_req=0 onset fix: mem-access reservation
+                                    // LEADS eu_req by one EU-state (disp16 store
+                                    // @ S_DHI). Consulted ONLY in eval_ext ->
+                                    // w0-NEUTRAL. See pf_rsv_lead below.
     input             eu_rsv_push_calc, // Phase 3: ... the S_PUSH_CALC push
                                     // class (owns the slot only at q_cnt>=2)
     input             eu_wr,
@@ -452,10 +456,22 @@ wire        pf_late_rsv = eval_ext && eu_req && !eu_req_p1 && !eu_ready &&
                           eu_mem_acc && eu_kind == K_MEM &&
                           occupied <= 4'd4 && q_aged == 2'd0 &&
                           !q_flush && !eu_hold && !owns_slot;
-wire        prefetch_ext = prefetch_ok ||
+// eu_req=0 onset fix (session 019f663c, chip ground truth eureq0_char census +
+// Codex staged GO): the chip's mem-access reservation LEADS the model's eu_req
+// by one EU-state (measured: disp16 store reserves at S_DHI, model eu_req rises
+// at S_RSV). At the eval_ext deferred-completion eval the model's eu_req is
+// still 0, so prefetch_ok lets a DOOMED CODE prefetch win the slot where the
+// chip has already reserved (7/7 class-1 cases). pf_rsv_lead SUPPRESSES that
+// prefetch in the waited window only. w0-NEUTRAL: eval_ext never fires at w0
+// (there the model's post-EA prefetch legitimately commits - 169000 golden).
+// Distinct from pf_late_rsv/owns_slot: those require eu_req==1 (a coincident
+// LATE reservation); here eu_req==0 (the reservation LEADS, not yet signalled).
+wire        pf_rsv_lead = eval_ext && eu_rsv_lead &&
+                          q_aged == 2'd0 && !q_flush && !eu_hold;
+wire        prefetch_ext = (prefetch_ok ||
                            (eval_ext && pf_starved && eu_req && !eu_ready &&
                             eu_mem_acc && eu_kind == K_MEM) ||
-                           pf_late_rsv;
+                           pf_late_rsv) && !pf_rsv_lead;
 wire        pick_ext   = want_half2 || want_eu || prefetch_ext;
 // the eval_ext cycle would commit a NEAR-flush redirect prefetch: defer it one
 // idle cycle (flush_hold) instead of committing here (see flush_hold decl).

@@ -170,6 +170,16 @@ module v30_eu (
     output            eu_rsv_push_calc, // Phase 3: same, the S_PUSH_CALC push
                                     // class - owns the slot only at q_cnt>=2
                                     // (the BIU applies the q_cnt gate).
+    output            eu_rsv_lead,   // eu_req=0 onset fix (session 019f663c,
+                                    // Codex staged GO): the chip's mem-access
+                                    // reservation LEADS the model's eu_req by
+                                    // one EU-state. High in the state one BEFORE
+                                    // eu_req rises for the measured family(ies)
+                                    // (disp16 store @ S_DHI, eu_req @ S_RSV). The
+                                    // BIU turns this into an eval_ext-gated
+                                    // prefetch suppression -> w0-NEUTRAL (never
+                                    // consulted at w0; the chip's post-EA
+                                    // prefetch legitimately commits there).
     output reg        eu_wr,
     output            eu_fwd,     // write data = the BIU's last read data
                                   // (string-op read->write forwarding)
@@ -1417,6 +1427,20 @@ assign eu_soon_ea = (state == S_EA2) && eu_soon;
 // pf_late_rsv, which already gates on eu_req && !eu_req_p1.
 assign eu_rsv_dhi       = (state == S_DHI);
 assign eu_rsv_push_calc = (state == S_PUSH_CALC);
+
+// eu_req=0 onset fix (session 019f663c, chip ground truth: eureq0_char census -
+// 7/7 class-1 doomed-prefetch cases show the model's eu_req rising exactly one
+// EU-state AFTER the eval where the chip has already reserved the bus). The
+// chip's reservation LEADS eu_req by one state; at w0 the model matches (its
+// post-EA prefetch legitimately commits at that cycle - PROVEN by the 169000
+// golden showing CODE/T1 there), so the lead only bites under waits. The BIU
+// consults this ONLY inside the eval_ext (waited) window -> w0-NEUTRAL.
+//   disp16 store (88/89): reserves at S_DHI, model eu_req rises at S_RSV.
+// q_pop-gated: the reservation intent forms when the disp-high byte pops and
+// the effective address computes (a stalled S_DHI has no address yet). Staged
+// per Codex: store first; moffs (S_MLO, op_moff) is the next stage; POP r16
+// (S_FIRST) deferred (opcode not yet registered there).
+assign eu_rsv_lead      = (state == S_DHI) && (op_movs8 || op_movs16) && q_pop;
 
 // RMW mem write, ALU-imm forms ONLY (op80/81/83; op_alui): apply the
 // stricter deferred-eval qualifier. Measured: only the ALU-imm RMW defers
