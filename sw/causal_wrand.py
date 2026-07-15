@@ -914,6 +914,70 @@ def cmd_nocomp(a):
     return 0
 
 
+def cmd_idleslot(a):
+    """Phase 2h: the IDLE-SLOT proof of B's FAILING form. At over-prefetch
+    divergences, measure whether the CHIP inserts idle (Ti) cycles between the
+    completing CODE's T4 and the EU access's T1 (reserving the bus for a
+    pending-but-unready EU request) while the MODEL issues a doomed prefetch in
+    that slot. Record the model's internal state at its commit (occ/req/rdy/
+    eval_ext) to characterize the reservation-age + queue-urgency rule."""
+    import random as _r
+    recs = []
+    for seed in a.seeds:
+        g = generate(f"fz{seed}", exts=())
+        image, meta = compose(g)
+        for ws in range(1, a.nws + 1):
+            for wmax in a.wmaxes:
+                wv = [_r.Random((ws << 8) | wmax).randint(0, wmax) for _ in range(4096)]
+                cr = run_chip(image, a.host, use_core=False, wvec=wv)
+                crel = cr[next(i for i, r in enumerate(cr) if not r["rst"]):]
+                kr = run_tb_internal(image, 4200, wv)
+                ca = _trunc(accesses(crel))
+                ka = _trunc(accesses([dict(t=x["t"], bs_early=x["bs"], qs=x["qs"],
+                                           ad_addr=x["addr"], ad_data=0) for x in kr]))
+                cb, kb = bs_stream(ca), bs_stream(ka)
+                nn = min(len(cb), len(kb))
+                fd = next((i for i in range(nn) if cb[i] != kb[i]
+                           and cb[i] in (MEMR, MEMW) and kb[i] == CODE), None)
+                if fd is None or fd == 0:
+                    continue
+                # CHIP idle slots between completing CODE T4 and EU T1
+                t4 = ca[fd - 1]["t4"]
+                eut1 = ca[fd]["t1"]
+                idle = sum(1 for i in range(t4 + 1, eut1) if crel[i]["t"] == 0)
+                # MODEL commit state: the row where it starts the doomed CODE
+                kt4 = ka[fd - 1]["t4"]
+                kcode_t1 = ka[fd]["t1"]      # model's CODE T1 (fd is CODE for model)
+                # its decision row = the Ti commit just before (eval_ext edge)
+                dec = kr[max(0, kcode_t1 - 1)]
+                recs.append(dict(seed=seed, ws=ws, wmax=wmax, idle=idle,
+                                 occ=dec["occupied"], req=dec["eu_req"],
+                                 rdy=dec["eu_ready"], qa=dec["q_aged"],
+                                 evx=dec["eval_ext"], eu=BSN[ca[fd]["bs"]]))
+    from collections import Counter
+    print(f"idleslot: {len(recs)} over-prefetch divergences")
+    if not recs:
+        print("  (none found - widen corpus)"); return 0
+    idled = sum(1 for r in recs if r["idle"] > 0)
+    print(f"  chip inserted >=1 IDLE (Ti) slot where model prefetched: "
+          f"{idled}/{len(recs)}  => idle-slot signature "
+          f"{'UNIVERSAL' if idled == len(recs) else 'PARTIAL'}")
+    print(f"  chip idle-slot count distribution: "
+          f"{dict(sorted(Counter(r['idle'] for r in recs).items()))}")
+    print(f"  model commit state (occ,req,rdy,evx) at the doomed prefetch:")
+    st = Counter((r["occ"], r["req"], r["rdy"], r["evx"]) for r in recs)
+    for k, ct in sorted(st.items()):
+        print(f"    occ={k[0]} eu_req={k[1]} eu_ready={k[2]} eval_ext={k[3]}: {ct}")
+    print(f"  eval_ext=1 at commit: {sum(1 for r in recs if r['evx'])}/{len(recs)}")
+    print(f"  eu_req=1 (pending) & eu_ready=0 (unready) at commit: "
+          f"{sum(1 for r in recs if r['req'] and not r['rdy'])}/{len(recs)} "
+          f"(the pending-but-unready reservation the model wrongly overrides)")
+    print(f"  queue occupancy at commit: "
+          f"{dict(sorted(Counter(r['occ'] for r in recs).items()))} "
+          f"(urgency: low occ = starved/urgent-refill regime)")
+    return 0
+
+
 def cmd_leactl(a):
     """B-vs-C discriminator (Phase 2g Step 1): the no-request LEA control. Build
     a matched 3-variant block - reader (8B07, reserves S_EA1), store (8907,
@@ -1173,6 +1237,13 @@ def main():
     p.add_argument("--host", default="root@mister-nec")
     p.add_argument("--maxn", type=int, default=8)
     p.set_defaults(fn=cmd_leactl)
+    p = sub.add_parser("idleslot")
+    p.add_argument("--host", default="root@mister-nec")
+    p.add_argument("--seeds", type=int, nargs="+",
+                   default=[90003, 90007, 90015, 90021, 90030])
+    p.add_argument("--nws", type=int, default=8)
+    p.add_argument("--wmaxes", type=int, nargs="+", default=[1, 3, 7])
+    p.set_defaults(fn=cmd_idleslot)
     p = sub.add_parser("pfdiff")
     p.add_argument("--host", default="root@mister-nec")
     p.add_argument("--seed", type=int, default=90003)

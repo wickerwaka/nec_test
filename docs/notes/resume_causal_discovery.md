@@ -463,7 +463,79 @@ eligible prefetch.
   reservation-age-gated pending-EU priority, eval_ext demoted to an edge label -
   pending the threshold measurement.
 
+---
+
+# Phase 2h — the IDLE-SLOT proof of B's failing form (mechanism identified)
+
+Codex: the clean LEA block showed ORDINARY ready-EU priority (reader/store ready
+at E), not the young/coincident case that FAILS. Phase 2h reproduces the young
+boundary from the real fuzz divergences and finds the idle-slot signature. Tool:
+`idleslot` (raw per-CPU-cycle T-state + RTL commit state at over-prefetch
+divergences).
+
+## The idle-slot proof (Steps 1-2)
+
+Example (fz90007, waited CODE@00510 then the disputed edge):
+
+    CHIP : CODE(1 Tw) T4 -> Ti Ti (TWO idle PASV cycles) -> MEMR@023fc
+    MODEL: CODE(1 Tw) T4 -> Ti CODE@00512 (eval_ext commit, req1 rdy0) -> ...
+                           doomed prefetch -> MEMR@023fc
+
+Over 8 confirmed over-prefetch divergences (fz90003/07/15/21/30):
+- **The chip inserts >=1 IDLE (Ti) slot in 8/8** (3-4 idle cycles) where the
+  model issues the doomed prefetch. => **B's FAILING form is PROVEN**: a pending
+  EU reservation that is NOT yet ready makes the chip IDLE (reserve the bus)
+  rather than prefetch; it is not merely ordinary ready-EU priority.
+- **eval_ext = 1 at the commit in 8/8** (sampled at the ACTUAL model CODE-T1, not
+  T1-1): the doomed prefetch is always the waited-completion override.
+- Reservation state at the model's commit: **eu_req=1 & eu_ready=0 (pending but
+  UNREADY) in 6/8**; eu_req=0 (request registered too late) in 2/8. Both are the
+  eval_ext override failing to respect the chip's pending EU reservation.
+- Queue occupancy at the commit: occ in {2,4} - **ELIGIBLE and NON-URGENT** (not
+  the empty/starved string regime that pf_late_rsv was fitted for, v30_biu:420).
+
+## The rule, and the model's exact error
+
+Chip rule (measured, non-urgent eligible regime): a PENDING EU reservation - even
+before it is ready - takes priority over an eligible prefetch; the chip IDLES
+until the EU can issue. The model's eval_ext override instead lets the prefetch
+win when the reservation is unready/late (pf_late_rsv's "young loses to CODE",
+which is CORRECT only in the urgent/starved string regime). So the defect is:
+**the eval_ext override applies the young-loses-to-CODE rule in the NON-URGENT
+regime, where the chip actually reserves+idles.** ONE mechanism; two request-state
+manifestations (pending-unready vs registered-late).
+
+## What is now bounded vs still open
+
+- **CLOSED (mechanism):** over-prefetch = the eval_ext waited-completion override
+  issuing a prefetch when a pending (unready/late) EU reservation should reserve
+  the bus; the chip's proof is the idle slot. RTL target: gate the eval_ext
+  override so a pending EU reservation suppresses the prefetch in the non-urgent
+  regime, WITHOUT regressing the urgent/starved string case (pf_late_rsv) or RMW
+  (ext_ok_wr) that the override was fitted for.
+- **STILL OPEN (for a formal closure/table):** the exact reservation-age x
+  queue-URGENCY x access-KIND boundary (I measured the non-urgent eligible
+  regime; the urgent/string boundary where young SHOULD lose to CODE needs the
+  string/RMW comparison); the Phase-2e "6 non-eval_ext" - at the corrected commit
+  strobe all 8 here are eval_ext, so those 6 were likely the T1-1 sampling
+  artifact, but not confirmed against the exact 27; the w0 young-cell
+  re-measurement; a formally validated collision-free table on held-out families.
+
+## Honest bottom line (Phase 2h)
+
+- **A retired; B decided over C; B's failing form PROVEN** (universal idle-slot
+  signature). The mechanism and RTL target are now concrete: the eval_ext
+  override must respect a pending EU reservation (reserve/idle) in the non-urgent
+  regime, preserving the urgent/string/RMW exceptions.
+- **Not yet a formally-closed bounded TABLE:** the urgency x access-kind threshold
+  boundary and held-out validation remain. Phase 2i (if required before RTL):
+  map the urgency/access-kind boundary (string/RMW/IO) so the Phase-3 fix does
+  not regress the cases pf_late_rsv/ext_ok_wr were fitted for; re-measure w0 young
+  cells vs chip. Phase-3 design target (unchanged): ONE age+urgency-aware
+  arbitration transition at every edge, eval_ext demoted to an edge label.
+
 Tools: `sw/causal_wrand.py`. Repro examples:
+`python3 sw/causal_wrand.py idleslot --seeds 90003 90007 90015 --nws 8 --wmaxes 1 3 7`;
 `python3 sw/causal_wrand.py leactl --maxn 8`;
 `python3 sw/causal_wrand.py nocomp --seed 90003 --refws 2`;
 `python3 sw/causal_wrand.py predicate --seeds 90003 90007 90015 --nws 8 --wmaxes 1 3 7`;
