@@ -1153,6 +1153,59 @@ successor x grid-phase). eu_req=0 EU-onset (19%) is the next-largest residual.
 
 Repro (law): `python3 sw/causal_wrand.py class5law --seeds 90003 90007 90015 90021 90030 90042 90051 90063 90077 90088 --nws 10 --wmaxes 1 3 7`.
 
+# Phase 3b — class-5 EARLY fix ATTEMPT: REFUTED by Gate A (NOT flashed)
+
+Codex greenlit a scoped push-absorb gate (prefetch_ok &&= !(pf_drain && push_now)).
+I authored it and ran the two must-pass gates. **It FAILS Gate A decisively and
+regressed the waited goldens - REVERTED, NOT flashed.**
+
+## Golden regression (immediate red flag)
+
+With the gate: check_core w0 169000/169000 (w0-neutral OK) but **w1 347/1200,
+w3 350/1200** (arch ~1173/1200 intact, but cycle-exact shattered). The gate adds
+an idle cycle in the common waited-refill cadence that the real chip does NOT
+insert. RTL REVERTED to baseline (169000/169000).
+
+## Gate A (opportunity census) - the causal hole, quantified
+
+`causal_wrand.py gatea`: enumerate ALL aligned deferred-push CODE->CODE refill
+opportunities (waited predecessor, push deferred T4->T4+1, model launches during
+the push = the gate's exact target), INCLUDING timing-clean ones, and ask what
+the CHIP does. 17052 opportunities over the 300-vector corpus:
+
+- **CHIP begins CODE (prefetches; gate WRONG): 16952/17052 = 99.4%.**
+- **CHIP idles (class-5; gate RIGHT): 100/17052 = 0.6%.**
+- => MIXED, catastrophically toward CODE. The chip PREFETCHES during a deferred
+  push almost always; it idles in only 0.6% of them.
+- NO measured field separates the 100 idle cases: eu_consuming (2 mixed cells),
+  occ (3), q_cnt (3), q_avl (3), pop_cnt (5), grid_phase (1), push_now (1); joint
+  (eu_consuming, occ) also mixed (e.g. euc=1 occ=2: 11488 CODE vs 48 idle).
+
+## The correction to the class-5 LAW (important)
+
+class5law's '62/62 launch during push' was EXACTLY the KNOWN-ERROR SAMPLING BIAS
+Codex flagged: the deferred push is NECESSARY (100% of class-5 errors follow one)
+but NOT SUFFICIENT - 99.4% of deferred-push refills are CORRECT (chip prefetches,
+model prefetches, match). The push-PHASE is CORRELATED with the class-5 error, not
+its cause. The 100 real chip-idle cases are governed by a discriminator NOT present
+in the currently-dumped state (pf_drain/push_now/eu_consuming/occ/q_cnt/q_avl/
+pop_cnt/grid_phase). A gate on the deferred push alone wrongly suppresses 16952
+chip-CODE prefetches.
+
+## Bottom line - DO NOT FLASH
+
+Per Codex's Gate-A stop rule (MIXED => find the discriminator BEFORE gating), the
+scoped push-absorb gate is REFUTED and NOT flashed. The class-5 EARLY sub-effect
+is real (100 chip-idle cases) but its discriminator is NOT yet identified - it is
+a RARE (0.6%) condition on top of the deferred push, needing finer state (candidate
+next probes: exact bus-grid phase of the push vs the eval; multi-cycle occupancy
+trajectory; the specific eval_ext/commit-point timing; whether the successor's
+own fetch parity/grid alignment gates it). The fabric remains on the committed
+narrow arbitration veto (2963147); no class-5 RTL. eu_req=0 (19%) and the class-5
+discriminator hunt are the open items.
+
+Repro (Gate A): `python3 sw/causal_wrand.py gatea --seeds 90003 90007 90015 90021 90030 90042 90051 90063 90077 90088 --nws 10 --wmaxes 1 3 7`.
+
 ## Verdict for Codex (scope decision before flash)
 
 The narrow source-aware veto is CORRECT, source CONFIRMED CAUSAL (S_DHI vs S_MHI

@@ -1918,6 +1918,97 @@ def cmd_class5tax(a):
     return 0
 
 
+def cmd_gatea(a):
+    """Phase-3b GATE A (Codex): opportunity census. class5law only sampled
+    KNOWN-error vectors (proves the hazard exists, not that EVERY deferred-push
+    opportunity should block). Enumerate ALL aligned deferred-push opportunities
+    (waited predecessor CODE, push deferred T4->T4+1, model launches a CODE
+    refill during it) INCLUDING timing-CLEAN ones, and ask: does the CHIP idle
+    (class-5, gate right) or begin CODE at the same local gap (gate WRONG)? If
+    MIXED, find the discriminator that separates them BEFORE any gate."""
+    import random as _r
+    from collections import defaultdict, Counter
+    recs = []
+    for seed in a.seeds:
+        g = generate(f"fz{seed}", exts=())
+        image, meta = compose(g)
+        for ws in range(1, a.nws + 1):
+            for wmax in a.wmaxes:
+                wv = [_r.Random((ws << 8) | wmax).randint(0, wmax) for _ in range(4096)]
+                cr = run_chip(image, a.host, use_core=False, wvec=wv)
+                crel = cr[next(i for i, r in enumerate(cr) if not r["rst"]):]
+                kr = run_tb_internal(image, 4200, wv)
+                ca = _acc_rows(crel, "t", "bs_early", "ad_addr")
+                ka = _acc_rows(kr, "t", "bs", "addr")
+                n = min(len(ca), len(ka))
+                # aligned prefix: (bs,addr) match up to first mismatch
+                lim = next((i for i in range(n)
+                            if ca[i]["bs"] != ka[i]["bs"]
+                            or ca[i]["addr"] != ka[i]["addr"]), n)
+                for k in range(1, lim):
+                    if ka[k]["bs"] != CODE:
+                        continue
+                    kprev = ka[k - 1]
+                    if kprev["bs"] != CODE or kprev["tw"] == 0:
+                        continue      # predecessor must be a WAITED fetch
+                    # deferred push? push_now==0 at pred T4, !=0 at T4+1
+                    t4 = kr[kprev["t4"]]
+                    t4p1 = kr[min(kprev["t4"] + 1, len(kr) - 1)]
+                    if t4.get("push_now", 0) != 0 or t4p1.get("push_now", 0) == 0:
+                        continue      # not a deferred push
+                    # did the MODEL launch the refill during/right after the push?
+                    # (its gap is short); the gate would block exactly these.
+                    dec = kr[max(0, ka[k]["t1"] - 1)]
+                    if not (dec.get("pf_drain", 0) and dec.get("push_now", 0)):
+                        continue      # gate target = pf_drain && push_now at launch
+                    cgap = ca[k]["t1"] - ca[k - 1]["t4"]
+                    fgap = ka[k]["t1"] - kprev["t4"]
+                    chip_idles = cgap > fgap        # chip waited longer = class-5
+                    recs.append(dict(seed=seed, ws=ws, wmax=wmax, chip_idles=int(chip_idles),
+                                     cgap=cgap, fgap=fgap,
+                                     euc=dec.get("eu_consuming", -1),
+                                     popc=dec.get("pop_cnt", -1), occ=dec["occupied"],
+                                     qc=dec["q_cnt"], qavl=dec["q_avl"],
+                                     gph=dec.get("grid_phase", -1),
+                                     pushnow=dec.get("push_now", -1),
+                                     t4occ=t4["occupied"], t4qcnt=t4["q_cnt"]))
+    print(f"gateA: {len(recs)} deferred-push CODE-refill opportunities "
+          f"(model launches during the push = the gate's target)")
+    if not recs:
+        print("  (none)"); return 0
+    idle = sum(r["chip_idles"] for r in recs)
+    code = len(recs) - idle
+    print(f"  CHIP action: idles (class-5, gate RIGHT) {idle}/{len(recs)}; "
+          f"begins CODE at same/earlier gap (gate WRONG) {code}/{len(recs)}")
+    print(f"  => {'CLEAN: chip always idles => gate correct' if code == 0 else 'MIXED => a discriminator is REQUIRED before gating'}")
+    if code == 0:
+        return 0
+    # discriminator search: which field separates idle from CODE?
+    def split(field):
+        t = defaultdict(Counter)
+        for r in recs:
+            t[r[field]][r["chip_idles"]] += 1
+        coll = sum(1 for v in t.values() if len(v) > 1)
+        return coll, t
+    print("  discriminator search (chip_idles 1=idle/class-5, 0=CODE/clean):")
+    for f in ["euc", "occ", "qc", "qavl", "popc", "gph", "t4occ", "t4qcnt", "pushnow"]:
+        coll, t = split(f)
+        tag = "  <== SEPARATES" if coll == 0 else ""
+        print(f"     by {f}: {coll} mixed cells{tag}")
+        if coll == 0:
+            for kk, vv in sorted(t.items()):
+                print(f"        {f}={kk}: {dict(vv)}")
+    # joint (euc, occ) since pf_lim uses eu_consuming
+    tj = defaultdict(Counter)
+    for r in recs:
+        tj[(r["euc"], r["occ"])][r["chip_idles"]] += 1
+    cj = sum(1 for v in tj.values() if len(v) > 1)
+    print(f"  joint (eu_consuming, occ): {cj} mixed cells")
+    for kk, vv in sorted(tj.items()):
+        print(f"     euc={kk[0]} occ={kk[1]}: {dict(vv)}{'  <-- MIXED' if len(vv)>1 else ''}")
+    return 0
+
+
 def cmd_class5law(a):
     """Phase-3b: MEASURE the post-waited-fetch refill idle-count LAW. For each
     class-5 CODE->X anchor collect chip_Ti (ground truth) + model_Ti and the
@@ -2414,6 +2505,14 @@ def main():
     p.add_argument("--nws", type=int, default=10)
     p.add_argument("--wmaxes", type=int, nargs="+", default=[1, 3, 7])
     p.set_defaults(fn=cmd_class5law)
+    p = sub.add_parser("gatea")
+    p.add_argument("--host", default="root@mister-nec")
+    p.add_argument("--seeds", type=int, nargs="+",
+                   default=[90003, 90007, 90015, 90021, 90030,
+                            90042, 90051, 90063, 90077, 90088])
+    p.add_argument("--nws", type=int, default=10)
+    p.add_argument("--wmaxes", type=int, nargs="+", default=[1, 3, 7])
+    p.set_defaults(fn=cmd_gatea)
     p = sub.add_parser("class5sweep")
     p.add_argument("--host", default="root@mister-nec")
     p.add_argument("--seed", type=int, default=90042)
