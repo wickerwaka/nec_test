@@ -1206,6 +1206,69 @@ discriminator hunt are the open items.
 
 Repro (Gate A): `python3 sw/causal_wrand.py gatea --seeds 90003 90007 90015 90021 90030 90042 90051 90063 90077 90088 --nws 10 --wmaxes 1 3 7`.
 
+# Phase 3b — class-5 discriminator FOUND: the multi-cycle QUEUE-CONSUMPTION TRAJECTORY
+
+Owner chose to keep drilling class-5. Codex: the coarse fields discard the
+placement/provenance that governs the rare 0.6% idle. Ran the enriched
+provenance/history experiment (`gatea2`) recording the COMPLETE W-cycle window
+per opportunity, and a controlled pop-phase intervention (`class5pop`). Result:
+the discriminator IS a bounded, reconstructable window - the multi-cycle QUEUE-
+CONSUMPTION TRAJECTORY - NOT deeper-than-observable internal state.
+
+## Enriched separation (17052 opportunities: 100 chip-IDLE / 16952 chip-CODE)
+
+Idle-collision = idle cases sharing the key with a CODE case (lower = better):
+- SINGLE snapshot fields ALL fail: grid_phase/bus_phase/EU-state/parity/occ/
+  push-eval-phase = 100/100 collide; q_cnt/q_avl = 85/100; opcode = 98/100.
+- raw pop_sr PLACEMENT = 83/100 (17 pure-idle) - BETTER than pop_cnt (fully
+  mixed) => recency/ORDER matters (Codex Factorial C confirmed), but not alone.
+- **QUEUE TRAJECTORY (q_cnt/q_avl/q_aged/push/pop per cycle): window=8 -> 43/100
+  collide; window=12 -> 5/100 (95 pure-idle).**
+- **FULL 12-cycle window (all core BIU state): 0/100 collision - SEPARATES.**
+  (window=8 full-window still had 12/100.)
+
+## The KEY inference: bounded history, NOT internal state, NOT overfitting
+
+Going window 8->12 drops the collision 12->0 (full) and 43->5 (queue-traj). The
+LONGER HISTORY specifically helps; at window=8 there were already 846 distinct
+full-window keys (>> 100 idle) yet 12 still collided - so MORE KEYS at fixed
+length did NOT separate, but 4 more cycles of CONSUMPTION HISTORY did. That
+asymmetry argues the signal is a REAL bounded ~12-cycle queue-consumption
+trajectory, not memorization and not sub-observable internal state (a fully
+reconstructable window separates).
+
+## Controlled intervention (class5pop) - outcome tracks the consumption state
+
+On an IDLE anchor (fz90007), sweeping upstream-access waits: the chip flips
+idle->CODE ONLY when the anchor's queue-consumption state MOVES (off-1: q_cnt
+1->4, popsr/push-eval shift -> FLIP); when the anchor state is HELD (off-2/3/4:
+q_cnt/q_avl/popsr/push-eval all unchanged) the outcome does NOT flip. So the
+class-5 idle/CODE outcome is a deterministic function of the anchor's queue-
+consumption trajectory. (This anchor co-moved q_cnt with pop-phase, so it did not
+isolate pop-phase from occupancy alone; a padding-based single-pop-shift is the
+follow-up to fully dissociate them - but the window=12 separation already shows
+the trajectory is sufficient.)
+
+## Bottom line (class-5 discriminator)
+
+FOUND: the class-5 EARLY discriminator is the **multi-cycle QUEUE-CONSUMPTION-PHASE
+TRAJECTORY** (the exact ~8-12-cycle sequence of pop-vs-push timing / q_cnt-q_avl-
+q_aged evolution), which the coarse snapshot (occ, q_cnt, pop_cnt, grid_phase)
+DISCARDS. It is a BOUNDED, bus-reconstructable window (full 12-cycle window
+separates 0/100) - it does NOT need internal state the dump lacks. pop_sr
+PLACEMENT is a confirmed contributor (recency/order). The 99.4%-CODE / 0.6%-idle
+split is a fine phase condition on the consumption trajectory, not a threshold.
+IMPLICATION for a fix: the refill-eligibility rule needs a phase/trajectory-aware
+predicate (when the just-pushed bytes' consumption phase aligns), NOT a pf_lim
+threshold and NOT the coarse pf_drain marker - a genuinely harder model than the
+arbitration source rule. Next: a padding-based single-pop-shift to isolate
+pop-phase from occupancy, then fit the minimal sufficient trajectory statistic
+(candidate: push-eval phase + last-few-cycle pop placement) and re-test
+collision-freeness before any RTL. eu_req=0 (19%) stays tracked/deprioritized.
+
+Repro (enriched): `python3 sw/causal_wrand.py gatea2 --seeds 90003 90007 90015 90021 90030 90042 90051 90063 90077 90088 --nws 10 --wmaxes 1 3 7 --window 12`;
+`python3 sw/causal_wrand.py class5pop --seed 90007 --ws 2 --wmax 7`.
+
 ## Verdict for Codex (scope decision before flash)
 
 The narrow source-aware veto is CORRECT, source CONFIRMED CAUSAL (S_DHI vs S_MHI

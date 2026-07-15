@@ -734,6 +734,8 @@ def run_tb_internal(image, n, wvec):
             d = pend
             rows.append(dict(
                 t=int(p[1]), bs=int(p[2]), qs=int(p[3]), addr=int(p[5], 16),
+                opc=int(d[9], 16), bus_phase=int(d[11]), bus_ts=int(d[12]),
+                evald=int(d[19]),
                 state=int(d[1]), q_pop=int(d[2]), q_avl=int(d[3]), q_cnt=int(d[4]),
                 eu_req=int(d[15]), eu_ready=int(d[16]), q_flush=int(d[17]),
                 eval_ext=int(d[18]), occupied=int(d[21]), q_aged=int(d[22]),
@@ -2009,6 +2011,161 @@ def cmd_gatea(a):
     return 0
 
 
+def cmd_gatea2(a):
+    """Phase-3b ENRICHED Gate-A provenance/history experiment (Codex): for EVERY
+    deferred-push CODE->CODE refill opportunity, record the COMPLETE W-cycle
+    window ending at the proposed refill T1 (raw pop_sr placement, EU-state
+    trajectory, multi-cycle queue trajectory, push/eval relative phase,
+    predecessor/successor parity/width, grid/bus phase) and test which rich
+    dimension(s) cleanly separate the ~100 chip-IDLE (class-5) from the ~16952
+    chip-CODE. Reports the idle-collision rate per key + the full-window collision
+    test, and dumps near-identical idle/CODE pairs for the controlled
+    intervention. Chip = ground truth; explicit-vector replay."""
+    import random as _r
+    from collections import defaultdict, Counter
+    W = a.window
+    recs = []
+    for seed in a.seeds:
+        g = generate(f"fz{seed}", exts=())
+        image, meta = compose(g)
+        for ws in range(1, a.nws + 1):
+            for wmax in a.wmaxes:
+                wv = [_r.Random((ws << 8) | wmax).randint(0, wmax) for _ in range(4096)]
+                cr = run_chip(image, a.host, use_core=False, wvec=wv)
+                crel = cr[next(i for i, r in enumerate(cr) if not r["rst"]):]
+                kr = run_tb_internal(image, 4200, wv)
+                ca = _acc_rows(crel, "t", "bs_early", "ad_addr")
+                ka = _acc_rows(kr, "t", "bs", "addr")
+                n = min(len(ca), len(ka))
+                lim = next((i for i in range(n)
+                            if ca[i]["bs"] != ka[i]["bs"]
+                            or ca[i]["addr"] != ka[i]["addr"]), n)
+                for k in range(1, lim):
+                    if ka[k]["bs"] != CODE:
+                        continue
+                    kprev = ka[k - 1]
+                    if kprev["bs"] != CODE or kprev["tw"] == 0:
+                        continue
+                    t4 = kr[kprev["t4"]]
+                    t4p1 = kr[min(kprev["t4"] + 1, len(kr) - 1)]
+                    if t4.get("push_now", 0) != 0 or t4p1.get("push_now", 0) == 0:
+                        continue
+                    r1 = ka[k]["t1"]
+                    dec = kr[max(0, r1 - 1)]
+                    if not (dec.get("pf_drain", 0) and dec.get("push_now", 0)):
+                        continue
+                    cgap = ca[k]["t1"] - ca[k - 1]["t4"]
+                    fgap = ka[k]["t1"] - kprev["t4"]
+                    chip_idles = int(cgap > fgap)
+                    win = kr[max(0, r1 - W):r1]      # W cycles ending before T1
+                    # projections
+                    qtraj = tuple((w["q_cnt"], w["q_avl"], w["q_aged"],
+                                   w.get("push_now", -1), w.get("pop_now", -1))
+                                  for w in win)
+                    strajr = tuple(w["state"] for w in win)
+                    fullwin = tuple((w["bus_ts"] if "bus_ts" in w else -1, w["state"],
+                                     w["q_cnt"], w["q_avl"], w["q_aged"],
+                                     w.get("push_now", -1), w.get("pop_now", -1),
+                                     w["occupied"], w["infl"], w["eval_ext"],
+                                     w.get("grid_phase", -1)) for w in win)
+                    # push/eval relative phase within the window
+                    pushc = next((j for j, w in enumerate(win) if w.get("push_now", 0)), -1)
+                    evalc = next((j for j, w in enumerate(win) if w["eval_ext"]), -1)
+                    recs.append(dict(
+                        seed=seed, ws=ws, wmax=wmax, idle=chip_idles,
+                        popsr=dec.get("pop_sr", -1), gph=dec.get("grid_phase", -1),
+                        bph=dec.get("bus_phase", -1), eu_state=dec["state"],
+                        opc=dec.get("opc", -1),
+                        pred_par=kprev["addr"] & 1, pred_tw=kprev["tw"],
+                        succ_par=ka[k]["addr"] & 1,
+                        pred_addr=kprev["addr"], succ_addr=ka[k]["addr"],
+                        pusheval=(pushc - evalc), occ=dec["occupied"],
+                        qc=dec["q_cnt"], qavl=dec["q_avl"], qag=dec["q_aged"],
+                        qtraj=qtraj, straj=strajr, fullwin=fullwin))
+    idle = [r for r in recs if r["idle"]]
+    code = [r for r in recs if not r["idle"]]
+    print(f"gatea2: {len(recs)} opportunities ({len(idle)} chip-IDLE / {len(code)} chip-CODE), window={W}")
+    if not idle:
+        print("  (no idle cases)"); return 0
+
+    def sep(key, label):
+        """idle records whose key value ALSO occurs for a CODE record = collision."""
+        codekeys = Counter(r[key] if not isinstance(r[key], (list,)) else tuple(r[key])
+                           for r in code)
+        idlekeys = Counter(r[key] for r in idle)
+        coll = sum(cnt for kk, cnt in idlekeys.items() if kk in codekeys)
+        distinct = len(set(list(idlekeys) + list(codekeys)))
+        pure_idle = sum(cnt for kk, cnt in idlekeys.items() if kk not in codekeys)
+        print(f"  [{label}] idle-collision {coll}/{len(idle)} "
+              f"(pure-idle cells hold {pure_idle}); distinct keys={distinct}"
+              f"{'  <== SEPARATES' if coll == 0 else ''}")
+        return coll
+
+    print("  SINGLE-dimension separation (idle cases sharing the key with a CODE case):")
+    for key, lab in [("popsr", "raw pop_sr placement"), ("gph", "grid_phase"),
+                     ("bph", "bus_phase"), ("eu_state", "EU state (provenance)"),
+                     ("opc", "opcode consumed"), ("pusheval", "push-eval phase"),
+                     ("succ_par", "successor parity"), ("pred_par", "predecessor parity"),
+                     ("occ", "occupied@dec"), ("qc", "q_cnt@dec"), ("qavl", "q_avl@dec")]:
+        sep(key, lab)
+    print("  MULTI-dimension / trajectory separation:")
+    for key, lab in [("qtraj", f"queue trajectory (last {W})"),
+                     ("straj", f"EU-state trajectory (last {W})"),
+                     ("fullwin", f"FULL window (last {W}, all core BIU state)")]:
+        sep(key, lab)
+    # joint small keys
+    from itertools import combinations
+    small = ["gph", "eu_state", "succ_par", "pred_par", "pusheval", "occ", "qc"]
+    best = None
+    for r_ in (2, 3):
+        for combo in combinations(small, r_):
+            ck = Counter(tuple(r[c] for c in combo) for r in code)
+            ik = Counter(tuple(r[c] for c in combo) for r in idle)
+            coll = sum(cnt for kk, cnt in ik.items() if kk in ck)
+            if best is None or coll < best[0]:
+                best = (coll, combo)
+    print(f"  best small-field joint: {best[1]} -> idle-collision {best[0]}/{len(idle)}")
+    # FULL-WINDOW COLLISIONS: idle cases whose entire W-cycle window == a CODE case
+    codewin = defaultdict(list)
+    for r in code:
+        codewin[r["fullwin"]].append(r)
+    collided = [r for r in idle if r["fullwin"] in codewin]
+    print(f"  *** FULL-WINDOW COLLISIONS: {len(collided)}/{len(idle)} idle cases have a "
+          f"CODE twin with IDENTICAL {W}-cycle window (=> discriminator NOT in this window) ***")
+    for r in collided[:6]:
+        c = codewin[r["fullwin"]][0]
+        # what differs OUTSIDE the window fingerprint?
+        diffs = []
+        for f in ["popsr", "eu_state", "opc", "gph", "bph", "pred_par", "succ_par",
+                  "pred_addr", "succ_addr", "pusheval", "pred_tw"]:
+            if r[f] != c[f]:
+                diffs.append(f"{f}:{r[f]}!={c[f]}")
+        print(f"     IDLE fz{r['seed']} ws{r['ws']} wmax{r['wmax']} B(succ)@{r['succ_addr']:05x} "
+              f"vs CODE fz{c['seed']} ws{c['ws']} wmax{c['wmax']} @{c['succ_addr']:05x}")
+        print(f"       outside-window diffs: {diffs if diffs else 'NONE (fully identical on all recorded fields)'}")
+    # near-identical idle/CODE pairs (same qtraj+parities) for the intervention
+    print("  near-identical idle/CODE pairs (same queue-traj + parities, for intervention):")
+    codeidx = defaultdict(list)
+    for r in code:
+        codeidx[(r["qtraj"], r["pred_par"], r["succ_par"])].append(r)
+    shown = 0
+    for r in idle:
+        cand = codeidx.get((r["qtraj"], r["pred_par"], r["succ_par"]), [])
+        if cand and shown < 4:
+            c = cand[0]
+            print(f"     IDLE fz{r['seed']} ws{r['ws']} wmax{r['wmax']} popsr={r['popsr']:08b} "
+                  f"eu_state={r['eu_state']} gph={r['gph']} pusheval={r['pusheval']}")
+            print(f"     CODE fz{c['seed']} ws{c['ws']} wmax{c['wmax']} popsr={c['popsr']:08b} "
+                  f"eu_state={c['eu_state']} gph={c['gph']} pusheval={c['pusheval']}")
+            print(f"       differ: popsr {'YES' if r['popsr']!=c['popsr'] else 'no'} "
+                  f"eu_state {'YES' if r['eu_state']!=c['eu_state'] else 'no'} "
+                  f"gph {'YES' if r['gph']!=c['gph'] else 'no'} "
+                  f"pusheval {'YES' if r['pusheval']!=c['pusheval'] else 'no'}")
+            shown += 1
+    print(f"  (idle cases with a same-qtraj+parity CODE twin = full-window COLLISION candidates)")
+    return 0
+
+
 def cmd_class5law(a):
     """Phase-3b: MEASURE the post-waited-fetch refill idle-count LAW. For each
     class-5 CODE->X anchor collect chip_Ti (ground truth) + model_Ti and the
@@ -2110,6 +2267,94 @@ def cmd_class5law(a):
           f"by (occ@T4, curbs): {dict(sorted(Counter((r['t4_occ'],r['curbs']) for r in late).items()))}")
     print(f"  EARLY err magnitude by occ@T4: "
           f"{ {o: dict(sorted(Counter(r['err'] for r in early if r['t4_occ']==o).items())) for o in sorted(set(r['t4_occ'] for r in early))} }")
+    return 0
+
+
+def cmd_class5pop(a):
+    """Phase-3b controlled intervention: on a class-5 IDLE anchor, sweep the wait
+    on each of several UPSTREAM accesses (N=0..3). For each variant that keeps the
+    bus stream aligned THROUGH the anchor (same predecessor+successor CODE identity
+    + decision q_cnt/q_avl), report the CHIP anchor idle-count and the model's
+    consumption phase (push-eval offset, pop placement, clocks-since-last-pop) at
+    the refill decision. If shifting an upstream wait FLIPS the chip idle->CODE and
+    it corresponds to a pop-vs-push PHASE shift (queue held), the class-5 EARLY
+    rule is a bounded queue-consumption-phase law - CAUSALLY confirmed."""
+    import random as _r
+    seed, ws, wmax = a.seed, a.ws, a.wmax
+    g = generate(f"fz{seed}", exts=())
+    image, meta = compose(g)
+    wv0 = [_r.Random((ws << 8) | wmax).randint(0, wmax) for _ in range(4096)]
+    cr = run_chip(image, a.host, use_core=False, wvec=wv0)
+    rst = next(i for i, r in enumerate(cr) if not r["rst"])
+    crel = cr[rst:]
+    kr = run_tb_internal(image, 4200, wv0)
+    ca = _acc_rows(crel, "t", "bs_early", "ad_addr")
+    ka = _acc_rows(kr, "t", "bs", "addr")
+    preoff = sum(1 for i in range(rst) if cr[i]["t"] == 1)
+    n = min(len(ca), len(ka))
+    # find a class-5 IDLE CODE->CODE anchor (chip idles more than model)
+    kd = None
+    for i in range(2, n):
+        if ca[i]["bs"] != ka[i]["bs"] or ca[i]["addr"] != ka[i]["addr"]:
+            break
+        if ka[i]["bs"] == CODE and ka[i - 1]["bs"] == CODE and ka[i - 1]["tw"] > 0:
+            cgap = ca[i]["t1"] - ca[i - 1]["t4"]; fgap = ka[i]["t1"] - ka[i - 1]["t4"]
+            if cgap > fgap:
+                kd = i; break
+    if kd is None:
+        print(f"fz{seed} ws{ws} wmax{wmax}: no class-5 IDLE anchor"); return 0
+    A_prev, A_cur = ca[kd - 1]["addr"], ca[kd]["addr"]
+    print(f"fz{seed} ws{ws} wmax{wmax}: IDLE anchor #{kd} "
+          f"(CODE@{A_prev:05x}->CODE@{A_cur:05x}); baseline chip idles more than model")
+    print(f"  sweeping upstream access waits to shift consumption phase; "
+          f"'FLIP' = chip anchor changes idle<->code")
+    def measure(wv):
+        c = run_chip(image, a.host, use_core=False, wvec=wv)
+        crl = c[next(i for i, r in enumerate(c) if not r["rst"]):]
+        k = run_tb_internal(image, 4200, wv)
+        cca = _acc_rows(crl, "t", "bs_early", "ad_addr")
+        kka = _acc_rows(k, "t", "bs", "addr")
+        ai = next((i for i in range(2, min(len(cca), len(kka)))
+                   if cca[i]["addr"] == A_cur and cca[i]["bs"] == CODE
+                   and cca[i - 1]["addr"] == A_prev), None)
+        if ai is None:
+            return None
+        aligned = all(cca[j]["bs"] == kka[j]["bs"] and cca[j]["addr"] == kka[j]["addr"]
+                      for j in range(1, min(ai + 1, len(cca), len(kka))))
+        cgap = cca[ai]["t1"] - cca[ai - 1]["t4"]; fgap = kka[ai]["t1"] - kka[ai - 1]["t4"]
+        dec = k[max(0, kka[ai]["t1"] - 1)]
+        win = k[max(0, kka[ai]["t1"] - 12):kka[ai]["t1"]]
+        pushc = next((j for j, w in enumerate(win) if w.get("push_now", 0)), -1)
+        evalc = next((j for j, w in enumerate(win) if w["eval_ext"]), -1)
+        sincepop = next((j for j in range(len(win) - 1, -1, -1)
+                         if win[j].get("pop_now", 0)), -1)
+        return dict(cgap=cgap, fgap=fgap, chip_idles=int(cgap > fgap), aligned=aligned,
+                    qc=dec["q_cnt"], qavl=dec["q_avl"], popsr=dec.get("pop_sr", -1),
+                    pusheval=(pushc - evalc), sincepop=len(win) - 1 - sincepop)
+    base = measure(wv0)
+    print(f"  BASELINE: chip idles={base['chip_idles']} cgap={base['cgap']} fgap={base['fgap']} "
+          f"q_cnt={base['qc']} q_avl={base['qavl']} popsr={base['popsr']:08b} "
+          f"push-eval={base['pusheval']} since-pop={base['sincepop']}")
+    for off in range(1, a.maxoff + 1):
+        pos = kd - off
+        if pos < 1:
+            break
+        wvidx = preoff + pos
+        for N in range(0, a.maxn + 1):
+            if N == wv0[wvidx]:
+                continue
+            wv = list(wv0); wv[wvidx] = N
+            m = measure(wv)
+            if m is None or not m["aligned"]:
+                continue
+            flip = "FLIP" if m["chip_idles"] != base["chip_idles"] else ""
+            held = (m["qc"] == base["qc"] and m["qavl"] == base["qavl"])
+            print(f"  upstream #{pos} (off-{off}) wait->{N}: chip_idles={m['chip_idles']} "
+                  f"cgap={m['cgap']} fgap={m['fgap']} q_cnt={m['qc']} q_avl={m['qavl']} "
+                  f"popsr={m['popsr']:08b} push-eval={m['pusheval']} since-pop={m['sincepop']} "
+                  f"{'[queue HELD]' if held else '[queue moved]'} {flip}")
+    print("  => a FLIP with queue HELD but consumption-PHASE shifted (push-eval/since-pop/"
+          "popsr) => bounded queue-consumption-phase rule confirmed causal.")
     return 0
 
 
@@ -2513,6 +2758,23 @@ def main():
     p.add_argument("--nws", type=int, default=10)
     p.add_argument("--wmaxes", type=int, nargs="+", default=[1, 3, 7])
     p.set_defaults(fn=cmd_gatea)
+    p = sub.add_parser("gatea2")
+    p.add_argument("--host", default="root@mister-nec")
+    p.add_argument("--seeds", type=int, nargs="+",
+                   default=[90003, 90007, 90015, 90021, 90030,
+                            90042, 90051, 90063, 90077, 90088])
+    p.add_argument("--nws", type=int, default=10)
+    p.add_argument("--wmaxes", type=int, nargs="+", default=[1, 3, 7])
+    p.add_argument("--window", type=int, default=8)
+    p.set_defaults(fn=cmd_gatea2)
+    p = sub.add_parser("class5pop")
+    p.add_argument("--host", default="root@mister-nec")
+    p.add_argument("--seed", type=int, default=90007)
+    p.add_argument("--ws", type=int, default=2)
+    p.add_argument("--wmax", type=int, default=7)
+    p.add_argument("--maxoff", type=int, default=4)
+    p.add_argument("--maxn", type=int, default=3)
+    p.set_defaults(fn=cmd_class5pop)
     p = sub.add_parser("class5sweep")
     p.add_argument("--host", default="root@mister-nec")
     p.add_argument("--seed", type=int, default=90042)
