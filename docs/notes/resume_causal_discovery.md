@@ -1269,6 +1269,57 @@ collision-freeness before any RTL. eu_req=0 (19%) stays tracked/deprioritized.
 Repro (enriched): `python3 sw/causal_wrand.py gatea2 --seeds 90003 90007 90015 90021 90030 90042 90051 90063 90077 90088 --nws 10 --wmaxes 1 3 7 --window 12`;
 `python3 sw/causal_wrand.py class5pop --seed 90007 --ws 2 --wmax 7`.
 
+# Phase 3b — class-5 COMPRESSION GATE: FAILED -> PIVOT to eu_req=0
+
+Codex: the 12-cycle window separation was NOT proven-generalizable (exact high-dim
+windows go unique with only ~100-166 positives; full window uses model-internal
+fields; queue-only still collided). Ran ONE focused fitting cycle with a compact
+temporal feature library, HELD-OUT validation by PROGRAM provenance, and a
+COMPRESSION STOP RULE. Tools: `gatea3` (dump raw windows to JSON, board-free
+refit), `sw/fit_class5.py` (feature library + greedy pure-idle decision-list +
+held-out eval). 24,249 opportunities over 15 programs (166 idle / 24,083 CODE).
+
+## Fit + held-out (train=5 discovery / held=5 / fresh=5 NEW programs)
+
+Feature library (39 temporal features: last/2nd_pop_age, popcnt & popmask over
+4/8/12, min/max q_cnt over 4/8/12, q_cnt at offsets -1..-12, time-since-q_cnt<=t,
+q_cnt transitions, push/eval-to-last-pop, signed queue flow, EU-state, grid_phase).
+
+- **6/51 train idle are FULL-FEATURE-IDENTICAL to a CODE case** (unpurifiable even
+  with ALL 39 features) => the discriminator is partly ABSENT from the compact
+  feature space (the earlier 0/100 full-window separation was the exact-fingerprint
+  MEMORIZATION Codex warned of, not a compact rule).
+- To cover the 45 purifiable train idle at ZERO train FP the greedy needs
+  **21 features / 12 rules / 32 literals** => NO COMPRESSION (target was <=4
+  features & <=4 rules).
+- FROZEN-rule HELD-OUT: TRAIN recall 45/51 FP 0.000%; **HELD recall 40/49 CODE FP
+  40/7569 = 0.528%**; **FRESH recall 47/66 CODE FP 11/7131 = 0.154%**. Held-out FP
+  is NONZERO and ~comparable to the entire idle population being fixed (166 idle vs
+  11-40 wrongly-blocked CODE) => it would REGRESS about as much as it fixes.
+
+## Verdict: COMPRESSION FAILED -> STOP class-5, PIVOT to eu_req=0
+
+class-5 EARLY does NOT compress to a small (~3-4 bit) generalizable cadence rule
+that clears the zero-held-out-FP gate: the compact statistic leaves 12% of idle
+unpurifiable AND the full statistic is a memorized 12-cycle fingerprint that leaks
+0.15-0.53% held-out CODE false-positives. Per Codex's stop rule (do NOT implement a
+memorized history), the class-5 EARLY sub-effect is ABANDONED as a fix target. The
+mechanism is real (deferred-push hazard, a fine queue-consumption-phase condition)
+but it is NOT a bounded generalizable predicate at the resolution the current
+signals expose - the ~0.6% chip-idle exception is governed by cadence detail below
+a flashable rule. Padding pop-shift (Step 3) SKIPPED (gate failed first, per the
+stop rule).
+
+**RECOMMENDED PIVOT: the eu_req=0 EU-onset defect (19% of residual, a real BUS
+DECISION divergence with a bounded reservation-onset-timing mechanism)** - the
+next-largest lever and, unlike class-5, a decision (not sub-cycle-cadence) rule.
+Re-attribute eu_req=0 (currently an upper-bound 19%) and characterize the onset
+lateness (which EU states register their reservation a cycle late), then design the
+bounded fix. class-5 stays documented (deferred-push hazard + non-compression) as a
+known-residual for a possible future finer-signal probe, not blocking.
+
+Repro (fit): `python3 sw/causal_wrand.py gatea3 --seeds 90003 90007 90015 90021 90030 90042 90051 90063 90077 90088 90400 90411 90422 90433 90444 --nws 10 --wmaxes 1 3 7 --out /tmp/class5_data.json`; `python3 sw/fit_class5.py /tmp/class5_data.json`.
+
 ## Verdict for Codex (scope decision before flash)
 
 The narrow source-aware veto is CORRECT, source CONFIRMED CAUSAL (S_DHI vs S_MHI

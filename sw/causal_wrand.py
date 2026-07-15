@@ -2166,6 +2166,64 @@ def cmd_gatea2(a):
     return 0
 
 
+def cmd_gatea3(a):
+    """Phase-3b: DUMP per-opportunity raw consumption windows + labels to JSON so
+    a compact temporal statistic can be fit locally (board-free iteration) and
+    HELD-OUT validated by program provenance. One deferred-push CODE->CODE
+    opportunity per record: {seed, ws, wmax, idle, chip_ti, model_ti, addrs,
+    window[last W cycles of core queue-pipeline state]}."""
+    import random as _r, json
+    W = a.window
+    out = []
+    for seed in a.seeds:
+        g = generate(f"fz{seed}", exts=())
+        image, meta = compose(g)
+        for ws in range(1, a.nws + 1):
+            for wmax in a.wmaxes:
+                wv = [_r.Random((ws << 8) | wmax).randint(0, wmax) for _ in range(4096)]
+                cr = run_chip(image, a.host, use_core=False, wvec=wv)
+                crel = cr[next(i for i, r in enumerate(cr) if not r["rst"]):]
+                kr = run_tb_internal(image, 4200, wv)
+                ca = _acc_rows(crel, "t", "bs_early", "ad_addr")
+                ka = _acc_rows(kr, "t", "bs", "addr")
+                n = min(len(ca), len(ka))
+                lim = next((i for i in range(n)
+                            if ca[i]["bs"] != ka[i]["bs"]
+                            or ca[i]["addr"] != ka[i]["addr"]), n)
+                for k in range(1, lim):
+                    if ka[k]["bs"] != CODE:
+                        continue
+                    kprev = ka[k - 1]
+                    if kprev["bs"] != CODE or kprev["tw"] == 0:
+                        continue
+                    t4 = kr[kprev["t4"]]
+                    t4p1 = kr[min(kprev["t4"] + 1, len(kr) - 1)]
+                    if t4.get("push_now", 0) != 0 or t4p1.get("push_now", 0) == 0:
+                        continue
+                    r1 = ka[k]["t1"]
+                    dec = kr[max(0, r1 - 1)]
+                    if not (dec.get("pf_drain", 0) and dec.get("push_now", 0)):
+                        continue
+                    cgap = ca[k]["t1"] - ca[k - 1]["t4"]
+                    fgap = ka[k]["t1"] - kprev["t4"]
+                    win = kr[max(0, r1 - W):r1]
+                    wrec = [dict(qc=w["q_cnt"], qavl=w["q_avl"], qag=w["q_aged"],
+                                 push=w.get("push_now", 0), pop=w.get("pop_now", 0),
+                                 ev=w["eval_ext"], st=w["state"], occ=w["occupied"],
+                                 infl=w["infl"], bts=w.get("bus_ts", -1),
+                                 gph=w.get("grid_phase", -1)) for w in win]
+                    out.append(dict(seed=seed, ws=ws, wmax=wmax,
+                                    idle=int(cgap > fgap), chip_ti=cgap - 1,
+                                    model_ti=fgap - 1, pred=kprev["addr"],
+                                    succ=ka[k]["addr"], window=wrec))
+    import json as _j
+    open(a.out, "w").write(_j.dumps(out))
+    ni = sum(r["idle"] for r in out)
+    print(f"gatea3: dumped {len(out)} opportunities ({ni} idle / {len(out)-ni} code) "
+          f"to {a.out}")
+    return 0
+
+
 def cmd_class5law(a):
     """Phase-3b: MEASURE the post-waited-fetch refill idle-count LAW. For each
     class-5 CODE->X anchor collect chip_Ti (ground truth) + model_Ti and the
@@ -2767,6 +2825,15 @@ def main():
     p.add_argument("--wmaxes", type=int, nargs="+", default=[1, 3, 7])
     p.add_argument("--window", type=int, default=8)
     p.set_defaults(fn=cmd_gatea2)
+    p = sub.add_parser("gatea3")
+    p.add_argument("--host", default="root@mister-nec")
+    p.add_argument("--seeds", type=int, nargs="+",
+                   default=[90003, 90007, 90015, 90021, 90030])
+    p.add_argument("--nws", type=int, default=10)
+    p.add_argument("--wmaxes", type=int, nargs="+", default=[1, 3, 7])
+    p.add_argument("--window", type=int, default=12)
+    p.add_argument("--out", default="/tmp/class5_data.json")
+    p.set_defaults(fn=cmd_gatea3)
     p = sub.add_parser("class5pop")
     p.add_argument("--host", default="root@mister-nec")
     p.add_argument("--seed", type=int, default=90007)
