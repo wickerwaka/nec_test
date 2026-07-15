@@ -1,5 +1,79 @@
 # Exact-grid-state RESUME SCHEDULER — design + go/no-go (Phase B)
 
+## PHASE B BUILD RESULT (2026-07-15) — MAJOR FINDING: exact INSTANTANEOUS state does NOT close the gap>=3 residual
+
+Built B2 (measure the exact-state law) and attempted B3 (wire it). Outcome: the
+exact instantaneous internal state closes the DOMINANT resume cases but NOT the
+gap>=3 residual that DRIVES the drift, and — decisively — **the w0 100% control
+does not cover the hard cases** (w0 has ZERO big-gaps; every w0 resume is gap 1).
+So the greenlight's "w0 control proves the exact state closes it" argument holds
+only for the gap-1/2 majority; the gap>=3 residual is a waits-only phenomenon
+with no w0 control and no instantaneous discriminator.
+
+### B2 — the exact resume law (measured, exact_predict.py, clean pre-divergence prefix)
+The prefetch-resume gap from the queue-refill crossing, keyed on the RTL's EXACT
+internal state (occupied incl in-flight, q_cnt, q_avl, q_aged, infl, bus_ts,
+bus_phase, mod-P beat) -> chip gap:
+- **occ <= 3 -> gap 1** (immediate).
+- **occ == 4, beat == 0 -> gap 1**; **occ == 4, beat != 0 -> gap 2** (one idle),
+  UNIFORM across all beat!=0 (w1 beat1-4, w3 beat1-6). CLEAN, deterministic.
+- Overall closure (kind,occ,beat): **w1 98.7% / w3 99.6%**; big-gap 75-96%.
+
+### B3 — the minimal RTL realizations REGRESS (three attempts)
+1. Reverted Front 3c (+1 idle at ALL off-grid crossings): w1 307->660.
+2. Replace pf_lim consumption-gate with occ==4/beat!=0 +1-idle: w1 307->602;
+   golden bit-exact (w0 169000, w1/w3 1200) but drift WORSE.
+3. Isolation: removing the pf_lim consumption gate ALONE (beat off) already
+   regresses w1 315->456 (40-seed) — **the landed consumption-gate is
+   load-bearing** and already approximates the occ==4 pace as well as a local
+   mechanism achieves; the +1-idle via prefetch_ok-gate routes the resume
+   through do_commit (overshoot), not the mid-cycle path.
+The clean occ/beat law is thus LARGELY ALREADY REALIZED by the existing
+consumption-gate + do_commit timing; disturbing it only regresses.
+
+### B4 — the dominant residual has NO instantaneous discriminator (the major finding)
+The drift is driven by the **gap>=3** cases (e.g. seed90032: the chip inserts a
+~3-idle gap where the core resumes immediately), NOT the occ==4 gap-2 minority.
+Probing those cases with the FULL captured exact state:
+- At the ambiguous cell **(occ crossing q_cnt=2, q_avl=2, beat=0, q_fresh=0,
+  eu_started=0)** the chip gap is **1 (x169), 3 (x3), AND 4 (x10)** — IDENTICAL
+  captured instantaneous state, DIFFERENT chip outcomes. (idle_len "separates"
+  them only circularly: idle_len == gap since the crossing is at prev_end+1.)
+- So the gap>=3 resume is NOT a function of ANY captured instantaneous signal
+  (occupied / q_cnt / q_avl / q_aged / infl / bus_ts / bus_phase / mod-P beat /
+  q_fresh / eu_started). This REFUTES design-doc §4a's specific claim that
+  "occupancy + in-flight + q_aged + true grid phase" closes it — those are all
+  captured here and they do not.
+- The w0 100% control does NOT rescue this: w0 has zero big-gaps, so it never
+  exercises the gap>=3 cases. There is no w0 anchor for them.
+
+**VERDICT (honest, revised): the resume third's dominant residual is the
+history-dependent APERIODIC two-rhythm phase — the relative beat between the bus
+grid and the EU-consumption cadence ACCUMULATED over the aperiodic instruction
+history — which has NO compact instantaneous-state discriminator.** It is the
+same irreducible floor the prior campaign characterized (biu_model §Round 3 A2:
+"bidirectional bus-phase misalignment... no single-direction w0-neutral change
+closes a bidirectional drift"), now confirmed at the EXACT-INTERNAL-STATE level
+(stronger than the earlier bus-reconstructed characterization): even the exact
+instantaneous BIU state does not close it. A scheduler keyed on any compact
+instantaneous state cannot reproduce the gap>=3 cases; closing them would require
+carrying the full aperiodic fill-history phase — which the RTL only "has" as the
+running simulation itself, not as a compact trackable signal. This is the honest
+irreducible-floor characterization for the resume third; the occ/beat gap-1/2
+law is already realized by the landed consumption-gate. NO local w0-neutral
+change (six prior + three this phase = nine refutations) drops the resume drift.
+
+Recommendation: STOP forcing the resume third (don't ship a regression). The
+validated master (w1 307 / w3 476, silicon-confirmed) stands as the achieved
+floor. If the resume third is ever revisited, it needs a genuinely different
+approach than an instantaneous-state scheduler — e.g. a full free-running
+grid+consumption co-model tracking the aperiodic beat across the whole stream,
+whose w0-neutrality and golden-preservation are unproven and high-risk.
+
+---
+(Original design + go/no-go below; the B4 finding above supersedes the
+"qualified greenlight" — the exact INSTANTANEOUS state is insufficient.)
+
 The prefetch-resume-under-waits drift is the last dominant third and the
 irreducible floor for LOCAL w0-neutral changes: **six** independent refutations
 (grid_phase / free-running counter / occupancy threshold / completed-kind /

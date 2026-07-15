@@ -48,7 +48,7 @@ def tb_trace(seed, waits):
     return rrows, drows
 
 
-def tb_resumes(rrows, drows):
+def tb_resumes(rrows, drows, P):
     """TB prefetch-resume events with EXACT internal features at the crossing."""
     n=min(len(rrows),len(drows)); out=[]
     prev_end=None; prevk=None; last_t1=None
@@ -72,6 +72,7 @@ def tb_resumes(rrows, drows):
                         infl=int(d[D["infl"]]),
                         bts=int(d[D["bus_ts"]]),
                         bph=int(d[D["bus_phase"]]),
+                        beat=(cross-last_t1)%P,       # mod-P grid beat at crossing
                         gap=i-cross,
                         raw_gap=i-prev_end-1))
             last_t1=i
@@ -105,6 +106,8 @@ FEATURES = [
     ("+qaged",                lambda e:(e["kind"], e["occ"], e["bts"], e["qaged"])),
     ("+infl",                 lambda e:(e["kind"], e["occ"], e["bts"], e["qaged"], e["infl"])),
     ("+bph (grid phase)",     lambda e:(e["kind"], e["occ"], e["bts"], e["qaged"], e["infl"], e["bph"])),
+    ("occ+BEAT (mod-P)",      lambda e:(e["kind"], e["occ"], e["beat"])),
+    ("BEAT only",             lambda e:(e["kind"], e["beat"])),
 ]
 
 
@@ -117,13 +120,15 @@ def main():
     ap.add_argument("--clean-prefix", action="store_true",
                     help="only resume events BEFORE the first chip-vs-TB "
                          "divergence (TB internal state == chip state there)")
+    ap.add_argument("--dump", action="store_true",
+                    help="dump the (kind,occ)->gap law + mispredicted big-gaps")
     a=ap.parse_args()
     from check_seq import diff
     for w in [int(x) for x in a.waits.split(",")]:
         evs=[]
         for s in range(a.start, a.start+a.seeds):
             rr,dd=tb_trace(s,w)
-            tb=tb_resumes(rr,dd)
+            tb=tb_resumes(rr,dd,4+w)
             chip_raw=chip_ref(s,w,a.host)
             chip=chip_resumes(chip_raw)
             # first chip-vs-TB divergence row (TB state == chip state before it)
@@ -153,6 +158,24 @@ def main():
             ov=100*sum(pr(e)==e["cgap"] for e in evs)/len(evs)
             bg=100*sum(pr(e)==e["cgap"] for e in big)/len(big) if big else 0
             print(f"    {name:22} overall={ov:5.1f}%  big-gap={bg:5.1f}%")
+        if a.dump:
+            # the (kind, exact-occ) -> chip-gap law table
+            tab=defaultdict(Counter)
+            for e in evs: tab[(e["kind"],e["occ"])][e["cgap"]]+=1
+            print(f"  --- (kind, exact-occ) -> chip gap [w{w}] ---")
+            for k in sorted(tab):
+                c=tab[k]; tot=sum(c.values())
+                print(f"    {k[0]} occ={k[1]}: n={tot:4} gaps={dict(c.most_common(5))}")
+            # big-gap cases mispredicted by (kind,occ): show full exact state
+            tab2=defaultdict(Counter)
+            for e in evs: tab2[(e["kind"],e["occ"])][e["cgap"]]+=1
+            prf=lambda e:tab2[(e["kind"],e["occ"])].most_common(1)[0][0]
+            miss=[e for e in big if prf(e)!=e["cgap"]]
+            print(f"  --- big-gap MISSES by (kind,occ): {len(miss)}/{len(big)} ---")
+            mc=Counter((e["kind"],e["occ"],e["qaged"],e["infl"],e["bts"],e["bph"],e["cgap"]) for e in miss)
+            for key,n in mc.most_common(12):
+                print(f"    kind={key[0]} occ={key[1]} qaged={key[2]} infl={key[3]} "
+                      f"bts={key[4]} bph={key[5]} -> cgap={key[6]}  (x{n})")
 
 
 if __name__ == "__main__":
