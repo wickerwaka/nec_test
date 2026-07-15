@@ -1,5 +1,37 @@
 # Bring-up log
 
+## 2026-07-15 — CLASS-5 pivot: prefetch-resume idle-cadence localized (gap-error census)
+
+With store + MOFFS eu_req=0 landed, the whole random-wait residual is class-5
+"same bus decisions, WRONG CLOCK" (80% fitting / 90% held-out). Built the signed
+inter-T1 gap-error census (sw/class5_gaperr.py, commit 2283046, Codex instrument):
+gap_error[i] = (chip_T1[i]-chip_T1[i-1]) - (model_T1[i]-model_T1[i-1]) over the
+aligned prefix of every vector, w0 (wmax=0) included as zero-error controls.
+
+Result (18 seeds x 6 ws x wmaxes{0,1,3,7}, 76,000 aligned intervals):
+- w0 control: 19,308 intervals, 0 nonzero -> instrument sound, w0 bit-exact.
+- 99.6% clock-exact. The 0.4% errors (~213 impulses) are ENTIRELY idle-count:
+  gap_error == Ti_delta exactly (not wait counts, not T-state length - purely the
+  number of idle Ti cycles inserted between consecutive bus cycles).
+- 202/213 impulses are CODE->CODE => a PREFETCH-RESUME cadence defect (the model
+  inserts the wrong number of idle cycles before the next prefetch T1). Small
+  EU-adjacent set (CODE->MEMW, MEMW->CODE, CODE->IOW).
+- prev_tw LAW: after a heavily-waited fetch (prev_tw=6,7) the error is
+  systematically POSITIVE (+2:42/+3:12 at tw7; +2:17 at tw6) - model resumes
+  2-3 clocks too TIGHT (too early). After light waits (prev_tw=1) it is
+  BIDIRECTIONAL (+3:32 and -3:16). net=+267 vs |mass|=557 => ~half the impulses
+  cancel (why class5tax first-divergence over-attributed).
+
+Mechanism (working): the model's prefetch resume (occ<=pf_lim + pf_drain
+threshold) does not capture the chip's resume delay, which scales with the
+predecessor fetch's STRETCHED-GRID geometry (wait count) + queue occupancy/
+consumption. This is the long-suspected "prefetch-resume law under waits"
+(instantaneous EU state proven insufficient; needs accumulated bus-grid-vs-
+consumption phase history). NEXT: controlled replay at +ve/-ve anchors to extract
+the resume-delay FUNCTION (not fit a fingerprint); then decide incremental
+resume correction vs structural future-slot scheduler. Codex thread 019f663c
+consulted.
+
 ## 2026-07-15 — eu_req=0 MOFFS stage: PARITY-GATED S_MLO lead-veto (SILICON-CONFIRMED)
 
 Second stage of the eu_req=0 look-ahead veto (commit 981f3af, bitstream flashed;
