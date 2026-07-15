@@ -40,18 +40,25 @@ CLASS = {CODE: "Rc", MEMR: "Rr", MEMW: "Rw", IOR: "Ri", IOW: "Ri"}
 
 
 def accesses(rows):
-    """Per bus cycle: dict(bs, t1, t4, tw). t1/t4 = row indices, tw = Tw count."""
+    """Per bus cycle: dict(bs, t1, t4, tw, addr, data, npops). t1/t4 = row
+    indices, tw = Tw count, addr = T1 address, data = data-phase word, npops =
+    queue F-pops (QS==1) seen during the cycle (a coarse consumption signal)."""
     out, cur = [], None
     for i, r in enumerate(rows):
         if r["t"] == 1:
             if cur is not None:
                 out.append(cur)
-            cur = dict(bs=r["bs_early"], t1=i, t4=None, tw=0)
+            cur = dict(bs=r["bs_early"], t1=i, t4=None, tw=0,
+                       addr=r["ad_addr"], data=None, npops=0)
         elif cur is not None:
             if r["t"] == 4:
                 cur["tw"] += 1
+            if r["t"] in (2, 3):
+                cur["data"] = r["ad_data"]
             if r["t"] == 5:
                 cur["t4"] = i
+        if cur is not None and r.get("qs") == 1:
+            cur["npops"] += 1
     if cur is not None:
         out.append(cur)
     return out
@@ -137,15 +144,17 @@ def cmd_impulse(a):
     g = generate(f"fz{a.seed}", exts=())
     image, meta = compose(g)
 
-    refvec = [a.ref_fill] * 4096
+    if a.bg == "zero":
+        refvec = [a.ref_fill] * 4096
+    else:
+        import random as _r
+        rr = _r.Random(a.bgseed)
+        refvec = [rr.randint(0, a.ref_fill or 3) for _ in range(4096)]
     ref = run(image, a.host, refvec)
     refbs = bs_stream(ref)
-    # anchor either by (kind, ordinal) or by an explicit reference bus index
-    # (converted to its architectural class-ordinal so it survives upstream waits)
     if a.anchor_bus >= 0:
         b = ref[a.anchor_bus]["bs"]
-        a.kind = {CODE: "code", MEMR: "r", MEMW: "w",
-                  IOR: "io", IOW: "io"}[b]
+        a.kind = {CODE: "code", MEMR: "r", MEMW: "w", IOR: "io", IOW: "io"}[b]
         a.ordinal = sum(1 for k in range(a.anchor_bus)
                         if ref[k]["bs"] in _kindset(a.kind))
     kinds = _kindset(a.kind)
@@ -153,54 +162,65 @@ def cmd_impulse(a):
     if P is None:
         print(f"no {a.kind} access #{a.ordinal} in fz{a.seed}")
         return 1
-    # resume event at the anchor: next CODE fetch
-    Q = next((k for k in range(P + 1, len(ref)) if ref[k]["bs"] == CODE), None)
-    if Q is None or ref[P]["t4"] is None:
-        print("anchor has no following CODE fetch / no T4")
+    # IMMEDIATE-successor resume event (bug fix): the next bus cycle must be CODE
+    if P + 1 >= len(ref) or ref[P + 1]["bs"] != CODE or ref[P]["t4"] is None:
+        print(f"anchor bus{P} is not an immediate ->CODE resume event "
+              f"(successor bs={ref[P + 1]['bs'] if P + 1 < len(ref) else 'EOF'})")
         return 1
+    Q = P + 1
     cls = CLASS[ref[P]["bs"]]
     gap0 = ref[Q]["t1"] - ref[P]["t4"]
-    print(f"fz{a.seed} anchor: {a.kind}#{a.ordinal} @bus{P} (class {cls}), "
-          f"resume CODE @bus{Q}, reference gap0={gap0} clk "
-          f"(uniform-{a.ref_fill} vector)")
-    print(f"impulse response (one access {a.ref_fill}->{a.ref_fill + a.dto}):")
+    print(f"fz{a.seed} anchor {a.kind}#{a.ordinal} @bus{P} (class {cls}), "
+          f"resume CODE @bus{Q}, gap0={gap0} clk, bg={a.bg}(fill{a.ref_fill})")
+    print(f"impulse: one access {a.ref_fill}->{a.ref_fill + a.dto}. "
+          f"per-offset intervention matrix:")
+    print(f"  off  outcome              gap  Ddecision")
+    # matrix counters
+    tot = dict(preserved_inert=0, preserved_gapchg=0, streamchg=0, lost=0)
+    timing_causal, decision_causal = [], []
     K = a.k
-    causal = []
     for off in range(0, -K - 1, -1):
         idx = P + off
         if idx < 0:
             continue
         wv = list(refvec)
-        wv[idx] = a.ref_fill + a.dto            # single perturbation
+        wv[idx] = a.ref_fill + a.dto
         acc = run(image, a.host, wv)
-        abs_ = bs_stream(acc)
-        # desync guard: bus stream must match the reference up to the event
         Pp = data_ordinal_index(acc, kinds, a.ordinal)
         if Pp is None:
-            print(f"  off {off:+d}: DESYNC (anchor vanished)")
+            tot["lost"] += 1
+            print(f"  {off:+d}   anchor-lost")
             continue
-        Qp = next((k for k in range(Pp + 1, len(acc)) if acc[k]["bs"] == CODE), None)
-        if Qp is None or acc[Pp]["t4"] is None:
-            print(f"  off {off:+d}: no resume")
+        # DECISION outcome: is the anchor still an immediate ->CODE resume?
+        imm_code = (Pp + 1 < len(acc) and acc[Pp + 1]["bs"] == CODE)
+        # stream preserved up to & including the event?
+        preserved = bs_stream(acc)[:Pp + 2] == refbs[:Q + 1]
+        if not imm_code or not preserved:
+            tot["streamchg"] += 1
+            decision_causal.append(off)
+            nb = acc[Pp + 1]["bs"] if Pp + 1 < len(acc) else -1
+            print(f"  {off:+d}   STREAM-CHANGED       -    next={BSN.get(nb,nb)} "
+                  f"(arbitration/issue altered)")
             continue
-        if abs_[:Qp + 1] != refbs[:Q + 1]:
-            fd = _firstdiff(abs_[:Qp + 1], refbs[:Q + 1])
-            print(f"  off {off:+d}: DESYNC (bus stream diverges @bus{fd} before event) - skip")
-            continue
-        gap = acc[Qp]["t1"] - acc[Pp]["t4"]
+        gap = acc[Q]["t1"] - acc[Pp]["t4"] if False else acc[Pp + 1]["t1"] - acc[Pp]["t4"]
         d = gap - gap0
-        mark = "  <-- CAUSAL" if d != 0 else ""
         if d != 0:
-            causal.append(off)
-        print(f"  off {off:+d} (bus{idx}): gap={gap} delta={d:+d}{mark}")
-    if causal:
-        K_meas = -min(causal)
-        print(f"=> causal offsets {sorted(causal)}; measured causal radius "
-              f"K = {K_meas} (class {cls})")
-    else:
-        print(f"=> NO causal offset within K={K} (gap insensitive to single "
-              f"upstream wait here)")
+            tot["preserved_gapchg"] += 1
+            timing_causal.append(off)
+            print(f"  {off:+d}   preserved,gap-chg    {gap}   (Dgap={d:+d})")
+        else:
+            tot["preserved_inert"] += 1
+            print(f"  {off:+d}   preserved,inert      {gap}")
+    tk = -min(timing_causal) if timing_causal else None
+    dk = -min(decision_causal) if decision_causal else None
+    print(f"=> matrix {tot}")
+    print(f"=> TIMING-K (stream-preserved gap change) = {tk}  |  "
+          f"DECISION-K (arbitration/issue altered) = {dk}")
     return 0
+
+
+BSN = {CODE: "CODE", MEMR: "MEMR", MEMW: "MEMW", IOR: "IOR", IOW: "IOW",
+       INTA: "INTA", 3: "HALT", 7: "PASV"}
 
 
 def cmd_ownwait(a):
@@ -252,6 +272,184 @@ def _kindset(kind):
     return {"r": {MEMR}, "w": {MEMW}, "io": {IOR, IOW}, "code": {CODE}}[kind]
 
 
+def _occ_proxy(acc, upto_bus):
+    """Coarse queue occupancy (bytes) just before bus cycle upto_bus:
+    2*(#CODE fetches completed) - (#F-pops), clamped >= 0."""
+    t1 = acc[upto_bus]["t1"]
+    fetched = sum(2 for j in range(upto_bus)
+                  if acc[j]["bs"] == CODE and acc[j]["t4"] is not None)
+    pops = sum(acc[j]["npops"] for j in range(upto_bus))
+    return max(0, fetched - pops)
+
+
+def cmd_arbsweep(a):
+    """DECISIVE arbitration-state experiment. Fixed background vector; sweep the
+    wait N=0..maxn on ONE anchor CODE fetch (bus index B, immediate ->EU in the
+    reference). For each N record the chip's and core's decision (# CODE
+    prefetches inserted between the anchor and the next EU access), the anchor
+    CODE-T4 / next-EU-T1 clocks, and a queue-occupancy proxy. Truth vector +
+    candidate state-encoding fit."""
+    g = generate(f"fz{a.seed}", exts=())
+    image, meta = compose(g)
+    if a.bgseed < 0:
+        refvec = [0] * 4096
+        bgtag = "zero"
+    else:
+        import random as _r
+        rr = _r.Random(a.bgseed)
+        refvec = [rr.randint(0, a.wmax) for _ in range(4096)]
+        bgtag = f"rand({a.bgseed},wmax{a.wmax})"
+    B = a.anchor_bus
+    ref = run(image, a.host, refvec)
+    if ref[B]["bs"] != CODE:
+        print(f"bus{B} is not a CODE fetch (bs={ref[B]['bs']})"); return 1
+    occ = _occ_proxy(ref, B)
+    # find the next EU access after B in the reference
+    euref = next((j for j in range(B + 1, len(ref))
+                  if ref[j]["bs"] in (MEMR, MEMW, IOR, IOW)), None)
+    print(f"fz{a.seed} arb anchor: CODE @bus{B}, bg={bgtag}, occ_proxy~{occ}B, "
+          f"next EU @bus{euref} ({BSN.get(ref[euref]['bs']) if euref else '-'})")
+    print(f"  N : chip[extra_pf,decision]  core[extra_pf]  chipT4  euT1  {'DIVERGE' }")
+
+    def decision(acc):
+        # # CODE fetches strictly between B and the next EU access
+        eu = next((j for j in range(B + 1, len(acc))
+                   if acc[j]["bs"] in (MEMR, MEMW, IOR, IOW)), None)
+        if eu is None:
+            return None
+        extra = sum(1 for j in range(B + 1, eu) if acc[j]["bs"] == CODE)
+        return extra, acc[B]["t4"], acc[eu]["t1"], acc[eu]["bs"]
+
+    truth = []
+    for N in range(0, a.maxn + 1):
+        wv = list(refvec)
+        wv[B] = N
+        dc = decision(run(image, a.host, wv, use_core=False))
+        dk = decision(run(image, a.host, wv, use_core=True))
+        if dc is None or dk is None:
+            print(f"  {N:2}: (no EU access)"); continue
+        cext, ct4, cet1, ek = dc
+        kext = dk[0]
+        div = "  <-- DIVERGE" if cext != kext else ""
+        truth.append((N, cext, kext))
+        print(f"  {N:2}: chip extra={cext} ({'EU-next' if cext == 0 else f'{cext}xCODE-first'})"
+              f"      core extra={kext}      {ct4}   {cet1}{div}")
+    # candidate state-encoding fit for the CHIP decision (cext)
+    print("  candidate encodings for chip decision (extra prefetch count vs N):")
+    _fit_encodings(truth)
+    return 0
+
+
+def _fit_encodings(truth):
+    """Report which simple functions of N predict the chip decision."""
+    if not truth:
+        print("    (no data)"); return
+    Ns = [t[0] for t in truth]
+    dec = [t[1] for t in truth]        # chip extra-prefetch count
+    cands = {
+        "N==0": [0 if n == 0 else 1 for n in Ns],
+        "N>=1": [1 if n >= 1 else 0 for n in Ns],
+        "parity N%2": [n % 2 for n in Ns],
+        "phase N%4": [n % 4 for n in Ns],
+        "phase N%3": [n % 3 for n in Ns],
+        "sat min(N,2)": [min(n, 2) for n in Ns],
+        "sat min(N,1)": [min(n, 1) for n in Ns],
+    }
+    # a candidate "explains" if decision is a consistent function of it
+    for name, vals in cands.items():
+        mp = {}
+        ok = True
+        for v, d in zip(vals, dec):
+            if v in mp and mp[v] != d:
+                ok = False; break
+            mp[v] = d
+        print(f"    {name:14}: {'CONSISTENT' if ok else 'inconsistent'}"
+              f"{'  map=' + str(mp) if ok else ''}")
+
+
+def cmd_arbscan(a):
+    """Broad test: is the CHIP's local arbitration (EU-next vs insert-prefetch)
+    ever a function of a single CODE fetch's wait? For many CODE->EU anchors
+    across programs/backgrounds, sweep the anchor CODE's wait and record whether
+    the CHIP decision varies (a real arbitration boundary) vs is invariant
+    (model-only artifact). Also record which N the CORE deviates at."""
+    import random as _r
+    chip_variant = 0
+    chip_invariant = 0
+    model_dev = {}          # N -> count of anchors where core deviates at that N
+    boundaries = []         # chip N* per variant anchor
+    anchors_tested = 0
+    for seed in a.seeds:
+        g = generate(f"fz{seed}", exts=())
+        image, meta = compose(g)
+        for bg in a.bgs:
+            if bg < 0:
+                refvec = [0] * 4096
+            else:
+                rr = _r.Random(bg)
+                refvec = [rr.randint(0, a.wmax) for _ in range(4096)]
+            ref = run(image, a.host, refvec)
+            # CODE->EU anchors
+            anchs = [B for B in range(1, len(ref) - 1)
+                     if ref[B]["bs"] == CODE
+                     and ref[B + 1]["bs"] in (MEMR, MEMW, IOR, IOW)]
+            for B in anchs[:a.per]:
+                anchors_tested += 1
+                cdec = []
+                for N in range(0, a.maxn + 1):
+                    wv = list(refvec); wv[B] = N
+                    cdec.append(_extra_pf(run(image, a.host, wv, use_core=False), B))
+                cset = set(x for x in cdec if x is not None)
+                cbnd = _boundary(cdec)     # first N with EU-next (extra 0)
+                if len(cset) > 1:
+                    chip_variant += 1
+                    # only sweep the core where the chip is variant (bug hunt)
+                    kdec = []
+                    for N in range(0, a.maxn + 1):
+                        wv = list(refvec); wv[B] = N
+                        kdec.append(_extra_pf(run(image, a.host, wv, use_core=True), B))
+                    kbnd = _boundary(kdec)
+                    boundaries.append(cbnd)
+                    tag = "" if kdec == cdec else f"  MODEL-BUG core_bnd={kbnd}"
+                    print(f"  fz{seed} bg{bg} CODE@bus{B}: chip={cdec} "
+                          f"chip_bnd(N*)={cbnd}{tag}")
+                    for N, (c, k) in enumerate(zip(cdec, kdec)):
+                        if c is not None and k is not None and c != k:
+                            model_dev[N] = model_dev.get(N, 0) + 1
+                else:
+                    chip_invariant += 1
+    import statistics as _st
+    print(f"\narbscan: {anchors_tested} CODE->EU anchors "
+          f"({a.maxn + 1} N-values each)")
+    print(f"  CHIP-VARIANT (arbitration depends on local CODE wait): {chip_variant}")
+    print(f"  CHIP-INVARIANT: {chip_invariant}")
+    if boundaries:
+        from collections import Counter
+        print(f"  chip boundary N* distribution: {dict(sorted(Counter(boundaries).items()))} "
+              f"(a FIXED phase latch would give a single value; variation => "
+              f"slack/request-age coupling)")
+    print(f"  model deviates from chip at N = {dict(sorted(model_dev.items()))} "
+          f"(anchor-N cells; the model boundary runs high)")
+    return 0
+
+
+def _boundary(dec):
+    """first N at which the chip commits to EU-next (extra==0) and stays."""
+    for N in range(len(dec)):
+        if dec[N] == 0 and all(d == 0 for d in dec[N:] if d is not None):
+            return N
+    return None
+
+
+def _extra_pf(acc, B):
+    """# CODE prefetches inserted between anchor CODE @B and the next EU access."""
+    eu = next((j for j in range(B + 1, len(acc))
+               if acc[j]["bs"] in (MEMR, MEMW, IOR, IOW)), None)
+    if eu is None:
+        return None
+    return sum(1 for j in range(B + 1, eu) if acc[j]["bs"] == CODE)
+
+
 def cmd_pfdiff(a):
     """Localize the prefetch-issue / queue-trajectory divergence: run the same
     wait vector on chip and fabric, find the FIRST bus cycle where their
@@ -286,6 +484,69 @@ def cmd_pfdiff(a):
     print(f"  completed cycle before divergence: chip {BN.get(chip[fd-1]['bs'])}"
           f"(Tw={chip[fd-1]['tw']}); recent Tw (bus {fd-5}..{fd-1}): "
           f"{[chip[j]['tw'] for j in range(max(0,fd-5), fd)]}")
+    return 0
+
+
+def _trunc(acc):
+    """Drop the post-program idle tail: cut at the first HALT (bs==3), which
+    marks the store-routine's end - the tail after it is meaningless idle."""
+    for i, x in enumerate(acc):
+        if x["bs"] == 3:
+            return acc[:i]
+    return acc
+
+
+def cmd_align(a):
+    """Enumerate ALL divergence classes via SEQUENCE ALIGNMENT (not equal-index).
+    Align chip vs core bus streams by (bs, addr); classify every edit op and,
+    on matched cycles, flag same-type-wrong-clock and same-type-wrong-address.
+    Aggregates class counts over a corpus - answers 'one class or several?'"""
+    import difflib
+    import random as _r
+    classes = {}
+
+    def bump(k):
+        classes[k] = classes.get(k, 0) + 1
+
+    for seed in a.seeds:
+        g = generate(f"fz{seed}", exts=())
+        image, meta = compose(g)
+        for ws in range(1, a.nws + 1):
+            for wmax in a.wmaxes:
+                rr = _r.Random((ws << 8) | wmax)
+                wv = [rr.randint(0, wmax) for _ in range(4096)]
+                c = _trunc(accesses(run_chip(image, a.host, use_core=False, wvec=wv)))
+                k = _trunc(accesses(run_chip(image, a.host, use_core=True, wvec=wv)))
+                cseq = [(x["bs"], x["addr"]) for x in c]
+                kseq = [(x["bs"], x["addr"]) for x in k]
+                sm = difflib.SequenceMatcher(a=cseq, b=kseq, autojunk=False)
+                for tag, i1, i2, j1, j2 in sm.get_opcodes():
+                    if tag == "equal":
+                        # matched accesses: check clock alignment drift onset
+                        continue
+                    # classify the edit
+                    chside = [BSN.get(c[x]["bs"], c[x]["bs"]) for x in range(i1, i2)]
+                    coside = [BSN.get(k[x]["bs"], k[x]["bs"]) for x in range(j1, j2)]
+                    if tag == "insert":     # present in core, not chip
+                        bump("core-INSERTS " + "/".join(sorted(set(coside))))
+                    elif tag == "delete":   # present in chip, not core
+                        bump("core-OMITS " + "/".join(sorted(set(chside))))
+                    else:  # replace / reorder
+                        if set(chside) == set(coside):
+                            bump("REORDER " + "/".join(sorted(set(chside))))
+                        elif "CODE" in coside and set(chside) <= {"MEMR", "MEMW",
+                                                                  "IOR", "IOW"}:
+                            bump("core-CODE-vs-chip-EU")
+                        else:
+                            bump("replace " + "/".join(sorted(set(chside))) +
+                                 "->" + "/".join(sorted(set(coside))))
+    total = sum(classes.values())
+    print(f"align: corpus {len(a.seeds)} progs x {a.nws} wseeds x {a.wmaxes}; "
+          f"{total} divergence edit-ops")
+    for cls, ct in sorted(classes.items(), key=lambda x: -x[1]):
+        print(f"  {ct:4}  {cls}")
+    if not classes:
+        print("  (no divergences in corpus)")
     return 0
 
 
@@ -325,6 +586,9 @@ def main():
                    help="uniform reference wait level (0 = w0 cycle-exact)")
     p.add_argument("--dto", type=int, default=1,
                    help="perturbation magnitude added to one access")
+    p.add_argument("--bg", choices=("zero", "rand"), default="zero",
+                   help="background: uniform ref-fill, or random (nonzero)")
+    p.add_argument("--bgseed", type=int, default=1)
     p.set_defaults(fn=cmd_impulse)
     p = sub.add_parser("ownwait")
     p.add_argument("--host", default="root@mister-nec")
@@ -334,12 +598,38 @@ def main():
     p.add_argument("--core", action="store_true",
                    help="also run the fabric core and flag where it diverges")
     p.set_defaults(fn=cmd_ownwait)
+    p = sub.add_parser("arbsweep")
+    p.add_argument("--host", default="root@mister-nec")
+    p.add_argument("--seed", type=int, default=90003)
+    p.add_argument("--anchor-bus", type=int, required=True)
+    p.add_argument("--bgseed", type=int, default=2,
+                   help="background wait-vector seed (-1 = all-zero)")
+    p.add_argument("--wmax", type=int, default=3)
+    p.add_argument("--maxn", type=int, default=15)
+    p.set_defaults(fn=cmd_arbsweep)
+    p = sub.add_parser("arbscan")
+    p.add_argument("--host", default="root@mister-nec")
+    p.add_argument("--seeds", type=int, nargs="+",
+                   default=[90003, 90007, 90015])
+    p.add_argument("--bgs", type=int, nargs="+", default=[-1, 2, 5])
+    p.add_argument("--wmax", type=int, default=3)
+    p.add_argument("--maxn", type=int, default=4)
+    p.add_argument("--per", type=int, default=6,
+                   help="max anchors per (program,bg)")
+    p.set_defaults(fn=cmd_arbscan)
     p = sub.add_parser("pfdiff")
     p.add_argument("--host", default="root@mister-nec")
     p.add_argument("--seed", type=int, default=90003)
     p.add_argument("--wseed", type=int, default=1)
     p.add_argument("--wmax", type=int, default=3)
     p.set_defaults(fn=cmd_pfdiff)
+    p = sub.add_parser("align")
+    p.add_argument("--host", default="root@mister-nec")
+    p.add_argument("--seeds", type=int, nargs="+",
+                   default=[90003, 90007, 90015, 90021, 90030])
+    p.add_argument("--nws", type=int, default=6)
+    p.add_argument("--wmaxes", type=int, nargs="+", default=[1, 3, 7, 15])
+    p.set_defaults(fn=cmd_align)
     p = sub.add_parser("scan")
     p.add_argument("--host", default="root@mister-nec")
     p.add_argument("--seed", type=int, default=90003)

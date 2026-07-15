@@ -120,8 +120,104 @@ Two decisions with different state:
   the controlled interventions on held-out programs, then re-fit the RTL
   (w0..wN unified, no waited exception) and re-measure vs fresh chip traces.
 
+---
+
+# Phase 2c — corrections + deepened arbitration discovery
+
+Codex flagged 3 overclaims in Phase 2b. All corrected below; the reframe (resume
+gap already correct; real defect = prefetch-vs-EU arbitration) stands and is now
+mechanistically characterized. New tool subcommands: `impulse` (fixed +
+intervention matrix + timing-K/decision-K), `arbsweep`, `arbscan`, `align`.
+
+## Correction 1 — K=0 is the TIMING radius only (qualified)
+
+The impulse tool had a bug (found next CODE, not the IMMEDIATE successor) —
+fixed to require the immediate ->CODE resume for reference and intervention.
+Re-run with a per-offset INTERVENTION MATRIX (stream-preserved-inert /
+stream-preserved-gap-changed / stream-changed / anchor-lost):
+
+- **TIMING-K = 0**: under STREAM-PRESERVED single-wait flips, the resume gap
+  changes only for offset 0 (the completing access's own wait). Correct
+  restatement: *for immediate MEMR/MEMW→CODE events, the conditional resume
+  timing given a fixed bus stream has K=0.*
+- **But upstream waits DO causally alter the ISSUE/ARBITRATION decision**
+  (stream-changed cells, DECISION-K > 0). That is exactly Finding 4 — it is a
+  real causal outcome, not a skip. Timing-radius and arbitration-radius are
+  distinct; K=0 is only the former.
+
+## Correction 2 — divergence-class inventory (aligned, not one first-mismatch)
+
+`align`: SEQUENCE-ALIGN chip vs core bus streams by (bs, ADDRESS) with
+difflib, classify every edit op, exclude the post-program idle tail. Corpus 5
+programs × 6 wait-seeds × wmax∈{1,3,7,15} (120 runs), 86 in-program edit-ops:
+
+    core-INSERTS CODE  35   |  core-OMITS CODE  28   |  REORDER CODE  4   (= 78%)
+    IOW/MEMR/MEMW insert/omit ~19  (downstream cascades of a CODE divergence)
+
+So it is essentially **ONE mechanism — a CODE prefetch issued/omitted wrong**,
+and it is **BIDIRECTIONAL** (the model both over-prefetches AND under-prefetches
+depending on context; Phase 2b's "extra prefetch" was only one sign). The
+EU-access edits are cascades once the prefetch stream diverges. No
+same-type-wrong-address class appeared (fetch addresses match where aligned).
+
+## Correction 3 — NOT a one-bit phase/parity latch (REFUTED); it is a slack boundary
+
+The decisive experiment (`arbsweep`/`arbscan`): at each CODE→EU anchor, sweep the
+preceding CODE's wait N=0..15 (fixed background) and record the chip's decision
+(prefetch-first vs EU-next). Result across 96 anchors (4 programs × 3 backgrounds):
+
+- The chip's decision is a **step**: prefetch-first for N < N*, EU-next for
+  N ≥ N* — a real arbitration BOUNDARY N* in preceding-CODE-wait units.
+- **N* varies by anchor: {N*=1: 14 anchors, N*=2: 2 anchors}.** A fixed
+  phase/parity latch would give a single N* everywhere — REFUTED. (Phase 2b's
+  "Tw=1 diverges, Tw=3 doesn't" was simply N=1 sitting on the chip's boundary at
+  those anchors.)
+- **N* is STABLE across wait backgrounds** (bg 2/5/7/11 give the same N* per
+  anchor) → N* is set by the ARCHITECTURAL / queue state at that program point,
+  not by the wait history. It does NOT reduce to coarse proxies (anchors with
+  equal idle-gap=8 have N*=1 and N*=2; CODE-run-length doesn't track it either)
+  → the state is a finer queue-occupancy + EU-request-age coupling.
+
+## The model bug, precisely
+
+`arbscan` flags the divergent cells: at anchors where the chip's boundary is
+N*=1, the MODEL's boundary is N*=2 (e.g. fz90007 CODE@bus45 across bg 2/5/7:
+chip EU-next at N=1, core still prefetches). The model computes the prefetch
+slack **±1 wrong** — it grants one extra prefetch opportunity the chip does not
+(and, per the aligned inventory, sometimes one too few). This ±1 boundary error,
+fired repeatedly, is the ≤15-clock accumulating drift.
+
+## Minimal sufficient state (narrowed, not yet closed)
+
+- The arbitration boundary N* is a small bounded integer (observed ≤ 2),
+  per-anchor stable across wait backgrounds → a QUEUE-FILL / prefetch-opportunity
+  count set at w0, with the preceding CODE's wait consuming realized
+  opportunities. It is NOT a phase/parity latch.
+- Full closed-form (which exact bytes-in-queue + request-age combination yields
+  N*=1 vs 2) is NOT yet pinned: coarse proxies fail, so it needs finer queue
+  reconstruction AND instruction-variant control to dissociate request-age from
+  queue-fill (the two are confounded across the fixed fuzz anchors). That
+  dissociation is the first Phase-3-discovery step before RTL.
+
+## Honest verdict (Phase 2c)
+
+- Resume-gap sub-problem: **CLOSED** (timing-K=0, model already correct).
+- Drift defect: **one bidirectional mechanism** — a prefetch-vs-EU arbitration
+  BOUNDARY the model computes ±1 wrong. The chip's boundary is a small (≤2),
+  architecturally-determined, wait-background-stable slack count; **a fixed
+  phase/parity latch is refuted**; the exact queue+request-age state is narrowed
+  but not yet closed-form.
+- Phase 3 (not RTL yet): dissociate request-age vs queue-fill with instruction
+  variants + finer queue reconstruction to close the boundary predictor, then a
+  unified w0..wN arbiter whose prefetch-vs-EU boundary tracks the bus-grid/queue
+  state (a cycle-experienced-Tw / queue-slack count), validated against these
+  controlled interventions on held-out programs.
+
 Tools: `sw/causal_wrand.py`. Repro examples:
 `python3 sw/causal_wrand.py determ --seed 90003`;
 `... impulse --seed 90007 --anchor-bus 59 --k 12`;
 `... ownwait --seed 90003 --anchor-bus 137 --core`;
-`... pfdiff --seed 90003 --wseed 2 --wmax 3`.
+`... pfdiff --seed 90003 --wseed 2 --wmax 3`;
+`... arbsweep --seed 90003 --anchor-bus 138 --bgseed 2 --maxn 15`;
+`... arbscan --seeds 90003 90007 90015 --bgs 2 5 7 --maxn 6`;
+`... align --seeds 90003 90007 90015 90021 90030 --wmaxes 1 3 7 15`.
