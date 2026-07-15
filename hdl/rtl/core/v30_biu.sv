@@ -432,6 +432,10 @@ wire        prefetch_ext = prefetch_ok ||
                             eu_mem_acc && eu_kind == K_MEM) ||
                            pf_late_rsv;
 wire        pick_ext   = want_half2 || want_eu || prefetch_ext;
+// the eval_ext cycle would commit a NEAR-flush redirect prefetch: defer it one
+// idle cycle (flush_hold) instead of committing here (see flush_hold decl).
+wire        flush_defer = eval_ext && q_flush && !flush_fast &&
+                          pick_ext && pick_fetch && !flush_hold;
 wire  [2:0] pick_type  = want_half2 ? cur_type
                        : want_eu    ? (eu_kind == K_INTA ? BS_INTA
                                      : eu_kind == K_HALT ? BS_HALT
@@ -518,6 +522,20 @@ reg  defer_idle;   // idle-window eu_soon reservation armed: commit the
                    // fetch for defer_t4's T4 to land on)
 reg  eval_ext;     // deferred eval runs during this (post-T4) cycle
 
+// NEAR-flush (Jcc/E9/loop) redirect +1-late under waits (Stage 5 / front-2b).
+// Measured (seed90003/90018/90005, opc 73 Jcc, w1): when a near flush's
+// q_flush asserts DURING the deferred-completion eval (eval_ext) cycle, the
+// TB commits the redirect prefetch via the eval_ext mid-cycle path THAT cycle
+// (display @T4+1), but the CHIP inserts exactly ONE more idle and mid-cycle-
+// commits the redirect the NEXT idle cycle (display @T4+2). The far-flush
+// (flush_fast: EA/BR/far-CALL) redirect is NOT deferred (it already matches at
+// T4+1 via the ff/do_commit path) - only the NEAR flush gets the extra idle.
+// flush_hold latches the deferral for exactly one cycle, then commits via the
+// SAME mid-cycle path (state->T1 with the display this cycle) so it inserts
+// ONE idle, not two (a plain do_commit here would over-shoot to T4+3).
+// w0-NEUTRAL: eval_ext never fires at w0, so flush_defer/flush_hold are 0.
+reg  flush_hold;
+
 // a committed-but-stale prefetch dies in the flush cycle: transitions must
 // not consume it
 wire nxt_live = nxt_valid && !(q_flush && nxt_fetch);
@@ -596,6 +614,7 @@ always_ff @(posedge clk) begin
         eu_hand    <= 1'b0;
         eval_ext   <= 1'b0;
         ext_flushed <= 1'b0;
+        flush_hold <= 1'b0;
         pf_drain   <= 1'b0;
         pop_sr     <= 8'd0;
         if (bkd_load) begin
@@ -671,14 +690,18 @@ always_ff @(posedge clk) begin
                     cur_kind   <= nxt_kind;
                     ube_n      <= nxt_ube_n;
                     nxt_valid  <= 1'b0;
-                end else if (((eval_ext && pick_ext) || (ff_show && pick_any)) ||
-                             (defer_idle && want_eu)) begin
+                end else if (((eval_ext && pick_ext && !flush_defer) ||
+                              (ff_show && pick_any)) ||
+                             (defer_idle && want_eu) ||
+                             (flush_hold && pick_ext && pick_fetch)) begin
                     // deferred (waited-cycle) completion eval OR the
-                    // idle-window reg-EA reader early commit (defer_idle):
+                    // idle-window reg-EA reader early commit (defer_idle) OR
+                    // the held near-flush redirect (flush_hold, one idle late):
                     // the picked cycle is displayed during THIS idle cycle
                     // and enters its T1 directly - one cycle ahead of the
                     // plain do_commit idle path (measured reader-commit law).
                     defer_idle <= 1'b0;
+                    flush_hold <= 1'b0;
                     state      <= ST_T1;
                     tw_any     <= 1'b0;
                     evald      <= 1'b0;
@@ -703,7 +726,18 @@ always_ff @(posedge clk) begin
                     end
                 end else begin
                     defer_idle <= 1'b0;
-                    if (eval_ext) begin
+                    if (flush_defer) begin
+                        // near-flush redirect deferred one idle cycle: hold the
+                        // redirect (queue already cleared + pointer redirected
+                        // by the flush block) and commit it next idle cycle via
+                        // the mid-cycle path (flush_hold trigger above).
+                        flush_hold <= 1'b1;
+                        cur_type   <= BS_PASV;
+                        cur_fetch  <= 1'b0;
+                        cur_split1 <= 1'b0;
+                        cur_split2 <= 1'b0;
+                        cur_wr     <= 1'b0;
+                    end else if (eval_ext) begin
                         // deferred eval found nothing: cycle teardown
                         // deferred from the end of T4
                         cur_type   <= BS_PASV;
@@ -1037,8 +1071,9 @@ wire ff_t4   = flush_fast && q_flush && state == ST_T4 && cur_fetch &&
 // T1 next cycle - the mid-cycle commit analogue of defer_show for a
 // bus-idle landing rather than a fetch T4.
 wire idle_commit = defer_idle && state == ST_TI && !nxt_live && want_eu;
-wire ext_show = (eval_ext && pick_ext) || defer_show || ff_show || ff_t4 ||
-                idle_commit;
+wire ext_show = (eval_ext && pick_ext && !flush_defer) || defer_show ||
+                ff_show || ff_t4 || idle_commit ||
+                (flush_hold && pick_ext && pick_fetch);
 
 assign bs = (halt_show || halt_t1) ? BS_HALT
           : nxt_live ? nxt_type

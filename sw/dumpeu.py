@@ -41,5 +41,8 @@ for i in range(max(0,a.lo), min(n,a.hi)):
     t=T_NAME.get(int(r[1])); bs=BS_NAME[int(r[2])]; addr=int(r[5],16); qs=QS_NAME[int(r[3])]
     est=d[1]; pop=d[2]; avl=d[3]; cnt=d[4]; opc=d[9]; eaddr=d[7]
     req=d[15]; rdy=d[16]; strt=d[14]
+    flush=d[17] if len(d)>17 else "?"; ext=d[18] if len(d)>18 else "?"
+    evald=d[19] if len(d)>19 else "?"; ffast=d[20] if len(d)>20 else "?"
     print(f"{i:>4} {t:<2} {bs:<4} {addr:05x} {qs:<1} | "
-          f"{est:>4} {pop:>3} {avl:>3} {cnt:>3} | {req:>3} {rdy:>3} {strt:>4} | {opc:>3} {eaddr}")
+          f"{est:>4} {pop:>3} {avl:>3} {cnt:>3} | {req:>3} {rdy:>3} {strt:>4} | "
+          f"fl={flush} ext={ext} evd={evald} ff={ffast} | {opc:>3} {eaddr}")
