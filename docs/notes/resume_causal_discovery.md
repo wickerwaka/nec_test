@@ -655,22 +655,42 @@ YOUNG reservations, keyed by (q_cnt_eval, access family) - **0 collisions**:
   fitted for. The Step-2 FITTED-CASE INVENTORY (pf_late_rsv firings in golden
   string/RMW traces, by family + q_cnt) MUST run before any edit.
 
-## Honest bottom line (Phase 2j)
+## Correction to the above: the read/write split was an EDGE-MATCHING ARTIFACT
+
+The "young MEMR reserves / MEMW prefetches at q_cnt=1" split used the CHIP's next
+ARCHITECTURAL access as the family label. Adding `eu_wr` to the eudbg dump and
+re-keying by the RTL's ACTUAL reservation direction at the eval_ext row shows:
+**every young q_cnt=1 reservation is eu_wr=1 (a WRITE) at that row**, and those
+writes are MIXED (12 IDLE / 24 CODE). So `eu_wr` does NOT separate them - the
+apparent read/write split was the edge-finder pairing the eval_ext reservation
+with a DOWNSTREAM architectural access of a different type, not the reservation's
+own access. I made the `&& eu_wr` edit, validated it (golden w0 169000, w1/w3
+1200/1200 - safe), but it did NOT remove the over-prefetch divergences (they are
+eu_wr=1), so it is INEFFECTIVE. **Edit REVERTED; RTL back to baseline.**
+
+## Honest bottom line (Phase 2j) - NOT closed, NOT flash-ready
 
 - **Sampler fixed; Phase-2i conclusion overturned.** pf_late_rsv fires only at
-  q_cnt<=1; the q_cnt<=1 edit is a NO-OP. NO RTL EDIT MADE (correct per protocol).
-- **Real bug localized (measured):** over-prefetch = pf_late_rsv firing for young
-  ORDINARY READ reservations at q_cnt=1; the chip reserves reads, the model
-  prefetches. Collision-free by (q_cnt, family) for ordinary accesses.
-- **Blocking before an edit:** the fitted-case inventory over string/RMW (does
-  pf_late_rsv correctly fire for string READS? if so the gate must be
-  ordinary-vs-string, not read-vs-write). Then the one-line edit
-  (exclude ordinary reads / add the measured discriminator) + full sim
-  validation. The 2/8 eu_req=0 late-registration cases and the w0 re-measurement
-  remain separate follow-ups.
-- **Not FLASH-READY.** The predicate is corrected and the bug is localized, but
-  the actionable edit is read/write (not q_cnt) and needs the string fitted-case
-  inventory to avoid regression. Report to Codex before editing/flashing.
+  q_cnt<=1; the pre-approved q_cnt<=1 edit is a NO-OP (0 firings at q_cnt>=2).
+- **The read/write edit is INEFFECTIVE** (divergent cases are eu_wr=1 writes);
+  reverted. It was an edge-matching artifact, not a real discriminator.
+- **A real COLLISION persists at the reliable state:** at (q_cnt=1, young
+  coincident reservation, eu_wr=1, eval_ext) the chip both IDLEs (reserves, 12)
+  and prefetches (CODE, 24) - and NO measured RTL-observable field (q_cnt, occ,
+  eu_wr, eu_req, eu_req_p1, eu_ready, q_aged, infl) separates them. So the
+  arbitration decision is NOT a function of the currently-measured state.
+- **Root measurement issue:** the edge-finder must associate the eval_ext
+  reservation with ITS OWN pending access (identity/kind/age), not a downstream
+  architectural access. Until the reservation is correctly identified per edge,
+  the discriminator can't be measured. The hidden variable is likely the precise
+  reservation ONSET/age or the specific pending-access microstate - needing the
+  controlled per-access-family experiment (reader/store/RMW/string with a
+  young reservation), not the fuzz scan.
+- **No actionable edit. NOT flash-ready.** The predicate is NOT closed; the
+  q_cnt and read/write hypotheses are both refuted at the reliable state. Report
+  to Codex: the closure needs correct per-edge reservation identification, then
+  the collision re-tested; the 2/8 eu_req=0 cases and w0 re-measurement remain
+  separate follow-ups.
 
 Tools: `sw/causal_wrand.py` (`urgency` corrected). Repro:
 `python3 sw/causal_wrand.py urgency --seeds 90003 90007 90015 90021 90030 --nws 10 --wmaxes 1 2 3 7`;

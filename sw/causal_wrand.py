@@ -716,7 +716,9 @@ def run_tb_internal(image, n, wvec):
                 pf_late_rsv=int(d[25]) if len(d) > 25 else 0,
                 pf_starved=int(d[26]) if len(d) > 26 else 0,
                 prefetch_ext=int(d[27]) if len(d) > 27 else 0,
-                prefetch_ok=int(d[28]) if len(d) > 28 else 0))
+                prefetch_ok=int(d[28]) if len(d) > 28 else 0,
+                eu_wr=int(d[29]) if len(d) > 29 else 0,
+                eu_mem_acc=int(d[30]) if len(d) > 30 else 0))
             pend = None
     return rows
 
@@ -989,9 +991,10 @@ def cmd_urgency(a):
                                      qag=d["q_aged"], infl=d["infl"], occ=d["occupied"],
                                      req=d["eu_req"], reqp1=d["eu_req_p1"],
                                      rdy=d["eu_ready"], plr=d["pf_late_rsv"],
-                                     evx=d["eval_ext"],
+                                     evx=d["eval_ext"], euwr=d.get("eu_wr", 0),
                                      rc=_reqclass(d["eu_req"], d["eu_req_p1"], d["eu_ready"]),
-                                     fam=BSN[ca[eu]["bs"]]))
+                                     fam=BSN[ca[eu]["bs"]],
+                                     rwfam=("W" if d.get("eu_wr", 0) else "R")))
     print(f"urgency (corrected, live eval_ext-row sampling): {len(recs)} edges "
           f"({sum(1 for r in recs if r['action']=='IDLE')} IDLE / "
           f"{sum(1 for r in recs if r['action']=='CODE')} CODE)")
@@ -1020,7 +1023,9 @@ def cmd_urgency(a):
     # THE actionable claim: YOUNG (coincident) reservations vs q_cnt_eval
     tab(lambda r: r["rc"] == "young", ["qc"], "YOUNG reservations, by q_cnt_eval")
     tab(lambda r: r["rc"] == "young", ["qc", "fam"],
-        "YOUNG, by q_cnt_eval x access family")
+        "YOUNG, by q_cnt_eval x CHIP-arch access family")
+    tab(lambda r: r["rc"] == "young", ["qc", "rwfam"],
+        "YOUNG, by q_cnt_eval x RTL eu_wr (R/W at the eval_ext row)")
     # pf_late_rsv firings vs q_cnt (which of these does the edit remove?)
     plr = [r for r in recs if r["plr"] == 1]
     print(f"  pf_late_rsv=1 firings: {len(plr)}; by q_cnt_eval: "
