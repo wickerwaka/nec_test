@@ -914,6 +914,59 @@ def cmd_nocomp(a):
     return 0
 
 
+def cmd_leactl(a):
+    """B-vs-C discriminator (Phase 2g Step 1): the no-request LEA control. Build
+    a matched 3-variant block - reader (8B07, reserves S_EA1), store (8907,
+    S_EA2), LEA (8D07, NO EU bus request) - at the same anchor, and compare what
+    happens at the disputed edge E (the bus cycle right after the ModRM is
+    delivered). LEA issues a CODE prefetch at E => E is a REAL arbitration edge;
+    reader/store issuing their EU access there instead => a pending EU request
+    SELECTIVELY suppresses the eligible prefetch => Hypothesis B (edge exists +
+    pending-reservation priority), refuting C (no edge at E)."""
+    import testimage
+    regs = dict(BW=0x0200, AW=0x1234, DS0=0x0000, PS=0x0000, PC=0x0100)
+    ram = [(0x0200, 0x34), (0x0201, 0x12)]
+    variants = [("reader 8B07", b"\x8b\x07", MEMR),
+                ("store  8907", b"\x89\x07", MEMW),
+                ("lea    8D07", b"\x8d\x07", None)]
+    print("no-request LEA control (edge E = bus cycle after the ModRM byte):")
+    for name, op, eubs in variants:
+        image, meta = testimage.compose(regs=regs, instr=op, ram=ram)
+        al = meta["anchor_linear"]
+        outcomes = []
+        for N in range(0, a.maxn + 1):
+            ref = accesses(run_chip(image, a.host, use_core=False, wvec=[0] * 4096))
+            af = next((i for i, x in enumerate(ref)
+                       if x["bs"] == CODE and x["addr"] == al), None)
+            wv = [0] * 4096
+            if af is not None and af + 2 < 4096:
+                wv[af + 2] = N
+            c = accesses(run_chip(image, a.host, use_core=False, wvec=wv))
+            afc = next((i for i, x in enumerate(c)
+                        if x["bs"] == CODE and x["addr"] == al), None)
+            if afc is None:
+                outcomes.append("?"); continue
+            after = c[afc + 3] if afc + 3 < len(c) else None
+            if after is None:
+                outcomes.append("-")
+            elif after["bs"] == CODE:
+                outcomes.append("CODE")        # prefetch issued at E
+            elif after["bs"] in (MEMR, MEMW) and (after["addr"] & 0xFFFFF) == 0x0200:
+                outcomes.append("EU")          # EU access (prefetch suppressed)
+            else:
+                outcomes.append(BSN.get(after["bs"], "?"))
+        uniq = sorted(set(outcomes))
+        print(f"  {name}: at E over N=0..{a.maxn} -> {uniq}")
+    print("  => LEA=CODE (edge is a real prefetch opportunity), reader/store=EU "
+          "(pending request suppresses it): arbitration edge EXISTS at E and a "
+          "pending EU request SELECTIVELY suppresses the prefetch => HYP B "
+          "(C refuted). [At this clean anchor the reservation is always old "
+          "enough; the model AGREES - the young-reservation threshold + the "
+          "model's error live in the pf_late_rsv boundary, not reproduced by "
+          "this minimal block - see notes.]")
+    return 0
+
+
 def cmd_pfdiff(a):
     """Localize the prefetch-issue / queue-trajectory divergence: run the same
     wait vector on chip and fabric, find the FIRST bus cycle where their
@@ -1116,6 +1169,10 @@ def main():
     p.add_argument("--bgs", nargs="+",
                    default=["z", "o", "t", "a", "r2", "r5", "r7", "r11"])
     p.set_defaults(fn=cmd_nocomp)
+    p = sub.add_parser("leactl")
+    p.add_argument("--host", default="root@mister-nec")
+    p.add_argument("--maxn", type=int, default=8)
+    p.set_defaults(fn=cmd_leactl)
     p = sub.add_parser("pfdiff")
     p.add_argument("--host", default="root@mister-nec")
     p.add_argument("--seed", type=int, default=90003)

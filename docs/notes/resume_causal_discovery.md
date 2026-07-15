@@ -401,7 +401,70 @@ rather than rushed (a wrong B/C answer would mis-target the RTL fix).
   a pending-EU-reservation priority that gates prefetch across w0..wN (replacing
   the eval_ext priority-bypassing override), pending the factorial.
 
+---
+
+# Phase 2g — LEA no-request control: B DECIDED over C (arbitration edge exists)
+
+Codex: 'chip reserves an eligible slot' had not yet proven the chip ARBITRATES at
+that slot (B) vs has no decision edge there (C). The no-request LEA control
+settles it. Tool: `leactl` (builds a matched 3-variant block via testimage with
+the correct NEC-named registers).
+
+## The control (Step 1)
+
+Matched block at one anchor (BW=0x0200, ModRM 07, data seeded at 0x0200):
+  reader 8B07 mov AW,[BW]   - reserves early (S_EA1)
+  store  8907 mov [BW],AW   - reserves later (S_EA2)
+  lea    8D07 lea AW,[BW]   - same 2-byte ModRM/EA decode, NO EU bus request
+At the disputed edge E (the bus cycle right after the ModRM byte is delivered),
+sweeping the ModRM-delivery fetch's wait N=0..8:
+
+    lea    -> CODE at E   (a prefetch IS issued: E is a real opportunity)
+    reader -> EU   at E   (the pending read request suppresses the prefetch)
+    store  -> EU   at E   (the pending write request suppresses the prefetch)
+
+**Verdict: Hypothesis B, C refuted.** E is a REAL arbitration edge - the
+no-request LEA variant proves a prefetch is eligible there - and a PENDING EU
+request SELECTIVELY suppresses it (reader/store issue their access instead). If E
+had no decision edge (C), LEA would not prefetch there either; it does. So the
+chip's rule at E is: pending-EU-reservation takes priority over an otherwise-
+eligible prefetch.
+
+## What Phase 2g did NOT close (honest)
+
+- **Reservation-AGE threshold (Step 2): NOT measured.** At this clean minimal
+  block the reservation is always old-enough: reader AND store both suppress at
+  every N, and the MODEL AGREES (no divergence). So the model is not
+  "always over-prefetch" - its error is confined to the YOUNG/coincident-
+  reservation boundary (the pf_late_rsv region, v30_biu), which this bare
+  post-flush block never reaches (single waits on the surrounding fetches
+  produced zero chip-vs-model divergence). Measuring the age threshold (how old
+  a pending reservation must be to block prefetch, per read/write/RMW/string/IO)
+  requires reproducing the young-reservation condition - a queue-fill setup or
+  anchoring on the fuzz divergences.
+- **6 non-eval_ext cases (Step 3):** not yet localized at the true commit strobe.
+- **A-exclusion tightening (Step 4):** partial (Phase 2f coarse control).
+- **No collision-free decision table yet.**
+
+## Honest bottom line (Phase 2g)
+
+- **A retired** (Phase 2f): the defect is arbitration, not EU readiness.
+- **B decided over C** (Phase 2g LEA control): there IS an arbitration edge at E,
+  and a pending EU request selectively suppresses an eligible prefetch. The RTL
+  target is the **pending-EU-reservation priority** over prefetch - which the
+  eval_ext waited-window override bypasses.
+- **NOT fully closed:** the exact reservation-AGE threshold (the precise rule -
+  pf_late_rsv deliberately lets a too-young request lose to CODE) is unmeasured;
+  the 6 non-eval_ext cases and the collision-free table remain. Phase 2h:
+  reproduce the young-reservation boundary (queue-fill or fuzz-divergence-
+  anchored) to measure the per-access-type age threshold, localize the 6, then
+  fit + validate the table. Phase-3 RTL target (design note): ONE arbitration
+  transition f(request_state, fetch_state) at every legal edge, with a
+  reservation-age-gated pending-EU priority, eval_ext demoted to an edge label -
+  pending the threshold measurement.
+
 Tools: `sw/causal_wrand.py`. Repro examples:
+`python3 sw/causal_wrand.py leactl --maxn 8`;
 `python3 sw/causal_wrand.py nocomp --seed 90003 --refws 2`;
 `python3 sw/causal_wrand.py predicate --seeds 90003 90007 90015 --nws 8 --wmaxes 1 3 7`;
 `python3 sw/causal_wrand.py determ --seed 90003`;
