@@ -79,6 +79,35 @@ discriminator.
 Config swept: `eu_consuming>=2 / pf_lim<=3` is the w1 optimum; >=3/<=2 trades w1
 for a small w3 gain. Adjudication ledger: **0 w0 deltas** (w0-neutral).
 
+## Follow-up: the beat law + the remaining-drift breakdown (2026-07-14)
+
+Denser measurement of the resume gap per (consuming, beat) where
+beat = (crossing_cycle - last_T1) mod (4+N):
+- **beat=0 → immediate (gap 1) in 97-99% of events** (both consuming and not);
+  beat=0 means occ<=4 already at T4+1 (queue had room).
+- **beat!=0 → paced**, with a specific per-beat gap (w1: beat2->~19, beat3->15,
+  beat4->11; these large gaps are the EU-STALLED long-instruction cases where
+  the queue stays full and the EU execution time sets the gap - already timed by
+  the EU model). Consumption was a CORRELATE of beat!=0, not the primitive.
+So the fitted resume law is beat-dominated: resume immediately when the refill
+crossing lands on-grid (beat 0), pace when off-grid / queue-full.
+
+**Remaining-drift breakdown (the strategic finding).** With the consumption-gate
+landed, classifying the FIRST divergence of 40 w1 seeds:
+| class | count | phenomenon |
+|---|---|---|
+| FLUSH / branch | 13 | chip flushes ~1 cyc later than TB on a jump redirect (Stage 5) |
+| EU-arbitration | 13 | TB commits an EU MEMW where the chip prefetches CODE first |
+| resume / other | 13 | residual prefetch-resume pacing |
+| CLEAN | 1 | |
+The waits>=1 drift is a ROUGHLY-EQUAL THREE-WAY split. The consumption-gate
+addressed part of the resume third; the other two thirds are DISTINCT
+phenomena: flush/branch-resolution timing (Stage 5) and EU-vs-prefetch
+arbitration timing. **No single resume function closes the gate** - full closure
+is a multi-front effort (resume + flush + arbitration), each ~1/3 of the drift.
+This reframes the plan: after the resume third, Stage 5 (flush) and an
+arbitration-timing pass are co-equal priorities, not sequential afterthoughts.
+
 ## Verdict — waits>=1 is closable non-invasively; the discriminator is real
 The isolation SUCCEEDED: the fill-vs-steady discriminator is the EU consumption
 activity (recent `q_pop`), a reconstructable AND RTL-trackable variable — NOT
