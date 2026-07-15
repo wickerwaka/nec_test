@@ -27,10 +27,37 @@ threshold) does not capture the chip's resume delay, which scales with the
 predecessor fetch's STRETCHED-GRID geometry (wait count) + queue occupancy/
 consumption. This is the long-suspected "prefetch-resume law under waits"
 (instantaneous EU state proven insufficient; needs accumulated bus-grid-vs-
-consumption phase history). NEXT: controlled replay at +ve/-ve anchors to extract
-the resume-delay FUNCTION (not fit a fingerprint); then decide incremental
-resume correction vs structural future-slot scheduler. Codex thread 019f663c
-consulted.
+consumption phase history).
+
+DENOMINATOR census (12 seeds, sw/class5_gaperr.py --denominators): prev_tw=0 is
+PERFECTLY clean (0/24,570) - the resume defect ONLY follows a waited fetch
+(necessary). But error rate is only 0.5-1.3% (not sufficient - extra state selects
+which waited refills err). Sign structured by wait duration: prev_tw=7 all +ve
+(+42/-0), prev_tw=1,2 bidirectional. => cannot blanket-correct; need the
+discriminator.
+
+FACTOR-W experiment (sw/class5_factorW.py): at a fixed CODE->CODE anchor, sweep
+ONLY the predecessor's wait N via WVEC, measure chip vs model resume_idle. ABSORB-
+TO-FLOOR DEADLINE LAW (Codex-formalized, exact for anchor A fz90011):
+    gap(N)  = max(D, 4+N+F);  resume_idle(N) = max(D-(4+N), F);  D=12, F=4.
+The chip has a scheduled earliest successor-T1 DEADLINE (D); predecessor Tw
+consumes the slack before it; once the min post-T4 separation (floor F~3-4) is
+hit, extra waits move the successor. anchor A chip_gap CONSTANT 12 for N=0..4
+(smoking gun). The model's occupancy resume only ACCIDENTALLY coincides (A N=0..4)
+and glitches (A N=5 late, N=6 early = threshold/commit-path aliasing). Anchors B/C
+(fz90007/90002) do NOT fit a single (D,F) - deadline+floor are CONTEXT-DEPENDENT,
+so "fixed bus-grid slot" is one hypothesis, not proven.
+
+Implementation shape (Codex): a TARGETED resume-slot scheduler (separate
+prefetch_eligible from prefetch_resume_slot), choosing among eval_ext / next-idle
+/ later-refill slot - must handle BOTH early and late (one-direction delay
+inadequate). Do NOT consume grid_phase yet (documented post-wait carry divergence,
+inert for good reason). NEXT DECISIVE EXPERIMENT before any RTL: the matched
+single-POP-shift across the completion edge at the anchor knees (two image
+variants differing only in one QS pop's placement rel to T4/eval_ext, everything
+else matched) - determines whether the deadline is BUS-GRID-anchored (successor T1
+fixed as pop crosses T4) or QUEUE-CONSUMPTION/DECODE-anchored (successor moves with
+the pop). Codex thread 019f663c consulted at each step.
 
 ## 2026-07-15 — eu_req=0 MOFFS stage: PARITY-GATED S_MLO lead-veto (SILICON-CONFIRMED)
 
