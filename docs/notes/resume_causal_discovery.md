@@ -891,9 +891,69 @@ f(source, q_cnt) but NOT captured by 2 enumerated sources. Chip-ground-truth
   matching; every measured-CODE cell stays CODE; zero regression.
 - Bitstream: quartus_sh --flow compile of the narrow veto, 0 errors, timing MET
   (all corners positive: setup +4.903 ns, hold +0.248, recovery/removal +1.053,
-  min-pulse +1.196). nec_test.sof built - FLASH-READY (NOT flashed; coordinator
-  flashes after Codex sign-off, then chip-replay confirms the cells switch to
-  IDLE on silicon).
+  min-pulse +1.196). nec_test.sof built.
+
+# Phase 3 (cont) — IN-SILICON chip-replay validation (narrow-veto A/B, FLASHED)
+
+Coordinator FLASHED the narrow-veto bitstream (2963147) into the FABRIC (safe_flash
+0 errors, VERIFY ok, cfg 0x1ff0008). This is the FIRST in-silicon confirmation of
+the source-veto mechanism. Chip-replay = measurement/read only; the socketed CHIP
+(use_core=0) is ground truth, the PATCHED veto RTL is live in the FABRIC
+(use_core=1). Tool: `causal_wrand.py hwreplay` (chip vs fabric + TB for source
+labels, aligned by BUS TYPE+ADDRESS). Label: 'Phase-3 narrow-veto A/B' - a
+known-PARTIAL fix, NOT arbitrary-wait closure.
+
+## Acceptance results (discovery 90003/07/15/21/30 + held-out 90042/51/63/77/88)
+
+1. **Board echo health: PASSED** before AND after (14/14 registers; board healthy).
+2. **POSITIVE cells - fixed in silicon: 20/20.** Every model-CODE over-prefetch
+   target now IDLEs in the FABRIC and MATCHES the chip: S_DHI@q1 14/14 (12
+   discovery + 2 held-out), S_PUSH_CALC@q2 6/6. The doomed prefetch is gone on
+   silicon.
+3. **NEGATIVE controls - no over-correction: 173/173.** Every measured-CODE cell
+   (S_MHI@q1, S_RSV@q0/q1, S_JWAIT@q0/q2, S_DEC@q0, S_PUSH_CALC@q0) STAYS CODE in
+   the fabric. ZERO observed veto cell where the chip wanted CODE.
+4. **w0 crown jewel: UNCHANGED.** chip vs fabric at w0 (all-zero wvec, 20 held-out
+   seeds): write-anchored-clean 20/20, per-access (bs,Tw) identical 20/20 (the
+   only pin diffs are float-floor idle addresses, not real). w0-neutral confirmed
+   in silicon.
+5. **fabric==TB 14301/14301 under replay** - silicon EXACTLY mirrors the patched
+   Verilator model, validating all the TB-based analysis as silicon-faithful.
+   Residual young fabric!=chip = 0; the only chip!=fabric are the eu_req=0
+   late-registration outliers (7 discovery + 2 held-out), untouched by the veto
+   (tracked follow-up).
+
+## HELD-OUT RANDOM-WAIT DRIFT (the payoff metric, true-cycle write-anchored)
+
+Measured PRE (chip vs baseline-TB built from HEAD~1) vs POST (chip vs veto-TB ==
+chip vs FABRIC, confirmed identical) under EXPLICIT-VECTOR REPLAY (the wrand LFSR
+path mis-seeds the local TB vs the board - a tooling caveat; replay is the
+artifact-free cross-position comparison). Cell-bearing corpus (N=300, replay vecs
+over discovery+held-out at wmax{1,3,7}):
+- **|final| offset: total 294 -> 260 clocks (12% reduction); peak-excursion: total
+  338 -> 276 (18% reduction).** drifted-seed count 96 -> 90; 12/300 cases improved;
+  worst-case (9-10 clk) UNCHANGED.
+- Interpretation: the DOMINANT S_DHI/S_PUSH_CALC@q2 mechanism accounts for ~12-18%
+  of the write-anchored drift on cell-bearing seeds - a real, partial drop exactly
+  as expected for a partial fix. The worst-case and the remaining ~82-88% are the
+  UNMAPPED per-source threshold cells (S_PUSH_CALC@q1, S_DEC@q2, S_MHI/S_RSV
+  higher-q) + the eu_req=0 onset-timing residual - the Phase-3b targets. (On low-
+  drift random held-out seeds 90300-90319 the baseline drift is already ~<1 clk, so
+  the reduction there is small in absolute terms.)
+
+## Bottom line (Phase-3 narrow-veto A/B, in silicon)
+
+The source-veto mechanism is CONFIRMED IN SILICON: all 20 targeted over-prefetch
+cells switch to chip-matching IDLE in the fabric, zero observed veto cell where the
+chip wanted CODE (no over-correction), w0 unchanged, fabric==TB exactly. The
+dominant fix removes ~12-18% of the true-cycle write-anchored drift on cell-bearing
+seeds (partial, as designed). Phase 3b: map the full per-source q_cnt threshold
+table (S_PUSH_CALC@q1, S_DEC@q2, S_MHI/S_RSV/S_DHI other-q, absent sources),
+require ~3 independent architectural anchors per gate cell before promoting it,
+keep the source-keyed representation (S_JWAIT@q2->CODE refutes 'q>=2 always
+reserves'). eu_req=0 onset + w0 young-onset stay tracked follow-ups.
+
+Repro (chip-replay): `python3 sw/causal_wrand.py hwreplay --seeds 90003 90007 90015 90021 90030 --nws 10 --wmaxes 1 2 3 7`.
 
 ## Verdict for Codex (scope decision before flash)
 

@@ -1437,6 +1437,132 @@ def cmd_vetoaudit(a):
     return 0
 
 
+def cmd_hwreplay(a):
+    """Phase-3 narrow-veto A/B: IN-SILICON chip-replay validation (measurement
+    only). The PATCHED veto RTL is live in the FABRIC core (use_core=1); the
+    socketed CHIP (use_core=0) is ground truth. Replay each wait vector on BOTH
+    board positions AND the Verilator TB (mirrors the fabric RTL, for source
+    labels), align by (BUS TYPE, ADDRESS), and at each young contested edge
+    record: chip action, FABRIC action, owns_slot / onset source / q_cnt (TB).
+    Acceptance: (positive) owns_slot=1 cells must now IDLE in fabric == chip;
+    (negative) owns_slot=0 chip-CODE cells must stay CODE in fabric (no
+    over-correction). Any chip!=fabric flag is cross-checked vs chip-vs-TB (the
+    float floor)."""
+    import random as _r
+    from collections import defaultdict, Counter
+
+    def action_from(stream, B):
+        eu = next((j for j in range(B + 1, min(B + 6, len(stream)))
+                   if stream[j]["bs"] in (MEMR, MEMW)), None)
+        if eu is None:
+            return None
+        return "CODE" if any(stream[j]["bs"] == CODE
+                             for j in range(B + 1, eu)) else "IDLE"
+
+    recs = []
+    for seed in a.seeds:
+        g = generate(f"fz{seed}", exts=())
+        image, meta = compose(g)
+        for ws in range(1, a.nws + 1):
+            for wmax in a.wmaxes:
+                wv = [_r.Random((ws << 8) | wmax).randint(0, wmax) for _ in range(4096)]
+                cr = run_chip(image, a.host, use_core=False, wvec=wv)
+                fr = run_chip(image, a.host, use_core=True, wvec=wv)
+                kr = run_tb_internal(image, 4200, wv)
+                crel = cr[next(i for i, r in enumerate(cr) if not r["rst"]):]
+                frel = fr[next(i for i, r in enumerate(fr) if not r["rst"]):]
+                ca = _trunc(accesses(crel))
+                fa = _trunc(accesses(frel))
+                ka = _trunc(accesses([dict(t=x["t"], bs_early=x["bs"], qs=x["qs"],
+                                           ad_addr=x["addr"], ad_data=0) for x in kr]))
+                cb, fb, kb = bs_stream(ca), bs_stream(fa), bs_stream(ka)
+                nn = min(len(cb), len(fb), len(kb))
+                mt4 = {}; bi = -1
+                for ri, x in enumerate(kr):
+                    if x["t"] == 1:
+                        bi += 1
+                    if x["t"] == 5:
+                        mt4[bi] = ri
+                for B in range(1, nn - 1):
+                    if ca[B]["bs"] != CODE or ca[B]["tw"] == 0:
+                        continue
+                    caction = action_from(ca, B)
+                    if caction is None:
+                        continue
+                    # aligned through B on BOTH fabric and TB (bs,addr)
+                    if any(cb[i] != fb[i] or ca[i]["addr"] != fa[i]["addr"]
+                           for i in range(1, B + 1)):
+                        faction = None
+                    else:
+                        faction = action_from(fa, B)
+                    if B not in mt4 or kb[B] != CODE or ka[B]["addr"] != ca[B]["addr"]:
+                        continue
+                    if any(kb[i] != cb[i] or ka[i]["addr"] != ca[i]["addr"]
+                           for i in range(1, B + 1)):
+                        continue
+                    er = None
+                    for ri in range(mt4[B] + 1, min(mt4[B] + 6, len(kr))):
+                        if kr[ri]["eval_ext"] == 1:
+                            er = ri; break
+                        if kr[ri]["t"] == 1:
+                            er = ri; break
+                    if er is None:
+                        er = min(mt4[B] + 1, len(kr) - 1)
+                    d = kr[er]
+                    if d["eval_ext"] != 1:
+                        continue
+                    rc = _reqclass(d["eu_req"], d["eu_req_p1"], d["eu_ready"])
+                    taction = action_from(ka, B)
+                    recs.append(dict(caction=caction, faction=faction, taction=taction,
+                                     rc=rc, osrc=_sname(d.get("onset_state", -1)),
+                                     qc=d["q_cnt"], owns=d.get("owns_slot", -1),
+                                     seed=seed, ws=ws, wmax=wmax, B=B))
+    young = [r for r in recs if r["rc"] == "young"]
+    aligned = [r for r in young if r["faction"] is not None]
+    print(f"hwreplay (Phase-3 narrow-veto A/B, IN-SILICON chip vs FABRIC): "
+          f"{len(recs)} contested edges, {len(young)} young "
+          f"({len(aligned)} fabric-aligned through B)")
+    # (2) POSITIVE cells: owns_slot=1 must be IDLE in fabric == chip
+    print("  (2) POSITIVE cells (owns_slot=1): fabric action vs chip:")
+    pos = [r for r in aligned if r["owns"] == 1]
+    pt = defaultdict(Counter)
+    for r in pos:
+        pt[(r["osrc"], r["qc"])][(r["caction"], r["faction"])] += 1
+    for k, v in sorted(pt.items()):
+        print(f"     {k[0]} q_cnt={k[1]}: (chip,fabric)={dict(v)}")
+    posok = sum(1 for r in pos if r["faction"] == r["caction"] == "IDLE")
+    print(f"     => positive cells fabric==chip==IDLE: {posok}/{len(pos)}")
+    # (3) NEGATIVE controls: owns_slot=0 chip-CODE must stay CODE in fabric
+    print("  (3) NEGATIVE controls (owns_slot=0, chip=CODE): fabric action:")
+    neg = [r for r in aligned if r["owns"] == 0 and r["caction"] == "CODE"]
+    nt = defaultdict(Counter)
+    for r in neg:
+        nt[(r["osrc"], r["qc"])][r["faction"]] += 1
+    overcorr = [r for r in neg if r["faction"] != "CODE"]
+    for k, v in sorted(nt.items()):
+        print(f"     {k[0]} q_cnt={k[1]}: fabric={dict(v)}"
+              f"{'  <-- OVER-CORRECTION' if any(a!='CODE' for a in v) else ''}")
+    print(f"     => negative chip-CODE cells staying CODE in fabric: "
+          f"{len(neg)-len(overcorr)}/{len(neg)} "
+          f"(over-corrections: {len(overcorr)})")
+    # any fabric != chip on young, cross-checked vs TB (float floor)
+    dis = [r for r in aligned if r["faction"] != r["caction"]]
+    print(f"  young fabric!=chip: {len(dis)} "
+          f"(of which TB also != chip = float floor: "
+          f"{sum(1 for r in dis if r['taction'] != r['caction'])})")
+    for r in dis:
+        print(f"     seed={r['seed']} ws={r['ws']} wmax={r['wmax']} B={r['B']} "
+              f"osrc={r['osrc']} qc={r['qc']} owns={r['owns']} chip={r['caction']} "
+              f"fabric={r['faction']} tb={r['taction']}")
+    # overall fabric==chip on ALL contested edges + fabric==TB (silicon proxy)
+    aa = [r for r in recs if r["faction"] is not None]
+    fc = sum(1 for r in aa if r["faction"] == r["caction"])
+    ft = sum(1 for r in aa if r["faction"] == r["taction"])
+    print(f"  overall fabric==chip: {fc}/{len(aa)}; fabric==TB: {ft}/{len(aa)} "
+          f"(fabric==TB confirms silicon mirrors the patched model)")
+    return 0
+
+
 def cmd_leactl(a):
     """B-vs-C discriminator (Phase 2g Step 1): the no-request LEA control. Build
     a matched 3-variant block - reader (8B07, reserves S_EA1), store (8907,
@@ -1724,6 +1850,13 @@ def main():
     p.add_argument("--nws", type=int, default=10)
     p.add_argument("--wmaxes", type=int, nargs="+", default=[1, 2, 3, 7])
     p.set_defaults(fn=cmd_vetoaudit)
+    p = sub.add_parser("hwreplay")
+    p.add_argument("--host", default="root@mister-nec")
+    p.add_argument("--seeds", type=int, nargs="+",
+                   default=[90003, 90007, 90015, 90021, 90030])
+    p.add_argument("--nws", type=int, default=10)
+    p.add_argument("--wmaxes", type=int, nargs="+", default=[1, 2, 3, 7])
+    p.set_defaults(fn=cmd_hwreplay)
     p = sub.add_parser("pfdiff")
     p.add_argument("--host", default="root@mister-nec")
     p.add_argument("--seed", type=int, default=90003)
