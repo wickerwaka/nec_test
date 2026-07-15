@@ -278,7 +278,71 @@ driven (consistent with the w0 priority: split-half, ready EU, then prefetch).
   the factorial request-age dissociation + a finer queue model + held-out-family
   validation before any RTL.
 
+---
+
+# Phase 2e — closing gate via RTL internal state (rule NOT yet closed; request-age pinned)
+
+Codex flagged that the external queue reconstruction had a push-timing bug that
+could manufacture the fixed-occ residual. Rather than debug an approximate
+external model, I PIVOTED to the RTL's OWN state: the Verilator TB dumps the
+exact queue-pipeline internals via `+eudbg` (occupied, q_aged, infl, q_cnt,
+q_avl, eu_req, eu_ready, eval_ext), and the TB is bit-identical to the fabric,
+so UP TO THE FIRST CHIP DIVERGENCE the model's internals EQUAL the chip's. This
+gives the true `occupied` (= cnt_next + infl, the RTL eligibility quantity) with
+zero reconstruction error. Tool: `predicate` (+ `run_tb_internal`). Anchor
+identity fixed (Step 2): keys now include the program seed.
+
+## The collision test (Step 3) — 21,070 aligned chip CODE/EU decisions
+
+Keying the chip's CODE-vs-EU decision by the model's fielded state:
+- (occupied, q_aged, eu_req, consuming): 23 cells, **10 COLLISIONS**.
+- + eu_ready: 9 collisions. + eval_ext: collisions REMAIN.
+The collisions are heavily lopsided (eu_req=1 -> mostly EU; eu_req=0 & occupied
+low -> mostly CODE), i.e. the chip decision is ALMOST a function of
+(occupied, eu_req) but a residual minority defies it. **NOT collision-free** ->
+per Codex's decision rule, a request-age / arbitration-phase variable is NECESSARY.
+
+## One mechanism, and it is the waited-window override + late EU-request (Step 5)
+
+- **All 27 first-divergences are OVER-prefetch** (chip goes EU, model issues a
+  CODE prefetch). The under-prefetch edit-ops seen in the Phase-2d aligned
+  inventory are therefore CASCADES downstream of an over-prefetch, not an
+  independent mechanism. -> ONE primary mechanism.
+- **eval_ext = 1 at 21/27 divergences**: the model's deferred-completion
+  waited-window prefetch override (`prefetch_ext`, v30_biu) is what issues the
+  doomed prefetch. In the dominant cell (occ=4, eu_req=1, consuming=1, 10 cases)
+  the model prefetched DESPITE eu_req=1 - which plain `prefetch_ok` forbids
+  (!(eu_req)) - so it can only be the eval_ext override bypassing the ready-EU
+  priority.
+- **eu_ready = 0 at ALL 27 divergences** while the chip goes EU: the chip's EU
+  request is ready by the decision edge, but the model's readiness signal has
+  not asserted. So the model's eu_req/eu_ready assert TOO LATE relative to the
+  chip -> the model prefetches in the gap. This is the REQUEST-AGE variable,
+  identified directly (converging with Codex's Factorial-A prediction without
+  yet running the reader-vs-store pair).
+
+## Honest bottom line (Phase 2e)
+
+- Is the decision COLLISION-FREE over the corrected full state? **NO.** The
+  model's queue-pipeline state (RTL-exact `occupied` etc.) + eu_req + eu_ready +
+  eval_ext does NOT determine the chip decision (10 residual colliding cells).
+- What remains (the exact missing field): the CHIP's true **EU-request-ready
+  edge (request-age)** - the model's eu_req/eu_ready assert later than the chip's
+  actual readiness, and the **eval_ext waited-window prefetch override** issues a
+  prefetch in that window, violating the ready-EU-beats-prefetch priority.
+- Mechanism count: **ONE** (over-prefetch via the eval_ext override; under-prefetch
+  is cascade).
+- NOT ready for RTL. Phase 2f (still discovery) should: (a) run the clean
+  Factorial-A reader-vs-store (8B07 vs 8907) at matched queue state to confirm
+  request-age causally and MEASURE the chip's request-ready timing vs the model's
+  eu_req edge; (b) with the measured request-age class added, re-run the collision
+  test for collision-freeness; (c) then fit + validate the exact decision table
+  (held-out anchors + invariant anchors + the single over sign). The likely RTL
+  target (Phase 3, not now) is the eval_ext override's EU-request priority /
+  eu_req assertion timing, unified across w0..wN.
+
 Tools: `sw/causal_wrand.py`. Repro examples:
+`python3 sw/causal_wrand.py predicate --seeds 90003 90007 90015 --nws 8 --wmaxes 1 3 7`;
 `python3 sw/causal_wrand.py determ --seed 90003`;
 `... impulse --seed 90007 --anchor-bus 59 --k 12`;
 `... ownwait --seed 90003 --anchor-bus 137 --core`;

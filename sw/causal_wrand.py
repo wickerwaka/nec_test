@@ -459,7 +459,8 @@ def cmd_arbpop(a):
         image, meta = compose(g)
         for bgname, refvec in bgs.items():
             ref = build_cycles(run_chip(image, a.host, use_core=False, wvec=refvec))
-            for key, B in _eu_anchors(ref)[:a.per]:
+            for key0, B in _eu_anchors(ref)[:a.per]:
+                key = (seed,) + key0     # Step 2: dedup within-program only
                 occ0 = ref[B + 1]["occ_in"]
                 eu_bs = ref[B + 1]["bs"]
                 dec, kdec = [], []
@@ -496,8 +497,8 @@ def cmd_arbpop(a):
         occs = [r[2] for r in recs]
         nstab = "STABLE" if len(set(ns)) == 1 else "VARIES/bg"
         ospread = "occ-DISTINCT" if len(set(occs)) > 1 else "occ-same"
-        print(f"    {euname[key[1]]}@{key[0]:05x}#{key[2]}: N*={ns} occ_in={occs} "
-              f"[{nstab},{ospread}]")
+        print(f"    fz{key[0]} {euname[key[2]]}@{key[1]:05x}#{key[3]}: N*={ns} "
+              f"occ_in={occs} [{nstab},{ospread}]")
     # dissociation seed: does N* track occ_in and/or EU-type?
     print("  N* vs (EU-type, occ_in entering) over variant anchors:")
     bykey = defaultdict(list)
@@ -671,6 +672,137 @@ def cmd_episodes(a):
           "model, OVER concentrates at LOW occ (model prefetches into room the\n"
           "  chip reserves for EU) and UNDER at HIGH occ (model withholds a "
           "prefetch the chip issues); overlapping ranges => one signed boundary.")
+    return 0
+
+
+def run_tb_internal(image, n, wvec):
+    """Run the Verilator TB with +eudbg and return per-CPU-cycle rows with the
+    bus record AND the core's internal queue-pipeline state. The TB is
+    bit-identical to the fabric, so up to the first chip divergence these
+    internals equal the CHIP's (Codex Step 1/5: use RTL state, not an external
+    reconstruction). eudbg 'd' field order (tb_v30_core.sv):
+    state q_pop q_avl q_cnt eu_wrap cur_wrap eu_addr eu_seg opc q_byte bus_phase
+    bus_ts q_fresh eu_started eu_req eu_ready q_flush eval_ext evald flush_fast
+    occupied q_aged infl."""
+    import subprocess, tempfile
+    from pathlib import Path
+    from check_seq import BIN, ROOT
+    td = tempfile.mkdtemp(prefix="eud_")
+    img = Path(td) / "img.hex"; out = Path(td) / "out.txt"; wvf = Path(td) / "wv.hex"
+    img.write_text("\n".join(f"{b:02x}" for b in image) + "\n")
+    wvf.write_text("\n".join(f"{min(255, max(0, int(x))):02x}" for x in wvec) + "\n")
+    args = [str(BIN), f"+bootimg={img}", f"+bootn={n}", f"+wvec={wvf}",
+            f"+out={out}", "+eudbg"]
+    r = subprocess.run(args, capture_output=True, text=True, cwd=ROOT, timeout=300)
+    if "BOOT DONE" not in r.stdout:
+        raise RuntimeError("TB eudbg failed")
+    rows = []
+    pend = None
+    for ln in out.read_text().splitlines():
+        p = ln.split()
+        if not p:
+            continue
+        if p[0] == "d":
+            pend = p
+        elif p[0] == "r" and pend is not None:
+            d = pend
+            rows.append(dict(
+                t=int(p[1]), bs=int(p[2]), qs=int(p[3]), addr=int(p[5], 16),
+                state=int(d[1]), q_pop=int(d[2]), q_avl=int(d[3]), q_cnt=int(d[4]),
+                eu_req=int(d[15]), eu_ready=int(d[16]), q_flush=int(d[17]),
+                eval_ext=int(d[18]), occupied=int(d[21]), q_aged=int(d[22]),
+                infl=int(d[23])))
+            pend = None
+    return rows
+
+
+def cmd_predicate(a):
+    """DECISIVE collision test (Codex Steps 1/3/5). On divergent vectors, align
+    chip vs model, find the FIRST divergent bus cycle (streams aligned up to
+    there, so the model's internal state == the chip's). Read the RTL
+    queue-pipeline state at the decision and record: chip decision (prefetch
+    CODE vs go-EU), model decision, occupied, q_aged, eu_req, q_avl, consuming.
+    Build the (state -> chip decision) table and test COLLISION-FREEness; split
+    over- vs under-prefetch to test one-vs-two mechanisms."""
+    import random as _r
+    from collections import defaultdict
+    recs = []
+    for seed in a.seeds:
+        g = generate(f"fz{seed}", exts=())
+        image, meta = compose(g)
+        for ws in range(1, a.nws + 1):
+            for wmax in a.wmaxes:
+                rr = _r.Random((ws << 8) | wmax)
+                wv = [rr.randint(0, wmax) for _ in range(4096)]
+                chip = _trunc(accesses(run_chip(image, a.host, use_core=False, wvec=wv)))
+                tb = run_tb_internal(image, 4200, wv)
+                # model bus cycles from the tb rows (T1 starts a cycle)
+                mcyc = []
+                for i, rw in enumerate(tb):
+                    if rw["t"] == 1:
+                        mcyc.append((i, rw))
+                mbs = [rw["bs"] for _, rw in mcyc]
+                cbs = [x["bs"] for x in chip]
+                n = min(len(cbs), len(mbs))
+                fd = next((i for i in range(n) if cbs[i] != mbs[i]), None)
+                # collect chip CODE/EU decisions over the ALIGNED prefix [0,fd]
+                # (model==chip there, so the internal state is the CHIP's), plus
+                # the first divergence itself. This gives agree-CODE, agree-EU,
+                # AND the over-prefetch divergence for a real collision test.
+                upto = (fd if fd is not None else n - 1)
+                for bi in range(1, upto + 1):
+                    cb = cbs[bi]
+                    if cb not in (CODE, MEMR, MEMW, IOR, IOW):
+                        continue
+                    rowi = mcyc[bi][0]
+                    st = tb[max(0, rowi - 1)]
+                    pops = sum(tb[j]["q_pop"] for j in range(max(0, rowi - 8), rowi))
+                    consuming = 1 if pops >= 2 else 0
+                    cd = "CODE" if cb == CODE else "EU"
+                    is_div = (fd is not None and bi == fd)
+                    md = ("CODE" if mbs[bi] == CODE else "EU") if is_div else cd
+                    sign = ("OVER" if is_div and md == "CODE" and cd == "EU" else
+                            "UNDER" if is_div and md == "EU" and cd == "CODE" else "agree")
+                    recs.append(dict(seed=seed, occ=st["occupied"], qa=st["q_aged"],
+                                     eq=st["eu_req"], erdy=st["eu_ready"],
+                                     qavl=st["q_avl"], infl=st["infl"],
+                                     evx=st["eval_ext"], cons=consuming,
+                                     chip=cd, model=md, sign=sign, div=is_div))
+                    if is_div:
+                        break
+    from collections import Counter
+    print(f"predicate: {len(recs)} chip CODE/EU decisions "
+          f"({sum(r['div'] for r in recs)} first-divergences)")
+    print(f"  divergence signs: "
+          f"{dict(Counter(r['sign'] for r in recs if r['div']))}")
+
+    def collide(fields, label):
+        tbl = defaultdict(Counter)
+        for r in recs:
+            tbl[tuple(r[f] for f in fields)][r["chip"]] += 1
+        coll = [(k, dict(v)) for k, v in tbl.items() if len(v) > 1]
+        print(f"  keyed by {label}: {len(tbl)} cells, {len(coll)} COLLISIONS")
+        for k, v in sorted(coll)[:12]:
+            print(f"    {dict(zip(fields, k))}: chip={v}")
+        return len(coll)
+
+    # does the MODEL's fielded state (what prefetch_ok sees) predict chip decision?
+    collide(["occ", "qa", "eq", "cons"], "model(occupied,q_aged,eu_req,consuming)")
+    # add eu_ready, then eval_ext (the waited-window override predicate)
+    collide(["occ", "qa", "eq", "erdy", "cons"], "+eu_ready")
+    collide(["occ", "qa", "eq", "erdy", "cons", "evx"], "+eval_ext")
+    # divergence internal states, now with eval_ext
+    print("  first-divergence (OVER) states (chip=EU, model prefetched CODE):")
+    dtbl = Counter()
+    for r in recs:
+        if r["div"] and r["sign"] == "OVER":
+            dtbl[(r["occ"], r["eq"], r["erdy"], r["evx"], r["cons"])] += 1
+    for k, ct in sorted(dtbl.items()):
+        print(f"    occ={k[0]} eu_req={k[1]} eu_ready={k[2]} eval_ext={k[3]} "
+              f"consuming={k[4]}: {ct}")
+    print(f"  eval_ext=1 at divergence: "
+          f"{sum(ct for k, ct in dtbl.items() if k[3] == 1)} / "
+          f"{sum(dtbl.values())} (implicates the waited-window override)")
     return 0
 
 
@@ -861,6 +993,13 @@ def main():
     p.add_argument("--nws", type=int, default=6)
     p.add_argument("--wmaxes", type=int, nargs="+", default=[1, 3, 7])
     p.set_defaults(fn=cmd_episodes)
+    p = sub.add_parser("predicate")
+    p.add_argument("--host", default="root@mister-nec")
+    p.add_argument("--seeds", type=int, nargs="+",
+                   default=[90003, 90007, 90015, 90021, 90030])
+    p.add_argument("--nws", type=int, default=8)
+    p.add_argument("--wmaxes", type=int, nargs="+", default=[1, 3, 7])
+    p.set_defaults(fn=cmd_predicate)
     p = sub.add_parser("pfdiff")
     p.add_argument("--host", default="root@mister-nec")
     p.add_argument("--seed", type=int, default=90003)
