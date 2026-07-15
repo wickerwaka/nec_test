@@ -76,7 +76,57 @@ The rebuild is largely INSIDE `v30_biu.sv`. The EU boundary changes minimally:
   the (new) LOCK pin and the (future) HOLD/RQ-AK arbiter gate. Wire the real
   `BUSLOCK_N` output (currently hardwired `1'b1` in v30_core line 239).
 
-## 4. The resume law — measurement gate BEFORE coding (mandatory first data)
+## 4a. STAGE 0 RESULT (2026-07-14) — VERDICT: GO. The resume law CLOSES.
+
+Executed reflash-free on the socketed chip via `sw/exp_resume.py`: self-
+contained aperiodic streams (mixed 1/2/3-byte register/imm + mem/RMW ops,
+non-repeating RNG order, no jumps/flushes) with the leading bus-grid phase
+swept by prepending k=0..7 NOPs, captured at w0/w1/w3 (4 seeds x 8 phases x 3
+waits). ~7000 resume events reconstructed with (queue occupancy, phase, fill).
+
+The naive question "does resume_slot close over the coarse 3-tuple (phase,
+occ, fill)?" is the WRONG test and must not be used as the go/no-go, because it
+is CONFOUNDED by feature-lossiness. Proof: the coarse tuple fails to close even
+at **w0**, where the current model is bit+cycle-exact (169000/169000) — e.g.
+seed0 eu_ord0 has two phase-shifts (k1,k3) with identical (phase-parity, occ=4,
+fill) but resume gap 4 vs 5. Since the chip is provably deterministic and FULLY
+modeled at w0, that "contradiction" is my 3 coarse features omitting finer
+bus-grid state (in-flight-fetch bytes, q_aged, the intra-cycle grid sub-phase),
+NOT a hidden chip variable. Direct confirmation: the current TB reproduces the
+w0 synthetic streams EXACTLY (chip-vs-TB seed0/1 k1/k3 w0 = 0 divergent rows) —
+including the very k1/k3 gap difference the coarse tuple flagged.
+
+The CORRECT test — the controlled aligned phase-sweep (`exp_resume.py sweep`),
+which holds the structural context fixed (same seed, same EU-access-resume
+ordinal) and varies ONLY the leading phase — is decisive:
+- **256/266 aligned cases are CONSTANT (217) or CLEAN-PARITY (39).** The 39
+  CLEAN-PARITY cases are the bidirectional-phase flip, isolated cleanly: the
+  resume gap is a two-valued function of phase parity (e.g. seed2 eu_ord4 gap
+  1/3 by parity; eu_ord5 gap 1/5). This is direct, controlled reproduction of
+  the Round-3 A2 finding.
+- **10 WANDER cases** (gap takes >2 values not parity-separated) are ALL
+  accounted for by the occupancy ALSO varying across the phase shift (the occ
+  annotations differ per k) plus the same finer-state lossiness proven at w0 —
+  not a hidden variable. Every WANDER case is w0 (where the model is exact) or
+  has occ varying across k.
+- The floor is genuinely exercised: chip-vs-TB on these streams DIVERGES at
+  w1/w3, and the aggregate bad-row count ALTERNATES with k-parity (w1: even-k
+  531, odd-k 300) — the bidirectional flip visible even in bulk.
+
+**CONCLUSION (go/no-go): GO.** The chip's resume law is fully deterministic in
+the bus-grid state a bus-grid-accurate model tracks (occupancy + in-flight +
+q_aged + TRUE grid phase). There is NO evidence of a hidden/unmodelable
+variable: at w0 that exact state already reproduces the chip bit-exact; the ONE
+thing that breaks at w>=1 is that the current model's phase is CLOCK parity
+(`ph_ff`) rather than STRETCHED-GRID phase, and the controlled sweep proves
+grid_phase is the necessary and sufficient additional variable (the gap is a
+<=2-valued function of it with occ/fill fixed). This greenlights the Stage-3
+resume rewrite, keyed on a stretched-grid phase + occupancy(+in-flight) — which
+is exactly what Stage 1 makes first-class. The resume_slot "table" closes over
+the full grid state; it does NOT reduce to a coarse 3-tuple, so the rewrite
+models the grid state, it does not tabulate.
+
+## 4. The resume law — the measurement that produced the Stage-0 verdict
 
 The floor is the prefetch-resume-after-EU-access / retire cadence under waits.
 Before writing the resume predicate, take a CONTROLLED-sled board capture
