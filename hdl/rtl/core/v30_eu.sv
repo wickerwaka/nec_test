@@ -167,6 +167,10 @@ module v30_eu (
                                    // IO wraps in port space)    // 0=mem 1=io 2=inta 3=halt
     input             eu_started,
     input             bus_phase,   // BIU 2-cycle grid parity (T1=0)
+    input             grid_phase,  // rebuild Stage 1: TRUE stretched-grid
+                                   // parity (== bus_phase at w0). Available
+                                   // but not yet consumed (Stage 2 re-points
+                                   // the bus_phase gates onto it).
     input             bus_t4,      // BIU cycle is a T4
     input             bus_tw,      // BIU is inserting a wait cycle (0 at w0);
                                    // gate a dly with !bus_tw to count bus cyc

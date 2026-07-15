@@ -113,6 +113,10 @@ module v30_biu (
                                       // (eval_ext) commit; take the next plain
                                       // idle do_commit instead (measured law)
     output            bus_phase,      // 2-cycle bus grid parity (T1=0)
+    output            grid_phase,     // rebuild Stage 1: TRUE stretched-grid
+                                      // parity (Tw holds the T3 slot; == bus_
+                                      // phase at w0). Exported, not yet a
+                                      // consumer (inert this stage).
     output            bus_t4,         // current cycle is a bus T4
     output      [2:0] bus_ts,         // T-state: 0=Ti 1=T1 2=T2 3=T3 4=T4 5=cTi
     input             eu_hold,      // blocks prefetch, not request history
@@ -849,6 +853,43 @@ wire ph_now = (state == ST_T1 || state == ST_T3) ? 1'b0
             : ph_ff;
 always_ff @(posedge clk) if (ce) ph_ff <= ~ph_now;
 assign bus_phase = ph_now;
+
+// grid_phase (rebuild Stage 1) - the TRUE stretched-grid parity, the first-
+// class replacement for ph_ff/bus_phase that the Stage-2/3 resume/eval/
+// arbitration rewrite keys off. Identical to bus_phase EXCEPT a Tw cycle holds
+// the T3 grid slot (phase 0) instead of toggling every clock - so every bus
+// cycle contributes exactly two grid positions (T1/T3=0, T2/T4=1) regardless
+// of the wait count N, and T4 is phase 1 for ANY N. The Stage-0 measurement
+// (biu_rebuild_design.md 4a) proved grid_phase is the necessary+sufficient
+// variable that the resume law flips on. w0-NEUTRAL: with no Tw, gph_now==ph_now
+// and gph_ff tracks ph_ff, so grid_phase is bit-identical to bus_phase at w0
+// (SVA below; the 169000 golden). INERT this stage: exported, no consumer
+// re-pointed yet (that is Stage 2's intended behavior change).
+reg  gph_ff;
+wire gph_now = (state == ST_T1 || state == ST_T3) ? 1'b0
+             : (state == ST_T2 || state == ST_T4) ? 1'b1
+             : (state == ST_TW)                    ? 1'b0   // Tw = T3 slot
+             : (state == ST_TI && nxt_live)        ? 1'b1
+             :                                        gph_ff;
+always_ff @(posedge clk) if (ce)
+    gph_ff <= (state == ST_TW) ? gph_ff : ~gph_now;        // Tw: do not advance
+assign grid_phase = gph_now;
+
+`ifndef SYNTHESIS
+// Stage-1 inertness invariant: in any bus cycle that has taken no Tw (the w0
+// condition), grid_phase is bit-identical to bus_phase. Tracks whether a Tw
+// has occurred since the last T1; the check is disabled once one has (that is
+// exactly where the two are DESIGNED to diverge under waits).
+reg cyc_saw_tw;
+always_ff @(posedge clk)
+    if (srst) cyc_saw_tw <= 1'b0;
+    else if (ce)
+        cyc_saw_tw <= (state == ST_T1) ? 1'b0 : (cyc_saw_tw | bus_tw);
+always_ff @(posedge clk)
+    if (!srst && ce && !cyc_saw_tw && !bus_tw && (grid_phase !== bus_phase))
+        $error("grid_phase != bus_phase in a no-Tw cycle (Stage-1 invariant)");
+`endif
+
 assign bus_t4 = state == ST_T4;
 // "bus stretched this cycle" tick: exactly the extra wait cycles a waited
 // bus cycle inserts. Zero at w0 (no Tw), so a dly gated `if(!bus_tw)` is
