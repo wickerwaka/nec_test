@@ -125,7 +125,23 @@ loads can't be separated from branch flushes by these signals (needs Front 2).
 Result: w0 169000/169000, w1 800/800, w3 600/600; DRIFT w1 593.6->565.3, w3
 619.6->606.2. 0 w0 deltas.
 
-### Front 2 — flush/branch (Stage 5): CHARACTERIZED + DEFERRED
+### Front 2 — flush/branch: PER-BRANCH LAW measured; Jcc-w1 doomed-prefetch LANDED (830f1b2)
+
+Measure-first (sw/exp_flush.py, controlled branches x w0/w1/w3, chip-vs-TB):
+**ONLY Jcc (conditional taken) diverges at the flush under waits** - EB, E9,
+LOOP, CALL all MATCH at w0/w1/w3. The blanket bus_tw stretch was wrong because
+it touched the 4 correct branch types. Jcc has TWO sub-mechanisms under waits:
+- **w1 (queue has room): a DOOMED fall-through prefetch** runs during resolution
+  before the flush; the TB's hard S_JWAIT reservation blocked it. FIXED: Jcc
+  reserves only dly<=1 under waits (`waits_seen`-gated, w0 keeps its dly==3 gap
+  -> w0-neutral) so the doomed prefetch commits. Controlled Jcc w1 MATCHES;
+  DRIFT w1 565.3->506.0.
+- **w3 (queue full, no room): a bare +1-LATE flush redirect** (no doomed
+  prefetch). This is the flush-redirect-commit-timing part (the risky flush-
+  transition delay). Not yet fixed - characterized for follow-up. Jcc w3 still
+  DIVERGES; w3 drift 606.7 (barely moved).
+
+### (superseded) earlier blanket-stretch attempt: CHARACTERIZED + DEFERRED
 Measured (seed90003 Jcc 0x73, +eudbg): the branch resolves via S_JDISP->S_JWAIT
 (dly countdown)->S_JFLUSH; the CHIP flushes ~1 cyc LATER than the TB under waits
 (chip E@237/T1@238 vs TB S_JFLUSH@236/T1@237). This CONFIRMS +1-LATE (opposite
