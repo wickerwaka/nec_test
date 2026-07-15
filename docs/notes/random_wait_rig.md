@@ -84,6 +84,56 @@ Examples:
 - Full RTL (system_large + nec_bus + hps_axi_slave + core) lints clean;
   bitstream build for FLASH-READY.
 
+## Phase 1 BASELINE RESULTS (in silicon, flashed 3ddcf00, board root@mister-nec)
+
+Rig proven in hardware (`baseline_wrand.py rigproof`, fz90000 wmax=3): the
+per-access (bs, Tw-count) sequence is IDENTICAL chip vs fabric vs TB over all
+201 accesses, writes byte-identical. The load-bearing property holds: the same
+seed drives the identical random wait pattern to both A/B positions.
+
+Baseline sweep (`baseline_wrand.py sweep`, fz90000-90199 = 200 seeds, base menu,
+write-anchored normalized offset, tools = sw/baseline_wrand.py):
+
+| config | |final| med/mean/WORST | peak-excursion worst | fully-cycle-clean | writes |
+|---|---|---|---|---|---|
+| uniform w1 | 0 / 1.08 / 11 clk | 11 | 102/200 (51%) | 200/200 identical |
+| uniform w3 | 2 / 2.00 / 11 clk | 11 | 83/200 (42%) | 200/200 identical |
+| random 0..3 (wmax3) | 2 / 1.67 / 8 clk | **15** | 67/200 (34%) | 200/200 identical |
+| random 0..7 (wmax7) | 2 / 1.97 / 10 clk | **15** | 64/200 (32%) | 200/200 identical |
+
+- chip-vs-FABRIC == chip-vs-TB EXACTLY in every config and every statistic
+  (the fabric core and the Verilator TB are the same RTL; the TB is a faithful
+  reflash-free proxy).
+- FUNCTIONAL IDENTITY holds under random waits (all 800 runs writes-identical);
+  random waits change ONLY timing, never the architectural result.
+- Random waits are WORSE than uniform on the honest metrics: peak instantaneous
+  excursion 15 clk (vs 11 uniform) and fewer fully-clean seeds (~33% vs ~46%).
+  The old "<=7 clk" uniform figure was a 70-seed small-sample; at 200 seeds even
+  uniform hits 11, and random hits 15. Per the reframed rules this is a real
+  failure surface (not cosmetic), and the random dimension exposes more of it.
+
+## Minimal-pair tractability (Phase 2 tool) - TRACTABLE (sw/minpair_wrand.py)
+
+One program (fz90003), 48 wait-seeds at wmax=1 on the chip; EU data accesses
+(MEMR/MEMW) are the stable architectural anchor; resume gap = idle clocks from a
+data access T4 to the next CODE-fetch T1.
+
+- The chip's resume gap tracks a BOUNDED LOCAL wait window: grouping runs by the
+  5-cycle local Tw context around a resume point, every context group has a
+  CONSISTENT gap (identical local window => identical gap, regardless of the
+  global pattern). So minimal pairs are ABUNDANT and clean - 48 wait-seeds
+  already give full Hamming-1 coverage of the local window. Concrete pairs:
+  e.g. ord 10 gap 6->7, ord 21 gap 11->12 as the resume access's own wait flips
+  0->1 (delta +1.0, low spread). A minority of resume points (ord 4, 15) need a
+  wider window (spread ~2), i.e. predominantly-local with a few longer-memory
+  tails.
+- `--compare-core` runs the fabric core on the same wait-seeds and LOCALIZES the
+  model's error: for fz90003, ordinal 16 diverges in 18/48 wait patterns (chip
+  resumes in 1-2 clocks, the model over-delays to 4-5), plus +/-1 errors at ords
+  19-24. This is the direct Phase-2 payoff: the random-wait rig pinpoints WHICH
+  resume decisions the model gets wrong and under WHICH local wait context - the
+  thing the 9 uniform-wait refutations could not isolate.
+
 ## Post-flash validation plan (Phase 1 steps 3-4, coordinator-gated flash)
 
 1. Sanity: at wrand seed S, wmax K, dump the chip's captured T-state stream
