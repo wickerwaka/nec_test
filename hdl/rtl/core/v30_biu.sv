@@ -264,7 +264,26 @@ wire [3:0] occupied = {1'b0, cnt_next} + {2'b0, infl};
 // a prefetch cannot commit during a push-absorb cycle (q_aged nonzero,
 // the cycle after a fetch T4) - measured on the boot loop; flush
 // redirects are exempt (measured on the branch tranches)
-wire       prefetch_ok = !q_flush ? (!(eu_req || eu_hold) && occupied <= 4 &&
+// Stage 3 two-rhythm scheduler (discriminator: EU consumption activity).
+// Isolation (biu_rebuild_isolation.md) found the fill-vs-steady discriminator:
+// after a WAITED prefetch, if the EU is actively CONSUMING (recent q_pop
+// activity) the chip paces the next fetch by draining the queue further
+// (resume near occ<=2); if the EU is STALLED (no recent pops) the queue fills
+// and the fetch resumes immediately at the occ<=4 refill threshold. The
+// eval_ext immediate-resume-at-occ<=4 ignored consumption (the dominant waits
+// drift). pf_drain applies the tighter threshold ONLY in the post-waited-
+// prefetch window AND only while the EU is consuming.
+// w0-NEUTRAL: pf_drain is only ever set on a Tw cycle -> always 0 at w0 ->
+// prefetch_ok bit-identical (occ<=4).
+reg        pf_drain;
+reg  [7:0] pop_sr;                     // recent pop-now history (consumption)
+wire [3:0] pop_cnt = {3'b0, pop_sr[0]} + {3'b0, pop_sr[1]} +
+                     {3'b0, pop_sr[2]} + {3'b0, pop_sr[3]} +
+                     {3'b0, pop_sr[4]} + {3'b0, pop_sr[5]} +
+                     {3'b0, pop_sr[6]} + {3'b0, pop_sr[7]};
+wire       eu_consuming = pop_cnt >= 4'd2;
+wire [3:0] pf_lim = (pf_drain && eu_consuming) ? 4'd3 : 4'd4;
+wire       prefetch_ok = !q_flush ? (!(eu_req || eu_hold) && occupied <= pf_lim &&
                                      q_aged == 2'd0)
                                   : !(eu_req || eu_hold);   // flushed queue is empty
 
@@ -542,6 +561,8 @@ always_ff @(posedge clk) begin
         eu_hand    <= 1'b0;
         eval_ext   <= 1'b0;
         ext_flushed <= 1'b0;
+        pf_drain   <= 1'b0;
+        pop_sr     <= 8'd0;
         if (bkd_load) begin
             fetch_cs  <= bkd_cs;
             fetch_off <= bkd_ip;
@@ -553,6 +574,7 @@ always_ff @(posedge clk) begin
         end
     end else if (ce) begin
         eu_started <= 1'b0;
+        pop_sr <= {pop_sr[6:0], pop_now};   // recent consumption history
         // queue occupancy / availability pipeline
         q_cnt  <= cnt_next;
         q_avl  <= q_avl - {2'b0, pop_now} + {1'b0, q_aged};
@@ -677,7 +699,7 @@ always_ff @(posedge clk) begin
                     end
                 end
             end
-            ST_T1: state <= ST_T2;
+            ST_T1: begin state <= ST_T2; pf_drain <= 1'b0; end
             ST_T2: state <= ST_T3;
             ST_T3, ST_TW: begin
                 if (state == ST_TW) tw_any <= 1'b1;
@@ -828,6 +850,7 @@ always_ff @(posedge clk) begin
                     end else if (!evald) begin
                         eval_ext    <= 1'b1;
                         ext_flushed <= q_flush;
+                        pf_drain    <= cur_fetch && !q_flush;
                     end else begin
                         cur_type   <= BS_PASV;
                         cur_fetch  <= 1'b0;
