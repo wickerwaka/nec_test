@@ -509,3 +509,30 @@ commit).
 - Deferred (as coordinated): a host-selectable independent core-rate CE
   divider (feed the core CE from a host-controllable divider rather than
   tick_rise); the +ce_div plumbing in tb_v30_core is the sim-side seed.
+
+## BIU-rebuild first silicon confirmation (2026-07-14, biu-rebuild @ a5a92a3)
+
+Flashed the biu-rebuild bitstream (coordinator ran safe_flash: Configuration
+succeeded 0 errors; VERIFY pwr_good/cpu_running/cap_full True, use_core False
+default; harness healthy). Synthesis: 0 errors, timing MET (worst-case setup
+slack +4.199ns, hold +0.260ns, all clocks positive). Full hardware A/B:
+
+1. HEALTH echo PASSED (before + after).
+2. w0 CROWN JEWEL: boot chip(use_core=0)-vs-fabric(use_core=1) MATCH 200 rows;
+   core-vs-golden MATCH. The whole rebuild is w0-EXACT in silicon.
+3. w1/w3 DRIFT DROP LIVE: chip-vs-fabric drift is IDENTICAL PER-SEED to the sim
+   chip-vs-TB drift (15 seeds 90000-14: w1 both mean 408.1 CLEAN 1/15; w3 both
+   596.5 CLEAN 3/15 - every seed value matches exactly). Synth float floor = 0;
+   the fabric core is cycle-for-cycle the Verilator TB. The five landed fronts
+   (consumption-resume, arb-store, Jcc-w1-flush, load-ext) are REAL in fabric.
+4. BUSLOCK live: chip-vs-fabric release-at-write-T4 EXACT, prefetch-transparency
+   EXACT (1 fetch inside), no-false-lock EXACT; assert 2-cyc-late (documented
+   inert Stage-6 residual). Stage-6 LOCK confirmed in silicon.
+5. INTERRUPTS: chip-vs-TB inject-int fz10000-10199 = 200/200 CLEAN (unregressed;
+   the flush/arbitration changes are w0-neutral). The 2 chip-vs-FABRIC hw-ab
+   flags (fz10000/10018) are chip-vs-TB clean = the inert async-INT-recognition
+   float floor (async pin latched 1 cyc differently in fabric), not a bug.
+
+VERDICT: the rebuild's first silicon confirmation is CLEAN. w0 chip-exact in
+fabric; the w1/w3 drift drop is real (silicon==sim exactly); BUSLOCK live;
+interrupts unregressed. Board healthy on the new bitstream.
