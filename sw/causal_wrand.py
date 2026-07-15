@@ -757,7 +757,12 @@ def run_tb_internal(image, n, wvec):
                 pop_cnt=int(d[40]) if len(d) > 40 else -1,
                 eu_consuming=int(d[41]) if len(d) > 41 else -1,
                 grid_phase=int(d[42]) if len(d) > 42 else -1,
-                pf_lim=int(d[43]) if len(d) > 43 else -1))
+                pf_lim=int(d[43]) if len(d) > 43 else -1,
+                push_pend=int(d[44]) if len(d) > 44 else -1,
+                push_now=int(d[45]) if len(d) > 45 else -1,
+                pop_now=int(d[46]) if len(d) > 46 else -1,
+                cnt_next=int(d[47]) if len(d) > 47 else -1,
+                pop_sr=int(d[48], 16) if len(d) > 48 else -1))
             pend = None
     return rows
 
@@ -1913,6 +1918,110 @@ def cmd_class5tax(a):
     return 0
 
 
+def cmd_class5law(a):
+    """Phase-3b: MEASURE the post-waited-fetch refill idle-count LAW. For each
+    class-5 CODE->X anchor collect chip_Ti (ground truth) + model_Ti and the
+    queue-push-pipeline state at the predecessor T4 and at the model's refill
+    decision. Tests the push-PHASE hypothesis: a WAITED fetch defers its queue
+    push one cycle (push_now==0 at T4, push_now!=0 at T4+1), so prefetch_ok's
+    q_aged gate (last-edge push) misses the deferred push and the model refills
+    early. Reflash-free; explicit-vector replay; chip = ground truth."""
+    import random as _r
+    from collections import defaultdict, Counter
+    recs = []
+    for seed in a.seeds:
+        g = generate(f"fz{seed}", exts=())
+        image, meta = compose(g)
+        for ws in range(1, a.nws + 1):
+            for wmax in a.wmaxes:
+                wv = [_r.Random((ws << 8) | wmax).randint(0, wmax) for _ in range(4096)]
+                cr = run_chip(image, a.host, use_core=False, wvec=wv)
+                crel = cr[next(i for i, r in enumerate(cr) if not r["rst"]):]
+                kr = run_tb_internal(image, 4200, wv)
+                ca = _acc_rows(crel, "t", "bs_early", "ad_addr")
+                ka = _acc_rows(kr, "t", "bs", "addr")
+                n = min(len(ca), len(ka))
+                busdiv = next((i for i in range(n)
+                               if ca[i]["bs"] != ka[i]["bs"]
+                               or ca[i]["addr"] != ka[i]["addr"]), None)
+                if busdiv is not None:
+                    continue
+                c0, k0 = ca[0]["t1"], ka[0]["t1"]
+                kd = next((i for i in range(1, n)
+                           if (ca[i]["t1"] - c0) != (ka[i]["t1"] - k0)
+                           and ca[i - 1]["bs"] == CODE), None)
+                if kd is None:
+                    continue
+                cur, prev = ca[kd], ca[kd - 1]
+                kcur, kprev = ka[kd], ka[kd - 1]
+                cti = sum(1 for i in range(prev["t4"] + 1, cur["t1"]) if crel[i]["t"] == 0)
+                fti = sum(1 for i in range(kprev["t4"] + 1, kcur["t1"]) if kr[i]["t"] == 0)
+                t4 = kr[kprev["t4"]]        # predecessor T4 row (model)
+                # push phase: did the push happen AT T4 (unwaited) or defer (waited)?
+                t4p1 = kr[min(kprev["t4"] + 1, len(kr) - 1)]
+                waited = kprev["tw"] > 0
+                push_at_t4 = t4.get("push_now", 0) != 0
+                push_deferred = (not push_at_t4) and t4p1.get("push_now", 0) != 0
+                # model refill decision row = the row before its refill T1
+                dec = kr[max(0, kcur["t1"] - 1)]
+                recs.append(dict(seed=seed, ws=ws, wmax=wmax, cti=cti, fti=fti,
+                                 err=cti - fti,
+                                 early=(fti < cti), late=(fti > cti),
+                                 waited=int(waited), push_at_t4=int(push_at_t4),
+                                 push_deferred=int(push_deferred),
+                                 t4_qaged=t4["q_aged"], t4_pushnow=t4.get("push_now", -1),
+                                 t4_pushpend=t4.get("push_pend", -1), t4_occ=t4["occupied"],
+                                 t4_qcnt=t4["q_cnt"], t4_qavl=t4["q_avl"],
+                                 dec_pushnow=dec.get("push_now", -1),
+                                 dec_qaged=dec["q_aged"], dec_occ=dec["occupied"],
+                                 dec_qcnt=dec["q_cnt"],
+                                 curbs=BSN.get(cur["bs"]), prevtw=kprev["tw"]))
+    print(f"class5law: {len(recs)} class-5 CODE->X anchors")
+    if not recs:
+        print("  (none)"); return 0
+    early = [r for r in recs if r["early"]]; late = [r for r in recs if r["late"]]
+    print(f"  sign: model EARLY (fti<cti) {len(early)} / model LATE (fti>cti) {len(late)}")
+    print(f"  predecessor fetch WAITED (tw>0): {sum(r['waited'] for r in recs)}/{len(recs)}")
+    print(f"  push DEFERRED (waited => push slips T4->T4+1): "
+          f"{sum(r['push_deferred'] for r in recs)}/{len(recs)}")
+    # THE test: does 'push_deferred' predict model-early?
+    print("  push_deferred vs sign:")
+    t = defaultdict(Counter)
+    for r in recs:
+        t[r["push_deferred"]][("EARLY" if r["early"] else "LATE" if r["late"] else "MATCH")] += 1
+    for k, v in sorted(t.items()):
+        print(f"     push_deferred={k}: {dict(v)}")
+    # model refill decision: is push happening (push_now!=0) when it launches?
+    print(f"  at the model's refill-decision row, push_now!=0 (launches DURING a "
+          f"push): {sum(1 for r in recs if r['dec_pushnow'] not in (0,-1))}/{len(recs)}")
+    print(f"  ... among EARLY cases: "
+          f"{sum(1 for r in early if r['dec_pushnow'] not in (0,-1))}/{len(early)}")
+    # law: chip_Ti keyed by (waited, push_deferred, t4_qaged) - collision test
+    def tab(keys, sub, label):
+        tt = defaultdict(Counter)
+        for r in sub:
+            tt[tuple(r[k] for k in keys)][r["cti"]] += 1
+        coll = sum(1 for v in tt.values() if len(v) > 1)
+        print(f"  [{label}] chip_Ti keyed by {keys}: {coll} MIXED / {len(tt)} cells")
+        for k, v in sorted(tt.items()):
+            print(f"     {dict(zip(keys,k))}: chip_Ti={dict(v)}"
+                  f"{'  <-- MIXED' if len(v)>1 else ''}")
+    # delta (cti-fti) keyed by push phase
+    print(f"  idle error (cti-fti) by push_deferred: "
+          f"{ {k: dict(sorted(Counter(r['cti']-r['fti'] for r in recs if r['push_deferred']==k).items())) for k in (0,1)} }")
+    tab(["waited", "push_deferred"], recs, "law probe")
+    # exact chip_Ti magnitude law: add occupancy + successor type
+    tab(["t4_occ", "curbs"], recs, "chip_Ti by (occ@T4, successor)")
+    tab(["t4_occ", "t4_qcnt"], recs, "chip_Ti by (occ@T4, q_cnt@T4)")
+    # LATE cases (model idles MORE than chip) - separate sub-effect
+    print(f"  LATE cases ({len(late)}): dec_pushnow!=0 "
+          f"{sum(1 for r in late if r['dec_pushnow'] not in (0,-1))}/{len(late)}; "
+          f"by (occ@T4, curbs): {dict(sorted(Counter((r['t4_occ'],r['curbs']) for r in late).items()))}")
+    print(f"  EARLY err magnitude by occ@T4: "
+          f"{ {o: dict(sorted(Counter(r['err'] for r in early if r['t4_occ']==o).items())) for o in sorted(set(r['t4_occ'] for r in early))} }")
+    return 0
+
+
 def cmd_class5sweep(a):
     """Phase-3b Step 3: ONE controlled failing-anchor sweep to isolate what
     governs the chip's idle-insertion at the dominant CODE->CODE class-5 subtype.
@@ -2297,6 +2406,14 @@ def main():
     p.add_argument("--base-bin", default="/tmp/baseline_tb/hdl/tb/obj_dir/Vtb_v30_core",
                    help="HEAD~1 pre-veto TB binary for the pre-existing/exposed split")
     p.set_defaults(fn=cmd_class5tax)
+    p = sub.add_parser("class5law")
+    p.add_argument("--host", default="root@mister-nec")
+    p.add_argument("--seeds", type=int, nargs="+",
+                   default=[90003, 90007, 90015, 90021, 90030,
+                            90042, 90051, 90063, 90077, 90088])
+    p.add_argument("--nws", type=int, default=10)
+    p.add_argument("--wmaxes", type=int, nargs="+", default=[1, 3, 7])
+    p.set_defaults(fn=cmd_class5law)
     p = sub.add_parser("class5sweep")
     p.add_argument("--host", default="root@mister-nec")
     p.add_argument("--seed", type=int, default=90042)

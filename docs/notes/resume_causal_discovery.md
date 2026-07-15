@@ -1090,6 +1090,69 @@ NO RTL yet - discovery only.
 Repro (class-5): `python3 sw/causal_wrand.py class5tax --seeds 90003 90007 90015 90021 90030 90042 90051 90063 90077 90088 --nws 10 --wmaxes 1 3 7`;
 `python3 sw/causal_wrand.py class5sweep --seed 90042 --ws 10 --wmax 7`.
 
+# Phase 3b (cont) — the class-5 LAW: queue-push-PHASE (waited-fetch deferred push)
+
+Codex CORRECTION accepted: pf_drain is only a MARKER (its sole consumer is
+pf_lim=(pf_drain&&eu_consuming)?3:4; at eu_consuming==0 pf_lim=4 either way, yet
+the error appears -> pf_drain/pf_lim is NOT the faulty rule). The real mechanism
+is the QUEUE-PUSH-PIPELINE PHASE, MEASURED below (added push_pend/push_now/pop_now/
+cnt_next/pop_sr to eudbg; golden 169000/169000 intact). Tools: `class5law`,
+cycle-dump. Explicit-vector replay; chip = ground truth. NO RTL.
+
+## The mechanism (cycle-dump, fz90042 N=0 vs N=1 = Codex Factorial A)
+
+A fetch that completes at T4 with NO wait pushes its bytes AT T4 (push_now!=0 @T4)
+-> q_aged!=0 the next cycle BLOCKS prefetch_ok one cycle -> refill delayed; the
+model MATCHES the chip. A WAITED fetch DEFERS its queue push one cycle (push_now==0
+@T4, push_now!=0 @T4+1). At T4+1 the model sees q_aged==0 (nothing pushed LAST
+edge) while the bytes are pushing THIS edge, so prefetch_ok fires and it launches
+the refill IMMEDIATELY - the q_aged gate (last-edge push) MISSES the deferred
+(current-edge) push. The chip instead waits for the pushed bytes to age. So the
+model refills ~2-3 cycles early. This is Codex's INFORMATIVE FAILURE: waited
+completion intrinsically changes push PHASE => push phase belongs in the causal
+state.
+
+## The law (class5law, 93 class-5 CODE->X anchors)
+
+- **100% (93/93) follow a WAITED predecessor fetch whose push is DEFERRED** -
+  the universal necessary condition for class-5.
+- **EARLY sign (62, the dominant +2/+3 error): the model launches its refill
+  DURING the deferred-push cycle (push_now!=0) in 62/62** - the q_aged-miss,
+  confirmed 100%.
+- LATE sign (25, the -2/-3/-5 minority): dec_pushnow==0 in ALL 25 - a DISTINCT
+  second sub-effect (NOT launch-during-push; the model idles MORE than the chip -
+  the chip refills EARLIER there). Concentrated at (occ@T4,successor)
+  (3,MEMW)/(4,CODE)/(4,MEMW)/(2,MEMR). Needs separate characterization.
+- pf_drain/pf_lim/eu_consuming: NOT the driver (error occurs at pf_lim=4) ->
+  Codex Factorial C (recent-pop placement) is MOOT for class-5.
+- Controlled wait-magnitude (class5sweep = Factorial D): N=0 pf_drain=0 -> MATCH;
+  N>=1 -> error appears; doesn't simply scale (occupancy modulates), the push
+  PHASE is the toggle.
+- EXACT idle-count magnitude (chip_Ti = 1/3/4): modulated by occupancy@T4 +
+  successor type (occ=2: MEMR->1, CODE/MEMW->3; occ=5->4) but NOT yet
+  collision-free on (occ,successor) alone (2-4 mixed cells) - the exact count law
+  needs finer state (grid phase / q_avl timing); the DECISION rule (when to
+  refill) is the deferred-push phase.
+
+## Bottom line (class-5 law) - for Codex
+
+Class-5 (the 75% residual) is DOMINATED (67%) by ONE bounded mechanism: the
+**waited-fetch DEFERRED-PUSH phase error**. When a fetch waits, its queue push
+slips T4->T4+1; prefetch_ok's `q_aged` eligibility gate (which blocks on the
+LAST-edge push) fails to block the CURRENT-edge deferred push, so the model
+refills one cycle early (launches during push_now!=0, 62/62). MINIMAL MODEL STATE
+/ likely fix (NOT RTL yet, Codex's call): the prefetch-eligibility gate must also
+block while a push is occurring/pending this cycle (push_now!=0 / push_pend!=0),
+matching the q_aged block - a corrected push-PHASE eligibility rule, NOT a pf_lim
+threshold change (pf_lim confirmed innocent). w0-neutrality: the deferred push is
+a WAITED-completion artifact (unwaited pushes at T4), so the fix is expected
+w0-neutral, but since q_aged/push_pend exist at w0 the w0 refill cadence must be
+re-verified (flagged). REMAINING to fully close: the LATE 27% sub-effect (distinct
+second push-phase interaction) + the exact idle-COUNT magnitude table (occ x
+successor x grid-phase). eu_req=0 EU-onset (19%) is the next-largest residual.
+
+Repro (law): `python3 sw/causal_wrand.py class5law --seeds 90003 90007 90015 90021 90030 90042 90051 90063 90077 90088 --nws 10 --wmaxes 1 3 7`.
+
 ## Verdict for Codex (scope decision before flash)
 
 The narrow source-aware veto is CORRECT, source CONFIRMED CAUSAL (S_DHI vs S_MHI
