@@ -603,8 +603,77 @@ sub-rule there needs the finer imminent-consumption / access-kind signal.
   ordinary-prefetch(CODE) -> IDLE; eval_ext = edge label only; preserve ext_ok_wr;
   validate w0 vs fresh chip traces.
 
-Tools: `sw/causal_wrand.py`. Repro examples:
-`python3 sw/causal_wrand.py urgency --seeds 90003 90007 90015 --nws 8 --wmaxes 1 3 7`;
+---
+
+# Phase 2j — SAMPLER FIX overturns Phase 2i; q_cnt edit is a NO-OP; real gate = read/write
+
+Codex flagged the Phase-2i sampler bug: q_cnt was read at the completing-CODE T4
+row but eu_req one cycle later, and q_cnt advances every CPU edge. Fixed: added
+eu_req_p1 / pf_late_rsv / pf_starved / prefetch_ext / prefetch_ok to the eudbg
+dump (tb_v30_core) and re-measured with ALL gate inputs sampled LIVE on the same
+eval_ext decision row. Branch: biu-arb-qcnt.
+
+## Corrected measurement (11,515 contested edges, live eval_ext-row sampling)
+
+Action by request-age class at the eval_ext row:
+- absent (eu_req=0): CODE 8092 / IDLE 8  (no reservation -> prefetch, correct)
+- ready (eu_ready=1): IDLE 3294 / CODE 0  (ready-EU priority, correct)
+- young  (eu_req=1, eu_req_p1=0, coincident): CODE 109 / IDLE 12
+
+YOUNG reservations, keyed by (q_cnt_eval, access family) - **0 collisions**:
+- q_cnt=0, MEMR: CODE 62   q_cnt=0, MEMW: CODE 23   (urgent refill, both prefetch)
+- q_cnt=1, MEMR: **IDLE 12**   q_cnt=1, MEMW: CODE 24
+
+## Two conclusions that CHANGE the plan
+
+1. **The Phase-2i "q_cnt>=2" claim was a SAMPLER-BUG ARTIFACT.** With live
+   sampling, young/coincident reservations occur ONLY at q_cnt<=1, and
+   **pf_late_rsv fires ONLY at q_cnt<=1 (0 firings at q_cnt>=2, over 109
+   firings).** So the proposed `pf_late_rsv &&= (q_cnt<=1)` edit is a NO-OP -
+   it removes nothing. Per Codex's stop-condition (q_cnt>=2 not actionable),
+   **NO EDIT MADE.**
+2. **The real over-prefetch bug, precisely:** pf_late_rsv fires for young
+   ORDINARY READ reservations at q_cnt=1 (12/12 chip IDLE = the chip reserves the
+   read; the model prefetches = over-prefetch). Ordinary WRITES at q_cnt=1
+   (CODE 24) and BOTH at q_cnt=0 (urgent refill) correctly prefetch. The RTL
+   pf_late_rsv condition `eu_mem_acc && eu_kind==K_MEM` does NOT distinguish
+   read from write, yet its own comment calls it "the fitted WRITE-half
+   reservation law" - it is wrongly applied to reads. **The discriminator is
+   read-vs-write at q_cnt=1, NOT q_cnt<=1.**
+
+## Why I did NOT make an edit (and what's needed first)
+
+- The pre-approved edit (q_cnt<=1) is a no-op; making it would be theater.
+- The measured fix (gate pf_late_rsv to exclude ORDINARY reads) is promising but
+  UNVALIDATED against the FITTED cases: pf_late_rsv was fitted on REP-string
+  seeds (a4/a5/ab/ac/ad = MOVS/STOS/LODS), which include string READS (LODS).
+  My corpus is the base fuzz menu (ordinary loads/stores, NO string ops), so
+  "reads reserve at q_cnt=1" is measured for ORDINARY reads only. A string LODS
+  read may LEGITIMATELY lose to CODE (pf_late_rsv correct there) - so the real
+  discriminator may be ORDINARY-vs-STRING, not plain read-vs-write. Editing on
+  the plain read/write split risks regressing the string cases pf_late_rsv was
+  fitted for. The Step-2 FITTED-CASE INVENTORY (pf_late_rsv firings in golden
+  string/RMW traces, by family + q_cnt) MUST run before any edit.
+
+## Honest bottom line (Phase 2j)
+
+- **Sampler fixed; Phase-2i conclusion overturned.** pf_late_rsv fires only at
+  q_cnt<=1; the q_cnt<=1 edit is a NO-OP. NO RTL EDIT MADE (correct per protocol).
+- **Real bug localized (measured):** over-prefetch = pf_late_rsv firing for young
+  ORDINARY READ reservations at q_cnt=1; the chip reserves reads, the model
+  prefetches. Collision-free by (q_cnt, family) for ordinary accesses.
+- **Blocking before an edit:** the fitted-case inventory over string/RMW (does
+  pf_late_rsv correctly fire for string READS? if so the gate must be
+  ordinary-vs-string, not read-vs-write). Then the one-line edit
+  (exclude ordinary reads / add the measured discriminator) + full sim
+  validation. The 2/8 eu_req=0 late-registration cases and the w0 re-measurement
+  remain separate follow-ups.
+- **Not FLASH-READY.** The predicate is corrected and the bug is localized, but
+  the actionable edit is read/write (not q_cnt) and needs the string fitted-case
+  inventory to avoid regression. Report to Codex before editing/flashing.
+
+Tools: `sw/causal_wrand.py` (`urgency` corrected). Repro:
+`python3 sw/causal_wrand.py urgency --seeds 90003 90007 90015 90021 90030 --nws 10 --wmaxes 1 2 3 7`;
 `python3 sw/causal_wrand.py idleslot --seeds 90003 90007 90015 --nws 8 --wmaxes 1 3 7`;
 `python3 sw/causal_wrand.py leactl --maxn 8`;
 `python3 sw/causal_wrand.py nocomp --seed 90003 --refws 2`;

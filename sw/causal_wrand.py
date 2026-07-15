@@ -711,7 +711,12 @@ def run_tb_internal(image, n, wvec):
                 state=int(d[1]), q_pop=int(d[2]), q_avl=int(d[3]), q_cnt=int(d[4]),
                 eu_req=int(d[15]), eu_ready=int(d[16]), q_flush=int(d[17]),
                 eval_ext=int(d[18]), occupied=int(d[21]), q_aged=int(d[22]),
-                infl=int(d[23])))
+                infl=int(d[23]),
+                eu_req_p1=int(d[24]) if len(d) > 24 else 0,
+                pf_late_rsv=int(d[25]) if len(d) > 25 else 0,
+                pf_starved=int(d[26]) if len(d) > 26 else 0,
+                prefetch_ext=int(d[27]) if len(d) > 27 else 0,
+                prefetch_ok=int(d[28]) if len(d) > 28 else 0))
             pend = None
     return rows
 
@@ -914,18 +919,26 @@ def cmd_nocomp(a):
     return 0
 
 
+def _reqclass(req, reqp1, rdy):
+    if not req:
+        return "absent"
+    if rdy:
+        return "ready"
+    return "young" if not reqp1 else "aged"   # young = coincident (eu_req_p1==0)
+
+
 def cmd_urgency(a):
-    """Phase 2i Step 1: MEASURE the urgency predicate. At every waited-CODE->EU
-    edge (a pending EU reservation vs an eligible prefetch), classify the CHIP's
-    action IDLE (reserve, then EU) vs CODE (urgent prefetch first), and sample
-    the aligned queue-pipeline state (occ, q_cnt, q_avl, infl, q_aged) at the
-    completing CODE's T4. Find which variable SEPARATES idle-vs-CODE at MATCHED
-    occupied - directly testing whether 'occupied' is the wrong abstraction.
-    (Edges taken from the aligned prefix + the first over-prefetch divergence,
-    where the model's internal state tracks the chip's bus behavior.)"""
+    """Phase 2i (corrected): MEASURE the urgency predicate with ALL gate inputs
+    sampled LIVE on the SAME eval_ext commit row (fixes the T4-vs-T4+1 sampler
+    bug - q_cnt advances every CPU edge). At each waited-CODE->EU contested edge,
+    find the model's eval_ext decision row, sample q_cnt/q_avl/q_aged/infl/occ/
+    eu_req/eu_req_p1/eu_ready/pf_late_rsv there, classify the CHIP action
+    IDLE/CODE, and STRATIFY by (q_cnt_eval, request-age class, access family).
+    Confirms: q_cnt_eval>=2 => IDLE for YOUNG (coincident, eu_req_p1==0)
+    reservations - the actionable claim for the one-line gate."""
     import random as _r
     from collections import defaultdict, Counter
-    rows = []          # (action, occ, q_cnt, q_avl, infl, qa, eu)
+    recs = []
     for seed in a.seeds:
         g = generate(f"fz{seed}", exts=())
         image, meta = compose(g)
@@ -941,7 +954,6 @@ def cmd_urgency(a):
                 cb, kb = bs_stream(ca), bs_stream(ka)
                 nn = min(len(cb), len(kb))
                 fd = next((i for i in range(nn) if cb[i] != kb[i]), nn)
-                # index model bus cycles -> its rows (for internal state at T4)
                 mt4 = {}
                 bi = -1
                 for ri, x in enumerate(kr):
@@ -949,96 +961,82 @@ def cmd_urgency(a):
                         bi += 1
                     if x["t"] == 5:
                         mt4[bi] = ri
-                # scan aligned-prefix waited CODE cycles whose next EU is ahead
                 for B in range(1, min(fd + 1, nn - 1)):
                     if ca[B]["bs"] != CODE or ca[B]["tw"] == 0:
                         continue
-                    # next architectural EU access after B
                     eu = next((j for j in range(B + 1, min(B + 6, len(ca)))
                                if ca[j]["bs"] in (MEMR, MEMW)), None)
                     if eu is None:
                         continue
-                    # only edges where the EU is "close" (a real contested slot):
-                    # nothing but CODE/idle between B and the EU
                     if any(ca[j]["bs"] not in (CODE,) for j in range(B + 1, eu)):
                         continue
-                    # chip action: CODE prefetch inserted between B and EU, else IDLE
-                    ncode = sum(1 for j in range(B + 1, eu) if ca[j]["bs"] == CODE)
-                    # is this the divergence edge? (chip idles, model prefetched)
-                    action = "CODE" if ncode > 0 else "IDLE"
+                    action = "CODE" if any(ca[j]["bs"] == CODE
+                                           for j in range(B + 1, eu)) else "IDLE"
                     if B not in mt4:
                         continue
-                    st = kr[mt4[B]]
-                    # reservation state at the DECISION edge (row after T4)
-                    dec = kr[min(mt4[B] + 1, len(kr) - 1)]
-                    req_at_dec = dec["eu_req"]
-                    # CHIP-OBSERVABLE reservation-age proxy: clocks from the last
-                    # queue pop (operand delivery to the EU) to the decision edge
-                    # (the completing CODE's T4). Larger => older reservation.
-                    t4r = ca[B]["t4"]
-                    poprow = _final_pop_before(crel, t4r + 1)
-                    resage = (t4r - poprow) if poprow is not None else -1
-                    resage = min(resage, 6)
-                    rows.append((action, st["occupied"], st["q_cnt"], st["q_avl"],
-                                 st["infl"], st["q_aged"], resage, req_at_dec))
-    print(f"urgency: {len(rows)} waited-CODE->EU contested edges  "
-          f"({sum(1 for r in rows if r[0]=='IDLE')} IDLE / "
-          f"{sum(1 for r in rows if r[0]=='CODE')} CODE)")
-    if not rows:
+                    # find the eval_ext DECISION row: first eval_ext==1 within a
+                    # few cycles after the completing CODE's T4 (the deferred eval)
+                    er = None
+                    for ri in range(mt4[B] + 1, min(mt4[B] + 6, len(kr))):
+                        if kr[ri]["eval_ext"] == 1:
+                            er = ri; break
+                        if kr[ri]["t"] == 1:      # next bus cycle started, stop
+                            er = ri; break
+                    if er is None:
+                        er = min(mt4[B] + 1, len(kr) - 1)
+                    d = kr[er]
+                    recs.append(dict(action=action, qc=d["q_cnt"], qa2=d["q_avl"],
+                                     qag=d["q_aged"], infl=d["infl"], occ=d["occupied"],
+                                     req=d["eu_req"], reqp1=d["eu_req_p1"],
+                                     rdy=d["eu_ready"], plr=d["pf_late_rsv"],
+                                     evx=d["eval_ext"],
+                                     rc=_reqclass(d["eu_req"], d["eu_req_p1"], d["eu_ready"]),
+                                     fam=BSN[ca[eu]["bs"]]))
+    print(f"urgency (corrected, live eval_ext-row sampling): {len(recs)} edges "
+          f"({sum(1 for r in recs if r['action']=='IDLE')} IDLE / "
+          f"{sum(1 for r in recs if r['action']=='CODE')} CODE)")
+    if not recs:
         print("  (none)"); return 0
 
-    def sep_table(fields, names):
-        tbl = defaultdict(Counter)
-        for r in rows:
-            key = tuple(r[i] for i in fields)
-            tbl[key][r[0]] += 1
-        coll = sum(1 for v in tbl.values() if len(v) > 1)
-        print(f"  keyed by {names}: {len(tbl)} cells, {coll} MIXED (idle&CODE)")
-        for k, v in sorted(tbl.items()):
-            mark = "  <-- MIXED" if len(v) > 1 else ""
-            print(f"    {dict(zip(names, k))}: {dict(v)}{mark}")
-        return coll
-
-    # 1=occ 2=q_cnt 3=q_avl 4=infl 5=q_aged 6=resage(chip-observable)
-    print(" occupied alone:")
-    sep_table([1], ["occ"])
-    print(" reservation-age proxy alone (chip-observable):")
-    sep_table([6], ["resage"])
-    print(" resage + occupied:")
-    c1 = sep_table([6, 1], ["resage", "occ"])
-    print(" resage + q_cnt:")
-    c2 = sep_table([6, 2], ["resage", "q_cnt"])
-    print(" resage + q_cnt + q_aged:")
-    c3 = sep_table([6, 2, 5], ["resage", "q_cnt", "qa"])
-    print(f"  => min MIXED cells: resage+occ={c1}, resage+q_cnt={c2}, "
-          f"resage+q_cnt+q_aged={c3} (0 => that state separates idle-vs-CODE)")
-    # RESERVATION-PENDING subset (model eu_req=1 at the decision edge): the
-    # contested edges. Does a queue variable separate idle-vs-CODE here?
-    pend = [r for r in rows if r[7] == 1]
-    print(f"\n RESERVATION-PENDING subset (eu_req=1 at decision): {len(pend)} "
-          f"({sum(1 for r in pend if r[0]=='IDLE')} IDLE / "
-          f"{sum(1 for r in pend if r[0]=='CODE')} CODE)")
-    rows_bak = rows
-    globals()['rows'] = pend
-
-    def sep2(fields, names, data):
-        tbl = defaultdict(Counter)
-        for r in data:
-            tbl[tuple(r[i] for i in fields)][r[0]] += 1
-        coll = sum(1 for v in tbl.values() if len(v) > 1)
-        print(f"   pending, keyed by {names}: {len(tbl)} cells, {coll} MIXED")
-        for k, v in sorted(tbl.items()):
-            print(f"     {dict(zip(names, k))}: {dict(v)}"
+    def tab(pred, keys, label):
+        sub = [r for r in recs if pred(r)]
+        t = defaultdict(Counter)
+        for r in sub:
+            t[tuple(r[k] for k in keys)][r["action"]] += 1
+        coll = sum(1 for v in t.values() if len(v) > 1)
+        print(f"  [{label}] n={len(sub)} keyed by {keys}: {coll} MIXED")
+        for k, v in sorted(t.items()):
+            print(f"     {dict(zip(keys, k))}: {dict(v)}"
                   f"{'  <-- MIXED' if len(v) > 1 else ''}")
-        return coll
-    sep2([2], ["q_cnt"], pend)
-    # the urgent regime (q_cnt<=1): what finer variable separates idle vs CODE?
-    urgent = [r for r in pend if r[2] <= 1]
-    print(f"  urgent regime q_cnt<=1: {len(urgent)} "
-          f"({sum(1 for r in urgent if r[0]=='IDLE')} IDLE / "
-          f"{sum(1 for r in urgent if r[0]=='CODE')} CODE)")
-    sep2([6], ["resage"], urgent)
-    sep2([2, 6], ["q_cnt", "resage"], urgent)
+        return sub
+
+    # request-age classes overall
+    print("  action by request-age class:")
+    rcc = defaultdict(Counter)
+    for r in recs:
+        rcc[r["rc"]][r["action"]] += 1
+    for rc in sorted(rcc):
+        print(f"    {rc}: {dict(rcc[rc])}")
+    # THE actionable claim: YOUNG (coincident) reservations vs q_cnt_eval
+    tab(lambda r: r["rc"] == "young", ["qc"], "YOUNG reservations, by q_cnt_eval")
+    tab(lambda r: r["rc"] == "young", ["qc", "fam"],
+        "YOUNG, by q_cnt_eval x access family")
+    # pf_late_rsv firings vs q_cnt (which of these does the edit remove?)
+    plr = [r for r in recs if r["plr"] == 1]
+    print(f"  pf_late_rsv=1 firings: {len(plr)}; by q_cnt_eval: "
+          f"{dict(sorted(Counter(r['qc'] for r in plr).items()))}; "
+          f"at q_cnt>=2: {sum(1 for r in plr if r['qc']>=2)} "
+          f"(=> q_cnt<=1 edit is a NO-OP if 0)")
+    # pf_late_rsv firings by (q_cnt, family, chip action): where is the model
+    # WRONG (pf_late_rsv=1 -> model CODE, but chip IDLE = over-prefetch)?
+    print("  pf_late_rsv firings by (q_cnt, family) -> chip action:")
+    pt = defaultdict(Counter)
+    for r in plr:
+        pt[(r["qc"], r["fam"])][r["action"]] += 1
+    for k, v in sorted(pt.items()):
+        wrong = v.get("IDLE", 0)   # chip IDLE while pf_late_rsv fired = model wrong
+        print(f"    q_cnt={k[0]} {k[1]}: {dict(v)}"
+              f"{'  <-- OVER-PREFETCH (chip IDLE, model CODE)' if wrong else ''}")
     return 0
 
 
