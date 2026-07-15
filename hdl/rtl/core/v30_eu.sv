@@ -2696,6 +2696,10 @@ always_ff @(posedge clk) begin
             end
             // branch-resolution wait (holds a bus reservation)
             S_JWAIT: begin
+                // Jcc-w3 flush (+1-late redirect when queue full) DEFERRED: the
+                // EU transition-delay approach over-shoots (the BIU redirect-
+                // commit eval adds a 2nd idle); it needs a BIU-side one-idle
+                // insertion on the Jcc flush redirect. Characterized, not landed.
                 if (dly == 6'd1) begin
                     state <= wnext;
                     // near transfers redirect within CS; EA (far) has
