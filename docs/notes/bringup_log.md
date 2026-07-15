@@ -1,5 +1,50 @@
 # Bring-up log
 
+## 2026-07-15 — MERGE biu-rebuild -> master (BIU rebuild banked to mainline)
+
+The BIU bus-model rebuild campaign merged to master (fast-forward; master was at
+the Phase-1 doc commit, biu-rebuild 26 ahead). Rollback tag `biu-rebuild-baseline`
+(c0c28f1) retained. Comprehensive pre-merge validation, ALL clean vs baselines:
+
+- **Full golden (chip-vs-TB / check_core)**: w0 **169000/169000**, w1 **1200/1200**,
+  w3 **1200/1200** (all 6 forms). NOTE: w1/w3 now report the FULL 1200 (not the
+  historically-cited 800/600) because a pre-existing over-strict Stage-1
+  grid_phase SVA was `$stop`-aborting the 8B/89/B8 load/MOV-imm forms' sim under
+  waits and check_core silently skipped them (masked by prior tail/grep-TOTAL
+  reporting). grid_phase is INERT (unconsumed - EU uses bus_phase), so ZERO
+  behavioral impact; the strict SVA is now gated behind `GRID_PHASE_STRICT`
+  (off) with the abort removed, so those forms VALIDATE cycle-exact. Confirmed
+  pre-existing at 01c31e7.
+- **waits=0 arbitrary-sequence fuzz** fz20000-20299 chip-vs-TB: **300/300 clean**
+  (store/push/reader/callret surface unregressed by the whole rebuild).
+- **Interrupt inject gate** fz10000-10499 --inject-int chip-vs-TB: **497/500**.
+  The 3 residuals (fz10209/10300/10304) are the DOCUMENTED doomed-prefetch/
+  accept-edge interrupt-vectoring class (chip does a doomed CODE prefetch before
+  INTA the RTL doesn't model - same class as the deferred fz10175/10460). They
+  DIVERGE IDENTICALLY at 01c31e7 (@251/@264/@202), and the session's four fronts
+  are w0-neutral (all eval_ext-gated; inject runs at w0 where eval_ext never
+  fires) -> the inject gate is bit-identical HEAD-vs-baseline. NOT a regression;
+  the 497-vs-documented-498 is gen_seq/corpus evolution surfacing the same class
+  on different seeds. Sub-1%, out of scope (deferred interrupt-timing floor).
+- **Silicon A/B (this session, bitstream 0f383e0 live in fabric)**: w0 crown
+  jewel chip/core/golden MATCH 800 rows; w1/w3 fabric-vs-chip == chip-vs-TB
+  EXACTLY per-seed 15/15 both, float-floor 15/15 clean; BUSLOCK exact;
+  inject-int fz10000-10049 50/50. The arb/Jcc-flush/far-flush fronts are real
+  in fabric.
+- **Adjudication ledger**: 0 w0 deltas; every landed front w0-neutral by
+  construction (all eval_ext-gated -> inert at w0).
+
+FABRIC == MASTER: the SVA-gating + eudbg-dump + tooling changes are entirely
+TB-only / `ifndef SYNTHESIS`; the SYNTHESIZABLE RTL at master HEAD is
+bit-identical to the flashed bitstream 0f383e0 (no reflash needed - current best
+RTL is already in silicon). Session drift result (silicon-confirmed): w1
+459.3->307.3 (-33%, CLEAN 4->18), w3 583.6->475.6 (-18%, CLEAN 15->21) via three
+landed fronts (late-reservation arb / near-flush +1 redirect / far-flush
+eval_ext E-display); the RESUME third characterized as the irreducible local
+floor. Next campaign: the exact-grid-state resume scheduler
+(resume_scheduler_design.md; exact-state predictor go/no-go = qualified
+greenlight, w0 100% control + w1/w3 big-gap 83-98% on the clean prefix).
+
 ## 2026-07-14 — reflash: WAITS>=1 grind round 2 (far-CALL + RMW-narrow)
 
 - SCOPE: two waits>=1 fixes since the prior reflash - far CALL (9A/FF.3) PC
