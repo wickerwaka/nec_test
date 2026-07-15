@@ -3,6 +3,7 @@ set_global_assignment -name SYSTEMVERILOG_FILE rtl/system_large.sv
 set_global_assignment -name SYSTEMVERILOG_FILE rtl/nec_bus.sv
 set_global_assignment -name SYSTEMVERILOG_FILE rtl/test_mem.sv
 set_global_assignment -name SYSTEMVERILOG_FILE rtl/capture_buf.sv
+set_global_assignment -name SYSTEMVERILOG_FILE rtl/wvec_buf.sv
 set_global_assignment -name SYSTEMVERILOG_FILE rtl/hps_axi_slave.sv
 set_global_assignment -name SYSTEMVERILOG_FILE rtl/core/v30_core.sv
 set_global_assignment -name SYSTEMVERILOG_FILE rtl/core/v30_biu.sv

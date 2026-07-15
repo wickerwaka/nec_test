@@ -10,6 +10,8 @@
 //                       CTRL.host_reset holds the harness in reset)
 //    +0x100000  32 KB   capture buffer, 4096 x 64-bit records as pairs of
 //                       32-bit words (little end first), read-only
+//    +0x140000  4 KB    wait-vector replay RAM, 4096 x 8-bit Tw entries packed
+//                       4-per-word (host write-only; applied when WRAND.replay)
 //    +0x180000          registers:
 //        0x00  MAGIC     RO  0x56333031 "V301"
 //        0x04  CTRL      RW  [0] host_reset  [1] cpu_power_off
@@ -27,9 +29,10 @@
 //                            [23:16] hold (CPU clocks; 0 = until disarmed)
 //                            [26:24] pin (0=INT 1=NMI 2=POLL_N active-low)
 //                            [31] arm (STATUS[3] = fired; disarm deasserts)
-//        0x24  WRAND     RW  seeded random per-access wait insertion
-//                            [0] enable  [7:4] wmax (Tw/access)  [31:16] seed
-//                            (large mode; overrides CFG.wait_states when set)
+//        0x24  WRAND     RW  per-access wait insertion (large mode; overrides
+//                            CFG.wait_states). [0] rand-enable  [1] replay-enable
+//                            (replay > rand > uniform)  [7:4] wmax  [31:16] seed
+//                            replay applies the +0x140000 wait-vector RAM
 //        0x10  STATUS    RO  [0] pwr_good  [1] cpu_running  [2] cap_full
 //        0x14  CAPCOUNT  RO  records captured
 //
@@ -81,6 +84,10 @@ module hps_axi_slave
     output reg        cfg_wait_rand,   // 1: seeded random per-access waits
     output reg  [3:0] cfg_wmax,        // max Tw per access in random mode
     output reg [15:0] cfg_wseed,       // random-wait PRNG seed
+    output reg        cfg_wait_replay, // 1: replay host wait-vector (Phase 2a)
+    output reg  [9:0] h_wvec_addr,     // wait-vector RAM write port (word idx)
+    output reg        h_wvec_wr,
+    output reg [31:0] h_wvec_wdata,
     output reg        int_req,
     output reg        nmi_req,
     output reg        poll_n_out,
@@ -115,16 +122,20 @@ localparam bit [31:0] MAGIC = 32'h56333031;
 assign bresp = 2'b00;
 assign rresp = 2'b00;
 
-// region select from a latched address
-function automatic bit sel_mem(input [20:0] a); return ~a[20]; endfunction
-function automatic bit sel_cap(input [20:0] a); return a[20] & ~a[19]; endfunction
-function automatic bit sel_reg(input [20:0] a); return a[20] & a[19]; endfunction
+// region select from a latched address. The old cap region (a[20]&~a[19]) is
+// split by a[18]: capture stays at 0x100000 (a[18]=0), the wait-vector RAM is
+// added at 0x140000 (a[18]=1). mem/reg decodes are unchanged.
+function automatic bit sel_mem (input [20:0] a); return ~a[20]; endfunction
+function automatic bit sel_cap (input [20:0] a); return a[20] & ~a[19] & ~a[18]; endfunction
+function automatic bit sel_wvec(input [20:0] a); return a[20] & ~a[19] &  a[18]; endfunction
+function automatic bit sel_reg (input [20:0] a); return a[20] & a[19]; endfunction
 
 typedef enum logic [3:0] {
     IDLE,
     W_DATA,     // wait for a W beat
     W_MEM0,     // low-half memory sub-write
     W_MEM1,     // high-half memory sub-write
+    W_WVEC,     // wait-vector word write
     W_NEXT,     // advance to next W beat or respond
     B_RESP,
     R_SETUP,    // present address to mem/capture, start latency counter
@@ -167,6 +178,8 @@ always_ff @(posedge clk) begin
         cfg_wait_rand   <= 1'b0;      // default: uniform cfg_wait_states path
         cfg_wmax        <= 4'd0;
         cfg_wseed       <= 16'hACE1;
+        cfg_wait_replay <= 1'b0;
+        h_wvec_wr       <= 1'b0;
         int_req         <= 1'b0;
         nmi_req         <= 1'b0;
         poll_n_out      <= 1'b0;
@@ -180,6 +193,7 @@ always_ff @(posedge clk) begin
         awready      <= 1'b0;
         arready      <= 1'b0;
         h_mem_wr_req <= 1'b0;
+        h_wvec_wr    <= 1'b0;
 
         case (st)
         IDLE: begin
@@ -238,15 +252,18 @@ always_ff @(posedge clk) begin
                         evt_arm   <= wdata[31];
                     end
                     8'h24: begin
-                        cfg_wait_rand <= wdata[0];
-                        cfg_wmax      <= wdata[7:4];
-                        cfg_wseed     <= wdata[31:16];
+                        cfg_wait_rand   <= wdata[0];
+                        cfg_wait_replay <= wdata[1];
+                        cfg_wmax        <= wdata[7:4];
+                        cfg_wseed       <= wdata[31:16];
                     end
                     default: ;
                     endcase
                     st <= W_NEXT;
                 end else if (sel_mem(addr)) begin
                     st <= W_MEM0;
+                end else if (sel_wvec(addr)) begin
+                    st <= W_WVEC;
                 end else begin
                     st <= W_NEXT;   // capture region is read-only
                 end
@@ -271,6 +288,14 @@ always_ff @(posedge clk) begin
                 h_mem_wr_req <= 1'b1;
             end
             st <= W_NEXT;
+        end
+
+        W_WVEC: begin
+            // whole 32-bit word = 4 packed Tw entries; addr[11:2] = word index
+            h_wvec_addr  <= addr[11:2];
+            h_wvec_wdata <= wdata_q;
+            h_wvec_wr    <= 1'b1;
+            st           <= W_NEXT;
         end
 
         W_NEXT: begin
@@ -330,7 +355,8 @@ always_ff @(posedge clk) begin
                     8'h18: rdata <= {16'd0, cfg_iord};
                     8'h1C: rdata <= {12'd0, evt_addr};
                     8'h20: rdata <= {evt_arm, 4'd0, evt_pin, evt_hold, evt_delay};
-                    8'h24: rdata <= {cfg_wseed, 8'd0, cfg_wmax, 3'd0, cfg_wait_rand};
+                    8'h24: rdata <= {cfg_wseed, 8'd0, cfg_wmax, 2'd0,
+                                     cfg_wait_replay, cfg_wait_rand};
                     default: rdata <= 32'hDEADBEEF;
                     endcase
                     st <= R_DATA;

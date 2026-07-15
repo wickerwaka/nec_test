@@ -30,10 +30,12 @@ Usage:
                                      #   PING                     -> OK PONG
                                      #   CFG <div> <waits> <vector> <small> [use_core]
                                      #     ('-' keeps a field)    -> OK CFG
-                                     #   WRAND <enable> <wmax> <seed>
+                                     #   WRAND <randen> <wmax> <seed> <replay>
                                      #     ('-' keeps a field)    -> OK WRAND
-                                     #     seeded random per-access waits;
+                                     #     random/replay per-access waits;
                                      #     identical pattern across A/B
+                                     #   WVEC\\n<base64 Tw bytes> -> OK WVEC <n>
+                                     #     load the replay wait-vector RAM
                                      #   RUN <timeout_s> [k=v ...]\\n<base64>
                                      #     -> OK <cap_count> <full> <evt>
                                      #        \\n<base64 of 4096 LE uint64>
@@ -71,6 +73,7 @@ L3_GPV    = 0xFF800000
 
 MEM_OFF   = 0x000000
 CAP_OFF   = 0x100000
+WVEC_OFF  = 0x140000   # wait-vector replay RAM (Phase 2a), host write-only
 REG_OFF   = 0x180000
 
 R_MAGIC    = REG_OFF + 0x00
@@ -212,17 +215,34 @@ class Harness:
             v = (v & ~(1 << 25)) | ((1 if use_core else 0) << 25)
         self.write32(R_CFG, v)
 
-    def set_wrand(self, enable=None, wmax=None, seed=None):
-        """Seeded random per-access wait insertion (WRAND, 0x24). enable=1
-        draws each bus cycle's Tw count from a seeded LFSR over 0..wmax
-        (large mode), overriding CFG.wait_states. The SAME seed drives READY
-        for both A/B positions (socketed chip and fabric core), so a run
-        applies the identical wait pattern to both. Set only while stopped."""
+    def set_wrand(self, enable=None, wmax=None, seed=None, replay=None):
+        """Per-access wait insertion (WRAND, 0x24), large mode, overriding
+        CFG.wait_states. enable=1 draws each bus cycle's Tw from a seeded LFSR
+        over 0..wmax; replay=1 applies the host wait-vector RAM instead
+        (replay > rand > uniform). The same seed/vector drives READY for both
+        A/B positions, so a run applies the identical wait pattern to chip and
+        fabric core. Set only while stopped."""
         v = self.read32(R_WRAND)
         if enable is not None: v = (v & ~0x1) | (1 if enable else 0)
+        if replay is not None: v = (v & ~0x2) | (2 if replay else 0)
         if wmax   is not None: v = (v & ~0xF0) | ((wmax & 0xF) << 4)
         if seed   is not None: v = (v & ~0xFFFF0000) | ((seed & 0xFFFF) << 16)
         self.write32(R_WRAND, v)
+
+    def load_wvec(self, tw_list):
+        """Load an exact per-bus-cycle Tw sequence into the replay RAM
+        (0x140000). Entry k = wait count for bus cycle k (0..255). Packed 4
+        per 32-bit word, little end first (byte lane = bus_idx[1:0]). Applied
+        when WRAND.replay is set. Write only while the harness is stopped."""
+        tw = list(tw_list)
+        tw += [0] * ((-len(tw)) % 4)
+        words = [tw[i] | (tw[i + 1] << 8) | (tw[i + 2] << 16) | (tw[i + 3] << 24)
+                 for i in range(0, len(tw), 4)]
+        data = struct.pack(f"<{len(words)}I", *words)
+        ch = 1024
+        for i in range(0, len(data), ch):
+            end = min(i + ch, len(data))
+            self.win[WVEC_OFF + i: WVEC_OFF + end] = data[i:end]
 
 
 def write_cap_file(recs, path):
@@ -316,15 +336,21 @@ def serve(h):
                 h.set_cfg(*vals)
                 reply("OK CFG")
             elif parts[0] == "WRAND":
-                # WRAND <enable> <wmax> <seed>  ('-' keeps a field). Seeded
-                # random per-access waits; identical pattern across A/B.
-                raw = parts[1:4]
+                # WRAND <randen> <wmax> <seed> <replay>  ('-' keeps a field).
+                # Seeded random / replay per-access waits; identical across A/B.
+                raw = parts[1:5]
                 vals = [None if p == "-" else int(p, 0) for p in raw]
-                while len(vals) < 3:
+                while len(vals) < 4:
                     vals.append(None)
                 h.stop()
-                h.set_wrand(*vals)
+                h.set_wrand(vals[0], vals[1], vals[2], vals[3])
                 reply("OK WRAND")
+            elif parts[0] == "WVEC":
+                # WVEC\n<base64 raw Tw bytes>  load the replay wait-vector RAM
+                blob = base64.b64decode(sys.stdin.readline().strip())
+                h.stop()
+                h.load_wvec(list(blob))
+                reply(f"OK WVEC {len(blob)}")
             elif parts[0] == "BASE":
                 base_img = bytearray(
                     base64.b64decode(sys.stdin.readline().strip()))
@@ -388,6 +414,8 @@ def main():
                    help="max Tw per access in random mode (0..15)")
     p.add_argument("--wseed", type=lambda x: int(x, 0),
                    help="random-wait PRNG seed (16-bit; 0 -> 0xACE1)")
+    p.add_argument("--replay", type=int, choices=(0, 1),
+                   help="apply the host wait-vector replay RAM (Phase 2a)")
     args = ap.parse_args()
 
     if args.cmd == "prep":
@@ -439,8 +467,8 @@ def main():
         h.stop()
         h.set_cfg(args.div, args.waits, args.vector, args.small, args.use_core)
         if args.wrand is not None or args.wmax is not None \
-                or args.wseed is not None:
-            h.set_wrand(args.wrand, args.wmax, args.wseed)
+                or args.wseed is not None or args.replay is not None:
+            h.set_wrand(args.wrand, args.wmax, args.wseed, args.replay)
         print(f"cfg = {h.read32(R_CFG):08x} wrand = {h.read32(R_WRAND):08x} "
               f"(harness stopped; 'start' to run)")
     elif args.cmd == "serve":

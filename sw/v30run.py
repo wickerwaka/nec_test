@@ -49,6 +49,7 @@ class ServeRunner:
         self.q = None
         self.last_waits = None  # (waits, use_core) tuple key
         self.last_wrand = None  # WRAND state key (None = never enabled)
+        self.last_replay = False  # replay mode currently armed
         self.v2 = False          # serve protocol >= v2 (BASE/DELTA/cap)
         self.base = None         # image cached device-side via BASE
 
@@ -96,6 +97,7 @@ class ServeRunner:
         self.base = None         # device-side cache gone on reconnect
         self.last_waits = None  # (waits, use_core) tuple key
         self.last_wrand = None  # WRAND state key (None = never enabled)
+        self.last_replay = False  # replay mode currently armed
 
     def cfg(self, waits, use_core=None):
         key = (waits, use_core)
@@ -133,6 +135,34 @@ class ServeRunner:
             self.close()
             raise RunError(f"serve: wrand failed: {line[:120]}")
         self.last_wrand = key
+
+    def replay(self, tw_list):
+        """Explicit wait-vector replay (Phase 2a). tw_list = None (disable) or
+        a list of per-bus-cycle Tw counts. Loads the vector into the harness
+        replay RAM and arms replay mode (applied identically to chip and core).
+        Requires the replay-capable bitstream + serve."""
+        if tw_list is None:
+            if self.last_replay:
+                self._send("WRAND - - - 0")
+                line = self._readline(10)
+                if line != "OK WRAND":
+                    self.close()
+                    raise RunError(f"serve: replay-off failed: {line[:120]}")
+                self.last_replay = False
+            return
+        blob = bytes(min(255, max(0, int(x))) for x in tw_list)
+        self._send("WVEC")
+        self._send(base64.b64encode(blob).decode())
+        line = self._readline(20)
+        if not line.startswith("OK WVEC"):
+            self.close()
+            raise RunError(f"serve: WVEC failed: {line[:120]}")
+        self._send("WRAND - - - 1")
+        line = self._readline(10)
+        if line != "OK WRAND":
+            self.close()
+            raise RunError(f"serve: replay-on failed: {line[:120]}")
+        self.last_replay = True
 
     @staticmethod
     def _delta(base, image, gran=256):
@@ -249,7 +279,7 @@ def _run_image_legacy(image, host, tag="test", waits=0):
 
 def run_image(image, host, tag="test", waits=0, evt=None, iord=None,
               pins=None, want_fired=False, cap=None, use_core=None,
-              wrand=None):
+              wrand=None, wvec=None):
     """Run an image, return capture records (or (recs, evt_fired) with
     want_fired). Uses the persistent serve session unless V30_NO_SERVE=1;
     transport errors get one reconnect, then one legacy-path attempt
@@ -266,8 +296,8 @@ def run_image(image, host, tag="test", waits=0, evt=None, iord=None,
     path only."""
     if os.environ.get("V30_NO_SERVE") == "1":
         if evt is not None or iord is not None or pins is not None \
-                or use_core is not None or wrand is not None:
-            raise RunError("evt/iord/pins/use_core/wrand require the serve path")
+                or use_core is not None or wrand is not None or wvec is not None:
+            raise RunError("evt/iord/pins/use_core/wrand/wvec require serve")
         return _run_image_legacy(image, host, tag, waits)
     r = _runners.get(host)
     if r is None:
@@ -276,7 +306,8 @@ def run_image(image, host, tag="test", waits=0, evt=None, iord=None,
         try:
             r.ensure()
             r.cfg(waits, use_core)
-            r.wrand(wrand)
+            r.wrand(wrand if wvec is None else None)
+            r.replay(wvec)
             recs, fired = r.run(image, evt=evt, iord=iord, pins=pins,
                                 cap=cap)
             return (recs, fired) if want_fired else recs
@@ -286,8 +317,8 @@ def run_image(image, host, tag="test", waits=0, evt=None, iord=None,
                 print(f"serve path failed twice ({e}); trying legacy path",
                       file=sys.stderr)
     if evt is not None or iord is not None or pins is not None \
-            or use_core is not None or wrand is not None:
-        raise RunError("serve path failed and evt/iord/pins/use_core/wrand "
+            or use_core is not None or wrand is not None or wvec is not None:
+        raise RunError("serve path failed and evt/iord/pins/use_core/wrand/wvec "
                        "have no legacy fallback")
     return _run_image_legacy(image, host, tag, waits)
 

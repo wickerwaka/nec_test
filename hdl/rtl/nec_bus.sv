@@ -43,6 +43,15 @@ module nec_bus
     input       [3:0] cfg_wmax,        // max Tw per access in random mode
     input      [15:0] cfg_wseed,       // PRNG seed (0 -> 0xACE1)
 
+    // Explicit wait-vector REPLAY (Phase 2a). When cfg_wait_replay is set the
+    // per-bus-cycle Tw count comes from wvec_buf indexed by bus-cycle number
+    // (0,1,2,...), so the host can specify an EXACT wait sequence and make two
+    // runs byte-identical except one selected access. Takes priority over the
+    // random/uniform paths. Large mode only. See wvec_buf.sv.
+    input             cfg_wait_replay,
+    output      [9:0] wvec_raddr,      // word index = bus_idx[11:2]
+    input      [31:0] wvec_rdata,      // 4 packed Tw bytes for that word
+
     // Request inputs (synchronous to clk)
     input             int_req,
     input             nmi_req,
@@ -307,6 +316,13 @@ wire  [4:0] wmax_p1    = {1'b0, cfg_wmax} + 5'd1;                 // 1..16
 wire [12:0] wprod      = {5'b0, wlfsr[7:0]} * {8'b0, wmax_p1};    // 8b * 5b
 wire  [4:0] wrand_n    = wprod[12:8];                             // 0..wmax
 
+// Wait-vector replay: bus_idx counts bus cycles from run start; the current
+// access's Tw is wvec byte bus_idx (word bus_idx[11:2], lane bus_idx[1:0]).
+reg  [11:0] bus_idx;
+assign wvec_raddr = bus_idx[11:2];
+wire  [7:0] wvec_byte = wvec_rdata[{bus_idx[1:0], 3'b000} +: 8];
+wire  [4:0] wrepl_n   = wvec_byte[4:0];                           // 0..31
+
 wire [2:0] next_t_state =
     (t_state == ST_TI) ? (bs_active ? ST_T1 : ST_TI) :
     (t_state == ST_T1) ? ST_T2 :
@@ -332,6 +348,7 @@ always_ff @(posedge clk) begin
         sm_wr_n_d       <= 1'b1;
         mem_cycle_type  <= BS_PASV;
         wlfsr           <= wseed_eff;   // reseed each run (held until 1st T1)
+        bus_idx         <= 12'd0;       // replay index restarts each run
     end else if (cfg_small_mode) begin
         // strobe-driven datapath, evaluated every sys clock
         sm_wr_n_d <= sm_wr_n;
@@ -371,9 +388,13 @@ always_ff @(posedge clk) begin
             mem_cycle_type <= bs_q;
             is_read_cycle  <= read_type;
             is_write_cycle <= write_type;
-            // random mode: draw this access's Tw count from the LFSR and
-            // advance it once (per-bus-cycle). uniform mode: unchanged.
-            if (cfg_wait_rand) begin
+            // wait source priority: replay > random > uniform. bus_idx counts
+            // every bus cycle so the replay vector and LFSR stay aligned to the
+            // same access index on chip and core.
+            if (cfg_wait_replay) begin
+                wait_cnt <= wrepl_n;
+                ready_q  <= wrepl_n == 5'd0;
+            end else if (cfg_wait_rand) begin
                 wait_cnt <= wrand_n;
                 ready_q  <= wrand_n == 5'd0;
                 wlfsr    <= wlfsr_next;
@@ -381,6 +402,7 @@ always_ff @(posedge clk) begin
                 wait_cnt <= {1'b0, cfg_wait_states};
                 ready_q  <= cfg_wait_states == 0;
             end
+            bus_idx <= bus_idx + 12'd1;
         end
 
         if (next_t_state == ST_T2 && is_read_cycle)

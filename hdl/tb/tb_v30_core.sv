@@ -102,6 +102,13 @@ integer      wrand_cfg = 0;
 integer      wmax_cfg  = 0;
 logic [31:0] wseed_tmp = 32'hACE1;
 logic [15:0] wlfsr = 16'hACE1;
+// explicit wait-vector replay (+wvec=<hex byte file>): mirrors wvec_buf +
+// nec_bus's bus-indexed replay. One Tw count per bus cycle. wbus_idx counts
+// bus cycles from reset (== nec_bus bus_idx). Priority replay > random > uniform.
+integer      wrepl_cfg = 0;
+string       wvec_path;
+logic  [7:0] wvec_arr [0:4095];
+integer      wbus_idx = 0;
 wire  [15:0] wseed_eff  = (wseed_tmp[15:0] == 16'd0) ? 16'hACE1 : wseed_tmp[15:0];
 wire  [15:0] wlfsr_next = {1'b0, wlfsr[15:1]} ^ (wlfsr[0] ? 16'hB400 : 16'h0000);
 wire  [4:0]  wmax_p1 = 5'(wmax_cfg) + 5'd1;                    // 1..16
@@ -113,6 +120,11 @@ initial begin
     if (!$value$plusargs("wrand=%d", wrand_cfg)) wrand_cfg = 0;
     if (!$value$plusargs("wmax=%d",  wmax_cfg))  wmax_cfg  = 0;
     if (!$value$plusargs("wseed=%h", wseed_tmp)) wseed_tmp = 32'hACE1;
+    for (int wi = 0; wi < 4096; wi++) wvec_arr[wi] = 8'd0;
+    if ($value$plusargs("wvec=%s", wvec_path)) begin
+        wrepl_cfg = 1;
+        $readmemh(wvec_path, wvec_arr);
+    end
 end
 
 logic         bkd_load = 0;
@@ -300,7 +312,10 @@ always @(posedge clk) begin
         // this access's Tw count from the shared LFSR and advance it once
         // per bus cycle; uniform (+waits) mode is unchanged.
         if (tb_t_next == ST_T1) begin
-            if (wrand_cfg != 0) begin
+            if (wrepl_cfg != 0) begin
+                wait_cnt <= wvec_arr[wbus_idx][4:0];
+                ready_r  <= wvec_arr[wbus_idx][4:0] == 5'd0;
+            end else if (wrand_cfg != 0) begin
                 wait_cnt <= wrand_n;
                 ready_r  <= wrand_n == 5'd0;
                 wlfsr    <= wlfsr_next;
@@ -308,6 +323,7 @@ always @(posedge clk) begin
                 wait_cnt <= 5'(waits_cfg);
                 ready_r  <= waits_cfg == 0;
             end
+            wbus_idx <= wbus_idx + 1;
         end else if ((tb_t == ST_T3 || tb_t == ST_TW) &&
                      wait_cnt != 0) begin
             wait_cnt <= wait_cnt - 5'd1;
@@ -366,6 +382,7 @@ always @(posedge clk) begin
         wait_cnt <= '0;
         ready_r  <= 1'b1;
         wlfsr    <= wseed_eff;   // reseed each run (held until 1st T1)
+        wbus_idx <= 0;           // replay index restarts each run
     end
 end
 

@@ -56,14 +56,22 @@ def compose(g):
                              ram=g["ram"], ivt=g.get("ivt"))
 
 
-def run_tb(image, n, waits=0, evt=None, wrand=None):
+def run_tb(image, n, waits=0, evt=None, wrand=None, wvec=None):
     td = tempfile.mkdtemp(prefix="seq_")
     img = Path(td) / "img.hex"
     out = Path(td) / "out.txt"
     img.write_text("\n".join(f"{b:02x}" for b in image) + "\n")
     args = [str(BIN), f"+bootimg={img}", f"+bootn={n}",
             f"+waits={waits}", f"+out={out}"]
-    if wrand is not None:
+    if wvec is not None:
+        # explicit wait-vector replay; the +wvec file (one Tw/bus-cycle) mirrors
+        # wvec_buf + nec_bus so the TB applies the exact same sequence the board
+        # applies to chip/fabric - the enabler for controlled single-wait pairs.
+        wv = Path(td) / "wvec.hex"
+        wv.write_text("\n".join(f"{min(255, max(0, int(x))):02x}" for x in wvec)
+                      + "\n")
+        args += [f"+wvec={wv}"]
+    elif wrand is not None:
         # seeded random per-access waits; the +wseed/+wmax generator mirrors
         # nec_bus.sv so this TB run applies the SAME wait pattern the board
         # applies to the chip/fabric for this seed.
@@ -91,9 +99,10 @@ def run_tb(image, n, waits=0, evt=None, wrand=None):
     return sim
 
 
-def run_chip(image, host, use_core=None, waits=0, evt=None, wrand=None):
+def run_chip(image, host, use_core=None, waits=0, evt=None, wrand=None,
+             wvec=None):
     recs = run_image(bytes(image), host, tag="seq", use_core=use_core,
-                     waits=waits, evt=evt, wrand=wrand)
+                     waits=waits, evt=evt, wrand=wrand, wvec=wvec)
     rel = next(i for i, r in enumerate(recs) if not r["rst"])
     return recs[rel:]
 

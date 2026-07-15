@@ -107,6 +107,12 @@ wire        cfg_use_core;    // Campaign 4 A/B: 1 = internal v30_core
 wire        cfg_wait_rand;   // Phase 1 rig: seeded random per-access waits
 wire  [3:0] cfg_wmax;
 wire [15:0] cfg_wseed;
+wire        cfg_wait_replay; // Phase 2a: replay host wait-vector
+wire  [9:0] h_wvec_addr;     // wvec RAM host write port
+wire        h_wvec_wr;
+wire [31:0] h_wvec_wdata;
+wire  [9:0] wvec_raddr;      // wvec RAM bus read port (nec_bus)
+wire [31:0] wvec_rdata;
 wire        int_req, nmi_req, poll_n_host;
 wire [15:0] cfg_iord;
 wire [19:0] evt_addr;
@@ -240,6 +246,10 @@ hps_axi_slave bridge
     .cfg_wait_rand(cfg_wait_rand),
     .cfg_wmax(cfg_wmax),
     .cfg_wseed(cfg_wseed),
+    .cfg_wait_replay(cfg_wait_replay),
+    .h_wvec_addr(h_wvec_addr),
+    .h_wvec_wr(h_wvec_wr),
+    .h_wvec_wdata(h_wvec_wdata),
     .int_req(int_req),
     .nmi_req(nmi_req),
     .poll_n_out(poll_n_host),
@@ -406,6 +416,9 @@ nec_bus bus
     .cfg_wait_rand(cfg_wait_rand),
     .cfg_wmax(cfg_wmax),
     .cfg_wseed(cfg_wseed),
+    .cfg_wait_replay(cfg_wait_replay),
+    .wvec_raddr(wvec_raddr),
+    .wvec_rdata(wvec_rdata),
 
     .int_req(int_req),
     .nmi_req(nmi_req),
@@ -456,6 +469,18 @@ nec_bus bus
 // reset; the CPU-side signals are inert then (nec_bus is reset).
 //----------------------------------------------------------------------------
 wire host_owns = host_reset;
+
+// Wait-vector replay RAM (Phase 2a): host-loaded exact Tw-per-bus-cycle
+// sequence, read by nec_bus at the current bus-cycle index.
+wvec_buf wvec
+(
+    .clk(clk),
+    .h_waddr(h_wvec_addr),
+    .h_we(h_wvec_wr),
+    .h_wdata(h_wvec_wdata),
+    .raddr(wvec_raddr),
+    .rdata(wvec_rdata)
+);
 
 test_mem mem
 (

@@ -84,6 +84,46 @@ Examples:
 - Full RTL (system_large + nec_bus + hps_axi_slave + core) lints clean;
   bitstream build for FLASH-READY.
 
+## Phase 2a: explicit wait-vector REPLAY mode (rig enhancement, needs reflash)
+
+Codex's Phase-1 review WITHDREW the old "unbounded aperiodic history" verdict
+but flagged the "bounded 5-access local window" conclusion as EXPLORATORY /
+CONFOUNDED (LFSR seeds are correlated whole streams, not controlled
+interventions; the window included a non-causal forward field; one program;
+resume events pooled). Phase 2 must switch to EXPLICIT CONTROLLED INTERVENTIONS.
+The enabler is a REPLAY mode: the host specifies the EXACT Tw-per-bus-cycle
+sequence, applied identically to chip and core, so two runs are byte-identical
+except ONE selected access's wait (a clean impulse).
+
+Design (third wait source; uniform-N and LFSR modes retained):
+- `hdl/rtl/wvec_buf.sv` - a 1024x32 (= 4096-byte-entry) dual-port RAM. Host
+  writes whole 32-bit words (4 Tw entries) over the HPS bridge at 0x140000;
+  nec_bus reads the byte for the current bus-cycle index.
+- `nec_bus.sv` - a `bus_idx` counter increments once per bus cycle (at T1,
+  same point the LFSR advances) and resets each run. In replay mode
+  (`cfg_wait_replay`) the access's Tw = wvec byte[bus_idx]; priority is
+  replay > random > uniform. bus_idx keeps replay and LFSR aligned to the same
+  access index on chip and core - the identical-sequence guarantee extends to
+  replay for free.
+- `hps_axi_slave.sv` - new 0x140000 wvec region (carved from the old cap
+  region by a[18]; capture base 0x100000 unchanged), WRAND[1] = replay-enable.
+- `tb_v30_core.sv` - `+wvec=<hex byte file>` loads the same vector, indexed by
+  its own bus-cycle counter; byte-for-byte the same replay algorithm.
+- Tooling: `v30ctl.py` load_wvec + serve `WVEC`/`WRAND ... <replay>`;
+  `v30run.py` ServeRunner.replay + `run_image(wvec=...)`; `check_seq.run_tb/
+  run_chip(wvec=...)`.
+
+TB-validated offline (no board): replay reproduces the LFSR sequence EXACTLY
+(182/182 accesses on fz90003), and flipping ONE vector entry yields EXACTLY ONE
+differing access (bus-cycle 40, Tw 0->1) - the controlled single-wait impulse.
+Golden 169000/169000 held (default path untouched); full harness lints clean.
+
+Phase 2b (post-flash) will use this for impulse-response causal-radius discovery
+per the review: narrow per-class resume events, single-wait flips at relative
+offsets -1..-K, queue-history orthogonalization, tail-ordinal falsification,
+wmax 2..15, pre-decision-only context - stopping analysis at the first bus-
+stream divergence (generator-desync guard).
+
 ## Phase 1 BASELINE RESULTS (in silicon, flashed 3ddcf00, board root@mister-nec)
 
 Rig proven in hardware (`baseline_wrand.py rigproof`, fz90000 wmax=3): the
