@@ -590,6 +590,35 @@ clears on the locked write's T4 slot. Forbidden-set note: F0 is a parked-but-
 allowed encoding; still NEVER emit 0F 2nd-byte>=0x40, 0F 34, 0F FF, or
 HALT-without-wake.
 
+### BUSLOCK implementation (rebuild Stage 6, 2026-07-14)
+
+Implemented per the measured law. EU: `lock_en` prefix latch (F0 decoded like a
+segment/REP prefix, retires as its own 2-cycle instruction, latch held until
+the locked op retires; `!lock_en` added to `irq_take` so no interrupt is taken
+between the prefix and its op). BIU: `lock_active`/`lock_done` drive
+`buslock_n` - asserted (combinational) from `eu_lock`, held across the
+interleaved prefetch, released AT the locked write's T4 (`lock_wr_t4`), latched
+released until `eu_lock` drops. Core: `BUSLOCK_N` now driven from the BIU
+(was hardwired `1'b1`); the fabric already routes `core_buslock_n` when
+`use_core=1` (system_large.sv). TB emits BUSLOCK_N as an 8th `r`-row field.
+
+Validation (chip-vs-TB, sw/exp_lock.py images through both the socketed chip
+and the Verilator core, rows perfectly T-state aligned): **release edge EXACT
+at w0** (LOCK high at the MEMW T4, matching the chip for ADD/XCH/INC),
+**prefetch-transparency EXACT** (one CODE fetch inside the lock span in both),
+**single-continuous-span EXACT**, **no false lock** on the non-F0 baseline.
+Residual: the ASSERT leading edge is ~2 cycles later than the chip (the chip
+sets its lock latch earlier in the F0 decode pipeline than the core's F0
+S_DEC); under waits the release carries a <=1-cycle residual (the waited-write
+completion deferral). Both are inert (LOCK is an arbitration status pin, no
+execution/data effect) and left for the Stage-2/3 grid-eval rewrite to align
+holistically. Golden unaffected: w0 169000/169000, w1 800/800, w3 600/600 (no
+golden case uses F0, and lock_en/eu_lock are 0 on all non-F0 streams). HOLD/
+RQ-AK arbiter suppression (LOCK's actual purpose) is designed (the lock latch
+gates the arbiter) but not yet exercised (needs an RQ assertion during a locked
+op); the pin observable is validated. Silicon (fabric) confirmation deferred to
+a batched flash with Stage 2/3 (the plumbing is present; sim = the synth RTL).
+
 ## Consolidated bus-grid law (rebuild Phase 1 — the target model, parameterized in N)
 
 This section states the chip's true bus law as the rebuild must model it, in

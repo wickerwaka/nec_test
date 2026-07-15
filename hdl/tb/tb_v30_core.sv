@@ -249,8 +249,8 @@ always @(posedge clk) begin
     if (!reset && ce) begin
         // record for the cycle just ending (pre-edge values throughout)
         if (recording && fo != 0)
-            $fdisplay(fo, "r %0d %0d %0d %0d %05x %04x %01x",
-                      tb_t, BS, QS, UBE_N, ad_mid, eff_lo, eff_hi);
+            $fdisplay(fo, "r %0d %0d %0d %0d %05x %04x %01x %0d",
+                      tb_t, BS, QS, UBE_N, ad_mid, eff_lo, eff_hi, BUSLOCK_N);
         if (recording && QS == 2'b01) begin
             fcount <= fcount + 1;
             if (fcount == nf - 1) begin
@@ -577,6 +577,6 @@ end
 final if (ce_hold_check)
     $display("CE_HOLD_VIOL %0d (ce_div=%0d)", ce_hold_viol, ce_div);
 
-wire _unused = &{1'b0, RD_N, BUSLOCK_N, dbg_first_pop, scr_en, scr_qop};
+wire _unused = &{1'b0, RD_N, dbg_first_pop, scr_en, scr_qop};
 
 endmodule

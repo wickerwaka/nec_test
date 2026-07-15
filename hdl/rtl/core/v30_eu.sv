@@ -171,6 +171,10 @@ module v30_eu (
                                    // parity (== bus_phase at w0). Available
                                    // but not yet consumed (Stage 2 re-points
                                    // the bus_phase gates onto it).
+    output            eu_lock,     // LOCK (F0) prefix active for the locked
+                                   // instruction now executing (Stage 6): the
+                                   // BIU drives BUSLOCK_N from this, releasing
+                                   // it at the locked write's T4.
     input             bus_t4,      // BIU cycle is a T4
     input             bus_tw,      // BIU is inserting a wait cycle (0 at w0);
                                    // gate a dly with !bus_tw to count bus cyc
@@ -334,6 +338,8 @@ reg [15:0]  trap_psw;
 // instruction retires
 reg         seg_ovr_en;
 reg  [1:0]  seg_ovr;
+reg         lock_en;     // LOCK (F0) prefix latch: lives until the locked
+                         // instruction retires (Stage 6). Drives eu_lock.
 reg         rep_en;
 reg  [1:0]  rep_kind;    // 0=REP/REPE(F3) 1=REPNE(F2) 2=REPC(65) 3=REPNC(64)
 reg         flush_now;   // registered flush (trap path)
@@ -472,6 +478,13 @@ wire op_segp   = opc == 8'h26 || opc == 8'h2E ||
                  opc == 8'h36 || opc == 8'h3E;   // segment override
 wire op_repp   = opc == 8'hF3 || opc == 8'hF2 ||     // REP/REPE, REPNE
                  opc == 8'h65 || opc == 8'h64;       // REPC, REPNC
+wire op_lockp  = opc == 8'hF0;                       // LOCK prefix (Stage 6)
+// eu_lock: the LOCK latch (set at the F0 prefix's decode, held until the
+// locked instruction retires). The BIU turns this into the BUSLOCK_N pulse,
+// which asserts from the latch (measured: LOCK goes low at the locked op's
+// execute start, ~one cycle after the F0 decode - the latch edge) and releases
+// at the locked write's T4.
+assign eu_lock = lock_en;
 // full x86 condition matrix over the low opcode nibble
 wire jcc_base =
     (opc[3:1] == 3'd0) ? psw[FB_V] :
@@ -1048,7 +1061,7 @@ wire [15:0] rmw_wide =
 //----------------------------------------------------------------------------
 wire irq_int  = post_flush ? (int_p[3] && ie_p[3]) : (int_p[2] && ie_p[2]);
 wire irq_any  = nmi_latch || irq_int;
-wire irq_take = irq_any && !shadow && !rep_en && !seg_ovr_en;
+wire irq_take = irq_any && !shadow && !rep_en && !seg_ovr_en && !lock_en;
 // REP iteration-boundary sampling runs one stage deeper (fitted)
 wire irq_rep  = nmi_latch || (int_p[3] && psw[9]);
 
@@ -1449,6 +1462,7 @@ task automatic retire();
     state   <= S_FIRST;
     seg_ovr_en <= 1'b0;      // prefix latches end with their instruction
     rep_en     <= 1'b0;
+    lock_en    <= 1'b0;
     shadow     <= 1'b0;      // shadowing instructions re-set it after
 endtask
 
@@ -1534,6 +1548,7 @@ always_ff @(posedge clk) begin
         seg_ovr_en <= 1'b0;
         seg_ovr  <= 2'd0;
         rep_en   <= 1'b0;
+        lock_en  <= 1'b0;
         str_wr   <= 1'b0;
         rslot    <= 6'd0;
         str_done <= 1'b0;
@@ -1874,6 +1889,7 @@ always_ff @(posedge clk) begin
                                 arch_ip <= pc + 16'd1;
                                 seg_ovr_en <= 1'b0;
                                 rep_en     <= 1'b0;
+                                lock_en    <= 1'b0;
                                 state <= S_FIRST;
                             end else if (op_test) begin
                                 // TEST rm,reg: flags + retire ON the
@@ -2194,6 +2210,14 @@ always_ff @(posedge clk) begin
                         rep_kind <= opc == 8'hF3 ? 2'd0 :
                                     opc == 8'hF2 ? 2'd1 :
                                     opc == 8'h65 ? 2'd2 : 2'd3;
+                        arch_ip <= pc;
+                        state   <= S_FIRST;
+                    end else if (op_lockp) begin
+                        // LOCK (F0): retires as its own 2-cycle instruction
+                        // (own F pop); the latch lives until the locked
+                        // instruction retires and drives BUSLOCK_N via the
+                        // BIU (Stage 6). Transparent to prefetch (measured).
+                        lock_en <= 1'b1;
                         arch_ip <= pc;
                         state   <= S_FIRST;
                     end else if (opc == 8'hF5) begin      // NOT1 CY
@@ -3317,6 +3341,7 @@ always_ff @(posedge clk) begin
                     arch_ip <= pc + 16'd1;
                     seg_ovr_en <= 1'b0;
                     rep_en     <= 1'b0;
+                    lock_en    <= 1'b0;
                     state <= S_FIRST;
                 end else begin
                     setup_access(ea_base + {{8{q_byte[7]}}, q_byte});
@@ -3351,6 +3376,7 @@ always_ff @(posedge clk) begin
                     arch_ip <= pc + 16'd1;
                     seg_ovr_en <= 1'b0;
                     rep_en     <= 1'b0;
+                    lock_en    <= 1'b0;
                     state <= S_FIRST;
                 end else begin
                     setup_access(ea_base + {q_byte, disp[7:0]});

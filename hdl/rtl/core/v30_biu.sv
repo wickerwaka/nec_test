@@ -119,6 +119,11 @@ module v30_biu (
                                       // consumer (inert this stage).
     output            bus_t4,         // current cycle is a bus T4
     output      [2:0] bus_ts,         // T-state: 0=Ti 1=T1 2=T2 3=T3 4=T4 5=cTi
+    input             eu_lock,      // LOCK (F0) active for the executing op
+                                    // (Stage 6): drive BUSLOCK_N low from the
+                                    // op's execution through its final locked
+                                    // write's T4. Transparent to prefetch.
+    output            buslock_n,    // max-mode LOCK output pin (active low)
     input             eu_hold,      // blocks prefetch, not request history
     input             eu_ready,
     input             eu_wr,
@@ -891,6 +896,43 @@ always_ff @(posedge clk)
 `endif
 
 assign bus_t4 = state == ST_T4;
+
+// BUSLOCK pin (Stage 6, measured law - sw/exp_lock.py / biu_model.md BUSLOCK):
+// the LOCK output is a single continuous low pulse bracketing the locked op's
+// bus footprint. It asserts while the locked instruction executes (eu_lock),
+// stays low across the interleaved prefetch between the RMW read and write
+// (transparent to prefetch), and RELEASES at the final locked WRITE's T4 (a
+// bus-grid event). lock_done latches the release so a lingering eu_lock (the
+// op has not fully retired yet) does not re-assert it; both clear when eu_lock
+// drops at the locked op's retire.
+reg lock_active, lock_done;
+wire lock_wr_t4 = lock_active && cur_wr && !cur_fetch && (state == ST_T4);
+always_ff @(posedge clk) begin
+    if (srst) begin
+        lock_active <= 1'b0;
+        lock_done   <= 1'b0;
+    end else if (ce) begin
+        if (!eu_lock) begin
+            lock_active <= 1'b0;
+            lock_done   <= 1'b0;
+        end else if (lock_wr_t4) begin
+            lock_active <= 1'b0;
+            lock_done   <= 1'b1;      // release at the locked write's T4
+        end else if (!lock_done) begin
+            lock_active <= 1'b1;      // assert through the locked op's cycles
+        end
+    end
+end
+// Pin: assert combinationally the cycle eu_lock first goes high (no register
+// delay on the rising edge), and deassert AT the locked write's T4
+// (combinational) - the chip holds LOCK high during that T4, not the cycle
+// after. lock_active/lock_done carry the state across the interleaved prefetch
+// and latch the release. Residual: the leading edge is ~2 cycles later than
+// the chip (the chip sets its lock latch earlier in the F0 decode pipeline);
+// the RELEASE (the grid-keyed, informative edge), prefetch-transparency, and
+// single-continuous-span all match the chip exactly (sw/exp_lock.py).
+assign buslock_n = ~((lock_active || (eu_lock && !lock_done)) && !lock_wr_t4);
+
 // "bus stretched this cycle" tick: exactly the extra wait cycles a waited
 // bus cycle inserts. Zero at w0 (no Tw), so a dly gated `if(!bus_tw)` is
 // bit-identical at w0 and stays on the bus grid under waits.
