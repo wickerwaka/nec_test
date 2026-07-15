@@ -534,7 +534,77 @@ manifestations (pending-unready vs registered-late).
   cells vs chip. Phase-3 design target (unchanged): ONE age+urgency-aware
   arbitration transition at every edge, eval_ext demoted to an edge label.
 
+---
+
+# Phase 2i — the urgency predicate MEASURED: q_cnt, not occupied
+
+Codex: 'non-urgent' was inferred from occupied in {2,4}, not a measured predicate.
+Phase 2i measures it. Tool: `urgency` (classifies the chip's IDLE-vs-CODE action
+at waited-CODE->EU contested edges vs the aligned queue-pipeline state, filtered
+to reservation-pending edges).
+
+## Result: occupied is the WRONG abstraction; q_cnt is the urgency variable
+
+Over 4620 contested edges, NO single queue field (occupied / q_avl / q_cnt) nor a
+chip-observable reservation-age proxy separates IDLE from CODE - all MIXED. The
+conflation was reservation-ABSENT edges (ordinary prefetch) mixed with
+reservation-PENDING (contested) ones. Filtering to the RESERVATION-PENDING subset
+(eu_req=1 at the decision edge), 1366 edges:
+
+- **The chip IDLEs (reserves) in 1326/1366 = 97%** - pending-reservation priority.
+- **At q_cnt >= 2 the chip reserves in 346/346 = 100% (zero CODE).**
+- The 40 CODE-despite-reservation cases are ALL at **q_cnt <= 1**.
+
+Because occupied=2 spans q_cnt in {0,1} (occupied counts in-flight `infl` bytes)
+while q_cnt>=2 is clean, **`occupied` is the wrong abstraction - the urgency
+variable is q_cnt (COMPLETED/poppable bytes); in-flight bytes do not count toward
+"the queue can feed the decoder."** This is a MEASURED predicate, not occupied<=X.
+
+## The urgent regime (q_cnt <= 1) - a finer residual
+
+q_cnt<=1 pending edges: 1020, of which 980 IDLE / 40 CODE (96% still reserve). The
+40 CODE cases cluster at YOUNG reservation ages (resage 0-3; at resage>=4 the chip
+always reserves) but the coarse chip-observable resage proxy does not fully
+separate them - they are the near-starved string/RMW urgent-refill region that
+pf_late_rsv (v30_biu:420) and ext_ok_wr (:388) were fitted for. The exact
+sub-rule there needs the finer imminent-consumption / access-kind signal.
+
+## The measured rule + the RTL target
+
+- **Non-urgent (q_cnt >= 2): a pending EU reservation ALWAYS reserves the slot
+  (IDLE), deterministic.** This is the dominant over-prefetch drift and it is
+  CLEANLY measured.
+- **Urgent (q_cnt <= 1): mostly reserve, but a young reservation can lose to CODE
+  (~4%)** - the string/RMW near-starved region, handled by the existing
+  pf_late_rsv/ext_ok_wr.
+- **Phase-3 change (concrete, measured):** replace pf_late_rsv's BROAD "late
+  reservation yields to CODE" with "yields to CODE only when q_cnt <= 1
+  (measured near-starved)". q_cnt>=2 must reserve (IDLE). This fixes the
+  non-urgent over-prefetch while preserving the urgent/string/RMW cases the
+  override was fitted for. `measured_refill_urgent := (q_cnt <= 1)`.
+
+## Honest bottom line (Phase 2i)
+
+- **Urgency predicate MEASURED: q_cnt (completed poppable bytes), threshold
+  q_cnt>=2 => always reserve.** `occupied` refuted (it conflates completed with
+  in-flight bytes). This is the measured gate Phase 3 needs.
+- **Substantially CLOSED** for the dominant (non-urgent) drift: the arbitration at
+  a pending reservation is q_cnt-gated, collision-free at q_cnt>=2.
+- **Residual (small, bounded):** the q_cnt<=1 urgent sub-rule (~4% of pending
+  edges) is not separated by coarse proxies - it is the string/RMW region the
+  current RTL already handles, so the Phase-3 change (gate on q_cnt<=1) preserves
+  it. Also unclosed: the 2/8 eu_req=0 late-registration cases (EU reservation-
+  ONSET timing, a possible distinct EU-side site) and the w0 young-boundary
+  chip re-measurement.
+- **Phase 3 justified** for the measured non-urgent fix (q_cnt-gated reservation
+  priority replacing broad pf_late_rsv), with the urgent sub-rule + req0 onset
+  timing as follow-ups. Phase-3 arbiter (Codex): split-cont -> ready-EU ->
+  EU-reservation-owns-slot(IDLE) -> urgent-refill(CODE, gated on q_cnt<=1) ->
+  ordinary-prefetch(CODE) -> IDLE; eval_ext = edge label only; preserve ext_ok_wr;
+  validate w0 vs fresh chip traces.
+
 Tools: `sw/causal_wrand.py`. Repro examples:
+`python3 sw/causal_wrand.py urgency --seeds 90003 90007 90015 --nws 8 --wmaxes 1 3 7`;
 `python3 sw/causal_wrand.py idleslot --seeds 90003 90007 90015 --nws 8 --wmaxes 1 3 7`;
 `python3 sw/causal_wrand.py leactl --maxn 8`;
 `python3 sw/causal_wrand.py nocomp --seed 90003 --refws 2`;

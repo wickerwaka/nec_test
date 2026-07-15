@@ -914,6 +914,134 @@ def cmd_nocomp(a):
     return 0
 
 
+def cmd_urgency(a):
+    """Phase 2i Step 1: MEASURE the urgency predicate. At every waited-CODE->EU
+    edge (a pending EU reservation vs an eligible prefetch), classify the CHIP's
+    action IDLE (reserve, then EU) vs CODE (urgent prefetch first), and sample
+    the aligned queue-pipeline state (occ, q_cnt, q_avl, infl, q_aged) at the
+    completing CODE's T4. Find which variable SEPARATES idle-vs-CODE at MATCHED
+    occupied - directly testing whether 'occupied' is the wrong abstraction.
+    (Edges taken from the aligned prefix + the first over-prefetch divergence,
+    where the model's internal state tracks the chip's bus behavior.)"""
+    import random as _r
+    from collections import defaultdict, Counter
+    rows = []          # (action, occ, q_cnt, q_avl, infl, qa, eu)
+    for seed in a.seeds:
+        g = generate(f"fz{seed}", exts=())
+        image, meta = compose(g)
+        for ws in range(1, a.nws + 1):
+            for wmax in a.wmaxes:
+                wv = [_r.Random((ws << 8) | wmax).randint(0, wmax) for _ in range(4096)]
+                cr = run_chip(image, a.host, use_core=False, wvec=wv)
+                crel = cr[next(i for i, r in enumerate(cr) if not r["rst"]):]
+                kr = run_tb_internal(image, 4200, wv)
+                ca = _trunc(accesses(crel))
+                ka = _trunc(accesses([dict(t=x["t"], bs_early=x["bs"], qs=x["qs"],
+                                           ad_addr=x["addr"], ad_data=0) for x in kr]))
+                cb, kb = bs_stream(ca), bs_stream(ka)
+                nn = min(len(cb), len(kb))
+                fd = next((i for i in range(nn) if cb[i] != kb[i]), nn)
+                # index model bus cycles -> its rows (for internal state at T4)
+                mt4 = {}
+                bi = -1
+                for ri, x in enumerate(kr):
+                    if x["t"] == 1:
+                        bi += 1
+                    if x["t"] == 5:
+                        mt4[bi] = ri
+                # scan aligned-prefix waited CODE cycles whose next EU is ahead
+                for B in range(1, min(fd + 1, nn - 1)):
+                    if ca[B]["bs"] != CODE or ca[B]["tw"] == 0:
+                        continue
+                    # next architectural EU access after B
+                    eu = next((j for j in range(B + 1, min(B + 6, len(ca)))
+                               if ca[j]["bs"] in (MEMR, MEMW)), None)
+                    if eu is None:
+                        continue
+                    # only edges where the EU is "close" (a real contested slot):
+                    # nothing but CODE/idle between B and the EU
+                    if any(ca[j]["bs"] not in (CODE,) for j in range(B + 1, eu)):
+                        continue
+                    # chip action: CODE prefetch inserted between B and EU, else IDLE
+                    ncode = sum(1 for j in range(B + 1, eu) if ca[j]["bs"] == CODE)
+                    # is this the divergence edge? (chip idles, model prefetched)
+                    action = "CODE" if ncode > 0 else "IDLE"
+                    if B not in mt4:
+                        continue
+                    st = kr[mt4[B]]
+                    # reservation state at the DECISION edge (row after T4)
+                    dec = kr[min(mt4[B] + 1, len(kr) - 1)]
+                    req_at_dec = dec["eu_req"]
+                    # CHIP-OBSERVABLE reservation-age proxy: clocks from the last
+                    # queue pop (operand delivery to the EU) to the decision edge
+                    # (the completing CODE's T4). Larger => older reservation.
+                    t4r = ca[B]["t4"]
+                    poprow = _final_pop_before(crel, t4r + 1)
+                    resage = (t4r - poprow) if poprow is not None else -1
+                    resage = min(resage, 6)
+                    rows.append((action, st["occupied"], st["q_cnt"], st["q_avl"],
+                                 st["infl"], st["q_aged"], resage, req_at_dec))
+    print(f"urgency: {len(rows)} waited-CODE->EU contested edges  "
+          f"({sum(1 for r in rows if r[0]=='IDLE')} IDLE / "
+          f"{sum(1 for r in rows if r[0]=='CODE')} CODE)")
+    if not rows:
+        print("  (none)"); return 0
+
+    def sep_table(fields, names):
+        tbl = defaultdict(Counter)
+        for r in rows:
+            key = tuple(r[i] for i in fields)
+            tbl[key][r[0]] += 1
+        coll = sum(1 for v in tbl.values() if len(v) > 1)
+        print(f"  keyed by {names}: {len(tbl)} cells, {coll} MIXED (idle&CODE)")
+        for k, v in sorted(tbl.items()):
+            mark = "  <-- MIXED" if len(v) > 1 else ""
+            print(f"    {dict(zip(names, k))}: {dict(v)}{mark}")
+        return coll
+
+    # 1=occ 2=q_cnt 3=q_avl 4=infl 5=q_aged 6=resage(chip-observable)
+    print(" occupied alone:")
+    sep_table([1], ["occ"])
+    print(" reservation-age proxy alone (chip-observable):")
+    sep_table([6], ["resage"])
+    print(" resage + occupied:")
+    c1 = sep_table([6, 1], ["resage", "occ"])
+    print(" resage + q_cnt:")
+    c2 = sep_table([6, 2], ["resage", "q_cnt"])
+    print(" resage + q_cnt + q_aged:")
+    c3 = sep_table([6, 2, 5], ["resage", "q_cnt", "qa"])
+    print(f"  => min MIXED cells: resage+occ={c1}, resage+q_cnt={c2}, "
+          f"resage+q_cnt+q_aged={c3} (0 => that state separates idle-vs-CODE)")
+    # RESERVATION-PENDING subset (model eu_req=1 at the decision edge): the
+    # contested edges. Does a queue variable separate idle-vs-CODE here?
+    pend = [r for r in rows if r[7] == 1]
+    print(f"\n RESERVATION-PENDING subset (eu_req=1 at decision): {len(pend)} "
+          f"({sum(1 for r in pend if r[0]=='IDLE')} IDLE / "
+          f"{sum(1 for r in pend if r[0]=='CODE')} CODE)")
+    rows_bak = rows
+    globals()['rows'] = pend
+
+    def sep2(fields, names, data):
+        tbl = defaultdict(Counter)
+        for r in data:
+            tbl[tuple(r[i] for i in fields)][r[0]] += 1
+        coll = sum(1 for v in tbl.values() if len(v) > 1)
+        print(f"   pending, keyed by {names}: {len(tbl)} cells, {coll} MIXED")
+        for k, v in sorted(tbl.items()):
+            print(f"     {dict(zip(names, k))}: {dict(v)}"
+                  f"{'  <-- MIXED' if len(v) > 1 else ''}")
+        return coll
+    sep2([2], ["q_cnt"], pend)
+    # the urgent regime (q_cnt<=1): what finer variable separates idle vs CODE?
+    urgent = [r for r in pend if r[2] <= 1]
+    print(f"  urgent regime q_cnt<=1: {len(urgent)} "
+          f"({sum(1 for r in urgent if r[0]=='IDLE')} IDLE / "
+          f"{sum(1 for r in urgent if r[0]=='CODE')} CODE)")
+    sep2([6], ["resage"], urgent)
+    sep2([2, 6], ["q_cnt", "resage"], urgent)
+    return 0
+
+
 def cmd_idleslot(a):
     """Phase 2h: the IDLE-SLOT proof of B's FAILING form. At over-prefetch
     divergences, measure whether the CHIP inserts idle (Ti) cycles between the
@@ -1244,6 +1372,13 @@ def main():
     p.add_argument("--nws", type=int, default=8)
     p.add_argument("--wmaxes", type=int, nargs="+", default=[1, 3, 7])
     p.set_defaults(fn=cmd_idleslot)
+    p = sub.add_parser("urgency")
+    p.add_argument("--host", default="root@mister-nec")
+    p.add_argument("--seeds", type=int, nargs="+",
+                   default=[90003, 90007, 90015, 90021, 90030])
+    p.add_argument("--nws", type=int, default=8)
+    p.add_argument("--wmaxes", type=int, nargs="+", default=[1, 3, 7])
+    p.set_defaults(fn=cmd_urgency)
     p = sub.add_parser("pfdiff")
     p.add_argument("--host", default="root@mister-nec")
     p.add_argument("--seed", type=int, default=90003)
