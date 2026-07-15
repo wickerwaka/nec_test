@@ -68,6 +68,48 @@ def bs_stream(acc):
     return [a["bs"] for a in acc]
 
 
+def build_cycles(rows):
+    """Bus cycles annotated with an EXACT-as-possible reconstructed prefetch
+    queue occupancy ENTERING each cycle (occ_in). Queue model: a completed CODE
+    fetch adds its width (address-parity aware: even=2 bytes, odd=1 byte); each
+    QS F/S pop removes 1 byte; QS E flushes to 0. Occupancy is sampled at each
+    cycle's T1 (before that cycle's own fetch completes)."""
+    cyc = accesses(rows)
+    # walk rows to get running depth; record depth at each T1 row index
+    depth = 0
+    depth_at_row = {}
+    # map row index -> is a CODE-fetch T4 completion + its width
+    # precompute per-cycle completion info
+    comp = {}     # t4_row -> width
+    for a in cyc:
+        if a["bs"] == CODE and a["t4"] is not None:
+            comp[a["t4"]] = 1 if (a["addr"] & 1) else 2
+    for i, r in enumerate(rows):
+        depth_at_row[i] = depth            # depth ENTERING this row
+        # apply this row's events (order: pops then completion)
+        q = r.get("qs")
+        if q == 1 or q == 3:               # F or S: one byte consumed
+            depth = max(0, depth - 1)
+        elif q == 2:                       # E: flush
+            depth = 0
+        if i in comp:                      # a CODE fetch completed at this row
+            depth = min(depth + comp[i], 6)   # V30 6-byte queue cap
+    for a in cyc:
+        a["occ_in"] = depth_at_row.get(a["t1"], 0)
+        a["width"] = 1 if (a["addr"] & 1) else 2
+    return cyc
+
+
+def arch_id(cyc, i):
+    """Architectural fingerprint of the CODE->EU anchor at bus index i:
+    (anchor CODE fetch addr, EU access bs, EU access addr). Invariant to waits
+    (addresses don't move), so it identifies the SAME semantic event across
+    backgrounds - unlike a bus index."""
+    if i + 1 >= len(cyc):
+        return None
+    return (cyc[i]["addr"], cyc[i + 1]["bs"], cyc[i + 1]["addr"])
+
+
 def resume_events(acc):
     """All resume events: (completing_idx, class, next_code_idx, gap).
     completing cycle bs in {CODE,MEMR,MEMW,IOR,IOW}; next bus cycle is CODE."""
@@ -367,6 +409,126 @@ def _fit_encodings(truth):
               f"{'  map=' + str(mp) if ok else ''}")
 
 
+def _bg_vectors(kinds, wmax):
+    """Diverse backgrounds designed to produce DISTINCT local queue states."""
+    import random as _r
+    out = {}
+    for k in kinds:
+        if k == "z":
+            out["z"] = [0] * 4096
+        elif k == "o":
+            out["o"] = [1] * 4096
+        elif k == "t":
+            out["t"] = [wmax] * 4096
+        elif k == "a":
+            out["a"] = [0 if i % 2 else wmax for i in range(4096)]
+        elif k.startswith("r"):
+            rr = _r.Random(int(k[1:]))
+            out[k] = [rr.randint(0, wmax) for _ in range(4096)]
+    return out
+
+
+def _eu_anchors(cyc):
+    """Every EU access whose immediate predecessor is a CODE fetch, keyed by
+    architectural EU identity (addr, bs, ordinal-among-same-addr). Returns list
+    of (key, B) where B = the preceding CODE's bus index and B+1 = the EU."""
+    seen = {}
+    out = []
+    for i in range(1, len(cyc)):
+        if cyc[i]["bs"] in (MEMR, MEMW, IOR, IOW):
+            k0 = (cyc[i]["addr"], cyc[i]["bs"])
+            seen[k0] = seen.get(k0, 0) + 1
+            if cyc[i - 1]["bs"] == CODE:
+                out.append(((cyc[i]["addr"], cyc[i]["bs"], seen[k0]), i - 1))
+    return out
+
+
+def cmd_arbpop(a):
+    """UNIQUE-architectural-anchor N* population (Phase 2d #1,#2,#5). Anchor =
+    an EU access (keyed by addr+bs+ordinal, stable across backgrounds) whose
+    predecessor is a CODE fetch B. Sweep B's wait N; decision = # CODE
+    prefetches between B and the EU (fixed-B count, valid since only wv[B]
+    changes). Dedup by EU identity; report N* over UNIQUE anchors, occupancy
+    spread, invariant vs variant, and N* vs (occ_in, EU-type)."""
+    from collections import defaultdict, Counter
+    bgs = _bg_vectors(a.bgs, a.wmax)
+    pop = defaultdict(list)     # eu-key -> [(bg, N*, occ_in, eu_bs, dec)]
+    obs = 0
+    for seed in a.seeds:
+        g = generate(f"fz{seed}", exts=())
+        image, meta = compose(g)
+        for bgname, refvec in bgs.items():
+            ref = build_cycles(run_chip(image, a.host, use_core=False, wvec=refvec))
+            for key, B in _eu_anchors(ref)[:a.per]:
+                occ0 = ref[B + 1]["occ_in"]
+                eu_bs = ref[B + 1]["bs"]
+                dec, kdec = [], []
+                for N in range(0, a.maxn + 1):
+                    wv = list(refvec); wv[B] = N
+                    dec.append(_extra_pf(
+                        build_cycles(run_chip(image, a.host, use_core=False, wvec=wv)), B))
+                    if a.core:
+                        kdec.append(_extra_pf(
+                            build_cycles(run_chip(image, a.host, use_core=True, wvec=wv)), B))
+                    obs += 1
+                pop[key].append((bgname, _boundary(dec), occ0, eu_bs, dec,
+                                 _boundary(kdec) if a.core else None))
+    print(f"arbpop: {obs} chip runs, {len(pop)} UNIQUE EU-anchors")
+    euname = {MEMR: "R", MEMW: "W", IOR: "IOr", IOW: "IOw"}
+    variant, invariant = [], 0
+    for key, recs in pop.items():
+        is_var = any(len(set(x for x in r[4] if x is not None)) > 1 for r in recs)
+        if is_var:
+            variant.append((key, recs))
+        else:
+            invariant += 1
+    print(f"  VARIANT unique anchors: {len(variant)} | INVARIANT: {invariant}")
+    # N* population over UNIQUE variant anchors (min boundary across bg)
+    nstar_pop = []
+    for key, recs in variant:
+        ns = [r[1] for r in recs if r[1] is not None]
+        if ns:
+            nstar_pop.append(min(ns))
+    print(f"  N* over UNIQUE variant anchors: {dict(sorted(Counter(nstar_pop).items()))}")
+    print("  per-variant-anchor (EU@addr | N*/bg | occ_in/bg):")
+    for key, recs in variant[:26]:
+        ns = [r[1] for r in recs]
+        occs = [r[2] for r in recs]
+        nstab = "STABLE" if len(set(ns)) == 1 else "VARIES/bg"
+        ospread = "occ-DISTINCT" if len(set(occs)) > 1 else "occ-same"
+        print(f"    {euname[key[1]]}@{key[0]:05x}#{key[2]}: N*={ns} occ_in={occs} "
+              f"[{nstab},{ospread}]")
+    # dissociation seed: does N* track occ_in and/or EU-type?
+    print("  N* vs (EU-type, occ_in entering) over variant anchors:")
+    bykey = defaultdict(list)
+    for key, recs in variant:
+        for rec in recs:
+            bgname, nstar, occ0, eu_bs, dec = rec[:5]
+            if nstar is not None:
+                bykey[(eu_bs, occ0)].append(nstar)
+    for (eu_bs, occ), ns in sorted(bykey.items()):
+        print(f"    EU={euname[eu_bs]} occ_in={occ}: N* {sorted(set(ns))} (n={len(ns)})")
+    if a.core:
+        print("  CHIP vs MODEL boundary by occ_in (localizes the model bug):")
+        cby, kby = defaultdict(list), defaultdict(list)
+        for key, recs in pop.items():
+            for bgname, nstar, occ0, eu_bs, dec, knstar in recs:
+                if nstar is not None:
+                    cby[occ0].append(nstar)
+                if knstar is not None:
+                    kby[occ0].append(knstar)
+        for occ in sorted(set(cby) | set(kby)):
+            import statistics as _st
+            cm = _st.mean(cby[occ]) if cby[occ] else None
+            km = _st.mean(kby[occ]) if kby[occ] else None
+            tag = "  <-- MODEL N* HIGH" if (cm is not None and km is not None
+                                            and km > cm + 0.2) else ""
+            print(f"    occ_in={occ}: chip N* mean={cm:.2f} core N* mean="
+                  f"{km:.2f}{tag}" if cm is not None and km is not None else
+                  f"    occ_in={occ}: chip={cm} core={km}")
+    return 0
+
+
 def cmd_arbscan(a):
     """Broad test: is the CHIP's local arbitration (EU-next vs insert-prefetch)
     ever a function of a single CODE fetch's wait? For many CODE->EU anchors
@@ -448,6 +610,68 @@ def _extra_pf(acc, B):
     if eu is None:
         return None
     return sum(1 for j in range(B + 1, eu) if acc[j]["bs"] == CODE)
+
+
+def cmd_episodes(a):
+    """One-vs-two-mechanisms (Phase 2d #4). Align chip vs core; cluster
+    divergences into EPISODES (contiguous edit regions); classify the FIRST
+    unmatched issue decision sign (core-INSERTS-CODE = over-prefetch vs
+    core-OMITS-CODE = under-prefetch) and record the reconstructed queue
+    occupancy + EU-type at that decision. If ONE occupancy-boundary mechanism
+    explains BOTH signs, the two signs should occupy complementary occupancy
+    regimes consistent with a boundary the model places wrong."""
+    import difflib, random as _r
+    from collections import defaultdict
+    over, under, other = [], [], []
+    for seed in a.seeds:
+        g = generate(f"fz{seed}", exts=())
+        image, meta = compose(g)
+        for ws in range(1, a.nws + 1):
+            for wmax in a.wmaxes:
+                rr = _r.Random((ws << 8) | wmax)
+                wv = [rr.randint(0, wmax) for _ in range(4096)]
+                c = _trunc(build_cycles(run_chip(image, a.host, use_core=False, wvec=wv)))
+                k = _trunc(build_cycles(run_chip(image, a.host, use_core=True, wvec=wv)))
+                cseq = [(x["bs"], x["addr"]) for x in c]
+                kseq = [(x["bs"], x["addr"]) for x in k]
+                sm = difflib.SequenceMatcher(a=cseq, b=kseq, autojunk=False)
+                for tag, i1, i2, j1, j2 in sm.get_opcodes():
+                    if tag == "equal":
+                        continue
+                    # occupancy entering the divergence (chip side, before i1)
+                    occ = c[i1]["occ_in"] if i1 < len(c) else None
+                    # nearest EU type around the episode
+                    euk = next((c[x]["bs"] for x in range(i1, min(i2 + 3, len(c)))
+                                if c[x]["bs"] in (MEMR, MEMW)), None)
+                    coside = [c and k[x]["bs"] for x in range(j1, j2)]
+                    chside = [c[x]["bs"] for x in range(i1, i2)]
+                    if tag == "insert" and CODE in [k[x]["bs"] for x in range(j1, j2)]:
+                        over.append((occ, euk))
+                    elif tag == "delete" and CODE in chside:
+                        under.append((occ, euk))
+                    elif tag == "replace":
+                        kc = [k[x]["bs"] for x in range(j1, j2)]
+                        if CODE in kc and CODE not in chside:
+                            over.append((occ, euk))
+                        elif CODE in chside and CODE not in kc:
+                            under.append((occ, euk))
+                        else:
+                            other.append((occ, euk))
+    def occhist(lst):
+        h = defaultdict(int)
+        for occ, _ in lst:
+            if occ is not None:
+                h[occ] += 1
+        return dict(sorted(h.items()))
+    print(f"episodes: OVER-prefetch(core inserts CODE)={len(over)}  "
+          f"UNDER-prefetch(core omits CODE)={len(under)}  other={len(other)}")
+    print(f"  OVER  occupancy-entering histogram: {occhist(over)}")
+    print(f"  UNDER occupancy-entering histogram: {occhist(under)}")
+    print("  interpretation: if the SAME queue-boundary is placed wrong by the "
+          "model, OVER concentrates at LOW occ (model prefetches into room the\n"
+          "  chip reserves for EU) and UNDER at HIGH occ (model withholds a "
+          "prefetch the chip issues); overlapping ranges => one signed boundary.")
+    return 0
 
 
 def cmd_pfdiff(a):
@@ -607,6 +831,19 @@ def main():
     p.add_argument("--wmax", type=int, default=3)
     p.add_argument("--maxn", type=int, default=15)
     p.set_defaults(fn=cmd_arbsweep)
+    p = sub.add_parser("arbpop")
+    p.add_argument("--host", default="root@mister-nec")
+    p.add_argument("--seeds", type=int, nargs="+",
+                   default=[90003, 90007, 90015, 90021, 90030])
+    p.add_argument("--bgs", nargs="+",
+                   default=["z", "o", "t", "a", "r2", "r5"],
+                   help="background kinds: z=0 o=1 t=wmax a=alt rN=random(N)")
+    p.add_argument("--wmax", type=int, default=3)
+    p.add_argument("--maxn", type=int, default=5)
+    p.add_argument("--per", type=int, default=10)
+    p.add_argument("--core", action="store_true",
+                   help="also sweep the fabric core and compare boundaries")
+    p.set_defaults(fn=cmd_arbpop)
     p = sub.add_parser("arbscan")
     p.add_argument("--host", default="root@mister-nec")
     p.add_argument("--seeds", type=int, nargs="+",
@@ -617,6 +854,13 @@ def main():
     p.add_argument("--per", type=int, default=6,
                    help="max anchors per (program,bg)")
     p.set_defaults(fn=cmd_arbscan)
+    p = sub.add_parser("episodes")
+    p.add_argument("--host", default="root@mister-nec")
+    p.add_argument("--seeds", type=int, nargs="+",
+                   default=[90003, 90007, 90015, 90021, 90030])
+    p.add_argument("--nws", type=int, default=6)
+    p.add_argument("--wmaxes", type=int, nargs="+", default=[1, 3, 7])
+    p.set_defaults(fn=cmd_episodes)
     p = sub.add_parser("pfdiff")
     p.add_argument("--host", default="root@mister-nec")
     p.add_argument("--seed", type=int, default=90003)

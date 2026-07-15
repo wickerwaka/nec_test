@@ -213,11 +213,77 @@ fired repeatedly, is the ≤15-clock accumulating drift.
   state (a cycle-experienced-Tw / queue-slack count), validated against these
   controlled interventions on held-out programs.
 
+---
+
+# Phase 2d — discovery gate (corrects a Phase-2c overclaim; gate NOT yet closed)
+
+New infra: exact-as-possible QUEUE RECONSTRUCTION (`build_cycles`: fetch width by
+address parity even=2/odd=1 byte, QS F/S pops = -1, QS E = flush, capped at the
+6-byte V30 queue - stays in [0,6]); ARCHITECTURAL anchor identity (EU access
+addr+bs+ordinal, wait-invariant); subcommands `arbpop`, `episodes`.
+
+## Correction to Phase 2c: N* is QUEUE-driven, NOT wait-background-stable
+
+Phase 2c claimed "N* stable across backgrounds => architectural / wait-history-
+independent." That was an ARTIFACT of testing only random backgrounds (r2/r5/r7),
+which collapsed to the same local queue regime. Re-run with DIVERSE backgrounds
+(all-0, all-1, all-wmax, alternating) and UNIQUE-anchor accounting (keyed by EU
+identity, not bus index): 29 unique EU-anchors (11 variant / 18 invariant; the
+Phase-2c "14 vs 2" was the same anchors counted once per background).
+
+**N* tracks the reconstructed queue occupancy entering the EU decision**, per
+architectural anchor (matched instruction, varied background => occ_in varies =>
+N* moves, monotonically):
+
+    occ_in 2 -> N* in {1,2,3}   occ_in 3 -> {0,1,2}   occ_in 4 -> {0,1}
+    occ_in 5 -> {0}             occ_in 6 -> {0}
+
+i.e. a FULL queue (occ 5-6) => the chip goes straight to the EU (N*=0, no
+prefetch); an EMPTY-er queue (occ 2) => the chip prefetches first and needs 1-3
+waits to suppress it. This is Codex's factorial experiment B (match the EU
+access/request path, vary queue fill): **queue-slack is a confirmed CAUSAL
+driver of the prefetch-vs-EU boundary.** So the arbiter IS queue-eligibility
+driven (consistent with the w0 priority: split-half, ready EU, then prefetch).
+
+## But queue-fill is NOT sufficient — a second variable remains (gate OPEN)
+
+- Residual at fixed occ_in: occ=2 gives N* in {1,2,3}, occ=4 in {0,1} - the same
+  reconstructed occupancy yields different boundaries, so occupancy alone does
+  not determine the decision.
+- Episode analysis (one-vs-two mechanisms, #4): over-prefetch (core inserts
+  CODE, 34) and under-prefetch (core omits CODE, 28) OVERLAP in occupancy (both
+  peak at occ_in=4: OVER {0:5,2:8,3:6,4:14,5:1}, UNDER {2:4,3:7,4:16,5:1}). A
+  single occupancy threshold placed wrong would put the two signs in
+  COMPLEMENTARY regimes; the overlap means coarse occupancy does NOT separate
+  them. So the one-vs-two-mechanism question is UNRESOLVED without a finer state
+  (request-age / in-flight bytes / fetch-parity phase).
+
+## Honest verdict (Phase 2d) — NOT closed
+
+- CONFIRMED: the prefetch-vs-EU arbitration boundary is driven by queue slack
+  (corrects Phase 2c). The model's error is a boundary misplacement, BIDIRECTIONAL
+  (over- AND under-prefetch, ~equal counts) - it mis-tracks the chip's
+  queue-eligibility threshold.
+- OPEN (blocks RTL): (a) queue-fill is necessary but not sufficient - a second
+  variable at fixed occupancy is unresolved; the request-age-vs-queue FACTORIAL
+  (experiment A: match queue, vary reservation onset via reader/store/RMW/EA
+  variants) is NOT done - the base fuzz corpus lacks the matched-queue/varied-
+  request strata; (b) the queue reconstruction is approximate (parity width; no
+  explicit in-flight/discarded-fetch/aging model) and may itself cause the fixed-
+  occ residual; (c) held-out families (RMW read->write, odd split, string, push
+  chains, IO, branch/flush) not exercised - base menu only; (d) no validated
+  exact-decision predictor (CODE-vs-EU + count + clock + address).
+- Bottom line: the arbitration rule is NOT yet a single validated state->decision
+  transition. Queue-slack is established as the dominant axis; closing requires
+  the factorial request-age dissociation + a finer queue model + held-out-family
+  validation before any RTL.
+
 Tools: `sw/causal_wrand.py`. Repro examples:
 `python3 sw/causal_wrand.py determ --seed 90003`;
 `... impulse --seed 90007 --anchor-bus 59 --k 12`;
 `... ownwait --seed 90003 --anchor-bus 137 --core`;
-`... pfdiff --seed 90003 --wseed 2 --wmax 3`;
 `... arbsweep --seed 90003 --anchor-bus 138 --bgseed 2 --maxn 15`;
 `... arbscan --seeds 90003 90007 90015 --bgs 2 5 7 --maxn 6`;
-`... align --seeds 90003 90007 90015 90021 90030 --wmaxes 1 3 7 15`.
+`... align --seeds 90003 90007 90015 90021 90030 --wmaxes 1 3 7 15`;
+`... arbpop --seeds 90003 90007 90015 --bgs z o t a --core`;
+`... episodes --seeds 90003 90007 90015 90021 90030 --wmaxes 1 3 7`.
