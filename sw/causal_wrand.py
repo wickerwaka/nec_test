@@ -752,7 +752,12 @@ def run_tb_internal(image, n, wvec):
                 onset_wr=int(d[35]) if len(d) > 35 else -1,
                 owns_slot=int(d[36]) if len(d) > 36 else -1,
                 eu_rsv_dhi=int(d[37]) if len(d) > 37 else -1,
-                eu_rsv_push_calc=int(d[38]) if len(d) > 38 else -1))
+                eu_rsv_push_calc=int(d[38]) if len(d) > 38 else -1,
+                pf_drain=int(d[39]) if len(d) > 39 else -1,
+                pop_cnt=int(d[40]) if len(d) > 40 else -1,
+                eu_consuming=int(d[41]) if len(d) > 41 else -1,
+                grid_phase=int(d[42]) if len(d) > 42 else -1,
+                pf_lim=int(d[43]) if len(d) > 43 else -1))
             pend = None
     return rows
 
@@ -1721,6 +1726,265 @@ def cmd_census(a):
     return 0
 
 
+def _acc_rows(rows, tk, bsk, addrk):
+    """Bus accesses with RAW row indices: dict(bs, addr, t1, t4, tw). Keeps the
+    row index so we can read per-cycle internals and count Ti/idle cycles."""
+    out, cur = [], None
+    for i, r in enumerate(rows):
+        if r[tk] == 1:
+            if cur is not None:
+                out.append(cur)
+            cur = dict(bs=r[bsk], addr=r[addrk] & 0xFFFFF, t1=i, t4=None, tw=0)
+        elif cur is not None:
+            if r[tk] == 4:
+                cur["tw"] += 1
+            if r[tk] == 5:
+                cur["t4"] = i
+    if cur is not None:
+        out.append(cur)
+    # cut at first HALT (bs==3) like _trunc
+    for j, x in enumerate(out):
+        if x["bs"] == 3:
+            return out[:j]
+    return out
+
+
+def cmd_class5tax(a):
+    """Phase-3b CLASS-5 TAXONOMY (Codex): the dominant residual (same bus
+    decisions, wrong clock). For each class-5 vector find the EARLIEST access
+    whose relative T1 CLOCK differs chip vs fabric (fabric==veto-TB), record the
+    TRANSITION class + model live state (incl. pf_drain / recent-pop cadence
+    heuristic) at that early access, and split PRE-EXISTING (already class-5 in
+    the HEAD~1 baseline) vs VETO-EXPOSED. Reflash-free; explicit-vector replay."""
+    import random as _r, subprocess, tempfile
+    from pathlib import Path
+    from collections import defaultdict, Counter
+    from baseline_wrand import woff
+    from check_seq import ROOT
+    BASE_BIN = a.base_bin
+
+    def run_base(image, wv):
+        td = tempfile.mkdtemp(prefix="b5_")
+        img = Path(td) / "i.hex"; out = Path(td) / "o.txt"; wf = Path(td) / "w.hex"
+        img.write_text("\n".join(f"{b:02x}" for b in image) + "\n")
+        wf.write_text("\n".join(f"{min(255,max(0,int(x))):02x}" for x in wv) + "\n")
+        subprocess.run([BASE_BIN, f"+bootimg={img}", "+bootn=4200", f"+wvec={wf}",
+                        f"+out={out}"], capture_output=True, text=True, cwd=ROOT,
+                       timeout=300, check=False)
+        rows = []
+        for ln in out.read_text().splitlines():
+            p = ln.split()
+            if p and p[0] == "r":
+                rows.append(dict(t=int(p[1]), bs_early=int(p[2]), qs=int(p[3]),
+                                 ad_addr=int(p[5], 16)))
+        return rows
+
+    recs = []
+    for seed in a.seeds:
+        g = generate(f"fz{seed}", exts=())
+        image, meta = compose(g)
+        for ws in range(1, a.nws + 1):
+            for wmax in a.wmaxes:
+                wv = [_r.Random((ws << 8) | wmax).randint(0, wmax) for _ in range(4096)]
+                cr = run_chip(image, a.host, use_core=False, wvec=wv)
+                crel = cr[next(i for i, r in enumerate(cr) if not r["rst"]):]
+                kr = run_tb_internal(image, 4200, wv)
+                w = woff(crel, [dict(t=x["t"], bs_early=x["bs"], qs=x["qs"],
+                                     ad_addr=x["addr"], ad_data=0) for x in kr])
+                if w["final"] == 0 and w["absmax"] == 0:
+                    continue
+                ca = _acc_rows(crel, "t", "bs_early", "ad_addr")
+                ka = _acc_rows(kr, "t", "bs", "addr")
+                n = min(len(ca), len(ka))
+                # class-5 requires identical (bs,addr) decisions through n
+                busdiv = next((i for i in range(n)
+                               if ca[i]["bs"] != ka[i]["bs"]
+                               or ca[i]["addr"] != ka[i]["addr"]), None)
+                if busdiv is not None:
+                    continue      # not class-5 (a decision divergence)
+                # first-CLOCK divergence: earliest access whose rel-T1 differs
+                c0, k0 = ca[0]["t1"], ka[0]["t1"]
+                kd = next((i for i in range(1, n)
+                           if (ca[i]["t1"] - c0) != (ka[i]["t1"] - k0)), None)
+                if kd is None:
+                    continue
+                cur, prev = ca[kd], ca[kd - 1]
+                kcur, kprev = ka[kd], ka[kd - 1]
+                deltaT1 = (cur["t1"] - c0) - (kcur["t1"] - k0)
+                # Ti(idle) counts between prev T4 and cur T1
+                cti = sum(1 for i in range(prev["t4"] + 1, cur["t1"]) if crel[i]["t"] == 0)
+                fti = sum(1 for i in range(kprev["t4"] + 1, kcur["t1"]) if kr[i]["t"] == 0)
+                trans = f"{BSN.get(prev['bs'],prev['bs'])}->{BSN.get(cur['bs'],cur['bs'])}"
+                # model live state at the row just before the early access T1
+                d = kr[max(0, kcur["t1"] - 1)]
+                # clocks since last F/S pop and since last E flush (model)
+                since_pop = since_flush = -1
+                for j in range(kcur["t1"] - 1, -1, -1):
+                    if kr[j]["qs"] in (1, 3) and since_pop < 0:
+                        since_pop = (kcur["t1"] - 1) - j
+                    if kr[j]["qs"] == 2 and since_flush < 0:
+                        since_flush = (kcur["t1"] - 1) - j
+                    if since_pop >= 0 and since_flush >= 0:
+                        break
+                # previous fetch parity (last CODE fetch addr before the early access)
+                pfetch_par = -1
+                for i in range(kd - 1, -1, -1):
+                    if ka[i]["bs"] == CODE:
+                        pfetch_par = ka[i]["addr"] & 1; break
+                # STEP 2: pre-existing (baseline already same-decisions) vs exposed
+                pre = None
+                if BASE_BIN:
+                    br = run_base(image, wv)
+                    ba = _acc_rows(br, "t", "bs_early", "ad_addr")
+                    nb = min(len(ca), len(ba))
+                    bdiv = next((i for i in range(nb)
+                                 if ca[i]["bs"] != ba[i]["bs"]
+                                 or ca[i]["addr"] != ba[i]["addr"]), None)
+                    pre = "pre-existing" if bdiv is None else "veto-exposed"
+                recs.append(dict(seed=seed, ws=ws, wmax=wmax, kd=kd, trans=trans,
+                                 deltaT1=deltaT1, cti=cti, fti=fti,
+                                 gap_chip=cur["t1"] - prev["t4"],
+                                 gap_fab=kcur["t1"] - kprev["t4"],
+                                 prevtw=prev["tw"], prevbs=BSN.get(prev["bs"]),
+                                 curbs=BSN.get(cur["bs"]),
+                                 mass_f=w["final"], mass_p=w["absmax"], pre=pre,
+                                 qc=d["q_cnt"], qavl=d["q_avl"], qag=d["q_aged"],
+                                 infl=d["infl"], pfdr=d.get("pf_drain", -1),
+                                 popc=d.get("pop_cnt", -1), euc=d.get("eu_consuming", -1),
+                                 pfok=d["prefetch_ok"], pfext=d["prefetch_ext"],
+                                 req=d["eu_req"], rdy=d["eu_ready"],
+                                 src=_sname(d.get("onset_state", -1)),
+                                 evx=d["eval_ext"], bph=d.get("bus_phase", -1),
+                                 gph=d.get("grid_phase", -1), pfetch_par=pfetch_par,
+                                 since_pop=since_pop, since_flush=since_flush))
+    print(f"class5tax: {len(recs)} class-5 vectors (same decisions, wrong clock)")
+    if not recs:
+        print("  (none)"); return 0
+    totp = sum(abs(r["mass_p"]) for r in recs)
+    # Step 1: transition-class histogram + drift mass
+    print("  [Step 1] TRANSITION-class histogram (seeds | peak drift mass | %mass):")
+    tt = defaultdict(lambda: [0, 0])
+    for r in recs:
+        tt[r["trans"]][0] += 1; tt[r["trans"]][1] += abs(r["mass_p"])
+    for k, (nn, mp) in sorted(tt.items(), key=lambda kv: -kv[1][1]):
+        print(f"     {k:<14} seeds={nn:>3} peakmass={mp:>4} ({100*mp/max(1,totp):.0f}%)")
+    # delta T1 distribution
+    print(f"  deltaT1 (chip-fab, +=chip later) dist: "
+          f"{dict(sorted(Counter(r['deltaT1'] for r in recs).items()))}")
+    print(f"  chip Ti vs fab Ti at the early access (chip_ti-fab_ti) dist: "
+          f"{dict(sorted(Counter(r['cti']-r['fti'] for r in recs).items()))}")
+    # Step 2: pre-existing vs veto-exposed
+    if BASE_BIN:
+        print("  [Step 2] pre-existing vs veto-EXPOSED (seeds | peak mass):")
+        pt = defaultdict(lambda: [0, 0])
+        for r in recs:
+            pt[r["pre"]][0] += 1; pt[r["pre"]][1] += abs(r["mass_p"])
+        for k, (nn, mp) in sorted(pt.items()):
+            print(f"     {k}: seeds={nn} peakmass={mp} ({100*mp/max(1,totp):.0f}%)")
+    # model-state distribution at the early divergence (cadence heuristic focus)
+    print("  [model state @ early access] pf_drain / eu_consuming / pop_cnt / "
+          "prefetch_ok vs ext:")
+    print(f"     pf_drain: {dict(sorted(Counter(r['pfdr'] for r in recs).items()))}")
+    print(f"     eu_consuming: {dict(sorted(Counter(r['euc'] for r in recs).items()))}")
+    print(f"     pop_cnt: {dict(sorted(Counter(r['popc'] for r in recs).items()))}")
+    print(f"     prefetch_ok!=prefetch_ext (drain/late override active): "
+          f"{sum(1 for r in recs if r['pfok']!=r['pfext'])}/{len(recs)}")
+    print(f"     q_cnt: {dict(sorted(Counter(r['qc'] for r in recs).items()))}; "
+          f"q_aged: {dict(sorted(Counter(r['qag'] for r in recs).items()))}")
+    print(f"     bus_phase: {dict(sorted(Counter(r['bph'] for r in recs).items()))}; "
+          f"grid_phase: {dict(sorted(Counter(r['gph'] for r in recs).items()))}")
+    print(f"     prev-fetch parity: {dict(sorted(Counter(r['pfetch_par'] for r in recs).items()))}")
+    print(f"     clocks since last pop: {dict(sorted(Counter(r['since_pop'] for r in recs).items()))}")
+    # Step 3 reconciliation: is the early access an immediate-successor CODE T1?
+    code_succ = sum(1 for r in recs if r["curbs"] == "CODE")
+    print(f"  [Step 3] early access is a CODE fetch (resume-event territory): "
+          f"{code_succ}/{len(recs)}; non-CODE: {len(recs)-code_succ}")
+    print("  exemplars per transition (seed ws wmax kd trans dT1 chipTi/fabTi "
+          "pf_drain/euc/popc qc gap_c/gap_f pre):")
+    seen = set()
+    for r in sorted(recs, key=lambda r: -abs(r["mass_p"])):
+        if r["trans"] in seen:
+            continue
+        seen.add(r["trans"])
+        print(f"     fz{r['seed']} ws{r['ws']} wmax{r['wmax']} kd{r['kd']} "
+              f"{r['trans']} dT1={r['deltaT1']} ti={r['cti']}/{r['fti']} "
+              f"pfdr={r['pfdr']}/euc{r['euc']}/pop{r['popc']} qc={r['qc']} "
+              f"gap={r['gap_chip']}/{r['gap_fab']} [{r['pre']}]")
+    return 0
+
+
+def cmd_class5sweep(a):
+    """Phase-3b Step 3: ONE controlled failing-anchor sweep to isolate what
+    governs the chip's idle-insertion at the dominant CODE->CODE class-5 subtype.
+    Reproduce a class-5 vector, find the first CODE->CODE clock divergence, then
+    SWEEP the wait on the PRECEDING fetch N=0..maxn (which toggles pf_drain -
+    set only when a fetch completes on a Tw - and shifts occupied/recent-pop).
+    For each N with the stream still aligned to the anchor, report chip idle-Ti
+    count vs model idle-Ti count and the model's pf_drain/eu_consuming/pf_lim/
+    occupied/q_cnt at the refill decision. If the model's idle-count mispredicts
+    the chip's specifically as pf_drain/pf_lim changes, pf_drain is the culprit."""
+    import random as _r
+    seed, ws, wmax = a.seed, a.ws, a.wmax
+    g = generate(f"fz{seed}", exts=())
+    image, meta = compose(g)
+    wv0 = [_r.Random((ws << 8) | wmax).randint(0, wmax) for _ in range(4096)]
+    cr = run_chip(image, a.host, use_core=False, wvec=wv0)
+    rst_end = next(i for i, r in enumerate(cr) if not r["rst"])
+    crel = cr[rst_end:]
+    kr = run_tb_internal(image, 4200, wv0)
+    ca = _acc_rows(crel, "t", "bs_early", "ad_addr")
+    ka = _acc_rows(kr, "t", "bs", "addr")
+    n = min(len(ca), len(ka))
+    # pre-program bus cycles (wvec index offset): T1 rows before rst_end
+    preoff = sum(1 for i in range(rst_end) if cr[i]["t"] == 1)
+    # first CODE->CODE clock divergence (aligned decisions)
+    c0, k0 = ca[0]["t1"], ka[0]["t1"]
+    kd = None
+    for i in range(1, n):
+        if ca[i]["bs"] != ka[i]["bs"] or ca[i]["addr"] != ka[i]["addr"]:
+            break
+        if (ca[i]["t1"] - c0) != (ka[i]["t1"] - k0) and \
+           ca[i]["bs"] == CODE and ca[i - 1]["bs"] == CODE:
+            kd = i; break
+    if kd is None:
+        print(f"fz{seed} ws{ws} wmax{wmax}: no CODE->CODE class-5 anchor found")
+        return 0
+    anchor_addr = ca[kd]["addr"]; prev_addr = ca[kd - 1]["addr"]
+    print(f"fz{seed} ws{ws} wmax{wmax}: CODE->CODE class-5 anchor access #{kd} "
+          f"(prev CODE@{prev_addr:05x} -> CODE@{anchor_addr:05x}); "
+          f"sweeping preceding fetch wait N=0..{a.maxn}")
+    print(f"  {'N':>2} {'chipTi':>6} {'fabTi':>6} {'dT1':>4} "
+          f"{'pf_drain':>8} {'euc':>4} {'pf_lim':>6} {'occ':>4} {'q_cnt':>6} {'aligned':>7}")
+    wvidx = preoff + (kd - 1)     # wvec entry for the preceding fetch bus cycle
+    for N in range(a.maxn + 1):
+        wv = list(wv0); wv[wvidx] = N
+        c = run_chip(image, a.host, use_core=False, wvec=wv)
+        crl = c[next(i for i, r in enumerate(c) if not r["rst"]):]
+        k = run_tb_internal(image, 4200, wv)
+        cca = _acc_rows(crl, "t", "bs_early", "ad_addr")
+        kka = _acc_rows(k, "t", "bs", "addr")
+        # locate the anchor by architectural identity (prev+cur addr, same ordinal region)
+        ai = next((i for i in range(1, min(len(cca), len(kka)))
+                   if cca[i]["addr"] == anchor_addr and cca[i]["bs"] == CODE
+                   and cca[i - 1]["addr"] == prev_addr), None)
+        if ai is None:
+            print(f"  {N:>2}   (anchor not found - desync)"); continue
+        # aligned decisions up to the anchor?
+        aligned = all(cca[j]["bs"] == kka[j]["bs"] and cca[j]["addr"] == kka[j]["addr"]
+                      for j in range(min(ai + 1, len(cca), len(kka))))
+        cti = sum(1 for i in range(cca[ai - 1]["t4"] + 1, cca[ai]["t1"]) if crl[i]["t"] == 0)
+        fti = sum(1 for i in range(kka[ai - 1]["t4"] + 1, kka[ai]["t1"]) if k[i]["t"] == 0)
+        d = k[max(0, kka[ai]["t1"] - 1)]
+        print(f"  {N:>2} {cti:>6} {fti:>6} {cti-fti:>4} "
+              f"{d.get('pf_drain',-1):>8} {d.get('eu_consuming',-1):>4} "
+              f"{d.get('pf_lim',-1):>6} {d['occupied']:>4} {d['q_cnt']:>6} "
+              f"{str(aligned):>7}")
+    print("  => if chipTi-fabTi (idle misprediction) tracks pf_drain/pf_lim "
+          "transitions, the pf_drain/recent-pop heuristic governs the mispredicted "
+          "idle-insertion (the class-5 cadence bug).")
+    return 0
+
+
 def cmd_leactl(a):
     """B-vs-C discriminator (Phase 2g Step 1): the no-request LEA control. Build
     a matched 3-variant block - reader (8B07, reserves S_EA1), store (8907,
@@ -2023,6 +2287,23 @@ def main():
     p.add_argument("--nws", type=int, default=10)
     p.add_argument("--wmaxes", type=int, nargs="+", default=[1, 3, 7])
     p.set_defaults(fn=cmd_census)
+    p = sub.add_parser("class5tax")
+    p.add_argument("--host", default="root@mister-nec")
+    p.add_argument("--seeds", type=int, nargs="+",
+                   default=[90003, 90007, 90015, 90021, 90030,
+                            90042, 90051, 90063, 90077, 90088])
+    p.add_argument("--nws", type=int, default=10)
+    p.add_argument("--wmaxes", type=int, nargs="+", default=[1, 3, 7])
+    p.add_argument("--base-bin", default="/tmp/baseline_tb/hdl/tb/obj_dir/Vtb_v30_core",
+                   help="HEAD~1 pre-veto TB binary for the pre-existing/exposed split")
+    p.set_defaults(fn=cmd_class5tax)
+    p = sub.add_parser("class5sweep")
+    p.add_argument("--host", default="root@mister-nec")
+    p.add_argument("--seed", type=int, default=90042)
+    p.add_argument("--ws", type=int, default=10)
+    p.add_argument("--wmax", type=int, default=7)
+    p.add_argument("--maxn", type=int, default=6)
+    p.set_defaults(fn=cmd_class5sweep)
     p = sub.add_parser("pfdiff")
     p.add_argument("--host", default="root@mister-nec")
     p.add_argument("--seed", type=int, default=90003)

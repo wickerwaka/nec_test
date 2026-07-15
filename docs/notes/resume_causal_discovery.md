@@ -1016,6 +1016,80 @@ RANKED: **class 5 wrong-clock timing (75%) >> eu_req=0 EU-onset (19%) > other (5
 
 Repro (census): `python3 sw/causal_wrand.py census --seeds 90003 90007 90015 90021 90030 90042 90051 90063 90077 90088 --nws 10 --wmaxes 1 3 7`.
 
+# Phase 3b — CLASS-5 TAXONOMY (the dominant residual; pf_drain CAUSALLY isolated)
+
+Codex: class-5 (75% of residual) may be several cadence defects - taxonomize
+before any RTL. `causal_wrand.py class5tax` (+ 4 cadence signals added to eudbg:
+pf_drain, pop_cnt, eu_consuming, grid_phase, pf_lim). For each class-5 vector:
+earliest access whose RELATIVE T1 CLOCK differs chip vs fabric, its transition
+class + model live state, and a pre-existing-vs-veto-exposed split (HEAD~1
+baseline TB). Reflash-free; explicit-vector replay; chip = ground truth.
+
+## Step 1 - transition histogram + it IS an idle-count error (81 class-5 vectors)
+
+    transition     seeds   peak drift mass
+    CODE->CODE       59       164 (78%)     <== DOMINANT (queue-refill cadence)
+    CODE->MEMW       12        32 (15%)
+    CODE->MEMR        4         8 ( 4%)
+    MEMW->CODE        6         6 ( 3%)
+
+- deltaT1 (chip-fab) == chip_Ti - fab_Ti EXACTLY -> class-5 IS purely an
+  idle-(Ti)-cycle-COUNT difference. Bidirectional: model prefetches too EARLY
+  (chip idles more, +2/+3: 56/81) or too late (-1/-2/-3: 25/81).
+- ~97% are 'after a CODE fetch' (the refill/next-access cadence).
+
+## Step 2 - PRE-EXISTING, not veto-created
+
+    pre-existing (already class-5 in HEAD~1 baseline): 75 seeds, 196 mass (93%)
+    veto-EXPOSED (baseline had a decision divergence):   6 seeds,  14 mass ( 7%)
+
+Class-5 is a GENUINE PRE-EXISTING cadence bug (93%), independent of the veto (the
+veto can only expose later timing errors, not create same-stream ones - confirmed).
+
+## Step 3 - model state + Phase-2b reconciliation + CONTROLLED SWEEP
+
+Model live state at the early divergence: **pf_drain=1 in 75/81 (93%)**; q_aged=0
+(81/81); prefetch_ok==prefetch_ext (0/81 use the eval_ext override) -> it is the
+PLAIN prefetch_ok / pf_drain path, NOT the arbitration override. 65/81 (80%) are
+CODE-fetch successors = Phase-2b RESUME-EVENT territory. So **Phase-2b's 'resume
+gap correct' must REOPEN for CONTEXT coverage**: gap(context,N)=base(context)+
+own_wait(N) - Phase-2b validated the N part; base(context) is WRONG in the
+pf_drain (post-waited-fetch) window. K=0 still holds; the closure claim was too
+narrow.
+
+CONTROLLED SWEEP (`class5sweep`, the analog of the reservation-source work): take
+a CODE->CODE class-5 anchor, sweep the PRECEDING fetch's wait N=0..6 (N=0 -> the
+fetch completes on T4 => pf_drain=0; N>=1 -> completes on a Tw => pf_drain=1):
+
+    fz90042: N=0 pf_drain=0 -> chipTi=fabTi=3, dT1=0 (MODEL MATCHES CHIP)
+             N>=1 pf_drain=1 -> dT1=2..3 (MODEL MISPREDICTS: idles 1 vs chip 3-4)
+    fz90007: N=0 pf_drain=0 -> dT1=0 (match); N=1-3 pf_drain=1 but q_cnt=4 -> dT1=0
+             (match); N>=4 pf_drain=1 AND q_cnt drops to 2-3 -> dT1=2..3 (mispredict)
+
+**CAUSALLY ISOLATED: pf_drain=1 is NECESSARY for the class-5 misprediction (dT1=0
+whenever pf_drain=0), and the magnitude is modulated by queue occupancy/draining
+within that window.** At fz90042 N=1 pf_lim stays 4 (eu_consuming=0) yet dT1 jumps
+0->3, so it is **pf_drain itself (the post-waited-fetch window), NOT the pf_lim=3
+tightening**. The chip idles MORE before refilling after a waited fetch; the model
+refills too eagerly.
+
+## Bottom line (class-5)
+
+Class-5 is essentially ONE bounded cadence rule: the **post-waited-fetch (pf_drain
+window) queue-refill idle-insertion**, dominant at CODE->CODE (78%), 93%
+pre-existing, causally governed by pf_drain (proven by the wait sweep) and
+modulated by queue occupancy. The chip's base idle-gap after a WAITED fetch is
+larger than the model predicts (model prefetches ~2-3 cycles too early). This is a
+TARGETED fix in the pf_drain / prefetch-timing path (v30_biu.sv:270-293,
+prefetch_ok/pf_lim/pf_drain), NOT a per-source table and NOT the arbitration veto.
+Recommend Codex next: model the chip's pf_drain-window refill idle-gap as a
+function of (pf_drain, occupancy/q_cnt, recent-pop), validate vs these sweeps on
+held-out anchors, then fit RTL. eu_req=0 EU-onset (19%) is the second target.
+NO RTL yet - discovery only.
+
+Repro (class-5): `python3 sw/causal_wrand.py class5tax --seeds 90003 90007 90015 90021 90030 90042 90051 90063 90077 90088 --nws 10 --wmaxes 1 3 7`;
+`python3 sw/causal_wrand.py class5sweep --seed 90042 --ws 10 --wmax 7`.
+
 ## Verdict for Codex (scope decision before flash)
 
 The narrow source-aware veto is CORRECT, source CONFIRMED CAUSAL (S_DHI vs S_MHI

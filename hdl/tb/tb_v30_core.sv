@@ -472,7 +472,7 @@ end
 
 always @(posedge clk) begin
     if (!reset && ce && recording && eudbg_en && fo != 0)
-        $fdisplay(fo, "d %0d %0d %0d %0d %0d %0d %05x %0d %02x %02x %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %02x %0d %0d %0d %0d %0d",
+        $fdisplay(fo, "d %0d %0d %0d %0d %0d %0d %05x %0d %02x %02x %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %02x %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d",
                   dut.u_eu.state, dut.u_eu.q_pop,
                   dut.u_biu.q_avl, dut.u_biu.q_cnt,
                   dut.u_eu.eu_wrap, dut.u_biu.cur_wrap,
@@ -489,7 +489,9 @@ always @(posedge clk) begin
                   onset_state_eff, onset_age, onset_opc_eff,
                   onset_kind_eff, onset_wr_eff,
                   dut.u_biu.owns_slot, dut.u_biu.eu_rsv_dhi,
-                  dut.u_biu.eu_rsv_push_calc);
+                  dut.u_biu.eu_rsv_push_calc,
+                  dut.u_biu.pf_drain, dut.u_biu.pop_cnt, dut.u_biu.eu_consuming,
+                  dut.u_biu.grid_phase, dut.u_biu.pf_lim);
 end
 
 initial begin
