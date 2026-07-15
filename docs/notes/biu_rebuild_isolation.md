@@ -137,9 +137,15 @@ it touched the 4 correct branch types. Jcc has TWO sub-mechanisms under waits:
   -> w0-neutral) so the doomed prefetch commits. Controlled Jcc w1 MATCHES;
   DRIFT w1 565.3->506.0.
 - **w3 (queue full, no room): a bare +1-LATE flush redirect** (no doomed
-  prefetch). This is the flush-redirect-commit-timing part (the risky flush-
-  transition delay). Not yet fixed - characterized for follow-up. Jcc w3 still
-  DIVERGES; w3 drift 606.7 (barely moved).
+  prefetch). DEFERRED after two measured attempts, BOTH over-shoot by exactly
+  +1: (a) EU-side S_JWAIT transition at dly==0 -> the BIU redirect-commit eval
+  adds a 2nd idle (+2 net); (b) BIU-side blocking the eval_ext flush commit ->
+  the next do_commit is +2 (a push-absorb/eval interaction inserts a 2nd idle),
+  turning 1-early into 1-late, w3 drift worse. The precise +1 needs a 1-cycle-
+  HOLD of the eval_ext flush redirect (commit at eval_ext+1, not skip to the
+  next do_commit) - a fiddly latched-redirect mechanism, deferred as not worth
+  the risk vs the four landed fronts. Jcc w3 still DIVERGES; w3 moved via the
+  LOAD EXTENSION instead (606.7->583.6). Follow-up: the latched +1 redirect.
 
 ### (superseded) earlier blanket-stretch attempt: CHARACTERIZED + DEFERRED
 Measured (seed90003 Jcc 0x73, +eudbg): the branch resolves via S_JDISP->S_JWAIT
