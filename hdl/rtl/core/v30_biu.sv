@@ -410,9 +410,27 @@ wire        pick_any   = want_half2 || want_eu || prefetch_ok;
 // (at w0 eval_ext never fires, so prefetch_ext == prefetch_ok bit-identical).
 wire        pf_starved = (q_cnt == 3'd0) && !eu_hold && q_aged == 2'd0 &&
                          !q_flush;
+// EU-arbitration front 3 (Stage 3): a mem-access reservation that first
+// asserts AT the deferred-completion eval (eu_req high now but eu_req_p1==0 =
+// did NOT lead the eval) is TOO LATE to claim this eval's slot. The fitted
+// WRITE-half reservation law blocks the fresh prefetch only when the
+// reservation LEADS the eval (eu_req present the cycle before); a coincident
+// late reservation does not. Measured on the REP-string arbitration seeds
+// (90020/90010/90017/90000/90012, all a4/a5/ab/ac/ad): at the last CODE
+// fetch's T4 eu_req==0, at the eval_ext Ti eu_req==1/eu_ready==0/q_cnt==1 -
+// the chip commits a refill CODE prefetch and the string access takes the
+// next slot; the TB blocked prefetch on the coincident eu_req. Gated on
+// occupied<=4 (queue has room) so it never fires when the queue is full (the
+// fitted single-store forms sit at occ>4 with a LEADING reservation - both
+// excluded). w0-NEUTRAL: eval_ext never fires at w0.
+wire        pf_late_rsv = eval_ext && eu_req && !eu_req_p1 && !eu_ready &&
+                          eu_mem_acc && eu_kind == K_MEM &&
+                          occupied <= 4'd4 && q_aged == 2'd0 &&
+                          !q_flush && !eu_hold;
 wire        prefetch_ext = prefetch_ok ||
                            (eval_ext && pf_starved && eu_req && !eu_ready &&
-                            eu_mem_acc && eu_kind == K_MEM);
+                            eu_mem_acc && eu_kind == K_MEM) ||
+                           pf_late_rsv;
 wire        pick_ext   = want_half2 || want_eu || prefetch_ext;
 wire  [2:0] pick_type  = want_half2 ? cur_type
                        : want_eu    ? (eu_kind == K_INTA ? BS_INTA
