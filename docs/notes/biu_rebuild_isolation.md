@@ -108,6 +108,43 @@ is a multi-front effort (resume + flush + arbitration), each ~1/3 of the drift.
 This reframes the plan: after the resume third, Stage 5 (flush) and an
 arbitration-timing pass are co-equal priorities, not sequential afterthoughts.
 
+## Three-front close — progress (2026-07-14)
+
+Committed to driving all three drift thirds (arbitration / flush / resume) to
+near-zero, each w0-neutral + golden-preserved + chip-adjudicated.
+
+### Front 1 — EU-arbitration: LANDED (commit 4482576)
+Measured (seed90008 STM, +eudbg): under waits a STORE that empties the queue
+(q_cnt=0) reserves (S_RSV, eu_req high, not ready) during the deferred eval; the
+CHIP prefetches to refill BEFORE the store, the TB idled (eu_req blocked the
+prefetch). Fix `prefetch_ext`: a STARVED queue (q_cnt==0) prefetch wins over a
+not-yet-ready EU MEMW reservation, ONLY in the eval_ext window (w0-neutral).
+Gating: must be `eu_wr && K_MEM` (a real store) - the EB branch reservation also
+shows q_cnt==0 / eu_kind==K_MEM / eu_wr==0 (indistinguishable from a LOAD), so
+loads can't be separated from branch flushes by these signals (needs Front 2).
+Result: w0 169000/169000, w1 800/800, w3 600/600; DRIFT w1 593.6->565.3, w3
+619.6->606.2. 0 w0 deltas.
+
+### Front 2 — flush/branch (Stage 5): CHARACTERIZED + DEFERRED
+Measured (seed90003 Jcc 0x73, +eudbg): the branch resolves via S_JDISP->S_JWAIT
+(dly countdown)->S_JFLUSH; the CHIP flushes ~1 cyc LATER than the TB under waits
+(chip E@237/T1@238 vs TB S_JFLUSH@236/T1@237). This CONFIRMS +1-LATE (opposite
+Round 3's "flushes earlier" guess). Attempted fix: pause the S_JWAIT dly during
+Tw (`if(!bus_tw) dly<=dly-1`), w0-neutral. Result: w0 held 169000 BUT w1 golden
+705/800 arch 757, w3 346/600 arch 552 - a CYCLE AND ARCH regression (drift also
+worse, first-div 32 = broke the loader). The blanket Tw-pause over-delays:
+branch resolution spans multiple waited cycles so it delays by many, not the
+measured +1, and EB (golden, on-time under waits) and the loader branches get
+mis-delayed - changing execution (arch). The correct fix is a PER-BRANCH precise
++1 (which Tw to pause on distinguishes Jcc-late from EB-on-time), needing a
+denser flush-point-vs-wait×branch-type measurement. HIGH golden risk (this is
+the front the prior campaign also failed on). DEFERRED with this characterization
++ reverted; Fronts 1 and 3 kept.
+
+### Front 3 — resume: PARTIAL (consumption-gate landed f9c33f6)
+The beat-dominated resume law; consumption-gate handles part. Limited ceiling
+(big beat!=0 gaps are EU-execution-time, already EU-timed). Low priority.
+
 ## Verdict — waits>=1 is closable non-invasively; the discriminator is real
 The isolation SUCCEEDED: the fill-vs-steady discriminator is the EU consumption
 activity (recent `q_pop`), a reconstructable AND RTL-trackable variable — NOT

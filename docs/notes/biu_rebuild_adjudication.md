@@ -19,6 +19,8 @@ a rebuilt-model change moves a w0 golden case, capture a fresh chip reference
 | 2/3 | resume-predicate gate attempts | 0 | 0 | 0 | 0 |
 | 3 | two-rhythm scheduler build (pf_drain occ<=2/3) | 0 | 0 | 0 | 0 |
 | 3 | consumption-gated pf_drain (LANDED, w1 drift -11%) | 0 | 0 | 0 | 0 |
+| 3-F1 | arbitration starved-store override (LANDED) | 0 | 0 | 0 | 0 |
+| 3-F2 | flush bus_tw stretch (REVERTED - arch regress, deferred) | 57w1+ | - | 57 (model-bug, deferred) | - |
 
 **Total w0 golden deltas landed: 0.** No committed change moved a w0 golden
 case, so nothing required chip adjudication yet. Stages 1 and 6 are w0-neutral
