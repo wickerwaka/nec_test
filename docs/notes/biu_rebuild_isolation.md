@@ -198,6 +198,41 @@ FLUSH third: w1 FLUSH 10->2, w3 FLUSH 8->0.
 The beat-dominated resume law; consumption-gate handles part. Limited ceiling
 (big beat!=0 gaps are EU-execution-time, already EU-timed). Low priority.
 
+### Front 3c — full beat-lookup resume: ATTEMPTED, REVERTED (5th refutation of the coarse model, 2026-07-14)
+
+After the FLUSH+ARB thirds closed (resume became the sole dominant third: 27 w1
+/ 25 w3), attempted the full two-rhythm resume-slot lookup the plan flagged.
+Extracted the gap table from cached captures (predict_resume.collect): keyed on
+(kind, beat, occ) the law is remarkably CLEAN in aggregate - **beat==0 -> gap 1
+(resume at the eval_ext cycle T4+1), beat!=0 -> gap 2 (one extra idle)**,
+uniform across EU/PF kinds and w1/w3. Implemented in RTL as a proper mod-P beat
+counter (beat_cnt = cycles since last T1, period = 4 + the cycle's Tw count,
+on_grid = beat_cnt % period == 0) gating a `resume_block` that inserts exactly
+one idle when a waited-window resume crossing is off-grid. w0-neutral by
+construction (pf_drain, hence resume_block, is 0 at w0).
+
+- **Behaviorally VALID**: w0 golden 169000/169000, w1/w3 golden ALL forms pass
+  (the fitted forms only passed once the beat counter used true mod-P, not the
+  `!eval_ext` proxy - the proxy mis-flagged beat-0-via-wrap crossings and tripped
+  the Stage-1 phase SVA + regressed the fitted forms; the mod-P version fixed it).
+- **But the DRIFT got WORSE**: w1 307.3 -> 659.8 (CLEAN 18->3), w3 475.6 -> 707.8
+  (CLEAN 21->5). The coarse "beat!=0 -> +1 idle" fires BIDIRECTIONALLY wrong: the
+  RTL's crossing-detection (occ<=threshold in the pf_drain window) does not
+  coincide with the predictor's reconstructed crossing (feature-lossiness), so
+  the +1 idle lands at the wrong cycles - helping some phases, hurting others,
+  net strongly negative. REVERTED.
+
+This is the 5th independent refutation (after grid_phase/counter/occupancy/kind
+in biu_model, and rounds 1-3) that the resume floor does NOT close over any
+coarse externally-reconstructable tuple - EXACTLY as design doc 4a predicted
+("fails to close even at w0 where the model is bit-exact... it does NOT reduce
+to a coarse 3-tuple; the rewrite MODELS the grid state, it does not tabulate").
+**VERDICT: the RESUME third is the irreducible floor for LOCAL w0-neutral
+changes.** Closing it requires the full grid-state scheduler keyed on the RTL's
+EXACT internal state (in-flight bytes + q_aged + exact stretched-grid crossing
+position), NOT a coarse lookup - a large structural rewrite of the prefetch-issue
+path, not a tractable increment. The honest stopping point for the resume third.
+
 ## Verdict — waits>=1 is closable non-invasively; the discriminator is real
 The isolation SUCCEEDED: the fill-vs-steady discriminator is the EU consumption
 activity (recent `q_pop`), a reconstructable AND RTL-trackable variable — NOT
