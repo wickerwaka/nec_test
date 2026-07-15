@@ -692,7 +692,108 @@ eu_wr=1), so it is INEFFECTIVE. **Edit REVERTED; RTL back to baseline.**
   the collision re-tested; the 2/8 eu_req=0 cases and w0 re-measurement remain
   separate follow-ups.
 
-Tools: `sw/causal_wrand.py` (`urgency` corrected). Repro:
+# Phase 2k — the collision RESOLVED: discriminator = reservation SOURCE (+ q_cnt)
+
+Codex's verdict on the Phase-2j collision was correct: the coarse `eu_req_p1==0`
+"young" bit conflates ~10 different EU reservation-generating microstates, and
+the discriminator is the reservation's OWN SOURCE (+ onset age). Phase 2k added
+RESERVATION-ONSET INSTRUMENTATION (TB-only, measurement; no functional RTL
+change) and MEASURED it. **The collision is resolved: the discriminator is the
+reservation SOURCE (the EU state at the eu_req rising edge), collision-free when
+keyed with q_cnt. Onset AGE is NOT the discriminator; q_avl/q_aged are not
+needed.**
+
+## Instrumentation (measurement only)
+
+`hdl/tb/tb_v30_core.sv`: on every `eu_req` RISING edge, latch the EU state
+generating it (`onset_state` = the reservation's own source, e.g.
+S_EA1/S_EA2/S_DISP8/S_DHI/S_MHI/S_RSV/S_RMWX/S_DEC/S_PUSH_CALC/...), the
+absolute CPU clock (`onset_clock` -> exact onset age), and the opcode/kind/dir
+at onset. Carried until eu_started/withdrawal/flush. The dumped fields are
+computed COMBINATIONALLY on the onset cycle (eu_req rises ON this row ->
+onset_state=current state, age=0) so a withdrawal/reassert cannot alias the
+age-0 case. Appended to `+eudbg` (5 new fields: onset_state onset_age onset_opc
+onset_kind onset_wr). Golden path UNCHANGED: check_core 169000/169000 full.
+`sw/causal_wrand.py`: new `onset` subcommand + STATE_NAMES parsed from v30_eu.sv.
+
+## The two collision exemplars (extracted + chip-verified, Step 2)
+
+Both have IDENTICAL coarse state at the eval_ext decision row - q_cnt=1, q_avl=1,
+q_aged=0, eu_req=1, eu_req_p1=0, eu_ready=0, eu_wr=1, pf_late_rsv=1 - and differ
+ONLY in the reservation's own source:
+
+    fz90007 ws1 wmax1 bus45  onset=S_DHI  age0 opc31(XOR Ev,Gv/RMW-read)  -> chip IDLE
+    fz90030 ws1 wmax1 bus47  onset=S_RSV  age0 opc AA(STOS byte store)     -> chip CODE
+
+The chip inserts an idle slot then issues MEMR@023fc for the S_DHI case; runs
+three more prefetches before MEMW@02928 for the S_RSV case. pf_late_rsv fires
+(model prefetches) in BOTH - so the S_DHI case is the model's over-prefetch bug.
+
+## The collision-free table (chip ground truth; SOURCE x q_cnt, onset_age==0 throughout)
+
+Merged over discovery (90003/07/15/21/30) AND held-out (90042/51/63/77/88), each
+5 seeds x nws10 x wmax{1,2,3,7}; young = coincident reservation (eu_req=1,
+eu_req_p1=0, eu_ready=0); action is the CHIP's IDLE(reserve)/CODE(prefetch):
+
+    onset SOURCE   q_cnt=0   q_cnt=1        q_cnt=2
+    S_DHI            -        IDLE (14)        -        <-- the ONLY reserving source at q1
+    S_MHI            -        CODE (12)        -
+    S_RSV          CODE(68)   CODE (12)        -
+    S_DEC          CODE(14)     -              -
+    S_JWAIT        CODE(18)     -            CODE (12)
+    S_PUSH_CALC    CODE(13)     -            IDLE (6)   <-- reserves only at q_cnt>=2
+
+- Keyed by (SOURCE, q_cnt): **0 collisions in BOTH corpora** (COLLISION-FREE).
+- Keyed by SOURCE ALONE: collision-free on discovery, but the held-out set
+  exposes S_PUSH_CALC as q_cnt-dependent (CODE at q0, IDLE at q2) -> q_cnt is a
+  necessary co-key. The 12/24(here 12/12) reliable collision itself (q_cnt=1,
+  eu_wr=1) is resolved by SOURCE alone: S_DHI->IDLE vs S_RSV/S_MHI->CODE.
+- **onset AGE = 0 for EVERY contested young edge** (the coincident cases are all
+  age-0 by construction) -> age is NOT a discriminator in the measured data.
+- **q_avl/q_aged identical within each collision cell** (q_avl=1, q_aged=0) ->
+  the queue-pipeline split adds no resolving power here.
+
+## The mechanism + the model's exact error (for Codex, NO RTL edit made)
+
+The chip's reserve-vs-prefetch decision at a coincident (age-0) pending
+reservation is a function of WHICH microstate generated it: only S_DHI-sourced
+reservations (reader / RMW-read final displacement-byte pop) RESERVE the bus
+(IDLE) at q_cnt=1; S_RSV (generic store/string reservation, e.g. C6 store, STOS),
+S_MHI (moffs), S_JWAIT, S_DEC (POP/RET decode) let the prefetch win; S_PUSH_CALC
+reserves only at q_cnt>=2. The model's `pf_late_rsv` (v30_biu) yields to CODE for
+ALL of these young sources - CORRECT for the CODE rows, WRONG (over-prefetch) for
+S_DHI@q1 and S_PUSH_CALC@q2 where the chip reserves. Phase-3 RTL target (not now):
+gate pf_late_rsv by reservation SOURCE - reserve (suppress the prefetch) for the
+S_DHI reader/disp-pop class and S_PUSH_CALC@q_cnt>=2; keep yielding to CODE for
+S_RSV/S_MHI/S_JWAIT/S_DEC.
+
+## Kept separate (as instructed): the eu_req=0 late-registration cases
+
+absent (model eu_req=0 at the eval row) is dominated by correct prefetch (CODE
+4258+5667) but has 7 (discovery) + 14 (held-out) chip-IDLE outliers where the
+CHIP reserves yet the MODEL has NO live reservation at the eval row. These do
+NOT collapse into the source rule: with model eu_req=0 there is no reservation to
+attribute - the model's eu_req ONSET is later than the chip's. This is a distinct
+EU-side reservation-onset TIMING site, a separate follow-up (not the pf_late_rsv
+arbitration site resolved above).
+
+## Bottom line (Phase 2k)
+
+- **The 12/24 collision is COLLISION-FREE as a function of RTL-observable
+  reservation state: (onset SOURCE, q_cnt).** Verified on discovery AND held-out
+  corpora, chip ground truth. onset AGE and q_avl/q_aged are not needed.
+- ONE arbitration mechanism (source-dependent reserve-vs-prefetch); the model's
+  pf_late_rsv is source-blind and over-prefetches the S_DHI/S_PUSH_CALC-q2
+  reserving classes. **Phase 3 (source-aware pf_late_rsv gate) is now justified**
+  - pending Codex review. NO RTL functional change made (instrumentation only).
+- Separate residual: the eu_req=0 late-registration chip-IDLE outliers
+  (EU-side onset timing), and any onset-age>0 boundary (unobserved here - all
+  contested cases are age 0).
+
+Repro (Phase 2k): `python3 sw/causal_wrand.py onset --seeds 90003 90007 90015 90021 90030 --nws 10 --wmaxes 1 2 3 7`
+(held-out: `--seeds 90042 90051 90063 90077 90088`).
+
+Tools: `sw/causal_wrand.py` (`urgency` corrected, `onset` added). Repro:
 `python3 sw/causal_wrand.py urgency --seeds 90003 90007 90015 90021 90030 --nws 10 --wmaxes 1 2 3 7`;
 `python3 sw/causal_wrand.py idleslot --seeds 90003 90007 90015 --nws 8 --wmaxes 1 3 7`;
 `python3 sw/causal_wrand.py leactl --maxn 8`;

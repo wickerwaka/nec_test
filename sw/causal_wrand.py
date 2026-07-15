@@ -265,6 +265,28 @@ BSN = {CODE: "CODE", MEMR: "MEMR", MEMW: "MEMW", IOR: "IOR", IOW: "IOW",
        INTA: "INTA", 3: "HALT", 7: "PASV"}
 
 
+def _load_state_names():
+    """Parse the EU state enum from hdl/rtl/core/v30_eu.sv so onset_state
+    numbers dumped by the TB decode to names (S_EA1/S_EA2/S_RMWX/...). The enum
+    is a flat `typedef enum logic [6:0] { ... } state_e;` with values assigned
+    in declaration order from 0."""
+    import re
+    src = (SW.parent / "hdl" / "rtl" / "core" / "v30_eu.sv").read_text()
+    m = re.search(r"typedef enum logic \[6:0\] \{(.*?)\} state_e;", src, re.S)
+    if not m:
+        return {}
+    body = re.sub(r"//.*", "", m.group(1))
+    names = [t.strip() for t in body.replace("\n", " ").split(",") if t.strip()]
+    return {i: n for i, n in enumerate(names)}
+
+
+STATE_NAMES = _load_state_names()
+
+
+def _sname(n):
+    return STATE_NAMES.get(n, f"S#{n}")
+
+
 def cmd_ownwait(a):
     """Sweep the completing access's OWN wait N=0..maxn; report the resume gap
     (T4->CODE-T1, confounded by T4 shifting) AND the resume position relative
@@ -683,7 +705,11 @@ def run_tb_internal(image, n, wvec):
     reconstruction). eudbg 'd' field order (tb_v30_core.sv):
     state q_pop q_avl q_cnt eu_wrap cur_wrap eu_addr eu_seg opc q_byte bus_phase
     bus_ts q_fresh eu_started eu_req eu_ready q_flush eval_ext evald flush_fast
-    occupied q_aged infl."""
+    occupied q_aged infl eu_req_p1 pf_late_rsv pf_starved prefetch_ext prefetch_ok
+    eu_wr eu_mem_acc onset_state onset_age onset_opc onset_kind onset_wr.
+    onset_* (Phase 2k) = the reservation's OWN source: the EU state (onset_state)
+    that generated the current eu_req, the CPU-cycle age since that rising edge
+    (onset_age; 0 = rises on this row), and the opcode/kind/dir latched at onset."""
     import subprocess, tempfile
     from pathlib import Path
     from check_seq import BIN, ROOT
@@ -718,7 +744,12 @@ def run_tb_internal(image, n, wvec):
                 prefetch_ext=int(d[27]) if len(d) > 27 else 0,
                 prefetch_ok=int(d[28]) if len(d) > 28 else 0,
                 eu_wr=int(d[29]) if len(d) > 29 else 0,
-                eu_mem_acc=int(d[30]) if len(d) > 30 else 0))
+                eu_mem_acc=int(d[30]) if len(d) > 30 else 0,
+                onset_state=int(d[31]) if len(d) > 31 else -1,
+                onset_age=int(d[32]) if len(d) > 32 else -1,
+                onset_opc=int(d[33], 16) if len(d) > 33 else -1,
+                onset_kind=int(d[34]) if len(d) > 34 else -1,
+                onset_wr=int(d[35]) if len(d) > 35 else -1))
             pend = None
     return rows
 
@@ -1109,6 +1140,140 @@ def cmd_idleslot(a):
     return 0
 
 
+def cmd_onset(a):
+    """Phase 2k: RESOLVE the 12/24 collision by the reservation's OWN source +
+    onset age. Same corpus as `urgency` (waited-CODE->EU contested edges, chip
+    action IDLE/CODE = ground truth), but at the eval_ext decision row read the
+    NEW onset instrumentation (onset_state = the EU state that generated eu_req,
+    onset_age = CPU cycles since that rising edge) and key the YOUNG-reservation
+    collision by (onset_state[, onset_age][, q_avl/q_aged]). The coarse
+    eu_req_p1==0 'young' bit conflates ~10 reservation-source states; this tests
+    whether the source + exact onset age is a COLLISION-FREE discriminator.
+
+    Chip is ground truth (IDLE/CODE measured on the board); the model onset
+    fields are valid CONDITION LABELS only on the aligned prefix (model==chip up
+    to the first divergence, which is where these contested edges live)."""
+    import random as _r
+    from collections import defaultdict, Counter
+    recs = []
+    for seed in a.seeds:
+        g = generate(f"fz{seed}", exts=())
+        image, meta = compose(g)
+        for ws in range(1, a.nws + 1):
+            for wmax in a.wmaxes:
+                wv = [_r.Random((ws << 8) | wmax).randint(0, wmax) for _ in range(4096)]
+                cr = run_chip(image, a.host, use_core=False, wvec=wv)
+                crel = cr[next(i for i, r in enumerate(cr) if not r["rst"]):]
+                kr = run_tb_internal(image, 4200, wv)
+                ca = _trunc(accesses(crel))
+                ka = _trunc(accesses([dict(t=x["t"], bs_early=x["bs"], qs=x["qs"],
+                                           ad_addr=x["addr"], ad_data=0) for x in kr]))
+                cb, kb = bs_stream(ca), bs_stream(ka)
+                nn = min(len(cb), len(kb))
+                fd = next((i for i in range(nn) if cb[i] != kb[i]), nn)
+                mt4 = {}
+                bi = -1
+                for ri, x in enumerate(kr):
+                    if x["t"] == 1:
+                        bi += 1
+                    if x["t"] == 5:
+                        mt4[bi] = ri
+                for B in range(1, min(fd + 1, nn - 1)):
+                    if ca[B]["bs"] != CODE or ca[B]["tw"] == 0:
+                        continue
+                    eu = next((j for j in range(B + 1, min(B + 6, len(ca)))
+                               if ca[j]["bs"] in (MEMR, MEMW)), None)
+                    if eu is None:
+                        continue
+                    if any(ca[j]["bs"] not in (CODE,) for j in range(B + 1, eu)):
+                        continue
+                    action = "CODE" if any(ca[j]["bs"] == CODE
+                                           for j in range(B + 1, eu)) else "IDLE"
+                    if B not in mt4:
+                        continue
+                    er = None
+                    for ri in range(mt4[B] + 1, min(mt4[B] + 6, len(kr))):
+                        if kr[ri]["eval_ext"] == 1:
+                            er = ri; break
+                        if kr[ri]["t"] == 1:
+                            er = ri; break
+                    if er is None:
+                        er = min(mt4[B] + 1, len(kr) - 1)
+                    d = kr[er]
+                    recs.append(dict(action=action, qc=d["q_cnt"], qavl=d["q_avl"],
+                                     qag=d["q_aged"], infl=d["infl"], occ=d["occupied"],
+                                     req=d["eu_req"], reqp1=d["eu_req_p1"],
+                                     rdy=d["eu_ready"], evx=d["eval_ext"],
+                                     euwr=d.get("eu_wr", 0),
+                                     rc=_reqclass(d["eu_req"], d["eu_req_p1"], d["eu_ready"]),
+                                     osrc=_sname(d.get("onset_state", -1)),
+                                     oage=d.get("onset_age", -1),
+                                     okind=d.get("onset_kind", -1),
+                                     owr=d.get("onset_wr", -1),
+                                     oopc=d.get("onset_opc", -1),
+                                     fam=BSN[ca[eu]["bs"]],
+                                     seed=seed, ws=ws, wmax=wmax, B=B))
+    print(f"onset (Phase 2k): {len(recs)} contested edges "
+          f"({sum(1 for r in recs if r['action']=='IDLE')} IDLE / "
+          f"{sum(1 for r in recs if r['action']=='CODE')} CODE)")
+    if not recs:
+        print("  (none)"); return 0
+
+    def tab(pred, keys, label, show_ex=False):
+        sub = [r for r in recs if pred(r)]
+        t = defaultdict(Counter)
+        ex = defaultdict(list)
+        for r in sub:
+            t[tuple(r[k] for k in keys)][r["action"]] += 1
+            ex[tuple(r[k] for k in keys)].append(r)
+        coll = sum(1 for v in t.values() if len(v) > 1)
+        print(f"  [{label}] n={len(sub)} keyed by {keys}: "
+              f"{coll} MIXED{'  <== COLLISION-FREE' if coll==0 and t else ''}")
+        for k, v in sorted(t.items(), key=lambda kv: str(kv[0])):
+            line = f"     {dict(zip(keys, k))}: {dict(v)}"
+            if len(v) > 1:
+                line += "  <-- MIXED"
+            print(line)
+            if show_ex and len(v) > 1:
+                for act in ("IDLE", "CODE"):
+                    e = next((r for r in ex[k] if r["action"] == act), None)
+                    if e:
+                        print(f"        e.g. {act}: seed={e['seed']} ws={e['ws']} "
+                              f"wmax={e['wmax']} bus_B={e['B']} osrc={e['osrc']} "
+                              f"oage={e['oage']} okind={e['okind']} owr={e['owr']} "
+                              f"opc={e['oopc']:#04x}")
+        return sub
+
+    print("  action by request-age class (sanity vs urgency):")
+    rcc = defaultdict(Counter)
+    for r in recs:
+        rcc[r["rc"]][r["action"]] += 1
+    for rc in sorted(rcc):
+        print(f"    {rc}: {dict(rcc[rc])}")
+
+    # baseline: the collision AS PREVIOUSLY MEASURED (young x q_cnt x eu_wr) --
+    # should reproduce the 12 IDLE / 24 CODE mix that has no separator.
+    tab(lambda r: r["rc"] == "young", ["qc", "euwr"],
+        "BASELINE collision (young x q_cnt x eu_wr) -- expect MIXED", show_ex=True)
+    # THE test: does the reservation's OWN source separate it?
+    tab(lambda r: r["rc"] == "young", ["osrc"],
+        "young keyed by reservation SOURCE (onset_state)", show_ex=True)
+    tab(lambda r: r["rc"] == "young", ["osrc", "oage"],
+        "young keyed by SOURCE + onset AGE")
+    tab(lambda r: r["rc"] == "young" and r["qc"] == 1, ["osrc", "oage"],
+        "young q_cnt=1 keyed by SOURCE + onset AGE")
+    # queue-pipeline orthogonalization (step 5): split q_cnt=1 by q_avl/q_aged
+    tab(lambda r: r["rc"] == "young" and r["qc"] == 1, ["osrc", "qavl", "qag"],
+        "young q_cnt=1 keyed by SOURCE + q_avl + q_aged")
+    tab(lambda r: r["rc"] == "young", ["osrc", "oage", "qc"],
+        "young keyed by SOURCE + AGE + q_cnt (full)")
+    # keep the eu_req=0 (reservation registered too late) cases separate
+    absent = [r for r in recs if r["rc"] == "absent"]
+    print(f"  eu_req=0 (absent/late-registration) edges: {len(absent)} "
+          f"actions={dict(Counter(r['action'] for r in absent))}")
+    return 0
+
+
 def cmd_leactl(a):
     """B-vs-C discriminator (Phase 2g Step 1): the no-request LEA control. Build
     a matched 3-variant block - reader (8B07, reserves S_EA1), store (8907,
@@ -1382,6 +1547,13 @@ def main():
     p.add_argument("--nws", type=int, default=8)
     p.add_argument("--wmaxes", type=int, nargs="+", default=[1, 3, 7])
     p.set_defaults(fn=cmd_urgency)
+    p = sub.add_parser("onset")
+    p.add_argument("--host", default="root@mister-nec")
+    p.add_argument("--seeds", type=int, nargs="+",
+                   default=[90003, 90007, 90015, 90021, 90030])
+    p.add_argument("--nws", type=int, default=10)
+    p.add_argument("--wmaxes", type=int, nargs="+", default=[1, 2, 3, 7])
+    p.set_defaults(fn=cmd_onset)
     p = sub.add_parser("pfdiff")
     p.add_argument("--host", default="root@mister-nec")
     p.add_argument("--seed", type=int, default=90003)

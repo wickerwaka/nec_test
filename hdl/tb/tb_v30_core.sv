@@ -418,9 +418,61 @@ logic [31:0] ev_addr_tmp;
 logic eudbg_en;
 initial eudbg_en = $test$plusargs("eudbg");
 
+//----------------------------------------------------------------------------
+// Phase 2k RESERVATION-ONSET instrumentation (measurement only, TB-side; no
+// functional RTL change). Latch, on every eu_req RISING edge, the EU state
+// generating the reservation (onset_state = the reservation's OWN source, e.g.
+// S_EA1/S_EA2/S_DISP8/S_RMWX/S_PUSH_CALC/S_DEC/...), the absolute CPU-cycle
+// clock (onset_clock -> exact onset age), and the opcode/kind/dir identity of
+// the pending access. This resolves the 12/24 collision at the eval_ext row
+// where the coarse eu_req_p1==0 bit conflates ~10 different reservation states.
+// The record is carried until eu_started / withdrawal (eu_req falls) / flush.
+//
+// The dumped fields are computed COMBINATIONALLY on the onset cycle itself
+// (eu_req rises ON this cycle => onset_state = current state, age = 0) so a
+// withdrawal/reassert cannot alias the age-0 case to a stale prior onset.
+//----------------------------------------------------------------------------
+logic [31:0] cpu_clk     = 0;    // free-running CPU-cycle counter (ce-gated)
+logic        eu_req_prev = 0;    // eu_req at the previous CPU cycle
+logic  [6:0] onset_state = 0;    // EU state at the reservation onset
+logic [31:0] onset_clock = 0;    // cpu_clk at the reservation onset
+logic  [7:0] onset_opc   = 0;    // opcode at the reservation onset
+logic  [1:0] onset_kind  = 0;    // eu_kind at onset (0=MEM 1=IO)
+logic        onset_wr    = 0;    // eu_wr   at onset (0=read 1=write)
+
+wire        eu_req_now   = dut.u_eu.eu_req;
+wire        eu_req_rise  = eu_req_now && !eu_req_prev;
+wire  [6:0] onset_state_eff = eu_req_rise ? dut.u_eu.state   : onset_state;
+wire  [7:0] onset_opc_eff   = eu_req_rise ? dut.u_eu.opc     : onset_opc;
+wire  [1:0] onset_kind_eff  = eu_req_rise ? dut.u_eu.eu_kind : onset_kind;
+wire        onset_wr_eff    = eu_req_rise ? dut.u_biu.eu_wr  : onset_wr;
+wire [31:0] onset_age       = eu_req_rise ? 32'd0 : (cpu_clk - onset_clock);
+
+always @(posedge clk) begin
+    if (reset) begin
+        cpu_clk     <= 0;
+        eu_req_prev <= 0;
+        onset_state <= 0;
+        onset_clock <= 0;
+        onset_opc   <= 0;
+        onset_kind  <= 0;
+        onset_wr    <= 0;
+    end else if (ce) begin
+        cpu_clk <= cpu_clk + 32'd1;
+        if (eu_req_rise) begin
+            onset_state <= dut.u_eu.state;
+            onset_clock <= cpu_clk;
+            onset_opc   <= dut.u_eu.opc;
+            onset_kind  <= dut.u_eu.eu_kind;
+            onset_wr    <= dut.u_biu.eu_wr;
+        end
+        eu_req_prev <= eu_req_now;
+    end
+end
+
 always @(posedge clk) begin
     if (!reset && ce && recording && eudbg_en && fo != 0)
-        $fdisplay(fo, "d %0d %0d %0d %0d %0d %0d %05x %0d %02x %02x %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d",
+        $fdisplay(fo, "d %0d %0d %0d %0d %0d %0d %05x %0d %02x %02x %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %02x %0d %0d",
                   dut.u_eu.state, dut.u_eu.q_pop,
                   dut.u_biu.q_avl, dut.u_biu.q_cnt,
                   dut.u_eu.eu_wrap, dut.u_biu.cur_wrap,
@@ -433,7 +485,9 @@ always @(posedge clk) begin
                   dut.u_biu.occupied, dut.u_biu.q_aged, dut.u_biu.infl,
                   dut.u_biu.eu_req_p1, dut.u_biu.pf_late_rsv, dut.u_biu.pf_starved,
                   dut.u_biu.prefetch_ext, dut.u_biu.prefetch_ok,
-                  dut.u_biu.eu_wr, dut.u_biu.eu_mem_acc);
+                  dut.u_biu.eu_wr, dut.u_biu.eu_mem_acc,
+                  onset_state_eff, onset_age, onset_opc_eff,
+                  onset_kind_eff, onset_wr_eff);
 end
 
 initial begin
