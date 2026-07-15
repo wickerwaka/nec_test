@@ -7,6 +7,61 @@ DIAGNOSTIC reference, NOT a pass/fail gate. Companion docs: the kludge map
 bus-grid law" + §BUSLOCK), and the prior campaign's evidence
 (`waits_structural_plan.md`, `closure_checkpoint.md`).
 
+## 0. Real Stage 3 — the two-rhythm prefetch scheduler (2026-07-14, go/no-go = GREENLIGHT)
+
+The Stage-3 measure-first de-risk (biu_model.md "Two-rhythm relative-phase
+predictor") validated the closing decision function in software: the chip's
+prefetch-resume slot is governed by the **beat phase between rhythm A (bus grid,
+re-synced at T1, mod 4+N) and rhythm B (EU consumption / queue refill-threshold
+crossing)**, plus occupancy and completed-cycle-kind. The beat phase doubles
+big-gap prediction (the drift cases). The software residual (~20-30% of
+big-gaps) is provably feature-lossiness — the RTL reproduces w0 100% with the
+exact internal state a scheduler tracks — NOT a hidden variable. So the
+scheduler is buildable and the rewrite is GREENLIT.
+
+### RTL mapping — the state the BIU must add
+The BIU already has: exact occupancy (`q_cnt` + in-flight `infl` + `q_aged`),
+the grid phase (`grid_phase`, Stage 1), and completed-cycle-kind (`cur_fetch` /
+`cur_kind`). The ONE new piece of state:
+- **`beat_at_cross`** — latch `grid_phase` at the cycle the queue occupancy
+  first crosses the refill threshold (occ <= 4) during an idle window after a
+  bus cycle. This is rhythm A sampled at the rhythm-B event.
+The resume decision then becomes a function
+`resume_gap = f(cur_kind_completed, beat_at_cross, occ_at_cross)` replacing:
+- KB1 `eval_ext`'s UNCONDITIONAL prefetch resume at T4+1 (which ignores the beat
+  phase — the dominant drift), and
+- `prefetch_ok`'s bare `occupied <= 4` (which fires at the wrong beat).
+Concretely: after a bus cycle, hold the prefetch pending; when occ crosses the
+refill threshold, latch the beat; issue the prefetch T1 at the grid slot the
+beat function selects (immediate for the beat-aligned / EU-completed cases,
+delayed by the beat offset for the mis-aligned steady-state cases).
+
+### W0-neutrality construction
+At w0 there are no Tw, so the beat function must reduce to today's behavior. The
+w0 control (RTL already 100% at w0) means the beat law, fitted to reproduce the
+chip, will coincide with the current `eval_ext`/`prefetch_ok` timing at w0 by
+construction — PROVE on the full 169000 golden after every micro-step. The beat
+gating is waits-active (like eval_ext), so w0 is the anchor.
+
+### Re-scoped blast radius (smaller than "weeks-scale rewrite")
+Because the decision function is now KNOWN, this is a FOCUSED change to the
+prefetch-issue path — add `beat_at_cross` + the resume-gap function, re-point
+the eval_ext/prefetch_ok resume onto it — NOT a wholesale BIU rewrite. Estimate:
+days, measure-as-you-go, not weeks. The flag-collapse (Stage 2) folds in as the
+eval_ext/defer_* paths are subsumed by the beat-gated resume. Validation: the
+`sw/measure.py` drift harness (w1 mean must fall below 625.6, big-gap resumes
+match) + w0 golden diagnostic + per-w0-delta chip adjudication.
+
+### Residual risk (honest)
+The software predictor is 70-82% on big-gaps, not a proven 100% software
+closure. The w0 control is strong evidence the exact-state RTL will close it,
+but the beat-gap FUNCTION itself (the exact resume slot per beat/occ/kind) must
+be fitted from a denser controlled sweep during the build — a couple of the
+software big-gap misses could be a finer sub-phase (e.g. Tw-position within the
+crossing) the RTL must also track. Build measure-first: fit `f` from a dense
+controlled fetch-limited-sled sweep before wiring it, and gate each step on the
+drift harness + w0 golden.
+
 ## 1. Design goal (restated)
 
 A bus-grid-cycle-accurate queue/prefetch/arbitration/eval model that

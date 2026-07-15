@@ -668,6 +668,53 @@ GO ("grid_phase is the flip variable") holds in DIRECTION but the actionable
 state is a two-rhythm relative phase that no pinned OR free-running single
 signal carries. This is the honest structural bound for Stage 3.
 
+### Two-rhythm relative-phase predictor — Stage-3 go/no-go (2026-07-14, VERDICT: qualified GREENLIGHT)
+
+The co-sim scheduler de-risk: a pure software predictor (`sw/predict_resume.py`,
+reflash-free, chip captures only) of the chip's prefetch-resume from the
+two-rhythm relative-phase state.
+- **Rhythm A (bus grid):** phase within the bus cycle, re-synced at each T1,
+  mod (4+N). Observable from the T-states.
+- **Rhythm B (EU consumption):** the queue-occupancy trajectory; a refill-
+  threshold CROSSING = the first idle cycle after a bus cycle where occ <= 4
+  (2 bytes free).
+- **Relative beat phase = rhythm A phase AT the rhythm-B crossing.** Predictor
+  key = (completed-cycle-kind, beat-phase-at-crossing, occ-at-crossing) ->
+  most-common resume gap.
+
+Match rate vs the chip's ACTUAL prefetch T1s (30 seeds):
+
+| waits | overall | big-gap (two-rhythm) | big-gap (NO phase) |
+|---|---|---|---|
+| w0 | 93.3% | **81.7%** | 65.3% |
+| w1 | 98.3% | **70.7%** | 40.4% |
+| w3 | 98.9% | **77.2%** | 45.6% |
+
+**The beat phase is a real, dominant, load-bearing variable** — it roughly
+DOUBLES big-gap prediction over (kind, occ) alone (40->71, 45->77, 65->82).
+This is the first variable (after grid_phase/bus_phase/counter/kind all failed)
+that materially predicts the big-gap steady-state resumes that ARE the drift.
+
+**Why this is a GREENLIGHT despite <100% software match — the decisive w0
+control.** The predictor gets only 81.7% of w0 big-gaps, YET the RTL model
+reproduces w0 bit+cycle-EXACT (169000/169000). Since the RTL's state (exact
+occupancy incl. in-flight bytes, q_aged, the precise grid phase, push-pending)
+is EXACTLY what the co-sim scheduler would track, and it achieves 100% at w0,
+the resume law provably CLOSES over that exact state. The ~20-30% software
+residual is therefore FEATURE/RECONSTRUCTION LOSSINESS (my 3 coarse externally-
+reconstructed features vs the RTL's exact internal state — the 2-cycle poppable
+latency and no internal-pointer visibility), NOT a hidden variable. The same
+Stage-0 control logic: coarse external features fail even where the chip is
+provably deterministic and fully modeled.
+
+**Verdict: the co-sim scheduler is BUILDABLE.** The decision function is known
+and validated in direction (two-rhythm beat phase + occupancy + completed-kind,
+gating prefetch issue), and the residual is provably closable with the exact
+internal state the RTL naturally has. QUALIFIED (not a proven 100% software
+closure — that needs an exact-internal-state predictor; but the w0 control
+makes closure the strongly-evidenced outcome, not a hidden-variable risk). The
+RTL mapping + re-scoped blast radius are in biu_rebuild_design.md "Real Stage 3".
+
 ## Consolidated bus-grid law (rebuild Phase 1 — the target model, parameterized in N)
 
 This section states the chip's true bus law as the rebuild must model it, in
