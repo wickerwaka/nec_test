@@ -605,6 +605,31 @@ task automatic stage_commit(input commit_desc_t d);
     end
 endtask
 
+// Phase R (R3): direct-entry descriptor load. Performs ONLY the mechanically
+// common operations shared by every one-clock-ahead direct commit: enter T1,
+// clear tw_any/evald, load cur_* and ube_n from the descriptor. Source-
+// specific side effects (fetch_off advance, eu_started, defer_idle/flush_hold/
+// defer_t4 clearing) remain at the call sites. Callers pass pick_desc, so
+// d.* == pick_* bit-for-bit.
+task automatic enter_t1_direct(input commit_desc_t d);
+    state      <= ST_T1;
+    tw_any     <= 1'b0;
+    evald      <= 1'b0;
+    cur_type   <= d.bus_type;
+    cur_addr   <= d.addr;
+    cur_fetch  <= d.fetch;
+    cur_wr     <= d.wr;
+    cur_swap   <= d.swap;
+    cur_split1 <= d.split1;
+    cur_split2 <= d.split2;
+    cur_wrap   <= d.wrap;
+    cur_wdata  <= d.wdata;
+    cur_seg    <= d.seg;
+    cur_ube_n  <= d.ube_n;
+    cur_kind   <= d.kind;
+    ube_n      <= d.ube_n;
+endtask
+
 //----------------------------------------------------------------------------
 // main sequencing
 //----------------------------------------------------------------------------
@@ -808,22 +833,7 @@ always_ff @(posedge clk) begin
                     // plain do_commit idle path (measured reader-commit law).
                     defer_idle <= 1'b0;
                     flush_hold <= 1'b0;
-                    state      <= ST_T1;
-                    tw_any     <= 1'b0;
-                    evald      <= 1'b0;
-                    cur_type   <= pick_type;
-                    cur_addr   <= pick_addr;
-                    cur_fetch  <= pick_fetch;
-                    cur_wr     <= pick_wr;
-                    cur_swap   <= pick_swap;
-                    cur_split1 <= pick_split1;
-                    cur_split2 <= pick_split2;
-                    cur_wrap   <= pick_wrap;
-                    cur_wdata  <= pick_wdata;
-                    cur_seg    <= pick_seg;
-                    cur_ube_n  <= pick_ube_n;
-                    cur_kind   <= pick_kind;
-                    ube_n      <= pick_ube_n;
+                    enter_t1_direct(pick_desc);
                     if (pick_fetch) begin
                         fetch_off <= fetch_off_sel +
                                      (fetch_word ? 16'd2 : 16'd1);
