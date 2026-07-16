@@ -52,12 +52,44 @@ Implementation shape (Codex): a TARGETED resume-slot scheduler (separate
 prefetch_eligible from prefetch_resume_slot), choosing among eval_ext / next-idle
 / later-refill slot - must handle BOTH early and late (one-direction delay
 inadequate). Do NOT consume grid_phase yet (documented post-wait carry divergence,
-inert for good reason). NEXT DECISIVE EXPERIMENT before any RTL: the matched
-single-POP-shift across the completion edge at the anchor knees (two image
-variants differing only in one QS pop's placement rel to T4/eval_ext, everything
-else matched) - determines whether the deadline is BUS-GRID-anchored (successor T1
-fixed as pop crosses T4) or QUEUE-CONSUMPTION/DECODE-anchored (successor moves with
-the pop). Codex thread 019f663c consulted at each step.
+inert for good reason).
+
+FACTOR-P (anchor cycle-traces, sw/class5_anchortrace.py): the matched-pop image
+construction is UNNECESSARY - the N-sweep already answers the bus-grid-vs-
+consumption question. At anchors A (fz90011) and B (fz90007), across N, chip
+successor_T1 = predecessor_T4 + 5 (const), INVARIANT to the post-T4 consumption
+pop placement (pops at T4+2, or T4+0/+3, or T4+1/+4; successor unmoved). Measuring
+relative to T4 factors out the grid shift N introduces, leaving pop placement as
+the varying factor which the chip ignores => the resume is BUS-COMPLETION (T4)
+anchored, not consumption-anchored. The model instead resumes at the eval_ext
+(T4+1) once occ<=pf_lim (more waits -> more consumption during Tw -> lower occ ->
+early resume; collapse-to-1). Codex confirmed: skip matched-pop; T4-relative
+turnaround is real at these anchors.
+
+CODEX RULING - the fix is NOT a blanket post-waited-fetch counter (Gate-A
+falsified it: 17,052 waited CODE->CODE opportunities, chip prefetched IMMEDIATELY
+in 16,952 = 99.4%, class-5 idle in only 100 = 0.6%; a 1-cycle block shattered
+w1/w3). "Waited CODE fetch" is NOT the arming discriminator, and no blocking
+counter fixes both signs (anchor A N=5 needs the model to launch EARLIER). Law
+shape: successor_T1 = max(deadline, pred_T4 + Lmin), Lmin = resume_idle_floor + 1.
+TWO pieces remain before any RTL:
+  (1) Lmin as a collision-free function of FETCH GEOMETRY (Lmin=5 anchor A / =4
+      B,C; leading candidate = even/odd physical fetch parity - A succ fetch ODD
+      6fee7, B EVEN 69090). Measure a geometry matrix (even/odd pred x even/odd
+      succ), sweep N to saturation, extract Lmin per cell.
+  (2) The resume/DEADLINE ARMING EVENT that separates the 0.6% delayed cells from
+      the 99.4% immediate-CODE controls (retrospective: deadline_candidate =
+      successor_T1 when L>Lmin; compare vs last-pop-before-pred-T1, occupancy-
+      cross-refill, pred_T1, prior-CODE-T1, queue-push-completion; the
+      invariant-offset event is D's physical source). An opportunity census must
+      prove the arming event isolates the rare cells (else another Gate-A fit).
+Minimal RTL (once 1+2 known): resume_pending / resume_deadline / turnaround_ready
+/ higher_priority_clear; commit CODE when all met; UNIFY eval_ext + do_commit into
+one slot-selection + common commit (eval_ext = one candidate slot, not a separate
+policy - the discontinuity plausibly causes the +/-2/3 glitches). w0-neutral via a
+waited-only token (set only when completed cycle is CODE AND saw >=1 Tw; clear on
+successor commit / any EU bus commit / flush / discard / reset; bit-identical when
+inactive). Codex thread 019f663c consulted at each step.
 
 ## 2026-07-15 — eu_req=0 MOFFS stage: PARITY-GATED S_MLO lead-veto (SILICON-CONFIRMED)
 
