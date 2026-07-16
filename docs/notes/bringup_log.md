@@ -91,6 +91,39 @@ waited-only token (set only when completed cycle is CODE AND saw >=1 Tw; clear o
 successor commit / any EU bus commit / flush / discard / reset; bit-identical when
 inactive). Codex thread 019f663c consulted at each step.
 
+PIECE 1 (Lmin) MEASURED (sw/class5_lmin.py, 18 anchors): Lmin (resume floor) =
+5 if q_cnt(pred_T4)>=3 else 4, for linear even->even resumes (parity REFUTED - my
+earlier odd/even claim was a misread of the data-phase bus column; all linear
+resumes are even->even; the 2 Lmin=1 anchors are ODD-successor BRANCH REDIRECTS =
+separate immediate-fetch machinery, exclude structurally not by parity). CAVEAT
+(Codex): the split is CONFOUNDED - the 3 q_cnt=3 anchors are EXACTLY the
+non-consuming ones (pred_state S_WAITX/S_FIRST), so q_cnt vs consumption vs
+deadline-still-active are entangled; q_cnt=3 is not queue-full (cap 6). q_cnt(T4)
+is a DEMAND signal (pre-existing bytes; the waited fetch's own push is deferred
+past T4), not a turnaround signal. Do NOT encode q_cnt>=3?5:4 until Factor-Q.
+
+PIECE 2 = FACTOR-Q (the single decisive experiment, Codex): a CONTROLLED,
+BIDIRECTIONAL q_cnt(T4) boundary intervention (2<->3) via UPSTREAM WVEC
+perturbation, holding fixed the predecessor/successor addresses, predecessor N,
+fetch width, sequential/non-flush status, T1/T4 phase, EU req/hold, and local bus
+stream. Drive a DELAYED anchor 3->2 (expect L=5->immediate/4) and an IMMEDIATE
+control 2->3 (expect L=4->delayed/5), at two N (below-knee + saturated). If the
+delay/immediate outcome FOLLOWS the controlled boundary AND one event->successor
+offset predicts both -> queue-DEMAND-deadline law confirmed. If identical
+reconstructed q_cnt(T4) still yields both outcomes -> history-latched (test
+last-pop / threshold-crossing CLOCK, not snapshot fields). Record candidate
+deadline events (last QS pop before pred T1/T4; queue-count 4->3/3->2/2->1
+transitions; occupied<=4 / <=3 first-true; prior seq CODE T1/T4; pred T1;
+pred push clock; first post-T4 q_avl increase; first post-T4 legal no-EU/no-flush
+slot; successor T1) and find the invariant offset = D's physical source. The
+all-opportunity census is the VALIDATION gate AFTER Factor-Q proposes the law
+(census shows separation but cannot establish causality). Gate-A warning: coarse
+occupancy at the DECISION edge was NOT collision-free (occ2/consuming gave both
+11,488 immediate + 48 delayed); the new candidate uses q_cnt at pred T4 (earlier
+edge) - must be tested across the whole population. RTL = LATCHED refill-request/
+deadline (not a lower pf_lim - residual is bidirectional, anchor A N=5 needs an
+EARLIER launch). Codex thread 019f663c consulted at each step.
+
 ## 2026-07-15 — eu_req=0 MOFFS stage: PARITY-GATED S_MLO lead-veto (SILICON-CONFIRMED)
 
 Second stage of the eu_req=0 look-ahead veto (commit 981f3af, bitstream flashed;
