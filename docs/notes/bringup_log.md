@@ -1,5 +1,31 @@
 # Bring-up log
 
+## 2026-07-16 — CLASS-5 MID-BAND fix landed (8086 insight; -10% class-5 mass)
+
+The 8086 prefetch-band rule (Ken Shirriff, righto.com: queue 0-2 -> fetch; 3-4 ->
+DELAY 2 clocks; 5-6 -> blocked) REOPENED class-5. Band-age replay
+(sw/class5_bandage.py over the full CODE->CODE opportunity population) found the
+class-5 mid-band 50/50 boundary we had called "irreducible" was TIMER-STATE
+ALIASING: for q_cnt in the 3-4 band, band-age (CE clocks continuously in 3-4)
+separates chip GO (age 0) from chip PAUSE (age>=5) - 0/169 held-out. So the
+earlier "observable floor" conclusion was WRONG for the mid-band (right for the
+low-band). w0-GO and waited-PAUSE overlap at the SAME band-age (both age>=5 at
+w0 too), so the delay is WAIT-DEPENDENT, not a unified queue policy; and the pause
+applies only at the CODE-fetch-completion resume edge (eval_ext && cur_fetch) -
+the global and broad-eval_ext forms shattered w1/w3.
+
+Fix (commit d378fe6): band34_age counter; midband_pause = eval_ext && cur_fetch &&
+q_cnt in {3,4} && band34_age>=2 && q_aged==0 && !q_flush && !eu_hold; ANDed into
+prefetch_ext (same shape as the eu_req=0 pf_rsv_lead). w0-NEUTRAL by the eval_ext
+gate. Validation: w0 169000, w1/w3 1200 (bit+cycle exact); random-wait gap-error
+census (18 seeds) |mass| 557->501 (-10%), net +267->+233, +3 impulses 67->52, NO
+new negative tail (both positive and negative mass down; -4/-5 tail shrank). The
+FIRST clean class-5 mass reduction (cf. pf_lim=2 -> -291 blowup, Phase S NO-GO).
+RESIDUAL: the low-band (q_cnt 0-2) EU-drain pauses (all eu_consuming=1) remain a
+separate mechanism at the observable floor - needs Codex's controlled band-ladder
+(tests B/E), not the mid-band timer. Threshold is >=2 (the dump gap is age 1-4,
+GO at 0 / PAUSE at >=5, so 2..5 are equivalent on the measured data).
+
 ## 2026-07-15 — PHASE R: eval_ext/do_commit PATH UNIFICATION landed (behavior-preserving)
 
 Implemented Phase R of the commit-path unification (docs/notes/class5_path_unification_plan.md,
