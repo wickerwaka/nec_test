@@ -1,0 +1,207 @@
+start Thu Jul 16 07:59:24 2026
+[07:59:25] disc fz90000 w1: 126 opps (1s) total=126
+[07:59:25] disc fz90000 w2: 125 opps (0s) total=251
+[07:59:25] disc fz90000 w3: 125 opps (0s) total=376
+[07:59:25] disc fz90000 r4.3: 128 opps (0s) total=504
+[07:59:26] disc fz90000 r7.7: 86 opps (0s) total=590
+[07:59:26] disc fz90001 w1: 111 opps (0s) total=701
+[07:59:26] disc fz90001 w2: 111 opps (0s) total=812
+[07:59:26] disc fz90001 w3: 91 opps (0s) total=903
+[07:59:26] disc fz90001 r4.3: 112 opps (0s) total=1015
+[07:59:26] disc fz90001 r7.7: 111 opps (0s) total=1126
+[07:59:26] disc fz90002 w1: 133 opps (0s) total=1259
+[07:59:27] disc fz90002 w2: 133 opps (0s) total=1392
+[07:59:27] disc fz90002 w3: 132 opps (0s) total=1524
+[07:59:27] disc fz90002 r4.3: 133 opps (0s) total=1657
+[07:59:27] disc fz90002 r7.7: 133 opps (0s) total=1790
+[07:59:27] disc fz90003 w1: 151 opps (0s) total=1941
+[07:59:27] disc fz90003 w2: 149 opps (0s) total=2090
+[07:59:27] disc fz90003 w3: 148 opps (0s) total=2238
+[07:59:28] disc fz90003 r4.3: 152 opps (0s) total=2390
+[07:59:28] disc fz90003 r7.7: 149 opps (0s) total=2539
+[07:59:28] disc fz90004 w1: 131 opps (0s) total=2670
+[07:59:28] disc fz90004 w2: 131 opps (0s) total=2801
+[07:59:28] disc fz90004 w3: 131 opps (0s) total=2932
+[07:59:28] disc fz90004 r4.3: 132 opps (0s) total=3064
+[07:59:28] disc fz90004 r7.7: 131 opps (0s) total=3195
+[07:59:29] disc fz90005 w1: 76 opps (0s) total=3271
+[07:59:29] disc fz90005 w2: 56 opps (0s) total=3327
+[07:59:29] disc fz90005 w3: 76 opps (0s) total=3403
+[07:59:29] disc fz90005 r4.3: 45 opps (0s) total=3448
+[07:59:29] disc fz90005 r7.7: 76 opps (0s) total=3524
+[07:59:29] disc fz90006 w1: 108 opps (0s) total=3632
+[07:59:30] disc fz90006 w2: 107 opps (0s) total=3739
+[07:59:30] disc fz90006 w3: 107 opps (0s) total=3846
+[07:59:30] disc fz90006 r4.3: 108 opps (0s) total=3954
+[07:59:30] disc fz90006 r7.7: 108 opps (0s) total=4062
+[07:59:30] disc fz90007 w1: 113 opps (0s) total=4175
+[07:59:30] disc fz90007 w2: 111 opps (0s) total=4286
+[07:59:31] disc fz90007 w3: 111 opps (0s) total=4397
+[07:59:31] disc fz90007 r4.3: 114 opps (0s) total=4511
+[07:59:31] disc fz90007 r7.7: 113 opps (0s) total=4624
+[07:59:31] held fz91000 w1: 84 opps (0s) total=4708
+[07:59:31] held fz91000 w2: 124 opps (0s) total=4832
+[07:59:31] held fz91000 w3: 124 opps (0s) total=4956
+[07:59:32] held fz91000 r4.3: 125 opps (0s) total=5081
+[07:59:32] held fz91000 r7.7: 84 opps (0s) total=5165
+[07:59:32] held fz91001 w1: 152 opps (0s) total=5317
+[07:59:32] held fz91001 w2: 152 opps (0s) total=5469
+[07:59:32] held fz91001 w3: 152 opps (0s) total=5621
+[07:59:33] held fz91001 r4.3: 152 opps (0s) total=5773
+[07:59:33] held fz91001 r7.7: 64 opps (0s) total=5837
+[07:59:33] held fz91002 w1: 122 opps (0s) total=5959
+[07:59:33] held fz91002 w2: 122 opps (0s) total=6081
+[07:59:33] held fz91002 w3: 122 opps (0s) total=6203
+[07:59:33] held fz91002 r4.3: 124 opps (0s) total=6327
+[07:59:34] held fz91002 r7.7: 123 opps (0s) total=6450
+[07:59:34] held fz91003 w1: 124 opps (0s) total=6574
+[07:59:34] held fz91003 w2: 124 opps (0s) total=6698
+[07:59:34] held fz91003 w3: 104 opps (0s) total=6802
+[07:59:34] held fz91003 r4.3: 125 opps (0s) total=6927
+[07:59:35] held fz91003 r7.7: 125 opps (0s) total=7052
+[07:59:35] held fz91004 w1: 111 opps (0s) total=7163
+[07:59:35] held fz91004 w2: 111 opps (0s) total=7274
+[07:59:35] held fz91004 w3: 91 opps (0s) total=7365
+[07:59:35] held fz91004 r4.3: 112 opps (0s) total=7477
+[07:59:36] held fz91004 r7.7: 111 opps (0s) total=7588
+[07:59:36] held fz91005 w1: 127 opps (0s) total=7715
+[07:59:36] held fz91005 w2: 126 opps (0s) total=7841
+[07:59:36] held fz91005 w3: 125 opps (0s) total=7966
+[07:59:36] held fz91005 r4.3: 128 opps (0s) total=8094
+[07:59:37] held fz91005 r7.7: 126 opps (0s) total=8220
+
+=== population: 8220 aligned CODE->CODE opps (disc=4624 held=3596) ===
+  disc: GO=4415 PAUSE=186 AMB(idle2)=23
+  held: GO=3413 PAUSE=175 AMB(idle2)=8
+
+Metric = MINORITY MASS: sum over cells of min(GO,PAUSE) / used. This is the irreducible
+residual - opportunities on the wrong side of their cell's majority vote. 0.0% = collision-FREE
+(the key fully determines chip GO/PAUSE => class-5 recoverable). Also shown: %opps in any mixed cell.
+
+--- baseline count-ONLY (no age term), key=(count,busfree) ---
+   defn                 disc minmass (mixed%)      held minmass (mixed%)
+   q_cnt                 65/4601 = 1.4% (89.6%)     50/3588 = 1.4% (89.4%)
+   q_avl                 67/4601 = 1.5% (89.9%)     51/3588 = 1.4% (87.8%)
+   q_cnt-pop             67/4601 = 1.5% (89.6%)     55/3588 = 1.5% (89.4%)
+   cnt_next              76/4601 = 1.7% (84.2%)     60/3588 = 1.7% (84.6%)
+   q_avl-pop+aged        67/4601 = 1.5% (89.6%)     55/3588 = 1.5% (89.4%)
+   occupied              76/4601 = 1.7% (84.2%)     60/3588 = 1.7% (84.6%)
+
+--- band+AGE  [key=(count,age>=2,busfree)]  ranked by held minmass ---
+   defn              age-semantics       disc minmass (mixed%)      held minmass (mixed%)
+   occupied          entry_cpu           57/4601 = 1.2% (84.1%)     43/3588 = 1.2% (84.2%)
+   q_cnt             entry_cpu           64/4601 = 1.4% (89.6%)     49/3588 = 1.4% (87.8%)
+   q_cnt             entry_free          65/4601 = 1.4% (89.5%)     50/3588 = 1.4% (89.3%)
+   q_cnt             fetchdone_cpu       65/4601 = 1.4% (89.6%)     50/3588 = 1.4% (89.4%)
+   q_cnt             fetchdone_free      65/4601 = 1.4% (89.6%)     50/3588 = 1.4% (89.4%)
+   q_cnt             freefirst_cpu       65/4601 = 1.4% (89.6%)     50/3588 = 1.4% (89.1%)
+   q_cnt             freefirst_free      65/4601 = 1.4% (89.5%)     50/3588 = 1.4% (89.3%)
+   q_avl             entry_cpu           67/4601 = 1.5% (89.9%)     51/3588 = 1.4% (87.8%)
+   q_avl             entry_free          67/4601 = 1.5% (89.9%)     51/3588 = 1.4% (87.8%)
+   q_avl             fetchdone_cpu       67/4601 = 1.5% (89.9%)     51/3588 = 1.4% (87.8%)
+   q_avl             fetchdone_free      67/4601 = 1.5% (89.9%)     51/3588 = 1.4% (87.8%)
+   q_avl             freefirst_cpu       67/4601 = 1.5% (89.8%)     51/3588 = 1.4% (87.8%)
+   q_avl             freefirst_free      67/4601 = 1.5% (89.9%)     51/3588 = 1.4% (87.8%)
+   cnt_next          entry_cpu           71/4601 = 1.5% (84.2%)     53/3588 = 1.5% (84.4%)
+   cnt_next          freefirst_cpu       71/4601 = 1.5% (84.2%)     53/3588 = 1.5% (84.4%)
+   q_avl-pop+aged    entry_cpu           66/4601 = 1.4% (88.3%)     55/3588 = 1.5% (88.0%)
+   q_cnt-pop         entry_cpu           66/4601 = 1.4% (88.3%)     55/3588 = 1.5% (88.0%)
+   q_avl-pop+aged    entry_free          67/4601 = 1.5% (89.5%)     55/3588 = 1.5% (89.2%)
+   q_avl-pop+aged    fetchdone_cpu       67/4601 = 1.5% (89.6%)     55/3588 = 1.5% (89.4%)
+   q_avl-pop+aged    fetchdone_free      67/4601 = 1.5% (89.6%)     55/3588 = 1.5% (89.4%)
+   q_avl-pop+aged    freefirst_cpu       67/4601 = 1.5% (89.5%)     55/3588 = 1.5% (89.2%)
+   q_avl-pop+aged    freefirst_free      67/4601 = 1.5% (89.5%)     55/3588 = 1.5% (89.2%)
+   q_cnt-pop         entry_free          67/4601 = 1.5% (89.5%)     55/3588 = 1.5% (89.2%)
+   q_cnt-pop         fetchdone_cpu       67/4601 = 1.5% (89.6%)     55/3588 = 1.5% (89.4%)
+   q_cnt-pop         fetchdone_free      67/4601 = 1.5% (89.6%)     55/3588 = 1.5% (89.4%)
+   q_cnt-pop         freefirst_cpu       67/4601 = 1.5% (89.5%)     55/3588 = 1.5% (89.2%)
+   q_cnt-pop         freefirst_free      67/4601 = 1.5% (89.5%)     55/3588 = 1.5% (89.2%)
+   cnt_next          entry_free          73/4601 = 1.6% (84.2%)     56/3588 = 1.6% (84.5%)
+   cnt_next          freefirst_free      73/4601 = 1.6% (84.2%)     56/3588 = 1.6% (84.5%)
+   cnt_next          fetchdone_cpu       76/4601 = 1.7% (84.2%)     60/3588 = 1.7% (84.6%)
+   cnt_next          fetchdone_free      76/4601 = 1.7% (84.2%)     60/3588 = 1.7% (84.6%)
+   occupied          entry_free          76/4601 = 1.7% (84.2%)     60/3588 = 1.7% (84.6%)
+   occupied          fetchdone_cpu       76/4601 = 1.7% (84.2%)     60/3588 = 1.7% (84.6%)
+   occupied          fetchdone_free      76/4601 = 1.7% (84.2%)     60/3588 = 1.7% (84.6%)
+   occupied          freefirst_cpu       76/4601 = 1.7% (84.2%)     60/3588 = 1.7% (84.6%)
+   occupied          freefirst_free      76/4601 = 1.7% (84.2%)     60/3588 = 1.7% (84.6%)
+   >> BEST held-out minmass: occupied / entry_cpu  held=1.2%  disc=1.2%
+
+--- band+AGE  [key=(count,age>=2,busfree,eu_consuming)]  ranked by held minmass ---
+   defn              age-semantics       disc minmass (mixed%)      held minmass (mixed%)
+   occupied          entry_cpu           46/4601 = 1.0% (73.8%)     43/3588 = 1.2% (76.1%)
+   q_cnt             entry_cpu           49/4601 = 1.1% (74.2%)     44/3588 = 1.2% (77.1%)
+   q_avl             entry_cpu           50/4601 = 1.1% (74.4%)     44/3588 = 1.2% (77.1%)
+   q_avl             entry_free          50/4601 = 1.1% (74.4%)     44/3588 = 1.2% (77.1%)
+   q_avl             fetchdone_cpu       50/4601 = 1.1% (74.4%)     44/3588 = 1.2% (77.1%)
+   q_avl             fetchdone_free      50/4601 = 1.1% (74.4%)     44/3588 = 1.2% (77.1%)
+   q_avl             freefirst_cpu       50/4601 = 1.1% (74.3%)     44/3588 = 1.2% (77.1%)
+   q_avl             freefirst_free      50/4601 = 1.1% (74.4%)     44/3588 = 1.2% (77.1%)
+   q_cnt             entry_free          50/4601 = 1.1% (75.5%)     45/3588 = 1.3% (78.4%)
+   q_cnt             fetchdone_cpu       50/4601 = 1.1% (75.5%)     45/3588 = 1.3% (78.5%)
+   q_cnt             fetchdone_free      50/4601 = 1.1% (75.5%)     45/3588 = 1.3% (78.5%)
+   q_cnt             freefirst_cpu       50/4601 = 1.1% (75.4%)     45/3588 = 1.3% (78.4%)
+   q_cnt             freefirst_free      50/4601 = 1.1% (75.5%)     45/3588 = 1.3% (78.4%)
+   cnt_next          entry_cpu           52/4601 = 1.1% (75.2%)     45/3588 = 1.3% (76.4%)
+   cnt_next          freefirst_cpu       52/4601 = 1.1% (75.2%)     45/3588 = 1.3% (76.4%)
+   q_avl-pop+aged    entry_cpu           52/4601 = 1.1% (75.5%)     48/3588 = 1.3% (78.3%)
+   q_cnt-pop         entry_cpu           52/4601 = 1.1% (75.5%)     48/3588 = 1.3% (78.3%)
+   cnt_next          entry_free          54/4601 = 1.2% (75.2%)     48/3588 = 1.3% (78.0%)
+   cnt_next          freefirst_free      54/4601 = 1.2% (75.2%)     48/3588 = 1.3% (78.0%)
+   q_avl-pop+aged    entry_free          53/4601 = 1.2% (76.8%)     49/3588 = 1.4% (79.5%)
+   q_avl-pop+aged    fetchdone_cpu       53/4601 = 1.2% (76.8%)     49/3588 = 1.4% (79.7%)
+   q_avl-pop+aged    fetchdone_free      53/4601 = 1.2% (76.8%)     49/3588 = 1.4% (79.7%)
+   q_avl-pop+aged    freefirst_cpu       53/4601 = 1.2% (76.8%)     49/3588 = 1.4% (79.5%)
+   q_avl-pop+aged    freefirst_free      53/4601 = 1.2% (76.8%)     49/3588 = 1.4% (79.5%)
+   q_cnt-pop         entry_free          53/4601 = 1.2% (76.8%)     49/3588 = 1.4% (79.5%)
+   q_cnt-pop         fetchdone_cpu       53/4601 = 1.2% (76.8%)     49/3588 = 1.4% (79.7%)
+   q_cnt-pop         fetchdone_free      53/4601 = 1.2% (76.8%)     49/3588 = 1.4% (79.7%)
+   q_cnt-pop         freefirst_cpu       53/4601 = 1.2% (76.8%)     49/3588 = 1.4% (79.5%)
+   q_cnt-pop         freefirst_free      53/4601 = 1.2% (76.8%)     49/3588 = 1.4% (79.5%)
+   cnt_next          fetchdone_cpu       55/4601 = 1.2% (75.3%)     49/3588 = 1.4% (78.1%)
+   cnt_next          fetchdone_free      55/4601 = 1.2% (75.3%)     49/3588 = 1.4% (78.1%)
+   occupied          entry_free          55/4601 = 1.2% (75.3%)     49/3588 = 1.4% (78.1%)
+   occupied          fetchdone_cpu       55/4601 = 1.2% (75.3%)     49/3588 = 1.4% (78.1%)
+   occupied          fetchdone_free      55/4601 = 1.2% (75.3%)     49/3588 = 1.4% (78.1%)
+   occupied          freefirst_cpu       55/4601 = 1.2% (75.3%)     49/3588 = 1.4% (78.1%)
+   occupied          freefirst_free      55/4601 = 1.2% (75.3%)     49/3588 = 1.4% (78.1%)
+   >> BEST held-out minmass: occupied / entry_cpu  held=1.2%  disc=1.0%
+
+--- MID-BAND (count 3-4) age separation: does age split GO/PAUSE? ---
+   (8086 rule predicts age<2->PAUSE, age>=2->GO; report actual polarity)
+   q_cnt:
+      count=3 age<2 : GO=  100 PAUSE=   0
+      count=3 age>=2: GO=    1 PAUSE= 119
+      count=4 age<2 : GO=   36 PAUSE=   0
+      count=4 age>=2: GO=    0 PAUSE= 102
+   q_avl:
+      count=3 age<2 : GO=    0 PAUSE=   0
+      count=3 age>=2: GO=    1 PAUSE= 140
+      count=4 age<2 : GO=    0 PAUSE=   0
+      count=4 age>=2: GO=    0 PAUSE= 104
+   q_cnt-pop:
+      count=3 age<2 : GO=   72 PAUSE=   1
+      count=3 age>=2: GO=    0 PAUSE= 112
+      count=4 age<2 : GO=   24 PAUSE=   4
+      count=4 age>=2: GO=    0 PAUSE= 107
+   cnt_next:
+      count=3 age<2 : GO=  296 PAUSE=  34
+      count=3 age>=2: GO=    0 PAUSE=   1
+      count=4 age<2 : GO=  149 PAUSE=  42
+      count=4 age>=2: GO=    1 PAUSE=  12
+   q_avl-pop+aged:
+      count=3 age<2 : GO=   72 PAUSE=   1
+      count=3 age>=2: GO=    0 PAUSE= 112
+      count=4 age<2 : GO=   24 PAUSE=   4
+      count=4 age>=2: GO=    0 PAUSE= 107
+   occupied:
+      count=3 age<2 : GO=    3 PAUSE=   6
+      count=3 age>=2: GO=  226 PAUSE=  29
+      count=4 age<2 : GO=  589 PAUSE=  31
+      count=4 age>=2: GO=  165 PAUSE=  23
+
+--- RESIDUAL mixed cells under BEST key (occupied,entry_cpu) on HELD-OUT ---
+   (cnt=2,age>=2=0,busfree=1): GO=2814 PAUSE=23
+   (cnt=3,age>=2=1,busfree=1): GO=99 PAUSE=11
+   (cnt=4,age>=2=1,busfree=1): GO=64 PAUSE=9
+done Thu Jul 16 07:59:37 2026
