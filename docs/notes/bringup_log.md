@@ -1,5 +1,31 @@
 # Bring-up log
 
+## 2026-07-15 — PHASE R: eval_ext/do_commit PATH UNIFICATION landed (behavior-preserving)
+
+Implemented Phase R of the commit-path unification (docs/notes/class5_path_unification_plan.md,
+Codex-planned; opus sub-agent executed). The BIU's two commit paths (direct-entry
+eval_ext/ff/defer vs staged do_commit) are now canonicalized into ONE slot decision
+slot_fire/slot_id/slot_mode/slot_desc; direct-vs-staged is delivery metadata only.
+11 stages R1-R7 (commits 2dc1228..be667df on biu-arb-qcnt), one commit each, gated
+after every step. BEHAVIOR-PRESERVING - proven:
+- w0 169000/169000, w1 1200/1200, w3 1200/1200 bit+cycle exact at every stage
+  (independently re-verified at HEAD be667df).
+- class-5 control traces fz90007/fz90011 BYTE-IDENTICAL to the R0 baseline at every
+  stage (board-free run_tb_internal, uniform wv).
+- Extra: --assert binaries built at R5/R6c/R7, full suites + a class-5/flush/interrupt
+  spread run with ZERO assertion failures (shadow arbiter == every real branch;
+  slot_show_now == ext_show byte-for-byte before switching the display driver).
+- R7 handled a Verilator UNOPTFLAT false loop (packed slot_desc pulled pick_wdata<-ad_i
+  into the display cone): slot_desc moved to a continuous assign; slot_fire/slot_mode
+  depend only on ad_i-independent req_*; QS=E/HALT/INTA rules untouched.
+Phase-S HOOK in place (v30_biu.sv:696-698): selected_prefetch_grant =
+slot_is_eval_ext ? prefetch_ext : prefetch_ok (Phase S re-points this to the
+resume-slot grant). NEXT = Phase S: plug the class-5 demand/momentum resume policy
+(waited_resume_active, resume_slot_grant) into this single hook, validated against the
+signed gap-error census - now on a DE-NOISED model (the +/-1 path-jitter is gone, so
+the momentum discriminator should sharpen; re-run streamcadence/gaperr to re-check the
+~15% 'irreducible' residual, part of which may have been model-side path-jitter).
+
 ## 2026-07-15 — CLASS-5 pivot: prefetch-resume idle-cadence localized (gap-error census)
 
 With store + MOFFS eu_req=0 landed, the whole random-wait residual is class-5
