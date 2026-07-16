@@ -938,22 +938,7 @@ always_ff @(posedge clk) begin
                     // ready now - commit mid-T4, enter T1 directly
                     defer_t4 <= 1'b0;
                     if (eu_req && eu_ready) begin
-                        state      <= ST_T1;
-                        tw_any     <= 1'b0;
-                        evald      <= 1'b0;
-                        cur_type   <= pick_type;
-                        cur_addr   <= pick_addr;
-                        cur_fetch  <= pick_fetch;
-                        cur_wr     <= pick_wr;
-                        cur_swap   <= pick_swap;
-                        cur_split1 <= pick_split1;
-                        cur_split2 <= pick_split2;
-                        cur_wrap   <= pick_wrap;
-                        cur_wdata  <= pick_wdata;
-                        cur_seg    <= pick_seg;
-                        cur_ube_n  <= pick_ube_n;
-                        cur_kind   <= pick_kind;
-                        ube_n      <= pick_ube_n;
+                        enter_t1_direct(pick_desc);
                         eu_started <= 1'b1;
                     end else state <= ST_TI;
                 end else if (nxt_live) begin
