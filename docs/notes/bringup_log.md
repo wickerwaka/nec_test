@@ -167,6 +167,26 @@ gate that only ANDs into prefetch_ok cannot fix fz90011). w0-neutral via explici
 mux: if(!waited_resume) legacy bit-identical else scheduler; waited_resume sets
 only when the completed cycle is CODE + sequential + saw >=1 Tw; clears on
 successor commit / any EU bus commit / flush / redirect / discard / reset.
+FLOOR-ONLY RTL ATTEMPT (reverted) - a decisive negative result: implemented the
+suppression-half scheduler (arm wr_active at the waited-completion !evald T4, latch
+wr_L from the surface floor arithmetic q_cnt>=2?5:q_cnt==1?4:age<=3?4:2, and
+wr_block = wr_active && wr_ctr+1<wr_L gating prefetch_ok until the slot). w0 held
+169000/169000 (w0-neutral confirmed - arms only in !evald), BUT w1/w3 goldens
+SHATTERED (347/1200, 350/1200; failures = CODE got PASV = suppressed prefetches
+that should happen). ROOT CAUSE: in uniform-wait streams EVERY fetch is waited so
+the scheduler is always active and imposes the floor idle even while the queue is
+still FILLING toward capacity - but there the chip prefetches BACK-TO-BACK. The
+floor arithmetic was measured with an ISOLATED saturated-N predecessor (queue in a
+paused/saturated state); it does NOT capture the FILLING-vs-SATURATED distinction
+that governs stream cadence. This empirically CONFIRMS Codex's warning: a
+q_cnt-only floor countdown is insufficient; the resume timing needs the full
+demand/CAPACITY model (prefetch back-to-back while filling toward cap 6; pause per
+the demand deadline only when saturated/well-fed). The floor L is the PAUSED-state
+slot, not the fill-cadence. REMAINING: measure the resume cadence in STREAM context
+(when the chip prefetches back-to-back vs pauses = the demand_slot/capacity rule),
+NOT with isolated anchors; then the RTL must gate the slot-idle on the
+saturated/well-fed condition (not merely "waited fetch").
+
 NEXT DECISIVE MEASUREMENT (Codex): the fixed-q0 STARVATION-AGE experiment - hold
 q_cnt(T4)=0/q_avl=0/geometry fixed, vary only empty_age = pred_T4 - clock(queue
 1->0), targets empty_age 0/1,2,3+. If L follows empty_age (newly empty -> L4
