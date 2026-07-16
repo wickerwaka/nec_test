@@ -138,6 +138,43 @@ q0->2, q1->4, q3->5, monotonic but not linear); (b) the D deadline-source
 retrospective for the absorb regime (which pre-T1 event D is anchored to); (c)
 then the latched-deadline RTL + full validation gate.
 
+BIDIRECTIONAL MECHANISM (instrumented traces, sw/class5_anchortrace.py): the
+resume is a FIXED T4-relative SLOT, not an occupancy threshold - proven in BOTH
+directions. +case fz90007 N=3: model prefetches at eval_ext occ=3<=pf_lim=3, chip
+IDLES (chip threshold lower). -case fz90011 N=5: chip prefetches at occ=4, model
+waits for occ<=3 then loses a clock to the do_commit path -> model LATE (chip
+threshold higher). occ at eval_ext already includes the deferred push (cnt_next),
+which is the misleading value. So occ<=pf_lim is wrong in both signs; the
+eval_ext-vs-do_commit split adds +/-1 jitter.
+
+RTL DESIGN (Codex-specified, session 019f663c): law =
+  successor_T1 = max(prefetch_due_slot, pred_T4 + turnaround_floor)
+The chip SEPARATES demand-detection (a queue-demand event LATCHES a pending refill
++ deadline slot) from the commit CLOCK; the model conflates both into
+occupied<=pf_lim. Do NOT implement a q_cnt-only T4 countdown: the q0->{L2,L4}
+collision proves a second state (DEMAND-AGE: how long ago the queue reached demand
+/ emptied) remains. Latch the PRE-PUSH q_cnt at pred T4 (registered value before
+the deferred push - NOT cnt_next/occupied/q_avl). Minimal RTL = a small
+waited-resume scheduler: state {pf_demand_pending, pf_demand_age/deadline,
+waited_resume, resume_pre_qcnt, turnaround_left}; demand tracking runs continuously
+(inert at w0); at the waited sequential CODE T4 set waited_resume + latch
+pre-push q_cnt + turnaround floor; resume_commit = waited_resume &&
+pf_demand_pending && demand_deadline_reached && turnaround_reached && !eu_owner &&
+!eu_hold && !q_flush && !fetch_discard && !split_continuation. BOTH the eval_ext
+and plain-idle commit sites consume this ONE unified policy result (must SUPPRESS
+prefetch_ext when early AND PERMIT commit when occ<=pf_lim is false when late - a
+gate that only ANDs into prefetch_ok cannot fix fz90011). w0-neutral via explicit
+mux: if(!waited_resume) legacy bit-identical else scheduler; waited_resume sets
+only when the completed cycle is CODE + sequential + saw >=1 Tw; clears on
+successor commit / any EU bus commit / flush / redirect / discard / reset.
+NEXT DECISIVE MEASUREMENT (Codex): the fixed-q0 STARVATION-AGE experiment - hold
+q_cnt(T4)=0/q_avl=0/geometry fixed, vary only empty_age = pred_T4 - clock(queue
+1->0), targets empty_age 0/1,2,3+. If L follows empty_age (newly empty -> L4
+scheduled later; long empty -> overdue -> L2 immediate) the deadline event is the
+queue-empty transition -> RTL needs a demand-age/slot latch. Then sweep the same
+demand-age rule through q1-q4 (may eliminate the L table entirely). More decisive
+than filling q2/q4 (a lookup table is meaningless while q0 collides).
+
 ## 2026-07-15 — eu_req=0 MOFFS stage: PARITY-GATED S_MLO lead-veto (SILICON-CONFIRMED)
 
 Second stage of the eu_req=0 look-ahead veto (commit 981f3af, bitstream flashed;
