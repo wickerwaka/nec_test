@@ -578,6 +578,43 @@ end
 `endif
 `endif
 
+//----------------------------------------------------------------------------
+// Phase R (R4): named slot-request aliases. Each is textually equivalent to
+// the state-machine branch condition that performs that commit today (state
+// priority is part of the condition). Unused this stage - named, not
+// consumed: R5 builds the shadow arbiter from them, R6 consumes them.
+// (Forward references to eval_ext / ff_show / eval_at_t3 / nxt_live etc. are
+// module-level nets/regs, resolved order-independently as elsewhere here.)
+//----------------------------------------------------------------------------
+// direct_request: the ST_TI combined direct-entry guard (eval_ext OR far-flush
+// idle OR armed reader OR held near-flush) - one-clock-ahead display commits.
+wire direct_request = ((eval_ext && pick_ext && !flush_defer) ||
+                       (ff_show && pick_any)) ||
+                      (defer_idle && want_eu) ||
+                      (flush_hold && pick_ext && pick_fetch);
+
+// ST_TI direct slots (below nxt_live in priority):
+wire req_eval_ext   = state == ST_TI && !nxt_live &&
+                      eval_ext && pick_ext && !flush_defer;
+wire req_ff_ti      = state == ST_TI && !nxt_live && ff_show && pick_any;
+wire req_defer_idle = state == ST_TI && !nxt_live && defer_idle && want_eu;
+wire req_flush_hold = state == ST_TI && !nxt_live &&
+                      flush_hold && pick_ext && pick_fetch;
+// ST_TI staged plain prefetch/EU commit (stage_commit path), below the
+// direct slots and the flush_defer/eval_ext teardown branches:
+wire req_ti_plain   = state == ST_TI && !nxt_live &&
+                      !direct_request && !flush_defer && !eval_ext && pick_any;
+// ST_T3/TW staged completion eval (zero-wait T3->T4 edge):
+wire req_t3_eval    = eval_at_t3 && pick_any;
+// ST_T4 direct defer_t4 commit (below nothing; defer_t4 is first in T4):
+wire req_defer_t4   = state == ST_T4 && defer_t4 && eu_req && eu_ready;
+// ST_T4 far-flush mid-T4 direct commit (below defer_t4 and nxt_live):
+wire req_ff_t4      = state == ST_T4 && !defer_t4 && !nxt_live &&
+                      q_flush && cur_fetch && pick_any && flush_fast && evald;
+// ST_T4 flush-fallback staged commit (below ff_t4 in the same else chain):
+wire req_t4_flush_staged = state == ST_T4 && !defer_t4 && !nxt_live &&
+                      q_flush && cur_fetch && pick_any && !(flush_fast && evald);
+
 // Phase R (R2): staged capture as a descriptor-parameterized task. Writes
 // d.* into nxt_*; delivery is staged (nxt_valid + nxt_live transition).
 // Side effects preserved exactly: a fetch descriptor advances fetch_off; a
