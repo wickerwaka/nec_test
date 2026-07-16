@@ -51,11 +51,16 @@ def analyze(seed, host, image, w, out):
         midle = sum(1 for r in range(ka[i - 1]["t4"] + 1, ka[i]["t1"])
                     if kr[r]["t"] == 0)
         x = kr[kt4[i - 1]]   # model row at predecessor T4
+        # decision edge = the deferred-completion eval (eval_ext), pred_T4 + 1
+        e = kr[kt4[i - 1] + 1] if kt4[i - 1] + 1 < len(kr) else x
         out.append(dict(w=w, qcnt=x["q_cnt"], occ=x["occupied"],
                         av=x.get("q_avl", -1), infl=x.get("infl", -1),
                         drain=x.get("pf_drain", -1),
                         cons=x.get("eu_consuming", -1),
                         popc=x.get("pop_cnt", -1),
+                        eocc=e["occupied"], epop=e.get("pop_now", -1),
+                        epush=e.get("push_now", -1), eav=e.get("q_avl", -1),
+                        eqc=e["q_cnt"], elim=e.get("pf_lim", -1),
                         cidle=cidle, midle=midle, err=cidle - midle))
 
 
@@ -101,16 +106,25 @@ def main():
         print(f"   q_cnt={q}: err {dist or '(none)'}  ({nz}/{tot} disagree)")
     # BOUNDARY discriminator: at q_cnt=2 (occ~4), what separates chip pause
     # (idle>=3) from chip back-to-back (idle<=1)?
-    print("\nBOUNDARY q_cnt=2: chip pause(idle>=3) vs go(idle<=1) by state:")
-    for fld in ["occ", "av", "infl", "drain", "cons", "popc"]:
+    print("\nBOUNDARY q_cnt=2: chip pause(idle>=3) vs go(idle<=1) by DECISION-EDGE state:")
+    for fld in ["occ", "cons", "popc", "eocc", "epop", "epush", "eav", "eqc", "elim"]:
         pause = Counter(); go = Counter()
         for r in out:
             if r["qcnt"] != 2:
                 continue
             (pause if r["cidle"] >= 3 else go)[r[fld]] += 1
         vals = sorted(set(pause) | set(go))
-        cells = "  ".join(f"{fld}={v}:go{go[v]}/pause{pause[v]}" for v in vals)
-        print(f"   {cells}")
+        cells = "  ".join(f"{fld}={v}:{go[v]}/{pause[v]}" for v in vals)
+        print(f"   [go/pause] {cells}")
+    # cross: does (eocc) cleanly separate go from pause?
+    print("\n  q_cnt=2 chip idle by decision-edge eocc:")
+    byeo = defaultdict(Counter)
+    for r in out:
+        if r["qcnt"] == 2:
+            byeo[r["eocc"]][r["cidle"]] += 1
+    for o in sorted(byeo):
+        dist = " ".join(f"idle{k}:{c}" for k, c in sorted(byeo[o].items()))
+        print(f"     eocc={o}: {dist}")
 
 
 if __name__ == "__main__":
