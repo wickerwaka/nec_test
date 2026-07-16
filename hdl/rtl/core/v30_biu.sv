@@ -655,11 +655,18 @@ commit_mode_t slot_mode;
 logic         slot_fire;
 commit_desc_t slot_desc;
 
+// slot_desc is a pure alias of pick_desc, kept as a continuous assign OUTSIDE
+// the arbiter always_comb. This keeps slot_fire/slot_id/slot_mode dependent
+// only on the req_* aliases (which do not read ad_i), so the direct-display
+// signal slot_show_now stays out of the bidirectional-AD combinational cone
+// (avoids a false UNOPTFLAT loop). Display data fields use the flat pick_*
+// wires (== slot_desc.*) for the same reason.
+assign slot_desc = pick_desc;
+
 always_comb begin
     slot_fire = 1'b0;
     slot_id   = SLOT_NONE;
     slot_mode = COMMIT_STAGED;
-    slot_desc = pick_desc;
     if (req_eval_ext) begin
         slot_fire = 1'b1; slot_id = SLOT_EVAL_EXT;  slot_mode = COMMIT_DIRECT;
     end else if (req_ff_ti) begin
@@ -1375,9 +1382,30 @@ wire ext_show = (eval_ext && pick_ext && !flush_defer) || defer_show ||
                 ff_show || ff_t4 || idle_commit ||
                 (flush_hold && pick_ext && pick_fetch);
 
+// Phase R (R7): the canonical direct-slot display signal. A direct slot fire
+// displays its descriptor's status/address during this special (pre-T1) row.
+wire slot_show_now = slot_fire && slot_mode == COMMIT_DIRECT;
+
+`ifndef SYNTHESIS
+`ifdef VERILATOR
+// Equivalence probe (compiled only under --assert): slot_show_now must match
+// the legacy ext_show cause exactly, and the displayed descriptor fields must
+// equal the legacy pick_* mux inputs. Proven over the full w0/w1/w3 suites
+// before the display driver is switched to slot_show_now / slot_desc.
+always @(*) begin
+    assert (slot_show_now == ext_show);
+    if (ext_show) begin
+        assert (slot_desc.bus_type == pick_type);
+        assert (slot_desc.addr     == pick_addr);
+        assert (slot_desc.kind     == pick_kind);
+    end
+end
+`endif
+`endif
+
 assign bs = (halt_show || halt_t1) ? BS_HALT
           : nxt_live ? nxt_type
-          : ext_show ? pick_type
+          : slot_show_now ? pick_type
           : (state == ST_T1 || state == ST_T2) ? cur_type
           : ((state == ST_T3 || state == ST_TW) && !ready_prev) ? cur_type
           : BS_PASV;
@@ -1396,11 +1424,11 @@ always @(negedge clk) if (ce_half) t1_half2 <= (state == ST_T1);
 // floating; T1 drives AD19:16 = 0 only (measured float pattern). HALT
 // pseudo-cycles drive AD15:0 only (stale address), AD19:16 float.
 wire [1:0] disp_kind = nxt_live ? nxt_kind
-                     : ext_show ? pick_kind : cur_kind;
+                     : slot_show_now ? pick_kind : cur_kind;
 wire disp_inta = disp_kind == K_INTA &&
-                 (nxt_live || ext_show || state == ST_T1);
+                 (nxt_live || slot_show_now || state == ST_T1);
 
-assign ad_oe_addr = (nxt_live || ext_show || state == ST_T1) &&
+assign ad_oe_addr = (nxt_live || slot_show_now || state == ST_T1) &&
                     !disp_inta;
 assign ad_oe_ps   = (!ad_oe_addr && cycle_active &&
                      (state == ST_T2 || state == ST_T3 ||
@@ -1414,7 +1442,7 @@ assign ad_o = (halt_t1 || halt_show)
                                  ? {4'h0, fetch_phys[15:0] - 16'd2}
             : disp_inta          ? 20'h0
             : nxt_live           ? nxt_addr
-            : ext_show           ? pick_addr
+            : slot_show_now      ? pick_addr
             : (state == ST_T1)   ? (cur_wr && t1_half2
                                     ? {cur_addr[19:16], wdata_lanes}
                                     : cur_addr)
