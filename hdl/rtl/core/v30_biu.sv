@@ -951,6 +951,15 @@ always_ff @(posedge clk) begin
 
         unique case (state)
             ST_TI: begin
+                // R6a: canonical commit dispatch. The arbiter fires exactly
+                // where the ST_TI direct/plain branches committed before
+                // (validated under --assert); delivery mode is preserved.
+                // Non-commit actions stay in their branches below.
+                if (slot_fire && slot_mode == COMMIT_DIRECT)
+                    enter_t1_direct(slot_desc);
+                else if (slot_fire && slot_mode == COMMIT_STAGED)
+                    stage_commit(slot_desc);
+
                 if (nxt_live) begin
                     `SLOT_CHK(!slot_fire);
                     state      <= ST_T1;
@@ -981,9 +990,10 @@ always_ff @(posedge clk) begin
                     // and enters its T1 directly - one cycle ahead of the
                     // plain do_commit idle path (measured reader-commit law).
                     `SLOT_CHK(slot_fire && slot_mode == COMMIT_DIRECT);
+                    // commit issued by the canonical dispatch above; only
+                    // direct-slot side effects remain here.
                     defer_idle <= 1'b0;
                     flush_hold <= 1'b0;
-                    enter_t1_direct(pick_desc);
                     if (pick_fetch) begin
                         fetch_off <= fetch_off_sel +
                                      (fetch_word ? 16'd2 : 16'd1);
@@ -1014,7 +1024,8 @@ always_ff @(posedge clk) begin
                         cur_split2 <= 1'b0;
                         cur_wr     <= 1'b0;
                     end else if (pick_any) begin
-                        stage_commit(pick_desc);
+                        // staged commit issued by the canonical dispatch above;
+                        // this branch preserves priority over the arm below.
                     end else if ((eu_req && eu_soon_ea && !eu_ready) ||
                                  (eu_soon_ivt && q_cnt <= 3'd2)) begin
                         // idle window with a reg-EA reader reservation that
