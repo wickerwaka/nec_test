@@ -1100,6 +1100,19 @@ always_ff @(posedge clk) begin
                 end
             end
             ST_T4: begin
+                // R6c: canonical commit dispatch. The T4 slots (defer_t4 and
+                // ff_t4 direct, flush-fallback staged) fire exactly where the
+                // branches committed before (validated under --assert).
+                // Delivery mode preserved; the fetch_off advance for a staged
+                // fetch happens inside stage_commit, and for the ff_t4 direct
+                // fetch it stays as an explicit side effect in its branch -
+                // so fetch_off advances exactly once either way. All other
+                // non-commit actions stay in their branches below.
+                if (slot_fire && slot_mode == COMMIT_DIRECT)
+                    enter_t1_direct(slot_desc);
+                else if (slot_fire && slot_mode == COMMIT_STAGED)
+                    stage_commit(slot_desc);
+
                 if (cur_fetch && fetch_discard) fetch_discard <= 1'b0;
                 // waited cycle: deferred eval edge - schedule the queue
                 // push of a completed fetch for the end of the next
@@ -1116,7 +1129,7 @@ always_ff @(posedge clk) begin
                     if (eu_req && eu_ready) begin
                         `SLOT_CHK(slot_fire && slot_mode == COMMIT_DIRECT &&
                                   slot_id == SLOT_DEFER_T4);
-                        enter_t1_direct(pick_desc);
+                        // commit issued by the canonical dispatch above.
                         eu_started <= 1'b1;
                     end else begin
                         `SLOT_CHK(!slot_fire);
@@ -1174,12 +1187,14 @@ always_ff @(posedge clk) begin
                         // after T4, not mid-T4); evald==0 falls through to
                         // the near-flush do_commit path below (one cycle
                         // later), matching the chip's deferred display.
-                        enter_t1_direct(pick_desc);
+                        // commit issued by the canonical dispatch above; the
+                        // ff_t4 direct fetch advances fetch_off here.
                         if (pick_fetch)
                             fetch_off <= fetch_off_sel +
                                          (fetch_word ? 16'd2 : 16'd1);
                     end else if (q_flush && cur_fetch && pick_any) begin
-                        stage_commit(pick_desc);
+                        // staged commit (incl. its fetch_off advance) issued by
+                        // the canonical dispatch above; teardown remains here.
                         cur_type   <= BS_PASV;
                         cur_fetch  <= 1'b0;
                         cur_split1 <= 1'b0;
