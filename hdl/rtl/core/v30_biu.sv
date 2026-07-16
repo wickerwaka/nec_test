@@ -1050,6 +1050,16 @@ always_ff @(posedge clk) begin
             ST_T1: begin state <= ST_T2; pf_drain <= 1'b0; end
             ST_T2: state <= ST_T3;
             ST_T3, ST_TW: begin
+                // R6b: canonical commit dispatch. The only T3/TW slot is the
+                // staged zero-wait completion eval (req_t3_eval), which fires
+                // exactly when eval_at_t3 && pick_any (validated under
+                // --assert). Delivery mode preserved; non-commit actions
+                // (evald, push_pend, eu_hand, defer_t4 arm) stay below.
+                if (slot_fire && slot_mode == COMMIT_DIRECT)
+                    enter_t1_direct(slot_desc);
+                else if (slot_fire && slot_mode == COMMIT_STAGED)
+                    stage_commit(slot_desc);
+
                 if (state == ST_TW) tw_any <= 1'b1;
                 if (ready) begin
                     state <= ST_T4;
@@ -1078,8 +1088,10 @@ always_ff @(posedge clk) begin
                             push_pend_hi <= cur_addr[0];
                         end
                         if (eu_completing) eu_hand <= 1'b1;
-                        if (pick_any) stage_commit(pick_desc);
-                        else if (cur_fetch && eu_req && eu_soon &&
+                        if (pick_any) begin
+                            // staged commit issued by the dispatch above;
+                            // this branch preserves priority over defer_t4.
+                        end else if (cur_fetch && eu_req && eu_soon &&
                                  !eu_ready)
                             defer_t4 <= 1'b1;   // re-eval during T4
                     end
