@@ -991,22 +991,7 @@ always_ff @(posedge clk) begin
                         // after T4, not mid-T4); evald==0 falls through to
                         // the near-flush do_commit path below (one cycle
                         // later), matching the chip's deferred display.
-                        state      <= ST_T1;
-                        tw_any     <= 1'b0;
-                        evald      <= 1'b0;
-                        cur_type   <= pick_type;
-                        cur_addr   <= pick_addr;
-                        cur_fetch  <= pick_fetch;
-                        cur_wr     <= pick_wr;
-                        cur_swap   <= pick_swap;
-                        cur_split1 <= pick_split1;
-                        cur_split2 <= pick_split2;
-                        cur_wrap   <= pick_wrap;
-                        cur_wdata  <= pick_wdata;
-                        cur_seg    <= pick_seg;
-                        cur_ube_n  <= pick_ube_n;
-                        cur_kind   <= pick_kind;
-                        ube_n      <= pick_ube_n;
+                        enter_t1_direct(pick_desc);
                         if (pick_fetch)
                             fetch_off <= fetch_off_sel +
                                          (fetch_word ? 16'd2 : 16'd1);
