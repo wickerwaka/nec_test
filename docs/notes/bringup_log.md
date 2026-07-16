@@ -124,6 +124,20 @@ edge) - must be tested across the whole population. RTL = LATCHED refill-request
 deadline (not a lower pf_lim - residual is bidirectional, anchor A N=5 needs an
 EARLIER launch). Codex thread 019f663c consulted at each step.
 
+FACTOR-Q RESULT (sw/class5_factorQ.py): the resume timing IS governed by
+q_cnt(pred_T4) - the queue-demand-deadline hypothesis is causally supported. At a
+fixed anchor (N + pred/succ addrs held; predecessor re-located by address each
+run), driving q_cnt(pred_T4) via upstream WVEC perturbation moves L monotonically:
+fz90013 q0->L2, q1->L4, q3->L5 (fz90011 corroborates q3->L5 stable). DE-CONFOUNDED
+within the data: two far-upstream perturbations (acc#100 w0 vs w1) FLIP the pred-T4
+grid parity yet both keep q_cnt=1 and both give L=4 -> at fixed q_cnt, grid parity
+does NOT change L. So L=f(queue fill at completion), not parity or consumption.
+(Near-anchor perturbations confound the deadline: q4->L7-10 decreasing - excluded.)
+REMAINING before RTL: (a) map the full L(q_cnt) function (fill q2, q4 - so far
+q0->2, q1->4, q3->5, monotonic but not linear); (b) the D deadline-source
+retrospective for the absorb regime (which pre-T1 event D is anchored to); (c)
+then the latched-deadline RTL + full validation gate.
+
 ## 2026-07-15 — eu_req=0 MOFFS stage: PARITY-GATED S_MLO lead-veto (SILICON-CONFIRMED)
 
 Second stage of the eu_req=0 look-ahead veto (commit 981f3af, bitstream flashed;
