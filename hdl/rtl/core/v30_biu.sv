@@ -578,21 +578,26 @@ end
 `endif
 `endif
 
-task automatic do_commit();
+// Phase R (R2): staged capture as a descriptor-parameterized task. Writes
+// d.* into nxt_*; delivery is staged (nxt_valid + nxt_live transition).
+// Side effects preserved exactly: a fetch descriptor advances fetch_off; a
+// new EU access (not a split-half continuation) asserts eu_started. Callers
+// pass pick_desc, so d.* == pick_* bit-for-bit.
+task automatic stage_commit(input commit_desc_t d);
     nxt_valid  <= 1'b1;
-    nxt_type   <= pick_type;
-    nxt_addr   <= pick_addr;
-    nxt_fetch  <= pick_fetch;
-    nxt_wr     <= pick_wr;
-    nxt_swap   <= pick_swap;
-    nxt_split1 <= pick_split1;
-    nxt_split2 <= pick_split2;
-    nxt_wrap   <= pick_wrap;
-    nxt_wdata  <= pick_wdata;
-    nxt_seg    <= pick_seg;
-    nxt_ube_n  <= pick_ube_n;
-    nxt_kind   <= pick_kind;
-    if (pick_fetch) begin
+    nxt_type   <= d.bus_type;
+    nxt_addr   <= d.addr;
+    nxt_fetch  <= d.fetch;
+    nxt_wr     <= d.wr;
+    nxt_swap   <= d.swap;
+    nxt_split1 <= d.split1;
+    nxt_split2 <= d.split2;
+    nxt_wrap   <= d.wrap;
+    nxt_wdata  <= d.wdata;
+    nxt_seg    <= d.seg;
+    nxt_ube_n  <= d.ube_n;
+    nxt_kind   <= d.kind;
+    if (d.fetch) begin
         fetch_off <= fetch_off_sel + (fetch_word ? 16'd2 : 16'd1);
         if (!q_flush) fetch_cs <= fetch_cs;   // (flush handled below)
     end else if (want_eu && !want_half2) begin
@@ -847,7 +852,7 @@ always_ff @(posedge clk) begin
                         cur_split2 <= 1'b0;
                         cur_wr     <= 1'b0;
                     end else if (pick_any) begin
-                        do_commit();
+                        stage_commit(pick_desc);
                     end else if ((eu_req && eu_soon_ea && !eu_ready) ||
                                  (eu_soon_ivt && q_cnt <= 3'd2)) begin
                         // idle window with a reg-EA reader reservation that
@@ -899,7 +904,7 @@ always_ff @(posedge clk) begin
                             push_pend_hi <= cur_addr[0];
                         end
                         if (eu_completing) eu_hand <= 1'b1;
-                        if (pick_any) do_commit();
+                        if (pick_any) stage_commit(pick_desc);
                         else if (cur_fetch && eu_req && eu_soon &&
                                  !eu_ready)
                             defer_t4 <= 1'b1;   // re-eval during T4
@@ -1011,7 +1016,7 @@ always_ff @(posedge clk) begin
                             fetch_off <= fetch_off_sel +
                                          (fetch_word ? 16'd2 : 16'd1);
                     end else if (q_flush && cur_fetch && pick_any) begin
-                        do_commit();
+                        stage_commit(pick_desc);
                         cur_type   <= BS_PASV;
                         cur_fetch  <= 1'b0;
                         cur_split1 <= 1'b0;
