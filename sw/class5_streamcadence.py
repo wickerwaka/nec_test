@@ -131,14 +131,26 @@ def main():
         cells = "  ".join(f"{fld}={v}:{go[v]}/{pause[v]}" for v in vals)
         print(f"   [go/pause] {cells}")
     # cross: does (eocc) cleanly separate go from pause?
-    print("\n  q_cnt=2 chip idle by decision-edge eocc:")
-    byeo = defaultdict(Counter)
-    for r in out:
-        if r["qcnt"] == 2:
-            byeo[r["eocc"]][r["cidle"]] += 1
-    for o in sorted(byeo):
-        dist = " ".join(f"idle{k}:{c}" for k, c in sorted(byeo[o].items()))
-        print(f"     eocc={o}: {dist}")
+    print("\n  q_cnt=2 candidate momentum-rule accuracy (predict go=idle<=1):")
+    b2 = [r for r in out if r["qcnt"] == 2]
+    def acc(name, predgo):
+        ok = sum(1 for r in b2 if (predgo(r)) == (r["cidle"] <= 1))
+        print(f"     {name}: {ok}/{len(b2)} = {100*ok/max(1,len(b2)):.0f}%")
+    acc("cad<=9", lambda r: r["cad"] <= 9)
+    acc("cad<=12", lambda r: r["cad"] <= 12)
+    acc("dage<=15", lambda r: r["dage"] <= 15)
+    acc("!cons", lambda r: r["cons"] == 0)
+    acc("cad<=9 or !cons", lambda r: r["cad"] <= 9 or r["cons"] == 0)
+    acc("cad<=9 and dage<=20", lambda r: r["cad"] <= 9 and r["dage"] <= 20)
+    # residual within bursting (cad<=9): what still pauses?
+    print("\n  q_cnt=2 & cad<=9 (bursting) that PAUSE - by state:")
+    burst = [r for r in b2 if r["cad"] <= 9]
+    for fld in ["dage", "eocc", "epop", "popc", "occ"]:
+        go = Counter(); pa = Counter()
+        for r in burst:
+            (pa if r["cidle"] >= 3 else go)[r[fld]] += 1
+        vals = sorted(set(go) | set(pa))
+        print(f"     [go/pause] " + "  ".join(f"{fld}={v}:{go[v]}/{pa[v]}" for v in vals))
 
 
 if __name__ == "__main__":
