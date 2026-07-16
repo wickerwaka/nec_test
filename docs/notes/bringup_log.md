@@ -19,12 +19,27 @@ after every step. BEHAVIOR-PRESERVING - proven:
   into the display cone): slot_desc moved to a continuous assign; slot_fire/slot_mode
   depend only on ad_i-independent req_*; QS=E/HALT/INTA rules untouched.
 Phase-S HOOK in place (v30_biu.sv:696-698): selected_prefetch_grant =
-slot_is_eval_ext ? prefetch_ext : prefetch_ok (Phase S re-points this to the
-resume-slot grant). NEXT = Phase S: plug the class-5 demand/momentum resume policy
-(waited_resume_active, resume_slot_grant) into this single hook, validated against the
-signed gap-error census - now on a DE-NOISED model (the +/-1 path-jitter is gone, so
-the momentum discriminator should sharpen; re-run streamcadence/gaperr to re-check the
-~15% 'irreducible' residual, part of which may have been model-side path-jitter).
+slot_is_eval_ext ? prefetch_ext : prefetch_ok (declared, inert - Codex noted it is
+not yet CONSUMED; S0 would wire it, but see NO-GO below).
+
+PHASE S = NO-GO (opportunity audit, sw/class5_pauseaudit.py, Codex-designed gate).
+Codex's Phase-S plan (docs/notes/class5_phase_s_plan.md) was a partial PAUSE-ONLY
+veto of the eval_ext resume, gated by a ZERO-FALSE-PAUSE predicate from an
+opportunity audit (S3 only if >=10% zero-FP coverage on held-out+fresh). The audit
+(discovery/held-out/fresh corpora, uniform+random waits) is DECISIVE: at the q_cnt=2
+boundary the model-GO population is overwhelmingly CORRECT (disc 525/540, held
+400/419, fresh 337/340 chip-GO); only ~3-5% are chip-PAUSE (the fixable +errors:
+15/19/3). Grid search over cad/dage/popc found NO zero-false-pause predicate at the
+>=10% bar - the best is 5% AND has a false pause on discovery. The fixable chip-PAUSE
+cases are INSEPARABLE from the correct chip-GO cases in predicate space, so any veto
+injects ~as many -impulses as it fixes (the pf_lim=2 lesson, now proven at the
+boundary). The audit GATE did its job - it prevented an over-correction. CONCLUSION:
+class-5's ~15% boundary residual is genuinely IRREDUCIBLE on chip-observable +
+model-internal state (it needs the chip's internal fetch-scheduler micro-state,
+unobservable from bus+QS past the divergence). The class-5 random-wait residual is
+at its OBSERVABLE FLOOR. Phase R (the structural unification) stands as the durable
+win; Phase S is closed NO-GO. The eu_req=0 store+MOFFS fixes remain the
+silicon-confirmed cycle-accuracy improvements.
 
 ## 2026-07-15 — CLASS-5 pivot: prefetch-resume idle-cadence localized (gap-error census)
 
