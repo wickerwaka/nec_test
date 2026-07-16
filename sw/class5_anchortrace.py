@@ -59,9 +59,11 @@ def dump(seed, host, image, base_wv, pred_bus, i, N, pred_addr, succ_addr):
             mk = "<T4" if kr_i == kt4 else ("<T1s" if kr_i == ks1 else "")
             ms = (f"{kr_i:4d} {TN.get(x['t'],x['t']):>2} "
                   f"{BSN.get(x['bs'],x['bs']):<4} {x['addr']:05x} "
-                  f"{QN.get(x['qs'],'?')} {_sname(x['state']):<11} "
-                  f"{x['q_cnt']} {x['occupied']:2d} {x['eval_ext']} "
-                  f"{x['q_aged']} {mk}")
+                  f"{QN.get(x['qs'],'?')} {_sname(x['state']):<9} "
+                  f"qc{x['q_cnt']} av{x.get('q_avl',-1)} oc{x['occupied']:2d} cn{x.get('cnt_next',-1)} "
+                  f"pp{x.get('push_pend',-1)} pn{x.get('push_now',-1)} "
+                  f"ag{x['q_aged']} lim{x.get('pf_lim',-1)} "
+                  f"ok{x.get('prefetch_ok',-1)} ex{x['eval_ext']} {mk}")
         print(f"   {cs:<40}  {ms}")
 
 
