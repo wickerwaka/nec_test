@@ -26,6 +26,21 @@ separate mechanism at the observable floor - needs Codex's controlled band-ladde
 (tests B/E), not the mid-band timer. Threshold is >=2 (the dump gap is age 1-4,
 GO at 0 / PAUSE at >=5, so 2..5 are equivalent on the measured data).
 
+SILICON-CONFIRMED (bitstream flashed, setup slack +6.014 ns): FABRIC(use_core=1)
+== TB on all tested class-5 vectors (fz90007/90011/90002/90015, random waits) ->
+the -10% improvement transfers to fabric with no synth surprise. (One chip-vs-
+fabric diff fz90011 bus80 IOW/CODE is a pre-existing non-mid-band residual;
+fabric==TB there confirms it is not synthesis.)
+
+ALSO FIXED - a latent PHASE-R SYNTHESIS bug (Phase R was validated Verilator-only,
+never synthesized): the named-field struct assignment pattern
+pick_desc = '{bus_type: ..., ube_n: ...} is rejected by Quartus 17.1 A&S
+("ube_n is not a constant"). Replaced with the equivalent positional packed-struct
+concatenation. w0 169000 preserved (Verilator shadow asserts confirm field
+alignment). The whole biu-arb-qcnt design now synthesizes (A&S 0 errors, Full
+Compilation successful). LESSON: Verilator acceptance != Quartus synthesizability;
+run a Quartus build after structural RTL refactors, not only the Verilator goldens.
+
 ## 2026-07-15 — PHASE R: eval_ext/do_commit PATH UNIFICATION landed (behavior-preserving)
 
 Implemented Phase R of the commit-path unification (docs/notes/class5_path_unification_plan.md,
