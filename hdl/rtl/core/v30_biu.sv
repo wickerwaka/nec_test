@@ -339,6 +339,13 @@ reg        pf_drain;
 // held-out via sw/class5_bandage.py); w0 GO and waited PAUSE overlap at the same
 // band-age, so the delay is WAIT-DEPENDENT -> gate on eval_ext (w0-NEUTRAL).
 reg  [3:0] band34_age;
+// class-5 LOW-band pause (occupied-band-age aliasing, session 019f663c, fable
+// re-mining + verified 44 TP / 0 FP held-out): occ34_age = CE clocks the OCCUPIED
+// count (stored + in-flight) has sat continuously in the 3-4 band. At q_cnt<=2,
+// a resume landing inside the delay WINDOW (occ==4 age 1-3, occ==3 age 1-2) is
+// PAUSED; age 0 (band just entered by the completing fetch's own push) and aged-
+// out GO. Intel-8086 polarity (3-4 -> delay). eval_ext-gated -> w0-NEUTRAL.
+reg  [3:0] occ34_age;
 reg  [7:0] pop_sr;                     // recent pop-now history (consumption)
 wire [3:0] pop_cnt = {3'b0, pop_sr[0]} + {3'b0, pop_sr[1]} +
                      {3'b0, pop_sr[2]} + {3'b0, pop_sr[3]} +
@@ -529,10 +536,18 @@ wire        midband_pause = eval_ext && cur_fetch &&
                             (q_cnt == 3'd3 || q_cnt == 3'd4) &&
                             band34_age >= 4'd2 &&
                             q_aged == 2'd0 && !q_flush && !eu_hold;
+// LOW-band occupied-age delay WINDOW (q_cnt<=2): occ==4 pauses for occ34_age
+// 1..3, occ==3 for 1..2 (verified 0 false pauses, held-out). Gated to q_cnt<=2
+// (ungated it fires on mid-band chip-GO). eval_ext+cur_fetch-gated -> w0-neutral.
+wire        lowband_pause = eval_ext && cur_fetch && q_cnt <= 3'd2 &&
+                            ((occupied == 4'd4 && occ34_age >= 4'd1 && occ34_age <= 4'd3) ||
+                             (occupied == 4'd3 && occ34_age >= 4'd1 && occ34_age <= 4'd2)) &&
+                            q_aged == 2'd0 && !q_flush && !eu_hold;
 wire        prefetch_ext = (prefetch_ok ||
                            (eval_ext && pf_starved && eu_req && !eu_ready &&
                             eu_mem_acc && eu_kind == K_MEM) ||
-                           pf_late_rsv) && !pf_rsv_lead && !midband_pause;
+                           pf_late_rsv) && !pf_rsv_lead && !midband_pause &&
+                          !lowband_pause;
 wire        pick_ext   = want_half2 || want_eu || prefetch_ext;
 // the eval_ext cycle would commit a NEAR-flush redirect prefetch: defer it one
 // idle cycle (flush_hold) instead of committing here (see flush_hold decl).
@@ -896,6 +911,7 @@ always_ff @(posedge clk) begin
         q_wr       <= '0;
         q_cnt      <= '0;
         band34_age <= 4'd0;
+        occ34_age  <= 4'd0;
         q_avl      <= '0;
         q_aged     <= '0;
         fetch_discard <= 1'b0;
@@ -929,6 +945,9 @@ always_ff @(posedge clk) begin
         // class-5 mid-band age: clocks q_cnt has sat continuously in the 3-4 band
         band34_age <= (q_cnt == 3'd3 || q_cnt == 3'd4)
                         ? ((band34_age == 4'd15) ? 4'd15 : band34_age + 4'd1)
+                        : 4'd0;
+        occ34_age  <= (occupied == 4'd3 || occupied == 4'd4)
+                        ? ((occ34_age == 4'd15) ? 4'd15 : occ34_age + 4'd1)
                         : 4'd0;
         q_avl  <= q_avl - {2'b0, pop_now} + {1'b0, q_aged};
         q_aged <= push_now;
