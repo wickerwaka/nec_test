@@ -205,6 +205,26 @@ localparam bit [2:0] ST_T4 = 3'd5;
 localparam bit [1:0] SEG_CS = 2'd2;
 
 //----------------------------------------------------------------------------
+// Phase R: canonical commit descriptor. One packed struct carrying everything
+// a bus cycle needs. During Phase R this is a pure alias of the existing
+// pick_* wires (pick_desc below); direct-vs-staged delivery is metadata only.
+//----------------------------------------------------------------------------
+typedef struct packed {
+    logic [2:0]  bus_type;
+    logic [19:0] addr;
+    logic        fetch;
+    logic        wr;
+    logic        swap;
+    logic        split1;
+    logic        split2;
+    logic        wrap;
+    logic [15:0] wdata;
+    logic [1:0]  seg;
+    logic        ube_n;
+    logic [1:0]  kind;
+} commit_desc_t;
+
+//----------------------------------------------------------------------------
 // bus-cycle state
 //----------------------------------------------------------------------------
 reg  [2:0] state;
@@ -518,6 +538,45 @@ wire  [1:0] pick_seg   = want_half2 ? cur_seg
                        : want_eu    ? eu_seg : SEG_CS;
 wire        pick_ube_n = want_half2 ? 1'b1
                        : want_eu    ? eu_ube_n : 1'b0;
+
+// Phase R (R1): canonical commit descriptor as a pure alias of the pick_*
+// wires. Not connected to sequential logic yet (unused this stage).
+commit_desc_t pick_desc;
+assign pick_desc = '{
+    bus_type: pick_type,
+    addr:     pick_addr,
+    fetch:    pick_fetch,
+    wr:       pick_wr,
+    swap:     pick_swap,
+    split1:   pick_split1,
+    split2:   pick_split2,
+    wrap:     pick_wrap,
+    wdata:    pick_wdata,
+    seg:      pick_seg,
+    ube_n:    pick_ube_n,
+    kind:     pick_kind
+};
+
+`ifndef SYNTHESIS
+`ifdef VERILATOR
+// Shadow check: every descriptor field equals its source wire (trivially
+// true while pick_desc is a pure alias). Not compiled into synthesis.
+always @(*) begin
+    assert (pick_desc.bus_type == pick_type);
+    assert (pick_desc.addr     == pick_addr);
+    assert (pick_desc.fetch    == pick_fetch);
+    assert (pick_desc.wr       == pick_wr);
+    assert (pick_desc.swap     == pick_swap);
+    assert (pick_desc.split1   == pick_split1);
+    assert (pick_desc.split2   == pick_split2);
+    assert (pick_desc.wrap     == pick_wrap);
+    assert (pick_desc.wdata    == pick_wdata);
+    assert (pick_desc.seg      == pick_seg);
+    assert (pick_desc.ube_n    == pick_ube_n);
+    assert (pick_desc.kind     == pick_kind);
+end
+`endif
+`endif
 
 task automatic do_commit();
     nxt_valid  <= 1'b1;
