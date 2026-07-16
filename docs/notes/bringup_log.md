@@ -167,6 +167,41 @@ gate that only ANDs into prefetch_ok cannot fix fz90011). w0-neutral via explici
 mux: if(!waited_resume) legacy bit-identical else scheduler; waited_resume sets
 only when the completed cycle is CODE + sequential + saw >=1 Tw; clears on
 successor commit / any EU bus commit / flush / redirect / discard / reset.
+STREAM-CADENCE (sw/class5_streamcadence.py, 1929 CODE->CODE resumes uniform w1-3):
+the capacity model - chip fetches BACK-TO-BACK while occ<=4 (q_cnt<=2), PAUSES at
+occ>=5 (q_cnt>=3) = exactly the model pf_lim=4, so the model is RIGHT for the bulk.
+The class-5 disagreement CONCENTRATES at q_cnt=2 (14/55=25%), boundary discriminator
+= eu_consuming/pop_cnt (consuming -> pause). BUT the tractable fixes are RULED OUT:
+(1) pf_lim 3->2 in the drain+consuming window: w0/w1/w3 goldens all held, but the
+random-wait gap-error census OVER-CORRECTED - 485 impulses (up from ~226), flipped
+to negative (CODE->CODE +161/-291), prev_tw=1 err 0.87%->3.48%. Bidirectional
+confirmed AGAIN (not a threshold). (2) DECISION-EDGE discriminator: within the
+pf_lim=3 boundary the chip go-vs-pause is 23/22 = ~50/50 on EVERY observable
+(decision-edge occ/q_avl/q_cnt/pop_now/push_now/recent-pop). => a chip-INTERNAL
+fetch-scheduler state (or exact microtiming the model cannot reconstruct past the
+divergence point) governs the final decision. THE WALL: class-5's fine structure
+needs the chip's demand/deadline state reconstructed PURELY from chip-observable
+history (bus + QS F/S pops + fetch widths), INDEPENDENT of the diverged model
+(Codex's suggested reconstruction) - a substantial new tool, the principled next
+effort. Model-internal discrimination is exhausted (the model==chip only up to the
+divergence, which is exactly where the decision differs).
+  CORRECTION (the "wall" was premature): the model==chip UP TO the divergence, and
+the resume decision IS the divergence, so the state AT/BEFORE the decision is
+chip-accurate - the instantaneous 50/50 means a HISTORY variable governs (the
+latched demand slot, exactly as Codex said). Adding history variables to
+streamcadence resolves the q_cnt=2 boundary FAR better: fetch-cadence MOMENTUM.
+cad = clocks between the two prior fetches: cad<=9 (tight/back-to-back burst) ->
+GO ~79%; cad>=16 (slow/paused) -> PAUSE ~85%. demand-age agrees: recent demand
+(dage 5-13) -> go; old (dage 29+) -> pause. So the chip has PREFETCH MOMENTUM -
+it continues a fill burst once started and stays paused once saturated; the q_cnt=2
+boundary decision follows the recent cadence, NOT instantaneous occupancy. The
+model (occ<=pf_lim, memoryless) lacks this hysteresis. FIX DIRECTION: add
+cadence-momentum hysteresis to the boundary prefetch decision (continue if recently
+bursting, pause if recently paused), w0-neutral. Still ~80% clean, not yet
+bit-exact - needs a cleaner momentum rule (pin the exact cad/dage thresholds +
+any second variable) before a bit-exact RTL. This is the tractable next effort,
+NOT a wall.
+
 FLOOR-ONLY RTL ATTEMPT (reverted) - a decisive negative result: implemented the
 suppression-half scheduler (arm wr_active at the waited-completion !evald T4, latch
 wr_L from the surface floor arithmetic q_cnt>=2?5:q_cnt==1?4:age<=3?4:2, and

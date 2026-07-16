@@ -29,13 +29,20 @@ def analyze(seed, host, image, w, out):
     ca = accesses(crel)
     ka = accesses([dict(t=x["t"], bs_early=x["bs"], qs=x["qs"],
                         ad_addr=x["addr"], ad_data=0) for x in kr])
-    # model bus index -> kr T4 row
-    kt4 = {}; bi = -1
+    # model bus index -> kr T1 and T4 rows
+    kt4 = {}; kt1 = {}; bi = -1
     for ri, x in enumerate(kr):
         if x["t"] == 1:
-            bi += 1
+            bi += 1; kt1[bi] = ri
         if x["t"] == 5:
             kt4[bi] = ri
+
+    def demand_age(t4row):
+        # clocks since q_cnt was last <= 1 (the demand level) before this T4
+        for r in range(t4row, 0, -1):
+            if kr[r]["q_cnt"] <= 1:
+                return t4row - r
+        return 99
     cb, kb = bs_stream(ca), bs_stream(ka)
     n = min(len(cb), len(kb))
     D = next((j for j in range(n)
@@ -53,6 +60,12 @@ def analyze(seed, host, image, w, out):
         x = kr[kt4[i - 1]]   # model row at predecessor T4
         # decision edge = the deferred-completion eval (eval_ext), pred_T4 + 1
         e = kr[kt4[i - 1] + 1] if kt4[i - 1] + 1 < len(kr) else x
+        # HISTORY variables (chip-accurate: model==chip up to the divergence):
+        # demand age, and the recent fetch cadence (prev-prev fetch -> pred).
+        dage = demand_age(kt4[i - 1])
+        cad = (kt1[i - 1] - kt1[i - 2]) if (i - 2) in kt1 else -1
+        # phase of pred T1 vs a 4-clock fetch cadence grid
+        t1phase = (kt1[i - 1] % 4) if (i - 1) in kt1 else -1
         out.append(dict(w=w, qcnt=x["q_cnt"], occ=x["occupied"],
                         av=x.get("q_avl", -1), infl=x.get("infl", -1),
                         drain=x.get("pf_drain", -1),
@@ -61,6 +74,7 @@ def analyze(seed, host, image, w, out):
                         eocc=e["occupied"], epop=e.get("pop_now", -1),
                         epush=e.get("push_now", -1), eav=e.get("q_avl", -1),
                         eqc=e["q_cnt"], elim=e.get("pf_lim", -1),
+                        dage=dage, cad=cad, t1phase=t1phase,
                         cidle=cidle, midle=midle, err=cidle - midle))
 
 
@@ -107,7 +121,7 @@ def main():
     # BOUNDARY discriminator: at q_cnt=2 (occ~4), what separates chip pause
     # (idle>=3) from chip back-to-back (idle<=1)?
     print("\nBOUNDARY q_cnt=2: chip pause(idle>=3) vs go(idle<=1) by DECISION-EDGE state:")
-    for fld in ["occ", "cons", "popc", "eocc", "epop", "epush", "eav", "eqc", "elim"]:
+    for fld in ["cons", "popc", "epop", "dage", "cad", "t1phase"]:
         pause = Counter(); go = Counter()
         for r in out:
             if r["qcnt"] != 2:
