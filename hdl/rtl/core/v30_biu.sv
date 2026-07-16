@@ -224,6 +224,30 @@ typedef struct packed {
     logic [1:0]  kind;
 } commit_desc_t;
 
+// Phase R: canonical slot decision. Every commit opportunity is one slot_id.
+// "Staged" slots deliver via nxt_* (nxt_live transition); "direct" slots load
+// cur_* and enter T1 this cycle. During Phase R the mode is delivery metadata
+// only - descriptor selection is centralized.
+typedef enum logic [3:0] {
+    SLOT_NONE,
+    // Staged: descriptor goes to nxt_* first.
+    SLOT_T3_EVAL,
+    SLOT_TI_PLAIN,
+    SLOT_T4_FLUSH_STAGED,
+    // Direct: descriptor is displayed now and becomes cur_* / T1 next.
+    SLOT_EVAL_EXT,
+    SLOT_FF_TI,
+    SLOT_DEFER_IDLE,
+    SLOT_FLUSH_HOLD,
+    SLOT_DEFER_T4,
+    SLOT_FF_T4
+} slot_id_t;
+
+typedef enum logic {
+    COMMIT_STAGED,
+    COMMIT_DIRECT
+} commit_mode_t;
+
 //----------------------------------------------------------------------------
 // bus-cycle state
 //----------------------------------------------------------------------------
@@ -615,6 +639,85 @@ wire req_ff_t4      = state == ST_T4 && !defer_t4 && !nxt_live &&
 wire req_t4_flush_staged = state == ST_T4 && !defer_t4 && !nxt_live &&
                       q_flush && cur_fetch && pick_any && !(flush_fast && evald);
 
+//----------------------------------------------------------------------------
+// Phase R (R5): canonical slot arbiter, SHADOW mode (not consumed by the
+// state machine yet). Priority mirrors the current state branches exactly.
+// The req_* aliases are mutually exclusive ACROSS states (each gates on
+// `state`); within ST_TI the direct slots may co-assert but funnel to one
+// identical direct delivery, so the priority order below only picks a
+// reporting slot_id - slot_fire/slot_mode/slot_desc are the same either way.
+// nxt_live consumption stays above arbitration and is NOT a slot (it delivers
+// an already-committed descriptor), so slot_fire is 0 in every nxt_live cycle.
+// slot_desc is always pick_desc during Phase R.
+//----------------------------------------------------------------------------
+slot_id_t     slot_id;
+commit_mode_t slot_mode;
+logic         slot_fire;
+commit_desc_t slot_desc;
+
+always_comb begin
+    slot_fire = 1'b0;
+    slot_id   = SLOT_NONE;
+    slot_mode = COMMIT_STAGED;
+    slot_desc = pick_desc;
+    if (req_eval_ext) begin
+        slot_fire = 1'b1; slot_id = SLOT_EVAL_EXT;  slot_mode = COMMIT_DIRECT;
+    end else if (req_ff_ti) begin
+        slot_fire = 1'b1; slot_id = SLOT_FF_TI;     slot_mode = COMMIT_DIRECT;
+    end else if (req_defer_idle) begin
+        slot_fire = 1'b1; slot_id = SLOT_DEFER_IDLE; slot_mode = COMMIT_DIRECT;
+    end else if (req_flush_hold) begin
+        slot_fire = 1'b1; slot_id = SLOT_FLUSH_HOLD; slot_mode = COMMIT_DIRECT;
+    end else if (req_ti_plain) begin
+        slot_fire = 1'b1; slot_id = SLOT_TI_PLAIN;  slot_mode = COMMIT_STAGED;
+    end else if (req_t3_eval) begin
+        slot_fire = 1'b1; slot_id = SLOT_T3_EVAL;   slot_mode = COMMIT_STAGED;
+    end else if (req_defer_t4) begin
+        slot_fire = 1'b1; slot_id = SLOT_DEFER_T4;  slot_mode = COMMIT_DIRECT;
+    end else if (req_ff_t4) begin
+        slot_fire = 1'b1; slot_id = SLOT_FF_T4;     slot_mode = COMMIT_DIRECT;
+    end else if (req_t4_flush_staged) begin
+        slot_fire = 1'b1; slot_id = SLOT_T4_FLUSH_STAGED;
+                                                    slot_mode = COMMIT_STAGED;
+    end
+end
+
+// Phase-S hook (declared now; inert during Phase R). The canonical prefetch
+// grant the later demand/momentum scheduler will re-point. Today it selects
+// the exact legacy grant per slot: the eval_ext waited window uses
+// prefetch_ext, every other slot uses prefetch_ok. w0-NEUTRAL by construction.
+wire slot_is_eval_ext        = slot_fire && slot_id == SLOT_EVAL_EXT;
+wire legacy_prefetch_grant   = slot_is_eval_ext ? prefetch_ext : prefetch_ok;
+wire selected_prefetch_grant = legacy_prefetch_grant;   // Phase S re-points
+
+`ifndef SYNTHESIS
+`ifdef VERILATOR
+// Shadow invariants (compiled only under --assert): the descriptor is the
+// canonical pick, slots are exclusive across states, and a nxt_live delivery
+// is never a slot fire.
+always @(*) begin
+    assert (slot_desc == pick_desc);
+    // Cross-state exclusivity: a T3 eval, a TI slot, and a T4 slot can never
+    // co-assert (each gates on a distinct `state`).
+    assert (!(req_t3_eval &&
+              (req_eval_ext || req_ff_ti || req_defer_idle || req_flush_hold ||
+               req_ti_plain || req_defer_t4 || req_ff_t4 ||
+               req_t4_flush_staged)));
+    assert (!((req_eval_ext || req_ff_ti || req_defer_idle || req_flush_hold ||
+               req_ti_plain) &&
+              (req_defer_t4 || req_ff_t4 || req_t4_flush_staged)));
+    // req_ti_plain is exclusive of the TI direct slots.
+    assert (!(req_ti_plain &&
+              (req_eval_ext || req_ff_ti || req_defer_idle || req_flush_hold)));
+    // T4 slots are mutually exclusive.
+    assert ($countones({req_defer_t4, req_ff_t4, req_t4_flush_staged}) <= 1);
+    // A nxt_live delivery is never a new slot fire.
+    if (state == ST_TI && nxt_live) assert (!slot_fire);
+    if (state == ST_T4 && !defer_t4 && nxt_live) assert (!slot_fire);
+end
+`endif
+`endif
+
 // Phase R (R2): staged capture as a descriptor-parameterized task. Writes
 // d.* into nxt_*; delivery is staged (nxt_valid + nxt_live transition).
 // Side effects preserved exactly: a fetch descriptor advances fetch_off; a
@@ -670,6 +773,14 @@ endtask
 //----------------------------------------------------------------------------
 // main sequencing
 //----------------------------------------------------------------------------
+// Phase R (R5): shadow check macro. Ties the canonical arbiter to the actual
+// branch taken. Compiled only under Verilator with --assert; empty for
+// synthesis. Zero effect on normal simulation/synthesis.
+`ifndef SYNTHESIS
+ `define SLOT_CHK(c) assert(c)
+`else
+ `define SLOT_CHK(c)
+`endif
 wire t3_done = (state == ST_T3 || state == ST_TW) && ready;
 
 // Commit-eval deferral under wait states (measured on the waits=1/3
@@ -841,6 +952,7 @@ always_ff @(posedge clk) begin
         unique case (state)
             ST_TI: begin
                 if (nxt_live) begin
+                    `SLOT_CHK(!slot_fire);
                     state      <= ST_T1;
                     tw_any     <= 1'b0;
                     evald      <= 1'b0;
@@ -868,6 +980,7 @@ always_ff @(posedge clk) begin
                     // the picked cycle is displayed during THIS idle cycle
                     // and enters its T1 directly - one cycle ahead of the
                     // plain do_commit idle path (measured reader-commit law).
+                    `SLOT_CHK(slot_fire && slot_mode == COMMIT_DIRECT);
                     defer_idle <= 1'b0;
                     flush_hold <= 1'b0;
                     enter_t1_direct(pick_desc);
@@ -878,6 +991,8 @@ always_ff @(posedge clk) begin
                         eu_started <= 1'b1;
                     end
                 end else begin
+                    `SLOT_CHK(slot_fire == (!flush_defer && !eval_ext &&
+                                            pick_any));
                     defer_idle <= 1'b0;
                     if (flush_defer) begin
                         // near-flush redirect deferred one idle cycle: hold the
@@ -945,6 +1060,7 @@ always_ff @(posedge clk) begin
                     // cycle evaluates at the end of T4 instead. The queue
                     // push of a completed fetch follows one cycle later.
                     if (eval_at_t3) begin
+                        `SLOT_CHK(slot_fire == pick_any);
                         evald <= 1'b1;
                         if (cur_fetch && !fetch_discard && !q_flush) begin
                             push_pend    <= cur_word ? 2'd2 : 2'd1;
@@ -975,10 +1091,16 @@ always_ff @(posedge clk) begin
                     // ready now - commit mid-T4, enter T1 directly
                     defer_t4 <= 1'b0;
                     if (eu_req && eu_ready) begin
+                        `SLOT_CHK(slot_fire && slot_mode == COMMIT_DIRECT &&
+                                  slot_id == SLOT_DEFER_T4);
                         enter_t1_direct(pick_desc);
                         eu_started <= 1'b1;
-                    end else state <= ST_TI;
+                    end else begin
+                        `SLOT_CHK(!slot_fire);
+                        state <= ST_TI;
+                    end
                 end else if (nxt_live) begin
+                    `SLOT_CHK(!slot_fire);
                     state      <= ST_T1;
                     tw_any     <= 1'b0;
                     evald      <= 1'b0;
@@ -997,6 +1119,7 @@ always_ff @(posedge clk) begin
                     ube_n      <= nxt_ube_n;
                     nxt_valid  <= 1'b0;
                 end else begin
+                    `SLOT_CHK(slot_fire == (q_flush && cur_fetch && pick_any));
                     state <= ST_TI;
                     // NOTE: no commit evaluation at the T4 edge of a
                     // zero-wait cycle (measured) - EXCEPT a flush
