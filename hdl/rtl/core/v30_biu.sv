@@ -583,20 +583,12 @@ wire        pick_ube_n = want_half2 ? 1'b1
 // Phase R (R1): canonical commit descriptor as a pure alias of the pick_*
 // wires. Not connected to sequential logic yet (unused this stage).
 commit_desc_t pick_desc;
-assign pick_desc = '{
-    bus_type: pick_type,
-    addr:     pick_addr,
-    fetch:    pick_fetch,
-    wr:       pick_wr,
-    swap:     pick_swap,
-    split1:   pick_split1,
-    split2:   pick_split2,
-    wrap:     pick_wrap,
-    wdata:    pick_wdata,
-    seg:      pick_seg,
-    ube_n:    pick_ube_n,
-    kind:     pick_kind
-};
+// Packed-struct concatenation in declaration order (bus_type..kind). Quartus
+// 17.1 rejects the named-field assignment pattern '{field: value} ("not a
+// constant"); the positional concatenation is equivalent and synthesizable.
+assign pick_desc = {pick_type, pick_addr, pick_fetch, pick_wr, pick_swap,
+                    pick_split1, pick_split2, pick_wrap, pick_wdata, pick_seg,
+                    pick_ube_n, pick_kind};
 
 `ifndef SYNTHESIS
 `ifdef VERILATOR
