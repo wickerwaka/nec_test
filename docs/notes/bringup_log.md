@@ -1,5 +1,37 @@
 # Bring-up log
 
+## 2026-07-17 — UNIFORM-RMW RE-CHECK: BRANCH (ii). ready-AT-T4 RMW is chip-EARLY at w2/random but chip-LATE at w1 — same local observable, opposite behaviour. code_tw is non-monotonic. STOP; architect hunts sub-T4 phase. Do NOT widen, do NOT park.
+
+The one measurement that adjudicates the ext_ok_wr widening (board, read-only, uniform
+w1/w2/w3, 12 seeds; freshness + 0 leaks verified). RMW-write (eu_defer_wr=1) CODE->MEMW,
+by ready-phase at the eval cycle:
+  rdy_p1=0,rdy_p2=0 (not ready)        n=12: chip LATE  12, model LATE  12  (agree)
+  rdy_p1=1,rdy_p2=1 (ready ENTERING T4) n=18: chip EARLY 18, model EARLY 18  (control - matches
+     the original sweep_rmw fit: ext_ok_wr accepts, both early)
+  rdy_p1=1,rdy_p2=0 (READY-AT-T4, the CELL class) n=15: chip EARLY 12 / LATE 3; model LATE all 15
+     -> EARLY are ALL uniform w2 (12/12); LATE are ALL uniform w1 (3/3).
+DECISIVE: the SAME local observable (ready-AT-T4 RMW) is chip-EARLY at uniform w2 (and in
+the random census, 26/29 CODE->MEMW ge=-2) but chip-LATE at uniform w1. Opposite chip
+behaviour by wait level -> BRANCH (ii). Widening ext_ok_wr to accept ready-AT-T4 would fix
+w2/random (-2 -> 0) but REGRESS the w1 cases (chip late, model already correct -> would go
++2 early). NOT safe to widen.
+
+FINER-PHASE LEAD (for the architect's hunt): at uniform the split is exactly code_tw
+(predecessor CODE-fetch Tw): EARLY all code_tw=2, LATE all code_tw=1. BUT code_tw is
+NON-MONOTONIC on the random census: the chip-early ge=-2 rows include prev_tw=0 cases (3
+CODE->MEMW + 6 CODE->MEMR) as well as prev_tw>=2 (25). So the ordering is code_tw=0 EARLY,
+code_tw=1 LATE, code_tw=2 EARLY - code_tw ALONE is NOT the finer phase. The distinguisher
+is a finer sub-T4 readiness/CODE-stretch timing that code_tw only proxies at uniform.
+
+PER BRANCH (ii): STOPPED, did not widen. Do NOT park (the architect's pre-registered "one
+more level" - sub-T4 readiness timing - has not been exhausted; the non-monotonic code_tw
+is evidence a finer local phase MAY exist). Architect re-enters to hunt it before any wall
+#3 declaration. If no finer local observable separates chip-early from chip-late at
+ready-AT-T4 across BOTH uniform and random -> THEN wall #3 (temporal/observability) and the
+~72u CODE->MEM cell parks. Instrumentation (d[68..74]) + sw/class5_hext.py in place; the
+uniform-RMW re-check is documented here (board capture, not a committed script - it needs
+run_chip).
+
 ## 2026-07-17 — H-EXT PROBE: BRANCH A fired, but the denial is EXT_OK_WR (RMW-write rule), not ext_ok. Arithmetic board-confirmed; sweep_rmw contradiction is the open caveat. Report-and-hold.
 
 The CODE→MEM -2 cell mechanism (sw/class5_hext.py + .log). H-EXT (denial composition):
