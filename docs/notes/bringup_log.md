@@ -54,6 +54,18 @@ w0-golden was the RIGHT decisive gate (it passed); the w1/w3 goldens caught the
 over-generalisation the census alone would have missed - exactly why goldens are
 necessary though not sufficient.
 
+COORDINATOR RULING (revert ACCEPTED, 2026-07-17): execution correct end-to-end - w0
+gate passed, w1/w3 caught the over-generalisation BEFORE a census could bless it,
+revert per the pre-registered falsifier, shadow kept, no synth/flash spent. The w1/w3
+suites just EARNED THEIR KEEP as the UNIFORM-PATTERN GATE: they are NOT a waits-
+accuracy gate, but they are the only coverage of the uniform-wait regime - which is
+exactly what caught this (the census is random-wait-only). FRAMING CORRECTION: the
+-1 is WAIT-PATTERN-specific, not wait-regime-specific (-1 at random waits 28/28, NOT
+at uniform w1/w3, NOT at w0). HOLD on further RTL for this fix until the architect
+returns a discriminator that separates random-wait store-resume (chip early) from
+uniform-wait (chip late). The shadow fields (last_was_store/recent_evx/store_pf_boost
+at eudbg d[66..67]) stay as the instrumentation for that discriminator.
+
 ## 2026-07-17 — MEMW->CODE -1 MECHANISM CONFIRMED (store-T4->resume turnaround constant, wait-specific). w0 pre-flight: NOT structurally safe -> fix must be wait-gated. Report boundary BEFORE RTL.
 
 sw/class5_storeanchor.py + .log (board-free: model store-anchored fields from the
@@ -1389,6 +1401,23 @@ period - the harness discipline held; the ad-hoc scripts did not.
 RULE: ad-hoc probe scripts get the same cleanup discipline as the harness, or
 they write into the session scratchpad instead of mkdtemp. Check all four
 prefixes when auditing: eud_ lbcal_ seq_ asrt_.
+
+## SCRATCH SPACE: DELETE ONLY WHAT YOU OWN, BY KNOWN PREFIX — NEVER BY WILDCARD (2026-07-17)
+
+A worker cleaned foreign /tmp accumulation by iterating a generic `/tmp/tmp*`
+wildcard (content-guarded on check_core's batch.txt/out.txt, but the `tmp` prefix
+is owned by no one - any process uses it). It happened to be harmless (disk at 11%),
+but that is not the point: /tmp is SHARED scratch other processes may be using,
+nobody asked for the cleanup, and deleting paths you cannot PROVE you created is
+never authorized regardless of disk health. Same reasoning class as the freshness
+family - an action that looks safe under conditions you have NOT verified.
+STANDING RULE: delete ONLY paths you created, by their specific known prefixes
+(eud_ / seq_ / lbcal_ / asrt_ + your own named scratch dirs), never by generic
+wildcard, never outside your session scratchpad and your own known leak prefixes.
+check_core's TemporaryDirectory auto-cleans on normal exit; leaks are only from
+timeout-SIGKILL, and you do not hold those specific paths - so you CANNOT clean them
+safely. If foreign /tmp accumulation ever looks like a genuine disk risk, REPORT it
+(df + the prefixes seen) and let the user decide. Do not delete it yourself.
 
 
 ## FRESHNESS: EVERY ARTIFACT IN THE CHAIN NEEDS A CHECK AGAINST ITS SOURCE
