@@ -1108,3 +1108,47 @@ period - the harness discipline held; the ad-hoc scripts did not.
 RULE: ad-hoc probe scripts get the same cleanup discipline as the harness, or
 they write into the session scratchpad instead of mkdtemp. Check all four
 prefixes when auditing: eud_ lbcal_ seq_ asrt_.
+
+
+## FRESHNESS: EVERY ARTIFACT IN THE CHAIN NEEDS A CHECK AGAINST ITS SOURCE
+
+Three self-validating false positives, all in one campaign, all presenting as
+"everything passed":
+
+  1. ASSERTION SILENTLY COMPILED OUT. A per-arm SVA was written, ran green, and
+     reported nothing - verilator drops every `assert` without --assert. An
+     assertion that cannot fire manufactures false confidence.
+     CHECK: insert a deliberate always-false probe, confirm %Error + $stop.
+
+  2. STALE VERILATOR BINARY. check_core.build() leaves the OLD binary in place
+     when the build FAILS, so the harness runs stale RTL happily. It reported
+     mass/+1/>=+2 EXACTLY equal to the baseline - a result that reproduces the
+     baseline TO THE ROW is not a pass, it is a smell.
+     CHECK: grep the build output for %Error; compare binary mtime to the run
+     clock:  ls -la --time-style=+%H:%M:%S hdl/tb/obj_dir/Vtb_v30_core ; date +%H:%M:%S
+
+  3. STALE BITSTREAM (.sof). hdl/output_files/nec_test.sof was 14 HOURS older
+     than the RTL it was about to "confirm" - it contained neither the banked
+     class-5 law nor even the lowband veto. Flashing it and reporting
+     "fabric==TB, silicon confirms the build" would have been a FABRICATED
+     CONFIRMATION of a design the FPGA has never held - AND IT WOULD HAVE LOOKED
+     CLEAN, because the fabric would genuinely match a TB built from the same
+     stale source. A false positive that validates itself.
+     CHECK, before EVERY flash:
+         ls --time-style=+'%F %H:%M' -la hdl/output_files/nec_test.sof
+         git log -1 --format='%ad' --date=format:'%F %H:%M' -- hdl/rtl/core/
+     The .sof MUST be newer than every RTL file it claims to contain. The TB
+     being green says NOTHING about the bitstream - they are built from the same
+     source by different tools, so they agree even when both are stale.
+
+RULE: EVERY ARTIFACT IN THE CHAIN NEEDS A FRESHNESS CHECK AGAINST ITS SOURCE -
+not just the one you are currently thinking about. Chain: RTL -> Verilator
+binary -> proxy result; RTL -> Quartus .sof -> fabric capture; RTL -> assertion
+enablement -> SVA result. Each link can go stale independently and each failure
+mode is silent.
+
+NOTE ALSO: the banked class-5 law has NEVER been through Quartus. f43927f exists
+because Quartus 17.1 rejected RTL Verilator accepted (named-field struct
+assignment). Synthesis is a genuine gate, not a formality: run it as its own
+step and treat a synth failure as a FINDING (it would mean the census validates
+something unbuildable), never as a step to push through on the way to a flash.
