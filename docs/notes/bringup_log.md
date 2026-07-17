@@ -1344,3 +1344,30 @@ random, and must be re-derived before being relied upon:
 NOT the bug: causal_wrand:157 (k*7+3)%(wmax+1) is deterministic-by-design.
 The proxy (px.py over the bandage corpus) and the corrected census are correct;
 this list is about SECONDARY analyses whose absolute numbers are suspect.
+
+
+## RESUME LAW: DONE PERMANENTLY (falsifiable artifact)
+
+The class-5 CODE->CODE resume-duration law (arm: PAUSE iff d_cnt_a>=3 && occ>=2;
+duration: cidle_sel per the sixth-attempt direct-path) is DECLARED DONE. Final
+sweep over the 79 unpaired CODE->CODE census residual rows (121u), fit
+disc(90000-07) / test held(90008-19), COMPLETE modern key set:
+    prev_tw,m_occ            largest held cell 9u
+    prev_tw,d_cnt_a,m_occ    largest held cell 6u   (best)
+    +cur_tw / +QS / +parity  largest held cell 6u   (no reduction)
+PRE-REGISTERED CRITERION: largest clean held-out cell < 10u -> MET at 6u. The
+never-before-tried keys (QS pop class, address parity, transition prev/own_tw)
+reduce NOTHING. The residual is irreducible small-cell scatter.
+
+FALSIFIABLE: anyone who finds a key that cleanly separates any held-out cell
+below on a fresh seed group REFUTES this and reopens the arc. The residual cells
+(prev_tw, d_cnt_a, occ, ge : count) are:
+    tw1 d3 occ0 ge-1 :8   tw1 d0 occ2 ge+2 :6   tw6 d4 occ2 ge+1 :4
+    tw4 d3 occ2 ge+1 :4   tw2 d3 occ0 ge-1 :4   tw0 d0 occ2 ge-2 :2
+    tw1 d1 occ2 ge+2 :2   tw5 d3 occ2 ge+1 :2   tw3 d3 occ3 ge-1 :2
+    tw0 d3 occ3 ge-1 :2   tw2 d3 occ3 ge-1 :2   tw1 d3 occ3 ge-1 :2
+    tw3 d3 occ0 ge-1 :2   tw1 d3 occ4 ge-1 :2   + a 1-2-row tail to 79.
+The q_cnt=0 STARVED rows (tw1/tw2 d3 occ0 ge-1, 12 rows) got NO special
+treatment - they are part of the irreducible residual, not a separate unmined
+cell. Full row data: sw/class5_census544b.jsonl.gz (prev_bs==cur_bs==CODE,
+unpaired). This is the FIRST campaign arc formally closed.
