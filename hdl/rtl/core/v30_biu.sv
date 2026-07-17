@@ -332,13 +332,6 @@ wire [3:0] occupied = {1'b0, cnt_next} + {2'b0, infl};
 // w0-NEUTRAL: pf_drain is only ever set on a Tw cycle -> always 0 at w0 ->
 // prefetch_ok bit-identical (occ<=4).
 reg        pf_drain;
-// class-5 mid-band prefetch pause (8086-analogy, session 019f663c, chip ground
-// truth): band34_age = CE clocks the queue byte-count q_cnt has sat continuously
-// in the 3-4 "mid" band. Under WAITS, a mid-band resume that has aged in the band
-// is DELAYED by the chip (the 8086 "3-4 bytes -> delay" behavior; measured 0/169
-// held-out via sw/class5_bandage.py); w0 GO and waited PAUSE overlap at the same
-// band-age, so the delay is WAIT-DEPENDENT -> gate on eval_ext (w0-NEUTRAL).
-reg  [3:0] band34_age;
 // class-5 LOW-band pause (occupied-band-age aliasing, session 019f663c, fable
 // re-mining + verified 44 TP / 0 FP held-out): occ34_age = CE clocks the OCCUPIED
 // count (stored + in-flight) has sat continuously in the 3-4 band. At q_cnt<=2,
@@ -353,7 +346,7 @@ wire [3:0] pop_cnt = {3'b0, pop_sr[0]} + {3'b0, pop_sr[1]} +
                      {3'b0, pop_sr[6]} + {3'b0, pop_sr[7]};
 wire       eu_consuming = pop_cnt >= 4'd2;
 wire [3:0] pf_lim = (pf_drain && eu_consuming) ? 4'd3 : 4'd4;
-wire       prefetch_ok = !q_flush ? (!(eu_req || eu_hold) && occupied <= pf_lim &&
+wire       prefetch_ok = !q_flush ? (!law_block && !(eu_req || eu_hold) && occupied <= pf_lim &&
                                      q_aged == 2'd0)
                                   : !(eu_req || eu_hold);   // flushed queue is empty
 
@@ -532,10 +525,11 @@ wire        pf_rsv_lead = eval_ext && eu_rsv_lead &&
 // are age>=5, GO cases age 0 - threshold in the wide gap). eval_ext-gated ->
 // w0-NEUTRAL (never fires at w0, where the same aged mid-band GOES). Same guard
 // shape as pf_rsv_lead.
-wire        midband_pause = eval_ext && cur_fetch &&
-                            (q_cnt == 3'd3 || q_cnt == 3'd4) &&
-                            band34_age >= 4'd2 &&
-                            q_aged == 2'd0 && !q_flush && !eu_hold;
+// midband_pause DELETED (B2'): the unified law is a verified STRICT SUPERSET of
+// it - 656/656 firings covered, full-trace, both corpora. band34_age deleted with
+// it. lowband_pause is KEPT: it owns the d_cnt==2 hysteresis cell the law cannot
+// express (11 real chip pauses would be lost) and the 10 non-CODE-successor rows
+// the law was never fitted on.
 // LOW-band occupied-age delay WINDOW (q_cnt<=2): occ==4 pauses for occ34_age
 // 1..3, occ==3 for 1..2 (verified 0 false pauses, held-out). Gated to q_cnt<=2
 // (ungated it fires on mid-band chip-GO). eval_ext+cur_fetch-gated -> w0-neutral.
@@ -546,7 +540,7 @@ wire        lowband_pause = eval_ext && cur_fetch && q_cnt <= 3'd2 &&
 wire        prefetch_ext = (prefetch_ok ||
                            (eval_ext && pf_starved && eu_req && !eu_ready &&
                             eu_mem_acc && eu_kind == K_MEM) ||
-                           pf_late_rsv) && !pf_rsv_lead && !midband_pause &&
+                           pf_late_rsv) && !pf_rsv_lead &&
                           !lowband_pause;
 wire        pick_ext   = want_half2 || want_eu || prefetch_ext;
 // the eval_ext cycle would commit a NEAR-flush redirect prefetch: defer it one
@@ -910,7 +904,6 @@ always_ff @(posedge clk) begin
         q_rd       <= '0;
         q_wr       <= '0;
         q_cnt      <= '0;
-        band34_age <= 4'd0;
         occ34_age  <= 4'd0;
         q_avl      <= '0;
         q_aged     <= '0;
@@ -942,10 +935,6 @@ always_ff @(posedge clk) begin
         pop_sr <= {pop_sr[6:0], pop_now};   // recent consumption history
         // queue occupancy / availability pipeline
         q_cnt  <= cnt_next;
-        // class-5 mid-band age: clocks q_cnt has sat continuously in the 3-4 band
-        band34_age <= (q_cnt == 3'd3 || q_cnt == 3'd4)
-                        ? ((band34_age == 4'd15) ? 4'd15 : band34_age + 4'd1)
-                        : 4'd0;
         occ34_age  <= (occupied == 4'd3 || occupied == 4'd4)
                         ? ((occ34_age == 4'd15) ? 4'd15 : occ34_age + 4'd1)
                         : 4'd0;
@@ -1487,10 +1476,8 @@ assign rd_n = !((state == ST_T2 || state == ST_T3 || state == ST_TW)
 wire _unused = &{1'b0, fetch_cs_lin, ad_i[7:0]};
 
 //----------------------------------------------------------------------------
-// class-5 UNIFIED LAW - SHADOW (B1). LOG-ONLY: every signal below is consumed
-// exclusively by the TB dump. Nothing here drives prefetch_ok/prefetch_ext, any
-// slot, or any state. The design is bit-identical to HEAD with this block
-// present (goldens re-run to confirm).
+// class-5 UNIFIED LAW (B2'). ACTIVE: drives law_block, which replaces the
+// accidental q_aged-retry quantizer as the class-5 pause DURATION mechanism.
 //
 // The law, fitted board-free and frozen (fit=fresh seeds, hold=gz seeds):
 //   DECISION: pause_arm = (d_cnt >= 3) && (occupied >= 2)
@@ -1510,6 +1497,8 @@ reg  [2:0] sh_d_cnt;        // latched at t3_done: cnt_next at the READY edge
 reg        sh_pend;         // armed at occupied==3: cidle awaits pop@T4+2
 reg  [2:0] sh_cidle;        // resolved cidle_sel (0 = none/undetermined)
 reg        sh_fired;        // pulse: an arm resolved this cycle
+reg        sh_sched;        // a scheduled resume is pending
+reg  [2:0] sh_c;            // clocks elapsed since the arm (arm cycle = 1)
 
 // DECISION - evaluated at the eval cycle (eval_ext, i.e. T4+1)
 wire       sh_pause_arm = eval_ext && cur_fetch &&
@@ -1517,6 +1506,30 @@ wire       sh_pause_arm = eval_ext && cur_fetch &&
 // DURATION - the tw0/tw>=4/occ<=2 arms resolve immediately at the arm cycle
 wire       sh_cidle3_now = (sh_d_tw == 4'd0) || (sh_d_tw >= 4'd4) ||
                            (occupied <= 4'd2);
+// SCHEDULED RESUME: block the prefetch across the pause window so the commit
+// lands at T1 = T4 + 1 + cidle_sel. The arm cycle (T4+1) blocks combinationally;
+// sh_pend blocks the single extra cycle while pop@T4+2 resolves occ==3; then the
+// counter blocks until sh_c == sh_cidle-1, the cycle whose successor is T1.
+// This BLOCKS ONLY - it never forces a commit, so a want_eu still wins the bus
+// and the resume simply re-derives on the next idle (the yield the spec asks for).
+// w0-NEUTRAL BY CONSTRUCTION: every term is downstream of sh_pause_arm, which
+// requires eval_ext, which is never asserted at w0 (measured: 0 arms / 50388 w0
+// cycles). The 169000 golden is structurally unreachable from here.
+// DELTA IS MEASURED, NOT ASSUMED (T2 latency table, 3068 samples, one trace):
+//   COMMIT_DIRECT  SLOT_EVAL_EXT        2901/2901  delta = 1
+//   COMMIT_DIRECT  SLOT_FLUSH_HOLD         9/9     delta = 1
+//   COMMIT_STAGED  SLOT_TI_PLAIN        131/131    delta = 2
+//   COMMIT_STAGED  SLOT_T4_FLUSH_STAGED   27/27    delta = 2
+// The resume at window expiry commits through SLOT_TI_PLAIN, which is STAGED
+// (the descriptor goes to nxt_* and delivers via the nxt_live transition), so
+// T1 = fire + 2. The first cut released assuming delta = 1 and therefore landed
+// every scheduled resume exactly ONE CLOCK LATE - the 189-row +1 column, which
+// T4 showed was 100% law-armed. Issuing at T1_target - delta(STAGED):
+//   fire at k = T4 + cidle - 1  =>  T1 = k + 2 = T4 + 1 + cidle.  QED.
+// sh_c is 1 on the cycle after the arm, so sh_c == k - T4 - 1 and the release
+// condition is sh_c < cidle - 2.
+wire       law_block = sh_pause_arm || sh_pend ||
+                       (sh_sched && (sh_c < (sh_cidle - 3'd2)));
 
 always @(posedge clk) begin
     if (srst) begin
@@ -1551,14 +1564,21 @@ always @(posedge clk) begin
             end else begin
                 sh_cidle <= 3'd4; sh_pend <= 1'b0; sh_fired <= 1'b1;
             end
+            sh_sched <= 1'b1;
+            sh_c     <= 3'd1;              // the arm cycle counts as 1
         end else if (sh_pend) begin
             // one clock after the arm: pop decides 3 vs 4
             sh_cidle <= (pop_now != 1'b0) ? 3'd3 : 3'd4;
             sh_pend  <= 1'b0;
             sh_fired <= 1'b1;
+            sh_c     <= sh_c + 3'd1;
+        end else if (sh_sched) begin
+            sh_c <= sh_c + 3'd1;
+            if (sh_c >= (sh_cidle - 3'd1)) sh_sched <= 1'b0;   // window done
         end
         if (q_flush) begin                 // flush owns the window; cancel
-            sh_pend <= 1'b0;
+            sh_pend  <= 1'b0;
+            sh_sched <= 1'b0;
         end
     end
 end

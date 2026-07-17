@@ -508,13 +508,14 @@ always @(posedge clk) begin
                   // Append-only observability; DUT bit-identical to HEAD.
                   dut.u_eu.pop_want, dut.u_eu.q_avail, dut.u_eu.dly,
                   dut.u_eu.eu_rsv_lead,
-                  // d[55..61]: class-5 UNIFIED LAW shadow (B1) + the two vetoes
-                  // it must supersede. midband/lowband are dumped so the
-                  // SUPERSESSION GATE can be checked in-loop over full traces:
-                  // every veto firing must be covered by sh_pause_arm.
+                  // d[55..61]: class-5 UNIFIED LAW (B2', active) + lowband.
+                  // midband_pause is DELETED (law is a verified strict superset,
+                  // 656/656). d[60] is now law_block; d[61] lowband_pause, kept
+                  // so DOUBLE-FIRE sites (law + lowband) can be counted - an
+                  // artifact there is a PRECEDENCE bug, not law failure.
                   dut.u_biu.sh_pause_arm, dut.u_biu.sh_cidle,
                   dut.u_biu.sh_fired, dut.u_biu.sh_d_cnt, dut.u_biu.sh_d_tw,
-                  dut.u_biu.midband_pause, dut.u_biu.lowband_pause);
+                  dut.u_biu.law_block, dut.u_biu.lowband_pause);
 end
 
 initial begin
