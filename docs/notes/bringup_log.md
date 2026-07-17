@@ -1,5 +1,33 @@
 # Bring-up log
 
+## 2026-07-17 — H-PHASE CENSUS: fix WORKS on-scope (RMW-write cell 58u->8u, -50u), goldens hold, DONE-guard 190->190, w0 0/22188. Raw CODE->MEM 26u > 15u target (out-of-scope loads 17u + 4-row residual). Report-and-hold; NO second widening.
+
+ONE census with the landed fix (sw/class5_census_hphase.jsonl.gz, fixed gaperr, per-cycle-
+random, seeds 90000-19, wmaxes 0/1/3/7). vs OLD 544b:
+  total |ge| 544 -> 494 (-50u).  w0 control 0/22188 (w0-neutral).  no new transition class.
+  DONE-guard unpaired CODE->CODE: 190 -> 190 (EXACTLY held).
+  CODE->MEM 76 -> 26:
+    IN-SCOPE CODE->MEMW RMW-write cell: 58u -> 8u (-50u, the dominant mass removed).
+    OUT-OF-SCOPE CODE->MEMR loads: 17u -> 17u UNCHANGED (probe (c) excluded loads - a
+      SEPARATE mechanism, not a fix miss; interval-3 class, needs its own probe).
+    residual 4 CODE->MEMW rows (8u): board-free inspection - 2 are ODD-parity RMW where
+      the CHIP is early (H-PHASE edge cases at random-wait phases the 4-vector probe
+      subset did NOT sample; the census prev_tw field even logs them parity-0, a
+      chip-vs-model predecessor-frame discrepancy) + 1 NON-RMW even-parity store (a
+      different sub-cell, uses ext_ok not ext_ok_wr) + tail.
+GATES: w0 169000/169000, w1 1200/1200, w3 1200/1200 (all PASS); model-side even->interval2
+/ odd->interval4 confirmed. (w2 gate + uniform-RMW gate NOT yet run - flagged.)
+
+VERDICT: the fix is REAL and CORRECT on its scope - it removed the RMW-write ready-AT-T4
+even-parity cell (50u), w0/w1/w3-clean, DONE-guard held, no new class. The raw CODE->MEM
+<=15u target is NOT met (26u) but is DOMINATED by out-of-scope MEMR loads (17u) + a small
+residual (8u); it is BELOW the pre-registered >30u falsifier, so NOT a partial-mechanism
+trip. Per the veto-stacking rule (>30u -> no second widening; here <30u), do NOT stack a
+second predicate. The 4-row residual + the MEMR loads each need a FRESH probe, not a
+widen. STOPPED before synth/flash: architect rules whether the on-scope success (goldens
++ DONE-guard + 50u) justifies proceeding, or the residual is investigated first. Fix
+committed (13933b4); reverting is a one-line un-widen if the architect prefers.
+
 ## 2026-07-17 — H-PHASE PARITY HOLDS (30/30, 0 violations, both groups, random+uniform) -> BUILD. Loads excluded (write-handshake-specific). tw_par flop + ext_ok_wr widen.
 
 The architect's finer phase: Tw parity = T4's displacement against the 2-clock bus
