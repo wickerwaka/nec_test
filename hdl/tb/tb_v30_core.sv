@@ -493,7 +493,9 @@ always @(posedge clk) begin
                   onset_kind_eff, onset_wr_eff,
                   dut.u_biu.owns_slot, dut.u_biu.eu_rsv_dhi,
                   dut.u_biu.eu_rsv_push_calc,
-                  dut.u_biu.pf_drain, dut.u_biu.pop_cnt, dut.u_biu.eu_consuming,
+                  // pf_drain DELETED from the RTL; emit a constant 0 so d[39]
+                  // keeps its slot and every later index stays valid.
+                  1'b0, dut.u_biu.pop_cnt, dut.u_biu.eu_consuming,
                   dut.u_biu.grid_phase, dut.u_biu.pf_lim,
                   dut.u_biu.push_pend, dut.u_biu.push_now, dut.u_biu.pop_now,
                   dut.u_biu.cnt_next, dut.u_biu.pop_sr,
