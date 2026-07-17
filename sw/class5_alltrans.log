@@ -1,0 +1,89 @@
+start Fri Jul 17 06:26:22 2026  ALL-TRANSITION corpus (no CODE->CODE filter)
+  disc fz90000 w1: 198 opps (1s) total=198
+  disc fz90000 w2: 197 opps (0s) total=395
+  disc fz90000 w3: 197 opps (0s) total=592
+  disc fz90000 r4.3: 200 opps (0s) total=792
+  disc fz90000 r7.7: 120 opps (0s) total=912
+  disc fz90001 w1: 160 opps (0s) total=1072
+  disc fz90001 w2: 160 opps (0s) total=1232
+  disc fz90001 w3: 160 opps (0s) total=1392
+  disc fz90001 r4.3: 161 opps (0s) total=1553
+  disc fz90001 r7.7: 160 opps (0s) total=1713
+  disc fz90002 w1: 240 opps (0s) total=1953
+  disc fz90002 w2: 240 opps (0s) total=2193
+  disc fz90002 w3: 239 opps (0s) total=2432
+  disc fz90002 r4.3: 240 opps (0s) total=2672
+  disc fz90002 r7.7: 191 opps (0s) total=2863
+  disc fz90003 w1: 223 opps (0s) total=3086
+  disc fz90003 w2: 221 opps (0s) total=3307
+  disc fz90003 w3: 220 opps (0s) total=3527
+  disc fz90003 r4.3: 224 opps (0s) total=3751
+  disc fz90003 r7.7: 221 opps (0s) total=3972
+  disc fz90004 w1: 220 opps (0s) total=4192
+  disc fz90004 w2: 220 opps (0s) total=4412
+  disc fz90004 w3: 220 opps (0s) total=4632
+  disc fz90004 r4.3: 221 opps (0s) total=4853
+  disc fz90004 r7.7: 220 opps (0s) total=5073
+  disc fz90005 w1: 136 opps (0s) total=5209
+  disc fz90005 w2: 136 opps (0s) total=5345
+  disc fz90005 w3: 136 opps (0s) total=5481
+  disc fz90005 r4.3: 136 opps (0s) total=5617
+  disc fz90005 r7.7: 136 opps (0s) total=5753
+  disc fz90006 w1: 166 opps (0s) total=5919
+  disc fz90006 w2: 165 opps (0s) total=6084
+  disc fz90006 w3: 165 opps (0s) total=6249
+  disc fz90006 r4.3: 166 opps (0s) total=6415
+  disc fz90006 r7.7: 166 opps (0s) total=6581
+  disc fz90007 w1: 195 opps (0s) total=6776
+  disc fz90007 w2: 193 opps (0s) total=6969
+  disc fz90007 w3: 193 opps (0s) total=7162
+  disc fz90007 r4.3: 196 opps (0s) total=7358
+  disc fz90007 r7.7: 195 opps (0s) total=7553
+  held fz91000 w1: 129 opps (0s) total=7682
+  held fz91000 w2: 209 opps (0s) total=7891
+  held fz91000 w3: 115 opps (0s) total=8006
+  held fz91000 r4.3: 210 opps (0s) total=8216
+  held fz91000 r7.7: 115 opps (0s) total=8331
+  held fz91001 w1: 265 opps (0s) total=8596
+  held fz91001 w2: 265 opps (0s) total=8861
+  held fz91001 w3: 265 opps (0s) total=9126
+  held fz91001 r4.3: 265 opps (0s) total=9391
+  held fz91001 r7.7: 265 opps (0s) total=9656
+  held fz91002 w1: 205 opps (0s) total=9861
+  held fz91002 w2: 205 opps (0s) total=10066
+  held fz91002 w3: 205 opps (0s) total=10271
+  held fz91002 r4.3: 207 opps (0s) total=10478
+  held fz91002 r7.7: 206 opps (0s) total=10684
+  held fz91003 w1: 184 opps (0s) total=10868
+  held fz91003 w2: 184 opps (0s) total=11052
+  held fz91003 w3: 184 opps (0s) total=11236
+  held fz91003 r4.3: 184 opps (0s) total=11420
+  held fz91003 r7.7: 185 opps (0s) total=11605
+  held fz91004 w1: 178 opps (0s) total=11783
+  held fz91004 w2: 178 opps (0s) total=11961
+  held fz91004 w3: 178 opps (0s) total=12139
+  held fz91004 r4.3: 179 opps (0s) total=12318
+  held fz91004 r7.7: 178 opps (0s) total=12496
+  held fz91005 w1: 186 opps (0s) total=12682
+  held fz91005 w2: 185 opps (0s) total=12867
+  held fz91005 w3: 184 opps (0s) total=13051
+  held fz91005 r4.3: 187 opps (0s) total=13238
+  held fz91005 r7.7: 185 opps (0s) total=13423
+
+transitions captured: 13423 rows
+   CODE -> CODE : 8339
+   CODE -> IOW  : 845
+    IOW -> CODE : 845
+   CODE -> MEMR : 841
+   MEMR -> CODE : 804
+   MEMW -> CODE : 696
+   CODE -> MEMW : 659
+   MEMW -> MEMW : 144
+   MEMR -> MEMR : 138
+   CODE -> HALT : 65
+   MEMR -> MEMW : 42
+   MEMW -> MEMR : 5
+
+  CODE->CODE (what the old corpus saw): 8339
+  NON-CODE->CODE (the blind spot): 5084
+wrote /home/wickerwaka/src/nec_test/sw/class5_alltrans.jsonl.gz
