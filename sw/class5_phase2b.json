@@ -1,0 +1,20 @@
+{
+ "best_err": 8,
+ "best_exact": 0.5,
+ "n_eligible": 648,
+ "n_meet_a": 0,
+ "n_meet_b": 0,
+ "n_disc_perfect": 25,
+ "generalization": {
+  "variant": "D=cnt_next<=2 period=1 anchor=reset offset=0 clear=noD read=T4+1 lag=2",
+  "held": [
+   6,
+   6
+  ],
+  "fresh": [
+   16,
+   16
+  ],
+  "pooled": 1.0
+ }
+}

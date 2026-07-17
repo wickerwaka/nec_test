@@ -1,0 +1,99 @@
+=== PHASE 2 / FIT B (RESCOPED) - separate labelled fit; Fit A frozen and reported as-is ===
+non-flush rows 15776: low+mid(occ<=4) FIT=15230  blocked(occ>=5) VALIDATION-ONLY=546
+fit=gz-disc 4370 | frozen tests: gz-held 3393, fresh 7467
+
+sweeping 3276 variants on gz-disc ONLY
+SELECTION METRIC (fixed, before any held/fresh scoring): TOTAL
+  MISPREDICTIONS on non-flush low+mid = GO/PAUSE errors + wrong-cidle
+  on pause rows + pauses whose resume never lands in the trajectory.
+  This encodes the coordinator's PRIZE (the queue-demand event => exact
+  cidle) while being immune to the degenerate-subset gaming that rate
+  metrics permit (predict-PAUSE-always scores 9/9=100% exact with 4198
+  GO/PAUSE errors; a rarely-defined anchor scores a trivially-GO subset).
+  (47s) eligible (evaluable on every fit row): 1404/3276
+
+--- TOP 10 on gz-disc (ranked by TOTAL mispredictions) ---
+     total  errs       exact noTraj  variant
+        59     8        7/58      0  D=occupied<=4 period=1 anchor=lastT4 offset=0 clear=noD read=T3rdy lag=3
+        59     8        7/58      0  D=occupied<=4 period=1 anchor=lastT4 offset=0 clear=issue read=T3rdy lag=3
+        59     8        7/58      0  D=occupied<=4 period=1 anchor=lastT4 offset=0 clear=both read=T3rdy lag=3
+        59     8        7/58      0  D=occupied<=4&aged0 period=1 anchor=lastT4 offset=0 clear=noD read=T3rdy lag=2
+        59     8        7/58      0  D=occupied<=4&aged0 period=1 anchor=lastT4 offset=0 clear=issue read=T3rdy lag=2
+        59     8        7/58      0  D=occupied<=4&aged0 period=1 anchor=lastT4 offset=0 clear=both read=T3rdy lag=2
+        65     8        1/46     12  D=cnt_next<=2 period=1 anchor=lastT4 offset=0 clear=noD read=T3rdy lag=2
+        65     8        1/46     12  D=cnt_next<=2 period=1 anchor=lastT4 offset=0 clear=issue read=T3rdy lag=2
+        65     8        1/46     12  D=cnt_next<=2 period=1 anchor=lastT4 offset=0 clear=both read=T3rdy lag=2
+        65     8        1/46     12  D=cnt_next<=2&!euHold period=1 anchor=lastT4 offset=0 clear=noD read=T3rdy lag=2
+
+>> FROZEN (Fit B), selected on gz-disc alone:
+   D=occupied<=4 period=1 anchor=lastT4 offset=0 clear=noD read=T3rdy lag=3
+   disc: TOTAL mispredictions=59 of 4370 | GO/PAUSE errs=8 (GO->PAUSE=7 PAUSE->GO=1) | exact-cidle=7/58 | beyond-traj=0
+   RUNNER-UP:
+   D=occupied<=4 period=1 anchor=lastT4 offset=0 clear=issue read=T3rdy lag=3
+   disc: TOTAL=59 errs=8 exact-cidle=7/58 beyond-traj=0
+
+=== FROZEN. gz-held and fresh scored once, no further tuning. ===
+
+--- disc (non-flush low+mid, n=4370) ---
+    confusion:            pred GO   pred PAUSE
+      chip GO             4305            7
+      chip PAUSE             1           57
+    TOTAL mispredictions: 59 of 4370
+    GO/PAUSE errors: 8    exact-cidle on pause rows: 7/58 (12.1%)   beyond-traj: 0
+    error cells (occ,age): {(0, 0): 6, (1, 0): 1, (2, 0): 1}
+
+--- held (non-flush low+mid, n=3393) ---
+    confusion:            pred GO   pred PAUSE
+      chip GO             3334            7
+      chip PAUSE             4           48
+    TOTAL mispredictions: 59 of 3393
+    GO/PAUSE errors: 11    exact-cidle on pause rows: 4/52 (7.7%)   beyond-traj: 0
+    error cells (occ,age): {(0, 0): 6, (1, 0): 1, (2, 0): 1, (3, 4): 1, (3, 13): 2}
+
+--- fresh (non-flush low+mid, n=7467) ---
+    confusion:            pred GO   pred PAUSE
+      chip GO             7343           13
+      chip PAUSE             2          109
+    TOTAL mispredictions: 117 of 7467
+    GO/PAUSE errors: 15    exact-cidle on pause rows: 9/111 (8.1%)   beyond-traj: 0
+    error cells (occ,age): {(0, 0): 13, (2, 0): 1, (3, 4): 1}
+
+=== E2 CROSS-CHECK: does the winner reproduce the pred_tw gradient EMERGENTLY? ===
+    (the rule contains NO tw term - tw is a covariate, never an input)
+
+    non-flush low-band pause rows, cidle 3-vs-4 by predecessor Tw:
+     tw    chip 3:4    pred 3:4      exact
+      0        31:0        19:0      19/31
+      1       12:55         7:0       1/67
+      2       21:32         7:0       0/53
+      3       29:15         1:0       0/44
+      4         7:1         1:0        0/8
+      5         5:0         0:0        0/5
+      6         9:0         0:0        0/9
+      7         1:3         0:0        0/4
+
+    GO/PAUSE extinction with tw (non-flush low+mid, waited preds):
+     tw   chip GO:PAUSE   pred GO:PAUSE
+      1         3951:67         3947:71
+      2         4182:53         4175:60
+      3         4282:44         4276:50
+      4           462:8           462:8
+      5           221:5           221:5
+      6           305:9           305:9
+      7           341:4           341:4
+
+=== BLOCKED BAND (occ>=5): FROZEN VALIDATION, never fitted ===
+  n=546 errs=0 exact-cidle=9/9 (100.0%)  beyond-traj=380 uneval=0
+  (a fitted low+mid demand definition ALSO predicting blocked-band
+   resumes would be the strongest evidence one rule spans all bands)
+
+=== FLUSH ARM: TABULATED, never fitted (item 5) ===
+  chip cidle by flush offset (flush_clk - t4_clk):
+    offset    0: {1: 154}
+    offset    1: {1: 19, 2: 57}
+    offset    2: {2: 5, 3: 40}
+    offset    3: {4: 7}
+  model_cidle - chip_cidle over ALL 282 flush rows: {0: 282}
+  => the flush arm is already chip-exact at HEAD; nothing to build.
+
+wrote /home/wickerwaka/src/nec_test/sw/class5_phase3.json
