@@ -240,7 +240,8 @@ typedef enum logic [3:0] {
     SLOT_DEFER_IDLE,
     SLOT_FLUSH_HOLD,
     SLOT_DEFER_T4,
-    SLOT_FF_T4
+    SLOT_FF_T4,
+    SLOT_LAW_RESUME      // class-5 law scheduled resume (direct-at-TI, delta 1)
 } slot_id_t;
 
 typedef enum logic {
@@ -350,7 +351,7 @@ wire       eu_consuming = pop_cnt >= 4'd2;
 // w0: pf_drain was Tw-set only - measured 0 active cycles at w0 vs ~3300 at w1
 // across fz90000/90003/90007 - so deleting it is w0-structurally-safe.
 wire [3:0] pf_lim = 4'd4;
-wire       prefetch_ok = !q_flush ? (!law_block && !(eu_req || eu_hold) && occupied <= pf_lim &&
+wire       prefetch_ok = !q_flush ? (!(eu_req || eu_hold) && occupied <= pf_lim &&
                                      q_aged == 2'd0)
                                   : !(eu_req || eu_hold);   // flushed queue is empty
 
@@ -547,6 +548,57 @@ wire        prefetch_ext = (prefetch_ok ||
                            pf_late_rsv) && !pf_rsv_lead &&
                           !lowband_pause;
 wire        pick_ext   = want_half2 || want_eu || prefetch_ext;
+
+//----------------------------------------------------------------------------
+// class-5 UNIFIED LAW - DIRECT-PATH DELIVERY (the sixth attempt). Replaces the
+// staged law_block delivery (which fired the resume via SLOT_TI_PLAIN, STAGED,
+// delta=2 -> commit at T4+2 -> the q_aged blackout -> cidle 3 slipped to 4).
+// The direct path fires SLOT_LAW_RESUME (COMMIT_DIRECT, delta=1) at T4+cidle_sel
+// -> T1 = T4+1+cidle_sel for BOTH durations. For cidle 3 that is T4+3, which
+// BYPASSES the q_aged blackout at T4+2 (direct entry does not pass prefetch_ok's
+// q_aged term at the stage cycle). SILICON (Arm C): the chip pins at cidle 3 at
+// N=8 (22:12) and N=12 (28:2); the model emits 3 exactly zero times via the
+// staged path. This attempt closes that ~85u ceiling.
+// Per-consumer grants (Phase-S S0): the ARM suppresses the eval_ext grant
+// (pick_evalext); the WINDOW suppresses the ti_plain grant (pick_plain). Every
+// other slot keeps pick_ext / pick_any VERBATIM. w0-NEUTRAL: law_arm requires
+// eval_ext, never asserted at w0.
+wire       law_arm  = eval_ext && cur_fetch &&
+                      (law_dcnt >= 3'd3) &&
+                      (occupied >= 4'd2) && (occupied <= 4'd4) &&   // ARM GATE occ<=4
+                      !q_flush && !eu_hold;
+// LAW-SPECIFIC DUE GRANT - never through prefetch_ok (whose q_aged term is what
+// the direct path exists to bypass). EU priority stays in pick_fetch below.
+wire       law_grant = !q_flush && (q_aged == 2'd0) && !eu_hold &&
+                       (occupied <= 4'd4);
+// DUE: fire at T4 + cidle_sel. law_ctr == k - T4 - 1, so due at cidle_sel-1;
+// delta=1 puts T1 at T4+1+cidle_sel. Bounded retry to due+2 (the extra window)
+// covers declines by q_aged/nxt_live (law_grant/!nxt_live naturally hold off the
+// fire and law_ctr advances). Yields COMBINATIONALLY to flush/eval_ext (the
+// registered cancels below are one cycle late; without these terms law_due would
+// assert ON the flush/eval_ext cycle - SVA 2/3 caught exactly that).
+// CTR FRAME (measured, the bug the Fix A+B template carried): law_ctr becomes 0
+// at cycle T4+2 (the arm sets it registered at T4+1), so cycle = T4+2+law_ctr.
+// A fire at cycle k lands T1 = k+1 (delta 1), cidle = k-T4. For cidle == sel the
+// fire must be at k = T4+sel, i.e. law_ctr == sel-2. The template used sel-1 ->
+// fired at T4+sel+1 -> cidle sel+1 -> the persistent +1~150 across three
+// attempts. First due at sel-2; bounded retry to sel (declines by q_aged via
+// law_grant, by nxt_live via the slot guard).
+wire       law_due  = law_window &&
+                      (law_ctr >= (law_sel - 3'd2)) &&
+                      (law_ctr <= law_sel) &&
+                      !q_flush && !eval_ext;
+// GRANT RE-POINTING. selected_evalext suppresses the ARM cycle's prefetch;
+// selected_plain suppresses prefetch across the WINDOW (ti_plain only).
+wire       selected_evalext_pf_grant = law_arm    ? 1'b0 : prefetch_ext;
+wire       selected_plain_pf_grant   = law_window ? 1'b0 : prefetch_ok;
+wire       pick_evalext = want_half2 || want_eu || selected_evalext_pf_grant;
+wire       pick_plain   = want_half2 || want_eu || selected_plain_pf_grant;
+// pick_law: pick_EXT-shaped (carries law_grant), NEVER pick_any. pick_any omits
+// the pf_rsv_lead/lowband vetoes and firing through them issued fetches that must
+// not exist (bus diverged, n 16058 -> 15216 in the third attempt).
+wire       pick_law     = want_half2 || want_eu || law_grant;
+
 // the eval_ext cycle would commit a NEAR-flush redirect prefetch: defer it one
 // idle cycle (flush_hold) instead of committing here (see flush_hold decl).
 wire        flush_defer = eval_ext && q_flush && !flush_fast &&
@@ -634,14 +686,22 @@ end
 //----------------------------------------------------------------------------
 // direct_request: the ST_TI combined direct-entry guard (eval_ext OR far-flush
 // idle OR armed reader OR held near-flush) - one-clock-ahead display commits.
-wire direct_request = ((eval_ext && pick_ext && !flush_defer) ||
+wire direct_request = ((eval_ext && pick_evalext && !flush_defer) ||
                        (ff_show && pick_any)) ||
                       (defer_idle && want_eu) ||
-                      (flush_hold && pick_ext && pick_fetch);
+                      (flush_hold && pick_ext && pick_fetch) ||
+                      (law_due && state == ST_TI && !nxt_live &&
+                       pick_law && pick_fetch);
 
 // ST_TI direct slots (below nxt_live in priority):
 wire req_eval_ext   = state == ST_TI && !nxt_live &&
-                      eval_ext && pick_ext && !flush_defer;
+                      eval_ext && pick_evalext && !flush_defer;
+// class-5 law scheduled resume - a DIRECT commit at window expiry. Guards are
+// the fetch analogue of defer_idle's idiom (req_defer_idle/idle_commit): the
+// law_show display term below is TEXTUALLY IDENTICAL, so slot_show_now ==
+// ext_show holds BY CONSTRUCTION. pick_law (pick_EXT-shaped), NEVER pick_any.
+wire req_law_resume = state == ST_TI && !nxt_live &&
+                      law_due && pick_law && pick_fetch;
 wire req_ff_ti      = state == ST_TI && !nxt_live && ff_show && pick_any;
 wire req_defer_idle = state == ST_TI && !nxt_live && defer_idle && want_eu;
 wire req_flush_hold = state == ST_TI && !nxt_live &&
@@ -649,7 +709,7 @@ wire req_flush_hold = state == ST_TI && !nxt_live &&
 // ST_TI staged plain prefetch/EU commit (stage_commit path), below the
 // direct slots and the flush_defer/eval_ext teardown branches:
 wire req_ti_plain   = state == ST_TI && !nxt_live &&
-                      !direct_request && !flush_defer && !eval_ext && pick_any;
+                      !direct_request && !flush_defer && !eval_ext && pick_plain;
 // ST_T3/TW staged completion eval (zero-wait T3->T4 edge):
 wire req_t3_eval    = eval_at_t3 && pick_any;
 // ST_T4 direct defer_t4 commit (below nothing; defer_t4 is first in T4):
@@ -697,6 +757,8 @@ always_comb begin
         slot_fire = 1'b1; slot_id = SLOT_DEFER_IDLE; slot_mode = COMMIT_DIRECT;
     end else if (req_flush_hold) begin
         slot_fire = 1'b1; slot_id = SLOT_FLUSH_HOLD; slot_mode = COMMIT_DIRECT;
+    end else if (req_law_resume) begin
+        slot_fire = 1'b1; slot_id = SLOT_LAW_RESUME; slot_mode = COMMIT_DIRECT;
     end else if (req_ti_plain) begin
         slot_fire = 1'b1; slot_id = SLOT_TI_PLAIN;  slot_mode = COMMIT_STAGED;
     end else if (req_t3_eval) begin
@@ -1011,10 +1073,12 @@ always_ff @(posedge clk) begin
                     cur_kind   <= nxt_kind;
                     ube_n      <= nxt_ube_n;
                     nxt_valid  <= 1'b0;
-                end else if (((eval_ext && pick_ext && !flush_defer) ||
+                end else if (((eval_ext && pick_evalext && !flush_defer) ||
                               (ff_show && pick_any)) ||
                              (defer_idle && want_eu) ||
-                             (flush_hold && pick_ext && pick_fetch)) begin
+                             (flush_hold && pick_ext && pick_fetch) ||
+                             (law_due && state == ST_TI && !nxt_live &&
+                              pick_law && pick_fetch)) begin
                     // deferred (waited-cycle) completion eval OR the
                     // idle-window reg-EA reader early commit (defer_idle) OR
                     // the held near-flush redirect (flush_hold, one idle late):
@@ -1034,7 +1098,7 @@ always_ff @(posedge clk) begin
                     end
                 end else begin
                     `SLOT_CHK(slot_fire == (!flush_defer && !eval_ext &&
-                                            pick_any));
+                                            pick_plain));
                     defer_idle <= 1'b0;
                     if (flush_defer) begin
                         // near-flush redirect deferred one idle cycle: hold the
@@ -1402,8 +1466,14 @@ wire ff_t4   = flush_fast && q_flush && state == ST_T4 && cur_fetch &&
 // T1 next cycle - the mid-cycle commit analogue of defer_show for a
 // bus-idle landing rather than a fetch T4.
 wire idle_commit = defer_idle && state == ST_TI && !nxt_live && want_eu;
-wire ext_show = (eval_ext && pick_ext && !flush_defer) || defer_show ||
-                ff_show || ff_t4 || idle_commit ||
+// law_show mirrors req_law_resume TEXTUALLY (the idle_commit idiom): same term
+// on both sides of the Phase-R invariant slot_show_now == ext_show, so it holds
+// by construction. slot_show_now drives the PIN MUXES (bs, ad_oe_addr, ad_o) -
+// a direct commit with no display would drive WRONG PINS.
+wire law_show = law_due && state == ST_TI && !nxt_live &&
+                pick_law && pick_fetch;
+wire ext_show = (eval_ext && pick_evalext && !flush_defer) || defer_show ||
+                ff_show || ff_t4 || idle_commit || law_show ||
                 (flush_hold && pick_ext && pick_fetch);
 
 // Phase R (R7): the canonical direct-slot display signal. A direct slot fire
@@ -1478,111 +1548,113 @@ assign rd_n = !((state == ST_T2 || state == ST_T3 || state == ST_TW)
 wire _unused = &{1'b0, fetch_cs_lin, ad_i[7:0]};
 
 //----------------------------------------------------------------------------
-// class-5 UNIFIED LAW (B2'). ACTIVE: drives law_block, which replaces the
-// accidental q_aged-retry quantizer as the class-5 pause DURATION mechanism.
-//
-// The law, fitted board-free and frozen (fit=fresh seeds, hold=gz seeds):
-//   DECISION: pause_arm = (d_cnt >= 3) && (occupied >= 2)
-//             d_cnt = cnt_next LATCHED at the completion-eval edge (t3_done).
-//             Held-out: 0 false-pause / 5 missed-pause on 7763 rows (vs 19 for
-//             the midband+lowband predicate stack, vs 110 always-GO).
-//   DURATION: cidle_sel = 3  if d_tw == 0 or d_tw >= 4 or occupied <= 2
-//                         3  if occupied == 3 && pop@T4+2
-//                         4  otherwise (occupied == 3 && !pop, or occupied == 4)
-// The pop@T4+2 term resolves ONE CLOCK AFTER the arm; the earliest commit it
-// can affect is T4+3 (for a T4+4 T1), so the slack is 1 clock (confirmed
-// empirically: prefetch_ok asserts at T4+3 for a cidle-3 resume).
+// class-5 UNIFIED LAW - state (the direct-path sixth attempt). law_dcnt is
+// latched at the T3 STATE cycle - the PRE-WAIT frame (t3_done fires at the READY
+// edge, a different cycle under waits, giving d_cnt=2 where the fit needs >=3).
+// state==ST_T3 is a single cycle even under waits (ST_TW is a distinct state).
+// E2 independently concluded the pre-wait frame; fit and E2 corroborate.
 //----------------------------------------------------------------------------
-reg  [3:0] sh_tw_cnt;       // Tw cycles elapsed in the CURRENT bus cycle
-reg  [3:0] sh_d_tw;         // latched at t3_done: the completing fetch's Tw
-reg  [2:0] sh_d_cnt;        // latched at t3_done: cnt_next at the READY edge
-reg        sh_pend;         // armed at occupied==3: cidle awaits pop@T4+2
-reg  [2:0] sh_cidle;        // resolved cidle_sel (0 = none/undetermined)
-reg        sh_fired;        // pulse: an arm resolved this cycle
-reg        sh_sched;        // a scheduled resume is pending
-reg  [2:0] sh_c;            // clocks elapsed since the arm (arm cycle = 1)
-
-// DECISION - evaluated at the eval cycle (eval_ext, i.e. T4+1)
-wire       sh_pause_arm = eval_ext && cur_fetch &&
-                          (sh_d_cnt >= 3'd3) && (occupied >= 4'd2);
-// DURATION - the tw0/tw>=4/occ<=2 arms resolve immediately at the arm cycle
-wire       sh_cidle3_now = (sh_d_tw == 4'd0) || (sh_d_tw >= 4'd4) ||
-                           (occupied <= 4'd2);
-// SCHEDULED RESUME: block the prefetch across the pause window so the commit
-// lands at T1 = T4 + 1 + cidle_sel. The arm cycle (T4+1) blocks combinationally;
-// sh_pend blocks the single extra cycle while pop@T4+2 resolves occ==3; then the
-// counter blocks until sh_c == sh_cidle-1, the cycle whose successor is T1.
-// This BLOCKS ONLY - it never forces a commit, so a want_eu still wins the bus
-// and the resume simply re-derives on the next idle (the yield the spec asks for).
-// w0-NEUTRAL BY CONSTRUCTION: every term is downstream of sh_pause_arm, which
-// requires eval_ext, which is never asserted at w0 (measured: 0 arms / 50388 w0
-// cycles). The 169000 golden is structurally unreachable from here.
-// DELTA IS MEASURED, NOT ASSUMED (T2 latency table, 3068 samples, one trace):
-//   COMMIT_DIRECT  SLOT_EVAL_EXT        2901/2901  delta = 1
-//   COMMIT_DIRECT  SLOT_FLUSH_HOLD         9/9     delta = 1
-//   COMMIT_STAGED  SLOT_TI_PLAIN        131/131    delta = 2
-//   COMMIT_STAGED  SLOT_T4_FLUSH_STAGED   27/27    delta = 2
-// The resume at window expiry commits through SLOT_TI_PLAIN, which is STAGED
-// (the descriptor goes to nxt_* and delivers via the nxt_live transition), so
-// T1 = fire + 2. The first cut released assuming delta = 1 and therefore landed
-// every scheduled resume exactly ONE CLOCK LATE - the 189-row +1 column, which
-// T4 showed was 100% law-armed. Issuing at T1_target - delta(STAGED):
-//   fire at k = T4 + cidle - 1  =>  T1 = k + 2 = T4 + 1 + cidle.  QED.
-// sh_c is 1 on the cycle after the arm, so sh_c == k - T4 - 1 and the release
-// condition is sh_c < cidle - 2.
-wire       law_block = sh_pause_arm || sh_pend ||
-                       (sh_sched && (sh_c < (sh_cidle - 3'd2)));
+reg  [3:0] law_tw_cnt;      // Tw cycles elapsed in the CURRENT bus cycle
+reg  [3:0] law_dtw;         // the completing fetch's full Tw count
+reg  [2:0] law_dcnt;        // cnt_next latched at the T3 STATE cycle (frame A)
+reg        law_window;      // a scheduled resume is outstanding (ONE-SHOT)
+reg  [2:0] law_ctr;         // cycles since the arm (arm cycle == ctr 0)
+reg  [2:0] law_sel;         // cidle_sel for THIS arm
+reg        law_prov;        // occupied==3: sel provisional pending pop@T4+2
 
 always @(posedge clk) begin
     if (srst) begin
-        sh_tw_cnt <= 4'd0; sh_d_tw <= 4'd0; sh_d_cnt <= 3'd0;
-        sh_pend   <= 1'b0; sh_cidle <= 3'd0; sh_fired <= 1'b0;
+        law_tw_cnt <= 4'd0; law_dtw <= 4'd0; law_dcnt <= 3'd0;
+        law_window <= 1'b0; law_ctr <= 3'd0; law_sel <= 3'd0; law_prov <= 1'b0;
     end else if (ce) begin
-        sh_fired <= 1'b0;
         // per-bus-cycle Tw counter
-        if (state == ST_T1)      sh_tw_cnt <= 4'd0;
-        else if (state == ST_TW) sh_tw_cnt <= sh_tw_cnt + 4'd1;
-        // FRAME (this is the subtle part - the B1 shadow caught it):
-        // d_cnt is latched at the T3 STATE cycle, i.e. the PRE-WAIT frame, NOT
-        // at t3_done. t3_done = (ST_T3||ST_TW)&&ready fires at the READY edge
-        // (the LAST Tw), which under waits is a DIFFERENT cycle. The law was
-        // fitted on cnt_next at the T3 cycle; latching at t3_done gave d_cnt=2
-        // where the fit needs >=3 and broke the supersession gate on every
-        // waited lowband firing. The pre-wait frame is also exactly what E2
-        // independently concluded ("the deadline is fixed in the PRE-WAIT
-        // frame"), so the two results corroborate.
-        if (state == ST_T3) sh_d_cnt <= cnt_next;
-        // d_tw is the completing fetch's FULL Tw count, so it can only be
-        // known at the ready edge. sh_tw_cnt has not yet counted the current
-        // cycle when t3_done lands on a Tw, hence the +1.
-        if (t3_done)
-            sh_d_tw <= sh_tw_cnt + ((state == ST_TW) ? 4'd1 : 4'd0);
-        // arm
-        if (sh_pause_arm) begin
-            if (sh_cidle3_now) begin
-                sh_cidle <= 3'd3; sh_pend <= 1'b0; sh_fired <= 1'b1;
+        if (state == ST_T1)      law_tw_cnt <= 4'd0;
+        else if (state == ST_TW) law_tw_cnt <= law_tw_cnt + 4'd1;
+        // PRE-WAIT frame latch (frame A)
+        if (state == ST_T3 && cur_fetch) law_dcnt <= cnt_next;
+        // full Tw is known only at the ready edge
+        if (t3_done) law_dtw <= law_tw_cnt + ((state == ST_TW) ? 4'd1 : 4'd0);
+
+        // ---- arm (eval_ext, T4+1) ----
+        if (law_arm) begin
+            law_window <= 1'b1;
+            law_ctr    <= 3'd0;
+            // cidle_sel: 3 if tw0/tw>=4/occ<=2; occ==3 -> provisional 4 pending
+            // pop@T4+2; else 4. Silicon: chip pins 3 at high N - the tw>=4->3
+            // arm is NOT softened.
+            if ((law_dtw == 4'd0) || (law_dtw >= 4'd4) || (occupied <= 4'd2)) begin
+                law_sel <= 3'd3; law_prov <= 1'b0;
             end else if (occupied == 4'd3) begin
-                sh_pend  <= 1'b1;          // resolve on pop@T4+2 next cycle
+                law_sel <= 3'd4; law_prov <= 1'b1;
             end else begin
-                sh_cidle <= 3'd4; sh_pend <= 1'b0; sh_fired <= 1'b1;
+                law_sel <= 3'd4; law_prov <= 1'b0;
             end
-            sh_sched <= 1'b1;
-            sh_c     <= 3'd1;              // the arm cycle counts as 1
-        end else if (sh_pend) begin
-            // one clock after the arm: pop decides 3 vs 4
-            sh_cidle <= (pop_now != 1'b0) ? 3'd3 : 3'd4;
-            sh_pend  <= 1'b0;
-            sh_fired <= 1'b1;
-            sh_c     <= sh_c + 3'd1;
-        end else if (sh_sched) begin
-            sh_c <= sh_c + 3'd1;
-            if (sh_c >= (sh_cidle - 3'd1)) sh_sched <= 1'b0;   // window done
+        end else if (law_window) begin
+            law_ctr <= law_ctr + 3'd1;
+            // occ==3 downgrade: pop@T4+2 is at law_ctr==0 (cycle T4+2).
+            if (law_prov && law_ctr == 3'd0) begin
+                law_prov <= 1'b0;
+                if (pop_now != 1'b0) law_sel <= 3'd3;
+            end
+            // ONE-SHOT lifecycle: window dies after the retry budget. Due window
+            // is [sel-2, sel]; past sel the schedule is abandoned and legacy owns
+            // the resume.
+            if (law_ctr >= law_sel) law_window <= 1'b0;
         end
-        if (q_flush) begin                 // flush owns the window; cancel
-            sh_pend  <= 1'b0;
-            sh_sched <= 1'b0;
+
+        // COMBINATIONAL CANCELS (registered here, effect next cycle; law_due
+        // yields combinationally via its !q_flush/!eval_ext terms so the current
+        // cycle is already clean): flush owns its window (flush law 282/282);
+        // any non-law slot fire took the bus; want_eu at the due cycle -> EU
+        // wins; our own fire ends the schedule.
+        if (law_window) begin
+            if (q_flush ||
+                (slot_fire && slot_id != SLOT_LAW_RESUME) ||
+                (law_due && want_eu) ||
+                (slot_fire && slot_id == SLOT_LAW_RESUME))
+                law_window <= 1'b0;
         end
     end
 end
+
+`ifndef SYNTHESIS
+`ifdef VERILATOR
+// SVA 4: law_dcnt frame-A equality (RTL twin of the corpus cross-check,
+// cnt_next @ t4-tw-1), asserted PER FETCH.
+// the probe MUST mirror law_dcnt's reset exactly, or a mid-run srst pulse (which
+// check_core issues between cases) resets law_dcnt but leaves the probe stale ->
+// a spurious 0-vs-3 mismatch that is a harness artifact, not a frame bug.
+reg [2:0] law_dcnt_probe;
+always @(posedge clk)
+    if (srst) law_dcnt_probe <= 3'd0;
+    else if (ce && state == ST_T3 && cur_fetch) law_dcnt_probe <= cnt_next;
+always @(posedge clk) if (!srst && ce && t3_done && cur_fetch)
+    assert (law_dcnt == law_dcnt_probe)
+        else $error("class-5 SVA4: law_dcnt frame mismatch %0d != %0d",
+                    law_dcnt, law_dcnt_probe);
+// SVA 2/3: law_due never co-asserts with eval_ext or a flush.
+always @(posedge clk) if (!srst && ce)
+    assert (!(law_due && (eval_ext || q_flush)))
+        else $error("class-5 SVA2/3: law_due co-asserted with eval_ext/q_flush");
+// SVA 5/6: window lifetime <= cidle_sel+2 (bounded retry, no immortal window).
+always @(posedge clk) if (!srst && ce && law_window)
+    assert (law_ctr <= law_sel)
+        else $error("class-5 SVA5/6: law_ctr %0d past retry cap (sel=%0d)",
+                    law_ctr, law_sel);
+// arm never fires outside the fitted domain (arm gate occ 2..4).
+always @(posedge clk) if (!srst && ce && law_arm)
+    assert (occupied <= 4'd4 && occupied >= 4'd2)
+        else $error("class-5: law armed off-domain occupied=%0d", occupied);
+// SVA 1: SLOT_LAW_RESUME fires ONLY within the bounded due window [sel-1,sel+1]
+// - never outside it (no silent third outcome; a mistimed fire is forbidden).
+// delta=1 then bounds T1 to [T4+1+sel, T4+3+sel]; the FIRST-due fire lands
+// exactly T4+1+cidle_sel (census-verified), retries are the budgeted residual.
+always @(posedge clk) if (!srst && ce && slot_fire && slot_id == SLOT_LAW_RESUME)
+    assert (law_window && law_ctr >= (law_sel - 3'd2)
+                       && law_ctr <= law_sel)
+        else $error("class-5 SVA1: law slot fired outside due window ctr=%0d sel=%0d",
+                    law_ctr, law_sel);
+`endif
+`endif
 
 endmodule

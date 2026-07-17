@@ -783,14 +783,14 @@ def run_tb_internal(image, n, wvec):
                 eu_dly=int(d[53]) if len(d) > 53 else -1,
                 eu_rsv_lead=int(d[54]) if len(d) > 54 else -1,
                 # class-5 unified-law shadow (B1) + the superseded vetoes:
-                sh_arm=int(d[55]) if len(d) > 55 else -1,
-                sh_cidle=int(d[56]) if len(d) > 56 else -1,
-                sh_fired=int(d[57]) if len(d) > 57 else -1,
-                sh_d_cnt=int(d[58]) if len(d) > 58 else -1,
-                sh_d_tw=int(d[59]) if len(d) > 59 else -1,
+                law_arm=int(d[55]) if len(d) > 55 else -1,
+                law_sel=int(d[56]) if len(d) > 56 else -1,
+                law_due=int(d[57]) if len(d) > 57 else -1,
+                law_dcnt=int(d[58]) if len(d) > 58 else -1,
+                law_dtw=int(d[59]) if len(d) > 59 else -1,
                 # d[60] is law_block on the banked build (midband_pause was
                 # DELETED); naming it midband_pause silently mislabelled it.
-                law_block=int(d[60]) if len(d) > 60 else -1,
+                law_window=int(d[60]) if len(d) > 60 else -1,
                 lowband_pause=int(d[61]) if len(d) > 61 else -1))
             pend = None
     return rows

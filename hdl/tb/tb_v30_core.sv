@@ -510,14 +510,14 @@ always @(posedge clk) begin
                   // Append-only observability; DUT bit-identical to HEAD.
                   dut.u_eu.pop_want, dut.u_eu.q_avail, dut.u_eu.dly,
                   dut.u_eu.eu_rsv_lead,
-                  // d[55..61]: class-5 UNIFIED LAW (B2', active) + lowband.
-                  // midband_pause is DELETED (law is a verified strict superset,
-                  // 656/656). d[60] is now law_block; d[61] lowband_pause, kept
-                  // so DOUBLE-FIRE sites (law + lowband) can be counted - an
-                  // artifact there is a PRECEDENCE bug, not law failure.
-                  dut.u_biu.sh_pause_arm, dut.u_biu.sh_cidle,
-                  dut.u_biu.sh_fired, dut.u_biu.sh_d_cnt, dut.u_biu.sh_d_tw,
-                  dut.u_biu.law_block, dut.u_biu.lowband_pause);
+                  // d[55..61]: class-5 UNIFIED LAW (direct-path, active) +
+                  // lowband. Names updated with the RTL in the same commit
+                  // (names are part of the chain). d[55]=law_arm, d[56]=law_sel,
+                  // d[57]=law_due, d[58]=law_dcnt, d[59]=law_dtw, d[60]=law_window,
+                  // d[61]=lowband_pause.
+                  dut.u_biu.law_arm, dut.u_biu.law_sel,
+                  dut.u_biu.law_due, dut.u_biu.law_dcnt, dut.u_biu.law_dtw,
+                  dut.u_biu.law_window, dut.u_biu.lowband_pause);
 end
 
 initial begin
