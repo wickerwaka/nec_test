@@ -603,8 +603,748 @@ sub-rule there needs the finer imminent-consumption / access-kind signal.
   ordinary-prefetch(CODE) -> IDLE; eval_ext = edge label only; preserve ext_ok_wr;
   validate w0 vs fresh chip traces.
 
-Tools: `sw/causal_wrand.py`. Repro examples:
-`python3 sw/causal_wrand.py urgency --seeds 90003 90007 90015 --nws 8 --wmaxes 1 3 7`;
+---
+
+# Phase 2j — SAMPLER FIX overturns Phase 2i; q_cnt edit is a NO-OP; real gate = read/write
+
+Codex flagged the Phase-2i sampler bug: q_cnt was read at the completing-CODE T4
+row but eu_req one cycle later, and q_cnt advances every CPU edge. Fixed: added
+eu_req_p1 / pf_late_rsv / pf_starved / prefetch_ext / prefetch_ok to the eudbg
+dump (tb_v30_core) and re-measured with ALL gate inputs sampled LIVE on the same
+eval_ext decision row. Branch: biu-arb-qcnt.
+
+## Corrected measurement (11,515 contested edges, live eval_ext-row sampling)
+
+Action by request-age class at the eval_ext row:
+- absent (eu_req=0): CODE 8092 / IDLE 8  (no reservation -> prefetch, correct)
+- ready (eu_ready=1): IDLE 3294 / CODE 0  (ready-EU priority, correct)
+- young  (eu_req=1, eu_req_p1=0, coincident): CODE 109 / IDLE 12
+
+YOUNG reservations, keyed by (q_cnt_eval, access family) - **0 collisions**:
+- q_cnt=0, MEMR: CODE 62   q_cnt=0, MEMW: CODE 23   (urgent refill, both prefetch)
+- q_cnt=1, MEMR: **IDLE 12**   q_cnt=1, MEMW: CODE 24
+
+## Two conclusions that CHANGE the plan
+
+1. **The Phase-2i "q_cnt>=2" claim was a SAMPLER-BUG ARTIFACT.** With live
+   sampling, young/coincident reservations occur ONLY at q_cnt<=1, and
+   **pf_late_rsv fires ONLY at q_cnt<=1 (0 firings at q_cnt>=2, over 109
+   firings).** So the proposed `pf_late_rsv &&= (q_cnt<=1)` edit is a NO-OP -
+   it removes nothing. Per Codex's stop-condition (q_cnt>=2 not actionable),
+   **NO EDIT MADE.**
+2. **The real over-prefetch bug, precisely:** pf_late_rsv fires for young
+   ORDINARY READ reservations at q_cnt=1 (12/12 chip IDLE = the chip reserves the
+   read; the model prefetches = over-prefetch). Ordinary WRITES at q_cnt=1
+   (CODE 24) and BOTH at q_cnt=0 (urgent refill) correctly prefetch. The RTL
+   pf_late_rsv condition `eu_mem_acc && eu_kind==K_MEM` does NOT distinguish
+   read from write, yet its own comment calls it "the fitted WRITE-half
+   reservation law" - it is wrongly applied to reads. **The discriminator is
+   read-vs-write at q_cnt=1, NOT q_cnt<=1.**
+
+## Why I did NOT make an edit (and what's needed first)
+
+- The pre-approved edit (q_cnt<=1) is a no-op; making it would be theater.
+- The measured fix (gate pf_late_rsv to exclude ORDINARY reads) is promising but
+  UNVALIDATED against the FITTED cases: pf_late_rsv was fitted on REP-string
+  seeds (a4/a5/ab/ac/ad = MOVS/STOS/LODS), which include string READS (LODS).
+  My corpus is the base fuzz menu (ordinary loads/stores, NO string ops), so
+  "reads reserve at q_cnt=1" is measured for ORDINARY reads only. A string LODS
+  read may LEGITIMATELY lose to CODE (pf_late_rsv correct there) - so the real
+  discriminator may be ORDINARY-vs-STRING, not plain read-vs-write. Editing on
+  the plain read/write split risks regressing the string cases pf_late_rsv was
+  fitted for. The Step-2 FITTED-CASE INVENTORY (pf_late_rsv firings in golden
+  string/RMW traces, by family + q_cnt) MUST run before any edit.
+
+## Correction to the above: the read/write split was an EDGE-MATCHING ARTIFACT
+
+The "young MEMR reserves / MEMW prefetches at q_cnt=1" split used the CHIP's next
+ARCHITECTURAL access as the family label. Adding `eu_wr` to the eudbg dump and
+re-keying by the RTL's ACTUAL reservation direction at the eval_ext row shows:
+**every young q_cnt=1 reservation is eu_wr=1 (a WRITE) at that row**, and those
+writes are MIXED (12 IDLE / 24 CODE). So `eu_wr` does NOT separate them - the
+apparent read/write split was the edge-finder pairing the eval_ext reservation
+with a DOWNSTREAM architectural access of a different type, not the reservation's
+own access. I made the `&& eu_wr` edit, validated it (golden w0 169000, w1/w3
+1200/1200 - safe), but it did NOT remove the over-prefetch divergences (they are
+eu_wr=1), so it is INEFFECTIVE. **Edit REVERTED; RTL back to baseline.**
+
+## Honest bottom line (Phase 2j) - NOT closed, NOT flash-ready
+
+- **Sampler fixed; Phase-2i conclusion overturned.** pf_late_rsv fires only at
+  q_cnt<=1; the pre-approved q_cnt<=1 edit is a NO-OP (0 firings at q_cnt>=2).
+- **The read/write edit is INEFFECTIVE** (divergent cases are eu_wr=1 writes);
+  reverted. It was an edge-matching artifact, not a real discriminator.
+- **A real COLLISION persists at the reliable state:** at (q_cnt=1, young
+  coincident reservation, eu_wr=1, eval_ext) the chip both IDLEs (reserves, 12)
+  and prefetches (CODE, 24) - and NO measured RTL-observable field (q_cnt, occ,
+  eu_wr, eu_req, eu_req_p1, eu_ready, q_aged, infl) separates them. So the
+  arbitration decision is NOT a function of the currently-measured state.
+- **Root measurement issue:** the edge-finder must associate the eval_ext
+  reservation with ITS OWN pending access (identity/kind/age), not a downstream
+  architectural access. Until the reservation is correctly identified per edge,
+  the discriminator can't be measured. The hidden variable is likely the precise
+  reservation ONSET/age or the specific pending-access microstate - needing the
+  controlled per-access-family experiment (reader/store/RMW/string with a
+  young reservation), not the fuzz scan.
+- **No actionable edit. NOT flash-ready.** The predicate is NOT closed; the
+  q_cnt and read/write hypotheses are both refuted at the reliable state. Report
+  to Codex: the closure needs correct per-edge reservation identification, then
+  the collision re-tested; the 2/8 eu_req=0 cases and w0 re-measurement remain
+  separate follow-ups.
+
+# Phase 2k — the collision RESOLVED: discriminator = reservation SOURCE (+ q_cnt)
+
+Codex's verdict on the Phase-2j collision was correct: the coarse `eu_req_p1==0`
+"young" bit conflates ~10 different EU reservation-generating microstates, and
+the discriminator is the reservation's OWN SOURCE (+ onset age). Phase 2k added
+RESERVATION-ONSET INSTRUMENTATION (TB-only, measurement; no functional RTL
+change) and MEASURED it. **The collision is resolved: the discriminator is the
+reservation SOURCE (the EU state at the eu_req rising edge), collision-free when
+keyed with q_cnt. Onset AGE is NOT the discriminator; q_avl/q_aged are not
+needed.**
+
+## Instrumentation (measurement only)
+
+`hdl/tb/tb_v30_core.sv`: on every `eu_req` RISING edge, latch the EU state
+generating it (`onset_state` = the reservation's own source, e.g.
+S_EA1/S_EA2/S_DISP8/S_DHI/S_MHI/S_RSV/S_RMWX/S_DEC/S_PUSH_CALC/...), the
+absolute CPU clock (`onset_clock` -> exact onset age), and the opcode/kind/dir
+at onset. Carried until eu_started/withdrawal/flush. The dumped fields are
+computed COMBINATIONALLY on the onset cycle (eu_req rises ON this row ->
+onset_state=current state, age=0) so a withdrawal/reassert cannot alias the
+age-0 case. Appended to `+eudbg` (5 new fields: onset_state onset_age onset_opc
+onset_kind onset_wr). Golden path UNCHANGED: check_core 169000/169000 full.
+`sw/causal_wrand.py`: new `onset` subcommand + STATE_NAMES parsed from v30_eu.sv.
+
+## The two collision exemplars (extracted + chip-verified, Step 2)
+
+Both have IDENTICAL coarse state at the eval_ext decision row - q_cnt=1, q_avl=1,
+q_aged=0, eu_req=1, eu_req_p1=0, eu_ready=0, eu_wr=1, pf_late_rsv=1 - and differ
+ONLY in the reservation's own source:
+
+    fz90007 ws1 wmax1 bus45  onset=S_DHI  age0 opc31(XOR Ev,Gv/RMW-read)  -> chip IDLE
+    fz90030 ws1 wmax1 bus47  onset=S_RSV  age0 opc AA(STOS byte store)     -> chip CODE
+
+The chip inserts an idle slot then issues MEMR@023fc for the S_DHI case; runs
+three more prefetches before MEMW@02928 for the S_RSV case. pf_late_rsv fires
+(model prefetches) in BOTH - so the S_DHI case is the model's over-prefetch bug.
+
+## The collision-free table (chip ground truth; SOURCE x q_cnt, onset_age==0 throughout)
+
+Merged over discovery (90003/07/15/21/30) AND held-out (90042/51/63/77/88), each
+5 seeds x nws10 x wmax{1,2,3,7}; young = coincident reservation (eu_req=1,
+eu_req_p1=0, eu_ready=0); action is the CHIP's IDLE(reserve)/CODE(prefetch):
+
+    onset SOURCE   q_cnt=0   q_cnt=1        q_cnt=2
+    S_DHI            -        IDLE (14)        -        <-- the ONLY reserving source at q1
+    S_MHI            -        CODE (12)        -
+    S_RSV          CODE(68)   CODE (12)        -
+    S_DEC          CODE(14)     -              -
+    S_JWAIT        CODE(18)     -            CODE (12)
+    S_PUSH_CALC    CODE(13)     -            IDLE (6)   <-- reserves only at q_cnt>=2
+
+- Keyed by (SOURCE, q_cnt): **0 collisions in BOTH corpora** (COLLISION-FREE).
+- Keyed by SOURCE ALONE: collision-free on discovery, but the held-out set
+  exposes S_PUSH_CALC as q_cnt-dependent (CODE at q0, IDLE at q2) -> q_cnt is a
+  necessary co-key. The 12/24(here 12/12) reliable collision itself (q_cnt=1,
+  eu_wr=1) is resolved by SOURCE alone: S_DHI->IDLE vs S_RSV/S_MHI->CODE.
+- **onset AGE = 0 for EVERY contested young edge** (the coincident cases are all
+  age-0 by construction) -> age is NOT a discriminator in the measured data.
+- **q_avl/q_aged identical within each collision cell** (q_avl=1, q_aged=0) ->
+  the queue-pipeline split adds no resolving power here.
+
+## The mechanism + the model's exact error (for Codex, NO RTL edit made)
+
+The chip's reserve-vs-prefetch decision at a coincident (age-0) pending
+reservation is a function of WHICH microstate generated it: only S_DHI-sourced
+reservations (reader / RMW-read final displacement-byte pop) RESERVE the bus
+(IDLE) at q_cnt=1; S_RSV (generic store/string reservation, e.g. C6 store, STOS),
+S_MHI (moffs), S_JWAIT, S_DEC (POP/RET decode) let the prefetch win; S_PUSH_CALC
+reserves only at q_cnt>=2. The model's `pf_late_rsv` (v30_biu) yields to CODE for
+ALL of these young sources - CORRECT for the CODE rows, WRONG (over-prefetch) for
+S_DHI@q1 and S_PUSH_CALC@q2 where the chip reserves. Phase-3 RTL target (not now):
+gate pf_late_rsv by reservation SOURCE - reserve (suppress the prefetch) for the
+S_DHI reader/disp-pop class and S_PUSH_CALC@q_cnt>=2; keep yielding to CODE for
+S_RSV/S_MHI/S_JWAIT/S_DEC.
+
+## Kept separate (as instructed): the eu_req=0 late-registration cases
+
+absent (model eu_req=0 at the eval row) is dominated by correct prefetch (CODE
+4258+5667) but has 7 (discovery) + 14 (held-out) chip-IDLE outliers where the
+CHIP reserves yet the MODEL has NO live reservation at the eval row. These do
+NOT collapse into the source rule: with model eu_req=0 there is no reservation to
+attribute - the model's eu_req ONSET is later than the chip's. This is a distinct
+EU-side reservation-onset TIMING site, a separate follow-up (not the pf_late_rsv
+arbitration site resolved above).
+
+## Bottom line (Phase 2k)
+
+- **The 12/24 collision is COLLISION-FREE as a function of RTL-observable
+  reservation state: (onset SOURCE, q_cnt).** Verified on discovery AND held-out
+  corpora, chip ground truth. onset AGE and q_avl/q_aged are not needed.
+- ONE arbitration mechanism (source-dependent reserve-vs-prefetch); the model's
+  pf_late_rsv is source-blind and over-prefetches the S_DHI/S_PUSH_CALC-q2
+  reserving classes. **Phase 3 (source-aware pf_late_rsv gate) is now justified**
+  - pending Codex review. NO RTL functional change made (instrumentation only).
+- Separate residual: the eu_req=0 late-registration chip-IDLE outliers
+  (EU-side onset timing), and any onset-age>0 boundary (unobserved here - all
+  contested cases are age 0).
+
+Repro (Phase 2k): `python3 sw/causal_wrand.py onset --seeds 90003 90007 90015 90021 90030 --nws 10 --wmaxes 1 2 3 7`
+(held-out: `--seeds 90042 90051 90063 90077 90088`).
+
+# Phase 3 — the source-aware pf_late_rsv veto (FIRST functional RTL; FLASH-READY)
+
+Codex reviewed Phase 2k (gpt-5.6-sol, session 019f663c) and gave GO to author the
+narrow source-aware reserve veto. This is the FIRST functional RTL of the
+campaign. Authored + validated in SIM; reported FLASH-READY (coordinator flashes
++ chip-replays after Codex signs off).
+
+## The RTL edit (clean EU->BIU interface, NOT raw microstate)
+
+- `v30_eu.sv`: export two SEMANTIC 1-bit reservation-class hints (Moore of the
+  current state): `eu_rsv_dhi = (state==S_DHI)`, `eu_rsv_push_calc =
+  (state==S_PUSH_CALC)`. NOT the raw 7-bit state (avoids brittle coupling).
+- `v30_biu.sv`: `owns_slot = eu_rsv_dhi || (eu_rsv_push_calc && q_cnt>=2)`;
+  `pf_late_rsv = <existing conditions> && !owns_slot`. ONLY the eval_ext override
+  is gated - prefetch_ok, pf_starved, ext_ok, ext_ok_wr UNTOUCHED. ENUMERATED
+  reserve-veto set: only S_DHI + S_PUSH_CALC@q_cnt>=2 own the slot; every other/
+  unobserved source keeps baseline behaviour.
+- `v30_core.sv`: wire the two hints EU->BIU (gated to 0 under scr_en like the
+  other reservation signals).
+- Since the veto is a single `&& !owns_slot` AND on pf_late_rsv, by construction
+  ONLY owns_slot edges can change - the diff audit is closed structurally, then
+  verified empirically.
+
+## Why the veto is w0-neutral and safe at q_cnt=0 (no pf_starved conflict)
+
+- pf_late_rsv requires eval_ext, which never fires at w0 -> w0 bit-identical
+  (verified: check_core 169000/169000 full).
+- At q_cnt=0 the INDEPENDENT `pf_starved` term (q_cnt==0 && eu_req && !eu_ready &&
+  eu_mem_acc && K_MEM) keeps prefetch_ext=1 REGARDLESS of owns_slot, so a
+  S_DHI@q_cnt=0 urgent-refill still CODEs - the veto only actually changes the
+  decision at q_cnt>=1 (where pf_starved is off). Young coincident reservations
+  occur only at q_cnt<=1 (Phase 2j), so the veto's live regime is exactly the
+  measured S_DHI@q_cnt=1 IDLE cell + S_PUSH_CALC@q_cnt>=2.
+
+## SOURCE-CAUSALITY verdict (Codex Step 3): SOURCE is CAUSAL, not a proxy
+
+Confirmed from natural corpus diversity (chip ground truth, aligned by
+(BUS TYPE, ADDRESS), live eval_ext==1 rows):
+- COMPLEMENTARY CONTRAST at matched q_cnt=1: **S_DHI -> IDLE** vs **S_MHI -> CODE**
+  vs **S_RSV -> CODE** - all memory final-byte-pop reservations, differing by
+  SOURCE alone. Refutes the 'ready-next-cycle / reaches-S_REQ' proxy (S_MHI also
+  pops its last byte -> access but the chip picks CODE).
+- COVARIATE SPREAD within source (source-consistent): S_DHI holds IDLE across 3
+  opcodes/widths (0x31 XOR-word, 0x09 OR-word, 0x38 CMP-byte); S_RSV holds CODE
+  across 5 string opcodes (a4/a5/aa/ab/ac/ad), BOTH parities, q_cnt {0,1}
+  (66/66 + 38/38); S_JWAIT CODE across both parities and q_cnt {0,2}. At MATCHED
+  parity=0, S_DHI->IDLE but S_RSV->CODE -> parity/width/opcode dissociated from
+  source. The ONLY q_cnt-dependent source is S_PUSH_CALC (q0->CODE, q2->IDLE),
+  exactly the encoded q_cnt>=2 gate.
+
+## DIFF AUDIT + regression check (no golden CODE cell changed)
+
+`vetoaudit` (chip vs PATCHED model) over 4 corpora: discovery 90003/07/15/21/30,
+held-out 90042/51/63/77/88 (nws10 x wmax{1,2,3,7}), plus two expansion batches
+(90101..90197, 90200..90299; nws10 x wmax{1,3,7}) - ~40k contested edges total:
+- owns_slot fires EXACTLY iff source in {S_DHI, S_PUSH_CALC&q_cnt>=2} in ALL four
+  corpora (the base menu already exercises string/branch/TEST-RMW/push/moffs).
+- owns_slot=1 cells: PATCHED model now IDLE, matches chip 100% (S_DHI@q1 22/22,
+  S_PUSH_CALC@q2 6/6). owns_slot=0 cells: model UNCHANGED, match chip.
+- **ZERO owns_slot=1 & chip=CODE anywhere = NO veto-induced regression.** The
+  patch is a single `&& !owns_slot` on pf_late_rsv, so by construction only the
+  enumerated cells can change - confirmed empirically.
+
+## IMPORTANT: the veto is a SAFE PARTIAL fix - the boundary is a per-source
+## q_cnt THRESHOLD, broader than 2 sources (Step-3 probe finding)
+
+The deeper source-causality probe (expansion batches) revealed the reserve-vs-
+prefetch decision is a per-source q_cnt threshold - collision-free as
+f(source, q_cnt) but NOT captured by 2 enumerated sources. Chip-ground-truth
+(source, q_cnt) -> action, merged over all four corpora:
+
+    source        q_cnt=0   q_cnt=1     q_cnt=2
+    S_DHI           -        IDLE(22)      -        (reserve; q0 unobserved)
+    S_PUSH_CALC    CODE      IDLE(6)     IDLE(6)    (reserve q>=1)
+    S_DEC          CODE      CODE        IDLE(6)    (reserve q>=2)
+    S_MHI           -        CODE(18)      -        (CODE at q1)
+    S_RSV          CODE      CODE          -        (CODE through q1)
+    S_JWAIT        CODE       -          CODE(6)    (CODE through q2)
+
+- q2 is NOT uniformly reserve (S_DEC/S_PUSH_CALC reserve, S_JWAIT prefetches) ->
+  source STILL matters at q2; this is a genuine 2-D (source x q_cnt) rule, not a
+  global q_cnt gate (consistent with, and corrects, the old Phase-2i "q>=2 always
+  reserve" which conflated sources).
+- The narrow veto (S_DHI any-q + S_PUSH_CALC@q>=2) is a VALIDATED, REGRESSION-FREE
+  SUBSET: it fixes the DOMINANT over-prefetch (S_DHI@q1 = the resolved 12/24
+  collision) + S_PUSH_CALC@q2. It does NOT close the phenomenon: it still MISSES
+  S_PUSH_CALC@q1 (6 cases, 1 anchor) and S_DEC@q2 (6 cases, 1 anchor), and the
+  higher-q_cnt thresholds of S_MHI/S_RSV are unmapped. These are additional (rarer)
+  over-prefetch cells, each currently a single anchor x 6 waits.
+
+## SIM validation + build
+
+- Golden: check_core w0 169000/169000 full; w1 1200/1200; w3 1200/1200 (w0-neutral
+  as pf_late_rsv is eval_ext-gated; waited goldens unaffected).
+- The narrow-veto target cells (S_DHI@q1 + S_PUSH_CALC@q2) now IDLE in sim, chip-
+  matching; every measured-CODE cell stays CODE; zero regression.
+- Bitstream: quartus_sh --flow compile of the narrow veto, 0 errors, timing MET
+  (all corners positive: setup +4.903 ns, hold +0.248, recovery/removal +1.053,
+  min-pulse +1.196). nec_test.sof built.
+
+# Phase 3 (cont) — IN-SILICON chip-replay validation (narrow-veto A/B, FLASHED)
+
+Coordinator FLASHED the narrow-veto bitstream (2963147) into the FABRIC (safe_flash
+0 errors, VERIFY ok, cfg 0x1ff0008). This is the FIRST in-silicon confirmation of
+the source-veto mechanism. Chip-replay = measurement/read only; the socketed CHIP
+(use_core=0) is ground truth, the PATCHED veto RTL is live in the FABRIC
+(use_core=1). Tool: `causal_wrand.py hwreplay` (chip vs fabric + TB for source
+labels, aligned by BUS TYPE+ADDRESS). Label: 'Phase-3 narrow-veto A/B' - a
+known-PARTIAL fix, NOT arbitrary-wait closure.
+
+## Acceptance results (discovery 90003/07/15/21/30 + held-out 90042/51/63/77/88)
+
+1. **Board echo health: PASSED** before AND after (14/14 registers; board healthy).
+2. **POSITIVE cells - fixed in silicon: 20/20.** Every model-CODE over-prefetch
+   target now IDLEs in the FABRIC and MATCHES the chip: S_DHI@q1 14/14 (12
+   discovery + 2 held-out), S_PUSH_CALC@q2 6/6. The doomed prefetch is gone on
+   silicon.
+3. **NEGATIVE controls - no over-correction: 173/173.** Every measured-CODE cell
+   (S_MHI@q1, S_RSV@q0/q1, S_JWAIT@q0/q2, S_DEC@q0, S_PUSH_CALC@q0) STAYS CODE in
+   the fabric. ZERO observed veto cell where the chip wanted CODE.
+4. **w0 crown jewel: UNCHANGED.** chip vs fabric at w0 (all-zero wvec, 20 held-out
+   seeds): write-anchored-clean 20/20, per-access (bs,Tw) identical 20/20 (the
+   only pin diffs are float-floor idle addresses, not real). w0-neutral confirmed
+   in silicon.
+5. **fabric==TB 14301/14301 under replay** - silicon EXACTLY mirrors the patched
+   Verilator model, validating all the TB-based analysis as silicon-faithful.
+   Residual young fabric!=chip = 0; the only chip!=fabric are the eu_req=0
+   late-registration outliers (7 discovery + 2 held-out), untouched by the veto
+   (tracked follow-up).
+
+## HELD-OUT RANDOM-WAIT DRIFT (the payoff metric, true-cycle write-anchored)
+
+Measured PRE (chip vs baseline-TB built from HEAD~1) vs POST (chip vs veto-TB ==
+chip vs FABRIC, confirmed identical) under EXPLICIT-VECTOR REPLAY (the wrand LFSR
+path mis-seeds the local TB vs the board - a tooling caveat; replay is the
+artifact-free cross-position comparison). Cell-bearing corpus (N=300, replay vecs
+over discovery+held-out at wmax{1,3,7}):
+- **|final| offset: total 294 -> 260 clocks (12% reduction); peak-excursion: total
+  338 -> 276 (18% reduction).** drifted-seed count 96 -> 90; 12/300 cases improved;
+  worst-case (9-10 clk) UNCHANGED.
+- Interpretation: the DOMINANT S_DHI/S_PUSH_CALC@q2 mechanism accounts for ~12-18%
+  of the write-anchored drift on cell-bearing seeds - a real, partial drop exactly
+  as expected for a partial fix. The worst-case and the remaining ~82-88% are the
+  UNMAPPED per-source threshold cells (S_PUSH_CALC@q1, S_DEC@q2, S_MHI/S_RSV
+  higher-q) + the eu_req=0 onset-timing residual - the Phase-3b targets. (On low-
+  drift random held-out seeds 90300-90319 the baseline drift is already ~<1 clk, so
+  the reduction there is small in absolute terms.)
+
+## Bottom line (Phase-3 narrow-veto A/B, in silicon)
+
+The source-veto mechanism is CONFIRMED IN SILICON: all 20 targeted over-prefetch
+cells switch to chip-matching IDLE in the fabric, zero observed veto cell where the
+chip wanted CODE (no over-correction), w0 unchanged, fabric==TB exactly. The
+dominant fix removes ~12-18% of the true-cycle write-anchored drift on cell-bearing
+seeds (partial, as designed). Phase 3b: map the full per-source q_cnt threshold
+table (S_PUSH_CALC@q1, S_DEC@q2, S_MHI/S_RSV/S_DHI other-q, absent sources),
+require ~3 independent architectural anchors per gate cell before promoting it,
+keep the source-keyed representation (S_JWAIT@q2->CODE refutes 'q>=2 always
+reserves'). eu_req=0 onset + w0 young-onset stay tracked follow-ups.
+
+Repro (chip-replay): `python3 sw/causal_wrand.py hwreplay --seeds 90003 90007 90015 90021 90030 --nws 10 --wmaxes 1 2 3 7`.
+
+# Phase 3b prelude — RESIDUAL ATTRIBUTION census (attribute before widening)
+
+Codex: the 12-18% is a treatment effect, not a mechanism decomposition; ATTRIBUTE
+the remaining drift before launching per-source-table fitting. `causal_wrand.py
+census`: post-veto ABSOLUTE first (BUS TYPE, ADDRESS) chip-vs-fabric divergence
+per vector, classified from TB internals (fabric==veto-TB), with the seed's
+write-anchored drift MASS attributed to that class. Exact 300 explicit vectors
+(discovery+held-out, ws1..10 x wmax{1,3,7}); reflash-free, chip=ground truth.
+
+## Census result (N=300; 210 clean, total residual mass |final|=260 peak=276)
+
+    class                                     seeds  |final|mass  peakmass
+    5. SAME decisions, WRONG CLOCK              81      196 (75%)   210 (76%)   <== DOMINANT
+    1. eu_req=0 chipIDLE/fabCODE (EU-onset)      7       50 (19%)    52 (19%)
+    7. other                                     2       14 ( 5%)    14 ( 5%)
+    2/3. young per-source (S_PUSH_CALC@q1,
+         S_DEC@q2, unseen source/q_cnt cells)    0        0 ( 0%)     0 ( 0%)   <== NOT a driver here
+
+## Counterfactual attribution (drift removed if each class were oracle-corrected)
+
+- Fix eu_req=0 (class 1): residual |final| 260 -> 210 (**-19%**), peak 276 -> 224.
+- Fix per-source cells (class 2/3): 260 -> 260 (**0%** in this corpus - the
+  S_PUSH_CALC@q1 / S_DEC@q2 cells found in seeds 90175/90200 carry NEGLIGIBLE mass
+  here and are NEVER the first divergence).
+- Fix class 5 (wrong-clock): 260 -> 64 (**-75%**) - the big lever.
+
+## What the two dominant residual classes ARE (characterized, chip vs fabric silicon)
+
+- **Class 5 (DOMINANT, 75%): prefetch/idle-SCHEDULING timing, NOT arbitration.**
+  chip and fabric make byte-identical bus decisions (same access types/addresses/
+  order) but land at different clocks. Exemplar fz90007 ws10 wmax7: the CHIP
+  inserts 3 extra idle (Ti/PASV) cycles before a CODE fetch that the model does
+  NOT (chip 153 clk vs fabric 150 clk for the same segment) -> the model prefetches
+  ~3 cycles too EARLY. Same decision, wrong clock. This is the resume-gap /
+  idle-reservation TIMING model (Phase-2b territory), a DIFFERENT site than both
+  the BIU decision veto and the EU onset.
+- **Class 1 (19%): eu_req=0 late-onset over-prefetch (real decision divergence).**
+  Exemplar fz90015 ws10 wmax7 ord37: chip issues MEMW@02608; fabric prefetches an
+  extra CODE@00508 FIRST then the write - model eu_req=0 at the eval (the write's
+  reservation ONSET asserts a cycle late vs the chip's effective reservation). A
+  distinct EU-side site (reservation-onset timing), NOT the BIU arbitration veto.
+
+## Bottom line for Codex (which residual DRIVES the drift + worst-case)
+
+RANKED: **class 5 wrong-clock timing (75%) >> eu_req=0 EU-onset (19%) > other (5%)
+> per-source table (0%).** The worst-case (unimproved by the veto) is class 5.
+- **DO NOT launch Phase-3b per-source-table widening** - it addresses ~0% of this
+  corpus's residual (attribute-before-widening vindicated).
+- The eu_req=0 EU-onset defect is the leading DECISION defect (19%) - a real fix
+  target (the model's reservation onset asserts ~1 cycle late; characterize which
+  EU states/edges), but it is NOT the biggest lever.
+- The BIGGEST lever is the class-5 prefetch/idle-SCHEDULING timing (75%): same
+  decisions, wrong clock. This is a cycle-timing model refinement (idle-gap /
+  resume scheduling), distinct from the arbitration decision work. Recommend Codex
+  prioritize the class-5 timing attribution next (it dominates both frequency-mass
+  AND the worst-case), with eu_req=0 onset second, per-source table deprioritized.
+  (Caveat: class 5 = 'same bus decisions' so it does NOT re-order execution - a
+  pure cadence/idle-count model target; may split further under finer analysis.)
+
+Repro (census): `python3 sw/causal_wrand.py census --seeds 90003 90007 90015 90021 90030 90042 90051 90063 90077 90088 --nws 10 --wmaxes 1 3 7`.
+
+# Phase 3b — CLASS-5 TAXONOMY (the dominant residual; pf_drain CAUSALLY isolated)
+
+Codex: class-5 (75% of residual) may be several cadence defects - taxonomize
+before any RTL. `causal_wrand.py class5tax` (+ 4 cadence signals added to eudbg:
+pf_drain, pop_cnt, eu_consuming, grid_phase, pf_lim). For each class-5 vector:
+earliest access whose RELATIVE T1 CLOCK differs chip vs fabric, its transition
+class + model live state, and a pre-existing-vs-veto-exposed split (HEAD~1
+baseline TB). Reflash-free; explicit-vector replay; chip = ground truth.
+
+## Step 1 - transition histogram + it IS an idle-count error (81 class-5 vectors)
+
+    transition     seeds   peak drift mass
+    CODE->CODE       59       164 (78%)     <== DOMINANT (queue-refill cadence)
+    CODE->MEMW       12        32 (15%)
+    CODE->MEMR        4         8 ( 4%)
+    MEMW->CODE        6         6 ( 3%)
+
+- deltaT1 (chip-fab) == chip_Ti - fab_Ti EXACTLY -> class-5 IS purely an
+  idle-(Ti)-cycle-COUNT difference. Bidirectional: model prefetches too EARLY
+  (chip idles more, +2/+3: 56/81) or too late (-1/-2/-3: 25/81).
+- ~97% are 'after a CODE fetch' (the refill/next-access cadence).
+
+## Step 2 - PRE-EXISTING, not veto-created
+
+    pre-existing (already class-5 in HEAD~1 baseline): 75 seeds, 196 mass (93%)
+    veto-EXPOSED (baseline had a decision divergence):   6 seeds,  14 mass ( 7%)
+
+Class-5 is a GENUINE PRE-EXISTING cadence bug (93%), independent of the veto (the
+veto can only expose later timing errors, not create same-stream ones - confirmed).
+
+## Step 3 - model state + Phase-2b reconciliation + CONTROLLED SWEEP
+
+Model live state at the early divergence: **pf_drain=1 in 75/81 (93%)**; q_aged=0
+(81/81); prefetch_ok==prefetch_ext (0/81 use the eval_ext override) -> it is the
+PLAIN prefetch_ok / pf_drain path, NOT the arbitration override. 65/81 (80%) are
+CODE-fetch successors = Phase-2b RESUME-EVENT territory. So **Phase-2b's 'resume
+gap correct' must REOPEN for CONTEXT coverage**: gap(context,N)=base(context)+
+own_wait(N) - Phase-2b validated the N part; base(context) is WRONG in the
+pf_drain (post-waited-fetch) window. K=0 still holds; the closure claim was too
+narrow.
+
+CONTROLLED SWEEP (`class5sweep`, the analog of the reservation-source work): take
+a CODE->CODE class-5 anchor, sweep the PRECEDING fetch's wait N=0..6 (N=0 -> the
+fetch completes on T4 => pf_drain=0; N>=1 -> completes on a Tw => pf_drain=1):
+
+    fz90042: N=0 pf_drain=0 -> chipTi=fabTi=3, dT1=0 (MODEL MATCHES CHIP)
+             N>=1 pf_drain=1 -> dT1=2..3 (MODEL MISPREDICTS: idles 1 vs chip 3-4)
+    fz90007: N=0 pf_drain=0 -> dT1=0 (match); N=1-3 pf_drain=1 but q_cnt=4 -> dT1=0
+             (match); N>=4 pf_drain=1 AND q_cnt drops to 2-3 -> dT1=2..3 (mispredict)
+
+**CAUSALLY ISOLATED: pf_drain=1 is NECESSARY for the class-5 misprediction (dT1=0
+whenever pf_drain=0), and the magnitude is modulated by queue occupancy/draining
+within that window.** At fz90042 N=1 pf_lim stays 4 (eu_consuming=0) yet dT1 jumps
+0->3, so it is **pf_drain itself (the post-waited-fetch window), NOT the pf_lim=3
+tightening**. The chip idles MORE before refilling after a waited fetch; the model
+refills too eagerly.
+
+## Bottom line (class-5)
+
+Class-5 is essentially ONE bounded cadence rule: the **post-waited-fetch (pf_drain
+window) queue-refill idle-insertion**, dominant at CODE->CODE (78%), 93%
+pre-existing, causally governed by pf_drain (proven by the wait sweep) and
+modulated by queue occupancy. The chip's base idle-gap after a WAITED fetch is
+larger than the model predicts (model prefetches ~2-3 cycles too early). This is a
+TARGETED fix in the pf_drain / prefetch-timing path (v30_biu.sv:270-293,
+prefetch_ok/pf_lim/pf_drain), NOT a per-source table and NOT the arbitration veto.
+Recommend Codex next: model the chip's pf_drain-window refill idle-gap as a
+function of (pf_drain, occupancy/q_cnt, recent-pop), validate vs these sweeps on
+held-out anchors, then fit RTL. eu_req=0 EU-onset (19%) is the second target.
+NO RTL yet - discovery only.
+
+Repro (class-5): `python3 sw/causal_wrand.py class5tax --seeds 90003 90007 90015 90021 90030 90042 90051 90063 90077 90088 --nws 10 --wmaxes 1 3 7`;
+`python3 sw/causal_wrand.py class5sweep --seed 90042 --ws 10 --wmax 7`.
+
+# Phase 3b (cont) — the class-5 LAW: queue-push-PHASE (waited-fetch deferred push)
+
+Codex CORRECTION accepted: pf_drain is only a MARKER (its sole consumer is
+pf_lim=(pf_drain&&eu_consuming)?3:4; at eu_consuming==0 pf_lim=4 either way, yet
+the error appears -> pf_drain/pf_lim is NOT the faulty rule). The real mechanism
+is the QUEUE-PUSH-PIPELINE PHASE, MEASURED below (added push_pend/push_now/pop_now/
+cnt_next/pop_sr to eudbg; golden 169000/169000 intact). Tools: `class5law`,
+cycle-dump. Explicit-vector replay; chip = ground truth. NO RTL.
+
+## The mechanism (cycle-dump, fz90042 N=0 vs N=1 = Codex Factorial A)
+
+A fetch that completes at T4 with NO wait pushes its bytes AT T4 (push_now!=0 @T4)
+-> q_aged!=0 the next cycle BLOCKS prefetch_ok one cycle -> refill delayed; the
+model MATCHES the chip. A WAITED fetch DEFERS its queue push one cycle (push_now==0
+@T4, push_now!=0 @T4+1). At T4+1 the model sees q_aged==0 (nothing pushed LAST
+edge) while the bytes are pushing THIS edge, so prefetch_ok fires and it launches
+the refill IMMEDIATELY - the q_aged gate (last-edge push) MISSES the deferred
+(current-edge) push. The chip instead waits for the pushed bytes to age. So the
+model refills ~2-3 cycles early. This is Codex's INFORMATIVE FAILURE: waited
+completion intrinsically changes push PHASE => push phase belongs in the causal
+state.
+
+## The law (class5law, 93 class-5 CODE->X anchors)
+
+- **100% (93/93) follow a WAITED predecessor fetch whose push is DEFERRED** -
+  the universal necessary condition for class-5.
+- **EARLY sign (62, the dominant +2/+3 error): the model launches its refill
+  DURING the deferred-push cycle (push_now!=0) in 62/62** - the q_aged-miss,
+  confirmed 100%.
+- LATE sign (25, the -2/-3/-5 minority): dec_pushnow==0 in ALL 25 - a DISTINCT
+  second sub-effect (NOT launch-during-push; the model idles MORE than the chip -
+  the chip refills EARLIER there). Concentrated at (occ@T4,successor)
+  (3,MEMW)/(4,CODE)/(4,MEMW)/(2,MEMR). Needs separate characterization.
+- pf_drain/pf_lim/eu_consuming: NOT the driver (error occurs at pf_lim=4) ->
+  Codex Factorial C (recent-pop placement) is MOOT for class-5.
+- Controlled wait-magnitude (class5sweep = Factorial D): N=0 pf_drain=0 -> MATCH;
+  N>=1 -> error appears; doesn't simply scale (occupancy modulates), the push
+  PHASE is the toggle.
+- EXACT idle-count magnitude (chip_Ti = 1/3/4): modulated by occupancy@T4 +
+  successor type (occ=2: MEMR->1, CODE/MEMW->3; occ=5->4) but NOT yet
+  collision-free on (occ,successor) alone (2-4 mixed cells) - the exact count law
+  needs finer state (grid phase / q_avl timing); the DECISION rule (when to
+  refill) is the deferred-push phase.
+
+## Bottom line (class-5 law) - for Codex
+
+Class-5 (the 75% residual) is DOMINATED (67%) by ONE bounded mechanism: the
+**waited-fetch DEFERRED-PUSH phase error**. When a fetch waits, its queue push
+slips T4->T4+1; prefetch_ok's `q_aged` eligibility gate (which blocks on the
+LAST-edge push) fails to block the CURRENT-edge deferred push, so the model
+refills one cycle early (launches during push_now!=0, 62/62). MINIMAL MODEL STATE
+/ likely fix (NOT RTL yet, Codex's call): the prefetch-eligibility gate must also
+block while a push is occurring/pending this cycle (push_now!=0 / push_pend!=0),
+matching the q_aged block - a corrected push-PHASE eligibility rule, NOT a pf_lim
+threshold change (pf_lim confirmed innocent). w0-neutrality: the deferred push is
+a WAITED-completion artifact (unwaited pushes at T4), so the fix is expected
+w0-neutral, but since q_aged/push_pend exist at w0 the w0 refill cadence must be
+re-verified (flagged). REMAINING to fully close: the LATE 27% sub-effect (distinct
+second push-phase interaction) + the exact idle-COUNT magnitude table (occ x
+successor x grid-phase). eu_req=0 EU-onset (19%) is the next-largest residual.
+
+Repro (law): `python3 sw/causal_wrand.py class5law --seeds 90003 90007 90015 90021 90030 90042 90051 90063 90077 90088 --nws 10 --wmaxes 1 3 7`.
+
+# Phase 3b — class-5 EARLY fix ATTEMPT: REFUTED by Gate A (NOT flashed)
+
+Codex greenlit a scoped push-absorb gate (prefetch_ok &&= !(pf_drain && push_now)).
+I authored it and ran the two must-pass gates. **It FAILS Gate A decisively and
+regressed the waited goldens - REVERTED, NOT flashed.**
+
+## Golden regression (immediate red flag)
+
+With the gate: check_core w0 169000/169000 (w0-neutral OK) but **w1 347/1200,
+w3 350/1200** (arch ~1173/1200 intact, but cycle-exact shattered). The gate adds
+an idle cycle in the common waited-refill cadence that the real chip does NOT
+insert. RTL REVERTED to baseline (169000/169000).
+
+## Gate A (opportunity census) - the causal hole, quantified
+
+`causal_wrand.py gatea`: enumerate ALL aligned deferred-push CODE->CODE refill
+opportunities (waited predecessor, push deferred T4->T4+1, model launches during
+the push = the gate's exact target), INCLUDING timing-clean ones, and ask what
+the CHIP does. 17052 opportunities over the 300-vector corpus:
+
+- **CHIP begins CODE (prefetches; gate WRONG): 16952/17052 = 99.4%.**
+- **CHIP idles (class-5; gate RIGHT): 100/17052 = 0.6%.**
+- => MIXED, catastrophically toward CODE. The chip PREFETCHES during a deferred
+  push almost always; it idles in only 0.6% of them.
+- NO measured field separates the 100 idle cases: eu_consuming (2 mixed cells),
+  occ (3), q_cnt (3), q_avl (3), pop_cnt (5), grid_phase (1), push_now (1); joint
+  (eu_consuming, occ) also mixed (e.g. euc=1 occ=2: 11488 CODE vs 48 idle).
+
+## The correction to the class-5 LAW (important)
+
+class5law's '62/62 launch during push' was EXACTLY the KNOWN-ERROR SAMPLING BIAS
+Codex flagged: the deferred push is NECESSARY (100% of class-5 errors follow one)
+but NOT SUFFICIENT - 99.4% of deferred-push refills are CORRECT (chip prefetches,
+model prefetches, match). The push-PHASE is CORRELATED with the class-5 error, not
+its cause. The 100 real chip-idle cases are governed by a discriminator NOT present
+in the currently-dumped state (pf_drain/push_now/eu_consuming/occ/q_cnt/q_avl/
+pop_cnt/grid_phase). A gate on the deferred push alone wrongly suppresses 16952
+chip-CODE prefetches.
+
+## Bottom line - DO NOT FLASH
+
+Per Codex's Gate-A stop rule (MIXED => find the discriminator BEFORE gating), the
+scoped push-absorb gate is REFUTED and NOT flashed. The class-5 EARLY sub-effect
+is real (100 chip-idle cases) but its discriminator is NOT yet identified - it is
+a RARE (0.6%) condition on top of the deferred push, needing finer state (candidate
+next probes: exact bus-grid phase of the push vs the eval; multi-cycle occupancy
+trajectory; the specific eval_ext/commit-point timing; whether the successor's
+own fetch parity/grid alignment gates it). The fabric remains on the committed
+narrow arbitration veto (2963147); no class-5 RTL. eu_req=0 (19%) and the class-5
+discriminator hunt are the open items.
+
+Repro (Gate A): `python3 sw/causal_wrand.py gatea --seeds 90003 90007 90015 90021 90030 90042 90051 90063 90077 90088 --nws 10 --wmaxes 1 3 7`.
+
+# Phase 3b — class-5 discriminator FOUND: the multi-cycle QUEUE-CONSUMPTION TRAJECTORY
+
+Owner chose to keep drilling class-5. Codex: the coarse fields discard the
+placement/provenance that governs the rare 0.6% idle. Ran the enriched
+provenance/history experiment (`gatea2`) recording the COMPLETE W-cycle window
+per opportunity, and a controlled pop-phase intervention (`class5pop`). Result:
+the discriminator IS a bounded, reconstructable window - the multi-cycle QUEUE-
+CONSUMPTION TRAJECTORY - NOT deeper-than-observable internal state.
+
+## Enriched separation (17052 opportunities: 100 chip-IDLE / 16952 chip-CODE)
+
+Idle-collision = idle cases sharing the key with a CODE case (lower = better):
+- SINGLE snapshot fields ALL fail: grid_phase/bus_phase/EU-state/parity/occ/
+  push-eval-phase = 100/100 collide; q_cnt/q_avl = 85/100; opcode = 98/100.
+- raw pop_sr PLACEMENT = 83/100 (17 pure-idle) - BETTER than pop_cnt (fully
+  mixed) => recency/ORDER matters (Codex Factorial C confirmed), but not alone.
+- **QUEUE TRAJECTORY (q_cnt/q_avl/q_aged/push/pop per cycle): window=8 -> 43/100
+  collide; window=12 -> 5/100 (95 pure-idle).**
+- **FULL 12-cycle window (all core BIU state): 0/100 collision - SEPARATES.**
+  (window=8 full-window still had 12/100.)
+
+## The KEY inference: bounded history, NOT internal state, NOT overfitting
+
+Going window 8->12 drops the collision 12->0 (full) and 43->5 (queue-traj). The
+LONGER HISTORY specifically helps; at window=8 there were already 846 distinct
+full-window keys (>> 100 idle) yet 12 still collided - so MORE KEYS at fixed
+length did NOT separate, but 4 more cycles of CONSUMPTION HISTORY did. That
+asymmetry argues the signal is a REAL bounded ~12-cycle queue-consumption
+trajectory, not memorization and not sub-observable internal state (a fully
+reconstructable window separates).
+
+## Controlled intervention (class5pop) - outcome tracks the consumption state
+
+On an IDLE anchor (fz90007), sweeping upstream-access waits: the chip flips
+idle->CODE ONLY when the anchor's queue-consumption state MOVES (off-1: q_cnt
+1->4, popsr/push-eval shift -> FLIP); when the anchor state is HELD (off-2/3/4:
+q_cnt/q_avl/popsr/push-eval all unchanged) the outcome does NOT flip. So the
+class-5 idle/CODE outcome is a deterministic function of the anchor's queue-
+consumption trajectory. (This anchor co-moved q_cnt with pop-phase, so it did not
+isolate pop-phase from occupancy alone; a padding-based single-pop-shift is the
+follow-up to fully dissociate them - but the window=12 separation already shows
+the trajectory is sufficient.)
+
+## Bottom line (class-5 discriminator)
+
+FOUND: the class-5 EARLY discriminator is the **multi-cycle QUEUE-CONSUMPTION-PHASE
+TRAJECTORY** (the exact ~8-12-cycle sequence of pop-vs-push timing / q_cnt-q_avl-
+q_aged evolution), which the coarse snapshot (occ, q_cnt, pop_cnt, grid_phase)
+DISCARDS. It is a BOUNDED, bus-reconstructable window (full 12-cycle window
+separates 0/100) - it does NOT need internal state the dump lacks. pop_sr
+PLACEMENT is a confirmed contributor (recency/order). The 99.4%-CODE / 0.6%-idle
+split is a fine phase condition on the consumption trajectory, not a threshold.
+IMPLICATION for a fix: the refill-eligibility rule needs a phase/trajectory-aware
+predicate (when the just-pushed bytes' consumption phase aligns), NOT a pf_lim
+threshold and NOT the coarse pf_drain marker - a genuinely harder model than the
+arbitration source rule. Next: a padding-based single-pop-shift to isolate
+pop-phase from occupancy, then fit the minimal sufficient trajectory statistic
+(candidate: push-eval phase + last-few-cycle pop placement) and re-test
+collision-freeness before any RTL. eu_req=0 (19%) stays tracked/deprioritized.
+
+Repro (enriched): `python3 sw/causal_wrand.py gatea2 --seeds 90003 90007 90015 90021 90030 90042 90051 90063 90077 90088 --nws 10 --wmaxes 1 3 7 --window 12`;
+`python3 sw/causal_wrand.py class5pop --seed 90007 --ws 2 --wmax 7`.
+
+# Phase 3b — class-5 COMPRESSION GATE: FAILED -> PIVOT to eu_req=0
+
+Codex: the 12-cycle window separation was NOT proven-generalizable (exact high-dim
+windows go unique with only ~100-166 positives; full window uses model-internal
+fields; queue-only still collided). Ran ONE focused fitting cycle with a compact
+temporal feature library, HELD-OUT validation by PROGRAM provenance, and a
+COMPRESSION STOP RULE. Tools: `gatea3` (dump raw windows to JSON, board-free
+refit), `sw/fit_class5.py` (feature library + greedy pure-idle decision-list +
+held-out eval). 24,249 opportunities over 15 programs (166 idle / 24,083 CODE).
+
+## Fit + held-out (train=5 discovery / held=5 / fresh=5 NEW programs)
+
+Feature library (39 temporal features: last/2nd_pop_age, popcnt & popmask over
+4/8/12, min/max q_cnt over 4/8/12, q_cnt at offsets -1..-12, time-since-q_cnt<=t,
+q_cnt transitions, push/eval-to-last-pop, signed queue flow, EU-state, grid_phase).
+
+- **6/51 train idle are FULL-FEATURE-IDENTICAL to a CODE case** (unpurifiable even
+  with ALL 39 features) => the discriminator is partly ABSENT from the compact
+  feature space (the earlier 0/100 full-window separation was the exact-fingerprint
+  MEMORIZATION Codex warned of, not a compact rule).
+- To cover the 45 purifiable train idle at ZERO train FP the greedy needs
+  **21 features / 12 rules / 32 literals** => NO COMPRESSION (target was <=4
+  features & <=4 rules).
+- FROZEN-rule HELD-OUT: TRAIN recall 45/51 FP 0.000%; **HELD recall 40/49 CODE FP
+  40/7569 = 0.528%**; **FRESH recall 47/66 CODE FP 11/7131 = 0.154%**. Held-out FP
+  is NONZERO and ~comparable to the entire idle population being fixed (166 idle vs
+  11-40 wrongly-blocked CODE) => it would REGRESS about as much as it fixes.
+
+## Verdict: COMPRESSION FAILED -> STOP class-5, PIVOT to eu_req=0
+
+class-5 EARLY does NOT compress to a small (~3-4 bit) generalizable cadence rule
+that clears the zero-held-out-FP gate: the compact statistic leaves 12% of idle
+unpurifiable AND the full statistic is a memorized 12-cycle fingerprint that leaks
+0.15-0.53% held-out CODE false-positives. Per Codex's stop rule (do NOT implement a
+memorized history), the class-5 EARLY sub-effect is ABANDONED as a fix target. The
+mechanism is real (deferred-push hazard, a fine queue-consumption-phase condition)
+but it is NOT a bounded generalizable predicate at the resolution the current
+signals expose - the ~0.6% chip-idle exception is governed by cadence detail below
+a flashable rule. Padding pop-shift (Step 3) SKIPPED (gate failed first, per the
+stop rule).
+
+**RECOMMENDED PIVOT: the eu_req=0 EU-onset defect (19% of residual, a real BUS
+DECISION divergence with a bounded reservation-onset-timing mechanism)** - the
+next-largest lever and, unlike class-5, a decision (not sub-cycle-cadence) rule.
+Re-attribute eu_req=0 (currently an upper-bound 19%) and characterize the onset
+lateness (which EU states register their reservation a cycle late), then design the
+bounded fix. class-5 stays documented (deferred-push hazard + non-compression) as a
+known-residual for a possible future finer-signal probe, not blocking.
+
+Repro (fit): `python3 sw/causal_wrand.py gatea3 --seeds 90003 90007 90015 90021 90030 90042 90051 90063 90077 90088 90400 90411 90422 90433 90444 --nws 10 --wmaxes 1 3 7 --out /tmp/class5_data.json`; `python3 sw/fit_class5.py /tmp/class5_data.json`.
+
+## Verdict for Codex (scope decision before flash)
+
+The narrow source-aware veto is CORRECT, source CONFIRMED CAUSAL (S_DHI vs S_MHI
+at matched q1; covariate-invariant), and REGRESSION-FREE - safe to flash as a
+partial fix that removes the dominant over-prefetch. BUT it is NOT the complete
+fix: the reserve boundary is a per-source q_cnt threshold and additional cells
+(S_PUSH_CALC@q1, S_DEC@q2, unmapped S_MHI/S_RSV) still over-prefetch. DECISION for
+Codex: (a) flash the narrow safe veto now (strictly reduces over-prefetch, zero
+regression), then map the full per-source threshold table as Phase 3b; or (b)
+first map+fit the full (source, q_cnt) threshold table before any flash. Either
+way the RTL interface (per-source class hints -> BIU owns_slot) generalizes:
+Phase 3b widens owns_slot's enumerated set / per-source q_cnt thresholds.
+
+## Tracked follow-ups (do NOT block this fix)
+
+- eu_req=0 late-registration chip-IDLE outliers (EU-side reservation onset TIMING,
+  distinct site; model has no live reservation at the eval row).
+- onset-age>0 boundary (all contested cases are age 0; unobserved).
+
+Repro (Phase 3): `python3 sw/causal_wrand.py vetoaudit --seeds 90003 90007 90015 90021 90030 --nws 10 --wmaxes 1 2 3 7`;
+`python3 sw/causal_wrand.py vetoaudit --seeds 90200 90211 90222 90233 90244 90255 90266 90277 90288 90299 --nws 10 --wmaxes 1 3 7` (surfaces S_DEC@q2);
+`python3 sw/causal_wrand.py onset --seeds 90042 90051 90063 90077 90088 --nws 10 --wmaxes 1 2 3 7` (SOURCE-CAUSALITY block).
+
+Tools: `sw/causal_wrand.py` (`urgency` corrected, `onset`+`vetoaudit` added). Repro:
+`python3 sw/causal_wrand.py urgency --seeds 90003 90007 90015 90021 90030 --nws 10 --wmaxes 1 2 3 7`;
 `python3 sw/causal_wrand.py idleslot --seeds 90003 90007 90015 --nws 8 --wmaxes 1 3 7`;
 `python3 sw/causal_wrand.py leactl --maxn 8`;
 `python3 sw/causal_wrand.py nocomp --seed 90003 --refws 2`;

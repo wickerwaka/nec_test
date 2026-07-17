@@ -418,9 +418,69 @@ logic [31:0] ev_addr_tmp;
 logic eudbg_en;
 initial eudbg_en = $test$plusargs("eudbg");
 
+//----------------------------------------------------------------------------
+// Phase 2k RESERVATION-ONSET instrumentation (measurement only, TB-side; no
+// functional RTL change). Latch, on every eu_req RISING edge, the EU state
+// generating the reservation (onset_state = the reservation's OWN source, e.g.
+// S_EA1/S_EA2/S_DISP8/S_RMWX/S_PUSH_CALC/S_DEC/...), the absolute CPU-cycle
+// clock (onset_clock -> exact onset age), and the opcode/kind/dir identity of
+// the pending access. This resolves the 12/24 collision at the eval_ext row
+// where the coarse eu_req_p1==0 bit conflates ~10 different reservation states.
+// The record is carried until eu_started / withdrawal (eu_req falls) / flush.
+//
+// The dumped fields are computed COMBINATIONALLY on the onset cycle itself
+// (eu_req rises ON this cycle => onset_state = current state, age = 0) so a
+// withdrawal/reassert cannot alias the age-0 case to a stale prior onset.
+//----------------------------------------------------------------------------
+logic [31:0] cpu_clk     = 0;    // free-running CPU-cycle counter (ce-gated)
+logic        eu_req_prev = 0;    // eu_req at the previous CPU cycle
+logic  [6:0] onset_state = 0;    // EU state at the reservation onset
+logic [31:0] onset_clock = 0;    // cpu_clk at the reservation onset
+logic  [7:0] onset_opc   = 0;    // opcode at the reservation onset
+logic  [1:0] onset_kind  = 0;    // eu_kind at onset (0=MEM 1=IO)
+logic        onset_wr    = 0;    // eu_wr   at onset (0=read 1=write)
+
+wire        eu_req_now   = dut.u_eu.eu_req;
+wire        eu_req_rise  = eu_req_now && !eu_req_prev;
+wire  [6:0] onset_state_eff = eu_req_rise ? dut.u_eu.state   : onset_state;
+wire  [7:0] onset_opc_eff   = eu_req_rise ? dut.u_eu.opc     : onset_opc;
+wire  [1:0] onset_kind_eff  = eu_req_rise ? dut.u_eu.eu_kind : onset_kind;
+wire        onset_wr_eff    = eu_req_rise ? dut.u_biu.eu_wr  : onset_wr;
+wire [31:0] onset_age       = eu_req_rise ? 32'd0 : (cpu_clk - onset_clock);
+
+always @(posedge clk) begin
+    if (reset) begin
+        cpu_clk     <= 0;
+        eu_req_prev <= 0;
+        onset_state <= 0;
+        onset_clock <= 0;
+        onset_opc   <= 0;
+        onset_kind  <= 0;
+        onset_wr    <= 0;
+    end else if (ce) begin
+        cpu_clk <= cpu_clk + 32'd1;
+        if (eu_req_rise) begin
+            onset_state <= dut.u_eu.state;
+            onset_clock <= cpu_clk;
+            onset_opc   <= dut.u_eu.opc;
+            onset_kind  <= dut.u_eu.eu_kind;
+            onset_wr    <= dut.u_biu.eu_wr;
+        end
+        eu_req_prev <= eu_req_now;
+    end
+end
+
 always @(posedge clk) begin
     if (!reset && ce && recording && eudbg_en && fo != 0)
-        $fdisplay(fo, "d %0d %0d %0d %0d %0d %0d %05x %0d %02x %02x %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d",
+        // d[49]=eu_hold, d[50]=cpu_clk appended (Phase-1/2 flush+trajectory
+        // attribution). APPEND-ONLY observability: both are existing signals,
+        // the DUT is untouched and remains bit-identical to HEAD 1f6004c.
+        // d[62..65]: ARBITER COMMIT-SLOT observability (Arc-2 arbiter-surface
+        // probe). want_eu = the ready-EU claim; slot_fire/slot_id = the Phase-R
+        // canonical arbiter's fired slot this cycle; eu_kind = the EU access kind
+        // (0=mem 1=io 2=inta 3=halt). All existing DUT signals - APPEND-ONLY
+        // observability, the DUT is untouched and remains bit-identical to HEAD.
+        $fdisplay(fo, "d %0d %0d %0d %0d %0d %0d %05x %0d %02x %02x %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %02x %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %02x %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d",
                   dut.u_eu.state, dut.u_eu.q_pop,
                   dut.u_biu.q_avl, dut.u_biu.q_cnt,
                   dut.u_eu.eu_wrap, dut.u_biu.cur_wrap,
@@ -430,7 +490,52 @@ always @(posedge clk) begin
                   dut.u_biu.eu_started, dut.u_eu.eu_req, dut.u_eu.eu_ready,
                   dut.u_biu.q_flush, dut.u_biu.eval_ext, dut.u_biu.evald,
                   dut.u_biu.flush_fast,
-                  dut.u_biu.occupied, dut.u_biu.q_aged, dut.u_biu.infl);
+                  dut.u_biu.occupied, dut.u_biu.q_aged, dut.u_biu.infl,
+                  dut.u_biu.eu_req_p1, dut.u_biu.pf_late_rsv, dut.u_biu.pf_starved,
+                  dut.u_biu.prefetch_ext, dut.u_biu.prefetch_ok,
+                  dut.u_biu.eu_wr, dut.u_biu.eu_mem_acc,
+                  onset_state_eff, onset_age, onset_opc_eff,
+                  onset_kind_eff, onset_wr_eff,
+                  dut.u_biu.owns_slot, dut.u_biu.eu_rsv_dhi,
+                  dut.u_biu.eu_rsv_push_calc,
+                  // pf_drain DELETED from the RTL; emit a constant 0 so d[39]
+                  // keeps its slot and every later index stays valid.
+                  1'b0, dut.u_biu.pop_cnt, dut.u_biu.eu_consuming,
+                  dut.u_biu.grid_phase, dut.u_biu.pf_lim,
+                  dut.u_biu.push_pend, dut.u_biu.push_now, dut.u_biu.pop_now,
+                  dut.u_biu.cnt_next, dut.u_biu.pop_sr,
+                  dut.u_biu.eu_hold, cpu_clk,
+                  // d[51..54]: EU-SIDE SCHEDULE state (the model-EU forecast
+                  // test). pop_want is the EU's byte DEMAND, a function of EU
+                  // microcode state alone - q_pop = pop_want && q_avail, so the
+                  // bus only ever shows demand AND availability. pop_want &&
+                  // !q_avail is EU starvation. dly is the micro-op countdown
+                  // (cycles remaining). eu_rsv_lead is the existing
+                  // silicon-confirmed EU->BIU schedule signal (v30_eu.sv:1453).
+                  // Append-only observability; DUT bit-identical to HEAD.
+                  dut.u_eu.pop_want, dut.u_eu.q_avail, dut.u_eu.dly,
+                  dut.u_eu.eu_rsv_lead,
+                  // d[55..61]: class-5 UNIFIED LAW (direct-path, active) +
+                  // lowband. Names updated with the RTL in the same commit
+                  // (names are part of the chain). d[55]=law_arm, d[56]=law_sel,
+                  // d[57]=law_due, d[58]=law_dcnt, d[59]=law_dtw, d[60]=law_window,
+                  // d[61]=lowband_pause.
+                  dut.u_biu.law_arm, dut.u_biu.law_sel,
+                  dut.u_biu.law_due, dut.u_biu.law_dcnt, dut.u_biu.law_dtw,
+                  dut.u_biu.law_window, dut.u_biu.lowband_pause,
+                  // d[62]=want_eu, d[63]=slot_fire, d[64]=slot_id (enum ordinal),
+                  // d[65]=eu_kind. Arbiter-surface commit-slot fields.
+                  dut.u_biu.want_eu, dut.u_biu.slot_fire, dut.u_biu.slot_id,
+                  dut.u_biu.eu_kind,
+                  // d[66]=recent_evx, d[67]=store_pf_boost. MEMW->CODE store-resume
+                  // turnaround fix shadow (log-only until wired into prefetch_ok).
+                  dut.u_biu.recent_evx, dut.u_biu.store_pf_boost,
+                  // d[68..74]: ext_ok qualification subterms (H-EXT CODE->MEM probe).
+                  // Which clause of ext_ok denies the eval_ext DIRECT EU commit. All
+                  // existing DUT signals - APPEND-ONLY observability, DUT bit-identical.
+                  dut.u_biu.eu_ready_p1, dut.u_biu.eu_ready_p2, dut.u_biu.eu_req_p2,
+                  dut.u_biu.ext_flushed, dut.u_biu.ext_ok, dut.u_biu.ext_ok_wr,
+                  dut.u_biu.eu_defer_wr, dut.u_biu.tw_par);
 end
 
 initial begin

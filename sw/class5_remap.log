@@ -1,0 +1,77 @@
+census nonzero 286 rows, |ge| mass 544
+
+=== TASK 1a: PAIRING MATCHER (authoritative) + SENSITIVITY SWEEP ===
+  Definition: greedy nearest-partner opposite-sign match within an
+  access-ordinal window; each member used once. AUTHORITATIVE cell =
+  (window=1, exact). Sweep window in {1,2,3} x {exact, loose(|sum|<=1)}:
+                   exact paired/unpaired       loose paired/unpaired
+  window=1         148/396                   226/318       
+  window=2         186/358                   268/276       
+  window=3         202/342                   298/246       
+  AUTHORITATIVE (w=1, exact): paired 148u / unpaired 396u  (rows 72/286)
+
+=== TASK 1b: DISJOINT ACCOUNTING (every row -> ONE triple) ===
+  rows 286, mass 544 - each assigned exactly one (pairing, transition-class, law-cell).
+
+  MARGINAL: pairing-status
+    paired    : rows  72  mass 148
+    unpaired  : rows 214  mass 396
+
+  MARGINAL: transition-class x pairing (mass)
+    class          paired   unpaired    total
+    CODE->CODE         95        190      285
+    EU->CODE           34         95      129
+    CODE->EU           19        106      125
+    EU->EU              0          5        5
+
+  MARGINAL: unpaired CODE->CODE law-cells (top by mass), n=105 mass 190
+    (prev_tw,d_cnt_a,occ)=(1, 0, 2)          rows  8  mass 17
+    (prev_tw,d_cnt_a,occ)=(0, 3, 3)          rows  8  mass 17
+    (prev_tw,d_cnt_a,occ)=(1, 3, 3)          rows  6  mass 12
+    (prev_tw,d_cnt_a,occ)=(0, 0, 2)          rows  3  mass 10
+    (prev_tw,d_cnt_a,occ)=(1, 3, 0)          rows  8  mass 8
+    (prev_tw,d_cnt_a,occ)=(6, 1, 2)          rows  2  mass 7
+    (prev_tw,d_cnt_a,occ)=(0, 1, 2)          rows  3  mass 7
+    (prev_tw,d_cnt_a,occ)=(0, 2, 2)          rows  3  mass 6
+    (prev_tw,d_cnt_a,occ)=(1, 1, 2)          rows  3  mass 6
+    (prev_tw,d_cnt_a,occ)=(1, 2, 3)          rows  2  mass 6
+
+=== TASK 1c: DONE RE-SWEEP on corrected unpaired CODE->CODE ===
+  population 105 rows / 190u  (was 79/121u under the lost 288u matcher)
+  key prev_tw,m_occ             : largest HELD cell 22u (rows 10, cell (1, 3))
+  key prev_tw,d_cnt_a,m_occ     : largest HELD cell 15u (rows 7, cell (0, 3, 3))
+  key prev_tw,d_cnt_a,m_occ,cur_tw: largest HELD cell 11u (rows 5, cell (0, 3, 3, 0))
+  disc 22 rows / 29u, held 83 rows / 161u
+  CRITERION (pre-registered): largest clean held-out cell < 10u -> re-ratify DONE; else re-open.
+
+=== TASK 2 (1): EU-anchored resume, UNIFORM KIND-OFFSET CHECK ===
+  unpaired EU->CODE 54 rows / 95u  (ge<0 = model resumes LATE):
+    IOW->CODE: n=15 mass=43 net= +3  dominant ge=-2 x5 (33%)  hist={-5: 1, -4: 1, -2: 5, -1: 1, 1: 1, 2: 3, 4: 1, 5: 1, 7: 1}
+    MEMW->CODE: n=34 mass=39 net=-33  dominant ge=-1 x28 (82%)  hist={-2: 4, -1: 28, 1: 1, 2: 1}
+    MEMR->CODE: n= 5 mass=13 net= -3  dominant ge=-2 x4 (80%)  hist={-2: 4, 5: 1}
+  READ: MEMW->CODE = near-CONSTANT -1 (model 1 clk late, store-resume turnaround) => KIND-OFFSET BUG candidate. IOW->CODE = SCATTER (net~0, no offset - the IO-offset guess is falsified) => asymptote candidate. MEMR->CODE weak -2, low n. Confirming the MEMW mechanism (store T4 -> resume edge) needs the EU-anchored dump; step (1) localises it here.
+
+=== TASK 3: H-SLIP (paired resume delivered +-1 slot => +N/-N pair) ===
+  paired CODE-successor: rows 62 mass 129
+
+  (a) |ge| magnitude histogram (H-SLIP predicts 1-2 dominance):
+      |N|=1: rows  7  mass 7
+      |N|=2: rows 47  mass 94
+      |N|=3: rows  6  mass 18
+      |N|=5: rows  2  mass 10
+      slot-scale (|N|<=2) mass 101/129 (78%)
+
+  (b) paired CODE->CODE rows 44 mass 95: in a populated law cell 44 (100%)  [H-SLIP predicts >=80%]
+      of those, at slot-scale (|N|<=2): 36 (82%)
+
+=== TASK 1c ROBUSTNESS: unpaired 'clean cell' vs H-SLIP tail ===
+  unpaired CODE->CODE 105/190u = H-SLIP-tail (slot-scale, opposite partner di<=3) 18/36u + genuine 87/154u
+  GENUINE-residual cells (top by total mass) - net = |sum| (mixed-sign cancels), maj = majority-sign fixable, pure = single-sign?:
+    cell=(0, 3, 3)      n=7 total=15 net= 7 maj=11 pure=n signs=[-3, -3, -3, -1, -1, 2, 2]
+    cell=(1, 3, 3)      n=6 total=12 net= 4 maj= 8 pure=n signs=[-3, -3, -1, -1, 2, 2]
+    cell=(1, 3, 0)      n=8 total= 8 net= 8 maj= 8 pure=Y signs=[-1, -1, -1, -1, -1, -1, -1, -1]
+    cell=(0, 0, 2)      n=2 total= 8 net= 8 maj= 8 pure=Y signs=[-6, -2]
+    cell=(6, 1, 2)      n=2 total= 7 net= 7 maj= 7 pure=Y signs=[2, 5]
+    cell=(7, 0, 2)      n=1 total= 6 net= 6 maj= 6 pure=Y signs=[6]
+  largest SIGN-PURE cell 8u; largest NET(|sum|) cell 8u
+  VERDICT (my read): no sign-pure fixable cell >=10u and largest net cell 8u -> the genuine residual is mixed-sign small-cell SCATTER; combined with H-SLIP explaining the paired mass, DONE re-ratifies at the corrected number (mechanism-explained). CAVEAT: (0,3,3) totals 15u but is mixed-sign (net 7u); window/purity-sensitive - architect ratifies.

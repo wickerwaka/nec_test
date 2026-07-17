@@ -1,0 +1,7 @@
+=== GOLDEN PHASE-CLASS (board-free): is the cell's RMW class in the golden? ===
+  v0.1-w1 golden-89 CODE->MEM commits 142: (defer_wr,ext_ok_wr,rdy_p1,rdy_p2) {(0, 0, 1, 0): 64, (0, 1, 1, 1): 54, (0, 0, 0, 0): 24}
+    RMW writes (defer_wr=1): 0 -> cell class ABSENT; plain-store ready-AT-T4 commits (rdy_p1=1,rdy_p2=0): 64 (pass via ext_ok accepting -> ready-AT-T4 -> early is CORRECT)
+  v0.1-w3 golden-89 CODE->MEM commits 148: (defer_wr,ext_ok_wr,rdy_p1,rdy_p2) {(0, 1, 1, 1): 148}
+    RMW writes (defer_wr=1): 0 -> cell class ABSENT; plain-store ready-AT-T4 commits (rdy_p1=1,rdy_p2=0): 0 (pass via ext_ok accepting -> ready-AT-T4 -> early is CORRECT)
+
+BOARD-ALIGNED (documented, needs run_chip): 29 confirmed ge=-2 CODE->MEMW -> model interval 4 / chip 2 / TI_PLAIN / eval_ext-in-window (all); denial = ext_ok_wr (25 RMW: defer_wr=1,ext_ok_wr=0,rdy_p1=1,rdy_p2=0; 4 non-RMW minority tagged out). BRANCH A fired. See module docstring + bringup_log.

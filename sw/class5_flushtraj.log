@@ -1,0 +1,180 @@
+start Thu Jul 16 19:27:11 2026  pinned RTL: HEAD 1f6004c (DUT untouched; TB d[49]=eu_hold d[50]=cpu_clk appended, observability only)
+corpus rows: 16058
+(src,seed,w) pairs -> TB runs: 150
+  fz90008 r4.3: 113 joined, 0 unjoinable | agree age_occupied_entry_cpu=113/113 busfree=113/113 cnt_occupied=113/113 cnt_q_cnt=113/113 eu_req=113/113
+  fz90008 r7.7: 111 joined, 0 unjoinable | agree age_occupied_entry_cpu=111/111 busfree=111/111 cnt_occupied=111/111 cnt_q_cnt=111/111 eu_req=111/111
+  fz90008 w1: 112 joined, 0 unjoinable | agree age_occupied_entry_cpu=112/112 busfree=112/112 cnt_occupied=112/112 cnt_q_cnt=112/112 eu_req=112/112
+  fz90008 w2: 111 joined, 0 unjoinable | agree age_occupied_entry_cpu=111/111 busfree=111/111 cnt_occupied=111/111 cnt_q_cnt=111/111 eu_req=111/111
+  fz90008 w3: 111 joined, 0 unjoinable | agree age_occupied_entry_cpu=111/111 busfree=111/111 cnt_occupied=111/111 cnt_q_cnt=111/111 eu_req=111/111
+  fz90009 r4.3: 92 joined, 0 unjoinable | agree age_occupied_entry_cpu=92/92 busfree=92/92 cnt_occupied=92/92 cnt_q_cnt=92/92 eu_req=92/92
+  fz90009 r7.7: 92 joined, 0 unjoinable | agree age_occupied_entry_cpu=92/92 busfree=92/92 cnt_occupied=92/92 cnt_q_cnt=92/92 eu_req=92/92
+  fz90009 w1: 92 joined, 0 unjoinable | agree age_occupied_entry_cpu=92/92 busfree=92/92 cnt_occupied=92/92 cnt_q_cnt=92/92 eu_req=92/92
+  fz90009 w2: 91 joined, 0 unjoinable | agree age_occupied_entry_cpu=91/91 busfree=91/91 cnt_occupied=91/91 cnt_q_cnt=91/91 eu_req=91/91
+  fz90009 w3: 71 joined, 0 unjoinable | agree age_occupied_entry_cpu=71/71 busfree=71/71 cnt_occupied=71/71 cnt_q_cnt=71/71 eu_req=71/71
+  [10/150] 0.1s/pair rows=996
+  fz90010 r4.3: 95 joined, 0 unjoinable | agree age_occupied_entry_cpu=95/95 busfree=95/95 cnt_occupied=95/95 cnt_q_cnt=95/95 eu_req=95/95
+  fz90010 r7.7: 95 joined, 0 unjoinable | agree age_occupied_entry_cpu=95/95 busfree=95/95 cnt_occupied=95/95 cnt_q_cnt=95/95 eu_req=95/95
+  fz90010 w1: 95 joined, 0 unjoinable | agree age_occupied_entry_cpu=95/95 busfree=95/95 cnt_occupied=95/95 cnt_q_cnt=95/95 eu_req=95/95
+  fz90010 w2: 95 joined, 0 unjoinable | agree age_occupied_entry_cpu=95/95 busfree=95/95 cnt_occupied=95/95 cnt_q_cnt=95/95 eu_req=95/95
+  fz90010 w3: 64 joined, 0 unjoinable | agree age_occupied_entry_cpu=64/64 busfree=64/64 cnt_occupied=64/64 cnt_q_cnt=64/64 eu_req=64/64
+  fz90011 r4.3: 81 joined, 0 unjoinable | agree age_occupied_entry_cpu=81/81 busfree=81/81 cnt_occupied=81/81 cnt_q_cnt=81/81 eu_req=81/81
+  fz90011 r7.7: 80 joined, 0 unjoinable | agree age_occupied_entry_cpu=80/80 busfree=80/80 cnt_occupied=80/80 cnt_q_cnt=80/80 eu_req=80/80
+  fz90011 w1: 80 joined, 0 unjoinable | agree age_occupied_entry_cpu=80/80 busfree=80/80 cnt_occupied=80/80 cnt_q_cnt=80/80 eu_req=80/80
+  fz90011 w2: 80 joined, 0 unjoinable | agree age_occupied_entry_cpu=80/80 busfree=80/80 cnt_occupied=80/80 cnt_q_cnt=80/80 eu_req=80/80
+  fz90011 w3: 60 joined, 0 unjoinable | agree age_occupied_entry_cpu=60/60 busfree=60/60 cnt_occupied=60/60 cnt_q_cnt=60/60 eu_req=60/60
+  [20/150] 0.1s/pair rows=1821
+  fz90012 r4.3: 84 joined, 0 unjoinable | agree age_occupied_entry_cpu=84/84 busfree=84/84 cnt_occupied=84/84 cnt_q_cnt=84/84 eu_req=84/84
+  fz90012 r7.7: 83 joined, 0 unjoinable | agree age_occupied_entry_cpu=83/83 busfree=83/83 cnt_occupied=83/83 cnt_q_cnt=83/83 eu_req=83/83
+  fz90012 w1: 83 joined, 0 unjoinable | agree age_occupied_entry_cpu=83/83 busfree=83/83 cnt_occupied=83/83 cnt_q_cnt=83/83 eu_req=83/83
+  fz90012 w2: 83 joined, 0 unjoinable | agree age_occupied_entry_cpu=83/83 busfree=83/83 cnt_occupied=83/83 cnt_q_cnt=83/83 eu_req=83/83
+  fz90012 w3: 83 joined, 0 unjoinable | agree age_occupied_entry_cpu=83/83 busfree=83/83 cnt_occupied=83/83 cnt_q_cnt=83/83 eu_req=83/83
+  fz90013 r4.3: 107 joined, 0 unjoinable | agree age_occupied_entry_cpu=107/107 busfree=107/107 cnt_occupied=107/107 cnt_q_cnt=107/107 eu_req=107/107
+  fz90013 r7.7: 106 joined, 0 unjoinable | agree age_occupied_entry_cpu=106/106 busfree=106/106 cnt_occupied=106/106 cnt_q_cnt=106/106 eu_req=106/106
+  fz90013 w1: 108 joined, 0 unjoinable | agree age_occupied_entry_cpu=108/108 busfree=108/108 cnt_occupied=108/108 cnt_q_cnt=108/108 eu_req=108/108
+  fz90013 w2: 106 joined, 0 unjoinable | agree age_occupied_entry_cpu=106/106 busfree=106/106 cnt_occupied=106/106 cnt_q_cnt=106/106 eu_req=106/106
+  fz90013 w3: 106 joined, 0 unjoinable | agree age_occupied_entry_cpu=106/106 busfree=106/106 cnt_occupied=106/106 cnt_q_cnt=106/106 eu_req=106/106
+  [30/150] 0.1s/pair rows=2770
+  fz90014 r4.3: 90 joined, 0 unjoinable | agree age_occupied_entry_cpu=90/90 busfree=90/90 cnt_occupied=90/90 cnt_q_cnt=90/90 eu_req=90/90
+  fz90014 r7.7: 89 joined, 0 unjoinable | agree age_occupied_entry_cpu=89/89 busfree=89/89 cnt_occupied=89/89 cnt_q_cnt=89/89 eu_req=89/89
+  fz90014 w1: 89 joined, 0 unjoinable | agree age_occupied_entry_cpu=89/89 busfree=89/89 cnt_occupied=89/89 cnt_q_cnt=89/89 eu_req=89/89
+  fz90014 w2: 89 joined, 0 unjoinable | agree age_occupied_entry_cpu=89/89 busfree=89/89 cnt_occupied=89/89 cnt_q_cnt=89/89 eu_req=89/89
+  fz90014 w3: 89 joined, 0 unjoinable | agree age_occupied_entry_cpu=89/89 busfree=89/89 cnt_occupied=89/89 cnt_q_cnt=89/89 eu_req=89/89
+  fz90015 r4.3: 115 joined, 0 unjoinable | agree age_occupied_entry_cpu=115/115 busfree=115/115 cnt_occupied=115/115 cnt_q_cnt=115/115 eu_req=115/115
+  fz90015 r7.7: 133 joined, 0 unjoinable | agree age_occupied_entry_cpu=133/133 busfree=133/133 cnt_occupied=133/133 cnt_q_cnt=133/133 eu_req=133/133
+  fz90015 w1: 134 joined, 0 unjoinable | agree age_occupied_entry_cpu=134/134 busfree=134/134 cnt_occupied=134/134 cnt_q_cnt=134/134 eu_req=134/134
+  fz90015 w2: 133 joined, 0 unjoinable | agree age_occupied_entry_cpu=133/133 busfree=133/133 cnt_occupied=133/133 cnt_q_cnt=133/133 eu_req=133/133
+  fz90015 w3: 133 joined, 0 unjoinable | agree age_occupied_entry_cpu=133/133 busfree=133/133 cnt_occupied=133/133 cnt_q_cnt=133/133 eu_req=133/133
+  [40/150] 0.1s/pair rows=3864
+  fz90016 r4.3: 92 joined, 0 unjoinable | agree age_occupied_entry_cpu=92/92 busfree=92/92 cnt_occupied=92/92 cnt_q_cnt=92/92 eu_req=92/92
+  fz90016 r7.7: 90 joined, 0 unjoinable | agree age_occupied_entry_cpu=90/90 busfree=90/90 cnt_occupied=90/90 cnt_q_cnt=90/90 eu_req=90/90
+  fz90016 w1: 90 joined, 0 unjoinable | agree age_occupied_entry_cpu=90/90 busfree=90/90 cnt_occupied=90/90 cnt_q_cnt=90/90 eu_req=90/90
+  fz90016 w2: 90 joined, 0 unjoinable | agree age_occupied_entry_cpu=90/90 busfree=90/90 cnt_occupied=90/90 cnt_q_cnt=90/90 eu_req=90/90
+  fz90016 w3: 43 joined, 0 unjoinable | agree age_occupied_entry_cpu=43/43 busfree=43/43 cnt_occupied=43/43 cnt_q_cnt=43/43 eu_req=43/43
+  fz90017 r4.3: 134 joined, 0 unjoinable | agree age_occupied_entry_cpu=134/134 busfree=134/134 cnt_occupied=134/134 cnt_q_cnt=134/134 eu_req=134/134
+  fz90017 r7.7: 133 joined, 0 unjoinable | agree age_occupied_entry_cpu=133/133 busfree=133/133 cnt_occupied=133/133 cnt_q_cnt=133/133 eu_req=133/133
+  fz90017 w1: 133 joined, 0 unjoinable | agree age_occupied_entry_cpu=133/133 busfree=133/133 cnt_occupied=133/133 cnt_q_cnt=133/133 eu_req=133/133
+  fz90017 w2: 133 joined, 0 unjoinable | agree age_occupied_entry_cpu=133/133 busfree=133/133 cnt_occupied=133/133 cnt_q_cnt=133/133 eu_req=133/133
+  fz90017 w3: 133 joined, 0 unjoinable | agree age_occupied_entry_cpu=133/133 busfree=133/133 cnt_occupied=133/133 cnt_q_cnt=133/133 eu_req=133/133
+  [50/150] 0.1s/pair rows=4935
+  fz91006 r4.3: 124 joined, 0 unjoinable | agree age_occupied_entry_cpu=124/124 busfree=124/124 cnt_occupied=124/124 cnt_q_cnt=124/124 eu_req=124/124
+  fz91006 r7.7: 123 joined, 0 unjoinable | agree age_occupied_entry_cpu=123/123 busfree=123/123 cnt_occupied=123/123 cnt_q_cnt=123/123 eu_req=123/123
+  fz91006 w1: 123 joined, 0 unjoinable | agree age_occupied_entry_cpu=123/123 busfree=123/123 cnt_occupied=123/123 cnt_q_cnt=123/123 eu_req=123/123
+  fz91006 w2: 123 joined, 0 unjoinable | agree age_occupied_entry_cpu=123/123 busfree=123/123 cnt_occupied=123/123 cnt_q_cnt=123/123 eu_req=123/123
+  fz91006 w3: 123 joined, 0 unjoinable | agree age_occupied_entry_cpu=123/123 busfree=123/123 cnt_occupied=123/123 cnt_q_cnt=123/123 eu_req=123/123
+  fz91007 r4.3: 87 joined, 0 unjoinable | agree age_occupied_entry_cpu=87/87 busfree=87/87 cnt_occupied=87/87 cnt_q_cnt=87/87 eu_req=87/87
+  fz91007 r7.7: 87 joined, 0 unjoinable | agree age_occupied_entry_cpu=87/87 busfree=87/87 cnt_occupied=87/87 cnt_q_cnt=87/87 eu_req=87/87
+  fz91007 w1: 87 joined, 0 unjoinable | agree age_occupied_entry_cpu=87/87 busfree=87/87 cnt_occupied=87/87 cnt_q_cnt=87/87 eu_req=87/87
+  fz91007 w2: 87 joined, 0 unjoinable | agree age_occupied_entry_cpu=87/87 busfree=87/87 cnt_occupied=87/87 cnt_q_cnt=87/87 eu_req=87/87
+  fz91007 w3: 87 joined, 0 unjoinable | agree age_occupied_entry_cpu=87/87 busfree=87/87 cnt_occupied=87/87 cnt_q_cnt=87/87 eu_req=87/87
+  [60/150] 0.1s/pair rows=5986
+  fz91008 r4.3: 138 joined, 0 unjoinable | agree age_occupied_entry_cpu=138/138 busfree=138/138 cnt_occupied=138/138 cnt_q_cnt=138/138 eu_req=138/138
+  fz91008 r7.7: 137 joined, 0 unjoinable | agree age_occupied_entry_cpu=137/137 busfree=137/137 cnt_occupied=137/137 cnt_q_cnt=137/137 eu_req=137/137
+  fz91008 w1: 138 joined, 0 unjoinable | agree age_occupied_entry_cpu=138/138 busfree=138/138 cnt_occupied=138/138 cnt_q_cnt=138/138 eu_req=138/138
+  fz91008 w2: 137 joined, 0 unjoinable | agree age_occupied_entry_cpu=137/137 busfree=137/137 cnt_occupied=137/137 cnt_q_cnt=137/137 eu_req=137/137
+  fz91008 w3: 137 joined, 0 unjoinable | agree age_occupied_entry_cpu=137/137 busfree=137/137 cnt_occupied=137/137 cnt_q_cnt=137/137 eu_req=137/137
+  fz91009 r4.3: 77 joined, 0 unjoinable | agree age_occupied_entry_cpu=77/77 busfree=77/77 cnt_occupied=77/77 cnt_q_cnt=77/77 eu_req=77/77
+  fz91009 r7.7: 77 joined, 0 unjoinable | agree age_occupied_entry_cpu=77/77 busfree=77/77 cnt_occupied=77/77 cnt_q_cnt=77/77 eu_req=77/77
+  fz91009 w1: 77 joined, 0 unjoinable | agree age_occupied_entry_cpu=77/77 busfree=77/77 cnt_occupied=77/77 cnt_q_cnt=77/77 eu_req=77/77
+  fz91009 w2: 77 joined, 0 unjoinable | agree age_occupied_entry_cpu=77/77 busfree=77/77 cnt_occupied=77/77 cnt_q_cnt=77/77 eu_req=77/77
+  fz91009 w3: 77 joined, 0 unjoinable | agree age_occupied_entry_cpu=77/77 busfree=77/77 cnt_occupied=77/77 cnt_q_cnt=77/77 eu_req=77/77
+  [70/150] 0.1s/pair rows=7058
+  fz91010 r4.3: 88 joined, 0 unjoinable | agree age_occupied_entry_cpu=88/88 busfree=88/88 cnt_occupied=88/88 cnt_q_cnt=88/88 eu_req=88/88
+  fz91010 r7.7: 69 joined, 0 unjoinable | agree age_occupied_entry_cpu=69/69 busfree=69/69 cnt_occupied=69/69 cnt_q_cnt=69/69 eu_req=69/69
+  fz91010 w1: 89 joined, 0 unjoinable | agree age_occupied_entry_cpu=89/89 busfree=89/89 cnt_occupied=89/89 cnt_q_cnt=89/89 eu_req=89/89
+  fz91010 w2: 69 joined, 0 unjoinable | agree age_occupied_entry_cpu=69/69 busfree=69/69 cnt_occupied=69/69 cnt_q_cnt=69/69 eu_req=69/69
+  fz91010 w3: 88 joined, 0 unjoinable | agree age_occupied_entry_cpu=88/88 busfree=88/88 cnt_occupied=88/88 cnt_q_cnt=88/88 eu_req=88/88
+  fz91011 r4.3: 76 joined, 0 unjoinable | agree age_occupied_entry_cpu=76/76 busfree=76/76 cnt_occupied=76/76 cnt_q_cnt=76/76 eu_req=76/76
+  fz91011 r7.7: 75 joined, 0 unjoinable | agree age_occupied_entry_cpu=75/75 busfree=75/75 cnt_occupied=75/75 cnt_q_cnt=75/75 eu_req=75/75
+  fz91011 w1: 76 joined, 0 unjoinable | agree age_occupied_entry_cpu=76/76 busfree=76/76 cnt_occupied=76/76 cnt_q_cnt=76/76 eu_req=76/76
+  fz91011 w2: 75 joined, 0 unjoinable | agree age_occupied_entry_cpu=75/75 busfree=75/75 cnt_occupied=75/75 cnt_q_cnt=75/75 eu_req=75/75
+  fz91011 w3: 75 joined, 0 unjoinable | agree age_occupied_entry_cpu=75/75 busfree=75/75 cnt_occupied=75/75 cnt_q_cnt=75/75 eu_req=75/75
+  [80/150] 0.1s/pair rows=7838
+  fz90000 r4.3: 128 joined, 0 unjoinable | agree age_occupied_entry_cpu=128/128 busfree=128/128 cnt_occupied=128/128 cnt_q_cnt=128/128 eu_req=128/128
+  fz90000 r7.7: 86 joined, 0 unjoinable | agree age_occupied_entry_cpu=86/86 busfree=86/86 cnt_occupied=86/86 cnt_q_cnt=86/86 eu_req=86/86
+  fz90000 w1: 126 joined, 0 unjoinable | agree age_occupied_entry_cpu=125/126 busfree=126/126 cnt_occupied=125/126 cnt_q_cnt=125/126 eu_req=126/126
+  fz90000 w2: 125 joined, 0 unjoinable | agree age_occupied_entry_cpu=125/125 busfree=125/125 cnt_occupied=125/125 cnt_q_cnt=125/125 eu_req=125/125
+  fz90000 w3: 125 joined, 0 unjoinable | agree age_occupied_entry_cpu=125/125 busfree=125/125 cnt_occupied=125/125 cnt_q_cnt=125/125 eu_req=125/125
+  fz90001 r4.3: 112 joined, 0 unjoinable | agree age_occupied_entry_cpu=112/112 busfree=112/112 cnt_occupied=112/112 cnt_q_cnt=112/112 eu_req=112/112
+  fz90001 r7.7: 111 joined, 0 unjoinable | agree age_occupied_entry_cpu=111/111 busfree=111/111 cnt_occupied=111/111 cnt_q_cnt=111/111 eu_req=111/111
+  fz90001 w1: 111 joined, 0 unjoinable | agree age_occupied_entry_cpu=111/111 busfree=111/111 cnt_occupied=111/111 cnt_q_cnt=111/111 eu_req=111/111
+  fz90001 w2: 111 joined, 0 unjoinable | agree age_occupied_entry_cpu=111/111 busfree=111/111 cnt_occupied=111/111 cnt_q_cnt=111/111 eu_req=111/111
+  fz90001 w3: 91 joined, 0 unjoinable | agree age_occupied_entry_cpu=91/91 busfree=91/91 cnt_occupied=91/91 cnt_q_cnt=91/91 eu_req=91/91
+  [90/150] 0.1s/pair rows=8964
+  fz90002 r4.3: 133 joined, 0 unjoinable | agree age_occupied_entry_cpu=133/133 busfree=133/133 cnt_occupied=133/133 cnt_q_cnt=133/133 eu_req=133/133
+  fz90002 r7.7: 133 joined, 0 unjoinable | agree age_occupied_entry_cpu=133/133 busfree=133/133 cnt_occupied=133/133 cnt_q_cnt=133/133 eu_req=133/133
+  fz90002 w1: 133 joined, 0 unjoinable | agree age_occupied_entry_cpu=133/133 busfree=133/133 cnt_occupied=133/133 cnt_q_cnt=133/133 eu_req=133/133
+  fz90002 w2: 133 joined, 0 unjoinable | agree age_occupied_entry_cpu=133/133 busfree=133/133 cnt_occupied=133/133 cnt_q_cnt=133/133 eu_req=133/133
+  fz90002 w3: 132 joined, 0 unjoinable | agree age_occupied_entry_cpu=132/132 busfree=132/132 cnt_occupied=132/132 cnt_q_cnt=132/132 eu_req=132/132
+  fz90003 r4.3: 152 joined, 0 unjoinable | agree age_occupied_entry_cpu=152/152 busfree=152/152 cnt_occupied=152/152 cnt_q_cnt=152/152 eu_req=152/152
+  fz90003 r7.7: 149 joined, 0 unjoinable | agree age_occupied_entry_cpu=149/149 busfree=149/149 cnt_occupied=149/149 cnt_q_cnt=149/149 eu_req=149/149
+  fz90003 w1: 151 joined, 0 unjoinable | agree age_occupied_entry_cpu=151/151 busfree=151/151 cnt_occupied=151/151 cnt_q_cnt=151/151 eu_req=151/151
+  fz90003 w2: 149 joined, 0 unjoinable | agree age_occupied_entry_cpu=149/149 busfree=149/149 cnt_occupied=149/149 cnt_q_cnt=149/149 eu_req=149/149
+  fz90003 w3: 148 joined, 0 unjoinable | agree age_occupied_entry_cpu=148/148 busfree=148/148 cnt_occupied=148/148 cnt_q_cnt=148/148 eu_req=148/148
+  [100/150] 0.1s/pair rows=10377
+  fz90004 r4.3: 132 joined, 0 unjoinable | agree age_occupied_entry_cpu=132/132 busfree=132/132 cnt_occupied=132/132 cnt_q_cnt=132/132 eu_req=132/132
+  fz90004 r7.7: 131 joined, 0 unjoinable | agree age_occupied_entry_cpu=131/131 busfree=131/131 cnt_occupied=131/131 cnt_q_cnt=131/131 eu_req=131/131
+  fz90004 w1: 131 joined, 0 unjoinable | agree age_occupied_entry_cpu=131/131 busfree=131/131 cnt_occupied=131/131 cnt_q_cnt=130/131 eu_req=131/131
+  fz90004 w2: 131 joined, 0 unjoinable | agree age_occupied_entry_cpu=131/131 busfree=131/131 cnt_occupied=131/131 cnt_q_cnt=131/131 eu_req=131/131
+  fz90004 w3: 131 joined, 0 unjoinable | agree age_occupied_entry_cpu=131/131 busfree=131/131 cnt_occupied=131/131 cnt_q_cnt=131/131 eu_req=131/131
+  fz90005 r4.3: 45 joined, 0 unjoinable | agree age_occupied_entry_cpu=45/45 busfree=45/45 cnt_occupied=45/45 cnt_q_cnt=45/45 eu_req=45/45
+  fz90005 r7.7: 76 joined, 0 unjoinable | agree age_occupied_entry_cpu=76/76 busfree=76/76 cnt_occupied=76/76 cnt_q_cnt=76/76 eu_req=76/76
+  fz90005 w1: 76 joined, 0 unjoinable | agree age_occupied_entry_cpu=76/76 busfree=76/76 cnt_occupied=76/76 cnt_q_cnt=76/76 eu_req=76/76
+  fz90005 w2: 56 joined, 0 unjoinable | agree age_occupied_entry_cpu=56/56 busfree=56/56 cnt_occupied=56/56 cnt_q_cnt=56/56 eu_req=56/56
+  fz90005 w3: 76 joined, 0 unjoinable | agree age_occupied_entry_cpu=76/76 busfree=76/76 cnt_occupied=76/76 cnt_q_cnt=76/76 eu_req=76/76
+  [110/150] 0.1s/pair rows=11362
+  fz90006 r4.3: 108 joined, 0 unjoinable | agree age_occupied_entry_cpu=108/108 busfree=108/108 cnt_occupied=108/108 cnt_q_cnt=108/108 eu_req=108/108
+  fz90006 r7.7: 108 joined, 0 unjoinable | agree age_occupied_entry_cpu=108/108 busfree=108/108 cnt_occupied=108/108 cnt_q_cnt=108/108 eu_req=108/108
+  fz90006 w1: 108 joined, 0 unjoinable | agree age_occupied_entry_cpu=108/108 busfree=108/108 cnt_occupied=108/108 cnt_q_cnt=108/108 eu_req=108/108
+  fz90006 w2: 107 joined, 0 unjoinable | agree age_occupied_entry_cpu=107/107 busfree=107/107 cnt_occupied=107/107 cnt_q_cnt=107/107 eu_req=107/107
+  fz90006 w3: 107 joined, 0 unjoinable | agree age_occupied_entry_cpu=107/107 busfree=107/107 cnt_occupied=107/107 cnt_q_cnt=107/107 eu_req=107/107
+  fz90007 r4.3: 114 joined, 0 unjoinable | agree age_occupied_entry_cpu=114/114 busfree=114/114 cnt_occupied=114/114 cnt_q_cnt=114/114 eu_req=114/114
+  fz90007 r7.7: 113 joined, 0 unjoinable | agree age_occupied_entry_cpu=113/113 busfree=113/113 cnt_occupied=113/113 cnt_q_cnt=113/113 eu_req=113/113
+  fz90007 w1: 113 joined, 0 unjoinable | agree age_occupied_entry_cpu=113/113 busfree=113/113 cnt_occupied=113/113 cnt_q_cnt=113/113 eu_req=113/113
+  fz90007 w2: 111 joined, 0 unjoinable | agree age_occupied_entry_cpu=111/111 busfree=111/111 cnt_occupied=111/111 cnt_q_cnt=111/111 eu_req=111/111
+  fz90007 w3: 111 joined, 0 unjoinable | agree age_occupied_entry_cpu=111/111 busfree=111/111 cnt_occupied=111/111 cnt_q_cnt=111/111 eu_req=111/111
+  [120/150] 0.1s/pair rows=12462
+  fz91000 r4.3: 125 joined, 0 unjoinable | agree age_occupied_entry_cpu=125/125 busfree=125/125 cnt_occupied=125/125 cnt_q_cnt=125/125 eu_req=125/125
+  fz91000 r7.7: 84 joined, 0 unjoinable | agree age_occupied_entry_cpu=84/84 busfree=84/84 cnt_occupied=84/84 cnt_q_cnt=84/84 eu_req=84/84
+  fz91000 w1: 84 joined, 0 unjoinable | agree age_occupied_entry_cpu=84/84 busfree=84/84 cnt_occupied=84/84 cnt_q_cnt=84/84 eu_req=84/84
+  fz91000 w2: 124 joined, 0 unjoinable | agree age_occupied_entry_cpu=124/124 busfree=124/124 cnt_occupied=124/124 cnt_q_cnt=124/124 eu_req=124/124
+  fz91000 w3: 124 joined, 0 unjoinable | agree age_occupied_entry_cpu=124/124 busfree=124/124 cnt_occupied=124/124 cnt_q_cnt=124/124 eu_req=124/124
+  fz91001 r4.3: 152 joined, 0 unjoinable | agree age_occupied_entry_cpu=152/152 busfree=152/152 cnt_occupied=152/152 cnt_q_cnt=152/152 eu_req=152/152
+  fz91001 r7.7: 64 joined, 0 unjoinable | agree age_occupied_entry_cpu=64/64 busfree=64/64 cnt_occupied=64/64 cnt_q_cnt=64/64 eu_req=64/64
+  fz91001 w1: 152 joined, 0 unjoinable | agree age_occupied_entry_cpu=152/152 busfree=152/152 cnt_occupied=152/152 cnt_q_cnt=152/152 eu_req=152/152
+  fz91001 w2: 152 joined, 0 unjoinable | agree age_occupied_entry_cpu=152/152 busfree=152/152 cnt_occupied=152/152 cnt_q_cnt=152/152 eu_req=152/152
+  fz91001 w3: 152 joined, 0 unjoinable | agree age_occupied_entry_cpu=152/152 busfree=152/152 cnt_occupied=152/152 cnt_q_cnt=152/152 eu_req=152/152
+  [130/150] 0.1s/pair rows=13675
+  fz91002 r4.3: 124 joined, 0 unjoinable | agree age_occupied_entry_cpu=124/124 busfree=124/124 cnt_occupied=124/124 cnt_q_cnt=124/124 eu_req=124/124
+  fz91002 r7.7: 123 joined, 0 unjoinable | agree age_occupied_entry_cpu=123/123 busfree=123/123 cnt_occupied=123/123 cnt_q_cnt=123/123 eu_req=123/123
+  fz91002 w1: 122 joined, 0 unjoinable | agree age_occupied_entry_cpu=122/122 busfree=122/122 cnt_occupied=122/122 cnt_q_cnt=122/122 eu_req=122/122
+  fz91002 w2: 122 joined, 0 unjoinable | agree age_occupied_entry_cpu=122/122 busfree=122/122 cnt_occupied=122/122 cnt_q_cnt=122/122 eu_req=122/122
+  fz91002 w3: 122 joined, 0 unjoinable | agree age_occupied_entry_cpu=122/122 busfree=122/122 cnt_occupied=122/122 cnt_q_cnt=122/122 eu_req=122/122
+  fz91003 r4.3: 125 joined, 0 unjoinable | agree age_occupied_entry_cpu=125/125 busfree=125/125 cnt_occupied=125/125 cnt_q_cnt=125/125 eu_req=125/125
+  fz91003 r7.7: 125 joined, 0 unjoinable | agree age_occupied_entry_cpu=125/125 busfree=125/125 cnt_occupied=125/125 cnt_q_cnt=125/125 eu_req=125/125
+  fz91003 w1: 124 joined, 0 unjoinable | agree age_occupied_entry_cpu=124/124 busfree=124/124 cnt_occupied=124/124 cnt_q_cnt=124/124 eu_req=124/124
+  fz91003 w2: 124 joined, 0 unjoinable | agree age_occupied_entry_cpu=124/124 busfree=124/124 cnt_occupied=124/124 cnt_q_cnt=124/124 eu_req=124/124
+  fz91003 w3: 104 joined, 0 unjoinable | agree age_occupied_entry_cpu=104/104 busfree=104/104 cnt_occupied=104/104 cnt_q_cnt=104/104 eu_req=104/104
+  [140/150] 0.1s/pair rows=14890
+  fz91004 r4.3: 112 joined, 0 unjoinable | agree age_occupied_entry_cpu=112/112 busfree=112/112 cnt_occupied=112/112 cnt_q_cnt=112/112 eu_req=112/112
+  fz91004 r7.7: 111 joined, 0 unjoinable | agree age_occupied_entry_cpu=111/111 busfree=111/111 cnt_occupied=111/111 cnt_q_cnt=111/111 eu_req=111/111
+  fz91004 w1: 111 joined, 0 unjoinable | agree age_occupied_entry_cpu=111/111 busfree=111/111 cnt_occupied=111/111 cnt_q_cnt=111/111 eu_req=111/111
+  fz91004 w2: 111 joined, 0 unjoinable | agree age_occupied_entry_cpu=111/111 busfree=111/111 cnt_occupied=111/111 cnt_q_cnt=111/111 eu_req=111/111
+  fz91004 w3: 91 joined, 0 unjoinable | agree age_occupied_entry_cpu=91/91 busfree=91/91 cnt_occupied=91/91 cnt_q_cnt=91/91 eu_req=91/91
+  fz91005 r4.3: 128 joined, 0 unjoinable | agree age_occupied_entry_cpu=128/128 busfree=128/128 cnt_occupied=128/128 cnt_q_cnt=128/128 eu_req=128/128
+  fz91005 r7.7: 126 joined, 0 unjoinable | agree age_occupied_entry_cpu=126/126 busfree=126/126 cnt_occupied=126/126 cnt_q_cnt=126/126 eu_req=126/126
+  fz91005 w1: 127 joined, 0 unjoinable | agree age_occupied_entry_cpu=127/127 busfree=127/127 cnt_occupied=127/127 cnt_q_cnt=127/127 eu_req=127/127
+  fz91005 w2: 126 joined, 0 unjoinable | agree age_occupied_entry_cpu=126/126 busfree=126/126 cnt_occupied=126/126 cnt_q_cnt=126/126 eu_req=126/126
+  fz91005 w3: 125 joined, 0 unjoinable | agree age_occupied_entry_cpu=125/125 busfree=125/125 cnt_occupied=125/125 cnt_q_cnt=125/125 eu_req=125/125
+  [150/150] 0.1s/pair rows=16058
+
+joined 16058, unjoinable 0
+PROVENANCE cross-check (regenerated model field == corpus's stored one):
+  age_occupied_entry_cpu       16057/16058 = 99.99%
+  busfree                      16058/16058 = 100.00%
+  cnt_occupied                 16057/16058 = 99.99%
+  cnt_q_cnt                    16056/16058 = 99.99%
+  eu_req                       16058/16058 = 100.00%
+  (gz: 8220 corpus rows)
+  (fresh: 7838 corpus rows)
+wrote /home/wickerwaka/src/nec_test/sw/class5_flushtraj.jsonl.gz (1.1 MB)
+done Thu Jul 16 19:27:26 2026

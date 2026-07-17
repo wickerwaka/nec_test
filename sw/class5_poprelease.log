@@ -1,0 +1,28 @@
+=== POPULATION: post-MEMW CODE resumes, occ@store-T4>=5 ===
+  total 161  chip_occ5 (early) 39  chip_occ4 (normal) 122
+  group1 disc n=16 (occ5 2); group2 held n=145 (occ5 37)
+  REAL BASELINE (predict all chip_occ4): accuracy 75.8% - a separator must beat this AND split the occ5 minority cleanly.
+
+=== FORM-FREE SEPARATION (fit disc -> freeze -> score held) ===
+  key                     g1-coll  g2-coll  (<=2 each = clean separator)
+  pop@T4+1                      2       37
+  pop@T4+2                      2       37
+  pop@T4+3                      2       37
+  pop_first(1..5)               1       21
+  pop@T4+1,2                    1       21
+  pop@T4+1,2,3                  1       15
+  cnt_next@T3                   2       37
+  prev_tw                       2       39
+  pop_sr                        2       37
+  pop_cnt@T4                    2       37
+  occ@T4                        2       37
+
+=== UNIFORM w1/w3 phase-lock check ===
+  uniform post-MEMW occ>=5 resumes: 19; w0 population 348
+  pop@T4+[1,2,3] distribution (uniform, phase-locked?): [((0, 1, 1), 12), ((0, 1, 0), 4), ((0, 0, 1), 3)]
+
+=== VERDICT: pop-phase MECHANISM CONFIRMED (partial), w0-safe by arithmetic ===
+  pop_first==3: 17 rows, 17 chip_occ5 -> PURE occ5 (even 6/6, odd 11/11 - generalises both balanced groups)
+  pop_first==3 at w0: 0/348 (ABSENT -> arming on it is w0-neutral BY THE KEY'S ARITHMETIC, not a wait flag). At uniform w1/w3: 3 rows.
+  -> pop_first==3 cleanly covers 17/39 chip_occ5 rows with 0 false-positives. RESIDUAL 22 occ5 (pop_first 1,2, dominated by store_tw==0) ALIAS to w0: pop_first in {1,2} and store_tw==0 BOTH occur at w0 (chip_occ4) - locally identical to the random-wait occ5 rows, so UNFIXABLE w0-safely -> PARK.
+  KILL(ii) AVOIDED: pop_first is a pop-PHASE key (absent at w0), not a pattern-level wait flag. The architect's demand-crossing+lag mechanism is REAL. FIX SHAPE: arm the occ==5 release on pop_first==3; ACCEPTANCE TEST (pre-registered): w1/w3 pass with NO wait term - the uniform pop_first==3 rows must be chip_occ5 by the same arithmetic.

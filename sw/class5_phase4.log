@@ -1,0 +1,122 @@
+=== PHASE 2 / FIT C: max() TWO-TERM family ===
+PRE-REGISTERED RE-SPLIT (declared before fitting, one-time):
+  FIT  = fresh  n=7467
+  HOLD = gz     n=7763
+  (original split also reported below for comparison)
+S = L+K is a CONSTRAINED SUM. L and K are unidentifiable from this
+corpus (every low-band pause row has tw>=1). No split is claimed.
+
+pause rows: FIT=111 HOLD=110
+  of which tw1-3 (the DEADLINE regime, the target): FIT=85 HOLD=79
+
+--- 1. DEADLINE/FLOOR sweep: exact cidle on chip-PAUSE rows ---
+    METRIC (fixed): exact-cidle over ALL tw on FRESH pause rows -
+    the architect's own headline (104/174), tie-broken by tw1-3.
+    NOT metricised on tw1-3 alone: tw1-3 is cidle-4-dominant, so a
+    'predict 4 always' rule scores ~69% there while getting the tw>=4
+    FLOOR regime exactly backwards (1/22). Trivial baselines are
+    printed below precisely so that gaming is visible, not inferred.
+    TRIVIAL BASELINES on FIT: always-3 = 52/111 all-tw (27/85 tw1-3);  always-4 = 59/111 all-tw (58/85 tw1-3)
+    A candidate must beat BOTH to be meaningful.
+    (0s) 780 variants
+
+       all tw     tw1-3  variant   [ranked by all-tw]
+       75/111     59/85  D=infl>=1 S=L+K=4 floor=3 D0=level
+       75/111     49/85  D=cnt_next<=2&euCons S=L+K=5 floor=3 D0=onset
+       74/111     58/85  D=infl>=1 S=L+K=4 floor=2 D0=level
+       74/111     58/85  D=occupied<=4&aged0 S=L+K=4 floor=3 D0=level
+       68/111     52/85  D=cnt_next<=2 S=L+K=5 floor=3 D0=level
+       68/111     52/85  D=cnt_next<=2&!(euReq|euHold) S=L+K=5 floor=3 D0=level
+       68/111     52/85  D=cnt_next<=2&!euHold S=L+K=5 floor=3 D0=level
+       68/111     52/85  D=cnt_next<=2&!euReq S=L+K=5 floor=3 D0=level
+       68/111     52/85  D=cnt_next<=2&aged0 S=L+K=5 floor=3 D0=level
+       68/111     52/85  D=q_cnt<=2 S=L+K=4 floor=3 D0=level
+
+>> FROZEN cidle rule (fit on FRESH alone): D=infl>=1 S=L+K=4 floor=3 D0=level
+   FIT: all-tw 75/111  tw1-3 59/85
+   RUNNER-UP: D=cnt_next<=2&euCons S=L+K=5 floor=3 D0=onset  (all-tw 75/111, tw1-3 49/85)
+
+--- 2. GO/PAUSE branch sweep (independent of the cidle rule) ---
+      errs  uneval  branch
+        15       0  GO iff cnt_next<=2 @ T3rdy
+        15       0  GO iff cnt_next<=2&!euHold @ T3rdy
+        15       0  GO iff cnt_next<=2&aged0 @ T3rdy
+        15       0  GO iff occupied<=4 @ T3rdy
+        15       0  GO iff occupied<=4&aged0 @ T3rdy
+        38       0  GO iff cnt_next<=2|pop @ T3rdy
+
+>> FROZEN branch: GO iff cnt_next<=2 @ T3rdy  (FIT errs=15)
+
+=== FROZEN. HOLD (gz) scored once. No threshold touched. ===
+
+--- FIT (fresh) (non-flush low+mid, n=7467) ---
+    confusion:            pred GO   pred PAUSE
+      chip GO             7343           13
+      chip PAUSE             2          109
+    GO/PAUSE errors: 15   (false-pause on waited GOs: 13)
+    exact cidle on chip-PAUSE rows: 75/111 (67.6%)
+
+--- HOLD (gz) - scored ONCE (non-flush low+mid, n=7763) ---
+    confusion:            pred GO   pred PAUSE
+      chip GO             7639           14
+      chip PAUSE             5          105
+    GO/PAUSE errors: 19   (false-pause on waited GOs: 14)
+    exact cidle on chip-PAUSE rows: 63/110 (57.3%)
+
+=== PER-tw exact cidle (chip-PAUSE rows) - the regime structure ===
+    (ONE max() rule; no regime term, no tw term in the demand def)
+
+    FIT(fresh):
+       tw    n     exact   chip 3:4   pred 3:4
+        0   15     15/15       15:0       15:0
+        1   40     35/40       6:34       1:39
+        2   21     15/21       6:15       0:21
+        3   24      9/24       15:9       0:24
+        4    4       0/4        4:0        0:4
+        5    1       0/1        1:0        0:1
+        6    4       0/4        4:0        0:4
+        7    2       1/2        1:1        0:2
+
+    HOLD(gz):
+       tw    n     exact   chip 3:4   pred 3:4
+        0   16     16/16       16:0       16:0
+        1   27     21/27       6:21       0:27
+        2   32     17/32      15:17       0:32
+        3   20      6/20       14:6       0:20
+        4    4       1/4        3:1        0:4
+        5    4       0/4        4:0        0:4
+        6    5       0/5        5:0        0:5
+        7    2       2/2        0:2        0:2
+
+    POOLED:
+       tw    n     exact   chip 3:4   pred 3:4
+        0   31     31/31       31:0       31:0
+        1   67     56/67      12:55       1:66
+        2   53     32/53      21:32       0:53
+        3   44     15/44      29:15       0:44
+        4    8       1/8        7:1        0:8
+        5    5       0/5        5:0        0:5
+        6    9       0/9        9:0        0:9
+        7    4       3/4        1:3        0:4
+
+=== L+K RIDGE (the degeneracy, reported not fitted around) ===
+    exact-cidle on tw1-3 FIT rows as S=L+K varies, best D/floor/D0 held:
+      S=L+K=2: 27/85
+      S=L+K=3: 27/85
+      S=L+K=4: 59/85
+      S=L+K=5: 1/85
+      S=L+K=6: 0/85
+    Every (L,K) with L+K=S is the SAME model on this corpus: all
+    low-band pause rows have tw>=1, so K*[tw>=1] is a constant. Only
+    tw=0 pause cells could separate L from K and the low band has none.
+
+=== ORIGINAL SPLIT (gz-disc fit / gz-held+fresh), for comparison ===
+    gz-disc     : exact cidle 34/58 (58.6%)   tw1-3: 21/39
+    held+fresh  : exact cidle 104/163 (63.8%)   tw1-3: 82/125
+    (the FROZEN rule above, evaluated on the original split - NOT refit)
+
+=== ANCHOR: occ3/age1-2 (the Phase-2 partial's cells) ===
+    exact cidle 20/40  (pure-deadline rule got 29/29 here;
+     these cells are entirely in the deadline regime)
+
+wrote /home/wickerwaka/src/nec_test/sw/class5_phase4.json

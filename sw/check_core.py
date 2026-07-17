@@ -79,7 +79,12 @@ def build(force=False):
         newest = max(p.stat().st_mtime for p in RTL)
         if BIN.stat().st_mtime > newest:
             return
-    cmd = ["verilator", "--binary", "--timing", "-DV30_BACKDOOR",
+    # --assert: compile the SVAs. Without it every `assert` in the RTL is
+    # silently dropped, so an assertion that "passes" has simply never run. A
+    # per-arm class-5 SVA was added, compiled out, and reported nothing - an
+    # unfireable assertion manufactures false confidence, so the build now
+    # always enables them.
+    cmd = ["verilator", "--binary", "--timing", "-DV30_BACKDOOR", "--assert",
            "-Wall", "-Wno-UNUSEDSIGNAL", "-Wno-VARHIDDEN",
            "--top-module", "tb_v30_core",
            "-Mdir", str(OBJ)] + [str(p) for p in RTL]

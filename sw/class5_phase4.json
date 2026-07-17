@@ -1,0 +1,32 @@
+{
+ "fit": "C (max two-term)",
+ "cidle_rule": {
+  "D": "infl>=1",
+  "S_sum_L_plus_K": 4,
+  "floor": 3,
+  "D0": "level"
+ },
+ "branch": {
+  "D": "cnt_next<=2",
+  "read": "T3rdy"
+ },
+ "final": {
+  "FIT(fresh)": {
+   "gg": 7343,
+   "gp": 13,
+   "pg": 2,
+   "pp": 109,
+   "ex": 75,
+   "exn": 111
+  },
+  "HOLD(gz)": {
+   "gg": 7639,
+   "gp": 14,
+   "pg": 5,
+   "pp": 105,
+   "ex": 63,
+   "exn": 110
+  }
+ },
+ "note": "L and K unidentifiable; S=L+K reported as a sum"
+}

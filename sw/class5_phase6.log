@@ -1,0 +1,71 @@
+=== PHASE 6 / TASK B: form-free lookup on the DECISION function ===
+  FIT(fresh): n=7467 GO=7356 PAUSE=111  => always-GO baseline errors = 111
+  HOLD(gz): n=7763 GO=7653 PAUSE=110  => always-GO baseline errors = 110
+  metric = ERRORS (false-pause + missed-pause). Accuracy is useless
+  here: always-GO is 98.5% 'accurate' and 100% wrong on every pause.
+  Fits so far (predicate grids): 15 errors FIT / 19 HOLD.
+
+--- 1. SINGLE trajectory keys ---
+     errs FIT  errs HOLD  cells  clean  key
+           55         57      5  DIRTY  occ@T4+3
+           55         57      5  DIRTY  qcnt@T4+4
+           57         62      8  DIRTY  occ@T4+4
+           57         62      3    yes  pop@T4+3
+           57         62      3    yes  pop@T4+4
+           57         62      4  DIRTY  qcnt@T4+3
+           68         73      4    yes  qcnt@T4+0
+           95         91      6    yes  occ@T4+0
+           96         94      6    yes  qcnt@T4+1
+          111        110      5    yes  occ@T4+1
+          111        110      7  DIRTY  occ@T4+2
+          111        110      2    yes  pop@T4+0
+          111        110      2    yes  pop@T4+1
+          111        110      3    yes  pop@T4+2
+          111        110      8    yes  pred_tw (wait-frame)
+          111        110      6  DIRTY  qcnt@T4+2
+
+--- 2. COMBINATION keys ---
+     errs FIT  errs HOLD  cells  clean  key
+           56         58     27    yes  occ@T4+1 x pop@T4+0..2
+           57         62     15  DIRTY  occ@T4+1 x occ@T4+2 (DIRTY)
+           71         64     22    yes  occ@T4+1 x qcnt@T4+1 x pop@T4+2
+           79         74     48    yes  occ@T4+1 x pop@T4+2 x tw
+           91         85     11    yes  occ@T4+1 x pop@T4+2
+           92         94     12    yes  pop@T4+0..2
+           84         97     13    yes  occ@T4+0 x occ@T4+1
+          110        111     38    yes  occ@T4+1 x tw
+          100        116      8    yes  occ@T4+1 x pop@T4+1
+
+>> BEST combination: occ@T4+1 x pop@T4+0..2  FIT 56 errs, HOLD 58 errs (27 cells, clean)
+   always-GO baseline HOLD errors: 110
+   predicate-grid fits to date: 19 HOLD errors
+
+--- 3. THE MODEL-EARLY ROWS (chip pauses, model GOes) ---
+    This is the dominant remaining mass (~2-3 clocks each).
+    model-early rows in low+mid non-flush: 87
+    by (occ@T4+1, tw): {(0, 1): 1, (2, 1): 3, (2, 2): 9, (2, 3): 20, (2, 4): 7, (2, 5): 4, (2, 6): 8, (2, 7): 1, (3, 1): 4, (3, 2): 10, (3, 3): 18, (3, 5): 1, (3, 6): 1}
+    FIT 37 / HOLD 50
+      occ@T4+1 x pop@T4+2               : recovers 0/50 HOLD model-early rows
+      occ@T4+1 x tw                     : recovers 0/50 HOLD model-early rows
+      occ@T4+1 x pop@T4+2 x tw          : recovers 0/50 HOLD model-early rows
+      occ@T4+1 x pop@T4+1               : recovers 8/50 HOLD model-early rows
+      occ@T4+0 x occ@T4+1               : recovers 8/50 HOLD model-early rows
+      pop@T4+0..2                       : recovers 10/50 HOLD model-early rows
+      occ@T4+1 x pop@T4+0..2            : recovers 0/50 HOLD model-early rows
+      occ@T4+1 x qcnt@T4+1 x pop@T4+2   : recovers 0/50 HOLD model-early rows
+
+--- 4. RE-AUDIT: the q0/q1 STARVED cell (long called unminable) ---
+    Previously key-cell analysis over SNAPSHOT keys only; trajectory
+    keys (pop@T4+k, occ@T4+k) did not exist then.
+    cell: 13520 GO / 82 PAUSE (n=13602)
+    FIT 6682 (pause 37) / HOLD 6920 (pause 45)
+    always-GO baseline HOLD errors: 45
+     errs FIT  errs HOLD  cells  key
+           29         42      3  pop@T4+3
+           29         42      3  pop@T4+4
+           36         45     33  occ@T4+1 x pop@T4+2 x tw
+           37         45      4  occ@T4+0
+           37         45      8  occ@T4+0 x occ@T4+1
+           37         45      4  occ@T4+1
+
+wrote /home/wickerwaka/src/nec_test/sw/class5_phase6.json

@@ -1,0 +1,28 @@
+start Fri Jul 17 07:23:32 2026  POWERED ARM C  Ns=[1, 2, 3, 4, 6, 8, 12, 20] nprog=20
+  N= 1: conv=20 noconv=0 events=2236 pauses=93 (4.2%)  cidle={3: 23, 4: 24, 7: 1, 10: 1, 11: 5, 12: 4, 13: 1, 15: 15, 16: 3, 17: 5, 19: 11}
+  N= 2: conv=20 noconv=0 events=2225 pauses=79 (3.6%)  cidle={3: 17, 4: 16, 6: 1, 7: 1, 8: 5, 9: 4, 10: 1, 12: 4, 13: 13, 14: 5, 15: 2, 16: 1, 17: 8, 18: 1}
+  N= 3: conv=20 noconv=0 events=2222 pauses=67 (3.0%)  cidle={3: 11, 4: 10, 5: 6, 6: 5, 7: 1, 9: 3, 10: 1, 11: 16, 12: 2, 13: 3, 15: 8, 17: 1}
+  N= 4: conv=20 noconv=0 events=2221 pauses=66 (3.0%)  cidle={3: 12, 4: 20, 6: 3, 7: 1, 8: 3, 9: 13, 10: 3, 11: 2, 13: 8, 16: 1}
+  N= 6: conv=20 noconv=0 events=2218 pauses=52 (2.3%)  cidle={3: 19, 4: 6, 5: 13, 6: 2, 7: 3, 9: 8, 14: 1}
+  N= 8: conv=20 noconv=0 events=2217 pauses=43 (1.9%)  cidle={3: 22, 4: 12, 5: 8, 12: 1}
+  N=12: conv=20 noconv=0 events=2215 pauses=30 (1.4%)  cidle={3: 28, 4: 2}
+  N=20: conv=14 noconv=6 events=1396 pauses=8 (0.6%)  cidle={3: 8}
+
+=== EXTINCTION RATE (max() predicts pauses -> extinct as N grows) ===
+    N  events  pauses  pause%  cidle-dist
+    1    2236      93    4.2%  {3: 23, 4: 24, 7: 1, 10: 1, 11: 5, 12: 4, 13: 1, 15: 15, 16: 3, 17: 5, 19: 11}
+    2    2225      79    3.6%  {3: 17, 4: 16, 6: 1, 7: 1, 8: 5, 9: 4, 10: 1, 12: 4, 13: 13, 14: 5, 15: 2, 16: 1, 17: 8, 18: 1}
+    3    2222      67    3.0%  {3: 11, 4: 10, 5: 6, 6: 5, 7: 1, 9: 3, 10: 1, 11: 16, 12: 2, 13: 3, 15: 8, 17: 1}
+    4    2221      66    3.0%  {3: 12, 4: 20, 6: 3, 7: 1, 8: 3, 9: 13, 10: 3, 11: 2, 13: 8, 16: 1}
+    6    2218      52    2.3%  {3: 19, 4: 6, 5: 13, 6: 2, 7: 3, 9: 8, 14: 1}
+    8    2217      43    1.9%  {3: 22, 4: 12, 5: 8, 12: 1}
+   12    2215      30    1.4%  {3: 28, 4: 2}
+   20    1396       8    0.6%  {3: 8}
+
+=== CIDLE PIN TEST (the decisive signal) ===
+  max(): chip pins at 3 for high N. model (HEAD): pins at 4.
+  N= 8: cidle3=22 cidle4=12 (n=43)  -> chip PINS AT 3
+  N=12: cidle3=28 cidle4=2 (n=30)  -> chip PINS AT 3
+  N=20: cidle3=8 cidle4=0 (n=8)  -> chip PINS AT 3  [n<15, underpowered]
+
+done Fri Jul 17 07:24:14 2026

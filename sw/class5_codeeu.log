@@ -1,0 +1,20 @@
+=== CODE->EU PROBE: n=60 rows, mass=125u (23% of the 544u census) ===
+REAL BASELINE: overall ge dist {-5: 1, -4: 2, -3: 1, -2: 42, -1: 1, 1: 5, 2: 7, 5: 1} (mode -2: 42/60)
+  by cur_bs: Counter({'MEMW': 30, 'IOW': 21, 'MEMR': 8, 'HALT': 1})
+
+FORM-FREE fit(even n=41) -> FREEZE -> score(odd n=19):
+  eu_kind             : G2 collisions 11/19  pred(MEM/IO)={'MEM': -2, 'IO': 1}
+  cur_bs              : G2 collisions 11/19  pred(MEM/IO)={'MEMW': -2, 'MEMR': -2, 'IOW': 1}
+  (eu_kind,prev_tw)   : G2 collisions 7/19  pred(MEM/IO)={}
+  (eu_kind,cur_tw)    : G2 collisions 7/15  pred(MEM/IO)={}
+
+=== SEPARATING CELL: CODE->MEM (MEMW/MEMR) ===
+  n=38 mass=76u; ge={-3: 1, -2: 36, 1: 1} (ge=-2: 36/38 = 95%)
+  GENERALISES: even seeds {-3: 1, -2: 28, 1: 1}; odd seeds {-2: 8}
+  FLAT across cur_tw: [0, 1, 2, 3, 4, 5] all ge=-2
+  => a clean, generalising, wait-INDEPENDENT -2 kind-offset (~72u). The commit path is dominantly TI_PLAIN (30/36), not the eval_ext-deferred ext_ok path (5) - so it is the PLAIN EU-commit-after-CODE timing that is 2 clocks late under random waits.
+
+=== NON-SEPARATING: CODE->IOW ===
+  n=21 mass=47u; ge SCATTERED {-5: 1, -4: 2, -2: 6, -1: 1, 1: 4, 2: 6, 5: 1} - joins the asymptote.
+
+VERDICT: a key SEPARATES (eu_kind=MEM -> ge=-2). The CODE->EU block is NOT key-exhausted. Report cell + STOP before fix design (architect re-enters). CODE->MEM -2 (~72u) is a characterised attackable cell; IOW (~40u) + tail are asymptote.

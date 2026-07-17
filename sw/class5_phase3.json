@@ -1,0 +1,66 @@
+{
+ "fit": "B (rescoped)",
+ "variant": "D=occupied<=4 period=1 anchor=lastT4 offset=0 clear=noD read=T3rdy lag=3",
+ "runner_up": "D=occupied<=4 period=1 anchor=lastT4 offset=0 clear=issue read=T3rdy lag=3",
+ "final": {
+  "disc": {
+   "n": 4370,
+   "uneval": 0,
+   "gg": 4305,
+   "gp": 7,
+   "pg": 1,
+   "pp": 57,
+   "ex": 7,
+   "ex_n": 58,
+   "nocid": 0,
+   "err_cells": {
+    "(0, 0)": 6,
+    "(2, 0)": 1,
+    "(1, 0)": 1
+   },
+   "errs": 8,
+   "exrate": 0.1206896551724138,
+   "tot": 59
+  },
+  "held": {
+   "n": 3393,
+   "uneval": 0,
+   "gg": 3334,
+   "gp": 7,
+   "pg": 4,
+   "pp": 48,
+   "ex": 4,
+   "ex_n": 52,
+   "nocid": 0,
+   "err_cells": {
+    "(0, 0)": 6,
+    "(1, 0)": 1,
+    "(2, 0)": 1,
+    "(3, 13)": 2,
+    "(3, 4)": 1
+   },
+   "errs": 11,
+   "exrate": 0.07692307692307693,
+   "tot": 59
+  },
+  "fresh": {
+   "n": 7467,
+   "uneval": 0,
+   "gg": 7343,
+   "gp": 13,
+   "pg": 2,
+   "pp": 109,
+   "ex": 9,
+   "ex_n": 111,
+   "nocid": 0,
+   "err_cells": {
+    "(3, 4)": 1,
+    "(0, 0)": 13,
+    "(2, 0)": 1
+   },
+   "errs": 15,
+   "exrate": 0.08108108108108109,
+   "tot": 117
+  }
+ }
+}

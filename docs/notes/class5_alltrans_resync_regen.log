@@ -1,0 +1,30 @@
+  held fz91005 w1: 186 opps aligned=187 resyncs=0 stop=end (0s) total=13057
+  held fz91005 w2: 185 opps aligned=186 resyncs=0 stop=end (0s) total=13242
+  held fz91005 w3: 184 opps aligned=185 resyncs=0 stop=end (0s) total=13426
+  held fz91005 r4.3: 187 opps aligned=188 resyncs=0 stop=end (0s) total=13613
+  held fz91005 r7.7: 185 opps aligned=186 resyncs=0 stop=end (0s) total=13798
+
+transitions captured: 13798 rows
+   CODE -> CODE : 8531
+   CODE -> IOW  : 909
+    IOW -> CODE : 909
+   CODE -> MEMR : 847
+   MEMR -> CODE : 807
+   MEMW -> CODE : 712
+   CODE -> MEMW : 672
+   MEMW -> MEMW : 150
+   MEMR -> MEMR : 141
+   CODE -> HALT : 70
+   MEMR -> MEMW : 45
+   MEMW -> MEMR : 5
+
+  CODE->CODE (what the old corpus saw): 8531
+  NON-CODE->CODE (the blind spot): 5267
+
+=== RESYNC-EVENT CENSUS: 8 events (INVISIBLE before) ===
+  swap              : 5
+  missed_prefetch   : 2
+  other             : 1
+  swap-events-per-pair distribution: {1: 4, 4: 1}
+  pairs with >=1 resync: 5 of 70
+wrote /home/wickerwaka/src/nec_test/sw/class5_alltrans.jsonl.gz and class5_resync_events.jsonl.gz

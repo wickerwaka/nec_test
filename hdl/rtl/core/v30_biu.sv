@@ -129,6 +129,15 @@ module v30_biu (
     output            buslock_n,    // max-mode LOCK output pin (active low)
     input             eu_hold,      // blocks prefetch, not request history
     input             eu_ready,
+    input             eu_rsv_dhi,   // Phase 3: current coincident reservation
+                                    // is the S_DHI reader/RMW-read disp-pop
+                                    // class (owns the bus slot vs prefetch)
+    input             eu_rsv_lead,  // eu_req=0 onset fix: mem-access reservation
+                                    // LEADS eu_req by one EU-state (disp16 store
+                                    // @ S_DHI). Consulted ONLY in eval_ext ->
+                                    // w0-NEUTRAL. See pf_rsv_lead below.
+    input             eu_rsv_push_calc, // Phase 3: ... the S_PUSH_CALC push
+                                    // class (owns the slot only at q_cnt>=2)
     input             eu_wr,
     input             eu_fwd,       // write data = last read data (string
                                     // read->write forwarding at commit)
@@ -194,6 +203,51 @@ localparam bit [2:0] ST_TW = 3'd4;
 localparam bit [2:0] ST_T4 = 3'd5;
 
 localparam bit [1:0] SEG_CS = 2'd2;
+
+//----------------------------------------------------------------------------
+// Phase R: canonical commit descriptor. One packed struct carrying everything
+// a bus cycle needs. During Phase R this is a pure alias of the existing
+// pick_* wires (pick_desc below); direct-vs-staged delivery is metadata only.
+//----------------------------------------------------------------------------
+typedef struct packed {
+    logic [2:0]  bus_type;
+    logic [19:0] addr;
+    logic        fetch;
+    logic        wr;
+    logic        swap;
+    logic        split1;
+    logic        split2;
+    logic        wrap;
+    logic [15:0] wdata;
+    logic [1:0]  seg;
+    logic        ube_n;
+    logic [1:0]  kind;
+} commit_desc_t;
+
+// Phase R: canonical slot decision. Every commit opportunity is one slot_id.
+// "Staged" slots deliver via nxt_* (nxt_live transition); "direct" slots load
+// cur_* and enter T1 this cycle. During Phase R the mode is delivery metadata
+// only - descriptor selection is centralized.
+typedef enum logic [3:0] {
+    SLOT_NONE,
+    // Staged: descriptor goes to nxt_* first.
+    SLOT_T3_EVAL,
+    SLOT_TI_PLAIN,
+    SLOT_T4_FLUSH_STAGED,
+    // Direct: descriptor is displayed now and becomes cur_* / T1 next.
+    SLOT_EVAL_EXT,
+    SLOT_FF_TI,
+    SLOT_DEFER_IDLE,
+    SLOT_FLUSH_HOLD,
+    SLOT_DEFER_T4,
+    SLOT_FF_T4,
+    SLOT_LAW_RESUME      // class-5 law scheduled resume (direct-at-TI, delta 1)
+} slot_id_t;
+
+typedef enum logic {
+    COMMIT_STAGED,
+    COMMIT_DIRECT
+} commit_mode_t;
 
 //----------------------------------------------------------------------------
 // bus-cycle state
@@ -270,22 +324,89 @@ wire [3:0] occupied = {1'b0, cnt_next} + {2'b0, infl};
 // Stage 3 two-rhythm scheduler (discriminator: EU consumption activity).
 // Isolation (biu_rebuild_isolation.md) found the fill-vs-steady discriminator:
 // after a WAITED prefetch, if the EU is actively CONSUMING (recent q_pop
-// activity) the chip paces the next fetch by draining the queue further
-// (resume near occ<=2); if the EU is STALLED (no recent pops) the queue fills
-// and the fetch resumes immediately at the occ<=4 refill threshold. The
-// eval_ext immediate-resume-at-occ<=4 ignored consumption (the dominant waits
-// drift). pf_drain applies the tighter threshold ONLY in the post-waited-
-// prefetch window AND only while the EU is consuming.
-// w0-NEUTRAL: pf_drain is only ever set on a Tw cycle -> always 0 at w0 ->
-// prefetch_ok bit-identical (occ<=4).
-reg        pf_drain;
+// class-5 LOW-band pause (occupied-band-age aliasing, session 019f663c, fable
+// re-mining + verified 44 TP / 0 FP held-out): occ34_age = CE clocks the OCCUPIED
+// count (stored + in-flight) has sat continuously in the 3-4 band. At q_cnt<=2,
+// a resume landing inside the delay WINDOW (occ==4 age 1-3, occ==3 age 1-2) is
+// PAUSED; age 0 (band just entered by the completing fetch's own push) and aged-
+// out GO. Intel-8086 polarity (3-4 -> delay). eval_ext-gated -> w0-NEUTRAL.
+reg  [3:0] occ34_age;
 reg  [7:0] pop_sr;                     // recent pop-now history (consumption)
 wire [3:0] pop_cnt = {3'b0, pop_sr[0]} + {3'b0, pop_sr[1]} +
                      {3'b0, pop_sr[2]} + {3'b0, pop_sr[3]} +
                      {3'b0, pop_sr[4]} + {3'b0, pop_sr[5]} +
                      {3'b0, pop_sr[6]} + {3'b0, pop_sr[7]};
 wire       eu_consuming = pop_cnt >= 4'd2;
-wire [3:0] pf_lim = (pf_drain && eu_consuming) ? 4'd3 : 4'd4;
+// pf_drain DELETED. It applied a tighter pf_lim=3 in the post-waited-prefetch
+// window while the EU was consuming - a Stage-3-era fit of AGGREGATE DRIFT,
+// made before the class-5 decision law existed and before frame analysis.
+// MEASURED, on the corpus: over ALL waited non-flush rows with pf_drain active
+// at the eval (n=11,805) the chip GOes on 11,614 = 98.4%. Where it binds it is
+// wrong: in the legacy false-pause cell (chip GO, occ@T4+1==4, age 4-5, n=68)
+// the decision law's verdict is GO on 68/68 (d_cnt frame-A == 2), and
+// pf_lim==3 <=> model-false-pause 1:1 on exactly 25/68. Its 191 legitimate
+// pauses are 169 ALREADY LAW-ARMED + 22 at occ<=3 where pf_lim=3 cannot bind
+// anyway - i.e. its true-positive coverage is 100% SUBSUMED by the law and its
+// residue is pure harm. It is the pre-law approximation of the law itself.
+// w0: pf_drain was Tw-set only - measured 0 active cycles at w0 vs ~3300 at w1
+// across fz90000/90003/90007 - so deleting it is w0-structurally-safe.
+wire [3:0] pf_lim = 4'd4;
+// class-5 MEMW->CODE store-resume turnaround fix (measured: sw/class5_storeanchor.py,
+// sw/class5_remap.py). After a MEMW store completes via the WAITED deferred-completion
+// (eval_ext at its T4+1), the chip resumes the post-store CODE prefetch ONE occupancy-
+// level earlier - it commits at occupied==5 rather than waiting for occupied<=pf_lim(4)
+// - so it resumes 1 idle clock SOONER. The model waits for occ<=4 and resumes 1 clk
+// LATE: 28/28 unpaired MEMW->CODE rows at occ@T4+1 in {5,6} show ge=-1, flat across the
+// store's own Tw / pop / parity, both seed groups (disc 2/2, held 26/29, 7 seeds).
+// store_resume_win arms on the store's eval_ext deferred completion and persists across
+// the one-cycle drain to the occ==5 commit; store_pf_boost raises the effective pf_lim
+// to 5 there. w0-NEUTRAL BY CONSTRUCTION: the window arms on eval_ext, which NEVER fires
+// at w0 (there the model already matches the chip - 60 w0 rows in the same occ state,
+// golden 169000). VERIFIED at the w0 golden gate, not assumed.
+// recent_evx = cycles since eval_ext last fired (saturating at 0xF = "none recent").
+// The WAITED-regime indicator that is w0-absent: eval_ext NEVER fires at w0, so
+// recent_evx is pinned at 0xF for the entire w0 golden and the boost below can never
+// arm. Under waits it tracks the last deferred-completion eval. Measured: for
+// store_tw>0 the store's OWN eval_ext (recent_evx=1 at the occ==5 commit); for
+// store_tw=0 (locally w0-identical) a PRECEDING waited access's eval_ext lands at a
+// consistent offset -4 (recent_evx ~6 at the commit) - the only w0-absent signal that
+// separates a store_tw=0 resume in a waited run from its w0 twin.
+reg  [3:0] recent_evx;
+always_ff @(posedge clk) begin
+    if (srst) recent_evx <= 4'hF;
+    else if (ce) begin
+        if (eval_ext)               recent_evx <= 4'd0;
+        else if (recent_evx != 4'hF) recent_evx <= recent_evx + 4'd1;
+    end
+end
+// last_was_store latches "the most recently completed bus cycle was a MEMW store"
+// (cur_type is cleared to BS_PASV at the store's own T4, so it cannot be read at the
+// later resume cycle - especially for store_tw=0). Set at the store's T4; cleared when
+// the next bus cycle begins (ST_T1).
+reg        last_was_store;
+always_ff @(posedge clk) begin
+    if (srst) last_was_store <= 1'b0;
+    else if (ce) begin
+        if (state == ST_T4 && (cur_type == BS_MEMW) && cur_wr && !cur_fetch)
+            last_was_store <= 1'b1;
+        else if (state == ST_T1)
+            last_was_store <= 1'b0;
+    end
+end
+// store_pf_boost: at the post-store resume idle in a WAITED regime (recent_evx),
+// at occupied==5, raise the effective pf_lim to 5 so the CODE resume commits one cycle
+// sooner (matching the chip). w0-neutral by the recent_evx gate (0xF at w0 -> boost==0,
+// verified 0/176358 w0 cycles). K=7 spans the store's own eval_ext (store_tw>0) and the
+// -4 preceding-eval_ext of the store_tw=0 cases.
+wire       store_pf_boost = last_was_store && (recent_evx <= 4'd7) &&
+                            (state == ST_TI) && (occupied == 4'd5) &&
+                            !(eu_req || eu_hold) && (q_aged == 2'd0) && !q_flush;
+// NOTE: store_pf_boost is computed above but NOT wired into prefetch_ok. The enable
+// (|| store_pf_boost) was REVERTED: it passed w0 169000/169000 but broke the w1/w3
+// goldens (opcode 89 store: 1200 -> 1186/1181, busstat PASV->CODE, model resumes 1
+// early where the chip stays idle). The MEMW->CODE -1 is wait-PATTERN-specific (chip
+// resumes early under RANDOM waits but NOT under uniform w1/w3), and recent_evx does
+// not discriminate the two. Shadow KEPT for the re-derivation. See bringup_log.
 wire       prefetch_ok = !q_flush ? (!(eu_req || eu_hold) && occupied <= pf_lim &&
                                      q_aged == 2'd0)
                                   : !(eu_req || eu_hold);   // flushed queue is empty
@@ -398,7 +519,31 @@ wire ext_ok     = eu_ready_p1 ||
 // deferred eval (16). ext_ok_wr captures exactly this. The eu_req
 // reservation blocks prefetch through the gap either way. S_WREQ is
 // RMW-write-only (88/89 stores use S_REQ) so the fitted forms keep ext_ok.
-wire ext_ok_wr  = eu_ready_p1 && eu_ready_p2;
+//
+// H-PHASE (board-confirmed, 30/30, 0 violations, random+uniform, both seed groups):
+// the ext_ok_wr "ready ENTERING T4" rule (fitted on UNIFORM w1-w5 by sweep_rmw) was
+// too strict for one phase class the uniform fit never separated. The finer phase is
+// Tw PARITY - T4's displacement against the free-running 2-clock bus microcycle. Each
+// Tw inserts one clock between T3 and T4, toggling T4's phase; readiness presented AT
+// T4 (ready_p1 && !ready_p2) is captured for the DEFERRED (eval_ext) commit only when
+// T4 sits on the handshake-aligned (EVEN-tw) phase -> chip EARLY; odd-tw T4 is
+// off-phase -> capture completes one slot later -> chip LATE. tw_par is that phase:
+// cleared at the bus cycle's T1, toggled every ST_TW, sampled at the completion eval.
+// PURELY LOCAL, no wait-pattern term, no history. (Deliberately NOT grid_phase - the
+// stretched grid erases the displacement + carries the post-wait carry landmine - and
+// NOT ph_now which forces T4 to phase 1 unconditionally, :1272.) ext_ok_wr is consulted
+// ONLY for eu_defer_wr=1 (RMW writes); loads keep ext_ok, so the widen is write-scoped
+// exactly as probe (c) requires. Odd-tw rows STAY denied -> stay LATE (correct).
+reg  tw_par;
+always_ff @(posedge clk) begin
+    if (srst) tw_par <= 1'b0;
+    else if (ce) begin
+        if (state == ST_T1)      tw_par <= 1'b0;
+        else if (state == ST_TW) tw_par <= ~tw_par;
+    end
+end
+wire ext_ok_wr  = (eu_ready_p1 && eu_ready_p2) ||
+                  (eu_ready_p1 && !eu_ready_p2 && !tw_par);
 wire want_eu    = eu_req && eu_ready &&
                   !(eval_ext && !(eu_defer_wr ? ext_ok_wr : ext_ok));
 
@@ -430,15 +575,110 @@ wire        pf_starved = (q_cnt == 3'd0) && !eu_hold && q_aged == 2'd0 &&
 // occupied<=4 (queue has room) so it never fires when the queue is full (the
 // fitted single-store forms sit at occ>4 with a LEADING reservation - both
 // excluded). w0-NEUTRAL: eval_ext never fires at w0.
+// Phase 3 (measured Phase 2k, chip ground truth + Codex GO, session 019f663c):
+// a coincident (age-0) pending reservation OWNS the bus slot - the chip
+// IDLEs/reserves rather than let the deferred-eval prefetch win - for an
+// ENUMERATED source set: the S_DHI reader/RMW-read final-disp-pop class (chip
+// reserves at q_cnt=1, the dominant over-prefetch cell), and the S_PUSH_CALC
+// push class ONLY when the queue can still feed the decoder (q_cnt>=2). Every
+// other/unobserved reservation source (S_RSV/S_MHI/S_JWAIT/S_DEC/...) keeps the
+// baseline pf_late_rsv yield-to-CODE - do NOT force absent sources to reserve.
+// The veto only narrows pf_late_rsv (the eval_ext waited-window override); it
+// leaves prefetch_ok, pf_starved, ext_ok, ext_ok_wr untouched. w0-NEUTRAL:
+// pf_late_rsv already requires eval_ext, which never fires at w0.
+wire        owns_slot   = eu_rsv_dhi ||
+                          (eu_rsv_push_calc && q_cnt >= 3'd2);
 wire        pf_late_rsv = eval_ext && eu_req && !eu_req_p1 && !eu_ready &&
                           eu_mem_acc && eu_kind == K_MEM &&
                           occupied <= 4'd4 && q_aged == 2'd0 &&
-                          !q_flush && !eu_hold;
-wire        prefetch_ext = prefetch_ok ||
+                          !q_flush && !eu_hold && !owns_slot;
+// eu_req=0 onset fix (session 019f663c, chip ground truth eureq0_char census +
+// Codex staged GO): the chip's mem-access reservation LEADS the model's eu_req
+// by one EU-state (measured: disp16 store reserves at S_DHI, model eu_req rises
+// at S_RSV). At the eval_ext deferred-completion eval the model's eu_req is
+// still 0, so prefetch_ok lets a DOOMED CODE prefetch win the slot where the
+// chip has already reserved (7/7 class-1 cases). pf_rsv_lead SUPPRESSES that
+// prefetch in the waited window only. w0-NEUTRAL: eval_ext never fires at w0
+// (there the model's post-EA prefetch legitimately commits - 169000 golden).
+// Distinct from pf_late_rsv/owns_slot: those require eu_req==1 (a coincident
+// LATE reservation); here eu_req==0 (the reservation LEADS, not yet signalled).
+wire        pf_rsv_lead = eval_ext && eu_rsv_lead &&
+                          q_aged == 2'd0 && !q_flush && !eu_hold;
+// class-5 mid-band pause: at a WAITED resume (eval_ext), if the queue byte-count
+// is in the 3-4 band and has AGED there (>=2 CE clocks), the chip DELAYS the
+// prefetch (measured: sw/class5_bandage.py, 0/169 held-out; waited PAUSE cases
+// are age>=5, GO cases age 0 - threshold in the wide gap). eval_ext-gated ->
+// w0-NEUTRAL (never fires at w0, where the same aged mid-band GOES). Same guard
+// shape as pf_rsv_lead.
+// midband_pause DELETED (B2'): the unified law is a verified STRICT SUPERSET of
+// it - 656/656 firings covered, full-trace, both corpora. band34_age deleted with
+// it. lowband_pause is KEPT: it owns the d_cnt==2 hysteresis cell the law cannot
+// express (11 real chip pauses would be lost) and the 10 non-CODE-successor rows
+// the law was never fitted on.
+// LOW-band occupied-age delay WINDOW (q_cnt<=2): occ==4 pauses for occ34_age
+// 1..3, occ==3 for 1..2 (verified 0 false pauses, held-out). Gated to q_cnt<=2
+// (ungated it fires on mid-band chip-GO). eval_ext+cur_fetch-gated -> w0-neutral.
+wire        lowband_pause = eval_ext && cur_fetch && q_cnt <= 3'd2 &&
+                            ((occupied == 4'd4 && occ34_age >= 4'd1 && occ34_age <= 4'd3) ||
+                             (occupied == 4'd3 && occ34_age >= 4'd1 && occ34_age <= 4'd2)) &&
+                            q_aged == 2'd0 && !q_flush && !eu_hold;
+wire        prefetch_ext = (prefetch_ok ||
                            (eval_ext && pf_starved && eu_req && !eu_ready &&
                             eu_mem_acc && eu_kind == K_MEM) ||
-                           pf_late_rsv;
+                           pf_late_rsv) && !pf_rsv_lead &&
+                          !lowband_pause;
 wire        pick_ext   = want_half2 || want_eu || prefetch_ext;
+
+//----------------------------------------------------------------------------
+// class-5 UNIFIED LAW - DIRECT-PATH DELIVERY (the sixth attempt). Replaces the
+// staged law_block delivery (which fired the resume via SLOT_TI_PLAIN, STAGED,
+// delta=2 -> commit at T4+2 -> the q_aged blackout -> cidle 3 slipped to 4).
+// The direct path fires SLOT_LAW_RESUME (COMMIT_DIRECT, delta=1) at T4+cidle_sel
+// -> T1 = T4+1+cidle_sel for BOTH durations. For cidle 3 that is T4+3, which
+// BYPASSES the q_aged blackout at T4+2 (direct entry does not pass prefetch_ok's
+// q_aged term at the stage cycle). SILICON (Arm C): the chip pins at cidle 3 at
+// N=8 (22:12) and N=12 (28:2); the model emits 3 exactly zero times via the
+// staged path. This attempt closes that ~85u ceiling.
+// Per-consumer grants (Phase-S S0): the ARM suppresses the eval_ext grant
+// (pick_evalext); the WINDOW suppresses the ti_plain grant (pick_plain). Every
+// other slot keeps pick_ext / pick_any VERBATIM. w0-NEUTRAL: law_arm requires
+// eval_ext, never asserted at w0.
+wire       law_arm  = eval_ext && cur_fetch &&
+                      (law_dcnt >= 3'd3) &&
+                      (occupied >= 4'd2) && (occupied <= 4'd4) &&   // ARM GATE occ<=4
+                      !q_flush && !eu_hold;
+// LAW-SPECIFIC DUE GRANT - never through prefetch_ok (whose q_aged term is what
+// the direct path exists to bypass). EU priority stays in pick_fetch below.
+wire       law_grant = !q_flush && (q_aged == 2'd0) && !eu_hold &&
+                       (occupied <= 4'd4);
+// DUE: fire at T4 + cidle_sel. law_ctr == k - T4 - 1, so due at cidle_sel-1;
+// delta=1 puts T1 at T4+1+cidle_sel. Bounded retry to due+2 (the extra window)
+// covers declines by q_aged/nxt_live (law_grant/!nxt_live naturally hold off the
+// fire and law_ctr advances). Yields COMBINATIONALLY to flush/eval_ext (the
+// registered cancels below are one cycle late; without these terms law_due would
+// assert ON the flush/eval_ext cycle - SVA 2/3 caught exactly that).
+// CTR FRAME (measured, the bug the Fix A+B template carried): law_ctr becomes 0
+// at cycle T4+2 (the arm sets it registered at T4+1), so cycle = T4+2+law_ctr.
+// A fire at cycle k lands T1 = k+1 (delta 1), cidle = k-T4. For cidle == sel the
+// fire must be at k = T4+sel, i.e. law_ctr == sel-2. The template used sel-1 ->
+// fired at T4+sel+1 -> cidle sel+1 -> the persistent +1~150 across three
+// attempts. First due at sel-2; bounded retry to sel (declines by q_aged via
+// law_grant, by nxt_live via the slot guard).
+wire       law_due  = law_window &&
+                      (law_ctr >= (law_sel - 3'd2)) &&
+                      (law_ctr <= law_sel) &&
+                      !q_flush && !eval_ext;
+// GRANT RE-POINTING. selected_evalext suppresses the ARM cycle's prefetch;
+// selected_plain suppresses prefetch across the WINDOW (ti_plain only).
+wire       selected_evalext_pf_grant = law_arm    ? 1'b0 : prefetch_ext;
+wire       selected_plain_pf_grant   = law_window ? 1'b0 : prefetch_ok;
+wire       pick_evalext = want_half2 || want_eu || selected_evalext_pf_grant;
+wire       pick_plain   = want_half2 || want_eu || selected_plain_pf_grant;
+// pick_law: pick_EXT-shaped (carries law_grant), NEVER pick_any. pick_any omits
+// the pf_rsv_lead/lowband vetoes and firing through them issued fetches that must
+// not exist (bus diverged, n 16058 -> 15216 in the third attempt).
+wire       pick_law     = want_half2 || want_eu || law_grant;
+
 // the eval_ext cycle would commit a NEAR-flush redirect prefetch: defer it one
 // idle cycle (flush_hold) instead of committing here (see flush_hold decl).
 wire        flush_defer = eval_ext && q_flush && !flush_fast &&
@@ -485,21 +725,190 @@ wire  [1:0] pick_seg   = want_half2 ? cur_seg
 wire        pick_ube_n = want_half2 ? 1'b1
                        : want_eu    ? eu_ube_n : 1'b0;
 
-task automatic do_commit();
+// Phase R (R1): canonical commit descriptor as a pure alias of the pick_*
+// wires. Not connected to sequential logic yet (unused this stage).
+commit_desc_t pick_desc;
+// Packed-struct concatenation in declaration order (bus_type..kind). Quartus
+// 17.1 rejects the named-field assignment pattern '{field: value} ("not a
+// constant"); the positional concatenation is equivalent and synthesizable.
+assign pick_desc = {pick_type, pick_addr, pick_fetch, pick_wr, pick_swap,
+                    pick_split1, pick_split2, pick_wrap, pick_wdata, pick_seg,
+                    pick_ube_n, pick_kind};
+
+`ifndef SYNTHESIS
+`ifdef VERILATOR
+// Shadow check: every descriptor field equals its source wire (trivially
+// true while pick_desc is a pure alias). Not compiled into synthesis.
+always @(*) begin
+    assert (pick_desc.bus_type == pick_type);
+    assert (pick_desc.addr     == pick_addr);
+    assert (pick_desc.fetch    == pick_fetch);
+    assert (pick_desc.wr       == pick_wr);
+    assert (pick_desc.swap     == pick_swap);
+    assert (pick_desc.split1   == pick_split1);
+    assert (pick_desc.split2   == pick_split2);
+    assert (pick_desc.wrap     == pick_wrap);
+    assert (pick_desc.wdata    == pick_wdata);
+    assert (pick_desc.seg      == pick_seg);
+    assert (pick_desc.ube_n    == pick_ube_n);
+    assert (pick_desc.kind     == pick_kind);
+end
+`endif
+`endif
+
+//----------------------------------------------------------------------------
+// Phase R (R4): named slot-request aliases. Each is textually equivalent to
+// the state-machine branch condition that performs that commit today (state
+// priority is part of the condition). Unused this stage - named, not
+// consumed: R5 builds the shadow arbiter from them, R6 consumes them.
+// (Forward references to eval_ext / ff_show / eval_at_t3 / nxt_live etc. are
+// module-level nets/regs, resolved order-independently as elsewhere here.)
+//----------------------------------------------------------------------------
+// direct_request: the ST_TI combined direct-entry guard (eval_ext OR far-flush
+// idle OR armed reader OR held near-flush) - one-clock-ahead display commits.
+wire direct_request = ((eval_ext && pick_evalext && !flush_defer) ||
+                       (ff_show && pick_any)) ||
+                      (defer_idle && want_eu) ||
+                      (flush_hold && pick_ext && pick_fetch) ||
+                      (law_due && state == ST_TI && !nxt_live &&
+                       pick_law && pick_fetch);
+
+// ST_TI direct slots (below nxt_live in priority):
+wire req_eval_ext   = state == ST_TI && !nxt_live &&
+                      eval_ext && pick_evalext && !flush_defer;
+// class-5 law scheduled resume - a DIRECT commit at window expiry. Guards are
+// the fetch analogue of defer_idle's idiom (req_defer_idle/idle_commit): the
+// law_show display term below is TEXTUALLY IDENTICAL, so slot_show_now ==
+// ext_show holds BY CONSTRUCTION. pick_law (pick_EXT-shaped), NEVER pick_any.
+wire req_law_resume = state == ST_TI && !nxt_live &&
+                      law_due && pick_law && pick_fetch;
+wire req_ff_ti      = state == ST_TI && !nxt_live && ff_show && pick_any;
+wire req_defer_idle = state == ST_TI && !nxt_live && defer_idle && want_eu;
+wire req_flush_hold = state == ST_TI && !nxt_live &&
+                      flush_hold && pick_ext && pick_fetch;
+// ST_TI staged plain prefetch/EU commit (stage_commit path), below the
+// direct slots and the flush_defer/eval_ext teardown branches:
+wire req_ti_plain   = state == ST_TI && !nxt_live &&
+                      !direct_request && !flush_defer && !eval_ext && pick_plain;
+// ST_T3/TW staged completion eval (zero-wait T3->T4 edge):
+wire req_t3_eval    = eval_at_t3 && pick_any;
+// ST_T4 direct defer_t4 commit (below nothing; defer_t4 is first in T4):
+wire req_defer_t4   = state == ST_T4 && defer_t4 && eu_req && eu_ready;
+// ST_T4 far-flush mid-T4 direct commit (below defer_t4 and nxt_live):
+wire req_ff_t4      = state == ST_T4 && !defer_t4 && !nxt_live &&
+                      q_flush && cur_fetch && pick_any && flush_fast && evald;
+// ST_T4 flush-fallback staged commit (below ff_t4 in the same else chain):
+wire req_t4_flush_staged = state == ST_T4 && !defer_t4 && !nxt_live &&
+                      q_flush && cur_fetch && pick_any && !(flush_fast && evald);
+
+//----------------------------------------------------------------------------
+// Phase R (R5): canonical slot arbiter, SHADOW mode (not consumed by the
+// state machine yet). Priority mirrors the current state branches exactly.
+// The req_* aliases are mutually exclusive ACROSS states (each gates on
+// `state`); within ST_TI the direct slots may co-assert but funnel to one
+// identical direct delivery, so the priority order below only picks a
+// reporting slot_id - slot_fire/slot_mode/slot_desc are the same either way.
+// nxt_live consumption stays above arbitration and is NOT a slot (it delivers
+// an already-committed descriptor), so slot_fire is 0 in every nxt_live cycle.
+// slot_desc is always pick_desc during Phase R.
+//----------------------------------------------------------------------------
+slot_id_t     slot_id;
+commit_mode_t slot_mode;
+logic         slot_fire;
+commit_desc_t slot_desc;
+
+// slot_desc is a pure alias of pick_desc, kept as a continuous assign OUTSIDE
+// the arbiter always_comb. This keeps slot_fire/slot_id/slot_mode dependent
+// only on the req_* aliases (which do not read ad_i), so the direct-display
+// signal slot_show_now stays out of the bidirectional-AD combinational cone
+// (avoids a false UNOPTFLAT loop). Display data fields use the flat pick_*
+// wires (== slot_desc.*) for the same reason.
+assign slot_desc = pick_desc;
+
+always_comb begin
+    slot_fire = 1'b0;
+    slot_id   = SLOT_NONE;
+    slot_mode = COMMIT_STAGED;
+    if (req_eval_ext) begin
+        slot_fire = 1'b1; slot_id = SLOT_EVAL_EXT;  slot_mode = COMMIT_DIRECT;
+    end else if (req_ff_ti) begin
+        slot_fire = 1'b1; slot_id = SLOT_FF_TI;     slot_mode = COMMIT_DIRECT;
+    end else if (req_defer_idle) begin
+        slot_fire = 1'b1; slot_id = SLOT_DEFER_IDLE; slot_mode = COMMIT_DIRECT;
+    end else if (req_flush_hold) begin
+        slot_fire = 1'b1; slot_id = SLOT_FLUSH_HOLD; slot_mode = COMMIT_DIRECT;
+    end else if (req_law_resume) begin
+        slot_fire = 1'b1; slot_id = SLOT_LAW_RESUME; slot_mode = COMMIT_DIRECT;
+    end else if (req_ti_plain) begin
+        slot_fire = 1'b1; slot_id = SLOT_TI_PLAIN;  slot_mode = COMMIT_STAGED;
+    end else if (req_t3_eval) begin
+        slot_fire = 1'b1; slot_id = SLOT_T3_EVAL;   slot_mode = COMMIT_STAGED;
+    end else if (req_defer_t4) begin
+        slot_fire = 1'b1; slot_id = SLOT_DEFER_T4;  slot_mode = COMMIT_DIRECT;
+    end else if (req_ff_t4) begin
+        slot_fire = 1'b1; slot_id = SLOT_FF_T4;     slot_mode = COMMIT_DIRECT;
+    end else if (req_t4_flush_staged) begin
+        slot_fire = 1'b1; slot_id = SLOT_T4_FLUSH_STAGED;
+                                                    slot_mode = COMMIT_STAGED;
+    end
+end
+
+// Phase-S hook (declared now; inert during Phase R). The canonical prefetch
+// grant the later demand/momentum scheduler will re-point. Today it selects
+// the exact legacy grant per slot: the eval_ext waited window uses
+// prefetch_ext, every other slot uses prefetch_ok. w0-NEUTRAL by construction.
+wire slot_is_eval_ext        = slot_fire && slot_id == SLOT_EVAL_EXT;
+wire legacy_prefetch_grant   = slot_is_eval_ext ? prefetch_ext : prefetch_ok;
+wire selected_prefetch_grant = legacy_prefetch_grant;   // Phase S re-points
+
+`ifndef SYNTHESIS
+`ifdef VERILATOR
+// Shadow invariants (compiled only under --assert): the descriptor is the
+// canonical pick, slots are exclusive across states, and a nxt_live delivery
+// is never a slot fire.
+always @(*) begin
+    assert (slot_desc == pick_desc);
+    // Cross-state exclusivity: a T3 eval, a TI slot, and a T4 slot can never
+    // co-assert (each gates on a distinct `state`).
+    assert (!(req_t3_eval &&
+              (req_eval_ext || req_ff_ti || req_defer_idle || req_flush_hold ||
+               req_ti_plain || req_defer_t4 || req_ff_t4 ||
+               req_t4_flush_staged)));
+    assert (!((req_eval_ext || req_ff_ti || req_defer_idle || req_flush_hold ||
+               req_ti_plain) &&
+              (req_defer_t4 || req_ff_t4 || req_t4_flush_staged)));
+    // req_ti_plain is exclusive of the TI direct slots.
+    assert (!(req_ti_plain &&
+              (req_eval_ext || req_ff_ti || req_defer_idle || req_flush_hold)));
+    // T4 slots are mutually exclusive.
+    assert ($countones({req_defer_t4, req_ff_t4, req_t4_flush_staged}) <= 1);
+    // A nxt_live delivery is never a new slot fire.
+    if (state == ST_TI && nxt_live) assert (!slot_fire);
+    if (state == ST_T4 && !defer_t4 && nxt_live) assert (!slot_fire);
+end
+`endif
+`endif
+
+// Phase R (R2): staged capture as a descriptor-parameterized task. Writes
+// d.* into nxt_*; delivery is staged (nxt_valid + nxt_live transition).
+// Side effects preserved exactly: a fetch descriptor advances fetch_off; a
+// new EU access (not a split-half continuation) asserts eu_started. Callers
+// pass pick_desc, so d.* == pick_* bit-for-bit.
+task automatic stage_commit(input commit_desc_t d);
     nxt_valid  <= 1'b1;
-    nxt_type   <= pick_type;
-    nxt_addr   <= pick_addr;
-    nxt_fetch  <= pick_fetch;
-    nxt_wr     <= pick_wr;
-    nxt_swap   <= pick_swap;
-    nxt_split1 <= pick_split1;
-    nxt_split2 <= pick_split2;
-    nxt_wrap   <= pick_wrap;
-    nxt_wdata  <= pick_wdata;
-    nxt_seg    <= pick_seg;
-    nxt_ube_n  <= pick_ube_n;
-    nxt_kind   <= pick_kind;
-    if (pick_fetch) begin
+    nxt_type   <= d.bus_type;
+    nxt_addr   <= d.addr;
+    nxt_fetch  <= d.fetch;
+    nxt_wr     <= d.wr;
+    nxt_swap   <= d.swap;
+    nxt_split1 <= d.split1;
+    nxt_split2 <= d.split2;
+    nxt_wrap   <= d.wrap;
+    nxt_wdata  <= d.wdata;
+    nxt_seg    <= d.seg;
+    nxt_ube_n  <= d.ube_n;
+    nxt_kind   <= d.kind;
+    if (d.fetch) begin
         fetch_off <= fetch_off_sel + (fetch_word ? 16'd2 : 16'd1);
         if (!q_flush) fetch_cs <= fetch_cs;   // (flush handled below)
     end else if (want_eu && !want_half2) begin
@@ -507,9 +916,42 @@ task automatic do_commit();
     end
 endtask
 
+// Phase R (R3): direct-entry descriptor load. Performs ONLY the mechanically
+// common operations shared by every one-clock-ahead direct commit: enter T1,
+// clear tw_any/evald, load cur_* and ube_n from the descriptor. Source-
+// specific side effects (fetch_off advance, eu_started, defer_idle/flush_hold/
+// defer_t4 clearing) remain at the call sites. Callers pass pick_desc, so
+// d.* == pick_* bit-for-bit.
+task automatic enter_t1_direct(input commit_desc_t d);
+    state      <= ST_T1;
+    tw_any     <= 1'b0;
+    evald      <= 1'b0;
+    cur_type   <= d.bus_type;
+    cur_addr   <= d.addr;
+    cur_fetch  <= d.fetch;
+    cur_wr     <= d.wr;
+    cur_swap   <= d.swap;
+    cur_split1 <= d.split1;
+    cur_split2 <= d.split2;
+    cur_wrap   <= d.wrap;
+    cur_wdata  <= d.wdata;
+    cur_seg    <= d.seg;
+    cur_ube_n  <= d.ube_n;
+    cur_kind   <= d.kind;
+    ube_n      <= d.ube_n;
+endtask
+
 //----------------------------------------------------------------------------
 // main sequencing
 //----------------------------------------------------------------------------
+// Phase R (R5): shadow check macro. Ties the canonical arbiter to the actual
+// branch taken. Compiled only under Verilator with --assert; empty for
+// synthesis. Zero effect on normal simulation/synthesis.
+`ifndef SYNTHESIS
+ `define SLOT_CHK(c) assert(c)
+`else
+ `define SLOT_CHK(c)
+`endif
 wire t3_done = (state == ST_T3 || state == ST_TW) && ready;
 
 // Commit-eval deferral under wait states (measured on the waits=1/3
@@ -608,6 +1050,7 @@ always_ff @(posedge clk) begin
         q_rd       <= '0;
         q_wr       <= '0;
         q_cnt      <= '0;
+        occ34_age  <= 4'd0;
         q_avl      <= '0;
         q_aged     <= '0;
         fetch_discard <= 1'b0;
@@ -622,7 +1065,6 @@ always_ff @(posedge clk) begin
         eval_ext   <= 1'b0;
         ext_flushed <= 1'b0;
         flush_hold <= 1'b0;
-        pf_drain   <= 1'b0;
         pop_sr     <= 8'd0;
         if (bkd_load) begin
             fetch_cs  <= bkd_cs;
@@ -638,6 +1080,9 @@ always_ff @(posedge clk) begin
         pop_sr <= {pop_sr[6:0], pop_now};   // recent consumption history
         // queue occupancy / availability pipeline
         q_cnt  <= cnt_next;
+        occ34_age  <= (occupied == 4'd3 || occupied == 4'd4)
+                        ? ((occ34_age == 4'd15) ? 4'd15 : occ34_age + 4'd1)
+                        : 4'd0;
         q_avl  <= q_avl - {2'b0, pop_now} + {1'b0, q_aged};
         q_aged <= push_now;
         if (pop_now)
@@ -680,7 +1125,17 @@ always_ff @(posedge clk) begin
 
         unique case (state)
             ST_TI: begin
+                // R6a: canonical commit dispatch. The arbiter fires exactly
+                // where the ST_TI direct/plain branches committed before
+                // (validated under --assert); delivery mode is preserved.
+                // Non-commit actions stay in their branches below.
+                if (slot_fire && slot_mode == COMMIT_DIRECT)
+                    enter_t1_direct(slot_desc);
+                else if (slot_fire && slot_mode == COMMIT_STAGED)
+                    stage_commit(slot_desc);
+
                 if (nxt_live) begin
+                    `SLOT_CHK(!slot_fire);
                     state      <= ST_T1;
                     tw_any     <= 1'b0;
                     evald      <= 1'b0;
@@ -698,34 +1153,23 @@ always_ff @(posedge clk) begin
                     cur_kind   <= nxt_kind;
                     ube_n      <= nxt_ube_n;
                     nxt_valid  <= 1'b0;
-                end else if (((eval_ext && pick_ext && !flush_defer) ||
+                end else if (((eval_ext && pick_evalext && !flush_defer) ||
                               (ff_show && pick_any)) ||
                              (defer_idle && want_eu) ||
-                             (flush_hold && pick_ext && pick_fetch)) begin
+                             (flush_hold && pick_ext && pick_fetch) ||
+                             (law_due && state == ST_TI && !nxt_live &&
+                              pick_law && pick_fetch)) begin
                     // deferred (waited-cycle) completion eval OR the
                     // idle-window reg-EA reader early commit (defer_idle) OR
                     // the held near-flush redirect (flush_hold, one idle late):
                     // the picked cycle is displayed during THIS idle cycle
                     // and enters its T1 directly - one cycle ahead of the
                     // plain do_commit idle path (measured reader-commit law).
+                    `SLOT_CHK(slot_fire && slot_mode == COMMIT_DIRECT);
+                    // commit issued by the canonical dispatch above; only
+                    // direct-slot side effects remain here.
                     defer_idle <= 1'b0;
                     flush_hold <= 1'b0;
-                    state      <= ST_T1;
-                    tw_any     <= 1'b0;
-                    evald      <= 1'b0;
-                    cur_type   <= pick_type;
-                    cur_addr   <= pick_addr;
-                    cur_fetch  <= pick_fetch;
-                    cur_wr     <= pick_wr;
-                    cur_swap   <= pick_swap;
-                    cur_split1 <= pick_split1;
-                    cur_split2 <= pick_split2;
-                    cur_wrap   <= pick_wrap;
-                    cur_wdata  <= pick_wdata;
-                    cur_seg    <= pick_seg;
-                    cur_ube_n  <= pick_ube_n;
-                    cur_kind   <= pick_kind;
-                    ube_n      <= pick_ube_n;
                     if (pick_fetch) begin
                         fetch_off <= fetch_off_sel +
                                      (fetch_word ? 16'd2 : 16'd1);
@@ -733,6 +1177,8 @@ always_ff @(posedge clk) begin
                         eu_started <= 1'b1;
                     end
                 end else begin
+                    `SLOT_CHK(slot_fire == (!flush_defer && !eval_ext &&
+                                            pick_plain));
                     defer_idle <= 1'b0;
                     if (flush_defer) begin
                         // near-flush redirect deferred one idle cycle: hold the
@@ -754,7 +1200,8 @@ always_ff @(posedge clk) begin
                         cur_split2 <= 1'b0;
                         cur_wr     <= 1'b0;
                     end else if (pick_any) begin
-                        do_commit();
+                        // staged commit issued by the canonical dispatch above;
+                        // this branch preserves priority over the arm below.
                     end else if ((eu_req && eu_soon_ea && !eu_ready) ||
                                  (eu_soon_ivt && q_cnt <= 3'd2)) begin
                         // idle window with a reg-EA reader reservation that
@@ -776,9 +1223,19 @@ always_ff @(posedge clk) begin
                     end
                 end
             end
-            ST_T1: begin state <= ST_T2; pf_drain <= 1'b0; end
+            ST_T1: state <= ST_T2;
             ST_T2: state <= ST_T3;
             ST_T3, ST_TW: begin
+                // R6b: canonical commit dispatch. The only T3/TW slot is the
+                // staged zero-wait completion eval (req_t3_eval), which fires
+                // exactly when eval_at_t3 && pick_any (validated under
+                // --assert). Delivery mode preserved; non-commit actions
+                // (evald, push_pend, eu_hand, defer_t4 arm) stay below.
+                if (slot_fire && slot_mode == COMMIT_DIRECT)
+                    enter_t1_direct(slot_desc);
+                else if (slot_fire && slot_mode == COMMIT_STAGED)
+                    stage_commit(slot_desc);
+
                 if (state == ST_TW) tw_any <= 1'b1;
                 if (ready) begin
                     state <= ST_T4;
@@ -800,14 +1257,17 @@ always_ff @(posedge clk) begin
                     // cycle evaluates at the end of T4 instead. The queue
                     // push of a completed fetch follows one cycle later.
                     if (eval_at_t3) begin
+                        `SLOT_CHK(slot_fire == pick_any);
                         evald <= 1'b1;
                         if (cur_fetch && !fetch_discard && !q_flush) begin
                             push_pend    <= cur_word ? 2'd2 : 2'd1;
                             push_pend_hi <= cur_addr[0];
                         end
                         if (eu_completing) eu_hand <= 1'b1;
-                        if (pick_any) do_commit();
-                        else if (cur_fetch && eu_req && eu_soon &&
+                        if (pick_any) begin
+                            // staged commit issued by the dispatch above;
+                            // this branch preserves priority over defer_t4.
+                        end else if (cur_fetch && eu_req && eu_soon &&
                                  !eu_ready)
                             defer_t4 <= 1'b1;   // re-eval during T4
                     end
@@ -816,6 +1276,19 @@ always_ff @(posedge clk) begin
                 end
             end
             ST_T4: begin
+                // R6c: canonical commit dispatch. The T4 slots (defer_t4 and
+                // ff_t4 direct, flush-fallback staged) fire exactly where the
+                // branches committed before (validated under --assert).
+                // Delivery mode preserved; the fetch_off advance for a staged
+                // fetch happens inside stage_commit, and for the ff_t4 direct
+                // fetch it stays as an explicit side effect in its branch -
+                // so fetch_off advances exactly once either way. All other
+                // non-commit actions stay in their branches below.
+                if (slot_fire && slot_mode == COMMIT_DIRECT)
+                    enter_t1_direct(slot_desc);
+                else if (slot_fire && slot_mode == COMMIT_STAGED)
+                    stage_commit(slot_desc);
+
                 if (cur_fetch && fetch_discard) fetch_discard <= 1'b0;
                 // waited cycle: deferred eval edge - schedule the queue
                 // push of a completed fetch for the end of the next
@@ -830,25 +1303,16 @@ always_ff @(posedge clk) begin
                     // ready now - commit mid-T4, enter T1 directly
                     defer_t4 <= 1'b0;
                     if (eu_req && eu_ready) begin
-                        state      <= ST_T1;
-                        tw_any     <= 1'b0;
-                        evald      <= 1'b0;
-                        cur_type   <= pick_type;
-                        cur_addr   <= pick_addr;
-                        cur_fetch  <= pick_fetch;
-                        cur_wr     <= pick_wr;
-                        cur_swap   <= pick_swap;
-                        cur_split1 <= pick_split1;
-                        cur_split2 <= pick_split2;
-                        cur_wrap   <= pick_wrap;
-                        cur_wdata  <= pick_wdata;
-                        cur_seg    <= pick_seg;
-                        cur_ube_n  <= pick_ube_n;
-                        cur_kind   <= pick_kind;
-                        ube_n      <= pick_ube_n;
+                        `SLOT_CHK(slot_fire && slot_mode == COMMIT_DIRECT &&
+                                  slot_id == SLOT_DEFER_T4);
+                        // commit issued by the canonical dispatch above.
                         eu_started <= 1'b1;
-                    end else state <= ST_TI;
+                    end else begin
+                        `SLOT_CHK(!slot_fire);
+                        state <= ST_TI;
+                    end
                 end else if (nxt_live) begin
+                    `SLOT_CHK(!slot_fire);
                     state      <= ST_T1;
                     tw_any     <= 1'b0;
                     evald      <= 1'b0;
@@ -867,6 +1331,7 @@ always_ff @(posedge clk) begin
                     ube_n      <= nxt_ube_n;
                     nxt_valid  <= 1'b0;
                 end else begin
+                    `SLOT_CHK(slot_fire == (q_flush && cur_fetch && pick_any));
                     state <= ST_TI;
                     // NOTE: no commit evaluation at the T4 edge of a
                     // zero-wait cycle (measured) - EXCEPT a flush
@@ -898,27 +1363,14 @@ always_ff @(posedge clk) begin
                         // after T4, not mid-T4); evald==0 falls through to
                         // the near-flush do_commit path below (one cycle
                         // later), matching the chip's deferred display.
-                        state      <= ST_T1;
-                        tw_any     <= 1'b0;
-                        evald      <= 1'b0;
-                        cur_type   <= pick_type;
-                        cur_addr   <= pick_addr;
-                        cur_fetch  <= pick_fetch;
-                        cur_wr     <= pick_wr;
-                        cur_swap   <= pick_swap;
-                        cur_split1 <= pick_split1;
-                        cur_split2 <= pick_split2;
-                        cur_wrap   <= pick_wrap;
-                        cur_wdata  <= pick_wdata;
-                        cur_seg    <= pick_seg;
-                        cur_ube_n  <= pick_ube_n;
-                        cur_kind   <= pick_kind;
-                        ube_n      <= pick_ube_n;
+                        // commit issued by the canonical dispatch above; the
+                        // ff_t4 direct fetch advances fetch_off here.
                         if (pick_fetch)
                             fetch_off <= fetch_off_sel +
                                          (fetch_word ? 16'd2 : 16'd1);
                     end else if (q_flush && cur_fetch && pick_any) begin
-                        do_commit();
+                        // staged commit (incl. its fetch_off advance) issued by
+                        // the canonical dispatch above; teardown remains here.
                         cur_type   <= BS_PASV;
                         cur_fetch  <= 1'b0;
                         cur_split1 <= 1'b0;
@@ -927,7 +1379,6 @@ always_ff @(posedge clk) begin
                     end else if (!evald) begin
                         eval_ext    <= 1'b1;
                         ext_flushed <= q_flush;
-                        pf_drain    <= cur_fetch && !q_flush;
                     end else begin
                         cur_type   <= BS_PASV;
                         cur_fetch  <= 1'b0;
@@ -1095,13 +1546,40 @@ wire ff_t4   = flush_fast && q_flush && state == ST_T4 && cur_fetch &&
 // T1 next cycle - the mid-cycle commit analogue of defer_show for a
 // bus-idle landing rather than a fetch T4.
 wire idle_commit = defer_idle && state == ST_TI && !nxt_live && want_eu;
-wire ext_show = (eval_ext && pick_ext && !flush_defer) || defer_show ||
-                ff_show || ff_t4 || idle_commit ||
+// law_show mirrors req_law_resume TEXTUALLY (the idle_commit idiom): same term
+// on both sides of the Phase-R invariant slot_show_now == ext_show, so it holds
+// by construction. slot_show_now drives the PIN MUXES (bs, ad_oe_addr, ad_o) -
+// a direct commit with no display would drive WRONG PINS.
+wire law_show = law_due && state == ST_TI && !nxt_live &&
+                pick_law && pick_fetch;
+wire ext_show = (eval_ext && pick_evalext && !flush_defer) || defer_show ||
+                ff_show || ff_t4 || idle_commit || law_show ||
                 (flush_hold && pick_ext && pick_fetch);
+
+// Phase R (R7): the canonical direct-slot display signal. A direct slot fire
+// displays its descriptor's status/address during this special (pre-T1) row.
+wire slot_show_now = slot_fire && slot_mode == COMMIT_DIRECT;
+
+`ifndef SYNTHESIS
+`ifdef VERILATOR
+// Equivalence probe (compiled only under --assert): slot_show_now must match
+// the legacy ext_show cause exactly, and the displayed descriptor fields must
+// equal the legacy pick_* mux inputs. Proven over the full w0/w1/w3 suites
+// before the display driver is switched to slot_show_now / slot_desc.
+always @(*) begin
+    assert (slot_show_now == ext_show);
+    if (ext_show) begin
+        assert (slot_desc.bus_type == pick_type);
+        assert (slot_desc.addr     == pick_addr);
+        assert (slot_desc.kind     == pick_kind);
+    end
+end
+`endif
+`endif
 
 assign bs = (halt_show || halt_t1) ? BS_HALT
           : nxt_live ? nxt_type
-          : ext_show ? pick_type
+          : slot_show_now ? pick_type
           : (state == ST_T1 || state == ST_T2) ? cur_type
           : ((state == ST_T3 || state == ST_TW) && !ready_prev) ? cur_type
           : BS_PASV;
@@ -1120,11 +1598,11 @@ always @(negedge clk) if (ce_half) t1_half2 <= (state == ST_T1);
 // floating; T1 drives AD19:16 = 0 only (measured float pattern). HALT
 // pseudo-cycles drive AD15:0 only (stale address), AD19:16 float.
 wire [1:0] disp_kind = nxt_live ? nxt_kind
-                     : ext_show ? pick_kind : cur_kind;
+                     : slot_show_now ? pick_kind : cur_kind;
 wire disp_inta = disp_kind == K_INTA &&
-                 (nxt_live || ext_show || state == ST_T1);
+                 (nxt_live || slot_show_now || state == ST_T1);
 
-assign ad_oe_addr = (nxt_live || ext_show || state == ST_T1) &&
+assign ad_oe_addr = (nxt_live || slot_show_now || state == ST_T1) &&
                     !disp_inta;
 assign ad_oe_ps   = (!ad_oe_addr && cycle_active &&
                      (state == ST_T2 || state == ST_T3 ||
@@ -1138,7 +1616,7 @@ assign ad_o = (halt_t1 || halt_show)
                                  ? {4'h0, fetch_phys[15:0] - 16'd2}
             : disp_inta          ? 20'h0
             : nxt_live           ? nxt_addr
-            : ext_show           ? pick_addr
+            : slot_show_now      ? pick_addr
             : (state == ST_T1)   ? (cur_wr && t1_half2
                                     ? {cur_addr[19:16], wdata_lanes}
                                     : cur_addr)
@@ -1148,5 +1626,115 @@ assign rd_n = !((state == ST_T2 || state == ST_T3 || state == ST_TW)
                 && cycle_active && !cur_wr);
 
 wire _unused = &{1'b0, fetch_cs_lin, ad_i[7:0]};
+
+//----------------------------------------------------------------------------
+// class-5 UNIFIED LAW - state (the direct-path sixth attempt). law_dcnt is
+// latched at the T3 STATE cycle - the PRE-WAIT frame (t3_done fires at the READY
+// edge, a different cycle under waits, giving d_cnt=2 where the fit needs >=3).
+// state==ST_T3 is a single cycle even under waits (ST_TW is a distinct state).
+// E2 independently concluded the pre-wait frame; fit and E2 corroborate.
+//----------------------------------------------------------------------------
+reg  [3:0] law_tw_cnt;      // Tw cycles elapsed in the CURRENT bus cycle
+reg  [3:0] law_dtw;         // the completing fetch's full Tw count
+reg  [2:0] law_dcnt;        // cnt_next latched at the T3 STATE cycle (frame A)
+reg        law_window;      // a scheduled resume is outstanding (ONE-SHOT)
+reg  [2:0] law_ctr;         // cycles since the arm (arm cycle == ctr 0)
+reg  [2:0] law_sel;         // cidle_sel for THIS arm
+reg        law_prov;        // occupied==3: sel provisional pending pop@T4+2
+
+always @(posedge clk) begin
+    if (srst) begin
+        law_tw_cnt <= 4'd0; law_dtw <= 4'd0; law_dcnt <= 3'd0;
+        law_window <= 1'b0; law_ctr <= 3'd0; law_sel <= 3'd0; law_prov <= 1'b0;
+    end else if (ce) begin
+        // per-bus-cycle Tw counter
+        if (state == ST_T1)      law_tw_cnt <= 4'd0;
+        else if (state == ST_TW) law_tw_cnt <= law_tw_cnt + 4'd1;
+        // PRE-WAIT frame latch (frame A)
+        if (state == ST_T3 && cur_fetch) law_dcnt <= cnt_next;
+        // full Tw is known only at the ready edge
+        if (t3_done) law_dtw <= law_tw_cnt + ((state == ST_TW) ? 4'd1 : 4'd0);
+
+        // ---- arm (eval_ext, T4+1) ----
+        if (law_arm) begin
+            law_window <= 1'b1;
+            law_ctr    <= 3'd0;
+            // cidle_sel: 3 if tw0/tw>=4/occ<=2; occ==3 -> provisional 4 pending
+            // pop@T4+2; else 4. Silicon: chip pins 3 at high N - the tw>=4->3
+            // arm is NOT softened.
+            if ((law_dtw == 4'd0) || (law_dtw >= 4'd4) || (occupied <= 4'd2)) begin
+                law_sel <= 3'd3; law_prov <= 1'b0;
+            end else if (occupied == 4'd3) begin
+                law_sel <= 3'd4; law_prov <= 1'b1;
+            end else begin
+                law_sel <= 3'd4; law_prov <= 1'b0;
+            end
+        end else if (law_window) begin
+            law_ctr <= law_ctr + 3'd1;
+            // occ==3 downgrade: pop@T4+2 is at law_ctr==0 (cycle T4+2).
+            if (law_prov && law_ctr == 3'd0) begin
+                law_prov <= 1'b0;
+                if (pop_now != 1'b0) law_sel <= 3'd3;
+            end
+            // ONE-SHOT lifecycle: window dies after the retry budget. Due window
+            // is [sel-2, sel]; past sel the schedule is abandoned and legacy owns
+            // the resume.
+            if (law_ctr >= law_sel) law_window <= 1'b0;
+        end
+
+        // COMBINATIONAL CANCELS (registered here, effect next cycle; law_due
+        // yields combinationally via its !q_flush/!eval_ext terms so the current
+        // cycle is already clean): flush owns its window (flush law 282/282);
+        // any non-law slot fire took the bus; want_eu at the due cycle -> EU
+        // wins; our own fire ends the schedule.
+        if (law_window) begin
+            if (q_flush ||
+                (slot_fire && slot_id != SLOT_LAW_RESUME) ||
+                (law_due && want_eu) ||
+                (slot_fire && slot_id == SLOT_LAW_RESUME))
+                law_window <= 1'b0;
+        end
+    end
+end
+
+`ifndef SYNTHESIS
+`ifdef VERILATOR
+// SVA 4: law_dcnt frame-A equality (RTL twin of the corpus cross-check,
+// cnt_next @ t4-tw-1), asserted PER FETCH.
+// the probe MUST mirror law_dcnt's reset exactly, or a mid-run srst pulse (which
+// check_core issues between cases) resets law_dcnt but leaves the probe stale ->
+// a spurious 0-vs-3 mismatch that is a harness artifact, not a frame bug.
+reg [2:0] law_dcnt_probe;
+always @(posedge clk)
+    if (srst) law_dcnt_probe <= 3'd0;
+    else if (ce && state == ST_T3 && cur_fetch) law_dcnt_probe <= cnt_next;
+always @(posedge clk) if (!srst && ce && t3_done && cur_fetch)
+    assert (law_dcnt == law_dcnt_probe)
+        else $error("class-5 SVA4: law_dcnt frame mismatch %0d != %0d",
+                    law_dcnt, law_dcnt_probe);
+// SVA 2/3: law_due never co-asserts with eval_ext or a flush.
+always @(posedge clk) if (!srst && ce)
+    assert (!(law_due && (eval_ext || q_flush)))
+        else $error("class-5 SVA2/3: law_due co-asserted with eval_ext/q_flush");
+// SVA 5/6: window lifetime <= cidle_sel+2 (bounded retry, no immortal window).
+always @(posedge clk) if (!srst && ce && law_window)
+    assert (law_ctr <= law_sel)
+        else $error("class-5 SVA5/6: law_ctr %0d past retry cap (sel=%0d)",
+                    law_ctr, law_sel);
+// arm never fires outside the fitted domain (arm gate occ 2..4).
+always @(posedge clk) if (!srst && ce && law_arm)
+    assert (occupied <= 4'd4 && occupied >= 4'd2)
+        else $error("class-5: law armed off-domain occupied=%0d", occupied);
+// SVA 1: SLOT_LAW_RESUME fires ONLY within the bounded due window [sel-1,sel+1]
+// - never outside it (no silent third outcome; a mistimed fire is forbidden).
+// delta=1 then bounds T1 to [T4+1+sel, T4+3+sel]; the FIRST-due fire lands
+// exactly T4+1+cidle_sel (census-verified), retries are the budgeted residual.
+always @(posedge clk) if (!srst && ce && slot_fire && slot_id == SLOT_LAW_RESUME)
+    assert (law_window && law_ctr >= (law_sel - 3'd2)
+                       && law_ctr <= law_sel)
+        else $error("class-5 SVA1: law slot fired outside due window ctr=%0d sel=%0d",
+                    law_ctr, law_sel);
+`endif
+`endif
 
 endmodule

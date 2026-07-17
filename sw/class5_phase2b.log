@@ -1,0 +1,35 @@
+=== PHASE 2 ADDENDUM ===
+
+--- 1. FRONTIER: best ANY eligible variant achieves on gz-disc ---
+    (criteria: (a) 0 GO/PAUSE errs on non-flush low+mid; (b) >=95% exact cidle)
+    eligible variants: 648
+    BEST GO/PAUSE errors achievable: 8   (criterion (a) needs 0)
+    BEST exact-cidle rate achievable: 50.0%   (criterion (b) needs >=95%)
+    variants meeting (a): 0/648
+    variants meeting (b): 0/648
+    variants meeting BOTH: 0/648
+
+--- 2. FIT-SET POWER on the sharpened target cells ---
+    gz-disc (FIT) : occ3/age1-2 n=  7 cidle {3: 5, 4: 2}   | occ3/age1-4 n= 48
+    gz-held       : occ3/age1-2 n=  7 cidle {3: 7}   | occ3/age1-4 n= 36
+    fresh         : occ3/age1-2 n= 26 cidle {3: 13, 4: 13}   | occ3/age1-4 n= 80
+    => the designated fit set (gz-disc) carries only a handful of rows
+       in the cells the whole question turns on. The duration split is
+       structurally underpowered on gz-disc. Reported, not worked around.
+
+--- 3. EXPLORATORY (NOT the frozen variant, NOT a pass claim) ---
+    Do variants that ace the 7 disc target rows generalize to the 53
+    target rows in held+fresh? Chance-level split on 5-vs-2 is cheap;
+    generalization is not.
+    variants scoring 7/7 (perfect) on the disc target rows: 25
+    held target rows: 7   fresh target rows: 26
+
+    BEST generalization among those 25:
+      D=cnt_next<=2 period=1 anchor=reset offset=0 clear=noD read=T4+1 lag=2
+      held  target exact-cidle: 6/6
+      fresh target exact-cidle: 16/16
+      pooled held+fresh: 100.0%
+
+    distribution of held+fresh target generalization over all 25 disc-perfect variants:
+      max=100.0%  median=44.4%  min=44.4%
+      (if the max is near chance, the 7/7 was overfitting 7 rows)

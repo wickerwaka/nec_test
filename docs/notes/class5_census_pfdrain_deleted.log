@@ -1,0 +1,45 @@
+    -1:   117 ##########################################################
+    +0: 87677 
+    +2:     1 
+    +3:     4 ##
+
+net gap_error sum = -160   |impulse| mass = 188   (net<<mass => canceling +/- impulses)
+
+w0 control (wmax=0): 22188 intervals, 0 nonzero (MUST be 0 - instrument + w0-neutrality sanity)
+
+nonzero impulses by (prev->cur bus, prev_tw):
+   CODE->CODE     prev_tw=7: -1:48
+   CODE->CODE     prev_tw=1: -3:8  -1:20  +3:4
+   CODE->CODE     prev_tw=6: -1:20
+   CODE->MEMW     prev_tw=2: -2:13
+   MEMW->CODE     prev_tw=1: -1:12
+   CODE->CODE     prev_tw=2: -3:1  -1:8  +2:1
+   CODE->CODE     prev_tw=3: -1:9
+   CODE->MEMR     prev_tw=2: -2:2
+
+nonzero impulses by model state at cur-T1-1:
+   S_DEC       : 64
+   S_DGAP      : 19
+   S_FIRST     : 13
+   S_WREQ      : 13
+   S_DHI       : 12
+   S_EX        : 6
+   S_DLO       : 6
+   S_AI_I16    : 5
+   S_IMM_HI    : 3
+   S_IMM_LO    : 2
+   S_REQ       : 2
+   S_NOP       : 1
+
+nonzero impulses by (cur_bs, cur_parity):
+   ('CODE', 0): 131
+   ('MEMR', 0): 2
+   ('MEMW', 0): 9
+   ('MEMW', 1): 4
+
+nonzero impulses by chip-vs-model Ti delta (cti-mti):
+   Ti_delta -3: 9
+   Ti_delta -2: 15
+   Ti_delta -1: 117
+   Ti_delta +2: 1
+   Ti_delta +3: 4
