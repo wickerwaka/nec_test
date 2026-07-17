@@ -1,5 +1,47 @@
 # Bring-up log
 
+## 2026-07-17 — POP-PHASE PROBE: architect's mechanism CONFIRMED (pop_first==3 -> chip resumes early, w0-ABSENT by arithmetic). PARTIAL: 17/39 occ5 fixable, ~22 alias to w0 -> PARK. Last named cell of the timing map.
+
+sw/class5_poprelease.py + .log (board-free). The architect PRE-REGISTERED (before this
+probe) that the chip resumes at DEMAND-CROSSING-FORECAST + LAG, commit-occupancy (5 vs
+4) an EPIPHENOMENON of whether a pop lands in the lag window; discriminator = pop@T4+k
+relative to the store's completion frame; recent_evx measured wait PRESENCE not pop
+PHASE. CONFIRMED.
+
+POPULATION (filter lesson applied): ALL post-MEMW CODE resumes with occ@store-T4>=5,
+INCLUDING the matched chip-occ4 rows - 161 rows, 39 chip_occ5 (early, = census ge=-1)
+/ 122 chip_occ4 (ge=0, the complete nonzero census record). Real baseline (all-occ4)
+75.8%.
+
+THE DISCRIMINATOR - pop_first (offset of the FIRST pop after the store's T4):
+  pop_first==3 -> chip_occ5 PURE: 17/17, 0 false-positives. Generalises on a BALANCED
+    split (even seeds 6/6, odd 11/11; the disc/held split is useless here - only 2 occ5
+    rows land in disc). And pop_first==3 is ABSENT at w0 (0/348 w0 resumes) and occurs
+    only 3x at uniform w1/w3. So arming the occ==5 release on pop_first==3 is w0-neutral
+    BY THE KEY'S OWN ARITHMETIC (the pattern never arises at w0) - the mechanism, NOT a
+    wait flag. KILL(ii) AVOIDED. This is exactly the architect's pop-in-lag-window at
+    T4+3 -> chip commits at occ5.
+  pop_first in {1,2} -> MIXED (22 occ5 not separated). These ALIAS to w0: pop_first
+    in {1,2} occur at w0 (306 at 1, 42 at 2) and store_tw==0 (which dominates the
+    residual occ5) is w0-identical - the same local state is chip_occ4 at w0 and
+    chip_occ5 under random waits, so it is UNFIXABLE w0-safely. (This is the same wall
+    the recent_evx attempt hit, now explained: it is not that recent_evx was the wrong
+    gate for these rows - there IS no w0-safe local gate for them.)
+
+VERDICT: architect's mechanism REAL; the fix is PARTIAL. pop_first==3 cleanly recovers
+17u w0-safely (~half the ~28-34u population); the residual ~22 occ5 rows (pop_first
+1,2 / store_tw==0) alias to w0 and must be PARKED (economy rule: the whole cell is 5%
+of census). This CLOSES the last named cell of the timing family's map either way.
+
+FIX SHAPE (if pursued) + PRE-REGISTERED ACCEPTANCE TEST: arm the occ==5 store-resume
+release on pop_first==3 (a latched "first pop after store T4 landed at offset 3"),
+NOT recent_evx. The DECISIVE test the architect pre-registered: w1/w3 goldens PASS with
+NO wait-pattern term anywhere - the 3 uniform pop_first==3 rows must be chip_occ5 by the
+same arithmetic (if they are chip_occ4, pop_first==3 aliases at uniform too and the whole
+cell parks). Same FAMILY as H-SLIP (max/deadline), DIFFERENT CELL - do NOT merge fix
+sites. Shadow fields (d[66..67]) + sw/class5_poprelease.py are the instrumentation.
+HOLDING for the architect's ruling on partial-fix vs full-park before any RTL.
+
 ## 2026-07-17 — MEMW->CODE -1 FIX: ENABLE REVERTED at the golden gate. w0 169000/169000 PASS but w1/w3 BROKE (over-fire) -> the -1 is wait-PATTERN-specific, not "any waited regime". Shadow kept. Architect re-enters.
 
 Step 3b under full protocol. Textual enumeration (grep-first): pf_lim (:353) consumed
