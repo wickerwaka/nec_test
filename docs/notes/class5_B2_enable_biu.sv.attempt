@@ -1515,8 +1515,21 @@ wire       sh_cidle3_now = (sh_d_tw == 4'd0) || (sh_d_tw >= 4'd4) ||
 // w0-NEUTRAL BY CONSTRUCTION: every term is downstream of sh_pause_arm, which
 // requires eval_ext, which is never asserted at w0 (measured: 0 arms / 50388 w0
 // cycles). The 169000 golden is structurally unreachable from here.
+// DELTA IS MEASURED, NOT ASSUMED (T2 latency table, 3068 samples, one trace):
+//   COMMIT_DIRECT  SLOT_EVAL_EXT        2901/2901  delta = 1
+//   COMMIT_DIRECT  SLOT_FLUSH_HOLD         9/9     delta = 1
+//   COMMIT_STAGED  SLOT_TI_PLAIN        131/131    delta = 2
+//   COMMIT_STAGED  SLOT_T4_FLUSH_STAGED   27/27    delta = 2
+// The resume at window expiry commits through SLOT_TI_PLAIN, which is STAGED
+// (the descriptor goes to nxt_* and delivers via the nxt_live transition), so
+// T1 = fire + 2. The first cut released assuming delta = 1 and therefore landed
+// every scheduled resume exactly ONE CLOCK LATE - the 189-row +1 column, which
+// T4 showed was 100% law-armed. Issuing at T1_target - delta(STAGED):
+//   fire at k = T4 + cidle - 1  =>  T1 = k + 2 = T4 + 1 + cidle.  QED.
+// sh_c is 1 on the cycle after the arm, so sh_c == k - T4 - 1 and the release
+// condition is sh_c < cidle - 2.
 wire       law_block = sh_pause_arm || sh_pend ||
-                       (sh_sched && (sh_c < (sh_cidle - 3'd1)));
+                       (sh_sched && (sh_c < (sh_cidle - 3'd2)));
 
 always @(posedge clk) begin
     if (srst) begin
