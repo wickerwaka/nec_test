@@ -1152,3 +1152,43 @@ because Quartus 17.1 rejected RTL Verilator accepted (named-field struct
 assignment). Synthesis is a genuine gate, not a formality: run it as its own
 step and treat a synth failure as a FINDING (it would mean the census validates
 something unbuildable), never as a step to push through on the way to a flash.
+
+
+## GATES WHOSE PRECONDITIONS DISSOLVED (the same family as staleness)
+
+Three instruments in this campaign were VALID, then silently stopped being valid
+because the thing they were measuring changed underneath them. None of them
+failed; they just quietly stopped meaning what they used to.
+
+  1. THE PROXY / CENSUS RATIO. Held at 1.03, 1.04 across two builds, then went
+     to 1.72. The proxy only ever saw CODE->CODE ALIGNED opportunities. The
+     ratio held ONLY WHILE CODE->CODE DOMINATED THE MASS. Deleting pf_drain
+     removed most CODE->CODE mass and promoted the blind spot from negligible to
+     44% of proxy mass (measured on the all-transition corpus; the census had
+     implied ~22%). Repaired by sw/class5_alltrans.py, which drops the
+     CODE->CODE filter - the FILTER excluded those transitions, the CHIP never
+     did.
+
+  2. THE n == 16058 HARD GATE. The aligned-prefix population is CONDITIONED ON
+     HISTORICAL MODEL QUALITY: it was frozen when the model was worse. Every fix
+     extends alignment into regions the old dump never sampled, so a CORRECT
+     regeneration SHOULD grow n. Revised gate:
+         n >= old n, AND the growth is ATTRIBUTED (extended alignment vs new
+         emission), AND any DROP is a hard stop, AND unexplained growth is a stop.
+     This immediately caught something a raw n>=old would have passed: net
+     growth 8220 -> 8339 CODE->CODE (+199 new, -80 GONE), and the 80 absent rows
+     are 3 (seed,w) pairs whose ALIGNED PREFIX SHORTENED - i.e. the model
+     diverges EARLIER there. 6 pairs extended, 3 shortened. A net win hiding a
+     partial regression.
+
+  3. THE w1/w3 GOLDEN SUITES. 6 mission-H-FITTED forms x 200 cases. They gate
+     "fitted-form regression", NOT "waits accuracy" - recent builds change paths
+     those forms never exercise. A pass there is NOT waits-accuracy evidence,
+     though a FAILURE still means something. A broad RANDOM-FORM w1/w2/w3 suite
+     should replace them as the gate (w2 also closes the odd-only coverage gap:
+     the only uniform waited suites on disk are w1 and w3, BOTH ODD).
+
+RULE: THRESHOLDS AND GATES ARE COMPOSITION-DEPENDENT. Re-derive acceptance
+criteria from the CURRENT composition at every pre-registration; never carry one
+forward. "new-negative-tail > 20", ">=+2 within +-5", the 1.03 ratio and n==16058
+were all sized against compositions our own fixes destroyed.
