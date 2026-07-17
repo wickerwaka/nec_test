@@ -1233,3 +1233,27 @@ ADVERSARIALLY VALIDATED (mandatory - an aligner that accepts everything recovers
 nothing but noise): chip(fz91000) vs model(fz90003), DIFFERENT PROGRAMS ->
 37 aligned pairs (the shared boot prefix), 0 resyncs, stop=SUSTAINED at i=37.
 The aligner rejects unrelated streams.
+
+
+## ERROR CLASS: ANY DISAGREEMENT CLAIM MUST TOLERATE A SHIFT FIRST
+
+The cutoff bug (above) and my own "genuine sustained divergence" retraction are
+THE SAME BUG AT TWO LEVELS:
+  - the ALIGNER declared divergence at the first position-locked mismatch;
+  - then I measured "post-D agreement" POSITION-LOCKED and read 15% as a real
+    divergence - when the model had simply MISSED ONE FETCH and everything after
+    was off by one. With a tolerated shift it was 205/212 aligned.
+A position-locked comparison of two streams that differ by an insertion/deletion
+reports near-total disagreement while the streams are in fact still matching.
+
+RULE: BEFORE ANY MEASUREMENT CAN CLAIM DISAGREEMENT, IT MUST TOLERATE A SHIFT.
+Percentage-agreement, gap-length, first-mismatch-index, diff counts - all are
+invalid as disagreement evidence unless computed AFTER a resync search over
+shift x skip. This has now bitten twice, at the aligner level and at the
+analysis level. It generalises to every "the model diverges here" and every
+"X% match" number in the campaign: recompute any that were position-locked.
+
+Corollary: an AGREEMENT claim under a tolerated shift is safe (it found a real
+alignment). It is only DISAGREEMENT claims that the shift-intolerance corrupts -
+they over-report. So the direction of the historical error is known: every
+position-locked "diverges" / "X% mismatch" was an UPPER BOUND on divergence.
