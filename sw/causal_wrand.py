@@ -710,21 +710,30 @@ def run_tb_internal(image, n, wvec):
     onset_* (Phase 2k) = the reservation's OWN source: the EU state (onset_state)
     that generated the current eu_req, the CPU-cycle age since that rising edge
     (onset_age; 0 = rises on this row), and the opcode/kind/dir latched at onset."""
-    import subprocess, tempfile
+    import subprocess, tempfile, shutil
     from pathlib import Path
     from check_seq import BIN, ROOT
+    # ALWAYS clean the temp dir (finally): this used to leak one dir - holding a
+    # multi-MB eudbg dump - per TB invocation, i.e. hundreds per census run. The
+    # accumulation eventually blew the user's disk QUOTA and wedged every shell
+    # (EDQUOT on write) while df still showed free space. Leaked on the normal
+    # path AND on the RuntimeError / subprocess-timeout paths.
     td = tempfile.mkdtemp(prefix="eud_")
-    img = Path(td) / "img.hex"; out = Path(td) / "out.txt"; wvf = Path(td) / "wv.hex"
-    img.write_text("\n".join(f"{b:02x}" for b in image) + "\n")
-    wvf.write_text("\n".join(f"{min(255, max(0, int(x))):02x}" for x in wvec) + "\n")
-    args = [str(BIN), f"+bootimg={img}", f"+bootn={n}", f"+wvec={wvf}",
-            f"+out={out}", "+eudbg"]
-    r = subprocess.run(args, capture_output=True, text=True, cwd=ROOT, timeout=300)
-    if "BOOT DONE" not in r.stdout:
-        raise RuntimeError("TB eudbg failed")
+    try:
+        img = Path(td) / "img.hex"; out = Path(td) / "out.txt"; wvf = Path(td) / "wv.hex"
+        img.write_text("\n".join(f"{b:02x}" for b in image) + "\n")
+        wvf.write_text("\n".join(f"{min(255, max(0, int(x))):02x}" for x in wvec) + "\n")
+        args = [str(BIN), f"+bootimg={img}", f"+bootn={n}", f"+wvec={wvf}",
+                f"+out={out}", "+eudbg"]
+        r = subprocess.run(args, capture_output=True, text=True, cwd=ROOT, timeout=300)
+        if "BOOT DONE" not in r.stdout:
+            raise RuntimeError("TB eudbg failed")
+        txt = out.read_text()
+    finally:
+        shutil.rmtree(td, ignore_errors=True)
     rows = []
     pend = None
-    for ln in out.read_text().splitlines():
+    for ln in txt.splitlines():
         p = ln.split()
         if not p:
             continue
@@ -1771,15 +1780,20 @@ def cmd_class5tax(a):
     BASE_BIN = a.base_bin
 
     def run_base(image, wv):
-        td = tempfile.mkdtemp(prefix="b5_")
-        img = Path(td) / "i.hex"; out = Path(td) / "o.txt"; wf = Path(td) / "w.hex"
-        img.write_text("\n".join(f"{b:02x}" for b in image) + "\n")
-        wf.write_text("\n".join(f"{min(255,max(0,int(x))):02x}" for x in wv) + "\n")
-        subprocess.run([BASE_BIN, f"+bootimg={img}", "+bootn=4200", f"+wvec={wf}",
-                        f"+out={out}"], capture_output=True, text=True, cwd=ROOT,
-                       timeout=300, check=False)
+        import shutil
+        td = tempfile.mkdtemp(prefix="b5_")     # ALWAYS cleaned (finally) - see
+        try:                                    # run_tb_internal: leaks blow quota
+            img = Path(td) / "i.hex"; out = Path(td) / "o.txt"; wf = Path(td) / "w.hex"
+            img.write_text("\n".join(f"{b:02x}" for b in image) + "\n")
+            wf.write_text("\n".join(f"{min(255,max(0,int(x))):02x}" for x in wv) + "\n")
+            subprocess.run([BASE_BIN, f"+bootimg={img}", "+bootn=4200", f"+wvec={wf}",
+                            f"+out={out}"], capture_output=True, text=True, cwd=ROOT,
+                           timeout=300, check=False)
+            txt = out.read_text()
+        finally:
+            shutil.rmtree(td, ignore_errors=True)
         rows = []
-        for ln in out.read_text().splitlines():
+        for ln in txt.splitlines():
             p = ln.split()
             if p and p[0] == "r":
                 rows.append(dict(t=int(p[1]), bs_early=int(p[2]), qs=int(p[3]),

@@ -18,6 +18,7 @@ Usage:
 """
 import argparse
 import json
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -57,7 +58,17 @@ def compose(g):
 
 
 def run_tb(image, n, waits=0, evt=None, wrand=None, wvec=None):
+    # ALWAYS clean the temp dir (finally below): a leak here accumulates one dir
+    # per TB run across the sweep/drift loops that call this, and eventually
+    # blows the user disk QUOTA (EDQUOT on every write, while df shows free).
     td = tempfile.mkdtemp(prefix="seq_")
+    try:
+        return _run_tb_in(td, image, n, waits, evt, wrand, wvec)
+    finally:
+        shutil.rmtree(td, ignore_errors=True)
+
+
+def _run_tb_in(td, image, n, waits, evt, wrand, wvec):
     img = Path(td) / "img.hex"
     out = Path(td) / "out.txt"
     img.write_text("\n".join(f"{b:02x}" for b in image) + "\n")
