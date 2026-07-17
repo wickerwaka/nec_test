@@ -1,5 +1,67 @@
 # Bring-up log
 
+## 2026-07-17 — ARC 2 RE-MAP (Tasks 1-3, board-free): DONE re-ratify recommended (H-SLIP-explained scatter); ONE new fixable finding = MEMW->CODE uniform -1 kind-offset. Coordinator's IO-offset guess falsified.
+
+sw/class5_remap.py + sw/class5_remap.log. All board-free on class5_census544b.jsonl.gz
+(chip ground truth baked in as ge = chip_gap - model_gap). My greedy matcher is now
+authoritative (the lost 288u matcher is disqualified as irreproducible).
+
+=== TASK 1a — AUTHORITATIVE MATCHER + SENSITIVITY (error bars) ===
+Definition: greedy nearest-partner opposite-sign match, ONE-TO-ONE, within an
+access-ordinal window; each member used once. AUTHORITATIVE = (window=1, exact).
+  paired 148u / unpaired 396u  (72/286 rows).
+RECONCILIATION: my first-pass flag-based number (161u) double-counted cancellation
+CHAINS by 13u/6 rows (a middle impulse cancels two neighbours); the one-to-one greedy
+148u is the principled figure. Sweep error bars: exact {148,186,202}u at window
+{1,2,3}; loose(|sum|<=1) {226,268,298}u. Pairing is window-sensitive - this is the
+error bar the re-map ships with.
+
+=== TASK 1b — DISJOINT ACCOUNTING (every row -> ONE triple) ===
+286 rows / 544u, each assigned exactly one (pairing, transition-class, law-cell).
+  transition-class x pairing (mass): CODE->CODE 95p/190u (285); EU->CODE 34p/95u
+  (129); CODE->EU 19p/106u (125); EU->EU 0p/5u (5).
+The old (q_cnt 2-4, MEM) 150u / (q_cnt<=1, MEM) 133u were overlapping-set keyed
+marginals - RETIRED as map entries; they are not columns of this disjoint table.
+
+=== TASK 1c — DONE RE-SWEEP on corrected unpaired CODE->CODE (105 rows/190u) ===
+Was 79/121u under the lost matcher; the enlarged population's largest SIGN-PURE clean
+cell is 8u and largest NET(|sum|) cell is 8u - BOTH < the 10u floor. The apparent
+15u cell (1,0,2) is H-SLIP TAIL (6/7 rows have a -2 partner at ordinal di<=3, i.e.
+slot-scale pairs the window=1 matcher just missed); (0,3,3) is MIXED-SIGN (total 15u,
+net 7u - cancels, not a single fixable cause). VERDICT (my read): RE-RATIFY - the
+genuine residual is mixed-sign small-cell scatter, no clean >=10u cell. Window/purity-
+sensitive; architect makes the final ratification call.
+
+=== TASK 3 — H-SLIP (paired CODE-successor 129u) ===
+(a) |N| histogram: |N|=2 dominant (94u), slot-scale (|N|<=2) = 78%. (b) paired
+CODE->CODE (44 rows/95u): 100% land in POPULATED law cells, 82% slot-scale. H-SLIP
+SUPPORTED (>=80% fitted): the paired mass is the built resume law's +-1..2 slot
+DELIVERY scatter (retry +1s / duration 5-vs-183 misses / decline scatter) wearing the
+"ordering" label - not order swaps (which would be access-length scale >=4). Per the
+Task-3 outcome rule (>=80% fitted), the resume asymptote is mechanism-explained
+scatter and DONE re-ratifies with the documented scatter shape.
+
+=== TASK 2 (1) — EU-anchored resume, KIND-OFFSET CHECK: MEMW BUG, IOW SCATTER ===
+Unpaired EU->CODE 54 rows/95u; ge = model-chip cidle offset, grouped by predecessor
+kind:
+  MEMW->CODE: n=34 mass=39  near-CONSTANT ge=-1 (28/34 = 82%, model resumes 1 clk
+    LATE after a store), across 6 seeds / all ws / all wmax / all even successor-parity
+    -> KIND-OFFSET BUG candidate (store T4 -> resume turnaround), the TOP deliverable-
+    preference and a SMALL-radius fix (advance post-store CODE resume by 1 clk).
+  IOW->CODE: n=15 mass=43 net=+3 SCATTER (no dominant offset) -> the coordinator's
+    IO-cycle-length guess is FALSIFIED; asymptote candidate.
+  MEMR->CODE: weak -2 (4/5), low n (13u).
+Confirming the MEMW mechanism needs the EU-anchored dump (occ@EU-T4+1, pop@T4+2, cidle
+from EU-T4); step (1) localises the observable offset and gates that as the next step.
+
+=== NET FOR THE ARCHITECT ===
+The re-map resolves the resume floor as mechanism-explained: paired 129u = H-SLIP slot
+scatter (built law), unpaired CODE->CODE 190u = mixed-sign small-cell scatter (largest
+clean cell 8u). DONE re-ratify recommended. The ONE new actionable finding is
+MEMW->CODE's uniform -1 offset (~28-33u, small-radius kind-offset fix) - the first
+concrete fix candidate to survive the re-map. Carve-outs SETTLED (untouched). No RTL
+changed; goldens undisturbed; no tempdir leaks.
+
 ## 2026-07-17 — ARC 2 ARBITER-SURFACE PROBE: HARD KILL. The 288u/161u paired mass is NOT the want_eu>prefetch arbitration family (88% is prefetch-timing); no want_eu-demotion discriminator separates it. Blast-radius surgery NO-GO. Rule B DROPPED.
 
 Board-free probe (sw/class5_arbiter_probe.py, sw/class5_arbiter_probe.log). Added 4
