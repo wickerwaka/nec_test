@@ -1,0 +1,9 @@
+=== force-regen output tail ===
+deleted .sof; forcing regeneration
+Info (293000): Quartus Prime Full Compilation was successful. 0 errors, 0 warnings
+Info (23030): Evaluation of Tcl script /home/wickerwaka/intelFPGA_lite/17.1/quartus/common/tcl/internal/qsh_flow.tcl was successful
+Info: Quartus Prime Shell was successful. 0 errors, 0 warnings
+=== force a FULL clean compile (remove smart-compile db) ===
+Info (293000): Quartus Prime Full Compilation was successful. 0 errors, 308 warnings
+Info (23030): Evaluation of Tcl script /home/wickerwaka/intelFPGA_lite/17.1/quartus/common/tcl/internal/qsh_flow.tcl was successful
+Info: Quartus Prime Shell was successful. 0 errors, 308 warnings
