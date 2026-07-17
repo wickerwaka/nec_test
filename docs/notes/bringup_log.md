@@ -1,5 +1,44 @@
 # Bring-up log
 
+## 2026-07-17 — MEMW->CODE -1 MECHANISM CONFIRMED (store-T4->resume turnaround constant, wait-specific). w0 pre-flight: NOT structurally safe -> fix must be wait-gated. Report boundary BEFORE RTL.
+
+sw/class5_storeanchor.py + .log (board-free: model store-anchored fields from the
+Verilator TB; chip cidle = model cidle + census ge). Join 31/36 MEMW->CODE census rows
+to store-anchored model transitions.
+
+=== MECHANISM CONFIRMED ===
+On unpaired MEMW->CODE (n=31 matched): 28/31 at ge=-1 (model resumes 1 clk LATE after a
+store), eu_wr=1 (all real stores). Store-T4-anchored:
+  model store->resume cidle: dominated by 4 (19 rows); chip cidle: dominated by 3.
+  The model's turnaround is a CONSTANT that overshoots the chip by exactly 1 idle clk.
+INDEPENDENCE (=> genuine constant, not state-dependent):
+  by occ@T4+1 : occ5 -> ALL 20 at ge=-1; occ6 -> ALL 8 at ge=-1 (28/28 at normal
+    post-store occupancy). The 3 outliers are the occ4/cnt_next@T3=3 cell (ge +2/-2/-2)
+    - a SEPARATE small cell (~5u), not the constant.
+  by store Tw : -1 flat across store_tw 0..4  (NOT the store's own waits)
+  by pop@T4+2 : -1 flat across pop 0,1        by store parity: -1 flat
+  by cnt_next@T3: cnt5 -> all 19 at -1; cnt6 -> all 9 at -1.
+CROSS-SEED-GROUP: disc(90007) 2/2 = 100%; held(90008/09/13/17/18/19) 26/29 = 90%.
+Holds across both groups and 7 distinct seeds -> generalises.
+This is EU-anchored territory the CODE->CODE resume law was never fitted on (Step 1b:
+the CC law does NOT transfer to EU->CODE), so it is a genuinely new, small-radius fix.
+
+=== w0-SAFETY PRE-FLIGHT (measured, not assumed - the coordinator's flag) ===
+The store->resume path IS exercised at w0: 246 w0 MEMW->CODE transitions in the
+fix-target state (occ@T4+1 in {5,6}), model cidle = 4 present (60 rows) - the SAME
+value the fix would change - where the model already matches the chip (w0 golden
+169000/169000). So an UNGATED -1 fix would MOVE the w0 golden -> NOT STRUCTURALLY SAFE.
+The DEFECT is WAIT-SPECIFIC: the model's fixed turnaround is CORRECT at w0 (chip also
+takes 4) and 1-late only under waits (chip takes 3). => the fix must be WAIT-GATED
+(eval_ext-style, exactly like the class-5 law's w0-neutrality mechanism), and its
+w0-neutrality VERIFIED at the golden gate, not assumed. Recoverable ~28u (the 28
+ge=-1 rows); acceptance target MEMW->CODE column ~34u -> <=10u per the plan.
+
+NEXT (step 3b, NOT started - report boundary here): textual enumeration of the
+store-resume commit path; shadow-first wait-gated -1; w0 golden gate (the decisive one
+given the pre-flight); w1/w3/w2 goldens; ONE census with DONE-guard invariant
+(unpaired CODE->CODE 190u +-10) + MEMW->CODE ~34u -> <=10u. Then synth/flash/silicon.
+
 ## 2026-07-17 — ARC 2 RE-MAP (Tasks 1-3, board-free): DONE re-ratify recommended (H-SLIP-explained scatter); ONE new fixable finding = MEMW->CODE uniform -1 kind-offset. Coordinator's IO-offset guess falsified.
 
 sw/class5_remap.py + sw/class5_remap.log. All board-free on class5_census544b.jsonl.gz
@@ -1534,28 +1573,50 @@ The proxy (px.py over the bandage corpus) and the corrected census are correct;
 this list is about SECONDARY analyses whose absolute numbers are suspect.
 
 
-## RESUME LAW: DONE PERMANENTLY (falsifiable artifact)
+## RESUME LAW: DONE PERMANENTLY (falsifiable artifact) — RE-RATIFIED 2026-07-17 on the AUTHORITATIVE one-to-one matcher
 
 The class-5 CODE->CODE resume-duration law (arm: PAUSE iff d_cnt_a>=3 && occ>=2;
-duration: cidle_sel per the sixth-attempt direct-path) is DECLARED DONE. Final
-sweep over the 79 unpaired CODE->CODE census residual rows (121u), fit
-disc(90000-07) / test held(90008-19), COMPLETE modern key set:
-    prev_tw,m_occ            largest held cell 9u
-    prev_tw,d_cnt_a,m_occ    largest held cell 6u   (best)
-    +cur_tw / +QS / +parity  largest held cell 6u   (no reduction)
-PRE-REGISTERED CRITERION: largest clean held-out cell < 10u -> MET at 6u. The
-never-before-tried keys (QS pop class, address parity, transition prev/own_tw)
-reduce NOTHING. The residual is irreducible small-cell scatter.
+duration: cidle_sel per the sixth-attempt direct-path) is DONE, re-ratified after the
+lost 288u pairing matcher was disqualified (irreproducible) and replaced by the
+AUTHORITATIVE matcher below. Tooling: sw/class5_remap.py.
 
-FALSIFIABLE: anyone who finds a key that cleanly separates any held-out cell
-below on a fresh seed group REFUTES this and reopens the arc. The residual cells
-(prev_tw, d_cnt_a, occ, ge : count) are:
-    tw1 d3 occ0 ge-1 :8   tw1 d0 occ2 ge+2 :6   tw6 d4 occ2 ge+1 :4
-    tw4 d3 occ2 ge+1 :4   tw2 d3 occ0 ge-1 :4   tw0 d0 occ2 ge-2 :2
-    tw1 d1 occ2 ge+2 :2   tw5 d3 occ2 ge+1 :2   tw3 d3 occ3 ge-1 :2
-    tw0 d3 occ3 ge-1 :2   tw2 d3 occ3 ge-1 :2   tw1 d3 occ3 ge-1 :2
-    tw3 d3 occ0 ge-1 :2   tw1 d3 occ4 ge-1 :2   + a 1-2-row tail to 79.
-The q_cnt=0 STARVED rows (tw1/tw2 d3 occ0 ge-1, 12 rows) got NO special
-treatment - they are part of the irreducible residual, not a separate unmined
-cell. Full row data: sw/class5_census544b.jsonl.gz (prev_bs==cur_bs==CODE,
-unpaired). This is the FIRST campaign arc formally closed.
+AUTHORITATIVE PAIRING MATCHER (ships with this artifact): greedy nearest-partner,
+opposite-sign, ONE-TO-ONE (each member used once), within an access-ordinal window;
+canonical cell = (window=1, exact-cancel). Over the 286-row/544u census
+(class5_census544b.jsonl.gz): paired 148u / unpaired 396u.
+  SENSITIVITY (error bars): exact {148,186,202}u  loose(|sum|<=1) {226,268,298}u
+  over window {1,2,3}. Pairing is window-sensitive; these are the shipped bars.
+  DISCIPLINE NOTE: my first-pass FLAG-based matcher reported 161u; it double-counted
+  cancellation CHAINS (a middle impulse cancels two neighbours) by 13u/6 rows. The
+  one-to-one greedy 148u supersedes it.
+
+CORRECTED DONE SWEEP — unpaired CODE->CODE = 105 rows / 190u (was 79/121u under the
+lost matcher; previously-mispaired rows fell back in). Fit disc(90000-07)/test
+held(90008-19), key prev_tw,d_cnt_a,m_occ:
+  largest SIGN-PURE clean cell 8u; largest NET(|sum|) cell 8u  -> BOTH < 10u floor.
+The two largest TOTAL-mass cells are NOT clean fixable causes: (1,0,2) 15u is H-SLIP
+TAIL (6/7 rows have a -2 partner at ordinal di<=3 - slot-pairs the window=1 matcher
+missed); (0,3,3) 15u is MIXED-SIGN (net 7u, cancels). PRE-REGISTERED CRITERION
+(largest clean held-out cell < 10u) -> MET at 8u.
+
+H-SLIP BASIS for the paired mass (paired CODE-successor 129u): pair-magnitude |N|=2
+dominant, slot-scale (|N|<=2) 78%; paired CODE->CODE 100% land in POPULATED law cells,
+82% slot-scale. >=80%-fitted criterion MET -> the paired mass is the built law's
++-1..2-slot DELIVERY scatter (retry +1s / duration misses / decline scatter), not
+order swaps. So the DONE basis is MECHANISM-EXPLAINED, not merely "small residual":
+  unpaired CODE->CODE 190u = mixed-sign small-cell scatter (largest clean cell 8u)
+  paired  CODE-succ   129u = built-law +-1..2 slot delivery scatter (H-SLIP)
+
+FALSIFIABLE: anyone who finds a key that cleanly separates a SIGN-PURE held-out cell
+>=10u in the 105-row/190u unpaired population (on a fresh seed group), OR shows the
+paired mass is <80% slot-scale, REFUTES this and reopens the arc. Full row data:
+sw/class5_census544b.jsonl.gz (prev_bs==cur_bs==CODE); pairing + cells reproduced by
+sw/class5_remap.py. The q_cnt=0 starved rows remain part of the irreducible scatter.
+
+STANDING INVARIANT (DONE-guard): unpaired CODE->CODE mass = 190u +- 10 under the
+authoritative matcher. Any future build (e.g. the MEMW->CODE -1 kind-offset fix) must
+hold this. This is the FIRST campaign arc formally closed, now on a mechanism-backed,
+reproducible-matcher basis.
+
+NOTE (superseded): the earlier 79-row/121u residual list and its 6u figure were drawn
+under the lost 288u matcher and are RETIRED; the numbers above supersede them.
