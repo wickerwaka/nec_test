@@ -7,7 +7,9 @@ that were paid for in failures. Cross-referenced from the top of `bringup_log.md
 Metric throughout: the signed inter-T1 **gap-error census** under PER-CYCLE-RANDOM wait
 vectors (`sw/class5_gaperr.py`); chip = ground truth (read-only `run_chip`), model = the
 Verilator TB (bit-identical to fabric on the aligned prefix). Census total under the
-authoritative one-to-one pairing matcher: **544u** over seeds 90000-90019.
+authoritative one-to-one pairing matcher: **494u** over seeds 90000-90019 (was 544u before
+the H-PHASE landing; the CODE→MEMW RMW-write cell, −50u, is now a landed silicon-confirmed
+fix — see §2, §3).
 
 ---
 
@@ -23,13 +25,14 @@ by CLOSURE CLASS:
 | **B — built-law scatter (H-SLIP)** | paired CODE-successor: a resume delivered ±1-2 slots early/late makes a +N/−N pair. 100% land in populated law cells, 78-82% slot-scale | ~129u (paired 148u total) | reopens only if the built law's delivery variance is itself reduced |
 | **C — irreducible-by-construction** | MEMW→CODE store-resume: chip commits at occ5 one clock early; board-confirmed real (random 17/17, uniform 3/3, w0-absent) | **~30u** (in-principle floor) | reopens ONLY if a new model-state signal exposes the forecast (see §2, §4) |
 | **D — key-exhaustion asymptote** | unpaired CODE→CODE genuine residual (largest clean cell 8u < 10u floor); CODE→IOW scatter; small-cell tails | ~190u CC + ~53u IO/tail | reopens if a never-tried key cleanly separates a ≥10u sign-pure held-out cell |
-| **E — attackable, characterised** | **CODE→MEM (−2 kind-offset)** — the CODE→EU probe's separating cell | **~72u** | OPEN — architect fix-design pending (§6) |
+| **A′ — LANDED (this arc): H-PHASE** | **CODE→MEMW RMW-write cell** — the eval_ext deferred-commit was denied by `ext_ok_wr`'s "ready ENTERING T4" rule on the ODD-tw-parity phase class the uniform fit never separated. Fixed by the `tw_par` observable + parity widen. SILICON-CONFIRMED (fabric==TB 15/15 even→early/odd→late). | **−50u (58u→8u)** | falsifiable (any even-parity ready-AT-T4 RMW that is chip-late refutes) |
+| **E′ — booked for fresh probes** | CODE→MEMR loads (interval-3, not RMW, don't split on parity) + 2 odd-parity-early rows (H-PHASE edge) | ~25u | OPEN — fresh probes, NOT widens (veto-stacking rule) |
 
-Architect floor figures (independent framing): **in-principle floor ~30u** (the class-C
-temporal cell, at the current model-state observability surface); **operating floor ~414u**
-of which **~285u is mechanism-backed built-law scatter** (classes B + D); **0u still not
-excluded in principle**; **~130u attackable** (the CODE→EU/EU→EU block, §6 refines it to
-~72u fixable + ~58u asymptote).
+Architect floor figures (pre-landing framing): in-principle floor ~30u (class-C temporal
+cell); operating floor ~414u of which ~285u mechanism-backed scatter; 0u not-excluded-in-
+principle; ~130u attackable. POST-LANDING: the H-PHASE fix removed 50u (census 544→494);
+the CODE→EU attackable block resolved to a landed fix (RMW writes) + ~25u booked for fresh
+probes (loads + odd-parity edge).
 
 ---
 
@@ -47,10 +50,17 @@ CODE→EU = 125u (23% of census), never validated under per-cycle-random vectors
   hypothesised) the ext_ok rule-A/B family. ~72u, a CHARACTERISED ATTACKABLE cell.
 - **CODE→IOW is scattered** (ge −5..+5, n=21, ~47u) — joins the class-D asymptote.
 
-Ruling applied: a key separated → cell reported, **STOPPED before fix design.** The
-architect re-enters at the CODE→MEM −2 cell. Key-exhaustion is NOT claimed for this
-territory — a key WAS tried and it separated. The map is therefore NOT fully closed:
-one characterised, generalising, wait-independent fixable cell remains.
+**LANDED (H-PHASE, silicon-confirmed).** The −2 was mechanism-traced to a DENIAL: the chip
+commits the RMW write at the eval_ext DIRECT slot (T4+2) but the model's `ext_ok_wr` ("ready
+ENTERING T4" = eu_ready_p1 && eu_ready_p2) rejected it, falling to the plain staged path
+(T4+4) — 2 clocks. The finer phase separating chip-early from chip-late was **Tw PARITY**
+(T4's displacement against the 2-clock bus microcycle): even-tw → chip early, odd-tw → chip
+late, **30/30, 0 violations, board-confirmed, both seed groups, random+uniform**. Loads
+(MEMR) do NOT split → the fix is write-scoped (`ext_ok_wr` only). Fix = a `tw_par` flop +
+`ext_ok_wr` gains `(eu_ready_p1 && !eu_ready_p2 && !tw_par)`. Gates all green (§3); census
+CODE→MEMW RMW 58u→8u; DONE-guard 190→190; synth 0-err setup +5.228ns; **fabric==TB 15/15
+even→early/odd→late on silicon**. Residual booked for fresh probes: MEMR loads (17u) + 2
+odd-parity-early edge rows.
 
 ---
 
@@ -69,6 +79,15 @@ one characterised, generalising, wait-independent fixable cell remains.
   Carve-outs RATIFIED to STAY (association ≠ harm; real-outcome-fitted).
 - **Phase R** — commit-path unification into one canonical slot decision (behaviour-
   preserving; w0 169000/169000, w1/w3 1200/1200 at every stage).
+- **H-PHASE (Tw-parity RMW-write commit)** — the eval_ext deferred RMW-write commit is
+  qualified by `ext_ok_wr`; its "ready ENTERING T4" rule (fitted on UNIFORM sweep_rmw) was
+  too strict for the ODD-vs-EVEN Tw-parity phase class random waits generate. New local
+  observable `tw_par` (a flop: clear@ST_T1, toggle@ST_TW, sampled at the completion eval —
+  NOT grid_phase / NOT ph_now, both of which erase the displacement). `ext_ok_wr` gains
+  `(eu_ready_p1 && !eu_ready_p2 && !tw_par)` — even-parity ready-AT-T4 RMW writes now take
+  the eval_ext direct slot. Write-scoped (loads keep `ext_ok`). SILICON-CONFIRMED
+  (fabric==TB even→early/odd→late, per-cycle-random T1-exact). Tooling: `sw/class5_hext.py`,
+  `sw/class5_codeeu.py`; ext_ok subterms at eudbg d[68..75].
 
 ## 3b. DELETIONS (subsumed, proven strict-superset)
 
@@ -159,15 +178,19 @@ safe under conditions not verified.**
 
 ## 6. WHAT-FIRST (for the next session / the user)
 
-1. **Read this record, then `bringup_log.md` top.** The map is complete EXCEPT one open
-   lead.
-2. **The one open fixable lead: CODE→MEM −2 (~72u, class E).** Characterised, generalising,
-   wait-independent, plain-EU-commit-after-CODE 2 clocks late under random waits. The
-   ARCHITECT owns the fix design (I stopped at the cell per the ruling). Fix under full
-   protocol: enumeration → shadow → w0 gate → **w1/w3/w2 WITH NO WAIT-PATTERN TERM** →
-   ONE census (CODE→MEM column → target; DONE-guard 190±10; no new class) → synth/flash/
-   silicon. Note it is TI_PLAIN-dominant, NOT the ext_ok-deferred path — enumerate the
-   plain EU-commit timing, not just ext_ok.
+1. **Read this record, then `bringup_log.md` top.** The map's one attackable cell (CODE→MEM
+   RMW writes) is now LANDED (H-PHASE, silicon-confirmed); ~25u remains booked for fresh
+   probes.
+2. **LANDED — CODE→MEMW RMW-write cell (H-PHASE, −50u, class A′).** See §2/§3. Two residuals
+   are booked for FRESH PROBES (not widens — the veto-stacking rule forbids a second predicate
+   on the same class without a fresh probe): (a) **CODE→MEMR loads (17u, interval-3)** — a
+   separate non-RMW mechanism that does NOT split on Tw parity; (b) **2 odd-parity-early edge
+   rows** — H-PHASE mispredicts a handful of random-wait phases the 4-vector probe subset
+   didn't sample (the census `prev_tw` field even logs them parity-0, a chip-vs-model frame
+   discrepancy worth resolving first).
+3. **PIGGYBACK still booked: pf_starved toggle-census** — the only carve-out whose ~87u
+   entanglement justified a toggle-census; needs its own synth+flash+census cycle; deferred
+   from the H-PHASE board session for time.
 3. **Do NOT reopen (all closed, mechanism-understood):** the resume law (DONE, 190±10
    guard, falsifiable); the MEMW→CODE store-resume cell (irreducible-by-construction —
    only a NEW model-state signal exposing the forecast reopens it); CODE→IOW scatter and
@@ -176,5 +199,9 @@ safe under conditions not verified.**
    `class5_storeanchor.py`, `class5_poprelease.py`, `class5_forecast.py`, `class5_codeeu.py`;
    shadow fields at eudbg d[62..67] (arbiter + store-resume, behaviour-neutral).
 5. **Standing gates** any build must hold: w0 169000/169000, w1/w3 1200/1200 (uniform-
-   pattern gate), w2 610/610, DONE-guard unpaired CODE→CODE 190u±10, census w0 control
-   0/22188, silicon fabric==TB incl. per-cycle-random vectors.
+   pattern gate), **w2 610/610 = fabric==TB at uniform w2** (a silicon check, NOT the
+   check_seq chip-vs-TB fuzz — that fuzz has a pre-existing boot-prefix divergence),
+   DONE-guard unpaired CODE→CODE 190u±10, census w0 control 0/22188, silicon fabric==TB
+   incl. per-cycle-random vectors. **RMW-class fix gate of record: your own uniform-RMW
+   fabric/chip capture** — no golden suite carries RMW opcodes, so an RMW-touching change
+   MUST bring its own uniform-RMW gate.

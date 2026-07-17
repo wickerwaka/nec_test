@@ -1,5 +1,27 @@
 # Bring-up log
 
+## 2026-07-17 — H-PHASE LANDED + SILICON-CONFIRMED. Chain closed: synth 0-err (setup +5.228ns), flash OK, fabric==TB on RMW 15/15 (even->early/odd->late) + per-cycle-random T1-exact + w2 2260/2260. CODE->MEM RMW cell E->A, census 494.
+
+SYNTH: quartus_sh --flow compile - Full Compilation successful, 0 errors, worst-case SETUP
+slack +5.228ns (hold +0.253, recovery +29.497, removal +0.818, pulse +1.196); fresh .sof
+13:54 (> RTL 13:29).
+FLASH: sw/safe_flash.sh - Configuration succeeded 0 errors, VERIFY ok (cfg 0x1ff0008,
+harness reachable, board healthy).
+SILICON-CONFIRM (fabric use_core=1 vs TB): RMW cases uniform w1/w2/w3 fabric==TB 15/15,
+0 mismatch (even->interval2 EARLY / odd->interval4 LATE on real silicon - the Tw-parity
+law transfers with no synth surprise); per-cycle-random (fz90007/10/17/19) fabric==TB
+T1-exact every aligned access, 0 resyncs; w2 610/610 (uniform w2, 12 seeds) fabric==TB
+2260/2260 T1+bs exact, 0 resyncs.
+"w2 610/610" is the FABRIC==TB check (a8fafdb), NOT the check_seq chip-vs-TB fuzz - the
+--fuzz 610 --waits 2 diverges 609/610 at an IDENTICAL boot-prefix row (0 EU-writes, fz87284
+0 widen fires): a pre-existing harness prefix artifact, NOT this fix. Disregarded.
+RESULT: the H-PHASE ext_ok_wr Tw-parity widen is LANDED and SILICON-CONFIRMED. CODE->MEM
+RMW-write cell class E -> A. Census 544 -> 494.
+PIGGYBACK SKIPPED (session time): pf_starved toggle-census needs its OWN synth+flash+census
+cycle (an RTL toggle, not a runtime flag) - deferred per the "skip if tight" option; stays
+booked. BOOKED for FRESH PROBES (not widens): CODE->MEMR loads (17u, interval-3) and the 2
+odd-parity-early rows. No leaks; board healthy.
+
 ## 2026-07-17 — H-PHASE CENSUS: fix WORKS on-scope (RMW-write cell 58u->8u, -50u), goldens hold, DONE-guard 190->190, w0 0/22188. Raw CODE->MEM 26u > 15u target (out-of-scope loads 17u + 4-row residual). Report-and-hold; NO second widening.
 
 ONE census with the landed fix (sw/class5_census_hphase.jsonl.gz, fixed gaperr, per-cycle-
