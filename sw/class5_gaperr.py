@@ -25,6 +25,7 @@ prefix). Usage: python3 sw/class5_gaperr.py [--seeds ...] [--nws N] [--wmaxes ..
 """
 import sys, argparse, random as _r
 from pathlib import Path
+import json, gzip
 from collections import Counter, defaultdict
 SW = Path(__file__).resolve().parent
 sys.path.insert(0, str(SW))
@@ -97,6 +98,7 @@ def main():
                     default=list(range(90000, 90020)))
     ap.add_argument("--nws", type=int, default=6)
     ap.add_argument("--wmaxes", type=int, nargs="+", default=[0, 1, 3, 7])
+    ap.add_argument("--dump", default="", help="write per-row JSONL(.gz)")
     a = ap.parse_args()
     allrows = []
     for seed in a.seeds:
@@ -105,12 +107,24 @@ def main():
         for ws in range(1, a.nws + 1):
             for wmax in a.wmaxes:
                 try:
-                    allrows += analyze_vec(seed, ws, wmax, a.host, image)
+                    vr = analyze_vec(seed, ws, wmax, a.host, image)
+                    for j, r in enumerate(vr):
+                        r["ge_prev"] = vr[j-1]["ge"] if j > 0 else None
+                        r["ge_next"] = vr[j+1]["ge"] if j+1 < len(vr) else None
+                        r["di_prev"] = (r["i"] - vr[j-1]["i"]) if j > 0 else None
+                        r["di_next"] = (vr[j+1]["i"] - r["i"]) if j+1 < len(vr) else None
+                    allrows += vr
                 except Exception as e:
                     print(f"  fz{seed} ws{ws} wmax{wmax}: ERR {e}")
     nz = [r for r in allrows if r["ge"] != 0]
     print(f"\n=== class-5 gap-error census: {len(allrows)} aligned intervals, "
           f"{len(nz)} nonzero ({100*len(nz)/max(1,len(allrows)):.1f}%) ===")
+    if a.dump:
+        # emit NONZERO rows + their neighbor context (adjacency probe needs it)
+        with gzip.open(a.dump, "wt") as f:
+            for r in nz:
+                f.write(json.dumps(r) + "\n")
+        print(f"  wrote {len(nz)} nonzero rows -> {a.dump}")
 
     # --- DENOMINATOR tables (Codex): the nonzero-only tables below can mislead
     # (e.g. "always +ve at tw=7" may just mean few tw=7 opportunities). Report,
