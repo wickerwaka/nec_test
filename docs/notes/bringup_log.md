@@ -1011,3 +1011,28 @@ slack +4.199ns, hold +0.260ns, all clocks positive). Full hardware A/B:
 VERDICT: the rebuild's first silicon confirmation is CLEAN. w0 chip-exact in
 fabric; the w1/w3 drift drop is real (silicon==sim exactly); BUSLOCK live;
 interrupts unregressed. Board healthy on the new bitstream.
+
+
+## SLOT-FIRE -> T1 LATENCY (canonical; measured, do not re-derive)
+
+Measured over one w1+w3 trace set across fz90000-07, 3068 slot fires. Every
+distribution is a SINGLE value - there is no ambiguity to re-litigate:
+
+    slot_mode      slot_id                  n       delta = T1_cycle - fire_cycle
+    COMMIT_DIRECT  SLOT_EVAL_EXT         2901       1   (2901/2901)
+    COMMIT_DIRECT  SLOT_FLUSH_HOLD          9       1   (9/9)
+    COMMIT_STAGED  SLOT_TI_PLAIN          131       2   (131/131)
+    COMMIT_STAGED  SLOT_T4_FLUSH_STAGED    27       2   (27/27)
+
+STAGED slots route the descriptor through nxt_* and deliver on the nxt_live
+transition, costing one extra cycle; DIRECT slots load cur_* and enter T1 next
+cycle. So a commit intended to land T1 at clock X must fire at X-1 (direct) or
+X-2 (staged).
+
+CONSEQUENCE (class-5, three encounters with the same wall): a resume that
+commits via the STAGED Ti-plain path can never achieve cidle 3. cidle 3 needs
+the commit at T4+2, which is exactly where the q_aged push-absorb blocks, so it
+slips to 4. This is why (a) the old veto-then-retry quantizer could only ever
+produce 4, (b) the flush path DOES reach 3 - it commits direct, and (c) a
+staged-path scheduled resume leaves a 100%-armed +1 column.
+Reproduce: sw/class5_b1shadow.py instrumentation + the d[62..66] slot fields.
