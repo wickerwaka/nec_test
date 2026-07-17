@@ -1,5 +1,48 @@
 # Bring-up log
 
+## 2026-07-17 — H-EXT PROBE: BRANCH A fired, but the denial is EXT_OK_WR (RMW-write rule), not ext_ok. Arithmetic board-confirmed; sweep_rmw contradiction is the open caveat. Report-and-hold.
+
+The CODE→MEM -2 cell mechanism (sw/class5_hext.py + .log). H-EXT (denial composition):
+chip commits the MEM at the eval_ext DIRECT slot (T4+1 fire, delta1 -> T1=T4+2); the
+model's qualification rejects it -> plain STAGED path (T4+2 fire, delta2 -> T1=T4+4); 2
+clocks = one lost slot + one delta.
+
+BOARD-ALIGNED (run_chip + align, 29 confirmed ge=-2 CODE→MEMW across the census combos):
+ARITHMETIC CONFIRMED - model interval CODE-T4→MEMW-T1 = 4 (all), CHIP interval = 2 (all),
+fired slot TI_PLAIN (all), eval_ext fires in the CODE completion window (all). BUT the
+denying clause is NOT ext_ok (rule A/B, as H-EXT assumed) - it is EXT_OK_WR (v30_biu.sv:522
+= eu_ready_p1 && eu_ready_p2, "ready ENTERING T4"):
+  25/29 RMW writes (eu_defer_wr=1) with ext_ok_wr=0 (rdy_p1=1, rdy_p2=0). Under per-cycle-
+    random waits the write-readiness arrives AT T4 (p1=1,p2=0) -> ext_ok_wr denies -> the
+    RMW write is placed 2 clocks late; the chip takes the eval_ext direct.
+  4/29 NON-RMW minority (eu_defer_wr=0, ext_ok=1 ACCEPTS) - a DIFFERENT mechanism, tagged
+    OUT, not averaged (~8u).
+
+BRANCH (pre-registered): eu_ready FIRST-high offset from CODE-T4 = 0 (ready DURING T4, one
+cycle BEFORE the T4+1 eval); the chip commits at T4+1 AFTER ready is available -> it does
+NOT precede eu_ready -> NOT branch B, NOT the trip-wire. **BRANCH A**: eu_ready live at the
+eval with leading eu_req -> fix direction = QUALIFICATION WIDENING of ext_ok_wr to accept
+ready-AT-T4 (eu_ready_p1 alone), the same acceptance ext_ok already gives PLAIN stores.
+
+PHASE-CLASS (board-free, goldens): the cell's RMW class is ABSENT from w1/w3 (0 RMW writes;
+the suite's opcode-89 is a plain store). NOTABLE: the w1 golden has 64 PLAIN-store commits
+at the SAME ready-AT-T4 phase (rdy_p1=1,rdy_p2=0) that PASS via ext_ok accepting -> ready-
+AT-T4 -> EARLY is proven CORRECT for plain stores; only ext_ok_wr's extra rdy_p2 makes RMW
+writes late. So the widening makes RMW match the already-correct plain-store behaviour.
+
+OPEN CAVEAT (why report-and-hold, architect re-enters): ext_ok_wr was FITTED on sweep_rmw.py
+(ADD word[mem],imm, UNIFORM w0-w5), which measured ready-AT-T4 RMW -> chip commits LATE
+(plain, rdT1→wrT1=14). The random census measures the OPPOSITE (ready-AT-T4 RMW -> chip
+EARLY). Same observable (ready AT T4), opposite chip behaviour by wait regime. EITHER the
+architect's readiness-phase-class thesis holds (uniform never generates the random class; a
+finer observable phase exists to widen on) OR it is a same-observable RMW wall (park). The
+w1/w3 goldens CANNOT adjudicate (no RMW opcodes). A UNIFORM-RMW re-check (sweep_rmw-style,
+board, ready-AT-T4) is the missing decisive measurement before any widening - it answers
+whether the widening regresses uniform RMW. STOPPED before fix design; architect re-enters
+with this caveat. Map status: the CODE→MEM cell (~72u; ~58u RMW ext_ok_wr + ~8u non-RMW +
+~6u tail) is now MECHANISM-IDENTIFIED (ext_ok_wr over-strictness), fix gated on the
+uniform-RMW adjudication.
+
 > **READ FIRST: [class5_campaign_record.md](class5_campaign_record.md)** — the standalone
 > closing record of the class-5 timing campaign (floor table + closure classes, the
 > CODE→EU verdict, laws/deletions/kills, the instrument-failure family, method rules, and

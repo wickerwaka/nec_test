@@ -799,7 +799,15 @@ def run_tb_internal(image, n, wvec):
                 eu_kind=int(d[65]) if len(d) > 65 else -1,
                 # d[66..67]: MEMW->CODE store-resume turnaround fix shadow.
                 recent_evx=int(d[66]) if len(d) > 66 else -1,
-                store_pf_boost=int(d[67]) if len(d) > 67 else -1))
+                store_pf_boost=int(d[67]) if len(d) > 67 else -1,
+                # d[68..74]: ext_ok qualification subterms (H-EXT CODE->MEM probe).
+                eu_ready_p1=int(d[68]) if len(d) > 68 else -1,
+                eu_ready_p2=int(d[69]) if len(d) > 69 else -1,
+                eu_req_p2=int(d[70]) if len(d) > 70 else -1,
+                ext_flushed=int(d[71]) if len(d) > 71 else -1,
+                ext_ok=int(d[72]) if len(d) > 72 else -1,
+                ext_ok_wr=int(d[73]) if len(d) > 73 else -1,
+                eu_defer_wr=int(d[74]) if len(d) > 74 else -1))
             pend = None
     return rows
 
