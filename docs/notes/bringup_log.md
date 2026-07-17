@@ -1077,3 +1077,34 @@ eval_ext). Adding a class-5 resume slot fights this machinery term by term.
 The Phase-S hook (selected_prefetch_grant) exists precisely so a demand
 scheduler can RE-POINT the grant instead of adding a slot - that is the intended
 integration point.
+
+
+## STALE-BINARY TRAP (campaign rule)
+
+A Fix A+B proxy run reported mass=409, +1=28 and >=+2 columns EXACTLY equal to
+the pre-B2 baseline. It was not a pass: the build had FAILED (the TB still
+referenced a signal the RTL rewrite had deleted) and the proxy silently ran the
+PREVIOUS binary.
+
+    A RESULT THAT REPRODUCES THE BASELINE TO THE ROW IS NOT A PASS, IT IS A SMELL.
+
+RULE: verify the binary is fresh before believing any proxy result - especially a
+flattering one. Compare the binary mtime against the run clock:
+    ls -la --time-style=+%H:%M:%S hdl/tb/obj_dir/Vtb_v30_core ; date +%H:%M:%S
+This is the same failure family as a silently-compiled-out assertion (see the
+--assert note above). We have now hit both. Neither is caught by any test - both
+present as "everything passed".
+
+Related: `check_core.build()` prints its verilator command but a FAILED build
+leaves the old binary in place, so downstream harness code runs happily against
+stale RTL. Always grep the build output for %Error, or check the mtime.
+
+## TEMPDIR LEAKS: a `finally` does not survive SIGKILL
+
+90 leaked scratch dirs (999MB) came from ad-hoc inline scripts using mkdtemp with
+try/finally, run under an outer `timeout`. When timeout SIGKILLs the interpreter
+the finally NEVER RUNS. run_tb_internal's own eud_ dirs leaked zero over the same
+period - the harness discipline held; the ad-hoc scripts did not.
+RULE: ad-hoc probe scripts get the same cleanup discipline as the harness, or
+they write into the session scratchpad instead of mkdtemp. Check all four
+prefixes when auditing: eud_ lbcal_ seq_ asrt_.
