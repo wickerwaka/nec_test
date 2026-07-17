@@ -773,7 +773,10 @@ def run_tb_internal(image, n, wvec):
                 push_now=int(d[45]) if len(d) > 45 else -1,
                 pop_now=int(d[46]) if len(d) > 46 else -1,
                 cnt_next=int(d[47]) if len(d) > 47 else -1,
-                pop_sr=int(d[48], 16) if len(d) > 48 else -1))
+                pop_sr=int(d[48], 16) if len(d) > 48 else -1,
+                # appended observability (TB-side only, DUT unchanged):
+                eu_hold=int(d[49]) if len(d) > 49 else -1,
+                clk=int(d[50]) if len(d) > 50 else -1))
             pend = None
     return rows
 

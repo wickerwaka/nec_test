@@ -472,7 +472,10 @@ end
 
 always @(posedge clk) begin
     if (!reset && ce && recording && eudbg_en && fo != 0)
-        $fdisplay(fo, "d %0d %0d %0d %0d %0d %0d %05x %0d %02x %02x %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %02x %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %02x",
+        // d[49]=eu_hold, d[50]=cpu_clk appended (Phase-1/2 flush+trajectory
+        // attribution). APPEND-ONLY observability: both are existing signals,
+        // the DUT is untouched and remains bit-identical to HEAD 1f6004c.
+        $fdisplay(fo, "d %0d %0d %0d %0d %0d %0d %05x %0d %02x %02x %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %02x %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %02x %0d %0d",
                   dut.u_eu.state, dut.u_eu.q_pop,
                   dut.u_biu.q_avl, dut.u_biu.q_cnt,
                   dut.u_eu.eu_wrap, dut.u_biu.cur_wrap,
@@ -493,7 +496,8 @@ always @(posedge clk) begin
                   dut.u_biu.pf_drain, dut.u_biu.pop_cnt, dut.u_biu.eu_consuming,
                   dut.u_biu.grid_phase, dut.u_biu.pf_lim,
                   dut.u_biu.push_pend, dut.u_biu.push_now, dut.u_biu.pop_now,
-                  dut.u_biu.cnt_next, dut.u_biu.pop_sr);
+                  dut.u_biu.cnt_next, dut.u_biu.pop_sr,
+                  dut.u_biu.eu_hold, cpu_clk);
 end
 
 initial begin
