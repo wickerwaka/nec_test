@@ -1192,3 +1192,44 @@ RULE: THRESHOLDS AND GATES ARE COMPOSITION-DEPENDENT. Re-derive acceptance
 criteria from the CURRENT composition at every pre-registration; never carry one
 forward. "new-negative-tail > 20", ">=+2 within +-5", the 1.03 ratio and n==16058
 were all sized against compositions our own fixes destroyed.
+
+
+## (5th, and the worst) THE ALIGNER CUTOFF CORRUPTED DATA COLLECTION ITSELF
+
+The other dissolved-precondition failures corrupted JUDGEMENT. This one corrupted
+COLLECTION - it decided what we were allowed to see.
+
+    D = first index where bus TYPE or ADDRESS differs  -> TRUNCATE EVERYTHING AFTER
+
+Measured on real pairs:
+    fz91000 w3   D=116, mismatch run 2, post-D agreement 92/94 = 98%  -> 91 rows binned
+    fz90002 r7.7 D=192, mismatch run 2, post-D agreement 47/49 = 96%  -> 46 rows binned
+One two-access EU-vs-prefetch ARBITRATION SWAP (chip takes the prefetch first,
+model takes the EU first - same two accesses, opposite order) discarded a stream
+that then matched the chip EXACTLY.
+
+PERVERSE: it bites HARDEST WHEN THE MODEL IS GOOD ENOUGH TO RE-ALIGN. As the
+model improves the corpus SHRINKS. Every corpus ever built here under-sampled the
+late-program region.
+**EVERY HISTORICAL CORPUS-SIZE NUMBER IN THIS LOG IS A FLOOR, NOT A COUNT.**
+(8220 gz, 16058 joined, n==16058 "hard gate" - all floors.)
+
+THE SECOND-ORDER TRAP - I FELL IN IT MYSELF: after finding the cutoff bug I
+measured "post-D agreement" POSITION-LOCKED and concluded fz91000 r7.7 was a
+GENUINE sustained divergence at 15% agreement. It was not. The model MISSES ONE
+CODE FETCH at chip i=130 (shift=-1); everything after is off by one, so a
+position-locked comparison reports ~15% while the streams are in fact still
+matching. Once shift is tolerated it aligns 205/212 with 4 resyncs.
+=> A GAP-LENGTH OR POSITION-LOCKED TEST CANNOT SEPARATE TRANSIENT FROM SUSTAINED.
+All three pairs had run==2. Only POST-RESYNC AGREEMENT UNDER A TOLERATED SHIFT
+distinguishes them - and it turned out to distinguish nothing, because all three
+were transient.
+
+THE FIX: sw/class5_align.py. On mismatch, search shift in [-2,+2] x skip in
+[1,8] for a re-sync confirmed by CONFIRM=8 consecutive exact matches; stop only
+if none exists. Every resync is RECORDED with its contents - a resync IS a
+model-chip divergence, it is data, not noise.
+ADVERSARIALLY VALIDATED (mandatory - an aligner that accepts everything recovers
+nothing but noise): chip(fz91000) vs model(fz90003), DIFFERENT PROGRAMS ->
+37 aligned pairs (the shared boot prefix), 0 resyncs, stop=SUSTAINED at i=37.
+The aligner rejects unrelated streams.
