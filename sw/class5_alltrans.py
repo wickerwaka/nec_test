@@ -117,7 +117,16 @@ def opportunities(seed, host, image, wv, wname, tag, out, evout):
                    # SUCCESSOR-SIDE frame: state at the successor's own T1
                    succ_occ=kr[kt1[ki]]["occupied"],
                    succ_qcnt=kr[kt1[ki]]["q_cnt"],
-                   succ_eu_req=kr[kt1[ki]]["eu_req"])
+                   succ_eu_req=kr[kt1[ki]]["eu_req"],
+                   # H-ARB / pf_starved / owns_slot fields at the eval slot.
+                   # eu_req_p1 is the discriminating column (leading vs
+                   # coincident reservation); eu_ready gates the arbitration;
+                   # owns_slot / pf_late_rsv / pf_starved are the pre-law
+                   # arbitration overrides being tested for subsumption.
+                   eu_ready=e["eu_ready"], eu_req_p1=e["eu_req_p1"],
+                   pf_late_rsv=e["pf_late_rsv"], pf_starved=e["pf_starved"],
+                   owns_slot=e["owns_slot"], eu_rsv_dhi=e["eu_rsv_dhi"],
+                   eu_rsv_push_calc=e["eu_rsv_push_calc"])
         out.append(rec)
         nopp += 1
     # RESYNC EVENTS ARE DATA, NOT NOISE - emit each as its own row class.
