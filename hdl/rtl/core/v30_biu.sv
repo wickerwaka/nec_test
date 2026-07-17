@@ -519,7 +519,31 @@ wire ext_ok     = eu_ready_p1 ||
 // deferred eval (16). ext_ok_wr captures exactly this. The eu_req
 // reservation blocks prefetch through the gap either way. S_WREQ is
 // RMW-write-only (88/89 stores use S_REQ) so the fitted forms keep ext_ok.
-wire ext_ok_wr  = eu_ready_p1 && eu_ready_p2;
+//
+// H-PHASE (board-confirmed, 30/30, 0 violations, random+uniform, both seed groups):
+// the ext_ok_wr "ready ENTERING T4" rule (fitted on UNIFORM w1-w5 by sweep_rmw) was
+// too strict for one phase class the uniform fit never separated. The finer phase is
+// Tw PARITY - T4's displacement against the free-running 2-clock bus microcycle. Each
+// Tw inserts one clock between T3 and T4, toggling T4's phase; readiness presented AT
+// T4 (ready_p1 && !ready_p2) is captured for the DEFERRED (eval_ext) commit only when
+// T4 sits on the handshake-aligned (EVEN-tw) phase -> chip EARLY; odd-tw T4 is
+// off-phase -> capture completes one slot later -> chip LATE. tw_par is that phase:
+// cleared at the bus cycle's T1, toggled every ST_TW, sampled at the completion eval.
+// PURELY LOCAL, no wait-pattern term, no history. (Deliberately NOT grid_phase - the
+// stretched grid erases the displacement + carries the post-wait carry landmine - and
+// NOT ph_now which forces T4 to phase 1 unconditionally, :1272.) ext_ok_wr is consulted
+// ONLY for eu_defer_wr=1 (RMW writes); loads keep ext_ok, so the widen is write-scoped
+// exactly as probe (c) requires. Odd-tw rows STAY denied -> stay LATE (correct).
+reg  tw_par;
+always_ff @(posedge clk) begin
+    if (srst) tw_par <= 1'b0;
+    else if (ce) begin
+        if (state == ST_T1)      tw_par <= 1'b0;
+        else if (state == ST_TW) tw_par <= ~tw_par;
+    end
+end
+wire ext_ok_wr  = (eu_ready_p1 && eu_ready_p2) ||
+                  (eu_ready_p1 && !eu_ready_p2 && !tw_par);
 wire want_eu    = eu_req && eu_ready &&
                   !(eval_ext && !(eu_defer_wr ? ext_ok_wr : ext_ok));
 

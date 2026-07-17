@@ -1,5 +1,33 @@
 # Bring-up log
 
+## 2026-07-17 — H-PHASE PARITY HOLDS (30/30, 0 violations, both groups, random+uniform) -> BUILD. Loads excluded (write-handshake-specific). tw_par flop + ext_ok_wr widen.
+
+The architect's finer phase: Tw parity = T4's displacement against the 2-clock bus
+microcycle; the RMW write handshake is phase-aligned (even-tw T4 on-phase -> readiness
+captured for the deferred commit -> EARLY; odd-tw T4 off-phase -> capture one slot later
+-> LATE). Scored the FROZEN prediction (no fitting) board-aligned, random + uniform
+w0/w1/w2/w3, 14 seeds. Key = parity of the predecessor CODE fetch's Tw.
+
+SCORE - ready-AT-T4 (rdy_p1 && !rdy_p2) CODE->MEMW RMW writes, n=30:
+  chip vs parity: (even, EARLY) 23 / (odd, LATE) 7 - PERFECT SPLIT.
+  RANDOM: 0 violations (even-EARLY 10, odd-LATE 4). UNIFORM: 0 violations (even-EARLY 13,
+  odd-LATE 3; u1->LATE odd, u2->EARLY even, u0/u3 class-absent). seed-group EVEN: 0 viol
+  (n=26). seed-group ODD: 0 viol (n=4). => PARITY HOLDS, 30/30, both groups, both regimes.
+  (This retro-explains my earlier "non-monotonic code_tw": 0/2/4 even->EARLY, 1 odd->LATE -
+  it was PARITY, read as a threshold.)
+(c) MEMR (loads, n=255): does NOT split on parity - all eu_defer_wr=0 (not RMW), interval
+  mostly 3 (a different commit class), odd-parity mostly EARLY (107 "violations"). So the
+  mechanism is WRITE-HANDSHAKE-SPECIFIC, not kind-independent bus-phase. FIX SCOPE =
+  ext_ok_wr ONLY; loads are NOT covered and stay as-is.
+
+BRANCH: PARITY HOLDS -> BUILD (full protocol). RTL observable = one flop `tw_par` (clear
+at ST_T1, toggle every ST_TW, sample at the completion eval) - purely local, no wait-
+pattern term, no history; NOT grid_phase (erases displacement + post-wait carry landmine),
+NOT ph_now (forces T4 phase 1, :1272). Widening: ext_ok_wr gains
+`(eu_ready_p1 && !eu_ready_p2 && !tw_par)` (EXACT polarity: even/!tw_par -> accept/early).
+ext_ok_wr is consulted ONLY for eu_defer_wr=1 (RMW) so loads are automatically excluded.
+The 3 odd-parity random rows STAY LATE (correct). Build steps below.
+
 ## 2026-07-17 — UNIFORM-RMW RE-CHECK: BRANCH (ii). ready-AT-T4 RMW is chip-EARLY at w2/random but chip-LATE at w1 — same local observable, opposite behaviour. code_tw is non-monotonic. STOP; architect hunts sub-T4 phase. Do NOT widen, do NOT park.
 
 The one measurement that adjudicates the ext_ok_wr widening (board, read-only, uniform

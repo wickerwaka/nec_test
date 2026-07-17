@@ -807,7 +807,8 @@ def run_tb_internal(image, n, wvec):
                 ext_flushed=int(d[71]) if len(d) > 71 else -1,
                 ext_ok=int(d[72]) if len(d) > 72 else -1,
                 ext_ok_wr=int(d[73]) if len(d) > 73 else -1,
-                eu_defer_wr=int(d[74]) if len(d) > 74 else -1))
+                eu_defer_wr=int(d[74]) if len(d) > 74 else -1,
+                tw_par=int(d[75]) if len(d) > 75 else -1))
             pend = None
     return rows
 
