@@ -50,16 +50,26 @@ from class5_bandage import COUNTS, cc, band, ages_at, bus_free, AGES
 
 GZ = SW / "class5_bandage.jsonl.gz"
 FRESH = SW / "class5_bandage.jsonl"
-OUT = SW / "class5_flushtraj.jsonl.gz"
-LOG = SW / "class5_flushtraj.log"
+OUT = SW / "class5_flushtraj2.jsonl.gz"
+LOG = SW / "class5_flushtraj2.log"
 
-PRE = 8          # trajectory lead-in clocks before T4_pred
+PRE = 16         # trajectory lead-in clocks before T4_pred (EU
+                 # demand-onset search needs more lead-in than the
+                 # BIU-only sweep did)
 
 # per-cycle trajectory fields (order is the wire format; keep in sync w/ readers)
 TRAJ_FIELDS = ["clk", "t", "q_cnt", "q_avl", "cnt_next", "occupied", "pop_now",
                "push_now", "q_aged", "eu_req", "eu_ready", "eu_hold", "busfree",
                "q_flush", "eval_ext", "prefetch_ok", "grid_phase", "pf_lim",
-               "eu_consuming"]
+               "eu_consuming",
+               # EU-SIDE SCHEDULE. pop_want is the EU's byte DEMAND, derived
+               # from EU microcode state alone; q_pop = pop_want && q_avail, so
+               # the bus only ever shows demand AND availability. Measured on
+               # fz90000/w1: 635 demand cycles, 299 visible pops, 336 STARVED
+               # (demand with an empty queue) - i.e. >half the EU demand
+               # schedule is structurally invisible to the BIU. This is the
+               # candidate hidden variable behind the tw1-3 residual.
+               "eu_state", "pop_want", "q_avail", "eu_dly", "eu_rsv_lead"]
 
 
 def wait_vectors():
@@ -93,7 +103,9 @@ def traj_row(r):
             r["occupied"], r["pop_now"], r["push_now"], r["q_aged"],
             r["eu_req"], r["eu_ready"], r["eu_hold"], int(r["t"] == 0),
             r["q_flush"], r["eval_ext"], r["prefetch_ok"], r["grid_phase"],
-            r["pf_lim"], r["eu_consuming"]]
+            r["pf_lim"], r["eu_consuming"],
+            r["state"], r["pop_want"], r["q_avail"], r["eu_dly"],
+            r["eu_rsv_lead"]]
 
 
 def regen_pair(seed, wname, wv, corpus_rows, out, log):

@@ -776,7 +776,12 @@ def run_tb_internal(image, n, wvec):
                 pop_sr=int(d[48], 16) if len(d) > 48 else -1,
                 # appended observability (TB-side only, DUT unchanged):
                 eu_hold=int(d[49]) if len(d) > 49 else -1,
-                clk=int(d[50]) if len(d) > 50 else -1))
+                clk=int(d[50]) if len(d) > 50 else -1,
+                # EU-side schedule (model-EU forecast test):
+                pop_want=int(d[51]) if len(d) > 51 else -1,
+                q_avail=int(d[52]) if len(d) > 52 else -1,
+                eu_dly=int(d[53]) if len(d) > 53 else -1,
+                eu_rsv_lead=int(d[54]) if len(d) > 54 else -1))
             pend = None
     return rows
 

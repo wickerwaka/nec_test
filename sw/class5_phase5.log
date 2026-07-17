@@ -1,0 +1,91 @@
+=== PHASE 5: MODEL-EU FORECAST TEST ===
+rtl=HEAD 1f6004c  non-flush low+mid pause rows: 221 (FIT/fresh 111, HOLD/gz 110)
+tw1-3 (the residual): FIT 85 HOLD 79
+
+--- 0. HOW MUCH EU DEMAND IS INVISIBLE TO THE BIU? ---
+    over all recorded trajectory clocks: EU demand cycles=200402, visible pops=63136, STARVED (invisible)=137266
+    => 68.5% of EU demand is not observable from the bus.
+
+--- 1. UNFITTED: T1_next - (EU demand event), tw1-3 pause rows ---
+    No fitting. If an EU-clock variable sets the deadline, the offset
+    should show a SHARP MODE. Compared against the same statistic
+    measured from BIU-visible pops (the pop shadow).
+    FIT(fresh)  last pop_want onset <= T4+1           : n= 85 miss= 0  mode=6 (23/85=27%)  dist={1: 10, 2: 10, 3: 3, 4: 15, 5: 20, 6: 23, 7: 2, 11: 2}
+    FIT(fresh)  last STARVE onset <= T4+1             : n= 13 miss=72  mode=20 (4/13=31%)  dist={1: 2, 2: 1, 17: 1, 20: 4, 21: 4, 26: 1}
+    FIT(fresh)  last VISIBLE pop <= T4+1 (bus shadow) : n= 85 miss= 0  mode=4 (23/85=27%)  dist={1: 14, 2: 10, 3: 1, 4: 23, 5: 18, 6: 16, 7: 1, 10: 2}
+    HOLD(gz)    last pop_want onset <= T4+1           : n= 79 miss= 0  mode=6 (19/79=24%)  dist={1: 14, 2: 13, 3: 7, 4: 15, 5: 11, 6: 19}
+    HOLD(gz)    last STARVE onset <= T4+1             : n= 15 miss=64  mode=1 (6/15=40%)  dist={1: 6, 2: 1, 17: 1, 18: 1, 20: 2, 21: 3, 22: 1}
+    HOLD(gz)    last VISIBLE pop <= T4+1 (bus shadow) : n= 79 miss= 0  mode=1 (22/79=28%)  dist={1: 22, 2: 11, 3: 5, 4: 15, 5: 11, 6: 15}
+    POOLED      last pop_want onset <= T4+1           : n=164 miss= 0  mode=6 (42/164=26%)  dist={1: 24, 2: 23, 3: 10, 4: 30, 5: 31, 6: 42, 7: 2, 11: 2}
+    POOLED      last STARVE onset <= T4+1             : n= 28 miss=136  mode=1 (8/28=29%)  dist={1: 8, 2: 2, 17: 2, 18: 1, 20: 6, 21: 7, 22: 1, 26: 1}
+    POOLED      last VISIBLE pop <= T4+1 (bus shadow) : n=164 miss= 0  mode=4 (38/164=23%)  dist={1: 36, 2: 21, 3: 6, 4: 38, 5: 29, 6: 31, 7: 1, 10: 2}
+
+--- 2. FITTED: Fit C re-run with EU-SIDE demand definitions ---
+    PERMANENT GUARD - trivial baselines on FIT tw1-3 (n=85): always-4 = 58/85 (68.2%), always-3 = 27/85
+    A result counts only if it beats always-4 BY A REAL MARGIN.
+    (Fit C's BIU-only best: 59/85 = one row over baseline.)
+
+    288 EU-side variants. TOP 8 by FIT tw1-3 exact:
+         tw1-3   all tw  variant
+         58/85   59/111  D0=pop_want cap=T4+0 S=L+K=0 floor=4
+         58/85   59/111  D0=pop_want cap=T4+0 S=L+K=1 floor=4
+         58/85   59/111  D0=pop_want cap=T4+0 S=L+K=2 floor=4
+         58/85   59/111  D0=pop_want cap=T4+0 S=L+K=3 floor=4
+         58/85   59/111  D0=pop_want cap=T4+0 S=L+K=4 floor=4
+         58/85   59/111  D0=pop_want cap=T4+0 S=L+K=5 floor=4
+         58/85   59/111  D0=pop_want cap=T4+1 S=L+K=0 floor=4
+         58/85   59/111  D0=pop_want cap=T4+1 S=L+K=1 floor=4
+
+>> FROZEN (fit on FRESH alone): D0=pop_want cap=T4+0 S=L+K=0 floor=4
+   FIT tw1-3 58/85 (68.2%)  vs baseline 58/85 (68.2%)  MARGIN = 0 rows
+   RUNNER-UP: D0=pop_want cap=T4+0 S=L+K=1 floor=4  (tw1-3 58/85)
+
+=== FROZEN. HOLD (gz) scored ONCE. ===
+
+  FIT(fresh): pause n=111
+    all-tw exact: 59/111 (53.2%)
+    tw1-3 exact : 58/85 (68.2%)   always-4 baseline 58/85 (68.2%)   MARGIN 0
+    tw>=4 exact : 1/11
+
+  HOLD(gz): pause n=110
+    all-tw exact: 47/110 (42.7%)
+    tw1-3 exact : 44/79 (55.7%)   always-4 baseline 44/79 (55.7%)   MARGIN 0
+    tw>=4 exact : 3/15
+
+=== PER-tw (chip-PAUSE rows), frozen EU rule ===
+
+    FIT(fresh):
+       tw    n    exact   chip 3:4   pred 3:4
+        0   15     0/15       15:0       0:15
+        1   40    34/40       6:34       0:40
+        2   21    15/21       6:15       0:21
+        3   24     9/24       15:9       0:24
+        4    4      0/4        4:0        0:4
+        5    1      0/1        1:0        0:1
+        6    4      0/4        4:0        0:4
+        7    2      1/2        1:1        0:2
+
+    HOLD(gz):
+       tw    n    exact   chip 3:4   pred 3:4
+        0   16     0/16       16:0       0:16
+        1   27    21/27       6:21       0:27
+        2   32    17/32      15:17       0:32
+        3   20     6/20       14:6       0:20
+        4    4      1/4        3:1        0:4
+        5    4      0/4        4:0        0:4
+        6    5      0/5        5:0        0:5
+        7    2      2/2        0:2        0:2
+
+=== L+K RIDGE under EU-side fields ===
+    S=L+K=0: FIT tw1-3 58/85
+    S=L+K=1: FIT tw1-3 58/85
+    S=L+K=2: FIT tw1-3 58/85
+    S=L+K=3: FIT tw1-3 58/85
+    S=L+K=4: FIT tw1-3 58/85
+    S=L+K=5: FIT tw1-3 58/85
+    S=L+K=6: FIT tw1-3 39/85
+    S=L+K=7: FIT tw1-3 16/85
+    (corpus still has no tw=0/cidle-4 row, so L,K remain a factorial
+     job - not fitted around here.)
+
+wrote /home/wickerwaka/src/nec_test/sw/class5_phase5.json

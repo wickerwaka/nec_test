@@ -475,7 +475,7 @@ always @(posedge clk) begin
         // d[49]=eu_hold, d[50]=cpu_clk appended (Phase-1/2 flush+trajectory
         // attribution). APPEND-ONLY observability: both are existing signals,
         // the DUT is untouched and remains bit-identical to HEAD 1f6004c.
-        $fdisplay(fo, "d %0d %0d %0d %0d %0d %0d %05x %0d %02x %02x %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %02x %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %02x %0d %0d",
+        $fdisplay(fo, "d %0d %0d %0d %0d %0d %0d %05x %0d %02x %02x %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %02x %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %02x %0d %0d %0d %0d %0d %0d",
                   dut.u_eu.state, dut.u_eu.q_pop,
                   dut.u_biu.q_avl, dut.u_biu.q_cnt,
                   dut.u_eu.eu_wrap, dut.u_biu.cur_wrap,
@@ -497,7 +497,17 @@ always @(posedge clk) begin
                   dut.u_biu.grid_phase, dut.u_biu.pf_lim,
                   dut.u_biu.push_pend, dut.u_biu.push_now, dut.u_biu.pop_now,
                   dut.u_biu.cnt_next, dut.u_biu.pop_sr,
-                  dut.u_biu.eu_hold, cpu_clk);
+                  dut.u_biu.eu_hold, cpu_clk,
+                  // d[51..54]: EU-SIDE SCHEDULE state (the model-EU forecast
+                  // test). pop_want is the EU's byte DEMAND, a function of EU
+                  // microcode state alone - q_pop = pop_want && q_avail, so the
+                  // bus only ever shows demand AND availability. pop_want &&
+                  // !q_avail is EU starvation. dly is the micro-op countdown
+                  // (cycles remaining). eu_rsv_lead is the existing
+                  // silicon-confirmed EU->BIU schedule signal (v30_eu.sv:1453).
+                  // Append-only observability; DUT bit-identical to HEAD.
+                  dut.u_eu.pop_want, dut.u_eu.q_avail, dut.u_eu.dly,
+                  dut.u_eu.eu_rsv_lead);
 end
 
 initial begin
