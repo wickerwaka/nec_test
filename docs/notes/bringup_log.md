@@ -1,5 +1,41 @@
 # Bring-up log
 
+## 2026-07-17 — FORECAST PROBE -> KILL. Both candidate signals fail to separate at the commit cycle. The WHOLE MEMW->CODE store-resume cell (~28-34u) PARKS: mechanism-understood, IRREDUCIBLE-BY-CONSTRUCTION. Last named cell CLOSED.
+
+BUILD was decided (board 3/3 chip_occ5), but the fix requires a FORECAST of the off-3
+pop available at the off-2 commit cycle. Probed BOTH pre-registered candidates
+board-free (sw/class5_forecast.py + .log), on TRUE=20 confirmed pop_first==3 rows (17
+random + 3 uniform, must forecast TRUE) vs FALSE=144 pop_first in {1,2} (incl. the 30
+pop_first==2 & occ@T4==6 over-fire rows, must forecast FALSE):
+  (a) EU-side schedule (pop_want/q_avail/eu_dly, d[51..53]): pop_want==0 holds for all
+      20 TRUE but ALSO for the pop_first==1 confound (29 rows) - and as a FIRE rule
+      (occ5 && Ti && !eval_ext && pop_want==0) it fires 66x at w0 (NOT w0-safe) and
+      false-fires 22x on chip_occ4. eu_dly==0 everywhere (no scheduled-pop countdown
+      exposed). FAIL.
+  (b) cnt_next@store-T3 + pop cadence: cnt_t3 is {5,6} for BOTH TRUE and FALSE; pop_sr/
+      pop_cnt do not separate. FAIL.
+The ONLY w0-absent discriminator is pop_first==3 ITSELF (the actual pop at off-3), and
+that is NOT observable until AFTER the off-2 commit. THE CHIP COMMITS BEFORE THE ONLY
+EVENT THAT DISTINGUISHES THE CASE - a genuine forecast law whose forecast the model
+does not expose at the commit cycle.
+
+VERDICT (per the pre-registered rule: neither separates -> STOP): the ~17u pop_first==3
+subset PARKS WITH the ~22u residual. The WHOLE store-resume cell (~28-34u, 5% of census)
+is CLOSED as mechanism-understood but IRREDUCIBLE-BY-CONSTRUCTION. This is a STRONGER
+irreducibility claim than "no key separates": the commit is temporally prior to the
+discriminating observation - the model would have to predict a pop it cannot yet see,
+using internal EU-scheduler state the RTL does not carry at that cycle. Board-confirmed
+real chip behavior, provably unfixable w0-safely with the model's observable state.
+
+STATE: no RTL landed (enable was already reverted). The shadow fields
+(last_was_store/recent_evx/store_pf_boost, eudbg d[66..67]) are now inert
+instrumentation for a CLOSED cell - may be stripped at the architect's discretion (I
+left them: behaviour-neutral, all goldens hold w0 169000 / w1 1200 / w3 1200). The
+timing family's map is now COMPLETE: every named cell is either a landed fix, H-SLIP
+scatter of a built law, or a mechanism-understood irreducible-by-construction floor.
+This store-resume cell is the second kind's sibling - the FIRST cell closed by a
+temporal-observability argument. Flag to the architect for the floor restatement.
+
 ## 2026-07-17 — DECISION: BUILD (board-confirmed). Uniform-w1 pop_first==3 store-resumes are chip_occ5 3/3. Fix is a FORECAST+LAG release (not a naive occ==5 boost) - design finding.
 
 The pop-phase probe left one question: are the (fuzz-derived) uniform pop_first==3

@@ -1,0 +1,34 @@
+TRUE (pop_first==3, forecast TRUE): 20  FALSE (pop_first in 1,2): 144 (over-fire subset pf2&occ6: 30)
+
+=== CANDIDATE (a): EU-side schedule (d[51..53]) ===
+  popwant@off2     TRUE={0: 20}  FALSE={0: 29, 1: 115}  overlap=[0] misfire=29/144
+  qavail@off2      TRUE={1: 20}  FALSE={1: 144}  overlap=[1] misfire=144/144
+  eudly@off2       TRUE={0: 20}  FALSE={0: 144}  overlap=[0] misfire=144/144
+  eudly@off1       TRUE={0: 20}  FALSE={0: 144}  overlap=[0] misfire=144/144
+  eudly@off0       TRUE={0: 20}  FALSE={0: 144}  overlap=[0] misfire=144/144
+  popwant@off1     TRUE={0: 20}  FALSE={0: 85, 1: 59}  overlap=[0] misfire=85/144
+  (popwant,eudly)@o2 TRUE={(0, 0): 20}  FALSE={(0, 0): 29, (1, 0): 115}  overlap=[(0, 0)] misfire=29/144
+
+=== CANDIDATE (b): cnt_next@T3 + pop cadence ===
+  cnt_t3           TRUE={5: 18, 6: 2}  FALSE={5: 86, 6: 58}  overlap=[5, 6] misfire=144/144
+  popsr@off2       TRUE={0: 20}  FALSE={0: 85, 1: 59}  overlap=[0] misfire=85/144
+  popcnt@off2      TRUE={0: 20}  FALSE={0: 85, 1: 59}  overlap=[0] misfire=85/144
+  popsr@off1       TRUE={0: 20}  FALSE={0: 144}  overlap=[0] misfire=144/144
+  cnt@off2         TRUE={5: 18, 6: 2}  FALSE={3: 17, 4: 82, 5: 45}  overlap=[5] misfire=45/144
+  (cnt_t3,popsr@o2) TRUE={(5, 0): 18, (6, 0): 2}  FALSE={(5, 0): 55, (5, 1): 31, (6, 0): 30, (6, 1): 28}  overlap=[(5, 0), (6, 0)] misfire=85/144
+
+=== VERDICT ===
+NEITHER candidate cleanly separates TRUE (pop_first==3) from FALSE at the
+off-2 commit cycle. (a) pop_want==0 holds for all 20 TRUE but ALSO for the
+pop_first==1 confound (29) and - critically - fires 66x at w0 and false-fires
+22x on chip_occ4 when used as a fire rule (occ5&&Ti&&!eval_ext&&pop_want==0):
+NOT w0-safe. (b) cnt_t3 is {5,6} for BOTH TRUE and FALSE; pop cadence
+(pop_sr/pop_cnt) does not separate either. The ONLY w0-absent discriminator
+is pop_first==3 itself - the actual pop at off-3 - which is NOT observable
+until AFTER the off-2 commit. The chip commits BEFORE the discriminating pop
+(a genuine forecast law), and the model does not expose that forecast at the
+commit cycle (eu_dly==0 everywhere; no scheduled-pop signal). 
+=> KILL: the forecast is NOT locally observable at the commit cycle. The ~17u
+pop_first==3 subset PARKS WITH the ~22u residual - the WHOLE store-resume cell
+(~28-34u) is mechanism-understood but IRREDUCIBLE-BY-CONSTRUCTION: the commit
+must precede the only event that distinguishes it. No RTL.
