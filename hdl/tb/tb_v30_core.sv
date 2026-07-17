@@ -480,7 +480,7 @@ always @(posedge clk) begin
         // canonical arbiter's fired slot this cycle; eu_kind = the EU access kind
         // (0=mem 1=io 2=inta 3=halt). All existing DUT signals - APPEND-ONLY
         // observability, the DUT is untouched and remains bit-identical to HEAD.
-        $fdisplay(fo, "d %0d %0d %0d %0d %0d %0d %05x %0d %02x %02x %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %02x %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %02x %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d",
+        $fdisplay(fo, "d %0d %0d %0d %0d %0d %0d %05x %0d %02x %02x %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %02x %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %02x %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d",
                   dut.u_eu.state, dut.u_eu.q_pop,
                   dut.u_biu.q_avl, dut.u_biu.q_cnt,
                   dut.u_eu.eu_wrap, dut.u_biu.cur_wrap,
@@ -526,7 +526,10 @@ always @(posedge clk) begin
                   // d[62]=want_eu, d[63]=slot_fire, d[64]=slot_id (enum ordinal),
                   // d[65]=eu_kind. Arbiter-surface commit-slot fields.
                   dut.u_biu.want_eu, dut.u_biu.slot_fire, dut.u_biu.slot_id,
-                  dut.u_biu.eu_kind);
+                  dut.u_biu.eu_kind,
+                  // d[66]=recent_evx, d[67]=store_pf_boost. MEMW->CODE store-resume
+                  // turnaround fix shadow (log-only until wired into prefetch_ok).
+                  dut.u_biu.recent_evx, dut.u_biu.store_pf_boost);
 end
 
 initial begin

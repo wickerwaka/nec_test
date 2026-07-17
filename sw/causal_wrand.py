@@ -796,7 +796,10 @@ def run_tb_internal(image, n, wvec):
                 want_eu=int(d[62]) if len(d) > 62 else -1,
                 slot_fire=int(d[63]) if len(d) > 63 else -1,
                 slot_id=int(d[64]) if len(d) > 64 else -1,
-                eu_kind=int(d[65]) if len(d) > 65 else -1))
+                eu_kind=int(d[65]) if len(d) > 65 else -1,
+                # d[66..67]: MEMW->CODE store-resume turnaround fix shadow.
+                recent_evx=int(d[66]) if len(d) > 66 else -1,
+                store_pf_boost=int(d[67]) if len(d) > 67 else -1))
             pend = None
     return rows
 

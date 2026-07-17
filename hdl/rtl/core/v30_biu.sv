@@ -351,6 +351,62 @@ wire       eu_consuming = pop_cnt >= 4'd2;
 // w0: pf_drain was Tw-set only - measured 0 active cycles at w0 vs ~3300 at w1
 // across fz90000/90003/90007 - so deleting it is w0-structurally-safe.
 wire [3:0] pf_lim = 4'd4;
+// class-5 MEMW->CODE store-resume turnaround fix (measured: sw/class5_storeanchor.py,
+// sw/class5_remap.py). After a MEMW store completes via the WAITED deferred-completion
+// (eval_ext at its T4+1), the chip resumes the post-store CODE prefetch ONE occupancy-
+// level earlier - it commits at occupied==5 rather than waiting for occupied<=pf_lim(4)
+// - so it resumes 1 idle clock SOONER. The model waits for occ<=4 and resumes 1 clk
+// LATE: 28/28 unpaired MEMW->CODE rows at occ@T4+1 in {5,6} show ge=-1, flat across the
+// store's own Tw / pop / parity, both seed groups (disc 2/2, held 26/29, 7 seeds).
+// store_resume_win arms on the store's eval_ext deferred completion and persists across
+// the one-cycle drain to the occ==5 commit; store_pf_boost raises the effective pf_lim
+// to 5 there. w0-NEUTRAL BY CONSTRUCTION: the window arms on eval_ext, which NEVER fires
+// at w0 (there the model already matches the chip - 60 w0 rows in the same occ state,
+// golden 169000). VERIFIED at the w0 golden gate, not assumed.
+// recent_evx = cycles since eval_ext last fired (saturating at 0xF = "none recent").
+// The WAITED-regime indicator that is w0-absent: eval_ext NEVER fires at w0, so
+// recent_evx is pinned at 0xF for the entire w0 golden and the boost below can never
+// arm. Under waits it tracks the last deferred-completion eval. Measured: for
+// store_tw>0 the store's OWN eval_ext (recent_evx=1 at the occ==5 commit); for
+// store_tw=0 (locally w0-identical) a PRECEDING waited access's eval_ext lands at a
+// consistent offset -4 (recent_evx ~6 at the commit) - the only w0-absent signal that
+// separates a store_tw=0 resume in a waited run from its w0 twin.
+reg  [3:0] recent_evx;
+always_ff @(posedge clk) begin
+    if (srst) recent_evx <= 4'hF;
+    else if (ce) begin
+        if (eval_ext)               recent_evx <= 4'd0;
+        else if (recent_evx != 4'hF) recent_evx <= recent_evx + 4'd1;
+    end
+end
+// last_was_store latches "the most recently completed bus cycle was a MEMW store"
+// (cur_type is cleared to BS_PASV at the store's own T4, so it cannot be read at the
+// later resume cycle - especially for store_tw=0). Set at the store's T4; cleared when
+// the next bus cycle begins (ST_T1).
+reg        last_was_store;
+always_ff @(posedge clk) begin
+    if (srst) last_was_store <= 1'b0;
+    else if (ce) begin
+        if (state == ST_T4 && (cur_type == BS_MEMW) && cur_wr && !cur_fetch)
+            last_was_store <= 1'b1;
+        else if (state == ST_T1)
+            last_was_store <= 1'b0;
+    end
+end
+// store_pf_boost: at the post-store resume idle in a WAITED regime (recent_evx),
+// at occupied==5, raise the effective pf_lim to 5 so the CODE resume commits one cycle
+// sooner (matching the chip). w0-neutral by the recent_evx gate (0xF at w0 -> boost==0,
+// verified 0/176358 w0 cycles). K=7 spans the store's own eval_ext (store_tw>0) and the
+// -4 preceding-eval_ext of the store_tw=0 cases.
+wire       store_pf_boost = last_was_store && (recent_evx <= 4'd7) &&
+                            (state == ST_TI) && (occupied == 4'd5) &&
+                            !(eu_req || eu_hold) && (q_aged == 2'd0) && !q_flush;
+// NOTE: store_pf_boost is computed above but NOT wired into prefetch_ok. The enable
+// (|| store_pf_boost) was REVERTED: it passed w0 169000/169000 but broke the w1/w3
+// goldens (opcode 89 store: 1200 -> 1186/1181, busstat PASV->CODE, model resumes 1
+// early where the chip stays idle). The MEMW->CODE -1 is wait-PATTERN-specific (chip
+// resumes early under RANDOM waits but NOT under uniform w1/w3), and recent_evx does
+// not discriminate the two. Shadow KEPT for the re-derivation. See bringup_log.
 wire       prefetch_ok = !q_flush ? (!(eu_req || eu_hold) && occupied <= pf_lim &&
                                      q_aged == 2'd0)
                                   : !(eu_req || eu_hold);   // flushed queue is empty

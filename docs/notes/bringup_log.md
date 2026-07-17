@@ -1,5 +1,59 @@
 # Bring-up log
 
+## 2026-07-17 — MEMW->CODE -1 FIX: ENABLE REVERTED at the golden gate. w0 169000/169000 PASS but w1/w3 BROKE (over-fire) -> the -1 is wait-PATTERN-specific, not "any waited regime". Shadow kept. Architect re-enters.
+
+Step 3b under full protocol. Textual enumeration (grep-first): pf_lim (:353) consumed
+only by prefetch_ok (:354); prefetch_ok feeds pick_any(:474), prefetch_ext(:545),
+selected_plain_pf_grant(:594), legacy_prefetch_grant(:781). The store-resume commits
+via req_ti_plain -> pick_plain -> prefetch_ok, so a latched occ==5 boost on prefetch_ok
+reaches it. No site found after implementation started.
+
+MECHANISM LOCALISED (traces): the store completes with the queue full (occ 5-6); the
+resume is gated by occupied<=pf_lim(4), so the model waits for the decoder to drain a
+byte (occ->4) then commits (TI_PLAIN, normal 2-cycle fire->T1). The chip commits ONE
+occupancy-level earlier (at occ==5) -> resumes 1 clk sooner. The model behaves
+IDENTICALLY at w0 and under waits for the same occ state; eval_ext (fires at the store
+deferred completion, never at w0) is the only local w0-vs-waited discriminator, so the
+fix was a wait-gated occ==5 pf_lim boost.
+
+FIX (shadow-first, sw/-validated): last_was_store latch (cur_type is cleared to PASV at
+the store's T4, so a persistent "last cycle was a MEMW store" latch is needed) +
+recent_evx (cycles-since-eval_ext, saturating 0xF at w0) + store_pf_boost = last_was_store
+&& recent_evx<=7 && ST_TI && occ==5 && !(eu_req|eu_hold) && q_aged==0 && !q_flush, ORed
+into prefetch_ok's occ<=pf_lim.
+SHADOW VALIDATION (log-only, before enable): w0 SILENCE 0/176358 w0 cycles; census
+MEMW->CODE unpaired 28/28 ge=-1 COVERED, 0 false-flip, projected column 34u -> 6u
+(<=10u target MET). recent_evx (not the store's own eval_ext) was needed because 12/28
+ge=-1 rows are store_tw=0 stores whose only w0-absent signal is a PRECEDING waited
+access's eval_ext at a consistent offset -4.
+
+GOLDEN GATE RESULT:
+  w0 169000/169000 PASS (the decisive w0-neutrality gate - the recent_evx=0xF gate holds).
+  w1 1200 -> 1186/1200, w3 1200 -> 1181/1200 FAIL. ALL failures in opcode 89
+  (MOV r/m,r = a STORE): busstat exp PASV got CODE, tstate exp Ti got T1 - the model
+  starts the CODE prefetch 1 cycle EARLY where the chip-reference golden stays IDLE.
+DIAGNOSIS: at UNIFORM w1/w3 the chip does NOT resume the post-store prefetch early (it
+stays at occ4 like the old model); at RANDOM waits (the census) it DOES (ge=-1). The
+-1 turnaround is WAIT-PATTERN-specific, not a function of "any waited regime". recent_evx
+fires in both patterns (confirmed: boost fires at uniform w1), so it cannot discriminate
+random-wait-early from uniform-wait-late. The occ==5 interpretation over-generalises.
+
+PER PROTOCOL FALSIFIER (goldens must hold): ENABLE REVERTED (prefetch_ok back to
+occ<=pf_lim; w1/w3 restored to 1200/1200, w0 re-verified). The SHADOW is KEPT
+(last_was_store/recent_evx/store_pf_boost computed, unwired, emitted at eudbg d[66..67])
+for the re-derivation. No census run (goldens gate before census, correctly).
+
+FOR THE ARCHITECT (re-entry point): the observable (-1, 28/28 random-wait) is real and
+mechanism-confirmed, but it is NOT landable via a wait-regime gate - it needs a
+discriminator that separates the random-wait store-resume (chip early) from the
+uniform-wait one (chip late). Candidates NOT yet tried: the exact queue-drain PHASE
+(pop_sr / pop timing relative to store T4), or the specific preceding-access pattern.
+The occ==5-vs-occ==4 commit is the right lever; the ARMING predicate is the open
+problem. Tooling: sw/class5_storeanchor.py (mechanism), the shadow fields in the TB.
+w0-golden was the RIGHT decisive gate (it passed); the w1/w3 goldens caught the
+over-generalisation the census alone would have missed - exactly why goldens are
+necessary though not sufficient.
+
 ## 2026-07-17 — MEMW->CODE -1 MECHANISM CONFIRMED (store-T4->resume turnaround constant, wait-specific). w0 pre-flight: NOT structurally safe -> fix must be wait-gated. Report boundary BEFORE RTL.
 
 sw/class5_storeanchor.py + .log (board-free: model store-anchored fields from the
