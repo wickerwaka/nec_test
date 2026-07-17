@@ -1,5 +1,62 @@
 # Bring-up log
 
+## 2026-07-17 — ARC 2 STEP 2 DERIVATION: re-key benefit is ~10x smaller than the audit headline (PROXY ARTIFACT). Pre-shadow findings boundary; enable NOT started.
+
+The Step-2 task hands a benefit premise: *->CODE prefetch grant 93.09% -> 98.85%
+(+5.76pt, ~287 flip-correct rows held-out) as the justification for the bus-claim
+re-key, with the census target to be "derived from the ~287 attributable rows."
+Deriving the exact RTL rule from the shadow corpus (class5_alltrans.jsonl.gz, disc
+90000-07 / held 91000-05, the a17dad4/b38e082 dump) BEFORE enable - as the spec
+requires - shows that premise is 78% a PROXY ARTIFACT. New analysis:
+sw/class5_busclaim_realmodel.py (companion to class5_busclaim_audit.py).
+
+THE BUG IN THE PREMISE (not in RTL - in the counterfactual's model):
+class5_busclaim_audit.py scored the model with model_go = !eu_req, IGNORING the rest
+of prefetch_ok. The REAL RTL grant is
+    prefetch_ok = !(eu_req || eu_hold) && occupied <= pf_lim(=4) && q_aged == 0
+so the model ALREADY pauses on occ>4 and q_aged!=0. Those two gates are absent from
+the proxy, which therefore scores every occ>4 / q_aged!=0 pause as "model grants ->
+model wrong -> table flip-correct." There are 416 rows in the corpus alone with
+eu_req=0, occ>4, chip-paused that the proxy mis-attributes this way.
+
+DECOMPOSITION of the audit's 287 *->CODE flip-correct (held), verified reproducible:
+  ALREADY correct under the real RTL occ<=pf_lim / q_aged gates : 223 (via occ>4 219,
+                                                                  via q_aged!=0 16)
+  GENUINELY new (real RTL model also wrong)                     : 64
+Of the 64 genuinely-new, most are NOT separable by any readiness key (e.g. signature
+eu_ready=0,eu_req_p1=0,q_cnt<=1,occ2,cnt_next2 is 9 chip-pause vs 2928 chip-GO -
+catching it injects thousands of false pauses; the pf_lim=2 lesson again). Only the
+q_cnt>=5 cell (~10) and the eu_req_p1=1 cells (~7) are clean.
+
+REAL implementable benefit, *->CODE held (real-RTL model semantics), from the two
+rule forms the spec's readiness key admits:
+  MODEL (real RTL)  : 91.12%    flip-correct   0  flip-incorrect  0
+  Rule A REPLACE    : 91.51% (+0.39pt)  fc 25  fi 6 (0.123%)   claim = !eu_ready &&
+                      eu_req_p1 && cnt_next>=2   (drops eu_req; the spec's stated key)
+  Rule B SURGICAL   : 91.43% (+0.31pt)  fc 18  fi 3 (0.062%)   claim = eu_req &&
+                      (eu_ready || (eu_req_p1 && cnt_next>=2))  (keeps eu_req; only
+                      re-decides the contested eu_req==1 && eu_ready==0 cell - the
+                      exact 446-slot w0 region the spec flagged; w0-safest)
+So the genuine attributable held-out benefit is ~15-25 NET rows (~0.3-0.4pt), not
++5.76pt / 287 rows. Flip-incorrect stays far under the 2% no-build bar either way -
+the re-key is NOT harmful, just ~10x smaller than advertised. Rule B is the cleaner,
+w0-safest, spec-consistent form (it changes behavior ONLY in eu_req==1 && eu_ready==0;
+never touches eu_req==0 nor eu_ready==1, so its w0 exposure is bounded to the flagged
+446 slots and it does not rely on want_eu priority for correctness).
+
+WHY THIS IS A REPORT-AND-HOLD, NOT A PROCEED: the number the task hands me AS the
+benefit is the one shown to be a proxy artifact, and the census ACCEPTANCE target is
+to be derived from it. Sizing a census (~40 min) + synth + multi-hour flash pipeline
+against 287 when the genuine figure is ~15-64 would mis-set the acceptance bar.
+Per the standing rule (thresholds re-derived from CURRENT composition, never carried
+forward; report data not direction; do not tune past a freeze). The exact RTL rule
+is DERIVED and ready (Rule B, drop-in at v30_biu.sv:354 both ternary branches,
+replacing `eu_req` in the claim with `(eu_req && (eu_ready || (eu_req_p1 &&
+cnt_next>=2)))`; the enumerated twin prefetch_ext:545 inherits it via prefetch_ok).
+Architect re-enters here to re-confirm GO with the corrected benefit and to re-derive
+the census acceptance target before the shadow/w0/synth/flash spend. No behavior
+change has been landed; goldens untouched.
+
 ## 2026-07-16 — LOW-band duration-control ATTEMPT FAILED + harness quota bug fixed
 
 Two findings, both worth not repeating.
