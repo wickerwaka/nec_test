@@ -1,5 +1,42 @@
 # Bring-up log
 
+## 2026-07-17 — DECISION: BUILD (board-confirmed). Uniform-w1 pop_first==3 store-resumes are chip_occ5 3/3. Fix is a FORECAST+LAG release (not a naive occ==5 boost) - design finding.
+
+The pop-phase probe left one question: are the (fuzz-derived) uniform pop_first==3
+rows chip_occ5 (BUILD) or chip_occ4 (PARK)? The chip-captured GOLDEN could not answer:
+across ALL 33 w1/w3 golden store-resumes (occ@T4>=5) EVERY one is pop_first==2 ->
+chip_occ4 (the exact 14+19 that broke under recent_evx); ZERO are pop_first==3. So the
+golden confirms the phase-lock (uniform code phase-locks to pop_first==2) and shows NO
+pop_first==3 chip_occ4 counterexample, but it contains no pop_first==3 store to label
+the fuzz rows.
+
+TARGETED BOARD CAPTURE (authorized, read-only run_chip, uniform w1, seeds
+90009/90017/90018 - the 3 fuzz pop_first==3 rows): chip vs model, aligned:
+  seed90009 ka85 occ@T4=5: mg=9 cg=8 ge=-1  -> chip_occ5 EARLY
+  seed90017 ka48 occ@T4=5: mg=9 cg=8 ge=-1  -> chip_occ5 EARLY
+  seed90018 ka50 occ@T4=5: mg=9 cg=8 ge=-1  -> chip_occ5 EARLY
+3/3 chip_occ5. pop_first==3 -> chip resumes early UNIVERSALLY: random waits 17/17,
+uniform w1 3/3, ABSENT at w0 (0/348). The mechanism is a real physical pop-PHASE law
+(pop in the lag window at T4+3 -> commit at occ5), holding across wait patterns WITH NO
+WAIT TERM. DECISION: BUILD the pop_first==3 fix (~17u); the residual pop_first in {1,2}
+occ5 (~11-22u) PARKS (genuinely unfixable w0-safely: same local state is chip_occ4 at
+w0/uniform-pop_first<=2 and chip_occ5 at random - unobservable context).
+
+FIX-DESIGN FINDING (from the pop_first==3 trace, seed90009 uniform w1):
+  st4=544 occ5; off1(545) occ5 EVAL_EXT; off2(546) occ5; off3(547) occ4 POP, model
+  fires TIPL here -> T1 549 (cidle 4). Chip commits at off2 (occ5, BEFORE the off3 pop)
+  -> T1 548 (cidle 3). So the release is a LATCHED FORECAST + LAG (architect was right):
+  at the off2 commit cycle pop_first==3 is NOT yet observable (pop is at off3), and a
+  naive "occ==5 && post-store" boost ALSO over-fires on pop_first==2 when occ@T4==6
+  (occ==5 then occurs at a committable off2). => the fix needs a FORECAST of the pop
+  crossing available at the commit cycle (candidates: EU-side schedule pop_want/dly/
+  eu_dly at d[51..53], or cnt_next@store-T3 + the pop cadence), NOT the post-hoc pop
+  offset. This is the open design piece before the shadow. Same FAMILY as H-SLIP
+  (max/deadline), DIFFERENT CELL - do NOT merge sites.
+NEXT: forecast predictor -> shadow (fire the occ5 release on the latched forecast) ->
+w0 gate -> w1/w3/w2 with NO wait term -> census (pop_first==3 subset ~17u -> <=4u;
+residual unchanged; DONE-guard 190+-10) -> synth/flash/silicon. Standing authorization.
+
 ## 2026-07-17 — POP-PHASE PROBE: architect's mechanism CONFIRMED (pop_first==3 -> chip resumes early, w0-ABSENT by arithmetic). PARTIAL: 17/39 occ5 fixable, ~22 alias to w0 -> PARK. Last named cell of the timing map.
 
 sw/class5_poprelease.py + .log (board-free). The architect PRE-REGISTERED (before this
