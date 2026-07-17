@@ -781,7 +781,15 @@ def run_tb_internal(image, n, wvec):
                 pop_want=int(d[51]) if len(d) > 51 else -1,
                 q_avail=int(d[52]) if len(d) > 52 else -1,
                 eu_dly=int(d[53]) if len(d) > 53 else -1,
-                eu_rsv_lead=int(d[54]) if len(d) > 54 else -1))
+                eu_rsv_lead=int(d[54]) if len(d) > 54 else -1,
+                # class-5 unified-law shadow (B1) + the superseded vetoes:
+                sh_arm=int(d[55]) if len(d) > 55 else -1,
+                sh_cidle=int(d[56]) if len(d) > 56 else -1,
+                sh_fired=int(d[57]) if len(d) > 57 else -1,
+                sh_d_cnt=int(d[58]) if len(d) > 58 else -1,
+                sh_d_tw=int(d[59]) if len(d) > 59 else -1,
+                midband_pause=int(d[60]) if len(d) > 60 else -1,
+                lowband_pause=int(d[61]) if len(d) > 61 else -1))
             pend = None
     return rows
 

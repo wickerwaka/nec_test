@@ -1,0 +1,42 @@
+=== B1 SHADOW AUDIT (full-trace, in-loop) ===
+shadow is LOG-ONLY; goldens re-run inert: w0 169000/169000, w1 1200/1200, w3 1200/1200
+
+corpora full-trace: 629850 CPU cycles (14s)
+  veto firings: midband=656 lowband=120 (union 776)
+  law arms: 850   resolutions (sh_fired): 850
+  resolved cidle_sel histogram: {3: 175, 4: 675}
+
+--- (1) HARD GATE: SUPERSESSION ---
+    veto-armed cycles NOT covered by the law: 25 / 776
+    *** FAIL - STOP AND INVESTIGATE. Sample uncovered rows:
+      {'src': 'gz', 'seed': 90000, 'w': 'w1', 'clk': 821, 'mid': 0, 'low': 1, 'd_cnt': 2, 'occ': 4, 'q_cnt': 2, 'd_tw': 1}
+      {'src': 'gz', 'seed': 90001, 'w': 'w1', 'clk': 503, 'mid': 0, 'low': 1, 'd_cnt': 2, 'occ': 4, 'q_cnt': 2, 'd_tw': 1}
+      {'src': 'gz', 'seed': 90002, 'w': 'w1', 'clk': 787, 'mid': 0, 'low': 1, 'd_cnt': 2, 'occ': 4, 'q_cnt': 2, 'd_tw': 1}
+      {'src': 'gz', 'seed': 90002, 'w': 'r4.3', 'clk': 813, 'mid': 0, 'low': 1, 'd_cnt': 2, 'occ': 4, 'q_cnt': 2, 'd_tw': 1}
+      {'src': 'gz', 'seed': 90003, 'w': 'w1', 'clk': 1088, 'mid': 0, 'low': 1, 'd_cnt': 2, 'occ': 4, 'q_cnt': 2, 'd_tw': 1}
+      {'src': 'gz', 'seed': 90003, 'w': 'r4.3', 'clk': 1127, 'mid': 0, 'low': 1, 'd_cnt': 2, 'occ': 4, 'q_cnt': 2, 'd_tw': 1}
+      {'src': 'gz', 'seed': 90004, 'w': 'w1', 'clk': 274, 'mid': 0, 'low': 1, 'd_cnt': 2, 'occ': 4, 'q_cnt': 2, 'd_tw': 1}
+      {'src': 'gz', 'seed': 90006, 'w': 'w1', 'clk': 478, 'mid': 0, 'low': 1, 'd_cnt': 2, 'occ': 4, 'q_cnt': 2, 'd_tw': 1}
+      {'src': 'gz', 'seed': 90007, 'w': 'w1', 'clk': 666, 'mid': 0, 'low': 1, 'd_cnt': 2, 'occ': 4, 'q_cnt': 2, 'd_tw': 1}
+      {'src': 'gz', 'seed': 91000, 'w': 'w1', 'clk': 242, 'mid': 0, 'low': 1, 'd_cnt': 2, 'occ': 4, 'q_cnt': 2, 'd_tw': 1}
+      {'src': 'gz', 'seed': 91000, 'w': 'w1', 'clk': 823, 'mid': 0, 'low': 1, 'd_cnt': 2, 'occ': 4, 'q_cnt': 2, 'd_tw': 1}
+      {'src': 'gz', 'seed': 91000, 'w': 'r7.7', 'clk': 1106, 'mid': 0, 'low': 1, 'd_cnt': 2, 'occ': 4, 'q_cnt': 2, 'd_tw': 1}
+
+--- (4) EU arbitration inside the arm window ---
+    arms coincident with eu_req/eu_hold: 278
+    (a want_eu must WIN the bus; the resume re-derives. The law arms
+     the PREFETCH pause only - it never claims the bus.)
+
+--- (5) Flush inside the window ---
+    arms coincident with q_flush: 0
+    (sh_pend is cancelled on q_flush; the flush law owns those rows,
+     282/282 exact - untouched.)
+
+--- (2) W0 SHADOW: law firings over w0 traces ---
+    RATIONALE: at w0 the eval collapses onto the T3 edge; a naive
+    application could false-pause the chained-fetch population.
+    w0 full traces: 50388 cycles, law arms: 0, resolutions: 0
+    w0 resolved cidle histogram: {}
+    => ZERO w0 firings. The law does not touch w0 (eval_ext is
+       never asserted at w0), so the 169000 golden is structurally
+       unreachable by it.

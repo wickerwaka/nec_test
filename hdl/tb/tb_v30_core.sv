@@ -475,7 +475,7 @@ always @(posedge clk) begin
         // d[49]=eu_hold, d[50]=cpu_clk appended (Phase-1/2 flush+trajectory
         // attribution). APPEND-ONLY observability: both are existing signals,
         // the DUT is untouched and remains bit-identical to HEAD 1f6004c.
-        $fdisplay(fo, "d %0d %0d %0d %0d %0d %0d %05x %0d %02x %02x %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %02x %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %02x %0d %0d %0d %0d %0d %0d",
+        $fdisplay(fo, "d %0d %0d %0d %0d %0d %0d %05x %0d %02x %02x %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %02x %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %02x %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d",
                   dut.u_eu.state, dut.u_eu.q_pop,
                   dut.u_biu.q_avl, dut.u_biu.q_cnt,
                   dut.u_eu.eu_wrap, dut.u_biu.cur_wrap,
@@ -507,7 +507,14 @@ always @(posedge clk) begin
                   // silicon-confirmed EU->BIU schedule signal (v30_eu.sv:1453).
                   // Append-only observability; DUT bit-identical to HEAD.
                   dut.u_eu.pop_want, dut.u_eu.q_avail, dut.u_eu.dly,
-                  dut.u_eu.eu_rsv_lead);
+                  dut.u_eu.eu_rsv_lead,
+                  // d[55..61]: class-5 UNIFIED LAW shadow (B1) + the two vetoes
+                  // it must supersede. midband/lowband are dumped so the
+                  // SUPERSESSION GATE can be checked in-loop over full traces:
+                  // every veto firing must be covered by sh_pause_arm.
+                  dut.u_biu.sh_pause_arm, dut.u_biu.sh_cidle,
+                  dut.u_biu.sh_fired, dut.u_biu.sh_d_cnt, dut.u_biu.sh_d_tw,
+                  dut.u_biu.midband_pause, dut.u_biu.lowband_pause);
 end
 
 initial begin

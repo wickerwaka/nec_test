@@ -1486,4 +1486,81 @@ assign rd_n = !((state == ST_T2 || state == ST_T3 || state == ST_TW)
 
 wire _unused = &{1'b0, fetch_cs_lin, ad_i[7:0]};
 
+//----------------------------------------------------------------------------
+// class-5 UNIFIED LAW - SHADOW (B1). LOG-ONLY: every signal below is consumed
+// exclusively by the TB dump. Nothing here drives prefetch_ok/prefetch_ext, any
+// slot, or any state. The design is bit-identical to HEAD with this block
+// present (goldens re-run to confirm).
+//
+// The law, fitted board-free and frozen (fit=fresh seeds, hold=gz seeds):
+//   DECISION: pause_arm = (d_cnt >= 3) && (occupied >= 2)
+//             d_cnt = cnt_next LATCHED at the completion-eval edge (t3_done).
+//             Held-out: 0 false-pause / 5 missed-pause on 7763 rows (vs 19 for
+//             the midband+lowband predicate stack, vs 110 always-GO).
+//   DURATION: cidle_sel = 3  if d_tw == 0 or d_tw >= 4 or occupied <= 2
+//                         3  if occupied == 3 && pop@T4+2
+//                         4  otherwise (occupied == 3 && !pop, or occupied == 4)
+// The pop@T4+2 term resolves ONE CLOCK AFTER the arm; the earliest commit it
+// can affect is T4+3 (for a T4+4 T1), so the slack is 1 clock (confirmed
+// empirically: prefetch_ok asserts at T4+3 for a cidle-3 resume).
+//----------------------------------------------------------------------------
+reg  [3:0] sh_tw_cnt;       // Tw cycles elapsed in the CURRENT bus cycle
+reg  [3:0] sh_d_tw;         // latched at t3_done: the completing fetch's Tw
+reg  [2:0] sh_d_cnt;        // latched at t3_done: cnt_next at the READY edge
+reg        sh_pend;         // armed at occupied==3: cidle awaits pop@T4+2
+reg  [2:0] sh_cidle;        // resolved cidle_sel (0 = none/undetermined)
+reg        sh_fired;        // pulse: an arm resolved this cycle
+
+// DECISION - evaluated at the eval cycle (eval_ext, i.e. T4+1)
+wire       sh_pause_arm = eval_ext && cur_fetch &&
+                          (sh_d_cnt >= 3'd3) && (occupied >= 4'd2);
+// DURATION - the tw0/tw>=4/occ<=2 arms resolve immediately at the arm cycle
+wire       sh_cidle3_now = (sh_d_tw == 4'd0) || (sh_d_tw >= 4'd4) ||
+                           (occupied <= 4'd2);
+
+always @(posedge clk) begin
+    if (srst) begin
+        sh_tw_cnt <= 4'd0; sh_d_tw <= 4'd0; sh_d_cnt <= 3'd0;
+        sh_pend   <= 1'b0; sh_cidle <= 3'd0; sh_fired <= 1'b0;
+    end else if (ce) begin
+        sh_fired <= 1'b0;
+        // per-bus-cycle Tw counter
+        if (state == ST_T1)      sh_tw_cnt <= 4'd0;
+        else if (state == ST_TW) sh_tw_cnt <= sh_tw_cnt + 4'd1;
+        // FRAME (this is the subtle part - the B1 shadow caught it):
+        // d_cnt is latched at the T3 STATE cycle, i.e. the PRE-WAIT frame, NOT
+        // at t3_done. t3_done = (ST_T3||ST_TW)&&ready fires at the READY edge
+        // (the LAST Tw), which under waits is a DIFFERENT cycle. The law was
+        // fitted on cnt_next at the T3 cycle; latching at t3_done gave d_cnt=2
+        // where the fit needs >=3 and broke the supersession gate on every
+        // waited lowband firing. The pre-wait frame is also exactly what E2
+        // independently concluded ("the deadline is fixed in the PRE-WAIT
+        // frame"), so the two results corroborate.
+        if (state == ST_T3) sh_d_cnt <= cnt_next;
+        // d_tw is the completing fetch's FULL Tw count, so it can only be
+        // known at the ready edge. sh_tw_cnt has not yet counted the current
+        // cycle when t3_done lands on a Tw, hence the +1.
+        if (t3_done)
+            sh_d_tw <= sh_tw_cnt + ((state == ST_TW) ? 4'd1 : 4'd0);
+        // arm
+        if (sh_pause_arm) begin
+            if (sh_cidle3_now) begin
+                sh_cidle <= 3'd3; sh_pend <= 1'b0; sh_fired <= 1'b1;
+            end else if (occupied == 4'd3) begin
+                sh_pend  <= 1'b1;          // resolve on pop@T4+2 next cycle
+            end else begin
+                sh_cidle <= 3'd4; sh_pend <= 1'b0; sh_fired <= 1'b1;
+            end
+        end else if (sh_pend) begin
+            // one clock after the arm: pop decides 3 vs 4
+            sh_cidle <= (pop_now != 1'b0) ? 3'd3 : 3'd4;
+            sh_pend  <= 1'b0;
+            sh_fired <= 1'b1;
+        end
+        if (q_flush) begin                 // flush owns the window; cancel
+            sh_pend <= 1'b0;
+        end
+    end
+end
+
 endmodule
