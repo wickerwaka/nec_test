@@ -35,7 +35,14 @@ from causal_wrand import (generate, compose, run_chip, run_tb_internal,
 
 
 def wv_of(ws, wmax):
-    return [_r.Random((ws << 8) | wmax).randint(0, wmax) for _ in range(4096)]
+    # BUG FIX: the old form `[_r.Random(seed).randint(0,wmax) for _ in range(4096)]`
+    # constructed a NEW Random(seed) per element, so every element was the SAME
+    # first draw -> a CONSTANT vector (uniform wait), never per-cycle random. The
+    # entire gaperr census history (422/308/188/...) was therefore a DEGENERATE
+    # uniform-wait census, heavily w0-weighted - NOT the random-wait target
+    # (memory #1 priority). Fixed: one Random, drawn 4096 times.
+    rr = _r.Random((ws << 8) | wmax)
+    return [rr.randint(0, wmax) for _ in range(4096)]
 
 
 def analyze_vec(seed, ws, wmax, host, image):
