@@ -1,96 +1,95 @@
-start Fri Jul 17 07:12:42 2026  ALL-TRANSITION corpus (no CODE->CODE filter)
+start Fri Jul 17 09:30:41 2026  ALL-TRANSITION corpus (no CODE->CODE filter)
   disc fz90000 w1: 198 opps aligned=199 resyncs=0 stop=end (1s) total=198
   disc fz90000 w2: 197 opps aligned=198 resyncs=0 stop=end (0s) total=395
   disc fz90000 w3: 197 opps aligned=198 resyncs=0 stop=end (0s) total=592
   disc fz90000 r4.3: 200 opps aligned=201 resyncs=0 stop=end (0s) total=792
-  disc fz90000 r7.7: 193 opps aligned=195 resyncs=1 stop=end (0s) total=985
-  disc fz90001 w1: 160 opps aligned=161 resyncs=0 stop=end (0s) total=1145
-  disc fz90001 w2: 160 opps aligned=161 resyncs=0 stop=end (0s) total=1305
-  disc fz90001 w3: 160 opps aligned=161 resyncs=0 stop=end (0s) total=1465
-  disc fz90001 r4.3: 161 opps aligned=162 resyncs=0 stop=end (0s) total=1626
-  disc fz90001 r7.7: 160 opps aligned=161 resyncs=0 stop=end (0s) total=1786
-  disc fz90002 w1: 240 opps aligned=241 resyncs=0 stop=end (0s) total=2026
-  disc fz90002 w2: 240 opps aligned=241 resyncs=0 stop=end (0s) total=2266
-  disc fz90002 w3: 239 opps aligned=240 resyncs=0 stop=end (0s) total=2505
-  disc fz90002 r4.3: 240 opps aligned=241 resyncs=0 stop=end (0s) total=2745
-  disc fz90002 r7.7: 237 opps aligned=239 resyncs=1 stop=end (0s) total=2982
-  disc fz90003 w1: 223 opps aligned=224 resyncs=0 stop=end (0s) total=3205
-  disc fz90003 w2: 221 opps aligned=222 resyncs=0 stop=end (0s) total=3426
-  disc fz90003 w3: 220 opps aligned=221 resyncs=0 stop=end (0s) total=3646
-  disc fz90003 r4.3: 224 opps aligned=225 resyncs=0 stop=end (0s) total=3870
-  disc fz90003 r7.7: 221 opps aligned=222 resyncs=0 stop=end (0s) total=4091
-  disc fz90004 w1: 220 opps aligned=221 resyncs=0 stop=end (0s) total=4311
-  disc fz90004 w2: 220 opps aligned=221 resyncs=0 stop=end (0s) total=4531
-  disc fz90004 w3: 220 opps aligned=221 resyncs=0 stop=end (0s) total=4751
-  disc fz90004 r4.3: 221 opps aligned=222 resyncs=0 stop=end (0s) total=4972
-  disc fz90004 r7.7: 220 opps aligned=221 resyncs=0 stop=end (0s) total=5192
-  disc fz90005 w1: 136 opps aligned=137 resyncs=0 stop=end (0s) total=5328
-  disc fz90005 w2: 136 opps aligned=137 resyncs=0 stop=end (0s) total=5464
-  disc fz90005 w3: 136 opps aligned=137 resyncs=0 stop=end (0s) total=5600
-  disc fz90005 r4.3: 136 opps aligned=137 resyncs=0 stop=end (0s) total=5736
-  disc fz90005 r7.7: 136 opps aligned=137 resyncs=0 stop=end (0s) total=5872
-  disc fz90006 w1: 166 opps aligned=167 resyncs=0 stop=end (0s) total=6038
-  disc fz90006 w2: 165 opps aligned=166 resyncs=0 stop=end (0s) total=6203
-  disc fz90006 w3: 165 opps aligned=166 resyncs=0 stop=end (0s) total=6368
-  disc fz90006 r4.3: 166 opps aligned=167 resyncs=0 stop=end (0s) total=6534
-  disc fz90006 r7.7: 166 opps aligned=167 resyncs=0 stop=end (0s) total=6700
-  disc fz90007 w1: 195 opps aligned=196 resyncs=0 stop=end (0s) total=6895
-  disc fz90007 w2: 193 opps aligned=194 resyncs=0 stop=end (0s) total=7088
-  disc fz90007 w3: 193 opps aligned=194 resyncs=0 stop=end (0s) total=7281
-  disc fz90007 r4.3: 196 opps aligned=197 resyncs=0 stop=end (0s) total=7477
-  disc fz90007 r7.7: 195 opps aligned=196 resyncs=0 stop=end (0s) total=7672
-  held fz91000 w1: 209 opps aligned=211 resyncs=1 stop=end (0s) total=7881
-  held fz91000 w2: 209 opps aligned=210 resyncs=0 stop=end (0s) total=8090
-  held fz91000 w3: 206 opps aligned=208 resyncs=1 stop=end (0s) total=8296
-  held fz91000 r4.3: 210 opps aligned=211 resyncs=0 stop=end (0s) total=8506
-  held fz91000 r7.7: 200 opps aligned=205 resyncs=4 stop=end (0s) total=8706
-  held fz91001 w1: 265 opps aligned=266 resyncs=0 stop=end (0s) total=8971
-  held fz91001 w2: 265 opps aligned=266 resyncs=0 stop=end (0s) total=9236
-  held fz91001 w3: 265 opps aligned=266 resyncs=0 stop=end (0s) total=9501
-  held fz91001 r4.3: 265 opps aligned=266 resyncs=0 stop=end (0s) total=9766
-  held fz91001 r7.7: 265 opps aligned=266 resyncs=0 stop=end (0s) total=10031
-  held fz91002 w1: 205 opps aligned=206 resyncs=0 stop=end (0s) total=10236
-  held fz91002 w2: 205 opps aligned=206 resyncs=0 stop=end (0s) total=10441
-  held fz91002 w3: 205 opps aligned=206 resyncs=0 stop=end (0s) total=10646
-  held fz91002 r4.3: 207 opps aligned=208 resyncs=0 stop=end (0s) total=10853
-  held fz91002 r7.7: 206 opps aligned=207 resyncs=0 stop=end (0s) total=11059
-  held fz91003 w1: 184 opps aligned=185 resyncs=0 stop=end (0s) total=11243
-  held fz91003 w2: 184 opps aligned=185 resyncs=0 stop=end (0s) total=11427
-  held fz91003 w3: 184 opps aligned=185 resyncs=0 stop=end (0s) total=11611
-  held fz91003 r4.3: 184 opps aligned=185 resyncs=0 stop=end (0s) total=11795
-  held fz91003 r7.7: 185 opps aligned=186 resyncs=0 stop=end (0s) total=11980
-  held fz91004 w1: 178 opps aligned=179 resyncs=0 stop=end (0s) total=12158
-  held fz91004 w2: 178 opps aligned=179 resyncs=0 stop=end (0s) total=12336
-  held fz91004 w3: 178 opps aligned=179 resyncs=0 stop=end (0s) total=12514
-  held fz91004 r4.3: 179 opps aligned=180 resyncs=0 stop=end (0s) total=12693
-  held fz91004 r7.7: 178 opps aligned=179 resyncs=0 stop=end (0s) total=12871
-  held fz91005 w1: 186 opps aligned=187 resyncs=0 stop=end (0s) total=13057
-  held fz91005 w2: 185 opps aligned=186 resyncs=0 stop=end (0s) total=13242
-  held fz91005 w3: 184 opps aligned=185 resyncs=0 stop=end (0s) total=13426
-  held fz91005 r4.3: 187 opps aligned=188 resyncs=0 stop=end (0s) total=13613
-  held fz91005 r7.7: 185 opps aligned=186 resyncs=0 stop=end (0s) total=13798
+  disc fz90000 r7.7: 196 opps aligned=197 resyncs=0 stop=end (0s) total=988
+  disc fz90001 w1: 160 opps aligned=161 resyncs=0 stop=end (0s) total=1148
+  disc fz90001 w2: 160 opps aligned=161 resyncs=0 stop=end (0s) total=1308
+  disc fz90001 w3: 160 opps aligned=161 resyncs=0 stop=end (0s) total=1468
+  disc fz90001 r4.3: 161 opps aligned=162 resyncs=0 stop=end (0s) total=1629
+  disc fz90001 r7.7: 160 opps aligned=161 resyncs=0 stop=end (0s) total=1789
+  disc fz90002 w1: 240 opps aligned=241 resyncs=0 stop=end (0s) total=2029
+  disc fz90002 w2: 240 opps aligned=241 resyncs=0 stop=end (0s) total=2269
+  disc fz90002 w3: 239 opps aligned=240 resyncs=0 stop=end (0s) total=2508
+  disc fz90002 r4.3: 240 opps aligned=241 resyncs=0 stop=end (0s) total=2748
+  disc fz90002 r7.7: 240 opps aligned=241 resyncs=0 stop=end (0s) total=2988
+  disc fz90003 w1: 223 opps aligned=224 resyncs=0 stop=end (0s) total=3211
+  disc fz90003 w2: 221 opps aligned=222 resyncs=0 stop=end (0s) total=3432
+  disc fz90003 w3: 220 opps aligned=221 resyncs=0 stop=end (0s) total=3652
+  disc fz90003 r4.3: 224 opps aligned=225 resyncs=0 stop=end (0s) total=3876
+  disc fz90003 r7.7: 221 opps aligned=222 resyncs=0 stop=end (0s) total=4097
+  disc fz90004 w1: 220 opps aligned=221 resyncs=0 stop=end (0s) total=4317
+  disc fz90004 w2: 220 opps aligned=221 resyncs=0 stop=end (0s) total=4537
+  disc fz90004 w3: 220 opps aligned=221 resyncs=0 stop=end (0s) total=4757
+  disc fz90004 r4.3: 221 opps aligned=222 resyncs=0 stop=end (0s) total=4978
+  disc fz90004 r7.7: 220 opps aligned=221 resyncs=0 stop=end (0s) total=5198
+  disc fz90005 w1: 136 opps aligned=137 resyncs=0 stop=end (0s) total=5334
+  disc fz90005 w2: 136 opps aligned=137 resyncs=0 stop=end (0s) total=5470
+  disc fz90005 w3: 136 opps aligned=137 resyncs=0 stop=end (0s) total=5606
+  disc fz90005 r4.3: 136 opps aligned=137 resyncs=0 stop=end (0s) total=5742
+  disc fz90005 r7.7: 136 opps aligned=137 resyncs=0 stop=end (0s) total=5878
+  disc fz90006 w1: 166 opps aligned=167 resyncs=0 stop=end (0s) total=6044
+  disc fz90006 w2: 165 opps aligned=166 resyncs=0 stop=end (0s) total=6209
+  disc fz90006 w3: 165 opps aligned=166 resyncs=0 stop=end (0s) total=6374
+  disc fz90006 r4.3: 166 opps aligned=167 resyncs=0 stop=end (0s) total=6540
+  disc fz90006 r7.7: 166 opps aligned=167 resyncs=0 stop=end (0s) total=6706
+  disc fz90007 w1: 195 opps aligned=196 resyncs=0 stop=end (0s) total=6901
+  disc fz90007 w2: 193 opps aligned=194 resyncs=0 stop=end (0s) total=7094
+  disc fz90007 w3: 193 opps aligned=194 resyncs=0 stop=end (0s) total=7287
+  disc fz90007 r4.3: 196 opps aligned=197 resyncs=0 stop=end (0s) total=7483
+  disc fz90007 r7.7: 195 opps aligned=196 resyncs=0 stop=end (0s) total=7678
+  held fz91000 w1: 209 opps aligned=211 resyncs=1 stop=end (0s) total=7887
+  held fz91000 w2: 209 opps aligned=210 resyncs=0 stop=end (0s) total=8096
+  held fz91000 w3: 209 opps aligned=210 resyncs=0 stop=end (0s) total=8305
+  held fz91000 r4.3: 210 opps aligned=211 resyncs=0 stop=end (0s) total=8515
+  held fz91000 r7.7: 203 opps aligned=207 resyncs=3 stop=end (0s) total=8718
+  held fz91001 w1: 265 opps aligned=266 resyncs=0 stop=end (0s) total=8983
+  held fz91001 w2: 265 opps aligned=266 resyncs=0 stop=end (0s) total=9248
+  held fz91001 w3: 265 opps aligned=266 resyncs=0 stop=end (0s) total=9513
+  held fz91001 r4.3: 265 opps aligned=266 resyncs=0 stop=end (0s) total=9778
+  held fz91001 r7.7: 265 opps aligned=266 resyncs=0 stop=end (0s) total=10043
+  held fz91002 w1: 205 opps aligned=206 resyncs=0 stop=end (0s) total=10248
+  held fz91002 w2: 205 opps aligned=206 resyncs=0 stop=end (0s) total=10453
+  held fz91002 w3: 205 opps aligned=206 resyncs=0 stop=end (0s) total=10658
+  held fz91002 r4.3: 207 opps aligned=208 resyncs=0 stop=end (0s) total=10865
+  held fz91002 r7.7: 206 opps aligned=207 resyncs=0 stop=end (0s) total=11071
+  held fz91003 w1: 184 opps aligned=185 resyncs=0 stop=end (0s) total=11255
+  held fz91003 w2: 184 opps aligned=185 resyncs=0 stop=end (0s) total=11439
+  held fz91003 w3: 184 opps aligned=185 resyncs=0 stop=end (0s) total=11623
+  held fz91003 r4.3: 184 opps aligned=185 resyncs=0 stop=end (0s) total=11807
+  held fz91003 r7.7: 185 opps aligned=186 resyncs=0 stop=end (0s) total=11992
+  held fz91004 w1: 178 opps aligned=179 resyncs=0 stop=end (0s) total=12170
+  held fz91004 w2: 178 opps aligned=179 resyncs=0 stop=end (0s) total=12348
+  held fz91004 w3: 178 opps aligned=179 resyncs=0 stop=end (0s) total=12526
+  held fz91004 r4.3: 179 opps aligned=180 resyncs=0 stop=end (0s) total=12705
+  held fz91004 r7.7: 178 opps aligned=179 resyncs=0 stop=end (0s) total=12883
+  held fz91005 w1: 186 opps aligned=187 resyncs=0 stop=end (0s) total=13069
+  held fz91005 w2: 185 opps aligned=186 resyncs=0 stop=end (0s) total=13254
+  held fz91005 w3: 184 opps aligned=185 resyncs=0 stop=end (0s) total=13438
+  held fz91005 r4.3: 187 opps aligned=188 resyncs=0 stop=end (0s) total=13625
+  held fz91005 r7.7: 185 opps aligned=186 resyncs=0 stop=end (0s) total=13810
 
-transitions captured: 13798 rows
-   CODE -> CODE : 8531
-   CODE -> IOW  : 909
-    IOW -> CODE : 909
-   CODE -> MEMR : 847
-   MEMR -> CODE : 807
-   MEMW -> CODE : 712
-   CODE -> MEMW : 672
+transitions captured: 13810 rows
+   CODE -> CODE : 8535
+   CODE -> IOW  : 910
+    IOW -> CODE : 910
+   CODE -> MEMR : 849
+   MEMR -> CODE : 809
+   MEMW -> CODE : 713
+   CODE -> MEMW : 673
    MEMW -> MEMW : 150
    MEMR -> MEMR : 141
    CODE -> HALT : 70
    MEMR -> MEMW : 45
    MEMW -> MEMR : 5
 
-  CODE->CODE (what the old corpus saw): 8531
-  NON-CODE->CODE (the blind spot): 5267
+  CODE->CODE (what the old corpus saw): 8535
+  NON-CODE->CODE (the blind spot): 5275
 
-=== RESYNC-EVENT CENSUS: 8 events (INVISIBLE before) ===
-  swap              : 5
+=== RESYNC-EVENT CENSUS: 4 events (INVISIBLE before) ===
   missed_prefetch   : 2
-  other             : 1
-  swap-events-per-pair distribution: {1: 4, 4: 1}
-  pairs with >=1 resync: 5 of 70
+  swap              : 2
+  swap-events-per-pair distribution: {1: 1, 3: 1}
+  pairs with >=1 resync: 2 of 70
 wrote /home/wickerwaka/src/nec_test/sw/class5_alltrans.jsonl.gz and class5_resync_events.jsonl.gz

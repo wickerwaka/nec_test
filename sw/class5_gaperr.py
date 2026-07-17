@@ -70,6 +70,19 @@ def analyze_vec(seed, ws, wmax, host, image):
         ki, kip = kmap[i], kmap[i - 1]
         cg = ca[i]["t1"] - ca[i - 1]["t1"]
         mg = ka[ki]["t1"] - ka[kip]["t1"]
+        # frame-A d_cnt: cnt_next at the predecessor model access's T3 cycle.
+        _pt4 = ka[kip]["t4"]
+        _t3 = _pt4 if _pt4 is not None else ka[kip]["t1"]
+        while _t3 > 0 and kr[_t3]["t"] != 3:
+            _t3 -= 1
+        _d_cnt_a = kr[_t3]["cnt_next"] if kr[_t3]["t"] == 3 else -1
+        # QS pop class over the resume window (predecessor T4 -> successor T1)
+        _qsw = {}
+        _w0 = _pt4 if _pt4 is not None else ka[kip]["t1"]
+        for _r in range(_w0, min(ka[ki]["t1"] + 1, len(kr))):
+            _q = kr[_r]["qs"]
+            if _q:
+                _qsw[_q] = _qsw.get(_q, 0) + 1
         ge = cg - mg
         # model live-state row just before cur T1 (uncontaminated decision edge)
         d = kr[max(0, ka[ki]["t1"] - 1)]
@@ -87,6 +100,10 @@ def analyze_vec(seed, ws, wmax, host, image):
             cti=cti, mti=mti,
             m_state=_sname(d["state"]), m_occ=d["occupied"], m_qcnt=d["q_cnt"],
             m_qaged=d["q_aged"], m_evx=d["eval_ext"], m_flush=d["q_flush"],
+            # Step 1c complete keys: d_cnt_a (frame-A cnt_next @ predecessor T3),
+            # QS pop class over the window, address parity.
+            d_cnt_a=_d_cnt_a, qs_F=_qsw.get(1,0), qs_S=_qsw.get(3,0),
+            pred_par=ca[i-1]["addr"] & 1, succ_par=ca[i]["addr"] & 1,
             seed=seed, ws=ws, wmax=wmax, i=i))
     return out
 

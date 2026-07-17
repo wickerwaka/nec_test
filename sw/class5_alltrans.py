@@ -89,6 +89,15 @@ def opportunities(seed, host, image, wv, wname, tag, out, evout):
             continue
         de = kt4[kip] + 1 if (kt4[kip] + 1) < len(kr) else kt4[kip]
         e = kr[de]
+        # FRAME-A d_cnt: cnt_next latched at the PREDECESSOR's T3 state cycle
+        # (the pre-wait frame the resume/decision law keys on). For an EU
+        # predecessor (MEMW/IOW->CODE) this is the EU access's own T3 - Step 1b's
+        # EU-T4-anchoring: occ@T4+1 is already `e` (predecessor T4+1), and this is
+        # the matching d_cnt. Scan back from the predecessor T4 for its t==3 row.
+        t3r = kt4[kip]
+        while t3r > 0 and kr[t3r]["t"] != 3:
+            t3r -= 1
+        d_cnt_a = kr[t3r]["cnt_next"] if kr[t3r]["t"] == 3 else e["cnt_next"]
         cidle = sum(1 for r in range(ca[i - 1]["t4"] + 1, ca[i]["t1"])
                     if crel[r]["t"] == 0)
         midle = sum(1 for r in range(kt4[kip] + 1, kt1[ki])
@@ -126,7 +135,11 @@ def opportunities(seed, host, image, wv, wname, tag, out, evout):
                    eu_ready=e["eu_ready"], eu_req_p1=e["eu_req_p1"],
                    pf_late_rsv=e["pf_late_rsv"], pf_starved=e["pf_starved"],
                    owns_slot=e["owns_slot"], eu_rsv_dhi=e["eu_rsv_dhi"],
-                   eu_rsv_push_calc=e["eu_rsv_push_calc"])
+                   eu_rsv_push_calc=e["eu_rsv_push_calc"],
+                   # (e) eu_rsv_lead: the claim-time LEAD correction, must survive
+                   # the re-key. d_cnt_a: frame-A d_cnt (cnt_next @ predecessor T3)
+                   # for the resume/decision law + Step 1b EU-anchoring.
+                   eu_rsv_lead=e["eu_rsv_lead"], d_cnt_a=d_cnt_a)
         out.append(rec)
         nopp += 1
     # RESYNC EVENTS ARE DATA, NOT NOISE - emit each as its own row class.
