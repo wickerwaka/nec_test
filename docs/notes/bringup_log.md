@@ -1,5 +1,42 @@
 # Bring-up log
 
+## 2026-07-16 — LOW-band duration-control ATTEMPT FAILED + harness quota bug fixed
+
+Two findings, both worth not repeating.
+
+(1) HARNESS TEMP-DIR LEAK -> DISK QUOTA -> whole environment wedged (fixed,
+commit 1d0a819). run_tb_internal (causal_wrand), run_tb (check_seq) and
+class5tax's run_base each did tempfile.mkdtemp() and NEVER cleaned up: one dir
+(holding a multi-MB eudbg/out dump) leaked per TB invocation - hundreds per census.
+32,209 stale dirs (~9.3 GB) accumulated in /tmp and exceeded the user's disk QUOTA.
+Symptom was baffling: EVERY shell command failed (the Bash tool's cwd write got
+EDQUOT) while df showed the filesystem had free space; read-only tools still worked,
+which is what made it diagnosable (a Write probe returned EDQUOT). All three now use
+try/finally + shutil.rmtree, verified 0 leak over a full 400+ vector census.
+LESSON: a census that dies with a generic "TB failed"/exit-1 may be the QUOTA, not
+the RTL - check writability before blaming the design.
+
+(2) LOW-BAND DURATION CONTROL: attempted (Fable's top recommendation) and REVERTED
+- it makes things WORSE. Baseline (the landed simple veto, commit 7f81e90):
+|mass| 422, net +100, 192 impulses. With the counted pause + force-grant gating
+prefetch_ok: |mass| 580, net -46, 286 impulses (-2 exploded 14->75, -1 40->74).
+The suppression genuinely delays the resume past where the chip resumes and the
+forced slot does not land on the chip's; the lb_ctr<->cidle calibration is wrong.
+STRUCTURAL FINDING (the valuable part): prefetch_ext is consulted ONLY on the
+eval_ext cycle - the ordinary-idle commit path uses pick_any -> prefetch_ok. So
+gating prefetch_ext alone is a NO-OP from arm+1 onward. That is why three separate
+variants (simple veto, +counted pause, +force-grant) produced BYTE-IDENTICAL
+censuses (192/+100/422): everything after the arm cycle was dead code. Any resume
+DURATION control must gate prefetch_ok (both paths), not prefetch_ext. Also note a
+suppress-only gate can NEVER fix the model-LATE (-1) cases - suppression only
+delays further (Codex/Fable both said this; it is now measured).
+NEXT (do NOT blind-iterate - each census is ~40 min and 4 were burned here):
+INSTRUMENT first - dump the model's actual resume slot (successor T1 - pred_T4)
+with the FSM active and compare against the verified target table
+(occ4 age{1,2}->cidle 4, occ4 age3->3, occ3 age2->3) to calibrate lb_ctr<->cidle,
+THEN re-run one census. The landed simple veto (422) remains the best low-band
+state; the mid-band fix (d378fe6) remains clean + silicon-confirmed.
+
 ## 2026-07-16 — CLASS-5 MID-BAND fix landed (8086 insight; -10% class-5 mass)
 
 The 8086 prefetch-band rule (Ken Shirriff, righto.com: queue 0-2 -> fetch; 3-4 ->
