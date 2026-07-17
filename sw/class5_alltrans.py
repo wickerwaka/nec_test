@@ -37,6 +37,7 @@ SW = Path(__file__).resolve().parent
 sys.path.insert(0, str(SW))
 from causal_wrand import (generate, compose, run_chip, run_tb_internal,
                           accesses, bs_stream, CODE)
+from class5_align import align
 
 OUT = SW / "class5_alltrans.jsonl.gz"
 LOG = SW / "class5_alltrans.log"
@@ -53,7 +54,7 @@ def wait_vectors():
     return wd
 
 
-def opportunities(seed, host, image, wv, wname, tag, out):
+def opportunities(seed, host, image, wv, wname, tag, out, evout):
     """EVERY aligned transition, with chip cidle as ground truth."""
     cr = run_chip(image, host, use_core=False, wvec=wv)
     crel = cr[next(k for k, r in enumerate(cr) if not r["rst"]):]
@@ -68,25 +69,35 @@ def opportunities(seed, host, image, wv, wname, tag, out):
         if x["t"] == 5:
             kt4[bi] = ri
     cb, kb = bs_stream(ca), bs_stream(ka)
-    n = min(len(cb), len(kb))
-    D = next((j for j in range(n)
-              if cb[j] != kb[j] or ca[j]["addr"] != ka[j]["addr"]), n)
+    # RESYNC-TOLERANT ALIGNMENT. The old hard cutoff
+    #   D = first bus type/addr mismatch -> truncate everything after
+    # discarded streams that re-matched the chip exactly after a 2-access
+    # arbitration swap (fz91000 w3: 92/94 = 98% agreement thrown away). It bit
+    # hardest when the model was GOOD ENOUGH TO RE-ALIGN, so every historical
+    # corpus size is a FLOOR, not a count.
+    pairs, events, stop = align(ca, ka)
+    kmap = {ci: ki for ci, ki in pairs}          # chip idx -> model idx
     nopp = 0
-    for i in range(1, D):
-        # NO CODE->CODE FILTER. Every aligned transition qualifies.
-        if ca[i - 1]["t4"] is None or (i - 1) not in kt4 or i not in kt1:
+    for i in sorted(kmap):
+        if i == 0 or (i - 1) not in kmap:
             continue
-        de = kt4[i - 1] + 1 if (kt4[i - 1] + 1) < len(kr) else kt4[i - 1]
+        # NO CODE->CODE FILTER. Every aligned transition qualifies.
+        if ca[i - 1]["t4"] is None:
+            continue
+        ki, kip = kmap[i], kmap[i - 1]
+        if kip not in kt4 or ki not in kt1:
+            continue
+        de = kt4[kip] + 1 if (kt4[kip] + 1) < len(kr) else kt4[kip]
         e = kr[de]
         cidle = sum(1 for r in range(ca[i - 1]["t4"] + 1, ca[i]["t1"])
                     if crel[r]["t"] == 0)
-        midle = sum(1 for r in range(kt4[i - 1] + 1, kt1[i])
+        midle = sum(1 for r in range(kt4[kip] + 1, kt1[ki])
                     if kr[r]["t"] == 0)
         label = "go" if cidle <= 1 else ("pause" if cidle >= 3 else "amb")
         # ---- NEW AXES ----
         # QS pop class over the window: QS codes seen (1=F/RNI, 2=E, 3=S/NXT)
         qsw = defaultdict(int)
-        for r in range(kt4[i - 1], min(kt1[i] + 1, len(kr))):
+        for r in range(kt4[kip], min(kt1[ki] + 1, len(kr))):
             q = kr[r]["qs"]
             if q:
                 qsw[q] += 1
@@ -94,7 +105,7 @@ def opportunities(seed, host, image, wv, wname, tag, out):
                    bs_pred=BSNAME.get(cb[i - 1], str(cb[i - 1])),
                    bs_succ=BSNAME.get(cb[i], str(cb[i])),
                    cidle=cidle, model_cidle=midle, ge=midle - cidle,
-                   label=label, pred_tw=ka[i - 1]["tw"], succ_tw=ka[i]["tw"],
+                   label=label, pred_tw=ka[kip]["tw"], succ_tw=ka[ki]["tw"],
                    # predecessor + successor ADDRESS PARITY (HL flip-flop)
                    pred_par=ca[i - 1]["addr"] & 1, succ_par=ca[i]["addr"] & 1,
                    # QS pop class over the window
@@ -104,12 +115,21 @@ def opportunities(seed, host, image, wv, wname, tag, out):
                    eu_req=e["eu_req"], eu_consuming=e["eu_consuming"],
                    q_aged=e["q_aged"], pf_lim=e["pf_lim"],
                    # SUCCESSOR-SIDE frame: state at the successor's own T1
-                   succ_occ=kr[kt1[i]]["occupied"],
-                   succ_qcnt=kr[kt1[i]]["q_cnt"],
-                   succ_eu_req=kr[kt1[i]]["eu_req"])
+                   succ_occ=kr[kt1[ki]]["occupied"],
+                   succ_qcnt=kr[kt1[ki]]["q_cnt"],
+                   succ_eu_req=kr[kt1[ki]]["eu_req"])
         out.append(rec)
         nopp += 1
-    return nopp
+    # RESYNC EVENTS ARE DATA, NOT NOISE - emit each as its own row class.
+    for e in events:
+        cls = ("swap" if (e["shift"] == 0 and len(e["chip"]) == len(e["model"])
+                          and sorted(e["chip"]) == sorted(e["model"]))
+               else ("missed_prefetch" if not e["model"] else "other"))
+        evout.append(dict(seed=seed, w=wname, tag=tag, ci=e["ci"],
+                          shift=e["shift"], cls=cls,
+                          chip=[[b, a] for b, a in e["chip"]],
+                          model=[[b, a] for b, a in e["model"]]))
+    return nopp, len(pairs), stop[0], len(events)
 
 
 def main():
@@ -127,6 +147,7 @@ def main():
 
     log(f"start {time.ctime()}  ALL-TRANSITION corpus (no CODE->CODE filter)")
     out = []
+    evout = []
     wvs = wait_vectors()
     for tag, seeds in (("disc", a.discovery), ("held", a.heldout)):
         for seed in seeds:
@@ -135,9 +156,11 @@ def main():
             for wname, wv in wvs.items():
                 t0 = time.time()
                 try:
-                    k = opportunities(seed, a.host, image, wv, wname, tag, out)
-                    log(f"  {tag} fz{seed} {wname}: {k} opps "
-                        f"({time.time()-t0:.0f}s) total={len(out)}")
+                    k, np_, st, ne = opportunities(seed, a.host, image, wv,
+                                                    wname, tag, out, evout)
+                    log(f"  {tag} fz{seed} {wname}: {k} opps aligned={np_} "
+                        f"resyncs={ne} stop={st} ({time.time()-t0:.0f}s) "
+                        f"total={len(out)}")
                 except Exception as ex:
                     log(f"  {tag} fz{seed} {wname}: ERR {ex}")
                     traceback.print_exc()
@@ -153,7 +176,26 @@ def main():
     cc = sum(v for k, v in tr.items() if k == ("CODE", "CODE"))
     log(f"\n  CODE->CODE (what the old corpus saw): {cc}")
     log(f"  NON-CODE->CODE (the blind spot): {len(out)-cc}")
-    log(f"wrote {OUT}")
+    # ---- RESYNC-EVENT CENSUS BY CLASS (new; possibly large) ----
+    ec = defaultdict(int)
+    for e in evout:
+        ec[e["cls"]] += 1
+    log(f"\n=== RESYNC-EVENT CENSUS: {len(evout)} events (INVISIBLE before) ===")
+    for k, v in sorted(ec.items(), key=lambda x: -x[1]):
+        log(f"  {k:18s}: {v}")
+    pp = defaultdict(int)
+    for e in evout:
+        pp[(e["seed"], e["w"])] += 1
+    if pp:
+        dist = defaultdict(int)
+        for v in pp.values():
+            dist[v] += 1
+        log(f"  swap-events-per-pair distribution: {dict(sorted(dist.items()))}")
+        log(f"  pairs with >=1 resync: {len(pp)} of {len(wvs)*14}")
+    with gzip.open(SW / "class5_resync_events.jsonl.gz", "wt") as f:
+        for e in evout:
+            f.write(json.dumps(e) + "\n")
+    log(f"wrote {OUT} and class5_resync_events.jsonl.gz")
     logf.close()
 
 
