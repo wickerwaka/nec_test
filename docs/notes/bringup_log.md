@@ -1315,3 +1315,32 @@ of any call.
 0 errors, 0 critical warnings, .sof produced. The direct-commit resume slot is
 real hardware, not sim-only - the last structural doubt on the sixth attempt
 cleared before flash.
+
+
+## FRESHNESS RULE - QUARTUS COROLLARY (byte-identical content breaks mtime)
+
+A git checkout that restores byte-identical RTL updates the file MTIME without
+changing content. Quartus smart-compile then correctly SKIPS recompilation (its
+own checksum sees no change), leaving the .sof older than the RTL by mtime while
+the .sof is in fact current. The mtime freshness check flags STALE; it is a false
+positive, but do NOT resolve it by reasoning ("I know the content matches").
+RESOLUTION: force a full compile - `rm -rf db incremental_db output_files/*.sof`
+then recompile - so the .sof is unambiguously regenerated. Confirmed: the forced
+full compile produced a fresh .sof (09:10) and the flash then verified clean.
+A plain re-run of `quartus_sh --flow compile` is NOT enough - smart-compile skips
+it; you must delete the databases.
+
+## SCRIPTS CARRYING THE wv BUG SHAPE (do NOT re-trust their numbers)
+
+The `[_r.Random(seed).randint() for _ in range(4096)]` constant-vector bug (#9)
+is pervasive. The CRITICAL class-5 chain is CLEAN (class5_bandage, class5_alltrans,
+class5_flushtraj, class5_gaperr[fixed]). These SECONDARY scripts still carry it -
+any historical finding of theirs used UNIFORM-wait vectors where it intended
+random, and must be re-derived before being relied upon:
+  sw/class5_factorW.py, sw/eureq0_char.py, sw/class5_lmin.py,
+  sw/flashcheck_store.py, sw/moffs_optcensus.py,
+  and many exp_*/cmd_* paths in sw/causal_wrand.py (lines 1022,1135,1206,1382,
+  1507,1650,1827,1971,2065,2215,2275,2376,2465, ...).
+NOT the bug: causal_wrand:157 (k*7+3)%(wmax+1) is deterministic-by-design.
+The proxy (px.py over the bandage corpus) and the corrected census are correct;
+this list is about SECONDARY analyses whose absolute numbers are suspect.
