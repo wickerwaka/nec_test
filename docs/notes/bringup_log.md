@@ -1,5 +1,25 @@
 # Bring-up log
 
+> **READ FIRST: [class5_campaign_record.md](class5_campaign_record.md)** — the standalone
+> closing record of the class-5 timing campaign (floor table + closure classes, the
+> CODE→EU verdict, laws/deletions/kills, the instrument-failure family, method rules, and
+> the what-first list). This bring-up log is the chronological detail beneath it.
+
+## 2026-07-17 — CODE→EU PROBE: a key SEPARATES (CODE→MEM ge=-2, ~72u). Block NOT key-exhausted; map has one open fixable cell. Campaign record archived.
+
+The last never-attacked block (CODE→EU, 125u, 23% of census). Form-free, board-free
+(sw/class5_codeeu.py + .log), fit(even)->FREEZE->score(odd). RESULT: eu_kind=MEM
+SEPARATES - CODE->MEM (MEMW store + MEMR load) is a near-CONSTANT ge=-2 (36/38=95%, model
+places the EU access 2 clocks LATE), GENERALISES on both seed groups (even 28/30, odd 8/8
+PURE), FLAT across cur_tw 0-5 (wait-INDEPENDENT) and d_cnt@EU-T3. Commit path dominantly
+TI_PLAIN (30/36), NOT the eval_ext-deferred ext_ok path (5) - so it is the PLAIN
+EU-commit-after-CODE timing that is 2 clks late under random waits (the architect's
+ext_ok-A/B hypothesis is partly off; enumerate the plain commit). CODE->IOW scattered
+(~47u, asymptote). Per the ruling (key separates -> report cell + STOP before fix design):
+architect re-enters at the CODE->MEM -2 cell (~72u, class E attackable). Key-exhaustion
+is NOT claimed - a key WAS tried and separated. Campaign record committed:
+docs/notes/class5_campaign_record.md (cross-linked above). New: sw/class5_codeeu.py + .log.
+
 ## 2026-07-17 — FORECAST PROBE -> KILL. Both candidate signals fail to separate at the commit cycle. The WHOLE MEMW->CODE store-resume cell (~28-34u) PARKS: mechanism-understood, IRREDUCIBLE-BY-CONSTRUCTION. Last named cell CLOSED.
 
 BUILD was decided (board 3/3 chip_occ5), but the fix requires a FORECAST of the off-3
