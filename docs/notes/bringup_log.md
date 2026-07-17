@@ -1036,3 +1036,44 @@ slips to 4. This is why (a) the old veto-then-retry quantizer could only ever
 produce 4, (b) the flush path DOES reach 3 - it commits direct, and (c) a
 staged-path scheduled resume leaves a 100%-armed +1 column.
 Reproduce: sw/class5_b1shadow.py instrumentation + the d[62..66] slot fields.
+
+
+## GOLDENS CANNOT GATE CLASS-5 WORK (read this before trusting a green run)
+
+The class-5 law arms only under waits: **0 arms over 50,388 w0 cycles** (eval_ext
+is never asserted at w0). So the w0 golden is STRUCTURALLY UNREACHABLE by it.
+
+Measured, not theorised: a class-5 build that had catastrophically diverged the
+waited bus sequence - |mass| 2939 vs 409 baseline, negative tail 1777 vs 263,
+and 842 aligned opportunities VANISHED from the corpus join - still scored
+**169000/169000 w0, 1200/1200 w1, 1200/1200 w3**.
+
+    A GOLDEN-GREEN CLASS-5 BUILD MEANS ALMOST NOTHING.
+
+The gates with actual power, in order:
+  1. n == 16058 on the corpus join. Any drop = the bus sequence changed = the
+     build is not a timing candidate at all, whatever its mass looks like.
+  2. the class-5 proxy (model cidle vs the 16058 chip labels): mass, signed
+     histogram, negative tail, and the armed/unarmed split of each column.
+  3. goldens - necessary, never sufficient.
+
+## VERILATOR ASSERTIONS: --assert IS NOW WIRED IN (sw/check_core.py)
+
+Assertions were being SILENTLY COMPILED OUT. A per-arm class-5 SVA was written,
+ran green, and reported nothing - because it never executed. An assertion that
+cannot fire manufactures false confidence.
+
+--assert is now always passed by check_core.build(). Verified live by inserting
+a deliberate always-false probe and confirming it trips with a real %Error +
+$stop, then removing it. Re-verify the same way after touching the build.
+
+## PHASE-R INVARIANT: a new COMMIT_DIRECT slot is a new DISPLAY cause
+
+slot_show_now = slot_fire && slot_mode == COMMIT_DIRECT, and the Phase-R
+equivalence probe asserts slot_show_now == ext_show. So ANY new direct slot
+trips it unless ext_show gains a matching cause with THE SAME GUARDS (including
+state == ST_TI && !nxt_live, which ext_show's existing terms get implicitly via
+eval_ext). Adding a class-5 resume slot fights this machinery term by term.
+The Phase-S hook (selected_prefetch_grant) exists precisely so a demand
+scheduler can RE-POINT the grant instead of adding a slot - that is the intended
+integration point.
