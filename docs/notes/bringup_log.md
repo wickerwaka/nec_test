@@ -1275,3 +1275,43 @@ RULE: state the sign convention explicitly at every gap-error claim, and when
 mapping proxy<->census, map by DIRECTION (model early / model late), never by the
 bare sign of ge. This is the eighth instrument-family trap and the second sign/
 frame inversion the campaign has caught (the first: position-locked % agreement).
+
+
+## (9th, and the biggest) THE PRIMARY CENSUS NEVER RAN RANDOM WAITS
+
+The random-wait match is the stated #1 priority. The primary census tool
+(class5_gaperr) generated its wait vectors like this:
+
+    wv_of(ws, wmax) = [_r.Random((ws<<8)|wmax).randint(0,wmax) for _ in range(4096)]
+
+A FRESH Random(seed) is constructed PER ELEMENT, so every element is the same
+first draw -> the whole 4096-entry vector is a CONSTANT (uniform wait). The
+per-(ws,wmax) constants are mostly 0 (= w0). So the ENTIRE gaperr census history
+(422, 308, 188, and the sixth-attempt 114) was a DEGENERATE uniform-wait census,
+heavily w0-weighted - it NEVER exercised per-cycle-random waits.
+Fixed: one Random, drawn 4096 times.
+Impact: the real random-wait census is ~5x the degenerate number (direct-path
+544 vs degenerate 114; delta-fix 834 vs degenerate 188). Every historical
+"census mass" understated the real class-5 error ~5x.
+
+STRUCTURAL RATIO, settled while finding this: gaperr's ge (interval delta) and
+its cti-mti (idle delta) are IDENTICAL on every seed set - the T1..T4 active span
+is the same chip-vs-model (same accesses, same waits applied identically), so
+interval delta == idle delta. The true census/idle-proxy ratio is 1.00. The
+recalib-derived 1.47 ratio, "417 baseline", "1/3 non-idle mass", and the ordering
+re-sizing built on them were all artifacts of recalib's OWN (separate) mass bug.
+recalib had CORRECT random vectors but BROKEN masses (307 != its 169 proxy);
+gaperr had CORRECT masses but BROKEN vectors. Both retired/fixed accordingly.
+
+THE SAVING GRACE (why every relative decision survived): the PROXY chain (px.py
+over the bandage corpus) used class5_bandage.py's CORRECT wv generation
+(one Random per vector, r4.3/r7.7 proper per-cycle random) THROUGHOUT. So every
+accept/reject was made on random-wait-inclusive data. 834->544 on the corrected
+census confirms those relative decisions generalize to the real metric. The bug
+corrupted the ABSOLUTE census numbers and the map's sizing, never the direction
+of any call.
+
+## SLOT_LAW_RESUME synthesizes clean on Quartus 17.1 (sixth-attempt build)
+0 errors, 0 critical warnings, .sof produced. The direct-commit resume slot is
+real hardware, not sim-only - the last structural doubt on the sixth attempt
+cleared before flash.
