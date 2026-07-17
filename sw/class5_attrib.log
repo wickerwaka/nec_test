@@ -1,0 +1,46 @@
+=== 2a: ATTRIBUTION OF THE >=+2 BLOCK ===
+  n=40 rows, 126 units
+  ge dist: {2: 6, 3: 26, 4: 4, 5: 4}
+
+  PRE-REGISTERED HYPOTHESIS: lowband FALSE PAUSE -> model 4, chip 1 -> +3
+  rows with model==4 AND chip==1 (the exact signature): 26/40  (65%)
+    of those, lowband-armed: 2
+    of those, law-armed    : 0
+    of those, flush-window : 0
+
+  --- (model,chip) pairs across the whole >=+2 block ---
+    model=4   chip=1  :  26  (ge=+3)
+    model=5   chip=3  :   4  (ge=+2)
+    model=6   chip=1  :   3  (ge=+5)
+    model=5   chip=1  :   3  (ge=+4)
+    model=6   chip=4  :   2  (ge=+2)
+    model=8   chip=4  :   1  (ge=+4)
+    model=9   chip=4  :   1  (ge=+5)
+
+  --- cause census over the >=+2 block ---
+    NEITHER armed (legacy path)     :  30  (75%)
+    law-armed ONLY                  :   6  (15%)
+    lowband-armed ONLY              :   2  (5%)
+    BOTH armed                      :   2  (5%)
+
+  >> dominant cause share: 75%   PASS (>=40%)
+
+  --- >=+2 by (occ, age) ---
+    {(2, 0): 4, (4, 1): 1, (4, 2): 1, (4, 3): 2, (4, 4): 15, (4, 5): 10, (4, 6): 3, (4, 7): 1, (4, 15): 1, (5, 0): 2}
+
+=== 2b: ATTRIBUTION OF THE NEGATIVE TAIL ===
+  n=26 rows, 85 units
+  --- (model,chip) pairs ---
+    model=1   chip=4  :   4  (ge=-3)
+    model=1   chip=3  :   3  (ge=-2)
+    model=8   chip=11 :   2  (ge=-3)
+    model=11  chip=16 :   2  (ge=-5)
+    model=9   chip=12 :   2  (ge=-3)
+    model=12  chip=15 :   2  (ge=-3)
+    model=13  chip=14 :   1  (ge=-1)
+    model=10  chip=13 :   1  (ge=-3)
+
+  by (occ@T4+1, q_cnt): {(0, 0): 1, (2, 0): 2, (3, 1): 4, (5, 3): 3, (6, 4): 15, (6, 6): 1}
+  occ3/qcnt2 share: 0/26 = 0%  
+
+wrote /home/wickerwaka/src/nec_test/sw/class5_attrib.json

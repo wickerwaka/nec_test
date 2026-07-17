@@ -788,7 +788,9 @@ def run_tb_internal(image, n, wvec):
                 sh_fired=int(d[57]) if len(d) > 57 else -1,
                 sh_d_cnt=int(d[58]) if len(d) > 58 else -1,
                 sh_d_tw=int(d[59]) if len(d) > 59 else -1,
-                midband_pause=int(d[60]) if len(d) > 60 else -1,
+                # d[60] is law_block on the banked build (midband_pause was
+                # DELETED); naming it midband_pause silently mislabelled it.
+                law_block=int(d[60]) if len(d) > 60 else -1,
                 lowband_pause=int(d[61]) if len(d) > 61 else -1))
             pend = None
     return rows
