@@ -1,5 +1,74 @@
 # Bring-up log
 
+## 2026-07-17 — ARC 2 ARBITER-SURFACE PROBE: HARD KILL. The 288u/161u paired mass is NOT the want_eu>prefetch arbitration family (88% is prefetch-timing); no want_eu-demotion discriminator separates it. Blast-radius surgery NO-GO. Rule B DROPPED.
+
+Board-free probe (sw/class5_arbiter_probe.py, sw/class5_arbiter_probe.log). Added 4
+APPEND-ONLY commit-slot observability fields to the eudbg dump (tb d[62..65] =
+want_eu, slot_fire, slot_id, eu_kind - all existing DUT signals; DUT bit-identical;
+TB rebuilt clean, no %Error). The chip ground truth is already in
+class5_census544.jsonl.gz; the probe only re-derives the MODEL arbiter state via the
+Verilator TB and JOINS on successor-access-only fields (cur_bs/cur_par/cur_tw +
+m_state/m_occ/m_qcnt/m_qaged - NOT prev_bs/mti, which are alignment-dependent and
+diverge from model-adjacency exactly at the swap sites). Join 259/286 (91%) matched;
+that match rate - model signatures from the NEW binary against census fields from the
+OLD binary - IS the bit-identical freshness confirmation (a changed DUT would collapse
+it). Corollary applied: scored against the REAL arbiter (want_eu), baseline printed.
+
+=== THE HYPOTHESIS IS FALSIFIED BY THE DIRECT want_eu SIGNAL ===
+Premise: at the swap sites the model committed the EU access via want_eu, and a
+conditional want_eu demotion (starved queue + demand-deadline) recovers the 288u
+paired mass. Measuring want_eu directly at every census successor commit:
+  - want_eu-decided census mass is only 122u of 544 (22%). The other 344u (78%) are
+    prefetch/other commits (want_eu=0) a want_eu demotion CANNOT touch.
+  - Of the strict-paired mass (161u, my documented reconstruction; PROBE 1's 288u
+    used a lost ad-hoc matcher): 142u (88%) are CODE-successor PREFETCH commits
+    (want_eu=0); only ~1u is actually want_eu-committed. Paired transitions are
+    dominated by CODE->CODE (50 rows) = prefetch-RESUME timing, not EU/CODE
+    arbitration. PROBE 1's label "paired = arbitration-swap family (owns_slot)" was
+    itself an inference the direct arbiter signal does NOT support - a re-attribution.
+
+=== GO GATE: HARD KILL ON BOTH CRITERIA (form-free grid, board-free false-flip) ===
+Agreeing (ge==0) want_eu denominator = 3883 model want_eu commits NOT joined to a
+nonzero census row (board-free). A demotion predicate firing there is a false-flip.
+  predicate        cover(want_eu mass)   false-flip(vs 3883 correct orderings)
+  q_cnt<=1  (the candidate)   32% (39u)        58.1%   <- inseparable
+  q_cnt<=1 & kind=MEM          1% ( 1u)        26.7%   (the "REP-string MEM" guess: the
+                                                        q_cnt<=1 want_eu mass is IO, not MEM)
+  q_cnt<=1 & kind=IO          31% (38u)        31.4%
+  d_cnt<=1 (best cover)       60% (73u)        65.0%
+  eval_ext                    38% (46u)        73.1%
+NO predicate reaches >=60% cover with <2% false-flip; every coverage-bearing predicate
+fires on 7-77% of CORRECT orderings. KILL criteria (coordinator's own): coverage <40%
+for the candidate AND false-flip >=2% for ALL -> the paired mass is not one mechanism,
+and no separating discriminator exists. The conditional-want_eu-demotion arbiter
+surgery (largest-radius surgery of the campaign - every pick_* mux, defer paths,
+display laws) is a NO-GO. Do NOT enter the blast radius.
+
+=== RULE B: DROPPED ===
+Per the plan, Rule B lands only inside the arbiter fix's commit-series (shared census)
+and is dropped if the arbiter probe fails. The probe failed -> Rule B is dropped as a
+pipelined change. It remains a documented, derived, validated patch in the prior
+log entry (+0.3-0.4pt, fi 0.062%) if ever revisited standalone, but it is NOT pursued.
+
+=== PARALLEL FINDINGS (sized, not acted on) ===
+(4) EU-anchored resume, *->CODE with EU predecessor: 110u (IOW->CODE 58u, MEMW->CODE
+38u, MEMR->CODE 14u). An INDEPENDENT resume-timing mechanism (successor is a CODE
+prefetch, want_eu=0), NOT arbitration. Form-free resume fit is a separate future
+investigation; sized here.
+(5) Carve-out re-scores vs the REAL baseline: pf_starved fires at 47 census sites /
+87u (entangled with live census error); pf_late_rsv 2u, owns_slot 6u, eu_rsv_lead 2u.
+These are association counts, not deletion counterfactuals - a real deletion test needs
+an RTL toggle + census (behavior-change run, out of this board-free probe's scope).
+FREEZE holds: they are real-outcome-fitted; the prior (they STAY) stands.
+
+=== RE-ATTRIBUTION FOR THE ARCHITECT ===
+The 544u census is dominated by PREFETCH-timing (want_eu=0): 344u of 466 matched is
+prefetch commits, concentrated at (q_cnt 2-4, MEM) 150u and (q_cnt<=1, MEM) 133u.
+This is CODE-resume / prefetch-cadence territory (the class-5 resume law's domain,
+declared at its honest floor), NOT an arbitration surface. The want_eu>prefetch
+priority is not the lever. Architect re-enters to re-attribute the prefetch-timing
+mass; the arbiter-surgery arc closes NO-GO here.
+
 ## 2026-07-17 — ARC 2 STEP 2 DERIVATION: re-key benefit is ~10x smaller than the audit headline (PROXY ARTIFACT). Pre-shadow findings boundary; enable NOT started.
 
 The Step-2 task hands a benefit premise: *->CODE prefetch grant 93.09% -> 98.85%

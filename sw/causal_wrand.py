@@ -791,7 +791,12 @@ def run_tb_internal(image, n, wvec):
                 # d[60] is law_block on the banked build (midband_pause was
                 # DELETED); naming it midband_pause silently mislabelled it.
                 law_window=int(d[60]) if len(d) > 60 else -1,
-                lowband_pause=int(d[61]) if len(d) > 61 else -1))
+                lowband_pause=int(d[61]) if len(d) > 61 else -1,
+                # d[62..65]: arbiter commit-slot observability (Arc-2 probe).
+                want_eu=int(d[62]) if len(d) > 62 else -1,
+                slot_fire=int(d[63]) if len(d) > 63 else -1,
+                slot_id=int(d[64]) if len(d) > 64 else -1,
+                eu_kind=int(d[65]) if len(d) > 65 else -1))
             pend = None
     return rows
 

@@ -475,7 +475,12 @@ always @(posedge clk) begin
         // d[49]=eu_hold, d[50]=cpu_clk appended (Phase-1/2 flush+trajectory
         // attribution). APPEND-ONLY observability: both are existing signals,
         // the DUT is untouched and remains bit-identical to HEAD 1f6004c.
-        $fdisplay(fo, "d %0d %0d %0d %0d %0d %0d %05x %0d %02x %02x %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %02x %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %02x %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d",
+        // d[62..65]: ARBITER COMMIT-SLOT observability (Arc-2 arbiter-surface
+        // probe). want_eu = the ready-EU claim; slot_fire/slot_id = the Phase-R
+        // canonical arbiter's fired slot this cycle; eu_kind = the EU access kind
+        // (0=mem 1=io 2=inta 3=halt). All existing DUT signals - APPEND-ONLY
+        // observability, the DUT is untouched and remains bit-identical to HEAD.
+        $fdisplay(fo, "d %0d %0d %0d %0d %0d %0d %05x %0d %02x %02x %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %02x %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %02x %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d",
                   dut.u_eu.state, dut.u_eu.q_pop,
                   dut.u_biu.q_avl, dut.u_biu.q_cnt,
                   dut.u_eu.eu_wrap, dut.u_biu.cur_wrap,
@@ -517,7 +522,11 @@ always @(posedge clk) begin
                   // d[61]=lowband_pause.
                   dut.u_biu.law_arm, dut.u_biu.law_sel,
                   dut.u_biu.law_due, dut.u_biu.law_dcnt, dut.u_biu.law_dtw,
-                  dut.u_biu.law_window, dut.u_biu.lowband_pause);
+                  dut.u_biu.law_window, dut.u_biu.lowband_pause,
+                  // d[62]=want_eu, d[63]=slot_fire, d[64]=slot_id (enum ordinal),
+                  // d[65]=eu_kind. Arbiter-surface commit-slot fields.
+                  dut.u_biu.want_eu, dut.u_biu.slot_fire, dut.u_biu.slot_id,
+                  dut.u_biu.eu_kind);
 end
 
 initial begin

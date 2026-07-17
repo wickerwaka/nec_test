@@ -1,0 +1,65 @@
+census nonzero rows 286, |ge| mass 544, combos 110
+
+JOIN (board-free): matched-unique 135, collided(tiebroken) 124, unmatched 27 of 286; collision key-disagreements 29 (low => attribution collision-robust)
+
+=== successor commit by arbiter branch ===
+  want_eu (ready-EU committed): 61 rows, |ge| 122
+  prefetch/other             : 198 rows, |ge| 344
+  fired_slot dist (all matched): Counter({'TI_PLAIN': 109, 'EVAL_EXT': 83, 'T3_EVAL': 36, 'LAW_RESUME': 30, 'FF_TI': 1})
+  want_eu fired_slot dist: Counter({'TI_PLAIN': 36, 'EVAL_EXT': 20, 'T3_EVAL': 5})
+
+=== paired (strict reconstruction) - IS IT THE want_eu SWAP FAMILY? ===
+  strict-paired mass 161 rows 78  (PROBE 1 ad-hoc figure was 288u; see paired() docstring)
+  paired CODE-successor (PREFETCH commit, want_eu=0) mass: 142 (88%)
+  paired want_eu-committed (the hypothesised arbitration swap) mass: 19 (12%)  <-- the arbiter surgery's actual reachable target
+  paired by transition: [('CODE->CODE', 50), ('IOW->CODE', 13), ('CODE->IOW', 8), ('MEMR->CODE', 3), ('MEMW->CODE', 2), ('CODE->MEMR', 1)]
+
+=== census mass by (want_eu, q_cnt-bucket, eu_kind) ===
+  (want_eu, q_cnt, eu_kind) -> rows, |ge|mass:
+    we=0 qcnt2-4  kind0: rows 102  mass 150
+    we=0 qcnt<=1  kind0: rows  69  mass 133
+    we=1 qcnt2-4  kind0: rows  31  mass 62
+    we=0 qcnt2-4  kind1: rows  27  mass 61
+    we=1 qcnt<=1  kind1: rows  16  mass 38
+    we=1 qcnt>4   kind0: rows   9  mass 13
+    we=1 qcnt2-4  kind1: rows   4  mass 8
+    we=1 qcnt<=1  kind0: rows   1  mass 1
+
+=== (GO GATE) form-free want_eu-demotion discriminator ===
+  TARGET want_eu census mass 122 (61 rows);  AGREEING (ge==0) want_eu commits 3883 (false-flip denominator)
+  BASELINE (real arbiter, no demotion): coverage 0%, false-flip 0% [the fixed want_half2>want_eu>prefetch priority]
+  predicate                     cover%  covmass  falseflip%  ff_rows
+  q_cnt<=0                          1%        1      17.05%      662  KILL(<40%)
+  q_cnt<=0 & kind=MEM               0%        0      10.02%      389  KILL(<40%)
+  q_cnt<=0 & kind=IO                1%        1       7.03%      273  KILL(<40%)
+  q_cnt<=0 & d_cnt<=1               1%        1      16.74%      650  KILL(<40%)
+  q_cnt<=0 & age>=2                 1%        1      17.05%      662  KILL(<40%)
+  q_cnt<=1                         32%       39      58.13%     2257  KILL(<40%)
+  q_cnt<=1 & kind=MEM               1%        1      26.71%     1037  KILL(<40%)
+  q_cnt<=1 & kind=IO               31%       38      31.42%     1220  KILL(<40%)
+  q_cnt<=1 & d_cnt<=1              32%       39      57.40%     2229  KILL(<40%)
+  q_cnt<=1 & age>=2                32%       39      58.13%     2257  KILL(<40%)
+  q_cnt<=2                         45%       55      76.62%     2975
+  q_cnt<=2 & kind=MEM               7%        9      41.02%     1593  KILL(<40%)
+  q_cnt<=2 & kind=IO               38%       46      35.59%     1382  KILL(<40%)
+  q_cnt<=2 & d_cnt<=1              34%       41      59.36%     2305  KILL(<40%)
+  q_cnt<=2 & age>=2                45%       55      76.62%     2975
+  eval_ext                         38%       46      73.14%     2840  KILL(<40%)
+  pf_starved                        1%        1      17.05%      662  KILL(<40%)
+  kind=IO                          38%       46      36.44%     1415  KILL(<40%)
+  d_cnt<=1                         60%       73      65.03%     2525
+  occ<=2                            4%        5      19.78%      768  KILL(<40%)
+  GATE RESULT: NO predicate reaches >=60% cover with <2% false-flip
+  NOTE: total census mass 544; want_eu-decided target is only 122 (22%) - the rest is prefetch/other commits a want_eu demotion cannot touch.
+
+=== EU-anchored resume: *->CODE with EU predecessor ===
+  rows 66  |ge| 110
+    IOW->CODE: rows 26  mass 58
+    MEMW->CODE: rows 33  mass 38
+    MEMR->CODE: rows 7  mass 14
+
+=== carve-out firing at census sites (real-baseline context) ===
+  pf_starved  : fires at 47 census sites, |ge| 87
+  pf_late_rsv : fires at 1 census sites, |ge| 2
+  owns_slot   : fires at 4 census sites, |ge| 6
+  eu_rsv_lead : fires at 2 census sites, |ge| 2
