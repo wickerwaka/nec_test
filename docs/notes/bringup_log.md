@@ -1257,3 +1257,21 @@ Corollary: an AGREEMENT claim under a tolerated shift is safe (it found a real
 alignment). It is only DISAGREEMENT claims that the shift-intolerance corrupts -
 they over-report. So the direction of the historical error is known: every
 position-locked "diverges" / "X% mismatch" was an UPPER BOUND on divergence.
+
+
+## SIGN CONVENTIONS: census and alltrans/proxy are OPPOSITE - do not conflate
+
+    census   (class5_gaperr): ge = chip_interval - model_interval
+                              -> ge = -1 means the MODEL is 1 cycle LATE (over-pause)
+    alltrans (class5_alltrans): ge = model_idle - chip_idle
+                              -> ge = +1 means the MODEL is 1 idle LATE (over-pause)
+So the census "-1:117" block and the alltrans "+1" block are THE SAME phenomenon
+(model late). The alltrans "-1" rows are the OPPOSITE (model early) and are NOT the
+census -1 block. Verified against the census's own cti-mti table (-1:121 = model
+MORE idle = late), which agrees with ge=-1 = model late.
+I nearly attributed census -1:117 using alltrans -1 rows - the inverted phenomenon.
+Caught by cross-checking the two ge definitions before reporting.
+RULE: state the sign convention explicitly at every gap-error claim, and when
+mapping proxy<->census, map by DIRECTION (model early / model late), never by the
+bare sign of ge. This is the eighth instrument-family trap and the second sign/
+frame inversion the campaign has caught (the first: position-locked % agreement).
