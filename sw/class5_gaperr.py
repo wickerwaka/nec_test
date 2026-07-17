@@ -29,6 +29,7 @@ from collections import Counter, defaultdict
 SW = Path(__file__).resolve().parent
 sys.path.insert(0, str(SW))
 import causal_wrand as C
+from class5_align import align
 from causal_wrand import (generate, compose, run_chip, run_tb_internal,
                           accesses, bs_stream, _sname, BSN, MEMR, MEMW, CODE)
 
@@ -48,22 +49,27 @@ def analyze_vec(seed, ws, wmax, host, image):
     ka = accesses([dict(t=x["t"], bs_early=x["bs"], qs=x["qs"],
                         ad_addr=x["addr"], ad_data=0) for x in kr])
     cb, kb = bs_stream(ca), bs_stream(ka)
-    n = min(len(cb), len(kb))
-    # aligned prefix: up to (excluding) the first (bs,addr) divergence
-    D = next((i for i in range(n)
-              if cb[i] != kb[i] or ca[i]["addr"] != ka[i]["addr"]), n)
+    # RESYNC-TOLERANT ALIGNMENT (was: hard first-divergence cutoff D, which
+    # truncated the entire remaining stream on a 2-access arbitration swap and
+    # so FLOORED the census mass exactly as it floored the corpus). kmap maps
+    # chip access index -> model access index over the recovered alignment.
+    pairs, _events, _stop = align(ca, ka)
+    kmap = {ci: ki for ci, ki in pairs}
     out = []
-    for i in range(1, D):
+    for i in sorted(kmap):
+        if i == 0 or (i - 1) not in kmap:
+            continue
+        ki, kip = kmap[i], kmap[i - 1]
         cg = ca[i]["t1"] - ca[i - 1]["t1"]
-        mg = ka[i]["t1"] - ka[i - 1]["t1"]
+        mg = ka[ki]["t1"] - ka[kip]["t1"]
         ge = cg - mg
         # model live-state row just before cur T1 (uncontaminated decision edge)
-        d = kr[max(0, ka[i]["t1"] - 1)]
+        d = kr[max(0, ka[ki]["t1"] - 1)]
         # Ti (idle) counts in the interval, chip vs model
         cti = sum(1 for r in range(ca[i - 1]["t4"] + 1, ca[i]["t1"])
                   if crel[r]["t"] == 0) if ca[i - 1]["t4"] else -1
-        mti = sum(1 for r in range(ka[i - 1]["t4"] + 1, ka[i]["t1"])
-                  if kr[r]["t"] == 0) if ka[i - 1]["t4"] else -1
+        mti = sum(1 for r in range(ka[kip]["t4"] + 1, ka[ki]["t1"])
+                  if kr[r]["t"] == 0) if ka[kip]["t4"] else -1
         out.append(dict(
             ge=ge, cg=cg, mg=mg,
             prev_bs=BSN.get(cb[i - 1], cb[i - 1]),

@@ -1,0 +1,28 @@
+start Fri Jul 17 06:45:19 2026  FRESH-SEED RECALIBRATION (resync vs old-cutoff)
+seeds=[90008, 90009, 90010, 90011, 90012, 90013, 90014, 90015, 90016, 90017, 91006, 91007, 91008, 91009, 91010, 91011]
+  fz90008: cumulative old=67 resync=67 proxy=67
+  fz90009: cumulative old=89 resync=89 proxy=89
+  fz90010: cumulative old=93 resync=241 proxy=108
+  fz90011: cumulative old=94 resync=242 proxy=109
+  fz90012: cumulative old=103 resync=251 proxy=118
+  fz90013: cumulative old=130 resync=278 proxy=145
+  fz90014: cumulative old=137 resync=285 proxy=152
+  fz90015: cumulative old=142 resync=299 proxy=166
+  fz90016: cumulative old=151 resync=308 proxy=175
+  fz90017: cumulative old=183 resync=343 proxy=210
+  fz91006: cumulative old=200 resync=360 proxy=227
+  fz91007: cumulative old=208 resync=368 proxy=235
+  fz91008: cumulative old=223 resync=385 proxy=252
+  fz91009: cumulative old=227 resync=389 proxy=256
+  fz91010: cumulative old=232 resync=394 proxy=261
+  fz91011: cumulative old=255 resync=417 proxy=284
+
+=== RESULT (fresh seeds, same captures, same build) ===
+  census mass, OLD hard-cutoff aligner : 255   (FLOORED)
+  census mass, RESYNC aligner          : 417   (un-floored)
+  => census floor = 162 units the cutoff hid (39% of true)
+  alltrans-proxy mass (idle-cidle delta): 284
+  w0 control (must be 0): 0
+
+  REAL RATIO census(resync) / proxy = 1.47
+done Fri Jul 17 06:46:11 2026
