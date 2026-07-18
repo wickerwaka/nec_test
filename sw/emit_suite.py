@@ -48,6 +48,10 @@ V20_DATA = SW.parent / "tests" / "v30" / "v20suite"
 
 
 def _mirror_collision(test):
+    # NOTE (2026-07-18): footprint aliasing OVER-COUNTS behavioral divergence
+    # ~950x (benign 0x90-fill prefetch aliases). This is a CHEAP PRE-FILTER HINT
+    # ONLY - the authoritative flat-validity test is behavioral (check_core
+    # --no-mirror pass that +mirror passes). Never use as accept/reject authority.
     """True if the case's memory footprint holds two DISTINCT 20-bit addresses
     that alias to the same 16-bit cell. The board captures on a 64K-mirrored
     test RAM, so a colliding golden is only valid there - a flat-1MB consumer

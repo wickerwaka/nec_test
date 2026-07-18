@@ -2145,3 +2145,23 @@ RESOLVED by the 64K-mirror discovery + flat-1MB re-sweep: the sparse bucket went
 both residuals (C4/FF.5) were positively identified as collision-dependent SST GOLDENS (their
 operand reads alias mod-64K onto loaded addresses). Now validated under +mirror; net sparse
 RTL divergences = 0.
+
+## Collision-criterion correction — footprint aliasing != behavioral divergence (2026-07-18)
+
+The footprint-based collision detector (_mirror_collision / collision_scan.collides /
+check_core.mirror_collision) OVER-COUNTED by ~950x: it flagged ANY two 20-bit addresses
+aliasing mod-64K, but most are BENIGN - e.g. two prefetch fetches into the 0x90-fill
+region (0x29090 & 0x69090 -> cell 0x9090) both read the same default 0x90 on flat AND
+mirror, so there is no divergence. The earlier "5.22% / 6.60% colliding" figures are
+RETRACTED as footprint over-counts.
+
+TRUE criterion = behavioral: a case is flat-invalid iff it fails a PURE-FLAT re-check
+(check_core --no-mirror) that a +mirror re-check passes. Over all of v0.2 the true
+flat-invalid count was 24/347000 (0.007%), not 22,897. Of the 24: 17 mirror-dependent
+(re-emitted via the three-way loop) and 7 SUSPECTED REAL DIVERGENCES kept + escalated
+(interrupt-flag cases, docs/notes/v02_suspected_divergences.md).
+
+Standing criterion (three-way, at emit + in the scanner): RTL(flat)==golden -> ACCEPT;
+RTL(flat)!=golden & RTL(mirror)==golden -> mirror-dependent, reroll; neither -> KEEP +
+flag (a chip-vs-RTL divergence is suite content, never rerolled away). The footprint
+check may remain a cheap pre-filter HINT but never the accept/reject authority.

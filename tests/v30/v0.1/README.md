@@ -91,21 +91,24 @@ harness store-stub bytes — recorded truthfully; consumers replaying
 `hash` = SHA1 of
 `json.dumps([name,bytes,initial,final,cycles],separators=(",",":"))`.
 
-## Memory model — collision-freedom (flat 1 MB)
+## Memory model — flat-1 MB validity
 
-**Stated property: every case is valid on a flat 1 MB address space.** The capture
-harness's test RAM is 64 KB mirrored across the 1 MB space (20-bit addresses alias to
-their low 16 bits), so a case whose footprint contains two *distinct* 20-bit addresses
-that collide mod-64K would read a mirror-served byte a flat-memory emulator cannot
-reproduce. The emitter therefore **rejects (rerolls) any case with a mod-64K footprint
-collision** — footprint = every memory bus touch in the window (instruction fetch,
-prefetch, operand read/write, stack, IVT) plus loaded and written ram. A post-hoc
-`_mirror_collision` scan over the shipped suite is **0%**. Consumers on flat memory
-(i.e. every real emulator) can replay `initial.ram` and reproduce `cycles` exactly with
-no mirror emulation.
+**Stated property: every case is verified flat-valid — the chip-captured behavior is
+reproduced under a flat 1 MB memory model.** The capture harness's test RAM is 64 KB
+mirrored across the 1 MB space (20-bit addresses alias to their low 16 bits), so a case
+could in principle be shaped by a mirror-served byte a flat-memory emulator cannot
+reproduce. Validity is established **behaviorally**, not by footprint: a case is
+flat-valid iff replaying it on a flat 1 MB memory reproduces the captured `cycles` and
+`final` state (verified by re-check). Mirror-dependent captures — where flat replay
+diverges but 64 KB-mirrored replay matches — are **re-emitted** until flat-valid. (Note:
+a mere mod-64K *footprint* alias is NOT a divergence — e.g. two prefetch fetches into the
+0x90-fill region alias to the same cell but both read the default 0x90 on flat and mirror
+alike; only aliases that change an *observed* byte matter, which is why the check is
+behavioral.) A chip-vs-emulator disagreement that is memory-model-independent is retained
+as suite content, not rerolled away.
 
-(Note: the upstream SingleStepTests **V20** suite does *not* guarantee this — a small
-number of its cases are mirror-dependent; see `docs/notes/singlesteptests_v20.md`.)
+(Note: the upstream SingleStepTests **V20** suite does *not* guarantee flat-validity — a
+small number of its cases are mirror-dependent; see `docs/notes/singlesteptests_v20.md`.)
 
 ## Known v0.1 limitations
 

@@ -15,6 +15,10 @@ import sys, gzip, json, glob, os, argparse, re
 
 
 def collides(t):
+    # NOTE (2026-07-18): footprint aliasing OVER-COUNTS behavioral divergence
+    # ~950x (benign 0x90-fill prefetch aliases). This is a CHEAP PRE-FILTER HINT
+    # ONLY - the authoritative flat-validity test is behavioral (check_core
+    # --no-mirror pass that +mirror passes). Never use as accept/reject authority.
     a = set()
     for row in t["cycles"]:
         if row[7] in ("CODE", "MEMR", "MEMW"):
