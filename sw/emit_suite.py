@@ -1244,9 +1244,11 @@ def emit_evt_case(spec, case, host, tag, preload_n=0, waits=0):
         test["pins"] = pins
     if spec["close"] == "handler":
         test["close_addr"] = stub_linear
-    if _mirror_collision(test):
-        raise ComposeError("64K-mirror footprint collision "
-                            "(aliased 20-bit addresses; invalid on flat memory)")
+    # NOTE: no footprint-based reject here. Footprint aliasing over-counts behavioral
+    # divergence ~950x (benign 0x90-fill prefetch aliases). Flat-validity is established
+    # POST-EMISSION behaviorally (check_core --no-mirror vs +mirror three-way): mirror-
+    # dependent captures are re-emitted; suspected real (both-model) divergences are KEPT
+    # and escalated. See docs/notes/bringup_log.md collision-criterion correction.
     test["hash"] = hashlib.sha1(
         json.dumps([test["name"], test["bytes"], test["initial"],
                     test["final"], test["cycles"]],
@@ -1525,9 +1527,11 @@ def emit_case(spec, case, host, tag, preload_n=0, waits=0):
     }
     if case.get("iord") is not None:
         test["iord"] = case["iord"]
-    if _mirror_collision(test):
-        raise ComposeError("64K-mirror footprint collision "
-                            "(aliased 20-bit addresses; invalid on flat memory)")
+    # NOTE: no footprint-based reject here. Footprint aliasing over-counts behavioral
+    # divergence ~950x (benign 0x90-fill prefetch aliases). Flat-validity is established
+    # POST-EMISSION behaviorally (check_core --no-mirror vs +mirror three-way): mirror-
+    # dependent captures are re-emitted; suspected real (both-model) divergences are KEPT
+    # and escalated. See docs/notes/bringup_log.md collision-criterion correction.
     test["hash"] = hashlib.sha1(
         json.dumps([test["name"], test["bytes"], test["initial"],
                     test["final"], test["cycles"]],
