@@ -69,6 +69,12 @@ HANDLER_OFF = 0x0400              # IVT-0 handler (V20 convention)
 # wait-state emissions. A too-small value fails loudly ("no done
 # marker") and the case retries.
 EMIT_CAP = 4096  # was 1536 (32db59a partial-capture); done marker sits past 1536 -> truncated -> spurious 'no done marker'. 4096 = capture-buffer size.
+# Golden emission MUST run on the SOCKETED REAL CHIP (use_core=False), not the
+# internal v30_core (use_core=True). The internal EU does not implement the 0x63
+# undocumented no-op used as the prefetch preamble (PRELOAD_BYTES) -> preloaded
+# cases run away. use_core was added AFTER v0.1 emission (2035cce, post-8b5a7d7),
+# so v0.1 always used the socket; emission was never pinned. Pin it here.
+EMIT_USE_CORE = False
 
 
 #----------------------------------------------------------------------------
@@ -1083,7 +1089,7 @@ def emit_evt_case(spec, case, host, tag, preload_n=0, waits=0):
                                     stub_linear=stub_linear)
     recs, fired = run_image(image, host, tag, waits=waits, evt=evt,
                             iord=None, pins=pins or None, want_fired=True,
-                            cap=EMIT_CAP)
+                            cap=EMIT_CAP, use_core=EMIT_USE_CORE)
     if evt and not fired:
         raise RunError("event did not fire")
     res = parse_result(recs, meta)
@@ -1386,7 +1392,8 @@ def emit_case(spec, case, host, tag, preload_n=0, waits=0):
                                     ram=ram, ivt=ivt,
                                     stub_linear=stub_linear)
     recs = run_image(image, host, tag, waits=waits,
-                     iord=case.get("iord"), cap=EMIT_CAP)
+                     iord=case.get("iord"), cap=EMIT_CAP,
+                     use_core=EMIT_USE_CORE)
     res = parse_result(recs, meta)
 
     rows, events, i0, i1, q0, qf, fetched, memrd = \
@@ -1568,7 +1575,7 @@ def cmd_preload_cal(host):
               "DS0": 0x9999, "DS1": 0xAAAA, "SS": 0xBBBB,
               "PS": 0x0000, "PC": 0x0500, "PSW": 0x08D5}
     image, meta = testimage.compose(regs=inject, instr=PRELOAD_BYTES * 8)
-    recs = run_image(image, host, tag="pc0")
+    recs = run_image(image, host, tag="pc0", use_core=EMIT_USE_CORE)
     res = parse_result(recs, meta)
     diffs = {k: (v, res["regs"].get(k)) for k, v in
              testimage.compose(regs=inject, instr=b"")[1]["regs_in"].items()
@@ -1580,7 +1587,7 @@ def cmd_preload_cal(host):
         instr = PRELOAD_BYTES * n + b"\x90"
         image, meta = testimage.compose(
             regs={"PS": 0, "PC": 0x0500}, instr=instr)
-        recs = run_image(image, host, tag=f"pc{n}")
+        recs = run_image(image, host, tag=f"pc{n}", use_core=EMIT_USE_CORE)
         try:
             rows, events, i0, i1, q0, qf, _, _ = \
                 build_rows(recs, meta["anchor_linear"], n_skip_f=n)

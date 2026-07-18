@@ -529,7 +529,7 @@ def main():
                     exp = dict(c["initial"]["regs"]); exp.update(c["final"]["regs"])
                     gf = (sims.get(c["idx"]) or {}).get("final") or {}
                     print(f"  {op} idx {c['idx']} ({c['name']!r}): arch diff "
-                          f"reg_bad={res['reg_bad']} ram_bad={res['ram_bad']}"
+                          f"reg_bad={res.get('reg_bad', [])} ram_bad={res.get('ram_bad', [])}"
                           + (f" notes={res['notes']}" if res.get("notes") else ""))
                     for k in res.get("reg_bad", []):
                         print(f"      {k}: exp {exp.get(k)} got {gf.get(k)}")
