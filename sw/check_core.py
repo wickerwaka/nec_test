@@ -113,7 +113,14 @@ def n_fpops(c):
     return sum(1 for row in c["cycles"] if row[9] == "F")
 
 
-def compose_batch(cases, path):
+def compose_batch(cases, path, arch_only=False):
+    # arch_only: V20 traces END one F-pop earlier than our v0.1 convention (the
+    # next-instruction F, which our v0.1 traces include, is not in the V20 trace -
+    # QS reports one cycle late and the V20 trace stops at the read cycle). So to
+    # dump the register file at the RETIREMENT point (IP = initial_ip + inst_len,
+    # exactly the V20 final IP), close one F-pop later. MEASURED: FA(CLI) retirement
+    # at n_fpops+1=2, 88(mov) at n_fpops+1=3. Applies only to the V20 arch oracle.
+    close_adj = 1 if arch_only else 0
     with open(path, "w") as f:
         f.write(f"{len(cases):x}\n")
         for c in cases:
@@ -130,7 +137,7 @@ def compose_batch(cases, path):
             f.write(f"{len(ram):x}\n")
             for a, v in ram:
                 f.write(f"{a & 0xFFFFF:05x} {v:02x}\n")
-            f.write(f"{len(c['cycles']) + 96:x} {n_fpops(c):x}\n")
+            f.write(f"{len(c['cycles']) + 96:x} {n_fpops(c) + close_adj:x}\n")
             # pin-event / static-pin / IO-read-data line:
             #   <mode 0=none 1=fetch 2=fpop> <pin> <addr20> <delay>
             #   <hold> <pins> <iord>
@@ -324,25 +331,41 @@ def dontcare_cells(c):
     return cells
 
 
-def check_case(c, sim, flags_mask):
-    """-> dict(cycles_ok, arch_ok, flags_masked_ok, fail)"""
+def check_case(c, sim, flags_mask, arch_only=False):
+    """-> dict(cycles_ok, arch_ok, flags_masked_ok, fail)
+
+    arch_only=True: an ARCHITECTURAL-ORACLE comparison (e.g. the V20 suite against our
+    V30 RTL). V20 (uPD70108) and V30 (uPD70116) share the execution core, so final regs
+    /flags(masked)/ram must match EXACTLY; only bus timing differs. Two fields are MASKED
+    with documented reasons:
+      - FINAL QUEUE: masked. V20 = 4-byte queue with byte-wide fetches; V30 = 6-byte queue
+        with WORD-wide fetches from even addresses. The set of NOP-fill bytes queued when
+        the next instruction's first byte is read out is a function of fetch width/queue
+        depth, so it legitimately cannot transfer. (Architectural state, not queue fill,
+        is the oracle.)
+      - IP-final: NOT masked by default (it is the retirement IP = next-instruction
+        address = instruction-length-determined = same on V20/V30). Kept in reg_bad so
+        the pilot can PROVE it transfers; if a prefetch-sensitive form is found where it
+        systematically diverges, mask it here with the measured reason (no silent mask).
+    """
     res = {"cycles_ok": False, "arch_ok": False, "notes": [], "mm": []}
     if sim is None or sim["final"] is None:
         res["notes"].append("no sim output / no 2nd F pop")
         return res
     rows, events, i0, i1 = build_rows_sim(sim["recs"],
                                           c["initial"]["queue"],
-                                          n_close=n_fpops(c) - 1)
+                                          n_close=n_fpops(c) - (0 if arch_only else 1))
     if rows is None:
         res["notes"].append("fewer than 2 F pops in sim")
         return res
 
-    mm, _ = diff_rows(c["cycles"], rows)
-    dc = dontcare_cells(c)
-    if dc:
-        mm = [m for m in mm if (m[0], m[1]) not in dc]
-    res["mm"] = mm
-    res["cycles_ok"] = not mm
+    if not arch_only:
+        mm, _ = diff_rows(c["cycles"], rows)
+        dc = dontcare_cells(c)
+        if dc:
+            mm = [m for m in mm if (m[0], m[1]) not in dc]
+        res["mm"] = mm
+        res["cycles_ok"] = not mm
     res["sim_rows"] = rows
 
     # final regs
@@ -377,7 +400,14 @@ def check_case(c, sim, flags_mask):
     res["reg_bad"] = reg_bad
     res["ram_bad"] = sorted(ram_bad)
     res["q_ok"] = q_ok
-    res["arch_ok"] = not reg_bad and not ram_bad and q_ok
+    # arch-only: flags compared under the mask; final queue MASKED (see docstring)
+    if arch_only:
+        reg_bad_masked = [k for k in reg_bad
+                          if k != "flags" or not flags_ok_masked]
+        res["reg_bad"] = reg_bad_masked
+        res["arch_ok"] = not reg_bad_masked and not ram_bad
+    else:
+        res["arch_ok"] = not reg_bad and not ram_bad and q_ok
     return res
 
 
@@ -401,6 +431,13 @@ def main():
                     help="assert core internal state freezes on CE-low clocks")
     ap.add_argument("--waits", type=int, default=0,
                     help="TB READY wait states (match the suite's setting)")
+    ap.add_argument("--arch-only", action="store_true",
+                    help="architectural oracle: skip the cycle-row diff; compare only "
+                         "final regs (flags-masked), final ram; final queue MASKED "
+                         "(V20 4-byte vs V30 6-byte queue). For the V20 suite.")
+    ap.add_argument("--result-log", default="",
+                    help="append per-opcode results as JSONL (opcode, cases, pass, "
+                         "fail, first field-level diffs)")
     args = ap.parse_args()
 
     suite = Path(args.suite_dir)
@@ -438,7 +475,7 @@ def main():
         with tempfile.TemporaryDirectory() as td:
             batch = Path(td) / "batch.txt"
             outf = Path(td) / "out.txt"
-            compose_batch(cases, batch)
+            compose_batch(cases, batch, arch_only=args.arch_only)
             sim_args = [str(BIN), f"+batch={batch}", f"+out={outf}",
                         f"+waits={args.waits}", f"+ce_div={args.ce_div}"]
             if args.ce_hold_check:
@@ -460,20 +497,43 @@ def main():
 
         cnt = Counter()
         first_div = Counter()
+        arch_diffs = []          # arch-only: sample field-level diffs
         details = args.details
         for c in cases:
-            res = check_case(c, sims.get(c["idx"]), flags_mask)
+            res = check_case(c, sims.get(c["idx"]), flags_mask,
+                             arch_only=args.arch_only)
             cnt["total"] += 1
             if res["cycles_ok"]:
                 cnt["cycles"] += 1
             if res["arch_ok"]:
                 cnt["arch"] += 1
+            if args.arch_only and not res["arch_ok"]:
+                exp = dict(c["initial"]["regs"]); exp.update(c["final"]["regs"])
+                got = res.get("sim_rows") is not None and (sims.get(c["idx"]) or {}).get("final") or {}
+                if len(arch_diffs) < 8:
+                    arch_diffs.append(dict(
+                        idx=c["idx"], name=c["name"],
+                        reg_bad={k: [exp[k], got.get(k)] for k in res.get("reg_bad", [])},
+                        ram_bad=res.get("ram_bad", [])[:6],
+                        notes=res.get("notes", [])))
+                first_div[("regs:" + ",".join(res.get("reg_bad", [])) or "ram/note")] += 1
             if res["cycles_ok"] and res["arch_ok"]:
                 cnt["full"] += 1
             elif res.get("flags_masked_ok") and res["cycles_ok"] and \
                     not res.get("ram_bad") and res.get("q_ok") and \
                     res.get("reg_bad") == ["flags"]:
                 cnt["flags_only"] += 1
+            if args.arch_only:
+                if not res["arch_ok"] and details > 0:
+                    details -= 1
+                    exp = dict(c["initial"]["regs"]); exp.update(c["final"]["regs"])
+                    gf = (sims.get(c["idx"]) or {}).get("final") or {}
+                    print(f"  {op} idx {c['idx']} ({c['name']!r}): arch diff "
+                          f"reg_bad={res['reg_bad']} ram_bad={res['ram_bad']}"
+                          + (f" notes={res['notes']}" if res.get("notes") else ""))
+                    for k in res.get("reg_bad", []):
+                        print(f"      {k}: exp {exp.get(k)} got {gf.get(k)}")
+                continue
             if not res["cycles_ok"]:
                 if res["mm"]:
                     i, col, e, g = res["mm"][0]
@@ -500,17 +560,31 @@ def main():
                     print(f"      {k}: exp {exp[k]:04x} got "
                           f"{sims[c['idx']]['final'][k]:04x}")
 
-        line = (f"{op}: {cnt['full']}/{cnt['total']} full  "
-                f"(cycles {cnt['cycles']}, arch {cnt['arch']}"
-                + (f", +{cnt['flags_only']} flag-residue-only"
-                   if cnt["flags_only"] else "") + ")")
-        if cnt["cycles"] < cnt["total"]:
-            top = first_div.most_common(3)
-            line += "  first-div: " + \
-                    ", ".join(f"{k}x{v}" for k, v in top)
-        print(line)
+        if args.arch_only:
+            line = (f"{op}: ARCH {cnt['arch']}/{cnt['total']}"
+                    + (f"  fail-classes: "
+                       + ", ".join(f"{k}x{v}" for k, v in first_div.most_common(3))
+                       if cnt["arch"] < cnt["total"] else ""))
+            if args.result_log:
+                with open(args.result_log, "a") as rf:
+                    rf.write(json.dumps(dict(
+                        opcode=op, cases=cnt["total"], passed=cnt["arch"],
+                        failed=cnt["total"] - cnt["arch"], diffs=arch_diffs)) + "\n")
+        else:
+            line = (f"{op}: {cnt['full']}/{cnt['total']} full  "
+                    f"(cycles {cnt['cycles']}, arch {cnt['arch']}"
+                    + (f", +{cnt['flags_only']} flag-residue-only"
+                       if cnt["flags_only"] else "") + ")")
+            if cnt["cycles"] < cnt["total"]:
+                top = first_div.most_common(3)
+                line += "  first-div: " + \
+                        ", ".join(f"{k}x{v}" for k, v in top)
+        print(line, flush=True)
         grand.update(cnt)
 
+    if args.arch_only:
+        print(f"\nTOTAL ARCH: {grand['arch']}/{grand['total']}")
+        return 0 if grand["arch"] == grand["total"] else 1
     print(f"\nTOTAL: {grand['full']}/{grand['total']} full "
           f"(cycles {grand['cycles']}, arch {grand['arch']})")
     return 0 if grand["full"] == grand["total"] else 1
