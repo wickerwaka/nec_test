@@ -1626,6 +1626,59 @@ def cmd_preload_cal(host):
     return 0
 
 
+def _emit_one_index(spec, is_evt, op, idx, host, seed_base, preload_n, waits):
+    """Emit a single OUTPUT index deterministically and confined to that index:
+    attempt 0 uses the ORIGINAL per-case seed f"{base}/{op}/{idx}" (so a
+    non-colliding index re-emits byte-identically); collisions/failures reroll
+    WITHIN the index via f".../{idx}/{r}" (r>=1) - never skip-to-next-seed, so
+    other indices are untouched. Returns the test object (idx set)."""
+    pn = preload_n if preload_n >= 0 else (2 if idx % 2 == 1 else 0)
+    for r in range(64):
+        sd = f"{seed_base}/{op}/{idx}" if r == 0 \
+            else f"{seed_base}/{op}/{idx}/{r}"
+        rng = random.Random(sd)
+        try:
+            if is_evt:
+                case = gen_evt_case(spec, rng)
+                t = emit_evt_case(spec, case, host, tag=f"re{op}",
+                                  preload_n=pn, waits=waits)
+            else:
+                case = gen_case(spec, rng)
+                t = emit_case(spec, case, host, tag=f"re{op}",
+                              preload_n=pn, waits=waits)
+        except (ComposeError, RunError):
+            continue
+        t["idx"] = idx
+        return t
+    raise RunError(f"{op} idx {idx}: no collision-free case in 64 rerolls")
+
+
+def cmd_reemit(host, index_map, out_dir, seed_base, preload_n=-1, waits=0):
+    """Re-emit specific OUTPUT indices per form (from index_map = {op:[idx..]}),
+    replacing them in-place in the existing files. Confined per index (see
+    _emit_one_index) so non-targeted cases stay byte-identical. Use for the
+    collision re-emission and for 10k resumability. NOTE: only valid for forms
+    whose current file has idx==seed (no skip-to-next rerolls in emit_log); a
+    form with a logged reroll must be FULLY re-emitted instead."""
+    if EMIT_USE_CORE is not False:
+        raise RunError("re-emit truth source is not the socket")
+    out_dir = Path(out_dir)
+    for op, idxs in index_map.items():
+        is_evt = op in EVT_FORMS
+        spec = EVT_FORMS[op] if is_evt else OPCODES[op]
+        fn = out_dir / f"{op}.json.gz"
+        tests = json.load(gzip.open(fn))
+        by = {t["idx"]: t for t in tests}
+        for idx in idxs:
+            by[idx] = _emit_one_index(spec, is_evt, op, idx, host,
+                                      seed_base, preload_n, waits)
+        merged = [by[k] for k in sorted(by)]
+        with gzip.open(fn, "wt") as f:
+            json.dump(merged, f, separators=(",", ":"))
+        print(f"{op}: re-emitted {len(idxs)} indices -> {fn}", flush=True)
+    return 0
+
+
 def cmd_emit(host, opcodes, n_cases, out_dir, seed_base, preload_n,
              waits=0):
     out_dir = Path(out_dir)
@@ -1739,7 +1792,11 @@ def cmd_spotcheck(host, out_dir, per_op=3):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("cmd",
-                    choices=["validate", "preload-cal", "emit", "spotcheck"])
+                    choices=["validate", "preload-cal", "emit", "spotcheck",
+                             "reemit"])
+    ap.add_argument("--indices-file", default="",
+                    help="reemit: JSON {op: [output-idx, ...]} to re-emit in "
+                         "place (confined per index; non-targeted cases untouched)")
     ap.add_argument("--host", default="root@mister-nec")
     ap.add_argument("--opcodes", default=",".join(TRANCHE))
     ap.add_argument("--cases", type=int, default=500)
@@ -1761,6 +1818,10 @@ def main():
         return cmd_spotcheck(args.host, args.out)
     if args.cmd == "preload-cal":
         return cmd_preload_cal(args.host)
+    if args.cmd == "reemit":
+        index_map = json.load(open(args.indices_file))
+        return cmd_reemit(args.host, index_map, args.out, args.seed,
+                          args.preload, args.waits)
     return cmd_emit(args.host, args.opcodes.split(","), args.cases,
                     args.out, args.seed, args.preload, args.waits)
 
