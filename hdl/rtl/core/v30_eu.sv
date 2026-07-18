@@ -283,7 +283,7 @@ typedef enum logic [6:0] {
     S_PREP_L, S_PREP_W2, S_PREP_RD, S_PREP_RDGO, S_PREP_W3A,
     S_PREP_PW2, S_PREP_W3, S_PREP_W4,
     S_STRW, S_STRR, S_STRS, S_STRE,
-    S_OUTS_W, S_OUTS_R,
+    S_OUTS_W, S_OUTS_R, S_INS_W, S_INS_R,
     S_CMPW1, S_CMPW2, S_CMPNXT, S_SCASW, S_SCASNXT,
     S_CALLFL, S_CALLPUSH, S_CALLW, S_RETF, S_FCFL2,
     S_TRAP_IVT1, S_TRAP_IVT2, S_TRAP_IVT2W,
@@ -512,8 +512,9 @@ wire op_lodstr = opc == 8'hAC || opc == 8'hAD;   // LDM
 wire op_cmpstr = opc == 8'hA6 || opc == 8'hA7;   // CMPBK
 wire op_scastr = opc == 8'hAE || opc == 8'hAF;   // CMPM
 wire op_outstr = opc == 8'h6E || opc == 8'h6F;   // OUTS (mem DS:IX -> port DW)
+wire op_instr  = opc == 8'h6C || opc == 8'h6D;   // INS  (port DW -> mem ES:IY)
 wire op_str    = op_movstr | op_stostr | op_lodstr | op_cmpstr | op_scastr |
-                 op_outstr;
+                 op_outstr | op_instr;
 wire op_segp   = opc == 8'h26 || opc == 8'h2E ||
                  opc == 8'h36 || opc == 8'h3E;   // segment override
 wire op_repp   = opc == 8'hF3 || opc == 8'hF2 ||     // REP/REPE, REPNE
@@ -1363,7 +1364,7 @@ always_comb begin
         S_CALLPUSH, S_FCALLP1, S_FCALLP2, S_FCFL2,
         S_PREP_RD, S_PREP_PW2, S_PREP_W3,
         S_STRW, S_STRR, S_STRS,
-        S_OUTS_W, S_OUTS_R,
+        S_OUTS_W, S_OUTS_R, S_INS_W, S_INS_R,
         S_TRAP_IVT1, S_TRAP_IVT2,
         S_TRAP_PSW, S_TRAP_PS, S_TRAP_FLUSH, S_TRAP_PC,
         S_INT_A1, S_INT_A2: begin
@@ -1607,7 +1608,8 @@ wire [15:0] str_step = opc[0] ? (psw[10] ? 16'hFFFE : 16'd2)
 // MOVBK's write takes its data from the BIU's read latch (forwarded at
 // the commit edge - the write commits at the read's own T3 edge)
 assign eu_fwd = state == S_STRW || state == S_POPMW ||
-                state == S_PREP_PW2 || state == S_OUTS_W;
+                state == S_PREP_PW2 || state == S_OUTS_W ||
+                state == S_INS_W;
 
 // stack push at SP-2 (also decrements SP)
 task automatic issue_push(input [15:0] wdata);
@@ -2453,6 +2455,23 @@ always_ff @(posedge clk) begin
                             eu_wr   <= 1'b0;
                             eu_word <= opc[0];
                             eu_kind <= K_MEM;
+                            if (rep_en) begin  // REP setup (see STM note)
+                                dly <= 6'd2; wnext <= S_RSV;
+                                state <= S_WAITX;
+                            end else begin
+                                dly <= 6'd1; state <= S_RSV;
+                            end
+                        end else if (op_instr) begin      // INS: port DW IOR
+                            // read the port (IOR) first; the mem write to
+                            // ES:IY (no segment override on the dest)
+                            // follows at S_REQ with the port data
+                            // forwarded (eu_fwd). Arch only (no 6C/6D
+                            // native captures).
+                            eu_addr <= {4'h0, rf[2]};
+                            eu_seg  <= SEG_CS;
+                            eu_wr   <= 1'b0;
+                            eu_word <= opc[0];
+                            eu_kind <= K_IO;
                             if (rep_en) begin  // REP setup (see STM note)
                                 dly <= 6'd2; wnext <= S_RSV;
                                 state <= S_WAITX;
@@ -3566,6 +3585,15 @@ always_ff @(posedge clk) begin
                     eu_word <= opc[0];
                     eu_kind <= K_IO;
                     state   <= S_OUTS_W;
+                end else if (op_instr) begin   // INS: port read accepted -> MEMW
+                    // issue the mem write to ES:IY (no override); the
+                    // write data is the port read, forwarded (eu_fwd).
+                    eu_addr <= {sr[SEG_ES], 4'h0} + {4'h0, rf[7]};
+                    eu_seg  <= SEG_ES;
+                    eu_wr   <= 1'b1;
+                    eu_word <= opc[0];
+                    eu_kind <= K_MEM;
+                    state   <= S_INS_W;
                 end else if (op_cmpstr) begin  // rd1 accepted: queue rd2
                     if (rep_en) begin          // REP order: ES then DS
                         eu_addr <= {sr[seg_ovr_en ? seg_ovr : SEG_DS],
@@ -3839,6 +3867,29 @@ always_ff @(posedge clk) begin
                 eu_kind <= K_IO;
                 state   <= S_OUTS_W;
             end
+            // INS mem write accepted: advance IY only (dest pointer); REP
+            // repeats CW times unconditionally. Next element's IOR is chained.
+            S_INS_W: if (eu_started) begin
+                rf[7] <= rf[7] + str_step;
+                if (rep_en) begin
+                    rf[1] <= rf[1] - 16'd1;
+                    if (rf[1] != 16'd1) begin
+                        eu_addr <= {4'h0, rf[2]};   // port DW (next IOR)
+                        eu_seg  <= SEG_CS;
+                        eu_wr   <= 1'b0;
+                        eu_kind <= K_IO;
+                        state <= S_INS_R;
+                    end else state <= S_BUSW;
+                end else state <= S_BUSW;
+            end
+            S_INS_R: if (eu_started) begin     // next port read accepted -> MEMW
+                eu_addr <= {sr[SEG_ES], 4'h0} + {4'h0, rf[7]};
+                eu_seg  <= SEG_ES;
+                eu_wr   <= 1'b1;
+                eu_word <= opc[0];
+                eu_kind <= K_MEM;
+                state   <= S_INS_W;
+            end
             S_STRS: if (eu_started) begin      // next STM write accepted
                 rf[7] <= rf[7] + str_step;
                 if (rep_en) begin
@@ -3923,6 +3974,12 @@ always_ff @(posedge clk) begin
                     // final I/O write complete; restore the data-access
                     // kind and retire (REP takes S_EX's +1-cycle close,
                     // like STM/MOVBK - timing is out of scope, arch only).
+                    eu_kind <= K_MEM;
+                    if (rep_en) state <= S_EX;
+                    else        retire();
+                end else if (op_instr) begin              // INS end (MEMW done)
+                    // final mem write (ES:IY) complete; IY already stepped
+                    // in S_INS_W. REP takes S_EX's +1-cycle close.
                     eu_kind <= K_MEM;
                     if (rep_en) state <= S_EX;
                     else        retire();

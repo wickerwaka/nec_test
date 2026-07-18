@@ -500,6 +500,26 @@ def main():
         if args.cases:
             cases = cases[:args.cases]
 
+        # INS (6C/6D): inject the extracted per-IOR port sequence (sidecar
+        # from extract_iords.py) so the TB serves the recovered bytes, and
+        # EXCLUDE ambiguous (overlapping-write) cases from the gate with a
+        # count + list rather than guessing them. Absent sidecar -> the
+        # scalar iord_r default serves every IOR (open-bus 0xFF), unchanged.
+        side = suite / "iords" / f"{op}.iords.json.gz"
+        if side.exists():
+            sc = json.load(gzip.open(side))
+            iords_map = sc.get("iords", {})
+            amb = set(sc.get("ambiguous", []))
+            for c in cases:
+                v = iords_map.get(str(c["idx"]))
+                if v is not None:
+                    c["iords"] = v
+            if amb:
+                before = len(cases)
+                cases = [c for c in cases if c["idx"] not in amb]
+                print(f"  {op}: excluded {before - len(cases)} ambiguous "
+                      f"(overlapping-write) case(s): idx {sorted(amb)[:16]}")
+
         # flags-mask resolution. For grouped forms XX.N the mask lives in
         # opcodes[XX]["reg"][N] (docs/notes/singlesteptests_v20.md); the base
         # entry has no top-level flags-mask, so the old top-level lookup
