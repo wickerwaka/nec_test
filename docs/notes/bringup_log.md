@@ -2089,3 +2089,18 @@ emulators. FIX: added `_mirror_collision(test)` trace-based guard to emit_suite;
 emit_case/emit_evt_case now reroll (ComposeError, seed-deterministic) on any colliding
 capture. The already-emitted v0.2 forms need a ~5% re-emission pass (or full re-emit)
 before they are upstream-valid.
+
+## BCD sibling-lane deferral — RESOLVED (was the mirror artifact, not a bug)
+
+The deferred 4S "sibling-lane secondary defect" (0F20/0F22/0F26 residuals idx 88/767/1327,
+all large-CL) is RESOLVED by the flat-1MB TB memory fix: 0F20/0F22/0F26 now pass
+2000/2000 each on the full re-sweep. The residuals were the SAME 64K-mirror aliasing
+artifact (long BCD strings have large footprints that collide mod-64K), NOT a
+sibling-lane logic error. The fitted bcd_add8/bcd_sub8 sibling lane is CORRECT. The
+booked supplemental large-CL emission + joint re-fit is now UNNECESSARY - withdrawn.
+idx 767's "14-record anomaly" was likewise an aliasing-corrupted run.
+
+Oracle state after all fixes (segment-override + EU gaps + flat 1MB): the v20 sparse
+bucket is ZERO real divergences. Remaining v20 fails are only: INS/OUTS 6C-6F (partial
+impl, 20-50%) and D4/AAM (47) - the genuinely-separate item-4 work; plus 2 (C4/FF.5)
+collision-dependent v20 GOLDENS (SST source data relies on mirroring; invalid on flat).
