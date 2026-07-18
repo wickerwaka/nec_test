@@ -46,6 +46,28 @@ SW = Path(__file__).resolve().parent
 DEFAULT_OUT = SW.parent / "tests" / "v30" / "v0.1"
 V20_DATA = SW.parent / "tests" / "v30" / "v20suite"
 
+
+def _mirror_collision(test):
+    """True if the case's memory footprint holds two DISTINCT 20-bit addresses
+    that alias to the same 16-bit cell. The board captures on a 64K-mirrored
+    test RAM, so a colliding golden is only valid there - a flat-1MB consumer
+    (any real emulator; task #17 upstream contribution) reads a different byte
+    and diverges. Footprint = every memory bus touch in the window (CODE fetch /
+    MEMR / MEMW) plus loaded and written ram. Reroll on collision: it is
+    seed-deterministic and, unlike capture-length rerolls, does not bias against
+    long traces. (testimage.compose's ram-vs-ram + footprint checks are
+    necessary but NOT sufficient - they miss ram-vs-instruction, stack, and
+    prefetch touches; this trace-based check is complete.)"""
+    a = set()
+    for row in test["cycles"]:
+        if row[7] in ("CODE", "MEMR", "MEMW"):
+            a.add(row[1] & 0xFFFFF)
+    for x, _ in test["initial"]["ram"]:
+        a.add(x & 0xFFFFF)
+    for x, _ in test["final"]["ram"]:
+        a.add(x & 0xFFFFF)
+    return len({x & 0xFFFF for x in a}) < len(a)
+
 INTEL2NEC = {"ax": "AW", "bx": "BW", "cx": "CW", "dx": "DW",
              "sp": "SP", "bp": "BP", "si": "IX", "di": "IY",
              "cs": "PS", "ds": "DS0", "es": "DS1", "ss": "SS",
@@ -1218,6 +1240,9 @@ def emit_evt_case(spec, case, host, tag, preload_n=0, waits=0):
         test["pins"] = pins
     if spec["close"] == "handler":
         test["close_addr"] = stub_linear
+    if _mirror_collision(test):
+        raise ComposeError("64K-mirror footprint collision "
+                            "(aliased 20-bit addresses; invalid on flat memory)")
     test["hash"] = hashlib.sha1(
         json.dumps([test["name"], test["bytes"], test["initial"],
                     test["final"], test["cycles"]],
@@ -1496,6 +1521,9 @@ def emit_case(spec, case, host, tag, preload_n=0, waits=0):
     }
     if case.get("iord") is not None:
         test["iord"] = case["iord"]
+    if _mirror_collision(test):
+        raise ComposeError("64K-mirror footprint collision "
+                            "(aliased 20-bit addresses; invalid on flat memory)")
     test["hash"] = hashlib.sha1(
         json.dumps([test["name"], test["bytes"], test["initial"],
                     test["final"], test["cycles"]],

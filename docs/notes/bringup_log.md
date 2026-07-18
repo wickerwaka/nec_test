@@ -2038,3 +2038,54 @@ Software-first isolation found THREE independent causes:
 THROUGHPUT (all 3 causes fixed, socketed chip, both variants): ~25 cases/sec
 (~40s per 1000-case form). 1k x 347 forms projected ~3.9h; 10k x 347 ~1.6 days.
 Per-case disk ~275 B gzipped -> 1k ~95 MB, 10k ~950 MB.
+
+## BCD secondary (sibling-lane) — DEFERRED, plan booked (2026-07-17)
+
+The 4S segment-override PRIMARY defect is fixed (v30_eu commit). Residual 7/6000
+large-CL (84-99) failures are a DISTINCT secondary defect in the fitted nibble-serial
+sibling-lane WORD logic (bcd_add8/bcd_sub8), which was fitted bit-exact on 1020 golden
+byte iterations from our OWN emission. CONFIRMED that emission's 4S generator only
+exercises CL 1..6 (`rng.randrange(1, 7)`), so the fit never saw large CL.
+
+PLAN (do NOT start yet, per coordinator):
+  (a) After the main v0.2 emission completes, emit a small supplemental large-CL 4S
+      mini-tranche from the SOCKET (own seed base e.g. v30-4slarge, a few hundred
+      cases each of 0F20/0F22/0F26 with CL biased to 40..127), so we have native-V30
+      large-CL captures.
+  (b) Re-derive the sibling-lane logic against the JOINT constraint set: v20 large-CL
+      cases + native-V30 large-CL captures (avoids trading one dataset's fit for
+      another's). PRE-REGISTERED GATE: w0 169000/169000 unchanged AND v20 0F20/0F22/0F26
+      files 100% arch-only (minus idx-767-class harness anomalies, folded into the
+      F-pop artifact audit).
+
+idx 767 (14-record near-zero-bus anomaly): folded into the item-3 artifact audit.
+
+## 64K-mirror memory aliasing — oracle artifact + emission correctness (2026-07-17)
+
+DISCOVERY (root-causing the "F6.1 TEST-mem PF" sparse divergence): the Verilator TB
+`tb_v30_core.sv` memory was 64 KB MIRRORED across the 1 MB space (`mem[lat_addr[15:0]]`).
+20-bit addresses aliased to 16 bits, so any v20 case whose footprint contains two
+distinct 20-bit addresses that collide mod-64K reads the wrong byte -> HARNESS false
+divergence (NOT an RTL bug). idx 6391 proof: operand 0xdac3e and the imm byte 0x7ac3e
+both alias 0xac3e, so the operand read returned the imm and flags = f(imm) exactly.
+Blast radius: 100% of the sampled sparse (non-F-pop) fails had mod-64K collisions.
+
+FIX: `mem [0:1048575]` full 1 MB flat; all indexing + undo log widened 16->20 bit.
+GATE (met): v20 sparse bucket 68 -> 2 on the full 1MB re-sweep (the 66 aliasing
+artifacts cleared; the 2 residuals C4/FF.5 are the OTHER artifact class, "fewer than
+2 F pops"). w1/w3 1200/1200 unchanged.
+
+w0 = 168997/169000 (NOT a regression): the 3 diffs are COLLISION-DEPENDENT v0.1
+GOLDENS - 0F12 idx219, C1.6 idx205, F7.4 idx174, each with 8-9 mod-64K collisions in
+their footprint. They were captured on the BOARD's own 64K-mirrored test RAM and are
+only valid under mirroring; a flat-1MB sim correctly diverges on them. Proves the board
+mirrors too. These 3 want re-emission (collision-free) but are documented, not "fixed".
+
+EMISSION CORRECTNESS (task #17 precondition): testimage.compose's collision check
+(ram-vs-ram + instr/stub/ivt footprint) is NECESSARY but NOT SUFFICIENT - it misses
+ram-vs-instruction, stack, and prefetch touches. Post-hoc scan of the emitted v0.2:
+5.22% of cases (5998/115000, 90 forms) have footprint collisions -> invalid on flat
+emulators. FIX: added `_mirror_collision(test)` trace-based guard to emit_suite;
+emit_case/emit_evt_case now reroll (ComposeError, seed-deterministic) on any colliding
+capture. The already-emitted v0.2 forms need a ~5% re-emission pass (or full re-emit)
+before they are upstream-valid.

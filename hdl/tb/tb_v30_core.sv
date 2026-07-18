@@ -192,12 +192,17 @@ v30_core dut (
 );
 
 //----------------------------------------------------------------------------
-// behavioral memory: 64 KB mirrored across the 1 MB space (like test_mem)
+// behavioral memory: full 1 MB flat (20-bit), matching the real 8086/V30 space
 //----------------------------------------------------------------------------
-logic [7:0] mem [0:65535];
+logic [7:0] mem [0:1048575];   // full 1 MB flat (was 64 KB mirrored across 1 MB).
+                               // The mirror aliased 20-bit addresses to 16 bits,
+                               // so v20 cases whose operand/instruction/stack
+                               // footprints collide mod-64K read the wrong byte -
+                               // a harness false-divergence. Flat 1 MB matches the
+                               // real chip's 20-bit space.
 
 // per-case undo log (initial-ram load + CPU writes), restored last-first
-logic [15:0] undo_addr [$];
+logic [19:0] undo_addr [$];
 logic  [7:0] undo_val  [$];
 logic        case_active = 0;
 
@@ -231,8 +236,8 @@ wire        mem_drive = (tb_t == ST_T2 || tb_t == ST_T3 ||
                          tb_t == ST_TW) && lat_read;
 wire [15:0] mem_word  = lat_type == 3'b000 ? {8'h00, INT_VECTOR}
                       : lat_type == 3'b001 ? iord_r
-                      : {mem[{lat_addr[15:1], 1'b1}],
-                         mem[{lat_addr[15:1], 1'b0}]};
+                      : {mem[{lat_addr[19:1], 1'b1}],
+                         mem[{lat_addr[19:1], 1'b0}]};
 assign AD[15:0] = mem_drive ? mem_word : 16'hzzzz;
 
 // address/UBE latch at the falling edge of T1 (address phase)
@@ -361,18 +366,18 @@ always @(posedge clk) begin
         // apply CPU writes at the end of the first T3 (as nec_bus does)
         if (tb_t == ST_T3 && lat_write && case_active) begin
             if (!lat_addr[0]) begin
-                undo_addr.push_back(lat_addr[15:0]);
-                undo_val.push_back(mem[lat_addr[15:0]]);
-                mem[lat_addr[15:0]] <= AD[7:0];
+                undo_addr.push_back(lat_addr[19:0]);
+                undo_val.push_back(mem[lat_addr[19:0]]);
+                mem[lat_addr[19:0]] <= AD[7:0];
                 if (!lat_ube) begin
-                    undo_addr.push_back(lat_addr[15:0] + 16'd1);
-                    undo_val.push_back(mem[lat_addr[15:0] + 16'd1]);
-                    mem[lat_addr[15:0] + 16'd1] <= AD[15:8];
+                    undo_addr.push_back(lat_addr[19:0] + 20'd1);
+                    undo_val.push_back(mem[lat_addr[19:0] + 20'd1]);
+                    mem[lat_addr[19:0] + 20'd1] <= AD[15:8];
                 end
             end else if (!lat_ube) begin
-                undo_addr.push_back(lat_addr[15:0]);
-                undo_val.push_back(mem[lat_addr[15:0]]);
-                mem[lat_addr[15:0]] <= AD[15:8];
+                undo_addr.push_back(lat_addr[19:0]);
+                undo_val.push_back(mem[lat_addr[19:0]]);
+                mem[lat_addr[19:0]] <= AD[15:8];
             end
         end
     end else if (reset) begin
@@ -587,7 +592,7 @@ initial begin
         $finish;
     end
 
-    for (i = 0; i < 65536; i++) mem[i] = 8'h90;
+    for (i = 0; i < 1048576; i++) mem[i] = 8'h90;
 
     read_hex(t32); ncases = int'(t32);
 
@@ -607,9 +612,9 @@ initial begin
         for (i = 0; i < nram; i++) begin
             read_hex(t32);
             read_hex(t32b);
-            undo_addr.push_back(t32[15:0]);
-            undo_val.push_back(mem[t32[15:0]]);
-            mem[t32[15:0]] = t32b[7:0];
+            undo_addr.push_back(t32[19:0]);
+            undo_val.push_back(mem[t32[19:0]]);
+            mem[t32[19:0]] = t32b[7:0];
         end
         read_hex(t32); maxcyc = int'(t32);
         read_hex(t32); nf = int'(t32);
@@ -666,7 +671,7 @@ initial begin
         // revert memory (last-first)
         reset = 1;
         while (undo_addr.size() > 0) begin
-            logic [15:0] ua;
+            logic [19:0] ua;
             logic [7:0]  uv;
             ua = undo_addr.pop_back();
             uv = undo_val.pop_back();
