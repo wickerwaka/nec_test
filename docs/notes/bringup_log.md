@@ -1991,3 +1991,33 @@ reproducible-matcher basis.
 
 NOTE (superseded): the earlier 79-row/121u residual list and its 6u figure were drawn
 under the lost 288u matcher and are RETIRED; the numbers above supersede them.
+
+## Task #15 emission-blocker isolation (2026-07-17) — "no done marker (runaway)"
+
+Emission (emit_suite.py cmd_emit) was 100% "no done marker in trace (runaway test?)".
+Software-first isolation found THREE independent causes:
+
+1. STALE BOARD REGISTER (class-5 leftover): R_WRAND held 0xace10002 (replay=1,
+   seed 0xace1) sticky from a class-5 replay run. Random-wait Tw insertion stretched
+   every trace far past the capture window. FIX: reset R_WRAND=0 before emission.
+   METHOD-RULE: emission MUST assert a clean WRAND/cfg (waits=0, replay=0, enable=0)
+   at session start — v30run serve does NOT clear board-side WRAND when spec is None.
+
+2. PARTIAL-CAPTURE REGRESSION (32db59a "serve v2, partial capture"): EMIT_CAP=1536
+   returns only the first 1536 of the 4096-record capture buffer, but the done marker
+   (OUT 0xFC) for a single-instruction test sits PAST record 1536. -> spurious
+   "no done marker". validate() never hit this (uses cap=None). FIX: EMIT_CAP=4096
+   (= capture-buffer size). Confirmed: non-preload B8/00/89 pass 15/15 with full cap.
+   METHOD-RULE: any capture-prefix cap MUST exceed the completion-marker position;
+   a partial cap that truncates the tail silently reads as a runaway.
+
+3. PRELOAD PATH BROKEN (STRUCTURAL — held for review): preloaded/prefetched cases
+   (0x63C0 preamble, preload_n>0) fail 100% even with full capture. Decoded trace:
+   preload case = 4096 recs / 37 txns / ZERO IOW (never reaches reg-dump or done);
+   SAME case non-preload = 12x OUT 0xFE + 1x OUT 0xFC (passes). The 0x63C0 preload
+   sequence runs away / never reaches test code. preload-cal also fails (uses no cap,
+   so NOT cause #2). Suspected class-5-era decode/queue-injection change to 0x63C0
+   handling OR a fabric interaction -> candidate for bitstream A/B (isolation step 5).
+   NOT deep-fixed: structural, needs direction.
+
+THROUGHPUT (non-preload, causes 1+2 fixed): ~27 cases/sec over the serve-v2 session.

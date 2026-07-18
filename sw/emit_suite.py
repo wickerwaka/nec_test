@@ -68,7 +68,7 @@ HANDLER_OFF = 0x0400              # IVT-0 handler (V20 convention)
 # done marker) well under 1024 records; 1536 leaves headroom. Raise for
 # wait-state emissions. A too-small value fails loudly ("no done
 # marker") and the case retries.
-EMIT_CAP = 1536
+EMIT_CAP = 4096  # was 1536 (32db59a partial-capture); done marker sits past 1536 -> truncated -> spurious 'no done marker'. 4096 = capture-buffer size.
 
 
 #----------------------------------------------------------------------------
