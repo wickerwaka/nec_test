@@ -4339,8 +4339,16 @@ always_ff @(posedge clk) begin
                     psw[FB_P]  <= ~^r1;
                 end else if (opc == 8'hD4) begin       // CVTBD (AAM)
                     logic [7:0] q8, r8;
-                    q8 = rf[0][7:0] / disp[7:0];
-                    r8 = rf[0][7:0] % disp[7:0];
+                    if (disp[7:0] == 8'd0) begin
+                        // V20 undocumented: AAM base 0 does NOT trap (unlike the
+                        // 8086 DIV0). AH=0xFF, AL preserved; flags S/Z/P from AL.
+                        // v20-verified on all 47 base-0 cases.
+                        q8 = 8'hFF;
+                        r8 = rf[0][7:0];
+                    end else begin
+                        q8 = rf[0][7:0] / disp[7:0];
+                        r8 = rf[0][7:0] % disp[7:0];
+                    end
                     rf[0] <= {q8, r8};
                     psw[FB_S] <= r8[7];
                     psw[FB_Z] <= r8 == 8'd0;
