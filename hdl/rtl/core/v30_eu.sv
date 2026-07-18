@@ -283,6 +283,7 @@ typedef enum logic [6:0] {
     S_PREP_L, S_PREP_W2, S_PREP_RD, S_PREP_RDGO, S_PREP_W3A,
     S_PREP_PW2, S_PREP_W3, S_PREP_W4,
     S_STRW, S_STRR, S_STRS, S_STRE,
+    S_OUTS_W, S_OUTS_R,
     S_CMPW1, S_CMPW2, S_CMPNXT, S_SCASW, S_SCASNXT,
     S_CALLFL, S_CALLPUSH, S_CALLW, S_RETF, S_FCFL2,
     S_TRAP_IVT1, S_TRAP_IVT2, S_TRAP_IVT2W,
@@ -510,7 +511,9 @@ wire op_stostr = opc == 8'hAA || opc == 8'hAB;   // STM
 wire op_lodstr = opc == 8'hAC || opc == 8'hAD;   // LDM
 wire op_cmpstr = opc == 8'hA6 || opc == 8'hA7;   // CMPBK
 wire op_scastr = opc == 8'hAE || opc == 8'hAF;   // CMPM
-wire op_str    = op_movstr | op_stostr | op_lodstr | op_cmpstr | op_scastr;
+wire op_outstr = opc == 8'h6E || opc == 8'h6F;   // OUTS (mem DS:IX -> port DW)
+wire op_str    = op_movstr | op_stostr | op_lodstr | op_cmpstr | op_scastr |
+                 op_outstr;
 wire op_segp   = opc == 8'h26 || opc == 8'h2E ||
                  opc == 8'h36 || opc == 8'h3E;   // segment override
 wire op_repp   = opc == 8'hF3 || opc == 8'hF2 ||     // REP/REPE, REPNE
@@ -1360,6 +1363,7 @@ always_comb begin
         S_CALLPUSH, S_FCALLP1, S_FCALLP2, S_FCFL2,
         S_PREP_RD, S_PREP_PW2, S_PREP_W3,
         S_STRW, S_STRR, S_STRS,
+        S_OUTS_W, S_OUTS_R,
         S_TRAP_IVT1, S_TRAP_IVT2,
         S_TRAP_PSW, S_TRAP_PS, S_TRAP_FLUSH, S_TRAP_PC,
         S_INT_A1, S_INT_A2: begin
@@ -1603,7 +1607,7 @@ wire [15:0] str_step = opc[0] ? (psw[10] ? 16'hFFFE : 16'd2)
 // MOVBK's write takes its data from the BIU's read latch (forwarded at
 // the commit edge - the write commits at the read's own T3 edge)
 assign eu_fwd = state == S_STRW || state == S_POPMW ||
-                state == S_PREP_PW2;
+                state == S_PREP_PW2 || state == S_OUTS_W;
 
 // stack push at SP-2 (also decrements SP)
 task automatic issue_push(input [15:0] wdata);
@@ -2432,6 +2436,24 @@ always_ff @(posedge clk) begin
                             eu_wr   <= 1'b0;
                             eu_word <= opc[0];
                             if (rep_en) begin
+                                dly <= 6'd2; wnext <= S_RSV;
+                                state <= S_WAITX;
+                            end else begin
+                                dly <= 6'd1; state <= S_RSV;
+                            end
+                        end else if (op_outstr) begin     // OUTS: DS(sov):IX rd
+                            // read the source element from DS(sov):IX
+                            // first (LODS-style); the IOW to port DW
+                            // follows at S_REQ with the read data
+                            // forwarded (eu_fwd). Cycle timing is out of
+                            // scope (no native 6E/6F captures); arch only.
+                            eu_addr <= {sr[seg_ovr_en ? seg_ovr : SEG_DS],
+                                        4'h0} + {4'h0, rf[6]};
+                            eu_seg  <= seg_ovr_en ? seg_ovr : SEG_DS;
+                            eu_wr   <= 1'b0;
+                            eu_word <= opc[0];
+                            eu_kind <= K_MEM;
+                            if (rep_en) begin  // REP setup (see STM note)
                                 dly <= 6'd2; wnext <= S_RSV;
                                 state <= S_WAITX;
                             end else begin
@@ -3535,6 +3557,15 @@ always_ff @(posedge clk) begin
                     eu_seg  <= SEG_ES;
                     eu_wr   <= 1'b1;
                     state   <= S_STRW;
+                end else if (op_outstr) begin  // OUTS: mem read accepted -> IOW
+                    // issue the I/O write to port DW; the write data is
+                    // the DS:IX read, forwarded inside the BIU (eu_fwd).
+                    eu_addr <= {4'h0, rf[2]};
+                    eu_seg  <= SEG_CS;
+                    eu_wr   <= 1'b1;
+                    eu_word <= opc[0];
+                    eu_kind <= K_IO;
+                    state   <= S_OUTS_W;
                 end else if (op_cmpstr) begin  // rd1 accepted: queue rd2
                     if (rep_en) begin          // REP order: ES then DS
                         eu_addr <= {sr[seg_ovr_en ? seg_ovr : SEG_DS],
@@ -3783,6 +3814,31 @@ always_ff @(posedge clk) begin
                 eu_wr   <= 1'b1;
                 state   <= S_STRW;
             end
+            // OUTS I/O write accepted: advance IX only (source pointer);
+            // REP repeats CW times unconditionally (carry/zero gate only
+            // CMPS/SCAS). The next element's DS(sov):IX read is chained.
+            S_OUTS_W: if (eu_started) begin
+                rf[6] <= rf[6] + str_step;
+                if (rep_en) begin
+                    rf[1] <= rf[1] - 16'd1;
+                    if (rf[1] != 16'd1) begin
+                        eu_addr <= {sr[seg_ovr_en ? seg_ovr : SEG_DS],
+                                    4'h0} + {4'h0, rf[6] + str_step};
+                        eu_seg  <= seg_ovr_en ? seg_ovr : SEG_DS;
+                        eu_wr   <= 1'b0;
+                        eu_kind <= K_MEM;
+                        state <= S_OUTS_R;
+                    end else state <= S_BUSW;
+                end else state <= S_BUSW;
+            end
+            S_OUTS_R: if (eu_started) begin    // next mem read accepted -> IOW
+                eu_addr <= {4'h0, rf[2]};
+                eu_seg  <= SEG_CS;
+                eu_wr   <= 1'b1;
+                eu_word <= opc[0];
+                eu_kind <= K_IO;
+                state   <= S_OUTS_W;
+            end
             S_STRS: if (eu_started) begin      // next STM write accepted
                 rf[7] <= rf[7] + str_step;
                 if (rep_en) begin
@@ -3863,6 +3919,13 @@ always_ff @(posedge clk) begin
                         if (opc[0] && eu_addr[0]) retire();
                         else state <= S_EX;
                     end else retire();
+                end else if (op_outstr) begin             // OUTS end (IOW done)
+                    // final I/O write complete; restore the data-access
+                    // kind and retire (REP takes S_EX's +1-cycle close,
+                    // like STM/MOVBK - timing is out of scope, arch only).
+                    eu_kind <= K_MEM;
+                    if (rep_en) state <= S_EX;
+                    else        retire();
                 end else if (op_ret) begin                // C3 / C2
                     rf[4] <= rf[4] + 16'd2 +
                              ((opc == 8'hC2) ? disp : 16'd0);
