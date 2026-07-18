@@ -58,3 +58,29 @@ Re-emitting some 0F31 (INS/EXT bit-field) and 0F26 (CMP4S) cases at the SAME see
 a DIFFERENT golden than the file (the three-way re-emit's attempt-0 classified them differently
 than the file golden had). Emission non-determinism on these ops is itself a lead - possibly
 state-dependent / uninitialized-input behavior. Recorded for later; not investigated now.
+
+## RESOLUTION (2026-07-18) — ALL 7 are the store-stub final.flags convention artifact; NO RTL bug
+
+Direction (b) dig into INT.9D (pop psw) REVERSED my earlier "3 open" read and RESOLVED it:
+my initial pushed-PSW read used the wrong stack offset (POP PSW increments SP; the bit12=0
+"novel silicon" observation was me misreading the CS push as the PSW push). Correct read
+(interrupt-push MEMW data, robust via sim recs):
+
+  INT.9D idx44/62/954: chip interrupt-pushed PSW = f607 / 17fe / f603; OUR RTL's interrupt
+  push MATCHES EXACTLY (f607 / 17fe / f603). So our RTL correctly commits the popped flags
+  and pushes the right PSW. The golden final.flags (f407=f607&~0x300 etc) is CORRECT; the
+  SIM's store-stub final.flags (f0c6) is the contaminated field. Under the correct convention
+  (final.flags = interrupt-pushed PSW & ~0x300) both sides agree -> passes.
+
+So ALL 7 (INT.90, INT.FB x3, INT.9D x3) are the SAME artifact: the `final.flags` field, when
+present, is the POST-HANDLER store-stub PUSH PSW, which is UNRELIABLE for pin-event forms
+(contaminated case-dependently on EITHER side). The interrupt-PUSHED PSW (in the trace /
+recoverable from final.ram) is the reliable architectural result and MATCHES chip<->RTL for
+all 7. NO RTL DIVERGENCE. The 7 fail only because chip and RTL contaminated the store-stub
+field differently for those specific cases.
+
+CONVENTION FIX (approved): pin-event final.flags := interrupt-pushed PSW & ~0x300 (IE/BRK
+cleared). Note: an exposure scan needs a ROBUST interrupt-PSW-push extraction (a naive
+golden-cycle col-6/T1 read mis-picks odd-address byte-split and non-PSW writes; the sim-recs
+extraction used for the 7 is correct). w0 passes today because chip and RTL agree on the
+contaminated store-stub value for all v0.1 cases; only 7 v0.2 cases diverge.
