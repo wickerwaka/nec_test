@@ -912,6 +912,12 @@ def gen_case(spec, rng):
             nb = 2 if spec["w"] else 1
             if 0x00F8 <= regs["dx"] <= 0x00FF:
                 continue                      # harness store ports
+            # Word I/O to an ODD port splits into two byte bus cycles (like an
+            # odd-address memory word), which breaks the one-IOR-per-element
+            # iords invariant; constrain word forms to even ports. Byte forms
+            # keep odd ports to exercise the high-lane (data[15:8]) access.
+            if spec["w"]:
+                regs["dx"] &= 0xFFFE
             if spec["rep"]:
                 # small counts dominate; a tail exercises the emit cap window
                 regs["cx"] = (rng.randrange(0, 5) if rng.random() < 0.8
