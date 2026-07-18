@@ -69,3 +69,41 @@ suite should ship string-I/O.
    `iords` values need both-lane duplication (value v -> v * 0x0101) for byte forms so the
    high lane carries the byte. The board-side iord serving for the future 6C-6F emission
    must apply the same lane duplication (verify against the IN-class E4/E5 board path).
+
+## Emitter build + sim-validation gate (2026-07-18, during the v0.3 10k run)
+
+Built the EMITTER side (the sim-side iords infra - extract_iords.py, check_core, TB -
+already existed; the RTL executes INS/OUTS). Committed:
+
+- `emit_suite.py`: SPEC gains `strio` ('ins'|'outs'). OPCODES: 6C/6D/6E/6F singles +
+  all four repeat prefixes (F3/F2/65/64) + OUTS seg-override reps (26.6E/2E.6F/36.6E) =
+  **23 forms**, `STRIO_OPS`. `gen_case` strio path: OUTS reads DS:IX (seg-overridable),
+  INS reads port DW -> ES:IY (dest not overridable), IX/IY step +/-width per DF, REP CW
+  distribution small-dominated with a tail into the emit cap window. INS emits the
+  per-element `iords` (byte forms both-lane, word forms full 16-bit).
+- **Word I/O to an ODD port splits into two byte bus cycles** (like odd-address memory
+  words), breaking the one-IOR-per-element `iords` invariant. Word forms are constrained
+  to EVEN ports; byte forms keep odd ports (they exercise the high data lane cleanly in
+  ONE cycle). Odd-port WORD-split INS/OUTS (2 IORs/element, iords-per-cycle) is a noted
+  follow-up if that coverage is wanted.
+
+- `validate_strio_sim.py`: board-free gate. Drives the Verilator TB (which serves the
+  iords sequence) with generated cases, checks clean exercise without a golden: retirement,
+  REP drains CW to 0, IX/IY advance = sign(DF)*width*count, IO bus-cycle count == count,
+  INS-served bytes land at ES:IY. **1380/1380 clean across all 23 forms** (per=60).
+  Confirms all four repeat prefixes act identically on non-compare string I/O.
+
+## Pre-registered tranche gate (execute AFTER the v0.3 347-form 10k completes)
+
+1. Deploy the board serve-protocol iords SEQUENCE (v30ctl.py + v30run.py + harness FIFO
+   in the bitstream) - a POST-10k bitstream+firmware change per standing constraint. Wire
+   `emit_case` -> `run_image` -> `run()` to pass `iords`. Verify byte-lane duplication
+   against the IN-class (E4/E5/EC/ED) board path. Re-run byte-identity acceptance after the
+   board change.
+2. Emit 6C-6F x10000 into v0.3 (seed base v30-v0.2, `--resume`), truth source = socket.
+3. `extract_iords.py` sidecars for 6C/6D (ambiguity count must be ~0, as on the v20 regen).
+4. Three-way flat-validity pass (check_core --no-mirror vs +mirror) over the new forms.
+5. `validate_suite.py` over the whole of v0.3 including 6C-6F (schema/hash/independent
+   RAM reconstruction/cold-pf/boundaries all green).
+6. Update the v0.3 README: drop 6C-6F from "Known limitations", document the iords schema
+   field and INS port-read provenance.
