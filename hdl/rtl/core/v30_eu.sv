@@ -464,7 +464,14 @@ reg         irq_nmi_ivt;         // the current S_WAITX->S_TRAP_IVT1 is the
                                  // S_FIRST, NOT the INT INTA2->IVT gap): gates
                                  // the eu_soon_ivt idle-window early commit
 
-wire [2:0] mrm_reg = mrm[5:3];
+// mrm_reg selects the group sub-op. Two undoc aliases (v20-verified) fold in
+// here so every mem-form dispatch / exec / length site sees the canonical
+// sub-op: F6/F7 /1 -> /0 (TEST rm,imm); FF /7 -> /6 (PUSH rm16). Safe because
+// for these opcodes mrm_reg is only a sub-op selector, never a register index
+// (the operand is mrm_rm), and only these exact opc/reg pairs are remapped.
+wire [2:0] mrm_reg =
+    ((opc == 8'hF6 || opc == 8'hF7) && mrm[5:3] == 3'd1) ? 3'd0 :
+    (opc == 8'hFF && mrm[5:3] == 3'd7)                   ? 3'd6 : mrm[5:3];
 wire [2:0] mrm_rm  = mrm[2:0];
 wire [1:0] mrm_mod = mrm[7:6];
 
@@ -2025,8 +2032,9 @@ always_ff @(posedge clk) begin
                                 shw <= {1'b0, rf[1][7:0]};
                                 state <= S_SHWAIT;
                             end else if ((op_grpf6 || op_grpf7) &&
-                                         q_byte[5:3] == 3'd0) begin
-                                state <= S_AIGAP;   // TEST imm pop+2
+                                         (q_byte[5:3] == 3'd0 ||
+                                          q_byte[5:3] == 3'd1)) begin
+                                state <= S_AIGAP;   // TEST imm pop+2 (/1=undoc /0)
                             end else if ((op_grpf6 || op_grpf7) &&
                                          (q_byte[5:3] == 3'd2 ||
                                           q_byte[5:3] == 3'd3)) begin
@@ -2074,8 +2082,9 @@ always_ff @(posedge clk) begin
                                 dly <= 6'd2; wnext <= S_POPR;
                                 state <= S_WAITX;
                             end else if (op_grpff &&
-                                         q_byte[5:3] == 3'd6) begin
-                                // PUSH reg via FF: write ready pop+4
+                                         (q_byte[5:3] == 3'd6 ||
+                                          q_byte[5:3] == 3'd7)) begin
+                                // PUSH reg via FF (/7=undoc /6): write ready pop+4
                                 // (closure block: the earlier phase-
                                 // dependent fit was aliased by the
                                 // fetch alignment; constant slot fits
@@ -2212,12 +2221,12 @@ always_ff @(posedge clk) begin
                                 state <= S_HALT;
                         end else begin
                             // memory form; group ops with an unimplemented
-                            // /reg field park the sequencer
-                            if ((op_grpf6 && q_byte[5:3] == 3'd1) ||
-                                (op_grpf7 && q_byte[5:3] == 3'd1) ||
-                                (op_grpfe && q_byte[5:3] > 3'd1) ||
-                                (op_popm && q_byte[5:3] != 3'd0) ||
-                                (op_grpff && q_byte[5:3] == 3'd7))
+                            // /reg field park the sequencer. F6/F7 /1 (=/0 TEST)
+                            // and FF /7 (=/6 PUSH) are undoc aliases (v20) and
+                            // NO LONGER park - they proceed to EA/read and are
+                            // canonicalised by mrm_reg downstream.
+                            if ((op_grpfe && q_byte[5:3] > 3'd1) ||
+                                (op_popm && q_byte[5:3] != 3'd0))
                                 state <= S_HALT;
                             else if ((q_byte[7:6] == 2'd0 &&
                                       q_byte[2:0] == 3'd6) ||
