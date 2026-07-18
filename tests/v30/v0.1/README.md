@@ -33,6 +33,13 @@ Pin-event schema extensions (see `docs/facts/interrupt_model.md`):
   F pop fetched from this (handler) address instead of a fixed pop
   count; the IVT entry points directly at the store location, so
   `final.cs:ip` is the handler entry.
+- **`final.flags` for vectored (interrupt/trap) cases is the architectural value
+  at interrupt entry = the interrupt-PUSHED PSW with IE/BRK cleared** (`pushed & ~0x300`),
+  recoverable from the case's own `final.ram` (the PSW push at `SS:(dumped_sp+4)`; the
+  harness store-stub dumps `sp = SP_at_int - 6`). It is NOT the post-handler store-stub
+  PSW, which is an unreliable capture. This is the convention consumers should apply for
+  pin-event/trap forms; the emitter derives it natively. (See
+  `docs/notes/v02_suspected_divergences.md`.)
 - Interrupt entry pushes appear in `final.ram` (PSW/PS/PC at SS:SP-2/
   -4/-6); `final.flags` has IE and BRK cleared.
 

@@ -1223,6 +1223,22 @@ def emit_evt_case(spec, case, host, tag, preload_n=0, waits=0):
             if g is not None and g != case["regs"][ik]:
                 fin_regs[ik] = g
 
+    # Handler-close forms that VECTOR (interrupt/trap fired): the store-stub PSW
+    # dump (got["PSW"]) is an unreliable POST-HANDLER capture. The architectural
+    # final flags = the interrupt/trap-pushed PSW & ~0x300 (IE/BRK cleared),
+    # derived from the push in fin_ram at SS:(sp+4) (the stub dumps sp=SP_at_int-6).
+    # See docs/notes/v02_suspected_divergences.md.
+    if spec["close"] == "handler" and got.get("SP") is not None:
+        _ss = got.get("SS", case["regs"]["ss"]); _sp = got["SP"]
+        _pa = ((_ss << 4) + ((_sp + 4) & 0xFFFF)) & 0xFFFFF
+        _pa1 = ((_ss << 4) + ((_sp + 5) & 0xFFFF)) & 0xFFFFF
+        _pf = ((mem.get(_pa, 0x90) | (mem.get(_pa1, 0x90) << 8)) & ~0x300) & 0xFFFF
+        if (_pf & 0xF000) == 0xF000:              # valid push (V30 forces bits 15:12)
+            if _pf != case["regs"]["flags"]:
+                fin_regs["flags"] = _pf
+            else:
+                fin_regs.pop("flags", None)
+
     test = {
         "name": case["name"],
         "bytes": list(instr),
@@ -1509,6 +1525,22 @@ def emit_case(spec, case, host, tag, preload_n=0, waits=0):
             g = got.get(nk)
             if g is not None and g != case["regs"][ik]:
                 fin_regs[ik] = g
+
+    # Handler-close forms that VECTOR (interrupt/trap fired): the store-stub PSW
+    # dump (got["PSW"]) is an unreliable POST-HANDLER capture. The architectural
+    # final flags = the interrupt/trap-pushed PSW & ~0x300 (IE/BRK cleared),
+    # derived from the push in fin_ram at SS:(sp+4) (the stub dumps sp=SP_at_int-6).
+    # See docs/notes/v02_suspected_divergences.md.
+    if spec["close"] == "handler" and got.get("SP") is not None:
+        _ss = got.get("SS", case["regs"]["ss"]); _sp = got["SP"]
+        _pa = ((_ss << 4) + ((_sp + 4) & 0xFFFF)) & 0xFFFFF
+        _pa1 = ((_ss << 4) + ((_sp + 5) & 0xFFFF)) & 0xFFFFF
+        _pf = ((mem.get(_pa, 0x90) | (mem.get(_pa1, 0x90) << 8)) & ~0x300) & 0xFFFF
+        if (_pf & 0xF000) == 0xF000:              # valid push (V30 forces bits 15:12)
+            if _pf != case["regs"]["flags"]:
+                fin_regs["flags"] = _pf
+            else:
+                fin_regs.pop("flags", None)
 
     test = {
         "name": case["name"],

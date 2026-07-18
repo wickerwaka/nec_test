@@ -158,6 +158,19 @@ def compose_batch(cases, path, arch_only=False):
                     + "".join(f" {v & 0xFFFF:04x}" for v in iords) + "\n")
 
 
+def _pushed_psw_flags(sp, ss, img):
+    """Pin-event architectural final flags = the interrupt-pushed PSW & ~0x300
+    (IE/BRK cleared). The interrupt pushes 3 words (PSW,CS,IP); the store stub
+    dumps sp = SP_at_interrupt - 6, so the PSW word sits at SS:(sp+4). `img` is
+    the full post-write memory image (init + writes), so POP-PSW pushes that left
+    memory unchanged are still read correctly. Returns flags, or None."""
+    if sp is None or ss is None:
+        return None
+    a = ((ss << 4) + ((sp + 4) & 0xFFFF)) & 0xFFFFF
+    a1 = ((ss << 4) + ((sp + 5) & 0xFFFF)) & 0xFFFFF
+    return ((img.get(a, 0x90) | (img.get(a1, 0x90) << 8)) & ~0x300) & 0xFFFF
+
+
 def mirror_collision(c):
     """True if the case's memory footprint (window fetches/reads/writes + loaded
     and written ram) holds two DISTINCT 20-bit addresses that alias to the same
@@ -414,6 +427,29 @@ def check_case(c, sim, flags_mask, arch_only=False):
     ram_bad = {a for a in set(exp_ram) | set(got_ram)
                if exp_ram.get(a, init_ram.get(a)) !=
                   got_ram.get(a, init_ram.get(a))}
+
+    # Pin-event forms: the recorded/dumped final.flags is the POST-HANDLER store-stub
+    # PUSH PSW, which is an UNRELIABLE capture (contaminated case-dependently on either
+    # side). The architectural final flags = the interrupt-pushed PSW & ~0x300, which is
+    # validated via the cycle-trace push. Derive it on BOTH sides from the memory image
+    # and compare those instead of the store-stub field. Keeps w0 literal AND meaningful
+    # with v0.1 goldens byte-untouched; v0.2 re-derives the field to match. See
+    # docs/notes/v02_suspected_divergences.md.
+    if c.get("evt") is not None or "close_addr" in c:
+        golden_img = dict(init_ram)
+        golden_img.update(exp_ram)
+        gp = _pushed_psw_flags(exp.get("sp"), exp.get("ss"), golden_img)
+        sp_ = _pushed_psw_flags(got.get("sp"), got.get("ss"), memv)
+        # only when the interrupt actually FIRED (a real PSW push has the V30's
+        # forced reserved bits 15:12=1); masked/no-fire pin-events (e.g. IE0.90)
+        # have no push and keep the normal flags comparison.
+        if gp is not None and sp_ is not None and (gp & 0xF000) == 0xF000:
+            reg_bad = [k for k in reg_bad if k != "flags"]
+            eq = (gp & flags_mask) == (sp_ & flags_mask)
+            if not eq:
+                reg_bad.append("flags")
+            res["flags_masked_ok"] = eq
+            res["pin_pushed_psw"] = (gp, sp_)
 
     # final queue
     q_got = [b for _, b in events[i1][2]]

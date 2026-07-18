@@ -84,3 +84,19 @@ cleared). Note: an exposure scan needs a ROBUST interrupt-PSW-push extraction (a
 golden-cycle col-6/T1 read mis-picks odd-address byte-split and non-PSW writes; the sim-recs
 extraction used for the 7 is correct). w0 passes today because chip and RTL agree on the
 contaminated store-stub value for all v0.1 cases; only 7 v0.2 cases diverge.
+
+## TASK #21 CLOSED (2026-07-18) — instrument fix landed, gate green
+
+Convention: pin-event/trap `final.flags` := interrupt-pushed PSW & ~0x300 (recoverable
+from each case's final.ram at SS:(dumped_sp+4); POP-PSW pushes that leave memory unchanged
+fall back to initial ram). Applied:
+- check_core: pin-event/handler-close cases compare the DERIVED pushed-PSW on both sides
+  (validated via the cycle-trace push), not the store-stub field; guarded to fired-interrupt
+  cases only (valid PSW reserved bits 15:12=1) so masked/no-fire pin-events (IE0.90) keep the
+  normal comparison. v0.1 byte-untouched.
+- v0.2: 269 contaminated pin-event cases re-derived host-side (final.flags <- pushed PSW),
+  hashes updated. 4000 no-fire cases (IE0.90 etc.) correctly untouched.
+- emit_evt_case + emit_case: handler-close final.flags derived from the pushed PSW for all
+  future emission (10k).
+GATE (green): 7 artifacts pass; v0.2 pin-event 15000/15000; v0.1 pin-event 3000/3000; w0
+169000/169000. NO RTL change (RTL was correct all along).
