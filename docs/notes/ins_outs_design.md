@@ -51,3 +51,21 @@ the V30 upstream schema.
 6C/6D/6E/6F are absent from v0.1 and v0.2 (core lacked them). BOOKED: add all four to the
 v0.2/10k form list once OUTS+INS RTL and the board port-serve extension land - the upstream
 suite should ship string-I/O.
+
+## Corrections found during implementation (verified at integration, 2026-07-18)
+
+1. **V20 traces record only T1/T2 rows for IOR cycles** - the returned port byte is
+   ABSENT from the cycles data (the V20 trace stops before the data phase). So the iord
+   sequence is recovered from `final.ram` (INS writes each port value to ES:IY) with a
+   last-writer overlap ambiguity guard, NOT from a cycles data column. Verified on regen:
+   **0 ambiguous cases across 130,681 IORs** (6C 66,557 + 6D 64,124).
+2. **Every INS port value in the entire SST v20 suite is open-bus 0xFF/0xFFFF** - the
+   capture rig had no I/O device on the bus. CONSEQUENCE for our V30 contribution: our
+   board harness CAN serve real, varied per-case port data via the iord/iords mechanism,
+   so our contributed INS cases can carry meaningful port-read sequences - strictly RICHER
+   than upstream. The 6C-6F form-addition plan should vary port data per case and emit the
+   `iords` list in the JSON (schema extension above).
+3. **Byte-form INS with an ODD port address reads the HIGH data-bus lane** - so served
+   `iords` values need both-lane duplication (value v -> v * 0x0101) for byte forms so the
+   high lane carries the byte. The board-side iord serving for the future 6C-6F emission
+   must apply the same lane duplication (verify against the IN-class E4/E5 board path).

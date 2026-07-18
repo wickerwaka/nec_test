@@ -274,3 +274,13 @@ structural for indirect far transfers. Worth: (a) flagging to the maintainer as 
 flat-memory-validity caveat, and (b) motivating our V30 contribution's stated
 collision-freedom property (see tests/v30/*/README.md) as a differentiator. Detection is
 cheap and host-side: two distinct 20-bit footprint addresses sharing their low 16 bits.
+
+## INS/OUTS port-data note (for the V30 contribution)
+
+The SST v20 INS (6C/6D) cases all read OPEN BUS (0xFF/0xFFFF) - the capture rig had no I/O
+device. Their port values are recoverable only from final.ram (V20 traces stop at T2 on
+IOR, so the data phase is absent from cycles); overlap ambiguity is 0 across the suite's
+130,681 IORs. Our V30 suite can improve on this: the board harness serves per-case port
+data (iord/iords), so contributed INS cases will carry VARIED, meaningful port sequences
+(documented via the `iords` schema field), not open-bus. Byte INS at an odd port uses the
+high data-bus lane (values duplicated v*0x0101).
