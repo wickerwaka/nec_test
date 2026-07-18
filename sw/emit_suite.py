@@ -94,7 +94,10 @@ HANDLER_OFF = 0x0400              # IVT-0 handler (V20 convention)
 # done marker) well under 1024 records; 1536 leaves headroom. Raise for
 # wait-state emissions. A too-small value fails loudly ("no done
 # marker") and the case retries.
-EMIT_CAP = 4096  # was 1536 (32db59a partial-capture); done marker sits past 1536 -> truncated -> spurious 'no done marker'. 4096 = capture-buffer size.
+EMIT_CAP = 2048        # Path A / E: adaptive capture prefix. Done marker measured at
+EMIT_CAP_RETRY = 4096  # rec <=500 for single-instr + short REP (item A / E scan) -> 2048
+# has a 4x margin. On 'no done marker' RETRY the SAME image at 4096 - NEVER reroll the seed
+# (capture-length rerolls bias the suite against long-trace cases; the 32db59a lesson).
 # Golden emission MUST run on the SOCKETED REAL CHIP (use_core=False), not the
 # internal v30_core (use_core=True). The internal EU does not implement the 0x63
 # undocumented no-op used as the prefetch preamble (PRELOAD_BYTES) -> preloaded
@@ -1118,7 +1121,15 @@ def emit_evt_case(spec, case, host, tag, preload_n=0, waits=0):
                             cap=EMIT_CAP, use_core=EMIT_USE_CORE)
     if evt and not fired:
         raise RunError("event did not fire")
-    res = parse_result(recs, meta)
+    try:
+        res = parse_result(recs, meta)
+    except RunError as e:
+        if "no done marker" not in str(e):
+            raise
+        recs, fired = run_image(image, host, tag, waits=waits, evt=evt,  # E retry
+                                iord=None, pins=pins or None, want_fired=True,
+                                cap=EMIT_CAP_RETRY, use_core=EMIT_USE_CORE)
+        res = parse_result(recs, meta)
 
     close_addr = stub_linear if spec["close"] == "handler" else None
     rows, events, i0, i1, q0, qf, fetched, memrd = \
@@ -1228,7 +1239,7 @@ def emit_evt_case(spec, case, host, tag, preload_n=0, waits=0):
     # final flags = the interrupt/trap-pushed PSW & ~0x300 (IE/BRK cleared),
     # derived from the push in fin_ram at SS:(sp+4) (the stub dumps sp=SP_at_int-6).
     # See docs/notes/v02_suspected_divergences.md.
-    if spec["close"] == "handler" and got.get("SP") is not None:
+    if spec.get("close") == "handler" and got.get("SP") is not None:
         _ss = got.get("SS", case["regs"]["ss"]); _sp = got["SP"]
         _pa = ((_ss << 4) + ((_sp + 4) & 0xFFFF)) & 0xFFFFF
         _pa1 = ((_ss << 4) + ((_sp + 5) & 0xFFFF)) & 0xFFFFF
@@ -1441,7 +1452,15 @@ def emit_case(spec, case, host, tag, preload_n=0, waits=0):
     recs = run_image(image, host, tag, waits=waits,
                      iord=case.get("iord"), cap=EMIT_CAP,
                      use_core=EMIT_USE_CORE)
-    res = parse_result(recs, meta)
+    try:
+        res = parse_result(recs, meta)
+    except RunError as e:
+        if "no done marker" not in str(e):
+            raise
+        recs = run_image(image, host, tag, waits=waits,      # E: retry at 4096
+                         iord=case.get("iord"), cap=EMIT_CAP_RETRY,
+                         use_core=EMIT_USE_CORE)
+        res = parse_result(recs, meta)
 
     rows, events, i0, i1, q0, qf, fetched, memrd = \
         build_rows(recs, meta["anchor_linear"], n_skip_f=preload_n,
@@ -1531,7 +1550,7 @@ def emit_case(spec, case, host, tag, preload_n=0, waits=0):
     # final flags = the interrupt/trap-pushed PSW & ~0x300 (IE/BRK cleared),
     # derived from the push in fin_ram at SS:(sp+4) (the stub dumps sp=SP_at_int-6).
     # See docs/notes/v02_suspected_divergences.md.
-    if spec["close"] == "handler" and got.get("SP") is not None:
+    if spec.get("close") == "handler" and got.get("SP") is not None:
         _ss = got.get("SS", case["regs"]["ss"]); _sp = got["SP"]
         _pa = ((_ss << 4) + ((_sp + 4) & 0xFFFF)) & 0xFFFFF
         _pa1 = ((_ss << 4) + ((_sp + 5) & 0xFFFF)) & 0xFFFFF
