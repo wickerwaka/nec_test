@@ -460,6 +460,9 @@ def main():
     ap.add_argument("--no-mirror", action="store_true",
                     help="disable the flat-fail -> +mirror retry (pure flat 1 MB; "
                          "collision-dependent goldens then show as raw divergences)")
+    ap.add_argument("--raw-flags", action="store_true",
+                    help="disable ALL flags masking (compare raw PSW both sides). "
+                         "Exposes V20-undefined bits our V30 computes deterministically.")
     args = ap.parse_args()
 
     suite = Path(args.suite_dir)
@@ -491,8 +494,19 @@ def main():
         if args.cases:
             cases = cases[:args.cases]
 
-        mkey = op if op in meta["opcodes"] else op.split(".")[0]
-        flags_mask = meta["opcodes"].get(mkey, {}).get("flags-mask", 0xFFFF)
+        # flags-mask resolution. For grouped forms XX.N the mask lives in
+        # opcodes[XX]["reg"][N] (docs/notes/singlesteptests_v20.md); the base
+        # entry has no top-level flags-mask, so the old top-level lookup
+        # silently defaulted grouped forms to 0xFFFF (masking never applied).
+        base = op.split(".")[0]
+        entry = meta["opcodes"].get(op) or meta["opcodes"].get(base, {})
+        if "." in op and "reg" in entry:
+            sub = op.split(".", 1)[1]
+            flags_mask = entry["reg"].get(sub, {}).get("flags-mask", 0xFFFF)
+        else:
+            flags_mask = entry.get("flags-mask", 0xFFFF)
+        if args.raw_flags:
+            flags_mask = 0xFFFF   # raw-PSW diagnostic: mask nothing
 
         with tempfile.TemporaryDirectory() as td:
             def run_batch(cs, mirror):
@@ -622,7 +636,10 @@ def main():
                 with open(args.result_log, "a") as rf:
                     rf.write(json.dumps(dict(
                         opcode=op, cases=cnt["total"], passed=cnt["arch"],
-                        failed=cnt["total"] - cnt["arch"], diffs=arch_diffs)) + "\n")
+                        failed=cnt["total"] - cnt["arch"],
+                        flags_mask=(0xFFFF if args.raw_flags else flags_mask),
+                        raw_flags=bool(args.raw_flags),
+                        diffs=arch_diffs)) + "\n")
         else:
             line = (f"{op}: {cnt['full']}/{cnt['total']} full  "
                     f"(cycles {cnt['cycles']}, arch {cnt['arch']}"

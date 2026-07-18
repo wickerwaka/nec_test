@@ -17,11 +17,12 @@ ROOT = Path(__file__).resolve().parent.parent
 CHECK = ROOT / "sw" / "check_core.py"
 
 
-def run_one(op, suite_dir, cases, waits, shard_dir):
+def run_one(op, suite_dir, cases, waits, shard_dir, extra=()):
     lf = shard_dir / f"{op}.jsonl"
     cmd = [sys.executable, str(CHECK), "--arch-only",
            "--suite-dir", suite_dir, "--opcodes", op,
-           "--result-log", str(lf), "--details", "0", "--waits", str(waits)]
+           "--result-log", str(lf), "--details", "0", "--waits", str(waits),
+           *extra]
     if cases:
         cmd += ["--cases", str(cases)]
     r = subprocess.run(cmd, capture_output=True, text=True)
@@ -39,7 +40,11 @@ def main():
     ap.add_argument("--waits", type=int, default=0)
     ap.add_argument("-P", "--procs", type=int, default=8)
     ap.add_argument("--out", default="sw/v20_arch_sweep_parallel.jsonl")
+    ap.add_argument("--raw-flags", action="store_true")
+    ap.add_argument("--no-mirror", action="store_true")
     a = ap.parse_args()
+    extra = ([("--raw-flags",) if a.raw_flags else ()][0]
+             + (("--no-mirror",) if a.no_mirror else ()))
 
     suite = Path(a.suite_dir)
     if a.opcodes == "all":
@@ -60,7 +65,7 @@ def main():
         done = 0
         with concurrent.futures.ProcessPoolExecutor(max_workers=a.procs) as ex:
             futs = {ex.submit(run_one, op, a.suite_dir, a.cases, a.waits,
-                              shard_dir): op for op in ops}
+                              shard_dir, extra): op for op in ops}
             for f in concurrent.futures.as_completed(futs):
                 op, rc, lf, tail = f.result()
                 done += 1
