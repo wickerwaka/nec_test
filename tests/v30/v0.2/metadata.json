@@ -1,0 +1,15 @@
+{
+  "suite": "v30-v0.2",
+  "cpu": "V30 (uPD70116)",
+  "source": "socketed real chip capture",
+  "seed_base": "v30-v0.2",
+  "FIXED_seed_base_note": "immutable across this 1k run and any later 10k extension; case i initial-state = Random(f\"{seed_base}/{op}/{i}\"); 1k is a strict prefix of a same-base 10k run",
+  "cases_per_form": 1000,
+  "forms": 347,
+  "variants": "alternating non-prefetched / prefetched(N=2, 63C0 preamble) per V20 convention",
+  "waits": 0,
+  "use_core": false,
+  "capture": "socketed chip (use_core=False) = golden reference",
+  "emitter_commit": "6f1814a622e6f2cebf90a448eafa59e18170d1a5",
+  "date": "2026-07-17"
+}

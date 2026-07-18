@@ -2011,13 +2011,24 @@ Software-first isolation found THREE independent causes:
    METHOD-RULE: any capture-prefix cap MUST exceed the completion-marker position;
    a partial cap that truncates the tail silently reads as a runaway.
 
-3. PRELOAD PATH BROKEN (STRUCTURAL — held for review): preloaded/prefetched cases
-   (0x63C0 preamble, preload_n>0) fail 100% even with full capture. Decoded trace:
-   preload case = 4096 recs / 37 txns / ZERO IOW (never reaches reg-dump or done);
-   SAME case non-preload = 12x OUT 0xFE + 1x OUT 0xFC (passes). The 0x63C0 preload
-   sequence runs away / never reaches test code. preload-cal also fails (uses no cap,
-   so NOT cause #2). Suspected class-5-era decode/queue-injection change to 0x63C0
-   handling OR a fabric interaction -> candidate for bitstream A/B (isolation step 5).
-   NOT deep-fixed: structural, needs direction.
+3. WRONG CORE SELECTED FOR EMISSION (config — RESOLVED, not structural). Initially
+   read as a possible structural/bitstream regression; the true cause was config.
+   Preloaded cases (0x63C0 preamble) fail 100% ONLY on the internal v30_core
+   (use_core=True, left set by the H-PHASE flash), whose still-being-built EU does
+   NOT implement the 0x63 undocumented no-op used as the prefetch-queue filler.
+   The SOCKETED REAL V20 (use_core=False) runs it fine (preload-cal: 63C0 x8
+   side-effect-free, queue fills to 6 bytes; preload+non-preload 24/24 each).
+   Golden emission MUST capture from the socket. use_core was added AFTER v0.1
+   emission (2035cce > 8b5a7d7), so v0.1 always used the socket and never needed
+   pinning; the emission path was never updated when use_core landed. FIX:
+   EMIT_USE_CORE=False pinned at all 4 emit call sites (emit_case, emit_evt_case,
+   preload-cal x2). NO bitstream A/B / rebuild needed — the same bitstream passes
+   preload on the socket, exonerating the fabric. Independently corroborated by the
+   v20 arch oracle: opcode 0x63 = 100% arch-fail on the internal core (same gap).
+   METHOD-RULE: golden capture is the socketed chip (use_core=False); the internal
+   core is the DUT, not the reference. Any emission run must pin use_core=False and
+   assert a clean WRAND/cfg first; a stale board A/B position silently mis-captures.
 
-THROUGHPUT (non-preload, causes 1+2 fixed): ~27 cases/sec over the serve-v2 session.
+THROUGHPUT (all 3 causes fixed, socketed chip, both variants): ~25 cases/sec
+(~40s per 1000-case form). 1k x 347 forms projected ~3.9h; 10k x 347 ~1.6 days.
+Per-case disk ~275 B gzipped -> 1k ~95 MB, 10k ~950 MB.
