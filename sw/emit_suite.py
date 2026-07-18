@@ -118,7 +118,7 @@ def SPEC(key, mnem, base, modrm=None, w=0, imm=0, group=None,
          io_dx=False, clcount=False, shiftimm=False, bcdbase=False,
          swint=None, membytes=None, memonly=False, popmem=False,
          chkind=False, prep=False, dispose=False, regonly=False,
-         insext=None, popf=False, pushr=False, popr=False):
+         insext=None, popf=False, pushr=False, popr=False, strio=None):
     return dict(key=key, mnem=mnem, base=base, modrm=modrm, w=w, imm=imm,
                 group=group, stack=stack, divtrap=divtrap,
                 string4s=string4s, imm_mask=imm_mask, branch=branch,
@@ -128,7 +128,7 @@ def SPEC(key, mnem, base, modrm=None, w=0, imm=0, group=None,
                 bcdbase=bcdbase, swint=swint, membytes=membytes,
                 memonly=memonly, popmem=popmem, chkind=chkind, prep=prep,
                 dispose=dispose, regonly=regonly, insext=insext,
-                popf=popf, pushr=pushr, popr=popr)
+                popf=popf, pushr=pushr, popr=popr, strio=strio)
 
 
 ALU = ["add", "or", "adc", "sbb", "and", "sub", "xor", "cmp"]
@@ -455,6 +455,37 @@ OPCODES["EC"] = SPEC("EC", "in al, dx", [0xEC])
 OPCODES["ED"] = SPEC("ED", "in ax, dx", [0xED])
 IO_IN_OPS = {"E4", "E5", "EC", "ED"}
 
+# ---------------------------------------------------------------------------
+# String I/O: INS/INM (6C/6D) reads port DW, writes ES:IY; OUTS/OUTM (6E/6F)
+# reads DS:IX (src-side segment-overridable), writes port DW. IY/IX step by
+# +/-width per DF; REP (F3/F2/64/65 all unconditional here - no compare) counts
+# down CW. Port DW is kept out of 0x00F8-0x00FF (harness store ports). INS reads
+# are served per-element from the case's own iords sequence (chosen by the
+# emitter; recovered by extract_iords; served to the sim TB and, post-deploy,
+# the board). See docs/notes/ins_outs_design.md.
+OPCODES["6C"] = SPEC("6C", "insb", [0x6C], strio="ins", w=0)
+OPCODES["6D"] = SPEC("6D", "insw", [0x6D], strio="ins", w=1)
+OPCODES["6E"] = SPEC("6E", "outsb", [0x6E], strio="outs", w=0)
+OPCODES["6F"] = SPEC("6F", "outsw", [0x6F], strio="outs", w=1)
+# REP variants - all four repeat prefixes act as unconditional CW countdown on
+# the non-compare string I/O ops; emitting all four confirms the silicon treats
+# them identically (V-series REPC/REPNC differ only for compare strings).
+for _p, _pn in ((0xF3, "rep"), (0xF2, "repne"), (0x65, "repc"), (0x64, "repnc")):
+    for _b, _nm, _io, _w in ((0x6C, "insb", "ins", 0), (0x6D, "insw", "ins", 1),
+                             (0x6E, "outsb", "outs", 0), (0x6F, "outsw", "outs", 1)):
+        _k = f"{_p:02X}{_b:02X}"
+        OPCODES[_k] = SPEC(_k, f"{_pn} {_nm}", [_p, _b], strio=_io, w=_w,
+                           rep=True)
+# segment-override coverage for OUTS (src DS:IX overridable; INS dest ES:IY is
+# NOT overridable) - representative forms
+OPCODES["26.6E"] = SPEC("26.6E", "es: outsb", [0x26, 0x6E], strio="outs", w=0,
+                        segpfx="es")
+OPCODES["2E.6F"] = SPEC("2E.6F", "cs: outsw", [0x2E, 0x6F], strio="outs", w=1,
+                        segpfx="cs")
+OPCODES["36.6E"] = SPEC("36.6E", "ss: outsb", [0x36, 0x6E], strio="outs", w=0,
+                        segpfx="ss")
+STRIO_OPS = {k for k, s in OPCODES.items() if s["strio"]}
+
 BRANCH_OPS = ["EB", "E9", "74", "75", "7C", "E2", "E8", "C3", "C2"]
 
 #----------------------------------------------------------------------------
@@ -612,6 +643,7 @@ def gen_case(spec, rng):
         instr = bytes(spec["base"])
         name = spec["mnem"]
         ram = []
+        strio_iords = None      # INS: per-element port-read sequence
         if spec["modrm"]:
             mod = 3 if spec["regonly"] else \
                 rng.randrange(3) if (spec["lea"] or spec["memonly"]) \
@@ -873,6 +905,42 @@ def gen_case(spec, rng):
                                        (lin("es", do) & 0xFFFF) + nb))
             name += f" (df={df}" + \
                     (f", cx={cnt})" if spec["rep"] else ")")
+        if spec["strio"]:
+            # String I/O. OUTS reads DS:IX (src-side seg override) and writes
+            # port DW; INS reads port DW and writes ES:IY (dest not overridable).
+            # IX/IY step +/-width per DF; REP counts down CW.
+            nb = 2 if spec["w"] else 1
+            if 0x00F8 <= regs["dx"] <= 0x00FF:
+                continue                      # harness store ports
+            if spec["rep"]:
+                # small counts dominate; a tail exercises the emit cap window
+                regs["cx"] = (rng.randrange(0, 5) if rng.random() < 0.8
+                              else rng.randrange(5, 17))
+            cnt = (regs["cx"] & 0xFFFF) if spec["rep"] else 1
+            df = (regs["flags"] >> 10) & 1
+            if spec["strio"] == "outs":
+                sseg = spec["segpfx"] or "ds"
+                for i in range(cnt):
+                    step = -i * nb if df else i * nb
+                    so = (regs["si"] + step) & 0xFFFF
+                    for k in range(nb):
+                        ram.append((lin(sseg, so + k), rng.getrandbits(8)))
+                    spans.append(range(lin(sseg, so) & 0xFFFF,
+                                       (lin(sseg, so) & 0xFFFF) + nb))
+            else:                              # ins: dest ES:IY, port-served
+                strio_iords = []
+                for i in range(cnt):
+                    step = -i * nb if df else i * nb
+                    do = (regs["di"] + step) & 0xFFFF
+                    spans.append(range(lin("es", do) & 0xFFFF,
+                                       (lin("es", do) & 0xFFFF) + nb))
+                    if nb == 1:
+                        b = rng.getrandbits(8)
+                        strio_iords.append(b | (b << 8))  # byte in both lanes
+                    else:
+                        strio_iords.append(rng.getrandbits(16))
+            name += f" (df={df}, port={regs['dx']:04x}" + \
+                    (f", cx={cnt})" if spec["rep"] else ")")
         if spec["string4s"]:
             n = ((regs["cx"] & 0xFF) + 1) // 2
             for k in range(n):
@@ -1000,6 +1068,8 @@ def gen_case(spec, rng):
         if spec["key"] in IO_IN_OPS:
             c["iord"] = rng.getrandbits(16)
             c["name"] += f" (iord={c['iord']:04x})"
+        if strio_iords is not None:
+            c["iords"] = strio_iords
         return c
     raise ComposeError("could not place case after 64 rerolls")
 
