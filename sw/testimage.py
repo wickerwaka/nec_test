@@ -119,6 +119,56 @@ class ComposeError(Exception):
     pass
 
 
+# --- Path A / F: pre-assembled compose templates. The load routine varies ONLY
+# in 13 imm16 constants at fixed byte offsets; the store stubs are org-independent
+# byte constants. Assembling once and patching drops compose from ~7 ms to <1 ms.
+# Proven byte-identical to fresh assembly (see the F acceptance); a failed template
+# build falls back to the assembler path transparently.
+_LOAD_PATCH_KEYS = ('SS', 'SP', 'DS0', 'DS1', 'BW', 'CW', 'DW', 'BP',
+                    'IX', 'IY', 'AW', 'PS', 'PC')
+
+
+def _build_load_template():
+    sent = {'SS': 0x1101, 'SP': 0x2202, 'DS0': 0x3303, 'DS1': 0x4404,
+            'BW': 0x5505, 'CW': 0x6606, 'DW': 0x7707, 'BP': 0x8808,
+            'IX': 0x9909, 'IY': 0xAA0A, 'AW': 0xBB0B, 'PS': 0xCC0C, 'PC': 0xDD0D}
+    r = dict(REG_DEFAULTS)
+    r.update(sent)
+    try:
+        tmpl = bytearray(Assembler().assemble(load_routine(r), org=LOAD_AT))
+    except AsmError:
+        return None, None
+    offs = {}
+    for k, v in sent.items():
+        pat = bytes([v & 0xFF, v >> 8])
+        i = tmpl.find(pat)
+        if i < 0 or tmpl.find(pat, i + 1) != -1:
+            return None, None          # not uniquely locatable -> slow path
+        offs[k] = i
+    return bytes(tmpl), offs
+
+
+_LOAD_TMPL, _LOAD_OFFS = _build_load_template()
+try:
+    _STORE_MAIN = bytes(Assembler().assemble(STORE_MAIN, org=STORE_MAIN_AT))
+    _STORE_STUB = bytes(Assembler().assemble(STORE_STUB, org=0))  # org-independent
+    _VECTOR = bytes(Assembler().assemble(f"BR 0x0000:0x{LOAD_AT:04X}", org=VECTOR_AT))
+except AsmError:
+    _STORE_MAIN = _STORE_STUB = _VECTOR = None
+
+_FAST_OK = _LOAD_TMPL is not None and _STORE_MAIN is not None
+
+
+def _fast_load(r):
+    buf = bytearray(_LOAD_TMPL)
+    for k in _LOAD_PATCH_KEYS:
+        v = r[k] & 0xFFFF
+        o = _LOAD_OFFS[k]
+        buf[o] = v & 0xFF
+        buf[o + 1] = v >> 8
+    return buf
+
+
 def compose(regs=None, instr=b"", stub_linear=None, ivt=None, ram=None,
             fill=0x90):
     """Build a 64 KB test image.
@@ -138,15 +188,20 @@ def compose(regs=None, instr=b"", stub_linear=None, ivt=None, ram=None,
         r.update(regs)
     r["PSW"] = normalize_psw(r["PSW"])
 
-    a = Assembler()
     img = bytearray([fill]) * 0x10000
 
-    load = a.assemble(load_routine(r), org=LOAD_AT)
+    if _FAST_OK:
+        load = _fast_load(r)          # template-patch (proven byte-identical)
+        main = _STORE_MAIN
+        vec = _VECTOR
+    else:
+        a = Assembler()
+        load = a.assemble(load_routine(r), org=LOAD_AT)
+        main = a.assemble(STORE_MAIN, org=STORE_MAIN_AT)
+        vec = a.assemble(f"BR 0x0000:0x{LOAD_AT:04X}", org=VECTOR_AT)
     if LOAD_AT + len(load) > STORE_MAIN_AT:
         raise ComposeError(f"load routine too long ({len(load)})")
     img[LOAD_AT:LOAD_AT + len(load)] = load
-
-    main = a.assemble(STORE_MAIN, org=STORE_MAIN_AT)
     if STORE_MAIN_AT + len(main) > 0xFFC0:
         raise ComposeError(f"store main too long ({len(main)})")
     img[STORE_MAIN_AT:STORE_MAIN_AT + len(main)] = main
@@ -154,7 +209,6 @@ def compose(regs=None, instr=b"", stub_linear=None, ivt=None, ram=None,
     img[PSW_IMAGE_AT] = r["PSW"] & 0xFF
     img[PSW_IMAGE_AT + 1] = r["PSW"] >> 8
 
-    vec = a.assemble(f"BR 0x0000:0x{LOAD_AT:04X}", org=VECTOR_AT)
     img[VECTOR_AT:VECTOR_AT + len(vec)] = vec
 
     # extra RAM placements (20-bit linear addresses, e.g. from a V20 suite
@@ -179,7 +233,8 @@ def compose(regs=None, instr=b"", stub_linear=None, ivt=None, ram=None,
     if stub_linear is None:
         stub_linear = (anchor_phys + len(instr)) & 0xFFFF
 
-    stub = a.assemble(STORE_STUB, org=stub_linear)
+    stub = _STORE_STUB if _FAST_OK else Assembler().assemble(STORE_STUB,
+                                                             org=stub_linear)
 
     # footprint/collision checks (design section 1)
     footprint = set(range(anchor_phys, anchor_phys + len(instr))) | \
