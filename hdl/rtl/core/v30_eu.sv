@@ -3298,8 +3298,13 @@ always_ff @(posedge clk) begin
             //----------------------------------------------------------------
             S_A4_SETUP: begin
                 if (dly == 6'd1) begin
-                    eu_addr <= {sr[SEG_DS], 4'h0} + {4'h0, rf[6]};
-                    eu_seg  <= SEG_DS;
+                    // 4S source honours the segment-override prefix (DS0
+                    // default). BUGFIX: was hardcoded SEG_DS -> override
+                    // (ES/CS/SS) source string mis-read; whole result + CY
+                    // wrong. Verified on v20 0F20/0F22/0F26: fail <=> override.
+                    eu_addr <= {sr[seg_ovr_en ? seg_ovr : SEG_DS], 4'h0}
+                               + {4'h0, rf[6]};
+                    eu_seg  <= seg_ovr_en ? seg_ovr : SEG_DS;
                     eu_wr   <= 1'b0;
                     eu_word <= 1'b0;
                     state   <= (a4_cnt == 8'd0) ? S_HALT : S_A4_SRC;
@@ -3344,9 +3349,9 @@ always_ff @(posedge clk) begin
                     if (a4_cnt > 8'd1) begin
                         a4_cnt  <= a4_cnt - 8'd1;
                         a4_k    <= a4_k + 8'd1;
-                        eu_addr <= {sr[SEG_DS], 4'h0} +
-                                   {4'h0, rf[6] + {8'd0, a4_k} + 16'd1};
-                        eu_seg  <= SEG_DS;
+                        eu_addr <= {sr[seg_ovr_en ? seg_ovr : SEG_DS], 4'h0}
+                                   + {4'h0, rf[6] + {8'd0, a4_k} + 16'd1};
+                        eu_seg  <= seg_ovr_en ? seg_ovr : SEG_DS;
                         eu_wr   <= 1'b0;
                         // next src T1 = this dst T1 + 14 (measured)
                         dly <= 6'd8; wnext <= S_A4_SRC;
@@ -3374,9 +3379,9 @@ always_ff @(posedge clk) begin
                 if (a4_cnt > 8'd1) begin
                     a4_cnt  <= a4_cnt - 8'd1;
                     a4_k    <= a4_k + 8'd1;
-                    eu_addr <= {sr[SEG_DS], 4'h0} +
-                               {4'h0, rf[6] + {8'd0, a4_k} + 16'd1};
-                    eu_seg  <= SEG_DS;
+                    eu_addr <= {sr[seg_ovr_en ? seg_ovr : SEG_DS], 4'h0}
+                               + {4'h0, rf[6] + {8'd0, a4_k} + 16'd1};
+                    eu_seg  <= seg_ovr_en ? seg_ovr : SEG_DS;
                     eu_wr   <= 1'b0;
                     state   <= S_A4_SRC;
                 end else begin

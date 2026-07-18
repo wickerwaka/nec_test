@@ -399,6 +399,9 @@ def check_case(c, sim, flags_mask, arch_only=False):
 
     res["reg_bad"] = reg_bad
     res["ram_bad"] = sorted(ram_bad)
+    res["got_ram"] = got_ram          # {addr20: byte} sim-written values (additive; for analysis)
+    res["exp_ram"] = exp_ram          # {addr20: byte} golden final ram
+    res["init_ram"] = init_ram        # {addr20: byte} initial ram
     res["q_ok"] = q_ok
     # arch-only: flags compared under the mask; final queue MASKED (see docstring)
     if arch_only:
