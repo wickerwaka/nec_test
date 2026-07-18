@@ -156,6 +156,15 @@ integer      ev_mode = 0, ev_pin = 0, ev_delay = 0, ev_hold = 0;
 integer      pins_cfg = 0;
 logic [19:0] ev_addr = '0;
 logic [15:0] iord_r = 16'hFFFF;
+// shared iord-SEQUENCE (INS / REP INS, and any multi-IOR case): an ordered
+// list of 16-bit port-read values consumed one per IOR cycle in order. When
+// iords_n == 0 the scalar iord_r is served on every IOR (IN E4/E5/EC/ED,
+// unchanged). Byte forms carry the value in both lanes (see extract_iords.py),
+// so the served word is lane-agnostic. See docs/notes/ins_outs_design.md.
+localparam int IORDS_MAX = 1024;
+logic [15:0] iords_arr [0:IORDS_MAX-1];
+integer      iords_n   = 0;   // sequence length (0 = use scalar iord_r)
+integer      iords_idx = 0;   // next value to serve
 logic        ev_armed = 0;      // waiting for the trigger
 logic        ev_drive = 0;
 integer      ev_cnt = 0;
@@ -243,8 +252,10 @@ localparam bit [7:0] INT_VECTOR = 8'hFF;   // harness CFG default
 
 wire        mem_drive = (tb_t == ST_T2 || tb_t == ST_T3 ||
                          tb_t == ST_TW) && lat_read;
+wire [15:0] iord_ser  = (iords_n > 0 && iords_idx < iords_n)
+                      ? iords_arr[iords_idx] : iord_r;
 wire [15:0] mem_word  = lat_type == 3'b000 ? {8'h00, INT_VECTOR}
-                      : lat_type == 3'b001 ? iord_r
+                      : lat_type == 3'b001 ? iord_ser
                       : {mem[{lat_a[19:1], 1'b1}],
                          mem[{lat_a[19:1], 1'b0}]};
 assign AD[15:0] = mem_drive ? mem_word : 16'hzzzz;
@@ -322,6 +333,13 @@ always @(posedge clk) begin
         if (tb_t_next == ST_T1) lat_type <= BS;
         else if (tb_t_next == ST_TI) lat_type <= BS_PASV;
 
+        // advance the iord sequence one value per IOR cycle: at T4 the read
+        // data has already been consumed (driven T2/T3/Tw), so the next IOR
+        // cycle serves the following element. Scalar-iord cases (iords_n==0)
+        // never touch iords_idx.
+        if (iords_n > 0 && tb_t == ST_T4 && lat_type == 3'b001)
+            iords_idx <= iords_idx + 1;
+
         // wait-state counter (see comment at ready_r). In random mode draw
         // this access's Tw count from the shared LFSR and advance it once
         // per bus cycle; uniform (+waits) mode is unchanged.
@@ -392,6 +410,7 @@ always @(posedge clk) begin
     end else if (reset) begin
         tb_t     <= ST_TI;
         lat_type <= BS_PASV;
+        iords_idx <= 0;          // restart the port-read sequence each case
         fcount   <= 0;
         wait_cnt <= '0;
         ready_r  <= 1'b1;
@@ -634,6 +653,16 @@ initial begin
         read_hex(t32); ev_hold = int'(t32);
         read_hex(t32); pins_cfg = int'(t32);
         read_hex(t32); iord_r = t32[15:0];
+        // iord SEQUENCE: <count> followed by <count> 16-bit values, consumed
+        // one per IOR cycle (0 = scalar iord_r only). Emitted for every case
+        // by compose_batch (0 when the case carries no "iords").
+        read_hex(t32); iords_n = int'(t32);
+        for (i = 0; i < iords_n; i++) begin
+            read_hex(t32);
+            if (i < IORDS_MAX) iords_arr[i] = t32[15:0];
+        end
+        if (iords_n > IORDS_MAX) iords_n = IORDS_MAX;
+        iords_idx = 0;
         ev_armed = ev_mode != 0;
         ev_drive = 0;
         ev_cnt = 0;

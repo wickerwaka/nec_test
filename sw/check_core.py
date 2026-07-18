@@ -144,12 +144,18 @@ def compose_batch(cases, path, arch_only=False):
             ev = c.get("evt")
             mode = 0 if ev is None else (1 if ev["trigger"] == "fetch"
                                          else 2)
+            # per-IOR ordered port-read sequence (INS / REP INS): <count>
+            # then <count> 16-bit values. Absent -> count 0 (scalar iord_r
+            # serves every IOR, unchanged for IN forms). See ins_outs_design.md.
+            iords = c.get("iords") or []
             f.write(f"{mode:x} {ev['pin'] if ev else 0:x} "
                     f"{(ev.get('addr', 0) if ev else 0) & 0xFFFFF:05x} "
                     f"{ev['delay'] if ev else 0:x} "
                     f"{ev['hold'] if ev else 0:x} "
                     f"{c.get('pins', 0):x} "
-                    f"{c.get('iord', 0xFFFF) & 0xFFFF:04x}\n")
+                    f"{c.get('iord', 0xFFFF) & 0xFFFF:04x} "
+                    f"{len(iords):x}"
+                    + "".join(f" {v & 0xFFFF:04x}" for v in iords) + "\n")
 
 
 def mirror_collision(c):
