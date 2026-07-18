@@ -1739,7 +1739,7 @@ def cmd_reemit(host, index_map, out_dir, seed_base, preload_n=-1, waits=0):
 
 
 def cmd_emit(host, opcodes, n_cases, out_dir, seed_base, preload_n,
-             waits=0):
+             waits=0, resume=False):
     out_dir = Path(out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
     log = out_dir / "emit_log.txt"
@@ -1760,6 +1760,21 @@ def cmd_emit(host, opcodes, n_cases, out_dir, seed_base, preload_n,
         f.write(stamp + "\n")
     print(stamp, flush=True)
     for op in opcodes:
+        # RESUME: skip a form whose gz already holds >= n_cases records (a
+        # completed form from an earlier, interrupted run of the same launch).
+        # Per-form granularity: an in-progress form was never written (files
+        # are written only on form completion), so no partial state to trust.
+        if resume:
+            fn = out_dir / f"{op}.json.gz"
+            if fn.exists():
+                try:
+                    done = len(json.load(gzip.open(fn)))
+                except Exception:
+                    done = 0
+                if done >= n_cases:
+                    print(f"{op}: resume skip ({done} already emitted)",
+                          flush=True)
+                    continue
         is_evt = op in EVT_FORMS
         spec = EVT_FORMS[op] if is_evt else OPCODES[op]
         rng_master = random.Random(f"{seed_base}/{op}")
@@ -1875,6 +1890,9 @@ def main():
                          "always N 63C0 preload repetitions")
     ap.add_argument("--waits", type=int, default=0,
                     help="harness wait states per bus cycle (CFG waits)")
+    ap.add_argument("--resume", action="store_true",
+                    help="skip forms whose gz already holds >= --cases records "
+                         "(restart an interrupted launch without redoing forms)")
     args = ap.parse_args()
     global EMIT_CAP
     if args.waits:
@@ -1890,7 +1908,8 @@ def main():
         return cmd_reemit(args.host, index_map, args.out, args.seed,
                           args.preload, args.waits)
     return cmd_emit(args.host, args.opcodes.split(","), args.cases,
-                    args.out, args.seed, args.preload, args.waits)
+                    args.out, args.seed, args.preload, args.waits,
+                    resume=args.resume)
 
 
 if __name__ == "__main__":
