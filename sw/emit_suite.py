@@ -1603,6 +1603,22 @@ def cmd_emit(host, opcodes, n_cases, out_dir, seed_base, preload_n,
     out_dir = Path(out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
     log = out_dir / "emit_log.txt"
+    # TRUTH-SOURCE GUARD: goldens may ONLY be captured from the socketed real
+    # chip (use_core=False). The internal v30_core is the DUT, never the
+    # reference. A pin at the emit call sites (EMIT_USE_CORE) PLUS this per-run
+    # assertion + log line, so a future use_core-style A/B flag added to the
+    # harness cannot silently redirect truth back to the core (see bringup_log
+    # "wrong core selected for emission").
+    if EMIT_USE_CORE is not False:
+        raise RunError(
+            "REFUSING to emit goldens: truth source is not the socket "
+            f"(EMIT_USE_CORE={EMIT_USE_CORE!r}); goldens require use_core=False")
+    truth = "SOCKET (real chip, use_core=False)"
+    stamp = (f"# TRUTH SOURCE: {truth}  seed_base={seed_base}  "
+             f"cases={n_cases}  waits={waits}  forms={len(opcodes)}")
+    with log.open("a") as f:
+        f.write(stamp + "\n")
+    print(stamp, flush=True)
     for op in opcodes:
         is_evt = op in EVT_FORMS
         spec = EVT_FORMS[op] if is_evt else OPCODES[op]

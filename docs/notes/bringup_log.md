@@ -2025,9 +2025,15 @@ Software-first isolation found THREE independent causes:
    preload-cal x2). NO bitstream A/B / rebuild needed — the same bitstream passes
    preload on the socket, exonerating the fabric. Independently corroborated by the
    v20 arch oracle: opcode 0x63 = 100% arch-fail on the internal core (same gap).
-   METHOD-RULE: golden capture is the socketed chip (use_core=False); the internal
-   core is the DUT, not the reference. Any emission run must pin use_core=False and
-   assert a clean WRAND/cfg first; a stale board A/B position silently mis-captures.
+   METHOD-RULE (truth source): golden capture is the socketed chip (use_core=False);
+   the internal core is the DUT, not the reference. ENFORCED as: (a) a pin at every
+   emit call site (EMIT_USE_CORE=False), AND (b) a per-run assertion in cmd_emit that
+   refuses to emit unless the truth source is the socket, AND (c) every emission run
+   logs its truth source (socket vs core) to emit_run.log / emit_log.txt. Goldens may
+   ONLY ever come from the socket. This exists so the next use_core-style A/B flag
+   added to the harness cannot silently redirect truth to the core again -- an
+   emission "golden" captured from the internal core is a truth inversion (the DUT
+   grading its own homework) and would poison every downstream comparison.
 
 THROUGHPUT (all 3 causes fixed, socketed chip, both variants): ~25 cases/sec
 (~40s per 1000-case form). 1k x 347 forms projected ~3.9h; 10k x 347 ~1.6 days.
