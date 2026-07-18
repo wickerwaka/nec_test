@@ -497,7 +497,7 @@ wire op_moffw  = opc == 8'hA2 || opc == 8'hA3;   // MOV moffs16, AL/AW
 wire op_lea    = opc == 8'h8D;                   // LDEA
 wire op_srst   = opc == 8'h8C;                   // MOV rm16, sreg
 wire op_srld   = opc == 8'h8E;                   // MOV sreg, rm16
-wire op_xlat   = opc == 8'hD7;                   // TRANS
+wire op_xlat   = opc == 8'hD7 || opc == 8'hD6;   // TRANS (D6 = undoc alias of D7 XLAT; v20-verified: AL<-[BX+AL])
 wire op_movstr = opc == 8'hA4 || opc == 8'hA5;   // MOVBK
 wire op_stostr = opc == 8'hAA || opc == 8'hAB;   // STM
 wire op_lodstr = opc == 8'hAC || opc == 8'hAD;   // LDM
@@ -571,7 +571,7 @@ wire op_prep   = opc == 8'hC8;                       // PREPARE
 wire op_disp   = opc == 8'hC9;                       // DISPOSE
 wire op_retf   = opc == 8'hCB || opc == 8'hCA;       // RETF / RETF pop
 wire op_iret   = opc == 8'hCF;                       // RETI
-wire op_grp80  = opc == 8'h80;                       // ALU rm8, imm8
+wire op_grp80  = opc == 8'h80 || opc == 8'h82;       // ALU rm8, imm8 (82 = undoc alias of 80; v20-verified)
 wire op_grp81  = opc == 8'h81;                       // ALU rm16, imm16
 wire op_grp83  = opc == 8'h83;                       // ALU rm16, simm8
 wire op_alui   = op_grp80 | op_grp81 | op_grp83;
