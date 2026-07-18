@@ -572,7 +572,13 @@ wire op_grpff  = opc == 8'hFF;                       // INC/DEC/PUSH/... rm16
 wire op_imuli  = opc == 8'h69 || opc == 8'h6B;       // MUL reg,rm,imm
 wire op_ldptr  = opc == 8'hC4 || opc == 8'hC5;       // LES/LDS (mem only)
 wire op_fpo    = (opc & 8'hF8) == 8'hD8 ||
-                 opc == 8'h66 || opc == 8'h67;       // FPO1 / FPO2 (ESC)
+                 opc == 8'h66 || opc == 8'h67 ||     // FPO1 / FPO2 (ESC)
+                 opc == 8'h63;                       // 0x63: undoc modrm word
+                                                     // no-op (decode EA + dummy
+                                                     // read, no writeback/flags).
+                                                     // v20-verified: IP-only. This
+                                                     // is the 63C0 preload preamble
+                                                     // the internal core lacked.
 wire op_chk    = opc == 8'h62;                       // CHKIND (mem only)
 wire op_prep   = opc == 8'hC8;                       // PREPARE
 wire op_disp   = opc == 8'hC9;                       // DISPOSE
