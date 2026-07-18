@@ -1705,6 +1705,7 @@ def cmd_emit(host, opcodes, n_cases, out_dir, seed_base, preload_n,
         spec = EVT_FORMS[op] if is_evt else OPCODES[op]
         rng_master = random.Random(f"{seed_base}/{op}")
         tests = []
+        seeds = []      # sidecar: [output_idx, seed_i] provenance (item 5)
         rerolls = 0
         t0 = time.time()
         i = 0
@@ -1729,6 +1730,7 @@ def cmd_emit(host, opcodes, n_cases, out_dir, seed_base, preload_n,
                     f.write(f"{op} case-seed {i - 1} reroll: "
                             f"{str(e)[:120]}\n")
                 continue
+            seeds.append([len(tests), i - 1])   # output_idx -> seed_i
             t["idx"] = len(tests)
             tests.append(t)
             if len(tests) % 50 == 0:
@@ -1738,6 +1740,12 @@ def cmd_emit(host, opcodes, n_cases, out_dir, seed_base, preload_n,
         fn = out_dir / f"{op}.json.gz"
         with gzip.open(fn, "wt") as f:
             json.dump(tests, f, separators=(",", ":"))
+        # sidecar seed manifest: output-idx -> seed-attempt index, so prefix
+        # verification (records 0..N of a 10k extension) never depends on
+        # reproducing reroll behaviour (Codex review item 5; extends the
+        # confinement work). seed string = f"{seed_base}/{op}/{seed_i}".
+        with open(out_dir / f"{op}.seeds.json", "w") as sf:
+            json.dump(dict(seed_base=seed_base, op=op, map=seeds), sf)
         print(f"{op}: wrote {len(tests)} tests ({rerolls} rerolls) -> {fn} "
               f"in {time.time() - t0:.0f}s", flush=True)
     return 0

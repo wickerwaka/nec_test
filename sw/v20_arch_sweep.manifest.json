@@ -1,0 +1,27 @@
+{
+  "artifact": "v20 architectural-oracle sweep (final-state, authoritative)",
+  "generated": "2026-07-17T23:47:35",
+  "rtl_checker_commit": "2eea511b82a793964f5929321a640edb847846d1",
+  "suite_dir": "tests/v30/v20suite",
+  "suite_files": 360,
+  "suite_sha256_16": "4721db9215f544ef",
+  "metadata_sha256_16": "71c12e705960941a",
+  "command": "python3 sw/sweep_parallel.py --opcodes all -P 6 --out sw/v20_arch_sweep.jsonl",
+  "arch_only": true,
+  "variant": "all",
+  "waits": 0,
+  "mirror_retry": true,
+  "flags_mask_resolution": "per-form incl. grouped opcodes[XX].reg[N]; selected mask recorded per-record",
+  "totals": {
+    "opcodes": 360,
+    "cases": 3125000,
+    "passed": 3111000,
+    "failed": 14000
+  },
+  "remaining_failures": "14000 = the 4 unimplemented INS/OUTS forms (6C/6D/6E/6F) only; all other 356 forms 100%",
+  "denominator_note": "use per-record 'cases' field; suite has documented count exceptions (never assume 10k)",
+  "findings": {
+    "grouped_mask_fix": "fabricated 0 results (grouped forms identical at 0xFFFF and correct mask)",
+    "raw_vs_masked": "0 undefined-bit differences suite-wide; V30 matches V20 golden bit-exact on all PSW bits"
+  }
+}

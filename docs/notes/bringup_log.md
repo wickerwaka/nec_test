@@ -2104,3 +2104,44 @@ Oracle state after all fixes (segment-override + EU gaps + flat 1MB): the v20 sp
 bucket is ZERO real divergences. Remaining v20 fails are only: INS/OUTS 6C-6F (partial
 impl, 20-50%) and D4/AAM (47) - the genuinely-separate item-4 work; plus 2 (C4/FF.5)
 collision-dependent v20 GOLDENS (SST source data relies on mirroring; invalid on flat).
+
+## Codex phase review (gpt-5.6-sol) action items — dispositions (2026-07-17)
+
+Review ran on the pre-mirror-fix snapshot; reconciled against landed work.
+
+ITEM 1 (grouped flags-mask resolution bug) — FIXED. check_core read the base entry's
+top-level flags-mask (None for grouped ops) and defaulted to 0xFFFF, so masking was never
+applied to 80.N/83.N/C0.N/C1.N/D0-D3.N/F6.N/F7.N/FE.N/FF.N. Now resolves opcodes[XX].reg[N].
+RE-AGGREGATION DIFF: the mask fix fabricated ZERO results - every grouped form is identical
+at 0xFFFF and its correct mask, so our V30 computes those "undefined" bits matching the V20
+golden. None of the mirror-cleared sparse fails were mask-fabricated.
+
+ITEM 2 (raw-flags diagnostic) — DONE (sw/v20_arch_sweep_raw.jsonl). masked 14000 == raw
+14000 fails: ZERO undefined-bit differences suite-wide. V30 matches the V20 golden BIT-EXACT
+on every PSW bit, including all V20-"undefined" ones. No RTL defect hides in a masked bit
+(strong corroboration); the V20/V30 undefined-flag equivalence is itself an upstream-note
+datum.
+
+ITEM 3 (provenance) — DONE. sw/v20_arch_sweep.manifest.json (RTL/checker commit, suite +
+metadata hashes, command, per-record masks, totals with real denominators - suite is
+3,125,000 cases across 360 forms, NOT an assumed 10k/form).
+
+ITEM 4 (capture-convention disposition) — n_fpops+1 window was validated on a narrow
+CLI/MOV sample, but the final authoritative sweep corroborates it per-class at bit-exact
+final-state precision:
+  control-transfer (jmp/jcc/loop/call/ret/far, 33 forms) ... 100.000%  (330000/330000)
+  group-form (modrm ext, 102 forms) ......................... 100.000%  (860000/860000)
+  straight-line (211 forms) ................................. 100.000%  (1871000/1871000)
+  string+REP implemented (MOVS/STOS/LODS/CMPS/SCAS, 10 forms)  100.000%  (50000/50000)
+  string INS/OUTS (6C-6F) ................................... unimplemented (the only fails)
+NO non-INS/OUTS form is below 100%. A window-convention error would surface as a systematic
+per-class shortfall (esp. control transfers and REP, whose F-pop geometry differs most from
+the CLI/MOV sample); none exists. Disposition: convention validated by the aggregate; no new
+machinery. (INS/OUTS pass rate is n/a to the convention - they don't execute yet.)
+
+REVIEW FINDING "55 rare-failure opcodes not falsifiably attributed" — correct at review
+time (only 3/68 sampled fails were F-pop-tagged; odd-index skew suggestive not probative).
+RESOLVED by the 64K-mirror discovery + flat-1MB re-sweep: the sparse bucket went 68->2, and
+both residuals (C4/FF.5) were positively identified as collision-dependent SST GOLDENS (their
+operand reads alias mod-64K onto loaded addresses). Now validated under +mirror; net sparse
+RTL divergences = 0.
