@@ -91,6 +91,22 @@ harness store-stub bytes — recorded truthfully; consumers replaying
 `hash` = SHA1 of
 `json.dumps([name,bytes,initial,final,cycles],separators=(",",":"))`.
 
+## Memory model — collision-freedom (flat 1 MB)
+
+**Stated property: every case is valid on a flat 1 MB address space.** The capture
+harness's test RAM is 64 KB mirrored across the 1 MB space (20-bit addresses alias to
+their low 16 bits), so a case whose footprint contains two *distinct* 20-bit addresses
+that collide mod-64K would read a mirror-served byte a flat-memory emulator cannot
+reproduce. The emitter therefore **rejects (rerolls) any case with a mod-64K footprint
+collision** — footprint = every memory bus touch in the window (instruction fetch,
+prefetch, operand read/write, stack, IVT) plus loaded and written ram. A post-hoc
+`_mirror_collision` scan over the shipped suite is **0%**. Consumers on flat memory
+(i.e. every real emulator) can replay `initial.ram` and reproduce `cycles` exactly with
+no mirror emulation.
+
+(Note: the upstream SingleStepTests **V20** suite does *not* guarantee this — a small
+number of its cases are mirror-dependent; see `docs/notes/singlesteptests_v20.md`.)
+
 ## Known v0.1 limitations
 
 - **No IN/port-read opcodes** (E4/E5/EC/ED, INM/6C-6D): the harness
