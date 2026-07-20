@@ -2165,3 +2165,25 @@ Standing criterion (three-way, at emit + in the scanner): RTL(flat)==golden -> A
 RTL(flat)!=golden & RTL(mirror)==golden -> mirror-dependent, reroll; neither -> KEEP +
 flag (a chip-vs-RTL divergence is suite content, never rerolled away). The footprint
 check may remain a cheap pre-filter HINT but never the accept/reject authority.
+
+## v0.3 full-scale emission + v0.2 superseded (2026-07-19)
+
+v0.3 = 347 forms x 10,000 cases (3,470,000), seed base v30-v0.2, socket truth. Gates:
+validate_suite.py 3,470,000/3,470,000 clean; three-way flat-validity pass 3,469,938 full,
+then the 62 mirror-dependent goldens re-emitted confined-per-index to flat-valid
+(emit_suite reemit --validate, new flat-validity gate in _emit_one_index: r=0 original
+seed, reroll within-index on mirror-dependence, KEEP+flag on neither) -> every case now
+flat-valid; 62 memory-model-independent chip-vs-RTL divergences KEPT + catalogued in
+docs/notes/v03_divergence_ledger.md (new RTL-campaign intake, not suite defects).
+
+**v0.2 is SUPERSEDED by v0.3 and made disk-only/untracked.** Its historical role:
+the 1,000-case predecessor used for the validation slices and mirror/confinement checks
+that established the three-way flat-validity method (24/347000 true flat-invalid finding
+above) and the pin-event flags convention. v0.3 is NOT a strict byte-superset of v0.2:
+2.1% of prefix cases (7,137/347,000, concentrated in high-reroll pin-event forms) differ,
+entirely from reroll-history divergence as the emitter's placement logic evolved (flat-1MB
+model, mirror footprint-reject removed) between the two emissions; all are initial-state
+differences, zero final-state/convention differences (verified). v0.2 metadata.json was
+untracked (git rm --cached) and the suite kept on disk under tests/v30/v0.2/.gitignore;
+do not delete from disk without the user's say. Storage/versioning of the large suites is
+deferred to the upstream-contribution stage (task #17).

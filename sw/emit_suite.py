@@ -1761,12 +1761,66 @@ def cmd_preload_cal(host):
     return 0
 
 
-def _emit_one_index(spec, is_evt, op, idx, host, seed_base, preload_n, waits):
+def _flat_mirror_check(t, flags_mask):
+    """Three-way per-case flat-validity discrimination via the RTL TB (check_core).
+    Runs the emitted golden through the Verilator core on FLAT 1 MB memory; on a
+    flat miss, retries under +mirror (64K). Returns:
+      'flat'    - RTL(flat) reproduces the golden cycles+arch -> flat-valid, ACCEPT
+      'mirror'  - flat misses but +mirror matches -> collision-dependent, REROLL
+      'neither' - both miss -> suspected real chip-vs-RTL divergence, KEEP+flag
+    """
+    import check_core as CC
+    import tempfile as _tf
+    import subprocess as _sp
+    from pathlib import Path as _P
+    CC.build()
+
+    def _run(mirror):
+        with _tf.TemporaryDirectory() as td:
+            sfx = "_m" if mirror else ""
+            b = _P(td) / f"b{sfx}.txt"
+            o = _P(td) / f"o{sfx}.txt"
+            CC.compose_batch([t], b)
+            sa = [str(CC.BIN), f"+batch={b}", f"+out={o}"]
+            if mirror:
+                sa.append("+mirror=1")
+            r = _sp.run(sa, cwd=CC.ROOT, capture_output=True, text=True)
+            if r.returncode != 0 or not o.exists():
+                return None
+            return CC.parse_out(o).get(t["idx"])
+
+    def _ok(sim):
+        if sim is None:
+            return False
+        res = CC.check_case(t, sim, flags_mask)
+        return res["cycles_ok"] and res["arch_ok"]
+
+    if _ok(_run(False)):
+        return "flat"
+    return "mirror" if _ok(_run(True)) else "neither"
+
+
+def _flags_mask_of(op, meta):
+    """Resolve a form's flags-mask from metadata (grouped forms XX.N live under
+    opcodes[XX]['reg'][N]; base entry otherwise). Mirrors check_core."""
+    base = op.split(".")[0]
+    entry = meta["opcodes"].get(op) or meta["opcodes"].get(base, {})
+    if "." in op and "reg" in entry:
+        return entry["reg"].get(op.split(".", 1)[1], {}).get("flags-mask", 0xFFFF)
+    return entry.get("flags-mask", 0xFFFF)
+
+
+def _emit_one_index(spec, is_evt, op, idx, host, seed_base, preload_n, waits,
+                    validate=False, flags_mask=0xFFFF, relog=None):
     """Emit a single OUTPUT index deterministically and confined to that index:
     attempt 0 uses the ORIGINAL per-case seed f"{base}/{op}/{idx}" (so a
     non-colliding index re-emits byte-identically); collisions/failures reroll
     WITHIN the index via f".../{idx}/{r}" (r>=1) - never skip-to-next-seed, so
-    other indices are untouched. Returns the test object (idx set)."""
+    other indices are untouched. Returns the test object (idx set).
+
+    validate=True enables the flat-validity three-way gate (mirror-dependent ->
+    reroll to a flat-valid replacement; suspected real divergence -> KEEP+flag).
+    relog: optional open file handle for per-index disposition logging."""
     pn = preload_n if preload_n >= 0 else (2 if idx % 2 == 1 else 0)
     for r in range(64):
         sd = f"{seed_base}/{op}/{idx}" if r == 0 \
@@ -1784,33 +1838,69 @@ def _emit_one_index(spec, is_evt, op, idx, host, seed_base, preload_n, waits):
         except (ComposeError, RunError):
             continue
         t["idx"] = idx
-        return t
-    raise RunError(f"{op} idx {idx}: no collision-free case in 64 rerolls")
+        if not validate:
+            return t
+        disp = _flat_mirror_check(t, flags_mask)
+        if relog is not None:
+            relog.write(f"{op} idx {idx} attempt r={r}: {disp}\n")
+            relog.flush()
+        if disp == "flat":
+            return t
+        if disp == "neither":
+            # suspected REAL chip-vs-RTL divergence: KEEP (chip is truth), flag,
+            # stop rerolling - it is valid suite content, not a placement defect.
+            t["flatvalidity"] = "neither"
+            return t
+        # 'mirror' -> collision-dependent: reroll within-index for a flat-valid one
+    raise RunError(f"{op} idx {idx}: no flat-valid case in 64 rerolls")
 
 
-def cmd_reemit(host, index_map, out_dir, seed_base, preload_n=-1, waits=0):
+def cmd_reemit(host, index_map, out_dir, seed_base, preload_n=-1, waits=0,
+               validate=False):
     """Re-emit specific OUTPUT indices per form (from index_map = {op:[idx..]}),
     replacing them in-place in the existing files. Confined per index (see
     _emit_one_index) so non-targeted cases stay byte-identical. Use for the
     collision re-emission and for 10k resumability. NOTE: only valid for forms
     whose current file has idx==seed (no skip-to-next rerolls in emit_log); a
-    form with a logged reroll must be FULLY re-emitted instead."""
+    form with a logged reroll must be FULLY re-emitted instead.
+
+    validate=True runs the flat-validity three-way gate per re-emitted index
+    (mirror-dependent -> reroll to a flat-valid replacement; suspected real
+    divergence -> KEEP+flag). Dispositions are logged to <out>/reemit.log."""
     if EMIT_USE_CORE is not False:
         raise RunError("re-emit truth source is not the socket")
     out_dir = Path(out_dir)
+    meta = None
+    if validate:
+        meta_fn = out_dir / "metadata.json"
+        if not meta_fn.exists():
+            meta_fn = DEFAULT_OUT / "metadata.json"
+        meta = json.load(open(meta_fn))
+    relog = open(out_dir / "reemit.log", "a") if validate else None
+    kept = []
     for op, idxs in index_map.items():
         is_evt = op in EVT_FORMS
         spec = EVT_FORMS[op] if is_evt else OPCODES[op]
+        fmask = _flags_mask_of(op, meta) if validate else 0xFFFF
         fn = out_dir / f"{op}.json.gz"
         tests = json.load(gzip.open(fn))
         by = {t["idx"]: t for t in tests}
         for idx in idxs:
-            by[idx] = _emit_one_index(spec, is_evt, op, idx, host,
-                                      seed_base, preload_n, waits)
+            t = _emit_one_index(spec, is_evt, op, idx, host, seed_base,
+                                preload_n, waits, validate=validate,
+                                flags_mask=fmask, relog=relog)
+            if t.get("flatvalidity") == "neither":
+                kept.append(f"{op}:{idx}")
+            by[idx] = t
         merged = [by[k] for k in sorted(by)]
         with gzip.open(fn, "wt") as f:
             json.dump(merged, f, separators=(",", ":"))
         print(f"{op}: re-emitted {len(idxs)} indices -> {fn}", flush=True)
+    if relog is not None:
+        relog.close()
+    if kept:
+        print(f"KEEP+flag (suspected real divergence, not flat-valid): {kept}",
+              flush=True)
     return 0
 
 
@@ -1969,6 +2059,9 @@ def main():
     ap.add_argument("--resume", action="store_true",
                     help="skip forms whose gz already holds >= --cases records "
                          "(restart an interrupted launch without redoing forms)")
+    ap.add_argument("--validate", action="store_true",
+                    help="reemit: flat-validity three-way gate per index "
+                         "(mirror-dependent -> reroll; neither -> KEEP+flag)")
     args = ap.parse_args()
     global EMIT_CAP
     if args.waits:
@@ -1982,7 +2075,7 @@ def main():
     if args.cmd == "reemit":
         index_map = json.load(open(args.indices_file))
         return cmd_reemit(args.host, index_map, args.out, args.seed,
-                          args.preload, args.waits)
+                          args.preload, args.waits, validate=args.validate)
     return cmd_emit(args.host, args.opcodes.split(","), args.cases,
                     args.out, args.seed, args.preload, args.waits,
                     resume=args.resume)

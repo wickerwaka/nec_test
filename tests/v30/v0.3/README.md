@@ -8,13 +8,25 @@ case is reproducible from `sha-derived seed f"{base}/{opcode}/{n}"` —
 rerolled seeds logged in `emit_log.txt`, and the output-index -> seed-attempt
 map is recorded per form in `XX.seeds.json`).
 
-This tranche is the **10,000-cases-each / 347-form** full-scale emission
-(the v0.2 1,000-case suite extended in place: the first 1,000 cases of every
-form are byte-identical to v0.2, same seed scheme, so v0.3 is a self-contained
-superset). Forms: 332 opcode forms (`OPCODES`) + 15 pin-event forms — the same
+This tranche is the **10,000-cases-each / 347-form** full-scale emission and
+**supersedes v0.2 outright** (v0.2 was the 1,000-case predecessor; it is retained
+on disk for its historical role — validation slices and confinement checks — but
+is obsolete). Forms: 332 opcode forms (`OPCODES`) + 15 pin-event forms — the same
 347-form set that v0.2 validated. **String I/O (INS/OUTS, 6C-6F) is not in this
 tranche** and is planned as a follow-up (the emitter's string-I/O generator and
 the board-image port-serving for INS land after this run).
+
+v0.3 uses the same seed scheme as v0.2 (base `v30-v0.2`), so its first 1,000
+cases per form are **prefix-identical to v0.2 wherever the reroll history agrees**
+(verified: 2,000/2,000 spot-checked cases with equal hashes are byte-identical
+records). It is **not** a strict byte-superset: 2.1% of prefix cases (7,137 of
+347,000, concentrated in the high-reroll pin-event forms) differ, entirely from
+**reroll-history divergence** — the emitter's placement logic evolved between the
+two emissions (flat-1MB memory model, mirror-collision footprint-reject removed),
+so a footprint reject in one emission shifts every subsequent index. Every such
+difference is an initial-state difference; **zero are final-state or convention
+differences** (564/564 sampled pin-event mismatches confirmed). v0.3 is the
+current-emitter, fully re-validated suite.
 
 The suite was validated host-side before publication (`sw/validate_suite.py`):
 schema/type over every record, SHA1 hash recompute, **independent final-RAM
@@ -131,6 +143,16 @@ prefetch fetches into the 0x90-fill region alias to the same cell but both read 
 default 0x90 on flat and mirror alike; only aliases that change an *observed* byte matter,
 which is why the check is behavioral.) A chip-vs-emulator disagreement that is
 memory-model-independent is retained as suite content, not rerolled away.
+
+**v0.3 result (full three-way pass, all 3,470,000 cases):** 62 collision-dependent
+goldens (flat-miss, +mirror-match) were found and **re-emitted confined-per-index to
+flat-valid** replacements (`emit_suite.py reemit --validate`; dispositions in
+`reemit.log`) — so **every case is now flat-valid**. Separately, **62 cases are
+memory-model-independent chip-vs-RTL divergences** (fail flat *and* mirror equally):
+the socket-captured golden is chip truth, and the internal RTL core (the DUT) does not
+yet reproduce it. These are **retained** as valid suite content and catalogued in
+`docs/notes/v03_divergence_ledger.md` (they are RTL work items, not suite defects, and
+are exactly the low-rate divergences native 10k-deep sampling exists to surface).
 
 (Note: the upstream SingleStepTests **V20** suite does *not* guarantee flat-validity — a
 small number of its cases are mirror-dependent; see `docs/notes/singlesteptests_v20.md`.)

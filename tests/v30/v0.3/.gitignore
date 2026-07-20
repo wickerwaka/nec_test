@@ -1,0 +1,7 @@
+# v0.3 suite is disk-only for now (916 MB); storage/versioning decided at the
+# upstream-contribution stage (task #17). Track only README/metadata/.gitignore.
+*.json.gz
+*.seeds.json
+emit_log.txt
+emit_run.log
+reemit.log
