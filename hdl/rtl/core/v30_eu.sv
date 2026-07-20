@@ -4259,10 +4259,18 @@ always_ff @(posedge clk) begin
                     else        retire();
                 end else if (op_instr) begin              // INS end (MEMW done)
                     // final mem write (ES:IY) complete; IY already stepped
-                    // in S_INS_W. REP takes S_EX's +1-cycle close.
+                    // in S_INS_W. REP close mirrors the STM/MOVBK split-close
+                    // law (line ~4249, silicon-fitted): a SPLIT final word write
+                    // (word opc AND odd write address) closes at done; an aligned
+                    // word OR any byte takes S_EX's +1 close. Family 6 (task #24):
+                    // the op_instr branch never received this - word REP INS at an
+                    // odd ES:IY closed one cycle late. eu_addr[0] is the physical
+                    // write-address parity (== initial-DI parity, loop-invariant).
                     eu_kind <= K_MEM;
-                    if (rep_en) state <= S_EX;
-                    else        retire();
+                    if (rep_en) begin
+                        if (opc[0] && eu_addr[0]) retire();
+                        else                      state <= S_EX;
+                    end else retire();
                 end else if (op_ret) begin                // C3 / C2
                     rf[4] <= rf[4] + 16'd2 +
                              ((opc == 8'hC2) ? disp : 16'd0);

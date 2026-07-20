@@ -117,3 +117,17 @@ word REP-INS pattern.)
 
 Disposition: KEEP (chip truth); ledgered as its own family. A fittable QS-timing law with
 a 16k-case set. Word-vs-byte and REP-only scope are the discriminators.
+
+## RESOLUTION LOG (task #24)
+- **Family 6 (16,342, word-REP-INS qop timing): RESOLVED** 2026-07-20 (commit below). The
+  op_instr INS-close branch now mirrors the silicon-fitted STM/MOVBK split-close law
+  (`if (opc[0] && eu_addr[0]) retire(); else state <= S_EX;` at v30_eu). Word REP INS at an
+  odd ES:IY closes at done (delta 1); aligned word + all byte keep the +1 S_EX close (delta
+  2). Gate: 4 forms 0/16,342; byte REP INS / REP OUTS / DI-even / CW=0 unchanged; w0
+  169000/169000, w1/w3 1200/1200; scramble 0; v20 6D arch 2000/2000. No new flops, no
+  savestate struct change. Ledger 61,339 -> 44,997 (Family 5 44,935 + Families 1-4 62).
+- **Family 5 (44,935, single string-I/O prefetch): HELD at stop condition #2.** The eu_hold
+  claim (S_FIRST head-byte-peek + S_DEC) makes COLD cases bit-identical but shifts the WARM/pf
+  MEMR one slot late (all warm cases broken). Per the pre-registered stop condition, reverted;
+  the request-onset (not just the claim) must move — a different, riskier change. Back to the
+  architect.

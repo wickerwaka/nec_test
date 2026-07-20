@@ -78,3 +78,19 @@ else                   retire();        // word REP INS closes at done (Family 6
 **Fix F6 first** (one line, EU-local, only word-REP-INS close path, probe P2 is minutes), gate it, then **F5** (conceptually bigger: eu_hold extension, BIU-visible). Land and gate separately so ledger attribution stays clean. Risks: F5 — the seg-override prefix-window grant location (probe stop-condition above) and the wrand census interaction of eu_hold in the new window (covered by gate 5); F6 — the delivery-mechanism alternative (probe P2 discriminates) and the v20-oracle adjudication caveat. Neither fix touches `eu_rsv_lead`, the class-5 law block, the REP dispatch path, or any savestate struct.
 
 Key files: `hdl/rtl/core/v30_eu.sv` (lines 1342, 2209, 2726–2760, 4260–4265, 5386), `hdl/rtl/core/v30_biu.sv` (line 540), `docs/V20UC.TXT` (µaddrs 0294/0298/02A0/02A4, 008C/00B8/00C4/00D0), `docs/notes/v03_family5_6_characterization.md`.
+
+---
+## ADDENDUM (architect fable, revised F6, 2026-07-20)
+
+The first F6 close law (`rep_en && !opc[0]`) was wrong — the extra close row is single-
+valued but conditioned on DESTINATION PARITY, not word-vs-byte. Measured on all 40k cases of
+the 4 word-REP-INS forms: delta = (continuation qop=F row) − (final MEMW T4 row) is **2 when
+DI even (extra close row), 1 when DI odd (close at done)** — 100% per form×DF×cold/warm, NO
+CW dependence. The worker's "CW-parity mixed cell" was CW=0 early-outs (elementless, no close
+row) polluting the even bins. Clincher identity: DI-odd CW≥1 = 4051+4090+4109+4092 = **16,342
+= the ledger count**. The law IS the already-fitted STM/MOVBK split-close law (v30_eu:~4249
+`if (opc[0] && eu_addr[0]) retire(); else state <= S_EX;`) which the op_instr branch never
+received. Uses eu_addr[0] (physical write-address parity, valid at eu_done; == initial-DI
+parity, loop-invariant under ±2 stepping). Byte stays S_EX (never splits); word-aligned stays
+S_EX (protects DI-even). OUTS branch untouched (even-port constraint => no split final IOW in
+v0.3; follow-up if odd-port word OUTS is ever emitted).
