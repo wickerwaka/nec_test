@@ -382,3 +382,50 @@ ce_cnt phase. TB gained +ss_dwell for the long-dwell.
 
 **All S0-S5 gates green.** Standing regressions for every campaign: G1 (no-op) + the scramble
 sweep (G2a, chain behavioral) + the static pack/unpack checklist audit (chain completeness).
+
+## S6 gate result + amended verification division of labor (2026-07-20)
+
+### G6 gate table (SS tied off; iords-FIFO harness included)
+| Check | Result | Pass criterion | Status |
+|---|---|---|---|
+| Worst-case setup slack | +3.830 ns | >= +4.0 ns | **ACCEPTED DEVIATION** (see below) |
+| Inferred latches | 0 | none | PASS |
+| race_rom inference | ROM (block mem 840,863, unchanged) | still ROM | PASS |
+| ALM | 10,232/41,910 (24%), +149 vs baseline | reported | PASS |
+| Compilation | 0 errors | clean | PASS |
+| files.qip / package | v30_ss_pkg in files.qip; include removed | verify (finding 4) | PASS |
+
+**+3.830 ns ACCEPTED as an explicit documented deviation from the >=+4.0 gate (NOT a silent
+pass).** Rationale: (1) timing CLOSES with healthy positive margin; (2) the 0.17 ns shortfall
+traces to tag/err port logic, NOT the chain; (3) the recovery fallback (per-module strobe
+registers) is a spec change that adds a cycle to the SS sequences and forces re-verification
+of every S3-S5 gate - disproportionate for 0.17 ns; (4) decisively, the tied-off build DEAD-
+CODE-ELIMINATES the shadow, so THIS build's timing is not the feature's timing. The full-
+feature characterization (shadow live) belongs at MiSTer integration (S7), which is where the
+strobe-register decision properly lives with real numbers. **BOOKED for S7 (see below).**
+
+### Amended verification division of labor (supersedes the original 6/8 framing)
+The scramble gate does NOT prove chain completeness by itself. The true division:
+- **Scramble sweep (G2a/G5)** = PACK completeness + RESTORE-PATH correctness. A flop missing
+  from PACK yields a wrong saved value -> divergence (behavioral, where the flop is live). A
+  flop present in both but mis-wired is caught the same way. It CANNOT catch a flop missing
+  from UNPACK: the frozen core keeps that flop's correct value (the scramble corrupts only
+  THROUGH the restore datapath, which a missing field skips).
+- **Static checklist audit (S1/S2)** = UNPACK completeness (and pack) - the AUTHORITATIVE
+  proof that every field is in pack AND unpack exactly once. This is the only reliable
+  catcher of a missing-from-unpack field, and of width-preserving drift.
+- **Reachability `--assert` probes (e.g. v30_biu slot_show_now==ext_show)** = RESTORED-STATE
+  VALIDITY: they guard reachable states, so restoring an arbitrary (unreachable) image trips
+  them - which is correct, since real save-state only ever restores previously-VALID states.
+
+Standing regression set (every campaign): G1 (no-op) + scramble sweep (pack/restore-path) +
+the static pack/unpack checklist audit (completeness).
+
+## S7 / MiSTer integration - BOOKED decision points (deferred)
+- **Per-module strobe registers**: decide at MiSTer integration with the SHADOW-LIVE build
+  (SS driven, not tied off), where the real fanout/timing of the ~1,168 shadow flops + the
+  three strobes appears. The tied-off G6 (+3.830 ns) elides all of it. If shadow-live timing
+  needs it, register per-module strobe copies (one added cycle to save/restore sequences -
+  a spec change; re-run S3-S5 gates).
+- Wrapper onto the MiSTer 64-bit savestate bus (4 chunks per 16-bit word) + platform-side
+  bus/memory savestate (design section 5 restore contract).
