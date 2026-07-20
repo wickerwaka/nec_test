@@ -94,6 +94,7 @@ wire        eu_rd_now;
 wire [15:0] eu_rdata_now;
 wire        psw_ie;
 wire        halt_disp;
+wire [15:0] ss_biu_dout;
 
 // scripted-consumer override (BIU-only verification)
 wire q_pop   = scr_en ? scr_qop[0]              : eu_pop;
@@ -174,7 +175,12 @@ v30_biu u_biu (
     .bkd_cs     (bkd_regs[144 +: 16]),
     .bkd_ip     (bkd_fetch_ip),
     .bkd_queue  (bkd_queue),
-    .bkd_qlen   (bkd_qlen)
+    .bkd_qlen   (bkd_qlen),
+    .ss_capture (1'b0),
+    .ss_shift   (1'b0),
+    .ss_restore (1'b0),
+    .ss_din_seg (16'b0),
+    .ss_dout_seg(ss_biu_dout)
 );
 
 v30_eu u_eu (
