@@ -86,6 +86,8 @@ R_IORD     = REG_OFF + 0x18
 R_EVT_ADDR = REG_OFF + 0x1C
 R_EVT_CFG  = REG_OFF + 0x20
 R_WRAND    = REG_OFF + 0x24   # seeded random per-access waits (Phase 1 rig)
+R_IORDS_CTL  = REG_OFF + 0x28 # iords FIFO: [0] reset (pulse) [1] enable
+R_IORDS_PUSH = REG_OFF + 0x2C # iords FIFO: [15:0] append one value
 
 MAGIC = 0x56333031
 
@@ -189,6 +191,18 @@ class Harness:
     def set_iord(self, val):
         self.write32(R_IORD, val & 0xFFFF)
 
+    def load_iords(self, seq):
+        """Load the per-IOR iords FIFO (INS / REP INS): reset, push each 16-bit
+        value in order, enable. seq=None/empty resets+disables (scalar cfg_iord
+        serves every IOR, byte-identical to the pre-FIFO path). Byte forms carry
+        the value in both lanes; the caller pre-duplicates (see extract_iords)."""
+        self.write32(R_IORDS_CTL, 0x1)                 # reset (clear ptr+count)
+        if not seq:
+            return
+        for v in seq:
+            self.write32(R_IORDS_PUSH, v & 0xFFFF)
+        self.write32(R_IORDS_CTL, 0x2)                 # enable serving
+
     def set_event(self, addr=None, delay=0, hold=0, pin=0, arm=True):
         """Arm the pin-event scheduler: on a CODE T1 at linear `addr`,
         wait `delay` CPU clocks, drive pin (0=INT 1=NMI 2=POLL) for `hold`
@@ -274,10 +288,11 @@ def serve(h):
         out.write(s + "\n")
         out.flush()
 
-    def do_run(img, timeout, evt, iord, pins, cap, crc):
+    def do_run(img, timeout, evt, iord, pins, cap, crc, iords=None):
         h.stop()
         h.load_mem(img, 0)
         h.set_iord(iord)
+        h.load_iords(iords)        # per-IOR sequence (INS); None -> scalar iord
         h.write32(R_PINS, pins)
         if evt:
             h.set_event(addr=evt[0], delay=evt[1], hold=evt[2], pin=evt[3])
@@ -302,7 +317,7 @@ def serve(h):
 
     def parse_opts(parts):
         timeout = float(parts[1]) if len(parts) > 1 else 3.0
-        evt, iord, pins, cap = None, 0xFFFF, 0, CAP_RECORDS
+        evt, iord, pins, cap, iords = None, 0xFFFF, 0, CAP_RECORDS, None
         for kv in parts[2:]:
             k, _, v = kv.partition("=")
             if k == "evt":
@@ -310,13 +325,16 @@ def serve(h):
                 evt = (int(a, 16), int(d), int(ho), int(p))
             elif k == "iord":
                 iord = int(v, 16)
+            elif k == "iords":
+                # per-IOR ordered sequence (INS / REP INS), comma-separated hex
+                iords = [int(x, 16) for x in v.split(",")] if v else []
             elif k == "pins":
                 pins = int(v, 16)
             elif k == "cap":
                 cap = max(1, min(int(v), CAP_RECORDS))
             else:
                 raise ValueError(f"unknown option {k!r}")
-        return timeout, evt, iord, pins, cap
+        return timeout, evt, iord, pins, cap, iords
 
     reply("OK SERVE v2")
     for line in sys.stdin:
@@ -356,7 +374,7 @@ def serve(h):
                     base64.b64decode(sys.stdin.readline().strip()))
                 reply(f"OK BASE {zlib.crc32(base_img) & 0xFFFFFFFF:08x}")
             elif parts[0] == "DELTA":
-                timeout, evt, iord, pins, cap = parse_opts(parts)
+                timeout, evt, iord, pins, cap, iords = parse_opts(parts)
                 patch = base64.b64decode(sys.stdin.readline().strip())
                 if base_img is None:
                     raise ValueError("DELTA without BASE")
@@ -368,11 +386,11 @@ def serve(h):
                     img[off:off + ln] = patch[i:i + ln]
                     i += ln
                 crc = zlib.crc32(img) & 0xFFFFFFFF
-                do_run(bytes(img), timeout, evt, iord, pins, cap, crc)
+                do_run(bytes(img), timeout, evt, iord, pins, cap, crc, iords)
             elif parts[0] == "RUN":
-                timeout, evt, iord, pins, cap = parse_opts(parts)
+                timeout, evt, iord, pins, cap, iords = parse_opts(parts)
                 img = base64.b64decode(sys.stdin.readline().strip())
-                do_run(img, timeout, evt, iord, pins, cap, None)
+                do_run(img, timeout, evt, iord, pins, cap, None, iords)
             else:
                 reply(f"ERR unknown command {parts[0]!r}")
         except Exception as e:                        # noqa: BLE001

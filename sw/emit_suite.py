@@ -1526,16 +1526,16 @@ def emit_case(spec, case, host, tag, preload_n=0, waits=0):
                                     ram=ram, ivt=ivt,
                                     stub_linear=stub_linear)
     recs = run_image(image, host, tag, waits=waits,
-                     iord=case.get("iord"), cap=EMIT_CAP,
-                     use_core=EMIT_USE_CORE)
+                     iord=case.get("iord"), iords=case.get("iords"),
+                     cap=EMIT_CAP, use_core=EMIT_USE_CORE)
     try:
         res = parse_result(recs, meta)
     except RunError as e:
         if "no done marker" not in str(e):
             raise
         recs = run_image(image, host, tag, waits=waits,      # E: retry at 4096
-                         iord=case.get("iord"), cap=EMIT_CAP_RETRY,
-                         use_core=EMIT_USE_CORE)
+                         iord=case.get("iord"), iords=case.get("iords"),
+                         cap=EMIT_CAP_RETRY, use_core=EMIT_USE_CORE)
         res = parse_result(recs, meta)
 
     rows, events, i0, i1, q0, qf, fetched, memrd = \
@@ -1654,6 +1654,8 @@ def emit_case(spec, case, host, tag, preload_n=0, waits=0):
     }
     if case.get("iord") is not None:
         test["iord"] = case["iord"]
+    if case.get("iords") is not None:
+        test["iords"] = case["iords"]     # INS per-IOR served sequence (schema)
     # NOTE: no footprint-based reject here. Footprint aliasing over-counts behavioral
     # divergence ~950x (benign 0x90-fill prefetch aliases). Flat-validity is established
     # POST-EMISSION behaviorally (check_core --no-mirror vs +mirror three-way): mirror-

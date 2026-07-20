@@ -186,7 +186,7 @@ class ServeRunner:
         return bytes(out) if out else b""
 
     def run(self, image, timeout=3.0, evt=None, iord=None, pins=None,
-            cap=None):
+            cap=None, iords=None):
         """evt = (linear_addr, delay, hold, pin 0=INT 1=NMI 2=POLL);
         iord = 16-bit I/O read data; pins = static PINS bits (b0 INT,
         b1 NMI, b2 POLL_N); cap = capture-record prefix to return
@@ -197,6 +197,9 @@ class ServeRunner:
             opts += f" evt={a:05x}:{d}:{ho}:{p}"
         if iord is not None:
             opts += f" iord={iord:04x}"
+        if iords is not None:
+            # per-IOR ordered sequence (INS / REP INS); empty list resets+disables
+            opts += " iords=" + ",".join(f"{v & 0xFFFF:04x}" for v in iords)
         if pins is not None:
             opts += f" pins={pins:x}"
         if cap is not None and self.v2:
@@ -279,7 +282,7 @@ def _run_image_legacy(image, host, tag="test", waits=0):
 
 def run_image(image, host, tag="test", waits=0, evt=None, iord=None,
               pins=None, want_fired=False, cap=None, use_core=None,
-              wrand=None, wvec=None):
+              wrand=None, wvec=None, iords=None):
     """Run an image, return capture records (or (recs, evt_fired) with
     want_fired). Uses the persistent serve session unless V30_NO_SERVE=1;
     transport errors get one reconnect, then one legacy-path attempt
@@ -309,7 +312,7 @@ def run_image(image, host, tag="test", waits=0, evt=None, iord=None,
             r.wrand(wrand if wvec is None else None)
             r.replay(wvec)
             recs, fired = r.run(image, evt=evt, iord=iord, pins=pins,
-                                cap=cap)
+                                cap=cap, iords=iords)
             return (recs, fired) if want_fired else recs
         except RunError as e:
             r.close()
