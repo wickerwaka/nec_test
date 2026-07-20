@@ -113,6 +113,11 @@ module v30_biu (
     input             eu_soon_ivt,    // NMI/INT IVT-read idle-window early-
                                       // commit lead (pre-IVT S_WAITX dly==1);
                                       // arms defer_idle like eu_soon_ea
+    input             eu_soon_strio,  // Family-7 (task #24): strio-single idle-
+                                      // window lead. At S_RSV ready is GUARANTEED
+                                      // next cycle (S_REQ); arms defer_idle like
+                                      // eu_soon_ea, gated q_aged==0 to keep cold
+                                      // (F5a) and the qlen5 bridging window out.
     input             flush_fast,     // far-flush: redirect commits mid-cycle
     input             eu_defer_wr,    // RMW write: exclude from the deferred
                                       // (eval_ext) commit; take the next plain
@@ -1407,6 +1412,8 @@ always_ff @(posedge clk) begin
                         // staged commit issued by the canonical dispatch above;
                         // this branch preserves priority over the arm below.
                     end else if ((eu_req && eu_soon_ea && !eu_ready) ||
+                                 (eu_req && eu_soon_strio && !eu_ready &&
+                                  q_aged == 2'd0) ||   // Family-7 main arm
                                  (eu_soon_ivt && q_cnt <= 3'd2)) begin
                         // idle window with a reg-EA reader reservation that
                         // becomes ready NEXT cycle and has no in-flight fetch

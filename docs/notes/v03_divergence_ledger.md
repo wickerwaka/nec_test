@@ -106,10 +106,20 @@ distinct signatures, NOT one law:
   opcode fetch, ahead of the DS:IX/ES:IY element MEMR + port I/O. Chip defers that
   speculative grant. This is the pure request-arbitration-timing population. **RESOLVED**
   by the decision-time-scoped T3-eval veto (see resolution log).
-- **Family 7 — WARM (queue non-empty, qlen≈6 at issue, 17,511 cases):** the element
-  MEMR itself lands one bus slot late relative to the chip; the next-CODE grant is not
-  the discriminator. Different signature, different (unfit) law. **OPEN** — handed to
-  the architect for its own design.
+- **Family 7 — WARM (queue non-empty at issue, 17,511 cases):** the element MEMR itself
+  lands one bus slot late relative to the chip; the next-CODE grant is not the
+  discriminator. The chip commits the element at the S_REQ instant (first eu_ready); the
+  RTL one cycle later. Two exact sub-populations (Probe P4 step-0, measured):
+  - **plain forms (6C/6D/6E/6F) diverge at initial qlen6 — pure idle window, 9,970**
+    (2481+2528+2515+2446). No in-flight fetch; the late commit is via the plain staged
+    idle path. Resolved by the **defer_idle main arm** (see resolution log).
+  - **prefix forms (26.6E/36.6E/2E.6F) diverge at initial qlen5 — bridging-fetch window,
+    7,541** (2482+2549+2510). The segment-override prefix's extra pop shifts occupancy so
+    a bridging CODE fetch is in flight; the element commit is a missed defer_t4 pickup at
+    that fetch's T4. Resolved by the **defer_t4 contingent arm** (general eu_soon at S_RSV).
+  - **9,970 + 7,541 = 17,511 EXACTLY, zero stragglers.** The architect's earlier "~82
+    window-edge stragglers" were the artifact of counting the prefix sub-class at qlen6
+    (7,459); at the correct qlen5 it is 7,541 (+82) and the composition closes exactly.
 
 **Method note (mis-characterization, recorded honestly):** Phase-1 characterization
 measured only the next-instruction CODE-grant *position* and reported Family 5 as a
@@ -166,5 +176,17 @@ a 16k-case set. Word-vs-byte and REP-only scope are the discriminators.
   failures; Quartus 17.1 A&S 0 errors, no inferred latch on `eu_rsv_strio`. **No new flops, no
   savestate struct change** (only wires/assigns + one EU→BIU port; BIU input gated to 0 under
   `scr_en`). Ledger 44,997 → 17,573 (Family 7 17,511 + Families 1–4 62).
-- **Family 7 (17,511, WARM qlen≈6 element-MEMR-slot-late): OPEN.** Handed to the architect;
-  design landing separately. Do NOT fold into 5a — different signature, different law.
+- **Family 7a (9,970, plain-form qlen6 pure-idle element-late): RESOLVED** 2026-07-20 (commit
+  below). **defer_idle main arm**: a new EU→BIU wire `eu_soon_strio` (`(state==S_RSV) &&
+  (op_instr||op_outstr) && !rep_en`) arms the existing idle-window early-commit (`defer_idle`)
+  alongside the reg-EA (`eu_soon_ea`) and IVT (`eu_soon_ivt`) sources, gated `q_aged==2'd0`. At
+  S_RSV eu_ready is guaranteed next cycle (S_REQ) — the documented eu_soon contract, honored
+  unconditionally. Brings the pure-idle element commit one cycle forward to the chip's S_REQ
+  instant. Gate: plain 6C/6D/6E/6F **0/10,000** (9,970 qlen6 divergences → 0); flip-guards
+  unchanged — prefix forms still 7,541 (contingent arm not yet landed), plain-qlen5 0, all cold
+  0/5000 (F5a untouched), classics A4–AD 3000/3000, REP untouched by construction (`!rep_en`).
+  No new flops (only wires/assigns + one gated EU→BIU port); `defer_idle` is an existing
+  savestate flop, no struct change. Ledger 17,573 → 7,603 (Family 7 prefix 7,541 + Families 1–4 62).
+- **Family 7b (7,541, prefix-form qlen5 bridging-fetch element-late): pending contingent arm**
+  (defer_t4 via general eu_soon at S_RSV — architect-ratified). Prefix divergent population is
+  qlen**5** not qlen6 (Probe P4 step-0 correction). Landing separately as its own commit.

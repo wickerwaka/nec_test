@@ -148,6 +148,12 @@ module v30_eu (
                                    // S_TRAP_IVT1, irq_disp) arms defer_idle so
                                    // the IVT read commits one cycle earlier in
                                    // a pure idle window (reg-EA analogue)
+    output            eu_soon_strio, // Family-7 (task #24): strio-single idle-
+                                   // window early-commit lead. High at S_RSV of a
+                                   // non-REP INS/OUTS single, where eu_ready is
+                                   // guaranteed next cycle (S_REQ). Arms the BIU
+                                   // defer_idle (pure-idle qlen6 plain forms).
+                                   // Pure comb, zero flops (no savestate change).
     output            flush_fast,  // far flush commits redirect mid-cycle
     output            eu_defer_wr, // RMW mem write (S_WREQ): must NOT take a
                                    // waited-cycle deferred eval (eval_ext)
@@ -1650,6 +1656,13 @@ assign eu_rsv_strio     = ((state == S_FIRST) && q_pop && !rep_en &&
                            (q_byte[7:2] == 6'b011011)) ||      // 6C-6F, pop cycle
                           ((state == S_DEC) && !rep_en &&
                            (op_instr || op_outstr));            // dispatch cycle
+
+// Family-7 strio-single idle-window lead (main arm). At S_RSV of a non-REP
+// INS/OUTS single, eu_req is up and eu_ready is GUARANTEED next cycle (S_REQ) -
+// the documented eu_soon contract. Consumed by the BIU defer_idle arm ONLY
+// (gated q_aged==0 there), which brings the pure-idle (qlen6 plain) element
+// commit one cycle forward to the chip's S_REQ instant. Pure comb, zero flops.
+assign eu_soon_strio    = (state == S_RSV) && (op_instr || op_outstr) && !rep_en;
 
 // RMW mem write, ALU-imm forms ONLY (op80/81/83; op_alui): apply the
 // stricter deferred-eval qualifier. Measured: only the ALU-imm RMW defers
