@@ -83,3 +83,37 @@ key discriminator for fitting the ordering law.
 KEEP branch, not held hostage to an RTL campaign. Booked as the primary BIU-ordering
 intake. INS (Phase C) is expected to show the SAME single-vs-REP pattern; if singles
 diverge identically it is this same family, same disposition (no re-ask).
+
+## Family 5 extension — INS single forms (Phase C/D, prefetch ordering)
+
+INS singles 6C/6D show the IDENTICAL prefetch-ordering signature as the OUTS singles
+(confirmed row-by-row: RTL prefetches the next-instruction CODE fetch EARLY at ~cycle 2,
+where the chip performs the port IOR first and prefetches late). Pre-dispositioned to
+this family by the coordinator; confirmed matching. Chip truth, RTL BIU behind.
+- `6C` insb : 7,528 / 10,000 (5,000 cold cases fail cyc+arch; 2,528 cyc-only)
+- `6D` insw : 7,515 / 10,000 (5,000 cold cases fail cyc+arch; 2,515 cyc-only)
+- Subtotal: 15,043 cases.
+
+Family 5 total (OUTS singles 29,892 + INS singles 15,043) = **44,935 cases** — the
+single-string-I/O BIU prefetch-ordering law. REP string-I/O never shows it (the loop keeps
+the BIU busy, no speculative early next-instruction prefetch). The single-vs-REP split is
+the discriminator for fitting the law.
+
+## Family 6 — word REP INS queue-status (QS) point-sample timing (NEW, Phase D)
+
+Word REP INS only (646D/656D/F26D/F36D; byte REP INS 646C/656C/F26C/F36C are CLEAN, and
+non-REP handled by Family 5). The divergence is **cycle-only, arch-CLEAN** (final regs/ram
+match exactly): the QS (queue-status) point sample reports a queue-FETCH (qop=F) one cycle
+differently between chip and RTL at the same bus address/T-state (e.g. golden qop=F where
+sim qop=-). A queue-status *reporting-timing* difference during the word-wide REP-INS fetch
+interleave, not a functional or address divergence. (Related to the documented "QS reports
+one cycle late" point-sample caveat, here surfacing as a chip-vs-RTL delta specific to the
+word REP-INS pattern.)
+- `646D` repnc insw : 4,051 / 10,000
+- `656D` repc  insw : 4,090 / 10,000
+- `F26D` repne insw : 4,109 / 10,000
+- `F36D` rep   insw : 4,092 / 10,000
+- Total: **16,342 cases**, all cycle-only (qop column), arch-clean.
+
+Disposition: KEEP (chip truth); ledgered as its own family. A fittable QS-timing law with
+a 16k-case set. Word-vs-byte and REP-only scope are the discriminators.

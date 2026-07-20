@@ -8,13 +8,15 @@ case is reproducible from `sha-derived seed f"{base}/{opcode}/{n}"` —
 rerolled seeds logged in `emit_log.txt`, and the output-index -> seed-attempt
 map is recorded per form in `XX.seeds.json`).
 
-This tranche is the **10,000-cases-each / 347-form** full-scale emission and
+This tranche is the **10,000-cases-each / 370-form** full-scale emission and
 **supersedes v0.2 outright** (v0.2 was the 1,000-case predecessor; it is retained
 on disk for its historical role — validation slices and confinement checks — but
-is obsolete). Forms: 332 opcode forms (`OPCODES`) + 15 pin-event forms — the same
-347-form set that v0.2 validated. **String I/O (INS/OUTS, 6C-6F) is not in this
-tranche** and is planned as a follow-up (the emitter's string-I/O generator and
-the board-image port-serving for INS land after this run).
+is obsolete). Forms: 342 opcode forms (`OPCODES`, including the 23 string-I/O forms
+6C-6F + repeat/segment variants) + 15 pin-event forms. **String I/O (INS/OUTS, 6C-6F)
+IS included**: OUTS drives the chip's IOW data (harness observes); INS reads real,
+varied per-case port data served by a per-IOR hardware FIFO in the harness bitstream
+(the V30 suite's upstream differentiator over the open-bus V20 captures). INS cases
+carry the served sequence in the `iords` field (see schema).
 
 v0.3 uses the same seed scheme as v0.2 (base `v30-v0.2`), so its first 1,000
 cases per form are **prefix-identical to v0.2 wherever the reroll history agrees**
@@ -156,21 +158,33 @@ is not a memory-model artifact). For these, flat-validity is asserted by **struc
 validation** (`validate_suite.py`: schema, hash, independent RAM reconstruction, cold/pf,
 boundaries — all pass) plus the **absence of mirror-dependence**, NOT by RTL reproduction
 (the instrument is behind on these). The socket-captured golden is chip truth; the RTL is
-the work item. All such cases are catalogued in `docs/notes/v03_divergence_ledger.md` —
-including the main-suite residuals (62) and the large single-OUTS BIU prefetch-ordering
-family (~29,892, chip prefetches the next instruction late, RTL early). Cases the RTL
-*does* reproduce (the vast majority, and all REP string forms) are flat-valid by direct
-re-check as usual.
+the work item. All such cases are catalogued in `docs/notes/v03_divergence_ledger.md` by family — the
+main-suite residuals (62); the single-string-I/O BIU prefetch-ordering law (Family 5,
+44,935: single OUTS + single INS, chip prefetches the next instruction late, RTL early);
+and the word-REP-INS queue-status point-sample timing (Family 6, 16,342, cycle-only,
+arch-clean). Cases the RTL *does* reproduce — the majority, all byte REP string forms, and
+every non-string form's bulk — are flat-valid by direct re-check as usual.
 
 (Note: the upstream SingleStepTests **V20** suite does *not* guarantee flat-validity — a
 small number of its cases are mirror-dependent; see `docs/notes/singlesteptests_v20.md`.)
 
+## String I/O port data (`iords`)
+
+INS forms (6C/6D + repeat variants) carry an **`iords`** field — the ordered list of
+16-bit values the harness served to the CPU, one per I/O read, in order:
+
+    "iords": [v0, v1, ...]        # one 16-bit value per IOR the case performs
+
+Byte forms carry the value in both lanes (`v * 0x0101`), so it is port-parity-agnostic;
+word forms carry the full 16-bit word. Every value is recoverable independently from the
+case's own `final.ram` (each INS iteration writes the port value to ES:IY at the DF-signed
+stride), cross-checked against the served list — **0 ambiguous across 20,000 IORs** on this
+tranche. Word INS/OUTS use even ports (an odd-port word I/O splits into two byte cycles);
+byte forms use all ports (odd-port byte reads exercise the high data lane). OUTS forms
+perform no IOR and carry no `iords`.
+
 ## Known v0.3 limitations
 
-- **No string I/O (INS/OUTS, 6C-6F)**: emitter string-I/O generator and
-  the board-image per-case port-serving for INS are a follow-up tranche.
-- **No IN/port-read randomization beyond the fixed forms** already present
-  (E4/E5/EC/ED); per-case varied port data is part of the 6C-6F follow-up.
 - ALE and the 8288 command columns are synthesized (documented above);
   bus-status T4 rows differ from V20 shape (hardware-truthful).
 - Flags in initial states never have TF set; reserved PSW bits read as
