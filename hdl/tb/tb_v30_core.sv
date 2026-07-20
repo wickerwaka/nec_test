@@ -454,6 +454,7 @@ logic [31:0] t32, t32b;
 integer ss_at = -1;
 integer ss_mode = 0;
 logic [31:0] ss_scramble_seed = 32'h1;
+integer ss_dwell = 0;      // extra parked fabric clks (G5 long-dwell freeze)
 integer cpu_cyc = -1;
 logic ss_done = 1'b0;
 logic [15:0] ss_saved [0:SS_WORDS-1];
@@ -464,6 +465,7 @@ initial begin
     if (!$value$plusargs("ss_mode=%d", ss_mode)) ss_mode = 0;
     if (!$value$plusargs("ss_scramble_seed=%d", ss_scramble_seed))
         ss_scramble_seed = 32'h1;
+    if (!$value$plusargs("ss_dwell=%d", ss_dwell)) ss_dwell = 0;
 end
 
 always @(posedge clk) begin
@@ -523,6 +525,10 @@ always @(negedge clk) begin : ss_controller
         ss_park = 1'b1;
         // One parked posedge lowers CE_HALF and establishes a full quiet clk.
         @(posedge clk);
+        // G5 long-dwell: hold the freeze for ss_dwell fabric clks (CE parked,
+        // core frozen at an arbitrary ce_cnt phase) before streaming. A no-op:
+        // the core cannot advance while CE==0, so the resumed stream is unchanged.
+        repeat (ss_dwell) @(posedge clk);
         case (ss_mode)
             1: begin
                 ss_save(ss_saved);
@@ -566,6 +572,23 @@ always @(negedge clk) begin : ss_controller
                 ss_save(ss_saved);
                 ss_load(ss_saved);
                 $display("SS3 FIFO-SELFTEST idx=%0d", ss_at);
+            end
+            4: begin
+                // G4 sensitivity: flip ONE non-tag stream bit, restore the
+                // corrupted image, resume. A bit that maps to live state must
+                // perturb the continuation (or a visible final delta). The bit
+                // index = ss_scramble_seed; word 0 (tag) is skipped. Run many
+                // seeds: most flips must diverge -> the gate is NOT blind.
+                integer bit_idx, wrd, bpos;
+                ss_save(ss_saved);
+                for (int si = 0; si < SS_WORDS; si++) ss_work[si] = ss_saved[si];
+                bit_idx = ss_scramble_seed % (SS_WORDS*16);
+                if (bit_idx < 16) bit_idx = bit_idx + 16;   // skip the tag word
+                wrd  = bit_idx / 16;
+                bpos = bit_idx % 16;
+                ss_work[wrd][bpos] = ~ss_work[wrd][bpos];
+                ss_load(ss_work);
+                $display("SS4 BITFLIP idx=%0d word=%0d bit=%0d", ss_at, wrd, bpos);
             end
             default: ;
         endcase

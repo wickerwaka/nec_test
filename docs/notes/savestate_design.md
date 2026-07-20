@@ -350,3 +350,35 @@ trailing row - a boundary effect, not a plumbing bug; the sweep bounds k to the 
 scramble sweep, full-k, forms 81.0/89/F3A5/C3/7C/F7.6/F7.7 x2 cases: ALL PASS, 0 diverging
 k -> chain complete + restore exact. G3 mode-2 idempotence: all PASS. **The scramble gate
 JOINS THE STANDING REGRESSION SET** (finding 3 rationale).
+
+## S4/S5 — waits coverage (G2b/G2c/G5) + negative tests (G4) GREEN (2026-07-20)
+
+**G2b** (uniform-wait scramble sweep, full-k): forms 89/8B/F7.6/E8/EB/B8 under w1 AND w3,
+0 diverging k (F7.6 sweeps 124 freeze pts under w3 - lands on Tw/eval_ext/defer_*/law_window
+/tw_par cells by construction). **G2c** (breadth, stride 7): 100 v0.1 + 50 v0.3 cases;
+savestate is a no-op on ALL (v0.1 clean vs golden; the 18 v0.3 golden-mismatches are the
+PRE-EXISTING Family-5 ledger divergences - verified SS-run == no-SS-run at all k, i.e. the
+scramble adds no perturbation beyond the pre-existing chip-vs-RTL divergence). **G5**: 10
+forms x scramble x 5 wrand seeds x ce_div in {1,4}: SS==noSS on all; + a 10,000-fabric-clk
+long-dwell freeze (ce_div=4, scramble@k=6): SS==noSS -> CE-independent, correct at arbitrary
+ce_cnt phase. TB gained +ss_dwell for the long-dwell.
+
+**G4 negative tests + a methodology finding:**
+- Corrupt tag word -> SS_ERR sets: PASS (mode 1, finding 1b).
+- Single-bit flip (mode 4): the gate DETECTS live-bit corruption (flips that land on a flop
+  live at the freeze point diverge) -> not blind. The rate is low per (case,k) because each
+  bit has a NARROW live window - which is precisely why the gate flips ALL bits at EVERY k
+  across ALL forms (G2a/G5). 
+- **FINDING (fault injection):** removing a field's UNPACK (restore) assignment is NOT caught
+  by the mode-1 scramble - the core is FROZEN during the SS op, so a flop missing from unpack
+  keeps its correct frozen value (the scramble corrupts only THROUGH the restore datapath,
+  which skips a missing field). Mode-1 catches missing-from-PACK (the saved value is wrong)
+  behaviorally, live-window-dependent. **Unpack completeness is therefore guaranteed by the
+  EXHAUSTIVE static checklist audit (S1/S2: every field in pack AND unpack exactly once), not
+  by the scramble gate.** A dynamic arbitrary-toggle unpack readback was tried and REMOVED:
+  restoring an unreachable state trips the BIU's combinational --assert equivalence probes
+  (v30_biu ~1781, slot_show_now==ext_show) - confirming those probes guard reachable states,
+  and that real save-state use restores previously-VALID states, never arbitrary ones.
+
+**All S0-S5 gates green.** Standing regressions for every campaign: G1 (no-op) + the scramble
+sweep (G2a, chain behavioral) + the static pack/unpack checklist audit (chain completeness).
