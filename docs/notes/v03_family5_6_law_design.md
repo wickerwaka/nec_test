@@ -279,3 +279,33 @@ three strio changes. Corrected, with the hardening-counter evidence (batch cov r
   w2**. Therefore **F7a's w1/w3 cleanliness (1200/1200) is EMPIRICAL — the gates passed —
   not structural.** `cov_f7a_eval_ext` (eval_ext ∧ eu_soon_strio) is 0 at w0 and fixed w2;
   its reachability under *random* per-cycle waits is exactly what the leg-(b) fuzz probes.
+
+### Leg (b) — strio fuzz gadget + coverage findings (task #24 coda)
+
+Added `_gen_strio` to gen_seq (EXT_MENU key "strio", weight 5): INS/OUTS single + REP,
+plain and seg-prefixed (OUTS-only override), windowed IX/IY, safe-band DX port, bounded
+REP count, CLD-biased, atomic; a wide NOP queue-fill prepend (0..10) so the strio issues
+into a full queue (warm-qlen6 idle window) or a low-occupancy one (cold). Verified: 662
+strio gadget fires / 500 programs (336 single + 326 REP).
+
+**Coverage reachability (batch + boot corpus, hardening counters):**
+- `cov_f5a_t3_veto` (eval_at_t3 ∧ eu_rsv_strio): nonzero at w0 — batch 1090, free-running
+  corpus 15/70 progs. **Structurally 0 under waits** (eval_at_t3 needs READY at two
+  consecutive edges → a waited fetch has no T3-eval slot). Confirmed 0 under wrand.
+- `cov_f7a_idle_arm` (ST_TI ∧ eu_soon_strio ∧ q_aged==0): nonzero at w0 — batch 403,
+  corpus 8/70 progs (only after the queue-fill prepend was widened to 0..10; the
+  multi-byte setup otherwise keeps the queue below qlen6). Disrupted to 0 by heavy random
+  waits (they break the queue-full-at-idle alignment).
+- `cov_f7a_eval_ext` (eval_ext ∧ eu_soon_strio): **0 in every regime** (batch/boot, w0/
+  wrand). Evidence of structural unreachability: `eu_soon_strio` is high only at EU S_RSV,
+  which precedes the strio's own access — no PRIOR access is completing there for an
+  `eval_ext` to evaluate. The S_RSV lead and the waited-completion eval are temporally
+  disjoint.
+
+**Consequence for the leg-(b) acceptance:** "nonzero for all three under a high-wait wrand
+fuzz" is NOT achievable — F5a is a zero-wait mechanism, f7a_eval_ext is unreachable, and
+f7a_idle_arm is wait-fragile. The exercising regime for these gates is **zero/low wait**.
+Recommended board A/B: run the strio fuzz at wmax 0..1 (or a zero-wait-biased mix), accept
+nonzero `idle_arm` + `t3_veto` (NOT `eval_ext`, which should stay 0 as an isolation
+invariant) AND zero new divergences. A pure wmax=7 fuzz is the wrong regime. The TB-vs-chip
+divergence check itself requires the board (sim-only is TB-vs-TB, always matches).
