@@ -99,6 +99,26 @@ single-string-I/O BIU prefetch-ordering law. REP string-I/O never shows it (the 
 the BIU busy, no speculative early next-instruction prefetch). The single-vs-REP split is
 the discriminator for fitting the law.
 
+**SPLIT (Phase 2, 2026-07-20):** on characterization the 44,935 resolved into two
+distinct signatures, NOT one law:
+- **Family 5a — COLD (queue empty at the strio issue, 27,424 cases):** the RTL grants
+  the next-instruction CODE prefetch EARLY, in the T3-eval slot right after the strio
+  opcode fetch, ahead of the DS:IX/ES:IY element MEMR + port I/O. Chip defers that
+  speculative grant. This is the pure request-arbitration-timing population. **RESOLVED**
+  by the decision-time-scoped T3-eval veto (see resolution log).
+- **Family 7 — WARM (queue non-empty, qlen≈6 at issue, 17,511 cases):** the element
+  MEMR itself lands one bus slot late relative to the chip; the next-CODE grant is not
+  the discriminator. Different signature, different (unfit) law. **OPEN** — handed to
+  the architect for its own design.
+
+**Method note (mis-characterization, recorded honestly):** Phase-1 characterization
+measured only the next-instruction CODE-grant *position* and reported Family 5 as a
+single cold-style "early-prefetch" family. That was wrong: it never sampled the element
+MEMR position, so the warm population (which diverges in the MEMR slot, not the CODE
+grant) was folded in under the wrong signature. The eu_hold experiment exposed it —
+making COLD bit-identical while shifting every WARM case's MEMR one slot late (stop
+condition #2). The corrected split above separates the two populations.
+
 ## Family 6 — word REP INS queue-status (QS) point-sample timing (NEW, Phase D)
 
 Word REP INS only (646D/656D/F26D/F36D; byte REP INS 646C/656C/F26C/F36C are CLEAN, and
@@ -126,8 +146,25 @@ a 16k-case set. Word-vs-byte and REP-only scope are the discriminators.
   2). Gate: 4 forms 0/16,342; byte REP INS / REP OUTS / DI-even / CW=0 unchanged; w0
   169000/169000, w1/w3 1200/1200; scramble 0; v20 6D arch 2000/2000. No new flops, no
   savestate struct change. Ledger 61,339 -> 44,997 (Family 5 44,935 + Families 1-4 62).
-- **Family 5 (44,935, single string-I/O prefetch): HELD at stop condition #2.** The eu_hold
-  claim (S_FIRST head-byte-peek + S_DEC) makes COLD cases bit-identical but shifts the WARM/pf
-  MEMR one slot late (all warm cases broken). Per the pre-registered stop condition, reverted;
-  the request-onset (not just the claim) must move — a different, riskier change. Back to the
-  architect.
+- **Family 5 (44,935, single string-I/O prefetch): eu_hold claim HELD at stop condition #2,
+  then SPLIT + partially resolved.** The eu_hold claim (S_FIRST head-byte-peek + S_DEC) made
+  COLD cases bit-identical but shifted the WARM/pf MEMR one slot late (all warm cases broken).
+  Per the pre-registered stop condition, reverted. Root insight: cold and warm are two
+  signatures, not one law (see SPLIT note under Family 5). Cold got a narrower, safer change:
+- **Family 5a (27,424, COLD single string-I/O early-CODE-grant): RESOLVED** 2026-07-20 (commit
+  below). Decision-time-scoped **T3-eval veto**: a new EU→BIU wire `eu_rsv_strio` (asserted for
+  a non-REP strio single at S_FIRST head-byte-peek `q_byte[7:2]==011011` and at S_DEC
+  `op_instr||op_outstr`) removes only `prefetch_ok` from the T3-eval pick at that decision
+  instant (`pick_t3 = want_half2 || want_eu || (prefetch_ok && !eu_rsv_strio)`), so the
+  speculative next-CODE grant is deferred to after the element MEMR + port I/O — matching the
+  chip. Scoped to the T3-eval decision only; `req_ti_plain`/`prefetch_ok`/`eu_hold`/T4-flush
+  slots keep `pick_any`. Gate: **cold 0/27,424**; flip-guards bit-identical — warm population
+  (Family 7, ~17.5k), cold-prefix-T4 classes, classic strings A4–AF + prefixed, all REP strio,
+  byte/word both (pre.txt==post.txt row-diff). Standing gates: w0 169000/169000, w1/w3 1200/1200;
+  **wrand class-5 census 240/240 census-model configs bit-identical veto-vs-noveto → total 494u
+  + DONE-guard 190u preserved**; v20 oracle 6C/6D 2000/2000 + A4/A5 5000/5000 arch; scramble 0
+  failures; Quartus 17.1 A&S 0 errors, no inferred latch on `eu_rsv_strio`. **No new flops, no
+  savestate struct change** (only wires/assigns + one EU→BIU port; BIU input gated to 0 under
+  `scr_en`). Ledger 44,997 → 17,573 (Family 7 17,511 + Families 1–4 62).
+- **Family 7 (17,511, WARM qlen≈6 element-MEMR-slot-late): OPEN.** Handed to the architect;
+  design landing separately. Do NOT fold into 5a — different signature, different law.

@@ -94,6 +94,7 @@ wire        grid_phase;
 wire        eu_lock, core_buslock_n, eu_mem_acc;
 wire        eu_rsv_dhi, eu_rsv_push_calc;   // Phase 3 reservation-class hints
 wire        eu_rsv_lead;                     // eu_req=0 onset lead hint
+wire        eu_rsv_strio;                    // Family-5 strio T3-eval veto (task #24)
 wire        eu_rdone, bus_tw;
 wire        eu_defer_wr;
 wire [2:0]  bus_ts;
@@ -219,6 +220,7 @@ v30_biu u_biu (
     .eu_rsv_dhi (scr_en ? 1'b0 : eu_rsv_dhi),
     .eu_rsv_push_calc (scr_en ? 1'b0 : eu_rsv_push_calc),
     .eu_rsv_lead (scr_en ? 1'b0 : eu_rsv_lead),
+    .eu_rsv_strio(scr_en ? 1'b0 : eu_rsv_strio),
     .eu_wr      (eu_wr),
     .eu_fwd     (eu_fwd),
     .eu_word    (eu_word),
@@ -272,6 +274,7 @@ v30_eu u_eu (
     .eu_rsv_dhi (eu_rsv_dhi),
     .eu_rsv_push_calc (eu_rsv_push_calc),
     .eu_rsv_lead (eu_rsv_lead),
+    .eu_rsv_strio(eu_rsv_strio),
     .bus_phase  (bus_phase),
     .grid_phase (grid_phase),
     .eu_lock    (eu_lock),

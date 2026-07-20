@@ -141,6 +141,10 @@ module v30_biu (
                                     // LEADS eu_req by one EU-state (disp16 store
                                     // @ S_DHI). Consulted ONLY in eval_ext ->
                                     // w0-NEUTRAL. See pf_rsv_lead below.
+    input             eu_rsv_strio, // Family-5 (task #24): strio-single uline-1
+                                    // request lead. Vetoes ONLY the T3-eval
+                                    // fetch-completion grant (pick_t3 below);
+                                    // TI grants and every other slot untouched.
     input             eu_rsv_push_calc, // Phase 3: ... the S_PUSH_CALC push
                                     // class (owns the slot only at q_cnt>=2)
     input             eu_wr,
@@ -687,6 +691,13 @@ wire eu_split   = eu_word && eu_addr[0];
 wire eu_ube_n   = eu_word ? 1'b0 : (eu_addr[0] ? 1'b0 : 1'b1);
 
 wire        pick_any   = want_half2 || want_eu || prefetch_ok;
+// T3-eval-scoped pick (Family-5, task #24): the completion eval's successor-
+// fetch grant sees the strio-single uline-1 reservation (its chip decision
+// instant is T4-entry >= pop+1); TI grants (chip decides pop-1/pop+0) are
+// exempt, so warm-1/warm-2-prefix populations (chip-granted) survive. Only
+// req_t3_eval + its dispatch/SLOT_CHK use pick_t3; every other slot keeps
+// pick_any. eu_req/prefetch_ok/eu_hold/history-pipes untouched.
+wire        pick_t3    = want_half2 || want_eu || (prefetch_ok && !eu_rsv_strio);
 // EU-arbitration front (Stage 3): under waits, when a deferred-completion eval
 // finds the queue STARVED (empty) and the pending EU access still only
 // RESERVING (eu_req high, not yet ready - its address/data delayed by the
@@ -926,7 +937,7 @@ wire req_flush_hold = state == ST_TI && !nxt_live &&
 wire req_ti_plain   = state == ST_TI && !nxt_live &&
                       !direct_request && !flush_defer && !eval_ext && pick_plain;
 // ST_T3/TW staged completion eval (zero-wait T3->T4 edge):
-wire req_t3_eval    = eval_at_t3 && pick_any;
+wire req_t3_eval    = eval_at_t3 && pick_t3;   // Family-5 veto (task #24)
 // ST_T4 direct defer_t4 commit (below nothing; defer_t4 is first in T4):
 wire req_defer_t4   = state == ST_T4 && defer_t4 && eu_req && eu_ready;
 // ST_T4 far-flush mid-T4 direct commit (below defer_t4 and nxt_live):
@@ -1450,14 +1461,14 @@ always_ff @(posedge clk) begin
                     // cycle evaluates at the end of T4 instead. The queue
                     // push of a completed fetch follows one cycle later.
                     if (eval_at_t3) begin
-                        `SLOT_CHK(slot_fire == pick_any);
+                        `SLOT_CHK(slot_fire == pick_t3);   // Family-5 veto (task #24)
                         evald <= 1'b1;
                         if (cur_fetch && !fetch_discard && !q_flush) begin
                             push_pend    <= cur_word ? 2'd2 : 2'd1;
                             push_pend_hi <= cur_addr[0];
                         end
                         if (eu_completing) eu_hand <= 1'b1;
-                        if (pick_any) begin
+                        if (pick_t3) begin
                             // staged commit issued by the dispatch above;
                             // this branch preserves priority over defer_t4.
                         end else if (cur_fetch && eu_req && eu_soon &&

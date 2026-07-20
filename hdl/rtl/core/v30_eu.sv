@@ -181,6 +181,13 @@ module v30_eu (
                                     // prefetch suppression -> w0-NEUTRAL (never
                                     // consulted at w0; the chip's post-EA
                                     // prefetch legitimately commits there).
+    output            eu_rsv_strio, // Family-5 (task #24): strio-single uline-1
+                                    // request lead. High at the opcode pop
+                                    // (S_FIRST) and dispatch (S_DEC) of a non-REP
+                                    // INS/OUTS single. The BIU vetoes ONLY the
+                                    // T3-eval fetch-completion grant (decision
+                                    // instant >= pop+1); TI grants exempt. Pure
+                                    // comb, zero flops (no savestate change).
     output reg        eu_wr,
     output            eu_fwd,     // write data = the BIU's last read data
                                   // (string-op read->write forwarding)
@@ -1633,6 +1640,16 @@ assign eu_rsv_push_calc = (state == S_PUSH_CALC);
 assign eu_rsv_lead      = ((state == S_DHI) && (op_movs8 || op_movs16) && q_pop) ||
                           ((state == S_MLO) && op_moff && q_pop &&
                            (!opc[0] || q_byte[0]));
+
+// strio-single uline-1 request lead (V20 ucode 0294/02A0: INS/OUTS singles issue
+// their bus request on the routine's FIRST uline; MOVS/LODS/STOS/SCAS on uline 2 -
+// measured cold A4 vs 6E, 5000/5000 each). Consumed by the BIU's T3-eval fetch-
+// completion grant ONLY. REP (3-uline preamble 0298/02A4) and classic strings do
+// NOT assert. Pure comb (Moore state + q_byte peek), zero flops.
+assign eu_rsv_strio     = ((state == S_FIRST) && q_pop && !rep_en &&
+                           (q_byte[7:2] == 6'b011011)) ||      // 6C-6F, pop cycle
+                          ((state == S_DEC) && !rep_en &&
+                           (op_instr || op_outstr));            // dispatch cycle
 
 // RMW mem write, ALU-imm forms ONLY (op80/81/83; op_alui): apply the
 // stricter deferred-eval qualifier. Measured: only the ALU-imm RMW defers
