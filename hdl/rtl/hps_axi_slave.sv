@@ -35,6 +35,13 @@
 //                            replay applies the +0x140000 wait-vector RAM
 //        0x10  STATUS    RO  [0] pwr_good  [1] cpu_running  [2] cap_full
 //        0x14  CAPCOUNT  RO  records captured
+//        0x28  IORDS_CTL RW  [0] reset (clear write ptr + count, pulse)
+//                            [1] enable (serve the sequence on IOR cycles)
+//                            RO readback: [0] enable  [7:1] count
+//        0x2C  IORDS_PUSH WO [15:0] append one 16-bit value to the sequence
+//                            (byte forms: host pre-duplicates into both lanes);
+//                            the per-case INS/REP-INS I/O-read data, served one
+//                            per IOR in order (see iords_buf.sv)
 //
 //============================================================================
 
@@ -92,6 +99,16 @@ module hps_axi_slave
     output reg        nmi_req,
     output reg        poll_n_out,
     output reg [15:0] cfg_iord,
+
+    // iords sequence buffer load (INS / REP INS per-element port serving).
+    // IORDS_CTL(0x28): [0] reset (clear write ptr + count) [1] enable.
+    // IORDS_PUSH(0x2C): [15:0] append one value (host pre-duplicates byte forms
+    // into both lanes). h_iords_* drive iords_buf; cfg_iords_* feed the serve mux.
+    output reg  [5:0] h_iords_addr,
+    output reg        h_iords_wr,
+    output reg [15:0] h_iords_wdata,
+    output reg  [6:0] cfg_iords_cnt,
+    output reg        cfg_iords_en,
     output reg [19:0] evt_addr,
     output reg [15:0] evt_delay,
     output reg  [7:0] evt_hold,
@@ -154,6 +171,7 @@ reg  [3:0] wstrb_q;
 reg        wlast_q;
 reg  [1:0] lat;
 reg [15:0] rd_lo;
+reg  [6:0] iords_wptr;    // iords buffer host write pointer / running count
 
 always_ff @(posedge clk) begin
     if (reset) begin
@@ -180,6 +198,12 @@ always_ff @(posedge clk) begin
         cfg_wseed       <= 16'hACE1;
         cfg_wait_replay <= 1'b0;
         h_wvec_wr       <= 1'b0;
+        h_iords_wr      <= 1'b0;
+        h_iords_addr    <= 6'd0;
+        h_iords_wdata   <= 16'd0;
+        cfg_iords_cnt   <= 7'd0;
+        cfg_iords_en    <= 1'b0;
+        iords_wptr      <= 7'd0;
         int_req         <= 1'b0;
         nmi_req         <= 1'b0;
         poll_n_out      <= 1'b0;
@@ -194,6 +218,7 @@ always_ff @(posedge clk) begin
         arready      <= 1'b0;
         h_mem_wr_req <= 1'b0;
         h_wvec_wr    <= 1'b0;
+        h_iords_wr   <= 1'b0;
 
         case (st)
         IDLE: begin
@@ -256,6 +281,22 @@ always_ff @(posedge clk) begin
                         cfg_wait_replay <= wdata[1];
                         cfg_wmax        <= wdata[7:4];
                         cfg_wseed       <= wdata[31:16];
+                    end
+                    8'h28: begin                       // IORDS_CTL
+                        if (wdata[0]) begin            // reset the sequence
+                            iords_wptr    <= 7'd0;
+                            cfg_iords_cnt <= 7'd0;
+                        end
+                        cfg_iords_en <= wdata[1];      // enable FIFO serving
+                    end
+                    8'h2C: begin                       // IORDS_PUSH: append one
+                        if (iords_wptr < 7'd64) begin  // DEPTH guard
+                            h_iords_addr  <= iords_wptr[5:0];
+                            h_iords_wdata <= wdata[15:0];
+                            h_iords_wr    <= 1'b1;
+                            iords_wptr    <= iords_wptr + 7'd1;
+                            cfg_iords_cnt <= iords_wptr + 7'd1;
+                        end
                     end
                     default: ;
                     endcase
@@ -357,6 +398,7 @@ always_ff @(posedge clk) begin
                     8'h20: rdata <= {evt_arm, 4'd0, evt_pin, evt_hold, evt_delay};
                     8'h24: rdata <= {cfg_wseed, 8'd0, cfg_wmax, 2'd0,
                                      cfg_wait_replay, cfg_wait_rand};
+                    8'h28: rdata <= {23'd0, cfg_iords_cnt, 1'd0, cfg_iords_en};
                     default: rdata <= 32'hDEADBEEF;
                     endcase
                     st <= R_DATA;

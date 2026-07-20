@@ -115,6 +115,18 @@ wire  [9:0] wvec_raddr;      // wvec RAM bus read port (nec_bus)
 wire [31:0] wvec_rdata;
 wire        int_req, nmi_req, poll_n_host;
 wire [15:0] cfg_iord;
+// iords sequence buffer (INS / REP INS per-element port serving)
+wire  [5:0] h_iords_addr;    // iords buf host write port
+wire        h_iords_wr;
+wire [15:0] h_iords_wdata;
+wire  [6:0] cfg_iords_cnt;   // number of loaded entries
+wire        cfg_iords_en;    // serve the sequence on IOR cycles
+wire  [6:0] iords_raddr;     // IOR read index from nec_bus
+wire [15:0] iords_rdata;     // buffered value at that index
+// serve mux: the sequenced value while enabled and in range, else the scalar
+// cfg_iord (IN forms E4/E5/EC/ED and any disabled run are byte-identical).
+wire        iords_active = cfg_iords_en && (iords_raddr < cfg_iords_cnt);
+wire [15:0] iord_eff     = iords_active ? iords_rdata : cfg_iord;
 wire [19:0] evt_addr;
 wire [15:0] evt_delay;
 wire  [7:0] evt_hold;
@@ -250,6 +262,11 @@ hps_axi_slave bridge
     .h_wvec_addr(h_wvec_addr),
     .h_wvec_wr(h_wvec_wr),
     .h_wvec_wdata(h_wvec_wdata),
+    .h_iords_addr(h_iords_addr),
+    .h_iords_wr(h_iords_wr),
+    .h_iords_wdata(h_iords_wdata),
+    .cfg_iords_cnt(cfg_iords_cnt),
+    .cfg_iords_en(cfg_iords_en),
     .int_req(int_req),
     .nmi_req(nmi_req),
     .poll_n_out(poll_n_host),
@@ -419,6 +436,7 @@ nec_bus bus
     .cfg_wait_replay(cfg_wait_replay),
     .wvec_raddr(wvec_raddr),
     .wvec_rdata(wvec_rdata),
+    .iords_raddr(iords_raddr),
 
     .int_req(int_req),
     .nmi_req(nmi_req),
@@ -482,6 +500,19 @@ wvec_buf wvec
     .rdata(wvec_rdata)
 );
 
+// iords sequence buffer (INS / REP INS): host-loaded per-element I/O-read data,
+// read by nec_bus at the current IOR index. iord_eff (above) muxes it against
+// the scalar cfg_iord and feeds test_mem's existing I/O-read serving path.
+iords_buf iords
+(
+    .clk(clk),
+    .h_waddr(h_iords_addr),
+    .h_we(h_iords_wr),
+    .h_wdata(h_iords_wdata),
+    .raddr(iords_raddr[5:0]),
+    .rdata(iords_rdata)
+);
+
 test_mem mem
 (
     .clk(clk),
@@ -491,7 +522,7 @@ test_mem mem
     .wr_req    (host_owns ? h_mem_wr_req : mem_wr_req_cpu),
     .wdata     (host_owns ? h_mem_wdata  : mem_wdata_cpu),
     .be        (host_owns ? h_mem_be     : mem_be_cpu),
-    .cfg_iord  (cfg_iord)
+    .cfg_iord  (iord_eff)
 );
 
 //----------------------------------------------------------------------------

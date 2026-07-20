@@ -403,6 +403,41 @@ initial begin
     end
 
     //------------------------------------------------------------------
+    // iords sequence serving (INS / REP INS): a host-loaded per-element
+    // I/O-read sequence served one value per IOR cycle, in order; out-of-
+    // range and disabled both fall back to the scalar IORD (backward compat).
+    //------------------------------------------------------------------
+    begin
+        logic [15:0] s0, s1, s2, s3;
+        axi_write32(21'h180028, 32'h1);                // IORDS_CTL: reset seq
+        axi_write32(21'h18002C, 32'h0000_1111);        // push v0
+        axi_write32(21'h18002C, 32'h0000_2222);        // push v1
+        axi_write32(21'h18002C, 32'h0000_3333);        // push v2
+        axi_write32(21'h180028, 32'h2);                // IORDS_CTL: enable
+        axi_write32(21'h180018, 32'h0000_ABCD);        // scalar fallback
+        axi_write32(R_CTRL, 32'h4);                    // run -> ior_idx=0
+        while (NEC_RESET !== 1'b1) @(posedge clk);
+        while (NEC_RESET) @(posedge NEC_CLK);
+        bus_cycle(BS_IOR, 20'h00080, 1'b0, 16'h0, s0);
+        bus_cycle(BS_IOR, 20'h00082, 1'b0, 16'h0, s1);
+        bus_cycle(BS_IOR, 20'h00084, 1'b0, 16'h0, s2);
+        bus_cycle(BS_IOR, 20'h00086, 1'b0, 16'h0, s3);  // idx 3 >= cnt -> scalar
+        check(s0 == 16'h1111, $sformatf("iords[0] served %04x (expect 1111)", s0));
+        check(s1 == 16'h2222, $sformatf("iords[1] served %04x (expect 2222)", s1));
+        check(s2 == 16'h3333, $sformatf("iords[2] served %04x (expect 3333)", s2));
+        check(s3 == 16'hABCD, $sformatf("iords out-of-range -> scalar %04x (expect ABCD)", s3));
+        axi_write32(21'h180028, 32'h0);                // disable
+        axi_write32(R_CTRL, 32'h5);                    // stop
+        // disabled again: IOR returns the scalar, byte-identical to legacy
+        axi_write32(R_CTRL, 32'h4);
+        while (NEC_RESET !== 1'b1) @(posedge clk);
+        while (NEC_RESET) @(posedge NEC_CLK);
+        bus_cycle(BS_IOR, 20'h00080, 1'b0, 16'h0, s0);
+        check(s0 == 16'hABCD, $sformatf("iords disabled -> scalar %04x (expect ABCD)", s0));
+        axi_write32(R_CTRL, 32'h5);
+    end
+
+    //------------------------------------------------------------------
     // synthetic large-mode trace with scripted queue status, dumped via
     // the bridge for analyzer development (sw/analyze_capture.py --large)
     //------------------------------------------------------------------
