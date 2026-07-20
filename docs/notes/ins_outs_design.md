@@ -107,3 +107,36 @@ already existed; the RTL executes INS/OUTS). Committed:
    RAM reconstruction/cold-pf/boundaries all green).
 6. Update the v0.3 README: drop 6C-6F from "Known limitations", document the iords schema
    field and INS port-read provenance.
+
+## Split tranche (coordinator decision, 2026-07-19) — OUTS first (no deploy), INS after FIFO deploy
+
+The board serve-protocol iords SEQUENCE is not yet in the harness bitstream, so the
+tranche is SPLIT to unblock the board without waiting on the FIFO deploy.
+
+**Premise verified:** OUTS (6E/6F + rep/seg-ovr) needs NO port serving — the chip DRIVES
+the IOW data and the harness only OBSERVES it (confirmed: OUT forms E6/E7/EE/EF already
+emit on the current board with chip-driven IOW data captured in the cycles). INS (6C/6D)
+reads the port and DOES need the harness to serve per-element data (the FIFO).
+
+### Phase A — OUTS tranche ×10k (NOW, no deploy). Pre-registered gate:
+- 13 forms: 6E 6F + F3/F2/65/64 x{6E,6F} + 26.6E 2E.6F 36.6E; seed base v30-v0.2, socket.
+- G-OUTS-1: validate_suite.py over the 13 forms -> 0 failures.
+- G-OUTS-2: three-way flat-validity pass over the 13 forms; mirror-dependent -> confined
+  re-emit (--validate); neither -> KEEP + append to v03_divergence_ledger.md.
+- No extract_iords (OUTS performs no IOR).
+
+### Phase B — iords-FIFO harness deploy (parallel RTL work, its own phase):
+- Add the iords FIFO to the harness RTL per this doc (preloaded per-case sequence,
+  consumed one-per-IOR, byte-lane duplication matching the IN-class E4/E5 path).
+- Quartus synth; safe_flash.sh; A/B-selectable; verify IN-class lane behavior unchanged.
+- Pre-register the deploy gate (byte-identity acceptance re-run) before the flash.
+
+### Phase C — INS tranche ×10k (AFTER Phase B). Pre-registered gate:
+- 10 forms: 6C 6D + F3/F2/65/64 x{6C,6D}; varied per-case port data; odd-port BYTE forms
+  for high-lane coverage (word forms even-port per the odd-port-word-split note above).
+- G-INS-1: validate_suite; G-INS-2: three-way flat-validity; G-INS-3: extract_iords
+  sidecars (ambiguity ~0 as on the v20 regen).
+
+### Phase D — finalize:
+- validate_suite over complete v0.3 (347 + 23 = 370 forms); README/metadata updates
+  (drop 6C-6F from limitations; document iords schema field + INS port provenance).
