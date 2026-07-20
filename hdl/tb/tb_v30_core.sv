@@ -45,6 +45,8 @@
 
 module tb_v30_core;
 
+import v30_ss_pkg::*;
+
 localparam bit [2:0] BS_PASV = 3'b111;
 
 localparam bit [2:0] ST_TI = 3'd0;
@@ -73,10 +75,12 @@ logic reset = 1;
 integer ce_div = 1;
 initial if (!$value$plusargs("ce_div=%d", ce_div)) ce_div = 1;
 integer ce_cnt = 0;
-wire    ce = (ce_cnt == 0);
+logic   ss_park = 1'b0;
+wire    ce = !ss_park && (ce_cnt == 0);
 logic   ce_half = 1'b1;
 always @(posedge clk) begin
-    ce_cnt  <= (ce_cnt >= ce_div - 1) ? 0 : ce_cnt + 1;
+    if (!ss_park)
+        ce_cnt <= (ce_cnt >= ce_div - 1) ? 0 : ce_cnt + 1;
     ce_half <= ce;   // high through the clk-low half after a CE-high posedge
 end
 
@@ -173,9 +177,13 @@ integer      ev_hold_cnt = 0;
 wire pin_int    = (pins_cfg[0] != 0) | (ev_drive && ev_pin == 0);
 wire pin_nmi    = (pins_cfg[1] != 0) | (ev_drive && ev_pin == 1);
 wire pin_poll_n = (pins_cfg[2] != 0) & ~(ev_drive && ev_pin == 2);
-wire [15:0] ss_dout_unused;
-wire        ss_err_unused;
-wire        ss_bus_quiet_unused;
+reg         ss_cap_r = 1'b0;
+reg         ss_shift_r = 1'b0;
+reg         ss_restore_r = 1'b0;
+reg  [15:0] ss_din_r = 16'b0;
+wire [15:0] ss_dout;
+wire        ss_err;
+wire        ss_bus_quiet;
 
 v30_core dut (
     .CLK       (clk),
@@ -192,13 +200,13 @@ v30_core dut (
     .RD_N      (RD_N),
     .UBE_N     (UBE_N),
     .BUSLOCK_N (BUSLOCK_N),
-    .SS_CAPTURE(1'b0),
-    .SS_RESTORE(1'b0),
-    .SS_SHIFT  (1'b0),
-    .SS_DIN    (16'b0),
-    .SS_DOUT   (ss_dout_unused),
-    .SS_ERR    (ss_err_unused),
-    .SS_BUS_QUIET(ss_bus_quiet_unused),
+    .SS_CAPTURE(ss_cap_r),
+    .SS_RESTORE(ss_restore_r),
+    .SS_SHIFT  (ss_shift_r),
+    .SS_DIN    (ss_din_r),
+    .SS_DOUT   (ss_dout),
+    .SS_ERR    (ss_err),
+    .SS_BUS_QUIET(ss_bus_quiet),
     .bkd_load  (bkd_load),
     .bkd_regs  (bkd_regs),
     .bkd_queue (bkd_queue),
@@ -439,6 +447,132 @@ logic [15:0] rv [0:13];
 integer i, k, rc;
 logic [31:0] t32, t32b;
 
+// Save-state test modes. cpu_cyc is zero-based within each case: the first
+// CE-high posedge after reset release is cycle 0.  The controller triggers at
+// the following negedge, after that cycle's CE_HALF partner has completed,
+// and parks the CE divider before doing any fabric-clock streaming.
+integer ss_at = -1;
+integer ss_mode = 0;
+logic [31:0] ss_scramble_seed = 32'h1;
+integer cpu_cyc = -1;
+logic ss_done = 1'b0;
+logic [15:0] ss_saved [0:SS_WORDS-1];
+logic [15:0] ss_work  [0:SS_WORDS-1];
+
+initial begin
+    if (!$value$plusargs("ss_at=%d", ss_at)) ss_at = -1;
+    if (!$value$plusargs("ss_mode=%d", ss_mode)) ss_mode = 0;
+    if (!$value$plusargs("ss_scramble_seed=%d", ss_scramble_seed))
+        ss_scramble_seed = 32'h1;
+end
+
+always @(posedge clk) begin
+    if (reset)
+        cpu_cyc <= -1;
+    else if (ce)
+        cpu_cyc <= cpu_cyc + 1;
+end
+
+task automatic ss_save(output logic [15:0] stream [0:SS_WORDS-1]);
+    ss_cap_r = 1'b1;
+    @(posedge clk);
+    ss_cap_r = 1'b0;
+    for (int si = 0; si < SS_WORDS; si++) begin
+        stream[si] = ss_dout;
+        ss_shift_r = 1'b1;
+        @(posedge clk);
+        ss_shift_r = 1'b0;
+    end
+endtask
+
+task automatic ss_load(input logic [15:0] stream [0:SS_WORDS-1]);
+    for (int si = 0; si < SS_WORDS; si++) begin
+        ss_din_r = stream[si];
+        ss_shift_r = 1'b1;
+        @(posedge clk);
+        ss_shift_r = 1'b0;
+    end
+    // Assert at a posedge, HOLD high through the following negedge (so the
+    // t1_half2 negedge flop restores, design 4.4), deassert at the NEXT posedge
+    // (design 4.3). Dropping it AT the negedge races the negedge sampling and
+    // leaves t1_half2 unrestored - caught by the core contract assertion.
+    ss_restore_r = 1'b1;
+    @(posedge clk);   // restore fires here
+    @(negedge clk);   // following negedge: SS_RESTORE still high
+    @(posedge clk);   // next posedge
+    ss_restore_r = 1'b0;
+endtask
+
+function automatic logic [15:0] ss_lfsr_next(input logic [15:0] v);
+    ss_lfsr_next = {v[14:0], 1'b0} ^ (v[15] ? 16'h002d : 16'h0000);
+endfunction
+
+always @(negedge clk) begin : ss_controller
+    logic [15:0] lfsr;
+    logic idem_ok;
+    if (reset) begin
+        ss_done = 1'b0;
+        ss_park = 1'b0;
+        ss_cap_r = 1'b0;
+        ss_shift_r = 1'b0;
+        ss_restore_r = 1'b0;
+        ss_din_r = 16'b0;
+    end else if (!ss_done && recording && ss_at >= 0 &&
+                 cpu_cyc == ss_at && ce_half) begin
+        ss_done = 1'b1;
+        ss_park = 1'b1;
+        // One parked posedge lowers CE_HALF and establishes a full quiet clk.
+        @(posedge clk);
+        case (ss_mode)
+            1: begin
+                ss_save(ss_saved);
+                // Codex review finding 1(b): a corrupt FIRST (tag) word must set
+                // SS_ERR. The tag is an integrity word, not a state flop, so
+                // restoring a tag-corrupted-but-otherwise-saved stream leaves the
+                // core state intact and only trips SS_ERR; re-capture clears it.
+                for (int si = 0; si < SS_WORDS; si++) ss_work[si] = ss_saved[si];
+                ss_work[0] = SS_TAG ^ 16'hFFFF;
+                ss_load(ss_work);
+                if (!ss_err)
+                    $error("SS_ERR did not set on corrupt tag (finding 1b) idx=%0d",
+                           ss_at);
+                ss_save(ss_saved);   // SS_CAPTURE clears SS_ERR, re-saves truth
+                lfsr = ss_scramble_seed[15:0];
+                if (lfsr == 0) lfsr = 16'h1;
+                ss_work[0] = SS_TAG; // keep the integrity tag valid
+                for (int si = 1; si < SS_WORDS; si++) begin
+                    lfsr = ss_lfsr_next(lfsr);
+                    ss_work[si] = lfsr ^ (si[0] ? 16'hA5A5 : 16'h5A5A);
+                end
+                ss_load(ss_work);
+                ss_load(ss_saved);
+                if (ss_err) begin
+                    $display("SS1 ERROR idx=%0d SS_ERR=1", ss_at);
+                    $error("saved restore raised SS_ERR");
+                end
+            end
+            2: begin
+                ss_save(ss_saved);
+                ss_load(ss_saved);
+                ss_save(ss_work);
+                idem_ok = 1'b1;
+                for (int si = 0; si < SS_WORDS; si++)
+                    if (ss_saved[si] !== ss_work[si]) idem_ok = 1'b0;
+                $display("SS2 IDEMPOTENT idx=%0d %s", ss_at,
+                         idem_ok ? "PASS" : "FAIL");
+                if (!idem_ok) $error("save-state idempotence failure");
+            end
+            3: begin
+                ss_save(ss_saved);
+                ss_load(ss_saved);
+                $display("SS3 FIFO-SELFTEST idx=%0d", ss_at);
+            end
+            default: ;
+        endcase
+        ss_park = 1'b0;
+    end
+end
+
 task automatic read_hex(output logic [31:0] v);
     logic [31:0] t;
     rc = $fscanf(fi, "%h", t);
@@ -447,6 +581,15 @@ task automatic read_hex(output logic [31:0] v);
         $finish;
     end
     v = t;
+endtask
+
+task automatic wait_unparked_clks(input integer n);
+    integer nw;
+    nw = 0;
+    while (nw < n) begin
+        @(posedge clk);
+        if (!ss_park) nw = nw + 1;
+    end
 endtask
 
 // boot-replay mode (+bootimg=<hex byte file> +bootn=<cycles>): load the
@@ -702,11 +845,11 @@ initial begin
         // ce_div==1 (default) => unchanged.
         while (fcount < nf && cyc < maxcyc * ce_div) begin
             @(posedge clk);
-            cyc = cyc + 1;
+            if (!ss_park) cyc = cyc + 1;
         end
-        repeat (2 * ce_div) @(posedge clk);    // flush the F#1 row itself
+        wait_unparked_clks(2 * ce_div);         // flush the F#1 row itself
         recording = 0;
-        repeat (16 * ce_div) @(posedge clk);   // ghost-load settle window
+        wait_unparked_clks(16 * ce_div);        // ghost-load settle window
         case_active = 0;
         $fdisplay(fo, "f %04x %04x %04x %04x %04x %04x %04x %04x %04x %04x %04x %04x %04x %04x",
                   fin_regs[15:0],    fin_regs[31:16],  fin_regs[47:32],

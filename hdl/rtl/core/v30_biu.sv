@@ -294,9 +294,13 @@ assign ss_dout_seg = ss_sh[15:0];
 ss_biu_t ss_u;
 assign ss_u = ss_biu_t'(ss_sh);
 
-initial begin
-    if (BIU_W != $bits(ss_biu_t)) $error("ss_biu_t width drift");
-end
+// Elaboration-time HARD-FAIL on width drift (design 3.1): a generate-time
+// check, so the build fails synthesis-independently (not merely a sim $error).
+generate
+    if (BIU_W != $bits(ss_biu_t)) begin : gen_ss_biu_width_err
+        $error("ss_biu_t width drift: BIU_W != $bits(ss_biu_t)");
+    end
+endgenerate
 
 `ifdef VERILATOR
 always @(posedge clk)

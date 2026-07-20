@@ -43,7 +43,8 @@ TB_DIR = ROOT / "hdl" / "tb"
 OBJ = TB_DIR / "obj_dir"
 BIN = OBJ / "Vtb_v30_core"
 
-RTL = [ROOT / "hdl" / "tb" / "tb_v30_core.sv",
+RTL = [ROOT / "hdl" / "rtl" / "core" / "v30_ss_pkg.sv",
+       ROOT / "hdl" / "tb" / "tb_v30_core.sv",
        ROOT / "hdl" / "rtl" / "core" / "v30_core.sv",
        ROOT / "hdl" / "rtl" / "core" / "v30_biu.sv",
        ROOT / "hdl" / "rtl" / "core" / "v30_eu.sv"]
@@ -86,6 +87,7 @@ def build(force=False):
     # always enables them.
     cmd = ["verilator", "--binary", "--timing", "-DV30_BACKDOOR", "--assert",
            "-Wall", "-Wno-UNUSEDSIGNAL", "-Wno-VARHIDDEN",
+           "-Wno-TIMESCALEMOD", "-Wno-WIDTHEXPAND", "-Wno-BLKSEQ",
            "--top-module", "tb_v30_core",
            "-Mdir", str(OBJ)] + [str(p) for p in RTL]
     print("building:", " ".join(cmd))
@@ -490,6 +492,14 @@ def main():
                          ">1 exercises the CE-hold path (rows must match N=1)")
     ap.add_argument("--ce-hold-check", action="store_true",
                     help="assert core internal state freezes on CE-low clocks")
+    ap.add_argument("--ss-sweep", nargs="?", const=1, type=int, metavar="STRIDE",
+                    help="scramble/idempotence sweep over each selected case's "
+                         "recorded window (default stride: 1)")
+    ap.add_argument("--ss-cases", default="", metavar="LIST",
+                    help="comma-separated case indices included in --ss-sweep")
+    ap.add_argument("--ss-mode", type=int, choices=(1, 2), default=1,
+                    help="save-state sweep mode: 1=scramble (default), "
+                         "2=idempotence")
     ap.add_argument("--waits", type=int, default=0,
                     help="TB READY wait states (match the suite's setting)")
     ap.add_argument("--arch-only", action="store_true",
@@ -506,9 +516,17 @@ def main():
                     help="disable ALL flags masking (compare raw PSW both sides). "
                          "Exposes V20-undefined bits our V30 computes deterministically.")
     args = ap.parse_args()
+    if args.ss_sweep is not None and args.ss_sweep < 1:
+        ap.error("--ss-sweep stride must be >= 1")
+    try:
+        ss_case_ids = {int(x, 0) for x in args.ss_cases.split(",") if x}
+    except ValueError as e:
+        ap.error(f"invalid --ss-cases LIST: {e}")
 
     suite = Path(args.suite_dir)
     build(args.build)
+    if args.build:
+        return 0
     # wait-state suites carry no metadata of their own; fall back to v0.1
     meta_fn = suite / "metadata.json"
     if not meta_fn.exists():
@@ -571,10 +589,13 @@ def main():
             flags_mask = 0xFFFF   # raw-PSW diagnostic: mask nothing
 
         with tempfile.TemporaryDirectory() as td:
-            def run_batch(cs, mirror):
+            def run_batch(cs, mirror, ss_at=None, ss_mode=None,
+                          return_stdout=False):
                 if not cs:
                     return {}
                 suffix = "_m" if mirror else ""
+                if ss_at is not None:
+                    suffix += f"_ss{ss_mode}_{ss_at}"
                 batch = Path(td) / f"batch{suffix}.txt"
                 outf = Path(td) / f"out{suffix}.txt"
                 compose_batch(cs, batch, arch_only=args.arch_only)
@@ -584,6 +605,8 @@ def main():
                     sa.append("+mirror=1")
                 if args.ce_hold_check:
                     sa.append("+ce_hold_check")
+                if ss_at is not None:
+                    sa.extend((f"+ss_at={ss_at}", f"+ss_mode={ss_mode}"))
                 r = subprocess.run(sa, cwd=ROOT, capture_output=True, text=True)
                 if r.returncode != 0 or not outf.exists():
                     print(f"{op}: SIM FAILED\n{r.stdout}\n{r.stderr}")
@@ -596,7 +619,8 @@ def main():
                     import shutil
                     shutil.copy(batch, f"/tmp/batch_{op}{suffix}.txt")
                     shutil.copy(outf, f"/tmp/out_{op}{suffix}.txt")
-                return parse_out(outf)
+                parsed = parse_out(outf)
+                return (parsed, r.stdout) if return_stdout else parsed
             sims = run_batch(cases, False)
             if sims is None:
                 continue
@@ -619,10 +643,55 @@ def main():
                     if _passes(c, msims.get(c["idx"])):
                         sims[c["idx"]] = msims[c["idx"]]
                         mirror_ok.append(c["idx"])
+
+            ss_reports = []
+            if args.ss_sweep is not None:
+                selected = [c for c in cases
+                            if not ss_case_ids or c["idx"] in ss_case_ids]
+                for c in selected:
+                    base_sim = sims.get(c["idx"])
+                    built = build_rows_sim(
+                        base_sim["recs"], c["initial"]["queue"],
+                        n_close=n_fpops(c) - (0 if args.arch_only else 1)) \
+                        if base_sim is not None else (None, None, None, None)
+                    _, _, raw_i0, _ = built
+                    swept = 0
+                    first_k = None
+                    for logical_k in range(0, len(c["cycles"]), args.ss_sweep):
+                        swept += 1
+                        if raw_i0 is None:
+                            first_k = logical_k
+                            break
+                        absolute_k = raw_i0 + logical_k
+                        rr = run_batch([c], c["idx"] in mirror_ok,
+                                       ss_at=absolute_k, ss_mode=args.ss_mode,
+                                       return_stdout=True)
+                        if rr is None:
+                            first_k = logical_k
+                            break
+                        ss_sims, ss_stdout = rr
+                        res = check_case(c, ss_sims.get(c["idx"]), flags_mask,
+                                         arch_only=args.arch_only)
+                        continuation_mm = [m for m in res.get("mm", [])
+                                           if isinstance(m[0], int) and
+                                           m[0] > logical_k]
+                        ok = res["arch_ok"] and not continuation_mm
+                        if args.ss_mode == 2:
+                            ok = ok and "SS2 IDEMPOTENT" in ss_stdout and \
+                                "PASS" in ss_stdout and "FAIL" not in ss_stdout
+                        if not ok:
+                            first_k = logical_k
+                            break
+                    ss_reports.append((c["idx"], swept, first_k))
         if mirror_ok:
             print(f"  {op}: {len(mirror_ok)} collision-dependent golden(s) "
                   f"validated under +mirror (64K RAM, as captured): "
                   f"idx {mirror_ok[:8]}")
+        for case_idx, swept, first_k in ss_reports:
+            verdict = "PASS" if first_k is None else "FAIL"
+            first = "none" if first_k is None else str(first_k)
+            print(f"  {op} SS{args.ss_mode} idx {case_idx}: swept={swept} "
+                  f"{verdict} first-diverging-k={first}")
 
         cnt = Counter()
         first_div = Counter()

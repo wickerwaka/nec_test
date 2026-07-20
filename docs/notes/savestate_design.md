@@ -316,3 +316,37 @@ adds NO core state, and the iords TB array does not chain. So §2.1/§2.2 stand 
 `ss_eu_t` (851+13 pad = 864 = 54 words), SS_VERSION=01, SS_WORDS=74, SS_TAG=0x014a. Field
 order = §2 table order, named members (no positional offsets). Elaboration width guard
 VERIFIED via Verilator: $bits(ss_biu_t)=304, $bits(ss_eu_t)=864 — PASS. No consumers yet.
+
+## S3 — TB scramble/idempotence modes + check_core --ss-sweep; G2a+G3 GREEN (2026-07-20)
+
+TB (tb_v30_core.sv): SS strobe regs + plusargs +ss_at/+ss_mode/+ss_scramble_seed; CE
+parking at the freeze CPU-cycle; ss_save/ss_load tasks (SS_RESTORE asserted at a posedge,
+HELD through the following negedge, deasserted at the NEXT posedge - design 4.3/4.4);
+mode 3 FIFO self-test, mode 1 scramble-restore (+ finding-1b corrupt-tag SS_ERR check),
+mode 2 idempotence. check_core.py: --ss-sweep[=STRIDE] / --ss-cases (per-case full-k,
+bounded to the window), +ss_mode.
+
+**FIFO self-test FIRST (the coordinator's off-by-one guard):** save 74 words, feed them
+back verbatim, restore -> bit-identical continuation at ALL in-window k on a 20-row case
+(k=1..19). Word order / shift count CORRECT. (A fixed k past a short case's window adds a
+trailing row - a boundary effect, not a plumbing bug; the sweep bounds k to the window.)
+
+**Codex review findings folded in:**
+- 1(a) FIFO property: green (above). 1(c) targeted states (t1_half2/div_busy/sh_busy/REP-
+  string) covered by the full-k sweep (F7.6/F7.7 79-88 freeze pts, F3A5 REP-string).
+- 1(b) corrupt-tag -> SS_ERR: verified in mode 1 (green).
+- 2 contract assertions (v30_core, sim-only): strobes one-hot-or-zero, !(CE & strobe),
+  !(CE_HALF & (cap|shift)), !(RESET & strobe), SS_RESTORE negedge-hold. **These CAUGHT a
+  real TB bug**: ss_load dropped SS_RESTORE AT the negedge (racing the t1_half2 negedge
+  sample) -> t1_half2 unrestored, which would have masqueraded as a t1_half2 chain bug in
+  the scramble sweep. Fixed (deassert at the next posedge).
+- 3 width guard -> generate-time hard-fail (v30_biu/v30_eu). NOTE: width-PRESERVING drift
+  (equal-width field swap / forgotten same-width flop) is invisible to any static guard;
+  the SCRAMBLE GATE is the only catcher -> it is a PERMANENT standing regression (see G4).
+- 4 (booked for G6): v30_ss_pkg.sv is not independently listed in files.qip - verify at G6
+  whether Quartus 17.1 needs it explicit; retain the Quartus log.
+
+**GATES:** G1 w0 169000/169000 (no-op preserved after the finding changes). G2a mode-1
+scramble sweep, full-k, forms 81.0/89/F3A5/C3/7C/F7.6/F7.7 x2 cases: ALL PASS, 0 diverging
+k -> chain complete + restore exact. G3 mode-2 idempotence: all PASS. **The scramble gate
+JOINS THE STANDING REGRESSION SET** (finding 3 rationale).

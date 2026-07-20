@@ -129,6 +129,38 @@ end
 
 assign SS_BUS_QUIET = ss_biu_bus_quiet;
 
+// Save-state contract assertions (Codex review finding 2; sim-only, no synth
+// impact). The platform MUST honor these; capture-beats-shift priority means an
+// accidental strobe overlap silently changes semantics - exactly what these
+// catch. See docs/notes/savestate_design.md sections 4.3-4.5.
+`ifndef SYNTHESIS
+wire [1:0] ss_strobe_cnt = SS_CAPTURE + SS_SHIFT + SS_RESTORE;
+reg  ss_restore_posedge;
+always @(posedge CLK) begin
+    // strobes are one-hot-or-zero
+    if (ss_strobe_cnt > 2'd1)
+        $error("SS strobes not one-hot: cap=%b shift=%b restore=%b",
+               SS_CAPTURE, SS_SHIFT, SS_RESTORE);
+    // strobes legal only while the core is frozen (CE==0) and out of reset
+    if (CE && (SS_CAPTURE || SS_SHIFT || SS_RESTORE))
+        $error("SS strobe asserted while CE high (core not frozen)");
+    if (RESET && (SS_CAPTURE || SS_SHIFT || SS_RESTORE))
+        $error("SS strobe asserted during RESET");
+    // SS_RESTORE asserted at a posedge must be HELD through the following
+    // negedge (the t1_half2 negedge flop, design 4.4)
+    ss_restore_posedge <= SS_RESTORE;
+end
+always @(negedge CLK) begin
+    // capture/shift must not straddle the CE_HALF negedge window
+    if (CE_HALF && (SS_CAPTURE || SS_SHIFT))
+        $error("SS_CAPTURE/SS_SHIFT asserted while CE_HALF high");
+    // negedge-hold contract: if restore was high at the last posedge it must
+    // still be high at this negedge
+    if (ss_restore_posedge && !SS_RESTORE)
+        $error("SS_RESTORE not held through the following negedge (design 4.4)");
+end
+`endif
+
 // scripted-consumer override (BIU-only verification)
 wire q_pop   = scr_en ? scr_qop[0]              : eu_pop;
 wire q_first = scr_en ? (scr_qop == 2'b01)      : eu_first;

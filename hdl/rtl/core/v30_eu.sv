@@ -376,9 +376,16 @@ assign ss_dout_seg = ss_sh[15:0];
 ss_eu_t ss_u;
 assign ss_u = ss_eu_t'(ss_sh);
 
-initial begin
-    if (EU_W != $bits(ss_eu_t)) $error("ss_eu_t width drift");
-end
+// Elaboration-time HARD-FAIL on width drift (design 3.1): generate-time, so the
+// build fails synthesis-independently. NOTE (Codex review finding 3): a width-
+// PRESERVING drift (a field swapped for another of equal width, or a forgotten
+// same-width flop) is invisible to any static guard - the scramble gate (G4) is
+// the only catcher, which is why it is a PERMANENT standing regression.
+generate
+    if (EU_W != $bits(ss_eu_t)) begin : gen_ss_eu_width_err
+        $error("ss_eu_t width drift: EU_W != $bits(ss_eu_t)");
+    end
+endgenerate
 
 `ifndef SYNTHESIS
 always_ff @(posedge clk) begin
