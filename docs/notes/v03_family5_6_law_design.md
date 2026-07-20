@@ -235,3 +235,29 @@ Why each population lands right, convention-independently: the arm fires one cyc
 **The unified picture for the record:** Families 5-cold, 5-warm/7, and the microcode all say one thing — INS/OUTS singles issue their bus request one µline earlier than every other string op. Cold: the request kills the successor-fetch grant at the completion eval (landed T3-veto). Warm-qlen6: the request commits from the idle window one cycle sooner (this fix). Warm-qlen5 and all classics: masked by the bridging fetch or matched by the pipeline. One silicon fact, three observables.
 
 Key files: hdl/rtl/core/v30_eu.sv (:1344 comb case, :1633 hint block, new eu_soon_strio), hdl/rtl/core/v30_biu.sv (:1398–1416 arm, :921/:971 fire path, :1463 contingent defer_t4 arm).
+
+---
+
+## Family 7 — Probe P4 step-0 correction + contingent-arm ratification (2026-07-20)
+
+Step-0 (worker, on the F5a-veto build) corrected the design's qlen labeling and
+closed the composition exactly:
+
+- **Plain forms (6C/6D/6E/6F) diverge at initial qlen6** (pure idle window), **9,970**
+  (2481+2528+2515+2446) — the `defer_idle` main arm.
+- **Prefix forms (26.6E/36.6E/2E.6F) diverge at initial qlen5, NOT qlen6** (bridging-fetch
+  window), **7,541** (2482+2549+2510) — the `defer_t4` contingent arm.
+- **9,970 + 7,541 = 17,511 exactly, zero stragglers.** The design's "prefix qlen6 / ~82
+  window-edge stragglers" was the artifact of counting the prefix sub-class at qlen6 (7,459);
+  the correct qlen5 count is 7,541 (+82), and the family closes with no remainder.
+
+Step-0 row-diff landed exactly in the design's "contingent applies" branch: the bridging
+CODE fetch is on-time in every prefix-qlen5 case; the divergence is the element commit one
+cycle late after that fetch's T4 (a missed defer_t4 pickup), and `eu_ready` first asserts at
+S_REQ (0 at S_RSV) — the eu_soon premise. So the contingent arm was **ratified** and landed
+via the general `eu_soon` at S_RSV (`eu_soon = (op_instr||op_outstr) && !rep_en`), no scoping.
+
+**Prefix-qlen6-clean explanation (architect):** the segment-override prefix's double pop
+reaches occupancy 4 a pop-slot later, so the bridge fetch is granted two cycles later; its
+T3-eval therefore lands *after* S_REQ, where the plain `want_eu` pickup already succeeds —
+hence prefix-qlen6 never diverges and stays bit-identical under both arms.

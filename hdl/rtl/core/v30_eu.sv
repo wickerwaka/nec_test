@@ -1352,7 +1352,19 @@ always_comb begin
     eu_ready = 1'b0;
     eu_soon  = 1'b0;
     unique case (state)
-        S_RSV:  eu_req = 1'b1;
+        S_RSV:  begin
+            eu_req = 1'b1;
+            // Family-7 contingent arm (architect-ratified): a strio single at
+            // S_RSV has eu_ready GUARANTEED next cycle (S_REQ) -- the eu_soon
+            // contract, honored unconditionally (stronger than the S_EA2
+            // reader precedent). The general eu_soon feeds exactly one BIU
+            // consumer, the fetch-T3 defer_t4 arm, which catches the prefix-
+            // qlen5 bridging-fetch element read (missed T3-eval pickup) and
+            // commits it mid-T4 -- the chip's element-on-the-fetch-T4 signature.
+            // Bus-state exclusive with the defer_idle main arm (that needs
+            // ST_TI at S_RSV; this needs a fetch-T3).
+            eu_soon = (op_instr || op_outstr) && !rep_en;
+        end
         // reader reservations (measured on cold-start traces): no-disp
         // forms reserve through the EA-compute cycles; disp forms only
         // in the cycle their final displacement byte actually pops

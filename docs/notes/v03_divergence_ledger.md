@@ -187,6 +187,18 @@ a 16k-case set. Word-vs-byte and REP-only scope are the discriminators.
   0/5000 (F5a untouched), classics A4–AD 3000/3000, REP untouched by construction (`!rep_en`).
   No new flops (only wires/assigns + one gated EU→BIU port); `defer_idle` is an existing
   savestate flop, no struct change. Ledger 17,573 → 7,603 (Family 7 prefix 7,541 + Families 1–4 62).
-- **Family 7b (7,541, prefix-form qlen5 bridging-fetch element-late): pending contingent arm**
-  (defer_t4 via general eu_soon at S_RSV — architect-ratified). Prefix divergent population is
-  qlen**5** not qlen6 (Probe P4 step-0 correction). Landing separately as its own commit.
+- **Family 7b (7,541, prefix-form qlen5 bridging-fetch element-late): RESOLVED** 2026-07-20
+  (commit below). **defer_t4 contingent arm** (architect-ratified): the general `eu_soon` is now
+  set at S_RSV for a strio single (`eu_soon = (op_instr||op_outstr) && !rep_en`). Its single BIU
+  consumer, the fetch-T3 `defer_t4` arm (`cur_fetch && eu_req && eu_soon && !eu_ready`, v30_biu
+  :1481), catches the prefix-qlen5 bridging-fetch element read — a missed T3-eval pickup — and
+  commits it mid-T4, matching the chip's element-status-on-the-fetch-T4 signature. Bus-state
+  exclusive with the defer_idle main arm (defer_idle needs ST_TI at S_RSV; defer_t4 needs a
+  fetch-T3). **Prefix-qlen6 stays clean** (double pop reaches occupancy 4 a pop-slot later → the
+  bridge is granted 2 cycles later → its T3-eval lands after S_REQ, where the plain `want_eu`
+  pickup already succeeds — architect). Gate: prefix 26.6E/36.6E/2E.6F **0/10,000** (7,541 qlen5
+  → 0); flip-guards bit-identical — prefix-qlen6 clean, plain-qlen6 re-run 0 (joint with
+  defer_idle), plain-qlen5 0, all cold 0/5000, classics incl. prefixed, all REP strio. general
+  `eu_soon` has exactly one BIU consumer (:1481); eu_soon_ea stays S_EA2-qualified, eu_soon_ivt
+  independent; scr_en gating covers scramble. No new flops (comb term only), no savestate struct
+  change. **Family 7 → 0/17,511. Ledger 7,603 → 62 (Families 1–4 only) — string-I/O saga closed.**
