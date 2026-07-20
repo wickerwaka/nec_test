@@ -327,3 +327,55 @@ gated RTL behavior is the open question -> the directed tranche (F0.6C-6F, cold 
 qlen5/6 warm, ~100/form) captures silicon to decide **validated vs diverges**. If it
 diverges the fix is likely `!lock_en` on the three hints, but characterize FIRST and
 gate any change on the new captures + all standing flip-guards (coordinator directive).
+
+---
+
+## BOARD SESSION — coda close-out (task #24, 2026-07-20)
+
+Flashed the current F7 `.sof` (both arms) to the FPGA fabric via safe_flash (VERIFY ok).
+
+### HEADLINE — F7 fix SILICON-CONFIRMED
+A pre-flash strio A/B smoke found the on-board fabric was a PRE-F7 build: seed fz3
+diverged at row 250 with the EXACT Family-7 signature (chip does the element access one
+cycle before the pre-F7 fabric's PASV). After flashing F7, that same fz3 MATCHES; strio
+A/B 6/6 clean at w0. The before/after is itself a mini-A/B that silicon-confirms the fix.
+
+### Leg (b) — low-wait A/B + coverage
+- **Divergences (wmax=1):** strio 17/25 (68%), no-strio baseline 7/25 (28%). Wait-timing
+  chip-vs-RTL divergences are pervasive and PRE-EXISTING (28% baseline = the known
+  wait-accuracy gap); strio's 2.4x elevation is bus-density (INS/OUTS + REP = more bus
+  accesses/program, more chances to hit the gap).
+- **Classification: ACCEPTED (coordinator).** cov_f7a_idle_arm=0 and t3_veto≈0 at wmax=1
+  ⇒ the new logic is DORMANT on that corpus ⇒ it cannot drive the divergences; the
+  no-strio baseline identifies them as the pre-existing gap; bus-density explains the
+  elevation. **Limit (stated honestly):** the dormancy is sim-cov-based; the definitive
+  pre-F7 fabric A/B was DECLINED on risk/value grounds (two wedge-risk flashes to
+  re-demonstrate a known gap = bad EV), with fz3's before/after standing as the mini-A/B.
+- **Coverage:** the fuzz corpus barely exercises the gates (wmax=0: idle=3/t3veto=3;
+  wmax=1: idle=0/t3veto=1; f7a_eval_ext=0 everywhere — the isolation invariant HOLDS).
+  The injected suite hits them reliably (403/1090); free-running fuzz rarely makes the
+  warm-qlen6 idle window and waits suppress the zero-wait mechanisms.
+- **Next-campaign asset:** bus-heavy strio programs stress the wait-accuracy gap at ~2.4x
+  the baseline corpus — PREMIUM census input for the future random-wait campaign (the
+  class-5 successor thread). wmax=7 control skipped (coverage half already 0 at both
+  regimes; divergence half belongs to that future campaign).
+
+### Leg (c) — LOCK-strio F0.6C-6F: DIVERGES (new ledger item)
+Emitted the F0.6C-6F chip tranche (100/form, socket goldens, cold + qlen5/6 warm, 0
+rerolls). RTL vs chip: **0/400 cycle (arch 400/400 clean)** — a pure cycle-timing
+divergence, 100% of cases across ALL queue states, first-div partitioning cleanly by
+queue (cold→row5, qlen5→row8, qlen6→row10 on the seg column).
+
+**Single-valued characterization:** it is the **Family-5/7 single-string-I/O prefetch-
+ordering divergence REAPPEARING for the LOCK-prefixed forms.** The RTL commits the element
+I/O ~2 cycles EARLY (the un-fixed behavior); the chip commits it late. Cov confirms the
+mechanism: for locked F0.6C the arms are mis-aligned/dormant — cov_f7a_idle_arm=**0** (vs
+27 non-locked) and cov_f5a_t3_veto=27 (vs 50) — because the F0 prefix's extra decode cycle
+shifts the queue/timing so the F5a/F7a/F7b arms don't catch the strio (analogous to how
+the seg-prefix forms needed the separate qlen5 handling).
+
+**The `!lock_en` hypothesis is REJECTED (tested):** gating both hints on `!lock_en` left
+the cycle divergence unchanged (still 0/400, same first-div) and hurt arch (400→306). The
+fix is NOT to disable the arms under lock; it is to EXTEND them to the F0-prefix alignment
+(architect work, like the seg-prefix extension) — routed to the coordinator/architect. Not
+landed. The F0.6C-6F SPECs + tranche remain as the gate for that fix.

@@ -206,3 +206,23 @@ a 16k-case set. Word-vs-byte and REP-only scope are the discriminators.
   `eu_soon` has exactly one BIU consumer (:1481); eu_soon_ea stays S_EA2-qualified, eu_soon_ivt
   independent; scr_en gating covers scramble. No new flops (comb term only), no savestate struct
   change. **Family 7 → 0/17,511. Ledger 7,603 → 62 (Families 1–4 only) — string-I/O saga closed.**
+- **Family 7 SILICON-CONFIRMED on hardware** 2026-07-20 (board A/B). Pre-flash the FPGA fabric
+  was a pre-F7 build and diverged from the socketed chip with the exact Family-7 element-late
+  signature (seed fz3 @ row 250); after flashing the F7 `.sof`, chip==fabric (fz3 MATCH, strio
+  A/B 6/6 clean at w0). The before/after is a mini-A/B confirming the fix in silicon.
+- **Random-wait note (coda, board):** at wmax=1 the strio corpus diverges chip-vs-fabric 17/25
+  vs a no-strio baseline 7/25 — the PRE-EXISTING wait-accuracy gap (bus-heavy strio hits it 2.4x),
+  NOT a coda regression (the F5a/F7 arms are cov-dormant at wmax=1, so they cannot drive it).
+  Booked as premium census input for the future random-wait campaign. Limit: dormancy is
+  sim-cov-based; the definitive pre-F7 A/B was declined on wedge-risk/value grounds.
+- **NEW OPEN ITEM — Family 8 (LOCK-prefixed strio F0.6C-6F prefetch-ordering).** Leg-(c) chip
+  tranche (100/form, socket) shows **F0.6C-6F 0/400 cycle (arch 400/400 clean)** — 100% divergent
+  across all queue states, first-div partitioning by queue (cold→row5 / qlen5→row8 / qlen6→row10).
+  It is the **Family-5/7 single-string-I/O prefetch-ordering divergence reappearing for the
+  LOCK-prefixed forms**: the F0 prefix's extra decode cycle shifts the alignment so the F5a/F7
+  arms mis-fire (cov for locked F0.6C: `f7a_idle_arm=0` vs 27, `f5a_t3_veto=27` vs 50) and the RTL
+  reverts to the un-fixed early element commit; the chip commits late. **`!lock_en` gating REJECTED**
+  (tested: cycle divergence unchanged 0/400, arch hurt 400→306). Fix = EXTEND the strio arms to the
+  F0-prefix alignment (architect, like the seg-prefix qlen5 extension), NOT disable them under lock.
+  Gate for the future fix = the F0.6C-6F captures + all standing strio flip-guards. Routed to the
+  coordinator/architect; not landed. SPECs `F0.6C/6D/6E/6F` + `lockpfx` are in emit_suite.
