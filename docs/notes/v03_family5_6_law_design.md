@@ -379,3 +379,69 @@ the cycle divergence unchanged (still 0/400, same first-div) and hurt arch (400�
 fix is NOT to disable the arms under lock; it is to EXTEND them to the F0-prefix alignment
 (architect work, like the seg-prefix extension) — routed to the coordinator/architect. Not
 landed. The F0.6C-6F SPECs + tranche remain as the gate for that fix.
+
+
+---
+
+# FAMILY 8: the arms are exonerated — it is a LOCK-window bus-cycle STRETCH law
+
+*(Architect (fable), 2026-07-20. Intended landing: addendum to docs/notes/v03_family5_6_law_design.md. Evidence: scratchpad f8_window.py, f8_stretch.py; goldens tests/v30/f0lock_tranche/.)*
+
+## 1. What the goldens actually show (f8_stretch.py, all 400 cases, vs 25,000-case unlocked baseline)
+
+Per-cycle stretch map (Tw = 5-clock bus cycle at waits=0 — real chip clocks, since the capture is one row per clock; total window length grows accordingly):
+
+| population | bus-cycle sequence (stretched?) |
+|---|---|
+| F0.6E cold (50/50) | fetch1/--, **succ CODE/Tw, MEMR/Tw, IOW/Tw** |
+| F0.6C, F0.6D cold | fetch1/--, **succ/Tw, IOR/Tw, MEMW/Tw** [, split-MW2/-- ] |
+| F0.6F cold, odd SI | fetch1/--, **succ/Tw, MEMR1/Tw, MEMR2/Tw**, IOW/-- |
+| all warm qlen5 AND qlen6 | bridge CODE/--, **first element access/Tw**, everything after /-- |
+| **unlocked 6E/6D, all 25,000** | **zero Tw anywhere** |
+
+Single-valued in every cell. The divergence is +3 clocks cold / +1 clock warm of *chip-inserted wait states*, not a prefetch-ordering shift. The worker's arm-coverage anomalies are downstream consequences: f7a_idle_arm=0 locked is *correct* (a locked strio is prefix-shaped — the double pop grants a bridge at both qlen5 and qlen6, so the idle face never exists), and under LOCK the chip *grants* the cold successor fetch (both phase classes) because the F0 decode occupies the µ-engine at fetch1's completion eval — the landed opc-qualified T3-veto already reproduces that correctly (it cannot fire before the 6E pop). Ordering is right; clocks are missing. The !lock_en arm-gate test result (cycle unchanged, arch hurt) is fully consistent: the arms were never the divergence.
+
+**The unifying stretch rule (fits all 400, falsifiable):**
+- **S1:** a CODE fetch committed from a *completion eval* (back-to-back, not a TI grant) while lock_en is set and no locked EU access has run yet → +1 Tw. (Cold successor ✓ both phase classes; warm bridge is TI-granted → exempt ✓.)
+- **S2:** the **first** locked EU bus cycle → +1 Tw. (All cold and warm ✓, including split rd1.)
+- **S3:** the **second** locked EU bus cycle **iff S1 fired** → +1 Tw. (Cold e2 — IOW/rd2/MW1 ✓; warm e2 exempt since the bridge was unstretched ✓; third+ locked EU cycles never stretch — 6F-odd IOW, 6D MW2 ✓.)
+
+S3's coupling to S1 is a *fit*, not a derived mechanism — single-valued on the tranche but its generalization (locked RMW, locked classics) is unmeasured. Cheap board extension to discriminate before trusting it wider: a small F0.A4 / locked-RMW (F0.FF.0-style) tranche — pre-register, do not improvise. Note: **F0.A4 exists in no suite** (coverage bound; the exp_lock work was RMW-focused and never measured fetch/element stretch).
+
+## 2. Fix design (BIU, bus-level — not arm terms)
+
+Implement the stretch as an internal ready-mask so the *entire* downstream machinery treats it as a genuine wait — which the chip data corroborates (post-stretch commits land at T4+1 idle, the waited-eval face):
+
+```systemverilog
+// v30_biu.sv — Family 8 lock-window stretch (S1/S2/S3, fitted on f0lock_tranche)
+reg  lock_eu_cnt1, lock_eu_cnt2;   // locked EU bus cycles seen (saturating 0,1,2+)
+reg  lock_s1_fired;                // an S1 fetch stretch occurred this lock window
+reg  cur_bb_grant;                 // current cycle committed back-to-back (T3-eval/T4
+                                   // delivery), not from a TI grant - latched at T1 entry
+wire lock_stretch_due =
+       lock_active && !tw_any && (state == ST_T3) &&
+       ( (cur_fetch  && cur_bb_grant && lock_eu_cnt1 == 1'b0)              // S1
+       || (!cur_fetch && cur_type != BS_PASV && !lock_eu_cnt1)             // S2
+       || (!cur_fetch && cur_type != BS_PASV &&  lock_eu_cnt1 &&
+           !lock_eu_cnt2 && lock_s1_fired) );                              // S3
+// consume: ready_eff = READY && !lock_stretch_due, used where t3_done/state
+// advance sample ready; tw_any (existing) marks the inserted TW so it fires once.
+```
+
+Bookkeeping: cur_bb_grant set on T1 entry from nxt_live-at-T4 / direct T3-eval delivery, cleared on TI-grant T1 entry; counters advance at locked EU-cycle T4; all clear when eu_lock drops (same lifetime as lock_active). **This adds state flops → v30_ss_pkg struct update + SS_VERSION bump + scramble regression are mandatory** (first family fix in this campaign to require it). The forced TW makes eval_at_t3 false and defers the completion eval to T4/eval_ext — meaning the eval_ext machinery now runs at board-w0 inside locked windows; that is what the chip timing shows, but it is the fix's main risk surface (the class-5 laws were fitted as "w0-never-fires" — they now can, lock-scoped). No arm terms change; eu_rsv_strio/eu_soon_strio/eu_soon untouched.
+
+**Harness finding to verify in passing** (flag, not fix): nec_test.sv:328 wires .NEC_BUSLOCK_N(NEC_WR_N) — the capture's "buslock" input is the min-mode WR pin, and nec_bus.sv:213 derives wr_low_seen from it. The goldens carry no LOCK pin column, so the divergence cannot be the documented BUSLOCK leading-edge residual; but the worker should confirm the trace extractor's cycle labeling is LOCK-clean given that pin sharing (the Tw rows are real clocks regardless — row count = clock count).
+
+## 3. Probe P5 (sim-only) with stop conditions
+
+Cycle-dump (lock_stretch_due, S1/S2/S3 term, cur_bb_grant, counters, eval_ext) + full-trace diff against the tranche on: cold both phase classes ×4 forms (incl. 6F-odd rd-split and 6D MW-split), warm qlen5+qlen6 ×4 forms. PASS: every stretch lands on exactly the measured cycle set, traces bit-identical to chip, and the post-stretch element/continuation commits land without any arm change. STOP if: a stretch fires on any unlocked path (lock_active scoping broken); the eval_ext activation inside a locked window fires any class-5 law term (pf_rsv_lead/lowband_pause/law_arm — dump them; if they perturb locked traces, scope them with !lock_active only on probe evidence, reported first); the S3 coupling mispredicts any case (single-valued claim falsified — stop, re-fit).
+
+## 4. Pre-registered gate
+
+1. f0lock tranche 400 → 0 (three-way, all four forms, cold + both warm qlens).
+2. Flip-guards bit-identical: ALL unlocked strio populations (cold 27,424 + warm 34,995 + REP + classics — lock_active never asserts there, verify by assertion in the probe run); the landed F5a/F7 gates re-run.
+3. Standing: w0 169000/169000, w1/w3 1200/1200, v20 oracle, wrand census ≤ 494u + DONE-guard 190u ± 10, **savestate scramble with the SS_VERSION bump**, Quartus synth.
+4. Full v0.3 370-form re-pass: ledger stays 62, zero new divergences.
+5. Booked follow-up (not gating): F0.A4 + locked-RMW mini-tranche to test S1/S3 generalization before any wider lock claims.
+
+Key evidence/locations: scratchpad f8_window.py, f8_stretch.py; tests/v30/f0lock_tranche/; v30_biu.sv :1721–1760 (lock pin machinery, leading-edge residual note), :1090–1107 (eval deferral); nec_test.sv:328.
