@@ -445,3 +445,41 @@ Cycle-dump (lock_stretch_due, S1/S2/S3 term, cur_bb_grant, counters, eval_ext) +
 5. Booked follow-up (not gating): F0.A4 + locked-RMW mini-tranche to test S1/S3 generalization before any wider lock claims.
 
 Key evidence/locations: scratchpad f8_window.py, f8_stretch.py; tests/v30/f0lock_tranche/; v30_biu.sv :1721–1760 (lock pin machinery, leading-edge residual note), :1090–1107 (eval deferral); nec_test.sv:328.
+
+---
+
+## Family 8 — addendum-2: revised approach (architect, 2026-07-20, post-P5-stop)
+
+P5 stopped the internal-ready-mask v1 on three blockers; each gets a direct fix.
+
+**1. Observability.** Keep the internal ready-mask semantics (physically faithful — the
+chip ignores READY for one clock inside the stretch). Add ONE new 1-bit core output
+`BUS_STRETCH = lock_stretch_due` (asserted during the vetoed ST_T3 cycle). TB change is one
+line per rig: the `tb_t` tracker's T3 ready sample becomes `ready_r && !BUS_STRETCH`
+(tb_v30_core.sv + tb_ab.sv sim side). This routes the stretch through the TB's EXISTING wait
+machinery (which w1/w3/wrand already prove correct, INCLUDING iord data-phase alignment), so
+the F0.6C/6D port-serve handshake re-syncs for free. At unlocked-w0 `BUS_STRETCH` is
+structurally 0 → TB bit-identical by construction. check_core unchanged. **Board: zero
+change** — the chip stretched with board READY high; the pin-driven capture already labeled
+those clocks Tw in the goldens; the fabric presents identically. A/B silicon check on the
+tranche seeds is a pre-registered gate item.
+
+**2. Lock timing.** All three terms switch from `lock_active` to **`eu_lock`** (v30_eu.sv:703,
+already a BIU input — no new port). eu_lock sets at F0's S_DEC ≈ F0pop+1, clears at retire;
+the cold successor's T3 is ≥ F0pop+3 → ≥2 cycles margin both phase classes (the stretch
+decision evaluates at the stretched cycle's OWN T3, so grant-before-lock_en races are
+harmless). lock_active's 2-cycle-late edge stops mattering. Post-element lingering safe (S1
+needs lock_eu_cnt1==0; S2/S3 need !cur_fetch).
+
+**3. Savestate.** The 4 WIP flops + SS_VERSION→0x02 stay; a mid-stretch freeze needs nothing
+extra (restores ST_TW + tw_any = existing waited-cycle semantics; BUS_STRETCH is
+combinational). Add one explicit scramble case frozen AT a forced TW to prove it.
+
+**Revised P5 order:** (0) structural no-op run — full unlocked w0 + w1/w3 + a wrand seed with
+assertion BUS_STRETCH==0 throughout (flip-guards by construction, before any diffing); (1)
+locked tranche — F0.6C/6D arch 400/400 FIRST (the iord tell), then Tw rows (+3 cold/+1 warm
+exact), then cycle three-way; (2) eu_lock must be 1 at the cold successor's T3 both phase
+classes — STOP if low; (3) class-5 term dump inside locked windows — report before scoping
+with !eu_lock; (4) scramble incl. the mid-stretch freeze case; (5) original stops (stretch on
+unlocked path; S3 misprediction). Gate: pre-registered + item-0 assertion + A/B silicon check
+on tranche seeds; F0.A4/locked-RMW generalization mini-tranche booked non-gating.
