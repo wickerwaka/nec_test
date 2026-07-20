@@ -294,3 +294,25 @@ Per project convention, each phase closes with a Codex critical-review pass (cha
 2. **`SS_BUS_QUIET`**: YES — add the output to `v30_core` now (reflected in §4.1).
 3. **TB file-based cross-session restore**: NOT this campaign — in-session scramble-restore verification only.
 4. **Sequencing**: implement AFTER the string-I/O (6C–6F) tranche completes (task #23, blocked by #18).
+
+## S0 — inventory delta-check + package skeleton (2026-07-20)
+
+**Delta-check (required before freezing field lists): ZERO delta.** The core modules are
+byte-identical to the design-doc HEAD — `git log 5613000..HEAD -- hdl/rtl/core/*.sv` is
+empty; last touches were v30_biu.sv @07-17, v30_eu.sv @07-18 ("implement INS 6C/6D string
+I/O input", PREDATES this doc's 07-19 authoring so already inventoried), v30_core.sv @07-15.
+The recent iords-FIFO work was entirely harness-side (nec_bus/test_mem/hps_axi/iords_buf),
+adds NO core state, and the iords TB array does not chain. So §2.1/§2.2 stand as authored.
+
+**Inventory verified against the RTL** (programmatic width extraction, not by eye):
+- BIU: all 295 state bits confirmed field-for-field; the `commit_desc_t` typedef members
+  and `slot_fire`/`cyc_saw_tw`/`law_dcnt_probe` (comb / §2.4 sim-probe) correctly excluded.
+- EU: all 851 state bits confirmed across every §2.2 group; `popm_hold` is module-level
+  (reg @1580, used in the always_ff @1627), `halt_disp`/`eu_started`/`eu_rdata`/`ube_n` are
+  output-reg ports. Everything declared past ~1780 inside the main always_ff is a block-local
+  temp (the §2.4 read-before-write audit; deferred to S2).
+
+**Package**: `hdl/rtl/core/v30_ss_pkg.sv` — `ss_biu_t` (295+9 pad = 304 = 19 words),
+`ss_eu_t` (851+13 pad = 864 = 54 words), SS_VERSION=01, SS_WORDS=74, SS_TAG=0x014a. Field
+order = §2 table order, named members (no positional offsets). Elaboration width guard
+VERIFIED via Verilator: $bits(ss_biu_t)=304, $bits(ss_eu_t)=864 — PASS. No consumers yet.
