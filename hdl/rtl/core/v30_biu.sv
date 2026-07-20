@@ -190,7 +190,8 @@ module v30_biu (
     input             ss_shift,     // 1-clk/word: shift the shadow toward DOUT
     input             ss_restore,   // 1-clk: live state <= shadow
     input      [15:0] ss_din_seg,   // word entering from the EU segment
-    output     [15:0] ss_dout_seg   // word leaving toward the tag segment
+    output     [15:0] ss_dout_seg,  // word leaving toward the tag segment
+    output            ss_bus_quiet
 );
 
 import v30_ss_pkg::*;
@@ -1703,6 +1704,9 @@ assign bus_ts = (state == ST_T1) ? 3'd1
               : (state == ST_T3 || state == ST_TW) ? 3'd3
               : (state == ST_T4) ? 3'd4
               : nxt_live ? 3'd5 : 3'd0;
+
+assign ss_bus_quiet = (bus_ts == 3'd0) && (bs == BS_PASV) && !nxt_valid &&
+                      (push_pend == 2'd0) && (q_aged == 2'd0) && !eval_ext;
 
 // Status display: active from commit through T2 always; through T3/TW
 // while READY has not yet been sampled high in this bus cycle (measured

@@ -370,6 +370,9 @@ always_ff @(posedge clk) begin
 end
 
 wire core_reset = c_reset_q | ~cfg_use_core;   // held in reset unless A/B=core
+wire [15:0] core_ss_dout_unused;
+wire        core_ss_err_unused;
+wire        core_ss_bus_quiet_unused;
 
 // harness read data driven onto the core's AD[15:0] during its read cycles
 assign core_ad[15:0] = c_addrv_q ? c_rdata_q : 16'hzzzz;
@@ -389,7 +392,14 @@ v30_core u_core
     .BS        (core_bs),
     .RD_N      (core_rd_n),
     .UBE_N     (core_ube_n),
-    .BUSLOCK_N (core_buslock_n)
+    .BUSLOCK_N (core_buslock_n),
+    .SS_CAPTURE(1'b0),
+    .SS_RESTORE(1'b0),
+    .SS_SHIFT  (1'b0),
+    .SS_DIN    (16'b0),
+    .SS_DOUT   (core_ss_dout_unused),
+    .SS_ERR    (core_ss_err_unused),
+    .SS_BUS_QUIET(core_ss_bus_quiet_unused)
 );
 
 // one-directional status pins: chip vs core

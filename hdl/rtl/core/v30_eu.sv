@@ -115,6 +115,8 @@
 //
 //============================================================================
 
+`include "hdl/rtl/core/v30_ss_pkg.sv"
+
 module v30_eu (
     input             clk,
     input             ce,           // clock-enable: advance state this clk
@@ -229,8 +231,160 @@ module v30_eu (
     input     [223:0] bkd_regs,   // {psw,ip,ds,ss,cs,es,di,si,bp,sp,bx,dx,cx,ax}
     output    [223:0] dbg_regs,
     output            dbg_first_pop,
-    output            dbg_pend       // ghost load still in flight
+    output            dbg_pend,      // ghost load still in flight
+
+    input             ss_capture,
+    input             ss_shift,
+    input             ss_restore,
+    input      [15:0] ss_din_seg,
+    output     [15:0] ss_dout_seg
 );
+
+import v30_ss_pkg::*;
+
+localparam int EU_W = SS_EU_WORDS*16;
+
+ss_eu_t ss_pack;
+always_comb begin
+    ss_pack = '0;
+    ss_pack.rf0 = rf[0];
+    ss_pack.rf1 = rf[1];
+    ss_pack.rf2 = rf[2];
+    ss_pack.rf3 = rf[3];
+    ss_pack.rf4 = rf[4];
+    ss_pack.rf5 = rf[5];
+    ss_pack.rf6 = rf[6];
+    ss_pack.rf7 = rf[7];
+    ss_pack.sr0 = sr[0];
+    ss_pack.sr1 = sr[1];
+    ss_pack.sr2 = sr[2];
+    ss_pack.sr3 = sr[3];
+    ss_pack.psw = psw;
+    ss_pack.pc = pc;
+    ss_pack.arch_ip = arch_ip;
+    ss_pack.state = state;
+    ss_pack.wnext = wnext;
+    ss_pack.dret = dret;
+    ss_pack.dly = dly;
+    ss_pack.div_rem = div_rem;
+    ss_pack.div_quo = div_quo;
+    ss_pack.div_den = div_den;
+    ss_pack.div_cnt = div_cnt;
+    ss_pack.div_busy = div_busy;
+    ss_pack.div_word = div_word;
+    ss_pack.div_signed = div_signed;
+    ss_pack.div_nsign = div_nsign;
+    ss_pack.div_dsign = div_dsign;
+    ss_pack.div_pend = div_pend;
+    ss_pack.div_late = div_late;
+    ss_pack.sh_r = sh_r;
+    ss_pack.sh_x = sh_x;
+    ss_pack.sh_oth = sh_oth;
+    ss_pack.sh_cy = sh_cy;
+    ss_pack.sh_op = sh_op;
+    ss_pack.sh_wf = sh_wf;
+    ss_pack.sh_n = sh_n;
+    ss_pack.sh_busy = sh_busy;
+    ss_pack.sh_fbase = sh_fbase;
+    ss_pack.sh_res = sh_res;
+    ss_pack.sh_fl = sh_fl;
+    ss_pack.opc = opc;
+    ss_pack.opc2 = opc2;
+    ss_pack.mrm = mrm;
+    ss_pack.immb = immb;
+    ss_pack.disp = disp;
+    ss_pack.a4_cnt = a4_cnt;
+    ss_pack.a4_k = a4_k;
+    ss_pack.a4_src = a4_src;
+    ss_pack.a4_carry = a4_carry;
+    ss_pack.a4_z = a4_z;
+    ss_pack.mem_op = mem_op;
+    ss_pack.ivt_off = ivt_off;
+    ss_pack.ivt_seg = ivt_seg;
+    ss_pack.trap_psw = trap_psw;
+    ss_pack.seg_ovr_en = seg_ovr_en;
+    ss_pack.seg_ovr = seg_ovr;
+    ss_pack.lock_en = lock_en;
+    ss_pack.rep_en = rep_en;
+    ss_pack.rep_kind = rep_kind;
+    ss_pack.flush_now = flush_now;
+    ss_pack.str_wr = str_wr;
+    ss_pack.rslot = rslot;
+    ss_pack.rep1_abort = rep1_abort;
+    ss_pack.str_done = str_done;
+    ss_pack.cmp1 = cmp1;
+    ss_pack.cmp_r2s = cmp_r2s;
+    ss_pack.fl_cs = fl_cs;
+    ss_pack.fl_ip = fl_ip;
+    ss_pack.ea_save = ea_save;
+    ss_pack.ea_save_seg = ea_save_seg;
+    ss_pack.ldp2 = ldp2;
+    ss_pack.fret_ph = fret_ph;
+    ss_pack.facc = facc;
+    ss_pack.iret_pw = iret_pw;
+    ss_pack.popr_pend = popr_pend;
+    ss_pack.prep_acc = prep_acc;
+    ss_pack.pracc = pracc;
+    ss_pack.w4skip = w4skip;
+    ss_pack.prep_bpd = prep_bpd;
+    ss_pack.shw = shw;
+    ss_pack.popm_hold = popm_hold;
+    ss_pack.ie_off = ie_off;
+    ss_pack.ie_len = ie_len;
+    ss_pack.ie_fld = ie_fld;
+    ss_pack.ie_w0 = ie_w0;
+    ss_pack.ie_mode = ie_mode;
+    ss_pack.ie_ph2 = ie_ph2;
+    ss_pack.ie_dly = ie_dly;
+    ss_pack.ie_chain = ie_chain;
+    ss_pack.ie_rdyhold = ie_rdyhold;
+    ss_pack.ie_lgot = ie_lgot;
+    ss_pack.int_p = int_p;
+    ss_pack.nmi_p = nmi_p;
+    ss_pack.nmi_latch = nmi_latch;
+    ss_pack.poll_s1 = poll_s1;
+    ss_pack.shadow = shadow;
+    ss_pack.ie_pend = ie_pend;
+    ss_pack.ie_val = ie_val;
+    ss_pack.psw_old = psw_old;
+    ss_pack.pop_pend = pop_pend;
+    ss_pack.ie_p = ie_p;
+    ss_pack.waits_seen = waits_seen;
+    ss_pack.post_flush = post_flush;
+    ss_pack.insn_ip = insn_ip;
+    ss_pack.ivt_vec = ivt_vec;
+    ss_pack.hwake_ie0 = hwake_ie0;
+    ss_pack.irq_disp = irq_disp;
+    ss_pack.irq_nmi_ivt = irq_nmi_ivt;
+    ss_pack.eu_wr = eu_wr;
+    ss_pack.eu_word = eu_word;
+    ss_pack.eu_addr = eu_addr;
+    ss_pack.eu_seg = eu_seg;
+    ss_pack.eu_wdata = eu_wdata;
+    ss_pack.eu_kind = eu_kind;
+    ss_pack.halt_disp = halt_disp;
+    ss_pack.pad = '0;
+end
+
+reg [EU_W-1:0] ss_sh;
+always_ff @(posedge clk) begin
+    if (ss_capture)    ss_sh <= ss_pack;
+    else if (ss_shift) ss_sh <= {ss_din_seg, ss_sh[EU_W-1:16]};
+end
+assign ss_dout_seg = ss_sh[15:0];
+
+ss_eu_t ss_u;
+assign ss_u = ss_eu_t'(ss_sh);
+
+initial begin
+    if (EU_W != $bits(ss_eu_t)) $error("ss_eu_t width drift");
+end
+
+`ifndef SYNTHESIS
+always_ff @(posedge clk) begin
+    if (ss_restore && srst) $error("ss_restore and srst co-asserted");
+end
+`endif
 
 // PS1:0 segment-status codes (= AD17:16 during T2-T4)
 localparam bit [1:0] SEG_ES = 2'd0;   // DS1
@@ -1625,6 +1779,124 @@ endtask
 // main FSM
 //----------------------------------------------------------------------------
 always_ff @(posedge clk) begin
+    if (ss_restore) begin
+        rf[0] <= ss_u.rf0;
+        rf[1] <= ss_u.rf1;
+        rf[2] <= ss_u.rf2;
+        rf[3] <= ss_u.rf3;
+        rf[4] <= ss_u.rf4;
+        rf[5] <= ss_u.rf5;
+        rf[6] <= ss_u.rf6;
+        rf[7] <= ss_u.rf7;
+        sr[0] <= ss_u.sr0;
+        sr[1] <= ss_u.sr1;
+        sr[2] <= ss_u.sr2;
+        sr[3] <= ss_u.sr3;
+        psw <= ss_u.psw;
+        pc <= ss_u.pc;
+        arch_ip <= ss_u.arch_ip;
+        state <= state_e'(ss_u.state);
+        wnext <= state_e'(ss_u.wnext);
+        dret <= state_e'(ss_u.dret);
+        dly <= ss_u.dly;
+        div_rem <= ss_u.div_rem;
+        div_quo <= ss_u.div_quo;
+        div_den <= ss_u.div_den;
+        div_cnt <= ss_u.div_cnt;
+        div_busy <= ss_u.div_busy;
+        div_word <= ss_u.div_word;
+        div_signed <= ss_u.div_signed;
+        div_nsign <= ss_u.div_nsign;
+        div_dsign <= ss_u.div_dsign;
+        div_pend <= ss_u.div_pend;
+        div_late <= ss_u.div_late;
+        sh_r <= ss_u.sh_r;
+        sh_x <= ss_u.sh_x;
+        sh_oth <= ss_u.sh_oth;
+        sh_cy <= ss_u.sh_cy;
+        sh_op <= ss_u.sh_op;
+        sh_wf <= ss_u.sh_wf;
+        sh_n <= ss_u.sh_n;
+        sh_busy <= ss_u.sh_busy;
+        sh_fbase <= ss_u.sh_fbase;
+        sh_res <= ss_u.sh_res;
+        sh_fl <= ss_u.sh_fl;
+        opc <= ss_u.opc;
+        opc2 <= ss_u.opc2;
+        mrm <= ss_u.mrm;
+        immb <= ss_u.immb;
+        disp <= ss_u.disp;
+        a4_cnt <= ss_u.a4_cnt;
+        a4_k <= ss_u.a4_k;
+        a4_src <= ss_u.a4_src;
+        a4_carry <= ss_u.a4_carry;
+        a4_z <= ss_u.a4_z;
+        mem_op <= ss_u.mem_op;
+        ivt_off <= ss_u.ivt_off;
+        ivt_seg <= ss_u.ivt_seg;
+        trap_psw <= ss_u.trap_psw;
+        seg_ovr_en <= ss_u.seg_ovr_en;
+        seg_ovr <= ss_u.seg_ovr;
+        lock_en <= ss_u.lock_en;
+        rep_en <= ss_u.rep_en;
+        rep_kind <= ss_u.rep_kind;
+        flush_now <= ss_u.flush_now;
+        str_wr <= ss_u.str_wr;
+        rslot <= ss_u.rslot;
+        rep1_abort <= ss_u.rep1_abort;
+        str_done <= ss_u.str_done;
+        cmp1 <= ss_u.cmp1;
+        cmp_r2s <= ss_u.cmp_r2s;
+        fl_cs <= ss_u.fl_cs;
+        fl_ip <= ss_u.fl_ip;
+        ea_save <= ss_u.ea_save;
+        ea_save_seg <= ss_u.ea_save_seg;
+        ldp2 <= ss_u.ldp2;
+        fret_ph <= ss_u.fret_ph;
+        facc <= ss_u.facc;
+        iret_pw <= ss_u.iret_pw;
+        popr_pend <= ss_u.popr_pend;
+        prep_acc <= ss_u.prep_acc;
+        pracc <= ss_u.pracc;
+        w4skip <= ss_u.w4skip;
+        prep_bpd <= ss_u.prep_bpd;
+        shw <= ss_u.shw;
+        popm_hold <= ss_u.popm_hold;
+        ie_off <= ss_u.ie_off;
+        ie_len <= ss_u.ie_len;
+        ie_fld <= ss_u.ie_fld;
+        ie_w0 <= ss_u.ie_w0;
+        ie_mode <= ss_u.ie_mode;
+        ie_ph2 <= ss_u.ie_ph2;
+        ie_dly <= ss_u.ie_dly;
+        ie_chain <= ss_u.ie_chain;
+        ie_rdyhold <= ss_u.ie_rdyhold;
+        ie_lgot <= ss_u.ie_lgot;
+        int_p <= ss_u.int_p;
+        nmi_p <= ss_u.nmi_p;
+        nmi_latch <= ss_u.nmi_latch;
+        poll_s1 <= ss_u.poll_s1;
+        shadow <= ss_u.shadow;
+        ie_pend <= ss_u.ie_pend;
+        ie_val <= ss_u.ie_val;
+        psw_old <= ss_u.psw_old;
+        pop_pend <= ss_u.pop_pend;
+        ie_p <= ss_u.ie_p;
+        waits_seen <= ss_u.waits_seen;
+        post_flush <= ss_u.post_flush;
+        insn_ip <= ss_u.insn_ip;
+        ivt_vec <= ss_u.ivt_vec;
+        hwake_ie0 <= ss_u.hwake_ie0;
+        irq_disp <= ss_u.irq_disp;
+        irq_nmi_ivt <= ss_u.irq_nmi_ivt;
+        eu_wr <= ss_u.eu_wr;
+        eu_word <= ss_u.eu_word;
+        eu_addr <= ss_u.eu_addr;
+        eu_seg <= ss_u.eu_seg;
+        eu_wdata <= ss_u.eu_wdata;
+        eu_kind <= ss_u.eu_kind;
+        halt_disp <= ss_u.halt_disp;
+    end else begin
     if (srst) begin
         // flush_now defaults to 0 every cycle (was an ungated pulse
         // default); keep that at reset so q_flush is clean during RESET.
@@ -5088,6 +5360,7 @@ always_ff @(posedge clk) begin
             state <= S_IRQ_REPW;
             dly   <= 6'd8;
         end
+    end
     end
 end
 

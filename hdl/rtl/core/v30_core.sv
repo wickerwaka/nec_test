@@ -30,6 +30,12 @@
 //
 //============================================================================
 
+/* verilator lint_off WIDTHEXPAND */
+/* verilator lint_off UNUSEDPARAM */
+`include "hdl/rtl/core/v30_ss_pkg.sv"
+/* verilator lint_on UNUSEDPARAM */
+/* verilator lint_on WIDTHEXPAND */
+
 module v30_core (
     input             CLK,
     input             CE,        // clock-enable: advance core state this clk
@@ -44,7 +50,14 @@ module v30_core (
     output      [2:0] BS,
     output            RD_N,
     output            UBE_N,
-    output            BUSLOCK_N
+    output            BUSLOCK_N,
+    input             SS_CAPTURE,
+    input             SS_RESTORE,
+    input             SS_SHIFT,
+    input      [15:0] SS_DIN,
+    output     [15:0] SS_DOUT,
+    output reg        SS_ERR,
+    output            SS_BUS_QUIET
 `ifdef V30_BACKDOOR
     ,
     input             bkd_load,     // pulse while RESET=1: inject state
@@ -59,6 +72,8 @@ module v30_core (
     output            dbg_pend
 `endif
 );
+
+import v30_ss_pkg::*;
 
 `ifndef V30_BACKDOOR
 logic         bkd_load = 1'b0;
@@ -94,7 +109,25 @@ wire        eu_rd_now;
 wire [15:0] eu_rdata_now;
 wire        psw_ie;
 wire        halt_disp;
+wire [15:0] ss_eu_dout;
 wire [15:0] ss_biu_dout;
+wire        ss_biu_bus_quiet;
+reg  [15:0] ss_tag_sh;
+
+always_ff @(posedge CLK) begin
+    if (SS_CAPTURE)    ss_tag_sh <= SS_TAG;
+    else if (SS_SHIFT) ss_tag_sh <= ss_biu_dout;
+end
+
+assign SS_DOUT = ss_tag_sh;
+
+always_ff @(posedge CLK) begin
+    if (RESET) SS_ERR <= 1'b0;
+    else if (SS_CAPTURE) SS_ERR <= 1'b0;
+    else if (SS_RESTORE && ss_tag_sh != SS_TAG) SS_ERR <= 1'b1;
+end
+
+assign SS_BUS_QUIET = ss_biu_bus_quiet;
 
 // scripted-consumer override (BIU-only verification)
 wire q_pop   = scr_en ? scr_qop[0]              : eu_pop;
@@ -176,11 +209,12 @@ v30_biu u_biu (
     .bkd_ip     (bkd_fetch_ip),
     .bkd_queue  (bkd_queue),
     .bkd_qlen   (bkd_qlen),
-    .ss_capture (1'b0),
-    .ss_shift   (1'b0),
-    .ss_restore (1'b0),
-    .ss_din_seg (16'b0),
-    .ss_dout_seg(ss_biu_dout)
+    .ss_capture (SS_CAPTURE),
+    .ss_shift   (SS_SHIFT),
+    .ss_restore (SS_RESTORE),
+    .ss_din_seg (ss_eu_dout),
+    .ss_dout_seg(ss_biu_dout),
+    .ss_bus_quiet(ss_biu_bus_quiet)
 );
 
 v30_eu u_eu (
@@ -237,7 +271,12 @@ v30_eu u_eu (
     .pin_nmi    (NMI),
     .pin_poll_n (POLL_N),
     .bkd_load   (bkd_load),
-    .bkd_regs   (bkd_regs)
+    .bkd_regs   (bkd_regs),
+    .ss_capture (SS_CAPTURE),
+    .ss_shift   (SS_SHIFT),
+    .ss_restore (SS_RESTORE),
+    .ss_din_seg (SS_DIN),
+    .ss_dout_seg(ss_eu_dout)
 `ifdef V30_BACKDOOR
     ,
     .dbg_regs      (dbg_regs),

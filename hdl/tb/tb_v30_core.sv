@@ -173,6 +173,9 @@ integer      ev_hold_cnt = 0;
 wire pin_int    = (pins_cfg[0] != 0) | (ev_drive && ev_pin == 0);
 wire pin_nmi    = (pins_cfg[1] != 0) | (ev_drive && ev_pin == 1);
 wire pin_poll_n = (pins_cfg[2] != 0) & ~(ev_drive && ev_pin == 2);
+wire [15:0] ss_dout_unused;
+wire        ss_err_unused;
+wire        ss_bus_quiet_unused;
 
 v30_core dut (
     .CLK       (clk),
@@ -189,6 +192,13 @@ v30_core dut (
     .RD_N      (RD_N),
     .UBE_N     (UBE_N),
     .BUSLOCK_N (BUSLOCK_N),
+    .SS_CAPTURE(1'b0),
+    .SS_RESTORE(1'b0),
+    .SS_SHIFT  (1'b0),
+    .SS_DIN    (16'b0),
+    .SS_DOUT   (ss_dout_unused),
+    .SS_ERR    (ss_err_unused),
+    .SS_BUS_QUIET(ss_bus_quiet_unused),
     .bkd_load  (bkd_load),
     .bkd_regs  (bkd_regs),
     .bkd_queue (bkd_queue),
