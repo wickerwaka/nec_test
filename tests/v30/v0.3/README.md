@@ -144,15 +144,23 @@ default 0x90 on flat and mirror alike; only aliases that change an *observed* by
 which is why the check is behavioral.) A chip-vs-emulator disagreement that is
 memory-model-independent is retained as suite content, not rerolled away.
 
-**v0.3 result (full three-way pass, all 3,470,000 cases):** 62 collision-dependent
-goldens (flat-miss, +mirror-match) were found and **re-emitted confined-per-index to
-flat-valid** replacements (`emit_suite.py reemit --validate`; dispositions in
-`reemit.log`) — so **every case is now flat-valid**. Separately, **62 cases are
-memory-model-independent chip-vs-RTL divergences** (fail flat *and* mirror equally):
-the socket-captured golden is chip truth, and the internal RTL core (the DUT) does not
-yet reproduce it. These are **retained** as valid suite content and catalogued in
-`docs/notes/v03_divergence_ledger.md` (they are RTL work items, not suite defects, and
-are exactly the low-rate divergences native 10k-deep sampling exists to surface).
+**v0.3 result (full three-way pass):** collision-dependent goldens (flat-miss,
++mirror-match) are found and **re-emitted confined-per-index to flat-valid** replacements
+(`emit_suite.py reemit --validate`; dispositions in `reemit.log`) — so no case in the
+suite is mirror-dependent.
+
+**Flat-validity for KEEP-ledgered cases — how it is established.** A subset of cases are
+memory-model-independent **chip-vs-RTL divergences**: the internal RTL core (the DUT) does
+not reproduce the golden, and the mismatch is present on flat *and* mirror equally (so it
+is not a memory-model artifact). For these, flat-validity is asserted by **structural
+validation** (`validate_suite.py`: schema, hash, independent RAM reconstruction, cold/pf,
+boundaries — all pass) plus the **absence of mirror-dependence**, NOT by RTL reproduction
+(the instrument is behind on these). The socket-captured golden is chip truth; the RTL is
+the work item. All such cases are catalogued in `docs/notes/v03_divergence_ledger.md` —
+including the main-suite residuals (62) and the large single-OUTS BIU prefetch-ordering
+family (~29,892, chip prefetches the next instruction late, RTL early). Cases the RTL
+*does* reproduce (the vast majority, and all REP string forms) are flat-valid by direct
+re-check as usual.
 
 (Note: the upstream SingleStepTests **V20** suite does *not* guarantee flat-validity — a
 small number of its cases are mirror-dependent; see `docs/notes/singlesteptests_v20.md`.)

@@ -50,3 +50,36 @@ Cycle-only: 28; arch-only: 31; both: 3.
 
 These ship with the suite (chip truth). They do not block the campaign and are not suite
 defects; each is an RTL work item.
+
+## Family 5 — OUTS single-form prefetch ordering (~29,892 cases, RICHEST intake)
+
+Added with the OUTS tranche (Phase A). By far the largest divergence family; a
+**fittable BIU prefetch-ordering law with a ~30k-case characterization set** — same
+methodology as class-5.
+
+**What it is:** for a SINGLE (non-REP) OUTS, the golden and the RTL execute the
+*identical set of bus cycles* (opcode CODE fetch, DS:IX MEMR source-read, port IOW,
+then the next-instruction CODE fetch) with *identical arch state* (si/ip/final regs
+match) — but the RTL **prefetches the next-instruction CODE fetch EARLY** (right after
+the OUTS opcode) whereas the chip prefetches it **LATE** (after the MEMR + IOW). Pure
+cycle-ORDERING divergence; chip is truth, the RTL BIU is behind. Confirmed row-by-row
+(golden vs sim) and by G-OUTS-1 (3,600,000/3,600,000 structural-clean, so the goldens
+are not defective) and by arch equality on the diverging cases.
+
+**Scope (6 of 13 OUTS forms; the 7 REP forms are CLEAN):**
+- `6E` outsb  : 7,481 / 10,000
+- `6F` outsw  : 7,446 / 10,000
+- `36.6E` ss: : 5,055 / 10,000
+- `26.6E` es: : 4,985 / 10,000
+- `2E.6F` cs: : 4,924 / 10,000
+- `646F` repnc-prefixed word (single-like path edge): 1 / 10,000
+- Total: **29,892 cases**.
+
+REP OUTS (F3/F2/65/64 × 6E/6F) shows the ordering matches — the loop keeps the BIU busy,
+so no speculative early prefetch of the next instruction. The single-vs-REP split is the
+key discriminator for fitting the ordering law.
+
+**Disposition (coordinator, 2026-07-19):** SHIP the OUTS goldens (chip truth); this is the
+KEEP branch, not held hostage to an RTL campaign. Booked as the primary BIU-ordering
+intake. INS (Phase C) is expected to show the SAME single-vs-REP pattern; if singles
+diverge identically it is this same family, same disposition (no re-ask).
