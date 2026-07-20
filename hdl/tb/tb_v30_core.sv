@@ -894,6 +894,20 @@ initial begin
         @(posedge clk);
     end
 
+`ifndef SYNTHESIS
+`ifdef VERILATOR
+    // Family-5/7 hardening coverage readout (task #24 coda). Batch-cumulative
+    // hit counts for the three new strio gates; leg (b) requires all three
+    // NONZERO under the wrand strio-gadget fuzz. Emitted to the out file (a
+    // "cov" line parse_out ignores) and to stdout for the A/B flow.
+    $fdisplay(fo, "cov %0d %0d %0d",
+              dut.u_biu.cov_f7a_idle_arm, dut.u_biu.cov_f7a_eval_ext,
+              dut.u_biu.cov_f5a_t3_veto);
+    $display("COV f7a_idle_arm=%0d f7a_eval_ext=%0d f5a_t3_veto=%0d",
+             dut.u_biu.cov_f7a_idle_arm, dut.u_biu.cov_f7a_eval_ext,
+             dut.u_biu.cov_f5a_t3_veto);
+`endif
+`endif
     $fclose(fo);
     $fclose(fi);
     $display("DONE %0d cases", ncases);

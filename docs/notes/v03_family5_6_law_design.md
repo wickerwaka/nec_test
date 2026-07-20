@@ -261,3 +261,21 @@ via the general `eu_soon` at S_RSV (`eu_soon = (op_instr||op_outstr) && !rep_en`
 reaches occupancy 4 a pop-slot later, so the bridge fetch is granted two cycles later; its
 T3-eval therefore lands *after* S_REQ, where the plain `want_eu` pickup already succeeds —
 hence prefix-qlen6 never diverges and stays bit-identical under both arms.
+
+### Wait-suite inertness rationale — correction (Codex trio-review coda)
+
+The "w1/w3 structurally invulnerable, run anyway" rationale is NOT uniform across the
+three strio changes. Corrected, with the hardening-counter evidence (batch cov readout,
+500-case strio batches):
+
+- **F5a T3-eval veto: structurally inert under uniform waits.** `eval_at_t3` requires
+  READY at two consecutive edges, which a waited opcode fetch never has — the T3-eval slot
+  does not exist under w1/w3. Confirmed: `cov_f5a_t3_veto` = 250 at w0, **0 at w2**.
+- **F7b defer_t4 contingent arm: covered by the fetch-eval structure under waits** (its
+  arm is a fetch-T3 eval-adjacent path).
+- **F7a defer_idle main arm: NOT structurally inert.** Its arm (`state==ST_TI &&
+  eu_soon_strio && q_aged==0`) is independent of `eval_at_t3`/`eval_ext` and fires in the
+  idle branch regardless of waits. Confirmed: `cov_f7a_idle_arm` = 125 at w0 **and 125 at
+  w2**. Therefore **F7a's w1/w3 cleanliness (1200/1200) is EMPIRICAL — the gates passed —
+  not structural.** `cov_f7a_eval_ext` (eval_ext ∧ eu_soon_strio) is 0 at w0 and fixed w2;
+  its reachability under *random* per-cycle waits is exactly what the leg-(b) fuzz probes.

@@ -1040,6 +1040,46 @@ end
 `endif
 `endif
 
+`ifndef SYNTHESIS
+`ifdef VERILATOR
+// Family-5/7 strio hardening: coverage counters + invariants (Codex trio-review
+// coda, task #24). SIM-ONLY: excluded from synth and from ss_pack -> no synth
+// footprint, no savestate flop, write-only so scramble-invariant. Leg (b) of the
+// coda requires the three counters NONZERO under the wrand strio-gadget fuzz;
+// vacuous bit-identity there was the review's High finding (no 6C-6F in the
+// fuzz FORM_MENU, so these gates never fired).
+reg [31:0] cov_f7a_idle_arm;   // F7a defer_idle strio idle-window arm reached
+reg [31:0] cov_f7a_eval_ext;   // F7a strio lead coincident with a waited eval
+reg [31:0] cov_f5a_t3_veto;    // F5a T3-eval strio veto decision reached
+initial begin
+    cov_f7a_idle_arm = 0; cov_f7a_eval_ext = 0; cov_f5a_t3_veto = 0;
+end
+wire f7a_idle_arm = (state == ST_TI) && eu_soon_strio && (q_aged == 2'd0);
+always @(posedge clk) begin
+    if (f7a_idle_arm)              cov_f7a_idle_arm <= cov_f7a_idle_arm + 1;
+    if (eval_ext && eu_soon_strio) cov_f7a_eval_ext <= cov_f7a_eval_ext + 1;
+    if (eval_at_t3 && eu_rsv_strio) cov_f5a_t3_veto  <= cov_f5a_t3_veto  + 1;
+end
+always @(*) begin
+    // The two Family-7 arms are bus-state exclusive (defer_idle needs ST_TI at
+    // S_RSV; defer_t4 needs a fetch-T3) -> never simultaneously armed.
+    assert (!(defer_idle && defer_t4));
+    // The F5a cold-veto hint (EU S_FIRST/S_DEC) and the F7a/b warm-lead hint
+    // (EU S_RSV) live on disjoint EU states -> the cold and warm strio paths
+    // never co-assert.
+    assert (!(eu_rsv_strio && eu_soon_strio));
+    // Cold-strio defer_idle is impossible: the F7a idle arm must never coincide
+    // with a completing opcode fetch (push_pend != 0 == a cold-fill bridge push).
+    // If it ever does, the q_aged/ST_TI guard has regressed - log and trap.
+    if (f7a_idle_arm && push_pend != 2'd0) begin
+        $display("F7a COLD-ARM VIOLATION: state=%0d q_aged=%0d push_pend=%0d q_cnt=%0d occupied=%0d",
+                 state, q_aged, push_pend, q_cnt, occupied);
+        assert (0);
+    end
+end
+`endif
+`endif
+
 // Phase R (R2): staged capture as a descriptor-parameterized task. Writes
 // d.* into nxt_*; delivery is staged (nxt_valid + nxt_live transition).
 // Side effects preserved exactly: a fetch descriptor advances fetch_off; a

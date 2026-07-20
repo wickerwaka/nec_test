@@ -187,6 +187,10 @@ a 16k-case set. Word-vs-byte and REP-only scope are the discriminators.
   0/5000 (F5a untouched), classics A4–AD 3000/3000, REP untouched by construction (`!rep_en`).
   No new flops (only wires/assigns + one gated EU→BIU port); `defer_idle` is an existing
   savestate flop, no struct change. Ledger 17,573 → 7,603 (Family 7 prefix 7,541 + Families 1–4 62).
+  **Wait-suite note (coda correction):** F7a's arm (`ST_TI && eu_soon_strio && q_aged==0`) is
+  independent of the eval path and fires under waits too (`cov_f7a_idle_arm` = 125 at both w0
+  and w2), so its w1/w3 1200/1200 cleanliness is **EMPIRICAL, not structural** (unlike the F5a
+  veto, which is structurally inert under uniform waits — `cov_f5a_t3_veto` 250→0 w0→w2).
 - **Family 7b (7,541, prefix-form qlen5 bridging-fetch element-late): RESOLVED** 2026-07-20
   (commit below). **defer_t4 contingent arm** (architect-ratified): the general `eu_soon` is now
   set at S_RSV for a strio single (`eu_soon = (op_instr||op_outstr) && !rep_en`). Its single BIU
