@@ -429,3 +429,20 @@ the static pack/unpack checklist audit (completeness).
   a spec change; re-run S3-S5 gates).
 - Wrapper onto the MiSTer 64-bit savestate bus (4 chunks per 16-bit word) + platform-side
   bus/memory savestate (design section 5 restore contract).
+
+## G7 — in-silicon A/B: SS INVISIBLE ON HARDWARE (2026-07-20). CAMPAIGN CLOSED (minus S7).
+
+Flashed the savestate bitstream (SS tied off, iords-FIFO harness) via safe_flash.sh
+(quartus_pgm 0 errors, VERIFY pwr_good + MAGIC ok). A/B reference = the current iords-FIFO
+bitstream captures.
+- **G7-1 check_ab_hw (all)**: chip-vs-golden MATCH, core-vs-chip MATCH, core-vs-golden MATCH
+  (200 rows each) - IDENTICAL to the pre-flash iords-FIFO reference. The SS logic did not
+  disturb the known-good chip or core boot path.
+- **G7-2 byte-identity**: re-emitted 150 cases across 10 diverse forms (ALU 00, MOV-store 89,
+  IDIV F7.7, REP-MOVSW F3A5, IN E4/EC, INS 6C/6D FIFO-served, OUTS 6E, REP-INS F36C) on the
+  savestate bitstream vs the iords-FIFO reference: **150/150 byte-identical**. The INS FIFO
+  serving still works unchanged on the new bitstream.
+
+**The savestate feature is invisible on silicon exactly as in sim (G1 no-op).** Save-state
+campaign (task #23) S0-S6 + G7 COMPLETE and green. Deferred: S7 (MiSTer wrapper + platform-
+side savestate + the shadow-live per-module-strobe-register timing decision).
