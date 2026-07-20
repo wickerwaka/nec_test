@@ -1,0 +1,1 @@
+# TRUTH SOURCE: SOCKET (real chip, use_core=False)  seed_base=f0lock  cases=100  waits=0  forms=4
