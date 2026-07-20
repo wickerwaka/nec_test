@@ -6,6 +6,7 @@ set_global_assignment -name SYSTEMVERILOG_FILE rtl/capture_buf.sv
 set_global_assignment -name SYSTEMVERILOG_FILE rtl/wvec_buf.sv
 set_global_assignment -name SYSTEMVERILOG_FILE rtl/iords_buf.sv
 set_global_assignment -name SYSTEMVERILOG_FILE rtl/hps_axi_slave.sv
+set_global_assignment -name SYSTEMVERILOG_FILE rtl/core/v30_ss_pkg.sv
 set_global_assignment -name SYSTEMVERILOG_FILE rtl/core/v30_core.sv
 set_global_assignment -name SYSTEMVERILOG_FILE rtl/core/v30_biu.sv
 set_global_assignment -name SYSTEMVERILOG_FILE rtl/core/v30_eu.sv

@@ -65,7 +65,6 @@
 
 /* verilator lint_off WIDTHEXPAND */
 /* verilator lint_off UNUSEDPARAM */
-`include "hdl/rtl/core/v30_ss_pkg.sv"
 /* verilator lint_on UNUSEDPARAM */
 /* verilator lint_on WIDTHEXPAND */
 
@@ -298,7 +297,10 @@ assign ss_u = ss_biu_t'(ss_sh);
 // check, so the build fails synthesis-independently (not merely a sim $error).
 generate
     if (BIU_W != $bits(ss_biu_t)) begin : gen_ss_biu_width_err
-        $error("ss_biu_t width drift: BIU_W != $bits(ss_biu_t)");
+        // Cross-tool elaboration hard-fail (design 3.1): referencing an
+        // UNDEFINED module aborts the build in BOTH Verilator and Quartus 17.1
+        // (Quartus rejects $error inside a generate). Untaken when widths match.
+        ss_biu_t_width_mismatch u_ss_biu_width_guard ();
     end
 endgenerate
 

@@ -32,7 +32,6 @@
 
 /* verilator lint_off WIDTHEXPAND */
 /* verilator lint_off UNUSEDPARAM */
-`include "hdl/rtl/core/v30_ss_pkg.sv"
 /* verilator lint_on UNUSEDPARAM */
 /* verilator lint_on WIDTHEXPAND */
 

@@ -115,7 +115,6 @@
 //
 //============================================================================
 
-`include "hdl/rtl/core/v30_ss_pkg.sv"
 
 module v30_eu (
     input             clk,
@@ -383,7 +382,9 @@ assign ss_u = ss_eu_t'(ss_sh);
 // the only catcher, which is why it is a PERMANENT standing regression.
 generate
     if (EU_W != $bits(ss_eu_t)) begin : gen_ss_eu_width_err
-        $error("ss_eu_t width drift: EU_W != $bits(ss_eu_t)");
+        // Cross-tool elaboration hard-fail (design 3.1): an UNDEFINED module
+        // reference aborts BOTH Verilator and Quartus 17.1. Untaken when equal.
+        ss_eu_t_width_mismatch u_ss_eu_width_guard ();
     end
 endgenerate
 
