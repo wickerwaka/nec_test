@@ -94,3 +94,77 @@ received. Uses eu_addr[0] (physical write-address parity, valid at eu_done; == i
 parity, loop-invariant under ±2 stepping). Byte stays S_EX (never splits); word-aligned stays
 S_EX (protects DI-even). OUTS branch untouched (even-port constraint => no split final IOW in
 v0.3; follow-up if odd-port word OUTS is ever emitted).
+
+---
+# F5 FINAL DESIGN: decision-time-scoped T3-eval veto (not a raw onset move)
+
+*(Architect (fable), 2026-07-20, third iteration after the eu_hold claim experiment hit stop condition #2. Intended landing: addendum to docs/notes/v03_family5_6_law_design.md. Extraction evidence: scratchpad f5_window.py / f5_window2.py.)*
+
+## 1. What the goldens say (new chip-side measurement, all seven forms)
+
+Extracted the chip's dispatch-window bus signatures (rows from opcode-pop−1 to the first element-access T1) for every strio single form, cold and warm, plus the classic-string calibration forms. Every population is 100% signature-pure:
+
+| population | signature (pop-relative) | chip's in-window CODE grant? |
+|---|---|---|
+| 6E/6C/6D/6F cold (5000/5000 each) | pop@fetch-T3 → T4, Ti, elem-status, T1 | **NO** (the deferral) |
+| prefix cold, T2-pop class (~2500/form) | pop@fetch-T2 → T3, T4, Ti, elem-status | **NO** — the divergent prefix cases |
+| prefix cold, T4-pop class (~2500/form) | pop@fetch-T4, successor CODE T1 at pop+1 (decided pre-pop), elem rides behind | **YES** — never divergent |
+| warm-1 (~2500/form) | CODE status at pop+0 or pop+1 (TI grant), T1 pop+1/+2, elem back-to-back after it | **YES** — the hold killed these |
+| warm-2 (~2500/form) | idle, elem-status at pop+2/+3 from TI | none due |
+| **A4/AA/AC cold (5000/5000, calibration)** | pop@fetch-T3 → **successor CODE granted at T4**, elem behind it | **YES** |
+
+The A4-vs-6E cold contrast is the microcode made visible in silicon: same pop position (fetch T3), same queue state; the only difference is INS/OUTS's µline-1 bus request (V20UC 0294/02A0) versus MOVS's µline-2 request (008C) — one µcycle of request-onset flips the successor-fetch decision.
+
+**The unified chip rule (all populations, zero exceptions):** every fetch-grant decision is vetoed iff the strio-single's µline-1 request is visible at the *decision instant*; the request becomes visible at **pop+1**. Grant decisions sit at: pop−1/pop+0 for TI grants whose status row is pop+0/pop+1 (warm-1, warm-2-prefix, cold-prefix-T4 — all granted, all < pop+1), and at the T4-entry boundary (= pop+1 for a pop@T3 fetch, pop+2 for pop@T2) for back-to-back successors (cold plain, cold-prefix-T2 — all vetoed, all ≥ pop+1).
+
+## 2. Why the raw onset move is rejected
+
+**Why warm MEMR is on time with `eu_req` rising at S_RSV:** warm element accesses are serviced by decision points at/after pop+2 — the TI `want_eu` path, or `defer_t4`/T3-eval `want_eu` of the warm TI-granted CODE fetch — and S_RSV's `eu_req` (pop+2) is already visible there. The *only* eval the RTL misses is the opcode fetch's own completion eval (`req_t3_eval`, firing at pop+0 for pop@T3, pop+1 for pop@T2), which exists only when the pop rides a live fetch — i.e., precisely the cold configurations.
+
+**Why raising `eu_req` at S_DEC/S_FIRST would re-break warm:** at w0, `eu_req` and `eu_hold` are interchangeable inside `prefetch_ok`'s `!(eu_req || eu_hold)` (v30_biu.sv:540), and `prefetch_ok` feeds **both** `req_t3_eval` (via `pick_any`, :929) and `req_ti_plain` (via `pick_plain`, :926). The warm-1 TI grants stage at pop+0/pop+1 (`stage_commit` at ST_TI, delivering T1 one cycle later) — an early `eu_req` kills them exactly as the hold did. The RTL's TI path *decides one cycle later than the chip's* (chip decision pop−1 → status pop+0; RTL stage pop+0 → same T1), so any pop-cycle-wide suppression collides with grants the chip had already committed pre-pop. Additionally a moved `eu_req` edge shifts `eu_req_p1/p2` and every fitted law gating on `eu_req && !eu_req_p1`. The onset move is strictly dominated. **No cold conditional is needed** — the correct rendering is a veto scoped to the one decision point whose chip-equivalent instant is ≥ pop+1: the T3-eval prefetch grant.
+
+## 3. The exact design
+
+**v30_eu.sv** — one new output, pure combinational (Moore state + q_byte peek), zero flops, no savestate change; place beside `eu_rsv_dhi`/`eu_rsv_lead` (~line 1633) with the naming idiom of the reservation-class hints:
+
+```systemverilog
+// strio-single µline-1 request lead (V20 µcode 0294/02A0: INS/OUTS singles
+// issue their bus request on the routine's FIRST µline; MOVS/LODS/STOS/SCAS
+// issue on µline 2 - measured cold A4 vs 6E, 5000/5000 each). Visible to the
+// BIU's fetch-successor completion eval only (T3-eval); REP forms (3-µline
+// preamble, 0298/02A4) and classic strings must NOT assert.
+assign eu_rsv_strio = ((state == S_FIRST) && q_pop && !rep_en &&
+                       (q_byte[7:2] == 6'b011011)) ||      // 6C-6F, pop cycle
+                      ((state == S_DEC) && !rep_en &&
+                       (op_instr || op_outstr));            // dispatch cycle
+```
+
+**v30_biu.sv** — consume it at exactly one slot; `req_ti_plain`, `prefetch_ok` itself, all eval_ext/law paths, `eu_hold`, and every history pipe stay untouched:
+
+```systemverilog
+// T3-eval-scoped pick: the completion eval's successor-fetch grant sees the
+// strio µline-1 reservation (its chip decision instant is T4-entry >= pop+1);
+// TI grants (chip decision pop-1/pop+0) are exempt - warm-1/warm-2-prefix
+// populations, chip-granted, must survive (measured f5_window2).
+wire pick_t3     = want_half2 || want_eu || (prefetch_ok && !eu_rsv_strio);
+wire req_t3_eval = eval_at_t3 && pick_t3;
+```
+
+plus, in the ST_T3/TW branch: the `SLOT_CHK(slot_fire == pick_any)` at :1453 and the `if (pick_any) ... else if (...) defer_t4` priority chain at :1460–1465 change `pick_any` → `pick_t3` (so a vetoed eval stages nothing and arms nothing; `eu_req`=0 there, so the `defer_t4` arm is naturally false). The T4 flush slots (`req_ff_t4`, `req_t4_flush_staged`) keep `pick_any` — flush contexts, unreachable in these windows. Port plumbing through v30_core.sv. No new flops → no `v30_ss_pkg` change, no SS_VERSION bump.
+
+**Why each population comes out right:** cold plain — T3-eval at pop+0 (S_FIRST pop, veto term 1) stages nothing; T4→TI; S_RSV's real `eu_req` blocks TI prefetch from pop+2; `want_eu` services the MEMR — the identical cold service path the hold experiment already proved **bit-exact** (the hold's cold effect was a superset of this veto; in cold the bus is in T3/T4 at pop/pop+1, so no TI grant existed there for the hold to wrongly kill). Cold-prefix-T2 — T3-eval at pop+1 (S_DEC, term 2) vetoed ✓. Cold-prefix-T4 — successor decided at pop−1, veto not yet asserted ✓ (stays granted, as the chip does). Warm-1/warm-2 — TI path untouched ✓. Classic strings — `q_byte` ≠ 6C–6F, never asserts ✓. REP — `rep_en` excludes ✓. Under uniform w1/w3 the veto is structurally inert: `eval_at_t3` requires ready at two consecutive edges, which a waited opcode fetch never has — the T3-eval slot doesn't exist there. Under wrand it can fire only at zero-wait strio-single opcode-fetch evals; the census adjudicates (do NOT pre-extend to the eval_ext window — no data).
+
+## 4. Probe P3 (sim-only, before any tranche) with stop conditions
+
+Cycle-dump (`eu_rsv_strio`, slot_id/slot_fire, EU state, pick_t3) plus full-trace diff on: cold 6E/6C/6D-odd/6D-even/6F; cold 26.6E both phase classes (select by pop-row tstate T2 vs T4); warm-1 and warm-2 of 6E and 26.6E; cold+warm A4 and AA controls; F36E CW=1 REP control. Verify: (a) the veto asserts only at {pop, pop+1} of strio singles; (b) cold = chip bit-identical; (c) warm and all controls = **baseline-RTL bit-identical** (diff against pre-fix traces, not just chip). **STOP conditions:** any warm case deviating from baseline (⇒ an in-corpus warm T3-eval grant exists — re-characterize, do not widen); any cold case still granting the doomed CODE (⇒ a cold TI-grant variant — report its stage cycle, do not extend the veto to TI without redoing the decision-time analysis); any A4/AA/REP control deviation.
+
+## 5. F5 gate (pre-registered)
+
+1. Family 5 → 0 of 44,935 across the 7 divergent forms; three-way re-pass over all 23 strio forms.
+2. Flip-guards, all bit-identical: warm populations (~20k), cold-prefix-T4 classes (~7.5k), classic strings A4–AF + 26.A4/2E.A5/36.A6, all REP strio forms, byte/word both.
+3. w0 169000/169000; w1/w3 1200/1200 (structurally invulnerable per §3, run anyway); v20 oracle 3.125M.
+4. wrand class-5 census: total must not regress from 494u; DONE-guard unpaired CODE→CODE = 190u ± 10.
+5. Scramble regression; confirm final diff adds no flops. Quartus 17.1 synth clean (plain wires; one new EU→BIU port).
+6. Full v0.3 370-form three-way re-pass: ledger 44,997 → 62 (Families 1–4 only), zero new divergences.
+
+Key locations: `v30_eu.sv` :1633 (new assign site), :2209/:2257 (S_FIRST/S_DEC), :1342 (S_RSV eu_req — untouched); `v30_biu.sv` :540 (prefetch_ok — untouched), :926/:929 (req_ti_plain/req_t3_eval), :1453/:1460 (T3 dispatch chain).
