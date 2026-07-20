@@ -168,3 +168,70 @@ Cycle-dump (`eu_rsv_strio`, slot_id/slot_fire, EU state, pick_t3) plus full-trac
 6. Full v0.3 370-form three-way re-pass: ledger 44,997 → 62 (Families 1–4 only), zero new divergences.
 
 Key locations: `v30_eu.sv` :1633 (new assign site), :2209/:2257 (S_FIRST/S_DEC), :1342 (S_RSV eu_req — untouched); `v30_biu.sv` :540 (prefetch_ok — untouched), :926/:929 (req_ti_plain/req_t3_eval), :1453/:1460 (T3 dispatch chain).
+
+
+---
+
+# FAMILY 7: mechanism, fix design, probe, gate
+
+*(Architect (fable), 2026-07-20. Intended landing: addendum to docs/notes/v03_family5_6_law_design.md. Evidence scripts: scratchpad f7_qlen.py, f7_compose.py, plus f5_window*.py.)*
+
+## 1. Mechanism — the same µline-1 asymmetry, surfacing in the idle window
+
+**Chip-side measurement (single-valued, f7_qlen.py/f7_compose.py):** warm signatures split perfectly on initial qlen:
+
+| qlen | plain strio (6E/6C/6D/6F) | classics (A4/AA control) |
+|---|---|---|
+| 5 | bridging CODE granted at pop (occupancy 5−1=4 ≤ pf_lim), element rides its T4 back-to-back — **RTL clean** | same — clean |
+| 6 | pure idle window; **element status at pop+2, T1 pop+3** | pure idle; **element status at pop+3, T1 pop+4** — RTL clean |
+
+The chip's idle-window element commit for a strio single is **exactly one cycle earlier than for a classic string single** — the µline-1 vs µline-2 request onset (V20UC 0294/02A0 vs 008C/00B8) measured directly at qlen=6. The RTL's dispatch pipeline (S_FIRST pop → S_DEC → S_RSV `eu_req` → S_REQ `eu_ready`) correctly models the µline-2 cadence — that is *why* classics are clean and strio is one slot late. **Family 7 is strio-single-specific, not a latent general law** — the A4/AA qlen=6 populations are chip-slower by exactly the µline and RTL-bit-identical. Blast radius stays small.
+
+**The 6/5 knife edge is the existing pf_lim=4 occupancy ceiling, no new threshold logic:** qlen=5 pops to occupancy 4 → a fetch is granted at the pop and its T3/T4 machinery picks the element up on time; qlen=6 stays ≥ 5 → no fetch is ever due → the window is pure idle, and the only path left is the plain TI staged commit, whose decision is limited by `eu_ready` (S_REQ) — one cycle after the chip's µline-1 decision point.
+
+**Composition caveat (pre-registered check):** warm-qlen6 = 17,429; ledger = 17,511. The ~82 stragglers are window-edge cases (no resolvable element access in-window — same 44,935−27,423−17,429 arithmetic as the original characterization's "pf-side/window-edge" remainder). Worker confirms membership = (warm ∧ qlen6) ∪ stragglers before the gate. **The prefix sub-class (26.6E/36.6E/2E.6F qlen6, 7,459 cases) has a different window signature** — a bridging fetch granted after the *double* pop (6→4), element riding its T4 — so its RTL-late row may sit in a different place. It is plausibly the busy-window face of the same µline-1 lead (missed T3-eval pickup), but that is not yet measured. Sub-probe mandatory (below); do not assume.
+
+## 2. Fix design — the precedented idle-window early-commit (defer_idle) with a strio lead
+
+The RTL already contains the chip's idle-window one-cycle-ahead commit law: `defer_idle` (v30_biu.sv :1101–1106, arm at :1398/:1409, fire via `req_defer_idle` → `SLOT_DEFER_IDLE`/COMMIT_DIRECT, "one cycle ahead of the plain do_commit idle path (measured reader-commit law)") — currently armed only by `eu_soon_ea` (reg-EA readers) and `eu_soon_ivt`. The strio single is a new arming source with the *documented* `eu_soon` semantics ("ready will assert next cycle"): at S_RSV, `eu_req` is up and `eu_ready` is guaranteed next cycle (S_REQ), unconditionally.
+
+**v30_eu.sv** — dedicated output, combinational, zero flops (do **not** set the general `eu_soon` in this landing — it feeds the fitted `defer_t4` reader law at :1463, which is the contingent busy-window arm, below):
+
+```systemverilog
+// Family 7: strio-single idle-window lead. µline-1 (V20UC 0294/02A0) makes
+// the chip's element params complete one µcycle after the pop; the fitted
+// S_DEC->S_RSV->S_REQ pipeline models the µline-2 classics (A4/AA qlen6
+// chip status pop+3 vs strio pop+2, measured). At S_RSV ready is
+// GUARANTEED next cycle (S_REQ) - the documented eu_soon contract.
+assign eu_soon_strio = (state == S_RSV) && (op_instr || op_outstr) && !rep_en;
+```
+
+**v30_biu.sv** :1409 — extend the arm, with the q_aged guard that keeps cold out:
+
+```systemverilog
+end else if ((eu_req && eu_soon_ea && !eu_ready) ||
+             (eu_req && eu_soon_strio && !eu_ready && q_aged == 2'd0) ||  // F7
+             (eu_soon_ivt && q_cnt <= 3'd2)) begin
+    defer_idle <= 1'b1;
+```
+
+Why each population lands right, convention-independently: the arm fires one cycle before today's plain staged commit (S_RSV vs S_REQ), so the DIRECT commit is exactly one cycle earlier than baseline — the measured gap. **Warm-qlen6 plain:** bus ST_TI at S_RSV, q_aged long zero → arm → fixed. **Warm-qlen5:** bridging fetch in flight at S_RSV → BIU not in ST_TI → arm structurally unreachable (it lives in the ST_TI branch) → bit-identical. **Cold:** S_RSV coincides with the opcode fetch's T4 or its push-absorb cycle → blocked by ST_TI placement or `q_aged != 0` → the landed cold fix's verified path untouched. **Classics/REP:** the wire never asserts. `defer_idle` is an existing savestate flop (ss_pack :236) — no struct change, no SS_VERSION bump. The `req_defer_idle` fire path, `eu_started` side effect (:1380), and all history pipes are untouched; `eu_req`/`eu_ready` timing unchanged everywhere.
+
+**Contingent second arm (prefix sub-class, only if sub-probe confirms):** if the prefix-qlen6 lateness is the busy-window pickup (element readiness landing ON the bridging fetch's T4), the fix is the *other* face of the same machinery: assert the general `eu_soon` at S_RSV for strio singles so the fetch-T3-eval `defer_t4` arm (:1463, `cur_fetch && eu_req && eu_soon && !eu_ready`) catches it and commits mid-T4 — the exact S_EA2-reader law. This is a widen of a fitted law: land it only on the sub-probe's evidence, separately gated.
+
+## 3. Probe P4 (sim-only, before tranche) — stop conditions
+
+**Step 0 (prefix sub-probe, first):** row-diff one 26.6E qlen6 case RTL-vs-chip: locate the late row. If it is the element commit after the bridging fetch's T4 → contingent arm applies (measure `eu_ready` vs the fetch's T3/T4 cycles in the dump to confirm the missed pickup). If the bridging *fetch itself* is granted late → STOP, report (different mechanism — likely pop/occupancy timing — re-characterize, no improvised fix). Also dump one plain case to confirm `eu_ready` first asserts at S_REQ (the comb case :1344 shows S_RSV without ready; S_REQ's entry is below my read window — verify).
+
+**Step 1:** with the defer_idle arm landed, cycle-dump (arm cycle, BIU state, q_aged, slot_id) + full-trace diff on: warm-qlen6 plain ×4 forms (→ chip-bit-identical); warm-qlen5 ×4 (→ baseline-bit-identical); cold plain + cold-prefix both phase classes (→ baseline; arm must never fire); A4/AA qlen6+qlen5, REP CW=1 (→ baseline). **STOP if:** the arm fires in any cold case (q_aged guard insufficient for that alignment — report the exact BIU state, do not add flops); any warm-qlen6 case lands ≠ chip by any amount other than fixed (the one-cycle direct-vs-staged delta isn't the whole gap → contingency: strio `eu_ready` assertion at S_RSV instead — a bigger-surface change, take only with evidence and full flip-guard re-run); any baseline-guard deviation.
+
+## 4. Pre-registered gate
+
+1. Family 7 → 0 of 17,511: the 9,970 plain-qlen6 via this landing; the 7,459 prefix-qlen6 via the (separately gated) contingent arm if confirmed; the ~82 window-edge stragglers re-checked and attributed.
+2. Flip-guards, bit-identical to baseline: warm-qlen5 (17,489), all cold (the landed T3-veto fix untouched — re-run its 27,424), classics A4–AF + prefixed, all REP strio, byte/word.
+3. Standing: w0 169000/169000; w1/w3 1200/1200 (predate strio, run anyway); v20 oracle 3.125M; wrand census ≤ 494u with DONE-guard unpaired CODE→CODE = 190u ± 10 (the arm is opcode-scoped; census adjudicates fuzz exposure); savestate scramble (no new flops); Quartus 17.1 synth (one new EU output port, plain wires).
+4. Full v0.3 370-form three-way re-pass: ledger 17,573 → 62 (Families 1–4 only), zero new divergences.
+
+**The unified picture for the record:** Families 5-cold, 5-warm/7, and the microcode all say one thing — INS/OUTS singles issue their bus request one µline earlier than every other string op. Cold: the request kills the successor-fetch grant at the completion eval (landed T3-veto). Warm-qlen6: the request commits from the idle window one cycle sooner (this fix). Warm-qlen5 and all classics: masked by the bridging fetch or matched by the pipeline. One silicon fact, three observables.
+
+Key files: hdl/rtl/core/v30_eu.sv (:1344 comb case, :1633 hint block, new eu_soon_strio), hdl/rtl/core/v30_biu.sv (:1398–1416 arm, :921/:971 fire path, :1463 contingent defer_t4 arm).
