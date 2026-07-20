@@ -309,3 +309,21 @@ Recommended board A/B: run the strio fuzz at wmax 0..1 (or a zero-wait-biased mi
 nonzero `idle_arm` + `t3_veto` (NOT `eval_ext`, which should stay 0 as an isolation
 invariant) AND zero new divergences. A pure wmax=7 fuzz is the wrong regime. The TB-vs-chip
 divergence check itself requires the board (sim-only is TB-vs-TB, always matches).
+
+### Leg (c) — LOCK-prefixed strio (F0.6C-6F) directed tranche prep (task #24 coda)
+
+Added SPEC entries `F0.6C/6D/6E/6F` (emit_suite, `lockpfx=True` -> one extra prefix
+F-pop, no segment remap) + a `lockpfx` flag on SPEC/n_prefix. gen_case builds them
+board-free (valid instr bytes + iords for INS); registered in STRIO_OPS. **Board-ready:
+the tranche emits with one command in the shared board session.**
+
+RTL side (settled by construction): the strio hints `eu_rsv_strio`/`eu_soon_strio`
+decode from `opc` (6C-6F) and never reference `lock_en`, so F0.6C-6F reach ALL THREE
+new gates exactly as the non-locked forms -- LOCK is transparent to the Family-5/7
+logic. But F0 is a prefix: it adds a decode cycle (like the segment overrides), so the
+locked forms' queue/timing signature likely shifts toward the prefix-qlen5 pattern
+rather than the plain-qlen6 one. Whether the CHIP's LOCK+strio timing matches this
+gated RTL behavior is the open question -> the directed tranche (F0.6C-6F, cold +
+qlen5/6 warm, ~100/form) captures silicon to decide **validated vs diverges**. If it
+diverges the fix is likely `!lock_en` on the three hints, but characterize FIRST and
+gate any change on the new captures + all standing flip-guards (coordinator directive).

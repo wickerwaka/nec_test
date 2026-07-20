@@ -118,7 +118,8 @@ def SPEC(key, mnem, base, modrm=None, w=0, imm=0, group=None,
          io_dx=False, clcount=False, shiftimm=False, bcdbase=False,
          swint=None, membytes=None, memonly=False, popmem=False,
          chkind=False, prep=False, dispose=False, regonly=False,
-         insext=None, popf=False, pushr=False, popr=False, strio=None):
+         insext=None, popf=False, pushr=False, popr=False, strio=None,
+         lockpfx=False):
     return dict(key=key, mnem=mnem, base=base, modrm=modrm, w=w, imm=imm,
                 group=group, stack=stack, divtrap=divtrap,
                 string4s=string4s, imm_mask=imm_mask, branch=branch,
@@ -128,7 +129,8 @@ def SPEC(key, mnem, base, modrm=None, w=0, imm=0, group=None,
                 bcdbase=bcdbase, swint=swint, membytes=membytes,
                 memonly=memonly, popmem=popmem, chkind=chkind, prep=prep,
                 dispose=dispose, regonly=regonly, insext=insext,
-                popf=popf, pushr=pushr, popr=popr, strio=strio)
+                popf=popf, pushr=pushr, popr=popr, strio=strio,
+                lockpfx=lockpfx)
 
 
 ALU = ["add", "or", "adc", "sbb", "and", "sub", "xor", "cmp"]
@@ -484,6 +486,17 @@ OPCODES["2E.6F"] = SPEC("2E.6F", "cs: outsw", [0x2E, 0x6F], strio="outs", w=1,
                         segpfx="cs")
 OPCODES["36.6E"] = SPEC("36.6E", "ss: outsb", [0x36, 0x6E], strio="outs", w=0,
                         segpfx="ss")
+# LOCK-prefixed string I/O (task #24 coda leg c). F0 is accepted before any
+# opcode; it asserts BUSLOCK and adds one prefix-decode cycle but changes no
+# segment. The Family-5/7 strio hints (eu_rsv_strio/eu_soon_strio) do NOT gate
+# on lock_en, so F0.6C-6F reach all three new gates while sitting OUTSIDE the
+# characterized (non-locked) population -- this directed tranche captures the
+# chip to decide validated-vs-diverges. lockpfx marks the extra prefix F-pop
+# (no segpfx address remap). LOCK is socket-safe (BUSLOCK assert only).
+OPCODES["F0.6C"] = SPEC("F0.6C", "lock insb",  [0xF0, 0x6C], strio="ins",  w=0, lockpfx=True)
+OPCODES["F0.6D"] = SPEC("F0.6D", "lock insw",  [0xF0, 0x6D], strio="ins",  w=1, lockpfx=True)
+OPCODES["F0.6E"] = SPEC("F0.6E", "lock outsb", [0xF0, 0x6E], strio="outs", w=0, lockpfx=True)
+OPCODES["F0.6F"] = SPEC("F0.6F", "lock outsw", [0xF0, 0x6F], strio="outs", w=1, lockpfx=True)
 STRIO_OPS = {k for k, s in OPCODES.items() if s["strio"]}
 
 BRANCH_OPS = ["EB", "E9", "74", "75", "7C", "E2", "E8", "C3", "C2"]
@@ -588,7 +601,7 @@ SREG_STR = ["es", "cs", "ss", "ds"]
 
 def n_prefix(spec):
     """Prefix bytes ahead of the opcode (each pops as an extra F)."""
-    n = 1 if spec["rep"] or spec["segpfx"] else 0
+    n = 1 if spec["rep"] or spec["segpfx"] or spec.get("lockpfx") else 0
     return n
 
 TRANCHE = ["00", "08", "10", "18", "20", "28", "30", "38", "B8", "40",
