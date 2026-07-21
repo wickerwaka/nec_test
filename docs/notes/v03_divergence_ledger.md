@@ -226,21 +226,31 @@ a 16k-case set. Word-vs-byte and REP-only scope are the discriminators.
   F0-prefix alignment (architect, like the seg-prefix qlen5 extension), NOT disable them under lock.
   Gate for the future fix = the F0.6C-6F captures + all standing strio flip-guards. Routed to the
   coordinator/architect; not landed. SPECs `F0.6C/6D/6E/6F` + `lockpfx` are in emit_suite.
-- **Family 8 (LOCK-prefixed strio F0.6C-6F): RESOLVED (SIM)** 2026-07-20 (commit below). The
-  architect REVERSED the leg-(c) characterization: the arms were exonerated — it is a **LOCK-window
-  bus-cycle STRETCH law**, not a prefetch-ordering shift. The chip inserts genuine wait states
-  inside LOCK windows (**+3 clocks cold / +1 warm**, single-valued across all 400 tranche cases vs a
-  25,000-case unlocked zero-Tw baseline; harness-verified: unlocked writes 0 Tw, locked 200 Tw on
-  CODE/reads/writes = S1+S2+S3 exactly). The `!lock_en` result is consistent — the arms were never
-  the divergence (f7a_idle_arm=0 locked is *correct*: locked strio is prefix-shaped so the idle face
-  never exists). Fitted **S1/S2/S3** stretch, landed as a BIU internal ready-mask
-  (`ready_eff = ready && !lock_stretch_due`, gated on `eu_lock`) + 4 bookkeeping flops
-  (cur_bb_grant/lock_eu_cnt1/2/lock_s1_fired) + `ready_prev<=ready_eff` + busstat-hold; exported as
-  the core output `BUS_STRETCH` so the SIM observer inserts the Tw (board pin-capture zero-change).
-  **First campaign fix to add state flops** → SS_VERSION 0x01→0x02, scramble regression (incl.
-  mid-stretch freeze). Gate (SIM): **f0lock 400/400** (cyc+arch); flip-guards bit-identical (unlocked
-  strio 7×0/10000, w0 169000/169000, w1/w3 1200/1200, v20 24000/24000, wrand census 240/240 vs F7,
-  BUS_STRETCH 0 across 19,692 unlocked cycles, scramble 60+60 PASS). P5 item-3: lowband_pause fires
-  inside locked windows (4032×) + eval_ext (800×) but traces bit-exact → no perturbation, no scoping.
-  **Board A/B silicon check on the tranche seeds = final pending gate item.** F0.A4/locked-RMW
-  generalization mini-tranche booked non-gating. Ledger stays 62.
+- **Family 8 (LOCK-prefixed strio F0.6C-6F): NOT A LAW — a CAPTURE ARTIFACT (VOID)** 2026-07-20.
+  The "LOCK-window bus-cycle STRETCH law" (+3 cold/+1 warm Tw) was an artifact of **stale wait-rig
+  state (sticky-WRAND, 2nd occurrence)**: the f0lock tranche was captured 16:10 with R_WRAND still
+  enabled from the F7-side leg-b wrand fuzz, minting phantom Tw in a waits=0 golden. Diagnosed by
+  board evidence: (a) the F8 flash (17:11) wiped the rig → a live re-capture showed **0 Tw**; (b)
+  within-build repeatability 10/10 deterministic (no flicker); (c) the capture path (nec_bus/nec_test
+  /qsf/pins) was **identical** across the F7-golden and F8-live builds; (d) enabling WRAND on the
+  clean board **reproduces phantom Tw** on F0.6C, the guard force-clean removes them. The SIM "fix"
+  (commit eae1ecf, S1/S2/S3 + BUS_STRETCH + 4 flops + SS_VERSION 0x02) **REVERTED in full**; F5a/F7
+  arms untouched, SS_VERSION back to 0x01, scramble re-run 60 PASS. **Re-captured CLEAN (0 Tw); the
+  post-revert RTL passes F0.6C-6F 400/400 (cyc+arch)** — the string-I/O ordering was already correct,
+  there is NO LOCK timing law. Guard MECHANIZED (v30run force-cleans R_WRAND+replay at every serve
+  connect; emit_log records the wait-rig readback per emission). See the instrument-failure family
+  entry below. Ledger stays 62.
+
+## Instrument-failure family / provenance rules (task #24)
+
+- **Stale wait-rig state (sticky-WRAND) — 2nd occurrence, now MECHANIZED.** A prior
+  process leaves R_WRAND (seeded random per-access waits) enabled; a later capture that
+  does not explicitly request waits inherits it and mints phantom Tw. First occurrence was
+  handled by prose; the prose didn't survive. Family 8 (LOCK-strio) was the second victim —
+  the f0lock tranche captured 16:10 with the F7-side leg-b fuzz's R_WRAND still live. **Now
+  code:** `v30run.ServeRunner.ensure()` force-cleans the rig (WRAND 0 + replay 0,
+  UNCONDITIONALLY) at every serve connect, defeating the sticky-None skip in
+  `wrand()`/`replay()`; emit_suite logs the wait-rig readback per emission.
+- **STANDING RULE: a Tw in a waits=0 golden is a PROVENANCE ALARM, not a law to fit.** Any
+  wait state in a nominally zero-wait capture means the wait rig was dirty (or a genuine,
+  separately-provenanced wait spec) — re-verify the rig state before characterizing.

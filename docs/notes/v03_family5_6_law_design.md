@@ -483,3 +483,26 @@ classes — STOP if low; (3) class-5 term dump inside locked windows — report 
 with !eu_lock; (4) scramble incl. the mid-stretch freeze case; (5) original stops (stretch on
 unlocked path; S3 misprediction). Gate: pre-registered + item-0 assertion + A/B silicon check
 on tranche seeds; F0.A4/locked-RMW generalization mini-tranche booked non-gating.
+
+---
+
+## Family 8 — VOID (capture artifact) + collateral (task #24, 2026-07-20)
+
+Family 8's "LOCK-window stretch law" was a **capture artifact** — stale R_WRAND (sticky-
+WRAND, 2nd occurrence) minting phantom Tw in the waits=0 f0lock tranche. The fix (eae1ecf)
+was reverted; the tranche re-captured clean (0 Tw); the post-revert RTL passes F0.6C-6F
+400/400. There is no LOCK timing law; the string-I/O ordering was already correct. The
+mechanized guard (v30run connect-time rig force-clean) + the standing "Tw-in-waits0 =
+provenance alarm" rule are the durable outcomes. See the ledger instrument-failure entry.
+
+### Collateral kept for a future GENUINE stretch law: the TB own-ready-model hazard
+The BUS_STRETCH exercise surfaced a real hazard worth recording. The chip inserts a
+chip-internal wait by holding its bus an extra clock **regardless of READY**; but the
+Verilator observer `tb_v30_core.tb_t` advances its T-state on its OWN `ready_r` (the wait
+generator), NOT on the DUT's held bus. So a DUT-internal ready-mask stretch is invisible
+to `tb_t` at zero waits and desyncs the observer (it also desyncs the board's nec_bus
+`t_state`, which is likewise `ready_q`-based). If a genuine chip-internal-wait law is ever
+found, the DUT must EXPORT the stretch (a `BUS_STRETCH`-style 1-bit output) so both the
+Verilator `tb_t` and the board `nec_bus` T-state trackers gate their ready sample on it
+(`ready_r && !bus_stretch`) — an internal ready-mask alone is not observable. (This never
+needed to ship for Family 8 since Family 8 was not real; the note preserves the finding.)
