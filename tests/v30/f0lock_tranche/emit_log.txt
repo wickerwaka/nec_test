@@ -1,1 +1,2 @@
 # TRUTH SOURCE: SOCKET (real chip, use_core=False)  seed_base=f0lock  cases=100  waits=0  forms=4
+# WAIT-RIG: WRAND=0 replay=0 (commanded clean at connect, OK/OK)

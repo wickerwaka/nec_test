@@ -1,17 +1,15 @@
-# f0lock_tranche — QUARANTINED (Tw rows UNVERIFIED)
+# f0lock_tranche — CLEAN re-capture (2026-07-20)
 
-**Do NOT consume these goldens as truth.** 400 socket captures (F0.6C/6D/6E/6F,
-100/form, cold + qlen5/6 warm, seed_base f0lock, w0), emitted 2026-07-20 for the
-Family-8 (LOCK-strio) investigation.
+400 socket captures (F0.6C/6D/6E/6F, 100/form, cold + qlen5/6 warm, seed_base
+f0lock, w0), re-captured 2026-07-20 on a wait-rig-clean board with the mechanized
+guard (v30run ServeRunner force-cleans R_WRAND + replay at connect).
 
-**QUARANTINE (2026-07-20):** the LOCK-window Tw rows in these goldens are
-unverified. A live re-capture of the identical regenerated cases on the current
-F8 board shows **NO Tw** (F0.6C idx0 golden Tw @ rows [6,12,18]; live re-capture
-0 Tw). Non-locked controls (6C) reproduce exactly, so the board capture is not
-globally broken — the discrepancy is LOCK-specific. Whether the golden Tw are a
-genuine silicon LOCK-stretch law or a capture artifact (BUSLOCK/WR pin-sharing,
-nec_test.sv:328) is an OPEN reproducibility investigation (architect + worker).
+**History:** the ORIGINAL 16:10 capture was TAINTED by a stale R_WRAND left
+enabled by a prior process (F7-side leg-b wrand fuzz), minting phantom Tw rows
+(+3 cold / +1 warm) inside the LOCK windows. Those were mis-read as a "LOCK-window
+bus-cycle stretch law" (Family 8); the fix (commit eae1ecf) was REVERTED once the
+artifact was identified. This clean re-capture has **0 Tw** and the post-revert
+RTL (F5a/F7 arms only) passes it **400/400** (cyc+arch) — F0.6C-6F have no LOCK
+timing divergence; the string-I/O ordering was already correct.
 
-Consuming code must treat the tstate column of any Tw row here as suspect until
-this note is cleared. The Family-8 fix (commit eae1ecf) matches these goldens in
-SIM (400/400) but is BOARD-UNCONFIRMED pending this investigation.
+Standing rule: a Tw in a waits=0 golden is a PROVENANCE ALARM, not a law to fit.
