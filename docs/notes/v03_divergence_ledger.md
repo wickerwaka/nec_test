@@ -226,3 +226,21 @@ a 16k-case set. Word-vs-byte and REP-only scope are the discriminators.
   F0-prefix alignment (architect, like the seg-prefix qlen5 extension), NOT disable them under lock.
   Gate for the future fix = the F0.6C-6F captures + all standing strio flip-guards. Routed to the
   coordinator/architect; not landed. SPECs `F0.6C/6D/6E/6F` + `lockpfx` are in emit_suite.
+- **Family 8 (LOCK-prefixed strio F0.6C-6F): RESOLVED (SIM)** 2026-07-20 (commit below). The
+  architect REVERSED the leg-(c) characterization: the arms were exonerated — it is a **LOCK-window
+  bus-cycle STRETCH law**, not a prefetch-ordering shift. The chip inserts genuine wait states
+  inside LOCK windows (**+3 clocks cold / +1 warm**, single-valued across all 400 tranche cases vs a
+  25,000-case unlocked zero-Tw baseline; harness-verified: unlocked writes 0 Tw, locked 200 Tw on
+  CODE/reads/writes = S1+S2+S3 exactly). The `!lock_en` result is consistent — the arms were never
+  the divergence (f7a_idle_arm=0 locked is *correct*: locked strio is prefix-shaped so the idle face
+  never exists). Fitted **S1/S2/S3** stretch, landed as a BIU internal ready-mask
+  (`ready_eff = ready && !lock_stretch_due`, gated on `eu_lock`) + 4 bookkeeping flops
+  (cur_bb_grant/lock_eu_cnt1/2/lock_s1_fired) + `ready_prev<=ready_eff` + busstat-hold; exported as
+  the core output `BUS_STRETCH` so the SIM observer inserts the Tw (board pin-capture zero-change).
+  **First campaign fix to add state flops** → SS_VERSION 0x01→0x02, scramble regression (incl.
+  mid-stretch freeze). Gate (SIM): **f0lock 400/400** (cyc+arch); flip-guards bit-identical (unlocked
+  strio 7×0/10000, w0 169000/169000, w1/w3 1200/1200, v20 24000/24000, wrand census 240/240 vs F7,
+  BUS_STRETCH 0 across 19,692 unlocked cycles, scramble 60+60 PASS). P5 item-3: lowband_pause fires
+  inside locked windows (4032×) + eval_ext (800×) but traces bit-exact → no perturbation, no scoping.
+  **Board A/B silicon check on the tranche seeds = final pending gate item.** F0.A4/locked-RMW
+  generalization mini-tranche booked non-gating. Ledger stays 62.
