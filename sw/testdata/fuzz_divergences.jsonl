@@ -652,3 +652,37 @@
 {"seed": "fz87607", "exts": [], "waits": 2, "wrand": null, "inject_int": false, "hw_ab": false, "n_ins": 86, "first_row": 14, "bad_rows": 1850, "flick": 5}
 {"seed": "fz87608", "exts": [], "waits": 2, "wrand": null, "inject_int": false, "hw_ab": false, "n_ins": 54, "first_row": 14, "bad_rows": 1281, "flick": 0}
 {"seed": "fz87609", "exts": [], "waits": 2, "wrand": null, "inject_int": false, "hw_ab": false, "n_ins": 63, "first_row": 14, "bad_rows": 1286, "flick": 0}
+{"seed": "fz3", "exts": ["strio"], "waits": 0, "wrand": null, "inject_int": false, "hw_ab": true, "n_ins": 54, "first_row": 250, "bad_rows": 441, "flick": 0}
+{"seed": "fz3", "exts": ["strio"], "waits": 0, "wrand": [1, 4099], "inject_int": false, "hw_ab": true, "n_ins": 54, "first_row": 446, "bad_rows": 360, "flick": 0}
+{"seed": "fz4", "exts": ["strio"], "waits": 0, "wrand": [1, 4100], "inject_int": false, "hw_ab": true, "n_ins": 29, "first_row": 351, "bad_rows": 297, "flick": 0}
+{"seed": "fz5", "exts": ["strio"], "waits": 0, "wrand": [1, 4101], "inject_int": false, "hw_ab": true, "n_ins": 76, "first_row": 760, "bad_rows": 263, "flick": 0}
+{"seed": "fz4", "exts": [], "waits": 0, "wrand": [1, 4100], "inject_int": false, "hw_ab": true, "n_ins": 29, "first_row": 390, "bad_rows": 8, "flick": 0}
+{"seed": "fz7", "exts": [], "waits": 0, "wrand": [1, 4103], "inject_int": false, "hw_ab": true, "n_ins": 36, "first_row": 417, "bad_rows": 366, "flick": 0}
+{"seed": "fz9", "exts": [], "waits": 0, "wrand": [1, 4105], "inject_int": false, "hw_ab": true, "n_ins": 95, "first_row": 340, "bad_rows": 4, "flick": 1}
+{"seed": "fz12", "exts": [], "waits": 0, "wrand": [1, 4108], "inject_int": false, "hw_ab": true, "n_ins": 87, "first_row": 291, "bad_rows": 778, "flick": 1}
+{"seed": "fz14", "exts": [], "waits": 0, "wrand": [1, 4110], "inject_int": false, "hw_ab": true, "n_ins": 67, "first_row": 436, "bad_rows": 4, "flick": 1}
+{"seed": "fz20", "exts": [], "waits": 0, "wrand": [1, 4116], "inject_int": false, "hw_ab": true, "n_ins": 99, "first_row": 278, "bad_rows": 1144, "flick": 4}
+{"seed": "fz3", "exts": ["strio"], "waits": 0, "wrand": [1, 4099], "inject_int": false, "hw_ab": true, "n_ins": 54, "first_row": 446, "bad_rows": 360, "flick": 0}
+{"seed": "fz4", "exts": ["strio"], "waits": 0, "wrand": [1, 4100], "inject_int": false, "hw_ab": true, "n_ins": 29, "first_row": 351, "bad_rows": 297, "flick": 0}
+{"seed": "fz5", "exts": ["strio"], "waits": 0, "wrand": [1, 4101], "inject_int": false, "hw_ab": true, "n_ins": 76, "first_row": 760, "bad_rows": 263, "flick": 0}
+{"seed": "fz7", "exts": ["strio"], "waits": 0, "wrand": [1, 4103], "inject_int": false, "hw_ab": true, "n_ins": 36, "first_row": 395, "bad_rows": 12, "flick": 0}
+{"seed": "fz9", "exts": ["strio"], "waits": 0, "wrand": [1, 4105], "inject_int": false, "hw_ab": true, "n_ins": 103, "first_row": 953, "bad_rows": 405, "flick": 0}
+{"seed": "fz11", "exts": ["strio"], "waits": 0, "wrand": [1, 4107], "inject_int": false, "hw_ab": true, "n_ins": 77, "first_row": 321, "bad_rows": 704, "flick": 1}
+{"seed": "fz12", "exts": ["strio"], "waits": 0, "wrand": [1, 4108], "inject_int": false, "hw_ab": true, "n_ins": 87, "first_row": 222, "bad_rows": 930, "flick": 2}
+{"seed": "fz13", "exts": ["strio"], "waits": 0, "wrand": [1, 4109], "inject_int": false, "hw_ab": true, "n_ins": 44, "first_row": 508, "bad_rows": 16, "flick": 0}
+{"seed": "fz14", "exts": ["strio"], "waits": 0, "wrand": [1, 4110], "inject_int": false, "hw_ab": true, "n_ins": 68, "first_row": 232, "bad_rows": 370, "flick": 0}
+{"seed": "fz15", "exts": ["strio"], "waits": 0, "wrand": [1, 4111], "inject_int": false, "hw_ab": true, "n_ins": 72, "first_row": 465, "bad_rows": 392, "flick": 1}
+{"seed": "fz16", "exts": ["strio"], "waits": 0, "wrand": [1, 4112], "inject_int": false, "hw_ab": true, "n_ins": 78, "first_row": 489, "bad_rows": 483, "flick": 0}
+{"seed": "fz17", "exts": ["strio"], "waits": 0, "wrand": [1, 4113], "inject_int": false, "hw_ab": true, "n_ins": 93, "first_row": 316, "bad_rows": 740, "flick": 3}
+{"seed": "fz18", "exts": ["strio"], "waits": 0, "wrand": [1, 4114], "inject_int": false, "hw_ab": true, "n_ins": 68, "first_row": 460, "bad_rows": 471, "flick": 0}
+{"seed": "fz19", "exts": ["strio"], "waits": 0, "wrand": [1, 4115], "inject_int": false, "hw_ab": true, "n_ins": 66, "first_row": 530, "bad_rows": 317, "flick": 0}
+{"seed": "fz20", "exts": ["strio"], "waits": 0, "wrand": [1, 4116], "inject_int": false, "hw_ab": true, "n_ins": 99, "first_row": 731, "bad_rows": 340, "flick": 0}
+{"seed": "fz21", "exts": ["strio"], "waits": 0, "wrand": [1, 4117], "inject_int": false, "hw_ab": true, "n_ins": 56, "first_row": 288, "bad_rows": 551, "flick": 0}
+{"seed": "fz24", "exts": ["strio"], "waits": 0, "wrand": [1, 4120], "inject_int": false, "hw_ab": true, "n_ins": 44, "first_row": 321, "bad_rows": 477, "flick": 0}
+{"seed": "fz4", "exts": [], "waits": 0, "wrand": [1, 4100], "inject_int": false, "hw_ab": true, "n_ins": 29, "first_row": 390, "bad_rows": 8, "flick": 0}
+{"seed": "fz7", "exts": [], "waits": 0, "wrand": [1, 4103], "inject_int": false, "hw_ab": true, "n_ins": 36, "first_row": 417, "bad_rows": 366, "flick": 0}
+{"seed": "fz9", "exts": [], "waits": 0, "wrand": [1, 4105], "inject_int": false, "hw_ab": true, "n_ins": 95, "first_row": 340, "bad_rows": 4, "flick": 1}
+{"seed": "fz12", "exts": [], "waits": 0, "wrand": [1, 4108], "inject_int": false, "hw_ab": true, "n_ins": 87, "first_row": 291, "bad_rows": 778, "flick": 1}
+{"seed": "fz14", "exts": [], "waits": 0, "wrand": [1, 4110], "inject_int": false, "hw_ab": true, "n_ins": 67, "first_row": 436, "bad_rows": 4, "flick": 1}
+{"seed": "fz20", "exts": [], "waits": 0, "wrand": [1, 4116], "inject_int": false, "hw_ab": true, "n_ins": 99, "first_row": 278, "bad_rows": 1144, "flick": 4}
+{"seed": "fz24", "exts": [], "waits": 0, "wrand": [1, 4120], "inject_int": false, "hw_ab": true, "n_ins": 44, "first_row": 512, "bad_rows": 381, "flick": 1}
