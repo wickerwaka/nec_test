@@ -63,6 +63,11 @@
 //
 //============================================================================
 
+/* verilator lint_off WIDTHEXPAND */
+/* verilator lint_off UNUSEDPARAM */
+/* verilator lint_on UNUSEDPARAM */
+/* verilator lint_on WIDTHEXPAND */
+
 module v30_biu (
     input             clk,
     input             ce,            // clock-enable: advance state this clk
@@ -108,6 +113,11 @@ module v30_biu (
     input             eu_soon_ivt,    // NMI/INT IVT-read idle-window early-
                                       // commit lead (pre-IVT S_WAITX dly==1);
                                       // arms defer_idle like eu_soon_ea
+    input             eu_soon_strio,  // Family-7 (task #24): strio-single idle-
+                                      // window lead. At S_RSV ready is GUARANTEED
+                                      // next cycle (S_REQ); arms defer_idle like
+                                      // eu_soon_ea, gated q_aged==0 to keep cold
+                                      // (F5a) and the qlen5 bridging window out.
     input             flush_fast,     // far-flush: redirect commits mid-cycle
     input             eu_defer_wr,    // RMW write: exclude from the deferred
                                       // (eval_ext) commit; take the next plain
@@ -136,6 +146,10 @@ module v30_biu (
                                     // LEADS eu_req by one EU-state (disp16 store
                                     // @ S_DHI). Consulted ONLY in eval_ext ->
                                     // w0-NEUTRAL. See pf_rsv_lead below.
+    input             eu_rsv_strio, // Family-5 (task #24): strio-single uline-1
+                                    // request lead. Vetoes ONLY the T3-eval
+                                    // fetch-completion grant (pick_t3 below);
+                                    // TI grants and every other slot untouched.
     input             eu_rsv_push_calc, // Phase 3: ... the S_PUSH_CALC push
                                     // class (owns the slot only at q_cnt>=2)
     input             eu_wr,
@@ -178,8 +192,131 @@ module v30_biu (
     input      [15:0] bkd_cs,
     input      [15:0] bkd_ip,        // offset of the first byte NOT queued
     input      [47:0] bkd_queue,
-    input       [2:0] bkd_qlen
+    input       [2:0] bkd_qlen,
+
+    input             ss_capture,   // 1-clk: shadow <= live state
+    input             ss_shift,     // 1-clk/word: shift the shadow toward DOUT
+    input             ss_restore,   // 1-clk: live state <= shadow
+    input      [15:0] ss_din_seg,   // word entering from the EU segment
+    output     [15:0] ss_dout_seg,  // word leaving toward the tag segment
+    output            ss_bus_quiet
 );
+
+import v30_ss_pkg::*;
+
+localparam int BIU_W = SS_BIU_WORDS*16;
+
+ss_biu_t ss_pack;
+always_comb begin
+    ss_pack = '0;
+    ss_pack.state = state;
+    ss_pack.cur_type = cur_type;
+    ss_pack.cur_addr = cur_addr;
+    ss_pack.cur_fetch = cur_fetch;
+    ss_pack.cur_wr = cur_wr;
+    ss_pack.cur_swap = cur_swap;
+    ss_pack.cur_split1 = cur_split1;
+    ss_pack.cur_split2 = cur_split2;
+    ss_pack.cur_wrap = cur_wrap;
+    ss_pack.cur_wdata = cur_wdata;
+    ss_pack.cur_seg = cur_seg;
+    ss_pack.cur_ube_n = cur_ube_n;
+    ss_pack.cur_kind = cur_kind;
+    ss_pack.nxt_valid = nxt_valid;
+    ss_pack.nxt_type = nxt_type;
+    ss_pack.nxt_addr = nxt_addr;
+    ss_pack.nxt_fetch = nxt_fetch;
+    ss_pack.nxt_wr = nxt_wr;
+    ss_pack.nxt_swap = nxt_swap;
+    ss_pack.nxt_split1 = nxt_split1;
+    ss_pack.nxt_split2 = nxt_split2;
+    ss_pack.nxt_wrap = nxt_wrap;
+    ss_pack.nxt_wdata = nxt_wdata;
+    ss_pack.nxt_seg = nxt_seg;
+    ss_pack.nxt_ube_n = nxt_ube_n;
+    ss_pack.nxt_kind = nxt_kind;
+    ss_pack.ube_n = ube_n;
+    ss_pack.eu_started = eu_started;
+    ss_pack.eu_hand = eu_hand;
+    ss_pack.eu_rdata = eu_rdata;
+    ss_pack.tw_any = tw_any;
+    ss_pack.evald = evald;
+    ss_pack.defer_t4 = defer_t4;
+    ss_pack.defer_idle = defer_idle;
+    ss_pack.eval_ext = eval_ext;
+    ss_pack.flush_hold = flush_hold;
+    ss_pack.ext_flushed = ext_flushed;
+    ss_pack.ready_prev = ready_prev;
+    ss_pack.eu_req_p1 = eu_req_p1;
+    ss_pack.eu_req_p2 = eu_req_p2;
+    ss_pack.eu_ready_p1 = eu_ready_p1;
+    ss_pack.eu_ready_p2 = eu_ready_p2;
+    ss_pack.tw_par = tw_par;
+    ss_pack.t1_half2 = t1_half2;
+    ss_pack.ph_ff = ph_ff;
+    ss_pack.gph_ff = gph_ff;
+    ss_pack.lock_active = lock_active;
+    ss_pack.lock_done = lock_done;
+    ss_pack.q_mem0 = q_mem[0];
+    ss_pack.q_mem1 = q_mem[1];
+    ss_pack.q_mem2 = q_mem[2];
+    ss_pack.q_mem3 = q_mem[3];
+    ss_pack.q_mem4 = q_mem[4];
+    ss_pack.q_mem5 = q_mem[5];
+    ss_pack.q_rd = q_rd;
+    ss_pack.q_wr = q_wr;
+    ss_pack.q_cnt = q_cnt;
+    ss_pack.q_avl = q_avl;
+    ss_pack.q_aged = q_aged;
+    ss_pack.q_head_dry_q = q_head_dry_q;
+    ss_pack.fetch_discard = fetch_discard;
+    ss_pack.fetch_cs = fetch_cs;
+    ss_pack.fetch_off = fetch_off;
+    ss_pack.fetch_data = fetch_data;
+    ss_pack.push_pend = push_pend;
+    ss_pack.push_pend_hi = push_pend_hi;
+    ss_pack.e_wait = e_wait;
+    ss_pack.halt_t1 = halt_t1;
+    ss_pack.halt_done = halt_done;
+    ss_pack.occ34_age = occ34_age;
+    ss_pack.pop_sr = pop_sr;
+    ss_pack.recent_evx = recent_evx;
+    ss_pack.last_was_store = last_was_store;
+    ss_pack.law_tw_cnt = law_tw_cnt;
+    ss_pack.law_dtw = law_dtw;
+    ss_pack.law_dcnt = law_dcnt;
+    ss_pack.law_window = law_window;
+    ss_pack.law_ctr = law_ctr;
+    ss_pack.law_sel = law_sel;
+    ss_pack.law_prov = law_prov;
+    ss_pack.pad = '0;
+end
+
+reg [BIU_W-1:0] ss_sh;
+always_ff @(posedge clk) begin
+    if (ss_capture)    ss_sh <= ss_pack;
+    else if (ss_shift) ss_sh <= {ss_din_seg, ss_sh[BIU_W-1:16]};
+end
+assign ss_dout_seg = ss_sh[15:0];
+
+ss_biu_t ss_u;
+assign ss_u = ss_biu_t'(ss_sh);
+
+// Elaboration-time HARD-FAIL on width drift (design 3.1): a generate-time
+// check, so the build fails synthesis-independently (not merely a sim $error).
+generate
+    if (BIU_W != $bits(ss_biu_t)) begin : gen_ss_biu_width_err
+        // Cross-tool elaboration hard-fail (design 3.1): referencing an
+        // UNDEFINED module aborts the build in BOTH Verilator and Quartus 17.1
+        // (Quartus rejects $error inside a generate). Untaken when widths match.
+        ss_biu_t_width_mismatch u_ss_biu_width_guard ();
+    end
+endgenerate
+
+`ifdef VERILATOR
+always @(posedge clk)
+    if (ss_restore && srst) $error("ss_restore and srst co-asserted");
+`endif
 
 localparam bit [2:0] BS_INTA = 3'b000;
 localparam bit [2:0] BS_IOR  = 3'b001;
@@ -373,7 +510,8 @@ wire [3:0] pf_lim = 4'd4;
 // separates a store_tw=0 resume in a waited run from its w0 twin.
 reg  [3:0] recent_evx;
 always_ff @(posedge clk) begin
-    if (srst) recent_evx <= 4'hF;
+    if (ss_restore) recent_evx <= ss_u.recent_evx;
+    else if (srst) recent_evx <= 4'hF;
     else if (ce) begin
         if (eval_ext)               recent_evx <= 4'd0;
         else if (recent_evx != 4'hF) recent_evx <= recent_evx + 4'd1;
@@ -385,7 +523,8 @@ end
 // the next bus cycle begins (ST_T1).
 reg        last_was_store;
 always_ff @(posedge clk) begin
-    if (srst) last_was_store <= 1'b0;
+    if (ss_restore) last_was_store <= ss_u.last_was_store;
+    else if (srst) last_was_store <= 1'b0;
     else if (ce) begin
         if (state == ST_T4 && (cur_type == BS_MEMW) && cur_wr && !cur_fetch)
             last_was_store <= 1'b1;
@@ -421,7 +560,8 @@ assign q_any    = q_cnt != 3'd0;   // fetched (not yet poppable) counts
 // coincides with an in-flight fetch's T2 (Campaign 4 disp-phase law)
 reg q_head_dry_q;
 always_ff @(posedge clk)
-    if (srst) q_head_dry_q <= 1'b1;
+    if (ss_restore) q_head_dry_q <= ss_u.q_head_dry_q;
+    else if (srst) q_head_dry_q <= 1'b1;
     else if (ce) q_head_dry_q <= (q_avl == 3'd0);
 assign q_fresh = q_head_dry_q;
 
@@ -477,7 +617,10 @@ reg halt_t1, halt_done;
 wire halt_show = halt_disp && !halt_done && state == ST_TI &&
                  !nxt_live && !eval_ext;
 always_ff @(posedge clk) begin
-    if (srst || !halt_disp) begin
+    if (ss_restore) begin
+        halt_t1   <= ss_u.halt_t1;
+        halt_done <= ss_u.halt_done;
+    end else if (srst || !halt_disp) begin
         halt_t1   <= 1'b0;
         halt_done <= 1'b0;
     end else if (ce) begin
@@ -536,7 +679,8 @@ wire ext_ok     = eu_ready_p1 ||
 // exactly as probe (c) requires. Odd-tw rows STAY denied -> stay LATE (correct).
 reg  tw_par;
 always_ff @(posedge clk) begin
-    if (srst) tw_par <= 1'b0;
+    if (ss_restore) tw_par <= ss_u.tw_par;
+    else if (srst) tw_par <= 1'b0;
     else if (ce) begin
         if (state == ST_T1)      tw_par <= 1'b0;
         else if (state == ST_TW) tw_par <= ~tw_par;
@@ -552,6 +696,13 @@ wire eu_split   = eu_word && eu_addr[0];
 wire eu_ube_n   = eu_word ? 1'b0 : (eu_addr[0] ? 1'b0 : 1'b1);
 
 wire        pick_any   = want_half2 || want_eu || prefetch_ok;
+// T3-eval-scoped pick (Family-5, task #24): the completion eval's successor-
+// fetch grant sees the strio-single uline-1 reservation (its chip decision
+// instant is T4-entry >= pop+1); TI grants (chip decides pop-1/pop+0) are
+// exempt, so warm-1/warm-2-prefix populations (chip-granted) survive. Only
+// req_t3_eval + its dispatch/SLOT_CHK use pick_t3; every other slot keeps
+// pick_any. eu_req/prefetch_ok/eu_hold/history-pipes untouched.
+wire        pick_t3    = want_half2 || want_eu || (prefetch_ok && !eu_rsv_strio);
 // EU-arbitration front (Stage 3): under waits, when a deferred-completion eval
 // finds the queue STARVED (empty) and the pending EU access still only
 // RESERVING (eu_req high, not yet ready - its address/data delayed by the
@@ -791,7 +942,7 @@ wire req_flush_hold = state == ST_TI && !nxt_live &&
 wire req_ti_plain   = state == ST_TI && !nxt_live &&
                       !direct_request && !flush_defer && !eval_ext && pick_plain;
 // ST_T3/TW staged completion eval (zero-wait T3->T4 edge):
-wire req_t3_eval    = eval_at_t3 && pick_any;
+wire req_t3_eval    = eval_at_t3 && pick_t3;   // Family-5 veto (task #24)
 // ST_T4 direct defer_t4 commit (below nothing; defer_t4 is first in T4):
 wire req_defer_t4   = state == ST_T4 && defer_t4 && eu_req && eu_ready;
 // ST_T4 far-flush mid-T4 direct commit (below defer_t4 and nxt_live):
@@ -885,6 +1036,46 @@ always @(*) begin
     // A nxt_live delivery is never a new slot fire.
     if (state == ST_TI && nxt_live) assert (!slot_fire);
     if (state == ST_T4 && !defer_t4 && nxt_live) assert (!slot_fire);
+end
+`endif
+`endif
+
+`ifndef SYNTHESIS
+`ifdef VERILATOR
+// Family-5/7 strio hardening: coverage counters + invariants (Codex trio-review
+// coda, task #24). SIM-ONLY: excluded from synth and from ss_pack -> no synth
+// footprint, no savestate flop, write-only so scramble-invariant. Leg (b) of the
+// coda requires the three counters NONZERO under the wrand strio-gadget fuzz;
+// vacuous bit-identity there was the review's High finding (no 6C-6F in the
+// fuzz FORM_MENU, so these gates never fired).
+reg [31:0] cov_f7a_idle_arm;   // F7a defer_idle strio idle-window arm reached
+reg [31:0] cov_f7a_eval_ext;   // F7a strio lead coincident with a waited eval
+reg [31:0] cov_f5a_t3_veto;    // F5a T3-eval strio veto decision reached
+initial begin
+    cov_f7a_idle_arm = 0; cov_f7a_eval_ext = 0; cov_f5a_t3_veto = 0;
+end
+wire f7a_idle_arm = (state == ST_TI) && eu_soon_strio && (q_aged == 2'd0);
+always @(posedge clk) begin
+    if (f7a_idle_arm)              cov_f7a_idle_arm <= cov_f7a_idle_arm + 1;
+    if (eval_ext && eu_soon_strio) cov_f7a_eval_ext <= cov_f7a_eval_ext + 1;
+    if (eval_at_t3 && eu_rsv_strio) cov_f5a_t3_veto  <= cov_f5a_t3_veto  + 1;
+end
+always @(*) begin
+    // The two Family-7 arms are bus-state exclusive (defer_idle needs ST_TI at
+    // S_RSV; defer_t4 needs a fetch-T3) -> never simultaneously armed.
+    assert (!(defer_idle && defer_t4));
+    // The F5a cold-veto hint (EU S_FIRST/S_DEC) and the F7a/b warm-lead hint
+    // (EU S_RSV) live on disjoint EU states -> the cold and warm strio paths
+    // never co-assert.
+    assert (!(eu_rsv_strio && eu_soon_strio));
+    // Cold-strio defer_idle is impossible: the F7a idle arm must never coincide
+    // with a completing opcode fetch (push_pend != 0 == a cold-fill bridge push).
+    // If it ever does, the q_aged/ST_TI guard has regressed - log and trap.
+    if (f7a_idle_arm && push_pend != 2'd0) begin
+        $display("F7a COLD-ARM VIOLATION: state=%0d q_aged=%0d push_pend=%0d q_cnt=%0d occupied=%0d",
+                 state, q_aged, push_pend, q_cnt, occupied);
+        assert (0);
+    end
 end
 `endif
 `endif
@@ -1024,7 +1215,65 @@ assign eu_rdone = eu_completing && !cur_wr &&
                    (state == ST_T4 && evald));
 
 always_ff @(posedge clk) begin
-    if (srst) begin
+    if (ss_restore) begin
+        state          <= ss_u.state;
+        eu_started     <= ss_u.eu_started;
+        defer_t4       <= ss_u.defer_t4;
+        defer_idle     <= ss_u.defer_idle;
+        nxt_valid      <= ss_u.nxt_valid;
+        nxt_type       <= ss_u.nxt_type;
+        nxt_addr       <= ss_u.nxt_addr;
+        nxt_fetch      <= ss_u.nxt_fetch;
+        nxt_wr         <= ss_u.nxt_wr;
+        nxt_swap       <= ss_u.nxt_swap;
+        nxt_split1     <= ss_u.nxt_split1;
+        nxt_split2     <= ss_u.nxt_split2;
+        nxt_wrap       <= ss_u.nxt_wrap;
+        nxt_wdata      <= ss_u.nxt_wdata;
+        nxt_seg        <= ss_u.nxt_seg;
+        nxt_ube_n      <= ss_u.nxt_ube_n;
+        nxt_kind       <= ss_u.nxt_kind;
+        cur_type       <= ss_u.cur_type;
+        cur_addr       <= ss_u.cur_addr;
+        cur_fetch      <= ss_u.cur_fetch;
+        cur_wr         <= ss_u.cur_wr;
+        cur_swap       <= ss_u.cur_swap;
+        cur_split1     <= ss_u.cur_split1;
+        cur_split2     <= ss_u.cur_split2;
+        cur_wrap       <= ss_u.cur_wrap;
+        cur_wdata      <= ss_u.cur_wdata;
+        cur_seg        <= ss_u.cur_seg;
+        cur_ube_n      <= ss_u.cur_ube_n;
+        cur_kind       <= ss_u.cur_kind;
+        ube_n          <= ss_u.ube_n;
+        eu_rdata       <= ss_u.eu_rdata;
+        eu_hand        <= ss_u.eu_hand;
+        tw_any         <= ss_u.tw_any;
+        evald          <= ss_u.evald;
+        eval_ext       <= ss_u.eval_ext;
+        ext_flushed    <= ss_u.ext_flushed;
+        flush_hold     <= ss_u.flush_hold;
+        e_wait         <= ss_u.e_wait;
+        q_mem[0]       <= ss_u.q_mem0;
+        q_mem[1]       <= ss_u.q_mem1;
+        q_mem[2]       <= ss_u.q_mem2;
+        q_mem[3]       <= ss_u.q_mem3;
+        q_mem[4]       <= ss_u.q_mem4;
+        q_mem[5]       <= ss_u.q_mem5;
+        q_rd           <= ss_u.q_rd;
+        q_wr           <= ss_u.q_wr;
+        q_cnt          <= ss_u.q_cnt;
+        q_avl          <= ss_u.q_avl;
+        q_aged         <= ss_u.q_aged;
+        occ34_age      <= ss_u.occ34_age;
+        pop_sr         <= ss_u.pop_sr;
+        fetch_discard  <= ss_u.fetch_discard;
+        fetch_cs       <= ss_u.fetch_cs;
+        fetch_off      <= ss_u.fetch_off;
+        fetch_data     <= ss_u.fetch_data;
+        push_pend      <= ss_u.push_pend;
+        push_pend_hi   <= ss_u.push_pend_hi;
+    end else if (srst) begin
         eu_started <= 1'b0;
         defer_t4   <= 1'b0;
         defer_idle <= 1'b0;
@@ -1203,6 +1452,8 @@ always_ff @(posedge clk) begin
                         // staged commit issued by the canonical dispatch above;
                         // this branch preserves priority over the arm below.
                     end else if ((eu_req && eu_soon_ea && !eu_ready) ||
+                                 (eu_req && eu_soon_strio && !eu_ready &&
+                                  q_aged == 2'd0) ||   // Family-7 main arm
                                  (eu_soon_ivt && q_cnt <= 3'd2)) begin
                         // idle window with a reg-EA reader reservation that
                         // becomes ready NEXT cycle and has no in-flight fetch
@@ -1257,14 +1508,14 @@ always_ff @(posedge clk) begin
                     // cycle evaluates at the end of T4 instead. The queue
                     // push of a completed fetch follows one cycle later.
                     if (eval_at_t3) begin
-                        `SLOT_CHK(slot_fire == pick_any);
+                        `SLOT_CHK(slot_fire == pick_t3);   // Family-5 veto (task #24)
                         evald <= 1'b1;
                         if (cur_fetch && !fetch_discard && !q_flush) begin
                             push_pend    <= cur_word ? 2'd2 : 2'd1;
                             push_pend_hi <= cur_addr[0];
                         end
                         if (eu_completing) eu_hand <= 1'b1;
-                        if (pick_any) begin
+                        if (pick_t3) begin
                             // staged commit issued by the dispatch above;
                             // this branch preserves priority over defer_t4.
                         end else if (cur_fetch && eu_req && eu_soon &&
@@ -1407,7 +1658,9 @@ wire ph_now = (state == ST_T1 || state == ST_T3) ? 1'b0
             : (state == ST_T2 || state == ST_T4) ? 1'b1
             : (state == ST_TI && nxt_live) ? 1'b1   // committed pre-T1 slot
             : ph_ff;
-always_ff @(posedge clk) if (ce) ph_ff <= ~ph_now;
+always_ff @(posedge clk)
+    if (ss_restore) ph_ff <= ss_u.ph_ff;
+    else if (ce) ph_ff <= ~ph_now;
 assign bus_phase = ph_now;
 
 // grid_phase (rebuild Stage 1) - the TRUE stretched-grid parity, the first-
@@ -1427,8 +1680,10 @@ wire gph_now = (state == ST_T1 || state == ST_T3) ? 1'b0
              : (state == ST_TW)                    ? 1'b0   // Tw = T3 slot
              : (state == ST_TI && nxt_live)        ? 1'b1
              :                                        gph_ff;
-always_ff @(posedge clk) if (ce)
-    gph_ff <= (state == ST_TW) ? gph_ff : ~gph_now;        // Tw: do not advance
+always_ff @(posedge clk)
+    if (ss_restore) gph_ff <= ss_u.gph_ff;
+    else if (ce)
+        gph_ff <= (state == ST_TW) ? gph_ff : ~gph_now;    // Tw: do not advance
 assign grid_phase = gph_now;
 
 `ifndef SYNTHESIS
@@ -1452,7 +1707,8 @@ assign grid_phase = gph_now;
 // definition is corrected + re-validated (resume_scheduler_design.md).
 reg cyc_saw_tw;
 always_ff @(posedge clk)
-    if (srst) cyc_saw_tw <= 1'b0;
+    if (ss_restore) cyc_saw_tw <= 1'b0; // sim-only; GRID_PHASE_STRICT is off
+    else if (srst) cyc_saw_tw <= 1'b0;
     else if (ce)
         cyc_saw_tw <= (state == ST_T1) ? 1'b0 : (cyc_saw_tw | bus_tw);
 `ifdef GRID_PHASE_STRICT
@@ -1475,7 +1731,10 @@ assign bus_t4 = state == ST_T4;
 reg lock_active, lock_done;
 wire lock_wr_t4 = lock_active && cur_wr && !cur_fetch && (state == ST_T4);
 always_ff @(posedge clk) begin
-    if (srst) begin
+    if (ss_restore) begin
+        lock_active <= ss_u.lock_active;
+        lock_done   <= ss_u.lock_done;
+    end else if (srst) begin
         lock_active <= 1'b0;
         lock_done   <= 1'b0;
     end else if (ce) begin
@@ -1510,6 +1769,9 @@ assign bus_ts = (state == ST_T1) ? 3'd1
               : (state == ST_T4) ? 3'd4
               : nxt_live ? 3'd5 : 3'd0;
 
+assign ss_bus_quiet = (bus_ts == 3'd0) && (bs == BS_PASV) && !nxt_valid &&
+                      (push_pend == 2'd0) && (q_aged == 2'd0) && !eval_ext;
+
 // Status display: active from commit through T2 always; through T3/TW
 // while READY has not yet been sampled high in this bus cycle (measured
 // on the waits=1/3 tranches: T3 and every Tw of a waited cycle show the
@@ -1517,12 +1779,21 @@ assign bus_ts = (state == ST_T1) ? 3'd1
 // already high at the end of T2, so T3 displays passive - the pre-waits
 // law. ready_prev is READY at the last sampling edge.
 reg ready_prev;
-always_ff @(posedge clk) if (ce) ready_prev <= ready;
-always_ff @(posedge clk) if (ce) begin
-    eu_req_p1   <= eu_req && !eu_started;
-    eu_req_p2   <= eu_req_p1;
-    eu_ready_p1 <= eu_ready && !eu_started;
-    eu_ready_p2 <= eu_ready_p1;
+always_ff @(posedge clk)
+    if (ss_restore) ready_prev <= ss_u.ready_prev;
+    else if (ce) ready_prev <= ready;
+always_ff @(posedge clk) begin
+    if (ss_restore) begin
+        eu_req_p1   <= ss_u.eu_req_p1;
+        eu_req_p2   <= ss_u.eu_req_p2;
+        eu_ready_p1 <= ss_u.eu_ready_p1;
+        eu_ready_p2 <= ss_u.eu_ready_p2;
+    end else if (ce) begin
+        eu_req_p1   <= eu_req && !eu_started;
+        eu_req_p2   <= eu_req_p1;
+        eu_ready_p1 <= eu_ready && !eu_started;
+        eu_ready_p2 <= eu_ready_p1;
+    end
 end
 
 // ext_show: the deferred eval displays the picked cycle's status/address
@@ -1592,7 +1863,9 @@ wire [15:0] wdata_lanes = cur_swap ? {cur_wdata[7:0], cur_wdata[15:8]}
 // data-phase sample). Negedge-registered so the external T1-falling-edge
 // address latch still sees the address.
 reg t1_half2;
-always @(negedge clk) if (ce_half) t1_half2 <= (state == ST_T1);
+always @(negedge clk)
+    if (ss_restore) t1_half2 <= ss_u.t1_half2;
+    else if (ce_half) t1_half2 <= (state == ST_T1);
 
 // INTA cycles drive no address: the commit display and T1 leave AD15:0
 // floating; T1 drives AD19:16 = 0 only (measured float pattern). HALT
@@ -1643,7 +1916,15 @@ reg  [2:0] law_sel;         // cidle_sel for THIS arm
 reg        law_prov;        // occupied==3: sel provisional pending pop@T4+2
 
 always @(posedge clk) begin
-    if (srst) begin
+    if (ss_restore) begin
+        law_tw_cnt <= ss_u.law_tw_cnt;
+        law_dtw    <= ss_u.law_dtw;
+        law_dcnt   <= ss_u.law_dcnt;
+        law_window <= ss_u.law_window;
+        law_ctr    <= ss_u.law_ctr;
+        law_sel    <= ss_u.law_sel;
+        law_prov   <= ss_u.law_prov;
+    end else if (srst) begin
         law_tw_cnt <= 4'd0; law_dtw <= 4'd0; law_dcnt <= 3'd0;
         law_window <= 1'b0; law_ctr <= 3'd0; law_sel <= 3'd0; law_prov <= 1'b0;
     end else if (ce) begin
@@ -1706,7 +1987,8 @@ end
 // a spurious 0-vs-3 mismatch that is a harness artifact, not a frame bug.
 reg [2:0] law_dcnt_probe;
 always @(posedge clk)
-    if (srst) law_dcnt_probe <= 3'd0;
+    if (ss_restore) law_dcnt_probe <= ss_u.law_dcnt;
+    else if (srst) law_dcnt_probe <= 3'd0;
     else if (ce && state == ST_T3 && cur_fetch) law_dcnt_probe <= cnt_next;
 always @(posedge clk) if (!srst && ce && t3_done && cur_fetch)
     assert (law_dcnt == law_dcnt_probe)

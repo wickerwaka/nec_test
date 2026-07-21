@@ -336,6 +336,47 @@ def _gen_string(p, rng):
     return tag
 
 
+def _gen_strio(p, rng):
+    """String I/O INS/OUTS (6C/6D/6E/6F), single + REP, plain and seg-prefixed
+    (task #24 coda leg b: the Family-5/7 fuzz gadget the FORM_MENU lacked).
+    OUTS ([DS:IX]->port) is inert: windowed IX source read, port write to the
+    harness-safe even band. INS (port->[ES:IY]) reads the port via the harness
+    iord serving and writes the ES:IY dest windowed+bounded exactly like STOS.
+    Seg overrides are applied ONLY to OUTS (a source READ -> cannot escape the
+    write window) matching the characterized prefix forms 26.6E/36.6E/2E.6F.
+    Count bounded (<=3), CLD-biased, atomic so a branch can't skip the setup."""
+    ix   = rng.randrange(0x2400, 0x2800)         # DS:IX source (OUTS)
+    iy   = rng.randrange(0x2900, 0x2D00)         # ES:IY dest   (INS), windowed
+    port = rng.randrange(0x08, 0xF0) & 0xFE      # safe even band (see _gen_inout)
+    op   = rng.choice([0x6C, 0x6D, 0x6E, 0x6F])  # INSB/INSW/OUTSB/OUTSW
+    is_outs = op in (0x6E, 0x6F)
+    setup = [
+        bytes([0xBE, ix & 0xFF, ix >> 8]),       # MOV IX(SI)
+        bytes([0xBF, iy & 0xFF, iy >> 8]),       # MOV IY(DI)
+        bytes([0xBA]) + port.to_bytes(2, "little"),  # MOV DW(DX)=port
+        [0xFC] if rng.random() < 0.9 else [0xFD],    # CLD (bias) / STD
+    ]
+    # queue-fill entropy: a run of single-byte NOPs immediately ahead of the op
+    # lets the prefetcher fill the 6-byte queue while the EU consumes slowly, so
+    # the strio issues into a FULL queue (the warm-qlen6/qlen5 pure-idle window
+    # that arms defer_idle). 0 = cold/low-occupancy; a long run = warm-qlen6.
+    # Multi-byte setup above keeps the queue low, so a short prepend never
+    # reaches qlen6 -- hence the wide 0..10 spread for genuine qlen coverage.
+    pre = [[0x90]] * rng.randrange(0, 11)
+    # seg override on OUTS only (harmless source-read segment change).
+    pfx = [rng.choice([0x26, 0x2E, 0x36, 0x3E])] if (is_outs and rng.random() < 0.4) else []
+    if rng.random() < 0.5:
+        cw = rng.randrange(1, 4)                  # bounded REP count
+        setup.append(bytes([0xB9, cw, 0x00]))     # MOV CW(CX)=cw
+        seq = setup + pre + [pfx + [0xF3, op]]     # REP [seg] op
+        tag = "rep_strio"
+    else:
+        seq = setup + pre + [pfx + [op]]           # [seg] op
+        tag = "strio_single"
+    p.emit_atomic(seq)
+    return tag
+
+
 def _gen_nops(p, rng):
     for _ in range(rng.randrange(1, 4)):
         p.emit([0x90])
@@ -1027,6 +1068,8 @@ EXT_MENU = {
     "sregmem":  (_gen_sregmem, 4, ["sregmem"]),
     "divbound": (_gen_divbound, 3, ["divbound"]),
     "indirect": (_gen_indirect, 4, ["indirect"]),
+    # task #24 coda leg (b): string-I/O fuzz gadget (Family-5/7 gate coverage)
+    "strio":    (_gen_strio, 5, ["strio_single", "rep_strio"]),
 }
 STATE_EXTS = ("pushpopm", "pushimm")   # exts whose gen takes shared state
 

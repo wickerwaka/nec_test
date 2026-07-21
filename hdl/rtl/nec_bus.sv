@@ -52,6 +52,13 @@ module nec_bus
     output      [9:0] wvec_raddr,      // word index = bus_idx[11:2]
     input      [31:0] wvec_rdata,      // 4 packed Tw bytes for that word
 
+    // iords sequence read index: counts IOR bus cycles from run start
+    // (0,1,2,...), one per IOR, so a host-loaded per-element I/O-read sequence
+    // (INS / REP INS) is served in order. Stable across each IOR cycle; the
+    // buffer read + serve mux live in system_large. Backward-compatible: when
+    // the FIFO is disabled the scalar cfg_iord path is unchanged. See iords_buf.
+    output      [6:0] iords_raddr,
+
     // Request inputs (synchronous to clk)
     input             int_req,
     input             nmi_req,
@@ -323,6 +330,12 @@ assign wvec_raddr = bus_idx[11:2];
 wire  [7:0] wvec_byte = wvec_rdata[{bus_idx[1:0], 3'b000} +: 8];
 wire  [4:0] wrepl_n   = wvec_byte[4:0];                           // 0..31
 
+// iords read index: counts IOR bus cycles (see port comment). Advances at the
+// T1 entry of the cycle FOLLOWING each IOR (so it is stable at the correct
+// value throughout the IOR cycle it indexes), and restarts each run.
+reg  [6:0] ior_idx;
+assign iords_raddr = ior_idx;
+
 wire [2:0] next_t_state =
     (t_state == ST_TI) ? (bs_active ? ST_T1 : ST_TI) :
     (t_state == ST_T1) ? ST_T2 :
@@ -349,6 +362,7 @@ always_ff @(posedge clk) begin
         mem_cycle_type  <= BS_PASV;
         wlfsr           <= wseed_eff;   // reseed each run (held until 1st T1)
         bus_idx         <= 12'd0;       // replay index restarts each run
+        ior_idx         <= 7'd0;        // iords index restarts each run
     end else if (cfg_small_mode) begin
         // strobe-driven datapath, evaluated every sys clock
         sm_wr_n_d <= sm_wr_n;
@@ -403,6 +417,13 @@ always_ff @(posedge clk) begin
                 ready_q  <= cfg_wait_states == 0;
             end
             bus_idx <= bus_idx + 12'd1;
+            // Advance the iords index once per IOR: at this T1 entry mem_cycle_type
+            // still holds the JUST-FINISHED cycle's type (line above updates it via
+            // nonblocking assign), so a completed IOR bumps the index for the next
+            // one. The current (starting) cycle therefore reads the correct entry
+            // throughout its own T1..T3.
+            if (mem_cycle_type == BS_IOR)
+                ior_idx <= ior_idx + 7'd1;
         end
 
         if (next_t_state == ST_T2 && is_read_cycle)

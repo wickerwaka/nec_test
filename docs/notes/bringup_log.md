@@ -1991,3 +1991,199 @@ reproducible-matcher basis.
 
 NOTE (superseded): the earlier 79-row/121u residual list and its 6u figure were drawn
 under the lost 288u matcher and are RETIRED; the numbers above supersede them.
+
+## Task #15 emission-blocker isolation (2026-07-17) — "no done marker (runaway)"
+
+Emission (emit_suite.py cmd_emit) was 100% "no done marker in trace (runaway test?)".
+Software-first isolation found THREE independent causes:
+
+1. STALE BOARD REGISTER (class-5 leftover): R_WRAND held 0xace10002 (replay=1,
+   seed 0xace1) sticky from a class-5 replay run. Random-wait Tw insertion stretched
+   every trace far past the capture window. FIX: reset R_WRAND=0 before emission.
+   METHOD-RULE: emission MUST assert a clean WRAND/cfg (waits=0, replay=0, enable=0)
+   at session start — v30run serve does NOT clear board-side WRAND when spec is None.
+
+2. PARTIAL-CAPTURE REGRESSION (32db59a "serve v2, partial capture"): EMIT_CAP=1536
+   returns only the first 1536 of the 4096-record capture buffer, but the done marker
+   (OUT 0xFC) for a single-instruction test sits PAST record 1536. -> spurious
+   "no done marker". validate() never hit this (uses cap=None). FIX: EMIT_CAP=4096
+   (= capture-buffer size). Confirmed: non-preload B8/00/89 pass 15/15 with full cap.
+   METHOD-RULE: any capture-prefix cap MUST exceed the completion-marker position;
+   a partial cap that truncates the tail silently reads as a runaway.
+
+3. WRONG CORE SELECTED FOR EMISSION (config — RESOLVED, not structural). Initially
+   read as a possible structural/bitstream regression; the true cause was config.
+   Preloaded cases (0x63C0 preamble) fail 100% ONLY on the internal v30_core
+   (use_core=True, left set by the H-PHASE flash), whose still-being-built EU does
+   NOT implement the 0x63 undocumented no-op used as the prefetch-queue filler.
+   The SOCKETED REAL V20 (use_core=False) runs it fine (preload-cal: 63C0 x8
+   side-effect-free, queue fills to 6 bytes; preload+non-preload 24/24 each).
+   Golden emission MUST capture from the socket. use_core was added AFTER v0.1
+   emission (2035cce > 8b5a7d7), so v0.1 always used the socket and never needed
+   pinning; the emission path was never updated when use_core landed. FIX:
+   EMIT_USE_CORE=False pinned at all 4 emit call sites (emit_case, emit_evt_case,
+   preload-cal x2). NO bitstream A/B / rebuild needed — the same bitstream passes
+   preload on the socket, exonerating the fabric. Independently corroborated by the
+   v20 arch oracle: opcode 0x63 = 100% arch-fail on the internal core (same gap).
+   METHOD-RULE (truth source): golden capture is the socketed chip (use_core=False);
+   the internal core is the DUT, not the reference. ENFORCED as: (a) a pin at every
+   emit call site (EMIT_USE_CORE=False), AND (b) a per-run assertion in cmd_emit that
+   refuses to emit unless the truth source is the socket, AND (c) every emission run
+   logs its truth source (socket vs core) to emit_run.log / emit_log.txt. Goldens may
+   ONLY ever come from the socket. This exists so the next use_core-style A/B flag
+   added to the harness cannot silently redirect truth to the core again -- an
+   emission "golden" captured from the internal core is a truth inversion (the DUT
+   grading its own homework) and would poison every downstream comparison.
+
+THROUGHPUT (all 3 causes fixed, socketed chip, both variants): ~25 cases/sec
+(~40s per 1000-case form). 1k x 347 forms projected ~3.9h; 10k x 347 ~1.6 days.
+Per-case disk ~275 B gzipped -> 1k ~95 MB, 10k ~950 MB.
+
+## BCD secondary (sibling-lane) — DEFERRED, plan booked (2026-07-17)
+
+The 4S segment-override PRIMARY defect is fixed (v30_eu commit). Residual 7/6000
+large-CL (84-99) failures are a DISTINCT secondary defect in the fitted nibble-serial
+sibling-lane WORD logic (bcd_add8/bcd_sub8), which was fitted bit-exact on 1020 golden
+byte iterations from our OWN emission. CONFIRMED that emission's 4S generator only
+exercises CL 1..6 (`rng.randrange(1, 7)`), so the fit never saw large CL.
+
+PLAN (do NOT start yet, per coordinator):
+  (a) After the main v0.2 emission completes, emit a small supplemental large-CL 4S
+      mini-tranche from the SOCKET (own seed base e.g. v30-4slarge, a few hundred
+      cases each of 0F20/0F22/0F26 with CL biased to 40..127), so we have native-V30
+      large-CL captures.
+  (b) Re-derive the sibling-lane logic against the JOINT constraint set: v20 large-CL
+      cases + native-V30 large-CL captures (avoids trading one dataset's fit for
+      another's). PRE-REGISTERED GATE: w0 169000/169000 unchanged AND v20 0F20/0F22/0F26
+      files 100% arch-only (minus idx-767-class harness anomalies, folded into the
+      F-pop artifact audit).
+
+idx 767 (14-record near-zero-bus anomaly): folded into the item-3 artifact audit.
+
+## 64K-mirror memory aliasing — oracle artifact + emission correctness (2026-07-17)
+
+DISCOVERY (root-causing the "F6.1 TEST-mem PF" sparse divergence): the Verilator TB
+`tb_v30_core.sv` memory was 64 KB MIRRORED across the 1 MB space (`mem[lat_addr[15:0]]`).
+20-bit addresses aliased to 16 bits, so any v20 case whose footprint contains two
+distinct 20-bit addresses that collide mod-64K reads the wrong byte -> HARNESS false
+divergence (NOT an RTL bug). idx 6391 proof: operand 0xdac3e and the imm byte 0x7ac3e
+both alias 0xac3e, so the operand read returned the imm and flags = f(imm) exactly.
+Blast radius: 100% of the sampled sparse (non-F-pop) fails had mod-64K collisions.
+
+FIX: `mem [0:1048575]` full 1 MB flat; all indexing + undo log widened 16->20 bit.
+GATE (met): v20 sparse bucket 68 -> 2 on the full 1MB re-sweep (the 66 aliasing
+artifacts cleared; the 2 residuals C4/FF.5 are the OTHER artifact class, "fewer than
+2 F pops"). w1/w3 1200/1200 unchanged.
+
+w0 = 168997/169000 (NOT a regression): the 3 diffs are COLLISION-DEPENDENT v0.1
+GOLDENS - 0F12 idx219, C1.6 idx205, F7.4 idx174, each with 8-9 mod-64K collisions in
+their footprint. They were captured on the BOARD's own 64K-mirrored test RAM and are
+only valid under mirroring; a flat-1MB sim correctly diverges on them. Proves the board
+mirrors too. These 3 want re-emission (collision-free) but are documented, not "fixed".
+
+EMISSION CORRECTNESS (task #17 precondition): testimage.compose's collision check
+(ram-vs-ram + instr/stub/ivt footprint) is NECESSARY but NOT SUFFICIENT - it misses
+ram-vs-instruction, stack, and prefetch touches. Post-hoc scan of the emitted v0.2:
+5.22% of cases (5998/115000, 90 forms) have footprint collisions -> invalid on flat
+emulators. FIX: added `_mirror_collision(test)` trace-based guard to emit_suite;
+emit_case/emit_evt_case now reroll (ComposeError, seed-deterministic) on any colliding
+capture. The already-emitted v0.2 forms need a ~5% re-emission pass (or full re-emit)
+before they are upstream-valid.
+
+## BCD sibling-lane deferral — RESOLVED (was the mirror artifact, not a bug)
+
+The deferred 4S "sibling-lane secondary defect" (0F20/0F22/0F26 residuals idx 88/767/1327,
+all large-CL) is RESOLVED by the flat-1MB TB memory fix: 0F20/0F22/0F26 now pass
+2000/2000 each on the full re-sweep. The residuals were the SAME 64K-mirror aliasing
+artifact (long BCD strings have large footprints that collide mod-64K), NOT a
+sibling-lane logic error. The fitted bcd_add8/bcd_sub8 sibling lane is CORRECT. The
+booked supplemental large-CL emission + joint re-fit is now UNNECESSARY - withdrawn.
+idx 767's "14-record anomaly" was likewise an aliasing-corrupted run.
+
+Oracle state after all fixes (segment-override + EU gaps + flat 1MB): the v20 sparse
+bucket is ZERO real divergences. Remaining v20 fails are only: INS/OUTS 6C-6F (partial
+impl, 20-50%) and D4/AAM (47) - the genuinely-separate item-4 work; plus 2 (C4/FF.5)
+collision-dependent v20 GOLDENS (SST source data relies on mirroring; invalid on flat).
+
+## Codex phase review (gpt-5.6-sol) action items — dispositions (2026-07-17)
+
+Review ran on the pre-mirror-fix snapshot; reconciled against landed work.
+
+ITEM 1 (grouped flags-mask resolution bug) — FIXED. check_core read the base entry's
+top-level flags-mask (None for grouped ops) and defaulted to 0xFFFF, so masking was never
+applied to 80.N/83.N/C0.N/C1.N/D0-D3.N/F6.N/F7.N/FE.N/FF.N. Now resolves opcodes[XX].reg[N].
+RE-AGGREGATION DIFF: the mask fix fabricated ZERO results - every grouped form is identical
+at 0xFFFF and its correct mask, so our V30 computes those "undefined" bits matching the V20
+golden. None of the mirror-cleared sparse fails were mask-fabricated.
+
+ITEM 2 (raw-flags diagnostic) — DONE (sw/v20_arch_sweep_raw.jsonl). masked 14000 == raw
+14000 fails: ZERO undefined-bit differences suite-wide. V30 matches the V20 golden BIT-EXACT
+on every PSW bit, including all V20-"undefined" ones. No RTL defect hides in a masked bit
+(strong corroboration); the V20/V30 undefined-flag equivalence is itself an upstream-note
+datum.
+
+ITEM 3 (provenance) — DONE. sw/v20_arch_sweep.manifest.json (RTL/checker commit, suite +
+metadata hashes, command, per-record masks, totals with real denominators - suite is
+3,125,000 cases across 360 forms, NOT an assumed 10k/form).
+
+ITEM 4 (capture-convention disposition) — n_fpops+1 window was validated on a narrow
+CLI/MOV sample, but the final authoritative sweep corroborates it per-class at bit-exact
+final-state precision:
+  control-transfer (jmp/jcc/loop/call/ret/far, 33 forms) ... 100.000%  (330000/330000)
+  group-form (modrm ext, 102 forms) ......................... 100.000%  (860000/860000)
+  straight-line (211 forms) ................................. 100.000%  (1871000/1871000)
+  string+REP implemented (MOVS/STOS/LODS/CMPS/SCAS, 10 forms)  100.000%  (50000/50000)
+  string INS/OUTS (6C-6F) ................................... unimplemented (the only fails)
+NO non-INS/OUTS form is below 100%. A window-convention error would surface as a systematic
+per-class shortfall (esp. control transfers and REP, whose F-pop geometry differs most from
+the CLI/MOV sample); none exists. Disposition: convention validated by the aggregate; no new
+machinery. (INS/OUTS pass rate is n/a to the convention - they don't execute yet.)
+
+REVIEW FINDING "55 rare-failure opcodes not falsifiably attributed" — correct at review
+time (only 3/68 sampled fails were F-pop-tagged; odd-index skew suggestive not probative).
+RESOLVED by the 64K-mirror discovery + flat-1MB re-sweep: the sparse bucket went 68->2, and
+both residuals (C4/FF.5) were positively identified as collision-dependent SST GOLDENS (their
+operand reads alias mod-64K onto loaded addresses). Now validated under +mirror; net sparse
+RTL divergences = 0.
+
+## Collision-criterion correction — footprint aliasing != behavioral divergence (2026-07-18)
+
+The footprint-based collision detector (_mirror_collision / collision_scan.collides /
+check_core.mirror_collision) OVER-COUNTED by ~950x: it flagged ANY two 20-bit addresses
+aliasing mod-64K, but most are BENIGN - e.g. two prefetch fetches into the 0x90-fill
+region (0x29090 & 0x69090 -> cell 0x9090) both read the same default 0x90 on flat AND
+mirror, so there is no divergence. The earlier "5.22% / 6.60% colliding" figures are
+RETRACTED as footprint over-counts.
+
+TRUE criterion = behavioral: a case is flat-invalid iff it fails a PURE-FLAT re-check
+(check_core --no-mirror) that a +mirror re-check passes. Over all of v0.2 the true
+flat-invalid count was 24/347000 (0.007%), not 22,897. Of the 24: 17 mirror-dependent
+(re-emitted via the three-way loop) and 7 SUSPECTED REAL DIVERGENCES kept + escalated
+(interrupt-flag cases, docs/notes/v02_suspected_divergences.md).
+
+Standing criterion (three-way, at emit + in the scanner): RTL(flat)==golden -> ACCEPT;
+RTL(flat)!=golden & RTL(mirror)==golden -> mirror-dependent, reroll; neither -> KEEP +
+flag (a chip-vs-RTL divergence is suite content, never rerolled away). The footprint
+check may remain a cheap pre-filter HINT but never the accept/reject authority.
+
+## v0.3 full-scale emission + v0.2 superseded (2026-07-19)
+
+v0.3 = 347 forms x 10,000 cases (3,470,000), seed base v30-v0.2, socket truth. Gates:
+validate_suite.py 3,470,000/3,470,000 clean; three-way flat-validity pass 3,469,938 full,
+then the 62 mirror-dependent goldens re-emitted confined-per-index to flat-valid
+(emit_suite reemit --validate, new flat-validity gate in _emit_one_index: r=0 original
+seed, reroll within-index on mirror-dependence, KEEP+flag on neither) -> every case now
+flat-valid; 62 memory-model-independent chip-vs-RTL divergences KEPT + catalogued in
+docs/notes/v03_divergence_ledger.md (new RTL-campaign intake, not suite defects).
+
+**v0.2 is SUPERSEDED by v0.3 and made disk-only/untracked.** Its historical role:
+the 1,000-case predecessor used for the validation slices and mirror/confinement checks
+that established the three-way flat-validity method (24/347000 true flat-invalid finding
+above) and the pin-event flags convention. v0.3 is NOT a strict byte-superset of v0.2:
+2.1% of prefix cases (7,137/347,000, concentrated in high-reroll pin-event forms) differ,
+entirely from reroll-history divergence as the emitter's placement logic evolved (flat-1MB
+model, mirror footprint-reject removed) between the two emissions; all are initial-state
+differences, zero final-state/convention differences (verified). v0.2 metadata.json was
+untracked (git rm --cached) and the suite kept on disk under tests/v30/v0.2/.gitignore;
+do not delete from disk without the user's say. Storage/versioning of the large suites is
+deferred to the upstream-contribution stage (task #17).

@@ -253,3 +253,34 @@ Fetched 2026-07-10 via curl:
 - https://raw.githubusercontent.com/SingleStepTests/8086/main/README.md (16-bit-bus precedent: BHE semantics, queue 5/6, 2,000 tests/opcode, MOO format)
 
 License: MIT (per repo LICENSE).
+
+## Upstream data-quality finding — mirror-dependent cases (to report to dbalsom)
+
+While using the SST v20 suite as an architectural oracle against our flat-1MB V30 sim
+we found a small class of v20 cases that are INVALID on a flat 1 MB address space: their
+operand reads land on 20-bit addresses that are NOT loaded in `initial.ram`, but alias
+mod-64K onto addresses that ARE loaded. The capture rig evidently used 64 KB memory
+mirrored across the 1 MB space, so the aliased (mirror-served) byte was returned; a
+flat-memory consumer reads uninitialised memory instead and diverges.
+
+Confirmed instances (arch-only, our sim): C4 idx 9495 (`les cx,[ds:bx+di]` - ES reads
+0x9c6f-region unloaded, aliases 0x99c6f/0x89c70..), FF.5 idx 1611 (`jmpf [ss:bx+si]` -
+the far-jump TARGET fetch aliases onto loaded bytes). For FF.5 (and far-control-flow
+generally) this is widespread: the random 20-bit jump target aliases the loaded operand
+mod-64K in ~all cases, so those forms are largely mirror-dependent by construction.
+
+Count is small for straight-line memory ops (order 1-2 per 10-20k for LES/LDS-class) but
+structural for indirect far transfers. Worth: (a) flagging to the maintainer as a
+flat-memory-validity caveat, and (b) motivating our V30 contribution's stated
+collision-freedom property (see tests/v30/*/README.md) as a differentiator. Detection is
+cheap and host-side: two distinct 20-bit footprint addresses sharing their low 16 bits.
+
+## INS/OUTS port-data note (for the V30 contribution)
+
+The SST v20 INS (6C/6D) cases all read OPEN BUS (0xFF/0xFFFF) - the capture rig had no I/O
+device. Their port values are recoverable only from final.ram (V20 traces stop at T2 on
+IOR, so the data phase is absent from cycles); overlap ambiguity is 0 across the suite's
+130,681 IORs. Our V30 suite can improve on this: the board harness serves per-case port
+data (iord/iords), so contributed INS cases will carry VARIED, meaningful port sequences
+(documented via the `iords` schema field), not open-bus. Byte INS at an odd port uses the
+high data-bus lane (values duplicated v*0x0101).

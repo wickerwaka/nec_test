@@ -1,0 +1,23 @@
+{
+  "artifact": "v20 architectural-oracle sweep (final-state, post INS/OUTS integration)",
+  "generated": "2026-07-18T00:19:38",
+  "rtl_checker_commit": "0b0ff17b0eec18b8b741ef1e088ece3f999fe7b8",
+  "suite_dir": "tests/v30/v20suite",
+  "suite_files": 360,
+  "suite_sha256_16": "4721db9215f544ef",
+  "metadata_sha256_16": "71c12e705960941a",
+  "command": "python3 sw/sweep_parallel.py --opcodes all -P 6 --out sw/v20_arch_sweep.jsonl",
+  "arch_only": true,
+  "variant": "all",
+  "waits": 0,
+  "mirror_retry": true,
+  "flags_mask_resolution": "per-form incl. grouped opcodes[XX].reg[N]; recorded per-record",
+  "ins_iords": "INS 6C/6D served the extracted per-IOR port sequence (tests/v30/v20suite/iords/, derived); 0 ambiguous across 130,681 IORs",
+  "totals": {
+    "opcodes": 360,
+    "cases": 3125000,
+    "passed": 3125000,
+    "failed": 0
+  },
+  "remaining_failures": "NONE - full oracle 100% clean"
+}

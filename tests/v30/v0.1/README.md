@@ -33,6 +33,13 @@ Pin-event schema extensions (see `docs/facts/interrupt_model.md`):
   F pop fetched from this (handler) address instead of a fixed pop
   count; the IVT entry points directly at the store location, so
   `final.cs:ip` is the handler entry.
+- **`final.flags` for vectored (interrupt/trap) cases is the architectural value
+  at interrupt entry = the interrupt-PUSHED PSW with IE/BRK cleared** (`pushed & ~0x300`),
+  recoverable from the case's own `final.ram` (the PSW push at `SS:(dumped_sp+4)`; the
+  harness store-stub dumps `sp = SP_at_int - 6`). It is NOT the post-handler store-stub
+  PSW, which is an unreliable capture. This is the convention consumers should apply for
+  pin-event/trap forms; the emitter derives it natively. (See
+  `docs/notes/v02_suspected_divergences.md`.)
 - Interrupt entry pushes appear in `final.ram` (PSW/PS/PC at SS:SP-2/
   -4/-6); `final.flags` has IE and BRK cleared.
 
@@ -90,6 +97,25 @@ harness store-stub bytes — recorded truthfully; consumers replaying
 
 `hash` = SHA1 of
 `json.dumps([name,bytes,initial,final,cycles],separators=(",",":"))`.
+
+## Memory model — flat-1 MB validity
+
+**Stated property: every case is verified flat-valid — the chip-captured behavior is
+reproduced under a flat 1 MB memory model.** The capture harness's test RAM is 64 KB
+mirrored across the 1 MB space (20-bit addresses alias to their low 16 bits), so a case
+could in principle be shaped by a mirror-served byte a flat-memory emulator cannot
+reproduce. Validity is established **behaviorally**, not by footprint: a case is
+flat-valid iff replaying it on a flat 1 MB memory reproduces the captured `cycles` and
+`final` state (verified by re-check). Mirror-dependent captures — where flat replay
+diverges but 64 KB-mirrored replay matches — are **re-emitted** until flat-valid. (Note:
+a mere mod-64K *footprint* alias is NOT a divergence — e.g. two prefetch fetches into the
+0x90-fill region alias to the same cell but both read the default 0x90 on flat and mirror
+alike; only aliases that change an *observed* byte matter, which is why the check is
+behavioral.) A chip-vs-emulator disagreement that is memory-model-independent is retained
+as suite content, not rerolled away.
+
+(Note: the upstream SingleStepTests **V20** suite does *not* guarantee flat-validity — a
+small number of its cases are mirror-dependent; see `docs/notes/singlesteptests_v20.md`.)
 
 ## Known v0.1 limitations
 

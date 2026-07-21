@@ -30,6 +30,11 @@
 //
 //============================================================================
 
+/* verilator lint_off WIDTHEXPAND */
+/* verilator lint_off UNUSEDPARAM */
+/* verilator lint_on UNUSEDPARAM */
+/* verilator lint_on WIDTHEXPAND */
+
 module v30_core (
     input             CLK,
     input             CE,        // clock-enable: advance core state this clk
@@ -44,7 +49,14 @@ module v30_core (
     output      [2:0] BS,
     output            RD_N,
     output            UBE_N,
-    output            BUSLOCK_N
+    output            BUSLOCK_N,
+    input             SS_CAPTURE,
+    input             SS_RESTORE,
+    input             SS_SHIFT,
+    input      [15:0] SS_DIN,
+    output     [15:0] SS_DOUT,
+    output reg        SS_ERR,
+    output            SS_BUS_QUIET
 `ifdef V30_BACKDOOR
     ,
     input             bkd_load,     // pulse while RESET=1: inject state
@@ -59,6 +71,8 @@ module v30_core (
     output            dbg_pend
 `endif
 );
+
+import v30_ss_pkg::*;
 
 `ifndef V30_BACKDOOR
 logic         bkd_load = 1'b0;
@@ -76,10 +90,12 @@ wire        eu_pop, eu_first, eu_flush;
 wire [15:0] eu_flush_cs, eu_flush_ip;
 wire        eu_req, eu_hold, eu_ready, eu_wr, eu_fwd, eu_word;
 wire        eu_soon, eu_soon_ea, eu_soon_ivt, bus_phase, bus_t4, flush_fast;
+wire        eu_soon_strio;                   // Family-7 strio idle-window lead (task #24)
 wire        grid_phase;
 wire        eu_lock, core_buslock_n, eu_mem_acc;
 wire        eu_rsv_dhi, eu_rsv_push_calc;   // Phase 3 reservation-class hints
 wire        eu_rsv_lead;                     // eu_req=0 onset lead hint
+wire        eu_rsv_strio;                    // Family-5 strio T3-eval veto (task #24)
 wire        eu_rdone, bus_tw;
 wire        eu_defer_wr;
 wire [2:0]  bus_ts;
@@ -94,6 +110,57 @@ wire        eu_rd_now;
 wire [15:0] eu_rdata_now;
 wire        psw_ie;
 wire        halt_disp;
+wire [15:0] ss_eu_dout;
+wire [15:0] ss_biu_dout;
+wire        ss_biu_bus_quiet;
+reg  [15:0] ss_tag_sh;
+
+always_ff @(posedge CLK) begin
+    if (SS_CAPTURE)    ss_tag_sh <= SS_TAG;
+    else if (SS_SHIFT) ss_tag_sh <= ss_biu_dout;
+end
+
+assign SS_DOUT = ss_tag_sh;
+
+always_ff @(posedge CLK) begin
+    if (RESET) SS_ERR <= 1'b0;
+    else if (SS_CAPTURE) SS_ERR <= 1'b0;
+    else if (SS_RESTORE && ss_tag_sh != SS_TAG) SS_ERR <= 1'b1;
+end
+
+assign SS_BUS_QUIET = ss_biu_bus_quiet;
+
+// Save-state contract assertions (Codex review finding 2; sim-only, no synth
+// impact). The platform MUST honor these; capture-beats-shift priority means an
+// accidental strobe overlap silently changes semantics - exactly what these
+// catch. See docs/notes/savestate_design.md sections 4.3-4.5.
+`ifndef SYNTHESIS
+wire [1:0] ss_strobe_cnt = SS_CAPTURE + SS_SHIFT + SS_RESTORE;
+reg  ss_restore_posedge;
+always @(posedge CLK) begin
+    // strobes are one-hot-or-zero
+    if (ss_strobe_cnt > 2'd1)
+        $error("SS strobes not one-hot: cap=%b shift=%b restore=%b",
+               SS_CAPTURE, SS_SHIFT, SS_RESTORE);
+    // strobes legal only while the core is frozen (CE==0) and out of reset
+    if (CE && (SS_CAPTURE || SS_SHIFT || SS_RESTORE))
+        $error("SS strobe asserted while CE high (core not frozen)");
+    if (RESET && (SS_CAPTURE || SS_SHIFT || SS_RESTORE))
+        $error("SS strobe asserted during RESET");
+    // SS_RESTORE asserted at a posedge must be HELD through the following
+    // negedge (the t1_half2 negedge flop, design 4.4)
+    ss_restore_posedge <= SS_RESTORE;
+end
+always @(negedge CLK) begin
+    // capture/shift must not straddle the CE_HALF negedge window
+    if (CE_HALF && (SS_CAPTURE || SS_SHIFT))
+        $error("SS_CAPTURE/SS_SHIFT asserted while CE_HALF high");
+    // negedge-hold contract: if restore was high at the last posedge it must
+    // still be high at this negedge
+    if (ss_restore_posedge && !SS_RESTORE)
+        $error("SS_RESTORE not held through the following negedge (design 4.4)");
+end
+`endif
 
 // scripted-consumer override (BIU-only verification)
 wire q_pop   = scr_en ? scr_qop[0]              : eu_pop;
@@ -139,6 +206,7 @@ v30_biu u_biu (
     .eu_soon    (scr_en ? 1'b0 : eu_soon),
     .eu_soon_ea (scr_en ? 1'b0 : eu_soon_ea),
     .eu_soon_ivt(scr_en ? 1'b0 : eu_soon_ivt),
+    .eu_soon_strio(scr_en ? 1'b0 : eu_soon_strio),
     .flush_fast (scr_en ? 1'b0 : flush_fast),
     .eu_defer_wr(scr_en ? 1'b0 : eu_defer_wr),
     .eu_mem_acc (scr_en ? 1'b0 : eu_mem_acc),
@@ -154,6 +222,7 @@ v30_biu u_biu (
     .eu_rsv_dhi (scr_en ? 1'b0 : eu_rsv_dhi),
     .eu_rsv_push_calc (scr_en ? 1'b0 : eu_rsv_push_calc),
     .eu_rsv_lead (scr_en ? 1'b0 : eu_rsv_lead),
+    .eu_rsv_strio(scr_en ? 1'b0 : eu_rsv_strio),
     .eu_wr      (eu_wr),
     .eu_fwd     (eu_fwd),
     .eu_word    (eu_word),
@@ -174,7 +243,13 @@ v30_biu u_biu (
     .bkd_cs     (bkd_regs[144 +: 16]),
     .bkd_ip     (bkd_fetch_ip),
     .bkd_queue  (bkd_queue),
-    .bkd_qlen   (bkd_qlen)
+    .bkd_qlen   (bkd_qlen),
+    .ss_capture (SS_CAPTURE),
+    .ss_shift   (SS_SHIFT),
+    .ss_restore (SS_RESTORE),
+    .ss_din_seg (ss_eu_dout),
+    .ss_dout_seg(ss_biu_dout),
+    .ss_bus_quiet(ss_biu_bus_quiet)
 );
 
 v30_eu u_eu (
@@ -195,12 +270,14 @@ v30_eu u_eu (
     .eu_soon    (eu_soon),
     .eu_soon_ea (eu_soon_ea),
     .eu_soon_ivt(eu_soon_ivt),
+    .eu_soon_strio(eu_soon_strio),
     .flush_fast (flush_fast),
     .eu_defer_wr(eu_defer_wr),
     .eu_mem_acc (eu_mem_acc),
     .eu_rsv_dhi (eu_rsv_dhi),
     .eu_rsv_push_calc (eu_rsv_push_calc),
     .eu_rsv_lead (eu_rsv_lead),
+    .eu_rsv_strio(eu_rsv_strio),
     .bus_phase  (bus_phase),
     .grid_phase (grid_phase),
     .eu_lock    (eu_lock),
@@ -231,7 +308,12 @@ v30_eu u_eu (
     .pin_nmi    (NMI),
     .pin_poll_n (POLL_N),
     .bkd_load   (bkd_load),
-    .bkd_regs   (bkd_regs)
+    .bkd_regs   (bkd_regs),
+    .ss_capture (SS_CAPTURE),
+    .ss_shift   (SS_SHIFT),
+    .ss_restore (SS_RESTORE),
+    .ss_din_seg (SS_DIN),
+    .ss_dout_seg(ss_eu_dout)
 `ifdef V30_BACKDOOR
     ,
     .dbg_regs      (dbg_regs),

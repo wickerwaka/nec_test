@@ -1,0 +1,4 @@
+# v0.2 is superseded by v0.3; kept disk-only (see docs/notes/bringup_log.md).
+# Whole suite untracked per the disk-only decision.
+*
+!.gitignore

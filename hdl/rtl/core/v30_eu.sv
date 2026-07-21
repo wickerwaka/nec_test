@@ -115,6 +115,7 @@
 //
 //============================================================================
 
+
 module v30_eu (
     input             clk,
     input             ce,           // clock-enable: advance state this clk
@@ -147,6 +148,12 @@ module v30_eu (
                                    // S_TRAP_IVT1, irq_disp) arms defer_idle so
                                    // the IVT read commits one cycle earlier in
                                    // a pure idle window (reg-EA analogue)
+    output            eu_soon_strio, // Family-7 (task #24): strio-single idle-
+                                   // window early-commit lead. High at S_RSV of a
+                                   // non-REP INS/OUTS single, where eu_ready is
+                                   // guaranteed next cycle (S_REQ). Arms the BIU
+                                   // defer_idle (pure-idle qlen6 plain forms).
+                                   // Pure comb, zero flops (no savestate change).
     output            flush_fast,  // far flush commits redirect mid-cycle
     output            eu_defer_wr, // RMW mem write (S_WREQ): must NOT take a
                                    // waited-cycle deferred eval (eval_ext)
@@ -180,6 +187,13 @@ module v30_eu (
                                     // prefetch suppression -> w0-NEUTRAL (never
                                     // consulted at w0; the chip's post-EA
                                     // prefetch legitimately commits there).
+    output            eu_rsv_strio, // Family-5 (task #24): strio-single uline-1
+                                    // request lead. High at the opcode pop
+                                    // (S_FIRST) and dispatch (S_DEC) of a non-REP
+                                    // INS/OUTS single. The BIU vetoes ONLY the
+                                    // T3-eval fetch-completion grant (decision
+                                    // instant >= pop+1); TI grants exempt. Pure
+                                    // comb, zero flops (no savestate change).
     output reg        eu_wr,
     output            eu_fwd,     // write data = the BIU's last read data
                                   // (string-op read->write forwarding)
@@ -229,8 +243,169 @@ module v30_eu (
     input     [223:0] bkd_regs,   // {psw,ip,ds,ss,cs,es,di,si,bp,sp,bx,dx,cx,ax}
     output    [223:0] dbg_regs,
     output            dbg_first_pop,
-    output            dbg_pend       // ghost load still in flight
+    output            dbg_pend,      // ghost load still in flight
+
+    input             ss_capture,
+    input             ss_shift,
+    input             ss_restore,
+    input      [15:0] ss_din_seg,
+    output     [15:0] ss_dout_seg
 );
+
+import v30_ss_pkg::*;
+
+localparam int EU_W = SS_EU_WORDS*16;
+
+ss_eu_t ss_pack;
+always_comb begin
+    ss_pack = '0;
+    ss_pack.rf0 = rf[0];
+    ss_pack.rf1 = rf[1];
+    ss_pack.rf2 = rf[2];
+    ss_pack.rf3 = rf[3];
+    ss_pack.rf4 = rf[4];
+    ss_pack.rf5 = rf[5];
+    ss_pack.rf6 = rf[6];
+    ss_pack.rf7 = rf[7];
+    ss_pack.sr0 = sr[0];
+    ss_pack.sr1 = sr[1];
+    ss_pack.sr2 = sr[2];
+    ss_pack.sr3 = sr[3];
+    ss_pack.psw = psw;
+    ss_pack.pc = pc;
+    ss_pack.arch_ip = arch_ip;
+    ss_pack.state = state;
+    ss_pack.wnext = wnext;
+    ss_pack.dret = dret;
+    ss_pack.dly = dly;
+    ss_pack.div_rem = div_rem;
+    ss_pack.div_quo = div_quo;
+    ss_pack.div_den = div_den;
+    ss_pack.div_cnt = div_cnt;
+    ss_pack.div_busy = div_busy;
+    ss_pack.div_word = div_word;
+    ss_pack.div_signed = div_signed;
+    ss_pack.div_nsign = div_nsign;
+    ss_pack.div_dsign = div_dsign;
+    ss_pack.div_pend = div_pend;
+    ss_pack.div_late = div_late;
+    ss_pack.sh_r = sh_r;
+    ss_pack.sh_x = sh_x;
+    ss_pack.sh_oth = sh_oth;
+    ss_pack.sh_cy = sh_cy;
+    ss_pack.sh_op = sh_op;
+    ss_pack.sh_wf = sh_wf;
+    ss_pack.sh_n = sh_n;
+    ss_pack.sh_busy = sh_busy;
+    ss_pack.sh_fbase = sh_fbase;
+    ss_pack.sh_res = sh_res;
+    ss_pack.sh_fl = sh_fl;
+    ss_pack.opc = opc;
+    ss_pack.opc2 = opc2;
+    ss_pack.mrm = mrm;
+    ss_pack.immb = immb;
+    ss_pack.disp = disp;
+    ss_pack.a4_cnt = a4_cnt;
+    ss_pack.a4_k = a4_k;
+    ss_pack.a4_src = a4_src;
+    ss_pack.a4_carry = a4_carry;
+    ss_pack.a4_z = a4_z;
+    ss_pack.mem_op = mem_op;
+    ss_pack.ivt_off = ivt_off;
+    ss_pack.ivt_seg = ivt_seg;
+    ss_pack.trap_psw = trap_psw;
+    ss_pack.seg_ovr_en = seg_ovr_en;
+    ss_pack.seg_ovr = seg_ovr;
+    ss_pack.lock_en = lock_en;
+    ss_pack.rep_en = rep_en;
+    ss_pack.rep_kind = rep_kind;
+    ss_pack.flush_now = flush_now;
+    ss_pack.str_wr = str_wr;
+    ss_pack.rslot = rslot;
+    ss_pack.rep1_abort = rep1_abort;
+    ss_pack.str_done = str_done;
+    ss_pack.cmp1 = cmp1;
+    ss_pack.cmp_r2s = cmp_r2s;
+    ss_pack.fl_cs = fl_cs;
+    ss_pack.fl_ip = fl_ip;
+    ss_pack.ea_save = ea_save;
+    ss_pack.ea_save_seg = ea_save_seg;
+    ss_pack.ldp2 = ldp2;
+    ss_pack.fret_ph = fret_ph;
+    ss_pack.facc = facc;
+    ss_pack.iret_pw = iret_pw;
+    ss_pack.popr_pend = popr_pend;
+    ss_pack.prep_acc = prep_acc;
+    ss_pack.pracc = pracc;
+    ss_pack.w4skip = w4skip;
+    ss_pack.prep_bpd = prep_bpd;
+    ss_pack.shw = shw;
+    ss_pack.popm_hold = popm_hold;
+    ss_pack.ie_off = ie_off;
+    ss_pack.ie_len = ie_len;
+    ss_pack.ie_fld = ie_fld;
+    ss_pack.ie_w0 = ie_w0;
+    ss_pack.ie_mode = ie_mode;
+    ss_pack.ie_ph2 = ie_ph2;
+    ss_pack.ie_dly = ie_dly;
+    ss_pack.ie_chain = ie_chain;
+    ss_pack.ie_rdyhold = ie_rdyhold;
+    ss_pack.ie_lgot = ie_lgot;
+    ss_pack.int_p = int_p;
+    ss_pack.nmi_p = nmi_p;
+    ss_pack.nmi_latch = nmi_latch;
+    ss_pack.poll_s1 = poll_s1;
+    ss_pack.shadow = shadow;
+    ss_pack.ie_pend = ie_pend;
+    ss_pack.ie_val = ie_val;
+    ss_pack.psw_old = psw_old;
+    ss_pack.pop_pend = pop_pend;
+    ss_pack.ie_p = ie_p;
+    ss_pack.waits_seen = waits_seen;
+    ss_pack.post_flush = post_flush;
+    ss_pack.insn_ip = insn_ip;
+    ss_pack.ivt_vec = ivt_vec;
+    ss_pack.hwake_ie0 = hwake_ie0;
+    ss_pack.irq_disp = irq_disp;
+    ss_pack.irq_nmi_ivt = irq_nmi_ivt;
+    ss_pack.eu_wr = eu_wr;
+    ss_pack.eu_word = eu_word;
+    ss_pack.eu_addr = eu_addr;
+    ss_pack.eu_seg = eu_seg;
+    ss_pack.eu_wdata = eu_wdata;
+    ss_pack.eu_kind = eu_kind;
+    ss_pack.halt_disp = halt_disp;
+    ss_pack.pad = '0;
+end
+
+reg [EU_W-1:0] ss_sh;
+always_ff @(posedge clk) begin
+    if (ss_capture)    ss_sh <= ss_pack;
+    else if (ss_shift) ss_sh <= {ss_din_seg, ss_sh[EU_W-1:16]};
+end
+assign ss_dout_seg = ss_sh[15:0];
+
+ss_eu_t ss_u;
+assign ss_u = ss_eu_t'(ss_sh);
+
+// Elaboration-time HARD-FAIL on width drift (design 3.1): generate-time, so the
+// build fails synthesis-independently. NOTE (Codex review finding 3): a width-
+// PRESERVING drift (a field swapped for another of equal width, or a forgotten
+// same-width flop) is invisible to any static guard - the scramble gate (G4) is
+// the only catcher, which is why it is a PERMANENT standing regression.
+generate
+    if (EU_W != $bits(ss_eu_t)) begin : gen_ss_eu_width_err
+        // Cross-tool elaboration hard-fail (design 3.1): an UNDEFINED module
+        // reference aborts BOTH Verilator and Quartus 17.1. Untaken when equal.
+        ss_eu_t_width_mismatch u_ss_eu_width_guard ();
+    end
+endgenerate
+
+`ifndef SYNTHESIS
+always_ff @(posedge clk) begin
+    if (ss_restore && srst) $error("ss_restore and srst co-asserted");
+end
+`endif
 
 // PS1:0 segment-status codes (= AD17:16 during T2-T4)
 localparam bit [1:0] SEG_ES = 2'd0;   // DS1
@@ -283,6 +458,7 @@ typedef enum logic [6:0] {
     S_PREP_L, S_PREP_W2, S_PREP_RD, S_PREP_RDGO, S_PREP_W3A,
     S_PREP_PW2, S_PREP_W3, S_PREP_W4,
     S_STRW, S_STRR, S_STRS, S_STRE,
+    S_OUTS_W, S_OUTS_R, S_INS_W, S_INS_R,
     S_CMPW1, S_CMPW2, S_CMPNXT, S_SCASW, S_SCASNXT,
     S_CALLFL, S_CALLPUSH, S_CALLW, S_RETF, S_FCFL2,
     S_TRAP_IVT1, S_TRAP_IVT2, S_TRAP_IVT2W,
@@ -464,7 +640,14 @@ reg         irq_nmi_ivt;         // the current S_WAITX->S_TRAP_IVT1 is the
                                  // S_FIRST, NOT the INT INTA2->IVT gap): gates
                                  // the eu_soon_ivt idle-window early commit
 
-wire [2:0] mrm_reg = mrm[5:3];
+// mrm_reg selects the group sub-op. Two undoc aliases (v20-verified) fold in
+// here so every mem-form dispatch / exec / length site sees the canonical
+// sub-op: F6/F7 /1 -> /0 (TEST rm,imm); FF /7 -> /6 (PUSH rm16). Safe because
+// for these opcodes mrm_reg is only a sub-op selector, never a register index
+// (the operand is mrm_rm), and only these exact opc/reg pairs are remapped.
+wire [2:0] mrm_reg =
+    ((opc == 8'hF6 || opc == 8'hF7) && mrm[5:3] == 3'd1) ? 3'd0 :
+    (opc == 8'hFF && mrm[5:3] == 3'd7)                   ? 3'd6 : mrm[5:3];
 wire [2:0] mrm_rm  = mrm[2:0];
 wire [1:0] mrm_mod = mrm[7:6];
 
@@ -497,13 +680,16 @@ wire op_moffw  = opc == 8'hA2 || opc == 8'hA3;   // MOV moffs16, AL/AW
 wire op_lea    = opc == 8'h8D;                   // LDEA
 wire op_srst   = opc == 8'h8C;                   // MOV rm16, sreg
 wire op_srld   = opc == 8'h8E;                   // MOV sreg, rm16
-wire op_xlat   = opc == 8'hD7;                   // TRANS
+wire op_xlat   = opc == 8'hD7 || opc == 8'hD6;   // TRANS (D6 = undoc alias of D7 XLAT; v20-verified: AL<-[BX+AL])
 wire op_movstr = opc == 8'hA4 || opc == 8'hA5;   // MOVBK
 wire op_stostr = opc == 8'hAA || opc == 8'hAB;   // STM
 wire op_lodstr = opc == 8'hAC || opc == 8'hAD;   // LDM
 wire op_cmpstr = opc == 8'hA6 || opc == 8'hA7;   // CMPBK
 wire op_scastr = opc == 8'hAE || opc == 8'hAF;   // CMPM
-wire op_str    = op_movstr | op_stostr | op_lodstr | op_cmpstr | op_scastr;
+wire op_outstr = opc == 8'h6E || opc == 8'h6F;   // OUTS (mem DS:IX -> port DW)
+wire op_instr  = opc == 8'h6C || opc == 8'h6D;   // INS  (port DW -> mem ES:IY)
+wire op_str    = op_movstr | op_stostr | op_lodstr | op_cmpstr | op_scastr |
+                 op_outstr | op_instr;
 wire op_segp   = opc == 8'h26 || opc == 8'h2E ||
                  opc == 8'h36 || opc == 8'h3E;   // segment override
 wire op_repp   = opc == 8'hF3 || opc == 8'hF2 ||     // REP/REPE, REPNE
@@ -565,13 +751,19 @@ wire op_grpff  = opc == 8'hFF;                       // INC/DEC/PUSH/... rm16
 wire op_imuli  = opc == 8'h69 || opc == 8'h6B;       // MUL reg,rm,imm
 wire op_ldptr  = opc == 8'hC4 || opc == 8'hC5;       // LES/LDS (mem only)
 wire op_fpo    = (opc & 8'hF8) == 8'hD8 ||
-                 opc == 8'h66 || opc == 8'h67;       // FPO1 / FPO2 (ESC)
+                 opc == 8'h66 || opc == 8'h67 ||     // FPO1 / FPO2 (ESC)
+                 opc == 8'h63;                       // 0x63: undoc modrm word
+                                                     // no-op (decode EA + dummy
+                                                     // read, no writeback/flags).
+                                                     // v20-verified: IP-only. This
+                                                     // is the 63C0 preload preamble
+                                                     // the internal core lacked.
 wire op_chk    = opc == 8'h62;                       // CHKIND (mem only)
 wire op_prep   = opc == 8'hC8;                       // PREPARE
 wire op_disp   = opc == 8'hC9;                       // DISPOSE
 wire op_retf   = opc == 8'hCB || opc == 8'hCA;       // RETF / RETF pop
 wire op_iret   = opc == 8'hCF;                       // RETI
-wire op_grp80  = opc == 8'h80;                       // ALU rm8, imm8
+wire op_grp80  = opc == 8'h80 || opc == 8'h82;       // ALU rm8, imm8 (82 = undoc alias of 80; v20-verified)
 wire op_grp81  = opc == 8'h81;                       // ALU rm16, imm16
 wire op_grp83  = opc == 8'h83;                       // ALU rm16, simm8
 wire op_alui   = op_grp80 | op_grp81 | op_grp83;
@@ -1160,7 +1352,19 @@ always_comb begin
     eu_ready = 1'b0;
     eu_soon  = 1'b0;
     unique case (state)
-        S_RSV:  eu_req = 1'b1;
+        S_RSV:  begin
+            eu_req = 1'b1;
+            // Family-7 contingent arm (architect-ratified): a strio single at
+            // S_RSV has eu_ready GUARANTEED next cycle (S_REQ) -- the eu_soon
+            // contract, honored unconditionally (stronger than the S_EA2
+            // reader precedent). The general eu_soon feeds exactly one BIU
+            // consumer, the fetch-T3 defer_t4 arm, which catches the prefix-
+            // qlen5 bridging-fetch element read (missed T3-eval pickup) and
+            // commits it mid-T4 -- the chip's element-on-the-fetch-T4 signature.
+            // Bus-state exclusive with the defer_idle main arm (that needs
+            // ST_TI at S_RSV; this needs a fetch-T3).
+            eu_soon = (op_instr || op_outstr) && !rep_en;
+        end
         // reader reservations (measured on cold-start traces): no-disp
         // forms reserve through the EA-compute cycles; disp forms only
         // in the cycle their final displacement byte actually pops
@@ -1347,6 +1551,7 @@ always_comb begin
         S_CALLPUSH, S_FCALLP1, S_FCALLP2, S_FCFL2,
         S_PREP_RD, S_PREP_PW2, S_PREP_W3,
         S_STRW, S_STRR, S_STRS,
+        S_OUTS_W, S_OUTS_R, S_INS_W, S_INS_R,
         S_TRAP_IVT1, S_TRAP_IVT2,
         S_TRAP_PSW, S_TRAP_PS, S_TRAP_FLUSH, S_TRAP_PC,
         S_INT_A1, S_INT_A2: begin
@@ -1453,6 +1658,23 @@ assign eu_rsv_push_calc = (state == S_PUSH_CALC);
 assign eu_rsv_lead      = ((state == S_DHI) && (op_movs8 || op_movs16) && q_pop) ||
                           ((state == S_MLO) && op_moff && q_pop &&
                            (!opc[0] || q_byte[0]));
+
+// strio-single uline-1 request lead (V20 ucode 0294/02A0: INS/OUTS singles issue
+// their bus request on the routine's FIRST uline; MOVS/LODS/STOS/SCAS on uline 2 -
+// measured cold A4 vs 6E, 5000/5000 each). Consumed by the BIU's T3-eval fetch-
+// completion grant ONLY. REP (3-uline preamble 0298/02A4) and classic strings do
+// NOT assert. Pure comb (Moore state + q_byte peek), zero flops.
+assign eu_rsv_strio     = ((state == S_FIRST) && q_pop && !rep_en &&
+                           (q_byte[7:2] == 6'b011011)) ||      // 6C-6F, pop cycle
+                          ((state == S_DEC) && !rep_en &&
+                           (op_instr || op_outstr));            // dispatch cycle
+
+// Family-7 strio-single idle-window lead (main arm). At S_RSV of a non-REP
+// INS/OUTS single, eu_req is up and eu_ready is GUARANTEED next cycle (S_REQ) -
+// the documented eu_soon contract. Consumed by the BIU defer_idle arm ONLY
+// (gated q_aged==0 there), which brings the pure-idle (qlen6 plain) element
+// commit one cycle forward to the chip's S_REQ instant. Pure comb, zero flops.
+assign eu_soon_strio    = (state == S_RSV) && (op_instr || op_outstr) && !rep_en;
 
 // RMW mem write, ALU-imm forms ONLY (op80/81/83; op_alui): apply the
 // stricter deferred-eval qualifier. Measured: only the ALU-imm RMW defers
@@ -1590,7 +1812,8 @@ wire [15:0] str_step = opc[0] ? (psw[10] ? 16'hFFFE : 16'd2)
 // MOVBK's write takes its data from the BIU's read latch (forwarded at
 // the commit edge - the write commits at the read's own T3 edge)
 assign eu_fwd = state == S_STRW || state == S_POPMW ||
-                state == S_PREP_PW2;
+                state == S_PREP_PW2 || state == S_OUTS_W ||
+                state == S_INS_W;
 
 // stack push at SP-2 (also decrements SP)
 task automatic issue_push(input [15:0] wdata);
@@ -1606,6 +1829,124 @@ endtask
 // main FSM
 //----------------------------------------------------------------------------
 always_ff @(posedge clk) begin
+    if (ss_restore) begin
+        rf[0] <= ss_u.rf0;
+        rf[1] <= ss_u.rf1;
+        rf[2] <= ss_u.rf2;
+        rf[3] <= ss_u.rf3;
+        rf[4] <= ss_u.rf4;
+        rf[5] <= ss_u.rf5;
+        rf[6] <= ss_u.rf6;
+        rf[7] <= ss_u.rf7;
+        sr[0] <= ss_u.sr0;
+        sr[1] <= ss_u.sr1;
+        sr[2] <= ss_u.sr2;
+        sr[3] <= ss_u.sr3;
+        psw <= ss_u.psw;
+        pc <= ss_u.pc;
+        arch_ip <= ss_u.arch_ip;
+        state <= state_e'(ss_u.state);
+        wnext <= state_e'(ss_u.wnext);
+        dret <= state_e'(ss_u.dret);
+        dly <= ss_u.dly;
+        div_rem <= ss_u.div_rem;
+        div_quo <= ss_u.div_quo;
+        div_den <= ss_u.div_den;
+        div_cnt <= ss_u.div_cnt;
+        div_busy <= ss_u.div_busy;
+        div_word <= ss_u.div_word;
+        div_signed <= ss_u.div_signed;
+        div_nsign <= ss_u.div_nsign;
+        div_dsign <= ss_u.div_dsign;
+        div_pend <= ss_u.div_pend;
+        div_late <= ss_u.div_late;
+        sh_r <= ss_u.sh_r;
+        sh_x <= ss_u.sh_x;
+        sh_oth <= ss_u.sh_oth;
+        sh_cy <= ss_u.sh_cy;
+        sh_op <= ss_u.sh_op;
+        sh_wf <= ss_u.sh_wf;
+        sh_n <= ss_u.sh_n;
+        sh_busy <= ss_u.sh_busy;
+        sh_fbase <= ss_u.sh_fbase;
+        sh_res <= ss_u.sh_res;
+        sh_fl <= ss_u.sh_fl;
+        opc <= ss_u.opc;
+        opc2 <= ss_u.opc2;
+        mrm <= ss_u.mrm;
+        immb <= ss_u.immb;
+        disp <= ss_u.disp;
+        a4_cnt <= ss_u.a4_cnt;
+        a4_k <= ss_u.a4_k;
+        a4_src <= ss_u.a4_src;
+        a4_carry <= ss_u.a4_carry;
+        a4_z <= ss_u.a4_z;
+        mem_op <= ss_u.mem_op;
+        ivt_off <= ss_u.ivt_off;
+        ivt_seg <= ss_u.ivt_seg;
+        trap_psw <= ss_u.trap_psw;
+        seg_ovr_en <= ss_u.seg_ovr_en;
+        seg_ovr <= ss_u.seg_ovr;
+        lock_en <= ss_u.lock_en;
+        rep_en <= ss_u.rep_en;
+        rep_kind <= ss_u.rep_kind;
+        flush_now <= ss_u.flush_now;
+        str_wr <= ss_u.str_wr;
+        rslot <= ss_u.rslot;
+        rep1_abort <= ss_u.rep1_abort;
+        str_done <= ss_u.str_done;
+        cmp1 <= ss_u.cmp1;
+        cmp_r2s <= ss_u.cmp_r2s;
+        fl_cs <= ss_u.fl_cs;
+        fl_ip <= ss_u.fl_ip;
+        ea_save <= ss_u.ea_save;
+        ea_save_seg <= ss_u.ea_save_seg;
+        ldp2 <= ss_u.ldp2;
+        fret_ph <= ss_u.fret_ph;
+        facc <= ss_u.facc;
+        iret_pw <= ss_u.iret_pw;
+        popr_pend <= ss_u.popr_pend;
+        prep_acc <= ss_u.prep_acc;
+        pracc <= ss_u.pracc;
+        w4skip <= ss_u.w4skip;
+        prep_bpd <= ss_u.prep_bpd;
+        shw <= ss_u.shw;
+        popm_hold <= ss_u.popm_hold;
+        ie_off <= ss_u.ie_off;
+        ie_len <= ss_u.ie_len;
+        ie_fld <= ss_u.ie_fld;
+        ie_w0 <= ss_u.ie_w0;
+        ie_mode <= ss_u.ie_mode;
+        ie_ph2 <= ss_u.ie_ph2;
+        ie_dly <= ss_u.ie_dly;
+        ie_chain <= ss_u.ie_chain;
+        ie_rdyhold <= ss_u.ie_rdyhold;
+        ie_lgot <= ss_u.ie_lgot;
+        int_p <= ss_u.int_p;
+        nmi_p <= ss_u.nmi_p;
+        nmi_latch <= ss_u.nmi_latch;
+        poll_s1 <= ss_u.poll_s1;
+        shadow <= ss_u.shadow;
+        ie_pend <= ss_u.ie_pend;
+        ie_val <= ss_u.ie_val;
+        psw_old <= ss_u.psw_old;
+        pop_pend <= ss_u.pop_pend;
+        ie_p <= ss_u.ie_p;
+        waits_seen <= ss_u.waits_seen;
+        post_flush <= ss_u.post_flush;
+        insn_ip <= ss_u.insn_ip;
+        ivt_vec <= ss_u.ivt_vec;
+        hwake_ie0 <= ss_u.hwake_ie0;
+        irq_disp <= ss_u.irq_disp;
+        irq_nmi_ivt <= ss_u.irq_nmi_ivt;
+        eu_wr <= ss_u.eu_wr;
+        eu_word <= ss_u.eu_word;
+        eu_addr <= ss_u.eu_addr;
+        eu_seg <= ss_u.eu_seg;
+        eu_wdata <= ss_u.eu_wdata;
+        eu_kind <= ss_u.eu_kind;
+        halt_disp <= ss_u.halt_disp;
+    end else begin
     if (srst) begin
         // flush_now defaults to 0 every cycle (was an ungated pulse
         // default); keep that at reset so q_flush is clean during RESET.
@@ -2025,8 +2366,9 @@ always_ff @(posedge clk) begin
                                 shw <= {1'b0, rf[1][7:0]};
                                 state <= S_SHWAIT;
                             end else if ((op_grpf6 || op_grpf7) &&
-                                         q_byte[5:3] == 3'd0) begin
-                                state <= S_AIGAP;   // TEST imm pop+2
+                                         (q_byte[5:3] == 3'd0 ||
+                                          q_byte[5:3] == 3'd1)) begin
+                                state <= S_AIGAP;   // TEST imm pop+2 (/1=undoc /0)
                             end else if ((op_grpf6 || op_grpf7) &&
                                          (q_byte[5:3] == 3'd2 ||
                                           q_byte[5:3] == 3'd3)) begin
@@ -2074,8 +2416,9 @@ always_ff @(posedge clk) begin
                                 dly <= 6'd2; wnext <= S_POPR;
                                 state <= S_WAITX;
                             end else if (op_grpff &&
-                                         q_byte[5:3] == 3'd6) begin
-                                // PUSH reg via FF: write ready pop+4
+                                         (q_byte[5:3] == 3'd6 ||
+                                          q_byte[5:3] == 3'd7)) begin
+                                // PUSH reg via FF (/7=undoc /6): write ready pop+4
                                 // (closure block: the earlier phase-
                                 // dependent fit was aliased by the
                                 // fetch alignment; constant slot fits
@@ -2212,12 +2555,12 @@ always_ff @(posedge clk) begin
                                 state <= S_HALT;
                         end else begin
                             // memory form; group ops with an unimplemented
-                            // /reg field park the sequencer
-                            if ((op_grpf6 && q_byte[5:3] == 3'd1) ||
-                                (op_grpf7 && q_byte[5:3] == 3'd1) ||
-                                (op_grpfe && q_byte[5:3] > 3'd1) ||
-                                (op_popm && q_byte[5:3] != 3'd0) ||
-                                (op_grpff && q_byte[5:3] == 3'd7))
+                            // /reg field park the sequencer. F6/F7 /1 (=/0 TEST)
+                            // and FF /7 (=/6 PUSH) are undoc aliases (v20) and
+                            // NO LONGER park - they proceed to EA/read and are
+                            // canonicalised by mrm_reg downstream.
+                            if ((op_grpfe && q_byte[5:3] > 3'd1) ||
+                                (op_popm && q_byte[5:3] != 3'd0))
                                 state <= S_HALT;
                             else if ((q_byte[7:6] == 2'd0 &&
                                       q_byte[2:0] == 3'd6) ||
@@ -2417,6 +2760,41 @@ always_ff @(posedge clk) begin
                             eu_wr   <= 1'b0;
                             eu_word <= opc[0];
                             if (rep_en) begin
+                                dly <= 6'd2; wnext <= S_RSV;
+                                state <= S_WAITX;
+                            end else begin
+                                dly <= 6'd1; state <= S_RSV;
+                            end
+                        end else if (op_outstr) begin     // OUTS: DS(sov):IX rd
+                            // read the source element from DS(sov):IX
+                            // first (LODS-style); the IOW to port DW
+                            // follows at S_REQ with the read data
+                            // forwarded (eu_fwd). Cycle timing is out of
+                            // scope (no native 6E/6F captures); arch only.
+                            eu_addr <= {sr[seg_ovr_en ? seg_ovr : SEG_DS],
+                                        4'h0} + {4'h0, rf[6]};
+                            eu_seg  <= seg_ovr_en ? seg_ovr : SEG_DS;
+                            eu_wr   <= 1'b0;
+                            eu_word <= opc[0];
+                            eu_kind <= K_MEM;
+                            if (rep_en) begin  // REP setup (see STM note)
+                                dly <= 6'd2; wnext <= S_RSV;
+                                state <= S_WAITX;
+                            end else begin
+                                dly <= 6'd1; state <= S_RSV;
+                            end
+                        end else if (op_instr) begin      // INS: port DW IOR
+                            // read the port (IOR) first; the mem write to
+                            // ES:IY (no segment override on the dest)
+                            // follows at S_REQ with the port data
+                            // forwarded (eu_fwd). Arch only (no 6C/6D
+                            // native captures).
+                            eu_addr <= {4'h0, rf[2]};
+                            eu_seg  <= SEG_CS;
+                            eu_wr   <= 1'b0;
+                            eu_word <= opc[0];
+                            eu_kind <= K_IO;
+                            if (rep_en) begin  // REP setup (see STM note)
                                 dly <= 6'd2; wnext <= S_RSV;
                                 state <= S_WAITX;
                             end else begin
@@ -3298,8 +3676,13 @@ always_ff @(posedge clk) begin
             //----------------------------------------------------------------
             S_A4_SETUP: begin
                 if (dly == 6'd1) begin
-                    eu_addr <= {sr[SEG_DS], 4'h0} + {4'h0, rf[6]};
-                    eu_seg  <= SEG_DS;
+                    // 4S source honours the segment-override prefix (DS0
+                    // default). BUGFIX: was hardcoded SEG_DS -> override
+                    // (ES/CS/SS) source string mis-read; whole result + CY
+                    // wrong. Verified on v20 0F20/0F22/0F26: fail <=> override.
+                    eu_addr <= {sr[seg_ovr_en ? seg_ovr : SEG_DS], 4'h0}
+                               + {4'h0, rf[6]};
+                    eu_seg  <= seg_ovr_en ? seg_ovr : SEG_DS;
                     eu_wr   <= 1'b0;
                     eu_word <= 1'b0;
                     state   <= (a4_cnt == 8'd0) ? S_HALT : S_A4_SRC;
@@ -3344,9 +3727,9 @@ always_ff @(posedge clk) begin
                     if (a4_cnt > 8'd1) begin
                         a4_cnt  <= a4_cnt - 8'd1;
                         a4_k    <= a4_k + 8'd1;
-                        eu_addr <= {sr[SEG_DS], 4'h0} +
-                                   {4'h0, rf[6] + {8'd0, a4_k} + 16'd1};
-                        eu_seg  <= SEG_DS;
+                        eu_addr <= {sr[seg_ovr_en ? seg_ovr : SEG_DS], 4'h0}
+                                   + {4'h0, rf[6] + {8'd0, a4_k} + 16'd1};
+                        eu_seg  <= seg_ovr_en ? seg_ovr : SEG_DS;
                         eu_wr   <= 1'b0;
                         // next src T1 = this dst T1 + 14 (measured)
                         dly <= 6'd8; wnext <= S_A4_SRC;
@@ -3374,9 +3757,9 @@ always_ff @(posedge clk) begin
                 if (a4_cnt > 8'd1) begin
                     a4_cnt  <= a4_cnt - 8'd1;
                     a4_k    <= a4_k + 8'd1;
-                    eu_addr <= {sr[SEG_DS], 4'h0} +
-                               {4'h0, rf[6] + {8'd0, a4_k} + 16'd1};
-                    eu_seg  <= SEG_DS;
+                    eu_addr <= {sr[seg_ovr_en ? seg_ovr : SEG_DS], 4'h0}
+                               + {4'h0, rf[6] + {8'd0, a4_k} + 16'd1};
+                    eu_seg  <= seg_ovr_en ? seg_ovr : SEG_DS;
                     eu_wr   <= 1'b0;
                     state   <= S_A4_SRC;
                 end else begin
@@ -3515,6 +3898,24 @@ always_ff @(posedge clk) begin
                     eu_seg  <= SEG_ES;
                     eu_wr   <= 1'b1;
                     state   <= S_STRW;
+                end else if (op_outstr) begin  // OUTS: mem read accepted -> IOW
+                    // issue the I/O write to port DW; the write data is
+                    // the DS:IX read, forwarded inside the BIU (eu_fwd).
+                    eu_addr <= {4'h0, rf[2]};
+                    eu_seg  <= SEG_CS;
+                    eu_wr   <= 1'b1;
+                    eu_word <= opc[0];
+                    eu_kind <= K_IO;
+                    state   <= S_OUTS_W;
+                end else if (op_instr) begin   // INS: port read accepted -> MEMW
+                    // issue the mem write to ES:IY (no override); the
+                    // write data is the port read, forwarded (eu_fwd).
+                    eu_addr <= {sr[SEG_ES], 4'h0} + {4'h0, rf[7]};
+                    eu_seg  <= SEG_ES;
+                    eu_wr   <= 1'b1;
+                    eu_word <= opc[0];
+                    eu_kind <= K_MEM;
+                    state   <= S_INS_W;
                 end else if (op_cmpstr) begin  // rd1 accepted: queue rd2
                     if (rep_en) begin          // REP order: ES then DS
                         eu_addr <= {sr[seg_ovr_en ? seg_ovr : SEG_DS],
@@ -3763,6 +4164,54 @@ always_ff @(posedge clk) begin
                 eu_wr   <= 1'b1;
                 state   <= S_STRW;
             end
+            // OUTS I/O write accepted: advance IX only (source pointer);
+            // REP repeats CW times unconditionally (carry/zero gate only
+            // CMPS/SCAS). The next element's DS(sov):IX read is chained.
+            S_OUTS_W: if (eu_started) begin
+                rf[6] <= rf[6] + str_step;
+                if (rep_en) begin
+                    rf[1] <= rf[1] - 16'd1;
+                    if (rf[1] != 16'd1) begin
+                        eu_addr <= {sr[seg_ovr_en ? seg_ovr : SEG_DS],
+                                    4'h0} + {4'h0, rf[6] + str_step};
+                        eu_seg  <= seg_ovr_en ? seg_ovr : SEG_DS;
+                        eu_wr   <= 1'b0;
+                        eu_kind <= K_MEM;
+                        state <= S_OUTS_R;
+                    end else state <= S_BUSW;
+                end else state <= S_BUSW;
+            end
+            S_OUTS_R: if (eu_started) begin    // next mem read accepted -> IOW
+                eu_addr <= {4'h0, rf[2]};
+                eu_seg  <= SEG_CS;
+                eu_wr   <= 1'b1;
+                eu_word <= opc[0];
+                eu_kind <= K_IO;
+                state   <= S_OUTS_W;
+            end
+            // INS mem write accepted: advance IY only (dest pointer); REP
+            // repeats CW times unconditionally. Next element's IOR is chained.
+            S_INS_W: if (eu_started) begin
+                rf[7] <= rf[7] + str_step;
+                if (rep_en) begin
+                    rf[1] <= rf[1] - 16'd1;
+                    if (rf[1] != 16'd1) begin
+                        eu_addr <= {4'h0, rf[2]};   // port DW (next IOR)
+                        eu_seg  <= SEG_CS;
+                        eu_wr   <= 1'b0;
+                        eu_kind <= K_IO;
+                        state <= S_INS_R;
+                    end else state <= S_BUSW;
+                end else state <= S_BUSW;
+            end
+            S_INS_R: if (eu_started) begin     // next port read accepted -> MEMW
+                eu_addr <= {sr[SEG_ES], 4'h0} + {4'h0, rf[7]};
+                eu_seg  <= SEG_ES;
+                eu_wr   <= 1'b1;
+                eu_word <= opc[0];
+                eu_kind <= K_MEM;
+                state   <= S_INS_W;
+            end
             S_STRS: if (eu_started) begin      // next STM write accepted
                 rf[7] <= rf[7] + str_step;
                 if (rep_en) begin
@@ -3842,6 +4291,27 @@ always_ff @(posedge clk) begin
                     if (rep_en) begin
                         if (opc[0] && eu_addr[0]) retire();
                         else state <= S_EX;
+                    end else retire();
+                end else if (op_outstr) begin             // OUTS end (IOW done)
+                    // final I/O write complete; restore the data-access
+                    // kind and retire (REP takes S_EX's +1-cycle close,
+                    // like STM/MOVBK - timing is out of scope, arch only).
+                    eu_kind <= K_MEM;
+                    if (rep_en) state <= S_EX;
+                    else        retire();
+                end else if (op_instr) begin              // INS end (MEMW done)
+                    // final mem write (ES:IY) complete; IY already stepped
+                    // in S_INS_W. REP close mirrors the STM/MOVBK split-close
+                    // law (line ~4249, silicon-fitted): a SPLIT final word write
+                    // (word opc AND odd write address) closes at done; an aligned
+                    // word OR any byte takes S_EX's +1 close. Family 6 (task #24):
+                    // the op_instr branch never received this - word REP INS at an
+                    // odd ES:IY closed one cycle late. eu_addr[0] is the physical
+                    // write-address parity (== initial-DI parity, loop-invariant).
+                    eu_kind <= K_MEM;
+                    if (rep_en) begin
+                        if (opc[0] && eu_addr[0]) retire();
+                        else                      state <= S_EX;
                     end else retire();
                 end else if (op_ret) begin                // C3 / C2
                     rf[4] <= rf[4] + 16'd2 +
@@ -4319,8 +4789,16 @@ always_ff @(posedge clk) begin
                     psw[FB_P]  <= ~^r1;
                 end else if (opc == 8'hD4) begin       // CVTBD (AAM)
                     logic [7:0] q8, r8;
-                    q8 = rf[0][7:0] / disp[7:0];
-                    r8 = rf[0][7:0] % disp[7:0];
+                    if (disp[7:0] == 8'd0) begin
+                        // V20 undocumented: AAM base 0 does NOT trap (unlike the
+                        // 8086 DIV0). AH=0xFF, AL preserved; flags S/Z/P from AL.
+                        // v20-verified on all 47 base-0 cases.
+                        q8 = 8'hFF;
+                        r8 = rf[0][7:0];
+                    end else begin
+                        q8 = rf[0][7:0] / disp[7:0];
+                        r8 = rf[0][7:0] % disp[7:0];
+                    end
                     rf[0] <= {q8, r8};
                     psw[FB_S] <= r8[7];
                     psw[FB_Z] <= r8 == 8'd0;
@@ -4940,6 +5418,7 @@ always_ff @(posedge clk) begin
             state <= S_IRQ_REPW;
             dly   <= 6'd8;
         end
+    end
     end
 end
 

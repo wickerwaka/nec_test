@@ -98,6 +98,15 @@ class ServeRunner:
         self.last_waits = None  # (waits, use_core) tuple key
         self.last_wrand = None  # WRAND state key (None = never enabled)
         self.last_replay = False  # replay mode currently armed
+        # MECHANIZED WAIT-RIG GUARD (task #24, sticky-WRAND 2nd occurrence).
+        # Force the wait rig to a KNOWN-CLEAN state at every connect: random
+        # OFF, replay OFF, UNCONDITIONALLY. last_wrand/last_replay track only
+        # THIS runner, so a fresh process would otherwise inherit whatever
+        # R_WRAND a PRIOR session left enabled and never clear it (the 16:10
+        # f0lock tranche was captured this way, minting phantom Tw). A wait
+        # spec explicitly requested for a run re-enables it afterwards.
+        self.rig_clean = False
+        self._force_clean_rig()
 
     def cfg(self, waits, use_core=None):
         key = (waits, use_core)
@@ -112,6 +121,27 @@ class ServeRunner:
             self.close()
             raise RunError(f"serve: cfg failed: {line[:120]}")
         self.last_waits = key
+
+    def _force_clean_rig(self):
+        """Force the wait rig clean at connect (random OFF, replay OFF),
+        UNCONDITIONALLY - defeats the sticky-None skip in wrand()/replay() so a
+        fresh connection cannot inherit a prior session's stale R_WRAND. The
+        wait-rig readback is recorded for provenance (rig_readback)."""
+        self._send("WRAND 0 - -")
+        line = self._readline(10)
+        if line != "OK WRAND":
+            self.close()
+            raise RunError(f"serve: rig-clear(random) failed: {line[:120]}")
+        self.last_wrand = ('off',)
+        self._send("WRAND - - - 0")
+        line = self._readline(10)
+        if line != "OK WRAND":
+            self.close()
+            raise RunError(f"serve: rig-clear(replay) failed: {line[:120]}")
+        self.last_replay = False
+        self.rig_clean = True
+        # provenance: both rig-clear commands returned OK -> rig commanded clean
+        self.rig_readback = "WRAND=0 replay=0 (commanded clean at connect, OK/OK)"
 
     def wrand(self, spec):
         """Seeded random per-access waits. spec = None (uniform, board
@@ -186,7 +216,7 @@ class ServeRunner:
         return bytes(out) if out else b""
 
     def run(self, image, timeout=3.0, evt=None, iord=None, pins=None,
-            cap=None):
+            cap=None, iords=None):
         """evt = (linear_addr, delay, hold, pin 0=INT 1=NMI 2=POLL);
         iord = 16-bit I/O read data; pins = static PINS bits (b0 INT,
         b1 NMI, b2 POLL_N); cap = capture-record prefix to return
@@ -197,6 +227,9 @@ class ServeRunner:
             opts += f" evt={a:05x}:{d}:{ho}:{p}"
         if iord is not None:
             opts += f" iord={iord:04x}"
+        if iords is not None:
+            # per-IOR ordered sequence (INS / REP INS); empty list resets+disables
+            opts += " iords=" + ",".join(f"{v & 0xFFFF:04x}" for v in iords)
         if pins is not None:
             opts += f" pins={pins:x}"
         if cap is not None and self.v2:
@@ -279,7 +312,7 @@ def _run_image_legacy(image, host, tag="test", waits=0):
 
 def run_image(image, host, tag="test", waits=0, evt=None, iord=None,
               pins=None, want_fired=False, cap=None, use_core=None,
-              wrand=None, wvec=None):
+              wrand=None, wvec=None, iords=None):
     """Run an image, return capture records (or (recs, evt_fired) with
     want_fired). Uses the persistent serve session unless V30_NO_SERVE=1;
     transport errors get one reconnect, then one legacy-path attempt
@@ -309,7 +342,7 @@ def run_image(image, host, tag="test", waits=0, evt=None, iord=None,
             r.wrand(wrand if wvec is None else None)
             r.replay(wvec)
             recs, fired = r.run(image, evt=evt, iord=iord, pins=pins,
-                                cap=cap)
+                                cap=cap, iords=iords)
             return (recs, fired) if want_fired else recs
         except RunError as e:
             r.close()

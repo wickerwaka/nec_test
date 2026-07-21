@@ -46,6 +46,32 @@ SW = Path(__file__).resolve().parent
 DEFAULT_OUT = SW.parent / "tests" / "v30" / "v0.1"
 V20_DATA = SW.parent / "tests" / "v30" / "v20suite"
 
+
+def _mirror_collision(test):
+    # NOTE (2026-07-18): footprint aliasing OVER-COUNTS behavioral divergence
+    # ~950x (benign 0x90-fill prefetch aliases). This is a CHEAP PRE-FILTER HINT
+    # ONLY - the authoritative flat-validity test is behavioral (check_core
+    # --no-mirror pass that +mirror passes). Never use as accept/reject authority.
+    """True if the case's memory footprint holds two DISTINCT 20-bit addresses
+    that alias to the same 16-bit cell. The board captures on a 64K-mirrored
+    test RAM, so a colliding golden is only valid there - a flat-1MB consumer
+    (any real emulator; task #17 upstream contribution) reads a different byte
+    and diverges. Footprint = every memory bus touch in the window (CODE fetch /
+    MEMR / MEMW) plus loaded and written ram. Reroll on collision: it is
+    seed-deterministic and, unlike capture-length rerolls, does not bias against
+    long traces. (testimage.compose's ram-vs-ram + footprint checks are
+    necessary but NOT sufficient - they miss ram-vs-instruction, stack, and
+    prefetch touches; this trace-based check is complete.)"""
+    a = set()
+    for row in test["cycles"]:
+        if row[7] in ("CODE", "MEMR", "MEMW"):
+            a.add(row[1] & 0xFFFFF)
+    for x, _ in test["initial"]["ram"]:
+        a.add(x & 0xFFFFF)
+    for x, _ in test["final"]["ram"]:
+        a.add(x & 0xFFFFF)
+    return len({x & 0xFFFF for x in a}) < len(a)
+
 INTEL2NEC = {"ax": "AW", "bx": "BW", "cx": "CW", "dx": "DW",
              "sp": "SP", "bp": "BP", "si": "IX", "di": "IY",
              "cs": "PS", "ds": "DS0", "es": "DS1", "ss": "SS",
@@ -68,7 +94,16 @@ HANDLER_OFF = 0x0400              # IVT-0 handler (V20 convention)
 # done marker) well under 1024 records; 1536 leaves headroom. Raise for
 # wait-state emissions. A too-small value fails loudly ("no done
 # marker") and the case retries.
-EMIT_CAP = 1536
+EMIT_CAP = 2048        # Path A / E: adaptive capture prefix. Done marker measured at
+EMIT_CAP_RETRY = 4096  # rec <=500 for single-instr + short REP (item A / E scan) -> 2048
+# has a 4x margin. On 'no done marker' RETRY the SAME image at 4096 - NEVER reroll the seed
+# (capture-length rerolls bias the suite against long-trace cases; the 32db59a lesson).
+# Golden emission MUST run on the SOCKETED REAL CHIP (use_core=False), not the
+# internal v30_core (use_core=True). The internal EU does not implement the 0x63
+# undocumented no-op used as the prefetch preamble (PRELOAD_BYTES) -> preloaded
+# cases run away. use_core was added AFTER v0.1 emission (2035cce, post-8b5a7d7),
+# so v0.1 always used the socket; emission was never pinned. Pin it here.
+EMIT_USE_CORE = False
 
 
 #----------------------------------------------------------------------------
@@ -83,7 +118,8 @@ def SPEC(key, mnem, base, modrm=None, w=0, imm=0, group=None,
          io_dx=False, clcount=False, shiftimm=False, bcdbase=False,
          swint=None, membytes=None, memonly=False, popmem=False,
          chkind=False, prep=False, dispose=False, regonly=False,
-         insext=None, popf=False, pushr=False, popr=False):
+         insext=None, popf=False, pushr=False, popr=False, strio=None,
+         lockpfx=False):
     return dict(key=key, mnem=mnem, base=base, modrm=modrm, w=w, imm=imm,
                 group=group, stack=stack, divtrap=divtrap,
                 string4s=string4s, imm_mask=imm_mask, branch=branch,
@@ -93,7 +129,8 @@ def SPEC(key, mnem, base, modrm=None, w=0, imm=0, group=None,
                 bcdbase=bcdbase, swint=swint, membytes=membytes,
                 memonly=memonly, popmem=popmem, chkind=chkind, prep=prep,
                 dispose=dispose, regonly=regonly, insext=insext,
-                popf=popf, pushr=pushr, popr=popr)
+                popf=popf, pushr=pushr, popr=popr, strio=strio,
+                lockpfx=lockpfx)
 
 
 ALU = ["add", "or", "adc", "sbb", "and", "sub", "xor", "cmp"]
@@ -420,6 +457,48 @@ OPCODES["EC"] = SPEC("EC", "in al, dx", [0xEC])
 OPCODES["ED"] = SPEC("ED", "in ax, dx", [0xED])
 IO_IN_OPS = {"E4", "E5", "EC", "ED"}
 
+# ---------------------------------------------------------------------------
+# String I/O: INS/INM (6C/6D) reads port DW, writes ES:IY; OUTS/OUTM (6E/6F)
+# reads DS:IX (src-side segment-overridable), writes port DW. IY/IX step by
+# +/-width per DF; REP (F3/F2/64/65 all unconditional here - no compare) counts
+# down CW. Port DW is kept out of 0x00F8-0x00FF (harness store ports). INS reads
+# are served per-element from the case's own iords sequence (chosen by the
+# emitter; recovered by extract_iords; served to the sim TB and, post-deploy,
+# the board). See docs/notes/ins_outs_design.md.
+OPCODES["6C"] = SPEC("6C", "insb", [0x6C], strio="ins", w=0)
+OPCODES["6D"] = SPEC("6D", "insw", [0x6D], strio="ins", w=1)
+OPCODES["6E"] = SPEC("6E", "outsb", [0x6E], strio="outs", w=0)
+OPCODES["6F"] = SPEC("6F", "outsw", [0x6F], strio="outs", w=1)
+# REP variants - all four repeat prefixes act as unconditional CW countdown on
+# the non-compare string I/O ops; emitting all four confirms the silicon treats
+# them identically (V-series REPC/REPNC differ only for compare strings).
+for _p, _pn in ((0xF3, "rep"), (0xF2, "repne"), (0x65, "repc"), (0x64, "repnc")):
+    for _b, _nm, _io, _w in ((0x6C, "insb", "ins", 0), (0x6D, "insw", "ins", 1),
+                             (0x6E, "outsb", "outs", 0), (0x6F, "outsw", "outs", 1)):
+        _k = f"{_p:02X}{_b:02X}"
+        OPCODES[_k] = SPEC(_k, f"{_pn} {_nm}", [_p, _b], strio=_io, w=_w,
+                           rep=True)
+# segment-override coverage for OUTS (src DS:IX overridable; INS dest ES:IY is
+# NOT overridable) - representative forms
+OPCODES["26.6E"] = SPEC("26.6E", "es: outsb", [0x26, 0x6E], strio="outs", w=0,
+                        segpfx="es")
+OPCODES["2E.6F"] = SPEC("2E.6F", "cs: outsw", [0x2E, 0x6F], strio="outs", w=1,
+                        segpfx="cs")
+OPCODES["36.6E"] = SPEC("36.6E", "ss: outsb", [0x36, 0x6E], strio="outs", w=0,
+                        segpfx="ss")
+# LOCK-prefixed string I/O (task #24 coda leg c). F0 is accepted before any
+# opcode; it asserts BUSLOCK and adds one prefix-decode cycle but changes no
+# segment. The Family-5/7 strio hints (eu_rsv_strio/eu_soon_strio) do NOT gate
+# on lock_en, so F0.6C-6F reach all three new gates while sitting OUTSIDE the
+# characterized (non-locked) population -- this directed tranche captures the
+# chip to decide validated-vs-diverges. lockpfx marks the extra prefix F-pop
+# (no segpfx address remap). LOCK is socket-safe (BUSLOCK assert only).
+OPCODES["F0.6C"] = SPEC("F0.6C", "lock insb",  [0xF0, 0x6C], strio="ins",  w=0, lockpfx=True)
+OPCODES["F0.6D"] = SPEC("F0.6D", "lock insw",  [0xF0, 0x6D], strio="ins",  w=1, lockpfx=True)
+OPCODES["F0.6E"] = SPEC("F0.6E", "lock outsb", [0xF0, 0x6E], strio="outs", w=0, lockpfx=True)
+OPCODES["F0.6F"] = SPEC("F0.6F", "lock outsw", [0xF0, 0x6F], strio="outs", w=1, lockpfx=True)
+STRIO_OPS = {k for k, s in OPCODES.items() if s["strio"]}
+
 BRANCH_OPS = ["EB", "E9", "74", "75", "7C", "E2", "E8", "C3", "C2"]
 
 #----------------------------------------------------------------------------
@@ -522,7 +601,7 @@ SREG_STR = ["es", "cs", "ss", "ds"]
 
 def n_prefix(spec):
     """Prefix bytes ahead of the opcode (each pops as an extra F)."""
-    n = 1 if spec["rep"] or spec["segpfx"] else 0
+    n = 1 if spec["rep"] or spec["segpfx"] or spec.get("lockpfx") else 0
     return n
 
 TRANCHE = ["00", "08", "10", "18", "20", "28", "30", "38", "B8", "40",
@@ -577,6 +656,7 @@ def gen_case(spec, rng):
         instr = bytes(spec["base"])
         name = spec["mnem"]
         ram = []
+        strio_iords = None      # INS: per-element port-read sequence
         if spec["modrm"]:
             mod = 3 if spec["regonly"] else \
                 rng.randrange(3) if (spec["lea"] or spec["memonly"]) \
@@ -838,6 +918,48 @@ def gen_case(spec, rng):
                                        (lin("es", do) & 0xFFFF) + nb))
             name += f" (df={df}" + \
                     (f", cx={cnt})" if spec["rep"] else ")")
+        if spec["strio"]:
+            # String I/O. OUTS reads DS:IX (src-side seg override) and writes
+            # port DW; INS reads port DW and writes ES:IY (dest not overridable).
+            # IX/IY step +/-width per DF; REP counts down CW.
+            nb = 2 if spec["w"] else 1
+            if 0x00F8 <= regs["dx"] <= 0x00FF:
+                continue                      # harness store ports
+            # Word I/O to an ODD port splits into two byte bus cycles (like an
+            # odd-address memory word), which breaks the one-IOR-per-element
+            # iords invariant; constrain word forms to even ports. Byte forms
+            # keep odd ports to exercise the high-lane (data[15:8]) access.
+            if spec["w"]:
+                regs["dx"] &= 0xFFFE
+            if spec["rep"]:
+                # small counts dominate; a tail exercises the emit cap window
+                regs["cx"] = (rng.randrange(0, 5) if rng.random() < 0.8
+                              else rng.randrange(5, 17))
+            cnt = (regs["cx"] & 0xFFFF) if spec["rep"] else 1
+            df = (regs["flags"] >> 10) & 1
+            if spec["strio"] == "outs":
+                sseg = spec["segpfx"] or "ds"
+                for i in range(cnt):
+                    step = -i * nb if df else i * nb
+                    so = (regs["si"] + step) & 0xFFFF
+                    for k in range(nb):
+                        ram.append((lin(sseg, so + k), rng.getrandbits(8)))
+                    spans.append(range(lin(sseg, so) & 0xFFFF,
+                                       (lin(sseg, so) & 0xFFFF) + nb))
+            else:                              # ins: dest ES:IY, port-served
+                strio_iords = []
+                for i in range(cnt):
+                    step = -i * nb if df else i * nb
+                    do = (regs["di"] + step) & 0xFFFF
+                    spans.append(range(lin("es", do) & 0xFFFF,
+                                       (lin("es", do) & 0xFFFF) + nb))
+                    if nb == 1:
+                        b = rng.getrandbits(8)
+                        strio_iords.append(b | (b << 8))  # byte in both lanes
+                    else:
+                        strio_iords.append(rng.getrandbits(16))
+            name += f" (df={df}, port={regs['dx']:04x}" + \
+                    (f", cx={cnt})" if spec["rep"] else ")")
         if spec["string4s"]:
             n = ((regs["cx"] & 0xFF) + 1) // 2
             for k in range(n):
@@ -965,6 +1087,8 @@ def gen_case(spec, rng):
         if spec["key"] in IO_IN_OPS:
             c["iord"] = rng.getrandbits(16)
             c["name"] += f" (iord={c['iord']:04x})"
+        if strio_iords is not None:
+            c["iords"] = strio_iords
         return c
     raise ComposeError("could not place case after 64 rerolls")
 
@@ -1083,10 +1207,18 @@ def emit_evt_case(spec, case, host, tag, preload_n=0, waits=0):
                                     stub_linear=stub_linear)
     recs, fired = run_image(image, host, tag, waits=waits, evt=evt,
                             iord=None, pins=pins or None, want_fired=True,
-                            cap=EMIT_CAP)
+                            cap=EMIT_CAP, use_core=EMIT_USE_CORE)
     if evt and not fired:
         raise RunError("event did not fire")
-    res = parse_result(recs, meta)
+    try:
+        res = parse_result(recs, meta)
+    except RunError as e:
+        if "no done marker" not in str(e):
+            raise
+        recs, fired = run_image(image, host, tag, waits=waits, evt=evt,  # E retry
+                                iord=None, pins=pins or None, want_fired=True,
+                                cap=EMIT_CAP_RETRY, use_core=EMIT_USE_CORE)
+        res = parse_result(recs, meta)
 
     close_addr = stub_linear if spec["close"] == "handler" else None
     rows, events, i0, i1, q0, qf, fetched, memrd = \
@@ -1191,6 +1323,22 @@ def emit_evt_case(spec, case, host, tag, preload_n=0, waits=0):
             if g is not None and g != case["regs"][ik]:
                 fin_regs[ik] = g
 
+    # Handler-close forms that VECTOR (interrupt/trap fired): the store-stub PSW
+    # dump (got["PSW"]) is an unreliable POST-HANDLER capture. The architectural
+    # final flags = the interrupt/trap-pushed PSW & ~0x300 (IE/BRK cleared),
+    # derived from the push in fin_ram at SS:(sp+4) (the stub dumps sp=SP_at_int-6).
+    # See docs/notes/v02_suspected_divergences.md.
+    if spec.get("close") == "handler" and got.get("SP") is not None:
+        _ss = got.get("SS", case["regs"]["ss"]); _sp = got["SP"]
+        _pa = ((_ss << 4) + ((_sp + 4) & 0xFFFF)) & 0xFFFFF
+        _pa1 = ((_ss << 4) + ((_sp + 5) & 0xFFFF)) & 0xFFFFF
+        _pf = ((mem.get(_pa, 0x90) | (mem.get(_pa1, 0x90) << 8)) & ~0x300) & 0xFFFF
+        if (_pf & 0xF000) == 0xF000:              # valid push (V30 forces bits 15:12)
+            if _pf != case["regs"]["flags"]:
+                fin_regs["flags"] = _pf
+            else:
+                fin_regs.pop("flags", None)
+
     test = {
         "name": case["name"],
         "bytes": list(instr),
@@ -1212,6 +1360,11 @@ def emit_evt_case(spec, case, host, tag, preload_n=0, waits=0):
         test["pins"] = pins
     if spec["close"] == "handler":
         test["close_addr"] = stub_linear
+    # NOTE: no footprint-based reject here. Footprint aliasing over-counts behavioral
+    # divergence ~950x (benign 0x90-fill prefetch aliases). Flat-validity is established
+    # POST-EMISSION behaviorally (check_core --no-mirror vs +mirror three-way): mirror-
+    # dependent captures are re-emitted; suspected real (both-model) divergences are KEPT
+    # and escalated. See docs/notes/bringup_log.md collision-criterion correction.
     test["hash"] = hashlib.sha1(
         json.dumps([test["name"], test["bytes"], test["initial"],
                     test["final"], test["cycles"]],
@@ -1386,8 +1539,17 @@ def emit_case(spec, case, host, tag, preload_n=0, waits=0):
                                     ram=ram, ivt=ivt,
                                     stub_linear=stub_linear)
     recs = run_image(image, host, tag, waits=waits,
-                     iord=case.get("iord"), cap=EMIT_CAP)
-    res = parse_result(recs, meta)
+                     iord=case.get("iord"), iords=case.get("iords"),
+                     cap=EMIT_CAP, use_core=EMIT_USE_CORE)
+    try:
+        res = parse_result(recs, meta)
+    except RunError as e:
+        if "no done marker" not in str(e):
+            raise
+        recs = run_image(image, host, tag, waits=waits,      # E: retry at 4096
+                         iord=case.get("iord"), iords=case.get("iords"),
+                         cap=EMIT_CAP_RETRY, use_core=EMIT_USE_CORE)
+        res = parse_result(recs, meta)
 
     rows, events, i0, i1, q0, qf, fetched, memrd = \
         build_rows(recs, meta["anchor_linear"], n_skip_f=preload_n,
@@ -1472,6 +1634,22 @@ def emit_case(spec, case, host, tag, preload_n=0, waits=0):
             if g is not None and g != case["regs"][ik]:
                 fin_regs[ik] = g
 
+    # Handler-close forms that VECTOR (interrupt/trap fired): the store-stub PSW
+    # dump (got["PSW"]) is an unreliable POST-HANDLER capture. The architectural
+    # final flags = the interrupt/trap-pushed PSW & ~0x300 (IE/BRK cleared),
+    # derived from the push in fin_ram at SS:(sp+4) (the stub dumps sp=SP_at_int-6).
+    # See docs/notes/v02_suspected_divergences.md.
+    if spec.get("close") == "handler" and got.get("SP") is not None:
+        _ss = got.get("SS", case["regs"]["ss"]); _sp = got["SP"]
+        _pa = ((_ss << 4) + ((_sp + 4) & 0xFFFF)) & 0xFFFFF
+        _pa1 = ((_ss << 4) + ((_sp + 5) & 0xFFFF)) & 0xFFFFF
+        _pf = ((mem.get(_pa, 0x90) | (mem.get(_pa1, 0x90) << 8)) & ~0x300) & 0xFFFF
+        if (_pf & 0xF000) == 0xF000:              # valid push (V30 forces bits 15:12)
+            if _pf != case["regs"]["flags"]:
+                fin_regs["flags"] = _pf
+            else:
+                fin_regs.pop("flags", None)
+
     test = {
         "name": case["name"],
         "bytes": list(instr),
@@ -1489,6 +1667,13 @@ def emit_case(spec, case, host, tag, preload_n=0, waits=0):
     }
     if case.get("iord") is not None:
         test["iord"] = case["iord"]
+    if case.get("iords") is not None:
+        test["iords"] = case["iords"]     # INS per-IOR served sequence (schema)
+    # NOTE: no footprint-based reject here. Footprint aliasing over-counts behavioral
+    # divergence ~950x (benign 0x90-fill prefetch aliases). Flat-validity is established
+    # POST-EMISSION behaviorally (check_core --no-mirror vs +mirror three-way): mirror-
+    # dependent captures are re-emitted; suspected real (both-model) divergences are KEPT
+    # and escalated. See docs/notes/bringup_log.md collision-criterion correction.
     test["hash"] = hashlib.sha1(
         json.dumps([test["name"], test["bytes"], test["initial"],
                     test["final"], test["cycles"]],
@@ -1568,7 +1753,7 @@ def cmd_preload_cal(host):
               "DS0": 0x9999, "DS1": 0xAAAA, "SS": 0xBBBB,
               "PS": 0x0000, "PC": 0x0500, "PSW": 0x08D5}
     image, meta = testimage.compose(regs=inject, instr=PRELOAD_BYTES * 8)
-    recs = run_image(image, host, tag="pc0")
+    recs = run_image(image, host, tag="pc0", use_core=EMIT_USE_CORE)
     res = parse_result(recs, meta)
     diffs = {k: (v, res["regs"].get(k)) for k, v in
              testimage.compose(regs=inject, instr=b"")[1]["regs_in"].items()
@@ -1580,7 +1765,7 @@ def cmd_preload_cal(host):
         instr = PRELOAD_BYTES * n + b"\x90"
         image, meta = testimage.compose(
             regs={"PS": 0, "PC": 0x0500}, instr=instr)
-        recs = run_image(image, host, tag=f"pc{n}")
+        recs = run_image(image, host, tag=f"pc{n}", use_core=EMIT_USE_CORE)
         try:
             rows, events, i0, i1, q0, qf, _, _ = \
                 build_rows(recs, meta["anchor_linear"], n_skip_f=n)
@@ -1591,16 +1776,206 @@ def cmd_preload_cal(host):
     return 0
 
 
+def _flat_mirror_check(t, flags_mask):
+    """Three-way per-case flat-validity discrimination via the RTL TB (check_core).
+    Runs the emitted golden through the Verilator core on FLAT 1 MB memory; on a
+    flat miss, retries under +mirror (64K). Returns:
+      'flat'    - RTL(flat) reproduces the golden cycles+arch -> flat-valid, ACCEPT
+      'mirror'  - flat misses but +mirror matches -> collision-dependent, REROLL
+      'neither' - both miss -> suspected real chip-vs-RTL divergence, KEEP+flag
+    """
+    import check_core as CC
+    import tempfile as _tf
+    import subprocess as _sp
+    from pathlib import Path as _P
+    CC.build()
+
+    def _run(mirror):
+        with _tf.TemporaryDirectory() as td:
+            sfx = "_m" if mirror else ""
+            b = _P(td) / f"b{sfx}.txt"
+            o = _P(td) / f"o{sfx}.txt"
+            CC.compose_batch([t], b)
+            sa = [str(CC.BIN), f"+batch={b}", f"+out={o}"]
+            if mirror:
+                sa.append("+mirror=1")
+            r = _sp.run(sa, cwd=CC.ROOT, capture_output=True, text=True)
+            if r.returncode != 0 or not o.exists():
+                return None
+            return CC.parse_out(o).get(t["idx"])
+
+    def _ok(sim):
+        if sim is None:
+            return False
+        res = CC.check_case(t, sim, flags_mask)
+        return res["cycles_ok"] and res["arch_ok"]
+
+    if _ok(_run(False)):
+        return "flat"
+    return "mirror" if _ok(_run(True)) else "neither"
+
+
+def _flags_mask_of(op, meta):
+    """Resolve a form's flags-mask from metadata (grouped forms XX.N live under
+    opcodes[XX]['reg'][N]; base entry otherwise). Mirrors check_core."""
+    base = op.split(".")[0]
+    entry = meta["opcodes"].get(op) or meta["opcodes"].get(base, {})
+    if "." in op and "reg" in entry:
+        return entry["reg"].get(op.split(".", 1)[1], {}).get("flags-mask", 0xFFFF)
+    return entry.get("flags-mask", 0xFFFF)
+
+
+def _emit_one_index(spec, is_evt, op, idx, host, seed_base, preload_n, waits,
+                    validate=False, flags_mask=0xFFFF, relog=None):
+    """Emit a single OUTPUT index deterministically and confined to that index:
+    attempt 0 uses the ORIGINAL per-case seed f"{base}/{op}/{idx}" (so a
+    non-colliding index re-emits byte-identically); collisions/failures reroll
+    WITHIN the index via f".../{idx}/{r}" (r>=1) - never skip-to-next-seed, so
+    other indices are untouched. Returns the test object (idx set).
+
+    validate=True enables the flat-validity three-way gate (mirror-dependent ->
+    reroll to a flat-valid replacement; suspected real divergence -> KEEP+flag).
+    relog: optional open file handle for per-index disposition logging."""
+    pn = preload_n if preload_n >= 0 else (2 if idx % 2 == 1 else 0)
+    for r in range(64):
+        sd = f"{seed_base}/{op}/{idx}" if r == 0 \
+            else f"{seed_base}/{op}/{idx}/{r}"
+        rng = random.Random(sd)
+        try:
+            if is_evt:
+                case = gen_evt_case(spec, rng)
+                t = emit_evt_case(spec, case, host, tag=f"re{op}",
+                                  preload_n=pn, waits=waits)
+            else:
+                case = gen_case(spec, rng)
+                t = emit_case(spec, case, host, tag=f"re{op}",
+                              preload_n=pn, waits=waits)
+        except (ComposeError, RunError):
+            continue
+        t["idx"] = idx
+        if not validate:
+            return t
+        disp = _flat_mirror_check(t, flags_mask)
+        if relog is not None:
+            relog.write(f"{op} idx {idx} attempt r={r}: {disp}\n")
+            relog.flush()
+        if disp == "flat":
+            return t
+        if disp == "neither":
+            # suspected REAL chip-vs-RTL divergence: KEEP (chip is truth), flag,
+            # stop rerolling - it is valid suite content, not a placement defect.
+            t["flatvalidity"] = "neither"
+            return t
+        # 'mirror' -> collision-dependent: reroll within-index for a flat-valid one
+    raise RunError(f"{op} idx {idx}: no flat-valid case in 64 rerolls")
+
+
+def cmd_reemit(host, index_map, out_dir, seed_base, preload_n=-1, waits=0,
+               validate=False):
+    """Re-emit specific OUTPUT indices per form (from index_map = {op:[idx..]}),
+    replacing them in-place in the existing files. Confined per index (see
+    _emit_one_index) so non-targeted cases stay byte-identical. Use for the
+    collision re-emission and for 10k resumability. NOTE: only valid for forms
+    whose current file has idx==seed (no skip-to-next rerolls in emit_log); a
+    form with a logged reroll must be FULLY re-emitted instead.
+
+    validate=True runs the flat-validity three-way gate per re-emitted index
+    (mirror-dependent -> reroll to a flat-valid replacement; suspected real
+    divergence -> KEEP+flag). Dispositions are logged to <out>/reemit.log."""
+    if EMIT_USE_CORE is not False:
+        raise RunError("re-emit truth source is not the socket")
+    out_dir = Path(out_dir)
+    meta = None
+    if validate:
+        meta_fn = out_dir / "metadata.json"
+        if not meta_fn.exists():
+            meta_fn = DEFAULT_OUT / "metadata.json"
+        meta = json.load(open(meta_fn))
+    relog = open(out_dir / "reemit.log", "a") if validate else None
+    kept = []
+    for op, idxs in index_map.items():
+        is_evt = op in EVT_FORMS
+        spec = EVT_FORMS[op] if is_evt else OPCODES[op]
+        fmask = _flags_mask_of(op, meta) if validate else 0xFFFF
+        fn = out_dir / f"{op}.json.gz"
+        tests = json.load(gzip.open(fn))
+        by = {t["idx"]: t for t in tests}
+        for idx in idxs:
+            t = _emit_one_index(spec, is_evt, op, idx, host, seed_base,
+                                preload_n, waits, validate=validate,
+                                flags_mask=fmask, relog=relog)
+            if t.get("flatvalidity") == "neither":
+                kept.append(f"{op}:{idx}")
+            by[idx] = t
+        merged = [by[k] for k in sorted(by)]
+        with gzip.open(fn, "wt") as f:
+            json.dump(merged, f, separators=(",", ":"))
+        print(f"{op}: re-emitted {len(idxs)} indices -> {fn}", flush=True)
+    if relog is not None:
+        relog.close()
+    if kept:
+        print(f"KEEP+flag (suspected real divergence, not flat-valid): {kept}",
+              flush=True)
+    return 0
+
+
 def cmd_emit(host, opcodes, n_cases, out_dir, seed_base, preload_n,
-             waits=0):
+             waits=0, resume=False):
     out_dir = Path(out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
     log = out_dir / "emit_log.txt"
+    # TRUTH-SOURCE GUARD: goldens may ONLY be captured from the socketed real
+    # chip (use_core=False). The internal v30_core is the DUT, never the
+    # reference. A pin at the emit call sites (EMIT_USE_CORE) PLUS this per-run
+    # assertion + log line, so a future use_core-style A/B flag added to the
+    # harness cannot silently redirect truth back to the core (see bringup_log
+    # "wrong core selected for emission").
+    if EMIT_USE_CORE is not False:
+        raise RunError(
+            "REFUSING to emit goldens: truth source is not the socket "
+            f"(EMIT_USE_CORE={EMIT_USE_CORE!r}); goldens require use_core=False")
+    truth = "SOCKET (real chip, use_core=False)"
+    stamp = (f"# TRUTH SOURCE: {truth}  seed_base={seed_base}  "
+             f"cases={n_cases}  waits={waits}  forms={len(opcodes)}")
+    with log.open("a") as f:
+        f.write(stamp + "\n")
+    print(stamp, flush=True)
+    # WAIT-RIG PROVENANCE (task #24, mechanized guard): connect the runner (which
+    # force-cleans the rig at connect) and record the rig readback, so a tainted
+    # capture is caught at read-time. A "Tw in a waits=0 golden" is a provenance
+    # alarm, not a law - the log makes the rig state auditable per emission.
+    if waits == 0:
+        import v30run as _v30
+        try:
+            (_v30._runners.get(host) or _v30._runners.setdefault(
+                host, _v30.ServeRunner(host))).ensure()
+            rig = getattr(_v30._runners.get(host), "rig_readback", "?")
+        except Exception as e:
+            rig = f"(rig readback unavailable: {str(e)[:60]})"
+        with log.open("a") as f:
+            f.write(f"# WAIT-RIG: {rig}\n")
+        print(f"# WAIT-RIG: {rig}", flush=True)
     for op in opcodes:
+        # RESUME: skip a form whose gz already holds >= n_cases records (a
+        # completed form from an earlier, interrupted run of the same launch).
+        # Per-form granularity: an in-progress form was never written (files
+        # are written only on form completion), so no partial state to trust.
+        if resume:
+            fn = out_dir / f"{op}.json.gz"
+            if fn.exists():
+                try:
+                    done = len(json.load(gzip.open(fn)))
+                except Exception:
+                    done = 0
+                if done >= n_cases:
+                    print(f"{op}: resume skip ({done} already emitted)",
+                          flush=True)
+                    continue
         is_evt = op in EVT_FORMS
         spec = EVT_FORMS[op] if is_evt else OPCODES[op]
         rng_master = random.Random(f"{seed_base}/{op}")
         tests = []
+        seeds = []      # sidecar: [output_idx, seed_i] provenance (item 5)
         rerolls = 0
         t0 = time.time()
         i = 0
@@ -1625,6 +2000,7 @@ def cmd_emit(host, opcodes, n_cases, out_dir, seed_base, preload_n,
                     f.write(f"{op} case-seed {i - 1} reroll: "
                             f"{str(e)[:120]}\n")
                 continue
+            seeds.append([len(tests), i - 1])   # output_idx -> seed_i
             t["idx"] = len(tests)
             tests.append(t)
             if len(tests) % 50 == 0:
@@ -1634,6 +2010,12 @@ def cmd_emit(host, opcodes, n_cases, out_dir, seed_base, preload_n,
         fn = out_dir / f"{op}.json.gz"
         with gzip.open(fn, "wt") as f:
             json.dump(tests, f, separators=(",", ":"))
+        # sidecar seed manifest: output-idx -> seed-attempt index, so prefix
+        # verification (records 0..N of a 10k extension) never depends on
+        # reproducing reroll behaviour (Codex review item 5; extends the
+        # confinement work). seed string = f"{seed_base}/{op}/{seed_i}".
+        with open(out_dir / f"{op}.seeds.json", "w") as sf:
+            json.dump(dict(seed_base=seed_base, op=op, map=seeds), sf)
         print(f"{op}: wrote {len(tests)} tests ({rerolls} rerolls) -> {fn} "
               f"in {time.time() - t0:.0f}s", flush=True)
     return 0
@@ -1688,7 +2070,11 @@ def cmd_spotcheck(host, out_dir, per_op=3):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("cmd",
-                    choices=["validate", "preload-cal", "emit", "spotcheck"])
+                    choices=["validate", "preload-cal", "emit", "spotcheck",
+                             "reemit"])
+    ap.add_argument("--indices-file", default="",
+                    help="reemit: JSON {op: [output-idx, ...]} to re-emit in "
+                         "place (confined per index; non-targeted cases untouched)")
     ap.add_argument("--host", default="root@mister-nec")
     ap.add_argument("--opcodes", default=",".join(TRANCHE))
     ap.add_argument("--cases", type=int, default=500)
@@ -1700,6 +2086,12 @@ def main():
                          "always N 63C0 preload repetitions")
     ap.add_argument("--waits", type=int, default=0,
                     help="harness wait states per bus cycle (CFG waits)")
+    ap.add_argument("--resume", action="store_true",
+                    help="skip forms whose gz already holds >= --cases records "
+                         "(restart an interrupted launch without redoing forms)")
+    ap.add_argument("--validate", action="store_true",
+                    help="reemit: flat-validity three-way gate per index "
+                         "(mirror-dependent -> reroll; neither -> KEEP+flag)")
     args = ap.parse_args()
     global EMIT_CAP
     if args.waits:
@@ -1710,8 +2102,13 @@ def main():
         return cmd_spotcheck(args.host, args.out)
     if args.cmd == "preload-cal":
         return cmd_preload_cal(args.host)
+    if args.cmd == "reemit":
+        index_map = json.load(open(args.indices_file))
+        return cmd_reemit(args.host, index_map, args.out, args.seed,
+                          args.preload, args.waits, validate=args.validate)
     return cmd_emit(args.host, args.opcodes.split(","), args.cases,
-                    args.out, args.seed, args.preload, args.waits)
+                    args.out, args.seed, args.preload, args.waits,
+                    resume=args.resume)
 
 
 if __name__ == "__main__":
