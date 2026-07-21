@@ -50,6 +50,7 @@ module v30_core (
     output            RD_N,
     output            UBE_N,
     output            BUSLOCK_N,
+    output            BUS_STRETCH,   // Family-8 LOCK-window stretch (task #24)
     input             SS_CAPTURE,
     input             SS_RESTORE,
     input             SS_SHIFT,
@@ -93,6 +94,7 @@ wire        eu_soon, eu_soon_ea, eu_soon_ivt, bus_phase, bus_t4, flush_fast;
 wire        eu_soon_strio;                   // Family-7 strio idle-window lead (task #24)
 wire        grid_phase;
 wire        eu_lock, core_buslock_n, eu_mem_acc;
+wire        core_bus_stretch;
 wire        eu_rsv_dhi, eu_rsv_push_calc;   // Phase 3 reservation-class hints
 wire        eu_rsv_lead;                     // eu_req=0 onset lead hint
 wire        eu_rsv_strio;                    // Family-5 strio T3-eval veto (task #24)
@@ -214,6 +216,7 @@ v30_biu u_biu (
     .grid_phase (grid_phase),
     .eu_lock    (scr_en ? 1'b0 : eu_lock),
     .buslock_n  (core_buslock_n),
+    .bus_stretch(core_bus_stretch),
     .bus_t4     (bus_t4),
     .bus_tw     (bus_tw),
     .bus_ts     (bus_ts),
@@ -336,6 +339,7 @@ assign AD[15:0]  = (ad_oe_addr | ad_oe_data) ? ad_o[15:0]  : 16'hzzzz;
 assign AD[19:16] = (ad_oe_addr | ad_oe_ps)   ? ad_o[19:16] : 4'hz;
 
 assign BUSLOCK_N = core_buslock_n;
+assign BUS_STRETCH = core_bus_stretch;
 
 wire _unused = &{1'b0, scr_qop[1]};
 

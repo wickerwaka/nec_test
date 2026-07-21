@@ -137,6 +137,9 @@ module v30_biu (
                                     // op's execution through its final locked
                                     // write's T4. Transparent to prefetch.
     output            buslock_n,    // max-mode LOCK output pin (active low)
+    output            bus_stretch,  // Family-8: LOCK-window stretch this ST_T3
+                                    // cycle -> the TB observer inserts a Tw
+                                    // (ready_r && !bus_stretch). 0 when unlocked.
     input             eu_hold,      // blocks prefetch, not request history
     input             eu_ready,
     input             eu_rsv_dhi,   // Phase 3: current coincident reservation
@@ -257,6 +260,10 @@ always_comb begin
     ss_pack.gph_ff = gph_ff;
     ss_pack.lock_active = lock_active;
     ss_pack.lock_done = lock_done;
+    ss_pack.cur_bb_grant = cur_bb_grant;
+    ss_pack.lock_eu_cnt1 = lock_eu_cnt1;
+    ss_pack.lock_eu_cnt2 = lock_eu_cnt2;
+    ss_pack.lock_s1_fired = lock_s1_fired;
     ss_pack.q_mem0 = q_mem[0];
     ss_pack.q_mem1 = q_mem[1];
     ss_pack.q_mem2 = q_mem[2];
@@ -1143,7 +1150,32 @@ endtask
 `else
  `define SLOT_CHK(c)
 `endif
-wire t3_done = (state == ST_T3 || state == ST_TW) && ready;
+// ============ Family-8: LOCK-window bus-cycle stretch (task #24) ============
+// The chip inserts genuine wait states inside LOCK windows (+3 clocks cold /
+// +1 warm), fitted single-valued on tests/v30/f0lock_tranche (S1/S2/S3 rule,
+// architect). Modeled as an internal ready-mask so the ENTIRE downstream
+// machinery treats the extra clock as a real Tw (the chip's post-stretch
+// commits land at the waited-eval face). Gated by eu_lock (addendum-2: sets at
+// F0 S_DEC, >=2-cycle margin to the cold successor T3, vs lock_active's 2-cycle-
+// late edge) -> every unlocked path is bit-identical (eu_lock never asserts
+// there). NEW STATE FLOPS -> v30_ss_pkg SS_VERSION 0x02, scramble mandatory.
+// The stretch is exported as BUS_STRETCH so the TB's tb_t observer inserts the
+// Tw through its existing wait machinery (ready_r && !bus_stretch); unlocked-w0
+// bus_stretch is structurally 0 -> TB bit-identical. (eu_lock is an input;
+// tw_any declared later in the module; module-scope refs.)
+reg  cur_bb_grant;               // current bus cycle committed back-to-back
+reg  lock_eu_cnt1, lock_eu_cnt2; // locked EU bus cycles seen (saturating 0,1,2+)
+reg  lock_s1_fired;              // an S1 fetch stretch fired this lock window
+wire lock_s1 = cur_fetch && cur_bb_grant && !lock_eu_cnt1;
+wire lock_s2 = !cur_fetch && (cur_type != BS_PASV) && !lock_eu_cnt1;
+wire lock_s3 = !cur_fetch && (cur_type != BS_PASV) && lock_eu_cnt1 &&
+               !lock_eu_cnt2 && lock_s1_fired;
+wire lock_stretch_due = eu_lock && !tw_any && (state == ST_T3) &&
+                        (lock_s1 || lock_s2 || lock_s3);
+wire ready_eff = ready && !lock_stretch_due;
+assign bus_stretch = lock_stretch_due;   // Family-8 -> TB observer Tw insertion
+
+wire t3_done = (state == ST_T3 || state == ST_TW) && ready_eff;
 
 // Commit-eval deferral under wait states (measured on the waits=1/3
 // tranches): the completion eval fires at the T3->T4 edge only when READY
@@ -1273,6 +1305,10 @@ always_ff @(posedge clk) begin
         fetch_data     <= ss_u.fetch_data;
         push_pend      <= ss_u.push_pend;
         push_pend_hi   <= ss_u.push_pend_hi;
+        cur_bb_grant   <= ss_u.cur_bb_grant;
+        lock_eu_cnt1   <= ss_u.lock_eu_cnt1;
+        lock_eu_cnt2   <= ss_u.lock_eu_cnt2;
+        lock_s1_fired  <= ss_u.lock_s1_fired;
     end else if (srst) begin
         eu_started <= 1'b0;
         defer_t4   <= 1'b0;
@@ -1310,6 +1346,10 @@ always_ff @(posedge clk) begin
         evald      <= 1'b0;
         push_pend  <= 2'd0;
         push_pend_hi <= 1'b0;
+        cur_bb_grant  <= 1'b0;
+        lock_eu_cnt1  <= 1'b0;
+        lock_eu_cnt2  <= 1'b0;
+        lock_s1_fired <= 1'b0;
         eu_hand    <= 1'b0;
         eval_ext   <= 1'b0;
         ext_flushed <= 1'b0;
@@ -1372,6 +1412,21 @@ always_ff @(posedge clk) begin
         // HALT pseudo-T1 releases UBE_N high
         if (halt_show) ube_n <= 1'b1;
 
+        // Family-8 lock-window bookkeeping (task #24): the counters/flag are
+        // lock-window-scoped (cleared at the eu_lock retire, same as
+        // lock_active/lock_done); cur_bb_grant is per-cycle (set at the T1
+        // entries in the case below). A locked EU bus cycle advances the
+        // saturating count at its own T4 (after any inserted stretch Tw).
+        if (!eu_lock) begin
+            lock_eu_cnt1  <= 1'b0;
+            lock_eu_cnt2  <= 1'b0;
+            lock_s1_fired <= 1'b0;
+        end else if (state == ST_T4 && eu_lock && !cur_fetch &&
+                     (cur_type != BS_PASV)) begin
+            if (!lock_eu_cnt1)      lock_eu_cnt1 <= 1'b1;
+            else if (!lock_eu_cnt2) lock_eu_cnt2 <= 1'b1;
+        end
+
         unique case (state)
             ST_TI: begin
                 // R6a: canonical commit dispatch. The arbiter fires exactly
@@ -1382,6 +1437,10 @@ always_ff @(posedge clk) begin
                     enter_t1_direct(slot_desc);
                 else if (slot_fire && slot_mode == COMMIT_STAGED)
                     stage_commit(slot_desc);
+                // Family-8: any T1 entry from ST_TI is a fresh idle grant, not
+                // a back-to-back completion commit (warm bridge -> S1 exempt).
+                if ((slot_fire && slot_mode == COMMIT_DIRECT) || nxt_live)
+                    cur_bb_grant <= 1'b0;
 
                 if (nxt_live) begin
                     `SLOT_CHK(!slot_fire);
@@ -1486,9 +1545,14 @@ always_ff @(posedge clk) begin
                     enter_t1_direct(slot_desc);
                 else if (slot_fire && slot_mode == COMMIT_STAGED)
                     stage_commit(slot_desc);
+                // Family-8: a direct T3-eval delivery is a back-to-back commit.
+                if (slot_fire && slot_mode == COMMIT_DIRECT)
+                    cur_bb_grant <= 1'b1;
 
                 if (state == ST_TW) tw_any <= 1'b1;
-                if (ready) begin
+                // Family-8: an S1 fetch stretch this cycle -> record it for S3.
+                if (lock_stretch_due && lock_s1) lock_s1_fired <= 1'b1;
+                if (ready_eff) begin
                     state <= ST_T4;
                     // read-data sample at the end of T3/TW
                     if (!cur_wr) begin
@@ -1539,6 +1603,10 @@ always_ff @(posedge clk) begin
                     enter_t1_direct(slot_desc);
                 else if (slot_fire && slot_mode == COMMIT_STAGED)
                     stage_commit(slot_desc);
+                // Family-8: a T4->T1 delivery (direct commit or nxt_live) is a
+                // back-to-back commit (the "nxt_live-at-T4" case, S1 eligible).
+                if ((slot_fire && slot_mode == COMMIT_DIRECT) || nxt_live)
+                    cur_bb_grant <= 1'b1;
 
                 if (cur_fetch && fetch_discard) fetch_discard <= 1'b0;
                 // waited cycle: deferred eval edge - schedule the queue
@@ -1781,7 +1849,7 @@ assign ss_bus_quiet = (bus_ts == 3'd0) && (bs == BS_PASV) && !nxt_valid &&
 reg ready_prev;
 always_ff @(posedge clk)
     if (ss_restore) ready_prev <= ss_u.ready_prev;
-    else if (ce) ready_prev <= ready;
+    else if (ce) ready_prev <= ready_eff;   // Family-8: stretch = a real wait
 always_ff @(posedge clk) begin
     if (ss_restore) begin
         eu_req_p1   <= ss_u.eu_req_p1;
@@ -1852,7 +1920,8 @@ assign bs = (halt_show || halt_t1) ? BS_HALT
           : nxt_live ? nxt_type
           : slot_show_now ? pick_type
           : (state == ST_T1 || state == ST_T2) ? cur_type
-          : ((state == ST_T3 || state == ST_TW) && !ready_prev) ? cur_type
+          : ((state == ST_T3 || state == ST_TW) &&
+             (!ready_prev || lock_stretch_due)) ? cur_type   // Family-8: hold
           : BS_PASV;
 
 wire [15:0] wdata_lanes = cur_swap ? {cur_wdata[7:0], cur_wdata[15:8]}

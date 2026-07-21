@@ -24,14 +24,14 @@
 
 package v30_ss_pkg;
 
-  localparam int          SS_VERSION   = 8'h01;
+  localparam int          SS_VERSION   = 8'h02;   // +Family-8 LOCK-stretch flops (task #24)
   localparam int          SS_BIU_WORDS = 19;                 // 304 bits
   localparam int          SS_EU_WORDS  = 54;                 // 864 bits
   localparam int          SS_WORDS     = 1 + SS_BIU_WORDS + SS_EU_WORDS; // +tag = 74
   localparam logic [15:0] SS_TAG       = {8'(SS_VERSION), 8'(SS_WORDS)};
 
   //--------------------------------------------------------------------------
-  // BIU segment - 295 state bits + 9 pad = 304 (19 words). Field order = design
+  // BIU segment - 299 state bits + 5 pad = 304 (19 words). Field order = design
   // Section 2.1 table order. Names match v30_biu.sv exactly (member-wise pack).
   //--------------------------------------------------------------------------
   typedef struct packed {
@@ -91,6 +91,11 @@ package v30_ss_pkg;
     // LOCK
     logic        lock_active;
     logic        lock_done;
+    // Family-8 LOCK-window bus-cycle stretch bookkeeping (task #24)
+    logic        cur_bb_grant;    // current cycle committed back-to-back (not TI-grant)
+    logic        lock_eu_cnt1;    // >=1 locked EU bus cycle seen this window
+    logic        lock_eu_cnt2;    // >=2 locked EU bus cycles seen this window
+    logic        lock_s1_fired;   // an S1 fetch stretch fired this lock window
     // prefetch queue (flops, not RAM - design 2.3)
     logic [7:0]  q_mem0;
     logic [7:0]  q_mem1;
@@ -129,7 +134,7 @@ package v30_ss_pkg;
     logic [2:0]  law_sel;
     logic        law_prov;
     // explicit pad to 19*16
-    logic [8:0]  pad;
+    logic [4:0]  pad;
   } ss_biu_t;
 
   //--------------------------------------------------------------------------
