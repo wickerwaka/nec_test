@@ -148,7 +148,6 @@ wire [19:0] AD;
 wire  [1:0] QS;
 wire  [2:0] BS;
 wire        RD_N, UBE_N, BUSLOCK_N;
-wire        bus_stretch;   // Family-8: core LOCK-window stretch (task #24)
 
 //----------------------------------------------------------------------------
 // pin-event scheduler + static pins (mirrors the harness semantics):
@@ -201,7 +200,6 @@ v30_core dut (
     .RD_N      (RD_N),
     .UBE_N     (UBE_N),
     .BUSLOCK_N (BUSLOCK_N),
-    .BUS_STRETCH (bus_stretch),
     .SS_CAPTURE(ss_cap_r),
     .SS_RESTORE(ss_restore_r),
     .SS_SHIFT  (ss_shift_r),
@@ -254,7 +252,7 @@ wire [2:0] tb_t_next =
     (tb_t == ST_TI) ? (bs_active ? ST_T1 : ST_TI) :
     (tb_t == ST_T1) ? ST_T2 :
     (tb_t == ST_T2) ? ST_T3 :
-    (tb_t == ST_T3) ? ((ready_r && !bus_stretch) ? ST_T4 : ST_TW) :
+    (tb_t == ST_T3) ? (ready_r ? ST_T4 : ST_TW) :
     (tb_t == ST_TW) ? (ready_r ? ST_T4 : ST_TW) :
     /* ST_T4 */       (bs_active ? ST_T1 : ST_TI);
 
@@ -691,7 +689,7 @@ always @(posedge clk) begin
         // canonical arbiter's fired slot this cycle; eu_kind = the EU access kind
         // (0=mem 1=io 2=inta 3=halt). All existing DUT signals - APPEND-ONLY
         // observability, the DUT is untouched and remains bit-identical to HEAD.
-        $fdisplay(fo, "d %0d %0d %0d %0d %0d %0d %05x %0d %02x %02x %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %02x %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %02x %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d",
+        $fdisplay(fo, "d %0d %0d %0d %0d %0d %0d %05x %0d %02x %02x %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %02x %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %02x %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d",
                   dut.u_eu.state, dut.u_eu.q_pop,
                   dut.u_biu.q_avl, dut.u_biu.q_cnt,
                   dut.u_eu.eu_wrap, dut.u_biu.cur_wrap,
@@ -746,12 +744,7 @@ always @(posedge clk) begin
                   // existing DUT signals - APPEND-ONLY observability, DUT bit-identical.
                   dut.u_biu.eu_ready_p1, dut.u_biu.eu_ready_p2, dut.u_biu.eu_req_p2,
                   dut.u_biu.ext_flushed, dut.u_biu.ext_ok, dut.u_biu.ext_ok_wr,
-                  dut.u_biu.eu_defer_wr, dut.u_biu.tw_par,
-                  // d[75..82]: Family-8 lock-stretch probe (task #24 P5)
-                  dut.u_biu.lock_active, dut.u_biu.lock_stretch_due,
-                  dut.u_biu.cur_bb_grant, dut.u_biu.lock_eu_cnt1,
-                  dut.u_biu.lock_eu_cnt2, dut.u_biu.lock_s1_fired,
-                  dut.u_eu.lock_en, dut.u_biu.eu_lock);
+                  dut.u_biu.eu_defer_wr, dut.u_biu.tw_par);
 end
 
 initial begin

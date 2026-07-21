@@ -393,10 +393,6 @@ v30_core u_core
     .RD_N      (core_rd_n),
     .UBE_N     (core_ube_n),
     .BUSLOCK_N (core_buslock_n),
-    // Family-8 (task #24): BUS_STRETCH is a SIM-observer aid only (tb_v30_core's
-    // ready-driven tb_t). The board capture (nec_bus) is pin-driven and sees the
-    // fabric's held bus identically to the chip -> board zero-change (architect).
-    .BUS_STRETCH(),
     .SS_CAPTURE(1'b0),
     .SS_RESTORE(1'b0),
     .SS_SHIFT  (1'b0),
