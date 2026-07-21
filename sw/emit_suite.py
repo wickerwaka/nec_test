@@ -1940,6 +1940,21 @@ def cmd_emit(host, opcodes, n_cases, out_dir, seed_base, preload_n,
     with log.open("a") as f:
         f.write(stamp + "\n")
     print(stamp, flush=True)
+    # WAIT-RIG PROVENANCE (task #24, mechanized guard): connect the runner (which
+    # force-cleans the rig at connect) and record the rig readback, so a tainted
+    # capture is caught at read-time. A "Tw in a waits=0 golden" is a provenance
+    # alarm, not a law - the log makes the rig state auditable per emission.
+    if waits == 0:
+        import v30run as _v30
+        try:
+            (_v30._runners.get(host) or _v30._runners.setdefault(
+                host, _v30.ServeRunner(host))).ensure()
+            rig = getattr(_v30._runners.get(host), "rig_readback", "?")
+        except Exception as e:
+            rig = f"(rig readback unavailable: {str(e)[:60]})"
+        with log.open("a") as f:
+            f.write(f"# WAIT-RIG: {rig}\n")
+        print(f"# WAIT-RIG: {rig}", flush=True)
     for op in opcodes:
         # RESUME: skip a form whose gz already holds >= n_cases records (a
         # completed form from an earlier, interrupted run of the same launch).

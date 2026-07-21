@@ -98,6 +98,15 @@ class ServeRunner:
         self.last_waits = None  # (waits, use_core) tuple key
         self.last_wrand = None  # WRAND state key (None = never enabled)
         self.last_replay = False  # replay mode currently armed
+        # MECHANIZED WAIT-RIG GUARD (task #24, sticky-WRAND 2nd occurrence).
+        # Force the wait rig to a KNOWN-CLEAN state at every connect: random
+        # OFF, replay OFF, UNCONDITIONALLY. last_wrand/last_replay track only
+        # THIS runner, so a fresh process would otherwise inherit whatever
+        # R_WRAND a PRIOR session left enabled and never clear it (the 16:10
+        # f0lock tranche was captured this way, minting phantom Tw). A wait
+        # spec explicitly requested for a run re-enables it afterwards.
+        self.rig_clean = False
+        self._force_clean_rig()
 
     def cfg(self, waits, use_core=None):
         key = (waits, use_core)
@@ -112,6 +121,27 @@ class ServeRunner:
             self.close()
             raise RunError(f"serve: cfg failed: {line[:120]}")
         self.last_waits = key
+
+    def _force_clean_rig(self):
+        """Force the wait rig clean at connect (random OFF, replay OFF),
+        UNCONDITIONALLY - defeats the sticky-None skip in wrand()/replay() so a
+        fresh connection cannot inherit a prior session's stale R_WRAND. The
+        wait-rig readback is recorded for provenance (rig_readback)."""
+        self._send("WRAND 0 - -")
+        line = self._readline(10)
+        if line != "OK WRAND":
+            self.close()
+            raise RunError(f"serve: rig-clear(random) failed: {line[:120]}")
+        self.last_wrand = ('off',)
+        self._send("WRAND - - - 0")
+        line = self._readline(10)
+        if line != "OK WRAND":
+            self.close()
+            raise RunError(f"serve: rig-clear(replay) failed: {line[:120]}")
+        self.last_replay = False
+        self.rig_clean = True
+        # provenance: both rig-clear commands returned OK -> rig commanded clean
+        self.rig_readback = "WRAND=0 replay=0 (commanded clean at connect, OK/OK)"
 
     def wrand(self, spec):
         """Seeded random per-access waits. spec = None (uniform, board
