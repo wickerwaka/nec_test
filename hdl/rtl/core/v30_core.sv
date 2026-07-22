@@ -140,6 +140,13 @@ assign SS_BUS_QUIET = ss_biu_bus_quiet;
 always @(posedge CLK) begin
     if (SS_WE && CE)    $error("SS_WE asserted while CE high (core not frozen)");
     if (SS_WE && RESET) $error("SS_WE asserted during RESET");
+    // Resume-drain contract (A2): the platform must NOT re-enable CE until the
+    // SS command staging has drained. ss_we_q still high at a CE cycle means the
+    // core's FSM takes its `if (ss_we)` branch and SKIPS its state advance -> a
+    // phantom wait on resume. The TB honours this via a parked drain posedge +
+    // negedge CE release; this assertion mechanises the rule so the next
+    // integration (MiSTer wrapper) cannot repeat the bug silently.
+    if (CE && ss_we_q)  $error("CE resumed with SS command staging undrained (ss_we_q high)");
 end
 `endif
 

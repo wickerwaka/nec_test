@@ -37,11 +37,14 @@
 always @(posedge CLK) begin
     if (SS_WE && CE)    $error("SS_WE asserted while CE high (core not frozen)");
     if (SS_WE && RESET) $error("SS_WE asserted during RESET");
+    if (CE   && ss_we_q) $error("CE resumed with SS command staging undrained (ss_we_q high)");
 end
 `endif
 ```
 
 (The one-hot and negedge-hold assertions die with the strobes.)
+
+- **Resume-drain contract (A2, platform-facing).** The command staging (`ss_we_q`, one posedge behind `SS_WE`) is the *other half* of the write path: the platform must not re-enable CE until it has drained. Concretely, the last restore write leaves `ss_we_q` high for one more posedge; if CE goes high on that posedge the core's FSM takes its `if (ss_we)` branch and **skips its state advance — a phantom wait cycle on resume** (found and fixed in A2, previously mis-attributed to a free-running grid-phase flop; the mechanical audit confirmed *no raw-clk core-state flop exists*, so the RTL contract was always correct — the tooling simply wasn't honouring this half of it). **Resume sequence the platform (and TB) must follow:** after the final restore write, drop `SS_WE` low, then take **one parked posedge** (CE still 0) so the staging drains `ss_we_q → 0`, then release CE **off a negedge** (mirroring the freeze, which asserts the park at a negedge) so the first resumed posedge sees `ce=1 && ss_we_q==0`. The `if (CE && ss_we_q) $error(...)` assertion above mechanises this rule so the next integration (MiSTer wrapper) cannot repeat the TB's original bug silently.
 
 ### 1.2 Module ports
 

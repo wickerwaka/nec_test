@@ -497,9 +497,10 @@ def main():
                          "recorded window (default stride: 1)")
     ap.add_argument("--ss-cases", default="", metavar="LIST",
                     help="comma-separated case indices included in --ss-sweep")
-    ap.add_argument("--ss-mode", type=int, choices=(1, 2), default=1,
+    ap.add_argument("--ss-mode", type=int, choices=(1, 2, 4, 5), default=1,
                     help="save-state sweep mode: 1=scramble (default), "
-                         "2=idempotence")
+                         "2=idempotence, 4=bit-flip sensitivity, "
+                         "5=round-trip width sweep (v2)")
     ap.add_argument("--waits", type=int, default=0,
                     help="TB READY wait states (match the suite's setting)")
     ap.add_argument("--arch-only", action="store_true",

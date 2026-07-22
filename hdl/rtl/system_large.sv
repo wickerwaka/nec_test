@@ -370,7 +370,7 @@ always_ff @(posedge clk) begin
 end
 
 wire core_reset = c_reset_q | ~cfg_use_core;   // held in reset unless A/B=core
-wire [15:0] core_ss_dout_unused;
+wire [15:0] core_ss_rdata_unused;
 wire        core_ss_err_unused;
 wire        core_ss_bus_quiet_unused;
 
@@ -396,7 +396,7 @@ v30_core u_core
     .SS_ADDR   (9'b0),
     .SS_WDATA  (16'b0),
     .SS_WE     (1'b0),
-    .SS_RDATA  (core_ss_dout_unused),
+    .SS_RDATA  (core_ss_rdata_unused),
     .SS_ERR    (core_ss_err_unused),
     .SS_BUS_QUIET(core_ss_bus_quiet_unused)
 );
