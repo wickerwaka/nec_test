@@ -189,6 +189,29 @@ def mirror_collision(c):
     return len({x & 0xFFFF for x in a}) < len(a)
 
 
+def sim_transparent(base, ss, nrec=None):
+    """Save-state transparency: a freeze+restore run must reproduce the
+    uninterrupted run bit-for-bit. The park emits no `r` records (observer FSM
+    is ce-gated), so the two record streams and finals must be identical. Wait-
+    agnostic (both sides share the wait config), unlike a golden comparison.
+
+    `nrec` bounds the record compare to the golden window close (i1+1). A freeze
+    landing ON the window-closing cycle legitimately truncates one trailing
+    PREFETCH record that lies past the window (the next bus op's lookahead) —
+    outside the transparency contract and outside the golden verdict's scope
+    (which only compared rows after the freeze). State correctness of that tail
+    is still covered by the finals check. Without the bound, last-k spuriously
+    fails on that post-window prefetch cycle."""
+    if base is None or ss is None:
+        return False
+    if base.get("final") != ss.get("final"):
+        return False
+    rb, rs = base["recs"], ss["recs"]
+    if nrec is not None:
+        rb, rs = rb[:nrec], rs[:nrec]
+    return len(rb) == len(rs) and all(a == b for a, b in zip(rb, rs))
+
+
 def parse_out(path):
     """-> {idx: {'recs': [...], 'final': {...}}}"""
     out = {}
@@ -503,6 +526,24 @@ def main():
                          "5=round-trip width sweep (v2)")
     ap.add_argument("--waits", type=int, default=0,
                     help="TB READY wait states (match the suite's setting)")
+    # A3 save-state gate dimensions (threaded into the ss-sweep run only).
+    ap.add_argument("--ss-dwell", type=int, default=0, metavar="CLKS",
+                    help="G5 long-dwell: extra parked fabric clks held at the "
+                         "freeze point before streaming (+ss_dwell)")
+    ap.add_argument("--ss-wrand", action="store_true",
+                    help="random READY waits during the ss run (+wrand=1); "
+                         "use with --ss-wmax/--ss-wseed")
+    ap.add_argument("--ss-wmax", type=int, default=3, metavar="N",
+                    help="max random wait when --ss-wrand (+wmax)")
+    ap.add_argument("--ss-wseed", default="ACE1", metavar="HEX",
+                    help="random-wait seed when --ss-wrand (+wseed, hex)")
+    ap.add_argument("--ss-scramble-seed", type=int, default=None, metavar="S",
+                    help="scramble/bit-flip seed (+ss_scramble_seed); for mode 4 "
+                         "the flipped bit index = S %% (SS_COUNT*16)")
+    ap.add_argument("--ss-neg", action="store_true",
+                    help="negative-control interpretation (G5'): report the "
+                         "FRACTION of freeze points whose flip PERTURBED the "
+                         "continuation; a live-state bit MUST diverge")
     ap.add_argument("--arch-only", action="store_true",
                     help="architectural oracle: skip the cycle-row diff; compare only "
                          "final regs (flags-masked), final ram; final queue MASKED "
@@ -591,12 +632,18 @@ def main():
 
         with tempfile.TemporaryDirectory() as td:
             def run_batch(cs, mirror, ss_at=None, ss_mode=None,
-                          return_stdout=False):
+                          return_stdout=False, ss_ctx=False):
+                # ss_ctx=True marks an ss-sweep run (baseline OR freeze): the
+                # random-wait config is applied to BOTH so the transparency
+                # reference shares the freeze run's wait pattern. The main
+                # golden pass (ss_ctx=False) never gets +wrand.
                 if not cs:
                     return {}
                 suffix = "_m" if mirror else ""
                 if ss_at is not None:
                     suffix += f"_ss{ss_mode}_{ss_at}"
+                elif ss_ctx:
+                    suffix += "_ssbase"
                 batch = Path(td) / f"batch{suffix}.txt"
                 outf = Path(td) / f"out{suffix}.txt"
                 compose_batch(cs, batch, arch_only=args.arch_only)
@@ -606,8 +653,15 @@ def main():
                     sa.append("+mirror=1")
                 if args.ce_hold_check:
                     sa.append("+ce_hold_check")
+                if ss_ctx and args.ss_wrand:
+                    sa.extend(("+wrand=1", f"+wmax={args.ss_wmax}",
+                               f"+wseed={args.ss_wseed}"))
                 if ss_at is not None:
                     sa.extend((f"+ss_at={ss_at}", f"+ss_mode={ss_mode}"))
+                    if args.ss_dwell:
+                        sa.append(f"+ss_dwell={args.ss_dwell}")
+                    if args.ss_scramble_seed is not None:
+                        sa.append(f"+ss_scramble_seed={args.ss_scramble_seed}")
                 r = subprocess.run(sa, cwd=ROOT, capture_output=True, text=True)
                 if r.returncode != 0 or not outf.exists():
                     print(f"{op}: SIM FAILED\n{r.stdout}\n{r.stderr}")
@@ -650,14 +704,27 @@ def main():
                 selected = [c for c in cases
                             if not ss_case_ids or c["idx"] in ss_case_ids]
                 for c in selected:
-                    base_sim = sims.get(c["idx"])
+                    # Transparency reference: a no-freeze run sharing the ss
+                    # run's wait config (wrand needs its own baseline; uniform
+                    # waits/dwell can reuse the main pass since dwell is park-
+                    # only and invisible to records).
+                    if args.ss_wrand:
+                        wb = run_batch([c], c["idx"] in mirror_ok, ss_ctx=True)
+                        ref_sim = wb.get(c["idx"]) if wb else None
+                    else:
+                        ref_sim = sims.get(c["idx"])
+                    base_sim = ref_sim
                     built = build_rows_sim(
                         base_sim["recs"], c["initial"]["queue"],
                         n_close=n_fpops(c) - (0 if args.arch_only else 1)) \
                         if base_sim is not None else (None, None, None, None)
-                    _, _, raw_i0, _ = built
+                    _, _, raw_i0, win_i1 = built
+                    # bound transparency to the golden window close (see
+                    # sim_transparent): exclude the post-window prefetch tail.
+                    nrec = (win_i1 + 1) if win_i1 is not None else None
                     swept = 0
                     first_k = None
+                    perturbed = 0          # --ss-neg: freeze points that diverged
                     for logical_k in range(0, len(c["cycles"]), args.ss_sweep):
                         swept += 1
                         if raw_i0 is None:
@@ -666,33 +733,51 @@ def main():
                         absolute_k = raw_i0 + logical_k
                         rr = run_batch([c], c["idx"] in mirror_ok,
                                        ss_at=absolute_k, ss_mode=args.ss_mode,
-                                       return_stdout=True)
+                                       return_stdout=True, ss_ctx=True)
                         if rr is None:
                             first_k = logical_k
                             break
                         ss_sims, ss_stdout = rr
-                        res = check_case(c, ss_sims.get(c["idx"]), flags_mask,
-                                         arch_only=args.arch_only)
-                        continuation_mm = [m for m in res.get("mm", [])
-                                           if isinstance(m[0], int) and
-                                           m[0] > logical_k]
-                        ok = res["arch_ok"] and not continuation_mm
+                        # transparency: freeze+restore run == the no-freeze
+                        # reference at the same wait config (wait-agnostic).
+                        ok = sim_transparent(ref_sim, ss_sims.get(c["idx"]),
+                                             nrec)
                         if args.ss_mode == 2:
                             ok = ok and "SS2 IDEMPOTENT" in ss_stdout and \
                                 "PASS" in ss_stdout and "FAIL" not in ss_stdout
+                        if args.ss_neg:
+                            # negative control: divergence is the DESIRED signal
+                            # (the flipped live-state bit perturbed the run).
+                            if not ok:
+                                perturbed += 1
+                            continue
                         if not ok:
                             first_k = logical_k
                             break
-                    ss_reports.append((c["idx"], swept, first_k))
+                    ss_reports.append((c["idx"], swept, first_k, perturbed))
         if mirror_ok:
             print(f"  {op}: {len(mirror_ok)} collision-dependent golden(s) "
                   f"validated under +mirror (64K RAM, as captured): "
                   f"idx {mirror_ok[:8]}")
-        for case_idx, swept, first_k in ss_reports:
-            verdict = "PASS" if first_k is None else "FAIL"
-            first = "none" if first_k is None else str(first_k)
-            print(f"  {op} SS{args.ss_mode} idx {case_idx}: swept={swept} "
-                  f"{verdict} first-diverging-k={first}")
+        for case_idx, swept, first_k, perturbed in ss_reports:
+            if args.ss_neg:
+                # G5' negative control (non-blindness). A within-field flip of an
+                # EXERCISED live-state bit must perturb the continuation; the test
+                # proves the transparency verdict is not vacuous. 0% is NOT
+                # blindness on its own -- it means this instruction never
+                # exercises that element (structural completeness of every
+                # address is separately proven by G4'/mode 5). So we label
+                # SENSITIVE (>0 perturbations => the mechanism connects the
+                # stream bit to a live flop that reaches the trace) vs inert.
+                frac = perturbed / swept if swept else 0.0
+                verdict = "SENSITIVE" if perturbed > 0 else "inert(unexercised)"
+                print(f"  {op} SS{args.ss_mode} idx {case_idx}: swept={swept} "
+                      f"perturbed={perturbed} ({frac:.0%}) {verdict}")
+            else:
+                verdict = "PASS" if first_k is None else "FAIL"
+                first = "none" if first_k is None else str(first_k)
+                print(f"  {op} SS{args.ss_mode} idx {case_idx}: swept={swept} "
+                      f"{verdict} first-diverging-k={first}")
 
         cnt = Counter()
         first_div = Counter()
