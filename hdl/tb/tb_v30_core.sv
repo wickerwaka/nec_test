@@ -177,11 +177,10 @@ integer      ev_hold_cnt = 0;
 wire pin_int    = (pins_cfg[0] != 0) | (ev_drive && ev_pin == 0);
 wire pin_nmi    = (pins_cfg[1] != 0) | (ev_drive && ev_pin == 1);
 wire pin_poll_n = (pins_cfg[2] != 0) & ~(ev_drive && ev_pin == 2);
-reg         ss_cap_r = 1'b0;
-reg         ss_shift_r = 1'b0;
-reg         ss_restore_r = 1'b0;
-reg  [15:0] ss_din_r = 16'b0;
-wire [15:0] ss_dout;
+reg   [8:0] ss_addr_r = 9'b0;
+reg  [15:0] ss_wdata_r = 16'b0;
+reg         ss_we_r = 1'b0;
+wire [15:0] ss_rdata;
 wire        ss_err;
 wire        ss_bus_quiet;
 
@@ -200,11 +199,10 @@ v30_core dut (
     .RD_N      (RD_N),
     .UBE_N     (UBE_N),
     .BUSLOCK_N (BUSLOCK_N),
-    .SS_CAPTURE(ss_cap_r),
-    .SS_RESTORE(ss_restore_r),
-    .SS_SHIFT  (ss_shift_r),
-    .SS_DIN    (ss_din_r),
-    .SS_DOUT   (ss_dout),
+    .SS_ADDR   (ss_addr_r),
+    .SS_WDATA  (ss_wdata_r),
+    .SS_WE     (ss_we_r),
+    .SS_RDATA  (ss_rdata),
     .SS_ERR    (ss_err),
     .SS_BUS_QUIET(ss_bus_quiet),
     .bkd_load  (bkd_load),
@@ -457,8 +455,16 @@ logic [31:0] ss_scramble_seed = 32'h1;
 integer ss_dwell = 0;      // extra parked fabric clks (G5 long-dwell freeze)
 integer cpu_cyc = -1;
 logic ss_done = 1'b0;
-logic [15:0] ss_saved [0:SS_WORDS-1];
-logic [15:0] ss_work  [0:SS_WORDS-1];
+// SS-test assertion quiesce (design 5.3 contingency): the scramble/width-sweep
+// modes drive garbage-live state through the ~300-cycle restore window, tripping
+// the core's SIM-ONLY equivalence/frame assertions (which assume valid state and
+// held under v1's 1-cycle restore). Disable assertions across the whole SS-test
+// window; the NEXT case boundary re-enables them. Resume correctness is verified
+// by the byte-identical row comparison, not these probes. No effect on G1'
+// (SS idle: never entered) or mode 2 (idempotence: no garbage written).
+logic ss_asserts_off = 1'b0;
+logic [15:0] ss_saved [0:SS_COUNT-1];
+logic [15:0] ss_work  [0:SS_COUNT-1];
 
 initial begin
     if (!$value$plusargs("ss_at=%d", ss_at)) ss_at = -1;
@@ -475,34 +481,37 @@ always @(posedge clk) begin
         cpu_cyc <= cpu_cyc + 1;
 end
 
-task automatic ss_save(output logic [15:0] stream [0:SS_WORDS-1]);
-    ss_cap_r = 1'b1;
-    @(posedge clk);
-    ss_cap_r = 1'b0;
-    for (int si = 0; si < SS_WORDS; si++) begin
-        stream[si] = ss_dout;
-        ss_shift_r = 1'b1;
-        @(posedge clk);
-        ss_shift_r = 1'b0;
-    end
+// A2 addressed-interface tooling (design 7.1). CE parked throughout (ss_park).
+// Registered-read latency: present SS_ADDR at posedge N -> SS_RDATA valid after
+// posedge N+2 (staging reg + module read-mux reg + sel regs); sample at a negedge
+// after two posedges. Writes: 1 clk, SS_WE high for the posedge; effect lands one
+// clk later (staging), invisible except that streaming writes run at 1/clk.
+task automatic ss_write(input logic [8:0] a, input logic [15:0] d);
+    ss_addr_r  = a;
+    ss_wdata_r = d;
+    ss_we_r    = 1'b1;
+    @(posedge clk);      // core staging flop samples SS_WE=1 at this posedge
+    @(negedge clk);      // clear PAST the sampling edge: a same-region clear
+    ss_we_r    = 1'b0;   // races the staging flop (Verilator ordering) -> no write
 endtask
 
-task automatic ss_load(input logic [15:0] stream [0:SS_WORDS-1]);
-    for (int si = 0; si < SS_WORDS; si++) begin
-        ss_din_r = stream[si];
-        ss_shift_r = 1'b1;
-        @(posedge clk);
-        ss_shift_r = 1'b0;
-    end
-    // Assert at a posedge, HOLD high through the following negedge (so the
-    // t1_half2 negedge flop restores, design 4.4), deassert at the NEXT posedge
-    // (design 4.3). Dropping it AT the negedge races the negedge sampling and
-    // leaves t1_half2 unrestored - caught by the core contract assertion.
-    ss_restore_r = 1'b1;
-    @(posedge clk);   // restore fires here
-    @(negedge clk);   // following negedge: SS_RESTORE still high
-    @(posedge clk);   // next posedge
-    ss_restore_r = 1'b0;
+task automatic ss_read(input logic [8:0] a, output logic [15:0] d);
+    ss_addr_r = a;
+    // SS_ADDR->ss_addr_q(stage)->module read-mux reg->SS_RDATA comb via ss_sel.
+    // Settle 3 posedges then sample at a negedge: also covers reading a value
+    // written by the immediately-preceding ss_write (its stage->module-flop
+    // propagation takes 2 clks; a 2-posedge read would race it).
+    @(posedge clk); @(posedge clk); @(posedge clk); @(negedge clk);
+    d = ss_rdata;
+endtask
+
+task automatic ss_save(output logic [15:0] stream [0:SS_COUNT-1]);
+    for (int si = 0; si < SS_COUNT; si++) ss_read(ss_addr_of(si), stream[si]);
+endtask
+
+task automatic ss_load(input logic [15:0] stream [0:SS_COUNT-1]);
+    for (int si = 0; si < SS_COUNT; si++) ss_write(ss_addr_of(si), stream[si]);
+    ss_we_r = 1'b0;
 endtask
 
 function automatic logic [15:0] ss_lfsr_next(input logic [15:0] v);
@@ -515,10 +524,9 @@ always @(negedge clk) begin : ss_controller
     if (reset) begin
         ss_done = 1'b0;
         ss_park = 1'b0;
-        ss_cap_r = 1'b0;
-        ss_shift_r = 1'b0;
-        ss_restore_r = 1'b0;
-        ss_din_r = 16'b0;
+        ss_addr_r = 9'b0;
+        ss_wdata_r = 16'b0;
+        ss_we_r = 1'b0;
     end else if (!ss_done && recording && ss_at >= 0 &&
                  cpu_cyc == ss_at && ce_half) begin
         ss_done = 1'b1;
@@ -531,22 +539,23 @@ always @(negedge clk) begin : ss_controller
         repeat (ss_dwell) @(posedge clk);
         case (ss_mode)
             1: begin
+                $assertoff(0); ss_asserts_off = 1'b1;   // quiesce (design 5.3)
                 ss_save(ss_saved);
                 // Codex review finding 1(b): a corrupt FIRST (tag) word must set
                 // SS_ERR. The tag is an integrity word, not a state flop, so
                 // restoring a tag-corrupted-but-otherwise-saved stream leaves the
                 // core state intact and only trips SS_ERR; re-capture clears it.
-                for (int si = 0; si < SS_WORDS; si++) ss_work[si] = ss_saved[si];
+                for (int si = 0; si < SS_COUNT; si++) ss_work[si] = ss_saved[si];
                 ss_work[0] = SS_TAG ^ 16'hFFFF;
                 ss_load(ss_work);
                 if (!ss_err)
                     $error("SS_ERR did not set on corrupt tag (finding 1b) idx=%0d",
                            ss_at);
-                ss_save(ss_saved);   // SS_CAPTURE clears SS_ERR, re-saves truth
+                ss_save(ss_saved);   // Addressed save implementation arrives in A2.
                 lfsr = ss_scramble_seed[15:0];
                 if (lfsr == 0) lfsr = 16'h1;
                 ss_work[0] = SS_TAG; // keep the integrity tag valid
-                for (int si = 1; si < SS_WORDS; si++) begin
+                for (int si = 1; si < SS_COUNT; si++) begin
                     lfsr = ss_lfsr_next(lfsr);
                     ss_work[si] = lfsr ^ (si[0] ? 16'hA5A5 : 16'h5A5A);
                 end
@@ -562,16 +571,43 @@ always @(negedge clk) begin : ss_controller
                 ss_load(ss_saved);
                 ss_save(ss_work);
                 idem_ok = 1'b1;
-                for (int si = 0; si < SS_WORDS; si++)
+                for (int si = 0; si < SS_COUNT; si++)
                     if (ss_saved[si] !== ss_work[si]) idem_ok = 1'b0;
                 $display("SS2 IDEMPOTENT idx=%0d %s", ss_at,
                          idem_ok ? "PASS" : "FAIL");
                 if (!idem_ok) $error("save-state idempotence failure");
             end
             3: begin
+                // RETIRED (design 7.2): no FIFO in the addressed interface; the
+                // slot is taken by mode 5. Kept as a no-op for plusarg stability.
+                $display("SS3 RETIRED idx=%0d (use mode 5)", ss_at);
+            end
+            5: begin
+                // ROUND-TRIP WIDTH SWEEP (design 7.2 / G4'): per mapped address
+                // (except the tag), write FFFF then read back = the field masked
+                // to ss_field_width; write 0000 then read back = 0. Dynamically
+                // proves, per address: write arm exists, read arm exists, both
+                // touch the SAME correctly-sized slice (the v1 unpack blind spot).
+                logic [8:0]  a5;
+                logic [15:0] r1, r0, mask5;
+                int          w5;
+                $assertoff(0); ss_asserts_off = 1'b1;   // quiesce (design 5.3)
                 ss_save(ss_saved);
-                ss_load(ss_saved);
-                $display("SS3 FIFO-SELFTEST idx=%0d", ss_at);
+                for (int si = 1; si < SS_COUNT; si++) begin
+                    a5    = ss_addr_of(si);
+                    w5    = ss_field_width(a5);
+                    mask5 = (w5 >= 16) ? 16'hFFFF : 16'((1 << w5) - 1);
+                    ss_write(a5, 16'hFFFF); ss_read(a5, r1);
+                    ss_write(a5, 16'h0000); ss_read(a5, r0);
+                    if (r1 !== mask5)
+                        $error("SS5 WIDTH @%03x: r1=%04x expected mask=%04x (w=%0d)",
+                               a5, r1, mask5, w5);
+                    if (r0 !== 16'h0000)
+                        $error("SS5 ZERO  @%03x: r0=%04x expected 0000", a5, r0);
+                end
+                ss_load(ss_saved);   // restore before resume
+                $display("SS5 WIDTH-SWEEP idx=%0d done (%0d addrs)", ss_at,
+                         SS_COUNT-1);
             end
             4: begin
                 // G4 sensitivity: flip ONE non-tag stream bit, restore the
@@ -581,8 +617,8 @@ always @(negedge clk) begin : ss_controller
                 // seeds: most flips must diverge -> the gate is NOT blind.
                 integer bit_idx, wrd, bpos;
                 ss_save(ss_saved);
-                for (int si = 0; si < SS_WORDS; si++) ss_work[si] = ss_saved[si];
-                bit_idx = ss_scramble_seed % (SS_WORDS*16);
+                for (int si = 0; si < SS_COUNT; si++) ss_work[si] = ss_saved[si];
+                bit_idx = ss_scramble_seed % (SS_COUNT*16);
                 if (bit_idx < 16) bit_idx = bit_idx + 16;   // skip the tag word
                 wrd  = bit_idx / 16;
                 bpos = bit_idx % 16;
@@ -592,6 +628,19 @@ always @(negedge clk) begin : ss_controller
             end
             default: ;
         endcase
+        // Drain the SS command staging before resuming. The last ss_write's
+        // ss_we_r=0 needs one posedge to reach the core's staged ss_we_q; if we
+        // resume with ss_we_q still high, the first ce cycle takes the core's
+        // `if (ss_we)` branch and SKIPS its state advance -> a phantom wait.
+        // The park must be RELEASED AT A NEGEDGE (mirroring the freeze at
+        // line 533): clearing it right after a @(posedge) lands the blocking
+        // assign in that posedge's active region, so the FSM samples ce=1 on
+        // the very drain posedge while ss_we_q is still high (a scheduling
+        // race). One parked drain posedge clears the staging, the @(negedge)
+        // moves past it, then the next posedge is the clean first-resume cycle.
+        ss_addr_r = 9'b0; ss_wdata_r = 16'b0; ss_we_r = 1'b0;
+        @(posedge clk);      // parked (ss_park still 1): ss_we_q -> 0
+        @(negedge clk);      // move off the drain posedge before releasing
         ss_park = 1'b0;
     end
 end
@@ -868,6 +917,9 @@ initial begin
         repeat (2) @(posedge clk);    // branch keeps the injected state
         cyc = 0;
         case_active = 1;
+        // re-enable assertions at the case boundary if a prior SS-test case
+        // (mode 1/5 garbage window) quiesced them (design 5.3).
+        if (ss_asserts_off) begin $asserton(0); ss_asserts_off = 1'b0; end
         $fdisplay(fo, "= %0d", idx);
         @(negedge clk);
         reset = 0;

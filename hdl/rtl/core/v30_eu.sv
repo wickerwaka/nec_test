@@ -245,167 +245,138 @@ module v30_eu (
     output            dbg_first_pop,
     output            dbg_pend,      // ghost load still in flight
 
-    input             ss_capture,
-    input             ss_shift,
-    input             ss_restore,
-    input      [15:0] ss_din_seg,
-    output     [15:0] ss_dout_seg
+    input [v30_ss_pkg::SS_ADDR_W-1:0] ss_addr,
+    input      [15:0] ss_wdata,
+    input             ss_we,
+    output reg [15:0] ss_rdata
 );
 
 import v30_ss_pkg::*;
 
-localparam int EU_W = SS_EU_WORDS*16;
-
-ss_eu_t ss_pack;
-always_comb begin
-    ss_pack = '0;
-    ss_pack.rf0 = rf[0];
-    ss_pack.rf1 = rf[1];
-    ss_pack.rf2 = rf[2];
-    ss_pack.rf3 = rf[3];
-    ss_pack.rf4 = rf[4];
-    ss_pack.rf5 = rf[5];
-    ss_pack.rf6 = rf[6];
-    ss_pack.rf7 = rf[7];
-    ss_pack.sr0 = sr[0];
-    ss_pack.sr1 = sr[1];
-    ss_pack.sr2 = sr[2];
-    ss_pack.sr3 = sr[3];
-    ss_pack.psw = psw;
-    ss_pack.pc = pc;
-    ss_pack.arch_ip = arch_ip;
-    ss_pack.state = state;
-    ss_pack.wnext = wnext;
-    ss_pack.dret = dret;
-    ss_pack.dly = dly;
-    ss_pack.div_rem = div_rem;
-    ss_pack.div_quo = div_quo;
-    ss_pack.div_den = div_den;
-    ss_pack.div_cnt = div_cnt;
-    ss_pack.div_busy = div_busy;
-    ss_pack.div_word = div_word;
-    ss_pack.div_signed = div_signed;
-    ss_pack.div_nsign = div_nsign;
-    ss_pack.div_dsign = div_dsign;
-    ss_pack.div_pend = div_pend;
-    ss_pack.div_late = div_late;
-    ss_pack.sh_r = sh_r;
-    ss_pack.sh_x = sh_x;
-    ss_pack.sh_oth = sh_oth;
-    ss_pack.sh_cy = sh_cy;
-    ss_pack.sh_op = sh_op;
-    ss_pack.sh_wf = sh_wf;
-    ss_pack.sh_n = sh_n;
-    ss_pack.sh_busy = sh_busy;
-    ss_pack.sh_fbase = sh_fbase;
-    ss_pack.sh_res = sh_res;
-    ss_pack.sh_fl = sh_fl;
-    ss_pack.opc = opc;
-    ss_pack.opc2 = opc2;
-    ss_pack.mrm = mrm;
-    ss_pack.immb = immb;
-    ss_pack.disp = disp;
-    ss_pack.a4_cnt = a4_cnt;
-    ss_pack.a4_k = a4_k;
-    ss_pack.a4_src = a4_src;
-    ss_pack.a4_carry = a4_carry;
-    ss_pack.a4_z = a4_z;
-    ss_pack.mem_op = mem_op;
-    ss_pack.ivt_off = ivt_off;
-    ss_pack.ivt_seg = ivt_seg;
-    ss_pack.trap_psw = trap_psw;
-    ss_pack.seg_ovr_en = seg_ovr_en;
-    ss_pack.seg_ovr = seg_ovr;
-    ss_pack.lock_en = lock_en;
-    ss_pack.rep_en = rep_en;
-    ss_pack.rep_kind = rep_kind;
-    ss_pack.flush_now = flush_now;
-    ss_pack.str_wr = str_wr;
-    ss_pack.rslot = rslot;
-    ss_pack.rep1_abort = rep1_abort;
-    ss_pack.str_done = str_done;
-    ss_pack.cmp1 = cmp1;
-    ss_pack.cmp_r2s = cmp_r2s;
-    ss_pack.fl_cs = fl_cs;
-    ss_pack.fl_ip = fl_ip;
-    ss_pack.ea_save = ea_save;
-    ss_pack.ea_save_seg = ea_save_seg;
-    ss_pack.ldp2 = ldp2;
-    ss_pack.fret_ph = fret_ph;
-    ss_pack.facc = facc;
-    ss_pack.iret_pw = iret_pw;
-    ss_pack.popr_pend = popr_pend;
-    ss_pack.prep_acc = prep_acc;
-    ss_pack.pracc = pracc;
-    ss_pack.w4skip = w4skip;
-    ss_pack.prep_bpd = prep_bpd;
-    ss_pack.shw = shw;
-    ss_pack.popm_hold = popm_hold;
-    ss_pack.ie_off = ie_off;
-    ss_pack.ie_len = ie_len;
-    ss_pack.ie_fld = ie_fld;
-    ss_pack.ie_w0 = ie_w0;
-    ss_pack.ie_mode = ie_mode;
-    ss_pack.ie_ph2 = ie_ph2;
-    ss_pack.ie_dly = ie_dly;
-    ss_pack.ie_chain = ie_chain;
-    ss_pack.ie_rdyhold = ie_rdyhold;
-    ss_pack.ie_lgot = ie_lgot;
-    ss_pack.int_p = int_p;
-    ss_pack.nmi_p = nmi_p;
-    ss_pack.nmi_latch = nmi_latch;
-    ss_pack.poll_s1 = poll_s1;
-    ss_pack.shadow = shadow;
-    ss_pack.ie_pend = ie_pend;
-    ss_pack.ie_val = ie_val;
-    ss_pack.psw_old = psw_old;
-    ss_pack.pop_pend = pop_pend;
-    ss_pack.ie_p = ie_p;
-    ss_pack.waits_seen = waits_seen;
-    ss_pack.post_flush = post_flush;
-    ss_pack.insn_ip = insn_ip;
-    ss_pack.ivt_vec = ivt_vec;
-    ss_pack.hwake_ie0 = hwake_ie0;
-    ss_pack.irq_disp = irq_disp;
-    ss_pack.irq_nmi_ivt = irq_nmi_ivt;
-    ss_pack.eu_wr = eu_wr;
-    ss_pack.eu_word = eu_word;
-    ss_pack.eu_addr = eu_addr;
-    ss_pack.eu_seg = eu_seg;
-    ss_pack.eu_wdata = eu_wdata;
-    ss_pack.eu_kind = eu_kind;
-    ss_pack.halt_disp = halt_disp;
-    ss_pack.pad = '0;
-end
-
-reg [EU_W-1:0] ss_sh;
 always_ff @(posedge clk) begin
-    if (ss_capture)    ss_sh <= ss_pack;
-    else if (ss_shift) ss_sh <= {ss_din_seg, ss_sh[EU_W-1:16]};
+    case (ss_addr)
+        SSA_E_RF0: ss_rdata <= rf[0];
+        SSA_E_RF1: ss_rdata <= rf[1];
+        SSA_E_RF2: ss_rdata <= rf[2];
+        SSA_E_RF3: ss_rdata <= rf[3];
+        SSA_E_RF4: ss_rdata <= rf[4];
+        SSA_E_RF5: ss_rdata <= rf[5];
+        SSA_E_RF6: ss_rdata <= rf[6];
+        SSA_E_RF7: ss_rdata <= rf[7];
+        SSA_E_SR0: ss_rdata <= sr[0];
+        SSA_E_SR1: ss_rdata <= sr[1];
+        SSA_E_SR2: ss_rdata <= sr[2];
+        SSA_E_SR3: ss_rdata <= sr[3];
+        SSA_E_PSW: ss_rdata <= psw;
+        SSA_E_PC: ss_rdata <= pc;
+        SSA_E_ARCH_IP: ss_rdata <= arch_ip;
+        SSA_E_STATE: ss_rdata <= {9'b0, state};
+        SSA_E_WNEXT: ss_rdata <= {9'b0, wnext};
+        SSA_E_DRET: ss_rdata <= {9'b0, dret};
+        SSA_E_DLY: ss_rdata <= {10'b0, dly};
+        SSA_E_DIV_REM_LO: ss_rdata <= div_rem[15:0];
+        SSA_E_DIV_REM_HI: ss_rdata <= {15'b0, div_rem[16]};
+        SSA_E_DIV_QUO: ss_rdata <= div_quo;
+        SSA_E_DIV_DEN: ss_rdata <= div_den;
+        SSA_E_DIV_CNT: ss_rdata <= {10'b0, div_cnt};
+        SSA_E_DIV_BUSY: ss_rdata <= {15'b0, div_busy};
+        SSA_E_DIV_WORD: ss_rdata <= {15'b0, div_word};
+        SSA_E_DIV_SIGNED: ss_rdata <= {15'b0, div_signed};
+        SSA_E_DIV_NSIGN: ss_rdata <= {15'b0, div_nsign};
+        SSA_E_DIV_DSIGN: ss_rdata <= {15'b0, div_dsign};
+        SSA_E_DIV_PEND: ss_rdata <= {15'b0, div_pend};
+        SSA_E_DIV_LATE: ss_rdata <= {15'b0, div_late};
+        SSA_E_SH_R: ss_rdata <= sh_r;
+        SSA_E_SH_X: ss_rdata <= {8'b0, sh_x};
+        SSA_E_SH_OTH: ss_rdata <= {8'b0, sh_oth};
+        SSA_E_SH_CY: ss_rdata <= {15'b0, sh_cy};
+        SSA_E_SH_OP: ss_rdata <= {13'b0, sh_op};
+        SSA_E_SH_WF: ss_rdata <= {15'b0, sh_wf};
+        SSA_E_SH_N: ss_rdata <= {8'b0, sh_n};
+        SSA_E_SH_BUSY: ss_rdata <= {15'b0, sh_busy};
+        SSA_E_SH_FBASE: ss_rdata <= sh_fbase;
+        SSA_E_SH_RES: ss_rdata <= sh_res;
+        SSA_E_SH_FL: ss_rdata <= sh_fl;
+        SSA_E_OPC: ss_rdata <= {8'b0, opc};
+        SSA_E_OPC2: ss_rdata <= {8'b0, opc2};
+        SSA_E_MRM: ss_rdata <= {8'b0, mrm};
+        SSA_E_IMMB: ss_rdata <= {8'b0, immb};
+        SSA_E_DISP: ss_rdata <= disp;
+        SSA_E_A4_CNT: ss_rdata <= {8'b0, a4_cnt};
+        SSA_E_A4_K: ss_rdata <= {8'b0, a4_k};
+        SSA_E_A4_SRC: ss_rdata <= a4_src;
+        SSA_E_A4_CARRY: ss_rdata <= {15'b0, a4_carry};
+        SSA_E_A4_Z: ss_rdata <= {15'b0, a4_z};
+        SSA_E_MEM_OP: ss_rdata <= mem_op;
+        SSA_E_IVT_OFF: ss_rdata <= ivt_off;
+        SSA_E_IVT_SEG: ss_rdata <= ivt_seg;
+        SSA_E_TRAP_PSW: ss_rdata <= trap_psw;
+        SSA_E_SEG_OVR_EN: ss_rdata <= {15'b0, seg_ovr_en};
+        SSA_E_SEG_OVR: ss_rdata <= {14'b0, seg_ovr};
+        SSA_E_LOCK_EN: ss_rdata <= {15'b0, lock_en};
+        SSA_E_REP_EN: ss_rdata <= {15'b0, rep_en};
+        SSA_E_REP_KIND: ss_rdata <= {14'b0, rep_kind};
+        SSA_E_FLUSH_NOW: ss_rdata <= {15'b0, flush_now};
+        SSA_E_STR_WR: ss_rdata <= {15'b0, str_wr};
+        SSA_E_RSLOT: ss_rdata <= {10'b0, rslot};
+        SSA_E_REP1_ABORT: ss_rdata <= {15'b0, rep1_abort};
+        SSA_E_STR_DONE: ss_rdata <= {15'b0, str_done};
+        SSA_E_CMP1: ss_rdata <= cmp1;
+        SSA_E_CMP_R2S: ss_rdata <= {15'b0, cmp_r2s};
+        SSA_E_FL_CS: ss_rdata <= fl_cs;
+        SSA_E_FL_IP: ss_rdata <= fl_ip;
+        SSA_E_EA_SAVE_LO: ss_rdata <= ea_save[15:0];
+        SSA_E_EA_SAVE_HI: ss_rdata <= {12'b0, ea_save[19:16]};
+        SSA_E_EA_SAVE_SEG: ss_rdata <= {14'b0, ea_save_seg};
+        SSA_E_LDP2: ss_rdata <= {15'b0, ldp2};
+        SSA_E_FRET_PH: ss_rdata <= {14'b0, fret_ph};
+        SSA_E_FACC: ss_rdata <= {14'b0, facc};
+        SSA_E_IRET_PW: ss_rdata <= {15'b0, iret_pw};
+        SSA_E_POPR_PEND: ss_rdata <= {15'b0, popr_pend};
+        SSA_E_PREP_ACC: ss_rdata <= {15'b0, prep_acc};
+        SSA_E_PRACC: ss_rdata <= {13'b0, pracc};
+        SSA_E_W4SKIP: ss_rdata <= {15'b0, w4skip};
+        SSA_E_PREP_BPD: ss_rdata <= {15'b0, prep_bpd};
+        SSA_E_SHW: ss_rdata <= {7'b0, shw};
+        SSA_E_POPM_HOLD: ss_rdata <= {10'b0, popm_hold};
+        SSA_E_IE_OFF: ss_rdata <= {12'b0, ie_off};
+        SSA_E_IE_LEN: ss_rdata <= {11'b0, ie_len};
+        SSA_E_IE_FLD: ss_rdata <= ie_fld;
+        SSA_E_IE_W0: ss_rdata <= ie_w0;
+        SSA_E_IE_MODE: ss_rdata <= {14'b0, ie_mode};
+        SSA_E_IE_PH2: ss_rdata <= {15'b0, ie_ph2};
+        SSA_E_IE_DLY: ss_rdata <= {4'b0, ie_dly};
+        SSA_E_IE_CHAIN: ss_rdata <= {15'b0, ie_chain};
+        SSA_E_IE_RDYHOLD: ss_rdata <= {15'b0, ie_rdyhold};
+        SSA_E_IE_LGOT: ss_rdata <= {15'b0, ie_lgot};
+        SSA_E_INT_P: ss_rdata <= {12'b0, int_p};
+        SSA_E_NMI_P: ss_rdata <= {11'b0, nmi_p};
+        SSA_E_NMI_LATCH: ss_rdata <= {15'b0, nmi_latch};
+        SSA_E_POLL_S1: ss_rdata <= {15'b0, poll_s1};
+        SSA_E_SHADOW: ss_rdata <= {15'b0, shadow};
+        SSA_E_IE_PEND: ss_rdata <= {15'b0, ie_pend};
+        SSA_E_IE_VAL: ss_rdata <= {15'b0, ie_val};
+        SSA_E_PSW_OLD: ss_rdata <= psw_old;
+        SSA_E_POP_PEND: ss_rdata <= {15'b0, pop_pend};
+        SSA_E_IE_P: ss_rdata <= {12'b0, ie_p};
+        SSA_E_WAITS_SEEN: ss_rdata <= {15'b0, waits_seen};
+        SSA_E_POST_FLUSH: ss_rdata <= {15'b0, post_flush};
+        SSA_E_INSN_IP: ss_rdata <= insn_ip;
+        SSA_E_IVT_VEC: ss_rdata <= {8'b0, ivt_vec};
+        SSA_E_HWAKE_IE0: ss_rdata <= {15'b0, hwake_ie0};
+        SSA_E_IRQ_DISP: ss_rdata <= {15'b0, irq_disp};
+        SSA_E_IRQ_NMI_IVT: ss_rdata <= {15'b0, irq_nmi_ivt};
+        SSA_E_EU_WR: ss_rdata <= {15'b0, eu_wr};
+        SSA_E_EU_WORD: ss_rdata <= {15'b0, eu_word};
+        SSA_E_EU_ADDR_LO: ss_rdata <= eu_addr[15:0];
+        SSA_E_EU_ADDR_HI: ss_rdata <= {12'b0, eu_addr[19:16]};
+        SSA_E_EU_SEG: ss_rdata <= {14'b0, eu_seg};
+        SSA_E_EU_WDATA: ss_rdata <= eu_wdata;
+        SSA_E_EU_KIND: ss_rdata <= {14'b0, eu_kind};
+        SSA_E_HALT_DISP: ss_rdata <= {15'b0, halt_disp};
+        default: ss_rdata <= 16'h0000;
+    endcase
 end
-assign ss_dout_seg = ss_sh[15:0];
-
-ss_eu_t ss_u;
-assign ss_u = ss_eu_t'(ss_sh);
-
-// Elaboration-time HARD-FAIL on width drift (design 3.1): generate-time, so the
-// build fails synthesis-independently. NOTE (Codex review finding 3): a width-
-// PRESERVING drift (a field swapped for another of equal width, or a forgotten
-// same-width flop) is invisible to any static guard - the scramble gate (G4) is
-// the only catcher, which is why it is a PERMANENT standing regression.
-generate
-    if (EU_W != $bits(ss_eu_t)) begin : gen_ss_eu_width_err
-        // Cross-tool elaboration hard-fail (design 3.1): an UNDEFINED module
-        // reference aborts BOTH Verilator and Quartus 17.1. Untaken when equal.
-        ss_eu_t_width_mismatch u_ss_eu_width_guard ();
-    end
-endgenerate
-
-`ifndef SYNTHESIS
-always_ff @(posedge clk) begin
-    if (ss_restore && srst) $error("ss_restore and srst co-asserted");
-end
-`endif
 
 // PS1:0 segment-status codes (= AD17:16 during T2-T4)
 localparam bit [1:0] SEG_ES = 2'd0;   // DS1
@@ -1829,125 +1800,130 @@ endtask
 // main FSM
 //----------------------------------------------------------------------------
 always_ff @(posedge clk) begin
-    if (ss_restore) begin
-        rf[0] <= ss_u.rf0;
-        rf[1] <= ss_u.rf1;
-        rf[2] <= ss_u.rf2;
-        rf[3] <= ss_u.rf3;
-        rf[4] <= ss_u.rf4;
-        rf[5] <= ss_u.rf5;
-        rf[6] <= ss_u.rf6;
-        rf[7] <= ss_u.rf7;
-        sr[0] <= ss_u.sr0;
-        sr[1] <= ss_u.sr1;
-        sr[2] <= ss_u.sr2;
-        sr[3] <= ss_u.sr3;
-        psw <= ss_u.psw;
-        pc <= ss_u.pc;
-        arch_ip <= ss_u.arch_ip;
-        state <= state_e'(ss_u.state);
-        wnext <= state_e'(ss_u.wnext);
-        dret <= state_e'(ss_u.dret);
-        dly <= ss_u.dly;
-        div_rem <= ss_u.div_rem;
-        div_quo <= ss_u.div_quo;
-        div_den <= ss_u.div_den;
-        div_cnt <= ss_u.div_cnt;
-        div_busy <= ss_u.div_busy;
-        div_word <= ss_u.div_word;
-        div_signed <= ss_u.div_signed;
-        div_nsign <= ss_u.div_nsign;
-        div_dsign <= ss_u.div_dsign;
-        div_pend <= ss_u.div_pend;
-        div_late <= ss_u.div_late;
-        sh_r <= ss_u.sh_r;
-        sh_x <= ss_u.sh_x;
-        sh_oth <= ss_u.sh_oth;
-        sh_cy <= ss_u.sh_cy;
-        sh_op <= ss_u.sh_op;
-        sh_wf <= ss_u.sh_wf;
-        sh_n <= ss_u.sh_n;
-        sh_busy <= ss_u.sh_busy;
-        sh_fbase <= ss_u.sh_fbase;
-        sh_res <= ss_u.sh_res;
-        sh_fl <= ss_u.sh_fl;
-        opc <= ss_u.opc;
-        opc2 <= ss_u.opc2;
-        mrm <= ss_u.mrm;
-        immb <= ss_u.immb;
-        disp <= ss_u.disp;
-        a4_cnt <= ss_u.a4_cnt;
-        a4_k <= ss_u.a4_k;
-        a4_src <= ss_u.a4_src;
-        a4_carry <= ss_u.a4_carry;
-        a4_z <= ss_u.a4_z;
-        mem_op <= ss_u.mem_op;
-        ivt_off <= ss_u.ivt_off;
-        ivt_seg <= ss_u.ivt_seg;
-        trap_psw <= ss_u.trap_psw;
-        seg_ovr_en <= ss_u.seg_ovr_en;
-        seg_ovr <= ss_u.seg_ovr;
-        lock_en <= ss_u.lock_en;
-        rep_en <= ss_u.rep_en;
-        rep_kind <= ss_u.rep_kind;
-        flush_now <= ss_u.flush_now;
-        str_wr <= ss_u.str_wr;
-        rslot <= ss_u.rslot;
-        rep1_abort <= ss_u.rep1_abort;
-        str_done <= ss_u.str_done;
-        cmp1 <= ss_u.cmp1;
-        cmp_r2s <= ss_u.cmp_r2s;
-        fl_cs <= ss_u.fl_cs;
-        fl_ip <= ss_u.fl_ip;
-        ea_save <= ss_u.ea_save;
-        ea_save_seg <= ss_u.ea_save_seg;
-        ldp2 <= ss_u.ldp2;
-        fret_ph <= ss_u.fret_ph;
-        facc <= ss_u.facc;
-        iret_pw <= ss_u.iret_pw;
-        popr_pend <= ss_u.popr_pend;
-        prep_acc <= ss_u.prep_acc;
-        pracc <= ss_u.pracc;
-        w4skip <= ss_u.w4skip;
-        prep_bpd <= ss_u.prep_bpd;
-        shw <= ss_u.shw;
-        popm_hold <= ss_u.popm_hold;
-        ie_off <= ss_u.ie_off;
-        ie_len <= ss_u.ie_len;
-        ie_fld <= ss_u.ie_fld;
-        ie_w0 <= ss_u.ie_w0;
-        ie_mode <= ss_u.ie_mode;
-        ie_ph2 <= ss_u.ie_ph2;
-        ie_dly <= ss_u.ie_dly;
-        ie_chain <= ss_u.ie_chain;
-        ie_rdyhold <= ss_u.ie_rdyhold;
-        ie_lgot <= ss_u.ie_lgot;
-        int_p <= ss_u.int_p;
-        nmi_p <= ss_u.nmi_p;
-        nmi_latch <= ss_u.nmi_latch;
-        poll_s1 <= ss_u.poll_s1;
-        shadow <= ss_u.shadow;
-        ie_pend <= ss_u.ie_pend;
-        ie_val <= ss_u.ie_val;
-        psw_old <= ss_u.psw_old;
-        pop_pend <= ss_u.pop_pend;
-        ie_p <= ss_u.ie_p;
-        waits_seen <= ss_u.waits_seen;
-        post_flush <= ss_u.post_flush;
-        insn_ip <= ss_u.insn_ip;
-        ivt_vec <= ss_u.ivt_vec;
-        hwake_ie0 <= ss_u.hwake_ie0;
-        irq_disp <= ss_u.irq_disp;
-        irq_nmi_ivt <= ss_u.irq_nmi_ivt;
-        eu_wr <= ss_u.eu_wr;
-        eu_word <= ss_u.eu_word;
-        eu_addr <= ss_u.eu_addr;
-        eu_seg <= ss_u.eu_seg;
-        eu_wdata <= ss_u.eu_wdata;
-        eu_kind <= ss_u.eu_kind;
-        halt_disp <= ss_u.halt_disp;
-    end else begin
-    if (srst) begin
+    if (ss_we) begin
+        case (ss_addr)
+            SSA_E_RF0: rf[0] <= ss_wdata;
+            SSA_E_RF1: rf[1] <= ss_wdata;
+            SSA_E_RF2: rf[2] <= ss_wdata;
+            SSA_E_RF3: rf[3] <= ss_wdata;
+            SSA_E_RF4: rf[4] <= ss_wdata;
+            SSA_E_RF5: rf[5] <= ss_wdata;
+            SSA_E_RF6: rf[6] <= ss_wdata;
+            SSA_E_RF7: rf[7] <= ss_wdata;
+            SSA_E_SR0: sr[0] <= ss_wdata;
+            SSA_E_SR1: sr[1] <= ss_wdata;
+            SSA_E_SR2: sr[2] <= ss_wdata;
+            SSA_E_SR3: sr[3] <= ss_wdata;
+            SSA_E_PSW: psw <= ss_wdata;
+            SSA_E_PC: pc <= ss_wdata;
+            SSA_E_ARCH_IP: arch_ip <= ss_wdata;
+            SSA_E_STATE: state <= state_e'(ss_wdata[6:0]);
+            SSA_E_WNEXT: wnext <= state_e'(ss_wdata[6:0]);
+            SSA_E_DRET: dret <= state_e'(ss_wdata[6:0]);
+            SSA_E_DLY: dly <= ss_wdata[5:0];
+            SSA_E_DIV_REM_LO: div_rem[15:0] <= ss_wdata;
+            SSA_E_DIV_REM_HI: div_rem[16] <= ss_wdata[0];
+            SSA_E_DIV_QUO: div_quo <= ss_wdata;
+            SSA_E_DIV_DEN: div_den <= ss_wdata;
+            SSA_E_DIV_CNT: div_cnt <= ss_wdata[5:0];
+            SSA_E_DIV_BUSY: div_busy <= ss_wdata[0];
+            SSA_E_DIV_WORD: div_word <= ss_wdata[0];
+            SSA_E_DIV_SIGNED: div_signed <= ss_wdata[0];
+            SSA_E_DIV_NSIGN: div_nsign <= ss_wdata[0];
+            SSA_E_DIV_DSIGN: div_dsign <= ss_wdata[0];
+            SSA_E_DIV_PEND: div_pend <= ss_wdata[0];
+            SSA_E_DIV_LATE: div_late <= ss_wdata[0];
+            SSA_E_SH_R: sh_r <= ss_wdata;
+            SSA_E_SH_X: sh_x <= ss_wdata[7:0];
+            SSA_E_SH_OTH: sh_oth <= ss_wdata[7:0];
+            SSA_E_SH_CY: sh_cy <= ss_wdata[0];
+            SSA_E_SH_OP: sh_op <= ss_wdata[2:0];
+            SSA_E_SH_WF: sh_wf <= ss_wdata[0];
+            SSA_E_SH_N: sh_n <= ss_wdata[7:0];
+            SSA_E_SH_BUSY: sh_busy <= ss_wdata[0];
+            SSA_E_SH_FBASE: sh_fbase <= ss_wdata;
+            SSA_E_SH_RES: sh_res <= ss_wdata;
+            SSA_E_SH_FL: sh_fl <= ss_wdata;
+            SSA_E_OPC: opc <= ss_wdata[7:0];
+            SSA_E_OPC2: opc2 <= ss_wdata[7:0];
+            SSA_E_MRM: mrm <= ss_wdata[7:0];
+            SSA_E_IMMB: immb <= ss_wdata[7:0];
+            SSA_E_DISP: disp <= ss_wdata;
+            SSA_E_A4_CNT: a4_cnt <= ss_wdata[7:0];
+            SSA_E_A4_K: a4_k <= ss_wdata[7:0];
+            SSA_E_A4_SRC: a4_src <= ss_wdata;
+            SSA_E_A4_CARRY: a4_carry <= ss_wdata[0];
+            SSA_E_A4_Z: a4_z <= ss_wdata[0];
+            SSA_E_MEM_OP: mem_op <= ss_wdata;
+            SSA_E_IVT_OFF: ivt_off <= ss_wdata;
+            SSA_E_IVT_SEG: ivt_seg <= ss_wdata;
+            SSA_E_TRAP_PSW: trap_psw <= ss_wdata;
+            SSA_E_SEG_OVR_EN: seg_ovr_en <= ss_wdata[0];
+            SSA_E_SEG_OVR: seg_ovr <= ss_wdata[1:0];
+            SSA_E_LOCK_EN: lock_en <= ss_wdata[0];
+            SSA_E_REP_EN: rep_en <= ss_wdata[0];
+            SSA_E_REP_KIND: rep_kind <= ss_wdata[1:0];
+            SSA_E_FLUSH_NOW: flush_now <= ss_wdata[0];
+            SSA_E_STR_WR: str_wr <= ss_wdata[0];
+            SSA_E_RSLOT: rslot <= ss_wdata[5:0];
+            SSA_E_REP1_ABORT: rep1_abort <= ss_wdata[0];
+            SSA_E_STR_DONE: str_done <= ss_wdata[0];
+            SSA_E_CMP1: cmp1 <= ss_wdata;
+            SSA_E_CMP_R2S: cmp_r2s <= ss_wdata[0];
+            SSA_E_FL_CS: fl_cs <= ss_wdata;
+            SSA_E_FL_IP: fl_ip <= ss_wdata;
+            SSA_E_EA_SAVE_LO: ea_save[15:0] <= ss_wdata;
+            SSA_E_EA_SAVE_HI: ea_save[19:16] <= ss_wdata[3:0];
+            SSA_E_EA_SAVE_SEG: ea_save_seg <= ss_wdata[1:0];
+            SSA_E_LDP2: ldp2 <= ss_wdata[0];
+            SSA_E_FRET_PH: fret_ph <= ss_wdata[1:0];
+            SSA_E_FACC: facc <= ss_wdata[1:0];
+            SSA_E_IRET_PW: iret_pw <= ss_wdata[0];
+            SSA_E_POPR_PEND: popr_pend <= ss_wdata[0];
+            SSA_E_PREP_ACC: prep_acc <= ss_wdata[0];
+            SSA_E_PRACC: pracc <= ss_wdata[2:0];
+            SSA_E_W4SKIP: w4skip <= ss_wdata[0];
+            SSA_E_PREP_BPD: prep_bpd <= ss_wdata[0];
+            SSA_E_SHW: shw <= ss_wdata[8:0];
+            SSA_E_POPM_HOLD: popm_hold <= ss_wdata[5:0];
+            SSA_E_IE_OFF: ie_off <= ss_wdata[3:0];
+            SSA_E_IE_LEN: ie_len <= ss_wdata[4:0];
+            SSA_E_IE_FLD: ie_fld <= ss_wdata;
+            SSA_E_IE_W0: ie_w0 <= ss_wdata;
+            SSA_E_IE_MODE: ie_mode <= ss_wdata[1:0];
+            SSA_E_IE_PH2: ie_ph2 <= ss_wdata[0];
+            SSA_E_IE_DLY: ie_dly <= ss_wdata[11:0];
+            SSA_E_IE_CHAIN: ie_chain <= ss_wdata[0];
+            SSA_E_IE_RDYHOLD: ie_rdyhold <= ss_wdata[0];
+            SSA_E_IE_LGOT: ie_lgot <= ss_wdata[0];
+            SSA_E_INT_P: int_p <= ss_wdata[3:0];
+            SSA_E_NMI_P: nmi_p <= ss_wdata[4:0];
+            SSA_E_NMI_LATCH: nmi_latch <= ss_wdata[0];
+            SSA_E_POLL_S1: poll_s1 <= ss_wdata[0];
+            SSA_E_SHADOW: shadow <= ss_wdata[0];
+            SSA_E_IE_PEND: ie_pend <= ss_wdata[0];
+            SSA_E_IE_VAL: ie_val <= ss_wdata[0];
+            SSA_E_PSW_OLD: psw_old <= ss_wdata;
+            SSA_E_POP_PEND: pop_pend <= ss_wdata[0];
+            SSA_E_IE_P: ie_p <= ss_wdata[3:0];
+            SSA_E_WAITS_SEEN: waits_seen <= ss_wdata[0];
+            SSA_E_POST_FLUSH: post_flush <= ss_wdata[0];
+            SSA_E_INSN_IP: insn_ip <= ss_wdata;
+            SSA_E_IVT_VEC: ivt_vec <= ss_wdata[7:0];
+            SSA_E_HWAKE_IE0: hwake_ie0 <= ss_wdata[0];
+            SSA_E_IRQ_DISP: irq_disp <= ss_wdata[0];
+            SSA_E_IRQ_NMI_IVT: irq_nmi_ivt <= ss_wdata[0];
+            SSA_E_EU_WR: eu_wr <= ss_wdata[0];
+            SSA_E_EU_WORD: eu_word <= ss_wdata[0];
+            SSA_E_EU_ADDR_LO: eu_addr[15:0] <= ss_wdata;
+            SSA_E_EU_ADDR_HI: eu_addr[19:16] <= ss_wdata[3:0];
+            SSA_E_EU_SEG: eu_seg <= ss_wdata[1:0];
+            SSA_E_EU_WDATA: eu_wdata <= ss_wdata;
+            SSA_E_EU_KIND: eu_kind <= ss_wdata[1:0];
+            SSA_E_HALT_DISP: halt_disp <= ss_wdata[0];
+            default: ;
+        endcase
+    end else if (srst) begin
         // flush_now defaults to 0 every cycle (was an ungated pulse
         // default); keep that at reset so q_flush is clean during RESET.
         flush_now <= 1'b0;
@@ -5418,7 +5394,6 @@ always_ff @(posedge clk) begin
             state <= S_IRQ_REPW;
             dly   <= 6'd8;
         end
-    end
     end
 end
 
