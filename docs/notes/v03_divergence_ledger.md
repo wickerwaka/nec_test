@@ -51,6 +51,64 @@ Cycle-only: 28; arch-only: 31; both: 3.
 These ship with the suite (chip truth). They do not block the campaign and are not suite
 defects; each is an RTL work item.
 
+## Phase 1 characterization (2026-07-22) — measured, on-disk (zero board cost)
+
+Re-verified on master f8a9a55: all 62 reproduce EXACTLY (full-sweep indices match to the
+case). No regressions, no new divergences — the string-I/O and v2-savestate landings did not
+touch these. Harness: `sw/char_divergence.py` (reuses check_core; `python3 sw/char_divergence.py FORM idx,idx` dumps per-case row/arch diffs; bare FORM sweeps).
+
+| family | forms | cases | nature | discriminator (measured, single-valued) | fix locus |
+|---|---|---|---|---|---|
+| F1 | 0F31 INS | 25 | cyc-only, arch-clean | **offset==0 ∧ width==15** (exact: 25/25, 0 clean) | BIU RMW bus scheduling |
+| F2 | 0F26/0F22/0F20 BCD-4S | 24 | arch (Z/P) + 3 cyc | decimal wrap-to-zero via invalid nibble; **V30-specific** (RTL matches V20, both ≠ V30 chip) | EU BCD-4S Z/P flag path |
+| F3 | HLT.RES/IE0.90 | 10 | arch (flags) | **CAPTURE ARTIFACT** — no-interrupt-fired store-stub final.flags | check_core/emitter convention, NOT RTL |
+| F4 | FF.3 | 1 | both | EA offset wrap at 0xFFFF (RTL reads linear, no wrap) | BIU EA offset wrap |
+| F4 | 0F1B | 1 | cyc-only | undoc INS-sibling DS-operand RMW scheduling (F1-kin) | BIU RMW scheduling |
+| F4 | 83.5 | 1 | both | PF flag delta (chip PF=0 correct for 0x62, RTL PF=1) + operand-RMW bus divergence | architect triage |
+
+### F1 — 0F31 INS (25): offset=0 ∧ width=15
+INS reg8,reg8 inserts a `width`-bit field at bit `offset` into ES:DI (offset=rm-field reg8,
+width=reg-field reg8, each 0–15). Divergence ⟺ **offset=0 AND width=15** — exactly the 25
+cases, zero clean; word-crossing ruled out (149/400 clean cases cross a word boundary and
+pass). Arch identical. Signature: RTL performs an extra ES-segment MEMR read-modify-write
+(23/25) that the chip renders PASV/Ti idle, chip MEMW shifted later (2/25 show only the
+shifted-MEMW half). Start row 9 (17×) or 10 (8×).
+
+### F2 — BCD-4S (24): V30-specific Z/P on decimal-wrap-to-zero
+All 24 = the {Z,P} pair flipping together (chip⊕rtl low-flags 0x44; CY/AC/S/high identical).
+- CMP4S(10)+SUB4S(5): chip Z=1,P=1 vs RTL Z=0,P=0. Exact discriminator: result borrow-wraps
+  to all-zeros while `dst != src` (source carries an invalid nibble ≥10 = dst_digit+10).
+  V30 sets Z/P on the wrapped zero; RTL does not. 15/15 exact; near-miss control = byte-
+  identical dst==src strings (RTL correct there).
+- ADD4S(6 arch): opposite polarity — RTL falsely reports zero; trigger = decimal-adjust/carry
+  through invalid-or-carrying nibbles. ADD4S(3 cyc): result word differs by one BCD adjust
+  step (0x2160 vs 0x2060, 0x7260 vs 0x7160, 0x6224 vs 0x6223).
+- **V20 cross-check DECISIVE:** shared vector idx652 (CL=1,dst=3,src=13) — V20 oracle Z=0,P=0;
+  V30 chip Z=1,P=1; our RTL Z=0,P=0. RTL implements the V20/8086 result; needs a V30-specific
+  Z/P path for the invalid-nibble decimal-wrap case. (The V20-only oracle held the vector but
+  could never flag the V30 difference.)
+
+### F3 — pin-event (10): CAPTURE ARTIFACT (no RTL bug)
+HLT.RES(6): 1973,4366,4870,5710,5820,9308; IE0.90(4): 1064,3586,4464,7142. All differ in
+`final.flags` ONLY. RTL `final.flags == initial flags` exactly (architecturally correct — no
+interrupt fires: SP/SS unchanged, no INTA/stack push — so flags cannot change), while the
+chip store-stub field shows impossible changes. The **"no-fire sub-species"**: task #21's
+pushed-PSW substitution is gated on interrupt-fired, so it doesn't apply and the comparison
+falls back to the contaminated store-stub. Same root cause as the resolved 7 (INT.90/FB/9D).
+Fix = convention extension (see task #21 CLOSED in v02_suspected_divergences.md), not RTL.
+
+### F4 — singletons (3)
+- **FF.3/7685 — DEFINITIVE segment-offset-wrap.** CALLF DWORD[BX+DI+0x34], EA offset=0xFFFF.
+  Golden placed the far pointer at offset-wrapped addresses (DS:0xFFFF,0x0000–0x0002 =
+  0x33b8:0x8b30 = chip's loaded CS:IP); RTL reads linear-forward without wrapping the 16-bit
+  offset, hits unset memory → CS=0x9090. Single-valued: multi-byte memory-operand EA must
+  wrap at offset 0xFFFF→0x0000.
+- **0F1B/3917 — cyc-only.** Undocumented 0F INS-family read-modify-write byte form; DS operand
+  MEMR/MEMW access scheduling diverges — likely the same mechanism as F1.
+- **83.5/8683 — SUB word[BX],1, both.** Memory result matches (0xC062) but final PF diverges
+  (chip PF=0 correct for 0x62, RTL PF=1) alongside an operand-RMW bus divergence (recurring
+  0x63C0/0x83C0/0x62C0 DS-operand data). Anomalous — needs architect triage.
+
 ## Family 5 — OUTS single-form prefetch ordering (~29,892 cases, RICHEST intake)
 
 Added with the OUTS tranche (Phase A). By far the largest divergence family; a
