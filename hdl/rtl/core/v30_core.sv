@@ -50,11 +50,10 @@ module v30_core (
     output            RD_N,
     output            UBE_N,
     output            BUSLOCK_N,
-    input             SS_CAPTURE,
-    input             SS_RESTORE,
-    input             SS_SHIFT,
-    input      [15:0] SS_DIN,
-    output     [15:0] SS_DOUT,
+    input [v30_ss_pkg::SS_ADDR_W-1:0] SS_ADDR,
+    input      [15:0] SS_WDATA,
+    input             SS_WE,
+    output     [15:0] SS_RDATA,
     output reg        SS_ERR,
     output            SS_BUS_QUIET
 `ifdef V30_BACKDOOR
@@ -110,55 +109,37 @@ wire        eu_rd_now;
 wire [15:0] eu_rdata_now;
 wire        psw_ie;
 wire        halt_disp;
-wire [15:0] ss_eu_dout;
-wire [15:0] ss_biu_dout;
+wire [15:0] ss_eu_rdata;
+wire [15:0] ss_biu_rdata;
 wire        ss_biu_bus_quiet;
-reg  [15:0] ss_tag_sh;
+reg  [8:0]  ss_addr_q;
+reg  [15:0] ss_wdata_q;
+reg         ss_we_q;
+reg         ss_sel_eu_q, ss_sel_tag_q;
 
 always_ff @(posedge CLK) begin
-    if (SS_CAPTURE)    ss_tag_sh <= SS_TAG;
-    else if (SS_SHIFT) ss_tag_sh <= ss_biu_dout;
+    ss_addr_q    <= SS_ADDR;
+    ss_wdata_q   <= SS_WDATA;
+    ss_we_q      <= SS_WE;
+    ss_sel_eu_q  <= ss_addr_q[8];
+    ss_sel_tag_q <= (ss_addr_q == SSA_TAG);
 end
 
-assign SS_DOUT = ss_tag_sh;
+assign SS_RDATA = ss_sel_tag_q ? SS_TAG
+                : ss_sel_eu_q  ? ss_eu_rdata : ss_biu_rdata;
 
 always_ff @(posedge CLK) begin
     if (RESET) SS_ERR <= 1'b0;
-    else if (SS_CAPTURE) SS_ERR <= 1'b0;
-    else if (SS_RESTORE && ss_tag_sh != SS_TAG) SS_ERR <= 1'b1;
+    else if (ss_we_q && ss_addr_q == SSA_TAG)
+        SS_ERR <= (ss_wdata_q != SS_TAG);
 end
 
 assign SS_BUS_QUIET = ss_biu_bus_quiet;
 
-// Save-state contract assertions (Codex review finding 2; sim-only, no synth
-// impact). The platform MUST honor these; capture-beats-shift priority means an
-// accidental strobe overlap silently changes semantics - exactly what these
-// catch. See docs/notes/savestate_design.md sections 4.3-4.5.
 `ifndef SYNTHESIS
-wire [1:0] ss_strobe_cnt = SS_CAPTURE + SS_SHIFT + SS_RESTORE;
-reg  ss_restore_posedge;
 always @(posedge CLK) begin
-    // strobes are one-hot-or-zero
-    if (ss_strobe_cnt > 2'd1)
-        $error("SS strobes not one-hot: cap=%b shift=%b restore=%b",
-               SS_CAPTURE, SS_SHIFT, SS_RESTORE);
-    // strobes legal only while the core is frozen (CE==0) and out of reset
-    if (CE && (SS_CAPTURE || SS_SHIFT || SS_RESTORE))
-        $error("SS strobe asserted while CE high (core not frozen)");
-    if (RESET && (SS_CAPTURE || SS_SHIFT || SS_RESTORE))
-        $error("SS strobe asserted during RESET");
-    // SS_RESTORE asserted at a posedge must be HELD through the following
-    // negedge (the t1_half2 negedge flop, design 4.4)
-    ss_restore_posedge <= SS_RESTORE;
-end
-always @(negedge CLK) begin
-    // capture/shift must not straddle the CE_HALF negedge window
-    if (CE_HALF && (SS_CAPTURE || SS_SHIFT))
-        $error("SS_CAPTURE/SS_SHIFT asserted while CE_HALF high");
-    // negedge-hold contract: if restore was high at the last posedge it must
-    // still be high at this negedge
-    if (ss_restore_posedge && !SS_RESTORE)
-        $error("SS_RESTORE not held through the following negedge (design 4.4)");
+    if (SS_WE && CE)    $error("SS_WE asserted while CE high (core not frozen)");
+    if (SS_WE && RESET) $error("SS_WE asserted during RESET");
 end
 `endif
 
@@ -244,11 +225,10 @@ v30_biu u_biu (
     .bkd_ip     (bkd_fetch_ip),
     .bkd_queue  (bkd_queue),
     .bkd_qlen   (bkd_qlen),
-    .ss_capture (SS_CAPTURE),
-    .ss_shift   (SS_SHIFT),
-    .ss_restore (SS_RESTORE),
-    .ss_din_seg (ss_eu_dout),
-    .ss_dout_seg(ss_biu_dout),
+    .ss_addr    (ss_addr_q),
+    .ss_wdata   (ss_wdata_q),
+    .ss_we      (ss_we_q),
+    .ss_rdata   (ss_biu_rdata),
     .ss_bus_quiet(ss_biu_bus_quiet)
 );
 
@@ -309,11 +289,10 @@ v30_eu u_eu (
     .pin_poll_n (POLL_N),
     .bkd_load   (bkd_load),
     .bkd_regs   (bkd_regs),
-    .ss_capture (SS_CAPTURE),
-    .ss_shift   (SS_SHIFT),
-    .ss_restore (SS_RESTORE),
-    .ss_din_seg (SS_DIN),
-    .ss_dout_seg(ss_eu_dout)
+    .ss_addr    (ss_addr_q),
+    .ss_wdata   (ss_wdata_q),
+    .ss_we      (ss_we_q),
+    .ss_rdata   (ss_eu_rdata)
 `ifdef V30_BACKDOOR
     ,
     .dbg_regs      (dbg_regs),

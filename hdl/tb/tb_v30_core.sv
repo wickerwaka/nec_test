@@ -177,10 +177,9 @@ integer      ev_hold_cnt = 0;
 wire pin_int    = (pins_cfg[0] != 0) | (ev_drive && ev_pin == 0);
 wire pin_nmi    = (pins_cfg[1] != 0) | (ev_drive && ev_pin == 1);
 wire pin_poll_n = (pins_cfg[2] != 0) & ~(ev_drive && ev_pin == 2);
-reg         ss_cap_r = 1'b0;
-reg         ss_shift_r = 1'b0;
-reg         ss_restore_r = 1'b0;
-reg  [15:0] ss_din_r = 16'b0;
+reg   [8:0] ss_addr_r = 9'b0;
+reg  [15:0] ss_wdata_r = 16'b0;
+reg         ss_we_r = 1'b0;
 wire [15:0] ss_dout;
 wire        ss_err;
 wire        ss_bus_quiet;
@@ -200,11 +199,10 @@ v30_core dut (
     .RD_N      (RD_N),
     .UBE_N     (UBE_N),
     .BUSLOCK_N (BUSLOCK_N),
-    .SS_CAPTURE(ss_cap_r),
-    .SS_RESTORE(ss_restore_r),
-    .SS_SHIFT  (ss_shift_r),
-    .SS_DIN    (ss_din_r),
-    .SS_DOUT   (ss_dout),
+    .SS_ADDR   (ss_addr_r),
+    .SS_WDATA  (ss_wdata_r),
+    .SS_WE     (ss_we_r),
+    .SS_RDATA  (ss_dout),
     .SS_ERR    (ss_err),
     .SS_BUS_QUIET(ss_bus_quiet),
     .bkd_load  (bkd_load),
@@ -457,8 +455,8 @@ logic [31:0] ss_scramble_seed = 32'h1;
 integer ss_dwell = 0;      // extra parked fabric clks (G5 long-dwell freeze)
 integer cpu_cyc = -1;
 logic ss_done = 1'b0;
-logic [15:0] ss_saved [0:SS_WORDS-1];
-logic [15:0] ss_work  [0:SS_WORDS-1];
+logic [15:0] ss_saved [0:SS_COUNT-1];
+logic [15:0] ss_work  [0:SS_COUNT-1];
 
 initial begin
     if (!$value$plusargs("ss_at=%d", ss_at)) ss_at = -1;
@@ -475,34 +473,16 @@ always @(posedge clk) begin
         cpu_cyc <= cpu_cyc + 1;
 end
 
-task automatic ss_save(output logic [15:0] stream [0:SS_WORDS-1]);
-    ss_cap_r = 1'b1;
-    @(posedge clk);
-    ss_cap_r = 1'b0;
-    for (int si = 0; si < SS_WORDS; si++) begin
-        stream[si] = ss_dout;
-        ss_shift_r = 1'b1;
-        @(posedge clk);
-        ss_shift_r = 1'b0;
-    end
+task automatic ss_save(output logic [15:0] stream [0:SS_COUNT-1]);
+    // Phase A2 replaces this compatibility stub with addressed reads.
+    for (int si = 0; si < SS_COUNT; si++) stream[si] = 16'b0;
 endtask
 
-task automatic ss_load(input logic [15:0] stream [0:SS_WORDS-1]);
-    for (int si = 0; si < SS_WORDS; si++) begin
-        ss_din_r = stream[si];
-        ss_shift_r = 1'b1;
-        @(posedge clk);
-        ss_shift_r = 1'b0;
-    end
-    // Assert at a posedge, HOLD high through the following negedge (so the
-    // t1_half2 negedge flop restores, design 4.4), deassert at the NEXT posedge
-    // (design 4.3). Dropping it AT the negedge races the negedge sampling and
-    // leaves t1_half2 unrestored - caught by the core contract assertion.
-    ss_restore_r = 1'b1;
-    @(posedge clk);   // restore fires here
-    @(negedge clk);   // following negedge: SS_RESTORE still high
-    @(posedge clk);   // next posedge
-    ss_restore_r = 1'b0;
+task automatic ss_load(input logic [15:0] stream [0:SS_COUNT-1]);
+    // Phase A2 replaces this compatibility stub with addressed writes.
+    ss_addr_r = 9'b0;
+    ss_wdata_r = stream[0];
+    ss_we_r = 1'b0;
 endtask
 
 function automatic logic [15:0] ss_lfsr_next(input logic [15:0] v);
@@ -515,10 +495,9 @@ always @(negedge clk) begin : ss_controller
     if (reset) begin
         ss_done = 1'b0;
         ss_park = 1'b0;
-        ss_cap_r = 1'b0;
-        ss_shift_r = 1'b0;
-        ss_restore_r = 1'b0;
-        ss_din_r = 16'b0;
+        ss_addr_r = 9'b0;
+        ss_wdata_r = 16'b0;
+        ss_we_r = 1'b0;
     end else if (!ss_done && recording && ss_at >= 0 &&
                  cpu_cyc == ss_at && ce_half) begin
         ss_done = 1'b1;
@@ -536,17 +515,17 @@ always @(negedge clk) begin : ss_controller
                 // SS_ERR. The tag is an integrity word, not a state flop, so
                 // restoring a tag-corrupted-but-otherwise-saved stream leaves the
                 // core state intact and only trips SS_ERR; re-capture clears it.
-                for (int si = 0; si < SS_WORDS; si++) ss_work[si] = ss_saved[si];
+                for (int si = 0; si < SS_COUNT; si++) ss_work[si] = ss_saved[si];
                 ss_work[0] = SS_TAG ^ 16'hFFFF;
                 ss_load(ss_work);
                 if (!ss_err)
                     $error("SS_ERR did not set on corrupt tag (finding 1b) idx=%0d",
                            ss_at);
-                ss_save(ss_saved);   // SS_CAPTURE clears SS_ERR, re-saves truth
+                ss_save(ss_saved);   // Addressed save implementation arrives in A2.
                 lfsr = ss_scramble_seed[15:0];
                 if (lfsr == 0) lfsr = 16'h1;
                 ss_work[0] = SS_TAG; // keep the integrity tag valid
-                for (int si = 1; si < SS_WORDS; si++) begin
+                for (int si = 1; si < SS_COUNT; si++) begin
                     lfsr = ss_lfsr_next(lfsr);
                     ss_work[si] = lfsr ^ (si[0] ? 16'hA5A5 : 16'h5A5A);
                 end
@@ -562,7 +541,7 @@ always @(negedge clk) begin : ss_controller
                 ss_load(ss_saved);
                 ss_save(ss_work);
                 idem_ok = 1'b1;
-                for (int si = 0; si < SS_WORDS; si++)
+                for (int si = 0; si < SS_COUNT; si++)
                     if (ss_saved[si] !== ss_work[si]) idem_ok = 1'b0;
                 $display("SS2 IDEMPOTENT idx=%0d %s", ss_at,
                          idem_ok ? "PASS" : "FAIL");
@@ -581,8 +560,8 @@ always @(negedge clk) begin : ss_controller
                 // seeds: most flips must diverge -> the gate is NOT blind.
                 integer bit_idx, wrd, bpos;
                 ss_save(ss_saved);
-                for (int si = 0; si < SS_WORDS; si++) ss_work[si] = ss_saved[si];
-                bit_idx = ss_scramble_seed % (SS_WORDS*16);
+                for (int si = 0; si < SS_COUNT; si++) ss_work[si] = ss_saved[si];
+                bit_idx = ss_scramble_seed % (SS_COUNT*16);
                 if (bit_idx < 16) bit_idx = bit_idx + 16;   // skip the tag word
                 wrd  = bit_idx / 16;
                 bpos = bit_idx % 16;

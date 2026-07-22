@@ -74,6 +74,8 @@ wire   [1:0] axs_bresp, axs_rresp;
 
 wire         nec_lg_n;
 
+// Save-state v2 is intentionally idle here; system_large owns the addressed
+// interface tie-off at its v30_core instance.
 system_large dut
 (
     .clk(clk), .reset(reset),

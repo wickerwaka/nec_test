@@ -393,11 +393,10 @@ v30_core u_core
     .RD_N      (core_rd_n),
     .UBE_N     (core_ube_n),
     .BUSLOCK_N (core_buslock_n),
-    .SS_CAPTURE(1'b0),
-    .SS_RESTORE(1'b0),
-    .SS_SHIFT  (1'b0),
-    .SS_DIN    (16'b0),
-    .SS_DOUT   (core_ss_dout_unused),
+    .SS_ADDR   (9'b0),
+    .SS_WDATA  (16'b0),
+    .SS_WE     (1'b0),
+    .SS_RDATA  (core_ss_dout_unused),
     .SS_ERR    (core_ss_err_unused),
     .SS_BUS_QUIET(core_ss_bus_quiet_unused)
 );

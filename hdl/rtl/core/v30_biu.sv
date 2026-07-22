@@ -194,129 +194,102 @@ module v30_biu (
     input      [47:0] bkd_queue,
     input       [2:0] bkd_qlen,
 
-    input             ss_capture,   // 1-clk: shadow <= live state
-    input             ss_shift,     // 1-clk/word: shift the shadow toward DOUT
-    input             ss_restore,   // 1-clk: live state <= shadow
-    input      [15:0] ss_din_seg,   // word entering from the EU segment
-    output     [15:0] ss_dout_seg,  // word leaving toward the tag segment
+    input [v30_ss_pkg::SS_ADDR_W-1:0] ss_addr,
+    input      [15:0] ss_wdata,
+    input             ss_we,
+    output reg [15:0] ss_rdata,
     output            ss_bus_quiet
 );
 
 import v30_ss_pkg::*;
 
-localparam int BIU_W = SS_BIU_WORDS*16;
-
-ss_biu_t ss_pack;
-always_comb begin
-    ss_pack = '0;
-    ss_pack.state = state;
-    ss_pack.cur_type = cur_type;
-    ss_pack.cur_addr = cur_addr;
-    ss_pack.cur_fetch = cur_fetch;
-    ss_pack.cur_wr = cur_wr;
-    ss_pack.cur_swap = cur_swap;
-    ss_pack.cur_split1 = cur_split1;
-    ss_pack.cur_split2 = cur_split2;
-    ss_pack.cur_wrap = cur_wrap;
-    ss_pack.cur_wdata = cur_wdata;
-    ss_pack.cur_seg = cur_seg;
-    ss_pack.cur_ube_n = cur_ube_n;
-    ss_pack.cur_kind = cur_kind;
-    ss_pack.nxt_valid = nxt_valid;
-    ss_pack.nxt_type = nxt_type;
-    ss_pack.nxt_addr = nxt_addr;
-    ss_pack.nxt_fetch = nxt_fetch;
-    ss_pack.nxt_wr = nxt_wr;
-    ss_pack.nxt_swap = nxt_swap;
-    ss_pack.nxt_split1 = nxt_split1;
-    ss_pack.nxt_split2 = nxt_split2;
-    ss_pack.nxt_wrap = nxt_wrap;
-    ss_pack.nxt_wdata = nxt_wdata;
-    ss_pack.nxt_seg = nxt_seg;
-    ss_pack.nxt_ube_n = nxt_ube_n;
-    ss_pack.nxt_kind = nxt_kind;
-    ss_pack.ube_n = ube_n;
-    ss_pack.eu_started = eu_started;
-    ss_pack.eu_hand = eu_hand;
-    ss_pack.eu_rdata = eu_rdata;
-    ss_pack.tw_any = tw_any;
-    ss_pack.evald = evald;
-    ss_pack.defer_t4 = defer_t4;
-    ss_pack.defer_idle = defer_idle;
-    ss_pack.eval_ext = eval_ext;
-    ss_pack.flush_hold = flush_hold;
-    ss_pack.ext_flushed = ext_flushed;
-    ss_pack.ready_prev = ready_prev;
-    ss_pack.eu_req_p1 = eu_req_p1;
-    ss_pack.eu_req_p2 = eu_req_p2;
-    ss_pack.eu_ready_p1 = eu_ready_p1;
-    ss_pack.eu_ready_p2 = eu_ready_p2;
-    ss_pack.tw_par = tw_par;
-    ss_pack.t1_half2 = t1_half2;
-    ss_pack.ph_ff = ph_ff;
-    ss_pack.gph_ff = gph_ff;
-    ss_pack.lock_active = lock_active;
-    ss_pack.lock_done = lock_done;
-    ss_pack.q_mem0 = q_mem[0];
-    ss_pack.q_mem1 = q_mem[1];
-    ss_pack.q_mem2 = q_mem[2];
-    ss_pack.q_mem3 = q_mem[3];
-    ss_pack.q_mem4 = q_mem[4];
-    ss_pack.q_mem5 = q_mem[5];
-    ss_pack.q_rd = q_rd;
-    ss_pack.q_wr = q_wr;
-    ss_pack.q_cnt = q_cnt;
-    ss_pack.q_avl = q_avl;
-    ss_pack.q_aged = q_aged;
-    ss_pack.q_head_dry_q = q_head_dry_q;
-    ss_pack.fetch_discard = fetch_discard;
-    ss_pack.fetch_cs = fetch_cs;
-    ss_pack.fetch_off = fetch_off;
-    ss_pack.fetch_data = fetch_data;
-    ss_pack.push_pend = push_pend;
-    ss_pack.push_pend_hi = push_pend_hi;
-    ss_pack.e_wait = e_wait;
-    ss_pack.halt_t1 = halt_t1;
-    ss_pack.halt_done = halt_done;
-    ss_pack.occ34_age = occ34_age;
-    ss_pack.pop_sr = pop_sr;
-    ss_pack.recent_evx = recent_evx;
-    ss_pack.last_was_store = last_was_store;
-    ss_pack.law_tw_cnt = law_tw_cnt;
-    ss_pack.law_dtw = law_dtw;
-    ss_pack.law_dcnt = law_dcnt;
-    ss_pack.law_window = law_window;
-    ss_pack.law_ctr = law_ctr;
-    ss_pack.law_sel = law_sel;
-    ss_pack.law_prov = law_prov;
-    ss_pack.pad = '0;
-end
-
-reg [BIU_W-1:0] ss_sh;
 always_ff @(posedge clk) begin
-    if (ss_capture)    ss_sh <= ss_pack;
-    else if (ss_shift) ss_sh <= {ss_din_seg, ss_sh[BIU_W-1:16]};
+    case (ss_addr)
+        SSA_B_STATE: ss_rdata <= {13'b0, state};
+        SSA_B_CUR_TYPE: ss_rdata <= {13'b0, cur_type};
+        SSA_B_CUR_ADDR_LO: ss_rdata <= cur_addr[15:0];
+        SSA_B_CUR_ADDR_HI: ss_rdata <= {12'b0, cur_addr[19:16]};
+        SSA_B_CUR_FETCH: ss_rdata <= {15'b0, cur_fetch};
+        SSA_B_CUR_WR: ss_rdata <= {15'b0, cur_wr};
+        SSA_B_CUR_SWAP: ss_rdata <= {15'b0, cur_swap};
+        SSA_B_CUR_SPLIT1: ss_rdata <= {15'b0, cur_split1};
+        SSA_B_CUR_SPLIT2: ss_rdata <= {15'b0, cur_split2};
+        SSA_B_CUR_WRAP: ss_rdata <= {15'b0, cur_wrap};
+        SSA_B_CUR_WDATA: ss_rdata <= cur_wdata;
+        SSA_B_CUR_SEG: ss_rdata <= {14'b0, cur_seg};
+        SSA_B_CUR_UBE_N: ss_rdata <= {15'b0, cur_ube_n};
+        SSA_B_CUR_KIND: ss_rdata <= {14'b0, cur_kind};
+        SSA_B_NXT_VALID: ss_rdata <= {15'b0, nxt_valid};
+        SSA_B_NXT_TYPE: ss_rdata <= {13'b0, nxt_type};
+        SSA_B_NXT_ADDR_LO: ss_rdata <= nxt_addr[15:0];
+        SSA_B_NXT_ADDR_HI: ss_rdata <= {12'b0, nxt_addr[19:16]};
+        SSA_B_NXT_FETCH: ss_rdata <= {15'b0, nxt_fetch};
+        SSA_B_NXT_WR: ss_rdata <= {15'b0, nxt_wr};
+        SSA_B_NXT_SWAP: ss_rdata <= {15'b0, nxt_swap};
+        SSA_B_NXT_SPLIT1: ss_rdata <= {15'b0, nxt_split1};
+        SSA_B_NXT_SPLIT2: ss_rdata <= {15'b0, nxt_split2};
+        SSA_B_NXT_WRAP: ss_rdata <= {15'b0, nxt_wrap};
+        SSA_B_NXT_WDATA: ss_rdata <= nxt_wdata;
+        SSA_B_NXT_SEG: ss_rdata <= {14'b0, nxt_seg};
+        SSA_B_NXT_UBE_N: ss_rdata <= {15'b0, nxt_ube_n};
+        SSA_B_NXT_KIND: ss_rdata <= {14'b0, nxt_kind};
+        SSA_B_UBE_N: ss_rdata <= {15'b0, ube_n};
+        SSA_B_EU_STARTED: ss_rdata <= {15'b0, eu_started};
+        SSA_B_EU_HAND: ss_rdata <= {15'b0, eu_hand};
+        SSA_B_EU_RDATA: ss_rdata <= eu_rdata;
+        SSA_B_TW_ANY: ss_rdata <= {15'b0, tw_any};
+        SSA_B_EVALD: ss_rdata <= {15'b0, evald};
+        SSA_B_DEFER_T4: ss_rdata <= {15'b0, defer_t4};
+        SSA_B_DEFER_IDLE: ss_rdata <= {15'b0, defer_idle};
+        SSA_B_EVAL_EXT: ss_rdata <= {15'b0, eval_ext};
+        SSA_B_FLUSH_HOLD: ss_rdata <= {15'b0, flush_hold};
+        SSA_B_EXT_FLUSHED: ss_rdata <= {15'b0, ext_flushed};
+        SSA_B_READY_PREV: ss_rdata <= {15'b0, ready_prev};
+        SSA_B_EU_REQ_P1: ss_rdata <= {15'b0, eu_req_p1};
+        SSA_B_EU_REQ_P2: ss_rdata <= {15'b0, eu_req_p2};
+        SSA_B_EU_READY_P1: ss_rdata <= {15'b0, eu_ready_p1};
+        SSA_B_EU_READY_P2: ss_rdata <= {15'b0, eu_ready_p2};
+        SSA_B_TW_PAR: ss_rdata <= {15'b0, tw_par};
+        SSA_B_T1_HALF2: ss_rdata <= {15'b0, t1_half2};
+        SSA_B_PH_FF: ss_rdata <= {15'b0, ph_ff};
+        SSA_B_GPH_FF: ss_rdata <= {15'b0, gph_ff};
+        SSA_B_LOCK_ACTIVE: ss_rdata <= {15'b0, lock_active};
+        SSA_B_LOCK_DONE: ss_rdata <= {15'b0, lock_done};
+        SSA_B_Q_MEM0: ss_rdata <= {8'b0, q_mem[0]};
+        SSA_B_Q_MEM1: ss_rdata <= {8'b0, q_mem[1]};
+        SSA_B_Q_MEM2: ss_rdata <= {8'b0, q_mem[2]};
+        SSA_B_Q_MEM3: ss_rdata <= {8'b0, q_mem[3]};
+        SSA_B_Q_MEM4: ss_rdata <= {8'b0, q_mem[4]};
+        SSA_B_Q_MEM5: ss_rdata <= {8'b0, q_mem[5]};
+        SSA_B_Q_RD: ss_rdata <= {13'b0, q_rd};
+        SSA_B_Q_WR: ss_rdata <= {13'b0, q_wr};
+        SSA_B_Q_CNT: ss_rdata <= {13'b0, q_cnt};
+        SSA_B_Q_AVL: ss_rdata <= {13'b0, q_avl};
+        SSA_B_Q_AGED: ss_rdata <= {14'b0, q_aged};
+        SSA_B_Q_HEAD_DRY_Q: ss_rdata <= {15'b0, q_head_dry_q};
+        SSA_B_FETCH_DISCARD: ss_rdata <= {15'b0, fetch_discard};
+        SSA_B_FETCH_CS: ss_rdata <= fetch_cs;
+        SSA_B_FETCH_OFF: ss_rdata <= fetch_off;
+        SSA_B_FETCH_DATA: ss_rdata <= fetch_data;
+        SSA_B_PUSH_PEND: ss_rdata <= {14'b0, push_pend};
+        SSA_B_PUSH_PEND_HI: ss_rdata <= {15'b0, push_pend_hi};
+        SSA_B_E_WAIT: ss_rdata <= {15'b0, e_wait};
+        SSA_B_HALT_T1: ss_rdata <= {15'b0, halt_t1};
+        SSA_B_HALT_DONE: ss_rdata <= {15'b0, halt_done};
+        SSA_B_OCC34_AGE: ss_rdata <= {12'b0, occ34_age};
+        SSA_B_POP_SR: ss_rdata <= {8'b0, pop_sr};
+        SSA_B_RECENT_EVX: ss_rdata <= {12'b0, recent_evx};
+        SSA_B_LAST_WAS_STORE: ss_rdata <= {15'b0, last_was_store};
+        SSA_B_LAW_TW_CNT: ss_rdata <= {12'b0, law_tw_cnt};
+        SSA_B_LAW_DTW: ss_rdata <= {12'b0, law_dtw};
+        SSA_B_LAW_DCNT: ss_rdata <= {13'b0, law_dcnt};
+        SSA_B_LAW_WINDOW: ss_rdata <= {15'b0, law_window};
+        SSA_B_LAW_CTR: ss_rdata <= {13'b0, law_ctr};
+        SSA_B_LAW_SEL: ss_rdata <= {13'b0, law_sel};
+        SSA_B_LAW_PROV: ss_rdata <= {15'b0, law_prov};
+        default: ss_rdata <= 16'h0000;
+    endcase
 end
-assign ss_dout_seg = ss_sh[15:0];
-
-ss_biu_t ss_u;
-assign ss_u = ss_biu_t'(ss_sh);
-
-// Elaboration-time HARD-FAIL on width drift (design 3.1): a generate-time
-// check, so the build fails synthesis-independently (not merely a sim $error).
-generate
-    if (BIU_W != $bits(ss_biu_t)) begin : gen_ss_biu_width_err
-        // Cross-tool elaboration hard-fail (design 3.1): referencing an
-        // UNDEFINED module aborts the build in BOTH Verilator and Quartus 17.1
-        // (Quartus rejects $error inside a generate). Untaken when widths match.
-        ss_biu_t_width_mismatch u_ss_biu_width_guard ();
-    end
-endgenerate
-
-`ifdef VERILATOR
-always @(posedge clk)
-    if (ss_restore && srst) $error("ss_restore and srst co-asserted");
-`endif
 
 localparam bit [2:0] BS_INTA = 3'b000;
 localparam bit [2:0] BS_IOR  = 3'b001;
@@ -510,7 +483,7 @@ wire [3:0] pf_lim = 4'd4;
 // separates a store_tw=0 resume in a waited run from its w0 twin.
 reg  [3:0] recent_evx;
 always_ff @(posedge clk) begin
-    if (ss_restore) recent_evx <= ss_u.recent_evx;
+    if (ss_we && ss_addr == SSA_B_RECENT_EVX) recent_evx <= ss_wdata[3:0];
     else if (srst) recent_evx <= 4'hF;
     else if (ce) begin
         if (eval_ext)               recent_evx <= 4'd0;
@@ -523,7 +496,7 @@ end
 // the next bus cycle begins (ST_T1).
 reg        last_was_store;
 always_ff @(posedge clk) begin
-    if (ss_restore) last_was_store <= ss_u.last_was_store;
+    if (ss_we && ss_addr == SSA_B_LAST_WAS_STORE) last_was_store <= ss_wdata[0];
     else if (srst) last_was_store <= 1'b0;
     else if (ce) begin
         if (state == ST_T4 && (cur_type == BS_MEMW) && cur_wr && !cur_fetch)
@@ -560,7 +533,7 @@ assign q_any    = q_cnt != 3'd0;   // fetched (not yet poppable) counts
 // coincides with an in-flight fetch's T2 (Campaign 4 disp-phase law)
 reg q_head_dry_q;
 always_ff @(posedge clk)
-    if (ss_restore) q_head_dry_q <= ss_u.q_head_dry_q;
+    if (ss_we && ss_addr == SSA_B_Q_HEAD_DRY_Q) q_head_dry_q <= ss_wdata[0];
     else if (srst) q_head_dry_q <= 1'b1;
     else if (ce) q_head_dry_q <= (q_avl == 3'd0);
 assign q_fresh = q_head_dry_q;
@@ -617,15 +590,13 @@ reg halt_t1, halt_done;
 wire halt_show = halt_disp && !halt_done && state == ST_TI &&
                  !nxt_live && !eval_ext;
 always_ff @(posedge clk) begin
-    if (ss_restore) begin
-        halt_t1   <= ss_u.halt_t1;
-        halt_done <= ss_u.halt_done;
-    end else if (srst || !halt_disp) begin
-        halt_t1   <= 1'b0;
-        halt_done <= 1'b0;
+    if (ss_we && ss_addr == SSA_B_HALT_T1) halt_t1 <= ss_wdata[0];
+    else if (ss_we && ss_addr == SSA_B_HALT_DONE) halt_done <= ss_wdata[0];
+    else if (srst) begin
+        halt_t1 <= 1'b0; halt_done <= 1'b0;
     end else if (ce) begin
-        halt_t1 <= halt_show;
-        if (halt_show) halt_done <= 1'b1;
+        if (!halt_disp) begin halt_t1 <= 1'b0; halt_done <= 1'b0; end
+        else begin halt_t1 <= halt_show; if (halt_show) halt_done <= 1'b1; end
     end
 end
 
@@ -679,7 +650,7 @@ wire ext_ok     = eu_ready_p1 ||
 // exactly as probe (c) requires. Odd-tw rows STAY denied -> stay LATE (correct).
 reg  tw_par;
 always_ff @(posedge clk) begin
-    if (ss_restore) tw_par <= ss_u.tw_par;
+    if (ss_we && ss_addr == SSA_B_TW_PAR) tw_par <= ss_wdata[0];
     else if (srst) tw_par <= 1'b0;
     else if (ce) begin
         if (state == ST_T1)      tw_par <= 1'b0;
@@ -1043,7 +1014,7 @@ end
 `ifndef SYNTHESIS
 `ifdef VERILATOR
 // Family-5/7 strio hardening: coverage counters + invariants (Codex trio-review
-// coda, task #24). SIM-ONLY: excluded from synth and from ss_pack -> no synth
+// coda, task #24). SIM-ONLY: excluded from synth and from the SS address map -> no synth
 // footprint, no savestate flop, write-only so scramble-invariant. Leg (b) of the
 // coda requires the three counters NONZERO under the wrand strio-gadget fuzz;
 // vacuous bit-identity there was the review's High finding (no 6C-6F in the
@@ -1215,64 +1186,69 @@ assign eu_rdone = eu_completing && !cur_wr &&
                    (state == ST_T4 && evald));
 
 always_ff @(posedge clk) begin
-    if (ss_restore) begin
-        state          <= ss_u.state;
-        eu_started     <= ss_u.eu_started;
-        defer_t4       <= ss_u.defer_t4;
-        defer_idle     <= ss_u.defer_idle;
-        nxt_valid      <= ss_u.nxt_valid;
-        nxt_type       <= ss_u.nxt_type;
-        nxt_addr       <= ss_u.nxt_addr;
-        nxt_fetch      <= ss_u.nxt_fetch;
-        nxt_wr         <= ss_u.nxt_wr;
-        nxt_swap       <= ss_u.nxt_swap;
-        nxt_split1     <= ss_u.nxt_split1;
-        nxt_split2     <= ss_u.nxt_split2;
-        nxt_wrap       <= ss_u.nxt_wrap;
-        nxt_wdata      <= ss_u.nxt_wdata;
-        nxt_seg        <= ss_u.nxt_seg;
-        nxt_ube_n      <= ss_u.nxt_ube_n;
-        nxt_kind       <= ss_u.nxt_kind;
-        cur_type       <= ss_u.cur_type;
-        cur_addr       <= ss_u.cur_addr;
-        cur_fetch      <= ss_u.cur_fetch;
-        cur_wr         <= ss_u.cur_wr;
-        cur_swap       <= ss_u.cur_swap;
-        cur_split1     <= ss_u.cur_split1;
-        cur_split2     <= ss_u.cur_split2;
-        cur_wrap       <= ss_u.cur_wrap;
-        cur_wdata      <= ss_u.cur_wdata;
-        cur_seg        <= ss_u.cur_seg;
-        cur_ube_n      <= ss_u.cur_ube_n;
-        cur_kind       <= ss_u.cur_kind;
-        ube_n          <= ss_u.ube_n;
-        eu_rdata       <= ss_u.eu_rdata;
-        eu_hand        <= ss_u.eu_hand;
-        tw_any         <= ss_u.tw_any;
-        evald          <= ss_u.evald;
-        eval_ext       <= ss_u.eval_ext;
-        ext_flushed    <= ss_u.ext_flushed;
-        flush_hold     <= ss_u.flush_hold;
-        e_wait         <= ss_u.e_wait;
-        q_mem[0]       <= ss_u.q_mem0;
-        q_mem[1]       <= ss_u.q_mem1;
-        q_mem[2]       <= ss_u.q_mem2;
-        q_mem[3]       <= ss_u.q_mem3;
-        q_mem[4]       <= ss_u.q_mem4;
-        q_mem[5]       <= ss_u.q_mem5;
-        q_rd           <= ss_u.q_rd;
-        q_wr           <= ss_u.q_wr;
-        q_cnt          <= ss_u.q_cnt;
-        q_avl          <= ss_u.q_avl;
-        q_aged         <= ss_u.q_aged;
-        occ34_age      <= ss_u.occ34_age;
-        pop_sr         <= ss_u.pop_sr;
-        fetch_discard  <= ss_u.fetch_discard;
-        fetch_cs       <= ss_u.fetch_cs;
-        fetch_off      <= ss_u.fetch_off;
-        fetch_data     <= ss_u.fetch_data;
-        push_pend      <= ss_u.push_pend;
-        push_pend_hi   <= ss_u.push_pend_hi;
+    if (ss_we) begin
+        case (ss_addr)
+            SSA_B_STATE: state <= ss_wdata[2:0];
+            SSA_B_EU_STARTED: eu_started <= ss_wdata[0];
+            SSA_B_DEFER_T4: defer_t4 <= ss_wdata[0];
+            SSA_B_DEFER_IDLE: defer_idle <= ss_wdata[0];
+            SSA_B_NXT_VALID: nxt_valid <= ss_wdata[0];
+            SSA_B_NXT_TYPE: nxt_type <= ss_wdata[2:0];
+            SSA_B_NXT_ADDR_LO: nxt_addr[15:0] <= ss_wdata;
+            SSA_B_NXT_ADDR_HI: nxt_addr[19:16] <= ss_wdata[3:0];
+            SSA_B_NXT_FETCH: nxt_fetch <= ss_wdata[0];
+            SSA_B_NXT_WR: nxt_wr <= ss_wdata[0];
+            SSA_B_NXT_SWAP: nxt_swap <= ss_wdata[0];
+            SSA_B_NXT_SPLIT1: nxt_split1 <= ss_wdata[0];
+            SSA_B_NXT_SPLIT2: nxt_split2 <= ss_wdata[0];
+            SSA_B_NXT_WRAP: nxt_wrap <= ss_wdata[0];
+            SSA_B_NXT_WDATA: nxt_wdata <= ss_wdata;
+            SSA_B_NXT_SEG: nxt_seg <= ss_wdata[1:0];
+            SSA_B_NXT_UBE_N: nxt_ube_n <= ss_wdata[0];
+            SSA_B_NXT_KIND: nxt_kind <= ss_wdata[1:0];
+            SSA_B_CUR_TYPE: cur_type <= ss_wdata[2:0];
+            SSA_B_CUR_ADDR_LO: cur_addr[15:0] <= ss_wdata;
+            SSA_B_CUR_ADDR_HI: cur_addr[19:16] <= ss_wdata[3:0];
+            SSA_B_CUR_FETCH: cur_fetch <= ss_wdata[0];
+            SSA_B_CUR_WR: cur_wr <= ss_wdata[0];
+            SSA_B_CUR_SWAP: cur_swap <= ss_wdata[0];
+            SSA_B_CUR_SPLIT1: cur_split1 <= ss_wdata[0];
+            SSA_B_CUR_SPLIT2: cur_split2 <= ss_wdata[0];
+            SSA_B_CUR_WRAP: cur_wrap <= ss_wdata[0];
+            SSA_B_CUR_WDATA: cur_wdata <= ss_wdata;
+            SSA_B_CUR_SEG: cur_seg <= ss_wdata[1:0];
+            SSA_B_CUR_UBE_N: cur_ube_n <= ss_wdata[0];
+            SSA_B_CUR_KIND: cur_kind <= ss_wdata[1:0];
+            SSA_B_UBE_N: ube_n <= ss_wdata[0];
+            SSA_B_EU_RDATA: eu_rdata <= ss_wdata;
+            SSA_B_EU_HAND: eu_hand <= ss_wdata[0];
+            SSA_B_TW_ANY: tw_any <= ss_wdata[0];
+            SSA_B_EVALD: evald <= ss_wdata[0];
+            SSA_B_EVAL_EXT: eval_ext <= ss_wdata[0];
+            SSA_B_EXT_FLUSHED: ext_flushed <= ss_wdata[0];
+            SSA_B_FLUSH_HOLD: flush_hold <= ss_wdata[0];
+            SSA_B_E_WAIT: e_wait <= ss_wdata[0];
+            SSA_B_Q_MEM0: q_mem[0] <= ss_wdata[7:0];
+            SSA_B_Q_MEM1: q_mem[1] <= ss_wdata[7:0];
+            SSA_B_Q_MEM2: q_mem[2] <= ss_wdata[7:0];
+            SSA_B_Q_MEM3: q_mem[3] <= ss_wdata[7:0];
+            SSA_B_Q_MEM4: q_mem[4] <= ss_wdata[7:0];
+            SSA_B_Q_MEM5: q_mem[5] <= ss_wdata[7:0];
+            SSA_B_Q_RD: q_rd <= ss_wdata[2:0];
+            SSA_B_Q_WR: q_wr <= ss_wdata[2:0];
+            SSA_B_Q_CNT: q_cnt <= ss_wdata[2:0];
+            SSA_B_Q_AVL: q_avl <= ss_wdata[2:0];
+            SSA_B_Q_AGED: q_aged <= ss_wdata[1:0];
+            SSA_B_OCC34_AGE: occ34_age <= ss_wdata[3:0];
+            SSA_B_POP_SR: pop_sr <= ss_wdata[7:0];
+            SSA_B_FETCH_DISCARD: fetch_discard <= ss_wdata[0];
+            SSA_B_FETCH_CS: fetch_cs <= ss_wdata;
+            SSA_B_FETCH_OFF: fetch_off <= ss_wdata;
+            SSA_B_FETCH_DATA: fetch_data <= ss_wdata;
+            SSA_B_PUSH_PEND: push_pend <= ss_wdata[1:0];
+            SSA_B_PUSH_PEND_HI: push_pend_hi <= ss_wdata[0];
+            default: ;
+        endcase
     end else if (srst) begin
         eu_started <= 1'b0;
         defer_t4   <= 1'b0;
@@ -1659,7 +1635,7 @@ wire ph_now = (state == ST_T1 || state == ST_T3) ? 1'b0
             : (state == ST_TI && nxt_live) ? 1'b1   // committed pre-T1 slot
             : ph_ff;
 always_ff @(posedge clk)
-    if (ss_restore) ph_ff <= ss_u.ph_ff;
+    if (ss_we && ss_addr == SSA_B_PH_FF) ph_ff <= ss_wdata[0];
     else if (ce) ph_ff <= ~ph_now;
 assign bus_phase = ph_now;
 
@@ -1681,7 +1657,7 @@ wire gph_now = (state == ST_T1 || state == ST_T3) ? 1'b0
              : (state == ST_TI && nxt_live)        ? 1'b1
              :                                        gph_ff;
 always_ff @(posedge clk)
-    if (ss_restore) gph_ff <= ss_u.gph_ff;
+    if (ss_we && ss_addr == SSA_B_GPH_FF) gph_ff <= ss_wdata[0];
     else if (ce)
         gph_ff <= (state == ST_TW) ? gph_ff : ~gph_now;    // Tw: do not advance
 assign grid_phase = gph_now;
@@ -1707,7 +1683,7 @@ assign grid_phase = gph_now;
 // definition is corrected + re-validated (resume_scheduler_design.md).
 reg cyc_saw_tw;
 always_ff @(posedge clk)
-    if (ss_restore) cyc_saw_tw <= 1'b0; // sim-only; GRID_PHASE_STRICT is off
+    if (ss_we && !ss_addr[8]) cyc_saw_tw <= 1'b0; // sim-only; GRID_PHASE_STRICT is off
     else if (srst) cyc_saw_tw <= 1'b0;
     else if (ce)
         cyc_saw_tw <= (state == ST_T1) ? 1'b0 : (cyc_saw_tw | bus_tw);
@@ -1731,9 +1707,12 @@ assign bus_t4 = state == ST_T4;
 reg lock_active, lock_done;
 wire lock_wr_t4 = lock_active && cur_wr && !cur_fetch && (state == ST_T4);
 always_ff @(posedge clk) begin
-    if (ss_restore) begin
-        lock_active <= ss_u.lock_active;
-        lock_done   <= ss_u.lock_done;
+    if (ss_we) begin
+        case (ss_addr)
+            SSA_B_LOCK_ACTIVE: lock_active <= ss_wdata[0];
+            SSA_B_LOCK_DONE: lock_done <= ss_wdata[0];
+            default: ;
+        endcase
     end else if (srst) begin
         lock_active <= 1'b0;
         lock_done   <= 1'b0;
@@ -1780,14 +1759,17 @@ assign ss_bus_quiet = (bus_ts == 3'd0) && (bs == BS_PASV) && !nxt_valid &&
 // law. ready_prev is READY at the last sampling edge.
 reg ready_prev;
 always_ff @(posedge clk)
-    if (ss_restore) ready_prev <= ss_u.ready_prev;
+    if (ss_we && ss_addr == SSA_B_READY_PREV) ready_prev <= ss_wdata[0];
     else if (ce) ready_prev <= ready;
 always_ff @(posedge clk) begin
-    if (ss_restore) begin
-        eu_req_p1   <= ss_u.eu_req_p1;
-        eu_req_p2   <= ss_u.eu_req_p2;
-        eu_ready_p1 <= ss_u.eu_ready_p1;
-        eu_ready_p2 <= ss_u.eu_ready_p2;
+    if (ss_we) begin
+        case (ss_addr)
+            SSA_B_EU_REQ_P1: eu_req_p1 <= ss_wdata[0];
+            SSA_B_EU_REQ_P2: eu_req_p2 <= ss_wdata[0];
+            SSA_B_EU_READY_P1: eu_ready_p1 <= ss_wdata[0];
+            SSA_B_EU_READY_P2: eu_ready_p2 <= ss_wdata[0];
+            default: ;
+        endcase
     end else if (ce) begin
         eu_req_p1   <= eu_req && !eu_started;
         eu_req_p2   <= eu_req_p1;
@@ -1864,7 +1846,7 @@ wire [15:0] wdata_lanes = cur_swap ? {cur_wdata[7:0], cur_wdata[15:8]}
 // address latch still sees the address.
 reg t1_half2;
 always @(negedge clk)
-    if (ss_restore) t1_half2 <= ss_u.t1_half2;
+    if (ss_we && ss_addr == SSA_B_T1_HALF2) t1_half2 <= ss_wdata[0];
     else if (ce_half) t1_half2 <= (state == ST_T1);
 
 // INTA cycles drive no address: the commit display and T1 leave AD15:0
@@ -1916,14 +1898,17 @@ reg  [2:0] law_sel;         // cidle_sel for THIS arm
 reg        law_prov;        // occupied==3: sel provisional pending pop@T4+2
 
 always @(posedge clk) begin
-    if (ss_restore) begin
-        law_tw_cnt <= ss_u.law_tw_cnt;
-        law_dtw    <= ss_u.law_dtw;
-        law_dcnt   <= ss_u.law_dcnt;
-        law_window <= ss_u.law_window;
-        law_ctr    <= ss_u.law_ctr;
-        law_sel    <= ss_u.law_sel;
-        law_prov   <= ss_u.law_prov;
+    if (ss_we) begin
+        case (ss_addr)
+            SSA_B_LAW_TW_CNT: law_tw_cnt <= ss_wdata[3:0];
+            SSA_B_LAW_DTW: law_dtw <= ss_wdata[3:0];
+            SSA_B_LAW_DCNT: law_dcnt <= ss_wdata[2:0];
+            SSA_B_LAW_WINDOW: law_window <= ss_wdata[0];
+            SSA_B_LAW_CTR: law_ctr <= ss_wdata[2:0];
+            SSA_B_LAW_SEL: law_sel <= ss_wdata[2:0];
+            SSA_B_LAW_PROV: law_prov <= ss_wdata[0];
+            default: ;
+        endcase
     end else if (srst) begin
         law_tw_cnt <= 4'd0; law_dtw <= 4'd0; law_dcnt <= 3'd0;
         law_window <= 1'b0; law_ctr <= 3'd0; law_sel <= 3'd0; law_prov <= 1'b0;
@@ -1987,7 +1972,7 @@ end
 // a spurious 0-vs-3 mismatch that is a harness artifact, not a frame bug.
 reg [2:0] law_dcnt_probe;
 always @(posedge clk)
-    if (ss_restore) law_dcnt_probe <= ss_u.law_dcnt;
+    if (ss_we && ss_addr == 9'h04E) law_dcnt_probe <= ss_wdata[2:0];
     else if (srst) law_dcnt_probe <= 3'd0;
     else if (ce && state == ST_T3 && cur_fetch) law_dcnt_probe <= cnt_next;
 always @(posedge clk) if (!srst && ce && t3_done && cur_fetch)
