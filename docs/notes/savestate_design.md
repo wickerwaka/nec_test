@@ -446,3 +446,25 @@ bitstream captures.
 **The savestate feature is invisible on silicon exactly as in sim (G1 no-op).** Save-state
 campaign (task #23) S0-S6 + G7 COMPLETE and green. Deferred: S7 (MiSTer wrapper + platform-
 side savestate + the shadow-live per-module-strobe-register timing decision).
+
+---
+
+## SUPERSEDED (2026-07-22) — replaced by the addressed register-file interface (v2)
+
+This shadow-shift-register design shipped and passed all gates, but its ~1,168-flop shadow
+chain cost ~1,184 FPGA registers of pure duplication. It has been **superseded by save-state
+v2** — an addressed register-file interface (`SS_ADDR`/`SS_WDATA`/`SS_WE`/`SS_RDATA`, one
+address per state element read/written directly in the existing flops, no shadow) — designed
+and executed under **`docs/notes/savestate_v2_design.md`** (phases A0–A6, all green).
+
+Headline outcome of the swap (see the v2 doc §7.2 G6′/G7′ actuals): **net −1,124 live FPGA
+registers** (measured, vs the −1,120 prediction) at neutral ALM; worst-case setup slack
+**+4.191 ns** — v2 clears the original +4.0 ns gate that *this* v1 build could only meet via a
+documented +3.830 ns deviation; and the same in-silicon A/B + 150/150 byte-identity result,
+so the register economy is bought with no behavioural or timing cost. The v1 typedef structs
+(`ss_biu_t`/`ss_eu_t`), the shadow (`ss_sh`), and the `SS_CAPTURE`/`SS_SHIFT`/`SS_RESTORE`/
+`SS_DIN`/`SS_DOUT` port set are deleted in v2; `SS_VERSION` bumped 0x01→0x02. The S7 MiSTer
+wrapper (still deferred) becomes a pure adapter over `ss_addr_of()`, and the shadow-live
+per-module strobe-register decision this doc booked for S7 **no longer exists** (there is no
+shadow and the command is registered once at the core level). **For all current work, follow
+the v2 doc; this file is retained as the v1 record only.**
