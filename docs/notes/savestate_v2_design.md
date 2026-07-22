@@ -495,10 +495,34 @@ Arrays resize 74 → SS_COUNT(202) via package import. check_core.py --ss-sweep/
 | **G3′** idempotence | mode 2: read-all A → write-all A → read-all B | A==B always |
 | **G4′** round-trip width sweep (**NEW**) | mode 5: save-all; per mapped address ≠ tag: write FFFF, read r1, write 0000, read r0; check r0==0 and r1 == mask(ss_field_width(a)); then restore saved and resume to end | exact mask match on all 201 state addresses; post-restore rows identical |
 | **G5′** negative | corrupt-tag → SS_ERR (in G2′); mode-4 bit-flip sensitivity retained | as v1 G4 |
-| **G6′** synthesis | Quartus 17.1, SS tied off: 0 errors, no latches, race_rom still ROM, ALM/**register** delta vs v1-shadow baseline reported, slack ≥ **+3.8 ns** (parity with accepted S6 baseline) | as stated |
+| **G6′** synthesis | Quartus 17.1, SS tied off: 0 errors, no latches, race_rom still ROM, ALM/**register** delta vs v1-shadow baseline reported, slack ≥ **+3.8 ns** (parity with accepted S6 baseline) | **PASS — see G6′ actuals below** |
 | **G7′** silicon | one A/B (check_ab_hw) + byte-identity re-emission set — **mandatory** (halt_t1 edit) | identical to reference |
 
 Mode 3 (FIFO self-test) moot — no FIFO; slot taken by mode 5. **Standing regression set: G1′ + G2′ + G4′ + lint-grep symbol counts** (`sw/ss_lint.py`) — strictly dominates v1's (unpack blind spot now covered dynamically).
+
+#### G6′ actuals (A4) — Quartus 17.1 Lite, Cyclone V 5CSEBA6U23I7, HEAD at A3 (cb9564f)
+
+**Full `sys_top` compile, SS tied off (the shipping build):**
+
+| Metric | v2 | v1-shadow (S6 baseline) | Verdict |
+|---|---|---|---|
+| Compilation | 0 errors, 306 warnings | 0 errors | PASS |
+| Inferred latches | 0 | 0 | PASS |
+| race_rom inference | ROM; block mem 840,863 (unchanged) | ROM 840,863 | PASS |
+| Worst-case setup slack | **+4.191 ns** | +3.830 ns | PASS — **clears the original +4.0 ns gate v1 could only meet via a documented deviation** |
+| ALM (tied-off) | 10,269 / 41,910 (25%) | 10,232 (+149 vs pre-SS base 10,083) | +37 vs v1 (rounding noise on a 41,910-ALM part) |
+| Registers (tied-off) | 5,174 | not recorded (DCE'd) | — |
+
+The race_rom `Warning (10030)` lines are only the unused write port (`waddr_a/data_a/we_a` defaulting to 0) — expected for a read-only ROM; block-memory bits are byte-identical to the v1 baseline, confirming it still maps to block RAM.
+
+**Live register-delta headline — core-only, `v30_core` as top (SS ports on pins, nothing DCE'd):**
+
+| Metric | v1-shadow | v2-addressed | Delta |
+|---|---|---|---|
+| Registers (A&S dedicated) | 2,331 | 1,207 | **−1,124 flops** |
+| ALM (A&S estimate) | 7,913 | 7,910 | −3 (neutral) |
+
+**DCE caveat (why the live delta, not the tied-off one, is the real number):** in the tied-off top both builds dead-code-eliminate their SS logic (v1's shadow has no observable output when `SS_*` are constants; v2's read-mux/write-decode collapse when `ss_we_q`/`SS_RDATA` are constant/unused), so the tied-off ALM/register deltas are near-zero and *understate* the saving. Driving the ports — here by making `v30_core` the synthesis top so `SS_ADDR/WDATA/WE`→pins and `SS_RDATA/ERR`→pins — preserves the full SS mechanism. The core-state flops are identical between the two builds, so the **−1,124** is essentially the mechanism itself (v1's ~1,168-flop shadow shift-register vs v2's ~44 net read-mux + command-staging registers). This lands on the design's predicted **net ≈ −1,120 flops** — the directive's register-economy objective, met.
 
 **Verdict methodology (A3) — sim-vs-sim transparency, never a cross-wait-regime golden compare.** The save-state property under test is *transparency*: a freeze+restore run must reproduce the **uninterrupted run at the same wait config**, bit-for-bit. The reference is therefore a no-freeze baseline sim sharing the ss run's waits — **not** the recorded silicon golden. The golden compare only coincides with transparency at w0 (where golden==baseline); at w1/w3/wrand the cycle rows are per-T-state, so a w0 golden has fewer rows than a w1 sim and the compare is meaningless. `check_core.sim_transparent(base, ss)` implements the correct test: identical `r`-record streams and identical finals. It is wait-agnostic because the observer FSM (incl. the wrand wait-LFSR) is `ce`-gated, so the CE-park emits no records and does not advance the wait generator — the freeze is invisible to the record stream, and the wrand pattern is shared between baseline and freeze runs at the same `+wseed`. RTL-vs-golden correctness stays a *separate* concern, checked by the main pass. A3 dimensions (all via `sim_transparent`): **w1** (`--waits 1`), **w3** (`--waits 3`), **dwell** (`--ss-dwell 10000`, park-only, reuses the uniform baseline), **wrand** (`--ss-wrand --ss-wmax 3` × several `--ss-wseed`, dedicated wrand baseline per case). **G5′ negatives** (`--ss-mode 4 --ss-neg`): the same transparency test inverted — a live-state bit-flip left un-restored *must* perturb the continuation; swept across `--ss-scramble-seed` (bit index = seed mod SS_COUNT·16), most flips must diverge (blindness alarm at <50%).
 
