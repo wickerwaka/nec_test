@@ -2187,3 +2187,33 @@ differences, zero final-state/convention differences (verified). v0.2 metadata.j
 untracked (git rm --cached) and the suite kept on disk under tests/v30/v0.2/.gitignore;
 do not delete from disk without the user's say. Storage/versioning of the large suites is
 deferred to the upstream-contribution stage (task #17).
+
+## L6 boundary tranche — serve-infra two-drop (2026-07-23, INVESTIGATE at next board session)
+
+The F4a directed boundary mini-tranche (L6) could NOT capture: TWO clean serve
+drops, zero cases, board safe both times. This reads as a SYSTEMIC serve/ssh
+transport issue, not bad luck — booked for investigation at the START of the
+next board session (RR2's E-battery opens one).
+
+Two-drop signature:
+- attempt 1 (codex task-mrxo2i0b, ~15:29Z): seed_base v30-v0.3-f4a-boundary,
+  4 gap forms x40 @w0. `RunError: serve: connection closed`. 0 forms completed.
+  ServeRunner closed, socket idle, board safe.
+- attempt 2 (codex task-mrxoa5t8, ~15:35Z): seed_base ...-retry, 8 forms x40.
+  Same `RunError: serve: connection closed`. 0 attempted/completed. Board safe.
+- (codex task-mrxobj3u FAILED "Starting Codex Resume" — a rescue-agent resume-
+  correction attempt on task-mrxoa5t8; never touched the board.)
+- Board reachable + safe before, between, and after (v30ctl status R_MAGIC ok
+  each time). Transport = ssh -> `python3 v30ctl.py serve` (v30run.ServeRunner).
+
+Investigate first at the next session: ssh keepalive / ConnectTimeout on the
+serve channel, `serve` process lifetime on the MiSTer (killed by MiSTer Main? OOM?
+watchdog?), whether BASE upload size or an idle gap triggers the drop. The rig
+force-clean-at-connect worked (no rig-guard trips); the drop is at the serve
+transport layer, downstream of connect. Until resolved, board emission is
+unreliable -- prefer short sessions with frequent BASE re-establishment.
+
+Impact: F4a boundary coverage for C4/62/0F31/0F3B stays PENDING-L6 (batches with
+RR2). The F4a fix itself is silicon-validated against existing v0.3 goldens and
+sw/f4a_boundary_battery.py covers 5 of 9 consumers; the ledger is CLOSED. This is
+coverage-completion only, non-blocking.

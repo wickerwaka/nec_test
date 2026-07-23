@@ -95,7 +95,7 @@ def main():
         if not idxs:
             gaps.append(form)
             print(f"  {form}: 0 boundary cases in v0.3 -> COVERAGE GAP "
-                  f"(fill in L6 silicon mini-tranche)")
+                  f"(pending-L6; batches with RR2 board session -- see bringup_log.md serve-infra note)")
             continue
         byidx = {c["idx"]: c for c in g}
         bad = run_three_way(form, [byidx[i] for i in idxs])
