@@ -1733,6 +1733,7 @@ localparam int unsigned IE_TAIL2 = 9;   // EXT s>16 retire base (+off)
 localparam int unsigned IEI_IMM0 = 3;   // 0F39 off=0: mrm -> imm pop
 localparam int unsigned IEI_R1   = 10;   // 0F39 off=0: imm -> read
 localparam int unsigned IEI_W16  = 30;  // 0F39 off=0 len=16: imm -> write
+localparam int unsigned IE_W16R  = 35;  // 0F31 off=0 len=16: mrm -> write
 localparam int unsigned IEI_R2   = 10;   // 0F39 off>0 s<16: imm -> re-read
 localparam int unsigned IEI_W1   = 30;  // 0F39 s>=16: imm -> write (-off)
 
@@ -3436,8 +3437,15 @@ always_ff @(posedge clk) begin
                             awn = {4'd0, ss[3:0], rf[0][7:0]};
                         ie_fld <= awn & 16'((32'd1 << l) - 32'd1);
                         ie_len <= l;
-                        ie_dly <= (o == 4'd0 && ss < 6'd16)
-                                  ? 12'(IE_R1D0) : 12'(IE_R1D);
+                        if (o == 4'd0 && l == 5'd16) begin
+                            // F1: full-word aligned insert - chip skips
+                            // the ES:IY RMW read (0F39 imm twin below).
+                            eu_wdata <= awn;
+                            ie_dly   <= 12'(IE_W16R);
+                        end else begin
+                            ie_dly <= (o == 4'd0 && ss < 6'd16)
+                                      ? 12'(IE_R1D0) : 12'(IE_R1D);
+                        end
                     end
                 end else begin
                     if (mrm_rm == 3'd0 || (mrm_rm == 3'd4 && l == 5'd16))
@@ -3470,8 +3478,10 @@ always_ff @(posedge clk) begin
                 eu_wr   <= 1'b0;
                 eu_word <= 1'b1;
                 eu_kind <= K_MEM;
-                wnext   <= (ie_ins && ie_immf && o == 4'd0) ? S_IE_IMM
-                                                            : S_IE_R1;
+                wnext   <= (ie_ins && !ie_immf &&
+                            o == 4'd0 && l == 5'd16) ? S_IE_WR
+                           : (ie_ins && ie_immf && o == 4'd0) ? S_IE_IMM
+                                                             : S_IE_R1;
                 state   <= S_IE_WAIT;
             end
             // 0F39 deferred imm4 pop (fitted: mrm+6 when off=0, read-
