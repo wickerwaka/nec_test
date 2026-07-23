@@ -3661,7 +3661,7 @@ always_ff @(posedge clk) begin
                 if (eu_addr[0] && ie_s > 6'd16 && !ie_ph2) begin
                     ie_chain <= 1'b1;
                     eu_wr    <= 1'b0;
-                    eu_addr  <= eu_addr + 20'd2;
+                    eu_addr  <= ea_step2(eu_addr, eu_seg);  // F4a: INS split w0->w1
                 end
             end
             S_IE_WRW: begin
