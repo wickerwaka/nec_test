@@ -1128,9 +1128,9 @@ endfunction
 // wrap-borrow joins c1 in the HIGH SUM, while the high ADJUST
 // DECISION runs on a single-borrow rail (c1 only) and fires on
 // borrow OR >9 - the mirror image of ADD4S's one-carry-rail quirk.
-function automatic [12:0] bcd_sub8(input [7:0] a, input [7:0] b, input bin);
+function automatic [13:0] bcd_sub8(input [7:0] a, input [7:0] b, input bin);
     logic [4:0] lo, hi, dec;
-    logic       c1, c2, fl, wrapb, fire, sibx, prez;
+    logic       c1, c2, fl, wrapb, fire, sibx, prez, zq;
     logic [3:0] dlo0, dlo, dhi0, dhi;
     logic [8:0] rawx, adjx;
     lo = {1'b0, a[3:0]} - {1'b0, b[3:0]} - {4'd0, bin};
@@ -1159,7 +1159,20 @@ function automatic [12:0] bcd_sub8(input [7:0] a, input [7:0] b, input bin);
     rawx = {1'b0, a} - {1'b0, b} - {8'd0, bin};
     adjx = {1'b0, rawx[7:0]} - (fl ? 9'd6 : 9'd0) -
            (fire ? 9'h60 : 9'h0);
-    bcd_sub8 = {adjx[8], rawx[8], fire, sibx, prez, dhi, dlo};
+    // F2 unified-law Z term (SUB/CMP direction): the mu-line-2 ADJD/W
+    // digit-serial intermediate {ripple_pending, hi_raw_c1, dlo} tested
+    // == 0. For SUB/CMP ripple_pending == wrapb, and wrapb=1 => dlo =
+    // dlo0+10 != 0, so the rail bit is IDENTICALLY vacuous over the whole
+    // domain -> zq collapses to {dec[3:0], dlo} == 0. dec[3:0] is the raw
+    // high nibble (raw low borrow c1 only, BEFORE wrapb and the -6 fire
+    // adjust) -- it is the mu-intermediate. Do NOT "fix" this to dhi0
+    // (dhi0 includes wrapb): they coincide on Z-relevant cases but
+    // dec[3:0] is the correct rail. All 15 wrap divergents have c1
+    // activity, so a naive c1-activity gate is dead on sub -- it is the
+    // RIPPLE that gates, structurally 0 whenever the digits read zero.
+    // See docs/notes/v03_tail_family_law_design.md.
+    zq = (dec[3:0] == 4'd0) && (dlo == 4'd0);
+    bcd_sub8 = {zq, adjx[8], rawx[8], fire, sibx, prez, dhi, dlo};
 endfunction
 
 // DIVU leaves the flags of its 16-bit overflow pre-check compare
@@ -3694,14 +3707,18 @@ always_ff @(posedge clk) begin
                 // sibling = src_o + dst_o + fire + sibx - 1 (measured);
                 // SUB4S sibling = dst_o - src_o - braw - badj + 1
                 // (closure block: exact on all 1020 golden writes)
-                logic [12:0] s;
+                logic [13:0] s;
                 if (opc2 == 8'h20)
-                    s = {2'b00,
+                    s = {3'b000,
                          bcd_add8(eu_rdata[7:0], a4_src[7:0], a4_carry)};
                 else
                     s = bcd_sub8(eu_rdata[7:0], a4_src[7:0], a4_carry);
                 a4_carry <= s[10];
-                a4_z     <= a4_z && s[8];
+                // F2 Z stage. SUB/CMP use the unified-law zq term at
+                // s[13] (V30 = adjusted bytes / mu-line-2 intermediate);
+                // ADD4S stays on the pre-adjust prez (s[8]) until its own
+                // landing (0F20 held-for-law: the 9-bit raw-sum term).
+                a4_z     <= a4_z && (opc2 == 8'h20 ? s[8] : s[13]);
                 if (opc2 == 8'h20)
                     mem_op <= {a4_src[15:8] + eu_rdata[15:8] +
                                {7'd0, s[10]} + {7'd0, s[9]} - 8'd1, s[7:0]};
