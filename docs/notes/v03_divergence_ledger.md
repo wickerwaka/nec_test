@@ -11,6 +11,21 @@
 > 169000 — zero changes elsewhere. **Remaining: 52 (F1 25 + F2 24 + F4 3).** F1/F2/F4 held
 > for the tail-family law designs (docs/notes/v03_tail_family_law_design.md).
 
+> **STATUS 2026-07-23: 2 → 0. LEDGER CLOSED.** Family 4bc (0F1B/3917, 83.5/8683)
+> RESOLVED as **instrument-failure #3 (VOID)** — a ram-vs-instruction physical
+> collision, not an RTL/chip bug. L5 readback (software, CRC-equivalent to the
+> board via the serve BASE/DELTA CRC check): for the PREFETCHED variant the
+> `63 C0` PRELOAD bytes land on the operand EA in the 64K-mirrored image
+> (8683: phys 0x9799 want 0xA7 got 0x63; 3917: phys 0xdc30 want 0x89 got 0xC0),
+> overwriting the operand — so the golden encoded the chip reading code, not the
+> operand; the RTL (reading the modeled operand) is correct. `testimage.compose`'s
+> footprint check catches ram-vs-ram/reserved overlap but MISSED ram-vs-
+> instruction. **Mechanized:** `emit_suite._operand_survives` (post-compose
+> readback guard) + `_operand_abuts_code` (adjacency guard, margin 8 > the ≤4-byte
+> prefetch extension) now reject such placements at emit time. The 2 cases are
+> VOID (re-emitting their seeds rerolls to non-colliding placements). **Full tail
+> ledger: 62 → 0** (F1 25 + F2 24 + F3 10 convention + F4a 1 landed; F4bc 2 VOID).
+
 62 cases in the v0.3 suite (347 forms × 10,000) where the socket-captured golden
 (chip = truth) is **not reproduced by the internal RTL core** (the DUT), and the
 mismatch is **memory-model-independent** — the case fails on both flat-1MB *and*

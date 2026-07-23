@@ -110,6 +110,23 @@ def _operand_abuts_code(spans, margin=CODE_ADJ_MARGIN):
             if (a & 0xFFFF) in code:
                 return True
     return False
+
+
+def _operand_survives(image, ram):
+    """L5 readback mechanization (F4bc instrument-failure #3, board-confirmed via
+    the serve CRC-equivalence): every operand/data byte the vector places MUST
+    survive the instruction/preload/stub placement in the 64K-mirrored physical
+    image. testimage.compose's footprint check catches ram-vs-ram and reserved
+    overlap but MISSES ram-vs-instruction: for the prefetched variant the preload
+    0x63C0 landed on the operand EA (0F1B/3917, 83.5/8683), so the golden encoded
+    the chip reading code, not the operand. Returns (phys, want, got) of the first
+    overwritten operand byte, or None if all survived. Equivalent to load_mem ->
+    peek_mem -> compare, done at compose time."""
+    for addr, byte in ram:
+        p = addr & 0xFFFF
+        if image[p] != (byte & 0xFF):
+            return (p, byte & 0xFF, image[p])
+    return None
 HANDLER_OFF = 0x0400              # IVT-0 handler (V20 convention)
 # serve-v2 capture prefix: normal 0-wait cases finish (incl. store +
 # done marker) well under 1024 records; 1536 leaves headroom. Raise for
@@ -1230,6 +1247,12 @@ def emit_evt_case(spec, case, host, tag, preload_n=0, waits=0):
     image, meta = testimage.compose(regs=nec_regs, instr=run_instr,
                                     ram=case["ram"], ivt=ivt,
                                     stub_linear=stub_linear)
+    _bad = _operand_survives(image, case["ram"])   # L5 readback guard (F4bc)
+    if _bad is not None:
+        raise ComposeError(
+            "operand byte overwritten by code/preload at phys "
+            f"{_bad[0]:04x}: want {_bad[1]:02x} got {_bad[2]:02x} "
+            "(ram-vs-instruction collision; F4bc instrument-failure #3)")
     recs, fired = run_image(image, host, tag, waits=waits, evt=evt,
                             iord=None, pins=pins or None, want_fired=True,
                             cap=EMIT_CAP, use_core=EMIT_USE_CORE)
@@ -1574,6 +1597,12 @@ def emit_case(spec, case, host, tag, preload_n=0, waits=0):
     image, meta = testimage.compose(regs=nec_regs, instr=run_instr,
                                     ram=ram, ivt=ivt,
                                     stub_linear=stub_linear)
+    _bad = _operand_survives(image, ram)     # L5 readback guard (F4bc)
+    if _bad is not None:
+        raise ComposeError(
+            "operand byte overwritten by code/preload at phys "
+            f"{_bad[0]:04x}: want {_bad[1]:02x} got {_bad[2]:02x} "
+            "(ram-vs-instruction collision; F4bc instrument-failure #3)")
     recs = run_image(image, host, tag, waits=waits,
                      iord=case.get("iord"), iords=case.get("iords"),
                      cap=EMIT_CAP, use_core=EMIT_USE_CORE)
