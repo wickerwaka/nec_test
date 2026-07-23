@@ -89,6 +89,27 @@ REG16 = ["ax", "cx", "dx", "bx", "sp", "bp", "si", "di"]
 EA_STR = ["bx+si", "bx+di", "bp+si", "bp+di", "si", "di", "bp", "bx"]
 
 PRELOAD_BYTES = b"\x63\xc0"       # NEC undocumented multi-cycle no-op
+
+# L5/F4bc guard (instrument-failure #3): keep operand EAs clear of the code
+# region. A read-modify-write's displaced fetch was measured reading the
+# 0x63C0 PRELOAD_BYTES abutting the code (v0.3 0F1B/3917, 83.5/8683 -- see
+# docs/notes/v03_divergence_ledger.md F4bc). Reject placements where any
+# operand byte lands within CODE_ADJ_MARGIN of any code byte (physical 16-bit
+# / 64K-mirror space). spans[0] is always the code span.
+CODE_ADJ_MARGIN = 8
+
+def _operand_abuts_code(spans, margin=CODE_ADJ_MARGIN):
+    if not spans:
+        return False
+    code = set()
+    for a in spans[0]:
+        for d in range(-margin, margin + 1):
+            code.add((a + d) & 0xFFFF)
+    for sp in spans[1:]:
+        for a in sp:
+            if (a & 0xFFFF) in code:
+                return True
+    return False
 HANDLER_OFF = 0x0400              # IVT-0 handler (V20 convention)
 # serve-v2 capture prefix: normal 0-wait cases finish (incl. store +
 # done marker) well under 1024 records; 1536 leaves headroom. Raise for
@@ -1080,6 +1101,8 @@ def gen_case(spec, rng):
         for a, _ in ram:
             if (a & 0xFFFF) in testimage.RESERVED:
                 bad = True
+        if not bad and _operand_abuts_code(spans):
+            bad = True                      # F4bc adjacency-displacement guard
         if bad:
             continue
         c = dict(regs=regs, instr=instr, ram=ram, name=name, ivt=ivt,
@@ -1163,6 +1186,8 @@ def gen_evt_case(spec, rng):
         for a, _v in ram:
             if (a & 0xFFFF) in testimage.RESERVED:
                 bad = True
+        if not bad and _operand_abuts_code(spans):
+            bad = True                      # F4bc adjacency-displacement guard
         if bad:
             continue
         name = f"{opname} <{spec['mnem']} d={delay}>"
