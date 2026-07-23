@@ -338,3 +338,25 @@ a 16k-case set. Word-vs-byte and REP-only scope are the discriminators.
 - **STANDING RULE: a Tw in a waits=0 golden is a PROVENANCE ALARM, not a law to fit.** Any
   wait state in a nominally zero-wait capture means the wait rig was dirty (or a genuine,
   separately-provenanced wait spec) — re-verify the rig state before characterizing.
+
+---
+
+## Campaign close — tail-family (2026-07-23)
+
+The v0.3 chip-vs-RTL divergence ledger is **CLOSED: 62 → 0**. Every case was
+either a genuine RTL fix (silicon-confirmed against the chip goldens), a
+capture/convention artifact, or a harness instrument-failure — **zero unresolved
+chip-vs-RTL divergences remain, and no fix added an FPGA flop (savestate-v2
+address map untouched throughout).**
+
+| family | cases | disposition | commit |
+|---|---|---|---|
+| F1 — 0F31 INS full-word insert | 25 | RTL: read-skip branch (0F39-twin) + fitted IE_W16R | 593ac43 |
+| F2a — CMP4S/SUB4S Z stage | 15 | RTL: V30 accumulates Z over adjusted bytes; unified law U `{dec[3:0],dlo}==0` | fb2c2f9 |
+| F2a — ADD4S Z stage | 6 | RTL: U add-side `(a+b+cin)==9'd0` (raw 9-bit sum) | f4f29ba |
+| F2b — ADD4S driven sibling | 3 | RTL: second-rail wrap bit in the bus-image lane | 84a88a3 |
+| F3 — pin-event no-fire | 10 | convention: no-interrupt store-stub `final.flags` unreliable (task-#21 sibling) | 51e737e |
+| F4a — multi-word operand EA | 1 | RTL: `ea_step2` offset-wrap mod 64K at 6 sites (IVT linear) | b92bd01 |
+| F4bc — 0F1B/83.5 | 2 | VOID: instrument-failure #3 (prefetch 0x63C0 overwrote operand in 64K-mirror) | 307d27e |
+
+**Method wins recorded:** two failed-law flip-guard catches (F2a fully-adjusted law, F1 constant-b risk) reverted before landing; the unified BCD law U derived (not fitted) after the residue partition exposed the missing rail bit; the F4a **source-level `ea_step_lint`** caught a latent missed consumer (double-space INS-split site) on its first run — the structural-guard argument vindicated; L5 resolved in software via the serve BASE/DELTA **CRC-equivalence** (design intent met, zero board risk) and the collision class closed permanently by the compose-time `_operand_survives` + `_operand_abuts_code` guards. **New standing gate set: ss_lint + ea_step_lint + f4a_boundary_battery + ss modes.**
