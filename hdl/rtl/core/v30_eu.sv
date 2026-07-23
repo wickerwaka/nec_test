@@ -1103,9 +1103,9 @@ endfunction
 //  - prez: the PRE-adjust byte was zero (Z accumulates on this, not on
 //    the adjusted result).
 // Returns {fire, sibx, prez, result}.
-function automatic [10:0] bcd_add8(input [7:0] a, input [7:0] b, input cin);
+function automatic [13:0] bcd_add8(input [7:0] a, input [7:0] b, input cin);
     logic [4:0] lo, hi;
-    logic       c1, c2, c3, fire, sibx, prez;
+    logic       c1, c2, c3, fire, sibx, prez, zq;
     logic [3:0] dlo0, dlo, dhi0, dhi;
     lo = {1'b0, a[3:0]} + {1'b0, b[3:0]} + {4'd0, cin};
     c1 = lo[4];
@@ -1119,7 +1119,16 @@ function automatic [10:0] bcd_add8(input [7:0] a, input [7:0] b, input cin);
     dhi = fire ? dhi0 + 4'd6 : dhi0;
     sibx = c3 && (dhi0 > 4'd9);
     prez = (dhi0 == 4'd0) && (dlo0 == 4'd0);
-    bcd_add8 = {fire, sibx, prez, dhi, dlo};
+    // F2 unified-law Z term (ADD direction). U per-byte tests the mu-line-2
+    // digit-serial intermediate {ripple_pending, hi_raw_c1, dlo} == 0 with
+    // ripple_pending == c2; the conjunction collapses algebraically:
+    // c2=0 && dlo==0 => dlo0==0 => c1=0 (else dlo=6) => hi_raw_c1==0 =>
+    // a_hi+b_hi==0. Net: zq <=> the RAW 9-bit byte sum (a + b + cin) == 0 --
+    // the chip never calls an add byte zero if anything happened. zq lands
+    // at the SAME s[13] as bcd_sub8's (the [12:11] pad has no badj/braw on
+    // the add rail). See docs/notes/v03_tail_family_law_design.md.
+    zq = ({1'b0, a} + {1'b0, b} + {8'd0, cin}) == 9'd0;
+    bcd_add8 = {zq, 2'b00, fire, sibx, prez, dhi, dlo};
 endfunction
 
 // SUB4S/CMP4S nibble-serial subtract, fitted on the 0F22 goldens
@@ -3709,16 +3718,15 @@ always_ff @(posedge clk) begin
                 // (closure block: exact on all 1020 golden writes)
                 logic [13:0] s;
                 if (opc2 == 8'h20)
-                    s = {3'b000,
-                         bcd_add8(eu_rdata[7:0], a4_src[7:0], a4_carry)};
+                    s = bcd_add8(eu_rdata[7:0], a4_src[7:0], a4_carry);
                 else
                     s = bcd_sub8(eu_rdata[7:0], a4_src[7:0], a4_carry);
                 a4_carry <= s[10];
-                // F2 Z stage. SUB/CMP use the unified-law zq term at
-                // s[13] (V30 = adjusted bytes / mu-line-2 intermediate);
-                // ADD4S stays on the pre-adjust prez (s[8]) until its own
-                // landing (0F20 held-for-law: the 9-bit raw-sum term).
-                a4_z     <= a4_z && (opc2 == 8'h20 ? s[8] : s[13]);
+                // F2 unified-law Z stage: both directions expose their
+                // per-byte zq term at s[13] (V30 mu-line-2 intermediate ==
+                // 0). ADD = raw 9-bit byte sum == 0; SUB/CMP = {dec[3:0],
+                // dlo} == 0. P=Z mirror at S_A4_END unchanged.
+                a4_z     <= a4_z && s[13];
                 if (opc2 == 8'h20)
                     mem_op <= {a4_src[15:8] + eu_rdata[15:8] +
                                {7'd0, s[10]} + {7'd0, s[9]} - 8'd1, s[7:0]};

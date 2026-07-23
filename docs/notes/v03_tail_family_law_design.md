@@ -35,6 +35,46 @@ Tail wnext mux (:3473) gains: `(ie_ins && !ie_immf && o==0 && l==16) ? S_IE_WR`.
 
 **Gate**: 24→0 (0F26×10, 0F22×5, 0F20 arch×6 F2a + cyc×3 F2b); flip-guards all passing 4S bit-identical incl. cycle rows + near-miss controls; v20 oracle 4S 100% under amended predicate, non-4S untouched 100%; standing gates; zero new divergences.
 
+### F2 resolution (L1/L2, landed) — the unified law U
+
+The original one-line "V30 Z over the fully-adjusted result byte (`s[7:0]==0`)" law was
+**incorrect** (it zeroed no form and regressed the suite — flip-guard caught it). It was
+reverted, the residue partition characterized (every candidate over-predicted zero — one-sided
+false-zeros on carry/adjust bytes), and the architect derived the **unified law U** (not fitted):
+
+> At the µline-2 (ADJD/W) sample, the per-byte Z term tests the 9-bit digit-serial intermediate
+> **`{ripple_pending, hi_raw_c1, dlo_adjusted} == 0`**, where `ripple_pending` is the low-adjust's
+> carry/borrow into the high digit that µline 3 has not yet consumed.
+
+Per-direction collapse (provable over the whole domain, not fitted):
+- **SUB/CMP**: `ripple_pending == wrapb`, and `wrapb=1 ⇒ dlo = dlo0+10 ≠ 0`, so the rail bit is
+  identically vacuous ⇒ U ≡ **`(dec[3:0]==0) && (dlo==0)`**. `dec[3:0]` is the µ-intermediate
+  (raw high nibble, raw low borrow `c1` only, before `wrapb`/`-6`); it includes `wrapb` where
+  `dhi0` does — do NOT "fix" it to `dhi0`. All 15 wrap divergents have `c1` activity, so a naïve
+  `c1`-activity gate is dead on sub; it is the *ripple* that gates.
+- **ADD**: `ripple_pending == c2`, and the conjunction collapses algebraically
+  (`c2=0 ∧ dlo==0 ⇒ dlo0==0 ⇒ c1=0 ⇒ hi_raw_c1==0 ⇒ a_hi+b_hi==0`) ⇒ U ≡ **`(a + b + cin) == 9'd0`**
+  (the raw 9-bit byte sum literally zero). The chip never calls an add byte zero if anything
+  happened. Validated 0/10000 on 0F20 (KILL-SHOT: 0 chip-Z=1 cases with a nonzero byte; caveat:
+  chip-Z=1 count is 0 in v0.3, so the law is exercised only in the Z=0 direction — the Z=1
+  direction is µcode-grounded, not suite-tested).
+
+RTL: `bcd_add8`/`bcd_sub8` each gain a top-of-bundle `zq` at `s[13]`; consumer `a4_z <= a4_z && s[13]`.
+No new intermediate signals, no flop, SS map unchanged. Landed as two attributable commits
+(CMP/SUB, then ADD); F2b (×3 cyc) is a separate landing (L3).
+
+**Bookkeeping — why the fallback sweep could not find U:** the pre-registered fallback space
+(quantity × accumulation) was correctly designed but *provably* could not contain U — U includes
+the **rail bit** (`ripple_pending`/the 9-bit carry), not a rendering of the digit pair, and the
+sweep enumerated only digit-pair renderings. The residue partition's one-sided structure
+(false-zeros confined to activity bytes) is exactly what identified the missing dimension. The
+idx-652 falsifier premise earlier was a digit-level mis-reading corrected by the 130 CL=1 byte-
+level chip cases — recorded per the provenance discipline.
+
+*Mechanism (offered, not load-bearing):* the µ-ALU Z line appears to test the whole digit-serial
+intermediate register including the carry rail, at the ADJD/W µline before µline 3 consumes the
+ripple — which is why "the digits read zero but a carry/adjust happened" reads non-zero.
+
 ## F4a fix
 ```systemverilog
 // F4a: sequential multi-word operands step the 16-bit OFFSET mod 64K
