@@ -1102,7 +1102,7 @@ endfunction
 //    high sum carried (c3) and its pre-adjust digit exceeds 9.
 //  - prez: the PRE-adjust byte was zero (Z accumulates on this, not on
 //    the adjusted result).
-// Returns {fire, sibx, prez, result}.
+// Returns {zq, pad, second-rail-wrap, fire, sibx, prez, result}.
 function automatic [13:0] bcd_add8(input [7:0] a, input [7:0] b, input cin);
     logic [4:0] lo, hi;
     logic       c1, c2, c3, fire, sibx, prez, zq;
@@ -1128,7 +1128,10 @@ function automatic [13:0] bcd_add8(input [7:0] a, input [7:0] b, input cin);
     // at the SAME s[13] as bcd_sub8's (the [12:11] pad has no badj/braw on
     // the add rail). See docs/notes/v03_tail_family_law_design.md.
     zq = ({1'b0, a} + {1'b0, b} + {8'd0, cin}) == 9'd0;
-    bcd_add8 = {zq, 2'b00, fire, sibx, prez, dhi, dlo};
+    bcd_add8 = {zq, 1'b0,
+                ({2'b00, a[7:4]} + {2'b00, b[7:4]} +
+                 {5'd0, c1} + {5'd0, c2}) > 6'd31,
+                fire, sibx, prez, dhi, dlo};
 endfunction
 
 // SUB4S/CMP4S nibble-serial subtract, fitted on the 0F22 goldens
@@ -3712,8 +3715,9 @@ always_ff @(posedge clk) begin
             S_A4_G1: state <= S_A4_DST;
             S_A4_DST: if (eu_started) state <= S_A4_DSTW;
             S_A4_DSTW: if (eu_done) begin
-                // {badj, braw, fire, sibx, prez, res}; ADD4S driven
-                // sibling = src_o + dst_o + fire + sibx - 1 (measured);
+                // {badj/pad, braw/wrap, fire, sibx, prez, res}; ADD4S driven
+                // sibling = src_o + dst_o + fire + sibx - 1, plus the
+                // second-rail high-nibble carry when sibx did not cover it;
                 // SUB4S sibling = dst_o - src_o - braw - badj + 1
                 // (closure block: exact on all 1020 golden writes)
                 logic [13:0] s;
@@ -3729,7 +3733,8 @@ always_ff @(posedge clk) begin
                 a4_z     <= a4_z && s[13];
                 if (opc2 == 8'h20)
                     mem_op <= {a4_src[15:8] + eu_rdata[15:8] +
-                               {7'd0, s[10]} + {7'd0, s[9]} - 8'd1, s[7:0]};
+                               {7'd0, s[10]} + {7'd0, s[9]} +
+                               {7'd0, s[11]} - 8'd1, s[7:0]};
                 else
                     mem_op <= {eu_rdata[15:8] - a4_src[15:8] -
                                {7'd0, s[11]} - {7'd0, s[12]} + 8'd1,
