@@ -1,0 +1,10 @@
+# TRUTH SOURCE: SOCKET (real chip, use_core=False)  seed_base=v30-v0.3-f4a-boundary  cases=40  waits=0  forms=4
+# STOP: RunError: serve: connection closed
+# COMPLETED FORMS: 
+# BOARD SAFE: serve session closed; socket idle
+# RETRY TRUTH SOURCE: SOCKET (real chip, use_core=False) seed_base=v30-v0.3-f4a-boundary-retry cases=40 waits=0 forms=8
+# RETRY STATUS: second-drop
+# ATTEMPTED FORMS: 
+# COMPLETED FORMS: 
+# STOP: RunError: serve: connection closed
+# BOARD SAFE: serve session closed; socket idle
