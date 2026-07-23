@@ -1323,6 +1323,13 @@ assign eu_wrap = (eu_kind == K_IO)
                ? (eu_addr[15:0] == 16'hFFFF)
                : ((eu_addr[15:0] - {sr[eu_seg][11:0], 4'h0}) == 16'hFFFF);
 
+// F4a: sequential MULTI-WORD operands step their 16-bit OFFSET mod 64K.
+function automatic [19:0] ea_step2(input [19:0] a, input [1:0] sg);
+    logic [15:0] off;
+    off = a[15:0] - {sr[sg][11:0], 4'h0};
+    ea_step2 = {sr[sg], 4'h0} + {4'h0, off + 16'd2};
+endfunction
+
 assign q_pop   = pop_want && q_avail;
 assign q_first = state == S_FIRST;
 // flush: registered for the trap path; combinational for branch flush
@@ -3591,7 +3598,7 @@ always_ff @(posedge clk) begin
                     state <= S_IE_WAIT;
                 end else if (ie_mode == 2'd0 && ie_s > 6'd16) begin
                     ie_w0   <= eu_rdata;
-                    eu_addr <= eu_addr + 20'd2;
+                    eu_addr <= ea_step2(eu_addr, eu_seg);
                     ie_dly  <= 12'(IE_R2G);
                     wnext   <= S_IE_R2;
                     state   <= S_IE_WAIT;
@@ -3668,7 +3675,7 @@ always_ff @(posedge clk) begin
                     if (ie_s > 6'd16 && !ie_ph2) begin
                         ie_ph2  <= 1'b1;
                         eu_wr   <= 1'b0;
-                        eu_addr <= eu_addr + 20'd2;
+                        eu_addr <= ea_step2(eu_addr, eu_seg);
                         ie_dly  <= 12'(IE_W2R2);
                         wnext   <= S_IE_R2;
                         state   <= S_IE_WAIT;
@@ -4442,7 +4449,7 @@ always_ff @(posedge clk) begin
                             // CALL done+5 (measured)
                             ldp2 <= 1'b1;
                             fl_ip <= eu_rdata;
-                            eu_addr <= eu_addr + 20'd2;
+                            eu_addr <= ea_step2(eu_addr, eu_seg);
                             eu_wr <= 1'b0;
                             dly <= (mrm_reg == 3'd3) ? 6'd4 : 6'd3;
                             wnext <= S_REQ;
@@ -4479,7 +4486,7 @@ always_ff @(posedge clk) begin
                         // 500 golden cases)
                         ldp2 <= 1'b1;
                         cmp1 <= eu_rdata;
-                        eu_addr <= eu_addr + 20'd2;
+                        eu_addr <= ea_step2(eu_addr, eu_seg);
                         eu_wr <= 1'b0;
                         dly <= 6'd2; wnext <= S_REQ;
                         state <= S_WAITX;
@@ -4513,7 +4520,7 @@ always_ff @(posedge clk) begin
                         // EA+2 ready done+3 (commits lo-end+6; all
                         // 1000 golden cases C4+C5)
                         ldp2 <= 1'b1;
-                        eu_addr <= eu_addr + 20'd2;
+                        eu_addr <= ea_step2(eu_addr, eu_seg);
                         eu_wr <= 1'b0;
                         dly <= 6'd2; wnext <= S_REQ;
                         state <= S_WAITX;
