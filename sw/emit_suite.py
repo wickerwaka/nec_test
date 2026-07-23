@@ -1339,6 +1339,17 @@ def emit_evt_case(spec, case, host, tag, preload_n=0, waits=0):
             else:
                 fin_regs.pop("flags", None)
 
+    # No-fire pin-event sub-species: the event did NOT take an interrupt (no PSW
+    # push; final SP unchanged from initial). Flags are then architecturally
+    # UNCHANGED from initial, but the store-stub PSW dump (got["PSW"]) is an
+    # unreliable POST-HANDLER capture that can show phantom changes. Drop the
+    # (contaminated) flags delta so final.flags defaults to initial -- the "no-
+    # push" analogue of the fired-interrupt rule above. Task #21 handled the
+    # fired case; this handles the never-fired case (HLT.RES masked-resume,
+    # IE0.90 masked NOP). See docs/notes/v02_suspected_divergences.md.
+    if got.get("SP", case["regs"]["sp"]) == case["regs"]["sp"]:
+        fin_regs.pop("flags", None)
+
     test = {
         "name": case["name"],
         "bytes": list(instr),

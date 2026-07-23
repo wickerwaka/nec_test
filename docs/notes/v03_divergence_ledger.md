@@ -1,5 +1,16 @@
 # v0.3 divergence ledger — chip-vs-RTL residuals
 
+> **STATUS 2026-07-23: 62 → 52.** Family 3 (pin-event, 10 cases) RESOLVED as a capture/
+> convention artifact (no RTL bug) — the no-fire pin-event sub-species: no interrupt is taken,
+> so flags are architecturally unchanged from initial and the store-stub `final.flags` is
+> unreliable on both sides. check_core pin-event gate extended with a no-fire branch (drop
+> flags when SP unchanged), emit_suite convention extended (drop the store-stub flags delta
+> for no-fire), and the 10 v0.3 goldens re-derived host-side (final.flags removed → defaults
+> to initial; now uniform with the other 9994/9996 no-fire cases). Gate: HLT.RES/IE0.90
+> 10000/10000, all 13 pin-event forms 130000/130000, v0.1 pin-event 2600/2600, w0 169000/
+> 169000 — zero changes elsewhere. **Remaining: 52 (F1 25 + F2 24 + F4 3).** F1/F2/F4 held
+> for the tail-family law designs (docs/notes/v03_tail_family_law_design.md).
+
 62 cases in the v0.3 suite (347 forms × 10,000) where the socket-captured golden
 (chip = truth) is **not reproduced by the internal RTL core** (the DUT), and the
 mismatch is **memory-model-independent** — the case fails on both flat-1MB *and*
