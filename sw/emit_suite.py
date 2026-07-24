@@ -2060,6 +2060,19 @@ def cmd_emit(host, opcodes, n_cases, out_dir, seed_base, preload_n,
                     t = emit_case(spec, case, host, tag=f"em{op}",
                                   preload_n=pn, waits=waits)
             except (ComposeError, RunError) as e:
+                # TRANSPORT vs CASE failure (RR2 serve-drop investigation):
+                # a serve transport drop is a RunError too, but it is NOT a
+                # bad case to reroll past - swallowing it here silently burns
+                # the reroll budget and can mint a short/empty form. Abort the
+                # form cleanly so --resume skips the COMPLETED forms and
+                # restarts only this one (one-form cost). The message now
+                # carries the S1 diagnostic (remote stderr + transcript).
+                if isinstance(e, RunError) and str(e).startswith("serve:"):
+                    with log.open("a") as f:
+                        f.write(f"# TRANSPORT DROP on {op} case-seed {i - 1} "
+                                f"(completed forms are resumable with "
+                                f"--resume): {str(e)[:400]}\n")
+                    raise
                 rerolls += 1
                 with log.open("a") as f:
                     f.write(f"{op} case-seed {i - 1} reroll: "

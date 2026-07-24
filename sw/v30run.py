@@ -15,6 +15,7 @@ Usage:
 
 import argparse
 import base64
+import collections
 import os
 import queue
 import struct
@@ -52,43 +53,92 @@ class ServeRunner:
         self.last_replay = False  # replay mode currently armed
         self.v2 = False          # serve protocol >= v2 (BASE/DELTA/cap)
         self.base = None         # image cached device-side via BASE
+        # --- S1 transport diagnostics (RR2 serve-drop investigation) ---
+        # Blind-spot fixes: the two L6 drops surfaced only as "connection
+        # closed" because remote stderr was DEVNULL and no in-flight context
+        # was retained. We now (a) capture remote stderr, (b) keep a rolling
+        # transcript of the last serve lines, so a drop reports a REASON.
+        self.stderr_buf = collections.deque(maxlen=60)   # last remote stderr lines
+        self.transcript = collections.deque(maxlen=40)   # last sent/recv serve lines
+        self.stderr_thread = None
 
     def _reader(self, proc, q):
         for line in proc.stdout:
             q.put(line)
         q.put(None)
 
+    def _stderr_reader(self, proc):
+        # Drain remote stderr (was DEVNULL) so a drop carries a reason.
+        try:
+            for line in proc.stderr:
+                self.stderr_buf.append(line.rstrip("\n"))
+        except (ValueError, OSError):
+            pass
+
+    def _diag(self):
+        """Diagnostic tail for a drop/timeout: remote stderr + serve
+        transcript. Turns the opaque 'connection closed' into a cause."""
+        parts = []
+        if self.stderr_buf:
+            parts.append("remote-stderr[-8]: "
+                         + " | ".join(list(self.stderr_buf)[-8:]))
+        if self.transcript:
+            parts.append("transcript[-6]: "
+                         + " ; ".join(list(self.transcript)[-6:]))
+        rc = None if self.proc is None else self.proc.poll()
+        parts.append(f"remote-exit={rc}")
+        return " || ".join(parts) if parts else "no diagnostics captured"
+
     def _readline(self, timeout):
         try:
             line = self.q.get(timeout=timeout)
         except queue.Empty:
+            diag = self._diag()
             self.close()
-            raise RunError("serve: response timeout") from None
+            raise RunError(f"serve: response timeout [{diag}]") from None
         if line is None:
+            diag = self._diag()
             self.close()
-            raise RunError("serve: connection closed")
+            raise RunError(f"serve: connection closed [{diag}]")
+        self.transcript.append("< " + line.strip())
         return line.strip()
 
     def _send(self, s):
+        head = s.split("\n", 1)[0]
+        self.transcript.append("> " + (head[:80] + "…" if len(head) > 80 else head))
         try:
             self.proc.stdin.write(s + "\n")
             self.proc.stdin.flush()
         except (BrokenPipeError, OSError) as e:
+            diag = self._diag()
             self.close()
-            raise RunError(f"serve: send failed: {e}") from None
+            raise RunError(f"serve: send failed: {e} [{diag}]") from None
 
     def ensure(self):
         if self.proc and self.proc.poll() is None:
             return
         self.close()
+        self.stderr_buf.clear()
+        self.transcript.clear()
+        # S1: ssh keepalive so a transient link stall fails fast+diagnosably
+        # instead of hanging, and idle-timeout drops are distinguishable from
+        # remote crashes; remote stderr is captured (was DEVNULL). The remote
+        # serve process is unchanged.
         self.proc = subprocess.Popen(
-            ["ssh", self.host,
+            ["ssh",
+             "-o", "ServerAliveInterval=15",
+             "-o", "ServerAliveCountMax=4",
+             "-o", "TCPKeepAlive=yes",
+             self.host,
              f"cd {REMOTE_DIR} && exec python3 v30ctl.py serve"],
             stdin=subprocess.PIPE, stdout=subprocess.PIPE,
-            stderr=subprocess.DEVNULL, text=True, bufsize=1)
+            stderr=subprocess.PIPE, text=True, bufsize=1)
         self.q = queue.Queue()
         threading.Thread(target=self._reader, args=(self.proc, self.q),
                          daemon=True).start()
+        self.stderr_thread = threading.Thread(
+            target=self._stderr_reader, args=(self.proc,), daemon=True)
+        self.stderr_thread.start()
         banner = self._readline(20)
         if not banner.startswith("OK SERVE"):
             self.close()
