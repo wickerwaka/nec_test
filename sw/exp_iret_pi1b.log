@@ -1,0 +1,60 @@
+P-I1b capture morphology: div=8, delay=5, socket vs core, 3 reps/position
+
+== 1188 (B,match) pre=23 pop=08 exp=B ==
+  socket r0: class=B ncaps=3 caps=[pop,00,pre] pushed=pop pushed_pc=0x600 frame_ok=1 fired=1
+  socket r1: class=B ncaps=3 caps=[pop,00,pre] pushed=pop pushed_pc=0x600 frame_ok=1 fired=1
+  socket r2: class=B ncaps=3 caps=[pop,00,pre] pushed=pop pushed_pc=0x600 frame_ok=1 fired=1
+  core   r0: class=B ncaps=3 caps=[pop,00,pre] pushed=pop pushed_pc=0x600 frame_ok=1 fired=1
+  core   r1: class=B ncaps=3 caps=[pop,00,pre] pushed=pop pushed_pc=0x600 frame_ok=1 fired=1
+  core   r2: class=B ncaps=3 caps=[pop,00,pre] pushed=pop pushed_pc=0x600 frame_ok=1 fired=1
+  -> H-P2/H-P4 (multi-cap / cap#1==pop7 -> LOOP ALIAS, core does not race)
+
+== 0c78 (B,match) pre=18 pop=78 exp=B ==
+  socket r0: class=B ncaps=3 caps=[pop,00,pre] pushed=pop pushed_pc=0x600 frame_ok=1 fired=1
+  socket r1: class=B ncaps=3 caps=[pop,00,pre] pushed=pop pushed_pc=0x600 frame_ok=1 fired=1
+  socket r2: class=B ncaps=3 caps=[pop,00,pre] pushed=pop pushed_pc=0x600 frame_ok=1 fired=1
+  core   r0: class=B ncaps=3 caps=[pop,00,pre] pushed=pop pushed_pc=0x600 frame_ok=1 fired=1
+  core   r1: class=B ncaps=3 caps=[pop,00,pre] pushed=pop pushed_pc=0x600 frame_ok=1 fired=1
+  core   r2: class=B ncaps=3 caps=[pop,00,pre] pushed=pop pushed_pc=0x600 frame_ok=1 fired=1
+  -> H-P2/H-P4 (multi-cap / cap#1==pop7 -> LOOP ALIAS, core does not race)
+
+== 0cf8 (B,match) pre=19 pop=78 exp=B ==
+  socket r0: class=B ncaps=3 caps=[pop,00,pre] pushed=pop pushed_pc=0x600 frame_ok=1 fired=1
+  socket r1: class=B ncaps=3 caps=[pop,00,pre] pushed=pop pushed_pc=0x600 frame_ok=1 fired=1
+  socket r2: class=B ncaps=3 caps=[pop,00,pre] pushed=pop pushed_pc=0x600 frame_ok=1 fired=1
+  core   r0: class=B ncaps=3 caps=[pop,00,pre] pushed=pop pushed_pc=0x600 frame_ok=1 fired=1
+  core   r1: class=B ncaps=3 caps=[pop,00,pre] pushed=pop pushed_pc=0x600 frame_ok=1 fired=1
+  core   r2: class=B ncaps=3 caps=[pop,00,pre] pushed=pop pushed_pc=0x600 frame_ok=1 fired=1
+  -> H-P2/H-P4 (multi-cap / cap#1==pop7 -> LOOP ALIAS, core does not race)
+
+== 11a8 (divergent) pre=23 pop=28 exp=B ==
+  socket r0: class=B ncaps=3 caps=[pop,00,pre] pushed=pop pushed_pc=0x600 frame_ok=1 fired=1
+  socket r1: class=B ncaps=3 caps=[pop,00,pre] pushed=pop pushed_pc=0x600 frame_ok=1 fired=1
+  socket r2: class=B ncaps=3 caps=[pop,00,pre] pushed=pop pushed_pc=0x600 frame_ok=1 fired=1
+  core   r0: class=A ncaps=1 caps=[pop] pushed=pop pushed_pc=0x600 frame_ok=1 fired=1
+  core   r1: class=A ncaps=1 caps=[pop] pushed=pop pushed_pc=0x600 frame_ok=1 fired=1
+  core   r2: class=A ncaps=1 caps=[pop] pushed=pop pushed_pc=0x600 frame_ok=1 fired=1
+  -> H-P2/H-P4 (multi-cap / cap#1==pop7 -> LOOP ALIAS, core does not race)
+
+== 0c03 (A,match) pre=18 pop=03 exp=A ==
+  socket r0: class=A ncaps=1 caps=[pop] pushed=pop pushed_pc=0x600 frame_ok=1 fired=1
+  socket r1: class=A ncaps=1 caps=[pop] pushed=pop pushed_pc=0x600 frame_ok=1 fired=1
+  socket r2: class=A ncaps=1 caps=[pop] pushed=pop pushed_pc=0x600 frame_ok=1 fired=1
+  core   r0: class=A ncaps=1 caps=[pop] pushed=pop pushed_pc=0x600 frame_ok=1 fired=1
+  core   r1: class=A ncaps=1 caps=[pop] pushed=pop pushed_pc=0x600 frame_ok=1 fired=1
+  core   r2: class=A ncaps=1 caps=[pop] pushed=pop pushed_pc=0x600 frame_ok=1 fired=1
+
+== 0c23 (A,match) pre=18 pop=23 exp=A ==
+  socket r0: class=A ncaps=1 caps=[pop] pushed=pop pushed_pc=0x600 frame_ok=1 fired=1
+  socket r1: class=A ncaps=1 caps=[pop] pushed=pop pushed_pc=0x600 frame_ok=1 fired=1
+  socket r2: class=A ncaps=1 caps=[pop] pushed=pop pushed_pc=0x600 frame_ok=1 fired=1
+  core   r0: class=A ncaps=1 caps=[pop] pushed=pop pushed_pc=0x600 frame_ok=1 fired=1
+  core   r1: class=A ncaps=1 caps=[pop] pushed=pop pushed_pc=0x600 frame_ok=1 fired=1
+  core   r2: class=A ncaps=1 caps=[pop] pushed=pop pushed_pc=0x600 frame_ok=1 fired=1
+
+P-I1b VERDICT:
+  1188: H-P2/H-P4 (multi-cap / cap#1==pop7 -> LOOP ALIAS, core does not race)
+  0c78: H-P2/H-P4 (multi-cap / cap#1==pop7 -> LOOP ALIAS, core does not race)
+  0cf8: H-P2/H-P4 (multi-cap / cap#1==pop7 -> LOOP ALIAS, core does not race)
+  11a8: H-P2/H-P4 (multi-cap / cap#1==pop7 -> LOOP ALIAS, core does not race)
+PI1B DONE

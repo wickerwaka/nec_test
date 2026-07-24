@@ -87,7 +87,8 @@ def measure_iret(pre7, pop7, delay, div=8, pop_ie=1, host=HOST, lead_pop=False,
     return {"pre7": pre7, "pop7": pop7, "delay": delay, "meas": meas,
             "fr": fr, "fired": res["evt_fired"], "pushed_r7": pushed_r7,
             "pushed_pc": pw.get("pc"), "frame_ok": frame_ok,
-            "exp": R.expected_class(pre7, pop7), "ncaps": len(caps)}
+            "exp": R.expected_class(pre7, pop7), "ncaps": len(caps),
+            "caps_r7": r7s}
 
 
 def pilot_cells():
@@ -312,9 +313,75 @@ def cmd_vsrtl(host, div, delay):
     return 0
 
 
+def cmd_pi1b(host, div, delay):
+    """P-I1b (iret_race_arm_design.md §3): core-side capture-morphology readout
+    on 6 cells to decide H-P1 (consumer truly fired) vs H-P2/H-P4 (loop /
+    data-as-code alias). Records, on BOTH positions, ncaps + ordered capture
+    race7 values + pushed_r7 + pushed_pc + frame_ok + evt_fired (vsrtl
+    discarded these on the core side). Socket side is the control (== goldens)."""
+    if delay < 0:
+        delay = 5
+    probe = [(0x1188, "B,match"), (0x0C78, "B,match"), (0x0CF8, "B,match"),
+             (0x11A8, "divergent"), (0x0C03, "A,match"), (0x0C23, "A,match")]
+    log = Path(__file__).resolve().parent / "exp_iret_pi1b.log"
+    open(log, "w").close()
+
+    def out(m):
+        print(m, flush=True)
+        with open(log, "a") as f:
+            f.write(m + "\n")
+    out(f"P-I1b capture morphology: div={div}, delay={delay}, socket vs core, "
+        f"3 reps/position")
+
+    def annot(caps, pre7, pop7):
+        return "[" + ",".join(
+            ("pop" if v == pop7 else "pre" if v == pre7 else f"{v:02x}")
+            for v in caps) + "]"
+
+    verdicts = []
+    for addr, tag in probe:
+        pre, pop = addr >> 7, addr & 0x7F
+        exp = R.expected_class(pre, pop)
+        out(f"\n== {addr:04x} ({tag}) pre={pre:02x} pop={pop:02x} exp={exp} ==")
+        core_morph = []
+        for pos, uc in (("socket", False), ("core", True)):
+            for rep in range(3):
+                r = measure_iret(pre, pop, delay, div=div, host=host,
+                                 use_core=uc)
+                mo = annot(r["caps_r7"], pre, pop)
+                out(f"  {pos:6s} r{rep}: class={r['meas']} ncaps={r['ncaps']} "
+                    f"caps={mo} pushed={('pre' if r['pushed_r7']==pre else 'pop' if r['pushed_r7']==pop else r['pushed_r7'])} "
+                    f"pushed_pc={None if r['pushed_pc'] is None else hex(r['pushed_pc'])} "
+                    f"frame_ok={int(r['frame_ok'])} fired={int(r['fired'])}")
+                if pos == "core":
+                    core_morph.append(r)
+        # per-cell H-P1 vs H-P2 readout on the core side (B-cells decisive)
+        if exp == "B":
+            r0 = core_morph[0]
+            single_pre = (r0["ncaps"] == 1 and r0["caps_r7"] == [pre]
+                          and r0["frame_ok"] and r0["pushed_pc"] == 0x0600)
+            cap1_pop = r0["caps_r7"] and r0["caps_r7"][0] == pop
+            off_boundary = (not r0["frame_ok"]) or r0["pushed_pc"] != 0x0600
+            if single_pre:
+                v = "H-P1 (single capture==pre7, frame_ok, pc=0600 -> consumer FIRED)"
+            elif cap1_pop or (r0["ncaps"] > 1):
+                v = "H-P2/H-P4 (multi-cap / cap#1==pop7 -> LOOP ALIAS, core does not race)"
+            elif off_boundary:
+                v = "H-P2 sub (frame_ok=0 / pc!=0600 -> recognition off boundary, alias)"
+            else:
+                v = "AMBIGUOUS -> STOP/report"
+            verdicts.append((addr, v))
+            out(f"  -> {v}")
+    out("\nP-I1b VERDICT:")
+    for a, v in verdicts:
+        out(f"  {a:04x}: {v}")
+    out("PI1B DONE")
+    return 0
+
+
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("cmd", choices=["pilot", "batch", "vsrtl"])
+    ap.add_argument("cmd", choices=["pilot", "batch", "vsrtl", "pi1b"])
     ap.add_argument("--host", default=HOST)
     ap.add_argument("--div", type=int, default=8)
     ap.add_argument("--delay", type=int, default=-1)
@@ -325,6 +392,8 @@ def main():
         return cmd_batch(args.host, args.div, args.delay)
     if args.cmd == "vsrtl":
         return cmd_vsrtl(args.host, args.div, args.delay)
+    if args.cmd == "pi1b":
+        return cmd_pi1b(args.host, args.div, args.delay)
 
 
 if __name__ == "__main__":
