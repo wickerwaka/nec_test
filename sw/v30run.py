@@ -158,14 +158,16 @@ class ServeRunner:
         self.rig_clean = False
         self._force_clean_rig()
 
-    def cfg(self, waits, use_core=None):
-        key = (waits, use_core)
+    def cfg(self, waits, use_core=None, div=None):
+        key = (waits, use_core, div)
         if self.last_waits == key:
             return
         uc = "-" if use_core is None else str(int(bool(use_core)))
-        # CFG <div> <waits> <vector> <small> [use_core]; keep div/vector,
-        # force large mode (small=0). use_core '-' leaves the board default.
-        self._send(f"CFG - {waits} - 0 {uc}")
+        dv = "-" if div is None else str(int(div))
+        # CFG <div> <waits> <vector> <small> [use_core]; keep vector, force
+        # large mode (small=0). div '-' leaves the board default (E2 freq
+        # sweep sets it explicitly); use_core '-' leaves the board default.
+        self._send(f"CFG {dv} {waits} - 0 {uc}")
         line = self._readline(10)
         if line != "OK CFG":
             self.close()
@@ -362,7 +364,7 @@ def _run_image_legacy(image, host, tag="test", waits=0):
 
 def run_image(image, host, tag="test", waits=0, evt=None, iord=None,
               pins=None, want_fired=False, cap=None, use_core=None,
-              wrand=None, wvec=None, iords=None):
+              wrand=None, wvec=None, iords=None, div=None):
     """Run an image, return capture records (or (recs, evt_fired) with
     want_fired). Uses the persistent serve session unless V30_NO_SERVE=1;
     transport errors get one reconnect, then one legacy-path attempt
@@ -388,7 +390,7 @@ def run_image(image, host, tag="test", waits=0, evt=None, iord=None,
     for attempt in (1, 2):
         try:
             r.ensure()
-            r.cfg(waits, use_core)
+            r.cfg(waits, use_core, div)
             r.wrand(wrand if wvec is None else None)
             r.replay(wvec)
             recs, fired = r.run(image, evt=evt, iord=iord, pins=pins,
@@ -474,11 +476,12 @@ def parse_result(recs, meta):
 
 def run_test(regs=None, instr=b"", host="root@mister-nec", tag="test",
              ivt=None, stub_linear=None, waits=0, ram=None, evt=None,
-             iord=None, pins=None):
+             iord=None, pins=None, use_core=None, div=None):
     image, meta = testimage.compose(regs=regs, instr=instr, ivt=ivt,
                                     stub_linear=stub_linear, ram=ram)
     recs, fired = run_image(image, host, tag, waits=waits, evt=evt,
-                            iord=iord, pins=pins, want_fired=True)
+                            iord=iord, pins=pins, want_fired=True,
+                            use_core=use_core, div=div)
     res = parse_result(recs, meta)
     res["meta"] = meta
     res["recs"] = recs
