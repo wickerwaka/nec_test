@@ -585,22 +585,21 @@ reg         post_flush;          // 1-cycle pulse at the first S_FIRST after
 // leaves the INT-pending latch set (ghost re-dispatch once IE=1;
 // arch state = class A) are stored as A; the ghost latch itself is
 // out of scope for the golden windows (see interrupt_model.md).
-reg [15:0] race_rom [0:1023];
-// Robust across cwd: Verilator sims run from the repo root; Quartus finds
-// the hex by basename via the SEARCH_PATH set in hdl/files.qip (resolved
-// relative to the project dir, not the invocation cwd - fixes the Error
-// 10054 map abort when quartus ran from an unexpected directory).
-`ifdef VERILATOR
-initial $readmemh("hdl/rtl/core/int9d_race.hex", race_rom);
-`else
-initial $readmemh("int9d_race.hex", race_rom);
-`endif
+// The 2^14 race table (race_rom) is replaced by a combinational predicate
+// race_law: per-(pre.DIR,pop.DIR)-quadrant staircase rank(pre6) >= thr(pop6),
+// the pre7==pop7 diagonal committed as class A, and 68 measured resonance/
+// ghost-repair exception cells (XOR). hdl/rtl/core/race_law.svh is GENERATED
+// bit-exact vs int9d_race.hex (the measured contract, retained) by
+// sw/gen_race_law.py; sw/check_race_law.py is the standing gate that verifies
+// the checked-in .svh exhaustively (2^14) against the hex plus regenerate/byte-
+// compare + header-digest. No $readmemh, no ROM (race_law stays LOGIC in
+// Quartus -- Info 276004 "inappropriate RAM size", verified R0b spike), no flop.
+`include "race_law.svh"
 wire [6:0] r9d_pre = {psw_old[11], psw_old[10], psw_old[7],
                       psw_old[6], psw_old[4], psw_old[2], psw_old[0]};
 wire [6:0] r9d_pop = {psw[11], psw[10], psw[7],
                       psw[6], psw[4], psw[2], psw[0]};
-wire [13:0] r9d_addr = {r9d_pre, r9d_pop};
-wire race_B = race_rom[r9d_addr[13:4]][r9d_addr[3:0]];
+wire race_B = race_law(r9d_pre, r9d_pop);
 reg [15:0]  insn_ip;             // first byte of the current instruction
                                  // INCLUDING prefixes (REP resume point)
 reg  [7:0]  ivt_vec;             // vector for the S_TRAP_IVT1 chain

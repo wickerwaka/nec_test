@@ -89,6 +89,7 @@ def build(force=False):
            "-Wall", "-Wno-UNUSEDSIGNAL", "-Wno-VARHIDDEN",
            "-Wno-TIMESCALEMOD", "-Wno-WIDTHEXPAND", "-Wno-BLKSEQ",
            "--top-module", "tb_v30_core",
+           "-I" + str(ROOT / "hdl" / "rtl" / "core"),   # race_law.svh include
            "-Mdir", str(OBJ)] + [str(p) for p in RTL]
     print("building:", " ".join(cmd))
     subprocess.run(cmd, check=True, cwd=ROOT)
