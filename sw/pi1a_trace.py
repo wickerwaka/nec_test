@@ -98,10 +98,42 @@ def analyze(pre7, pop7, tag):
     print(f"  VERDICT: {'H-P1 consumer FIRES with pre-image (real arm)' if any_fire else 'H-P2/H-P4: consumer NEVER fires (pop_pend=0 / psw_old!=pre at every S_TRAP_IVT2W)'}")
 
 
+def sim_class(pre7, pop7):
+    """Class the FIXED sim core produces via the race consumer: at the first
+    armed S_TRAP_IVT2W, revert (class B) iff pop_pend && psw_old[9] && race_B."""
+    rows, frame_psw, pre_psw = run_cell(pre7, pop7, "b")
+    fires = [r for r in rows if r["ivt2w"] and r["eu_done"]]
+    for r in fires:
+        if r["pop_pend"]:
+            b = r["pop_pend"] and (r["psw_old"] >> 9 & 1) and r["race_B"]
+            return "B" if b else "A"
+    return "A"   # arm never fired (no boundary recognition) -> frame kept
+
+
+def batch():
+    """E1 gate (a), sim leg: all 108 cells through the fixed core, class==hex."""
+    cells = R.select_cells()
+    bad = []
+    for i, (addr, tag) in enumerate(cells):
+        pre, pop = addr >> 7, addr & 0x7F
+        exp = R.expected_class(pre, pop)      # == hex (ghost-repair -> A via race_law)
+        got = sim_class(pre, pop)
+        if got != exp:
+            bad.append((addr, tag, got, exp))
+        if (i + 1) % 20 == 0:
+            print(f"  {i+1}/{len(cells)}", flush=True)
+    print(f"E1 SIM BATCH (fixed core): {len(cells)-len(bad)}/{len(cells)} == hex")
+    for a, t, g, e in bad[:40]:
+        print(f"  MISMATCH {a:04x} {t}: sim={g} hex={e}")
+    return 0 if not bad else 1
+
+
 def main():
     if not BIN.exists():
         print("build tb_v30_core first (check_core.build)")
         return 1
+    if len(sys.argv) > 1 and sys.argv[1] == "batch":
+        return batch()
     for addr, tag in ((0x1188, "1188 B match-alias"),
                       (0x11A8, "11a8 divergent"),
                       (0x0C03, "0c03 A control")):

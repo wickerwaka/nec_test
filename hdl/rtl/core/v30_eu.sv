@@ -2079,9 +2079,19 @@ always_ff @(posedge clk) begin
 
         // RETI's PSW stack pop completes after the flush (runs in any state)
         if (iret_pw && eu_done) begin
+            psw_old  <= psw;                     // pre-IRET image (RR2/E1)
             psw <= (eu_rdata & 16'h0FD5) | 16'hF002;
             rf[4] <= rf[4] + 16'd6;
             iret_pw <= 1'b0;
+            // ARM the boundary race at IRET's own boundary. E1 proved on
+            // silicon (108/108 == int9d_race.hex, H-IDENTICAL) that mu01EA's
+            // flag commit obeys the SAME race table as POP PSW's mu007A; the
+            // shared consumer (:5221-5235) reverts to psw_old on class B when
+            // an INT lands on the boundary with pre-IE=1. Reuses psw_old/
+            // pop_pend (already in the SS map) - no new flop, no SS_VERSION
+            // bump. Clears one boundary later at :2291 (NOP-exempt), same as
+            // POP PSW. See docs/notes/... race_rom_physical_mechanism.md E1.
+            pop_pend <= 1'b1;
         end
 
         // POP PSW consumes the popped image at the read's own data
