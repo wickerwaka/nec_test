@@ -1,0 +1,9 @@
+E1 IRET batch: 108 cells, div=8, delay=5, socket; IRET class vs int9d_race.hex (POP PSW table)
+  20/108 (0.07s/cell)
+  40/108 (0.05s/cell)
+  60/108 (0.05s/cell)
+  80/108 (0.05s/cell)
+  100/108 (0.04s/cell)
+
+IRET batch: 108/108 match POP-PSW hex; 0 mismatch; 0 weird; frame-invariant CLEAN
+VERDICT: H-IDENTICAL: IRET's own-boundary flag commit obeys the SAME race table as POP PSW, bit-for-bit (108/108), context-independent -> strong fabric-mechanism evidence; decode-specificity (H-decode) refuted; pushed PSW == frame image both classes (no new physics).

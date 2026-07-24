@@ -1,0 +1,24 @@
+E1 IRET pilot: delay sweep, div=8, socket; cells=['2dd9(A,q0)', '2db9(A,q1)', '1dfa(A,q3)', '1dda(A,q2)', '307b(B,q3)', '305b(B,q2)', '0f7b(B,q1)', '0f5b(B,q0)']
+d= 0:           match=4/8 B=8 frameBad=8  2dd9:B/A!F!  2db9:B/A!F!  1dfa:B/A!F!  1dda:B/A!F!  307b:B/BF!  305b:B/BF!  0f7b:B/BF!  0f5b:B/BF!
+d= 1: ALL-MATCH match=8/8 B=4 frameBad=0  2dd9:A/A  2db9:A/A  1dfa:A/A  1dda:A/A  307b:B/B  305b:B/B  0f7b:B/B  0f5b:B/B
+d= 2: ALL-MATCH match=8/8 B=4 frameBad=0  2dd9:A/A  2db9:A/A  1dfa:A/A  1dda:A/A  307b:B/B  305b:B/B  0f7b:B/B  0f5b:B/B
+d= 3: ALL-MATCH match=8/8 B=4 frameBad=0  2dd9:A/A  2db9:A/A  1dfa:A/A  1dda:A/A  307b:B/B  305b:B/B  0f7b:B/B  0f5b:B/B
+d= 4: ALL-MATCH match=8/8 B=4 frameBad=0  2dd9:A/A  2db9:A/A  1dfa:A/A  1dda:A/A  307b:B/B  305b:B/B  0f7b:B/B  0f5b:B/B
+d= 5: ALL-MATCH match=8/8 B=4 frameBad=0  2dd9:A/A  2db9:A/A  1dfa:A/A  1dda:A/A  307b:B/B  305b:B/B  0f7b:B/B  0f5b:B/B
+d= 6: ALL-MATCH match=8/8 B=4 frameBad=0  2dd9:A/A  2db9:A/A  1dfa:A/A  1dda:A/A  307b:B/B  305b:B/B  0f7b:B/B  0f5b:B/B
+d= 7: ALL-MATCH match=8/8 B=4 frameBad=0  2dd9:A/A  2db9:A/A  1dfa:A/A  1dda:A/A  307b:B/B  305b:B/B  0f7b:B/B  0f5b:B/B
+d= 8: ALL-MATCH match=8/8 B=4 frameBad=0  2dd9:A/A  2db9:A/A  1dfa:A/A  1dda:A/A  307b:B/B  305b:B/B  0f7b:B/B  0f5b:B/B
+d= 9: ALL-MATCH match=8/8 B=4 frameBad=0  2dd9:A/A  2db9:A/A  1dfa:A/A  1dda:A/A  307b:B/B  305b:B/B  0f7b:B/B  0f5b:B/B
+d=10: ALL-MATCH match=8/8 B=4 frameBad=0  2dd9:A/A  2db9:A/A  1dfa:A/A  1dda:A/A  307b:B/B  305b:B/B  0f7b:B/B  0f5b:B/B
+d=11: ALL-MATCH match=8/8 B=4 frameBad=0  2dd9:A/A  2db9:A/A  1dfa:A/A  1dda:A/A  307b:B/B  305b:B/B  0f7b:B/B  0f5b:B/B
+d=12: ALL-MATCH match=8/8 B=4 frameBad=0  2dd9:A/A  2db9:A/A  1dfa:A/A  1dda:A/A  307b:B/B  305b:B/B  0f7b:B/B  0f5b:B/B
+d=13: ALL-MATCH match=8/8 B=4 frameBad=0  2dd9:A/A  2db9:A/A  1dfa:A/A  1dda:A/A  307b:B/B  305b:B/B  0f7b:B/B  0f5b:B/B
+d=14: ALL-MATCH match=8/8 B=4 frameBad=0  2dd9:A/A  2db9:A/A  1dfa:A/A  1dda:A/A  307b:B/B  305b:B/B  0f7b:B/B  0f5b:B/B
+d=15: ALL-MATCH match=8/8 B=4 frameBad=0  2dd9:A/A  2db9:A/A  1dfa:A/A  1dda:A/A  307b:B/B  305b:B/B  0f7b:B/B  0f5b:B/B
+d=16: ALL-MATCH match=8/8 B=4 frameBad=0  2dd9:A/A  2db9:A/A  1dfa:A/A  1dda:A/A  307b:B/B  305b:B/B  0f7b:B/B  0f5b:B/B
+d=17: ALL-MATCH match=8/8 B=4 frameBad=0  2dd9:A/A  2db9:A/A  1dfa:A/A  1dda:A/A  307b:B/B  305b:B/B  0f7b:B/B  0f5b:B/B
+d=18: ALL-MATCH match=8/8 B=4 frameBad=0  2dd9:A/A  2db9:A/A  1dfa:A/A  1dda:A/A  307b:B/B  305b:B/B  0f7b:B/B  0f5b:B/B
+d=19: ALL-MATCH match=8/8 B=4 frameBad=0  2dd9:A/A  2db9:A/A  1dfa:A/A  1dda:A/A  307b:B/B  305b:B/B  0f7b:B/B  0f5b:B/B
+d=20: ALL-MATCH match=8/8 B=4 frameBad=0  2dd9:A/A  2db9:A/A  1dfa:A/A  1dda:A/A  307b:B/B  305b:B/B  0f7b:B/B  0f5b:B/B
+d=21: ALL-MATCH match=8/8 B=4 frameBad=0  2dd9:A/A  2db9:A/A  1dfa:A/A  1dda:A/A  307b:B/B  305b:B/B  0f7b:B/B  0f5b:B/B
+PILOT DONE

@@ -97,6 +97,26 @@ data-property over div-invariant (CPU-clock-counted) event geometry, hence frequ
 the surviving H-subcycle-analog and is not separated by E2 (needs E3/E4 topology). E5 ghost
 piggyback rides these cells (underlying-B + ghost flag captured per cell in the sweep JSON).
 
+### E1 — IRET twin — VERDICT: H-IDENTICAL (context-independent fabric race)
+Rig sw/exp_iret.py: pre-image live (pre-IE=1, loader-settled), IRET (CF) with a crafted 6-byte
+frame [IP=TARGET, CS=0, PSW=frame(pop) image, IE=1], INT at IRET's flush-anchored own boundary;
+same steady-state final-live-PSW discriminant. Geometry pilot (8 cells, both DIR modes + both
+classes, delay 0-21): the IRET own boundary is a WIDE stable plateau — **delay 1-21 ALL-MATCH**
+(A-cells→A, B-cells→B, == hex), delay 0 pre-trivial (INT before IRET completes). Batch (108-cell
+stratified, delay=5): **108/108 == int9d_race.hex, 0 mismatch, pushed-PSW==frame-image invariant
+CLEAN in both classes** (no new physics).
+
+Interpretation (four pre-registered hypotheses): **H-identical CONFIRMED** — the µ01EA
+`OPR->FLAGS F E` flag commit obeys the SAME race table as POP PSW's µ007A, bit-for-bit, despite
+the different context (3-pop FLUSH-terminated far transfer vs single pop). **H-decode REFUTED**
+(the race is present and identical, not a 9D-specific artifact). H-shifted (context phase) and
+H-schedule (FLUSH/dispatch restructures) are not needed — the table is reproduced without any
+ordering shift or phase offset. Bearing: the race lives in the shared FLAGS **fabric**
+(µop-level, context-independent), not in decode; combined with E2 this is a discrete/synchronous
+fabric commit whose per-cell outcome is a pure function of the two flag words. Secondary
+observable clean: pushed PSW = frame image in both classes (µ dispatch reads the frame/pop image
+regardless of class), matching POP PSW's "pushed = popped image both classes".
+
 ## Codex adversarial-review response ledger (2026-07-23, task-mrxfbkxa; findings 1-10)
 Findings 1,2,9 concern the removal design — changes landed in race_rom_mechanism_design.md; listed for completeness.
 

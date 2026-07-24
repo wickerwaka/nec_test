@@ -1,0 +1,866 @@
+{
+ "0c03": {
+  "iret": "A",
+  "meas": "A",
+  "hex": "A",
+  "frame_ok": true,
+  "tag": "exc",
+  "ghost": false
+ },
+ "0c23": {
+  "iret": "A",
+  "meas": "A",
+  "hex": "A",
+  "frame_ok": true,
+  "tag": "exc",
+  "ghost": false
+ },
+ "0c43": {
+  "iret": "A",
+  "meas": "A",
+  "hex": "A",
+  "frame_ok": true,
+  "tag": "exc",
+  "ghost": false
+ },
+ "0c63": {
+  "iret": "A",
+  "meas": "A",
+  "hex": "A",
+  "frame_ok": true,
+  "tag": "exc",
+  "ghost": false
+ },
+ "0c78": {
+  "iret": "B",
+  "meas": "B",
+  "hex": "B",
+  "frame_ok": true,
+  "tag": "exc",
+  "ghost": false
+ },
+ "0c79": {
+  "iret": "B",
+  "meas": "B",
+  "hex": "B",
+  "frame_ok": true,
+  "tag": "exc",
+  "ghost": false
+ },
+ "0c83": {
+  "iret": "A",
+  "meas": "A",
+  "hex": "A",
+  "frame_ok": true,
+  "tag": "exc",
+  "ghost": false
+ },
+ "0ca3": {
+  "iret": "A",
+  "meas": "A",
+  "hex": "A",
+  "frame_ok": true,
+  "tag": "exc",
+  "ghost": false
+ },
+ "0cc3": {
+  "iret": "A",
+  "meas": "A",
+  "hex": "A",
+  "frame_ok": true,
+  "tag": "exc",
+  "ghost": false
+ },
+ "0ce3": {
+  "iret": "A",
+  "meas": "A",
+  "hex": "A",
+  "frame_ok": true,
+  "tag": "exc",
+  "ghost": false
+ },
+ "0cf8": {
+  "iret": "B",
+  "meas": "B",
+  "hex": "B",
+  "frame_ok": true,
+  "tag": "exc",
+  "ghost": false
+ },
+ "0cf9": {
+  "iret": "B",
+  "meas": "B",
+  "hex": "B",
+  "frame_ok": true,
+  "tag": "exc",
+  "ghost": false
+ },
+ "1078": {
+  "iret": "A",
+  "meas": "B",
+  "hex": "A",
+  "frame_ok": true,
+  "tag": "exc",
+  "ghost": true
+ },
+ "1079": {
+  "iret": "A",
+  "meas": "B",
+  "hex": "A",
+  "frame_ok": true,
+  "tag": "exc",
+  "ghost": true
+ },
+ "10f8": {
+  "iret": "A",
+  "meas": "B",
+  "hex": "A",
+  "frame_ok": true,
+  "tag": "exc",
+  "ghost": true
+ },
+ "10f9": {
+  "iret": "A",
+  "meas": "B",
+  "hex": "A",
+  "frame_ok": true,
+  "tag": "exc",
+  "ghost": true
+ },
+ "1188": {
+  "iret": "B",
+  "meas": "B",
+  "hex": "B",
+  "frame_ok": true,
+  "tag": "exc",
+  "ghost": false
+ },
+ "11a8": {
+  "iret": "B",
+  "meas": "B",
+  "hex": "B",
+  "frame_ok": true,
+  "tag": "exc",
+  "ghost": false
+ },
+ "11c8": {
+  "iret": "B",
+  "meas": "B",
+  "hex": "B",
+  "frame_ok": true,
+  "tag": "exc",
+  "ghost": false
+ },
+ "11e8": {
+  "iret": "B",
+  "meas": "B",
+  "hex": "B",
+  "frame_ok": true,
+  "tag": "exc",
+  "ghost": false
+ },
+ "1278": {
+  "iret": "A",
+  "meas": "B",
+  "hex": "A",
+  "frame_ok": true,
+  "tag": "exc",
+  "ghost": true
+ },
+ "1279": {
+  "iret": "A",
+  "meas": "B",
+  "hex": "A",
+  "frame_ok": true,
+  "tag": "exc",
+  "ghost": true
+ },
+ "12f8": {
+  "iret": "A",
+  "meas": "B",
+  "hex": "A",
+  "frame_ok": true,
+  "tag": "exc",
+  "ghost": true
+ },
+ "12f9": {
+  "iret": "A",
+  "meas": "B",
+  "hex": "A",
+  "frame_ok": true,
+  "tag": "exc",
+  "ghost": true
+ },
+ "1978": {
+  "iret": "A",
+  "meas": "B",
+  "hex": "A",
+  "frame_ok": true,
+  "tag": "exc",
+  "ghost": true
+ },
+ "1979": {
+  "iret": "A",
+  "meas": "B",
+  "hex": "A",
+  "frame_ok": true,
+  "tag": "exc",
+  "ghost": true
+ },
+ "19f8": {
+  "iret": "A",
+  "meas": "B",
+  "hex": "A",
+  "frame_ok": true,
+  "tag": "exc",
+  "ghost": true
+ },
+ "19f9": {
+  "iret": "A",
+  "meas": "B",
+  "hex": "A",
+  "frame_ok": true,
+  "tag": "exc",
+  "ghost": true
+ },
+ "1c03": {
+  "iret": "A",
+  "meas": "A",
+  "hex": "A",
+  "frame_ok": true,
+  "tag": "exc",
+  "ghost": false
+ },
+ "1c23": {
+  "iret": "A",
+  "meas": "A",
+  "hex": "A",
+  "frame_ok": true,
+  "tag": "exc",
+  "ghost": false
+ },
+ "1c43": {
+  "iret": "A",
+  "meas": "A",
+  "hex": "A",
+  "frame_ok": true,
+  "tag": "exc",
+  "ghost": false
+ },
+ "1c63": {
+  "iret": "A",
+  "meas": "A",
+  "hex": "A",
+  "frame_ok": true,
+  "tag": "exc",
+  "ghost": false
+ },
+ "1c83": {
+  "iret": "A",
+  "meas": "A",
+  "hex": "A",
+  "frame_ok": true,
+  "tag": "exc",
+  "ghost": false
+ },
+ "1ca3": {
+  "iret": "A",
+  "meas": "A",
+  "hex": "A",
+  "frame_ok": true,
+  "tag": "exc",
+  "ghost": false
+ },
+ "1cc3": {
+  "iret": "A",
+  "meas": "A",
+  "hex": "A",
+  "frame_ok": true,
+  "tag": "exc",
+  "ghost": false
+ },
+ "1ce3": {
+  "iret": "A",
+  "meas": "A",
+  "hex": "A",
+  "frame_ok": true,
+  "tag": "exc",
+  "ghost": false
+ },
+ "1e78": {
+  "iret": "A",
+  "meas": "B",
+  "hex": "A",
+  "frame_ok": true,
+  "tag": "exc",
+  "ghost": true
+ },
+ "1e79": {
+  "iret": "A",
+  "meas": "B",
+  "hex": "A",
+  "frame_ok": true,
+  "tag": "exc",
+  "ghost": true
+ },
+ "1ef8": {
+  "iret": "A",
+  "meas": "B",
+  "hex": "A",
+  "frame_ok": true,
+  "tag": "exc",
+  "ghost": true
+ },
+ "1ef9": {
+  "iret": "A",
+  "meas": "B",
+  "hex": "A",
+  "frame_ok": true,
+  "tag": "exc",
+  "ghost": true
+ },
+ "2c03": {
+  "iret": "A",
+  "meas": "A",
+  "hex": "A",
+  "frame_ok": true,
+  "tag": "exc",
+  "ghost": false
+ },
+ "2c23": {
+  "iret": "A",
+  "meas": "A",
+  "hex": "A",
+  "frame_ok": true,
+  "tag": "exc",
+  "ghost": false
+ },
+ "2c43": {
+  "iret": "A",
+  "meas": "A",
+  "hex": "A",
+  "frame_ok": true,
+  "tag": "exc",
+  "ghost": false
+ },
+ "2c63": {
+  "iret": "A",
+  "meas": "A",
+  "hex": "A",
+  "frame_ok": true,
+  "tag": "exc",
+  "ghost": false
+ },
+ "2c78": {
+  "iret": "B",
+  "meas": "B",
+  "hex": "B",
+  "frame_ok": true,
+  "tag": "exc",
+  "ghost": false
+ },
+ "2c79": {
+  "iret": "B",
+  "meas": "B",
+  "hex": "B",
+  "frame_ok": true,
+  "tag": "exc",
+  "ghost": false
+ },
+ "2c83": {
+  "iret": "A",
+  "meas": "A",
+  "hex": "A",
+  "frame_ok": true,
+  "tag": "exc",
+  "ghost": false
+ },
+ "2ca3": {
+  "iret": "A",
+  "meas": "A",
+  "hex": "A",
+  "frame_ok": true,
+  "tag": "exc",
+  "ghost": false
+ },
+ "2cc3": {
+  "iret": "A",
+  "meas": "A",
+  "hex": "A",
+  "frame_ok": true,
+  "tag": "exc",
+  "ghost": false
+ },
+ "2ce3": {
+  "iret": "A",
+  "meas": "A",
+  "hex": "A",
+  "frame_ok": true,
+  "tag": "exc",
+  "ghost": false
+ },
+ "2cf8": {
+  "iret": "B",
+  "meas": "B",
+  "hex": "B",
+  "frame_ok": true,
+  "tag": "exc",
+  "ghost": false
+ },
+ "2cf9": {
+  "iret": "B",
+  "meas": "B",
+  "hex": "B",
+  "frame_ok": true,
+  "tag": "exc",
+  "ghost": false
+ },
+ "3078": {
+  "iret": "A",
+  "meas": "B",
+  "hex": "A",
+  "frame_ok": true,
+  "tag": "exc",
+  "ghost": true
+ },
+ "3079": {
+  "iret": "A",
+  "meas": "B",
+  "hex": "A",
+  "frame_ok": true,
+  "tag": "exc",
+  "ghost": true
+ },
+ "30f8": {
+  "iret": "A",
+  "meas": "B",
+  "hex": "A",
+  "frame_ok": true,
+  "tag": "exc",
+  "ghost": true
+ },
+ "30f9": {
+  "iret": "A",
+  "meas": "B",
+  "hex": "A",
+  "frame_ok": true,
+  "tag": "exc",
+  "ghost": true
+ },
+ "3278": {
+  "iret": "A",
+  "meas": "B",
+  "hex": "A",
+  "frame_ok": true,
+  "tag": "exc",
+  "ghost": true
+ },
+ "3279": {
+  "iret": "A",
+  "meas": "B",
+  "hex": "A",
+  "frame_ok": true,
+  "tag": "exc",
+  "ghost": true
+ },
+ "32f8": {
+  "iret": "A",
+  "meas": "B",
+  "hex": "A",
+  "frame_ok": true,
+  "tag": "exc",
+  "ghost": true
+ },
+ "32f9": {
+  "iret": "A",
+  "meas": "B",
+  "hex": "A",
+  "frame_ok": true,
+  "tag": "exc",
+  "ghost": true
+ },
+ "3978": {
+  "iret": "A",
+  "meas": "B",
+  "hex": "A",
+  "frame_ok": true,
+  "tag": "exc",
+  "ghost": true
+ },
+ "3979": {
+  "iret": "A",
+  "meas": "B",
+  "hex": "A",
+  "frame_ok": true,
+  "tag": "exc",
+  "ghost": true
+ },
+ "39f8": {
+  "iret": "A",
+  "meas": "B",
+  "hex": "A",
+  "frame_ok": true,
+  "tag": "exc",
+  "ghost": true
+ },
+ "39f9": {
+  "iret": "A",
+  "meas": "B",
+  "hex": "A",
+  "frame_ok": true,
+  "tag": "exc",
+  "ghost": true
+ },
+ "3e78": {
+  "iret": "A",
+  "meas": "B",
+  "hex": "A",
+  "frame_ok": true,
+  "tag": "exc",
+  "ghost": true
+ },
+ "3e79": {
+  "iret": "A",
+  "meas": "B",
+  "hex": "A",
+  "frame_ok": true,
+  "tag": "exc",
+  "ghost": true
+ },
+ "3ef8": {
+  "iret": "A",
+  "meas": "B",
+  "hex": "A",
+  "frame_ok": true,
+  "tag": "exc",
+  "ghost": true
+ },
+ "3ef9": {
+  "iret": "A",
+  "meas": "B",
+  "hex": "A",
+  "frame_ok": true,
+  "tag": "exc",
+  "ghost": true
+ },
+ "2700": {
+  "iret": "B",
+  "meas": "B",
+  "hex": "B",
+  "frame_ok": true,
+  "tag": "margin",
+  "ghost": false
+ },
+ "2701": {
+  "iret": "B",
+  "meas": "B",
+  "hex": "B",
+  "frame_ok": true,
+  "tag": "margin",
+  "ghost": false
+ },
+ "2702": {
+  "iret": "B",
+  "meas": "B",
+  "hex": "B",
+  "frame_ok": true,
+  "tag": "margin",
+  "ghost": false
+ },
+ "2704": {
+  "iret": "B",
+  "meas": "B",
+  "hex": "B",
+  "frame_ok": true,
+  "tag": "margin",
+  "ghost": false
+ },
+ "2705": {
+  "iret": "B",
+  "meas": "B",
+  "hex": "B",
+  "frame_ok": true,
+  "tag": "margin",
+  "ghost": false
+ },
+ "2706": {
+  "iret": "B",
+  "meas": "B",
+  "hex": "B",
+  "frame_ok": true,
+  "tag": "margin",
+  "ghost": false
+ },
+ "2707": {
+  "iret": "B",
+  "meas": "B",
+  "hex": "B",
+  "frame_ok": true,
+  "tag": "margin",
+  "ghost": false
+ },
+ "2708": {
+  "iret": "B",
+  "meas": "B",
+  "hex": "B",
+  "frame_ok": true,
+  "tag": "margin",
+  "ghost": false
+ },
+ "22a1": {
+  "iret": "B",
+  "meas": "B",
+  "hex": "B",
+  "frame_ok": true,
+  "tag": "margin",
+  "ghost": false
+ },
+ "22b3": {
+  "iret": "B",
+  "meas": "B",
+  "hex": "B",
+  "frame_ok": true,
+  "tag": "margin",
+  "ghost": false
+ },
+ "2720": {
+  "iret": "B",
+  "meas": "B",
+  "hex": "B",
+  "frame_ok": true,
+  "tag": "margin",
+  "ghost": false
+ },
+ "2722": {
+  "iret": "B",
+  "meas": "B",
+  "hex": "B",
+  "frame_ok": true,
+  "tag": "margin",
+  "ghost": false
+ },
+ "2724": {
+  "iret": "B",
+  "meas": "B",
+  "hex": "B",
+  "frame_ok": true,
+  "tag": "margin",
+  "ghost": false
+ },
+ "2725": {
+  "iret": "B",
+  "meas": "B",
+  "hex": "B",
+  "frame_ok": true,
+  "tag": "margin",
+  "ghost": false
+ },
+ "2726": {
+  "iret": "B",
+  "meas": "B",
+  "hex": "B",
+  "frame_ok": true,
+  "tag": "margin",
+  "ghost": false
+ },
+ "2727": {
+  "iret": "B",
+  "meas": "B",
+  "hex": "B",
+  "frame_ok": true,
+  "tag": "margin",
+  "ghost": false
+ },
+ "1403": {
+  "iret": "B",
+  "meas": "B",
+  "hex": "B",
+  "frame_ok": true,
+  "tag": "margin",
+  "ghost": false
+ },
+ "1443": {
+  "iret": "B",
+  "meas": "B",
+  "hex": "B",
+  "frame_ok": true,
+  "tag": "margin",
+  "ghost": false
+ },
+ "1980": {
+  "iret": "B",
+  "meas": "B",
+  "hex": "B",
+  "frame_ok": true,
+  "tag": "margin",
+  "ghost": false
+ },
+ "1981": {
+  "iret": "B",
+  "meas": "B",
+  "hex": "B",
+  "frame_ok": true,
+  "tag": "margin",
+  "ghost": false
+ },
+ "1982": {
+  "iret": "B",
+  "meas": "B",
+  "hex": "B",
+  "frame_ok": true,
+  "tag": "margin",
+  "ghost": false
+ },
+ "1984": {
+  "iret": "B",
+  "meas": "B",
+  "hex": "B",
+  "frame_ok": true,
+  "tag": "margin",
+  "ghost": false
+ },
+ "1985": {
+  "iret": "B",
+  "meas": "B",
+  "hex": "B",
+  "frame_ok": true,
+  "tag": "margin",
+  "ghost": false
+ },
+ "1986": {
+  "iret": "B",
+  "meas": "B",
+  "hex": "B",
+  "frame_ok": true,
+  "tag": "margin",
+  "ghost": false
+ },
+ "1423": {
+  "iret": "B",
+  "meas": "B",
+  "hex": "B",
+  "frame_ok": true,
+  "tag": "margin",
+  "ghost": false
+ },
+ "1463": {
+  "iret": "B",
+  "meas": "B",
+  "hex": "B",
+  "frame_ok": true,
+  "tag": "margin",
+  "ghost": false
+ },
+ "19a0": {
+  "iret": "B",
+  "meas": "B",
+  "hex": "B",
+  "frame_ok": true,
+  "tag": "margin",
+  "ghost": false
+ },
+ "19a1": {
+  "iret": "B",
+  "meas": "B",
+  "hex": "B",
+  "frame_ok": true,
+  "tag": "margin",
+  "ghost": false
+ },
+ "19a2": {
+  "iret": "B",
+  "meas": "B",
+  "hex": "B",
+  "frame_ok": true,
+  "tag": "margin",
+  "ghost": false
+ },
+ "19a4": {
+  "iret": "B",
+  "meas": "B",
+  "hex": "B",
+  "frame_ok": true,
+  "tag": "margin",
+  "ghost": false
+ },
+ "2dd9": {
+  "iret": "A",
+  "meas": "A",
+  "hex": "A",
+  "frame_ok": true,
+  "tag": "bulk",
+  "ghost": false
+ },
+ "2dd8": {
+  "iret": "A",
+  "meas": "A",
+  "hex": "A",
+  "frame_ok": true,
+  "tag": "bulk",
+  "ghost": false
+ },
+ "2db9": {
+  "iret": "A",
+  "meas": "A",
+  "hex": "A",
+  "frame_ok": true,
+  "tag": "bulk",
+  "ghost": false
+ },
+ "2db8": {
+  "iret": "A",
+  "meas": "A",
+  "hex": "A",
+  "frame_ok": true,
+  "tag": "bulk",
+  "ghost": false
+ },
+ "2d99": {
+  "iret": "A",
+  "meas": "A",
+  "hex": "A",
+  "frame_ok": true,
+  "tag": "bulk",
+  "ghost": false
+ },
+ "2d98": {
+  "iret": "A",
+  "meas": "A",
+  "hex": "A",
+  "frame_ok": true,
+  "tag": "bulk",
+  "ghost": false
+ },
+ "1dfa": {
+  "iret": "A",
+  "meas": "A",
+  "hex": "A",
+  "frame_ok": true,
+  "tag": "bulk",
+  "ghost": false
+ },
+ "1df1": {
+  "iret": "A",
+  "meas": "A",
+  "hex": "A",
+  "frame_ok": true,
+  "tag": "bulk",
+  "ghost": false
+ },
+ "1df0": {
+  "iret": "A",
+  "meas": "A",
+  "hex": "A",
+  "frame_ok": true,
+  "tag": "bulk",
+  "ghost": false
+ },
+ "1dda": {
+  "iret": "A",
+  "meas": "A",
+  "hex": "A",
+  "frame_ok": true,
+  "tag": "bulk",
+  "ghost": false
+ }
+}
