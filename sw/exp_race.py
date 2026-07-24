@@ -201,7 +201,7 @@ def select_cells():
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("cmd", choices=["pilot", "validate", "cells",
-                                    "characterize"])
+                                    "characterize", "sweep"])
     ap.add_argument("--host", default=HOST)
     ap.add_argument("--div", type=int, default=8)
     ap.add_argument("--delay", type=int, default=5)
@@ -225,6 +225,156 @@ def main():
         return cmd_validate(args.host, args.div)
     if args.cmd == "characterize":
         return cmd_characterize(args.host, args.div, args.delay)
+    if args.cmd == "sweep":
+        return cmd_sweep(args.host)
+
+
+def cell_class(r, pre7, pop7):
+    """Gate/flip class: ghost-repair cells by the stored-A convention,
+    all others by the steady-state measurement."""
+    return "A" if is_ghost_repair(pre7, pop7) else r["meas"]
+
+
+def measure_no_int(pre7, pop7, div, host):
+    """no-INT control: POP PSW completes normally (no race) -> final live
+    PSW = popped image. Verifies flag state / harness at this div."""
+    pre_psw = race7_to_psw(pre7, ie=1)
+    pop_psw = race7_to_psw(pop7, ie=1)
+    instr = bytes([0x9D]) + b"\x90" * 20
+    ram = [(SP_POP, pop_psw & 0xFF), (SP_POP + 1, pop_psw >> 8)]
+    regs = {"PS": 0, "PC": ANCHOR, "SS": SS0, "SP": SP_POP, "PSW": pre_psw}
+    res = run_test(regs=regs, instr=instr, host=host, tag="ni",
+                   ram=ram, ivt=None, use_core=False, div=div)
+    caps = psw_captures(res)
+    r7 = [psw_to_race7(c) for c in caps]
+    legit = [v for v in r7 if v in (pre7, pop7)]
+    fr = legit[-1] if legit else (r7[-1] if r7 else None)
+    return "pop" if fr == pop7 else ("pre" if fr == pre7 else "?")
+
+
+DELAY_SWEEP = 5
+DIVS_SWEEP = [4, 6, 8, 10, 12, 16]
+
+
+def cmd_sweep(host):
+    """E2 bounded frequency-sensitivity sweep on the validated 108-cell rig.
+    Interleaved div=8 baselines x>=3 (STOP on any baseline-repeat flip),
+    pre-IE=0 non-race + no-INT controls at every div (STOP on control
+    failure). Flips at non-8 divs are DATA (reported), not a stop -- the
+    conclusions ladder (invariance != analog-excluded; CPU attribution needs
+    clean controls AND margin-order AND baseline stability) is applied in the
+    read-out, not here."""
+    log = Path(__file__).resolve().parent / "exp_race_sweep.log"
+    jout = Path(__file__).resolve().parent / "exp_race_sweep.json"
+    open(log, "w").close()
+
+    def out(m):
+        print(m, flush=True)
+        with open(log, "a") as f:
+            f.write(m + "\n")
+
+    def stop(msg):
+        out(f"*** STOP: {msg} ***")
+        try:
+            run_test(regs={"PS": 0, "PC": ANCHOR, "SS": 0, "SP": SP_POP,
+                           "PSW": 0xF002}, instr=b"\x90",
+                     host=host, use_core=False, div=8)   # restore div=8
+            out("board restored to div=8")
+        except RunError:
+            out("WARN: div=8 restore run failed")
+
+    cells = select_cells()
+    ctrl = cells[:20]              # pre-IE=0 + no-INT control subset
+    data = {"delay": DELAY_SWEEP, "divs": DIVS_SWEEP, "cells": {}, "flips": {}}
+    out(f"E2 SWEEP: {len(cells)} cells x divs {DIVS_SWEEP}, delay={DELAY_SWEEP}, "
+        f"socket; interleaved div=8 baselines + pre-IE0/no-INT controls/div")
+
+    def measure_all(div):
+        cls = {}
+        for addr, tag in cells:
+            pre, pop = addr >> 7, addr & 0x7F
+            r = measure_cell(pre, pop, DELAY_SWEEP, div=div, host=host)
+            cls[addr] = {"class": cell_class(r, pre, pop),
+                         "underlying": r["meas"], "ghost": r["ghost"],
+                         "r7": r["final_race7"]}
+        return cls
+
+    def controls(div):
+        # pre-IE=0: must all be class A
+        for addr, tag in ctrl:
+            pre, pop = addr >> 7, addr & 0x7F
+            c = _measure_preie0(pre, pop, DELAY_SWEEP, div, host)
+            if c["meas"] != "A":
+                return (f"pre-IE=0 control {addr:04x} at div={div} read "
+                        f"{c['meas']} (expected A)")
+        # no-INT: POP completes, final = popped image
+        for addr, tag in ctrl[:10]:
+            pre, pop = addr >> 7, addr & 0x7F
+            v = measure_no_int(pre, pop, div, host)
+            if v != "pop":
+                return (f"no-INT control {addr:04x} at div={div} read {v} "
+                        f"(expected popped image)")
+        return None
+
+    # --- baseline B0 at div=8 (must reproduce the hex) ---
+    out("baseline B0 (div=8)...")
+    cerr = controls(8)
+    if cerr:
+        stop(cerr)
+        return 1
+    B0 = measure_all(8)
+    miss = [f"{a:04x}" for a, d in B0.items()
+            if d["class"] != expected_class(a >> 7, a & 0x7F)]
+    if miss:
+        stop(f"baseline B0 does not reproduce hex: {len(miss)} miss {miss[:10]}")
+        return 1
+    out(f"B0 established: 108/108 == hex")
+    data["cells"]["B0_div8"] = {f"{a:04x}": d for a, d in B0.items()}
+
+    # --- interleaved schedule: baselines between div groups ---
+    schedule = [("div", 4), ("div", 6), ("base", 8), ("div", 10),
+                ("div", 12), ("base", 8), ("div", 16), ("base", 8)]
+    nbase = 0
+    for kind, div in schedule:
+        cerr = controls(div)
+        if cerr:
+            stop(cerr)
+            return 1
+        cls = measure_all(div)
+        if kind == "base":
+            nbase += 1
+            flips = [f"{a:04x}" for a in B0
+                     if cls[a]["class"] != B0[a]["class"]]
+            if flips:
+                data["flips"][f"base{nbase}_div8"] = flips
+                stop(f"div=8 baseline repeat #{nbase} FLIPPED vs B0: "
+                     f"{len(flips)} cells {flips[:10]} -- rig instability")
+                return 1
+            out(f"baseline repeat #{nbase} (div=8): STABLE (0 flips vs B0)")
+        else:
+            flips = [a for a in B0 if cls[a]["class"] != B0[a]["class"]]
+            data["cells"][f"div{div}"] = {f"{a:04x}": d
+                                          for a, d in cls.items()}
+            data["flips"][f"div{div}"] = [f"{a:04x}" for a in flips]
+            # margin-order context on flips (fit-space margin)
+            fl = sorted(flips, key=lambda a: abs(margin(a)))
+            out(f"div={div:>2} ({32.0/div:.2f} MHz): {len(flips)} class flip(s) "
+                f"vs B0 {'-> ' + str([f'{a:04x}(m={margin(a)})' for a in fl[:8]]) if flips else '(INVARIANT)'}")
+    jout.write_text(json.dumps(data, indent=1))
+    # restore baseline
+    try:
+        run_test(regs={"PS": 0, "PC": ANCHOR, "SS": 0, "SP": SP_POP,
+                       "PSW": 0xF002}, instr=b"\x90", host=host,
+                 use_core=False, div=8)
+    except RunError:
+        pass
+    tot = sum(len(v) for k, v in data["flips"].items()
+              if k.startswith("div"))
+    out(f"E2 SWEEP DONE: {nbase} interleaved baselines stable; controls clean "
+        f"at all divs; total non-8 flips={tot}. wrote {jout.name}")
+    out("(readout: flips are DATA; CPU attribution needs clean controls AND "
+        "margin-ordering AND baseline stability; invariance != analog-excluded)")
+    return 0
 
 
 def _raw_caps(pre7, pop7, delay, div, host, pop_ie=1):

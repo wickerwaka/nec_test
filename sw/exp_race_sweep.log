@@ -1,0 +1,13 @@
+E2 SWEEP: 108 cells x divs [4, 6, 8, 10, 12, 16], delay=5, socket; interleaved div=8 baselines + pre-IE0/no-INT controls/div
+baseline B0 (div=8)...
+B0 established: 108/108 == hex
+div= 4 (8.00 MHz): 0 class flip(s) vs B0 (INVARIANT)
+div= 6 (5.33 MHz): 0 class flip(s) vs B0 (INVARIANT)
+baseline repeat #1 (div=8): STABLE (0 flips vs B0)
+div=10 (3.20 MHz): 0 class flip(s) vs B0 (INVARIANT)
+div=12 (2.67 MHz): 0 class flip(s) vs B0 (INVARIANT)
+baseline repeat #2 (div=8): STABLE (0 flips vs B0)
+div=16 (2.00 MHz): 0 class flip(s) vs B0 (INVARIANT)
+baseline repeat #3 (div=8): STABLE (0 flips vs B0)
+E2 SWEEP DONE: 3 interleaved baselines stable; controls clean at all divs; total non-8 flips=0. wrote exp_race_sweep.json
+(readout: flips are DATA; CPU attribution needs clean controls AND margin-ordering AND baseline stability; invariance != analog-excluded)

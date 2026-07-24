@@ -55,6 +55,48 @@ Risks: min-clock floor eats the low end of E2 (mitigate: confirm floor first; ev
 
 Artifacts (scratchpad): race_rom_physical_classes.py (canonical classes, minimal SOPs, condition-PLA test — 8-minute run, output preserved in the session log), the axis-2 product-block formalization (inline session run), plus the prior campaign's race_rom_* set (frozen model, emitter, verified .svh). Sources: [Shirriff, silicon RE of the 8086 flag circuitry](http://www.righto.com/2023/02/silicon-reverse-engineering-intel-8086.html) (flags mid-ALU, phase-transparent mux-recirculating latches — the fight-prone structure; NMOS 8086, analogy only), [Shirriff, 8086 ALU](http://www.righto.com/2020/08/reverse-engineering-8086s.html), [VCF: The NEC V20 Microcode ROM](https://forum.vcfed.org/index.php?threads%2Fthe-nec-v20-microcode-rom.1254770%2F=) (public V20 die-level µROM provenance; no public flag-row layout), [µPD70108/70116 datasheet](https://datasheets.chipdb.org/NEC/V20-V30/IC-3552A.PDF).
 
+## Axis-3 MEASURED RESULTS (E-battery; RR2 execution 2026-07-23, socket, use_core=False)
+
+Rig: sw/exp_race.py (reconstructed POP-PSW boundary-race cell rig; the original
+was scratchpad, lost). Cell = (pre7<<7)|pop7, 7-bit {V,DIR,S,Z,AC,P,CY}; pre-image
+live (pre-IE=1), POP PSW pops the pop-image, INT at the own boundary (exp_int
+CODE-T1-anchored scheduler, delay=5), class = STEADY-STATE (warm-loop) final live
+PSW's 7 race flags == pop (A) or pre (B). Iteration-1 is a cold-queue anomaly
+(always reads pop) and is discarded. Validation gate: 108/108 == int9d_race.hex at
+div=8 (76 cells independently measured; 32 ghost-repair cells pop∈{0x78,0x79}∧pre.DIR=1
+scored A by the shipped stored-A convention — their underlying flag-fight measures B,
+recorded for E5; the ghost OBSERVABLE is E5's, not this class discriminant).
+Min-clock-floor NOP-sled smoke first: all divs {4,6,8,10,12,16} FLOOR-OK (sw/e2_floor_smoke.py).
+
+### E2 — bounded frequency-sensitivity sweep — VERDICT: total invariance
+**No detectable frequency dependence over 2-8 MHz at this board timing.** The 108-cell
+class table (68 exceptions + 30 staircase-margin + 10 deep-bulk) is INVARIANT across
+divs {4,6,8,10,12,16} = 8→2 MHz: **0 class flips vs the div=8 baseline at every div.**
+Three interleaved div=8 baseline repeats STABLE (0 flips vs B0 — rig-stability confirmed,
+no baseline drift). pre-IE=0 non-race controls all class A and no-INT popped-image sanity
+clean at every div (no board-margin artifact). Artifacts: sw/exp_race_sweep.{log,json}.
+
+Interpretation (amended conclusions-ladder, per Codex F3): all TESTABLE analog predictions
+are NULL; a **discrete/synchronous mechanism is favored**. This does NOT formally exclude a
+**sub-cycle / edge-locked settle** — H-subcycle-analog survives invariance by construction
+(settle ≪ 125 ns or precharge phase-locked to an edge → div-invariant despite being analog).
+"Invariance" here means exactly "no detectable frequency dependence 2-8 MHz at this board
+timing", not "analog excluded".
+
+E2 prediction-matrix outcome (the four pre-registered hypotheses):
+| Hypothesis | Prediction | Measured |
+|---|---|---|
+| H-freq-sensitive-race (M-static's testable form: analog settle sampled at a fixed node) | class flips ordered by staircase margin, monotone in div | **REFUTED** — 0 flips |
+| H-discrete (synchronous, div-invariant event geometry) | invariant | **CONFIRMED** |
+| H-board-artifact | flips also hit non-race controls / non-monotone | **EXCLUDED** — controls clean, baselines stable |
+| H-subcycle-analog (edge-locked/sub-cycle settle) | invariant despite analog | **NOT EXCLUDED** (survives) |
+
+Mechanism bearing: **M-strobe and M-demand predictions CONFIRMED** — both make the class a
+data-property over div-invariant (CPU-clock-counted) event geometry, hence frequency-invariant.
+**M-static's testable (frequency-sensitive-settle) form REFUTED**; its edge-locked variant is
+the surviving H-subcycle-analog and is not separated by E2 (needs E3/E4 topology). E5 ghost
+piggyback rides these cells (underlying-B + ghost flag captured per cell in the sweep JSON).
+
 ## Codex adversarial-review response ledger (2026-07-23, task-mrxfbkxa; findings 1-10)
 Findings 1,2,9 concern the removal design — changes landed in race_rom_mechanism_design.md; listed for completeness.
 
