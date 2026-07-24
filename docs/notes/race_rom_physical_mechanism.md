@@ -153,6 +153,55 @@ confined (consistent), NOT all-B-cells -- the "all 42 B loop" is the measurement
 the ghost. Closure needs the design's manipulation that moves one observer while pinning the
 other (booked, future work). Artifact: sw/exp_ghost_correlation.json (108 cells x 6 divs).
 
+## RR2/RR3 CLOSE-OUT (session 2026-07-23/24)
+
+**Campaign summary (Axis-3 E-battery + the IRET RTL landing it produced):**
+- **E2 (frequency sweep): total invariance** 2-8 MHz (0 class flips across divs
+  {4,6,8,10,12,16}, 3 interleaved div=8 baselines stable, controls clean).
+  Discrete/synchronous mechanism favored; testable analog forms refuted;
+  sub-cycle/edge-locked settle NOT excluded (H-subcycle-analog survives).
+- **E1 (IRET twin): H-IDENTICAL** — IRET's own-boundary flag commit obeys the
+  SAME race table as POP PSW (108/108 == int9d_race.hex on the socket), pushed
+  PSW == frame image both classes. The race lives in the shared FLAGS fabric
+  (µop-level), not decode.
+- **E5 (ghost second-observer): INFORMED, NOT CLOSED** (correlation-only). The
+  redispatch/loop observable is real, selective, pop-pattern-confined, and
+  frequency-invariant, but entangled in this harness with the class-measurement
+  (B-cells) and the flag-fight (ghost-repair A-cells). Closure needs a
+  pin-one-move-other manipulation (**PATH-2, booked as future work**).
+- **P-I1 (vs-RTL): loop alias.** E1's apparent 107/108 core match was a
+  steady-state-discriminant loop/data-as-code alias, NOT the race: P-I1b (board
+  capture-morphology) + P-I1a (my +racedbg TB trace, sw/pi1a_trace.py) both show
+  the race_law consumer never fired on the IRET path (pop_pend=0 / psw_old !=
+  pre at every S_TRAP_IVT2W). The lone 0x11a8 "divergence" was a per-cell loop-
+  trajectory skew, not a law/hex issue. -> Branch B (real arming fix).
+
+**IRET boundary-race arm — LANDED + reflashed (Branch B).**
+- RTL: v30_eu.sv iret_pw commit block now `psw_old <= psw; pop_pend <= 1'b1`,
+  arming the shared consumer at IRET's boundary (mirrors 9D). Reuses SS-mapped
+  flops — no new flop, no SS_VERSION bump, no ss_lint delta.
+- Gates: E1 sim 108/108 == hex; **all 13 v0.3 pin-event flip-guards +
+  CF/IRET-non-race + v0.1 INT.9D/INT.FB bit-identical** (cycles+arch, zero
+  regression); check_race_law PASS (law untouched); ss_lint PASS (202 symbols).
+- Quartus 17.1.0 Build 590 (2026-07-24), full `sys_top` compile: 0 errors;
+  race_law stays LOGIC (Ram0-5 uninferred); block memory 840,863 bits UNCHANGED;
+  0 new core latches; worst-case setup slack **+4.282 ns** (>= +3.83 floor,
+  +0.452 headroom), hold +0.273 ns; ALM 10,208 (+3, noise); registers 5,099
+  (-49, in ±70 noise band; no new state).
+- safe_flash.sh reflash (2026-07-24): device 5CSEBA6U23 configured, MAGIC
+  verify OK, internal-core boot sanity PASS. **This brought the FPGA fabric
+  current with master (race_law swap + all tail fixes + IRET arm) — the
+  deferred-reflash note is RETIRED.**
+- **Gate (a) board vsrtl re-score (first-capture): PRE-fix 42/108 divergences
+  (all 42 socket-B cells) -> POST-fix 0/108, 108/108 socket==core.** 0x11a8
+  among the 42 now-correct. Goldens: tests/v30/e1_iret_race/.
+
+**Deferred / booked:** E3 (NOP-horizon / consumer arm) and E4 (interposed-writer
+matrix) DEFERRED to a future session (budget spent on the IRET resolution).
+E5's separating manipulation and the IRET one-NOP-late / pre-IE=0 silicon
+addenda BOOKED. The emergent Axis-2 model remains unearned (E2/E1 constrain but
+do not promote it).
+
 ## Codex adversarial-review response ledger (2026-07-23, task-mrxfbkxa; findings 1-10)
 Findings 1,2,9 concern the removal design — changes landed in race_rom_mechanism_design.md; listed for completeness.
 

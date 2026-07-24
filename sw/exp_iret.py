@@ -234,13 +234,26 @@ def cmd_batch(host, div, delay):
     return 1 if frame_bad else 0
 
 
-def cmd_vsrtl(host, div, delay):
+def _first_cls(r, pre7, pop7):
+    """Class from the FIRST capture (iteration-1, un-aliased). Branch-B gate
+    scoring: the steady-state legit[-1] discriminant is ghost-shaped and
+    aliases on a ghost-free DUT (P-I1b), so the core is scored from capture#1
+    with frame_ok + pushed_pc==0x0600 enforced."""
+    caps = r.get("caps_r7") or []
+    if not caps or not r.get("frame_ok") or r.get("pushed_pc") != 0x0600:
+        return "?"
+    v = caps[0]
+    return "A" if v == pop7 else ("B" if v == pre7 else "?")
+
+
+def cmd_vsrtl(host, div, delay, score="steady"):
     """Run the 108 E1 cells on BOTH positions -- socket (truth) and internal
-    v30_core (RTL DUT) -- and quantify the latent RTL gap (pop_pend armed only
-    for opc==9D, v30_eu.sv:2090-2094, so the RTL cannot race at IRET's
-    boundary). Preserves the socket captures as canonical goldens with full
-    provenance in tests/v30/e1_iret_race/. Expect class-B cells to diverge
-    (RTL commits the frame image -> A; silicon lets pre survive -> B)."""
+    v30_core (RTL DUT). Socket class = hex-validated steady-state (ghost
+    convention). Core scoring per `score`: 'steady' (legit[-1], the pre-fix
+    loop-alias reading -> 107/108) or 'first' (capture#1 + frame_ok +
+    pushed_pc==0x0600, the Branch-B gate scoring -> pre-fix ~42 B-cell
+    divergence, post-fix 108/108). Preserves socket captures as canonical
+    goldens in tests/v30/e1_iret_race/."""
     if delay < 0:
         delay = 5
     cells = R.select_cells()
@@ -271,8 +284,11 @@ def cmd_vsrtl(host, div, delay):
         except RunError as e:
             out(f"  {addr:04x}: ERR {str(e)[:70]}")
             continue
-        s_cls = "A" if gh else rs["meas"]
-        c_cls = "A" if gh else rc["meas"]
+        s_cls = "A" if gh else rs["meas"]          # socket: hex-validated
+        if score == "first":
+            c_cls = "A" if gh else _first_cls(rc, pre, pop)
+        else:
+            c_cls = "A" if gh else rc["meas"]
         div_socket[s_cls if s_cls in ("A", "B") else "A"] += 1
         if s_cls != c_cls:
             diverge.append((addr, tag, s_cls, c_cls, gh))
@@ -385,13 +401,14 @@ def main():
     ap.add_argument("--host", default=HOST)
     ap.add_argument("--div", type=int, default=8)
     ap.add_argument("--delay", type=int, default=-1)
+    ap.add_argument("--score", choices=["steady", "first"], default="steady")
     args = ap.parse_args()
     if args.cmd == "pilot":
         return cmd_pilot(args.host, args.div)
     if args.cmd == "batch":
         return cmd_batch(args.host, args.div, args.delay)
     if args.cmd == "vsrtl":
-        return cmd_vsrtl(args.host, args.div, args.delay)
+        return cmd_vsrtl(args.host, args.div, args.delay, score=args.score)
     if args.cmd == "pi1b":
         return cmd_pi1b(args.host, args.div, args.delay)
 

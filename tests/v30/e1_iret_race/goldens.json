@@ -264,7 +264,7 @@
   "socket_meas": "B",
   "final_race7": 35,
   "pushed_frame_ok": true,
-  "core_class": "A",
+  "core_class": "B",
   "ghost_repair": false,
   "hex_class": "B",
   "tag": "exc"

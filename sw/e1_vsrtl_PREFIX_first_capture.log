@@ -1,0 +1,53 @@
+E1 vs RTL: 108 cells, div=8, delay=5; socket (truth) vs internal v30_core (RTL DUT)
+  20/108 (0.09s/cell)
+  40/108 (0.07s/cell)
+  60/108 (0.07s/cell)
+  80/108 (0.07s/cell)
+  100/108 (0.07s/cell)
+
+socket class distribution: A=66 B=42
+RTL DIVERGENCES: 42/108 (socket-A diverging=0, socket-B diverging=42)
+pattern: ALL divergences are class-B cells (RTL commits frame->A; silicon pre-survives->B) -- exactly the pop_pend opc==9D gap
+  0c78 exc: socket=B core=A
+  0c79 exc: socket=B core=A
+  0cf8 exc: socket=B core=A
+  0cf9 exc: socket=B core=A
+  1188 exc: socket=B core=A
+  11a8 exc: socket=B core=A
+  11c8 exc: socket=B core=A
+  11e8 exc: socket=B core=A
+  2c78 exc: socket=B core=A
+  2c79 exc: socket=B core=A
+  2cf8 exc: socket=B core=A
+  2cf9 exc: socket=B core=A
+  2700 margin: socket=B core=A
+  2701 margin: socket=B core=A
+  2702 margin: socket=B core=A
+  2704 margin: socket=B core=A
+  2705 margin: socket=B core=A
+  2706 margin: socket=B core=A
+  2707 margin: socket=B core=A
+  2708 margin: socket=B core=A
+  22a1 margin: socket=B core=A
+  22b3 margin: socket=B core=A
+  2720 margin: socket=B core=A
+  2722 margin: socket=B core=A
+  2724 margin: socket=B core=A
+  2725 margin: socket=B core=A
+  2726 margin: socket=B core=A
+  2727 margin: socket=B core=A
+  1403 margin: socket=B core=A
+  1443 margin: socket=B core=A
+  1980 margin: socket=B core=A
+  1981 margin: socket=B core=A
+  1982 margin: socket=B core=A
+  1984 margin: socket=B core=A
+  1985 margin: socket=B core=A
+  1986 margin: socket=B core=A
+  1423 margin: socket=B core=A
+  1463 margin: socket=B core=A
+  19a0 margin: socket=B core=A
+  19a1 margin: socket=B core=A
+  19a2 margin: socket=B core=A
+  19a4 margin: socket=B core=A
+goldens preserved: /home/wickerwaka/src/nec_test/tests/v30/e1_iret_race/goldens.json (108 cells) + metadata.json

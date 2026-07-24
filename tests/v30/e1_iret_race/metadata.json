@@ -6,8 +6,10 @@
  "div": 8,
  "delay": 5,
  "waits": 0,
- "discriminant": "steady-state final live PSW 7 race flags == frame/pop (A) or pre (B); ghost-repair scored A",
- "date": "2026-07-23",
+ "discriminant_socket": "steady-state final live PSW 7 race flags == frame/pop (A) or pre (B); ghost-repair scored A. socket_class validated == int9d_race.hex 108/108.",
+ "discriminant_core_gate": "first-capture (frame_ok + pushed_pc==0x0600); the steady-state discriminant aliases on a ghost-free DUT (P-I1b).",
+ "date": "2026-07-24",
  "n_cells": 108,
- "note": "canonical goldens for the IRET race-arm RTL fix (pop_pend currently opc==9D only, v30_eu.sv:2090-2094). socket_class validated == int9d_race.hex 108/108."
+ "landing": "IRET boundary-race arm LANDED (v30_eu.sv iret_pw block: psw_old<=psw; pop_pend<=1). Gate (a) board vsrtl re-score, first-capture scoring: PRE-fix (old fabric) 42/108 divergences (all 42 socket-B cells; core committed frame->A); POST-fix (new fabric, Quartus 17.1 build + safe_flash.sh 2026-07-24) 0/108 -> 108/108 socket==core. 0x11a8 is among the 42 now-correct B cells. Evidence: sw/e1_vsrtl_PREFIX_first_capture.log, sw/e1_vsrtl_POSTFIX_first_capture.log. core_class in goldens.json is the POST-fix first-capture reading; socket_class is hex-validated and unchanged.",
+ "note": "canonical goldens for the IRET boundary-race arm. socket_class == int9d_race.hex 108/108 (H-IDENTICAL, E1)."
 }
