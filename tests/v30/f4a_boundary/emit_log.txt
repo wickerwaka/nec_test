@@ -1,0 +1,2 @@
+# TRUTH SOURCE: SOCKET (real chip, use_core=False)  seed_base=v30-v0.3-f4a-boundary  cases=40  waits=0  forms=4  DIRECTED-BOUNDARY offsets=['0xfffc', '0xfffd', '0xfffe', '0xffff']
+# WAIT-RIG: WRAND=0 replay=0 (commanded clean at connect, OK/OK)

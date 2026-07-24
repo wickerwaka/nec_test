@@ -24,6 +24,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 import check_core as CC  # noqa: E402
 
 V03 = CC.ROOT / "tests" / "v30" / "v0.3"
+BND_DIR = CC.ROOT / "tests" / "v30" / "f4a_boundary"   # L6 directed tranche
 BND = set(range(0xFFFC, 0x10000))
 
 
@@ -92,25 +93,45 @@ def main():
             print(f"  {form}: (no v0.3 file)")
             continue
         idxs, g = r
+        # forms covered by the L6 directed tranche (below) are no longer gaps
+        l6_covered = (BND_DIR / f"{form}.json.gz").exists()
         if not idxs:
-            gaps.append(form)
-            print(f"  {form}: 0 boundary cases in v0.3 -> COVERAGE GAP "
-                  f"(pending-L6; batches with RR2 board session -- see bringup_log.md serve-infra note)")
+            if not l6_covered:
+                gaps.append(form)
+            tag = "covered by L6 directed tranche" if l6_covered \
+                else "COVERAGE GAP (pending-L6; RR2 board session)"
+            print(f"  {form}: 0 boundary cases in random v0.3 -> {tag}")
             continue
         byidx = {c["idx"]: c for c in g}
         bad = run_three_way(form, [byidx[i] for i in idxs])
         status = "PASS" if not bad else f"FAIL {bad}"
         fails += len(bad)
-        print(f"  {form}: {len(idxs)} boundary case(s) {idxs} -> {status}")
+        print(f"  {form}: {len(idxs)} random-suite boundary case(s) {idxs} "
+              f"-> {status}")
+
+    # L6 directed boundary tranche: every case pinned to operand EA
+    # 0xFFFC-0xFFFF (emit_suite emit-boundary, seed v30-v0.3-f4a-boundary,
+    # socket truth). These are the goldens that fill the C4/62/0F31/0F3B
+    # gaps the random suite never hit.
+    if BND_DIR.exists():
+        print()
+        for gz in sorted(BND_DIR.glob("*.json.gz")):
+            form = gz.name[:-len(".json.gz")]
+            cases = json.load(gzip.open(gz))
+            bad = run_three_way(form, cases)
+            fails += len(bad)
+            status = "PASS" if not bad else f"FAIL {bad}"
+            print(f"  [L6] {form}: {len(cases)} directed boundary -> {status}")
+
     print()
     if gaps:
-        print("COVERAGE GAPS (no v0.3 boundary case; L6 silicon mini-tranche): "
+        print("COVERAGE GAPS (no boundary case in random v0.3 or L6 tranche): "
               + ", ".join(gaps))
     if fails:
         print(f"f4a_boundary_battery: FAIL ({fails} diverging)")
         return 1
-    print("f4a_boundary_battery: PASS (all in-suite 0xFFFC-0xFFFF operand "
-          "boundary cases three-way clean)")
+    print("f4a_boundary_battery: PASS (all random-suite + L6 directed "
+          "0xFFFC-0xFFFF operand boundary cases three-way clean)")
     return 0
 
 

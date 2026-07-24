@@ -679,10 +679,18 @@ def dispstr(mod, rm, disp):
     return f"[{s}]"
 
 
-def gen_case(spec, rng):
+def gen_case(spec, rng, ea_boundary=None):
     """Random initial state + instruction bytes per V20 conventions.
     Returns dict with intel regs, instr bytes, ram placements, name,
-    divtrap flag. Re-rolls internally on footprint conflicts."""
+    divtrap flag. Re-rolls internally on footprint conflicts.
+
+    ea_boundary (L6 F4a directed tranche): when set to a 16-bit operand-EA
+    offset, PIN the multi-word operand EA to that value so the tail word(s)
+    straddle the FFFF->0000 offset wrap (the F4a ea_step2 carry bug). For
+    modrm mem forms the modrm is forced to mod0/rm6 (absolute disp16 = the
+    target, seg ds); for the insext bit-field forms the string base reg
+    (IY for INS, IX for EXT) is set to the target. All downstream operand/
+    span/RAM placement is unchanged - it derives from mod/rm/disp/regs."""
     for _ in range(64):
         regs = {r: rnd16(rng) for r in REG16}
         regs["cs"] = rng.getrandbits(16)
@@ -700,6 +708,11 @@ def gen_case(spec, rng):
                 rng.randrange(3) if (spec["lea"] or spec["memonly"]) \
                 else rng.randrange(4)
             rm = rng.randrange(8)
+            if ea_boundary is not None and not spec["regonly"] \
+                    and not spec["lea"]:
+                # directed F4a boundary: absolute [disp16] operand at the
+                # pinned offset (mod0/rm6, ds); reg field untouched.
+                mod, rm = 0, 6
             if spec["sreg"] == "st":
                 reg = rng.randrange(4)
             elif spec["sreg"] == "ld":
@@ -713,6 +726,8 @@ def gen_case(spec, rng):
                 ndisp, disp = 1, rng.getrandbits(8)
             elif mod == 2 or (mod == 0 and rm == 6):
                 ndisp, disp = 2, rng.getrandbits(16)
+            if ea_boundary is not None and mod == 0 and rm == 6:
+                disp = ea_boundary & 0xFFFF      # pin the absolute EA offset
             instr += bytes([(mod << 6) | (reg << 3) | rm])
             instr += disp.to_bytes(ndisp, "little") if ndisp else b""
             wide = spec["modrm"] in ("mr16", "rm16", "grp16")
@@ -1025,6 +1040,8 @@ def gen_case(spec, rng):
                 s8((mb >> 3) & 7, rng.randrange(16))
             iseg, ibase = ("es", "di") if spec["insext"] == "ins" \
                 else ("ds", "si")
+            if ea_boundary is not None:
+                regs[ibase] = ea_boundary & 0xFFFF   # pin bit-field base
             for k in range(6):
                 ram.append((lin(iseg, regs[ibase] + k),
                             rng.getrandbits(8)))
@@ -2099,6 +2116,104 @@ def cmd_emit(host, opcodes, n_cases, out_dir, seed_base, preload_n,
     return 0
 
 
+BOUNDARY_OFFSETS = [0xFFFC, 0xFFFD, 0xFFFE, 0xFFFF]
+
+
+def cmd_emit_boundary(host, opcodes, n_cases, out_dir, seed_base, preload_n,
+                      waits=0, resume=False):
+    """L6 F4a directed boundary tranche. Same conventions as cmd_emit
+    (socket truth guard, WAIT-RIG provenance, seeds sidecar, iords sidecar,
+    resumable, alternating preload) but every case is DIRECTED to an operand
+    EA offset in 0xFFFC-0xFFFF (cycled per case) via gen_case(ea_boundary=).
+    Covers the multi-word-operand consumers with no random boundary case in
+    v0.3 (C4/62 modrm-mem, 0F31/0F3B insext). Writes to its own directory so
+    the immutable random v0.3 suite is untouched; the f4a_boundary_battery
+    standing gate three-way-verifies these against the F4a-fixed RTL."""
+    out_dir = Path(out_dir)
+    out_dir.mkdir(parents=True, exist_ok=True)
+    log = out_dir / "emit_log.txt"
+    if EMIT_USE_CORE is not False:
+        raise RunError(
+            "REFUSING to emit goldens: truth source is not the socket "
+            f"(EMIT_USE_CORE={EMIT_USE_CORE!r}); goldens require use_core=False")
+    truth = "SOCKET (real chip, use_core=False)"
+    stamp = (f"# TRUTH SOURCE: {truth}  seed_base={seed_base}  "
+             f"cases={n_cases}  waits={waits}  forms={len(opcodes)}  "
+             f"DIRECTED-BOUNDARY offsets={[hex(o) for o in BOUNDARY_OFFSETS]}")
+    with log.open("a") as f:
+        f.write(stamp + "\n")
+    print(stamp, flush=True)
+    if waits == 0:
+        import v30run as _v30
+        try:
+            (_v30._runners.get(host) or _v30._runners.setdefault(
+                host, _v30.ServeRunner(host))).ensure()
+            rig = getattr(_v30._runners.get(host), "rig_readback", "?")
+        except Exception as e:
+            rig = f"(rig readback unavailable: {str(e)[:60]})"
+        with log.open("a") as f:
+            f.write(f"# WAIT-RIG: {rig}\n")
+        print(f"# WAIT-RIG: {rig}", flush=True)
+    for op in opcodes:
+        if op in EVT_FORMS:
+            raise RunError(f"emit-boundary: {op} is an EVT form (unsupported)")
+        if resume:
+            fn = out_dir / f"{op}.json.gz"
+            if fn.exists():
+                try:
+                    done = len(json.load(gzip.open(fn)))
+                except Exception:
+                    done = 0
+                if done >= n_cases:
+                    print(f"{op}: resume skip ({done} already emitted)",
+                          flush=True)
+                    continue
+        spec = OPCODES[op]
+        tests = []
+        seeds = []
+        rerolls = 0
+        t0 = time.time()
+        i = 0
+        while len(tests) < n_cases and rerolls < n_cases * 4:
+            eatgt = BOUNDARY_OFFSETS[len(tests) % len(BOUNDARY_OFFSETS)]
+            rng = random.Random(f"{seed_base}/{op}/{i}")
+            i += 1
+            pn = preload_n if preload_n >= 0 else \
+                (2 if len(tests) % 2 == 1 else 0)
+            try:
+                case = gen_case(spec, rng, ea_boundary=eatgt)
+                t = emit_case(spec, case, host, tag=f"eb{op}",
+                              preload_n=pn, waits=waits)
+            except (ComposeError, RunError) as e:
+                if isinstance(e, RunError) and str(e).startswith("serve:"):
+                    with log.open("a") as f:
+                        f.write(f"# TRANSPORT DROP on {op} case-seed {i - 1} "
+                                f"(resume-safe): {str(e)[:400]}\n")
+                    raise
+                rerolls += 1
+                with log.open("a") as f:
+                    f.write(f"{op} case-seed {i - 1} reroll: "
+                            f"{str(e)[:120]}\n")
+                continue
+            t["idx"] = len(tests)
+            t["ea_boundary"] = eatgt
+            seeds.append([len(tests), i - 1])
+            tests.append(t)
+            if len(tests) % 20 == 0:
+                print(f"  {op}: {len(tests)}/{n_cases} "
+                      f"({(time.time() - t0) / len(tests):.2f}s/case)",
+                      flush=True)
+        fn = out_dir / f"{op}.json.gz"
+        with gzip.open(fn, "wt") as f:
+            json.dump(tests, f, separators=(",", ":"))
+        with open(out_dir / f"{op}.seeds.json", "w") as sf:
+            json.dump(dict(seed_base=seed_base, op=op, map=seeds,
+                           boundary=BOUNDARY_OFFSETS), sf)
+        print(f"{op}: wrote {len(tests)} tests ({rerolls} rerolls) -> {fn} "
+              f"in {time.time() - t0:.0f}s", flush=True)
+    return 0
+
+
 def cmd_spotcheck(host, out_dir, per_op=3):
     """Mission 16 validation: replay emitted cases' initial states
     (non-prefetched) and compare architectural finals with the records.
@@ -2148,8 +2263,8 @@ def cmd_spotcheck(host, out_dir, per_op=3):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("cmd",
-                    choices=["validate", "preload-cal", "emit", "spotcheck",
-                             "reemit"])
+                    choices=["validate", "preload-cal", "emit", "emit-boundary",
+                             "spotcheck", "reemit"])
     ap.add_argument("--indices-file", default="",
                     help="reemit: JSON {op: [output-idx, ...]} to re-emit in "
                          "place (confined per index; non-targeted cases untouched)")
@@ -2184,6 +2299,10 @@ def main():
         index_map = json.load(open(args.indices_file))
         return cmd_reemit(args.host, index_map, args.out, args.seed,
                           args.preload, args.waits, validate=args.validate)
+    if args.cmd == "emit-boundary":
+        return cmd_emit_boundary(args.host, args.opcodes.split(","), args.cases,
+                                 args.out, args.seed, args.preload, args.waits,
+                                 resume=args.resume)
     return cmd_emit(args.host, args.opcodes.split(","), args.cases,
                     args.out, args.seed, args.preload, args.waits,
                     resume=args.resume)
