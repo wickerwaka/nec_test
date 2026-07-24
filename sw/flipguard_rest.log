@@ -1,0 +1,20 @@
+=== v0.3 remaining pin-event forms ===
+HLT.INT: 10000/10000 full  (cycles 10000, arch 10000)
+HLT.NMI: 10000/10000 full  (cycles 10000, arch 10000)
+HLT.RES: 10000/10000 full  (cycles 10000, arch 10000)
+IE0.90: 10000/10000 full  (cycles 10000, arch 10000)
+INT.8ED0: 10000/10000 full  (cycles 10000, arch 10000)
+INT.8ED8: 10000/10000 full  (cycles 10000, arch 10000)
+INT.90: 10000/10000 full  (cycles 10000, arch 10000)
+INT.B8: 10000/10000 full  (cycles 10000, arch 10000)
+INT.F3AA: 10000/10000 full  (cycles 10000, arch 10000)
+NMI.90: 10000/10000 full  (cycles 10000, arch 10000)
+NMI.B8: 10000/10000 full  (cycles 10000, arch 10000)
+
+TOTAL: 110000/110000 full (cycles 110000, arch 110000)
+=== v0.1 INT.9D,INT.FB tranches ===
+INT.9D: 200/200 full  (cycles 200, arch 200)
+INT.FB: 200/200 full  (cycles 200, arch 200)
+
+TOTAL: 400/400 full (cycles 400, arch 400)
+ALLGUARDS DONE

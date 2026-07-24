@@ -302,6 +302,18 @@ interrupt corpus is cycle- and state-exact.
   extractions: the run loops through the loader and the last
   scratch-page write is no longer the PSW capture. All three patched
   from the measured table/law.
+- **IRET shares the boundary race (RR2/E1, measured 2026-07-23/24)**: an INT
+  landing on IRET's own boundary with pre-IE=1 obeys the SAME race table as
+  POP PSW (108/108 == int9d_race.hex on the socket, H-IDENTICAL; µ01EA
+  `OPR->FLAGS` == µ007A). The pushed PSW = the popped FRAME image in both
+  classes (invariant clean). RTL: the IRET PSW commit now arms the shared
+  `pop_pend`/`psw_old` race consumer (v30_eu.sv iret_pw block), same as 9D.
+  Provenance/probe trail (P-I1: the pre-fix core matched 107/108 as a
+  steady-state-discriminant LOOP ALIAS, not the race — the consumer never
+  fired on the IRET path; confirmed by board capture-morphology P-I1b and the
+  +racedbg TB trace P-I1a): docs/notes/race_rom_physical_mechanism.md Axis-3
+  E1, sw/exp_iret.py, sw/pi1a_trace.py. One-NOP-late + pre-IE=0 IRET addenda
+  booked (not yet silicon-measured).
 
 ## Priority / notes
 
