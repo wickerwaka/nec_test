@@ -16,7 +16,7 @@ core CE from a host-controllable divider instead of `tick_rise`).
   pipelines (int_p/nmi_p/nmi_latch/poll_s1/ie_p/rslot/rep1_abort). Gating this
   one process CE-gates the div/shift step counters automatically (required by
   commits c2beb6a / e7c315a).
-- NO synchronous-read BRAM in the core. race_rom (L390), q_mem (biu L239),
+- NO synchronous-read BRAM in the core. race_rom (RR1: retired -> combinational race_law, 2026-07-23; was LUT/logic anyway), q_mem (biu L239),
   rf/sr are all combinational-read → no read-latency to keep aligned; the
   classic sync-BRAM CE desync cannot occur.
 - Exactly ONE `negedge clk` process: t1_half2 (biu L783) — the T1 write-data
@@ -55,7 +55,9 @@ eu.sv: the whole monolithic process (L1365-~4560) → gate at the else (L1473).
 q_mem/rf/sr: registers, combinational read; writes are inside CE-gated
 processes; bkd_load writes stay in the ungated srst branch. race_rom:
 read-only combinational ROM, CE has no interaction — leave alone (confirm
-synthesis keeps it combinational, not registered-read BRAM). Harness test_mem
+synthesis keeps it combinational, not registered-read BRAM). [RR1 2026-07-23:
+race_rom retired, replaced by combinational race_law (was LUT/logic, never
+block ROM); CE analysis unchanged — still stateless.] Harness test_mem
 / capture_buf: sys-clocked, untouched.
 
 ## TB / verification gate
@@ -96,7 +98,8 @@ boot-match after the clock-source switch (the 2026-07-13 boot desync class).
 t1_half2 CE_HALF timing (write-data AD phase) → validate on write-heavy fuzz;
 pulse-default collapse (bug #1 above); pin edge detectors at fabric rate;
 input hold-margin re-validation on clock-source switch; race_rom BRAM
-inference. All caught by the golden gate + CE-hold sanity + hardware A/B.
+inference [RR1 2026-07-23: moot — race_rom retired for combinational race_law;
+it was LUT/logic, never BRAM]. All caught by the golden gate + CE-hold sanity + hardware A/B.
 
 ## Outcome (2026-07-13, IMPLEMENTED — all gates passed)
 

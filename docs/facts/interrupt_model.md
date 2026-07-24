@@ -273,14 +273,21 @@ interrupt corpus is cycle- and state-exact.
   nothing else: single-bit flips of pre.DIR / pre.P / pop.S flip the
   class at bit-identical bus timing; register values are inert (bench
   factorial + 21/21 repeatability check).
-- The law resists compact algebra: not GF(2)-linear or quadratic, no
-  <=4-variable dependence, no masked compare/carry predicate fits; the
-  ANF of the full table has ~2000 terms up to degree 13 and the
-  function is asymmetric in (pre, pop). Implemented as the
-  exhaustively measured 2^14 truth table over {V,DIR,S,Z,AC,P,CY} of
-  both words (hdl/rtl/core/int9d_race.hex; provenance
-  docs/facts/int9d_race_table.json.gz; one board run per cell at the
-  d=5 own-boundary geometry, corrupted cells re-measured).
+- The law is a **per-(pre.DIR,pop.DIR)-quadrant staircase** `rank(pre6) >=
+  thr(pop6)` over {V,S,Z,AC,P,CY}, plus the `pre7==pop7` diagonal committed
+  as class A, plus **68 measured resonance/ghost-repair exception cells**
+  (XOR overlay) — a total-order race between the two flag words per DIR mode.
+  It is NOT GF(2)-linear/quadratic, no <=4-variable dependence, no masked
+  compare/carry fit (the ~2000-term degree-13 ANF is the signature of a
+  staircase family glued across 4 modes with a localized overlay). RTL: the
+  combinational predicate `race_law` (hdl/rtl/core/race_law.svh, GENERATED
+  bit-exact by sw/gen_race_law.py; the earlier 2^14 `race_rom` was retired in
+  RR1). The measurement remains the contract: hdl/rtl/core/int9d_race.hex
+  (provenance docs/facts/int9d_race_table.json.gz; one board run per cell at
+  the d=5 own-boundary geometry, corrupted cells re-measured) is RETAINED as
+  the verification target — sw/check_race_law.py exhaustively re-proves the
+  checked-in race_law.svh against it (2^14, standing gate). Full mechanism
+  derivation + fitted-vs-derived caveats: docs/notes/race_rom_mechanism_design.md.
 - pre-IE=0 pops never race (recognition waits for the popped IE;
   89/89 class A in the tranche).
 - **Ghost pending INT** (224 table cells at specific pop patterns,

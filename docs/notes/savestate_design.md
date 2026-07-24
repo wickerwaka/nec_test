@@ -61,7 +61,7 @@ Method: every `reg`/`output reg`/enum register in the two modules (v30_core itse
 | BIU-side output regs | `eu_wr` `eu_word` `eu_addr`(20) `eu_seg`(2) `eu_wdata`(16) `eu_kind`(2) `halt_disp` | 43 | set in the FSM, held across cycles — state, not Moore |
 | **Total** | | **851** | pad to 864 = **54 words** |
 
-Not state (verified): `eu_req/eu_ready/eu_soon` (always_comb Moore), `q_pop/q_first/q_flush/flush_fast/eu_fwd/eu_wrap/eu_rsv_*/eu_lock` (assigns), all `pick_*`/slot arbiter wires, `race_rom[0:1023]` (write-never ROM loaded by `$readmemh` — constant, excluded; must *stay* a ROM after this change, see gate G6).
+Not state (verified): `eu_req/eu_ready/eu_soon` (always_comb Moore), `q_pop/q_first/q_flush/flush_fast/eu_fwd/eu_wrap/eu_rsv_*/eu_lock` (assigns), all `pick_*`/slot arbiter wires, `race_rom[0:1023]` (write-never, constant — excluded because CONSTANT, not because of placement; see gate G6). [RR1 2026-07-23: race_rom retired, replaced by combinational race_law; still constant/stateless, still excluded.]
 
 **Grand total: 295 + 851 = 1,146 bits → with padding and 1 tag word: 74 stream words (148 bytes).**
 
@@ -69,7 +69,7 @@ Not state (verified): `eu_req/eu_ready/eu_soon` (always_comb Moore), `q_pop/q_fi
 
 - `q_mem[0:5]` (6×8): dual same-cycle writes (`push_now==2`) + async read — infers as registers today. Flopped; chains normally.
 - `rf[0:7]`, `sr[0:3]`: many async read ports — registers. Chains normally.
-- `race_rom[0:1023]` (16b): constant ROM (M10K/MLAB). **Excluded from the chain.** Gate G6 verifies it still infers as ROM after the edit.
+- `race_rom[0:1023]` (16b): constant, write-never. **Excluded from the chain** (because constant, not placement). Gate G6 checks synthesis. [RR1 2026-07-23: race_rom retired for combinational race_law; still constant/stateless, still excluded. NOTE: race_rom was LUT/logic-implemented, never block RAM — the G6 'still infers as ROM' framing was inaccurate; see savestate_v2 G6' correction.]
 - No other memories. **Nothing needs RAM-style sequenced readout.**
 
 ### 2.4 Sim-only registers (excluded, but must be handled)
@@ -255,7 +255,7 @@ All driven through the existing `sw/check_core.py` + `hdl/tb/tb_v30_core.sv` flo
 | **G3** (idempotence) | mode 2 at 3 k values per case over the G2a/G2b sets | A==B always |
 | **G4** (negative tests) | corrupt tag word → `SS_ERR=1`; flip 1 random non-pad stream bit in 20 trials → divergence or visible state delta detected (sensitivity check of the gate itself) | as stated |
 | **G5** (random waits) | same 10 forms × full-k × 5 wrand seeds (the established 90000/90003/90007/90008/90018 family), plus one run with `+ce_div=4` and one with a 10,000-fabric-clk freeze dwell (proves CE-independence and strobe operation at arbitrary `ce_cnt` phase) | 0 mismatches |
-| **G6** (synthesis) | Quartus 17.1 build of the synth top with SS tied off: ALM/reg delta reported; `race_rom` still infers as ROM; no inferred latches; setup slack ≥ +4.0 ns (from ~+5) | as stated |
+| **G6** (synthesis) | Quartus 17.1 build of the synth top with SS tied off: ALM/reg delta reported; `race_rom` synthesis unchanged (it is LUT/logic, not block ROM -- corrected RR1); no inferred latches; setup slack ≥ +4.0 ns (from ~+5) | as stated |
 | **G7** (silicon regression) | one physical A/B run (existing check_ab_hw flow) on the post-savestate bitstream | unchanged vs pre-savestate |
 
 Per project convention, each phase closes with a Codex critical-review pass (challenge: "which flop is not in the chain?", "which freeze point wasn't swept?").
@@ -390,7 +390,7 @@ sweep (G2a, chain behavioral) + the static pack/unpack checklist audit (chain co
 |---|---|---|---|
 | Worst-case setup slack | +3.830 ns | >= +4.0 ns | **ACCEPTED DEVIATION** (see below) |
 | Inferred latches | 0 | none | PASS |
-| race_rom inference | ROM (block mem 840,863, unchanged) | still ROM | PASS |
+| block memory | 840,863 (unchanged) | 840,863 | PASS | (race_rom is LUT/logic, NOT block ROM -- the 840,863 is the harness memories; corrected RR1 R0b)
 | ALM | 10,232/41,910 (24%), +149 vs baseline | reported | PASS |
 | Compilation | 0 errors | clean | PASS |
 | files.qip / package | v30_ss_pkg in files.qip; include removed | verify (finding 4) | PASS |

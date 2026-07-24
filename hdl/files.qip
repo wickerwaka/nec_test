@@ -10,8 +10,11 @@ set_global_assignment -name SYSTEMVERILOG_FILE rtl/core/v30_ss_pkg.sv
 set_global_assignment -name SYSTEMVERILOG_FILE rtl/core/v30_core.sv
 set_global_assignment -name SYSTEMVERILOG_FILE rtl/core/v30_biu.sv
 set_global_assignment -name SYSTEMVERILOG_FILE rtl/core/v30_eu.sv
-# So $readmemh in v30_eu.sv (int9d_race.hex) resolves by basename via the
+# So the `include "race_law.svh"` in v30_eu.sv resolves by basename via the
 # project-relative search path, independent of the compiler's cwd.
+# (RR1 2026-07-23: race_rom/$readmemh int9d_race.hex retired for combinational
+# race_law; int9d_race.hex is no longer read by the RTL build — it is retained
+# only as the measured contract for sw/gen_race_law.py + check_race_law.py.)
 set_global_assignment -name SEARCH_PATH rtl/core
 set_global_assignment -name SDC_FILE nec_test.sdc
 set_global_assignment -name SYSTEMVERILOG_FILE nec_test.sv

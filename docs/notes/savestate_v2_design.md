@@ -453,7 +453,7 @@ With the fix: **while CE==0, core state changes only via SS writes** — reads f
 
 **Deleted:** BIU ss_pack comb (:209-292), ss_sh (304 flops) + capture/shift mux, ss_dout_seg/ss_u, width-guard generate (:308-313), strobe ports; EU same shape (pack, 864-flop shadow, guard, ports); core ss_tag_sh (16 flops), tag-compare-on-restore, strobe assertions, SS_CAPTURE/SS_RESTORE/SS_SHIFT/SS_DIN/SS_DOUT ports; both packed structs. Net **−1,184 dedicated flops**.
 
-**Carries over unchanged:** state inventory; SS_BUS_QUIET + predicate; CE-parking; restore-priority position (ss arm above srst); EU enum casts; block-local-temp audit result; bkd_load backdoor; race_rom exclusion (G6′ re-checks); v1 §5 platform restore contract (bus-side state, wait-gen state, pins); verification investment (interface-layer changes only).
+**Carries over unchanged:** state inventory; SS_BUS_QUIET + predicate; CE-parking; restore-priority position (ss arm above srst); EU enum casts; block-local-temp audit result; bkd_load backdoor; race_rom exclusion (constant/stateless -- unaffected by the RR1 race_law swap); v1 §5 platform restore contract (bus-side state, wait-gen state, pins); verification investment (interface-layer changes only).
 
 **Touched semantically (one item):** halt_t1/halt_done free-running clear (§5.1), gated by G1′/G7′.
 
@@ -495,7 +495,7 @@ Arrays resize 74 → SS_COUNT(202) via package import. check_core.py --ss-sweep/
 | **G3′** idempotence | mode 2: read-all A → write-all A → read-all B | A==B always |
 | **G4′** round-trip width sweep (**NEW**) | mode 5: save-all; per mapped address ≠ tag: write FFFF, read r1, write 0000, read r0; check r0==0 and r1 == mask(ss_field_width(a)); then restore saved and resume to end | exact mask match on all 201 state addresses; post-restore rows identical |
 | **G5′** negative | corrupt-tag → SS_ERR (in G2′); mode-4 bit-flip sensitivity retained | as v1 G4 |
-| **G6′** synthesis | Quartus 17.1, SS tied off: 0 errors, no latches, race_rom still ROM, ALM/**register** delta vs v1-shadow baseline reported, slack ≥ **+3.8 ns** (parity with accepted S6 baseline) | **PASS — see G6′ actuals below** |
+| **G6′** synthesis | Quartus 17.1, SS tied off: 0 errors, no latches, block memory unchanged (race_rom is LUT/logic, not block ROM -- see correction below), ALM/**register** delta vs v1-shadow baseline reported, slack ≥ **+3.8 ns** (parity with accepted S6 baseline) | **PASS — see G6′ actuals below** |
 | **G7′** silicon | one A/B (check_ab_hw) + byte-identity re-emission set — **mandatory** (halt_t1 edit) | identical to reference |
 
 Mode 3 (FIFO self-test) moot — no FIFO; slot taken by mode 5. **Standing regression set: G1′ + G2′ + G4′ + lint-grep symbol counts** (`sw/ss_lint.py`) — strictly dominates v1's (unpack blind spot now covered dynamically).
@@ -508,12 +508,12 @@ Mode 3 (FIFO self-test) moot — no FIFO; slot taken by mode 5. **Standing regre
 |---|---|---|---|
 | Compilation | 0 errors, 306 warnings | 0 errors | PASS |
 | Inferred latches | 0 | 0 | PASS |
-| race_rom inference | ROM; block mem 840,863 (unchanged) | ROM 840,863 | PASS |
+| block memory | 840,863 bits (unchanged) | 840,863 | PASS |
 | Worst-case setup slack | **+4.191 ns** | +3.830 ns | PASS — **clears the original +4.0 ns gate v1 could only meet via a documented deviation** |
 | ALM (tied-off) | 10,269 / 41,910 (25%) | 10,232 (+149 vs pre-SS base 10,083) | +37 vs v1 (rounding noise on a 41,910-ALM part) |
 | Registers (tied-off) | 5,174 | not recorded (DCE'd) | — |
 
-The race_rom `Warning (10030)` lines are only the unused write port (`waddr_a/data_a/we_a` defaulting to 0) — expected for a read-only ROM; block-memory bits are byte-identical to the v1 baseline, confirming it still maps to block RAM.
+**CORRECTION (RR1 R0b, 2026-07-23):** the row above previously read "race_rom inference | ROM; block mem 840,863" — that was WRONG. The RR1 R0b Quartus spike's Fitter RAM Summary proves `race_rom` was implemented as **LOGIC (LUT/MLAB), never block memory**: the 840,863 block-mem bits are entirely the harness memories (test_mem 2×262144 + capture_buf 262144 + wvec 20480 + osd_buffer 32768 + iords 1024 + audio 96 + osd_taps 63 = exactly 840,863), and race_rom/race_law appear NOWHERE in the RAM summary. The `Warning (10030)` lines are the unused write port of the (LUT-mapped) ROM. race_rom's savestate exclusion is unaffected — it was excluded because it is a **CONSTANT** (write-never), not because of fitter placement; the swap to `race_law` (RR1) has **no SS impact** (still constant/stateless, SS map untouched).
 
 **Live register-delta headline — core-only, `v30_core` as top (SS ports on pins, nothing DCE'd):**
 
