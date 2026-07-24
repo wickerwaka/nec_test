@@ -53,8 +53,10 @@ def handler_ram(stub_linear):
     return [(HANDLER + k, b) for k, b in enumerate(h)]
 
 
-def measure_iret(pre7, pop7, delay, div=8, pop_ie=1, host=HOST, lead_pop=False):
-    """One IRET race cell. Returns measured class + pushed-frame invariant."""
+def measure_iret(pre7, pop7, delay, div=8, pop_ie=1, host=HOST, lead_pop=False,
+                 use_core=False):
+    """One IRET race cell. Returns measured class + pushed-frame invariant.
+    use_core=False = socket (truth); True = internal v30_core (RTL DUT)."""
     pre_psw = R.race7_to_psw(pre7, ie=1)
     frame_psw = R.race7_to_psw(pop7, ie=pop_ie)
     # IRET at ANCHOR (+ pad). Optional POP-PSW lead-in >=3 instr earlier to
@@ -69,7 +71,7 @@ def measure_iret(pre7, pop7, delay, div=8, pop_ie=1, host=HOST, lead_pop=False):
     regs = {"PS": 0, "PC": ANCHOR, "SS": SS0, "SP": SP_FRAME, "PSW": pre_psw}
     res = run_test(regs=regs, instr=instr, host=host, tag="iret",
                    ram=ram, ivt=ivt, evt=(ANCHOR, delay, 0, 0),
-                   use_core=False, div=div, stub_linear=TARGET)
+                   use_core=use_core, div=div, stub_linear=TARGET)
     # steady-state final live PSW (store epilogue)
     caps = R.psw_captures(res)
     r7s = [R.psw_to_race7(c) for c in caps]
@@ -231,9 +233,88 @@ def cmd_batch(host, div, delay):
     return 1 if frame_bad else 0
 
 
+def cmd_vsrtl(host, div, delay):
+    """Run the 108 E1 cells on BOTH positions -- socket (truth) and internal
+    v30_core (RTL DUT) -- and quantify the latent RTL gap (pop_pend armed only
+    for opc==9D, v30_eu.sv:2090-2094, so the RTL cannot race at IRET's
+    boundary). Preserves the socket captures as canonical goldens with full
+    provenance in tests/v30/e1_iret_race/. Expect class-B cells to diverge
+    (RTL commits the frame image -> A; silicon lets pre survive -> B)."""
+    if delay < 0:
+        delay = 5
+    cells = R.select_cells()
+    gdir = R.GRL.ROOT / "tests" / "v30" / "e1_iret_race"
+    gdir.mkdir(parents=True, exist_ok=True)
+    log = Path(__file__).resolve().parent / "exp_iret_vsrtl.log"
+    open(log, "w").close()
+
+    def out(m):
+        print(m, flush=True)
+        with open(log, "a") as f:
+            f.write(m + "\n")
+    import v30run as _v30
+    out(f"E1 vs RTL: {len(cells)} cells, div={div}, delay={delay}; "
+        f"socket (truth) vs internal v30_core (RTL DUT)")
+    goldens = []
+    div_socket = {"A": 0, "B": 0}
+    diverge = []
+    t0 = time.time()
+    for i, (addr, tag) in enumerate(cells):
+        pre, pop = addr >> 7, addr & 0x7F
+        gh = R.is_ghost_repair(pre, pop)
+        try:
+            rs = measure_iret(pre, pop, delay, div=div, host=host,
+                              use_core=False)
+            rc = measure_iret(pre, pop, delay, div=div, host=host,
+                              use_core=True)
+        except RunError as e:
+            out(f"  {addr:04x}: ERR {str(e)[:70]}")
+            continue
+        s_cls = "A" if gh else rs["meas"]
+        c_cls = "A" if gh else rc["meas"]
+        div_socket[s_cls if s_cls in ("A", "B") else "A"] += 1
+        if s_cls != c_cls:
+            diverge.append((addr, tag, s_cls, c_cls, gh))
+        goldens.append({"addr": addr, "pre7": pre, "pop7": pop, "delay": delay,
+                        "div": div, "socket_class": s_cls,
+                        "socket_meas": rs["meas"], "final_race7": rs["fr"],
+                        "pushed_frame_ok": rs["frame_ok"],
+                        "core_class": c_cls, "ghost_repair": gh,
+                        "hex_class": rs["exp"], "tag": tag})
+        if (i + 1) % 20 == 0:
+            out(f"  {i+1}/{len(cells)} ({(time.time()-t0)/(i+1):.2f}s/cell)")
+    rig = getattr(_v30._runners.get(host), "rig_readback", "?")
+    meta = {"experiment": "E1 IRET boundary race", "rig": "sw/exp_iret.py",
+            "truth_source": "SOCKET (real chip, use_core=False)",
+            "wait_rig": rig, "div": div, "delay": delay, "waits": 0,
+            "discriminant": "steady-state final live PSW 7 race flags "
+                            "== frame/pop (A) or pre (B); ghost-repair scored A",
+            "date": "2026-07-23", "n_cells": len(goldens),
+            "note": "canonical goldens for the IRET race-arm RTL fix "
+                    "(pop_pend currently opc==9D only, v30_eu.sv:2090-2094). "
+                    "socket_class validated == int9d_race.hex 108/108."}
+    (gdir / "goldens.json").write_text(json.dumps(goldens, indent=1))
+    (gdir / "metadata.json").write_text(json.dumps(meta, indent=1))
+    # divergence breakdown by socket class
+    by_cls = {"A": 0, "B": 0}
+    for _, _, s, _, _ in diverge:
+        by_cls[s] = by_cls.get(s, 0) + 1
+    out("")
+    out(f"socket class distribution: A={div_socket['A']} B={div_socket['B']}")
+    out(f"RTL DIVERGENCES: {len(diverge)}/{len(cells)} "
+        f"(socket-A diverging={by_cls['A']}, socket-B diverging={by_cls['B']})")
+    ball = all(s == "B" for _, _, s, _, _ in diverge)
+    out(f"pattern: {'ALL divergences are class-B cells (RTL commits frame->A; '
+        'silicon pre-survives->B) -- exactly the pop_pend opc==9D gap' if ball and diverge else 'mixed -- inspect'}")
+    for addr, tag, s, c, gh in diverge[:50]:
+        out(f"  {addr:04x} {tag}: socket={s} core={c}{' (ghost)' if gh else ''}")
+    out(f"goldens preserved: {gdir}/goldens.json ({len(goldens)} cells) + metadata.json")
+    return 0
+
+
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("cmd", choices=["pilot", "batch"])
+    ap.add_argument("cmd", choices=["pilot", "batch", "vsrtl"])
     ap.add_argument("--host", default=HOST)
     ap.add_argument("--div", type=int, default=8)
     ap.add_argument("--delay", type=int, default=-1)
@@ -242,6 +323,8 @@ def main():
         return cmd_pilot(args.host, args.div)
     if args.cmd == "batch":
         return cmd_batch(args.host, args.div, args.delay)
+    if args.cmd == "vsrtl":
+        return cmd_vsrtl(args.host, args.div, args.delay)
 
 
 if __name__ == "__main__":

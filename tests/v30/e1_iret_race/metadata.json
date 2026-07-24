@@ -1,0 +1,13 @@
+{
+ "experiment": "E1 IRET boundary race",
+ "rig": "sw/exp_iret.py",
+ "truth_source": "SOCKET (real chip, use_core=False)",
+ "wait_rig": "WRAND=0 replay=0 (commanded clean at connect, OK/OK)",
+ "div": 8,
+ "delay": 5,
+ "waits": 0,
+ "discriminant": "steady-state final live PSW 7 race flags == frame/pop (A) or pre (B); ghost-repair scored A",
+ "date": "2026-07-23",
+ "n_cells": 108,
+ "note": "canonical goldens for the IRET race-arm RTL fix (pop_pend currently opc==9D only, v30_eu.sv:2090-2094). socket_class validated == int9d_race.hex 108/108."
+}

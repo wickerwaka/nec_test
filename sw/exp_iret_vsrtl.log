@@ -1,0 +1,12 @@
+E1 vs RTL: 108 cells, div=8, delay=5; socket (truth) vs internal v30_core (RTL DUT)
+  20/108 (0.11s/cell)
+  40/108 (0.09s/cell)
+  60/108 (0.09s/cell)
+  80/108 (0.09s/cell)
+  100/108 (0.08s/cell)
+
+socket class distribution: A=66 B=42
+RTL DIVERGENCES: 1/108 (socket-A diverging=0, socket-B diverging=1)
+pattern: ALL divergences are class-B cells (RTL commits frame->A; silicon pre-survives->B) -- exactly the pop_pend opc==9D gap
+  11a8 exc: socket=B core=A
+goldens preserved: /home/wickerwaka/src/nec_test/tests/v30/e1_iret_race/goldens.json (108 cells) + metadata.json
