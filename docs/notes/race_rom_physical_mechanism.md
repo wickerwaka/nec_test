@@ -117,6 +117,42 @@ fabric commit whose per-cell outcome is a pure function of the two flag words. S
 observable clean: pushed PSW = frame image in both classes (µ dispatch reads the frame/pop image
 regardless of class), matching POP PSW's "pushed = popped image both classes".
 
+### E5 — ghost second-observer (loop-morphology correlation; PATH 1) — INFORMED, NOT CLOSED
+Rig sw/exp_ghost.py. The clean-2nd-INTA positive-control protocol did NOT fire in this
+harness (control-gate log exp_ghost_controls.log): the socket ghost is a LOOP-redispatch
+phenomenon, not an isolated in-window second INTA (the isolated-INTA manipulation stays
+booked as future work, alongside the design's separating-manipulation note). So E5's
+observable is the capture-loop morphology; analysis is offline from the committed E2 sweep
+(exp_ghost.py correlate -> exp_ghost_correlation.json; loop = the [pop,00,pre] capture
+oscillation = the redispatch signature).
+
+Circularity confound (addressed before any correlation claim): the steady-state class
+discriminant READS class B from a later loop iteration, so "B <=> loop" is partly
+measurement-coupled, not pure physics.
+- Candidate "loop = ordinary universal harness re-entry" REFUTED: looping is SELECTIVE --
+  34/108 cells park with a single capture (ncaps=1); not every cell re-enters.
+- B-cells (42/42 loop): the loop is MEASUREMENT-COUPLED (discriminant reads B from the loop's
+  pre-capture) -> excluded from any physics claim.
+- Redispatch is FREQUENCY-INVARIANT: 0/108 cells have a div-varying loop flag across
+  {4,6,8,10,12,16} -- same as the class (E2).
+- Non-circular window = the class-A cells (class fixed A, so looping is not coupled to a
+  B-reading): redispatch is confined to the ghost-family pop patterns -- all 32 looping A-cells
+  are exactly the ghost-repair cells (pop in {0x78,0x79}); ALL 34 class-A cells at non-ghost-pop
+  patterns park (0 non-ghost-pop A-cells loop). So there is NO redispatch without a ghost-family
+  pop pattern. (Non-circular direction, honest: A-cell -> park UNLESS at a ghost-family pop.)
+
+Residual entanglement (why this does not close the question): the 32 looping A-cells ARE the
+ghost-repair cells, whose UNDERLYING flag-fight is B -- so redispatch and the flag-fight
+coincide on exactly those cells; this rig cannot separate "ghost" from "flag-fight" there.
+VERDICT (correlation-evidence-only ladder): the one-quantity-two-thresholds question is
+INFORMED but NOT CLOSED. Redispatch is a real, selective, pop-pattern-confined,
+frequency-invariant observable, entangled in this harness with both the class-measurement
+(B-cells) and the flag-fight (ghost-repair A-cells). This RECONCILES with the original
+224/16,384-cell ghost subset at specific pop patterns: the physical ghost is pop-pattern-
+confined (consistent), NOT all-B-cells -- the "all 42 B loop" is the measurement artifact, not
+the ghost. Closure needs the design's manipulation that moves one observer while pinning the
+other (booked, future work). Artifact: sw/exp_ghost_correlation.json (108 cells x 6 divs).
+
 ## Codex adversarial-review response ledger (2026-07-23, task-mrxfbkxa; findings 1-10)
 Findings 1,2,9 concern the removal design — changes landed in race_rom_mechanism_design.md; listed for completeness.
 

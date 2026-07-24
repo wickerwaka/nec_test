@@ -131,14 +131,67 @@ def cmd_controls(host, div):
     return 0
 
 
+def _ghost_pop(pop7):
+    """Ghost-prone pop region (design: 162/224 ghost cells in pop{V=1,DIR=1,
+    AC=0}); a loose proxy for the documented ghost pop patterns."""
+    return (pop7 >> 6 & 1) == 1 and (pop7 >> 5 & 1) == 1 and (pop7 >> 2 & 1) == 0
+
+
+def cmd_correlate(host, div):
+    """E5 PATH 1: loop-morphology / ghost correlation, offline from the
+    committed E2 sweep (exp_race_sweep.json 'ghost' = capture oscillation =
+    the [pop,00,pre] redispatch signature) + the hex. Emits the per-cell table
+    across the E2 divs and resolves the circularity confound in the write-up."""
+    w = R.GRL.read_rom(R.GRL.DEFAULT_HEX)[1]
+
+    def hexcls(a):
+        return "A" if R.GRL.rom_bit(w, a) == 0 else "B"
+    sw = json.load(open(Path(__file__).resolve().parent / "exp_race_sweep.json"))
+    divs = ["B0_div8", "div4", "div6", "div10", "div12", "div16"]
+    keys = list(sw["cells"]["B0_div8"].keys())
+    table = []
+    for k in keys:
+        a = int(k, 16)
+        pre, pop = a >> 7, a & 0x7F
+        loops = [sw["cells"][d][k]["ghost"] for d in divs
+                 if k in sw["cells"].get(d, {})]
+        table.append({"addr": a, "pre": pre, "pop": pop, "class": hexcls(a),
+                      "ghost_pop": _ghost_pop(pop),
+                      "ghost_repair": R.is_ghost_repair(pre, pop),
+                      "loop_per_div": loops, "loop": any(loops),
+                      "loop_div_stable": len(set(loops)) == 1})
+    out_p = Path(__file__).resolve().parent / "exp_ghost_correlation.json"
+    out_p.write_text(json.dumps(table, indent=1))
+    A = [t for t in table if t["class"] == "A"]
+    B = [t for t in table if t["class"] == "B"]
+    unstable = [t["addr"] for t in table if not t["loop_div_stable"]]
+    A_loop_gp = [t for t in A if t["loop"] and t["ghost_pop"]]
+    A_loop_ngp = [t for t in A if t["loop"] and not t["ghost_pop"]]
+    A_park = [t for t in A if not t["loop"]]
+    print("E5 correlation (from committed exp_race_sweep.json):")
+    print(f"  class-A: {len(A)}; loop&ghost-pop={len(A_loop_gp)} "
+          f"loop&non-ghost-pop={len(A_loop_ngp)} park(single)={len(A_park)}")
+    print(f"  class-B: {len(B)}; loop={sum(1 for t in B if t['loop'])} "
+          f"(measurement-coupled: discriminant reads B from the loop)")
+    print(f"  loop div-UNSTABLE across {{4,6,8,10,12,16}}: {len(unstable)}/"
+          f"{len(table)} (0 => redispatch is frequency-invariant, like class)")
+    print(f"  A-loopers all ghost-repair? "
+          f"{all(t['ghost_repair'] for t in A_loop_gp)} "
+          f"(n={len(A_loop_gp)}); their underlying flag-fight is B")
+    print(f"  wrote {out_p.name} ({len(table)} cells x {len(divs)} divs)")
+    return 0
+
+
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("cmd", choices=["controls", "batch"])
+    ap.add_argument("cmd", choices=["controls", "batch", "correlate"])
     ap.add_argument("--host", default=HOST)
     ap.add_argument("--div", type=int, default=8)
     args = ap.parse_args()
     if args.cmd == "controls":
         return cmd_controls(args.host, args.div)
+    if args.cmd == "correlate":
+        return cmd_correlate(args.host, args.div)
     print("batch not yet enabled (validate controls first)")
     return 0
 

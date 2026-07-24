@@ -1,0 +1,1946 @@
+[
+ {
+  "addr": 3075,
+  "pre": 24,
+  "pop": 3,
+  "class": "A",
+  "ghost_pop": false,
+  "ghost_repair": false,
+  "loop_per_div": [
+   false,
+   false,
+   false,
+   false,
+   false,
+   false
+  ],
+  "loop": false,
+  "loop_div_stable": true
+ },
+ {
+  "addr": 3107,
+  "pre": 24,
+  "pop": 35,
+  "class": "A",
+  "ghost_pop": false,
+  "ghost_repair": false,
+  "loop_per_div": [
+   false,
+   false,
+   false,
+   false,
+   false,
+   false
+  ],
+  "loop": false,
+  "loop_div_stable": true
+ },
+ {
+  "addr": 3139,
+  "pre": 24,
+  "pop": 67,
+  "class": "A",
+  "ghost_pop": false,
+  "ghost_repair": false,
+  "loop_per_div": [
+   false,
+   false,
+   false,
+   false,
+   false,
+   false
+  ],
+  "loop": false,
+  "loop_div_stable": true
+ },
+ {
+  "addr": 3171,
+  "pre": 24,
+  "pop": 99,
+  "class": "A",
+  "ghost_pop": true,
+  "ghost_repair": false,
+  "loop_per_div": [
+   false,
+   false,
+   false,
+   false,
+   false,
+   false
+  ],
+  "loop": false,
+  "loop_div_stable": true
+ },
+ {
+  "addr": 3192,
+  "pre": 24,
+  "pop": 120,
+  "class": "B",
+  "ghost_pop": true,
+  "ghost_repair": false,
+  "loop_per_div": [
+   true,
+   true,
+   true,
+   true,
+   true,
+   true
+  ],
+  "loop": true,
+  "loop_div_stable": true
+ },
+ {
+  "addr": 3193,
+  "pre": 24,
+  "pop": 121,
+  "class": "B",
+  "ghost_pop": true,
+  "ghost_repair": false,
+  "loop_per_div": [
+   true,
+   true,
+   true,
+   true,
+   true,
+   true
+  ],
+  "loop": true,
+  "loop_div_stable": true
+ },
+ {
+  "addr": 3203,
+  "pre": 25,
+  "pop": 3,
+  "class": "A",
+  "ghost_pop": false,
+  "ghost_repair": false,
+  "loop_per_div": [
+   false,
+   false,
+   false,
+   false,
+   false,
+   false
+  ],
+  "loop": false,
+  "loop_div_stable": true
+ },
+ {
+  "addr": 3235,
+  "pre": 25,
+  "pop": 35,
+  "class": "A",
+  "ghost_pop": false,
+  "ghost_repair": false,
+  "loop_per_div": [
+   false,
+   false,
+   false,
+   false,
+   false,
+   false
+  ],
+  "loop": false,
+  "loop_div_stable": true
+ },
+ {
+  "addr": 3267,
+  "pre": 25,
+  "pop": 67,
+  "class": "A",
+  "ghost_pop": false,
+  "ghost_repair": false,
+  "loop_per_div": [
+   false,
+   false,
+   false,
+   false,
+   false,
+   false
+  ],
+  "loop": false,
+  "loop_div_stable": true
+ },
+ {
+  "addr": 3299,
+  "pre": 25,
+  "pop": 99,
+  "class": "A",
+  "ghost_pop": true,
+  "ghost_repair": false,
+  "loop_per_div": [
+   false,
+   false,
+   false,
+   false,
+   false,
+   false
+  ],
+  "loop": false,
+  "loop_div_stable": true
+ },
+ {
+  "addr": 3320,
+  "pre": 25,
+  "pop": 120,
+  "class": "B",
+  "ghost_pop": true,
+  "ghost_repair": false,
+  "loop_per_div": [
+   true,
+   true,
+   true,
+   true,
+   true,
+   true
+  ],
+  "loop": true,
+  "loop_div_stable": true
+ },
+ {
+  "addr": 3321,
+  "pre": 25,
+  "pop": 121,
+  "class": "B",
+  "ghost_pop": true,
+  "ghost_repair": false,
+  "loop_per_div": [
+   true,
+   true,
+   true,
+   true,
+   true,
+   true
+  ],
+  "loop": true,
+  "loop_div_stable": true
+ },
+ {
+  "addr": 4216,
+  "pre": 32,
+  "pop": 120,
+  "class": "A",
+  "ghost_pop": true,
+  "ghost_repair": true,
+  "loop_per_div": [
+   true,
+   true,
+   true,
+   true,
+   true,
+   true
+  ],
+  "loop": true,
+  "loop_div_stable": true
+ },
+ {
+  "addr": 4217,
+  "pre": 32,
+  "pop": 121,
+  "class": "A",
+  "ghost_pop": true,
+  "ghost_repair": true,
+  "loop_per_div": [
+   true,
+   true,
+   true,
+   true,
+   true,
+   true
+  ],
+  "loop": true,
+  "loop_div_stable": true
+ },
+ {
+  "addr": 4344,
+  "pre": 33,
+  "pop": 120,
+  "class": "A",
+  "ghost_pop": true,
+  "ghost_repair": true,
+  "loop_per_div": [
+   true,
+   true,
+   true,
+   true,
+   true,
+   true
+  ],
+  "loop": true,
+  "loop_div_stable": true
+ },
+ {
+  "addr": 4345,
+  "pre": 33,
+  "pop": 121,
+  "class": "A",
+  "ghost_pop": true,
+  "ghost_repair": true,
+  "loop_per_div": [
+   true,
+   true,
+   true,
+   true,
+   true,
+   true
+  ],
+  "loop": true,
+  "loop_div_stable": true
+ },
+ {
+  "addr": 4488,
+  "pre": 35,
+  "pop": 8,
+  "class": "B",
+  "ghost_pop": false,
+  "ghost_repair": false,
+  "loop_per_div": [
+   true,
+   true,
+   true,
+   true,
+   true,
+   true
+  ],
+  "loop": true,
+  "loop_div_stable": true
+ },
+ {
+  "addr": 4520,
+  "pre": 35,
+  "pop": 40,
+  "class": "B",
+  "ghost_pop": false,
+  "ghost_repair": false,
+  "loop_per_div": [
+   true,
+   true,
+   true,
+   true,
+   true,
+   true
+  ],
+  "loop": true,
+  "loop_div_stable": true
+ },
+ {
+  "addr": 4552,
+  "pre": 35,
+  "pop": 72,
+  "class": "B",
+  "ghost_pop": false,
+  "ghost_repair": false,
+  "loop_per_div": [
+   true,
+   true,
+   true,
+   true,
+   true,
+   true
+  ],
+  "loop": true,
+  "loop_div_stable": true
+ },
+ {
+  "addr": 4584,
+  "pre": 35,
+  "pop": 104,
+  "class": "B",
+  "ghost_pop": true,
+  "ghost_repair": false,
+  "loop_per_div": [
+   true,
+   true,
+   true,
+   true,
+   true,
+   true
+  ],
+  "loop": true,
+  "loop_div_stable": true
+ },
+ {
+  "addr": 4728,
+  "pre": 36,
+  "pop": 120,
+  "class": "A",
+  "ghost_pop": true,
+  "ghost_repair": true,
+  "loop_per_div": [
+   true,
+   true,
+   true,
+   true,
+   true,
+   true
+  ],
+  "loop": true,
+  "loop_div_stable": true
+ },
+ {
+  "addr": 4729,
+  "pre": 36,
+  "pop": 121,
+  "class": "A",
+  "ghost_pop": true,
+  "ghost_repair": true,
+  "loop_per_div": [
+   true,
+   true,
+   true,
+   true,
+   true,
+   true
+  ],
+  "loop": true,
+  "loop_div_stable": true
+ },
+ {
+  "addr": 4856,
+  "pre": 37,
+  "pop": 120,
+  "class": "A",
+  "ghost_pop": true,
+  "ghost_repair": true,
+  "loop_per_div": [
+   true,
+   true,
+   true,
+   true,
+   true,
+   true
+  ],
+  "loop": true,
+  "loop_div_stable": true
+ },
+ {
+  "addr": 4857,
+  "pre": 37,
+  "pop": 121,
+  "class": "A",
+  "ghost_pop": true,
+  "ghost_repair": true,
+  "loop_per_div": [
+   true,
+   true,
+   true,
+   true,
+   true,
+   true
+  ],
+  "loop": true,
+  "loop_div_stable": true
+ },
+ {
+  "addr": 6520,
+  "pre": 50,
+  "pop": 120,
+  "class": "A",
+  "ghost_pop": true,
+  "ghost_repair": true,
+  "loop_per_div": [
+   true,
+   true,
+   true,
+   true,
+   true,
+   true
+  ],
+  "loop": true,
+  "loop_div_stable": true
+ },
+ {
+  "addr": 6521,
+  "pre": 50,
+  "pop": 121,
+  "class": "A",
+  "ghost_pop": true,
+  "ghost_repair": true,
+  "loop_per_div": [
+   true,
+   true,
+   true,
+   true,
+   true,
+   true
+  ],
+  "loop": true,
+  "loop_div_stable": true
+ },
+ {
+  "addr": 6648,
+  "pre": 51,
+  "pop": 120,
+  "class": "A",
+  "ghost_pop": true,
+  "ghost_repair": true,
+  "loop_per_div": [
+   true,
+   true,
+   true,
+   true,
+   true,
+   true
+  ],
+  "loop": true,
+  "loop_div_stable": true
+ },
+ {
+  "addr": 6649,
+  "pre": 51,
+  "pop": 121,
+  "class": "A",
+  "ghost_pop": true,
+  "ghost_repair": true,
+  "loop_per_div": [
+   true,
+   true,
+   true,
+   true,
+   true,
+   true
+  ],
+  "loop": true,
+  "loop_div_stable": true
+ },
+ {
+  "addr": 7171,
+  "pre": 56,
+  "pop": 3,
+  "class": "A",
+  "ghost_pop": false,
+  "ghost_repair": false,
+  "loop_per_div": [
+   false,
+   false,
+   false,
+   false,
+   false,
+   false
+  ],
+  "loop": false,
+  "loop_div_stable": true
+ },
+ {
+  "addr": 7203,
+  "pre": 56,
+  "pop": 35,
+  "class": "A",
+  "ghost_pop": false,
+  "ghost_repair": false,
+  "loop_per_div": [
+   false,
+   false,
+   false,
+   false,
+   false,
+   false
+  ],
+  "loop": false,
+  "loop_div_stable": true
+ },
+ {
+  "addr": 7235,
+  "pre": 56,
+  "pop": 67,
+  "class": "A",
+  "ghost_pop": false,
+  "ghost_repair": false,
+  "loop_per_div": [
+   false,
+   false,
+   false,
+   false,
+   false,
+   false
+  ],
+  "loop": false,
+  "loop_div_stable": true
+ },
+ {
+  "addr": 7267,
+  "pre": 56,
+  "pop": 99,
+  "class": "A",
+  "ghost_pop": true,
+  "ghost_repair": false,
+  "loop_per_div": [
+   false,
+   false,
+   false,
+   false,
+   false,
+   false
+  ],
+  "loop": false,
+  "loop_div_stable": true
+ },
+ {
+  "addr": 7299,
+  "pre": 57,
+  "pop": 3,
+  "class": "A",
+  "ghost_pop": false,
+  "ghost_repair": false,
+  "loop_per_div": [
+   false,
+   false,
+   false,
+   false,
+   false,
+   false
+  ],
+  "loop": false,
+  "loop_div_stable": true
+ },
+ {
+  "addr": 7331,
+  "pre": 57,
+  "pop": 35,
+  "class": "A",
+  "ghost_pop": false,
+  "ghost_repair": false,
+  "loop_per_div": [
+   false,
+   false,
+   false,
+   false,
+   false,
+   false
+  ],
+  "loop": false,
+  "loop_div_stable": true
+ },
+ {
+  "addr": 7363,
+  "pre": 57,
+  "pop": 67,
+  "class": "A",
+  "ghost_pop": false,
+  "ghost_repair": false,
+  "loop_per_div": [
+   false,
+   false,
+   false,
+   false,
+   false,
+   false
+  ],
+  "loop": false,
+  "loop_div_stable": true
+ },
+ {
+  "addr": 7395,
+  "pre": 57,
+  "pop": 99,
+  "class": "A",
+  "ghost_pop": true,
+  "ghost_repair": false,
+  "loop_per_div": [
+   false,
+   false,
+   false,
+   false,
+   false,
+   false
+  ],
+  "loop": false,
+  "loop_div_stable": true
+ },
+ {
+  "addr": 7800,
+  "pre": 60,
+  "pop": 120,
+  "class": "A",
+  "ghost_pop": true,
+  "ghost_repair": true,
+  "loop_per_div": [
+   true,
+   true,
+   true,
+   true,
+   true,
+   true
+  ],
+  "loop": true,
+  "loop_div_stable": true
+ },
+ {
+  "addr": 7801,
+  "pre": 60,
+  "pop": 121,
+  "class": "A",
+  "ghost_pop": true,
+  "ghost_repair": true,
+  "loop_per_div": [
+   true,
+   true,
+   true,
+   true,
+   true,
+   true
+  ],
+  "loop": true,
+  "loop_div_stable": true
+ },
+ {
+  "addr": 7928,
+  "pre": 61,
+  "pop": 120,
+  "class": "A",
+  "ghost_pop": true,
+  "ghost_repair": true,
+  "loop_per_div": [
+   true,
+   true,
+   true,
+   true,
+   true,
+   true
+  ],
+  "loop": true,
+  "loop_div_stable": true
+ },
+ {
+  "addr": 7929,
+  "pre": 61,
+  "pop": 121,
+  "class": "A",
+  "ghost_pop": true,
+  "ghost_repair": true,
+  "loop_per_div": [
+   true,
+   true,
+   true,
+   true,
+   true,
+   true
+  ],
+  "loop": true,
+  "loop_div_stable": true
+ },
+ {
+  "addr": 11267,
+  "pre": 88,
+  "pop": 3,
+  "class": "A",
+  "ghost_pop": false,
+  "ghost_repair": false,
+  "loop_per_div": [
+   false,
+   false,
+   false,
+   false,
+   false,
+   false
+  ],
+  "loop": false,
+  "loop_div_stable": true
+ },
+ {
+  "addr": 11299,
+  "pre": 88,
+  "pop": 35,
+  "class": "A",
+  "ghost_pop": false,
+  "ghost_repair": false,
+  "loop_per_div": [
+   false,
+   false,
+   false,
+   false,
+   false,
+   false
+  ],
+  "loop": false,
+  "loop_div_stable": true
+ },
+ {
+  "addr": 11331,
+  "pre": 88,
+  "pop": 67,
+  "class": "A",
+  "ghost_pop": false,
+  "ghost_repair": false,
+  "loop_per_div": [
+   false,
+   false,
+   false,
+   false,
+   false,
+   false
+  ],
+  "loop": false,
+  "loop_div_stable": true
+ },
+ {
+  "addr": 11363,
+  "pre": 88,
+  "pop": 99,
+  "class": "A",
+  "ghost_pop": true,
+  "ghost_repair": false,
+  "loop_per_div": [
+   false,
+   false,
+   false,
+   false,
+   false,
+   false
+  ],
+  "loop": false,
+  "loop_div_stable": true
+ },
+ {
+  "addr": 11384,
+  "pre": 88,
+  "pop": 120,
+  "class": "B",
+  "ghost_pop": true,
+  "ghost_repair": false,
+  "loop_per_div": [
+   true,
+   true,
+   true,
+   true,
+   true,
+   true
+  ],
+  "loop": true,
+  "loop_div_stable": true
+ },
+ {
+  "addr": 11385,
+  "pre": 88,
+  "pop": 121,
+  "class": "B",
+  "ghost_pop": true,
+  "ghost_repair": false,
+  "loop_per_div": [
+   true,
+   true,
+   true,
+   true,
+   true,
+   true
+  ],
+  "loop": true,
+  "loop_div_stable": true
+ },
+ {
+  "addr": 11395,
+  "pre": 89,
+  "pop": 3,
+  "class": "A",
+  "ghost_pop": false,
+  "ghost_repair": false,
+  "loop_per_div": [
+   false,
+   false,
+   false,
+   false,
+   false,
+   false
+  ],
+  "loop": false,
+  "loop_div_stable": true
+ },
+ {
+  "addr": 11427,
+  "pre": 89,
+  "pop": 35,
+  "class": "A",
+  "ghost_pop": false,
+  "ghost_repair": false,
+  "loop_per_div": [
+   false,
+   false,
+   false,
+   false,
+   false,
+   false
+  ],
+  "loop": false,
+  "loop_div_stable": true
+ },
+ {
+  "addr": 11459,
+  "pre": 89,
+  "pop": 67,
+  "class": "A",
+  "ghost_pop": false,
+  "ghost_repair": false,
+  "loop_per_div": [
+   false,
+   false,
+   false,
+   false,
+   false,
+   false
+  ],
+  "loop": false,
+  "loop_div_stable": true
+ },
+ {
+  "addr": 11491,
+  "pre": 89,
+  "pop": 99,
+  "class": "A",
+  "ghost_pop": true,
+  "ghost_repair": false,
+  "loop_per_div": [
+   false,
+   false,
+   false,
+   false,
+   false,
+   false
+  ],
+  "loop": false,
+  "loop_div_stable": true
+ },
+ {
+  "addr": 11512,
+  "pre": 89,
+  "pop": 120,
+  "class": "B",
+  "ghost_pop": true,
+  "ghost_repair": false,
+  "loop_per_div": [
+   true,
+   true,
+   true,
+   true,
+   true,
+   true
+  ],
+  "loop": true,
+  "loop_div_stable": true
+ },
+ {
+  "addr": 11513,
+  "pre": 89,
+  "pop": 121,
+  "class": "B",
+  "ghost_pop": true,
+  "ghost_repair": false,
+  "loop_per_div": [
+   true,
+   true,
+   true,
+   true,
+   true,
+   true
+  ],
+  "loop": true,
+  "loop_div_stable": true
+ },
+ {
+  "addr": 12408,
+  "pre": 96,
+  "pop": 120,
+  "class": "A",
+  "ghost_pop": true,
+  "ghost_repair": true,
+  "loop_per_div": [
+   true,
+   true,
+   true,
+   true,
+   true,
+   true
+  ],
+  "loop": true,
+  "loop_div_stable": true
+ },
+ {
+  "addr": 12409,
+  "pre": 96,
+  "pop": 121,
+  "class": "A",
+  "ghost_pop": true,
+  "ghost_repair": true,
+  "loop_per_div": [
+   true,
+   true,
+   true,
+   true,
+   true,
+   true
+  ],
+  "loop": true,
+  "loop_div_stable": true
+ },
+ {
+  "addr": 12536,
+  "pre": 97,
+  "pop": 120,
+  "class": "A",
+  "ghost_pop": true,
+  "ghost_repair": true,
+  "loop_per_div": [
+   true,
+   true,
+   true,
+   true,
+   true,
+   true
+  ],
+  "loop": true,
+  "loop_div_stable": true
+ },
+ {
+  "addr": 12537,
+  "pre": 97,
+  "pop": 121,
+  "class": "A",
+  "ghost_pop": true,
+  "ghost_repair": true,
+  "loop_per_div": [
+   true,
+   true,
+   true,
+   true,
+   true,
+   true
+  ],
+  "loop": true,
+  "loop_div_stable": true
+ },
+ {
+  "addr": 12920,
+  "pre": 100,
+  "pop": 120,
+  "class": "A",
+  "ghost_pop": true,
+  "ghost_repair": true,
+  "loop_per_div": [
+   true,
+   true,
+   true,
+   true,
+   true,
+   true
+  ],
+  "loop": true,
+  "loop_div_stable": true
+ },
+ {
+  "addr": 12921,
+  "pre": 100,
+  "pop": 121,
+  "class": "A",
+  "ghost_pop": true,
+  "ghost_repair": true,
+  "loop_per_div": [
+   true,
+   true,
+   true,
+   true,
+   true,
+   true
+  ],
+  "loop": true,
+  "loop_div_stable": true
+ },
+ {
+  "addr": 13048,
+  "pre": 101,
+  "pop": 120,
+  "class": "A",
+  "ghost_pop": true,
+  "ghost_repair": true,
+  "loop_per_div": [
+   true,
+   true,
+   true,
+   true,
+   true,
+   true
+  ],
+  "loop": true,
+  "loop_div_stable": true
+ },
+ {
+  "addr": 13049,
+  "pre": 101,
+  "pop": 121,
+  "class": "A",
+  "ghost_pop": true,
+  "ghost_repair": true,
+  "loop_per_div": [
+   true,
+   true,
+   true,
+   true,
+   true,
+   true
+  ],
+  "loop": true,
+  "loop_div_stable": true
+ },
+ {
+  "addr": 14712,
+  "pre": 114,
+  "pop": 120,
+  "class": "A",
+  "ghost_pop": true,
+  "ghost_repair": true,
+  "loop_per_div": [
+   true,
+   true,
+   true,
+   true,
+   true,
+   true
+  ],
+  "loop": true,
+  "loop_div_stable": true
+ },
+ {
+  "addr": 14713,
+  "pre": 114,
+  "pop": 121,
+  "class": "A",
+  "ghost_pop": true,
+  "ghost_repair": true,
+  "loop_per_div": [
+   true,
+   true,
+   true,
+   true,
+   true,
+   true
+  ],
+  "loop": true,
+  "loop_div_stable": true
+ },
+ {
+  "addr": 14840,
+  "pre": 115,
+  "pop": 120,
+  "class": "A",
+  "ghost_pop": true,
+  "ghost_repair": true,
+  "loop_per_div": [
+   true,
+   true,
+   true,
+   true,
+   true,
+   true
+  ],
+  "loop": true,
+  "loop_div_stable": true
+ },
+ {
+  "addr": 14841,
+  "pre": 115,
+  "pop": 121,
+  "class": "A",
+  "ghost_pop": true,
+  "ghost_repair": true,
+  "loop_per_div": [
+   true,
+   true,
+   true,
+   true,
+   true,
+   true
+  ],
+  "loop": true,
+  "loop_div_stable": true
+ },
+ {
+  "addr": 15992,
+  "pre": 124,
+  "pop": 120,
+  "class": "A",
+  "ghost_pop": true,
+  "ghost_repair": true,
+  "loop_per_div": [
+   true,
+   true,
+   true,
+   true,
+   true,
+   true
+  ],
+  "loop": true,
+  "loop_div_stable": true
+ },
+ {
+  "addr": 15993,
+  "pre": 124,
+  "pop": 121,
+  "class": "A",
+  "ghost_pop": true,
+  "ghost_repair": true,
+  "loop_per_div": [
+   true,
+   true,
+   true,
+   true,
+   true,
+   true
+  ],
+  "loop": true,
+  "loop_div_stable": true
+ },
+ {
+  "addr": 16120,
+  "pre": 125,
+  "pop": 120,
+  "class": "A",
+  "ghost_pop": true,
+  "ghost_repair": true,
+  "loop_per_div": [
+   true,
+   true,
+   true,
+   true,
+   true,
+   true
+  ],
+  "loop": true,
+  "loop_div_stable": true
+ },
+ {
+  "addr": 16121,
+  "pre": 125,
+  "pop": 121,
+  "class": "A",
+  "ghost_pop": true,
+  "ghost_repair": true,
+  "loop_per_div": [
+   true,
+   true,
+   true,
+   true,
+   true,
+   true
+  ],
+  "loop": true,
+  "loop_div_stable": true
+ },
+ {
+  "addr": 9984,
+  "pre": 78,
+  "pop": 0,
+  "class": "B",
+  "ghost_pop": false,
+  "ghost_repair": false,
+  "loop_per_div": [
+   true,
+   true,
+   true,
+   true,
+   true,
+   true
+  ],
+  "loop": true,
+  "loop_div_stable": true
+ },
+ {
+  "addr": 9985,
+  "pre": 78,
+  "pop": 1,
+  "class": "B",
+  "ghost_pop": false,
+  "ghost_repair": false,
+  "loop_per_div": [
+   true,
+   true,
+   true,
+   true,
+   true,
+   true
+  ],
+  "loop": true,
+  "loop_div_stable": true
+ },
+ {
+  "addr": 9986,
+  "pre": 78,
+  "pop": 2,
+  "class": "B",
+  "ghost_pop": false,
+  "ghost_repair": false,
+  "loop_per_div": [
+   true,
+   true,
+   true,
+   true,
+   true,
+   true
+  ],
+  "loop": true,
+  "loop_div_stable": true
+ },
+ {
+  "addr": 9988,
+  "pre": 78,
+  "pop": 4,
+  "class": "B",
+  "ghost_pop": false,
+  "ghost_repair": false,
+  "loop_per_div": [
+   true,
+   true,
+   true,
+   true,
+   true,
+   true
+  ],
+  "loop": true,
+  "loop_div_stable": true
+ },
+ {
+  "addr": 9989,
+  "pre": 78,
+  "pop": 5,
+  "class": "B",
+  "ghost_pop": false,
+  "ghost_repair": false,
+  "loop_per_div": [
+   true,
+   true,
+   true,
+   true,
+   true,
+   true
+  ],
+  "loop": true,
+  "loop_div_stable": true
+ },
+ {
+  "addr": 9990,
+  "pre": 78,
+  "pop": 6,
+  "class": "B",
+  "ghost_pop": false,
+  "ghost_repair": false,
+  "loop_per_div": [
+   true,
+   true,
+   true,
+   true,
+   true,
+   true
+  ],
+  "loop": true,
+  "loop_div_stable": true
+ },
+ {
+  "addr": 9991,
+  "pre": 78,
+  "pop": 7,
+  "class": "B",
+  "ghost_pop": false,
+  "ghost_repair": false,
+  "loop_per_div": [
+   true,
+   true,
+   true,
+   true,
+   true,
+   true
+  ],
+  "loop": true,
+  "loop_div_stable": true
+ },
+ {
+  "addr": 9992,
+  "pre": 78,
+  "pop": 8,
+  "class": "B",
+  "ghost_pop": false,
+  "ghost_repair": false,
+  "loop_per_div": [
+   true,
+   true,
+   true,
+   true,
+   true,
+   true
+  ],
+  "loop": true,
+  "loop_div_stable": true
+ },
+ {
+  "addr": 8865,
+  "pre": 69,
+  "pop": 33,
+  "class": "B",
+  "ghost_pop": false,
+  "ghost_repair": false,
+  "loop_per_div": [
+   true,
+   true,
+   true,
+   true,
+   true,
+   true
+  ],
+  "loop": true,
+  "loop_div_stable": true
+ },
+ {
+  "addr": 8883,
+  "pre": 69,
+  "pop": 51,
+  "class": "B",
+  "ghost_pop": false,
+  "ghost_repair": false,
+  "loop_per_div": [
+   true,
+   true,
+   true,
+   true,
+   true,
+   true
+  ],
+  "loop": true,
+  "loop_div_stable": true
+ },
+ {
+  "addr": 10016,
+  "pre": 78,
+  "pop": 32,
+  "class": "B",
+  "ghost_pop": false,
+  "ghost_repair": false,
+  "loop_per_div": [
+   true,
+   true,
+   true,
+   true,
+   true,
+   true
+  ],
+  "loop": true,
+  "loop_div_stable": true
+ },
+ {
+  "addr": 10018,
+  "pre": 78,
+  "pop": 34,
+  "class": "B",
+  "ghost_pop": false,
+  "ghost_repair": false,
+  "loop_per_div": [
+   true,
+   true,
+   true,
+   true,
+   true,
+   true
+  ],
+  "loop": true,
+  "loop_div_stable": true
+ },
+ {
+  "addr": 10020,
+  "pre": 78,
+  "pop": 36,
+  "class": "B",
+  "ghost_pop": false,
+  "ghost_repair": false,
+  "loop_per_div": [
+   true,
+   true,
+   true,
+   true,
+   true,
+   true
+  ],
+  "loop": true,
+  "loop_div_stable": true
+ },
+ {
+  "addr": 10021,
+  "pre": 78,
+  "pop": 37,
+  "class": "B",
+  "ghost_pop": false,
+  "ghost_repair": false,
+  "loop_per_div": [
+   true,
+   true,
+   true,
+   true,
+   true,
+   true
+  ],
+  "loop": true,
+  "loop_div_stable": true
+ },
+ {
+  "addr": 10022,
+  "pre": 78,
+  "pop": 38,
+  "class": "B",
+  "ghost_pop": false,
+  "ghost_repair": false,
+  "loop_per_div": [
+   true,
+   true,
+   true,
+   true,
+   true,
+   true
+  ],
+  "loop": true,
+  "loop_div_stable": true
+ },
+ {
+  "addr": 10023,
+  "pre": 78,
+  "pop": 39,
+  "class": "B",
+  "ghost_pop": false,
+  "ghost_repair": false,
+  "loop_per_div": [
+   true,
+   true,
+   true,
+   true,
+   true,
+   true
+  ],
+  "loop": true,
+  "loop_div_stable": true
+ },
+ {
+  "addr": 5123,
+  "pre": 40,
+  "pop": 3,
+  "class": "B",
+  "ghost_pop": false,
+  "ghost_repair": false,
+  "loop_per_div": [
+   true,
+   true,
+   true,
+   true,
+   true,
+   true
+  ],
+  "loop": true,
+  "loop_div_stable": true
+ },
+ {
+  "addr": 5187,
+  "pre": 40,
+  "pop": 67,
+  "class": "B",
+  "ghost_pop": false,
+  "ghost_repair": false,
+  "loop_per_div": [
+   true,
+   true,
+   true,
+   true,
+   true,
+   true
+  ],
+  "loop": true,
+  "loop_div_stable": true
+ },
+ {
+  "addr": 6528,
+  "pre": 51,
+  "pop": 0,
+  "class": "B",
+  "ghost_pop": false,
+  "ghost_repair": false,
+  "loop_per_div": [
+   true,
+   true,
+   true,
+   true,
+   true,
+   true
+  ],
+  "loop": true,
+  "loop_div_stable": true
+ },
+ {
+  "addr": 6529,
+  "pre": 51,
+  "pop": 1,
+  "class": "B",
+  "ghost_pop": false,
+  "ghost_repair": false,
+  "loop_per_div": [
+   true,
+   true,
+   true,
+   true,
+   true,
+   true
+  ],
+  "loop": true,
+  "loop_div_stable": true
+ },
+ {
+  "addr": 6530,
+  "pre": 51,
+  "pop": 2,
+  "class": "B",
+  "ghost_pop": false,
+  "ghost_repair": false,
+  "loop_per_div": [
+   true,
+   true,
+   true,
+   true,
+   true,
+   true
+  ],
+  "loop": true,
+  "loop_div_stable": true
+ },
+ {
+  "addr": 6532,
+  "pre": 51,
+  "pop": 4,
+  "class": "B",
+  "ghost_pop": false,
+  "ghost_repair": false,
+  "loop_per_div": [
+   true,
+   true,
+   true,
+   true,
+   true,
+   true
+  ],
+  "loop": true,
+  "loop_div_stable": true
+ },
+ {
+  "addr": 6533,
+  "pre": 51,
+  "pop": 5,
+  "class": "B",
+  "ghost_pop": false,
+  "ghost_repair": false,
+  "loop_per_div": [
+   true,
+   true,
+   true,
+   true,
+   true,
+   true
+  ],
+  "loop": true,
+  "loop_div_stable": true
+ },
+ {
+  "addr": 6534,
+  "pre": 51,
+  "pop": 6,
+  "class": "B",
+  "ghost_pop": false,
+  "ghost_repair": false,
+  "loop_per_div": [
+   true,
+   true,
+   true,
+   true,
+   true,
+   true
+  ],
+  "loop": true,
+  "loop_div_stable": true
+ },
+ {
+  "addr": 5155,
+  "pre": 40,
+  "pop": 35,
+  "class": "B",
+  "ghost_pop": false,
+  "ghost_repair": false,
+  "loop_per_div": [
+   true,
+   true,
+   true,
+   true,
+   true,
+   true
+  ],
+  "loop": true,
+  "loop_div_stable": true
+ },
+ {
+  "addr": 5219,
+  "pre": 40,
+  "pop": 99,
+  "class": "B",
+  "ghost_pop": true,
+  "ghost_repair": false,
+  "loop_per_div": [
+   true,
+   true,
+   true,
+   true,
+   true,
+   true
+  ],
+  "loop": true,
+  "loop_div_stable": true
+ },
+ {
+  "addr": 6560,
+  "pre": 51,
+  "pop": 32,
+  "class": "B",
+  "ghost_pop": false,
+  "ghost_repair": false,
+  "loop_per_div": [
+   true,
+   true,
+   true,
+   true,
+   true,
+   true
+  ],
+  "loop": true,
+  "loop_div_stable": true
+ },
+ {
+  "addr": 6561,
+  "pre": 51,
+  "pop": 33,
+  "class": "B",
+  "ghost_pop": false,
+  "ghost_repair": false,
+  "loop_per_div": [
+   true,
+   true,
+   true,
+   true,
+   true,
+   true
+  ],
+  "loop": true,
+  "loop_div_stable": true
+ },
+ {
+  "addr": 6562,
+  "pre": 51,
+  "pop": 34,
+  "class": "B",
+  "ghost_pop": false,
+  "ghost_repair": false,
+  "loop_per_div": [
+   true,
+   true,
+   true,
+   true,
+   true,
+   true
+  ],
+  "loop": true,
+  "loop_div_stable": true
+ },
+ {
+  "addr": 6564,
+  "pre": 51,
+  "pop": 36,
+  "class": "B",
+  "ghost_pop": false,
+  "ghost_repair": false,
+  "loop_per_div": [
+   true,
+   true,
+   true,
+   true,
+   true,
+   true
+  ],
+  "loop": true,
+  "loop_div_stable": true
+ },
+ {
+  "addr": 11737,
+  "pre": 91,
+  "pop": 89,
+  "class": "A",
+  "ghost_pop": false,
+  "ghost_repair": false,
+  "loop_per_div": [
+   false,
+   false,
+   false,
+   false,
+   false,
+   false
+  ],
+  "loop": false,
+  "loop_div_stable": true
+ },
+ {
+  "addr": 11736,
+  "pre": 91,
+  "pop": 88,
+  "class": "A",
+  "ghost_pop": false,
+  "ghost_repair": false,
+  "loop_per_div": [
+   false,
+   false,
+   false,
+   false,
+   false,
+   false
+  ],
+  "loop": false,
+  "loop_div_stable": true
+ },
+ {
+  "addr": 11705,
+  "pre": 91,
+  "pop": 57,
+  "class": "A",
+  "ghost_pop": false,
+  "ghost_repair": false,
+  "loop_per_div": [
+   false,
+   false,
+   false,
+   false,
+   false,
+   false
+  ],
+  "loop": false,
+  "loop_div_stable": true
+ },
+ {
+  "addr": 11704,
+  "pre": 91,
+  "pop": 56,
+  "class": "A",
+  "ghost_pop": false,
+  "ghost_repair": false,
+  "loop_per_div": [
+   false,
+   false,
+   false,
+   false,
+   false,
+   false
+  ],
+  "loop": false,
+  "loop_div_stable": true
+ },
+ {
+  "addr": 11673,
+  "pre": 91,
+  "pop": 25,
+  "class": "A",
+  "ghost_pop": false,
+  "ghost_repair": false,
+  "loop_per_div": [
+   false,
+   false,
+   false,
+   false,
+   false,
+   false
+  ],
+  "loop": false,
+  "loop_div_stable": true
+ },
+ {
+  "addr": 11672,
+  "pre": 91,
+  "pop": 24,
+  "class": "A",
+  "ghost_pop": false,
+  "ghost_repair": false,
+  "loop_per_div": [
+   false,
+   false,
+   false,
+   false,
+   false,
+   false
+  ],
+  "loop": false,
+  "loop_div_stable": true
+ },
+ {
+  "addr": 7674,
+  "pre": 59,
+  "pop": 122,
+  "class": "A",
+  "ghost_pop": true,
+  "ghost_repair": false,
+  "loop_per_div": [
+   false,
+   false,
+   false,
+   false,
+   false,
+   false
+  ],
+  "loop": false,
+  "loop_div_stable": true
+ },
+ {
+  "addr": 7665,
+  "pre": 59,
+  "pop": 113,
+  "class": "A",
+  "ghost_pop": true,
+  "ghost_repair": false,
+  "loop_per_div": [
+   false,
+   false,
+   false,
+   false,
+   false,
+   false
+  ],
+  "loop": false,
+  "loop_div_stable": true
+ },
+ {
+  "addr": 7664,
+  "pre": 59,
+  "pop": 112,
+  "class": "A",
+  "ghost_pop": true,
+  "ghost_repair": false,
+  "loop_per_div": [
+   false,
+   false,
+   false,
+   false,
+   false,
+   false
+  ],
+  "loop": false,
+  "loop_div_stable": true
+ },
+ {
+  "addr": 7642,
+  "pre": 59,
+  "pop": 90,
+  "class": "A",
+  "ghost_pop": false,
+  "ghost_repair": false,
+  "loop_per_div": [
+   false,
+   false,
+   false,
+   false,
+   false,
+   false
+  ],
+  "loop": false,
+  "loop_div_stable": true
+ }
+]
