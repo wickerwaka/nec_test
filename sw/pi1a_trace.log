@@ -1,0 +1,19 @@
+
+== 1188 B match-alias: pre7=23 pop7=08 exp=B (pre_psw=f607 frame_psw=f242) ==
+  total g-rows=2599; S_TRAP_IVT2W&eu_done cycles=2
+    clk=193 pop_pend=0 psw_old=f002(r7=00,?) race_B=1 r9d_pre=00 r9d_pop=08 psw=f242 -> CONSUMER no-op(keep psw)
+    clk=952 pop_pend=1 psw_old=f082(r7=10,?) race_B=1 r9d_pre=10 r9d_pop=23 psw=f607 -> CONSUMER no-op(keep psw)
+  pop_pend ever set: YES (first clk=55 psw_old=f002)
+  VERDICT: H-P2/H-P4: consumer NEVER fires (pop_pend=0 / psw_old!=pre at every S_TRAP_IVT2W)
+
+== 11a8 divergent: pre7=23 pop7=28 exp=B (pre_psw=f607 frame_psw=f642) ==
+  total g-rows=2599; S_TRAP_IVT2W&eu_done cycles=1
+    clk=193 pop_pend=0 psw_old=f002(r7=00,?) race_B=1 r9d_pre=00 r9d_pop=28 psw=f642 -> CONSUMER no-op(keep psw)
+  pop_pend ever set: YES (first clk=55 psw_old=f002)
+  VERDICT: H-P2/H-P4: consumer NEVER fires (pop_pend=0 / psw_old!=pre at every S_TRAP_IVT2W)
+
+== 0c03 A control: pre7=18 pop7=03 exp=A (pre_psw=f2c2 frame_psw=f207) ==
+  total g-rows=2599; S_TRAP_IVT2W&eu_done cycles=1
+    clk=193 pop_pend=0 psw_old=f002(r7=00,?) race_B=1 r9d_pre=00 r9d_pop=03 psw=f207 -> CONSUMER no-op(keep psw)
+  pop_pend ever set: YES (first clk=55 psw_old=f002)
+  VERDICT: H-P2/H-P4: consumer NEVER fires (pop_pend=0 / psw_old!=pre at every S_TRAP_IVT2W)

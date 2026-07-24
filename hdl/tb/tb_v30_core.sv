@@ -796,6 +796,25 @@ always @(posedge clk) begin
                   dut.u_biu.eu_defer_wr, dut.u_biu.tw_par);
 end
 
+// +racedbg: RR2 E1/P-I1a race-consumer trace. APPEND-ONLY observability of the
+// POP-PSW/IRET boundary-race consumer inputs (v30_eu.sv:5221-5235,
+// S_TRAP_IVT2W). All existing DUT signals via XMR - the DUT is untouched and
+// remains bit-identical. One "g" row per recorded cycle:
+//   g <cpu_clk> <state> <is_ivt2w> <eu_done> <pop_pend> <psw_old> <psw>
+//     <race_B> <r9d_pre> <r9d_pop>
+// Consumer FIRES iff is_ivt2w && eu_done && pop_pend && psw_old[9] && race_B.
+logic racedbg_en;
+initial racedbg_en = $test$plusargs("racedbg");
+always @(posedge clk) begin
+    if (!reset && ce && recording && racedbg_en && fo != 0)
+        $fdisplay(fo, "g %0d %0d %0d %0d %0d %04x %04x %0d %02x %02x",
+                  cpu_clk, dut.u_eu.state,
+                  (dut.u_eu.state == dut.u_eu.S_TRAP_IVT2W),
+                  dut.u_eu.eu_done, dut.u_eu.pop_pend,
+                  dut.u_eu.psw_old, dut.u_eu.psw, dut.u_eu.race_B,
+                  dut.u_eu.r9d_pre, dut.u_eu.r9d_pop);
+end
+
 initial begin
     if ($value$plusargs("bootimg=%s", bootimg_path)) begin
         if (!$value$plusargs("bootn=%d", bootn)) bootn = 300;
