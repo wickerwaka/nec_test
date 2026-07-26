@@ -815,6 +815,20 @@ always @(posedge clk) begin
                   dut.u_eu.r9d_pre, dut.u_eu.r9d_pop);
 end
 
+// +pfxdbg: RR4 segment-override leak probe. APPEND-ONLY observability of the
+// one-shot prefix latch state per recorded cycle (all existing DUT signals via
+// XMR; DUT bit-identical). One "p" row per cycle:
+//   p <cpu_clk> <state> <opc> <seg_ovr_en> <seg_ovr> <eu_seg> <eu_addr> <eu_req>
+logic pfxdbg_en;
+initial pfxdbg_en = $test$plusargs("pfxdbg");
+always @(posedge clk) begin
+    if (!reset && ce && recording && pfxdbg_en && fo != 0)
+        $fdisplay(fo, "p %0d %0d %02x %0d %0d %0d %05x %0d",
+                  cpu_clk, dut.u_eu.state, dut.u_eu.opc,
+                  dut.u_eu.seg_ovr_en, dut.u_eu.seg_ovr,
+                  dut.u_eu.eu_seg, dut.u_eu.eu_addr, dut.u_eu.eu_req);
+end
+
 initial begin
     if ($value$plusargs("bootimg=%s", bootimg_path)) begin
         if (!$value$plusargs("bootn=%d", bootn)) bootn = 300;
