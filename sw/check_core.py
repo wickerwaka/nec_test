@@ -85,7 +85,8 @@ def build(force=False):
     # per-arm class-5 SVA was added, compiled out, and reported nothing - an
     # unfireable assertion manufactures false confidence, so the build now
     # always enables them.
-    cmd = ["verilator", "--binary", "--timing", "-DV30_BACKDOOR", "--assert",
+    cmd = ["verilator", "--binary", "--timing", "-DV30_BACKDOOR",
+           "-DV30_PFX_ASSERT", "--assert",
            "-Wall", "-Wno-UNUSEDSIGNAL", "-Wno-VARHIDDEN",
            "-Wno-TIMESCALEMOD", "-Wno-WIDTHEXPAND", "-Wno-BLKSEQ",
            "--top-module", "tb_v30_core",
