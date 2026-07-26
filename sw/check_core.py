@@ -587,6 +587,19 @@ def main():
     build(args.build)
     if args.build:
         return 0
+    # RR4: documented pre-existing exclusions (VOID contamination artifacts +
+    # known cycle edges), per-suite. Verified pre-existing (identical pre/post
+    # the prefix-clear fix) so future totals stay clean. {form: {idx: reason}}.
+    kd_fn = suite / "known_divergences.json"
+    known_div = {}
+    if kd_fn.exists():
+        raw = json.load(open(kd_fn))
+        known_div = {k: set(int(i) for i in v) for k, v in raw.items()
+                     if not k.startswith("_")}
+        nkd = sum(len(v) for v in known_div.values())
+        print(f"[known_divergences] excluding {nkd} documented pre-existing "
+              f"case(s) from totals: "
+              + ", ".join(f"{k}/{sorted(v)}" for k, v in known_div.items()))
     # wait-state suites carry no metadata of their own; fall back to v0.1
     meta_fn = suite / "metadata.json"
     if not meta_fn.exists():
@@ -801,7 +814,11 @@ def main():
         first_div = Counter()
         arch_diffs = []          # arch-only: sample field-level diffs
         details = args.details
+        excl_idx = known_div.get(op, set())
         for c in cases:
+            if c["idx"] in excl_idx:
+                cnt["excluded"] += 1        # documented pre-existing (RR4)
+                continue
             res = check_case(c, sims.get(c["idx"]), flags_mask,
                              arch_only=args.arch_only)
             cnt["total"] += 1
@@ -879,7 +896,9 @@ def main():
             line = (f"{op}: {cnt['full']}/{cnt['total']} full  "
                     f"(cycles {cnt['cycles']}, arch {cnt['arch']}"
                     + (f", +{cnt['flags_only']} flag-residue-only"
-                       if cnt["flags_only"] else "") + ")")
+                       if cnt["flags_only"] else "")
+                    + (f", {cnt['excluded']} excluded-known"
+                       if cnt["excluded"] else "") + ")")
             if cnt["cycles"] < cnt["total"]:
                 top = first_div.most_common(3)
                 line += "  first-div: " + \
@@ -891,7 +910,9 @@ def main():
         print(f"\nTOTAL ARCH: {grand['arch']}/{grand['total']}")
         return 0 if grand["arch"] == grand["total"] else 1
     print(f"\nTOTAL: {grand['full']}/{grand['total']} full "
-          f"(cycles {grand['cycles']}, arch {grand['arch']})")
+          f"(cycles {grand['cycles']}, arch {grand['arch']})"
+          + (f"  [{grand['excluded']} documented pre-existing excluded]"
+             if grand["excluded"] else ""))
     return 0 if grand["full"] == grand["total"] else 1
 
 

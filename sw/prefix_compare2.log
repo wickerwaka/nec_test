@@ -1,0 +1,10 @@
+STEP1 build PRE-FIX (8fd94df)
+  prefix build OK
+STEP2 PRE-FIX check_core on the 3 diverging forms
+0F1B: 9999/10000 full  (cycles 9999, arch 9999)  first-div: (9, 'bus')x1
+83.5: 9999/10000 full  (cycles 9999, arch 9999)  first-div: (7, 'bus')x1
+646F: 9999/10000 full  (cycles 9999, arch 10000)  first-div: (28, 'bus')x1
+TOTAL: 29997/30000 full (cycles 29997, arch 29998)
+STEP3 restore HEAD + rebuild
+  head rebuild OK
+PFXCMP_DONE

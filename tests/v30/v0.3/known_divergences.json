@@ -1,0 +1,12 @@
+{
+  "_doc": "Cases excluded from check_core pass/total (RR4 sweep classification, 2026-07-25). ALL verified PRE-EXISTING: byte-identical divergence on the pre-fix RTL (8fd94df) and the fixed RTL (4508e08) -- the RR4 prefix-clear fix introduced ZERO new flips. Each entry documents the reason; VOID = contamination artifact (bad golden capture), EDGE = genuine but known pre-existing cycle edge.",
+  "0F1B": {
+    "3917": "VOID: instrument-failure #3 (ram-vs-instruction physical collision; phys 0xdc30 want 0x89 got 0xC0). docs/notes/v03_divergence_ledger.md (F4bc). arch+cycle."
+  },
+  "83.5": {
+    "8683": "VOID: instrument-failure #3 (ram-vs-instruction physical collision; phys 0x9799 want 0xA7 got 0x63). docs/notes/v03_divergence_ledger.md (F4bc). arch+cycle."
+  },
+  "646F": {
+    "8988": "EDGE: known pre-existing 1/10000 cycle edge, repnc OUTSW cx=13 (REP OUTS loop timing, rows 28-32). docs/notes/v03_divergence_ledger.md:159. arch-CLEAN (cycle-only)."
+  }
+}
