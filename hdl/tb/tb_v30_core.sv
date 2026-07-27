@@ -865,12 +865,15 @@ initial begin
 `ifdef VERILATOR
         // Family-5/7 hardening coverage (task #24 coda leg b): boot-replay path
         // -- the fuzz corpus runs here, so the strio-gadget gate hits show up.
-        $fdisplay(fo, "cov %0d %0d %0d",
+        $fdisplay(fo, "cov %0d %0d %0d %0d %0d",
                   dut.u_biu.cov_f7a_idle_arm, dut.u_biu.cov_f7a_eval_ext,
-                  dut.u_biu.cov_f5a_t3_veto);
+                  dut.u_biu.cov_f5a_t3_veto,
+                  dut.u_biu.cov_ff_t4, dut.u_biu.cov_ff_ti);
         $display("COV f7a_idle_arm=%0d f7a_eval_ext=%0d f5a_t3_veto=%0d",
                  dut.u_biu.cov_f7a_idle_arm, dut.u_biu.cov_f7a_eval_ext,
                  dut.u_biu.cov_f5a_t3_veto);
+        $display("COV ff_t4=%0d ff_ti=%0d",
+                 dut.u_biu.cov_ff_t4, dut.u_biu.cov_ff_ti);
 `endif
 `endif
         $fclose(fo);
