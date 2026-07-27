@@ -1,0 +1,22 @@
+{
+ "cid": "t30-raw",
+ "ov": {
+  "force_tier": "raw"
+ },
+ "created": "2026-07-27T21:14:14Z",
+ "n_results": 1000,
+ "n_banked": 568,
+ "promotion": {
+  "functional": 250,
+  "timing_unexplained": 310,
+  "cadence_sample": 8
+ },
+ "bytes": 15025985,
+ "cap_mb": 25,
+ "verdict_census": {
+  "FUNCTIONAL": 250,
+  "TIMING": 310,
+  "KNOWN_ACCEPTED": 177,
+  "SUCCESS": 263
+ }
+}

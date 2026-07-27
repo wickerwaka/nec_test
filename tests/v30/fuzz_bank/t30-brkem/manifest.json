@@ -1,0 +1,25 @@
+{
+ "cid": "t30-brkem",
+ "ov": {
+  "force_contained": true,
+  "brkem_high": true,
+  "w0": true,
+  "no_evt": true
+ },
+ "created": "2026-07-27T21:09:27Z",
+ "n_results": 200,
+ "n_banked": 85,
+ "promotion": {
+  "rule_first50:8080-gap": 50,
+  "timing_unexplained": 25,
+  "functional": 10
+ },
+ "bytes": 2092172,
+ "cap_mb": 25,
+ "verdict_census": {
+  "KNOWN_ACCEPTED": 81,
+  "TIMING": 25,
+  "FUNCTIONAL": 10,
+  "SUCCESS": 84
+ }
+}
