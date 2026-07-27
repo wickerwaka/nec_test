@@ -2356,3 +2356,30 @@ FE/6,/7 (chip-executes) and FE/2,/4 (chip-runaway) mod=11 BOOKED as follow-ups
 (the whitelist assert flags them if ever reached). Deferred physics thread: the
 LEA-mod3 stale-EA residue law (race_law-style) - the tranche's residue-context
 cases are the raw material; non-gating.
+
+### mc1 ESCALATION STOP (task #29 P7, 2026-07-27)
+
+First scaled campaign mc1 (strict mainline, chip-vs-fabric hw-ab) session 2
+resumed from k=7 (--stop-after dropped, escalation armed as frozen) and
+self-HALTED on `escalation:w0_functional @k=16`. Cumulative k=0..16: SUCCESS 9,
+TIMING 6, FUNCTIONAL 2, 8 distinct sigs (all NEW vs ledger; the 6 TIMING are all
+waited/wrand - the wider-wrand floor population - none w0, so no new-w0-timing
+stop; no provenance alarm anywhere). Two FUNCTIONALs:
+
+- **k=16 (raw, w0)** - the STOP trigger. Raw whole-image random bytes, random
+  IVT, fixed=0, no evt, alarms=[] (genuine func split, not a done_mismatch
+  artifact). At row 604 the real chip FREEZES (ad_addr pinned 0x2d15a, t=0, no
+  bus activity - chip parked) while the fabric core RUNS ON (addr advances
+  0x101c5->0x3609d, ps/T-states cycle); 3394 bad rows. Chip = ground truth; the
+  core running past the chip's park is a real gap. Ruling: minimize + classify
+  board-driven (chip verdict is the oracle), FIRST.
+- **k=15 (soup, wrand wmax=2, wseed 54219)** - escalation correctly walked past
+  (waited, w0=False). Structured soup under random waits; row-416 divergence is
+  in the PREFETCH/QUEUE columns (real qs=1/rd_n=0 fetch-in-progress vs fabric
+  qs=0/rd_n=1; ps/bs split; fetched ad_data differs by row 419). Wait-state
+  BIU/queue interaction = the #1-priority category. Ruling: PRIORITY root-cause
+  triage, report only, no RTL fix without review.
+
+mc1 stays HALTED past k=17 until both dispositioned; no mc1 banking yet. Evidence
+committed: results.jsonl (17 rows) + captures raw_16 / soup_15. Board left
+use_core=0, idle.
