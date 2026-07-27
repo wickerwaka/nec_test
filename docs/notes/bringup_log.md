@@ -2287,3 +2287,41 @@ reported; NOT fixed here (RTL debugging is its own task with its own review).
 The core-hang forensics gate the remaining Phase-5 pilots (BRKEM/raw/wrand
 re-cal) and any scaling on coordinator review. No board wedge occurred; the
 board was left use_core=0.
+
+### ROOT CAUSE (task #30, 2026-07-27) - illegal mem-op mod=11 parks at S_HALT
+
+Delta-debug minimization (`sw/min_hang.py`, board-free: NOP out instructions
+preserving byte offsets, keep the specific wedge) collapsed the 71-instruction
+stream to ONE instruction: **`8D F7` = LEA SI,DI with mod=11 (a REGISTER
+operand)** - an illegal encoding (LEA needs a MEMORY operand). It wedges in
+isolation.
+
+The wedge is a CLASS, exactly the four memory-operand-REQUIRED opcodes given a
+mod=11 modrm:
+  0x8D LEA, 0x62 BOUND(CHKIND), 0xC4 LES, 0xC5 LDS
+(all reg combos; every OTHER modrm op - MOV, ALU, groups, 0F bitops - handles
+mod=11 fine; a MEMORY operand on these four completes normally).
+
+Mechanism (confirmed by an instrumented $display trace, since reverted): in
+v30_eu.sv S_DEC, the mod==3 register-form dispatch (a per-op else-if chain,
+lines ~2331-2582) has NO branch for `op_lea` / `op_chk` / `op_ldptr`, so these
+four fall through to the chain's terminal `else state <= S_HALT` (line 2582) -
+the "unknown opcode parks the sequencer" path (module comment line 51). S_HALT
+is an empty permanent park (`S_HALT: ;`, line 2260): the EU stops, the bus goes
+quiet forever -> the wedge. The SOCKETED CHIP does NOT halt on these forms - it
+executes them with defined (undocumented) behaviour and runs to done.
+
+Regression vs latent: **LATENT.** `git log -L` dates the terminal
+`else -> S_HALT` to 99073b8 (2026-07-12, the original "BIU + EU tranche
+cycle-exact against all 10500 golden cases"). NOT the RR4 prefix-clear class and
+NOT R6c - no prefix latch or exit-arm underflow is involved; it is a decode
+gap. The golden suite always gave LEA/BOUND/LES/LDS a memory operand, so their
+mod=11 forms were never exercised (coverage vacuity) until the task-#29 soup
+put a register operand on a `8D` - exactly the class the campaign targets.
+
+Fix direction (NOT yet applied - reported first per the Phase-5 protocol): add
+`op_lea`/`op_chk`/`op_ldptr` branches to the mod==3 dispatch that reproduce the
+CHIP's defined behaviour cycle-for-cycle (the chip's exact per-form behaviour
+must be characterised on silicon - a targeted board capture of the four forms,
+which the fix's cycle-accuracy gate requires). Minimized repro frozen at
+`sw/testdata/core_hang_min.hex`; the class is `{8D,62,C4,C5}` x mod=11.
