@@ -2383,3 +2383,39 @@ stop; no provenance alarm anywhere). Two FUNCTIONALs:
 mc1 stays HALTED past k=17 until both dispositioned; no mc1 banking yet. Evidence
 committed: results.jsonl (17 rows) + captures raw_16 / soup_15. Board left
 use_core=0, idle.
+
+### k=16 disposition forensics (task #29 P7, 2026-07-27, board-confirmed)
+
+Reconstructed the k=16 image bit-exact (sha256 11c0f3f5.. == recorded). Full
+trace forensics (existing capture + fresh board legs) REFRAME the STOP:
+
+- **NOT a permanent park.** Both chip and core enter a passive-bus stretch
+  (bs=7, t=0, addr held 0x2d15a) at row 594. The CORE resumes at row 604
+  (passive_len=10); the CHIP resumes at row 694 (passive_len=100). A **90-cycle
+  EU-duration disagreement** on a long no-bus-activity operation. After the
+  mismatched idle both resume the SAME work (bs=6 memory-write loop 0x101c5 /
+  0x30000), but now desynced by 90 rows -> everything downstream differs ->
+  FUNCTIONAL, 3394 bad rows. The classifier's first_bad=604 is the core's early
+  resume, not a park-vs-run gap.
+- **DETERMINISTIC, board-confirmed.** Two fresh chip legs both give passive_len
+  =100; core leg gives 10. Bit-exact repro, not open-bus noise.
+- **Open-bus execution territory.** The raw-whole program leaves the 64K loaded
+  image almost immediately: it runs from the reset vector 0xFFFF0 and only ~97
+  of 821 fetches are in-image; the rest are unmapped-space reads where the rig
+  returns address-feedthrough (data == addr & 0xFFFF, 666/724 out-of-image
+  fetches). The divergence-causing operation executes on open-bus operands.
+- **Leading instruction hypothesis:** the queue-feed just before the stall
+  carries 0xD3 (shift/rotate r/m16 BY CL). Shift-by-CL is a count-dependent,
+  register-only (no-bus) multi-cycle EU op; with a large open-bus CL the chip's
+  ~100-cycle count vs the core's ~10 is exactly a shift-by-CL cycle-timing gap.
+  Inferential (open-bus queue) - to be confirmed by a DIRECTED in-image test.
+
+Proposed disposition (awaiting coordinator ruling): (1) book k=16 as an accepted
+raw-tier OPEN-BUS-EXECUTION signature (not a mainline defect - no program under
+test runs in unmapped space); (2) file the real content - a candidate EU
+cycle-duration gap (shift/rotate-by-CL suspected) - as a DIRECTED-test follow-up
+with known operands in-image (this is the #1-priority cycle-accuracy channel);
+(3) FLAG a raw-whole generator gap: seeds escape to open-bus at the reset vector
+and mostly do NOT exercise the loaded image (coverage-vacuity-adjacent) - fix by
+constraining raw-whole entry in-image or filling above-image with a deterministic
+HLT/trap so escapes terminate cleanly. No RTL change proposed for k=16 itself.
