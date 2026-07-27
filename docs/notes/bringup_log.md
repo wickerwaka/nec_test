@@ -2217,3 +2217,37 @@ Impact: F4a boundary coverage for C4/62/0F31/0F3B stays PENDING-L6 (batches with
 RR2). The F4a fix itself is silicon-validated against existing v0.3 goldens and
 sw/f4a_boundary_battery.py covers 5 of 9 consumers; the ledger is CLOSED. This is
 coverage-completion only, non-blocking.
+
+## 2026-07-27 - F7a COLD-ARM assertion: board-arbitrated over-narrow (task #29 Phase 5)
+
+The task-#29 TB evt/wrand fuzz pilots tripped a repeatable sim-only assertion,
+`F7a COLD-ARM VIOLATION` at `hdl/rtl/core/v30_biu.sv` (the task-#24 Family-7
+strio invariant): the F7a strio idle-arm (`state==ST_TI && eu_soon_strio &&
+q_aged==0`) coincided with a queue push (`push_pend=2, q_cnt=0, occupied=2`),
+which the invariant assumed impossible.
+
+Trigger: a strio (INM/OUTM) lead coincident with a cold-fill queue push under
+bus timing SHIFTED by waits and/or an interrupt event - a cross-domain
+combination the un-shifted w0/no-evt strio domain (task #24) never produced. It
+fires under interrupt injection AND under wrand-only (no interrupt), so the
+cause is the waited/shifted timing, not interrupts specifically.
+
+Board arbitration (`sw/f7a_arbitrate.py`, hw-ab chip-vs-fabric - the fabric is
+assertion-free, sim-only guard): 4 firing seeds, 2 interrupt-armed + 2
+wrand-only:
+
+| seed | context | TB | chip-vs-fabric |
+|---|---|---|---|
+| PILOT k=10001 | NMI, w1 | COLD-ARM trap | TIMING, func-clean -> MATCH |
+| PILOT k=10029 | NMI, wrand | COLD-ARM trap | TIMING, func-clean -> MATCH |
+| PILOT k=20110 | no-evt, wrand wmax1 | COLD-ARM trap | SUCCESS -> MATCH |
+| PILOT k=20192 | no-evt, wrand wmax7 | COLD-ARM trap | TIMING, func-clean -> MATCH |
+
+All four are FUNCTIONAL-clean chip-vs-fabric (TIMING = the expected cadence
+floor under waits). The fabric behaviour the TB traps on is chip-correct.
+
+Resolution (sim-only, no synth/fabric change -> flashed build unchanged): the
+over-narrow trap is downgraded to a sim-only observability counter
+(`cov_f7a_coldarm`), matching the file's existing sim-only counter idiom. A
+genuine regression on this path would surface as a functional divergence in the
+fuzz classifier, not this micro-state. No board wedge occurred.

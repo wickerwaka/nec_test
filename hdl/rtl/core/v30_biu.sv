@@ -1050,14 +1050,20 @@ end
 reg [31:0] cov_f7a_idle_arm;   // F7a defer_idle strio idle-window arm reached
 reg [31:0] cov_f7a_eval_ext;   // F7a strio lead coincident with a waited eval
 reg [31:0] cov_f5a_t3_veto;    // F5a T3-eval strio veto decision reached
+reg [31:0] cov_f7a_coldarm;    // F7a idle-arm coincident with a queue push
+                               // (waited/interrupt-shifted timing) - now-legit
+                               // per the task #29 board arbitration (see below)
 initial begin
     cov_f7a_idle_arm = 0; cov_f7a_eval_ext = 0; cov_f5a_t3_veto = 0;
+    cov_f7a_coldarm = 0;
 end
 wire f7a_idle_arm = (state == ST_TI) && eu_soon_strio && (q_aged == 2'd0);
 always @(posedge clk) begin
     if (f7a_idle_arm)              cov_f7a_idle_arm <= cov_f7a_idle_arm + 1;
     if (eval_ext && eu_soon_strio) cov_f7a_eval_ext <= cov_f7a_eval_ext + 1;
     if (eval_at_t3 && eu_rsv_strio) cov_f5a_t3_veto  <= cov_f5a_t3_veto  + 1;
+    if (f7a_idle_arm && push_pend != 2'd0)
+                                   cov_f7a_coldarm <= cov_f7a_coldarm + 1;
 end
 always @(*) begin
     // The two Family-7 arms are bus-state exclusive (defer_idle needs ST_TI at
@@ -1067,14 +1073,17 @@ always @(*) begin
     // (EU S_RSV) live on disjoint EU states -> the cold and warm strio paths
     // never co-assert.
     assert (!(eu_rsv_strio && eu_soon_strio));
-    // Cold-strio defer_idle is impossible: the F7a idle arm must never coincide
-    // with a completing opcode fetch (push_pend != 0 == a cold-fill bridge push).
-    // If it ever does, the q_aged/ST_TI guard has regressed - log and trap.
-    if (f7a_idle_arm && push_pend != 2'd0) begin
-        $display("F7a COLD-ARM VIOLATION: state=%0d q_aged=%0d push_pend=%0d q_cnt=%0d occupied=%0d",
-                 state, q_aged, push_pend, q_cnt, occupied);
-        assert (0);
-    end
+    // Cold-strio defer_idle coincident with a queue push (push_pend != 0):
+    // task #24 assumed this impossible (the un-shifted w0 no-evt strio domain
+    // it was validated against never produced it). Task #29 Phase-5 fuzzing
+    // reached it via a strio lead under WAITED / INTERRUPT-shifted bus timing,
+    // and the board ARBITRATED it: fuzz_campaign PILOT k=10001 + 3 neighbours
+    // (2 interrupt-armed + 2 wrand-only), chip-vs-fabric hw-ab, ALL
+    // FUNCTIONAL-clean (sw/f7a_arbitrate.py; docs/notes/bringup_log.md). The
+    // coincidence is CHIP-CORRECT, so this trap was over-narrow; downgraded to
+    // the sim-only cov_f7a_coldarm counter above. A genuine regression on this
+    // path now surfaces as a functional chip-vs-core divergence in the fuzz
+    // classifier, not as a false trap on a legitimate micro-state.
 end
 `endif
 `endif
