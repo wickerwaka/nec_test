@@ -499,6 +499,11 @@ reg  [7:0]  opc2;        // 0F-prefixed second byte
 reg  [7:0]  mrm;
 reg  [7:0]  immb;        // TEST1 imm3 byte
 reg [15:0]  disp;
+// task #30: stale effective-address OFFSET latch. LEA reg,reg (mod=11, an
+// illegal encoding) loads this on the real chip instead of halting; we track
+// the last computed EA offset so the mod=11 branch reproduces it (exact in
+// moffs contexts, residue otherwise - see fuzz_accept lea_mod3 rule).
+reg [15:0]  last_ea;
 // ADD4S loop state
 reg  [7:0]  a4_cnt;      // bytes remaining
 reg  [7:0]  a4_k;        // byte index (address offset)
@@ -1795,6 +1800,7 @@ reg  [5:0] popm_hold;   // popm_rdy latched at the last queue pop
 
 // latch memory-operand access parameters (EA paths); off = 16-bit offset
 task automatic setup_access(input [15:0] off);
+    last_ea <= off;                     // task #30: track the last EA offset
     if (op_popm) begin
         // POP mem: the stack read goes first; the EA write follows
         // with the popped data (ea target saved here)
@@ -2578,8 +2584,51 @@ always_ff @(posedge clk) begin
                                     dly <= 6'd37 + sfix; wnext <= S_EX;
                                 end
                                 state <= S_WAITX;
-                            end else
+                            end else if (op_lea) begin
+                                // task #30: LEA reg,reg (mod=11) is an illegal
+                                // encoding (LEA needs a MEMORY operand). The real
+                                // chip does NOT halt on it - it loads the stale
+                                // effective-address OFFSET latch (last computed EA)
+                                // into the dest reg in 5 rows with NO bus access,
+                                // then falls through (board-characterized,
+                                // sw/char_mod3.py; tests/v30/mod3_illegal). Retire
+                                // ON the modrm pop, like op_test - the value is
+                                // microcode-path dependent (exact in moffs contexts,
+                                // residue otherwise -> the fuzz_accept lea_mod3 rule
+                                // covers the residue). Before this branch the EU
+                                // WEDGED here at S_HALT (task #30 core hang).
+                                rf[q_byte[5:3]] <= last_ea;  // fresh modrm reg field
+                                arch_ip <= pc + 16'd1;
+                                clear_prefixes();
+                                state <= S_FIRST;
+                            end else begin
+                                // Unrecognised register-form opcode: park at S_HALT
+                                // (the V20 "halts on illegal form" behaviour).
+                                // WHITELIST assert (sim-only): a park here is legal
+                                // ONLY for encodings PROVEN to halt on the chip too
+                                // (board-characterized, sw/char_mod3.py audit):
+                                //   62 BOUND, C4 LES, C5 LDS, FE /3, FE /5,
+                                //   FF /3, FF /5. Any OTHER reg-form encoding that
+                                //   reaches this park is an uncharacterised chip-vs-
+                                //   core divergence (the chip executes it or runs
+                                //   away: 8D LEA got its own branch above; FE /2,/4
+                                //   run away; FE /6,/7 execute - all booked). The
+                                //   assert fires the day a golden/fuzz stream first
+                                //   contains such a byte (the mechanization rule).
+`ifdef VERILATOR
+                                if (!((opc == 8'h62) || (opc == 8'hC4) ||
+                                      (opc == 8'hC5) ||
+                                      (opc == 8'hFE && (q_byte[5:3] == 3'd3 ||
+                                                        q_byte[5:3] == 3'd5)) ||
+                                      (opc == 8'hFF && (q_byte[5:3] == 3'd3 ||
+                                                        q_byte[5:3] == 3'd5)))) begin
+                                    $display("T30 UNWHITELISTED REG-PARK opc=%02x modrm=%02x -> S_HALT",
+                                             opc, q_byte);
+                                    assert (0);
+                                end
+`endif
                                 state <= S_HALT;
+                            end
                         end else begin
                             // memory form; group ops with an unimplemented
                             // /reg field park the sequencer. F6/F7 /1 (=/0 TEST)
@@ -3340,6 +3389,7 @@ always_ff @(posedge clk) begin
             end
             S_MHI: if (q_pop) begin
                 pc <= pc + 16'd1;
+                last_ea <= {q_byte, disp[7:0]};   // task #30: moffs EA offset
                 eu_addr <= {sr[seg_ovr_en ? seg_ovr : SEG_DS], 4'h0} +
                            {4'h0, {q_byte, disp[7:0]}};
                 eu_seg  <= seg_ovr_en ? seg_ovr : SEG_DS;
@@ -3846,6 +3896,7 @@ always_ff @(posedge clk) begin
                     // LDEA mod0: one EA cycle, retire at cycle 2, no
                     // bus access or reservation (measured: F@3)
                     rf[mrm_reg] <= ea_base;
+                    last_ea <= ea_base;   // task #30: EA offset latch
                     retire();
                 end else if (op_movri && mrm_mod == 2'd0) begin
                     // MOV r/m,imm mod0 reg-EA: no operand read, so the EA
@@ -3871,6 +3922,7 @@ always_ff @(posedge clk) begin
                 pc <= pc + 16'd1;
                 if (op_lea) begin
                     rf[mrm_reg] <= ea_base + {{8{q_byte[7]}}, q_byte};
+                    last_ea <= ea_base + {{8{q_byte[7]}}, q_byte};  // task #30
                     arch_ip <= pc + 16'd1;
                     clear_prefixes();
                     state <= S_FIRST;
@@ -3904,6 +3956,7 @@ always_ff @(posedge clk) begin
                 pc <= pc + 16'd1;
                 if (op_lea) begin
                     rf[mrm_reg] <= ea_base + {q_byte, disp[7:0]};
+                    last_ea <= ea_base + {q_byte, disp[7:0]};       // task #30
                     arch_ip <= pc + 16'd1;
                     clear_prefixes();
                     state <= S_FIRST;

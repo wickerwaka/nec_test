@@ -70,6 +70,9 @@ class SoupKnobs:
     p_halt: float = 0.30          # HALT/POLL rate (only when evt pin permits)
     p_tf: float = 0.002           # deliberate TF-set (single-step) rate
     p_backward_raw: float = 0.02  # raw backward Jcc (wild seeds only)
+    p_illegal_mod3: float = 0.0   # emit the illegal LEA/BOUND mod=11 forms (0 =
+                                  # never; small in survey campaigns for the
+                                  # task-#30 accepted-class regression coverage)
     p_sreg_rand: float = 0.40     # DS0/DS1 load = random (else 0x0000). A random
                                   # DS then a windowed write escapes the window
                                   # (accepted no-done breadth) - set 0 for a
@@ -103,6 +106,10 @@ _EA_SPECIAL = {0xA0, 0xA1, 0xA2, 0xA3,               # moffs
                0xD7}                                 # XLAT (no modrm, read)
 EA_MODRM_OPS = [o for o in _pool(optable.EA)
                 if o.modrm and o.code not in _EA_SPECIAL]
+# memory-operand-REQUIRED ops in EA_MODRM_OPS: a mod=11 (register) encoding is
+# illegal (LES/LDS are already _EA_SPECIAL/windowed). LEA-mod3 executes on the
+# chip (loads the stale EA latch); BOUND-mod3 halts on both chip and core.
+MEM_ONLY_EA = {0x8D, 0x62}
 PORT_IMM_OPS = [o for o in _pool(optable.PORT) if o.code in (0xE4, 0xE5, 0xE6, 0xE7)]
 PORT_DX_OPS = [o for o in _pool(optable.PORT) if o.code in (0xEC, 0xED, 0xEE, 0xEF)]
 PORT_STR_OPS = [o for o in _pool(optable.PORT) if o.code in (0x6C, 0x6D, 0x6E, 0x6F)]
@@ -140,6 +147,7 @@ class Soup:
         self.brkem_ins = []           # p.ins indices carrying a BRKEM
         self.has_halt = False
         self.has_tf = False
+        self.lea_mod3 = []            # (ins_idx, dest_reg) for illegal LEA-mod3
         self.since_sp = 0             # instrs since last wild SP resync
 
     # --- prefix stack -----------------------------------------------------
@@ -189,6 +197,12 @@ class Soup:
     def emit_ea(self):
         op = self.rng.choice(EA_MODRM_OPS)
         rng = self.rng
+        # LEA (8D) / BOUND (62) REQUIRE a memory operand; a mod=11 (register)
+        # encoding is illegal. Default-exclude it (force a windowed mem form) so
+        # the campaign never emits it; the p_illegal_mod3 knob (survey campaigns)
+        # deliberately emits it for regression coverage of the fix + accept rule.
+        mem_only = op.code in MEM_ONLY_EA
+        illegal = mem_only and rng.random() < self.k.p_illegal_mod3
         if op.group:
             ext = rng.choice(_safe_exts(op))
             reg_field = ext
@@ -198,7 +212,14 @@ class Soup:
         else:
             reg_field = rng.choice(NOSP)
             write = op.code in (0x88, 0x89, 0x86, 0x87)  # store / xchg RMW
-        ea = self._ea(reg_field, write)
+        if illegal:
+            ea = bytes([0xC0 | (reg_field << 3) | rng.choice(NOSP)])  # mod=11
+            if op.code == 0x8D:                     # LEA-mod3 provenance for the rule
+                self.lea_mod3.append((len(self.p.ins), reg_field))
+        elif mem_only:
+            ea = self._ea(reg_field, write, force_windowed=True)  # never mod3
+        else:
+            ea = self._ea(reg_field, write)
         imm = b""
         if op.imm_extdep:                        # F6/F7: /0,/1 carry immediate
             if op.group and reg_field in (0, 1):
@@ -207,7 +228,7 @@ class Soup:
         elif op.imm:
             imm = _imm_biased(rng, 8 * op.imm).to_bytes(op.imm, "little")
         self.p.emit(self._prefix() + bytes([op.code]) + ea + imm)
-        return "ea"
+        return "ea_illegal_mod3" if illegal else "ea"
 
     def emit_ea_0f(self):
         b2 = self.rng.choice(F0_EA)
@@ -532,6 +553,10 @@ def gen_soup(seed, nmin=24, nmax=80, knobs=None, evt_pin=None, wild=None):
     # brkem provenance: linear = anchor 0x0500 + byte offset of the BRKEM instr
     sizes = [len(b) for b in s.p.ins]
     brkem_pos = [(idx, (PC0 + sum(sizes[:idx])) & 0xFFFFF) for idx in s.brkem_ins]
+    # LEA-mod3 provenance (task #30 accept rule): (linear, dest STORE_ORDER name)
+    _rname = ["AW", "CW", "DW", "BW", "SP", "BP", "IX", "IY"]
+    lea_mod3_pos = [((PC0 + sum(sizes[:idx])) & 0xFFFFF, _rname[reg])
+                    for idx, reg in s.lea_mod3]
 
     regs = {"PS": 0, "PC": PC0, "SS": 0, "SP": SP0, "DS0": 0, "DS1": 0,
             "PSW": 0xF202,
@@ -550,6 +575,7 @@ def gen_soup(seed, nmin=24, nmax=80, knobs=None, evt_pin=None, wild=None):
                 n_ins=len(s.p.ins), forms=s.forms,
                 ins=[bytes(b) for b in s.p.ins],
                 has_brkem=bool(brkem_pos), brkem_pos=brkem_pos,
+                lea_mod3_pos=lea_mod3_pos,
                 has_halt=s.has_halt, has_tf=s.has_tf, wild=wild)
 
 

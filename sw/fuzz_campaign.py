@@ -218,6 +218,7 @@ def _ctx_for(cfg, g, tb_only):
                waits=0 if w["wrand"] else w["fixed"], wrand=w["wrand"],
                real_is_chip=not tb_only,
                brkem_pos=g.get("brkem_pos", []),
+               lea_mod3_pos=g.get("lea_mod3_pos", []),
                has_halt=g.get("has_halt", False),
                with_drift=(w["wrand"] or (not w["wrand"] and w["fixed"] > 0)),
                cid=cfg["cid"], seed=f"{cfg['cid']}/{cfg['k']}",

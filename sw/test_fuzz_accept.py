@@ -183,6 +183,52 @@ def test_cadence():
     check("cadence inert at w0/no-wrand", inert is None)
 
 
+def _arch_cap(regvals, psw=0xF002):
+    """Synthetic capture whose arch_dump yields regvals (STORE_ORDER names ->
+    value): one IOW-0xFE write per STORE_ORDER reg + a MEMW PSW @0xFFEC."""
+    from fuzz_classify import STORE_ORDER, PSW_PUSH_AT
+    rows = [_pasv()] * 4
+    for name in STORE_ORDER:
+        rows += _cycle(2, 0x00FE, data=regvals.get(name, 0))     # IOW 0xFE
+    rows += _cycle(6, PSW_PUSH_AT, data=psw)                      # MEMW PSW
+    rows += _cycle(2, 0x00FC, data=fc.DONE_SENTINEL)             # done marker
+    rows += [_pasv()] * 4
+    return rows
+
+
+def test_lea_mod3():
+    eng = fa.AcceptEngine.load()
+    base = {"AW": 1, "CW": 2, "DW": 3, "BW": 4, "SP": 5, "BP": 6,
+            "IX": 7, "IY": 8, "PS": 0, "SS": 0, "DS0": 0, "DS1": 0}
+    real = _arch_cap(base)
+    n = len(real)
+    ctx = fc.Ctx(tier="A", lea_mod3_pos=[(0x0510, "IX")])
+
+    # accept: diff confined to the LEA dest reg (IX)
+    sim = _arch_cap({**base, "IX": 0x1234})
+    v = dict(covers="functional", ctx=ctx, real=real, sim=sim,
+             dr=_dr(50, n))
+    hit = eng.consider(v)
+    check("lea_mod3 accept (diff = dest reg)",
+          hit is not None and hit.klass == "lea-mod3", f"({hit})")
+
+    # REJECT (strictness): a second reg (CW) also differs -> refuse -> surface
+    sim2 = _arch_cap({**base, "IX": 0x1234, "CW": 0x99})
+    check("lea_mod3 REJECT (extra reg differs)",
+          eng.consider(dict(covers="functional", ctx=ctx, real=real, sim=sim2,
+                            dr=_dr(50, n))) is None)
+
+    # inert without lea_mod3_pos
+    check("lea_mod3 inert without provenance",
+          eng.consider(dict(covers="functional", ctx=fc.Ctx(tier="A"),
+                            real=real, sim=sim, dr=_dr(50, n))) is None)
+
+    # no accept when nothing differs (clean -> not this rule's job)
+    check("lea_mod3 no-op on identical dumps",
+          eng.consider(dict(covers="functional", ctx=ctx, real=real,
+                            sim=_arch_cap(base), dr=_dr(50, n))) is None)
+
+
 def test_static():
     rule = fa.StaticRule(
         {"A/fz9": "KNOWN_ACCEPTED: exact ledger#12",
@@ -232,6 +278,7 @@ def main():
     print("test_fuzz_accept:")
     test_brkem()
     test_cadence()
+    test_lea_mod3()
     test_static()
     test_invariant_and_counting()
     print(f"\n{'PASS' if not FAILS else 'FAIL'}: {len(FAILS)} failure(s)"

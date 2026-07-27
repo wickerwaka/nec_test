@@ -11,6 +11,13 @@
       "_desc": "Accepted 8080-mode entry. Positional: first divergent row must be at or after the chip CODE-fetch row that fetched the BRKEM opcode; a divergence before that is a real bug and the rule refuses. Optional IVT-2xMEMR + 3xMEMW push signature upgrades the reason."
     },
     {
+      "type": "lea_mod3",
+      "name": "lea_mod3",
+      "enabled": true,
+      "covers": ["functional"],
+      "_desc": "Task #30 accepted class: illegal LEA reg,reg (mod=11) loads the chip's stale EA latch, which the behavioural core reproduces exactly only in moffs contexts (cycle-rows always match). Accepts iff the seed carries a lea-mod3 AND the arch-dump diff is confined to that LEA's dest register - strict fail-safe (anything else differing -> refuse -> surface)."
+    },
+    {
       "type": "cadence_floor",
       "name": "cadence_floor",
       "enabled": true,

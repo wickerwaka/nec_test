@@ -39,7 +39,7 @@ from pathlib import Path
 SW = Path(__file__).resolve().parent
 sys.path.insert(0, str(SW))
 import fuzz_classify as fc                              # noqa: E402
-from fuzz_classify import RuleHit                       # noqa: E402
+from fuzz_classify import RuleHit, arch_dump            # noqa: E402
 
 RULES_PATH = SW / "testdata" / "fuzz_accept_rules.json"
 STATIC_PATH = SW / "testdata" / "fuzz_accept_static.json"
@@ -220,6 +220,40 @@ class BrkemGapRule:
         return RuleHit(self.name, "8080-gap", reason, vctx["covers"])
 
 
+class LeaMod3Rule:
+    """Task #30 accepted class: the illegal LEA reg,reg (mod=11) loads the
+    chip's stale EA latch, which our behavioural core cannot reproduce exactly
+    across all preceding-instruction contexts (exact in moffs contexts, residue
+    otherwise; cycle-rows always match). Accept iff the seed carries a lea-mod3
+    at an executed position AND the arch-dump diff is CONFINED to that LEA's
+    destination register (a strict fail-safe like brkem_gap: if ANYTHING else in
+    the dump differs - the reg was used downstream, or a second divergence - the
+    rule refuses and the seed surfaces)."""
+    covers = ("functional",)
+    name = "lea_mod3"
+
+    def __init__(self, cfg):
+        self.cfg = cfg
+
+    def apply(self, vctx):
+        ctx = vctx["ctx"]
+        if not ctx.lea_mod3_pos:
+            return None
+        dr = vctx["dr"]
+        window = dr.n
+        ar = arch_dump(vctx["real"], window)
+        as_ = arch_dump(vctx["sim"], window)
+        if ar is None or as_ is None:
+            return None                     # need both full dumps to bound it
+        diff = {k for k in ar if ar.get(k) != as_.get(k)}
+        dests = {reg for _lin, reg in ctx.lea_mod3_pos}
+        if diff and diff <= dests:
+            return RuleHit(self.name, "lea-mod3",
+                           f"illegal LEA-mod3 stale-EA latch; arch diff confined "
+                           f"to dest reg(s) {sorted(diff)}", "functional")
+        return None
+
+
 class CadenceFloorRule:
     covers = ("timing",)
     name = "cadence_floor"
@@ -299,6 +333,8 @@ class AcceptEngine(fc.AcceptEngine):
                 continue
             if r["type"] == "brkem_gap":
                 rules.append(BrkemGapRule(r))
+            elif r["type"] == "lea_mod3":
+                rules.append(LeaMod3Rule(r))
             elif r["type"] == "cadence_floor":
                 rules.append(CadenceFloorRule(r))
         sdoc = {}

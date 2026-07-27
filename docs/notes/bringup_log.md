@@ -2325,3 +2325,34 @@ CHIP's defined behaviour cycle-for-cycle (the chip's exact per-form behaviour
 must be characterised on silicon - a targeted board capture of the four forms,
 which the fix's cycle-accuracy gate requires). Minimized repro frozen at
 `sw/testdata/core_hang_min.hex`; the class is `{8D,62,C4,C5}` x mod=11.
+
+### FIX LANDED (task #30, 2026-07-27)
+
+Board characterization (sw/char_mod3.py, tests/v30/mod3_illegal) narrowed the
+bug to **LEA (0x8D) mod=11 ONLY**: the chip executes it, loading the stale EA
+OFFSET latch into the dest reg (5 rows, no bus access, fall-through). BOUND
+(0x62), LES (0xC4), LDS (0xC5) mod=11 HALT on both chip AND core (the terminal-
+else park is CORRECT). A systematic terminal-else audit (whitelist mechanization)
+found the full reachable reg-park set: chip-HALT (park legal) = 62/C4/C5/FE.3/
+FE.5/FF.3/FF.5; chip-EXECUTES (park wrong, BOOKED) = 8D (fixed) + FE.6/FE.7;
+chip-runaway (BOOKED) = FE.2/FE.4. gen_soup's _safe_exts already excludes
+FE/2-7 and FF/3,5, so only LEA/BOUND mod=11 were ever campaign-reachable.
+
+Fix (v30_eu.sv, sim-affecting + synth): (A) an op_lea mod==3 branch loads a new
+`last_ea` offset latch (latched at every EA computation: setup_access, LEA-mem,
+moffs) and retires on the modrm pop - cycle-rows chip-EXACT, value exact in
+moffs contexts, residue (the microcode-path latch) otherwise. (B) a WHITELIST
+sim-only assert on the terminal-else park (legal only for the 7 chip-HALT
+encodings; any other reg-form byte that parks fires with opc/modrm). Generator:
+gen_soup default-excludes mod=11 for the mem-only ops (p_illegal_mod3 knob for
+survey coverage) + lea_mod3_pos provenance. Accept rule fuzz_accept.lea_mod3
+covers the residue iff the arch diff is confined to the LEA dest reg (strict).
+
+Gates: check_mod3_illegal PASS (128/128 cycle-exact + arch-confined; moffs 2/2
+exact); minimized repro + k=30 full stream reach done@1252 (== chip);
+check_core all-forms 8675/8675 + touched paths 2200/2200 (regression-free);
+check_ff_t4 9/9; terminal-else assert clean over TB soup; test suites PASS.
+FE/6,/7 (chip-executes) and FE/2,/4 (chip-runaway) mod=11 BOOKED as follow-ups
+(the whitelist assert flags them if ever reached). Deferred physics thread: the
+LEA-mod3 stale-EA residue law (race_law-style) - the tranche's residue-context
+cases are the raw material; non-gating.

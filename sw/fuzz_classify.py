@@ -307,6 +307,7 @@ class Ctx:
     strict_qs: bool = False
     run_error: str = None
     brkem_pos: list = field(default_factory=list)
+    lea_mod3_pos: list = field(default_factory=list)  # (linear, dest_reg) task #30
     has_halt: bool = False
     with_drift: bool = False
     # identity (Phase-3 static-rule lookup keys; filled by the campaign driver)
