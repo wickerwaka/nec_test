@@ -108,6 +108,20 @@ diverge across phases.
   prefetch T4 keeps the deferred display (redirect at the following idle
   Ti, one cycle later). The NOP-sled EA sweep never hit a completed-fetch
   T4; exposed by fz8304 (chip-vs-TB DIVERGE@565 -> MATCH).
+  **LANDING NOTE (2026-07-26, task #28):** the R6c canonical-dispatch hoist
+  (c668a32, 2026-07-15) silently inverted the same-edge NBA winner on this
+  path - the dispatched enter_t1_direct()'s ST_T1 lost to the T4 branch's
+  unconditional ST_TI, so a SLOT_FF_T4 fire dropped the BIU to idle with
+  cur_* loaded and the redirect's first fetch was swallowed (found by an
+  external M72 integration: JMP AX -> address output undriven, adapter
+  latched 00000). Every standing suite stayed green because NO
+  single-instruction case fires this slot (vacuous coverage). Fixed in
+  614ce0a (guarded idle entry + dbg_direct_q direct-commit-survives
+  invariant + cov_ff_t4/cov_ff_ti counters); reachability now pinned by
+  sw/check_ff_t4.py (9 frozen fuzz seeds, chip-vs-TB MATCH on all 9).
+  Caveat on history: check_seq TB legs were VACUOUS between c78421f
+  (flat-1MB TB mem orphaned 64 KB +bootimg images) and d2f1d4d (mirror
+  restored), so TB-side claims from that window need re-validation.
 - **DEFERRED — software INT (CD imm) pre-IVT doomed prefetch — DISCRIMINATOR
   RESOLVED, RTL fit deferred (2026-07-14).** The "3 laws none clean" was a
   false dichotomy: the doomed-prefetch decision is a clean QUEUE-OCCUPANCY
