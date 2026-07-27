@@ -150,57 +150,26 @@ def diff(real, sim, limit=4000, maxprint=10, strict_qs=False):
     With strict_qs=True the flicker is folded back into bad (for
     investigation / definitive A/B confirmation).
     """
-    dend = done_idx(real, None, None)
-    n = min(len(real), len(sim), limit,
-            (dend + 8) if dend is not None else limit)
+    # Structured column policy now lives in fuzz_classify.diff_rows (task #29);
+    # this wrapper only prints + counts, preserving byte-identical behavior
+    # (imported lazily to avoid an import cycle: fuzz_classify has no dep on
+    # check_seq, but check_seq must not force-load it at module import time).
+    from fuzz_classify import diff_rows
+    res = diff_rows(real, sim, limit=limit, strict_qs=strict_qs)
     bad, first, flick = 0, None, 0
-    for i in range(n):
-        r, s = real[i], sim[i]
-        rt = r.get("t_state", r.get("t"))
-        qs_mm = r["qs"] != s["qs"]
-        other = []
-        if i >= 8 and r["bs_early"] != s["bs_early"]:
-            other.append(f"bs {BS_NAME[r['bs_early']]}!="
-                         f"{BS_NAME[s['bs_early']]}")
-        if i >= 9:
-            if rt != s["t"]:
-                other.append(f"t {T_NAME.get(rt)}!={T_NAME.get(s['t'])}")
-            if r["ube_n"] != s["ube_n"]:
-                other.append(f"ube {r['ube_n']}!={s['ube_n']}")
-            active = r["bs_early"] != 7
-            # INTA cycle (bs=INTA) drives NO address on T1: AD float-retains
-            # the previous bus value (interrupt_model.md), which is
-            # history-dependent - the chip retains the prior fetch address,
-            # the core drives its modeled vector pointer. Architecturally
-            # inert (the vector rides the data lanes), so the INTA-T1 address
-            # is a documented don't-care (cf. the 8F.0 ghost-read address).
-            if rt == 1 and r["bs_early"] != 0 and \
-                    r["ad_addr"] != s["ad_addr"]:
-                other.append(f"addr {r['ad_addr']:05x}!={s['ad_addr']:05x}")
-            if rt in (2, 3) and r["ad_data"] != s["ad_data"]:
-                other.append(f"data {r['ad_data']:04x}!={s['ad_data']:04x}")
-            if rt in (0, 5) and active and r["ad_data"] != s["ad_data"]:
-                other.append(f"nxta {r['ad_data']:04x}!={s['ad_data']:04x}")
-            if rt == 2 and active and r["ps"] != s["ps"]:
-                other.append(f"ps {r['ps']:x}!={s['ps']:x}")
-        qs_txt = (f"qs {QS_NAME[r['qs']]}!={QS_NAME[s['qs']]}"
-                  if qs_mm else None)
-        # F<->S queue-status flicker with nothing else wrong on the row
-        is_flicker = (qs_mm and not other and not strict_qs and
-                      {r["qs"], s["qs"]} == {1, 3})
-        if is_flicker:
+    for row in res.rows:
+        if row.flicker:
             flick += 1
             if flick <= maxprint:
-                print(f"    row {i}: {qs_txt}  [QS flicker - tolerated]")
+                print(f"    row {row.i}: {row.qs_txt}  [QS flicker - tolerated]")
             continue
-        mm = ([qs_txt] if qs_mm else []) + other
-        if mm:
-            bad += 1
-            if first is None:
-                first = i
-            if bad <= maxprint:
-                print(f"    row {i}: " + ", ".join(mm))
-    return bad, first, n, flick
+        bad += 1
+        if first is None:
+            first = row.i
+        if bad <= maxprint:
+            mm = ([row.qs_txt] if row.qs_mm else []) + row.other
+            print(f"    row {row.i}: " + ", ".join(mm))
+    return bad, first, res.n, flick
 
 
 def check_seed(seed, host, sim_only=False, strict_qs=False, exts=(),

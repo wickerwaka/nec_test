@@ -1,0 +1,150 @@
+#!/usr/bin/env python3
+"""test_fuzz_classify - offline unit tests for the Phase-2 verdict engine
+(task #29). Runnable directly: `python3 sw/test_fuzz_classify.py`.
+
+Ground truth is a real Verilator TB capture of a small soup seed (no board):
+  * TB-vs-TB self-compare  -> SUCCESS
+  * flip a functional write's data byte on one side -> FUNCTIONAL
+  * drop the done marker on one side                -> FUNCTIONAL/done_mismatch
+  * inject a Tw row into a w0 CHIP capture          -> QUARANTINE/provenance
+Plus diff_rows/wrapper parity, an escalation-STOP dry-run, and a drift smoke.
+"""
+import copy
+import sys
+from pathlib import Path
+
+SW = Path(__file__).resolve().parent
+sys.path.insert(0, str(SW))
+import check_seq                                       # noqa: E402
+import fuzz_classify as fc                             # noqa: E402
+from gen_soup import gen_soup                          # noqa: E402
+
+FAILS = []
+
+
+def check(name, cond, extra=""):
+    tag = "ok  " if cond else "FAIL"
+    if not cond:
+        FAILS.append(name)
+    print(f"  {tag} {name}{('  ' + extra) if extra else ''}")
+
+
+def _tb_capture(seed="soup7"):
+    """A completed TB capture for a soup seed (deterministic, board-free)."""
+    g = gen_soup(seed, evt_pin=None, wild=False)
+    image, _meta = check_seq.compose(g)
+    rows = check_seq.run_tb(image, 4200, waits=0)
+    return g, rows
+
+
+def _find_write_data_row(rows, window):
+    """Row index of a T3/T4 data cycle belonging to a MEMW/IOW txn (a
+    functionally-observable write) so a flip there is real functional evidence."""
+    for tx in fc.extract_txns(rows):
+        if tx["start"] >= window:
+            break
+        if fc.KIND[tx["kind"]] in ("MEMW", "IOW"):
+            for j in range(tx["start"] + 1, tx["end"] + 1):
+                if fc._tstate(rows[j]) in (3, 4):
+                    return j
+    return None
+
+
+def _find_done_t1(rows, window):
+    for tx in fc.extract_txns(rows):
+        if tx["start"] >= window:
+            break
+        if fc.KIND[tx["kind"]] == "IOW" and \
+                (tx["addr"] & 0xFFFF) == fc.OUT_PORT_DONE:
+            return tx["start"]
+    return None
+
+
+def main():
+    print("test_fuzz_classify:")
+    g, rows = _tb_capture()
+    print(f"  (TB capture: {len(rows)} rows, {g['n_ins']} ins)")
+    ctxA = fc.Ctx(tier="A", waits=0, wrand=False, real_is_chip=False)
+
+    # --- diff_rows / wrapper parity: identical capture -> no diff rows -------
+    res = fc.diff_rows(rows, copy.deepcopy(rows))
+    check("diff_rows self-compare clean", res.bad == 0 and res.flick == 0,
+          f"(bad={res.bad} flick={res.flick} n={res.n})")
+
+    # --- 1. TB-vs-TB self-compare -> SUCCESS --------------------------------
+    v = fc.classify(rows, copy.deepcopy(rows), ctxA)
+    check("TB-vs-TB -> SUCCESS", v.verdict == fc.SUCCESS,
+          f"(got {v.verdict}/{v.sub})")
+    check("SUCCESS both done", v.done_real and v.done_sim)
+
+    # --- 2. flip a functional write byte -> FUNCTIONAL ----------------------
+    sim = copy.deepcopy(rows)
+    window = res.n
+    j = _find_write_data_row(sim, window)
+    check("found a write-data row to mutate", j is not None, f"(row {j})")
+    if j is not None:
+        sim[j]["ad_data"] ^= 0x0001
+        v = fc.classify(rows, sim, ctxA)
+        check("flipped write -> FUNCTIONAL", v.verdict == fc.FUNCTIONAL,
+              f"(got {v.verdict}/{v.sub})")
+        check("FUNCTIONAL flags func_mismatch", v.func_mismatch)
+
+    # --- 3. drop the done marker on one side -> FUNCTIONAL/done_mismatch -----
+    sim = copy.deepcopy(rows)
+    dt = _find_done_t1(sim, window)
+    check("found the done marker T1", dt is not None, f"(row {dt})")
+    if dt is not None:
+        sim[dt]["ad_addr"] = (sim[dt]["ad_addr"] & 0xF0000) | 0x00AA  # off 0xFC
+        v = fc.classify(rows, sim, ctxA)
+        check("dropped done -> FUNCTIONAL", v.verdict == fc.FUNCTIONAL,
+              f"(got {v.verdict}/{v.sub})")
+        check("done_mismatch subclass", v.sub == "done_mismatch",
+              f"(sub={v.sub})")
+
+    # --- 4. Tw in a w0 chip capture -> QUARANTINE/provenance ----------------
+    chip = copy.deepcopy(rows)
+    for r in chip:                       # present it as a chip capture
+        r["t_state"] = r["t"]
+        r["rst"] = 0
+    inj = dict(chip[200])
+    inj["t_state"] = 4                    # a phantom Tw
+    inj["t"] = 4
+    chip.insert(200, inj)
+    ctx_chip = fc.Ctx(tier="A", waits=0, wrand=False, real_is_chip=True)
+    v = fc.classify(chip, copy.deepcopy(rows), ctx_chip)
+    check("Tw@w0-chip -> QUARANTINE", v.verdict == fc.QUARANTINE,
+          f"(got {v.verdict}/{v.sub})")
+    check("provenance alarm tw_in_w0_chip", "tw_in_w0_chip" in v.alarms,
+          f"(alarms={v.alarms})")
+
+    # --- escalation STOP dry-run: a w0 un-ruled FUNCTIONAL must STOP ---------
+    esc = fc.EscalationPolicy()
+    sim = copy.deepcopy(rows)
+    j = _find_write_data_row(sim, window)
+    sim[j]["ad_data"] ^= 0x0002
+    vf = fc.classify(rows, sim, ctxA)
+    acts = esc.consult(vf, ctxA)
+    check("escalation STOPs on w0 functional",
+          any(a == ("STOP", "w0_functional") for a in acts), f"({acts})")
+
+    # a clean SUCCESS must NOT stop
+    esc2 = fc.EscalationPolicy()
+    acts2 = esc2.consult(fc.classify(rows, copy.deepcopy(rows), ctxA), ctxA)
+    check("escalation quiet on SUCCESS", acts2 == [], f"({acts2})")
+
+    # --- drift smoke: a waited divergent pair returns a drift dict -----------
+    sim = copy.deepcopy(rows)
+    sim.insert(50, copy.deepcopy(sim[50]))     # shove a 1-cycle slip
+    ctxw = fc.Ctx(tier="A", waits=1, wrand=False, with_drift=True)
+    vw = fc.classify(rows, sim, ctxw)
+    check("drift metrics computed for waited seed",
+          vw.drift is not None and "slips" in vw.drift,
+          f"(bad={vw.bad_rows})")
+
+    print(f"\n{'PASS' if not FAILS else 'FAIL'}: "
+          f"{len(FAILS)} failure(s){(': ' + ', '.join(FAILS)) if FAILS else ''}")
+    return 1 if FAILS else 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())
