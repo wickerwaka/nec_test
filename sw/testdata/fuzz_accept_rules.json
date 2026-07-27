@@ -1,0 +1,37 @@
+{
+  "version": "1.0",
+  "sigv": "sig-v1",
+  "_note": "Task #29 acceptance rules. cadence_floor thresholds FROZEN after calibration (see sw/testdata/cadence_calibration.md). Every rule application is counted by AcceptEngine.hits; a KNOWN_ACCEPTED verdict without a rule hit is an assertion failure in fuzz_classify.classify.",
+  "rules": [
+    {
+      "type": "brkem_gap",
+      "name": "brkem_gap",
+      "enabled": true,
+      "covers": ["functional", "timing"],
+      "_desc": "Accepted 8080-mode entry. Positional: first divergent row must be at or after the chip CODE-fetch row that fetched the BRKEM opcode; a divergence before that is a real bug and the rule refuses. Optional IVT-2xMEMR + 3xMEMW push signature upgrades the reason."
+    },
+    {
+      "type": "cadence_floor",
+      "name": "cadence_floor",
+      "enabled": true,
+      "covers": ["timing"],
+      "thresholds": {
+        "max_step": 9,
+        "slip_per_waited_fetch_max": 0.25,
+        "abs_slip_cap": 64,
+        "spec_skip_frac_max": 0.05
+      },
+      "_desc": "Documented waits>=1/wrand cadence-drift floor (biu_model.md:287-536). FROZEN 2026-07-27 from calibration over the 59-seed known-floor corpus (cached w1/w3 chip refs vs current-RTL TB).",
+      "_provenance": "Observed per-step |delta o| distribution was bimodal: a tight cluster at {0,1,2} (normal drift) plus an odd-parity stall family at exactly {8,9,10}, ALL at w1 (odd wait count) - the documented odd-parity 8-cycle stall (biu_model.md). Per the plan, max_step raised 4->9 to admit the legitimate 8/9-clock odd-parity stalls; the single step=10 tail (seed 90042 w1) is deliberately left to surface as TIMING (a conservative top-decile outlier reported for manual review, never silently masked). slip_per_waited_fetch_max/abs_slip_cap/spec_skip_frac_max unchanged: observed worst slip/waited-fetch rate 0.214 < 0.25, |o| peak 10 << 64 cap, fetch-alignment skip fraction 0.000 (perfect) << 0.05. Floor accept-rate with these thresholds: 58/59 = 98.3% (>= the 90% gate)."
+    }
+  ],
+  "escalation": {
+    "stop_w0_functional": true,
+    "stop_provenance": true,
+    "stop_new_w0_timing_sig": true,
+    "max_new_sigs": 25,
+    "quarantine_rate": 0.02,
+    "quarantine_window": 500,
+    "per_sig_cap": 10
+  }
+}

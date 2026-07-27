@@ -1,0 +1,5 @@
+{
+  "_note": "Task #29 static per-seed acceptances (the known_divergences.json idiom). Each entry maps a seed key (seed | tier/seed | cid/seed | cfg_hash) to a 'CLASS: reason (ledger ref)' string; CLASS becomes the KNOWN_ACCEPTED subclass. 'wildcard' entries are [prefix, value] and match by seed / tier-seed prefix. Empty until real campaign forensics populate it; lint-checked reasons.",
+  "exact": {},
+  "wildcard": []
+}

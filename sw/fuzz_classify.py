@@ -309,6 +309,10 @@ class Ctx:
     brkem_pos: list = field(default_factory=list)
     has_halt: bool = False
     with_drift: bool = False
+    # identity (Phase-3 static-rule lookup keys; filled by the campaign driver)
+    cid: str = None
+    seed: str = None
+    cfg_hash: str = None
 
 
 @dataclass
