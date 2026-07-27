@@ -29,11 +29,11 @@ BIU = ROOT / "hdl/rtl/core/v30_biu.sv"
 EU = ROOT / "hdl/rtl/core/v30_eu.sv"
 
 EXPECT = {
-    "SS_VERSION": 0x02,
+    "SS_VERSION": 0x03,          # v3: +SSA_E_LAST_EA (task #30 LEA-mod3 latch)
     "SS_BIU_COUNT": 82,
-    "SS_EU_COUNT": 119,
-    "SS_COUNT": 202,
-    "SS_TAG": 0x02CA,
+    "SS_EU_COUNT": 120,
+    "SS_COUNT": 203,
+    "SS_TAG": 0x03CB,           # (0x03 << 8) | 203
 }
 
 
@@ -104,7 +104,7 @@ def main():
         for e in errs:
             print(f"  - {e}")
         return 1
-    print("ss_lint: PASS (82x2 BIU + 119x2 EU + tag = 202; constants OK)")
+    print("ss_lint: PASS (82x2 BIU + 120x2 EU + tag = 203; constants OK)")
     return 0
 
 

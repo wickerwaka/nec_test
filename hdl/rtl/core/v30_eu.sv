@@ -374,6 +374,7 @@ always_ff @(posedge clk) begin
         SSA_E_EU_WDATA: ss_rdata <= eu_wdata;
         SSA_E_EU_KIND: ss_rdata <= {14'b0, eu_kind};
         SSA_E_HALT_DISP: ss_rdata <= {15'b0, halt_disp};
+        SSA_E_LAST_EA: ss_rdata <= last_ea;
         default: ss_rdata <= 16'h0000;
     endcase
 end
@@ -1966,6 +1967,7 @@ always_ff @(posedge clk) begin
             SSA_E_EU_WDATA: eu_wdata <= ss_wdata;
             SSA_E_EU_KIND: eu_kind <= ss_wdata[1:0];
             SSA_E_HALT_DISP: halt_disp <= ss_wdata[0];
+            SSA_E_LAST_EA: last_ea <= ss_wdata;
             default: ;
         endcase
     end else if (srst) begin

@@ -23,13 +23,13 @@
 package v30_ss_pkg;
 
   localparam int          SS_ADDR_W    = 9;
-  localparam int          SS_VERSION   = 8'h02;   // v2 addressed scheme
+  localparam int          SS_VERSION   = 8'h03;   // v3: +SSA_E_LAST_EA (task #30)
   localparam logic [8:0]  SSA_TAG      = 9'h000;
   localparam logic [8:0]  SS_BIU_BASE  = 9'h001;
   localparam int          SS_BIU_COUNT = 82;
   localparam logic [8:0]  SS_EU_BASE   = 9'h100;
-  localparam int          SS_EU_COUNT  = 119;
-  localparam int          SS_COUNT     = 1 + SS_BIU_COUNT + SS_EU_COUNT; // 202
+  localparam int          SS_EU_COUNT  = 120;   // task #30: +SSA_E_LAST_EA
+  localparam int          SS_COUNT     = 1 + SS_BIU_COUNT + SS_EU_COUNT; // 203
   localparam logic [15:0] SS_TAG       = {8'(SS_VERSION), 8'(SS_COUNT)};
 
   //--------------------------------------------------------------------------
@@ -240,6 +240,7 @@ package v30_ss_pkg;
   localparam logic [8:0] SSA_E_EU_WDATA         = 9'h174;
   localparam logic [8:0] SSA_E_EU_KIND          = 9'h175;
   localparam logic [8:0] SSA_E_HALT_DISP        = 9'h176;
+  localparam logic [8:0] SSA_E_LAST_EA          = 9'h177;  // task #30 LEA-mod3 latch
 
   // dense-iteration helper (TB/harness): stream index -> address
   function automatic logic [8:0] ss_addr_of(input int i);
@@ -453,6 +454,7 @@ package v30_ss_pkg;
       SSA_E_EU_WDATA:          ss_field_width = 16;
       SSA_E_EU_KIND:           ss_field_width = 2;
       SSA_E_HALT_DISP:         ss_field_width = 1;
+      SSA_E_LAST_EA:           ss_field_width = 16;
       default: ss_field_width = 0;
     endcase
   endfunction
