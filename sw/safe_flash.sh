@@ -90,4 +90,17 @@ if [ "$ok" -ne 1 ]; then
     exit 3
 fi
 
+# --- 4. LEDGER: authoritative "what's on the fabric" record (task #29) --------
+# Append one line to flash_log.jsonl so the fuzz campaign driver can pin a
+# campaign to the exact bitstream it discovered against (fuzz_campaign `new`
+# refuses without a valid VERIFY=OK entry; `run` refuses on a sof-sha mismatch).
+SHA256="$(sha256sum "$SOF" | awk '{print $1}')"
+GITDESC="$(cd "$ROOT" && git describe --always --dirty 2>/dev/null || echo unknown)"
+LEDGER="$ROOT/sw/testdata/flash_log.jsonl"
+TS="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+mkdir -p "$(dirname "$LEDGER")"
+printf '{"ts":"%s","sof_path":"%s","sha256":"%s","git_describe":"%s","verify":"OK"}\n' \
+    "$TS" "$SOF" "$SHA256" "$GITDESC" >> "$LEDGER"
+log "ledger appended: $LEDGER (sha256 ${SHA256:0:12}...)"
+
 log "DONE: FPGA reprogrammed and harness reachable."

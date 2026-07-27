@@ -67,6 +67,10 @@ class SoupKnobs:
     p_halt: float = 0.30          # HALT/POLL rate (only when evt pin permits)
     p_tf: float = 0.002           # deliberate TF-set (single-step) rate
     p_backward_raw: float = 0.02  # raw backward Jcc (wild seeds only)
+    p_sreg_rand: float = 0.40     # DS0/DS1 load = random (else 0x0000). A random
+                                  # DS then a windowed write escapes the window
+                                  # (accepted no-done breadth) - set 0 for a
+                                  # strict contained fall-through generation.
     stack_cap: int = 24           # max outstanding PUSH-family ops
 
 
@@ -422,7 +426,7 @@ class Soup:
     def emit_sreg(self):
         rng = self.rng
         sreg = rng.choice([0x00, 0x03])          # DS1 (reg=00), DS0 (reg=11)
-        val = 0x0000 if rng.random() < 0.60 else rng.getrandbits(16)
+        val = rng.getrandbits(16) if rng.random() < self.k.p_sreg_rand else 0x0000
         ea = rng.randrange(DATA_LO, DATA_HI - 2) & 0xFFFE
         self.p.ram_set(ea, [val & 0xFF, val >> 8])
         self.p.emit(bytes([0x8E, (sreg << 3) | 6, ea & 0xFF, ea >> 8]))
