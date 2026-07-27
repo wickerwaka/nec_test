@@ -103,8 +103,13 @@ def board_wrand(seeds, wmax_list, host, engine, stop_after_err=5):
             wmax = wmax_list[idx % len(wmax_list)]
             wseed = (0x5EED ^ s) & 0xFFFF
             wrand = (wmax, wseed)
-            g = generate(s, exts=("farjmp", "farcall", "callret", "loop",
-                                  "shifts", "earich"))
+            # budget-coupled length (task #30 re-cal): nmax_eff = nmax*4/(4+wmax)
+            # keeps the done marker inside the 4096-row window under waits, so
+            # the offset series is truncation-FREE (the Phase-3 contamination fix)
+            nmax_eff = max(24, int(80 * 4 / (4 + wmax)))
+            g = generate(s, nmin=24, nmax=nmax_eff,
+                         exts=("farjmp", "farcall", "callret", "loop",
+                               "shifts", "earich"))
             image, _meta = compose(g)
             try:
                 ckey = CACHE / f"wr_s{s}_wm{wmax}_ws{wseed:04x}.json"

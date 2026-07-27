@@ -18,14 +18,14 @@ measure.py CACHE seeds 90000-90069 at w1 and w3, replayed against a current-RTL 
 
 check_seq-style chip leg under seeded random waits (wmax mix 1/3/7, exts farjmp,farcall,callret,loop,shifts,earich), chip-vs-TB.
 
-- seeds: **150**; diverged: 75; functional-mismatch: 9; floor-corpus: **66**
-- max |step| distribution: {0: 7, 1: 8, 2: 24, 3: 2, 6: 2, 7: 1, 8: 3, 9: 2, 10: 5, 11: 2, 12: 4, 13: 2, 14: 1, 15: 2, 75: 1}
-- |o| peak: max 74, median 2, p95 19
-- slip/waited-fetch rate: max 0.612, median 0.058, p95 0.333
-- fetch-alignment skip fraction (chip): max 0.016
-- reject-reason histogram: {'accepted': 49, 'step_break@50': 2, 'step_break@65': 2, 'step_break@59': 1, 'step_break@110': 1, 'step_break@104': 1, 'step_break@100': 1, 'step_break@64': 1, 'step_break@149': 1, 'step_break@121': 1, 'step_break@194': 1, 'step_break@52': 1, 'code_mism': 1, 'step_break@45': 1, 'step_break@53': 1, 'step_break@101': 1}
-- **floor accept-rate (frozen thresholds): 49/66 = 74.2%**
-- functional-mismatch seeds (all `done_mismatch`): [91009, 91020, 91021, 91037, 91042, 91070, 91084, 91102, 91127]
+- seeds: **150**; diverged: 52; functional-mismatch: 4; floor-corpus: **48**
+- max |step| distribution: {0: 7, 1: 8, 2: 17, 3: 1, 6: 1, 8: 3, 9: 1, 10: 2, 11: 4, 12: 1, 14: 1, 17: 1, 24: 1}
+- |o| peak: max 27, median 2, p95 19
+- slip/waited-fetch rate: max 0.647, median 0.062, p95 0.397
+- fetch-alignment skip fraction (chip): max 0.025
+- reject-reason histogram: {'accepted': 38, 'code_mism': 3, 'step_break@106': 1, 'step_break@51': 1, 'step_break@112': 1, 'step_break@87': 1, 'step_break@54': 1, 'step_break@142': 1, 'step_break@41': 1}
+- **floor accept-rate (frozen thresholds): 38/48 = 79.2%**
+- functional-mismatch seeds (all `done_mismatch`): [92036, 92052, 92057, 92141]
 
 ## Findings
 
@@ -48,3 +48,36 @@ check_seq-style chip leg under seeded random waits (wmax mix 1/3/7, exts farjmp,
   "spec_skip_frac_max": 0.05
 }
 ```
+
+
+## Task #30 budget-coupled wrand re-calibration + threshold PROPOSAL (not applied)
+
+Re-run on the reflashed task-#30 build, 150 wrand seeds (wmax 1/3/7) with the
+capture-budget coupling nmax_eff = nmax*4/(4+wmax) applied (the Phase-3
+truncation fix). vs the earlier UN-budgeted board batch:
+
+- done_mismatch (window-truncation) dropped 9 -> **4** - budgeting works, though
+  a few high-wmax seeds still overflow (the C=4 constant is slightly optimistic
+  at wmax=7; a larger sample would refine it).
+- floor corpus 48; maxstep distribution {0,1,2,3,6,8,9,10,11,12,14,17,24}
+  (max 24, p95 14); |o| peak max 27; worst slip/waited-fetch rate max 0.647,
+  p95 0.397; fetch-alignment skip fraction chip 0.025 / core 0.016.
+- floor accept at the FROZEN thresholds (max_step=9, rate 0.25): **38/48 = 79.2%**.
+
+The wrand floor is GENUINELY wider than the fixed-w1/w3 corpus the v1.0
+thresholds were frozen against (the odd-parity stall family extends under random
+multi-wait patterns; the 10 step_break rejects are functional-clean and
+fetch-aligned). The remaining 4 done_mismatch + 3 code_mism are real/truncation
+and correctly surface.
+
+**PROPOSAL (reported, NOT applied - per the ruling):** widen the cadence_floor
+thresholds to cover the truncation-free wrand floor:
+- `max_step` 9 -> **15** (covers p95=14; the 17/24 tail still surfaces for review)
+- `slip_per_waited_fetch_max` 0.25 -> **0.40** (covers p95=0.397)
+- keep `abs_slip_cap` 64 (|o| peak 27 << 64) and `spec_skip_frac_max` 0.05.
+
+These would raise the wrand floor accept from 79% to ~96% while leaving the
+top-decile outliers and all func/code-mismatches surfacing. CAVEAT: freeze only
+after a larger budgeted sample (>=500 seeds) confirms the {17,24}-step tail is
+the same odd-parity mechanism and not a distinct class - over-acceptance masking
+a real waits bug is the campaign's #1 risk. Until then v1.0 (max_step=9) stands.

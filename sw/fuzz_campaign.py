@@ -155,7 +155,10 @@ def build(cfg):
             # only, func-clean chip==core) for breadth. Census: task #29 Phase 5.
             knobs = SoupKnobs(p_brkem=0.0, p_tf=0.0, p_undoc=0.0)
         elif cfg.get("brkem_high"):
-            knobs = SoupKnobs(p_brkem=0.020)   # ~50% of ~50-ins seeds carry a BRKEM
+            # ~50% of seeds carry a BRKEM; suppress the OTHER divergence classes
+            # (tf/undoc/random-DS) so the BRKEM-recovery pilot isolates BRKEM.
+            knobs = SoupKnobs(p_brkem=0.020, p_tf=0.0, p_undoc=0.0,
+                              p_sreg_rand=0.0)
         elif cfg.get("no_brkem"):
             knobs = SoupKnobs(p_brkem=0.0)     # keep tf/undoc/sreg breadth (cheap)
         else:
@@ -411,10 +414,15 @@ def cmd_run(a):
     engine = _engine()
     esc_cfg = dict(engine.escalation)
     if a.survey:
-        # census mode: survey ALL w0 TIMING signatures instead of stopping on
-        # the first; the HARD functional/provenance stops + circuit breaker stay
-        # armed. Produces the manual-census corpus the pilot gate requires.
+        # census mode: survey ALL w0 TIMING and (non-provenance) FUNCTIONAL
+        # divergences instead of stopping on the first - for the recovery /
+        # census pilots (BRKEM, raw) where soup breadth legitimately produces
+        # w0 functionals. The HARD capture-integrity stops stay armed: any
+        # provenance alarm and the >=5-consecutive-quarantine circuit breaker
+        # still abort. A w0-mainline BUG-HUNT omits --survey to keep the
+        # functional stop.
         esc_cfg["stop_new_w0_timing_sig"] = False
+        esc_cfg["stop_w0_functional"] = False
         esc_cfg["max_new_sigs"] = 10 ** 9
     esc = EscalationPolicy(esc_cfg)
     cov = fuzz_cov.Coverage()

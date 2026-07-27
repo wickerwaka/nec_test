@@ -252,10 +252,15 @@ def provenance_alarms(real, sim, ctx, window):
     if ctx.real_is_chip and ctx.waits == 0 and not ctx.wrand:
         if any(_tstate(r) == 4 for r in real[:window]):
             alarms.append("tw_in_w0_chip")
-    for tag, recs in (("real", real), ("sim", sim)):
-        present, data = has_done(recs, window)
-        if present and data is not None and data != DONE_SENTINEL:
-            alarms.append(f"done_data_{tag}_{data:04x}")
+    # A forged/corrupt done marker is a real alarm ONLY in Tier A (soup), where
+    # the harness store must emit 0xF00D. Tier B (raw) legitimately forges done
+    # markers with random data (a random OUT 0xFC), so the fixed-window verdict
+    # never trusts them - not an integrity alarm there.
+    if ctx.tier == "A":
+        for tag, recs in (("real", real), ("sim", sim)):
+            present, data = has_done(recs, window)
+            if present and data is not None and data != DONE_SENTINEL:
+                alarms.append(f"done_data_{tag}_{data:04x}")
     for tag, recs in (("real", real), ("sim", sim)):
         seen_run = False
         for r in recs[:window]:
