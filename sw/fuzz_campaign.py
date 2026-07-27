@@ -122,11 +122,14 @@ def derive_case(cid, k, ov=None):
         ax["waits"] = {"wrand": True, "wmax": wmax, "wseed": r.getrandbits(16),
                        "fixed": None}
     ax["strict"] = bool(ov.get("strict"))
+    ax["no_brkem"] = bool(ov.get("no_brkem"))
+    ax["brkem_high"] = bool(ov.get("brkem_high"))
+    ax["mainline"] = bool(ov.get("mainline"))
     w = ax["waits"]
     weff = w["wmax"] if w["wrand"] else w["fixed"]
     ax["nmax_eff"] = max(NMIN, int(NMAX * NMAX_SCALE_C / (NMAX_SCALE_C + weff)))
     core = {kk: ax[kk] for kk in ("tier", "evt", "waits", "wild", "nmax_eff",
-                                  "strict")}
+                                  "strict", "no_brkem", "brkem_high", "mainline")}
     ax["cfg_hash"] = hashlib.sha1(
         json.dumps(core, sort_keys=True).encode()).hexdigest()[:12]
     return ax
@@ -142,8 +145,21 @@ def build(cfg):
         # strict = contained fall-through generation: suppress the deliberate
         # no-done breadth classes (BRKEM 8080-entry, TF single-step storm, undoc
         # opcodes, random-DS window escape) so the pilot measures fall-through.
-        knobs = SoupKnobs(p_brkem=0.0, p_tf=0.0, p_undoc=0.0, p_sreg_rand=0.0) \
-            if cfg.get("strict") else SoupKnobs()
+        if cfg.get("strict"):
+            knobs = SoupKnobs(p_brkem=0.0, p_tf=0.0, p_undoc=0.0, p_sreg_rand=0.0)
+        elif cfg.get("mainline"):
+            # mainline bug-hunt: suppress the DELIBERATE chip-vs-core-divergent
+            # classes (BRKEM 8080-entry, TF single-step, undoc opcodes - the
+            # chip implements behaviours the core intentionally does not) so any
+            # FUNCTIONAL is a REAL mainline divergence. Keep random-DS (window-
+            # only, func-clean chip==core) for breadth. Census: task #29 Phase 5.
+            knobs = SoupKnobs(p_brkem=0.0, p_tf=0.0, p_undoc=0.0)
+        elif cfg.get("brkem_high"):
+            knobs = SoupKnobs(p_brkem=0.020)   # ~50% of ~50-ins seeds carry a BRKEM
+        elif cfg.get("no_brkem"):
+            knobs = SoupKnobs(p_brkem=0.0)     # keep tf/undoc/sreg breadth (cheap)
+        else:
+            knobs = SoupKnobs()
         g = gen_soup(seed, nmin=cfg["nmin"], nmax=cfg["nmax_eff"],
                      evt_pin=pin, wild=cfg["wild"], knobs=knobs)
     if cfg["evt"] and g.get("has_halt"):
@@ -375,6 +391,12 @@ def cmd_run(a):
         ov["no_evt"] = True
     if a.strict:
         ov["strict"] = True
+    if a.no_brkem:
+        ov["no_brkem"] = True
+    if a.brkem_high:
+        ov["brkem_high"] = True
+    if a.mainline:
+        ov["mainline"] = True
     if a.force_evt:
         ov["force_evt"] = True
     if a.force_wrand:
@@ -386,7 +408,14 @@ def cmd_run(a):
           f"jobs={a.jobs} ov={ov}", flush=True)
 
     engine = _engine()
-    esc = EscalationPolicy(engine.escalation)
+    esc_cfg = dict(engine.escalation)
+    if a.survey:
+        # census mode: survey ALL w0 TIMING signatures instead of stopping on
+        # the first; the HARD functional/provenance stops + circuit breaker stay
+        # armed. Produces the manual-census corpus the pilot gate requires.
+        esc_cfg["stop_new_w0_timing_sig"] = False
+        esc_cfg["max_new_sigs"] = 10 ** 9
+    esc = EscalationPolicy(esc_cfg)
     cov = fuzz_cov.Coverage()
     consec_q = real_div = done_ok = done_win = timeouts = 0
     stage_t = {s: [] for s in ("derive", "build", "compose", "capture", "classify")}
@@ -452,7 +481,15 @@ def cmd_run(a):
                     break
 
     cov.save(cdir / "coverage.json")
-    n = done_ok + (0 if a.tb_only else 0)
+    if not a.tb_only:
+        # board etiquette: leave the socketed chip selected (use_core=0)
+        try:
+            g0 = build(derive_case(a.cid, start, ov))
+            img0, _ = check_seq.compose(g0)
+            check_seq.run_chip(img0, a.host, use_core=False)
+            print("  board left use_core=0")
+        except Exception as e:                          # noqa: BLE001
+            print(f"  (post-session use_core=0 note: {e})")
     processed = (res["k"] - start + 1) if 'res' in dir() else 0
     print(f"\n=== run {a.cid}: {processed} seeds in {time.time()-t_start:.1f}s"
           f"{(' STOPPED ' + stopped) if stopped else ''}")
@@ -723,6 +760,16 @@ def main():
     p.add_argument("--no-evt", action="store_true")
     p.add_argument("--strict", action="store_true",
                    help="strict contained fall-through generation (pilot)")
+    p.add_argument("--no-brkem", action="store_true",
+                   help="p_brkem=0 (no 8080-entry dead captures); keeps other breadth")
+    p.add_argument("--brkem-high", action="store_true",
+                   help="p_brkem forced high (~50%% of seeds carry a BRKEM)")
+    p.add_argument("--mainline", action="store_true",
+                   help="suppress deliberate chip-vs-core-divergent classes "
+                        "(brkem/tf/undoc); keep window-only breadth")
+    p.add_argument("--survey", action="store_true",
+                   help="census mode: survey all w0 TIMING sigs (keep the hard "
+                        "functional/provenance stops + circuit breaker)")
     p.add_argument("--force-evt", action="store_true")
     p.add_argument("--force-wrand", default=None, help="comma wmax list, e.g. 1,3,7")
     p.add_argument("--done-dist", default=None)

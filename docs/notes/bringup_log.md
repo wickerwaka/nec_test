@@ -2251,3 +2251,39 @@ over-narrow trap is downgraded to a sim-only observability counter
 (`cov_f7a_coldarm`), matching the file's existing sim-only counter idiom. A
 genuine regression on this path would surface as a functional divergence in the
 fuzz classifier, not this micro-state. No board wedge occurred.
+
+## 2026-07-27 - CORE HANG discovery: pilot-w0 k=30 (task #29 Phase 5, w0 soup pilot)
+
+The w0 soup pilot (campaign `pilot-w0`, strict-contained, w0, no-evt) escalation-
+STOPped on the FIRST real w0 functional divergence at k=30 (`done_mismatch`).
+Forensics confirm a genuine, board-INDEPENDENT **v30_core HANG**:
+
+- Socketed CHIP (use_core=0): runs to the done marker at row 1252, completes the
+  register store normally.
+- Fabric core (use_core=1) AND the Verilator TB (same v30_core RTL): both WEDGE -
+  the bus goes permanently quiet (all PASV/Ti, address float-retained at
+  0x6B942) from row ~741-744 onward; 0 active bus cycles across the remaining
+  ~3300 rows; the done marker is never emitted and the register store never
+  completes. The TB reproduces the hang identically -> not a board/serve
+  artifact, a real core RTL wedge.
+
+Reproduction (deterministic):
+  `python3 sw/fuzz_campaign.py show pilot-w0 30 --contained` (with the strict
+  overrides) regenerates the image; the exact composed image is frozen at
+  `sw/testdata/core_hang_w0k30.hex` (sha256 4451f8f36c658fb7, cfg_hash
+  f64a773cc2ad, 71 contained instrs at w0). `check_seq.run_tb(img, 4200)`
+  returns a capture with NO done marker (last active bus cycle @741).
+
+Characterisation: the hang is SEQUENCE/STATE-dependent - no single instruction
+from the stream reproduces it in isolation (tested the quad-prefix
+`F3 F2 64 F3 0F 19 ...` bitop, REPNZ MOVSB, plain 0F19; all complete). It needs
+the specific prefetch/EU pipeline state the full execution builds up. The stream
+carries several combinations curated fuzzing never exercised (multi-prefix
+stacks incl. REP/REPNZ/REPNC on a 0F bitop, seg-override stacks, a tight LOOPNE,
+REP string ops) - exactly the coverage-vacuity class the campaign targets.
+
+Status: this is a "DIVERGE -> real bug" per the Phase-5 protocol. STOPPED and
+reported; NOT fixed here (RTL debugging is its own task with its own review).
+The core-hang forensics gate the remaining Phase-5 pilots (BRKEM/raw/wrand
+re-cal) and any scaling on coordinator review. No board wedge occurred; the
+board was left use_core=0.

@@ -62,7 +62,10 @@ class SoupKnobs:
     max_prefix: int = 4           # 0..4 prefixes per stack
     p_window_ea: float = 0.75     # windowed-direct vs mod3/wild EA
     p_wild_seed: float = 0.15     # fraction of seeds in wild sub-mode
-    p_brkem: float = 0.005        # per-instruction BRKEM (0F FF ib) rate
+    p_brkem: float = 0.001        # per-instruction BRKEM (0F FF ib) rate. Lowered
+                                  # 0.005->0.001 (task #29 Phase-5 decision): at
+                                  # ~50 ins/seed 0.005 put ~17% of board captures
+                                  # in dead 8080-entry; 0.001 ~= 3.4%/seed.
     p_undoc: float = 0.02         # per-instruction undoc-opcode rate
     p_halt: float = 0.30          # HALT/POLL rate (only when evt pin permits)
     p_tf: float = 0.002           # deliberate TF-set (single-step) rate

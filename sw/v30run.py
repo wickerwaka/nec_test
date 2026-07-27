@@ -249,7 +249,20 @@ class ServeRunner:
     @staticmethod
     def _delta(base, image, gran=256):
         """Block-granular patch stream (u32 off, u16 len, bytes)* for
-        DELTA; empty bytes when the images are identical."""
+        DELTA; empty bytes when the images are identical.
+
+        A differing run is split into <=0xFFFF-byte records so the u16 length
+        field never overflows: a whole-image raw fuzz seed (task #29) can make
+        the entire 64 KB differ in one contiguous run, which struct.pack('<IH')
+        cannot encode. Multiple records are transparent to the serve-side
+        applier (each is applied in turn)."""
+        def emit(start, end):
+            while start < end:
+                clen = min(end - start, 0xFFFF)
+                out.extend(struct.pack("<IH", start, clen))
+                out.extend(image[start:start + clen])
+                start += clen
+
         out = bytearray()
         n = len(image)
         run_start = None
@@ -259,12 +272,10 @@ class ServeRunner:
             if differ and run_start is None:
                 run_start = i
             elif not differ and run_start is not None:
-                out += struct.pack("<IH", run_start, i - run_start)
-                out += image[run_start:i]
+                emit(run_start, i)
                 run_start = None
         if run_start is not None:
-            out += struct.pack("<IH", run_start, n - run_start)
-            out += image[run_start:n]
+            emit(run_start, n)
         return bytes(out) if out else b""
 
     def run(self, image, timeout=3.0, evt=None, iord=None, pins=None,
