@@ -29,6 +29,7 @@ import copy
 import gzip
 import hashlib
 import json
+from collections import Counter
 import os
 import random
 import statistics
@@ -173,6 +174,11 @@ def build(cfg):
 def _weff(cfg):
     w = cfg["waits"]
     return w["wmax"] if w["wrand"] else w["fixed"]
+
+
+def _waits_class_line(line):
+    w = line.get("waits") or {}
+    return "wrand" if w.get("wrand") else f"w{w.get('fixed', 0)}"
 
 
 # ===========================================================================
@@ -320,12 +326,16 @@ def eval_case(cid, k, ov, tb_only, host, build_stale, keep_rows=False):
                         time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()))
     qfill = fuzz_cov.qfill_at_dispatch(real) if real else []
     divergent = v.verdict != fc.SUCCESS
-    rows = (real, sim) if (divergent or keep_rows) and real else None
+    # SUCCESS-ballast candidate: a cheap deterministic ~2% sample keeps its rows
+    # so the driver can gzip a stratified SUCCESS sample (the fab-vs-TB
+    # float-floor alarm at scale); the main loop enforces the per-stratum quota.
+    ballast_cand = (not divergent and real is not None and k % 50 == 0)
+    rows = (real, sim) if (divergent or keep_rows or ballast_cand) and real else None
     return {"k": k, "cfg_hash": cfg["cfg_hash"], "tier": cfg["tier"],
             "line": line, "verdict": v, "ctx": ctx, "di": di,
             "timeout": run_error is not None and tb_only,
             "timings": t, "qfill": qfill, "forms": g["forms"], "ins": g["ins"],
-            "weff": _weff(cfg), "rows": rows}
+            "weff": _weff(cfg), "rows": rows, "ballast_cand": ballast_cand}
 
 
 # ===========================================================================
@@ -431,6 +441,8 @@ def cmd_run(a):
     done_idxs = []
     t_start = time.time()
     stopped = None
+    ballast = Counter()          # SUCCESS-ballast captured per (tier, waits-class)
+    ballast_cap = 100 // 6 + 1   # ~17 per stratum, 100 total, stratified
 
     def handle(res):
         nonlocal consec_q, real_div, done_ok, done_win, timeouts, stopped
@@ -447,7 +459,15 @@ def cmd_run(a):
                 done_win += 1
         if res["timeout"]:
             timeouts += 1
-        if res["rows"] is not None and v.verdict != fc.SUCCESS:
+        # gzip divergent captures always; SUCCESS ballast up to the per-stratum
+        # quota (stratified tier x waits-class) for the fab-vs-TB float-floor alarm
+        want_cap = res["rows"] is not None and v.verdict != fc.SUCCESS
+        if not want_cap and res.get("ballast_cand") and res["rows"] is not None:
+            strat = (res["tier"], _waits_class_line(res["line"]))
+            if sum(ballast.values()) < 100 and ballast[strat] < ballast_cap:
+                ballast[strat] += 1
+                want_cap = True
+        if want_cap:
             gz = cdir / "captures" / f"{res['tier']}_{res['k']}_{res['cfg_hash']}.json.gz"
             with gzip.open(gz, "wt") as g:
                 json.dump({"real": res["rows"][0], "sim": res["rows"][1],
