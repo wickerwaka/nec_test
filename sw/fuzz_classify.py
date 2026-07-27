@@ -376,7 +376,11 @@ def classify(real, sim, ctx, engine=None):
     func = compare_functional(real, sim, window)
     func_mismatch = False
     sub = ""
-    if done_real != done_sim:                       # exactly one reached done
+    # exactly-one-done is functional evidence ONLY in Tier A (soup), where the
+    # harness store must reach the 0xF00D done marker. Tier B (raw) forges done
+    # markers (a random OUT 0xFC) and never trusts done_idx (fixed window), so a
+    # raw done_mismatch is NOT functional - fall through to the txn/cycle compare.
+    if done_real != done_sim and ctx.tier == "A":
         func_mismatch = True
         sub = "done_mismatch"
     elif func.mismatch:
