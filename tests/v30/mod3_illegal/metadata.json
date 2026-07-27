@@ -1,0 +1,39 @@
+{
+ "experiment": "task #30 LEA (0x8D) mod=11 register-operand form",
+ "rig": "sw/char_mod3.py + inline freeze",
+ "truth_source": "SOCKET (use_core=False, EMIT_USE_CORE)",
+ "finding": "LEA reg,rm (mod3) loads the EU stale effective-address latch (last computed EA), independent of rm; 5 cycle-rows; falls through. The core WEDGES at S_HALT on this - the bug. BOUND(62)/LES(C4)/LDS(C5) mod3 HALT on BOTH chip and core (V20 illegal-form halt, ~row 190) - core-correct, NOT fixed.",
+ "stale_ea_probe": [
+  {
+   "pre": "MOV[1234h],AW",
+   "ea": 4660,
+   "si_loaded": 4660,
+   "match": true
+  },
+  {
+   "pre": "MOV[BEEFh],AW",
+   "ea": 48879,
+   "si_loaded": 48879,
+   "match": true
+  },
+  {
+   "pre": "MOV[3010h],AH",
+   "ea": 12304,
+   "si_loaded": 16673,
+   "match": false
+  },
+  {
+   "pre": "MOV CW,[4455h]",
+   "ea": 17493,
+   "si_loaded": 54501,
+   "match": false
+  }
+ ],
+ "n_goldens": 128,
+ "date": "2026-07-27",
+ "halt_class": {
+  "62": "chip+core halt @~190 (match)",
+  "C4": "chip+core halt @~190 (match)",
+  "C5": "chip+core halt @~190 (match)"
+ }
+}
