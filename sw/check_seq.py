@@ -71,6 +71,15 @@ def run_tb(image, n, waits=0, evt=None, wrand=None, wvec=None):
 def _run_tb_in(td, image, n, waits, evt, wrand, wvec):
     img = Path(td) / "img.hex"
     out = Path(td) / "out.txt"
+    # The TB memory is 1 MB FLAT since c78421f (v20 aliasing fix); compose()
+    # images are 64 KB laid out for the old 64KB-mirrored map (reset stub at
+    # image[FFF0], linear FFFF0). An unmirrored 64 KB load leaves the reset
+    # vector reading ZEROS - the CPU executes 00 00 (add [bw+si],al) forever
+    # and the TB leg is silently VACUOUS (sim-only compares zeros to zeros;
+    # chip legs diverge at row ~8). Mirror to the full 1 MB, matching what
+    # the chip-side rig's address decoding gives the socket.
+    if len(image) == (1 << 16):
+        image = bytes(image) * 16
     img.write_text("\n".join(f"{b:02x}" for b in image) + "\n")
     args = [str(BIN), f"+bootimg={img}", f"+bootn={n}",
             f"+waits={waits}", f"+out={out}"]
