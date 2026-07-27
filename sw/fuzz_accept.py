@@ -254,6 +254,80 @@ class LeaMod3Rule:
         return None
 
 
+def open_bus_escape_metrics(real, window):
+    """Chip-side open-bus escape signature. On this rig, CODE fetches to
+    addresses OUTSIDE the loaded 64K image (linear >= 0x10000) read back pure
+    address feedthrough (ad_data == ad_addr & 0xFFFF) - nothing drives the
+    multiplexed AD bus, so the CPU executes its own address bits. A raw-whole
+    seed that far-jumps out of the image runs this open-bus stream, where chip
+    and behavioural core legitimately desync (queue-timing on garbage operands).
+
+    Returns (escape_rows, n_out, first_out_row): the T1 rows of feedthrough
+    out-of-image fetches, the total out-of-image code fetches, and the first
+    out-of-image fetch row."""
+    esc_rows = []
+    n_out = 0
+    first_out = None
+    n = min(window, len(real))
+    for i in range(n):
+        r = real[i]
+        if fc._tstate(r) == 1 and r["bs_early"] == 4:
+            a = r["ad_addr"] & 0xFFFFF
+            if a >= 0x10000:
+                n_out += 1
+                if first_out is None:
+                    first_out = i
+                if r["ad_data"] == (a & 0xFFFF):
+                    esc_rows.append(i)
+    return esc_rows, n_out, first_out
+
+
+class OpenBusEscapeRule:
+    """Raw-tier accepted class: the seed's execution ESCAPED the loaded 64K
+    image into unmapped space, where the rig returns open-bus address
+    feedthrough and chip/core desync on garbage operands (task #29 P7, k=16).
+    Accept iff the chip capture shows a sustained feedthrough escape BEFORE the
+    first divergent row; a divergence BEFORE the escape point is a real in-image
+    bug and the rule REFUSES (same fail-safe as brkem_gap). Raw tier only -
+    soup stays in the loaded image by construction.
+
+    NOTE (board vs TB): out-of-image reads differ by leg source. The BOARD
+    returns address feedthrough (data == addr & 0xFFFF); the Verilator TB
+    mirrors the 64K image (addr & 0xFFFF), so a banked raw escape replayed
+    chip-vs-TB will NOT show the same open-bus stream. The bank stores the
+    chip-vs-TB round-trip verdict AT BANK TIME, which already absorbs this; this
+    rule keys on the CHIP capture only (vctx['real'])."""
+    covers = ("functional", "timing")
+    name = "open_bus_escape"
+
+    def __init__(self, cfg):
+        self.cfg = cfg
+        self.min_fetches = cfg.get("min_escape_fetches", 8)
+        self.frac_min = cfg.get("escape_frac_min", 0.5)
+
+    def apply(self, vctx):
+        ctx = vctx["ctx"]
+        if ctx.tier != "B":                     # raw only
+            return None
+        dr = vctx["dr"]
+        esc, n_out, _first_out = open_bus_escape_metrics(vctx["real"], dr.n)
+        if len(esc) < self.min_fetches:
+            return None                         # no sustained escape -> surface
+        if n_out and len(esc) / n_out < self.frac_min:
+            return None                         # out-of-image but not open-bus
+        escape_row = esc[0]
+        fb = dr.first
+        if fb is not None and fb < escape_row:
+            return None                         # divergence BEFORE escape -> real
+        frac = len(esc) / max(1, n_out)
+        vctx["sub_out"] = (f"open_bus:escape@{escape_row} "
+                           f"feed={len(esc)}/{n_out} ({frac:.2f})")
+        return RuleHit(self.name, "open_bus",
+                       f"raw open-bus escape: {len(esc)} feedthrough fetches "
+                       f"(escape row {escape_row}, first_bad {fb}); "
+                       f"out-of-image feed-frac {frac:.2f}", vctx["covers"])
+
+
 class CadenceFloorRule:
     covers = ("timing",)
     name = "cadence_floor"
@@ -335,6 +409,8 @@ class AcceptEngine(fc.AcceptEngine):
                 rules.append(BrkemGapRule(r))
             elif r["type"] == "lea_mod3":
                 rules.append(LeaMod3Rule(r))
+            elif r["type"] == "open_bus_escape":
+                rules.append(OpenBusEscapeRule(r))
             elif r["type"] == "cadence_floor":
                 rules.append(CadenceFloorRule(r))
         sdoc = {}

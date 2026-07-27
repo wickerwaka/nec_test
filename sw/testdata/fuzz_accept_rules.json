@@ -18,6 +18,16 @@
       "_desc": "Task #30 accepted class: illegal LEA reg,reg (mod=11) loads the chip's stale EA latch, which the behavioural core reproduces exactly only in moffs contexts (cycle-rows always match). Accepts iff the seed carries a lea-mod3 AND the arch-dump diff is confined to that LEA's dest register - strict fail-safe (anything else differing -> refuse -> surface)."
     },
     {
+      "type": "open_bus_escape",
+      "name": "open_bus_escape",
+      "enabled": true,
+      "covers": ["functional", "timing"],
+      "min_escape_fetches": 8,
+      "escape_frac_min": 0.5,
+      "_desc": "Raw-tier (B) accepted class: execution far-jumped OUT of the loaded 64K image into unmapped space, where the board returns open-bus address feedthrough (data == addr & 0xFFFF) and chip/core desync on garbage operands (task #29 P7, k=16). Positional fail-safe like brkem_gap: accept iff the chip capture shows >= min_escape_fetches feedthrough out-of-image CODE fetches (>= escape_frac_min of all out-of-image fetches) with the escape BEFORE first_bad; a divergence before the escape point is a real in-image bug -> refuse -> surface.",
+      "_board_vs_tb": "Out-of-image reads are BOARD-specific: the board feeds back the address (open bus), the Verilator TB mirrors the 64K image. This rule keys only on the CHIP capture (vctx.real). Banked raw escapes replay chip-vs-TB; the stored round-trip verdict at bank time already absorbs the board-vs-TB out-of-image difference."
+    },
+    {
       "type": "cadence_floor",
       "name": "cadence_floor",
       "enabled": true,

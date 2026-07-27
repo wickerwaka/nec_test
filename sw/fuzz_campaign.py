@@ -46,7 +46,7 @@ import check_seq                                        # noqa: E402
 import fuzz_classify as fc                              # noqa: E402
 import fuzz_cov                                         # noqa: E402
 import optable                                          # noqa: E402
-from fuzz_accept import AcceptEngine                    # noqa: E402
+from fuzz_accept import AcceptEngine, open_bus_escape_metrics   # noqa: E402
 from fuzz_classify import Ctx, classify, EscalationPolicy  # noqa: E402
 from gen_soup import gen_soup, SoupKnobs                 # noqa: E402
 from gen_raw import gen_raw                              # noqa: E402
@@ -324,6 +324,13 @@ def eval_case(cid, k, ov, tb_only, host, build_stale, keep_rows=False):
     di = fc._done_idx(real) if real else None
     line = result_line(cfg, g, sha, v, di, _gen_git(), build_stale,
                         time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()))
+    # raw-tier open-bus escape metric: how much of the run left the 64K image
+    # into open-bus feedthrough space (task #29 P7; drives the rollup escape
+    # fraction and the open_bus_escape accept rule).
+    if cfg["tier"] == "raw" and real:
+        esc, n_out, _ = open_bus_escape_metrics(real, v.n)
+        line["ob_escape"] = {"feed": len(esc), "out": n_out,
+                             "frac": round(len(esc) / n_out, 3) if n_out else 0.0}
     qfill = fuzz_cov.qfill_at_dispatch(real) if real else []
     divergent = v.verdict != fc.SUCCESS
     # SUCCESS-ballast candidate: a cheap deterministic ~2% sample keeps its rows

@@ -72,6 +72,79 @@ def _fetch_cap(addrs, waited=None, gaps=None):
     return rows
 
 
+def _ob_fetch(addr, feed=True):
+    """A CODE fetch whose T1 row carries open-bus feedthrough (ad_data ==
+    addr & 0xFFFF) when feed=True, else a normal (non-feedthrough) fetch. The
+    rule reads the T1 row's ad_data, mirroring the real captures."""
+    data = (addr & 0xFFFF) if feed else ((addr + 0x100) & 0xFFFF)
+    return [{"t": 1, "bs_early": 4, "qs": 1, "ube_n": 0, "ad_addr": addr,
+             "ad_data": data, "ps": 0},
+            {"t": 2, "bs_early": 4, "qs": 0, "ube_n": 0, "ad_addr": addr,
+             "ad_data": data, "ps": 0},
+            {"t": 3, "bs_early": 4, "qs": 0, "ube_n": 0, "ad_addr": addr,
+             "ad_data": data, "ps": 0},
+            {"t": 5, "bs_early": 4, "qs": 0, "ube_n": 0, "ad_addr": addr,
+             "ad_data": data, "ps": 0}]
+
+
+def test_open_bus():
+    eng = fa.AcceptEngine.load()
+    R = fa.OpenBusEscapeRule({"min_escape_fetches": 8, "escape_frac_min": 0.5})
+    # 2 in-image fetches, then 12 out-of-image feedthrough fetches (the escape)
+    real = _ob_fetch(0x0500) + _ob_fetch(0x0502)
+    escape_first = len(real)                       # first out-of-image row
+    for k in range(12):
+        real += _ob_fetch(0x10000 + 0x2000 * k + k)
+    n = len(real) + 20
+
+    esc, n_out, fo = fa.open_bus_escape_metrics(real, n)
+    check("escape metrics: 12 feedthrough / 12 out-of-image",
+          len(esc) == 12 and n_out == 12, f"(feed={len(esc)} out={n_out})")
+    check("first out-of-image row located", fo == escape_first, f"({fo})")
+
+    # accept: divergence AFTER the escape point
+    v = dict(covers="functional", ctx=fc.Ctx(tier="B"), real=real,
+             dr=_dr(escape_first + 8, n), sim=None)
+    hit = R.apply(v)
+    check("open_bus accept when div after escape",
+          hit is not None and hit.klass == "open_bus", f"({hit})")
+
+    # refuse: divergence BEFORE the escape point (a real in-image bug)
+    v = dict(covers="functional", ctx=fc.Ctx(tier="B"), real=real,
+             dr=_dr(1, n), sim=None)
+    check("open_bus REFUSES div before escape", R.apply(v) is None)
+
+    # refuse: fewer than min_escape_fetches feedthrough fetches
+    short = _ob_fetch(0x0500) + _ob_fetch(0x10000) + _ob_fetch(0x12000)
+    v = dict(covers="functional", ctx=fc.Ctx(tier="B"), real=short,
+             dr=_dr(len(short) + 1, len(short) + 10), sim=None)
+    check("open_bus REFUSES below min_escape_fetches", R.apply(v) is None)
+
+    # refuse: out-of-image but NOT feedthrough (a real out-of-image bug, not
+    # open-bus) -> must not be masked
+    nonfeed = _ob_fetch(0x0500)
+    for k in range(12):
+        nonfeed += _ob_fetch(0x10000 + 0x2000 * k, feed=False)
+    v = dict(covers="functional", ctx=fc.Ctx(tier="B"), real=nonfeed,
+             dr=_dr(len(nonfeed) + 1, len(nonfeed) + 10), sim=None)
+    check("open_bus REFUSES non-feedthrough out-of-image", R.apply(v) is None)
+
+    # refuse: soup tier (A) never triggers - soup stays in-image by construction
+    v = dict(covers="functional", ctx=fc.Ctx(tier="A"), real=real,
+             dr=_dr(escape_first + 8, n), sim=None)
+    check("open_bus REFUSES tier A (soup)", R.apply(v) is None)
+
+    # full classify path -> KNOWN_ACCEPTED / open_bus (real diverges from sim
+    # AFTER the escape; both share the in-image prefix)
+    sim = real[:escape_first] + [_pasv()] * (n - escape_first)
+    v = fc.classify(real, sim, fc.Ctx(tier="B", real_is_chip=True), engine=eng)
+    check("open_bus seed -> KNOWN_ACCEPTED", v.verdict == fc.KNOWN_ACCEPTED,
+          f"({v.verdict}/{v.sub})")
+    check("open_bus KNOWN_ACCEPTED carries a rule hit", len(v.rule_hits) >= 1)
+    check("engine counted the open_bus hit", eng.hits["open_bus_escape"] >= 1,
+          f"(hits={eng.hits})")
+
+
 # ===========================================================================
 def test_brkem():
     eng = fa.AcceptEngine.load()
@@ -276,6 +349,7 @@ def test_invariant_and_counting():
 
 def main():
     print("test_fuzz_accept:")
+    test_open_bus()
     test_brkem()
     test_cadence()
     test_lea_mod3()

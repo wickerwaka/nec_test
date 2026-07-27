@@ -67,12 +67,25 @@ def report(cids):
     for cid, r in all_rows:
         for h in r.get("rule_hits", []):
             rh[h["klass"]] += 1
-    for klass in ("8080-gap", "cadence", "lea-mod3"):
+    canon = ("8080-gap", "cadence", "lea-mod3", "open_bus")
+    for klass in canon:
         c = rh.get(klass, 0)
         L.append(f"- {klass}: {c}{'  <-- STALE (zero hits)' if c == 0 else ''}\n")
     for klass, c in rh.items():
-        if klass not in ("8080-gap", "cadence", "lea-mod3"):
+        if klass not in canon:
             L.append(f"- {klass}: {c}\n")
+
+    # 2b. raw open-bus escape budget: how much of the raw-whole population
+    # far-jumps out of the 64K image into open-bus feedthrough space.
+    raw = [r for cid, r in all_rows if r["tier"] == "raw" and r.get("ob_escape")]
+    if raw:
+        escaped = [r for r in raw if r["ob_escape"]["feed"] >= 8]
+        fracs = sorted(r["ob_escape"]["frac"] for r in raw)
+        med = fracs[len(fracs) // 2]
+        L.append("\n## Raw open-bus escape budget\n\n"
+                 f"- raw seeds with capture: {len(raw)}; escaped (>=8 feedthrough "
+                 f"fetches): {len(escaped)} ({100 * len(escaped) / len(raw):.0f}%); "
+                 f"median out-of-image feed-fraction: {med:.2f}\n")
 
     # 3. signatures
     sigs = Counter(r["sig"] for cid, r in all_rows if r.get("sig"))
