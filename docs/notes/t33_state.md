@@ -121,6 +121,82 @@ RECOMMENDATION: do NOT invest rebuild effort in a standalone multi-push bus-hold
 law; account it under the class5 Tw-parity family. Census-first + this probe
 prevented a rebuild investment in a ~small-mass cell that looked broad.
 
+## STAGE 2b PROBE 2 — k=15 qs-split — ORDERING/ARBITRATION (H-ARB), board-free
+
+k=15 (soup, wrand w2, done_mismatch) capture divergence (ordinal 158, chip vs
+board-fabric = board data): the chip interleaves a CODE prefetch (0x57e) BETWEEN a
+MEMR (0x2747) and an RMW (MEMR/MEMW 0x2cfe); the fabric does the RMW FIRST then the
+prefetch. An ADJACENT TRANSPOSITION of prefetch vs EU-RMW-read = a +N/-N PAIR. This
+is the class5 **H-ARB / paired-ordering** family (arbitration = queue-demand vs EU-
+readiness, eu_ready-keyed) whose arbiter-rekey arc closed NO-GO (only 122u/544
+want_eu-decided; swap sites had eu_ready=1, chip prefetched anyway, predicate
+coverage/false-flip failed both gates). Folds into H-ARB; no new board time (the
+capture is chip-vs-board-fabric). Mass = in the PAIRED component.
+
+## STAGE 2b PROBE 3 — CODE->CODE NET-DRIFT (board-free) — MOSTLY SCATTER
+
+Per-transition + per-seed cumulative over the family (chip vs board-fabric):
+- CODE->CODE: mass +18049/-16787 = **net +1262 (3.6%)**; per-seed cumulative ZERO
+  for 1534/2313. CODE->CODE is bidirectional SCATTER (class5 resume-law +-slot
+  jitter at the observable floor), NOT net accumulation.
+- **The census "62% unpaired" OVERSTATED net-drift** (adjacency-3 matcher artifact).
+  True per-seed net: waited-TIMING (1771) abs|ge| 54714 but sum|net| only 5610
+  (10%) - 1209/1771 seeds |net|<=2 => 90% SCATTER. done_mismatch (542) is the
+  genuine net-directional tail (fabric BEHIND, median -3; real accumulation past the
+  alignment cutoff -> truncation), abs 17724 / sum|net| 2400.
+- prev_tw asymmetry: prev_tw=0 net -3333 (fabric later after a non-waited pred);
+  prev_tw>=2 net positive. Higher-tw cells (4-15) higher err% (9-14%) small n.
+
+## STAGE 3 — LAW-FITTING REPORT (for Codex review before canonization)
+
+### The mc1 waited-cadence residual (72438 |ge| mass, 2313 seeds) decomposes as:
+| family | mass% | nature | disposition |
+|---|---|---|---|
+| CODE->CODE resume scatter | 48% | class5 resume-law +-slot jitter; per-seed ~0 net | at OBSERVABLE FLOOR (class5 laws fit the mechanism); rebuild must REPRODUCE, won't reduce |
+| EU->CODE + CODE->EU EU-access | 36% | scatter-dominated; CODE->EU = largest NEVER-ATTACKED block | rebuild OPPORTUNITY (class5 never fully attacked; needs model-internal frame) |
+| EU->EU multi-access | 15.6% | NEW at mc1 scale (class5 ~1%): string/RMW/ENTER-walk/multi-push; highest per-transition err | rebuild OPPORTUNITY; incl. the DEMOTED multi-push bus-hold (small, Tw-parity) |
+| ordering/arbitration (H-ARB) | (paired, cross-cell) | prefetch-vs-EU swaps at queue-splits (k=15) | characterized; rekey NO-GO; +-1-slot floor |
+| done_mismatch net-drift tail | (542 seeds) | fabric net-BEHIND, accumulates past alignment | genuine directional bias to nail |
+
+### Candidate laws + mass-explained
+1. **class5 resume law** (successor_T1=max(demand_slot, pred_T4+turnaround_floor);
+   demand-deadline L(q_cnt,age); midband_pause q_cnt3-4 band_age>=2; capacity
+   back-to-back<=occ4/pause>=occ5) — explains the bulk of CODE->CODE; RESIDUAL is
+   the observable-floor scatter (chip-internal fetch-scheduler micro-state).
+2. **class5 Tw-parity (H-PHASE)**: even/odd Tw displacement; explains the demoted
+   multi-push bus-hold cell + RMW-write parity. SMALL mass, landed mechanism.
+3. **class5 H-ARB ordering**: eu_ready-keyed prefetch-vs-EU arbitration; explains the
+   PAIRED/ordering swaps (k=15); rekey NO-GO -> +-1-slot floor.
+4. **EU-access timing (EU->EU + CODE->EU)**: NOT yet a fitted law at mc1 scale - the
+   class5 corpus was single-access. This 52%-of-mass block is the rebuild's PRIMARY
+   fittable territory; needs the model-internal frame (TB re-run) to key.
+
+### RANKED rebuild requirements (from-scratch bus-grid queue/prefetch model)
+1. **MUST reproduce the class5 laws** (resume demand-deadline, midband, Tw-parity,
+   capacity, H-ARB eu_ready arbitration) - they are silicon-confirmed and cover the
+   CODE->CODE + ordering bulk; a rebuild that doesn't will regress these.
+2. **PRIMARY new fitting target = the EU-access cells (EU->EU 15.6% + CODE->EU 16.8%,
+   ~32% combined)** - the mc1 multi-access geometry (string/RMW/ENTER-walk) the
+   single-access class5 corpus never exercised. This is where the rebuild can reduce
+   mass class5 could not. Needs the model-internal (occ/q_cnt/eval_ext) frame.
+3. **The bulk is SCATTER at the observable floor** (90% of TIMING mass cancels per-
+   seed) - the rebuild should NOT expect to eliminate it; it is chip-internal micro-
+   state (class5's established closure classes: built-law scatter / temporal-
+   observability / state-identity / key-exhaustion).
+4. **done_mismatch net-drift tail** - a small directional bias (fabric slow) to nail;
+   the only clear net-accumulation signal.
+
+### KEY CORRECTIONS this stage banked
+- The census 62%-unpaired OVERSTATED net-drift (adjacency-matcher artifact); the
+  bulk is scatter at the class5 floor.
+- The multi-push bus-hold DEMOTED to a narrow Tw-parity cell (small mass).
+- k=15 qs-split = H-ARB ordering (already characterized, rekey NO-GO).
+- The NEW mass vs class5 = the EU-access multi-access block (the rebuild's opportunity).
+
+-> ROUTE TO CODEX critical review (challenge the w0 assumptions + the prefetch/BIU
+reasoning, esp. the "observable floor" and EU-access-opportunity claims) before this
+becomes the rebuild foundation.
+
 ## Open threads / next stages
 - STAGE 2 (fitting): run gaperr's per-transition frame over the mc1 waited-cadence
   family (or a stratified sample) to get the CONTEXT-TUPLE census (occ, tw, kind,
