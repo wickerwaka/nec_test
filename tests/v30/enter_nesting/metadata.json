@@ -1,0 +1,21 @@
+{
+ "experiment": "ENTER/PREPARE (0xC8) nesting 0..255 x 2 BP/stack contexts - the full 8-bit stack-frame walk",
+ "rig": "sw/char_enter.py",
+ "truth_source": "SOCKET (use_core=False)",
+ "finding": "The V30 does NOT mask the ENTER nesting level: pushes = nesting+1 for all 0..255 (BP + level-1 frame-pointer copies + FrameTemp). The fabric core masked it mod 32 (pushes=(nest&0x1f)+1) - fixed in v30_eu.sv (a4_k full 8-bit, no [4:0] mask). a4_k/a4_cnt were already 8-bit SS-mapped flops, so no savestate widening.",
+ "n_goldens": 512,
+ "contexts": [
+  {
+   "BP": 16352,
+   "SP": 16128,
+   "fsize": 16
+  },
+  {
+   "BP": 16288,
+   "SP": 16000,
+   "fsize": 0
+  }
+ ],
+ "worst_case": "nest=255 -> 256 MEMW pushes; fits the 4200-row w0 window (verified ~4199 rows).",
+ "date": "2026-07-27"
+}

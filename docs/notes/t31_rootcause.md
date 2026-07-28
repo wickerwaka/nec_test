@@ -145,3 +145,31 @@ probe MATCHES chip=fabric - both clean (w0) AND with wrand (wmax 2/7), nesting
 the walked frame-pointer memory content, or a different instruction than the
 ENTER), NOT reproducible in isolation. Distinct from the nesting-mask class.
 Remains open for the next characterization pass.
+
+## ENTER nesting-mask FIX LANDED (task #31, RTL)
+
+Fix (v30_eu.sv S_PREP_L): the nesting level is loaded FULL 8-bit -
+`a4_k <= q_byte[7:0]` (was `{3'd0, q_byte[4:0]}` - the mod-32 mask), and the
+level==0 / level==1 dispatch checks use `q_byte[7:0]`. The 8-bit copy loop
+(a4_cnt 1..a4_k-1) already handled the full range; only the load was masked.
+
+**Savestate: NO map change.** a4_k and a4_cnt are already `reg [7:0]` and already
+SS-mapped at full 8-bit width (SSA_E_A4_K / SSA_E_A4_CNT). The bug was purely the
+5-bit mask on the value loaded into the already-8-bit flop, so no flop widening,
+no SS_VERSION bump. ss_lint PASS (203 symbols, unchanged).
+
+**Verification (TB rebuilt):** the fixed core now pushes nesting+1 for the whole
+0..255 range (was (nest&0x1f)+1): nest 32->33, 63->64, 125->126, 255->256, all
+matching the chip. nest=255 (256 pushes) fits the 4200-row w0 window (~4199 rows,
+verified). The 6 residue seeds' ENTER divergence disappears (k=4677/6436 SUCCESS,
+k=5586/5699 TIMING; k=3075/3897 reduce to the pre-existing chip-vs-TB startup
+delta at row ~11, unrelated to ENTER).
+
+**Tranche:** tests/v30/enter_nesting/ - 512 chip goldens (nesting 0..255 x 2
+BP/stack contexts, sw/char_enter.py, EMIT_USE_CORE socket truth). Standing gate
+sw/check_enter_nesting.py replays each in the TB and asserts the stack-region
+ENTER walk (push/copy count + ordered addr/data stream) matches the chip.
+
+Quartus/reflash: the fabric on the board is UNCHANGED (masked). The fix rides the
+NEXT Quartus batch; no reflash needed until a board-comparison campaign wants the
+fixed fabric. TB replay (chip goldens) is the gate until then.

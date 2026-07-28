@@ -8,3 +8,4 @@ sw/testdata/chipcache/
 # tests/v30/fuzz_bank/. Specific evidence captures are committed explicitly.
 sw/testdata/campaigns/*/captures/
 sw/testdata/campaigns/*/heartbeat.json
+tests/v30/*/heartbeat.json

@@ -3295,11 +3295,15 @@ always_ff @(posedge clk) begin
                 if (eu_done) prep_bpd <= 1'b1;
                 if (dly != 6'd0) dly <= dly - 6'd1;
                 else if (q_pop) begin
-                    a4_k <= {3'd0, q_byte[4:0]};  // level (mod 32)
+                    a4_k <= q_byte[7:0];         // level (full 8-bit: the V30
+                                                 // does NOT mask nesting mod 32,
+                                                 // unlike the 186/286 - task #31.
+                                                 // a4_k/a4_cnt are already 8-bit
+                                                 // flops + SS-mapped, so no widen)
                     pc <= pc + 16'd1;
                     a4_cnt <= 8'd1;
                     w4skip <= 1'b0;
-                    if (q_byte[4:0] == 5'd0) begin
+                    if (q_byte[7:0] == 8'd0) begin
                         // retire at max(level-pop+4, push done) -
                         // fitted on all four level-0 geometries
                         // (queue-limited cases had masked the floor)
@@ -3311,8 +3315,8 @@ always_ff @(posedge clk) begin
                         // pointer-copy read ready pop+7 with the bus
                         // reserved through the BP push (closure block:
                         // both split geometries pin the slot)
-                        dly <= (q_byte[4:0] == 5'd1) ? 6'd6 : 6'd6;
-                        wnext <= (q_byte[4:0] == 5'd1) ? S_PREP_W3A
+                        dly <= (q_byte[7:0] == 8'd1) ? 6'd6 : 6'd6;
+                        wnext <= (q_byte[7:0] == 8'd1) ? S_PREP_W3A
                                                        : S_PREP_RDGO;
                         state <= S_WAITX;
                     end
