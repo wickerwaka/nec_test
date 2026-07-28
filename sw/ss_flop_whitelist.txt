@@ -1,0 +1,16 @@
+# ss_flopcensus whitelist -- architectural flops intentionally NOT in the SSA_ map.
+#
+# Format: one entry per line, `signal_name  # justification`.
+# The justification (text after #) is MANDATORY; an entry without one FAILS.
+#
+# An entry here is a DELIBERATE decision that a persistent architectural flop
+# need not be save-stated (e.g. it is reconstructed on restore from other saved
+# state, or it is dead between instruction boundaries where savestate snapshots
+# are taken). Do NOT add an entry to silence a genuine savestate gap -- a flop
+# that carries live machine state across an instruction boundary MUST be mapped.
+#
+# Current state (2026-07-28, biu-rebuild baseline): EMPTY. Every architectural
+# flop in v30_biu.sv (76) and v30_eu.sv (105) is SSA_-mapped. Combinational
+# `output reg` outputs (eu_req/eu_ready/eu_soon) and sim-only regs
+# (cov_*/dbg_*/law_dcnt_probe/cyc_saw_tw/pfx_last_op/pfx_grace) are exempt by
+# classification, not by whitelist.

@@ -11,15 +11,20 @@ Checks:
      v30_biu.sv (once in the registered read mux, once in the write decode),
      and every SSA_E_* EXACTLY twice in v30_eu.sv. A count != 2 means a missing
      or duplicated read/write arm.
-  2. Region counts match the package: 82 BIU + 119 EU + 1 tag = 202 (SS_COUNT).
+  2. Region counts match the package: 82 BIU + 120 EU + 1 tag = 203 (SS_COUNT).
   3. The declared SSA_* symbol sets are exactly the ones referenced by the RTL
      (no orphan address constants, no undeclared references).
-  4. Package header constants: SS_VERSION == 0x02, SS_COUNT == 202,
-     SS_TAG == {SS_VERSION, SS_COUNT} == 0x02CA.
+  4. Package header constants: SS_VERSION == 0x03, SS_COUNT == 203,
+     SS_TAG == {SS_VERSION, SS_COUNT} == 0x03CB.
+  5. (via sw/ss_flopcensus.py, invoked here) the FLOP-CENSUS-vs-MAP invariant:
+     every architectural flop declared in the RTL is SSA_-mapped or whitelisted
+     -- closing the "new unmapped flop passes vacuously" blind spot booked in
+     docs/notes/standing_gates.md (meta-finding #3).
 
 Exit 0 = clean, non-zero = a listed violation. No build required.
 """
 import re
+import subprocess
 import sys
 from pathlib import Path
 
@@ -105,6 +110,15 @@ def main():
             print(f"  - {e}")
         return 1
     print("ss_lint: PASS (82x2 BIU + 120x2 EU + tag = 203; constants OK)")
+
+    # --- flop-census-vs-map (sibling check; the unmapped-flop blind-spot fix) ---
+    print()
+    sys.stdout.flush()
+    census = subprocess.run(
+        [sys.executable, str(ROOT / "sw/ss_flopcensus.py")])
+    if census.returncode != 0:
+        print("ss_lint: FAIL (flop census)")
+        return census.returncode
     return 0
 
 
