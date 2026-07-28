@@ -69,17 +69,22 @@ w0-ONLY and vacuous for this bug — the fix must add waited chip goldens.
 adf236c collapse+residue • c209819 k6475 root-cause • c49eb84 whitelist resolved •
 c5b92d8 raw lea_mod3 rule • bff914b ENTER root-cause • efdd0b8 ENTER RTL fix+tranche
 
-## Fuzz-bank re-freeze — OWED (both ENTER fixes; not a regression)
-check_fuzz_bank on the PUSH-BP fix: **worse 0, gen_drift 0** (non-strict PASS), but
-`--strict` fails on **138 improved + 64 new-sig TIMING**. Root: the bank was last
-frozen at **b532a6e (07-27 19:09)**, BEFORE both #31 ENTER RTL fixes (nesting-mask
-efdd0b8 07-28 05:06 AND the PUSH-BP fix) — so the 138 improvements are the combined
-effect of both fixes on a stale bank (many `t30-raw/*` FUNCTIONAL->TIMING/KA/SUCCESS,
-i.e. ENTER-under-waits value bugs now cadence-only). NO regression. OWED follow-up:
-re-freeze the bank + add the 64 new TIMING sigs to sig_ledger.json (the "queue
-retire" workflow), covering BOTH ENTER fixes. Deferred as scoped bank-maintenance
-(don't silently mutate 138 goldens); non-strict gate is green so it does not block
-the fix landing. Do at/with the #31 close-out or when the coordinator rules.
+## Close-out: Quartus + reflash DONE (both ENTER fixes now on-board)
+Forced full compile (rm db/incremental_db/*.sof + make all): **0 errors**, worst-
+case setup slack **+4.647 ns**, hold +0.253, recovery +29.157, removal +1.120,
+min-pulse +1.196; 303 warnings; .sof 6.7 MB (sw/t31_quartus.log). safe_flash:
+configuration succeeded, VERIFY clean (pwr_good/cpu_running/MAGIC ok), flash_log.
+jsonl pinned (sha256 2df26239...), board left use_core=0. POST-REFLASH on-board
+validation (ENTER 0xa,3): w2 FABRIC now 4 pushes == CHIP 4 (was 3 pre-flash) —
+the PUSH-BP drop is fixed on-board; both ENTER fixes live.
+
+## Fuzz-bank re-freeze — DONE (close-out; both ENTER fixes)
+Before: bank frozen at b532a6e (07-27 19:09), BEFORE both ENTER fixes -> --strict
+showed 138 improved + 64 new-sig TIMING (worse 0). Re-froze at close-out: re-promote
+all 3 cids (mc1 1295 + t30-raw 568 + t30-brkem 85 = 1948, stable membership) with
+the current fixed TB -> replay_verdict refreshed + sig_ledger updated. **After:
+check_fuzz_bank --strict PASS | stable 1948, improved 0, worse 0, gen_drift 0,
+new-sig TIMING 0.** The bank now reflects the fixed core.
 
 ## Process rule (standing)
 Long jobs: detached `nohup`/`setsid` + **LOG-MTIME polling** (until-loop on the log
