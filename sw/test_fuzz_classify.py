@@ -117,6 +117,36 @@ def main():
     check("provenance alarm tw_in_w0_chip", "tw_in_w0_chip" in v.alarms,
           f"(alarms={v.alarms})")
 
+    # --- 5. done_data provenance: SHARED corruption vs ONE-SIDED junk -------
+    # (task #29 P7, mc1 k=9192). A corrupt store stub is shared -> both legs
+    # emit the same non-sentinel done data -> QUARANTINE. A one-sided junk done
+    # write (a fall-through program that wanders into port 0xFC on one leg only)
+    # is a functional divergence, NOT a capture-integrity STOP.
+    def _set_done_data(rs, junk):
+        dt = _find_done_t1(rs, len(rs))
+        tx = next(t for t in fc.extract_txns(rs) if t["start"] == dt)
+        for j in range(tx["start"], tx["end"] + 1):
+            if fc._tstate(rs[j]) in (2, 3, 4):
+                rs[j]["ad_data"] = junk
+    # shared: both legs carry junk done (no escape) -> QUARANTINE
+    r_shared = copy.deepcopy(rows)
+    s_shared = copy.deepcopy(rows)
+    _set_done_data(r_shared, 0x00C5)
+    _set_done_data(s_shared, 0x00C5)
+    v = fc.classify(r_shared, s_shared, fc.Ctx(tier="A", waits=1,
+                                               real_is_chip=True))
+    check("shared corrupt done -> QUARANTINE",
+          v.verdict == fc.QUARANTINE and any("done_data_both" in a
+                                             for a in v.alarms),
+          f"(got {v.verdict}/{v.sub})")
+    # one-sided: only the chip leg carries junk done -> NOT a provenance STOP
+    r_one = copy.deepcopy(rows)
+    _set_done_data(r_one, 0x00C5)
+    v = fc.classify(r_one, copy.deepcopy(rows), fc.Ctx(tier="A", waits=1,
+                                                       real_is_chip=True))
+    check("one-sided junk done -> NOT provenance QUARANTINE",
+          not any("done_data" in a for a in v.alarms), f"(alarms={v.alarms})")
+
     # --- escalation STOP dry-run: a w0 un-ruled FUNCTIONAL must STOP ---------
     esc = fc.EscalationPolicy()
     sim = copy.deepcopy(rows)

@@ -527,6 +527,9 @@ def cmd_run(a):
         except Exception as e:                          # noqa: BLE001
             print(f"  (post-session use_core=0 note: {e})")
     processed = (res["k"] - start + 1) if 'res' in dir() else 0
+    _heartbeat(cdir, res["k"] if 'res' in dir() else start, processed - 1,
+               start, t_start, status=(f"stopped:{stopped}" if stopped
+                                        else "done"))
     print(f"\n=== run {a.cid}: {processed} seeds in {time.time()-t_start:.1f}s"
           f"{(' STOPPED ' + stopped) if stopped else ''}")
     if a.measure:
@@ -555,7 +558,24 @@ def cmd_run(a):
     return 1 if stopped and "circuit_breaker" in stopped else 0
 
 
+def _heartbeat(cdir, k, i, start, t_start, status="alive"):
+    """Liveness beacon: a small file rewritten frequently so a watcher can
+    detect a stall/death by MTIME (never by process-wait - the self-matching
+    pgrep watcher lesson, task #29 P7). status='alive' during the run, or the
+    terminal reason ('stopped:...'/'done') at exit."""
+    try:
+        (cdir / "heartbeat.json").write_text(json.dumps({
+            "k": k, "start": start, "done_this_session": (i + 1),
+            "rate": round((i + 1) / max(1e-6, time.time() - t_start), 2),
+            "ts": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+            "status": status}))
+    except Exception:                                       # noqa: BLE001
+        pass
+
+
 def _progress(res, i, start, t_start, cov, cdir):
+    if (i + 1) % 25 == 0:
+        _heartbeat(cdir, res["k"], i, start, t_start)
     if (i + 1) % 500 == 0:
         cov.save(cdir / "coverage.json")
         rate = (i + 1) / (time.time() - t_start)

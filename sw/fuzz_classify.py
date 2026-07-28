@@ -100,6 +100,23 @@ def _done_idx(recs):
     return None
 
 
+def _open_bus_escaped_before(recs, pos, window, min_fetches=8):
+    """True if, before row `pos`, the chip made >= min_fetches out-of-image
+    (linear >= 0x10000) CODE fetches reading pure address feedthrough
+    (ad_data == ad_addr & 0xFFFF) - the rig's open-bus signature. Mirrors
+    fuzz_accept.open_bus_escape_metrics (kept local to avoid a circular import)."""
+    feed = 0
+    for i in range(min(pos, window, len(recs))):
+        r = recs[i]
+        if _tstate(r) == 1 and r["bs_early"] == 4:
+            a = r["ad_addr"] & 0xFFFFF
+            if a >= 0x10000 and r["ad_data"] == (a & 0xFFFF):
+                feed += 1
+                if feed >= min_fetches:
+                    return True
+    return False
+
+
 def diff_rows(real, sim, limit=4000, strict_qs=False, window=None):
     """Structured per-cycle diff. Returns a DiffResult carrying, in row order,
     one RowDiff for every row with any divergence. Column policy is byte-for-
@@ -256,11 +273,29 @@ def provenance_alarms(real, sim, ctx, window):
     # the harness store must emit 0xF00D. Tier B (raw) legitimately forges done
     # markers with random data (a random OUT 0xFC), so the fixed-window verdict
     # never trusts them - not an integrity alarm there.
+    #
+    # SHARED-vs-ONE-SIDED discriminator (task #29 P7, mc1 k=9192): a genuine
+    # corrupt store stub is DETERMINISTIC and SHARED across the chip and the
+    # fabric core (same image, same stub), so BOTH legs emit the same wrong done
+    # data. A ONE-SIDED (or mismatched) non-sentinel done write is a functional
+    # DIVERGENCE, not a capture-integrity failure: k=9192 is a strict-soup
+    # fall-through that wanders past the stub and OUTs junk (0x00c5) to port 0xFC
+    # on the CHIP only (the core never reaches it). The normal classifier handles
+    # that divergence; it must NOT hard-STOP the campaign as a forged store. So
+    # fire the alarm only when both legs agree on a non-sentinel done value AND
+    # neither leg reached the write via an open-bus escape.
     if ctx.tier == "A":
-        for tag, recs in (("real", real), ("sim", sim)):
-            present, data = has_done(recs, window)
-            if present and data is not None and data != DONE_SENTINEL:
-                alarms.append(f"done_data_{tag}_{data:04x}")
+        pr, ddr = has_done(real, window)
+        ps, dds = has_done(sim, window)
+        both = pr and ps and ddr is not None and dds is not None
+        if both and ddr == dds and ddr != DONE_SENTINEL:
+            dpr, dps = _done_idx(real), _done_idx(sim)
+            escaped = ((dpr is not None
+                        and _open_bus_escaped_before(real, dpr, window))
+                       or (dps is not None
+                           and _open_bus_escaped_before(sim, dps, window)))
+            if not escaped:
+                alarms.append(f"done_data_both_{ddr:04x}")
     for tag, recs in (("real", real), ("sim", sim)):
         seen_run = False
         for r in recs[:window]:
