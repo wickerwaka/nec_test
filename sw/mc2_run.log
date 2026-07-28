@@ -1,0 +1,40 @@
+=== mc2 campaign start 2026-07-28T20:11:43Z ===
+--- session 1 (5k) 2026-07-28T20:11:43Z ---
+run mc2: seeds [0,5000) tb_only=False jobs=1 ov={'force_contained': True, 'strict': True}
+  k=499 (6.0/s) last=SUCCESS/clean
+  k=999 (6.1/s) last=KNOWN_ACCEPTED/cadence
+  k=1499 (6.1/s) last=FUNCTIONAL/done_mismatch
+  k=1999 (6.0/s) last=TIMING/timing
+  k=2499 (6.0/s) last=TIMING/timing
+  k=2999 (6.0/s) last=SUCCESS/clean
+  k=3499 (6.0/s) last=TIMING/timing
+  k=3999 (6.1/s) last=SUCCESS/clean
+  k=4499 (6.1/s) last=SUCCESS/clean
+  k=4999 (6.1/s) last=SUCCESS/clean
+  board left use_core=0
+
+=== run mc2: 5000 seeds in 821.8s
+  verdicts (5000): {'SUCCESS': 1972, 'KNOWN_ACCEPTED': 1446, 'FUNCTIONAL': 329, 'TIMING': 1253}
+  rule hits: {'cadence': 961, 'open_bus': 483, 'lea-mod3': 2}
+  distinct signatures: 2155
+session 1 final status: done
+--- session 2 (5k) 2026-07-28T20:25:25Z ---
+run mc2: seeds [5000,10000) tb_only=False jobs=1 ov={'force_contained': True, 'strict': True}
+  k=5499 (6.1/s) last=SUCCESS/window_truncated
+  k=5999 (6.0/s) last=TIMING/timing
+  k=6499 (6.0/s) last=KNOWN_ACCEPTED/cadence
+  k=6999 (6.1/s) last=SUCCESS/clean
+  k=7499 (6.1/s) last=KNOWN_ACCEPTED/cadence
+  k=7999 (6.0/s) last=KNOWN_ACCEPTED/open_bus
+  k=8499 (6.1/s) last=KNOWN_ACCEPTED/open_bus
+  k=8999 (6.0/s) last=TIMING/timing
+  k=9499 (6.0/s) last=TIMING/timing
+  k=9999 (6.0/s) last=KNOWN_ACCEPTED/cadence
+  board left use_core=0
+
+=== run mc2: 5000 seeds in 827.7s
+  verdicts (10000): {'SUCCESS': 3860, 'KNOWN_ACCEPTED': 2962, 'FUNCTIONAL': 654, 'TIMING': 2524}
+  rule hits: {'cadence': 1967, 'open_bus': 993, 'lea-mod3': 2}
+  distinct signatures: 3818
+session 2 final status: done
+MC2_RUN_DONE 2026-07-28T20:39:13Z

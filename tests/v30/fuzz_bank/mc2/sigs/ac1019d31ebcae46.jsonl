@@ -1,0 +1,6 @@
+{"k": 99, "reason": "functional", "verdict": "FUNCTIONAL"}
+{"k": 1730, "reason": "timing_unexplained", "verdict": "TIMING"}
+{"k": 2030, "reason": "timing_unexplained", "verdict": "TIMING"}
+{"k": 2221, "reason": "timing_unexplained", "verdict": "TIMING"}
+{"k": 2710, "reason": "functional", "verdict": "FUNCTIONAL"}
+{"k": 3446, "reason": "timing_unexplained", "verdict": "TIMING"}

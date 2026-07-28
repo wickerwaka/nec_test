@@ -1,0 +1,6 @@
+=== promote mc2 2026-07-28T20:44:42Z ===
+banked 1294 from 10000 results (62447 KB); promotion={'cadence_sample': 18, 'rule_first50:open_bus': 50, 'functional': 256, 'timing_unexplained': 968, 'rule_first50:lea-mod3': 2, '_capped': 1906}
+=== check_fuzz_bank --strict (mc1+mc2+t30) 2026-07-28T21:08:33Z ===
+
+check_fuzz_bank: PASS | 3242 banked seeds | stable 3242 improved 0 worse 0 | gen_drift 0 regen_err 0 | float-floor 0 | new-sig TIMING 0
+MC2_PROMOTE_DONE
