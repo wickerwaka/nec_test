@@ -380,3 +380,47 @@ only after the prior push is accepted. Full per-site list in the commit message.
 **Quartus/reflash:** both ENTER fixes (nesting-mask + PUSH-BP-drop) are sim-proven
 and ride ONE Quartus batch at #31 close; the on-board fabric needs them before any
 future hw-ab campaign (the board fabric is currently the pre-fix bitstream).
+
+## The 7 singles — ALL DISPOSITIONED (item 2); ZERO new mainline bugs
+
+Method: raw seeds regenerate byte-exact (only cfg_hash metadata drifted; image
+sha256 matches the capture), so decode/replay is direct. Compared the FIXED TB
+(both ENTER fixes) against the capture CHIP leg (ground truth) per seed.
+
+- **k=1627** (raw w0): ENTER at 0x583, **nesting=46** (>=32). The nesting-mask bug
+  (pre-fix fabric walked 46&0x1f=14). Fixed-TB now MATCHES the chip (151/151 txns,
+  no divergence). -> FIXED-BY-ENTER-MASK (efdd0b8). The earlier 6-seed mask family
+  missed this one; it is the 7th.
+- **k=4951** (raw wrand w1): ENTER at 0x50d, **nesting=150**. Same mask bug; fixed-
+  TB MATCHES chip (526/526). -> FIXED-BY-ENTER-MASK (8th mask seed).
+- **k=2925** (soup w3): MOV BP,0x3fe0; ENTER 0x0000,1. The PUSH-BP drop (chip MEMW
+  0x3efe=0x3fe0, pre-fix fabric skipped it). Fixed-TB w3 now emits MEMW
+  0x3efe=0x3fe0. -> FIXED-BY-PUSHBP (d104673; 9th pushbp seed).
+- **k=2062** (soup wrand w2): PUSHA (0x60) at 0x500. The chip holds the bus through
+  all 8 PUSHA pushes; the fabric interleaves ONE CODE prefetch (0x504) after the
+  3rd push (fixed-TB still shows F0504 mid-push - my ENTER-only fix correctly does
+  not touch PUSHA). Verdict was done_mismatch (the interleave shifted the done
+  marker). SAME cadence class as the ENTER-w2 walk-vs-prefetch interleave. ->
+  BOOKED #33: the multi-push bus-hold law now spans PUSHA AND ENTER.
+- **k=8398** (raw w0): `8d 3b`=LEA DI,[BP+IY] (DI=BP+IY=0xcd05); `8f fe`=0x8F POP-
+  group with **reg=7** - an UNDOCUMENTED POP encoding (optable 0x8F is group, only
+  /0 defined). Execution stays in-program (0 PCs below 0x500). Board probe
+  (directed): chip `8f fe` reads memory at the modrm-derived EA (~0xcd05=DI),
+  fabric does a plain POP (stack read). Genuine undoc-opcode divergence; the core
+  intentionally does not implement undoc opcode semantics (same basis as the soup
+  p_undoc suppression and the raw-LEA-mod3 gap). -> BOOKED raw-undoc (no RTL fix;
+  optional gen_raw scrub of 0x8F reg!=0 or a raw accept-rule, deferred).
+- **k=2035** (raw w0) & **k=8649** (raw w0): ESCAPE/wander. Execution left the
+  intended 0x500 program (k=8649 down to 0x4c0 via a backward transfer; k=2035
+  below 0x500 too) and did OUT-OF-IMAGE open-bus MEMR (k=2035: 17 of them incl
+  0x71bd8; k=8649: 0x6b559 which feeds the divergent 0x82-RMW EA - chip 0x63db0 vs
+  fabric 0x68f17). Open-bus returns address feedthrough that differs chip-vs-fabric
+  -> register/EA divergence downstream. The KNOWN escape phenomenon (mc1 survey
+  dominant class). -> ACCEPTED escape. NOTE: t31_residue mis-typed these as
+  genuine value bugs (its escape check missed the below-0x500 wander + near-image
+  open-bus sub-forms) - a discriminator refinement is booked (non-blocking).
+
+**Result:** all 22 residue seeds dispositioned. Final tally: 1 LEA-mod3 rule + 8
+ENTER-mask (RTL, efdd0b8) + 9 PUSH-BP (RTL, d104673) + 1 PUSHA-interleave (#33) +
+1 raw-undoc 0x8F + 2 escape = 22. **No new mainline bug in the entire residue** -
+it collapsed into the two ENTER RTL fixes (17/22) plus known/accepted classes.

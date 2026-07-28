@@ -18,11 +18,20 @@ in both legs + differing store data (neither escape nor prefetch) — the
 | k=6475 | LEA (0x8d) mod=11 stale-EA latch (task #30 class, raw) | raw-aware `lea_mod3` accept rule | **FIXED-BY-RULE** (commit c5b92d8) |
 | k=3075, 3897, 4677, 5586, 5699, 6436 | ENTER nesting-mask, nesting≥32 (fabric masked mod 32, chip full 8-bit) | RTL fix v30_eu.sv S_PREP_L | **FIXED-BY-ENTER-RTL** (commit efdd0b8; TB-verified, tranche green; board reflash rides next Quartus batch) |
 | k=862, 2398, 4024, 6407, 7542, 9124, 9312, 9440 | 0x3fe0 cluster: fabric ENTER DROPS the initial PUSH BP **under wait states (w>=2)**, ALL nesting. RTL fix (v30_eu.sv): gate `pop_want` for S_PREP_L on `(prep_acc\|\|eu_started)` so the level byte is not popped / walk not started until the BP push is accepted. No flop (ss_lint 203 unchanged, no SS bump). | **FIXED-BY-RTL (LANDED)** — waited tranche (154 chip goldens, waits{0,1,2,3,7}+wrand) + extended check_enter_nesting; board+TB PASS. A w2-nest>=1 walk-vs-prefetch INTERLEAVE (layout-specific, directed-0x500 harness only; tranche cycle-exact) booked to #33. | **FIXED** |
-| k=1627, 2035, 2062, 2925, 4951, 8398, 8649 | singles (mixed) | not yet root-caused | **OPEN** (k=8398 = early read-EA split, partially analyzed; k=2062/2925 have ENTER nesting=1) |
+| k=1627 | ENTER nesting=46 (@0x583) — the mask bug, missed by the earlier 6 | RTL nesting-mask fix (efdd0b8) | **FIXED-BY-ENTER-MASK** (fixed-TB matches chip 151/151) |
+| k=4951 | ENTER nesting=150 (@0x50d), wrand w1 — the mask bug | RTL nesting-mask fix (efdd0b8) | **FIXED-BY-ENTER-MASK** (fixed-TB matches chip 526/526) |
+| k=2925 | MOV BP,0x3fe0; ENTER 0,1 @ w3 — the PUSH-BP drop | RTL pop_want fix (d104673) | **FIXED-BY-PUSHBP** (BP push 0x3efe restored in fixed-TB) |
+| k=2062 | PUSHA (0x60) @ wrand w2 — chip holds bus through the 8 pushes, fabric interleaves ONE prefetch | none (cadence) | **BOOKED #33** (multi-push bus-hold-vs-prefetch interleave; same class as ENTER-w2) |
+| k=8398 | undoc 0x8f reg=7 (POP-group /7) @ 0x502 — board-confirmed: chip reads modrm-EA (~DI), fabric plain POP | none (undoc) | **BOOKED raw-undoc** (core doesn't replicate undoc opcodes, by design; optional gen_raw scrub / accept-rule deferred) |
+| k=2035 | execution wandered below 0x500 + 17 out-of-image open-bus MEMR (0x71bd8 etc.) | none (escape) | **ACCEPTED escape** (discriminator gap) |
+| k=8649 | execution wandered to 0x4c0 + out-of-image MEMR (0x6b559) feeding the divergent EA | none (escape) | **ACCEPTED escape** (discriminator gap) |
 
-Counts: 1 fixed-by-rule + 6 fixed-by-ENTER-mask + 8 fixed-by-PUSHBP-RTL + 7 singles
-= 22. (14 of 22 dispositioned via the two ENTER RTL fixes; 7 singles OPEN, k=8398
-first; 1 fixed-by-rule.)
+Counts: **1 fixed-by-rule + 8 fixed-by-ENTER-mask + 9 fixed-by-PUSHBP-RTL + 1
+booked-#33 + 1 booked-raw-undoc + 2 accepted-escape = 22.** ALL 22 DISPOSITIONED;
+ZERO new mainline bugs. The residue collapses almost entirely into the two ENTER
+RTL fixes (17 of 22). Mask family is really 8 (6+k=1627+k=4951); PUSHBP family is
+9 (8 cluster + k=2925). Discriminator gap booked: t31_residue mis-typed 2 escapes
+(k=2035/8649, below-0x500 wander + near-image open-bus) as genuine value bugs.
 
 ## Key mechanisms confirmed
 - **ENTER nesting mask**: V30 chip does NOT mask nesting (pushes = nesting+1, all
@@ -81,6 +90,9 @@ file), NEVER process-wait / in-context waiter (two stalls). Board etiquette: lea
 1. Rigorous cluster re-analysis (done: fix is mask-invariant for nesting<32).
 2. 0x3fe0 cluster → FIXED (RTL pop_want gate) + waited tranche + gates green;
    coordinator OPTION A landed. w2 interleave banked to #33. DONE.
-3. The 7 singles (k=8398 first). **(current)**
-4. #31 CLOSE-OUT: all 22 dispositioned; memory-worthy summary; fuzz-bank re-freeze
-   (owed, both ENTER fixes); Quartus/reflash both ENTER fixes one batch. Then #32.
+3. The 7 singles: ALL DISPOSITIONED (3 fixed by the ENTER RTL fixes, 1 #33, 1
+   raw-undoc, 2 escape; zero new bugs). DONE.
+4. #31 CLOSE-OUT **(current)**: all 22 dispositioned (done); memory-worthy summary;
+   fuzz-bank re-freeze (owed, both ENTER fixes); ONE Quartus+safe_flash batch
+   carrying both ENTER fixes (sanctioned for close-out, standard wedge protocol,
+   flash_log pins the build). Then #32.
