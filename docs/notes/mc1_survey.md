@@ -143,3 +143,22 @@ walk (walk/value identical; pure ordering). It is LAYOUT-SPECIFIC: the compose-
 harness ENTER tranche (PS:PC=0:0x100) is cycle-exact at every wait, so the
 interleave depends on the surrounding code stream / queue state. A clean starting
 law for the wait-state cadence work. Repro + evidence: docs/notes/t31_rootcause.md.
+
+## CORRECTION (task #32): the SOUP "escape" families were a mischaracterization
+
+Task #32 forensics overturn the escape accounting above. **Soup does NOT escape.**
+Board captures + TB: forced tier=soup 0/50 out-of-image; soup TIMING/FUNCTIONAL
+248/250 and soup done_mismatch 171/172 have NEITHER leg in test-space out-of-image.
+The survey's "w0-TIMING soup-escapes (~699, chip out-of-image at 0x60000+)" counted
+the RESET STUB (linear 0xFFFF0, 4 fetches present on BOTH legs in every image) as
+"out-of-image" — it is the boot vector, not an escape. The soup TIMING (2257) family
+is IN-IMAGE wait-state CADENCE drift (the #33 signal); soup FUNCTIONAL (686) is the
+IN-IMAGE value-bug residue (the #31 mc1 subset). The done_mismatch (542) is an
+in-image done-marker disagreement, not a fall-through escape.
+
+**The escape phenomenon is RAW-ONLY**: raw non-SUCCESS 215/298 (72%) escape via
+open-bus feedthrough, already typed by the tier-B open_bus_escape rule. So the
+"~37% escape lever" reduces to the raw open_bus class (typed) — there is no soup
+escape to contain. The HLT-fence (task #32) is therefore moot for soup (null pilot:
+the F4 fill never executes because soup never leaves the program). Fence plumbing
+kept opt-in/harmless; see docs/notes/t32_state.md.

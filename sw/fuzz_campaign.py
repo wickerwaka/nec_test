@@ -126,11 +126,19 @@ def derive_case(cid, k, ov=None):
     ax["no_brkem"] = bool(ov.get("no_brkem"))
     ax["brkem_high"] = bool(ov.get("brkem_high"))
     ax["mainline"] = bool(ov.get("mainline"))
+    # task #32 escape containment: fill non-program image space with HLT (0xF4)
+    # instead of NOP (0x90) so wandering/escaping execution HALTS deterministically
+    # inside the 64K image (both legs quiet at the same fence row -> classifiable)
+    # rather than gliding out to open-bus feedthrough. SOUP-only (raw keeps 0x90 +
+    # the open_bus rule; raw payload-mode relies on 0x90 surround). Opt-in axis so
+    # existing banked/composed images stay byte-identical when it is off.
+    ax["fence"] = bool(ov.get("fence"))
     w = ax["waits"]
     weff = w["wmax"] if w["wrand"] else w["fixed"]
     ax["nmax_eff"] = max(NMIN, int(NMAX * NMAX_SCALE_C / (NMAX_SCALE_C + weff)))
     core = {kk: ax[kk] for kk in ("tier", "evt", "waits", "wild", "nmax_eff",
-                                  "strict", "no_brkem", "brkem_high", "mainline")}
+                                  "strict", "no_brkem", "brkem_high", "mainline",
+                                  "fence")}
     ax["cfg_hash"] = hashlib.sha1(
         json.dumps(core, sort_keys=True).encode()).hexdigest()[:12]
     return ax
@@ -168,6 +176,9 @@ def build(cfg):
                      evt_pin=pin, wild=cfg["wild"], knobs=knobs)
     if cfg["evt"] and g.get("has_halt"):
         cfg["evt"]["hold"] = 300
+    # task #32: SOUP HLT-fence fill (0xF4) when the fence axis is on; else 0x90.
+    # RAW always 0x90 (payload mode relies on the NOP surround; raw scrubs 0xF4).
+    g["fill"] = 0xF4 if (cfg["tier"] != "raw" and cfg.get("fence")) else 0x90
     return g
 
 
@@ -462,6 +473,8 @@ def cmd_run(a):
         ov["brkem_high"] = True
     if a.mainline:
         ov["mainline"] = True
+    if getattr(a, "fence", False):
+        ov["fence"] = True                 # task #32 soup HLT-fence fill
     if a.force_evt:
         ov["force_evt"] = True
     if a.force_wrand:
@@ -860,6 +873,9 @@ def main():
     p.add_argument("--no-evt", action="store_true")
     p.add_argument("--strict", action="store_true",
                    help="strict contained fall-through generation (pilot)")
+    p.add_argument("--fence", action="store_true",
+                   help="task #32: SOUP HLT-fence fill (0xF4) so escapes halt "
+                        "deterministically in-image (raw unaffected)")
     p.add_argument("--no-brkem", action="store_true",
                    help="p_brkem=0 (no 8080-entry dead captures); keeps other breadth")
     p.add_argument("--brkem-high", action="store_true",

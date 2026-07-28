@@ -54,7 +54,8 @@ QS_NAME = {0: "-", 1: "F", 2: "E", 3: "S"}
 
 def compose(g):
     return testimage.compose(regs=g["regs"], instr=g["instr"],
-                             ram=g["ram"], ivt=g.get("ivt"))
+                             ram=g["ram"], ivt=g.get("ivt"),
+                             fill=g.get("fill", 0x90))   # task #32 HLT-fence (soup)
 
 
 def run_tb(image, n, waits=0, evt=None, wrand=None, wvec=None):
