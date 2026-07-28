@@ -204,3 +204,64 @@ PUSH-BP-skip persists, chip=oracle) to isolate the trigger, then RTL root-cause
 the BP-push-drop condition. Proposed as a second ENTER RTL fix (root-cause report
 first). Likely a preceding-bus-op / queue-fill interaction with the hi-pop BP
 push issue.
+
+## 0x3fe0 cluster — ROOT-CAUSED + BOARD-CONFIRMED: ENTER drops PUSH BP under WAITS
+
+**The trigger is WAIT STATES, not accumulated context.** The prior "context-
+dependent / only the full image reproduces" reading was an artifact of testing
+the directed repros at w0 only. Board + TB now prove the drop is a pure function
+of the wait count, universal across nesting and context.
+
+**Minimal reproducer (fully isolated, no preamble):** `MOV SP,0x3f00 ; MOV
+BP,0x3fe0 ; ENTER 0x000a,nest` (rest NOP). Delta-debug of the current-gen mc1/862
+FULL image with a WAIT-DIFFERENTIAL oracle (w0 push-count minus w2 push-count ==
+1, robust to NOP-induced SP shifts) minimized to exactly {MOV BP, ENTER} — no
+context needed.
+
+**TB wait sweep (clean directed, nest=3, fsz=0x0a):**
+| waits | ENTER pushes | BP push (0x3efe=0x3fe0) |
+|---|---|---|
+| w0, w1 | 4 | PRESENT (correct) |
+| w2..w7 | 3 | DROPPED |
+Drops for ALL nesting 0..31 at w2 (nest=0: w0=1 push, w2=0 pushes).
+
+**BOARD-CONFIRMED (chip use_core=0 vs fabric use_core=1, clean directed image):**
+| case | CHIP pushes | FABRIC pushes |
+|---|---|---|
+| nest=3 w0 | 4 (BP present) | 4 (match) |
+| nest=3 w2 | 4 (BP present) | **3 (BP 0x3efe=0x3fe0 DROPPED)** |
+| nest=0 w0 | 1 (BP present) | 1 (match) |
+| nest=0 w2 | 1 (BP present) | **0 (DROPPED)** |
+The chip ALWAYS pushes BP (w0 and w2); the fabric drops it under waits. Genuine
+chip-vs-fabric bug; the Verilator TB reproduces it bit-for-bit (faithful model).
+
+**RTL ROOT CAUSE (v30_eu.sv):** ENTER entry (op_prep, ~L3080) does
+`issue_push(rf[5])` (BP push; rf[4]=SP decremented HERE), `prep_acc<=0`, `dly<=3`,
+-> S_PREP_L. The combinational hold `S_PREP_L: eu_req=!prep_acc` (~L1587) keeps the
+request asserted, and `if (eu_started) prep_acc<=1` (~L3294) latches acceptance.
+BUT the SEQUENTIAL EXIT of S_PREP_L (~L3297) advances on `dly==0 && q_pop` WITHOUT
+requiring prep_acc. The `dly<=3` was fitted at w0, where the BIU accepts the BP
+push within 3 cycles (eudbg: eu_started=1 on the 2nd S_PREP_L cycle, BEFORE the
+level byte pops). Under w2 the busy BIU has not yet started the push (eu_started=0
+through all of S_PREP_L) when the level byte pops (dly already 0); the FSM leaves
+to S_WAITX, eu_req falls (request WITHDRAWN, never accepted), and the walk's next
+`issue_push` overwrites eu_addr/eu_wdata. rf[4] was already decremented at entry,
+so the walk lands at 0x3efc/0x3efa/0x3ef8 (same addrs as w0) — exactly one push
+short. eudbg w0-vs-w2 diff of S_PREP_L is the smoking gun (eu_started fires pre-
+pop at w0, post-exit at w2).
+
+**SCOPE — far broader than 8 seeds.** This is a UNIVERSAL ENTER-under-waits bug
+(every ENTER with >=2 waits drops its BP push), not a cluster of 8. mc1 surfaced
+only 8 because most ENTERs ran at w0; the enter_nesting golden tranche
+(sw/char_enter.py) captured the CHIP at **w0 ONLY**, blind to this. Other push-
+issuing states (S_REQ/S_WREQ/S_CALLPUSH/traps) advance on eu_started, so they are
+NOT affected — the vulnerability is unique to S_PREP_L's fixed-dly + q_pop exit.
+
+**PROPOSED FIX (report-first; NOT yet applied):** gate the S_PREP_L exit on push
+acceptance — do not consume the level byte / leave S_PREP_L until `prep_acc ||
+eu_started`. e.g. `else if (q_pop && (prep_acc || eu_started))`. Transparent at
+w0 (prep_acc already set by pop time), holds under any wait count. Savestate: no
+new flop (prep_acc already SSA_E_PREP_ACC-mapped). Gate additions on fix: extend
+sw/char_enter.py + tests/v30/enter_nesting to capture chip goldens at w1..w7 (and
+wrand), and assert push count == nest+1 under waits; the current w0-only tranche
+is vacuous for this bug.
