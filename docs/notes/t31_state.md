@@ -17,7 +17,7 @@ in both legs + differing store data (neither escape nor prefetch) — the
 |---|---|---|---|
 | k=6475 | LEA (0x8d) mod=11 stale-EA latch (task #30 class, raw) | raw-aware `lea_mod3` accept rule | **FIXED-BY-RULE** (commit c5b92d8) |
 | k=3075, 3897, 4677, 5586, 5699, 6436 | ENTER nesting-mask, nesting≥32 (fabric masked mod 32, chip full 8-bit) | RTL fix v30_eu.sv S_PREP_L | **FIXED-BY-ENTER-RTL** (commit efdd0b8; TB-verified, tranche green; board reflash rides next Quartus batch) |
-| k=862, 2398, 4024, 6407, 7542, 9124, 9312, 9440 | 0x3fe0 cluster: soup, low ENTER nesting (2-3), chip writes constant 0x3fe0 / fabric varies | **OPEN** — context-dependent low-nesting ENTER anomaly (NOT the mask; fix is provably mask-invariant for nesting<32) | **UNDER INVESTIGATION** |
+| k=862, 2398, 4024, 6407, 7542, 9124, 9312, 9440 | 0x3fe0 cluster: fabric ENTER DROPS the initial PUSH BP (constant 0x3fe0 = the skipped BP); RTL v30_eu.sv:3083 issue_push(rf[5]) | **MECHANISM FOUND** — a SECOND ENTER bug, distinct from the mask; trigger not yet isolated (needs full-image delta-debug), then RTL fix | **ROOT-CAUSE IN PROGRESS** |
 | k=1627, 2035, 2062, 2925, 4951, 8398, 8649 | singles (mixed) | not yet root-caused | **OPEN** (k=8398 = early read-EA split, partially analyzed; k=2062/2925 have ENTER nesting=1) |
 
 Counts: 1 fixed-by-rule + 6 fixed-by-ENTER + 8 cluster-open + 7 singles = 22.

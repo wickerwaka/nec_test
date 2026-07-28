@@ -173,3 +173,34 @@ ENTER walk (push/copy count + ordered addr/data stream) matches the chip.
 Quartus/reflash: the fabric on the board is UNCHANGED (masked). The fix rides the
 NEXT Quartus batch; no reflash needed until a board-comparison campaign wants the
 fixed fabric. TB replay (chip goldens) is the gate until then.
+
+## 0x3fe0 cluster — MECHANISM: fabric drops the ENTER initial PUSH BP
+
+Rigorous re-analysis (campaign captures = chip vs board-fabric, no startup delta;
+`sw/t31_residue.py` + per-seed walk). All 8 cluster seeds (k=862/2398/4024/6407/
+7542/9124/9312/9440, ENTER nesting 1-3) show ONE mechanism: **the fabric core's
+ENTER omits its initial PUSH BP** - the chip pushes BP (=0x3fe0 from the seeds'
+`MOV BP,0x3fe0`) to SP-2, the fabric skips straight to the frame-pointer walk. The
+"constant chip=0x3fe0 store" signature IS that skipped PUSH BP. Example k=862
+(nesting=3) row 316: chip does MEMW 0x3efc=0x3fe0 (PUSH BP) while the fabric has
+already fetched past to 0x512 - one push short.
+
+DISTINCT from the nesting mask (these are nesting<32, provably mask-invariant;
+the fix does not touch them). This is a SECOND ENTER bug.
+
+RTL location: v30_eu.sv line ~3083 `issue_push(rf[5])` (PUSH BP, issued at the
+framesize hi-pop; acceptance tracked by prep_acc + held in S_PREP_L via
+`eu_req=!prep_acc`). The push is dropped under a context-dependent condition.
+
+TRIGGER: NOT isolated. Directed repros of the local sequence (FPU-ESC / PUSH DX /
+REP DS: TEST / MOV BP, all preceding an ENTER) MATCH chip=fabric - even the full
+k=862 preamble in isolation matches. The full k=862 image reproduces the skip
+(the campaign capture proves it), so the trigger is accumulated machine/BIU/queue
+state not replicated by a short directed program. It reproduces at w0 too (NOT
+wait-triggered; k=862 is fixed w2, corrected from an earlier misread).
+
+NEXT: delta-debug minimize a cluster seed's FULL image (NOP instructions while the
+PUSH-BP-skip persists, chip=oracle) to isolate the trigger, then RTL root-cause
+the BP-push-drop condition. Proposed as a second ENTER RTL fix (root-cause report
+first). Likely a preceding-bus-op / queue-fill interaction with the hi-pop BP
+push issue.
