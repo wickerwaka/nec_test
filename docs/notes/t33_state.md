@@ -95,6 +95,32 @@ RANKING for the prefetch-rebuild (by census mass, to guide Stage-2b probes):
 3. EU->EU multi-access (15.6%) — NEW at scale; the multi-push bus-hold candidate
    law sits here + in the EU<->CODE interleave. Highest per-transition error rates.
 
+## STAGE 2b PROBE 1 — MULTI-PUSH BUS-HOLD (board) — CHARACTERIZED, small mass
+
+Directed board probe (chip use_core=0 vs core use_core=1), push-runs x waits x
+queue-fill (prime NOPs) x geometry. The "multi-push bus-hold law" is NOT a new
+broad law — it is a NARROW single-slot prefetch-interleave that FOLDS INTO the
+class5 Tw-parity family:
+- **Single-slot, count-INDEPENDENT**: ENTER w2, nesting 1..8 -> chip HOLDS the bus
+  through the whole walk (0 interleaved fetches), core interleaves EXACTLY ONE
+  prefetch after the FIRST push (1C), for every push count. Not a count-scaling hold.
+- **Wait-specific: w2 ONLY** (w1/w3/w7 chip==core). Non-monotonic, as seeded.
+- **Tw-PARITY gated**: even prime (0,2,4,6) -> interleave; odd prime (1,3,5) -> none.
+  This is the SAME Tw-parity / grid-phase displacement the class5 H-PHASE arc
+  characterized + landed (RMW-write parity split, 9193372).
+- **Geometry-specific**: ENTER (frame-walk = read+write) shows it; PUSHA/PUSHrun/
+  PUSHF are chip==core at ALL waits+primes in the directed harness. k=2062 (PUSHA
+  soup w2) showed it only under a specific SOUP queue state -> queue-occupancy, not
+  the push instruction, is the enabler.
+- **MASS**: SMALL. One slot per affected ENTER at w2 x even-parity x enabling queue
+  state; a small fraction of the 14.6% EU-alternation block (the bulk of which is
+  EU-access timing / string / RMW, not the interleave). NOT rebuild-priority as its
+  own law; it is a known-mechanism (Tw-parity) narrow cell.
+
+RECOMMENDATION: do NOT invest rebuild effort in a standalone multi-push bus-hold
+law; account it under the class5 Tw-parity family. Census-first + this probe
+prevented a rebuild investment in a ~small-mass cell that looked broad.
+
 ## Open threads / next stages
 - STAGE 2 (fitting): run gaperr's per-transition frame over the mc1 waited-cadence
   family (or a stratified sample) to get the CONTEXT-TUPLE census (occ, tw, kind,
