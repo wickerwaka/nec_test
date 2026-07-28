@@ -128,3 +128,18 @@ non-sentinel done value (a shared/deterministic store corruption) and neither
 escaped; a one-sided junk done write is a functional divergence, not an integrity
 STOP. k=9192 re-classifies FUNCTIONAL/done_mismatch. Driver also gained a
 heartbeat.json beacon (MTIME liveness) so a stall is never missed by process-wait.
+
+## #33 datapoint (banked from task #31): ENTER-walk-vs-prefetch bus-hold law
+
+While root-causing the #31 ENTER PUSH-BP-drop (fixed), a precise, board-evidenced
+prefetch-arbitration datapoint fell out for the #33 (prefetch/queue-split, wait-
+state cadence) campaign. In a DIRECTED harness (MOV SP,0x3f00; MOV BP,0x3fe0;
+ENTER 0xa,nest; NOP-sled at PS:PC=0:0x500), the chip's prefetch-vs-ENTER-walk
+arbitration is NON-MONOTONIC in the wait count: at w1 the chip prefetches the
+next opcode MID-walk; at w2 it HOLDS the bus through the ENTIRE ENTER walk before
+prefetching; at w3+ it again does not prefetch mid-walk. The fixed V30 core
+matches w1 and w3+ but at w2 lets ONE CODE prefetch in between the BP push and the
+walk (walk/value identical; pure ordering). It is LAYOUT-SPECIFIC: the compose-
+harness ENTER tranche (PS:PC=0:0x100) is cycle-exact at every wait, so the
+interleave depends on the surrounding code stream / queue state. A clean starting
+law for the wait-state cadence work. Repro + evidence: docs/notes/t31_rootcause.md.

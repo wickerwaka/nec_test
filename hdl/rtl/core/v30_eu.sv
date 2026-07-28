@@ -1318,7 +1318,20 @@ wire pop_want = (state == S_FIRST && !irq_take) ||
                 (state == S_JDHI) || (state == S_JSLO) ||
                 (state == S_JSHI) || (state == S_MLO) ||
                 (state == S_MHI) || (state == S_INTV) ||
-                (state == S_PREP_L && dly == 6'd0);
+                // ENTER/PREPARE: the level byte is popped only once the initial
+                // BP push has been ACCEPTED (prep_acc set a prior cycle, or
+                // eu_started firing now). The fitted dly<=3 lands acceptance
+                // before dly==0 at w0/w1 (transparent), but under waits the busy
+                // BIU accepts the push later; popping the level (and starting the
+                // walk, whose issue_push would overwrite the still-pending BP push
+                // -> one push short, rf[4] already decremented) must wait for it.
+                // Gating pop_want here (not just the S_PREP_L exit) is essential:
+                // pop_want==1 CONSUMES the queue byte every cycle it is high, so
+                // an ungated hold would burn through queue bytes and latch a wrong
+                // nesting level. Board+TB verified. Task #31 (second ENTER bug,
+                // distinct from the nesting-mask fix).
+                (state == S_PREP_L && dly == 6'd0 &&
+                 (prep_acc || eu_started));
 
 // split-access segment wrap (measured, fz494): a word access at offset
 // FFFFh reads/writes its second byte at offset 0 of the SAME segment -

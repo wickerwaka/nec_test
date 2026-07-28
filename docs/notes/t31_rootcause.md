@@ -265,3 +265,118 @@ new flop (prep_acc already SSA_E_PREP_ACC-mapped). Gate additions on fix: extend
 sw/char_enter.py + tests/v30/enter_nesting to capture chip goldens at w1..w7 (and
 wrand), and assert push count == nest+1 under waits; the current w0-only tranche
 is vacuous for this bug.
+
+## ENTER PUSH-BP fix — APPLIED (staged) + AUDIT + a w2 cadence RESIDUAL found
+
+**Fix applied (v30_eu.sv, staged/uncommitted):** gate `pop_want` for S_PREP_L on
+acceptance — `(state==S_PREP_L && dly==6'd0 && (prep_acc || eu_started))`. NOTE:
+the fix goes on `pop_want` (the queue-pop enable), NOT only the S_PREP_L exit. A
+first attempt gating just the sequential exit FAILED: `q_pop = pop_want &&
+q_avail` and `pop_want` for S_PREP_L was `(dly==0)`, so the queue byte is CONSUMED
+every cycle dly==0 regardless of the sequential body — holding without gating
+pop_want burned through queue bytes and latched a NOP as the nesting level
+(runaway: 24 pushes). Gating pop_want holds the level byte un-popped until the BP
+push is accepted, keeping the level-pop and the push in sync. TB rebuilt: push
+count == nest+1 at EVERY wait w0..w7 for all nesting, BP push (0x3efe=0x3fe0)
+present. Board-confirmed bug + TB-confirmed fix.
+
+**AUDIT (RR4-pattern, coordinator-required) — S_PREP_L is the UNIQUE site.**
+Scanned every bus-op issuer (issue_push + eu_wr<=1) and its landing-state exit:
+- S_REQ/S_WREQ, S_PREP_RD/PW2/W3, S_CALLPUSH, S_FCALLP1/P2, S_STRW/R/S,
+  S_OUTS_W/INS_W, S_IE_WR, S_A4_DST/WR, S_INT_A1/A2, S_TRAP_PSW/PS: advance on
+  `eu_started`/`eu_done` (acceptance) — SAFE.
+- S_WAITX→S_REQ issuers (2668 ADD4S, 4520/4555 RET/CALL): exit into S_REQ which
+  COMPLETES THE SAME pending op (no different op issued) — SAFE.
+- Trap chain (S_TRAP_W1/PSWW/W2, dly-timed next-push): each push is followed by an
+  `if(eu_started)` wait (S_TRAP_PSW, S_TRAP_PS) BEFORE the next issue; the dly only
+  TIMES the next issue, prior push always accepted first — SAFE.
+- ADD4S gaps (S_A4_G1/G2/END, dly): prior access accepted (eu_done in *_W) before
+  the gap; the gap times the next issue into an eu_started-gated *_W — SAFE.
+- All q_pop-exit states other than S_PREP_L (S_FIRST/S_DEC/S_IMM*/S_JD*/S_DISP*/
+  S_MLO/MHI/S_0F/S_DEC2/S_IN_PORT): pure decode-phase byte pops with NO pending
+  bus op — SAFE.
+Distinguishing factor of the bug: S_PREP_L exits (on q_pop, non-acceptance) while
+holding an UNACCEPTED request, into a state that issues a DIFFERENT bus op (the
+walk), dropping the pending one. No other site matches. Per-site verdicts go in
+the commit message.
+
+**RESIDUAL FOUND — w2 ENTER-walk vs prefetch INTERLEAVE (board-confirmed, NOT the
+value bug; separate cadence item, report-first).** With the fix, the tranche's
+cycle-exactness bar (chip-vs-TB, single-instruction ENTER, uniform waits) holds at
+w0/w1/w3/w7 for all nesting, and at w2 for nest=0 — but FAILS at **w2 for nest>=1**
+by ONE prefetch transposition. The chip holds the bus through the ENTER's ENTIRE
+push/walk sequence at w2, then prefetches the next opcode (CODE 0x50c); the fixed
+TB lets ONE prefetch (CODE 0x50c) sneak in BETWEEN the BP push and the rest of the
+walk. It is wait-specific chip behavior: at w1 the chip DOES prefetch mid-walk
+(TB matches), at w3+ it does not (TB matches) — only w2 the chip holds and the TB
+does not. Example w2 nest=3 (T1 txns from entry): pos6 MEMW 0x3efe=0x3fe0 (BP push,
+CORRECT) then chip=MEMR 0x3fde walk.. / tb=CODE 0x50c prefetch, walk shifted one
+slot. Architectural result identical (push count + all push data exact); this is a
+pure prefetch-arbitration/cadence ordering nuance, #33-class (prefetch/queue
+split), exposed by the fix's w2 retiming. Root cause is the ENTER walk's post-
+level-pop reservation window (dly<=6 -> S_WAITX -> S_PREP_RDGO) not pinning the
+bus slot at w2 the way the chip does; matching it is prefetch-cadence fitting, not
+a push-drop guard. REPORTED for a ruling (chase w2 cadence now vs land value fix +
+book residual). The coordinator's "cycle-exact per v0.1-w1/w3 precedent" assumption
+holds at w0/w1/w3/w7 but NOT at w2 nest>=1 — a genuine correction.
+
+## ENTER PUSH-BP fix — LANDED (coordinator OPTION A) + waited tranche + w2 to #33
+
+Coordinator ruling: OPTION A — land the value fix; the w2 interleave is clean
+prefetch-arbitration cadence (#33), not chased now.
+
+**The w2 residual is LAYOUT-SPECIFIC — it does NOT appear in the tranche harness.**
+The w2 nest>=1 interleave reproduces in the DIRECTED harness (MOV SP,0x3f00; MOV
+BP,0x3fe0; ENTER; NOP-sled at PS:PC=0:0x500). But the standing tranche uses the
+compose harness (reg-load preamble far-jumps to PS:PC=0:0x100, queue flushed,
+then MOV BP; ENTER; store stub). Board-measured there, the fixed core is
+**cycle-exact at EVERY wait and nesting** (w0/w1/w2/w3/w7, nest 0..63, + wrand) —
+0 divergences. So the interleave is a function of the surrounding code stream /
+queue state, not the ENTER itself; the tranche carries NO known_divergences.
+
+**Waited tranche (tests/v30/enter_nesting/goldens_waited.json.gz):** 154 chip
+goldens = nesting {0,1,2,3,4,5,8,16,31,32,63} x waits {0,1,2,3,7} x 2 ctx + a
+wrand slice {(3,0x1234),(7,0x5678)}. sw/char_enter.py --waited --freeze. Each
+golden stores the full txn stream (kind,addr16,data,dur) from the test anchor +
+active-cycle count. Gate sw/check_enter_nesting.py now runs BOTH tranches:
+- MASK (w0 0..255): walk-stream strict (the nesting-mask gate) — PASS 512/0.
+- WAITED: (a) WALK-STREAM STRICT at ALL waits (stack-region MEMW/MEMR order/addr/
+  data == chip) — the value-bug invariant; (b) CYCLE-EXACT (full stream + active
+  count == chip) strict everywhere, with an enumerated known_divergences set
+  (EMPTY here) that the checker counts/reports and treats an unexpected cyc
+  divergence as a HARD FAIL. Board+TB: PASS, 0 unexpected, 0 booked cells.
+
+**#33 bank (prefetch/queue-split cadence campaign):** the wait-count-dependent
+ENTER-walk-vs-prefetch bus-hold is a precise, board-evidenced non-monotonic
+arbitration law: at the directed-0x500 harness the chip prefetches the next
+opcode MID-walk at w1, HOLDS the bus through the whole ENTER walk at w2, and does
+NOT prefetch mid-walk at w3+. The fixed core matches w1 and w3+ but at w2 lets one
+prefetch in between the BP push and the walk. Repro: sw = the directed harness
+above; compare chip(use_core=0) vs TB full txn stream at w1/w2/w3, nest>=1. Booked
+for #33 as a starting datapoint.
+
+**CORRECTION to the record:** "single-instruction contexts are cycle-exact under
+uniform waits (v0.1-w1/w3 precedent)" is now measurement-qualified — it holds at
+w0/w1/w3/w7 universally and at w2 in the compose harness, but FAILS at w2 nest>=1
+in the directed-0x500 harness (the prefetch interleave). Cycle-exactness under
+waits is code-stream/queue-state dependent, not purely a function of the single
+instruction.
+
+**RTL fix form (the negative evidence matters):** gate `pop_want` for S_PREP_L on
+`(prep_acc || eu_started)` — NOT the sequential exit alone. First attempt gated
+only the S_PREP_L exit and RAN AWAY (24 pushes, NOP latched as the level): because
+`q_pop = pop_want && q_avail` and pop_want was `(dly==0)`, the queue byte is
+consumed every cycle dly==0 regardless of the sequential body — an ungated hold
+burns through queue bytes. Gating pop_want holds the level byte un-popped until
+the BP push is accepted, syncing level-pop and push. No new flop (prep_acc already
+SSA_E_PREP_ACC-mapped); ss_lint 203 unchanged; no SS_VERSION bump.
+
+**AUDIT verdict (unique site):** S_PREP_L is the ONLY bus-op issuer that exits on a
+non-acceptance (q_pop) condition while holding an unaccepted request, into a state
+issuing a DIFFERENT bus op. All others advance on eu_started/eu_done/facc/pracc,
+or exit into S_REQ completing the SAME op, or (trap/ADD4S) dly-time the next issue
+only after the prior push is accepted. Full per-site list in the commit message.
+
+**Quartus/reflash:** both ENTER fixes (nesting-mask + PUSH-BP-drop) are sim-proven
+and ride ONE Quartus batch at #31 close; the on-board fabric needs them before any
+future hw-ab campaign (the board fabric is currently the pre-fix bitstream).

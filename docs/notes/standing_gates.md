@@ -14,6 +14,7 @@ f0lock + f4a + v0.3 3.7M) before any reflash (the RR-era bar; see
 | ss_lint | `python3 sw/ss_lint.py` | the savestate address map is consistent (BIU×2 + EU×2 + tag = SS_COUNT) |
 | ea_step_lint | `python3 sw/ea_step_lint.py` | every operand EA step wraps via `ea_step2` (F4a) |
 | check_mod3_illegal | `python3 sw/check_mod3_illegal.py` | LEA mod=11 executes chip-exact (task #30); cycle rows + moffs value + arch-confined residue |
+| check_enter_nesting | `python3 sw/check_enter_nesting.py` | ENTER walk == chip: MASK tranche (w0 nesting 0..255, no mod-32 mask) AND WAITED tranche (nesting set x waits {0,1,2,3,7}+wrand): walk-stream strict at ALL waits (PUSH-BP-drop guard) + cycle-exact with enumerated known-divergences (task #31, both ENTER bugs) |
 | check_fuzz_bank | `python3 sw/check_fuzz_bank.py [--strict]` | the fuzz bank round-trips: regenerate (GEN-DRIFT hard fail) -> TB replay -> re-classify vs banked chip rows, verdicts stable (task #29 Phase 6) |
 | fuzz_campaign lint | `python3 sw/fuzz_campaign.py lint` | the soup/raw generators never emit a chip-wedging image |
 | optable selfcheck | `python3 sw/optable.py --selfcheck` | the opcode table agrees with fuzz_cov + instructions.json |
@@ -43,6 +44,15 @@ real defect, because it only checks what it already knows to look at:
    in the map (their read/write arm counts), so it CANNOT see a NEW unmapped
    architectural flop. `last_ea` (task #30) was unmapped and ss_lint passed
    vacuously until the symbol was added.
+
+4. **check_enter_nesting w0-ONLY blind spot** (task #31): the ENTER-nesting
+   tranche captured chip goldens at **w0 only**, so it was VACUOUS for the second
+   ENTER bug — the PUSH-BP drop that manifests only under waits (w>=2). It passed
+   green while every ENTER under waits dropped its BP push. Same root as the
+   others: the gate tested only the dimension it already knew (nesting, at the one
+   wait it happened to sample). Closed by the WAITED tranche (waits {0,1,2,3,7} +
+   wrand); the standing rule generalizes to "sweep the wait axis, not just w0, for
+   any bus-timing-sensitive behavior."
 
 Common root: a gate that enumerates the KNOWN and asserts consistency, but has
 no census of the UNKNOWN. The mechanization rule the campaign adopted -

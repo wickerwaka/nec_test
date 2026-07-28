@@ -1,0 +1,55 @@
+{
+ "experiment": "ENTER/PREPARE (0xC8) under WAIT states - the task #31 PUSH-BP-drop fix. Nesting set x fixed waits {0,1,2,3,7} + a wrand slice x 2 BP/stack contexts.",
+ "rig": "sw/char_enter.py --waited",
+ "truth_source": "SOCKET (use_core=False)",
+ "finding": "The fabric ENTER dropped its initial PUSH BP under >=2 waits (S_PREP_L consumed the level byte / started the walk before the BP push was accepted). Fixed by gating pop_want on (prep_acc||eu_started) in v30_eu.sv. The chip pushes nest+1 at every wait.",
+ "nesting_set": [
+  0,
+  1,
+  2,
+  3,
+  4,
+  5,
+  8,
+  16,
+  31,
+  32,
+  63
+ ],
+ "waits_fixed": [
+  0,
+  1,
+  2,
+  3,
+  7
+ ],
+ "wrand_slice": [
+  [
+   3,
+   4660
+  ],
+  [
+   7,
+   22136
+  ]
+ ],
+ "contexts": [
+  {
+   "BP": 16352,
+   "SP": 16128,
+   "fsize": 16
+  },
+  {
+   "BP": 16288,
+   "SP": 16000,
+   "fsize": 0
+  }
+ ],
+ "checks": {
+  "walk_stream_strict": "stack-region MEMW/MEMR (kind,addr,data,order) == chip at ALL waits (the value-bug invariant)",
+  "cycle_exact": "full txn stream (kind,addr,data,dur)+active count == chip; STRICT at ALL waits and all nesting in this compose-harness tranche (measured: 0 divergences)"
+ },
+ "known_divergences": [],
+ "note_33": "A wait-count-dependent ENTER-walk-vs-prefetch INTERLEAVE exists but is LAYOUT-SPECIFIC and does NOT appear in this compose-harness tranche (verified cycle-exact everywhere here). It reproduces in a DIRECTED harness (MOV SP,0x3f00; MOV BP,0x3fe0; ENTER; NOP-sled at PS:PC=0:0x500): at w2 the chip holds the bus through the whole ENTER walk before the next-opcode prefetch, while the fixed core lets ONE CODE prefetch in between the BP push and the walk (w1 chip prefetches mid-walk, w3+ does not - only w2 differs). Walk/value identical; a clean prefetch-arbitration cadence datapoint booked to #33 (see docs/notes/t31_rootcause.md).",
+ "date": "2026-07-28"
+}
