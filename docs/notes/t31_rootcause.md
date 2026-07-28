@@ -102,3 +102,46 @@ chip-vs-fabric ENTER probe (framesize/nesting 0..31, BP=0x3fe0) shows NO
 divergence - ENTER is correct in isolation. So the cluster mechanism is
 context-dependent (INTO/OF interaction, LEAVE, stack state, or waits), not plain
 ENTER. Decode continues as the next residue family.
+
+## ENTER nesting-level mask — CONFIRMED core bug (6 raw seeds) — RTL, report-first
+
+Directed board probe (ruling 2, sanctioned characterization): `MOV BP,0x3fe0 ;
+ENTER 0x0000,nest`, chip vs fabric, counting stack-walk pushes.
+
+| nesting | chip pushes | fabric pushes |
+|---|---|---|
+| 1,2,...,31 | nest+1 | nest+1 (MATCH) |
+| 32 | 33 | 1 |
+| 33 | 34 | 2 |
+| 63 | 64 | 32 |
+| 64 | 65 | 1 |
+| 125 | 126 | 30 |
+| 255 | 256 | 32 |
+
+**The V30 chip does NOT mask the ENTER nesting level** - it walks the full 8-bit
+count (pushes = nesting+1, up to 256). **The fabric core MASKS nesting mod 32**
+(80186/286 semantics): fabric pushes = (nesting & 0x1f) + 1. For nesting >= 32
+they diverge. Chip is the oracle => **the CORE is WRONG**.
+
+Explains 6 raw residue seeds (all ENTER nesting >= 32): k=3075(125), k=3897(123),
+k=4677(239), k=5586(75), k=5699(186), k=6436(60). (k=3075 was the LDS red-herring
+- its real divergence is this ENTER, mid-nesting-125-walk, exactly where fb=851
+sits.)
+
+**Proposed disposition: RTL fix** - remove the mod-32 mask on the ENTER nesting
+byte in the core's ENTER microcode/state machine; use the full 8-bit count like
+the chip. This is a genuine behavioural bug (V30 differs from 186/286 here), and
+the mod3_illegal-style vacuity applies: no existing green test exercises ENTER
+nesting >= 32. Gates on fix: a directed ENTER-nesting tranche (0..255 x contexts,
+chip goldens), cycle+push-count exact; standing sweeps; coverage artifact per the
+LEA precedent. Root-cause report FIRST (this touches RTL) - awaiting review.
+
+## 0x3fe0 soup cluster (8, nesting 2-3) — ENTER-adjacent, still OPEN
+
+The 8 soup cluster seeds show an ENTER push-count divergence at LOW nesting
+(k=862 nesting=3: chip 4 pushes, fabric 3), but a directed low-nesting ENTER
+probe MATCHES chip=fabric - both clean (w0) AND with wrand (wmax 2/7), nesting
+1..5. So the cluster divergence is context-dependent (preceding instructions,
+the walked frame-pointer memory content, or a different instruction than the
+ENTER), NOT reproducible in isolation. Distinct from the nesting-mask class.
+Remains open for the next characterization pass.
