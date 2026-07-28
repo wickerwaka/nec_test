@@ -1,0 +1,9 @@
+POST-FIX RE-CAPTURE: 60 seeds (pre 36, post 30)
+cell         PRE-fix-mass  POST-fix-mass  (same 60 seeds, chip vs pre/post fabric)
+  CODE->CODE     570 (41.0%)      282 (42.9%)
+  EU->CODE       302 (21.7%)      125 (19.0%)
+  CODE->EU       297 (21.4%)      126 (19.2%)
+  EU->EU         221 (15.9%)      124 (18.9%)
+TOTAL pre=1390 post=657 (delta -733 = ENTER-fix + any other fabric change)
+board idle
+REFIX_DONE

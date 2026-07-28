@@ -197,6 +197,86 @@ Per-transition + per-seed cumulative over the family (chip vs board-fabric):
 reasoning, esp. the "observable floor" and EU-access-opportunity claims) before this
 becomes the rebuild foundation.
 
+## STAGE 3 v2 — REVISED after Codex critical review (6 findings worked)
+
+The Codex review (task-ms51b9he-rqp8kf) was largely CORRECT and forced material
+retractions. The v1 "48% CODE->CODE observable floor / 90% scatter" framing is
+WITHDRAWN. Evidence-backed v2 conclusions:
+
+### R1 (Findings 1,3,5 — the scatter/floor claim) — REFUTED by held-out test
+Per-seed cancellation is NOT a scatter test (opposing predictable laws cancel).
+Built the resolving test (/tmp/scattertest.py, board-free): retain every signed
+impulse, partition by observable context tuple (prev_bs,cur_bs,prev_tw,cur_tw,
+parity,prev-prev-bs), TRAIN conditional signed mean on half the seeds, PREDICT
+impulse sign on the held-out half.
+- **Held-out sign accuracy 75.2% vs 51.5% majority baseline.**
+- **55% of the |ge| mass is context-PREDICTABLE (fittable law), 45% unpredicted**
+  (a LOWER bound on fittable — the context was coarse; richer keys/occupancy would
+  raise it). The "observable floor" is AT MOST 45%, not 90%.
+- The prev_tw asymmetry IS a predictable law: CODE->CODE prev_tw=0 -> mean -1.8,
+  prev_tw 1-2 -> +0.9..+1.6 (sign flips with prev_tw). Per-seed netting canceled
+  these OPPOSING laws into a false "net ~0 = floor". Codex Finding 3 confirmed.
+=> The rebuild opportunity is MUCH larger than v1 claimed; >=55% of the residual is
+   fittable, concentrated in the prev_tw / wait-transition context.
+
+### R2 (Finding 2 — pre-fix fabric + censoring) — MATERIAL; ranking stable, mass 2x-inflated
+mc1 fabric = flash_pin e803b4d7 (07-27 19:42), PRE both ENTER fixes; 38% of soup
+family seeds contain an ENTER (BP-drop-affected candidate). Bounded post-fix
+re-capture (60 seeds hw-ab vs the CURRENT fixed core 2df26239, sw/t33_refix.log):
+- **Absolute mass HALVES post-fix: pre 1390 -> post 657 (-53%)** — a large slice of
+  the 72438 census was PRE-FIX FABRIC DEFECTS, not silicon cadence law.
+- **Cell RANKING is STABLE**: CODE->CODE 41.0->42.9%, EU->CODE 21.7->19.0%,
+  CODE->EU 21.4->19.2%, EU->EU 15.9->18.9%.
+=> CANONIZE the RELATIVE RANKING (priorities transfer); the ABSOLUTE MASS (72438)
+   is ~2x pre-fix-inflated and must be RE-BASED on the fixed fabric before it seeds
+   the rebuild's quantitative baseline. A full fixed-fabric re-capture is the
+   rebuild's Stage-0. (Aligner also censors near large divergences: aligned-coverage
+   median 0.95-0.96, so bias is modest for TIMING; larger in the done tail.)
+
+### R3 (Finding 6 — done_mismatch) — DISTINCT directional regime, 24.5% mass, not "small"
+Trajectory (/tmp/traj.py): early-prefix cumulative-drift SLOPE, done_mismatch
+neg-slope 204 / pos-slope 42 (mean -0.018) = persistent NEGATIVE slope BEFORE
+censoring; TIMING balanced 301/244 (mean +0.004). => done_mismatch is a genuine
+DIRECTIONAL regime (fabric drifts behind from early on), 542/2313 seeds (23.4%),
+17724/72438 mass (24.5%). The "90% scatter" headline was TIMING-subset-specific AND
+is now withdrawn (see R1). done_mismatch is a first-class net-drift family to fit.
+
+### R4 (Finding 4 — "MUST reproduce class5 laws") — NARROWED
+Amended: the rebuild must reproduce the SILICON-OBSERVED INVARIANT CASES (the
+controlled-intervention I/O of each class5 law: the RMW readiness-edge, the
+demand-deadline resume geometry, the Tw-parity displacement, the capacity
+back-to-back/pause), NOT the literal fitted predicates, thresholds, or state names
+(several arose via reverted/curve-fit hypotheses per biu_model.md). H-ARB is a
+CHARACTERIZED finding, not a required law (its rekey failed its own gates) - the
+rebuild should key arbitration on eu_ready but is not bound to the current
+predicate. Each class5 law needs a LAW CARD (intervention / invariant / fitted
+predicate / counterexamples / discovery vs held-out corpus) before it constrains
+the rebuild.
+
+### CORRECTED v2 conclusions for the rebuild
+1. The waited-cadence residual is DOMINANTLY FITTABLE (>=55% context-predictable),
+   NOT an observable floor. The rebuild can reduce most of it.
+2. RANKING (stable pre/post fabric): CODE->CODE resume (~42-48%) > EU-access
+   (EU->CODE + CODE->EU ~40%) > EU->EU multi-access (~16-19%). Re-base absolute
+   mass on the fixed fabric (Stage-0 re-capture).
+3. done_mismatch (24.5%) is a distinct DIRECTIONAL regime to fit (not floor tail).
+4. Reproduce class5 SILICON INVARIANTS (I/O cases via law cards), not fitted
+   predicates. Key arbitration on eu_ready; don't inherit NO-GO predicates.
+5. Per-cell held-out predictability (CODE->EU vs EU->EU vs EU->CODE separately,
+   Finding 5) is the rebuild's Stage-0 fitting task; v2 does NOT assert the EU block
+   is more fittable than CODE->CODE - the aggregate 55% includes all cells, and the
+   "not-previously-attacked" argument is retracted as insufficient.
+
+## FINDINGS-RESOLUTION APPENDIX
+| # | sev | resolution |
+|---|---|---|
+| 1 | Crit | REFUTED the scatter claim: held-out context sign accuracy 75.2% vs 51.5%; 55% mass predictable. Retracted "90% scatter". |
+| 2 | Crit | CONFIRMED pre-fix fabric; re-capture: ranking stable, absolute mass -53% post-fix. Canonize ranking, re-base mass (Stage-0 fixed-fabric re-capture). |
+| 3 | High | CONFIRMED: prev_tw asymmetry is a predictable law (sign flips with prev_tw); floor claim withdrawn. |
+| 4 | High | NARROWED "MUST reproduce" to silicon-observed invariants (law cards); H-ARB downgraded to characterized. |
+| 5 | High | Retracted the "EU-block is the primary opportunity" over-claim; per-cell held-out predictability deferred to rebuild Stage-0; EU cells are part of the 55% predictable aggregate. |
+| 6 | Med | CONFIRMED done_mismatch is a distinct directional regime (neg early slope), 24.5% mass; "small" retracted; 90%-scatter reported as withdrawn. |
+
 ## Open threads / next stages
 - STAGE 2 (fitting): run gaperr's per-transition frame over the mc1 waited-cadence
   family (or a stratified sample) to get the CONTEXT-TUPLE census (occ, tw, kind,
