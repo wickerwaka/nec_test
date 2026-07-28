@@ -221,6 +221,46 @@ def capture_board(image, meta, cfg, host):
     return None, None, "run_error:unreachable"
 
 
+def _raw_lea_mod3_pos(image, real):
+    """Detect an EXECUTED illegal LEA (0x8d) mod=11 in a raw seed (task #31,
+    k=6475): raw carries no gen-time lea_mod3 provenance, so recover it from the
+    capture. Walk the executed in-image code-fetch PCs; from each contiguous
+    region's entry, linear-decode via optable.ilen and flag any 0x8d whose modrm
+    has mod==11 landing on an instruction boundary that the EU reached. Returns
+    [(linear, dest_reg)] (LEA only - LDS/BOUND/LES mod=11 PARK, per the task #30
+    whitelist re-confirmed in task #31, so they never produce a value divergence
+    to accept)."""
+    import optable
+    pcs = []
+    for r in real:
+        if fc._tstate(r) == 1 and r["bs_early"] == 4:
+            a = r["ad_addr"] & 0xFFFFF
+            if a < 0x10000 and (not pcs or pcs[-1] != a):
+                pcs.append(a)
+    pcset = set(pcs)
+    out = []
+    seen_entry = set()
+    for entry in sorted(pcset):
+        if entry in seen_entry:
+            continue
+        pc = entry
+        for _ in range(64):
+            if pc not in pcset or pc in seen_entry:
+                break
+            seen_entry.add(pc)
+            op = image[pc & 0xFFFF]
+            if op == 0x8d:                          # LEA
+                mrm = image[(pc + 1) & 0xFFFF]
+                if (mrm >> 6) == 3:                 # mod=11 (illegal register form)
+                    out.append((pc, (mrm >> 3) & 7))
+            try:
+                L = optable.ilen(image, pc & 0xFFFF)
+            except Exception:                       # noqa: BLE001
+                L = 1
+            pc += max(1, L)
+    return out
+
+
 def _ctx_for(cfg, g, tb_only):
     w = cfg["waits"]
     return Ctx(tier="A" if cfg["tier"] == "soup" else "B",
@@ -317,6 +357,10 @@ def eval_case(cid, k, ov, tb_only, host, build_stale, keep_rows=False):
     ctx = _ctx_for(cfg, g, tb_only)
     if run_error:
         ctx.run_error = run_error
+    # raw seeds carry no gen-time lea_mod3 provenance; recover an executed illegal
+    # LEA mod=11 from the capture so the (raw-aware) lea_mod3 rule can cover it.
+    if cfg["tier"] == "raw" and real and not ctx.lea_mod3_pos:
+        ctx.lea_mod3_pos = _raw_lea_mod3_pos(bytes(image), real)
     t0 = time.time()
     v = classify(real, sim, ctx, engine=_engine())
     t["classify"] = time.time() - t0

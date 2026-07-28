@@ -184,6 +184,59 @@ def test_brkem():
           and "confirmed" in hit2.reason, f"({hit2.reason if hit2 else None})")
 
 
+def test_lea_mod3_raw():
+    eng = fa.AcceptEngine.load()
+
+    def prog(store_vals):
+        rows = [_pasv()] * 8
+        rows += _cycle(4, 0x500) + _cycle(4, 0x502) + _cycle(4, 0x504)
+        for a, d in store_vals:
+            rows += _cycle(6, a, d)
+        return rows + [_pasv()] * 6
+    # LEA mod=11 at 0x502 (dest DI=7); DI used as a pushed value AND a store addr
+    # -> one store value differs; identical code stream + equal store count.
+    real = prog([(0x3EFE, 0x1111), (0x60CC, 0xAAAA)])
+    sim = prog([(0x3EFE, 0x2222), (0x41FC, 0xAAAA)])     # value + addr move (DI)
+    n = len(real)
+    # locate the LEA's T1 fetch row (2nd code fetch)
+    fetches = [i for i, r in enumerate(real)
+               if fc._tstate(r) == 1 and r["bs_early"] == 4]
+    lea_row = fetches[1]
+    ctxB = fc.Ctx(tier="B", lea_mod3_pos=[(0x502, 7)])
+
+    # accept: identical code stream, equal store count, divergence after the LEA
+    hit = eng.consider(dict(covers="functional", ctx=ctxB, real=real, sim=sim,
+                            dr=_dr(lea_row + 8, n)))
+    check("raw lea_mod3 accept", hit is not None and hit.klass == "lea-mod3",
+          f"({hit})")
+
+    # REJECT: unequal store COUNT (the ENTER nesting-mask class - push count moved)
+    sim_cnt = prog([(0x3EFE, 0x2222)])                   # one fewer store
+    check("raw lea_mod3 REJECT (store-count diff = ENTER-like)",
+          eng.consider(dict(covers="functional", ctx=ctxB, real=real,
+                            sim=sim_cnt, dr=_dr(lea_row + 8, len(sim_cnt)))) is None)
+
+    # REJECT: divergent code path (escape / control-flow split)
+    sim_path = prog([(0x3EFE, 0x2222), (0x60CC, 0xAAAA)])
+    # mutate a code-fetch address in sim -> paths diverge
+    for i, r in enumerate(sim_path):
+        if fc._tstate(r) == 1 and r["bs_early"] == 4 and r["ad_addr"] == 0x504:
+            sim_path[i] = dict(r, ad_addr=0x9000)
+    check("raw lea_mod3 REJECT (code path diverges)",
+          eng.consider(dict(covers="functional", ctx=ctxB, real=real,
+                            sim=sim_path, dr=_dr(lea_row + 8, n))) is None)
+
+    # REJECT: divergence BEFORE the LEA executes (positional)
+    check("raw lea_mod3 REJECT (div before LEA)",
+          eng.consider(dict(covers="functional", ctx=ctxB, real=real, sim=sim,
+                            dr=_dr(lea_row - 2, n))) is None)
+
+    # inert without lea_mod3_pos (no LEA detected in the raw payload)
+    check("raw lea_mod3 inert without provenance",
+          eng.consider(dict(covers="functional", ctx=fc.Ctx(tier="B"),
+                            real=real, sim=sim, dr=_dr(lea_row + 8, n))) is None)
+
+
 def test_cadence():
     eng = fa.AcceptEngine.load()
     thr = next(r.thr for r in eng.rules if isinstance(r, fa.CadenceFloorRule))
@@ -350,6 +403,7 @@ def test_invariant_and_counting():
 def main():
     print("test_fuzz_accept:")
     test_open_bus()
+    test_lea_mod3_raw()
     test_brkem()
     test_cadence()
     test_lea_mod3()

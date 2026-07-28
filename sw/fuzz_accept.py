@@ -241,6 +241,8 @@ class LeaMod3Rule:
             return None
         dr = vctx["dr"]
         window = dr.n
+        if ctx.tier == "B":
+            return self._apply_raw(vctx)     # raw: no arch_dump; stream confinement
         ar = arch_dump(vctx["real"], window)
         as_ = arch_dump(vctx["sim"], window)
         if ar is None or as_ is None:
@@ -252,6 +254,48 @@ class LeaMod3Rule:
                            f"illegal LEA-mod3 stale-EA latch; arch diff confined "
                            f"to dest reg(s) {sorted(diff)}", "functional")
         return None
+
+    def _apply_raw(self, vctx):
+        """Raw tier (task #31, k=6475): no arch_dump. Confinement comes from the
+        CAPTURE shape. The illegal LEA mod=11 loads the stale EA latch into ONE
+        register; that register may then be used both as a pushed VALUE and as a
+        store ADDRESS, so store addresses can diverge - but the CONTROL FLOW and
+        the NUMBER of stores stay identical (only the divergent register's
+        derived data/addresses move). Accept iff (a) an executed LEA mod=11 is
+        present (ctx.lea_mod3_pos, driver-recovered), (b) both legs have the
+        IDENTICAL code-fetch stream (no control-flow divergence / escape),
+        (c) the SAME store COUNT (a push-/store-count difference = a different
+        mechanism, e.g. the ENTER nesting-mask class - refuse), and (d) the first
+        divergence is AT/AFTER the LEA executes (positional fail-safe like
+        brkem_gap - an earlier divergence is a different bug)."""
+        ctx = vctx["ctx"]
+        dr = vctx["dr"]
+        real, sim = vctx["real"], vctx["sim"]
+
+        def cfetch_rows(rows):
+            return [(i, r["ad_addr"] & 0xFFFFF) for i, r in enumerate(rows)
+                    if fc._tstate(r) == 1 and r["bs_early"] == 4]
+
+        def stores(rows):
+            return [tx for tx in fc.extract_txns(rows)
+                    if fc.KIND[tx["kind"]] in ("MEMW", "IOW")]
+
+        cfr, cfs = cfetch_rows(real), cfetch_rows(sim)
+        cr, cs = [a for _, a in cfr], [a for _, a in cfs]
+        n = min(len(cr), len(cs))
+        if not (cr[:n] == cs[:n] and abs(len(cr) - len(cs)) <= 2):
+            return None                      # (b) control flow diverges
+        if len(stores(real)) != len(stores(sim)):
+            return None                      # (c) store-count diff -> ENTER-like
+        lea_lins = {lin for lin, _ in ctx.lea_mod3_pos}
+        lea_rows = [i for i, a in cfr if a in lea_lins]
+        if lea_rows and dr.first is not None and dr.first < min(lea_rows):
+            return None                      # (d) divergence before the LEA
+        dests = sorted({reg for _lin, reg in ctx.lea_mod3_pos})
+        return RuleHit(self.name, "lea-mod3",
+                       f"raw illegal LEA-mod3 stale-EA latch; identical code-fetch "
+                       f"stream + equal store count, divergence at/after the LEA, "
+                       f"confined to dest reg(s) {dests}", "functional")
 
 
 def open_bus_escape_metrics(real, window):
