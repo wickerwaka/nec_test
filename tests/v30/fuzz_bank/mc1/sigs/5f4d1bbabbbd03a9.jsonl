@@ -1,0 +1,13 @@
+{"k": 46, "reason": "functional", "verdict": "FUNCTIONAL"}
+{"k": 270, "reason": "timing_unexplained", "verdict": "TIMING"}
+{"k": 789, "reason": "timing_unexplained", "verdict": "TIMING"}
+{"k": 964, "reason": "timing_unexplained", "verdict": "TIMING"}
+{"k": 1049, "reason": "timing_unexplained", "verdict": "TIMING"}
+{"k": 1091, "reason": "timing_unexplained", "verdict": "TIMING"}
+{"k": 1584, "reason": "timing_unexplained", "verdict": "TIMING"}
+{"k": 1811, "reason": "functional", "verdict": "FUNCTIONAL"}
+{"k": 2222, "reason": "timing_unexplained", "verdict": "TIMING"}
+{"k": 2504, "reason": "functional", "verdict": "FUNCTIONAL"}
+{"k": 2651, "reason": "functional", "verdict": "FUNCTIONAL"}
+{"k": 3275, "reason": "timing_unexplained", "verdict": "TIMING"}
+{"k": 3718, "reason": "timing_unexplained", "verdict": "TIMING"}

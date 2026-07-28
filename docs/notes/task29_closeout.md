@@ -1,9 +1,10 @@
 # Task #29 close-out — massive fuzz expansion
 
-Status at report time: the full generation → classification → acceptance →
-campaign → bank/gate/report stack is built, gated, and running the first scaled
-campaign (`mc1`). The final 100k-seed campaign numbers + coverage deltas are
-appended when that run completes; everything else below is final.
+Status: the full generation → classification → acceptance → campaign →
+bank/gate/report stack is built, gated, and has run the first scaled campaign
+(`mc1`, 10,003 seeds — scoped down from 100k for this bounded first run). Final
+mc1 numbers + the failure categorization are in §9 below and
+`docs/notes/mc1_survey.md`; everything else below is final.
 
 ## 1. Architecture
 
@@ -88,3 +89,38 @@ its bank/report, and decide the sustained cadence from there. The infra scales
 question is board-time budget, not tooling. The escalation policy makes long
 unattended runs safe (any real w0 functional / provenance alarm / new w0 timing
 signature STOPs and banks the evidence).
+
+## 9. mc1 final numbers (10,003 seeds — survey-accumulate)
+
+Ran as `--survey` accumulate (w0-functional + new-sig STOPs -> count, don't halt;
+provenance + circuit-breaker stay armed) after two escalation stops turned up
+findings (below). Full categorization: `docs/notes/mc1_survey.md`.
+
+- **Verdicts (10,003):** SUCCESS 3863 (39%), KNOWN_ACCEPTED 2864 (open_bus 1018 +
+  cadence 1846), TIMING 2470, FUNCTIONAL 806, **QUARANTINE 0**. 3897 distinct
+  signatures. ~6 seeds/s (chip+core hw-A/B leg each).
+- **Meta-finding — the ESCAPE phenomenon (~37% of non-SUCCESS):** raw AND
+  strict-soup programs far-jump out of the loaded 64K image and run open-bus /
+  out-of-image garbage where chip and core legitimately diverge (open_bus 1018 +
+  w0-TIMING soup-escapes ~699 + fall-through done_mismatch ~542). Disproves the
+  "soup stays in-image" assumption. Fix-plan #1 = contain (HLT-fence) or type
+  (extend open_bus to soup) the escapes; it is the biggest signal-quality lever.
+- **Three campaign-found issues, all fixed/typed this phase:**
+  1. LEA mod=11 core hang (task #30) — fixed earlier.
+  2. k=16 w0 FUNCTIONAL — board-confirmed pure open-bus artifact (EU ops
+     cycle-exact in-image); typed via the new `open_bus_escape` accept rule.
+  3. k=9192 provenance STOP — a `done_data` false-positive (a soup escape OUT'd
+     junk to port 0xFC one-sided); fixed to fire only on shared/deterministic
+     store corruption. 0 QUARANTINE after the fix.
+- **Wrand cadence-floor threshold VERDICT (3326 wrand divergent seeds >> 500
+  gate):** RETIRE the proposed max_step 9->15 widening — no cliff at 15 (smooth
+  tail, p90=61), only 60.5% accept (<< 90% gate), and it would swallow the
+  10-63-maxstep candidate-wait-state-bug band the mandate wants surfaced. Keep
+  `max_step=9` (v1.0) frozen. `sw/cadence_recal_mc1.py`.
+- **Ranked fix plan (report-only, needs ruling):** (1) contain/type escapes;
+  (2) triage the in-image func:W/R/INTA residue (264) for real functional bugs;
+  (3) characterize the clean waited-TIMING cadence tail (candidate BIU/prefetch
+  wait-state bugs — the #1-priority channel); (4) EU-duration gap CLOSED.
+- **Robustness:** driver now emits `heartbeat.json` (MTIME liveness beacon) after
+  the self-matching-pgrep watcher missed the k=9192 stop; watch by file MTIME,
+  never process-wait.

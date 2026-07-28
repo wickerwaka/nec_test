@@ -1,0 +1,8 @@
+{"k": 519, "reason": "cadence_sample", "verdict": "KNOWN_ACCEPTED"}
+{"k": 1020, "reason": "timing_unexplained", "verdict": "TIMING"}
+{"k": 2188, "reason": "timing_unexplained", "verdict": "TIMING"}
+{"k": 2312, "reason": "functional", "verdict": "FUNCTIONAL"}
+{"k": 2453, "reason": "timing_unexplained", "verdict": "TIMING"}
+{"k": 2912, "reason": "timing_unexplained", "verdict": "TIMING"}
+{"k": 3188, "reason": "timing_unexplained", "verdict": "TIMING"}
+{"k": 3291, "reason": "timing_unexplained", "verdict": "TIMING"}

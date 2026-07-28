@@ -1,0 +1,25 @@
+{
+ "cid": "mc1",
+ "ov": {
+  "force_contained": true,
+  "strict": true
+ },
+ "created": "2026-07-28T01:54:40Z",
+ "n_results": 10003,
+ "n_banked": 1295,
+ "promotion": {
+  "timing_unexplained": 923,
+  "rule_first50:open_bus": 50,
+  "functional": 304,
+  "cadence_sample": 18,
+  "_capped": 1997
+ },
+ "bytes": 66156263,
+ "cap_mb": 25,
+ "verdict_census": {
+  "TIMING": 2470,
+  "SUCCESS": 3863,
+  "KNOWN_ACCEPTED": 2864,
+  "FUNCTIONAL": 806
+ }
+}

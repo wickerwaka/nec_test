@@ -1,0 +1,3 @@
+{"k": 387, "reason": "timing_unexplained", "verdict": "TIMING"}
+{"k": 848, "reason": "timing_unexplained", "verdict": "TIMING"}
+{"k": 1245, "reason": "cadence_sample", "verdict": "KNOWN_ACCEPTED"}

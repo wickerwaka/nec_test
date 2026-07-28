@@ -2,3 +2,9 @@
 __pycache__/
 largemode_synth.hex
 sw/testdata/chipcache/
+
+# Fuzz campaign runtime state: the loose per-seed captures (242M+) and the
+# heartbeat beacon are working data - the curated regression corpus lives in
+# tests/v30/fuzz_bank/. Specific evidence captures are committed explicitly.
+sw/testdata/campaigns/*/captures/
+sw/testdata/campaigns/*/heartbeat.json
