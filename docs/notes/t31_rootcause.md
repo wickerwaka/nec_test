@@ -62,3 +62,43 @@ So the value-bug residue partly COLLAPSES again: ~3 seeds are the known task #30
 mod=11 stale-latch class (raw coverage gap), leaving the 0x3fe0 soup cluster (9,
 a distinct MOV BP,0x3fe0 + ENTER/stale-latch mechanism - decode in progress) and
 ~10 singles for the remaining root-cause pass.
+
+## Whitelist question (k=3075 LDS, k=8398 BOUND) — RESOLVED: no contradiction
+
+Coordinator flagged the task #30 park-whitelist (BOUND/LES/LDS mod=11 HALT on
+both chip and core) as possibly contradicted by k=3075/k=8398. Resolved
+rigorously (ruling 2a hand-trace + 2b board-verify):
+
+- **k=8398 (BOUND) = MIS-DECODE.** The heuristic's BOUND at 0x50e is NOT on the
+  path to the divergence: first_bad=160, executed PCs reach only 0x506. Hand-
+  decode from 0x500: `8d 3b`=LEA DI,[BP+DI] (valid mem-form, mod=00), `8f fe`=
+  POP SI, `c1 46 0a`=ROL word[BP+0x0a]. The divergence is an early read-EA split
+  (chip reads out-of-image 0x6bd0a, fabric reads stack 0x3f00) - not BOUND
+  mod=11. Revisit as a single.
+- **k=3075 (LDS) = MIS-ATTRIBUTION.** `c5 fb`=LDS DI,mod=11 IS on the path (0x50c,
+  hand-confirmed), but first_bad=851 is DURING the preceding ENTER (0x508,
+  nesting=125), which executes ~row 340-2440 - LONG before the LDS would execute
+  (~2440). The divergence is the ENTER, not the LDS.
+- **Board-verify (fresh directed chip probe): LDS mod=11 still PARKS.** Clean
+  `c5 fb`: chip stops fetching at row 157, no done = PARK (matches the tranche).
+  Post-ENTER context (`ENTER 0x1c,1 ; c5 fb`): chip parks at row 176, no done -
+  NOT context-dependent. Controls: LEA mod=11 and a NOP sled both run to done.
+
+**Conclusion: the task #30 whitelist STANDS** - LDS/BOUND/LES mod=11 park on the
+chip in both the clean and the post-ENTER context. NOT the fourth vacuity
+instance. Both heuristic hits were linear-decode artifacts, correctly ruled out
+by hand-tracing the executed path.
+
+Consequence: **k=6475 (LEA mod=11) is the SOLE genuine mod=11 stale-latch in the
+residue** (a singleton, not a 3-member sub-family). The option-1 raw-aware
+`lea_mod3` acceptance therefore covers LEA (0x8d) mod=11 ONLY (LDS/BOUND/LES
+park => no value divergence => nothing to accept).
+
+## 0x3fe0 cluster (9 soup) + k=3075 — ENTER lead NOT confirmed; still open
+
+All 9 cluster seeds carry `MOV BP,0x3fe0` + ENTER, and k=3075 diverges during a
+nesting-125 ENTER, so ENTER looked like the shared mechanism. BUT a directed
+chip-vs-fabric ENTER probe (framesize/nesting 0..31, BP=0x3fe0) shows NO
+divergence - ENTER is correct in isolation. So the cluster mechanism is
+context-dependent (INTO/OF interaction, LEAVE, stack state, or waits), not plain
+ENTER. Decode continues as the next residue family.
