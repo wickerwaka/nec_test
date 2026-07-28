@@ -54,6 +54,47 @@ keyed), temporal-observability floors. class-5 census = 544 real random-wait (fu
 attributed: 288 paired-ordering, 135 non-CODE EU-access, 121 CODE->CODE scatter),
 later 494 after H-PHASE landed. Runs on the causal_wrand corpus, NOT mc1 captures.
 
+## STAGE 2a — GAP-ERROR CENSUS (board-free, sw/t33_census.py) — DONE
+
+Per-transition signed gap-error (chip=real vs board-fabric=sim, same campaign
+wrand, already wait-aligned; class5 accesses()+align()) over the full 2313-seed
+family. **378699 aligned intervals, 32591 nonzero (8.6%), TOTAL |ge| mass 72438.**
+- **PAIRED 27310 (38%) / UNPAIRED net-directional 45128 (62%)**: unlike the class5
+  causal_wrand corpus (paired-ordering dominant), the mc1 population is 62% NET
+  DIRECTIONAL DRIFT — the fabric is systematically off, not just ±1-slot scatter.
+  This is the headline: a large real net-drift component to fit, not noise.
+- **KIND-cell mass map** (class5 top taxonomy):
+  | cell | err% | mass | mass% |
+  |---|---|---|---|
+  | CODE->CODE | 7.2 | 34836 | **48.1%** |
+  | EU->CODE | 10.1 | 14106 | 19.5% |
+  | CODE->EU | 8.5 | 12170 | 16.8% |
+  | EU->EU | 13.8 | 11326 | **15.6%** |
+  - CODE->CODE (48%) = the prefetch/resume cadence — the class5 domain (resume law,
+    midband, demand-deadline), the single biggest lever.
+  - EU-access cells (EU->CODE + CODE->EU + EU->EU = ~52%) — MUCH bigger than class5
+    (which was single-access, EU->EU ~1%). The mc1 soup multi-access geometry
+    (string/RMW/multi-push/ENTER-walk/INT) lifts EU->EU to 15.6%.
+  - CODE->EU 16.8% confirms the never-attacked block is substantial at mc1 scale.
+- **Highest ERROR-RATE cells = the multi-access/alternation geometries** (where the
+  multi-push bus-hold + RMW + string + ENTER-walk + INT live):
+  MEMW->MEMR **28.9%** (mass 1727), INTA->MEMR **29.4%** (282), MEMR->MEMW 20.1%
+  (2620), MEMR->MEMR 12.2% (4454). IOW<->CODE (done-marker + soup OUTs) ~11% (5921
+  +5671). The EU-alternation block (MEMR/MEMW inter-transitions) ~10.6k mass (14.6%)
+  is the upper bound for the multi-push bus-hold law's share — precise isolation
+  needs the Stage-2b probe (a fabric CODE prefetch interleaved in a chip push run).
+- **Reconciles the coarse 46536-slip picture**: coarse occ0-dominance (60%) maps to
+  the CODE->CODE starved-queue resume cell (48% of fine mass); coarse sign-symmetry
+  = the 38% paired component. The fine census additionally exposes the 62% net-drift
+  and the EU-access mass the changepoint metric flattened.
+
+RANKING for the prefetch-rebuild (by census mass, to guide Stage-2b probes):
+1. CODE->CODE resume cadence (48%) — largest; the class5 laws already fit much of
+   its causal_wrand analog, but at mc1 scale + net-drift it needs re-fitting.
+2. EU->CODE / CODE->EU EU-access timing (36%) — incl. the never-attacked CODE->EU.
+3. EU->EU multi-access (15.6%) — NEW at scale; the multi-push bus-hold candidate
+   law sits here + in the EU<->CODE interleave. Highest per-transition error rates.
+
 ## Open threads / next stages
 - STAGE 2 (fitting): run gaperr's per-transition frame over the mc1 waited-cadence
   family (or a stratified sample) to get the CONTEXT-TUPLE census (occ, tw, kind,
