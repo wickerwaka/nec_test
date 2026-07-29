@@ -159,8 +159,30 @@ board-pending (M-LC3, uRMW, board-by-construction).**
    unrecoverable — never a tracked path). So **no gate (board or board-free) can
    detect M-LC3 on a reproducible config**. Silicon provenance is already banked
    (campaign record A′: 15/15 + 30/30, RTL unchanged since). **Terminal
-   resolution: accept M-LC3 board-by-construction + a mandatory uRMW hw-A/B check
-   at every board milestone M1/M2/M3** (re-verifies Tw-parity at each reflash).
+   resolution (coordinator-confirmed): accept M-LC3 board-by-construction + a
+   mandatory uRMW hw-A/B check at every board milestone M1/M2/M3.**
+   - **The milestone check MUST carry a CHIP-SIDE POSITIVE CONTROL** (else it is
+     the next vacuous gate — a non-firing structure verifies nothing). M1 is
+     defined as: iterate the directed RMW structure ON THE BOARD until the CHIP
+     exhibits the documented firing signature (the interval-2 even→early commit;
+     silicon is ground truth and the 15/15 evidence proves the structure is
+     constructible), THEN assert fabric==chip on that structure. **The check FAILS
+     VACUOUS if the chip signature cannot be produced** — a flagged outcome, not a
+     pass. (My synthetic gadgets did NOT reproduce the firing structure — that is
+     precisely why they found no discrimination — so the milestone must not reuse
+     them as-is; it must confirm firing on silicon first.)
+   - **Bonus consequence (deferred, not dead):** the moment the firing structure
+     is found on-board at M1, **BANK those chip rows** — the board-free REPLAY
+     gate (chip rows vs model TB, check_fuzz_bank idiom) becomes buildable at that
+     point, and the path back to a genuine **9-green board-free-re-runnable**
+     matrix stays open.
+   - **Honest-tension note (to re-establish at M1):** the H-PHASE landing recorded
+     a **−50u census effect**, yet the raw-diff shows **zero census-combo
+     dependence** on the widen — presumably because the landing's census predates
+     the `wv_of` bug fix (which turned the degenerate uniform census into the real
+     per-cycle-random one) and/or the −50u was measured on the directed structure,
+     not the current random census. The M1 positive-control run is the chance to
+     re-establish which.
 
 **How B0 closed the four holes v1's battery exposed** (`biu_law_gatesearch.py` +
 `biu_law_lc6_gadget.py`, the reusable "narrow-law, no-gate" answer):
