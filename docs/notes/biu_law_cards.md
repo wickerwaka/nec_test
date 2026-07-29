@@ -185,6 +185,15 @@ above before their MUST/PROVISIONAL cases can gate an E-stage.** This is a preci
 actionable gap list, not a completeness claim — the mutation battery converted
 Finding 3's "no answer for which gate fails" into an exact per-law answer.
 
+**B0 UPDATE (Stage-B opening work, gate-search `sw/biu_law_gatesearch.py`):**
+G-LC2 and G-LC4a are now CLOSED board-free — the search found discriminating
+seeds (**G-LC2 = fz90364, G-LC4a = fz90270**, both ws5/wmax1) where breaking the
+law changes the observable model bus stream; added to the wvec corpus
+(`DIRECTED_SEEDS`), so M-LC2/M-LC4a are now caught by wvec (targeted-confirmed;
+control still silent, 88 cases). **Remaining: G-LC6** (no discriminator in 400
+seeds → hand-built non-REP strio gadget, booked) and **G-LC3-uRMW** (board, rides
+B1). Matrix is 7-green/2-pending; full re-run when the last two land (before P1).
+
 ---
 
 ## §C — Cards LC1-LC8 (revised)

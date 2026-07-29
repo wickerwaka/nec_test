@@ -19,7 +19,9 @@
   90016,
   90017,
   90018,
-  90019
+  90019,
+  90270,
+  90364
  ],
  "wvecs": [
   [
@@ -437,6 +439,46 @@
    "sha": "a2e50c699a8522fb"
   },
   "fz90019:ws11:wmax7": {
+   "rows": 4199,
+   "accesses": 494,
+   "sha": "9e1360bd4c0357cf"
+  },
+  "fz90270:ws0:wmax0": {
+   "rows": 4199,
+   "accesses": 709,
+   "sha": "a18c42f0b5fcd128"
+  },
+  "fz90270:ws5:wmax1": {
+   "rows": 4199,
+   "accesses": 697,
+   "sha": "11776e3da25e9dac"
+  },
+  "fz90270:ws7:wmax3": {
+   "rows": 4199,
+   "accesses": 655,
+   "sha": "a2e50c699a8522fb"
+  },
+  "fz90270:ws11:wmax7": {
+   "rows": 4199,
+   "accesses": 494,
+   "sha": "9e1360bd4c0357cf"
+  },
+  "fz90364:ws0:wmax0": {
+   "rows": 4199,
+   "accesses": 705,
+   "sha": "f17ed5060beae03e"
+  },
+  "fz90364:ws5:wmax1": {
+   "rows": 4199,
+   "accesses": 694,
+   "sha": "b86e278fa8e681ae"
+  },
+  "fz90364:ws7:wmax3": {
+   "rows": 4199,
+   "accesses": 655,
+   "sha": "a2e50c699a8522fb"
+  },
+  "fz90364:ws11:wmax7": {
    "rows": 4199,
    "accesses": 494,
    "sha": "9e1360bd4c0357cf"

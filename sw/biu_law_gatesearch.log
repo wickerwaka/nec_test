@@ -1,0 +1,15 @@
+=== B0 gate search  seeds 90000-90400  wvecs [(5, 1), (7, 3), (11, 7)] ===
+building UNMUTATED baseline binary...
+computing baseline over 400 seeds x 3 wvecs...
+baseline done.
+
+### G-LC2 (LC2 low-band pause)
+  DISCRIMINATOR seed=90364 ws=5 wmax=1 base=b86e278fa8e681ae mut=c1cf7225931acc20
+
+### G-LC4a (LC4 pf_rsv_lead)
+  DISCRIMINATOR seed=90270 ws=5 wmax=1 base=11776e3da25e9dac mut=9b45891d6982db67
+
+### G-LC6 (LC6 strio pick_t3 veto)
+  NO discriminator in 90000-90400 -> needs a hand-built gadget
+
+=== GATESEARCH_DONE  {"G-LC2": [[90364, 5, 1]], "G-LC4a": [[90270, 5, 1]], "G-LC6": []} ===

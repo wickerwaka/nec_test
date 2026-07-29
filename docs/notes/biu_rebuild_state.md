@@ -38,8 +38,8 @@ only for suspected golden mis-captures. (2) Laws constrain via **LAW CARDS**
 
 | Stage | Scope | Board | Pause | Status |
 |---|---|---|---|---|
-| **A** | Pre-flight: law cards, flop-census lint, bank note, baseline freeze | 0 | **P0** | **IN PROGRESS** |
-| B | Measurement: re-based census, per-cell targets, wvec law-fitting, exp_resume closure | ~15 min | P1 | pending |
+| **A** | Pre-flight: law cards (v2), flop-census lint, bank note, baseline freeze | 0 | **P0** | **DONE** (P0 passed; cards v2 verified 1204ae2) |
+| **B** | **B0 directed gates** → re-based census, per-cell targets, wvec fitting, exp_resume closure | ~15-20 min | P1 | **IN PROGRESS (B0)** |
 | C | grid_phase promotion (fix stretched-grid idle window; GRID_PHASE_STRICT; shadow re-point) | 0 | P2 | pending |
 | D | Shadow grid-slot scheduler (gsched_*, cov counters, --assert equivalence) | 0 | P3 | pending |
 | E | Consume branch-by-branch (E1 resume → E2 commit/eval → E3 arbitration → E4 display); M1 reflash | M1 | — | pending |
@@ -154,9 +154,49 @@ fail → TB replay → re-classify vs banked chip rows).
   verified PASS (80/80 identical). This is the R0 "baseline-versus-refactor trace
   gate" for the shadow-promotion stages.
 
-### P0 boundary
-STOP at P0 for coordinator verify + Codex critical review of the law cards before
-Stage B dispatches. (This worker does NOT proceed to Stage B.)
+### P0 boundary — PASSED
+Cards v1 → Codex NO → cards v2 (1204ae2) → **coordinator verified v2** (honest
+recount, provenance classes, four gates booked not fabricated = correct calls).
+**Ruling:** the directed law-gates FOLD INTO STAGE B as B0; Stage B UNBLOCKED with
+the hard constraint that the **acceptance basis must be COMPLETE (matrix fully
+green, all MUST cases mutation-detected) before any Stage C/D/E RTL work.** Codex
+re-review happens ONCE at P1 over the completed basis. G-LC3-uRMW's board capture
+rides B1's board session.
+
+---
+
+## Stage B — measurement (→ P1)
+
+**Amended order:** B0 (directed gates) → B1 (fixed-fabric re-capture) → B2
+(per-cell held-out targets) → B3 (wvec-directed fitting) → B4 (exp_resume closure
+GO/NO-GO; NO-GO = STOP → user).
+
+### B0 — directed gates to green the matrix (IN PROGRESS)
+Goal: build G-LC2 / G-LC4a / G-LC6 (board-free) + G-LC3-uRMW (board, rides B1);
+plug each into the mutation battery; re-run → matrix fully green (every MUST case →
+its mapped gate; M-CTRL silent).
+- **Method (board-free):** `sw/biu_law_gatesearch.py` — build unmutated, digest a
+  wide seed range (90000-90400 × 3 random wvecs); per law, apply its break,
+  rebuild, find DISCRIMINATING seeds where the observable model bus stream differs.
+  Those seeds are added to the wvec-freeze corpus so the timing-sensitive wvec gate
+  catches the mutation. (The generator DOES emit strio 0x6C-0x6F + REP strings, so
+  LC6 is reachable by random seeds.) Detached, log-marker watched.
+- **G-LC3-uRMW:** board-only by construction (no golden carries RMW-at-T4-parity);
+  rides B1's board session. _pending._
+- **Result (gate search `sw/biu_law_gatesearch.json`):**
+  - **G-LC2 → seed 90364 (ws5/wmax1)** ✓ discriminator found; added to the wvec
+    corpus; M-LC2 now CAUGHT by wvec (targeted-confirmed: fz90364 694→695 acc).
+  - **G-LC4a → seed 90270 (ws5/wmax1)** ✓; added; M-LC4a now CAUGHT by wvec
+    (fz90270 697→698 acc). Control M-CTRL still silent (88 cases).
+  - **G-LC6 → NO discriminator in 90000-90400** → needs a HAND-BUILT strio gadget
+    (the corpus's strings are mostly REP; the single-uline-1 strio veto is too
+    rare in random soup). Booked: construct a directed non-REP INS/OUTS image
+    forcing the T3-eval strio reservation, or a wider strio-biased search.
+  - So B0 board-free: **2 of 3 closed** (matrix M-LC1/LC2/LC4a/LC4b + omitted
+    ff_t4/evext/race green; M-CTRL silent); **G-LC6 (gadget) + G-LC3-uRMW (board,
+    B1)** remain before the matrix is fully green.
+  - Method proven: `biu_law_gatesearch.py` (build unmutated baseline → per-law
+    mutated sweep → discriminating seed) is the reusable directed-gate finder.
 
 ---
 

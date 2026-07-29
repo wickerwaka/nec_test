@@ -29,7 +29,13 @@ from gen_seq import generate                                # noqa: E402
 from check_seq import compose                               # noqa: E402
 import random as _r                                         # noqa: E402
 
-SEEDS = list(range(90000, 90020))          # canonical class5 corpus
+SEEDS = list(range(90000, 90020))          # canonical class5 corpus (A4 baseline)
+# B0 directed-gate seeds (biu_law_gatesearch.py discriminators): seeds where
+# breaking a narrow veto law changes the OBSERVABLE model bus stream, so the
+# timing-sensitive wvec gate catches its mutation. 90270 = G-LC4a (pf_rsv_lead),
+# 90364 = G-LC2 (low-band pause). Both discriminate at ws5/wmax1.
+DIRECTED_SEEDS = [90270, 90364]
+SEEDS = SEEDS + DIRECTED_SEEDS
 # (ws, wmax): w0 control + the random-wait settings the cadence laws live on.
 WVECS = [(0, 0), (5, 1), (7, 3), (11, 7)]
 NROWS = 4200
