@@ -171,6 +171,28 @@ rides B1's board session.
 (per-cell held-out targets) → B3 (wvec-directed fitting) → B4 (exp_resume closure
 GO/NO-GO; NO-GO = STOP → user).
 
+### B-SESSION — the ONE consolidated board session (capture-only, NO reflash)
+**Session-start state (verified board-free):** fabric flashed = build `fae64d5`
+(sha `2df26239…`, flash_log 2026-07-28T17:18:21Z verify OK) — **confirmed an
+ancestor of master (fabric ON the master pin)**; leave it there, no reflash.
+Board = `root@mister-nec`; captures via `run_chip(..., use_core=False)` (socketed
+uPD70116C-8, chip position). Discipline: reachability + rig-clean first, per-case
+timeouts, incremental repo-relative logs, literal-marker watchers, board left
+`use_core=False` idle; any wedge → STOP + bringup_log + report; RunError storm →
+circuit-breaker out. Split at named boundaries if it must break.
+**Budget (~15-20 min board):** reachability/rig-clean ~1m · G-LC3-uRMW ~2-3m ·
+LC6 provenance P-C14/15/16 ~2-3m · B1 2313-seed re-capture ~6m · B3 wvec cells
+~2-3m · B4 exp_resume phase-sweep ~3-5m. **Board access is permission-system-
+gated** (an agent "go" is not authorization; the SSH was in fact allowed by the
+permission system, so the standing grants are real).
+
+**Boundary 1 — reachability + rig-clean: PASSED (2026-07-28 ~02:42Z).** SSH to
+`root@mister-nec` OK (uptime 16d, load 0.00, idle); no wedged capture procs;
+`MiSTer_cmd` present; fabric = master build `fae64d5` (verified). **Disk:** OS root
+(`/dev/loop8`) is 93% / 25M free — IRRELEVANT: captures write to `/tmp` (tmpfs,
+246M free) and `/media/fat` (SD, 28G free). Board left `use_core=False` idle.
+Next: G-LC3-uRMW (Boundary 2).
+
 ### B0 — directed gates to green the matrix (IN PROGRESS)
 Goal: build G-LC2 / G-LC4a / G-LC6 (board-free) + G-LC3-uRMW (board, rides B1);
 plug each into the mutation battery; re-run → matrix fully green (every MUST case →
