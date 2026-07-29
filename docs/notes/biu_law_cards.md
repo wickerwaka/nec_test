@@ -148,10 +148,19 @@ board-pending (M-LC3, uRMW, board-by-construction).**
 2. **Independent detection:** each of the 8 maps to a distinct gate — LC1/LC2/LC4a/
    LC4b→wvec (LC2/LC4a via the B0 directed seeds), LC6→lc6 (B0 gadget), ff_t4→ff_t4,
    eval_ext→w1/w3, race→race. ✓
-3. **The one remaining hole = M-LC3 (H-PHASE RMW-parity):** board-only BY
-   CONSTRUCTION — no golden/soup carries an RMW mem-write ready-AT-T4 with a
-   controlled Tw parity (campaign record §5), so **G-LC3-uRMW** is a uniform-RMW
-   fabric/chip capture that rides B1's board session. It is not a board-free gap.
+3. **The one remaining cell = M-LC3 (H-PHASE RMW-parity): board-by-construction,
+   MILESTONE-GATED (terminal, proven).** No golden/soup carries an RMW mem-write
+   ready-AT-T4 with a controlled Tw parity. Attempted board-free closure FOUR
+   ways (isolated + sequence RMW gadgets, broad seed search, EXACT class5 census
+   combos) + a decisive RAW per-cycle-row diff over all 360 census combos:
+   **M-LC3 is BIT-IDENTICAL to the current model (zero rows differ)** — the widen
+   has no committed-output footprint on any reproducible config; its observable
+   effect exists only on the `sweep_rmw` directed structure (genuinely
+   unrecoverable — never a tracked path). So **no gate (board or board-free) can
+   detect M-LC3 on a reproducible config**. Silicon provenance is already banked
+   (campaign record A′: 15/15 + 30/30, RTL unchanged since). **Terminal
+   resolution: accept M-LC3 board-by-construction + a mandatory uRMW hw-A/B check
+   at every board milestone M1/M2/M3** (re-verifies Tw-parity at each reflash).
 
 **How B0 closed the four holes v1's battery exposed** (`biu_law_gatesearch.py` +
 `biu_law_lc6_gadget.py`, the reusable "narrow-law, no-gate" answer):

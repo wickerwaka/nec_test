@@ -19,9 +19,9 @@ BIU = ROOT / "hdl/rtl/core/v30_biu.sv"
 
 LC3_OLD = "(eu_ready_p1 && !eu_ready_p2 && !tw_par);"
 LC3_NEW = "(eu_ready_p1 && !eu_ready_p2 && 1'b0);"
-SEED_LO, SEED_HI = 90000, 90600
-WVECS = [(5, 1), (7, 3), (11, 7), (3, 7), (9, 5), (13, 3)]
-MAXHITS = 5
+SEED_LO, SEED_HI = 90000, 90020  # census seeds (H-PHASE cell lives here)
+WVECS = [(ws, wm) for ws in range(0, 6) for wm in (1, 3, 7)]  # EXACT census wvecs
+MAXHITS = 8
 
 
 def sh(cmd):

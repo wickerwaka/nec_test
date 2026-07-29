@@ -219,6 +219,31 @@ is GONE) → board uRMW capture → BANK the chip rows → a board-free *replay*
 (check_fuzz_bank idiom: banked chip rows vs model TB, re-runnable). (b) closes it
 as a re-runnable gate but needs the cell-config reconstruction on the board.
 
+**RESOLUTION (coordinator's option-(b) recovery attempt → FALLBACK triggered).**
+Per the ruling I searched history for `sweep_rmw`: it is **genuinely unrecoverable
+— never a tracked path** (`git log --all --name-only` shows it only in commit-
+message prose, c1598fc). The tracked H-PHASE tools are `class5_hext.py` +
+`class5_codeeu.py`; `class5_hext.py`'s docstring records the fix was FITTED on the
+ad-hoc `sweep_rmw.py` (ADD word[mem],imm, UNIFORM w0-w5, ready-AT-T4) and that the
+model takes the plain path (**"MODEL interval 4 (all)"**) on the per-cycle-random
+census. I then ran the record's documented parameters four ways (isolated + seq
+RMW gadgets, broad seed search, and the EXACT census combos where class5_hext
+confirmed the 29-case cell) — and a **decisive RAW per-cycle-row diff** (t/bs/addr,
+not just the digest) over all 360 census combos: **M-LC3 is BIT-IDENTICAL to the
+current model — zero rows differ.** So the widen has NO committed-output footprint
+on ANY reproducible config; its observable effect exists only on the exact,
+unrecoverable `sweep_rmw` directed structure. **Therefore no gate — board OR
+board-free — can detect M-LC3 on a reproducible config** (a board capture on these
+combos would be equally undetecting; the TB raw-diff proves the model rows are
+M-LC3-independent, which no on-board capture can contradict).
+→ **FALLBACK (a)+compensation is TRIGGERED and RECOMMENDED:** accept M-LC3 as
+board-by-construction (silicon provenance already banked, 15/15 + 30/30, RTL
+unchanged since), with a **mandatory uRMW hw-A/B check at every board milestone
+M1/M2/M3** so Tw-parity is re-verified at each reflash. An on-board directed
+re-capture is available if explicit board due-diligence is wanted, but cannot
+change the conclusion. **Terminal matrix: 8-green board-free-re-runnable + M-LC3
+board-by-construction (milestone-gated).** Routed to coordinator to confirm.
+
 ### B0 — directed gates to green the matrix (IN PROGRESS)
 Goal: build G-LC2 / G-LC4a / G-LC6 (board-free) + G-LC3-uRMW (board, rides B1);
 plug each into the mutation battery; re-run → matrix fully green (every MUST case →
