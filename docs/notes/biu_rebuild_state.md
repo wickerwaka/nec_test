@@ -4,6 +4,14 @@
 cycle-accuracy rebuild. Charter = `~/.claude/plans/jiggly-zooming-harbor.md`.
 Single-writer worker owns the tree + board. Updated at every stage boundary.*
 
+**CANONICAL RE-BASED CENSUS BASELINE = 39780 |ge| mass** (grand total, TIMING
+30592 + done_mismatch 9188). Provenance: `sw/b1_recapture.py` over the full
+2313-seed waited-cadence family, chip vs fabric build **fae64d5** (master pin, sha
+2df26239…), captured **2026-07-29** (0 runerr, 172s); artifacts
+`sw/testdata/campaigns/mc1_refix/{census,perseed}.json`. **Every later census
+delta cites THIS number** (supersedes the stale pre-fix 72438, which was ~2×
+inflated per t33-v2 R2).
+
 **Victory condition (user-fixed):** a NEW standing random-wait tranche gate,
 cycle-exact (Stage H). Census mass reduction is a progress metric, not the finish
 line. Dedicated `biu-rebuild` branch; merge to master only at pause boundaries
