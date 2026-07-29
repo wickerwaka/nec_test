@@ -18,9 +18,11 @@ Detection gate set (all board-free):
   w0   : v0.1 bounded w0 golden (w0-neutrality / w0-active detector)
   w1   : v0.1-w1 1200 (uniform-wait detector)
   w3   : v0.1-w3 1200 (uniform-wait detector)
-  wvec : biu_rebuild_wvec_freeze --check (random-per-cycle-wait model A/B, 80 cases)
+  wvec : biu_rebuild_wvec_freeze --check (random-per-cycle-wait model A/B, incl.
+         the B0 DIRECTED_SEEDS 90270=G-LC4a, 90364=G-LC2)
   ff_t4: check_ff_t4 (far-flush direct-commit slots)
   race : check_race_law (POP-PSW/INT race law)
+  lc6  : check_lc6_gate (B0 directed strio-single OUTSB gadgets; eu_rsv_strio veto)
 
 Usage: nohup setsid python3 sw/biu_law_mutation.py > sw/biu_law_mutation.log 2>&1 &
 """
@@ -60,7 +62,7 @@ MUTATIONS = [
     dict(id="M-LC6", law="LC6 strio pick_t3 veto", file=BIU,
          old="wire        pick_t3    = want_half2 || want_eu || (prefetch_ok && !eu_rsv_strio);",
          new="wire        pick_t3    = want_half2 || want_eu || prefetch_ok;",
-         w0_active=True, expect=["w0", "wvec"]),
+         w0_active=True, expect=["lc6"]),
     dict(id="M-FFT4", law="omitted: far-flush ff_t4 direct commit", file=BIU,
          old="                      q_flush && cur_fetch && pick_any && flush_fast && evald;",
          new="                      q_flush && cur_fetch && pick_any && flush_fast && evald && 1'b0;",
@@ -121,6 +123,11 @@ def gate_race():
     return "PASS" if r.returncode == 0 else "FAIL"
 
 
+def gate_lc6():
+    r = sh([sys.executable, "sw/check_lc6_gate.py"])
+    return "PASS" if r.returncode == 0 else "FAIL"
+
+
 def run_gates(w0_cases):
     return {
         "w0": golden("v0.1", 0, w0_cases),
@@ -129,6 +136,7 @@ def run_gates(w0_cases):
         "wvec": gate_wvec(),
         "ff_t4": gate_fft4(),
         "race": gate_race(),
+        "lc6": gate_lc6(),
     }
 
 
@@ -156,12 +164,12 @@ def main():
             if mu["file"] == RACE:
                 # race gate is self-contained; no main TB build needed
                 gates = {"w0": "-", "w1": "-", "w3": "-", "wvec": "-",
-                         "ff_t4": "-", "race": gate_race()}
+                         "ff_t4": "-", "race": gate_race(), "lc6": "-"}
             else:
                 if not build():
                     print("  BUILD FAILED (mutation may be a syntax break)")
                     gates = {g: "BUILD-ERR" for g in
-                             ("w0", "w1", "w3", "wvec", "ff_t4", "race")}
+                             ("w0", "w1", "w3", "wvec", "ff_t4", "race", "lc6")}
                 else:
                     gates = run_gates(W0_CASES)
             detected = [g for g, v in gates.items()
@@ -173,7 +181,7 @@ def main():
             restore()
 
     print("\n\n=== MUTATION x GATE MATRIX ===")
-    hdr = ["mutation", "w0", "w1", "w3", "wvec", "ff_t4", "race", "detected"]
+    hdr = ["mutation", "w0", "w1", "w3", "wvec", "ff_t4", "race", "lc6", "detected"]
     print("| " + " | ".join(hdr) + " |")
     print("|" + "|".join("---" for _ in hdr) + "|")
     for mu, gates, detected in results:
@@ -181,7 +189,7 @@ def main():
             row = [mu["id"]] + ["?"] * 6 + [detected]
         else:
             row = [mu["id"]] + [gates.get(g, "-") for g in
-                                ("w0", "w1", "w3", "wvec", "ff_t4", "race")] + \
+                                ("w0", "w1", "w3", "wvec", "ff_t4", "race", "lc6")] + \
                   [",".join(detected) if isinstance(detected, list)
                    and detected else ("SILENT" if detected == [] else str(detected))]
         print("| " + " | ".join(row) + " |")

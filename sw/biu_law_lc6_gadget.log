@@ -1,0 +1,12 @@
+=== G-LC6 strio gadget search ===
+built 192 gadget images
+baseline (unmutated) build + digests...
+baseline done
+mutated (M-LC6) build + digests...
+  DISCRIMINATOR op=0x6e j=0 k=0 ws=0 wmax=0
+  DISCRIMINATOR op=0x6e j=0 k=0 ws=5 wmax=1
+  DISCRIMINATOR op=0x6e j=0 k=3 ws=0 wmax=0
+  DISCRIMINATOR op=0x6e j=0 k=7 ws=5 wmax=1
+  DISCRIMINATOR op=0x6e j=0 k=9 ws=0 wmax=0
+  DISCRIMINATOR op=0x6e j=1 k=1 ws=0 wmax=0
+=== LC6_GADGET_DONE hits=6 ===

@@ -199,11 +199,21 @@ its mapped gate; M-CTRL silent).
     non-REP 0x6E/0x6C; (b) strio-biased wider search. This case (LC6/C14-16) is
     PROVISIONAL and its silicon provenance ALSO needs board captures
     (P-C14/15/16), so the gate + provenance are booked together with B1's session.
-  - So B0 board-free: **2 of 3 closed** (matrix M-LC1/LC2/LC4a/LC4b + omitted
-    ff_t4/evext/race green; M-CTRL silent); **G-LC6 (gadget) + G-LC3-uRMW (board,
-    B1)** remain before the matrix is fully green.
-  - Method proven: `biu_law_gatesearch.py` (build unmutated baseline → per-law
-    mutated sweep → discriminating seed) is the reusable directed-gate finder.
+  - **G-LC6 → CLOSED via a hand-built strio gadget** (`sw/biu_law_lc6_gadget.py`):
+    a non-REP OUTSB (0x6E) single with queue-fill NOPs forces the `eu_rsv_strio`
+    uline-1 veto cell — 6 discriminating (op/j/k/wvec) configs found, several at
+    **w0** (confirms LC6 is w0-ACTIVE, Finding 4). 3 frozen into the standing gate
+    `sw/check_lc6_gate.py` (`sw/lc6_gate_baseline.json`); non-vacuity proven (PASS
+    pristine, FAIL under M-LC6, PASS restored). Added to the mutation battery
+    (`lc6` column) + standing_gates.md + biu_rebuild_gate.sh.
+  - **B0 board-free COMPLETE: matrix 8-green / 1-board-pending.** 8 laws
+    independently gated (LC1/LC2/LC4a/LC4b→wvec, LC6→lc6, ff_t4→ff_t4, evext→w1/w3,
+    race→race); CONTROL silent; only **M-LC3 (H-PHASE RMW-parity) → G-LC3-uRMW,
+    board-by-construction**, rides B1. Authoritative full re-run in
+    `sw/biu_law_mutation.log`.
+  - Methods proven + reusable: `biu_law_gatesearch.py` (random discriminating-seed
+    finder) + `biu_law_lc6_gadget.py` (directed gadget builder) = the answer to the
+    "narrow law, no board-free gate" class.
 
 ---
 

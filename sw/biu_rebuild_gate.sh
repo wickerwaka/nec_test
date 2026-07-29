@@ -32,6 +32,7 @@ python3 sw/test_fuzz_accept.py    2>&1 | tail -1
 
 step "standing gates"
 python3 sw/check_ff_t4.py         2>&1 | tail -1
+python3 sw/check_lc6_gate.py      2>&1 | tail -1
 python3 sw/check_mod3_illegal.py  2>&1 | tail -1
 python3 sw/check_enter_nesting.py 2>&1 | tail -3
 python3 sw/check_fuzz_bank.py     2>&1 | tail -3

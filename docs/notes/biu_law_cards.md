@@ -68,18 +68,16 @@ I/O cases:
 C8, C13, C14, C15, C16** (5 cases) — held OUT of the E-stage gating basis until
 booked Stage-B probes close them (§A.1).
 
-**GATE-COVERAGE REALITY (from the mutation battery, §B — reported honestly, not
-assumed):** of the MUST-now cases, only **C1 (LC1, via wvec), C9/C10 (LC4
-pf_late_rsv + general-lead, via wvec/w1/w3)** are currently caught by a board-free
-gate. **C4/C5 (LC2), C6/C7 (LC3), C12 (LC4 pf_rsv_lead)** have **NO working
-board-free detection gate yet** — their mutation was SILENT on all standing gates
-(narrow laws that don't fire on the 20-seed random-soup corpus, or need RMW/strio
-opcodes absent from the goldens). These cases are **GATE-PENDING**: they remain
-MUST by silicon provenance but cannot gate an E-stage until their directed gate
-(§B: G-LC2/G-LC4a/G-LC3-uRMW) is built. So the honest tally is **3 MUST cases
-board-free-gated today, 4 MUST cases gate-pending (directed gates booked), 5
-PROVISIONAL (board probes booked)** — a precise status, replacing v1's unqualified
-"17-case" claim.
+**GATE-COVERAGE REALITY (from the mutation battery, §B — updated after B0):** all
+MUST-now laws are now board-free gated EXCEPT LC3. Specifically **C1 (LC1→wvec),
+C4/C5 (LC2→wvec via directed seed 90364), C9/C10 (LC4 pf_late_rsv+general-lead→
+wvec/w1/w3), C12 (LC4 pf_rsv_lead→wvec via directed seed 90270)** are gated
+board-free (B0 closed C4/C5/C12 that the pre-B0 draft had gate-pending). **C6/C7
+(LC3 RMW-parity)** gate on **G-LC3-uRMW, board-by-construction** (no golden carries
+RMW), riding B1. LC6/C14-16 are gated by the `lc6` directed gadget (provenance
+still booked P-C14/15/16). So the tally is **MUST-now: 9 board-free-gated + 2
+(LC3 C6/C7) board-gated; 5 PROVISIONAL (board provenance booked)** — matrix
+8-green/1-board-pending (§B).
 
 ‡ **uRMW** = the RMW-class gate of record: a self-supplied uniform-RMW
 fabric/chip capture, MANDATORY for any RMW-touching change (no golden suite
@@ -123,76 +121,58 @@ law's predicate in a git-restored scratch RTL, rebuilds the Verilator TB, runs
 the board-free detection gate set, and records which gates flip red. A law whose
 break is caught by ≥1 gate is independently detectable; the CONTROL mutation
 (store_pf_boost, an unused shadow wire) must leave EVERY gate green (non-spurious
-proof). Detection gate set: `w0` (v0.1 bounded), `w1`, `w3` (uniform), `wvec`
-(random A/B), `ff_t4`, `race`.
+proof). Detection gate set (board-free): `w0` (v0.1 bounded), `w1`, `w3`
+(uniform), `wvec` (random A/B, incl. the B0 `DIRECTED_SEEDS` 90270/90364), `ff_t4`,
+`race`, and **`lc6`** (the B0 directed strio-single OUTSB gadget gate,
+`check_lc6_gate.py`).
 
-**MUTATION × GATE MATRIX** (harvested from `sw/biu_law_mutation.log`; the wvec
-digest is timing-sensitive — includes the inter-T1 cycle gap, the cadence metric
-the laws move; PASS = green, FAIL = the mutation was caught):
+**MUTATION × GATE MATRIX** — post-B0 (`sw/biu_law_mutation.log`; the wvec digest
+is timing-sensitive — inter-T1 cycle gap; PASS = green, FAIL = mutation caught):
 
-| mutation | law | w0 | w1 | w3 | wvec | ff_t4 | race | detected by |
-|---|---|---|---|---|---|---|---|---|
-| M-LC1  | LC1 resume (law_arm off)      | PASS | PASS | PASS | **FAIL** | PASS | PASS | **wvec** |
-| M-LC2  | LC2 low-band (lowband off)    | PASS | PASS | PASS | PASS | PASS | PASS | **NONE** → directed gate |
-| M-LC3  | LC3 H-PHASE (ext_ok_wr strict)| ERR* | ERR* | ERR* | PASS | PASS | PASS | **NONE** → uRMW (board) |
-| M-LC4a | LC4 pf_rsv_lead off           | PASS | PASS | PASS | PASS | PASS | PASS | **NONE** → directed gate |
-| M-LC4b | LC4 pf_late_rsv off           | PASS | PASS | PASS | **FAIL** | PASS | PASS | **wvec** |
-| M-LC6  | LC6 strio pick_t3 → pick_any  | PASS | PASS | PASS | PASS | PASS | PASS | **NONE** → directed strio gate |
-| M-FFT4 | far-flush ff_t4 off           | PASS | PASS | PASS | PASS | **FAIL** | PASS | **ff_t4** |
-| M-EVEXT| eval_ext ext_ok off           | PASS | **FAIL** | **FAIL** | PASS | PASS | PASS | **w1,w3** |
-| M-RACE | race_law ROM bit             | –    | –    | –    | –    | –    | **FAIL** | **race** |
-| M-CTRL | store_pf_boost (unused)       | PASS | PASS | PASS | PASS | PASS | PASS | **NONE (correct — control)** |
+| mutation | law | w0 | w1 | w3 | wvec | ff_t4 | race | lc6 | detected by |
+|---|---|---|---|---|---|---|---|---|---|
+| M-LC1  | LC1 resume (law_arm off)      | PASS | PASS | PASS | **FAIL** | PASS | PASS | PASS | **wvec** |
+| M-LC2  | LC2 low-band (lowband off)    | PASS | PASS | PASS | **FAIL** | PASS | PASS | PASS | **wvec** (G-LC2 seed 90364) |
+| M-LC3  | LC3 H-PHASE (ext_ok_wr strict)| PASS | PASS | PASS | PASS | PASS | PASS | PASS | **NONE → G-LC3-uRMW (board)** |
+| M-LC4a | LC4 pf_rsv_lead off           | PASS | PASS | PASS | **FAIL** | PASS | PASS | PASS | **wvec** (G-LC4a seed 90270) |
+| M-LC4b | LC4 pf_late_rsv off           | PASS | PASS | PASS | **FAIL** | PASS | PASS | PASS | **wvec** |
+| M-LC6  | LC6 strio pick_t3 → pick_any  | PASS | PASS | PASS | PASS | PASS | PASS | **FAIL** | **lc6** (G-LC6 gadget) |
+| M-FFT4 | far-flush ff_t4 off           | PASS | PASS | PASS | PASS | **FAIL** | PASS | PASS | **ff_t4** |
+| M-EVEXT| eval_ext ext_ok off           | PASS | **FAIL** | **FAIL** | PASS | PASS | PASS | PASS | **w1,w3** |
+| M-RACE | race_law ROM bit             | –    | –    | –    | –    | –    | **FAIL** | – | **race** |
+| M-CTRL | store_pf_boost (unused)       | PASS | PASS | PASS | PASS | PASS | PASS | PASS | **NONE (correct — control)** |
 
-*M-LC3 w0/w1/w3 = ERR: the golden-harness summary line was unparseable for that
-one mutated build (wvec/ff_t4/race ran normally). Immaterial to the finding — no
-golden suite carries RMW-at-T4-parity opcodes, so LC3's gate is the board uRMW
-capture by construction (campaign record §5); the ERR is not a detection.
+**Post-B0 status: 8 laws independently gated board-free + CONTROL silent; 1
+board-pending (M-LC3, uRMW, board-by-construction).**
+1. **Non-spurious:** CONTROL M-CTRL SILENT on every gate. ✓
+2. **Independent detection:** each of the 8 maps to a distinct gate — LC1/LC2/LC4a/
+   LC4b→wvec (LC2/LC4a via the B0 directed seeds), LC6→lc6 (B0 gadget), ff_t4→ff_t4,
+   eval_ext→w1/w3, race→race. ✓
+3. **The one remaining hole = M-LC3 (H-PHASE RMW-parity):** board-only BY
+   CONSTRUCTION — no golden/soup carries an RMW mem-write ready-AT-T4 with a
+   controlled Tw parity (campaign record §5), so **G-LC3-uRMW** is a uniform-RMW
+   fabric/chip capture that rides B1's board session. It is not a board-free gap.
 
-**What the battery proves (honest condition-6 status):**
-1. **Non-spurious:** the CONTROL (M-CTRL, unused shadow wire) is SILENT on every
-   gate ⇒ the gate set does not fire on a behavior-neutral change. ✓
-2. **Independently detected board-free:** LC1 resume (wvec), LC4 pf_late_rsv
-   (wvec), far-flush ff_t4 (check_ff_t4), eval_ext A/B (w1/w3), race (check_race).
-   Each maps to a DISTINCT gate ⇒ independence for these. ✓
-3. **HOLES the battery exposed (the deliverable earning its keep, NOT hidden):**
-   **M-LC2, M-LC3, M-LC4a, M-LC6 are caught by NO current board-free gate.** Root
-   cause = CORPUS coverage, not digest sensitivity (the timing-sensitive digest
-   was verified to catch LC1's cycle shift; LC2/LC4a simply do not fire — or fire
-   masked — on the 20-seed random-soup corpus, and v0.1-w0 carries no strio (LC6)
-   or RMW-at-T4-parity (LC3) opcodes). So the corresponding MUST/PROVISIONAL cases
-   **C4, C5 (LC2), C6, C7, C8 (LC3), C12 (LC4 pf_rsv_lead), C14-16 (LC6) do NOT yet
-   have a working detection gate** and are DOWNGRADED accordingly (§A status
-   column) until their directed gate is built.
+**How B0 closed the four holes v1's battery exposed** (`biu_law_gatesearch.py` +
+`biu_law_lc6_gadget.py`, the reusable "narrow-law, no-gate" answer):
+- **G-LC2 / G-LC4a:** the gate-search swept seeds 90000-90400 × 3 random wvecs and
+  found DISCRIMINATING seeds (fz90364 / fz90270, ws5/wmax1) where breaking the law
+  changes the observable bus stream; added to the wvec `DIRECTED_SEEDS`. Their
+  observable footprint is tiny (~1 in ~300 seeds) — which is why the original
+  20-seed corpus missed them.
+- **G-LC6:** no random discriminator in 400 seeds (the corpus's strings are mostly
+  REP), so a HAND-BUILT non-REP OUTSB gadget (`biu_law_lc6_gadget.py`) forcing the
+  `eu_rsv_strio` uline-1 veto cell — 6 discriminating (op/j/k/wvec) configs found,
+  several at **w0** (confirming Finding 4: LC6 is w0-ACTIVE). 3 frozen into
+  `check_lc6_gate.py` (`lc6_gate_baseline.json`); non-vacuity proven (PASS pristine,
+  FAIL under M-LC6, PASS restored).
+- **G-LC3-uRMW:** board, rides B1 — the only cell that cannot be board-free.
 
-**Directed gates BOOKED to close the holes (each plugs into this battery — its
-mutation must then flip it):**
-- **G-LC2** (board-free, buildable): a directed stimulus that forces q_cnt≤2 with
-  occupancy aged in the 3-4 band at a waited resume; assert the PAUSE. Add to the
-  wvec corpus or a standalone directed check.
-- **G-LC4a** (board-free): a disp16-store onset (S_DHI reserve, model eu_req=0 at
-  eval) directed case; assert the prefetch suppression.
-- **G-LC6** (board-free directed + board provenance): a strio-gadget stimulus
-  (opcodes 6C-6F) — v0.1/wvec carry none, exactly the task-#29 F7a vacuous-gate
-  lesson; assert the T3-veto + TI-exemption. (LC6 is also w0-ACTIVE, Finding 4.)
-- **G-LC3 = the uRMW capture** (BOARD, Stage B/E3): no golden carries RMW opcodes;
-  the RMW-parity gate of record is the self-supplied uniform-RMW fabric/chip
-  capture (campaign record §5). Board-only by construction.
-
-**Bottom line for the acceptance basis:** the machinery (executable gates +
-mutation battery + non-spurious control) EXISTS and is proven; **5 laws are
-board-free independently gated today; 4 (LC2/LC3/LC4a/LC6) need the directed gates
-above before their MUST/PROVISIONAL cases can gate an E-stage.** This is a precise,
-actionable gap list, not a completeness claim — the mutation battery converted
-Finding 3's "no answer for which gate fails" into an exact per-law answer.
-
-**B0 UPDATE (Stage-B opening work, gate-search `sw/biu_law_gatesearch.py`):**
-G-LC2 and G-LC4a are now CLOSED board-free — the search found discriminating
-seeds (**G-LC2 = fz90364, G-LC4a = fz90270**, both ws5/wmax1) where breaking the
-law changes the observable model bus stream; added to the wvec corpus
-(`DIRECTED_SEEDS`), so M-LC2/M-LC4a are now caught by wvec (targeted-confirmed;
-control still silent, 88 cases). **Remaining: G-LC6** (no discriminator in 400
-seeds → hand-built non-REP strio gadget, booked) and **G-LC3-uRMW** (board, rides
-B1). Matrix is 7-green/2-pending; full re-run when the last two land (before P1).
+So the acceptance basis is **matrix 8-green / 1-board-pending**; it becomes fully
+green when the B1 board session lands the uRMW capture. The MUST-now cases C4/C5
+(LC2), C12 (LC4 pf_rsv_lead) are now GATED (were gate-pending in the pre-B0 draft);
+C6/C7 (LC3) gate on G-LC3-uRMW; LC6/C14-16 gated by `lc6` (provenance still booked
+P-C14/15/16).
 
 ---
 
@@ -399,16 +379,15 @@ broke it via recent_evx over-fire).
 4. **LC5/LC7 retest plans on grid state** — §E ✓.
 5. **LC8 durable subsumption artifact** — §F/LC8 ✓ (jsonl.gz + domain-containment
    proof).
-6. **Mutation testing / independent detection** — §B ✓ as a PROVEN FRAMEWORK with
-   a working non-spurious control: 5 laws independently detected board-free; **4
-   laws (LC2/LC3/LC4a/LC6) exposed as NOT board-free-detectable today** →
-   directed gates G-LC2/G-LC4a/G-LC6 (board-free, buildable) + G-LC3-uRMW (board)
-   booked, each to plug into the battery. This is the battery's core value:
-   converting "which gate fails?" into an exact, honest per-law answer rather than
-   an unverified completeness claim.
+6. **Mutation testing / independent detection** — §B ✓, and after **B0** the
+   matrix is **8-green / 1-board-pending** with a working non-spurious control:
+   G-LC2 (seed 90364) + G-LC4a (seed 90270) closed via the gate-search directed
+   seeds; G-LC6 closed via the hand-built strio-OUTSB gadget gate (`check_lc6_
+   gate.py`); only M-LC3 (H-PHASE RMW-parity) remains → G-LC3-uRMW, board-by-
+   construction, rides B1. Each gate plugs into the battery and its mutation flips
+   exactly it.
 
-**Net P0 status:** the acceptance-basis MACHINERY is built and proven
-non-vacuous; the basis is NOT yet complete (4 directed gates + 5 board probes
-outstanding). Routed to the coordinator/Codex to decide whether the directed
-board-free gates (G-LC2/G-LC4a/G-LC6) must land before Stage B, or fold into
-Stage B's directed-probe measurement (plan Stage B).
+**Net status (post-B0):** the acceptance basis is board-free COMPLETE except the
+one board-by-construction cell (LC3 uRMW); it goes fully green when B1's uRMW
+capture lands. Remaining PROVISIONAL provenance (C8, C13, C14-16) rides B1's board
+session. Consolidated Codex re-review at P1 over the completed basis.

@@ -9,6 +9,7 @@ f0lock + f4a + v0.3 3.7M) before any reflash (the RR-era bar; see
 | Gate | Command | Proves |
 |---|---|---|
 | check_ff_t4 | `python3 sw/check_ff_t4.py` | the far-flush direct-commit slots stay reachable (SLOT_FF_T4 non-vacuous) |
+| check_lc6_gate | `python3 sw/check_lc6_gate.py` | the Family-5 strio-single uline-1 veto (eu_rsv_strio→pick_t3) is intact — directed non-REP OUTSB gadgets (BIU-rebuild B0; needs current Verilator binary) |
 | check_race_law | `python3 sw/check_race_law.py` | the POP-PSW/INT race law is bit-exact |
 | prefix_clear_lint | `python3 sw/prefix_clear_lint.py` | `clear_prefixes()` single-source at every retire/exit site (RR4) |
 | ss_lint | `python3 sw/ss_lint.py` | the savestate address map is consistent (BIU×2 + EU×2 + tag = SS_COUNT) |
