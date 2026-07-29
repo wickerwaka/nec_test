@@ -345,6 +345,14 @@ its mapped gate; M-CTRL silent).
 | A4 | A4 | biu_rebuild_gate.sh + biu_rebuild_wvec_freeze.py + wvec_baseline.json + baseline evidence |
 
 ## Process rules (paid-for this stage)
+- **Mutate/restore logging (coordinator).** Every board-free battery/gadget/search
+  harness that edits RTL does so as a git-restored SCRATCH mutation (edit → build →
+  measure → `git checkout -- hdl/rtl/core/`), never committed. The `git checkout`
+  the tool-harness flags as a "destructive discard" is ALWAYS the harness's own
+  scratch mutation being restored — matchable to its run by the log timestamp.
+  Harnesses: biu_law_mutation.py, biu_law_gatesearch.py, biu_law_lc{3,6}_gadget.py,
+  biu_law_lc3_seedsearch.py. Each asserts `git diff hdl/` empty at exit. A committed
+  RTL change is ONLY ever an intentional E-stage edit (none yet — RTL == master).
 - **Completion-marker grep must match the LITERAL emitted string.** The battery
   emits `=== BASELINE_BATTERY_DONE  <ts> ===`; a watcher grepping a pattern that
   assumed a different spacing/format missed it and timed out. Rule: grep the
