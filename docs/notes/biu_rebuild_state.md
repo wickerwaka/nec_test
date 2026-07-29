@@ -257,10 +257,21 @@ veto is silicon-real (P-C14 confirmed).** Chip rows banked →
 index-diff showed a false 3731-row mismatch — an ALIGNMENT artifact; the proper
 `diff()` aligner gives bad=0, and sanity fz90000 w0 chip==fabric bad=0.)
 - **Observations (census, not provenance):** the RANDOM-wait config (k=7) diverges
-  chip-vs-fabric (~row 198, fabric CODE where chip PASV) — the GENERAL
-  waited-cadence residual (campaign target). The k=9 w0 config also diverged —
-  **flagged open**: gadget-config-specific (k=0 clean) or a real w0 fabric-vs-chip
-  divergence worth a follow-up probe.
+  chip-vs-fabric — the GENERAL waited-cadence residual (campaign target).
+- **k=9 w0 flag — RESOLVED (bounded probe, coordinator-required): GADGET-WANDER
+  ARTIFACT, not a real w0 divergence.** Ran k=9 w0 on chip + fabric + TB with the
+  proper aligner: chip-vs-fabric bad=72, chip-vs-TB bad=72, **TB-vs-FABRIC bad=0**
+  (the core is self-consistent). **First divergence = row 198 of 467** → rows
+  0-197 (the ENTIRE gadget: strio setup + OUTS + veto) are chip==core==EXACT at
+  w0; the divergence is only in the POST-gadget wander (the "9090" = NOP-bytes-as-
+  operand — my synthetic gadget lacks the validated corpus's HLT-fence, so it runs
+  off into uncharacterized fall-through where core-vs-chip legitimately differ).
+  **w0 bit-exactness on characterized code is INTACT** (the campaign floor holds;
+  the golden 169000/169000 + fuzz-bank are the real w0 guarantees, not arbitrary
+  un-fenced synthetic gadgets). Not a STOP finding. (The `check_lc6_gate` MODEL
+  gate is unaffected — it compares model-vs-frozen-model digests, and the wander
+  is identical in both legs except where the veto matters; the `lc6_provenance`
+  BOARD check uses only the clean w0 k=0 config.)
 - **P-C15 (TI-exemption) + P-C16 (F7 idle-arm)** remain (directed captures).
 - Board left `use_core=False` idle.
 
