@@ -275,6 +275,25 @@ index-diff showed a false 3731-row mismatch — an ALIGNMENT artifact; the prope
 - **P-C15 (TI-exemption) + P-C16 (F7 idle-arm)** remain (directed captures).
 - Board left `use_core=False` idle.
 
+### B-SESSION Boundary 4 — B1 2313-seed re-capture: DONE ✅ (`sw/b1_recapture.py`)
+Full waited-cadence family (2313 seeds) re-captured chip+fabric on the current
+fabric (fae64d5, master pin). **2313/2313 captured, 0 runerr, 172s** (~13 seeds/s);
+board idle at end. Artifacts: `sw/testdata/campaigns/mc1_refix/{census,perseed}.json`.
+**RE-BASED CENSUS (current fabric):**
+- **TIMING (1771): mass 30592, net +1344** — CODE→CODE 54.9% / EU→CODE 16.5% /
+  CODE→EU 15.6% / EU→EU 13.1%.
+- **done_mismatch (542, OWN regime): mass 9188, net −1436** — CODE→CODE 38.1% /
+  EU→CODE 21.9% / CODE→EU 16.2% / EU→EU 23.7%.
+- **GRAND TOTAL 39780.**
+**Confirms the t33-v2 corrections:** (R2) mass **−45% vs the stale 72438** — the
+pre-fix inflation is real; **39780 is the rebuild's re-based quantitative
+baseline.** Ranking STABLE (CODE→CODE dominant → EU-access → EU→EU). (R3)
+done_mismatch is a **distinct DIRECTIONAL regime** — net −1436 (fabric drifts
+BEHIND) vs TIMING's near-balanced +1344; 23% of grand mass. **B2 per-cell TARGET
+numbers for P1 are now set from this re-based census.** Remaining: B3 directed
+wvec cells, B4 exp_resume closure GO/NO-GO (→ user on NO-GO), LC6 P-C15/16, the
+analysis wave (per-cell held-out predictability, law fits), then P1.
+
 ### B0 — directed gates to green the matrix (IN PROGRESS)
 Goal: build G-LC2 / G-LC4a / G-LC6 (board-free) + G-LC3-uRMW (board, rides B1);
 plug each into the mutation battery; re-run → matrix fully green (every MUST case →

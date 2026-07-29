@@ -1,0 +1,24 @@
+{
+ "TIMING": {
+  "n_ok": 1771,
+  "net": 1344,
+  "mass": {
+   "EU->EU": 3996,
+   "EU->CODE": 5053,
+   "CODE->CODE": 16781,
+   "CODE->EU": 4762
+  },
+  "total": 30592
+ },
+ "done_mismatch": {
+  "n_ok": 542,
+  "net": -1436,
+  "mass": {
+   "CODE->CODE": 3503,
+   "EU->EU": 2180,
+   "EU->CODE": 2016,
+   "CODE->EU": 1489
+  },
+  "total": 9188
+ }
+}

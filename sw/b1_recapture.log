@@ -1,0 +1,33 @@
+=== B1 RE-CAPTURE  2026-07-29T03:49:57Z fabric=fae64d5 (master pin) ===
+family: 2313 waited seeds (TIMING + done_mismatch)
+board idle confirmed; starting capture
+  ... 200/2313 captured (16s, 0 runerr)
+  ... 400/2313 captured (31s, 0 runerr)
+  ... 600/2313 captured (46s, 0 runerr)
+  ... 800/2313 captured (61s, 0 runerr)
+  ... 1000/2313 captured (75s, 0 runerr)
+  ... 1200/2313 captured (90s, 0 runerr)
+  ... 1400/2313 captured (105s, 0 runerr)
+  ... 1600/2313 captured (119s, 0 runerr)
+  ... 1800/2313 captured (134s, 0 runerr)
+  ... 2000/2313 captured (149s, 0 runerr)
+  ... 2200/2313 captured (164s, 0 runerr)
+board idle (session end)
+
+=== RE-BASED CENSUS (current fabric) ===
+
+[TIMING] 1771 seeds, total |ge| mass=30592, net=1344
+  CODE->CODE    16781 (54.9%)
+  EU->CODE       5053 (16.5%)
+  CODE->EU       4762 (15.6%)
+  EU->EU         3996 (13.1%)
+
+[done_mismatch] 542 seeds, total |ge| mass=9188, net=-1436
+  CODE->CODE     3503 (38.1%)
+  EU->CODE       2016 (21.9%)
+  CODE->EU       1489 (16.2%)
+  EU->EU         2180 (23.7%)
+
+GRAND TOTAL |ge| mass = 39780  (runerr=0, 172s)
+
+=== B1_RECAPTURE_DONE  seeds=2313/2313 grand_mass=39780 ===
