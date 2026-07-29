@@ -243,6 +243,26 @@ M1/M2/M3** so Tw-parity is re-verified at each reflash. An on-board directed
 re-capture is available if explicit board due-diligence is wanted, but cannot
 change the conclusion. **Terminal matrix: 8-green board-free-re-runnable + M-LC3
 board-by-construction (milestone-gated).** Routed to coordinator to confirm.
+**COORDINATOR CONFIRMED** the terminal state + added the M1 positive-control
+hardening (recorded in the LC3 card §B: chip-side positive control or vacuous;
+bank chip rows at M1 → deferred replay gate; −50u-vs-raw-diff honest-tension note).
+
+**Boundary 3 — LC6 provenance (P-C14 core): DONE ✅** `sw/lc6_provenance.py`. Ran
+the frozen LC6 strio-OUTSB gadget on CHIP (use_core=False) + FABRIC (use_core=True,
+master build) via the aligned `check_seq.diff`. **w0 config (op 0x6E, k=0):
+chip==fabric bad=0** (440 rows); LC6 is w0-ACTIVE (Finding 4) so this exercises
+the Family-5 veto, and with the model-side M-LC6 proof, **the eu_rsv_strio/pick_t3
+veto is silicon-real (P-C14 confirmed).** Chip rows banked →
+`sw/testdata/lc6_provenance.jsonl`. (Board-capture path validated: a first naive
+index-diff showed a false 3731-row mismatch — an ALIGNMENT artifact; the proper
+`diff()` aligner gives bad=0, and sanity fz90000 w0 chip==fabric bad=0.)
+- **Observations (census, not provenance):** the RANDOM-wait config (k=7) diverges
+  chip-vs-fabric (~row 198, fabric CODE where chip PASV) — the GENERAL
+  waited-cadence residual (campaign target). The k=9 w0 config also diverged —
+  **flagged open**: gadget-config-specific (k=0 clean) or a real w0 fabric-vs-chip
+  divergence worth a follow-up probe.
+- **P-C15 (TI-exemption) + P-C16 (F7 idle-arm)** remain (directed captures).
+- Board left `use_core=False` idle.
 
 ### B0 — directed gates to green the matrix (IN PROGRESS)
 Goal: build G-LC2 / G-LC4a / G-LC6 (board-free) + G-LC3-uRMW (board, rides B1);
