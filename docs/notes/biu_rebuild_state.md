@@ -95,19 +95,31 @@ counts, git-tracked and on-disk identical: **mc1 = 1295, mc2 = 1294, t30-raw =
 (A3). `check_fuzz_bank.py` round-trips all four banks (regenerate → GEN-DRIFT hard
 fail → TB replay → re-classify vs banked chip rows).
 
-### A4 — Baseline freeze
+### A4 — Baseline freeze ✅
 - Branch cut + rollback anchor recorded (above). Battery: `sw/biu_rebuild_gate.sh`
-  (detached, repo-relative log, LOG-MTIME watched), a superset of `t30_sweep.sh`
-  adding check_enter_nesting (MASK+WAITED), check_fuzz_bank, offline verdict/
-  accept tests, and a bounded savestate sweep. Fresh Verilator binary built first
-  (class5 stale-binary rule).
-- **Gate totals (TO FILL when the battery completes):**
-  - ss_lint (incl flop census): _pending_
-  - w0 v0.1 169k: _pending_ · w1 1200 · w3 1200 · v0.3 3.7M: _pending_
-  - check_enter_nesting (MASK+WAITED): _pending_ · check_fuzz_bank 3242: _pending_
-  - f0lock / f4a / ss-sweep: _pending_
-- wvec replay / targeted-trace A/B set: _pending_ (frozen after the battery for
-  Stage B/C/D A/B).
+  (detached, repo-relative log `sw/biu_rebuild_baseline.log`, LOG-MTIME watched),
+  a superset of `t30_sweep.sh` adding check_enter_nesting (MASK+WAITED),
+  check_fuzz_bank, offline verdict/accept tests, and a bounded savestate sweep.
+  Fresh Verilator binary built first (class5 stale-binary rule). Completed
+  2026-07-29T00:21:12Z, ALL GREEN.
+- **Gate totals (baseline freeze, HEAD 8598887 on biu-rebuild):**
+  - ss_lint + ss_flopcensus: PASS (82×2 BIU + 120×2 EU + tag = 203; 181
+    architectural flops all SSA-mapped, 0 whitelist).
+  - prefix_clear_lint / ea_step_lint PASS; check_race_law 2/2; optable 0 err;
+    fuzz_campaign lint PASS; test_fuzz_classify/accept 0 failures.
+  - check_ff_t4 9/9 (9 SLOT_FF_T4 fires); check_mod3_illegal 128/128;
+    **check_enter_nesting PASS (MASK+WAITED)**; **check_fuzz_bank 3242 stable
+    (gen_drift 0, regen_err 0)**.
+  - **v0.1 w0 169000/169000 full · w1 1200/1200 · w3 1200/1200** · f0lock 400/400
+    · f4a 160/160 · **savestate sweep 2776/2776** · **v0.3 w0 3699997/3699997
+    full (3 documented pre-existing exclusions).**
+- **wvec replay / A/B trace set (board-free):** `docs/notes/biu_rebuild_wvec_
+  baseline.json` (80 deterministic case digests = class5 seeds fz90000..90019 ×
+  wvec {ws0/wmax0 w0-control, ws5/wmax1, ws7/wmax3, ws11/wmax7}); generator/
+  checker `sw/biu_rebuild_wvec_freeze.py` (model-side `run_tb_internal` only, NO
+  board). Stage C/D re-run `--check` to attribute every changed row; round-trip
+  verified PASS (80/80 identical). This is the R0 "baseline-versus-refactor trace
+  gate" for the shadow-promotion stages.
 
 ### P0 boundary
 STOP at P0 for coordinator verify + Codex critical review of the law cards before
@@ -121,8 +133,14 @@ Stage B dispatches. (This worker does NOT proceed to Stage B.)
 |---|---|---|
 | `d7cc0af` | A1 | biu_law_cards.md |
 | `3c0320a` | A2 | ss_flopcensus.py + ss_flop_whitelist.txt + ss_lint.py wiring |
-| A3+state | A3+state | biu_rebuild_state.md (this doc, incl. A3 note) |
-| A4 | A4 | biu_rebuild_gate.sh + baseline evidence in this doc |
+| `5e7a6ad` | A3+state | biu_rebuild_state.md (this doc, incl. A3 note) |
+| A4 | A4 | biu_rebuild_gate.sh + biu_rebuild_wvec_freeze.py + wvec_baseline.json + baseline evidence |
+
+## Process rules (paid-for this stage)
+- **Completion-marker grep must match the LITERAL emitted string.** The battery
+  emits `=== BASELINE_BATTERY_DONE  <ts> ===`; a watcher grepping a pattern that
+  assumed a different spacing/format missed it and timed out. Rule: grep the
+  exact literal marker substring the script prints, nothing fancier.
 
 ---
 

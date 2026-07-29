@@ -1,0 +1,445 @@
+{
+ "seeds": [
+  90000,
+  90001,
+  90002,
+  90003,
+  90004,
+  90005,
+  90006,
+  90007,
+  90008,
+  90009,
+  90010,
+  90011,
+  90012,
+  90013,
+  90014,
+  90015,
+  90016,
+  90017,
+  90018,
+  90019
+ ],
+ "wvecs": [
+  [
+   0,
+   0
+  ],
+  [
+   5,
+   1
+  ],
+  [
+   7,
+   3
+  ],
+  [
+   11,
+   7
+  ]
+ ],
+ "nrows": 4200,
+ "cases": {
+  "fz90000:ws0:wmax0": {
+   "rows": 4199,
+   "accesses": 701,
+   "sha": "d73c3e5a62a6894d"
+  },
+  "fz90000:ws5:wmax1": {
+   "rows": 4199,
+   "accesses": 691,
+   "sha": "3bd7f9101b8cba91"
+  },
+  "fz90000:ws7:wmax3": {
+   "rows": 4199,
+   "accesses": 655,
+   "sha": "1702802b2785ef6c"
+  },
+  "fz90000:ws11:wmax7": {
+   "rows": 4199,
+   "accesses": 494,
+   "sha": "e18a048c20172ddd"
+  },
+  "fz90001:ws0:wmax0": {
+   "rows": 4199,
+   "accesses": 701,
+   "sha": "5abd0cf95169ea90"
+  },
+  "fz90001:ws5:wmax1": {
+   "rows": 4199,
+   "accesses": 692,
+   "sha": "974dfcbcdcfff5c7"
+  },
+  "fz90001:ws7:wmax3": {
+   "rows": 4199,
+   "accesses": 655,
+   "sha": "1702802b2785ef6c"
+  },
+  "fz90001:ws11:wmax7": {
+   "rows": 4199,
+   "accesses": 494,
+   "sha": "e18a048c20172ddd"
+  },
+  "fz90002:ws0:wmax0": {
+   "rows": 4199,
+   "accesses": 708,
+   "sha": "03fb6f9a729c4a01"
+  },
+  "fz90002:ws5:wmax1": {
+   "rows": 4199,
+   "accesses": 697,
+   "sha": "94a38e2274930036"
+  },
+  "fz90002:ws7:wmax3": {
+   "rows": 4199,
+   "accesses": 655,
+   "sha": "1702802b2785ef6c"
+  },
+  "fz90002:ws11:wmax7": {
+   "rows": 4199,
+   "accesses": 494,
+   "sha": "e18a048c20172ddd"
+  },
+  "fz90003:ws0:wmax0": {
+   "rows": 4199,
+   "accesses": 702,
+   "sha": "927e0bbabaf80266"
+  },
+  "fz90003:ws5:wmax1": {
+   "rows": 4199,
+   "accesses": 693,
+   "sha": "fb34e74d939897f9"
+  },
+  "fz90003:ws7:wmax3": {
+   "rows": 4199,
+   "accesses": 655,
+   "sha": "1702802b2785ef6c"
+  },
+  "fz90003:ws11:wmax7": {
+   "rows": 4199,
+   "accesses": 494,
+   "sha": "e18a048c20172ddd"
+  },
+  "fz90004:ws0:wmax0": {
+   "rows": 4199,
+   "accesses": 706,
+   "sha": "0bfa738defe331eb"
+  },
+  "fz90004:ws5:wmax1": {
+   "rows": 4199,
+   "accesses": 695,
+   "sha": "9c8d026e872a136b"
+  },
+  "fz90004:ws7:wmax3": {
+   "rows": 4199,
+   "accesses": 655,
+   "sha": "1702802b2785ef6c"
+  },
+  "fz90004:ws11:wmax7": {
+   "rows": 4199,
+   "accesses": 494,
+   "sha": "e18a048c20172ddd"
+  },
+  "fz90005:ws0:wmax0": {
+   "rows": 4199,
+   "accesses": 708,
+   "sha": "22433d09240cecda"
+  },
+  "fz90005:ws5:wmax1": {
+   "rows": 4199,
+   "accesses": 696,
+   "sha": "149c3ab349c6fc32"
+  },
+  "fz90005:ws7:wmax3": {
+   "rows": 4199,
+   "accesses": 655,
+   "sha": "1702802b2785ef6c"
+  },
+  "fz90005:ws11:wmax7": {
+   "rows": 4199,
+   "accesses": 494,
+   "sha": "e18a048c20172ddd"
+  },
+  "fz90006:ws0:wmax0": {
+   "rows": 4199,
+   "accesses": 705,
+   "sha": "61a20bb61c74166c"
+  },
+  "fz90006:ws5:wmax1": {
+   "rows": 4199,
+   "accesses": 695,
+   "sha": "80d41295309699c7"
+  },
+  "fz90006:ws7:wmax3": {
+   "rows": 4199,
+   "accesses": 655,
+   "sha": "1702802b2785ef6c"
+  },
+  "fz90006:ws11:wmax7": {
+   "rows": 4199,
+   "accesses": 494,
+   "sha": "e18a048c20172ddd"
+  },
+  "fz90007:ws0:wmax0": {
+   "rows": 4199,
+   "accesses": 708,
+   "sha": "4ef72b12cdc11aaa"
+  },
+  "fz90007:ws5:wmax1": {
+   "rows": 4199,
+   "accesses": 696,
+   "sha": "802c470582874056"
+  },
+  "fz90007:ws7:wmax3": {
+   "rows": 4199,
+   "accesses": 655,
+   "sha": "1702802b2785ef6c"
+  },
+  "fz90007:ws11:wmax7": {
+   "rows": 4199,
+   "accesses": 494,
+   "sha": "e18a048c20172ddd"
+  },
+  "fz90008:ws0:wmax0": {
+   "rows": 4199,
+   "accesses": 707,
+   "sha": "c00f8b8c6d4e5fc5"
+  },
+  "fz90008:ws5:wmax1": {
+   "rows": 4199,
+   "accesses": 695,
+   "sha": "b4116607d7c5529f"
+  },
+  "fz90008:ws7:wmax3": {
+   "rows": 4199,
+   "accesses": 655,
+   "sha": "1702802b2785ef6c"
+  },
+  "fz90008:ws11:wmax7": {
+   "rows": 4199,
+   "accesses": 494,
+   "sha": "e18a048c20172ddd"
+  },
+  "fz90009:ws0:wmax0": {
+   "rows": 4199,
+   "accesses": 710,
+   "sha": "5af22e594638d50f"
+  },
+  "fz90009:ws5:wmax1": {
+   "rows": 4199,
+   "accesses": 697,
+   "sha": "815f9fcfd7f60309"
+  },
+  "fz90009:ws7:wmax3": {
+   "rows": 4199,
+   "accesses": 655,
+   "sha": "1702802b2785ef6c"
+  },
+  "fz90009:ws11:wmax7": {
+   "rows": 4199,
+   "accesses": 494,
+   "sha": "e18a048c20172ddd"
+  },
+  "fz90010:ws0:wmax0": {
+   "rows": 4199,
+   "accesses": 705,
+   "sha": "93ae6003af15f1c0"
+  },
+  "fz90010:ws5:wmax1": {
+   "rows": 4199,
+   "accesses": 693,
+   "sha": "07fc998bdbf7efb0"
+  },
+  "fz90010:ws7:wmax3": {
+   "rows": 4199,
+   "accesses": 655,
+   "sha": "1702802b2785ef6c"
+  },
+  "fz90010:ws11:wmax7": {
+   "rows": 4199,
+   "accesses": 494,
+   "sha": "e18a048c20172ddd"
+  },
+  "fz90011:ws0:wmax0": {
+   "rows": 4199,
+   "accesses": 710,
+   "sha": "93b12f0f3f4a9c00"
+  },
+  "fz90011:ws5:wmax1": {
+   "rows": 4199,
+   "accesses": 698,
+   "sha": "be14654f27a62312"
+  },
+  "fz90011:ws7:wmax3": {
+   "rows": 4199,
+   "accesses": 655,
+   "sha": "1702802b2785ef6c"
+  },
+  "fz90011:ws11:wmax7": {
+   "rows": 4199,
+   "accesses": 494,
+   "sha": "e18a048c20172ddd"
+  },
+  "fz90012:ws0:wmax0": {
+   "rows": 4199,
+   "accesses": 707,
+   "sha": "be5e81ccad9d6af3"
+  },
+  "fz90012:ws5:wmax1": {
+   "rows": 4199,
+   "accesses": 696,
+   "sha": "7998a830acb353eb"
+  },
+  "fz90012:ws7:wmax3": {
+   "rows": 4199,
+   "accesses": 655,
+   "sha": "1702802b2785ef6c"
+  },
+  "fz90012:ws11:wmax7": {
+   "rows": 4199,
+   "accesses": 494,
+   "sha": "e18a048c20172ddd"
+  },
+  "fz90013:ws0:wmax0": {
+   "rows": 4199,
+   "accesses": 709,
+   "sha": "12c127fdf5e9e893"
+  },
+  "fz90013:ws5:wmax1": {
+   "rows": 4199,
+   "accesses": 696,
+   "sha": "8977f31f71eb59df"
+  },
+  "fz90013:ws7:wmax3": {
+   "rows": 4199,
+   "accesses": 655,
+   "sha": "1702802b2785ef6c"
+  },
+  "fz90013:ws11:wmax7": {
+   "rows": 4199,
+   "accesses": 494,
+   "sha": "e18a048c20172ddd"
+  },
+  "fz90014:ws0:wmax0": {
+   "rows": 4199,
+   "accesses": 706,
+   "sha": "6b52f158dde26147"
+  },
+  "fz90014:ws5:wmax1": {
+   "rows": 4199,
+   "accesses": 698,
+   "sha": "5f8452f1f76d7c2b"
+  },
+  "fz90014:ws7:wmax3": {
+   "rows": 4199,
+   "accesses": 655,
+   "sha": "1702802b2785ef6c"
+  },
+  "fz90014:ws11:wmax7": {
+   "rows": 4199,
+   "accesses": 494,
+   "sha": "e18a048c20172ddd"
+  },
+  "fz90015:ws0:wmax0": {
+   "rows": 4199,
+   "accesses": 702,
+   "sha": "7409a9d27636b996"
+  },
+  "fz90015:ws5:wmax1": {
+   "rows": 4199,
+   "accesses": 696,
+   "sha": "7cf426466ff11a0a"
+  },
+  "fz90015:ws7:wmax3": {
+   "rows": 4199,
+   "accesses": 655,
+   "sha": "1702802b2785ef6c"
+  },
+  "fz90015:ws11:wmax7": {
+   "rows": 4199,
+   "accesses": 494,
+   "sha": "e18a048c20172ddd"
+  },
+  "fz90016:ws0:wmax0": {
+   "rows": 4199,
+   "accesses": 707,
+   "sha": "d8751f2f46843cba"
+  },
+  "fz90016:ws5:wmax1": {
+   "rows": 4199,
+   "accesses": 696,
+   "sha": "5fa963f75741c34a"
+  },
+  "fz90016:ws7:wmax3": {
+   "rows": 4199,
+   "accesses": 655,
+   "sha": "1702802b2785ef6c"
+  },
+  "fz90016:ws11:wmax7": {
+   "rows": 4199,
+   "accesses": 494,
+   "sha": "e18a048c20172ddd"
+  },
+  "fz90017:ws0:wmax0": {
+   "rows": 4199,
+   "accesses": 703,
+   "sha": "17532efdee7f3b7e"
+  },
+  "fz90017:ws5:wmax1": {
+   "rows": 4199,
+   "accesses": 696,
+   "sha": "d7abd442913e87d2"
+  },
+  "fz90017:ws7:wmax3": {
+   "rows": 4199,
+   "accesses": 655,
+   "sha": "1702802b2785ef6c"
+  },
+  "fz90017:ws11:wmax7": {
+   "rows": 4199,
+   "accesses": 494,
+   "sha": "e18a048c20172ddd"
+  },
+  "fz90018:ws0:wmax0": {
+   "rows": 4199,
+   "accesses": 710,
+   "sha": "3a99f5cddd301579"
+  },
+  "fz90018:ws5:wmax1": {
+   "rows": 4199,
+   "accesses": 697,
+   "sha": "029f4d3a73415338"
+  },
+  "fz90018:ws7:wmax3": {
+   "rows": 4199,
+   "accesses": 655,
+   "sha": "1702802b2785ef6c"
+  },
+  "fz90018:ws11:wmax7": {
+   "rows": 4199,
+   "accesses": 494,
+   "sha": "e18a048c20172ddd"
+  },
+  "fz90019:ws0:wmax0": {
+   "rows": 4199,
+   "accesses": 709,
+   "sha": "422467d9a65171e2"
+  },
+  "fz90019:ws5:wmax1": {
+   "rows": 4199,
+   "accesses": 698,
+   "sha": "27fae92ef1044622"
+  },
+  "fz90019:ws7:wmax3": {
+   "rows": 4199,
+   "accesses": 655,
+   "sha": "1702802b2785ef6c"
+  },
+  "fz90019:ws11:wmax7": {
+   "rows": 4199,
+   "accesses": 494,
+   "sha": "e18a048c20172ddd"
+  }
+ }
+}
