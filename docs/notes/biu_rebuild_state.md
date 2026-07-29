@@ -190,8 +190,15 @@ its mapped gate; M-CTRL silent).
     (fz90270 697→698 acc). Control M-CTRL still silent (88 cases).
   - **G-LC6 → NO discriminator in 90000-90400** → needs a HAND-BUILT strio gadget
     (the corpus's strings are mostly REP; the single-uline-1 strio veto is too
-    rare in random soup). Booked: construct a directed non-REP INS/OUTS image
-    forcing the T3-eval strio reservation, or a wider strio-biased search.
+    rare in random soup). **Precise firing spec (v30_eu.sv:1688):** `eu_rsv_strio`
+    = a NON-REP INS/OUTS single (opcode 0x6C-0x6F, `!rep_en`) at S_FIRST (pop) or
+    S_DEC (dispatch); consumed by BIU `pick_t3` (T3-eval fetch-completion grant
+    ONLY). The gadget = a non-REP INS/OUTS single with the queue in a T3-eval
+    prefetch-contended state so removing the veto lets a prefetch win the slot
+    (observable). Options: (a) directed image via testimage/gen_seq forcing a
+    non-REP 0x6E/0x6C; (b) strio-biased wider search. This case (LC6/C14-16) is
+    PROVISIONAL and its silicon provenance ALSO needs board captures
+    (P-C14/15/16), so the gate + provenance are booked together with B1's session.
   - So B0 board-free: **2 of 3 closed** (matrix M-LC1/LC2/LC4a/LC4b + omitted
     ff_t4/evext/race green; M-CTRL silent); **G-LC6 (gadget) + G-LC3-uRMW (board,
     B1)** remain before the matrix is fully green.
