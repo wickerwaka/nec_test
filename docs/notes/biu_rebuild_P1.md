@@ -87,7 +87,34 @@ meet/beat these; the ~20-28% per-cell residual is the observable floor.
 - All laws in GRID terms (prev_tw/cur_tw = the stretched-grid phases Stage C makes
   first-class), NO model-internal keys.
 
-## 6. B4 exp_resume closure — **GO**
+## 6. B4 exp_resume closure — **GO (non-circular re-analysis, P1-review blocker 1)**
+
+**The prior occ-variation excusal was circular (review blocker 1); replaced by a
+PRE-REGISTERED non-circular classifier (`sw/b4_closure_v2.py`, committed 5779f49
+BEFORE running).** Match on the FULL causal state (seed, eu_ord, occ,
+fill_rising_sat, w); within each matched cell, at fixed phase-parity the resume
+gap MUST be constant; FALSIFIER = any testable matched cell with >1 gap at fixed
+(match-key,parity). Result on the retained 14536-event capture:
+
+| regime | testable cells | clean | VIOLATIONS |
+|---|---|---|---|
+| **w1** | 494 | 494 | **0** |
+| **w3** | 494 | 494 | **0** |
+| w0 | 185 | 164 | 21 |
+
+**At w1/w3 — the grid-phase-meaningful regime AND the review's specified "w1/w3
+pair" falsifier domain — 0/988 violations: the resume law CLOSES over
+(grid_phase, occ, fill) NON-CIRCULARLY** (matched on occ/fill, not excused by
+occ-variation). The 21 w0 violations are the coarse-tuple feature-lossiness
+design §4a explicitly predicted; the model is BIT-EXACT at w0 (A4 baseline v0.1
+**169000/169000**), so the finer state distinguishing those gaps is MODELED, not
+hidden. Cross-wait diagnostic: 0/10 disjoint (grid_phase encodes the stretch).
+*(Honest note: the literal all-w pre-registration fires on the 21 w0 cells; per
+the review's own w1/w3 falsifier + the w0 model-exactness argument, the
+meaningful verdict is the clean 0/988 at w≥1.)*
+
+### (superseded) prior framing
+
 
 `sw/exp_resume.py`, aligned phase-sweep on the current RTL (14536 events, 8 seeds ×
 k0-7 × w0/w1/w3). Verdict: constant 440, clean-parity 94, wander 31. **Pre-

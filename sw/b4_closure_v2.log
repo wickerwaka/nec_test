@@ -1,0 +1,31 @@
+=== B4 NON-CIRCULAR CLOSURE (pre-registered) ===
+events=14536  excluded(non-EU eu_ord=-1)=9936
+match-cells=917  testable(>=2 k at a parity)=1173  untestable(<2 k)=20
+CLEAN (gap constant at fixed match-key,parity)=1152  VIOLATIONS=21
+
+FALSIFIED -- hidden variable beyond (phase,occ,fill):
+  seed0 eu_ord5 occ4 fill_rs1 w0 par0: gaps=[2, 4]  k->gap={0: 2, 2: 4, 4: 4, 6: 2}
+  seed0 eu_ord6 occ4 fill_rs1 w0 par0: gaps=[2, 4]  k->gap={0: 4, 2: 2, 4: 2, 6: 4}
+  seed0 eu_ord0 occ4 fill_rs1 w0 par1: gaps=[4, 5]  k->gap={1: 4, 3: 5, 5: 4, 7: 4}
+  seed0 eu_ord1 occ4 fill_rs1 w0 par1: gaps=[2, 5]  k->gap={1: 2, 3: 5, 5: 2, 7: 2}
+  seed1 eu_ord0 occ4 fill_rs1 w0 par0: gaps=[2, 4]  k->gap={0: 2, 2: 4, 4: 2, 6: 4}
+  seed1 eu_ord1 occ4 fill_rs1 w0 par0: gaps=[2, 5]  k->gap={0: 5, 2: 2, 4: 5, 6: 2}
+  seed1 eu_ord2 occ4 fill_rs1 w0 par0: gaps=[3, 5]  k->gap={0: 3, 2: 5, 4: 3, 6: 5}
+  seed4 eu_ord4 occ4 fill_rs1 w0 par1: gaps=[2, 5]  k->gap={1: 2, 3: 5, 5: 5, 7: 2}
+  seed4 eu_ord8 occ4 fill_rs1 w0 par1: gaps=[2, 4]  k->gap={1: 4, 3: 2, 5: 2, 7: 4}
+  seed4 eu_ord1 occ4 fill_rs1 w0 par1: gaps=[2, 3]  k->gap={1: 3, 3: 2, 5: 2, 7: 3}
+  seed4 eu_ord2 occ4 fill_rs1 w0 par1: gaps=[3, 5]  k->gap={1: 5, 3: 3, 5: 3, 7: 5}
+  seed4 eu_ord11 occ4 fill_rs1 w0 par1: gaps=[4, 5]  k->gap={1: 5, 3: 4, 5: 4, 7: 5}
+  seed5 eu_ord2 occ4 fill_rs1 w0 par0: gaps=[2, 5]  k->gap={0: 2, 2: 2, 4: 5, 6: 2}
+  seed6 eu_ord1 occ4 fill_rs1 w0 par0: gaps=[3, 4]  k->gap={0: 3, 2: 3, 4: 4, 6: 3}
+  seed6 eu_ord2 occ4 fill_rs1 w0 par0: gaps=[3, 5]  k->gap={0: 5, 2: 5, 4: 3, 6: 5}
+  seed6 eu_ord5 occ4 fill_rs1 w0 par0: gaps=[2, 4]  k->gap={0: 4, 2: 4, 4: 2, 6: 4}
+  seed6 eu_ord7 occ4 fill_rs1 w0 par1: gaps=[2, 5]  k->gap={1: 5, 3: 2, 5: 2, 7: 5}
+  seed6 eu_ord10 occ3 fill_rs1 w0 par0: gaps=[2, 4]  k->gap={0: 2, 2: 2, 4: 4, 6: 2}
+  seed6 eu_ord1 occ3 fill_rs1 w0 par1: gaps=[4, 6]  k->gap={1: 4, 3: 6, 5: 6, 7: 4}
+  seed6 eu_ord5 occ3 fill_rs1 w0 par1: gaps=[2, 4]  k->gap={1: 4, 3: 2, 5: 2, 7: 4}
+  seed6 eu_ord8 occ4 fill_rs1 w0 par1: gaps=[2, 5]  k->gap={1: 2, 3: 5, 5: 5, 7: 2}
+
+CROSS-WAIT diagnostic (occ,fill,parity across w1/w3): 10 matched, 0 fully disjoint (disjoint => wait carries info beyond phase/occ/fill).
+
+=== B4_V2_VERDICT: NO-GO  (violations=21) ===
