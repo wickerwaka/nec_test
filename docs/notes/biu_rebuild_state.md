@@ -51,15 +51,25 @@ only for suspected golden mis-captures. (2) Laws constrain via **LAW CARDS**
 
 ## Stage A — pre-flight (→ P0)
 
-### A1 — Law cards ✅
-`docs/notes/biu_law_cards.md`: 8 cards (LC1-LC8). MUST-reproduce set = LC1 unified
-resume/demand-deadline, LC2 low-band pause, LC3 Tw-parity H-PHASE, LC4 eu_req=0
-reservation family (untouchable + carve-outs), LC6 Family-5/7 strio vetoes.
-CHARACTERIZED = LC5 H-ARB (rekey NO-GO). MAY-discard/class-C = LC7 store_pf_boost
-(~30u ceiling, shadow). DELETED = LC8 mid-band + pf_drain. 21 MUST invariant
-cases + 2 characterized + 2 class-C. Each card cites RTL line refs (current
-2051-line BIU) + evidence (`class5_campaign_record.md` floor table,
-`biu_model.md` measured sections, `t33_state.md` census).
+### A1 — Law cards ✅ (v1 → Codex review NO → **v2 rework**)
+`docs/notes/biu_law_cards.md`. **v1** (8 cards LC1-LC8) went to Codex critical
+review at the P0 boundary and returned **VERDICT: No** (3 Critical / 9 High / 2
+Medium; ledger `…/jobs/task-ms5d1r7j-bfc7bp.log`): the 17/21-case MUST set was not
+a sufficient E1-E3 acceptance basis (no executable gates, omitted scheduling laws,
+metrics/inferences counted as I/O cases, LC5/LC7 dispositions frozen, LC8 not a
+durable artifact, no mutation proof).
+**v2** (committed) works all 6 verdict conditions + 14 findings:
+- §A versioned MUST manifest: **11 MUST-now cases (C1-C7, C9-C12)** all SIL/CEN
+  with executable gates, + **5 PROVISIONAL (C8, C13-C16)** held out pending booked
+  Stage-B board probes. Metrics (190u), consequences (−50u), inferences (≤2-valued
+  phase) DEMOTED out of the basis. Provenance class per case (SIL/CEN/TBR/INF).
+- §B E1/E2/E3 defined as executable gates + the **mutation battery** (see A2-bis).
+- §D omitted-law coverage: every KB/KE mechanism → card/gate or explicit exemption
+  (grid_phase inert / boot EU-owned / BUSLOCK additive), from the completeness map.
+- §E LC5/LC7 RETEST plans on rebuilt grid state (dispositions no longer frozen).
+- §F 14-finding resolution appendix. LC8 durable artifact preserved
+  (`sw/class5_bandage.jsonl.gz` + strictness-by-domain-containment proof).
+Cards still cite current-RTL line refs; prose bounds now quote the executable SVA.
 
 ### A2 — Flop-census-vs-map lint ✅
 `sw/ss_flopcensus.py` (invoked by `sw/ss_lint.py`) + `sw/ss_flop_whitelist.txt`.
@@ -86,6 +96,29 @@ sim-only, asserts every architectural flop is SSA-mapped or whitelisted.
   spot — STMT_PREFIX now strips leading `always/@()` clauses so one-line clocked
   assignments are caught too. Probe removed; RTL bit-identical to master HEAD
   (`git diff hdl/` empty).
+
+### A2-bis — Law mutation battery ✅ (Codex verdict condition 6, board-free)
+`sw/biu_law_mutation.py` → `sw/biu_law_mutation.log`. The non-vacuity proof of
+the entire law-card acceptance basis: for each MUST law (+ omitted mechanisms + a
+CONTROL) it applies a predicate-breaking edit to a **git-restored scratch** RTL,
+rebuilds the Verilator TB, runs the board-free detection gate set (w0 bounded /
+w1 / w3 / wvec random A/B / check_ff_t4 / check_race_law), and records the
+mutation×gate matrix. Restore is via `git checkout` (committed tree == pristine),
+matching the A2 non-vacuity-probe precedent and Codex's explicit "scratch copy of
+the RTL" instruction — **no board, tracked RTL clean after the run** (asserted).
+Mutations: M-LC1/LC2/LC3/LC4a/LC4b/LC6 (MUST laws), M-FFT4/M-EVEXT/M-RACE
+(omitted-law gates), M-CTRL (store_pf_boost unused shadow — MUST stay silent =
+non-spurious control). Matrix in biu_law_cards.md §B.
+**Result (HONEST — the battery earned its keep):** CONTROL silent ✓ (non-spurious);
+5 laws independently detected board-free — **M-LC1→wvec, M-LC4b→wvec, M-FFT4→ff_t4,
+M-EVEXT→w1/w3, M-RACE→race**; but **M-LC2/M-LC3/M-LC4a/M-LC6 caught by NO board-free
+gate** (narrow laws that don't fire/matter on the 20-seed random-soup corpus, or
+need RMW/strio opcodes absent from goldens). Root cause = corpus coverage, not
+digest (the wvec digest was upgraded to be timing-sensitive — inter-T1 cycle gap —
+and verified to catch LC1's cycle shift). → directed gates **G-LC2/G-LC4a/G-LC6
+(board-free, booked) + G-LC3-uRMW (board)** each to plug into the battery. So
+condition-6 status: framework PROVEN + non-spurious control; 5 laws gated, 4
+gate-pending. Tracked RTL clean after the run (git-checkout restore, asserted).
 
 ### A3 — fuzz_bank layout note ✅
 The fuzz bank is `tests/v30/fuzz_bank/{mc1,mc2,t30-raw,t30-brkem}/seeds/` (NOT a

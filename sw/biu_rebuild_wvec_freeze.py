@@ -49,11 +49,18 @@ def digest_case(seed, ws, wmax):
     # ad_data/qs/t (same remap class5_gaperr.analyze_vec applies).
     acc = accesses([dict(t=r["t"], bs_early=r["bs"], qs=r["qs"],
                          ad_addr=r["addr"], ad_data=0) for r in rows])
-    # normalize to the observable per-bus-cycle stream: bus-type, Tw count,
-    # T1 address, queue-pop count (accesses() field set; data omitted -- the
-    # board-free model remap carries no data-phase word).
-    norm = ";".join(f"{a['bs']},{a['tw']},{a['addr']},{a['npops']}"
-                    for a in acc)
+    # normalize to the observable per-bus-cycle stream. CRITICAL: include the
+    # inter-T1 CYCLE GAP (t1[i]-t1[i-1]) -- the cadence metric the class5/waited
+    # laws actually move. Without it the digest captures only access IDENTITY
+    # (bs/addr/tw) and is BLIND to pure +-1-slot timing shifts (proven: the
+    # mutation battery missed M-LC2/LC3/LC4a/LC6 with an identity-only digest).
+    parts = []
+    prev_t1 = None
+    for a in acc:
+        gap = "" if prev_t1 is None else str(a['t1'] - prev_t1)
+        parts.append(f"{a['bs']},{a['tw']},{a['addr']},{a['npops']},g{gap}")
+        prev_t1 = a['t1']
+    norm = ";".join(parts)
     h = hashlib.sha256(norm.encode()).hexdigest()[:16]
     return {"rows": len(rows), "accesses": len(acc), "sha": h}
 
