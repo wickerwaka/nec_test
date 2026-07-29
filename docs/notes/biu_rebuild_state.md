@@ -474,3 +474,26 @@ its mapped gate; M-CTRL silent).
 4. Nothing in the design docs contradicts the plan's Stage sequence or the law
    dispositions; the law cards reconcile with the t33-v2 corrections (H-ARB
    downgraded to CHARACTERIZED, MUST = silicon invariants not predicates).
+
+---
+
+## ⏸ CAMPAIGN PAUSED BY USER ORDER (2026-07-29)
+
+**Paused mid-P1-v2 (the response to the consolidated Codex P1 review, VERDICT: NO,
+4 blockers + 4 High/Medium; ledger task-ms5knj33-yo4uhu).** Where work stopped:
+**blocker 1 (B4 non-circular closure) is RESOLVED and committed** — the
+pre-registered classifier `sw/b4_closure_v2.py` (5779f49) matched on full causal
+state and found **0/988 violations at w1/w3** (the grid-phase-meaningful regime),
+all 21 violations at w0 = the design-§4a coarse-tuple lossiness with the model
+bit-exact (169000/169000), so B4 SURVIVES non-circular analysis → GO (c23c6c1).
+**Still PENDING (nothing in flight, no detached process, board idle):** blocker 2
+(Stage-C idle-window phase truth table + held-out causal update law — needs a
+sanctioned directed board capture); blocker 3 (move the M-LC3 positive-control A/B
+gate to the E3 boundary, or produce the replay gate); blocker 4 (reconcile the
+terminal C1-C16 manifest incl. C13 + LC4 matrix); High-4 (per-cell target
+stability/independence — by-seed scoring, bootstrap CIs, from `impulses.jsonl`);
+High-5 (`cur_tw` future-leak refit + causal `beat_at_cross` derivation); Medium-7
+(−45% attribution audit / capture manifest hashes); Medium-8 (machine-readable
+mutation report + negative build test). All are board-free re-analyses EXCEPT
+blocker 2's directed capture. RTL == master (no RTL ever touched). Board idle,
+use_core=False, no serve process held. Resume from blocker 2.
