@@ -1,0 +1,30 @@
+{
+ "CODE->CODE": {
+  "n_test": 4891,
+  "acc": 82.0,
+  "majority": 50.4,
+  "mass_fittable": 78.6,
+  "mass_test": 10506
+ },
+ "EU->CODE": {
+  "n_test": 1956,
+  "acc": 81.5,
+  "majority": 53.5,
+  "mass_fittable": 80.6,
+  "mass_test": 3747
+ },
+ "CODE->EU": {
+  "n_test": 1732,
+  "acc": 74.9,
+  "majority": 52.9,
+  "mass_fittable": 72.3,
+  "mass_test": 3509
+ },
+ "EU->EU": {
+  "n_test": 1542,
+  "acc": 78.6,
+  "majority": 63.4,
+  "mass_fittable": 79.7,
+  "mass_test": 3093
+ }
+}

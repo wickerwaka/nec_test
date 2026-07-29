@@ -302,6 +302,22 @@ numbers for P1 are now set from this re-based census.** Remaining: B3 directed
 wvec cells, B4 exp_resume closure GO/NO-GO (→ user on NO-GO), LC6 P-C15/16, the
 analysis wave (per-cell held-out predictability, law fits), then P1.
 
+### B2 — per-cell held-out predictability (P1-frozen TARGETs): DONE ✅ (`sw/b2_predict.py`)
+Re-captured the family retaining every signed gap-error IMPULSE + bus-observable
+context (prev_bs,cur_bs,prev_tw,cur_tw,prev_prev_bs); t33_scattertest held-out
+test per KIND cell (train conditional signed mean on even-k seeds, predict sign
+on odd-k). 0 runerr, board idle. Artifact `mc1_refix/b2_targets.json`.
+**P1-FROZEN per-cell TARGETs (held-out sign acc / majority / mass-fittable):**
+- **CODE→CODE  n=4891: 82.0% / 50.4% / 78.6%**
+- **EU→CODE    n=1956: 81.5% / 53.5% / 80.6%**
+- **CODE→EU    n=1732: 74.9% / 52.9% / 72.3%**
+- **EU→EU      n=1542: 78.6% / 63.4% / 79.7%**
+**Finding: 72-81% of the mass is context-PREDICTABLE per cell** — substantially
+higher than the t33-v2 aggregate 55% (which mixed cells + used stale/coarser
+data). The rebuild must meet/beat these per-cell fittable shares; the residual
+~20-28% per cell is the (per-cell) observable floor to characterize. CODE→EU (the
+"never-attacked" block) is the lowest at 72.3% — still highly fittable.
+
 ### B0 — directed gates to green the matrix (IN PROGRESS)
 Goal: build G-LC2 / G-LC4a / G-LC6 (board-free) + G-LC3-uRMW (board, rides B1);
 plug each into the mutation battery; re-run → matrix fully green (every MUST case →

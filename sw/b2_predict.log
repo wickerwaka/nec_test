@@ -1,0 +1,17 @@
+=== B2 PREDICTABILITY capture 2026-07-29T03:56:37Z ===
+  ... 300/2313 (24s, 0 err)
+  ... 600/2313 (45s, 0 err)
+  ... 900/2313 (68s, 0 err)
+  ... 1200/2313 (90s, 0 err)
+  ... 1500/2313 (112s, 0 err)
+  ... 1800/2313 (134s, 0 err)
+  ... 2100/2313 (157s, 0 err)
+board idle (session end)
+
+=== B2 PER-CELL HELD-OUT PREDICTABILITY (P1 TARGETs) ===
+  CODE->CODE  n=  4891  held-out sign acc=82.0% (majority 50.4%)  mass-fittable=78.6% (of 10506 test |ge|)
+  EU->CODE    n=  1956  held-out sign acc=81.5% (majority 53.5%)  mass-fittable=80.6% (of 3747 test |ge|)
+  CODE->EU    n=  1732  held-out sign acc=74.9% (majority 52.9%)  mass-fittable=72.3% (of 3509 test |ge|)
+  EU->EU      n=  1542  held-out sign acc=78.6% (majority 63.4%)  mass-fittable=79.7% (of 3093 test |ge|)
+
+=== B2_PREDICT_DONE  (172s, runerr=0) ===
