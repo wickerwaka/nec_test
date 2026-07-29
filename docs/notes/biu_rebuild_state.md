@@ -343,6 +343,17 @@ current RTL: the dominant floor (the resume law) is grid-closable. The rebuild i
 greenlit at the closure gate. (Not a NO-GO → does NOT route to the user; the
 closure premise for Stages C-E holds.)
 
+### LC6 P-C15/P-C16 + BOARD SESSION CLOSE: DONE ✅ (`sw/lc6_provenance_ext.py`)
+Captured 9 strio-OUTSB gadget configs (j∈{0,1,2} × k∈{0,2,4}) at w0 on CHIP +
+FABRIC — spanning the queue states that exercise the T3-veto / TI-grant(exemption)
+/ idle-window-arm paths. **ALL 9 chip==fabric bad=0** (the small-k configs don't
+wander) → the Family-5/7 strio behaviors (P-C15 TI-exemption + P-C16 F7 idle-arm,
+with P-C14 the T3-veto) are silicon-correct. Banked → `sw/testdata/lc6_
+provenance_ext.jsonl`. **BOARD SESSION CLOSED — board left `use_core=False` idle;
+no reflash the whole session; fabric on the master pin throughout.** Board work
+complete: reachability, LC6 P-C14/15/16 provenance, B1 census, B2 targets, B3
+laws, B4 closure — 0 wedges, 0 flash, every block board-idle at end.
+
 ### B0 — directed gates to green the matrix (IN PROGRESS)
 Goal: build G-LC2 / G-LC4a / G-LC6 (board-free) + G-LC3-uRMW (board, rides B1);
 plug each into the mutation battery; re-run → matrix fully green (every MUST case →
