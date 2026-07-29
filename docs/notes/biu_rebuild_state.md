@@ -331,6 +331,18 @@ CODE→EU 74.3%, EU→CODE 78.4%, EU→EU 75.9% — even the never-attacked CODE
 is 74% fittable with GRID keys alone. All laws in grid terms (prev_tw/cur_tw = the
 stretched-grid phases the rebuild makes first-class), no model-internal keys.
 
+### B4 — exp_resume closure GO/NO-GO: **GO** ✅ (`sw/exp_resume.py`)
+Aligned phase-sweep closure re-run on the CURRENT RTL. 14536 resume events (8
+seeds × k0..7 phase-shift × w0/w1/w3), board idle. VERDICT: **constant=440,
+clean_parity=94, wander=31**. Pre-registered WANDER accounting (a wander is
+EXCUSED iff occ varies across k OR w0 where the model is bit-exact):
+**excused-by-occVAR=26, excused-by-w0=5, GENUINE (no occvar, w≥1) = 0.**
+→ **GO: the resume law CLOSES over (grid_phase, occ, fill); NO hidden state
+remains.** Re-confirms the Stage-0 verdict (biu_rebuild_design.md §4a) on the
+current RTL: the dominant floor (the resume law) is grid-closable. The rebuild is
+greenlit at the closure gate. (Not a NO-GO → does NOT route to the user; the
+closure premise for Stages C-E holds.)
+
 ### B0 — directed gates to green the matrix (IN PROGRESS)
 Goal: build G-LC2 / G-LC4a / G-LC6 (board-free) + G-LC3-uRMW (board, rides B1);
 plug each into the mutation battery; re-run → matrix fully green (every MUST case →
