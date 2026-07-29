@@ -44,8 +44,12 @@ def sh(cmd, timeout=1200):
 
 
 def build():
-    sh([sys.executable, "sw/check_core.py", "--build", "--suite-dir",
-        "tests/v30/v0.1", "--opcodes", "all", "--cases", "1", "--waits", "0"])
+    # STALE-BINARY GUARD (class5 rule #2): a syntax-broken mutation makes
+    # verilator exit non-zero; raise so we never sweep on a stale binary.
+    r = sh([sys.executable, "sw/check_core.py", "--build", "--suite-dir",
+            "tests/v30/v0.1", "--opcodes", "all", "--cases", "1", "--waits", "0"])
+    if r.returncode != 0:
+        raise RuntimeError("verilator build FAILED (stale-binary guard)")
 
 
 def restore():

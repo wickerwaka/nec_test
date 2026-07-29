@@ -1,69 +1,69 @@
-/home/wickerwaka/src/nec_test/sw/biu_law_mutation.py:142: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+/home/wickerwaka/src/nec_test/sw/biu_law_mutation.py:169: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
   f"{datetime.datetime.utcnow().isoformat()}Z  "
-=== BIU law MUTATION BATTERY  2026-07-29T01:16:40.854740Z  HEAD=8a576f4 ===
+=== BIU law MUTATION BATTERY  2026-07-29T02:21:50.416871Z  HEAD=072eb06 ===
 
 ### M-LC1  (LC1 resume/demand-deadline)
-  gates: {'w0': 'PASS', 'w1': 'PASS', 'w3': 'PASS', 'wvec': 'FAIL', 'ff_t4': 'PASS', 'race': 'PASS'}
+  gates: {'w0': 'PASS', 'w1': 'PASS', 'w3': 'PASS', 'wvec': 'FAIL', 'ff_t4': 'PASS', 'race': 'PASS', 'lc6': 'PASS'}
   DETECTED BY: ['wvec']  (expected ~['wvec'])
 
 ### M-LC2  (LC2 low-band pause)
-  gates: {'w0': 'PASS', 'w1': 'PASS', 'w3': 'PASS', 'wvec': 'PASS', 'ff_t4': 'PASS', 'race': 'PASS'}
-  DETECTED BY: NONE  (expected ~['wvec'])
+  gates: {'w0': 'PASS', 'w1': 'PASS', 'w3': 'PASS', 'wvec': 'FAIL', 'ff_t4': 'PASS', 'race': 'PASS', 'lc6': 'PASS'}
+  DETECTED BY: ['wvec']  (expected ~['wvec'])
 
 ### M-LC3  (LC3 Tw-parity H-PHASE (ext_ok_wr widen))
-  gates: {'w0': 'ERR', 'w1': 'ERR', 'w3': 'ERR', 'wvec': 'PASS', 'ff_t4': 'PASS', 'race': 'PASS'}
-  DETECTED BY: NONE  (expected ~['wvec'])
+  gates: {'w0': 'PASS', 'w1': 'PASS', 'w3': 'PASS', 'wvec': 'PASS', 'ff_t4': 'PASS', 'race': 'PASS', 'lc6': 'PASS'}
+  DETECTED BY: NONE  (expected ~[])
 
 ### M-LC4a  (LC4 pf_rsv_lead)
-  gates: {'w0': 'PASS', 'w1': 'PASS', 'w3': 'PASS', 'wvec': 'PASS', 'ff_t4': 'PASS', 'race': 'PASS'}
-  DETECTED BY: NONE  (expected ~['wvec'])
+  gates: {'w0': 'PASS', 'w1': 'PASS', 'w3': 'PASS', 'wvec': 'FAIL', 'ff_t4': 'PASS', 'race': 'PASS', 'lc6': 'PASS'}
+  DETECTED BY: ['wvec']  (expected ~['wvec'])
 
 ### M-LC4b  (LC4 pf_late_rsv)
-  gates: {'w0': 'PASS', 'w1': 'PASS', 'w3': 'PASS', 'wvec': 'FAIL', 'ff_t4': 'PASS', 'race': 'PASS'}
+  gates: {'w0': 'PASS', 'w1': 'PASS', 'w3': 'PASS', 'wvec': 'FAIL', 'ff_t4': 'PASS', 'race': 'PASS', 'lc6': 'PASS'}
   DETECTED BY: ['wvec']  (expected ~['wvec'])
 
 ### M-LC6  (LC6 strio pick_t3 veto)
-  gates: {'w0': 'PASS', 'w1': 'PASS', 'w3': 'PASS', 'wvec': 'PASS', 'ff_t4': 'PASS', 'race': 'PASS'}
-  DETECTED BY: NONE  (expected ~['w0', 'wvec'])
+  gates: {'w0': 'PASS', 'w1': 'PASS', 'w3': 'PASS', 'wvec': 'PASS', 'ff_t4': 'PASS', 'race': 'PASS', 'lc6': 'FAIL'}
+  DETECTED BY: ['lc6']  (expected ~['lc6'])
 
 ### M-FFT4  (omitted: far-flush ff_t4 direct commit)
-  gates: {'w0': 'PASS', 'w1': 'PASS', 'w3': 'PASS', 'wvec': 'PASS', 'ff_t4': 'FAIL', 'race': 'PASS'}
+  gates: {'w0': 'PASS', 'w1': 'PASS', 'w3': 'PASS', 'wvec': 'PASS', 'ff_t4': 'FAIL', 'race': 'PASS', 'lc6': 'PASS'}
   DETECTED BY: ['ff_t4']  (expected ~['ff_t4', 'w0'])
 
 ### M-EVEXT  (omitted: eval_ext ext_ok A/B qualification)
-  gates: {'w0': 'PASS', 'w1': 'FAIL(1098/1200)', 'w3': 'FAIL(1193/1200)', 'wvec': 'PASS', 'ff_t4': 'PASS', 'race': 'PASS'}
+  gates: {'w0': 'PASS', 'w1': 'FAIL(1098/1200)', 'w3': 'FAIL(1193/1200)', 'wvec': 'PASS', 'ff_t4': 'PASS', 'race': 'PASS', 'lc6': 'PASS'}
   DETECTED BY: ['w1', 'w3']  (expected ~['w1', 'w3', 'wvec'])
 
 ### M-RACE  (omitted: POP-PSW/INT race law)
-  gates: {'w0': '-', 'w1': '-', 'w3': '-', 'wvec': '-', 'ff_t4': '-', 'race': 'FAIL'}
+  gates: {'w0': '-', 'w1': '-', 'w3': '-', 'wvec': '-', 'ff_t4': '-', 'race': 'FAIL', 'lc6': '-'}
   DETECTED BY: ['race']  (expected ~['race'])
 
 ### M-CTRL  (CONTROL: store_pf_boost (unused shadow, MUST be silent))
-  gates: {'w0': 'PASS', 'w1': 'PASS', 'w3': 'PASS', 'wvec': 'PASS', 'ff_t4': 'PASS', 'race': 'PASS'}
+  gates: {'w0': 'PASS', 'w1': 'PASS', 'w3': 'PASS', 'wvec': 'PASS', 'ff_t4': 'PASS', 'race': 'PASS', 'lc6': 'PASS'}
   DETECTED BY: NONE  (expected ~[])
 
 
 === MUTATION x GATE MATRIX ===
-| mutation | w0 | w1 | w3 | wvec | ff_t4 | race | detected |
-|---|---|---|---|---|---|---|---|
-| M-LC1 | PASS | PASS | PASS | FAIL | PASS | PASS | wvec |
-| M-LC2 | PASS | PASS | PASS | PASS | PASS | PASS | SILENT |
-| M-LC3 | ERR | ERR | ERR | PASS | PASS | PASS | SILENT |
-| M-LC4a | PASS | PASS | PASS | PASS | PASS | PASS | SILENT |
-| M-LC4b | PASS | PASS | PASS | FAIL | PASS | PASS | wvec |
-| M-LC6 | PASS | PASS | PASS | PASS | PASS | PASS | SILENT |
-| M-FFT4 | PASS | PASS | PASS | PASS | FAIL | PASS | ff_t4 |
-| M-EVEXT | PASS | FAIL(1098/1200) | FAIL(1193/1200) | PASS | PASS | PASS | w1,w3 |
-| M-RACE | - | - | - | - | - | FAIL | race |
-| M-CTRL | PASS | PASS | PASS | PASS | PASS | PASS | SILENT |
+| mutation | w0 | w1 | w3 | wvec | ff_t4 | race | lc6 | detected |
+|---|---|---|---|---|---|---|---|---|
+| M-LC1 | PASS | PASS | PASS | FAIL | PASS | PASS | PASS | wvec |
+| M-LC2 | PASS | PASS | PASS | FAIL | PASS | PASS | PASS | wvec |
+| M-LC3 | PASS | PASS | PASS | PASS | PASS | PASS | PASS | SILENT |
+| M-LC4a | PASS | PASS | PASS | FAIL | PASS | PASS | PASS | wvec |
+| M-LC4b | PASS | PASS | PASS | FAIL | PASS | PASS | PASS | wvec |
+| M-LC6 | PASS | PASS | PASS | PASS | PASS | PASS | FAIL | lc6 |
+| M-FFT4 | PASS | PASS | PASS | PASS | FAIL | PASS | PASS | ff_t4 |
+| M-EVEXT | PASS | FAIL(1098/1200) | FAIL(1193/1200) | PASS | PASS | PASS | PASS | w1,w3 |
+| M-RACE | - | - | - | - | - | FAIL | - | race |
+| M-CTRL | PASS | PASS | PASS | PASS | PASS | PASS | PASS | SILENT |
 
 === VERDICT ===
   M-LC1 (LC1 resume/demand-deadline): caught by wvec
-  M-LC2 (LC2 low-band pause): NOT CAUGHT by any board-free gate -> needs a directed gate (finding)
-  M-LC3 (LC3 Tw-parity H-PHASE (ext_ok_wr widen)): NOT CAUGHT by any board-free gate -> needs a directed gate (finding)
-  M-LC4a (LC4 pf_rsv_lead): NOT CAUGHT by any board-free gate -> needs a directed gate (finding)
+  M-LC2 (LC2 low-band pause): caught by wvec
+  M-LC3 (LC3 Tw-parity H-PHASE (ext_ok_wr widen)): BOARD-ONLY (G-LC3-uRMW) -- not board-free-detectable BY CONSTRUCTION (no golden/soup carries RMW-at-T4-parity); gated by the board uRMW capture. EXPECTED.
+  M-LC4a (LC4 pf_rsv_lead): caught by wvec
   M-LC4b (LC4 pf_late_rsv): caught by wvec
-  M-LC6 (LC6 strio pick_t3 veto): NOT CAUGHT by any board-free gate -> needs a directed gate (finding)
+  M-LC6 (LC6 strio pick_t3 veto): caught by lc6
   M-FFT4 (omitted: far-flush ff_t4 direct commit): caught by ff_t4
   M-EVEXT (omitted: eval_ext ext_ok A/B qualification): caught by w1,w3
   M-RACE (omitted: POP-PSW/INT race law): caught by race
@@ -71,4 +71,4 @@
 
   tracked RTL clean after run: YES
 
-=== MUTATION_BATTERY_DONE  ok=False ===
+=== MUTATION_BATTERY_DONE  ok=True ===

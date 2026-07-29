@@ -214,6 +214,20 @@ its mapped gate; M-CTRL silent).
   - Methods proven + reusable: `biu_law_gatesearch.py` (random discriminating-seed
     finder) + `biu_law_lc6_gadget.py` (directed gadget builder) = the answer to the
     "narrow law, no board-free gate" class.
+  - **INSTRUMENT-FAILURE CAUGHT (stale binary, class5 rule #2).** A first B0
+    battery re-run reported M-LC3→wvec and "ok=True fully green" — FALSE. The M-LC3
+    mutation string (`|| 1'b0 && (`) left an unbalanced paren → Verilator syntax
+    error → build FAILED, but the harness `build()` returned True whenever
+    "building:" printed, so M-LC3's gates ran on the PREVIOUS mutation's (M-LC2)
+    binary → a phantom "catch". Caught by a standalone cross-check (applying M-LC3
+    alone gave wvec PASS, contradicting the battery). Fixes: (a) M-LC3 mutation
+    rewritten to a valid strict-revert (`!tw_par`→`1'b0`); (b) `build()` now
+    requires exit 0 AND a freshened binary mtime (unit-tested: True/False/True);
+    (c) M-LC3 marked `board_only` (its non-catch is EXPECTED — G-LC3-uRMW rides
+    B1). TRUE M-LC3 result confirmed standalone: wvec PASS (not board-free
+    detectable — no RMW-at-T4-even-parity in the corpus). Committed docs already
+    carried the honest 8-green/1-board-pending matrix; only the transient log was
+    wrong, now regenerated.
 
 ---
 

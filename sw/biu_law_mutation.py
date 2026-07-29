@@ -48,9 +48,9 @@ MUTATIONS = [
          new="wire        lowband_pause = 1'b0 && eval_ext && cur_fetch && q_cnt <= 3'd2 &&",
          w0_active=False, expect=["wvec"]),
     dict(id="M-LC3", law="LC3 Tw-parity H-PHASE (ext_ok_wr widen)", file=BIU,
-         old="wire ext_ok_wr  = (eu_ready_p1 && eu_ready_p2) ||",
-         new="wire ext_ok_wr  = (eu_ready_p1 && eu_ready_p2) || 1'b0 && (",
-         w0_active=False, expect=["wvec"]),
+         old="(eu_ready_p1 && !eu_ready_p2 && !tw_par);",
+         new="(eu_ready_p1 && !eu_ready_p2 && 1'b0);",   # revert widen -> strict
+         w0_active=False, expect=[], board_only=True),   # G-LC3-uRMW = board
     dict(id="M-LC4a", law="LC4 pf_rsv_lead", file=BIU,
          old="wire        pf_rsv_lead = eval_ext && eu_rsv_lead &&",
          new="wire        pf_rsv_lead = 1'b0 && eval_ext && eu_rsv_lead &&",
@@ -101,10 +101,29 @@ def golden(suite, waits, cases):
     return "PASS" if m.group(1) == m.group(2) else f"FAIL({m.group(1)}/{m.group(2)})"
 
 
+def _bin_path():
+    try:
+        from check_seq import BIN
+        return Path(BIN)
+    except Exception:
+        return ROOT / "hdl/tb/obj_dir/Vtb_v30_core"
+
+
 def build():
+    """Rebuild the Verilator TB. Returns True ONLY on a genuinely FRESH binary:
+    check_core --build must exit 0 AND the binary mtime must advance. This closes
+    the STALE-BINARY instrument failure (class5 rule #2): a syntax-broken mutation
+    makes verilator exit non-zero while 'building:' still prints, so the old
+    binary silently survived and the mutation's gates ran on the PREVIOUS
+    mutation's binary -- a false 'caught' (exactly what bit M-LC3)."""
+    b = _bin_path()
+    before = b.stat().st_mtime if b.exists() else 0
     r = sh([sys.executable, "sw/check_core.py", "--build", "--suite-dir",
             "tests/v30/v0.1", "--opcodes", "all", "--cases", "1", "--waits", "0"])
-    return "Verilator" in r.stdout or "building" in r.stdout
+    if r.returncode != 0:
+        return False
+    after = b.stat().st_mtime if b.exists() else 0
+    return after > before
 
 
 def gate_wvec():
@@ -203,6 +222,11 @@ def main():
             print(f"  CONTROL {mu['id']}: "
                   f"{'PASS (all gates green -> non-spurious)' if silent else 'FAIL (a gate fired on the unused shadow!)'}")
             ok = ok and silent
+        elif mu.get("board_only"):
+            caught = isinstance(detected, list) and len(detected) > 0
+            print(f"  {mu['id']} ({mu['law']}): BOARD-ONLY (G-LC3-uRMW) -- "
+                  f"{'ALSO caught board-free by ' + ','.join(detected) + ' (bonus)' if caught else 'not board-free-detectable BY CONSTRUCTION (no golden/soup carries RMW-at-T4-parity); gated by the board uRMW capture. EXPECTED.'}")
+            # board_only non-catch does NOT fail the verdict.
         elif isinstance(detected, list):
             caught = len(detected) > 0
             print(f"  {mu['id']} ({mu['law']}): "
