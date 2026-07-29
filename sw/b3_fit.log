@@ -1,0 +1,21 @@
+=== B3 LAW FITTING 2026-07-29T04:02:47Z ===
+  ... 400/2313 (30s, 0 err)
+  ... 800/2313 (59s, 0 err)
+  ... 1200/2313 (89s, 0 err)
+  ... 1600/2313 (118s, 0 err)
+  ... 2000/2313 (148s, 0 err)
+captured 2313 seeds, 19045 impulses, 0 runerr
+
+=== LAW 1: prev_tw SIGN-FLIP (CODE->CODE, grid beat phase) ===
+  prev_tw=0 : n= 2616 signed-mean ge=-1.68  (sign -)
+  prev_tw=1 : n= 3433 signed-mean ge=+0.72  (sign +)
+  prev_tw=2 : n= 1738 signed-mean ge=+0.88  (sign +)
+  prev_tw=3+: n= 1421 signed-mean ge=+1.35  (sign +)
+  HELD-OUT (prev_tw ALONE): sign acc=72.2% (majority 50.4%), mass-fittable=74.7%  n=4891
+
+=== LAW 2: EU-ACCESS block (grid key prev_tw,cur_tw,prev_bs) ===
+  CODE->EU   held-out sign acc=76.8% (majority 52.9%), mass-fittable=74.3%  n=1732
+  EU->CODE   held-out sign acc=80.1% (majority 53.5%), mass-fittable=78.4%  n=1956
+  EU->EU     held-out sign acc=73.9% (majority 63.4%), mass-fittable=75.9%  n=1542
+
+=== B3_FIT_DONE ===

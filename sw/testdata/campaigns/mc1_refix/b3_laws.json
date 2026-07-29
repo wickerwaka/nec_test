@@ -1,0 +1,40 @@
+{
+ "prev_tw_flip": {
+  "0": {
+   "n": 2616,
+   "mean": -1.68
+  },
+  "1": {
+   "n": 3433,
+   "mean": 0.72
+  },
+  "2": {
+   "n": 1738,
+   "mean": 0.88
+  },
+  "3": {
+   "n": 1421,
+   "mean": 1.35
+  }
+ },
+ "eu_access": {
+  "CODE->EU": {
+   "acc": 76.8,
+   "majority": 52.9,
+   "mass_fittable": 74.3,
+   "n": 1732
+  },
+  "EU->CODE": {
+   "acc": 80.1,
+   "majority": 53.5,
+   "mass_fittable": 78.4,
+   "n": 1956
+  },
+  "EU->EU": {
+   "acc": 73.9,
+   "majority": 63.4,
+   "mass_fittable": 75.9,
+   "n": 1542
+  }
+ }
+}

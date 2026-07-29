@@ -318,6 +318,19 @@ data). The rebuild must meet/beat these per-cell fittable shares; the residual
 ~20-28% per cell is the (per-cell) observable floor to characterize. CODE→EU (the
 "never-attacked" block) is the lowest at 72.3% — still highly fittable.
 
+### B3 — wvec-cell law fitting (grid-term, held-out): DONE ✅ (`sw/b3_fit.py`)
+Re-captured (2313 seeds, 19045 impulses, 0 runerr); artifacts `mc1_refix/{impulses.jsonl,b3_laws.json}`.
+**LAW 1 — prev_tw SIGN-FLIP (CODE→CODE, grid beat phase):** prev_tw=0 → signed-mean
+ge=−1.68 (fabric later); prev_tw=1/2/3+ → +0.72/+0.88/+1.35 (fabric earlier) —
+the sign flips with prev_tw exactly as t33-v2 R1 predicted. **prev_tw ALONE explains
+74.7% of CODE→CODE mass held-out** (72.2% sign acc vs 50.4% majority) — ONE
+grid-observable variable (the two-rhythm beat phase) captures 3/4 of the dominant
+cell's residual. Premise CONFIRMED on fresh data.
+**LAW 2 — EU-ACCESS block (grid key prev_tw,cur_tw,prev_bs), held-out mass-fittable:**
+CODE→EU 74.3%, EU→CODE 78.4%, EU→EU 75.9% — even the never-attacked CODE→EU block
+is 74% fittable with GRID keys alone. All laws in grid terms (prev_tw/cur_tw = the
+stretched-grid phases the rebuild makes first-class), no model-internal keys.
+
 ### B0 — directed gates to green the matrix (IN PROGRESS)
 Goal: build G-LC2 / G-LC4a / G-LC6 (board-free) + G-LC3-uRMW (board, rides B1);
 plug each into the mutation battery; re-run → matrix fully green (every MUST case →
