@@ -47,7 +47,7 @@ only for suspected golden mis-captures. (2) Laws constrain via **LAW CARDS**
 | Stage | Scope | Board | Pause | Status |
 |---|---|---|---|---|
 | **A** | Pre-flight: law cards (v2), flop-census lint, bank note, baseline freeze | 0 | **P0** | **DONE** (P0 passed; cards v2 verified 1204ae2) |
-| **B** | **B0 directed gates** → re-based census, per-cell targets, wvec fitting, exp_resume closure | ~15-20 min | P1 | **IN PROGRESS (B0)** |
+| **B** | B0 gates + B1 census + B2 targets + B3 laws + B4 closure(GO) + LC6 provenance | ~done | **P1** | **DONE → at P1 (Codex review pending)** |
 | C | grid_phase promotion (fix stretched-grid idle window; GRID_PHASE_STRICT; shadow re-point) | 0 | P2 | pending |
 | D | Shadow grid-slot scheduler (gsched_*, cov counters, --assert equivalence) | 0 | P3 | pending |
 | E | Consume branch-by-branch (E1 resume → E2 commit/eval → E3 arbitration → E4 display); M1 reflash | M1 | — | pending |
