@@ -191,7 +191,33 @@ permission system, so the standing grants are real).
 `MiSTer_cmd` present; fabric = master build `fae64d5` (verified). **Disk:** OS root
 (`/dev/loop8`) is 93% / 25M free — IRRELEVANT: captures write to `/tmp` (tmpfs,
 246M free) and `/media/fat` (SD, 28G free). Board left `use_core=False` idle.
-Next: G-LC3-uRMW (Boundary 2).
+
+**Boundary 2 — G-LC3 gate: BOARD-FREE NOT ACHIEVABLE (definitive) → DECISION
+POINT.** Coordinator ruled option (b): board-free RMW gadget for the gate, board
+capture for provenance. **Three thorough board-free attempts, ALL zero
+discriminators:** (1) isolated-RMW gadget `biu_law_lc3_gadget.py` (ADD/INC
+word[mem], 160 configs × 9 waits); (2) sequence-RMW gadget (back-to-back writes,
+128 × 11 uniform w1-8 + random); (3) seed search `biu_law_lc3_seedsearch.py`
+(600 seeds × 6 random wvecs — the method that closed G-LC2/G-LC4a). The H-PHASE
+cell (RMW-write ready-AT-T4 of a *competing prefetch*, even Tw-parity, eval_ext)
+is too narrow/masked to exercise in random soup OR synthetic gadgets — the
+committed bus stream doesn't move. **This EMPIRICALLY CONFIRMS the
+board-by-construction framing** (unlike LC6, where a gadget worked). `check_lc3_
+gate.py` scaffold exists but has no discriminating config to freeze.
+**Key fact:** the H-PHASE **silicon provenance ALREADY EXISTS on record**
+(class5_campaign_record.md A′/§2: SILICON-CONFIRMED fabric==TB **15/15** even→early/
+odd→late + **30/30**, both seed groups, random+uniform) — from the H-PHASE
+landing, on RTL unchanged since. So M-LC3's silicon evidence is banked; a
+B-session uRMW re-capture would only RE-confirm on the current fabric.
+**DECISION for the coordinator (routed, not improvised):** the matrix is
+**8-green board-free + M-LC3 board-by-construction with existing 15/15 silicon
+provenance**. The hard "all-four-green board-free" constraint is UNACHIEVABLE for
+LC3 by construction. Options: (a) accept M-LC3 as board-by-construction (existing
+provenance suffices; a confirmatory uRMW re-capture optional in B-session); (b)
+reconstruct the exact fitted RMW config that fires the cell (the `sweep_rmw` tool
+is GONE) → board uRMW capture → BANK the chip rows → a board-free *replay* gate
+(check_fuzz_bank idiom: banked chip rows vs model TB, re-runnable). (b) closes it
+as a re-runnable gate but needs the cell-config reconstruction on the board.
 
 ### B0 — directed gates to green the matrix (IN PROGRESS)
 Goal: build G-LC2 / G-LC4a / G-LC6 (board-free) + G-LC3-uRMW (board, rides B1);
