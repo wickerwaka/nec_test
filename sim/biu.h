@@ -40,6 +40,9 @@ public:
     void mem_write(uint16_t seg_val, uint16_t off, uint16_t data, bool word,
                    uint8_t seg_idx, uint16_t upc);
     uint16_t io_read(uint16_t port, bool word, uint16_t upc);
+    // The suite records the value the port presented (case name `iord=XXXX`);
+    // there is no I/O model, so it is replayed verbatim.
+    void set_io_in(uint16_t v) { io_in_ = v; }
     void io_write(uint16_t port, uint16_t data, bool word, uint16_t upc);
 
     // --- prefetch queue ---------------------------------------------------
@@ -85,6 +88,7 @@ private:
     bool suspended_ = false;
 
     std::vector<Txn> txns_;
+    uint16_t io_in_ = 0;
     uint32_t seq_ = 0;
     std::vector<std::pair<uint32_t, uint8_t>> writes_;
 };

@@ -104,6 +104,29 @@ CaseResult run_one(const ucrom::UcRom& rom, Biu& biu, const json::Value& c,
     m.set_flags(ir.v[13]);
     biu.queue_preload(q, uint16_t(ir.v[12] + q.size()));
 
+    // The suite encodes the value each IN form's port presented in the case
+    // name ("in al, a1h (iord=2ffc)").  There is no I/O model to derive it.
+    biu.set_io_in(0);
+    {
+        const json::Value* nm = c.get("name");
+        if (nm && nm->type == json::Value::kStr) {
+            size_t p = nm->str.find("iord=");
+            if (p != std::string::npos) {
+                unsigned v = 0;
+                for (size_t i = p + 5; i < nm->str.size(); ++i) {
+                    char ch = nm->str[i];
+                    int d;
+                    if (ch >= '0' && ch <= '9') d = ch - '0';
+                    else if (ch >= 'a' && ch <= 'f') d = ch - 'a' + 10;
+                    else if (ch >= 'A' && ch <= 'F') d = ch - 'A' + 10;
+                    else break;
+                    v = (v << 4) | unsigned(d);
+                }
+                biu.set_io_in(uint16_t(v));
+            }
+        }
+    }
+
     if (opt.trace && trace_out) {
         const json::Value* nm = c.get("name");
         std::fprintf(trace_out, "case: %s\n",

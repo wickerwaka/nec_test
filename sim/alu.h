@@ -20,11 +20,18 @@ struct AluResult {
     bool commits = true;     // false for CMP: the result bus is not driven
 };
 
-// Evaluates the LATCHED operation against the machine's current tmps.
+// Evaluates the LATCHED operation against the machine's current tmps.  This
+// is the COMBINATIONAL SIGMA path, so it must be side-effect free: the
+// iterative ops (shift / rotate / MUL / DIV) read as a pass-through of port A
+// here, and their per-iteration stepping lives in alu_step().
 AluResult alu_eval(const Machine& m, const AluLatch& lat);
 
-// The ALU operation selected by the `OPC` field: derived from the microcode
-// opcode register's bits 5:3.
+// One `R`-loop iteration of an iterative op.  MUTATES the multiplier /
+// quotient register tmpa where the op requires it; the returned value is what
+// SIGMA presents (and what the row's `-> tmpb` transfer stores).
+AluResult alu_step(Machine& m, const AluLatch& lat);
+
+// The ALU operation selected by the `OPC` field.
 uint8_t alu_opc_select(const Machine& m);
 
 inline bool alu_is_incdec(uint8_t op) {

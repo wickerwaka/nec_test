@@ -49,7 +49,18 @@ LoadResult loader_decode(Machine& m, Biu& biu) {
     m.pfxcnt = 0;
     m.M = OperandRef{};
     m.R = OperandRef{};
-    m.incdec_class = false;
+    m.opc_base = 0;
+    m.opc_from_modrm = false;
+    m.modrm_reg = 0;
+    m.rep_test = kTestNone;
+    m.rep_pol = false;
+    // The address adder stands on the SIGMA path with its default operation
+    // (ledger, "EA-in-SIGMA"): ADD of the two tmp ports.  XLAT's 012D is the
+    // row that forces it -- BX + AL with no ALU row of its own.
+    m.alu = AluLatch{};
+    m.alu.op = kAdd;
+    m.alu.tmp = 0;
+    m.alu.byte = false;
 
     auto fetch = [&]() -> uint8_t {
         uint8_t b = biu.next_byte(m.sreg[kCS], kPreDecodeUpc);
@@ -116,6 +127,12 @@ LoadResult loader_decode(Machine& m, Biu& biu) {
     else
         byte = false;
     m.op8 = byte;
+    // OP8 (Str_Cond[7]) gates the SECOND immediate byte fetch: it means "the
+    // immediate is one byte".  For every form but 83 and 6B that coincides
+    // with the operand width; those two take a sign-extended imm8 against a
+    // word operand (ledger, OP8 vs OP8b).
+    m.imm8 = byte || b == 0x83 || b == 0x6B;
+    m.xop = pla3::xop(v);
 
     uint8_t page = ext ? 4 : (m.rep != kRepNone ? 1 : 0);
     m.opc_reg = b;
@@ -157,8 +174,37 @@ LoadResult loader_decode(Machine& m, Biu& biu) {
         page = uint8_t((b & 8) ? 3 : 2);
         m.opc_reg = rm.raw;  // the ModR/M byte occupies the opcode slot
     }
-    m.incdec_class =
-        (page == 3) || (pla3::xop(v) == uint8_t(pla3::XopAux::kIncDec));
+
+    // --- OPC select: which field, and which block of kStrOp ---------------
+    // OPC = opc_base + sel.  sel is opcode bits 5:3 except for the ModR/M
+    // "group" opcodes, where the reg field is an opcode extension.
+    m.modrm_reg = rm.reg;
+    if (page == 2 || page == 3) {
+        m.opc_base = kInc;  // INC DEC NOT NEG
+        m.opc_from_modrm = true;
+    } else if (!ext && (b >= 0x80 && b <= 0x83)) {
+        m.opc_base = 0;  // ADD OR ADC SBB AND SUB XOR CMP
+        m.opc_from_modrm = true;
+    } else if (!ext && (b == 0xC0 || b == 0xC1 || (b >= 0xD0 && b <= 0xD3))) {
+        m.opc_base = kRol;  // ROL ROR RCL RCR SHL SHR - SAR
+        m.opc_from_modrm = true;
+    } else if (pla3::xop(v) == uint8_t(pla3::XopAux::kIncDec)) {
+        m.opc_base = kInc;
+    }
+
+    // --- REP / loop continuation test (pla_3 XOP 1110 = count/compare-loop)
+    if (pla3::xop(v) == uint8_t(pla3::XopAux::kCountLoop)) {
+        if (!ext && (b & 0xFE) == 0xE0) {
+            m.rep_test = kTestZ;         // LOOPNE / LOOPE
+            m.rep_pol = (b & 1) != 0;
+        } else if (m.rep == kRepE || m.rep == kRepNE) {
+            m.rep_test = kTestZ;
+            m.rep_pol = (m.rep == kRepE);
+        } else if (m.rep == kRepC || m.rep == kRepNC) {
+            m.rep_test = kTestCy;
+            m.rep_pol = (m.rep == kRepC);
+        }
+    }
 
     // --- operand binding --------------------------------------------------
     if (has_rm) {

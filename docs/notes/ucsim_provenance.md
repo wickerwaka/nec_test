@@ -14,8 +14,9 @@ Provenance classes:
 | **MEASURED** | a law measured on silicon and recorded in `docs/facts/*` or a golden suite |
 | **ASSUMPTION** | not determined by the assets; adopted because it reproduces the goldens.  Evidence and falsifier recorded. |
 
-Status of this file at the end of **S1a**: covers everything the bring-up
-families exercise.  Later stages append.
+Status of this file at the end of **S1b**: covers everything the bring-up
+families, the flow/stack forms, the internal-routine page and the arithmetic
+groups exercise.  Later stages append.
 
 ---
 
@@ -123,7 +124,7 @@ non-`tmpa` case is fixed by `008C` (`dir*sz -> tmpc`, `SI -> tmpb`,
 *Falsifier:* any binary row with `Tmp = tmpb` and a non-commutative op would
 disambiguate further; none is reachable from the bring-up families.
 
-### 2.2 `OPC` selection rule — **ASSUMPTION (PLA-corroborated)**
+### 2.2 `OPC` selection rule — **ASSUMPTION (PLA-corroborated)** — *superseded by §11*
 
 ```
 sel = (opc_reg >> 3) & 7
@@ -173,6 +174,9 @@ destination.  None exists.
   `docs/facts/undefined_flags.md`).
 * `NOT` writes no flags; `NEG` writes the full arithmetic set with
   `V = (operand == MSB)`, `CY = (result != 0)`.
+* `PASS` **does** write the full arithmetic set, with `CY = AC = V = 0` — see
+  §17.1.  (S1a had it flagless; no bring-up form carried `W` over a `PASS`
+  latch, the arithmetic groups do.)
 * `INC2`/`DEC2` are the address adder's ±2 and are **always 16-bit**, never
   byte-width, regardless of the instruction's operand width.  ASSUMPTION;
   falsifier = a byte-width instruction that also does stack arithmetic
@@ -190,7 +194,7 @@ ALU zeroes the pointer's high half: `A4` idx 0 gave `si exp=312B got=002B`,
 `di exp=C226 got=0026`.  With the 16-bit datapath `A4 AA AC AE 26.A4 3E.AC`
 all become 1000/1000 and no previously green form regresses.
 
-### 2.6 `-> tmpaL` / `-> tmpbL` SIGN-EXTEND into the high half — **MEASURED**
+### 2.6 `-> tmpaL` / `-> tmpbL` SIGN-EXTEND into the high half — **MEASURED** — *refined at §20: only `tmpbL` sign-extends*
 
 Writing a byte through `Dest1` codes `0x14`/`0x15` (`tmpaL`/`tmpbL`) sets the
 matching high half to the sign of that byte.
@@ -262,7 +266,7 @@ bit 3, with the **ModR/M byte moved into the opcode slot**.  ROM-forced by the
 `<F6/F7>` / `<FE/FF>` activation patterns, whose opcode field is manifestly a
 ModR/M byte (`??00????` = `reg` field 0/1 = INC/DEC).
 
-### 3.4 `JMP OP8` — **ASSUMPTION**
+### 3.4 `JMP OP8` — **ASSUMPTION** — *resolved at §10*
 
 `OP8` is taken as "the operand/immediate is 8 bits" = the operand width
 computed in §3.2.  It gates the high-immediate-byte fetch in `04/05`,
@@ -337,7 +341,7 @@ Where the strobe appears is exactly where `M` *can* be memory — `0001`
 `0102` (C6/C7), `005B` (POP mem), `01B9` (FE/FF INC/DEC) — and never on a row
 whose `M` is structurally a register (`002F`, `00E2`, `0087`, `005D`).
 
-### 6.1 Posted writes: the data phase samples `OPR` one row later — **ROM**
+### 6.1 Posted writes: the data phase samples `OPR` one row later — **ROM** — *superseded by §18.2 (write-data pairing); PUSHA falsifies the fixed one-row model*
 
 A `MEMW` (or `[-06-]`) row supplies only the *address*; the data is taken from
 `OPR` one micro-row later.  ROM-forced by three blocks:
@@ -388,10 +392,10 @@ falsifier is a byte-width instruction whose microcode touches the stack.
 | word memory accesses wrap the **offset** at 16 bits inside the segment | ASSUMPTION | falsifier = `tests/v30/v0.3-f4a-boundary` (S2) |
 | unlisted memory reads as `0x00` | ASSUMPTION | suite artifact management; no bring-up case depends on it |
 | final **queue** comparison is DEFERRED | policy | the functional model fetches on demand and keeps no speculative queue, so `final.queue` is not reproducible without the timing model.  Registers (incl. raw PSW) and RAM are compared; queue is an S2/timing item |
-| `F` (`Flag_F`) is a **bus interlock**, not a flag control | ASSUMPTION | it appears on rows that consume `OPR` after a `MEMR` (`000B`, `002F`, `0087`) and on `005A`, one row before the `[-06-]` that needs the read data — never on a row that computes flags.  `V20UCDIS.PAS` documents `Flag_W` as "write flags" and leaves `Flag_F` uncommented.  Modelled as an instantly-satisfied sync object (call site preserved for the timing campaign) |
+| `F` (`Flag_F`) is a **bus interlock**, not a flag control (made concrete at §18.1: it is what delivers read data into OPR) | ASSUMPTION | it appears on rows that consume `OPR` after a `MEMR` (`000B`, `002F`, `0087`) and on `005A`, one row before the `[-06-]` that needs the read data — never on a row that computes flags.  `V20UCDIS.PAS` documents `Flag_W` as "write flags" and leaves `Flag_F` uncommented.  Modelled as an instantly-satisfied sync object (call site preserved for the timing campaign) |
 | `SUSP` = logged no-op; `FLUSH` = clear queue, refetch from CS:PC | ASSUMPTION | standard BIU semantics; validated indirectly by the green branch forms |
 
-### S0a ambiguous address
+### S0a ambiguous address — *analysed at §21.1*
 
 `v30sim info` reports **1 ambiguous micro-address of 8192**: two activation
 patterns both match `111.00000010.00` (the two `<internal> 02` banks at
@@ -432,3 +436,480 @@ Negative controls run at S1a (each restores to 1000/1000 when reverted):
 | let `[-06-]` commit `OPR` to a register r/m | `8F.0` fails the mod-3 ghost, `88` 734/1000, `00` 765/1000, `8C` 734/1000 |
 | byte-wide ALU datapath | `A4`/`AA`/`AC`/`AE` zero the SI/DI high half |
 | zero-extending `-> tmpbL` | every backward `70-7F`/`EB` branch off by `0x100` |
+
+---
+
+# S1b — flow, the internal-routine page, and the arithmetic groups
+
+Everything below was resolved at S1b.  Every entry that changes an S1a
+decision says so explicitly.  Every negative control listed was actually run
+and restores to 1000/1000 when reverted (§18).
+
+## 10. The two "immediate width" conditions — **RESOLVED**
+
+`OP8` (`Str_Cond[7]`) means **"the immediate operand is one byte"**.
+`OP8b` (`Str_Cond[4]`) means **"the operand is byte-wide"**.  S1a had both
+bound to the operand width, which is why `83` failed.
+
+*Evidence (ROM, decisive):* `0290` (`69`/`6B`, MUL rm16,imm) is
+`Q -> tmpbL  JMP OP8 2` — the high immediate byte is skipped for `6B` and
+fetched for `69`, yet **both are word-operand** forms.  Symmetrically `003C`
+(`80`-`83`) skips the high byte for `83`, a word-operand form.  Meanwhile the
+*same* internal IMUL block reached from `69`/`6B` uses `OP8b` at `020F` to
+choose `COUNT = 8` vs `16`, and there it must read **word** for `6B`.  One
+condition cannot be both, so the two are distinct signals.
+
+Wherever an opcode has no immediate (`F6`/`F7` MUL/DIV, the internal IMUL /
+IDIV2 tails) the two coincide, which is why `JMP OP8` is used there too.
+
+*Implementation:* the loader computes `imm8 = byte_operand || opcode in
+{0x83, 0x6B}` — **ASSUMPTION** for the membership of that two-opcode set: no
+dumped PLA column separates it (pla_3 gives `80`-`87` a single shared vector,
+and `69`/`6B` sit in `XOP = 0100` together).
+*Negative control, run:* `OP8 = operand width` → `83.0` 0/1000, `6B` 0/1000,
+`69` and `80.0` unaffected.
+
+## 11. `OPC` select: field source and op block — **RESOLVED (ROM-forced)**
+
+`OPC` resolves to `opc_base + sel`:
+
+| class | `opc_base` | members | kStrOp block |
+|---|---|---|---|
+| ALU | `0x00` | `00-3F`, `04/05`-style, `80-83` | ADD OR ADC SBB AND SUB XOR CMP |
+| shift | `0x08` | `C0 C1 D0 D1 D2 D3` | ROL ROR RCL RCR SHL SHR [-0E-] SAR |
+| unary | `0x18` | `40-4F`, page 2 (`F6/F7`), page 3 (`FE/FF`) | INC DEC NOT NEG |
+
+and `sel` is opcode bits 5:3 **except** for the ModR/M *group* opcodes
+(`80-83`, `C0 C1`, `D0-D3`, and pages 2/3 where the ModR/M byte already
+occupies the opcode slot), where it is the ModR/M `reg` field.
+
+*Evidence:* page 2's two OPC blocks are `010.??010???` (reg = 2) and
+`010.??011???` (reg = 3), which must be NOT and NEG — `0x18 + 2` and
+`0x18 + 3` in `kStrOp`.  This retires S1a §2.4's `incdec_class` remap
+(`kInc + (sel & 1)`), which could not reach NOT/NEG.  The shift block is
+forced by `D0-D3`'s eight sub-forms mapping onto `kStrOp[8..15]`.
+*Negative control, run:* `sel` from opcode bits 5:3 everywhere → `80.1`
+98/1000, `81.5` 1/1000, `D2.4` 64/1000.
+
+`kStrOp[0x0E]` (`[-0E-]`, group `/6`) is a **second SHL encoding** — the
+suite names those forms `shl6`, and SHL semantics make all six `.6` forms
+1000/1000.  **MEASURED.**
+
+## 12. The `R` loop — **RESOLVED** (unknown #2)
+
+**Model.**  An `R` row latches its own operation and then runs it **COUNT
+times inside that row**, writing the row's `Dest1` (always `tmpb` in this ROM)
+and, if `W`, the flags on *every* iteration.  COUNT ends at 0.  The row's
+`Source1 = SIGMA` transfer is the loop, not a separate old-latch evaluation:
+the delay-slot rule of §2 does **not** apply to an `R` row.
+
+Afterwards the iterative unit has no count left, so a later row that reads
+`SIGMA` with the same operation still latched gets a **pass-through of port A**
+(`tmpb`) rather than one more step.
+
+*Evidence (ROM):*
+* `0114-0117` (`D0/D1`, shift by 1) is `CONST -> COUNT 1` / `M -> tmpb` /
+  `SIGMA -> tmpb W R ALU OPC tmpb` / `SIGMA -> M E [-06-]`.  Exactly **one**
+  shift must happen and its flags must be written.  Only "the R row does the
+  shift, and `0117`'s read is a pass-through" produces that.
+* `0178-017F` (`F6/F7` MULU) initialises `tmpb` to `ZEROS` on `0178` and the
+  R row `017C` must start the shift-add from that zero.  If the R row first
+  executed the old latch (`PASS tmpc`) it would overwrite the accumulator with
+  the multiplicand.
+* `0190/0191` and `011F/0120` (DIV, AAM) re-latch `DIV` on the row after the
+  loop and read `SIGMA` there; with COUNT exhausted that read must not disturb
+  the quotient/remainder.
+
+This settles Codex's alternative in favour of the **internal iterative phase**
+reading: the iteration completes within the R row with registered feedback;
+it is not a per-row re-evaluation.
+*Negative controls, run:* R row executes the old latch first → `F6.4` 11/1000,
+`F7.4` 4/1000, `F6.6`/`F7.6` 527/1000, `D4` 0/1000.  Iterative op re-steps on
+the post-loop `SIGMA` read → `D0.4` 17/1000, `D1.5` 6/1000, `D2.4` 670/1000,
+`C0.4` 795/1000, `F6.6` 538/1000.
+
+**COUNT is not masked.**  `0119` (`CX -> tmpaL`) loads the raw CL and the
+microcode never reduces it; 426 of the 1000 `D2.4` cases have `CL >= 32` and
+all pass.  So the V30 shifts the full 0..255 count.
+
+## 13. `CNTZ` is a loop-continue, not a zero test — **RESOLVED**
+
+`JMP CNTZ` **decrements COUNT and jumps while it is still non-zero**.
+
+*Evidence:* ENTER's copy walk is `026A..026E` with `026E JMP CNTZ 6`
+(back to `026A`) and `0269 SIGMA -> COUNT` loading `level - 1`.  The
+architectural walk copies `level - 1` frame words, which is exactly
+"decrement, jump if non-zero"; "jump if zero" gives one copy for every level.
+*Negative control, run:* `CNTZ = (COUNT == 0)` → `C8` 647/1000, with the
+missing copy visible as `sp` off by 2 per level.
+
+`REP` (`Str_Cond[12]`) has the same decrement plus a data test, see §15.
+
+## 14. Microcode JMP conditions: three different taps — **RESOLVED**
+
+The 16-entry `Str_Cond` table does **not** read one register.  Three sources
+are needed, and each is forced by a different block:
+
+| condition | source |
+|---|---|
+| `[-00-]`(0)=C, `NC`(1), `Z`(2), `NZ`(3), `L`(6) | the **ALU status latch** |
+| `O`(10), `OPC`(15) | the architectural **PSW** |
+| `NS`(11) | the **sign of `tmpb`** at the operand width |
+| `CNTZ`(5), `REP`(12) | COUNT (§13, §15) |
+| `OP8`(7), `OP8b`(4) | pre-decode (§10) |
+| `[-09-]`(9) | the MUL/DIV sign latch (§16) |
+| `BUSY`(13), `INTR`(14) | pins — always false in the functional model |
+
+### 14.1 The ALU status latch loads when SIGMA is gated onto the bus
+
+**ASSUMPTION (ROM-constrained).**  A separate status register is loaded from
+the ALU's flag outputs on every row whose `Source1` or `Source2` is `SIGMA`
+— i.e. when the result is actually driven.  `W` is what copies those same
+outputs into the PSW; the two are independent.
+
+*Evidence:* four blocks branch on `Z` with **no `W` anywhere before the
+branch**, so the PSW cannot be the source —
+`0141 SIGMA -> NULL` / `0142 JMP Z 5` (`E3` JCXZ, Z = CX==0),
+`0095 SIGMA -> NULL` / `0096 JMP Z 7` (REP entry, Z = CX==0),
+`0221 SIGMA -> [-03-]` / `0222 JMP Z 4` (REPX),
+`011A SIGMA -> [-03-]` / … / `0228 JMP Z 3` (SHIFT, Z = shift count == 0).
+The SHIFT case also fixes *when* the latch loads: row `011B` (`CTL FARJMP`)
+sits between the two and must **not** disturb it, and `011B` is precisely a
+row that does not read SIGMA.
+*Negative control, run:* conditions read the PSW → `E2` 519/1000, `E3`
+511/1000, `D2.4` 499/1000, `C8` 411/1000, `F3A4` 505/1000.
+
+`[-00-]` (condition 0) is the **carry-set** partner of `NC`: IDIV2's
+`01A8 JMP [-00-] 2` must take the divide-error exit when the magnitude
+pre-check `SUB` at `01A6/01A7` produced **no** borrow.  ROM-forced.
+
+### 14.2 `NS` is a direct sign tap on `tmpb`
+
+**ASSUMPTION (ROM-constrained), three independent confirmations:**
+* `99` CWD: `0064 ZEROS -> DX  AX -> tmpb  CTL` / `0065 JMP NS 3`.  Row `0064`
+  is a CTL row that names no ALU operation and reads no SIGMA, so nothing but
+  a direct tap on the just-loaded `tmpb` can give sign(AW).
+* `01A1 tmpb -> OPR  JMP NS 6` (IDIV) must branch on the sign of the dividend
+  **high half**, which is what `019B`/`019D` put in `tmpb`; the latched ALU
+  operation at that row is `NEG tmpa`.
+* `01B2 JMP NS 12` (IDIV2) must branch on the sign of the original dividend,
+  which `01AD` restored into `tmpb` from OPR.
+
+The width follows the operand width, which is what makes byte IDIV work:
+`AL:AH -> tmpb` puts AH in the low byte, and the byte-width sign tap is
+AH bit 7 = sign(AW).
+*Negative control, run:* `NS` from the ALU status sign → `99` 506/1000,
+`F6.7` 472/1000, `F7.7` 461/1000.
+
+### 14.3 `O` reads the PSW
+
+`010C CONST -> tmpbL 4  JMP O 3` (`CE` INTO) is the only user, and it must
+test the architectural overflow flag left by an earlier instruction.  The
+status latch holds nothing at that point.  **ROM-forced.**
+
+## 15. `REP` — the string / loop continuation test — **RESOLVED**
+
+`JMP REP` decrements COUNT and jumps when the result is non-zero **and** the
+data test passes.  The data test is selected by pla_3's `XOP = 1110`
+("count / compare-and-loop" — `A6 A7 AE AF C0 C1 E0 E1`), which is exactly the
+set of opcodes for which the continuation is flag-sensitive:
+
+* `E0`/`E1` (LOOPNE/LOOPE): test Z, polarity = opcode bit 0.
+* `A6 A7 AE AF` under a repeat prefix: test Z for `REPE`/`REPNE`, CY for the
+  V30's `REPC`/`REPNC` (`65`/`64`).
+* everything else (MOVBK, STM, LDM, INM, OUTM): no data test.
+
+**PLA + ASSUMPTION** (the prefix → polarity mapping is not in a dump).
+`C0`/`C1` also carry `XOP = 1110` and never execute a `JMP REP`, so the
+merge is harmless.
+
+The interrupt term of the real condition (`REP` also fails when an interrupt
+is pending, which is what makes REPX's `0223 JMP INTR 5` back the PC up over
+the prefixes) is modelled as permanently false — no pin events at S1b.
+
+## 16. Signed MUL / DIV: `[-1E-]`, `[-0C-]`, `[-09-]` — **RESOLVED**
+
+* `[-1E-]` (`Str_Op[0x1E]`) is **ABS**: it drives |port B| at the operand
+  width.  *Evidence:* `0184` (`F6.5`/`F7.5`) and `0198` (`F6.7`/`F7.7`) latch
+  it over AW and over the divisor respectively, and the following
+  `SIGMA -> tmpa` / `SIGMA -> tmpc` rows feed the *unsigned* shift-add and
+  restoring-division loops.
+* The row that **latches** `[-1E-]` also loads the sign latch from the sign of
+  `tmp[Tmp]` as it stands at the end of that row.
+* `CTL [-0C-]` (`Str_Int[12]`) **toggles** the sign latch by the sign of
+  `tmpb`.  It appears exactly twice — `020C` (IMUL/IMULI entry, where `tmpb`
+  has just received the *other* factor) and `019E` (IDIV, where `tmpb` holds
+  the dividend high half) — i.e. exactly where the second operand's sign has
+  to be folded in.
+* `[-09-]` (`Str_Cond[9]`) is **"the result sign is positive"** = sign latch
+  clear.  `0212 JMP [-09-] 12` skips the product negation; `01AF JMP [-09-] 9`
+  skips the quotient negation.
+
+All three are **ASSUMPTION (ROM-constrained)**; the assets name none of them.
+*Negative control, run:* `[-1E-]` as a plain PASS and `[-0C-]` as a no-op →
+`F6.5` 523/1000, `F7.5` 542/1000, `69` 511/1000, `6B` 481/1000, `F6.7`
+885/1000, `F7.7` 871/1000.
+
+`CTL [-06-]` (`Str_Int[6]`) **clears CY and V**, `CTL [-07-]` (`Str_Int[7]`)
+**sets** them.  Forced by MULX (`0208 [-06-]` / `0209 JMP Z 3` /
+`020A [-07-]`), the two-row overflow decision shared by MULU and IMUL.
+*Negative control, run:* both as no-ops → `F6.4` 263/1000, `F7.4` 248/1000,
+`F6.5` 280/1000, `F7.5` 273/1000, `69` 244/1000, `6B` 243/1000.
+Note the field collision: this is the **Int** code 6, not the `[-06-]`
+write-back strobe of §6, which is the **Ext** code 6.
+
+### 16.1 MUL and DIV as microcode STEP primitives
+
+`ALU MUL` is one shift-add step over the triple `(tmpb = running high half,
+tmpa = multiplier and low product, tmp[Tmp] = multiplicand)`: conditionally
+add, then shift the double register right one place.  `ALU DIV` is one
+**restoring**-division step over `(tmpb = remainder, tmpa = dividend low and
+quotient, tmp[Tmp] = divisor)`: shift left, subtract if it fits, quotient bit
+into `tmpa`.  Both write `tmpa` internally — the ROM row only names
+`SIGMA -> tmpb`.  **ASSUMPTION** (the step algebra is a hardware model), but
+it is what makes every `F6.4-F6.7`, `F7.4-F7.7`, `69`, `6B`, `D4` case exact,
+including the undefined flags (§17).
+
+Restoring (not non-restoring) division is forced by `0191`/`0120`, which run
+no correction pass: with COUNT exhausted their `DIV` re-read is a
+pass-through, so the loop must already leave a corrected remainder.
+
+## 17. Undefined-flag emergence — the S1b scorecard
+
+**No flag hooks exist in the simulator.**  Every `F6.*`, `F7.*`, `69`, `6B`,
+`D4`, `D5`, `27`, `2F`, `37`, `3F` and shift/rotate form is exact against the
+**raw** PSW, so the measured laws of `docs/facts/undefined_flags.md` are
+reproduced by the microcode plus the ALU model alone.
+
+| measured law | status | where it comes from |
+|---|---|---|
+| MULU leaves S/Z/AC/P **preserved** | **EMERGED** | the MULU path (`0178-017F` → MULX) contains no `W` row at all |
+| signed MUL writes the **lo+lo self-add** residue (S = bit6/bit14, Z = (result & 0x7F/0x7FFF)==0, AC = bit3, P = parity(result<<1)) | **EMERGED** | MULADJ `0204 tmpa -> tmpb  ALU ADD tmpb` / `0205 SIGMA -> NULL W` *is* literally lo+lo, and MULADJ is on the IMUL path only |
+| MUL CY/V = "the high half is not the sign extension" | **EMERGED** | MULX's `0206` ADC + `0209 JMP Z 3` + Int `[-06-]`/`[-07-]` |
+| DIVU leaves the flags of the 16-bit pre-check `SUB(DW, divisor)` | **EMERGED** | `018B`/`018E` are the only `W` rows on the DIVU path |
+| signed DIV **early trap** = flags of `SUB(|num_high|, |divisor|)` | **EMERGED** | IDIV `01A6/01A7` |
+| signed DIV **late/non-trap** = S/Z/P of the unsigned quotient, CY=AC=V=0 | **EMERGED**, conditional on the PASS flag model (§17.1) | IDIV2 `01AD SIGMA -> [-03-] W` with `PASS tmpa` latched |
+| AAM (CVTBD) V=AC=CY=0, S/Z/P defined | **EMERGED**, same condition | `D4` `0121/0122` `PASS tmpb` + `W` |
+| AAD (CVTDB) AC/CY = internal-add residue | **EMERGED** | `D5` `012A/012B` `ADD tmpa` + `W` |
+| shift/rotate with count 0 leaves **every** flag untouched | **EMERGED** | the R loop runs zero iterations, and `0228 JMP Z 3` skips the write-back entirely |
+| shift/rotate V law (left: MSB(result) xor CY(out); right: MSB xor MSB-1 of the result) | **NOT emergent** — it is the per-step ALU flag model | `alu_step` |
+| AND/OR/XOR/TEST AC always 0 | **NOT emergent** — ALU model (already S1a) | `alu_eval` |
+| ADJ4A/ADJ4S/ADJBA/ADJBS flags | **NOT emergent** — fitted, §17.2 | `bcd_adjust` |
+
+### 17.1 `PASS` drives the full arithmetic flag set — **MEASURED**
+
+S1a modelled `PASS` as writing no flags (no bring-up form had a `W` over a
+`PASS` latch).  The arithmetic groups force the opposite: `PASS` produces
+S/Z/P from the value with **CY = AC = V = 0**.  Confirmed independently by
+AAM (`0122`, measured "V, AC, CY always 0") and by signed DIV (`01AD`,
+measured "S/Z/P of the unsigned quotient with CY = AC = V = 0").
+`INC2`/`DEC2` remain flagless (§2.4 unchanged).
+
+### 17.2 The BCD adjust: `ADJD`/`ADJA` arm, `ADD`/`SUB` execute — **RESOLVED**
+
+`ALU ADJD tmpb` / `ALU ADJA tmpb` do not produce a result of their own; they
+**arm a decimal / ASCII adjust mode** that the *next* latched `ADD` or `SUB`
+executes.  This is what makes the four BCD blocks intelligible: each is
+`AX -> tmpbL` + `ALU ADJx tmpb`, then `ONES -> tmpa` + `ALU ADD|SUB tmpa`,
+then `SIGMA -> AL  SIGMA -> [-03-]  W` — the `ONES` operand is never used, and
+the ADD/SUB only selects the direction of the correction.  **ASSUMPTION.**
+
+The correction itself is a **MEASURED fit** (2000/2000 over `27` + `2F`,
+1000/1000 each on `37`/`3F`):
+
+```
+lo_adj = (AL & 0x0F) > 9 || AC_in
+hi_adj = (AL >> 4) > 9 || CY_in
+       || ((AL >> 4) == 9 && (AL & 0x0F) > 9 && !AC_in)      <-- ADJD only
+corr   = (lo_adj ? 6 : 0) + (hi_adj ? 0x60 : 0)
+sum    = AL +/- corr                       (+ for ADJ4A/ADJBA, - for ADJ4S/ADJBS)
+result = ADJA ? (sum & 0x0F) : (sum & 0xFF)
+flags  = S/Z/P of (sum & 0xFF)   -- the UNTRUNCATED byte, even for ADJA
+         AC = lo_adj,  CY = (ADJA ? lo_adj : hi_adj),  V = the byte overflow
+```
+
+Two departures from the x86 definition are real and measured:
+
+1. **The high correction is a nibble test with a conditional decimal carry.**
+   x86 uses `old_AL > 0x99`; the V30 uses `high nibble > 9`, plus a carry out
+   of the low digit that is generated **only** by the "digit > 9" test and not
+   by a correction that `AC_in` forced.  The two differ exactly on
+   `AL = 0x9A..0x9F`: with `AC_in = 1` the V30 does **not** correct the high
+   digit (`ADJ4A` of `0x9A` with AC gives `0xA0`, CY = 0; without AC it gives
+   `0x00`, CY = 1).  The pure x86 rule misses 11 of the 2000 `27`/`2F` cases;
+   the pure "high nibble > 9" rule misses 9; only the combined form fits all
+   2000.
+2. **ADJBA/ADJBS take their S/Z/P from the untruncated sum**, not from the
+   `& 0x0F` result: `37` with AL = 0xB5 and no adjust reports S = 1 while
+   writing AL = 0x05.
+
+The AH increment/decrement is not part of the ALU op — it is the microcode's
+own `JMP NC 5` + `ALU INC/DEC tmpb` tail, and it works because CY = lo_adj.
+
+## 18. Bus semantics forced by the internal page
+
+### 18.1 `F` is a read interlock; read data reaches OPR only through it
+
+**RESOLVED, replaces the S1a "MEMR writes OPR immediately" behaviour.**  A
+`MEMR` row *issues* a read; the datum is delivered into OPR by the next row
+that carries `F`, in issue order.
+
+*Evidence (ROM, decisive):* the INT routine issues two vector reads two rows
+apart (`01EE`, `01F0`) and then consumes them in order on `01F1` (`OPR ->
+tmpc`, the new IP) and `01F3` (`OPR -> tmpa`, the new CS), both `F` rows.  If
+the second read landed in OPR when it was issued, both rows would read the CS
+word.  POPA (`024C`-`025C`) does the same thing seven times over with a
+one-read-deep lead.  Every `OPR ->` **source** row in the whole ROM carries
+`F`, which is what makes the rule total.
+*Negative control, run:* read data lands in OPR at issue → `CD` 0/1000, `CF`
+0/1000, `61` 0/1000, `CB` 0/1000 (`58`, `8F.0` unaffected — one read in
+flight).
+
+Rows that consume a read *without* `F` do not exist; the one place the datum
+is needed with no `F` row in sight is a **write data phase** (MOVBK `008D`
+read → `008F` `MEMW ES`), which §18.2 covers.
+
+### 18.2 Write-data pairing — **RESOLVED, replaces S1a §6.1**
+
+S1a modelled a posted write whose data phase sampled OPR exactly one row
+later.  PUSHA falsifies that: `0239 AX -> OPR` / `023A MEMW` / `023B CX ->
+OPR` must push **AW** at SP-2, i.e. the value loaded *before* the MEMW row.
+ENTER falsifies the mirror image: `0262 MEMW` / `0263 BP -> OPR` must push
+**BP**, loaded *after*.
+
+The rule that satisfies both, and every other write in the ROM, is
+**pairing**: each write consumes the OPR value that has been (re)loaded since
+the previous write consumed one.
+
+```
+a write issued while OPR already holds an unconsumed value  -> runs at once
+otherwise                                                   -> waits for the
+   next OPR load (a transfer to OPR, a `-> M` on a memory operand, or a read
+   delivered by `F`), or for the next bus cycle / end of instruction
+```
+
+This keeps every S1a case (`50-57` `0029`/`002A`, `A2/A3` `008A`/`008B`,
+`86/87` `0049`/`004A`) and adds `6A` (`0285` MEMW, OPR loaded **two** rows
+later at `0287`), the string blocks (`008F`'s data is the `008D` read), CALLF,
+the INT pushes and the ENTER walk.  **ASSUMPTION** — it is a functional
+stand-in for "the bus takes the data when the cycle runs, and the microcode's
+`F` markers order it".
+*Negative control, run:* a write always waits for the *next* OPR load (the
+ENTER half of the rule alone) -> `60` 0/1000; `C8`, `50`, `A2`, `86`, `6A`,
+`00`, `88` all unaffected.  The mirror half -- always take the value present
+when the MEMW issues -- is what S1a's one-row posting did to ENTER, and it
+drops the BP push.
+
+### 18.3 `SR = IO` selects the I/O space only for the I/O opcode classes
+
+`Str_SR[1]` is printed `IO`, but the internal INT routine uses it for the
+**interrupt-vector fetch** (`01EE`, `01F0`), which is a memory read at
+physical `vector*4` — segment zero, not an I/O cycle.  The discriminator is
+pla_3's `XOP`: `1111` (port I/O: `E4-E7`, `EC-EF`) and `0110` (block I/O:
+`6C-6F`) are the only classes that mean the I/O space; everywhere else
+`SR = IO` means **segment base 0**.  Vector fetches are also word-wide
+regardless of the instruction's operand width (a byte `F6.6` DIVU that traps
+still fetches a word vector).  **PLA + ASSUMPTION.**
+*Negative control, run:* `SR = IO` always I/O → `CD` 0/1000, `CC` 0/1000,
+`CE` 490/1000, `F6.6` 473/1000.
+
+### 18.4 A `FARJMP` row has no bus cycle
+
+`Int == 0x0E` aliases `Ext:SR` as the 5-bit far target, so those five bits
+must not be decoded as a bus request.  `FARJMP SHIFT` (target 9) aliases to
+`Ext = 2` (`MEMW`) with `SR = 1`, and `FARJMP MULADJ`/`IMUL` alias to `MEMR`.
+**ROM-forced** (and the reason `D2/D3`/`C0/C1` wrote a spurious word to
+physical `EA` before the fix).
+
+## 19. The micro-PC carries out of `loc` into the opcode byte — **ROM**
+
+Sequential execution past `loc = 15` increments the **opcode** field of the
+micro-address; it does not wrap inside the 16-row block.
+
+*Evidence, two independent blocks:*
+* byte IMUL: `00B0 JMP OP8 15` sends the byte case to `00B3 tmpb -> AH`
+  (page 7, opcode `0x30`, loc 15), which has no `E`.  The next row must be
+  `0218` — `111.00110001.00`, opcode `0x31`, `tmpa -> AL  FARJMP MULADJ` —
+  the byte product's low half.  Wrapping to loc 0 re-enters IMUL.
+* INT: `01FB tmpc -> PC  MEMW SS` is opcode `0x10` loc 15 and must fall into
+  `01FC` `SIGMA -> SP  E  FLUSH`, which the disassembly labels
+  `111.0001?001.00  <internal> 11,19`.
+
+*Negative control, run:* no carry → `CD` 0/1000, `CC` 0/1000, `F6.5` 0/1000
+(word IMUL, which never crosses the boundary, is unaffected).
+
+## 20. L-half writes: `tmpbL` sign-extends, `tmpaL` does not — **RESOLVED**
+
+S1a §2.6 left open whether the L-half sign extension is unconditional.  It is
+**per-register**: `-> tmpbL` (Dest1 `0x15`) sign-extends into the high half,
+`-> tmpaL` (Dest1 `0x14`) zero-extends.
+
+*Evidence for `tmpbL` (MEASURED):* `83` needs it (`003C Q -> tmpbL`, and 492
+of the 1000 `83.0` cases have a negative imm8; with zero extension `83.0`
+falls to 508/1000), as do `70-7F` (`0034`), `EB` (`0158`) and `6A`
+(`0286 tmpa -> tmpbL`, PUSH imm8 sign-extends).
+*Evidence for `tmpaL`:*
+* architectural (MEASURED): `0119 CX -> tmpaL` feeds COUNT, and the rotate
+  forms are sensitive to the count modulo 9 / 17.  Sign-extending CL breaks
+  `D2.2` (745/1000), `D2.3` (778/1000) and `C0.2` (759/1000) — the byte
+  RCL/RCR forms, whose modulus does not divide the 0xFF00 the sign extension
+  adds.  (`D3.2`/`D3.3`/`C1.2` are unaffected: 65408 ≡ 128 mod 17.)
+* bus (MEASURED, cycle records): `0144 Q -> tmpaL` feeds the port address for
+  `E4/E5`.  The `E4` golden records the IOR address as `0x00A1` for
+  `in al, a1h`, not `0xFFA1`.  This is **not** covered by the arch-only gate —
+  the checker never compares I/O addresses — so it is recorded here as the
+  reason the zero extension is right rather than merely harmless.
+
+The H-half writes (`-> tmpaH` / `-> tmpbH`) take bus bits 15:8; a **byte**
+source (`Q`, `CONST`) presents its byte there, a 16-bit source presents its
+own high half.  Forced by `9E` SAHF: `007D FLAGS -> tmpaH` must lift the PSW's
+**high** byte, while `0005 Q -> tmpaH` must lift the immediate's only byte.
+**ROM-forced.**
+
+## 21. Miscellaneous decisions
+
+| decision | class | note |
+|---|---|---|
+| the ALU latch at instruction entry is `ADD tmpa` (the address adder's default), plus the synthetic EA constant for a ModR/M memory operand | ASSUMPTION | forced by `D7` XLAT: `012C AX -> tmpaL  BX -> tmpb  CTL` / `012D SIGMA -> IND  MEMR` computes BW + AL with **no** ALU row of its own |
+| `CITF` (`Str_Int[1]`) clears IE and BRK | ROM-forced | `01F5`, on the row that pushes the *pre-clear* PSW |
+| `MFS`/`MFC`, `[-03-]`/`[-05-]` Ext, `[-0A-]`, `[-04-]`, `[-0D-]` | ASSUMPTION (no-op) | 8080-mode and pin-event machinery; no scoped form observes them |
+| word I/O at an **odd** port splits into two byte cycles | MEASURED | the `ED` cycle records show two IOR cycles at DW and DW+1 whenever DW is odd, and the byte lane follows address parity, so `in ax, dx` returns the recorded word byte-swapped |
+| the suite's `iord=XXXX` case-name field is the port datum | policy | there is no I/O model; `sim/case_runner.cpp` replays it verbatim.  This is an *input*, not a prediction — `E4/E5/EC/ED` are exact only in that sense |
+
+### 21.1 The S0a ambiguous address — **analysed, not exercised**
+
+`111.00000010.00` is matched by two banks (`01DC-01DF` and `01E0-01E3`).
+Structurally the second is the interrupt-acknowledge routine: two
+`[-05-] IO` cycles with `IND = 0` whose data is collected into `tmpb` before
+`FARJMP INT` — i.e. the classic two-cycle INTA vector fetch.  The first bank
+saves and restores AW around a single `[-05-]` cycle and looks like the 8080
+/ BRKEM variant.
+
+**No scoped form reaches it.**  `CC`/`CD`/`CE` jump straight to `FARJMP INT`
+(page 7, opcode `0x10`); only a hardware INTA does, and pin-event forms are
+S2 scope.  The decode table still keeps first-match-wins.  Carried forward to
+whoever brings up the INT/NMI pseudo-forms.
+
+## 22. S1b result
+
+Gate: every scoped form **arch-exact** (registers incl. raw PSW + RAM) on its
+full v0.2 tranche, 1000 cases each.
+
+| family | forms | result |
+|---|---|---|
+| S1a handoff (`83`, `80`/`81` groups, NOT/NEG, CWD, SAHF) | 28 | 28 × 1000/1000 |
+| shifts / rotates + internal SHIFT | `C0.* C1.* D0.*-D3.*` | 48 × 1000/1000 |
+| multiply / divide + MULADJ MULX IMUL IMULI IDIV IDIV2 | `F6.4-7 F7.4-7 69 6B` | 10 × 1000/1000 |
+| BCD | `27 2F 37 3F D4 D5` | 6 × 1000/1000 |
+| flow / stack / internal routines | `9A CA CB CC CD CE CF C8 C9 60 61 62 6A E0-E3 D7 E4 E5 EC ED` | 22 × 1000/1000 |
+
+**114 / 114 forms, 114 000 / 114 000 cases** (`python3 sw/ucsim_smoke.py --s1b`).
+
+Whole-suite survey at the same commit: **311 of 351 v0.2 forms fully green,
+312 128 of 347 000 cases passing** (S1a baseline: 172 forms / 179 475 cases).
+**Zero regressions** — every form green at S1a is still green.
+
+Everything still failing is out of S1b scope: the 25 `0F`-page forms
+(`0F10-0F1F` bit ops, `0F20/22/26` BCD strings, `0F28/2A` ROL4/ROR4,
+`0F31/33/39/3B` INS/EXT) and the 11 pin-event pseudo-forms
+(`HLT.INT`, `HLT.NMI`, `INT.*`, `NMI.*`).

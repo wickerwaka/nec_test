@@ -18,6 +18,8 @@ namespace sim {
 // --- register indices (== microcode Source1/Dest1 field values) -------------
 enum Gpr : uint8_t { kAW = 0, kCW, kDW, kBW, kSP, kBP, kIX, kIY };
 enum Sreg : uint8_t { kES = 0, kCS, kSS, kDS };
+// synthetic segment index: physical address = offset (interrupt-vector fetch)
+constexpr uint8_t kSegZero = 4;
 
 // --- PSW ------------------------------------------------------------------
 // V30 raw PSW: bit1 and bits 15:12 read as 1, bits 5 and 3 as 0.
@@ -45,8 +47,15 @@ enum AluOp : uint8_t {
     kRol12 = 0x10, kDiv = 0x12, kMul = 0x13, kAdjd = 0x14,
     kAdja = 0x15, kOpc = 0x16, kBit = 0x17,
     kInc = 0x18, kDec = 0x19, kNot = 0x1A, kNeg = 0x1B,
-    kInc2 = 0x1C, kDec2 = 0x1D, kPass = 0x1F,
+    kInc2 = 0x1C, kDec2 = 0x1D, kAbs = 0x1E, kPass = 0x1F,
 };
+
+// The ops that step once per `R` iteration and read as a pass-through of
+// port A when COUNT has run out (see the ledger, "the R loop").
+inline bool alu_is_iterative(uint8_t op) {
+    return (op >= kRol && op <= kSar) || op == kRol12 || op == kDiv ||
+           op == kMul;
+}
 
 // --- an operand binding produced by the loader ----------------------------
 struct OperandRef {
@@ -62,19 +71,24 @@ struct OperandRef {
 // The ALU operation is LATCHED by the row that names it and SIGMA reads it
 // combinationally on the CURRENT tmp registers (see provenance ledger,
 // unknown #1).  `ea_const` is the synthetic latch state the pre-decode
-// hardware leaves behind: the address adder's standing output.
+// hardware leaves behind: the address adder's standing output.  `adjust`
+// carries a pending BCD-adjust mode from a preceding ADJD/ADJA row, which
+// turns the ADD/SUB that replaces it into the decimal/ASCII adjust.
 struct AluLatch {
     uint8_t op = kPass;
     uint8_t tmp = 0;  // 0=tmpa 1=tmpb 2=tmpc
     bool byte = false;
     bool ea_const = false;
     uint16_t ea_value = 0;
+    uint8_t adjust = 0;  // 0 none, 1 = ADJD (decimal), 2 = ADJA (ASCII)
 };
 
 // --- micro-PC -------------------------------------------------------------
 // Micro-address = page(3) : opcode(8) : row-group(2), and each ROM bank holds
 // four micro-rows.  Sequential execution and JMP `loc` both walk a 4-bit
-// counter {row_group[1:0], row[1:0]} inside the opcode's 16-row block.
+// counter {row_group[1:0], row[1:0]} inside the opcode's 16-row block; the
+// counter CARRIES into the opcode byte (ledger: IMUL 00B3 -> 0218, INT
+// 01FB -> 01FC).
 struct MicroPc {
     uint8_t page = 0;
     uint8_t opc = 0;
@@ -84,6 +98,7 @@ struct MicroPc {
 };
 
 enum RepKind : uint8_t { kRepNone = 0, kRepE, kRepNE, kRepC, kRepNC };
+enum RepTest : uint8_t { kTestNone = 0, kTestZ, kTestCy };
 
 struct Machine {
     uint16_t gpr[8] = {};
@@ -100,6 +115,13 @@ struct Machine {
     AluLatch alu;
     MicroPc upc;
 
+    // The ALU status latch the microcode's JMP conditions read.  It is loaded
+    // whenever a row gates the ALU result onto the bus (a SIGMA source).
+    uint16_t stat = 0;
+
+    // [-09-] / sign tracking for the signed MUL/DIV routines.
+    bool sign_neg = false;
+
     // --- prefix latches (cleared by the loader at each instruction start) --
     bool seg_override = false;
     uint8_t seg_ovr = kDS;
@@ -108,9 +130,17 @@ struct Machine {
 
     // --- pre-decode results -----------------------------------------------
     uint8_t opc_reg = 0;  // microcode-visible opcode register (OPC / opc&38)
-    bool op8 = false;     // JMP OP8: the operand/immediate is 8 bits
-    bool incdec_class = false;
+    bool op8 = false;     // OP8b: the OPERAND is 8 bits
+    bool imm8 = false;    // OP8:  the IMMEDIATE is 8 bits
+    uint8_t opc_base = 0;  // OPC class offset: 0x00 ALU, 0x08 shift, 0x18 unary
+    bool opc_from_modrm = false;  // OPC select comes from the ModR/M reg field
+    uint8_t modrm_reg = 0;
+    uint8_t xop = 0;      // pla_3 XOP[3:0], carried for SR/REP decisions
+    uint8_t rep_test = kTestNone;
+    bool rep_pol = false;
     OperandRef M, R;
+
+    uint16_t io_in = 0;  // suite-supplied port data for IN forms
 
     bool halted = false;
 

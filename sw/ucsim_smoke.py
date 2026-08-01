@@ -10,7 +10,7 @@ sw/check_core.py::check_case is S2 work.
 
 Usage:
   ucsim_smoke.py [--suite tests/v30/v0.2] [--forms 88,89,00,...] [--all]
-                 [--details N] [--trace FORM:IDX]
+                 [--s1b] [--details N] [--trace FORM:IDX]
 """
 
 import argparse
@@ -39,6 +39,29 @@ BRINGUP = [
     "50", "58", "8F.0", "06", "0E", "1E", "07", "17", "1F",
 ]
 
+# The S1b families (campaign plan, gate P1 second half): flow, the internal
+# routine page, and the arithmetic groups.
+S1B = (
+    # S1a handoff: OP8/OP8b, group OPC select, NOT/NEG, CWD, SAHF
+    [f"83.{i}" for i in range(8)]
+    + [f"80.{i}" for i in range(1, 8)]
+    + [f"81.{i}" for i in range(1, 8)]
+    + ["F6.2", "F6.3", "F7.2", "F7.3", "99", "9E"]
+    # shifts / rotates + the internal SHIFT routine
+    + [f"{op}.{i}" for op in ("C0", "C1", "D0", "D1", "D2", "D3")
+       for i in range(8)]
+    # multiply / divide + MULADJ MULX IMUL IMULI IDIV IDIV2
+    + [f"F6.{i}" for i in range(4, 8)]
+    + [f"F7.{i}" for i in range(4, 8)]
+    + ["69", "6B"]
+    # BCD
+    + ["27", "2F", "37", "3F", "D4", "D5"]
+    # flow / stack / internal routines
+    + ["9A", "CA", "CB", "CC", "CD", "CE", "CF", "C8", "C9",
+       "60", "61", "62", "6A", "E0", "E1", "E2", "E3", "D7",
+       "E4", "E5", "EC", "ED"]
+)
+
 
 def run_form(suite: Path, form: str, details: int, report: int):
     path = suite / f"{form}.json.gz"
@@ -62,6 +85,8 @@ def main():
     ap.add_argument("--suite", default="tests/v30/v0.2")
     ap.add_argument("--forms", default=None,
                     help="comma-separated form list (default: bring-up set)")
+    ap.add_argument("--s1b", action="store_true",
+                    help="the S1b family set (flow + internal page + arith)")
     ap.add_argument("--all", action="store_true",
                     help="every form file in the suite directory")
     ap.add_argument("--details", type=int, default=3)
@@ -81,6 +106,8 @@ def main():
     if args.all:
         forms = sorted(p.name[:-len(".json.gz")]
                        for p in suite.glob("*.json.gz"))
+    elif args.s1b:
+        forms = S1B
     elif args.forms:
         forms = args.forms.split(",")
     else:

@@ -7,6 +7,7 @@
 
 #include <cstdio>
 #include <string>
+#include <vector>
 
 #include "biu.h"
 #include "loader.h"
@@ -38,11 +39,12 @@ private:
         uint16_t flag_mask = 0;
     };
 
-    // posted bus write: the data phase samples OPR one micro-row after the
-    // row that issued the address (see ledger, "[-06-] / MEMW posting").
-    struct Posted {
+    // A bus write whose data phase has not run yet.  The data is OPR at the
+    // moment the cycle runs, and the cycle runs as soon as OPR carries a
+    // value that has not already been consumed by an earlier write
+    // (ledger: "write-data pairing").
+    struct Pending {
         bool active = false;
-        int age = 0;
         uint16_t off = 0;
         uint8_t seg = 0;
         bool byte = false;
@@ -50,22 +52,29 @@ private:
         uint16_t upc = 0;
     };
 
-    uint16_t rd_src1(uint8_t c, const RowCtx& ctx, const ucrom::MicroOp& op);
-    void wr_dst1(uint8_t c, uint16_t v);
+    uint16_t rd_src1(uint8_t c, const RowCtx& ctx, const ucrom::MicroOp& op,
+                     bool& byte_src);
+    void wr_dst1(uint8_t c, uint16_t v, bool byte_src);
     uint16_t rd_src2(uint8_t c, const RowCtx& ctx);
     void wr_dst2(uint8_t c, uint16_t v);
     uint16_t rd_operand(const OperandRef& r) const;
     void wr_operand(const OperandRef& r, uint16_t v);
     uint8_t sr_segment(uint8_t sr) const;
-    bool cond_true(uint8_t cond) const;
-    void post_write(uint16_t off, uint8_t seg, bool byte, bool io, uint16_t upc);
-    void retire_posted();
-    void tick_posted();
+    bool sr_is_io(uint8_t sr) const;
+    bool cond_true(uint8_t cond);
+    void set_stat(const RowCtx& ctx);
+
+    void deliver_read();
+    void emit_pending();
+    void bus_read(uint8_t seg, uint16_t off, bool byte, bool io, uint16_t upc);
+    void bus_write(uint8_t seg, uint16_t off, bool byte, bool io, uint16_t upc);
 
     const ucrom::UcRom& rom_;
     Biu& biu_;
     Machine m_;
-    Posted pend_;
+    Pending pend_;
+    std::vector<uint16_t> rdq_;  // completed reads awaiting OPR delivery
+    bool opr_fresh_ = false;
     std::FILE* trace_ = nullptr;
     int rows_ = 0;
 };

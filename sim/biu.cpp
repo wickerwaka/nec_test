@@ -67,10 +67,19 @@ void Biu::mem_write(uint16_t seg_val, uint16_t off, uint16_t data, bool word,
 }
 
 uint16_t Biu::io_read(uint16_t port, bool word, uint16_t upc) {
-    // Unbacked IO space: reads return the fill pattern.  Real port data is
-    // supplied by the case runner for IN forms (out of S1a scope).
-    uint16_t v = word ? 0xFFFF : 0x00FF;
-    v = 0;
+    // No I/O model: the byte lane follows the port's parity, exactly as the
+    // 8086-style bus multiplexes AD15-8 for odd addresses.
+    // The suite serves the same 16-bit word on every cycle of the access; the
+    // byte lane follows the address parity (AD15-8 for odd), so a word access
+    // to an ODD port -- which the bus splits into two byte cycles -- comes
+    // back byte-swapped.
+    uint16_t v;
+    if (!word)
+        v = uint16_t((port & 1) ? (io_in_ >> 8) : (io_in_ & 0xFF));
+    else if (port & 1)
+        v = uint16_t((io_in_ >> 8) | (io_in_ << 8));
+    else
+        v = io_in_;
     log(Txn::kIoRead, port, v, word ? 2 : 1, 0, upc);
     return v;
 }
