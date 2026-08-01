@@ -24,7 +24,7 @@ int usage(const char* argv0) {
                  "commands:\n"
                  "  disasm <romfile>   print microcode disassembly (V20UC.TXT format)\n"
                  "  info   <romfile>   print ROM statistics\n"
-                 "  run    <romfile> [--queue]  run cases from stdin\n"
+                 "  run    <romfile> [--queue] [--alu-hw-report]  run cases from stdin\n"
                  "  trace  <romfile> <idx>      trace one case from stdin\n",
                  argv0);
     return 2;
@@ -66,7 +66,9 @@ int cmd_info(int argc, char** argv) {
 
 int cmd_run(int argc, char** argv) {
     if (argc < 1) {
-        std::fprintf(stderr, "usage: v30sim run <romfile> [--queue]\n");
+        std::fprintf(stderr,
+                     "usage: v30sim run <romfile> [--queue] "
+                     "[--alu-hw-report]\n");
         return 2;
     }
     ucrom::UcRom rom;
@@ -74,6 +76,8 @@ int cmd_run(int argc, char** argv) {
     sim::RunOptions opt;
     for (int i = 1; i < argc; ++i) {
         if (std::strcmp(argv[i], "--queue") == 0) opt.check_queue = true;
+        else if (std::strcmp(argv[i], "--alu-hw-report") == 0)
+            opt.alu_hw_report = true;
         else if (std::strncmp(argv[i], "--report=", 9) == 0)
             opt.max_report = std::atoi(argv[i] + 9);
     }

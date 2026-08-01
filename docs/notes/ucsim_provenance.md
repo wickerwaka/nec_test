@@ -14,9 +14,12 @@ Provenance classes:
 | **MEASURED** | a law measured on silicon and recorded in `docs/facts/*` or a golden suite |
 | **ASSUMPTION** | not determined by the assets; adopted because it reproduces the goldens.  Evidence and falsifier recorded. |
 
-Status of this file at the end of **S1b**: covers everything the bring-up
-families, the flow/stack forms, the internal-routine page and the arithmetic
-groups exercise.  Later stages append.
+Status of this file at the end of **S1c / gate P1**: covers every form the
+simulator is scoped for on `tests/v30/v0.2` — the bring-up families, the
+flow/stack forms, the internal-routine page, the arithmetic groups and the
+whole `0F` page.  §29-§32 are the P1 accounting (provenance census, the full
+assumption list with falsifiers, the `--alu-hw-report` sufficiency numbers and
+the residual uncertainties).  Later stages append.
 
 ---
 
@@ -312,6 +315,9 @@ contain no read: `88/89` (`004C/004D`), `8C` (`0050`), `C6/C7` (`0100-0102`),
 `8D` (`0054/0055`), and `8F`, whose only `MEMR` is the *stack* read.
 This retires the medium-confidence naming question in `pla_model.md` §b6 in
 favour of the "the standard operand-fetch step is skipped" reading.
+**Refined at S1c (§23.3): the suppression is NATIVE-decode-mode only** — pla_3
+asserts b6 for the `0F 28-2F` and `0F 30-3F` blocks too, and those DO read
+their r/m operand.
 
 Direction-swapped forms are handled by pre-reading whichever of `M`/`R` is the
 memory operand (pla_3's b6 is already per-opcode, so `8A/8B`, `02/03`, `8E`
@@ -872,7 +878,7 @@ own high half.  Forced by `9E` SAHF: `007D FLAGS -> tmpaH` must lift the PSW's
 |---|---|---|
 | the ALU latch at instruction entry is `ADD tmpa` (the address adder's default), plus the synthetic EA constant for a ModR/M memory operand | ASSUMPTION | forced by `D7` XLAT: `012C AX -> tmpaL  BX -> tmpb  CTL` / `012D SIGMA -> IND  MEMR` computes BW + AL with **no** ALU row of its own |
 | `CITF` (`Str_Int[1]`) clears IE and BRK | ROM-forced | `01F5`, on the row that pushes the *pre-clear* PSW |
-| `MFS`/`MFC`, `[-03-]`/`[-05-]` Ext, `[-0A-]`, `[-04-]`, `[-0D-]` | ASSUMPTION (no-op) | 8080-mode and pin-event machinery; no scoped form observes them |
+| `MFS`/`MFC`, `[-03-]`/`[-05-]` Ext, `[-0A-]` | ASSUMPTION (no-op) | 8080-mode and pin-event machinery; no scoped form observes them.  **`[-04-]` and `[-0D-]` were resolved at S1c, §25.1** |
 | word I/O at an **odd** port splits into two byte cycles | MEASURED | the `ED` cycle records show two IOR cycles at DW and DW+1 whenever DW is odd, and the byte lane follows address parity, so `in ax, dx` returns the recorded word byte-swapped |
 | the suite's `iord=XXXX` case-name field is the port datum | policy | there is no I/O model; `sim/case_runner.cpp` replays it verbatim.  This is an *input*, not a prediction — `E4/E5/EC/ED` are exact only in that sense |
 
@@ -913,3 +919,512 @@ Everything still failing is out of S1b scope: the 25 `0F`-page forms
 (`0F10-0F1F` bit ops, `0F20/22/26` BCD strings, `0F28/2A` ROL4/ROR4,
 `0F31/33/39/3B` INS/EXT) and the 11 pin-event pseudo-forms
 (`HLT.INT`, `HLT.NMI`, `INT.*`, `NMI.*`).
+
+---
+
+# S1c — the `0F` page
+
+The last 25 sim-scope forms of v0.2: the bit-manipulation block
+(`0F 10-1F`), the BCD strings (`0F 20/22/26`), the nibble rotates
+(`0F 28/2A`) and the bit-field group (`0F 31/33/39/3B`).  Everything below
+was resolved at S1c; every negative control listed was actually run.
+
+## 23. Decode: how the `0F` page re-purposes the pla_3 columns
+
+### 23.1 `ALU BIT` (`Str_Op[0x17]`) is a one-shot PORT-B BIT MASK — **RESOLVED**
+
+`ALU BIT tmp` captures `n = tmp[Tmp] & (width - 1)` and arms a **one-shot**
+mode: the **next** latched operation has its port-B operand replaced by
+`tmp[Tmp] & (1 << n)`.  The arm is consumed by that one operation, exactly the
+way `ADJD`/`ADJA` arm the following `ADD`/`SUB` (§17.2).  A bare `BIT` row's
+own SIGMA is a pass-through and is never read in the ROM.
+
+*Evidence (ROM, decisive).*  One shared shape serves all sixteen `0F 1x`
+opcodes, and only the bit-mask reading makes any of them mean anything:
+
+| block | rows | second op | result |
+|---|---|---|---|
+| `10/11`, `18/19` TEST1 | `02AC-02AF`, `02B0-02B3` | `AND tmpa` (`tmpa = ONES`) | `tmpb & (1<<n)`, `SIGMA -> NULL WE` |
+| `14/15`, `1C/1D` SET1 | `02B4`, `02B8` | `OR tmpa` | `tmpb \| (1<<n)` |
+| `16/17`, `1E/1F` NOT1 | `02C4`, `02C8` | `XOR tmpa` | `tmpb ^ (1<<n)` |
+| `12/13`, `1A/1B` CLR1 | `02BC-02BF` | `NOT tmpa` then `AND tmpa` | `~(ONES & (1<<n))` into tmpa, then `tmpb & ~(1<<n)` |
+
+CLR1 is what forces **both** halves of the rule: `02BD` loads `ONES` over the
+bit number, so the index must have been **captured at the BIT row** and not
+re-read; and `02BE` latches a *second* `AND tmpa` which must see the plain
+`~(1<<n)` in tmpa, so the arm must already be **spent**.  A persistent arm
+gives `tmpb & (~(1<<n) & (1<<n))` = 0.
+
+The bit number is taken **modulo the operand width** — `n = CL & 7` for the
+byte forms, `& 15` for the word forms (`W_FROM_BIT0`, opcode bit 0).  The
+reg forms read `CX -> tmpa` (the whole CW; only the low bits survive the
+mask), the imm forms `Q -> tmpa`.
+
+Flags follow the ordinary logic-op model (§2.4): `AND` sets S/Z/P of the
+masked value with CY = V = AC = 0 — which is exactly the measured TEST1 law in
+`docs/facts/undefined_flags.md` ("TEST1 sets S/Z/P of the masked value ...
+AC=0").  **EMERGED**: no TEST1-specific code exists.
+
+*Negative controls, run:*
+* arm PERSISTS instead of being one-shot → `0F 12` 12/1000, `0F 13` 8/1000,
+  `0F 1A` 10/1000, `0F 1B` 7/1000 (CLR1 only — TEST1/SET1/NOT1 latch just one
+  op after the BIT row and are unaffected);
+* index re-read from port B at USE time instead of captured at the BIT row →
+  `0F 10` 343/1000, `0F 11` 277/1000, `0F 12` 348/1000, `0F 13` 289/1000,
+  `0F 1A` 327/1000, `0F 1B` 285/1000.
+
+*Falsifier:* a `0F 1x` form whose result needs the unmasked operand.  None.
+
+### 23.2 `ALU ROL12` (`Str_Op[0x10]`) is a 16-bit left shift with the rotate tap at BIT 11 — **RESOLVED (MEASURED)**
+
+One `R`-loop step of `ROL12` is
+
+```
+tmpb = (tmpb << 1) | ((tmpb >> 11) & 1)      -- 16 bits, feedback from bit 11
+```
+
+so bits 11:0 rotate while bits 15:12 are a plain shift register fed from
+bit 11.  `0F 28` (ROL4) runs it **4** times, `0F 2A` (ROR4) **8** times —
+a left rotate of 8 within a 12-bit field *is* a right rotate of 4.
+
+*How the ROM builds the operand* (`02EC-02F7`, entry rows `02EC`/`02F8`):
+`M -> tmpbL` then `AL:AH -> tmpbH` assemble `tmpb = (AL << 8) | operand`, so
+the rotating 12-bit field is `AL[3:0] : operand[7:4] : operand[3:0]` and
+`tmpb[15:12]` holds `AL[7:4]`.  After the loop, `tmpb -> M` + `[-06-]` store
+the new operand byte, and `tmpb -> AX` / `AL:AH -> tmpb` / `tmpa -> tmpbH` /
+`tmpb -> AX` swap the new AL into place while restoring AH from the copy
+`02F1` took.
+
+*Why the tap is at 11 and not "rotate the low 12 bits" (MEASURED):* the real
+chip does **not** preserve AL's high nibble.  `0F 28` idx 2 (`rol4 byte
+[bx+di+50h]`, AL = 0x81, mem = 0xE5) writes mem = 0x51 and **AL = 0x1E** — the
+old AL *low* nibble has been shifted up into AL's high nibble.  A clean 12-bit
+rotate predicts AL = 0x8E.  The bit-11 tap predicts 0x1E, and makes all 2000
+`0F 28`/`0F 2A` cases exact.
+*Negative controls, run:* a true 12-bit rotate (bits 15:12 preserved) →
+`0F 28` 88/1000, `0F 2A` 91/1000; rotating the whole 16-bit word by one nibble
+per step (the S1b placeholder) → `0F 28` 1/1000, `0F 2A` 31/1000.
+
+### 23.3 `MODRM_STORE` (pla_3 b6) suppresses the pre-read in NATIVE MODE ONLY — **RESOLVED (MEASURED)**
+
+This closes the Codex concern carried from the S1b phase review.  §5 read b6 as
+"the standard operand-fetch step is skipped".  pla_3 also asserts b6 for the
+ext-section blocks `0F 28-2F` (ROL4/ROR4) and `0F 30-3F` (INS/EXT), and those
+**do** read their r/m operand: `0F 28`'s row `02ED` is `M -> tmpbL` and its
+block contains no `MEMR` at all, so the datum can only have come from the
+pre-decode fetch.
+
+*Evidence (MEASURED, v0.2 cycle records, `mod != 3` cases):*
+
+| form | b6 | MEMR cycles | MEMW cycles |
+|---|---|---|---|
+| `88`, `89`, `8C` | set | **0** | 3 / 6 |
+| `C6.0`, `C7.0` | set | **0** | 3 / 6 |
+| `8D` LEA | set (merge) | 0 | 0 |
+| `0F 28`, `0F 2A` | set (ext) | **3** | 3 |
+| `0F 12`, `0F 14` | clear | 3 | 3 |
+
+The discriminator the concern asked for is direct: 745 of the 1000 `0F 28`
+cases and 749 of `0F 2A` have a memory r/m operand, and all 1494 are exact only
+with the pre-read enabled.
+*Negative control, run:* honouring b6 on the ext page → `0F 28` 258/1000,
+`0F 2A` 253/1000 — i.e. **exactly the `mod == 3` cases survive** (255 and 251,
+plus a handful of memory cases whose stale OPR happens to match).  `0F 31` and
+`0F 33` are unaffected (1000/1000): the v0.2 bit-field tranches are entirely
+`mod == 3`, which is why R8 below stays open.
+
+`sim/loader.cpp` therefore gates the suppression on `!ext`.  `docs/facts/pla_model.md`
+carries the same refinement; **the column MEMBERSHIP is unchanged** — it is dump
+fact — only the declared semantics are qualified, and `sw/pla3_check.py` states
+the qualification alongside the (unchanged) predicate.  Class: **MEASURED** for
+the two senses; **ASSUMPTION** for the mechanism (a mode-gated consumer of b6
+versus a separate, undumped ext-page fetch-enable term).
+
+### 23.4 The bit-field group takes BYTE register operands — **MEASURED**
+
+pla_3 gives `0F 30-3F` `W_FROM_BIT0`, and all four documented forms
+(`31 33 39 3B`) have bit 0 set, i.e. **word**.  The string accesses through
+`IND` are indeed word-wide.  The two ModR/M register operands are **byte**
+registers regardless.
+
+*Evidence:* `0F 33 D5` is `ext dl, ch` — ModR/M `mod=3 reg=2 rm=5`.  At word
+width `rm = 5` is BP; the case's BP is `0xC480`, whose low byte 0x80 would make
+the bit offset 128.  As the byte register CH (0x05) it is a legal offset and
+the case is exact, with the updated offset landing back in **CH**.  All 4000
+`0F 31/33/39/3B` cases are exact under the byte binding.
+*Negative control, run:* word registers (the plain `W_FROM_BIT0` width) →
+`0F 31` 5/1000, `0F 33` 78/1000, `0F 39` 15/1000, `0F 3B` 132/1000.
+The simulator keys this off `XOP = 0011` ("bit-field operation") in the ext
+section — the only ext-page marker for the block.  **ASSUMPTION** for the
+choice of signal.
+
+pla_3's `ACC_W_OPERAND` is also asserted on this block; it does **not** bind
+AL/AW here (the block carries a ModR/M byte, so the §3.2 accumulator branch is
+not reached).  Both re-purposings are recorded in `docs/facts/pla_model.md`.
+
+## 24. The iterative unit: SPENT vs. freshly latched — **REFINEMENT of §12**
+
+§12 established that a *post-loop* `SIGMA` read of an iterative op is a
+pass-through of port A.  The BCD strings force the complement: a **freshly
+latched** iterative op that no `R` row has driven presents **one step**
+combinationally.
+
+*Evidence (ROM, decisive):* `02CC-02CE` computes the byte count as
+
+```
+02CC CX -> tmpaL                ALU INC tmpa
+02CD SIGMA -> tmpb              ALU SHR tmpb
+02CE SIGMA -> COUNT             CTL [-04-]
+```
+
+`COUNT` must be `(CL + 1) >> 1` and there is no `R` row anywhere near it.  The
+tail repeats the shape at `02DF-02E1` to reconstruct the byte count for the
+SI/DI restore.  Meanwhile every §12 witness (`0117`, `022A`, `0120`, `0191`)
+reads its SIGMA on the row *after* an `R` row, so "the `R` row leaves the latch
+spent" separates the two cleanly.  Model: `AluLatch::spent` is set by any `R`
+row and cleared when a new operation is latched.
+*Negative controls, run:* always pass through → `0F 20` 0/1000, `0F 22`
+0/1000 (COUNT comes out as `CL + 1` instead of `(CL + 1) >> 1`, so a 1-digit
+ADD4S writes two bytes); `0F 26` (CMP4S, which writes nothing and restores
+SI/DI through the same doubled count) and the shift forms `D0.4`/`D2.4` are
+unaffected, which is what makes the two halves of the rule independent.
+Always step → the whole `C0/C1/D0-D3` block and `F6.4-7`/`F7.4-7` collapse
+(§12's own control).
+
+No ROM row reads a freshly latched `MUL`/`DIV`, so the single step is
+evaluated side-effect free (it never touches the multiplier/quotient register).
+
+## 25. The BCD string ops `0F 20/22/26` — **RESOLVED**
+
+Shape (`02CC-02EB` + the shared tail `02D8-02E3`): `COUNT = (CL + 1) >> 1`
+whole bytes; per iteration read `[DS:SI]` into tmpc and `[ES:DI]` into tmpb,
+`ADC tmpc` (ADD4S) or `SBB tmpc` (SUB4S/CMP4S), `ADJD`-armed `ADD`/`SUB`,
+`MEMW ES` (absent for CMP4S — `02EB` carries no Ext code, which is the whole
+difference between `0F 22` and `0F 26`), advance SI and DI, `JMP CNTZ`.
+
+### 25.1 `CTL [-04-]` (Int 4) and `CTL [-0D-]` (Int 13) — **RESOLVED**
+
+Both codes appear on exactly **one row each in the whole ROM**, both in this
+block, so they are fully determined by it.
+
+* **`[-04-]` (row `02CE`) initialises the digit chain: CY = 0, and the
+  auxiliary latch (§16's `[-09-]` flip-flop) is SET.**  Clearing CY is forced
+  arithmetically: `0F 20` idx 0 has PSW CY = 1 on entry, `0x78 + 0xD0` and the
+  golden result byte 0xA8; with the incoming carry the adjusted result is 0xA9.
+  *Negative control, run:* drop only the CY clear → `0F 20` 525/1000,
+  `0F 22` 492/1000, `0F 26` 999/1000.
+* **`[-0D-]` (row `02D8`) CLEARS that latch whenever the digit pair just
+  produced is non-zero.**  It is the sticky "the whole result is not zero"
+  accumulator, read by the tail's `JMP [-09-]`.
+  *Negative control, run:* `[-0D-]` a no-op (the latch stays set, so `[-09-]`
+  reads "everything was zero") → `0F 20` 804/1000, `0F 22` 598/1000,
+  `0F 26` 555/1000.  The survivors are the cases that leave a final BCD carry,
+  where `02DC`'s `JMP [-00-]` short-circuits `[-09-]` entirely.
+  *Negative control, run:* drop only `[-04-]`'s latch SET → `0F 20` 1000/1000,
+  `0F 22` 999/1000, `0F 26` 1000/1000.  The set is only weakly discriminated
+  because the simulator's latch happens to power up clear; it is kept because
+  it is the only reading under which `[-04-]` and `[-0D-]` are one
+  initialise/accumulate pair, and one `0F 22` case does need it.
+
+The two together give a coherent reading of the one auxiliary flip-flop the
+ROM has: `[-1E-]` loads it from a sign, `[-0C-]` toggles it by a sign,
+`[-04-]` sets it, `[-0D-]` clears it on a non-zero result, and `[-09-]` tests
+it **clear**.  Class: **MEASURED (fit)** — the assets name none of the codes.
+
+### 25.2 The tail computes the architectural CY and Z out of `tmpb + tmpb`
+
+```
+02DB CX -> tmpaL                       ALU ADD tmpb     <- port A and port B are both tmpb
+02DC                                   JMP [-00-] 3     <- final BCD carry?  -> 02DF
+02DD CONST -> tmpb 1                   JMP [-09-] 3     <- result non-zero?  -> 02DF
+02DE ZEROS -> tmpb                     CTL
+02DF SIGMA -> NULL                 W   ALU INC tmpa     <- the ONLY flag write that survives
+```
+
+At byte width `tmpb + tmpb` turns a seed value into the pair (CY, Z):
+seed 1 → 0x02 (CY 0, Z 0), seed 0 → 0x00 (CY 0, Z 1), and the carry path needs
+a seed with bit 7 set.
+
+**`Source2 [-00-]` = ONES.**  Row `02DA` (`SIGMA -> DI   [-00-] -> tmpb`) is
+the *only* use of Source2 code 0 in the entire ROM, and it supplies that seed.
+`0xFFFF + 0xFFFF` at byte width is 0xFE: CY = 1, Z = 0, S = 1, AC = 1, P = 0 —
+bit-for-bit the golden final PSW of `0F 20` idx 0 (`0xF493`).  No other
+plausible source (`ES`, `ZEROS`, a register) reproduces AC and P together.
+Class: **ASSUMPTION (MEASURED-constrained)**; falsifier = any second use of
+Source2 `[-00-]`, of which there is none.
+*Negative control, run:* `[-00-]` = ZEROS → `0F 20` 196/1000, `0F 22` 403/1000,
+`0F 26` 445/1000 (exactly the carry-out cases fail).
+
+This is also where the measured law "`ADD4S/SUB4S/CMP4S: S = AC = CY(out),
+P = Z(out), V = 0`" (`docs/facts/undefined_flags.md`) comes from — it is
+**EMERGED**: the four "undefined" bits are simply what `tmpb + tmpb` produces
+for the three reachable seeds.
+
+### 25.3 Where silicon departs from the manual
+
+1. **The digit count is rounded UP to whole bytes.**  `COUNT = (CL + 1) >> 1`
+   and every iteration adds/subtracts a full byte, so with an **odd** CL the
+   high digit of the last byte pair takes part — the manual's "CL = number of
+   BCD digits" does not survive.  Exercised by 492 / 498 / 502 of the 1000
+   `0F 20` / `0F 22` / `0F 26` cases (odd CL with a non-zero high digit in the
+   last pair), all exact.
+2. **The correction is the V30's own nibble rule**, not x86 `AL > 0x99` — the
+   §17.2 fit, reused here unchanged.  The hand-fitted "one-carry-rail decision
+   quirk" of `docs/facts/undefined_flags.md` (high adjust decides on
+   `ahi + bhi + (c1|c2)`) is **EMERGED** from that fit plus the microcode: the
+   V30 rule `hi_adj = (AL>>4) > 9 || CY_in || ((AL>>4) == 9 && (AL&0xF) > 9 &&
+   !AC_in)` applied to the ADC result reproduces all 3000 cases with no
+   BCD-string-specific code.
+3. **CMP4S writes nothing** but still advances and restores SI/DI exactly like
+   ADD4S/SUB4S, and still runs `DI -> IND` on `02EB`; only the Ext field
+   differs.
+4. `CL = 0` underflows `JMP CNTZ` into a very long loop (the documented
+   `0F 24` note in `docs/facts/undocumented_0f.md`).  The v0.2 tranche excludes
+   it, so the simulator's behaviour there is **untested** — carried to S2.
+
+## 26. `0F 31/39` INS and `0F 33/3B` EXT — **RESOLVED**
+
+Operand roles (MEASURED, and the same for both instructions): the ModR/M
+**`reg`** field is the **bit-length** register (the field is `len + 1` bits
+wide) and the **`r/m`** field is the **bit-offset** register, which is the one
+the instruction updates.  For the imm forms the length comes from the
+`Q -> tmpaL` byte (`0347` for INS, `0315` for EXT) instead.
+
+### 26.1 EXT's `JMP Z` / `JMP NC` chain — **RESOLVED**
+
+Row `0304` computes `15 - (off + len)` and `W`-commits it; the chain then is
+
+| condition | rows | meaning |
+|---|---|---|
+| `Z` (`0305 JMP Z 11`) | → `0307` → `JMP Z 14` → `030A` | the field ends exactly at bit 15: advance IX by 2, but do **not** fetch a second word |
+| `NC` (`0306 JMP NC 14`) | → `030A` | `off + len < 15`: the field is inside the first word, IX unchanged |
+| else | `0307`, `0308`, `0309` | the field straddles: IX += 2 **and** a second word is read at IX+2 |
+
+Confirmed by the cycle records: `0F 3B` idx 16/19 (both `off + len == 15`)
+issue exactly **one** word read, and `0F 33` idx 5 likewise; the straddling
+cases issue two.
+
+The extraction itself is two `MUL`-with-zero (= right-shift) `R` loops over the
+32-bit pair `{tmpb : tmpa}`: first by `COUNT = ((off+len) & 15) + 1`, then by
+`COUNT = AX = 15 - len`, with `0312 JMP Z 8` skipping the second shift when
+`len == 15` (a full 16-bit field needs no masking).  `0200 tmpa -> AX  E`
+delivers the result.
+
+**Aliasing is architecturally visible and the goldens keep it.**  `02FE`
+(`0317` for the imm form) writes `AX = 15 - len` *before* `0301` reads the
+offset register, and `030D` writes the updated offset *before* `0310` reads AX
+as the second shift count.  When the offset or length register is AL or AH the
+instruction therefore reads its own scratch: e.g. `0F 33 EC` (`ext ch, ah`)
+extracts with offset 0 rather than the AH the programmer loaded, and
+`0F 3B C0 08` (`ext imm4 al 08h`) ends up returning the whole first word.
+Both are exact in the simulator with no special case — the ROM order produces
+them.
+
+### 26.2 `ALU ADJA` as EXT's modulo-16, and the ADJx DISCHARGE rule — **RESOLVED**
+
+`030B` (`SIGMA -> COUNT   SIGMA -> tmpb   ALU ADJA tmpb`) writes the *same*
+value 16 to COUNT and to tmpb when `off + len == 15`, yet `030D`'s
+`tmpb -> M` must store **0** (the new bit offset, mod 16) while the shift at
+`030F` must still run **16** times.  The two are separated by the ADJA.
+
+**Rule:** an armed `ADJD`/`ADJA` is normally consumed by the `ADD`/`SUB`
+latched on the following row (§17.2).  If the next latched operation is **not**
+an `ADD`/`SUB`, the arm **discharges** instead: the adjust unit writes its plain
+truncation — a nibble for `ADJA`, a byte for `ADJD`, with **no** decimal
+correction, since the correction needs an adder pass — back into its operand
+register.
+
+`030B` is the **only** row in the whole ROM whose ADJx arm is not followed by an
+`ADD`/`SUB` (the other seven are `0010`, `0014`, `0018`, `0020`, `02D5`,
+`02E5`, `02E9`, `03A0`, all followed by one), so the rule cannot disturb
+anything else, and INS does the identical job with an explicit `AND 15` at
+`0323`/`0325` — independent confirmation that mod-16 is the intent.
+Class: **ASSUMPTION (ROM-constrained)**.
+*Negative controls, run:* no discharge → `0F 33` 836/1000, `0F 3B` 826/1000
+(and `27`/`2F`/`37`/`3F` unaffected at 1000/1000 each, confirming the rule
+cannot reach the native BCD blocks); discharge WITH the decimal correction →
+`0F 33` 697/1000, `0F 3B` 702/1000 — every case whose new offset should be 15
+comes out 5, which is what pins the discharge as a **plain** truncation.
+
+### 26.3 The adjust unit works on the ADJx row's own `Tmp` operand — **ROM**
+
+S1b hard-wired the BCD operand to `tmpb`.  It is the register named by the
+**`Tmp` field of the ADJx row**: `tmpb` for the native `27/2F/37/3F`, for the
+`0F` BCD strings and for `030B`, but `tmpa` for the 8080 `DAA` at `03A0`
+(`AX -> tmpa   ALU ADJD tmpa` / `ONES -> tmpb   ALU ADD tmpa`), where the ONES
+operand sits on the other port.  Behaviourally identical for every native form;
+it makes the 8080 page right for free.
+
+## 27. Write-data pairing: reading OPR CONSUMES it — **REFINEMENT of §18.2**
+
+§18.2's rule is "a write issued while OPR already holds an unconsumed value runs
+at once, otherwise it waits for the next OPR load".  S1c pins what *unconsumed*
+means: **an `OPR ->` source read consumes the value.**
+
+*Evidence (ROM, two independent blocks):*
+* BCD strings — `02D4 OPR -> tmpb  F` takes the `[ES:DI]` datum out of OPR;
+  `02D7` then issues `MEMW ES` and `02D9 SIGMA -> OPR` supplies the adjusted
+  result.  Without consumption the write posts immediately and stores the
+  operand back unchanged.
+* INS — `032B OPR -> tmpa` drains the saved low bits, `032F MEMW ES` issues and
+  `0330 tmpa -> OPR` supplies the data.
+
+*Negative control, run:* reads do not consume → `0F 20` 6/1000, `0F 22`
+1/1000, `0F 31` 486/1000, `0F 39` 451/1000.  `0F 26` (no write at all) and
+every previously green OPR-heavy form (`58`, `8F.0`, `60`, `61`, `C8`, `CD`)
+are unaffected at 1000/1000, so the refinement is strictly additive to §18.2.
+
+## 28. S1c result
+
+Gate: every `0F`-page form **arch-exact** (registers incl. raw PSW + RAM) on its
+full v0.2 tranche, 1000 cases each.
+
+| family | forms | result |
+|---|---|---|
+| bit manipulation | `0F10-0F1F` (TEST1/CLR1/SET1/NOT1, reg + imm) | 16 × 1000/1000 |
+| BCD strings | `0F20 0F22 0F26` (ADD4S/SUB4S/CMP4S) | 3 × 1000/1000 |
+| nibble rotate | `0F28 0F2A` (ROL4/ROR4) | 2 × 1000/1000 |
+| bit field | `0F31 0F33 0F39 0F3B` (INS/EXT, reg + imm) | 4 × 1000/1000 |
+
+**25 / 25 forms, 25 000 / 25 000 cases.**
+
+Whole-suite survey at the same commit
+(`python3 sw/ucsim_smoke.py --suite tests/v30/v0.2 --all`):
+**336 of 347 v0.2 form files fully green, 336 000 of 347 000 cases**
+(S1a 172 forms / 179 475 cases; S1b 311 forms / 312 128 cases).
+**Zero regressions** — every form green at S1b is still green, and the case
+delta is exactly the 23 872 `0F` cases that were failing.
+
+The remaining 11 files are the pin-event pseudo-forms (`HLT.INT`, `HLT.NMI`,
+`INT.*`, `NMI.*`), which need the interrupt-acknowledge machinery and are S2
+scope by the plan.
+
+---
+
+# P1 — bring-up gate summary
+
+Gate P1 (campaign plan): *"bring-up families arch-exact on their v0.2 tranches;
+the ranked semantic unknowns each resolved with a documented answer in the
+ledger."*  All sim-scope v0.2 forms are green and every ranked unknown is
+answered.  This section is the consolidated provenance accounting.
+
+## 29. Provenance census
+
+Every behaviour the simulator implements carries a class tag in §1-§28.
+Counting them (a "decision" = one named behaviour with its own evidence
+paragraph or its own row in a decision table; the tag counts below are
+mechanically greppable from this file — `**ROM**`, `**PLA**`, `**MEASURED**`,
+`**ASSUMPTION**` plus the class column of the §8/§21 tables):
+
+| class | meaning | count |
+|---|---|---:|
+| **ROM** | read directly out of `docs/V20BITS.TXT` through `docs/V20UCDIS.PAS`; the ROM admits no alternative | 18 |
+| **PLA** | derived from a dumped PLA as identified in `docs/facts/pla_model.md` | 7 |
+| **MEASURED** | fitted or confirmed against a silicon golden or `docs/facts/*` | 17 |
+| **ASSUMPTION** | not determined by the assets; adopted because it reproduces the goldens | 28 |
+| policy | deliberate non-modelling (queue deferral, `iord` replay) | 2 |
+| **total** | | **72** |
+
+The **ASSUMPTION** row is the campaign's answer so far, and §30 enumerates it
+exhaustively — A1..A28, one line each, with the falsifier that would kill it.
+Twelve of the 28 are tagged *ROM-constrained* (A1, A14, A17, A18, A20, A21,
+A22, A23, A25, A26, A27 and the §3.1 entry A3): the ROM admits exactly one
+behaviour that makes the affected block intelligible, but no dumped asset names
+it.  Four are *MEASURED-constrained* (A11, A16, A24 and the Source2 `[-00-]`
+value of §25.2): a golden pins the value uniquely, nothing in the dumps does.
+The remaining twelve are free choices that the goldens merely fail to
+contradict — those are the ones a die trace would have to settle.
+
+## 30. The assumption list, with falsifiers
+
+| # | assumption | § | falsifier |
+|---|---|---|---|
+| A1 | binary ALU ops compute `tmpb OP tmp[Tmp]`; unary ops act on `tmp[Tmp]` | 2.1 | a non-commutative binary row with `Tmp = tmpb`; none is reachable |
+| A2 | `INC2`/`DEC2` are always 16-bit regardless of operand width | 2.4 | a byte-width instruction whose microcode also does stack arithmetic |
+| A3 | the pre-decode contract of §3.1 (prefixes, opcode reg, ModR/M+disp, EA→IND, M/R binding, pre-read, page select) | 3.1 | any form needing a different split between loader and microcode |
+| A4 | `R` = segment register `(opcode>>3)&3` for `06/0E/16/1E` (pla_3 gives them an all-zero vector) | 3.2 | a PUSH-sreg form writing the wrong register |
+| A5 | `M` = GPR `opcode & 7` for `40-5F`, `90-97`, `B0-BF` | 3.2 | same |
+| A6 | segment-prefix decode `26/2E/36/3E → (b>>3)&3` | 8 | a segment-override form using the wrong segment |
+| A7 | `SR == SS` accesses are word-wide regardless of operand width | 7 | a byte-width instruction whose microcode touches the stack |
+| A8 | `M`/`R` as a **source** on a memory operand returns OPR; `-> M` stages into OPR | 8 | a form that must read memory twice from one binding |
+| A9 | `PC` is the microcode-visible "next unconsumed byte" pointer, separate from the BIU fetch pointer | 8 | any branch form; all green |
+| A10 | `ONES` = 0xFFFF, `ZEROS` = 0, `dir*sz` = ±1/±2 from DIR and operand width | 8 | `dir*sz` is confirmed by `008C`; `ONES`/`ZEROS` are named in the PAS |
+| A11 | `AL:AH` (Source1 0x10) is the byte-swapped AW | 8 | AAA/AAS/ROL4/XLAT would break; all green |
+| A12 | word memory accesses wrap the **offset** at 16 bits inside the segment | 8 | `tests/v30/v0.3-f4a-boundary` (S2) |
+| A13 | unlisted memory reads as 0x00 | 8 | suite-artifact management only |
+| A14 | `F` is a bus interlock (delivers a completed read into OPR), not a flag control | 8, 18.1 | a row that consumes read data with no `F` and no pending write |
+| A15 | `SUSP` = logged no-op; `FLUSH` = clear queue and refetch from CS:PC | 8 | the queue gate (deferred) |
+| A16 | `OP8` (imm-is-one-byte) membership is `byte_operand ∪ {0x83, 0x6B}` | 10 | no dumped column separates that pair |
+| A17 | the ALU **status latch** loads on every row that gates SIGMA onto the bus | 14.1 | a `JMP` on a condition set by a row that does not read SIGMA |
+| A18 | `NS` is a direct sign tap on `tmpb` at the operand width | 14.2 | a `JMP NS` whose answer differs from sign(tmpb) |
+| A19 | the repeat-prefix → data-test polarity map (`F3/F2` → Z, `65/64` → CY) | 15 | not in any dump |
+| A20 | `[-1E-]` = ABS and loads the sign latch; `[-0C-]` toggles it by sign(tmpb); `[-09-]` tests it clear | 16 | signed MUL/DIV results |
+| A21 | the `MUL` / `DIV` micro-step algebra (shift-add; **restoring** division) | 16.1 | any `F6.4-7`/`F7.4-7`/`69`/`6B`/`D4` case, incl. undefined flags |
+| A22 | `ADJD`/`ADJA` **arm** a mode that the following `ADD`/`SUB` executes | 17.2 | the four native BCD blocks |
+| A23 | write-data **pairing** (a write consumes the OPR value (re)loaded since the previous write) | 18.2 | PUSHA vs. ENTER pin it from both sides |
+| A24 | `SR = IO` means the **zero segment** except for pla_3 `XOP` 1111 / 0110 | 18.3 | INT vector fetch vs. `E4/EC` |
+| A25 | the ALU latch at instruction entry is `ADD tmpa` plus the synthetic EA constant | 21 | `D7` XLAT |
+| A26 | `ALU BIT` captures the index at its own row and masks port B of the **next** latched op only | 23.1 | a `0F 1x` form needing the unmasked operand |
+| A27 | an ADJx arm not consumed by an `ADD`/`SUB` **discharges** as a plain truncation into its operand | 26.2 | only one ROM row (`030B`) takes this path |
+| A28 | the bit-field group's byte register binding is keyed off ext `XOP = 0011` | 23.4 | another ext block needing byte registers, or `0F 30-3F` aliases with `mod != 3` |
+
+Still-no-op microcode codes (no scoped form observes them, so they are
+assumptions by omission): `ENDEM`, `MFC`, `MFS`, Ext `[-03-]`/`[-05-]`,
+Int `[-0A-]`/`[-0B-]`, Dest1 `[-09-]`/`[-0A-]`/`[-0B-]`, Source1 `[-05-]`/`[-0B-]`.
+Ext `[-03-]` (`01ED`) and Ext `[-05-]` (`01DC`/`01E0`/`01E2`) are the
+**interrupt-acknowledge** bus cycles: they occur only in the two `<internal> 02`
+banks and the 8080/BRKEM entry, they always ride with `SUSP` and `SR = IO`, and
+the natural reading is "INTA cycle" (`[-05-]`) and "INTA-with-hold"
+(`[-03-]`).  No form in scope executes them; they are S2 work together with the
+pin-event pseudo-forms (see §21.1's ambiguous address, which is the same
+routine).  Dest2 `[-03-]` **is** resolved: it is a sink that still gates SIGMA
+onto the bus, i.e. a status-latch-only write (§14.1).
+
+## 31. `--alu-hw-report`: how much of the PSW the microcode does NOT determine
+
+`sim/v30sim run <rom> --alu-hw-report` (driver: `sw/ucsim_smoke.py --alu-hw`)
+attributes each case's **final** PSW bits to the three flag behaviours that are
+*not* emergent — they live in the C++ ALU hardware model:
+
+1. the per-**step** shift/rotate overflow law (`alu_step`),
+2. the logic ops' `AC = 0` (`alu_eval`),
+3. the fitted BCD correction (`bcd_adjust`).
+
+A bit is booked to a behaviour only while that behaviour's write is the *last*
+one to have touched it, so what the report counts is the hardware model's
+contribution to the state the golden actually compares.
+
+Whole v0.2 suite, 347 000 cases:
+
+| behaviour | flag commits | cases keeping a bit | final-PSW bits |
+|---|---:|---:|---:|
+| per-step shift/rotate V law | 2 118 140 | 46 412 | 46 412 |
+| logic-op `AC = 0` | 37 000 | 37 000 | 37 000 |
+| BCD correction | 9 939 | 4 000 | 24 000 |
+| **any** | | **87 412 (25.19 %)** | **107 412** |
+
+So **74.8 % of v0.2 cases end with a PSW every bit of which came out of the
+microcode**, and of the 2 082 000 architectural flag bits compared across the
+suite, 107 412 (5.2 %) are attributable to the three hardware laws.  The BCD
+row is the sharpest illustration: `0F 20` runs 1 983 corrected flag commits per
+1 000 cases and **none** of them survive — the tail at `02DF` (§25.2) overwrites
+the whole PSW, so ADD4S's architectural flags are pure microcode.
+
+Everything else in `docs/facts/undefined_flags.md` that S1a-S1c touched is
+**EMERGED** (§17 scorecard, plus TEST1's masked S/Z/P and the BCD-string
+`S = AC = CY, P = Z, V = 0` law at §23.1 / §25.2).
+
+## 32. Residual uncertainties carried out of P1
+
+| # | item | why it is open | route |
+|---|---|---|---|
+| R1 | **byte-shifter hidden high byte** (S1b item 1) — `alu_step` keeps `tmpb`'s high half across a byte-width shift (`hi_keep`).  No scoped form reads it back at word width, so the real chip's high byte during a byte shift is unobserved | no golden discriminates | S2 (`v0.3`, `v20suite`) |
+| R2 | `BUSY` and `INTR` micro-conditions are hard-FALSE | no pin model | S2 pin-event forms |
+| R3 | the `iord=` case-name field is **replayed**, not predicted — `E4/E5/EC/ED` are exact only as inputs | there is no I/O model | permanent policy |
+| R4 | the S0a **ambiguous micro-address** `111.00000010.00` (two matching banks; first-match-wins) — structurally the INTA vector-fetch routine vs. its 8080/BRKEM variant | no scoped form reaches page 7 opcode 02 | S2, with §30's Ext `[-03-]`/`[-05-]` |
+| R5 | final **queue** comparison is deferred: the functional model fetches on demand | needs the timing model | timing campaign |
+| R6 | `0F 20/22/26` with **CL = 0** underflows `JMP CNTZ` into a ~2^n-iteration loop | the v0.2 tranche excludes it (as does the V20 suite) | S2 / `undocumented_0f.md` |
+| R7 | the measured "**Z accumulates on the PRE-adjust bytes**" clause of the ADD4S law (`docs/facts/undefined_flags.md`) is not discriminated by the v0.2 tranche; the simulator accumulates `[-0D-]` on the post-adjust byte and is 3000/3000 | needs a case whose adjusted byte is 00 while the raw ADC byte is not, as the only non-zero pair | S2 (`v0.3`) — falsifier is a directed case |
+| R8 | `0F 30-3F` **alias forms with `mod != 3`** (memory bit-offset/length operands) are absent from v0.2, so the byte-register binding of §23.4 is untested against a memory r/m | suite coverage | S2 (`v0.3` / `v20suite`) |
+| R9 | b6's **mechanism** — mode-gated consumer versus a separate ext-page fetch-enable term the dumps do not expose | the dump has no such column | die/PLA re-read (`pla_model.md` "cheapest next experiments") |
+| R10 | 8080-emulation pages (`ENDEM`, `MFC`/`MFS`, `BRKEM`) remain unexecuted | not a victory gate (user decision) | opportunistic, `t30-brkem` bank |

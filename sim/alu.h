@@ -13,11 +13,30 @@
 
 namespace sim {
 
+// The three flag behaviours the microcode does NOT determine -- they live in
+// the C++ ALU hardware model (ledger §17, "undefined-flag emergence").  Every
+// other flag bit the simulator produces emerges from the ROM.  `--alu-hw-report`
+// quantifies how much of the final PSW they actually account for.
+enum AluHw : uint8_t {
+    kHwNone = 0,
+    kHwShiftV = 1,   // the per-STEP shift/rotate overflow law
+    kHwLogicAc = 2,  // AND/OR/XOR/TEST: AC is forced to 0
+    kHwBcd = 4,      // the fitted ADJD/ADJA decimal correction
+};
+constexpr int kHwCount = 3;
+// The PSW bits each hardware behaviour is responsible for.
+constexpr uint16_t kHwAttrib[kHwCount] = {
+    kFlagV,                                                     // kHwShiftV
+    kFlagAC,                                                    // kHwLogicAc
+    kFlagCY | kFlagP | kFlagAC | kFlagZ | kFlagS | kFlagV,       // kHwBcd
+};
+
 struct AluResult {
     uint16_t value = 0;
     uint16_t flags = 0;      // CY P AC Z S V at V30 PSW bit positions
     uint16_t flag_mask = 0;  // which of those the op defines
     bool commits = true;     // false for CMP: the result bus is not driven
+    uint8_t hw = kHwNone;    // AluHw bits: non-emergent hardware contributions
 };
 
 // Evaluates the LATCHED operation against the machine's current tmps.  This

@@ -22,8 +22,8 @@ enum Cond : uint8_t {
 // Str_Int / Str_Ext indices.
 enum Ictl : uint8_t {
     kIctlEndem = 0, kIctlCitf = 1, kIctlMfc = 2, kIctlMfs = 3,
-    kIctlClrCyV = 6, kIctlSetCyV = 7, kIctlSusp = 8, kIctlFlush = 9,
-    kIctlSignTgl = 12, kIctlFarJmp = 14,
+    kIctlBcdInit = 4, kIctlClrCyV = 6, kIctlSetCyV = 7, kIctlSusp = 8,
+    kIctlFlush = 9, kIctlSignTgl = 12, kIctlBcdNz = 13, kIctlFarJmp = 14,
 };
 enum Ectl : uint8_t { kEctlMemR = 1, kEctlMemW = 2, kEctlWriteBack = 6 };
 }  // namespace
@@ -110,6 +110,22 @@ uint8_t Cpu::sr_segment(uint8_t sr) const {
     return m_.seg_override ? m_.seg_ovr : uint8_t(kDS);
 }
 
+// Commits `flags` under `mask` to the PSW and books the bits against the
+// non-emergent ALU-hardware behaviour that produced them, if any.  A later
+// write always takes ownership away from an earlier one, so what survives to
+// the end of the instruction is exactly the hardware model's contribution to
+// the final PSW.
+void Cpu::commit_flags(uint16_t mask, uint16_t flags, uint8_t hw) {
+    m_.psw = uint16_t((m_.psw & ~mask) | (flags & mask));
+    m_.set_flags(m_.psw);
+    for (int i = 0; i < kHwCount; ++i) hw_owned_[i] &= uint16_t(~mask);
+    for (int i = 0; i < kHwCount; ++i) {
+        if (!(hw & (1u << i))) continue;
+        ++hw_writes_[i];
+        hw_owned_[i] |= uint16_t(mask & kHwAttrib[i]);
+    }
+}
+
 void Cpu::set_stat(const RowCtx& ctx) {
     if (!ctx.flag_mask) return;
     m_.stat = uint16_t((m_.stat & ~ctx.flag_mask) | (ctx.flags & ctx.flag_mask));
@@ -182,7 +198,12 @@ uint16_t Cpu::rd_src1(uint8_t c, const RowCtx& ctx, const ucrom::MicroOp& op,
     switch (c) {
         case 0: case 1: case 2: case 3: return m_.sreg[c];
         case 4: return m_.pc;
-        case 6: return m_.opr;
+        // Reading OPR as a source CONSUMES it: a later MEMW that has not yet
+        // been given data will wait for the next OPR load rather than reuse
+        // the value the microcode has already taken out of the register.
+        // (Ledger, "write-data pairing"; forced by the BCD strings 02D4/02D7
+        // and by INS 032B/032F.)
+        case 6: opr_fresh_ = false; return m_.opr;
         case 7: {  // Q: pop one queue byte, advance PC
             uint8_t b = biu_.next_byte(m_.sreg[kCS], op.rom_addr);
             m_.pc = uint16_t(m_.pc + 1);
@@ -251,6 +272,11 @@ void Cpu::wr_dst1(uint8_t c, uint16_t v, bool byte_src) {
 
 uint16_t Cpu::rd_src2(uint8_t c, const RowCtx& ctx) {
     switch (c) {
+        // Source2 [-00-] is used on exactly ONE row in the whole ROM (02DA,
+        // the BCD-string loop) and it must present all-ones there -- see the
+        // ledger, "the BCD string ops": the tail computes the final CY/Z as
+        // `tmpb + tmpb` at byte width, and the carry-out path needs 0xFF.
+        case 0: return 0xFFFF;
         case 4: return ctx.sigma;
         case 5: {
             uint8_t b = biu_.next_byte(m_.sreg[kCS], 0xFFFE);
@@ -329,6 +355,7 @@ bool Cpu::step() {
     pend_ = Pending{};
     rdq_.clear();
     opr_fresh_ = false;
+    for (int i = 0; i < kHwCount; ++i) { hw_owned_[i] = 0; hw_writes_[i] = 0; }
     LoadResult ld = loader_decode(m_, biu_);
     if (trace_) {
         std::fprintf(trace_,
@@ -377,6 +404,7 @@ bool Cpu::step() {
         ctx.commits = ar.commits;
         ctx.flags = ar.flags;
         ctx.flag_mask = ar.flag_mask;
+        ctx.hw = ar.hw;
 
         if (trace_) {
             std::fprintf(trace_,
@@ -419,11 +447,8 @@ bool Cpu::step() {
             }
 
             // --- flag write ----------------------------------------------
-            if (op.w && ctx.flag_mask) {
-                uint16_t mask = ctx.flag_mask;
-                m_.psw = uint16_t((m_.psw & ~mask) | (ctx.flags & mask));
-                m_.set_flags(m_.psw);
-            }
+            if (op.w && ctx.flag_mask)
+                commit_flags(ctx.flag_mask, ctx.flags, ctx.hw);
         }
 
         // --- row type ------------------------------------------------------
@@ -438,7 +463,35 @@ bool Cpu::step() {
             nl.adjust = (m_.alu.op == kAdjd) ? 1
                         : (m_.alu.op == kAdja) ? 2
                                                : 0;
+            nl.adjust_tmp = m_.alu.tmp;
+            // A BIT row arms the same way ADJD/ADJA do: the NEXT latched
+            // operation sees port B masked to the selected bit.
+            nl.bit_arm = (m_.alu.op == kBit);
+            nl.bit_n = m_.bit_n;
+            uint8_t new_op = (op.alu_op == kOpc) ? alu_opc_select(m_) : op.alu_op;
             m_.alu = nl;
+            // An armed ADJD/ADJA is normally consumed by the ADD/SUB latched
+            // on this row.  If the next latched operation is NOT an ADD/SUB
+            // the arm DISCHARGES instead: the adjust unit writes its plain
+            // truncation (a nibble for ADJA, a byte for ADJD -- no decimal
+            // correction, that needs an adder pass) back into its operand.
+            // 030B (EXT) is the ONLY row in the ROM that takes this path, and
+            // it is how EXT reduces the updated bit offset modulo 16 while
+            // COUNT keeps the unmasked 16.  (Ledger, "0F 33/3B EXT".)
+            if (nl.adjust && new_op != kAdd && new_op != kSub) {
+                uint16_t* tp = nl.adjust_tmp == 0   ? &m_.tmpa
+                               : nl.adjust_tmp == 1 ? &m_.tmpb
+                                                    : &m_.tmpc;
+                *tp = uint16_t(*tp & (nl.adjust == 2 ? 0x000Fu : 0x00FFu));
+                m_.alu.adjust = 0;
+            }
+            if (op.alu_op == kBit) {
+                // The bit index is captured when BIT is latched (the 0F 12/1A
+                // CLR1 block overwrites tmpa on the very next row), modulo the
+                // operand width.
+                const uint16_t tmps[4] = {m_.tmpa, m_.tmpb, m_.tmpc, 0};
+                m_.bit_n = uint8_t(tmps[op.alu_tmp & 3] & (m_.op8 ? 7u : 15u));
+            }
             if (op.alu_op == kAbs) {
                 // [-1E-] records the sign it is about to strip, for [-09-].
                 const uint16_t tmps[4] = {m_.tmpa, m_.tmpb, m_.tmpc, 0};
@@ -448,6 +501,8 @@ bool Cpu::step() {
             if (is_rloop) {
                 // `R`: the row's own operation runs COUNT times, writing its
                 // destination (always tmpb in the ROM) on every iteration.
+                // Afterwards the latch is SPENT (see alu_eval).
+                m_.alu.spent = true;
                 while (m_.count != 0) {
                     m_.count = uint16_t(m_.count - 1);
                     AluResult sr = alu_step(m_, m_.alu);
@@ -457,12 +512,8 @@ bool Cpu::step() {
                     sc.flag_mask = sr.flag_mask;
                     set_stat(sc);
                     if (!op.nop_move()) wr_dst1(op.d1, sr.value, false);
-                    if (op.w && sr.flag_mask) {
-                        uint16_t mask = sr.flag_mask;
-                        m_.psw =
-                            uint16_t((m_.psw & ~mask) | (sr.flags & mask));
-                        m_.set_flags(m_.psw);
-                    }
+                    if (op.w && sr.flag_mask)
+                        commit_flags(sr.flag_mask, sr.flags, sr.hw);
                 }
             }
         } else if (op.type == ucrom::MicroType::JMP) {
@@ -496,6 +547,20 @@ bool Cpu::step() {
                     case kIctlSignTgl:
                         m_.sign_neg ^=
                             (m_.tmpb & (m_.op8 ? 0x0080u : 0x8000u)) != 0;
+                        break;
+                    // [-04-] / [-0D-] appear ONLY in the BCD-string block
+                    // (0F 20/22/24/26).  [-04-] initialises the digit chain:
+                    // CY = 0 and the aux latch set ("everything zero so far").
+                    // [-0D-] clears the aux latch as soon as a corrected digit
+                    // pair comes out non-zero, so the tail's `JMP [-09-]`
+                    // resolves the final Z.  (Ledger, "the BCD string ops".)
+                    case kIctlBcdInit:
+                        m_.psw &= uint16_t(~kFlagCY);
+                        m_.set_flags(m_.psw);
+                        m_.sign_neg = true;
+                        break;
+                    case kIctlBcdNz:
+                        if (!(m_.stat & kFlagZ)) m_.sign_neg = false;
                         break;
                     default: break;
                 }

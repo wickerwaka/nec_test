@@ -75,6 +75,7 @@ don't-care) — there are **no** missing assertions anywhere.
 | b4 | `SREG_MOV` | documented `sreg` MOV forms = 8C, 8E | 2 | — | Out8 segment register |
 | b5 | `HAS_MODRM` | `sw/optable.py` ModR/M set | 76 | `63` — **the PLA gives 0x63 a ModR/M byte** (term `01100?1?` = 62/63/66/67) | Out4 "2BR" |
 | b6 | `MODRM_STORE` | ModR/M op whose r/m operand is *written without being read*: 88, 89, 8C, 8F, C6, C7 | 7 | `8D` (LDEA/LEA — no memory access at all), shares term `100011?1` with 8F | Out1 read-modify-write, inverted sense |
+
 | b7 | `DIR_FROM_BIT1` | opcode bit 1 is the direction bit: `op` and `op^2` share a mnemonic root, both carry ModR/M, operand lists are exact reverses (ALU rm,r/r,rm ×8, MOV 88–8B, MOV sreg 8C/8E) | 42 | `C0`,`C1`,`E0`,`E1` — term `11?0000?` | Out9 direction bit |
 | b8 | `NATIVE_HI` | native ∧ opcode ≥ 0x80 (single term `01 1???????`) | 128 | — | *(no 8086 analogue)* |
 | b9 | `INCDEC_NO_CY` | INC/DEC r16 (40–4F) ∪ the groups that contain INC/DEC (FE/FF) | 20 | `F6`,`F7` — term `1111?11?` covers F6/F7/FE/FF | Out14 carry update |
@@ -86,12 +87,37 @@ and 0F sections never assert it even for opcodes ≥ 0x80.  Best reading is a
 map-half select for downstream address generation.  Marked **IDENTIFIED (set),
 HYPOTHESIS (purpose)**.
 
-`b6`'s naming is the least certain of the ten single-bit columns: the opcode set
-is unambiguous, but the 8086's corresponding signal is documented with the
-opposite sense (read-modify-write), and the 0F-page members (ROL4/ROR4, INS/EXT)
-do read their operand.  The safe reading, and the one the simulator should use,
-is "the standard operand-fetch step is skipped; the instruction's own microcode
-performs whatever access it needs".  Confidence: **medium**.
+`b6` — **interpretation refined at ucsim S1c (2026-08-01); the column
+MEMBERSHIP above is unchanged dump fact.**  The reading is "the pre-decode
+operand fetch is suppressed; the instruction's own microcode performs whatever
+access it needs", **and that suppression is gated by the decode mode: it
+applies in NATIVE mode only.**
+
+*Evidence (MEASURED, `tests/v30/v0.2` cycle records, S1c):*
+
+| forms | b6 | bus cycles on a `mod != 3` case |
+|---|---|---|
+| `88`, `89`, `8C` (MOV rm,r / rm,sreg) | set | **0 MEMR**, 3–6 MEMW |
+| `C6`, `C7` (MOV rm,imm) | set | **0 MEMR**, 3–6 MEMW |
+| `8D` (LEA) | set (merge) | 0 MEMR, 0 MEMW |
+| `0F 28`, `0F 2A` (ROL4/ROR4) | set (ext section) | **3 MEMR** + 3 MEMW |
+| `0F 14`, `0F 12` (SET1/CLR1, b6 *clear*) | clear | 3 MEMR + 3 MEMW |
+
+The 0F members really do read their r/m operand — the ROL4 block (`02EC`-`02F7`)
+contains `M -> tmpbL` at `02ED` with no `MEMR` anywhere in it, so the datum can
+only have arrived through the pre-decode fetch.  The native members really do
+not.  Since the same column bit produces opposite behaviour in the two decode
+modes, the consumer of b6 must be qualified by the mode select, exactly as the
+`ACC_W_OPERAND`/`W_FROM_BIT0` bits are re-purposed across the 0F blocks.
+Confidence: **high for the native sense (measured both ways), medium for the
+mechanism** (mode-gating vs. a separate ext-page fetch-enable term that the
+dump does not expose).  `sim/loader.cpp` implements the mode gate;
+`docs/notes/ucsim_provenance.md` §23.3 carries the ledger entry.
+
+Two further ext-section re-purposings are recorded there as well: the
+`ACC_W_OPERAND` bit on the `0F 30-3F` block does **not** bind AL/AW (the block
+has a ModR/M byte), and `W_FROM_BIT0` on that block selects the *string access*
+width while the two ModR/M register operands are **byte** registers.
 
 ### `XOP[3:0]` (b10..b13) — a 4-bit encoded field, not four independent bits
 

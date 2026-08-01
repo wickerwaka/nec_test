@@ -207,9 +207,15 @@ LoadResult loader_decode(Machine& m, Biu& biu) {
     }
 
     // --- operand binding --------------------------------------------------
+    // The 0F-page BIT-FIELD group (pla_3 ext XOP = 0011, i.e. 0F 30-3F =
+    // INS/EXT) selects BYTE registers for both ModR/M operands even though its
+    // W bit says word -- the word width belongs to the string access through
+    // IND, not to the offset/length register pair.  MEASURED: `ext dl, ch`
+    // (ModR/M D5) takes its offset from CH, not from the low byte of BP.
+    bool reg_byte = byte || (ext && pla3::xop(v) == 0x3);
     if (has_rm) {
-        m.R = pla3::sreg_mov(v) ? sreg_ref(rm.reg) : reg_ref(rm.reg, byte);
-        m.M = (rm.mod == 3) ? reg_ref(rm.rm, byte)
+        m.R = pla3::sreg_mov(v) ? sreg_ref(rm.reg) : reg_ref(rm.reg, reg_byte);
+        m.M = (rm.mod == 3) ? reg_ref(rm.rm, reg_byte)
                             : mem_ref(out.ea, out.ea_seg, byte);
         if (pla3::dir_from_bit1(v) && (b & 2)) {
             OperandRef t = m.M;
@@ -226,9 +232,13 @@ LoadResult loader_decode(Machine& m, Biu& biu) {
 
     // --- operand pre-read -------------------------------------------------
     // MODRM_STORE (pla_3 b6) = "the r/m operand is written without being
-    // read": no pre-read.  Everything else with a memory operand is fetched
-    // by the pre-decode hardware before micro-row 0.
-    if (has_rm && rm.mod != 3 && !pla3::modrm_store(v)) {
+    // read": no pre-read.  The suppression is NATIVE-DECODE-MODE ONLY --
+    // pla_3 asserts b6 for the 0F blocks 28-2F (ROL4/ROR4) and 30-3F
+    // (INS/EXT) as well, yet those read their r/m operand.  MEASURED from the
+    // v0.2 cycle records: 0F 28/2A memory forms issue 3 MEMR + 3 MEMW cycles
+    // while 88/89/8C/C6/C7 memory forms issue 0 MEMR.  Everything else with a
+    // memory operand is fetched by the pre-decode hardware before micro-row 0.
+    if (has_rm && rm.mod != 3 && !(!ext && pla3::modrm_store(v))) {
         const OperandRef& mo = (m.M.kind == OperandRef::kMem) ? m.M : m.R;
         if (mo.kind == OperandRef::kMem) {
             m.opr = biu.mem_read(m.sreg[mo.seg], mo.ea, !mo.byte, mo.seg,

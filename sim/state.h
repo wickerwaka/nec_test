@@ -80,7 +80,18 @@ struct AluLatch {
     bool byte = false;
     bool ea_const = false;
     uint16_t ea_value = 0;
-    uint8_t adjust = 0;  // 0 none, 1 = ADJD (decimal), 2 = ADJA (ASCII)
+    uint8_t adjust = 0;      // 0 none, 1 = ADJD (decimal), 2 = ADJA (ASCII)
+    uint8_t adjust_tmp = 0;  // the `Tmp` field of the ADJx row = the operand
+                             // the adjust unit works on (tmpb natively,
+                             // tmpa for the 8080 DAA at 03A0)
+    // A preceding `ALU BIT` row arms a one-shot BIT-MASK mode: this op's
+    // port B is reduced to the single bit `bit_n` (ledger, "BIT").
+    bool bit_arm = false;
+    uint8_t bit_n = 0;
+    // Set once an `R` row has driven this latch through the iterative unit.
+    // A SPENT iterative latch reads back as a pass-through of port A; a
+    // freshly latched one performs a single combinational step.
+    bool spent = false;
 };
 
 // --- micro-PC -------------------------------------------------------------
@@ -120,7 +131,14 @@ struct Machine {
     uint16_t stat = 0;
 
     // [-09-] / sign tracking for the signed MUL/DIV routines.
+    // The auxiliary flip-flop the microcode's [-09-] condition reads INVERTED
+    // ("the latch is clear").  Two disjoint users: the signed MUL/DIV sign
+    // ([-1E-] loads it, [-0C-] toggles it) and the BCD-string zero
+    // accumulator ([-04-] sets it, [-0D-] clears it on a non-zero digit pair).
     bool sign_neg = false;
+
+    // The bit index captured by the row that latched `ALU BIT`.
+    uint8_t bit_n = 0;
 
     // --- prefix latches (cleared by the loader at each instruction start) --
     bool seg_override = false;

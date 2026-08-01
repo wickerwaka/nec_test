@@ -51,6 +51,8 @@ std::string read_all(std::FILE* f) {
 struct CaseResult {
     bool ok = true;
     std::string detail;
+    uint16_t hw_owned[kHwCount] = {};
+    long hw_writes[kHwCount] = {};
 };
 
 CaseResult run_one(const ucrom::UcRom& rom, Biu& biu, const json::Value& c,
@@ -146,6 +148,12 @@ CaseResult run_one(const ucrom::UcRom& rom, Biu& biu, const json::Value& c,
         res.detail = "micro-sequence did not terminate";
         return res;
     }
+    if (opt.alu_hw_report) {
+        for (int i = 0; i < kHwCount; ++i) {
+            res.hw_owned[i] = cpu.hw_owned(i);
+            res.hw_writes[i] = cpu.hw_writes(i);
+        }
+    }
 
     // --- expected vs. got registers --------------------------------------
     uint16_t exp[14], got[14];
@@ -228,6 +236,11 @@ int run_cases(const ucrom::UcRom& rom, std::FILE* in, std::FILE* out,
     json::skip_ws(buf, p);
     Biu biu;
     long idx = 0, pass = 0, fail = 0, reported = 0;
+    // --alu-hw-report accumulators, per hardware behaviour.
+    long hw_cases[kHwCount] = {};   // cases whose FINAL PSW keeps such a bit
+    long hw_bits[kHwCount] = {};    // total such bits over all cases
+    long hw_commits[kHwCount] = {}; // flag commits driven by the behaviour
+    long hw_any_case = 0;
 
     auto handle = [&](const json::Value& c) {
         if (opt.trace_idx >= 0 && idx != opt.trace_idx) {
@@ -235,6 +248,19 @@ int run_cases(const ucrom::UcRom& rom, std::FILE* in, std::FILE* out,
             return;
         }
         CaseResult r = run_one(rom, biu, c, opt, opt.trace ? stderr : nullptr);
+        if (opt.alu_hw_report) {
+            bool any = false;
+            for (int i = 0; i < kHwCount; ++i) {
+                hw_commits[i] += r.hw_writes[i];
+                if (r.hw_owned[i]) {
+                    ++hw_cases[i];
+                    any = true;
+                    for (uint16_t b = r.hw_owned[i]; b; b &= uint16_t(b - 1))
+                        ++hw_bits[i];
+                }
+            }
+            if (any) ++hw_any_case;
+        }
         if (r.ok)
             ++pass;
         else
@@ -281,6 +307,18 @@ int run_cases(const ucrom::UcRom& rom, std::FILE* in, std::FILE* out,
         }
     }
 
+    if (opt.alu_hw_report) {
+        static const char* const kHwName[kHwCount] = {"shift_v", "logic_ac",
+                                                      "bcd"};
+        std::fprintf(out, "{\"alu_hw_report\":true,\"cases\":%ld,"
+                          "\"cases_any\":%ld", idx, hw_any_case);
+        for (int i = 0; i < kHwCount; ++i)
+            std::fprintf(out,
+                         ",\"%s_commits\":%ld,\"%s_cases\":%ld,\"%s_bits\":%ld",
+                         kHwName[i], hw_commits[i], kHwName[i], hw_cases[i],
+                         kHwName[i], hw_bits[i]);
+        std::fprintf(out, "}\n");
+    }
     std::fprintf(out, "{\"summary\":true,\"pass\":%ld,\"fail\":%ld}\n", pass,
                  fail);
     return fail == 0 ? 0 : 1;

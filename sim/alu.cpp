@@ -67,6 +67,7 @@ AluResult bcd_adjust(const Machine& m, uint8_t adjust, bool sub, uint16_t a) {
     }
     res.flags = f;
     res.flag_mask = kArithMask;
+    res.hw = kHwBcd;
     return res;
 }
 
@@ -98,6 +99,11 @@ AluResult alu_eval(const Machine& m, const AluLatch& lat) {
     const uint16_t tmps[4] = {m.tmpa, m.tmpb, m.tmpc, 0};
     uint32_t af = m.tmpb;                     // port A
     uint32_t bf = tmps[lat.tmp & 3];          // port B
+    // A preceding `ALU BIT` row masks port B down to the single selected bit
+    // (ledger, "BIT").  That is what turns the shared 0F 10-1F block into
+    // TEST1 / SET1 / NOT1 (`AND`/`OR`/`XOR` of ONES) and CLR1 (`NOT` of ONES
+    // then `AND`).
+    if (lat.bit_arm) bf &= (1u << (lat.bit_n & 15));
     uint32_t mask = byte ? 0xFFu : 0xFFFFu;
     uint32_t msb = byte ? 0x80u : 0x8000u;
     uint32_t a = af & mask;
@@ -109,19 +115,35 @@ AluResult alu_eval(const Machine& m, const AluLatch& lat) {
     uint32_t cin = (m.psw & kFlagCY) ? 1u : 0u;
 
     if (lat.adjust && (op == kAdd || op == kSub)) {
-        AluResult br = bcd_adjust(m, lat.adjust, op == kSub, m.tmpb);
+        // The adjust unit works on the operand named by the ADJx row's own
+        // `Tmp` field -- tmpb for the native 27/2F/37/3F and the 0F BCD
+        // strings, tmpa for the 8080 DAA at 03A0.
+        uint16_t av = tmps[lat.adjust_tmp & 3];
+        AluResult br = bcd_adjust(m, lat.adjust, op == kSub, av);
         // The result rides the 16-bit bus; only the low byte is meaningful.
-        br.value = uint16_t((m.tmpb & 0xFF00u) | (br.value & 0xFFu));
+        br.value = uint16_t((av & 0xFF00u) | (br.value & 0xFFu));
         return br;
     }
 
     if (alu_is_iterative(op)) {
-        // COUNT exhausted: the iterative unit passes port A straight through
-        // (D0/D1 row 0117 and SHIFT row 022A both re-read SIGMA after the
-        // loop and must see the shifted value, not another shift).
-        res.value = m.tmpb;
-        res.flag_mask = 0;
-        return res;
+        if (lat.spent) {
+            // The `R` row already drove this latch: the iterative unit passes
+            // port A straight through (D0/D1 row 0117, SHIFT row 022A and the
+            // DIV tails 0120/0191 all re-read SIGMA after their loop and must
+            // see the loop's result, not one more step).
+            res.value = m.tmpb;
+            res.flag_mask = 0;
+            return res;
+        }
+        // Freshly latched, never stepped: the unit presents ONE step
+        // combinationally.  Forced by the BCD-string blocks, which compute the
+        // byte count as a single `SHR` read on a non-`R` row (02CD/02CE and
+        // 02E0/02E1).  Evaluated side-effect free -- no ROM row reads a fresh
+        // MUL/DIV latch, so the multiplier/quotient register is never touched
+        // here.
+        Machine scratch = m;
+        AluLatch l = lat;
+        return alu_step(scratch, l);
     }
 
     switch (op) {
@@ -160,6 +182,7 @@ AluResult alu_eval(const Machine& m, const AluLatch& lat) {
             // MEASURED (docs/facts/undefined_flags.md): AC always 0 for the
             // logic ops; CY and V always 0 (documented).
             f |= szp(r, byte);
+            res.hw = kHwLogicAc;
             break;
         }
         case kInc: {
@@ -217,8 +240,10 @@ AluResult alu_eval(const Machine& m, const AluLatch& lat) {
         }
         case kAdjd:
         case kAdja:
-            // A bare ADJD/ADJA row only ARMS the adjust; its own SIGMA is a
-            // pass-through and is never consumed in the ROM.
+        case kBit:
+            // A bare ADJD/ADJA/BIT row only ARMS a mode for the NEXT latched
+            // operation; its own SIGMA is a pass-through and is never
+            // consumed in the ROM.
             r = b;
             rfull = bf;
             fm = 0;
@@ -323,9 +348,17 @@ AluResult alu_step(Machine& m, const AluLatch& lat) {
             return res;
         }
         case kRol12: {
-            // ROL4: rotate the operand left by one BCD digit through AL.
-            r = ((a << 4) | ((a >> (w - 4)) & 0xFu)) & mask;
-            res.value = uint16_t(hi_keep | uint16_t(r));
+            // ROL12: the whole 16-bit tmpb shifts LEFT one place, with the
+            // rotate feedback tapped at BIT 11 -- a 12-bit rotate whose top
+            // nibble is a plain shift register.  MEASURED against 0F 28/2A:
+            // ROL4 runs it 4 times, ROR4 8 times (ROL 8 of 12 == ROR 4), and
+            // the "AL high nibble is replaced by the old AL low nibble"
+            // behaviour of the real chip falls straight out of the 15:12
+            // shift.  Width-independent: the operand is always the 16-bit
+            // (AL : mem) pair built by 02ED/02EE.
+            uint32_t t = m.tmpb;
+            r = ((t << 1) | ((t >> 11) & 1u)) & 0xFFFFu;
+            res.value = uint16_t(r);
             res.flag_mask = 0;
             return res;
         }
@@ -345,6 +378,7 @@ AluResult alu_step(Machine& m, const AluLatch& lat) {
     else
         v = (((r & msb) != 0) != (((r << 1) & msb) != 0));
     if (v) f |= kFlagV;
+    res.hw = kHwShiftV;
     if (op == kShl || op == kShr || op == kSar || op == 0x0E) {
         // MEASURED: AC always 0 for the shifts.
         f |= szp(r, byte);

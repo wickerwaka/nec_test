@@ -23,6 +23,11 @@ struct RunOptions {
     int max_report = 8;   // per-run failure details printed to stderr
     long trace_idx = -1;  // `trace` mode: only this case index
     bool trace = false;
+    // Audit switch: attribute the FINAL PSW bits of every case to the three
+    // non-emergent ALU-hardware behaviours (per-step shift V law, logic-op
+    // AC = 0, BCD correction).  Everything not attributed emerged from the
+    // microcode ROM alone.  Printed as one extra summary record.
+    bool alu_hw_report = false;
 };
 
 // Returns the process exit code (0 = all cases passed).

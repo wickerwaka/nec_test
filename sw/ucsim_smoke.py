@@ -63,21 +63,35 @@ S1B = (
 )
 
 
-def run_form(suite: Path, form: str, details: int, report: int):
+# The S1c families (campaign plan, gate P1 close-out): the whole 0F page.
+S1C = (
+    [f"0F1{d}" for d in "0123456789ABCDEF"]      # TEST1/CLR1/SET1/NOT1
+    + ["0F20", "0F22", "0F26"]                   # ADD4S/SUB4S/CMP4S
+    + ["0F28", "0F2A"]                           # ROL4/ROR4
+    + ["0F31", "0F33", "0F39", "0F3B"]           # INS/EXT
+)
+
+
+def run_form(suite: Path, form: str, details: int, report: int,
+             alu_hw: bool = False):
     path = suite / f"{form}.json.gz"
     if not path.exists():
         return None
     raw = gzip.open(path, "rb").read()
-    proc = subprocess.run([str(SIM), "run", str(ROM), f"--report={report}"],
-                          input=raw, stdout=subprocess.PIPE)
-    fails, summary = [], None
+    argv = [str(SIM), "run", str(ROM), f"--report={report}"]
+    if alu_hw:
+        argv.append("--alu-hw-report")
+    proc = subprocess.run(argv, input=raw, stdout=subprocess.PIPE)
+    fails, summary, hw = [], None, None
     for line in proc.stdout.decode().splitlines():
         rec = json.loads(line)
         if rec.get("summary"):
             summary = rec
+        elif rec.get("alu_hw_report"):
+            hw = rec
         else:
             fails.append(rec)
-    return summary, fails[:details]
+    return summary, fails[:details], hw
 
 
 def main():
@@ -87,11 +101,15 @@ def main():
                     help="comma-separated form list (default: bring-up set)")
     ap.add_argument("--s1b", action="store_true",
                     help="the S1b family set (flow + internal page + arith)")
+    ap.add_argument("--s1c", action="store_true",
+                    help="the S1c family set (the whole 0F page)")
     ap.add_argument("--all", action="store_true",
                     help="every form file in the suite directory")
     ap.add_argument("--details", type=int, default=3)
     ap.add_argument("--report", type=int, default=8)
     ap.add_argument("--trace", default=None, metavar="FORM:IDX")
+    ap.add_argument("--alu-hw", action="store_true",
+                    help="ALU-hardware flag attribution audit (P1 sufficiency)")
     args = ap.parse_args()
 
     suite = (ROOT / args.suite) if not Path(args.suite).is_absolute() \
@@ -108,6 +126,8 @@ def main():
                        for p in suite.glob("*.json.gz"))
     elif args.s1b:
         forms = S1B
+    elif args.s1c:
+        forms = S1C
     elif args.forms:
         forms = args.forms.split(",")
     else:
@@ -115,12 +135,17 @@ def main():
 
     tot_p = tot_f = 0
     bad = []
+    hw_tot = {}
     for form in forms:
-        out = run_form(suite, form, args.details, args.report)
+        out = run_form(suite, form, args.details, args.report, args.alu_hw)
         if out is None:
             print(f"{form:8s} MISSING")
             continue
-        summary, fails = out
+        summary, fails, hw = out
+        if hw:
+            for k, v in hw.items():
+                if k != "alu_hw_report":
+                    hw_tot[k] = hw_tot.get(k, 0) + v
         p, f = summary["pass"], summary["fail"]
         tot_p += p
         tot_f += f
@@ -133,6 +158,19 @@ def main():
                       f"\n        {rec['diff']}")
     print(f"\nTOTAL pass={tot_p} fail={tot_f}"
           + (f"  failing forms: {','.join(bad)}" if bad else ""))
+    if hw_tot:
+        n = hw_tot["cases"]
+        print("\nALU-hardware flag attribution (non-emergent behaviours):")
+        print(f"  cases                         {n}")
+        print(f"  cases whose FINAL PSW keeps   {hw_tot['cases_any']} "
+              f"({100.0 * hw_tot['cases_any'] / n:.2f}%)")
+        print("  at least one such bit")
+        for key, name in (("shift_v", "per-step shift/rotate V law"),
+                          ("logic_ac", "logic-op AC = 0"),
+                          ("bcd", "BCD correction")):
+            print(f"  {name:30s} commits={hw_tot[key + '_commits']:8d} "
+                  f"cases={hw_tot[key + '_cases']:7d} "
+                  f"final-PSW bits={hw_tot[key + '_bits']:8d}")
     return 1 if tot_f else 0
 
 

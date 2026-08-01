@@ -346,6 +346,13 @@ def check_native_columns(sections, F):
             0x63: "PLA decodes 0x63 WITH a ModR/M byte (term '01 01100?1?' = 62/63/66/67); "
                   "sw/optable.py currently models 0x63 as ModR/M-less",
         }),
+        # b6 MODRM_STORE.  The MEMBERSHIP below is dump fact and is unchanged;
+        # the declared INTERPRETATION was refined at ucsim S1c (see
+        # docs/facts/pla_model.md and docs/notes/ucsim_provenance.md): the
+        # column suppresses the pre-decode operand fetch in NATIVE decode mode
+        # only.  MEASURED from the v0.2 cycle records: native members 88/89/8C/
+        # C6/C7 memory forms issue 0 MEMR, while the 0F-page members of the
+        # same column (0F 28/2A ROL4/ROR4) issue 3 MEMR + 3 MEMW.
         (6, modrm_store, {
             0x8D: "LDEA/LEA - PLA merge, shares term '01 100011?1' with 8F POP mem16",
         }),

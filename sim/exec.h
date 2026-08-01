@@ -9,6 +9,7 @@
 #include <string>
 #include <vector>
 
+#include "alu.h"
 #include "biu.h"
 #include "loader.h"
 #include "state.h"
@@ -31,12 +32,23 @@ public:
 
     int rows_executed() const { return rows_; }
 
+    // --- ALU-hardware attribution (`run --alu-hw-report`) -----------------
+    // Reset at every step().  `hw_owned(i)` is the set of PSW bits still
+    // standing at the end of the instruction whose LAST write came out of
+    // hardware behaviour `i` (AluHw bit 1<<i); `hw_writes(i)` counts the flag
+    // commits that behaviour drove.
+    uint16_t hw_owned(int i) const { return hw_owned_[i]; }
+    long hw_writes(int i) const { return hw_writes_[i]; }
+
 private:
+    void commit_flags(uint16_t mask, uint16_t flags, uint8_t hw);
+
     struct RowCtx {
         uint16_t sigma = 0;
         bool commits = true;
         uint16_t flags = 0;
         uint16_t flag_mask = 0;
+        uint8_t hw = 0;  // AluHw attribution of `flags`
     };
 
     // A bus write whose data phase has not run yet.  The data is OPR at the
@@ -77,6 +89,8 @@ private:
     bool opr_fresh_ = false;
     std::FILE* trace_ = nullptr;
     int rows_ = 0;
+    uint16_t hw_owned_[kHwCount] = {};
+    long hw_writes_[kHwCount] = {};
 };
 
 std::string row_text(const ucrom::MicroOp& op);
