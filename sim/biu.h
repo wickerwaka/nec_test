@@ -90,9 +90,27 @@ public:
     // Transaction addresses stay 20-bit -- only the storage aliases.
     void set_mirror(bool on) { mirror_ = on; }
 
+    // --- A12 boundary instrumentation (ledger A12: word memory accesses wrap
+    // the OFFSET at 16 bits inside the segment).  `near_wrap` counts DATA
+    // accesses whose offset lands in the last four bytes of the segment
+    // (0xFFFC..0xFFFF) -- the region where a word access either wraps or sits
+    // one byte short of wrapping; `wrapped` counts the accesses that actually
+    // took their second byte from offset 0x0000; `code_wrap` is the same for
+    // instruction fetch (CS:PC rolling over).  Used to EXTRACT the boundary
+    // subset out of a suite that has no dedicated boundary tranche.
+    void clear_wrap() { near_wrap_ = wrapped_ = code_wrap_ = 0; }
+    int near_wrap() const { return near_wrap_; }
+    int wrapped() const { return wrapped_; }
+    int code_wrap() const { return code_wrap_; }
+
     static constexpr uint8_t kFill = 0x00;
 
 private:
+    void note_access(uint16_t off, bool word) {
+        if (off >= 0xFFFC) ++near_wrap_;
+        if (word && off == 0xFFFF) ++wrapped_;
+    }
+
     uint32_t cell(uint32_t a) const { return mirror_ ? (a & 0xFFFF) : a; }
     uint8_t rd(uint32_t a0) const {
         uint32_t a = cell(a0);
@@ -125,6 +143,9 @@ private:
     uint32_t seq_ = 0;
     std::vector<std::pair<uint32_t, uint8_t>> writes_;
     std::vector<uint8_t> consumed_;
+    int near_wrap_ = 0;
+    int wrapped_ = 0;
+    int code_wrap_ = 0;
 };
 
 }  // namespace sim

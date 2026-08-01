@@ -45,6 +45,7 @@ void Biu::log(Txn::Kind k, uint32_t a, uint16_t d, uint8_t w, uint8_t s,
 uint16_t Biu::mem_read(uint16_t seg_val, uint16_t off, bool word,
                        uint8_t seg_idx, uint16_t upc) {
     uint32_t a = phys(seg_val, off);
+    note_access(off, word);
     uint16_t v = rd(a);
     if (word) {
         // The offset wraps inside the segment (16-bit adder), so a word at
@@ -59,6 +60,7 @@ uint16_t Biu::mem_read(uint16_t seg_val, uint16_t off, bool word,
 void Biu::mem_write(uint16_t seg_val, uint16_t off, uint16_t data, bool word,
                     uint8_t seg_idx, uint16_t upc) {
     uint32_t a = phys(seg_val, off);
+    note_access(off, word);
     wr(a, uint8_t(data & 0xFF));
     writes_.emplace_back(a, uint8_t(data & 0xFF));
     if (word) {
@@ -111,6 +113,7 @@ uint8_t Biu::next_byte(uint16_t cs, uint16_t upc) {
         uint32_t a = phys(cs_, fetch_ptr_);
         uint8_t b = rd(a);
         log(Txn::kCodeFetch, a, b, 1, /*CS=*/1, upc);
+        if (fetch_ptr_ == 0xFFFF) ++code_wrap_;
         fetch_ptr_ = uint16_t(fetch_ptr_ + 1);
         q_.push_back(b);
     }

@@ -55,10 +55,23 @@ Suite specials:
                        chip digest, using check_enter_nesting._mask_walk's
                        conventions (nesting NOT masked mod 32).
 
+  known_div   `known_divergences.json` is read by CLASS.  VOID = a contaminated
+              CAPTURE, excluded from the totals.  EDGE = a known pre-existing
+              CYCLE edge recorded as "arch-CLEAN"; this checker compares
+              architectural state only, so an EDGE case is KEPT and must pass.
+
+  I/O reads   R3 policy: the port value is REPLAYED, never predicted.  Three
+              encodings are honoured -- the case name (`iord=XXXX`), an
+              `iords/` sidecar (sw/extract_iords.py), and, for the V20 suite,
+              the case's own bus trace (iords_from_cycles).
+
 Usage:
   ucsim_check.py [--suite tests/v30/v0.1] [--forms 88,89,...] [--cases N]
                  [--raw-flags] [--details N] [--report out.json]
                  [--residue stale-ea] [--enter-nesting]
+                 [--subset subset.json] [--wrap-scan out.json]
+                 [--coverage cov.json] [--coverage-report cov.json]
+                 [--alu-hw]
 """
 
 import argparse
@@ -220,27 +233,132 @@ def check_case(c, sim, flags_mask, raw_flags=False):
 # --------------------------------------------------------------------------- #
 # simulator driver
 # --------------------------------------------------------------------------- #
-def run_sim(cases, mirror=False):
+COVER = [0] * 1028          # accumulated micro-row execution counters
+_COVER_ON = [False]
+ALUHW = Counter()           # accumulated --alu-hw-report attribution
+_ALUHW_ON = [False]
+
+
+def _slim(cases):
+    """The simulator reads `initial`, `final`, `bytes`, `name` and `iords`.  It
+    reads `cycles` only for a pin-event case (derive_replay's REP-abort element
+    count), and never reads `hash`.  `cycles` is ~70 % of a v0.3 form's bytes,
+    so dropping it off the non-event cases cuts the serialise+parse cost of the
+    mass suites by about a third.  Event cases are passed through untouched."""
+    out = []
+    for c in cases:
+        if "evt" in c:
+            out.append(c)
+        elif "cycles" in c or "hash" in c:
+            out.append({k: v for k, v in c.items()
+                        if k != "cycles" and k != "hash"})
+        else:
+            out.append(c)
+    return out
+
+
+def run_sim(cases, mirror=False, wrap_scan=False):
     """-> [record] positionally aligned with `cases`."""
     if not cases:
         return []
-    payload = json.dumps(cases, separators=(",", ":")).encode()
+    payload = json.dumps(_slim(cases), separators=(",", ":")).encode()
     argv = [str(SIM), "run", str(ROM), "--emit-final"]
     if mirror:
         argv.append("--mirror")
+    if wrap_scan:
+        argv.append("--wrap-scan")
+    if _COVER_ON[0]:
+        argv.append("--coverage")
+    if _ALUHW_ON[0] and not mirror:
+        argv.append("--alu-hw-report")
     p = subprocess.run(argv, input=payload, stdout=subprocess.PIPE)
     out = [None] * len(cases)
     for line in p.stdout.decode().splitlines():
         if not line:
             continue
         r = json.loads(line)
+        if "coverage" in r:
+            for i, n in enumerate(r["coverage"]):
+                COVER[i] += n
+            continue
+        if r.get("alu_hw_report"):
+            for k, v in r.items():
+                if k != "alu_hw_report":
+                    ALUHW[k] += v
+            continue
         i = r["i"]
         if 0 <= i < len(out):
             out[i] = r
     return out
 
 
-def load_form(suite: Path, op: str, limit: int = 0):
+# --------------------------------------------------------------------------- #
+# I/O read replay (ledger R3: there is no I/O model -- the value the port
+# presented is REPLAYED from the capture, never predicted)
+# --------------------------------------------------------------------------- #
+IO_READ_W = {0xE4: 1, 0xE5: 2, 0xEC: 1, 0xED: 2, 0x6C: 1, 0x6D: 2}
+PREFIX_BYTES = {0x26, 0x2E, 0x36, 0x3E, 0x64, 0x65, 0xF0, 0xF1, 0xF2, 0xF3}
+
+
+def io_opcode(b):
+    for x in b:
+        if x not in PREFIX_BYTES:
+            return x
+    return None
+
+
+def iords_from_cycles(cases, bus8):
+    """The V30 suites carry the port value in the case NAME (`iord=XXXX`) or in
+    an `iords` sidecar.  The V20 SingleStepTests suite carries neither: the
+    value rides its own bus trace, on the T3 row of each IOR cycle.  Extract it
+    into the same per-ELEMENT `iords` list the simulator already consumes.
+
+    The V20 (uPD70108) has an 8-BIT bus, so a word port read is two consecutive
+    byte cycles; the simulator's port model is a 16-bit `src` word with a
+    parity-selected lane.  Folding is therefore `lo | hi << 8` for a word and
+    the byte REPLICATED on both lanes for a byte -- replication is what an 8-bit
+    bus physically does (every byte arrives on AD0-7), and it makes the lane
+    transform inert.  `mixed` counts elements whose two byte cycles disagreed:
+    those are the only cases where the 8-bit/16-bit bus difference could be
+    observable, and the caller reports them."""
+    mixed = 0
+    for c in cases:
+        if c.get("iords") or "iord=" in c.get("name", ""):
+            continue
+        w = IO_READ_W.get(io_opcode(c.get("bytes", [])))
+        if not w:
+            continue
+        # Both trace conventions stop labelling the bus status at T2, so the
+        # data column has to be taken off the row that FOLLOWS an IOR cycle at
+        # T3 (sw/extract_iords.py's `r[7] == "IOR" and r[8] == "T3"` never
+        # matches, which is why that tool falls back to final.ram).
+        raw, pend = [], False
+        for r in c.get("cycles", ()):
+            if len(r) < 9:
+                continue
+            if r[7] == "IOR":
+                pend = True
+            elif pend and r[8] == "T3":
+                raw.append(int(r[6]) & 0xFFFF)
+                pend = False
+        if not raw:
+            continue
+        if not bus8:
+            c["iords"] = raw           # 16-bit bus: one word per element
+            continue
+        if w == 1:
+            c["iords"] = [(b & 0xFF) * 0x0101 for b in raw]
+        else:
+            seq = []
+            for i in range(0, len(raw) - 1, 2):
+                if (raw[i] & 0xFF) != (raw[i + 1] & 0xFF):
+                    mixed += 1
+                seq.append((raw[i] & 0xFF) | ((raw[i + 1] & 0xFF) << 8))
+            c["iords"] = seq
+    return mixed
+
+
+def load_form(suite: Path, op: str, limit: int = 0, bus8: bool = False):
     cases = json.load(gzip.open(suite / f"{op}.json.gz"))
     side = suite / "iords" / f"{op}.iords.json.gz"
     excluded_amb = []
@@ -257,6 +375,11 @@ def load_form(suite: Path, op: str, limit: int = 0):
             cases = [c for c in cases if c["idx"] not in amb]
     if limit:
         cases = cases[:limit]
+    if cases and io_opcode(cases[0].get("bytes", [])) in IO_READ_W:
+        n = iords_from_cycles(cases, bus8)
+        if n:
+            print(f"  [{op}] {n} word port read(s) whose two byte cycles "
+                  f"DISAGREED -- 8-bit-bus lane order is observable there")
     return cases, excluded_amb
 
 
@@ -374,6 +497,92 @@ def enter_nesting(details):
 
 
 # --------------------------------------------------------------------------- #
+# micro-row coverage report
+# --------------------------------------------------------------------------- #
+def coverage_report(path: str):
+    """Read an accumulated coverage file and name the rows nothing executed.
+
+    `v30sim disasm` prints the ROM in row order with a `------- <pattern>
+    <opcodes>` header before each 4-row bank, so the row INDEX in that listing
+    is exactly the coverage index (`bank * 4 + row`)."""
+    cov = json.load(open(path))["rows"]
+    txt = subprocess.run([str(SIM), "disasm", str(ROM)],
+                         stdout=subprocess.PIPE).stdout.decode().splitlines()
+    banks, cur = [], None
+    for ln in txt:
+        if ln.startswith("-------"):
+            cur = ln[8:].strip()
+        elif ln[:4].strip() and cur is not None:
+            banks.append((int(ln[:4], 16), cur, ln.rstrip()))
+    dead = [(i, b, t) for i, b, t in banks if not cov[i]]
+    print(f"micro-row coverage: {sum(1 for n in cov if n)}/{len(cov)} rows "
+          f"executed; {len(dead)} never executed")
+    last = None
+    for i, b, t in dead:
+        if b != last:
+            print(f"  --- {b}")
+            last = b
+        print(f"    {t}")
+    return 0
+
+
+# --------------------------------------------------------------------------- #
+# the A12 segment-boundary EXTRACTION pass
+# --------------------------------------------------------------------------- #
+def wrap_scan(suite: Path, forms, args):
+    """A12 says word memory accesses wrap the OFFSET at 16 bits inside the
+    segment.  `tests/v30/v0.3-f4a-boundary` was never captured (the directory
+    holds an emit log and no data), so the boundary exposure has to be EXTRACTED
+    from the mass suite instead: run every case with the simulator's boundary
+    instrumentation and keep the ones whose DATA accesses land in the last four
+    bytes of a segment (0xFFFC..0xFFFF) or actually wrap.  Code-fetch wraps are
+    counted separately -- CS:PC rolling over is a different mechanism.
+
+    This pass performs NO comparison: it only writes the subset file, so the
+    boundary gate that follows is a first-look verdict, not a re-read of results
+    already seen."""
+    out = {"_doc": "A12 boundary subset extracted from " + str(suite) +
+                   " (v30sim --wrap-scan): cases with a DATA access at "
+                   "segment offset >= 0xFFFC or an actual 16-bit offset wrap."}
+    code = {}
+    tot = wrapped = codew = scanned = 0
+    t0 = time.time()
+    for op in forms:
+        if not (suite / f"{op}.json.gz").exists():
+            continue
+        cases, _ = load_form(suite, op, args.cases)
+        sims = run_sim(cases, wrap_scan=True)
+        hit, cw = [], []
+        for c, s in zip(cases, sims):
+            scanned += 1
+            if not s:
+                continue
+            if s.get("x") or s.get("xw"):
+                hit.append(c["idx"])
+                wrapped += 1 if s.get("xw") else 0
+            if s.get("xc"):
+                cw.append(c["idx"])
+                codew += 1
+        if hit:
+            out[op] = hit
+            tot += len(hit)
+            print(f"  {op}: {len(hit)} boundary case(s)", flush=True)
+        if cw:
+            code[op] = cw
+    print(f"\nA12 boundary subset: {tot} case(s) over {len(out) - 1} form(s) "
+          f"of {scanned} scanned; {wrapped} with an ACTUAL offset wrap; "
+          f"{codew} case(s) additionally wrap the code fetch pointer "
+          f"({time.time() - t0:.1f}s)")
+    Path(args.wrap_scan).write_text(json.dumps(out, indent=1))
+    print(f"subset -> {args.wrap_scan}")
+    if code:
+        cp = args.wrap_scan.replace(".json", "") + ".codewrap.json"
+        Path(cp).write_text(json.dumps(code, indent=1))
+        print(f"code-fetch-wrap subset -> {cp}")
+    return 0
+
+
+# --------------------------------------------------------------------------- #
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--suite", default=str(V01))
@@ -392,7 +601,28 @@ def main():
     ap.add_argument("--no-mirror", action="store_true",
                     help="disable the flat-fail -> 64K-mirror retry")
     ap.add_argument("--quiet", action="store_true")
+    ap.add_argument("--subset", default="",
+                    help="JSON {form: [idx, ...]} -- run only those cases")
+    ap.add_argument("--coverage", default="",
+                    help="accumulate per-ROM-row execution counters and write "
+                         "them here (S4 sufficiency counter)")
+    ap.add_argument("--wrap-scan", default="",
+                    help="EXTRACTION mode: run the suite with the A12 "
+                         "segment-boundary instrumentation and write the "
+                         "subset file (no comparison is performed)")
+    ap.add_argument("--coverage-report", default="",
+                    help="read an accumulated coverage file and list the ROM "
+                         "rows nothing has ever executed")
+    ap.add_argument("--alu-hw", action="store_true",
+                    help="accumulate the --alu-hw-report attribution (how much "
+                         "of the final PSW did NOT emerge from the microcode)")
     args = ap.parse_args()
+    if args.coverage:
+        _COVER_ON[0] = True
+    if args.alu_hw:
+        _ALUHW_ON[0] = True
+    if args.coverage_report:
+        return coverage_report(args.coverage_report)
 
     if args.enter_nesting:
         print("ucsim_check: ENTER nesting walk streams")
@@ -406,21 +636,52 @@ def main():
     if not suite.is_absolute():
         suite = ROOT / suite
     meta = load_meta(suite)
+    # The uPD70108 (V20) has an 8-BIT bus: a word port read is two byte
+    # cycles.  It changes only how the replayed port value is folded.
+    bus8 = str(meta.get("cpu", "")).upper().startswith("V20")
 
-    kd = {}
+    # known_divergences policy.  The file classifies each documented case:
+    #   VOID  a contaminated CAPTURE (ram-vs-instruction physical collision) --
+    #         the golden is not a statement about the chip, so it is excluded.
+    #   EDGE  a genuine but known pre-existing CYCLE edge, explicitly recorded
+    #         as "arch-CLEAN".  This checker only compares ARCHITECTURAL state,
+    #         so an EDGE case must still PASS; excluding it would silently drop
+    #         a case the ledger says is architecturally sound.  It is kept in
+    #         the totals and tracked separately so the claim stays live.
+    kd, kd_edge = {}, {}
     kd_fn = suite / "known_divergences.json"
     if kd_fn.exists():
         raw = json.load(open(kd_fn))
-        kd = {k: {int(i) for i in v} for k, v in raw.items()
-              if not k.startswith("_")}
-        print(f"[known_divergences] {sum(len(v) for v in kd.values())} "
-              f"documented case(s) excluded from totals")
+        for k, v in raw.items():
+            if k.startswith("_"):
+                continue
+            for i, why in (v.items() if isinstance(v, dict)
+                           else ((i, "") for i in v)):
+                tgt = kd_edge if str(why).strip().upper().startswith("EDGE") \
+                    else kd
+                tgt.setdefault(k, set()).add(int(i))
+        print(f"[known_divergences] {sum(len(v) for v in kd.values())} VOID "
+              f"case(s) excluded; {sum(len(v) for v in kd_edge.values())} "
+              f"EDGE case(s) KEPT (cycle-only, arch must pass)")
+
+    subset = None
+    if args.subset:
+        subset = {k: {int(i) for i in v}
+                  for k, v in json.load(open(args.subset)).items()
+                  if not k.startswith("_")}
+        print(f"[subset] {len(subset)} form(s), "
+              f"{sum(len(v) for v in subset.values())} case(s)")
 
     if args.forms == "all":
         forms = sorted(p.name[:-len(".json.gz")]
                        for p in suite.glob("*.json.gz"))
     else:
         forms = args.forms.split(",")
+    if subset is not None:
+        forms = [f for f in forms if f in subset]
+
+    if args.wrap_scan:
+        return wrap_scan(suite, forms, args)
 
     grand = Counter()
     per_form = {}
@@ -432,11 +693,17 @@ def main():
         if not (suite / f"{op}.json.gz").exists():
             print(f"{op}: no suite file")
             continue
-        cases, amb = load_form(suite, op, args.cases)
+        cases, amb = load_form(suite, op, args.cases, bus8)
+        if subset is not None:
+            keep = subset[op]
+            cases = [c for c in cases if c["idx"] in keep]
+            if not cases:
+                continue
         mask = flags_mask_of(op, meta)
         dc_spec, dc_pred = dont_care_spec(op, meta)
         sims = run_sim(cases)
         excl = kd.get(op, set())
+        edge = kd_edge.get(op, set())
 
         # Empirical mirror validation (check_core's rule, ported): a golden that
         # fails on flat 1 MB but passes under the board's real 64K-MIRRORED RAM
@@ -467,6 +734,9 @@ def main():
                 continue
             res = check_case(c, s, mask, raw_flags=args.raw_flags)
             cnt["total"] += 1
+            if c["idx"] in edge:
+                cnt["edge"] += 1
+                cnt["edge_arch_ok"] += 1 if res["arch_ok"] else 0
             if dc_pred and dc_pred(c["bytes"]):
                 cnt["dontcare"] += 1
             ok = res["arch_ok"]
@@ -513,7 +783,10 @@ def main():
         if cnt["residue"]:
             extra.append(f"{cnt['residue']} documented residue")
         if cnt["excluded"]:
-            extra.append(f"{cnt['excluded']} excluded-known")
+            extra.append(f"{cnt['excluded']} excluded-VOID")
+        if cnt["edge"]:
+            extra.append(f"{cnt['edge_arch_ok']}/{cnt['edge']} "
+                         f"EDGE arch-clean (kept)")
         if cnt["dontcare"]:
             extra.append(f"{cnt['dontcare']} dont-care-covered")
         if mirror_ok:
@@ -555,6 +828,38 @@ def main():
             "categories": dict(categories.most_common()),
             "samples": samples}, indent=1))
         print(f"report -> {args.report}")
+
+    if ALUHW:
+        n = ALUHW["cases"]
+        print("\nALU-hardware flag attribution (the PSW bits the microcode "
+              "does NOT determine):")
+        print(f"  cases                        {n}")
+        print(f"  cases whose FINAL PSW keeps  {ALUHW['cases_any']} "
+              f"({100.0 * ALUHW['cases_any'] / max(n, 1):.2f} %) "
+              f"a hardware-owned bit")
+        for k in ("shift_v", "logic_ac", "bcd"):
+            print(f"    {k:10s} commits {ALUHW[k + '_commits']:>10d}  "
+                  f"cases {ALUHW[k + '_cases']:>9d}  "
+                  f"final bits {ALUHW[k + '_bits']:>9d}")
+
+    if args.coverage:
+        # Accumulate into the file if it already holds a run, so the counter is
+        # the union over every gate the campaign runs (S4 asks for rows that no
+        # green gate ever executed).
+        prev = [0] * 1028
+        cp = Path(args.coverage)
+        if cp.exists():
+            prev = json.load(open(cp))["rows"]
+        rows = [a + b for a, b in zip(prev, COVER)]
+        cp.write_text(json.dumps({
+            "_doc": "per-ROM-row micro-instruction execution counts, index = "
+                    "bank*4 + row (ucrom::UcRom::op()); accumulated across "
+                    "gates",
+            "executed": sum(1 for n in rows if n),
+            "rows": rows}))
+        print(f"coverage: {sum(1 for n in rows if n)}/1028 rows executed "
+              f"(cumulative) -> {args.coverage}")
+
     return 0 if grand["arch"] == grand["total"] else 1
 
 

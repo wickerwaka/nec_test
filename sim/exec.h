@@ -120,6 +120,14 @@ private:
 
 std::string row_text(const ucrom::MicroOp& op);
 
+// --- micro-row coverage (the S4 sufficiency counter) ------------------------
+// One counter per ROM row (`bank * 4 + row`, i.e. the same index space as
+// `ucrom::UcRom::op()`), accumulated across every case a process runs.  A row
+// that no green gate ever executes is an UNTESTED ROM claim; the campaign's
+// closure report enumerates them.  Process-global on purpose -- the counter is
+// a property of the run, not of a Cpu instance.
+extern long g_row_cover[ucrom::kRowCount];
+
 }  // namespace sim
 
 #endif  // EXEC_H

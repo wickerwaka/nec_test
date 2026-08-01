@@ -59,6 +59,7 @@ struct CaseResult {
     std::vector<uint8_t> first_bytes;
     int steps = 0;
     bool fired = false;
+    int near_wrap = 0, wrapped = 0, code_wrap = 0;
 };
 
 // --- the pin-event replay directive ----------------------------------------
@@ -155,6 +156,7 @@ CaseResult run_one(const ucrom::UcRom& rom, Biu& biu, const json::Value& c,
     if (fregs) read_regs(*fregs, fr);
 
     biu.begin_case();
+    biu.clear_wrap();
     std::map<uint32_t, uint8_t> init_ram;
     const json::Value* iram = init->get("ram");
     if (iram && iram->type == json::Value::kArr) {
@@ -302,6 +304,9 @@ CaseResult run_one(const ucrom::UcRom& rom, Biu& biu, const json::Value& c,
     got[12] = m.pc;
     got[13] = m.flags();
     for (int i = 0; i < 14; ++i) res.regs[i] = got[i];
+    res.near_wrap = biu.near_wrap();
+    res.wrapped = biu.wrapped();
+    res.code_wrap = biu.code_wrap();
     if (opt.emit_final) {
         res.writes = biu.writes();
         return res;
@@ -392,7 +397,8 @@ CaseResult run_one(const ucrom::UcRom& rom, Biu& biu, const json::Value& c,
 // way sw/check_core.py reconstructs RAM), `b` = the instruction bytes the
 // decoder consumed for the FIRST instruction (the deferred-queue substitute),
 // `s` = instructions retired before the event, `f` = the event fired.
-void emit_final(std::FILE* out, long idx, const CaseResult& r) {
+void emit_final(std::FILE* out, long idx, const CaseResult& r,
+                bool wrap_scan) {
     std::fprintf(out, "{\"i\":%ld,\"r\":[", idx);
     for (int i = 0; i < 14; ++i)
         std::fprintf(out, "%s%u", i ? "," : "", r.regs[i]);
@@ -406,6 +412,9 @@ void emit_final(std::FILE* out, long idx, const CaseResult& r) {
     for (size_t i = 0; i < r.first_bytes.size(); ++i)
         std::fprintf(out, "%s%u", i ? "," : "", r.first_bytes[i]);
     std::fprintf(out, "],\"s\":%d,\"f\":%d", r.steps, r.fired ? 1 : 0);
+    if (wrap_scan && (r.near_wrap || r.wrapped || r.code_wrap))
+        std::fprintf(out, ",\"x\":%d,\"xw\":%d,\"xc\":%d", r.near_wrap,
+                     r.wrapped, r.code_wrap);
     if (!r.ok) std::fprintf(out, ",\"e\":\"%s\"", r.detail.c_str());
     std::fprintf(out, "}\n");
 }
@@ -440,11 +449,10 @@ int run_cases(const ucrom::UcRom& rom, std::FILE* in, std::FILE* out,
             return;
         }
         CaseResult r = run_one(rom, biu, c, opt, opt.trace ? stderr : nullptr);
-        if (opt.emit_final) {
-            emit_final(out, idx, r);
-            ++idx;
-            return;
-        }
+        // The attribution accumulates for BOTH drivers: sw/ucsim_check.py runs
+        // the sim in --emit-final mode (it owns the comparison policy), so the
+        // audit has to be collected before that early return or the production
+        // gates could never contribute to the sufficiency headline.
         if (opt.alu_hw_report) {
             bool any = false;
             for (int i = 0; i < kHwCount; ++i) {
@@ -457,6 +465,11 @@ int run_cases(const ucrom::UcRom& rom, std::FILE* in, std::FILE* out,
                 }
             }
             if (any) ++hw_any_case;
+        }
+        if (opt.emit_final) {
+            emit_final(out, idx, r, opt.wrap_scan);
+            ++idx;
+            return;
         }
         if (r.ok)
             ++pass;
@@ -515,6 +528,12 @@ int run_cases(const ucrom::UcRom& rom, std::FILE* in, std::FILE* out,
                          kHwName[i], hw_commits[i], kHwName[i], hw_cases[i],
                          kHwName[i], hw_bits[i]);
         std::fprintf(out, "}\n");
+    }
+    if (opt.coverage) {
+        std::fprintf(out, "{\"coverage\":[");
+        for (int i = 0; i < ucrom::kRowCount; ++i)
+            std::fprintf(out, "%s%ld", i ? "," : "", g_row_cover[i]);
+        std::fprintf(out, "]}\n");
     }
     if (opt.emit_final) return 0;
     std::fprintf(out, "{\"summary\":true,\"pass\":%ld,\"fail\":%ld}\n", pass,

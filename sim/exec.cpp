@@ -8,6 +8,8 @@
 
 namespace sim {
 
+long g_row_cover[ucrom::kRowCount] = {};
+
 namespace {
 constexpr int kMaxRows = 100000;
 
@@ -484,6 +486,7 @@ bool Cpu::run_micro(const MicroPc& entry) {
             rowp = &nop;
         const ucrom::MicroOp& op = *rowp;
         ++rows_;
+        if (bank >= 0) ++g_row_cover[bank * 4 + m_.upc.row()];
 
         // `F` is the bus interlock: the row waits for the outstanding read to
         // land in OPR (ledger, "F = bus interlock").

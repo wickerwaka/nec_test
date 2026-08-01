@@ -14,13 +14,16 @@ Provenance classes:
 | **MEASURED** | a law measured on silicon and recorded in `docs/facts/*` or a golden suite |
 | **ASSUMPTION** | not determined by the assets; adopted because it reproduces the goldens.  Evidence and falsifier recorded. |
 
-Status of this file at the end of **S2a**: covers every form in
-`tests/v30/v0.1` and `tests/v30/v0.2` — the bring-up families, the flow/stack
-forms, the internal-routine page, the arithmetic groups, the whole `0F` page and
-(new at S2a) the eleven pin-event pseudo-forms.  §29-§32 are the P1 accounting
+Status of this file at the end of **S2b**: covers every form in
+`tests/v30/v0.1`, `tests/v30/v0.2`, `tests/v30/v0.3` (370 forms, 3.7 M cases)
+and `tests/v30/v20suite` (360 forms, 3.1 M cases of real µPD70108 silicon) —
+the bring-up families, the flow/stack forms, the internal-routine page, the
+arithmetic groups, the whole `0F` page, the eleven pin-event pseudo-forms and
+the V20's undocumented/alias opcodes.  §29-§32 are the P1 accounting
 (provenance census, the assumption list with falsifiers, the `--alu-hw-report`
-sufficiency numbers and the residual uncertainties); §33-§40 are S2a.  Later
-stages append.
+sufficiency numbers and the residual uncertainties); §33-§42 are S2a; §43-§51
+are S2b (gates G-B and G-D, the micro-row coverage report and the raw-PSW
+headline).  Later stages append.
 
 ---
 
@@ -1790,3 +1793,328 @@ survey-then-fix triage was needed.
 * **R10 — 8080 pages** — gains a concrete stake: bank A of §34 is (on the A30
   reading) the emulation-mode acknowledge, so a `BRKEM` capture would settle
   A30 as a side effect.
+
+---
+
+# S2b — the mass gauntlet: G-B (`v0.3`) and G-D (`v20suite`)
+
+Scope: the two multi-million-case suites, run under **survey-then-fix**
+discipline, preceded by two ordered exposure gates so that a boundary or a
+memory-operand failure could not masquerade as an OPR/segment bug downstream.
+
+## 43. Gate order and why
+
+Codex's sequencing for S2b was: (1) the A12 segment-boundary exposure, (2) the
+`0F 31/33/39/3B` `mod != 3` memory subset, (3) full `v0.3`, (4) `v20suite`.
+Both pre-gates turned out to have no ready-made tranche, and the reason is
+itself a finding in each case (§44, §45).
+
+## 44. The A12 boundary exposure — **A12 falsifier DISCHARGED**
+
+A12 (§8) says a word memory access wraps the **offset** at 16 bits inside the
+segment.  Its recorded falsifier was `tests/v30/v0.3-f4a-boundary` — which
+**was never captured**: the directory holds an `emit_log.txt` and no data.  So
+the exposure was *extracted* from the mass suite instead.
+
+`sim/v30sim run --wrap-scan` adds three counters to the BIU (`Biu::note_access`
+/ `code_wrap_`) and reports them per case: **near_wrap** = a DATA access whose
+offset lands in `0xFFFC..0xFFFF`, **wrapped** = an access that actually took its
+second byte from offset `0x0000`, **code_wrap** = the instruction fetch pointer
+rolling over.  `sw/ucsim_check.py --wrap-scan <file>` runs a suite in that mode
+and writes the subset; it performs **no comparison**, so the gate that follows
+is a genuine first look and not a re-reading of results already seen.
+
+| | |
+|---|---|
+| scanned | 3 700 000 cases (whole `v0.3`), 468.1 s |
+| boundary subset | **8 820 cases over 195 of the 370 forms** |
+| of which an ACTUAL 16-bit offset wrap | **47** |
+| additionally wrapping the code-fetch pointer | 66 |
+| **result** | **8 820 / 8 820 arch-exact** (189.7 s) |
+
+The subset is broad: word data operands, both stack directions (`FF.2`/`FF.3`
+each contribute ~197 cases), every string form, and all eleven pin-event
+pseudo-forms (the interrupt frame's three pushes are what reach the boundary
+there).  A12 is therefore no longer an assumption resting on an unbuilt
+tranche: it is **MEASURED**, against 8 820 real captures including 47 that
+exercise the wrap itself.
+
+## 45. `0F 31/33/39/3B` with `mod != 3` — **R8 RESOLVED**, and a `v0.3` vacuity
+
+R8 asked for the INS/EXT bit-field group with a **memory** r/m, because A28
+(§23.4) binds those forms' byte registers off ext `XOP = 0011` and no v0.2 case
+had a memory operand.  The route recorded for it was `v0.3`.
+
+**`v0.3` does not discharge it.**  All 40 000 `0F31`/`0F33`/`0F39`/`0F3B` cases
+in `v0.3` carry `mod == 3`; the emitter never produced a memory form.  This is
+the wait-axis vacuity lesson in a new place: a residual routed to a suite is
+not closed by that suite being green.
+
+The coverage exists in **`v20suite`** (~50 % of each form), so the gate was run
+there, ahead of G-D, as its own first look:
+
+| form | `mod != 3` cases | result |
+|---|---:|---|
+| `0F31` INS reg8,reg8 | 4 947 | 4 947 / 4 947 |
+| `0F33` EXT reg8,reg8 | 5 010 | 5 010 / 5 010 |
+| `0F39` INS reg8,imm4 | 4 947 | 4 947 / 4 947 |
+| `0F3B` EXT reg8,imm4 | 5 010 | 5 010 / 5 010 |
+| **total** | **19 914** | **19 914 / 19 914** (9.7 s) |
+
+A memory-`M` INS/EXT stresses binding, pre-read, OPR and write-back in one
+instruction, and all four are exact.  **R8 is CLOSED and A28's falsifier is
+discharged** — the byte-register binding does not depend on the r/m being a
+register.
+
+## 46. The V20 suite's port-read replay — **POLICY (R3), extended**
+
+R3 is standing policy: there is no I/O model, so the value a port presented is
+**replayed** from the capture.  The V30 suites encode it two ways (the case name
+`iord=XXXX`, or an `iords/` sidecar built by `sw/extract_iords.py`).  The V20
+SingleStepTests suite encodes it a third way — **in its own bus trace** — and
+two consequences fell out:
+
+1. `sw/extract_iords.py` looks for `r[7] == "IOR" and r[8] == "T3"`, which never
+   matches: **both** trace conventions stop labelling the bus status at T2, so
+   the data column has to be taken off the row that *follows* an IOR cycle at
+   T3.  `sw/ucsim_check.py::iords_from_cycles` does that.
+2. `v0.3`'s eight **REP-INS** forms (`F36C`…`656D`) had no sidecar at all; they
+   were generated with `sw/extract_iords.py` (0 ambiguous cases over 80 000
+   cases / ~297 000 IORs) before G-B ran.
+
+**The extraction is load-bearing, not decorative.**  With it removed,
+`v20suite` `E4`/`E5`/`EC`/`ED` are **0 / 40 000** (`in al,4Bh`: `AX` exp `52FF`
+got `5200`); with it, 40 000 / 40 000.
+
+The µPD70108 has an **8-bit** bus, so a word port read is two byte cycles while
+the simulator's port model is one 16-bit `src` word with a parity-selected lane.
+The fold is `lo | hi << 8` for a word and the byte **replicated on both lanes**
+for a byte (replication is what an 8-bit bus physically does).  Every one of the
+~200 000 IOR cycles in the V20 suite carries `0xFF`, so both lanes are equal and
+the lane transform is provably inert; the checker counts word reads whose two
+byte cycles disagreed and reports them — **0 in 3 125 000 cases**.  Booked as
+**A36**.
+
+## 47. G-B — `tests/v30/v0.3` — **GREEN, first pass**
+
+```
+TOTAL ARCH: 3699998/3699998  [2 documented pre-existing excluded]  (526.9s)
+```
+
+370 forms, 3 700 000 cases.  **Zero failures**, so survey-then-fix found nothing
+to triage and no fix was made: the model that entered S2b is the model that left
+it.  Zero collision-dependent (64K-mirror) rescues were needed anywhere in
+`v0.3` — the one in `v0.1` (`0F12` idx 219) remains the only case of that class
+in the campaign.
+
+**`known_divergences.json` is now read by CLASS, not as a flat exclusion list.**
+The file tags each case `VOID` (a contaminated *capture* — a ram-vs-instruction
+physical collision, so the golden is not a statement about the chip) or `EDGE`
+(a genuine but known pre-existing **cycle** edge, explicitly recorded
+"arch-CLEAN").  This checker compares architectural state only, so excluding an
+EDGE case would silently drop a case the ledger says is architecturally sound.
+The checker now excludes only VOID and keeps EDGE in the totals, tracked
+separately:
+
+* VOID excluded: `0F1B` idx 3917, `83.5` idx 8683 (2 cases).
+* EDGE kept: `646F` idx 8988 (`repnc outsw cx=13`) — **arch-clean, and it
+  passes**, so the ledger's "cycle-only" classification is confirmed live
+  rather than assumed.
+
+`8F.0`'s `dont_care` entry covers 2 502 cases, so it is not vacuous either.
+
+## 48. G-D — `tests/v30/v20suite` — **GREEN, first pass**
+
+```
+TOTAL ARCH: 3125000/3125000  (373.8s)
+```
+
+360 forms / 282 metadata opcodes, 3 125 000 cases of **real µPD70108 silicon**
+(arduino8088 rig, NEC V20 8902NX D70108C-8), run `--no-mirror` because that rig
+is not the 64K-mirrored capture board.  Queue is masked (R5/A35 — the V20 has a
+4-byte byte-fetch queue our functional model does not model at all); the
+consumed-bytes assertion stands in for it, and it holds on every case.
+
+### 48.1 V20 vs. V30 — **no architectural difference found**
+
+The stated expectation was that the V20 is the SAME EU with an 8-bit BIU, so
+architectural behaviour should be identical, and **any** difference would be a
+discovery.  Across 3 125 000 cases spanning 282 opcodes there is **not one
+architectural divergence** — same microcode ROM, same PLA decode, same C++
+hardware laws, no V20-specific branch anywhere in `sim/`.  The only V20-specific
+code in the whole campaign is the port-read *fold* of §46, which is a property
+of the bus width, not of the EU.  Nothing was routed to `docs/facts/`.
+
+That is a strong statement about the assets: the ROM we hold is dumped from a
+V20, and it drives a V30 model that is exact on both parts.
+
+### 48.2 Undocumented / alias opcodes — first empirical test
+
+These forms exist in no V30 suite we emitted; `v20suite` is their first test.
+All are exact:
+
+| form | what the suite calls it | cases | result |
+|---|---|---:|---|
+| `63` | `undef word [ds:bx+4Dh]` — **HAS a ModR/M** | 10 000 | 10 000 / 10 000 |
+| `66`, `67` | `fpo2` (FPO2 escape; `66` reg form, `67` memory form) | 20 000 | 20 000 / 20 000 |
+| `82.0`…`82.7` | alias of the `80` group | 80 000 | 80 000 / 80 000 |
+| `D6` | **`xlat`** — on the V20 `D6` aliases `D7`, it is *not* SALC | 10 000 | 10 000 / 10 000 |
+| `F6.1`, `F7.1` | `test` — the undocumented `/1` alias of `/0` | 20 000 | 20 000 / 20 000 |
+| `FF.7` | `push` — `FF /7` aliases the `/6` PUSH r/m | 10 000 | 10 000 / 10 000 |
+| `8F`, `C6`, `C7` | ungrouped (all `reg` fields, not just `/0`) | 30 000 | 30 000 / 30 000 |
+| `0F31/33/39/3B` `mod != 3` | INS/EXT with a memory bit field | 19 914 | 19 914 / 19 914 (§45) |
+| `D8`…`DF` | FPU escapes | 80 000 | 80 000 / 80 000 |
+
+`0x63` having a ModR/M and `0x66/0x67` decoding as a two-operand escape were
+optable/pla *predictions*; consuming the right number of bytes on 30 000 real
+captures is their first empirical confirmation (A35's consumed-bytes assertion
+is what makes the length claim a real test rather than a coincidence).
+
+**`F1` is NOT tested here.**  The suite's own metadata classes it
+`"status": "prefix"` and emits no file for it, exactly as for `F0`/`F2`/`F3`.
+So the optable/pla finding "`F1` = BUSLOCK-alias prefix" is *corroborated by the
+suite's classification* and still **untested empirically**.  It stays open.
+
+### 48.3 Coverage the V20 suite adds and does not add
+
+58 forms are V20-only (`41`-`4F`, `51`-`5F` — every INC/DEC/PUSH/POP register
+slot rather than one representative; `B1`-`BF`; the alias forms above).  68
+forms are `v0.3`-only: **every segment-override form, every REP form, every
+string form with a prefix, and all eleven pin-event pseudo-forms** — the V20
+suite tests no prefixed instruction at all.  The two suites are complements, not
+one containing the other, which is why both are gates.
+
+The V20 tranche also widens the BCD-string loop: `0F20/22/26` run `CL` up to
+**238** there versus a maximum of **6** in `v0.3`, so the `R`-loop / `CNTZ`
+continuation (§12, §24) is exercised two orders of magnitude deeper.
+
+## 49. Rollups
+
+### 49.1 The raw PSW — the headline sufficiency number
+
+Both mass suites were re-run with `--raw-flags`, i.e. **every metadata
+flags-mask disabled and the full 16-bit PSW compared**:
+
+| suite | masked | **raw PSW, no masking** |
+|---|---|---|
+| `v0.3` | 3 699 998 / 3 699 998 | **3 699 998 / 3 699 998** (489.9 s) |
+| `v20suite` | 3 125 000 / 3 125 000 | **3 125 000 / 3 125 000** (371.4 s) |
+
+For reference, 2 299 000 of the 3 125 000 V20 cases carry no flags-mask in the
+suite metadata at all, so they were *already* raw; the `--raw-flags` run adds
+the other 826 000.  **Not one undefined flag bit is wrong on either part.**
+
+### 49.2 `--alu-hw-report`: what the microcode does NOT determine
+
+`sw/ucsim_check.py --alu-hw` now carries the attribution through the production
+checker (the accumulator used to sit behind `--emit-final`'s early return, so
+the gates could never contribute to it; fixed in `case_runner.cpp`).
+
+| suite | cases | cases keeping a hardware-owned PSW bit | shift-V bits | logic-`AC` bits | BCD bits |
+|---|---:|---:|---:|---:|---:|
+| `v0.2` (§31) | 347 000 | 87 412 (25.19 %) | 46 412 | 37 000 | 24 000 |
+| `v0.3` | 3 700 000 | **873 999 (23.62 %)** | 463 999 | 370 000 | 240 000 |
+| `v20suite` | 3 125 000 | **777 495 (24.88 %)** | 317 495 | 420 000 | 240 000 |
+
+So on ~6.8 million cases across two different parts, **~76 % of cases end with a
+PSW every bit of which came out of the microcode ROM**, and the residue is
+confined to the same three named hardware laws — the per-step shift/rotate `V`
+law, the logic ops' `AC = 0`, and the fitted BCD correction.  The BCD row stays
+the sharp illustration: 21.2 M shift-V commits and 336 k BCD commits across the
+two suites, of which the BCD ones survive into only 40 000 cases each, because
+§25.2's tail overwrites the PSW.
+
+### 49.3 Micro-row coverage — 740 / 1028
+
+`sim/v30sim run --coverage` emits a per-ROM-row execution counter (`bank * 4 +
+row`); `sw/ucsim_check.py --coverage <file>` accumulates it across gates and
+`--coverage-report <file>` names the rows nothing ever executed.  Union over
+every green gate (`v0.1`, `v0.1-w1`, `v0.1-w3`, `v0.2`, `v0.3`, `v20suite`,
+`f4a_boundary`, `f0lock_tranche`, `mod3_illegal`):
+
+**740 / 1028 rows executed; 288 never executed.**  Classified:
+
+| n | class | status |
+|---:|---|---|
+| 184 | the **8080 emulation pages** (`110.*`, `101.*`) | R10 — not a victory gate (user decision) |
+| 77 | **trailing dead `CTL` padding** — the 4th row of a bank whose sequence retires earlier | structurally unreachable; no ROM claim |
+| 8 | `111.00000011` — the **RESET** sequence (`ZEROS -> DS/FLAGS/ES/SS`, `ONES -> CS`, FLUSH) | no suite resets the part |
+| 5 | `9B` **POLL busy loop**: `006F JMP INTR 5`, `0070 JMP 0`, `0071 SUSP`, `0072 PC-1`, `0073 FLUSH` | **R2'** — `BUSY` is hard-FALSE, so the poll loop and its interrupt withdrawal are unreached |
+| 4 | `111.00000010.00` **bank A** (`[-05-] IO` acknowledge) | A30 — the emulation-mode acknowledge |
+| 4 | the **INTEM** bank (`0090`-`0093`, `MFS`/`MFC`) | R10 |
+| 4 | `100.11111111` — **`0F FF` BRKEM** entry | R10 |
+| 2 | `01D8`/`01D9` — the **BRK/TF trap** entry (loc 0/1 of the NMI bank) | no golden traps on TF; A29's NMI half (loc 2/3) *is* executed |
+
+The honest reading: **every unexecuted row is accounted for by a named residual
+or is structurally unreachable.**  Nothing is unexecuted for want of trying.
+Removing R10 (the 192 rows of 8080/BRKEM/INTEM/`0F FF`) and the 77 padding rows
+leaves **19 rows** — RESET, the POLL busy loop, bank A, and the TF trap — as the
+whole of the campaign's untested ROM surface.
+
+### 49.4 Performance
+
+Below the ~30 min budget with room to spare.  The one change made was payload
+slimming: the simulator reads `cycles` only for a pin-event case (the REP-abort
+element count), and never reads `hash`, so `sw/ucsim_check.py::_slim` drops both
+from non-event cases.  `cycles` is ~70 % of a `v0.3` form's bytes.
+
+| pass | cases | time |
+|---|---:|---:|
+| `v0.1` (G-A) | 169 000 | 17.7 s (was 28 s) |
+| A12 extraction scan | 3 700 000 | 468.1 s |
+| A12 boundary gate | 8 820 | 189.7 s |
+| INS/EXT `mod != 3` gate | 19 914 | 9.7 s |
+| **G-B** `v0.3` | 3 700 000 | **526.9 s** |
+| **G-D** `v20suite` | 3 125 000 | **373.8 s** |
+
+The A12 gate's 189.7 s for 8 820 cases is *all* decompression: the subset is
+spread over 195 forms, each of which has to be gunzipped whole to select a
+handful of cases.
+
+## 50. New assumption from S2b
+
+| # | assumption | § | falsifier |
+|---|---|---|---|
+| A36 | the V20 port-read fold: an 8-bit bus places every byte on AD0-7, so a byte read is REPLICATED across both lanes and a word read is `lo \| hi << 8` | 46 | a word port read whose two byte cycles differ — the checker counts them; **0 in 3 125 000 cases**, and every IOR cycle in the suite carries `0xFF`, so the lane transform is provably inert here |
+
+Running total: **36** numbered assumptions (A1..A36).  Policy entries: 3
+(queue deferral, `iord` replay, pin-event boundary replay).
+
+## 51. Residual updates after S2b
+
+* **A12 — CLOSED as MEASURED** (§44).  Its falsifier tranche was never
+  captured; the exposure was extracted from `v0.3` instead — 8 820 boundary
+  cases, 47 real wraps, all exact.
+* **R8 — RESOLVED** (§45), but *not* by the suite it was routed to: `v0.3`
+  emits `0F 3x` at `mod == 3` only.  Closed on `v20suite`'s 19 914 memory-r/m
+  cases.  **Lesson repeated: a residual routed to a suite is not closed by that
+  suite being green — check that the suite actually contains the discriminator.**
+* **R7 — the ADD4S leg CLOSED; SUB4S/CMP4S legs undiscriminated.**  R7 wanted a
+  case whose adjusted byte is `00` while the raw ADC byte is not.  `v0.3` +
+  `v20suite` contain **ten** such ADD4S cases (e.g. `v0.3` `0F20` idx 1106,
+  `CL=1`, src `FE` + dst `9C` -> stored `00`).  On all ten the chip reports
+  **`Z = 0`**, and the simulator is exact on all ten at RAW PSW — because
+  §25.2's tail (`tmpb + tmpb` at `02DF`) overwrites the accumulated `Z`
+  entirely.  So for ADD4S the pre- vs post-adjust distinction is **not
+  architecturally observable**, which is why the model was 3000/3000 with the
+  "wrong" accumulation.  CMP4S stores no result, so no equivalent probe exists
+  in these suites; that leg stays open.
+* **R6 — still OPEN, and now known to be un-closable from these suites.**  No
+  `0F 20/22/26` case anywhere in `v0.3` or `v20suite` has `CL = 0`
+  (`v0.3` `CL` 1..6, `v20suite` `CL` 1..238).  A directed capture is required.
+* **R1 — byte-shifter hidden high byte — still OPEN.**  6.8 M cases, both
+  parts, raw PSW exact, so nothing contradicts `hi_keep`; but no golden reads
+  the high half back at word width, so it remains undiscriminated rather than
+  confirmed.
+* **R2' — `BUSY` hard-FALSE — now QUANTIFIED**: exactly 5 ROM rows
+  (`006F`-`0073`, the POLL busy loop and its interrupt withdrawal) are unreached
+  because of it (§49.3).
+* **R5 — queue deferral** — unchanged; A35's consumed-bytes assertion now
+  carries 6.8 M more cases, including the V20's byte-fetch queue, where it is
+  the *only* thing standing between the model and a wrong instruction length.
+* **R10 — 8080 pages** — unchanged, and now measured: 192 of the 288 unexecuted
+  rows are R10's.
+* **NEW: `F1` untested** (§48.2).  The one optable/pla finding S2b was expected
+  to test empirically and could not, because the V20 suite classes `F1` as a
+  prefix and emits no cases for it.  Routes to S3 (a fuzz sequence can execute
+  `F1` directly) or a directed capture.

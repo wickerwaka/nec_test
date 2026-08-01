@@ -25,7 +25,8 @@ int usage(const char* argv0) {
                  "  disasm <romfile>   print microcode disassembly (V20UC.TXT format)\n"
                  "  info   <romfile>   print ROM statistics\n"
                  "  run    <romfile> [--queue] [--emit-final] [--mirror]\n"
-                 "                     [--alu-hw-report]\n"
+                 "                     [--alu-hw-report] [--coverage]\n"
+                 "                     [--wrap-scan]\n"
                  "                     run cases from stdin\n"
                  "  trace  <romfile> <idx>      trace one case from stdin\n",
                  argv0);
@@ -84,6 +85,10 @@ int cmd_run(int argc, char** argv) {
             opt.mirror = true;
         else if (std::strcmp(argv[i], "--alu-hw-report") == 0)
             opt.alu_hw_report = true;
+        else if (std::strcmp(argv[i], "--coverage") == 0)
+            opt.coverage = true;
+        else if (std::strcmp(argv[i], "--wrap-scan") == 0)
+            opt.wrap_scan = true;
         else if (std::strncmp(argv[i], "--report=", 9) == 0)
             opt.max_report = std::atoi(argv[i] + 9);
     }

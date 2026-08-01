@@ -43,6 +43,15 @@ struct RunOptions {
     // AC = 0, BCD correction).  Everything not attributed emerged from the
     // microcode ROM alone.  Printed as one extra summary record.
     bool alu_hw_report = false;
+    // Emit the per-ROM-row execution counters (sim::g_row_cover) as one extra
+    // summary record.  The driver accumulates them across every gate; rows that
+    // stay at zero are ROM claims no green gate has ever tested (S4).
+    bool coverage = false;
+    // Emit the A12 segment-boundary instrumentation with each --emit-final
+    // record ("x" = data accesses in the last four bytes of a segment, "xw" =
+    // accesses that actually wrapped the 16-bit offset, "xc" = code-fetch
+    // wraps).  Used to EXTRACT the boundary subset from a suite.
+    bool wrap_scan = false;
 };
 
 // Returns the process exit code (0 = all cases passed).
