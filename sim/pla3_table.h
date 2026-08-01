@@ -34,10 +34,12 @@ enum Col : uint16_t {
     kDirFromBit1   = 1u <<  6,  // b7  source/destination direction = opcode bit 1
     kNativeHi      = 1u <<  5,  // b8  native opcode >= 0x80 (map-half select)
     kIncDecNoCy    = 1u <<  4,  // b9  INC/DEC class: CY must not be updated
-    kXop3          = 1u <<  3,  // b10 \
-    kXop2          = 1u <<  2,  // b11  | XOP[3:0]: 4-bit auxiliary op select
-    kXop1          = 1u <<  1,  // b12  | (see Bl1Op for the kOneByteLogic decode)
-    kXop0          = 1u <<  0,  // b13 /
+    // b10..b13 = XOP[3:0], a 4-bit auxiliary op-select field
+    // (see Bl1Op for the kOneByteLogic decode)
+    kXop3          = 1u <<  3,  // b10
+    kXop2          = 1u <<  2,  // b11
+    kXop1          = 1u <<  1,  // b12
+    kXop0          = 1u <<  0,  // b13
     kXopMask       = 0x000F,
 };
 
