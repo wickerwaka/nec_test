@@ -1,0 +1,1285 @@
+------- 00?.00???0??.00 00..03,08..0B,10..13,18..1B,20..23,28..2B,30..33,38..3B
+0000 M      -> tmpb    R      -> tmpa         ALU OPC    tmpa  
+0001 SIGMA  -> M                          WE  CTL        [-06-]       
+0002                                          CTL                     
+0003                                          CTL                     
+------- 00?.00???10?.00 04,05,0C,0D,14,15,1C,1D,24,25,2C,2D,34,35,3C,3D
+0004 M      -> tmpb    Q      -> tmpa         JMP OP8     2
+0005 Q      -> tmpaH                          CTL                     
+0006                                       E  ALU OPC    tmpa  
+0007 SIGMA  -> M                          W   CTL                     
+------- 00?.000??111.00 07,0F,17,1F
+0008 SP     -> IND                            CTL        MEMR   SS    
+0009 SP     -> tmpb                           ALU INC2   tmpb  
+000A SIGMA  -> SP                             CTL                     
+000B OPR    -> R                         F E  CTL                     
+------- 00?.000??110.00 06,0E,16,1E
+000C SP     -> tmpb                           ALU DEC2   tmpb  
+000D R      -> OPR     SIGMA  -> IND          CTL        MEMW   SS    
+000E SIGMA  -> SP                          E  CTL                     
+000F                                          CTL                     
+------- 00?.00100111.00 27
+0010 AX     -> tmpbL                          ALU ADJD   tmpb  
+0011 ONES   -> tmpa                        E  ALU ADD    tmpa  
+0012 SIGMA  -> AL      SIGMA  -> [-03-]   W   CTL                     
+0013                                          CTL                     
+------- 00?.00101111.00 2F
+0014 AX     -> tmpbL                          ALU ADJD   tmpb  
+0015 ONES   -> tmpa                        E  ALU SUB    tmpa  
+0016 SIGMA  -> AL      SIGMA  -> [-03-]   W   CTL                     
+0017                                          CTL                     
+------- 00?.00110111.00 37
+0018 AX     -> tmpbL                          ALU ADJA   tmpb  
+0019 ONES   -> tmpa                           ALU ADD    tmpa  
+001A SIGMA  -> AL      SIGMA  -> [-03-]   W   ALU INC    tmpb  
+001B AL:AH  -> tmpb                           JMP NC      5
+------- 00?.0011?111.01 37,3F
+001C SIGMA  -> AH                             CTL                     
+001D                                       E  CTL                     
+001E                                          CTL                     
+001F                                          CTL                     
+------- 00?.00111111.00 3F
+0020 AX     -> tmpbL                          ALU ADJA   tmpb  
+0021 ONES   -> tmpa                           ALU SUB    tmpa  
+0022 SIGMA  -> AL      SIGMA  -> [-03-]   W   ALU DEC    tmpb  
+0023 AL:AH  -> tmpb                           JMP NC      5
+------- 00?.0100????.00 40..4F
+0024 M      -> tmpb                        E  ALU OPC    tmpb  
+0025 SIGMA  -> M                          W   CTL                     
+0026                                          CTL                     
+0027                                          CTL                     
+------- 00?.01010???.00 50..57
+0028 SP     -> tmpb                           ALU DEC2   tmpb  
+0029 SIGMA  -> SP      SIGMA  -> IND       E  CTL        MEMW   SS    
+002A M      -> OPR                            CTL                     
+002B                                          CTL                     
+------- 00?.01011???.00 58..5F
+002C SP     -> IND                            CTL        MEMR   SS    
+002D SP     -> tmpb                           ALU INC2   tmpb  
+002E SIGMA  -> SP                             CTL                     
+002F OPR    -> M                         F E  CTL                     
+------- 00?.0110011?.00 66,67
+0030                                       E  CTL                     
+0031                                          CTL                     
+0032                                          CTL                     
+0033                                          CTL                     
+------- 00?.0111????.00 70..7F
+0034 Q      -> tmpbL                          ALU ADD    tmpa  
+0035                                          JMP OPC     4
+0036                                       E  CTL                     
+0037                                          CTL                     
+------- 00?.0111????.01 70..7F
+0038 PC     -> tmpa                           CTL SUSP                
+0039 SIGMA  -> PC                          E  CTL FLUSH               
+003A                                          CTL                     
+003B                                          CTL                     
+------- 00?.100000??.00 80..83
+003C Q      -> tmpbL                          JMP OP8     2
+003D Q      -> tmpbH                          CTL                     
+003E tmpb   -> tmpa                           ALU OPC    tmpa  
+003F M      -> tmpb                           CTL                     
+------- 00?.100000??.01 80..83
+0040 SIGMA  -> M                          WE  CTL        [-06-]       
+0041                                          CTL                     
+0042                                          CTL                     
+0043                                          CTL                     
+------- 00?.1000010?.00 84,85
+0044 M      -> tmpa    R      -> tmpb      E  ALU AND    tmpa  
+0045 SIGMA  -> NULL                       W   CTL                     
+0046                                          CTL                     
+0047                                          CTL                     
+------- 00?.1000011?.00 86,87
+0048 M      -> tmpa    R      -> tmpb         CTL                     
+0049 tmpa   -> R                           E  CTL        [-06-]       
+004A tmpb   -> M                              CTL                     
+004B                                          CTL                     
+------- 00?.100010??.00 88..8B
+004C R      -> tmpa                           CTL                     
+004D tmpa   -> M                           E  CTL        [-06-]       
+004E                                          CTL                     
+004F                                          CTL                     
+------- 00?.100011?0.00 8C,8E
+0050 R      -> M                           E  CTL        [-06-]       
+0051                                          CTL                     
+0052                                          CTL                     
+0053                                          CTL                     
+------- 00?.10001101.00 8D
+0054                                       E  CTL                     
+0055 SIGMA  -> R                              CTL                     
+0056                                          CTL                     
+0057                                          CTL                     
+------- 00?.10001111.00 8F
+0058 SIGMA  -> tmpa                           ALU INC2   tmpb  
+0059 SP     -> IND     SP     -> tmpb         CTL        MEMR   SS    
+005A SIGMA  -> SP                        F    ALU PASS   tmpa  
+005B SIGMA  -> IND                         E  CTL        [-06-]       
+------- 00?.10010???.00 90..97
+005C M      -> tmpb    AX     -> tmpa         CTL                     
+005D tmpa   -> M                           E  CTL                     
+005E tmpb   -> AX                             CTL                     
+005F                                          CTL                     
+------- 00?.10011000.00 98
+0060 AX     -> tmpbL                       E  CTL                     
+0061 tmpb   -> AX                             CTL                     
+0062                                          CTL                     
+0063                                          CTL                     
+------- 00?.10011001.00 99
+0064 ZEROS  -> DX      AX     -> tmpb         CTL                     
+0065                                          JMP NS      3
+0066 ONES   -> DX                             CTL                     
+0067                                       E  CTL                     
+------- 00?.10011010.00 9A
+0068 Q      -> tmpaL                          CTL                     
+0069 Q      -> tmpaH                          CTL                     
+006A Q      -> tmpbL                          CTL                     
+006B Q      -> tmpbH                          CTL FARJMP CALLF 
+------- 00?.10011011.00 9B
+006C                                          JMP BUSY    3
+006D                                       E  CTL [-0A-]              
+006E                                          CTL                     
+006F                                          JMP INTR    5
+------- 00?.10011011.01 9B
+0070                                          JMP         0
+0071                                          CTL SUSP                
+0072 PC     -> tmpb                           ALU DEC    tmpb  
+0073 SIGMA  -> PC                          E  CTL FLUSH               
+------- 00?.10011100.00 9C
+0074 SP     -> tmpb                           ALU DEC2   tmpb  
+0075 FLAGS  -> OPR     SIGMA  -> IND       E  CTL        MEMW   SS    
+0076 SIGMA  -> SP                             CTL                     
+0077                                          CTL                     
+------- 00?.10011101.00 9D
+0078 SP     -> IND                            CTL        MEMR   SS    
+0079 SP     -> tmpb                           ALU INC2   tmpb  
+007A OPR    -> FLAGS                     F E  CTL                     
+007B SIGMA  -> SP                             CTL                     
+------- 00?.10011110.00 9E
+007C AL:AH  -> tmpaL                          CTL                     
+007D FLAGS  -> tmpaH                       E  CTL                     
+007E tmpa   -> FLAGS                          CTL                     
+007F                                          CTL                     
+------- 00?.10011111.00 9F
+0080 FLAGS  -> AH                          E  CTL                     
+0081                                          CTL                     
+0082                                          CTL                     
+0083                                          CTL                     
+------- 00?.1010000?.00 A0,A1
+0084 Q      -> tmpbL                          CTL                     
+0085 Q      -> tmpbH                          CTL                     
+0086 tmpb   -> IND                            CTL        MEMR         
+0087 OPR    -> M                         F E  CTL                     
+------- 00?.1010001?.00 A2,A3
+0088 Q      -> tmpbL                          CTL                     
+0089 Q      -> tmpbH                          CTL                     
+008A tmpb   -> IND                         E  CTL        MEMW         
+008B M      -> OPR                            CTL                     
+------- 000.1010010?.00 <norep> A4,A5
+008C dir*sz -> tmpc    SI     -> tmpb         ALU ADD    tmpc  
+008D SI     -> IND                            CTL        MEMR         
+008E SIGMA  -> SI      DI     -> tmpb         ALU ADD    tmpc  
+008F DI     -> IND                         E  CTL        MEMW   ES    
+------- 111.00011000.10 <internal> INTEM  18
+0090 FLAGS  -> OPR                       F    CTL                     
+0091 SIGMA  -> tmpb    SIGMA  -> IND          CTL MFS    MEMW   SS    
+0092 CS     -> OPR     SIGMA  -> IND     F    JMP CNTZ   12
+0093                                          CTL MFC                 
+------- 001.1010010?.00 <rep> A4,A5
+0094 CX     -> COUNT   CX     -> tmpb         ALU PASS   tmpb  
+0095 SIGMA  -> NULL                           ALU ADD    tmpc  
+0096 dir*sz -> tmpc                           JMP Z       7
+0097 SI     -> IND     DI     -> tmpb         CTL        MEMR         
+------- 00?.1010010?.01 A4,A5
+0098 SIGMA  -> DI                             CTL                     
+0099 tmpb   -> IND     SI     -> tmpb         CTL        MEMW   ES    
+009A SIGMA  -> SI                             JMP REP     3
+009B COUNT  -> CX                             CTL FARJMP REPX  
+------- 000.1010011?.00 <norep> A6,A7
+009C dir*sz -> tmpc    SI     -> tmpb         ALU ADD    tmpc  
+009D SI     -> IND                            CTL        MEMR         
+009E SIGMA  -> SI      DI     -> tmpb         CTL                     
+009F DI     -> IND     SIGMA  -> tmpa         CTL        MEMR   ES    
+------- 000.1010011?.01 <norep> A6,A7
+00A0 OPR    -> tmpb                      F    CTL                     
+00A1 tmpa   -> DI                             ALU SUB    tmpa  
+00A2 OPR    -> tmpa                      F E  CTL                     
+00A3 SIGMA  -> NULL                       W   CTL                     
+------- 001.1010?11?.00 <rep> A6,A7,AE,AF
+00A4 CX     -> COUNT   CX     -> tmpb         ALU PASS   tmpb  
+00A5 dir*sz -> tmpc    SIGMA  -> [-03-]       ALU ADD    tmpc  
+00A6                                          JMP Z      11
+00A7 DI     -> IND     DI     -> tmpb         CTL        MEMR   ES    
+------- 001.1010011?.01 <rep> A6,A7
+00A8 SIGMA  -> DI      SI     -> tmpb         CTL                     
+00A9 SI     -> IND     SIGMA  -> tmpb         CTL        MEMR         
+00AA OPR    -> tmpa                      F    CTL                     
+00AB tmpb   -> SI                             ALU SUB    tmpa  
+------- 001.1010011?.10 <rep> A6,A7
+00AC OPR    -> tmpb                      F    CTL                     
+00AD SIGMA  -> NULL                       W   ALU ADD    tmpc  
+00AE                                          JMP REP     3
+00AF COUNT  -> CX                             CTL FARJMP REPX  
+------- 111.00110000.11 <internal> IMUL   30
+00B0 tmpb   -> tmpc                           JMP OP8    15
+00B1 tmpb   -> DX                             CTL                     
+00B2 tmpa   -> AX                             CTL FARJMP MULADJ
+00B3 tmpb   -> AH                             CTL                     
+------- 00?.1010100?.00 A8,A9
+00B4 AX     -> tmpb    Q      -> tmpa         JMP OP8     2
+00B5 Q      -> tmpaH                          CTL                     
+00B6                                       E  ALU AND    tmpa  
+00B7 SIGMA  -> NULL                       W   CTL                     
+------- 000.1010101?.00 <norep> AA,AB
+00B8 dir*sz -> tmpc    DI     -> tmpb         ALU ADD    tmpc  
+00B9 DI     -> IND                            CTL        MEMW   ES    
+00BA M      -> OPR                         E  CTL                     
+00BB SIGMA  -> DI                             CTL                     
+------- 001.1010101?.00 <rep> AA,AB
+00BC CX     -> COUNT   CX     -> tmpb         ALU PASS   tmpb  
+00BD dir*sz -> tmpc    SIGMA  -> [-03-]       ALU ADD    tmpc  
+00BE M      -> OPR                            JMP Z       5
+00BF DI     -> IND     DI     -> tmpb         CTL        MEMW   ES    
+------- 001.1010101?.01 <rep> AA,AB
+00C0 SIGMA  -> DI                             JMP REP     3
+00C1 COUNT  -> CX                             CTL FARJMP REPX  
+00C2                                          CTL                     
+00C3                                          CTL                     
+------- 000.1010110?.00 <norep> AC,AD
+00C4 dir*sz -> tmpc    SI     -> tmpb         ALU ADD    tmpc  
+00C5 SI     -> IND                            CTL        MEMR         
+00C6 SIGMA  -> SI                             CTL                     
+00C7 OPR    -> M                         F E  CTL                     
+------- 001.1010110?.00 <rep> AC,AD
+00C8 CX     -> COUNT   CX     -> tmpb         ALU PASS   tmpb  
+00C9 dir*sz -> tmpc    SIGMA  -> [-03-]       ALU ADD    tmpc  
+00CA                                          JMP Z       7
+00CB SI     -> IND     SI     -> tmpb         CTL        MEMR         
+------- 001.1010110?.01 <rep> AC,AD
+00CC SIGMA  -> SI                             CTL                     
+00CD OPR    -> M                         F    CTL                     
+00CE                                          JMP REP     3
+00CF COUNT  -> CX                             CTL FARJMP REPX  
+------- 000.1010111?.00 <norep> AE,AF
+00D0 dir*sz -> tmpc    DI     -> tmpb         ALU ADD    tmpc  
+00D1 DI     -> IND                            CTL        MEMR   ES    
+00D2 SIGMA  -> DI                             ALU SUB    tmpa  
+00D3 M      -> tmpb                           CTL                     
+------- 000.1010111?.01 <norep> AE,AF
+00D4 OPR    -> tmpa                      F    CTL                     
+00D5 SIGMA  -> NULL                       WE  CTL                     
+00D6                                          CTL                     
+00D7                                          CTL                     
+------- 001.1010111?.01 <rep> AE,AF
+00D8 SIGMA  -> DI                             ALU SUB    tmpa  
+00D9 M      -> tmpb                           CTL                     
+00DA OPR    -> tmpa                      F    CTL                     
+00DB SIGMA  -> NULL                       W   ALU ADD    tmpc  
+------- 001.1010111?.10 <rep> AE,AF
+00DC                                          JMP REP     3
+00DD                                          CTL                     
+00DE                                          CTL                     
+00DF COUNT  -> CX                             CTL FARJMP REPX  
+------- 00?.1011????.00 B0..BF
+00E0 Q      -> tmpbL                          JMP OP8     2
+00E1 Q      -> tmpbH                          CTL                     
+00E2 tmpb   -> M                           E  CTL                     
+00E3                                          CTL                     
+------- 00?.1100?010.00 C2,CA
+00E4 Q      -> tmpbL                          CTL                     
+00E5 Q      -> tmpbH                          ALU INC2   tmpa  
+00E6 SP     -> IND     SP     -> tmpa         CTL SUSP   MEMR   SS    
+00E7                                          CTL                     
+------- 00?.11000010.01 C2
+00E8 SIGMA  -> tmpa                           ALU ADD    tmpa  
+00E9 SIGMA  -> SP                             CTL                     
+00EA OPR    -> PC                        F E  CTL FLUSH               
+00EB                                          CTL                     
+------- 00?.11001010.01 CA
+00EC SIGMA  -> IND     SIGMA  -> tmpa         CTL        MEMR   SS    
+00ED SIGMA  -> tmpa                           CTL FARJMP RETF  
+00EE                                          CTL                     
+00EF                                          CTL                     
+------- 00?.11000011.00 C3
+00F0 SP     -> IND     SP     -> tmpa         CTL SUSP   MEMR   SS    
+00F1                                          ALU INC2   tmpa  
+00F2 SIGMA  -> SP                             CTL                     
+00F3 OPR    -> PC                        F E  CTL FLUSH               
+------- 00?.11001011.00 CB
+00F4 SP     -> IND     SP     -> tmpa         CTL SUSP   MEMR   SS    
+00F5 ZEROS  -> tmpb                           ALU INC2   tmpa  
+00F6 SIGMA  -> IND     SIGMA  -> tmpa         CTL        MEMR   SS    
+00F7 SIGMA  -> tmpa                           CTL FARJMP RETF  
+------- 00?.11000100.00 C4
+00F8 OPR    -> R       SIGMA  -> tmpb    F    ALU INC2   tmpb  
+00F9 SIGMA  -> IND                            CTL        MEMR         
+00FA OPR    -> ES                        F E  CTL                     
+00FB                                          CTL                     
+------- 00?.11000101.00 C5
+00FC OPR    -> R       SIGMA  -> tmpb    F    ALU INC2   tmpb  
+00FD SIGMA  -> IND                            CTL        MEMR         
+00FE OPR    -> DS                        F E  CTL                     
+00FF                                          CTL                     
+------- 00?.1100011?.00 C6,C7
+0100 Q      -> tmpbL                          JMP OP8     2
+0101 Q      -> tmpbH                          CTL                     
+0102 tmpb   -> M                           E  CTL        [-06-]       
+0103                                          CTL                     
+------- 00?.11001100.00 CC
+0104 CONST  -> tmpbL    3                     CTL SUSP                
+0105                                          CTL FARJMP INT   
+0106                                          CTL                     
+0107                                          CTL                     
+------- 00?.11001101.00 CD
+0108 Q      -> tmpbL                          CTL FARJMP INT   
+0109                                          CTL                     
+010A                                          CTL                     
+010B                                          CTL                     
+------- 00?.11001110.00 CE
+010C CONST  -> tmpbL    4                     JMP O       3
+010D                                       E  CTL                     
+010E                                          CTL                     
+010F                                          CTL FARJMP INT   
+------- 00?.11001111.00 CF
+0110 SP     -> IND     SP     -> tmpa         CTL SUSP   MEMR   SS    
+0111                                          CTL FARJMP IRET  
+0112                                          CTL                     
+0113                                          CTL                     
+------- 00?.1101000?.00 D0,D1
+0114 CONST  -> COUNT    1                     CTL                     
+0115 M      -> tmpb                           ALU PASS   tmpb  
+0116 SIGMA  -> tmpb                       W R ALU OPC    tmpb  
+0117 SIGMA  -> M                           E  CTL        [-06-]       
+------- 00?.1101001?.00 D2,D3
+0118 M      -> tmpb                           ALU PASS   tmpa  
+0119 CX     -> tmpaL                          CTL                     
+011A tmpa   -> COUNT   SIGMA  -> [-03-]       ALU PASS   tmpb  
+011B                                          CTL FARJMP SHIFT 
+------- 00?.11010100.00 D4
+011C Q      -> tmpc    AX     -> tmpa         CTL                     
+011D ZEROS  -> tmpb                           CTL                     
+011E CONST  -> COUNT    8                     ALU SUB    tmpc  
+011F SIGMA  -> tmpb                         R ALU DIV    tmpc  
+------- 00?.11010100.01 D4
+0120 SIGMA  -> NULL    SIGMA  -> tmpb         ALU DIV    tmpc  
+0121 tmpa   -> AH                          E  ALU PASS   tmpb  
+0122 SIGMA  -> AL                         W   CTL                     
+0123                                          CTL                     
+------- 00?.11010101.00 D5
+0124 AL:AH  -> tmpa    Q      -> tmpb         CTL                     
+0125 AL:AH  -> tmpb                           ALU ADD    tmpb  
+0126 SIGMA  -> tmpb                           CTL                     
+0127 SIGMA  -> tmpb                           ALU ADD    tmpa  
+------- 00?.11010101.01 D5
+0128 SIGMA  -> tmpb                           ALU ADD    tmpb  
+0129 SIGMA  -> tmpb                           CTL                     
+012A ZEROS  -> AH      AX     -> tmpa      E  ALU ADD    tmpa  
+012B SIGMA  -> AL                         W   CTL                     
+------- 00?.11010111.00 D7
+012C AX     -> tmpaL   BX     -> tmpb         CTL                     
+012D SIGMA  -> IND                            CTL        MEMR         
+012E OPR    -> AL                        F E  CTL                     
+012F                                          CTL                     
+------- 00?.11011???.00 D8..DF
+0130                                       E  CTL                     
+0131                                          CTL                     
+0132                                          CTL                     
+0133                                          CTL                     
+------- 00?.1110000?.00 E0,E1
+0134 CX     -> COUNT                          CTL                     
+0135                                          CTL                     
+0136 Q      -> tmpaL                          JMP REP     4
+0137                                       E  CTL                     
+------- 00?.111000??.01 E0..E3
+0138 COUNT  -> CX                             CTL                     
+0139 tmpa   -> tmpbL                          CTL SUSP                
+013A PC     -> tmpa                           ALU ADD    tmpa  
+013B SIGMA  -> PC                          E  CTL FLUSH               
+------- 00?.11100010.00 E2
+013C Q      -> tmpaL   CX     -> tmpb         ALU DEC    tmpb  
+013D SIGMA  -> CX                             CTL                     
+013E CX     -> COUNT                          JMP NZ      5
+013F                                       E  CTL                     
+------- 00?.11100011.00 E3
+0140 Q      -> tmpaL   CX     -> tmpb         ALU PASS   tmpb  
+0141 SIGMA  -> NULL                           CTL                     
+0142                                          JMP Z       5
+0143 CX     -> COUNT                       E  CTL                     
+------- 00?.1110010?.00 E4,E5
+0144 Q      -> tmpaL                          CTL                     
+0145 tmpa   -> IND                            CTL        MEMR   IO    
+0146 OPR    -> M                         F E  CTL                     
+0147                                          CTL                     
+------- 00?.1110011?.00 E6,E7
+0148 Q      -> tmpaL                          ALU PASS   tmpa  
+0149 M      -> OPR     SIGMA  -> IND       E  CTL        MEMW   IO    
+014A                                          CTL                     
+014B                                          CTL                     
+------- 00?.11101000.00 E8
+014C Q      -> tmpaL   SP     -> tmpb         ALU DEC2   tmpb  
+014D Q      -> tmpaH                          CTL                     
+014E SIGMA  -> SP      SIGMA  -> IND          CTL SUSP                
+014F PC     -> tmpb                           ALU ADD    tmpa  
+------- 00?.11101000.01 E8
+0150 SIGMA  -> PC                             CTL FLUSH               
+0151 tmpb   -> OPR                         E  CTL        MEMW   SS    
+0152                                          CTL                     
+0153                                          CTL                     
+------- 00?.11101001.00 E9
+0154 Q      -> tmpbL                          ALU ADD    tmpa  
+0155 Q      -> tmpbH                          JMP         2
+0156 PC     -> tmpa                           CTL SUSP                
+0157 SIGMA  -> PC                          E  CTL FLUSH               
+------- 00?.11101011.00 EB
+0158 Q      -> tmpbL                          ALU ADD    tmpa  
+0159                                          CTL SUSP                
+015A PC     -> tmpa                           CTL                     
+015B SIGMA  -> PC                          E  CTL FLUSH               
+------- 00?.11101010.00 EA
+015C Q      -> tmpbL                          CTL                     
+015D Q      -> tmpbH                          CTL                     
+015E Q      -> tmpaL                          CTL                     
+015F Q      -> tmpaH                          CTL                     
+------- 00?.11101010.01 EA
+0160 tmpa   -> CS                             CTL SUSP                
+0161 tmpb   -> PC                          E  CTL FLUSH               
+0162                                          CTL                     
+0163                                          CTL                     
+------- 00?.1110110?.00 EC,ED
+0164 DX     -> IND                            CTL        MEMR   IO    
+0165 OPR    -> M                         F E  CTL                     
+0166                                          CTL                     
+0167                                          CTL                     
+------- 00?.1110111?.00 EE,EF
+0168 DX     -> IND                         E  CTL        MEMW   IO    
+0169 M      -> OPR                            CTL                     
+016A                                          CTL                     
+016B                                          CTL                     
+------- 010.??00????.00 <F6/F7> 00..0F,40..4F,80..8F,C0..CF
+016C Q      -> tmpbL                          JMP OP8     2
+016D Q      -> tmpbH                          CTL                     
+016E M      -> tmpa                        E  ALU AND    tmpa  
+016F SIGMA  -> NULL                       W   CTL                     
+------- 010.??011???.00 <F6/F7> 18..1F,58..5F,98..9F,D8..DF
+0170 M      -> tmpb                           ALU OPC    tmpb  
+0171 SIGMA  -> M                          WE  CTL        [-06-]       
+0172                                          CTL                     
+0173                                          CTL                     
+------- 010.??010???.00 <F6/F7> 10..17,50..57,90..97,D0..D7
+0174 M      -> tmpb                           ALU OPC    tmpb  
+0175 SIGMA  -> M                           E  CTL        [-06-]       
+0176                                          CTL                     
+0177                                          CTL                     
+------- 010.??100???.00 <F6/F7> 20..27,60..67,A0..A7,E0..E7
+0178 M      -> tmpc    ZEROS  -> tmpb         ALU PASS   tmpc  
+0179 AX     -> tmpa                           CTL                     
+017A CONST  -> COUNT    8                     JMP OP8     4
+017B CONST  -> COUNT   16                     CTL                     
+------- 010.??100???.01 <F6/F7> 20..27,60..67,A0..A7,E0..E7
+017C SIGMA  -> tmpb                         R ALU MUL    tmpc  
+017D                                          ALU PASS   tmpb  
+017E tmpa   -> AX                             JMP OP8     8
+017F tmpb   -> DX      SIGMA  -> [-03-]       CTL FARJMP MULX  
+------- 010.??100???.10 <F6/F7> 20..27,60..67,A0..A7,E0..E7
+0180 tmpb   -> AH      SIGMA  -> [-03-]       CTL FARJMP MULX  
+0181                                          CTL                     
+0182                                          CTL                     
+0183                                          CTL                     
+------- 010.??101???.00 <F6/F7> 28..2F,68..6F,A8..AF,E8..EF
+0184 M      -> tmpa    AX     -> tmpb         ALU [-1E-] tmpb  
+0185                                          CTL FARJMP IMUL  
+0186                                          CTL                     
+0187                                          CTL                     
+------- 010.??110???.00 <F6/F7> 30..37,70..77,B0..B7,F0..F7
+0188 M      -> tmpc    AX     -> tmpa         ALU SUB    tmpc  
+0189 DX     -> tmpb                           JMP OP8     4
+018A CONST  -> COUNT   16                     CTL                     
+018B SIGMA  -> NULL                       W   JMP         7
+------- 010.??110???.01 <F6/F7> 30..37,70..77,B0..B7,F0..F7
+018C AL:AH  -> tmpb                           CTL                     
+018D CONST  -> COUNT    8                     CTL                     
+018E SIGMA  -> NULL                       W   CTL                     
+018F                                          JMP NC     13
+------- 010.??110???.10 <F6/F7> 30..37,70..77,B0..B7,F0..F7
+0190 SIGMA  -> tmpb                         R ALU DIV    tmpc  
+0191 SIGMA  -> NULL    SIGMA  -> tmpb         ALU DIV    tmpc  
+0192 tmpa   -> AX                             JMP OP8    14
+0193 tmpb   -> DX                          E  CTL                     
+------- 010.??110???.11 <F6/F7> 30..37,70..77,B0..B7,F0..F7
+0194                                          CTL                     
+0195 ZEROS  -> tmpbL                          CTL FARJMP INT   
+0196 tmpb   -> AH                          E  CTL                     
+0197                                          CTL                     
+------- 010.??111???.00 <F6/F7> 38..3F,78..7F,B8..BF,F8..FF
+0198 M      -> tmpb                           ALU [-1E-] tmpb  
+0199 CONST  -> COUNT    8                     CTL [-07-]              
+019A SIGMA  -> tmpc                           ALU PASS   tmpb  
+019B DX     -> tmpb    SIGMA  -> tmpa         JMP OP8     5
+------- 010.??111???.01 <F6/F7> 38..3F,78..7F,B8..BF,F8..FF
+019C CONST  -> COUNT   16                     JMP         6
+019D AL:AH  -> tmpb                           CTL                     
+019E                                          CTL [-0C-]              
+019F                                          CTL FARJMP IDIV  
+------- 111.01111000.00 <internal> IDIV   78
+01A0 AX     -> tmpa                           ALU NEG    tmpa  
+01A1 tmpb   -> OPR                            JMP NS      6
+01A2 SIGMA  -> tmpa                       W   ALU NEG    tmpb  
+01A3                                          JMP NC      5
+------- 111.01111000.01 <internal> IDIV   78
+01A4                                          ALU NOT    tmpb  
+01A5 SIGMA  -> tmpb                           CTL                     
+01A6                                          ALU SUB    tmpc  
+01A7 SIGMA  -> NULL                       W   CTL FARJMP IDIV2 
+------- 111.10010000.00 <internal> IDIV2  90
+01A8                                          JMP [-00-]  2
+01A9 ZEROS  -> tmpbL                          CTL FARJMP INT   
+01AA SIGMA  -> tmpb                         R ALU DIV    tmpc  
+01AB SIGMA  -> NULL    SIGMA  -> tmpb         ALU DIV    tmpc  
+------- 111.10010000.01 <internal> IDIV2  90
+01AC tmpb   -> tmpc                           ALU PASS   tmpa  
+01AD OPR    -> tmpb    SIGMA  -> [-03-]   W   ALU NEG    tmpa  
+01AE                                          JMP L       1
+01AF                                          JMP [-09-]  9
+------- 111.10010000.10 <internal> IDIV2  90
+01B0 SIGMA  -> tmpa                           CTL                     
+01B1                                          ALU NEG    tmpc  
+01B2                                          JMP NS     12
+01B3 SIGMA  -> tmpc                           CTL                     
+------- 111.10010000.11 <internal> IDIV2  90
+01B4 tmpa   -> AX                             JMP OP8    15
+01B5 tmpc   -> DX                          E  CTL                     
+01B6                                          CTL                     
+01B7 tmpc   -> AH                          E  CTL                     
+------- 011.??00????.00 <FE/FF> 00..0F,40..4F,80..8F,C0..CF
+01B8 M      -> tmpb                           ALU OPC    tmpb  
+01B9 SIGMA  -> M                          WE  CTL        [-06-]       
+01BA                                          CTL                     
+01BB                                          CTL                     
+------- 011.??010???.00 <FE/FF> 10..17,50..57,90..97,D0..D7
+01BC PC     -> tmpa    SP     -> tmpb         ALU DEC2   tmpb  
+01BD M      -> PC      SIGMA  -> IND          CTL FLUSH               
+01BE SIGMA  -> SP                             CTL        MEMW   SS    
+01BF tmpa   -> OPR                         E  CTL                     
+------- 011.??011???.00 <FE/FF> 18..1F,58..5F,98..9F,D8..DF
+01C0 SIGMA  -> tmpb                           CTL SUSP                
+01C1 OPR    -> tmpa                      F    ALU INC2   tmpb  
+01C2 SIGMA  -> IND                            CTL        MEMR         
+01C3 OPR    -> tmpb                      F    CTL FARJMP CALLF 
+------- 011.??100???.00 <FE/FF> 20..27,60..67,A0..A7,E0..E7
+01C4 M      -> PC                          E  CTL FLUSH               
+01C5                                          CTL                     
+01C6                                          CTL                     
+01C7                                          CTL                     
+------- 011.??101???.00 <FE/FF> 28..2F,68..6F,A8..AF,E8..EF
+01C8 OPR    -> tmpb    SIGMA  -> tmpa    F    ALU INC2   tmpa  
+01C9 SIGMA  -> IND                            CTL SUSP   MEMR         
+01CA OPR    -> CS                        F    CTL                     
+01CB tmpb   -> PC                          E  CTL FLUSH               
+------- 011.??11????.00 <FE/FF> 30..3F,70..7F,B0..BF,F0..FF
+01CC SP     -> tmpb                           ALU DEC2   tmpb  
+01CD SIGMA  -> SP                             CTL                     
+01CE M      -> OPR     SIGMA  -> IND       E  CTL        MEMW   SS    
+01CF                                          CTL                     
+------- 111.00000011.00 <internal> 03
+01D0 ZEROS  -> DS      ZEROS  -> tmpb         ALU PASS   tmpa  
+01D1 ZEROS  -> FLAGS                          CTL SUSP                
+01D2 ONES   -> CS                             CTL                     
+01D3 ZEROS  -> PC                             CTL FLUSH               
+------- 111.00000011.01 <internal> 03
+01D4 ZEROS  -> ES                          E  CTL MFS                 
+01D5 ZEROS  -> SS                             CTL                     
+01D6                                          CTL                     
+01D7                                          CTL                     
+------- 111.00000000.00 <internal> [-00-] 00
+01D8 CONST  -> tmpbL    1                     CTL SUSP                
+01D9                                          CTL FARJMP INT   
+01DA CONST  -> tmpbL    2                     CTL SUSP                
+01DB                                          CTL FARJMP INT   
+------- 111.00000010.00 <internal> 02
+01DC AX     -> tmpc                           CTL SUSP   [-05-] IO    
+01DD OPR    -> AX                        F    CTL                     
+01DE AL:AH  -> tmpbL                          CTL                     
+01DF tmpc   -> AX                             CTL FARJMP INT   
+------- 111.00000010.00 <internal> 02
+01E0 ZEROS  -> IND                            CTL SUSP   [-05-] IO    
+01E1 OPR    -> tmpb                      F    CTL                     
+01E2 ZEROS  -> IND                            CTL        [-05-] IO    
+01E3 OPR    -> tmpb                      F    CTL FARJMP INT   
+------- 111.00001000.00 <internal> IRET   08
+01E4                                          ALU INC2   tmpa  
+01E5 SIGMA  -> IND     SIGMA  -> tmpa         CTL SUSP   MEMR   SS    
+01E6 OPR    -> PC                        F    CTL                     
+01E7 SIGMA  -> IND     SIGMA  -> tmpa         CTL        MEMR   SS    
+------- 111.00001000.01 <internal> IRET   08
+01E8 OPR    -> CS                        F    CTL FLUSH               
+01E9 SIGMA  -> SP                             CTL                     
+01EA OPR    -> FLAGS                     F E  CTL                     
+01EB                                          CTL                     
+------- 111.0001?000.00 <internal> INT    10,18
+01EC ZEROS  -> tmpbH                          ALU ADD    tmpb  
+01ED SIGMA  -> tmpb                           CTL SUSP   [-03-] IO    
+01EE SIGMA  -> IND                            CTL        MEMR   IO    
+01EF SIGMA  -> tmpb                           ALU INC2   tmpb  
+------- 111.0001?000.01 <internal> INT    10,18
+01F0 SIGMA  -> IND                            CTL        MEMR   IO    
+01F1 OPR    -> tmpc                      F    CTL                     
+01F2 SP     -> tmpb                           ALU DEC2   tmpb  
+01F3 OPR    -> tmpa                      F    CTL                     
+------- 111.00010000.10 <internal> INT    10
+01F4 FLAGS  -> OPR                       F    CTL                     
+01F5 SIGMA  -> tmpb    SIGMA  -> IND          CTL CITF   MEMW   SS    
+01F6 CS     -> OPR     SIGMA  -> IND     F    CTL MFS                 
+01F7                                          CTL                     
+------- 111.0001?000.11 <internal> INT    10,18
+01F8                                          CTL                     
+01F9 tmpa   -> CS      SIGMA  -> tmpb         CTL        MEMW   SS    
+01FA PC     -> OPR     SIGMA  -> IND     F    CTL                     
+01FB tmpc   -> PC                             CTL        MEMW   SS    
+------- 111.0001?001.00 <internal> 11,19
+01FC SIGMA  -> SP                          E  CTL FLUSH               
+01FD                                          CTL                     
+01FE                                          CTL                     
+01FF                                          CTL                     
+------- 100.0011?100.10 <0F> 34,3C
+0200 tmpa   -> AX                          E  CTL                     
+0201                                          CTL                     
+0202                                          CTL                     
+0203                                          CTL                     
+------- 111.00100000.00 <internal> MULADJ 20
+0204 tmpa   -> tmpb                           ALU ADD    tmpb  
+0205 SIGMA  -> NULL    ZEROS  -> tmpb     W   ALU ADC    tmpc  
+0206 SIGMA  -> NULL                           CTL FARJMP MULX  
+0207                                          CTL                     
+------- 111.00101000.00 <internal> MULX   28
+0208                                          CTL [-06-]              
+0209                                          JMP Z       3
+020A                                          CTL [-07-]              
+020B                                       E  CTL                     
+------- 111.0011?000.00 <internal> IMUL   30,38
+020C tmpa   -> tmpb    SIGMA  -> tmpa         CTL [-0C-]              
+020D                                          CTL                     
+020E SIGMA  -> tmpc    ZEROS  -> tmpb         ALU PASS   tmpc  
+020F CONST  -> COUNT    8                     JMP OP8b    5
+------- 111.0011?000.01 <internal> IMUL   30,38
+0210 CONST  -> COUNT   16                     CTL                     
+0211 SIGMA  -> tmpb                         R ALU MUL    tmpc  
+0212 tmpb   -> tmpc                           JMP [-09-] 12
+0213                                          ALU NEG    tmpa  
+------- 111.0011?000.10 <internal> IMUL   30,38
+0214 SIGMA  -> tmpa                       W   ALU NEG    tmpb  
+0215                                          JMP NC     11
+0216                                          ALU NOT    tmpb  
+0217 SIGMA  -> tmpc    SIGMA  -> tmpb         CTL                     
+------- 111.00110001.00 <internal> 31
+0218 tmpa   -> AL                             CTL FARJMP MULADJ
+0219                                          CTL                     
+021A                                          CTL                     
+021B                                          CTL                     
+------- 111.00111000.11 <internal> IMULI  38
+021C tmpa   -> R                              CTL FARJMP MULADJ
+021D                                          CTL                     
+021E                                          CTL                     
+021F                                          CTL                     
+------- 111.01000000.00 <internal> REPX   40
+0220 CX     -> tmpb                           ALU PASS   tmpb  
+0221 PC     -> tmpb    SIGMA  -> [-03-]       ALU SUB    tmpa  
+0222                                          JMP Z       4
+0223                                          JMP INTR    5
+------- 111.01000000.01 <internal> REPX   40
+0224                                       E  CTL                     
+0225 PFXCNT -> tmpa                           CTL                     
+0226 SIGMA  -> tmpb                           ALU DEC    tmpb  
+0227 SIGMA  -> PC                          E  CTL FLUSH               
+------- 111.01001000.00 <internal> SHIFT  48
+0228                                          JMP Z       3
+0229 SIGMA  -> tmpb                       W R ALU OPC    tmpb  
+022A SIGMA  -> M                              CTL        [-06-]       
+022B                                       E  CTL                     
+------- 111.01101000.00 <internal> CALLF  68
+022C tmpb   -> tmpc    SP     -> tmpb         CTL SUSP                
+022D CS     -> OPR                       F    ALU DEC2   tmpb  
+022E SIGMA  -> IND                            CTL        MEMW   SS    
+022F PC     -> OPR     SIGMA  -> tmpb    F    CTL                     
+------- 111.01101000.01 <internal> CALLF  68
+0230 tmpc   -> CS      SIGMA  -> IND          CTL        MEMW   SS    
+0231 tmpa   -> PC                          E  CTL FLUSH               
+0232 SIGMA  -> SP                             CTL                     
+0233                                          CTL                     
+------- 111.10000000.00 <internal> RETF   80
+0234 OPR    -> tmpc                      F    ALU ADD    tmpa  
+0235 SIGMA  -> SP                             CTL                     
+0236 OPR    -> CS                        F    CTL                     
+0237 tmpc   -> PC                          E  CTL FLUSH               
+------- 00?.01100000.00 60
+0238 SP     -> tmpb                           ALU DEC2   tmpb  
+0239 AX     -> OPR     SIGMA  -> IND     F    CTL                     
+023A SIGMA  -> tmpb                           CTL        MEMW   SS    
+023B CX     -> OPR                       F    CTL FARJMP PUSHA 
+------- 111.01011000.00 <internal> PUSHA  58
+023C SIGMA  -> tmpb    SIGMA  -> IND          CTL        MEMW   SS    
+023D DX     -> OPR                       F    CTL                     
+023E SIGMA  -> tmpb    SIGMA  -> IND          CTL        MEMW   SS    
+023F BX     -> OPR                       F    CTL                     
+------- 111.01011000.01 <internal> PUSHA  58
+0240 SIGMA  -> tmpb    SIGMA  -> IND          CTL        MEMW   SS    
+0241 SP     -> OPR                       F    CTL                     
+0242 SIGMA  -> tmpb    SIGMA  -> IND          CTL        MEMW   SS    
+0243 BP     -> OPR                       F    CTL                     
+------- 111.01011000.10 <internal> PUSHA  58
+0244 SIGMA  -> tmpb    SIGMA  -> IND          CTL        MEMW   SS    
+0245 SI     -> OPR                       F    CTL                     
+0246 SIGMA  -> tmpb    SIGMA  -> IND          CTL        MEMW   SS    
+0247 DI     -> OPR                       F    CTL                     
+------- 111.01011000.11 <internal> PUSHA  58
+0248 SIGMA  -> SP      SIGMA  -> IND       E  CTL        MEMW   SS    
+0249                                          CTL                     
+024A                                          CTL                     
+024B                                          CTL                     
+------- 00?.01100001.00 61
+024C SP     -> IND     SP     -> tmpb         CTL        MEMR   SS    
+024D                                          ALU INC2   tmpb  
+024E SIGMA  -> tmpb    SIGMA  -> IND          CTL        MEMR   SS    
+024F OPR    -> DI                        F    CTL FARJMP POPA  
+------- 111.01100000.00 <internal> POPA   60
+0250 SIGMA  -> tmpb    SIGMA  -> IND          CTL        MEMR   SS    
+0251 SIGMA  -> tmpb                           CTL                     
+0252 OPR    -> SI                        F    CTL                     
+0253 SIGMA  -> tmpb    SIGMA  -> IND          CTL        MEMR   SS    
+------- 111.01100000.01 <internal> POPA   60
+0254 OPR    -> BP                        F    CTL                     
+0255 SIGMA  -> tmpb    SIGMA  -> IND          CTL        MEMR   SS    
+0256 OPR    -> BX                        F    CTL                     
+0257 SIGMA  -> tmpb    SIGMA  -> IND          CTL        MEMR   SS    
+------- 111.01100000.10 <internal> POPA   60
+0258 OPR    -> DX                        F    CTL                     
+0259 SIGMA  -> tmpb    SIGMA  -> IND          CTL        MEMR   SS    
+025A OPR    -> CX                        F    CTL                     
+025B SIGMA  -> SP                             CTL                     
+------- 111.01100000.11 <internal> POPA   60
+025C OPR    -> AX                        F E  CTL                     
+025D                                          CTL                     
+025E                                          CTL                     
+025F                                          CTL                     
+------- 00?.11001000.00 C8
+0260 Q      -> tmpaL   SP     -> tmpb         ALU DEC2   tmpb  
+0261 Q      -> tmpaH   SIGMA  -> IND          CTL                     
+0262                                          CTL        MEMW   SS    
+0263 BP     -> OPR                       F    CTL FARJMP ENTER 
+------- 111.01010000.00 <internal> ENTER  50
+0264 SIGMA  -> SP      Q      -> tmpb         CTL                     
+0265 ZEROS  -> tmpbH                          ALU PASS   tmpb  
+0266 SIGMA  -> NULL                           ALU DEC    tmpb  
+0267 SP     -> tmpc                           JMP Z      14
+------- 111.01010000.01 <internal> ENTER  50
+0268 SIGMA  -> NULL                           ALU DEC    tmpb  
+0269 SIGMA  -> COUNT                          JMP Z      11
+026A BP     -> tmpb                           ALU DEC2   tmpb  
+026B SIGMA  -> BP      SIGMA  -> IND          CTL        MEMR   SS    
+------- 111.01010000.10 <internal> ENTER  50
+026C SP     -> tmpb                           CTL                     
+026D SIGMA  -> SP      SIGMA  -> IND          CTL        MEMW   SS    
+026E                                          JMP CNTZ    6
+026F SP     -> tmpb                           ALU DEC2   tmpb  
+------- 111.01010000.11 <internal> ENTER  50
+0270 SIGMA  -> SP      SIGMA  -> IND          CTL        MEMW   SS    
+0271 tmpc   -> OPR                       F    CTL                     
+0272 tmpc   -> BP      SP     -> tmpb      E  ALU SUB    tmpa  
+0273 SIGMA  -> SP                             CTL                     
+------- 00?.11001001.00 C9
+0274 BP     -> IND     BP     -> tmpb         CTL        MEMR   SS    
+0275 CONST  -> tmpa     2                     ALU ADD    tmpa  
+0276 SIGMA  -> SP                             CTL                     
+0277 OPR    -> BP                        F E  CTL                     
+------- 00?.01100010.00 62
+0278 OPR    -> tmpc    SIGMA  -> tmpa    F    ALU INC2   tmpa  
+0279 FLAGS  -> COUNT   SIGMA  -> IND          CTL        MEMR         
+027A R      -> tmpb                           ALU SUB    tmpc  
+027B SIGMA  -> NULL                       W   CTL                     
+------- 00?.01100010.01 62
+027C COUNT  -> FLAGS   R      -> tmpa         JMP L      10
+027D OPR    -> tmpb                      F    ALU SUB    tmpa  
+027E SIGMA  -> NULL                       W   CTL                     
+027F COUNT  -> FLAGS                          JMP L      11
+------- 00?.01100010.10 62
+0280                                       E  CTL                     
+0281                                          CTL                     
+0282 OPR    -> tmpa                      F    CTL                     
+0283 CONST  -> tmpbL    5                     CTL FARJMP INT   
+------- 00?.01101010.00 6A
+0284 Q      -> tmpa    SP     -> tmpb         ALU DEC2   tmpb  
+0285 SIGMA  -> SP      SIGMA  -> IND          CTL        MEMW   SS    
+0286 tmpa   -> tmpbL                       E  CTL                     
+0287 tmpb   -> OPR                            CTL                     
+------- 00?.01101000.00 68
+0288 Q      -> tmpaL   SP     -> tmpb         ALU DEC2   tmpb  
+0289 Q      -> tmpaH                          CTL                     
+028A tmpa   -> OPR     SIGMA  -> IND          CTL        MEMW   SS    
+028B SIGMA  -> SP                          E  CTL                     
+------- 00?.1100000?.00 C0,C1
+028C Q      -> tmpaL                          ALU PASS   tmpa  
+028D M      -> tmpb                           CTL                     
+028E tmpa   -> COUNT   SIGMA  -> [-03-]       ALU PASS   tmpb  
+028F                                          CTL FARJMP SHIFT 
+------- 00?.011010?1.00 69,6B
+0290 Q      -> tmpbL                          JMP OP8     2
+0291 Q      -> tmpbH                          CTL                     
+0292 M      -> tmpa                           ALU [-1E-] tmpb  
+0293                                          CTL FARJMP IMULI 
+------- 000.0110110?.00 <norep> 6C,6D
+0294 DX     -> IND                            CTL        MEMR   IO    
+0295 dir*sz -> tmpa    DI     -> tmpb         CTL                     
+0296 DI     -> IND                         E  CTL        MEMW   ES    
+0297 SIGMA  -> DI                             CTL                     
+------- 001.0110110?.00 <rep> 6C,6D
+0298 CX     -> COUNT   CX     -> tmpb         ALU PASS   tmpb  
+0299 SIGMA  -> NULL                           ALU ADD    tmpc  
+029A dir*sz -> tmpc                           JMP Z       7
+029B DX     -> IND                            CTL        MEMR   IO    
+------- 001.0110110?.01 <rep> 6C,6D
+029C                                          CTL                     
+029D DI     -> IND     DI     -> tmpb         CTL        MEMW   ES    
+029E SIGMA  -> DI                             JMP REP     3
+029F COUNT  -> CX                             CTL FARJMP REPX  
+------- 000.0110111?.00 <norep> 6E,6F
+02A0 SI     -> IND                            CTL        MEMR         
+02A1 dir*sz -> tmpa    SI     -> tmpb         CTL                     
+02A2 DX     -> IND                         E  CTL        MEMW   IO    
+02A3 SIGMA  -> SI                             CTL                     
+------- 001.0110111?.00 <rep> 6E,6F
+02A4 CX     -> COUNT   CX     -> tmpb         ALU PASS   tmpb  
+02A5 SIGMA  -> NULL                           ALU ADD    tmpc  
+02A6 dir*sz -> tmpc                           JMP Z       7
+02A7 SI     -> IND     SI     -> tmpb         CTL        MEMR         
+------- 001.0110111?.01 <rep> 6E,6F
+02A8 SIGMA  -> SI                             CTL                     
+02A9 DX     -> IND                            CTL        MEMW   IO    
+02AA                                          JMP REP     3
+02AB COUNT  -> CX                             CTL FARJMP REPX  
+------- 100.0001000?.00 <0F> 10,11
+02AC M      -> tmpb    CX     -> tmpa         ALU BIT    tmpa  
+02AD ONES   -> tmpa                           ALU AND    tmpa  
+02AE SIGMA  -> NULL                       WE  CTL                     
+02AF                                          CTL                     
+------- 100.0001100?.00 <0F> 18,19
+02B0 M      -> tmpb    Q      -> tmpa         ALU BIT    tmpa  
+02B1 ONES   -> tmpa                           ALU AND    tmpa  
+02B2 SIGMA  -> NULL                       WE  CTL                     
+02B3                                          CTL                     
+------- 100.0001010?.00 <0F> 14,15
+02B4 M      -> tmpb    CX     -> tmpa         ALU BIT    tmpa  
+02B5 ONES   -> tmpa                           ALU OR     tmpa  
+02B6 SIGMA  -> M                           E  CTL        [-06-]       
+02B7                                          CTL                     
+------- 100.0001110?.00 <0F> 1C,1D
+02B8 M      -> tmpb    Q      -> tmpa         ALU BIT    tmpa  
+02B9 ONES   -> tmpa                           ALU OR     tmpa  
+02BA SIGMA  -> M                           E  CTL        [-06-]       
+02BB                                          CTL                     
+------- 100.0001001?.00 <0F> 12,13
+02BC M      -> tmpb    CX     -> tmpa         ALU BIT    tmpa  
+02BD ONES   -> tmpa                           ALU NOT    tmpa  
+02BE SIGMA  -> tmpa                           ALU AND    tmpa  
+02BF SIGMA  -> M                           E  CTL        [-06-]       
+------- 100.0001101?.00 <0F> 1A,1B
+02C0 M      -> tmpb    Q      -> tmpa         ALU BIT    tmpa  
+02C1 ONES   -> tmpa                           ALU NOT    tmpa  
+02C2 SIGMA  -> tmpa                           ALU AND    tmpa  
+02C3 SIGMA  -> M                           E  CTL        [-06-]       
+------- 100.0001011?.00 <0F> 16,17
+02C4 M      -> tmpb    CX     -> tmpa         ALU BIT    tmpa  
+02C5 ONES   -> tmpa                           ALU XOR    tmpa  
+02C6 SIGMA  -> M                           E  CTL        [-06-]       
+02C7                                          CTL                     
+------- 100.0001111?.00 <0F> 1E,1F
+02C8 M      -> tmpb    Q      -> tmpa         ALU BIT    tmpa  
+02C9 ONES   -> tmpa                           ALU XOR    tmpa  
+02CA SIGMA  -> M                           E  CTL        [-06-]       
+02CB                                          CTL                     
+------- 100.00100??0.00 <0F> 20,22,24,26
+02CC CX     -> tmpaL                          ALU INC    tmpa  
+02CD SIGMA  -> tmpb                           ALU SHR    tmpb  
+02CE SIGMA  -> COUNT                          CTL [-04-]              
+02CF SI     -> IND     SI     -> tmpa         CTL        MEMR         
+------- 100.00100??0.01 <0F> 20,22,24,26
+02D0                                          ALU INC    tmpa  
+02D1 SIGMA  -> SI                             CTL                     
+02D2 OPR    -> tmpc                      F    CTL                     
+02D3 DI     -> IND                            CTL        MEMR   ES    
+------- 100.00100000.10 <0F> 20
+02D4 OPR    -> tmpb                      F    ALU ADC    tmpc  
+02D5 SIGMA  -> tmpb                       W   ALU ADJD   tmpb  
+02D6 ONES   -> tmpa                           ALU ADD    tmpa  
+02D7 DI     -> IND     SIGMA  -> [-03-]   W   CTL        MEMW   ES    
+------- 100.00100??0.11 <0F> 20,22,24,26
+02D8                                          CTL [-0D-]              
+02D9 SIGMA  -> OPR     DI     -> tmpa         ALU INC    tmpa  
+02DA SIGMA  -> DI      [-00-] -> tmpb         JMP CNTZ    3
+02DB CX     -> tmpaL                          ALU ADD    tmpb  
+------- 100.00100??1.00 <0F> 21,23,25,27
+02DC                                          JMP [-00-]  3
+02DD CONST  -> tmpb     1                     JMP [-09-]  3
+02DE ZEROS  -> tmpb                           CTL                     
+02DF SIGMA  -> NULL                       W   ALU INC    tmpa  
+------- 100.00100??1.01 <0F> 21,23,25,27
+02E0 SIGMA  -> tmpb                           ALU SHR    tmpb  
+02E1 DI     -> tmpb    SIGMA  -> tmpa         ALU SUB    tmpa  
+02E2 SIGMA  -> DI      SI     -> tmpb      E  CTL                     
+02E3 SIGMA  -> SI                             CTL                     
+------- 100.00100010.10 <0F> 22
+02E4 OPR    -> tmpb                      F    ALU SBB    tmpc  
+02E5 SIGMA  -> tmpb                       W   ALU ADJD   tmpb  
+02E6 ONES   -> tmpa                           ALU SUB    tmpa  
+02E7 DI     -> IND     SIGMA  -> [-03-]   W   CTL        MEMW   ES    
+------- 100.00100110.10 <0F> 26
+02E8 OPR    -> tmpb                      F    ALU SBB    tmpc  
+02E9 SIGMA  -> tmpb                       W   ALU ADJD   tmpb  
+02EA ONES   -> tmpa                           ALU SUB    tmpa  
+02EB DI     -> IND     SIGMA  -> [-03-]   W   CTL                     
+------- 100.00101000.00 <0F> 28
+02EC CONST  -> COUNT    4                     CTL                     
+02ED M      -> tmpbL                          CTL                     
+02EE AL:AH  -> tmpbH                          ALU PASS   tmpb  
+02EF SIGMA  -> tmpb                         R ALU ROL12  tmpb  
+------- 100.001010?0.01 <0F> 28,2A
+02F0 tmpb   -> M                              ALU PASS   tmpb  
+02F1 AX     -> tmpa                           CTL        [-06-]       
+02F2 tmpb   -> AX                             CTL                     
+02F3 AL:AH  -> tmpb                           CTL                     
+------- 100.001010?0.10 <0F> 28,2A
+02F4 tmpa   -> tmpbH                       E  CTL                     
+02F5 tmpb   -> AX                             CTL                     
+02F6                                          CTL                     
+02F7                                          CTL                     
+------- 100.00101010.00 <0F> 2A
+02F8 CONST  -> COUNT    8                     CTL                     
+02F9 M      -> tmpbL                          CTL                     
+02FA AL:AH  -> tmpbH                          ALU PASS   tmpb  
+02FB SIGMA  -> tmpb                         R ALU ROL12  tmpb  
+------- 100.00110011.00 <0F> 33
+02FC CONST  -> tmpc    15                     ALU PASS   tmpc  
+02FD R      -> tmpaL   SIGMA  -> tmpb         ALU SUB    tmpa  
+02FE SIGMA  -> AX                             ALU PASS   tmpa  
+02FF                                          CTL                     
+------- 100.0011?011.01 <0F> 33,3B
+0300 SI     -> IND     SIGMA  -> tmpb         CTL        MEMR         
+0301 M      -> tmpaL                          ALU ADD    tmpa  
+0302 tmpc   -> tmpb    SIGMA  -> tmpa         ALU AND    tmpa  
+0303 SIGMA  -> COUNT                          ALU SUB    tmpa  
+------- 100.0011?011.10 <0F> 33,3B
+0304 SI     -> tmpb    SIGMA  -> [-03-]   W   ALU INC2   tmpb  
+0305 OPR    -> tmpc                      F    JMP Z      11
+0306                                          JMP NC     14
+0307 SIGMA  -> SI      SIGMA  -> IND          JMP Z      14
+------- 100.0011?011.11 <0F> 33,3B
+0308 tmpc   -> tmpa                           CTL        MEMR         
+0309 OPR    -> tmpc                      F    CTL                     
+030A COUNT  -> tmpb                           ALU INC    tmpb  
+030B SIGMA  -> COUNT   SIGMA  -> tmpb         ALU ADJA   tmpb  
+------- 100.0011?100.00 <0F> 34,3C
+030C SIGMA  -> NULL                           ALU PASS   tmpc  
+030D tmpb   -> M       SIGMA  -> tmpb         CTL                     
+030E ZEROS  -> tmpc                           ALU PASS   tmpb  
+030F SIGMA  -> tmpb                         R ALU MUL    tmpc  
+------- 100.0011?100.01 <0F> 34,3C
+0310 AX     -> tmpb                           ALU PASS   tmpb  
+0311 SIGMA  -> COUNT                          CTL                     
+0312 ZEROS  -> tmpb                           JMP Z       8
+0313 SIGMA  -> tmpb                         R ALU MUL    tmpc  
+------- 100.00111011.00 <0F> 3B
+0314 CONST  -> tmpc    15                     ALU PASS   tmpc  
+0315 Q      -> tmpaL   SIGMA  -> tmpb         CTL                     
+0316                                          ALU SUB    tmpa  
+0317 SIGMA  -> AX                             ALU PASS   tmpa  
+------- 100.0011?001.00 <0F> 31,39
+0318 M      -> tmpaL                          ALU PASS   tmpa  
+0319 tmpa   -> COUNT   SIGMA  -> [-03-]       CTL                     
+031A ZEROS  -> tmpc                           JMP Z       6
+031B DI     -> IND                            CTL        MEMR   ES    
+------- 100.00110001.01 <0F> 31
+031C OPR    -> tmpb                      F    ALU PASS   tmpb  
+031D SIGMA  -> tmpb                         R ALU MUL    tmpc  
+031E tmpa   -> OPR                            CTL                     
+031F R      -> tmpaL                          ALU INC    tmpa  
+------- 100.0011?001.10 <0F> 31,39
+0320 M      -> tmpaL   SIGMA  -> tmpb         ALU ADD    tmpa  
+0321 SIGMA  -> tmpc                           CTL                     
+0322 tmpb   -> COUNT                          CTL                     
+0323 CONST  -> tmpb    15                     ALU AND    tmpc  
+------- 100.0011?001.11 <0F> 31,39
+0324 M      -> tmpaL                          CTL                     
+0325 SIGMA  -> M                              ALU SUB    tmpc  
+0326 AX     -> tmpb    SIGMA  -> [-03-]   W   CTL FARJMP INS   
+0327                                          CTL                     
+------- 111.01110000.00 <internal> INS    70
+0328 DI     -> IND                            JMP NC     14
+0329 CONST  -> tmpb    16                     ALU SUB    tmpa  
+032A SIGMA  -> COUNT                          CTL                     
+032B OPR    -> tmpa                           CTL                     
+------- 111.01110000.01 <internal> INS    70
+032C ZEROS  -> tmpc    AX     -> tmpb         ALU PASS   tmpb  
+032D SIGMA  -> tmpb                         R ALU MUL    tmpc  
+032E DI     -> tmpc                           ALU PASS   tmpc  
+032F DI     -> IND                            CTL        MEMW   ES    
+------- 111.01110000.10 <internal> INS    70
+0330 tmpa   -> OPR                            CTL                     
+0331 M      -> tmpaL                          ALU INC2   tmpc  
+0332 SIGMA  -> DI                             ALU PASS   tmpa  
+0333 tmpa   -> COUNT   SIGMA  -> [-03-]       CTL                     
+------- 111.01110000.11 <internal> INS    70
+0334 ZEROS  -> tmpc                           JMP NZ     14
+0335 SIGMA  -> M                           E  CTL                     
+0336                                          CTL                     
+0337 DI     -> IND                            CTL        MEMR   ES    
+------- 111.01110001.00 <internal> 71
+0338 OPR    -> tmpa                           ALU PASS   tmpb  
+0339 SIGMA  -> tmpb                         R ALU MUL    tmpc  
+033A tmpa   -> tmpc                           CTL                     
+033B M      -> tmpaL                          CTL                     
+------- 111.01110001.01 <internal> 71
+033C tmpa   -> COUNT                          CTL                     
+033D OPR    -> tmpb                      F    ALU PASS   tmpb  
+033E SIGMA  -> tmpb                         R ALU SHR    tmpb  
+033F tmpa   -> COUNT                          ALU PASS   tmpc  
+------- 111.01110001.10 <internal> 71
+0340 DI     -> IND     SIGMA  -> tmpa         CTL                     
+0341 ZEROS  -> tmpc                           CTL                     
+0342 SIGMA  -> tmpb                         R ALU DIV    tmpc  
+0343 tmpb   -> OPR                         E  CTL        MEMW   ES    
+------- 100.00111001.01 <0F> 39
+0344 OPR    -> tmpb                      F    ALU PASS   tmpb  
+0345 SIGMA  -> tmpb                         R ALU MUL    tmpc  
+0346 tmpa   -> OPR                            CTL                     
+0347 Q      -> tmpaL                          ALU INC    tmpa  
+------- 100.11111111.00 <0F> FF
+0348 Q      -> tmpbL                          CTL                     
+0349 CONST  -> COUNT    1                     CTL FARJMP INTEM 
+034A                                          CTL                     
+034B                                          CTL                     
+------- 110.00000000.00 <8080> 00
+034C                                       E  CTL                     
+034D                                          CTL                     
+034E                                          CTL                     
+034F                                          CTL                     
+------- 110.01??????.00 <8080> 40..7F
+0350 M      -> tmpa                           CTL                     
+0351 BX     -> IND                            CTL                     
+0352 tmpa   -> R                           E  CTL        [-06-]       
+0353 PC     -> NULL                           CTL                     
+------- 110.00???110.00 <8080> 06,0E,16,1E,26,2E,36,3E
+0354 Q      -> tmpaL                          CTL                     
+0355 BX     -> IND                            CTL                     
+0356 tmpa   -> R                           E  CTL        [-06-]       
+0357 PC     -> NULL                           CTL                     
+------- 110.00??0001.00 <8080> 01,11,21,31
+0358 Q      -> tmpaL                          CTL                     
+0359 Q      -> tmpaH                          CTL                     
+035A tmpa   -> R                           E  CTL                     
+035B                                          CTL                     
+------- 110.00111010.00 <8080> 3A
+035C Q      -> tmpaL                          CTL                     
+035D Q      -> tmpaH                          CTL                     
+035E tmpa   -> IND                            CTL        MEMR         
+035F OPR    -> AL                        F E  CTL                     
+------- 110.00110010.00 <8080> 32
+0360 Q      -> tmpaL                          ALU PASS   tmpa  
+0361 Q      -> tmpaH                          CTL                     
+0362 AX     -> OPR     SIGMA  -> IND       E  CTL        MEMW         
+0363 PC     -> NULL                           CTL                     
+------- 110.00101010.00 <8080> 2A
+0364 Q      -> tmpaL                          CTL                     
+0365 Q      -> tmpaH                          CTL                     
+0366 tmpa   -> IND                            CTL        MEMR         
+0367 OPR    -> BX                        F E  CTL                     
+------- 110.00100010.00 <8080> 22
+0368 Q      -> tmpaL                          ALU PASS   tmpa  
+0369 Q      -> tmpaH                          CTL                     
+036A BX     -> OPR     SIGMA  -> IND       E  CTL        MEMW         
+036B PC     -> NULL                           CTL                     
+------- 110.000?1010.00 <8080> 0A,1A
+036C R      -> IND                            CTL        MEMR         
+036D OPR    -> AL                        F E  CTL                     
+036E                                          CTL                     
+036F                                          CTL                     
+------- 110.000?0010.00 <8080> 02,12
+0370 R      -> IND                            CTL                     
+0371 AX     -> OPR                         E  CTL        MEMW         
+0372 PC     -> NULL                           CTL                     
+0373                                          CTL                     
+------- 110.11100011.00 <8080> E3
+0374 BP     -> IND     BX     -> tmpa         CTL        MEMR         
+0375 OPR    -> BX      BP     -> tmpb    F    ALU PASS   tmpb  
+0376 tmpa   -> OPR     SIGMA  -> IND       E  CTL        MEMW         
+0377 PC     -> NULL                           CTL                     
+------- 110.11101011.00 <8080> EB
+0378 BX     -> tmpa                           CTL                     
+0379 DX     -> BX                          E  CTL                     
+037A tmpa   -> DX                             CTL                     
+037B                                          CTL                     
+------- 110.11101001.00 <8080> E9
+037C BX     -> PC                          E  CTL FLUSH               
+037D                                          CTL                     
+037E                                          CTL                     
+037F                                          CTL                     
+------- 110.11111001.00 <8080> F9
+0380 BX     -> BP                          E  CTL                     
+0381                                          CTL                     
+0382                                          CTL                     
+0383                                          CTL                     
+------- 110.00???100.00 <8080> 04,0C,14,1C,24,2C,34,3C
+0384 R      -> tmpb                           ALU INC    tmpb  
+0385 BX     -> IND                            CTL                     
+0386 SIGMA  -> R                          WE  CTL        [-06-]       
+0387 PC     -> NULL                           CTL                     
+------- 110.00???101.00 <8080> 05,0D,15,1D,25,2D,35,3D
+0388 R      -> tmpb                           ALU DEC    tmpb  
+0389 BX     -> IND                            CTL                     
+038A SIGMA  -> R                          WE  CTL        [-06-]       
+038B PC     -> NULL                           CTL                     
+------- 110.00??0011.00 <8080> 03,13,23,33
+038C R      -> tmpb                        E  ALU INC    tmpb  
+038D SIGMA  -> R                              CTL                     
+038E                                          CTL                     
+038F                                          CTL                     
+------- 110.00??1011.00 <8080> 0B,1B,2B,3B
+0390 R      -> tmpb                        E  ALU DEC    tmpb  
+0391 SIGMA  -> R                              CTL                     
+0392                                          CTL                     
+0393                                          CTL                     
+------- 110.10??????.00 <8080> 80..BF
+0394 M      -> tmpa    AX     -> tmpb         ALU OPC    tmpa  
+0395 BX     -> IND                         E  CTL                     
+0396 SIGMA  -> AL                         W   CTL                     
+0397                                          CTL                     
+------- 110.11???110.00 <8080> C6,CE,D6,DE,E6,EE,F6,FE
+0398 Q      -> tmpaL   AX     -> tmpb         ALU OPC    tmpa  
+0399 SIGMA  -> AL                         WE  CTL                     
+039A                                          CTL                     
+039B                                          CTL                     
+------- 110.00??1001.00 <8080> 09,19,29,39
+039C R      -> tmpa    BX     -> tmpb         ALU ADD    tmpa  
+039D SIGMA  -> BX                          E  CTL                     
+039E                                          CTL                     
+039F                                          CTL                     
+------- 110.00100111.00 <8080> 27
+03A0 AX     -> tmpa                           ALU ADJD   tmpa  
+03A1 ONES   -> tmpb                        E  ALU ADD    tmpa  
+03A2 SIGMA  -> AL      SIGMA  -> [-03-]   W   CTL                     
+03A3                                          CTL                     
+------- 110.00101111.00 <8080> 2F
+03A4 AX     -> tmpa                        E  ALU NOT    tmpa  
+03A5 SIGMA  -> AL                             CTL                     
+03A6                                          CTL                     
+03A7                                          CTL                     
+------- 110.000??111.00 <8080> 07,0F,17,1F
+03A8 CONST  -> COUNT    1                     CTL                     
+03A9 AX     -> tmpb                           ALU PASS   tmpb  
+03AA SIGMA  -> tmpb                       W R ALU OPC    tmpb  
+03AB SIGMA  -> AL                          E  CTL                     
+------- 110.11000011.00 <8080> C3
+03AC Q      -> tmpaL                          CTL                     
+03AD Q      -> tmpaH                          CTL                     
+03AE                                          CTL                     
+03AF tmpa   -> PC                          E  CTL FLUSH               
+------- 110.11???010.00 <8080> C2,CA,D2,DA,E2,EA,F2,FA
+03B0 Q      -> tmpaL                          CTL                     
+03B1 Q      -> tmpaH                          CTL                     
+03B2                                          JMP OPC     5
+03B3                                       E  CTL                     
+------- 110.11???010.01 <8080> C2,CA,D2,DA,E2,EA,F2,FA
+03B4                                          CTL                     
+03B5 tmpa   -> PC                          E  CTL FLUSH               
+03B6                                          CTL                     
+03B7                                          CTL                     
+------- 110.11???111.00 <8080> C7,CF,D7,DF,E7,EF,F7,FF
+03B8 BP     -> tmpb                           ALU DEC2   tmpb  
+03B9 SIGMA  -> BP      SIGMA  -> IND          CTL SUSP                
+03BA PC     -> OPR                            CTL        MEMW         
+03BB opc&38 -> PC                          E  CTL FLUSH               
+------- 110.11001101.00 <8080> CD
+03BC Q      -> tmpaL   BP     -> tmpb         ALU DEC2   tmpb  
+03BD Q      -> tmpaH                          CTL                     
+03BE SIGMA  -> BP      SIGMA  -> IND          CTL SUSP                
+03BF PC     -> OPR                            CTL        MEMW         
+------- 110.11001101.01 <8080> CD
+03C0 tmpa   -> PC                          E  CTL FLUSH               
+03C1                                          CTL                     
+03C2                                          CTL                     
+03C3                                          CTL                     
+------- 110.11???100.00 <8080> C4,CC,D4,DC,E4,EC,F4,FC
+03C4 Q      -> tmpaL   BP     -> tmpb         ALU DEC2   tmpb  
+03C5 Q      -> tmpaH                          CTL                     
+03C6                                          JMP OPC     5
+03C7                                       E  CTL                     
+------- 110.11???100.01 <8080> C4,CC,D4,DC,E4,EC,F4,FC
+03C8                                          CTL                     
+03C9 SIGMA  -> BP      SIGMA  -> IND          CTL SUSP                
+03CA PC     -> OPR                            CTL        MEMW         
+03CB tmpa   -> PC                          E  CTL FLUSH               
+------- 110.11001001.00 <8080> C9
+03CC BP     -> IND                            CTL SUSP   MEMR         
+03CD BP     -> tmpa                           ALU INC2   tmpa  
+03CE SIGMA  -> BP                             CTL                     
+03CF OPR    -> PC                        F E  CTL FLUSH               
+------- 110.11???000.00 <8080> C0,C8,D0,D8,E0,E8,F0,F8
+03D0                                          CTL                     
+03D1                                          JMP OPC     4
+03D2                                       E  CTL                     
+03D3                                          CTL                     
+------- 110.11???000.01 <8080> C0,C8,D0,D8,E0,E8,F0,F8
+03D4 BP     -> IND                            CTL SUSP   MEMR         
+03D5 BP     -> tmpa                           ALU INC2   tmpa  
+03D6 SIGMA  -> BP                             CTL                     
+03D7 OPR    -> PC                        F E  CTL FLUSH               
+------- 110.110?0101.00 <8080> C5,D5
+03D8 BP     -> tmpb                           ALU DEC2   tmpb  
+03D9 SIGMA  -> BP      SIGMA  -> IND          CTL                     
+03DA R      -> OPR                         E  CTL        MEMW         
+03DB PC     -> NULL                           CTL                     
+------- 110.11100101.00 <8080> E5
+03DC BP     -> tmpb                           ALU DEC2   tmpb  
+03DD SIGMA  -> BP      SIGMA  -> IND          CTL                     
+03DE R      -> OPR                         E  CTL        MEMW         
+03DF PC     -> NULL                           CTL                     
+------- 110.11110101.00 <8080> F5
+03E0 FLAGS  -> tmpaL   BP     -> tmpb         ALU DEC2   tmpb  
+03E1 AL:AH  -> tmpaH   SIGMA  -> IND          CTL                     
+03E2 tmpa   -> OPR                         E  CTL        MEMW         
+03E3 SIGMA  -> BP                             CTL                     
+------- 110.110?0001.00 <8080> C1,D1
+03E4 BP     -> IND     BP     -> tmpa         CTL        MEMR         
+03E5                                          ALU INC2   tmpa  
+03E6 SIGMA  -> BP                             CTL                     
+03E7 OPR    -> R                         F E  CTL                     
+------- 110.11100001.00 <8080> E1
+03E8 BP     -> IND     BP     -> tmpa         CTL        MEMR         
+03E9                                          ALU INC2   tmpa  
+03EA SIGMA  -> BP                             CTL                     
+03EB OPR    -> R                         F E  CTL                     
+------- 110.11110001.00 <8080> F1
+03EC BP     -> IND     AX     -> tmpb         CTL        MEMR         
+03ED OPR    -> AX                        F    CTL                     
+03EE AL:AH  -> tmpa                           CTL                     
+03EF tmpb   -> tmpaH   AX     -> tmpb         ALU PASS   tmpb  
+------- 110.11110001.01 <8080> F1
+03F0 tmpa   -> AX      SIGMA  -> tmpa         CTL                     
+03F1 FLAGS  -> tmpaH   BP     -> tmpb         ALU INC2   tmpb  
+03F2 tmpa   -> FLAGS                       E  CTL                     
+03F3 SIGMA  -> BP                             CTL                     
+------- 110.11010011.00 <8080> D3
+03F4 Q      -> tmpaL                          ALU PASS   tmpa  
+03F5 AX     -> OPR     SIGMA  -> IND       E  CTL        MEMW   IO    
+03F6 PC     -> NULL                           CTL                     
+03F7 PC     -> NULL                           CTL                     
+------- 110.11011011.00 <8080> DB
+03F8 Q      -> tmpaL                          CTL                     
+03F9 tmpa   -> IND                            CTL        MEMR   IO    
+03FA OPR    -> AL                        F E  CTL                     
+03FB                                          CTL                     
+------- 101.11111101.00 <8080,ED> FD
+03FC SP     -> IND     SP     -> tmpa         CTL SUSP   MEMR   SS    
+03FD                                          CTL ENDEM               
+03FE                                          CTL FARJMP IRET  
+03FF                                          CTL                     
+------- 101.11101101.00 <8080,ED> ED
+0400 Q      -> tmpbL                          CTL                     
+0401 ZEROS  -> COUNT                          CTL FARJMP INTEM 
+0402                                          CTL                     
+0403                                          CTL                     
