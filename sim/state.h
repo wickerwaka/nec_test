@@ -162,6 +162,13 @@ struct Machine {
 
     bool halted = false;
 
+    // External-event recognition latch, as the microcode sees it.  It is the
+    // ONLY thing the `INTR` micro-condition reads (9B POLL 006F, REPX 0223) and
+    // it also breaks the string loops' `REP` continuation (see the ledger,
+    // "pin-event forms").  WHEN it is raised is a replay policy, not a
+    // prediction: the golden's recorded firing boundary drives it.
+    bool intr_pending = false;
+
     // byte-register access, AL CL DL BL AH CH DH BH
     uint8_t rb(uint8_t code) const {
         return uint8_t(code < 4 ? (gpr[code] & 0xFF) : (gpr[code & 3] >> 8));

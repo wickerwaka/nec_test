@@ -13,7 +13,8 @@
 namespace sim {
 
 struct Txn {
-    enum Kind : uint8_t { kCodeFetch, kMemRead, kMemWrite, kIoRead, kIoWrite };
+    enum Kind : uint8_t {
+        kCodeFetch, kMemRead, kMemWrite, kIoRead, kIoWrite, kIntAck };
     uint32_t seq = 0;
     Kind kind = kCodeFetch;
     uint32_t addr20 = 0;
@@ -41,9 +42,21 @@ public:
                    uint8_t seg_idx, uint16_t upc);
     uint16_t io_read(uint16_t port, bool word, uint16_t upc);
     // The suite records the value the port presented (case name `iord=XXXX`);
-    // there is no I/O model, so it is replayed verbatim.
+    // there is no I/O model, so it is replayed verbatim.  `set_io_seq` is the
+    // ordered per-IOR form (the `iords` case field, INS / REP INS / LOCK
+    // string-I/O): value k serves the k-th port read, the scalar serves the
+    // rest.
     void set_io_in(uint16_t v) { io_in_ = v; }
+    void set_io_seq(const std::vector<uint16_t>& s) { io_seq_ = s; io_n_ = 0; }
     void io_write(uint16_t port, uint16_t data, bool word, uint16_t upc);
+
+    // --- interrupt acknowledge -------------------------------------------
+    // Ext [-05-]: the INTA bus cycle.  There is no interrupt-controller model,
+    // so the acknowledge data is the harness constant (CFG int_vector, 0xFF on
+    // the low lane / 0x00 on the high lane -- exactly what the golden traces
+    // show riding both INTA cycles).  Same replay policy as `iord`.
+    void set_inta(uint16_t v) { inta_ = v; }
+    uint16_t inta_read(uint16_t upc);
 
     // --- prefetch queue ---------------------------------------------------
     void queue_preload(const std::vector<uint8_t>& q, uint16_t fetch_ptr);
@@ -56,6 +69,12 @@ public:
     uint8_t queue_at(size_t i) const { return q_[qhead_ + i]; }
     uint16_t fetch_ptr() const { return fetch_ptr_; }
 
+    // Instruction bytes handed to the decoder since the last clear.  The final
+    // QUEUE comparison is deferred (no timing model), so the checker asserts
+    // instead that the bytes the sim consumed are the case's `bytes`.
+    const std::vector<uint8_t>& consumed() const { return consumed_; }
+    void clear_consumed() { consumed_.clear(); }
+
     const std::vector<Txn>& txns() const { return txns_; }
     void clear_txns() { txns_.clear(); seq_ = 0; }
 
@@ -64,13 +83,23 @@ public:
         return writes_;
     }
 
+    // 64K-mirrored RAM, as the capture board is actually wired.  A golden whose
+    // memory footprint holds two distinct 20-bit addresses aliasing to the same
+    // 16-bit cell is only valid under this model; the checker retries a flat
+    // failure here rather than editing the golden (check_core's `+mirror`).
+    // Transaction addresses stay 20-bit -- only the storage aliases.
+    void set_mirror(bool on) { mirror_ = on; }
+
     static constexpr uint8_t kFill = 0x00;
 
 private:
-    uint8_t rd(uint32_t a) const {
+    uint32_t cell(uint32_t a) const { return mirror_ ? (a & 0xFFFF) : a; }
+    uint8_t rd(uint32_t a0) const {
+        uint32_t a = cell(a0);
         return stamp_[a] == epoch_ ? mem_[a] : kFill;
     }
-    void wr(uint32_t a, uint8_t v) {
+    void wr(uint32_t a0, uint8_t v) {
+        uint32_t a = cell(a0);
         mem_[a] = v;
         stamp_[a] = epoch_;
     }
@@ -80,6 +109,7 @@ private:
     std::vector<uint8_t> mem_;
     std::vector<uint32_t> stamp_;
     uint32_t epoch_ = 0;
+    bool mirror_ = false;
 
     std::vector<uint8_t> q_;
     size_t qhead_ = 0;
@@ -89,8 +119,12 @@ private:
 
     std::vector<Txn> txns_;
     uint16_t io_in_ = 0;
+    std::vector<uint16_t> io_seq_;
+    size_t io_n_ = 0;
+    uint16_t inta_ = 0x00FF;
     uint32_t seq_ = 0;
     std::vector<std::pair<uint32_t, uint8_t>> writes_;
+    std::vector<uint8_t> consumed_;
 };
 
 }  // namespace sim

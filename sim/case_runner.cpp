@@ -53,7 +53,85 @@ struct CaseResult {
     std::string detail;
     uint16_t hw_owned[kHwCount] = {};
     long hw_writes[kHwCount] = {};
+    // --emit-final payload
+    uint16_t regs[14] = {};
+    std::vector<std::pair<uint32_t, uint8_t>> writes;
+    std::vector<uint8_t> first_bytes;
+    int steps = 0;
+    bool fired = false;
 };
+
+// --- the pin-event replay directive ----------------------------------------
+// FUNCTIONAL policy (ledger: "pin-event forms"): the simulator does NOT predict
+// the cycle-exact catch window.  It REPLAYS the boundary the golden recorded --
+// the same class of decision as the `iord=` replay (R3) -- and computes every
+// architectural consequence.  Two numbers identify the boundary:
+//
+//   resume_ip  the PC the chip pushed, i.e. the instruction the interrupt
+//              preempted.  Read out of the golden's own pushed frame at
+//              SS:SP (final SS/SP, final memory image), which is the only
+//              recorded statement of "which boundary fired".
+//   elements   for a REP aborted mid-string (resume_ip == the prefix address,
+//              which is where the V30 resumes -- no lost-prefix bug): the
+//              number of string elements the golden's BUS TRACE shows
+//              completing before the acknowledge.  Counted as MEMW cycles
+//              ahead of the first INTA row.
+//
+// A case whose golden shows no push at all (SP unchanged, no PSW frame) did not
+// fire (masked INT, HALT masked-resume, POLL) and runs as an ordinary case.
+struct Replay {
+    bool active = false;
+    bool nmi = false;
+    uint16_t resume_ip = 0;
+    int elements = -1;
+};
+
+bool is_rep_prefix(unsigned b) {
+    return b == 0xF3 || b == 0xF2 || b == 0x65 || b == 0x64;
+}
+
+Replay derive_replay(const json::Value& c, const uint16_t* iregs,
+                     const uint16_t* eregs,
+                     const std::map<uint32_t, uint8_t>& img) {
+    Replay r;
+    const json::Value* evt = c.get("evt");
+    if (!evt || evt->type != json::Value::kObj) return r;
+    const json::Value* pin = evt->get("pin");
+    r.nmi = pin && pin->i() != 0;
+
+    uint32_t ss = eregs[10], sp = eregs[4];
+    auto word = [&](uint32_t off) -> uint32_t {
+        uint32_t a = ((ss << 4) + (off & 0xFFFF)) & 0xFFFFF;
+        uint32_t a1 = ((ss << 4) + ((off + 1) & 0xFFFF)) & 0xFFFFF;
+        auto lo = img.find(a), hi = img.find(a1);
+        return uint32_t((lo == img.end() ? 0 : lo->second) |
+                        ((hi == img.end() ? 0 : hi->second) << 8));
+    };
+    // A real V30 interrupt frame: PSW at SP+4 with the forced reserved bits
+    // 15:12 all set, and SP six lower than it started.
+    if (sp == iregs[4]) return r;
+    if ((word(sp + 4) & 0xF000) != 0xF000) return r;
+    r.active = true;
+    r.resume_ip = uint16_t(word(sp));
+
+    const json::Value* by = c.get("bytes");
+    bool rep = by && by->type == json::Value::kArr && !by->arr.empty() &&
+               is_rep_prefix(unsigned(by->arr[0].u()));
+    if (rep && r.resume_ip == iregs[12]) {
+        int n = 0;
+        const json::Value* cy = c.get("cycles");
+        if (cy && cy->type == json::Value::kArr) {
+            for (const auto& row : cy->arr) {
+                if (row.type != json::Value::kArr || row.arr.size() < 9) continue;
+                const std::string& bs = row.arr[7].str;
+                if (bs == "INTA") break;
+                if (bs == "MEMW" && row.arr[8].str == "T1") ++n;
+            }
+        }
+        r.elements = n;
+    }
+    return r;
+}
 
 CaseResult run_one(const ucrom::UcRom& rom, Biu& biu, const json::Value& c,
                    const RunOptions& opt, std::FILE* trace_out) {
@@ -108,7 +186,17 @@ CaseResult run_one(const ucrom::UcRom& rom, Biu& biu, const json::Value& c,
 
     // The suite encodes the value each IN form's port presented in the case
     // name ("in al, a1h (iord=2ffc)").  There is no I/O model to derive it.
+    // The block-I/O forms (INS / REP INS / LOCK string-I/O) carry the ORDERED
+    // per-IOR sequence in an `iords` field instead.
     biu.set_io_in(0);
+    {
+        const json::Value* io = c.get("iords");
+        if (io && io->type == json::Value::kArr) {
+            std::vector<uint16_t> seq;
+            for (const auto& e : io->arr) seq.push_back(uint16_t(e.u()));
+            biu.set_io_seq(seq);
+        }
+    }
     {
         const json::Value* nm = c.get("name");
         if (nm && nm->type == json::Value::kStr) {
@@ -143,10 +231,59 @@ CaseResult run_one(const ucrom::UcRom& rom, Biu& biu, const json::Value& c,
         cpu.set_trace(trace_out);
     }
 
-    if (!cpu.step()) {
+    // --- expected registers (sparse delta) -------------------------------
+    uint16_t exp[14];
+    for (int i = 0; i < 14; ++i) exp[i] = fr.has[i] ? fr.v[i] : ir.v[i];
+
+    // --- pin-event replay -------------------------------------------------
+    std::map<uint32_t, uint8_t> golden_img = init_ram;
+    {
+        const json::Value* fram0 = fin->get("ram");
+        if (fram0 && fram0->type == json::Value::kArr)
+            for (const auto& e : fram0->arr)
+                if (e.type == json::Value::kArr && e.arr.size() >= 2)
+                    golden_img[e.arr[0].u() & 0xFFFFF] = uint8_t(e.arr[1].i());
+    }
+    Replay rp = derive_replay(c, ir.v, exp, golden_img);
+    res.fired = rp.active;
+
+    if (rp.active) {
+        bool first = true;
+        for (;;) {
+            if (++res.steps > 16) {
+                res.ok = false;
+                res.detail = " pin-event replay never reached the recorded "
+                             "resume point";
+                return res;
+            }
+            // The interrupt is taken at an INSTRUCTION boundary, so the only
+            // boundary at which the recorded resume PC can be the live PC is
+            // the one that fired.  A REP whose golden shows completed elements
+            // resumes at its OWN first prefix byte, so its start boundary is
+            // skipped and the abort is armed inside the string loop instead.
+            if (!(first && rp.elements > 0) && m.pc == rp.resume_ip) break;
+            cpu.set_rep_abort(first ? rp.elements : -1);
+            if (!cpu.step()) {
+                res.ok = false;
+                res.detail = "micro-sequence did not terminate";
+                return res;
+            }
+            if (first) res.first_bytes = biu.consumed();
+            first = false;
+            if (m.intr_pending) break;
+        }
+        if (!cpu.interrupt(rp.nmi ? Cpu::kEvtNmi : Cpu::kEvtInt)) {
+            res.ok = false;
+            res.detail = "interrupt sequence did not terminate";
+            return res;
+        }
+    } else if (!cpu.step()) {
         res.ok = false;
         res.detail = "micro-sequence did not terminate";
         return res;
+    } else {
+        res.steps = 1;
+        res.first_bytes = biu.consumed();
     }
     if (opt.alu_hw_report) {
         for (int i = 0; i < kHwCount; ++i) {
@@ -156,8 +293,7 @@ CaseResult run_one(const ucrom::UcRom& rom, Biu& biu, const json::Value& c,
     }
 
     // --- expected vs. got registers --------------------------------------
-    uint16_t exp[14], got[14];
-    for (int i = 0; i < 14; ++i) exp[i] = fr.has[i] ? fr.v[i] : ir.v[i];
+    uint16_t got[14];
     for (int i = 0; i < 8; ++i) got[i] = m.gpr[i];
     got[8] = m.sreg[kES];
     got[9] = m.sreg[kCS];
@@ -165,6 +301,38 @@ CaseResult run_one(const ucrom::UcRom& rom, Biu& biu, const json::Value& c,
     got[11] = m.sreg[kDS];
     got[12] = m.pc;
     got[13] = m.flags();
+    for (int i = 0; i < 14; ++i) res.regs[i] = got[i];
+    if (opt.emit_final) {
+        res.writes = biu.writes();
+        return res;
+    }
+
+    // Pin-event forms: the golden's recorded final.flags is the POST-HANDLER
+    // store-stub PUSH PSW, an unreliable capture on both sides.  The
+    // ARCHITECTURAL final flags are the interrupt-pushed PSW with IE/BRK
+    // cleared; derive them from each side's own memory image and compare those
+    // (sw/check_core.py::_pushed_psw_flags -- the production checker
+    // sw/ucsim_check.py applies the same rule, this is only so the bring-up
+    // driver reports honestly).
+    if (rp.active) {
+        auto pushed = [](const std::map<uint32_t, uint8_t>* im, const Biu* b,
+                         uint16_t ss, uint16_t sp) {
+            uint32_t a = ((uint32_t(ss) << 4) + uint16_t(sp + 4)) & 0xFFFFF;
+            uint32_t a1 = ((uint32_t(ss) << 4) + uint16_t(sp + 5)) & 0xFFFFF;
+            unsigned lo, hi;
+            if (im) {
+                auto l = im->find(a), h = im->find(a1);
+                lo = l == im->end() ? 0x90 : l->second;
+                hi = h == im->end() ? 0x90 : h->second;
+            } else {
+                lo = b->peek(a);
+                hi = b->peek(a1);
+            }
+            return uint16_t((lo | (hi << 8)) & ~0x300);
+        };
+        exp[13] = pushed(&golden_img, nullptr, exp[10], exp[4]);
+        got[13] = pushed(nullptr, &biu, got[10], got[4]);
+    }
 
     std::string diff;
     for (int i = 0; i < 14; ++i) {
@@ -219,6 +387,29 @@ CaseResult run_one(const ucrom::UcRom& rom, Biu& biu, const json::Value& c,
     return res;
 }
 
+// --emit-final: one compact record per case.  `r` = the 14 final registers in
+// golden order, `w` = the ORDERED byte write stream (the checker replays it the
+// way sw/check_core.py reconstructs RAM), `b` = the instruction bytes the
+// decoder consumed for the FIRST instruction (the deferred-queue substitute),
+// `s` = instructions retired before the event, `f` = the event fired.
+void emit_final(std::FILE* out, long idx, const CaseResult& r) {
+    std::fprintf(out, "{\"i\":%ld,\"r\":[", idx);
+    for (int i = 0; i < 14; ++i)
+        std::fprintf(out, "%s%u", i ? "," : "", r.regs[i]);
+    std::fprintf(out, "],\"w\":[");
+    bool first = true;
+    for (const auto& w : r.writes) {
+        std::fprintf(out, "%s[%u,%u]", first ? "" : ",", w.first, w.second);
+        first = false;
+    }
+    std::fprintf(out, "],\"b\":[");
+    for (size_t i = 0; i < r.first_bytes.size(); ++i)
+        std::fprintf(out, "%s%u", i ? "," : "", r.first_bytes[i]);
+    std::fprintf(out, "],\"s\":%d,\"f\":%d", r.steps, r.fired ? 1 : 0);
+    if (!r.ok) std::fprintf(out, ",\"e\":\"%s\"", r.detail.c_str());
+    std::fprintf(out, "}\n");
+}
+
 void emit(std::FILE* out, long idx, const CaseResult& r, const json::Value& c) {
     const json::Value* nm = c.get("name");
     std::fprintf(out, "{\"idx\":%ld,\"ok\":%s,\"name\":\"%s\",\"diff\":\"%s\"}\n",
@@ -235,6 +426,7 @@ int run_cases(const ucrom::UcRom& rom, std::FILE* in, std::FILE* out,
     size_t p = 0;
     json::skip_ws(buf, p);
     Biu biu;
+    biu.set_mirror(opt.mirror);
     long idx = 0, pass = 0, fail = 0, reported = 0;
     // --alu-hw-report accumulators, per hardware behaviour.
     long hw_cases[kHwCount] = {};   // cases whose FINAL PSW keeps such a bit
@@ -248,6 +440,11 @@ int run_cases(const ucrom::UcRom& rom, std::FILE* in, std::FILE* out,
             return;
         }
         CaseResult r = run_one(rom, biu, c, opt, opt.trace ? stderr : nullptr);
+        if (opt.emit_final) {
+            emit_final(out, idx, r);
+            ++idx;
+            return;
+        }
         if (opt.alu_hw_report) {
             bool any = false;
             for (int i = 0; i < kHwCount; ++i) {
@@ -319,6 +516,7 @@ int run_cases(const ucrom::UcRom& rom, std::FILE* in, std::FILE* out,
                          kHwName[i], hw_bits[i]);
         std::fprintf(out, "}\n");
     }
+    if (opt.emit_final) return 0;
     std::fprintf(out, "{\"summary\":true,\"pass\":%ld,\"fail\":%ld}\n", pass,
                  fail);
     return fail == 0 ? 0 : 1;

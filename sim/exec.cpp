@@ -25,7 +25,15 @@ enum Ictl : uint8_t {
     kIctlBcdInit = 4, kIctlClrCyV = 6, kIctlSetCyV = 7, kIctlSusp = 8,
     kIctlFlush = 9, kIctlSignTgl = 12, kIctlBcdNz = 13, kIctlFarJmp = 14,
 };
-enum Ectl : uint8_t { kEctlMemR = 1, kEctlMemW = 2, kEctlWriteBack = 6 };
+// Ext [-05-] is the INTERRUPT-ACKNOWLEDGE bus cycle and Ext [-03-] rides the
+// row that follows the vector into the shared INT routine (01ED, which EVERY
+// software INT / trap also executes -- so it cannot itself move data; see the
+// ledger).  Both occur only with SR = IO, and the SR field is NOT consulted for
+// them: the acknowledge has no segment and no address.
+enum Ectl : uint8_t {
+    kEctlMemR = 1, kEctlMemW = 2, kEctlIntaTail = 3, kEctlInta = 5,
+    kEctlWriteBack = 6
+};
 }  // namespace
 
 std::string row_text(const ucrom::MicroOp& op) {
@@ -154,15 +162,29 @@ bool Cpu::cond_true(uint8_t cond) {
         case kCondNS: return (m_.tmpb & (m_.op8 ? 0x0080u : 0x8000u)) == 0;
         case kCondRep: {
             m_.count = uint16_t(m_.count - 1);
+            // One string ELEMENT has completed by the time the loop asks to
+            // repeat.  This is the recognition boundary the measured law calls
+            // "REP iterations are individually interruptible"
+            // (docs/facts/interrupt_model.md): a pending external event makes
+            // the continuation fail, and the fall-through (009B: COUNT -> CW,
+            // FARJMP REPX) writes the PARTIAL count back before REPX 0223's
+            // `JMP INTR` backs PC up over the prefixes.
+            ++rep_elems_;
+            if (rep_abort_at_ >= 0 && rep_elems_ >= rep_abort_at_)
+                m_.intr_pending = true;
             if (m_.count == 0) return false;
+            if (m_.intr_pending) return false;
             if (m_.rep_test == kTestZ)
                 return ((psw & kFlagZ) != 0) == m_.rep_pol;
             if (m_.rep_test == kTestCy)
                 return ((psw & kFlagCY) != 0) == m_.rep_pol;
             return true;
         }
+        // BUSY (the 9B POLL pin) has no model: POLL_N low is the only case the
+        // suite's POLL.LO/POLL.REL forms end in, and both retire the
+        // instruction, so the condition is hard-FALSE (ledger R2).
         case kCondBusy: return false;
-        case kCondIntr: return false;
+        case kCondIntr: return m_.intr_pending;
         case kCondOpc: {
             // pla_2 (IDENTIFIED exact, docs/facts/pla_model.md): the textbook
             // x86 condition table over cc = opcode bits 3:0, evaluated on the
@@ -349,13 +371,75 @@ void Cpu::bus_write(uint8_t seg, uint16_t off, bool byte, bool io,
     if (opr_fresh_) emit_pending();
 }
 
+// Ext [-05-]: the interrupt-acknowledge cycle.  It behaves as an ordinary read
+// as far as the microcode is concerned -- the acknowledge data lands in the
+// read queue and the next `F` row delivers it into OPR (01E0/01E1 and
+// 01E2/01E3) -- but it carries NO address and NO segment, so it must NOT go
+// through sr_segment()/sr_is_io(): those read `xop`, which at this point still
+// belongs to the INTERRUPTED instruction (an `IN`/`INS` opcode would otherwise
+// re-classify the acknowledge).
+void Cpu::bus_inta(uint16_t upc) {
+    if (pend_.active) {
+        if (!opr_fresh_) deliver_read();
+        emit_pending();
+    }
+    rdq_.push_back(biu_.inta_read(upc));
+}
+
 // --- the interpreter -------------------------------------------------------
 
-bool Cpu::step() {
+void Cpu::begin_sequence() {
     pend_ = Pending{};
     rdq_.clear();
     opr_fresh_ = false;
+    rep_elems_ = 0;
     for (int i = 0; i < kHwCount; ++i) { hw_owned_[i] = 0; hw_writes_[i] = 0; }
+}
+
+// A hardware entry into one of the page-7 interrupt routines.  Nothing is
+// decoded: the loader is bypassed, so every latch it would have written has to
+// be presented explicitly.  In particular `xop` MUST be cleared -- the shared
+// INT routine's vector fetch is an `SR = IO` access that means the ZERO segment
+// (ledger A24) only while `xop` is not one of the port classes, and `xop` would
+// otherwise still hold the INTERRUPTED instruction's value.
+bool Cpu::interrupt(EventKind kind) {
+    begin_sequence();
+    rep_abort_at_ = -1;
+    m_.seg_override = false;
+    m_.seg_ovr = kDS;
+    m_.rep = kRepNone;
+    m_.lock = false;
+    m_.pfxcnt = 0;
+    m_.M = OperandRef{};
+    m_.R = OperandRef{};
+    m_.opc_base = 0;
+    m_.opc_from_modrm = false;
+    m_.modrm_reg = 0;
+    m_.opc_reg = 0;
+    m_.rep_test = kTestNone;
+    m_.rep_pol = false;
+    m_.xop = 0;
+    // The vector arithmetic (01EC `ALU ADD tmpb` -> vector*4) is 16-bit; an
+    // inherited byte width would truncate 2*vector.
+    m_.op8 = false;
+    m_.imm8 = false;
+    m_.alu = AluLatch{};
+    m_.alu.op = kAdd;
+    m_.alu.tmp = 0;
+    m_.alu.byte = false;
+    m_.halted = false;
+    MicroPc e{};
+    e.page = 7;
+    e.opc = (kind == kEvtInt) ? uint8_t(0x02) : uint8_t(0x00);
+    e.loc = (kind == kEvtNmi) ? uint8_t(2) : uint8_t(0);
+    bool ok = run_micro(e);
+    m_.intr_pending = false;
+    return ok;
+}
+
+bool Cpu::step() {
+    begin_sequence();
+    biu_.clear_consumed();
     LoadResult ld = loader_decode(m_, biu_);
     if (trace_) {
         std::fprintf(trace_,
@@ -365,9 +449,18 @@ bool Cpu::step() {
                      ld.ea_valid ? "" : "-", ld.ea, ld.ea_seg, ld.preread,
                      ld.entry.page, ld.entry.opc, m_.op8, m_.imm8);
     }
-    if (ld.executed) return true;
+    if (ld.executed) {
+        rep_abort_at_ = -1;
+        return true;
+    }
 
-    m_.upc = ld.entry;
+    bool ok = run_micro(ld.entry);
+    rep_abort_at_ = -1;
+    return ok;
+}
+
+bool Cpu::run_micro(const MicroPc& entry) {
+    m_.upc = entry;
     bool ending = false;
     int guard = 0;
 
@@ -585,6 +678,15 @@ bool Cpu::step() {
                     if (!suppress_commit && m_.M.kind == OperandRef::kMem)
                         bus_write(m_.M.seg, m_.M.ea, m_.M.byte, false,
                                   op.rom_addr);
+                    break;
+                case kEctlInta: bus_inta(op.rom_addr); break;
+                case kEctlIntaTail:
+                    // 01ED, the row after the vector reaches tmpb.  Every
+                    // software INT / INT3 / INTO / CHKIND / divide trap runs it
+                    // too, and all of those forms are architecturally exact
+                    // with it modelled as a no-op -- so whatever it drives on
+                    // the bus (the acknowledge's trailing hold) has no
+                    // architectural consequence.  Logged as inert.
                     break;
                 default: break;
             }

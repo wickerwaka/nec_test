@@ -93,7 +93,19 @@ public:
     const MatchPat& pat(int bank) const { return pats_[size_t(bank)]; }
 
     // Precomputed micro-address decode: bank index, or -1 if unmapped.
-    int bank_of(int page, int opc, int row) const {
+    //
+    // `emu` selects between the two banks of the ONE ambiguous micro-address in
+    // the whole 8192-entry space, 111.00000010.00 (the interrupt-acknowledge
+    // vector fetch; ledger R4).  Exactly two activation patterns match it and
+    // the 13 dumped address bits cannot separate them, so the decoder must take
+    // a 14th input; the goldens show NATIVE mode running the SECOND bank
+    // (01E0-01E3: two INTA cycles, vector from the second) and leave the first
+    // (01DC-01DF: one INTA, vector off the high lane, AW saved/restored) for
+    // 8080-emulation mode.  Every other micro-address has at most one match, so
+    // `emu` is inert everywhere else.
+    int bank_of(int page, int opc, int row, bool emu = false) const {
+        int alt = bank_alt_[page][opc][row];
+        if (!emu && alt >= 0) return alt;
         return bank_of_[page][opc][row];
     }
 
@@ -120,6 +132,8 @@ private:
     int ambiguous_ = 0;
     // [page][opcode byte][row] -> bank index (-1 = unmapped)
     int16_t bank_of_[8][256][4];
+    // second matching bank of an ambiguous micro-address (-1 = unambiguous)
+    int16_t bank_alt_[8][256][4];
 };
 
 // Field-name tables (6 characters each), exactly as in V20UCDIS.PAS.

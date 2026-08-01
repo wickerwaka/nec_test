@@ -2,9 +2,11 @@
 
 C++20 microcode-driven simulator for the NEC V30 (uPD70116). Every instruction
 is executed by walking the rows of `docs/V20BITS.TXT`; nothing is flattened
-into per-opcode C++. As of stage S1c it is architecturally exact on all 336
-sim-scope forms of `tests/v30/v0.2` (336 000 / 347 000 cases; the remaining 11
-files are pin-event pseudo-forms, S2 scope).
+into per-opcode C++. As of stage S2a it is architecturally exact on **all 347
+forms** of both `tests/v30/v0.1` (169 000 / 169 000) and `tests/v30/v0.2`
+(347 000 / 347 000), including the eleven pin-event pseudo-forms
+(`INT.*` / `NMI.*` / `HLT.*`), plus the wait tranches and the specials
+(`f4a_boundary`, `mod3_illegal`, `f0lock_tranche`, `enter_nesting`).
 
 No external dependencies; plain `make` and a C++20 compiler.
 
@@ -19,7 +21,7 @@ No external dependencies; plain `make` and a C++20 compiler.
 | `biu.h` / `biu.cpp` | 1 MB epoch-stamped memory + I/O, functional queue, ordered write log |
 | `ea.h` / `ea.cpp`, `loader.h` / `loader.cpp` | ModR/M + EA, the pre-decode contract (prefixes, operand binding, pre-read, page select) |
 | `alu.h` / `alu.cpp` | the micro-ALU: combinational `alu_eval` and the per-iteration `alu_step` |
-| `exec.h` / `exec.cpp` | the per-micro-row interpreter |
+| `exec.h` / `exec.cpp` | the per-micro-row interpreter, incl. the hardware interrupt/NMI/trap entries (`Cpu::interrupt`) and the INTA bus cycle |
 | `case_runner.h` / `case_runner.cpp` | SingleStepTests ingestion and verdicts |
 | `main.cpp` | CLI dispatcher (`disasm`, `info`, `run`, `trace`) |
 
@@ -64,9 +66,22 @@ coverage.
 
 ```sh
 gunzip -c tests/v30/v0.2/0F28.json.gz | sim/v30sim run docs/V20BITS.TXT
-python3 sw/ucsim_smoke.py --suite tests/v30/v0.2 --all      # whole-suite survey
-python3 sw/ucsim_smoke.py --suite tests/v30/v0.2 --s1c      # the 0F page
+python3 sw/ucsim_smoke.py --suite tests/v30/v0.2 --all      # bring-up survey
 sim/v30sim trace docs/V20BITS.TXT <idx>                     # per-micro-row dump
+```
+
+The PRODUCTION checker is `sw/ucsim_check.py` (`run --emit-final` + the
+`sw/check_core.py::check_case` architectural policy: flags masks, don't-cares,
+pushed-PSW derivation for pin events, RAM fallback, 64K-mirror retry):
+
+```sh
+python3 sw/ucsim_check.py --suite tests/v30/v0.1 --report ga.json   # G-A
+python3 sw/ucsim_check.py --suite tests/v30/v0.1-w1                 # waits
+python3 sw/ucsim_check.py --suite tests/v30/f4a_boundary            # G-C
+python3 sw/ucsim_check.py --suite tests/v30/mod3_illegal --forms goldens \
+        --residue stale-ea
+python3 sw/ucsim_check.py --suite tests/v30/f0lock_tranche
+python3 sw/ucsim_check.py --enter-nesting
 ```
 
 `run --alu-hw-report` adds one summary record attributing each case's FINAL PSW

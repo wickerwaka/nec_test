@@ -21,6 +21,9 @@ void Biu::begin_case() {
     txns_.clear();
     seq_ = 0;
     writes_.clear();
+    consumed_.clear();
+    io_seq_.clear();
+    io_n_ = 0;
 }
 
 void Biu::poke(uint32_t a, uint8_t v) { wr(a & 0xFFFFF, v); }
@@ -73,15 +76,23 @@ uint16_t Biu::io_read(uint16_t port, bool word, uint16_t upc) {
     // byte lane follows the address parity (AD15-8 for odd), so a word access
     // to an ODD port -- which the bus splits into two byte cycles -- comes
     // back byte-swapped.
+    uint16_t src = io_in_;
+    if (io_n_ < io_seq_.size()) src = io_seq_[io_n_];
+    ++io_n_;
     uint16_t v;
     if (!word)
-        v = uint16_t((port & 1) ? (io_in_ >> 8) : (io_in_ & 0xFF));
+        v = uint16_t((port & 1) ? (src >> 8) : (src & 0xFF));
     else if (port & 1)
-        v = uint16_t((io_in_ >> 8) | (io_in_ << 8));
+        v = uint16_t((src >> 8) | (src << 8));
     else
-        v = io_in_;
+        v = src;
     log(Txn::kIoRead, port, v, word ? 2 : 1, 0, upc);
     return v;
+}
+
+uint16_t Biu::inta_read(uint16_t upc) {
+    log(Txn::kIntAck, 0, inta_, 2, 0, upc);
+    return inta_;
 }
 
 void Biu::io_write(uint16_t port, uint16_t data, bool word, uint16_t upc) {
@@ -103,7 +114,9 @@ uint8_t Biu::next_byte(uint16_t cs, uint16_t upc) {
         fetch_ptr_ = uint16_t(fetch_ptr_ + 1);
         q_.push_back(b);
     }
-    return q_[qhead_++];
+    uint8_t b = q_[qhead_++];
+    consumed_.push_back(b);
+    return b;
 }
 
 void Biu::flush(uint16_t pc) {

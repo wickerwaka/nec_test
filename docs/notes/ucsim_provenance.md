@@ -14,12 +14,13 @@ Provenance classes:
 | **MEASURED** | a law measured on silicon and recorded in `docs/facts/*` or a golden suite |
 | **ASSUMPTION** | not determined by the assets; adopted because it reproduces the goldens.  Evidence and falsifier recorded. |
 
-Status of this file at the end of **S1c / gate P1**: covers every form the
-simulator is scoped for on `tests/v30/v0.2` — the bring-up families, the
-flow/stack forms, the internal-routine page, the arithmetic groups and the
-whole `0F` page.  §29-§32 are the P1 accounting (provenance census, the full
-assumption list with falsifiers, the `--alu-hw-report` sufficiency numbers and
-the residual uncertainties).  Later stages append.
+Status of this file at the end of **S2a**: covers every form in
+`tests/v30/v0.1` and `tests/v30/v0.2` — the bring-up families, the flow/stack
+forms, the internal-routine page, the arithmetic groups, the whole `0F` page and
+(new at S2a) the eleven pin-event pseudo-forms.  §29-§32 are the P1 accounting
+(provenance census, the assumption list with falsifiers, the `--alu-hw-report`
+sufficiency numbers and the residual uncertainties); §33-§40 are S2a.  Later
+stages append.
 
 ---
 
@@ -1325,8 +1326,17 @@ mechanically greppable from this file — `**ROM**`, `**PLA**`, `**MEASURED**`,
 | policy | deliberate non-modelling (queue deferral, `iord` replay) | 2 |
 | **total** | | **72** |
 
+> **Exhaustiveness (corrected at S2a).**  §30's table A1..A28 enumerates the
+> assumptions the simulator makes *when it executes a row*.  It is NOT the whole
+> assumption surface: the microcode codes that no scoped form reaches are
+> assumptions **by omission** (modelled as no-ops on no evidence), and the P1
+> text listed them only as prose.  S2a promotes every such code the pin-event
+> work touches into the numbered table (A29..A35 in §38) and re-classifies the
+> rest by whether a green form actually executes them (§39).  The census below
+> is therefore the P1 snapshot; §38's totals supersede it.
+
 The **ASSUMPTION** row is the campaign's answer so far, and §30 enumerates it
-exhaustively — A1..A28, one line each, with the falsifier that would kill it.
+with A1..A28, one line each, plus the falsifier that would kill it.
 Twelve of the 28 are tagged *ROM-constrained* (A1, A14, A17, A18, A20, A21,
 A22, A23, A25, A26, A27 and the §3.1 entry A3): the ROM admits exactly one
 behaviour that makes the affected block intelligible, but no dumped asset names
@@ -1361,24 +1371,32 @@ contradict — those are the ones a die trace would have to settle.
 | A20 | `[-1E-]` = ABS and loads the sign latch; `[-0C-]` toggles it by sign(tmpb); `[-09-]` tests it clear | 16 | signed MUL/DIV results |
 | A21 | the `MUL` / `DIV` micro-step algebra (shift-add; **restoring** division) | 16.1 | any `F6.4-7`/`F7.4-7`/`69`/`6B`/`D4` case, incl. undefined flags |
 | A22 | `ADJD`/`ADJA` **arm** a mode that the following `ADD`/`SUB` executes | 17.2 | the four native BCD blocks |
-| A23 | write-data **pairing** (a write consumes the OPR value (re)loaded since the previous write) | 18.2 | PUSHA vs. ENTER pin it from both sides |
+| A23 | write-data **pairing**: a posted write runs as soon as OPR carries a value that no earlier write has already consumed. §27 *refines* this — freshness is consumed not only by a write's data phase but by **any** read of OPR as a Source1/Source2 operand, so the two paragraphs describe one rule with two consumers, not two rules. The implementation (`opr_fresh_`) has a single clear site per consumer | 18.2, 27 | PUSHA vs. ENTER pin the write consumer from both sides; the BCD strings 02D4/02D7 and INS 032B/032F pin the source consumer |
 | A24 | `SR = IO` means the **zero segment** except for pla_3 `XOP` 1111 / 0110 | 18.3 | INT vector fetch vs. `E4/EC` |
 | A25 | the ALU latch at instruction entry is `ADD tmpa` plus the synthetic EA constant | 21 | `D7` XLAT |
 | A26 | `ALU BIT` captures the index at its own row and masks port B of the **next** latched op only | 23.1 | a `0F 1x` form needing the unmasked operand |
 | A27 | an ADJx arm not consumed by an `ADD`/`SUB` **discharges** as a plain truncation into its operand | 26.2 | only one ROM row (`030B`) takes this path |
 | A28 | the bit-field group's byte register binding is keyed off ext `XOP = 0011` | 23.4 | another ext block needing byte registers, or `0F 30-3F` aliases with `mod != 3` |
 
-Still-no-op microcode codes (no scoped form observes them, so they are
+Still-no-op microcode codes at P1 (no scoped form observed them, so they were
 assumptions by omission): `ENDEM`, `MFC`, `MFS`, Ext `[-03-]`/`[-05-]`,
-Int `[-0A-]`/`[-0B-]`, Dest1 `[-09-]`/`[-0A-]`/`[-0B-]`, Source1 `[-05-]`/`[-0B-]`.
-Ext `[-03-]` (`01ED`) and Ext `[-05-]` (`01DC`/`01E0`/`01E2`) are the
-**interrupt-acknowledge** bus cycles: they occur only in the two `<internal> 02`
-banks and the 8080/BRKEM entry, they always ride with `SUSP` and `SR = IO`, and
-the natural reading is "INTA cycle" (`[-05-]`) and "INTA-with-hold"
-(`[-03-]`).  No form in scope executes them; they are S2 work together with the
-pin-event pseudo-forms (see §21.1's ambiguous address, which is the same
-routine).  Dest2 `[-03-]` **is** resolved: it is a sink that still gates SIGMA
-onto the bus, i.e. a status-latch-only write (§14.1).
+Int `[-0A-]`.  Ext `[-03-]` (`01ED`) and Ext `[-05-]` (`01DC`/`01E0`/`01E2`)
+were read as the **interrupt-acknowledge** bus cycles.  Dest2 `[-03-]` **is**
+resolved: it is a sink that still gates SIGMA onto the bus, i.e. a
+status-latch-only write (§14.1).
+
+> **Corrected at S2a.**  Three of the P1 claims above were wrong or stale.
+> (a) The P1 list also named Int `[-0B-]`, Dest1 `[-09-]/[-0A-]/[-0B-]` and
+> Source1 `[-05-]/[-0B-]`; **no ROM row uses any of them**, so they are not
+> assumptions at all — they are unused encodings (§39).  (b) `MFS` and Int
+> `[-0A-]` were *already* being executed at P1 — `MFS` on `01F6` by every
+> software `INT`/`INT3`/`INTO`/`CHKIND`/divide trap, Int `[-0A-]` on `006D` by
+> `POLL.LO`/`POLL.REL` — and those forms were green with both modelled as
+> no-ops, so they are *executed-inert*, not unobserved (§39).  (c) Ext
+> `[-03-]` is likewise executed by every software INT (it sits on `01ED`,
+> inside the SHARED `INT` routine, not in the acknowledge banks), which
+> **falsifies** the "INTA-with-hold" reading: an acknowledge bus cycle there
+> would be an acknowledge on `INT 21h`.  §35 settles both Ext codes.
 
 ## 31. `--alu-hw-report`: how much of the PSW the microcode does NOT determine
 
@@ -1428,3 +1446,347 @@ Everything else in `docs/facts/undefined_flags.md` that S1a-S1c touched is
 | R8 | `0F 30-3F` **alias forms with `mod != 3`** (memory bit-offset/length operands) are absent from v0.2, so the byte-register binding of §23.4 is untested against a memory r/m | suite coverage | S2 (`v0.3` / `v20suite`) |
 | R9 | b6's **mechanism** — mode-gated consumer versus a separate ext-page fetch-enable term the dumps do not expose | the dump has no such column | die/PLA re-read (`pla_model.md` "cheapest next experiments") |
 | R10 | 8080-emulation pages (`ENDEM`, `MFC`/`MFS`, `BRKEM`) remain unexecuted | not a victory gate (user decision) | opportunistic, `t30-brkem` bank |
+
+---
+
+# S2a — the pin-event pseudo-forms, the production checker, gates G-A / G-C
+
+Scope: the eleven forms P1 left out (`INT.90`, `INT.B8`, `INT.9D`, `INT.8ED0`,
+`INT.8ED8`, `INT.F3AA`, `INT.FB`, `NMI.90`, `NMI.B8`, `HLT.INT`, `HLT.NMI`),
+the production checker `sw/ucsim_check.py`, and the G-A / G-C gates.  The
+behavioural reference is `docs/facts/interrupt_model.md`.
+
+## 33. The external-event entry points are HARDWARE addresses — **ROM (structural) + ASSUMPTION (A29)**
+
+Nothing in the ROM *jumps* to the interrupt routines from outside; three
+micro-addresses in page 7 are only reachable if the pre-decode hardware forces
+the micro-PC there instead of running the loader.  The ROM makes which ones
+unambiguous:
+
+| entry | rows | what the rows say |
+|---|---|---|
+| `111.00000000.00` loc 0 | `01D8 CONST -> tmpbL 1` / `01D9 FARJMP INT` | vector **1** — the BRK / single-step trap |
+| `111.00000000.00` loc 2 | `01DA CONST -> tmpbL 2` / `01DB FARJMP INT` | vector **2** — **NMI** |
+| `111.00000010.00`       | the two `[-05-]` acknowledge banks (§34) | the **INT pin** |
+
+`CONST 1` and `CONST 2` are the architectural trap and NMI vectors, and the
+`02` bank is the only place in the ROM that issues an acknowledge cycle, so the
+assignment is forced by the ROM even though no dumped asset names the
+entry-address generator.  `sim/exec.cpp::Cpu::interrupt(EventKind)` implements
+exactly these three.  `F4` HALT, by contrast, has **no bank at all** — no
+activation pattern in the whole ROM matches opcode `F4` in any native page — so
+HALT is pure pre-decode hardware, which is precisely what the measured HALT
+display law says ("HALT never enters the bus-commit machinery",
+`docs/facts/interrupt_model.md`).
+
+## 34. R4 RESOLVED — the ambiguous micro-address `111.00000010.00` — **MEASURED**
+
+`v30sim info` reports **exactly one** ambiguous address in the 8192-entry
+micro-address space, and it is this one.  Two activation patterns match it:
+
+```
+------- 111.00000010.00 <internal> 02        (bank A, first in ROM order)
+01DC AX     -> tmpc            CTL SUSP  [-05-] IO      <- ONE acknowledge
+01DD OPR    -> AX          F   CTL
+01DE AL:AH  -> tmpbL           CTL                      <- vector = HIGH lane
+01DF tmpc   -> AX              CTL FARJMP INT           <- AW restored
+
+------- 111.00000010.00 <internal> 02        (bank B, second in ROM order)
+01E0 ZEROS  -> IND             CTL SUSP  [-05-] IO      <- acknowledge 1
+01E1 OPR    -> tmpb        F   CTL
+01E2 ZEROS  -> IND             CTL       [-05-] IO      <- acknowledge 2
+01E3 OPR    -> tmpb        F   CTL FARJMP INT           <- vector = LOW lane of #2
+```
+
+**Silicon runs bank B.**  Two independent discriminators, both from the golden
+records themselves:
+
+1. **Cycle count.**  `tests/v30/v0.1/INT.90` idx 0 shows *two* `INTA` bus cycles
+   (rows 6-11 and 13-20 of its `cycles` array), matching bank B's two `[-05-]`
+   rows.  Bank A has one.  This is the same "INTA2 T1 = INTA1 T1 + 7" the
+   interrupt model measured directly.
+2. **Which lane the vector comes off.**  The acknowledge data in the trace is
+   `0x00FF` — `0xFF` on AD7:0, `0x00` on AD15:8.  Bank B takes `OPR -> tmpb`
+   and §36's `ZEROS -> tmpbH` keeps the **low** byte → vector `0xFF` → vector
+   table at `0x03FC/0x03FE`, which is exactly where the golden's `MEMR` cycles
+   go.  Bank A routes the read through `AL:AH -> tmpbL`, i.e. the **high** byte
+   → vector `0x00` → table at `0x0000`.
+
+**Falsifier, run:** forcing bank A (`rom_.bank_of(..., /*emu=*/true)`) takes
+`INT.90` from 200/200 to **0/200**, every case failing as `ip exp=58E2
+got=0000`; `NMI.90` (which never enters the `02` bank) and `CD` (software INT)
+stay 200/200 and 500/500.  The discriminator is sharp and confined to the
+INT-pin forms.
+
+**The selection rule** — this is the part that is *not* measured.  The 13 dumped
+address bits cannot separate the two patterns, and a silicon decoder cannot
+drive two banks onto one output.  So the decoder takes a **14th input**, and the
+only distinction the two banks make is an 8080-flavoured one (bank A saves and
+restores AW around the acknowledge and takes the byte off the high lane, which
+is how the 8080/BRKEM pages move data).  The simulator models it as a
+`bool emu` argument to `UcRom::bank_of` — native mode takes the second bank,
+emulation mode the first — and, since this is the only ambiguous address in the
+ROM, that argument is inert everywhere else.  The alternative reading (a fixed
+priority encoder that always picks the later pattern, with bank A dead silicon)
+is not excluded by anything we hold; distinguishing them needs a `BRKEM`
+capture, which is R10 territory.  Booked as **A30**.
+
+## 35. Ext `[-05-]` and Ext `[-03-]` — **RESOLVED**
+
+`[-05-]` is the **interrupt-acknowledge bus cycle**.  It appears only on `01DC`,
+`01E0` and `01E2` — inside the two acknowledge banks — always with `SUSP` and
+`SR = IO`.  In the model it behaves as an ordinary read: the acknowledge data
+enters the read queue and the following `F` row delivers it into OPR
+(`01E0`/`01E1`, `01E2`/`01E3`).  That the delivery works through the ordinary
+`F` interlock is *verified*, not assumed: a wrong delivery (dropping the first
+acknowledge, or delivering it twice) puts the wrong word in `tmpb` and the
+vector-table read lands somewhere other than `0x03FC`, which all 2200 INT-pin
+golden cases would catch.
+
+`[-03-]` is **NOT** the acknowledge's second half, contrary to the P1 reading.
+It sits on `01ED`, inside the routine `FARJMP INT` reaches — the routine every
+`INT n` / `INT3` / `INTO` / `CHKIND` trap / divide trap also runs.  Those forms
+are architecturally exact (7 500 cases over `CC`/`CD`/`CE`/`CF`/`62` in
+v0.1+v0.2) with `[-03-]` modelled as a no-op, so whatever it drives has **no architectural
+consequence**; it cannot be an acknowledge, because `INT 21h` does not
+acknowledge anything.  The remaining readings are bus-control (the acknowledge's
+trailing hold / a `BUSLOCK` release, which the row's `SUSP` company would fit) —
+a timing-campaign question.  Modelled as inert and booked as **A31**.
+
+## 36. The shared `INT` routine, walked — **ROM**
+
+Reached by `FARJMP INT` (far index 2 → page 7, opcode `0x10`) from *all* of:
+the acknowledge banks, `01D9`/`01DB` (trap 1 / NMI 2), `0105`/`0108`/`010F`
+(`INT3`/`INT n`/`INTO`), `0195`/`01A9` (divide overflow, vector 0), `0283`
+(`CHKIND`, vector 5).  One routine, one set of pushes:
+
+```
+01EC ZEROS -> tmpbH        ALU ADD tmpb      vector byte only; latch ADD
+01ED SIGMA -> tmpb    SUSP [-03-] IO         tmpb = 2*vector
+01EE SIGMA -> IND          MEMR IO           read IVT lo  @ 4*vector   (zero segment)
+01EF SIGMA -> tmpb         ALU INC2 tmpb     tmpb = 4*vector
+01F0 SIGMA -> IND          MEMR IO           read IVT hi  @ 4*vector+2
+01F1 OPR   -> tmpc    F                      tmpc = handler PC
+01F2 SP    -> tmpb         ALU DEC2 tmpb
+01F3 OPR   -> tmpa    F                      tmpa = handler PS
+01F4 FLAGS -> OPR     F                      PSW captured BEFORE CITF
+01F5 SIGMA -> tmpb,IND     CITF  MEMW SS     push PSW @ SP-2, then IE=BRK=0
+01F6 CS    -> OPR     F    MFS               IND = SP-4
+01F9 tmpa  -> CS           MEMW SS           push old PS @ SP-4
+01FA PC    -> OPR     F                      IND = SP-6; OPR = the RESUME PC
+01FB tmpc  -> PC           MEMW SS           push resume PC @ SP-6
+01FC SIGMA -> SP      E    FLUSH             SP -= 6, refetch at the handler
+```
+
+Three ROM facts fall out and all three match the measured model:
+
+* **the pushed PSW is the pre-entry value** — `FLAGS -> OPR` at `01F4` runs one
+  row before `CITF` at `01F5`, so IE/BRK are still as loaded
+  (`docs/facts/interrupt_model.md`: "Pushed PSW = pre-recognition value");
+* **the vector fetch is a ZERO-segment access** — `SR = IO` with a non-port
+  `xop` (A24), so `4*vector` is a physical address; the golden's `MEMR` rows at
+  `0x03FC`/`0x03FE` carry no segment;
+* **the push order is PSW, PS, PC at SP-2/SP-4/SP-6** and `SP` lands 6 lower.
+
+**A12 (16-bit offset wrap) is exercised hard here**: 40 v0.1 and 213 v0.2
+pin-event cases start with `SP < 6`, so the three pushes wrap the stack offset
+through zero (e.g. `INT.90` idx 3: `SP=0x0000`, `SS=0x77BF` → frame at
+`0x87BEA/0x87BEC/0x87BEE`, physical addresses that stay inside the segment).
+All pass.
+
+## 37. The REP abort is a ROM mechanism, not a model bolt-on — **RESOLVED (ROM)**
+
+The string loops end with `JMP REP <loop>` and fall through to
+`COUNT -> CW; FARJMP REPX`.  `REPX` is where the external event is consumed:
+
+```
+0220 CX     -> tmpb            ALU PASS tmpb
+0221 PC     -> tmpb   SIGMA -> [-03-]   ALU SUB tmpa     status <- CW; tmpb = PC
+0222                           JMP Z    4                CW == 0 -> just end
+0223                           JMP INTR 5                event pending?
+0224                        E  CTL                       normal end
+0225 PFXCNT -> tmpa            CTL
+0226 SIGMA  -> tmpb            ALU DEC  tmpb             tmpb = PC - PFXCNT
+0227 SIGMA  -> PC           E  CTL FLUSH                 PC = PC - PFXCNT - 1
+```
+
+`PC - PFXCNT - 1` backs the resume PC over **every** prefix and the opcode byte
+— which is the measured "pushed PC = the FIRST prefix byte, no 8086 lost-prefix
+bug" law, straight out of the ROM.  `PFXCNT` is used on exactly this one row in
+the entire ROM, which is what it is for.
+
+The only exit the string loop has is its `JMP REP`, so the recognition must
+enter through that condition: **`REP` continues only while COUNT is non-zero AND
+no event is pending**, and `INTR` then reads the same latch at `0223`.  The
+simulator implements exactly that (`Machine::intr_pending`, read by `kCondRep`
+and `kCondIntr`); everything else — the partial `CW` write-back, the `IY`
+advance, the completed element's memory write, the resume PC — is computed by
+the ROM.  Booked as **A32**.
+
+`JMP INTR` also appears at `006F`, inside `POLL` (`9B`): a pending event makes
+POLL back its own PC up by one and flush, i.e. re-execute after the handler.
+Same latch, and the `POLL.LO`/`POLL.REL` tranches (2400 cases) stay green with
+it never raised, because no POLL golden fires.
+
+## 38. Policy: the FIRING BOUNDARY is replayed, its consequences are computed
+
+Functional mode does not predict *when* the pin is caught — that is the
+cycle-exact recognition pipeline of `docs/facts/interrupt_model.md` (pin@B-3,
+IE@B-3, single-boundary shadows, taken-branch flush anchoring), which belongs to
+the timing campaign.  It is the same class of deliberate non-modelling as the
+`iord=` replay (R3).  **Policy P3:** the boundary the golden recorded is
+replayed; every architectural consequence is computed and compared.
+
+Two numbers identify the boundary, both taken from the golden's own record
+(`sim/case_runner.cpp::derive_replay`):
+
+| number | source | meaning |
+|---|---|---|
+| `resume_ip` | the golden's **pushed frame**: the word at final `SS:SP` | the instruction the event preempted.  The simulator retires instructions until its live PC equals it, then enters. |
+| `elements` | the golden's **bus trace**: `MEMW` cycles ahead of the first `INTA` row | only for a REP that resumes at its own prefix address: how many string elements completed.  Armed as `set_rep_abort`, consumed by §37's ROM mechanism. |
+
+A case whose golden shows **no frame** (SP unchanged, no PSW word with the V30's
+forced `15:12` bits at `SS:SP+4`) did not fire — masked INT, HALT masked-resume,
+POLL — and runs as an ordinary single-instruction case.  That predicate is the
+same one `sw/check_core.py` uses to decide whether to derive flags from the
+pushed PSW, so the checker and the model agree by construction.
+
+What this does **not** hide: the vector, the acknowledge, the table read, the
+frame contents, the resume PC, `CW`/`IY` at the abort, the flush, `IE`/`BRK`
+after entry and the whole final state are all produced by the ROM and diffed.
+`INT.FB` is the sharp case — `EI`'s one-instruction recognition shadow means the
+golden's resume PC is *past* the following instruction, so the simulator must
+execute that instruction too and must push a PSW with `IE` already set; 400
+cases across v0.1+v0.2 agree.
+
+### New assumptions from S2a
+
+| # | assumption | § | falsifier |
+|---|---|---|---|
+| A29 | the three hardware entry addresses of §33 (INT pin → `111.00000010.00`, NMI → `111.00000000.00` loc 2, BRK/TF trap → loc 0), and that `F4` HALT has no microcode at all | 33 | a pin-event form landing on the wrong vector; `HLT.INT`/`HLT.NMI`/`HLT.RES`, 3 600 cases, exercise the HALT half |
+| A30 | the `111.00000010.00` bank pair is selected by an **emulation-mode input** to the micro-address decoder (native = bank B), rather than by a fixed priority with bank A dead | 34 | a `BRKEM` capture reaching page 7 opcode 02 (R10); nothing we hold decides it |
+| A31 | Ext `[-03-]` is architecturally inert | 35 | any `INT`/trap form: 7 500 software-INT/trap cases plus 13 200 pin-event cases execute it |
+| A32 | `INTR` is the recognition latch AND the `REP` continuation's second term | 37 | `INT.F3AA`'s aborted cases: a wrong term gives the wrong `CW`/`IY`/element writes |
+| A33 | the hardware presents a **cleared loader context** at an internal entry — in particular `xop`, or the vector fetch's `SR = IO` would be re-classified as a port access (A24) | 40 | directed probe, §40; no golden covers it |
+| A34 | the acknowledge data is the harness constant `0x00FF` (CFG `int_vector`), replayed like `iord` | 35 | the golden traces show it on both `INTA` cycles; a different controller would change the vector, not the mechanism |
+| A35 | the final **queue** stays deferred; in its place the bytes the decoder consumed must equal the case's `bytes` | checker | any form whose decode length is wrong; 516 000 cases assert it |
+
+Running total: **35** numbered assumptions (A1..A35).  Policy entries: 3
+(queue deferral, `iord` replay, pin-event boundary replay).
+
+## 39. The "assumption by omission" list, cleaned up
+
+| code | rows | status after S2a |
+|---|---|---|
+| Ext `[-05-]` | `01DC`, `01E0`, `01E2` | **RESOLVED** — the acknowledge cycle (§35) |
+| Ext `[-03-]` | `01ED` | **EXECUTED-INERT** — 20 700 green cases run it (§35, A31) |
+| `MFS` | `0091`, `01D4`, `01F6` | **EXECUTED-INERT** on `01F6` (every INT/trap form, same 20 700 cases); `0091`/`01D4` unreached |
+| Int `[-0A-]` | `006D` | **EXECUTED-INERT** — `POLL.LO`/`POLL.REL`, 2400 green cases |
+| `ENDEM` | `03FD` | unreached (8080 page, R10) |
+| `MFC` | `0093` | unreached (INTEM bank, R10) |
+| Int `[-0B-]`, Dest1 `[-09-]/[-0A-]/[-0B-]`, Source1 `[-05-]/[-0B-]` | *none* | **not assumptions** — no ROM row uses these encodings at all.  The P1 text listed them in error. |
+
+"Executed-inert" is a weaker claim than "resolved" and a much stronger one than
+"unobserved": the code runs on every one of thousands of green cases, so it has
+no architectural effect, but what it *does* drive (bus control, most likely) is
+unknown and is timing-campaign work.
+
+## 40. The `xop` inheritance trap — **found in review, closed by directed probe**
+
+`Cpu::sr_is_io()` classifies an `SR = IO` access as a port access from
+`Machine::xop`, the pla_3 group of the instruction the **loader last decoded**.
+A hardware interrupt entry runs no loader, so without an explicit reset `xop`
+survives into page 7 — and the shared INT routine's vector fetch (`01EE`,
+`01F0`) is an `SR = IO` access.  Interrupting an `IN`/`INS` opcode (`xop` `1111`
+or `0110`) would therefore send the vector-table read into the **I/O space**.
+
+No golden covers it: every pin-event anchor is `90`, `B8`, `9D`, `8E D0`,
+`8E D8`, `F3 AA`, `FB` or `F4`.  So it is closed by a directed probe instead —
+`INT.90` idx 0 with its anchor byte rewritten to `EC` (`IN AL,DW`, `xop = 1111`)
+and to `6C` (`INSB`, `xop = 0110`), all three variants byte-identical in
+handler `PS:PC`, `SP` and the pushed frame:
+
+```
+nop                          CS=0000 IP=58E2 SP=7394 frame=(0xb6c7, 0x67c4, 0xf646)
+in al,dw (xop = port class)  CS=0000 IP=58E2 SP=7394 frame=(0xb6c7, 0x67c4, 0xf646)
+insb     (xop = block I/O)   CS=0000 IP=58E2 SP=7394 frame=(0xb6c7, 0x67c4, 0xf646)
+```
+
+**The probe is not vacuous:** deleting the `m_.xop = 0` reset makes the two I/O
+variants return `IP=0000` while the NOP variant is unaffected.  The acknowledge
+itself is separately protected — `Ext [-05-]` bypasses `sr_segment()`/
+`sr_is_io()` entirely (`Cpu::bus_inta`), because an acknowledge has no segment
+and no address.  Booked as **A33**.
+
+## 41. S2a result — gates
+
+`sw/ucsim_check.py` is the production checker: `sim/v30sim run --emit-final`
+returns final registers, the ordered byte write stream and the consumed
+instruction bytes; the checker applies `sw/check_core.py::check_case`'s
+architectural policy (sparse-delta registers, metadata flags-masks with
+`emit_suite._flags_mask_of` grouped-form resolution, `--raw-flags`, RAM
+reconstruction with fallback, the pushed-PSW rule for pin events, `dont_care`
+honouring, `known_divergences`, the `iords` sidecar, and check_core's
+flat-fail → 64K-mirror retry) and writes a JSON report.
+
+| gate | suite | result |
+|---|---|---|
+| **G-A** | `tests/v30/v0.1`, 347 forms | **169 000 / 169 000** (1 collision-dependent golden validated on 64K-mirrored RAM, as captured: `0F12` idx 219) |
+| **G-A** | `tests/v30/v0.1-w1`, 6 forms | **1 200 / 1 200** |
+| **G-A** | `tests/v30/v0.1-w3`, 6 forms | **1 200 / 1 200** |
+| consistency | `tests/v30/v0.2`, 347 forms | **347 000 / 347 000** |
+| **G-C** | `tests/v30/f4a_boundary` | **160 / 160** |
+| **G-C** | `tests/v30/mod3_illegal` | **128 / 128** under the documented stale-EA residue |
+| **G-C** | `tests/v30/f0lock_tranche` | **400 / 400** |
+| **G-C** | `tests/v30/enter_nesting` | **512 / 512** + **154 / 154** walk streams |
+
+**Wait invariance.**  The w1 and w3 tranches are the same six forms as their w0
+counterparts, and the functional model has no wait notion at all — it runs one
+identical computation for all three.  All three are green
+(`89`,`8B`,`B8`,`E8`,`EB`,`F7.6`: 3000/3000 at w0, 1200/1200 at w1, 1200/1200 at
+w3), so the architectural state of those forms is wait-invariant on silicon.
+**No wait-dependence was found; there is nothing to report loudly.**  Note the
+coverage limit honestly: the wait tranches only exist for six forms, so this is
+a *confirmation over those six*, not a suite-wide proof.
+
+**mod3 residue confinement.**  With the residue policy off, `mod3_illegal` is
+0/128 and every single failure is `reg_bad == [the ModR/M reg field's register]`
+— 16 cases per destination register, no RAM diff, no other register, no length
+error.  That is exactly the confinement the tranche's metadata claims: LEA mod3
+loads the EU's stale effective-address latch, whose silicon value comes from the
+harness's pre-window injection history and which a from-scratch model cannot
+have.  Confinement is the gate; the value is not transferable.
+
+**ENTER nesting.**  Replaying `ENTER fsize,nest` with BP pre-loaded and the
+NOP-filled image reproduces the chip's stack-region walk write stream
+byte-for-byte for all 512 mask-tranche goldens (max 256 pushes at `nest=255` —
+the nesting is **not** masked mod 32) and all 154 waited-tranche goldens.  The
+waited goldens' walk is wait-invariant on silicon and trivially so in the model,
+which is the value-bug invariant `sw/check_enter_nesting.py` gates on.
+
+**Survey-then-fix.**  The full G-A batch was run before any fix.  Exactly one
+failure category appeared across 169 000 cases: `0F12` idx 219, a RAM diff at
+`0x2713A` — a *collision-dependent golden*, not a model bug.  Its footprint
+holds `0x2713A` and `0x5713A` (a `63 C0` preload byte), which alias to the same
+cell on the capture board's 64K-mirrored RAM; the chip read `0x63`, cleared bit
+1 and wrote `0x61`, while a flat 1 MB model reads the recorded `0x8F` and writes
+`0x8D`.  `sw/check_core.py` already handles this class with a `+mirror` retry;
+the fix was to port that retry (`Biu::set_mirror`, `v30sim run --mirror`), not
+to touch the model or the golden.  No other category was found, so no
+survey-then-fix triage was needed.
+
+## 42. Residual updates
+
+* **R2 — `BUSY`/`INTR` hard-FALSE — CLOSED for `INTR`.**  `INTR` is now the
+  recognition latch (§37, A32) and drives both the `REPX` abort and `POLL`'s
+  re-execute path.  `BUSY` stays hard-FALSE: `POLL.LO`/`POLL.REL` both end with
+  the pin low, so no golden ever needs it true, and there is no pin model.
+  Re-booked as **R2'** (BUSY only).
+* **R4 — the ambiguous micro-address — RESOLVED**, §34.  Which bank silicon runs
+  is measured; the *selection mechanism* remains open and is now the numbered
+  assumption A30.
+* **R5 — final queue deferral** — unchanged, and now paired with the consumed-
+  bytes assertion (A35) so the deferral is not a hole.
+* **R10 — 8080 pages** — gains a concrete stake: bank A of §34 is (on the A30
+  reading) the emulation-mode acknowledge, so a `BRKEM` capture would settle
+  A30 as a side effect.

@@ -159,7 +159,10 @@ bool UcRom::load(const std::string& path, std::string& err) {
 void UcRom::build_decode() {
     for (int p = 0; p < 8; ++p)
         for (int o = 0; o < 256; ++o)
-            for (int r = 0; r < 4; ++r) bank_of_[p][o][r] = -1;
+            for (int r = 0; r < 4; ++r) {
+                bank_of_[p][o][r] = -1;
+                bank_alt_[p][o][r] = -1;
+            }
 
     unmapped_ = 0;
     ambiguous_ = 0;
@@ -171,6 +174,7 @@ void UcRom::build_decode() {
         for (size_t b = 0; b < pats_.size(); ++b) {
             if (!pats_[b].matches(uint16_t(addr))) continue;
             if (hits == 0) bank_of_[page][opc][row] = int16_t(b);
+            else if (hits == 1) bank_alt_[page][opc][row] = int16_t(b);
             ++hits;
         }
         if (hits == 0) ++unmapped_;

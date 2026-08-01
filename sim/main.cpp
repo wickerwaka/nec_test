@@ -24,7 +24,9 @@ int usage(const char* argv0) {
                  "commands:\n"
                  "  disasm <romfile>   print microcode disassembly (V20UC.TXT format)\n"
                  "  info   <romfile>   print ROM statistics\n"
-                 "  run    <romfile> [--queue] [--alu-hw-report]  run cases from stdin\n"
+                 "  run    <romfile> [--queue] [--emit-final] [--mirror]\n"
+                 "                     [--alu-hw-report]\n"
+                 "                     run cases from stdin\n"
                  "  trace  <romfile> <idx>      trace one case from stdin\n",
                  argv0);
     return 2;
@@ -76,6 +78,10 @@ int cmd_run(int argc, char** argv) {
     sim::RunOptions opt;
     for (int i = 1; i < argc; ++i) {
         if (std::strcmp(argv[i], "--queue") == 0) opt.check_queue = true;
+        else if (std::strcmp(argv[i], "--emit-final") == 0)
+            opt.emit_final = true;
+        else if (std::strcmp(argv[i], "--mirror") == 0)
+            opt.mirror = true;
         else if (std::strcmp(argv[i], "--alu-hw-report") == 0)
             opt.alu_hw_report = true;
         else if (std::strncmp(argv[i], "--report=", 9) == 0)

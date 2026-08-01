@@ -28,6 +28,26 @@ public:
     // Returns false if the step limit was hit (runaway sequence).
     bool step();
 
+    // --- external events ---------------------------------------------------
+    // Kinds of hardware entry into the internal (page 7) interrupt routines.
+    // The entry ADDRESS is hardware, not ROM: the loader is bypassed and the
+    // micro-PC is forced to the routine's first row.
+    enum EventKind : uint8_t {
+        kEvtBrk = 0,   // 111.00000000.00 row 0 -- CONST 1, the BRK/TF trap
+        kEvtNmi = 1,   // 111.00000000.00 row 2 -- CONST 2, the NMI vector
+        kEvtInt = 2,   // 111.00000010.00      -- the INTA vector fetch
+    };
+    // Runs one interrupt entry to completion (acknowledge if any, vector fetch,
+    // PSW/PS/PC pushes, queue flush).  Returns false on a runaway sequence.
+    bool interrupt(EventKind kind);
+
+    // Replay hook for an aborted REP: after `n` completed elements the string
+    // loop's `REP` continuation fails and `INTR` reads true, which is how the
+    // ROM itself (009A -> 009B -> REPX 0223) withdraws from the string and
+    // backs PC up over the prefixes.  -1 disables.  Cleared by every step().
+    void set_rep_abort(int n) { rep_abort_at_ = n; }
+    int rep_elements() const { return rep_elems_; }
+
     void set_trace(std::FILE* f) { trace_ = f; }
 
     int rows_executed() const { return rows_; }
@@ -80,6 +100,9 @@ private:
     void emit_pending();
     void bus_read(uint8_t seg, uint16_t off, bool byte, bool io, uint16_t upc);
     void bus_write(uint8_t seg, uint16_t off, bool byte, bool io, uint16_t upc);
+    void bus_inta(uint16_t upc);
+    void begin_sequence();
+    bool run_micro(const MicroPc& entry);
 
     const ucrom::UcRom& rom_;
     Biu& biu_;
@@ -89,6 +112,8 @@ private:
     bool opr_fresh_ = false;
     std::FILE* trace_ = nullptr;
     int rows_ = 0;
+    int rep_abort_at_ = -1;
+    int rep_elems_ = 0;
     uint16_t hw_owned_[kHwCount] = {};
     long hw_writes_[kHwCount] = {};
 };
