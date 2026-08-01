@@ -5,7 +5,8 @@ CXXFLAGS ?= -std=c++20 -O2 -Wall -Wextra
 LDFLAGS  ?=
 
 BIN  := v30sim
-SRCS := main.cpp ucrom.cpp disasm.cpp
+SRCS := main.cpp ucrom.cpp disasm.cpp json.cpp biu.cpp ea.cpp alu.cpp \
+        loader.cpp exec.cpp case_runner.cpp
 OBJS := $(SRCS:.cpp=.o)
 DEPS := $(OBJS:.o=.d)
 

@@ -3,13 +3,15 @@
 // Subcommands:
 //   disasm <romfile>   disassemble the EU microcode ROM (docs/V20BITS.TXT)
 //   info   <romfile>   summarise ROM contents and micro-address coverage
-//
-// `run` and `trace` will be added as the simulator core lands.
+//   run    <romfile>   execute SingleStepTests cases from stdin (NDJSON out)
+//   trace  <romfile> <idx>  per-micro-row dump of ONE case (to stderr)
 
 #include <cstdio>
+#include <cstdlib>
 #include <cstring>
 #include <string>
 
+#include "case_runner.h"
 #include "disasm.h"
 #include "ucrom.h"
 
@@ -21,7 +23,9 @@ int usage(const char* argv0) {
                  "\n"
                  "commands:\n"
                  "  disasm <romfile>   print microcode disassembly (V20UC.TXT format)\n"
-                 "  info   <romfile>   print ROM statistics\n",
+                 "  info   <romfile>   print ROM statistics\n"
+                 "  run    <romfile> [--queue]  run cases from stdin\n"
+                 "  trace  <romfile> <idx>      trace one case from stdin\n",
                  argv0);
     return 2;
 }
@@ -60,6 +64,36 @@ int cmd_info(int argc, char** argv) {
     return 0;
 }
 
+int cmd_run(int argc, char** argv) {
+    if (argc < 1) {
+        std::fprintf(stderr, "usage: v30sim run <romfile> [--queue]\n");
+        return 2;
+    }
+    ucrom::UcRom rom;
+    if (!load_rom(argv[0], rom)) return 1;
+    sim::RunOptions opt;
+    for (int i = 1; i < argc; ++i) {
+        if (std::strcmp(argv[i], "--queue") == 0) opt.check_queue = true;
+        else if (std::strncmp(argv[i], "--report=", 9) == 0)
+            opt.max_report = std::atoi(argv[i] + 9);
+    }
+    return sim::run_cases(rom, stdin, stdout, opt);
+}
+
+int cmd_trace(int argc, char** argv) {
+    if (argc < 2) {
+        std::fprintf(stderr, "usage: v30sim trace <romfile> <case-index>\n");
+        return 2;
+    }
+    ucrom::UcRom rom;
+    if (!load_rom(argv[0], rom)) return 1;
+    sim::RunOptions opt;
+    opt.trace = true;
+    opt.trace_idx = std::atol(argv[1]);
+    opt.max_report = 1 << 30;
+    return sim::run_cases(rom, stdin, stdout, opt);
+}
+
 }  // namespace
 
 int main(int argc, char** argv) {
@@ -67,6 +101,8 @@ int main(int argc, char** argv) {
     const char* cmd = argv[1];
     if (std::strcmp(cmd, "disasm") == 0) return cmd_disasm(argc - 2, argv + 2);
     if (std::strcmp(cmd, "info") == 0) return cmd_info(argc - 2, argv + 2);
+    if (std::strcmp(cmd, "run") == 0) return cmd_run(argc - 2, argv + 2);
+    if (std::strcmp(cmd, "trace") == 0) return cmd_trace(argc - 2, argv + 2);
     std::fprintf(stderr, "v30sim: unknown command '%s'\n", cmd);
     return usage(argv[0]);
 }
