@@ -94,7 +94,7 @@ def run_timed(n):
 
 
 def main():
-    argv = [a for a in sys.argv[1:] if a != "--timed"]
+    argv = [a for a in sys.argv[1:] if not a.startswith("-")]
     timed = "--timed" in sys.argv
     n = int(argv[0]) if argv else 220
     real = load_real()

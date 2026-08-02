@@ -1509,3 +1509,339 @@ python3 sw/timed_probe.py  --forms EB --top 8             # first-divergence tri
 python3 sw/qcensus.py --forms all --empty --by role --map # the pop census
 python3 sw/wchain.py  --forms all --pair MEMW\>MEMW       # the bus-chain census
 ```
+
+---
+
+## 10. T1 CLOSE-OUT — four mechanisms, a reset entry point, and one honest hole
+
+This section closes the stage.  Nothing earlier is retracted.  The ratchet
+(`sw/timed_gate.py --suite tests/v30/v0.1 --forms all`, `rows_exact`):
+
+| step | rows exact | row diffs |
+|---|---|---|
+| §9 close | 164,320 | 24,030 |
+| the BCD adjust is one 16-bit adder pass (§10.1) | 165,202 | 16,185 |
+| a flush's doomed fetch pushes nothing (§10.2) | 165,299 | 15,991 |
+| the redirect outlives the withdrawal (§10.2) | 165,339 | 15,671 |
+| a pre-decode form's flag write rides its LAST clock (§10.3) | **165,481** | **15,490** |
+
+**325 of 347 forms are 100 % cycle-row exact at w0** (was 319).  Arch through
+the timed path is unchanged at 166,800/169,000 and windows at 168,720/169,000.
+
+### 10.0 SCOPE AMENDMENT (coordinator-approved), recorded
+
+**The law-card MUST set clause moves to T2.**  §9.6 argued it from the
+manifest's own Stimulus/Gate columns — every one of C1-C7 and C9-C12 is stated
+on a WAIT VECTOR, and at w0 there is no Tw, no aged band and no deferred eval,
+so nine of the eleven have no stimulus at all and two (C6/C7) additionally need
+a capture no golden carries.  That argument is now the accepted scope: the
+cards are a **T2** gate.  T1 is not credited with them and does not pretend to
+a gate that cannot fail.
+
+### 10.1 The BCD adjust is ONE PASS THROUGH THE ADDER, and the adder is 16 bits
+
+§8.1's C4 question — *the datapath is 16 bits wide everywhere* — applied to the
+`0F 20-27` block, which is where §9.4 had left it.
+
+The decimal-correction unit sits on the **low lane of port B only**: it
+replaces that lane with `corr`, the high lane of port B goes through raw, and
+the one carry chain runs the whole 16 bits.  So an adjust row produces
+
+```
+    hi = A_hi  +/- B_hi  +/- carry-out-of-the-low-lane
+    lo = the decimally corrected byte
+```
+
+and because the ROM's own adjust rows are `02D6 ONES -> tmpa / ALU ADD tmpa`
+and `02E6 ONES -> tmpa / ALU SUB tmpa`, **B = 0xFFFF** and the byte store's
+COMPANION lane comes out one BELOW (ADD4S) / one ABOVE (SUB4S) the ADC/SBB
+result's high half.
+
+*Settled by census, in two steps, over every divergent v0.1 store:*
+
+| high-lane model | `0F20` residue | `0F22` residue |
+|---|---|---|
+| `A_hi` (the §9 model — the adjust preserves the high half) | 1,262 stores, **every one exactly −1** | 1,876 stores, **every one exactly +1** |
+| `A_hi +/- B_hi`, lanes independent | 778 (exactly the stores whose low lane carried) | 164 (ditto) |
+| `A_hi +/- B_hi +/- carry` | **0** | **0** |
+
+`0F20 0F22 0F26` are **500/500** each (were 99 / 19 / 500).  The 882 cases
+§9.4 booked to this family are closed and nothing else moved.
+
+**ARCHITECTURAL** (it is in `alu_eval`), so it rode the FULL corpus (§10.8).
+It is architecturally *invisible* — every consumer of an adjust result is a
+byte write (`-> AL` for the native `27/2F/37/3F` and the 8080 `DAA`, a BYTE
+memory store for the strings) — which is exactly why it could only ever have
+been found on the pins.
+
+### 10.2 The flush law had a hole on each side of "irrevocably announced"
+
+§8.2's F1/F2/F3 were right; `BiuTimed::flush` implemented them with two bugs,
+one per side of the line `withdraw_fetch()` draws.
+
+* **The doomed fetch's bytes.**  `flush()` zeroed `push_n` only for a fetch
+  already RUNNING.  A fetch whose status is on the pins but whose T1 opens on
+  the flush clock itself (`cmt_t1_ == clk_` — precisely the case
+  `withdraw_fetch` refuses, because the cycle is irrevocably announced) went on
+  to push into the flushed queue.  `FF.2` (CALL mem/reg) is the form that shows
+  it: `01BD` FLUSHes two rows before `01BF`'s `E`, so the retire pre-popped a
+  byte the chip does not have and the window closed five clocks early (case 2:
+  golden 20, model 15).  §9.4's "the model pre-pops the successor before the
+  redirect fetch can deliver" — the *reason* is that the redirect had already
+  delivered a byte it should never have had.  **`FF.2` 463 → 500/500.**
+* **The redirect vs the withdrawal.**  `withdraw_fetch()` rewinds `fetch_ptr_`
+  to what it was before the withdrawn fetch was chosen — and `flush()` called
+  it AFTER loading the redirect, so the rewind threw the redirect away and the
+  next eval went straight back into the OLD instruction stream.  Visible only
+  when the flush lands on a T4 whose F3 flush-only eval is the first one after
+  it: `FF.4` case 8, the chip fetches `0D8163` and the model re-fetched
+  `0CE096`.  **`FF.4` 400 → 500/500.**
+
+The whole near control-flow tranche stays exact: `EB E9 E8 EA C8 9A CC CD CF
+C3 C2 74 E2 FF.2 FF.4` are 500/500 each, 7,500/7,500.
+
+### 10.3 A pre-decode-executed form's flag write rides its LAST clock
+
+`FA`/`FB` and every other ONE_BYTE_LOGIC form have no ROM row and no `E`: the
+pre-decode logic decodes AND executes them, in two clocks.  The DECODE clock
+is the opcode pop's own; the **execute strobe** — the clock the flag write
+commits on — is the instruction's **last** clock, which is the clock BEFORE the
+successor's opcode pop.  **So when the queue makes that pop late, the write
+goes late with it.**
+
+MEASURED on the pins: IE rides the PS nibble of every data-phase clock, and
+v0.1 injects an EMPTY queue for half of each form's cases, where the opcode's
+own address parity decides how much the priming fetch delivered.
+
+| | priming fetch | successor pop | golden IE at pop+1 | cases |
+|---|---|---|---|---|
+| even `ip` | word (2 bytes) | pop+2 | **the NEW value** | 250/250 |
+| odd `ip` | single upper-lane byte | pop+4 | **still the OLD value** | 250/250 |
+
+That is §9.4's "split cleanly by queue state (ip parity)" with the QUEUE, not
+the parity, as the variable — the parity only picks the fetch width.  The even
+half rules out "the write rides the successor's pop clock" (it would land one
+late); the odd half rules out the unconditional write.  Nothing in the suite
+separates pop+3 from pop+4 on the odd half, and one rule gives pop+3.  §9.4's
+falsified "PS is a register loaded at T2" stays dead — the even half shows PS
+changing WITHIN one data phase.
+
+`FA FB F8 F9 F5 FC FD` are **500/500 each** (`FA` was 426, `FB` 432).  The five
+that were already exact staying exact is the control on the new call site.
+
+### 10.4 `timed-boot` — the RESET entry point, and the boot capture
+
+§9.6's "owed, sized, not started" is started, and it is a standing gate.
+
+`v30sim timed-boot <rom> <image.bin> [--clocks N] [--ndjson]` loads a flat
+64 KB image into the 64 KB-mirrored memory the capture board is wired as, runs
+the ROM's OWN reset sequence (page 7 opcode 03: `01D0 / 01D1 SUSP / 01D2 /
+01D3 FLUSH / 01D4 E MFS` — `CpuT::reset()`, which the image runner has always
+used) and keeps stepping, emitting one record per CPU clock in the capture's
+frame: **clock 0 = RESET RELEASE**.  `sw/check_boot.py --timed` drives it; the
+column policy is NOT forked, the timed engine is a second `run_*` inside the
+existing script so both legs are compared by the same code (qs from release,
+bs from +8, t/ube/addr/data/ps from +9).
+
+**ONE constant: the ROM's reset rows start on release+4.**  Read off the
+capture twice over — the reset FLUSH's `E` blip is on release+7 and the first
+CODE T1 on release+9, and the ROM puts FLUSH four rows after the block's first
+row.  Everything between is the ordinary machine: the `E` takes the QS port on
+its own clock (the bus is quiet), the eval at the end of that clock commits the
+redirect, its status shows on +8 and its T1 opens on +9.
+
+**RESULT: 205 of 220 rows from RESET release, and the 64-clock boot loop is
+exact** — `CODE T1 @00100` at rows 26 / 90 / 154 / 218 in real and sim alike,
+period 64 in both, every bus cycle of the EA far jump and of the loop body
+matching cell for cell.
+
+The 15 rows that differ are THREE identical occurrences of ONE mechanism (5
+rows per loop iteration): at the loop's closing `EB` the model commits one more
+prefetch (`00114`) at the eval immediately preceding the instruction's first
+micro-row, where the chip's bus stays idle.  **That is the falsifier §7.4
+pre-registered for the resume predicate**, and it names the SUSP LEAD.
+
+*On the RTL leg:* `sw/check_boot.py` with no flag still drives the Verilated
+core and was NOT re-verified in this pass — this working tree carries
+uncommitted `hdl/rtl` changes from a different campaign and
+`hdl/tb/obj_dir/Vtb_v30_core` is a stale build, so that leg reports 206/220 for
+reasons that have nothing to do with ucsim-t.  The edit here adds a second
+engine to the script and touches the RTL path not at all.
+
+**A literal F2 lookahead was tried and REJECTED.**  Decoding the successor
+row's bus-control field one row early (so `0159`'s SUSP reaches the BIU on
+`0158`'s clock) makes the boot replay **220/220 EXACT** — and costs the v0.1
+ratchet **3,446** cases (165,481 → 162,035); a withdraw-only variant still
+costs 2,254 (→ 163,227).  169,000 goldens outrank one capture, so it is
+recorded, not landed.  The two legs are now a sharp stated conflict for the
+arbitration/reservation work (§7.12 item 6, law cards C9-C12) instead of a
+vague open item: **the boot loop wants the SUSP one row earlier than the v0.1
+goldens permit, and one of the two frames is mis-stated.**
+
+### 10.5 `kSegZero` — **SETTLED, and the assumption was right**
+
+T0 open item 5 / §8.8 / §9.6: the PS segment code the internal INT routine's
+"no segment" accesses drive.  §9.6 said the `INT.*` goldens could settle it but
+were the S9 exclusion — that is a constraint on the *model*, not on *reading
+the goldens*.  Census of every IVT-read data-phase row in all eleven pin-event
+forms (`INT.90 INT.9D INT.B8 INT.8ED0 INT.8ED8 INT.F3AA INT.FB NMI.90 NMI.B8
+HLT.INT HLT.NMI`), at `0x3FC/0x3FE` (INT vector 0xFF) and `0x8/0xA` (NMI
+vector 2):
+
+* **4,800 rows, segment code 2 in every one** — `seg` column `CS`, PS nibble
+  `6` where IE was set and `2` where it was not, with the IE split falling
+  exactly where the case's entry IE does.
+
+`kSegZero` drives the SAME code as CS.  `BiuTimed::seg_code`'s
+`default: return 2` is now MEASURED, not assumed.  The class of the claim moves
+ASSUMPTION → **MEASURED**; its falsifier (any no-segment access driving a code
+other than 2) has 4,800 chances to fire and does not.
+
+### 10.6 The residual — 919 cases, two families, both stated
+
+At the T1 close the v0.1 w0 census is:
+
+```
+169,000 total
+ −2,600 pin-event forms (S9): the eleven arch-excluded INT./NMI./HLT. forms
+        (2,200) + HLT.RES (200) + POLL.REL (200)
+  ------
+166,400 reachable at w0      165,481 exact      919 short
+```
+
+**An accounting correction, stated rather than hidden.**  §7.10 wrote the exit
+target as 166,800 = 169,000 − 2,200, taking the S9 set to be the eleven forms
+whose ARCH is excluded.  That is the wrong set: `HLT.RES` and `POLL.REL` are
+architecturally exact (200/200 each) and so were never in the 2,200, but both
+are pin-event forms whose ROWS the model cannot produce — `HLT.RES` needs the
+HALT pseudo-cycle plus a RESET event mid-case, `POLL.REL` needs the POLL pin
+sampled every 5 clocks (`interrupt_model.md`).  They belong to **S9** by the
+same construction as the other eleven, and the reachable-at-w0 denominator is
+**166,400**, not 166,800.  This is a re-labelling of 400 cases that were always
+pin-event, not a relaxation: no case moves from "should be exact" to "excused"
+on any ground but the one S9 already stands on.
+
+| family | cases | what is missing |
+|---|---|---|
+| REP strings `F3A4 F3A5 F3AA F2AA F3AB` | 907 | §10.7 |
+| tails `0F39` (9), `0F12` `C1.6` `F7.4` (1 each) | 12 | `0F39` is one extra prefetch slot — the same resume-predicate falsifier §10.4's boot leg names; the other three are one case each, an address on one cycle, unexamined |
+
+### 10.7 REP strings — §9.4's "one clock in the exit path" is **FALSIFIED**
+
+§9.4 booked this family as "the CLOSING `F` pop is one clock early ... one clock
+in the REP EXIT path".  That is not what the data says, and the new census says
+so cleanly.  Per case, the offset from the LAST store's T4 to the window-closing
+pop, golden vs model:
+
+| | golden offset | model offset | verdict |
+|---|---|---|---|
+| `cx = 0` (615 cases, all five forms) | — no store — | — | **100 % exact** |
+| `cx = 1`, `F3AA F2AA F3AB` (370) | 1, 2 or 3 — it VARIES | tracks it exactly | **100 % exact** |
+| `cx >= 2`, `F3AA` (259) | **always 2** | 1, 2 **or 3** | 164 bad |
+| `cx >= 2`, the other four | 1 or 2 | 1, 2 or 3 | the rest |
+
+Two facts kill the "one clock" reading:
+
+1. the model is **early in some cases and LATE in others** (`F3AA` `cx=2`: 44
+   cases at T4+1, 67 at T4+3, against a golden that is T4+2 in all 138);
+2. `cx = 0` and `cx = 1` — which run the WHOLE exit path, `00C0` not taken,
+   `00C1 FARJMP REPX`, `0220-0224` — are **exact**.  A constant added anywhere
+   in that path shifts them too.  It was tried: +1 on the taken `JMP REP` and
+   +1 on any taken BACKWARD micro-JMP each cost `F3AA` 28 cases (336 → 308) and
+   bought nothing.
+
+What the data says instead: **with `cx >= 2` the chip's row engine is PINNED to
+the bus and the model's free-runs.**  The discriminator is a pair of `F3AA`
+`cx=2` cases whose GOLDEN bus streams are identical cell for cell (both stores
+at rows 11-18, the pop at row 20) but whose EU starts two clocks apart (case 16
+pops its opcode at row 2, case 10 at row 4, and the model reproduces both) —
+the chip retires both at row 20, the model at 19 and 21.  Working backwards
+through the exit path, both land on row 20 if the loop's SECOND store row
+`00BF` runs on the FIRST store's T2 and free-runs from there.
+
+That is a WRITE-SIDE interlock one clock tighter than §9.2's: OPR is released
+to a `-> OPR` row at T3, and this wants the store ROW released at T2 — i.e.
+when the data is DRIVEN (T1) rather than when the bus has taken it.  Two
+release points on one register is the shape the campaign distrusts, so it is
+**not landed**.  A probe that released the store row at the previous store's T1
+was measured over the whole family and bought only +25 cases while introducing
+146 data and 67 bus diffs — a better score for a worse model, which §8/§9
+precedent says to revert.  Reverted.
+
+**Recorded as an open mechanism, with its discriminating pair named**, for the
+T2 pass that owns the write-side interlock.  The DATA half of this family stays
+closed (§9.2's shadow) and the LOOP stays exact; it is only the position of the
+closing pop that is open, and only for `cx >= 2`.
+
+### 10.8 Gates (measured, this machine)
+
+The FULL architectural corpus, re-run on the FINAL binary of this pass — §10.1
+is in `alu_eval` and §10.3 adds a call site to the shared `loader_decode<Bus>`
+body, so both are shared-interpreter changes and had to ride all of it:
+
+| suite | result |
+|---|---|
+| v0.1 | 169,000 / 169,000 |
+| v0.2 | 347,000 / 347,000 |
+| v0.3 | 3,699,998 / 3,699,998 |
+| v20suite | 3,125,000 / 3,125,000 |
+| mod3_illegal (`--residue stale-ea`) | 128 / 128 |
+| **total** | **7,341,126** |
+
+plus `make -C sim test` (disasm) PASS, `sw/pla3_check.py` OK (21 checks),
+`sw/timed_scenario.py` 6 PASS / 0 FAIL / 12 honest SKIP (unchanged: each rule's
+positive-wait half is T2 and each rule's `gap` is an arbitration-frame
+quantity).  Zero regressions; the architectural corpus is byte-identical
+across the pass.
+
+```
+make -C sim test                                          # disasm: PASS
+python3 sw/pla3_check.py                                  # OK (21 checks)
+python3 sw/ucsim_check.py --suite tests/v30/v0.1          # 169000/169000
+python3 sw/ucsim_check.py --suite tests/v30/v0.2          # 347000/347000
+python3 sw/ucsim_check.py --suite tests/v30/v0.3          # 3699998/3699998
+python3 sw/ucsim_check.py --suite tests/v30/v20suite      # 3125000/3125000
+python3 sw/ucsim_check.py --suite tests/v30/mod3_illegal --residue stale-ea
+python3 sw/timed_gate.py --suite tests/v30/v0.1 --forms all   # THE RATCHET
+python3 sw/check_boot.py --timed 220                      # THE BOOT REPLAY
+python3 sw/timed_scenario.py                              # L1 oracle replay
+python3 sw/timed_probe.py  --forms EB --top 8             # first-divergence triage
+python3 sw/qcensus.py --forms all --empty --by role --map # the pop census
+python3 sw/wchain.py  --forms all --pair MEMW\>MEMW       # the bus-chain census
+```
+
+### 10.9 T1 EXIT — status against the gate
+
+| clause | status |
+|---|---|
+| **166,800 / 166,800 rows-exact at w0** | **NOT MET** — 165,481 of a reachable 166,400 (§10.6 corrects the denominator).  919 short: 907 REP + 12 tails, both with a stated mechanism hypothesis (§10.7, §10.6) and NO fitted patch anywhere |
+| **boot replay green** | **205/220 rows, loop period exact**, with the residual reduced to one named mechanism and a rejected alternative measured on both legs (§10.4) |
+| **adapters green** | **MET** — `timed_scenario` 6 PASS / 0 FAIL / 12 honest SKIP |
+| **ledger closing the stage, scope amendment recorded** | this section; §10.0 |
+| functional v0.1+v0.2 after every change, FULL 7.34M after the BCD change and before the final commit | **MET** (§10.8) |
+| ratchet may only grow | **MET** — 164,320 → 165,481, monotone at every one of the four steps |
+
+**Milestone A** (`B8 8B 89 F7.6 EB E8` at w0): still MET.  **Milestone B**: 325
+of 347 forms are 100 % exact and every form of the S1a tranche is among them.
+**Milestone C** (T1 exit): NOT MET, by 919 cases.
+
+### 10.10 T2 handoff
+
+1. **The REP write-side interlock** (§10.7) — the one open mechanism inside the
+   w0 suite.  Discriminating pair named: `F3AA` cases 16 and 10.
+2. **The SUSP lead** (§10.4) — the boot loop and the v0.1 goldens disagree by
+   one row about when a bus-control field reaches the BIU.  Both legs measured,
+   both numbers recorded.  This is also `0F39`'s 9 cases and §7.12 item 6.
+3. **The wait axis** — M2's status-register release must be re-derived from the
+   READY sample rather than from the eval index (§7.2); Milestone A's w1/w3
+   legs; every law card's MUST set (§10.0).
+4. **S9** — the pin-event exclusion is now 2,600 cases in thirteen forms
+   (§10.6).  It needs the HALT display pseudo-cycle (`interrupt_model.md`: BS =
+   HALT with an ALE/T1 driving the prefetch pointer, no data phase), the POLL
+   pin's 5-clock sampling, and the INT/NMI/RESET event scheduler.
+5. **BUSLOCK** — `ClockRow::lock_n` is still a constant; the `f0lock_tranche`
+   rows are not replayed.  No non-S9 v0.1 form exercises it, so it is a T2
+   stimulus question, not a T1 hole.
+6. **§7.6's EA stage** — unchanged from §8.8/§9.4: the five-row demand table is
+   now a march of 1- and 2-clock steps (§9.1) but WHY the byte-displacement
+   step is the long one is still not derived.
