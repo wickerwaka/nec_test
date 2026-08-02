@@ -22,11 +22,18 @@ uint8_t BiuTimed::data_ps(uint8_t segc) const {
     return uint8_t((ie ? 4 : 0) | (segc & 3));
 }
 
-uint16_t BiuTimed::lane_data(uint32_t addr, bool word, uint16_t value) const {
+uint16_t BiuTimed::lane_data(uint16_t retained, uint32_t addr, bool word,
+                             uint16_t value) {
     if (word && !(addr & 1)) return value;             // both lanes driven
     if (addr & 1)                                      // high lane only
-        return uint16_t(((value & 0xFF) << 8) | (last_data_ & 0x00FF));
-    return uint16_t((last_data_ & 0xFF00) | (value & 0xFF));  // low lane only
+        return uint16_t(((value & 0xFF) << 8) | (retained & 0x00FF));
+    return uint16_t((retained & 0xFF00) | (value & 0xFF));  // low lane only
+}
+
+// The 16-bit system always presents the ALIGNED WORD on a read.
+uint16_t BiuTimed::sys_word_at(uint32_t addr) const {
+    uint32_t a = addr & ~1u;
+    return uint16_t(core_.peek(a) | (uint16_t(core_.peek(a | 1u)) << 8));
 }
 
 void BiuTimed::begin_case() {
@@ -41,6 +48,7 @@ void BiuTimed::begin_case() {
     last_data_ = 0;
     last_ps_ = 0;
     last_ube_ = 0;
+    last_dp_ = 0;
     q_.clear();
     fetch_ptr_ = 0;
     cs_ = 0;
@@ -86,6 +94,9 @@ void BiuTimed::tick() {
         ci_ = 0;
         cmt_valid_ = false;
     }
+    // The data phase opens on T2.
+    if (run_ && ci_ == 1 && cur_.sys_word)
+        cur_.data = sys_word_at(cur_.addr);
 
     const bool display = cmt_valid_ && cmt_t1_ == c + 1;
     const int last_i = 3 + waits_;                  // index of T4
@@ -162,6 +173,10 @@ void BiuTimed::tick() {
 
     last_addr_ = r.ad_addr;
     last_data_ = r.ad_data;
+    // The retained lane tracks the DATA PHASE only -- never the address a
+    // cycle drives during T1, and never the early status/address a display
+    // clock carries.
+    if (run_ && ci_ >= 1) last_dp_ = cur_.data;
     last_ps_ = r.ps;
     last_ube_ = r.ube_n;
 
@@ -234,15 +249,14 @@ BiuTimed::Access BiuTimed::make_fetch() const {
     acc.segc = seg_code(kCS);
     acc.upc = 0xFFFF;
     acc.is_fetch = true;
+    acc.sys_word = true;
     if (a & 1) {
         uint8_t b = core_.peek(a);
-        acc.data = uint16_t((uint16_t(b) << 8) | (last_data_ & 0x00FF));
         acc.push_n = 1;
         acc.push_b[0] = b;
     } else {
         uint8_t lo = core_.peek(a);
         uint8_t hi = core_.peek(phys(cs_, uint16_t(fetch_ptr_ + 1)));
-        acc.data = uint16_t(lo | (uint16_t(hi) << 8));
         acc.push_n = 2;
         acc.push_b[0] = lo;
         acc.push_b[1] = hi;
@@ -307,6 +321,7 @@ void BiuTimed::queue_preload(const std::vector<uint8_t>& q, uint16_t cs,
         if (a & 1) {
             last_data_ = uint16_t((uint16_t(core_.peek(a)) << 8) |
                                   (last_data_ & 0x00FF));
+            last_dp_ = last_data_;
             last_addr_ = a;
             p = uint16_t(p + 1);
             need -= 1;
@@ -314,6 +329,7 @@ void BiuTimed::queue_preload(const std::vector<uint8_t>& q, uint16_t cs,
             last_data_ = uint16_t(core_.peek(a) |
                                   (uint16_t(core_.peek(phys(cs, uint16_t(p + 1))))
                                    << 8));
+            last_dp_ = last_data_;
             last_addr_ = a;
             p = uint16_t(p + 2);
             need -= 2;
@@ -403,21 +419,19 @@ uint16_t BiuTimed::mem_read(uint16_t seg_val, uint16_t off, bool word,
     acc.bs = kBsMemR;
     acc.segc = seg_code(seg_idx);
     acc.upc = upc;
+    acc.sys_word = true;
     if (word && (a & 1)) {
         // The 16-bit bus splits an unaligned word into two byte cycles.
         acc.addr = a;
         acc.ube_n = 0;
-        acc.data = lane_data(a, false, uint16_t(v & 0xFF));
         post(acc);
         uint32_t a1 = phys(seg_val, uint16_t(off + 1));
         acc.addr = a1;
         acc.ube_n = uint8_t((a1 & 1) ? 0 : 1);
-        acc.data = lane_data(a1, false, uint16_t(v >> 8));
         post(acc);
     } else {
         acc.addr = a;
         acc.ube_n = uint8_t((word || (a & 1)) ? 0 : 1);
-        acc.data = lane_data(a, word, v);
         post(acc);
     }
     eu_done_clk_ = -1;
@@ -479,7 +493,7 @@ uint16_t BiuTimed::io_read(uint16_t port, bool word, uint16_t upc) {
     acc.segc = 2;  // I/O drives the "no segment" code (MEASURED, E4 case 0)
     acc.upc = upc;
     acc.ube_n = uint8_t((word || (port & 1)) ? 0 : 1);
-    acc.data = lane_data(port, word, v);
+    acc.data = lane_data(last_dp_, port, word, v);
     post(acc);
     eu_done_clk_ = -1;
     return v;

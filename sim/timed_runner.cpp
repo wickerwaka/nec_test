@@ -68,6 +68,10 @@ void run_one(const ucrom::UcRom& rom, BiuTimed& biu, RowEmitter& sink,
     }
 
     biu.begin_case();
+    // The rig's memory is NOP-filled; the timed model is compared against
+    // that rig's pins, and a read or a prefetch outside the case's poked
+    // bytes must show 0x90 on the bus exactly as it does there.
+    biu.set_fill(0x90);
     const json::Value* iram = init->get("ram");
     if (iram && iram->type == json::Value::kArr)
         for (const auto& e : iram->arr)

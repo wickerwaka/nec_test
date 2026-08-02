@@ -132,6 +132,12 @@ public:
     int code_wrap() const { return code_wrap_; }
 
     static constexpr uint8_t kFill = 0x00;
+    // The TEST RIG fills unwritten memory with NOPs (tests/v30/v0.1/README
+    // "0x90 fill"), and the timed model is compared against that rig's PINS
+    // -- a prefetch or a read that lands outside the case's poked bytes
+    // shows 0x90 there.  Settable so the FUNCTIONAL model keeps its 0x00
+    // default and stays byte-identical.
+    void set_fill(uint8_t v) { fill_ = v; }
 
 private:
     void note_access(uint16_t off, bool word) {
@@ -142,7 +148,7 @@ private:
     uint32_t cell(uint32_t a) const { return mirror_ ? (a & 0xFFFF) : a; }
     uint8_t rd(uint32_t a0) const {
         uint32_t a = cell(a0);
-        return stamp_[a] == epoch_ ? mem_[a] : kFill;
+        return stamp_[a] == epoch_ ? mem_[a] : fill_;
     }
     void wr(uint32_t a0, uint8_t v) {
         uint32_t a = cell(a0);
@@ -155,6 +161,7 @@ private:
     std::vector<uint8_t> mem_;
     std::vector<uint32_t> stamp_;
     uint32_t epoch_ = 0;
+    uint8_t fill_ = kFill;
     bool mirror_ = false;
 
     std::vector<uint8_t> q_;

@@ -134,6 +134,7 @@ public:
 
     // --- storage and replay inputs (delegated to the functional core) -----
     void poke(uint32_t a, uint8_t v) { core_.poke(a, v); }
+    void set_fill(uint8_t v) { core_.set_fill(v); }
     uint8_t peek(uint32_t a) const { return core_.peek(a); }
     void set_mirror(bool on) { core_.set_mirror(on); }
     void set_io_in(uint16_t v) { core_.set_io_in(v); }
@@ -153,6 +154,15 @@ private:
         uint8_t segc = 2;     // S4:S3 code -- 0 ES, 1 SS, 2 CS/none, 3 DS
         uint16_t upc = 0xFFFF;
         bool is_fetch = false;
+        // On a READ the CPU floats AD: the 16-bit MEMORY drives the whole
+        // ALIGNED WORD and UBE/A0 only decide which half the CPU latches.  So
+        // the data phase of any read -- byte, word, or either half of a split
+        // -- is the aligned word at its address, and the "undriven lane
+        // retains" reading of T0 2.6 was an alias of the 0x90 NOP fill.
+        // MEASURED: `58` case 0 (split POP at an odd SP: the second half at an
+        // EVEN address shows 9007, the aligned word, not the A2 the first half
+        // just put on the high lane), `8A` case 0 row 10, `FE.0` case 0.
+        bool sys_word = false;
         uint8_t push_n = 0;    // queue bytes this fetch delivers
         uint8_t push_b[2] = {0, 0};
     };
@@ -172,7 +182,9 @@ private:
     uint8_t data_ps(uint8_t segc) const;
     static bool is_write(uint8_t bs) { return bs == kBsMemW || bs == kBsIoW; }
 
-    uint16_t lane_data(uint32_t addr, bool word, uint16_t value) const;
+    static uint16_t lane_data(uint16_t retained, uint32_t addr, bool word,
+                              uint16_t value);
+    uint16_t sys_word_at(uint32_t addr) const;
 
     // one CPU clock: emit this clock's row, advance the bus FSM, run the
     // completion eval if this clock ends on an eval point.
@@ -203,6 +215,7 @@ private:
     uint16_t last_data_ = 0;
     uint8_t last_ps_ = 0;
     uint8_t last_ube_ = 0;
+    uint16_t last_dp_ = 0;   // last DATA-PHASE AD value (T1 excluded)
 
     // --- queue / prefetch ---
     std::deque<QByte> q_;
