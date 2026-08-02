@@ -59,6 +59,15 @@ uint16_t Biu::mem_read(uint16_t seg_val, uint16_t off, bool word,
         v = uint16_t(v | (uint16_t(rd(a1)) << 8));
     }
     log(Txn::kMemRead, a, a1, v, word ? 2 : 1, seg_idx, upc);
+    // THE DATA-PATH BYTE SWAPPER (read half).  The 16-bit system presents the
+    // whole ALIGNED WORD and the CPU routes the addressed byte to the low half
+    // of its datapath, carrying the COMPANION byte along in the high half --
+    // the read-side mirror of the write swapper, and the same "the datapath is
+    // 16 bits wide always" law the ALU already obeys.  Byte-width consumers
+    // mask it off, so nothing architectural changes; what it explains is the
+    // companion byte a byte RMW puts back on the bus (measured: `10` case 0,
+    // `adc byte [odd], dh` drives EC90 where 90 is the aligned partner).
+    if (!word) v = uint16_t(v | (uint16_t(rd(a ^ 1u)) << 8));
     return v;
 }
 

@@ -215,7 +215,7 @@ LoadResult loader_decode(Machine& m, Bus& biu) {
     if (m.mode8080) return loader_detail::loader_decode_8080(m, biu);
 
     auto fetch = [&]() -> uint8_t {
-        uint8_t b = biu.next_byte(m.sreg[kCS], loader_detail::kPreDecodeUpc);
+        uint8_t b = biu.decode_byte(m.sreg[kCS], loader_detail::kPreDecodeUpc);
         m.pc = uint16_t(m.pc + 1);
         return b;
     };

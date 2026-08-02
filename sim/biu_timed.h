@@ -70,7 +70,14 @@ public:
     void end_case();
 
     // --- the Bus concept (consumed by CpuT<Bus> and loader_decode<Bus>) ----
-    uint8_t next_byte(uint16_t cs, uint16_t upc);
+    // M3b: the DECODER's byte demand is a two-clock PLA pipeline and restarts
+    // it on a queue miss; the EU's `Q` source read is a combinational read of
+    // the queue head and takes its byte the moment it is poppable.  Same queue,
+    // two requesters.  MEASURED on the queue-empty goldens (every byte's ready
+    // clock = its fetch's T4 + 2): with demand 3 / ready 4, `8A`'s DECODER
+    // disp8 pops at 5 while `B8`'s MICRO-ROW imm-hi pops at 4.
+    uint8_t next_byte(uint16_t cs, uint16_t upc) { return pop(cs, upc, false); }
+    uint8_t decode_byte(uint16_t cs, uint16_t upc) { return pop(cs, upc, true); }
     uint16_t mem_read(uint16_t seg_val, uint16_t off, bool word,
                       uint8_t seg_idx, uint16_t upc);
     void mem_write(uint16_t seg_val, uint16_t off, uint16_t data, bool word,
@@ -194,6 +201,7 @@ private:
     // occupancy including bytes already fetched but not yet pushed
     int occupancy() const;
     Access make_fetch() const;
+    uint8_t pop(uint16_t cs, uint16_t upc, bool penalise);
 
     Biu core_;
     RowEmitter* rows_ = nullptr;

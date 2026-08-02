@@ -395,7 +395,14 @@ AluResult alu_step(Machine& m, const AluLatch& lat) {
         res.flag_mask = kFlagCY | kFlagV;  // rotates touch CY and V only
     }
     res.flags = f;
-    res.value = uint16_t(hi_keep | uint16_t(r));
+    // The iterative shift/rotate unit is WIDTH-CONFINED: at byte width its
+    // 16-bit output carries zero in the high half, it does not pass the
+    // companion byte through.  MEASURED: `C0.7` case 27 (`sar byte [even], 10`
+    // on an operand whose aligned companion is 0x90) drives 0000 on the store,
+    // not 9000.  (Before the read-side byte swapper this was unobservable --
+    // the high half of a byte memory operand was always zero.)
+    res.value = uint16_t(r);
+    (void)hi_keep;
     return res;
 }
 

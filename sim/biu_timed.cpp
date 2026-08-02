@@ -373,11 +373,14 @@ void BiuTimed::opcode_prefetch(uint16_t cs) {
     wait_bus();
     cs_ = cs;
     pop_is_first_ = true;
-    opc_byte_ = next_byte(cs, 0xFFFE);
+    // The instruction-boundary pre-pop is the BOUNDARY requester, not the
+    // decoder's byte pipeline: it is already synchronised to the E row and
+    // takes its byte the moment the queue can give it up.
+    opc_byte_ = pop(cs, 0xFFFE, false);
     opc_valid_ = true;
 }
 
-uint8_t BiuTimed::next_byte(uint16_t cs, uint16_t upc) {
+uint8_t BiuTimed::pop(uint16_t cs, uint16_t upc, bool penalise) {
     cs_ = cs;
     if (opc_valid_) {
         opc_valid_ = false;
@@ -385,8 +388,23 @@ uint8_t BiuTimed::next_byte(uint16_t cs, uint16_t upc) {
         consumed_.push_back(b);
         return b;
     }
+    // M3b THE QUEUE MISS COSTS TWO CLOCKS.  A demand that finds its byte
+    // already poppable takes it on the demand clock itself.  A demand that
+    // MISSES restarts the two-clock demand pipeline -- the same two clocks
+    // that put micro-row 0 at opcode+2 and never at opcode+1 -- so the pop
+    // lands at max(ready, demand + 2).  MEASURED on the queue-empty goldens,
+    // where every byte's ready clock is its fetch's T4 + 2:
+    //   8B  modrm  demand 1, ready 4 -> 4    (ready dominates)
+    //   B8  imm-lo demand 2, ready 4 -> 4
+    //   C6  disp16-lo demand 2, ready 4 -> 4,  disp16-hi demand 4 -> 6
+    //   8A  disp8  demand 3, ready 4 -> 5    (the miss penalty dominates)
+    //   04  imm8   demand 2, already there   -> 2
     int guard = 0;
+    const long demand = clk_;
+    const bool miss = q_.empty() || q_.front().ready > demand;
     while ((q_.empty() || q_.front().ready > clk_) && ++guard < 4096) tick();
+    if (miss && penalise)
+        while (clk_ < demand + 2 && ++guard < 4096) tick();
     if (q_.empty()) return 0x90;
     uint8_t b = q_.front().b;
     q_.pop_front();
