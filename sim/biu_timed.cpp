@@ -70,6 +70,8 @@ void BiuTimed::begin_case() {
     wres_ = 0;
     wr_done_clk_ = -1;
     rd_done_q_.clear();
+    opr_held_ = 0;
+    opr_free_clk_ = -1;
 }
 
 void BiuTimed::end_case() {
@@ -195,6 +197,15 @@ void BiuTimed::tick() {
     // --- end-of-clock: advance the cycle, then run the eval --------------
     bool eval_here = false;
     if (run_) {
+        // OPR RELEASE.  The bus takes the store's word at the end of T3 --
+        // the same instant it samples a read's -- and T4 is the hold clock,
+        // driven from the AD latch and not from OPR.  So a store that OWNS
+        // OPR gives it back one clock before its cycle ends, and the
+        // `-> OPR F` row that reloads it runs on T4.
+        if (ci_ == 1 && is_write(cur_.bs) && opr_held_ > 0) {
+            --opr_held_;
+            opr_free_clk_ = c + 1;
+        }
         if (waits_ == 0 ? (ci_ == 2) : (ci_ == last_i)) eval_here = true;
         // F3: the flush-only point commits the REDIRECT PREFETCH only.  A
         // pending EU request still owns the first slot, and an EU access is
@@ -217,11 +228,11 @@ void BiuTimed::tick() {
                 if (is_write(cur_.bs)) {
                     wr_done_clk_ = c + 1;
                     if (wr_pending_) --wr_pending_;
+                } else if (rd_pending_ && cur_.rd_last) {
+                    --rd_pending_;
                 }
-                if (!is_write(cur_.bs) && cur_.rd_last) {
+                if (cur_.rd_last && !is_write(cur_.bs))
                     rd_done_q_.push_back(c + 1);
-                    if (rd_pending_) --rd_pending_;
-                }
             }
             run_ = false;
         } else {
@@ -380,8 +391,12 @@ void BiuTimed::flush(uint16_t cs, uint16_t pc) {
 void BiuTimed::clear_consumed() {
     consumed_.clear();
     // No pre-popped opcode in the latch => the loader is about to pop the
-    // first byte of an instruction itself, and that pop is an F.
-    if (!opc_valid_) pop_is_first_ = true;
+    // first byte of an instruction itself, and that pop is an F.  It also
+    // STARTS the decode march (M3c), so there is no previous step for it to
+    // re-run.  When the opcode IS latched the march is already running and
+    // its stride is measured from the pre-pop, which is what puts the ModR/M
+    // one clock after the opcode.
+    if (!opc_valid_) { pop_is_first_ = true; last_dec_ = -1; }
 }
 
 void BiuTimed::opcode_prefetch(uint16_t cs) {
@@ -399,6 +414,7 @@ void BiuTimed::opcode_prefetch(uint16_t cs) {
     // takes its byte the moment the queue can give it up.
     opc_byte_ = pop(cs, 0xFFFE, false);
     opc_valid_ = true;
+    last_dec_ = clk_;   // the march's first step starts here (M3c)
 }
 
 uint8_t BiuTimed::pop(uint16_t cs, uint16_t upc, bool penalise) {
@@ -409,23 +425,42 @@ uint8_t BiuTimed::pop(uint16_t cs, uint16_t upc, bool penalise) {
         consumed_.push_back(b);
         return b;
     }
-    // M3b THE QUEUE MISS COSTS TWO CLOCKS.  A demand that finds its byte
-    // already poppable takes it on the demand clock itself.  A demand that
-    // MISSES restarts the two-clock demand pipeline -- the same two clocks
-    // that put micro-row 0 at opcode+2 and never at opcode+1 -- so the pop
-    // lands at max(ready, demand + 2).  MEASURED on the queue-empty goldens,
-    // where every byte's ready clock is its fetch's T4 + 2:
-    //   8B  modrm  demand 1, ready 4 -> 4    (ready dominates)
-    //   B8  imm-lo demand 2, ready 4 -> 4
-    //   C6  disp16-lo demand 2, ready 4 -> 4,  disp16-hi demand 4 -> 6
-    //   8A  disp8  demand 3, ready 4 -> 5    (the miss penalty dominates)
-    //   04  imm8   demand 2, already there   -> 2
+    // M3c A DECODE STEP THAT MISSES RE-RUNS.  The decoder walks its byte
+    // demands as a march of STEPS; a step that has to take a queue byte takes
+    // it on the step's LAST clock, and if the byte is not poppable then the
+    // WHOLE STEP runs again.  So the pop lands on the first clock at or after
+    // `ready` that is a whole number of steps past the demand:
+    //
+    //     pop = min { demand + k*step : k >= 0, demand + k*step >= ready }
+    //
+    // `step` is not a parameter and not a table -- it is the march's own
+    // stride, the clocks the decoder has advanced since its previous pop.
+    // MEASURED over every v0.1 golden (sw/qcensus.py, with `ready`
+    // reconstructed from the golden's OWN fetch stream as that fetch's
+    // T4 + 2), previous decoder pop at clock 0.  Every observed cell:
+    //
+    //   step 1  modrm after the opcode or after the 0F byte, disp16-LO
+    //           ready<=1 -> 1,  2 -> 2,  3 -> 3,  4 -> 4     (no penalty)
+    //   step 2  the 0F page's opcode, the opcode after a prefix, disp8 after
+    //           the modrm, disp16-HI after disp16-lo
+    //           ready<=2 -> 2,  3 -> 4,  4 -> 4              (the step re-runs)
+    //
+    // This REPLACES M3b ("a queue miss costs two clocks", provenance 8.4): a
+    // flat +2 is right for the two-clock steps and wrong for the one-clock
+    // ones, which is exactly the 0F-escape / segment-prefixed residual of
+    // 8.6 -- `26.8B` takes its ModR/M on the clock the byte arrives
+    // (ready = opcode+2) and the flat penalty pushed it one late.  The EU's
+    // own `Q` pops are not part of this march and never re-run.
     int guard = 0;
     const long demand = clk_;
-    const bool miss = q_.empty() || q_.front().ready > demand;
+    const long step = (penalise && last_dec_ >= 0 && demand > last_dec_)
+                          ? demand - last_dec_ : 1;
     while ((q_.empty() || q_.front().ready > clk_) && ++guard < 4096) tick();
-    if (miss && penalise)
-        while (clk_ < demand + 2 && ++guard < 4096) tick();
+    if (step > 1) {
+        long over = (clk_ - demand) % step;
+        for (long i = over; i && i < step && ++guard < 4096; ++i) tick();
+    }
+    if (penalise) last_dec_ = clk_;
     if (q_.empty()) return 0x90;
     uint8_t b = q_.front().b;
     q_.pop_front();
@@ -442,7 +477,8 @@ void BiuTimed::wait_bus() {
     while (clk_ < wr_done_clk_ && ++guard < 4096) tick();
 }
 
-// The F / OPR interlock: wait for the NEXT outstanding read, and consume it.
+// The F / OPR interlock: wait for the NEXT outstanding EU access -- read or
+// write -- and consume it.  (See biu_timed.h: OPR is one register.)
 void BiuTimed::wait_next_read(int extra) {
     int guard = 0;
     while (rd_done_q_.empty() && rd_pending_ > 0 && ++guard < 4096) tick();
@@ -452,7 +488,15 @@ void BiuTimed::wait_next_read(int extra) {
     while (clk_ < t && ++guard < 4096) tick();
 }
 
-void BiuTimed::wait_read() { wait_next_read(0); }
+// The other half of the same interlock: the row cannot WRITE OPR while a
+// store still owns it.
+void BiuTimed::wait_opr_free() {
+    int guard = 0;
+    while (opr_held_ > 0 && ++guard < 4096) tick();
+    while (clk_ < opr_free_clk_ && ++guard < 4096) tick();
+}
+
+void BiuTimed::wait_read() { wait_next_read(0); wait_opr_free(); }
 void BiuTimed::wait_opr() { wait_next_read(1); }
 
 // --- data accesses ----------------------------------------------------------
@@ -521,11 +565,13 @@ void BiuTimed::write_request(uint16_t seg_val, uint16_t off, bool word,
     if (word && (a & 1)) {
         acc.addr = a;
         acc.ube_n = 0;
+        acc.rd_last = false;   // a split is ONE access to the EU (and to OPR)
         post(acc);
         uint32_t a1 = io ? uint32_t(uint16_t(off + 1))
                          : phys(seg_val, uint16_t(off + 1));
         acc.addr = a1;
         acc.ube_n = uint8_t((a1 & 1) ? 0 : 1);
+        acc.rd_last = true;
         post(acc);
         wres_ += 2;
     } else {
@@ -559,6 +605,8 @@ void BiuTimed::mem_write(uint16_t seg_val, uint16_t off, uint16_t data,
         if (!r) break;
         r->data = d;
         r->need_data = false;
+        // ...and from this moment the store OWNS OPR (see wait_opr_free).
+        ++opr_held_;
         if (wres_) --wres_;
     }
 }
@@ -601,6 +649,7 @@ void BiuTimed::io_write(uint16_t port, uint16_t data, bool word, uint16_t upc) {
         if (!r) break;
         r->data = d;
         r->need_data = false;
+        ++opr_held_;
         if (wres_) --wres_;
     }
 }

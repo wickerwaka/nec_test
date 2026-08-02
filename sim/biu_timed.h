@@ -120,6 +120,7 @@ public:
     // completed and its data handed over (eu_done = T4 + 1 at zero waits).
     void wait_read();
     void wait_next_read(int extra);
+    void wait_opr_free();
     void wait_bus();
     // The PRE-DECODE operand read.  Its data is not consumed by an F-flagged
     // micro-row -- it is consumed by micro-row 0 itself -- and the decoder
@@ -269,6 +270,9 @@ private:
     uint16_t upc_pending_ = 0xFFFF;
     bool opc_valid_ = false;
     uint8_t opc_byte_ = 0;
+    // M3c: the clock of the previous DECODER pop.  The march's stride (this
+    // step's length) is `demand - last_dec_`, and a step that misses re-runs.
+    long last_dec_ = -1;
 
     // --- EU requests ---
     std::deque<Access> req_;
@@ -291,13 +295,35 @@ private:
     int rd_pending_ = 0;     // ...just the reads
     int wr_pending_ = 0;     // ...just the writes
     long wr_done_clk_ = -1;  // retire deadline: last WRITE T4 + 1
-    // The F interlock is PER READ and IN ORDER: each `F` row waits for the
-    // next completed read, not for the whole outstanding set.  MEASURED: `A6`
-    // (CMPSB) issues both loads back to back and then runs 00A0 F / 00A1 /
-    // 00A2 F E -- the first F releases on load 1's T4+1 and the retire lands
-    // on load 2's T4+1, three clocks apart, which only happens if 00A0 waited
-    // for load 1 alone.
+    // THE F INTERLOCK IS THE **OPR** INTERLOCK: PER ACCESS, IN ORDER, READS
+    // AND WRITES ALIKE.  `F` marks the row that loads OPR, and OPR is both the
+    // read-data register and the write-data register -- one register, so the
+    // row cannot load it until the outstanding access has finished with it
+    // (T4 + 1).
+    //  * on a READ that is "wait for my data": `A6` (CMPSB) issues both loads
+    //    back to back and runs 00A0 F / 00A1 / 00A2 F E -- the first F
+    //    releases on load 1's T4+1 and the retire lands on load 2's, three
+    //    clocks apart, which only happens if 00A0 waited for load 1 alone.
+    //  * on a WRITE it is "wait until the store has taken its data", and it is
+    //    what spaces a PUSH CHAIN.  `60` (PUSHA) alternates 023A `MEMW` /
+    //    023B `CX -> OPR F`, and `9A` (CALLF) runs 022E `MEMW` / 022F
+    //    `PC -> OPR F` / 0230 `MEMW`: the F releases at the first store's
+    //    T4+1, the next store's bus-control field decodes one row early (F2),
+    //    so the second store's T1 lands on the first's T4+3.  MEASURED over
+    //    every golden (sw/wchain.py): write->write is T4+3 in `60 9A CC CD CE
+    //    FF.3 62 F6.6/7 F7.6/7`, and T4+1 exactly where the ROM has NO
+    //    `-> OPR` row between the two stores -- ENTER's nesting loop (026D
+    //    MEMW / 026E JMP / 026F / 0270 MEMW, the pushed value still standing
+    //    in OPR from the loop's own MEMR) and REP STOS (the stored AW never
+    //    leaves OPR).  No table, no store lead-in: one register, one flag.
     std::deque<long> rd_done_q_;   // completed reads' T4 + 1, in order
+    // ...and the WRITE side of the same register: how many stores have been
+    // GIVEN their data and not yet handed it to the bus, plus the clock the
+    // last of them frees OPR on.  A store that is only RESERVED (S5) does not
+    // own OPR -- the very `F` row that would wait for it is the row about to
+    // load it (ENTER's 0262 MEMW / 0263 `BP -> OPR F`).
+    int opr_held_ = 0;
+    long opr_free_clk_ = -1;
 };
 
 }  // namespace sim

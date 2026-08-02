@@ -1220,3 +1220,147 @@ missing here".
   276/347 forms are 100 % exact, which covers most of it.
 * **Milestone C** (T1 exit, 166,800/166,800): **NOT MET** — 155,011.
 
+
+---
+
+## 9. T1 third pass — one decode march, one OPR
+
+This section continues §8.  Nothing earlier is retracted except where an entry
+below says so.  Two mechanisms were found; between them they closed SIX of the
+nine residual families of §8.6.  The ratchet
+(`sw/timed_gate.py --suite tests/v30/v0.1 --forms all`, `rows_exact`):
+
+| step | rows exact | row diffs |
+|---|---|---|
+| §8 close | 155,011 | 603,760 |
+| M3c — a decode step that misses RE-RUNS (replaces M3b) | 158,285 | 460,217 |
+| the OPR interlock — `F` is per ACCESS, writes included | **162,721** | **45,283** |
+
+**317 of 347 forms are 100 % cycle-row exact at w0** (was 282).  Arch through
+the timed path is unchanged at 166,800/169,000 and windows at 168,720/169,000.
+
+Both mechanisms were found the same way: a census of the GOLDENS' own rows,
+not of the model's.  The two instruments are new and are standing tools:
+
+* `sw/qcensus.py` — every queue POP with the READY clock of the byte it took,
+  reconstructed from the golden's own fetch stream (that fetch's T4 + 2).
+  This is what separates "the byte was late" from "the decoder was late", and
+  it is what killed M3b.
+* `sw/wchain.py` — the spacing from one bus cycle's T4 to the next cycle's T1,
+  keyed by the two statuses, with the halves of a split folded together.  One
+  run of it over the whole suite located the write-chain law.
+
+### 9.1 M3c — the decode march, and the death of the flat two-clock miss
+
+**§8.4's M3b is RETRACTED.**  There is no "queue miss costs two clocks".  The
+decoder walks its byte demands as a march of STEPS; a step that has to take a
+queue byte takes it on the step's LAST clock, and **a step that does not get
+its byte runs again**:
+
+```
+    pop = min { demand + k*step : k >= 0,  demand + k*step >= ready }
+```
+
+`step` is not a parameter and not a table — it is the march's own stride, the
+clocks the decoder has advanced since its previous pop.  The implementation
+carries one new field (`last_dec_`, the previous decoder pop's clock) and
+derives everything else.
+
+*Evidence — every cell, over every v0.1 golden* (`sw/qcensus.py --map`, the
+previous decoder pop at clock 0; `ready` from the golden's own fetch stream):
+
+| stride | which demands | ready -> pop |
+|---|---|---|
+| 1 | ModR/M after the opcode or after the `0F` byte; disp16-**LO** after the ModR/M | 0->1, 2->2, 3->3, 4->4 |
+| 2 | the `0F` page's opcode; the opcode after a PREFIX; disp8 after the ModR/M; disp16-**HI** after disp16-lo | 0->2, 1->2, **3->4**, 4->4 |
+
+A flat `max(ready, demand+2)` fits the stride-2 rows and is wrong for every
+stride-1 row where the byte arrives two clocks late — `26.8B` takes its
+ModR/M on the clock the byte arrives (ready = opcode + 2) and the flat penalty
+pushed it one clock late.  That was the **~2,500-case 0F-escape /
+segment-prefixed residual** of §8.6, and it was also §8.6's recorded
+"known regression" (M3b bought ~7,600 cases and cost ~600 in these families).
+Both are now closed: `0F10 0F11 0F1F 26.8B 2E.8B 36.8B 3E.8B` and the rest of
+the `0F` page are **500/500**, and so is the `C0.7/D0.7/D2.7` **SAR tail**
+(533 cases), which turns out to have been the same pop landing one clock late.
+
+*What this says about §7.6's EA stage.*  The five-row demand table is
+unchanged, but it is no longer five bare numbers plus a penalty: it is a march
+of 1- and 2-clock steps, and the STRIDE is now a measured, load-bearing
+quantity rather than a derived one.  The two numbers §8.8 called out —
+disp8 at 3 while disp16-lo is at 2, and mod0-no-disp costing one clock more
+than mod3 — are exactly "the disp8 step is two clocks long and the disp16-lo
+step is one".  **That is still a description, not yet a derivation**: why the
+byte-displacement step is the long one is not answered here.  See §9.4.
+
+### 9.2 The `F` interlock is the **OPR** interlock — and it is what spaces a push chain
+
+**§8.4's "the F interlock is PER READ" is AMENDED** (its read half stands).
+`F` marks the row that loads OPR.  OPR is ONE register and it is both the
+read-data and the write-data register, so an `F` row has TWO reasons to wait:
+
+1. **the read side (unchanged).**  Wait for the next outstanding READ, in
+   order; a split is one read, releasing on the last of its byte cycles.
+2. **the write side (new).**  Wait while a store still OWNS OPR.  A store owns
+   OPR from the moment its data is PAIRED into it until the bus has driven
+   that data out — measured as the **end of T2**, so the `-> OPR` row that
+   reloads it runs on **T3**.
+
+A store that is only RESERVED (S5) does **not** own OPR: the very `F` row that
+would wait for it is the row about to load it.  That distinction is not a
+special case, it is the whole difference between ENTER's prologue and its
+epilogue, and getting it wrong is a hang.
+
+*Why the two conditions are separate and not one queue:* they are ordered
+differently.  The read side is a FIFO of completions the rows consume one
+apiece; the write side is a level, not an event — "is OPR occupied right now".
+
+*Evidence — the ROM, then the whole suite.*  The chain law falls straight out
+of the microcode once `F` is read as the OPR interlock:
+
+```
+  60  PUSHA   023A          MEMW SS      0239/023B/023D/... `x -> OPR   F`
+  9A  CALLF   022E          MEMW SS      022D `CS -> OPR F` / 022F `PC -> OPR F`
+                 022F  PC -> OPR    F
+                 0230          MEMW SS
+  C8  ENTER   026D          MEMW SS      the loop: NO `-> OPR` row between
+                 026E JMP CNTZ            two stores -- the pushed word is
+                 026F                     still standing in OPR from the
+                 0270          MEMW SS    loop's own MEMR
+```
+
+so a store followed by an `-> OPR F` row cannot be re-issued until that F
+releases on T3; its own clock puts the next `MEMW` row at T4, whose request
+misses the T4 eval (T4 is not an eval point at w0) and is taken at the next
+idle eval — **the second store's T1 lands on the first's T4 + 3**.  Where the
+ROM has no `-> OPR` row between two stores there is nothing to wait for and
+the chain is **T4 + 1**, back to back.
+
+`sw/wchain.py` over all 169,000 goldens confirms exactly that split, with no
+exceptions:
+
+| write -> write spacing | forms |
+|---|---|
+| **T4+3** (an `-> OPR F` row between the stores) | `60 9A CC CD CE FF.3 62 F6.6 F6.7 F7.6 F7.7` + the `INT.*`/`NMI.*`/`HLT.*` pseudo-forms |
+| **T4+1** (none) | `C8` ENTER's nesting loop (267 of its 277 chains), `F2AA F3AA F3AB` REP STOS (the stored AW never leaves OPR) |
+| T4+1 | every `split` pair — one access, one load of OPR |
+
+**A universal store lead-in is still REJECTED** (§8.6 recorded that test): the
+clock is in the chain, and this is where it is — in the ROM's own `-> OPR`
+row, not in the bus.
+
+*What it closed.*  `9A CC CD CE FF.3` (the far/interrupt push chain, 2,763
+cases) → **500/500 each**; `60` PUSHA → 500/500; `62` BOUND → 500/500;
+`F6.6 F6.7 F7.6 F7.7` **MUL/DIV** → 500/500.  The MUL/DIV family (§8.6's
+category **C6**, 1,254 cases, "untouched") needed **no compute-burn model at
+all** — its length was never a burn, it was the R-loop's stores waiting on
+OPR.  `F7.6` was the last open leg of **Milestone A at w0**.
+
+### 9.3 Milestones
+
+* **Milestone A** (B8 8B 89 F7.6 EB E8 at w0): **MET AT w0** — all six are
+  500/500.  The w1/w3 legs stay open for T2 (the wait axis; M2's release point
+  must be re-derived from the READY sample, §7.2).
+* **Milestone B** (the 35-opcode S1a tranche at w0): 317/347 forms are 100 %
+  exact and every form in the tranche is among them.
+* **Milestone C** (T1 exit, 166,800/166,800): **NOT MET** — 162,721.
