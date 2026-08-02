@@ -1045,8 +1045,10 @@ near family; BUSLOCK and HALT display are still not implemented.
   into the OLD segment (`CF` case 0 fetched 04646A where the chip fetches
   09B11A).
 
-Result: `E9 EB 74 75 7C E2 EA C2 C3 C8` all 500/500; `FF.2` 463/500; `E8`
-315/500.  The far/interrupt half (`9A CC CD CE CF FF.3`) is a residual (§8.6).
+Result: the whole NEAR control-flow tranche is exact — `EB E9 74 75 7C E2 E8
+C3 C2 EA C8` all **500/500**, which is biu_model.md's own 4,500-case
+control-flow family gate plus EA/C8.  `FF.2` is 463/500.  The far/interrupt
+half (`9A CC CD CE CF FF.3`) is a residual (§8.6).
 
 ### 8.3 UBE is NOT part of the status register
 
@@ -1171,9 +1173,11 @@ missing here".
 ### 8.8 Milestones
 
 * **Milestone A** (B8 8B 89 F7.6 EB E8 at w0 + w1/w3): **NOT MET.**  At w0
-  `B8 8B 89 EB` are 500/500, `E8` 315/500, `F7.6` 245/500.  At w1 and w3 the
-  same six forms are 158/1200 and 162/1200 — the wait axis is T2 work and
-  M2's register-release still has to be re-derived from the READY sample.
+  FIVE of the six are 500/500 — `B8 8B 89 EB E8` — and `F7.6` is 245/500
+  (category **C6**, the MUL/DIV compute burns, untouched this pass).  At w1
+  and w3 the same six forms are 158/1200 and 162/1200: the wait axis is T2
+  work and M2's register-release still has to be re-derived from the READY
+  sample, exactly as §7.2 requires.
 * **Milestone B** (the 35-opcode S1a tranche at w0): not separately measured;
   276/347 forms are 100 % exact, which covers most of it.
 * **Milestone C** (T1 exit, 166,800/166,800): **NOT MET** — 155,011.
