@@ -815,8 +815,16 @@ void BiuTimed::wait_next_read(int extra) {
 
 // The other half of the same interlock: the row cannot WRITE OPR while a
 // store still owns it.
+//
+// M13 -- ...AND IN 8080 EMULATION MODE THE STORE DOES NOT LET GO UNTIL IT HAS
+// RETIRED.  In native mode the store hands its word to the AD output latch at
+// T2 and OPR is free from T3 (11.4, the FIXED index 2 that does NOT stretch).
+// With MD set the release is the store's own eu_done -- the completion eval
+// + 2, the deadline `wait_bus()` already carries -- so it STRETCHES with the
+// eval like every other eval-keyed quantity.  See biu_timed.h.
 void BiuTimed::wait_opr_free() {
     int guard = 0;
+    if (md8080_ && *md8080_) { wait_bus(); return; }
     while (opr_held_ > 0 && ++guard < 4096) tick();
     while (clk_ < opr_free_clk_ && ++guard < 4096) tick();
 }

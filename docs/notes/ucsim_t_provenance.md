@@ -4102,3 +4102,242 @@ V5 reproduces as a registered failure, and this addendum improves it by 37
 seeds.  Q2 was 42 of the tranche's 71 misses at T4 (§14.4); 37 of the 71 now
 close, and the tranche's remaining 34 misses have NOT been re-classified here
 — that is the next stage's survey, not a claim of this one.
+
+## 18. POST-CLOSURE ADDENDUM #3 — THE TURNAROUND RESIDUAL IS NOT A TURNAROUND (2026-08-02)
+
+**This section is an ADDENDUM.  Nothing in §0-§17 is edited or retracted by
+it; the registered V1-V5 record in the verdict stands exactly as written.**  It
+goes after the residual §17.4 named: 93 flush events (of 16,148) whose `E` the
+model misses, 77 of them one shape — the chip's `E` at `x+2`, the model's at
+`x+0`, with the last completed cycle a ZERO-WAIT MEMW ending at `x-1`.  §17.4
+read that as a POST-WRITE BUS TURNAROUND.
+
+**Outcome: that reading is FALSIFIED BY ITS OWN CONTROL, and the residual is
+TWO MACHINES, neither of them a turnaround.**  475 events carry §17.4's stated
+signature and **398 of them are already exact**; the discriminator is not the
+write, the wait level, or the flush's position in the bus cycle.  It is the
+**8080 EMULATION MODE FLAG**, and the chip announces it on the pins (M9's PS3).
+One mechanism — **M13** — closes 80 of the 93; the other 13 are a separate,
+waited family and are named, not chased.  Board contact was authorised and NOT
+used: the census was decisive offline, so the pre-registration rule for a board
+session never fired.
+
+**Said plainly up front: NO SCORED POPULATION MOVES.**  `timed_fuzz` stays
+1,272 / 1,702, the frozen tranche stays 154 / 188, w0 stays 166,397 and w1/w3
+stay 1,200/1,200.  What moves is the residual census (93 → 13 events) and the
+first-divergence row of 122 seeds, all of them LATER and none earlier.  The
+reason the seed counts do not move is a SECOND fact in the same family that is
+measured here and deliberately NOT landed (§18.3).
+
+### 18.0 The instrument — `sw/tacensus.py`
+
+Two censuses, both in one file, and the second is the one that settled it.
+
+* the MODEL-PAIRED census (default) extends `q2law`'s per-event record with the
+  full `V30SIM_FLUSHTRACE` `FX` state at the flush clock (outstanding EU
+  request, committed-but-not-started cycle, queue occupancy, the pre-flush
+  `no_eval_` and absorb window) and with the NEXT bus cycle on each side, so
+  the `E` and the redirect COMMIT are scored separately.  Chip and model go
+  through the SAME extractor (`q2census.cycles_of`), the repcensus/q2census
+  discipline unchanged.
+* the CHIP-ONLY census (`--chains`) reads `entry["chip_rows"]` and nothing
+  else: every TRAP PUSH CHAIN in the bank — three back-to-back MEMW cycles
+  whose addresses step down by 2, followed by a CODE fetch — with the
+  store-2-to-store-3 T1 gap and **PS3, the emulation-mode status bit (M9)**, on
+  each store's data phase.  No model and no micro-row trace, so it is valid on
+  every seed in the bank, including the ones whose model run diverges earlier.
+
+A third view, used for diagnosis only and not committed, joined each event to
+the `V30SIM_ROWTRACE` micro-row the flush was called from.
+
+### 18.1 The census — §17.4's shape, scored against its own control
+
+| reading | verdict |
+|---|---|
+| §17.4, verbatim: "after a w0-length WRITE the chip defers BOTH the `E` and the redirect by one further clock — a post-write bus turnaround" | **FALSIFIED.**  **475** flush events carry the stated signature (last completed cycle a zero-wait MEMW with `T4 = x-1`, bus idle at the flush).  **398** of them show the `E` on the flush clock and the model is exact; **77** show it at `x+2`.  The BIU state at the flush is byte-identical across all 475 — `run=0`, no committed cycle, occupancy 0, `no_eval_ = x-1`, `e_from_ = x`, an EU request outstanding, and the next chip cycle a MEMW in every one |
+| the plan's COINCIDENCE hypothesis (M12's release rule interacting with the zero-wait write's eval geometry, where the write's completion eval and the flush clock coincide) | **FALSIFIED by the same control.**  The coincidence class is exactly the 475, and it is 398 / 475 exact.  Neither half of M12 is armed at any of these events (`no_eval_` is already spent, the absorb window is thousands of clocks in the past) |
+| the residual is ONE machine | **FALSIFIED.**  Splitting by the micro-row the flush is called from separates it with **no exceptions**: 80 events on ROM row `01FC` reached via `0093`, all wrong; 628 events on the SAME row `01FC` reached via `01F7`, all right; 13 events on three other flush rows |
+
+`01FC` is the shared tail of the interrupt entry (`111.0001?000.11`, rows
+`01F8-01FB` and `01FC`).  The two ways in are the two `rowgrp 2` blocks:
+`01F4-01F7` (`INT`, opc `0x10`) and `0090-0093` (`INTEM`, opc `0x18`, i.e.
+**BRKEM**).  They differ in exactly one thing that outlives them: `0093` is
+`CTL MFC` — it SETS the 8080 emulation-mode flag.  (`0092`'s `JMP CNTZ 12`
+skips `0093` when `COUNT` is zero, which is how `CALLN` (`0401
+ZEROS -> COUNT / FARJMP INTEM`) runs the same chain and stays native, while
+BRKEM (`0349 CONST -> COUNT 1`) does not.  No `CALLN` occurs in the bank.)
+
+**And the chip says so on the pins.**  `tacensus.py --chains`, model-free:
+
+```
+trap push chains (chip rows only): 1566
+  (MD at push 1/2/3, store-2 wait count) -> store-2 -> store-3 T1 gap
+    MD=(0,0,0) tw=0  6:696     tw=1  6:395    tw=2  7:186   tw=3  8:126
+               tw=4  9:15      tw=5 10:16     ...  tw=15 20:4      (1488 chains)
+    MD=(0,1,1) tw=0  7:73      tw=1  9:3      tw=3 11:2            (78 chains)
+```
+
+**1,488 chains at the native law and 78 at another one, split perfectly by
+PS3, with zero exceptions on either side** — and PS3 comes up exactly where M9
+measured it, between the PSW push and the CS push, i.e. on `0093`.
+
+### 18.2 M13 — IN 8080 EMULATION MODE THE STORE HOLDS OPR UNTIL IT HAS RETIRED
+
+The gap that splits is the one spanned by `01FA` (`PC -> OPR ... F`, the F/OPR
+interlock) and `01FB` (the third store).  Writing `T1`, `e` and `T4` for the
+SECOND store's own instants:
+
+* **native** (§11.4): the store hands its word to the AD output latch at T2 and
+  OPR is free from T3 — a FIXED cycle-relative index 2 that does NOT stretch.
+  `01FA` releases at `T1+2`, `01FB` runs at `T1+3`.
+* **emulation mode**: the release is the store's own **eu_done — the completion
+  eval + 2**, the deadline `wait_bus()` already carries.  `01FA` releases at
+  `e+2`, `01FB` runs at `e+3`, and it STRETCHES with the eval like every other
+  eval-keyed quantity.
+
+That reproduces all three measured minority gaps and the native ones with the
+same arithmetic and nothing added:
+
+| store-2 waits | eval `e` | native `01FB` | native gap | MD `01FB` | MD gap | measured MD |
+|---|---|---|---|---|---|---|
+| 0 | `T1+2` | `T1+3` | 6 | `T1+5` | **7** | 7 (73) |
+| 1 | `T1+4` | `T1+3` | 6 | `T1+7` | **9** | 9 (3) |
+| 3 | `T1+6` | `T1+3` | 8 | `T1+9` | **11** | 11 (2) |
+
+*The implementation is one line* — `wait_opr_free()` calls `wait_bus()` when MD
+is set.  No new state (the BIU has held a live view of MD since M9's `bind_md`),
+no new deadline, no table, no per-form case.
+
+**Rivals, all falsified, and the WAIT AXIS is what falsifies them:**
+
+| rival | prediction | measured |
+|---|---|---|
+| the BRKEM path simply runs `k` EXTRA MICRO-ROWS | a CONSTANT extra gap at every wait level | +1 at `tw=0`, +3 at `tw=1`, +3 at `tw=3` — no constant fits |
+| the extra cost is `2 * (1 + tw)` (fits `tw=0` and `tw=1`) | gap 13 at `tw=3` | **11** |
+| a BUS-side rule: the flush's commit is deferred one clock after a write | the third store's T1 late by 1 at every wait level | late by 1 at `tw=0` but by **3** at `tw=1` |
+| the release rides the eval in NATIVE mode too (i.e. §11.4 is simply wrong) | native gap 7 / 9 / 11 | native gap **6 / 6 / 8**, 1,488 chains |
+
+**Scope, stated because it is thin.**  Every chain in which MD is set at the
+`F` row is a BRKEM entry chain (MD goes up between push 1 and push 2 in all 78;
+there is no chain in the bank with MD already set at push 1, and no `CALLN`).
+So the assets do NOT separate "MD is set at the `-> OPR F` row" from "this is
+the BRKEM push chain".  The MD form is kept for the same reason M11's general
+form was: it is the falsifiable one, and it is the only one expressible without
+naming an opcode.
+
+### 18.3 What is left in the neighbourhood, named — and one thing MEASURED and NOT LANDED
+
+**(a) The two-clock `E`.**  With M13 landed the 80 BRKEM events have the `E` on
+the right clock, and every one of them still diverges — one clock later, on the
+NEXT clock.  The census is as sharp as M13's: **80 of 80 BRKEM flush events
+show `QS=E` on TWO CONSECUTIVE clocks; 0 of the other 16,068 flush events in
+the bank do.**  Two `E` codes are two queue-clear events one clock apart, and
+no mechanism for the second one is established: the mode change happens at
+`0093`, ten clocks earlier, on a clock where the QS port is provably free.
+A probe that simply re-arms the `E` for one more clock when a flush is raised
+with MD set moves the same 122 seeds' first divergence LATER again with **0
+newly broken and still 0 newly exact** — the next block is a different family
+(`bs CODE!=PASV`, the emulation-mode PREFETCH, 58 of the 122).  It is NOT
+landed: as written it is a restatement of the observation with a new state
+field, which is the fitted special case the standing principle forbids.
+Falsifier: any BRKEM flush whose `E` is one clock wide, or any non-BRKEM flush
+whose `E` is two.
+
+**(b) The emulation-mode prefetch.**  The obvious candidate for (a)'s successor
+family — the V20's 8080-mode queue being shorter, i.e. M7's threshold dropping
+from `occupancy() <= 4` — was probed at `<= 2` and is **FALSIFIED**: 12 seeds
+diverge EARLIER and none later.  Not chased further.
+
+**(c) Machine B — 13 events, a WAITED family, not this one.**  The other 13
+misses sit on three flush rows: `00F3` (`OPR -> PC F E CTL FLUSH`, the near
+return, 7 of 523), `0237` (`tmpc -> PC E CTL FLUSH`, the far return, 5 of 387)
+and `01BD` (1 of 195).  They are NOT path-separated — the same rows are exact
+in 516 / 523, 382 / 387 and 194 / 195 events respectively — and they do not
+share the BRKEM signature.  What they do share: in **12 of 13** an EU **MEMR is
+RUNNING at or straddling the flush clock**, the chip's redirect fetch opens 2-3
+clocks LATER than the model's, and the chip's `E` sits on that redirect's own
+display clock while the model's sits on the flush clock; 11 of the 13 are
+waited captures (`w1`, `w2` or `wrand`).  The one event that does NOT fit that
+shape (`mc1/1721`, row `01BD`, `w0`, chip redirect four clocks EARLIER than the
+model's) is a singleton and is left as one.  The rest is a wait-axis
+redirect-commit question in the M12 family, and it is the next stage's survey,
+not a claim of this one.
+
+**(d) The three tails.**  `0F12`, `C1.6`, `F7.4` are still one case each
+(499/500; 9 / 4 / 4 row diffs).  They did NOT close for free, and per the plan
+they were not chased.  M13 is exactly neutral on them — none is an
+emulation-mode form.
+
+### 18.4 Gates (measured, this machine, immediately before the commit)
+
+```
+make -C sim test                                                          # disasm gate: PASS
+python3 sw/pla3_check.py                                                  # OK (21 checks)
+python3 sw/ucsim_check.py --suite tests/v30/v0.1                          # 169000/169000
+python3 sw/ucsim_check.py --suite tests/v30/v0.2                          # 347000/347000
+python3 sw/ucsim_check.py --suite tests/v30/v0.3                          # 3699998/3699998
+python3 sw/ucsim_check.py --suite tests/v30/v20suite --no-mirror          # 3125000/3125000
+python3 sw/ucsim_check.py --suite tests/v30/mod3_illegal --residue stale-ea  # 128/128
+                                                              # functional total 7,341,126
+python3 sw/timed_gate.py --suite tests/v30/v0.1    --forms all            # 166,397 (unchanged)
+python3 sw/timed_gate.py --suite tests/v30/v0.1-w1 --forms all --waits 1  # 1,200/1,200
+python3 sw/timed_gate.py --suite tests/v30/v0.1-w3 --forms all --waits 3  # 1,200/1,200
+python3 sw/timed_gate.py --suite tests/v30/v0.1-w1 --forms EB  --waits 1  # 200/200
+python3 sw/check_boot.py --timed 220                                      # MATCHES over 220 rows
+python3 sw/timed_scenario.py                                              # 18 PASS, 0 FAIL, 9 SKIP
+python3 sw/timed_enter_replay.py                                          # full/active/halt 154/154 x3
+python3 sw/timed_ins_replay.py --raw      # rails 1312/1312, vs-chip 2624/2624, R2 782/800,
+                                          # whole-program 173,556/173,556 all on the same T1
+python3 sw/timed_wvec_gate.py             # count 88/88, digest 88/88, cycles +0.0 %
+python3 sw/timed_lawcards.py              # 7 GREEN / 0 RED / 4 UNRESOLVED
+python3 sw/timed_fuzz.py                  # 1,272/1,702 exact, 0 hard failures
+python3 sw/timed_fuzz.py --seeddir sw/testdata/t4/b2-tranche/seeds        # 154/188
+python3 sw/tacensus.py                    # residual E events 93 -> 13 of 16,148
+python3 sw/tacensus.py --chains           # the pins-only census above
+```
+
+`sw/check_enter_nesting.py` is the VERILATOR/RTL leg (CLAUDE.md) and is NOT in
+this set: M13 touches `sim/` only, and the working tree carries unrelated
+uncommitted `hdl/` changes from another branch, so running it here would score
+something other than this change.
+
+**Monotonicity, checked per FORM and per SEED.**  Over the 347 forms of the
+v0.1 w0 suite **zero moved**; w1/w3 and `EB` w1 are byte-identical.  Over the
+1,702 scored fuzz seeds: **0 newly exact, 0 newly broken**, and of the 122
+seeds whose first-divergence row moved, **122 moved LATER and 0 earlier**
+(p10 of the first-divergence row 500 → 503; the median and the prefix
+fractions are unchanged).
+
+### 18.4a Provenance class, per finding
+
+| finding | class | evidence | falsifier |
+|---|---|---|---|
+| §17.4's POST-WRITE TURNAROUND reading | **RETRACTED** | its own control: 475 events carry the stated signature, 398 exact | — (retracted) |
+| **M13** in 8080 emulation mode the F/OPR interlock's write half releases at the store's RETIRE (completion eval + 2), not at the fixed index 2 | **MEASURED** | pins only, no model: 1,566 trap push chains in the bank split perfectly on PS3 (M9's emulation-mode bit) — 1,488 native chains at gap 6/6/7/8/…/20 by wait level, 78 emulation chains at 7 (tw=0), 9 (tw=1), 11 (tw=3); three wait levels, zero exceptions; and the 80 residual `E` events close | any emulation-mode `-> OPR F` row between two stores that releases at the store's index 2, or any native-mode one that releases at its retire |
+| the discriminator is MD and not "the BRKEM chain" | **MEASURED IN KIND, NOT SEPARATED BY THE ASSETS** | every chain with MD set at the `F` row is a BRKEM entry; no `CALLN` (the entry that runs the same rows with MD clear) occurs in the bank | a `CALLN` capture, or any emulation-mode push chain that is not a BRKEM entry |
+| **the two-clock `E`** after a BRKEM flush | **OBSERVATION, NOT LANDED** | 80 of 80 BRKEM flush events, 0 of 16,068 others; a probe moves 122 seeds later with 0 newly broken and 0 newly exact | see §18.3(a) |
+| the emulation-mode prefetch threshold is 2 | **FALSIFIED** | 12 seeds diverge EARLIER, none later | — |
+| machine B (13 events on `00F3` / `0237` / `01BD`) | **NAMED, NOT CHASED** | not path-separated (516/523, 382/387, 194/195 of the same rows are exact); 12 of 13 have an EU MEMR running at the flush, the chip's redirect 2-3 clocks later than the model's and the chip's `E` on that redirect's display clock; 11 of 13 waited | see §18.3(c) |
+
+### 18.5 Ledger delta
+
+| | after §17 | after this addendum |
+|---|---|---|
+| residual flush `E` events the model misses | 93 / 16,148 | **13 / 16,148** |
+| ...of which the §17.4 "turnaround" family | 77 (read as a bus fact) | **0 — the reading is retracted; the family was BRKEM** |
+| v0.1 cycle rows at w0 | 166,397 / 166,400 | 166,397 / 166,400 (0 / 347 forms moved) |
+| v0.1-w1 / -w3, `EB` w1 | 1,200 / 1,200, 200/200 | unchanged |
+| wvec per-cycle digest vs silicon | 88 / 88 | 88 / 88 |
+| law cards | 7 GREEN / 0 RED / 4 UNRESOLVED | unchanged |
+| `timed_fuzz`, banked | 1,272 / 1,702 | **1,272 / 1,702 (unchanged)** |
+| `timed_fuzz`, first-divergence row p10 | 500 | **503** (122 seeds later, 0 earlier) |
+| `timed_fuzz`, the VICTORY TRANCHE | 154 / 188 | 154 / 188 (unchanged) |
+| functional corpus | 7,341,126 / 7,341,126 | unchanged |
+| open w0 physics questions | 3 tails | 3 tails |
+| mechanisms | M1-M12, M2r, M5b | **+ M13** |
+
+**V5 stays a registered FAILURE**, and this addendum does not improve it: the
+tranche re-score is 154 / 188, the same number §17 recorded.  What the session
+bought is a retraction, a mechanism, and a residual that is now 13 events
+instead of 93 — with the next two blockers (§18.3(a) and (c)) measured and
+named rather than guessed at.

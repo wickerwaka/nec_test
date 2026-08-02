@@ -567,6 +567,28 @@ private:
     //    MEMW / 026E JMP / 026F / 0270 MEMW, the pushed value still standing
     //    in OPR from the loop's own MEMR) and REP STOS (the stored AW never
     //    leaves OPR).  No table, no store lead-in: one register, one flag.
+    //
+    // M13 -- ...AND IN 8080 EMULATION MODE THE STORE DOES NOT LET GO UNTIL IT
+    // HAS RETIRED.  The write half above is 11.4's FIXED index 2 (the store
+    // hands its word to the AD output latch at T2, OPR free from T3, and it
+    // does NOT stretch).  With MD set the release is the store's own eu_done
+    // -- the completion eval + 2, i.e. exactly `wait_bus()`'s deadline -- so
+    // it stretches with the eval like every other eval-keyed quantity.
+    //
+    // MEASURED ON THE PINS, no model in the loop (`sw/tacensus.py --chains`,
+    // 18.1): every TRAP PUSH CHAIN in the fuzz bank -- three MEMW cycles
+    // stepping down by 2, then a CODE fetch -- scored by its store-2-to-
+    // store-3 T1 gap against PS3, M9's emulation-mode status bit.  1,566
+    // chains: 1,488 with MD clear throughout sit at the NATIVE law (gap 6 at
+    // waits 0 and 1, waits+5 above, up to 20 at 15 waits); 78 with MD rising
+    // between push 1 and push 2 sit at eval+2 -- gap 7 at 0 waits (73), 9 at
+    // 1 (3), 11 at 3 (2).  Zero exceptions on either side, and the wait axis
+    // is what separates this from a fixed extra row count (which would need
+    // +1/+3/+3) and from `2*(1+waits)` (which predicts 13 at 3 waits).
+    //
+    // It also closes 80 of the 93 residual flush-`E` events 17.4 named and
+    // misread as a post-write bus turnaround: 475 events carry that stated
+    // signature and 398 of them were ALREADY exact (18.1).
     std::deque<long> rd_done_q_;   // completed reads' T4 + 1, in order
     // ...and the WRITE side of the same register: how many stores have been
     // GIVEN their data and not yet handed it to the bus, plus the clock the
