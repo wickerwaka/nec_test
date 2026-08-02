@@ -2459,8 +2459,9 @@ single clock, because by the time the chip's prefetch is eligible the store
 stub's IOW request has arrived and outranks it.
 
 Against the pre-registration (§12.0 P1): **reading B**, and the second
-observable settles it — the `F` and `S` pops are on the SAME ABSOLUTE CLOCKS in
-chip and sim.  **The EU is exactly where the model puts it.  The prefetcher is
+observable settles it — through the whole divergence window the `F` and `S`
+pops are on the SAME ABSOLUTE CLOCKS in chip and sim (197 `F`, 200 `F`,
+205 `S`), even where the bus geometry around them has already parted.  **The EU is exactly where the model puts it.  The prefetcher is
 one eval early.**  So the "SUSP lead" framing of §10.4 / §11.7 — the EU's
 bus-control field reaching the BIU one row sooner — is WRONG, and the wait
 axis's vote for the v0.1 side (§11.13 item 2) was right for the wrong reason.
@@ -2697,9 +2698,10 @@ python3 sw/t2b_board.py p1|p2|p4|idle          # the board probes
 python3 sw/class5_armc.py --Ns 8 12 --nprog 20 # P5
 ```
 
-**Board session log.**  One session, ~15 minutes of board time in total across
-five probes (the persistent serve runner turns a 4,063-clock socket capture
-into ~0.3 s, so the budget was never the constraint).  Single-writer checked
+**Board session log.**  One session, five probes, roughly **650 socket
+captures** and **under two minutes of actual board time** (the persistent serve
+runner turns a 4,063-clock capture into ~0.3 s, so the two-hour budget was
+never the constraint -- the session's wall time was analysis, not the board).  Single-writer checked
 before contact (no foreign `v30run serve` / `v30ctl`); socket only
 (`use_core=False`) on every capture; nothing flashed; no bitstream touched.
 `b1_recapture.board_idle()` run at the end — **board idle, use_core=0,
