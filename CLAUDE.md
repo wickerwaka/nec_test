@@ -49,7 +49,9 @@ Put this principle verbatim into every modeling subagent brief.
   v20suite, mod3_illegal = 7,341,126 cases.
 - Timed: `sw/timed_gate.py` (v0.1 w0 + `-w1 --waits 1` / `-w3 --waits 3`),
   `sw/check_boot.py --timed`, `sw/timed_scenario.py`, `sw/timed_lawcards.py`,
-  `sw/timed_ins_replay.py`, `sw/timed_fuzz.py`,
-  `sw/check_enter_nesting.py --sim ucsim-timed` (default mode is the
-  Verilator/RTL leg — use the --sim modes for the C++ simulator).
+  `sw/timed_ins_replay.py`, `sw/timed_fuzz.py`, `sw/timed_enter_replay.py`
+  (the C++ sim's ENTER gate). NOTE: `sw/check_enter_nesting.py` is the
+  VERILATOR/RTL leg only — it takes NO arguments (unknown flags are
+  silently ignored), so do not use it to gate sim/ work. General rule:
+  verify a flag exists (--help) before trusting a run that used it.
 - ROM/PLA: `make -C sim test` (disasm byte-exact), `python3 sw/pla3_check.py`.
