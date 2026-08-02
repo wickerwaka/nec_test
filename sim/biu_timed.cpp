@@ -500,6 +500,11 @@ uint8_t BiuTimed::pop(uint16_t cs, uint16_t upc, bool penalise) {
     return b;
 }
 
+void BiuTimed::wait_retire_lead() {
+    int guard = 0;
+    while ((q_.empty() || q_.front().ready > clk_ + 1) && ++guard < 4096) tick();
+}
+
 void BiuTimed::wait_bus() {
     int guard = 0;
     while (wr_pending_ > 0 && ++guard < 4096) tick();

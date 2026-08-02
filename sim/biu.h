@@ -106,6 +106,7 @@ public:
     void opcode_prefetch(uint16_t) {}
     bool opcode_pending() const { return false; }
     void prefix_retire() {}
+    void wait_retire_lead() {}
 
     const std::vector<Txn>& txns() const { return txns_; }
     void clear_txns() { txns_.clear(); seq_ = 0; }

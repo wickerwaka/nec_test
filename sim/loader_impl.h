@@ -278,6 +278,31 @@ LoadResult loader_decode(Machine& m, Bus& biu) {
     // --- ONE_BYTE_LOGIC: executed by the pre-decode logic, no microcode ----
     if (!ext && pla3::one_byte_logic(v)) {
         out.executed = true;
+        // These forms have no ROM row and no `E`: the pre-decode logic both
+        // decodes and executes them, in two clocks.  The EXECUTE STROBE -- the
+        // clock the flag write commits on -- is the instruction's LAST clock,
+        // and that is the clock BEFORE the successor's opcode pop.  So when
+        // the queue makes that pop late, the flag write goes late with it.
+        //
+        // MEASURED on `FA` / `FB`, whose IE rides the PS nibble of every
+        // data-phase clock and is therefore visible on the pins.  v0.1 injects
+        // an EMPTY queue for half of each form's cases, and there the opcode's
+        // own address parity decides how many bytes the priming fetch
+        // delivered:
+        //
+        //   even `ip`  word fetch -> the successor's byte is already in the
+        //              queue, its pop is at pop+2, and the golden shows the
+        //              new IE at pop+1                            250/250
+        //   odd  `ip`  single upper-lane byte -> the successor's pop waits for
+        //              the next fetch's T4+2, and the golden still shows the
+        //              OLD IE at pop+1                            250/250
+        //
+        // The even half is what rules out "the write rides the successor's pop
+        // clock" (that would put it at pop+2, one late).  Nothing in the suite
+        // separates pop+3 from pop+4 on the odd half; one rule gives pop+3.
+        // (A "PS is a register loaded at T2" model was tried and FALSIFIED --
+        // provenance 9.4: the even half shows PS changing WITHIN a data phase.)
+        biu.wait_retire_lead();
         switch (pla3::bl1_op(v)) {
             case pla3::Bl1Op::kSetDir: m.psw |= kFlagDIR; break;
             case pla3::Bl1Op::kClrDir: m.psw &= uint16_t(~kFlagDIR); break;

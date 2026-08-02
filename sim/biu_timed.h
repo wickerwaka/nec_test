@@ -122,6 +122,10 @@ public:
     void wait_next_read(int extra);
     void wait_opr_free();
     void wait_bus();
+    // The clock before the queue's next byte can be popped.  A pre-decode-
+    // executed form's execute strobe sits there -- see loader_impl.h,
+    // ONE_BYTE_LOGIC.
+    void wait_retire_lead();
     // The PRE-DECODE operand read.  Its data is not consumed by an F-flagged
     // micro-row -- it is consumed by micro-row 0 itself -- and the decoder
     // spends one clock handing the sequencer over, exactly as it does on the
