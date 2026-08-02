@@ -80,6 +80,8 @@ public:
     // Pops one instruction byte, refilling from CS:fetch_ptr when empty.
     uint8_t next_byte(uint16_t cs, uint16_t upc);
     uint8_t decode_byte(uint16_t cs, uint16_t upc) { return next_byte(cs, upc); }
+    // The displacement-completing byte (M8's `pen`); no timing in this mode.
+    uint8_t disp_byte(uint16_t cs, uint16_t upc) { return next_byte(cs, upc); }
     void flush(uint16_t, uint16_t pc) { flush_pc(pc); }
     void flush_pc(uint16_t pc);  // clear queue, refetch from CS:pc
     void susp() { suspended_ = true; }

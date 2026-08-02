@@ -594,12 +594,8 @@ void BiuTimed::flush(uint16_t cs, uint16_t pc) {
 void BiuTimed::clear_consumed() {
     consumed_.clear();
     // No pre-popped opcode in the latch => the loader is about to pop the
-    // first byte of an instruction itself, and that pop is an F.  It also
-    // STARTS the decode march (M3c), so there is no previous step for it to
-    // re-run.  When the opcode IS latched the march is already running and
-    // its stride is measured from the pre-pop, which is what puts the ModR/M
-    // one clock after the opcode.
-    if (!opc_valid_) { pop_is_first_ = true; last_dec_ = -1; }
+    // first byte of an instruction itself, and that pop is an F.
+    if (!opc_valid_) pop_is_first_ = true;
 }
 
 void BiuTimed::opcode_prefetch(uint16_t cs) {
@@ -617,10 +613,9 @@ void BiuTimed::opcode_prefetch(uint16_t cs) {
     // takes its byte the moment the queue can give it up.
     opc_byte_ = pop(cs, 0xFFFE, false);
     opc_valid_ = true;
-    last_dec_ = clk_;   // the march's first step starts here (M3c)
 }
 
-uint8_t BiuTimed::pop(uint16_t cs, uint16_t upc, bool penalise) {
+uint8_t BiuTimed::pop(uint16_t cs, uint16_t upc, bool disp_last) {
     cs_ = cs;
     if (opc_valid_) {
         opc_valid_ = false;
@@ -628,42 +623,53 @@ uint8_t BiuTimed::pop(uint16_t cs, uint16_t upc, bool penalise) {
         consumed_.push_back(b);
         return b;
     }
-    // M3c A DECODE STEP THAT MISSES RE-RUNS.  The decoder walks its byte
-    // demands as a march of STEPS; a step that has to take a queue byte takes
-    // it on the step's LAST clock, and if the byte is not poppable then the
-    // WHOLE STEP runs again.  So the pop lands on the first clock at or after
-    // `ready` that is a whole number of steps past the demand:
+    // M8 -- THE POP IS A MAX OF TWO CLOCKS, AND THERE IS NO RE-RUN.
     //
-    //     pop = min { demand + k*step : k >= 0, demand + k*step >= ready }
+    //     pop = max(demand, ready + pen)
     //
-    // `step` is not a parameter and not a table -- it is the march's own
-    // stride, the clocks the decoder has advanced since its previous pop.
-    // MEASURED over every v0.1 golden (sw/qcensus.py, with `ready`
-    // reconstructed from the golden's OWN fetch stream as that fetch's
-    // T4 + 2), previous decoder pop at clock 0.  Every observed cell:
+    // `demand` is the requester's own clock (the byte-demand schedule the
+    // loader and the micro-rows charge out); `ready` is the byte's poppable
+    // clock, which the push sets to the delivering fetch's EVAL + 3 -- i.e.
+    // T4 + 2 at w0 and T4 + 3 for a fetch that took ANY wait states, because
+    // M2r moves the eval from T4-1 out to T4.  (That step -- one clock, flat
+    // in the wait count -- is MEASURED directly: over the 3,242 banked chip
+    // captures, a byte-limited pop lands at its deliverer's T4+2 when that
+    // fetch was unwaited and at T4+3 for every Tw from 1 to 15.)
     //
-    //   step 1  modrm after the opcode or after the 0F byte, disp16-LO
-    //           ready<=1 -> 1,  2 -> 2,  3 -> 3,  4 -> 4     (no penalty)
-    //   step 2  the 0F page's opcode, the opcode after a prefix, disp8 after
-    //           the modrm, disp16-HI after disp16-lo
-    //           ready<=2 -> 2,  3 -> 4,  4 -> 4              (the step re-runs)
+    // **M3c ("a decode step that misses RE-RUNS", provenance 9.1) is
+    // RETRACTED.**  It was fitted on the v0.1 goldens with four "stride 2"
+    // classes POOLED, and the pooled cells `ready 3 -> pop 4` and
+    // `ready 4 -> pop 4` cannot both be a max -- so a re-run was invented to
+    // hold them together.  Split by role they are two different classes and
+    // each is a plain max (sw/q1census.py, over the v0.1 goldens AND the 3,242
+    // banked chip captures, w0 and every wait level; every cell is
+    // SINGLE-VALUED):
     //
-    // This REPLACES M3b ("a queue miss costs two clocks", provenance 8.4): a
-    // flat +2 is right for the two-clock steps and wrong for the one-clock
-    // ones, which is exactly the 0F-escape / segment-prefixed residual of
-    // 8.6 -- `26.8B` takes its ModR/M on the clock the byte arrives
-    // (ready = opcode+2) and the flat penalty pushed it one late.  The EU's
-    // own `Q` pops are not part of this march and never re-run.
+    //   demand 1, pen 0   modrm after the opcode / after the 0F byte,
+    //                     disp16-LO after the modrm, a micro-row's imm-hi
+    //                     ready<=1 -> 1,  2 -> 2,  3 -> 3,  4 -> 4, ...
+    //   demand 2, pen 0   the 0F page's opcode, the opcode after a prefix, a
+    //                     prefix after a prefix, a micro-row's first immediate
+    //                     ready<=2 -> 2,  3 -> 3,  4 -> 4,  5 -> 5, ...
+    //   demand 2, pen 1   the byte that COMPLETES a displacement: a disp8, or
+    //                     the HIGH byte of a disp16
+    //                     ready<=1 -> 2,  2 -> 3,  3 -> 4,  4 -> 5, ...
+    //
+    // The goldens never sample `ready 3` for the demand-2/pen-0 classes nor
+    // `ready >= 4` for the pen-1 ones, which is exactly why the pooled fit
+    // survived a 165,490-case w0 gate and still owned 87 % of the fuzz bank's
+    // first divergences (provenance 13.5, family Q1).
+    //
+    // The economical reading of `pen`: the displacement's LAST byte is what
+    // the EA adder needs, and the adder stands one stage behind the decode
+    // port -- it reads the byte the clock after the queue can give it up.
+    // Nothing here depends on that reading; the constant is measured.
     int guard = 0;
     const long demand = clk_;
-    const long step = (penalise && last_dec_ >= 0 && demand > last_dec_)
-                          ? demand - last_dec_ : 1;
     while ((q_.empty() || q_.front().ready > clk_) && ++guard < 4096) tick();
-    if (step > 1) {
-        long over = (clk_ - demand) % step;
-        for (long i = over; i && i < step && ++guard < 4096; ++i) tick();
-    }
-    if (penalise) last_dec_ = clk_;
+    if (disp_last && !q_.empty() && q_.front().ready >= demand &&
+        ++guard < 4096)
+        tick();
     if (q_.empty()) return 0x90;
     uint8_t b = q_.front().b;
     q_.pop_front();

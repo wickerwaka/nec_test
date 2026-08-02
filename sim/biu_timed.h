@@ -117,14 +117,19 @@ public:
     void end_case();
 
     // --- the Bus concept (consumed by CpuT<Bus> and loader_decode<Bus>) ----
-    // M3b: the DECODER's byte demand is a two-clock PLA pipeline and restarts
-    // it on a queue miss; the EU's `Q` source read is a combinational read of
-    // the queue head and takes its byte the moment it is poppable.  Same queue,
-    // two requesters.  MEASURED on the queue-empty goldens (every byte's ready
-    // clock = its fetch's T4 + 2): with demand 3 / ready 4, `8A`'s DECODER
-    // disp8 pops at 5 while `B8`'s MICRO-ROW imm-hi pops at 4.
+    // M8 (T4).  EVERY byte requester -- decoder or micro-row -- takes its byte
+    // on the first clock at or after BOTH its own demand clock and the byte's
+    // ready clock:
+    //
+    //     pop = max(demand, ready + pen)
+    //
+    // There is no re-run and no stride (M3c is RETRACTED, see biu_timed.cpp).
+    // `pen` is 1 for exactly one requester: the byte that COMPLETES a
+    // displacement (a disp8, or the HIGH byte of a disp16), which is taken one
+    // clock after it is poppable.
     uint8_t next_byte(uint16_t cs, uint16_t upc) { return pop(cs, upc, false); }
-    uint8_t decode_byte(uint16_t cs, uint16_t upc) { return pop(cs, upc, true); }
+    uint8_t decode_byte(uint16_t cs, uint16_t upc) { return pop(cs, upc, false); }
+    uint8_t disp_byte(uint16_t cs, uint16_t upc) { return pop(cs, upc, true); }
     uint16_t mem_read(uint16_t seg_val, uint16_t off, bool word,
                       uint8_t seg_idx, uint16_t upc);
     void mem_write(uint16_t seg_val, uint16_t off, uint16_t data, bool word,
@@ -294,7 +299,7 @@ private:
     // occupancy including bytes already fetched but not yet pushed
     int occupancy() const;
     Access make_fetch() const;
-    uint8_t pop(uint16_t cs, uint16_t upc, bool penalise);
+    uint8_t pop(uint16_t cs, uint16_t upc, bool disp_last);
 
     // M2r: the rig's per-bus-cycle wait draw, latched at T1 entry.
     int next_waits();
@@ -451,9 +456,6 @@ private:
     uint16_t upc_pending_ = 0xFFFF;
     bool opc_valid_ = false;
     uint8_t opc_byte_ = 0;
-    // M3c: the clock of the previous DECODER pop.  The march's stride (this
-    // step's length) is `demand - last_dec_`, and a step that misses re-runs.
-    long last_dec_ = -1;
 
     // --- EU requests ---
     std::deque<Access> req_;

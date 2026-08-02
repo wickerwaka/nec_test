@@ -219,6 +219,14 @@ LoadResult loader_decode(Machine& m, Bus& biu) {
         m.pc = uint16_t(m.pc + 1);
         return b;
     };
+    // M8's `pen`: the byte that COMPLETES the displacement is taken one clock
+    // after it is poppable (biu_timed.cpp).  Every other requester is a plain
+    // max(demand, ready).
+    auto dfetch = [&]() -> uint8_t {
+        uint8_t b = biu.disp_byte(m.sreg[kCS], loader_detail::kPreDecodeUpc);
+        m.pc = uint16_t(m.pc + 1);
+        return b;
+    };
 
     // --- the decoder's byte-demand schedule (ucsim-t T1) ------------------
     // MEASURED (v0.1 saturated-queue goldens; identical to the frozen
@@ -349,12 +357,12 @@ LoadResult loader_decode(Machine& m, Bus& biu) {
         uint16_t disp = 0;
         if (rm.disp_bytes == 1) {
             biu.charge(1);                   // opcode+2: no byte demanded
-            disp = uint16_t(int16_t(int8_t(fetch())));   // opcode+3
+            disp = uint16_t(int16_t(int8_t(dfetch())));  // opcode+3
             biu.charge(1);
         } else if (rm.disp_bytes == 2) {
             uint8_t lo = fetch();            // opcode+2
             biu.charge(2);                   // opcode+3: no byte demanded
-            uint8_t hi = fetch();            // opcode+4
+            uint8_t hi = dfetch();           // opcode+4
             biu.charge(1);
             disp = uint16_t(lo | (uint16_t(hi) << 8));
         } else if (rm.mod != 3) {
