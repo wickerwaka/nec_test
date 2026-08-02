@@ -279,9 +279,18 @@ private:
     // instruction's retire waits for ALL of its bus work (S5: a store the BIU
     // has already scheduled but not yet run must not stall the interlock that
     // is about to hand it its data).
+    // THE RETIRE DEADLINE IS THE WRITE, NOT THE BUS.  An instruction's
+    // successor pops its opcode on the E row's own clock; the only thing that
+    // can push that later is a STORE still owed its data by the write-pairing
+    // latch (7.7's max-of-two-deadlines).  An outstanding READ does NOT hold
+    // the retire -- the ROM's own `F` rows do that where it matters.
+    // MEASURED: `8F.0` mod3 (POP r16 via 0058..005B) pops the successor's
+    // opcode at pop+5, on the E row, while its stack read has not even
+    // reached T1; `88` mod0 pops it on the MEMW's T4+1.
     int eu_pending_ = 0;     // every EU access posted but not yet completed
     int rd_pending_ = 0;     // ...just the reads
-    long eu_done_clk_ = -1;  // retire deadline: last EU access T4 + 1
+    int wr_pending_ = 0;     // ...just the writes
+    long wr_done_clk_ = -1;  // retire deadline: last WRITE T4 + 1
     // The F interlock is PER READ and IN ORDER: each `F` row waits for the
     // next completed read, not for the whole outstanding set.  MEASURED: `A6`
     // (CMPSB) issues both loads back to back and then runs 00A0 F / 00A1 /

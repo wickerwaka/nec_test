@@ -66,8 +66,9 @@ void BiuTimed::begin_case() {
     req_.clear();
     eu_pending_ = 0;
     rd_pending_ = 0;
+    wr_pending_ = 0;
     wres_ = 0;
-    eu_done_clk_ = -1;
+    wr_done_clk_ = -1;
     rd_done_q_.clear();
 }
 
@@ -206,8 +207,11 @@ void BiuTimed::tick() {
             if (!cur_.is_fetch) {
                 // eu_done: the data handover / store retire lands one clock
                 // after the completion eval (mission-H); at w0 that is T4 + 1.
-                eu_done_clk_ = c + 1;
                 if (eu_pending_) --eu_pending_;
+                if (is_write(cur_.bs)) {
+                    wr_done_clk_ = c + 1;
+                    if (wr_pending_) --wr_pending_;
+                }
                 if (!is_write(cur_.bs) && cur_.rd_last) {
                     rd_done_q_.push_back(c + 1);
                     if (rd_pending_) --rd_pending_;
@@ -301,7 +305,8 @@ void BiuTimed::post(const Access& a) {
     while (req_.size() >= 2 && ++guard < 4096) tick();
     req_.push_back(a);
     ++eu_pending_;
-    if (!is_write(a.bs) && a.rd_last) ++rd_pending_;
+    if (is_write(a.bs)) ++wr_pending_;
+    else if (a.rd_last) ++rd_pending_;
 }
 
 // --- prefetch queue ---------------------------------------------------------
@@ -423,8 +428,8 @@ uint8_t BiuTimed::pop(uint16_t cs, uint16_t upc, bool penalise) {
 
 void BiuTimed::wait_bus() {
     int guard = 0;
-    while (eu_pending_ > 0 && ++guard < 4096) tick();
-    while (clk_ < eu_done_clk_ && ++guard < 4096) tick();
+    while (wr_pending_ > 0 && ++guard < 4096) tick();
+    while (clk_ < wr_done_clk_ && ++guard < 4096) tick();
 }
 
 // The F / OPR interlock: wait for the NEXT outstanding read, and consume it.
@@ -467,7 +472,6 @@ uint16_t BiuTimed::mem_read(uint16_t seg_val, uint16_t off, bool word,
         acc.ube_n = uint8_t((word || (a & 1)) ? 0 : 1);
         post(acc);
     }
-    eu_done_clk_ = -1;
     return v;
 }
 
@@ -575,7 +579,6 @@ uint16_t BiuTimed::io_read(uint16_t port, bool word, uint16_t upc) {
         acc.ube_n = uint8_t((word || (port & 1)) ? 0 : 1);
         post(acc);
     }
-    eu_done_clk_ = -1;
     return v;
 }
 
@@ -602,7 +605,6 @@ uint16_t BiuTimed::inta_read(uint16_t upc) {
     acc.data = v;
     acc.upc = upc;
     post(acc);
-    eu_done_clk_ = -1;
     return v;
 }
 
