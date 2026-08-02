@@ -3524,3 +3524,109 @@ Two new standing instruments, both read-only and both usable on either side:
    T4 with a controlled Tw parity), C2 needs a queue-fill transient, C11 needs
    a capture that isolates one `owns_slot` source.  The w0-only `F3AA cx >= 2`
    residual (907 cases) and the `fz90002` N=8 event-72 sled cell also stand.
+
+---
+
+## 15. T5 — CLOSURE
+
+The campaign is closed.  The answer document is
+`docs/notes/ucsim_t_campaign_verdict_2026-08-02.md`; the plan as executed is in
+the repo verbatim at `docs/notes/ucsim_t_campaign_plan.md`.  Nothing in §0-§14
+is retracted by this section.
+
+**Status: CLOSED 2026-08-02.  Victory condition PARTIAL — V0-V4 PASS, V5 FAIL
+(§14.4), reported as pre-registered.**
+
+### 15.1 Final counts
+
+| | |
+|---|---|
+| v0.1 cycle rows at w0 | **165,490 / 166,400 (99.45 %)** — 910 short: 907 REP `cx>=2` + 3 tails |
+| v0.1-w1 / -w3 | **1,200 / 1,200** and **1,200 / 1,200** |
+| arch through the TIMED path | 166,800 / 169,000 (the 2,200 pin-event forms, **S9**) |
+| golden window located | 168,720 / 169,000 |
+| boot replay from RESET release | **220 / 220 rows**, loop period 64 exact on both legs |
+| ENTER waited tranche | **154 / 154** on all five levels |
+| INS `case250` STRICT rails vs the chip capture | **2,624 / 2,624**; write rails 1,312/1,312; R2 issue 782/800 (= the offline pilot) |
+| INS whole-program leading accesses | **173,556 / 173,556** in kind+address, **all 173,556 on the same T1** |
+| L1 oracle replay | **18 PASS / 0 FAIL / 9 SKIP** |
+| wvec corpus vs SILICON | access count **88 / 88**; bus cycles 16,048 vs 16,048 (**+0.0 %**); per-cycle digest **63 / 88** |
+| law cards | **7 GREEN / 0 RED / 4 UNRESOLVED** (C2, C6, C7, C11 — all stimulus gaps) |
+| `timed_fuzz`, banked | **947 / 1,702 (55.6 %)** cycle-exact; median prefix 1,068 rows, fraction **1.000**; >=0.5 / >=0.9 = 1,192 / 950; 0 hard failures |
+| `timed_fuzz`, the VICTORY TRANCHE | **117 / 188 (62.2 %)** cycle-exact; median prefix fraction **1.000**; 0 hard failures |
+| functional corpus | **7,341,126 / 7,341,126**, zero regressions |
+
+**One number improved and the campaign did not notice it.**  §11.6 recorded the
+INS whole-program measure at 56,736 of 173,556 leading bus cycles and §13.3 at
+127,712 / 173,556; §14 never re-ran it.  Re-measured at T5 it is
+**173,556 / 173,556, every one on the same T1** — the Q1 mechanisms (M8/M8a/M8b)
+closed it.  Recorded here rather than in a stage section, because that is where
+it was measured.
+
+### 15.2 T5 gate ledger — every standing gate, re-run immediately before the commit
+
+```
+make -C sim test                                                          # disasm: PASS
+python3 sw/pla3_check.py                                                  # OK (21 checks)
+python3 sw/ucsim_check.py --suite tests/v30/v0.1                          # 169000/169000
+python3 sw/ucsim_check.py --suite tests/v30/v0.2                          # 347000/347000
+python3 sw/ucsim_check.py --suite tests/v30/v0.3                          # 3699998/3699998
+python3 sw/ucsim_check.py --suite tests/v30/v20suite --no-mirror          # 3125000/3125000
+python3 sw/ucsim_check.py --suite tests/v30/mod3_illegal --residue stale-ea  # 128/128
+python3 sw/timed_gate.py --suite tests/v30/v0.1    --forms all            # 165,490 (w0)
+python3 sw/timed_gate.py --suite tests/v30/v0.1-w1 --forms all --waits 1  # 1,200/1,200
+python3 sw/timed_gate.py --suite tests/v30/v0.1-w3 --forms all --waits 3  # 1,200/1,200
+python3 sw/check_boot.py --timed 220                                      # MATCHES over 220 rows
+python3 sw/timed_scenario.py                                              # 18 PASS, 0 FAIL, 9 SKIP
+python3 sw/timed_enter_replay.py                                          # 154/154 x5
+python3 sw/timed_ins_replay.py --raw      # rails 1312/1312, vs-chip 2624/2624, R2 782/800
+python3 sw/timed_wvec_gate.py             # count 88/88, cycles +0.0 %, digest 63/88
+python3 sw/timed_lawcards.py              # 7 GREEN / 0 RED / 4 UNRESOLVED
+python3 sw/timed_fuzz.py                  # 947/1702 exact, 0 hard failures
+python3 sw/timed_fuzz.py --seeddir sw/testdata/t4/b2-tranche/seeds        # 117/188 exact
+```
+
+**Zero regressions.**  Every figure above is identical to the T4 close (§14.6)
+except the two that were never measured at T4: the INS whole-program agreement
+(§15.1) and the wvec bus-cycle absolute (16,048 vs 16,048, previously reported
+only as a percentage).
+
+*Environment note, unchanged since §7.10:* `export TMPDIR=~/.cache/ucsimt-tmp`
+before building or running anything that uses `tempfile`; `/tmp` is a small
+tmpfs on this machine.
+
+### 15.3 What remains ASSUMPTION at closure
+
+The ledger's own rule is that at closure the set still tagged **ASSUMPTION** is
+precisely "what the assets do not determine about timing".  That set is now
+**empty of load-bearing entries**: every ASSUMPTION booked in §2-§9 was either
+promoted or retracted —
+
+* §2.5 `kSegZero` PS code: **ASSUMPTION -> MEASURED** (§10.5, 4,800 rows).
+* §2.6 undriven byte lanes retain: **RETRACTED** (§8.1); it was the rig's fill.
+* §2.8 the instruction-boundary QS=F rule (S10): **REMOVED** (§7.8).
+* §7.7's `R`-row one-clock-per-iteration, booked PROVISIONAL: **survives
+  unchanged**, disciplined by the FARJMP bubble (§8.5).
+
+What stands in their place is not assumption but **absence of stimulus** — the
+four UNRESOLVED law cards, the scoped-out interrupt/INTA axis, 8080-mode
+timing, and Q2's EU-raise clock.  Each is named in the verdict's §(c) with the
+capture that would close it.  Scaffolding S1-S10 are all removed or, for S9's
+event scheduler, converted into a named open item.
+
+### 15.4 Housekeeping done at T5
+
+* `ROADMAP.md` — dated `ucsim-t` section: the campaign, its outcome, the retired
+  biu-rebuild disposition, and what regenerating the RTL from the mechanism
+  ledger would look like as the natural next campaign.
+* `sim/README.md` — the timed-mode section refreshed off T0 (it still described
+  the T0 scaffolding as current).
+* `docs/notes/ucsim_t_campaign_plan.md` — the plan committed in-repo verbatim,
+  the functional campaign's S4r lesson applied.
+* `docs/notes/ucsim_provenance.md` — an **erratum** added recording the
+  `has_brkem` under-report (M9, §14.1), routed to the functional campaign's
+  ledger where the flag is used.
+* Thirteen inconsistencies found while consolidating are in the verdict's §(g),
+  reported rather than papered over; two of them (the stale "12 w0 tails" and
+  the stale T3 "tails = 15") are corrected numbers, and one is an improvement
+  the campaign under-reported (§15.1).

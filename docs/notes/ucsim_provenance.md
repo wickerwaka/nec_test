@@ -2837,3 +2837,40 @@ Net headline changes: standing assumptions **40 → 41**; free choices **12 → 
 (A8, A9, A15, A30, A33, A36), plus two naming-isomorphism classes and one bench
 convention.  The plan as executed is now in the repo verbatim at
 `docs/notes/ucsim_campaign_plan.md`.
+
+---
+
+## 67. ERRATUM (added 2026-08-02 by the ucsim-t campaign) — `has_brkem` UNDER-REPORTS
+
+A finding of the TIMING campaign that belongs to this ledger.  Source:
+`docs/notes/ucsim_t_provenance.md` §14.1 (mechanism **M9**) and the timing
+verdict `docs/notes/ucsim_t_campaign_verdict_2026-08-02.md` §(d).
+
+**The finding.**  PS3 on the pins is the EMULATION-MODE bit (MD), live on every
+bus cycle, CODE fetches included.  Reading MD directly off the retained captures
+— no model in the loop — shows that the fuzz banks' `has_brkem` flag counts only
+the DOCUMENTED `0F FF` encoding, while the chip's PLA decodes a wide spread of
+UNDEFINED `0F xx` second bytes as BRKEM as well (`0F F7`, `0F FD`, `0F D3`,
+`0F 40`, `0F 73`, `0F 90`, `0F 65`, `0F 8D`, `0F 7C`, `0F C2`, ...), each taking
+the NEXT byte as its vector.
+
+**Measured:** **189 of the 3,242 banked seeds put MD = 1 on the pins at some
+point** — far more than `has_brkem` reports.
+
+**Scope of impact on this campaign, stated as scope and not as a re-scored
+gate.**  No gate result changes: the architectural comparisons of §41-§57 are
+per-seed and do not consult the flag.  What is understated is every STATISTIC
+keyed on it — the `t30-brkem` bank's own membership, the F-B report's 76/85, and
+the verdict's 8080-mode counts, **including its statement that A30's bank A is
+"unreached even with 8080 mode live"**, which was evaluated over a set now known
+to be too small.  (The timing campaign's §14.5 subsequently found one
+uncontaminated two-cycle INTA pair taken in emulation mode — `t30-raw/raw_3821`
+rows 969-981, both acknowledges carrying `ps = 0xE` = MD | IE | CS — which is a
+DATAPOINT favouring bank B / fixed priority, n = 1, not a closure.)
+
+**The action, for any successor:** the flag is the wrong instrument and the
+right one now exists.  **Re-derive any 8080-mode statistic from PS3**, which is
+observable on the pins of every retained capture.
+
+Nothing in `docs/notes/ucsim_campaign_verdict_2026-08-01.md` is retracted by
+this note; it is an erratum on an instrument, not on a result.

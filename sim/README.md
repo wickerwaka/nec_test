@@ -15,11 +15,14 @@ and the eleven pin-event pseudo-forms, and on **2 125 / 2 125** of the banked
 fuzz seeds whose capture recorded a complete architectural dump (register-,
 PSW- and ordered-write-stream exact). Micro-row coverage **912 / 1028**.
 
-No external dependencies; plain `make` and a C++20 compiler. Timing is **not**
-modelled — see "What is deliberately not modelled" below.
+Since the `ucsim-t` campaign close (T5, 2026-08-02) it ALSO has a **cycle-exact
+timing mode** behind the same interpreter — see "Timed mode" below. No external
+dependencies; plain `make` and a C++20 compiler.
 
-* Verdict / sufficiency answer: `docs/notes/ucsim_campaign_verdict_2026-08-01.md`
+* Architectural verdict: `docs/notes/ucsim_campaign_verdict_2026-08-01.md`
+* Timing verdict: `docs/notes/ucsim_t_campaign_verdict_2026-08-02.md`
 * Provenance for every semantic decision: `docs/notes/ucsim_provenance.md`
+* Provenance for every TIMING decision: `docs/notes/ucsim_t_provenance.md`
 * Micro-row coverage report: `sim/coverage_report.txt`
 
 ## What exists
@@ -36,7 +39,7 @@ modelled — see "What is deliberately not modelled" below.
 | `exec_impl.h` | the per-micro-row interpreter as `template <class Bus> class CpuT`, incl. the hardware interrupt/NMI/trap entries (`interrupt`), the INTA bus cycle and the 8080 mode flag. `loader_impl.h` is the same treatment for the pre-decode hardware. Bus-policy split, ucsim-t T0 |
 | `exec.h` / `exec.cpp` | the FUNCTIONAL instantiation: `using Cpu = CpuT<Biu>`, one out-of-line copy, `extern template` so no other TU instantiates it |
 | `exec_timed.h` / `exec_timed.cpp` | the TIMED instantiation: `using CpuTimed = CpuT<BiuTimed>` |
-| `biu_timed.h` / `biu_timed.cpp` | the TIMED bus: same Bus concept as `Biu`, owns a CPU clock, emits one row per clock. T0 = naive scaffolding (serial bus, demand-filled queue, no scheduler) |
+| `biu_timed.h` / `biu_timed.cpp` | the TIMED bus: same Bus concept as `Biu`, owns a CPU clock, emits one row per clock. The T-state FSM, the READY/eval instant, the queue latency pipeline, the prefetch scheduler, the flush rules, the HALT display. **No fitted table and no per-opcode timing exception — grep for one** |
 | `rows.h` / `rows.cpp` | `ClockRow` + the two emitters: `check_core.py::parse_out` text and chip_rows NDJSON |
 | `timed_runner.h` / `timed_runner.cpp` | `timed-run`: cases in, per-clock row streams + final regs out |
 | `case_runner.h` / `case_runner.cpp` | SingleStepTests ingestion and verdicts |
@@ -75,6 +78,10 @@ v30sim trace  <romfile> <idx>           per-micro-row dump of one case
 v30sim timed-run <romfile> [--waits N] [--ndjson] [--mirror]
                         [--case=IDX] [--steps=N]
                                         TIMED mode: one record per CPU clock
+v30sim timed-boot <romfile> <image.bin> [--clocks N] [--ndjson]
+                        [--waits N] [--wvec F] [--wmax K --wseed S]
+                                        TIMED mode from RESET RELEASE over a
+                                        flat 64 KB image; clock 0 = release
 ```
 
 Both `run` and `image` speak NDJSON on stdin/stdout and are long-lived, so the
@@ -94,21 +101,69 @@ drift between them.
 synthesized by the UNMODIFIED python comparator rather than by new C++.
 `--ndjson` switches to the chip_rows record shape `sw/check_seq.py` consumes.
 
-```sh
-python3 sw/timed_gate.py --suite tests/v30/v0.2 --forms 88,00,50,C8
-python3 sw/timed_gate.py --sbs B8:0        # golden vs sim rows, side by side
-```
-
 The status column follows the v0.1 README's column-7 semantics (the V30 drives
 the NEXT cycle's status during T4) — modelled as a registered output driven one
 clock early, not as a T4 special case, because the goldens show an idle Ti row
 carrying it too.
 
-**At T0 the rows are NOT yet timing-exact**: the timed bus is deliberate
-scaffolding (strictly serial, no prefetch scheduler, no queue latency, no
-micro-row cadence, uniform waits only).  Every simplification, the laws that
-ARE modelled, and the stage that replaces each one are enumerated in
-`docs/notes/ucsim_t_provenance.md`.
+### Where it is exact, as of the campaign close
+
+| | |
+| --- | --- |
+| `v0.1` cycle rows at w0 | **165 490 / 166 400 (99.45 %)** — 907 REP `cx>=2` + 3 tails short |
+| `v0.1-w1` / `v0.1-w3` | **1 200 / 1 200** each |
+| boot from RESET release | **220 / 220** rows, loop period exact |
+| ENTER waited tranche (154 socket digests) | **154 / 154** on all five levels |
+| INS `case250` factorial vs the chip capture | **2 624 / 2 624** strict rails; 173 556 / 173 556 leading accesses, all same-T1 |
+| law cards (silicon-referenced) | **7 GREEN / 0 RED / 4 UNRESOLVED** |
+| banked fuzz programs, whole-window cycle-exact | **947 / 1 702 (55.6 %)**, median prefix fraction 1.000 |
+| a FRESH random-wait tranche (216 seeds, never seen) | **117 / 188 (62.2 %)** |
+
+The model is **not** cycle-exact over whole 1 300-4 000-clock programs; the
+victory gate V5 is recorded FAILED. Every residual is a named family in
+`docs/notes/ucsim_t_campaign_verdict_2026-08-02.md` §(c).
+
+### The wait axis, and what drives it
+
+The timed bus carries the rig's three wait sources in `hdl/rtl/nec_bus.sv`'s own
+priority order (replay > random > uniform), all keyed on a BUS-CYCLE index and
+latched at T1 entry: `--waits N` (uniform), `--wvec F` (an explicit per-access
+vector) and `--wmax K --wseed S` (the rig's 16-bit Galois LFSR, poly `0xB400`,
+drawn once per bus cycle). The whole wait axis reduces to ONE instant per bus
+cycle — `e = (N == 0) ? 2 : 3 + N` — with the status release, the display clock,
+`eu_done` and the queue push all at fixed offsets from it.
+
+### The gates and instruments
+
+```sh
+python3 sw/timed_gate.py --suite tests/v30/v0.1    --forms all             # the w0 ratchet
+python3 sw/timed_gate.py --suite tests/v30/v0.1-w1 --forms all --waits 1
+python3 sw/timed_gate.py --suite tests/v30/v0.1-w3 --forms all --waits 3
+python3 sw/timed_gate.py --sbs B8:0        # golden vs sim rows, side by side
+python3 sw/check_boot.py --timed 220       # boot replay from RESET release
+python3 sw/timed_scenario.py               # L1: the frozen decoder oracles, w0/w1/w3
+python3 sw/timed_enter_replay.py           # the 154 ENTER socket digests
+python3 sw/timed_ins_replay.py --raw       # the case250 INS factorial plane
+python3 sw/timed_wvec_gate.py              # the silicon-frozen wvec corpus
+python3 sw/timed_lawcards.py               # the inherited law cards as sim gates
+python3 sw/timed_fuzz.py                   # 3 242 banked fuzz programs
+python3 sw/timed_fuzz.py --seeddir sw/testdata/t4/b2-tranche/seeds   # the victory tranche
+```
+
+Read-only instruments, all usable on a chip capture or a sim emission:
+`sw/timed_probe.py` (group a form's failures by FIRST divergent cell),
+`sw/qcensus.py` / `sw/q1census.py` (every queue pop with the ready clock of the
+byte it took), `sw/q1diff.py` (chip vs sim, pop by pop, naming which pop moved),
+`sw/wchain.py` (T4-to-next-T1 spacing keyed by the two statuses). Every
+mechanism in the timing ledger was found by reading one of their outputs.
+`V30SIM_EVALTRACE=1` additionally dumps one line per eval point and per clock;
+it is env-gated and touches no model state.
+
+Every timing behaviour, its provenance class (ROM / LAW / MEASURED /
+ASSUMPTION), its evidence and its falsifier are in
+`docs/notes/ucsim_t_provenance.md`; the mechanism ledger — fifteen entries and
+the eval instant, each a register, a threshold or a fixed cycle index — is §(b)
+of the timing verdict.
 
 ## Build and the standing gates
 
@@ -203,13 +258,16 @@ of the one ambiguous micro-address), 14 post-`FARJMP` and 93 bank tails.
 
 ## What is deliberately not modelled
 
+### In the FUNCTIONAL mode
+
 Four numbered policies, each with the timing mechanism that would replace it
 (`docs/notes/ucsim_provenance.md` §38, §57, and the verdict's §(d)):
 
 * **cycle timing / prefetch.** The model fetches a byte when the decoder asks
   for it and keeps no speculative queue, so `final.queue` is not compared; the
   consumed-instruction-byte count stands in for it and is asserted on every
-  case.
+  case. **This is what the timed mode above replaces** — the functional mode
+  keeps it, deliberately, so the architectural gates stay fast.
 * **I/O port values** are REPLAYED from the capture (case name `iord=XXXX`, an
   `iords/` sidecar, or the case's own bus trace), never predicted.
 * **the interrupt firing boundary** is replayed — single-instruction cases from
@@ -220,5 +278,17 @@ Four numbered policies, each with the timing mechanism that would replace it
 * **`BUSY`** is hard-FALSE (no pin model), which is why the five POLL busy-loop
   rows are unreached.
 
-The first of those four is what the `ucsim-t` campaign is removing; see
-"Timed mode" above and `docs/notes/ucsim_t_provenance.md`.
+### In the TIMED mode
+
+* **Interrupt / INTA timing under waits** — an explicit scope exclusion of the
+  whole `ucsim-t` campaign, inherited from the RTL campaign. It is excluded
+  from every timed gate, by construction in the victory tranche (`no_evt` set
+  at GENERATION). Un-measured, not merely un-modelled.
+* **The pin-event scheduler** — `timed-run` and `timed-boot` execute
+  instructions; the INT / NMI / RESET event replay `case_runner` performs is not
+  in the timed path, and the POLL pin's 5-clock sampling is not modelled. That
+  is why 2 600 v0.1 cases in thirteen pseudo-forms sit outside the w0
+  denominator. (The HALT bus pseudo-cycle IS modelled and measured.)
+* **8080-mode timing** — never separated by any gate.
+* **`BUSLOCK`** — `ClockRow::lock_n` is still a constant; no non-pin-event v0.1
+  form exercises it.
