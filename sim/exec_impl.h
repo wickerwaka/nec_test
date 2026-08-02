@@ -217,7 +217,11 @@ template <class Bus>
 uint16_t CpuT<Bus>::rd_operand(const OperandRef& r) const {
     switch (r.kind) {
         case OperandRef::kReg:
-            return r.byte ? uint16_t(m_.rb(r.idx)) : m_.gpr[r.idx];
+            // A byte operand read is the whole register PAIR rotated so the
+            // selected half sits in the low lane (state.h::rb16).  Byte-width
+            // consumers mask it off; the write-data latch does not, which is
+            // where the sibling byte on the unused bus lane comes from.
+            return r.byte ? m_.rb16(r.idx) : m_.gpr[r.idx];
         case OperandRef::kSregRef: return m_.sreg[r.idx];
         case OperandRef::kMem: return m_.opr;  // pre-read operand data
         default: return 0;

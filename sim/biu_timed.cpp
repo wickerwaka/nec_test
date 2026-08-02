@@ -50,6 +50,11 @@ void BiuTimed::begin_case() {
     qs_pending_ = kQsNone;
     upc_pending_ = 0xFFFF;
     opc_valid_ = false;
+    flush_eval_ = false;
+    e_pend_ = false;
+    e_from_ = 0;
+    e_x_ = -1;
+    push_absorb_clk_ = -2;
     req_.clear();
     eu_pending_ = 0;
     eu_done_clk_ = -1;
@@ -92,6 +97,18 @@ void BiuTimed::tick() {
     qs_pending_ = kQsNone;
     upc_pending_ = 0xFFFF;
 
+    // F1: the parked flush takes the QS port on the first free clock.
+    // (c): a ready-but-not-yet-started EU request owns the next slot, and the
+    // flush display waits for that request's STATUS clock -- except on the
+    // flush clock itself (biu_model.md: the divide trap raises flush and the
+    // PC push together and still shows E at once).
+    if (e_pend_ && c >= e_from_ && r.qs == kQsNone && c != push_absorb_clk_ &&
+        (req_.empty() || c == e_x_) &&
+        !(run_ && cur_.is_fetch && ci_ < last_i)) {
+        r.qs = kQsEmpty;
+        e_pend_ = false;
+    }
+
     if (run_) {
         r.tstate = (ci_ == 0)          ? uint8_t(kT1)
                    : (ci_ == 1)        ? uint8_t(kT2)
@@ -132,7 +149,13 @@ void BiuTimed::tick() {
         r.ad_addr = cmt_.addr;
         r.ad_data = uint16_t(cmt_.addr & 0xFFFF);
         r.ps = uint8_t((cmt_.addr >> 16) & 0xF);
-        r.ube_n = cmt_.ube_n;
+        // ...but UBE is NOT part of that register.  It changes at T1, one
+        // clock after the status and address do.  MEASURED: `E8` case 0 golden
+        // rows 14-15 (the split push's second half is displayed with the first
+        // half's UBE and only asserts its own at T1) and rows 18-19 (the
+        // redirect fetch is displayed with the write's UBE).  Every CODE cycle
+        // drives UBE low, which is why this is invisible until an EU access
+        // sits next to a fetch.
         if (r.upc == 0xFFFF) r.upc = cmt_.upc;
     }
 
@@ -148,12 +171,19 @@ void BiuTimed::tick() {
     bool eval_here = false;
     if (run_) {
         if (waits_ == 0 ? (ci_ == 2) : (ci_ == last_i)) eval_here = true;
+        // F3: the flush-only point commits the REDIRECT PREFETCH only.  A
+        // pending EU request still owns the first slot, and an EU access is
+        // never granted at a T4 -- so with a request outstanding this point
+        // simply does not fire and both wait for the next normal eval.
+        if (ci_ == last_i && cur_.is_fetch && flush_eval_ && req_.empty())
+            eval_here = true;
         if (ci_ == last_i) {
-            if (cur_.is_fetch) {
+            if (cur_.is_fetch && cur_.push_n) {
                 // M3: the push lands at the end of T4 and the byte is
                 // poppable two clocks later.
                 for (int i = 0; i < cur_.push_n; ++i)
                     q_.push_back(QByte{cur_.push_b[i], c + 2});
+                push_absorb_clk_ = c + 1;   // F1(b): the queue port is busy
             }
             if (!cur_.is_fetch) {
                 // eu_done: the data handover / store retire lands one clock
@@ -174,6 +204,7 @@ void BiuTimed::tick() {
 // The completion eval: pick the next bus cycle.  The winner is DISPLAYED on
 // the next clock and opens its T1 the clock after that (M1).
 void BiuTimed::eval() {
+    flush_eval_ = false;   // F3: the flush-only T4 point is spent by any commit
     if (!req_.empty()) {
         cmt_ = req_.front();
         req_.pop_front();
@@ -186,6 +217,7 @@ void BiuTimed::eval() {
     cmt_ = make_fetch();
     // The fetch pointer advances when the cycle is COMMITTED, not when its
     // data lands: the address is latched into the bus cycle here.
+    cmt_prev_fp_ = fetch_ptr_;
     fetch_ptr_ = uint16_t(fetch_ptr_ + cmt_.push_n);
     cmt_valid_ = true;
     cmt_t1_ = clk_ + 1;
@@ -216,7 +248,31 @@ BiuTimed::Access BiuTimed::make_fetch() const {
     return acc;
 }
 
+// F2: withdraw a prefetch that is committed but has not been displayed yet.
+void BiuTimed::withdraw_fetch() {
+    // Only a commit that has not reached the status PINS yet can be taken
+    // back: once its display clock has been emitted (cmt_t1_ == clk_, i.e. the
+    // T1 opens on the clock about to run) the cycle is irrevocably announced.
+    if (cmt_valid_ && cmt_.is_fetch && cmt_t1_ > clk_) {
+        cmt_valid_ = false;
+        fetch_ptr_ = cmt_prev_fp_;
+    }
+}
+
+void BiuTimed::susp() {
+    suspended_ = true;
+    withdraw_fetch();   // F2 -- see biu_timed.h
+}
+
 void BiuTimed::post(const Access& a) {
+    // F2 (generalised).  The EU's bus request reaches the BIU one clock ahead
+    // of the micro-row that carries it -- the same one-row-early control decode
+    // as SUSP -- so a prefetch the eval just chose is taken back before it
+    // reaches the status pins.  This IS the measured "the reservation must LEAD
+    // the request by one cycle" rule (biu_model.md, "Store-vs-prefetch
+    // reservation law"), expressed as the decode pipeline rather than as a
+    // per-form S_RSV table.
+    withdraw_fetch();
     // Backpressure: the EU cannot queue an unbounded number of accesses ahead
     // of the bus.  Two in flight (the two halves of a split word) is the most
     // the datapath can hold.
@@ -228,10 +284,39 @@ void BiuTimed::post(const Access& a) {
 
 // --- prefetch queue ---------------------------------------------------------
 
-void BiuTimed::queue_preload(const std::vector<uint8_t>& q, uint16_t fetch_ptr) {
+// PRE-WINDOW PRIMING (T0 open item 3, second half).  `begin_case` starts the
+// bus idle, but the bus PINS are not blank: the fetches that filled the
+// injected queue left their data phase standing on AD, and an odd-address
+// single-byte fetch inside the window shows that stale byte on its undriven
+// low lane (T0 2.6).  So replay the pre-window fetch ADDRESS sequence -- the
+// same word/odd-byte rule the scheduler uses -- and leave the last one's data
+// phase on the retained pins.  MEASURED: `EB` case 5, a jump to an odd target
+// whose fetch shows `9090` (the pre-window NOP pair) and not `9000`.
+void BiuTimed::queue_preload(const std::vector<uint8_t>& q, uint16_t cs,
+                             uint16_t ip) {
     q_.clear();
     for (uint8_t b : q) q_.push_back(QByte{b, 0});
-    fetch_ptr_ = fetch_ptr;
+    cs_ = cs;
+    fetch_ptr_ = uint16_t(ip + q.size());
+    uint16_t p = ip;
+    int need = int(q.size());
+    while (need > 0) {
+        uint32_t a = phys(cs, p);
+        if (a & 1) {
+            last_data_ = uint16_t((uint16_t(core_.peek(a)) << 8) |
+                                  (last_data_ & 0x00FF));
+            last_addr_ = a;
+            p = uint16_t(p + 1);
+            need -= 1;
+        } else {
+            last_data_ = uint16_t(core_.peek(a) |
+                                  (uint16_t(core_.peek(phys(cs, uint16_t(p + 1))))
+                                   << 8));
+            last_addr_ = a;
+            p = uint16_t(p + 2);
+            need -= 2;
+        }
+    }
 }
 
 void BiuTimed::flush(uint16_t pc) {
@@ -242,9 +327,15 @@ void BiuTimed::flush(uint16_t pc) {
     opc_valid_ = false;
     // A committed-but-not-started fetch is withdrawn; a fetch already in
     // flight completes and its data is discarded (biu_model.md flush law).
-    if (cmt_valid_ && cmt_.is_fetch) { cmt_valid_ = false; }
+    withdraw_fetch();
     if (run_ && cur_.is_fetch) { cur_.push_n = 0; }
-    qs_pending_ = kQsEmpty;
+    // F1: the queue port is not free on the flush clock itself if a bus cycle
+    // still owns it; from the next clock on it is free once that cycle has
+    // reached its T4.
+    flush_eval_ = true;
+    e_pend_ = true;
+    e_x_ = clk_;
+    e_from_ = (run_ || (cmt_valid_ && cmt_t1_ == clk_)) ? clk_ + 1 : clk_;
 }
 
 void BiuTimed::clear_consumed() {
@@ -325,6 +416,19 @@ uint16_t BiuTimed::mem_read(uint16_t seg_val, uint16_t off, bool word,
     return v;
 }
 
+// M5b THE BUS BYTE SWAPPER.  The write-data register is loaded through an
+// 8-bit rotator controlled by A0 of the ACCESS: at an odd address the datapath
+// value is rotated so its low byte lands on AD15-8, and BOTH bus cycles of a
+// split word write then drive that same rotated value.  MEASURED, four
+// quadrants, one case each: `88` (`mov [odd], dl`, DX=403F -> 3F40 and
+// `mov [even], dl`, DX=6720 -> 6720), `C6.0` (imm8 A3 sign-extended to FFA3,
+// odd -> A3FF), `50` (PUSH AX, AX=CD0B at an odd SP -> 0BCD on both halves;
+// AX=1B17 at an even SP -> 1B17).  Validated 366/366 over the `88` byte-store
+// rows.  Nothing here is per-opcode: it is one rotator on A0.
+static inline uint16_t swap8(uint16_t v) {
+    return uint16_t((v >> 8) | (v << 8));
+}
+
 // M5 WRITE DATA IS THE WHOLE 16-BIT DATAPATH VALUE.  On a WRITE the CPU drives
 // AD15-0 with its internal 16-bit value and lets UBE/A0 pick the lane(s) the
 // memory latches -- it does NOT compose a per-lane value.  So both halves of a
@@ -342,7 +446,7 @@ void BiuTimed::mem_write(uint16_t seg_val, uint16_t off, uint16_t data,
     acc.bs = kBsMemW;
     acc.segc = seg_code(seg_idx);
     acc.upc = upc;
-    acc.data = data;
+    acc.data = (a & 1) ? swap8(data) : data;   // M5b
     if (word && (a & 1)) {
         acc.addr = a;
         acc.ube_n = 0;
@@ -380,7 +484,8 @@ void BiuTimed::io_write(uint16_t port, uint16_t data, bool word, uint16_t upc) {
     acc.segc = 2;
     acc.upc = upc;
     acc.ube_n = uint8_t((word || (port & 1)) ? 0 : 1);
-    acc.data = data;   // M5: a write drives the whole datapath value
+    // M5 + M5b: the whole datapath value, through the A0 byte swapper.
+    acc.data = (port & 1) ? swap8(data) : data;
     post(acc);
 }
 

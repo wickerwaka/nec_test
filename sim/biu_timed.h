@@ -79,8 +79,17 @@ public:
     void io_write(uint16_t port, uint16_t data, bool word, uint16_t upc);
     uint16_t inta_read(uint16_t upc);
     void note_halt(uint16_t upc);
-    void susp() { suspended_ = true; }
+    // F2 SUSP IS ONE CLOCK EARLY.  The ROM's bus-control field is decoded a
+    // row ahead of the datapath, so SUSP reaches the BIU on the same clock
+    // edge that loads the prefetch COMMIT register -- and a fetch the eval
+    // just chose therefore does not survive.  This is the mechanism behind
+    // the measured "reservation starts at the final-pop cycle" (biu_model.md:
+    // EB reserves at its last-disp pop, E9 at pop+1) even though EB's SUSP row
+    // 0159 runs one clock after that pop, and behind the loop family's
+    // "dly<=3 blocked / dly>=4 free" cutoff (SUSP three rows before FLUSH).
+    void susp();
     void resume() { suspended_ = false; }
+    void withdraw_fetch();
     void flush(uint16_t pc);
     void clear_consumed();
     long ev_count() const { return core_.ev_count(); }
@@ -104,7 +113,8 @@ public:
     void prefix_retire() { pop_is_first_ = true; }
 
     // --- queue ------------------------------------------------------------
-    void queue_preload(const std::vector<uint8_t>& q, uint16_t fetch_ptr);
+    void queue_preload(const std::vector<uint8_t>& q, uint16_t cs,
+                       uint16_t ip);
     size_t queue_len() const { return q_.size(); }
     uint8_t queue_at(size_t i) const { return q_[i].b; }
     uint16_t fetch_ptr() const { return fetch_ptr_; }
@@ -174,6 +184,7 @@ private:
     bool cmt_valid_ = false;
     Access cmt_;
     long cmt_t1_ = -1;      // absolute clock of the committed cycle's T1
+    uint16_t cmt_prev_fp_ = 0;   // fetch_ptr before the committed fetch took it
 
     // retained pin state (idle rows and undriven byte lanes)
     uint32_t last_addr_ = 0;
@@ -188,6 +199,23 @@ private:
     bool suspended_ = false;
     bool pop_is_first_ = true;
     std::vector<uint8_t> consumed_;
+    // F1 (flush display).  The queue-clear event QS=E is a POINT SAMPLE on the
+    // QS port, and the port can only carry one event per clock.  A flush
+    // therefore parks here and is displayed on the first clock the port is
+    // free: not while a doomed fetch is still running (it shows at that
+    // fetch's T4), not on the clock a completed fetch's bytes are being
+    // absorbed into the queue, and not on a clock that already carries a pop.
+    // (biu_model.md, "QS=E pin display".)
+    // F3 (flush-only eval point).  From the end of the flush onward the
+    // redirected prefetch may also commit at the end of a PREFETCH cycle's T4
+    // -- a point the grid does not otherwise evaluate at w0.  An EU access's
+    // T4 is never an eval point, flush or not.  (biu_model.md, "Redirect
+    // commit".)  Armed by flush(), spent by the first commit.
+    bool flush_eval_ = false;
+    bool e_pend_ = false;
+    long e_from_ = 0;
+    long e_x_ = -1;                  // the flush micro-row's own clock                // earliest clock the display may take
+    long push_absorb_clk_ = -2;      // clock on which a fetch's bytes land
     uint8_t qs_pending_ = kQsNone;   // point sample for the clock about to run
     uint16_t upc_pending_ = 0xFFFF;
     bool opc_valid_ = false;

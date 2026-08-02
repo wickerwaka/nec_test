@@ -89,7 +89,7 @@ void run_one(const ucrom::UcRom& rom, BiuTimed& biu, RowEmitter& sink,
     m.sreg[kDS] = ir[11];
     m.pc = ir[12];
     m.set_flags(ir[13]);
-    biu.queue_preload(q, uint16_t(ir[12] + q.size()));
+    biu.queue_preload(q, ir[9], ir[12]);
     biu.bind_psw(&m.psw);
     bind_io(biu, c);
 

@@ -196,6 +196,19 @@ struct Machine {
     uint8_t rb(uint8_t code) const {
         return uint8_t(code < 4 ? (gpr[code] & 0xFF) : (gpr[code & 3] >> 8));
     }
+    // THE BYTE-REGISTER READ IS 16 BITS WIDE.  The register file has no byte
+    // read port: it presents the whole PAIR and an 8-bit ROTATOR puts the
+    // selected half in the low lane (so a low-byte read is the pair as-is and
+    // a high-byte read is the pair swapped).  Consumers that work at byte
+    // width mask the low byte; the ones that do not -- the write-data latch
+    // above all -- carry the SIBLING byte along, which is exactly the measured
+    // "byte-store data lane law" (measurements.md: 88/8A drive the sibling
+    // register byte on the unused lane).  Validated 366/366 against the v0.1
+    // `88` byte-store T1 rows.
+    uint16_t rb16(uint8_t code) const {
+        uint16_t p = gpr[code & 3];
+        return code < 4 ? p : uint16_t((p >> 8) | (p << 8));
+    }
     void wb(uint8_t code, uint8_t v) {
         if (code < 4)
             gpr[code] = uint16_t((gpr[code] & 0xFF00) | v);
