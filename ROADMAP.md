@@ -272,3 +272,117 @@ Progress (mission block 1):
 - V35 support (second socket on the adapter)
 - MAME-based oracle automation (V20 suite + silicon are the oracles)
 - Datasheet OCR cleanup beyond what campaigns consume
+
+---
+
+## Amendment (2026-08-01) — the `ucsim` campaign
+
+### Decision superseded: "no intermediate software reference model"
+
+The 2026-07-11 decision block above says **"No intermediate software reference
+model. The RTL core is developed directly against captured hardware traces."**
+That decision is **superseded as of 2026-08-01 (user-directed)** for the
+microcode-driven simulator specifically. The earlier text stands as the record
+of what was decided then; it is no longer the operative rule.
+
+**Rationale — the calculus changed with the assets, not with the taste.** The
+2026-07-11 decision was made when the V20 microcode was "reference material
+only": a software model would then have been an *intermediate artifact*, a
+second thing to maintain between the traces and the RTL, with no independent
+source of truth. What we now hold is a **dumped 1028-row microcode ROM plus
+dumped PLAs**. A simulator driven directly by those dumps is not an
+intermediate model of the chip — it is **the experiment that measures whether
+those dumps are sufficient to build the EU**, and it answers that question
+either way. The 2026-07-11 rule remains in force for its original target:
+behavioural hand-written stand-ins for the RTL are still not wanted.
+
+The related clause "the V20 microcode research is reference material only" is
+likewise superseded: the ROM is now a *normative* source with its own standing
+gate (`sim/v30sim disasm` byte-identical to `docs/V20UC.TXT`).
+
+### The campaign and its outcome
+
+Branch `ucsim`, stages S0-S4, **fully offline — zero board time**. The question:
+*is the microcode information we hold sufficient to build a fully functional
+EU?* Vehicle: `sim/`, a C++20 interpreter that walks ROM rows and never
+flattens micro-sequencing into per-opcode C++. Functional (architectural)
+accuracy only; cycle timing is a separate later campaign, and the design does
+not preclude it.
+
+**Answer: yes for the architectural EU, with an enumerated exception list.**
+
+- Architecturally exact on **7.34 M single-instruction captures across two
+  parts**: `v0.1` 169 000/169 000, `v0.2` 347 000/347 000, `v0.3`
+  3 699 998/3 699 998, and the real-µPD70108 `v20suite` 3 125 000/3 125 000 —
+  the two mass suites **also with every flags-mask disabled** (raw 16-bit PSW),
+  so not one undefined flag bit is wrong on either part. Specials
+  (`f4a_boundary`, `mod3_illegal`, `f0lock_tranche`, `enter_nesting`) and the
+  eleven pin-event pseudo-forms green.
+- On **programs**: 3 242 banked fuzz seeds replayed from RESET release;
+  **2 125 / 2 125 (100 %)** of the seeds whose capture recorded a complete
+  architectural dump are register-, PSW- and ordered-write-stream exact.
+  0 GEN-DRIFT, 0 arch-only divergences.
+- **V20 vs V30: not one architectural difference** in 3.125 M real-silicon
+  cases over 282 opcodes. One ROM (dumped from a V20) drives an exact V30 model.
+- **~76 % of cases end with a PSW every bit of which came out of the microcode
+  ROM**; the residue is three named C++ hardware laws.
+- The measured "undefined"-flag laws, the REPX prefix-chain rewind, the BCD
+  laws and the ENTER walk are **outputs** of the microcode, not inputs to the
+  model — there are no flag hooks in the simulator.
+- pla_3 (group decode) and pla_2 (condition evaluation) are **identified
+  exactly**; `pla_4`'s `mem` portion fits and the rest is open.
+- **Micro-row coverage 912 / 1028.** Every unexecuted row is either
+  structurally unreachable or accounted for by a named residual; the whole
+  untested ROM surface is **9 substantive rows** (the POLL tail behind
+  `JMP BUSY`, 5 rows; bank A of the one ambiguous micro-address, 4 rows).
+- The scientific product is the **assumption census**: 42 numbered assumptions,
+  40 standing, of which 12 are free choices that no dumped asset and no capture
+  discriminates. That list is precisely "what the microcode information does
+  not determine".
+
+Verdict document: `docs/notes/ucsim_campaign_verdict_2026-08-01.md`.
+Provenance ledger (every behaviour tagged ROM / PLA / MEASURED / ASSUMPTION):
+`docs/notes/ucsim_provenance.md`. Coverage report: `sim/coverage_report.txt`.
+Simulator usage: `sim/README.md`.
+
+### What ucsim adds to the verification arsenal
+
+1. **A second, independent implementation of the EU.** The RTL core was derived
+   from silicon traces; ucsim is derived from the microcode ROM. Two
+   implementations from two different sources can be cross-checked against each
+   other on any input, offline and at mass-suite throughput (3.7 M cases in
+   ~9 min end to end, decompression and the Python checker included), without
+   consuming board time. Where they agree the agreement is evidence; where they disagree, one
+   has a bug and the provenance ledger names the claim to check.
+2. **A mechanism oracle for the RTL's fitted rails.** The two 2026-08-01 pilots
+   (`docs/notes/ins_microcode_pilot_2026-08-01.md`,
+   `enter_microcode_pilot_2026-08-01.md`) showed the real micro-march predicts
+   what `v30_eu.sv` approximates with per-geometry rail forests; ucsim supplies
+   the architectural half of the same argument and lands on the same families.
+   `enter_nesting` 666/666 with the nesting *not* masked mod 32 is the sharp
+   case: the task-#31 RTL bug class is unrepresentable in a march that walks
+   those rows.
+3. **A pre-board filter.** Any question that can be settled from the ROM plus
+   retained captures no longer costs a board session; the campaign closed A19,
+   R8, `F1`, A12 and R4 that way, and it also *proved* which residuals cannot
+   be settled that way (status-latch persistence: 0 of 3 242 seeds discriminate;
+   A30: bank A unreached even with 8080 mode live; R6: no `CL = 0` case exists
+   anywhere in either mass suite).
+4. **A carried-forward timing scaffold.** The `F`/`Q` interlock call sites are
+   preserved in `sim/exec.cpp` for a future cycle-accurate mode, and the four
+   deliberate non-modelling policies each name the timing mechanism that would
+   replace them.
+
+### Residuals routed out of this campaign (board work, future campaign fodder)
+
+Directed experiments, each with the residual it closes, are tabulated in the
+verdict document §(d):
+
+- ALU **status-latch persistence across an interrupt** — a two-instruction probe.
+- **A30**, the bank-A selection mechanism — a directed BRKEM + INTR capture; one
+  INTA cycle instead of two settles it in a single seed.
+- **R1**, the byte-shifter's hidden high byte — undiscriminated by 6.8 M cases.
+- **R6**, `0F 20/22/26` with `CL = 0` — un-closable from the existing suites.
+- **R2′**, POLL `BUSY` — a POLL tranche with the pin actually raised.
+- a **controlled wait-invariance tranche** — needs a re-emission with
+  `(program, wait)` as independent axes, not a re-analysis.

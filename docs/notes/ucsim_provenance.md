@@ -14,6 +14,12 @@ Provenance classes:
 | **MEASURED** | a law measured on silicon and recorded in `docs/facts/*` or a golden suite |
 | **ASSUMPTION** | not determined by the assets; adopted because it reproduces the goldens.  Evidence and falsifier recorded. |
 
+**Campaign CLOSED at S4, 2026-08-01.**  The answer document is
+`docs/notes/ucsim_campaign_verdict_2026-08-01.md`; §66 below is this ledger's
+closing record (final counts, gate ledger, consolidation findings).  Read the
+verdict for the sufficiency answer and this file for the evidence behind every
+individual behaviour.
+
 Status of this file at the end of **S2b**: covers every form in
 `tests/v30/v0.1`, `tests/v30/v0.2`, `tests/v30/v0.3` (370 forms, 3.7 M cases)
 and `tests/v30/v20suite` (360 forms, 3.1 M cases of real µPD70108 silicon) —
@@ -23,7 +29,8 @@ the V20's undocumented/alias opcodes.  §29-§32 are the P1 accounting
 (provenance census, the assumption list with falsifiers, the `--alu-hw-report`
 sufficiency numbers and the residual uncertainties); §33-§42 are S2a; §43-§51
 are S2b (gates G-B and G-D, the micro-row coverage report and the raw-PSW
-headline).  Later stages append.
+headline); §52-§65 are S3 (the fuzz-bank sequence gauntlet, 8080 mode, the
+interrupt interleaving) and §66 is the S4 closure.
 
 ---
 
@@ -2616,3 +2623,157 @@ every S2 gate was re-run, not just the ones the changes obviously touch:
 ~7.2 M single-instruction cases, all green, with the model that also runs the
 sequence gauntlet.  A37 in particular is not a special case bolted on for the
 fuzz bank: it is the rule the divide trap needed all along.
+
+---
+
+# S4 — closure (2026-08-01)
+
+The campaign's answer document is
+**`docs/notes/ucsim_campaign_verdict_2026-08-01.md`**.  This section is the
+ledger's own closing record: the final counts, the gate ledger, the
+consolidation findings, and the S4 re-verification.
+
+## 66. Final counts
+
+| | |
+|---|---:|
+| micro-rows in the ROM | 1028 (257 activation patterns) |
+| micro-rows executed by a green gate | **912 / 1028** (`sim/coverage_report.txt`) |
+| ... of the 116 unexecuted: substantive (a ROM claim, untested) | **9**, in exactly 2 residuals (POLL tail 5, INTA bank A 4) |
+| ... structurally unreachable (14 post-`FARJMP` rows + 93 bank tails) | 107 |
+| numbered assumptions booked A1..A42 | 42 |
+| ... withdrawn (A31, §53) / falsified (A7, §66.3) | 2 |
+| ... **standing** | **40** |
+| ... of the 40: ROM-constrained / MEASURED-constrained / free choice / policy | 16 / 11 / 12 / 1 |
+| policy entries (deliberate non-modelling) | 4 |
+| single-instruction cases compared | 7 343 398 (+ the four specials tranches) |
+| fuzz-bank seeds replayed | 3 242 (2 125 with an architectural anchor, **all exact**) |
+| cases whose final PSW is 100 % microcode-produced | **~76 %** on both parts (§49.2) |
+
+The free-choice dozen — the only entries no dumped asset and no capture
+discriminates — is A2, A4, A5, A6, A8, A9, A10, A13, A15, A30, A33, A36.
+None of them is in the computational core; see the verdict document §(c) for
+the row-by-row derivation.  (The §66.3 A40 re-class moves one entry out of the
+MEASURED-constrained group into a PLA-determined one — 16 / 10 / 12 / 1 / 1 —
+and leaves the free-choice dozen untouched.)
+
+## 66.1 Gate ledger
+
+| stage | gate | number | commit |
+|---|---|---|---|
+| S0a | `disasm` byte-identical to `docs/V20UC.TXT` | 1028 rows / 257 patterns, empty diff | `840ed97` |
+| S0b | pla_3 identification (`sw/pla3_check.py`) | 3 × 256 output vectors bit-exact; 21 checks, 0 contradictions | `dcfdfa7` (+ `ab37957`) |
+| S0b | pla_2 identification | 2048/2048 native + 2048/2048 8080 cells, unique solution | `dcfdfa7` |
+| S1a | bring-up families on `v0.2` | 35/35 forms, 35 000/35 000 | `6619417` |
+| S1b | flow / internal page / arithmetic | 114/114 forms, 114 000/114 000 | `cb0e4d6` |
+| S1c | `0F` page; **P1** | 25/25 forms, 25 000/25 000 | `3fd2f63` |
+| S2a | **G-A** `v0.1` | 169 000 / 169 000 | `dd21069` |
+| S2a | **G-A** `v0.1-w1` / `-w3` | 1 200 / 1 200 each | `dd21069` |
+| S2a | **G-C** specials | 160/160, 128/128, 400/400, 512+154 walk digests | `dd21069` |
+| S2b | A12 boundary exposure | 8 820 / 8 820 (47 real wraps) | `7688919` |
+| S2b | INS/EXT `mod != 3` (R8) | 19 914 / 19 914 | `7688919` |
+| S2b | **G-B** `v0.3` | 3 699 998 / 3 699 998 | `7688919` |
+| S2b | **G-D** `v20suite` | 3 125 000 / 3 125 000 | `7688919` |
+| S2b | raw-PSW rollup | both mass suites 100 % with every mask disabled | `7688919` |
+| S3 | **F-A** `mc1`+`mc2`+`t30-raw` | 2 873/3 157 seeds; **2 125/2 125** arch-anchored | `1c95689` |
+| S3 | F-B `t30-brkem` | 76 / 85 | `1c95689` |
+| S3 | F-C interrupt interleaving | 1 075/1 165 `evt` seeds; 918/953 replayed entries | `1c95689` |
+| S3 | all single-instruction gates re-verified (§65) | ~7.34 M cases green | `1c95689` |
+| S4 | micro-row coverage | **912 / 1028** | this commit |
+
+## 66.2 S4 re-verification
+
+Run immediately before this commit, on the tree as committed:
+
+* `make -C sim test` — **disasm gate PASS** (empty diff vs `docs/V20UC.TXT`).
+* `python3 sw/pla3_check.py` — **OK, 21 checks passed**, exit 0.
+* `v0.1` — **169 000 / 169 000** (1 collision-dependent golden validated on
+  64K-mirrored RAM, as captured).
+* the full coverage union was re-derived from scratch across every gate
+  (`v0.1` 169 000/169 000, `v0.1-w1` 1 200/1 200, `v0.1-w3` 1 200/1 200,
+  `v0.2` 347 000/347 000, `f4a_boundary` 160/160, `mod3_illegal` 128/128,
+  `f0lock_tranche` 400/400, `v0.3` 3 699 998/3 699 998 in 520.3 s,
+  `v20suite` 3 125 000/3 125 000 in 392.2 s, and the four fuzz banks —
+  F-A **2 873 / 3 157** again).  Every gate reported its S2/S3 number.
+  Union **912 / 1028**, written by the new `sw/ucsim_coverage_report.py` to
+  `sim/coverage_report.txt`.
+
+## 66.3 Consolidation findings
+
+Found while writing the verdict document.  None changes a gate result; all are
+recorded rather than silently fixed.
+
+1. **A7 is FALSIFIED, not standing.**  §30's A7 ("`SR == SS` accesses are
+   word-wide regardless of operand width") carries the falsifier "a byte-width
+   instruction whose microcode touches the stack".  §53 *ran* it: the undefined
+   `FE`-group byte forms (`FE /2`, `/3`, `/6`) push a single **byte** on
+   silicon, and A37 replaced the rule.  The ledger withdrew A31 explicitly but
+   left A7 in the count.  **Standing assumptions: 40, not 41.**
+2. **A2's falsifier is now reachable.**  A2 ("`INC2`/`DEC2` are always 16-bit
+   regardless of operand width") records the same falsifier shape as A7 — "a
+   byte-width instruction whose microcode also does stack arithmetic" — and the
+   §53 `FE`-group byte pushes are exactly that.  The model is exact on them
+   (F-A, 2 125/2 125 anchored seeds), so A2 is at least MEASURED-constrained.
+   Booked as a bookkeeping upgrade only; no new mechanism is claimed here.
+3. **A40 should be re-classed ASSUMPTION → PLA-corroborated.**  A40 (§63) says
+   the 8080 `JMP OPC` condition bank reads opcode bits 5:3 in the order
+   NZ Z NC C PO PE P M.  `docs/facts/pla_model.md`'s pla_2 identification —
+   completed at S0b, *before* A40 was written — fits **bank 1 of pla_2 to
+   exactly that encoding** (`ccc` = opcode bits 5..3, the 8080 `11ccc0xx` form)
+   at 2048/2048 cells, with the flag-line assignment derived from the native
+   bank alone and no free parameters.  The residual assumption is only that the
+   microcode's `JMP OPC` consumes that PLA output rather than recomputing the
+   condition.  S3 booked it without cross-referencing the S0b work.
+4. **§30's census arithmetic is off by one.**  "Twelve ROM-constrained, four
+   MEASURED-constrained (one unnumbered), the remaining twelve free" is
+   12 + 3 + 12 = 27 numbered, not 28.  The remaining numbered set is thirteen
+   (A2, A4, A5, A6, A7, A8, A9, A10, A12, A13, A15, A19, A28).  The verdict
+   document re-derives the census row by row instead of by subtraction.
+5. **§59 restates A19 as a different question than §30 booked.**  §30's A19 is
+   the repeat-prefix → *data-test polarity* map; §59 answers the *precedence*
+   question ("last one wins").  Both are now MEASURED-constrained — the
+   polarity map by every REP form in `v0.3`, precedence by 2 032 conflicting
+   chains over 1 303 seeds — so the closure stands, but the two questions are
+   not the same one.
+6. **§62's NARRATIVE split of the unexecuted rows is wrong in both
+   directions** — its *block table*, three paragraphs earlier in the same
+   section, is right (`006F`-`0073` 0/5, bank A 0/4).  The four rows the
+   narrative names "unexercised JMP arms" (`0109`, `0181`, `0219`, `021D`) are
+   each the row *immediately after an unconditional `CTL FARJMP`* (`0108`,
+   `0180`, `0218`, `021C`), which has no delay slot — structurally unreachable,
+   no ROM claim; and ten further rows of that same shape sat unremarked in the
+   other bucket.  Conversely the "trailing dead rows" bucket (defined as
+   "row ≥ 2 with every later row of the bank also dead") swallows **five rows
+   that DO carry a ROM claim**: `006F` (POLL's `JMP INTR 5` — unreached because
+   `006C`'s `JMP BUSY 3` never branches, so `006D`'s `E` retires POLL two rows
+   earlier), `0072`/`0073` (the withdrawal's `PC-1` and `FLUSH`) and
+   `01DE`/`01DF` (bank A's high-lane vector read and AW restore).  Corrected
+   split, now in `sim/coverage_report.txt`: **9 substantive rows across the two
+   named residuals (R2′ 5, A30 4), 14 post-`FARJMP`, 93 bank tails.**  The
+   totals (912 / 116) are unaffected.  A knock-on: §37's "`JMP INTR` also
+   appears at `006F`, inside `POLL` … the `POLL.LO`/`POLL.REL` tranches stay
+   green with it never raised" reads as though the row runs and evaluates
+   false.  It is never reached at all — `006D`'s `E` retires POLL two rows
+   earlier — so those 2 400 green cases constrain `006C`-`006E` only.
+7. **§62's containment baseline is the wrong set, but the claim holds.**  §62
+   compares the fuzz coverage against "the 724 rows `v0.1` + `v0.2` + the
+   specials reach"; §49.3's union over *every* S0-S2 gate (adding `v0.3` and
+   `v20suite`) is **740**.  Re-derived at S4: the fuzz set contains all 740 —
+   `single − fuzz` is **empty**, `fuzz − single` is 172 — so the union is 912
+   either way.
+8. **`tests/v30/v0.3-f4a-boundary` does not exist as data** (§44): the
+   directory holds an `emit_log.txt` and nothing else.  It is still cited as
+   A12's route in §30/§32; the live artifact is the `--wrap-scan` subset.
+
+## 66.4 What the campaign hands forward
+
+* **Board work** (verdict §(d)): the status-latch persistence probe, the A30
+  BRKEM+INTR capture, R1's byte-shifter discriminator, R6 (`CL = 0`), the
+  POLL `BUSY` tranche, and a controlled wait-invariance re-emission.
+* **Timing campaign**: R5 (queue/prefetch), R2′, the four replay policies, and
+  the preserved `F`/`Q` interlock call sites in `sim/exec.cpp`.
+* **RTL**: the INS and ENTER micro-march replacements (the two 2026-08-01
+  pilots) now have an architectural cross-check; `enter_nesting` 666/666 with
+  the nesting *not* masked mod 32 is the sharp case.
+* **Documentation**: `ROADMAP.md` carries the dated amendment superseding the
+  2026-07-11 "no intermediate software reference model" decision.

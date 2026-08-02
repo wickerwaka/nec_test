@@ -1,0 +1,286 @@
+ucsim micro-row coverage report -- campaign stage S4, 2026-08-01
+========================================================================
+
+Every row of docs/V20BITS.TXT (1028 rows, 257 activation patterns), with
+the number of times a GREEN GATE executed it.  Row index = bank*4 + row,
+i.e. the row order of `v30sim disasm`.  Counters: `v30sim run --coverage`
+and `v30sim image --coverage`, accumulated by sw/ucsim_check.py --coverage
+and sw/ucsim_fuzz.py --coverage.
+
+A row that no gate has ever executed is a ROM claim the campaign has not
+tested.  This report is the enumeration the S4 sufficiency verdict cites
+(docs/notes/ucsim_campaign_verdict_2026-08-01.md, section (e)).
+
+GATES IN THE UNION
+------------------------------------------------------------------------
+  single-instruction (sw/ucsim_check.py --coverage, accumulated):
+      tests/v30/v0.1        169000/169000
+      tests/v30/v0.1-w1       1200/1200
+      tests/v30/v0.1-w3       1200/1200
+      tests/v30/v0.2        347000/347000
+      tests/v30/f4a_boundary   160/160
+      tests/v30/mod3_illegal   128/128   (documented stale-EA residue)
+      tests/v30/f0lock_tranche 400/400
+      tests/v30/v0.3       3699998/3699998
+      tests/v30/v20suite   3125000/3125000  (--no-mirror, real uPD70108)
+  sequence (sw/ucsim_fuzz.py --coverage):
+      tests/v30/fuzz_bank mc1,mc2,t30-raw,t30-brkem   3242 seeds
+
+  (tests/v30/enter_nesting runs through --enter-nesting, which returns
+   before the coverage accumulator; its rows are a subset of the C8
+   coverage the suites above already provide.)
+
+TOTALS
+------------------------------------------------------------------------
+  single-instruction gates alone : 740/1028
+  fuzz banks alone               : 912/1028
+  UNION                          : 912/1028 executed, 116 never executed
+  fuzz-only rows                 : 172
+  single-gate rows the fuzz banks do NOT reach : 0   (the fuzz set strictly CONTAINS the gates')
+
+CLASSIFICATION OF THE UNEXECUTED ROWS
+------------------------------------------------------------------------
+    9  SUBSTANTIVE -- a ROM claim nothing has tested; each
+       belongs to a NAMED residual (below)
+   14  structurally unreachable: the row immediately after an
+       unconditional `CTL FARJMP`, which has no delay slot
+   93  structurally unreachable: trailing rows of a bank whose
+       sequence retires (or jumps away) before reaching them.  Criterion
+       (the same one used at S3): every LATER row of the same bank is also
+       dead -- 93/93 satisfy it, and 93 are not a bank's row 0.
+       That is structural evidence, not a machine-checked reachability
+       proof.
+
+  Nothing is unexecuted for want of trying: every row in the first bucket
+  is blocked by a residual with a directed board experiment recorded in
+  the verdict document, section (d).
+
+THE SUBSTANTIVE ROWS
+------------------------------------------------------------------------
+  rows 006C-0073   00?.10011011.00 9B
+    R2' -- the POLL (9B) tail behind `JMP BUSY 3`.  BUSY is hard-FALSE
+    (no pin model), so 006C's test never takes the branch: 006D carries
+    E, 006E is its delay slot, and the instruction retires.  Nothing in
+    any capture or any banked program raises the pin, so the busy spin
+    AND the interrupt-withdrawal path behind it are both unreached.
+      006C                                          JMP BUSY    3         executed x22421
+      006D                                       E  CTL [-0A-]            executed x22421
+      006E                                          CTL                   executed x22421
+      006F                                          JMP INTR    5         <-- UNEXECUTED
+      0070                                          JMP         0         <-- UNEXECUTED
+      0071                                          CTL SUSP              <-- UNEXECUTED
+      0072 PC     -> tmpb                           ALU DEC    tmpb       <-- UNEXECUTED
+      0073 SIGMA  -> PC                          E  CTL FLUSH             <-- UNEXECUTED
+
+  rows 01DC-01DF   111.00000010.00 <internal> 02
+    A30 -- bank A of the ROM's ONE ambiguous micro-address
+    111.00000010.00 (a SINGLE acknowledge with AW saved/restored and the
+    vector off the HIGH lane).  Silicon runs bank B (01E0-01E3, two
+    acknowledges, vector off the low lane) -- measured twice at S2a.
+      01DC AX     -> tmpc                           CTL SUSP   [-05-] IO  <-- UNEXECUTED
+      01DD OPR    -> AX                        F    CTL                   <-- UNEXECUTED
+      01DE AL:AH  -> tmpbL                          CTL                   <-- UNEXECUTED
+      01DF tmpc   -> AX                             CTL FARJMP INT        <-- UNEXECUTED
+
+FULL LISTING OF UNEXECUTED ROWS
+------------------------------------------------------------------------
+  legend:  [SUBST] a named residual   [FJMP] post-FARJMP   [TAIL] bank tail
+
+  --- 00?.00???0??.00 00..03,08..0B,10..13,18..1B,20..23,28..2B,30..33,38..3B
+    [TAIL ] 0003                                          CTL
+  --- 00?.00100111.00 27
+    [TAIL ] 0013                                          CTL
+  --- 00?.00101111.00 2F
+    [TAIL ] 0017                                          CTL
+  --- 00?.0011?111.01 37,3F
+    [TAIL ] 001F                                          CTL
+  --- 00?.0100????.00 40..4F
+    [TAIL ] 0026                                          CTL
+    [TAIL ] 0027                                          CTL
+  --- 00?.01010???.00 50..57
+    [TAIL ] 002B                                          CTL
+  --- 00?.0110011?.00 66,67
+    [TAIL ] 0032                                          CTL
+    [TAIL ] 0033                                          CTL
+  --- 00?.0111????.01 70..7F
+    [TAIL ] 003B                                          CTL
+  --- 00?.100000??.01 80..83
+    [TAIL ] 0042                                          CTL
+    [TAIL ] 0043                                          CTL
+  --- 00?.1000010?.00 84,85
+    [TAIL ] 0046                                          CTL
+    [TAIL ] 0047                                          CTL
+  --- 00?.1000011?.00 86,87
+    [TAIL ] 004B                                          CTL
+  --- 00?.100010??.00 88..8B
+    [TAIL ] 004F                                          CTL
+  --- 00?.100011?0.00 8C,8E
+    [TAIL ] 0052                                          CTL
+    [TAIL ] 0053                                          CTL
+  --- 00?.10001101.00 8D
+    [TAIL ] 0056                                          CTL
+    [TAIL ] 0057                                          CTL
+  --- 00?.10010???.00 90..97
+    [TAIL ] 005F                                          CTL
+  --- 00?.10011000.00 98
+    [TAIL ] 0062                                          CTL
+    [TAIL ] 0063                                          CTL
+  --- 00?.10011011.00 9B
+    [SUBST] 006F                                          JMP INTR    5
+  --- 00?.10011011.01 9B
+    [SUBST] 0070                                          JMP         0
+    [SUBST] 0071                                          CTL SUSP
+    [SUBST] 0072 PC     -> tmpb                           ALU DEC    tmpb
+    [SUBST] 0073 SIGMA  -> PC                          E  CTL FLUSH
+  --- 00?.10011100.00 9C
+    [TAIL ] 0077                                          CTL
+  --- 00?.10011110.00 9E
+    [TAIL ] 007F                                          CTL
+  --- 00?.10011111.00 9F
+    [TAIL ] 0082                                          CTL
+    [TAIL ] 0083                                          CTL
+  --- 001.1010101?.01 <rep> AA,AB
+    [FJMP ] 00C2                                          CTL
+    [TAIL ] 00C3                                          CTL
+  --- 000.1010111?.01 <norep> AE,AF
+    [TAIL ] 00D7                                          CTL
+  --- 00?.11001010.01 CA
+    [FJMP ] 00EE                                          CTL
+    [TAIL ] 00EF                                          CTL
+  --- 00?.11001100.00 CC
+    [FJMP ] 0106                                          CTL
+    [TAIL ] 0107                                          CTL
+  --- 00?.11001101.00 CD
+    [FJMP ] 0109                                          CTL
+    [TAIL ] 010A                                          CTL
+    [TAIL ] 010B                                          CTL
+  --- 00?.11001111.00 CF
+    [FJMP ] 0112                                          CTL
+    [TAIL ] 0113                                          CTL
+  --- 00?.11010100.01 D4
+    [TAIL ] 0123                                          CTL
+  --- 00?.11011???.00 D8..DF
+    [TAIL ] 0132                                          CTL
+    [TAIL ] 0133                                          CTL
+  --- 00?.1110011?.00 E6,E7
+    [TAIL ] 014B                                          CTL
+  --- 00?.11101000.01 E8
+    [TAIL ] 0153                                          CTL
+  --- 00?.11101010.01 EA
+    [TAIL ] 0163                                          CTL
+  --- 00?.1110110?.00 EC,ED
+    [TAIL ] 0167                                          CTL
+  --- 00?.1110111?.00 EE,EF
+    [TAIL ] 016A                                          CTL
+    [TAIL ] 016B                                          CTL
+  --- 010.??011???.00 <F6/F7> 18..1F,58..5F,98..9F,D8..DF
+    [TAIL ] 0173                                          CTL
+  --- 010.??010???.00 <F6/F7> 10..17,50..57,90..97,D0..D7
+    [TAIL ] 0177                                          CTL
+  --- 010.??100???.10 <F6/F7> 20..27,60..67,A0..A7,E0..E7
+    [FJMP ] 0181                                          CTL
+    [TAIL ] 0182                                          CTL
+    [TAIL ] 0183                                          CTL
+  --- 010.??101???.00 <F6/F7> 28..2F,68..6F,A8..AF,E8..EF
+    [FJMP ] 0186                                          CTL
+    [TAIL ] 0187                                          CTL
+  --- 011.??00????.00 <FE/FF> 00..0F,40..4F,80..8F,C0..CF
+    [TAIL ] 01BB                                          CTL
+  --- 011.??100???.00 <FE/FF> 20..27,60..67,A0..A7,E0..E7
+    [TAIL ] 01C6                                          CTL
+    [TAIL ] 01C7                                          CTL
+  --- 111.00000011.01 <internal> 03
+    [TAIL ] 01D6                                          CTL
+    [TAIL ] 01D7                                          CTL
+  --- 111.00000010.00 <internal> 02
+    [SUBST] 01DC AX     -> tmpc                           CTL SUSP   [-05-] IO
+    [SUBST] 01DD OPR    -> AX                        F    CTL
+    [SUBST] 01DE AL:AH  -> tmpbL                          CTL
+    [SUBST] 01DF tmpc   -> AX                             CTL FARJMP INT
+  --- 111.0001?001.00 <internal> 11,19
+    [TAIL ] 01FE                                          CTL
+    [TAIL ] 01FF                                          CTL
+  --- 100.0011?100.10 <0F> 34,3C
+    [TAIL ] 0202                                          CTL
+    [TAIL ] 0203                                          CTL
+  --- 111.00100000.00 <internal> MULADJ 20
+    [FJMP ] 0207                                          CTL
+  --- 111.00110001.00 <internal> 31
+    [FJMP ] 0219                                          CTL
+    [TAIL ] 021A                                          CTL
+    [TAIL ] 021B                                          CTL
+  --- 111.00111000.11 <internal> IMULI  38
+    [FJMP ] 021D                                          CTL
+    [TAIL ] 021E                                          CTL
+    [TAIL ] 021F                                          CTL
+  --- 111.01101000.01 <internal> CALLF  68
+    [TAIL ] 0233                                          CTL
+  --- 111.01011000.11 <internal> PUSHA  58
+    [TAIL ] 024A                                          CTL
+    [TAIL ] 024B                                          CTL
+  --- 111.01100000.11 <internal> POPA   60
+    [TAIL ] 025E                                          CTL
+    [TAIL ] 025F                                          CTL
+  --- 100.001010?0.10 <0F> 28,2A
+    [TAIL ] 02F6                                          CTL
+    [TAIL ] 02F7                                          CTL
+  --- 100.0011?001.11 <0F> 31,39
+    [FJMP ] 0327                                          CTL
+  --- 100.11111111.00 <0F> FF
+    [FJMP ] 034A                                          CTL
+    [TAIL ] 034B                                          CTL
+  --- 110.00000000.00 <8080> 00
+    [TAIL ] 034E                                          CTL
+    [TAIL ] 034F                                          CTL
+  --- 110.000?1010.00 <8080> 0A,1A
+    [TAIL ] 036F                                          CTL
+  --- 110.000?0010.00 <8080> 02,12
+    [TAIL ] 0373                                          CTL
+  --- 110.11101011.00 <8080> EB
+    [TAIL ] 037B                                          CTL
+  --- 110.11101001.00 <8080> E9
+    [TAIL ] 037E                                          CTL
+    [TAIL ] 037F                                          CTL
+  --- 110.11111001.00 <8080> F9
+    [TAIL ] 0382                                          CTL
+    [TAIL ] 0383                                          CTL
+  --- 110.00??0011.00 <8080> 03,13,23,33
+    [TAIL ] 038E                                          CTL
+    [TAIL ] 038F                                          CTL
+  --- 110.00??1011.00 <8080> 0B,1B,2B,3B
+    [TAIL ] 0392                                          CTL
+    [TAIL ] 0393                                          CTL
+  --- 110.10??????.00 <8080> 80..BF
+    [TAIL ] 0397                                          CTL
+  --- 110.11???110.00 <8080> C6,CE,D6,DE,E6,EE,F6,FE
+    [TAIL ] 039B                                          CTL
+  --- 110.00??1001.00 <8080> 09,19,29,39
+    [TAIL ] 039F                                          CTL
+  --- 110.00100111.00 <8080> 27
+    [TAIL ] 03A3                                          CTL
+  --- 110.00101111.00 <8080> 2F
+    [TAIL ] 03A6                                          CTL
+    [TAIL ] 03A7                                          CTL
+  --- 110.11???010.01 <8080> C2,CA,D2,DA,E2,EA,F2,FA
+    [TAIL ] 03B7                                          CTL
+  --- 110.11001101.01 <8080> CD
+    [TAIL ] 03C2                                          CTL
+    [TAIL ] 03C3                                          CTL
+  --- 110.11010011.00 <8080> D3
+    [TAIL ] 03F7 PC     -> NULL                           CTL
+  --- 101.11111101.00 <8080,ED> FD
+    [FJMP ] 03FF                                          CTL
+  --- 101.11101101.00 <8080,ED> ED
+    [FJMP ] 0402                                          CTL
+    [TAIL ] 0403                                          CTL
+
+HISTORY
+------------------------------------------------------------------------
+  S2b (single-instruction gates only) : 740/1028
+  S3  (fuzz banks added)              : 912/1028
+  S4  (re-derived, this file)         : 912/1028
+
+  The fuzz banks newly covered the ROM's own RESET sequence (a fuzz image
+  replay is exactly the entry those rows exist for), the BRK/TF trap entry,
+  the INTEM bank, the BRKEM entry and 158 of the 192 8080-mode rows -- all
+  of which were on S2b's unexecuted list.
