@@ -2641,21 +2641,36 @@ consolidation findings, and the S4 re-verification.
 | micro-rows executed by a green gate | **912 / 1028** (`sim/coverage_report.txt`) |
 | ... of the 116 unexecuted: substantive (a ROM claim, untested) | **9**, in exactly 2 residuals (POLL tail 5, INTA bank A 4) |
 | ... structurally unreachable (14 post-`FARJMP` rows + 93 bank tails) | 107 |
-| numbered assumptions booked A1..A42 | 42 |
+| numbered assumptions booked A1..A43 | 43 (A43 numbered at S4r, §66.5) |
 | ... withdrawn (A31, §53) / falsified (A7, §66.3) | 2 |
-| ... **standing** | **40** |
-| ... of the 40: ROM-constrained / MEASURED-constrained / free choice / policy | 16 / 11 / 12 / 1 |
-| policy entries (deliberate non-modelling) | 4 |
+| ... **standing** | **41** |
+| policy entries (deliberate non-modelling) | 4 (one of them numbered, as A35) |
 | single-instruction cases compared | 7 343 398 (+ the four specials tranches) |
-| fuzz-bank seeds replayed | 3 242 (2 125 with an architectural anchor, **all exact**) |
+| fuzz-bank seeds replayed | 3 242; F-A as written **2 873 / 3 157**, architectural-anchor subset **2 125 / 2 125** (2 123 of them inside F-A's three banks, 2 in F-B's `t30-brkem`) |
 | cases whose final PSW is 100 % microcode-produced | **~76 %** on both parts (§49.2) |
 
-The free-choice dozen — the only entries no dumped asset and no capture
-discriminates — is A2, A4, A5, A6, A8, A9, A10, A13, A15, A30, A33, A36.
-None of them is in the computational core; see the verdict document §(c) for
-the row-by-row derivation.  (The §66.3 A40 re-class moves one entry out of the
-MEASURED-constrained group into a PLA-determined one — 16 / 10 / 12 / 1 / 1 —
-and leaves the free-choice dozen untouched.)
+**The census of the 41, corrected at S4r** (this table and the verdict
+document's §(c) tally are the same table; earlier presentations — "40 standing",
+the "free-choice dozen", the provisional "11 or 12" — are superseded):
+
+| kind | n | entries |
+|---|---:|---|
+| ROM-constrained | **16** | A1, A3, A14, A17, A18, A20, A21, A22, A23, A25, A26, A27, A29, A32, A38, A41 |
+| MEASURED-constrained | **13** | A2, A10, A11, A12, A16, A19, A24, A28, A34, A37, A39, A42, A43 |
+| PLA-corroborated | **1** | A40 |
+| **free choice (EU-semantic)** | **6** | A8, A9, A15, A30, A33, A36 |
+| free naming choice (global remap classes Σ, Γ) | **3** entries, **2** classes | A4, A6 (Σ: segment index space); A5 (Γ: GPR index space) |
+| test-environment convention | **1** | A13 |
+| policy, numbered | **1** | A35 |
+| **total standing** | **41** | |
+
+The free choices — the only entries no dumped asset and no capture discriminates
+— are **six**: A8, A9, A15, A30, A33, A36.  None is in the computational core.
+A4/A5/A6 are silicon-discriminated as isolated propositions and free only under
+a global relabelling of an internal index space that changes no predicted bit;
+A13 is a bench convention (absent-memory initialisation), not an EU semantic.
+See the verdict document §(c) for the row-by-row derivation and the definition of
+the Σ / Γ remap classes.
 
 ## 66.1 Gate ledger
 
@@ -2675,7 +2690,7 @@ and leaves the free-choice dozen untouched.)
 | S2b | **G-B** `v0.3` | 3 699 998 / 3 699 998 | `7688919` |
 | S2b | **G-D** `v20suite` | 3 125 000 / 3 125 000 | `7688919` |
 | S2b | raw-PSW rollup | both mass suites 100 % with every mask disabled | `7688919` |
-| S3 | **F-A** `mc1`+`mc2`+`t30-raw` | 2 873/3 157 seeds; **2 125/2 125** arch-anchored | `1c95689` |
+| S3 | **F-A** `mc1`+`mc2`+`t30-raw` | **2 873/3 157 seeds as the gate was written**; arch-anchored **2 123/2 123** within F-A (**2 125/2 125** including F-B's 2 anchored `t30-brkem` seeds) | `1c95689` |
 | S3 | F-B `t30-brkem` | 76 / 85 | `1c95689` |
 | S3 | F-C interrupt interleaving | 1 075/1 165 `evt` seeds; 918/953 replayed entries | `1c95689` |
 | S3 | all single-instruction gates re-verified (§65) | ~7.34 M cases green | `1c95689` |
@@ -2713,8 +2728,9 @@ recorded rather than silently fixed.
    regardless of operand width") records the same falsifier shape as A7 — "a
    byte-width instruction whose microcode also does stack arithmetic" — and the
    §53 `FE`-group byte pushes are exactly that.  The model is exact on them
-   (F-A, 2 125/2 125 anchored seeds), so A2 is at least MEASURED-constrained.
-   Booked as a bookkeeping upgrade only; no new mechanism is claimed here.
+   (the anchored subset: F-A 2 123/2 123, 2 125/2 125 over all four banks), so
+   A2 is MEASURED-constrained.  Booked as a bookkeeping upgrade only; no new
+   mechanism is claimed here.  **Applied to the census at S4r (§66.5).**
 3. **A40 should be re-classed ASSUMPTION → PLA-corroborated.**  A40 (§63) says
    the 8080 `JMP OPC` condition bank reads opcode bits 5:3 in the order
    NZ Z NC C PO PE P M.  `docs/facts/pla_model.md`'s pla_2 identification —
@@ -2724,6 +2740,7 @@ recorded rather than silently fixed.
    bank alone and no free parameters.  The residual assumption is only that the
    microcode's `JMP OPC` consumes that PLA output rather than recomputing the
    condition.  S3 booked it without cross-referencing the S0b work.
+   **Applied to the census at S4r (§66.5).**
 4. **§30's census arithmetic is off by one.**  "Twelve ROM-constrained, four
    MEASURED-constrained (one unnumbered), the remaining twelve free" is
    12 + 3 + 12 = 27 numbered, not 28.  The remaining numbered set is thirteen
@@ -2777,3 +2794,46 @@ recorded rather than silently fixed.
   the nesting *not* masked mod 32 is the sharp case.
 * **Documentation**: `ROADMAP.md` carries the dated amendment superseding the
   2026-07-11 "no intermediate software reference model" decision.
+
+## 66.5 S4r — verdict revision (2026-08-01)
+
+The verdict document was revised against an 18-item review edit list.  Nothing
+re-run, no gate result changed; the changes are classification, scope statements
+and one renumbering.  What touches this ledger:
+
+1. **A43 numbered.**  The §25.2 Source2 `[-00-]` = `ONES` entry stood
+   *unnumbered* through S3, which made the numbered census non-exhaustive by
+   construction.  It is now **A43**, MEASURED-constrained.  Standing numbered
+   assumptions: **41**, with nothing outside the numbering.
+2. **A2 → MEASURED-constrained** and **A40 → PLA-corroborated**: §66.3 items 2
+   and 3 applied rather than merely noted.
+3. **A10 → MEASURED-constrained.**  `ONES`/`ZEROS` are values, not names, and
+   both reach compared state through the ROM's own RESET rows `01D0`-`01D5`
+   (`ONES -> CS`, `ZEROS -> DS/ES/SS/FLAGS/PC`), replayed in all 3 242 fuzz
+   images; `dir*sz` was already confirmed by `008C` and by every string form.
+4. **A4/A5/A6 are not free choices as written.**  Each is falsified at
+   mass-suite scale as an isolated change.  They are free only under a global
+   relabelling of an internal index space — class Σ (segments: A4's `06/0E/16/1E`
+   map, A6's prefix map, the `8C`/`8E` `reg` map, the ROM's `SR`/`Source1`
+   selector labels and `pla_4`'s `mem` outputs, with the fetch segment fixed) and
+   class Γ (GPRs: A5's `opcode & 7`, the ModR/M `reg`/`r/m` maps and the ROM's
+   register selector labels, preserving the byte-addressable quartet, the
+   `AW:DW` pair and the `CW`/`SP`/`BP`/`IX`/`IY` roles the ROM names).
+5. **A13 → test-environment convention**: absent-memory initialisation on the
+   bench, not an EU semantic.
+6. **Anchored-count correction.**  §56's table gives 1 072 + 1 048 + 3 = **2 123**
+   arch-compared seeds inside F-A's three banks; the 2 125 figure includes the 2
+   anchored `t30-brkem` seeds, which belong to **F-B**.  Both numbers are now
+   quoted with their scope, here and in the verdict document, and the F-A gate is
+   presented as **2 873 / 3 157 as written** with 2 125/2 125 named as the
+   architectural-anchor subset.
+7. **The 284 F-A failures are recorded as unresolved and unanchored** — not
+   proven suite artifacts; not chasing them was a decision, not a diagnosis.
+8. **The 93 bank-tail rows** are "structurally dead under the stated criterion",
+   not machine-proved unreachable; no reachability analysis over the
+   micro-address decoder was run.
+
+Net headline changes: standing assumptions **40 → 41**; free choices **12 → 6**
+(A8, A9, A15, A30, A33, A36), plus two naming-isomorphism classes and one bench
+convention.  The plan as executed is now in the repo verbatim at
+`docs/notes/ucsim_campaign_plan.md`.

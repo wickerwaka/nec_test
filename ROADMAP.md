@@ -318,12 +318,19 @@ not preclude it.
   so not one undefined flag bit is wrong on either part. Specials
   (`f4a_boundary`, `mod3_illegal`, `f0lock_tranche`, `enter_nesting`) and the
   eleven pin-event pseudo-forms green.
-- On **programs**: 3 242 banked fuzz seeds replayed from RESET release;
-  **2 125 / 2 125 (100 %)** of the seeds whose capture recorded a complete
-  architectural dump are register-, PSW- and ordered-write-stream exact.
-  0 GEN-DRIFT, 0 arch-only divergences.
-- **V20 vs V30: not one architectural difference** in 3.125 M real-silicon
-  cases over 282 opcodes. One ROM (dumped from a V20) drives an exact V30 model.
+- On **programs**: 3 242 banked fuzz seeds replayed from RESET release. The F-A
+  gate **as written scored 2 873 / 3 157 (91.0 %)**; the 100 % result is the
+  architectural-anchor subset — **2 125 / 2 125** of the seeds whose capture
+  recorded a complete architectural dump are register-, PSW- and
+  ordered-write-stream exact (2 123 of them inside F-A's three banks, 2 in F-B's
+  `t30-brkem`). 0 GEN-DRIFT, 0 arch-only divergences. The 284 F-A failures are
+  **unresolved and unanchored** — the chip's own run never reached the store
+  stub in any of them — and are not proven suite artifacts.
+- **V20 vs V30: no architectural difference found across complementary suites**
+  — 3.125 M real-silicon cases over 282 opcodes and 3.7 M V30 cases against the
+  same model. No paired same-vector cross-part A/B was performed, so this is
+  "none found", not "none exists". One ROM (dumped from a V20) drives an exact
+  V30 model.
 - **~76 % of cases end with a PSW every bit of which came out of the microcode
   ROM**; the residue is three named C++ hardware laws.
 - The measured "undefined"-flag laws, the REPX prefix-chain rewind, the BCD
@@ -331,16 +338,19 @@ not preclude it.
   model — there are no flag hooks in the simulator.
 - pla_3 (group decode) and pla_2 (condition evaluation) are **identified
   exactly**; `pla_4`'s `mem` portion fits and the rest is open.
-- **Micro-row coverage 912 / 1028.** Every unexecuted row is either
-  structurally unreachable or accounted for by a named residual; the whole
-  untested ROM surface is **9 substantive rows** (the POLL tail behind
-  `JMP BUSY`, 5 rows; bank A of the one ambiguous micro-address, 4 rows).
-- The scientific product is the **assumption census**: 42 numbered assumptions,
-  40 standing, of which 12 are free choices that no dumped asset and no capture
-  discriminates. That list is precisely "what the microcode information does
-  not determine".
+- **Micro-row coverage 912 / 1028.** Every unexecuted row is either accounted
+  for by a named residual or structurally dead under the stated criterion (not
+  machine-proved unreachable); the whole untested ROM surface is **9 substantive
+  rows** (the POLL tail behind `JMP BUSY`, 5 rows; bank A of the one ambiguous
+  micro-address, 4 rows).
+- The scientific product is the **assumption census**: 43 numbered assumptions,
+  **41 standing**, of which **6 are free choices** that no dumped asset and no
+  capture discriminates (plus two global naming-isomorphism classes and one
+  test-bench convention). With the four policy entries and the open residuals,
+  that set is precisely "what the microcode information does not determine".
 
-Verdict document: `docs/notes/ucsim_campaign_verdict_2026-08-01.md`.
+Verdict document: `docs/notes/ucsim_campaign_verdict_2026-08-01.md` (revised at
+stage S4r). Plan as executed: `docs/notes/ucsim_campaign_plan.md`.
 Provenance ledger (every behaviour tagged ROM / PLA / MEASURED / ASSUMPTION):
 `docs/notes/ucsim_provenance.md`. Coverage report: `sim/coverage_report.txt`.
 Simulator usage: `sim/README.md`.
