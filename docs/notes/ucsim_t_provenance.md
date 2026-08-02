@@ -3421,3 +3421,106 @@ never-before-seen random-wait programs are reproduced clock for clock from
 RESET to the done marker with zero exceptions, against 2.6 % at T3 entry.
 What remains is Q2 and its `qs` successor, both named, both localised to a
 clock, and one of them half-measured (§14.2).
+
+### 14.5 A30 — settled to a DATAPOINT, from the banks, because M9 made MD observable
+
+The parked probe A30 (`ucsim_campaign_verdict_2026-08-01.md` §61/§34) asks
+which bank the ROM's one ambiguous micro-address `111.00000010.00` selects:
+bank A is a SINGLE acknowledge, bank B a two-cycle INTA pair.  Silicon runs
+bank B; the open question is *why* — an emulation-mode 14th input to the
+micro-address decoder, or a fixed priority with bank A dead silicon.  The
+verdict doc's own limit was that the three candidate acknowledges were ones
+**"the model BELIEVES were taken with `MD = 0`"**, i.e. contaminated by the
+model, and all three sat in already-divergent seeds.
+
+**M9 removes exactly that limitation: MD is now readable straight off the
+pins**, on the PS nibble of every cycle, with no model in the loop.  Re-running
+the census over all 3,242 banked captures with MD read from PS3:
+
+* **189 of 3,242 seeds put MD = 1 on the pins at some point** — emulation mode
+  is far commoner in the corpus than `has_brkem` reports (§14.1).
+* INTA runs, keyed by run length and by the MD observed on the acknowledge
+  cycles THEMSELVES: `len=2, MD=0` **760**; `len=1, MD=0` **8** (4 seeds x 2,
+  acknowledges separated by an intervening cycle); **`len=2, MD=1` — 1**.
+* That one is `t30-raw/raw_3821`, rows 969-981, deep inside the capture: two
+  complete INTA cycles, **both carrying `ps = 0xE` = MD | IE | CS**.  A clean,
+  uncontaminated, two-cycle pair taken in emulation mode.
+
+**Verdict: a DATAPOINT, not a closure, and it is reported as one.**  It is the
+first A30 observation that does not depend on the model's belief about MD, and
+it points at **bank B / fixed priority** — the emulation-mode-input hypothesis
+predicts a SINGLE acknowledge here and a single acknowledge is not what the
+chip did.  n = 1.  The settling experiment is still the ledger's own directed
+capture (a contained program that runs `BRKEM`, stays in 8080 mode with IE set,
+and takes an INTR) — but it is now much cheaper to score, because MD no longer
+has to be inferred.
+
+*The other parked probes were NOT run* and that is recorded rather than
+hidden: status-latch persistence (its ROM-sweep precondition was not verified
+offline in this stage), R6 BCD `CL=0`, the two POLL BUSY split probes, R7
+CMP4S, and F1 BUSLOCK.  The board session was spent on B1 and B2, which is
+where the pre-registration put it, and A30 turned out not to need board time
+at all.
+
+### 14.6 Gates (measured, this machine)
+
+| suite | result |
+|---|---|
+| v0.1 arch | 169,000 / 169,000 |
+| v0.2 arch | 347,000 / 347,000 |
+| v0.3 arch | 3,699,998 / 3,699,998 |
+| v20suite arch | 3,125,000 / 3,125,000 |
+| mod3_illegal (`--residue stale-ea`) | 128 / 128 |
+| **total** | **7,341,126** |
+
+```
+python3 sw/timed_gate.py --suite tests/v30/v0.1 --forms all              # 165,490 (w0)
+python3 sw/timed_gate.py --suite tests/v30/v0.1-w1 --forms all --waits 1 # 1,200/1,200
+python3 sw/timed_gate.py --suite tests/v30/v0.1-w3 --forms all --waits 3 # 1,200/1,200
+python3 sw/check_boot.py --timed 220 # MATCHES over 220 rows
+python3 sw/timed_scenario.py         # 18 PASS, 0 FAIL, 9 SKIP
+python3 sw/timed_enter_replay.py     # walk/pushes/active/halt/full 154/154
+python3 sw/timed_ins_replay.py --raw # rails 1312/1312, R2 782/800, vs-chip 2624/2624
+python3 sw/timed_wvec_gate.py        # count 88/88, cycles +0.0 %, digest 63/88
+python3 sw/timed_lawcards.py         # 7 GREEN / 0 RED / 4 UNRESOLVED
+python3 sw/timed_fuzz.py             # THE T3 GATE -- 947/1702 exact, 0 hard failures
+python3 sw/timed_fuzz.py --seeddir sw/testdata/t4/b2-tranche/seeds
+                                     # THE VICTORY TRANCHE -- 117/188 exact
+```
+
+Two new standing instruments, both read-only and both usable on either side:
+`sw/q1census.py` (the queue-pop census over any per-clock row stream) and
+`sw/q1diff.py` (chip vs sim, pop by pop, naming which pop moved).
+
+### 14.7 T5 handoff
+
+1. **Q2's EU half** — the stage's largest named residual and the one with the
+   most evidence already attached (§14.2).  The PORT half is measured (the
+   queue port frees at T4+2 under waits, 293/293); the EU-side flush RAISE
+   clock is `last pop + a` with `a` varying 4..7 by microcode path and is
+   UNMEASURED.  Landing the port half alone costs 194 cycle-exact seeds, so it
+   must be landed WITH the raise clock, not before it.  A directed factorial
+   over the branch forms (`70-7F`, `E9`, `EB`, and the trap/flush paths) at
+   controlled wait levels is the experiment.
+2. **The `qs` successor family** (324 seeds, `qs -!=F` dominant): a pop display
+   one clock out, downstream of Q2's neighbourhood.  Very likely the same
+   mechanism seen from the other side; do it with Q2, not separately.
+3. **The arbitration tail** (`bs PASV!=MEMR` / `CODE!=MEMR` / `CODE!=MEMW`,
+   ~50 seeds in the bank and 10 in the fresh tranche) — an EU access and a
+   fetch swapping the same slot.
+4. **`has_brkem` under-reports** (§14.1) — a FUNCTIONAL-side finding, not a
+   timing one: the chip decodes a wide spread of undefined `0F xx` second
+   bytes as BRKEM and the bank's flag counts only `0F FF`.  Any campaign
+   statistic keyed on that flag (including the ucsim verdict's own 8080-mode
+   counts) is understated and should be re-derived from PS3, which is now
+   observable.
+5. **A30** (§14.5) — one uncontaminated datapoint favouring bank B / fixed
+   priority; the directed BRKEM+INTR capture still settles it and is now cheap.
+6. **The parked probes not run**: status-latch persistence (verify its
+   ROM-sweep precondition offline first), R6 BCD `CL=0` uninterrupted, the two
+   POLL BUSY split probes, R7 CMP4S, F1 BUSLOCK.
+7. Unchanged from §13.7: the four UNRESOLVED law cards (C2, C6, C7, C11) are
+   STIMULUS gaps — C6/C7 are board-by-construction (a uRMW mem-write ready at
+   T4 with a controlled Tw parity), C2 needs a queue-fill transient, C11 needs
+   a capture that isolates one `owns_slot` source.  The w0-only `F3AA cx >= 2`
+   residual (907 cases) and the `fz90002` N=8 event-72 sled cell also stand.
