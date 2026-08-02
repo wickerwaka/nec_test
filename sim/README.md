@@ -154,16 +154,26 @@ Read-only instruments, all usable on a chip capture or a sim emission:
 `sw/timed_probe.py` (group a form's failures by FIRST divergent cell),
 `sw/qcensus.py` / `sw/q1census.py` (every queue pop with the ready clock of the
 byte it took), `sw/q1diff.py` (chip vs sim, pop by pop, naming which pop moved),
-`sw/wchain.py` (T4-to-next-T1 spacing keyed by the two statuses). Every
-mechanism in the timing ledger was found by reading one of their outputs.
-`V30SIM_EVALTRACE=1` additionally dumps one line per eval point and per clock;
-it is env-gated and touches no model state.
+`sw/wchain.py` (T4-to-next-T1 spacing keyed by the two statuses),
+`sw/repcensus.py` (the REP string loops: per-iteration bus geometry, the
+window-closing pop's offset from the last store, `cx` and the entry phase, chip
+and model through ONE reconstruction). Every mechanism in the timing ledger was
+found by reading one of their outputs. Two env-gated stderr traces add the
+model's own internals and touch no model state: `V30SIM_EVALTRACE=1` (one line
+per eval point and per clock) and `V30SIM_ROWTRACE=1` (one line per MICRO-ROW —
+the clock it is reached on, its ROM row index and its disassembly), which is
+the instrument M10 and M11 were measured with.
 
 Every timing behaviour, its provenance class (ROM / LAW / MEASURED /
 ASSUMPTION), its evidence and its falsifier are in
 `docs/notes/ucsim_t_provenance.md`; the mechanism ledger — fifteen entries and
 the eval instant, each a register, a threshold or a fixed cycle index — is §(b)
-of the timing verdict.
+of the timing verdict.  The post-closure addendum (`ucsim_t_provenance.md` §16)
+adds two more of the same shape: **M10**, the EU's single bus-request slot
+(freed when the bus takes the request, at the accepted cycle's own T1), and
+**M11**, no redirect bubble on a taken micro-JMP back by one row.  Together
+they closed the 907-case REP `cx >= 2` residual and took v0.1 at w0 to
+166,397 / 166,400.
 
 ## Build and the standing gates
 

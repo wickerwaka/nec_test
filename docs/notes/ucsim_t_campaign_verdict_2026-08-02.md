@@ -680,3 +680,85 @@ Recorded rather than papered over. None of them changes a gate result.
 in-repo copy). Companion architectural verdict:
 `docs/notes/ucsim_campaign_verdict_2026-08-01.md`. Branch `ucsim`; the retired
 biu-rebuild campaign's disposition is `docs/notes/biu_rebuild_retirement_2026-08-01.md`.*
+
+---
+
+# ADDENDUM — 2026-08-02, post-closure: the REP re-entry mechanism
+
+**This is an ADDENDUM.  §(a)-§(g) above are the REGISTERED record and are not
+edited by it.  V0-V5 stand exactly as scored; V5 remains a registered FAILURE.**
+The provenance for everything here is `docs/notes/ucsim_t_provenance.md` §16.
+
+## What was open, and what closed
+
+§(c) open item 4 was the REP string family at `cx >= 2` — 907 cases, the entire
+non-tail w0 shortfall, w0-only, with a named discriminating pair and a
+wait-axis answer attached.  It is **closed**, offline, with two mechanisms and
+one correction, and without board contact (authorised, not used):
+
+* **M10 — one request slot.**  The EU has a single bus-request register; a
+  micro-row cannot hand a new request over while the previous one is still in
+  it.  The register frees when the BUS TAKES the request — the accepted cycle's
+  own T1 — and the blocked row issues on that clock.  A split word access is
+  ONE request, taken once and freed at the LAST of its two cycles' T1.
+* **M11 — the redirect bubble is not paid on a jump back by one row.**  §7.7's
+  taken-micro-JMP bubble stands everywhere except a jump to the immediately
+  preceding row, where no new ROM read is needed.  Scope is thin and stated as
+  such: the corpus contains exactly one such site.
+* **M5b unification.**  The OPR-shadow store now rotates on the ACCESS's own
+  address, as `mem_write` already did — the chip drives one rotation on both
+  halves of a split (`F3AB` case 0: `52B8` on all six cycles).
+
+## The bars, RE-SCORED (the registered numbers, and today's)
+
+| bar | registered (§(a), 2026-08-02) | re-scored, this addendum |
+|---|---|---|
+| v0.1 cycle rows at w0 | 165,490 / 166,400 (**99.45 %**) | **166,397 / 166,400 (99.998 %)** |
+| the five REP forms at w0 | 1,593 / 2,500 | **2,500 / 2,500** |
+| v0.1-w1 / -w3 | 1,200 / 1,200 each | unchanged |
+| boot from RESET release | 220 / 220 | unchanged |
+| ENTER waited tranche | 154 / 154 | unchanged |
+| INS `case250` vs chip | 2,624 / 2,624 rails | unchanged |
+| INS whole-program leading accesses | 173,556 / 173,556, same T1 | unchanged |
+| wvec vs silicon — count / cycles / **digest** | 88/88, +0.0 %, **63 / 88** | 88/88, +0.0 %, **69 / 88** |
+| law cards | 7 GREEN / 0 RED / 4 UNRESOLVED | unchanged |
+| `timed_fuzz`, banked | **947 / 1,702 (55.6 %)** | **1,002 / 1,702 (58.9 %)** |
+| `timed_fuzz`, prefix >= 0.5 / >= 0.9 | 1,192 / 950 | **1,221 / 1,005** |
+| **THE VICTORY TRANCHE (V1)** | **117 / 188 (62.2 %)** | **117 / 188 (62.2 %)** |
+| functional corpus | 7,341,126 / 7,341,126 | unchanged |
+
+**The victory tranche did not move.**  That is the honest headline of this
+addendum as much as the w0 number is.  The REP mechanism buys +55 seeds on the
+banked population and **zero** on the frozen 188-seed tranche, because the
+tranche's misses are not REP: 42 of its 71 are Q2, which this session
+re-measured and did **not** land.  **V5 is still FAILED and V1 is still 62.2 %.**
+Nothing in the registered victory record changes.
+
+**Monotonicity.**  Of the 347 forms in the v0.1 suite, exactly five moved and
+all five upward.  Arch (166,800), window-located (168,720), and every standing
+gate are unchanged or better.
+
+## Open items, updated
+
+* **Item 4 (REP `cx >= 2`): CLOSED.**
+* **Item 5 (the three tails `0F12` / `C1.6` / `F7.4`): still open.**  Checked
+  against the new mechanism; they did not close for free and were not chased.
+* **Item 1 (Q2, the redirect one clock late): still open, and RE-DIAGNOSED.**
+  H1's prediction that the EU-raise clock would become mechanism-derived once
+  the row cadence was bus-derived is **FALSIFIED**: with M10/M11 landed, the
+  port half in its correct (T4-keyed, w0-neutral) expression still costs w1
+  1,200 -> 1,143 and `timed_fuzz` 1,002 -> 796.  But the two populations agree
+  on a rule the ledger had not stated: in Q2's 293 seeds AND in the 57 `EB` w1
+  cases the port change breaks, **the chip shows the flush `E` on the same
+  clock as the redirect fetch's status**.  Q2 is therefore a **redirect-commit**
+  question, not a QS-port question; the port half is a symptom.  The directed
+  branch-form factorial §14.2 asked for is still the capture that would close
+  it.  Reverted; the model is left in the state that maximises the ratchet.
+
+## One correction to the closed record
+
+§(a) and §10.7 describe the REP residual as `cx >= 2`.  The census shows the
+`cx = 1` band was also short — `F3A4` 60/119 and `F3A5` 73/123, 109 cases
+inside the same 907 — a fact §10.7's table did not report because it tabulated
+only the three STOS-family forms at `cx = 1`.  The total (907) was always
+right; its decomposition in §10.7 was not.  Both bands are now exact.

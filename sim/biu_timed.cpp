@@ -99,6 +99,8 @@ void BiuTimed::begin_case() {
     push_absorb_clk_ = -2;
     push_absorb_from_ = -2;
     req_.clear();
+    eu_slot_busy_ = false;
+    eu_accept_clk_ = -1;
     eu_pending_ = 0;
     rd_pending_ = 0;
     wr_pending_ = 0;
@@ -161,6 +163,16 @@ void BiuTimed::tick() {
         cur_ = cmt_;
         ci_ = 0;
         cmt_valid_ = false;
+        // M10: the bus has TAKEN the whole request -- the slot is free from
+        // this clock, which is the clock the blocked row issues on.  `rd_last`
+        // is what makes a SPLIT one request: the slot is held until the SECOND
+        // cycle opens.  The `eu_accept_clk_ == c` test is what makes "issues
+        // ON that clock" work: the released row runs at clk_ == T1 and may
+        // post its OWN request before this tick runs, and that newer occupant
+        // (whose accept clock is not yet known) must not be released by the
+        // older access's T1.
+        if (!cur_.is_fetch && cur_.rd_last && eu_accept_clk_ == c)
+            eu_slot_busy_ = false;
         // M2r: the rig latches this access's wait count at T1 ENTRY, which
         // fixes the cycle's length and its ONE eval instant.
         cur_.waits = next_waits();
@@ -169,9 +181,11 @@ void BiuTimed::tick() {
         // every other cycle releases at the READY sample (M2r).
         cur_.eval_i = cur_.is_halt ? 1
                       : (cur_.waits == 0) ? 2 : cur_.last_i;
-        // ...driving whatever OPR still holds if nothing paired it.
+        // ...driving whatever OPR still holds if nothing paired it, through
+        // the SAME single pass of the A0 swapper `mem_write` uses (M5b: the
+        // rotation is a property of the ACCESS, not of the cycle).
         if (cur_.need_data && is_write(cur_.bs))
-            cur_.data = (cur_.addr & 1) ? swap8(last_wval_) : last_wval_;
+            cur_.data = cur_.odd_base ? swap8(last_wval_) : last_wval_;
     }
     // S8/S9: the HALT status takes the register on the FIRST clock the
     // register is FREE -- the bus idle and not the completion eval's display
@@ -442,6 +456,11 @@ void BiuTimed::eval() {
         req_.pop_front();
         cmt_valid_ = true;
         cmt_t1_ = clk_ + 1;
+        // M10: the slot's occupant now has the T1 that frees it -- the LAST
+        // cycle of the access -- so a row blocked on it knows the clock it may
+        // issue on.  While a split's first half is committed the accept clock
+        // stays unknown (-1) and the blocked row keeps waiting.
+        if (cmt_.rd_last) eu_accept_clk_ = cmt_t1_;
         return;
     }
     if (suspended_ || halted_) { et('.', suspended_ ? 'S' : 'H'); return; }
@@ -503,6 +522,17 @@ void BiuTimed::susp() {
 }
 
 void BiuTimed::post(const Access& a) {
+    // M10 -- ONE REQUEST SLOT (biu_timed.h).  The row that carries a new EU
+    // access waits until the bus has taken the previous one, and issues on
+    // the T1 that takes it (the LAST cycle's, for a split).  Only the cycle
+    // that carries the EU's own request tests the slot; the second half of a
+    // split is the BIU's own continuation and never blocks.
+    if (a.first_of_access) {
+        int g = 0;
+        while (eu_slot_busy_ &&
+               (eu_accept_clk_ < 0 || clk_ < eu_accept_clk_) && ++g < 4096)
+            tick();
+    }
     // F2 (generalised).  The EU's bus request reaches the BIU one clock ahead
     // of the micro-row that carries it -- the same one-row-early control decode
     // as SUSP -- so a prefetch the eval just chose is taken back before it
@@ -517,6 +547,10 @@ void BiuTimed::post(const Access& a) {
     int guard = 0;
     while (req_.size() >= 2 && ++guard < 4096) tick();
     req_.push_back(a);
+    if (a.first_of_access) {
+        eu_slot_busy_ = true;
+        eu_accept_clk_ = -1;
+    }
     ++eu_pending_;
     if (is_write(a.bs)) ++wr_pending_;
     else if (a.rd_last) ++rd_pending_;
@@ -755,6 +789,7 @@ uint16_t BiuTimed::mem_read(uint16_t seg_val, uint16_t off, bool word,
         acc.addr = a1;
         acc.ube_n = uint8_t((a1 & 1) ? 0 : 1);
         acc.rd_last = true;
+        acc.first_of_access = false;   // M10: one request, two cycles
         post(acc);
     } else {
         acc.addr = a;
@@ -795,6 +830,7 @@ void BiuTimed::write_request(uint16_t seg_val, uint16_t off, bool word,
     acc.upc = upc;
     acc.need_data = true;
     uint32_t a = io ? uint32_t(off) : phys(seg_val, off);
+    acc.odd_base = (a & 1) != 0;   // M5b: one rotation, the ACCESS's own A0
     if (word && (a & 1)) {
         acc.addr = a;
         acc.ube_n = 0;
@@ -805,6 +841,7 @@ void BiuTimed::write_request(uint16_t seg_val, uint16_t off, bool word,
         acc.addr = a1;
         acc.ube_n = uint8_t((a1 & 1) ? 0 : 1);
         acc.rd_last = true;
+        acc.first_of_access = false;   // M10: one request, two cycles
         post(acc);
         wres_ += 2;
     } else {
@@ -874,6 +911,7 @@ uint16_t BiuTimed::io_read(uint16_t port, bool word, uint16_t upc) {
         acc.addr = uint32_t(uint16_t(port + 1));
         acc.ube_n = uint8_t((acc.addr & 1) ? 0 : 1);
         acc.rd_last = true;
+        acc.first_of_access = false;   // M10: one request, two cycles
         post(acc);
     } else {
         acc.ube_n = uint8_t((word || (port & 1)) ? 0 : 1);

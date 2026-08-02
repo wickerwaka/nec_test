@@ -460,6 +460,20 @@ executed: `docs/notes/ucsim_t_campaign_plan.md`. Provenance ledger, every timing
 behaviour tagged ROM / LAW / MEASURED / ASSUMPTION:
 `docs/notes/ucsim_t_provenance.md` (§0-§15).
 
+**POST-CLOSURE ADDENDUM, same day.** The campaign's one remaining w0 physics
+question — the REP string family at `cx >= 2`, 907 cases — was found and closed
+offline, no board contact: **M10, one EU bus-request slot that frees when the
+bus takes the request**, and **M11, no redirect bubble on a micro-JMP back by
+one row**, plus a unification of the OPR-shadow store onto M5b's single A0
+rotation. `v0.1` at w0 goes **165 490 -> 166 397 / 166 400 (99.998 %)**, all
+five REP forms 500/500, banked fuzz **947 -> 1 002 / 1 702**, wvec digest
+**63 -> 69 / 88**; every other standing gate unchanged, five forms moved and all
+upward. **The victory tranche did NOT move (117 / 188) and V5 remains a
+registered FAILURE** — the tranche's misses are Q2, which was re-measured,
+re-diagnosed as a redirect-COMMIT question rather than a QS-port one, and NOT
+landed. Ledger `docs/notes/ucsim_t_provenance.md` §16; verdict addendum at the
+foot of the verdict document. The registered V0-V5 record is unedited.
+
 ### The scientific product — a mechanism ledger, and a model that SHRANK
 
 The deliverable is not the exactness number, it is **fifteen mechanism entries plus

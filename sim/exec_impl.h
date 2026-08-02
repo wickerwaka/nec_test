@@ -41,6 +41,7 @@
 #define EXEC_IMPL_H
 
 #include <cstdio>
+#include <cstdlib>
 #include <cstring>
 #include <string>
 #include <vector>
@@ -718,6 +719,20 @@ bool CpuT<Bus>::run_micro(const MicroPc& entry) {
         ++rows_;
         if (bank >= 0) ++g_row_cover[bank * 4 + m_.upc.row()];
 
+        // ROW TRACE (env-gated diagnostic, V30SIM_ROWTRACE=1).  One line per
+        // micro-row: the CLOCK the row opens on, the ROM row index, and the
+        // disassembled row.  Written to stderr, reads no model state beyond
+        // what the trace above already prints, and is the instrument the REP
+        // re-entry census reads the row schedule out of.  Printed BEFORE the
+        // `F` interlock so the line shows the clock the row was REACHED; the
+        // interlock's own stall is then visible as the gap to the next line.
+        static const bool kRowTrace = std::getenv("V30SIM_ROWTRACE") != nullptr;
+        if (kRowTrace) {
+            std::fprintf(stderr, "RT %ld %04X %s\n", biu_.clock(),
+                         bank >= 0 ? unsigned(bank * 4 + m_.upc.row()) : 0xFFFFu,
+                         row_text(op).c_str());
+        }
+
         // `F` is the bus interlock: the row waits for the outstanding read to
         // land in OPR (ledger, "F = bus interlock").  In TIMED mode the wait
         // is real -- and it covers the PRE-DECODE operand read too, which the
@@ -855,7 +870,38 @@ bool CpuT<Bus>::run_micro(const MicroPc& entry) {
             if (cond_true(op.cond)) {
                 next_loc = op.loc;
                 carry = false;
-                ++row_clocks;   // taken-JMP redirect bubble
+                // M11 -- THE REDIRECT BUBBLE IS NOT PAID ON A JUMP TO THE ROW
+                // THE SEQUENCER RAN ON THE PREVIOUS CLOCK.  A taken micro-JMP
+                // normally costs one clock (7.7): the target address is only
+                // known at the end of the row, so the next ROM read is late.
+                // A jump BACK BY ONE ROW is the one case where no new read is
+                // needed -- the target is the row the sequencer read one clock
+                // ago -- so the ROM's tightest loop runs at one row per clock.
+                //
+                // MEASURED, and the measurement is a subtraction, not a fit:
+                // `cx = 0` and `cx = 1` pin the REP STOS entry (micro-row 0 at
+                // the opcode pop + 2, M8b) and its exit path (nine clocks from
+                // the store row to the successor's pop) exactly, and the
+                // silicon then requires the SECOND store row of a `cx = 2`
+                // REP STOS to run on the FIRST store's own T1 -- reachable
+                // only if `00BF -> 00C0(JMP REP) -> 00BF` is TWO clocks.  The
+                // 166 cases that need it are exactly those whose EU entered
+                // late enough that M10's slot is already free (store T1 minus
+                // the row's own clock = 2).
+                //
+                // SCOPE, stated because it is thin: the whole v0.1 corpus
+                // contains exactly ONE taken-JMP site whose target is its own
+                // `loc - 1` -- `00C0`, the STOS/SCAS REP loop (a census over
+                // every form's first six cases finds 59 taken-JMP sites, 8 of
+                // them backward, and only this one by a single row).  So the
+                // assets do NOT separate this general form from "the STOS REP
+                // loop-back is free".  The general form is kept because it is
+                // the falsifiable one: any other loc-1 backward jump a future
+                // stimulus reaches must also be free.  Over the 169,000-case
+                // suite it moves three forms and only upward
+                // (F3AA/F3AB/F2AA -> 500/500) and nothing else at all.
+                if (op.loc + 1 != m_.upc.loc)
+                    ++row_clocks;   // taken-JMP redirect bubble
             }
         } else {
             // CTL

@@ -75,6 +75,11 @@ public:
     // interrupt-boundary replay is expressed in (see image_runner.cpp).
     long ev_count() const { return ev_; }
 
+    // The functional bus has no clock; -1 so the shared interpreter's
+    // env-gated ROW TRACE (exec_impl.h, V30SIM_ROWTRACE) compiles on both
+    // bus policies.  A diagnostic only -- nothing reads it for behaviour.
+    long clock() const { return -1; }
+
     // --- prefetch queue ---------------------------------------------------
     void queue_preload(const std::vector<uint8_t>& q, uint16_t fetch_ptr);
     // Pops one instruction byte, refilling from CS:fetch_ptr when empty.

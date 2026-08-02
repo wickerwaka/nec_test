@@ -247,6 +247,19 @@ private:
         // the LAST of its two byte cycles.  (MEASURED: `8B` case 11, a word
         // load from an odd address, retires off the second half's T4.)
         bool rd_last = true;
+        // ...and a split is ONE access to the REQUEST SLOT too (M10): this is
+        // true on the cycle that carries the EU's request and false on the
+        // second half the BIU manufactures from it.
+        bool first_of_access = true;
+        // M5b, said once.  The A0 byte swapper is passed ONCE per ACCESS, on
+        // the ACCESS's own address, and both cycles of a split drive the same
+        // rotated word.  `mem_write` already did that for a PAIRED store; the
+        // OPR-shadow path used to re-derive it from each CYCLE's address and
+        // so drove the second half of a split unrotated.  MEASURED: `F3AB`
+        // case 0 (`rep stosw` at an odd DI, AW = B852) shows 52B8 on all six
+        // cycles -- the even-address halves included -- and `F3A5` case 6
+        // shows 29A0 on both halves of its last store.
+        bool odd_base = false;
         uint16_t rd_val = 0;   // a READ's datapath value -> OPR at its T4+1
         // S8/S9 -- THE HALT BUS PSEUDO-CYCLE.  MEASURED on the socket, T2b P3
         // (sw/testdata/t2b/p1-susp, the ENTER store stub's own HLT, w0/w1/w3 x
@@ -462,6 +475,33 @@ private:
 
     // --- EU requests ---
     std::deque<Access> req_;
+    // M10 -- ONE REQUEST SLOT.  The EU has a single bus-request register: a
+    // micro-row that asks for a bus cycle cannot hand its request over while
+    // the PREVIOUS one is still sitting in that register waiting for the bus.
+    // The register is freed when the bus TAKES the request -- the accepted
+    // cycle's own T1 -- and the blocked row issues on that clock.  A SPLIT
+    // word access is ONE request the BIU serves with two cycles, so the slot
+    // is taken once and freed at the LAST of the two T1s (`rd_last`).
+    // MEASURED, and the two halves of the rule separately: releasing at the
+    // FIRST cycle's T1 leaves `F3A5` (REP MOVSW) at 406/500 with the residual
+    // exactly the geometry "split load, aligned store" in every cx band;
+    // releasing at the LAST takes it to 500/500 and changes nothing else in
+    // the 169,000-case suite.
+    //
+    // It is the row engine, not the bus, that this changes: the bus grid, the
+    // eval, the queue and the OPR interlock are all untouched.  What it
+    // removes is the model's ability to let the ROM row cadence free-run
+    // arbitrarily far ahead of the bus, which is the whole of the `cx >= 2`
+    // REP residual: the string loops are the only sequences in the corpus
+    // whose row body is SHORTER than their bus period, so they are the only
+    // place the free-run is visible at w0.  Under waits the bus period exceeds
+    // the row path everywhere and the slot is never the binding deadline --
+    // which is exactly why w1/w3 were already exact (12.4).
+    //
+    // A SPLIT word access is ONE request: the BIU manufactures the second
+    // cycle itself, so only `first_of_access` posts take the slot.
+    bool eu_slot_busy_ = false;
+    long eu_accept_clk_ = -1;   // T1 of the access holding the slot, once known
     int wres_ = 0;           // write cycles reserved but not yet given data
     Access* find_reserved();
     // Two deadlines, because a STORE and a LOAD are waited on for different

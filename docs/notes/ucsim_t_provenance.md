@@ -3630,3 +3630,280 @@ event scheduler, converted into a named open item.
   reported rather than papered over; two of them (the stale "12 w0 tails" and
   the stale T3 "tails = 15") are corrected numbers, and one is an improvement
   the campaign under-reported (§15.1).
+
+---
+
+## 16. POST-CLOSURE ADDENDUM — R1, the REP re-entry session (2026-08-02)
+
+**This section is an ADDENDUM.  Nothing in §0-§15 is edited or retracted by it;
+the registered V1-V5 record in the verdict stands exactly as written.**  The
+campaign closed (§15) with one open w0 physics question — the REP string family
+at `cx >= 2`, 907 cases, the entire non-tail w0 shortfall (§10.7, §12.4).  This
+session went after it offline, found it, and re-scored everything downstream.
+
+**Outcome: the 907-case residual is CLOSED.  Two mechanisms, one correction.**
+`v0.1` at w0 goes **165,490 -> 166,397 of 166,400**; all five REP forms are
+**500/500**; the only w0 cases left in the whole suite are the three
+single-case tails (`0F12`, `C1.6`, `F7.4`), which did NOT close for free.
+Board contact was authorised and NOT used: R1 was decisive offline, so the
+pre-registration rule for R2 never fired.
+
+### 16.0 The instrument — `sw/repcensus.py`
+
+The q1census lesson is the whole design: the chip rows and the model rows go
+through the SAME reconstruction.  Golden rows are `case["cycles"]` (built by
+`sw/emit_suite.build_rows`), model rows come from
+`check_core.build_rows_sim` over the record stream; nothing is re-derived
+locally.  Per case it extracts every bus cycle as (T1 row, T4 row, status,
+address), the store/load sequence and its per-iteration period, the
+window-closing F pop and its offset from the last store's T4 and T1, `cx`, and
+the ENTRY PHASE (the row the opcode itself popped on).  It reads the 2,500 v0.1
+goldens and, with `--p4`, the T2b silicon pair (`sw/testdata/t2b/p4-f3aa`,
+same schema, same extractor) at w0/w1/w3.
+
+A second instrument, **`V30SIM_ROWTRACE=1`**, is an env-gated stderr line per
+micro-row — the clock the row is REACHED on, the ROM row index and its
+disassembly.  It is the diagnostic the row schedule was read out of, it touches
+no model state, and it is the direct analogue of T3's `V30SIM_EVALTRACE`.
+(`sim::Biu::clock()` returns -1 so the shared interpreter compiles on both bus
+policies.)
+
+### 16.1 H1's four predictions, SCORED
+
+| prediction (plan, verbatim) | census verdict |
+|---|---|
+| the chip's iteration cadence LOCKS to the bus at `cx >= 2` and absorbs the entry phase | **CONFIRMED.** 18 groups of cases share an identical store grid but differ in entry phase; the chip's closing pop is CONSTANT across the group in **18 / 18**, the model's in **12 / 18** (before) and **18 / 18** (after) |
+| `cx = 1` never enters the pinned regime -> EU-path-variable exit | **CONFIRMED, and the ledger's statement of it was INCOMPLETE** — see §16.5 |
+| under waits the bus period exceeds the row path everywhere -> w1/w3 unaffected | **CONFIRMED.** w1 and w3 are 1,200/1,200 before and after; the P4 silicon pair is exact at w1/w3 both ways |
+| REP STOS slope 4/iter, MOVS 8/iter stay emergent | **CONFIRMED, and they were ALREADY exact.** Store-to-store T1 delta, chip vs model, is identical in every case of every form both before and after (`F3AA` 4, `F3A4` 8, `F3AB` 4, `F2AA` 4, `F3A5` {4,8,12}).  The loop BODY was never the problem |
+
+**H1 itself is CONFIRMED in kind and CORRECTED in detail.**  The plan named
+three candidate release indices — prior-access accept, completion eval, or
+T4+2.  The measured one is **prior-access ACCEPT**, and the w0 STOS 4-clock
+period discriminated it exactly as the plan predicted it would.  H2 (the
+max-of-deadlines reading) was not needed.
+
+### 16.2 M10 — ONE REQUEST SLOT, and it frees when the bus TAKES the request
+
+The EU has a single bus-request register.  A micro-row that asks for a bus
+cycle cannot hand its request over while the previous one is still sitting in
+that register; the register is freed when the bus takes the request — **the
+accepted cycle's own T1** — and the blocked row issues ON that clock.  A SPLIT
+word access is ONE request that the BIU serves with two cycles, so the slot is
+taken once and freed at the **LAST** of the two cycles' T1.
+
+*What it changes.*  The row engine, and only the row engine.  The bus grid, the
+eval, the queue, the prefetch scheduler and the OPR interlock are untouched.
+What it removes is the model's ability to let the ROM row cadence free-run
+arbitrarily far ahead of the bus.  The string loops are the only sequences in
+the corpus whose row body is SHORTER than their bus period, which is why they
+are the only place the free-run was visible — and why w1/w3 were already exact
+(§12.4): under waits the bus period exceeds the row path everywhere and the
+slot is never the binding deadline.
+
+*How it was measured, on the discriminating pair (§10.7's own).*  With
+`V30SIM_ROWTRACE` the STOS-family exit path is nine clocks from the store row
+`00BF` to the successor's pop, and `cx = 0` / `cx = 1` pin both that path and
+the entry (micro-row 0 at the opcode pop + 2, M8b).  Working backwards from the
+chip's closing pop, `F3AA` case 16 and case 10 — whose EU entries are two
+clocks apart and whose store grids are identical — BOTH require the second
+store row to run on the FIRST store's own **T1**.  §10.7 read that same
+geometry as "the first store's T2"; it is T1, and the difference is that the
+released row issues ON the freeing clock rather than after it.
+
+*The last-cycle half was measured separately, and cleanly.*  Releasing at the
+FIRST cycle's T1 leaves `F3A5` (`REP MOVSW`) at 406/500, and the residual is
+exactly the geometry (**split load, aligned store**) in every `cx` band — 94
+cases, and every other geometry exact.  Releasing at the LAST cycle's T1 takes
+`F3A5` to **500/500** and changes **nothing else in the 169,000-case suite**.
+That is the whole evidence for the half, and it is one-sided.
+
+### 16.3 M5b, said once — the shadow store rotates on the ACCESS's address
+
+M10 exposed a latent disagreement between the two write-data paths.  `mem_write`
+already implemented M5b ("ONE pass through the A0 byte swapper, on the ACCESS's
+own address — both cycles of a split then drive that same rotated value"); the
+OPR-**shadow** path (a store that reaches T1 without having been given data)
+re-derived the rotation from each CYCLE's address, so it drove the second half
+of a split unrotated.  Before M10 the shadow almost never covered a split
+store (12 `data` cases in the whole suite); after it, 97.
+
+**The chip settles it and it settles the pre-existing 12 too.**  `F3AB` case 0
+(`rep stosw` at an odd DI, AW = `B852`) drives **`52B8` on all six cycles**, the
+even-address halves included; `F3A5` case 6 drives `29A0` on both halves of its
+last store.  The shadow now uses the access's own `odd_base`.  `data` column
+diffs over the five REP forms: **12 -> 0**.
+
+### 16.4 M11 — the redirect bubble is not paid on a jump BACK BY ONE ROW
+
+With M10 landed, 166 cases remained: `F3AA`/`F3AB`/`F2AA` at `cx = 2` whose EU
+entered late enough that the slot was already free (store T1 minus the row's own
+clock = 2).  Those cases are a **subtraction, not a fit**.  Write `j` for the
+clocks from the opcode's own pop to the FIRST store row `00BF`, `K` for the
+clocks from a store row to the successor's pop along the exit path, and `L` for
+the loop body `00BF -> 00C0 -> 00BF`.
+
+* `cx = 1` is 100 % exact and its closing pop is `entry + j + K` wherever the
+  EU is the binding deadline, so **`j + K = 14`** is fixed by the closed record.
+* Take the `cx = 2` cases with **lead 7** (`first store T1 - entry = 7`, so the
+  first store row free-runs at `T1_1 - 7 + j`).  The chip's closing pop is
+  `T4_2 + 2 = T1_1 + 9`, so the LAST store row runs at `T1_1 + 9 - K`; M10 pins
+  it to `T1_1`, hence **`K = 9`** and therefore **`j = 5`**.
+* M10's block can only pin it if the free-run reaches `T1_1` or earlier:
+  `(T1_1 - 7 + j) + L <= T1_1`, i.e. `L <= 7 - j = ` **2**.
+
+The STOS REP loop is exactly two rows — `00BF` (MEMW) and `00C0`
+(`JMP REP 3`, taken) — so the taken `JMP REP` costs no redirect bubble.  Every
+quantity in that chain is pinned by cases the model already reproduced
+exactly; nothing in it was chosen.
+
+Stated generally: **a taken micro-JMP whose target is the row immediately
+before it costs no redirect bubble** — the target is the row the sequencer read
+one clock ago, so no new ROM read is needed, and the ROM's tightest loop runs
+at one row per clock.  Everything else keeps §7.7's bubble.
+
+**SCOPE, stated because it is thin.**  A census of every taken micro-JMP the
+suite executes (first six cases of every form) finds **59 distinct sites, 8 of
+them backward, and exactly ONE by a single row** — `00C0`, the STOS/SCAS REP
+loop.  So the assets do NOT separate the general form from "the STOS REP
+loop-back is free".  The general form is kept because it is the falsifiable
+one.  Two rejected alternatives, both measured over the full 169,000-case
+suite:
+
+| variant | v0.1 w0 | verdict |
+|---|---|---|
+| no bubble on any taken `JMP REP` (`cond == REP`) | 163,508 | **FALSIFIED** — closes F3AA/F3AB/F2AA but destroys `F3AC F3AD F3AE 64Ax 65Ax E0` (LODS/SCAS/LOOP, 500 -> 253…342 each), whose loops are 4-6 rows and DO pay it |
+| no bubble on any taken BACKWARD micro-JMP | 162,536 | **FALSIFIED** — same, plus `0F20/0F22/0F26` |
+| no bubble on a jump to `loc - 1` (**landed**) | **166,397** | moves three forms, all upward, all to 500/500, and nothing else at all |
+
+### 16.5 What the census CORRECTS in the closed record
+
+* §10.7's table reads "`cx = 1`, `F3AA F2AA F3AB` (370) — 100 % exact".  That
+  is true of those three forms.  It is **not** true of `cx = 1` as a band: at
+  entry to this session `F3A4` was **60 / 119** and `F3A5` **73 / 123** at
+  `cx = 1` — 109 further cases inside the 907.  The plan's context section
+  ("`cx = 0` and `cx = 1`: 100 % exact") inherits the over-claim.  Both are now
+  500/500 and the band is **612 / 612**.
+* §10.7's "`cx >= 2`, `F3AA`: golden always 2" generalises to the byte forms
+  only.  `F3A5` and `F3AB` show golden offsets of **1 AND 2** at `cx >= 2`, and
+  the census separates them with no exceptions: **offset 1 iff the last store
+  is the second half of a SPLIT** (123/123 and 126/126).
+* §10.7's reading of the discriminating pair — "both land on row 20 if the
+  loop's SECOND store row `00BF` runs on the FIRST store's **T2**" — is off by
+  one against the model's own row schedule: it is the first store's **T1**.
+  §10.7's probe "released the store row at the previous store's T1" (+25 cases,
+  213 new diffs) is not this mechanism: it had no last-cycle rule, no
+  `first_of_access` scoping, and no M5b unification, and its 146 `data` diffs
+  are §16.3.
+
+### 16.6 Q2 — RE-MEASURED, NOT LANDED, and RE-DIAGNOSED
+
+R3's condition was to land Q2's measured port half **together with** the
+mechanism-derived EU raise, gate: the 133-case redirect family to 0 without the
+masking regression §14.2 recorded.  H1 predicted the EU-raise clock would stop
+being a free parameter once the row cadence was bus-derived.  **That prediction
+is FALSIFIED.**  With M10/M11 landed, the port half was re-tried in both of its
+possible expressions:
+
+| Q2 port-half variant | v0.1 w0 | v0.1-w1 | v0.1-w3 | timed_fuzz |
+|---|---|---|---|---|
+| baseline (this session's model) | **166,397** | **1,200** | **1,200** | **1,002 / 1,702** |
+| absorb window shortened to `eval+1` | 164,615 | 1,143 | 1,200 | 532 / 1,702 |
+| absorb window **keyed to T4** (`[T4, T4+1]`, the correct expression) | **166,397** (neutral) | **1,143** | 1,200 | 796 / 1,702 |
+
+The T4-keyed form is the right one — it is M6's own keying, it is exactly
+w0-NEUTRAL by construction (at w0 `e = T3`, so `[e+1, e+2] == [T4, T4+1]`),
+and it produces Q2's measured "the port frees at T4+2" under waits.  It is
+still a net regression, and the w1 leg is a number §14.2 never had: the loss is
+**entirely one form, `EB`, 200 -> 143**, all 114 diffs in the `qop` column.
+
+**And the diagnosis is sharper than "the EU half is unmeasured".**  In the `EB`
+w1 cases the chip shows the flush `E` on the SAME clock as the redirect fetch's
+status (row 6, `T4+3`), and model and chip AGREE on the redirect's status
+clock; the port change moves only the `E`, to `T4+2`, breaking the pairing.  In
+Q2's own 293 seeds the chip likewise shows **the `E` and the redirect's status
+on one clock** (`T4+2`), and the model shows **both** at `T4+3`.  So the two
+populations agree on the rule and disagree on the clock: **the `E` rides the
+redirect's own display clock, and Q2 is a REDIRECT-COMMIT question, not a
+QS-port question.**  The port half is a symptom of it.  That reframing is the
+session's contribution to open item 1; it does not close it, and the directed
+branch-form factorial §14.2 asked for is still the capture that would.
+
+Reverted.  The model is left in the state that maximises the ratchet, exactly
+as §14.2 left it.
+
+### 16.7 The three tails — checked, NOT closed, NOT chased
+
+`0F12`, `C1.6` and `F7.4` are still one case each (499/500, 9 / 4 / 4 row
+diffs).  They did not close for free.  Per the plan they were not chased.
+
+### 16.8 Gates (measured, this machine, immediately before the commit)
+
+```
+make -C sim test                                                          # disasm: PASS
+python3 sw/pla3_check.py                                                  # OK (21 checks)
+python3 sw/ucsim_check.py --suite tests/v30/v0.1                          # 169000/169000
+python3 sw/ucsim_check.py --suite tests/v30/v0.2                          # 347000/347000
+python3 sw/ucsim_check.py --suite tests/v30/v0.3                          # 3699998/3699998
+python3 sw/ucsim_check.py --suite tests/v30/v20suite --no-mirror          # 3125000/3125000
+python3 sw/ucsim_check.py --suite tests/v30/mod3_illegal --residue stale-ea  # 128/128
+python3 sw/timed_gate.py --suite tests/v30/v0.1    --forms all            # 166,397 (was 165,490)
+python3 sw/timed_gate.py --suite tests/v30/v0.1 --forms F3A4,F3A5,F3AA,F3AB,F2AA
+                                                                          # 2,500/2,500 (was 1,593)
+python3 sw/timed_gate.py --suite tests/v30/v0.1-w1 --forms all --waits 1  # 1,200/1,200
+python3 sw/timed_gate.py --suite tests/v30/v0.1-w3 --forms all --waits 3  # 1,200/1,200
+python3 sw/check_boot.py --timed 220                                      # MATCHES over 220 rows
+python3 sw/timed_scenario.py                                              # 18 PASS, 0 FAIL, 9 SKIP
+python3 sw/timed_enter_replay.py                                          # 154/154 x5
+python3 sw/timed_ins_replay.py --raw      # rails 1312/1312, vs-chip 2624/2624, R2 782/800,
+                                          # whole-program 173,556/173,556 all on the same T1
+python3 sw/timed_wvec_gate.py             # count 88/88, cycles +0.0 %, digest 69/88 (was 63)
+python3 sw/timed_lawcards.py              # 7 GREEN / 0 RED / 4 UNRESOLVED
+python3 sw/timed_fuzz.py                  # 1,002/1,702 exact (was 947), 0 hard failures
+python3 sw/timed_fuzz.py --seeddir sw/testdata/t4/b2-tranche/seeds        # 117/188 (unchanged)
+python3 sw/repcensus.py --p4              # the census above
+```
+
+**Monotonicity, checked per FORM and not just in aggregate.**  Over all 347
+forms of the v0.1 suite, exactly five moved and every one of them upward:
+`F3A4` 192 -> 500, `F3A5` 303 -> 500, `F3AA` 336 -> 500, `F3AB` 411 -> 500,
+`F2AA` 351 -> 500.  Arch (166,800) and window-located (168,720) are unchanged.
+
+### 16.8a Provenance class, per finding
+
+The ledger's own rule: every behaviour carries ROM / LAW / MEASURED /
+ASSUMPTION, its evidence and its falsifier.
+
+| finding | class | evidence | falsifier |
+|---|---|---|---|
+| **M10** the EU has ONE bus-request slot, blocking a row that carries a new access | **MEASURED** | the P4 silicon pair (`F3AA` 16/10, byte-identical programs, EU entries two clocks apart, chip retires both on one clock) plus 1,249 `cx >= 2` goldens; the w0 STOS 4-clock bus period is what makes the free-run visible | any capture where a micro-row issues a bus request while a previous EU access is still unaccepted — e.g. a string loop whose stores are spaced tighter than the bus period |
+| **M10a** the slot frees at the accepted cycle's own **T1**, and the released row issues ON that clock | **MEASURED** | the same pair; T1-1 (commit) and T1+1 (T2) each miss the chip on one of the two cases | any `cx = 2` case whose closing pop is not `last store T4 + 2` while the row engine is bus-bound |
+| **M10b** a SPLIT word access is ONE request; the slot frees at the LAST cycle's T1 | **MEASURED, one-sided** | `F3A5` 406/500 -> 500/500, residual before the fix exactly "split load, aligned store" in every `cx` band; nothing else in 169,000 cases moves | any split access whose successor row issues before the split's second cycle opens |
+| **M11** no redirect bubble on a taken micro-JMP back by ONE row | **MEASURED for the one site the corpus reaches; the GENERAL form is the falsifiable statement, not an independently witnessed one** | the `j + K = 14` / `K = 9` / `L <= 2` subtraction in §16.4, 166 cases; two alternative predicates falsified at 163,508 and 162,536 | any OTHER `loc - 1` backward micro-JMP a future stimulus reaches that DOES pay a bubble |
+| **M5b unified** the OPR-shadow store rotates on the ACCESS's A0, not the cycle's | **MEASURED** | `F3AB` case 0 (`52B8` on all six cycles of a split-store `rep stosw`), `F3A5` case 6; `data` diffs 12 -> 0 | any split store whose two cycles drive DIFFERENT words |
+| **Q2 is a redirect-COMMIT question, not a QS-port one** | **OBSERVATION, not landed** | in the Q2 293 seeds and in all 57 `EB` w1 cases the chip shows the flush `E` on the same clock as the redirect fetch's status | any capture where the chip's `E` and its redirect's status fall on different clocks |
+| the ROM loop bodies and their slopes | **unchanged, ROM + LAW** | store-to-store T1 deltas identical chip vs model in every case, before and after | — |
+
+### 16.9 Ledger delta
+
+| | at T5 close (§15.1) | after this addendum |
+|---|---|---|
+| v0.1 cycle rows at w0 | 165,490 / 166,400 (99.45 %) | **166,397 / 166,400 (99.998 %)** |
+| v0.1 forms 100 % cycle-row exact at w0 | 326 / 347 | **331 / 347** |
+| the five REP forms at w0 | 1,593 / 2,500 | **2,500 / 2,500** |
+| v0.1-w1 / -w3 | 1,200 / 1,200 | unchanged |
+| wvec per-cycle digest vs silicon | 63 / 88 | **69 / 88** |
+| law cards | 7 GREEN / 0 RED / 4 UNRESOLVED | unchanged |
+| `timed_fuzz`, banked | 947 / 1,702 (55.6 %) | **1,002 / 1,702 (58.9 %)** |
+| `timed_fuzz`, >= 0.5 / >= 0.9 prefix | 1,192 / 950 | **1,221 / 1,005** |
+| `timed_fuzz`, median first-divergence row | 1,068 | **1,105** |
+| `timed_fuzz`, the VICTORY TRANCHE | 117 / 188 (62.2 %) | **117 / 188 (62.2 %)** — unchanged |
+| functional corpus | 7,341,126 / 7,341,126 | unchanged |
+| open w0 physics questions | REP `cx >= 2` (907) + 3 tails | **3 tails only** |
+| mechanisms | M1-M9, M2r, M3c(retracted), M5b, M6, M7, M7b, M8 | **+ M10, M11** |
+
+**The victory tranche did not move**, and that is worth saying plainly: the
+REP mechanism buys +55 seeds on the banked population and 0 on the frozen
+tranche.  V5 remains a registered FAILURE and this addendum does not touch it.
+The tranche's largest named family is Q2 (42 of its 71 misses), which §16.6
+re-measured and did not land.
