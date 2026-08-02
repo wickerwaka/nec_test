@@ -982,7 +982,16 @@ bool CpuT<Bus>::run_micro(const MicroPc& entry) {
     }
     // Releases a pop the E row deferred because a write was still staged.
     // A no-op when the E row already latched the successor's opcode.
+    //
+    // M8b: the clock AFTER the pop belongs to the successor's decode either
+    // way.  On the E-row path it is part of `charge(row_clocks)` above; on
+    // this deferred path that charge has already gone by, so it is spent
+    // here.  Without it the deferred boundary hands over one clock early and
+    // the successor's first byte demand lands at pop+1 instead of pop+2 --
+    // the whole `O -> I0` residual of the Q1 family (sw/q1diff.py).
+    const bool deferred = !biu_.opcode_pending();
     biu_.opcode_prefetch(m_.sreg[kCS]);
+    if (deferred) biu_.charge(1);
     return true;
 }
 
