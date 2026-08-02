@@ -118,7 +118,8 @@ public:
     void charge(int n) { for (int i = 0; i < n; ++i) tick(); }
     // The F / OPR bus interlock: block until the outstanding EU access has
     // completed and its data handed over (eu_done = T4 + 1 at zero waits).
-    void wait_read() { wait_bus(); }
+    void wait_read();
+    void wait_next_read(int extra);
     void wait_bus();
     // The PRE-DECODE operand read.  Its data is not consumed by an F-flagged
     // micro-row -- it is consumed by micro-row 0 itself -- and the decoder
@@ -181,6 +182,10 @@ private:
         // just put on the high lane), `8A` case 0 row 10, `FE.0` case 0.
         bool sys_word = false;
         bool need_data = false;   // reserved by write_request, data not paired yet
+        // A SPLIT access is ONE read to the EU: the F interlock releases on
+        // the LAST of its two byte cycles.  (MEASURED: `8B` case 11, a word
+        // load from an odd address, retires off the second half's T4.)
+        bool rd_last = true;
         uint8_t push_n = 0;    // queue bytes this fetch delivers
         uint8_t push_b[2] = {0, 0};
     };
@@ -269,9 +274,21 @@ private:
     std::deque<Access> req_;
     int wres_ = 0;           // write cycles reserved but not yet given data
     Access* find_reserved();
-    int eu_pending_ = 0;     // EU accesses posted but not yet completed
-    long eu_done_clk_ = -1;  // clock from which the last one's data is usable
-    long opr_ready_clk_ = -1;  // ...+1 for the pre-decode read's hand-over
+    // Two deadlines, because a STORE and a LOAD are waited on for different
+    // reasons: the F/OPR interlock waits for the READ that feeds it, while the
+    // instruction's retire waits for ALL of its bus work (S5: a store the BIU
+    // has already scheduled but not yet run must not stall the interlock that
+    // is about to hand it its data).
+    int eu_pending_ = 0;     // every EU access posted but not yet completed
+    int rd_pending_ = 0;     // ...just the reads
+    long eu_done_clk_ = -1;  // retire deadline: last EU access T4 + 1
+    // The F interlock is PER READ and IN ORDER: each `F` row waits for the
+    // next completed read, not for the whole outstanding set.  MEASURED: `A6`
+    // (CMPSB) issues both loads back to back and then runs 00A0 F / 00A1 /
+    // 00A2 F E -- the first F releases on load 1's T4+1 and the retire lands
+    // on load 2's T4+1, three clocks apart, which only happens if 00A0 waited
+    // for load 1 alone.
+    std::deque<long> rd_done_q_;   // completed reads' T4 + 1, in order
 };
 
 }  // namespace sim

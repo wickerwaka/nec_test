@@ -65,9 +65,10 @@ void BiuTimed::begin_case() {
     push_absorb_clk_ = -2;
     req_.clear();
     eu_pending_ = 0;
+    rd_pending_ = 0;
     wres_ = 0;
     eu_done_clk_ = -1;
-    opr_ready_clk_ = -1;
+    rd_done_q_.clear();
 }
 
 void BiuTimed::end_case() {
@@ -206,8 +207,11 @@ void BiuTimed::tick() {
                 // eu_done: the data handover / store retire lands one clock
                 // after the completion eval (mission-H); at w0 that is T4 + 1.
                 eu_done_clk_ = c + 1;
-                opr_ready_clk_ = c + 2;
                 if (eu_pending_) --eu_pending_;
+                if (!is_write(cur_.bs) && cur_.rd_last) {
+                    rd_done_q_.push_back(c + 1);
+                    if (rd_pending_) --rd_pending_;
+                }
             }
             run_ = false;
         } else {
@@ -297,6 +301,7 @@ void BiuTimed::post(const Access& a) {
     while (req_.size() >= 2 && ++guard < 4096) tick();
     req_.push_back(a);
     ++eu_pending_;
+    if (!is_write(a.bs) && a.rd_last) ++rd_pending_;
 }
 
 // --- prefetch queue ---------------------------------------------------------
@@ -422,11 +427,18 @@ void BiuTimed::wait_bus() {
     while (clk_ < eu_done_clk_ && ++guard < 4096) tick();
 }
 
-void BiuTimed::wait_opr() {
+// The F / OPR interlock: wait for the NEXT outstanding read, and consume it.
+void BiuTimed::wait_next_read(int extra) {
     int guard = 0;
-    while (eu_pending_ > 0 && ++guard < 4096) tick();
-    while (clk_ < opr_ready_clk_ && ++guard < 4096) tick();
+    while (rd_done_q_.empty() && rd_pending_ > 0 && ++guard < 4096) tick();
+    if (rd_done_q_.empty()) return;
+    long t = rd_done_q_.front() + extra;
+    rd_done_q_.pop_front();
+    while (clk_ < t && ++guard < 4096) tick();
 }
+
+void BiuTimed::wait_read() { wait_next_read(0); }
+void BiuTimed::wait_opr() { wait_next_read(1); }
 
 // --- data accesses ----------------------------------------------------------
 
@@ -443,10 +455,12 @@ uint16_t BiuTimed::mem_read(uint16_t seg_val, uint16_t off, bool word,
         // The 16-bit bus splits an unaligned word into two byte cycles.
         acc.addr = a;
         acc.ube_n = 0;
+        acc.rd_last = false;      // the interlock releases on the SECOND half
         post(acc);
         uint32_t a1 = phys(seg_val, uint16_t(off + 1));
         acc.addr = a1;
         acc.ube_n = uint8_t((a1 & 1) ? 0 : 1);
+        acc.rd_last = true;
         post(acc);
     } else {
         acc.addr = a;
@@ -454,7 +468,6 @@ uint16_t BiuTimed::mem_read(uint16_t seg_val, uint16_t off, bool word,
         post(acc);
     }
     eu_done_clk_ = -1;
-    opr_ready_clk_ = -1;
     return v;
 }
 

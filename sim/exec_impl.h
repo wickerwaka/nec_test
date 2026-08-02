@@ -512,11 +512,13 @@ void CpuT<Bus>::wr_dst2(uint8_t c, uint16_t v) {
 
 template <class Bus>
 void CpuT<Bus>::deliver_read() {
-    if (rdq_.empty()) return;
-    // The F / OPR interlock: the EU stalls here until the outstanding bus
+    // The F / OPR interlock: the EU stalls here until the NEXT outstanding bus
     // read has landed (the ONLY EU<->BIU data sync -- biu_model.md, ROM
-    // confirmations).  No-op in the functional model.
+    // confirmations).  No-op in the functional model.  Called exactly once per
+    // `F` row, so the per-read in-order interlock queue lines up with the
+    // ROM's own F rows.
     biu_.wait_read();
+    if (rdq_.empty()) return;
     m_.opr = rdq_.front();
     rdq_.erase(rdq_.begin());
     opr_fresh_ = true;
@@ -708,7 +710,7 @@ bool CpuT<Bus>::run_micro(const MicroPc& entry) {
         // land in OPR (ledger, "F = bus interlock").  In TIMED mode the wait
         // is real -- and it covers the PRE-DECODE operand read too, which the
         // loader delivers straight into OPR without going through `rdq_`.
-        if (op.f) { biu_.wait_read(); deliver_read(); }
+        if (op.f) deliver_read();
 
         // SIGMA and the flag outputs are read from the LATCHED operation
         // evaluated on the tmps as they stand at the START of the row.
