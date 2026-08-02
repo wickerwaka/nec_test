@@ -63,10 +63,12 @@ void BiuTimed::begin_case() {
     upc_pending_ = 0xFFFF;
     opc_valid_ = false;
     flush_eval_ = false;
+    no_eval_ = -1;
     e_pend_ = false;
     e_from_ = 0;
     e_x_ = -1;
     push_absorb_clk_ = -2;
+    push_absorb_from_ = -2;
     req_.clear();
     eu_pending_ = 0;
     rd_pending_ = 0;
@@ -77,6 +79,24 @@ void BiuTimed::begin_case() {
     opr_held_ = 0;
     opr_free_clk_ = -1;
     last_wval_ = 0;
+    bus_idx_ = 0;
+    wlfsr_ = wseed_;
+}
+
+// M2r: the rig's wait draw for the bus cycle whose T1 opens now.  Mirrors
+// nec_bus.sv's `next_t_state == ST_T1` block exactly, including the priority
+// order and the fact that the LFSR advances once per bus cycle regardless of
+// whether the random source is the one being used... except that nec_bus only
+// advances it on the random path, so this does too.
+int BiuTimed::next_waits() {
+    long k = bus_idx_++;
+    if (!wvec_.empty() && k < long(wvec_.size())) return wvec_[size_t(k)] & 31;
+    if (wrand_) {
+        int n = (int(wlfsr_ & 0xFF) * (wmax_ + 1)) >> 8;
+        wlfsr_ = uint16_t((wlfsr_ >> 1) ^ ((wlfsr_ & 1) ? 0xB400u : 0u));
+        return n;
+    }
+    return waits_;
 }
 
 void BiuTimed::end_case() {
@@ -103,6 +123,11 @@ void BiuTimed::tick() {
         cur_ = cmt_;
         ci_ = 0;
         cmt_valid_ = false;
+        // M2r: the rig latches this access's wait count at T1 ENTRY, which
+        // fixes the cycle's length and its ONE eval instant.
+        cur_.waits = next_waits();
+        cur_.last_i = 3 + cur_.waits;
+        cur_.eval_i = (cur_.waits == 0) ? 2 : cur_.last_i;
         // ...driving whatever OPR still holds if nothing paired it.
         if (cur_.need_data && is_write(cur_.bs))
             cur_.data = (cur_.addr & 1) ? swap8(last_wval_) : last_wval_;
@@ -112,8 +137,8 @@ void BiuTimed::tick() {
         cur_.data = sys_word_at(cur_.addr);
 
     const bool display = cmt_valid_ && cmt_t1_ == c + 1;
-    const int last_i = 3 + waits_;                  // index of T4
-    const int passive_i = (waits_ == 0) ? 2 : (3 + waits_);
+    const int last_i = cur_.last_i;                 // index of T4
+    const int eval_i = cur_.eval_i;                 // M2r: the eval instant
 
     ClockRow r;
     r.clk = c;
@@ -127,7 +152,19 @@ void BiuTimed::tick() {
     // flush display waits for that request's STATUS clock -- except on the
     // flush clock itself (biu_model.md: the divide trap raises flush and the
     // PC push together and still shows E at once).
-    if (e_pend_ && c >= e_from_ && r.qs == kQsNone && c != push_absorb_clk_ &&
+    // F1(b), M2r: ...and a fetch that PUSHES keeps the queue port for the two
+    // clocks its bytes take to land -- the PUSH EDGE (eval + 1) and the
+    // ABSORB clock (eval + 2), the clock before they are poppable.  Together
+    // with the T1..eval hold below that is ONE statement: A FETCH OWNS THE
+    // QUEUE PORT FROM ITS T1 UNTIL ITS BYTES ARE IN.  A DOOMED fetch pushes
+    // nothing and so lets go at the eval, which is why `EB` case 0 shows the E
+    // on the doomed fetch's T4 at w0.  At w0 the two absorb clocks are T4 and
+    // T4+1 and the w0 ratchet does not move (165,481 either way -- no w0
+    // stimulus separates them); at w1 they are T4+1 and T4+2, and `E8` case 4
+    // is the case that needs both (golden E on the push's status clock at
+    // T4+3, not on T4+1).
+    if (e_pend_ && c >= e_from_ && r.qs == kQsNone &&
+        !(c >= push_absorb_from_ && c <= push_absorb_clk_) &&
         // ...but only while the EU's access has not STARTED: once its status
         // is on the pins (its display clock, or a cycle already running) the
         // QS port is free again, so the second half of a SPLIT push does not
@@ -135,7 +172,14 @@ void BiuTimed::tick() {
         // shows E on the FIRST half's status cycle.
         (req_.empty() || c == e_x_ ||
          (cmt_valid_ && !cmt_.is_fetch) || (run_ && !cur_.is_fetch)) &&
-        !(run_ && cur_.is_fetch && ci_ < last_i)) {
+        // M2r: a fetch owns the QS port THROUGH ITS COMPLETION EVAL, and the
+        // port is free from the eval's own clock onward.  At w0 the eval is at
+        // the end of T3, so the E lands on T4 -- the zero-wait law unchanged.
+        // Under waits the eval is at the end of T4, so it lands on T4+1, which
+        // is mission-H's "a doomed fetch counts as busy through its (deferred)
+        // completion eval -- E moves from the doomed fetch's T4 to the
+        // following cycle".  One condition, both regimes.
+        !(run_ && cur_.is_fetch && ci_ <= eval_i)) {
         r.qs = kQsEmpty;
         e_pend_ = false;
     }
@@ -146,7 +190,7 @@ void BiuTimed::tick() {
                    : (ci_ == 2)        ? uint8_t(kT3)
                    : (ci_ < last_i)    ? uint8_t(kTw)
                                        : uint8_t(kT4);
-        r.bs = (ci_ >= passive_i) ? uint8_t(kBsPasv) : cur_.bs;
+        r.bs = (ci_ >= eval_i) ? uint8_t(kBsPasv) : cur_.bs;
         r.ube_n = cur_.ube_n;
         if (ci_ == 0) {
             // The address-phase (mid-cycle) sample is the address; the
@@ -205,16 +249,51 @@ void BiuTimed::tick() {
     // --- end-of-clock: advance the cycle, then run the eval --------------
     bool eval_here = false;
     if (run_) {
-        // OPR RELEASE.  The bus takes the store's word at the end of T3 --
-        // the same instant it samples a read's -- and T4 is the hold clock,
-        // driven from the AD latch and not from OPR.  So a store that OWNS
-        // OPR gives it back one clock before its cycle ends, and the
-        // `-> OPR F` row that reloads it runs on T4.
+        // OPR RELEASE -- and it does NOT STRETCH.  The store hands its word to
+        // the AD OUTPUT LATCH at T2 and OPR is free from T3; how much longer
+        // the BUS holds that word out is the memory's business, not OPR's.  So
+        // the release sits at a FIXED cycle-relative index (2) at every wait
+        // level, while eu_done (the read handover and the retire deadline)
+        // rides the eval and stretches.  That asymmetry is mission-H's
+        // "eu_done shifts identically" vs "the trap chain marches on from the
+        // ZERO-WAIT completion point (eu_wdone)" -- two clocks in one cycle,
+        // and only one of them is the READY sample.
+        //
+        // MEASURED, and it is the WAIT AXIS that separates the two candidates
+        // (sw/wchain.py `MEMW>MEMW`, F7.6's divide-trap push chain, whose two
+        // chains differ by exactly the two extra ROM rows between 01F5->01F9
+        // and 01F9->01FB):
+        //
+        //   chain            w0    w1    w3
+        //   PSW -> PS (+2 rows)   T4+4  T4+4  T4+2
+        //   PS  -> PC             T4+3  T4+2  T4+2
+        //
+        // With the release FIXED at index 2 the issuing rows land at index 5
+        // and 3 at every wait level, and the eval geometry alone produces all
+        // six numbers.  With the release STRETCHED to the eval they walk out
+        // to +5/+4 at w1 -- measured and rejected.
         if (ci_ == 1 && is_write(cur_.bs) && opr_held_ > 0) {
             --opr_held_;
             opr_free_clk_ = c + 1;
         }
-        if (waits_ == 0 ? (ci_ == 2) : (ci_ == last_i)) eval_here = true;
+        if (ci_ == eval_i) {
+            eval_here = true;
+            // M2r: THE COMPLETION EVAL'S DISPLAY CLOCK IS NOT AN EVAL POINT.
+            // At w0 that clock is T4, which is inside the cycle and so was
+            // never an idle-eval candidate -- "T4 is NOT an eval point" (M1)
+            // is this same statement, and the model already had it for free.
+            // Under waits the eval is at the end of T4, so its display clock
+            // is T4+1, an IDLE clock, and the rule has to be said out loud:
+            // mission-H's "the end of that deferred-eval cycle is NOT an eval
+            // point -- a request that first asserts inside it waits for the
+            // next idle-cycle end".  MEASURED: `89` case 48 at w1, where the
+            // store's status appears two idle clocks after the fetch's T4 and
+            // not one.  (The STRONG form of this -- every eval, idle ones
+            // included, killing its successor, i.e. a true 2-clock grid -- was
+            // tried and is FALSIFIED at w0: 165,481 -> 119,311.  Idle evals
+            // run on every clock.  The grid is NOT the eval cadence.)
+            no_eval_ = c + 1;
+        }
         // F3: the flush-only point commits the REDIRECT PREFETCH only.  A
         // pending EU request still owns the first slot, and an EU access is
         // never granted at a T4 -- so with a request outstanding this point
@@ -222,25 +301,33 @@ void BiuTimed::tick() {
         if (ci_ == last_i && cur_.is_fetch && flush_eval_ && req_.empty())
             eval_here = true;
         if (ci_ == last_i) {
+            // M2r: everything below is stated from the EVAL instant, which is
+            // this clock at w>0 and the clock before T4 at w0.
+            const long e = c - (last_i - eval_i);
             if (cur_.is_fetch && cur_.push_n) {
-                // M3: the push lands at the end of T4 and the byte is
-                // poppable two clocks later.
+                // M3 / mission-H: the push lands one clock after the eval and
+                // the byte is POPPABLE two clocks after the push edge.
                 for (int i = 0; i < cur_.push_n; ++i)
-                    q_.push_back(QByte{cur_.push_b[i], c + 2});
-                push_absorb_clk_ = c + 1;   // F1(b): the queue port is busy
+                    q_.push_back(QByte{cur_.push_b[i], e + 3});
+                // F1(b): the queue port is busy from the push edge until
+                // the bytes are in -- see the QS-port block above.
+                push_absorb_from_ = e + 1;
+                push_absorb_clk_ = e + 2;
             }
             if (!cur_.is_fetch) {
-                // eu_done: the data handover / store retire lands one clock
-                // after the completion eval (mission-H); at w0 that is T4 + 1.
+                // eu_done: the data handover / store retire lands with the
+                // push, one clock after the eval -- which is what mission-H
+                // saw as "post-access EU schedules stretch by exactly one
+                // cycle per waited access".
                 if (eu_pending_) --eu_pending_;
                 if (is_write(cur_.bs)) {
-                    wr_done_clk_ = c + 1;
+                    wr_done_clk_ = e + 2;
                     if (wr_pending_) --wr_pending_;
                 } else if (rd_pending_ && cur_.rd_last) {
                     --rd_pending_;
                 }
                 if (cur_.rd_last && !is_write(cur_.bs)) {
-                    rd_done_q_.push_back(c + 1);
+                    rd_done_q_.push_back(e + 2);
                     last_wval_ = cur_.rd_val;    // the read lands in OPR
                 }
             }
@@ -248,7 +335,7 @@ void BiuTimed::tick() {
         } else {
             ++ci_;
         }
-    } else if (!cmt_valid_) {
+    } else if (!cmt_valid_ && c != no_eval_) {
         eval_here = true;                 // end of an idle clock
     }
     if (eval_here && !cmt_valid_) eval();

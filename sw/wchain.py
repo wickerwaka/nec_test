@@ -27,15 +27,25 @@ import timed_gate                      # noqa: E402
 
 
 def cycles(rows):
-    """-> [(t1_row, t4_row, busstat, addr, data)] for the window's bus cycles."""
+    """-> [(t1_row, t4_row, busstat, addr, data)] for the window's bus cycles.
+
+    T4 is LOCATED, not computed: under waits a cycle is T1 T2 T3 Tw* T4, so
+    `t1 + 3` is only right at zero waits.  (T2a.)"""
     out = []
     for i, r in enumerate(rows):
-        if r[8] == "T1":
-            t4 = i + 3
-            if t4 >= len(rows):
-                continue
-            out.append((i, t4, r[7], r[1] & 0xFFFFF,
-                        rows[i + 1][6] if i + 1 < len(rows) else None))
+        if r[8] != "T1":
+            continue
+        t4 = None
+        for j in range(i + 1, len(rows)):
+            if rows[j][8] == "T4":
+                t4 = j
+                break
+            if rows[j][8] in ("T1", "Ti"):
+                break
+        if t4 is None:
+            continue
+        out.append((i, t4, r[7], r[1] & 0xFFFFF,
+                    rows[i + 1][6] if i + 1 < len(rows) else None))
     return out
 
 

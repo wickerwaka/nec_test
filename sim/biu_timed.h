@@ -37,6 +37,38 @@
 // M4 ARBITRATION.  An EU access never preempts an in-flight cycle; it wins the
 //    next eval.  The second half of a split (unaligned) word access has top
 //    priority.  (grid law 4; law card #12 want_half2.)
+//
+// M2r THE READY SAMPLE IS THE ONLY WAIT-STATE MECHANISM, and it is ONE INSTANT.
+//    The rig (hdl/rtl/nec_bus.sv) loads its wait counter at T1 entry and drives
+//    READY so that the line is HIGH for exactly the clocks from which the
+//    T-state machine may advance to T4:
+//
+//        N = 0   READY high from T2  (`ready_q <= cfg_wait_states == 0`)
+//        N > 0   READY high from the LAST Tw (`ready_q <= wait_cnt == 1`,
+//                decremented once per clock while t_state is T3/Tw)
+//
+//    The CPU registers that line at the end of every clock, and ONE CLOCK LATER
+//    it does two things at once: it RELEASES the status register (that clock
+//    displays PASV) and it runs the COMPLETION EVAL at the clock's end.  So the
+//    eval instant `e` sits at cycle-relative index
+//
+//        e_i = (N == 0) ? 2 : 3 + N          (T3 at zero waits, T4 otherwise)
+//
+//    and EVERY other quantity in the model is a fixed offset from `e`:
+//
+//        e     status goes passive; OPR is released to a `-> OPR` row
+//        e+1   the DISPLAY clock: the winner's status / address / PS
+//        e+2   the winner's T1; eu_done (read handover, store retire)
+//        e+3   a fetched byte becomes POPPABLE
+//
+//    At w0 that reads T3 / T4 / T4+1 / T4+2 -- the zero-wait numbers of T1
+//    (M1, M2, M3) unchanged.  At w>0 it reads T4 / T4+1 / T4+2 / T4+3, which is
+//    mission-H's "completion-eval deferral" plus "the push lands one cycle
+//    after the eval, poppable two after" plus "post-access EU schedules stretch
+//    by exactly one cycle per waited access" -- three fitted laws that are the
+//    SAME OFFSET seen from three places.  The `w == 0 ? 2 : 3+w` shape lives in
+//    the RIG's counter, not in the part: the CPU only ever waits one clock
+//    after a level.  (Derived from nec_bus.sv; biu_model.md mission H.)
 
 #ifndef BIU_TIMED_H
 #define BIU_TIMED_H
@@ -57,9 +89,24 @@ public:
 
     // --- timed-mode configuration ----------------------------------------
     void set_emitter(RowEmitter* e) { rows_ = e; }
-    // Uniform wait states inserted in EVERY bus cycle.  Per-access wait
-    // vectors and the wrand generator arrive with the wait axis (T2).
+    // --- the three wait sources, in the rig's own priority order ----------
+    // (nec_bus.sv, the `next_t_state == ST_T1` block: replay > random >
+    // uniform, all keyed on `bus_idx`, which counts EVERY bus cycle from the
+    // run's start.)  The count is latched at T1 ENTRY, so it belongs to the
+    // order the cycles RUN in, not to the order the EU requested them.
     void set_waits(int w) { waits_ = w < 0 ? 0 : w; }
+    // Explicit per-access vector: access k takes wvec[k] waits (0..31), and
+    // the uniform setting takes over past its end.
+    void set_wvec(const std::vector<uint8_t>& v) { wvec_ = v; }
+    // The seeded random-wait rig: 16-bit Galois LFSR, poly 0xB400, seeded at
+    // reset (0 -> 0xACE1), advanced EXACTLY ONCE per bus cycle at T1 entry,
+    // count = (lfsr[7:0] * (wmax+1)) >> 8.  (docs/notes/random_wait_rig.md.)
+    void set_wrand(bool on, int wmax, uint16_t seed) {
+        wrand_ = on;
+        wmax_ = wmax < 0 ? 0 : wmax;
+        wseed_ = seed ? seed : uint16_t(0xACE1);
+    }
+    long bus_idx() const { return bus_idx_; }
     // S5 on the status lines is the IE flag, so the row emitter needs a live
     // view of the PSW.  Bound to the interpreter's own machine state.
     void bind_psw(const uint16_t* psw) { psw_ = psw; }
@@ -194,6 +241,11 @@ private:
         uint16_t rd_val = 0;   // a READ's datapath value -> OPR at its T4+1
         uint8_t push_n = 0;    // queue bytes this fetch delivers
         uint8_t push_b[2] = {0, 0};
+        // M2r: the wait count the rig latches at this cycle's T1 entry, and
+        // the cycle-relative index of the completion eval it implies.
+        int waits = 0;
+        int eval_i = 2;
+        int last_i = 3;
     };
     struct QByte {
         uint8_t b = 0;
@@ -225,10 +277,19 @@ private:
     Access make_fetch() const;
     uint8_t pop(uint16_t cs, uint16_t upc, bool penalise);
 
+    // M2r: the rig's per-bus-cycle wait draw, latched at T1 entry.
+    int next_waits();
+
     Biu core_;
     RowEmitter* rows_ = nullptr;
     const uint16_t* psw_ = nullptr;
     int waits_ = 0;
+    std::vector<uint8_t> wvec_;
+    bool wrand_ = false;
+    int wmax_ = 0;
+    uint16_t wseed_ = 0xACE1;
+    uint16_t wlfsr_ = 0xACE1;
+    long bus_idx_ = 0;
     long clk_ = 0;
 
     // --- bus FSM ---
@@ -267,10 +328,17 @@ private:
     // T4 is never an eval point, flush or not.  (biu_model.md, "Redirect
     // commit".)  Armed by flush(), spent by the first commit.
     bool flush_eval_ = false;
+    // M2r: the clock an eval has reserved as its DISPLAY slot -- not an eval
+    // point itself.
+    long no_eval_ = -1;
     bool e_pend_ = false;
     long e_from_ = 0;
     long e_x_ = -1;                  // the flush micro-row's own clock                // earliest clock the display may take
-    long push_absorb_clk_ = -2;      // clock on which a fetch's bytes land
+    // F1(b): the two clocks a completed fetch's bytes take to land in the
+    // queue -- the push edge (eval+1) and the absorb clock (eval+2).  The
+    // fetch owns the QS port across both.
+    long push_absorb_from_ = -2;
+    long push_absorb_clk_ = -2;
     uint8_t qs_pending_ = kQsNone;   // point sample for the clock about to run
     uint16_t upc_pending_ = 0xFFFF;
     bool opc_valid_ = false;
