@@ -1234,9 +1234,11 @@ nine residual families of §8.6.  The ratchet
 |---|---|---|
 | §8 close | 155,011 | 603,760 |
 | M3c — a decode step that misses RE-RUNS (replaces M3b) | 158,285 | 460,217 |
-| the OPR interlock — `F` is per ACCESS, writes included | **162,721** | **45,283** |
+| the OPR interlock — `F` is per ACCESS, writes included | 162,721 | 45,283 |
+| the OPR SHADOW + only a fetch owns the QS port | 163,820 | 36,853 |
+| `F`'s direction picks the wait (9.3) | **164,320** | **24,030** |
 
-**317 of 347 forms are 100 % cycle-row exact at w0** (was 282).  Arch through
+**319 of 347 forms are 100 % cycle-row exact at w0** (was 282).  Arch through
 the timed path is unchanged at 166,800/169,000 and windows at 168,720/169,000.
 
 Both mechanisms were found the same way: a census of the GOLDENS' own rows,
@@ -1356,11 +1358,154 @@ category **C6**, 1,254 cases, "untouched") needed **no compute-burn model at
 all** — its length was never a burn, it was the R-loop's stores waiting on
 OPR.  `F7.6` was the last open leg of **Milestone A at w0**.
 
-### 9.3 Milestones
+### 9.3 The `F` flag names OPR, and the DIRECTION of the touch picks the wait
+
+The two conditions of 9.2 are not both armed by every `F` row.  `F` marks a row
+that TOUCHES OPR, and which way it touches picks which half of the interlock
+applies:
+
+* the row READS OPR (`OPR -> R`, `OPR -> tmpa`, `OPR -> PC`, ...) -> it waits
+  for the read that fills OPR, in order;
+* the row LOADS OPR, or touches neither -> it waits only for a store to give
+  OPR back.  It does NOT wait for the read: the read it is nominally
+  synchronising with is consumed by the NEXT row's bus cycle, which takes
+  OPR's contents at its own T1 (9.2's shadow) and does not need the datapath
+  to have caught up.
+
+*Evidence — `8F.0` (POP mem/reg), 0058-005B:*
+
+```
+  0059 SP -> IND   SP -> tmpb        CTL  MEMR SS
+  005A SIGMA -> SP                F  ALU PASS tmpa      <- touches no OPR
+  005B SIGMA -> IND             E    CTL  [-06-]
+```
+
+With 005A blocking, the write-back's cycle can only be reserved after the
+load's data has landed.  The golden reserves it at the LOAD's T3 eval, three
+clocks earlier, and drives that data anyway (case 18: MEMW status on the
+load's T4, T1 on the next clock, data = the word the load returned).  The
+mod3 half is the same fact seen through the ghost read: the E row pre-pops the
+successor's opcode at pop+5, before the load has even reached T1 — which is
+exactly what 8.4 recorded as evidence for the retire deadline and could not
+reproduce.
+
+**`8F.0` ADJUDICATION — the golden schema is SOUND; no change was needed.**
+8.6 flagged the in-window MEMR address as a "possible golden-schema artefact".
+It is not one.  `check_core.dontcare_cells` already masks that read's address
+and data (col 1 and col 6) for `8F` + mod3, and `timed_gate.row_check` /
+`timed_probe` already apply it — the masking was wired all along.  What
+remained after the mask was the QS column, a real mechanism, and with the
+direction split `8F.0` is **500/500**, mod3 and mem alike.
+
+### 9.4 Residuals entering the rest of T1 / T2
+
+4,680 cases still miss, of which 2,400 are the declared pin-event exclusion
+(**S9**).  The remaining 2,280, each with its first-divergence pattern:
+
+| family | cases | first divergence | what is missing |
+|---|---|---|---|
+| BCD strings `0F22` `0F20` | 882 | the COMPANION byte of the byte store, always off by one (`C342` vs `C343`; `20B6` vs `21B6`) — every clock, every status and every addressed byte is exact | the BCD block's DATAPATH HIGH HALF.  This is 8.1's C4 question (the datapath is 16 bits wide everywhere) applied to `0F 20-27`: the model's ALU result is byte-wide there, so the free lane carries the wrong sibling.  ARCHITECTURAL -- the fix must ride the full 7.34M sweep, exactly as `rb16` did |
+| REP strings `F3A4 F3A5 F3AA F2AA F3AB` | 907 | the CLOSING `F` pop is one clock early (`F3AA` case 16: golden at the last store's T4+2, model at T4+1) | one clock in the REP EXIT path -- the not-taken `JMP REP` (`00C0` for STOS, `00AE` for MOVS), the `FARJMP REPX` that follows it (`00C1`/`00AF`) and REPX's own 0220/0221/0222 -> 0224 `E`.  The LOOP is right: `00BF MEMW` / `00C0 JMP REP` carries no `-> OPR` row, which is why REP STOS chains its stores at T4+1 (9.2) and the model reproduces that.  Only the cases where the E row rather than the store is the binding deadline show it, which is why 336-411 of each 500 are already exact.  The data half of this family is CLOSED (9.2's shadow) |
+| `FF.4` JMP mem, `FF.2` CALL mem | 137 | the closing `F` pop is EARLY by ~5 clocks (`FF.2` case 2: golden at 20, model at 15) | the post-flush retire: the model pre-pops the successor before the redirect fetch can deliver, so the window closes on a byte the queue does not have yet |
+| `FA` CLI, `FB` STI | 142 | S5 (IE) on the fetch's T3, one clock late | the flag write's clock.  MEASURED and clean: with an EVEN `ip` the golden shows the new IE at T3, with an ODD one it does not (250/250 split, `qcensus`-style census over the form).  The variable is the QUEUE STATE at the opcode pop -- odd `ip` leaves the queue EMPTY after it, even leaves one byte -- so the flag write rides a decode step that is itself waiting on the queue.  **A "PS is a register loaded at T2" model was tried and FALSIFIED**: the even-`ip` half shows PS changing WITHIN one data phase.  It scored better (112 bad vs 142) and was reverted anyway |
+| `0F39` `0F12` `C1.6` `F7.4` | 12 | mixed | tails, unexamined |
+
+### 9.5 Milestones
 
 * **Milestone A** (B8 8B 89 F7.6 EB E8 at w0): **MET AT w0** — all six are
   500/500.  The w1/w3 legs stay open for T2 (the wait axis; M2's release point
   must be re-derived from the READY sample, §7.2).
 * **Milestone B** (the 35-opcode S1a tranche at w0): 317/347 forms are 100 %
   exact and every form in the tranche is among them.
-* **Milestone C** (T1 exit, 166,800/166,800): **NOT MET** — 162,721.
+* **Milestone C** (T1 exit, 166,800/166,800): **NOT MET** — 164,320.
+
+### 9.6 The owed items — what landed, and what the T1 exit actually requires
+
+**LANDED: the L1 `timed-scenario` oracle-replay adapter** (§7.12 item 7,
+§8.8 first bullet).  `sw/timed_scenario.py` plants a saturated-queue case for
+one representative encoding of each frozen decoder class and asserts the sim's
+QS schedule against the FROZEN oracle files, read as-is:
+
+```
+python3 sw/timed_scenario.py
+PASS modrm_reg  mov ax,ax          oracle [(0,F),(1,S),(3,F)]        sim identical
+PASS test_reg   test ax,ax         oracle [(0,F),(1,S),(2,F)]        sim identical
+PASS imm16      mov ax,1234h       oracle [(0,F),(2,S),(3,S),(4,F)]  sim identical
+PASS branch     jmp short +2       oracle [(0,F),(2,S),(5,E)]        sim identical
+PASS disp8      mov ax,[bp+10h]    oracle [(0,F),(1,S),(3,S)]        sim identical
+PASS disp16     mov ax,[bp+1234h]  oracle [(0,F),(1,S),(2,S)]        sim identical
+timed-scenario: 6 PASS, 0 FAIL, 12 SKIP
+```
+
+covering `decoder-multibyte-oracle-v1` and `decoder-displacement-oracle-v1`
+whole (zero-wait half).  The frame shift between the oracles' "clocks from the
+selected cycle's T4" and the ledger's "clocks from the opening F pop" is ONE,
+the constant §7.6 established by hand; it is the only constant in the adapter.
+Two things are SKIPPED and say so rather than passing quietly: each rule's
+POSITIVE-WAIT half (T2), and each rule's `gap` (`t1_from_selected_t4`), which
+is a BUS quantity in the arbitration frame and needs the REP-successor
+scenario the oracles were captured in.  `decoder-drain-oracle-v2` is stated on
+the same arbitration frame (`*_code_gap`) and is therefore also not replayed
+here; its QS half is the same schedule the two above already pin.
+
+**NOT LANDED, and the reason is structural, not effort:**
+
+* **The law-card MUST set C1-C7, C9-C12 cannot be gated in this pass.**  Read
+  the manifest's own Stimulus and Gate columns (`biu_law_cards.md` §A): C1
+  "fetch-limited stream, WAITED"; C2 "queue-fill ramp, WAITED"; C3 "wvec/
+  directed"; C4/C5 "WAITED resume"; C6/C7 "EVEN/ODD **Tw** parity" plus the
+  board-only uRMW capture; C9 "w1/w3 + wvec"; C10/C11/C12 "wvec".  Every one
+  of the eleven is stated on a WAIT VECTOR.  At w0 there is no Tw, no aged
+  band and no deferred eval, so nine of them have no stimulus at all and two
+  (C6/C7) additionally need a capture no golden carries.  §7.4 already
+  recorded that LC1's steady-state gap and LC2's aged band are deliberately
+  NOT implemented for exactly this reason.  **The plan's T1-exit clause "law-
+  card MUST set green as sim unit gates" is mis-scoped: it is a T2 gate.**
+  Recorded here rather than satisfied with a gate that cannot fail.
+* **Boot replay** (`sw/testdata/largemode_boot_real.hex`).  `sw/check_boot.py`
+  drives the VERILATED RTL testbench (`hdl/tb/obj_dir/Vtb_v30_core`) from a
+  held RESET; the C++ timed sim has no reset entry point at all — `begin_case`
+  injects architectural state and starts the bus idle.  Replaying the boot
+  capture needs a `timed-boot` mode (reset -> first fetch -> the EA far jump ->
+  the 64-cycle loop) and the capture's own column policy ported.  Owed, sized,
+  not started.
+* **BUSLOCK and HALT display** (S8's remaining half) and **`kSegZero`** — both
+  unchanged from §8.8.  `kSegZero` is still an ASSUMPTION and the `INT.*`
+  goldens that could settle it are still the S9 exclusion.
+
+### 9.7 The FULL functional sweep on this pass's binary
+
+Two of this pass's changes touch the SHARED interpreter (`deliver_read`'s
+direction split in `exec_impl.h`, and the `wait_opr_free` no-op added to the
+functional `sim::Biu` so both instantiations carry the same call sites), so
+the whole architectural corpus was re-run on the final binary:
+
+| suite | result | time |
+|---|---|---|
+| v0.1 | 169,000 / 169,000 | 19 s |
+| v0.2 | 347,000 / 347,000 | 40 s |
+| v0.3 | 3,699,998 / 3,699,998 | 536 s |
+| v20suite | 3,125,000 / 3,125,000 | 386 s |
+| mod3_illegal (`--residue stale-ea`) | 128 / 128 | 0 s |
+| **total** | **7,341,126** | |
+
+plus `make -C sim test` (disasm) PASS and `sw/pla3_check.py` OK (21 checks).
+Zero regressions -- the architectural corpus is byte-identical across the
+whole pass.
+
+### 9.8 Standing gates, this pass
+
+```
+make -C sim test                                          # disasm: PASS
+python3 sw/pla3_check.py                                  # OK (21 checks)
+python3 sw/ucsim_check.py --suite tests/v30/v0.1          # 169000/169000
+python3 sw/ucsim_check.py --suite tests/v30/v0.2          # 347000/347000
+python3 sw/ucsim_check.py --suite tests/v30/v0.3          # 3699998/3699998
+python3 sw/ucsim_check.py --suite tests/v30/v20suite      # 3125000/3125000
+python3 sw/ucsim_check.py --suite tests/v30/mod3_illegal --residue stale-ea
+python3 sw/timed_gate.py --suite tests/v30/v0.1 --forms all   # THE RATCHET
+python3 sw/timed_scenario.py                              # L1 oracle replay
+python3 sw/timed_probe.py  --forms EB --top 8             # first-divergence triage
+python3 sw/qcensus.py --forms all --empty --by role --map # the pop census
+python3 sw/wchain.py  --forms all --pair MEMW\>MEMW       # the bus-chain census
+```

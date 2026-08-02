@@ -151,7 +151,7 @@ private:
     bool cond_true(uint8_t cond);
     void set_stat(const RowCtx& ctx);
 
-    void deliver_read();
+    void deliver_read(bool reads_opr = true);
     void emit_pending();
     void bus_read(uint8_t seg, uint16_t off, bool byte, bool io, uint16_t upc);
     void bus_write(uint8_t seg, uint16_t off, bool byte, bool io, uint16_t upc);
@@ -211,6 +211,8 @@ enum Ectl : uint8_t {
     kEctlMemR = 1, kEctlMemW = 2, kEctlIntaTail = 3, kEctlInta = 5,
     kEctlWriteBack = 6
 };
+// Source1 / Dest1 index of OPR (ucrom.cpp kStrSource1 / kStrDest1).
+constexpr uint8_t kSrcOpr = 6;
 }  // namespace exec_detail
 
 template <class Bus>
@@ -511,13 +513,23 @@ void CpuT<Bus>::wr_dst2(uint8_t c, uint16_t v) {
 // --- bus plumbing ----------------------------------------------------------
 
 template <class Bus>
-void CpuT<Bus>::deliver_read() {
+void CpuT<Bus>::deliver_read(bool reads_opr) {
     // The F / OPR interlock: the EU stalls here until the NEXT outstanding bus
     // read has landed (the ONLY EU<->BIU data sync -- biu_model.md, ROM
     // confirmations).  No-op in the functional model.  Called exactly once per
     // `F` row, so the per-read in-order interlock queue lines up with the
     // ROM's own F rows.
-    biu_.wait_read();
+    // ...and which HALF of the interlock applies is the direction of the
+    // row's own touch.  A row that READS OPR must wait for the read that
+    // fills it.  A row that only LOADS OPR (or, like `8F`'s 005A
+    // `SIGMA -> SP F`, neither) waits only for a store to give OPR back:
+    // the read it is nominally synchronising with is consumed by the NEXT
+    // row's bus cycle, which takes OPR's contents at its own T1 (the OPR
+    // shadow in biu_timed.h) and does not need the datapath to have caught
+    // up.  MEASURED: `8F.0` mod0 -- the write-back's cycle is reserved at
+    // the load's T3 eval, three clocks before the load's data reaches OPR,
+    // and drives that data anyway.
+    if (reads_opr) biu_.wait_read(); else biu_.wait_opr_free();
     if (rdq_.empty()) return;
     m_.opr = rdq_.front();
     rdq_.erase(rdq_.begin());
@@ -710,7 +722,7 @@ bool CpuT<Bus>::run_micro(const MicroPc& entry) {
         // land in OPR (ledger, "F = bus interlock").  In TIMED mode the wait
         // is real -- and it covers the PRE-DECODE operand read too, which the
         // loader delivers straight into OPR without going through `rdq_`.
-        if (op.f) deliver_read();
+        if (op.f) deliver_read(op.s1 == exec_detail::kSrcOpr);
 
         // SIGMA and the flag outputs are read from the LATCHED operation
         // evaluated on the tmps as they stand at the START of the row.

@@ -100,6 +100,7 @@ public:
     // call sites in ONE body shared by both instantiations.
     void charge(int) {}
     void wait_read() {}
+    void wait_opr_free() {}
     void wait_opr() {}
     void write_request(uint16_t, uint16_t, bool, uint8_t, bool, uint16_t) {}
     void opcode_prefetch(uint16_t) {}
