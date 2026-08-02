@@ -868,7 +868,9 @@ bool CpuT<Bus>::run_micro(const MicroPc& entry) {
                     case exec_detail::kIctlMfs: m_.mode8080 = false; break;
                     case exec_detail::kIctlMfc: m_.mode8080 = true; break;
                     case exec_detail::kIctlEndem: m_.mode8080 = false; break;
-                    case exec_detail::kIctlFlush: biu_.flush(m_.pc); break;
+                    case exec_detail::kIctlFlush:
+                        biu_.flush(m_.sreg[kCS], m_.pc);
+                        break;
                     case exec_detail::kIctlCitf:
                         m_.psw &= uint16_t(~(kFlagIE | kFlagBRK));
                         m_.set_flags(m_.psw);

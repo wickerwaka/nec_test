@@ -118,7 +118,13 @@ void BiuTimed::tick() {
     // flush clock itself (biu_model.md: the divide trap raises flush and the
     // PC push together and still shows E at once).
     if (e_pend_ && c >= e_from_ && r.qs == kQsNone && c != push_absorb_clk_ &&
-        (req_.empty() || c == e_x_) &&
+        // ...but only while the EU's access has not STARTED: once its status
+        // is on the pins (its display clock, or a cycle already running) the
+        // QS port is free again, so the second half of a SPLIT push does not
+        // hold the E any longer.  MEASURED: `E8` case 6 (CALL at an odd SP)
+        // shows E on the FIRST half's status cycle.
+        (req_.empty() || c == e_x_ ||
+         (cmt_valid_ && !cmt_.is_fetch) || (run_ && !cur_.is_fetch)) &&
         !(run_ && cur_.is_fetch && ci_ < last_i)) {
         r.qs = kQsEmpty;
         e_pend_ = false;
@@ -348,8 +354,12 @@ void BiuTimed::queue_preload(const std::vector<uint8_t>& q, uint16_t cs,
     }
 }
 
-void BiuTimed::flush(uint16_t pc) {
+void BiuTimed::flush(uint16_t cs, uint16_t pc) {
     q_.clear();
+    // The redirect fetches from the NEW CS:PC.  A far transfer loads CS on
+    // an earlier micro-row than the FLUSH, so taking CS from the last queue
+    // pop instead left the redirect pointing into the OLD segment.
+    cs_ = cs;
     fetch_ptr_ = pc;
     suspended_ = false;
     pop_is_first_ = true;

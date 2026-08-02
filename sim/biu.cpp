@@ -135,7 +135,7 @@ uint8_t Biu::next_byte(uint16_t cs, uint16_t upc) {
     return b;
 }
 
-void Biu::flush(uint16_t pc) {
+void Biu::flush_pc(uint16_t pc) {
     q_.clear();
     qhead_ = 0;
     fetch_ptr_ = pc;

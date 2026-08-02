@@ -107,7 +107,7 @@ public:
     void susp();
     void resume() { suspended_ = false; }
     void withdraw_fetch();
-    void flush(uint16_t pc);
+    void flush(uint16_t cs, uint16_t pc);
     void clear_consumed();
     long ev_count() const { return core_.ev_count(); }
 
