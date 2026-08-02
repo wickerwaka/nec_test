@@ -22,6 +22,10 @@ uint8_t BiuTimed::data_ps(uint8_t segc) const {
     return uint8_t((ie ? 4 : 0) | (segc & 3));
 }
 
+static inline uint16_t swap8(uint16_t v) {   // the A0 rotator (see M5b below)
+    return uint16_t((v >> 8) | (v << 8));
+}
+
 uint16_t BiuTimed::lane_data(uint16_t retained, uint32_t addr, bool word,
                              uint16_t value) {
     if (word && !(addr & 1)) return value;             // both lanes driven
@@ -72,6 +76,7 @@ void BiuTimed::begin_case() {
     rd_done_q_.clear();
     opr_held_ = 0;
     opr_free_clk_ = -1;
+    last_wval_ = 0;
 }
 
 void BiuTimed::end_case() {
@@ -98,6 +103,9 @@ void BiuTimed::tick() {
         cur_ = cmt_;
         ci_ = 0;
         cmt_valid_ = false;
+        // ...driving whatever OPR still holds if nothing paired it.
+        if (cur_.need_data && is_write(cur_.bs))
+            cur_.data = (cur_.addr & 1) ? swap8(last_wval_) : last_wval_;
     }
     // The data phase opens on T2.
     if (run_ && ci_ == 1 && cur_.sys_word)
@@ -231,8 +239,10 @@ void BiuTimed::tick() {
                 } else if (rd_pending_ && cur_.rd_last) {
                     --rd_pending_;
                 }
-                if (cur_.rd_last && !is_write(cur_.bs))
+                if (cur_.rd_last && !is_write(cur_.bs)) {
                     rd_done_q_.push_back(c + 1);
+                    last_wval_ = cur_.rd_val;    // the read lands in OPR
+                }
             }
             run_ = false;
         } else {
@@ -385,7 +395,13 @@ void BiuTimed::flush(uint16_t cs, uint16_t pc) {
     flush_eval_ = true;
     e_pend_ = true;
     e_x_ = clk_;
-    e_from_ = (run_ || (cmt_valid_ && cmt_t1_ == clk_)) ? clk_ + 1 : clk_;
+    // ...but only a FETCH owns the queue port.  An EU access never touches
+    // the queue, so a flush that lands on the clock an EU read opens its T1
+    // still takes the port at once.  MEASURED: `CF` (IRET) case 0 -- the E
+    // shows on the third stack read's T1, the clock 01E8's `F` releases on.
+    e_from_ = ((run_ && cur_.is_fetch) ||
+               (cmt_valid_ && cmt_t1_ == clk_ && cmt_.is_fetch)) ? clk_ + 1
+                                                                 : clk_;
 }
 
 void BiuTimed::clear_consumed() {
@@ -506,6 +522,7 @@ uint16_t BiuTimed::mem_read(uint16_t seg_val, uint16_t off, bool word,
     uint16_t v = core_.mem_read(seg_val, off, word, seg_idx, upc);
     uint32_t a = phys(seg_val, off);
     Access acc;
+    acc.rd_val = v;
     acc.bs = kBsMemR;
     acc.segc = seg_code(seg_idx);
     acc.upc = upc;
@@ -538,9 +555,7 @@ uint16_t BiuTimed::mem_read(uint16_t seg_val, uint16_t off, bool word,
 // odd -> A3FF), `50` (PUSH AX, AX=CD0B at an odd SP -> 0BCD on both halves;
 // AX=1B17 at an even SP -> 1B17).  Validated 366/366 over the `88` byte-store
 // rows.  Nothing here is per-opcode: it is one rotator on A0.
-static inline uint16_t swap8(uint16_t v) {
-    return uint16_t((v >> 8) | (v << 8));
-}
+
 
 // M5 WRITE DATA IS THE WHOLE 16-BIT DATAPATH VALUE.  On a WRITE the CPU drives
 // AD15-0 with its internal 16-bit value and lets UBE/A0 pick the lane(s) the
@@ -600,6 +615,7 @@ void BiuTimed::mem_write(uint16_t seg_val, uint16_t off, uint16_t data,
     // M5b: ONE pass through the A0 byte swapper, on the ACCESS's own address --
     // both cycles of a split then drive that same rotated value.
     uint16_t d = (a & 1) ? swap8(data) : data;
+    last_wval_ = data;
     for (int i = 0; i < n; ++i) {
         Access* r = find_reserved();
         if (!r) break;
@@ -614,6 +630,7 @@ void BiuTimed::mem_write(uint16_t seg_val, uint16_t off, uint16_t data,
 uint16_t BiuTimed::io_read(uint16_t port, bool word, uint16_t upc) {
     uint16_t v = core_.io_read(port, word, upc);
     Access acc;
+    acc.rd_val = v;
     acc.bs = kBsIoR;
     acc.addr = port;
     acc.segc = 2;  // I/O drives the "no segment" code (MEASURED, E4 case 0)
@@ -644,6 +661,7 @@ void BiuTimed::io_write(uint16_t port, uint16_t data, bool word, uint16_t upc) {
     core_.io_write(port, data, word, upc);
     int n = (word && (port & 1)) ? 2 : 1;
     uint16_t d = (port & 1) ? swap8(data) : data;
+    last_wval_ = data;
     for (int i = 0; i < n; ++i) {
         Access* r = find_reserved();
         if (!r) break;

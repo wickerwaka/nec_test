@@ -187,6 +187,7 @@ private:
         // the LAST of its two byte cycles.  (MEASURED: `8B` case 11, a word
         // load from an odd address, retires off the second half's T4.)
         bool rd_last = true;
+        uint16_t rd_val = 0;   // a READ's datapath value -> OPR at its T4+1
         uint8_t push_n = 0;    // queue bytes this fetch delivers
         uint8_t push_b[2] = {0, 0};
     };
@@ -324,6 +325,19 @@ private:
     // load it (ENTER's 0262 MEMW / 0263 `BP -> OPR F`).
     int opr_held_ = 0;
     long opr_free_clk_ = -1;
+    // OPR, SHADOWED.  Every completed READ loads it (at that read's T4 + 1)
+    // and every paired store's value passes through it; a store that reaches
+    // T1 without having been given data drives whatever is STILL STANDING
+    // there, rotated by its own A0 (M5b).  That is not a fallback -- it is
+    // the whole of the string loops:
+    //   * `A4` REP MOVS has NO `F` row between its 008D MEMR and its 008F
+    //     MEMW, so the store simply drives what the load put in OPR one clock
+    //     earlier.  MEASURED: `F3A4` cx=1, load at an ODD address showing
+    //     5190 on the pins, store at an ODD address driving 5190 -- the
+    //     rotator applied twice.
+    //   * `F3AA` REP STOS refreshes OPR only on its first element, so every
+    //     later store re-drives the same word aligned to its own address.
+    uint16_t last_wval_ = 0;
 };
 
 }  // namespace sim
