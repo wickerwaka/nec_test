@@ -575,8 +575,11 @@ private:
     // -- the completion eval + 2, i.e. exactly `wait_bus()`'s deadline -- so
     // it stretches with the eval like every other eval-keyed quantity.
     //
-    // MEASURED ON THE PINS, no model in the loop (`sw/tacensus.py --chains`,
-    // 18.1): every TRAP PUSH CHAIN in the fuzz bank -- three MEMW cycles
+    // WHAT IS MEASURED IS THE BUS GAP, NOT THE RELEASE.  The pins cannot see
+    // OPR; this is the minimal model that reproduces the measured gaps from
+    // quantities the model already has, and 18.2 says so.  The MEASUREMENT
+    // (`sw/tacensus.py --chains`, 18.1), pins only and no model in the loop:
+    // every TRAP PUSH CHAIN in the fuzz bank -- three MEMW cycles
     // stepping down by 2, then a CODE fetch -- scored by its store-2-to-
     // store-3 T1 gap against PS3, M9's emulation-mode status bit.  1,566
     // chains: 1,488 with MD clear throughout sit at the NATIVE law (gap 6 at
@@ -584,7 +587,9 @@ private:
     // between push 1 and push 2 sit at eval+2 -- gap 7 at 0 waits (73), 9 at
     // 1 (3), 11 at 3 (2).  Zero exceptions on either side, and the wait axis
     // is what separates this from a fixed extra row count (which would need
-    // +1/+3/+3) and from `2*(1+waits)` (which predicts 13 at 3 waits).
+    // +1/+3/+3) and from `2*(1+waits)` (which predicts 13 at 3 waits).  Those
+    // named rivals are REFUTED; uniqueness is NOT established -- there are
+    // only five minority chains above w0.
     //
     // It also closes 80 of the 93 residual flush-`E` events 17.4 named and
     // misread as a post-write bus turnaround: 475 events carry that stated

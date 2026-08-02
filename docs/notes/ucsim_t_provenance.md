@@ -4105,12 +4105,14 @@ close, and the tranche's remaining 34 misses have NOT been re-classified here
 
 ## 18. POST-CLOSURE ADDENDUM #3 — THE TURNAROUND RESIDUAL IS NOT A TURNAROUND (2026-08-02)
 
-**This section is an ADDENDUM.  Nothing in §0-§17 is edited or retracted by
-it; the registered V1-V5 record in the verdict stands exactly as written.**  It
-goes after the residual §17.4 named: 93 flush events (of 16,148) whose `E` the
-model misses, 77 of them one shape — the chip's `E` at `x+2`, the model's at
-`x+0`, with the last completed cycle a ZERO-WAIT MEMW ending at `x-1`.  §17.4
-read that as a POST-WRITE BUS TURNAROUND.
+**This section is an ADDENDUM.  No text in §0-§17 is edited, and the registered
+V1-V5 record in the verdict stands exactly as written — but this addendum DOES
+retract one recorded reading, §17.4's "post-write turnaround", and says so in
+its own §18.1 and §18.4a.  §17.4 is left standing as written and is superseded
+here, not rewritten.**  It goes after the residual §17.4 named: 93 flush events
+(of 16,148) whose `E` the model misses, 77 of them one shape — the chip's `E`
+at `x+2`, the model's at `x+0`, with the last completed cycle a ZERO-WAIT MEMW
+ending at `x-1`.  §17.4 read that as a POST-WRITE BUS TURNAROUND.
 
 **Outcome: that reading is FALSIFIED BY ITS OWN CONTROL, and the residual is
 TWO MACHINES, neither of them a turnaround.**  475 events carry §17.4's stated
@@ -4183,6 +4185,15 @@ measured it, between the PSW push and the CS push, i.e. on `0093`.
 
 ### 18.2 M13 — IN 8080 EMULATION MODE THE STORE HOLDS OPR UNTIL IT HAS RETIRED
 
+**What is measured and what is inferred, separated first.**  The pins measure a
+BUS GAP — the store-2-to-store-3 T1 distance — and the status bit it splits on.
+They do NOT observe OPR, the `F` row, or any release instant; nothing in this
+campaign can.  So "the store holds OPR until it has retired" is the MINIMAL
+MODEL that reproduces the measured gaps using quantities the model already has,
+not a directly witnessed internal event.  What is measured is the gap and the
+split; what is landed is the smallest re-keying of an existing deadline that
+reproduces them.
+
 The gap that splits is the one spanned by `01FA` (`PC -> OPR ... F`, the F/OPR
 interlock) and `01FB` (the third store).  Writing `T1`, `e` and `T4` for the
 SECOND store's own instants:
@@ -4208,7 +4219,12 @@ same arithmetic and nothing added:
 is set.  No new state (the BIU has held a live view of MD since M9's `bind_md`),
 no new deadline, no table, no per-form case.
 
-**Rivals, all falsified, and the WAIT AXIS is what falsifies them:**
+**The rivals that were TRIED are falsified, and the WAIT AXIS is what falsifies
+them.  UNIQUENESS IS NOT ESTABLISHED:** five minority chains above `w0` (three
+at `tw=1`, two at `tw=3`) kill any hypothesis with a wrong closed form, but they
+cannot exclude every other wait- or path-conditioned law that also yields
+7 / 9 / 11.  What the table below claims is refutation of the named rivals, not
+that M13 is the only law consistent with the data.
 
 | rival | prediction | measured |
 |---|---|---|
@@ -4313,7 +4329,8 @@ fractions are unchanged).
 | finding | class | evidence | falsifier |
 |---|---|---|---|
 | §17.4's POST-WRITE TURNAROUND reading | **RETRACTED** | its own control: 475 events carry the stated signature, 398 exact | — (retracted) |
-| **M13** in 8080 emulation mode the F/OPR interlock's write half releases at the store's RETIRE (completion eval + 2), not at the fixed index 2 | **MEASURED** | pins only, no model: 1,566 trap push chains in the bank split perfectly on PS3 (M9's emulation-mode bit) — 1,488 native chains at gap 6/6/7/8/…/20 by wait level, 78 emulation chains at 7 (tw=0), 9 (tw=1), 11 (tw=3); three wait levels, zero exceptions; and the 80 residual `E` events close | any emulation-mode `-> OPR F` row between two stores that releases at the store's index 2, or any native-mode one that releases at its retire |
+| the BUS GAP and the split that carries M13 | **MEASURED** | pins only, no model: 1,566 trap push chains in the bank split perfectly on PS3 (M9's emulation-mode bit) — 1,488 native chains at store-2-to-store-3 gap 6/6/7/8/…/20 by wait level, 78 emulation chains at 7 (`tw=0`), 9 (`tw=1`), 11 (`tw=3`); three wait levels, zero exceptions on either side | any chain that breaks the split, at any wait level |
+| **M13** the reading of that gap: in 8080 emulation mode the F/OPR interlock's write half releases at the store's RETIRE (completion eval + 2), not at the fixed index 2 | **MODEL, minimal and consistent — NOT a witnessed internal event** | it reproduces all six gaps from quantities the model already has (`wait_bus()`'s deadline, `bind_md`'s MD view), adds no state, and closes the 80 residual `E` events; the named rivals are refuted by the wait axis, but UNIQUENESS IS NOT ESTABLISHED (five minority chains above `w0`) | any emulation-mode `-> OPR F` row between two stores that releases at the store's index 2, or any native-mode one that releases at its retire; or any competing law that fits 6/6/8 native and 7/9/11 emulation with less state |
 | the discriminator is MD and not "the BRKEM chain" | **MEASURED IN KIND, NOT SEPARATED BY THE ASSETS** | every chain with MD set at the `F` row is a BRKEM entry; no `CALLN` (the entry that runs the same rows with MD clear) occurs in the bank | a `CALLN` capture, or any emulation-mode push chain that is not a BRKEM entry |
 | **the two-clock `E`** after a BRKEM flush | **OBSERVATION, NOT LANDED** | 80 of 80 BRKEM flush events, 0 of 16,068 others; a probe moves 122 seeds later with 0 newly broken and 0 newly exact | see §18.3(a) |
 | the emulation-mode prefetch threshold is 2 | **FALSIFIED** | 12 seeds diverge EARLIER, none later | — |
