@@ -791,13 +791,27 @@ python3 sw/ucsim_check.py --suite tests/v30/v0.2    # 347000/347000
 python3 sw/ucsim_check.py --suite tests/v30/v0.3    # 3699998/3699998 (507 s)
 ```
 
-The mass sweep is GREEN on the committed binary: `v0.3` **3,699,998 /
-3,699,998** (2 documented pre-existing exclusions), on top of v0.1 169,000 and
-v0.2 347,000 — 4,215,998 cases, zero regressions.  **`v20suite` (the V20
-architectural oracle) is OWED**: it was launched on the same binary but its
-result could not be observed before the session ended.  Re-run
-`python3 sw/ucsim_check.py --suite tests/v30/v20suite` and record the number
-here.
+**The full ~7.34M functional sweep is GREEN on the T1 binary**, zero
+regressions:
+
+| suite | result | time |
+|---|---|---|
+| v0.1 | 169,000 / 169,000 | 17 s |
+| v0.2 | 347,000 / 347,000 | 38 s |
+| v0.3 | 3,699,998 / 3,699,998 | 507 s |
+| v20suite | 3,125,000 / 3,125,000 | 414 s |
+| **total** | **7,340,998** | |
+
+(`v0.3`'s 2-case shortfall against its nominal 3,700,000 is the documented
+pre-existing exclusion, not a T1 effect.)
+
+*One observation, NOT a T1 result:* `sw/ucsim_check.py --suite
+tests/v30/mod3_illegal` returns `0/128 (0.0s)` — 128 cases in zero seconds
+means the harness never ran them, so this reads as a suite/invocation mismatch
+rather than a functional failure.  `mod3_illegal` is not part of the campaign's
+standing gate set and was not part of the 7.34M above; it was run here only
+opportunistically.  **Unverified either way — confirm against a pre-T1 binary
+before treating it as anything.**
 
 *Environment note, for whoever re-runs this:* the machine's `/tmp` tmpfs hit its
 quota during T1 (`g++`: "error writing to /tmp/ccXXXX.s: Disk quota exceeded"),
