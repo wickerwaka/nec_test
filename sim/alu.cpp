@@ -395,17 +395,33 @@ AluResult alu_step(Machine& m, const AluLatch& lat) {
         res.flag_mask = kFlagCY | kFlagV;  // rotates touch CY and V only
     }
     res.flags = f;
-    // THE SHIFTER IS 16 BITS WIDE; only its FEEDBACK taps move with the
-    // operand width.  At byte width the whole register still shifts one place
-    // -- so the companion byte in the high half shifts too, with a zero
-    // shifted in -- and the byte's own incoming bit (rotate feedback, carry,
-    // sign) is written over bit 7 of that result.  MEASURED: `D0.0` case 9,
-    // `rol byte [odd], 1` with datapath 9023 stores 2046 = 9023 << 1, not
-    // 0046 and not 2146; `C0.7` case 27 (`sar byte, 10`, companion 90) stores
-    // 0000 because 90 has shifted out after eight steps.  Unobservable before
-    // the read-side byte swapper made the companion byte non-zero.
-    uint32_t wide = left ? (uint32_t(m.tmpb) << 1) : (uint32_t(m.tmpb) >> 1);
-    res.value = byte ? uint16_t((wide & 0xFF00u) | (r & 0xFFu)) : uint16_t(r);
+    // THE SHIFTER IS TWO 8-BIT LANES FED BY ONE FEEDBACK BIT.  At byte width
+    // the companion byte in the high half shifts too, and the SAME incoming
+    // bit the low lane gets (rotate feedback / carry-in / sign) is injected at
+    // the top of BOTH lanes.  MEASURED on the byte memory RMW stores, where
+    // the read-side byte swapper makes the companion visible:
+    //   `D0.0` case 9  `rol byte [odd],1`  9023 -> 2046   (feedback 0)
+    //   `D0.1` case ?  `ror byte      ,1`  9029 -> C894   (feedback 1: bit 15
+    //                                                      AND bit 7 set)
+    //   `C0.7` case 27 `sar byte      ,10` 9056 -> 0000   (90 shifts out)
+    // A single 16-bit shift would give C814 for the middle one and a confined
+    // shifter 0094; only the two-lane form gives C894.
+    if (byte) {
+        // A LEFT shift is a plain 16-bit shift: there is only one LSB entry,
+        // it takes the byte-width feedback, and bit 8 gets bit 7 naturally.
+        // A RIGHT shift has an MSB entry PER BYTE LANE, and one wire drives
+        // both -- bit 15 receives the same feedback bit as bit 7.
+        // On a right shift only the ROTATE wrap-around bus reaches the high
+        // lane's MSB entry: ROR/RCR drive it, SHR and SAR leave it at 0 (SAR's
+        // sign replicate is a mux on the LOW lane only).
+        bool wrap = (op == kRor || op == kRcr);
+        uint32_t fb = wrap ? ((r >> 7) & 1u) : 0u;
+        uint32_t hi = left ? (((m.tmpb >> 8) << 1) | ((m.tmpb >> 7) & 1u))
+                           : (((m.tmpb >> 9) & 0x7Fu) | (fb << 7));
+        res.value = uint16_t(((hi & 0xFFu) << 8) | (r & 0xFFu));
+    } else {
+        res.value = uint16_t(r);
+    }
     (void)hi_keep;
     return res;
 }

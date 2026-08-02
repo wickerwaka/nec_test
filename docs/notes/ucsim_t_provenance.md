@@ -23,9 +23,10 @@ yet understand.  A large fitted table or a many-cased rule is a SIGNAL OF
 MISUNDERSTANDING, not a deliverable.  Where an entry below needs a special
 case, the special case is written down as an open question, not as a law.
 
-Status: **T0 complete, 2026-08-01.  T1 IN PROGRESS — the w0 timing core exists
-and the ratchet is open (see §7).  The T1 exit gate (v0.1 166,800/166,800
-cycle-row exact at w0) is NOT met.**
+Status: **T0 complete, 2026-08-01.  T1 IN PROGRESS — the w0 timing core and
+the T1 mechanism set exist; the ratchet stands at 155,011 / 169,000 rows-exact
+at w0 with 282 of 347 forms 100 % exact (§8).  The T1 exit gate (v0.1
+166,800/166,800 cycle-row exact at w0) is NOT met.**
 
 ---
 
@@ -893,3 +894,287 @@ for the loads, the pre-decode read's request timing.
    schedules were used as CROSS-CHECKS on §7.6 by hand, but no `timed-scenario`
    L1 replay harness exists yet.  Still owed.
 8. **`kSegZero` PS code** (T0 open 5) is still an ASSUMPTION.
+
+---
+
+## 8. T1 second pass — the datapath, the flush, and the two requesters
+
+This section is the continuation of §7.  Nothing in §7 is retracted except
+where an entry below says so explicitly.  The ratchet
+(`sw/timed_gate.py --suite tests/v30/v0.1 --forms all`, `rows_exact`) moved
+
+| step | rows exact | row diffs |
+|---|---|---|
+| §7 close (T1c) | 50,207 | 4,431,246 |
+| M5b + rb16 — the byte-lane companion (C4) | 50,906 | 4,324,751 |
+| F1/F2/F3 flush mechanisms + UBE-at-T1 + pre-window priming (C1) | 64,530 | 3,279,389 |
+| the pre-decode OPR hand-over (T4+2) | 81,277 | 2,810,805 |
+| the FARJMP redirect bubble (C2) | 95,408 | 2,552,934 |
+| reads show the ALIGNED WORD + the rig's NOP fill | 113,929 | 2,325,915 |
+| read-side byte swapper + width-confined shifter + M3b decoder miss | 125,528 | 1,555,953 |
+| **S5 retired** — the BIU schedules the write cycle | 128,891 | 1,294,021 |
+| the F interlock is per-read and in-order (C3/C5) | 137,370 | 853,021 |
+| the second-byte group dispatch costs one clock | 145,680 | 654,937 |
+| I/O through the same swapper and the same split (C7) | 147,672 | 638,536 |
+| the shifter is 16 bits wide, only its taps move | 152,954 | 612,126 |
+| retire deadline = the STORE only | 152,954 | 612,126 |
+| E frees on the EU access's status cycle; flush carries CS | 153,335 | 612,140 |
+| the shifter's right-shift MSB entry + the rotate wrap bus | **155,011** | 603,760 |
+
+**282 of 347 forms are now 100 % cycle-row exact at w0** (was 47).  Arch
+through the timed path is unchanged at 166,800/169,000 and windows at
+168,720/169,000 — both shortfalls are still exactly the pin-event pseudo-forms
+(scaffolding **S9**).
+
+### 8.1 M5b — the A0 BYTE SWAPPER, and the datapath is 16 bits wide everywhere
+
+One rotator, applied on both sides of the bus, is the whole of category C4 and
+most of the "companion byte" folklore:
+
+* **Register read.**  The register file has no byte read port.  It presents the
+  whole PAIR and an 8-bit rotator puts the selected half in the low lane
+  (`state.h::rb16`): a low-byte read is the pair as-is, a high-byte read is the
+  pair swapped.  Byte-width consumers mask the low byte off; the write-data
+  latch does not.
+* **Memory / IO read.**  The 16-bit system presents the whole ALIGNED WORD; the
+  CPU routes the ADDRESSED byte to the low half of its datapath and carries the
+  COMPANION byte in the high half (`Biu::mem_read`, `Biu::io_read` — one
+  expression for both widths).
+* **Bus display.**  The AD value is always the datapath value rotated by A0.
+  On a write that is `swap8(data)` at an odd address, ONCE PER ACCESS, so both
+  cycles of a split write drive the same rotated value.  On a read it is the
+  system word, which is the same statement read backwards.
+
+*Evidence.*  `88` byte-store T1 rows, **366/366** predicted by
+`rot(pair) -> rot(A0)`.  All four address/width quadrants, one case each:
+`88` (`mov [odd], dl`, DX=403F -> 3F40; `mov [even], dl`, DX=6720 -> 6720),
+`C6.0` (imm8 A3 sign-extended to FFA3, odd -> A3FF), `50` (PUSH AX, AX=CD0B at
+an odd SP -> 0BCD on BOTH halves; AX=1B17 at an even SP -> 1B17).  Read side:
+over every v0.1 MEMR byte cycle whose aligned partner byte is poked to
+something other than 0x90, the free lane carries that partner byte in
+**19,237** cases and differs in **747** — and every one of the 747 is an RMW
+form (`0F20/0F22/0F26`) whose partner the same instruction had already
+overwritten, i.e. the rule holds there too.  Discriminating case for
+"aligned word" over "undriven lane retains": `58` case 0, a split POP at an odd
+SP whose SECOND half (even address) shows `9007`, the aligned word, and NOT the
+`A2` the first half had just put on the high lane.
+
+**T0 §2.6 ("undriven byte lanes retain") is RETRACTED.**  It was an alias of
+the rig's 0x90 NOP fill.
+
+*Consequence — the rig's memory fill.*  A prefetch or a read outside a case's
+poked bytes shows **0x90** on the rig, so the timed model needs that fill.
+`Biu::set_fill` is settable; the FUNCTIONAL model keeps its 0x00 default
+byte-identically and only `timed_runner` sets 0x90.  That arch through the
+timed path stayed at 166,800 is the check that no golden depends on the fill
+architecturally.
+
+*Consequences inside the ALU, both previously unobservable because the high
+half of a byte memory operand was always zero:*
+
+* The iterative SHIFT/ROTATE unit is a **16-bit shift register whose ENTRY
+  POINTS move with the operand width**, and the two directions are not
+  symmetric because the register is not:
+  * a LEFT shift is a plain 16-bit shift — there is only one LSB entry, it
+    takes the byte-width feedback (rotate bit / carry-in), and bit 8 gets bit 7
+    naturally;
+  * a RIGHT shift has an MSB entry PER BYTE LANE, and the only thing that
+    reaches the HIGH lane's entry is the ROTATE WRAP-AROUND BUS: `ROR`/`RCR`
+    drive bit 15 with the same bit they drive bit 7, while `SHR` and `SAR`
+    leave it at 0 (SAR's sign replicate is a mux on the LOW lane only).
+
+  Settled by census, not by fitting — over the v0.1 `D0.*` byte memory RMW
+  stores, reconstructing the datapath value on both sides of the A0 swapper and
+  testing the two candidate high-lane models:
+
+  | op | cases | two-lane | plain 16-bit |
+  |---|---|---|---|
+  | ROL | 377 | 377 | 377 |
+  | ROR | 379 | **379** | 181 |
+  | RCL | 369 | 179 | **369** |
+  | RCR | 366 | **366** | 195 |
+  | SHL | 381 | 185 | **381** |
+  | SHR | 384 | 384 | 384 |
+  | SAR | 382 | 201 | **382** |
+
+  Every left-shift column picks plain-16-bit; on the right, the two ROTATES
+  pick two-lane and the two SHIFTS pick plain-16-bit, with ROL and SHR
+  indifferent because their feedback bits coincide.  That split is the wrap
+  bus: it exists only for a rotate.
+  Worked example: `ror byte, 1` on datapath 9029 stores **C894** — a single
+  16-bit shift gives C814 and a fully confined shifter 0094.
+
+**C4 is CLOSED.**  It rode the FULL functional sweep (§8.7).
+
+### 8.2 C1 — the flush mechanisms.  Scaffolding **S8** is removed for the
+near family; BUSLOCK and HALT display are still not implemented.
+
+* **F1 — the QS=E display is a QS-PORT ARBITRATION.**  The queue-clear event is
+  a point sample and the port carries one event per clock, so a flush parks and
+  takes the port on the first clock that is free: not on the flush clock itself
+  if a bus cycle still owns the port, not while a doomed fetch is still inside
+  T1..Tw (it shows at that fetch's T4), not on the clock a completed fetch's
+  bytes are absorbed, not on a clock already carrying a pop, and not while a
+  ready-but-not-yet-STARTED EU request owns the next slot — except on the flush
+  clock itself.  *Evidence:* `EB` case 0 (flush at a fetch's T3 -> E at its T4),
+  case 1 (flush AT a fetch's T4 -> E one later), case 3 (quiet bus -> E on the
+  flush clock); `E8` case 0 (E on the flush clock, push posted the clock after)
+  and case 7 (E deferred to the push's status cycle); `E8` case 6 (CALL at an
+  odd SP — E on the FIRST half's status cycle, the second half does not hold
+  it).
+* **F2 — THE ROM's BUS-CONTROL FIELD IS DECODED ONE ROW EARLY.**  `SUSP` and an
+  EU bus request both reach the BIU on the clock edge that LOADS the prefetch
+  commit register, so a fetch the eval just chose does not survive — but only
+  while it has not reached the status PINS (once its display clock has been
+  emitted the cycle is irrevocably announced).  **This one mechanism replaces
+  two fitted laws:** biu_model.md's per-opcode "reservation starts at the
+  final-pop cycle" (EB reserves at its last-disp pop although its SUSP row 0159
+  runs one clock later; E9 at pop+1 although 0156 runs at pop+2) and the
+  "reservation must LEAD the request by one cycle" S_RSV table for PUSH r16 /
+  reg-EA store / PUSHA / mem-RMW.  The loop family's `dly<=3 blocked /
+  dly>=4 free` cutoff is the same fact seen from the SUSP row's position.
+* **F3 — the flush-only eval point** (biu_model.md "Redirect commit"): from the
+  end of the flush onward the end of a PREFETCH cycle's T4 is an eval point,
+  and it commits the REDIRECT ONLY.  A pending EU request owns the first slot
+  and an EU access is never granted at a T4, so with a request outstanding the
+  point simply does not fire and both wait for the next normal eval.
+  *Evidence:* `EB` case 1 (redirect T1 on the doomed fetch's T4+1) vs `E8`
+  case 7 (the push waits for the next idle eval).
+* **`flush()` carries the NEW CS.**  A far transfer loads CS on an earlier
+  micro-row than the FLUSH; taking CS from the last queue pop sent the redirect
+  into the OLD segment (`CF` case 0 fetched 04646A where the chip fetches
+  09B11A).
+
+Result: `E9 EB 74 75 7C E2 EA C2 C3 C8` all 500/500; `FF.2` 463/500; `E8`
+315/500.  The far/interrupt half (`9A CC CD CE CF FF.3`) is a residual (§8.6).
+
+### 8.3 UBE is NOT part of the status register
+
+The status register (M2) drives BS, the address and PS one clock early.  **UBE
+is not in it**: it changes at T1, one clock after the status and address do.
+Invisible until an EU access sits next to a fetch, because every CODE cycle
+drives UBE low.  *Evidence:* `E8` case 0 golden rows 14-15 (the split push's
+second half is DISPLAYED with the first half's UBE and asserts its own at T1)
+and rows 18-19 (the redirect fetch is displayed with the write's UBE).
+
+### 8.4 The two requesters on one queue, and the two deadlines on one bus
+
+* **M3b — a queue MISS costs the DECODER two clocks.**  The decoder's byte
+  demand is a two-clock PLA pipeline and restarts it on a miss, so its pop
+  lands at `max(ready, demand + 2)`; the EU's `Q` source read and the
+  instruction-boundary pre-pop are combinational reads of the queue head and
+  pop at `max(ready, demand)`.  Same queue, two requesters, no table.
+  MEASURED on the queue-empty goldens, where every byte's ready clock is its
+  fetch's T4 + 2: with demand 3 and ready 4, `8A`'s DECODER disp8 pops at 5
+  while `B8`'s MICRO-ROW imm-hi pops at 4; `C6`'s disp16-lo (demand 2) pops at
+  4 and its disp16-hi (demand 4) at 6; `04`'s imm8, already in the queue, pops
+  on its demand clock.
+* **The pre-decode operand read hands OPR over at its T4 + 2**, one clock after
+  the F/OPR interlock releases — the decoder's own hand-over clock, the same
+  one that puts micro-row 0 at opcode+2 and never at opcode+1.  Census over all
+  347 forms (retire clock minus last data-cycle T4): every WRITE-terminated
+  form is +1 with **no exceptions (52,752 cases)**, and every PRE-READ-
+  terminated form is +1 plus the number of micro-rows that still have to run —
+  2 rows (`8A/8B/02/03/0A/0B/12/13/1A/1B/22/23/2A/2B/32/33/38/3A/3B`) -> +3
+  (9,043 cases), 1 row (`84/85/8E/66/67/D8-DF`) -> +2, 3 rows (`0F10/0F11`) ->
+  +4.  Nothing per-op: the row count comes from the cadence engine.
+* **The F interlock is PER READ and IN ORDER.**  Each `F` row waits for the
+  NEXT completed read, not for the whole outstanding set — and a SPLIT access
+  is ONE read to the EU, releasing on the LAST of its two byte cycles.
+  *Evidence:* `A6` (CMPSB) issues both loads back to back and then runs
+  `00A0 F / 00A1 / 00A2 F E`; the first F releases on load 1's T4+1 and the
+  retire lands on load 2's T4+1, three clocks apart.  `8B` case 11 (word load
+  from an odd address) retires off the SECOND half's T4.
+* **The retire deadline is the STORE, not the bus.**  §7.7's
+  max-of-two-deadlines in its true form: the successor pops its opcode on the E
+  row's own clock, and the only thing that can push that later is a store the
+  write-pairing latch still owes data.  An outstanding READ does not hold the
+  retire — the ROM's own `F` rows do that where it matters.  *Evidence:* `88`
+  mod0 pops it on the MEMW's T4+1; `8F.0` mod3 pops it on the E row while its
+  stack read has not reached T1.  Removing the generic wait changed the ratchet
+  by exactly zero, which is the argument for removing it.
+
+### 8.5 Cadence additions — **S5 REMOVED**
+
+* **Scaffolding S5 is fully retired.**  The write CYCLE is reserved by the BIU
+  at the eval that follows the ROM row which ISSUES the store
+  (`BiuTimed::write_request`); the write-data-pairing latch fills the value in
+  later, always before the T1 that drives it.  MEASURED: `A4` (MOVSB, rows
+  008D MEMR / 008F MEMW) puts the store's status on the LOAD's T4 and its T1 on
+  the very next clock — the eval at the end of the load's T3 granting a request
+  whose DATA does not exist yet.  With the latch owning the schedule the model
+  inserted a whole prefetch there instead.
+* **A FARJMP pays the same sequencer redirect bubble as a taken micro-JMP.**
+  Independently predicted by the measured shift law: with the bubble, the
+  `D2/D3/C0/C1` path (`011B FARJMP SHIFT -> 0228 JMP Z -> 0229 R -> 022A ->
+  022B E`) retires at pop+10+n for n>=1 and pop+9 for n==0, and `D0/D1` — which
+  reach the same R row WITHOUT a FARJMP — stay at pop+6.  Those are exactly
+  measurements.md's numbers and none of them is written down in the sim.
+  **This is also what disciplines §7.7's provisional "R row = one clock per
+  iteration": the law survives unchanged; what was missing was the jump.**
+* **The second-byte group dispatch costs one clock.**  `F6/F7 -> page 2` and
+  `FE/FF -> page 3` re-enter the decode with the ModR/M byte standing in the
+  opcode slot; that second look-up costs ONE CLOCK, charged AFTER the operand
+  pre-read (it runs in parallel with the read and shows up as one extra clock
+  before micro-row 0 — charging it before the read moves nothing, because
+  `wait_opr` absorbs it, which is how the placement was settled).  MEASURED:
+  `FE.0` (`inc byte [mem]`, 01B8/01B9) puts its store exactly one clock later
+  than the structurally identical `00`/`10`/`D1` stores (0000/0001, 0115..0117)
+  which share the same `[-06-]` write-back strobe on their second row.
+* **Pre-window pin priming** (T0 open item 3, second half): `begin_case` replays
+  the fetch ADDRESS sequence that filled the injected queue so the pins start
+  where the chip's do.  Now largely redundant given §8.1 but kept, since it is
+  what the chip's pins actually carry.
+
+### 8.6 Residuals entering the rest of T1 / T2
+
+13,989 cases still miss, of which 2,400 are the declared pin-event exclusion
+(**S9**: `INT.* NMI.* HLT.*` 2,200 + `POLL.REL` 200).  The remaining 11,589,
+each written as a family with its first-divergence pattern:
+
+| family | cases | first divergence | hypothesis |
+|---|---|---|---|
+| `9A CC CD CE CF FF.3` far/interrupt flush | 2,763 | `qop E` one clock off, then the whole redirect stream shifts | the multi-push chain (PSW/CS/PC) reserves and the E display arbitrates against three writes, not one; the F1 (c) clause is verified on ONE pending request only |
+| 0F-escape page (`0F10-0F1F`, `0F28`, `0F2A`, `0F31`, `0F33`, `0F39`, `0F3B`) | ~2,000 | `qop S -> -`, a pop one clock late | the `0F` second byte is a DECODER pop and now pays the M3b miss penalty; its demand clock inside the 2-clock re-decode is not yet right |
+| REP strings `F3A4 F3A5 F3AA F3AB F2AA` | 1,506 | iteration-2 onward | REP loop chaining: the non-REP forms are all 500/500, so this is the loop's re-entry cadence only |
+| MUL/DIV `F6.6 F6.7 F7.6 F7.7` | 1,254 | length | category **C6**, the wait-insensitive compute burns, untouched |
+| `8F.0` POP mem, `60` PUSHA | 1,000 | 8F.0: the golden's in-window MEMR address is NOT SS:SP and the sim's is (case 5: golden 0C87B8, SS:SP = 0C683A) — *possible golden-schema artefact, needs adjudication before any model change*; 60: the write chain | category **C5** |
+| BCD strings `0F20 0F22`, `62` BOUND | 1,301 | length | C6-adjacent; multi-access loops |
+| prefixed loads `26.8B 2E.8B 36.8B 3E.8B` | 520 | `qop S -> -` | same as the 0F page: the prefix byte's own demand clock under M3b |
+| `FF.4 FF.2 FA FB` | 279 | mixed | small tails |
+| `C0.7 D0.7 D2.7` SAR | 533 | data on the store | the SAR sign-replicate is settled for the low lane and bit 15 (0); one residue remains |
+
+**Known regression, recorded rather than patched:** the M3b decoder miss
+penalty cost ~600 previously-exact cases in the 0F/prefix families while
+buying ~7,600 elsewhere.  It is the same open item as the 0F row above.
+
+### 8.7 Gates (measured, this machine)
+
+```
+make -C sim test                                    # disasm gate: PASS
+python3 sw/pla3_check.py                            # OK (21 checks)
+python3 sw/ucsim_check.py --suite tests/v30/v0.1    # 169000/169000
+python3 sw/ucsim_check.py --suite tests/v30/v0.2    # 347000/347000
+python3 sw/ucsim_check.py --suite tests/v30/v0.3    # 3699998/3699998
+python3 sw/ucsim_check.py --suite tests/v30/v20suite         # 3125000/3125000
+python3 sw/ucsim_check.py --suite tests/v30/mod3_illegal --residue stale-ea
+python3 sw/timed_gate.py --suite tests/v30/v0.1 --forms all   # THE RATCHET
+python3 sw/timed_probe.py --forms EB --top 8         # first-divergence triage
+```
+
+`sw/timed_probe.py` is new: it reuses `timed_gate`'s runner and `check_core`'s
+comparison policy unchanged and groups the failing cases of a form by their
+FIRST divergent cell.  Every mechanism in §8 was found by reading one of its
+classes; it is the tool that turns "N cases fail" into "one mechanism is
+missing here".
+
+### 8.8 Milestones
+
+* **Milestone A** (B8 8B 89 F7.6 EB E8 at w0 + w1/w3): **NOT MET.**  At w0
+  `B8 8B 89 EB` are 500/500, `E8` 315/500, `F7.6` 245/500.  At w1 and w3 the
+  same six forms are 158/1200 and 162/1200 — the wait axis is T2 work and
+  M2's register-release still has to be re-derived from the READY sample.
+* **Milestone B** (the 35-opcode S1a tranche at w0): not separately measured;
+  276/347 forms are 100 % exact, which covers most of it.
+* **Milestone C** (T1 exit, 166,800/166,800): **NOT MET** — 155,011.
+
