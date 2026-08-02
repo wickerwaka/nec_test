@@ -14,10 +14,15 @@ namespace sim {
 
 struct Txn {
     enum Kind : uint8_t {
-        kCodeFetch, kMemRead, kMemWrite, kIoRead, kIoWrite, kIntAck };
+        kCodeFetch, kMemRead, kMemWrite, kIoRead, kIoWrite, kIntAck, kHalt };
     uint32_t seq = 0;
     Kind kind = kCodeFetch;
     uint32_t addr20 = 0;
+    // The address the SECOND byte cycle of a word access carries.  It is
+    // `addr20 + 1` except at a segment-offset wrap, where the 16-bit adder
+    // sends it back to the base of the segment (ledger A12) -- which is why it
+    // is recorded here and not recomputed by the driver.
+    uint32_t addr2 = 0;
     uint16_t data = 0;
     uint8_t width = 1;  // bytes
     uint8_t seg = 0;    // segment register index used to form addr20
@@ -57,6 +62,18 @@ public:
     // show riding both INTA cycles).  Same replay policy as `iord`.
     void set_inta(uint16_t v) { inta_ = v; }
     uint16_t inta_read(uint16_t upc);
+
+    // The HALT acknowledge status cycle.  It carries no data and no address;
+    // it is logged so the ordered bus stream a multi-instruction replay
+    // compares against a capture keeps its position marker (fuzz_classify's
+    // `func_stream` emits a bare ("HALT",) for it).
+    void note_halt(uint16_t upc);
+
+    // Number of BUS CYCLES the ordered functional stream has emitted so far:
+    // every non-CODE transaction counts 1, and an unaligned word access counts
+    // 2 because the 16-bit bus splits it.  This is the coordinate the
+    // interrupt-boundary replay is expressed in (see image_runner.cpp).
+    long ev_count() const { return ev_; }
 
     // --- prefetch queue ---------------------------------------------------
     void queue_preload(const std::vector<uint8_t>& q, uint16_t fetch_ptr);
@@ -121,8 +138,8 @@ private:
         mem_[a] = v;
         stamp_[a] = epoch_;
     }
-    void log(Txn::Kind k, uint32_t a, uint16_t d, uint8_t w, uint8_t s,
-             uint16_t upc);
+    void log(Txn::Kind k, uint32_t a, uint32_t a2, uint16_t d, uint8_t w,
+             uint8_t s, uint16_t upc);
 
     std::vector<uint8_t> mem_;
     std::vector<uint32_t> stamp_;
@@ -146,6 +163,7 @@ private:
     int near_wrap_ = 0;
     int wrapped_ = 0;
     int code_wrap_ = 0;
+    long ev_ = 0;
 };
 
 }  // namespace sim

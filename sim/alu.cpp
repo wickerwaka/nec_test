@@ -76,6 +76,14 @@ AluResult bcd_adjust(const Machine& m, uint8_t adjust, bool sub, uint16_t a) {
 uint8_t alu_opc_select(const Machine& m) {
     uint8_t sel = m.opc_from_modrm ? uint8_t(m.modrm_reg & 7)
                                    : uint8_t((m.opc_reg >> 3) & 7);
+    if (m.opc8080) {
+        // 8080 arithmetic/logic group order (80-BF and C6-FE): ADD ADC SUB SBB
+        // ANA XRA ORA CMP -- NOT the x86 ADD OR ADC SBB AND SUB XOR CMP that
+        // the same `ALU OPC` field selects in native mode.
+        static const uint8_t k[8] = {kAdd, kAdc, kSub, kSbb,
+                                     kAnd, kXor, kOr,  kCmp};
+        return k[sel & 7];
+    }
     return uint8_t(m.opc_base + sel);
 }
 

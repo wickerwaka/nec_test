@@ -38,6 +38,129 @@ OperandRef mem_ref(uint16_t ea, uint8_t seg, bool byte) {
 
 }  // namespace
 
+namespace {
+
+// --- 8080 emulation-mode decode -------------------------------------------
+// The V20's emulation mode maps the 8080 register file onto the V30's, and the
+// ROM's 8080 pages address it through the SAME `M` / `R` operand latches the
+// native pages use.  Both mappings are read straight out of the microcode:
+//   * `EB` XCHG is `BX <-> DX`, `F9` SPHL is `BX -> BP`, `E9` PCHL is
+//     `BX -> PC`  =>  HL = BX, DE = DX, SP = BP;
+//   * `LDAX B/D` is `R -> IND`  =>  BC = CX;
+//   * `MOV` is `M -> tmpa` / `tmpa -> R`, and `INR`/`MVI` write through `R`
+//     with `[-06-]`  =>  M is the SOURCE field (bits 2:0), R the DESTINATION
+//     field (bits 5:3), and register code 110 is memory at DS:BX.
+// A = AL follows from `SIGMA -> AL` in the ALU block.
+constexpr uint8_t k8080Reg8[8] = {
+    5,  // B -> CH
+    1,  // C -> CL
+    6,  // D -> DH
+    2,  // E -> DL
+    7,  // H -> BH
+    3,  // L -> BL
+    0xFF,  // M -> memory at DS:BX
+    0,  // A -> AL
+};
+constexpr uint8_t k8080Pair[4] = {kCW, kDW, kBW, kBP};
+
+OperandRef r8080(Machine& m, uint8_t code) {
+    uint8_t r = k8080Reg8[code & 7];
+    if (r == 0xFF) return mem_ref(m.gpr[kBW], kDS, true);
+    return reg_ref(r, true);
+}
+
+LoadResult loader_decode_8080(Machine& m, Biu& biu) {
+    LoadResult out;
+    auto fetch = [&]() -> uint8_t {
+        uint8_t b = biu.next_byte(m.sreg[kCS], kPreDecodeUpc);
+        m.pc = uint16_t(m.pc + 1);
+        return b;
+    };
+
+    uint8_t b = fetch();
+    uint16_t v = pla3::kMode8080[b];
+    bool ext = false;
+    if (pla3::one_byte_logic(v) &&
+        pla3::bl1_op(v) == pla3::Bl1Op::kExtPrefix) {
+        ext = true;
+        ++m.pfxcnt;
+        b = fetch();          // ED ED = CALLN, ED FD = RETEM
+        v = pla3::kMode8080[b];
+    }
+    out.opcode = b;
+    out.pla = v;
+    m.opc_reg = b;
+    m.xop = pla3::xop(v);
+
+    if (!ext && pla3::one_byte_logic(v)) {
+        out.executed = true;
+        switch (pla3::bl1_op(v)) {
+            case pla3::Bl1Op::kSetIe: m.psw |= kFlagIE; break;
+            case pla3::Bl1Op::kClrIe: m.psw &= uint16_t(~kFlagIE); break;
+            case pla3::Bl1Op::kSetCy: m.psw |= kFlagCY; break;
+            case pla3::Bl1Op::kNotCy: m.psw ^= kFlagCY; break;
+            case pla3::Bl1Op::kHalt: m.halted = true; out.halt = true; break;
+            default: break;
+        }
+        m.set_flags(m.psw);
+        return out;
+    }
+
+    bool byte = pla3::byte_only(v);
+    m.op8 = byte;
+    m.imm8 = byte;
+
+    // `R` is a 16-bit PAIR for every non-byte form, and additionally for
+    // STAX/LDAX (`02`/`0A`/`12`/`1A`), whose DATA is a byte but whose `R` is
+    // the BC/DE pointer the ROM loads straight into IND.
+    bool pair = !byte || (b < 0x20 && (b & 7) == 2);
+    if (pla3::has_modrm(v)) {
+        // The register fields live IN the opcode; no second byte is fetched.
+        // In the ALU block (80-BF) bits 5:3 are the OPERATION, not a register,
+        // so only the source field binds.
+        if (b < 0x80) m.R = r8080(m, uint8_t((b >> 3) & 7));
+        if (!pla3::dir_from_bit1(v))     // MOV / ALU: bits 2:0 is the source
+            m.M = r8080(m, uint8_t(b & 7));
+    } else if (pla3::dir_from_bit1(v)) {
+        m.R = r8080(m, uint8_t((b >> 3) & 7));   // MVI r,d8
+    } else if (pair) {
+        m.R = reg_ref(k8080Pair[(b >> 4) & 3], false);
+    }
+    if (pair && m.R.kind == OperandRef::kReg) m.R.byte = false;
+
+    // The ALU group's OPC permutation (80-BF, C6-FE = xop 0, ByteOnly, and the
+    // immediate block); the rotate block 07/0F/17/1F keeps the native
+    // ROL/ROR/RCL/RCR order off `opc_base`.
+    if ((b >= 0x80 && b <= 0xBF) || (b >= 0xC0 && (b & 7) == 6))
+        m.opc8080 = true;
+    else if (b < 0x20 && (b & 7) == 7)
+        m.opc_base = kRol;
+
+    // Pre-read: the operand the sequence READS, and only that one.  MOV / ALU
+    // read `M`; INR / DCR read `R`; MVI writes `R` without reading it.
+    const OperandRef* pre = nullptr;
+    if (pla3::has_modrm(v)) pre = pla3::dir_from_bit1(v) ? &m.R : &m.M;
+    if (pre && pre->kind == OperandRef::kMem) {
+        m.opr = biu.mem_read(m.sreg[pre->seg], pre->ea, false, pre->seg,
+                             kPreDecodeUpc);
+        out.preread = true;
+    }
+    // `[-06-]` commits the DESTINATION when it is memory (MOV M,r / MVI M /
+    // INR M / DCR M).  In native mode only the r/m operand can be memory, so
+    // the strobe is bound to `M` there; in 8080 mode BOTH fields can name
+    // memory and the strobe follows the destination, i.e. `R`.  `MOV r,M`
+    // therefore issues no write-back at all -- which is exactly what the chip
+    // does, and what binding the strobe to `M` would get wrong.
+    if (m.R.kind == OperandRef::kMem) m.WB = m.R;
+
+    out.entry.page = ext ? 5 : 6;
+    out.entry.opc = b;
+    out.entry.loc = 0;
+    return out;
+}
+
+}  // namespace
+
 LoadResult loader_decode(Machine& m, Biu& biu) {
     LoadResult out;
 
@@ -49,11 +172,14 @@ LoadResult loader_decode(Machine& m, Biu& biu) {
     m.pfxcnt = 0;
     m.M = OperandRef{};
     m.R = OperandRef{};
+    m.WB = OperandRef{};
     m.opc_base = 0;
     m.opc_from_modrm = false;
     m.modrm_reg = 0;
     m.rep_test = kTestNone;
     m.rep_pol = false;
+    m.bus_word = false;
+    m.opc8080 = false;
     // The address adder stands on the SIGMA path with its default operation
     // (ledger, "EA-in-SIGMA"): ADD of the two tmp ports.  XLAT's 012D is the
     // row that forces it -- BX + AL with no ALU row of its own.
@@ -61,6 +187,11 @@ LoadResult loader_decode(Machine& m, Biu& biu) {
     m.alu.op = kAdd;
     m.alu.tmp = 0;
     m.alu.byte = false;
+
+    // 8080 emulation mode decodes off a different PLA section into different
+    // micro-pages; everything downstream (operand latches, bus rows, the
+    // write-back strobe) is the same machine.
+    if (m.mode8080) return loader_decode_8080(m, biu);
 
     auto fetch = [&]() -> uint8_t {
         uint8_t b = biu.next_byte(m.sreg[kCS], kPreDecodeUpc);
@@ -229,6 +360,8 @@ LoadResult loader_decode(Machine& m, Biu& biu) {
     } else {
         m.M = reg_ref(uint8_t(b & 7), byte);  // 40-5F, 90-97, B0-BF
     }
+
+    m.WB = m.M;
 
     // --- operand pre-read -------------------------------------------------
     // MODRM_STORE (pla_3 b6) = "the r/m operand is written without being

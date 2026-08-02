@@ -164,6 +164,21 @@ bool Cpu::cond_true(uint8_t cond) {
         case kCondNS: return (m_.tmpb & (m_.op8 ? 0x0080u : 0x8000u)) == 0;
         case kCondRep: {
             m_.count = uint16_t(m_.count - 1);
+            // Mid-instruction recognition, image mode: the capture says the
+            // acknowledge landed after N bus cycles, so the string loop that
+            // has already emitted N of them is the one that must withdraw.
+            // The element's own store is still PENDING here (write-data
+            // pairing, ledger sec. 18.2/27: after the first iteration nothing
+            // refreshes OPR, so the cycle only runs when the NEXT one is
+            // registered) -- it has to be counted, or the model withdraws one
+            // element late.
+            {
+                long pending = pend_.active
+                                   ? ((!pend_.byte && (pend_.off & 1)) ? 2 : 1)
+                                   : 0;
+                if (evt_at_ >= 0 && biu_.ev_count() + pending >= evt_at_)
+                    m_.intr_pending = true;
+            }
             // One string ELEMENT has completed by the time the loop asks to
             // repeat.  This is the recognition boundary the measured law calls
             // "REP iterations are individually interruptible"
@@ -188,6 +203,22 @@ bool Cpu::cond_true(uint8_t cond) {
         case kCondBusy: return false;
         case kCondIntr: return m_.intr_pending;
         case kCondOpc: {
+            if (m_.mode8080) {
+                // The 8080 condition field is opcode bits 5:3:
+                //   NZ Z NC C PO PE P M
+                bool pcy = psw & kFlagCY, pz = psw & kFlagZ, ps = psw & kFlagS;
+                bool pp = psw & kFlagP;
+                switch ((m_.opc_reg >> 3) & 7) {
+                    case 0: return !pz;
+                    case 1: return pz;
+                    case 2: return !pcy;
+                    case 3: return pcy;
+                    case 4: return !pp;
+                    case 5: return pp;
+                    case 6: return !ps;
+                    default: return ps;
+                }
+            }
             // pla_2 (IDENTIFIED exact, docs/facts/pla_model.md): the textbook
             // x86 condition table over cc = opcode bits 3:0, evaluated on the
             // architectural PSW.
@@ -404,6 +435,19 @@ void Cpu::begin_sequence() {
 // INT routine's vector fetch is an `SR = IO` access that means the ZERO segment
 // (ledger A24) only while `xop` is not one of the port classes, and `xop` would
 // otherwise still hold the INTERRUPTED instruction's value.
+bool Cpu::reset() {
+    begin_sequence();
+    rep_abort_at_ = -1;
+    m_ = Machine{};
+    m_.alu = AluLatch{};
+    m_.alu.op = kAdd;
+    MicroPc e{};
+    e.page = 7;
+    e.opc = 0x03;
+    e.loc = 0;
+    return run_micro(e);
+}
+
 bool Cpu::interrupt(EventKind kind) {
     begin_sequence();
     rep_abort_at_ = -1;
@@ -425,6 +469,7 @@ bool Cpu::interrupt(EventKind kind) {
     // inherited byte width would truncate 2*vector.
     m_.op8 = false;
     m_.imm8 = false;
+    m_.bus_word = false;
     m_.alu = AluLatch{};
     m_.alu.op = kAdd;
     m_.alu.tmp = 0;
@@ -627,6 +672,13 @@ bool Cpu::run_micro(const MicroPc& entry) {
             } else {
                 switch (op.ictl) {
                     case kIctlSusp: biu_.susp(); break;
+                    // The mode flag.  MFS = native, MFC = 8080 emulation,
+                    // ENDEM = leave emulation (RETEM restores the MD the
+                    // BRKEM frame carried, which is always 1 because 0090
+                    // pushes FLAGS BEFORE 0093 clears the flag).
+                    case kIctlMfs: m_.mode8080 = false; break;
+                    case kIctlMfc: m_.mode8080 = true; break;
+                    case kIctlEndem: m_.mode8080 = false; break;
                     case kIctlFlush: biu_.flush(m_.pc); break;
                     case kIctlCitf:
                         m_.psw &= uint16_t(~(kFlagIE | kFlagBRK));
@@ -667,9 +719,10 @@ bool Cpu::run_micro(const MicroPc& entry) {
             uint8_t ect = op.is_farjmp() ? uint8_t(7) : op.ectl;
             bool io = sr_is_io(sr);
             uint8_t seg = sr_segment(sr);
-            // Stack accesses and interrupt-vector fetches are word-wide
-            // regardless of the instruction's operand width.
-            bool byte = m_.op8 && sr != 2 && !(sr == 1 && !io);
+            // Bus width follows the decoded operand width (OP8b) unless Ext
+            // `[-03-]` (01ED) has forced WORD for the rest of the sequence.
+            // See state.h / ledger A37.
+            bool byte = m_.op8 && !m_.bus_word;
             switch (ect) {
                 case kEctlMemR: bus_read(seg, m_.ind, byte, io, op.rom_addr); break;
                 case kEctlMemW: bus_write(seg, m_.ind, byte, io, op.rom_addr); break;
@@ -678,12 +731,13 @@ bool Cpu::run_micro(const MicroPc& entry) {
                     // to the r/m operand ONLY when that operand is memory; a
                     // register r/m is written by the row's own `-> M`
                     // transfer (evidence: the 8F mod==3 ghost).
-                    if (!suppress_commit && m_.M.kind == OperandRef::kMem)
-                        bus_write(m_.M.seg, m_.M.ea, m_.M.byte, false,
+                    if (!suppress_commit && m_.WB.kind == OperandRef::kMem)
+                        bus_write(m_.WB.seg, m_.WB.ea, m_.WB.byte, false,
                                   op.rom_addr);
                     break;
                 case kEctlInta: bus_inta(op.rom_addr); break;
                 case kEctlIntaTail:
+                    m_.bus_word = true;
                     // 01ED, the row after the vector reaches tmpb.  Every
                     // software INT / INT3 / INTO / CHKIND / divide trap runs it
                     // too, and all of those forms are architecturally exact

@@ -6,7 +6,8 @@ LDFLAGS  ?=
 
 BIN  := v30sim
 SRCS := main.cpp ucrom.cpp disasm.cpp json.cpp biu.cpp ea.cpp alu.cpp \
-        loader.cpp exec.cpp case_runner.cpp
+        loader.cpp exec.cpp case_runner.cpp \
+        image_runner.cpp
 OBJS := $(SRCS:.cpp=.o)
 DEPS := $(OBJS:.o=.d)
 

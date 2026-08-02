@@ -2,7 +2,9 @@
 
 C++20 microcode-driven simulator for the NEC V30 (uPD70116). Every instruction
 is executed by walking the rows of `docs/V20BITS.TXT`; nothing is flattened
-into per-opcode C++. As of stage S2a it is architecturally exact on **all 347
+into per-opcode C++. It implements the native pages AND the 8080 emulation
+pages (`110`/`101`, entered by `BRKEM`/`MFC`, left by `RETEM`/`ENDEM` and by
+every interrupt's `MFS`). As of stage S2a it is architecturally exact on **all 347
 forms** of both `tests/v30/v0.1` (169 000 / 169 000) and `tests/v30/v0.2`
 (347 000 / 347 000), including the eleven pin-event pseudo-forms
 (`INT.*` / `NMI.*` / `HLT.*`), plus the wait tranches and the specials
@@ -23,7 +25,8 @@ No external dependencies; plain `make` and a C++20 compiler.
 | `alu.h` / `alu.cpp` | the micro-ALU: combinational `alu_eval` and the per-iteration `alu_step` |
 | `exec.h` / `exec.cpp` | the per-micro-row interpreter, incl. the hardware interrupt/NMI/trap entries (`Cpu::interrupt`) and the INTA bus cycle |
 | `case_runner.h` / `case_runner.cpp` | SingleStepTests ingestion and verdicts |
-| `main.cpp` | CLI dispatcher (`disasm`, `info`, `run`, `trace`) |
+| `image_runner.h` / `image_runner.cpp` | whole-IMAGE replay (`v30sim image`): 64K-mirrored memory, the ROM's own RESET sequence, multi-instruction execution to the harness done marker, ordered bus stream out. Drives the S3 fuzz-bank sequence gauntlet (`sw/ucsim_fuzz.py`) |
+| `main.cpp` | CLI dispatcher (`disasm`, `info`, `run`, `image`, `trace`) |
 
 Provenance for every semantic decision: `docs/notes/ucsim_provenance.md`.
 

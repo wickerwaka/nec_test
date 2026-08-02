@@ -41,6 +41,22 @@ public:
     // PSW/PS/PC pushes, queue flush).  Returns false on a runaway sequence.
     bool interrupt(EventKind kind);
 
+    // --- power-on reset -----------------------------------------------------
+    // Runs the ROM's OWN reset sequence (page 111 opcode 00000011, rows
+    // 01D0-01D5: ZEROS -> DS/FLAGS/ES/SS, ONES -> CS, ZEROS -> PC, FLUSH,
+    // MFS).  No suite ever resets the part, so these rows were unexecuted
+    // through S2; a fuzz-bank image replay starts at RESET RELEASE, which is
+    // exactly the entry they exist for.
+    bool reset();
+
+    // Multi-instruction interrupt replay (image mode).  The firing boundary is
+    // REPLAYED from the capture, expressed as a position in the ORDERED BUS
+    // STREAM (Biu::ev_count) rather than as an instruction index, because that
+    // is the only coordinate that also names a point INSIDE a string loop.
+    // Once the sim's stream reaches `ev`, the `REP` continuation fails and the
+    // ROM's own withdrawal path (009A -> 009B -> REPX 0223) runs.  -1 disables.
+    void set_evt_at(long ev) { evt_at_ = ev; }
+
     // Replay hook for an aborted REP: after `n` completed elements the string
     // loop's `REP` continuation fails and `INTR` reads true, which is how the
     // ROM itself (009A -> 009B -> REPX 0223) withdraws from the string and
@@ -114,6 +130,7 @@ private:
     int rows_ = 0;
     int rep_abort_at_ = -1;
     int rep_elems_ = 0;
+    long evt_at_ = -1;
     uint16_t hw_owned_[kHwCount] = {};
     long hw_writes_[kHwCount] = {};
 };

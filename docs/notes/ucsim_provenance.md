@@ -2118,3 +2118,501 @@ Running total: **36** numbered assumptions (A1..A36).  Policy entries: 3
   to test empirically and could not, because the V20 suite classes `F1` as a
   prefix and emits no cases for it.  Routes to S3 (a fuzz sequence can execute
   `F1` directly) or a directed capture.
+
+---
+
+# S3 — the sequence gauntlet: `tests/v30/fuzz_bank`
+
+Everything before this stage injects an architectural state and executes ONE
+instruction.  S3 executes **programs**: 3 242 banked fuzz seeds, each a 64 KB
+image regenerated bit-for-bit from `(cid, k, ov)`, run from RESET RELEASE
+through the load stub, a 24-80 instruction random program and the store stub,
+compared against the SOCKET capture of the same image on real silicon.
+
+Driver: `sw/ucsim_fuzz.py`.  Simulator mode: `sim/v30sim image` (new,
+`sim/image_runner.cpp`).
+
+## 52. What the image replay actually compares
+
+`sim/v30sim image` takes a 64 KB image, loads it into the 64K-mirrored 1 MB
+space the capture board is wired as, runs the ROM's **own RESET sequence**
+(`111.00000011`, rows `01D0`-`01D5`) and then executes until the machine halts
+or the caller's bus-cycle budget runs out.  Nothing is injected: `CS = FFFF`,
+`PC = 0`, `DS/ES/SS = 0`, `FLAGS = 0` all come out of the ROM.  Those 8 rows
+were on S2b's unexecuted list ("no suite resets the part"); a fuzz image
+replay is exactly the entry they exist for, and 6 of the 8 now execute (the
+other two are trailing dead `CTL` padding).
+
+Two streams are compared, both derived by `sw/fuzz_classify.py`'s conventions:
+
+* the **ordered functional bus stream** — CODE fetches excluded (so nothing in
+  the comparison depends on prefetch, which the functional model does not
+  have), read DATA excluded (it is an input), `INTA` a bare position marker;
+* **`chip_arch`** — the twelve `STORE_ORDER` registers off the ordered
+  `OUT 0xFE` cycles plus the PSW off the last `PUSH PSW` at `0xFFEC`, read out
+  of the SIMULATOR's own bus stream by the same `arch_dump` rules.
+
+`image_sha256` is verified before every replay.  **0 GEN-DRIFT in 3 242
+seeds**, so the generator path (`fuzz_campaign.derive_case` -> `build` ->
+`check_seq.compose`) is still bit-reproducible at this git revision.
+
+### 52.1 The byte-lane law — **MEASURED, and load-bearing**
+
+The V30 has a 16-bit bus, so an unaligned word access is **two** byte cycles.
+The chip drives the whole 16-bit pattern on AD in *both* of them and `UBE`/`A0`
+select which lane commits:
+
+| cycle | commits |
+|---|---|
+| `ube_n == 1` | one byte at `addr` = `data & 0xFF` |
+| `ube_n == 0`, `addr` odd | one byte at `addr` = `data >> 8` |
+| `ube_n == 0`, `addr` even | `data & 0xFF` @ `addr`, `data >> 8` @ `addr+1` |
+
+Read off the capture directly (`mc1/1023`: `MEMW 0x53B7 ube 0 data 0x4012`
+followed by `MEMW 0x53B8 ube 1 data 0x4012` = the word `0x1240` written at an
+odd offset), and cross-checked against `hdl/rtl/test_mem.sv`, whose byte lanes
+are wired `mem_even <= wdata[7:0]` / `mem_odd <= wdata[15:8]`.  A write is
+therefore compared as the `(address, byte)` commits it actually made, which is
+lane-exact and never reads the indeterminate lane of a byte cycle.  Getting
+this wrong makes every unaligned access look like a divergence.
+
+### 52.2 What is NOT compared, and why
+
+* **`HALT`.**  The halt acknowledge is a status-only cycle with no address and
+  no data, and whether the capture even yields a transaction for it depends on
+  whether its `T1` was followed by a `T4` before the part parked in `Ti`
+  (`extract_txns` only closes a transaction on `T4`).  It is dropped from both
+  streams; that a side halted at all is reported separately.
+* **the `8F /0 mod3` ghost read's ADDRESS** — the one documented don't-care,
+  declared in `tests/v30/v0.1/metadata.json` and honoured by
+  `sw/check_core.py::dontcare_cells` for the single-instruction gates.  The
+  sequence gauntlet honours it identically and **counts** it: 78 ghost reads
+  over 54 seeds, so the entry is not vacuous here either.  Note that in a
+  sequence replay the "pre-window execution history" the metadata blames is
+  now *inside* the window, so this address is in principle predictable — an S4
+  question, not an S3 one.
+
+## 53. A37 — Ext `[-03-]` forces WORD bus width — **RESOLVED (MEASURED)**
+
+The model that entered S3 forced word width for every `SR = SS` and every
+vector fetch, on the reading "stack accesses and interrupt-vector fetches are
+word-wide regardless of the instruction's operand width".  The fuzz bank
+**falsifies** that: the undefined byte members of the `FE` group — `FE /2`
+(CALL near), `FE /3` (CALL far), `FE /6` (PUSH r/m) — push a single **BYTE** on
+silicon.  `raw` seeds hit them constantly; e.g. `FE 31` (`/6`, PUSH r/m8)
+writes one byte at `0x3EFE` with `ube_n = 1`.
+
+Removing the forcing outright breaks the other end: the **byte `DIV`
+divide-error trap** (`F6.6`/`F6.7`, 625 `v0.1` cases) reaches the shared `INT`
+routine with `OP8b` still set and pushes three **WORDS**.
+
+The discriminator that separates them is in the ROM.  The divide trap's path is
+`019C ... FARJMP IDIV -> 01A9 FARJMP INT`, and the INT routine's first row pair
+is `01EC`/`01ED` — and `01ED` carries **Ext `[-03-]`**.  `CALLF`, `RETF`,
+`PUSHA`, `POPA`, `ENTER` and the `FE`/`FF` group's own stack rows do **not**.
+So:
+
+> **`[-03-]` sets a WORD-width override for the rest of the micro-sequence.**
+> Every bus row after it — the two vector-table reads and the three frame
+> pushes — runs word-wide whatever the interrupted instruction decoded.
+> Cleared by the next instruction decode.
+
+This *replaces* the S1 assumption rather than adding to it: the old rule was a
+description of the outcome for the forms then in scope, this is the mechanism.
+It also retires `[-03-]`'s "inert" booking (A31): the code is not inert, it was
+*unobservable* until a byte-width instruction reached an internal stack routine
+**without** passing through `01ED`, which only the undefined `FE` group does.
+
+**A37**, falsifier: any form that executes `01ED` and then writes a byte to the
+stack, or any `FE`-group form that writes a word.  `v0.1` 169 000 / `v0.2`
+347 000 re-verified green with the new rule.
+
+## 54. The `[-06-]` write-back strobe binds to the DESTINATION
+
+`[-06-]` was modelled as "commit OPR to the r/m operand `M` when `M` is
+memory", which is correct in native mode because `M` is the only operand that
+*can* be memory.  8080 mode breaks that: `MOV M,r` and `MOV r,M` put memory on
+either side of the same micro-bank (`0350`-`0352`).  The strobe is therefore
+re-bound to an explicit `Machine::WB` reference — `WB = M` in native mode,
+`WB = R` (the destination field) in 8080 mode.  Native behaviour is unchanged
+by construction and re-verified on `v0.1`/`v0.2`.
+
+## 55. 8080 emulation mode — IMPLEMENTED (R10)
+
+R10 was carried for two stages as "not a victory gate".  S3 forced it: **169
+of the 403 F-A failures at the half-way point were seeds that had entered 8080
+mode**, because raw byte-soup hits `BRKEM` constantly and, once the mode flag
+is clear, every following opcode decodes differently.  Implementing it was the
+single biggest failure class, not an optional report.
+
+What the ROM gives, walked:
+
+* **`0F FF` BRKEM** (`0348`-`0349`): `Q -> tmpbL` (the imm8 vector),
+  `CONST -> COUNT 1`, `FARJMP INTEM`.
+* **`FARJMP INTEM`** does not land on `0090`; it lands on **`01EC`**, i.e. the
+  *shared INT routine*, because `INTEM` = far-target 3 = page 7 opcode `0x18`
+  and the INT routine's first bank `111.0001?000.00` is shared between opcodes
+  `0x10` and `0x18`.  BRKEM therefore runs the ordinary vector fetch and frame
+  push.  Only the third bank differs: opcode `0x10` (INT) gets `01F4`-`01F7`
+  with `CITF`; opcode `0x18` gets `0090`-`0093`, which does **not** clear IE
+  and instead does the mode switch.
+* **the switch itself** is `0092 JMP CNTZ 12` over `COUNT`: BRKEM entered with
+  `COUNT = 1`, so `CNTZ` decrements it to 0, the jump is NOT taken, and `0093
+  MFC` runs -> **MD = 0, 8080 mode**.  `CALLN` (`ED ED`, `0400`-`0401`) enters
+  with `COUNT = 0`, `CNTZ` sees `0xFFFF != 0`, jumps over `0093`, and the `MFS`
+  already executed at `0091` leaves the part **native**.  One shared routine,
+  one counter, both directions.  Nothing about this was modelled before; it all
+  falls out of the ROM.
+* **`ED FD` RETEM** (`03FC`-`03FE`): read `[SS:SP]`, `ENDEM`, `FARJMP IRET`.
+* `MFS` (`0091`, `01D4`, `01F6`) sets MD; every interrupt entry and RESET
+  therefore returns the part to native mode, which is why an `MFS` on `01F6`
+  looked "executed-inert" for two stages.
+
+What the ROM does **not** give, and had to be modelled as loader hardware —
+each read off the microcode where possible:
+
+| item | how it was fixed | ledger |
+|---|---|---|
+| register map | `EB` is `BX <-> DX`, `F9` is `BX -> BP`, `E9` is `BX -> PC`, `LDAX B/D` is `R -> IND` => HL=BX, DE=DX, SP=BP, BC=CX; A=AL from `SIGMA -> AL` | **A38** |
+| operand fields | `MOV` is `M -> tmpa` / `tmpa -> R` => M = opcode bits 2:0 (source), R = bits 5:3 (destination), code `110` = memory at `DS:BX` | **A38** |
+| pair vs byte `R` | `pla_3` `kMode8080`'s `ByteOnly` column, plus `STAX`/`LDAX` (`02/0A/12/1A`), whose data is a byte but whose `R` is a pointer pair | **A38** |
+| micro-page | `110` for the main table, `101` for the `ED` page | ROM |
+| `ALU OPC` order | 8080 group order ADD ADC SUB SBB ANA XRA ORA CMP, a different permutation of `kStrOp` than the native ADD OR ADC SBB AND SUB XOR CMP the same field selects; the rotate block `07/0F/17/1F` keeps the native ROL/ROR/RCL/RCR | **A39** |
+| `JMP OPC` | the 8080 condition bank: opcode bits **5:3** = NZ Z NC C PO PE P M (native reads bits 3:0) | **A40** |
+| `ENDEM` | modelled as "return to native", exact whenever the BRKEM frame carried MD = 1 — which it always does, because `0090` pushes FLAGS *before* `0093` clears the flag | **A41** |
+
+Result: **+96 F-A seeds** and 153/176 of the `110` page plus 5/8 of the `101`
+page now execute (§62).
+
+## 56. F-A — the gate
+
+`python3 sw/ucsim_fuzz.py --bank mc1,mc2,t30-raw` (22 s for all four banks,
+3 242 seeds, 16 workers):
+
+| bank | seeds | exact | arch compared | note |
+|---|---:|---:|---:|---|
+| `mc1` | 1 295 | **1 256** | 1 072 | |
+| `mc2` | 1 294 | **1 243** | 1 048 | |
+| `t30-raw` | 568 | **374** | 3 | raw byte soup; almost no seed reaches the store stub inside the capture window, so this bank is a pure write-stream gate |
+| **F-A total** | **3 157** | **2 873 (91.0 %)** | **2 123** | |
+| `t30-brkem` (F-B) | 85 | **76 (89.4 %)** | 2 | |
+
+* **0 GEN-DRIFT**, 0 regeneration errors.
+* **Split the banks by whether the CAPTURE recorded an architectural dump at
+  all, and the picture sharpens completely:**
+
+| | seeds | exact |
+|---|---:|---:|
+| capture reached the store stub (`chip_arch` present) | 2 125 | **2 125 (100 %)** |
+| capture did not (window ran out / program wandered) | 1 117 | 824 (73.8 %) |
+
+  **Every single banked seed whose capture recorded a complete architectural
+  dump is register-exact, PSW-exact AND write-stream order-exact.**  2 125 of
+  them, across all four banks, including 1 048 `mc2` and 1 072 `mc1` seeds
+  spanning every wait axis.  Not one register, not one PSW bit, not one
+  transaction out of order.  There is no ARCH-only failure anywhere: the
+  architectural outcome never diverges independently of the bus stream.
+* Every one of the 284 F-A failures is therefore a seed whose *chip* run never
+  completed — raw byte soup that wandered off, or a capture window that ran out
+  mid-program — so the comparison there is a bus-stream **prefix** match with no
+  architectural anchor at its end.
+* the four `soup`-tier failures are all the same shape: the PSW pushed by an
+  interrupt frame differs in the **P** bit, i.e. a state divergence that
+  produced no observable bus event before the frame.
+
+### 56.1 Wait-axis: no wait-dependence found
+
+The banked seeds span `w0`, `w1`, `w2`, `w3` fixed and `wmax` 1/2/3/7/15
+random.  The simulator has **no wait input at all** — it computes one
+functional stream per image — so any wait-dependence in the chip's functional
+outcome would appear as a pass rate that collapses in one wait class:
+
+| axis | exact | | axis | exact |
+|---|---|---|---|---|
+| `w0` | 738/852 | | `wrand1` | 481/532 |
+| `w1` | 167/178 | | `wrand2` | 435/461 |
+| `w2` | 159/168 | | `wrand3` | 355/378 |
+| `w3` | 175/194 | | `wrand7` | 194/215 |
+| | | | `wrand15` | 169/179 |
+
+86-95 % everywhere, and the *worst* class is `w0` (which carries the highest
+share of raw-tier seeds).  **No counter-example to functional wait-invariance
+exists in the bank.**  This is not a controlled A/B — the wait axis and the
+program are drawn from the same seed, so no two banked seeds run the same
+program at different waits — and that limitation is itself worth recording: a
+controlled wait-invariance tranche would need a re-emission, not a re-analysis.
+
+### 56.2 The 284 F-A failures, categorised (survey-then-fix, third pass)
+
+| n | class | reading |
+|---:|---|---|
+| 70 | **8080-mode residue** (`mfc > 0`) | the mode is implemented and 96 seeds were recovered by it, but 8080 execution paths still diverge somewhere; each is a *raw* program running arbitrary 8080 code |
+| 4 | `soup` tier | the pushed-PSW `P` bit (above) |
+| 210 | `raw` tier, native | long tail: no instruction context accounts for more than **5** seeds, and the modal shape (88 of them) is a write at the RIGHT address with the WRONG byte — i.e. a register/flag value that diverged earlier without emitting a bus event.  46 of the 284 hit the simulator's own instruction budget or a runaway micro-sequence, which is what a wandering raw program looks like from this side |
+| 0 | GEN-DRIFT | — |
+| 0 | arch-only | — |
+
+Three mechanism-level fixes were made during the survey and each was re-run
+against the full banks and against the single-instruction gates: the boundary
+replay of §57, A37 (§53), and 8080 mode (§55).  They moved F-A from 1 979 to
+2 873.  The remaining tail is **not** a single mechanism: it is spread across
+~200 distinct instruction contexts in random byte soup, which is the regime
+where undefined encodings, self-modifying writes into the prefetch window and
+8080 excursions all coincide.  Deliberately **not** chased instruction by
+instruction — that is a hunt, not a mechanism.
+
+## 57. Interrupt interleaving (F-C) — the firing boundary needs TWO coordinates
+
+The S2a policy (§38) is "replay the boundary, compute the consequences".  In a
+single-instruction case the boundary is named by the golden's pushed `IP`.  In
+a **sequence** that is not enough, and neither is the obvious alternative:
+
+* a **bus-stream position** (how many bus cycles preceded the acknowledge)
+  cannot separate two instruction boundaries with no bus access between them —
+  the load stub's run of register `MOV`s is a dozen such boundaries, and the
+  first model fired the interrupt at the wrong one on 602 seeds;
+* the **recorded resume CS:IP** alone cannot separate a string instruction's
+  start boundary from the mid-string withdrawal that rewinds PC back to exactly
+  that address.
+
+Together they are unambiguous, and that is the policy now: **fire at the first
+instruction boundary at or after the recorded bus position whose live `CS:PC`
+is the `CS:IP` the chip's own frame pushed.**  Both coordinates are read out of
+the capture; every consequence — acknowledge, vector fetch, frame, resume,
+mode flag — is computed from the ROM.
+
+Mid-instruction recognition is implemented where the ROM puts it: `Cpu::
+cond_true(kCondRep)` raises the recognition latch when the bus stream reaches
+the recorded position, the `REP` continuation fails, and the ROM's own
+withdrawal path (`009A`/`009B` -> `REPX 0220`) runs.  **The element's own store
+is still PENDING at that test** (write-data pairing, §18.2/§27: after the first
+iteration nothing refreshes OPR, so the cycle only runs when the next one is
+registered), so the pending cycle has to be counted or the model withdraws one
+element late — measured on `mc1/1447`, a `REP STOSB` the chip aborted after two
+elements and the model after three.
+
+Results over the four banks:
+
+| | |
+|---|---:|
+| seeds carrying an `evt` axis | 1 165 |
+| ... exact | **1 075 (92.3 %)** |
+| interrupt entries actually replayed | **953** (762 INTR, 191 NMI) |
+| ... seeds exact | **918 / 953 (96.3 %)** |
+| `evt` seeds with no entry inside the window | 212 (fired past the capture, masked, or `POLL`) |
+
+### 57.1 The REPX rewind, including STACKED prefixes — **the law EMERGES**
+
+`REPX 0223 JMP INTR 5` is reachable and reached.  21 mid-string withdrawals
+landed on the boundary the chip recorded, bucketed by the number of prefix
+bytes `PFXCNT` had to unwind:
+
+| `PFXCNT` | withdrawals |
+|---:|---:|
+| 0 | 2 |
+| 1 | 15 |
+| **2** | **4** |
+
+The rewind is `0225 PFXCNT -> tmpa`, `0226 SIGMA -> tmpb / ALU DEC tmpb`,
+`0227 SIGMA -> PC / FLUSH`, i.e. `PC := PC - PFXCNT - 1`.  In S2a only
+single-prefix forms tested it.  The four `PFXCNT = 2` withdrawals are the
+general case — a REP-prefixed string instruction that *also* carries a segment
+override — and on all four the address the ROM computed is bit-identical to the
+`IP` the chip pushed.  **"The saved IP covers the whole prefix chain" is not a
+modelled rule anywhere in the simulator; it is what rows `0225`-`0227` do.**
+6 further withdrawals rewound to an address that was not the recorded one and
+are counted (`repbad`) rather than swallowed; all 6 are in already-divergent
+raw seeds.
+
+## 58. `F1` — **first empirical test, and it PASSES**
+
+S2b left `F1` as the one optable/pla finding that had never been executed: the
+V20 suite classes it `"status": "prefix"` and emits no file for it.  A fuzz
+sequence executes whatever byte is there.
+
+`sw/ucsim_fuzz.py --census` reports, per seed, which bytes the loader consumed
+in a **prefix position** (a statement about executed code, not about bytes
+lying in the image):
+
+```
+0F:2333  26:1629  2E:1638  36:1702  3E:1662  64:1689  65:1745
+F0:1541  F1:278   F2:1725  F3:1904
+```
+
+**278 seeds executed `F1` as a prefix**, and not one of the 284 F-A failures
+has its divergence at an `F1`-prefixed instruction.  `F1` seeds pass at
+177/278 against 515/703 for raw seeds without `F1` — the same regime, no
+`F1`-specific penalty.  pla_3's reading (`Bl1Op::kLockAlias`, an undocumented
+`BUSLOCK` alias) is now **corroborated by execution on real silicon** rather
+than by classification alone.
+
+## 59. A19 — REP-prefix precedence — **RESOLVED: LAST ONE WINS**
+
+A19 asked what a chain carrying two *different* REP-family prefixes does.  No
+directed probe existed and the residual said "needs board access".  It does
+not: the bank is full of them.  The census counts an instruction whose prefix
+chain carries two or more distinct members of `{F2, F3, 64, 65}`:
+
+```
+2 032 conflicting chains over 1 303 seeds
+e.g.  mc1/1015: 3E F2 F3 02 36 C6 22      (REPNE then REP)
+      mc1/1012: 65 F2 65 2A 36 21 29      (REPC, REPNE, REPC)
+      mc1/1019: F0 65 64 81 1E F0 2E 7F   (BUSLOCK, REPC, REPNC, ...)
+```
+
+every ordered pair of the four is represented (97-132 instances each).
+**1 296 of the 1 303 seeds are exact, and of the 7 that are not, ZERO have
+their divergence at a conflicting-chain instruction.**  The simulator's model
+is the prefix loop's plain "each prefix overwrites the `rep` latch", i.e. the
+LAST REP-family prefix decides both the abort test and the page-1 dispatch.
+A19 is **CLOSED** on 2 032 real-silicon instances.
+
+## 60. Status-latch persistence across an interrupt — **NOT DISCRIMINATED**
+
+Codex item 8 asks whether the ALU status latch (`Machine::stat`, what the
+microcode's `JMP C/NC/Z/NZ/L/NS` read) survives an interrupt.  The model says
+it does — nothing in the simulator clears it — and a two-instruction probe
+would settle it.
+
+`--stat-clobber` is the falsifier: overwrite `stat` with `0x5555` at every
+interrupt entry and re-run the whole bank.  If any seed's outcome changes,
+that seed discriminates; if none does, no banked seed can settle it.
+
+**0 of 3 242 seeds changed outcome** — not the verdict, not the first
+divergent event, not the stream length.  953 replayed interrupt entries are not
+enough: no banked program reads a condition set before an interrupt *after*
+that interrupt without recomputing it in between.  The residual stands, and it
+now has a measured size: a directed two-instruction probe is required, which
+needs the board and is out of campaign scope.
+
+## 61. A30 — the ambiguous micro-address — **still OPEN, now bounded**
+
+A30 says bank A of `111.00000010.00` (`01DC`-`01DF`, which saves and restores
+AX around **one** `[-05-]` acknowledge) is the *emulation-mode* acknowledge,
+selected by a 14th, mode input to the micro-address decoder; the model runs
+bank B (`01E0`-`01E3`, **two** acknowledges) always.  S2b's route for it was
+"a BRKEM capture reaching page 7 opcode 02".
+
+S3 has BRKEM captures — 73 seeds enter 8080 mode — and the answer is still no:
+
+* **bank A is 0/4 executed** across 3 242 seeds even with 8080 mode
+  implemented;
+* **every acknowledge in the entire bank is a two-cycle pair.**  764 INTA runs,
+  all of length 2, including 7 in seeds that entered 8080 mode.
+* the simulator believes exactly **3** acknowledges were taken with `MD = 0` —
+  and all three are in seeds that had ALREADY diverged before the entry, so the
+  model's mode state there is not evidence.
+
+So the bank contains no trustworthy MD = 0 acknowledge.  A30 needs a **directed
+capture**: a contained program that does `BRKEM`, stays in 8080 mode, and takes
+an INTR — at which point one INTA cycle instead of two settles it in a single
+seed.  Recorded as the concrete S4 board request.
+
+## 62. Micro-row coverage from the fuzz banks alone — 912 / 1028
+
+`--coverage` over all four banks:
+
+| block | rows executed | was, at S2b |
+|---|---|---|
+| RESET `111.00000011` | **6/8** | 0/8 |
+| BRK/TF trap `01D8`-`01D9` | **2/2** | 0/2 |
+| NMI `01DA`-`01DB` | 2/2 | 2/2 |
+| INTA bank A `01DC`-`01DF` | **0/4** | 0/4 (A30) |
+| INTA bank B `01E0`-`01E3` | 4/4 | 4/4 |
+| INTEM `0090`-`0093` | **4/4** | 0/4 |
+| BRKEM `0F FF` `0348`-`034B` | **2/4** | 0/4 |
+| 8080 page `110` `034C`-`03FB` | **153/176** | 0/176 |
+| 8080 `ED` page `101` `03FC`-`0403` | **5/8** | 0/8 |
+| REPX `0220`-`0227` | 8/8 | 8/8 |
+| POLL busy loop `006F`-`0073` | 0/5 | 0/5 (R2') |
+
+912 of 1028 rows are executed by the fuzz banks **on their own** — more than
+the 740 the whole of S0-S2 reached — and the fuzz set strictly **contains** the
+724 rows `v0.1` + `v0.2` + the specials reach, so the union is 912 as well.
+Every block S2b listed as untested is now either covered or explained:
+
+* **RESET, the BRK/TF trap, INTEM and the 8080 pages: newly covered.**  The TF
+  trap is reached because raw byte soup sets TF and the replay models the
+  single-step trap (TF sampled at the START of an instruction, so the
+  instruction that sets it does not trap — **A42**).
+* **bank A (4 rows)** — A30, §61.
+* **the POLL busy loop (5 rows)** — R2', unchanged: `BUSY` is hard-FALSE and no
+  banked program parks on the pin.
+
+Of the 116 rows still unexecuted, **108 are trailing dead rows of their bank**
+(row >= 2 with every later row of the same bank also dead) — structurally
+unreachable, no ROM claim.  The remaining **8** are:
+
+```
+0070 0071   the POLL busy loop's JMP 0 / SUSP   (R2', BUSY hard-FALSE)
+01DC 01DD   INTA bank A                          (A30, sec. 61)
+0109 0181 0219 021D  four single rows inside banks whose sequence takes the
+            other JMP arm on every case the banks contain
+```
+
+That is the whole of the campaign's untested ROM surface after S3: **two named
+residuals and four unexercised JMP arms.**
+
+## 63. Assumptions added at S3
+
+| # | assumption | § | falsifier |
+|---|---|---|---|
+| A37 | Ext `[-03-]` (`01ED`) forces WORD bus width for the rest of the micro-sequence; bus width otherwise follows `OP8b` | 53 | a form executing `01ED` that then writes a BYTE to the stack, or an `FE`-group form that writes a WORD |
+| A38 | the 8080 register map (A=AL, B=CH, C=CL, D=DH, E=DL, H=BH, L=BL, HL=BX, DE=DX, BC=CX, SP=BP, `110` = memory at `DS:BX`) and the M=source / R=destination field binding | 55 | any 8080 form touching the wrong V30 register; 153 executed `110`-page rows and 76/85 `t30-brkem` seeds constrain it |
+| A39 | the 8080 `ALU OPC` permutation ADD ADC SUB SBB ANA XRA ORA CMP | 55 | an 8080 `80`-`BF`/`C6`-`FE` form computing the wrong operation |
+| A40 | the 8080 `JMP OPC` condition bank reads opcode bits 5:3 (NZ Z NC C PO PE P M) | 55 | an 8080 conditional jump/call/return taking the wrong branch |
+| A41 | `ENDEM` returns to native mode unconditionally (exact whenever the BRKEM frame carried MD = 1, which `0090`-before-`0093` guarantees) | 55 | a `RETEM` from a frame pushed with MD = 0 |
+| A42 | the BRK/TF single-step trap is armed from the TF bit as it stood at the START of the instruction | 62 | a golden where the instruction that sets TF traps immediately |
+
+Running total: **42** numbered assumptions.  A31 (`[-03-]` inert) is
+**withdrawn** — §53 replaces it with a mechanism.  Policy entries: 4 (queue
+deferral, `iord` replay, single-instruction pin-event boundary replay, and the
+sequence boundary replay of §57).
+
+## 64. Residual updates after S3
+
+* **`F1` — CLOSED** (§58).  Executed as a prefix in 278 banked seeds, zero
+  attributable divergences.
+* **A19 — CLOSED** (§59).  2 032 conflicting REP-family chains; last one wins.
+* **A31 — WITHDRAWN**, replaced by **A37** (§53).
+* **R10 — largely CLOSED** (§55).  8080 mode is implemented from the ROM; 158
+  of its 192 rows execute; `t30-brkem` scores 76/85.  What remains is a
+  *quality* residual (the 70 seeds of §56.2), not an unimplemented feature.
+* **A30 — OPEN, bounded** (§61).  Bank A is unreached even with 8080 mode live;
+  the bank holds no trustworthy MD = 0 acknowledge.  Needs a directed capture.
+* **NEW: cross-instruction status-latch survival — UNDISCRIMINATED** (§60).
+  0 of 3 242 seeds change outcome under `--stat-clobber`.  Directed
+  two-instruction probe, board required.
+* **NEW: no controlled wait-invariance tranche** (§56.1).  The wait axis and
+  the program are drawn from the same seed, so the bank contains no two seeds
+  running the same program at different waits.  The evidence is "no
+  counter-example", not "same program, both waits".
+* **R5 — queue deferral** — now the sharpest it has been.  The functional model
+  has NO prefetch: it fetches an instruction byte when the decoder asks for it.
+  Every one of the 2 873 exact seeds is a sequence whose *functional* stream is
+  independent of the queue, which is the strongest evidence yet that the
+  deferral is sound; the raw-tier tail (§56.2) is where a self-modifying write
+  into the prefetch window would hide, and it is not separated from the other
+  causes there.
+
+## 65. Every single-instruction gate re-verified after the mechanism changes
+
+S3 changed three mechanisms in the shared model — the bus-width rule (A37), the
+write-back strobe's binding (§54) and the addition of 8080 mode (§55) — so
+every S2 gate was re-run, not just the ones the changes obviously touch:
+
+| gate | result |
+|---|---|
+| `v0.1` | **169 000 / 169 000** |
+| `v0.1-w1` / `v0.1-w3` | 1 200 / 1 200 each |
+| `v0.2` | **347 000 / 347 000** |
+| `v0.3` | **3 699 998 / 3 699 998** (2 documented VOID excluded) |
+| `v20suite` | **3 125 000 / 3 125 000** |
+| `f4a_boundary` | 160 / 160 |
+| `mod3_illegal` | 128 / 128 (128 documented residue) |
+| `f0lock_tranche` | 400 / 400 |
+| `enter_nesting` | 666 / 666 walk digests |
+
+~7.2 M single-instruction cases, all green, with the model that also runs the
+sequence gauntlet.  A37 in particular is not a special case bolted on for the
+fuzz bank: it is the rule the divide trap needed all along.

@@ -4,6 +4,7 @@
 //   disasm <romfile>   disassemble the EU microcode ROM (docs/V20BITS.TXT)
 //   info   <romfile>   summarise ROM contents and micro-address coverage
 //   run    <romfile>   execute SingleStepTests cases from stdin (NDJSON out)
+//   image  <romfile>   replay whole 64 KB test images (fuzz-bank sequences)
 //   trace  <romfile> <idx>  per-micro-row dump of ONE case (to stderr)
 
 #include <cstdio>
@@ -13,6 +14,7 @@
 
 #include "case_runner.h"
 #include "disasm.h"
+#include "image_runner.h"
 #include "ucrom.h"
 
 namespace {
@@ -28,6 +30,10 @@ int usage(const char* argv0) {
                  "                     [--alu-hw-report] [--coverage]\n"
                  "                     [--wrap-scan]\n"
                  "                     run cases from stdin\n"
+                 "  image  <romfile> [--coverage] [--trace[=idx]]\n"
+                 "                     replay 64 KB test IMAGES from stdin\n"
+                 "                     (reset -> load stub -> program -> store\n"
+                 "                      stub); see sim/image_runner.cpp\n"
                  "  trace  <romfile> <idx>      trace one case from stdin\n",
                  argv0);
     return 2;
@@ -95,6 +101,27 @@ int cmd_run(int argc, char** argv) {
     return sim::run_cases(rom, stdin, stdout, opt);
 }
 
+int cmd_image(int argc, char** argv) {
+    if (argc < 1) {
+        std::fprintf(stderr,
+                     "usage: v30sim image <romfile> [--coverage] "
+                     "[--trace[=idx]]\n");
+        return 2;
+    }
+    ucrom::UcRom rom;
+    if (!load_rom(argv[0], rom)) return 1;
+    sim::ImageOptions opt;
+    for (int i = 1; i < argc; ++i) {
+        if (std::strcmp(argv[i], "--coverage") == 0) opt.coverage = true;
+        else if (std::strcmp(argv[i], "--trace") == 0) opt.trace = true;
+        else if (std::strncmp(argv[i], "--trace=", 8) == 0) {
+            opt.trace = true;
+            opt.trace_idx = std::atol(argv[i] + 8);
+        }
+    }
+    return sim::run_images(rom, stdin, stdout, opt);
+}
+
 int cmd_trace(int argc, char** argv) {
     if (argc < 2) {
         std::fprintf(stderr, "usage: v30sim trace <romfile> <case-index>\n");
@@ -117,6 +144,7 @@ int main(int argc, char** argv) {
     if (std::strcmp(cmd, "disasm") == 0) return cmd_disasm(argc - 2, argv + 2);
     if (std::strcmp(cmd, "info") == 0) return cmd_info(argc - 2, argv + 2);
     if (std::strcmp(cmd, "run") == 0) return cmd_run(argc - 2, argv + 2);
+    if (std::strcmp(cmd, "image") == 0) return cmd_image(argc - 2, argv + 2);
     if (std::strcmp(cmd, "trace") == 0) return cmd_trace(argc - 2, argv + 2);
     std::fprintf(stderr, "v30sim: unknown command '%s'\n", cmd);
     return usage(argv[0]);

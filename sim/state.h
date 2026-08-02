@@ -157,10 +157,33 @@ struct Machine {
     uint8_t rep_test = kTestNone;
     bool rep_pol = false;
     OperandRef M, R;
+    // The operand the `[-06-]` write-back strobe commits.  Native mode: the
+    // r/m operand (`M`), the only one that can be memory.  8080 mode: the
+    // DESTINATION field (`R`) -- see loader.cpp.
+    OperandRef WB;
 
     uint16_t io_in = 0;  // suite-supplied port data for IN forms
 
     bool halted = false;
+
+    // Bus-width override.  Ext `[-03-]` (row 01ED, the first row of the SHARED
+    // INT routine) forces every following bus cycle of the sequence to WORD
+    // width, whatever operand width the interrupted instruction decoded.  It is
+    // what makes the byte-`DIV` divide-error trap push three WORDS while the
+    // undefined byte members of the `FE` group -- which reach the very same
+    // internal stack routines WITHOUT passing through 01ED -- push a single
+    // BYTE on silicon.  Cleared by every instruction decode.  Ledger A37.
+    bool bus_word = false;
+
+    // --- 8080 emulation mode (BRKEM / MFC ... RETEM / ENDEM) ---------------
+    // The mode flag MD.  MFC (ROM row 0093, reached only when BRKEM left
+    // COUNT == 1) clears it and the part decodes 8080 opcodes off pla_3's
+    // kMode8080 section into micro-pages 110/101; MFS (0091/01D4/01F6 -- i.e.
+    // reset and every interrupt entry) and ENDEM (03FD) set it back.
+    bool mode8080 = false;
+    // The 8080 ALU group's OPC select is a DIFFERENT permutation of kStrOp
+    // than the native one (8080: ADD ADC SUB SBB ANA XRA ORA CMP).
+    bool opc8080 = false;
 
     // External-event recognition latch, as the microcode sees it.  It is the
     // ONLY thing the `INTR` micro-condition reads (9B POLL 006F, REPX 0223) and
