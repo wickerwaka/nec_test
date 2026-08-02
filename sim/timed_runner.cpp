@@ -209,7 +209,16 @@ int run_timed_boot(const ucrom::UcRom& rom, const char* image_path, long clocks,
     }
     int guard = 0;
     while (biu.clock() < clocks && ++guard < 100000) {
-        if (!cpu.step()) break;
+        if (!cpu.step()) {
+            // The EU gave up on this instruction (exec_detail::kMaxRows, or an
+            // undecodable form).  SAY SO: a silently truncated run looks like
+            // a cadence result and is not one.  See ucsim_t_provenance.md
+            // R-STALL.
+            std::fprintf(stderr,
+                         "timed-boot: STEP-ABORT at clk=%ld cs=%04X ip=%04X\n",
+                         biu.clock(), unsigned(m.sreg[kCS]), unsigned(m.pc));
+            break;
+        }
         // S8/S9: the part HALTS.  The HLT micro-row drives the HALT status
         // and the bus PARKS -- it does not keep prefetching, which is what
         // the model used to do and what made every whole-program bus-cycle

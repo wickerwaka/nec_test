@@ -289,6 +289,7 @@ private:
     // completion eval if this clock ends on an eval point.
     void tick();
     void eval();
+    void et(char decision, char why) const;   // T3 diagnostic (env-gated)
     void post(const Access& a);
     // occupancy including bytes already fetched but not yet pushed
     int occupancy() const;
@@ -377,6 +378,62 @@ private:
     // cases -- E9/EA/EB/E2/E3/70-7F, every one of them a flush).
     long pf_land_from_ = -2;
     long pf_land_to_ = -2;
+    // M7 -- THE PREFETCH-ELIGIBILITY TEST IS SAMPLED AT A FIXED CYCLE INDEX
+    // (2 = T3) AND LATCHED; the COMPLETION EVAL only applies what that clock
+    // decided.  The predicate itself is UNCHANGED (M4: occupancy including
+    // bytes in flight <= 4) -- what moves is WHEN it is read.
+    //
+    // At w0 index 2 IS the completion eval (M2r: e = 2 when N = 0), so this is
+    // w0-neutral BY CONSTRUCTION, not by luck.  Under waits the eval moves out
+    // to T4 with the READY sample while the sample instant does NOT -- so
+    // every queue POP that happens during T3..T4 (i.e. during the Tw stretch)
+    // is invisible to the decision, and the part declines a refill the model
+    // used to grant.  That is the whole of the "the model resumes too eagerly"
+    // shape the six RED law cards share.
+    //
+    // It joins the campaign's other fixed cycle-relative indices -- the OPR
+    // release at index 2 (11.4, the SAME clock), M6's queue-write block at
+    // T4+1 (12.1) and the `F3AA` closing pop at T4+2 (12.4).
+    //
+    // MEASURED on the T2b Arm-C silicon sled (sw/testdata/t2b/p5-armc), which
+    // is the only stimulus in the repo that scores the resume decision
+    // EVENT BY EVENT.  Over the divergence-free prefix (2,252 CODE->CODE
+    // completion evals, 26 of them a chip PAUSE), the occupancy read at each
+    // candidate index against the chip's own GO/PAUSE:
+    //
+    //     sampled at   N = 8 errors   N = 12 errors
+    //     T1                44             ---
+    //     T2                22              20
+    //     T3 (index 2)       4               0
+    //     T4 (the eval)     15              12
+    //
+    // T3 is the minimum on BOTH wait levels and is exact at N = 12; T4 -- the
+    // model's own instant -- is the worst on both.  The falsifier is any
+    // waited capture where a pop between T3 and T4 changes the decision.
+    bool pf_arm_ = true;
+    bool pf_arm_valid_ = false;
+    // M7b -- THE OUTSTANDING-FETCH TERM CLEARS WHEN THE BYTES ARE POPPABLE,
+    // NOT WHEN THEY ARE WRITTEN.  The queue counter takes the bytes at the
+    // push edge (e+1, M3); the "a fetch is out" term the scheduler adds to it
+    // holds until e+2 inclusive -- the clock before they may be popped.  Two
+    // flops, two clear conditions; across the landing clocks the scheduler
+    // therefore counts those bytes TWICE and the refill threshold bites two
+    // bytes early.
+    //
+    // w0-NEUTRAL BY CONSTRUCTION: at w0 the window is [T4, T4+1], of which T4
+    // is not an eval point (M1) and T4+1 is M6's blocked clock -- so no w0
+    // eval can see it.  Under waits the window is [T4+1, T4+2] and T4+2 IS a
+    // live idle eval, which is the only clock the rule changes.
+    //
+    // MEASURED on the same Arm-C silicon sled, on the events where the chip's
+    // COMPLETION eval declined (53 of them, aligned): the chip grants at T4+2
+    // in 40 and at T4+3 in 13, and the queue count at T4+2 separates the two
+    // sets with ZERO exceptions -- q <= 2 grants, q = 3 or 4 waits a clock.
+    // With the fetch's own two bytes still counted that is exactly the
+    // unchanged `occupancy <= 4`; without it no threshold on any single clock
+    // separates the two sets at all.
+    long pf_infl_to_ = -2;
+    int pf_infl_n_ = 0;
     // S8/S9: once the part is halted the prefetcher never runs again.
     bool halted_ = false;
     bool halt_pending_ = false;

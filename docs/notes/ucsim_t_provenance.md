@@ -2818,3 +2818,136 @@ what can fail:
    census is dominated by `qs` (pilot 77 %), with `data` and `bs` the only
    other families.  A large family the pilot did not see is a FINDING and is
    reported as one.
+
+### 13.1 M7 — the prefetch-eligibility test is SAMPLED AT A FIXED CYCLE INDEX
+
+**The six RED cards were one flop, read one clock too late.**
+
+§7.4's M4 predicate is right and is unchanged: a fetch is issued at an eval iff
+`occupancy(queue) + bytes-in-flight <= 4`.  What was wrong was *when the model
+reads it*.  The model read it AT THE EVAL — and §11.1 moved the eval, with the
+READY sample, from T3 (w0) out to T4 (waited).  The part does not: the
+eligibility answer is decided at **cycle index 2** and latched, and the
+completion eval only applies what that clock decided.  Every queue POP that
+happens between T3 and T4 — i.e. during the whole Tw stretch — is therefore
+INVISIBLE to the decision, and the part declines refills the model granted.
+That is the entire "the model resumes too eagerly" shape the six REDs share.
+
+**w0-neutral BY CONSTRUCTION, not by luck:** at w0 the eval instant IS index 2
+(§11.1: `e = 2` when `N = 0`), so the sample and its consumer are the same
+clock and nothing can move.  Measured: the w0 ratchet is 165,490 before and
+after, to the case.
+
+*The measurement.*  The T2b Arm-C silicon sled (`sw/testdata/t2b/p5-armc`) is
+the only stimulus in this repo that scores the resume decision EVENT BY EVENT:
+20 programs x 2 wait levels, the chip's `cidle` per CODE->CODE pair.  Over the
+divergence-free prefix (2,252 aligned completion evals, 26 of them a chip
+PAUSE), reading the occupancy at each candidate index and applying the
+UNCHANGED `<= 4` threshold:
+
+| sampled at | N = 8 errors | N = 12 errors |
+|---|---|---|
+| T1 | 44 | — |
+| T2 | 22 | 20 |
+| **T3 (index 2)** | **4** | **0** |
+| T4 (the eval — the model's own instant) | 15 | 12 |
+
+T3 is the minimum at BOTH wait levels and is EXACT at N = 12; the model's own
+instant is the worst at both.
+
+*One consequence had to be said out loud:* **a FLUSH zeroes the queue counter,
+and therefore the latch.**  The sampled quantity is the counter, so a sample
+taken at index 2 of a cycle the flush then invalidates cannot hold the redirect
+off.  Without that clause `EB` is the ONLY form the whole waited suite loses —
+149/200 at w1 and 145/200 at w3; with it, 200/200 at both.
+
+*Falsifier:* any waited capture where a pop between T3 and T4 changes the
+decision.
+
+### 13.2 M7b — ...and the outstanding-fetch term clears at POPPABLE, not at WRITTEN
+
+M7 alone reproduces the sled's `cidle = 3` population and leaves a second,
+smaller one: 13 events where the chip's completion eval declines AND its next
+idle eval declines too, granting only at T4+3 (`cidle = 4`) where the model
+granted at T4+2.
+
+The queue counter takes a fetch's bytes at the PUSH EDGE (`e+1`, M3).  The
+"a fetch is out" term the scheduler adds to it clears one clock LATER, at
+`e+2` — the clock before the bytes may be popped.  Two flops, two clear
+conditions; across the two landing clocks the scheduler counts those bytes
+TWICE and the threshold bites two bytes early.
+
+*Measured on the same sled*, over the 53 aligned events whose completion eval
+the chip declined: the chip grants at T4+2 in 40 and at T4+3 in 13, and the
+queue count at T4+2 separates the two sets with **ZERO exceptions** — `q <= 2`
+grants, `q = 3` or `4` waits a clock.  With the fetch's own two bytes still
+counted that is exactly the unchanged `occupancy <= 4`; **without them no
+threshold on any single clock separates the two sets at all**, which is the
+argument for the double count rather than for a new number.
+
+**w0-neutral BY CONSTRUCTION again:** at w0 the window is [T4, T4+1], of which
+T4 is not an eval point (M1) and T4+1 is M6's blocked clock — no w0 eval can
+see it.  Under waits the window is [T4+1, T4+2] and only T4+2 is a live eval.
+
+**Result on the sled: 3,768 of 3,769 aligned CODE->CODE events exact** (was
+3,587 of 3,639; the aligned population itself grows because three seed-cells
+that used to run short now align).  The chip's own `cidle` histogram is
+reproduced bucket for bucket at 4, 5 and 12; the single residual is
+`fz90002` at N=8, event 72, where a pop lands ON the sample clock and the chip
+behaves as though it had not yet been seen — the "occupancy is a register"
+reading §12.1 falsified at w0, alive in exactly one cell.
+
+### 13.3 R-STALL — a LEAKED OPR hold, and it was worth 856 chip-exact INS rails
+
+Building the fuzz replay exposed a defect that is not a law at all.  `mem_write`
+/ `io_write` claim OPR when the write data is PAIRED (§9.2), and `tick()`
+releases it at the store's **T2** (the fixed index 2 of §11.4).  Since S5's
+retirement (§8.5) the BIU may RESERVE and even START a write cycle before its
+data exists — so a pairing that happens after that cycle's T2 has already gone
+by has no release instant left, and the hold LEAKS.  The next `-> OPR` row then
+burns `wait_opr_free`'s whole 4,096-tick guard, the bus parks, and the run is
+silently truncated.
+
+The fix is the physical statement: OPR is held only until the AD output latch
+takes the word at T2; if the pairing is later than that, OPR was never held.
+
+MEASURED, and it is the largest single move of the stage:
+
+| gate | before | after |
+|---|---|---|
+| `timed_wvec_gate` access count (vs SILICON) | 82 / 88 | **87 / 88** |
+| `timed_wvec_gate` whole-program bus cycles | −3.6 % | **−0.0 %** (16,047 vs 16,048) |
+| `timed_ins_replay` STRICT rails vs the chip capture | 1,772 / 2,624 | **2,624 / 2,624** |
+| `timed_ins_replay` R2 issue | 780 / 800 | **782 / 800** (= the offline pilot exactly) |
+| whole-program leading-access agreement | 102,960 / 173,556 | **127,712 / 173,556** (127,584 also same-T1) |
+
+`v30sim timed-boot` now also prints `STEP-ABORT` on stderr when the EU gives up
+on an instruction: a silently truncated run looks like a cadence result and is
+not one.
+
+### 13.4 Law cards — three of the six REDs turn GREEN, and the other three are a DIGEST
+
+`python3 sw/timed_lawcards.py`:
+
+| card | T2b | T3 | on what |
+|---|---|---|---|
+| **C1** LC1 steady-state gap | RED | **GREEN** | the frozen Arm-C sled: pause population sim 38 vs chip 43 (N=8), 26 vs 30 (N=12), `cidle` pinned at 3 on both |
+| **C3** LC1 cidle pin | RED | **GREEN** | same sled |
+| **C9** LC4 general lead reservation | GREEN | GREEN | unchanged |
+| **C4/C5** LC2 aged band | RED | RED | `fz90364:ws5:wmax1`: count 139/139, **digest** differs |
+| **C10/C12** LC4 late reservation / pf_rsv_lead | RED | RED | `fz90270:ws5:wmax1`: count 187/187, **digest** differs |
+| C2, C6, C7, C11 | UNRESOLVED | UNRESOLVED | unchanged (no stimulus / board-by-construction) |
+
+**3 GREEN / 4 RED / 4 UNRESOLVED** (was 1 / 6 / 4).
+
+**And an honest limit on the four remaining REDs, found by trying to work on
+them.**  `sw/testdata/t2b/p2-wvec/wvec_chip_baseline.json` stores, per cell,
+only a 16-hex-digit sha of the whole per-cycle digest plus the access count and
+the raw capture's sha — **no per-cycle stream and no retained raw words**.  So
+C4/C5/C10/C12 are pass/fail with NO GRADIENT: the sim now matches the access
+count on every one of them and there is no way to read WHERE the digest parts.
+That is a provenance gap in the T2b freeze, not a modelling one, and it is the
+first item of the T4 handoff (§13.7): the P2 capture must be re-banked with the
+per-cycle `parts` list (or the raw words retained) before those four cards can
+be worked on at all.  The Arm-C sled is the only graded resume stimulus this
+repo holds, and it is now essentially closed.

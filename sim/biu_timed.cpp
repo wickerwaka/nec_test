@@ -4,6 +4,9 @@
 
 #include "state.h"
 
+#include <cstdio>
+#include <cstdlib>
+
 namespace sim {
 
 uint8_t BiuTimed::seg_code(uint8_t seg_idx) {
@@ -61,6 +64,8 @@ void BiuTimed::begin_case() {
     halt_pending_ = false;
     last_fetch_addr_ = 0;
     pf_land_from_ = pf_land_to_ = -2;
+    pf_infl_to_ = -2;
+    pf_infl_n_ = 0;
     pop_is_first_ = true;
     consumed_.clear();
     qs_pending_ = kQsNone;
@@ -113,10 +118,19 @@ int BiuTimed::occupancy() const {
     int n = int(q_.size());
     if (run_ && cur_.is_fetch) n += cur_.push_n;
     if (cmt_valid_ && cmt_.is_fetch) n += cmt_.push_n;
+    // M7b: the OUTSTANDING-FETCH term clears when the bytes are POPPABLE
+    // (e+3), not when they are WRITTEN (e+1) -- see biu_timed.h.  The queue
+    // counter has already taken them, so across the two landing clocks the
+    // scheduler counts them twice.
+    if (clk_ - 1 <= pf_infl_to_) n += pf_infl_n_;
     return n;
 }
 
 // --- the clock --------------------------------------------------------------
+
+// DIAGNOSTIC ONLY (T3): env-gated stderr trace, no model state touched.
+static const bool kEvalTrace = ::getenv("V30SIM_EVALTRACE") != nullptr;
+
 
 void BiuTimed::tick() {
     long c = clk_;
@@ -263,6 +277,16 @@ void BiuTimed::tick() {
     last_ube_ = r.ube_n;
 
     if (rows_) rows_->row(r);
+    if (kEvalTrace) {
+        int popp = 0;
+        for (const auto& b : q_) if (b.ready <= c) ++popp;
+        fprintf(stderr, "QT %ld q=%d pop=%d occ=%d run=%d ci=%d fetch=%d "
+                        "cmt=%d qs=%d susp=%d req=%d rd=%d wr=%d eu=%d opr=%d\n",
+                c, int(q_.size()), popp, occupancy(), int(run_), run_ ? ci_ : -1,
+                int(run_ && cur_.is_fetch), int(cmt_valid_), int(r.qs),
+                int(suspended_), int(req_.size()), rd_pending_, wr_pending_,
+                eu_pending_, opr_held_);
+    }
     ++clk_;
 
     // --- end-of-clock: advance the cycle, then run the eval --------------
@@ -295,8 +319,12 @@ void BiuTimed::tick() {
             --opr_held_;
             opr_free_clk_ = c + 1;
         }
+        // M7 -- THE PREFETCH-ELIGIBILITY TEST IS SAMPLED AT A FIXED CYCLE
+        // INDEX (2 = T3), NOT AT THE COMPLETION EVAL.  See biu_timed.h.
+        if (ci_ == 2) pf_arm_ = occupancy() <= 4;
         if (ci_ == eval_i) {
             eval_here = true;
+            pf_arm_valid_ = true;   // this eval applies the index-2 sample
             // M2r: THE COMPLETION EVAL'S DISPLAY CLOCK IS NOT AN EVAL POINT.
             // At w0 that clock is T4, which is inside the cycle and so was
             // never an idle-eval candidate -- "T4 is NOT an eval point" (M1)
@@ -334,6 +362,10 @@ void BiuTimed::tick() {
                 push_absorb_clk_ = e + 2;
                 // M6: keyed to T4, NOT to the eval.  See biu_timed.h.
                 pf_land_from_ = pf_land_to_ = c + 1;
+                // M7b: ...and the accounting term for those bytes lives until
+                // they are POPPABLE.
+                pf_infl_to_ = e + 2;
+                pf_infl_n_ = cur_.push_n;
             }
             if (!cur_.is_fetch) {
                 // eu_done: the data handover / store retire lands with the
@@ -360,24 +392,46 @@ void BiuTimed::tick() {
         eval_here = true;                 // end of an idle clock
     }
     if (eval_here && !cmt_valid_) eval();
+    pf_arm_valid_ = false;   // M7: the sample is spent by its own eval
 }
 
 // The completion eval: pick the next bus cycle.  The winner is DISPLAYED on
 // the next clock and opens its T1 the clock after that (M1).
+// DIAGNOSTIC ONLY (T3).  Off unless V30SIM_EVALTRACE is set; writes to stderr
+// and touches no model state.  One line per eval point, so a divergence in the
+// prefetch decision can be read against the state the decision saw.
+
+void BiuTimed::et(char decision, char why) const {
+    if (!kEvalTrace) return;
+    long oldest = q_.empty() ? -1 : q_.front().ready;
+    long newest = q_.empty() ? -1 : q_.back().ready;
+    fprintf(stderr,
+            "ET %ld %c%c q=%d occ=%d req=%d susp=%d halt=%d run=%d "
+            "cur=%d ci=%d nw=%d old=%ld new=%ld land=%ld,%ld fp=%u\n",
+            clk_ - 1, decision, why, int(q_.size()), occupancy(), int(req_.size()),
+            int(suspended_), int(halted_), int(run_),
+            run_ ? int(cur_.bs) : -1, run_ ? ci_ : -1, run_ ? cur_.waits : -1,
+            oldest, newest, pf_land_from_, pf_land_to_, unsigned(fetch_ptr_));
+}
+
 void BiuTimed::eval() {
     flush_eval_ = false;   // F3: the flush-only T4 point is spent by any commit
     if (!req_.empty()) {
+        et('R', '-');
         cmt_ = req_.front();
         req_.pop_front();
         cmt_valid_ = true;
         cmt_t1_ = clk_ + 1;
         return;
     }
-    if (suspended_ || halted_) return;
-    if (occupancy() > 4) return;
+    if (suspended_ || halted_) { et('.', suspended_ ? 'S' : 'H'); return; }
+    // M7: at a COMPLETION eval the answer was decided at index 2 of the cycle
+    // that is finishing; at an IDLE eval the queue is read live.
+    if (pf_arm_valid_ ? !pf_arm_ : occupancy() > 4) { et('.', 'O'); return; }
     // M6 (biu_timed.h): no fetch is chosen while the previous fetch's bytes
     // are LANDING in the queue.
-    if (clk_ - 1 >= pf_land_from_ && clk_ - 1 <= pf_land_to_) return;
+    if (clk_ - 1 >= pf_land_from_ && clk_ - 1 <= pf_land_to_) { et('.', 'M'); return; }
+    et('F', '-');
     cmt_ = make_fetch();
     // The fetch pointer advances when the cycle is COMMITTED, not when its
     // data lands: the address is latched into the bus cycle here.
@@ -504,6 +558,13 @@ void BiuTimed::flush(uint16_t cs, uint16_t pc) {
     fetch_ptr_ = pc;
     suspended_ = false;
     pf_land_from_ = pf_land_to_ = -2;   // M6: the flush discards what was landing
+    pf_infl_to_ = -2;                   // M7b: ...and their accounting with them
+    // M7: the sampled quantity is the QUEUE COUNTER, and the flush zeroes it.
+    // A latch taken at index 2 of a cycle the flush then invalidates cannot
+    // hold the eval off -- the redirect must be free to go at once.  MEASURED:
+    // without this `EB` is 149/200 at w1 and 145/200 at w3 (it is the only
+    // form the whole waited suite loses), with it 200/200 at both.
+    pf_arm_ = true;
     pop_is_first_ = true;
     opc_valid_ = false;
     // ...and DOOMED means doomed on either side of the announcement.  What
@@ -753,7 +814,14 @@ void BiuTimed::mem_write(uint16_t seg_val, uint16_t off, uint16_t data,
         r->data = d;
         r->need_data = false;
         // ...and from this moment the store OWNS OPR (see wait_opr_free).
-        ++opr_held_;
+        // ...but only until the AD output latch takes the word at T2 (11.4).
+        // If the pairing happens AFTER that clock has gone by (the write
+        // cycle was reserved and STARTED before its data existed, which is
+        // exactly what S5's retirement allows) the release instant is already
+        // past, so OPR is never held.  Without this the hold LEAKS and the
+        // next `-> OPR` row burns wait_opr_free's whole 4096-tick guard --
+        // R-STALL, ucsim_t_provenance.md 13.
+        if (!(r == &cur_ && run_ && ci_ > 1)) ++opr_held_;
         if (wres_) --wres_;
     }
 }
@@ -798,7 +866,14 @@ void BiuTimed::io_write(uint16_t port, uint16_t data, bool word, uint16_t upc) {
         if (!r) break;
         r->data = d;
         r->need_data = false;
-        ++opr_held_;
+        // ...but only until the AD output latch takes the word at T2 (11.4).
+        // If the pairing happens AFTER that clock has gone by (the write
+        // cycle was reserved and STARTED before its data existed, which is
+        // exactly what S5's retirement allows) the release instant is already
+        // past, so OPR is never held.  Without this the hold LEAKS and the
+        // next `-> OPR` row burns wait_opr_free's whole 4096-tick guard --
+        // R-STALL, ucsim_t_provenance.md 13.
+        if (!(r == &cur_ && run_ && ci_ > 1)) ++opr_held_;
         if (wres_) --wres_;
     }
 }
