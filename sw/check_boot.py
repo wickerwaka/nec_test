@@ -1,7 +1,10 @@
 #!/usr/bin/env python3
-"""check_boot - mission G: replay the real reset flow in the RTL core and
-diff it against the chip's very first measurement (capture8, sw/testdata/
-largemode_boot_real.hex).
+"""check_boot - mission G: replay the real reset flow and diff it against the
+chip's very first measurement (capture8, sw/testdata/largemode_boot_real.hex).
+
+Two replay engines, ONE column policy (below):
+  default   the VERILATED RTL core (hdl/tb/obj_dir/Vtb_v30_core, +bootimg)
+  --timed   the C++ cycle-accurate sim (`sim/v30sim timed-boot`, ucsim-t)
 
 The TB (+bootimg mode) loads sw/boot.bin, holds RESET, releases, and
 records per-cycle pin records with no backdoor involvement. Comparison is
@@ -18,6 +21,7 @@ suite pipeline; only artifact-free columns are compared):
                    NOT on T1 rows (raw-capture sampling artifact), ps on
                    T2 rows of active cycles.
 """
+import json
 import subprocess
 import sys
 import tempfile
@@ -31,6 +35,8 @@ ROOT = SW.parent
 BIN = ROOT / "hdl" / "tb" / "obj_dir" / "Vtb_v30_core"
 CAPTURE = SW / "testdata" / "largemode_boot_real.hex"
 BOOTBIN = SW / "boot.bin"
+SIM = ROOT / "sim" / "v30sim"
+ROM = ROOT / "docs" / "V20BITS.TXT"
 
 T_NAME = {0: "Ti", 1: "T1", 2: "T2", 3: "T3", 4: "Tw", 5: "T4"}
 BS_NAME = {0: "INTA", 1: "IOR", 2: "IOW", 3: "HALT",
@@ -66,10 +72,33 @@ def run_sim(n):
     return sim
 
 
+def run_timed(n):
+    """The ucsim-t C++ timed sim, same frame (records start at RESET
+    release) and the same field names."""
+    r = subprocess.run([str(SIM), "timed-boot", str(ROM), str(BOOTBIN),
+                        f"--clocks={n + 8}", "--ndjson"],
+                       capture_output=True, text=True)
+    if r.returncode != 0:
+        print(r.stdout, r.stderr)
+        sys.exit("timed-boot failed")
+    sim = []
+    for line in r.stdout.splitlines():
+        line = line.strip()
+        if not line.startswith("{"):
+            continue
+        d = json.loads(line)
+        if "t" not in d:
+            continue
+        sim.append(d)
+    return sim
+
+
 def main():
-    n = int(sys.argv[1]) if len(sys.argv) > 1 else 220
+    argv = [a for a in sys.argv[1:] if a != "--timed"]
+    timed = "--timed" in sys.argv
+    n = int(argv[0]) if argv else 220
     real = load_real()
-    sim = run_sim(n + 4)
+    sim = run_timed(n) if timed else run_sim(n + 4)
     bad = 0
     for i in range(min(n, len(real), len(sim))):
         r, s = real[i], sim[i]

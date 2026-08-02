@@ -33,6 +33,14 @@ struct TimedOptions {
 int run_timed(const ucrom::UcRom& rom, std::FILE* in, std::FILE* out,
               const TimedOptions& opt);
 
+// `timed-boot`: the RESET entry point.  Loads a flat 64 KB image, runs the
+// ROM's OWN reset sequence (page 7 opcode 03, rows 01D0-01D4) and then keeps
+// executing, emitting one record per CPU clock from RESET RELEASE onwards --
+// the frame sw/testdata/largemode_boot_real.hex is captured in.  See
+// sw/check_boot.py --timed for the column policy.
+int run_timed_boot(const ucrom::UcRom& rom, const char* image_path, long clocks,
+                   std::FILE* out, const TimedOptions& opt);
+
 }  // namespace sim
 
 #endif  // TIMED_RUNNER_H

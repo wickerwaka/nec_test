@@ -122,6 +122,77 @@ void run_one(const ucrom::UcRom& rom, BiuTimed& biu, RowEmitter& sink,
 
 }  // namespace
 
+// --- the RESET entry point --------------------------------------------------
+//
+// RESET RELEASE -> the ROM's reset rows.  The capture pins the offset between
+// the two: the reset flush's `E` blip lands on release+7 and the first CODE
+// T1 on release+9 (largemode_boot_real, rows 7 and 9), and the ROM's reset
+// block is 01D0 / 01D1 SUSP / 01D2 / 01D3 FLUSH / 01D4 `E` MFS -- so the
+// FLUSH row runs on release+7 and 01D0 on release+4.  Everything after that
+// is the ordinary machine: the flush's E takes the QS port on its own clock
+// (the bus is quiet), the eval at the end of that clock commits the redirect,
+// its status shows on release+8 and its T1 opens on release+9.
+//
+// The four clocks are the ONE constant here and they are the internal reset
+// dispatch, not a fitted per-row cost.
+constexpr int kResetEntryClocks = 4;
+
+int run_timed_boot(const ucrom::UcRom& rom, const char* image_path, long clocks,
+                   std::FILE* out, const TimedOptions& opt) {
+    std::FILE* f = std::fopen(image_path, "rb");
+    if (!f) {
+        std::fprintf(stderr, "timed-boot: cannot open %s\n", image_path);
+        return 2;
+    }
+    std::vector<uint8_t> img(65536, 0x90);
+    size_t n = std::fread(img.data(), 1, img.size(), f);
+    std::fclose(f);
+    if (n == 0) {
+        std::fprintf(stderr, "timed-boot: %s is empty\n", image_path);
+        return 2;
+    }
+
+    BiuTimed biu;
+    biu.set_mirror(true);          // the capture board's 64 KB wiring
+    biu.set_waits(opt.waits);
+
+    std::unique_ptr<RowEmitter> sink;
+    if (opt.ndjson)
+        sink.reset(new ChipRowsEmitter(out));
+    else
+        sink.reset(new TextRowEmitter(out));
+    biu.set_emitter(sink.get());
+
+    biu.begin_case();
+    for (uint32_t a = 0; a < img.size(); ++a) biu.poke(a, img[a]);
+
+    CpuTimed cpu(rom, biu);
+    Machine& m = cpu.state();
+    biu.bind_psw(&m.psw);
+
+    sink->begin_case(0);
+    biu.charge(kResetEntryClocks);
+    if (!cpu.reset()) {
+        std::fprintf(stderr, "timed-boot: reset sequence did not terminate\n");
+        return 1;
+    }
+    int guard = 0;
+    while (biu.clock() < clocks && ++guard < 100000)
+        if (!cpu.step()) break;
+    biu.end_case();
+    uint16_t fin[14] = {};
+    for (int i = 0; i < 8; ++i) fin[i] = m.gpr[i];
+    fin[8] = m.sreg[kES];
+    fin[9] = m.sreg[kCS];
+    fin[10] = m.sreg[kSS];
+    fin[11] = m.sreg[kDS];
+    fin[12] = m.pc;
+    fin[13] = m.flags();
+    sink->finals(fin);
+    sink->end_case();
+    return 0;
+}
+
 int run_timed(const ucrom::UcRom& rom, std::FILE* in, std::FILE* out,
               const TimedOptions& opt) {
     std::string buf = read_all(in);

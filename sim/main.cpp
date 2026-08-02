@@ -168,6 +168,29 @@ int cmd_timed_run(int argc, char** argv) {
     return sim::run_timed(rom, stdin, stdout, opt);
 }
 
+int cmd_timed_boot(int argc, char** argv) {
+    if (argc < 2) {
+        std::fprintf(stderr,
+                     "usage: v30sim timed-boot <romfile> <image.bin> "
+                     "[--clocks N] [--ndjson] [--waits N]\n");
+        return 2;
+    }
+    ucrom::UcRom rom;
+    if (!load_rom(argv[0], rom)) return 1;
+    sim::TimedOptions opt;
+    long clocks = 260;
+    for (int i = 2; i < argc; ++i) {
+        if (std::strcmp(argv[i], "--ndjson") == 0) opt.ndjson = true;
+        else if (std::strncmp(argv[i], "--clocks=", 9) == 0)
+            clocks = std::atol(argv[i] + 9);
+        else if (std::strcmp(argv[i], "--clocks") == 0 && i + 1 < argc)
+            clocks = std::atol(argv[++i]);
+        else if (std::strncmp(argv[i], "--waits=", 8) == 0)
+            opt.waits = std::atoi(argv[i] + 8);
+    }
+    return sim::run_timed_boot(rom, argv[1], clocks, stdout, opt);
+}
+
 }  // namespace
 
 int main(int argc, char** argv) {
@@ -180,6 +203,8 @@ int main(int argc, char** argv) {
     if (std::strcmp(cmd, "trace") == 0) return cmd_trace(argc - 2, argv + 2);
     if (std::strcmp(cmd, "timed-run") == 0)
         return cmd_timed_run(argc - 2, argv + 2);
+    if (std::strcmp(cmd, "timed-boot") == 0)
+        return cmd_timed_boot(argc - 2, argv + 2);
     std::fprintf(stderr, "v30sim: unknown command '%s'\n", cmd);
     return usage(argv[0]);
 }
