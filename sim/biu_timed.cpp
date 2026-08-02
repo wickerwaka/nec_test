@@ -63,7 +63,14 @@ uint16_t BiuTimed::sys_word_at(uint32_t addr) const {
     return uint16_t(core_.peek(a) | (uint16_t(core_.peek(a | 1u)) << 8));
 }
 
+// DIAGNOSTIC ONLY (Q2): the flush / commit trace.  One line per case, per
+// flush(), per commit and per QS=E display, so the E clock, the flush clock
+// and the commit clock can be read against the bus state each of them saw.
+// Touches no model state.  (The analogue of V30SIM_ROWTRACE / EVALTRACE.)
+static const bool kFlushTrace = ::getenv("V30SIM_FLUSHTRACE") != nullptr;
+
 void BiuTimed::begin_case() {
+    if (kFlushTrace) fprintf(stderr, "FB\n");
     core_.begin_case();
     core_.clear_wrap();
     clk_ = 0;
@@ -249,6 +256,10 @@ void BiuTimed::tick() {
         !(run_ && cur_.is_fetch && ci_ <= eval_i)) {
         r.qs = kQsEmpty;
         e_pend_ = false;
+        if (kFlushTrace)
+            fprintf(stderr, "FE %ld x=%ld run=%d ci=%d fetch=%d cmt=%d\n",
+                    c, e_x_, int(run_), run_ ? ci_ : -1,
+                    int(run_ && cur_.is_fetch), int(cmt_valid_));
     }
 
     if (run_) {
@@ -461,6 +472,9 @@ void BiuTimed::eval() {
         // issue on.  While a split's first half is committed the accept clock
         // stays unknown (-1) and the blocked row keeps waiting.
         if (cmt_.rd_last) eu_accept_clk_ = cmt_t1_;
+        if (kFlushTrace)
+            fprintf(stderr, "FC %ld disp=%ld t1=%ld kind=R addr=%05x\n",
+                    clk_ - 1, clk_, cmt_t1_, unsigned(cmt_.addr));
         return;
     }
     if (suspended_ || halted_) { et('.', suspended_ ? 'S' : 'H'); return; }
@@ -479,6 +493,9 @@ void BiuTimed::eval() {
     fetch_ptr_ = uint16_t(fetch_ptr_ + cmt_.push_n);
     cmt_valid_ = true;
     cmt_t1_ = clk_ + 1;
+    if (kFlushTrace)
+        fprintf(stderr, "FC %ld disp=%ld t1=%ld kind=F addr=%05x\n",
+                clk_ - 1, clk_, cmt_t1_, unsigned(cmt_.addr));
 }
 
 BiuTimed::Access BiuTimed::make_fetch() const {
@@ -596,6 +613,8 @@ void BiuTimed::queue_preload(const std::vector<uint8_t>& q, uint16_t cs,
 }
 
 void BiuTimed::flush(uint16_t cs, uint16_t pc) {
+    const long tr_noeval = no_eval_;          // diagnostic: pre-M12 values
+    const long tr_absorb = push_absorb_clk_;
     q_.clear();
     // A committed-but-not-started fetch is withdrawn; a fetch already in
     // flight completes and its data is discarded (biu_model.md flush law).
@@ -619,6 +638,36 @@ void BiuTimed::flush(uint16_t cs, uint16_t pc) {
     // without this `EB` is 149/200 at w1 and 145/200 at w3 (it is the only
     // form the whole waited suite loses), with it 200/200 at both.
     pf_arm_ = true;
+    // M12 -- AND SO DOES EVERY OTHER LATCH THE COMPLETING CYCLE LEFT BEHIND.
+    // The three lines above are one sentence: a decision the previous cycle
+    // latched about a queue the flush has just emptied cannot outlive it.  The
+    // same sentence covers the two latches that were NOT being cleared, and
+    // they are exactly the two halves of the open Q2 question (14.2, 16.6):
+    //
+    //   * the COMPLETION EVAL's reserved display slot (11.2).  It is the
+    //     completing cycle's decision that the next clock is its display
+    //     clock; a flush invalidates that decision, so the end of the flush
+    //     clock is an eval point again and the REDIRECT commits there.
+    //   * the QUEUE-PORT absorb hold (11.3, F1(b)).  The hold exists because
+    //     the fetch's bytes are LANDING; the flush discards them, so the port
+    //     is released -- but not before the flush's own clock, which the dying
+    //     absorb still occupies.
+    //
+    // Both are W0-NEUTRAL BY CONSTRUCTION, and for the same reason the rest of
+    // M2r is: at w0 the completion eval sits at T3, so its display slot is T4,
+    // a clock INSIDE the cycle that the idle-eval path never reaches; and the
+    // absorb hold is [T4, T4+1], whose last clock is the EARLIEST clock a
+    // flush can see it on at all (a flush at or before T4 finds the fetch
+    // still running and zeroes its `push_n`, so no hold is created).  Under
+    // waits the eval is at T4, the display slot is T4+1 and the hold is
+    // [T4+1, T4+2] -- and a flush at T4+1 then frees the port at T4+2, which
+    // is Q2's own measured "the port frees at T4+2 under waits" (14.2, 293
+    // seeds), while a flush at T4+2 leaves the hold alone and the E stays at
+    // T4+3, which is what the 57 `EB` w1 cases say.  ONE rule, both
+    // populations, and the two clocks are the SAME clock because the E rides
+    // the redirect's own display clock whenever the port is what deferred it.
+    no_eval_ = -1;
+    if (push_absorb_clk_ > clk_) push_absorb_clk_ = clk_;
     pop_is_first_ = true;
     opc_valid_ = false;
     // ...and DOOMED means doomed on either side of the announcement.  What
@@ -643,6 +692,14 @@ void BiuTimed::flush(uint16_t cs, uint16_t pc) {
     e_from_ = ((run_ && cur_.is_fetch) ||
                (cmt_valid_ && cmt_t1_ == clk_ && cmt_.is_fetch)) ? clk_ + 1
                                                                  : clk_;
+    if (kFlushTrace)
+        fprintf(stderr,
+                "FX %ld run=%d ci=%d fetch=%d cmt=%d cmt_t1=%ld cmtfetch=%d "
+                "req=%d noeval=%ld absorb=%ld,%ld efrom=%ld occ=%d\n",
+                clk_, int(run_), run_ ? ci_ : -1,
+                int(run_ && cur_.is_fetch), int(cmt_valid_), cmt_t1_,
+                int(cmt_valid_ && cmt_.is_fetch), int(req_.size()), tr_noeval,
+                push_absorb_from_, tr_absorb, e_from_, occupancy());
 }
 
 void BiuTimed::clear_consumed() {

@@ -436,6 +436,20 @@ window. Measured (seed90003/90018/90005, opc 73 JNC, w1, +eudbg q_flush/eval_ext
 This CLOSED the flush drift third: w1 FLUSH first-div count 10->2 (residual =
 resume-floor rows after a flush), w3 FLUSH 8->0. DRIFT w1 414->307, w3 583->476.
 
+**GENERALIZED (2026-08-02, ucsim-t M12, provenance 17).** "Near-flush redirect
+displays at T4+2 under waits" is a GOLDEN-PHASE ALIAS of a flush-clock-relative
+law, exactly as the per-opcode reservation starts were. The measured statement
+is: **a flush invalidates the completion eval's reserved display slot, so the
+end of the FLUSH CLOCK is an eval point and the redirect commits there** (and,
+its sibling, the flush releases the queue-port absorb hold but not before its
+own clock, so QS=E rides the redirect's display). T4+2 is what that produces
+when the flush lands at T4+1 — the phase the fuzz family happens to sit at,
+300/300 seeds. When the flush lands at T4+2 the redirect displays at T4+3 —
+57/57 `EB` w1 golden cases, which the T4-keyed reading gets WRONG. w0-neutral
+by construction (at w0 the display slot is T4, inside the cycle). The RTL's
+`flush_hold` implements the T4-keyed reading and should be re-derived against
+the flush clock when the two models are next reconciled.
+
 ### EU-arbitration late-reservation prefetch — LAW + FIX (2026-07-14, biu-rebuild Front 3b)
 
 Sibling of the WRITE-half reservation law, for the OPPOSITE direction. That law

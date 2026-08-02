@@ -370,6 +370,24 @@ private:
     bool flush_eval_ = false;
     // M2r: the clock an eval has reserved as its DISPLAY slot -- not an eval
     // point itself.
+    //
+    // M12 -- AND A FLUSH INVALIDATES THAT RESERVATION, exactly as it already
+    // invalidates M7's `pf_arm_`, M6's `pf_land_` and M7b's `pf_infl_`: a
+    // decision the completing cycle latched about a queue the flush has just
+    // emptied cannot outlive it.  So the end of the FLUSH CLOCK is an eval
+    // point again and the redirect commits there.  With its sibling in
+    // `flush()` (the QS-port absorb hold is released by the flush, but not
+    // before the flush's own clock) this is the whole of the open Q2 question
+    // -- the redirect family of 14.2 / 16.6 -- and it is W0-NEUTRAL BY
+    // CONSTRUCTION: at w0 the eval sits at T3 so its display slot is T4, a
+    // clock inside the cycle that the idle-eval path never reaches.
+    //
+    // MEASURED (17.1, `sw/q2law.py` over the fuzz bank and the w0/w1/w3
+    // goldens): 300 / 300 Q2 seeds flush at T4+1 and show the E AND the
+    // redirect's status on T4+2; 57 / 57 `EB` w1 cases flush at T4+2 and show
+    // both on T4+3.  One rule, both populations; a window keyed to T4 instead
+    // gets the first right and the second wrong, which is the masking
+    // regression two prior landings were reverted for.
     long no_eval_ = -1;
     // M6 -- A FETCH'S BYTES ARE WRITTEN INTO THE QUEUE ON **T4+1**, AND THAT
     // CLOCK IS NOT A PREFETCH-GRANT POINT.  ONE clock, keyed to T4 and NOT to
@@ -466,6 +484,13 @@ private:
     // F1(b): the two clocks a completed fetch's bytes take to land in the
     // queue -- the push edge (eval+1) and the absorb clock (eval+2).  The
     // fetch owns the QS port across both.
+    //
+    // M12 (see `no_eval_` above and `flush()`): a FLUSH discards those bytes,
+    // so the hold is released -- but not before the flush's own clock, which
+    // the dying absorb still occupies.  At w0 that is a no-op by construction:
+    // the hold is [T4, T4+1] and a flush at or before T4 finds the fetch still
+    // running and zeroes its `push_n`, so the earliest clock a flush can see a
+    // hold on IS its last one.
     long push_absorb_from_ = -2;
     long push_absorb_clk_ = -2;
     uint8_t qs_pending_ = kQsNone;   // point sample for the clock about to run

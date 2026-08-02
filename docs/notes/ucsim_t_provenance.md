@@ -3907,3 +3907,198 @@ REP mechanism buys +55 seeds on the banked population and 0 on the frozen
 tranche.  V5 remains a registered FAILURE and this addendum does not touch it.
 The tranche's largest named family is Q2 (42 of its 71 misses), which §16.6
 re-measured and did not land.
+
+## 17. POST-CLOSURE ADDENDUM #2 — Q2, the REDIRECT COMMIT (2026-08-02)
+
+**This section is an ADDENDUM.  Nothing in §0-§16 is edited or retracted by
+it; the registered V1-V5 record in the verdict stands exactly as written, and
+so does §16.**  It closes the open item §16.6 named and re-diagnosed: Q2, the
+redirect family, the largest named residual in the campaign and the largest
+named family in the frozen victory tranche.
+
+**Outcome: Q2 is CLOSED.  ONE mechanism, no new state, w0-neutral BY
+CONSTRUCTION.**  The `timed_fuzz` bank goes **1,002 -> 1,272 of 1,702**
+(58.9 % -> 74.7 %), the Q2 first-divergence family **300 -> 0** with **zero**
+seeds newly broken, the frozen victory tranche **117 -> 154 of 188**, and the
+silicon per-cycle wvec digest **69 -> 88 of 88**.  w0 is byte-identical form by
+form (166,397; 0 of 347 forms moved) and w1/w3 stay 1,200/1,200.  Board contact
+was authorised and NOT used: the census was decisive offline, so the
+pre-registration rule for a board session never fired.
+
+### 17.0 The instrument — `sw/q2census.py`, `sw/q2law.py`, `V30SIM_FLUSHTRACE`
+
+The repcensus lesson again: the chip rows and the model rows go through the
+SAME extractor.  `q2census.py` reads a row stream — golden `case["cycles"]`,
+model `check_core.build_rows_sim`, or the fuzz bank's own `chip_rows` and the
+sim's ndjson, i.e. exactly the two streams `sw/timed_fuzz.py` compares — and
+returns, per FLUSH EVENT: the QS=E clock, the redirect fetch's STATUS DISPLAY
+clock (`T1 - 1`, M2) and its T1, the cycle RUNNING at the flush and the last
+one COMPLETED, with wait counts.
+
+The flush INSTANT itself is an EU quantity and is not in question (the model
+reproduces the whole w0 control-flow tranche), so it is read out of the model
+with **`V30SIM_FLUSHTRACE=1`** — an env-gated stderr line per `flush()`, per
+commit and per `E` display, touching no model state, the direct analogue of
+`V30SIM_EVALTRACE` and `V30SIM_ROWTRACE` — and used as the census's
+INDEPENDENT VARIABLE `x`.  `q2law.py` scores the chip's own answer against it.
+
+### 17.1 The census — three candidate machines, and what the data said
+
+The plan named three candidates.  The census settles all three, and the
+answer is none of them as stated:
+
+| candidate (plan, verbatim) | census verdict |
+|---|---|
+| (a) the flush commit rides the SAME eval instant family as everything else (`e_i`) rather than F3's flush-only T4 point | **FALSIFIED as stated, and RIGHT in kind.** The redirect does not ride `e_i`; what it rides is the eval at the END OF THE FLUSH CLOCK, which the model was suppressing — see §17.2 |
+| (b) the redirect's request occupies the M10 request slot and the `E` is emitted at its accept (T1-keyed) | **FALSIFIED.** The `E` is not T1-keyed: over 12,259 w0 flush events the chip's `E` sits at the flush clock + 0/+1/+2/+3 and tracks the QS PORT, not any T1.  M10 is an EU-side register and never sees a fetch |
+| (c) F1's parking is the artifact and the `E` is emitted unconditionally at the commit | **FALSIFIED.** 4,814 of the 12,259 w0 events show the `E` one clock BEFORE the redirect's display (the quiet-bus flush shows `E` on the flush clock itself), and 500 show it three before.  F1's port arbitration is real and is exactly right at w0 |
+
+**What the census actually found** is that the two populations §16.6 could not
+reconcile are ONE geometry seen at two flush instants.  Writing `x` for the
+flush clock and `T4` for the last completed cycle's T4:
+
+* the **300** Q2 fuzz seeds (§16.6's 293, re-counted after M10/M11): in
+  **300 / 300** the flush lands at `x = T4 + 1`, the completed cycle is a CODE
+  fetch, and the chip shows the `E` at `T4 + 2` — which is `x + 1`, and which
+  is **the redirect's own status display clock in 300 / 300**.  The model
+  showed both one clock later.
+* the **57** failing `EB` w1 cases: in **57 / 57** the flush lands at
+  `x = T4 + 2` and the chip shows the `E` at `T4 + 3` — again `x + 1`, and
+  again **the redirect's status display clock in 57 / 57**.
+
+So the chip's answer is the same in both: the port is released by the flush,
+but not before the flush's own clock.  §14.2's "the port frees at T4+2 under
+waits" is that statement read on a population whose flush happens to sit at
+`T4+1`; the `EB` cases are the same rule read at `T4+2`.  A window keyed to T4
+gets the first population right and the second wrong, which is exactly the
+masking §14.2 and §16.6 recorded — twice.
+
+### 17.2 M12 — THE FLUSH INVALIDATES EVERY LATCH THE COMPLETING CYCLE LEFT BEHIND
+
+`flush()` already cleared three of them, and the code already carried the
+sentence: *"a latch taken at index 2 of a cycle the flush then invalidates
+cannot hold the eval off — the redirect must be free to go at once"* (M7's
+`pf_arm_`, M6's `pf_land_`, M7b's `pf_infl_`).  **Two more latches were being
+left standing, and they are precisely the two halves of Q2:**
+
+* **the COMPLETION EVAL's reserved DISPLAY SLOT** (§11.2, `no_eval_`).  It is
+  the completing cycle's decision that the next clock is its display clock; a
+  flush invalidates that decision, so the end of the flush clock is an eval
+  point again and **the REDIRECT commits there**.
+* **the QUEUE-PORT ABSORB HOLD** (§11.3, F1(b), `push_absorb_`).  The hold
+  exists because the fetch's bytes are LANDING; the flush discards them, so
+  the port is released — **but not before the flush's own clock**, which the
+  dying absorb still occupies (`push_absorb_clk_ = min(push_absorb_clk_, x)`).
+
+That is the whole mechanism: two lines, no new state, no new field, no table,
+no per-form case.
+
+**W0-NEUTRAL BY CONSTRUCTION, and for the same reason the rest of M2r is.**
+At w0 the completion eval sits at T3, so its display slot is T4 — a clock
+INSIDE the cycle, which the idle-eval path never reaches.  And at w0 the
+absorb hold is `[T4, T4+1]`, whose LAST clock is the EARLIEST clock a flush
+can see it on at all: a flush at or before T4 finds the fetch still running
+and zeroes its `push_n`, so no hold is created.  Under waits the eval is at T4,
+the display slot is `T4+1`, and the hold is `[T4+1, T4+2]` — so a flush at
+`T4+1` frees the port at `T4+2` (Q2's own 300 seeds) while a flush at `T4+2`
+leaves the hold alone and the `E` stays at `T4+3` (the 57 `EB` w1 cases).
+**One rule, both populations.**  Measured, not argued: w0 is identical form by
+form, 0 of 347 forms moved.
+
+### 17.3 The two halves are ONE mechanism — measured, and it is why the two prior attempts failed
+
+Each half ALONE is exactly neutral on every scored population; only together
+do they move anything.  That is the strongest available statement that they
+are one mechanism and not two coincidences, and it explains both reverted
+landings: §14.2 and §16.6 each landed a port half alone, and the port half
+alone cannot pay because the redirect's own commit is what the `E` rides.
+
+| variant | v0.1 w0 | v0.1-w1 | v0.1-w3 | `timed_fuzz` |
+|---|---|---|---|---|
+| baseline (the §16 model) | 166,397 | 1,200 | 1,200 | 1,002 / 1,702 |
+| §16.6's absorb window keyed to T4 (the prior attempt) | 166,397 | **1,143** | 1,200 | **796** |
+| ...T4-keyed absorb + the display-slot clear | 166,397 | **1,143** | 1,200 | 986 |
+| display-slot clear ALONE | 166,397 | 1,200 | 1,200 | 1,002 (neutral) |
+| absorb TRUNCATION alone | 166,397 | 1,200 | 1,200 | 1,002 (neutral) |
+| **M12 — both (landed)** | **166,397** | **1,200** | **1,200** | **1,272** |
+
+### 17.4 What is left in the neighbourhood, named
+
+The same census over the whole bank after M12 leaves **93** flush events (of
+16,148) whose `E` the model still misses, and they are ONE family, not Q2's:
+**77 of them** have the chip's `E` at `x + 2` and the model's at `x + 0`, with
+the last completed cycle a **ZERO-WAIT MEMW whose T4 is `x - 1`**.  After a
+w0-length WRITE the chip defers BOTH the `E` and the redirect by one further
+clock — a post-write bus turnaround, not a queue-port fact.  It is the
+`qs -!=E` fuzz family (93 seeds).  **Named, not chased**, per the plan; its
+falsifier is any capture where a flush one clock after a zero-wait store's T4
+shows the `E` on the flush clock.
+
+The three tails (`0F12`, `C1.6`, `F7.4`) did NOT close for free: 499/500 each,
+9 / 4 / 4 row diffs, unchanged.  Per the plan they were not chased.
+
+### 17.5 Gates (measured, this machine, immediately before the commit)
+
+```
+make -C sim test                                                          # disasm: PASS
+python3 sw/pla3_check.py                                                  # OK (21 checks)
+python3 sw/ucsim_check.py --suite tests/v30/v0.1                          # 169000/169000
+python3 sw/ucsim_check.py --suite tests/v30/v0.2                          # 347000/347000
+python3 sw/ucsim_check.py --suite tests/v30/v0.3                          # 3699998/3699998
+python3 sw/ucsim_check.py --suite tests/v30/v20suite --no-mirror          # 3125000/3125000
+python3 sw/ucsim_check.py --suite tests/v30/mod3_illegal --residue stale-ea  # 128/128
+python3 sw/timed_gate.py --suite tests/v30/v0.1    --forms all            # 166,397 (unchanged, 0/347 forms moved)
+python3 sw/timed_gate.py --suite tests/v30/v0.1-w1 --forms all --waits 1  # 1,200/1,200
+python3 sw/timed_gate.py --suite tests/v30/v0.1-w3 --forms all --waits 3  # 1,200/1,200
+python3 sw/check_boot.py --timed 220                                      # MATCHES over 220 rows
+python3 sw/timed_scenario.py                                              # 18 PASS, 0 FAIL, 9 SKIP
+python3 sw/timed_enter_replay.py                                          # 154/154 x5
+python3 sw/check_enter_nesting.py --sim ucsim-timed                       # PASS
+python3 sw/timed_ins_replay.py --raw      # rails 1312/1312, vs-chip 2624/2624, R2 782/800,
+                                          # whole-program 173,556/173,556 all on the same T1
+python3 sw/timed_wvec_gate.py             # count 88/88, cycles +0.0 %, digest 88/88 (was 69)
+python3 sw/timed_lawcards.py              # 7 GREEN / 0 RED / 4 UNRESOLVED
+python3 sw/timed_fuzz.py                  # 1,272/1,702 exact (was 1,002), 0 hard failures
+python3 sw/timed_fuzz.py --seeddir sw/testdata/t4/b2-tranche/seeds        # 154/188 (was 117)
+python3 sw/q2law.py --fuzz ALL            # the census above
+```
+
+**Monotonicity, checked per FORM and per SEED, not just in aggregate.**  Over
+all 347 forms of the v0.1 w0 suite **zero moved** (331/347 at 100 %, before and
+after).  Over the 1,702 scored fuzz seeds, **270 newly exact and ZERO newly
+broken**.  w1/w3 are 1,200/1,200 either way, `EB` w1 200/200 — the masking
+regression §14.2 and §16.6 each hit is checked directly and does NOT reappear.
+
+### 17.5a Provenance class, per finding
+
+| finding | class | evidence | falsifier |
+|---|---|---|---|
+| **M12** a flush invalidates the completion eval's reserved DISPLAY SLOT, so the end of the flush clock is an eval point and the redirect commits there | **MEASURED** | 300/300 Q2 fuzz events (flush at `T4+1`, chip redirect display at `T4+2`, model at `T4+3`) and 57/57 `EB` w1 events (flush at `T4+2`, both at `T4+3`); w0 identical form by form | any waited capture where a flush lands on the completion eval's display clock and the redirect is NOT displayed on the next clock |
+| **M12b** a flush releases the QS-port absorb hold, but not before the flush's own clock | **MEASURED** | the same two populations: the `E` is on the redirect's display clock in 300/300 and 57/57; keying the hold to T4 instead costs `EB` w1 200 -> 143 and the bank 1,002 -> 796 | any capture where the `E` after a flush inside the absorb window falls other than one clock after the flush |
+| the two halves are ONE mechanism | **MEASURED, one-sided** | each half alone is EXACTLY neutral on w0, w1, w3 and all 1,702 scored seeds; together +270 seeds and 0 losses | any stimulus separating them |
+| **the post-write turnaround** (`E` and redirect both one clock later after a zero-wait MEMW ending at `x-1`) | **OBSERVATION, not landed** | 77 of the 93 residual `E` events, one signature, zero exceptions inside it | see §17.4 |
+
+### 17.6 Ledger delta
+
+| | after §16 | after this addendum |
+|---|---|---|
+| v0.1 cycle rows at w0 | 166,397 / 166,400 | **166,397 / 166,400** (identical, 0/347 forms moved) |
+| v0.1 forms 100 % cycle-row exact at w0 | 331 / 347 | 331 / 347 |
+| v0.1-w1 / -w3 | 1,200 / 1,200 | 1,200 / 1,200 |
+| `EB` at w1 | 200 / 200 | **200 / 200** (the masking regression does NOT reappear) |
+| wvec per-cycle digest vs silicon | 69 / 88 | **88 / 88** |
+| law cards | 7 GREEN / 0 RED / 4 UNRESOLVED | unchanged |
+| `timed_fuzz`, banked | 1,002 / 1,702 (58.9 %) | **1,272 / 1,702 (74.7 %)** |
+| `timed_fuzz`, >= 0.5 / >= 0.9 prefix | 1,221 / 1,005 | **1,393 / 1,273** |
+| `timed_fuzz`, median first-divergence row | 1,105 | **1,216** |
+| `timed_fuzz`, the VICTORY TRANCHE | 117 / 188 (62.2 %) | **154 / 188 (81.9 %)** |
+| functional corpus | 7,341,126 / 7,341,126 | unchanged |
+| open w0 physics questions | 3 tails | 3 tails |
+| mechanisms | M1-M11, M2r, M5b, M6, M7, M7b | **+ M12** |
+
+**V5 stays a registered FAILURE.**  The tranche re-score is 154/188, not
+100 %, so the registered bar is NOT met and the registration is not rewritten:
+V5 reproduces as a registered failure, and this addendum improves it by 37
+seeds.  Q2 was 42 of the tranche's 71 misses at T4 (§14.4); 37 of the 71 now
+close, and the tranche's remaining 34 misses have NOT been re-classified here
+— that is the next stage's survey, not a claim of this one.
