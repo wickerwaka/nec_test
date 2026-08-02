@@ -546,8 +546,10 @@ Two structural facts make the pair worth more than the sum:
 
 ## (f) Gate ledger
 
-Every gate, its number, and the commit that established it. All gates were
-re-run green immediately before the T5 commit (§15 of the provenance ledger).
+Every gate, its number, and the commit that established it. Every number
+below was REPRODUCED by a re-run immediately before the T5 commit (§15 of
+the provenance ledger); reproduction is not passage — the victory tranche's
+V5 clause is a registered FAILURE (§(a)) and reproduces as exactly that.
 
 | stage | gate | number | commit |
 |---|---|---|---|
