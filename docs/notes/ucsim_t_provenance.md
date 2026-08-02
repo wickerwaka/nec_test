@@ -23,7 +23,9 @@ yet understand.  A large fitted table or a many-cased rule is a SIGNAL OF
 MISUNDERSTANDING, not a deliverable.  Where an entry below needs a special
 case, the special case is written down as an open question, not as a law.
 
-Status: **T0 complete, 2026-08-01.**
+Status: **T0 complete, 2026-08-01.  T1 IN PROGRESS — the w0 timing core exists
+and the ratchet is open (see §7).  The T1 exit gate (v0.1 166,800/166,800
+cycle-row exact at w0) is NOT met.**
 
 ---
 
@@ -334,6 +336,12 @@ close the window on a prefixed case, because it needs `n_fpops(golden)` F pops.
 Every entry here is KNOWN wrong and exists only so the next stage has something
 to replace.  None of them may be cited as a law.
 
+**T1 UPDATE:** S1, S2, S3, S4 and S10 are **REMOVED** (replaced by the
+mechanisms in §7.1-§7.8).  S5 is **partly removed** — the write cycle is now
+scheduled by the BIU at a grid slot, but the write-data pairing latch is still
+the interpreter's.  S6 (uniform waits), S7 (no arbitration reservations), S8
+(no flush/BUSLOCK/HALT timing) and S9 (no interrupt/INTA timing) STAND.
+
 | # | scaffolding | why it is wrong | replaced by |
 |---|---|---|---|
 | S1 | **Strictly serial bus.** One bus cycle at a time; the EU is not a client of the clock, so its actions serialise with the bus instead of overlapping it. | The chip overlaps EU work with bus cycles; a queue pop is a point sample riding an existing bus clock, not a clock of its own. | T1 (BIU master clock, EU as client) |
@@ -387,6 +395,16 @@ python3 sw/ucsim_check.py --suite tests/v30/v0.2              # 347000/347000
 python3 sw/timed_gate.py --suite tests/v30/v0.2 \
         --forms 88,00,50,C8                                   # arch through the TIMED path
 python3 sw/timed_gate.py --sbs B8:0                           # the hand side-by-side
+```
+
+### 5.1a T1 gate commands (runnable, as recorded)
+
+```
+python3 sw/timed_gate.py --suite tests/v30/v0.1 --forms all   # THE CYCLE RATCHET
+python3 sw/ucsim_check.py --suite tests/v30/v0.3              # mass functional sweep
+python3 sw/ucsim_check.py --suite tests/v30/v20suite          # V20 arch oracle
+python3 sw/timed_gate.py --sbs 50:1                           # split-word write (M5)
+python3 sw/timed_gate.py --sbs B8:1                           # idle-slot eval (M1)
 ```
 
 ### 5.2 T0 results
@@ -532,3 +550,330 @@ performance.
    black-box JSONs, the `case250` INS factorials, or the INS/ENTER pilot planes
    are wired to the sim yet; those are T1 (L1 unit gates) and T2 (L2 image
    replay).
+
+---
+
+## 7. T1 — the w0 timing core
+
+T1 replaced the T0 scaffolding S1, S2, S3, S4, S5 and S10 with mechanisms.  The
+BIU now owns the clock and the EU is a CLIENT of it: `sim/biu_timed.{h,cpp}` is
+a per-clock FSM, and `CpuT<Bus>` / `loader_decode<Bus>` carry the cadence call
+sites (`charge`, `wait_read`, `opcode_prefetch`, `prefix_retire`) in ONE body
+shared by both instantiations — on the functional `sim::Biu` every one of them
+is an empty inline, so the functional model is untouched (gates in §7.10).
+
+**T1 IS NOT CLOSED.**  The stage exit (v0.1 166,800/166,800 cycle-row exact at
+w0) is not met, and neither is Milestone A (the six mission-H fitted forms at
+w0 + w1/w3) or Milestone B (the 35-opcode bring-up tranche): of the six
+Milestone-A forms only `B8` is exact.  What T1 delivers is the CORE — the
+clock, the grid, the queue pipeline, the scheduler and the cadence — plus a
+ratchet that moved 0 -> 50,207 and a survey (§7.11) that maps every remaining
+case to a named missing mechanism.
+
+Everything below is a MECHANISM, not a table.  The only tabulated thing in the
+whole stage is the decoder's five-row byte-demand schedule (§7.6), and its
+irreducibility is flagged as an open question, not claimed.  There is no
+per-opcode timing exception anywhere in `sim/` — grep for one.
+
+### 7.1 M1 — grid geometry and the completion eval — **MEASURED**
+
+A bus cycle is `T1 T2 T3 (Tw x N) T4`.  The next cycle is chosen at a
+COMPLETION EVAL; the winner's status and address are driven on the clock AFTER
+the eval (the DISPLAY clock) and its T1 opens the clock after that:
+
+```
+    eval at end of clock c   ->   status/address displayed on c+1   ->   T1 on c+2
+```
+
+Eval points at w0: the **end of T3** of a zero-wait cycle, and the **end of
+every idle clock**.  T4 is NOT an eval point.  (Under waits the eval moves to
+the end of T4 — the mission-H deferral — which is why the same three-clock
+relation still produces T1 at T4+2.)
+
+*Evidence (both directions of the rule, from one case each):*
+
+* `v0.1/B8` case 0 (queue injected EMPTY, so every cycle is a fetch): the eval
+  at the end of fetch#2's T3 puts fetch#3's status on fetch#2's T4 and its T1
+  on the next clock — golden rows 1-3 `T3 PASV / T4 CODE 0EBE16 / T1 CODE
+  0EBE16`.  Back-to-back CODE with no idle clock between them.
+* `v0.1/B8` case 1 (queue injected FULL at 5): clock 0 is an IDLE clock whose
+  only content is the opcode pop; that pop drops occupancy to 4, the eval at
+  the END of clock 0 fires, the status appears on clock 1 (still an idle clock)
+  and T1 opens on clock 2 — golden rows 0-2 `Ti PASV (F pop) / Ti CODE 0C91CE /
+  T1 CODE 0C91CE`.  Same rule, idle instead of T3.
+
+*Falsifier:* any golden where a committed cycle's T1 is not exactly two clocks
+after the eval that could have chosen it, or where a status appears on the eval
+clock itself.
+
+### 7.2 M2 — the status register, and the death of `w == 0 ? 2 : 3+w`
+
+**T0 open item 1 is RESOLVED, and the answer is that there was never a
+conditional.**  The status output is a REGISTER: it is LOADED at the eval (M1)
+and RELEASED exactly one clock before the next display clock.  So every bus
+cycle is followed by exactly ONE passive clock, and where that clock falls is a
+consequence of the eval geometry, not of the wait count:
+
+| waits | eval at | display | T1 | the one PASV clock |
+|---|---|---|---|---|
+| 0 | end of T3 | T4 | T4+1 | **T3** (= 2 before the display) |
+| 1 | end of T4 | T4+1 | T4+2 | **T4** |
+| 3 | end of T4 | T4+1 | T4+2 | **T4** |
+
+The implementation still writes `passive_i = (waits_ == 0) ? 2 : 3 + waits_`,
+but that expression is now a *derived index*, not a law: it is "one clock
+before the display clock" evaluated for the two eval geometries M1 already
+carries.  The T0 ledger's own corollary — *"PASV occupies exactly the clock two
+before the next T1 and the early status the clock one before, at all three wait
+levels"* — is the same statement, and it now falls out of the mechanism.
+
+*Why the two simple machines produce the envelope:* the 8086-family datasheet
+rule ("status returns passive during T3, or during Tw when READY is HIGH") is
+about the READY sampling instant; the harness's wait generator raises READY so
+that the CPU's ready-high sample lands at the end of T2 at w0 and at the end of
+the last Tw at w>0.  One register + one sampling instant = the apparent
+conditional.  **Not promoted to a LAW beyond w0** — T2 owns the wait axis and
+must re-derive the release point from the READY sample directly rather than
+from the eval index.
+
+### 7.3 M3 — queue geometry, push and pop latency — **MEASURED / LAW**
+
+* 6 bytes; word fetch from an even address (+2), single upper-lane byte from an
+  odd one (+1).  (biu_model.md exp 1; T0 §2.7.)
+* A completed fetch PUSHES at the end of its T4 and the pushed byte becomes
+  POPPABLE two clocks later (`ready = t4_clk + 2`).
+* A pop is a POINT SAMPLE riding a clock that already exists — `next_byte()`
+  sets the QS code for the clock the caller is about to charge, it never
+  charges a clock of its own.  Scaffolding S1 and S3 are gone.
+
+*Evidence:* `v0.1/B8` case 0 — fetch#1 (the odd-address byte at `EBE13`) ends
+T4 on clock 3 and its byte is popped on clock 5, which is fetch#2's T2; the
+word `80 15` pushed at fetch#2's T4 (clock 7) is popped on clocks 9 and 10.
+Every pop in that case lands on the FIRST clock the two-clock latency allows,
+which is what makes the case a pure push/pop-latency measurement.
+
+### 7.4 M4 — the prefetch scheduler: the resume predicate's T1 form
+
+**The resume predicate is an occupancy threshold evaluated at a grid slot, and
+nothing else.**  At every eval point (M1), with no EU request pending and no
+SUSP outstanding, a fetch is issued iff
+
+```
+    occupancy(queue) + bytes-in-flight  <=  4          (i.e. 2 bytes free)
+```
+
+where *bytes-in-flight* counts a fetch that has been committed or is running
+but has not pushed yet.  That is the measured refill threshold (biu_model.md
+exp 1) plus the in-flight accounting the threshold obviously needs; there is NO
+table, no phase key, no fill-history, no `(phase, occ, fill)` tuple.
+
+This is deliberately the SIMPLEST thing consistent with LC1/LC2, and it is
+exactly the "first grid_phase-0 slot with queue occupancy <= 4" predictor that
+`biu_model.md` measured at **97.9 % at w0**.  The w0 goldens are now the
+discipline on it: whatever the residual 2 % is, it will show up as a form
+family in the survey (§7.11) rather than as a fitted parameter.  **LC1's
+"steady-state ~3-idle gap" and LC2's aged-band PAUSE are NOT implemented** —
+neither is needed to reproduce anything measured so far at w0, and inventing
+them before a w0 golden demands them would be exactly the fitted-table failure
+mode the campaign is trying to avoid.  LC8 (pf_drain / mid-band pause) remains
+DELETED and is not reimplemented.
+
+*Falsifier for the whole predicate:* a w0 golden whose prefetch T1 lands on a
+grid slot where occupancy was already > 4, or which skips a slot where it was
+<= 4.  Such a case is a T2 discovery input, not a patch site.
+
+### 7.5 M5 — a write drives the whole datapath value — **MEASURED**
+
+On a WRITE the CPU drives AD15-0 with its internal 16-bit value and lets
+UBE/A0 select which lane the memory latches; it does NOT compose a per-lane
+value.  Both byte cycles of a SPLIT (unaligned) word write therefore show the
+same full word.  *Evidence:* `v0.1/50` case 1 (`PUSH AX` at an ODD SP) drives
+`0BCD` on BOTH halves.  READS keep the retention rule (T0 §2.6): there the CPU
+floats AD and the system drives, so the undriven lane holds its last value.
+
+### 7.6 The decoder's byte-demand schedule — **MEASURED (small table, mechanism OPEN)**
+
+Relative to the opcode pop at clock 0, with a saturated queue:
+
+| class | byte pops | first micro-row |
+|---|---|---|
+| no ModR/M | — | 2 |
+| mod 3 | modrm @1 | 2 |
+| mod != 3, no disp | modrm @1 | 3 |
+| disp8 | modrm @1, disp @3 | 4 |
+| disp16 | modrm @1, disp-lo @2, disp-hi @4 | 5 |
+| `0F` escape | 0F @0 (F), opcode2 @2 (S), then as above shifted by 2 | |
+
+Derived from the v0.1 saturated-queue goldens across 88/8A/89/8B/00/01/80.0/
+81.0/83.0/C6.0/C7.0/0F10 and **independently identical to the frozen oracles**
+`decoder-displacement-oracle-v1` (disp8 `[(1,F),(2,S),(4,S)]`, disp16
+`[(1,F),(2,S),(3,S)]`) and `decoder-multibyte-oracle-v1` (`imm16`
+`[(1,F),(3,S),(4,S),(5,F)]` = B8's `0,2,3,4`; `modrm_reg` gap 4 = the mod3
+spacing of 3; `test_reg` gap 4 = TEST reg,reg at 2).
+
+**OPEN (mechanism).**  Five rows is small, but two of them are still just
+numbers: why disp8 pops at 3 while disp16 pops its LOW byte at 2 and skips
+clock 3, and why a mem form with no displacement still costs one clock more
+than mod 3.  The shape smells like a two-clock EA stage whose second clock is
+the adder pass, with the displacement pops hung off its ends — but that is a
+hypothesis, not a law, and it is not encoded as one.  **Do not grow this table
+per opcode.**  If a new form needs a sixth row, that is the signal that the EA
+stage needs to be modelled as the machine it is.
+
+### 7.7 The micro-row cadence, and the max-of-two-deadlines retire
+
+* **One ROM row = one CPU clock.**
+* **A taken micro-JMP costs one more** (the sequencer's redirect bubble).
+  *Evidence:* `04` (ADD AL,imm8) and `B8` (MOV AW,imm16) share the row `Q ->
+  tmp / JMP OP8 2` and both retire in 4 clocks, yet `04` executes THREE rows
+  and `B8` FOUR.  The difference is exactly that `04` takes the OP8 jump and
+  `B8` does not.  This is the whole cadence model — there is no per-opcode
+  cost anywhere in the sim.
+* **An `R` (iterative-ALU) row costs one clock per iteration** on top of its
+  own.  PROVISIONAL: the shift/rotate families are not yet exact (§7.11 C2), so
+  this is the starting point, not a fitted result.
+* **The successor's opcode pop rides the E row's own clock.**  Every saturated
+  golden puts the closing F pop exactly two clocks before the successor's first
+  micro-row, and the E row is two rows before that row; so the decoder pops the
+  next opcode while the E row and the post-E row are still executing, and those
+  two rows are charged by the successor's decode rather than by their own
+  instruction.
+* **...but an instruction does not retire until its bus work is done.**  The
+  pop is the LATER of the E-row clock and `eu_done` (the completion of the
+  instruction's last EU access, T4+1 at w0) — including a write still STAGED in
+  the write-data-pairing latch, which has not reached the bus at all yet.
+  *Evidence:* `88` mod0 (`mov byte [bx+si], al`) — the closing F lands on the
+  MEMW's T4+1, ten clocks after the opcode pop, not on the E row; `50` (`PUSH
+  AX`) — the closing F lands after the SECOND half of the split stack write.
+  This is the campaign's own "max-of-two-deadlines" shape: one march (the row
+  engine) and one interlock (the bus), and the retire is their max.
+
+### 7.8 Prefix F pops — **S10 REMOVED**
+
+Each prefix byte retires as its own 2-clock instruction with its OWN F pop
+(`measurements.md`, "prefix retires as its own instruction (own F pop, 2
+cycles)"); the `0F` escape is the same 2-clock re-decode but its second byte is
+an **S**, because `0F` is not one of `check_core::PREFIXES`.  Consequence: the
+golden window now closes on prefixed forms.  All 31 prefixed forms (15,500
+cases) went from "window not located" to located.
+
+### 7.9 Pre-window priming convention — **T0 open item 3, SETTLED**
+
+
+`begin_case()` starts the bus IDLE with the queue preloaded from
+`initial.queue` and `fetch_ptr = ip + len(queue)`, and clock 0 is the first
+clock on which the EU runs.  Nothing else is injected.  The convention works
+because `build_rows_sim` locates the window at the FIRST F pop, so only the
+geometry from that pop onward has to match — and it does, in both regimes:
+
+* queue EMPTY: the sim's first two fetches are issued from the idle-slot eval
+  and the T3 eval respectively, so the opening F pop lands on the second
+  fetch's T2, exactly as in the golden.
+* queue FULL (5 or 6): the opening F pop rides clock 0 and the eval at the end
+  of that clock sees the post-pop occupancy — which is what makes `B8` case 1
+  (occ 5, fetch commits immediately) and `04` case 1 (occ 6, fetch commits one
+  pop later) differ by exactly the clock the goldens show.
+
+v0.1 injects only occupancies 0, 5 and 6, so no partially-filled priming case
+exists to settle.  A capture with occ 1-4 would need an in-flight-fetch
+convention as well; recorded as a T2 input.
+
+### 7.10 Gates, and the T1 ratchet curve
+
+Standing functional regressions, re-run after every mechanism change
+(all GREEN at the numbers below, unchanged from T0):
+
+```
+make -C sim test                                    # disasm gate: PASS
+python3 sw/pla3_check.py                            # OK (21 checks)
+python3 sw/ucsim_check.py --suite tests/v30/v0.1    # 169000/169000
+python3 sw/ucsim_check.py --suite tests/v30/v0.2    # 347000/347000
+```
+
+**MASS SWEEP — OWED.**  `tests/v30/v0.3` and `tests/v30/v20suite` (the ~7.3M
+functional sweep) were launched on the committed binary but their result could
+not be OBSERVED in the session that produced this commit: the machine's `/tmp`
+tmpfs hit its quota, which broke the agent's command channel (`g++`: "error
+writing to /tmp/ccXXXX.s: Disk quota exceeded"; builds were completed by
+pointing `TMPDIR` at `~/.cache/ucsimt-tmp`, but the result-reporting path stayed
+broken).  **Re-run both before relying on this commit.**  The risk is judged low
+and the reason is structural, not statistical: every edit to the SHARED
+`exec_impl.h` / `loader_impl.h` bodies is either a pure counter (`row_clocks`,
+`rloop_iters`) or a call to one of the five new Bus methods, and all five are
+`{}` on `sim::Biu` — so `CpuT<Biu>` cannot change behaviour, and v0.1 + v0.2
+(516,000 cases) confirm it did not.
+
+The cycle ratchet (`sw/timed_gate.py --suite tests/v30/v0.1 --forms all`,
+`rows_exact`, pre-registered to only ever GROW):
+
+| step | rows exact | windows located | row diffs |
+|---|---|---|---|
+| T0 baseline (naive serial bus) | 0 | 152,063 | 9,164,377 |
+| T1a grid + queue latency + scheduler + cadence + prefix F | 49,818 | 168,720 | 4,298,266 |
+| T1b staged-write retire (§7.7) | 50,202 | 168,720 | 4,427,805 |
+| T1c write drives the datapath value (M5) | **50,207** | 168,720 | 4,431,246 |
+
+29.7 % of the suite (30.1 % of the 166,800 non-pin-event cases) is cycle-row
+exact at w0.  The row-diff TOTAL grew between T1a and T1c while `rows_exact`
+grew: that is expected and is why the pre-registered ratchet is `rows_exact`
+and not the diff count — a window that used to close after 4 rows now closes
+after 15, so a case that was "wrong in 3 cells" becomes "wrong in 11 cells"
+while being strictly closer to the chip.
+
+Arch through the timed path stays 166,800/169,000 — the 2,200 shortfall is
+exactly the 11 pin-event pseudo-forms (scaffolding **S9**), unchanged.
+Windows: 168,720/169,000; the 280 unlocated are pin-event forms only.
+
+### 7.11 Survey-then-fix — where the remaining cases are
+
+Of 347 forms: **47 are 100 % cycle-row exact**, 193 are partially exact, 107
+are 0 %.  Categorised (no fix is per-opcode; every category names one missing
+MECHANISM):
+
+| # | category | forms | cases | missing mechanism |
+|---|---|---|---|---|
+| C1 | **flush / branch timing** | `EB E9 E8 EA 9A C8 CA CB CC CD CF FF.2-5` + the taken half of `74 75 7C E2` | ~10,000 | scaffolding **S8**: the measured flush law (redirect commit points, the flush-only prefetch-T4 eval, doomed-fetch completion, NEAR +1-late) |
+| C2 | **`R`-row / shift-rotate cadence** | `C0.0-7 C1.0-7 D2.0-7 D3.0-7 D0.* D1.*` | ~16,000 | §7.7's one-clock-per-iteration is a guess; the measured law is 10+n (n>=1) / 9 (n=0) with shift-by-1 at 6 |
+| C3 | **string / REP loop cadence** | `A4 A5 A6 A7 AC AD AE AF` + all 23 prefixed variants | ~15,500 | the string micro-loop's per-element grid interaction (measurements.md REP slopes 9+4n / 9+8n / 11+14n) |
+| C4 | **byte-lane companion on writes** | every byte-store form (`88` byte, `C6.*`, byte RMW) | ~6,000 | §7.12 item 1 — the datapath truncation, not a bus law |
+| C5 | **multi-access stack sequences** | `60 61 8F.0` | 1,500 | the inter-write march (`eu_wdone` chaining) that PUSHA/POPA use |
+| C6 | **EU-burn cadence** | `F6.4-7 F7.4-7 69 6B 0F20 0F22 0F26` (MUL / DIV / BCD strings) | ~5,500 | the wait-insensitive compute burns are CPU-cycle counts the model does not carry yet (grid law 8) |
+| C7 | **I/O cycles** | `E4 E5 EC ED EE EF` | ~3,000 | I/O request scheduling / IOR data timing |
+| C8 | **pin-event forms** | `INT.* NMI.* HLT.*` (11 forms) | 2,200 | scaffolding **S9**, out of T1 scope by construction |
+
+Nothing in that list is a per-case exception, and no category was "fixed" by a
+special case: C1, C5, C6 and C7 are mechanisms that were never written, C2 and
+C3 are cadences whose measured law is known but not yet expressed, C4 is an
+architectural-model truncation, C8 is a declared exclusion.  The partially
+exact forms are dominated by the mod3 / mem split (the register-operand cases
+of a mem-capable form are exact, its memory cases are not) — which is C4 plus,
+for the loads, the pre-decode read's request timing.
+
+### 7.12 Open items entering T2
+
+1. **The byte-lane companion.**  A byte write's UNDRIVEN lane carries the
+   sibling register byte (`88`/`8A`) or the sign-extended imm8 (`C6`) —
+   `measurements.md`, "Byte-store data lane law".  M5 (§7.5) is the right
+   mechanism (the CPU drives its internal 16-bit value) but the *simulator's*
+   internal value is truncated for byte sources, because `rd_operand` returns
+   `m_.rb(idx)` for a byte register.  The physically true fix is to widen the
+   byte-register read to the 16-bit pair and mask at the ALU / register
+   writeback instead — an ARCHITECTURAL-model change, so it must ride the full
+   7.3M functional sweep, not a timing-only gate.  Left undone deliberately.
+2. **§7.6's EA stage.**  Replace the five-row demand table with the two-clock
+   EA machine it is shadowing.
+3. **`R`-row cadence.**  One clock per iteration is unvalidated; the shift /
+   rotate families (`C0.*`, `C1.*`, `D0-D3`) are the discriminator.
+4. **Flush / branch timing.**  `flush()` still just clears the queue, redirects
+   the pointer and drops a QS=E point sample on the current clock; the measured
+   flush law (redirect commit points, the flush-only prefetch-T4 eval, NEAR +1
+   late, the doomed-fetch completion) is NOT implemented.  Scaffolding **S8**
+   stands.
+5. **BUSLOCK and HALT display.**  Not implemented; **S8** stands.
+6. **Arbitration reservations (LC4 C9-C12).**  Not implemented — at w0 the eval
+   sees requests live, which has been sufficient so far.  The store-vs-prefetch
+   lead reservation is the first one a golden is likely to demand.
+7. **Oracle replay adapters.**  The decoder-drain v2 / multibyte / prefix-phase
+   schedules were used as CROSS-CHECKS on §7.6 by hand, but no `timed-scenario`
+   L1 replay harness exists yet.  Still owed.
+8. **`kSegZero` PS code** (T0 open 5) is still an ASSUMPTION.

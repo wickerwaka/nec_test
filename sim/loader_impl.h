@@ -217,11 +217,26 @@ LoadResult loader_decode(Machine& m, Bus& biu) {
         return b;
     };
 
+    // --- the decoder's byte-demand schedule (ucsim-t T1) ------------------
+    // MEASURED (v0.1 saturated-queue goldens; identical to the frozen
+    // decoder-displacement / decoder-multibyte oracles) with the opcode pop
+    // at relative clock 0:
+    //     opcode  0    modrm  1    disp8  3    disp16  2 and 4
+    //     first micro-row: mod3 2, mod!=3 no-disp 3, disp8 4, disp16 5
+    // An opcode the previous instruction's E row already pre-popped rides
+    // THAT clock, so only a fresh pop advances the cursor here.
+    auto pop_opcode = [&]() -> uint8_t {
+        bool pre = biu.opcode_pending();
+        uint8_t v = fetch();
+        if (!pre) biu.charge(1);
+        return v;
+    };
+
     // --- prefix loop ------------------------------------------------------
     bool ext = false;
     uint8_t b = 0;
     for (;;) {
-        b = fetch();
+        b = pop_opcode();
         uint16_t v = pla3::kNative[b];
         if (!pla3::is_prefix(v)) break;
         switch (pla3::bl1_op(v)) {
@@ -240,9 +255,17 @@ LoadResult loader_decode(Machine& m, Bus& biu) {
         }
         ++m.pfxcnt;
         if (ext) {
+            // The 0F escape is a 2-clock re-decode: the real opcode pops two
+            // clocks after 0F, as an S (0F is not one of the F-popping
+            // prefixes -- check_core::PREFIXES).
+            biu.charge(1);
             b = fetch();  // second byte of the 0F page: this IS the opcode
+            biu.charge(1);
             break;
         }
+        // A prefix retires as its own 2-clock instruction with its own F pop.
+        biu.charge(1);
+        biu.prefix_retire();
     }
 
     uint16_t v = ext ? pla3::kExt[b] : pla3::kNative[b];
@@ -264,6 +287,7 @@ LoadResult loader_decode(Machine& m, Bus& biu) {
             default: break;
         }
         m.set_flags(m.psw);
+        biu.charge(1);   // pre-decode-executed forms retire in 2 clocks
         return out;
     }
 
@@ -291,14 +315,22 @@ LoadResult loader_decode(Machine& m, Bus& biu) {
     bool has_rm = pla3::has_modrm(v);
     out.has_modrm = has_rm;
     if (has_rm) {
-        rm = modrm_decode(fetch());
+        rm = modrm_decode(fetch());          // rides opcode+1
+        biu.charge(1);
         out.modrm = rm.raw;
         uint16_t disp = 0;
         if (rm.disp_bytes == 1) {
-            disp = uint16_t(int16_t(int8_t(fetch())));
+            biu.charge(1);                   // opcode+2: no byte demanded
+            disp = uint16_t(int16_t(int8_t(fetch())));   // opcode+3
+            biu.charge(1);
         } else if (rm.disp_bytes == 2) {
-            uint8_t lo = fetch();
-            disp = uint16_t(lo | (uint16_t(fetch()) << 8));
+            uint8_t lo = fetch();            // opcode+2
+            biu.charge(2);                   // opcode+3: no byte demanded
+            uint8_t hi = fetch();            // opcode+4
+            biu.charge(1);
+            disp = uint16_t(lo | (uint16_t(hi) << 8));
+        } else if (rm.mod != 3) {
+            biu.charge(1);                   // opcode+2: the EA-compute clock
         }
         out.disp = disp;
         if (rm.mod != 3) {
@@ -317,6 +349,10 @@ LoadResult loader_decode(Machine& m, Bus& biu) {
             out.ea_seg = seg;
         }
     }
+
+    // No ModR/M: the decoder still spends the opcode+1 clock before handing
+    // over, so micro-row 0 lands at opcode+2 exactly as it does for mod3.
+    if (!has_rm) biu.charge(1);
 
     // --- second-byte group dispatch (F6/F7 -> page 2, FE/FF -> page 3) ----
     if (has_rm && pla3::xop(v) == uint8_t(pla3::XopAux::kGroupDispatch)) {

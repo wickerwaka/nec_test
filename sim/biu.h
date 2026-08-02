@@ -92,6 +92,16 @@ public:
     const std::vector<uint8_t>& consumed() const { return consumed_; }
     void clear_consumed() { consumed_.clear(); }
 
+    // --- the TIMED extensions to the Bus concept --------------------------
+    // The functional model has no clock, so every one of these is a no-op.
+    // They exist so `CpuT<Bus>` / `loader_decode<Bus>` can carry the cadence
+    // call sites in ONE body shared by both instantiations.
+    void charge(int) {}
+    void wait_read() {}
+    void opcode_prefetch(uint16_t) {}
+    bool opcode_pending() const { return false; }
+    void prefix_retire() {}
+
     const std::vector<Txn>& txns() const { return txns_; }
     void clear_txns() { txns_.clear(); seq_ = 0; }
 

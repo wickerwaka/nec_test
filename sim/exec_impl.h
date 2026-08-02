@@ -502,6 +502,10 @@ void CpuT<Bus>::wr_dst2(uint8_t c, uint16_t v) {
 template <class Bus>
 void CpuT<Bus>::deliver_read() {
     if (rdq_.empty()) return;
+    // The F / OPR interlock: the EU stalls here until the outstanding bus
+    // read has landed (the ONLY EU<->BIU data sync -- biu_model.md, ROM
+    // confirmations).  No-op in the functional model.
+    biu_.wait_read();
     m_.opr = rdq_.front();
     rdq_.erase(rdq_.begin());
     opr_fresh_ = true;
@@ -686,8 +690,10 @@ bool CpuT<Bus>::run_micro(const MicroPc& entry) {
         if (bank >= 0) ++g_row_cover[bank * 4 + m_.upc.row()];
 
         // `F` is the bus interlock: the row waits for the outstanding read to
-        // land in OPR (ledger, "F = bus interlock").
-        if (op.f) deliver_read();
+        // land in OPR (ledger, "F = bus interlock").  In TIMED mode the wait
+        // is real -- and it covers the PRE-DECODE operand read too, which the
+        // loader delivers straight into OPR without going through `rdq_`.
+        if (op.f) { biu_.wait_read(); deliver_read(); }
 
         // SIGMA and the flag outputs are read from the LATCHED operation
         // evaluated on the tmps as they stand at the START of the row.
@@ -712,6 +718,12 @@ bool CpuT<Bus>::run_micro(const MicroPc& entry) {
 
         bool suppress_commit = false;
         bool is_rloop = (op.type == ucrom::MicroType::ALU) && op.r;
+        // Micro-row cadence (ucsim-t T1): one ROM row = one CPU clock; a TAKEN
+        // micro-JMP costs one more (the sequencer's redirect bubble); an R-loop
+        // costs one clock per iteration.  The E row and the row after it are
+        // charged by the SUCCESSOR's decode, which overlaps them.
+        int row_clocks = 1;
+        int rloop_iters = 0;
 
         if (!is_rloop) {
             // --- the two parallel transfers ------------------------------
@@ -797,6 +809,7 @@ bool CpuT<Bus>::run_micro(const MicroPc& entry) {
                 // Afterwards the latch is SPENT (see alu_eval).
                 m_.alu.spent = true;
                 while (m_.count != 0) {
+                    ++rloop_iters;
                     m_.count = uint16_t(m_.count - 1);
                     AluResult sr = alu_step(m_, m_.alu);
                     RowCtx sc;
@@ -813,6 +826,7 @@ bool CpuT<Bus>::run_micro(const MicroPc& entry) {
             if (cond_true(op.cond)) {
                 next_loc = op.loc;
                 carry = false;
+                ++row_clocks;   // taken-JMP redirect bubble
             }
         } else {
             // CTL
@@ -903,6 +917,22 @@ bool CpuT<Bus>::run_micro(const MicroPc& entry) {
 
         if (pend_.active && opr_fresh_) emit_pending();
 
+        // --- cadence -------------------------------------------------------
+        // The successor's opcode pop rides the E row's own clock: measured
+        // (v0.1 saturated-queue goldens, all forms) the next F pop lands
+        // exactly two clocks before the successor's first micro-row, and the
+        // E row is two rows before it.  The post-E row therefore overlaps the
+        // successor's decode and is charged there, not here.
+        // A write still STAGED in the data-pairing latch has not even been
+        // handed to the bus yet, so the instruction is not complete: the pop
+        // is released after the tail below emits it (max-of-two-deadlines).
+        if (ending) {
+            row_clocks = 0;
+        } else if (op.e && !pend_.active) {
+            biu_.opcode_prefetch(m_.sreg[kCS]);
+        }
+        biu_.charge(row_clocks + rloop_iters);
+
         if (ending) break;
         if (op.e) ending = true;
         m_.upc.loc = next_loc;
@@ -913,6 +943,9 @@ bool CpuT<Bus>::run_micro(const MicroPc& entry) {
         if (!opr_fresh_) deliver_read();
         emit_pending();
     }
+    // Releases a pop the E row deferred because a write was still staged.
+    // A no-op when the E row already latched the successor's opcode.
+    biu_.opcode_prefetch(m_.sreg[kCS]);
     return true;
 }
 
