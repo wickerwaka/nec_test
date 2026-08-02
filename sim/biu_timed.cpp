@@ -65,6 +65,7 @@ void BiuTimed::begin_case() {
     push_absorb_clk_ = -2;
     req_.clear();
     eu_pending_ = 0;
+    wres_ = 0;
     eu_done_clk_ = -1;
     opr_ready_clk_ = -1;
 }
@@ -479,16 +480,18 @@ static inline uint16_t swap8(uint16_t v) {
 // (sign-extended imm8 for C6, the sibling register byte for 88) is the same
 // fact seen from the source side.  Only READS retain on the undriven lane
 // (see lane_data / §2.6) -- there the CPU floats AD and the system drives.
-void BiuTimed::mem_write(uint16_t seg_val, uint16_t off, uint16_t data,
-                         bool word, uint8_t seg_idx, uint16_t upc) {
-    core_.mem_write(seg_val, off, data, word, seg_idx, upc);
-    uint32_t a = phys(seg_val, off);
+// S5: reserve the write cycle(s) at the ROM row that issues the store.  The
+// data is not known yet; `mem_write` / `io_write` fill it in when the EU pairs
+// it, which always happens before the cycle's T1 is emitted.
+void BiuTimed::write_request(uint16_t seg_val, uint16_t off, bool word,
+                             uint8_t seg_idx, bool io, uint16_t upc) {
     Access acc;
-    acc.bs = kBsMemW;
-    acc.segc = seg_code(seg_idx);
+    acc.bs = io ? uint8_t(kBsIoW) : uint8_t(kBsMemW);
+    acc.segc = io ? uint8_t(2) : seg_code(seg_idx);
     acc.upc = upc;
-    acc.data = (a & 1) ? swap8(data) : data;   // M5b
-    if (word && (a & 1)) {
+    acc.need_data = true;
+    uint32_t a = io ? uint32_t(off) : phys(seg_val, off);
+    if (!io && word && (a & 1)) {
         acc.addr = a;
         acc.ube_n = 0;
         post(acc);
@@ -496,10 +499,39 @@ void BiuTimed::mem_write(uint16_t seg_val, uint16_t off, uint16_t data,
         acc.addr = a1;
         acc.ube_n = uint8_t((a1 & 1) ? 0 : 1);
         post(acc);
+        wres_ += 2;
     } else {
         acc.addr = a;
         acc.ube_n = uint8_t((word || (a & 1)) ? 0 : 1);
         post(acc);
+        wres_ += 1;
+    }
+}
+
+// The reserved cycles, in the order the BIU will run them: the one already
+// in flight, then the committed one, then the queued requests.
+BiuTimed::Access* BiuTimed::find_reserved() {
+    if (run_ && cur_.need_data) return &cur_;
+    if (cmt_valid_ && cmt_.need_data) return &cmt_;
+    for (auto& a : req_)
+        if (a.need_data) return &a;
+    return nullptr;
+}
+
+void BiuTimed::mem_write(uint16_t seg_val, uint16_t off, uint16_t data,
+                         bool word, uint8_t seg_idx, uint16_t upc) {
+    core_.mem_write(seg_val, off, data, word, seg_idx, upc);
+    uint32_t a = phys(seg_val, off);
+    int n = (word && (a & 1)) ? 2 : 1;
+    // M5b: ONE pass through the A0 byte swapper, on the ACCESS's own address --
+    // both cycles of a split then drive that same rotated value.
+    uint16_t d = (a & 1) ? swap8(data) : data;
+    for (int i = 0; i < n; ++i) {
+        Access* r = find_reserved();
+        if (!r) break;
+        r->data = d;
+        r->need_data = false;
+        if (wres_) --wres_;
     }
 }
 
@@ -519,15 +551,12 @@ uint16_t BiuTimed::io_read(uint16_t port, bool word, uint16_t upc) {
 
 void BiuTimed::io_write(uint16_t port, uint16_t data, bool word, uint16_t upc) {
     core_.io_write(port, data, word, upc);
-    Access acc;
-    acc.bs = kBsIoW;
-    acc.addr = port;
-    acc.segc = 2;
-    acc.upc = upc;
-    acc.ube_n = uint8_t((word || (port & 1)) ? 0 : 1);
-    // M5 + M5b: the whole datapath value, through the A0 byte swapper.
-    acc.data = (port & 1) ? swap8(data) : data;
-    post(acc);
+    Access* r = find_reserved();
+    if (r) {
+        r->data = (r->addr & 1) ? swap8(data) : data;
+        r->need_data = false;
+        if (wres_) --wres_;
+    }
 }
 
 uint16_t BiuTimed::inta_read(uint16_t upc) {

@@ -82,6 +82,16 @@ public:
                       uint8_t seg_idx, uint16_t upc);
     void mem_write(uint16_t seg_val, uint16_t off, uint16_t data, bool word,
                    uint8_t seg_idx, uint16_t upc);
+    // S5 RETIRED.  The write CYCLE is scheduled by the BIU at the eval that
+    // follows the ROM row which ISSUES it -- not at the moment the EU pairs
+    // the data.  `write_request` posts the (possibly split) cycle with its
+    // address and status; the data-pairing latch fills it in later, before the
+    // T1 that drives it.  MEASURED: `A4` (MOVSB) puts the store's status on
+    // the load's T4 and its T1 on the very next clock, which is the eval at
+    // the end of the load's T3 granting a request whose DATA does not exist
+    // yet.  A no-op on the functional bus.
+    void write_request(uint16_t seg_val, uint16_t off, bool word,
+                       uint8_t seg_idx, bool io, uint16_t upc);
     uint16_t io_read(uint16_t port, bool word, uint16_t upc);
     void io_write(uint16_t port, uint16_t data, bool word, uint16_t upc);
     uint16_t inta_read(uint16_t upc);
@@ -170,6 +180,7 @@ private:
         // EVEN address shows 9007, the aligned word, not the A2 the first half
         // just put on the high lane), `8A` case 0 row 10, `FE.0` case 0.
         bool sys_word = false;
+        bool need_data = false;   // reserved by write_request, data not paired yet
         uint8_t push_n = 0;    // queue bytes this fetch delivers
         uint8_t push_b[2] = {0, 0};
     };
@@ -256,6 +267,8 @@ private:
 
     // --- EU requests ---
     std::deque<Access> req_;
+    int wres_ = 0;           // write cycles reserved but not yet given data
+    Access* find_reserved();
     int eu_pending_ = 0;     // EU accesses posted but not yet completed
     long eu_done_clk_ = -1;  // clock from which the last one's data is usable
     long opr_ready_clk_ = -1;  // ...+1 for the pre-decode read's hand-over

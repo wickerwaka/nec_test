@@ -562,6 +562,10 @@ void CpuT<Bus>::bus_write(uint8_t seg, uint16_t off, bool byte, bool io,
     pend_.byte = byte;
     pend_.io = io;
     pend_.upc = upc;
+    // S5: the BIU reserves the cycle NOW, on the row that issues the store.
+    // The data-pairing latch below fills it in when OPR carries a fresh value.
+    biu_.write_request(seg == kSegZero ? 0 : m_.sreg[seg], off, !byte, seg, io,
+                       upc);
     if (opr_fresh_) emit_pending();
 }
 

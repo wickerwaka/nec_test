@@ -100,6 +100,7 @@ public:
     void charge(int) {}
     void wait_read() {}
     void wait_opr() {}
+    void write_request(uint16_t, uint16_t, bool, uint8_t, bool, uint16_t) {}
     void opcode_prefetch(uint16_t) {}
     bool opcode_pending() const { return false; }
     void prefix_retire() {}
