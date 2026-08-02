@@ -49,5 +49,7 @@ Put this principle verbatim into every modeling subagent brief.
   v20suite, mod3_illegal = 7,341,126 cases.
 - Timed: `sw/timed_gate.py` (v0.1 w0 + `-w1 --waits 1` / `-w3 --waits 3`),
   `sw/check_boot.py --timed`, `sw/timed_scenario.py`, `sw/timed_lawcards.py`,
-  `sw/timed_ins_replay.py`, `sw/timed_fuzz.py`, `sw/check_enter_nesting.py`.
+  `sw/timed_ins_replay.py`, `sw/timed_fuzz.py`,
+  `sw/check_enter_nesting.py --sim ucsim-timed` (default mode is the
+  Verilator/RTL leg — use the --sim modes for the C++ simulator).
 - ROM/PLA: `make -C sim test` (disasm byte-exact), `python3 sw/pla3_check.py`.
