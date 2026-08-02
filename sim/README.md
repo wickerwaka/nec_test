@@ -33,10 +33,15 @@ modelled — see "What is deliberately not modelled" below.
 | `biu.h` / `biu.cpp` | 1 MB epoch-stamped memory + I/O, functional queue, ordered transaction log. Every access completes instantly; the `F`/`Q` interlock CALL SITES live in `exec.cpp` and are preserved for a future cycle-accurate mode |
 | `ea.h` / `ea.cpp`, `loader.h` / `loader.cpp` | ModR/M + EA, the pre-decode contract (prefixes, operand binding, pre-read, page select) |
 | `alu.h` / `alu.cpp` | the micro-ALU: combinational `alu_eval` and the per-iteration `alu_step` |
-| `exec.h` / `exec.cpp` | the per-micro-row interpreter, incl. the hardware interrupt/NMI/trap entries (`Cpu::interrupt`), the INTA bus cycle and the 8080 mode flag |
+| `exec_impl.h` | the per-micro-row interpreter as `template <class Bus> class CpuT`, incl. the hardware interrupt/NMI/trap entries (`interrupt`), the INTA bus cycle and the 8080 mode flag. `loader_impl.h` is the same treatment for the pre-decode hardware. Bus-policy split, ucsim-t T0 |
+| `exec.h` / `exec.cpp` | the FUNCTIONAL instantiation: `using Cpu = CpuT<Biu>`, one out-of-line copy, `extern template` so no other TU instantiates it |
+| `exec_timed.h` / `exec_timed.cpp` | the TIMED instantiation: `using CpuTimed = CpuT<BiuTimed>` |
+| `biu_timed.h` / `biu_timed.cpp` | the TIMED bus: same Bus concept as `Biu`, owns a CPU clock, emits one row per clock. T0 = naive scaffolding (serial bus, demand-filled queue, no scheduler) |
+| `rows.h` / `rows.cpp` | `ClockRow` + the two emitters: `check_core.py::parse_out` text and chip_rows NDJSON |
+| `timed_runner.h` / `timed_runner.cpp` | `timed-run`: cases in, per-clock row streams + final regs out |
 | `case_runner.h` / `case_runner.cpp` | SingleStepTests ingestion and verdicts |
 | `image_runner.h` / `image_runner.cpp` | whole-IMAGE replay (`v30sim image`): 64K-mirrored memory, the ROM's own RESET sequence, multi-instruction execution to the harness done marker, ordered bus stream out. Drives the S3 fuzz-bank sequence gauntlet (`sw/ucsim_fuzz.py`) |
-| `main.cpp` | CLI dispatcher (`disasm`, `info`, `run`, `image`, `trace`) |
+| `main.cpp` | CLI dispatcher (`disasm`, `info`, `run`, `image`, `trace`, `timed-run`) |
 
 ## Normative sources
 
@@ -67,10 +72,43 @@ v30sim run    <romfile> [--queue] [--emit-final] [--mirror]
 v30sim image  <romfile> [--coverage] [--trace[=idx]]
                                         replay 64 KB test IMAGES from stdin
 v30sim trace  <romfile> <idx>           per-micro-row dump of one case
+v30sim timed-run <romfile> [--waits N] [--ndjson] [--mirror]
+                        [--case=IDX] [--steps=N]
+                                        TIMED mode: one record per CPU clock
 ```
 
 Both `run` and `image` speak NDJSON on stdin/stdout and are long-lived, so the
 Python drivers stream whole suites through one process.
+
+## Timed mode (campaign `ucsim-t`)
+
+The simulator has two bus policies behind one interpreter.  `sim/biu.{h,cpp}`
+is functional (every access completes instantly) and `sim/biu_timed.{h,cpp}`
+models a CPU clock and emits one row per clock; the micro-sequencing code is
+literally the same template in both cases, so the architectural answer cannot
+drift between them.
+
+`timed-run` emits the RAW per-clock pin records that `sw/check_core.py`'s
+`parse_out` / `build_rows_sim` already read — the same textual format
+`hdl/tb/tb_v30_core.sv` writes — so the golden 11-column `cycles` rows are
+synthesized by the UNMODIFIED python comparator rather than by new C++.
+`--ndjson` switches to the chip_rows record shape `sw/check_seq.py` consumes.
+
+```sh
+python3 sw/timed_gate.py --suite tests/v30/v0.2 --forms 88,00,50,C8
+python3 sw/timed_gate.py --sbs B8:0        # golden vs sim rows, side by side
+```
+
+The status column follows the v0.1 README's column-7 semantics (the V30 drives
+the NEXT cycle's status during T4) — modelled as a registered output driven one
+clock early, not as a T4 special case, because the goldens show an idle Ti row
+carrying it too.
+
+**At T0 the rows are NOT yet timing-exact**: the timed bus is deliberate
+scaffolding (strictly serial, no prefetch scheduler, no queue latency, no
+micro-row cadence, uniform waits only).  Every simplification, the laws that
+ARE modelled, and the stage that replaces each one are enumerated in
+`docs/notes/ucsim_t_provenance.md`.
 
 ## Build and the standing gates
 
@@ -181,3 +219,6 @@ Four numbered policies, each with the timing mechanism that would replace it
   computed from the ROM and diffed.
 * **`BUSY`** is hard-FALSE (no pin model), which is why the five POLL busy-loop
   rows are unreached.
+
+The first of those four is what the `ucsim-t` campaign is removing; see
+"Timed mode" above and `docs/notes/ucsim_t_provenance.md`.

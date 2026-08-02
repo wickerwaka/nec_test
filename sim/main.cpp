@@ -6,6 +6,8 @@
 //   run    <romfile>   execute SingleStepTests cases from stdin (NDJSON out)
 //   image  <romfile>   replay whole 64 KB test images (fuzz-bank sequences)
 //   trace  <romfile> <idx>  per-micro-row dump of ONE case (to stderr)
+//   timed-run <romfile>  execute cases in TIMED mode, emitting one record per
+//                        CPU clock (ucsim-t)
 
 #include <cstdio>
 #include <cstdlib>
@@ -15,6 +17,7 @@
 #include "case_runner.h"
 #include "disasm.h"
 #include "image_runner.h"
+#include "timed_runner.h"
 #include "ucrom.h"
 
 namespace {
@@ -34,7 +37,11 @@ int usage(const char* argv0) {
                  "                     replay 64 KB test IMAGES from stdin\n"
                  "                     (reset -> load stub -> program -> store\n"
                  "                      stub); see sim/image_runner.cpp\n"
-                 "  trace  <romfile> <idx>      trace one case from stdin\n",
+                 "  trace  <romfile> <idx>      trace one case from stdin\n"
+                 "  timed-run <romfile> [--waits N] [--ndjson] [--mirror]\n"
+                 "                     [--case=IDX] [--steps=N]\n"
+                 "                     run cases from stdin in TIMED mode,\n"
+                 "                     emitting one row per CPU clock\n",
                  argv0);
     return 2;
 }
@@ -136,6 +143,31 @@ int cmd_trace(int argc, char** argv) {
     return sim::run_cases(rom, stdin, stdout, opt);
 }
 
+int cmd_timed_run(int argc, char** argv) {
+    if (argc < 1) {
+        std::fprintf(stderr,
+                     "usage: v30sim timed-run <romfile> [--waits N] "
+                     "[--ndjson] [--mirror] [--case=IDX] [--steps=N]\n");
+        return 2;
+    }
+    ucrom::UcRom rom;
+    if (!load_rom(argv[0], rom)) return 1;
+    sim::TimedOptions opt;
+    for (int i = 1; i < argc; ++i) {
+        if (std::strcmp(argv[i], "--ndjson") == 0) opt.ndjson = true;
+        else if (std::strcmp(argv[i], "--mirror") == 0) opt.mirror = true;
+        else if (std::strcmp(argv[i], "--waits") == 0 && i + 1 < argc)
+            opt.waits = std::atoi(argv[++i]);
+        else if (std::strncmp(argv[i], "--waits=", 8) == 0)
+            opt.waits = std::atoi(argv[i] + 8);
+        else if (std::strncmp(argv[i], "--case=", 7) == 0)
+            opt.only_idx = std::atol(argv[i] + 7);
+        else if (std::strncmp(argv[i], "--steps=", 8) == 0)
+            opt.steps = std::atoi(argv[i] + 8);
+    }
+    return sim::run_timed(rom, stdin, stdout, opt);
+}
+
 }  // namespace
 
 int main(int argc, char** argv) {
@@ -146,6 +178,8 @@ int main(int argc, char** argv) {
     if (std::strcmp(cmd, "run") == 0) return cmd_run(argc - 2, argv + 2);
     if (std::strcmp(cmd, "image") == 0) return cmd_image(argc - 2, argv + 2);
     if (std::strcmp(cmd, "trace") == 0) return cmd_trace(argc - 2, argv + 2);
+    if (std::strcmp(cmd, "timed-run") == 0)
+        return cmd_timed_run(argc - 2, argv + 2);
     std::fprintf(stderr, "v30sim: unknown command '%s'\n", cmd);
     return usage(argv[0]);
 }

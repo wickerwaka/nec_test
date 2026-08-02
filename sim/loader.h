@@ -30,7 +30,17 @@ struct LoadResult {
 // Runs the prefix loop, fetches the opcode (and ModR/M + displacement),
 // computes the EA, binds M/R and performs the operand pre-read.  Leaves the
 // machine ready to execute row 0 of the returned micro-address.
-LoadResult loader_decode(Machine& m, Biu& biu);
+//
+// Templated over the BUS POLICY (ucsim-t T0).  The definition lives in
+// loader_impl.h; this header only declares it, plus the explicit-instantiation
+// DECLARATION for the functional bus.  That declaration is what keeps the
+// functional build byte-for-byte the same shape as before the split: no
+// translation unit implicitly instantiates `loader_decode<Biu>`, they all call
+// the single out-of-line copy that loader.cpp emits.
+template <class Bus>
+LoadResult loader_decode(Machine& m, Bus& biu);
+
+extern template LoadResult loader_decode<Biu>(Machine&, Biu&);
 
 }  // namespace sim
 
