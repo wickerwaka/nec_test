@@ -95,14 +95,13 @@ uint16_t Biu::io_read(uint16_t port, bool word, uint16_t upc) {
     uint16_t src = io_in_;
     if (io_n_ < io_seq_.size()) src = io_seq_[io_n_];
     ++io_n_;
-    uint16_t v;
-    if (!word)
-        v = uint16_t((port & 1) ? (src >> 8) : (src & 0xFF));
-    else if (port & 1)
-        v = uint16_t((src >> 8) | (src << 8));
-    else
-        v = src;
-    log(Txn::kIoRead, port, uint16_t(port + 1), v, word ? 2 : 1, 0, upc);
+    // ONE expression for both widths, and it is the same A0 BYTE SWAPPER the
+    // memory path uses: the port presents its 16-bit word on both lanes and
+    // the CPU rotates the addressed byte into the low half of its datapath,
+    // carrying the companion along.  A byte consumer masks it off.
+    uint16_t v = (port & 1) ? uint16_t((src >> 8) | (src << 8)) : src;
+    log(Txn::kIoRead, port, uint16_t(port + 1), word ? v : uint16_t(v & 0xFF),
+        word ? 2 : 1, 0, upc);
     return v;
 }
 

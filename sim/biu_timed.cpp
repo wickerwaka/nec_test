@@ -504,11 +504,12 @@ void BiuTimed::write_request(uint16_t seg_val, uint16_t off, bool word,
     acc.upc = upc;
     acc.need_data = true;
     uint32_t a = io ? uint32_t(off) : phys(seg_val, off);
-    if (!io && word && (a & 1)) {
+    if (word && (a & 1)) {
         acc.addr = a;
         acc.ube_n = 0;
         post(acc);
-        uint32_t a1 = phys(seg_val, uint16_t(off + 1));
+        uint32_t a1 = io ? uint32_t(uint16_t(off + 1))
+                         : phys(seg_val, uint16_t(off + 1));
         acc.addr = a1;
         acc.ube_n = uint8_t((a1 & 1) ? 0 : 1);
         post(acc);
@@ -555,18 +556,37 @@ uint16_t BiuTimed::io_read(uint16_t port, bool word, uint16_t upc) {
     acc.addr = port;
     acc.segc = 2;  // I/O drives the "no segment" code (MEASURED, E4 case 0)
     acc.upc = upc;
-    acc.ube_n = uint8_t((word || (port & 1)) ? 0 : 1);
-    acc.data = lane_data(last_dp_, port, word, v);
-    post(acc);
+    // The bus carries the datapath value back through the A0 swapper, i.e. the
+    // word the port presented.  MEASURED: `E4` case 0, `in al, 9dh` with
+    // iord=23D8 shows 23D8 on the data phase, not the byte plus a stale lane.
+    acc.data = (port & 1) ? swap8(v) : v;
+    if (word && (port & 1)) {
+        // The 16-bit bus splits an unaligned WORD I/O access into two byte
+        // cycles, exactly as it does for memory, and both drive the port's
+        // own word.  MEASURED: `E5` case 4, `in ax, 79h` -> ports 79 and 7A.
+        acc.ube_n = 0;
+        acc.rd_last = false;
+        post(acc);
+        acc.addr = uint32_t(uint16_t(port + 1));
+        acc.ube_n = uint8_t((acc.addr & 1) ? 0 : 1);
+        acc.rd_last = true;
+        post(acc);
+    } else {
+        acc.ube_n = uint8_t((word || (port & 1)) ? 0 : 1);
+        post(acc);
+    }
     eu_done_clk_ = -1;
     return v;
 }
 
 void BiuTimed::io_write(uint16_t port, uint16_t data, bool word, uint16_t upc) {
     core_.io_write(port, data, word, upc);
-    Access* r = find_reserved();
-    if (r) {
-        r->data = (r->addr & 1) ? swap8(data) : data;
+    int n = (word && (port & 1)) ? 2 : 1;
+    uint16_t d = (port & 1) ? swap8(data) : data;
+    for (int i = 0; i < n; ++i) {
+        Access* r = find_reserved();
+        if (!r) break;
+        r->data = d;
         r->need_data = false;
         if (wres_) --wres_;
     }
