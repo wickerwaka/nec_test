@@ -3082,3 +3082,126 @@ env-gated, and it touches no model state.
 6. Unchanged from §12.8: the w0-only `F3AA cx >= 2` residual (907 cases), C2 /
    C6 / C7 / C11's missing stimuli, and `sw/biu_rebuild_wvec_freeze.py` +
    `Vtb_v30_core` remaining NOT a controlled reference.
+
+## 14. T4 — the board block.  Q1 closed OFFLINE, and the board register
+
+This section is the T4 stage.  Nothing earlier is retracted except where an
+entry below says so — and two things below **are** retracted, both of them
+laws this campaign fitted itself: **M3c** (§9.1) and the **PS3 reading** of
+§13.5.
+
+The stage opened with the whole Q1 family (87 % of T3's fuzz first
+divergences) still open and a board session budgeted for it.  It did not need
+one: the mechanism came out of the banked chip captures with a new instrument,
+and the board time was re-aimed at the two things that genuinely require
+silicon — the P2 provenance gap and the victory tranche.
+
+### 14.0 PRE-REGISTRATION — written and committed BEFORE the board was touched
+
+Board discipline for this whole section: SINGLE WRITER (checked, no foreign
+`v30run serve` / `v30ctl` / fork-session runner), **socket only**
+(`use_core=False`), **no FPGA flashing anywhere**, `board_idle()` after every
+session, raw 64-bit capture words retained with a sha256 beside every derived
+record, and — the P2 lesson (§13.4) — **the full per-cycle stream retained,
+never a digest alone**.
+
+#### B1 — the P2 wvec re-capture, with its parts
+
+*Why.* §13.4: `sw/testdata/t2b/p2-wvec/wvec_chip_baseline.json` stores only a
+16-hex sha per cell, so law cards C4/C5/C10/C12 are pass/fail with NO
+GRADIENT — the sim matches the access COUNT on all four and there is no way to
+read where the digest parts.  This is the cheapest unblock in the campaign.
+
+*Stimulus.* Byte-identical to T2b P2: the 22 seeds (`fz90000-90019` +
+`fz90270`, `fz90364`) x the 4 explicit per-access wait vectors (`ws0:wmax0`,
+`ws5:wmax1`, `ws7:wmax3`, `ws11:wmax7`), 4,200 clocks, socket, 2 repetitions
+per cell; the 2 directed law seeds at `ws5:wmax1` promoted with 5 repetitions
+at 4 MHz **and** 8 MHz.  What is NEW is only what is RETAINED: the full
+per-access `parts` list for every cell, and the complete per-clock row stream
+for the four law-card cells.
+
+*Predictions, and the falsifier.*
+1. every one of the 88 cells reproduces its T2b 16-hex digest **exactly**.
+   A cell that does not is a CAPTURE-SIDE drift (board, rig or harness), not a
+   model finding, and it invalidates the T2b freeze rather than the model —
+   that outcome is reported as such and the law cards stay blocked.
+2. all 88 cells bit-repeatable across their repetitions; the promoted cells
+   identical at both frequencies.
+3. the parts lists make C4/C5/C10/C12 gradable: for each card the FIRST
+   differing access index is nameable.  If the sim's parts are identical and
+   only the digest differed, the T2b digest is not a function of the parts and
+   that is a harness bug, reported as one.
+
+#### B2 — THE VICTORY TRANCHE
+
+*The population, frozen before capture.*  **216 fresh seeds** = 3 generators
+(`mc1`, `mc2`, `t30-raw`) x 9 wait classes (`fix0` `fix1` `fix2` `fix3`,
+`wrand1` `wrand2` `wrand3` `wrand7` `wrand15`) x 8 seeds.  Seeds are drawn
+deterministically: for each (cid, class), scan `k` upward from **100000** —
+strictly outside every banked range (`mc1` max 3744, `mc2` 3868, `t30-raw`
+999) — and take the first 8 whose `fuzz_campaign.derive_case(cid, k,
+{"no_evt": True})` lands in that class.  **Never-before-seen by construction**,
+and reproducible from those three lines.  The (cid, k) list is written to disk
+and committed BEFORE the first capture.
+
+*Why `no_evt` is set at GENERATION and not filtered afterwards.*
+Interrupt/INTA timing under waits is an explicit scope exclusion of the whole
+campaign.  T3 excluded it post hoc (1,165 of 3,242 banked seeds); here it is
+excluded by construction so the denominator is fixed before anything is
+measured and cannot move.
+
+*Capture.* Socket, `use_core=False`, no flashing.  **3 repetitions per cell at
+div=8**; a cell whose 3 captures are not pin-identical is EXCLUDED and
+REPORTED, never scored.  **12 declared promotion cells** (the first seed of
+each of the 9 wait classes for `mc1`, plus `wrand15` for `mc2` and `t30-raw`,
+plus `mc1`/`fix0`) additionally get 5 repetitions at 4 MHz AND 8 MHz.  Raw
+64-bit words and the full per-clock rows retained for every cell, sha256
+beside each.  If the wall time proves excessive the POPULATION is cut (whole
+strata, evenly), never the repetitions — and the cut is stated.
+
+*Replay.* Identical to `sw/timed_fuzz.py` in every particular: the regeneration
+path and its sha256 gate, the comparison WINDOW (`ucsim_fuzz.window_of`), and
+the COLUMN POLICY (`fuzz_classify.diff_rows`).  Wait vectors rebuilt from each
+seed's own derived `waits` record.
+
+*Exclusions, declared in advance, both properties of the CAPTURE:*
+* **OPEN_BUS** — the program escaped the image and the chip is reading the
+  rig's open bus, by the bank's OWN detector.
+* **UNSTABLE** — the 3 repetitions are not pin-identical.
+`GEN_DRIFT`, `REGEN_ERROR`, `SIM_ERROR` and capture errors are HARD FAILURES.
+
+*THE BAR — frozen here, before the capture, and scored as written.*
+
+| | metric | bar |
+|---|---|---|
+| **V0** | hard failures | **0** |
+| **V1** | scored seeds cycle-exact over the whole window | **>= 55.6 %** |
+| **V2** | median divergence-free prefix FRACTION | **>= 1.000** |
+| **V3** | every non-exact seed's first divergence in a NAMED family | **100 %** |
+| **V4** | cycle-exact rate in the five `wrand` strata vs the four fixed strata | **within 10 points** |
+| **V5** | the campaign's literal victory phrasing, "fresh random-wait tranche cycle-exact" | **V1 = 100 %** |
+
+V1's and V2's numbers are the post-Q1 banked figures (947/1,702 = 55.6 %,
+median prefix fraction 1.000, §14.2) and the bar is that a FRESH tranche must
+be **at least as good** as the banked one.  Stated as a falsifiable prediction
+rather than a bar: the fresh tranche should be **BETTER**, because the fuzz
+bank is an adversarially selected population — every seed in it was PROMOTED
+for diverging against an earlier model — while a fresh tranche is unselected.
+A fresh tranche that scores WORSE than the bank means the bank is not
+representative of the wait axis and is reported as the finding it would be.
+
+V4 is the project's #1 priority written as a gate: a model that is only
+accurate at zero waits fails this stage even if V1 passes.
+
+**V5 is registered so that it cannot be quietly redefined.**  The T3 evidence
+says the model is not cycle-exact over whole 1,300-4,000-clock programs, so V5
+is expected to FAIL, and the campaign's victory will be reported as PARTIAL
+with V1-V4 scored as written.  No post-hoc restatement of "cycle-exact" is
+permitted; if V5 fails it is reported failed.
+
+#### B3 — A30, if the board session has room
+
+*Parked from the functional campaign.*  `BRKEM` -> stay in 8080 mode -> INTR:
+which INTA bank does the acknowledge use?  It settles the 14th-decoder-input
+assumption.  Registered as best-effort: it runs only after B1 and B2 are
+complete and verified, and if it does not run that is recorded, not hidden.
