@@ -103,6 +103,18 @@ public:
     // completed and its data handed over (eu_done = T4 + 1 at zero waits).
     void wait_read() { wait_bus(); }
     void wait_bus();
+    // The PRE-DECODE operand read.  Its data is not consumed by an F-flagged
+    // micro-row -- it is consumed by micro-row 0 itself -- and the decoder
+    // spends one clock handing the sequencer over, exactly as it does on the
+    // saturated-queue schedule (7.6: micro-row 0 lands at opcode+2, never
+    // opcode+1).  So micro-row 0 opens at the read's T4 + 2, one clock after
+    // the F/OPR interlock would release.  MEASURED over the whole v0.1 suite:
+    // a WRITE-terminated instruction retires at its last T4 + 1 (52,752 cases,
+    // no exceptions) while a PRE-READ-terminated one retires at T4 + 1 + (the
+    // number of micro-rows that still have to run) -- 8A/8B/02/03/... 2 rows
+    // -> +3 (9,043 cases), 84/85/8E/66/67/D8-DF 1 row -> +2, 0F10/0F11 3 rows
+    // -> +4.  The row count is the cadence engine's; the +1 is this handover.
+    void wait_opr();
     // The decoder pre-pops the next instruction's opcode.  Called on the E
     // (end-of-sequence) micro-row, which is the clock the chip pops it on --
     // two clocks before the successor's first micro-row.
@@ -225,6 +237,7 @@ private:
     std::deque<Access> req_;
     int eu_pending_ = 0;     // EU accesses posted but not yet completed
     long eu_done_clk_ = -1;  // clock from which the last one's data is usable
+    long opr_ready_clk_ = -1;  // ...+1 for the pre-decode read's hand-over
 };
 
 }  // namespace sim

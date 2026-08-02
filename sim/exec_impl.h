@@ -846,6 +846,12 @@ bool CpuT<Bus>::run_micro(const MicroPc& entry) {
                 m_.upc.opc = uint8_t(op.far_loc() << 3);
                 next_loc = 0;
                 carry = false;
+                // A FARJMP is a taken micro-jump and pays the same sequencer
+                // redirect bubble (7.7).  MEASURED on the shift family: with
+                // it, D2/D3/C0/C1 retire at pop+10+n for n>=1 and pop+9 for
+                // n==0 -- exactly the measured shift law -- and D0/D1, which
+                // reach the same R row WITHOUT a FARJMP, stay at 6.
+                ++row_clocks;
             } else {
                 switch (op.ictl) {
                     case exec_detail::kIctlSusp: biu_.susp(); break;

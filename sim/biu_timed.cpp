@@ -58,6 +58,7 @@ void BiuTimed::begin_case() {
     req_.clear();
     eu_pending_ = 0;
     eu_done_clk_ = -1;
+    opr_ready_clk_ = -1;
 }
 
 void BiuTimed::end_case() {
@@ -189,6 +190,7 @@ void BiuTimed::tick() {
                 // eu_done: the data handover / store retire lands one clock
                 // after the completion eval (mission-H); at w0 that is T4 + 1.
                 eu_done_clk_ = c + 1;
+                opr_ready_clk_ = c + 2;
                 if (eu_pending_) --eu_pending_;
             }
             run_ = false;
@@ -385,6 +387,12 @@ void BiuTimed::wait_bus() {
     while (clk_ < eu_done_clk_ && ++guard < 4096) tick();
 }
 
+void BiuTimed::wait_opr() {
+    int guard = 0;
+    while (eu_pending_ > 0 && ++guard < 4096) tick();
+    while (clk_ < opr_ready_clk_ && ++guard < 4096) tick();
+}
+
 // --- data accesses ----------------------------------------------------------
 
 uint16_t BiuTimed::mem_read(uint16_t seg_val, uint16_t off, bool word,
@@ -413,6 +421,7 @@ uint16_t BiuTimed::mem_read(uint16_t seg_val, uint16_t off, bool word,
         post(acc);
     }
     eu_done_clk_ = -1;
+    opr_ready_clk_ = -1;
     return v;
 }
 

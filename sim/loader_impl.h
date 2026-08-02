@@ -434,6 +434,10 @@ LoadResult loader_decode(Machine& m, Bus& biu) {
         if (mo.kind == OperandRef::kMem) {
             m.opr = biu.mem_read(m.sreg[mo.seg], mo.ea, !mo.byte, mo.seg,
                                  loader_detail::kPreDecodeUpc);
+            // Micro-row 0 cannot open until this data is in OPR and the
+            // decoder has handed the sequencer over: T4 + 2.  See
+            // biu_timed.h::wait_opr.
+            biu.wait_opr();
             out.preread = true;
         }
     }

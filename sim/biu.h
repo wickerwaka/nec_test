@@ -98,6 +98,7 @@ public:
     // call sites in ONE body shared by both instantiations.
     void charge(int) {}
     void wait_read() {}
+    void wait_opr() {}
     void opcode_prefetch(uint16_t) {}
     bool opcode_pending() const { return false; }
     void prefix_retire() {}
