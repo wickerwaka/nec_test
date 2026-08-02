@@ -1152,6 +1152,24 @@ buying ~7,600 elsewhere.  It is the same open item as the 0F row above.
 
 ### 8.7 Gates (measured, this machine)
 
+The FULL functional sweep, re-run on the FINAL binary of this pass — every
+one of the mechanisms below that touches the shared interpreter (`rb16`, the
+read-side byte swapper in `Biu::mem_read` / `Biu::io_read`, the shifter's
+lanes) is ARCHITECTURAL, so it rode all of it:
+
+| suite | result | time |
+|---|---|---|
+| v0.1 | 169,000 / 169,000 | 20 s |
+| v0.2 | 347,000 / 347,000 | 43 s |
+| v0.3 | 3,699,998 / 3,699,998 | 507 s |
+| v20suite | 3,125,000 / 3,125,000 | 385 s |
+| mod3_illegal (`--residue stale-ea`) | 128 / 128 | 0 s |
+| **total** | **7,341,126** | |
+
+(`mod3_illegal` is the loose thread §7.10 flagged as "unverified either way":
+it needs the `--residue stale-ea` flag, and with it the suite is 128/128.  It
+is now part of the standing set.)
+
 ```
 make -C sim test                                    # disasm gate: PASS
 python3 sw/pla3_check.py                            # OK (21 checks)
@@ -1164,13 +1182,33 @@ python3 sw/timed_gate.py --suite tests/v30/v0.1 --forms all   # THE RATCHET
 python3 sw/timed_probe.py --forms EB --top 8         # first-divergence triage
 ```
 
+**Environment note (unchanged from §7.10):** `export TMPDIR=~/.cache/ucsimt-tmp`
+before building or running anything that uses `tempfile`; `/tmp` is a small
+tmpfs on this machine.  Do NOT write row dumps there.
+
 `sw/timed_probe.py` is new: it reuses `timed_gate`'s runner and `check_core`'s
 comparison policy unchanged and groups the failing cases of a form by their
 FIRST divergent cell.  Every mechanism in §8 was found by reading one of its
 classes; it is the tool that turns "N cases fail" into "one mechanism is
 missing here".
 
-### 8.8 Milestones
+### 8.8 Still owed inside T1 (unchanged from §7.12)
+
+* the **L1 `timed-scenario` oracle-replay adapters** (decoder-drain v2,
+  decoder-multibyte, decoder-displacement, prefix-phase) are STILL only
+  hand-checked cross-references on §7.6; no replay harness exists.
+* **BUSLOCK and HALT display** — S8's remaining half.
+* **`kSegZero` PS code** — still an ASSUMPTION; the `INT.*` goldens can settle
+  it but they are the S9 exclusion, so it stays open until S9 opens.
+* **§7.6's EA stage.**  The five-row decoder table is UNCHANGED and its two
+  bare numbers (disp8 @3 vs disp16-lo @2; mod0-no-disp costing one clock more
+  than mod3) are STILL not derived from a two-clock EA machine.  What this
+  pass added around it is the M3b miss penalty, which interacts with those two
+  numbers directly — the queue-empty goldens now discriminate demand clocks to
+  the clock, so the EA stage is a better-posed question than it was, and the
+  0F/prefix residual in §8.6 is most likely the same question.
+
+### 8.9 Milestones
 
 * **Milestone A** (B8 8B 89 F7.6 EB E8 at w0 + w1/w3): **NOT MET.**  At w0
   FIVE of the six are 500/500 — `B8 8B 89 EB E8` — and `F7.6` is 245/500
