@@ -1136,7 +1136,7 @@ each written as a family with its first-divergence pattern:
 
 | family | cases | first divergence | hypothesis |
 |---|---|---|---|
-| `9A CC CD CE CF FF.3` far/interrupt flush | 2,763 | `qop E` one clock off, then the whole redirect stream shifts | the multi-push chain (PSW/CS/PC) reserves and the E display arbitrates against three writes, not one; the F1 (c) clause is verified on ONE pending request only |
+| `9A CC CD CE CF FF.3` far/interrupt flush | 2,763 | the SECOND push of the chain misses the first push's T3 eval by one clock and lands two clocks late (`9A` case 1: golden T1 at 17, model at 15), and the `E` follows it | the CALLF/INT push chain (022C-0231, 01D8+) carries one more clock somewhere between its two `MEMW` rows than the model gives it.  The same signature as `FE.0` before the group-dispatch clock was found -- a UNIVERSAL store lead-in was tested against the whole suite and REJECTED (it cost 24k cases), so the clock is in the chain, not in the store |
 | 0F-escape page (`0F10-0F1F`, `0F28`, `0F2A`, `0F31`, `0F33`, `0F39`, `0F3B`) | ~2,000 | `qop S -> -`, a pop one clock late | the `0F` second byte is a DECODER pop and now pays the M3b miss penalty; its demand clock inside the 2-clock re-decode is not yet right |
 | REP strings `F3A4 F3A5 F3AA F3AB F2AA` | 1,506 | iteration-2 onward | REP loop chaining: the non-REP forms are all 500/500, so this is the loop's re-entry cadence only |
 | MUL/DIV `F6.6 F6.7 F7.6 F7.7` | 1,254 | length | category **C6**, the wait-insensitive compute burns, untouched |
