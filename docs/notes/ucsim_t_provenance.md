@@ -2727,3 +2727,94 @@ target and it is now measured against silicon, not against a TBR baseline.
 narrow, and carry their discriminating pairs.  (d) `sw/biu_rebuild_wvec_freeze.py`
 and the `Vtb_v30_core` binary are NOT a controlled reference and should not be
 cited as one until rebuilt from a clean tree.
+
+---
+
+## 13. T3 — sequence timing.  ONE FLOP, READ ONE CLOCK TOO LATE
+
+This section is the T3 stage.  Nothing earlier is retracted.
+
+Part A closes the six RED law cards' shared shape with **one mechanism and one
+bug fix**, both of them w0-neutral by construction; Part B pre-registers and
+runs the fuzz-bank cycle-replay gate.  The ratchets:
+
+| step | v0.1 **w0** | w1 | w3 | sled events | wvec count | INS vs-chip rails |
+|---|---|---|---|---|---|---|
+| T2b close (§12) | 165,490 | 1,200 | 1,200 | 3,587 / 3,639 | 78 / 88 | 1,768 / 2,624 |
+| M7 — the eligibility sample is at a FIXED index (§13.1) | 165,490 | 1,200 | 1,200 | 3,625 / 3,639 | 82 / 88 | 1,772 / 2,624 |
+| M7b — ...and the outstanding term clears at POPPABLE (§13.2) | 165,490 | 1,200 | 1,200 | **3,768 / 3,769** | 82 / 88 | 1,772 / 2,624 |
+| R-STALL — the leaked OPR hold (§13.3) | **165,490** | **1,200** | **1,200** | 3,768 / 3,769 | **87 / 88** | **2,624 / 2,624** |
+
+### 13.0 PRE-REGISTRATION — the fuzz-bank cycle gate, written and committed BEFORE the first full run
+
+The S4r lesson applied to a corpus gate: the population, the comparison policy
+and the numeric bar are frozen *here*, from a 50-seed pilot, so that no
+post-hoc reading of the full run can be dressed up as the gate.  Verbatim
+register:
+
+**Harness.** `sw/timed_fuzz.py`, three things inherited rather than
+re-invented: the regeneration path and its sha256 gate (`ucsim_fuzz.regen` —
+a drift is a HARD failure, because the image the simulator would run is then
+not the image the chip ran), the comparison WINDOW (`ucsim_fuzz.window_of`:
+row 0 = RESET RELEASE to `min(len(chip_rows), 4000, done+8)`), and the COLUMN
+POLICY (`fuzz_classify.diff_rows`, byte for byte the policy the banks' own
+`first_bad`/`bad_rows` were computed with — the same masking family as
+`check_core`/`timed_gate`: `bs_late`, `rd_n`, `lock_n`, `rst` are never
+compared, AD is an ADDRESS at T1 and DATA at T2/T3 and nothing on a TI or T4
+clock, `ps` only at T2 of an active cycle, `qs` on every row with the
+documented F/S flicker exemption, and rows 0-8 are the capture's reset
+settling).
+
+**Wait vectors** are rebuilt from each seed's own `waits` record: a fixed
+level to `--waits`, a random one to `--wmax/--wseed`, which drives the model's
+copy of the rig's Galois LFSR (poly 0xB400, drawn once per bus cycle at T1
+entry, §11.1).
+
+**Population.** All **3,242** banked seeds of `mc1` + `mc2` + `t30-raw` +
+`t30-brkem`.  **Verdict class is NOT a filter**: a bank verdict
+(TIMING/FUNCTIONAL/SUCCESS/KNOWN_ACCEPTED) records what the FABRIC did against
+the chip and says nothing about what the SIM does — and the reference here is
+the chip capture itself, which every banked seed carries.  Two exclusions,
+both declared in advance and both properties of the CAPTURE, not of the
+model's answer on it:
+
+* **EVT** — the seed carries an external event.  Interrupt/INTA timing under
+  waits is an explicit scope exclusion of the whole campaign; a gate must not
+  pretend a law it has never measured.
+* **OPEN_BUS** — the program escaped the image and the chip is reading the
+  rig's open bus (`ad_data == ad_addr` feedthrough), detected with the bank's
+  OWN detector (`fuzz_classify._open_bus_escaped_before`).  The simulator's
+  memory is the 64 KB-mirrored image the board is wired as, so it reads image
+  bytes there: that divergence is the rig's, not the model's.
+
+`GEN_DRIFT`, `REGEN_ERROR` and `SIM_ERROR` are **hard failures**, not
+exclusions.
+
+**Pilot (50 stratified seeds, deterministic, `--pilot 50`; 26 scored, 17 EVT,
+7 OPEN_BUS):**
+
+| metric | pilot value |
+|---|---|
+| M1 cycle-exact seeds (whole window divergence-free) | **0 / 26 (0.0 %)** |
+| M2 median divergence-free prefix, rows from RESET | **277** |
+| M3 median prefix FRACTION (`first_bad / n`) | **0.177** |
+| M4 seeds with prefix fraction >= 0.5 / >= 0.9 | **0 / 26**, **0 / 26** |
+| first-divergence family census | `qs` 20, `data` 3, `bs` 3 |
+
+**The bar, stated honestly.**  The pilot says the model is NOT cycle-exact over
+whole 1,300-4,000-clock programs, so an absolute pass threshold would be either
+vacuous or unreachable and the gate does not claim one.  What it claims, and
+what can fail:
+
+1. **Zero hard failures** on the full population (`GEN_DRIFT`/`REGEN_ERROR`/
+   `SIM_ERROR` = 0).
+2. **A closed taxonomy**: every scored seed's first divergence falls in a named
+   family; an "unknown" bucket is a failure of the survey, reported as one.
+3. **A RATCHET**: M1, M2, M3 and M4 measured on the first full run are the
+   baseline of record and may only GROW thereafter.  The scored-population size
+   and the EVT/OPEN_BUS counts are frozen with them, so the ratchet cannot be
+   met by shrinking the denominator.
+4. **A falsifiable prediction from the pilot**: the full run's first-divergence
+   census is dominated by `qs` (pilot 77 %), with `data` and `bs` the only
+   other families.  A large family the pilot did not see is a FINDING and is
+   reported as one.
