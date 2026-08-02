@@ -1845,3 +1845,463 @@ of 347 forms are 100 % exact and every form of the S1a tranche is among them.
 6. **§7.6's EA stage** — unchanged from §8.8/§9.4: the five-row demand table is
    now a march of 1- and 2-clock steps (§9.1) but WHY the byte-displacement
    step is the long one is still not derived.
+
+---
+
+## 11. T2a — the wait axis, offline.  ONE INSTANT, and four things hanging off it
+
+This section is the wait-axis stage.  Nothing earlier is retracted.  The two
+ratchets, reported together as the stage discipline requires:
+
+| step | v0.1 **w0** rows exact | w1 | w3 |
+|---|---|---|---|
+| T1 close (§10) | 165,481 | 158 / 1,200 | 162 / 1,200 |
+| M2r — the eval instant and its offsets (§11.1) | **165,481** | 874 | 994 |
+| the QS port is held through the eval (§11.3) | **165,481** | 925 | 1,097 |
+| the completion eval's display clock is not an eval point (§11.2) | **165,481** | 1,046 | 1,097 |
+| the OPR release does NOT stretch (§11.4) | **165,481** | 1,148 | **1,200** |
+| a pushing fetch owns the QS port until its bytes are in (§11.3) | **165,481** | **1,200** | **1,200** |
+
+**MILESTONE A IS MET**: `B8 8B 89 F7.6 EB E8` are 200/200 at w1 and at w3,
+2,400/2,400, and the w0 ratchet did not move by a single case at any step —
+every mechanism below is w0-neutral BY CONSTRUCTION, not by luck.
+
+### 11.1 M2r — the wait-state conditional lives in the RIG, not in the part
+
+§7.2 resolved T0's `w == 0 ? 2 : 3 + w` into "one register + one sampling
+instant" but refused to promote it past w0 and demanded T2 re-derive the
+release point **from the READY sample**.  Done, and the derivation is a read of
+the harness's own generator (`hdl/rtl/nec_bus.sv`, the `tick_rise` branch):
+
+```
+    at T1 entry:      wait_cnt <= N;  ready_q <= (N == 0)
+    at each T3/Tw:    if (wait_cnt) begin wait_cnt <= wait_cnt-1;
+                                          ready_q <= (wait_cnt == 1); end
+    next_t_state:     from T3 or Tw ->  ready_q ? T4 : Tw
+```
+
+so the READY *line* the CPU sees is HIGH for exactly the clocks the T-state
+machine may leave for T4 — **from T2 when N = 0, and from the LAST Tw when
+N > 0**.  The CPU registers that line at the end of every clock and ONE CLOCK
+LATER does two things at once: it RELEASES the status register (that clock
+displays PASV) and it runs the COMPLETION EVAL at the clock's end.  So there
+is exactly one instant `e` per bus cycle,
+
+```
+    e_i = (N == 0) ? 2 : 3 + N          T3 at zero waits, T4 otherwise
+```
+
+and every other quantity in the model is a fixed offset from it:
+
+| offset | what happens |
+|---|---|
+| `e`   | status goes passive; OPR is released to a `-> OPR` row |
+| `e+1` | the DISPLAY clock — the winner's status / address / PS |
+| `e+2` | the winner's T1, **and** eu_done (read handover, store retire) |
+| `e+3` | a fetched byte becomes POPPABLE |
+
+At w0 that reads T3 / T4 / T4+1 / T4+2 — M1, M2 and M3's zero-wait numbers
+UNCHANGED.  At w>0 it reads T4 / T4+1 / T4+2 / T4+3, which is mission-H's
+**completion-eval deferral** plus **queue-push defer** plus **"post-access EU
+schedules stretch by exactly one cycle per waited access"**: three separately
+fitted laws that are the same offset seen from three places.  The apparent
+N = 0 discontinuity is entirely the rig's counter short-circuiting at zero; the
+CPU only ever waits one clock after a level.
+
+*Evidence (the single case that names it):* `B8` case 0 at w1 — before M2r
+every queue pop in the case is exactly ONE CLOCK EARLY and the bus geometry is
+already right; the whole 13-row window is the push/pop latency and nothing
+else.  100 -> 200/200 for `B8`, 17 -> 200 for `8B`.
+
+*Falsifier:* any waited golden where a fetched byte is poppable at its T4+2,
+or where a read's data reaches the EU at its T4+1.
+
+**Wait plumbing.**  The model now carries the rig's other two wait sources in
+`nec_bus.sv`'s own priority order (replay > random > uniform), all keyed on a
+bus-cycle index and latched at T1 ENTRY, so a cycle's wait count belongs to the
+order the cycles RUN in, not the order the EU requested them:
+`BiuTimed::set_wvec` (explicit per-access vector) and `set_wrand` (16-bit
+Galois LFSR, poly 0xB400, seed 0 -> 0xACE1, `n = (l[7:0]*(wmax+1))>>8`, drawn
+once per bus cycle).  `v30sim timed-boot --wvec F | --wmax K --wseed S` exposes
+both.  The LFSR is validated end-to-end by the ENTER wrand slices (§11.7).
+
+### 11.2 The completion eval's DISPLAY CLOCK is not an eval point — and the grid is NOT the eval cadence
+
+The T2 brief's hypothesis was that the stretched `grid_phase` might BE the eval
+cadence.  **Tested first, and FALSIFIED at w0.**  The strong form — every eval,
+idle ones included, reserving the next clock as its display slot and so barring
+an eval there, i.e. a genuine 2-clock grid — costs the w0 ratchet
+**165,481 -> 119,311**.  Idle evals run on EVERY clock; there is no 2-clock
+idle grid.  Recorded so nobody re-derives it.
+
+What IS true is the narrow, measured statement: **the COMPLETION eval's display
+clock is not an eval point.**  At w0 that clock is T4, which is inside the
+cycle and so was never an idle-eval candidate — M1's "T4 is NOT an eval point"
+is this same statement, and the model already had it for free from the T-state.
+Under waits the display clock is T4+1, an IDLE clock, and the rule has to be
+said out loud; it is mission-H's *"the end of that deferred-eval cycle is NOT an
+eval point — a request that first asserts inside it waits for the next
+idle-cycle end"*.
+
+*Evidence:* `89` case 48 at w1 — the store's status appears two idle clocks
+after the fetch's T4, not one.  `89` 176 -> 200/200, `E8` 51 -> 148.
+
+### 11.3 A fetch owns the QS port from its T1 until its bytes are IN
+
+Two conditions in §8.2's F1 collapse into one sentence.  A fetch holds the
+queue-status port
+
+* from its T1 **through its completion eval** (`ci <= e_i`), and
+* if it PUSHES, for the two clocks its bytes take to land — the push edge
+  `e+1` and the absorb clock `e+2`, the clock before they are poppable.
+
+A DOOMED fetch pushes nothing and therefore lets go at the eval, which is why
+`EB` case 0 shows the flush `E` on the doomed fetch's T4 at w0.  At w0 the two
+absorb clocks are T4 and T4+1 and **the w0 ratchet is identical either way** —
+no w0 stimulus separates one absorb clock from two.  The wait axis does:
+
+*Evidence:* `EB` case 9 at w1 — golden `E` on the doomed fetch's T4+1, which is
+mission-H's *"a doomed fetch counts as busy through its (deferred) completion
+eval — E moves from the doomed fetch's T4 to the following cycle"* (`EB`
+149 -> 200/200).  `E8` case 4 at w1 — golden `E` on the push's own status clock
+at T4+3, which needs BOTH absorb clocks (`E8` 148 -> 200/200).
+
+### 11.4 The OPR release does NOT stretch — and the wait axis is what proves it
+
+§10.7 left the REP write-side interlock open with the campaign's own distrust
+recorded: *"two release points on one register is the shape the campaign
+distrusts"*.  The wait axis settles which one release point it is.
+
+A store hands its word to the **AD output latch** at T2 and OPR is free from
+T3; how much longer the BUS holds that word out is the memory's business, not
+OPR's.  So the release sits at a FIXED cycle-relative index (2) at every wait
+level — while eu_done, which is the READY sample, stretches.  That asymmetry is
+exactly mission-H's *"eu_done shifts identically"* set against its
+*"the trap chain marches on from the ZERO-WAIT completion point (eu_wdone)"*:
+**two clocks in one bus cycle, and only one of them is the READY sample.**
+
+*Evidence — `sw/wchain.py --pair MEMW>MEMW` over `F7.6`, whose divide-trap push
+chain has two chains differing by exactly the two extra ROM rows between
+`01F5 -> 01F9` and `01F9 -> 01FB`:*
+
+| chain | w0 | w1 | w3 |
+|---|---|---|---|
+| PSW -> PS  (+2 rows) | T4+4 | T4+4 | T4+2 |
+| PS  -> PC            | T4+3 | T4+2 | T4+2 |
+| either half of a split | T4+1 | T4+2 | T4+2 |
+
+With the release FIXED at index 2 the two issuing rows land at cycle-relative
+index 5 and 3 at EVERY wait level, and the eval geometry of §11.1/§11.2 alone
+produces all nine numbers.  With the release STRETCHED to the eval they walk
+out to T4+5 / T4+4 at w1 — measured, and rejected.  `F7.6` 98 -> 200/200 at w1
+and 97 -> 200/200 at w3.
+
+`sw/wchain.py` now LOCATES T4 by scanning instead of assuming `t1+3`, so the
+census works under waits at all; that was a real (silent) w0-only assumption.
+
+**REP write-release (T2 handoff item 1): DISCRIMINATED — the wait axis rules
+OUT the second release point.**  §10.7's probe wanted the store ROW released at
+the previous store's T1/T2 (when the data is DRIVEN); the F7.6 chain census
+above shows the release is at the FIXED index 2 and does not move with N, and
+the T1-release probe was already measured to buy +25 cases while introducing
+213 new diffs.  The 907-case `F3AA` residual therefore does **not** come from a
+second OPR release point.  It stays open with its discriminating pair (`F3AA`
+cases 16 and 10) intact, and it is now a NARROWER question: what pins the row
+engine to the bus at `cx >= 2` if not the OPR register.
+
+### 11.5 The reset entry — the part comes out of RESET SUSPENDED
+
+`timed-boot` committed a prefetch from `0000:0000` during the reset-entry
+clocks, before the reset block's FLUSH (01D3) has loaded PS:PC.  It is
+INVISIBLE to `sw/check_boot.py`, whose column policy starts at release+8
+because the pins float before the first T1 — but it is a whole spurious BUS
+CYCLE, and it shifted every wait-vector ordinal by one, which is what made the
+case250 L2 replay unresolvable.
+
+The fix is the physical statement: there is no fetch pointer until the reset
+block flushes, so the prefetcher comes up SUSPENDED and `flush()` releases it.
+Boot replay unchanged at 205/220 with the loop period exact.
+
+### 11.6 L2 — the case250 INS factorial plane, reproduced THROUGH THE SIM
+
+`sw/timed_ins_replay.py` (new).  For each of the 800 cells it regenerates the
+fuzz program image offline (`gen_seq.generate` + `check_seq.compose`), rebuilds
+the run's per-access wait vector from the recorded LFSR seed, applies the
+history permutation and the cell's selected-access wait, drives
+`v30sim timed-boot --wvec` from RESET, and resolves the semantic roles the way
+the CAPTURE SCRIPT resolves them (by bus kind and address, over the
+intervention's neighbourhood — NOT by ordinal, because at high `C1` waits the
+CHIP ITSELF reorders `R2` ahead of the second prefetch).
+
+| | offline pilot (reads the chip's own t1/t4/tw) | **through the sim** |
+|---|---|---|
+| cells resolved | 800 | **800 / 800** |
+| write rails (W1 + W2) | 1312 / 1312 | **1312 / 1312** |
+| R2 issue | 782 / 800 | **782 / 800** |
+
+**Full pilot parity, computed from the simulator's own bus timings.**  The
+R2-issue residue is the pilot's own recorded "grid parity, BIU layer" class,
+reproduced rather than fixed — same COUNT (18), same shape (every one of them
+is a `C1` or `C2` intervention, i.e. a wait forced onto a PREFETCH cycle
+adjacent to the INS, never onto `R1`/`R2`/`W1`), and **12 of the 18 are
+literally the same cell**.  Stated exactly, because the difference matters:
+
+```
+both        12302 A/B C1 w13 | 12466 A/B C1 w4, C1 w12, C2 w1
+            12547 A/B C1 w12 | 12569 A/B C1 w12
+pilot only  12302 A/B C1 w1, C2 w0 (delta -1)  | 12547 A/B C1 w2
+sim only    12302 A/B C1 w4  | 12547 A/B C1 w5, C2 w3
+```
+
+Every sim residual is `+1` (the sim's R2 opens one clock LATE); the pilot's set
+contains one `-1` cell.  So the model does not merely inherit the pilot's
+arithmetic residue — it has its own, of the same size and in the same
+prefetch-intervention family.  Both are the same open question: the `+/-1` on
+`R2.T1` that the pilot itself booked to the bus grid.
+
+The STRICT leg (each rail's T1 measured from R1's T4 equal to the frozen chip
+capture's same difference) is **1766 / 2624**: `fz12466` 1024/1024 and `fz12569`
+256/256 are chip-exact, `fz12547` 368/1024 and `fz12302` 118/320 are not.  The
+whole-program measure over the same runs: the sim reproduces **56,736 of
+173,556** leading bus cycles in kind+address, of which **55,936** also land on
+the same T1 (98.6 % of the agreeing prefix is cycle-exact, i.e. where the sim
+agrees at all it agrees to the clock).  Both numbers are T3 inputs.
+
+### 11.7 The ENTER waited tranche, replayed in-sim
+
+`sw/timed_enter_replay.py` (new).  Each of the 154 socket digests is rebuilt
+with the rig's own composer, run at the same wait setting — uniform N, **or the
+seeded wrand LFSR for the two wrand slices**, which is what validates the LFSR
+plumbing end to end — and compared transaction for transaction.
+
+| level | result |
+|---|---|
+| stack-region MEMW count == nest+1 (the pilot's own check) | **154 / 154** |
+| the stack-region MEMW/MEMR (kind, addr, data) walk | **154 / 154** |
+| active bus-cycle count of the whole run | **154 / 154** |
+| the FULL (kind, addr, data, duration) stream from the anchor | **130 / 154** |
+
+The 24 misses are ONE mechanism and it is a **w0** one: at w0 (and at
+`wrand(3,4660)`), for `nest >= 2` only, the chip runs `IOW 254` then
+`CODE 274` and the sim runs `CODE 274` then `IOW 254` — a single
+prefetch-vs-EU-request ARBITRATION ORDER swap at one eval, with every
+transaction before and after identical in kind, address, data AND duration.
+At w1/w2/w3/w7 the sim gets the order right, because the later eval lets the
+request arrive in time.  Reproduce with
+
+```
+python3 sw/timed_enter_replay.py --waits 0 --verbose
+```
+
+This is a **third leg of the SUSP-lead conflict** (§10.4, T2 handoff item 2):
+the boot loop and now the ENTER store stub both want the EU's bus-control field
+to reach the BIU one row earlier than the v0.1 goldens permit, and both are
+whole-program stimuli.  Two independent legs pulling the same way against
+169,000 goldens is a much sharper statement of the conflict than §10.4 had, and
+it says the answer is NOT a uniform one-row lookahead (v0.1 costs 3,446 cases
+for that) but something that distinguishes these evals from v0.1's.  **Not
+patched.**
+
+The HALT bus pseudo-cycle is still scaffolding **S8/S9**: the sim executes the
+store stub's `HLT` architecturally and then keeps prefetching instead of
+parking the bus, so the chip's trailing `HALT` transaction is OUT of the
+compared prefix (`halt_display 0/154`, reported as the missing mechanism it is,
+not counted as a pass).
+
+### 11.7a The ENTER pilot's GRANT LAW is the eval geometry — it emerges
+
+`sw/enter_ucode_pilot.py` carries a fitted grant law as one of its seven
+constants:
+
+```
+    bus slots exist at busfree+1 and busfree+3; after that the bus is
+    free-running and T1 = req exactly.
+```
+
+That is not a law, it is §11.1 + §11.2 read off the timeline.  With `busfree`
+= the previous cycle's T4 and the eval instant at `e = T4-1` at w0:
+
+| the request is ready... | the eval that takes it | its T1 |
+|---|---|---|
+| by the end of `e` (= busfree-1) | the COMPLETION eval | `e+2` = **busfree+1** |
+| after that | *(busfree is the DISPLAY clock — dead, §11.2)* | — |
+| by the end of busfree+1 | the first idle eval | **busfree+3** |
+| later | every clock is an eval | `req+2` — free-running |
+
+The "2-clock grid running out" the campaign's own guiding-principle note cites
+as a precedent is exactly the DEAD DISPLAY CLOCK, and the third-slot-onward
+free-running is just "there is nothing left to skip".  Nothing in the sim
+encodes `busfree+1` or `busfree+3`.
+
+**And it makes a wait-axis prediction, which the tranche confirms**: under
+waits `e = T4`, so the two slots move to `busfree+2` and `busfree+4` (the
+pilot's constants were fitted on the w0 `C8` goldens and would be wrong under
+waits if written down).  The waited ENTER replay's walk is 154/154 and its
+active-cycle count 154/154 at w0/w1/w2/w3/w7 and both wrand slices — the whole
+push chain lands on the moved slots.
+
+### 11.8 L1 adapters — the positive-wait halves are UN-SKIPPED
+
+`sw/timed_scenario.py` was 6 PASS / 0 FAIL / **12 SKIP**, half of those skips
+being "each rule's positive-wait half -> T2".  Reading the frozen files settles
+what that half contains: in EVERY rule of both oracles `positive_wait_qs` is
+`zero_wait_qs` shifted by exactly **+1**, and `positive_wait_gap ==
+zero_wait_gap + 1` (and `positive_wait_code_gap` likewise in drain-v2).  That
+is M2r's own offset seen in the oracle's frame — the oracle counts from the
+selected cycle's T4 and the completion eval moves from T4-1 to T4 when that
+cycle is waited, so everything after it, the opening `F` pop included, shifts by
+one.  In the ledger's OPENING-F frame the two schedules are therefore
+IDENTICAL, and the whole content of the positive-wait half is that shift.
+
+Each class is now replayed at **w0, w1 AND w3** — running both positive legs is
+what makes it non-vacuous, since the oracle's state input is the BOOLEAN
+"selected wait is zero" and the schedule must not depend on N:
+
+```
+python3 sw/timed_scenario.py        # 18 PASS, 0 FAIL, 9 SKIP
+```
+
+Still skipped, and said so: each rule's `gap` (`t1_from_selected_t4`) is a BUS
+quantity in the ARBITRATION frame needing the REP-successor scenario the
+oracles were captured in, and `decoder-drain-oracle-v2` is stated entirely on
+that frame.  Its wait half is the same `+1`, so the LAW is not in doubt; the
+STIMULUS is missing.
+
+### 11.9 The frozen wvec baseline is HALF VACUOUS — an adjudication, not a gate
+
+`sw/timed_wvec_gate.py` (new) replays `docs/notes/biu_rebuild_wvec_baseline.json`
+— 22 fuzz seeds x 4 explicit per-access wait vectors, 4,200 clocks each — and
+recomputes the freeze's own cadence-sensitive digest (`bs, tw, addr, npops,
+gap-from-previous-T1`) from the sim.  Building it exposed a defect in the
+BASELINE:
+
+| wvec config | distinct digests over 22 DIFFERENT programs |
+|---|---|
+| `ws0:wmax0` | 22 |
+| `ws5:wmax1` | 22 |
+| `ws7:wmax3` | **1** |
+| `ws11:wmax7` | **1** |
+
+Twenty-two different programs cannot produce one bus stream.  **Half of the
+frozen wvec corpus (44 of 88 cells) is vacuous** — the signature of the
+`wv_of` bug the law cards themselves record ("the landing's census predates the
+`wv_of` bug fix").  The mutation battery's `wvec` column is not thereby
+invalidated — its two discriminating directed seeds fire at `ws5:wmax1`, in the
+sound half — but the corpus must be re-frozen before it is used as a reference
+again.  Recorded here rather than silently replayed.
+
+Against the two SOUND configs the sim is not digest-identical anywhere (0/44),
+and the whole-program bus-cycle count diverges **in both directions**: `+6.0 %`
+at `ws0:wmax0` (all-zero waits) and `-12.2 %` at `ws5:wmax1`.  A two-directional
+whole-program cadence error is precisely `biu_model.md`'s Round-3 A2 signature
+("the prefetch-resume divergence FLIPS DIRECTION with aperiodic leading-phase
+parity").  **This is a T3 input, not a T2 verdict**: the reference is TBR-class,
+its Verilator TB was not rebuilt in this pass, and no chip capture backs these
+88 cells.
+
+### 11.10 Law cards — what is now gated, and what still cannot be
+
+§10.0 moved the MUST set C1-C7 / C9-C12 to T2 because every one of them is
+stated on a wait vector.  With the wait axis closed, the honest position is:
+
+| card | status after T2a |
+|---|---|
+| **C9** LC4 general lead reservation (WRITE) | **the mechanism is implemented and exercised**: F2's one-row-early bus-control decode (`post()` -> `withdraw_fetch()`) is what §8.2 replaced the per-form `S_RSV` table with, and it now runs at w1/w3 in every `89`/`E8`/`F7.6` case (2,400/2,400).  Its wait-vector cell is also the §11.7 ENTER finding, which is the one place it is measurably WRONG (w0, whole-program) |
+| **C1/C2** LC1 resume steady-state gap / fill ramp | **NOT implemented and deliberately so** (§7.4).  The w0+w1+w3 goldens do not demand them; the wvec corpus that would is the one §11.9 shows is half vacuous.  Their real stimulus is the T3 fuzz corpus |
+| **C3** LC1 cidle at N=8 / N=12 | no stimulus in this repo's offline corpora (the Arm-C sled was a board capture; nothing frozen) |
+| **C4/C5** LC2 aged-band PAUSE / GO | **NOT implemented** (§7.4), and their gate is the directed seed `fz90364` in the wvec corpus — replayable now that `--wvec` exists, but there is no CHIP reference for it, only the RTL baseline of §11.9 |
+| **C6/C7** LC3 RMW-write Tw parity | board-by-construction (`uRMW`), unchanged.  No golden carries an RMW mem-write ready-at-T4 with controlled Tw parity |
+| **C10/C11/C12** LC4 late reservation / owns_slot / pf_rsv_lead | CEN-provenance, gated on the same wvec corpus; `fz90270` is replayable, reference is not |
+
+**The honest summary: the law cards' MUST set cannot be turned into sim unit
+gates in T2a, and the reason is provenance, not effort.** Nine of the eleven
+are stated against a chip decision on a wait-vector stimulus for which this
+repo holds no frozen CHIP capture — only an RTL baseline, half of which
+§11.9 just showed to be vacuous.  Building a gate on that would be exactly the
+cannot-fail gate §9.6 refused to build at T1.  What T2a delivers instead is
+the REPLAY MACHINERY those cards need (`--wvec`, `--wmax/--wseed`,
+`timed_wvec_gate.py`, `timed_ins_replay.py`), so the cards become gateable the
+moment T2b banks the chip captures.  **The board probe specs are in §11.12.**
+
+### 11.11 Gates (measured, this machine)
+
+The FULL architectural corpus, re-run on the FINAL binary of this pass.  Every
+mechanism in 11.1-11.4 is inside `BiuTimed` (the TIMED bus only) and 11.5 is
+inside `timed-boot`, so none of them touches the shared interpreter -- but the
+corpus was re-run anyway, as the standing discipline requires:
+
+| suite | result |
+|---|---|
+| v0.1 | 169,000 / 169,000 |
+| v0.2 | 347,000 / 347,000 |
+| v0.3 | 3,699,998 / 3,699,998 |
+| v20suite | 3,125,000 / 3,125,000 |
+| mod3_illegal (`--residue stale-ea`) | 128 / 128 |
+| **total** | **7,341,126** |
+
+plus `make -C sim test` (disasm) PASS and `sw/pla3_check.py` OK (21 checks).
+Zero regressions.
+
+```
+python3 sw/ucsim_check.py --suite tests/v30/v0.1                 # 169000
+python3 sw/ucsim_check.py --suite tests/v30/v0.2                 # 347000
+python3 sw/ucsim_check.py --suite tests/v30/v0.3                 # 3699998
+python3 sw/ucsim_check.py --suite tests/v30/v20suite             # 3125000
+python3 sw/ucsim_check.py --suite tests/v30/mod3_illegal --residue stale-ea
+make -C sim test                                # disasm gate: PASS
+python3 sw/pla3_check.py                        # OK (21 checks)
+python3 sw/timed_gate.py --suite tests/v30/v0.1                 # 165,481 (w0)
+python3 sw/timed_gate.py --suite tests/v30/v0.1-w1 --waits 1    # 1,200/1,200
+python3 sw/timed_gate.py --suite tests/v30/v0.1-w3 --waits 3    # 1,200/1,200
+python3 sw/timed_scenario.py                    # 18 PASS, 0 FAIL, 9 SKIP
+python3 sw/timed_ins_replay.py --raw            # rails 1312/1312, R2 782/800
+python3 sw/timed_enter_replay.py                # walk/pushes/active 154/154
+python3 sw/timed_wvec_gate.py --wvecs 0,1       # 0/44 -- see 11.9
+python3 sw/check_boot.py --timed 220            # 205/220, loop period exact
+python3 sw/wchain.py --suite tests/v30/v0.1-w3 --forms F7.6 --pair MEMW\>MEMW
+```
+
+### 11.12 T2b handoff — the board probes, specified
+
+1. **The SUSP-lead discriminator (the campaign's sharpest open conflict).**
+   Three legs now disagree with v0.1: the boot loop (§10.4, one extra prefetch
+   per iteration), `0F39` (9 cases), and the ENTER store stub (§11.7, 24 of 154
+   digests, w0, `nest >= 2`).  All three are WHOLE-PROGRAM; v0.1 is
+   single-instruction windows.  **Probe:** capture the ENTER `nest = 2`,
+   `ctx = 1`, w0 case on the socket with the FULL per-clock row stream (not the
+   digest), and read off the exact clock on which the `IOW` request reaches the
+   BIU relative to the preceding prefetch's T3 eval and its display clock.  One
+   capture decides whether the EU's bus-control field leads by one ROW (the
+   boot leg's ask) or whether the prefetch's commit is one clock late.  Cheap:
+   one image, one wait setting, one capture.
+2. **Re-freeze the wvec corpus (§11.9).**  `ws7:wmax3` and `ws11:wmax7` are
+   degenerate in the frozen baseline.  Re-run `biu_rebuild_wvec_freeze.py`
+   after confirming `wv_of` and the TB build, and — this is the point — bank a
+   CHIP capture for at least the two directed seeds `fz90270` / `fz90364` at
+   `ws5:wmax1`, which converts C4/C5/C12 from RTL-referenced to silicon-
+   referenced and makes them sim-gateable.
+3. **The HALT bus pseudo-cycle (S8/S9).**  `interrupt_model.md` describes it
+   (BS = HALT, an ALE/T1 driving the prefetch pointer, no data phase) but no
+   frozen capture pins it under waits.  The ENTER store stub ends in `HLT` in
+   all 154 digests, so the stimulus already exists: capture the per-clock rows
+   from the last `IOW` to 40 clocks past the `HLT` at w0/w1/w3.
+4. **The `F3AA cx >= 2` row-engine pin (§10.7, narrowed by §11.4).**  It is NOT
+   a second OPR release point.  **Probe:** the discriminating pair `F3AA`
+   cases 16 and 10 at w1 and w3 — if the closing pop stays at the last store's
+   T4+2 at w0 and moves to T4+3 under waits it rides the eval; if it stays at
+   +2 it rides a fixed cycle index, like the OPR release does.
+5. **C3's Arm-C sled** (N = 8 and N = 12 fetch-limited sled, resume-gap
+   histogram) — nothing frozen; needs the board or it stays ungated.
+
+### 11.13 Ledger delta against the T2 handoff (§10.10)
+
+| §10.10 item | outcome |
+|---|---|
+| 1. REP write-side interlock | **DISCRIMINATED** (§11.4): the wait axis rules out the second release point; the residual is narrowed, not closed |
+| 2. SUSP lead | **THIRD LEG FOUND** (§11.7), and **the wait axis takes the v0.1 side**: w1 and w3 are 1,200/1,200 with NO lookahead, so the waited goldens add 2,400 cases to the "no one-row lead" column and none to the boot loop's.  The conflict is now three whole-program legs (boot, `0F39`, ENTER) against 171,400 windowed cases; probe spec written (§11.12.1) |
+| 3. The wait axis: M2's re-derivation, Milestone A w1/w3, the law cards | **re-derivation DONE from the rig's own generator** (§11.1); **Milestone A MET** 2,400/2,400; **law cards: provenance-blocked, argued** (§11.10) |
+| 4. S9 pin events | unchanged; the HALT half now has a named stimulus (§11.12.3) |
+| 5. BUSLOCK | unchanged — `lock_n` is still a constant, no non-S9 stimulus |
+| 6. §7.6's EA stage | unchanged; the wait axis did not touch the decoder march |
+
+**The 12 w0 tails and the 907-case REP residual are unchanged at 165,481.**

@@ -137,6 +137,26 @@ void run_one(const ucrom::UcRom& rom, BiuTimed& biu, RowEmitter& sink,
 // dispatch, not a fitted per-row cost.
 constexpr int kResetEntryClocks = 4;
 
+// The rig's replay / random wait sources, in nec_bus.sv's priority order.  A
+// `--wvec` file is one wait count per line in BUS-ACCESS order, which is how
+// wvec_buf.sv is indexed (`bus_idx`, counting every bus cycle from run start).
+static bool apply_wait_source(BiuTimed& biu, const TimedOptions& opt) {
+    if (opt.wvec_path) {
+        std::FILE* f = std::fopen(opt.wvec_path, "r");
+        if (!f) {
+            std::fprintf(stderr, "wvec: cannot open %s\n", opt.wvec_path);
+            return false;
+        }
+        std::vector<uint8_t> v;
+        int n = 0;
+        while (std::fscanf(f, "%d", &n) == 1) v.push_back(uint8_t(n & 31));
+        std::fclose(f);
+        biu.set_wvec(v);
+    }
+    if (opt.wrand) biu.set_wrand(true, opt.wmax, uint16_t(opt.wseed));
+    return true;
+}
+
 int run_timed_boot(const ucrom::UcRom& rom, const char* image_path, long clocks,
                    std::FILE* out, const TimedOptions& opt) {
     std::FILE* f = std::fopen(image_path, "rb");
@@ -155,6 +175,7 @@ int run_timed_boot(const ucrom::UcRom& rom, const char* image_path, long clocks,
     BiuTimed biu;
     biu.set_mirror(true);          // the capture board's 64 KB wiring
     biu.set_waits(opt.waits);
+    if (!apply_wait_source(biu, opt)) return 2;
 
     std::unique_ptr<RowEmitter> sink;
     if (opt.ndjson)
@@ -171,6 +192,16 @@ int run_timed_boot(const ucrom::UcRom& rom, const char* image_path, long clocks,
     biu.bind_psw(&m.psw);
 
     sink->begin_case(0);
+    // THE PART COMES OUT OF RESET WITH THE PREFETCHER SUSPENDED.  There is no
+    // fetch pointer until the reset block loads PS:PC and FLUSHes (01D3), so
+    // the bus is quiet across the whole reset entry -- the capture shows the
+    // first CODE T1 on release+9, right after that flush, and nothing before
+    // it.  Without this the model committed a fetch from 0000:0000 during the
+    // reset-entry clocks: INVISIBLE to sw/check_boot.py, whose column policy
+    // starts at release+8 because the pins float before the first T1, but a
+    // whole spurious BUS CYCLE, which shifts every wait-vector ordinal by one
+    // and made the case250 L2 replay unresolvable.  `flush()` clears it.
+    biu.susp();
     biu.charge(kResetEntryClocks);
     if (!cpu.reset()) {
         std::fprintf(stderr, "timed-boot: reset sequence did not terminate\n");

@@ -172,7 +172,8 @@ int cmd_timed_boot(int argc, char** argv) {
     if (argc < 2) {
         std::fprintf(stderr,
                      "usage: v30sim timed-boot <romfile> <image.bin> "
-                     "[--clocks N] [--ndjson] [--waits N]\n");
+                     "[--clocks N] [--ndjson] [--waits N] "
+                     "[--wvec F] [--wmax K --wseed S]\n");
         return 2;
     }
     ucrom::UcRom rom;
@@ -187,6 +188,13 @@ int cmd_timed_boot(int argc, char** argv) {
             clocks = std::atol(argv[++i]);
         else if (std::strncmp(argv[i], "--waits=", 8) == 0)
             opt.waits = std::atoi(argv[i] + 8);
+        else if (std::strncmp(argv[i], "--wvec=", 7) == 0)
+            opt.wvec_path = argv[i] + 7;
+        else if (std::strncmp(argv[i], "--wmax=", 7) == 0)
+            { opt.wrand = true; opt.wmax = std::atoi(argv[i] + 7); }
+        else if (std::strncmp(argv[i], "--wseed=", 8) == 0)
+            { opt.wrand = true;
+              opt.wseed = unsigned(std::strtoul(argv[i] + 8, nullptr, 0)); }
     }
     return sim::run_timed_boot(rom, argv[1], clocks, stdout, opt);
 }

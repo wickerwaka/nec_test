@@ -28,6 +28,13 @@ struct TimedOptions {
     bool mirror = false;    // 64K-mirrored memory (the capture board's wiring)
     long only_idx = -1;     // run just this case index (-1 = all)
     int steps = 2;          // instructions executed per case
+    // The rig's other two wait sources (nec_bus.sv priority: replay > random
+    // > uniform), so an L2 oracle replay can be driven with the SAME per-bus-
+    // cycle inputs the capture was taken with.
+    const char* wvec_path = nullptr;   // one wait count per line, access order
+    bool wrand = false;
+    int wmax = 0;
+    unsigned wseed = 0;
 };
 
 int run_timed(const ucrom::UcRom& rom, std::FILE* in, std::FILE* out,

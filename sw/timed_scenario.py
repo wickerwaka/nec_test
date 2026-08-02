@@ -97,9 +97,9 @@ def make_case(byts):
     }
 
 
-def sim_schedule(byts):
+def sim_schedule(byts, waits=0):
     """-> [(clock relative to the opening F pop, qs code)] from the sim."""
-    sims = timed_gate.run_form([make_case(byts)], 0, False)
+    sims = timed_gate.run_form([make_case(byts)], waits, False)
     recs = sims[0]["recs"]
     # one record per CPU clock, in order: the index IS the clock
     ev = [(i, r["qs"]) for i, r in enumerate(recs) if r["qs"]]
@@ -117,29 +117,53 @@ def main():
     ap.add_argument("--verbose", action="store_true")
     args = ap.parse_args()
 
-    npass = nfail = nskip = 0
+    npass = nfail = 0
     for fname, rule_name, byts, text in CLASSES:
         oracle = json.loads((BB / fname).read_text())
         rule = oracle["rules"][rule_name]
-        want = [(c - FRAME_SHIFT, q) for c, q in rule["zero_wait_qs"]]
-        got = sim_schedule(byts)
-        if got is None:
-            print("FAIL %-10s %-18s no QS events" % (rule_name, text))
-            nfail += 1
-            continue
-        got = got[:len(want)]
-        ok = got == want
-        print("%-4s %-10s %-18s oracle %s  sim %s"
-              % ("PASS" if ok else "FAIL", rule_name, text,
-                 [(c, QS_NAME.get(q, q)) for c, q in want],
-                 [(c, QS_NAME.get(q, q)) for c, q in got]))
-        if args.verbose and not ok:
-            print("      full sim schedule:", sim_schedule(byts))
-        npass += ok
-        nfail += not ok
-    nskip = 2 * len(CLASSES)   # each rule's positive-wait half and its `gap`
-    print("\ntimed-scenario: %d PASS, %d FAIL, %d SKIP (each rule's "
-          "positive-wait half -> T2, and its `gap` -> the arbitration frame)"
+        # LEGS.  `zero_wait_qs` and `positive_wait_qs` are the SAME schedule
+        # one clock apart -- the oracle's frame is the selected cycle's T4 and
+        # the completion eval moves from T4-1 to T4 when that cycle is waited
+        # (M2r), so EVERY event after it, the opening F pop included, shifts
+        # by one.  In the ledger's own OPENING-F frame the two are therefore
+        # IDENTICAL, and the shift is the whole content of the positive-wait
+        # half: FRAME_SHIFT 1 at zero waits, 2 at positive.  Running the
+        # positive leg at BOTH w1 and w3 is what makes it non-vacuous -- the
+        # oracle's state input is the BOOLEAN "selected wait is zero", so the
+        # schedule must not depend on N.
+        for leg, key, shift, waits in (
+                ("w0", "zero_wait_qs", FRAME_SHIFT, 0),
+                ("w1", "positive_wait_qs", FRAME_SHIFT + 1, 1),
+                ("w3", "positive_wait_qs", FRAME_SHIFT + 1, 3)):
+            want = [(c - shift, q) for c, q in rule[key]]
+            got = sim_schedule(byts, waits)
+            if got is None:
+                print("FAIL %-3s %-10s %-18s no QS events"
+                      % (leg, rule_name, text))
+                nfail += 1
+                continue
+            got = got[:len(want)]
+            ok = got == want
+            print("%-4s %-3s %-10s %-18s oracle %s  sim %s"
+                  % ("PASS" if ok else "FAIL", leg, rule_name, text,
+                     [(c, QS_NAME.get(q, q)) for c, q in want],
+                     [(c, QS_NAME.get(q, q)) for c, q in got]))
+            if args.verbose and not ok:
+                print("      full sim schedule:", sim_schedule(byts, waits))
+            npass += ok
+            nfail += not ok
+    # Still SKIPPED, and said so rather than quietly passed: each rule's `gap`
+    # (`t1_from_selected_t4`) is a BUS quantity in the ARBITRATION frame -- it
+    # needs the REP-successor scenario the oracles were captured in, which
+    # this saturated-queue planting harness does not build.  Its wait half is
+    # the same +1 (`positive_wait_gap == zero_wait_gap + 1` in every rule of
+    # both files, and `positive_wait_code_gap` likewise in drain-v2), so the
+    # LAW is not in doubt; the STIMULUS is missing.  decoder-drain-oracle-v2
+    # is stated entirely on that frame (`*_code_gap`) and its QS half is the
+    # schedule these six already pin, so it is not replayed here either.
+    nskip = len(CLASSES) + 3    # 6 gaps + drain-v2's 3 classes
+    print("\ntimed-scenario: %d PASS, %d FAIL, %d SKIP "
+          "(each rule's `gap` -> the arbitration frame, drain-v2 with it)"
           % (npass, nfail, nskip))
     return 1 if nfail else 0
 
