@@ -358,9 +358,17 @@ LoadResult loader_decode(Machine& m, Bus& biu) {
     if (!has_rm) biu.charge(1);
 
     // --- second-byte group dispatch (F6/F7 -> page 2, FE/FF -> page 3) ----
+    bool group_dispatch = false;
     if (has_rm && pla3::xop(v) == uint8_t(pla3::XopAux::kGroupDispatch)) {
         page = uint8_t((b & 8) ? 3 : 2);
         m.opc_reg = rm.raw;  // the ModR/M byte occupies the opcode slot
+        // ...and re-entering the decode with the ModR/M byte in the opcode
+        // slot costs ONE CLOCK, charged AFTER the operand pre-read: the second
+        // look-up runs in parallel with the read and shows up as one extra
+        // clock before micro-row 0.  MEASURED: `FE.0` (`inc byte [mem]`) puts
+        // its store one clock later than the structurally identical `00` /
+        // `10` / `D1` stores.
+        group_dispatch = true;
     }
 
     // --- OPC select: which field, and which block of kStrOp ---------------
@@ -441,6 +449,8 @@ LoadResult loader_decode(Machine& m, Bus& biu) {
             out.preread = true;
         }
     }
+
+    if (group_dispatch) biu.charge(1);
 
     out.entry.page = page;
     out.entry.opc = m.opc_reg;
