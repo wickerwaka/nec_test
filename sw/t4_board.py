@@ -49,6 +49,28 @@ TRANCHE_REPS = 3
 PROMOTE_REPS = 5
 
 
+def tranche_key(rows):
+    """The repeatability projection for the TRANCHE, and it is deliberately the
+    SAME projection the gate scores on, not the stricter T2b blackbox one.
+
+    MEASURED before it was adopted (14.1): over four cells x three repetitions
+    each, EVERY differing row is in indices 0-8 and NOT ONE row from 9 on
+    differs.  Rows 0-8 are the capture's reset settling and are excluded by
+    `fuzz_classify.diff_rows` -- the frozen T3 column policy this gate is
+    scored with -- so a stability test that included them would exclude cells
+    for disagreeing about something no gate ever compares.  The T2b
+    `stable_key` is kept as the SECOND, stricter number and reported beside it.
+    """
+    out = []
+    for r in rows[9:]:
+        t = r["t"]
+        a = r["ad_addr"] if t == 1 else -1
+        d = r["ad_data"] if t in (2, 3) else -1
+        out.append((t, r["bs_early"], r["qs"], r["ube_n"], r["lock_n"], a, d,
+                    r["ps"] if t == 2 else -1))
+    return hashlib.sha256(repr(out).encode()).hexdigest()
+
+
 def wait_class(w):
     return f"wrand{w['wmax']}" if w["wrand"] else f"fix{w['fixed'] or 0}"
 
@@ -202,12 +224,13 @@ def cmd_b2(args):
         promote = (cid, k) in promo
         divs = DIVS if promote else [8]
         reps = PROMOTE_REPS if promote else TRANCHE_REPS
-        keys, shas, raws = [], [], []
+        keys, strict, shas, raws = [], [], [], []
         rows0 = None
         for div in divs:
             for _ in range(reps):
                 rows, raw, sha = capture(image, div=div, tag="b2", **kw)
-                keys.append(stable_key(rows))
+                keys.append(tranche_key(rows))
+                strict.append(stable_key(rows))
                 shas.append(sha)
                 if rows0 is None:
                     rows0, raws = rows, raw
@@ -215,7 +238,9 @@ def cmd_b2(args):
         key = f"{cid}_{k}"
         rec = {"cid": cid, "k": k, "ov": OV, "waits": w,
                "image_sha256": isha, "chip_rows": rows0,
-               "wc": s["wc"], "stable": stable, "reps": reps, "divs": divs,
+               "wc": s["wc"], "stable": stable,
+               "stable_t2b_projection": len(set(strict)) == 1,
+               "reps": reps, "divs": divs,
                "raw_sha": shas, "promoted": promote,
                "freq_identical": (len({keys[0], keys[-1]}) == 1) if promote
                                  else None}

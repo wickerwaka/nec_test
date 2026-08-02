@@ -929,7 +929,13 @@ void BiuTimed::note_halt(uint16_t upc) {
     withdraw_fetch();
     Access acc;
     acc.bs = kBsHalt;
-    acc.addr = (2u << 16) | (last_fetch_addr_ & 0xFFFFu);
+    // M10 (T4): the HALT display's upper nibble is a LIVE PS, not a constant.
+    // It was hard-coded to the bare segment code (CS = 2).  MEASURED on the
+    // re-captured wvec corpus with its per-access parts retained (14.1 B1):
+    // of 139 and 187 accesses in the two directed law cells, EXACTLY ONE
+    // differs -- the closing HALT -- and only in this nibble: chip 0x6, model
+    // 0x2, i.e. the chip carries IE on the HALT display like any other cycle.
+    acc.addr = (uint32_t(data_ps(2)) << 16) | (last_fetch_addr_ & 0xFFFFu);
     acc.ube_n = 1;
     acc.segc = 2;
     acc.data = uint16_t(last_fetch_addr_ & 0xFFFF);

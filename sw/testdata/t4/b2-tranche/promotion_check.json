@@ -1,0 +1,62 @@
+{
+ "mc1_100003": {
+  "div8_stable": true,
+  "div4_stable": true,
+  "freq_identical": false
+ },
+ "mc1_100002": {
+  "div8_stable": true,
+  "div4_stable": true,
+  "freq_identical": false
+ },
+ "mc1_100023": {
+  "div8_stable": true,
+  "div4_stable": true,
+  "freq_identical": true
+ },
+ "mc1_100001": {
+  "div8_stable": true,
+  "div4_stable": true,
+  "freq_identical": false
+ },
+ "mc1_100000": {
+  "div8_stable": true,
+  "div4_stable": true,
+  "freq_identical": false
+ },
+ "mc1_100004": {
+  "div8_stable": true,
+  "div4_stable": true,
+  "freq_identical": true
+ },
+ "mc1_100015": {
+  "div8_stable": true,
+  "div4_stable": true,
+  "freq_identical": false
+ },
+ "mc1_100016": {
+  "div8_stable": true,
+  "div4_stable": true,
+  "freq_identical": true
+ },
+ "mc1_100043": {
+  "div8_stable": true,
+  "div4_stable": true,
+  "freq_identical": false
+ },
+ "mc2_100001": {
+  "div8_stable": true,
+  "div4_stable": true,
+  "freq_identical": true
+ },
+ "mc2_100000": {
+  "div8_stable": true,
+  "div4_stable": true,
+  "freq_identical": true
+ },
+ "t30-raw_100030": {
+  "div8_stable": true,
+  "div4_stable": true,
+  "freq_identical": true
+ }
+}

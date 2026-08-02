@@ -3205,3 +3205,219 @@ permitted; if V5 fails it is reported failed.
 which INTA bank does the acknowledge use?  It settles the 14th-decoder-input
 assumption.  Registered as best-effort: it runs only after B1 and B2 are
 complete and verified, and if it does not run that is recorded, not hidden.
+
+### 14.1 Q1 — the pop is a MAX, and M3c's re-run was a POOLING ARTIFACT
+
+**Q1 needed no board time.**  It came out of the banked chip captures with one
+new instrument, and the mechanism is one clock and one constant.
+
+*The instrument.*  `sw/q1census.py` reads the queue-pop stream straight out of
+a PER-CLOCK PIN ROW STREAM — chip capture or sim emission — the way §9.1's
+`sw/qcensus.py` reads it out of the v0.1 goldens.  CODE cycles give every byte
+its deliverer and its ready clock; the QS pins drive a queue model that gives
+every pop its byte, its address and (via the `F`s) its instruction boundary, so
+every pop gets a ROLE.  `sw/q1diff.py` runs the identical reconstruction over
+both streams and reports WHICH POP MOVED.  Both are standing tools.
+
+**M8a — the ready clock steps by ONE when the delivering fetch was waited.**
+Over all 3,242 banked captures, a byte-limited pop lands at its deliverer's
+**T4 + 2** when that fetch was unwaited and at **T4 + 3** for every `Tw` from
+**1 to 15** — flat, not proportional.  The model already had this for free
+(M2r puts the push at eval + 3, and the eval moves T4-1 → T4 under waits).
+This is exactly why §13.7's negative held: the displacement is carried by the
+DELIVERING FETCH, which can be several cycles back in the history, so it is
+not a function of the wait counts local to the pop.
+
+**M8 — `pop = max(demand, ready + pen)`, and there is NO RE-RUN.**
+
+| class | demand | pen | measured cells |
+|---|---|---|---|
+| modrm after the opcode / after the `0F` byte, disp16-LO, a micro-row's imm-hi | 1 | 0 | ready<=1 -> 1, 2 -> 2, 3 -> 3, 4 -> 4, ... |
+| the `0F` page's opcode, the opcode after a prefix, a prefix after a prefix, a micro-row's first immediate | 2 | 0 | ready<=2 -> 2, 3 -> 3, 4 -> 4, 5 -> 5, ... |
+| the byte that COMPLETES a displacement (disp8, or disp16-HI) | 2 | **1** | ready<=1 -> 2, 2 -> 3, 3 -> 4, 4 -> 5, ... |
+
+**§9.1's M3c is RETRACTED.**  It was fitted with the four "stride 2" classes
+POOLED, and the pooled cells `ready 3 -> pop 4` and `ready 4 -> pop 4` cannot
+both be a max — so a re-run was invented to hold them together.  Split by
+role each class is a plain max and **every cell is single-valued**, on the
+goldens and on the chip captures, at w0 and at every wait level.  The goldens
+never sample `ready 3` for the demand-2 classes nor `ready >= 4` for the pen-1
+ones, which is exactly how a wrong law survived a 165,490-case w0 gate and
+still owned 87 % of the fuzz bank's first divergences.  `last_dec_` and the
+stride are DELETED: the model is smaller than before.
+
+*The economical reading of `pen`* (offered, not relied on): the displacement's
+last byte is what the EA adder needs, and the adder stands one stage behind
+the decode port — it reads the byte the clock after the queue can give it up.
+
+**M8b — the DEFERRED instruction boundary was one clock short.**  With the
+march families cleared, the whole residual was one role pair: `O -> I0`, where
+the chip pops at opcode+2 and the model popped at opcode+1 with the byte long
+ready and both sides agreeing on the opcode pop clock itself.  Two boundary
+paths exist and only one spent the clock after the pop: the E-row path
+pre-pops and then runs `charge(row_clocks)`, while the max-of-two-deadlines
+DEFERRED release (an instruction whose write was still staged in the pairing
+latch) pops at the tail of `step()`, after that charge has gone by.  So the
+failing boundaries are exactly those whose predecessor did bus work.
+**No gate could see it**: the v0.1 harness runs ONE instruction per case from
+an injected queue, so `opcode_pending()` is never true and neither boundary
+path is exercised at all.
+
+**M9 — PS3 is the EMULATION-MODE bit**, and §13.5's negative was reading a
+flag.  All 73 first-divergences of the `ps d!=5` family begin at an opcode
+`0F xx`; the chip reads an interrupt VECTOR, pushes PSW / CS / IP, and PS3
+comes up BETWEEN the PSW push and the CS push — the clock BRKEM's microcode
+clears MD — then stays up on every following cycle, CODE fetches included
+(`ps e` on a CS fetch).  It is not an SS-write property; the family looked
+that way only because the first cycle after MD clears happens to be the CS
+push.  §13.5 concluded the opposite from the BANK's `has_brkem` flag, which
+counts only the documented `0F FF` encoding — while the chip's PLA decodes a
+wide spread of undefined `0F xx` second bytes as BRKEM as well (`0F F7`,
+`0F FD`, `0F D3`, `0F 40`, `0F 73`, `0F 90`, `0F 65`, `0F 8D`, `0F 7C`,
+`0F C2`, ...), each taking the NEXT byte as its vector.  **`has_brkem`
+under-reports — a live finding for the functional side too.**
+
+*The Q1 ratchet, measured on this machine, against the T3 register of record:*
+
+| gate | T3 close | + M8 | + M8b | + M9 |
+|---|---|---|---|---|
+| v0.1 **w0** rows-exact | 165,490 | 165,490 | 165,490 | **165,490** |
+| v0.1-w1 / -w3 | 1,200 / 1,200 | 1,200 | 1,200 | **1,200 / 1,200** |
+| `timed_fuzz` M1 cycle-exact | 44 / 1,702 | 136 | 947 | **947 / 1,702 (55.6 %)** |
+| M2 median prefix (rows) | 329 | 417 | 1,068 | **1,068** |
+| M3 median prefix FRACTION | 0.241 | 0.307 | 1.000 | **1.000** |
+| M4 >= 0.5 / >= 0.9 | 144 / 46 | 399 / 138 | 1,192 / 950 | **1,192 / 950** |
+| `timed_wvec_gate` access count | 87 / 88 | 87 / 88 | **88 / 88** | 88 / 88 |
+| `timed_wvec_gate` bus cycles | -0.0 % | -0.0 % | **+0.0 %** | +0.0 % |
+
+The denominator is frozen exactly as T3 registered it (1,702 scored, 1,165
+EVT, 375 OPEN_BUS) at every step, and **no seed lost divergence-free prefix at
+any step** (M8: 682 gained / 0 lost; M8b: 1,265 / 0; M9: 73 / 0).
+
+**GATE (§13.7 item 2): the Q1 family COLLAPSES.**  Taxonomy delta over the
+fuzz bank's first divergences:
+
+| family | T3 close | T4 | |
+|---|---|---|---|
+| **Q1 decoder march** | 1,290 + 192 flicker | **0** | closed |
+| **Q2 redirect one clock late** | 133 | 381 | *unchanged in kind*; it is now the largest family because seeds that used to stop at Q1 reach it |
+| **PS3 on an SS write** | 28 | **0** | closed (M9) |
+| `qs` (pop display) | — | 324 | the Q1 family's successor at a later clock |
+| tails (addr / data / ube) | 15 | 50 | control flow downstream of an earlier displacement |
+| cycle-exact seeds | 44 | **947** | |
+
+### 14.2 Q2 — half MEASURED, half NOT, and it is stated as half
+
+The redirect family is **not closed**, and the honest position is worth more
+than a patch.
+
+*What is measured.*  Over the 293 seeds whose first divergence is
+`qs E!=- bs CODE!=PASV`, the chip shows the flush `E` and the redirect's
+status at the previous cycle's **T4 + 2** in 293 of 293 and the model showed
+them at **T4 + 3** in 293 of 293, with every clock before and after identical;
+the completed cycle carried `Tw >= 1` in all 293.  So under waits **the queue
+port frees at T4 + 2**, not T4 + 3 — the model's absorb window (`eval + 1` to
+`eval + 2`, §12.1 F1(b)) holds it one clock too long, exactly the correction
+M6 already makes for the landing window.
+
+*What is NOT measured, and why the fix was NOT landed.*  Over the whole
+corpus both `T4+2` and `T4+3` occur (at `tw = 1`: 65 vs 112; `tw = 2`: 51 vs
+57; `tw = 3`: 35 vs 18), so the display is `max(EU raise, port free)` and only
+the PORT half is pinned.  Solving the census for the EU half gives a raise
+clock of `last pop + a` with **`a` varying 4..7 by microcode path** —
+unmeasured.  Landing the port correction alone moves M1 **947 -> 753** and
+turns 360 seeds into `qs -!=E` (the model's E now too EARLY), because the
+over-long port hold was MASKING an EU-side raise clock that is too early in
+several paths.  Reverted, and recorded: **the port half of Q2 is measured, the
+EU half needs a directed factorial over the branch forms, and the model is
+left in the state that maximises the ratchet.**  This is the T5 handoff's
+first item.
+
+### 14.3 B1 — the P2 corpus re-captured WITH ITS PARTS, and the four RED cards close
+
+`python3 sw/t4_board.py b1` — the T2b P2 stimulus byte for byte, socket,
+`use_core=False`, no flashing, 11 s of board time.
+`sw/testdata/t4/b1-wvec/wvec_chip_parts.json`.
+
+*Pre-registration prediction 1 (§14.0), scored:* **88 / 88 cells reproduce
+their T2b 16-hex digest EXACTLY.**  No capture-side drift; the T2b freeze
+stands and this is the same reference with a gradient attached.  Prediction 2:
+88/88 repeatable and pin-identical; both promoted cells identical at 4 and
+8 MHz.  Prediction 3: the parts made the cards gradable — see below.
+
+**And the gradient found the bug in one look.**  Of **139** accesses in
+`fz90364:ws5:wmax1` and **187** in `fz90270:ws5:wmax1`, **exactly ONE parts
+away — the LAST one, the closing HALT — and only in its PS nibble**: chip
+`0x6`, model `0x2`.
+
+**M10 — the HALT display's upper nibble is a LIVE PS, not a constant.**
+`note_halt()` hard-coded it to the bare segment code (CS = 2); the chip
+carries IE on the HALT display like any other cycle.  One line.
+
+| gate | before B1 | after M10 |
+|---|---|---|
+| `timed_lawcards` | 3 GREEN / **4 RED** / 4 UNRESOLVED | **7 GREEN / 0 RED** / 4 UNRESOLVED |
+| `timed_wvec_gate` digest identical | 0 / 88 | **63 / 88** |
+
+C4, C5, C10 and C12 — RED since T2b and gradientless since T3 — are **GREEN**.
+C1 and C3 are GREEN with their pause populations now reproduced EXACTLY
+(sim 43 vs chip 43 events at N=8, 30 vs 30 at N=12; they were 38/43 and 26/30
+at T3), which is Q1 paying out on the Arm-C sled.  The four UNRESOLVED cards
+(C2, C6, C7, C11) are unchanged and are stimulus gaps, not model failures.
+
+**There are now NO RED law cards.**
+
+### 14.4 B2 — THE VICTORY TRANCHE, captured and scored against the frozen bar
+
+`python3 sw/t4_board.py b2` — the 216-seed population frozen and committed in
+`sw/testdata/t4/b2-tranche/population.json`
+(sha256 `08ec6dc4...`) BEFORE the first capture; socket, `use_core=False`, no
+flashing; 46 s of board time; raw 64-bit words and full per-clock rows retained
+per cell with sha256.
+
+**A protocol correction, MEASURED not assumed, and declared as a deviation.**
+The first pass flagged 84 of 216 cells "unstable" under the T2b blackbox
+projection.  Diagnosed on the board before anything was scored: over four
+cells x three repetitions each, **every differing row is in indices 0-8 and
+NOT ONE row from 9 on differs.**  Rows 0-8 are the capture's reset settling and
+are excluded by `fuzz_classify.diff_rows` — the frozen T3 column policy this
+gate is scored with.  The stability projection was therefore changed to the
+gate's OWN window (rows 9+); the stricter T2b number is retained beside it.
+This is a post-capture change to a registered criterion and is recorded as
+one.  With it: **0 cells excluded for instability.**  A direct check of the 12
+promotion cells at 5 repetitions each gives **12/12 stable at 4 MHz and 12/12
+at 8 MHz**; 6 of 12 differ BETWEEN the two frequencies, which is the T2b P1
+phenomenon (within-cycle pulses read at a fixed sampling edge) and is recorded,
+not scored.  Every stored row stream is the 4 MHz capture, matching the whole
+banked corpus.
+
+**THE SCORE, against §14.0's bar, as written:**
+
+| | metric | bar | measured | |
+|---|---|---|---|---|
+| **V0** | hard failures | 0 | **0** | **PASS** |
+| **V1** | scored seeds cycle-exact over the whole window | >= 55.6 % | **117 / 188 = 62.2 %** | **PASS** |
+| **V2** | median divergence-free prefix FRACTION | >= 1.000 | **1.000** | **PASS** |
+| **V3** | every non-exact seed's first divergence in a NAMED family | 100 % | **100 %** (Q2 42, `qs` 18, arbitration 10, `data` 1) | **PASS** |
+| **V4** | `wrand` strata vs fixed strata | within 10 points | **wrand 71/107 = 66.4 % vs fixed 46/81 = 56.8 %** — 9.6 points, and the random-wait side is BETTER | **PASS** |
+| **V5** | the campaign's literal phrasing: "fresh random-wait tranche **cycle-exact**" | V1 = 100 % | **62.2 %** | **FAIL** |
+
+Population 216, scored 188, excluded 28 OPEN_BUS (declared in advance,
+detected with the bank's own detector), 0 UNSTABLE, 0 EVT (excluded at
+GENERATION, so the denominator could not move).
+
+**The pre-registered falsifiable prediction is CONFIRMED**: the fresh
+unselected tranche scores **62.2 %** against the adversarially-selected bank's
+**55.6 %** — the bank is a harder population, as predicted in advance and for
+the reason predicted (every seed in it was PROMOTED for diverging against an
+earlier model).
+
+**The verdict, stated honestly.**  V0-V4 PASS.  **V5 FAILS**, exactly as
+pre-registered: the model is not cycle-exact over whole 1,300-4,000-clock
+programs and no restatement of "cycle-exact" is offered.  The campaign's
+victory condition is therefore **PARTIAL**: the wait axis is not the weak axis
+any more — it is the STRONG one (V4, and by a margin) — and 62 % of fresh
+never-before-seen random-wait programs are reproduced clock for clock from
+RESET to the done marker with zero exceptions, against 2.6 % at T3 entry.
+What remains is Q2 and its `qs` successor, both named, both localised to a
+clock, and one of them half-measured (§14.2).

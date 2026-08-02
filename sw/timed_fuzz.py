@@ -196,6 +196,10 @@ def stratify(paths, n, seed=20260802):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--bank", default=",".join(BANKS))
+    # T4: the victory tranche is scored by THIS harness, unchanged -- same
+    # regeneration path and sha gate, same window, same column policy.  The
+    # only thing --seeddir changes is which directory the records come from.
+    ap.add_argument("--seeddir", default="")
     ap.add_argument("--limit", type=int, default=0)
     ap.add_argument("--pilot", type=int, default=0)
     ap.add_argument("--jobs", type=int, default=os.cpu_count() or 4)
@@ -203,7 +207,8 @@ def main():
     ap.add_argument("--details", type=int, default=0)
     args = ap.parse_args()
 
-    paths = seeds_of([b for b in args.bank.split(",") if b])
+    paths = sorted(str(x) for x in Path(args.seeddir).glob("*.json.gz")) \
+        if args.seeddir else seeds_of([b for b in args.bank.split(",") if b])
     if args.pilot:
         paths = stratify(paths, args.pilot)
     elif args.limit:

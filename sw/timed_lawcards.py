@@ -51,7 +51,12 @@ import timed_wvec_gate as WG                           # noqa: E402
 SIM = ROOT / "sim" / "v30sim"
 ROM = ROOT / "docs" / "V20BITS.TXT"
 T2B = ROOT / "sw" / "testdata" / "t2b"
-CHIP_WVEC = T2B / "p2-wvec" / "wvec_chip_baseline.json"
+# T4 B1: the SAME silicon freeze, re-captured with the per-access `parts`
+# stream retained beside the digest (14.1).  All 88 cells reproduced their T2b
+# 16-hex digest exactly, so this is the same reference plus a GRADIENT: a RED
+# card can now name the first differing access instead of only failing.
+CHIP_WVEC = ROOT / "sw/testdata/t4/b1-wvec/wvec_chip_parts.json"
+CHIP_WVEC_T2B = T2B / "p2-wvec" / "wvec_chip_baseline.json"
 ARMC = T2B / "p5-armc" / "armc_n8_n12.jsonl.gz"
 MAXV = 4096
 
@@ -143,10 +148,16 @@ def wvec_cell(seed, ws, wmax, base):
     acc = accesses(rows)
     parts = WG.parts_of(acc)
     sha = hashlib.sha256(";".join(parts).encode()).hexdigest()[:16]
+    cp = ref.get("parts") or []
+    bad = [i for i in range(min(len(cp), len(parts))) if cp[i] != parts[i]]
     return dict(key=key, chip_accesses=ref["accesses"], sim_accesses=len(acc),
                 chip_sha=ref["sha"], sim_sha=sha,
                 digest_identical=sha == ref["sha"],
                 count_identical=len(acc) == ref["accesses"],
+                # THE GRADIENT (T4 B1): which access parted, and how.
+                n_bad=len(bad), first_bad=bad[0] if bad else None,
+                first_bad_chip=cp[bad[0]] if bad else None,
+                first_bad_sim=parts[bad[0]] if bad else None,
                 promoted=ref.get("promoted", False))
 
 
@@ -206,7 +217,10 @@ def main():
         d = wvec_cell(seed, 5, 1, base)
         print(f"  {card}: {d['key']} promoted={d['promoted']}  "
               f"accesses sim {d['sim_accesses']} chip {d['chip_accesses']}  "
-              f"digest {'IDENTICAL' if d['digest_identical'] else 'differs'}")
+              f"digest {'IDENTICAL' if d['digest_identical'] else 'differs'}"
+              + ("" if d["digest_identical"] else
+                 f"  -- {d['n_bad']} access(es) part, first #{d['first_bad']}: "
+                 f"chip {d['first_bad_chip']} vs sim {d['first_bad_sim']}"))
         verdict[card] = ("GREEN" if d["digest_identical"] else "RED",
                          f"directed silicon cell {d['key']}: "
                          f"accesses {d['sim_accesses']}/{d['chip_accesses']}, "
