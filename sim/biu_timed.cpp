@@ -377,6 +377,14 @@ void BiuTimed::queue_preload(const std::vector<uint8_t>& q, uint16_t cs,
 
 void BiuTimed::flush(uint16_t cs, uint16_t pc) {
     q_.clear();
+    // A committed-but-not-started fetch is withdrawn; a fetch already in
+    // flight completes and its data is discarded (biu_model.md flush law).
+    // This runs BEFORE the redirect is loaded: withdrawing a fetch rewinds
+    // `fetch_ptr_` to what it was before that fetch was chosen, so doing it
+    // afterwards silently threw the redirect away and sent the very next
+    // eval back into the OLD stream (`FF.4` case 8: the chip fetches 0D8163,
+    // the model re-fetched 0CE096).
+    withdraw_fetch();
     // The redirect fetches from the NEW CS:PC.  A far transfer loads CS on
     // an earlier micro-row than the FLUSH, so taking CS from the last queue
     // pop instead left the redirect pointing into the OLD segment.
@@ -385,10 +393,15 @@ void BiuTimed::flush(uint16_t cs, uint16_t pc) {
     suspended_ = false;
     pop_is_first_ = true;
     opc_valid_ = false;
-    // A committed-but-not-started fetch is withdrawn; a fetch already in
-    // flight completes and its data is discarded (biu_model.md flush law).
-    withdraw_fetch();
-    if (run_ && cur_.is_fetch) { cur_.push_n = 0; }
+    // ...and DOOMED means doomed on either side of the announcement.  What
+    // `withdraw_fetch` leaves behind is a fetch whose status is already on the
+    // pins (`cmt_t1_ == clk_`): it runs its four clocks like any other cycle,
+    // but nothing it reads may enter the queue.  Missing this second case is
+    // what let the post-flush retire pre-pop a byte the chip does not have --
+    // `FF.2` 01BD flushes two rows before its `E`, and the fetch whose T1 opens
+    // on the flush clock was pushing into the flushed queue.
+    if (run_ && cur_.is_fetch) cur_.push_n = 0;
+    if (cmt_valid_ && cmt_.is_fetch) cmt_.push_n = 0;
     // F1: the queue port is not free on the flush clock itself if a bus cycle
     // still owns it; from the next clock on it is free once that cycle has
     // reached its T4.
