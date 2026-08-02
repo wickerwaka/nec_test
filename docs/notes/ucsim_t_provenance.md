@@ -2305,3 +2305,118 @@ python3 sw/wchain.py --suite tests/v30/v0.1-w3 --forms F7.6 --pair MEMW\>MEMW
 | 6. §7.6's EA stage | unchanged; the wait axis did not touch the decoder march |
 
 **The 12 w0 tails and the 907-case REP residual are unchanged at 165,481.**
+
+## 12. T2b — the wait axis, ON THE BOARD.  The campaign's first board contact
+
+Board discipline for this whole section: SINGLE WRITER (checked, no foreign
+`v30run serve` / `v30ctl` runner), **socket chip only** (`use_core=False`), **no
+FPGA flashing anywhere**, `board_idle()` after every session.  Every capture is
+retained under `sw/testdata/t2b/` with the raw 64-bit capture words and a
+sha256 beside the derived record.
+
+### 12.0 PRE-REGISTRATION — written and committed BEFORE the board was touched
+
+The stage's own discipline (§S4r, and the plan's "pre-registration discipline …
+freeze before run") applied to a board stage: each probe's expected values are
+written down *first*, so a post-hoc reading of an ambiguous capture cannot be
+dressed up as a prediction.  What follows is that register, verbatim.
+
+#### P1 — the SUSP-lead discriminator (§11.12.1)
+
+*Stimulus.* `char_enter` ENTER case, `nest = 2`, both BP/SP contexts
+(ctx0 = the second preparation history the blackbox protocol demands), w0,
+socket, FULL per-clock row stream.  5 repetitions; 4 MHz (`div=8`) **and**
+8 MHz (`div=4`).
+
+*The sim's own geometry for ctx1/nest2/w0*, which is what the chip is measured
+against (absolute clocks; `c` = the `CODE 0x110` prefetch's T1):
+
+```
+    CODE 0x110   T1 = c        T4 = c+3
+    CODE 0x112   T1 = c+6      T4 = c+9      (= 0x110's T4+3: the FIRST IDLE eval)
+    IOW  0x00FE  T1 = c+10                   (= 0x112's T4+1: its COMPLETION eval)
+```
+
+The chip's digest instead runs `IOW 0x00FE` **before** `CODE 0x112`.  The three
+readings, pre-registered with the clock each predicts:
+
+| | reading | prediction |
+|---|---|---|
+| **A** | the EU's bus-control field is ready EARLIER — the IOW request makes the first idle eval and out-ranks the prefetch | chip `IOW` T1 = **c+6**, every clock strictly before c+6 identical to the sim, `CODE 0x112` displaced to c+10 or later |
+| **B** | the prefetch's commit is one clock LATE / the prefetch is not eligible at that eval | the first divergence appears **at or before c+3** — the 0x110 cycle itself, or the gap out of it, differs |
+| **C** | the request is ready a full further row early and takes the COMPLETION eval of 0x110 | chip `IOW` T1 = **c+4** (= 0x110's T4+1) |
+
+*Second, independent observable, recorded either way:* the QS pin sequence.  In
+the sim the byte that arms the IOW is popped (`S`) at c+6, on `CODE 0x112`'s own
+T1.  If the chip pops that byte at an EARLIER clock than the sim does, the cause
+is a QUEUE (push/pop-latency) difference and NOT an EU-side row lead, and the
+"SUSP lead" framing is itself wrong.  This is the falsifier for all three
+readings at once.
+
+*Promotion rule.* A reading is adopted only if it holds bit-identically over the
+5 repetitions at BOTH frequencies AND in BOTH preparation histories (ctx0/ctx1),
+and only if landing it in the sim leaves the w0 ratchet at 165,481 and w1/w3 at
+1,200/1,200.  If it cannot reconcile all three legs (boot, `0F39`, ENTER) that
+is reported as a discovery, not patched away.
+
+#### P2 — the wvec corpus, re-frozen against SILICON
+
+*Finding that motivates the change of reference:* §11.9 recorded that
+`docs/notes/biu_rebuild_wvec_baseline.json` is degenerate at 2 of its 4 configs.
+Offline, before the board: the **timed sim produces 22 DISTINCT digests at ALL
+FOUR configs** (checked on 6 seeds per config), so the stimulus is not
+degenerate — the defect is in the reference.  The frozen baseline is TBR-class
+(a Verilator-TB reference), so the campaign-correct repair is not to re-freeze
+against the TB at all; it is to **freeze the corpus against the CHIP**, which
+converts C4/C5/C12 from RTL-referenced to silicon-referenced in one move.
+
+*Stimulus.* The 22 seeds (`fz90000-90019` + the directed `fz90270`, `fz90364`)
+x the 4 explicit per-access wait vectors (`ws0:wmax0`, `ws5:wmax1`, `ws7:wmax3`,
+`ws11:wmax7`), 4,200 clocks, socket, `wvec` replay.
+
+*Predictions.*
+1. the chip produces **22 distinct digests in every one of the 4 configs** — in
+   particular at `ws7:wmax3` and `ws11:wmax7`, where the TB baseline collapsed to
+   one.  A chip collapse would instead mean the stimulus IS degenerate and the
+   sim is the thing that is wrong; that outcome is reported, not smoothed.
+2. every capture is bit-repeatable across repetitions.
+3. the two directed cells (`fz90270`, `fz90364` at `ws5:wmax1`) reproduce
+   identically at 4 MHz and 8 MHz — the promotion condition for using them as the
+   C4/C5/C12 silicon reference.
+
+#### P3 — the HALT bus pseudo-cycle (S8/S9, §11.12.3)
+
+*Stimulus.* The SAME ENTER traces as P1 — the store stub ends in `HLT` in all
+154 digests — at w0, w1 and w3, read from the last `IOW` to 40 clocks past it.
+
+*Predictions.*
+1. the chip shows a bus cycle with `BS = HALT (3)` — a T1 with an address phase
+   and **no data phase**.
+2. **the HALT pseudo-cycle does not take wait states**: its clock length is the
+   same at w0, w1 and w3.  Falsifier: it stretches with N like an ordinary cycle,
+   which would make it a real access and not a display.
+3. nothing is prefetched after it (the bus parks).
+
+#### P4 — `F3AA cx >= 2`: does the closing pop ride the eval? (§11.12.4)
+
+*Stimulus.* The named discriminating pair, `F3AA` v0.1 cases **16** and **10**
+(seed base `v30-v0.1`, re-emitted at the same index so the program is
+byte-identical), captured from the socket at **w1** and **w3**.
+
+*Predictions.*  At w0 the golden closing pop is at the last store's **T4+2** in
+all 138 `cx = 2` cases (§10.7).
+- **A — it rides the eval:** at w1 and w3 the pop moves to **T4+3** (the eval
+  moves T4-1 -> T4, §11.1, so everything hanging off it shifts by exactly one).
+- **B — it rides a fixed cycle-relative index,** as the OPR release does
+  (§11.4): it stays at **T4+2** at every wait level.
+
+#### P5 — C3's Arm-C sled (§11.12.5)
+
+*Stimulus.* `sw/class5_armc.py` at **N = 8** and **N = 12**, 20 programs each,
+CODE-only waits converged to a fixed point ON THE CHIP STREAM, socket.
+
+*Prediction (this is C3's card text, and it has a 2026-07-17 unfrozen board log
+behind it — the point of this probe is to FREEZE it with a sha, not to discover
+it):* the chip's `cidle` distribution **pins at 3**: N=8 -> 22:12, N=12 -> 28:2,
+within sampling.  Falsifier: a distribution centred on 4, which is what the
+`q_aged`-blackout staged path can emit and the direct path cannot.
