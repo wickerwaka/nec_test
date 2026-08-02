@@ -49,6 +49,12 @@ from gen_seq import generate                       # noqa: E402
 SIM = ROOT / "sim" / "v30sim"
 ROM = ROOT / "docs" / "V20BITS.TXT"
 BASE = ROOT / "docs" / "notes" / "biu_rebuild_wvec_baseline.json"
+# T2b P2: the corpus RE-FROZEN AGAINST SILICON (sw/t2b_board.py p2).  The old
+# TBR-class baseline above is degenerate at 2 of its 4 configs (11.9) and its
+# whole-program counts are ~4x the chip's; the chip freeze is the reference of
+# record from T2b on.  22 seeds x 4 wait vectors, socket, use_core=False, every
+# cell bit-repeatable, the two directed law seeds promoted at 4 and 8 MHz.
+CHIP = ROOT / "sw" / "testdata" / "t2b" / "p2-wvec" / "wvec_chip_baseline.json"
 
 
 def wv_of(ws, wmax):
@@ -87,9 +93,12 @@ def main():
     ap.add_argument("--seeds", default="")
     ap.add_argument("--wvecs", default="")
     ap.add_argument("-v", "--verbose", action="store_true")
+    ap.add_argument("--tb", action="store_true",
+                    help="score against the OLD TBR baseline instead of the "
+                         "T2b silicon freeze (11.9: half of it is vacuous)")
     args = ap.parse_args()
 
-    base = json.loads(BASE.read_text())
+    base = json.loads((BASE if args.tb else CHIP).read_text())
     seeds = ([int(x) for x in args.seeds.split(",") if x]
              if args.seeds else base["seeds"])
     wvecs = base["wvecs"]
@@ -106,7 +115,9 @@ def main():
                 ref = base["cases"].get(key)
                 if not ref:
                     continue
-                acc = accesses(run_sim(seed, wv_of(ws, wmax), nrows, td))
+                # score over the CHIP capture's own clock window
+                acc = accesses(run_sim(seed, wv_of(ws, wmax),
+                                       ref.get("rows", nrows), td))
                 parts = parts_of(acc)
                 sha = hashlib.sha256(";".join(parts).encode()).hexdigest()[:16]
                 n += 1
@@ -122,7 +133,8 @@ def main():
                     print(f"  {key}: accesses sim {len(acc)} ref "
                           f"{ref['accesses']}  sha {sha} != {ref['sha']}")
 
-    print("== frozen wvec corpus through the timed sim ==")
+    print("== the wvec corpus through the timed sim, against "
+          + ("the OLD TB baseline" if args.tb else "SILICON (T2b P2)") + " ==")
     print(f"  configs           {n}")
     print(f"  digest identical  {n_sha}/{n}")
     print(f"  access count      {n_acc}/{n}")

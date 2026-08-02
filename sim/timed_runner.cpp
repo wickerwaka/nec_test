@@ -208,8 +208,19 @@ int run_timed_boot(const ucrom::UcRom& rom, const char* image_path, long clocks,
         return 1;
     }
     int guard = 0;
-    while (biu.clock() < clocks && ++guard < 100000)
+    while (biu.clock() < clocks && ++guard < 100000) {
         if (!cpu.step()) break;
+        // S8/S9: the part HALTS.  The HLT micro-row drives the HALT status
+        // and the bus PARKS -- it does not keep prefetching, which is what
+        // the model used to do and what made every whole-program bus-cycle
+        // count meaningless (the ENTER/fuzz traces are ~200 real cycles and
+        // the model was emitting ~840 by prefetching past the HLT forever).
+        if (m.halted) {
+            biu.note_halt(0xFFFF);
+            while (biu.clock() < clocks && ++guard < 100000) biu.tick_idle();
+            break;
+        }
+    }
     biu.end_case();
     uint16_t fin[14] = {};
     for (int i = 0; i < 8; ++i) fin[i] = m.gpr[i];

@@ -57,6 +57,10 @@ void BiuTimed::begin_case() {
     fetch_ptr_ = 0;
     cs_ = 0;
     suspended_ = false;
+    halted_ = false;
+    halt_pending_ = false;
+    last_fetch_addr_ = 0;
+    pf_land_from_ = pf_land_to_ = -2;
     pop_is_first_ = true;
     consumed_.clear();
     qs_pending_ = kQsNone;
@@ -127,10 +131,25 @@ void BiuTimed::tick() {
         // fixes the cycle's length and its ONE eval instant.
         cur_.waits = next_waits();
         cur_.last_i = 3 + cur_.waits;
-        cur_.eval_i = (cur_.waits == 0) ? 2 : cur_.last_i;
+        // S8/S9: the HALT's status release is at index 1 at every wait level;
+        // every other cycle releases at the READY sample (M2r).
+        cur_.eval_i = cur_.is_halt ? 1
+                      : (cur_.waits == 0) ? 2 : cur_.last_i;
         // ...driving whatever OPR still holds if nothing paired it.
         if (cur_.need_data && is_write(cur_.bs))
             cur_.data = (cur_.addr & 1) ? swap8(last_wval_) : last_wval_;
+    }
+    // S8/S9: the HALT status takes the register on the FIRST clock the
+    // register is FREE -- the bus idle and not the completion eval's display
+    // slot.  MEASURED at w0/w1/w3 alike: the display lands on the previous
+    // cycle's e+2 (w0 T4+1, w>0 T4+2), one clock later than a granted cycle's
+    // display, because a grant loads the register AT the eval and the HLT row
+    // can only load it once the finishing cycle has let go.
+    if (halt_pending_ && !run_ && !cmt_valid_ && c != no_eval_) {
+        cmt_ = halt_acc_;
+        cmt_valid_ = true;
+        cmt_t1_ = c + 1;
+        halt_pending_ = false;
     }
     // The data phase opens on T2.
     if (run_ && ci_ == 1 && cur_.sys_word)
@@ -313,6 +332,8 @@ void BiuTimed::tick() {
                 // the bytes are in -- see the QS-port block above.
                 push_absorb_from_ = e + 1;
                 push_absorb_clk_ = e + 2;
+                // M6: keyed to T4, NOT to the eval.  See biu_timed.h.
+                pf_land_from_ = pf_land_to_ = c + 1;
             }
             if (!cur_.is_fetch) {
                 // eu_done: the data handover / store retire lands with the
@@ -352,12 +373,16 @@ void BiuTimed::eval() {
         cmt_t1_ = clk_ + 1;
         return;
     }
-    if (suspended_) return;
+    if (suspended_ || halted_) return;
     if (occupancy() > 4) return;
+    // M6 (biu_timed.h): no fetch is chosen while the previous fetch's bytes
+    // are LANDING in the queue.
+    if (clk_ - 1 >= pf_land_from_ && clk_ - 1 <= pf_land_to_) return;
     cmt_ = make_fetch();
     // The fetch pointer advances when the cycle is COMMITTED, not when its
     // data lands: the address is latched into the bus cycle here.
     cmt_prev_fp_ = fetch_ptr_;
+    last_fetch_addr_ = cmt_.addr;
     fetch_ptr_ = uint16_t(fetch_ptr_ + cmt_.push_n);
     cmt_valid_ = true;
     cmt_t1_ = clk_ + 1;
@@ -478,6 +503,7 @@ void BiuTimed::flush(uint16_t cs, uint16_t pc) {
     cs_ = cs;
     fetch_ptr_ = pc;
     suspended_ = false;
+    pf_land_from_ = pf_land_to_ = -2;   // M6: the flush discards what was landing
     pop_is_first_ = true;
     opc_valid_ = false;
     // ...and DOOMED means doomed on either side of the announcement.  What
@@ -792,14 +818,25 @@ uint16_t BiuTimed::inta_read(uint16_t upc) {
 
 void BiuTimed::note_halt(uint16_t upc) {
     core_.note_halt(upc);
+    // S8/S9 (see Access::is_halt).  HALT is NOT a bus request that goes
+    // through the arbiter -- it is a status the HLT micro-row drives straight
+    // into the registered status output, so it appears on the pins on the
+    // NEXT clock whatever the eval grid is doing.  MEASURED: the ENTER stub's
+    // HALT display lands at the previous cycle's e+2 at w0, w1 and w3 alike,
+    // which is one clock past the slot a granted cycle would have taken --
+    // exactly "the HLT row drives it, nothing arbitrates it".
+    withdraw_fetch();
     Access acc;
     acc.bs = kBsHalt;
-    acc.addr = last_addr_;
+    acc.addr = (2u << 16) | (last_fetch_addr_ & 0xFFFFu);
     acc.ube_n = 1;
     acc.segc = 2;
-    acc.data = last_data_;
+    acc.data = uint16_t(last_fetch_addr_ & 0xFFFF);
     acc.upc = upc;
-    post(acc);
+    acc.is_halt = true;
+    halt_acc_ = acc;
+    halt_pending_ = true;
+    halted_ = true;
 }
 
 }  // namespace sim

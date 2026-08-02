@@ -111,20 +111,19 @@ def main():
             assert anchor16 == g["anchor16"], (anchor16, g["anchor16"])
             rows = run_sim(image, g.get("waits") or 0,
                            tuple(g["wrand"]) if g.get("wrand") else None, td)
-            # SCOPE.  The chip digest's last transaction is the store stub's
-            # HALT display pseudo-cycle, which the timed model does not have
-            # (scaffolding S8/S9, declared open since T0 and unchanged here):
-            # the sim executes the HLT architecturally and then keeps
-            # prefetching instead of parking the bus.  So the comparison runs
-            # over the chip's stream WITHOUT its trailing HALT, and the HALT
-            # cycle is reported separately as the missing mechanism it is.
+            # S8/S9 CLOSED (T2b P3).  The chip digest's last transaction is
+            # the store stub's HALT display pseudo-cycle; the model now drives
+            # it (biu_timed.h Access::is_halt, MEASURED on the socket at
+            # w0/w1/w3), so the comparison runs over the WHOLE chip stream,
+            # HALT included, and `halt_display` reports that last transaction
+            # matching kind, address, data AND duration on its own.
             gf = g["full"]
-            k = len(gf) - 1 if gf and gf[-1][0] == "HALT" else len(gf)
+            k = len(gf)
             n["cells"] += 1
-            n["halt_display"] += any(t[0] == "HALT"
-                                     for t, _e in anchored(rows, anchor16))
             aa = anchored(rows, anchor16)
             full = [t for t, _e in aa[:k]]
+            n["halt_display"] += (bool(gf) and gf[-1][0] == "HALT"
+                                  and len(full) >= k and full[k - 1] == gf[-1])
             memw = [t for t in full
                     if t[0] == "MEMW" and ce.STK_LO <= t[1] <= ce.STK_HI]
             n["pushes"] += (len(memw) == g["nest"] + 1)
@@ -148,8 +147,7 @@ def main():
     for k in ("pushes", "walk", "full", "active"):
         print(f"  {k:13s} {n[k]}/{n['cells']}")
     print(f"  halt_display  {n['halt_display']}/{n['cells']}"
-          "   (S8/S9: the HALT bus pseudo-cycle is not modelled -- "
-          "OUT of the compared prefix, not counted as a pass)")
+          "   (S8/S9 -- the HALT pseudo-cycle, MEASURED T2b P3 and modelled)")
     return 0 if n["full"] == n["cells"] else 1
 
 

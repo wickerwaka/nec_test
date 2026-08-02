@@ -2420,3 +2420,308 @@ behind it — the point of this probe is to FREEZE it with a sha, not to discove
 it):* the chip's `cidle` distribution **pins at 3**: N=8 -> 22:12, N=12 -> 28:2,
 within sampling.  Falsifier: a distribution centred on 4, which is what the
 `q_aged`-blackout staged path can emit and the direct path cannot.
+
+### 12.1 P1 — the SUSP-lead conflict is RESOLVED, and it was never an EU lead
+
+`sw/t2b_board.py p1` — ENTER `nest = 2`, both BP/SP contexts, w0/w1/w3, 5
+repetitions at 4 MHz **and** 8 MHz, full per-clock rows, raw 64-bit records
+retained (`sw/testdata/t2b/p1-susp/`, SHA256SUMS beside them).  Every cell is
+bit-repeatable across its five repetitions and identical across the two
+frequencies.
+
+**A protocol correction, measured not assumed.**  The first attempt reported
+`freq_identical = False`.  The difference is 249 of 4,063 rows and lives in
+exactly two fields: `rd_n` and the raw `bs_late`.  Both are WITHIN-CYCLE pulses
+read at a fixed sampling edge, so halving the clock divider moves the sampler
+relative to them.  `rd_n` was then checked for independent content and has
+none: at `div=8` it is an exact function of `(t_state, bs)` over the whole
+trace (0 ambiguous cells) and at `div=4` exactly one cell is ambiguous
+(`T3/PASV`, the read data phase) — the sampling edge racing the strobe.  Both
+fields are therefore excluded from the stability projection and the exclusion
+is recorded here rather than buried in the tool.
+
+**What the capture shows.**  Against the sim, ctx1/nest2/w0:
+
+```
+      chip                        sim
+196   T4 PASV   (0x10E's T4)      T4 PASV
+197   TI PASV  F                  TI PASV  F      <- the F pop
+198   TI PASV                     TI CODE 0x110   <- SIM COMMITS HERE
+199   TI CODE 0x110               T1 CODE 0x110
+200   T1 CODE 0x110               T2 ...
+```
+
+The two are **clock-identical for 197 clocks** and part on one thing: the eval
+at the end of clock 197.  The sim grants a prefetch there; the chip does not,
+and grants at 198.  Everything downstream — the chip running `IOW 0x00FE`
+before `CODE 0x112`, which is the 24-digest ENTER symptom — follows from that
+single clock, because by the time the chip's prefetch is eligible the store
+stub's IOW request has arrived and outranks it.
+
+Against the pre-registration (§12.0 P1): **reading B**, and the second
+observable settles it — the `F` and `S` pops are on the SAME ABSOLUTE CLOCKS in
+chip and sim.  **The EU is exactly where the model puts it.  The prefetcher is
+one eval early.**  So the "SUSP lead" framing of §10.4 / §11.7 — the EU's
+bus-control field reaching the BIU one row sooner — is WRONG, and the wait
+axis's vote for the v0.1 side (§11.13 item 2) was right for the wrong reason.
+
+**M6 — the mechanism.  A fetch's bytes are written into the queue on T4+1, and
+that clock is not a prefetch-grant point.**  One clock, keyed to **T4**, not to
+the completion eval.  The consequence is one wait-independent number:
+
+```
+    the earliest eval that may resume a prefetch after a pushing fetch
+    is T4+2, and that fetch's T1 opens at T4+4 — at EVERY wait level.
+```
+
+That is a FIXED CYCLE-RELATIVE INDEX, and it joins two others measured the same
+way: the OPR release at index 2 (§11.4) and the `F3AA` closing pop at T4+2
+(§12.4 below).  Three quantities, three independent stimuli, all pinned to the
+cycle and none of them riding the eval.
+
+The keying matters and was measured, not chosen.  Keyed to the eval
+(`[e+1, e+2]`) the block gives a minimum resume of T4+2 at w0 but T4+3 under
+waits, and the Arm-C sled (§12.5) says the chip's minimum is T4+2 at N = 8 and
+N = 12 as well — a `cidle` of 3, which an eval-keyed block cannot emit.  Keyed
+to T4 both regimes come out right.
+
+The window is a SEPARATE pair of fields from §11.3's QS-port hold for one
+measured reason: a FLUSH discards the bytes, so nothing is written and the
+redirect prefetch is not held off — while the QS port stays busy anyway.
+Clearing the QS window at the flush costs 6,848 `qop` rows; NOT clearing the
+scheduler window costs 1,555 cases, and every one of them is a branch form
+(`E9 EA EB E2 E3 70-7F`).
+
+**All three legs of the conflict close on it, together:**
+
+| leg | before | after |
+|---|---|---|
+| the boot loop (§10.4) | 205 / 220 rows | **220 / 220, loop period exact** |
+| `0F39` (§10.6's tail) | 491 / 500 | **500 / 500** |
+| the ENTER waited tranche (§11.7) | full 130 / 154 | **152 / 154** |
+| v0.1 w0 ratchet | 165,481 | **165,490** |
+| v0.1-w1 / -w3 | 1,200 / 1,200 | **unchanged, 1,200 / 1,200** |
+
+**Falsified along the way, recorded so nobody re-derives them:**
+- *the occupancy the prefetch decision reads is a REGISTER (a pop is visible one
+  clock later)* — costs `B8` 500 -> 250; the primed-window cases show the chip
+  granting on the same clock as a pop.
+- *the block runs for BOTH landing clocks, `[e+1, e+2]`, with the QS window
+  shared* — the branch forms above.
+- *the block starts at the eval, `[e, e+2]`* — kills w0 back-to-back chaining.
+
+**The residual, named exactly.**  2 of 154 ENTER cells — ctx0 and ctx1,
+`nest = 4`, `wrand(3, 4660)` — still show the same `IOW`/`CODE` swap.  Both are
+a 2-wait fetch's own COMPLETION eval at occupancy 4 with all four bytes already
+counted; the chip declines to chain there and the model chains.  A matched w1
+cell (occupancy 2) has the chip chaining at the same geometry, so the
+discriminator is occupancy, not the eval — and no rule tried here separates
+occupancy 4 at a waited completion eval from occupancy 4 at a w0 one, where the
+chip DOES chain.  Left open with its two cells and its discriminating pair.
+
+### 12.2 P2 — the wvec corpus is re-frozen AGAINST SILICON, and why the old one collapsed
+
+§11.9 found `docs/notes/biu_rebuild_wvec_baseline.json` degenerate at 2 of its
+4 configs.  Two offline checks located the fault before the board was touched:
+
+1. the **timed sim** produces 22 DISTINCT digests at ALL FOUR configs — so the
+   stimulus is not degenerate;
+2. re-running `biu_rebuild_wvec_freeze.py` today does not reproduce the
+   collapse either, but produces something worse: an access count that is
+   **independent of the wait vector** (fz90000: 201 / 200 / 198 accesses at
+   `wmax` 0 / 1 / 3).  The `Vtb_v30_core` binary is from 2026-07-31 and the RTL
+   under it has been modified since; the TB reference is not a controlled
+   artifact.
+
+So the repair is not to re-freeze against the TB at all.  `sw/t2b_board.py p2`
+freezes the corpus **against the CHIP** — 22 seeds x 4 explicit per-access wait
+vectors, socket, `use_core=False`, `sw/testdata/t2b/p2-wvec/`:
+
+| config | distinct digests over 22 programs |
+|---|---|
+| `ws0:wmax0` | **22** |
+| `ws5:wmax1` | **22** |
+| `ws7:wmax3` | **22** (the old baseline: 1) |
+| `ws11:wmax7` | **22** (the old baseline: 1) |
+
+All 88 cells bit-repeatable; the two directed law seeds (`fz90270`, `fz90364`
+at `ws5:wmax1`) promoted with 5 repetitions at 4 AND 8 MHz.  Pre-registration
+prediction 1 CONFIRMED: the collapse was the reference, not the stimulus.
+`sw/timed_wvec_gate.py` now scores against this silicon freeze by default
+(`--tb` for the old one).
+
+**And it exposed a much larger error in §11.9's own numbers.**  The chip runs
+~183 bus cycles per 4,200-clock program; the old TB baseline recorded ~700 and
+the sim was emitting ~840.  The reason is §12.3: the programs HALT at about
+clock 950 and the chip parks the bus, while the model kept prefetching for the
+remaining 3,000 clocks.  Cut at the chip's own HALT clock, `fz90000:ws0:wmax0`
+is **sim 201 vs chip 200**.  §11.9's "+6.0 % / −12.2 %, a two-directional
+whole-program cadence error, the Round-3 A2 signature" was an artifact of a
+missing mechanism plus a broken reference and is **RETRACTED**.  Against
+silicon, with the HALT modelled:
+
+```
+python3 sw/timed_wvec_gate.py     # access count 78/88, bus cycles -3.6 %
+                                  # digest identical 0/88  (a T3 input)
+```
+
+### 12.3 P3 — the HALT bus pseudo-cycle, MEASURED, and S8/S9 CLOSED
+
+The same P1 captures carry it (the ENTER store stub ends in `HLT`), at w0, w1
+and w3 x two preparation histories.  What the pins say:
+
+| | measured |
+|---|---|
+| status | `BS = HALT` for exactly **two clocks** — the display clock and T1 — passive from T2, at every wait level |
+| T1 | UBE **high** (no data phase); A15-0 = the LAST FETCH's address; A19-16 = the segment code (2 = CS), never an address phase on the upper nibble |
+| position | the display lands on the previous cycle's **e+2** at w0, w1 and w3 alike — one clock later than a granted cycle's display |
+| length | the RIG runs a full T-state cycle over it and **DOES insert Tw** (T1..T4 = 4 / 5 / 7 clocks at w0 / w1 / w3) |
+| after | the bus PARKS: zero non-passive status rows for the rest of the capture |
+
+The pre-registered prediction 2 (*"the HALT pseudo-cycle does not take wait
+states"*) is **FALSIFIED**: the rig treats it as a bus cycle and stretches it,
+consuming a wait draw and a bus-cycle ordinal.  What IS wait-independent is the
+CPU's side — the 2-clock status display.  Predictions 1 and 3 hold.
+
+The position has a simple reading and it is the one implemented: **HALT is not
+a bus request that goes through the arbiter.**  The `HLT` micro-row drives the
+status register directly, so it takes the register on the first clock the
+register is FREE — the bus idle and not the completion eval's display slot.
+That is `e+2` at w0 (where `e+1` is T4, inside the cycle) and `e+2` at w>0
+(where `e+1` is the display slot), which is exactly what the pins show at all
+three wait levels without a special case.
+
+Landed in `sim/biu_timed.{h,cpp}` (`Access::is_halt`, `halt_pending_`) and
+`sim/timed_runner.cpp`.  **Scaffolding S8/S9 is REMOVED.**  With M6 and the
+HALT together, all four captured P1 cells are **clock-identical to the socket
+over the whole 4,063-clock capture** — reset entry, the ENTER walk, the store
+stub, the HALT and the parked bus — and `halt_display` goes 0/154 -> **154/154**.
+
+### 12.4 P4 — `F3AA cx >= 2`: the closing pop rides a FIXED INDEX, not the eval
+
+`sw/t2b_board.py p4` re-emits the named discriminating pair (`F3AA` v0.1 cases
+**16** and **10**, seed base `v30-v0.1`, byte-identical programs) from the
+socket at w0, w1 and w3 (`sw/testdata/t2b/p4-f3aa/`).  Offset from the LAST
+store's T4 to the window-closing `F` pop:
+
+| case | w0 | w1 | w3 |
+|---|---|---|---|
+| `F3AA` 16 | T4+2 | **T4+2** | **T4+2** |
+| `F3AA` 10 | T4+2 | **T4+2** | **T4+2** |
+
+**Pre-registered reading B.**  It does NOT ride the eval (which would have
+moved it to T4+3 under waits); it sits at a fixed cycle-relative index, exactly
+as the OPR release does (§11.4) and as M6 does (§12.1).  §10.7's open question
+— *"what pins the row engine to the bus at `cx >= 2` if not the OPR register"*
+— is answered in KIND: a fixed index, one clock tighter than OPR's.
+
+And the model, on the same six cases:
+
+| case | golden | sim | row diffs |
+|---|---|---|---|
+| 16 / 10 at w0 | T4+2 | T4+1 / T4+3 | 3 each |
+| 16 / 10 at **w1** | T4+2 | **T4+2** | **0** |
+| 16 / 10 at **w3** | T4+2 | **T4+2** | **0** |
+
+So the 907-case REP residual is **w0-only**: under waits the bus is slow enough
+that the row engine's free-run is no longer the binding deadline and the model
+lands on the silicon index by itself.  Not landed as a mechanism — §10.7
+measured that the obvious form (releasing the store ROW at the previous store's
+T1) buys +25 cases for 213 new diffs, and the campaign reverts a better score
+for a worse model.  It is now a much narrower question with a wait-axis answer
+attached.
+
+### 12.5 P5 — C3's Arm-C sled, re-captured and FROZEN
+
+`sw/class5_armc.py --Ns 8 12 --nprog 20`, socket, CODE-only waits converged to
+a fixed point on the chip's own access stream.  Frozen with a sha at
+`sw/testdata/t2b/p5-armc/` (4,432 events).
+
+| N | chip `cidle` distribution | verdict |
+|---|---|---|
+| 8 | `{3: 22, 4: 12, 5: 8, 12: 1}` | chip PINS AT 3 |
+| 12 | `{3: 28, 4: 2}` | chip PINS AT 3 |
+
+**Pre-registered prediction CONFIRMED, and bit-identical to the unfrozen
+2026-07-17 board log** (22:12 and 28:2) — an independent re-capture two weeks
+later reproducing the card's numbers exactly.  C3 now has a frozen silicon
+reference instead of a log.
+
+### 12.6 Law cards — the MUST set as SIM gates on silicon (`sw/timed_lawcards.py`)
+
+§11.10's position was *"the cards cannot be turned into sim unit gates in T2a,
+and the reason is provenance, not effort."*  T2b banks the provenance, so the
+cards are now SCOREABLE — and most of them score RED.  That is the honest
+result and it is strictly more informative than being unscoreable.
+
+| card | verdict | on what |
+|---|---|---|
+| **C1** LC1 steady-state gap | **RED** | the frozen Arm-C sled.  The `cidle = 3` pin is now REACHABLE (M6 — before T2b the model could not emit 3 at high N at all) but the PAUSE POPULATION is not: sim 12 vs chip 43 events at N=8, 1 vs 30 at N=12.  The model still resumes far more eagerly than the part |
+| **C2** LC1 fill ramp | **UNRESOLVED** | the ramp needs a queue-fill transient the sled's steady state does not isolate |
+| **C3** LC1 cidle pin | **RED** | same sled, same reason as C1 |
+| **C4/C5** LC2 aged-band PAUSE / GO | **RED** | the directed seed `fz90364` at `ws5:wmax1`, now a promoted silicon cell: bus-cycle COUNT identical (139/139), per-cycle digest differs |
+| **C6/C7** LC3 RMW Tw parity | **UNRESOLVED** | board-by-construction (uRMW).  No golden, no fuzz seed and no T2b capture carries an RMW mem-write ready-AT-T4 with a controlled Tw parity |
+| **C9** LC4 general lead reservation | **GREEN** | 2,400/2,400 at w1/w3 plus, now, the ENTER store stub's own store-vs-prefetch cell at w0 — 4/4 P1 cells clock-identical to the socket |
+| **C10** LC4 late reservation yields | **RED** | rides the same directed wvec cells as C12 |
+| **C11** LC4 owns_slot | **UNRESOLVED** | an ENUMERATED source set; no directed capture isolates a single source.  `P-LC4-matrix` stays booked |
+| **C12** LC4 pf_rsv_lead | **RED** | `fz90270` at `ws5:wmax1`, promoted silicon cell: count 187/187, digest differs |
+
+**1 GREEN / 6 RED / 4 UNRESOLVED.**  The six REDs are one statement: the model
+gets the bus-cycle IDENTITY and COUNT right and the per-cycle CADENCE wrong,
+and the specific shape of the error is that it resumes the prefetch too
+eagerly — LC1/LC2, which §7.4 and §11.10 both record as deliberately
+unimplemented.  That is T3's subject, and it now has silicon to aim at.
+
+### 12.7 Gates (measured, this machine)
+
+| suite | result |
+|---|---|
+| v0.1 arch | 169,000 / 169,000 |
+| v0.2 arch | 347,000 / 347,000 |
+| v0.3 arch | 3,699,998 / 3,699,998 |
+| v20suite arch | 3,125,000 / 3,125,000 |
+| mod3_illegal (`--residue stale-ea`) | 128 / 128 |
+| **total** | **7,341,126** |
+
+```
+python3 sw/timed_gate.py --suite tests/v30/v0.1 --forms all              # 165,490 (w0, +9)
+python3 sw/timed_gate.py --suite tests/v30/v0.1-w1 --forms all --waits 1 # 1,200/1,200
+python3 sw/timed_gate.py --suite tests/v30/v0.1-w3 --forms all --waits 3 # 1,200/1,200
+python3 sw/timed_enter_replay.py     # walk/pushes/active/halt 154/154, full 152/154
+python3 sw/check_boot.py --timed 220 # MATCHES over 220 rows, loop period exact
+python3 sw/timed_scenario.py         # 18 PASS, 0 FAIL, 9 SKIP
+python3 sw/timed_ins_replay.py --raw # rails 1312/1312, R2 780/800, vs-chip 1768/2624
+python3 sw/timed_wvec_gate.py        # vs SILICON: count 78/88, cycles -3.6 %, digest 0/88
+python3 sw/timed_lawcards.py         # 1 GREEN / 6 RED / 4 UNRESOLVED
+python3 sw/t2b_board.py p1|p2|p4|idle          # the board probes
+python3 sw/class5_armc.py --Ns 8 12 --nprog 20 # P5
+```
+
+**Board session log.**  One session, ~15 minutes of board time in total across
+five probes (the persistent serve runner turns a 4,063-clock socket capture
+into ~0.3 s, so the budget was never the constraint).  Single-writer checked
+before contact (no foreign `v30run serve` / `v30ctl`); socket only
+(`use_core=False`) on every capture; nothing flashed; no bitstream touched.
+`b1_recapture.board_idle()` run at the end — **board idle, use_core=0,
+confirmed**.
+
+### 12.8 Ledger delta against the T2b handoff (§11.12)
+
+| §11.12 item | outcome |
+|---|---|
+| 1. the SUSP-lead discriminator | **RESOLVED, and the premise was wrong** (§12.1).  Not an EU lead — the model's prefetcher was one eval early.  M6 landed; all three legs (boot, `0F39`, ENTER) close together; w0 ratchet +9, w1/w3 unmoved.  2 named residual cells |
+| 2. re-freeze the wvec corpus | **DONE AND PROMOTED TO SILICON** (§12.2).  22 distinct digests in all four configs; the collapse was the TB reference.  §11.9's whole-program cadence numbers RETRACTED |
+| 3. the HALT bus pseudo-cycle | **MEASURED AND LANDED; S8/S9 REMOVED** (§12.3).  One pre-registered prediction falsified (it does stretch) |
+| 4. `F3AA cx >= 2` | **ANSWERED** (§12.4): a fixed cycle index, not the eval, at w0/w1/w3.  Residual now w0-only |
+| 5. C3's Arm-C sled | **CAPTURED AND FROZEN** (§12.5), prediction confirmed, bit-identical to the 07-17 log |
+| law cards C1-C7, C9-C12 as sim gates | **SCOREABLE AT LAST**: 1 GREEN / 6 RED / 4 UNRESOLVED (§12.6), each against a named silicon capture |
+
+**T3 handoff.**  (a) The six RED cards are one error with one shape — the
+prefetch resume is too eager, LC1/LC2 unimplemented — and the Arm-C sled plus
+the 88-cell silicon wvec corpus are the stimulus.  (b) `timed_wvec_gate` is
+0/88 on the per-cycle digest with the COUNT already 78/88: that gap is the T3
+target and it is now measured against silicon, not against a TBR baseline.
+(c) The two ENTER wrand cells and the w0-only `F3AA` residual are named,
+narrow, and carry their discriminating pairs.  (d) `sw/biu_rebuild_wvec_freeze.py`
+and the `Vtb_v30_core` binary are NOT a controlled reference and should not be
+cited as one until rebuilt from a clean tree.

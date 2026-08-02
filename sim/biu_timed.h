@@ -143,6 +143,8 @@ public:
     void io_write(uint16_t port, uint16_t data, bool word, uint16_t upc);
     uint16_t inta_read(uint16_t upc);
     void note_halt(uint16_t upc);
+    // S8/S9: run one clock with no EU behind it (the parked, halted bus).
+    void tick_idle() { tick(); }
     // F2 SUSP IS ONE CLOCK EARLY.  The ROM's bus-control field is decoded a
     // row ahead of the datapath, so SUSP reaches the BIU on the same clock
     // edge that loads the prefetch COMMIT register -- and a fetch the eval
@@ -239,6 +241,22 @@ private:
         // load from an odd address, retires off the second half's T4.)
         bool rd_last = true;
         uint16_t rd_val = 0;   // a READ's datapath value -> OPR at its T4+1
+        // S8/S9 -- THE HALT BUS PSEUDO-CYCLE.  MEASURED on the socket, T2b P3
+        // (sw/testdata/t2b/p1-susp, the ENTER store stub's own HLT, w0/w1/w3 x
+        // two preparation histories x 5 repetitions x 4 and 8 MHz):
+        //   * the status register carries HALT for exactly TWO clocks -- the
+        //     display clock and T1 -- and is PASSIVE from T2 on, at EVERY wait
+        //     level.  So a HALT's status release index is 1, not the eval.
+        //   * T1 drives UBE HIGH (no data phase) and puts the LAST FETCH's
+        //     address on A15-0 with the segment code (2 = CS) on A19-16 -- it
+        //     never does an address phase on the upper nibble.
+        //   * the RIG still runs a full T-state cycle over it and DOES insert
+        //     Tw (T1..T4 = 4/5/7 clocks at w0/w1/w3), so it consumes a wait
+        //     draw and a bus-cycle ordinal like any other cycle.  (This
+        //     FALSIFIES the pre-registered 12.0-P3 prediction 2, which said
+        //     the pseudo-cycle would not stretch.)
+        //   * the bus then PARKS: zero non-passive status rows afterwards.
+        bool is_halt = false;
         uint8_t push_n = 0;    // queue bytes this fetch delivers
         uint8_t push_b[2] = {0, 0};
         // M2r: the wait count the rig latches at this cycle's T1 entry, and
@@ -331,6 +349,39 @@ private:
     // M2r: the clock an eval has reserved as its DISPLAY slot -- not an eval
     // point itself.
     long no_eval_ = -1;
+    // M6 -- A FETCH'S BYTES ARE WRITTEN INTO THE QUEUE ON **T4+1**, AND THAT
+    // CLOCK IS NOT A PREFETCH-GRANT POINT.  ONE clock, keyed to T4 and NOT to
+    // the completion eval -- so, like the OPR release (11.4) and the F3AA
+    // closing pop (T2b P4), it sits at a FIXED CYCLE-RELATIVE INDEX and does
+    // not stretch.  The consequence is a single wait-independent number: the
+    // earliest eval that may resume a prefetch after a pushing fetch is
+    // **T4+2**, and that fetch's T1 opens at **T4+4**, at every wait level.
+    //
+    // MEASURED, T2b, three independent stimuli:
+    //   * P1, the ENTER w0 store stub (sw/testdata/t2b/p1-susp, both
+    //     preparation histories): chip and model are clock-identical for 197
+    //     clocks and part on exactly the eval at T4+1.  Blocking it makes all
+    //     four captured cells clock-identical over the whole 4,063-clock run.
+    //   * P5, the Arm-C fetch-limited sled at N = 8 / N = 12
+    //     (sw/testdata/t2b/p5-armc): the chip's minimum resume gap pins at
+    //     cidle = 3, which is T1 = T4+4 -- unreachable if the block were keyed
+    //     to the eval, because under waits that would push the grant to T4+3.
+    //   * the boot loop and the `0F39` tail, the other two legs of the
+    //     "SUSP lead" conflict, both close on it (12.1).
+    //
+    // It is a SEPARATE pair of fields from the QS-port hold below for exactly
+    // one reason: a FLUSH discards the bytes, so nothing is written and the
+    // redirect prefetch is not held off, while the QS port stays busy anyway
+    // (MEASURED both ways: clearing the QS window at the flush costs 6,848
+    // qop rows; NOT clearing the scheduler window costs 1,555 branch-form
+    // cases -- E9/EA/EB/E2/E3/70-7F, every one of them a flush).
+    long pf_land_from_ = -2;
+    long pf_land_to_ = -2;
+    // S8/S9: once the part is halted the prefetcher never runs again.
+    bool halted_ = false;
+    bool halt_pending_ = false;
+    Access halt_acc_;
+    uint32_t last_fetch_addr_ = 0;
     bool e_pend_ = false;
     long e_from_ = 0;
     long e_x_ = -1;                  // the flush micro-row's own clock                // earliest clock the display may take

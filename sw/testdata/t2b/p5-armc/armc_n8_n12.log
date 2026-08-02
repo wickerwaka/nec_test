@@ -1,0 +1,15 @@
+start Sun Aug  2 07:07:02 2026  POWERED ARM C  Ns=[8, 12] nprog=20
+  N= 8: conv=20 noconv=0 events=2217 pauses=43 (1.9%)  cidle={3: 22, 4: 12, 5: 8, 12: 1}
+  N=12: conv=20 noconv=0 events=2215 pauses=30 (1.4%)  cidle={3: 28, 4: 2}
+
+=== EXTINCTION RATE (max() predicts pauses -> extinct as N grows) ===
+    N  events  pauses  pause%  cidle-dist
+    8    2217      43    1.9%  {3: 22, 4: 12, 5: 8, 12: 1}
+   12    2215      30    1.4%  {3: 28, 4: 2}
+
+=== CIDLE PIN TEST (the decisive signal) ===
+  max(): chip pins at 3 for high N. model (HEAD): pins at 4.
+  N= 8: cidle3=22 cidle4=12 (n=43)  -> chip PINS AT 3
+  N=12: cidle3=28 cidle4=2 (n=30)  -> chip PINS AT 3
+
+done Sun Aug  2 07:07:11 2026
