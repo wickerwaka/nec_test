@@ -110,6 +110,8 @@ public:
     // S5 on the status lines is the IE flag, so the row emitter needs a live
     // view of the PSW.  Bound to the interpreter's own machine state.
     void bind_psw(const uint16_t* psw) { psw_ = psw; }
+    // M9: PS3 is the EMULATION-MODE bit.  See data_ps() in biu_timed.cpp.
+    void bind_md(const bool* md8080) { md8080_ = md8080; }
     long clock() const { return clk_; }
 
     // --- case lifecycle ---------------------------------------------------
@@ -307,6 +309,7 @@ private:
     Biu core_;
     RowEmitter* rows_ = nullptr;
     const uint16_t* psw_ = nullptr;
+    const bool* md8080_ = nullptr;
     int waits_ = 0;
     std::vector<uint8_t> wvec_;
     bool wrand_ = false;

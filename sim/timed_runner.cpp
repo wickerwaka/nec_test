@@ -95,6 +95,7 @@ void run_one(const ucrom::UcRom& rom, BiuTimed& biu, RowEmitter& sink,
     m.set_flags(ir[13]);
     biu.queue_preload(q, ir[9], ir[12]);
     biu.bind_psw(&m.psw);
+    biu.bind_md(&m.mode8080);
     bind_io(biu, c);
 
     sink.begin_case(idx);
@@ -199,6 +200,7 @@ int run_timed_boot(const ucrom::UcRom& rom, const char* image_path, long clocks,
     CpuTimed cpu(rom, biu);
     Machine& m = cpu.state();
     biu.bind_psw(&m.psw);
+    biu.bind_md(&m.mode8080);
 
     sink->begin_case(0);
     // THE PART COMES OUT OF RESET WITH THE PREFETCHER SUSPENDED.  There is no

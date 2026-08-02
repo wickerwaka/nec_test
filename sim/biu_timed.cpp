@@ -20,9 +20,29 @@ uint8_t BiuTimed::seg_code(uint8_t seg_idx) {
 }
 
 uint8_t BiuTimed::data_ps(uint8_t segc) const {
-    // S6 = 0 (always, for a CPU-driven cycle), S5 = IE, S4:S3 = segment.
+    // M9 (T4).  S5 = IE, S4:S3 = segment -- and S6 is NOT "always 0 for a
+    // CPU-driven cycle": it is the 8080 EMULATION-MODE bit, high for every
+    // cycle the part runs with MD clear.
+    //
+    // MEASURED (sw/timed_fuzz.py family `ps d!=5`, 73 seeds): every one of
+    // them begins at an opcode `0F xx`, the chip then reads an interrupt
+    // VECTOR and pushes PSW / CS / IP to the stack, and PS3 comes up BETWEEN
+    // the PSW push and the CS push -- i.e. on the clock the BRKEM microcode
+    // clears MD -- and stays up on every following cycle, CODE fetches
+    // included (`ps e` on a CS fetch, `ps d`/`ps 9` on an SS store).  It goes
+    // down again at RETEM / CALLN.
+    //
+    // The T3 handoff recorded this family as "present in brkem and non-brkem
+    // seeds alike, so it is not emulation mode" (13.5).  That negative was
+    // read off the BANK's `has_brkem` flag, which only counts the documented
+    // `0F FF` encoding -- and the chip's PLA decodes a whole spread of
+    // undefined `0F xx` second bytes as BRKEM too (`0F F7`, `0F FD`, `0F D3`,
+    // `0F 40`, `0F 73`, `0F 90`, ... each taking the NEXT byte as its vector).
+    // Every seed in the family is a BRKEM; the flag was measuring the
+    // encoding, not the instruction.
     bool ie = psw_ && (*psw_ & kFlagIE);
-    return uint8_t((ie ? 4 : 0) | (segc & 3));
+    bool md = md8080_ && *md8080_;
+    return uint8_t((md ? 8 : 0) | (ie ? 4 : 0) | (segc & 3));
 }
 
 static inline uint16_t swap8(uint16_t v) {   // the A0 rotator (see M5b below)
