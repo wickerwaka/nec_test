@@ -174,6 +174,15 @@ int run_timed_boot(const ucrom::UcRom& rom, const char* image_path, long clocks,
 
     BiuTimed biu;
     biu.set_mirror(true);          // the capture board's 64 KB wiring
+    // ...and the rest of the capture board's I/O map, which is EMPTY: an IN
+    // reads the floating bus.  `image_runner.cpp` has carried this constant
+    // since the fuzz campaign ("EVERY IOR cycle in every banked capture
+    // carries 0xFFFF ... measured over the whole bank") and `timed-boot`
+    // simply never got it, so every IN in a replayed program returned 0x0000
+    // and the run diverged architecturally from that clock on.  Re-measured
+    // independently for T3 over the four banks: **4,594 of 4,594** IOR
+    // data-phase rows carry 0xFFFF, over 8+ distinct ports.
+    biu.set_io_in(0xFFFF);
     biu.set_waits(opt.waits);
     if (!apply_wait_source(biu, opt)) return 2;
 

@@ -2951,3 +2951,134 @@ first item of the T4 handoff (§13.7): the P2 capture must be re-banked with the
 per-cycle `parts` list (or the raw words retained) before those four cards can
 be worked on at all.  The Arm-C sled is the only graded resume stimulus this
 repo holds, and it is now essentially closed.
+
+### 13.5 Part B — the fuzz-bank cycle gate, RUN, surveyed, fixed, re-run
+
+`python3 sw/timed_fuzz.py` over the whole registered population, 3,242 seeds,
+~52 s wall on this machine.  Against the register of §13.0:
+
+| | pre-registered pilot | **first full run** | after the survey's one fix |
+|---|---|---|---|
+| hard failures (GEN_DRIFT / REGEN_ERROR / SIM_ERROR) | — | **0** | **0** |
+| scored / EVT / OPEN_BUS | 26 / 17 / 7 | **1,702 / 1,165 / 375** | 1,702 / 1,165 / 375 |
+| M1 cycle-exact seeds | 0 / 26 | **32 / 1,702 (1.9 %)** | **44 / 1,702 (2.6 %)** |
+| M2 median divergence-free prefix (rows) | 277 | **315** | **329** |
+| M3 median prefix fraction | 0.177 | **0.234** | **0.241** |
+| M4 prefix fraction >= 0.5 / >= 0.9 | 0 / 0 | **119 / 34** | **144 / 46** |
+
+The **denominator is frozen** exactly as registered: the scored population, the
+EVT count and the OPEN_BUS count are identical across every run in this
+section, so none of the movement is a shrinking denominator.
+
+**The pilot's prediction, scored.**  Predicted: the census is dominated by `qs`
+(pilot 77 %) with `data` and `bs` the only other families.  Outcome: **`qs`
+dominates (1,137 + 151 flicker = 76 % of the first full run)** and `data`
+(227) and `bs` (121) are the next two — but the full run also turned up three
+families the 50-seed pilot never sampled: `ps` (24), `addr` (8) and `ube` (2).
+Recorded as the partial miss it is: a pilot that size does not see a 24-seed
+family.
+
+**Where the model stood BEFORE this stage.**  The same harness on a binary
+built from the T2b commit (`git show HEAD:sim/...`, built in a scratch tree):
+
+| | T2b | + M7/M7b | + R-STALL | + the rig's I/O constant |
+|---|---|---|---|---|
+| M1 cycle-exact | 17 | — | 32 | **44** |
+| M4 >= 0.5 / >= 0.9 | 96 / 19 | — | 119 / 34 | **144 / 46** |
+| `bs` first-divergence family | 248 | — | 121 | 133 |
+| `data` first-divergence family | 207 | — | 227 | **4** |
+
+and, per seed, **341 seeds gained a longer divergence-free prefix and NOT ONE
+lost any** — the ratchet holds at the level of the individual capture, not just
+in aggregate.
+
+**Survey-then-fix: the one thing the survey found that was a MECHANISM (a
+rig one) and not a law.**  227 seeds' first divergence was `data ffff != 0000`
+on an `IOR` data phase.  Census over the four banks: **4,594 of 4,594 chip
+I/O-read data-phase rows carry 0xFFFF**, across 8+ distinct ports — the capture
+board has no readable I/O device and an `IN` reads the floating bus.
+`image_runner.cpp` has carried that constant since the fuzz campaign and
+`timed-boot` never got it, so every `IN` in a replayed program returned 0x0000
+and the run diverged ARCHITECTURALLY from that clock on.  Landed (§13.3's
+paragraph in `timed_runner.cpp`); the family goes **227 -> 4**.
+
+**The closed taxonomy of what is left** (post-fix, 1,658 diverging seeds):
+
+| family | seeds | what it is |
+|---|---|---|
+| **Q1 — the decoder march under waits** | 1,290 + 192 flicker | a queue POP displaced by 1 or 2 clocks, in BOTH directions (chip-early 393, sim-early 421 at the +-1 shift), and it lands on **T2 of a CODE cycle** in ~4 of every 5.  This is §9.1's M3c -- the decode march of 1- and 2-clock STEPS, whose strides are MEASURED at w0 (v0.1 is 165,490 exact) -- meeting the wait axis, where neither the demand clock nor the stride has ever been measured.  The 192 are the documented F/S QS flicker |
+| **Q2 — the redirect one clock late** | 133 | `qs E!=- bs CODE!=PASV` (72) and its relatives: the chip displays the flush's `E` and the redirect fetch at the previous cycle's T4+2 and the model at T4+3, with every cell before and after identical.  A branch/flush cadence law under waits |
+| **PS3 on a stack write** | 28 | the chip drives PS bit 3 = 1 on a `MEMW` whose segment code is SS (`ps d!=5`, one cell `9!=1`).  A19 is 0 at the cycle's own T1 in **all 36 rows**, so it is not a stale address bit; present in brkem and non-brkem seeds alike, so it is not emulation mode.  UNEXPLAINED, and rare -- 36 rows in 3,242 captures |
+| tails | 9 addr, 4 data, 2 ube | control-flow divergences downstream of an earlier displacement |
+
+Nothing is booked "unknown": every scored seed's first divergence is in one of
+those four rows.
+
+**What the gate is now.**  M1 = 44, M2 = 329, M3 = 0.241, M4 = 144 / 46 over a
+frozen 1,702-seed denominator, with the taxonomy above.  Those are the baseline
+of record and may only grow.
+
+### 13.6 Gates (measured, this machine)
+
+| suite | result |
+|---|---|
+| v0.1 arch | 169,000 / 169,000 |
+| v0.2 arch | 347,000 / 347,000 |
+| v0.3 arch | 3,699,998 / 3,699,998 |
+| v20suite arch | 3,125,000 / 3,125,000 |
+| mod3_illegal (`--residue stale-ea`) | 128 / 128 |
+| **total** | **7,341,126** |
+
+```
+python3 sw/timed_gate.py --suite tests/v30/v0.1 --forms all              # 165,490 (w0)
+python3 sw/timed_gate.py --suite tests/v30/v0.1-w1 --forms all --waits 1 # 1,200/1,200
+python3 sw/timed_gate.py --suite tests/v30/v0.1-w3 --forms all --waits 3 # 1,200/1,200
+python3 sw/check_boot.py --timed 220 # MATCHES over 220 rows
+python3 sw/timed_scenario.py         # 18 PASS, 0 FAIL, 9 SKIP
+python3 sw/timed_enter_replay.py     # walk/pushes/active/halt/full 154/154
+python3 sw/timed_ins_replay.py --raw # rails 1312/1312, R2 782/800, vs-chip 2624/2624
+python3 sw/timed_wvec_gate.py        # count 87/88, cycles -0.0 %, digest 0/88
+python3 sw/timed_lawcards.py         # 3 GREEN / 4 RED / 4 UNRESOLVED
+python3 sw/timed_fuzz.py             # THE T3 GATE -- 44/1702 exact, 0 hard failures
+```
+
+A diagnostic, not a gate: `V30SIM_EVALTRACE=1 v30sim timed-boot ...` writes one
+`ET` line per eval point (the decision and the state it saw) and one `QT` line
+per clock (the queue). It is the instrument M7 and M7b were found with, it is
+env-gated, and it touches no model state.
+
+### 13.7 T4 handoff
+
+1. **Re-bank the P2 wvec capture WITH ITS PER-CYCLE STREAM.**  §13.4: the
+   T2b freeze stores only a 16-hex sha per cell, so C4/C5/C10/C12 are
+   gradientless — the sim matches the access count on all four and there is no
+   way to see where the digest parts.  This is the single cheapest unblock in
+   the campaign: one board session, same stimulus, retain `parts` (or the raw
+   words) beside the sha.
+2. **Q1, the decoder march under waits** — the stage's own biggest residual
+   (87 % of the fuzz first-divergences after the I/O fix) and the one with the
+   most stimulus already banked.  It wants a `qcensus`-style census done UNDER
+   WAITS: every pop with the ready clock of the byte it took, over the fuzz
+   banks' chip_rows, keyed by (step kind, stride, wait count).  The w0 strides
+   of §9.1 are exact; what is unmeasured is what the stride does when the cycle
+   that delivers the byte stretches.
+   *One negative result to start from, measured here so nobody re-derives it:*
+   **the displacement is NOT a function of the local wait counts.**  Over 150
+   sampled first-divergences, keyed by the Tw of the cycle the pop rides and of
+   the cycle before it, the largest single cell is `(tw 0, prev tw 0)` with 23
+   — a pop displaced by one clock where NEITHER adjacent cycle is waited at
+   all.  Whatever carries the error is further back in the history than the two
+   cycles around the pop, which is why a "+1 per wait" correction cannot be
+   it.
+3. **Q2, the redirect one clock late under waits** (133 seeds) — the flush
+   family, with a named window per seed and both sides identical either side
+   of the one clock.
+4. **PS3 on an SS write** (36 rows) — unexplained, and cheap to settle from
+   the banks alone (no board): find the instruction that issues those stores.
+5. **The one sled cell left**, `fz90002` N=8 event 72, where a pop lands ON the
+   index-2 sample clock: it is the "occupancy is a register" reading §12.1
+   falsified at w0, alive in exactly one waited cell.  A directed capture (the
+   same program, a pop forced onto the sample clock) decides it.
+6. Unchanged from §12.8: the w0-only `F3AA cx >= 2` residual (907 cases), C2 /
+   C6 / C7 / C11's missing stimuli, and `sw/biu_rebuild_wvec_freeze.py` +
+   `Vtb_v30_core` remaining NOT a controlled reference.
