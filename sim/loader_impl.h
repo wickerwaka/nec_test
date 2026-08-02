@@ -9,8 +9,11 @@
 // codegen shape it had before the split: one out-of-line copy in loader.o,
 // called (never inlined) from exec.o.
 //
-// Bus concept used here: `next_byte(cs, upc)` and
-// `mem_read(seg_val, off, word, seg_idx, upc)`.
+// Bus concept used here: `next_byte(cs, upc)`,
+// `mem_read(seg_val, off, word, seg_idx, upc)`, and (ucsim-t T1) the timed
+// extensions `charge(n)`, `opcode_pending()` and `prefix_retire()` that carry
+// the decoder's byte-demand SCHEDULE.  All three are `{}` on sim::Biu, so the
+// functional instantiation is unchanged.
 
 #ifndef LOADER_IMPL_H
 #define LOADER_IMPL_H

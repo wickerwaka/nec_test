@@ -29,6 +29,13 @@
 //   void     flush(uint16_t pc)
 //   void     clear_consumed()
 //   long     ev_count() const
+// plus the five TIMED extensions added in ucsim-t T1 -- all `{}` on sim::Biu,
+// so the functional instantiation is behaviourally and codegen-wise unchanged:
+//   void     charge(int n)                 EU burns n clocks of row cadence
+//   void     wait_read()                   the F / OPR bus interlock
+//   void     opcode_prefetch(uint16_t cs)  decoder pops the successor's opcode
+//   bool     opcode_pending() const        is one already latched?
+//   void     prefix_retire()               the next pop is an F again
 
 #ifndef EXEC_IMPL_H
 #define EXEC_IMPL_H

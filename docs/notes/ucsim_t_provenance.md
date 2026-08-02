@@ -788,20 +788,22 @@ make -C sim test                                    # disasm gate: PASS
 python3 sw/pla3_check.py                            # OK (21 checks)
 python3 sw/ucsim_check.py --suite tests/v30/v0.1    # 169000/169000
 python3 sw/ucsim_check.py --suite tests/v30/v0.2    # 347000/347000
+python3 sw/ucsim_check.py --suite tests/v30/v0.3    # 3699998/3699998 (507 s)
 ```
 
-**MASS SWEEP — OWED.**  `tests/v30/v0.3` and `tests/v30/v20suite` (the ~7.3M
-functional sweep) were launched on the committed binary but their result could
-not be OBSERVED in the session that produced this commit: the machine's `/tmp`
-tmpfs hit its quota, which broke the agent's command channel (`g++`: "error
-writing to /tmp/ccXXXX.s: Disk quota exceeded"; builds were completed by
-pointing `TMPDIR` at `~/.cache/ucsimt-tmp`, but the result-reporting path stayed
-broken).  **Re-run both before relying on this commit.**  The risk is judged low
-and the reason is structural, not statistical: every edit to the SHARED
-`exec_impl.h` / `loader_impl.h` bodies is either a pure counter (`row_clocks`,
-`rloop_iters`) or a call to one of the five new Bus methods, and all five are
-`{}` on `sim::Biu` — so `CpuT<Biu>` cannot change behaviour, and v0.1 + v0.2
-(516,000 cases) confirm it did not.
+The mass sweep is GREEN on the committed binary: `v0.3` **3,699,998 /
+3,699,998** (2 documented pre-existing exclusions), on top of v0.1 169,000 and
+v0.2 347,000 — 4,215,998 cases, zero regressions.  **`v20suite` (the V20
+architectural oracle) is OWED**: it was launched on the same binary but its
+result could not be observed before the session ended.  Re-run
+`python3 sw/ucsim_check.py --suite tests/v30/v20suite` and record the number
+here.
+
+*Environment note, for whoever re-runs this:* the machine's `/tmp` tmpfs hit its
+quota during T1 (`g++`: "error writing to /tmp/ccXXXX.s: Disk quota exceeded"),
+which breaks builds and every `tempfile`-using harness.  Point `TMPDIR` at a
+real filesystem (`export TMPDIR=~/.cache/ucsimt-tmp`) before building or running
+`sw/timed_gate.py`.
 
 The cycle ratchet (`sw/timed_gate.py --suite tests/v30/v0.1 --forms all`,
 `rows_exact`, pre-registered to only ever GROW):
