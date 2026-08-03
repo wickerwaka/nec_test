@@ -1516,11 +1516,15 @@ F29 and M5b's `odd_base`.  What follows is the list AFTER that.)
    * `sw/qdepth_probe.py` + `V30SIM_QDEPTH=1` — the model's own bound prover.
    * `+eutrace` now carries `ind opr opr_fresh pend poste rdq rd_done tmpa tmpb
      tmpc sigma` and `eu_wdata`, which is what made F14/F21/F23 one-shot reads.
-4. **REGISTERED RESIDUE, booked and not patched**: a successor that is a PREFIX
-   increments `pfxcnt` in S_DECODE on edge `c`, and F22's deferred reset then
-   zeroes it on edge `c+1`.  No v0.1 case reaches it (the injected successor is
-   always `90`); it is a real hazard for whole-program replay and must be
-   settled before U3's image work.
+4. **REGISTERED RESIDUE, booked and not patched**: F22's deferred reset can
+   only collide with a write the SAME edge's decode chain makes to one of the
+   four deferred latches, and an audit of that chain finds EXACTLY ONE:
+   S_DECODE's `pfxcnt = pfxcnt + 1`, taken by a successor that is a PREFIX or
+   the `0F` escape (both use that arm).  S_TAKE_OPC, S_DECODE2, S_PFX_CHG and
+   S_EXT_CHG1 write nothing in the deferred set.  So the residue is exactly one
+   field on exactly one class of successor.  No v0.1 case reaches it (the
+   injected successor is always `90`); it is a real hazard for whole-program
+   replay and must be settled before U3's image work.
 5. **The structural lesson of §28.1 is a constraint on every future fix**:
    nothing the EU's act decode reads may be computed inside the BIU's single
    next-state process.  If a fact is needed there, give it a flop.
