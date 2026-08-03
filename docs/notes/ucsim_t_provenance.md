@@ -7187,3 +7187,39 @@ target for the law cards is therefore **8 GREEN / 0 RED / 3 UNRESOLVED**, NOT
 §21.0's 11 / 0 / 0.  **That target is registered DOWN, explicitly, before the
 run**, because three of the four cards are not being attempted; restating
 §21.0's target and then missing it would be the dishonest version.
+
+---
+
+### 24.7 P4 RESULT — the re-emitted `v0.1-w1evt` is UNBIASED, and the model scores it 1,200 / 1,200
+
+**This subsection lands as ITS OWN COMMIT, because it MOVES COMMITTED
+GOLDENS.**  The old tranche is preserved by RENAME at
+`tests/v30/v0.1-w1evt-biased/`, with its `emit_log.txt` and its 706 rerolls
+intact as the §23.1 evidence.  The re-emission is `s10_board.py s1 --waits 1
+--cases 200` — the committed path, unmodified — with §23.1's `parse_result`
+fix already at HEAD.  Socket only, `div = 8` PINNED and stamped into the new
+`emit_log.txt`.  37 seconds of board time.
+
+**All three registered predictions CONFIRMED.**
+
+| | OLD (biased) | NEW (unbiased) |
+|---|---|---|
+| `implausible final PSW 0` rerolls | **706** | **0** |
+| total rerolls | 706 + the real ones | **157**, and every one is real physics: `no F pop from close addr` (78) and `recognition off-window` (79) |
+| cases | 1,200 (6 forms × 200) | **1,200** (6 forms × 200), no emission hard failure |
+| `timed_gate --waits 1 --forms all` | 1,200 / 1,200 | **1,200 / 1,200**, row diffs 0 |
+
+Both tranches are re-scored in §24.12 and both are 1,200/1,200 to the case, so
+**the old suite is not retracted** — it was a true statement about the 1,200
+cases it contained.
+
+**The consequence is the point of the probe, and it is the stronger reading of
+the two available.**  §22's headline — the waited pin-event acknowledge
+geometry needs NO new term — was measured on a sample selected on total program
+length.  It is now measured on a sample that is not.  **The 706 rejected draws
+contained ZERO cases the model gets wrong**, so §22.9's claim survives the
+removal of its own selection effect rather than merely surviving on it.
+
+*The registered failure mode did not occur* and is recorded as not having
+occurred: a shortfall on the unbiased sample would have meant §22's four S1
+cells rested on a biased denominator.  It does not.

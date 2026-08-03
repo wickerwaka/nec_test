@@ -1,372 +1,95 @@
 # TRUTH SOURCE: SOCKET (real chip, use_core=False)  seed_base=v30-s10-w1evt  cases=200  waits=1  forms=6  anchor=COLD-only  delay=wait-scaled x(4+N)/4  div=8 (4 MHz, PINNED)
-INT.90 case-seed 0 reroll: implausible final PSW 0
-INT.90 case-seed 3 reroll: implausible final PSW 0
-INT.90 case-seed 4 reroll: implausible final PSW 0
-INT.90 case-seed 5 reroll: implausible final PSW 0
 INT.90 case-seed 6 reroll: recognition off-window: pushed ff0c vs min 13a8
-INT.90 case-seed 8 reroll: implausible final PSW 0
 INT.90 case-seed 9 reroll: no F pop from close addr 020ea
 INT.90 case-seed 10 reroll: recognition off-window: pushed ff0c vs min e9ee
 INT.90 case-seed 11 reroll: recognition off-window: pushed ff0c vs min 10e5
 INT.90 case-seed 13 reroll: recognition off-window: pushed ff0c vs min 7e6b
-INT.90 case-seed 14 reroll: implausible final PSW 0
-INT.90 case-seed 15 reroll: implausible final PSW 0
-INT.90 case-seed 17 reroll: implausible final PSW 0
-INT.90 case-seed 18 reroll: implausible final PSW 0
-INT.90 case-seed 19 reroll: implausible final PSW 0
 INT.90 case-seed 22 reroll: recognition off-window: pushed ff0c vs min 3c27
 INT.90 case-seed 23 reroll: recognition off-window: pushed ff0c vs min 982b
-INT.90 case-seed 25 reroll: implausible final PSW 0
 INT.90 case-seed 27 reroll: recognition off-window: pushed ff0c vs min 90d4
 INT.90 case-seed 30 reroll: recognition off-window: pushed ff0c vs min 9de9
-INT.90 case-seed 31 reroll: implausible final PSW 0
 INT.90 case-seed 33 reroll: recognition off-window: pushed ff0c vs min 0670
-INT.90 case-seed 35 reroll: implausible final PSW 0
-INT.90 case-seed 36 reroll: implausible final PSW 0
 INT.90 case-seed 37 reroll: no F pop from close addr 0835c
 INT.90 case-seed 39 reroll: recognition off-window: pushed ff0c vs min 068b
 INT.90 case-seed 40 reroll: no F pop from close addr 013a8
-INT.90 case-seed 41 reroll: implausible final PSW 0
-INT.90 case-seed 42 reroll: implausible final PSW 0
-INT.90 case-seed 43 reroll: implausible final PSW 0
 INT.90 case-seed 44 reroll: recognition off-window: pushed ff0c vs min e5b5
-INT.90 case-seed 45 reroll: implausible final PSW 0
 INT.90 case-seed 48 reroll: no F pop from close addr 09268
-INT.90 case-seed 49 reroll: implausible final PSW 0
-INT.90 case-seed 50 reroll: implausible final PSW 0
 INT.90 case-seed 51 reroll: recognition off-window: pushed ff0c vs min 090b
 INT.90 case-seed 54 reroll: recognition off-window: pushed ff0c vs min 7fb7
 INT.90 case-seed 55 reroll: recognition off-window: pushed ff0c vs min 4b60
 INT.90 case-seed 56 reroll: no F pop from close addr 06a7c
 INT.90 case-seed 57 reroll: recognition off-window: pushed ff0c vs min d678
-INT.90 case-seed 58 reroll: implausible final PSW 0
-INT.90 case-seed 60 reroll: implausible final PSW 0
 INT.90 case-seed 61 reroll: recognition off-window: pushed ff0c vs min 02db
 INT.90 case-seed 63 reroll: recognition off-window: pushed ff0c vs min 9fdc
 INT.90 case-seed 64 reroll: recognition off-window: pushed ff0c vs min f87b
-INT.90 case-seed 65 reroll: implausible final PSW 0
-INT.90 case-seed 66 reroll: implausible final PSW 0
-INT.90 case-seed 67 reroll: implausible final PSW 0
 INT.90 case-seed 71 reroll: recognition off-window: pushed ff0c vs min 13eb
-INT.90 case-seed 72 reroll: implausible final PSW 0
-INT.90 case-seed 74 reroll: implausible final PSW 0
 INT.90 case-seed 77 reroll: recognition off-window: pushed ff0c vs min d03f
 INT.90 case-seed 79 reroll: no F pop from close addr 0136c
 INT.90 case-seed 80 reroll: recognition off-window: pushed ff0c vs min 4f6f
 INT.90 case-seed 81 reroll: recognition off-window: pushed ff0c vs min 7546
 INT.90 case-seed 83 reroll: no F pop from close addr 099ea
-INT.90 case-seed 84 reroll: implausible final PSW 0
-INT.90 case-seed 86 reroll: implausible final PSW 0
-INT.90 case-seed 87 reroll: implausible final PSW 0
-INT.90 case-seed 89 reroll: implausible final PSW 0
-INT.90 case-seed 90 reroll: implausible final PSW 0
 INT.90 case-seed 91 reroll: no F pop from close addr 0e46e
 INT.90 case-seed 92 reroll: recognition off-window: pushed ff0c vs min 30db
 INT.90 case-seed 93 reroll: no F pop from close addr 0b702
 INT.90 case-seed 94 reroll: recognition off-window: pushed ff0c vs min 1150
 INT.90 case-seed 95 reroll: recognition off-window: pushed ff0c vs min 657e
 INT.90 case-seed 96 reroll: no F pop from close addr 0a90c
-INT.90 case-seed 97 reroll: implausible final PSW 0
-INT.90 case-seed 99 reroll: implausible final PSW 0
 INT.90 case-seed 100 reroll: no F pop from close addr 0cc18
 INT.90 case-seed 101 reroll: recognition off-window: pushed ff0c vs min 2247
 INT.90 case-seed 102 reroll: recognition off-window: pushed ff0c vs min 45cf
 INT.90 case-seed 103 reroll: recognition off-window: pushed ff0c vs min eaa3
-INT.90 case-seed 105 reroll: implausible final PSW 0
-INT.90 case-seed 106 reroll: implausible final PSW 0
-INT.90 case-seed 107 reroll: implausible final PSW 0
 INT.90 case-seed 108 reroll: recognition off-window: pushed ff0c vs min c515
 INT.90 case-seed 109 reroll: recognition off-window: pushed ff0c vs min 1355
-INT.90 case-seed 113 reroll: implausible final PSW 0
-INT.90 case-seed 115 reroll: implausible final PSW 0
-INT.90 case-seed 117 reroll: implausible final PSW 0
 INT.90 case-seed 119 reroll: recognition off-window: pushed ff0c vs min 16ab
 INT.90 case-seed 120 reroll: recognition off-window: pushed ff0c vs min d50c
 INT.90 case-seed 121 reroll: recognition off-window: pushed ff0c vs min 27c9
-INT.90 case-seed 122 reroll: implausible final PSW 0
-INT.90 case-seed 124 reroll: implausible final PSW 0
-INT.90 case-seed 127 reroll: implausible final PSW 0
-INT.90 case-seed 128 reroll: implausible final PSW 0
-INT.90 case-seed 129 reroll: implausible final PSW 0
 INT.90 case-seed 130 reroll: recognition off-window: pushed ff0c vs min f9a6
 INT.90 case-seed 131 reroll: no F pop from close addr 019aa
 INT.90 case-seed 137 reroll: no F pop from close addr 06e3c
-INT.90 case-seed 139 reroll: implausible final PSW 0
-INT.90 case-seed 140 reroll: implausible final PSW 0
 INT.90 case-seed 141 reroll: recognition off-window: pushed ff0c vs min 475f
-INT.90 case-seed 142 reroll: implausible final PSW 0
-INT.90 case-seed 143 reroll: implausible final PSW 0
 INT.90 case-seed 144 reroll: recognition off-window: pushed ff0c vs min 3edb
-INT.90 case-seed 147 reroll: implausible final PSW 0
-INT.90 case-seed 149 reroll: implausible final PSW 0
 INT.90 case-seed 150 reroll: no F pop from close addr 09248
-INT.90 case-seed 152 reroll: implausible final PSW 0
 INT.90 case-seed 154 reroll: recognition off-window: pushed ff0c vs min 4785
-INT.90 case-seed 155 reroll: implausible final PSW 0
-INT.90 case-seed 156 reroll: implausible final PSW 0
-INT.90 case-seed 157 reroll: implausible final PSW 0
-INT.90 case-seed 158 reroll: implausible final PSW 0
-INT.90 case-seed 160 reroll: implausible final PSW 0
 INT.90 case-seed 161 reroll: recognition off-window: pushed ff0c vs min fb97
 INT.90 case-seed 162 reroll: recognition off-window: pushed ff0c vs min fbad
-INT.90 case-seed 165 reroll: implausible final PSW 0
 INT.90 case-seed 167 reroll: recognition off-window: pushed ff0c vs min 6866
 INT.90 case-seed 169 reroll: no F pop from close addr 082a4
-INT.90 case-seed 170 reroll: implausible final PSW 0
 INT.90 case-seed 172 reroll: recognition off-window: pushed ff0c vs min d061
 INT.90 case-seed 174 reroll: no F pop from close addr 0e6b0
-INT.90 case-seed 175 reroll: implausible final PSW 0
 INT.90 case-seed 176 reroll: recognition off-window: pushed ff0c vs min cb40
 INT.90 case-seed 177 reroll: no F pop from close addr 00ab6
-INT.90 case-seed 178 reroll: implausible final PSW 0
 INT.90 case-seed 179 reroll: no F pop from close addr 0cf02
-INT.90 case-seed 180 reroll: implausible final PSW 0
-INT.90 case-seed 182 reroll: implausible final PSW 0
 INT.90 case-seed 183 reroll: recognition off-window: pushed ff0c vs min 42de
 INT.90 case-seed 185 reroll: recognition off-window: pushed ff0c vs min 1d2d
-INT.90 case-seed 186 reroll: implausible final PSW 0
-INT.90 case-seed 187 reroll: implausible final PSW 0
-INT.90 case-seed 189 reroll: implausible final PSW 0
 INT.90 case-seed 194 reroll: no F pop from close addr 07830
 INT.90 case-seed 195 reroll: no F pop from close addr 03434
-INT.90 case-seed 199 reroll: implausible final PSW 0
-INT.90 case-seed 200 reroll: implausible final PSW 0
-INT.90 case-seed 201 reroll: implausible final PSW 0
 INT.90 case-seed 202 reroll: recognition off-window: pushed ff0c vs min 6bc1
-INT.90 case-seed 204 reroll: implausible final PSW 0
 INT.90 case-seed 205 reroll: recognition off-window: pushed ff0c vs min 44f3
-INT.90 case-seed 206 reroll: implausible final PSW 0
-INT.90 case-seed 207 reroll: implausible final PSW 0
 INT.90 case-seed 213 reroll: recognition off-window: pushed ff0c vs min a330
 INT.90 case-seed 214 reroll: no F pop from close addr 0dfa2
 INT.90 case-seed 215 reroll: no F pop from close addr 0799a
 INT.90 case-seed 217 reroll: no F pop from close addr 02708
-INT.90 case-seed 218 reroll: implausible final PSW 0
 INT.90 case-seed 221 reroll: recognition off-window: pushed ff0c vs min a9e4
-INT.90 case-seed 222 reroll: implausible final PSW 0
-INT.90 case-seed 223 reroll: implausible final PSW 0
-INT.90 case-seed 224 reroll: implausible final PSW 0
 INT.90 case-seed 226 reroll: no F pop from close addr 0cd4c
-INT.90 case-seed 227 reroll: implausible final PSW 0
 INT.90 case-seed 228 reroll: recognition off-window: pushed ff0c vs min 6b1f
 INT.90 case-seed 229 reroll: recognition off-window: pushed ff0c vs min 5922
-INT.90 case-seed 230 reroll: implausible final PSW 0
 INT.90 case-seed 231 reroll: no F pop from close addr 021d8
-INT.90 case-seed 234 reroll: implausible final PSW 0
 INT.90 case-seed 235 reroll: no F pop from close addr 0890e
-INT.90 case-seed 236 reroll: implausible final PSW 0
-INT.90 case-seed 241 reroll: implausible final PSW 0
 INT.90 case-seed 243 reroll: recognition off-window: pushed ff0c vs min 002f
 INT.90 case-seed 244 reroll: no F pop from close addr 00c58
-INT.90 case-seed 246 reroll: implausible final PSW 0
-INT.90 case-seed 248 reroll: implausible final PSW 0
-INT.90 case-seed 249 reroll: implausible final PSW 0
 INT.90 case-seed 250 reroll: recognition off-window: pushed ff0c vs min 2a8e
-INT.90 case-seed 252 reroll: implausible final PSW 0
 INT.90 case-seed 255 reroll: recognition off-window: pushed ff0c vs min 9bbf
 INT.90 case-seed 256 reroll: recognition off-window: pushed ff0c vs min 9c7e
-INT.90 case-seed 257 reroll: implausible final PSW 0
 INT.90 case-seed 258 reroll: recognition off-window: pushed ff0c vs min c1e6
 INT.90 case-seed 260 reroll: no F pop from close addr 05e4c
 INT.90 case-seed 263 reroll: no F pop from close addr 09882
 INT.90 case-seed 264 reroll: no F pop from close addr 0abd4
-INT.90 case-seed 265 reroll: implausible final PSW 0
-INT.90 case-seed 266 reroll: implausible final PSW 0
-INT.90 case-seed 268 reroll: implausible final PSW 0
 INT.90 case-seed 269 reroll: recognition off-window: pushed ff0c vs min fda0
-INT.90 case-seed 270 reroll: implausible final PSW 0
 INT.90 case-seed 276 reroll: no F pop from close addr 0a33e
-INT.90 case-seed 277 reroll: implausible final PSW 0
 INT.90 case-seed 278 reroll: recognition off-window: pushed ff0c vs min c03d
-INT.90 case-seed 280 reroll: implausible final PSW 0
-INT.90 case-seed 281 reroll: implausible final PSW 0
 INT.90 case-seed 282 reroll: no F pop from close addr 04138
 INT.90 case-seed 283 reroll: recognition off-window: pushed ff0c vs min cbe0
-INT.90 case-seed 286 reroll: implausible final PSW 0
-INT.90 case-seed 287 reroll: implausible final PSW 0
 INT.90 case-seed 288 reroll: recognition off-window: pushed ff0c vs min d294
-INT.90 case-seed 289 reroll: implausible final PSW 0
-INT.90 case-seed 291 reroll: recognition off-window: pushed ff0c vs min 9ec6
-INT.90 case-seed 293 reroll: no F pop from close addr 06304
-INT.90 case-seed 294 reroll: implausible final PSW 0
-INT.90 case-seed 296 reroll: recognition off-window: pushed ff0c vs min 6fa4
-INT.90 case-seed 297 reroll: implausible final PSW 0
-INT.90 case-seed 298 reroll: implausible final PSW 0
-INT.90 case-seed 299 reroll: recognition off-window: pushed ff0c vs min 5069
-INT.90 case-seed 300 reroll: implausible final PSW 0
-INT.90 case-seed 301 reroll: implausible final PSW 0
-INT.90 case-seed 302 reroll: implausible final PSW 0
-INT.90 case-seed 303 reroll: implausible final PSW 0
-INT.90 case-seed 304 reroll: implausible final PSW 0
-INT.90 case-seed 305 reroll: implausible final PSW 0
-INT.90 case-seed 307 reroll: implausible final PSW 0
-INT.90 case-seed 308 reroll: recognition off-window: pushed ff0c vs min 0eea
-INT.90 case-seed 309 reroll: recognition off-window: pushed ff0c vs min d08e
-INT.90 case-seed 311 reroll: recognition off-window: pushed ff0c vs min ceff
-INT.90 case-seed 312 reroll: implausible final PSW 0
-INT.90 case-seed 313 reroll: implausible final PSW 0
-INT.90 case-seed 314 reroll: implausible final PSW 0
-INT.90 case-seed 316 reroll: implausible final PSW 0
-INT.90 case-seed 317 reroll: recognition off-window: pushed ff0c vs min b5c4
-INT.90 case-seed 318 reroll: implausible final PSW 0
-INT.90 case-seed 319 reroll: no F pop from close addr 0eac6
-INT.90 case-seed 322 reroll: recognition off-window: pushed ff0c vs min 03b9
-INT.90 case-seed 323 reroll: no F pop from close addr 0ca30
-INT.90 case-seed 324 reroll: no F pop from close addr 04b7e
-INT.90 case-seed 325 reroll: implausible final PSW 0
-INT.90 case-seed 326 reroll: no F pop from close addr 03b2c
-INT.90 case-seed 327 reroll: implausible final PSW 0
-INT.90 case-seed 328 reroll: no F pop from close addr 0505e
-INT.90 case-seed 332 reroll: implausible final PSW 0
-INT.90 case-seed 333 reroll: implausible final PSW 0
-INT.90 case-seed 334 reroll: implausible final PSW 0
-INT.90 case-seed 335 reroll: implausible final PSW 0
-INT.90 case-seed 337 reroll: implausible final PSW 0
-INT.90 case-seed 339 reroll: implausible final PSW 0
-INT.90 case-seed 340 reroll: implausible final PSW 0
-INT.90 case-seed 341 reroll: implausible final PSW 0
-INT.90 case-seed 344 reroll: no F pop from close addr 072e8
-INT.90 case-seed 346 reroll: implausible final PSW 0
-INT.90 case-seed 348 reroll: implausible final PSW 0
-INT.90 case-seed 349 reroll: implausible final PSW 0
-INT.90 case-seed 350 reroll: recognition off-window: pushed ff0c vs min 160d
-INT.90 case-seed 351 reroll: implausible final PSW 0
-INT.90 case-seed 352 reroll: implausible final PSW 0
-INT.90 case-seed 353 reroll: recognition off-window: pushed ff0c vs min e273
-INT.90 case-seed 354 reroll: implausible final PSW 0
-INT.90 case-seed 355 reroll: no F pop from close addr 07a78
-INT.90 case-seed 358 reroll: implausible final PSW 0
-INT.90 case-seed 360 reroll: recognition off-window: pushed ff0c vs min 39d0
-INT.90 case-seed 361 reroll: recognition off-window: pushed ff0c vs min 472f
-INT.90 case-seed 362 reroll: no F pop from close addr 0a0f0
-INT.90 case-seed 363 reroll: recognition off-window: pushed ff0c vs min 52f3
-INT.90 case-seed 365 reroll: implausible final PSW 0
-INT.90 case-seed 367 reroll: implausible final PSW 0
-INT.90 case-seed 369 reroll: no F pop from close addr 07ce8
-INT.90 case-seed 370 reroll: implausible final PSW 0
-INT.90 case-seed 371 reroll: recognition off-window: pushed ff0c vs min e5cf
-INT.90 case-seed 372 reroll: implausible final PSW 0
-INT.90 case-seed 375 reroll: recognition off-window: pushed ff0c vs min df22
-INT.90 case-seed 379 reroll: implausible final PSW 0
-INT.90 case-seed 380 reroll: recognition off-window: pushed ff0c vs min 8a75
-INT.90 case-seed 383 reroll: implausible final PSW 0
-INT.90 case-seed 385 reroll: implausible final PSW 0
-INT.90 case-seed 387 reroll: no F pop from close addr 0cfe2
-INT.90 case-seed 388 reroll: implausible final PSW 0
-INT.90 case-seed 389 reroll: implausible final PSW 0
-INT.90 case-seed 390 reroll: recognition off-window: pushed ff0c vs min 6cdd
-INT.90 case-seed 391 reroll: recognition off-window: pushed ff0c vs min 19ed
-INT.90 case-seed 392 reroll: implausible final PSW 0
-INT.90 case-seed 393 reroll: no F pop from close addr 0da20
-INT.90 case-seed 395 reroll: implausible final PSW 0
-INT.90 case-seed 396 reroll: implausible final PSW 0
-INT.90 case-seed 397 reroll: implausible final PSW 0
-INT.90 case-seed 398 reroll: implausible final PSW 0
-INT.90 case-seed 399 reroll: recognition off-window: pushed ff0c vs min 979a
-INT.90 case-seed 400 reroll: implausible final PSW 0
-INT.90 case-seed 401 reroll: recognition off-window: pushed ff0c vs min 1f66
-INT.90 case-seed 405 reroll: implausible final PSW 0
-INT.90 case-seed 407 reroll: implausible final PSW 0
-INT.90 case-seed 408 reroll: implausible final PSW 0
-INT.90 case-seed 409 reroll: implausible final PSW 0
-INT.90 case-seed 410 reroll: implausible final PSW 0
-INT.90 case-seed 411 reroll: implausible final PSW 0
-INT.90 case-seed 412 reroll: implausible final PSW 0
-INT.90 case-seed 413 reroll: recognition off-window: pushed ff0c vs min 1207
-INT.90 case-seed 414 reroll: recognition off-window: pushed ff0c vs min 2520
-INT.90 case-seed 416 reroll: no F pop from close addr 06038
-INT.90 case-seed 417 reroll: recognition off-window: pushed ff0c vs min a474
-INT.90 case-seed 423 reroll: implausible final PSW 0
-INT.90 case-seed 424 reroll: implausible final PSW 0
-INT.90 case-seed 425 reroll: recognition off-window: pushed ff0c vs min ae97
-INT.90 case-seed 427 reroll: implausible final PSW 0
-INT.90 case-seed 428 reroll: recognition off-window: pushed ff0c vs min 19b6
-INT.90 case-seed 429 reroll: recognition off-window: pushed ff0c vs min 1eec
-INT.90 case-seed 432 reroll: implausible final PSW 0
-INT.90 case-seed 433 reroll: no F pop from close addr 0afe2
-INT.90 case-seed 434 reroll: recognition off-window: pushed ff0c vs min 2991
-INT.90 case-seed 435 reroll: recognition off-window: pushed ff0c vs min 341d
-INT.90 case-seed 436 reroll: implausible final PSW 0
-INT.90 case-seed 437 reroll: implausible final PSW 0
-INT.90 case-seed 438 reroll: implausible final PSW 0
-INT.90 case-seed 440 reroll: recognition off-window: pushed ff0c vs min 3c84
-INT.90 case-seed 441 reroll: no F pop from close addr 03774
-INT.90 case-seed 445 reroll: implausible final PSW 0
-INT.90 case-seed 447 reroll: no F pop from close addr 01f94
-INT.90 case-seed 448 reroll: implausible final PSW 0
-INT.90 case-seed 449 reroll: implausible final PSW 0
-INT.90 case-seed 451 reroll: no F pop from close addr 07df8
-INT.90 case-seed 454 reroll: no F pop from close addr 02162
-INT.90 case-seed 458 reroll: implausible final PSW 0
-INT.90 case-seed 459 reroll: implausible final PSW 0
-INT.90 case-seed 460 reroll: implausible final PSW 0
-INT.90 case-seed 461 reroll: implausible final PSW 0
-INT.90 case-seed 462 reroll: recognition off-window: pushed ff0c vs min 1759
-INT.90 case-seed 463 reroll: implausible final PSW 0
-INT.90 case-seed 466 reroll: recognition off-window: pushed ff0c vs min a764
-INT.90 case-seed 467 reroll: implausible final PSW 0
-INT.90 case-seed 468 reroll: no F pop from close addr 00ee6
-INT.90 case-seed 470 reroll: recognition off-window: pushed ff0c vs min b266
-INT.90 case-seed 471 reroll: implausible final PSW 0
-INT.90 case-seed 473 reroll: no F pop from close addr 07c1c
-INT.90 case-seed 474 reroll: no F pop from close addr 09350
-INT.90 case-seed 475 reroll: no F pop from close addr 0bbd0
-INT.90 case-seed 476 reroll: implausible final PSW 0
-INT.90 case-seed 480 reroll: recognition off-window: pushed ff0c vs min 1212
-INT.90 case-seed 483 reroll: implausible final PSW 0
-INT.90 case-seed 484 reroll: implausible final PSW 0
-INT.90 case-seed 485 reroll: implausible final PSW 0
-INT.90 case-seed 486 reroll: implausible final PSW 0
-INT.90 case-seed 487 reroll: no F pop from close addr 0cfd0
-INT.90 case-seed 489 reroll: implausible final PSW 0
-INT.90 case-seed 490 reroll: implausible final PSW 0
-INT.90 case-seed 491 reroll: recognition off-window: pushed ff0c vs min 9f0f
-INT.90 case-seed 492 reroll: implausible final PSW 0
-INT.90 case-seed 495 reroll: implausible final PSW 0
-INT.90 case-seed 497 reroll: recognition off-window: pushed ff0c vs min 2cae
-INT.90 case-seed 499 reroll: implausible final PSW 0
-INT.90 case-seed 501 reroll: implausible final PSW 0
-INT.90 case-seed 502 reroll: implausible final PSW 0
-INT.90 case-seed 503 reroll: implausible final PSW 0
-INT.90 case-seed 504 reroll: recognition off-window: pushed ff0c vs min 282e
-INT.90 case-seed 505 reroll: no F pop from close addr 0273a
-INT.90 case-seed 506 reroll: implausible final PSW 0
-INT.90 case-seed 507 reroll: recognition off-window: pushed ff0c vs min 16cb
-INT.90 case-seed 508 reroll: implausible final PSW 0
-INT.90 case-seed 510 reroll: no F pop from close addr 0704a
-INT.90 case-seed 511 reroll: no F pop from close addr 0e09e
-INT.90 case-seed 513 reroll: recognition off-window: pushed ff0c vs min 8f64
-INT.90 case-seed 514 reroll: recognition off-window: pushed ff0c vs min a9a9
-INT.90 case-seed 515 reroll: recognition off-window: pushed ff0c vs min da54
-INT.90 case-seed 518 reroll: implausible final PSW 0
-INT.90 case-seed 519 reroll: recognition off-window: pushed ff0c vs min d7b4
-INT.90 case-seed 520 reroll: no F pop from close addr 07bac
-INT.90 case-seed 522 reroll: implausible final PSW 0
-INT.90 case-seed 524 reroll: no F pop from close addr 0da38
-INT.90 case-seed 525 reroll: no F pop from close addr 09df6
-INT.90 case-seed 526 reroll: no F pop from close addr 096e6
-INT.90 case-seed 527 reroll: implausible final PSW 0
-INT.90 case-seed 528 reroll: implausible final PSW 0
-INT.90 case-seed 529 reroll: implausible final PSW 0
-INT.90 case-seed 530 reroll: implausible final PSW 0
-INT.90 case-seed 535 reroll: no F pop from close addr 08e24
-INT.90 case-seed 536 reroll: no F pop from close addr 0de5a
-INT.90 case-seed 540 reroll: implausible final PSW 0
-INT.90 case-seed 541 reroll: implausible final PSW 0
-INT.90 case-seed 542 reroll: no F pop from close addr 02c4e
-INT.90 case-seed 543 reroll: implausible final PSW 0
-INT.90 case-seed 544 reroll: recognition off-window: pushed ff0c vs min 0093
-INT.90 case-seed 547 reroll: implausible final PSW 0
-INT.90 case-seed 548 reroll: implausible final PSW 0
-INT.90 case-seed 552 reroll: recognition off-window: pushed ff0c vs min 36a2
-INT.90 case-seed 553 reroll: recognition off-window: pushed ff0c vs min f776
-INT.90 case-seed 555 reroll: no F pop from close addr 0c3b2
-INT.90 case-seed 557 reroll: no F pop from close addr 0aa2e
-INT.90 case-seed 558 reroll: implausible final PSW 0
-INT.90 case-seed 559 reroll: implausible final PSW 0
-INT.90 case-seed 562 reroll: no F pop from close addr 00e84
-INT.90 case-seed 563 reroll: implausible final PSW 0
-INT.90 case-seed 564 reroll: implausible final PSW 0
 NMI.90 case-seed 0 reroll: no F pop from close addr 0a84a
 NMI.90 case-seed 1 reroll: no F pop from close addr 01034
 NMI.90 case-seed 3 reroll: no F pop from close addr 0baae
@@ -400,588 +123,36 @@ NMI.90 case-seed 203 reroll: no F pop from close addr 03b70
 NMI.90 case-seed 209 reroll: no F pop from close addr 01b62
 NMI.90 case-seed 216 reroll: no F pop from close addr 0c73e
 NMI.90 case-seed 219 reroll: no F pop from close addr 02dec
-HLT.INT case-seed 1 reroll: implausible final PSW 0
-HLT.INT case-seed 9 reroll: implausible final PSW 0
-HLT.INT case-seed 10 reroll: implausible final PSW 0
-HLT.INT case-seed 11 reroll: implausible final PSW 0
-HLT.INT case-seed 12 reroll: implausible final PSW 0
-HLT.INT case-seed 13 reroll: implausible final PSW 0
-HLT.INT case-seed 14 reroll: implausible final PSW 0
-HLT.INT case-seed 18 reroll: implausible final PSW 0
-HLT.INT case-seed 20 reroll: implausible final PSW 0
-HLT.INT case-seed 22 reroll: implausible final PSW 0
-HLT.INT case-seed 23 reroll: implausible final PSW 0
-HLT.INT case-seed 24 reroll: implausible final PSW 0
-HLT.INT case-seed 25 reroll: implausible final PSW 0
-HLT.INT case-seed 26 reroll: implausible final PSW 0
-HLT.INT case-seed 27 reroll: implausible final PSW 0
-HLT.INT case-seed 28 reroll: implausible final PSW 0
-HLT.INT case-seed 29 reroll: implausible final PSW 0
-HLT.INT case-seed 31 reroll: implausible final PSW 0
-HLT.INT case-seed 32 reroll: implausible final PSW 0
-HLT.INT case-seed 36 reroll: implausible final PSW 0
-HLT.INT case-seed 37 reroll: implausible final PSW 0
-HLT.INT case-seed 38 reroll: implausible final PSW 0
-HLT.INT case-seed 39 reroll: implausible final PSW 0
-HLT.INT case-seed 41 reroll: implausible final PSW 0
-HLT.INT case-seed 44 reroll: implausible final PSW 0
-HLT.INT case-seed 49 reroll: implausible final PSW 0
-HLT.INT case-seed 50 reroll: implausible final PSW 0
-HLT.INT case-seed 51 reroll: implausible final PSW 0
-HLT.INT case-seed 53 reroll: implausible final PSW 0
-HLT.INT case-seed 54 reroll: implausible final PSW 0
-HLT.INT case-seed 55 reroll: implausible final PSW 0
-HLT.INT case-seed 57 reroll: implausible final PSW 0
-HLT.INT case-seed 62 reroll: implausible final PSW 0
-HLT.INT case-seed 63 reroll: implausible final PSW 0
-HLT.INT case-seed 64 reroll: implausible final PSW 0
-HLT.INT case-seed 72 reroll: implausible final PSW 0
-HLT.INT case-seed 75 reroll: implausible final PSW 0
-HLT.INT case-seed 76 reroll: implausible final PSW 0
-HLT.INT case-seed 78 reroll: implausible final PSW 0
-HLT.INT case-seed 79 reroll: implausible final PSW 0
-HLT.INT case-seed 81 reroll: implausible final PSW 0
-HLT.INT case-seed 82 reroll: implausible final PSW 0
-HLT.INT case-seed 91 reroll: implausible final PSW 0
-HLT.INT case-seed 92 reroll: implausible final PSW 0
-HLT.INT case-seed 96 reroll: implausible final PSW 0
-HLT.INT case-seed 97 reroll: implausible final PSW 0
-HLT.INT case-seed 98 reroll: implausible final PSW 0
-HLT.INT case-seed 99 reroll: implausible final PSW 0
-HLT.INT case-seed 100 reroll: implausible final PSW 0
-HLT.INT case-seed 104 reroll: implausible final PSW 0
-HLT.INT case-seed 110 reroll: implausible final PSW 0
-HLT.INT case-seed 113 reroll: implausible final PSW 0
-HLT.INT case-seed 114 reroll: implausible final PSW 0
-HLT.INT case-seed 116 reroll: implausible final PSW 0
-HLT.INT case-seed 117 reroll: implausible final PSW 0
-HLT.INT case-seed 119 reroll: implausible final PSW 0
-HLT.INT case-seed 120 reroll: implausible final PSW 0
-HLT.INT case-seed 122 reroll: implausible final PSW 0
-HLT.INT case-seed 123 reroll: implausible final PSW 0
-HLT.INT case-seed 125 reroll: implausible final PSW 0
-HLT.INT case-seed 127 reroll: implausible final PSW 0
-HLT.INT case-seed 130 reroll: implausible final PSW 0
-HLT.INT case-seed 138 reroll: implausible final PSW 0
-HLT.INT case-seed 140 reroll: implausible final PSW 0
-HLT.INT case-seed 142 reroll: implausible final PSW 0
-HLT.INT case-seed 143 reroll: implausible final PSW 0
-HLT.INT case-seed 144 reroll: implausible final PSW 0
-HLT.INT case-seed 145 reroll: implausible final PSW 0
-HLT.INT case-seed 148 reroll: implausible final PSW 0
-HLT.INT case-seed 151 reroll: implausible final PSW 0
-HLT.INT case-seed 152 reroll: implausible final PSW 0
-HLT.INT case-seed 153 reroll: implausible final PSW 0
-HLT.INT case-seed 154 reroll: implausible final PSW 0
-HLT.INT case-seed 158 reroll: implausible final PSW 0
-HLT.INT case-seed 160 reroll: implausible final PSW 0
-HLT.INT case-seed 161 reroll: implausible final PSW 0
-HLT.INT case-seed 162 reroll: implausible final PSW 0
-HLT.INT case-seed 163 reroll: implausible final PSW 0
-HLT.INT case-seed 164 reroll: implausible final PSW 0
-HLT.INT case-seed 168 reroll: implausible final PSW 0
-HLT.INT case-seed 170 reroll: implausible final PSW 0
-HLT.INT case-seed 171 reroll: implausible final PSW 0
-HLT.INT case-seed 172 reroll: implausible final PSW 0
-HLT.INT case-seed 176 reroll: implausible final PSW 0
-HLT.INT case-seed 178 reroll: implausible final PSW 0
-HLT.INT case-seed 180 reroll: implausible final PSW 0
-HLT.INT case-seed 181 reroll: implausible final PSW 0
-HLT.INT case-seed 185 reroll: implausible final PSW 0
-HLT.INT case-seed 186 reroll: implausible final PSW 0
-HLT.INT case-seed 190 reroll: implausible final PSW 0
-HLT.INT case-seed 191 reroll: implausible final PSW 0
-HLT.INT case-seed 194 reroll: implausible final PSW 0
-HLT.INT case-seed 195 reroll: implausible final PSW 0
-HLT.INT case-seed 196 reroll: implausible final PSW 0
-HLT.INT case-seed 198 reroll: implausible final PSW 0
-HLT.INT case-seed 199 reroll: implausible final PSW 0
-HLT.INT case-seed 204 reroll: implausible final PSW 0
-HLT.INT case-seed 205 reroll: implausible final PSW 0
-HLT.INT case-seed 207 reroll: implausible final PSW 0
-HLT.INT case-seed 209 reroll: implausible final PSW 0
-HLT.INT case-seed 215 reroll: implausible final PSW 0
-HLT.INT case-seed 216 reroll: implausible final PSW 0
-HLT.INT case-seed 217 reroll: implausible final PSW 0
-HLT.INT case-seed 219 reroll: implausible final PSW 0
-HLT.INT case-seed 221 reroll: implausible final PSW 0
-HLT.INT case-seed 222 reroll: implausible final PSW 0
-HLT.INT case-seed 223 reroll: implausible final PSW 0
-HLT.INT case-seed 226 reroll: implausible final PSW 0
-HLT.INT case-seed 227 reroll: implausible final PSW 0
-HLT.INT case-seed 228 reroll: implausible final PSW 0
-HLT.INT case-seed 230 reroll: implausible final PSW 0
-HLT.INT case-seed 232 reroll: implausible final PSW 0
-HLT.INT case-seed 236 reroll: implausible final PSW 0
-HLT.INT case-seed 246 reroll: implausible final PSW 0
-HLT.INT case-seed 247 reroll: implausible final PSW 0
-HLT.INT case-seed 249 reroll: implausible final PSW 0
-HLT.INT case-seed 250 reroll: implausible final PSW 0
-HLT.INT case-seed 252 reroll: implausible final PSW 0
-HLT.INT case-seed 253 reroll: implausible final PSW 0
-HLT.INT case-seed 256 reroll: implausible final PSW 0
-HLT.INT case-seed 257 reroll: implausible final PSW 0
-HLT.INT case-seed 261 reroll: implausible final PSW 0
-HLT.INT case-seed 262 reroll: implausible final PSW 0
-HLT.INT case-seed 263 reroll: implausible final PSW 0
-HLT.INT case-seed 264 reroll: implausible final PSW 0
-HLT.INT case-seed 265 reroll: implausible final PSW 0
-HLT.INT case-seed 267 reroll: implausible final PSW 0
-HLT.INT case-seed 269 reroll: implausible final PSW 0
-HLT.INT case-seed 273 reroll: implausible final PSW 0
-HLT.INT case-seed 274 reroll: implausible final PSW 0
-HLT.INT case-seed 278 reroll: implausible final PSW 0
-HLT.INT case-seed 284 reroll: implausible final PSW 0
-HLT.INT case-seed 288 reroll: implausible final PSW 0
-HLT.INT case-seed 289 reroll: implausible final PSW 0
-HLT.INT case-seed 291 reroll: implausible final PSW 0
-HLT.INT case-seed 294 reroll: implausible final PSW 0
-HLT.INT case-seed 297 reroll: implausible final PSW 0
-HLT.INT case-seed 300 reroll: implausible final PSW 0
-HLT.INT case-seed 301 reroll: implausible final PSW 0
-HLT.INT case-seed 304 reroll: implausible final PSW 0
-HLT.INT case-seed 307 reroll: implausible final PSW 0
-HLT.INT case-seed 309 reroll: implausible final PSW 0
-HLT.INT case-seed 310 reroll: implausible final PSW 0
-HLT.INT case-seed 312 reroll: implausible final PSW 0
-HLT.INT case-seed 314 reroll: implausible final PSW 0
-HLT.INT case-seed 315 reroll: implausible final PSW 0
-HLT.INT case-seed 316 reroll: implausible final PSW 0
-HLT.INT case-seed 317 reroll: implausible final PSW 0
-HLT.INT case-seed 320 reroll: implausible final PSW 0
-HLT.INT case-seed 322 reroll: implausible final PSW 0
-HLT.INT case-seed 323 reroll: implausible final PSW 0
-HLT.INT case-seed 328 reroll: implausible final PSW 0
-HLT.INT case-seed 329 reroll: implausible final PSW 0
-HLT.INT case-seed 333 reroll: implausible final PSW 0
-HLT.INT case-seed 334 reroll: implausible final PSW 0
-HLT.INT case-seed 335 reroll: implausible final PSW 0
-HLT.INT case-seed 336 reroll: implausible final PSW 0
-HLT.INT case-seed 337 reroll: implausible final PSW 0
-HLT.INT case-seed 341 reroll: implausible final PSW 0
-HLT.INT case-seed 343 reroll: implausible final PSW 0
-HLT.INT case-seed 346 reroll: implausible final PSW 0
-HLT.INT case-seed 349 reroll: implausible final PSW 0
-HLT.INT case-seed 353 reroll: implausible final PSW 0
-HLT.INT case-seed 354 reroll: implausible final PSW 0
-HLT.INT case-seed 357 reroll: implausible final PSW 0
-HLT.INT case-seed 359 reroll: implausible final PSW 0
-HLT.INT case-seed 361 reroll: implausible final PSW 0
-HLT.INT case-seed 362 reroll: implausible final PSW 0
-HLT.INT case-seed 364 reroll: implausible final PSW 0
-HLT.INT case-seed 365 reroll: implausible final PSW 0
-HLT.INT case-seed 368 reroll: implausible final PSW 0
-HLT.RES case-seed 0 reroll: implausible final PSW 0
-HLT.RES case-seed 2 reroll: implausible final PSW 7513
-HLT.RES case-seed 54 reroll: implausible final PSW 17483
-HLT.RES case-seed 63 reroll: implausible final PSW 44445
-HLT.RES case-seed 153 reroll: implausible final PSW 49245
-INT.F3AA case-seed 0 reroll: implausible final PSW 0
-INT.F3AA case-seed 1 reroll: implausible final PSW 0
-INT.F3AA case-seed 2 reroll: implausible final PSW 0
 INT.F3AA case-seed 4 reroll: no F pop from close addr 03866
-INT.F3AA case-seed 7 reroll: implausible final PSW 0
-INT.F3AA case-seed 8 reroll: implausible final PSW 0
 INT.F3AA case-seed 10 reroll: no F pop from close addr 06ce2
-INT.F3AA case-seed 11 reroll: implausible final PSW 0
-INT.F3AA case-seed 12 reroll: implausible final PSW 0
-INT.F3AA case-seed 13 reroll: implausible final PSW 0
-INT.F3AA case-seed 16 reroll: implausible final PSW 0
-INT.F3AA case-seed 20 reroll: implausible final PSW 0
 INT.F3AA case-seed 21 reroll: recognition off-window: pushed ff0c vs min e568
-INT.F3AA case-seed 23 reroll: implausible final PSW 0
-INT.F3AA case-seed 26 reroll: implausible final PSW 0
-INT.F3AA case-seed 27 reroll: implausible final PSW 0
-INT.F3AA case-seed 28 reroll: implausible final PSW 0
-INT.F3AA case-seed 29 reroll: implausible final PSW 0
-INT.F3AA case-seed 32 reroll: implausible final PSW 0
-INT.F3AA case-seed 33 reroll: implausible final PSW 0
-INT.F3AA case-seed 34 reroll: implausible final PSW 0
-INT.F3AA case-seed 37 reroll: implausible final PSW 0
-INT.F3AA case-seed 39 reroll: implausible final PSW 0
-INT.F3AA case-seed 40 reroll: implausible final PSW 0
-INT.F3AA case-seed 41 reroll: implausible final PSW 0
-INT.F3AA case-seed 43 reroll: implausible final PSW 0
-INT.F3AA case-seed 44 reroll: implausible final PSW 0
-INT.F3AA case-seed 45 reroll: implausible final PSW 0
-INT.F3AA case-seed 47 reroll: implausible final PSW 0
-INT.F3AA case-seed 48 reroll: implausible final PSW 0
-INT.F3AA case-seed 50 reroll: implausible final PSW 0
-INT.F3AA case-seed 51 reroll: implausible final PSW 0
-INT.F3AA case-seed 52 reroll: implausible final PSW 0
-INT.F3AA case-seed 53 reroll: implausible final PSW 0
-INT.F3AA case-seed 56 reroll: implausible final PSW 0
-INT.F3AA case-seed 57 reroll: implausible final PSW 0
-INT.F3AA case-seed 58 reroll: implausible final PSW 0
-INT.F3AA case-seed 59 reroll: implausible final PSW 0
-INT.F3AA case-seed 60 reroll: implausible final PSW 0
-INT.F3AA case-seed 61 reroll: implausible final PSW 0
-INT.F3AA case-seed 64 reroll: implausible final PSW 0
-INT.F3AA case-seed 65 reroll: implausible final PSW 0
-INT.F3AA case-seed 67 reroll: implausible final PSW 0
-INT.F3AA case-seed 69 reroll: implausible final PSW 0
 INT.F3AA case-seed 71 reroll: recognition off-window: pushed ff0c vs min bc5e
-INT.F3AA case-seed 76 reroll: implausible final PSW 0
 INT.F3AA case-seed 77 reroll: no F pop from close addr 06d9a
-INT.F3AA case-seed 79 reroll: implausible final PSW 0
-INT.F3AA case-seed 80 reroll: implausible final PSW 0
 INT.F3AA case-seed 81 reroll: recognition off-window: pushed ff0c vs min 3c8b
 INT.F3AA case-seed 82 reroll: recognition off-window: pushed ff0c vs min ab97
-INT.F3AA case-seed 83 reroll: implausible final PSW 0
-INT.F3AA case-seed 84 reroll: implausible final PSW 0
-INT.F3AA case-seed 85 reroll: implausible final PSW 0
-INT.F3AA case-seed 86 reroll: implausible final PSW 0
-INT.F3AA case-seed 92 reroll: implausible final PSW 0
-INT.F3AA case-seed 95 reroll: implausible final PSW 0
-INT.F3AA case-seed 96 reroll: implausible final PSW 0
-INT.F3AA case-seed 102 reroll: implausible final PSW 0
-INT.F3AA case-seed 104 reroll: implausible final PSW 0
-INT.F3AA case-seed 106 reroll: implausible final PSW 0
-INT.F3AA case-seed 107 reroll: implausible final PSW 0
-INT.F3AA case-seed 108 reroll: implausible final PSW 0
-INT.F3AA case-seed 109 reroll: implausible final PSW 0
-INT.F3AA case-seed 110 reroll: implausible final PSW 0
-INT.F3AA case-seed 111 reroll: implausible final PSW 0
-INT.F3AA case-seed 112 reroll: implausible final PSW 0
-INT.F3AA case-seed 115 reroll: implausible final PSW 0
 INT.F3AA case-seed 116 reroll: no F pop from close addr 0c36c
-INT.F3AA case-seed 118 reroll: implausible final PSW 0
-INT.F3AA case-seed 119 reroll: implausible final PSW 0
-INT.F3AA case-seed 121 reroll: implausible final PSW 0
 INT.F3AA case-seed 123 reroll: recognition off-window: pushed ff0c vs min 8acc
-INT.F3AA case-seed 124 reroll: implausible final PSW 0
-INT.F3AA case-seed 125 reroll: implausible final PSW 0
-INT.F3AA case-seed 126 reroll: implausible final PSW 0
-INT.F3AA case-seed 127 reroll: implausible final PSW 0
-INT.F3AA case-seed 130 reroll: implausible final PSW 0
-INT.F3AA case-seed 132 reroll: implausible final PSW 0
 INT.F3AA case-seed 133 reroll: no F pop from close addr 057fe
-INT.F3AA case-seed 134 reroll: implausible final PSW 0
-INT.F3AA case-seed 135 reroll: implausible final PSW 0
-INT.F3AA case-seed 138 reroll: implausible final PSW 0
 INT.F3AA case-seed 139 reroll: no F pop from close addr 045dc
-INT.F3AA case-seed 141 reroll: implausible final PSW 0
-INT.F3AA case-seed 143 reroll: implausible final PSW 0
-INT.F3AA case-seed 144 reroll: implausible final PSW 0
-INT.F3AA case-seed 146 reroll: implausible final PSW 0
-INT.F3AA case-seed 147 reroll: implausible final PSW 0
-INT.F3AA case-seed 148 reroll: implausible final PSW 0
-INT.F3AA case-seed 149 reroll: implausible final PSW 0
-INT.F3AA case-seed 150 reroll: implausible final PSW 0
-INT.F3AA case-seed 151 reroll: implausible final PSW 0
-INT.F3AA case-seed 152 reroll: implausible final PSW 0
-INT.F3AA case-seed 154 reroll: implausible final PSW 0
-INT.F3AA case-seed 157 reroll: implausible final PSW 0
-INT.F3AA case-seed 159 reroll: implausible final PSW 0
-INT.F3AA case-seed 160 reroll: implausible final PSW 0
-INT.F3AA case-seed 163 reroll: implausible final PSW 0
-INT.F3AA case-seed 164 reroll: implausible final PSW 0
-INT.F3AA case-seed 167 reroll: implausible final PSW 0
-INT.F3AA case-seed 170 reroll: implausible final PSW 0
-INT.F3AA case-seed 172 reroll: implausible final PSW 0
-INT.F3AA case-seed 174 reroll: implausible final PSW 0
-INT.F3AA case-seed 175 reroll: implausible final PSW 0
-INT.F3AA case-seed 176 reroll: implausible final PSW 0
-INT.F3AA case-seed 177 reroll: implausible final PSW 0
-INT.F3AA case-seed 178 reroll: implausible final PSW 0
-INT.F3AA case-seed 179 reroll: implausible final PSW 65518
-INT.F3AA case-seed 181 reroll: implausible final PSW 0
-INT.F3AA case-seed 182 reroll: implausible final PSW 0
-INT.F3AA case-seed 185 reroll: implausible final PSW 0
-INT.F3AA case-seed 187 reroll: implausible final PSW 0
-INT.F3AA case-seed 188 reroll: implausible final PSW 0
-INT.F3AA case-seed 190 reroll: implausible final PSW 0
 INT.F3AA case-seed 193 reroll: recognition off-window: pushed ff0c vs min e7f8
-INT.F3AA case-seed 196 reroll: implausible final PSW 0
-INT.F3AA case-seed 199 reroll: implausible final PSW 0
-INT.F3AA case-seed 200 reroll: implausible final PSW 0
-INT.F3AA case-seed 201 reroll: implausible final PSW 0
 INT.F3AA case-seed 202 reroll: recognition off-window: pushed ff0c vs min 915e
-INT.F3AA case-seed 204 reroll: implausible final PSW 0
-INT.F3AA case-seed 205 reroll: implausible final PSW 0
-INT.F3AA case-seed 206 reroll: implausible final PSW 0
-INT.F3AA case-seed 207 reroll: implausible final PSW 0
-INT.F3AA case-seed 208 reroll: implausible final PSW 0
-INT.F3AA case-seed 209 reroll: implausible final PSW 0
-INT.F3AA case-seed 210 reroll: implausible final PSW 0
-INT.F3AA case-seed 211 reroll: implausible final PSW 0
-INT.F3AA case-seed 212 reroll: implausible final PSW 0
-INT.F3AA case-seed 214 reroll: recognition off-window: pushed ff0c vs min b748
-INT.F3AA case-seed 215 reroll: implausible final PSW 0
-INT.F3AA case-seed 217 reroll: implausible final PSW 0
-INT.F3AA case-seed 218 reroll: implausible final PSW 0
-INT.F3AA case-seed 220 reroll: implausible final PSW 0
-INT.F3AA case-seed 221 reroll: implausible final PSW 0
-INT.F3AA case-seed 222 reroll: recognition off-window: pushed ff0c vs min e00b
-INT.F3AA case-seed 223 reroll: recognition off-window: pushed ff0c vs min 93db
-INT.F3AA case-seed 224 reroll: implausible final PSW 0
-INT.F3AA case-seed 227 reroll: recognition off-window: pushed ff0c vs min 1883
-INT.F3AA case-seed 228 reroll: recognition off-window: pushed ff0c vs min c5e4
-INT.F3AA case-seed 231 reroll: implausible final PSW 0
-INT.F3AA case-seed 232 reroll: implausible final PSW 0
-INT.F3AA case-seed 234 reroll: implausible final PSW 0
-INT.F3AA case-seed 236 reroll: implausible final PSW 0
-INT.F3AA case-seed 237 reroll: implausible final PSW 0
-INT.F3AA case-seed 238 reroll: recognition off-window: pushed ff0c vs min 8f41
-INT.F3AA case-seed 240 reroll: implausible final PSW 0
-INT.F3AA case-seed 241 reroll: implausible final PSW 0
-INT.F3AA case-seed 242 reroll: implausible final PSW 0
-INT.F3AA case-seed 244 reroll: implausible final PSW 0
-INT.F3AA case-seed 245 reroll: implausible final PSW 0
-INT.F3AA case-seed 247 reroll: implausible final PSW 0
-INT.F3AA case-seed 250 reroll: implausible final PSW 0
-INT.F3AA case-seed 251 reroll: implausible final PSW 0
-INT.F3AA case-seed 252 reroll: implausible final PSW 0
-INT.F3AA case-seed 254 reroll: implausible final PSW 0
-INT.F3AA case-seed 255 reroll: implausible final PSW 0
-INT.F3AA case-seed 256 reroll: implausible final PSW 0
-INT.F3AA case-seed 261 reroll: implausible final PSW 0
-INT.F3AA case-seed 262 reroll: implausible final PSW 0
-INT.F3AA case-seed 265 reroll: implausible final PSW 0
-INT.F3AA case-seed 266 reroll: implausible final PSW 0
-INT.F3AA case-seed 267 reroll: implausible final PSW 0
-INT.F3AA case-seed 270 reroll: implausible final PSW 0
-INT.F3AA case-seed 271 reroll: implausible final PSW 0
-INT.F3AA case-seed 275 reroll: implausible final PSW 0
-INT.F3AA case-seed 276 reroll: implausible final PSW 0
-INT.F3AA case-seed 277 reroll: implausible final PSW 0
-INT.F3AA case-seed 278 reroll: implausible final PSW 0
-INT.F3AA case-seed 279 reroll: implausible final PSW 0
-INT.F3AA case-seed 280 reroll: implausible final PSW 0
-INT.F3AA case-seed 281 reroll: implausible final PSW 0
-INT.F3AA case-seed 282 reroll: no F pop from close addr 0585c
-INT.F3AA case-seed 283 reroll: implausible final PSW 0
-INT.F3AA case-seed 284 reroll: implausible final PSW 0
-INT.F3AA case-seed 286 reroll: implausible final PSW 0
-INT.F3AA case-seed 287 reroll: implausible final PSW 0
-INT.F3AA case-seed 289 reroll: implausible final PSW 0
-INT.F3AA case-seed 293 reroll: implausible final PSW 0
-INT.F3AA case-seed 295 reroll: implausible final PSW 0
-INT.F3AA case-seed 296 reroll: implausible final PSW 0
-INT.F3AA case-seed 297 reroll: implausible final PSW 0
-INT.F3AA case-seed 298 reroll: implausible final PSW 0
-INT.F3AA case-seed 299 reroll: implausible final PSW 0
-INT.F3AA case-seed 302 reroll: no F pop from close addr 0521c
-INT.F3AA case-seed 303 reroll: implausible final PSW 0
-INT.F3AA case-seed 304 reroll: implausible final PSW 0
-INT.F3AA case-seed 305 reroll: recognition off-window: pushed ff0c vs min db88
-INT.F3AA case-seed 306 reroll: implausible final PSW 0
-INT.F3AA case-seed 307 reroll: implausible final PSW 0
-INT.F3AA case-seed 310 reroll: implausible final PSW 0
-INT.F3AA case-seed 312 reroll: recognition off-window: pushed ff0c vs min fbbb
-INT.F3AA case-seed 314 reroll: implausible final PSW 0
-INT.F3AA case-seed 315 reroll: implausible final PSW 0
-INT.F3AA case-seed 318 reroll: implausible final PSW 0
-INT.F3AA case-seed 321 reroll: implausible final PSW 0
-INT.F3AA case-seed 323 reroll: implausible final PSW 0
-INT.F3AA case-seed 324 reroll: implausible final PSW 0
-INT.F3AA case-seed 325 reroll: recognition off-window: pushed ff0c vs min dd02
-INT.F3AA case-seed 326 reroll: implausible final PSW 0
-INT.F3AA case-seed 327 reroll: implausible final PSW 0
-INT.F3AA case-seed 331 reroll: implausible final PSW 0
-INT.F3AA case-seed 332 reroll: implausible final PSW 0
-INT.F3AA case-seed 333 reroll: implausible final PSW 0
-INT.F3AA case-seed 334 reroll: implausible final PSW 0
-INT.F3AA case-seed 335 reroll: implausible final PSW 0
-INT.F3AA case-seed 337 reroll: implausible final PSW 0
-INT.F3AA case-seed 338 reroll: implausible final PSW 0
-INT.F3AA case-seed 340 reroll: implausible final PSW 0
-INT.F3AA case-seed 341 reroll: implausible final PSW 0
-INT.F3AA case-seed 342 reroll: recognition off-window: pushed ff0c vs min 01e1
-INT.F3AA case-seed 343 reroll: implausible final PSW 0
-INT.F3AA case-seed 344 reroll: implausible final PSW 0
-INT.F3AA case-seed 348 reroll: implausible final PSW 0
-INT.F3AA case-seed 349 reroll: implausible final PSW 0
-INT.F3AA case-seed 350 reroll: implausible final PSW 0
-INT.F3AA case-seed 351 reroll: implausible final PSW 0
-INT.F3AA case-seed 352 reroll: implausible final PSW 0
-INT.F3AA case-seed 354 reroll: implausible final PSW 0
-INT.F3AA case-seed 355 reroll: implausible final PSW 0
-INT.F3AA case-seed 357 reroll: implausible final PSW 0
-INT.F3AA case-seed 359 reroll: implausible final PSW 0
-INT.F3AA case-seed 361 reroll: implausible final PSW 0
-INT.F3AA case-seed 363 reroll: implausible final PSW 0
-INT.F3AA case-seed 364 reroll: implausible final PSW 0
-INT.F3AA case-seed 368 reroll: implausible final PSW 0
-INT.F3AA case-seed 369 reroll: implausible final PSW 0
-INT.F3AA case-seed 372 reroll: implausible final PSW 0
-INT.F3AA case-seed 376 reroll: implausible final PSW 0
-INT.F3AA case-seed 377 reroll: implausible final PSW 0
-INT.F3AA case-seed 378 reroll: implausible final PSW 0
-INT.F3AA case-seed 380 reroll: implausible final PSW 0
-INT.F3AA case-seed 381 reroll: implausible final PSW 0
-INT.F3AA case-seed 383 reroll: implausible final PSW 0
-INT.F3AA case-seed 384 reroll: implausible final PSW 0
-INT.F3AA case-seed 386 reroll: implausible final PSW 0
-INT.F3AA case-seed 388 reroll: implausible final PSW 0
-INT.F3AA case-seed 389 reroll: implausible final PSW 0
-INT.F3AA case-seed 390 reroll: implausible final PSW 0
-INT.F3AA case-seed 391 reroll: implausible final PSW 0
-INT.F3AA case-seed 392 reroll: no F pop from close addr 06bf4
-INT.F3AA case-seed 393 reroll: implausible final PSW 0
-INT.F3AA case-seed 394 reroll: recognition off-window: pushed ff0c vs min cb91
-INT.F3AA case-seed 395 reroll: implausible final PSW 0
-INT.F3AA case-seed 397 reroll: implausible final PSW 0
-INT.F3AA case-seed 398 reroll: implausible final PSW 0
-INT.F3AA case-seed 399 reroll: no F pop from close addr 01340
-INT.F3AA case-seed 401 reroll: implausible final PSW 0
-INT.F3AA case-seed 402 reroll: implausible final PSW 0
-INT.F3AA case-seed 403 reroll: implausible final PSW 0
-INT.F3AA case-seed 404 reroll: implausible final PSW 0
-INT.F3AA case-seed 406 reroll: implausible final PSW 0
-INT.F3AA case-seed 410 reroll: implausible final PSW 0
-INT.F3AA case-seed 411 reroll: implausible final PSW 0
-INT.F3AA case-seed 412 reroll: implausible final PSW 0
-INT.F3AA case-seed 413 reroll: implausible final PSW 0
-INT.F3AA case-seed 415 reroll: implausible final PSW 0
-INT.F3AA case-seed 416 reroll: implausible final PSW 0
-INT.F3AA case-seed 417 reroll: implausible final PSW 0
-INT.F3AA case-seed 418 reroll: implausible final PSW 0
-INT.F3AA case-seed 420 reroll: implausible final PSW 0
-INT.F3AA case-seed 421 reroll: implausible final PSW 0
-INT.F3AA case-seed 422 reroll: implausible final PSW 0
-INT.F3AA case-seed 425 reroll: implausible final PSW 0
-INT.F3AA case-seed 426 reroll: implausible final PSW 0
-INT.F3AA case-seed 427 reroll: implausible final PSW 0
-INT.F3AA case-seed 428 reroll: recognition off-window: pushed ff0c vs min 9859
-INT.F3AA case-seed 429 reroll: implausible final PSW 0
-INT.F3AA case-seed 431 reroll: implausible final PSW 0
-INT.F3AA case-seed 434 reroll: implausible final PSW 0
-INT.F3AA case-seed 435 reroll: implausible final PSW 0
-INT.F3AA case-seed 436 reroll: implausible final PSW 0
-INT.F3AA case-seed 437 reroll: implausible final PSW 0
-INT.F3AA case-seed 438 reroll: recognition off-window: pushed ff0c vs min 3b32
-INT.F3AA case-seed 444 reroll: recognition off-window: pushed ff0c vs min 5add
-INT.F3AA case-seed 445 reroll: implausible final PSW 0
-INT.F3AA case-seed 446 reroll: implausible final PSW 0
-INT.F3AA case-seed 448 reroll: implausible final PSW 0
-INT.F3AA case-seed 449 reroll: recognition off-window: pushed ff0c vs min 1de7
-INT.F3AA case-seed 452 reroll: implausible final PSW 0
-INT.F3AA case-seed 453 reroll: recognition off-window: pushed ff0c vs min 515a
-INT.F3AA case-seed 457 reroll: no F pop from close addr 09af4
-INT.F3AA case-seed 461 reroll: implausible final PSW 0
-INT.F3AA case-seed 464 reroll: implausible final PSW 0
-INT.F3AA case-seed 465 reroll: implausible final PSW 0
-INT.F3AA case-seed 467 reroll: implausible final PSW 0
-INT.F3AA case-seed 468 reroll: implausible final PSW 0
-INT.F3AA case-seed 469 reroll: implausible final PSW 0
-INT.F3AA case-seed 471 reroll: implausible final PSW 0
-INT.F3AA case-seed 473 reroll: implausible final PSW 0
-INT.F3AA case-seed 474 reroll: implausible final PSW 0
-INT.F3AA case-seed 476 reroll: implausible final PSW 0
-INT.F3AA case-seed 478 reroll: implausible final PSW 0
-INT.F3AA case-seed 479 reroll: recognition off-window: pushed ff0c vs min f40b
-INT.F3AA case-seed 480 reroll: implausible final PSW 0
-INT.F3AA case-seed 482 reroll: implausible final PSW 0
-INT.F3AA case-seed 484 reroll: implausible final PSW 0
-INT.F3AA case-seed 485 reroll: implausible final PSW 0
-INT.F3AA case-seed 486 reroll: implausible final PSW 0
-INT.F3AA case-seed 488 reroll: implausible final PSW 0
-INT.F3AA case-seed 489 reroll: implausible final PSW 0
-INT.F3AA case-seed 490 reroll: no F pop from close addr 0454c
-INT.F3AA case-seed 491 reroll: recognition off-window: pushed ff0c vs min 5a32
-INT.F3AA case-seed 493 reroll: implausible final PSW 0
-INT.F3AA case-seed 495 reroll: implausible final PSW 0
-INT.F3AA case-seed 496 reroll: implausible final PSW 0
-INT.F3AA case-seed 497 reroll: implausible final PSW 0
-INT.F3AA case-seed 498 reroll: implausible final PSW 51636
-INT.F3AA case-seed 499 reroll: implausible final PSW 0
-INT.F3AA case-seed 500 reroll: implausible final PSW 0
-INT.F3AA case-seed 501 reroll: implausible final PSW 0
-INT.F3AA case-seed 502 reroll: implausible final PSW 0
-INT.F3AA case-seed 503 reroll: implausible final PSW 0
-INT.F3AA case-seed 504 reroll: implausible final PSW 0
-INT.F3AA case-seed 505 reroll: implausible final PSW 0
-INT.F3AA case-seed 506 reroll: implausible final PSW 0
-INT.F3AA case-seed 507 reroll: recognition off-window: pushed ff0c vs min ff7d
-INT.F3AA case-seed 508 reroll: recognition off-window: pushed ff0c vs min 227e
-INT.F3AA case-seed 509 reroll: implausible final PSW 0
-INT.F3AA case-seed 510 reroll: implausible final PSW 0
-INT.F3AA case-seed 511 reroll: no F pop from close addr 06cec
-INT.F3AA case-seed 512 reroll: implausible final PSW 0
-INT.F3AA case-seed 513 reroll: implausible final PSW 0
-INT.F3AA case-seed 514 reroll: implausible final PSW 0
-INT.F3AA case-seed 515 reroll: implausible final PSW 0
-INT.F3AA case-seed 517 reroll: implausible final PSW 0
-INT.F3AA case-seed 518 reroll: implausible final PSW 0
-INT.F3AA case-seed 520 reroll: implausible final PSW 0
-INT.F3AA case-seed 521 reroll: implausible final PSW 0
-INT.F3AA case-seed 523 reroll: implausible final PSW 0
-INT.F3AA case-seed 524 reroll: implausible final PSW 0
-INT.F3AA case-seed 525 reroll: implausible final PSW 0
-INT.F3AA case-seed 527 reroll: implausible final PSW 0
-INT.9D case-seed 2 reroll: implausible final PSW 18551
-INT.9D case-seed 4 reroll: implausible final PSW 0
-INT.9D case-seed 5 reroll: implausible final PSW 0
-INT.9D case-seed 8 reroll: implausible final PSW 0
-INT.9D case-seed 10 reroll: implausible final PSW 0
-INT.9D case-seed 11 reroll: implausible final PSW 0
-INT.9D case-seed 14 reroll: implausible final PSW 0
-INT.9D case-seed 15 reroll: implausible final PSW 0
-INT.9D case-seed 17 reroll: implausible final PSW 0
-INT.9D case-seed 18 reroll: implausible final PSW 0
 INT.9D case-seed 21 reroll: recognition off-window: pushed ff0c vs min 7c32
-INT.9D case-seed 30 reroll: implausible final PSW 0
 INT.9D case-seed 38 reroll: recognition off-window: pushed ff0c vs min c604
-INT.9D case-seed 39 reroll: implausible final PSW 0
-INT.9D case-seed 43 reroll: implausible final PSW 0
-INT.9D case-seed 49 reroll: implausible final PSW 41537
 INT.9D case-seed 56 reroll: recognition off-window: pushed ff0c vs min 73ef
-INT.9D case-seed 57 reroll: implausible final PSW 0
-INT.9D case-seed 58 reroll: implausible final PSW 0
 INT.9D case-seed 72 reroll: recognition off-window: pushed ff0c vs min 7e51
 INT.9D case-seed 82 reroll: recognition off-window: pushed ff0c vs min fecf
-INT.9D case-seed 89 reroll: implausible final PSW 0
-INT.9D case-seed 94 reroll: implausible final PSW 0
 INT.9D case-seed 95 reroll: no F pop from close addr 0759e
 INT.9D case-seed 102 reroll: no F pop from close addr 08c14
-INT.9D case-seed 108 reroll: implausible final PSW 0
-INT.9D case-seed 111 reroll: implausible final PSW 0
 INT.9D case-seed 116 reroll: no F pop from close addr 0b344
 INT.9D case-seed 117 reroll: no F pop from close addr 02bce
-INT.9D case-seed 118 reroll: implausible final PSW 0
 INT.9D case-seed 121 reroll: recognition off-window: pushed ff0c vs min f1d9
-INT.9D case-seed 122 reroll: implausible final PSW 0
-INT.9D case-seed 129 reroll: implausible final PSW 0
-INT.9D case-seed 130 reroll: implausible final PSW 0
-INT.9D case-seed 131 reroll: implausible final PSW 0
-INT.9D case-seed 134 reroll: implausible final PSW 0
-INT.9D case-seed 137 reroll: implausible final PSW 0
-INT.9D case-seed 139 reroll: implausible final PSW 0
 INT.9D case-seed 141 reroll: recognition off-window: pushed ff0c vs min abaa
-INT.9D case-seed 144 reroll: implausible final PSW 0
 INT.9D case-seed 145 reroll: recognition off-window: pushed ff0c vs min b98c
-INT.9D case-seed 146 reroll: implausible final PSW 0
 INT.9D case-seed 147 reroll: no F pop from close addr 01e7a
-INT.9D case-seed 148 reroll: implausible final PSW 0
-INT.9D case-seed 162 reroll: implausible final PSW 0
-INT.9D case-seed 163 reroll: implausible final PSW 0
-INT.9D case-seed 164 reroll: implausible final PSW 0
-INT.9D case-seed 165 reroll: implausible final PSW 0
 INT.9D case-seed 166 reroll: recognition off-window: pushed ff0c vs min b3c2
 INT.9D case-seed 167 reroll: recognition off-window: pushed ff0c vs min ba29
-INT.9D case-seed 168 reroll: implausible final PSW 0
-INT.9D case-seed 172 reroll: implausible final PSW 0
-INT.9D case-seed 180 reroll: implausible final PSW 0
-INT.9D case-seed 181 reroll: implausible final PSW 0
 INT.9D case-seed 185 reroll: recognition off-window: pushed ff0c vs min b7ab
 INT.9D case-seed 187 reroll: recognition off-window: pushed ff0c vs min 9db3
 INT.9D case-seed 196 reroll: no F pop from close addr 0cf52
-INT.9D case-seed 199 reroll: implausible final PSW 0
-INT.9D case-seed 201 reroll: implausible final PSW 0
 INT.9D case-seed 210 reroll: no F pop from close addr 02cc4
 INT.9D case-seed 215 reroll: recognition off-window: pushed ff0c vs min ad68
-INT.9D case-seed 216 reroll: implausible final PSW 0
-INT.9D case-seed 224 reroll: no F pop from close addr 0d4e4
-INT.9D case-seed 229 reroll: recognition off-window: pushed ff0c vs min 17d1
-INT.9D case-seed 236 reroll: recognition off-window: pushed ff0c vs min ca51
-INT.9D case-seed 237 reroll: recognition off-window: pushed ff0c vs min b687
-INT.9D case-seed 239 reroll: implausible final PSW 0
-INT.9D case-seed 243 reroll: no F pop from close addr 0d89a
-INT.9D case-seed 247 reroll: implausible final PSW 0
-INT.9D case-seed 256 reroll: no F pop from close addr 08baa
-INT.9D case-seed 260 reroll: implausible final PSW 0
-INT.9D case-seed 261 reroll: recognition off-window: pushed ff0c vs min 5f14
-INT.9D case-seed 264 reroll: implausible final PSW 0
-INT.9D case-seed 268 reroll: recognition off-window: pushed ff0c vs min d6a6
-INT.9D case-seed 270 reroll: implausible final PSW 0
