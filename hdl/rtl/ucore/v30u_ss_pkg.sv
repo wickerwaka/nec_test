@@ -31,7 +31,7 @@ package v30_ss_pkg;
   localparam logic [8:0]  SS_BIU_BASE  = 9'h001;
   localparam int          SS_BIU_COUNT = 96;
   localparam logic [8:0]  SS_EU_BASE   = 9'h100;
-  localparam int          SS_EU_COUNT  = 114;   // stage U2 (+3, pass 4)
+  localparam int          SS_EU_COUNT  = 113;   // stage U2 (+3 post-E, -1 F31)
   localparam int          SS_COUNT     = 1 + SS_BIU_COUNT + SS_EU_COUNT;
   localparam logic [15:0] SS_TAG       = {8'(SS_VERSION), 8'(SS_COUNT)};
 
@@ -332,7 +332,6 @@ package v30_ss_pkg;
   localparam logic [8:0] SSA_E_RD_DONE_CNT          = 9'h150;
   localparam logic [8:0] SSA_E_RD_AGE0              = 9'h151;
   localparam logic [8:0] SSA_E_WR_OUT               = 9'h152;
-  localparam logic [8:0] SSA_E_OPR_OWNED            = 9'h153;
   localparam logic [8:0] SSA_E_OPC_VALID            = 9'h154;
   localparam logic [8:0] SSA_E_OPC_BYTE             = 9'h155;
   localparam logic [8:0] SSA_E_POP_IS_FIRST         = 9'h156;
@@ -366,7 +365,7 @@ package v30_ss_pkg;
   // freeze at `poste=1` was representable and NOT restorable; these close it.
   localparam logic [8:0] SSA_E_PE_OPC_REG           = 9'h16F;
   localparam logic [8:0] SSA_E_PE_PFXCNT            = 9'h170;
-  localparam logic [8:0] SSA_E_PE_FLAGS             = 9'h171;
+  localparam logic [8:0] SSA_E_PE_FLAGS             = 9'h153;
 
 endpackage
 

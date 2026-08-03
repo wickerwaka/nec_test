@@ -136,7 +136,7 @@ module v30u_biu (
     output            eu_rd_done_n,// pulse at a completed read's e+2
     output            eu_wr_done_n,// pulse at a completed write's e+2
     output            eu_opr_free, // 11.4 / M13: the store lets go of OPR
-    output            eu_opr_free_n,
+                                 // (a LEVEL off the register: `opr_held == 0`)
 
     // --- prefetch control ---
     input             eu_susp,     // F2: SUSP, one row early
@@ -465,8 +465,13 @@ assign qs = qs_e_now ? QS_EMPTY
 assign eu_slot_busy   = r_slot_busy;
 assign eu_slot_busy_n = slot_busy;
 assign eu_wr_done_n   = wr_done_nxt;
-assign eu_opr_free    = r_opr_free_p;
-assign eu_opr_free_n  = opr_free_p;
+// F31 -- OPR-OWNERSHIP IS ONE COUNTER, AND IT IS THE BIU'S.  `opr_held` IS the
+// model's `BiuTimed::opr_held_`, condition for condition; the EU used to keep a
+// SECOND count of the same event and test it against a release PULSE.  The
+// published fact is now the model's own predicate -- `while (opr_held_ > 0)
+// tick()` -- off the REGISTER, so it is a level during the clock the row runs
+// on and the act decode and the clocked step read ONE expression (F11).
+assign eu_opr_free    = (r_opr_held == 2'd0);
 assign eu_rdata_n     = r_rd_land;
 assign eu_rd_done_n   = rd_done_nxt;
 // The 1BL retire lead (`wait_retire_lead`): the front byte is poppable NOW or
@@ -1254,6 +1259,13 @@ always_comb begin
         ready_prev = ready;
         no_eval    = set_noeval;
         pf_land    = set_land;
+        // `opr_free_clk_`, the model's SECOND wait_opr_free loop
+        // (`while (clk_ < opr_free_clk_) tick()`).  It is VACUOUS and provably
+        // so: `opr_free_clk_` is only ever set to `c+1` inside `tick()` for
+        // clock `c`, which leaves `clk_ == c+1`, so the loop's guard is false
+        // on entry in every reachable state.  The instant it names is already
+        // carried by `opr_held`'s own decrement, which is what F31 publishes.
+        // Kept as state because the model keeps it (and it is SS-mapped).
         opr_free_p = set_oprfree;
         if (set_grn)    grn_ttl    = new_ttl;
         else if (grn_ttl    != 2'd0) grn_ttl    = grn_ttl - 2'd1;

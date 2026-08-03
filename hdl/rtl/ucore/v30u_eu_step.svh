@@ -367,7 +367,7 @@ end
 // exec_impl.h -- run_micro
 //----------------------------------------------------------------------------
 S_ROW: begin
-    if (row_blocked_n) begin
+    if (row_blocked) begin
         stop = 1'b1;                                    // stall_opr
     end else if (row_need_q && !q_ripe) begin
         stop = 1'b1;                                    // stall_q
@@ -376,7 +376,7 @@ S_ROW: begin
         pc = pc + 16'd1;
         rowq = rowq + 2'd1;
         if ({1'b0, rowq} < row_qn) stop = 1'b1;         // a second byte
-    end else if (row_pre_wait_n) begin
+    end else if (row_pre_wait) begin
         stop = 1'b1;                                    // deliver_read
     end else if (row_bus && !row_posted && eu_slot_busy) begin
         // stall_slot -- F11's rule, in the SLOT dimension.  `BiuTimed::post`
@@ -463,7 +463,7 @@ end
 
 S_TAIL_W: begin
     // `if (!opr_fresh_) deliver_read(); emit_pending();`
-    if (!opr_fresh && (nr_wait || !opr_free_now_n)) stop = 1'b1;
+    if (!opr_fresh && (nr_wait || !opr_free_now)) stop = 1'b1;
     else begin
         if (!opr_fresh) begin
             if (rd_done_cnt != 2'd0) rd_done_cnt = rd_done_cnt - 2'd1;
@@ -473,8 +473,6 @@ S_TAIL_W: begin
         end
         pend_active = 1'b0;
         opr_fresh   = 1'b0;
-        if (opr_owned != 2'd3)
-            opr_owned = opr_owned + (pend_split ? 2'd2 : 2'd1);
         st = opc_valid ? S_INSTR_END : S_TAIL_POP;
         if (st != S_INSTR_END) stop = 1'b1;
     end

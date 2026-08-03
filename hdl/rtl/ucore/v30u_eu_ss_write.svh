@@ -88,7 +88,6 @@
             SSA_E_RD_DONE_CNT:         rd_done_cnt = ss_wdata[1:0];
             SSA_E_RD_AGE0:             rd_age0 = ss_wdata[0];
             SSA_E_WR_OUT:              wr_out = ss_wdata[1:0];
-            SSA_E_OPR_OWNED:           opr_owned = ss_wdata[1:0];
             SSA_E_OPC_VALID:           opc_valid = ss_wdata[0];
             SSA_E_OPC_BYTE:            opc_byte = ss_wdata[7:0];
             SSA_E_POP_IS_FIRST:        pop_is_first = ss_wdata[0];

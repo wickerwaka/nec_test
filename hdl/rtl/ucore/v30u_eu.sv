@@ -81,8 +81,7 @@ module v30u_eu (
     input      [15:0] eu_rdata_n,
     input             eu_rd_done_n,
     input             eu_wr_done_n,
-    input             eu_opr_free,
-    input             eu_opr_free_n,
+    input             eu_opr_free,   // F31: the LEVEL `opr_held == 0`
 
     // prefetch control
     output            eu_susp,
@@ -260,7 +259,6 @@ reg        pe_opc8080;
 reg        pe_op8;         // ...INCLUDING the operand width (pass-3 review D1)
 reg  [7:0] pe_pfxcnt;      // ...and the prefix count (F22's registered residue)
 reg  [1:0] wr_out;         // posted write CYCLES not yet done
-reg  [1:0] opr_owned;      // stores that have taken OPR and not released it
 
 // --- the opcode latch ------------------------------------------------------
 reg        opc_valid;
@@ -345,7 +343,7 @@ localparam bit [5:0]
 //     from the BIU's level DURING that clock;
 //
 //   * THE CLOCKED STEP reads the `_n` view -- `eu_slot_busy_n`,
-//     `eu_rd_done_n`, `eu_wr_done_n`, `eu_opr_free_n`, `eu_rdata_n`,
+//     `eu_rd_done_n`, `eu_wr_done_n`, `eu_rdata_n`,
 //     `q_ripe_lead_n`, and the `*_n` stall wires derived from them.  That step
 //     produces the EU's state for the clock this edge OPENS and must therefore
 //     see the BIU as it will be then.
@@ -503,10 +501,32 @@ wire nr_extra_block = nr_have && rd_age0;
 // F7: the same term in the two views -- the plain name for the act decode, the
 // `_n` name for the clocked step.  ONE expression each, differing only in which
 // BIU view it reads.
-wire opr_free_now   = (opr_owned == 2'd0) ||
-                      ((opr_owned == 2'd1) && eu_opr_free);
-wire opr_free_now_n = (opr_owned == 2'd0) ||
-                      ((opr_owned == 2'd1) && eu_opr_free_n);
+// F31 -- THE HOLD IS THE BIU'S COUNT, AND THERE IS ONLY ONE VIEW OF IT.
+//
+// The EU used to keep its OWN `opr_owned` counter of the stores it had paired
+// and test it against the BIU's release PULSE.  That is F11's named error --
+// one event, two reconstructions -- and it was wrong in both of its parts:
+//
+//  * the pulse view.  `opr_free_now_n` read `eu_opr_free_n`, the release
+//    computed DURING the T2 clock, so the `F` row completed at the end of T2.
+//    The model's release instant is `opr_free_clk_ = T2 + 1` and the row runs
+//    ON that clock, i.e. T3.  Every non-OPR-reading `F` row therefore ran one
+//    clock early, which is the whole multi-cycle-push family: `60`'s ROM
+//    alternates `SIGMA -> IND CTL MEMW SS` with `<reg> -> OPR F CTL`, and the
+//    idle `Ti` the golden shows between consecutive stores IS that clock.
+//    (`60` was green on push #1 only, and only by accident: the FARJMP bubble
+//    after 023B put the clock back.)
+//  * the count.  The model's `++opr_held_` is CONDITIONAL --
+//    `if (!(r == &cur_ && run_ && ci_ > 1))`, a fact about the BIU's own
+//    running cycle -- and the EU cannot see it, so an EU-side count can never
+//    be faithful.  `opr_owned += (pend_split ? 2 : 1)` also over-counted a
+//    split against the pulse test: ALL 96 odd-SP `60` cases failed and ALL 104
+//    even-SP cases passed.
+//
+// So the counter is the BIU's `opr_held` (which IS `BiuTimed::opr_held_`) and
+// the published fact is the model's own predicate off the REGISTER.  One
+// expression, both views -- the act decode and the clocked step cannot drift.
+wire opr_free_now = eu_opr_free;
 
 // wait_bus (the retire deadline): every posted store, then its e+2.  ONE view
 // only -- `eu_wr_done_n` is registered logic (see the BIU's `done_fire`), so
@@ -515,8 +535,9 @@ wire opr_free_now_n = (opr_owned == 2'd0) ||
 wire retire_ok_n = (wr_out == 2'd0) ||
                    ((wr_out == 2'd1) && eu_wr_done_n);
 
-wire f_wait   = row_reads_opr ? (nr_wait || !opr_free_now)   : !opr_free_now;
-wire f_wait_n = row_reads_opr ? (nr_wait || !opr_free_now_n) : !opr_free_now_n;
+// ONE view: the `_n` twin is gone with the pulse it read (F31).  `nr_wait` is
+// register-only lookahead (F18/F11a) and is legal in the act decode.
+wire f_wait = row_reads_opr ? (nr_wait || !opr_free_now) : !opr_free_now;
 
 // BUSY is the 9B POLL_N pin, sampled through the same 3-deep pin pipeline the
 // INT level goes through (biu_timed.h::poll_busy).  The pipeline itself is U3
@@ -1073,8 +1094,7 @@ wire       acc_split = !acc_byte && acc_phys[0];
 // COMBINATIONAL OUTPUTS -- what the BIU samples during THIS clock
 //============================================================================
 // The F interlock has to be clear before any of the row's acts happen.
-wire row_blocked   = (st == S_ROW) && e_f && f_wait;
-wire row_blocked_n = (st == S_ROW) && e_f && f_wait_n;
+wire row_blocked = (st == S_ROW) && e_f && f_wait;
 
 // The row's own queue demand
 wire q_demand_row = row_need_q && !row_blocked;
@@ -1141,10 +1161,7 @@ assign q_first = (st == S_OPC_POP) ? pop_is_first
 // CX==3 (two completed reads in the store because none were ever taken out).
 wire pend_go = pend_active && opr_fresh;
 wire row_pre_pair = row_bus && pend_active;
-wire row_pre_wait   = row_pre_pair && !opr_fresh &&
-                      (nr_wait || !opr_free_now);
-wire row_pre_wait_n = row_pre_pair && !opr_fresh &&
-                      (nr_wait || !opr_free_now_n);
+wire row_pre_wait = row_pre_pair && !opr_fresh && (nr_wait || !opr_free_now);
 
 wire row_acts_ok = (st == S_ROW) && !row_blocked && (rowq >= row_qn) &&
                    !row_pre_wait;
@@ -1302,7 +1319,7 @@ always @(posedge clk) begin
         rd_pending = 2'd0; rd_done_cnt = 2'd0; rd_age0 = 1'b0;
         iend_owed = 1'b0; pe_opc_reg = 8'd0; pe_opc8080 = 1'b0; pe_op8 = 1'b0;
         pe_pfxcnt = 8'd0;
-        wr_out = 2'd0; opr_owned = 2'd0;
+        wr_out = 2'd0;
         opc_valid = 1'b0; opc_byte = 8'd0; pop_is_first = 1'b1;
         ld_b = 8'd0; ld_pla = 14'd0; ld_ext = 1'b0; ld_page = 3'd0;
         ld_hasrm = 1'b0; ld_rm = 8'd0; ld_disp = 16'd0; ld_dlo = 8'd0;
@@ -1369,7 +1386,6 @@ always @(posedge clk) begin
             rdq_n = rdq_n + 2'd1;
         end
         if (eu_wr_done_n && (wr_out != 2'd0)) wr_out = wr_out - 2'd1;
-        if (eu_opr_free_n && (opr_owned != 2'd0)) opr_owned = opr_owned - 2'd1;
         if (q_pop && q_ripe && q_first && !first_pop_seen) first_pop_seen = 1'b1;
 
         //====================================================================
@@ -1393,7 +1409,7 @@ always @(posedge clk) begin
                      st, upc_page, upc_opc, upc_loc, row, q_byte, q_ripe,
                      eu_slot_busy_n, eu_post, eu_bs, eu_addr, eu_pair,
                      eu_wdata,
-                     eu_rd_done_n, eu_wr_done_n, eu_opr_free_n, wr_out, pc,
+                     eu_rd_done_n, eu_wr_done_n, eu_opr_free, wr_out, pc,
                      ind, opr, opr_fresh, pend_active, poste, rdq_n,
                      rd_done_cnt, tmpa, tmpb, tmpc, sigma, pfxcnt_eff);
 `endif

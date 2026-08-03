@@ -88,7 +88,6 @@
         SSA_E_RD_DONE_CNT:         ss_rdata <= {14'b0, rd_done_cnt};
         SSA_E_RD_AGE0:             ss_rdata <= {15'b0, rd_age0};
         SSA_E_WR_OUT:              ss_rdata <= {14'b0, wr_out};
-        SSA_E_OPR_OWNED:           ss_rdata <= {14'b0, opr_owned};
         SSA_E_OPC_VALID:           ss_rdata <= {15'b0, opc_valid};
         SSA_E_OPC_BYTE:            ss_rdata <= {8'b0, opc_byte};
         SSA_E_POP_IS_FIRST:        ss_rdata <= {15'b0, pop_is_first};

@@ -143,8 +143,6 @@ begin
             end
             pend_active = 1'b0;
             opr_fresh   = 1'b0;
-            if (opr_owned != 2'd3)
-                opr_owned = opr_owned + (pend_split ? 2'd2 : 2'd1);
         end
         if (row_bus) begin
             if (row_is_wr || row_is_wb) begin
@@ -164,8 +162,6 @@ begin
     if (pend_active && opr_fresh) begin
         pend_active = 1'b0;
         opr_fresh   = 1'b0;
-        if (opr_owned != 2'd3)
-            opr_owned = opr_owned + (pend_split ? 2'd2 : 2'd1);
     end
 
     // --- cadence -------------------------------------------------------
