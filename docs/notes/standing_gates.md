@@ -22,6 +22,7 @@ f0lock + f4a + v0.3 3.7M) before any reflash (the RR-era bar; see
 | test_fuzz_classify / test_fuzz_accept | `python3 sw/test_fuzz_{classify,accept}.py` | the verdict tree + acceptance rules (offline) |
 | ss modes | `python3 sw/check_core.py --ss-sweep ...` | savestate save/restore is cycle/arch clean mid-instruction |
 | f4a_boundary_battery | `python3 sw/check_core.py --suite-dir tests/v30/f4a_boundary ...` | the EA FFFF->0000 wrap consumers |
+| check_ucore_tables (G0) | `python3 sw/check_ucore_tables.py` | the generated `hdl/rtl/ucore/` tables byte-match `sim/`: 1028 ROM rows + 8192 micro-addresses + 768 PLA entries, on an INDEPENDENT re-parse and on the emitted artifacts (ucore campaign, `docs/notes/ucore_provenance.md` §4) |
 
 `sw/t30_sweep.sh` runs the lints + gates + every golden suite in one detached
 pass (the pre-reflash bar for EU decode-path changes).
