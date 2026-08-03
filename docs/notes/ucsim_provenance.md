@@ -1674,7 +1674,7 @@ cases across v0.1+v0.2 agree.
 | # | assumption | § | falsifier |
 |---|---|---|---|
 | A29 | the three hardware entry addresses of §33 (INT pin → `111.00000010.00`, NMI → `111.00000000.00` loc 2, BRK/TF trap → loc 0), and that `F4` HALT has no microcode at all | 33 | a pin-event form landing on the wrong vector; `HLT.INT`/`HLT.NMI`/`HLT.RES`, 3 600 cases, exercise the HALT half |
-| A30 | the `111.00000010.00` bank pair is selected by an **emulation-mode input** to the micro-address decoder (native = bank B), rather than by a fixed priority with bank A dead | 34 | a `BRKEM` capture reaching page 7 opcode 02 (R10); nothing we hold decides it |
+| A30 | ~~the `111.00000010.00` bank pair is selected by an **emulation-mode input** to the micro-address decoder (native = bank B), rather than by a fixed priority with bank A dead~~ — **REFUTED 2026-08-03, see the erratum at the end of §61** | 34, 61 | **DIRECTED CAPTURE TAKEN**: `BRKEM` → 8080 → INTR gives a TWO-cycle acknowledge with MD=1 in 32/32; the emulation-mode input predicts ONE |
 | A31 | Ext `[-03-]` is architecturally inert | 35 | any `INT`/trap form: 7 500 software-INT/trap cases plus 13 200 pin-event cases execute it |
 | A32 | `INTR` is the recognition latch AND the `REP` continuation's second term | 37 | `INT.F3AA`'s aborted cases: a wrong term gives the wrong `CW`/`IY`/element writes |
 | A33 | the hardware presents a **cleared loader context** at an internal entry — in particular `xop`, or the vector fetch's `SR = IO` would be re-classified as a port access (A24) | 40 | directed probe, §40; no golden covers it |
@@ -2514,6 +2514,51 @@ So the bank contains no trustworthy MD = 0 acknowledge.  A30 needs a **directed
 capture**: a contained program that does `BRKEM`, stays in 8080 mode, and takes
 an INTR — at which point one INTA cycle instead of two settles it in a single
 seed.  Recorded as the concrete S4 board request.
+
+### 61.1 ERRATUM (2026-08-03) — A30's MECHANISM IS REFUTED; the directed capture was taken
+
+**Routed FROM the timed campaign** (`ucsim_t_provenance.md` §21.6, S10).  This
+section's own experiment — *"a contained program that does `BRKEM`, stays in
+8080 mode, and takes an INTR"* — was built and run on the socket, with MD read
+directly off PS3 on the acknowledge cycles themselves (M9), so no model belief
+about the mode is in the loop.
+
+```
+BRKEM 0x20  →  IVT[0x20] read  →  PSW/CS/IP pushed (MD sets mid-chain)
+            →  8080 stub: EI (FB) then NOPs, MD=1 IE=1 on every fetch
+            →  INTR asserted  →  INTA, INTA  — both ps=0xE = MD|IE|CS
+            →  IVT[0xFF] read
+```
+
+**32 acknowledges** over 2 preparation histories × waits {0,1} × 8 delays × 3
+repetitions: **every one a TWO-cycle pair, every one with MD = 1 on both
+cycles, and ZERO cells voided** by the pre-registered instrument falsifier
+(an acknowledge with MD = 0 would not count as evidence).
+
+**Consequences for this ledger:**
+
+1. **A30's stated mechanism is REFUTED.**  An emulation-mode 14th input to the
+   micro-address decoder predicts bank A — a **SINGLE** `[-05-]` acknowledge —
+   in exactly this program.  A single acknowledge does not occur in 32 of 32
+   deliberate, uncontaminated observations.
+2. **A30 moves from `free choice (EU-semantic)` to MEASURED** in the assumption
+   census: *silicon takes bank B in emulation mode.*  The verdict document's
+   free-choice count of six (A8, A9, A15, A30, A33, A36) therefore becomes
+   **five** for this purpose; that document is not otherwise retracted.
+3. **What is NOT claimed.**  This refutes the SELECTION MECHANISM; it does not
+   prove bank A is dead silicon.  Nothing observable on the bus distinguishes
+   "dead" from "never selected", and `01DC`-`01DF` remain **0/4 executed**
+   (§62).  The honest entry is: *silicon takes bank B in emulation mode; the
+   emulation-mode decoder input is refuted; the reachability of bank A is
+   unobservable from the bus.*
+4. **It supersedes the `has_brkem` caveat** that `ucsim_t_provenance.md` §(d)
+   raised against §61's own corpus argument.  §61 concluded "no trustworthy
+   MD = 0 acknowledge in the bank" from a set the flag under-counted; that
+   argument is now moot, because the question is settled by a directed
+   measurement instead of a corpus census.
+
+Captures, full per-clock rows, raw 64-bit words and `SHA256SUMS`:
+`sw/testdata/s10/s5-a30/`.
 
 ## 62. Micro-row coverage from the fuzz banks alone — 912 / 1028
 
