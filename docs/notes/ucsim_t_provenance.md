@@ -5143,3 +5143,587 @@ carries unrelated uncommitted `hdl/` and `sw/` changes from another branch.
    already IN the bank (§20.6), which is what the board session was for, and
    nothing else in this session's plan reached the point of needing silicon.
    No pre-registration was written for a board session and none was taken.
+
+## 21. POST-CLOSURE ADDENDUM #6 — S10, THE CAPTURE-FIRST BOARD SESSION (2026-08-03)
+
+**This section is an ADDENDUM.  Nothing in §0-§20 is edited or retracted by it.**
+S9b closed the EVT driver and, in closing it, produced three things that are
+DATA and not LAW: the 44 waited seeds of the `ACK` family (§20.8), the 81 seeds
+of the `HALTWAKE` family, and a chained-REP-abort magnitude whose anchor is
+resolved but whose size is still a bare clock (§20.6, §20.12 item 4).  Every
+one of those is a *stimulus* request, and every one of them names silicon.
+This section is the board session that goes and gets it.
+
+### 21.0 PRE-REGISTRATION — written and committed BEFORE the board was touched
+
+The discipline is §12.0's and §14.0's, unchanged, and it is restated because
+this session has FIVE probes and a 30-minute budget and is therefore exactly
+the kind of session in which a post-hoc reading gets dressed up as a
+prediction:
+
+* **SINGLE WRITER**, checked before contact — no foreign `v30run serve` /
+  `v30ctl` / fork-session runner, locally or on the target.  Nothing in the
+  code enforces this; it is a manual pre-contact procedure and the check is
+  recorded in the session log.
+* **SOCKET ONLY** (`use_core=False`, passed explicitly on EVERY call because
+  the board's CFG is sticky), **no FPGA flashing anywhere**, no
+  `safe_flash.sh`, no `v30ctl.py prep`.
+* **Raw 64-bit capture words retained** with a sha256 beside every derived
+  record, and — the P2 lesson (§13.4) — **the full per-clock row stream
+  retained, never a digest alone**.  A `SHA256SUMS` per probe directory.
+* `board_idle()` at the end of the session, and the result stated.
+* A **wedge stops the session**: if the board or the serve runner wedges, the
+  session stops and reports; it is not nursed along.
+
+#### 21.0.0 Instrument provenance — the harness is NOT wholly committed, and that is declared here
+
+An honest declaration, because §12.8 item (d) is the standing lesson (*"…are
+NOT a controlled reference and should not be cited as one"*).  The working tree
+at the moment of registration carries UNCOMMITTED changes to two files in the
+board path, from another branch's in-flight work:
+
+| file | sha256 (as used) | state |
+|---|---|---|
+| `sw/v30run.py` | `884bce6402c36e46…` | **MODIFIED** — adds `want_raw=` to `ServeRunner.run` / `run_image` |
+| `sw/check_seq.py` | `ec8a95fe378e6382…` | **MODIFIED** — folds `bs_late` into `bs_early` on TI/T4 rows in `run_chip` |
+| `sw/emit_suite.py` | `903c07ec4d3a4248…` | committed (HEAD `d8159d3b`) |
+| `sw/t2b_board.py` | `1fae26e3333e6014…` | committed |
+| `sw/timed_lawcards.py` | `03928f71d2b30768…` | committed |
+| `sw/timed_fuzz.py` | `2fe9d7ff06588896…` | committed |
+
+Two consequences, both stated rather than worked around:
+
+1. **`want_raw` is load-bearing and uncommitted.**  `sw/t2b_board.capture()` —
+   COMMITTED code, the primitive every capture in §12 and §14 went through —
+   calls `run_image(..., want_raw=True)`.  The committed board tooling does not
+   run without the uncommitted library change.  This session uses the same
+   primitive and therefore inherits the same dependency; the sha above pins
+   exactly which bytes were used.
+2. **The TI/T4 `bs_late` fold is the campaign's ESTABLISHED capture semantics,
+   not a novelty of this session.**  `t2b_board.capture()` applies it inline
+   (it does not go through `run_chip`), and `t2b_board`'s own docstring
+   describes it as *"run_chip's own like-sampling rule"*.  Every banked t2b/t4
+   capture was taken with it.  Capturing WITHOUT it would be the deviation.
+   S10 therefore uses `t2b_board.capture()` unmodified, so the fold is applied
+   identically and this session's captures are comparable to the banked ones.
+
+The RTL working-tree changes (`hdl/`) are inert for this session **by
+construction**: `use_core=False` selects the socketed physical part, so no
+fabric is in the measurement path at any point.  Nothing is flashed, so the
+bitstream on the board is whatever §14's session left, and it is not read.
+
+#### 21.0.1 What this session is FOR, and the three standing exclusions it attacks
+
+| open item | where it was booked | the stimulus this session takes |
+|---|---|---|
+| INTA under waits is not a law — 44 waited `ACK` seeds | §19.14 item 3, §20.12 item 1 | **S1**, a w1/w3 pin-event tranche |
+| the HALT-wake geometry — 81 `HALTWAKE` seeds | §20.12 item 2 | **S2**, a fine-grained HLT delay sweep |
+| the four UNRESOLVED law cards C2/C6/C7/C11 | §(c) item 3, `biu_law_cards.md` §A.1 | **S3**, the four card stimuli |
+| the chained-abort MAGNITUDE | §20.12 item 4 | **S4**, waits × chain length |
+| A30 — bank A vs bank B | §(c) item 10, `ucsim_provenance.md` §61 | **S5**, the directed BRKEM capture |
+
+**GUIDING PRINCIPLE, restated because it constrains what may be LANDED from
+this session (CLAUDE.md, user directive 2026-08-01):** this is 80's era
+hardware; nothing on the die is wasted; complex behaviour is simple systems
+interacting in ways not yet understood.  A large fitted table, a many-cased
+rule or a per-form special case is a signal of misunderstanding, not a
+deliverable.  In particular the HALT-wake geometry (S2) is registered as
+**UNMODELLED — MEASURING**: §20.12 item 2 already refused to model it because
+it would be a fitted offset, and that refusal stands into this session.  S2
+produces a MEASUREMENT; a mechanism is landed only if one falls out.
+
+#### 21.0.2 The budget, and the CUT RULE (registered in advance)
+
+Board time is budgeted at **under 30 minutes** total.  Throughput precedent:
+§12.7 ~650 captures in under 2 min; §14.3 176 cells in 11 s; §14.4 648 captures
+in 46 s.  The planned census is ≈5,300 captures.
+
+**CUT RULE, as §14.0's:** if wall time runs over, the **POPULATION** is cut by
+whole strata, evenly, and the cut is STATED — the **repetitions are never
+cut**, and no probe is silently dropped.  A probe that is not run is reported
+as not run (the §14.5 precedent for B3).
+
+Every probe is a directed factorial with **5 repetitions** at `div=8` (4 MHz).
+**Dual-frequency (`div=4`, 8 MHz) promotion is applied only where the blackbox
+protocol requires it** — i.e. to the cells a card or a verdict will be FROZEN
+against (S3's law-card cells, S5's A30 cells), not to bulk tranche emission.
+The §12.1 exclusion stands and is not re-litigated: `rd_n` and raw `bs_late`
+are within-cycle pulses read at a fixed sampling edge and are excluded from the
+cross-frequency stability projection.
+
+---
+
+#### S1 — the w1/w3 PIN-EVENT TRANCHE (opens INTA under waits)
+
+*Why.* The pin-event goldens are **w0 only** (§19.0), so w0 INTA is fully
+oracled and nothing above w0 is.  §20.8's `ACK` family is 55 seeds of which
+**44 are WAITED** — the standing exclusion showing up as data.  Reading the
+acknowledge geometry off a 1,000-row whole-program capture is inference; a
+single-instruction golden reads it directly.
+
+*Stimulus.*  `emit_suite._emit_one_index(spec, is_evt=True, op, idx, HOST,
+seed_base, preload_n=-1, waits=N)` — byte for byte the path §12.4's P4 used to
+emit the `F3AA` pair at w1/w3, and the path that emitted the whole w0
+pin-event corpus at §19.  `EMIT_USE_CORE is False` is asserted at the call site
+(goldens may come from the socket and nothing else).
+
+*Factorial axes.*
+
+| axis | levels |
+|---|---|
+| form | **INT.90, NMI.90, HLT.INT, HLT.RES, INT.F3AA, INT.9D** (6) |
+| waits | **1, 3** (2) |
+| case index | **0..199** (200) — the same 200/form/wait the existing w1/w3 tranches use |
+| evt delay | each form's OWN stratum, unchanged: INT.90 `1..7`, NMI.90 `1..7`, HLT.INT/HLT.RES `14..40`, INT.F3AA `1..28`, INT.9D `1..10` (`emit_suite.EVT_FORMS`) |
+
+= **2,400 emitted cases**.  Repeatability control: 24 declared cells (2 per
+form per wait) re-captured at **5 repetitions**, and 6 of those (one per form,
+w1) promoted to both frequencies.
+
+The six forms are chosen for discrimination, not coverage: `INT.90` is the
+minimal vectored acknowledge, `NMI.90` the edge-latched twin that separates the
+pipeline depth (3 vs 4), `HLT.INT`/`HLT.RES` carry the wake (vectored and
+masked), `INT.F3AA` carries the mid-string withdrawal (and feeds S4), `INT.9D`
+carries the POP-PSW boundary race whose flags policy §19.9 fixed.
+
+*Predictions.  From the mechanisms, where they predict:*
+
+1. **M14 is wait-INVARIANT.**  `D = max(B, A+3)` (INT) / `max(B, A+4)` (NMI),
+   `entry = D+2`, with `A` = (the CODE T1 at the anchor) + 2 + `delay` and `B`
+   = the replayed boundary's RETIRE clock.  `A`'s pipeline term is a FLOP
+   CHAIN — three flops for the INT level, an edge latch read one clock later
+   for NMI — and a flop chain is counted in CLOCKS, not in bus cycles.  So the
+   depth **must not stretch with waits**: the census that scored 800/800 at w0
+   with `p = 5` (INT) / `6` (NMI) in the `max(B+2, A+p)` form must score the
+   same `p` at w1 and w3, on the goldens' own acknowledge positions.
+   *Falsifier:* any w1/w3 case whose acknowledge is inconsistent with
+   `max(B, A+3|4)+2`, or a `p` that moves with `N`.
+2. **M15 is wait-INVARIANT.**  The acknowledge cycle drives no address:
+   AD15-0 float through the commit display and T1, AD19-16 driven to 0 over
+   both; from T2 on it is an ordinary read display.  Waits add Tw between T3
+   and T4 and touch none of that.
+   *Falsifier:* any w1/w3 INTA cycle that drives an address phase.
+3. **THE ONE GENUINELY NEW DISCRIMINATOR — the INTA1→INTA2 gap.**  §19.2
+   derives it with no rule at all: `01E1`'s `F` releases at the acknowledge's
+   `eu_done` and `01E2` posts one clock later, which puts INTA2's T1 exactly
+   **7 clocks** after INTA1's on a quiet bus (measured 200/200 per form at w0).
+   `eu_done` is a BUS-COMPLETION event, so it moves with the acknowledge
+   cycle's own wait count.  Two readings, registered with the clock each
+   predicts, exactly as §12.0's P4 registered A/B:
+   - **Reading A — BUS-KEYED (what the model's mechanism says today):** the gap
+     is `7 + N_ack`, where `N_ack` is the Tw count of the FIRST acknowledge
+     cycle.  At uniform w1 → **8**; at uniform w3 → **10**.
+   - **Reading B — CADENCE-KEYED (the campaign's own recurring answer):** the
+     gap stays at **7** at every wait level, joining M6's T4+2 (§12.1), the OPR
+     release at index 2 (§11.4), the `F3AA` closing pop at T4+2 (§12.4) and
+     §20.6's chained-abort clock as a FIXED cycle-relative index.
+   Reading A is the model's current prediction and is what will be scored; but
+   the campaign has now measured FOUR separate quantities that turned out to be
+   fixed indices rather than eval/completion-keyed, so Reading B is the live
+   rival and is registered as such.  *Falsifier for both:* a gap that is
+   neither 7 nor `7+N_ack` — which would be a genuinely new term and is
+   reported as one.
+4. **`entry = D+2` and the NMI ROM tail are ROM rows, not constants.**  NMI's
+   `D+2+5 = D+7` to the IVT read is five ROM rows (`01DA 01DB 01EC 01ED 01EE`);
+   ROM rows cost clocks, not bus cycles, so the five clocks stand at w1/w3
+   while the IVT READ's own T1 slides by the bus.
+   *Falsifier:* an NMI IVT-read post clock that is not `D+7`.
+5. **The suppressed pop (§19.3) is wait-invariant.**  The recognition decision
+   sits at the RETIRE, not the would-pop, and the byte is not popped: the QS
+   port stays idle across the recognition at w1/w3 as at w0.
+   *Falsifier:* an `F` on the recognition clock in any waited case.
+
+*The numeric bar, stated before the run.*  The w0 pin-event forms score
+**2,600 / 2,600 exact** (§19.13).  The same model, unchanged, is scored on the
+new w1/w3 tranche and **the FIRST full run is the ratchet baseline of record**
+(§20.0 clause 4's rule, applied here).  What is registered as falsifiable now:
+
+* **B1a** — zero emission hard failures (`event did not fire`, `ComposeError`,
+  `no done marker` after retry) over the 2,400.  A form that cannot be emitted
+  at a wait level is a FINDING, reported, not silently dropped.
+* **B1b** — the 24 repeatability cells are **pin-identical over 5
+  repetitions**, and the 6 promoted cells identical at 4 MHz and 8 MHz under
+  the §12.1 projection.  A cell that is not is a capture-side result and
+  invalidates that cell, not the model.
+* **B1c** — **any form scoring 200/200 at BOTH waits proves that form's
+  waited acknowledge geometry needs NO new term**, and the count of such forms
+  is the session's headline number for this probe.  Predicted: `INT.90` and
+  `NMI.90` (the minimal acknowledges) score 200/200 at both waits if and only
+  if reading A above is right and nothing else is missing.
+* **B1d** — the shortfall, if any, is localised to a CLOCK and a named field
+  before any mechanism is proposed.  A shortfall that cannot be localised is
+  reported as un-localised.
+
+*What may NOT happen:* no gate anywhere is re-scoped to include w1/w3
+pin-events until this tranche exists and is frozen.  Until then, and if this
+probe fails to produce a clean tranche, INTA-under-waits **remains a stated
+exclusion** — §19.14 item 3 stands unmodified.
+
+---
+
+#### S2 — the HLT DELAY SWEEP (the HALT-wake geometry)
+
+*Why.* §20.8's `HALTWAKE` family is 81 seeds, **64 of them at w0** — the one
+genuinely NEW open surface S9b opened.  §20.12 item 2 names two shapes and
+refuses to model either: the woken fetch's display clock (the chip drives it
+one clock earlier than the model when the wake lands INSIDE the HALT cycle),
+and **32 seeds where the chip never drives the HALT status at all because the
+wake reached the register first**.  §19.6's wake was measured on w0 goldens
+whose assert clock is FAR from the HALT display; these are the ones where it
+is not.  The named stimulus is exactly this sweep: *"the existing pin-event
+generator already produces it, only the `delay` axis needs the sweep."*
+
+*Stimulus.*  `HLT.INT` (vectored, `ie=1`) and `HLT.RES` (masked resume,
+`ie=0`, `close="next"`) emitted through the same `emit_evt_case` path, with
+`case["delay"]` **overridden to a swept value** instead of drawn from the
+form's `14..40` stratum — the only change, and it is a change of the RIG's
+schedule, not of the model.
+
+*Factorial axes.*
+
+| axis | levels |
+|---|---|
+| form | **HLT.INT, HLT.RES** (2) |
+| delay | **0..48 step 1** (49) — deliberately brackets the form's own `14..40` on both sides so the sweep walks the assert clock from BEFORE the pop to well past the HALT display |
+| waits | **0, 1** (2) |
+| reps | **5** |
+
+= 980 captures.  One preparation history (the sweep is the axis; a second
+history is the falsifier's job, below).
+
+*Predictions.  Where the mechanisms predict:*
+
+1. **A THRESHOLD EXISTS, and it is sharp.**  M16 (§19.5) says the HALT status
+   takes the register on the first clock the register is FREE from the DECODE
+   cycle on, and §20.5 says `display = eval+1` while `T1 = max(eval+2, the
+   bus's first FREE clock)`.  Together these predict a single threshold delay
+   `d*` such that
+   - `delay < d*`: the wake reaches the register FIRST and **the chip never
+     drives the HALT status at all** (the 32-seed shape, reproduced
+     deliberately);
+   - `delay >= d*`: the chip drives the HALT display and then wakes.
+   Predicted: **one threshold, not a scatter** — a scattered boundary would
+   mean the wake and the display are not competing for one register and M16 is
+   wrong about what the competition is.
+   *Falsifier:* two or more disjoint delay bands that drive the status, or a
+   band whose behaviour alternates.
+2. **`d*` MOVES WITH THE RIG'S Tw, BY EXACTLY THE ADDED WAIT.**  §12.3
+   measured that the RIG runs a full T-state cycle over the HALT pseudo-cycle
+   and **does insert Tw** (T1..T4 = 4 / 5 / 7 clocks at w0 / w1 / w3), while
+   the CPU's own side — the 2-clock status display — is wait-independent.  So
+   the window in which "the wake lands inside the HALT cycle" is **one clock
+   wider at w1 than at w0**, and therefore:
+   ```
+   d*(w1) - d*(w0) = +1        (the single Tw the rig inserts)
+   ```
+   This is the sharp registered prediction and it discriminates cleanly: a `d*`
+   that does NOT move says the wake geometry is keyed to the decode CADENCE and
+   not to the bus cycle at all, which would be the §12.4 / §20.6 answer again
+   and would be a genuine finding.
+   *Falsifier:* `d*(w1) - d*(w0) ∉ {0, +1}`, or a shift that is not an integer
+   number of clocks.
+3. **The HALT display is 2 clocks at every delay and both wait levels**
+   (§12.3's measured status display), whenever it is driven at all.
+   *Falsifier:* any capture with a 1- or 3-clock HALT status.
+4. **HLT.RES's resumed pop tracks `dec+1`; HLT.INT's entry tracks `dec+3`**
+   (§20.1's one re-expression of §19.6), with `dec = max(A + pipe, the clock
+   the part is halted on)`.  Over the sweep, `A + pipe` is the later term for
+   large `delay` and the halted clock is the later term for small `delay`, so
+   **the sweep crosses the max** — and the crossing point is the second,
+   independent estimate of `d*`.  Predicted: the two estimates agree.
+   *Falsifier:* the entry/pop threshold and the display threshold disagree by
+   more than a clock — which would mean the wake decision and the display
+   competition are two different events, not one.
+
+*Registered as UNMODELLED — MEASURING (the brief's explicit case).*  The
+woken fetch's **display clock** when the wake lands inside the HALT cycle is
+NOT predicted here.  §20.12 refused it as a fitted offset and that refusal
+stands.  This probe produces the measured table `delay × waits → (status
+driven?, display clock, first fetch T1, entry/pop clock)` and the mechanism
+question is asked of that table afterwards.  **A per-delay offset table is NOT
+a deliverable** — if the geometry does not collapse to a statement about ONE
+competing register, it is reported as measured-and-open, in the §19.8.2 style
+("MEASURED offset, MECHANISM OPEN"), not landed.
+
+---
+
+#### S3 — THE FOUR CARD STIMULI (C2, C6/C7, C11)
+
+*Why.* `timed_lawcards.py` scores **7 GREEN / 0 RED / 4 UNRESOLVED**, and all
+four UNRESOLVED are STIMULUS GAPS, not model failures — the tool hard-codes
+each with its missing capture (`sw/timed_lawcards.py:210, 234, 241`).  The
+booked probes are `biu_law_cards.md` §A.1's.
+
+**TARGET, registered: 11 GREEN / 0 RED / 0 UNRESOLVED.**  Registered equally
+plainly: a card may come back **RED** (the stimulus exists and the model fails
+it — a model finding, reported as one) or **stay UNRESOLVED** (the stimulus did
+not isolate what the card names — a probe-design finding, reported as one).
+Neither outcome is smoothed, and a card is NOT moved to GREEN by weakening what
+it asserts.
+
+**S3a — C2, LC1's queue-fill RAMP.**  The card: *"queue-fill ramp, waited →
+prefetch resumes IMMEDIATELY at the fill threshold"*, against C1/C3's
+steady-state `cidle` pin of 3.  The gap is that the Arm-C sled isolates the
+STEADY STATE and not the transient.
+*Stimulus:* a `gen_seq.Prog` program that repeatedly FLUSHES the queue to empty
+(`emit_farjmp_next()`, a contained far JMP — the same construct the sled corpus
+uses) and then runs a fetch-limited sled, so every flush restarts the fill from
+zero.  Axes: flush period × trailing sled length × the four corpus wait vectors
+`ws0:wmax0, ws5:wmax1, ws7:wmax3, ws11:wmax7`, 3 reps, plus 5 reps + both
+frequencies on the two cells the card is frozen against.
+*Prediction:* at the FIRST refill after a flush the chip's idle gap is
+**strictly smaller than the steady-state `cidle` of 3** (the card's "resumes
+immediately"), and the sim reproduces the ramp's gap distribution.
+*Falsifier:* a post-flush gap distribution centred on 3 — i.e. no ramp
+transient exists and C2's premise is wrong, which is reported as refuting the
+CARD, not the model.
+
+**S3b — C6/C7, LC3's Tw-parity RMW commit (the uRMW gate of record).**
+`biu_law_cards.md` §B is unambiguous and its protocol is adopted verbatim:
+**the check MUST carry a CHIP-SIDE POSITIVE CONTROL**, because a non-firing
+structure verifies nothing, and **the check FAILS VACUOUS if the chip signature
+cannot be produced** — a flagged outcome, not a pass.  It also warns that the
+synthetic gadgets did NOT reproduce the firing structure and must not be reused
+as-is.
+*Stimulus:* the RMW-write gadget construction (`ADD word[disp16],imm16` =
+`81 06 lo hi 01 00`; `INC word[disp16]` = `FF 06 lo hi`; `NEG word[disp16]` =
+`F7 1E lo hi`) over `j_lead` leading NOPs × `k_fill` back-to-back RMW writes,
+per `sw/biu_law_lc3_gadget.py`'s `build_image` — **but captured from the
+SOCKET, which that script never did** (it is a board-free Verilator search).
+*Protocol, in this order and no other:*
+1. **POSITIVE-CONTROL SEARCH.**  Coarse grid `kind ∈ {ADD, INC}` × `j ∈
+   {0,2,4,6}` × `k ∈ {1,2,4,8}` × uniform `w ∈ {1,2,3,4,5,6}`, socket, 1 rep,
+   scanning the CHIP stream for the documented firing signature: an RMW
+   mem-write ready AT a prefetch's T4 with an EVEN Tw parity, committing EARLY
+   (the eval_ext direct slot, **T4+2**).
+2. If and only if the signature is FOUND on silicon: promote those cells to 5
+   reps at both frequencies, retain full rows, and score sim-vs-chip.
+3. If the signature is NOT found: **report C6/C7 as FAILED-VACUOUS** with the
+   grid that was searched.  This is a registered possible outcome and it is not
+   a pass.
+*Predictions (these are REPRODUCTIONS — the silicon is already banked at 15/15
+and 30/30, RTL unchanged since):* C6 — even-Tw-parity RMW write ready-at-T4
+commits EARLY at T4+2.  C7 — a MEMR **load** ready at T4 does NOT split on
+parity at either parity (write-scoped).
+*Falsifier:* an even-parity RMW write that commits LATE, or a load that splits
+on parity — either refutes the banked 15/15 and is a much bigger finding than a
+card colour.
+*The honest-tension note is carried into this probe as registered
+(§B of `biu_law_cards.md`):* the H-PHASE landing recorded a −50u census effect
+while the raw diff shows zero census-combo dependence.  If the firing structure
+is found, that tension is re-examined against it; it is not asserted away.
+
+**S3c — C11, LC4's `owns_slot`, the SINGLE-SOURCE matrix.**  The card is
+"MUST (enum)": the claim is that reservation is **NOT uniform** — exactly two
+enumerated sources make the prefetch lose the slot, and *"every other source
+keeps baseline yield; a rebuild making reservation uniform refutes"*.  The gap
+is that no directed capture isolates a SINGLE source.
+*Stimulus, as architecture (the RTL state names are translated to the
+instruction forms that produce them):*
+
+| cell | source | instruction form |
+|---|---|---|
+| **P** (positive) | `S_DHI` final-displacement pop | `MOV [disp16], reg` — a disp16 STORE, reservation asserting at the final displacement byte's pop |
+| **P** (positive) | `S_PUSH_CALC` @ q≥2 | `PUSH reg` with the queue held at occupancy ≥ 2 |
+| **N** (held-out negative) | reg-EA store | `MOV [BX], reg` |
+| **N** (held-out negative) | disp16 LOAD | `MOV reg, [disp16]` |
+| **N** (held-out negative) | RMW | `INC word [disp16]` |
+
+Axes: 5 sources × leading phase `j ∈ 0..7` × the 4 corpus wait vectors × 3
+reps; the 2 positive cells promoted to 5 reps at both frequencies.
+*Prediction:* the prefetch **loses the coincident slot at exactly the two
+enumerated sources** and keeps baseline yield at all three negative controls,
+and the sim reproduces the same split.
+*Falsifier — and it is a real one:* a THIRD source at which the prefetch also
+loses (reservation is uniform → the enumeration is an artifact and C11's "enum"
+qualifier is wrong), or an enumerated source at which it does NOT.  Under the
+SIMPLICITY principle a uniform answer would be the *better* one, and it is
+registered here as the outcome that would REFUTE the card's enumeration rather
+than as a failure to be avoided.
+
+---
+
+#### S4 — THE CHAINED-WITHDRAWAL MAGNITUDE
+
+*Why.* §20.6 RESOLVED the anchor — the extra clock is cadence-keyed and the
+eval/write-accept rival is FALSIFIED at w1, w2 and wrand7 — but left the
+MAGNITUDE as *"a measured clock without a ROM row"* (§20.11, §20.12 item 4).
+The bank's evidence is 21 chained withdrawals, all exactly +1, but at only 3
+distinct wait levels and with chain length confounded with seed.
+
+*Stimulus.*  `INT.F3AA` (`REP STOSB`, `cx` set by the form's own builder) with
+the evt delay swept to select WHICH element the abort lands on, so chain length
+becomes a controlled axis instead of an incidental one.
+
+*Factorial axes.*
+
+| axis | levels |
+|---|---|
+| waits | **0, 1, 2, 3** (4) |
+| chain length (completed elements at the abort) | **2, 3, 4** (3) |
+| delay cells per (wait, chain) | **10**, swept to land the abort on the intended element |
+| reps | **5** |
+
+= 600 captures.  A one-element (chain = 1) control cell is captured at every
+wait level as the baseline the offset is measured AGAINST.
+
+*Prediction, from §20.6's resolved anchor.*  The extra clock is a row-cadence /
+decode-pipeline clock and NOT a bus-completion one.  Therefore:
+```
+offset(chain >= 2) = +1     for chain in {2,3,4} and waits in {0,1,2,3}
+offset(chain == 1) =  0     at every wait level
+```
+— **12 cells, all +1; a single clock, wait-invariant AND chain-length-invariant**,
+and the flush at the loop row + 10 in every case.
+*Falsifiers, each of which names a different mechanism:*
+- an offset that GROWS with chain length (e.g. +2 at chain 4) → the clock is
+  per-iteration drift after all, and §19.8.2's "a single clock, not a
+  per-iteration drift" is refuted at chain lengths the bank did not sample;
+- an offset that grows with `N` (e.g. `+1+N`) → it IS bus-keyed and §20.6's
+  falsification of the write-accept anchor was under-powered;
+- any chained abort whose flush is not at the loop row + 10 (§20.6's own
+  standing falsifier).
+
+*Closure condition, registered.*  If all 12 cells read +1 with the chain-1
+control at 0, §20.12 item 4 is **CLOSED as far as measurement can close it**:
+the magnitude is one clock, cadence-keyed, invariant in both the wait axis and
+the chain axis.  It is stated in the §20.6 style — **anchor resolved, magnitude
+measured, ROM row still unnamed** — and NOT dressed as a derived row.  Naming
+the row would require the ROM to show a row that costs exactly this clock, and
+no such row is claimed.
+
+---
+
+#### S5 — A30, THE DIRECTED CAPTURE
+
+*Why.* The ledger's own wording (`ucsim_provenance.md` §61): *"A30 needs a
+directed capture: a contained program that does `BRKEM`, stays in 8080 mode,
+and takes an INTR — at which point one INTA cycle instead of two settles it in
+a single seed."*  §14.5 turned it into an **n = 1 datapoint** by reading MD off
+the pins (M9: PS3 is the emulation-mode bit) across the banks:
+`len=2, MD=0` 760, `len=1, MD=0` 8, **`len=2, MD=1` — exactly 1**
+(`t30-raw/raw_3821`, rows 969-981, both acknowledge cycles carrying
+`ps = 0xE` = MD | IE | CS).  It points at bank B / fixed priority.  n = 1 is a
+datapoint, not a closure.
+
+*Stimulus.*  A contained program, built with `testimage.compose`:
+1. `EI` (`FB`) then `BRKEM vec` (`0F FF nn`) — BRKEM pushes PSW/CS/IP and
+   enters emulation mode with **IE cleared**, so
+2. the 8080-mode stub at the vector begins with 8080 `EI` (`FB`, the same
+   encoding) and continues with 8080 `NOP`s (`00`), keeping the part in
+   emulation mode and interruptible;
+3. the rig asserts **INTR** (`pin=0`) at a controlled delay after the anchor,
+   landing inside the 8080 NOP run;
+4. the capture is read for the INTA run and, on the acknowledge cycles
+   THEMSELVES, for PS3.
+
+*Factorial axes.*  2 preparation histories (two vectors / two stub locations)
+× waits **{0, 1}** × 10 delay cells × **5 reps** = 200 captures, at both
+frequencies for the four cells the verdict is frozen against.  Target: **≥ 20
+independent acknowledges taken with MD observed = 1 on the acknowledge cycle**.
+
+*Predictions — and the whole point is that they are OPPOSITE and both cheap to
+read:*
+
+| reading | mechanism | prediction |
+|---|---|---|
+| **bank B / FIXED PRIORITY** (the model, and the n=1 datapoint) | bank A is dead silicon; the micro-address decoder has no mode input | **TWO** INTA cycles, both with **PS3 = 1** |
+| **bank A / EMULATION-MODE INPUT** (assumption A30, the 14th decoder input) | the decoder takes MD as a 14th input and selects `01DC`-`01DF` | **ONE** INTA cycle, with **PS3 = 1**, and the vector taken off the HIGH lane |
+
+*Falsifier for the bank-B verdict:* a SINGLE acknowledge in any repetition of
+any cell.  One such capture flips A30 and it is reported immediately.
+*Instrument falsifier (checked first, and it can void the whole probe):* if
+PS3 is **0** on the acknowledge cycles, the part was NOT in emulation mode when
+the interrupt landed and the probe measured nothing — the cell is VOID, not
+evidence, and the stub is fixed before anything is scored.  This is the exact
+contamination §61 and §14.5 both name as the reason the earlier evidence did
+not count.
+
+*What may be claimed.*  A30 is an **ASSUMPTION with a free-choice
+classification** (`ucsim_campaign_verdict_2026-08-01.md` §365: one of six
+EU-semantic free choices).  A clean n ≥ 20 of two-cycle MD=1 acknowledges
+UPGRADES the ledger entry from "free choice" to **MEASURED: silicon takes bank
+B in emulation mode**, and REFUTES the emulation-mode-decoder-input mechanism
+as the explanation — it does not by itself prove bank A is dead silicon
+(nothing observable distinguishes "dead" from "never selected"), and that
+distinction is stated rather than claimed.  A cross-reference erratum goes to
+the FUNCTIONAL ledger either way, because §(d) already records that the
+`has_brkem` flag under-reports 8080 excursions and that A30's "unreached even
+with 8080 mode live" was evaluated over a set now known to be too small.
+
+---
+
+#### 21.0.3 The standing ratchets this session may not move backwards
+
+Registered so that no S10 landing can be scored against a moved denominator:
+
+| ratchet | value entering S10 |
+|---|---|
+| functional corpus | **7,341,126 / 7,341,126** |
+| v0.1 w0 timed | **168,997 / 169,000** |
+| v0.1-w1 / -w3 | **1,200 / 1,200** each; `EB` w1 200/200 |
+| `timed_fuzz` REGISTERED | **1,272 / 1,702** |
+| `timed_fuzz` EVT-unlocked | **678 / 1,008** (population 1,008 / 157 OPEN_BUS, FROZEN) |
+| `timed_fuzz` COMBINED | **1,950 / 2,710** |
+| victory tranche B2 | **154 / 188** (216 cells, 28 OPEN_BUS, 0 EVT by construction) |
+| `timed_wvec_gate` | count 88/88, digest 63/88, cycles +0.0 % |
+| `timed_lawcards` | **7 GREEN / 0 RED / 4 UNRESOLVED** |
+| boot / scenario / ENTER / INS | 220 rows; 18/0/9; 154/154 ×5; 173,556/173,556 |
+
+**Every one is monotone.**  Zero-newly-broken on all scored populations is a
+HARD gate for any mechanism this session lands, and the functional 7,341,126
+is re-run before the final commit.
+
+**V-registrations are untouched.**  §14.0's V0-V5 are not re-opened by this
+session.  **V5 remains a registered FAILURE**; it changes standing only if a
+re-score meets its bar (V1 = 100 %), and in that event it is reported as
+*registered-FAIL-plus-addendum*, never as a restatement.
+
+#### 21.0.4 Deviation policy
+
+Any post-capture change to a criterion registered above is recorded AS a
+deviation, in the §14.4 style ("a post-capture change to a registered criterion
+and is recorded as one"), with the measurement that motivated it.  A registered
+clause that fails is reported as **FAILED**, in the §20.7 style, and not
+restated.
+
+#### 21.0.5 Instrument facts established OFFLINE, before contact (so no capture discovers them)
+
+Confirmed by reading the harness, not by running it:
+
+1. **The new tranche gets its OWN suite directory and seed base.**  The existing
+   `tests/v30/v0.1-w1` / `-w3` are 6 ORDINARY forms (`B8 8B 89 F7.6 EB E8`) ×
+   200 = 1,200 each, seed bases `v30-w1` / `v30-w3`, and they contain **no
+   pin-event form**.  S1 emits into `tests/v30/v0.1-w1evt` / `-w3evt` with seed
+   bases `v30-s10-w1evt` / `v30-s10-w3evt`, so the **registered 1,200/1,200
+   denominators cannot move** and the S1 tranche is a NEW, separately named
+   population from the first capture on.
+2. **Every pin-event form alternates two anchor laws** (`emit_evt_case`,
+   `sw/emit_suite.py:1293-1319`): EVEN case indices are COLD and anchor on the
+   `CODE` T1 at the trigger address (`trigger="fetch"`, assert = anchor + 2 +
+   `delay`); ODD indices are PREFETCHED (two `63 C0` preloads) and anchor on the
+   window-opening `F` pop (`trigger="fpop"`, assert = anchor + `delay`,
+   `delay >= 1`, `delay_hw = delay + 50·preload_n`).  **Both laws are in the S1
+   tranche by construction** (100 of each per form per wait) and the S1 analysis
+   reports the two anchors SEPARATELY — a waited term that appears on one anchor
+   and not the other is a finding about the anchor, not about INTA.
+3. **The capture depth scales with waits already:** `EMIT_CAP = min(4096,
+   2048·(1+waits))` (`sw/emit_suite.py:2299-2301`), and the rig's capture buffer
+   is a hard **4,096 records** (`sw/v30ctl.py:98`, `hdl/rtl/hps_axi_slave.sv:11`).
+   At w3 that is exactly 4,096 — so a w3 pin-event case whose window does not
+   close inside 4,096 clocks is a CAPTURE limit, not a model failure, and is
+   reported as such.  `HLT.*` at `delay` up to 40 plus a waited wake is the form
+   at risk; S2's sweep to `delay = 48` at w1 is inside it.
+4. **`evt_fired` is the only confirmation the rig matched the anchor.**
+   `emit_evt_case` already raises `RunError("event did not fire")` on a miss, so
+   a mistyped anchor cannot silently produce a clean event-free golden.  S2 and
+   S5, which build their own images, check `fired` explicitly for the same
+   reason.
+5. **POLL_N is active low and needs the static PINS register.**  `pins=0x4`
+   holds POLL_N high so a `pin=2` event can pull it low.  No S10 probe uses
+   POLL; `pins` stays 0 throughout, which is the model's standing behaviour
+   (§20.0) and keeps 9B non-busy.
+6. **`timed_lawcards.py` always exits 0** — it is a report, not an exit-code
+   gate.  Its verdict counts are read from stdout, and the C1/C3 explanatory
+   note string is known-stale (it still describes the pre-B1 RED reading while
+   printing GREEN); the stale string is a booked cleanup and is NOT evidence.
