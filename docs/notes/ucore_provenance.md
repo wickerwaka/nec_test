@@ -1471,6 +1471,30 @@ F29 and M5b's `odd_base`.  What follows is the list AFTER that.)
 
 ## §31 HANDOFF — what pass 4 picks up
 
+0. **TWO ITEMS ARE ALREADY DIAGNOSED — do not re-derive them.**
+
+   * **The BCD adjust unit is COMPUTED AND DISCARDED.**  `v30u_eu.sv` builds
+     `adj_lo` / `adj_hi` / `adj_corr` / `adj_sum` / `adj_val8` / `adj_rhi` /
+     `adj_flags` — a faithful transliteration of `sim/alu.cpp::bcd_adjust` —
+     and then the `case (eff_op)` for `A_ADD` / `A_SUB` never consults
+     `al_adjust`, so all three outputs sit in the module's `_unused_eu` sink.
+     `27 idx 3` is the whole proof: `exp e369 got e368`, i.e. exactly
+     `tmpb + ONES` with the decimal correction missing.  The model's armed pass
+     (`alu.cpp:127`) is one override — the corrected byte on the LOW lane,
+     `av_hi ± B_hi ± carry-out-of-the-low-lane` on the high one, `ARITH_MASK`
+     flags.  Four forms, 2,000 cases, and `0F20`/`0F22` sit behind it.
+   * **The multi-cycle pushes are an OPR-HOLD question, not a bus-hold one.**
+     `60`'s ROM alternates `SIGMA -> tmpb  SIGMA -> IND  CTL MEMW SS` with
+     `<reg> -> OPR  F  CTL`, and the `F` on the OPR-LOADING row is
+     `wait_opr_free` (it does not READ OPR, so `deliver_read(false)`).  The
+     model's own row schedule shows the gap: 023A at clock 11, 023B at 12,
+     023C at **22**.  So the idle `Ti` clocks the golden shows between
+     consecutive stores are the EU waiting for the store to LET GO OF OPR, and
+     the RTL granting the next cycle back-to-back means `opr_owned` /
+     `opr_free_now` releases too early.  That sharpens task #33's
+     "multi-push bus-hold" datapoint: it is `wait_opr_free`, and `CC`/`CD`/`CE`
+     (the INT frame pushes) and `62` are the same chain.
+
 1. **The order is by cost and by confidence**: BCD adjust first — `27` `2F`
    `37` `3F` are CYCLE-EXACT and arch-red, so the whole difference is inside
    one function and the microscope is not even needed (`sw/uarch.py 27,2F,37,3F`
