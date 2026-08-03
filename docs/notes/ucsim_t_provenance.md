@@ -9433,9 +9433,25 @@ came with it:
 * **a column both gates MASK came out right by itself.**  `check_core` compares
   col 1 only on driven rows, so the T4 PS nibble is scored by neither gate —
   yet the RTL reproduces `INT.9D idx 1`'s golden `5fad2` on row 9 bit for bit,
-  where the model holds `1` until row 12.  `ulockstep --golden`'s UNMASKED view
-  is where this shows: it is the one real, non-retention model-vs-RTL
-  difference in the whole 347-form corpus (§42.6 item 4).
+  where the model holds `1`.  `ulockstep --golden`'s UNMASKED view is where
+  this shows: it is the one real, non-retention model-vs-RTL difference in the
+  whole 347-form corpus (§42.6 item 4).
+
+  **RE-MEASURED DIRECTLY FOR THIS ADDENDUM**, side by side, rather than quoted
+  from F39 — `uscope.py --core ucore INT.9D 1` against
+  `timed_gate.py --sbs INT.9D:1`.  The read's T3 is row 8 and its T4 is row 9:
+
+  | row | golden | ucore RTL | the MODEL |
+  |---|---|---|---|
+  | 8 (T3) | `01fad2` | `01fad2` | `01FAD2` |
+  | **9 (T4)** | **`05fad2`** | **`05fad2`** | **`01FAD2`** |
+  | 10 (Ti, the pop) | `05fad2` | `05fad2` | `01FAD2` |
+  | 11..14 | `05fad2` | `05fad2` | `01FAD2` |
+
+  The PS nibble goes 1 -> 5 on the read's own T4 on the chip and on the RTL,
+  and the model never raises it inside the window at all.  The erratum is
+  therefore not a subtle ordering question: it is directly observable on a
+  single case, on the very first one anyone looks at.
 
 **WHY IT MOVES NO NUMBER, STATED HONESTLY.**  `BiuTimed::data_ps()` reads
 `psw_` LIVE, and both comparators mask that column, so the model is at
@@ -9475,13 +9491,20 @@ recorded in place rather than silently overwritten.
 The failing cells are enumerated for the first time here, because the `ucore`
 triage needed them and a total hides them:
 
-| sweep | model FAILS at | delay coordinate |
+A case's **`idx` field IS the pin delay `d`** — for both forms and all four
+sweeps.  It is NOT the case's position in the JSON array: `HLT.RES`'s sweeps
+start at `d = 0` so the two coincide, `HLT.INT`'s start at `d = 1/3/4/5` so they
+do not.  Stated explicitly because comparing one engine's list by position
+against the other's by `idx` produced a false finding in the first draft of
+`ucore_provenance.md` §43 (see §43.0).
+
+| sweep | model FAILS at (`idx` = `d`) | count |
 |---|---|---|
-| `s10-hltsweep-w0` `HLT.INT` | idx 1, 2, 3, 4 | `d` = 2..5 |
-| `s10-hltsweep-w0` `HLT.RES` | idx 2, 3 | `d` = 2, 3 |
-| `s10-hltsweep-w1` | — | none |
-| `s13-hltsweep-w2` `HLT.INT` | idx 6, 7 | `d` = 10, 11 |
-| `s13-hltsweep-w3` `HLT.INT` | idx 7, 8, 9 | `d` = 12, 13, 14 |
+| `s10-hltsweep-w0` `HLT.INT` | 2, 3, 4, 5 | 4 |
+| `s10-hltsweep-w0` `HLT.RES` | 2, 3 | 2 |
+| `s10-hltsweep-w1` | — | 0 |
+| `s13-hltsweep-w2` `HLT.INT` | 10, 11 | 2 |
+| `s13-hltsweep-w3` `HLT.INT` | 12, 13, 14 | 3 |
 
 All eleven are inside §23.4's registered residue band — the four-clock
 neighbourhood of threshold 1 (`A - H ∈ {-4,-3,-2,-1}`) — and the w2/w3 ones
@@ -9489,9 +9512,11 @@ carry only `bus`/`data`/`ube`, which is §26.7.7's withdrawn-announcement pad
 retention.  **No offset is fitted to them and none is claimed**, unchanged from
 §23.4.
 
-**AND THE RTL BEATS THE MODEL ON SIX OF THEM.**  The `ucore` is cycle-exact on
-`s13-hltsweep-w2` `HLT.INT` idx 6, 7 and `s13-hltsweep-w3` `HLT.INT` idx 7, 8,
-9, and on `s10-hltsweep-w0` `HLT.INT` idx 1 — six cells where the model is not.
-That is recorded here as a MEASUREMENT, not as a claim about which rendering is
-right; the RTL's own residue on these sweeps is larger than the model's overall
-and is triaged in `ucore_provenance.md` §43.
+**AND THE RTL DOES NOT BEAT THE MODEL ANYWHERE ON THESE SWEEPS.**  A first draft
+of this addendum claimed six such cells; re-derived in one numbering, there are
+**zero**, and the model's eleven failures are a strict SUBSET of the `ucore`'s
+thirty-four.  The retraction is recorded rather than the claim quietly removed.
+The `ucore`'s own larger residue on these sweeps is triaged in
+`ucore_provenance.md` §43 — 17 cells its testbench cannot score (the composed-AD
+drive mask, proved on all 24 of that family) and 6 cells of one named rendering
+gap — and **nothing in `sim/` was changed by any of it**.

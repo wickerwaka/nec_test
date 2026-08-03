@@ -30,9 +30,15 @@ found and the rails to land.  Two verdicts are reported per cell:
                 subtracted; this is the harder gate and the one that still
                 has a residual.)
 
+U3: `--core ucore` runs the SAME replay through the verilated RTL core instead
+of the C++ sim (sw/tb_bootrun.py, the TB's `+bootimg` + `+wvec` modes).  It is
+an ENGINE SWAP and nothing else -- same regenerated image, same wait vector,
+same role resolver, same predicates, same frozen chip captures.
+
 Usage:
     python3 sw/timed_ins_replay.py                 # all four seeds, both forms
     python3 sw/timed_ins_replay.py --seeds 12302 --roles R1 --waits 0,3,15
+    python3 sw/timed_ins_replay.py --raw --core ucore        # the RTL leg
 """
 
 import argparse
@@ -50,6 +56,7 @@ sys.path.insert(0, str(SW))
 from causal_wrand import accesses                                # noqa: E402
 from biu_case165_ins_split_write_factorial import wait_vector    # noqa: E402
 import ins_ucode_pilot as pilot                                  # noqa: E402
+import tb_bootrun                                                # noqa: E402
 
 SIM = ROOT / "sim" / "v30sim"
 ROM = ROOT / "docs" / "V20BITS.TXT"
@@ -99,6 +106,19 @@ def run_sim(seed, vector, clocks, td):
     rows = [json.loads(l) for l in r.stdout.decode().splitlines()
             if l.startswith("{")]
     return [x for x in rows if "t" in x]   # drop the trailing finals record
+
+
+def run_engine(core, seed, vector, clocks, td):
+    """THE ONLY thing `--core` changes: which engine renders the run.  Both
+    are driven from RESET with the SAME per-bus-cycle wait vector and both
+    return rows in the same frame (row 0 = RESET release), so the resolver,
+    the role ordinals and every predicate below are untouched.  See
+    sw/tb_bootrun.py for the driver-framing note (and for why the TB's copy of
+    the vector is written in hex)."""
+    if core == "sim":
+        return run_sim(seed, vector, clocks, td)
+    return tb_bootrun.run_boot(image_for(seed), clocks, td, core=core,
+                               wvec=vector)
 
 
 def resolve(bus, case, split):
@@ -169,6 +189,9 @@ def main():
     # window -- run it longer and a later instruction hijacks the resolution.
     ap.add_argument("--clocks", type=int, default=4063)
     ap.add_argument("--verbose", action="store_true")
+    ap.add_argument("--core", default="sim", choices=("sim", "ucore", "fsm"),
+                    help="replay engine: the C++ timed sim (default) or a "
+                         "verilated RTL core through the TB's +bootimg mode")
     ap.add_argument("--raw", action="store_true",
                     help="also load the frozen RAW captures and report the "
                          "whole-program bus-stream agreement prefix")
@@ -221,7 +244,8 @@ def main():
                     for w in waits:
                         vec = list(prepared)
                         vec[sel] = w
-                        bus = accesses(run_sim(seed, vec, args.clocks, td))
+                        bus = accesses(run_engine(args.core, seed, vec,
+                                                  args.clocks, td))
                         s["cells"] += 1
                         R, why = resolve(bus, case, GEOM[seed][2])
                         if R is None:
@@ -289,7 +313,9 @@ def main():
                                                   (fr[n]["t1"] - bc_))
             tot += s
 
-    print("== L2 replay through the timed sim (case250 INS factorial) ==")
+    engine = ("the timed sim" if args.core == "sim"
+              else f"the {args.core} RTL core (verilated TB, +bootimg)")
+    print(f"== L2 replay through {engine} (case250 INS factorial) ==")
     for seed in sorted(per):
         s = per[seed]
         print(f"  fz{seed}: cells {s['cells']}  resolved {s['resolved']}"

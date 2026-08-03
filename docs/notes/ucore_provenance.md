@@ -2689,24 +2689,39 @@ model's own ledger as `ucsim_t_provenance.md` §27.2.
 
 *Method note, because it is the transferable part:* the gap was computed from a
 PER-CASE pass/fail list on both legs, not from the two totals.  The totals hide
-that the two engines fail **different cases** — and in particular they hide
-that the ucore was already beating the model on six of them.
+that the two engines fail **different cases**, and which ones.
+
+**AND A NUMBERING TRAP, RECORDED BECAUSE IT NEARLY PUT A FALSE FINDING IN THIS
+LEDGER.**  A sweep case's **`idx` FIELD IS THE PIN DELAY `d`**, for both forms
+and all four sweeps — that is what `check_core --details` and `uscope.py`
+report.  It is *not* the case's position in the JSON array: `HLT.RES`'s sweeps
+start at `d = 0` so the two coincide, and `HLT.INT`'s start at `d = 1/3/4/5` so
+they do not.  A first draft of §43.2 compared the model's failures by ARRAY
+POSITION against the ucore's by `idx`, and reported six cells where the ucore
+"beat" the model.  **There are none** — the artefact was a one-to-five-case
+shift on `HLT.INT` alone.  Caught by re-deriving both lists in one script in
+one numbering, which is what §43.3 then did for every cell.  *Any per-case
+claim in this campaign must state which numbering it is in.*
 
 ### §43.1 THE CENSUS IS A BAND, AND THE BAND MOVES WITH THE WAIT LEVEL
 
-Per-case, both legs, all four sweeps.  The sweep coordinate is the pin delay
-`d` (`HLT.RES` idx = `d`; `HLT.INT` idx = `d - 1`).
+Per-case, both legs, all four sweeps.  **All indices below are the case `idx`
+field = the pin delay `d`** (see the trap above).
 
-| sweep | MODEL fails | uCORE fails (entry) |
-|---|---|---|
-| `w0` `HLT.INT` | idx 1,2,3,4 | idx 2,3,4,5,6 |
-| `w0` `HLT.RES` | idx 2,3 | idx 2,3,5,6 |
-| `w1` `HLT.INT` | — | idx 7,8,9,10,11 |
-| `w1` `HLT.RES` | — | idx 7,9,10,11 |
-| `w2` `HLT.INT` | idx 6,7 | idx 9,10,11,12,13,14 |
-| `w2` `HLT.RES` | — | idx 9,11,12,13,14 |
-| `w3` `HLT.INT` | idx 7,8,9 | idx 11,12,13,14,15,16,17 |
-| `w3` `HLT.RES` | — | idx 11,13,...,17 |
+| sweep | MODEL fails | uCORE fails (entry) | uCORE fails (after F41) |
+|---|---|---|---|
+| `w0` `HLT.INT` | 2,3,4,5 | 2,3,4,5,6 | 2,3,4,5 |
+| `w0` `HLT.RES` | 2,3 | 2,3,5,6 | 2,3,5 |
+| `w1` `HLT.INT` | — | 7,8,9,10,11 | 7,8,9,10 |
+| `w1` `HLT.RES` | — | 7,9,10,11 | 7,9,10 |
+| `w2` `HLT.INT` | 10,11 | 9,10,11,12,13,14 | 9,10,11,12,13 |
+| `w2` `HLT.RES` | — | 9,11,12,13,14 | 9,11,12,13 |
+| `w3` `HLT.INT` | 12,13,14 | 11,...,17 | 11,12,13,14,15,16 |
+| `w3` `HLT.RES` | — | 11,13,...,17 | 11,13,14,15,16 |
+
+**The model's 11 failing cells are a strict SUBSET of the ucore's 34.**  There
+is no cell the model fails and the ucore passes, and no cell the ucore fails
+for a reason the model does not also have available to it.
 
 The ucore's failures are a **contiguous band with exactly one hole**, and the
 hole is `d*` — §23.3's threshold-1 delay coordinate (4 at w0, 8 at w1, and 10 /
@@ -2843,13 +2858,20 @@ The reason is the register boundary, and it is F35's seam one step further on:
   shows it at `c`.  `eu_unhalt` clears `halt_pending` in block (a) at the top of
   edge `c` — one edge too late to un-decide a display already committed.
 
-So the cancellation must be evaluated against the display's **DECISION EDGE**,
-not against its display clock.  That is F40's shape exactly — *"both taps are
-`edge - 4`; what changed is the REFERENCE EDGE"* — and it is one rendering
-decision, not a search: the wake itself must stay at `D = A + 3` (it is at
-100 % on all four `evt` cells and on the whole out-of-band sweep), so the
-cancellation needs its own one-clock-earlier view of the same pin pipeline
-rather than a moved tap.
+So, in ONE sentence — and the Codex review (§45, C7) is the reason it is this
+sentence and not a longer one: **the HALT-display decision must test the wake
+condition visible on its OWN decision edge.**  Not "a one-clock-earlier view of
+the pipeline", which was the first draft's wording and which C7 correctly called
+out as *"equivalent but risks suggesting duplicated state"* — nothing new is
+stored.  The display's existing decision test (`halt_pending && !run &&
+!cmt_valid && !set_noeval`) simply has to include the wake, in the same block
+that already reads `halt_pending`.
+
+That is F40's shape exactly — *"both taps are `edge - 4`; what changed is the
+REFERENCE EDGE"* — and it is one rendering decision, not a search.  The wake
+ITSELF must not move: `D = A + 3` is at 100 % on all four `evt` cells and on the
+whole out-of-band sweep, so this is a term added to the display's decision, not
+a re-tapped pin.
 
 **NOT LANDED, for a stated reason.**  It touches the eval instant — the spine of
 the whole BIU — while `check_core --core ucore --opcodes all --cases 0` is at
@@ -2863,7 +2885,7 @@ wake was visible to the microcode on or before the display's DECISION edge; or
 any cell that needs the cancellation at the display clock rather than one edge
 earlier.
 
-### §43.2 THE SCOREBOARD, AND THE SIX CELLS WHERE THE ucore BEATS THE MODEL
+### §43.2 THE SCOREBOARD
 
 | sweep | model | ucore, entry | ucore, after F41 | delta |
 |---|---|---|---|---|
@@ -2873,20 +2895,50 @@ earlier.
 | `s13-hltsweep-w3` | 42/45 | 32/45 | **34/45** | −8 |
 | **total** | **272/283** | 241/283 | **249/283** | **−23** |
 
-Read case by case rather than by the totals, the −23 is **29 cells the ucore
-misses that the model does not, minus SIX the model misses that the ucore does
-not**: `s10-hltsweep-w0` `HLT.INT` idx 1, `s13-hltsweep-w2` `HLT.INT` idx 6, 7
-and `s13-hltsweep-w3` `HLT.INT` idx 7, 8, 9.  All six carry the model's
-`bus`/`data`/`ube` signature — §26.7.7's withdrawn-announcement pad retention —
-and the ucore reproduces the golden on all of them.
+Read case by case in ONE numbering (§43.0's trap), the −23 is exactly **23
+cells the ucore misses that the model does not, and ZERO the model misses that
+the ucore does not**.  The model's 11 failures are a strict subset.  There is
+no ucore-beats-sim event on these sweeps, and the first draft of this section
+claimed six; the claim is RETRACTED, with the artefact that produced it kept in
+§43.0 rather than deleted.
 
-Per the campaign's governance that is a **ucore-BEATS-sim event**, governed on
-F39's precedent: the sweeps are scored against SILICON captures, the model
-carries a registered residue there that it does not claim to close, and the
-ucore's rendering is the one the capture agrees with.  It is a MEASUREMENT
-routed to the model's ledger (`ucsim_t_provenance.md` §27.2), not a claim that
-the model is broken, and nothing in `sim/` was changed for it.
+The 23 split by first-divergence column with no remainder:
 
-And the −23 that remains is now **23 instrument-ceiling cells (F42) + 6 cells of
-one named, diagnosed rendering (F43)** — with no unexplained residue at all,
-which is the state §23.4 asked for and did not have.
+| | cells | of which ucore-only | mechanism |
+|---|---|---|---|
+| `seg` (+`bus`/`data`) | 24 | **17** | F42, the instrument ceiling |
+| `busstat` | 10 | **6** | F43, M20's cancellation edge |
+| | 34 | 23 | |
+
+So the ucore's whole remaining deficit on the HLT sweeps is **17 cells that no
+comparator on this TB can score + 6 cells of one named, diagnosed rendering**,
+with no unexplained residue at all — which is the state §23.4 asked for and did
+not have.
+
+### §43.3 F42 MEASURED ON EVERY CELL, NOT TWO — CODEX C6's FALSIFIER, RUN
+
+The first draft of F42 rested on two `+padtrace` probes and a structural
+argument about `cycle_live`.  The Codex review (§45, C6) accepted the reasoning
+but named the gap: *"the 23-cell generalization is supported structurally rather
+than solely by two probes"*, and specified the falsifying measurement — *"on
+any claimed F42 row, sample the DUT's raw AD pins at the comparator's sampling
+edge, bypassing `eff_hi`/`eff_lo`, and align that sample with the golden row; a
+raw mismatch despite the claimed display/enable falsifies F42."*
+
+**It was run on all of them.**  Every `seg`-family cell in all four sweeps, the
+pad-drive stream aligned to the raw `r` stream by its `bs` sequence (unique
+offset in every case — 0 ambiguous alignments), the divergent window row mapped
+back through `build_rows_sim`'s own `i0`:
+
+```
+seg cells: 24   core drives the GOLDEN address with oe_addr asserted: 24
+                ambiguous alignment: 0
+```
+
+24 of 24, no exceptions — `HLT.INT` driving `57cb4` where the composer reports
+`67cb2`, `HLT.RES` driving `9ad8c` where it reports `2ad8a`, with `disp=1` and
+`oe_addr=1` on every one.  F42 is now MEASURED on its whole population and the
+falsifier did not fire.  (It also swept in the seven cells the retracted
+"ucore beats the model" claim had been about: they are `seg` cells where BOTH
+engines miss the golden — the model for §26.7.7's pad retention, the ucore for
+the composer — and neither is a win.)

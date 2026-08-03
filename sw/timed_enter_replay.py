@@ -22,7 +22,13 @@ Levels reported, weakest to strongest:
     full      the whole (kind,addr,data,dur) stream from the anchor
     active    the active-bus-cycle count of the whole run
 
+U3: `--core ucore` runs the SAME replay through the verilated RTL core instead
+of the C++ sim (sw/tb_bootrun.py, the TB's `+bootimg` mode).  It is an ENGINE
+SWAP and nothing else -- same composed image, same wait setting, same anchor,
+same four levels, same comparison against the same frozen socket digests.
+
 Usage:  python3 sw/timed_enter_replay.py [--verbose] [--waits 0,1,2,3,7]
+                                         [--core sim|ucore|fsm]
 """
 
 import argparse
@@ -41,6 +47,7 @@ sys.path.insert(0, str(SW))
 import testimage                                    # noqa: E402
 import char_enter as ce                             # noqa: E402
 import fuzz_classify as fc                          # noqa: E402
+import tb_bootrun                                   # noqa: E402
 
 SIM = ROOT / "sim" / "v30sim"
 ROM = ROOT / "docs" / "V20BITS.TXT"
@@ -64,6 +71,17 @@ def run_sim(image, waits, wrand, td):
     r = subprocess.run(argv, capture_output=True)
     return [x for x in (json.loads(l) for l in r.stdout.decode().splitlines()
                         if l.startswith("{")) if "t" in x]
+
+
+def run_engine(core, image, waits, wrand, td):
+    """THE ONLY thing `--core` changes: which engine renders the run.  Both
+    return the same rows in the same frame (row 0 = RESET release) -- see
+    sw/tb_bootrun.py for the driver-framing note and why the TB leg needs a
+    trailing-cycle window."""
+    if core == "sim":
+        return run_sim(image, waits, wrand, td)
+    return tb_bootrun.run_boot(image, CLOCKS, td, core=core,
+                               waits=waits, wrand=wrand)
 
 
 def anchored(rows, anchor16):
@@ -93,6 +111,9 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--verbose", action="store_true")
     ap.add_argument("--waits", default="")
+    ap.add_argument("--core", default="sim", choices=("sim", "ucore", "fsm"),
+                    help="replay engine: the C++ timed sim (default) or a "
+                         "verilated RTL core through the TB's +bootimg mode")
     args = ap.parse_args()
 
     only = ({int(x) for x in args.waits.split(",") if x}
@@ -109,8 +130,9 @@ def main():
                                             instr=instr)
             anchor16 = meta["anchor_linear"] & 0xFFFF
             assert anchor16 == g["anchor16"], (anchor16, g["anchor16"])
-            rows = run_sim(image, g.get("waits") or 0,
-                           tuple(g["wrand"]) if g.get("wrand") else None, td)
+            rows = run_engine(args.core, image, g.get("waits") or 0,
+                              tuple(g["wrand"]) if g.get("wrand") else None,
+                              td)
             # S8/S9 CLOSED (T2b P3).  The chip digest's last transaction is
             # the store stub's HALT display pseudo-cycle; the model now drives
             # it (biu_timed.h Access::is_halt, MEASURED on the socket at
@@ -143,7 +165,9 @@ def main():
                       f"len sim {len(full)} chip {len(gf)}, "
                       f"first diff at txn {first}: sim {a} chip {b}")
 
-    print("== ENTER waited tranche, replayed through the timed sim ==")
+    engine = ("the timed sim" if args.core == "sim"
+              else f"the {args.core} RTL core (verilated TB, +bootimg)")
+    print(f"== ENTER waited tranche, replayed through {engine} ==")
     for k in ("pushes", "walk", "full", "active"):
         print(f"  {k:13s} {n[k]}/{n['cells']}")
     print(f"  halt_display  {n['halt_display']}/{n['cells']}"
