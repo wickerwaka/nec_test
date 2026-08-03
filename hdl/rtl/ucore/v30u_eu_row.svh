@@ -145,8 +145,11 @@ begin
         stop = 1'b1;
     end else if (e_e) begin
         // the successor's opcode pop rides the E row's own clock; a store the
-        // pairing latch still owes data defers it to the sequence tail
-        if (!pend_active && !opc_valid && retire_ok && q_ripe) begin
+        // pairing latch still owes data defers it to the sequence tail.
+        // The retire deadline is read AFTER this row's own post (`wr_out` was
+        // just incremented above), not from the pre-edge wire.
+        retire_now = (wr_out == 2'd0) || ((wr_out == 2'd1) && eu_wr_done);
+        if (!pend_active && !opc_valid && retire_now && q_ripe) begin
             opc_byte = q_byte;
             opc_valid = 1'b1;
             pop_is_first = 1'b0;

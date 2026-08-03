@@ -108,7 +108,11 @@ def build(force=False, core="fsm"):
     obj = core_objdir(core)
     binp = core_bin(core)
     if binp.exists() and not force:
-        newest = max(p.stat().st_mtime for p in rtl)
+        # .svh includes are real dependencies (the ucore EU is split across
+        # them); a stale binary that silently keeps an old include is exactly
+        # the vacuous-gate pattern.
+        deps = list(rtl) + sorted(CORE_DIR[core].glob("*.svh"))
+        newest = max(p.stat().st_mtime for p in deps)
         if binp.stat().st_mtime > newest:
             return
     # --assert: compile the SVAs. Without it every `assert` in the RTL is

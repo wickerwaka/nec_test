@@ -322,6 +322,23 @@ localparam bit [5:0]
     S_HALTED    = 6'd30;  // the part is parked
 
 //============================================================================
+// THE COMPOSITION (campaign risk #1, second half) -- F7, see the ledger
+//============================================================================
+// v30u_biu is ONE process with BLOCKING assignments (they ARE its sequential
+// semantics) and this module reads its state from a SECOND process on the same
+// edge.  MEASURED, not assumed: the levels (`q_ripe`, `q_byte`, `q_cnt`,
+// `eu_slot_busy`) read inside this edge carry the value of the clock the edge
+// CLOSES -- the EU is evaluated first -- while the completion pulses
+// (`eu_rd_done` / `eu_wr_done` / `eu_opr_free`) are produced by the BIU's own
+// step (a) and describe that same clock.  So every EU-facing signal is a
+// clock-c fact and is read live.  Latching the levels was tried and is
+// REFUTED: it puts every pop one clock late (B8 500 -> 123).
+//
+// This is a SCHEDULING dependency, not a contract, and it is booked as U2's
+// open item: the composition wants an explicit clock-c handshake from the BIU
+// rather than shared blocking registers.
+
+//============================================================================
 // THE MICRO-ROW STANDING ON `upc`
 //============================================================================
 wire [12:0] dec_addr = {upc_page, upc_opc, upc_loc[3:2]};
@@ -491,6 +508,16 @@ wire [19:0] acc_phys = acc_io ? {4'd0, acc_off}
 wire [19:0] acc_phys2= acc_io ? {4'd0, acc_off + 16'd1}
                               : ({acc_segv, 4'd0} + {4'd0, acc_off + 16'd1});
 wire       acc_split = !acc_byte && acc_phys[0];
+
+// The PRE-DECODE operand read (loader_impl.h): the operand the sequence
+// READS, and only that one.
+wire        pr_use_m = (m_kind == OK_MEM);
+wire  [2:0] pr_seg   = pr_use_m ? m_seg  : r_seg;
+wire [15:0] pr_ea    = pr_use_m ? m_ea   : r_ea;
+wire        pr_byte  = pr_use_m ? m_byte : r_byte;
+wire [19:0] pr_phys  = {sreg[pr_seg[1:0]], 4'd0} + {4'd0, pr_ea};
+wire [19:0] pr_phys2 = {sreg[pr_seg[1:0]], 4'd0} + {4'd0, pr_ea + 16'd1};
+wire        pr_split = !pr_byte && pr_phys[0];
 
 // The staged write in the pairing latch (exec_impl.h::Pending).
 wire [15:0] pend_segv = (pend_seg == SEG_ZERO) ? 16'h0000 : sreg[pend_seg[1:0]];
@@ -899,15 +926,19 @@ wire row_pre_wait = row_pre_pair && !opr_fresh && !opr_free_now;
 wire row_acts_ok = (st == S_ROW) && !row_blocked && (rowq >= row_qn) &&
                    !row_pre_wait;
 
-assign eu_post = row_acts_ok && row_bus && !row_posted && !eu_slot_busy;
-assign eu_bs   = row_is_inta ? BS_INTA
+wire pr_active = (st == S_PRERD) && !row_posted;
+assign eu_post = (pr_active || (row_acts_ok && row_bus && !row_posted)) &&
+                 !eu_slot_busy;
+assign eu_bs   = pr_active   ? BS_MEMR
+               : row_is_inta ? BS_INTA
                : row_is_read ? (acc_io ? BS_IOR : BS_MEMR)
                              : (acc_io ? BS_IOW : BS_MEMW);
-assign eu_addr = row_is_inta ? 20'd0 : acc_phys;
-assign eu_addr2= acc_phys2;
-assign eu_split= !row_is_inta && acc_split;
-assign eu_seg  = row_is_inta ? 2'd2 : (acc_io ? 2'd2 : seg_code(acc_seg));
-assign eu_word = row_is_inta ? 1'b1 : !acc_byte;
+assign eu_addr = pr_active ? pr_phys : (row_is_inta ? 20'd0 : acc_phys);
+assign eu_addr2= pr_active ? pr_phys2 : acc_phys2;
+assign eu_split= pr_active ? pr_split : (!row_is_inta && acc_split);
+assign eu_seg  = pr_active ? seg_code(pr_seg)
+               : row_is_inta ? 2'd2 : (acc_io ? 2'd2 : seg_code(acc_seg));
+assign eu_word = pr_active ? !pr_byte : (row_is_inta ? 1'b1 : !acc_byte);
 
 // The data pairing (`emit_pending`).  The row's OWN `-> OPR` write counts:
 // the model writes OPR and then emits, both on the row's clock, so the value
@@ -974,7 +1005,7 @@ reg [15:0] v1, v2;
 reg        bsw;             // the row's byte-source flag (Q / CONST)
 reg [13:0] pv;
 reg  [3:0] nloc;
-reg        carry, taken, bubble;
+reg        carry, taken, bubble, retire_now;
 reg [15:0] ea;
 reg  [2:0] rseg;
 reg  [1:0] rmmod;
@@ -1073,9 +1104,10 @@ always @(posedge clk) begin
 
 `ifndef SYNTHESIS
         if (eutrace)
-            $display("EU st=%0d upc=%0d.%02X.%0d row=%07x q=%02x ripe=%0d slot=%0d rdd=%0d wrd=%0d oprf=%0d pc=%04x",
+            $display("EU st=%0d upc=%0d.%02X.%0d row=%07x q=%02x ripe=%0d slot=%0d post=%0d bs=%0d a=%05x pair=%0d rdd=%0d wrd=%0d oprf=%0d wr_out=%0d pc=%04x",
                      st, upc_page, upc_opc, upc_loc, row, q_byte, q_ripe,
-                     eu_slot_busy, eu_rd_done, eu_wr_done, eu_opr_free, pc);
+                     eu_slot_busy, eu_post, eu_bs, eu_addr, eu_pair,
+                     eu_rd_done, eu_wr_done, eu_opr_free, wr_out, pc);
 `endif
         stop = 1'b0;
         for (chain = 0; chain < 4'd12; chain = chain + 4'd1) begin
