@@ -488,6 +488,14 @@ S_HALTED: begin
     stop = 1'b1;                                        // stall_pin
 end
 
+S_RESET: begin
+    // F25: `biu.susp(); biu.charge(kResetEntryClocks);` -- the internal reset
+    // dispatch, before the ROM's own reset rows at 7.03.0 (01D0).
+    rst_ctr = rst_ctr + 3'd1;
+    if (rst_ctr == 3'd4) st = S_ROW;
+    stop = 1'b1;
+end
+
 S_INSTR_END: begin
     // ZERO-COST: `step()` returns; the successor's `clear_consumed()` and
     // `loader_decode()`'s per-instruction latch reset run here.

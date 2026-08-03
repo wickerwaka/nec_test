@@ -253,6 +253,7 @@ reg  [1:0] rd_pending;     // posted reads (rd_last) not yet completed
 reg  [1:0] rd_done_cnt;    // completed, not yet consumed by an F row
 reg        rd_age0;        // the oldest completion pulsed on THIS clock
 reg        iend_owed;      // F22: the post-`E` row owes the successor its reset
+reg  [2:0] rst_ctr;        // F25: the reset dispatch's four clocks
 reg  [7:0] pe_opc_reg;     // F23: the opcode context the post-`E` row runs on
 reg        pe_opc8080;
 reg  [1:0] wr_out;         // posted write CYCLES not yet done
@@ -324,7 +325,8 @@ localparam bit [5:0]
     S_TAIL_W    = 6'd27,  // ...its F interlock + emit_pending
     S_TAIL_POP  = 6'd28,  // ...and its deferred opcode pre-pop
     S_INSTR_END = 6'd29,  // ZERO-COST: step() returns
-    S_HALTED    = 6'd30;  // the part is parked
+    S_HALTED    = 6'd30,  // the part is parked
+    S_RESET     = 6'd31;  // F25: the internal reset dispatch, 4 clocks
 
 //============================================================================
 // THE COMPOSITION (campaign risk #1, second half) -- F7, see the ledger
@@ -1128,8 +1130,10 @@ assign eu_wdata = opr_now;
 assign q_flush  = row_acts_ok && row_flush;
 assign flush_cs = cs_now;
 assign flush_ip = pc_now;
-assign eu_susp  = row_acts_ok && (e_type == TY_CTL) && !e_farjmp &&
-                  (e_ictl == I_SUSP);
+// F25: ...and the prefetcher is held through the reset dispatch.
+assign eu_susp  = (st == S_RESET) ||
+                  (row_acts_ok && (e_type == TY_CTL) && !e_farjmp &&
+                   (e_ictl == I_SUSP));
 assign eu_resume = 1'b0;
 
 // S9a -- HLT IS DECODED, NOT MICROCODED, AND THE DECODE IS WHERE IT ACTS.
@@ -1239,6 +1243,30 @@ always @(posedge clk) begin
             sreg[2] = bkd_regs[160 +: 16]; sreg[3] = bkd_regs[176 +: 16];
             pc = bkd_regs[192 +: 16];
             psw = (bkd_regs[208 +: 16] & PSW_WRITABLE) | PSW_FORCED;
+        end else begin
+            // F25 -- POWER-ON RESET IS A MICROCODE MARCH, not a state.
+            // `CpuT::reset()` runs the ROM's own sequence at page 7 opcode
+            // 00000011 (01D0..01D5: ZEROS -> DS/FLAGS/ES/SS, ONES -> CS,
+            // ZEROS -> PC, FLUSH, MFS) and only THEN does the decoder see its
+            // first byte.  The EU came out of reset in S_OPC_POP, so the whole
+            // boot was seven clocks early and `check_boot --core ucore` broke
+            // at release+7 (the real part shows the march's queue flush; the
+            // EU had already popped).  A BACKDOOR-LOADED case starts mid-
+            // stream and must NOT run it -- that is what `bkd_load` selects,
+            // and it is why every v0.1 rung is unaffected.
+            //
+            // `run_timed_boot` states the geometry and the capture pins it:
+            // the part comes out of reset with the PREFETCHER SUSPENDED (there
+            // is no fetch pointer until 01D3 loads PS:PC and flushes), and the
+            // internal dispatch is FOUR CLOCKS -- 01D0 runs at release+4, the
+            // FLUSH row 01D3 at release+7 where the capture shows its `E`
+            // blip, and the first CODE T1 at release+9.  Four clocks is the
+            // one constant, not a per-row cost.
+            upc_page = 3'd7;
+            upc_opc  = 8'h03;
+            upc_loc  = 4'd0;
+            rst_ctr  = 3'd0;
+            st = S_RESET;
         end
     end else if (ce) begin
         //====================================================================
