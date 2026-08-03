@@ -6862,3 +6862,328 @@ first-divergence context and marker geometry), with a `SHA256SUMS`.
    repetition-unstable cell of the 196 (`stable_identical: false`), 8 delays
    below the threshold and never scored.  Cheap to re-take and worth taking:
    it is the only cell in the whole sweep that is a candidate for a real race.
+
+
+## 24. POST-CLOSURE ADDENDUM #9 — S13, THE CLOSING BOARD SITTING (2026-08-03)
+
+**This section is an ADDENDUM.  Nothing in §0-§23 is edited or retracted by
+it.**  §23.9 left a seven-item probe queue; this session takes four of them and
+declares the other three NOT TAKEN, with their stimuli intact, in the §21.7 /
+§14.5 style.
+
+### 24.0 PRE-REGISTRATION — written and committed BEFORE the board was touched
+
+The discipline is §12.0's, §14.0's and §21.0's, unchanged:
+
+* **SINGLE WRITER**, checked before contact — no foreign `v30run serve` /
+  `v30ctl` / fork-session runner, locally or on `root@mister-nec`.  Checked and
+  recorded in the session log.
+* **SOCKET ONLY** (`use_core=False`, explicit on every call because the
+  board's CFG is sticky), **no FPGA flashing anywhere**, no `safe_flash.sh`,
+  no `v30ctl.py prep`.
+* **THE DIVIDER IS PINNED AND THE READBACK IS ASKED FOR.**  §22.6 added
+  `ServeRunner.div_readback` and *nothing had ever called it*.  Every S13 probe
+  calls `s13_board.div_guard()`, which pins `div = 8` and then asks the
+  transport what it commanded, records the string, and prints **PINNED** or
+  **UNPINNED**.  An UNPINNED readback is a rig-integrity FINDING and is
+  reported as one, not smoothed.
+* **Raw 64-bit words retained** with a sha256, and the **full per-clock row
+  stream** beside every digest (the P2 lesson, §13.4).  A `SHA256SUMS` per
+  probe directory.
+* **5 repetitions** per cell at `div = 8` (4 MHz).  Dual-frequency promotion
+  only where a card or verdict is FROZEN against the cell; no such freeze is
+  planned in this sitting, so `divs = (8,)` throughout and that is stated
+  rather than silently defaulted.
+* `board_idle()` at the end, result stated.  **A wedge STOPS the session.**
+* Budget **under 45 minutes** of board time.  **CUT RULE (§14.0's):** if wall
+  time runs over, the POPULATION is cut by whole strata, evenly, and the cut is
+  STATED; **repetitions are never cut**; a probe that is not run is reported as
+  not run.
+
+**GUIDING PRINCIPLE (CLAUDE.md, user directive 2026-08-01), restated because it
+constrains what may be LANDED:** this is 80's era hardware; nothing on the die
+is wasted; complex behaviour is simple systems interacting in ways not yet
+understood.  A large fitted table, a many-cased rule or a per-form special case
+is a signal of misunderstanding, not a deliverable.
+
+#### 24.0.0 Instrument provenance — declared, as §21.0.0 declared it
+
+The working tree at the moment of registration carries UNCOMMITTED changes to
+`hdl/` and to several `sw/` files from another branch's in-flight work
+(`biu-rebuild`).  Two consequences, stated rather than worked around:
+
+1. **`want_raw` in `sw/v30run.py` is load-bearing and uncommitted**, exactly as
+   in §21.0.0: `t2b_board.capture()` — COMMITTED code, the primitive every
+   capture in §12/§14/§21 went through — calls `run_image(..., want_raw=True)`.
+   This session uses the same primitive and inherits the same dependency.
+2. **The `hdl/` changes are inert BY CONSTRUCTION**: `use_core=False` selects
+   the socketed physical part, so no fabric is in the measurement path.
+   Nothing is flashed; the bitstream on the board is whatever §14's session
+   left and it is not read.
+
+`sim/` is CLEAN at HEAD (`07e5f41c87`) and no model source is modified by the
+pre-registration commit.
+
+#### 24.0.1 The standing ratchets this session may not move backwards
+
+| ratchet | value entering S13 |
+|---|---|
+| functional corpus | **7,341,126 / 7,341,126** |
+| v0.1 w0 timed | **168,997 / 169,000** |
+| v0.1-w1 / -w3 | **1,200 / 1,200** each; `EB` w1 200/200 |
+| the four `v0.1-w*evt` cells | **200 / 1,200 / 200 / 1,200** |
+| `timed_fuzz` REGISTERED | **1,272 / 1,702** |
+| `timed_fuzz` EVT | **708 / 1,008** |
+| `timed_fuzz` COMBINED | **1,980 / 2,710** |
+| victory tranche B2 | **154 / 188** (V5 remains a registered FAILURE) |
+| `timed_wvec_gate` | count 88/88, digest 88/88, cycles +0.0 % |
+| `timed_lawcards` | **7 GREEN / 0 RED / 4 UNRESOLVED** |
+| S2 sweep, model-scored | **w0 90/97, w1 91/95** |
+| boot / scenario / ENTER / INS | 220 rows; 18/0/9; 154/154 ×5; rails 1312/1312, vs-chip 2624/2624 |
+
+Every one is monotone; zero-newly-broken is a HARD gate for any mechanism this
+session lands, and the functional 7,341,126 is re-run before the final commit.
+**V0-V5 are not re-opened.**
+
+#### 24.0.2 Deviation policy
+
+Any post-capture change to a criterion registered here is recorded AS a
+deviation, in the §14.4 style, with the measurement that motivated it.  A
+registered clause that fails is reported as **FAILED**, in the §20.7 style, and
+not restated.
+
+---
+
+### 24.1 THE BOARD-FREE LEG, TAKEN FIRST (§23.9 item 1) — the residue is ELEVEN CELLS and ONE CLOCK
+
+§23.9 item 1 said the `A - H` residue's stimulus was already committed and
+board-free.  It was, it was run before this registration was written, and it
+**determines what the board leg has to be**, so it is reported here rather than
+held back.  No board contact; `tests/v30/s10-hltsweep-w{0,1}` scored with
+`timed_gate` and nothing else.
+
+```
+timed_gate --suite tests/v30/s10-hltsweep-w0 --waits 0 --forms all   90/97
+timed_gate --suite tests/v30/s10-hltsweep-w1 --waits 1 --forms all   91/95
+```
+
+— reproducing §23.6 to the case.  The 11 non-exact cells, localised:
+
+| form | w | d | `A-H` | row diffs | what the model gets wrong |
+|---|---|---|---|---|---|
+| HLT.INT | 0 | 2 | −4 | 179 | no woken prefetch at all; goes straight to the acknowledge |
+| HLT.INT | 0 | 3 | −3 | 158 | woken prefetch display **1 clock late** |
+| HLT.INT | 0 | 4 | −2 | 184 | no woken prefetch at all |
+| HLT.INT | 0 | 5 | −1 | 146 | woken prefetch display **1 clock late** |
+| HLT.RES | 0 | 2 | −4 | 3 | display **1 clock late** |
+| HLT.RES | 0 | 3 | −3 | 3 | display **1 clock late** |
+| HLT.RES | 0 | 5 | −1 | 5 | display **1 clock late** |
+| HLT.INT | 1 | 8 | −2 | 215 | no woken prefetch at all |
+| HLT.INT | 1 | 9 | −1 | 295 | display **1 clock late** |
+| HLT.INT | 1 | 10 | +0 | 3 | one `bus`/`ube` row, no timing error |
+| HLT.RES | 1 | 9 | −1 | 5 | display **1 clock late** |
+
+**It is ONE clock, not eleven cases.**  In every cell but the last the chip
+drives the woken CODE prefetch's DISPLAY exactly one clock earlier than the
+model, and in three of them that one clock is the whole difference between the
+prefetch winning the slot and losing it to the acknowledge — which is why those
+three have 180-300 row diffs and the rest have 3-5.  The large numbers are one
+mechanism amplified, not a second mechanism.
+
+**And §23.3's THRESHOLD 2 is CONFIRMED, on a corrected instrument.**
+`s12_census.cycles()` is T1-anchored on the RIG's T-state counter, and the
+woken cycle's display can fall INSIDE the HALT pseudo-cycle's own T-states, so
+`first_post_t1` mis-framed exactly the band's cells.  Reading the display
+directly off `bs_early` (the display IS the status pulse, §21.1) instead:
+
+```
+D = max(A + 4, H + 3)     EXACT on every cell where the HALT status is driven
+                          (172 / 172, both forms, both wait levels)
+```
+
+so the residue is **not** a threshold-2 error.  The model has the right display
+law and gets the right answer everywhere outside the band; inside it the chip
+is one clock ahead of what that law gives.  **The board-free leg therefore does
+NOT underdetermine — it determines the question**, and the question the board
+can answer is whether that one clock is wait-invariant.
+
+---
+
+### 24.2 P1b — THE `A - H` BAND AT WAITS 2 AND 3 (board)
+
+*Why.*  The band is the four-clock neighbourhood of the display-suppression
+threshold and it has been seen at exactly two wait levels.  §23.3's two
+thresholds are both stated as wait- and form-invariant; the residue inside the
+band is the only place that invariance has never been tested.
+
+*Stimulus.*  `s13_board.py ahsweep` — `cmd_s2`'s sweep verbatim (the SAME fixed
+seed `v30-s10-hlt/<form>`, so w2/w3 are the same program as w0/w1) with the
+wait axis moved to {2, 3} and the delay axis cut to `0..24`, which brackets the
+predicted `d*` at both levels with ≥8 delays of margin and stays inside the w3
+capture cap (§21.0.5 item 3).  2 forms × 2 waits × 25 delays × 5 reps = **500
+captures**, plus 100 goldens emitted through `emit_evt_case` into
+`tests/v30/s13-hltsweep-w{2,3}` — a NEW suite name, so no committed denominator
+can move.
+
+*Predictions, registered:*
+
+1. **`d*(w2) = 12` and `d*(w3) = 16`.**  §23.3 measured `H −` anchor `= 8` at
+   w0 and `12` at w1, and `d* = (H −` anchor`) − 4` at both.  Linear in the
+   wait level, that is `H −` anchor `= 8 + 4N` and `d* = 4 + 4N`.
+   *Falsifier:* a `d*` off those values, which says the anchor-to-display
+   distance is not linear in `N` and §23.3's `+4` was a two-point fit.
+2. **The threshold is SHARP at both levels** (no scatter, no second band), and
+   **`halt_len = 2`** at every driven delay — §12.3, now at two more wait
+   levels.
+   *Falsifier:* a 1- or 3-clock HALT status, or an alternating band.
+3. **`D = max(A + 4, H + 3)` is exact on every driven cell at w2 and w3.**
+   *Falsifier:* any display off it outside the band.
+4. **THE ONE THAT MATTERS — the residue stays a four-clock band and stays one
+   clock.**  The model's row diffs at w2/w3 are confined to `A - H ∈ {−4 … 0}`,
+   and in each the chip's woken prefetch display is exactly ONE clock earlier
+   than the model's.
+   *Falsifier, and it is a real one:* a residue cell OUTSIDE the band, or an
+   offset that GROWS with `N` (e.g. two clocks at w3).  An offset that grows
+   with `N` says the band is bus-keyed and the whole reading is wrong; a
+   constant one clock at four wait levels says it is a fixed index, which is
+   the answer this campaign has now measured five separate times.
+
+*What may NOT be done with the result.*  A per-`A-H` offset table is **NOT a
+deliverable** (§21.0.1's standing refusal, and §20.12's).  If the band does not
+collapse to a statement about ONE clock in ONE mechanism, it is reported as
+**MEASURED, MECHANISM OPEN** in the §19.8.2 style and no offset is fitted.
+
+---
+
+### 24.3 P2a — C2, LC1's QUEUE-FILL RAMP (board; the first of S3's four cards)
+
+*Why.*  `timed_lawcards` has stood at 7 GREEN / 0 RED / **4 UNRESOLVED** since
+§(c), and all four are STIMULUS gaps, not model failures.  §21.7 recorded that
+none of the four was run.  C2 is the one whose stimulus needs no new silicon
+protocol — only a program the repo can already build.
+
+*Stimulus.*  `s13_board.py c2ramp`.  A `gen_seq.Prog` program of 12 blocks,
+each `emit_farjmp_next()` (the contained far JMP the sled corpus itself uses,
+which empties the queue to ZERO) followed by a NOP sled, so **every flush
+restarts the fill from empty**.  Axes: flush period {6, 10, 16} × sled {2, 6} ×
+the four corpus wait vectors `ws0:wmax0`, `ws5:wmax1`, `ws7:wmax3`,
+`ws11:wmax7` = **24 cells**, socket, div-pinned.  The same image and the same
+wait vector are then run through `v30sim timed-boot`, and the observable —
+`class5_armc.pauses()` verbatim (`timed_lawcards.cidle_events`) — is
+PARTITIONED into post-flush and steady-state gaps by whether the chip's own
+queue-clear (`QS = E`) falls in the gap.
+
+*Prediction.*  At the FIRST refill after a flush the chip's idle gap is
+**strictly smaller** than the steady-state `cidle` of 3 (the card's "resumes
+immediately at the fill threshold"), and the sim reproduces the same split.
+
+*Falsifiers, both registered as REPORTABLE OUTCOMES and not as failures to be
+avoided:*
+- a post-flush gap distribution **centred on 3** — no ramp transient exists and
+  **C2's premise is wrong**; that refutes the CARD, not the model, and it is
+  reported that way;
+- **no post-flush CODE→CODE pair produced at all** — the stimulus did not
+  isolate the transient, C2 stays **UNRESOLVED**, and that is a PROBE-DESIGN
+  finding (§21.0's registered third outcome).  It is not a pass.
+
+*Registered numeric bar:* C2 moves to GREEN only if the chip shows the
+transient AND the sim reproduces it.  **A card is not moved to GREEN by
+weakening what it asserts** (§21.0 S3, verbatim).
+
+---
+
+### 24.4 P4 — RE-EMIT `tests/v30/v0.1-w1evt` WITH THE FIXED PARSER (board)
+
+*Why.*  §23.1 established that `tests/v30/v0.1-w1evt` is a **BIASED SAMPLE**:
+706 draws were rejected as `implausible final PSW 0` for a reason that has
+nothing to do with the physics — where record 2048 happened to fall in the
+board image's repeat cycle — so the retained 1,200 cases are selected on total
+program length.  Every retained case is a valid chip measurement and the
+1,200/1,200 score is true of those 1,200 cases; the SAMPLE is not the one the
+seed base intended.
+
+*This probe MOVES COMMITTED GOLDENS, and that is why it is handled apart:*
+
+* the OLD tranche is **RENAMED, NOT DELETED** — `tests/v30/v0.1-w1evt-biased/`
+  — with its `emit_log.txt` and its 706 rerolls intact as the §23.1 evidence;
+* the re-emission is `s10_board.py s1 --waits 1 --cases 200`, the **committed**
+  emission path, unmodified, with the fixed `parse_result` already in
+  `sw/v30run.py` at HEAD.  Running it through anything else would change the
+  instrument as well as the parser;
+* the bias is documented in the NEW tranche's `emit_log.txt`;
+* it lands as **ITS OWN COMMIT**, and **both old and new numbers are
+  reported**.
+
+*Predictions:*
+
+1. **The reroll count collapses.**  706 `implausible final PSW 0` rerolls at
+   w1 become **0** — the rejection reason is removed at the root.
+   *Falsifier:* any surviving `implausible final PSW 0` reroll, which would say
+   the parser fix does not cover the population that produced them.
+2. **The new tranche is 1,200 cases** (6 forms × 200) with no emission hard
+   failure.  A form that cannot be filled is a FINDING, reported, not dropped.
+3. **The model scores the NEW tranche at 1,200 / 1,200**, as it does the old
+   one.  This is the registered bar and it is the point of the probe: the old
+   1,200/1,200 was measured on a length-selected sample, and the claim that
+   the waited pin-event geometry needs no new term is only as strong as the
+   sample it was measured on.
+   *Falsifier, and it is the outcome worth having:* a shortfall on the
+   unbiased sample.  That would mean the removed 706 draws contained cases the
+   model gets WRONG, and §22's "the four S1 cells 200/200" would be resting on
+   a biased denominator.  It is reported as a registered FAILURE if it happens.
+
+---
+
+### 24.5 P5 — `HLT.INT_w0_d0`, THE ONE REPETITION-UNSTABLE CELL (board)
+
+*Why.*  §23.3 measured 195 of the 196 sweep cells **5-of-5 byte-identical**
+and named the single exception: `HLT.INT_w0_d0`, `stable_identical: false`,
+eight delays below the threshold and outside the golden population.  §23.9 item
+7 called it *"the only cell in the whole sweep that is a candidate for a real
+race"*.
+
+*Stimulus.*  `s13_board.py race --reps 50` — the same image, the same event
+schedule, div-pinned, **50 repetitions**, every DISTINCT capture retained in
+full (rows + raw words), not just a count.
+
+*Registered as MEASURING, not modelling.*  The RR1 precedent (the POP-PSW /
+INT race ROM) is explicit: a measured race is CHARACTERISED — how many
+outcomes, what separates them, in what proportion — and **determinism is NOT
+forced**.  No mechanism is landed from this probe unless the two streams differ
+in a way that names one.
+
+*Predictions:*
+
+1. **Exactly TWO distinct streams**, not a scatter — the cell sits at a
+   boundary between two decisions, and a boundary produces two outcomes.
+   *Falsifier:* three or more distinct streams, which is a metastable sample
+   and not a two-way race; or ONE, which says the §23.3 instability was a
+   5-repetition artifact and is reported as such.
+2. **The two differ at ONE clock and then diverge** — the first differing row
+   is a single decision point, not a length difference from the start.
+   *Falsifier:* streams that differ from the first row (a preparation
+   difference, i.e. the cell is not a race but an uncontrolled initial state).
+3. The proportion is **not 50/50 by necessity** and no prediction is registered
+   for it; it is measured and reported.
+
+---
+
+### 24.6 WHAT THIS SITTING DOES NOT TAKE — declared before contact, stimuli intact
+
+The §21.7 / §14.5 rule applies: **an un-run probe is reported as un-run**, and
+declaring it in advance is the honest version of that.  Three of §23.9's seven
+items are NOT taken, for stated reasons:
+
+| item | why not, and what it still needs |
+|---|---|
+| **C6/C7 — the uRMW positive-control search** (§21.0 S3b) | The registered protocol is *positive-control FIRST*: iterate the directed RMW structure ON THE BOARD until the CHIP exhibits the firing signature, and report **FAILED-VACUOUS** if it cannot be produced.  That is a SEARCH with an open-ended board budget and a signature detector that does not exist in the repo, and doing it badly would produce exactly the vacuous gate `biu_law_cards.md` §B forbids.  **NOT TAKEN.**  The protocol stands unmodified. |
+| **C11 — `owns_slot`'s single-source matrix** (§21.0 S3c) | The observable is "does the prefetch lose the coincident slot at this reservation SOURCE", and the source is an EU micro-state (`S_DHI`, `S_PUSH_CALC`) that is **not observable on the pins**.  Isolating it needs an instrument this sitting does not have.  **NOT TAKEN**, and the reason is recorded because it is the reason the card has stayed UNRESOLVED. |
+| **M19's grant-then-withdraw edge** (§22.10 item 1) | Still the highest-priority DIRECTED-CELL item and still needs silicon: a flush, a grant, an EU post one clock later, and a SUSP, under waits.  It needs a new directed image builder that constructs that exact sequence, which is a probe-design task, not a capture task.  **NOT TAKEN.** |
+| **The three w0 tails** (`0F12`, `C1.6`, `F7.4`) | Attacked OFFLINE in this sitting (§24.9) — the goldens' divergence rows are read first, because the answer may not need silicon at all.  A board leg is taken only if a chip discriminator is genuinely needed. |
+| **The 20-seed `ACK` residue** | Booked as "only if cheap after the above" and it is not cheap: three signatures, each needing its own discriminating cell.  **NOT TAKEN** on the board. |
+
+So the registered board set is **P1b, P2a, P4, P5** — four probes, and the
+target for the law cards is therefore **8 GREEN / 0 RED / 3 UNRESOLVED**, NOT
+§21.0's 11 / 0 / 0.  **That target is registered DOWN, explicitly, before the
+run**, because three of the four cards are not being attempted; restating
+§21.0's target and then missing it would be the dishonest version.
