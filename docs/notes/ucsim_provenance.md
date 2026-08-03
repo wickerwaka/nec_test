@@ -2919,3 +2919,57 @@ observable on the pins of every retained capture.
 
 Nothing in `docs/notes/ucsim_campaign_verdict_2026-08-01.md` is retracted by
 this note; it is an erratum on an instrument, not on a result.
+
+---
+
+## ERRATUM / CROSS-CAMPAIGN NOTE — the FUNCTIONAL residue seen PER CLOCK (2026-08-03, routed from `ucsim_t_provenance.md` §26.4.6)
+
+**Nothing here is retracted and no gate moves.**  This is a cross-reference
+that this ledger's population did not have, routed from the TIMING campaign's
+pre-RTL cleanup session.
+
+`sw/s15_census.py` classified all 729 seeds the TIMED harness
+(`sw/timed_fuzz.py`) does not reproduce clock-exactly, on bus structure, into
+seven families.  Cross-referencing them against **this** campaign's own
+`sw/ucsim_fuzz.py` verdicts — 672 seeds appear in both reports:
+
+| the timed census's family | `TIMING` here | `FUNCTIONAL` here | `KNOWN_ACCEPTED` |
+|---|---|---|---|
+| `PF_LOST` (chip prefetched, model did not) | 218 | 37 | 4 |
+| `SCHEDULE` (same cycles, different clocks) | 147 | 42 | 1 |
+| `PF_GAINED` | 70 | 34 | 3 |
+| `TAIL_EXTRA` | 26 | 3 | 0 |
+| `PF_ADDR` | 20 | 7 | 0 |
+| `PIN` | 19 | 5 | 0 |
+| **`DATA_SEQ`** (two DATA cycles that differ) | **6** | **30** | 0 |
+
+**Two facts, and they are for THIS ledger's readers.**
+
+1. **`DATA_SEQ` is 30 / 36 already-`FUNCTIONAL` here.**  Every other family in
+   the timed taxonomy is 80-90 % `TIMING` in this campaign's verdict;
+   `DATA_SEQ` inverts it.  The timing campaign had provisionally called it
+   *"the highest-value population left in the fuzz bank"* and has withdrawn
+   that: **30 of the 36 belong to this ledger, not to the BIU.**  They are
+   seeds whose FUNCTIONAL divergence is now also visible clock by clock, which
+   is a second, independent view of the same 30 seeds and may be useful in
+   diagnosing them.
+
+2. **810 seeds are `FUNCTIONAL` here, and 652 of them are CYCLE-EXACT in the
+   timed model.**  The timed harness reproduces the chip's pins clock for clock
+   on 652 seeds whose architectural transaction stream this campaign scores as
+   divergent.  **The two campaigns' residues are very nearly DISJOINT**, and
+   neither number is evidence about the other — a seed can be clock-exact and
+   functionally wrong, and 652 of them are.
+
+*What is NOT claimed:* no cause is offered for either number, and no seed's
+verdict in this ledger changes.  The retention is
+`sw/testdata/s15/census_{reg,evt}.json.gz` (per seed: family, the two severity
+axes, the local bus-cycle window on both sides).
+
+*What was NOT done, and is booked:* the timing campaign's §20.6 named 12
+CHAINED mid-string withdrawals of which 7 have a divergence-free prefix.  The
+other **5 were never identified by name** — the S9b census that produced the
+12/7 split was ad hoc and is not a committed tool — so the per-seed functional
+check on exactly those 5 is **NOT RUN and is reported as not run.**  Rebuilding
+the detector (an EVT seed whose replay takes a mid-string withdrawal) is the
+prerequisite, and it is board-free.

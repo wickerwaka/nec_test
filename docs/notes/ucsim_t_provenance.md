@@ -8526,8 +8526,8 @@ no arch dump inside window:   374 / 729
 where the comparison is available at all.**  The 374 with no dump are
 seeds whose schedule difference pushed the register store past the comparison
 window — a consequence of the timing residue, not an independent failure.  So
-the whole 729-seed residue is a BUS-TIMING residue: it is not the model
-computing something else.
+the whole 729-seed residue is a BUS-TIMING residue **as far as the
+architectural dump can see** — with ONE qualification, and §26.4.6 is it.
 
 #### 26.4.1 `PF_LOST` — one arbitration statement, and its two sub-signatures
 
@@ -8624,6 +8624,47 @@ HALT-status accounting effect, not 80 functional bugs**, and the arch column
 * **`PIN` 24** — the schedules are identical and a pin differs: `qs -!=F` 20,
   `data` 3, `ps 2!=6` 1.  The `ube` member of this family is GONE: it was
   §25.6 item 1's display-window upper pins, and §26.7 closes it.
+
+#### 26.4.6 THE CROSS-CAMPAIGN CHECK — `DATA_SEQ` is not ours
+
+The census's severity axes are read inside the TIMED harness.  The FUNCTIONAL
+campaign (`sw/ucsim_fuzz.py`, ledger `docs/notes/ucsim_provenance.md`) replays
+the same banks through the ARCHITECTURAL simulator and compares the ordered bus
+TRANSACTION stream — a different model, a different comparison, a different
+ledger.  Cross-referencing the two, 672 of the 729 non-exact seeds appear in
+both reports:
+
+| s15 family | functional-replay `TIMING` | `FUNCTIONAL` | `KNOWN_ACCEPTED` |
+|---|---|---|---|
+| `PF_LOST` | 218 | 37 | 4 |
+| `SCHEDULE` | 147 | 42 | 1 |
+| `PF_GAINED` | 70 | 34 | 3 |
+| `TAIL_EXTRA` | 26 | 3 | 0 |
+| `PF_ADDR` | 20 | 7 | 0 |
+| `PIN` | 19 | 5 | 0 |
+| **`DATA_SEQ`** | **6** | **30** | 0 |
+
+> **`DATA_SEQ` IS 30 / 36 ALREADY-KNOWN FUNCTIONAL DIVERGENCES.**  Every other
+> family is 80-90 % `TIMING` in the other campaign's own verdict; `DATA_SEQ`
+> inverts it.  So the family the census named *"the highest-value population
+> left in the fuzz bank"* is **NOT A BIU QUESTION** — it is the architectural
+> campaign's standing FUNCTIONAL residue showing through into the per-clock
+> comparison, which is exactly what "two data cycles that differ" should mean.
+
+That is the correct disposition and it is a REMOVAL from this campaign's work
+list, not an addition: §26.10's closer for `DATA_SEQ` is amended to *route the
+30 to the functional ledger and keep only the 6*.
+
+**And the converse number, which is the one worth remembering.**  The
+functional replay reports **810** `FUNCTIONAL` seeds over the same banks.
+**652 of them are CYCLE-EXACT in the timed model** — the timed harness
+reproduces the chip clock for clock on 652 seeds where the architectural
+comparison does not.  The two campaigns' residues are very nearly DISJOINT, and
+neither number is evidence about the other.
+
+*Erratum routed:* this cross-reference is recorded in
+`docs/notes/ucsim_provenance.md` as well, because the 30 belong to that ledger's
+population and it did not know they were also visible per-clock.
 
 #### 26.4.5 What the census did NOT find, stated because it was looked for
 
@@ -9232,7 +9273,7 @@ template.
 | `PF_LOST` | 309 | two sub-signatures: the RMW-gap prefetch (111) and one prefetch short at a flushing write (88) | a directed cell that varies ONLY the EU-request arrival clock against a prefetch grant — the pin-side form of law card **C11 (`owns_slot`)**, whose reservation SOURCE is the unobservable term |
 | `SCHEDULE` | 193 | one offset, mode `-3`, model EARLY in 154/193 | a directed cell at a `MEMR`->next-cycle boundary at four wait levels: if the offset is invariant it is a fixed index (the campaign's seventh such), if it moves with `N` it is bus-keyed |
 | `PF_GAINED` | 107 | `HALT -> CODE` in 69 (M20's regime, whole-program view) | §26.6's `A - H <= -3` measurement; the same stimulus |
-| `DATA_SEQ` | **36** | genuinely different data cycles; 35/36 `func_bad`, 35/36 no arch dump | **THE HIGHEST-VALUE POPULATION LEFT.**  Extend the comparison window past the register store on these 36 so the arch column can speak, then read the first differing `MEMR` address |
+| `DATA_SEQ` | **36** | genuinely different data cycles; 35/36 `func_bad`, 35/36 no arch dump | **30 of the 36 are the FUNCTIONAL campaign's own standing residue** (§26.4.6) and are ROUTED THERE, not chased here.  The closer for the remaining **6** is: extend the comparison window past the register store so the arch column can speak |
 | `PF_ADDR` | 27 | 16 arch-clean, 14 realign by skipping one fetch | rides `PF_LOST`'s closer |
 | `TAIL_EXTRA` | 33 | the chip parked, the model did not | rides the window question with `DATA_SEQ` |
 | `PIN` | 24 | `qs -!=F` 20, `data` 3, `ps` 1 | the `ube` member is gone — M23 (§26.7) |
