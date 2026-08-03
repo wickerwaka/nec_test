@@ -116,6 +116,19 @@ public:
     bool fired_boundary() const { return fired_boundary_; }
     long boundary_clk() const { return boundary_clk_; }
 
+    // --- S9b: the SAME boundary, in the MULTI-INSTRUCTION domain -------------
+    // A single-instruction case has exactly one boundary, so `fire_pc` alone
+    // names it.  A whole-program replay does not: the recorded resume CS:IP can
+    // recur (a loop) and a bus position alone cannot separate two boundaries
+    // with no bus cycle between them.  So the timed path uses the SAME TWO
+    // COORDINATES the functional replay already uses (image_runner.cpp's
+    // `want_fire`): the ordered bus position the acknowledge stands at, and the
+    // CS:IP the chip's own pushed frame recorded.  Both are guards on the
+    // existing predicate -- -1 disables either, which is the S9a single-
+    // instruction configuration byte for byte.
+    void set_fire_ev(long ev) { fire_ev_ = ev; }
+    void set_fire_cs(long cs) { fire_cs_ = cs; }
+
     void set_trace(std::FILE* f) { trace_ = f; }
 
     int rows_executed() const { return rows_; }
@@ -184,6 +197,16 @@ private:
     int rep_elems_ = 0;
     long evt_at_ = -1;
     long fire_pc_ = -1;
+    long fire_ev_ = -1;
+    long fire_cs_ = -1;
+    // The replayed firing boundary, evaluated at the `E` row.  Same predicate
+    // as the functional driver's, in the same two coordinates.
+    bool at_fire_boundary() const {
+        if (fire_pc_ < 0 || m_.pc != uint16_t(fire_pc_)) return false;
+        if (fire_cs_ >= 0 && m_.sreg[kCS] != uint16_t(fire_cs_)) return false;
+        if (fire_ev_ >= 0 && biu_.ev_count() < fire_ev_) return false;
+        return true;
+    }
     bool fired_boundary_ = false;
     long boundary_clk_ = -1;
     uint16_t hw_owned_[kHwCount] = {};
@@ -1061,7 +1084,7 @@ bool CpuT<Bus>::run_micro(const MicroPc& entry) {
             // still finishes its post-`E` row (which costs no clocks but does
             // carry datapath work -- `9D`'s `SIGMA -> SP` lives there); only
             // the successor's decode is what does not happen.
-            if (fire_pc_ >= 0 && m_.pc == uint16_t(fire_pc_)) {
+            if (at_fire_boundary()) {
                 boundary_clk_ = biu_.boundary_no_pop();
                 fired_boundary_ = true;
                 row_clocks = 0;
@@ -1092,7 +1115,7 @@ bool CpuT<Bus>::run_micro(const MicroPc& entry) {
     // the whole `O -> I0` residual of the Q1 family (sw/q1diff.py).
     if (fired_boundary_) return true;          // S9a: no successor decode
     const bool deferred = !biu_.opcode_pending();
-    if (fire_pc_ >= 0 && m_.pc == uint16_t(fire_pc_)) {
+    if (at_fire_boundary()) {
         boundary_clk_ = biu_.boundary_no_pop();   // S9a, the deferred path
         fired_boundary_ = true;
         return true;

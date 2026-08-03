@@ -35,6 +35,12 @@ struct TimedOptions {
     bool wrand = false;
     int wmax = 0;
     unsigned wseed = 0;
+    // S9b -- `timed-boot`'s PIN-EVENT REPLAY directive (a JSON file, see
+    // run_timed_boot).  Two things and nothing else: the RIG's own pin
+    // schedule, and the firing boundaries the CAPTURE recorded.  Both are
+    // inputs in the same class as `iord`.  Null = no event (every non-EVT
+    // seed, byte for byte the pre-S9b run).
+    const char* evt_path = nullptr;
 };
 
 int run_timed(const ucrom::UcRom& rom, std::FILE* in, std::FILE* out,

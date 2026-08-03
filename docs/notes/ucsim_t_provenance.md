@@ -4715,3 +4715,94 @@ in the preview suggests a missing law.
    A w1/w3 pin-event tranche is the capture that would open it; until then no
    gate may pretend a law exists.
 4. The three w0 tails (`0F12`, `C1.6`, `F7.4`) are untouched and unrelated.
+
+## 20. POST-CLOSURE ADDENDUM #5 — S9b, THE EVT POPULATION UNLOCK (2026-08-02)
+
+**This section is an ADDENDUM.  Nothing in §0-§19 is edited or retracted by it.**
+S9a closed the SINGLE-INSTRUCTION half of scaffolding S9; this section closes
+the MULTI-INSTRUCTION half — `timed-boot` now replays pin events — and scores
+the population that half was blocking.
+
+### 20.0 PRE-REGISTRATION — written and committed BEFORE the full run
+
+The S4r lesson, applied again: population, comparison policy and the numeric
+bar are frozen HERE, from a 50-seed stratified pilot, so that no post-hoc
+reading of the full run can be dressed up as the gate.
+
+**Harness.**  `sw/timed_fuzz.py --evt-replay`, and everything that decides a
+verdict is INHERITED, not re-invented: the regeneration path and its sha256
+gate (`ucsim_fuzz.regen`), the comparison WINDOW (`ucsim_fuzz.window_of`), and
+the COLUMN POLICY (`fuzz_classify.diff_rows`) — byte for byte §13.0's, with no
+change of any kind.  The wait vectors come from each seed's own `waits` record
+exactly as before.
+
+**The two REPLAYED coordinates.**  The pin-event directive `timed-boot` now
+takes is two inputs and no predictions:
+
+| | |
+|---|---|
+| the RIG's schedule | the seed's own `evt` axis (`pin` / `delay` / `hold`) plus the fetch anchor `meta["anchor_linear"]` — the *identical* tuple `fuzz_campaign._evt_tuple` handed the board.  Assert clock `A` = (the `CODE` T1 at that address) + 2 + `delay`, `nec_bus.sv`'s own scheduler mirrored. |
+| the CAPTURE's boundaries | for each firing, the ordered bus position of the acknowledge and the CS:IP the chip's own pushed frame recorded — `ucsim_fuzz.entry_points` / `frame_of`, the SAME functions the functional replay uses, imported not forked. |
+
+`pins` is the rig's static PINS register, which `check_seq.run_chip` never
+writes: it holds its reset value 0 (`hps_axi_slave.sv`), so POLL_N sits
+statically LOW and 9B is never busy — the model's standing behaviour.
+
+**Population, frozen.**
+
+```
+1,165  EVT seeds in the four banks (mc1 502, mc2 503, t30-raw 160, t30-brkem 0)
+  157  ...OPEN_BUS                 <- STAYS EXCLUDED (a property of the CAPTURE)
+------
+1,008  the S9b UNLOCKED population
+```
+
+`OPEN_BUS` is tested FIRST for an EVT seed, so the unlocked table and the
+registered table cannot overlap.  **The registered denominators are UNTOUCHED**:
+`sw/timed_fuzz.py` with no flags still excludes every EVT seed and still scores
+1,702 / 1,165 EVT / 375 OPEN_BUS, and the tranche still scores 188.
+
+**The tranche contributes ZERO EVT seeds, by construction.**  §14.0 set
+`no_evt` at GENERATION for all 216 tranche cells; re-checked here, 216 / 216
+carry no `evt` axis.  There is no "tranche EVT population" to unlock, and the
+tranche's 188-seed denominator is unchanged.
+
+**Pilot** (`--pop evt --pilot 50 --evt-replay`, deterministic, stratified over
+(bank, pin, wait class); 33 scored, 17 OPEN_BUS):
+
+| metric | pilot value |
+|---|---|
+| M1 cycle-exact seeds (whole window divergence-free) | **19 / 33 (57.6 %)** |
+| M2 median divergence-free prefix, rows from RESET | **1,188** |
+| M3 median prefix FRACTION (`first_bad / n`) | **1.000** |
+| M4 seeds with prefix fraction >= 0.5 / >= 0.9 | **20 / 33**, **19 / 33** |
+| first-divergence family census | `bs` 10, `qs` 3, `data` 1 |
+| by pin | INT 6/14, NMI 8/14, POLL 5/5 |
+| divergences within 4 rows of an ACKNOWLEDGE | **0 / 14** |
+
+**The bar, stated before the run, and what can fail:**
+
+1. **Zero hard failures** over the full 1,008 (`GEN_DRIFT` / `REGEN_ERROR` /
+   `SIM_ERROR` = 0), and zero `REP-WITHDRAW-UNMATCHED` reports — a replayed
+   boundary that does not land where the chip's did is a DRIVER failure and is
+   reported as one, never swallowed.
+2. **A closed taxonomy**: every diverging seed's first divergence falls in a
+   named family; an "unknown" bucket is a failure of the survey.
+3. **A numeric floor**: **>= 45 %** of the 1,008 cycle-exact on the first full
+   run.  Rationale: the pilot's point estimate is 57.6 % on n = 33, whose
+   one-sided 95 % lower bound is 43.5 %; 45 % is that bound rounded to the
+   nearest achievable-and-still-falsifiable figure.  A full run below it says
+   the pilot's strata are not the population and the driver is reported as NOT
+   closing this half of S9.
+4. **A ratchet**: M1-M4 on the first full run become the baseline of record and
+   may only GROW.  The 1,008 / 157 split is frozen with them, so the ratchet
+   cannot be met by shrinking the denominator.
+5. **Zero newly broken on the REGISTERED 1,702** — a hard gate.  The
+   registered run must stay at or above 1,272 exact with no seed losing
+   divergence-free prefix.
+6. **A falsifiable prediction from the pilot**: the ACKNOWLEDGE is no longer a
+   divergence site (0 / 14 in the pilot, against the S9a preview's 9 / 12
+   within four rows), and the residual is dominated by `bs` divergences sitting
+   6-11 rows BEFORE the chip's HALT status display.  A first-divergence family
+   AT the acknowledge, or any family the pilot did not see at scale, is a
+   FINDING and is reported as one.

@@ -66,12 +66,19 @@ BANKS = ["mc1", "mc2", "t30-raw", "t30-brkem"]
 # --------------------------------------------------------------------------- #
 # the scored population (see the PRE-REGISTRATION in ucsim_t_provenance.md 13)
 # --------------------------------------------------------------------------- #
-def excuse(entry, recs, win):
+def excuse(entry, recs, win, evt_replay=False):
     """Why this seed is OUT of the scored population, or None.
 
     Both exclusions are declared BEFORE the run and are properties of the
-    CAPTURE, not of the model's answer on it."""
-    if entry.get("evt"):
+    CAPTURE, not of the model's answer on it.
+
+    S9b: with `evt_replay` the EVT exclusion becomes a POPULATION TAG rather
+    than an exclusion -- the seed is scored and reported in its own addendum
+    table, and the REGISTERED 1,702-seed denominator is what the default
+    (flag off) run still produces, byte for byte.  OPEN_BUS is untouched: it
+    stays an exclusion in BOTH populations, and it is tested FIRST for an EVT
+    seed so the two tables cannot overlap."""
+    if entry.get("evt") and not evt_replay:
         # Interrupt / INTA timing under waits is an explicit scope exclusion
         # of the whole campaign (plan, T1..T4) -- no law for it is measured
         # and no gate may pretend one is.
@@ -94,11 +101,58 @@ def wait_args(entry, td):
     return [f"--waits={int(w.get('fixed') or 0)}"]
 
 
-def run_sim(image, entry, nrows, td):
+def evt_directive(entry, meta, recs, win):
+    """S9b -- the `timed-boot` pin-event replay directive, or None.
+
+    Two coordinates and nothing else, both of them INPUTS:
+
+      the RIG's schedule   the seed's own `evt` axis (pin / delay / hold) plus
+                           the fetch anchor `meta["anchor_linear"]` the rig
+                           arms on -- exactly the tuple check_seq.run_chip
+                           handed the board (`fuzz_campaign._evt_tuple`).
+      the CAPTURE's        the ordered bus position of each acknowledge and the
+      boundaries           CS:IP the chip's own pushed frame recorded, computed
+                           by `ucsim_fuzz.entry_points` / `frame_of` -- the
+                           SAME functions the functional replay uses, imported
+                           rather than forked.
+
+    `pins` is the rig's static PINS register, which check_seq.run_chip never
+    writes: it holds its reset value 0 (hps_axi_slave.sv `poll_n_out <= 0`), so
+    POLL_N sits statically LOW and 9B is never busy -- the model's standing
+    behaviour with no event at all.
+    """
+    evt = entry.get("evt")
+    if not evt:
+        return None
+    pin = int(evt.get("pin", 0))
+    cstream = uf.chip_stream(recs, win)
+    fires = uf.entry_points(cstream, pin)
+    frames = [uf.frame_of(cstream, i) for i in fires]
+    # A frame the capture window cut short cannot name a boundary; drop it and
+    # everything after it rather than guessing one.
+    keep = 0
+    while keep < len(fires) and frames[keep][0] >= 0:
+        keep += 1
+    fires, frames = fires[:keep], frames[:keep]
+    return {"pin": pin,
+            "addr": int(meta["anchor_linear"]) & 0xFFFFF,
+            "delay": int(evt.get("delay", 0)),
+            "hold": int(evt.get("hold", 0)),
+            "pins": 0,
+            "at": fires,
+            "cs": [f[0] for f in frames],
+            "ip": [f[1] for f in frames]}
+
+
+def run_sim(image, entry, nrows, td, evt=None):
     img = Path(td) / "img.bin"
     img.write_bytes(bytes(image))
     argv = [str(SIM), "timed-boot", str(ROM), str(img),
             f"--clocks={nrows}", "--ndjson"] + wait_args(entry, td)
+    if evt is not None:
+        ep = Path(td) / "evt.json"
+        ep.write_text(json.dumps(evt))
+        argv.append(f"--evt={ep}")
     p = subprocess.run(argv, capture_output=True)
     rows = []
     for l in p.stdout.decode().splitlines():
@@ -118,11 +172,11 @@ def first_kind(d):
     return "qsflicker" if d.flicker else "qs"
 
 
-def one(path):
+def one(path, evt_replay=False):
     entry = json.loads(gzip.decompress(Path(path).read_bytes()))
     out = {"path": str(path), "cid": entry.get("cid"), "k": entry.get("k"),
            "verdict": entry.get("verdict"), "reason": entry.get("promoted_reason"),
-           "waits": entry.get("waits")}
+           "waits": entry.get("waits"), "evt": entry.get("evt")}
     try:
         image, meta, g, sha = uf.regen(entry)
     except Exception as e:                                    # noqa: BLE001
@@ -136,9 +190,13 @@ def one(path):
 
     recs = entry["chip_rows"]
     win = uf.window_of(recs)
-    ex = excuse(entry, recs, win)
+    ex = excuse(entry, recs, win, evt_replay)
+    evt = evt_directive(entry, meta, recs, win) if (evt_replay and not ex) \
+        else None
+    if evt is not None:
+        out["fires"] = len(evt["at"])
     with tempfile.TemporaryDirectory() as td:
-        rows, err = run_sim(image, entry, len(recs), td)
+        rows, err = run_sim(image, entry, len(recs), td, evt)
     out["stderr"] = err.strip()[:200]
     if not rows:
         out["cat"] = "SIM_ERROR"
@@ -162,6 +220,9 @@ def one(path):
     out["exact"] = not dr.rows
     out["cat"] = ex or ("EXACT" if out["exact"] else "DIVERGE")
     out["excused"] = ex
+    # S9b population tag: which of the two tables this seed belongs to.  The
+    # REGISTERED population is exactly the seeds with no `evt` axis.
+    out["pop"] = "EVT" if entry.get("evt") else "REG"
     return out
 
 
@@ -176,16 +237,53 @@ def seeds_of(banks):
     return out
 
 
-def stratify(paths, n, seed=20260802):
-    """A stratified pilot: proportional over (bank, wait class), deterministic."""
+def axes_of(path):
+    """(pop, pin, wait-class) for a banked seed, read from the record itself.
+    Used only to SELECT a population / a stratified pilot -- never to score."""
+    e = json.loads(gzip.decompress(Path(path).read_bytes()))
+    ev, w = e.get("evt"), (e.get("waits") or {})
+    wc = f"wrand{w.get('wmax')}" if w.get("wrand") else f"fix{w.get('fixed') or 0}"
+    return ("EVT" if ev else "REG", int(ev["pin"]) if ev else -1, wc)
+
+
+def stratify(paths, n, seed=20260802, keys=None):
+    """A stratified pilot: proportional over the strata, deterministic.
+
+    Default strata = the bank.  `keys` (path -> tuple) refines them; the S9b
+    EVT pilot uses (bank, pin, wait class) so the pilot cannot miss the NMI or
+    the waited slices."""
     strata = defaultdict(list)
     for p in paths:
         b = Path(p).parent.parent.name
+        if keys:
+            b = (b,) + tuple(keys[p])
         strata[b].append(p)
     rr = random.Random(seed)
     picked = []
-    keys = sorted(strata)
-    for i, b in enumerate(keys):
+    if keys:
+        # Refined strata are many and small, so a concatenation truncated at
+        # `n` would return the first stratum only: draw ROUND-ROBIN, which
+        # keeps every stratum represented at any n.  (The default, unrefined
+        # path below is untouched -- it is the T3 pre-registration's own.)
+        pools = []
+        for b in sorted(strata, key=repr):
+            pool = sorted(strata[b])
+            rr.shuffle(pool)
+            pools.append(pool)
+        # ...and the STRATUM ORDER is shuffled too, so that a pilot smaller
+        # than the number of strata is not just the alphabetically first ones
+        # (which is one bank).
+        rr.shuffle(pools)
+        i = 0
+        while len(picked) < n and any(len(p) > i for p in pools):
+            for p in pools:
+                if i < len(p):
+                    picked.append(p[i])
+                    if len(picked) >= n:
+                        break
+            i += 1
+        return picked[:n]
+    for b in sorted(strata, key=repr):
         take = max(1, round(n * len(strata[b]) / len(paths)))
         pool = sorted(strata[b])
         rr.shuffle(pool)
@@ -205,27 +303,64 @@ def main():
     ap.add_argument("--jobs", type=int, default=os.cpu_count() or 4)
     ap.add_argument("--report", default="")
     ap.add_argument("--details", type=int, default=0)
+    # S9b.  OFF by default: `python3 sw/timed_fuzz.py` with no flags is the
+    # REGISTERED gate (sec.13.0's population, denominator and policy) and is
+    # not touched by this session.  With the flag the EVT seeds are scored too
+    # and reported as their OWN table plus a combined figure.
+    ap.add_argument("--evt-replay", action="store_true",
+                    help="score the EVT seeds through the pin-event replay "
+                         "(reported separately; the registered table is "
+                         "unchanged)")
+    ap.add_argument("--pop", default="all", choices=("all", "reg", "evt"),
+                    help="restrict to the registered (no-evt) or the EVT "
+                         "population; selection only, scoring is unchanged")
     args = ap.parse_args()
 
     paths = sorted(str(x) for x in Path(args.seeddir).glob("*.json.gz")) \
         if args.seeddir else seeds_of([b for b in args.bank.split(",") if b])
+    # Selection only.  With --pop all (the registered gate) NOTHING here runs,
+    # so the default path -- including the T3 pilot's own stratification -- is
+    # byte for byte what it was.
+    keys = None
+    if args.pop != "all":
+        with Pool(args.jobs) as pool:
+            ax = pool.map(axes_of, paths, chunksize=16)
+        keys = dict(zip(paths, ax))
+        want = "EVT" if args.pop == "evt" else "REG"
+        paths = [p for p in paths if keys[p][0] == want]
     if args.pilot:
-        paths = stratify(paths, args.pilot)
+        paths = stratify(paths, args.pilot, keys=keys)
     elif args.limit:
         paths = paths[:args.limit]
 
     t0 = time.time()
     with Pool(args.jobs) as pool:
-        res = pool.map(one, paths, chunksize=4)
+        res = pool.starmap(one, [(p, args.evt_replay) for p in paths],
+                           chunksize=4)
 
     cat = Counter(r["cat"] for r in res)
-    scored = [r for r in res if r["cat"] in ("EXACT", "DIVERGE")]
-    exact = [r for r in scored if r["exact"]]
-    flick = [r for r in scored if r.get("flicker_only")]
+    all_scored = [r for r in res if r["cat"] in ("EXACT", "DIVERGE")]
+    reg = [r for r in all_scored if r.get("pop") != "EVT"]
+    evtp = [r for r in all_scored if r.get("pop") == "EVT"]
     print(f"== timed_fuzz -- fuzz-bank chip_rows through the TIMED sim "
           f"({len(paths)} seeds, {time.time()-t0:.0f} s)")
     print("  categories      " + "  ".join(f"{k}={v}" for k, v in
                                            sorted(cat.items())))
+    if args.evt_replay:
+        for lbl, grp in (("REGISTERED", reg), ("EVT-unlocked", evtp),
+                         ("COMBINED", all_scored)):
+            if not grp:
+                continue
+            ex = sum(1 for r in grp if r["exact"])
+            fl = sum(1 for r in grp if r.get("flicker_only"))
+            print(f"  {lbl:<14}  cycle-exact {ex}/{len(grp)} "
+                  f"({100.0*ex/len(grp):.1f} %)   "
+                  f"+flicker {ex+fl}/{len(grp)} "
+                  f"({100.0*(ex+fl)/len(grp):.1f} %)")
+    # The detail block below always describes the SCORED set of this run.
+    scored = all_scored
+    exact = [r for r in scored if r["exact"]]
+    flick = [r for r in scored if r.get("flicker_only")]
     print(f"  SCORED          {len(scored)}")
     if scored:
         print(f"  cycle-exact     {len(exact)}/{len(scored)} "

@@ -328,6 +328,68 @@ void run_one(const ucrom::UcRom& rom, BiuTimed& biu, RowEmitter& sink,
 // dispatch, not a fitted per-row cost.
 constexpr int kResetEntryClocks = 4;
 
+// --- S9b: the pin-event replay directive for `timed-boot` --------------------
+//
+// The whole-program path needs exactly what the single-instruction one needs
+// (S9a), expressed in the coordinates a whole program HAS:
+//
+//   the RIG's schedule    `pin` / `addr` / `delay` / `hold` / `pins`, the same
+//                         fetch-trigger scheduler nec_bus.sv runs (the CODE T1
+//                         whose 20-bit address is `addr`, then +2+delay), read
+//                         verbatim off the seed's own `evt` axis.
+//   the CAPTURE's         `at` / `cs` / `ip`: for each firing, the ordered bus
+//   boundaries            position the acknowledge stands at and the CS:IP the
+//                         chip's own pushed frame recorded.  IDENTICAL to the
+//                         functional coordinate image_runner.cpp replays; it is
+//                         computed by the same sw/ucsim_fuzz.py functions.
+//
+// NOTHING about which boundary fires, or whether one fires at all, is predicted
+// here.  What the timed path owes on top of the functional one is the CLOCK the
+// entry sequence starts on, and that is M14 (S9a sec.19.2) unchanged:
+//
+//     D = max(B, A + 3)  INT      D = max(B, A + 4)  NMI      entry = D + 2
+//
+// with `B` the replayed boundary's retire clock and `A` the rig's assert clock.
+struct BootEvt {
+    int pin = 0;                 // 0 INT, 1 NMI, 2 POLL_N
+    uint32_t addr = 0;
+    long delay = 0, hold = 0;
+    int pins = 0;
+    std::vector<long> at, cs, ip;
+    bool armed() const { return !at.empty() || hold != 0 || delay != 0; }
+};
+
+bool read_boot_evt(const char* path, BootEvt& e) {
+    std::FILE* f = std::fopen(path, "rb");
+    if (!f) {
+        std::fprintf(stderr, "timed-boot: cannot open %s\n", path);
+        return false;
+    }
+    std::string s = read_all(f);
+    std::fclose(f);
+    size_t p = 0;
+    json::Value c;
+    std::string err;
+    if (!json::parse(s, p, c, err)) {
+        std::fprintf(stderr, "timed-boot: evt json: %s\n", err.c_str());
+        return false;
+    }
+    if (const json::Value* v = c.get("pin")) e.pin = int(v->i());
+    if (const json::Value* v = c.get("addr")) e.addr = uint32_t(v->u()) & 0xFFFFFu;
+    if (const json::Value* v = c.get("delay")) e.delay = long(v->i());
+    if (const json::Value* v = c.get("hold")) e.hold = long(v->i());
+    if (const json::Value* v = c.get("pins")) e.pins = int(v->i());
+    auto arr = [&](const char* k, std::vector<long>& out) {
+        if (const json::Value* v = c.get(k))
+            if (v->type == json::Value::kArr)
+                for (const auto& x : v->arr) out.push_back(long(x.i()));
+    };
+    arr("at", e.at);
+    arr("cs", e.cs);
+    arr("ip", e.ip);
+    return true;
+}
+
 // The rig's replay / random wait sources, in nec_bus.sv's priority order.  A
 // `--wvec` file is one wait count per line in BUS-ACCESS order, which is how
 // wvec_buf.sv is indexed (`bus_idx`, counting every bus cycle from run start).
@@ -363,6 +425,9 @@ int run_timed_boot(const ucrom::UcRom& rom, const char* image_path, long clocks,
         return 2;
     }
 
+    BootEvt ev;
+    if (opt.evt_path && !read_boot_evt(opt.evt_path, ev)) return 2;
+
     BiuTimed biu;
     biu.set_mirror(true);          // the capture board's 64 KB wiring
     // ...and the rest of the capture board's I/O map, which is EMPTY: an IN
@@ -374,6 +439,9 @@ int run_timed_boot(const ucrom::UcRom& rom, const char* image_path, long clocks,
     // independently for T3 over the four banks: **4,594 of 4,594** IOR
     // data-phase rows carry 0xFFFF, over 8+ distinct ports.
     biu.set_io_in(0xFFFF);
+    // ...and the same measured INTA constant image_runner.cpp replays: every
+    // INTA cycle in every banked capture carries 0x00FF.  A rig input.
+    biu.set_inta(0x00FF);
     biu.set_waits(opt.waits);
     if (!apply_wait_source(biu, opt)) return 2;
 
@@ -408,8 +476,34 @@ int run_timed_boot(const ucrom::UcRom& rom, const char* image_path, long clocks,
         std::fprintf(stderr, "timed-boot: reset sequence did not terminate\n");
         return 1;
     }
+    // S9b: arm the rig's schedule (a no-op when nothing is scheduled -- the
+    // trigger stays 0 and `assert_clk()` stays -1 forever).
+    if (opt.evt_path && ev.armed())
+        biu.set_evt(1, ev.pin, ev.addr, ev.delay, ev.hold, ev.pins);
+    const CpuTimed::EventKind evkind =
+        (ev.pin == 1) ? CpuTimed::kEvtNmi : CpuTimed::kEvtInt;
+    const long evpipe = (ev.pin == 1) ? 4 : 3;   // the measured pin pipeline
+    size_t evt_n = 0;
+    long rep_unmatched = 0;
+    // The replayed boundary, re-armed after every firing.  `set_evt_at` is the
+    // mid-string coordinate the ROM's own withdrawal path (009A -> 009B ->
+    // REPX 0223) hangs off -- the SAME call image_runner.cpp makes.
+    auto arm = [&]() {
+        if (evt_n < ev.at.size()) {
+            cpu.set_fire_ev(ev.at[evt_n]);
+            cpu.set_fire_cs(evt_n < ev.cs.size() ? ev.cs[evt_n] : -1);
+            cpu.set_fire_pc(evt_n < ev.ip.size() ? ev.ip[evt_n] : -1);
+            cpu.set_evt_at(ev.at[evt_n]);
+        } else {
+            cpu.set_fire_ev(-1);
+            cpu.set_fire_cs(-1);
+            cpu.set_fire_pc(-1);
+            cpu.set_evt_at(-1);
+        }
+    };
     int guard = 0;
     while (biu.clock() < clocks && ++guard < 100000) {
+        arm();
         if (!cpu.step()) {
             // The EU gave up on this instruction (exec_detail::kMaxRows, or an
             // undecodable form).  SAY SO: a silently truncated run looks like
@@ -420,18 +514,85 @@ int run_timed_boot(const ucrom::UcRom& rom, const char* image_path, long clocks,
                          biu.clock(), unsigned(m.sreg[kCS]), unsigned(m.pc));
             break;
         }
+        // --- the replayed firing boundary, and M14's decision clock --------
+        // `fired_boundary()` is the ordinary retire boundary; `intr_pending`
+        // is the mid-string withdrawal, whose rewound PC IS `resume_ip` and
+        // which therefore ends at the same kind of boundary (sec.19.8.1).
+        if (cpu.fired_boundary() || m.intr_pending) {
+            const bool withdrew = m.intr_pending;
+            m.intr_pending = false;
+            long d = cpu.boundary_clk();
+            if (!cpu.fired_boundary()) {
+                // The withdrawal ran but its rewound CS:PC is not the CS:IP
+                // the capture recorded: the replayed boundary did not land
+                // where the chip's did.  REPORTED, never silently swallowed
+                // (image_runner.cpp keeps the same counter).
+                ++rep_unmatched;
+                d = biu.clock();
+            }
+            (void)withdrew;
+            const long a = biu.assert_clk();
+            if (a >= 0 && a + evpipe > d) d = a + evpipe;
+            biu.charge_to(d + 2);
+            cpu.interrupt(evkind);
+            ++evt_n;
+            continue;
+        }
         // S8/S9: the part HALTS.  The HLT micro-row drives the HALT status
         // and the bus PARKS -- it does not keep prefetching, which is what
         // the model used to do and what made every whole-program bus-cycle
         // count meaningless (the ENTER/fuzz traces are ~200 real cycles and
         // the model was emitting ~840 by prefetching past the HLT forever).
         if (m.halted) {
+            // --- the HALT wake (sec.19.6), the same three numbers ----------
+            // The wake costs ONE clock: the decision sits at the earliest
+            // clock the pin pipeline allows (A+3 INT level / A+4 NMI latch)
+            // and the would-pop clock B is one later, after which entry =
+            // B + 2 is M14 unchanged.  A halted part makes no bus cycle and
+            // never moves PC, so a pending firing fires unconditionally --
+            // the same reading image_runner.cpp makes.
+            const long a = biu.assert_clk();
+            // The decision clock: the earliest the pin pipeline allows, but
+            // never before the part is actually halted.  The level the
+            // decision reads is the one `evpipe` clocks earlier, so a pin the
+            // rig has already released by then wakes nothing.
+            const long dec = (a < 0) ? -1
+                                     : (a + evpipe > biu.clock() ? a + evpipe
+                                                                 : biu.clock());
+            const bool level = dec >= 0 &&
+                               (ev.hold == 0 || dec - evpipe < a + ev.hold);
+            const bool wakes = level && ev.pin != 2;
+            if (wakes && evt_n < ev.at.size()) {
+                if (ev.pin == 1) {
+                    biu.charge_to(dec + 3);     // B = dec+1, entry at B+2
+                } else {
+                    biu.charge_to(dec);
+                    biu.unhalt();               // the prefetcher restarts here
+                    biu.charge_to(dec + 3);     // B = dec+1, entry at B+2
+                }
+                biu.unhalt();
+                cpu.interrupt(evkind);
+                ++evt_n;
+                continue;
+            }
+            if (wakes) {
+                // Masked resume: no vector, the prefetcher restarts at the
+                // decision clock and the resumed opcode pops one clock later.
+                biu.charge_to(dec);
+                biu.unhalt();
+                m.halted = false;
+                biu.charge_to(dec + 1);
+                continue;
+            }
             // The HALT status and the prefetch freeze are driven by the HLT
             // DECODE now (loader_impl.h, S9a); the bus just parks.
             while (biu.clock() < clocks && ++guard < 100000) biu.tick_idle();
             break;
         }
     }
+    if (rep_unmatched)
+        std::fprintf(stderr, "timed-boot: REP-WITHDRAW-UNMATCHED %ld\n",
+                     rep_unmatched);
     biu.end_case();
     uint16_t fin[14] = {};
     for (int i = 0; i < 8; ++i) fin[i] = m.gpr[i];
