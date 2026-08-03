@@ -2318,6 +2318,12 @@ ucore ratchet; these are the ucore's first.
 
 ## §40 WHAT IS LEFT — 2 RED FORMS, 114 CASES
 
+> **SUPERSEDED BY §42 (pass 6): both forms are CLOSED and G3 is
+> 169,000/169,000.**  The diagnoses below were both correct and are kept
+> verbatim — including the tap-depth scan booked here as a negative result,
+> which §42/F40 then showed was negative *for a reason*.  §40.1's residue
+> list is carried forward in §42.6 minus `ss_field_width`, which §42.2 closed.
+
 | form | cost | mechanism, diagnosed |
 |---|---|---|
 | `INT.9D` | 89 | **ALL of them pre-IE=0.**  The chip's flag register takes the popped image at the READ'S DATA EDGE — "the new IE shows in the PS bits during the read's own T4" — three clocks before the `OPR -> FLAGS` row writes it, so the following boundary's `ie_p[2]` sees IE=1 and this rendering's does not.  MEASURED, `idx 1`: the golden's PS nibble is 5 from row 9 and the RTL's is 1 until row 12.  The 111 pre-IE=1 cases PASS, which is the reason the POP-PSW boundary race law is **not** needed here: "pre-IE=0 pops never race, 89/89 class A in the tranche". |
@@ -2338,6 +2344,10 @@ ucore ratchet; these are the ucore's first.
   and the `opr_held` T2 fix is visible only through them.
 
 ## §41 HANDOFF — what U3 picks up
+
+> **SUPERSEDED BY §42.6.**  Items 2 (the two red forms), 3 (`ss_field_width`'s
+> EU half) and 4 (`ulockstep` batch mode) were closed in pass 6; the U3 handoff
+> that stands is §42.6.
 
 1. **The ucore enters U3 with no wait-axis debt on the scripted cells** and
    with the whole `evt` axis measured for the first time.  The random-wait
@@ -2360,3 +2370,289 @@ ucore ratchet; these are the ucore's first.
    One addition: **`ucore_census.py` scores `full` only.**  The zero-cost
    `S_TAIL_W` attempt regressed three forms' ARCH by 836 cases and the delta
    read "REGRESSED: none".  Read the `arch` column too.
+
+## §42 PASS 6 — THE G3 CLOSE, AND THE U2 CLOSE STATEMENT
+
+**`check_core.py --core ucore --opcodes all --cases 0` = 169,000 / 169,000.**
+Both of §40's diagnosed forms closed on the mechanism §40 named; no form
+regressed on either the `full` or the `arch` column; and all four `evt` cells
+went to 100 % with them.
+
+### §42.1 The governance call, made FIRST, because it decided the method
+
+§40 handed pass 6 two forms with the instruction "verify the diagnosis against
+the sim first — the sim passes these goldens, so the mechanism IS in the sim
+somewhere".  **It is not, and that is the finding that governs both.**
+`sim/pin_replay.h` is explicit about it:
+
+* the firing BOUNDARY is read out of *the golden's own pushed frame* at
+  `SS:SP` (`derive_replay`: `resume_ip = word(sp)`), and
+* the REP ELEMENT COUNT is read out of *the golden's own bus trace*
+  ("Counted as MEMW cycles ahead of the first INTA row").
+
+`CpuT::at_fire_boundary()` is a comparison against those two replayed
+coordinates; the model has **no IE pipeline, no pin tap and no anchoring law
+at all**.  So neither form is an RTL-vs-sim divergence: there is no sim
+rendering to diverge from.  Both are **RTL-vs-silicon, on an axis the sim does
+not share** — exactly F34's scoped exception ("the gate for this rung is the
+GOLDEN, with `ulockstep` informative only"), and both were therefore built from
+`docs/facts/interrupt_model.md` and scored on `check_core`.
+
+The exception was again never *abused*: `ulockstep --golden all` is **1,735 /
+1,735 ALL CASES LOCKSTEP** on the same tree (§42.4).
+
+### F39 — THE FLAG REGISTER IS FED BY THE DATA LATCH, NOT BY THE ROW
+
+**Class: SPEC (transliteration).  `INT.9D` 111 → 200; and the masked column it
+also fixes is the confirmation.**
+
+`interrupt_model.md`, verbatim: *"POP PSW consumes the popped image at its
+read's data edge (the new IE shows in the PS bits during the read's own T4)."*
+
+The rendering is one sentence and it names no opcode: **a micro-row's
+destination write-enable is a LEVEL for as long as the row STANDS.**  A row
+blocked on its `F` interlock has its control decoded and its destination
+selected; a destination fed from the read latch therefore takes the word the
+instant the latch closes, not when the row finally releases.  For every other
+destination that is invisible — nothing runs between the row's arrival and its
+release — but FLAGS is wired to the outside world twice over (S5 on the status
+pins, and the IE gate of the recognition pipeline), so there the early load
+SHOWS.
+
+The BIU publishes the edge (`eu_rd_edge` / `eu_rd_edge_d`): the T3/Tw → T4
+advance, which *is* the READY sample and *is* the edge the data latch closes
+on, with `cur_data` holding the word since the end of T2.  Register-only plus
+`ready`, exactly like `done_fire`, so it closes no loop.  The EU takes it in
+block (a), after `ie_now` is frozen, so the pipeline still sees the OLD IE on
+the edge that writes.
+
+MEASURED, `INT.9D idx 1`.  The read's T3 is row 8, its T4 row 9:
+
+| clock | golden | RTL before | RTL after |
+|---|---|---|---|
+| 9 (T4) | PS nibble **5** | 1 | **5** |
+| 10 | pop `90` | pop `90` | pop `90` |
+| 13 (the boundary) | pop **SUPPRESSED**, INTA follows | pops the next `90` | pop **SUPPRESSED** |
+
+`ie_p[2]` is IE at c-3, the boundary stands on row 13, so IE has to be up by
+row 10 — which the T3→T4 write gives and the row's own release (edge 10) does
+not.  All 89 failing cases were pre-IE=0 pops; the 111 pre-IE=1 ones never
+needed it, which is why the POP-PSW boundary RACE law is not in the ucore
+("pre-IE=0 pops never race", 89/89 class A in the tranche).
+
+**The rule hits EXACTLY TWO ROM rows.**  `OPR -> FLAGS ... F` is `007A`
+(POP PSW) and `01EA` (RETI) and nothing else — which is the same pair E1
+measured on silicon ("µ01EA's flag commit obeys the SAME race table as POP
+PSW's µ007A", 108/108 H-IDENTICAL).  The frozen FSM core renders this as
+`opc == 8'h9D && eu_rd_now` plus a second copy inside `iret_pw`; this is that
+behaviour with the opcode test and the duplication removed.
+
+**INDEPENDENT CONFIRMATION, on a column the comparator MASKS.**  `check_core`
+compares col 1 only on driven rows, so the T4 PS nibble is scored by neither
+gate — yet the RTL now reproduces the golden's `5fad2` on row 9 bit for bit.
+The fix was fitted to the recognition and the display came out right by itself.
+
+*Falsifier*: any `OPR -> FLAGS` row whose flag write is NOT visible at its
+read's T4, or any third ROM row acquiring that source/destination pair.
+
+### F40 — THE REP ABORT HAS TWO ANCHORS, AND THAT IS WHY THE TAP SCAN HAD NO FIT
+
+**Class: SPEC (transliteration).  `INT.F3AA` 175 → 200 at w0, and the whole
+`evt` wait axis with it: 167/1050/174/1063 → 200/1200/200/1200.**
+
+§40 recorded a tap-depth scan as a NEGATIVE result — `int_p[0]` 174, `[1]` 178,
+`[2]` 179, `[3]` 175 — and declined to fit one.  **It was right to decline: no
+single depth is correct, because the two boundaries are anchored to DIFFERENT
+EDGES.**  `interrupt_model.md` says so in one paragraph:
+
+> the boundary-1 decision edge sits at a fixed **opcode-pop+7** ... its flush is
+> invariant at pop+16 = edge+9 ... Chained boundaries (>= 2) are
+> **write-accept-anchored**: decision at the accept edge, flush at accept+9.
+
+The `JMP REP` row (`00C0`) stands at opcode-pop+6.  So, measured from the row's
+own clock `c`:
+
+| boundary | decision edge | pin tap (edge-4) | flush |
+|---|---|---|---|
+| 1 (pop-anchored) | `c + 1` = pop+7 | `int_p[2]` | `c + 10` — the row cadence, unchanged |
+| ≥ 2 (accept-anchored) | `c + 2` = the write's accept | `int_p[1]` | `c + 11` — **one extra clock** |
+
+**Both taps are `edge - 4`.**  Nothing is fitted; what changed is the reference
+edge, and the SAME one clock moves the pin sample AND the flush.  That second
+half is the model's own line — `if (rep_elems_ >= 2) biu_.charge(1 + ...)`,
+whose comment already said "A CHAINED REP ABORT'S DECISION EDGE IS ONE CLOCK
+LATER THAN THE LOOP ROW'S" — and the ucore had never rendered it.
+
+WHY the chained edge is later, in one sentence: **on a chained iteration the
+element's own store is still PENDING at the loop row** (after the first
+iteration nothing refreshes OPR, so the cycle only runs when the next one is
+registered — the model's own note in `kCondRep`), so its accept has not
+happened yet and the boundary waits for it.
+
+MEASURED over all 56 `INT.F3AA` mid-string aborts, before any change:
+
+* golden flush − opcode-pop = **16 in ALL 35** one-element aborts;
+* golden flush − (last completed element's write T1) = **8 in ALL 21** chained
+  ones (14 at two elements, 7 at three) = accept + 9.
+
+That is the two-anchor law read straight off the corpus, and it is uniform —
+no floating term, no per-case residue.
+
+The RTL carries a one-bit `rep_chain` (the boundary's anchor selector, the
+model's `rep_elems_ >= 2`), reset by `begin_sequence()` and read BEFORE its own
+update, exactly as the model reads its counter after the increment.  The extra
+clock is `bubble = 1` on the not-taken arm, i.e. the sequencer's existing
+`S_ROW_CHG`; no new state machine.
+
+*Falsifier*: any chained abort whose flush is not at the loop row + 11, or any
+one-element abort that needs it — the same falsifier the model already carries,
+now with the pin tap inside it.
+
+### §42.2 The two owed instruments
+
+**`ss_field_width` had no EU entries for a MECHANICAL reason.**  The function
+was placed BEFORE the EU localparams, so every `SSA_E_*` (and the two
+`SSA_B_*` declared after it) fell through to `default: 0` and mode 5 silently
+skipped them — §40.1's "no EU entries" was the symptom, not the cause.  Moved
+to the END of the package and filled in: **211 entries**, each derived from the
+read mux's own slice and cross-checked against the write decode's — 0
+mismatches over 96 BIU + 115 EU arms.
+
+**Its first EU-enabled run found a real one**: `SSA_B_OPR_HELD` was declared 1
+bit and `opr_held` is a 2-bit counter (M13 / 11.4 / F31).  Mode 5 exists
+exactly to catch a hand-written width table drifting from the RTL, and it
+caught the only entry that had drifted.  This is a D1-shaped result: a latent
+save-state fault that moved no functional number.
+
+**`ulockstep --golden`** is the standing instrument's missing leg (§37 item 6,
+§41 item 4).  Whole golden CASES through BOTH engines from the same backdoor
+injection — `v30sim timed-run` and the ucore TB's `+batch` consumer — diffed
+clock for clock over `check_core`'s own window `[first F .. F #n_close]`, under
+`ulockstep`'s documented column policy.  No golden is involved: this is the
+MODEL-vs-RTL comparison that `check_core` (RTL-vs-golden) and `timed_gate`
+(model-vs-golden) cannot make between them.
+
+The window is load-bearing and is not a mask: the two DRIVERS record a
+different number of trailing clocks past the case's close, which is a property
+of the drivers and not of the part.
+
+### §42.3 The census
+
+Whole-suite `--cases 0` (169,000 cases over 347 forms), scored by a form-by-form
+diff of two censuses on **both** the `full` and the `arch` column (§41's
+lesson).  **No form regressed at either step.**
+
+| after | cases full | cycle-exact forms | fully green forms |
+|---|---|---|---|
+| pass 5 (start) | 168,886 | 345 | 345 |
+| F39 — the flag register's data edge | 168,975 | 346 | 346 |
+| F40 — the REP abort's two anchors | **169,000** | **347** | **347** |
+
+**Two forms moved and NONE are left.**
+
+### §42.4 The gate ledger — all on this tree, `--core ucore`
+
+| gate | command | result |
+|---|---|---|
+| **G3** | `check_core.py --core ucore --opcodes all --cases 0` | **169,000 / 169,000 (100 %)** |
+| **boot march** | `check_boot.py --core ucore 220` | **220/220 MATCHES** (loop period 64 both legs) |
+| G0 | `check_ucore_tables.py` | **9988/9988 PASS** |
+| U1 lockstep | `ulockstep.py --suite --waits 0,1,2,3` | **ALL SCENARIOS LOCKSTEP** |
+| **U2 lockstep (NEW)** | `ulockstep.py --golden all --cases 5` | **1735/1735 ALL CASES LOCKSTEP** (347 forms) |
+| CE hold | `… --opcodes 88 --cases 100 --ce-div 3 --ce-hold-check` | **100/100, 0 violations** |
+| save state, scramble | `… --opcodes 89,8B,B8,E8 --cases 20 --ss-sweep 3 --ss-mode 1` | **80/80**, every freeze point `PASS` |
+| save state, idempotence | `… --opcodes 89,8B --cases 12 --ss-sweep 3 --ss-mode 2` | **24/24**, no diverging k |
+| save state, 10 forms | `… --cases 1 --ss-sweep` over 10 forms | **10/10 PASS, 333 freeze points** |
+| **save state, WIDTH (NEW)** | `… --ss-mode 5` over 8 forms | **PASS, 210 freeze points x 211 addresses** |
+| ss map audit (ucore) | 211 symbols, each exactly twice | **PASS, 0 zero-width** |
+| the MODEL, unmoved | `timed_gate.py --suite tests/v30/v0.1 --forms all` | **169,000/169,000, row-diffs 0** |
+| `v0.1-w1` all forms | `… --suite-dir tests/v30/v0.1-w1 --waits 1` | **1200/1200** |
+| `v0.1-w3` all forms | `… --suite-dir tests/v30/v0.1-w3 --waits 3` | **1200/1200** |
+| `v0.1-w1 --forms EB` | `… --opcodes EB` | **200/200** |
+| **`v0.1-w0evt`** | `… --waits 0` | **200/200** (was 167) |
+| **`v0.1-w1evt`** | `… --waits 1` | **1200/1200** (was 1050) |
+| **`v0.1-w2evt`** | `… --waits 2` | **200/200** (was 174) |
+| **`v0.1-w3evt`** | `… --waits 3` | **1200/1200** (was 1063) |
+| HLT delay sweeps | `s10-hltsweep-w{0,1}`, `s13-hltsweep-w{2,3}` | **88/97, 86/95, 35/46, 32/45** (pass 5's ratchet, held) |
+| ROM disasm | `make -C sim test` | **PASS** (byte-exact vs `V20UC.TXT`) |
+| PLA | `pla3_check.py` | **OK, 21 checks** |
+| FSM core, untouched | `check_core.py --core fsm --opcodes 88,9D,INT.9D,INT.F3AA` | **1400/1400** |
+
+G3 stated honestly, both numbers, as §29.2 requires: at w0 the sim carries no
+registered residue against silicon, so the two coincide — **169,000 / 169,000
+through the golden comparator**, and the same figure minus the (empty) w0
+residue.  100 % is of everything the part does in this suite; there are no
+forms unimplemented by design and no forms excluded.
+
+### §42.5 THE U2 CLOSE
+
+**Stage U2 is closed.  The ucore is cycle-exact on the whole scripted corpus at
+every wait level the corpus carries, including all four `evt` cells.**
+
+| pass | what it was | G3 after | recorded in |
+|---|---|---|---|
+| 1 | the EU skeleton, the module contract (F7), the first rungs | not yet censused | §15 |
+| 2 | the store path, split loads, the four families named | 7,767/20,820 at 60 cases — RECONNAISSANCE, not a gate | §23, §24 |
+| 3 | the families as ONE statement, seven renderings | **159,348** | §29 |
+| 4 | the OPR hold (F31), the divider (F32), the QS=E guard (F33) | **164,787** | §34 |
+| 5 | the interrupt and HALT rung, the 1BL strobe, the string tail | **168,886** | §39 |
+| **6** | **the flag register's data edge, the REP abort's two anchors** | **169,000** | §42 |
+
+Passes 1 and 2 have no whole-suite G3 figure because none was taken: the bar
+then was the rung ladder (500/500 on a form's own tranche), and §23's 60-case
+sweep is labelled reconnaissance in its own text.  It is not restated here as
+a gate.
+
+Findings **F1–F40** plus the three Codex reviews (§26 → C1–C3, §32, §36 →
+C4–C5) are in this
+document with their evidence and their falsifiers, and so are the ones that
+moved no number (F22, F31's provable vacuity), the ones that were REVERTED
+(§35.4's zero-cost experiment, the write-derived sreg shadow) and the ones that
+came out NEGATIVE (the REP tap-depth scan — which pass 6 then showed was
+negative *for a reason*, and the reason was the finding).
+
+**What the method was, one more time, because it is the transferable part:**
+every rung scored by a form-by-form diff of two whole-suite censuses on BOTH
+the `full` and the `arch` column, never by the total; every fix traced to a
+single model line or a single SPEC sentence with `uscope.py FORM IDX
+--rowtrace` before it was written; every numeric bar pre-registered; and the
+negative results kept in the ledger with the same weight as the positive ones.
+
+### §42.6 HANDOFF — what U3 picks up
+
+1. **The random-wait tranche gate is the campaign's victory condition and it is
+   U3's.**  The ucore enters it with no wait-axis debt anywhere in the scripted
+   corpus: `w1`/`w3` full, all four `evt` cells at 100 %, and the four HLT
+   delay sweeps at pass 5's ratchet.
+2. **The HLT delay sweeps (88/97, 86/95, 35/46, 32/45) are the one place the
+   ucore is below the standing figure.**  `CLAUDE.md`'s quick reference records
+   91/97, 92/95, 42/46 and 40/45 for `timed_gate.py` — i.e. for the MODEL — so
+   the gap is ucore-vs-model, 3+6+7+8 = 24 cells, and it has never been
+   triaged.  These are the ucore's own first measurement (§39.2) and are its
+   ratchet, not the model's; closing the 24 is the obvious next census.
+3. **`ss_lint --core ucore` still lints the FSM core**: the flag is accepted and
+   ignored (`ss_lint.py` has no `--core`), so the ucore's map is audited only by
+   the ad-hoc check in §42.4 and by mode 5.  Teaching `ss_lint` the ucore file
+   set is a small job and it now has both a working SS1 sweep and a working
+   width sweep to sit on top of.
+4. **`ulockstep --golden` is now the cheap regression net**: it runs the whole
+   347-form corpus at 5 cases each in a couple of minutes and needs no goldens
+   to be right.  Its UNMASKED view (all columns, every row) is NOT a gate —
+   idle-row `ad_addr`/`ps` are float retention and the two legs prime it
+   differently by construction — but it exposes one real, non-retention
+   difference: the `9D` T4 PS nibble, where **the RTL matches the silicon and
+   the MODEL does not** (`sim/exec_impl.h` commits FLAGS at the `OPR -> FLAGS`
+   row; F39 says the chip commits at the read's data edge).  Booked, not
+   patched: `data_ps` reads `psw_` live, so teaching the model F39 would move a
+   column both gates mask, and the model is at 169,000/169,000 today.  It is a
+   ONE-LINE change to `wr_dst1`'s FLAGS arm plus the `F` wait's ordering, and
+   it belongs to whoever next opens `biu_timed`.
+5. **Residue booked, not patched, carried forward from §40.1**: the far-CALL /
+   far-JMP `CS` shadow and the taken-branch recognition boundary
+   (`post_flush`) are still documented-but-not-rendered — no golden reaches
+   either.  `opr_free_p` / `set_oprfree` stay PROVABLY VACUOUS (F31).
+6. **`SS_VERSION` did not move in pass 6.**  `rep_chain` rides bit 5 of the
+   `SSA_E_IRQ_LATCH` word that was already in the map — no address added, no
+   count changed — and a v1 stream restores it as 0, which is the value
+   `begin_sequence()` writes anyway.  The next field that needs its own address
+   is the one that bumps it.
