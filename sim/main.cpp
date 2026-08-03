@@ -3,6 +3,8 @@
 // Subcommands:
 //   disasm <romfile>   disassemble the EU microcode ROM (docs/V20BITS.TXT)
 //   info   <romfile>   summarise ROM contents and micro-address coverage
+//   dump-tables <romfile>  flat dump of the ROM rows, the resolved
+//                      micro-address decode and the PLA3 tables (gate G0)
 //   run    <romfile>   execute SingleStepTests cases from stdin (NDJSON out)
 //   image  <romfile>   replay whole 64 KB test images (fuzz-bank sequences)
 //   trace  <romfile> <idx>  per-micro-row dump of ONE case (to stderr)
@@ -17,6 +19,7 @@
 #include "case_runner.h"
 #include "disasm.h"
 #include "image_runner.h"
+#include "pla3_table.h"
 #include "timed_runner.h"
 #include "ucrom.h"
 
@@ -29,6 +32,9 @@ int usage(const char* argv0) {
                  "commands:\n"
                  "  disasm <romfile>   print microcode disassembly (V20UC.TXT format)\n"
                  "  info   <romfile>   print ROM statistics\n"
+                 "  dump-tables <romfile>\n"
+                 "                     dump ROM rows + resolved micro-address\n"
+                 "                     decode + the PLA3 tables (gate G0)\n"
                  "  run    <romfile> [--queue] [--emit-final] [--mirror]\n"
                  "                     [--alu-hw-report] [--coverage]\n"
                  "                     [--wrap-scan]\n"
@@ -77,6 +83,62 @@ int cmd_info(int argc, char** argv) {
     std::printf("patterns        : %d of %d\n", rom.pats_read(), ucrom::kOpcCount);
     std::printf("unmapped addrs  : %d of 8192\n", rom.unmapped_addrs());
     std::printf("ambiguous addrs : %d of 8192\n", rom.ambiguous_addrs());
+    return 0;
+}
+
+// dump-tables -- emit the two GENERATED-TABLE sources (microcode ROM rows +
+// resolved micro-address decode, and the group-decode PLA) in a flat text form
+// so `sw/check_ucore_tables.py` can byte-diff the ucore RTL artifacts against
+// THIS model's own copy.  Read-only; no execution state is touched.
+int cmd_dump_tables(int argc, char** argv) {
+    if (argc != 1) {
+        std::fprintf(stderr, "usage: v30sim dump-tables <romfile>\n");
+        return 2;
+    }
+    ucrom::UcRom rom;
+    if (!load_rom(argv[0], rom)) return 1;
+
+    std::printf("# v30sim dump-tables v1\n");
+    std::printf("rows %d\n", ucrom::kRowCount);
+    for (int i = 0; i < ucrom::kRowCount; ++i) {
+        const ucrom::MicroOp& m = rom.op(i);
+        // Re-encode the decoded row into the 29-bit post-inversion word, from
+        // the FIELDS -- so a field-position drift in either implementation
+        // shows up as a diff rather than cancelling out.
+        uint32_t w = (uint32_t(m.s1) << 24) | (uint32_t(m.d1) << 19) |
+                     (uint32_t(m.s2) << 15) | (uint32_t(m.d2) << 13);
+        if (!m.f) w |= 1u << 12;
+        if (!m.w) w |= 1u << 11;
+        if (!m.e) w |= 1u << 10;
+        if (m.type == ucrom::MicroType::CTL)
+            w |= (1u << 9) | (uint32_t(m.ictl) << 5) |
+                 (uint32_t(m.ectl) << 2) | uint32_t(m.sr);
+        else if (m.type == ucrom::MicroType::JMP)
+            w |= (1u << 8) | (uint32_t(m.cond) << 4) | uint32_t(m.loc);
+        else
+            w |= (uint32_t(m.alu_op) << 3) | (uint32_t(m.alu_tmp) << 1) |
+                 uint32_t(m.r ? 1 : 0);
+        std::printf("row %04X %08X\n", unsigned(i), w);
+    }
+    std::printf("addrs 8192\n");
+    for (int addr = 0; addr < 8192; ++addr) {
+        int page = (addr >> 10) & 7;
+        int opc = (addr >> 2) & 0xFF;
+        int row = addr & 3;
+        std::printf("addr %04X %d %d\n", unsigned(addr),
+                    rom.bank_of(page, opc, row, false),
+                    rom.bank_of(page, opc, row, true));
+    }
+    std::printf("pla 3\n");
+    for (int i = 0; i < 256; ++i)
+        std::printf("pla native %02X %04X\n", unsigned(i),
+                    unsigned(pla3::kNative[size_t(i)]));
+    for (int i = 0; i < 256; ++i)
+        std::printf("pla mode8080 %02X %04X\n", unsigned(i),
+                    unsigned(pla3::kMode8080[size_t(i)]));
+    for (int i = 0; i < 256; ++i)
+        std::printf("pla ext %02X %04X\n", unsigned(i),
+                    unsigned(pla3::kExt[size_t(i)]));
     return 0;
 }
 
@@ -208,6 +270,8 @@ int main(int argc, char** argv) {
     const char* cmd = argv[1];
     if (std::strcmp(cmd, "disasm") == 0) return cmd_disasm(argc - 2, argv + 2);
     if (std::strcmp(cmd, "info") == 0) return cmd_info(argc - 2, argv + 2);
+    if (std::strcmp(cmd, "dump-tables") == 0)
+        return cmd_dump_tables(argc - 2, argv + 2);
     if (std::strcmp(cmd, "run") == 0) return cmd_run(argc - 2, argv + 2);
     if (std::strcmp(cmd, "image") == 0) return cmd_image(argc - 2, argv + 2);
     if (std::strcmp(cmd, "trace") == 0) return cmd_trace(argc - 2, argv + 2);
