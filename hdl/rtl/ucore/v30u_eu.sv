@@ -1226,7 +1226,13 @@ wire row_epop = (st == S_ROW) && e_e && !pend_after && !opc_valid &&
 wire bnd_row  = (st == S_ROW) && e_e && !pend_after && !opc_valid &&
                 !row_blocked && (rowq >= row_qn) && !row_pre_wait &&
                 !row_slot_wait && retire_ok_e;
-wire bnd_epop = ((st == S_EPOP) || (st == S_TAIL_POP)) && retire_ok_n;
+// ...and `tailw_go` is a pop point too, so it is a boundary point too: the
+// model's tail is `{deliver; emit;} ... if (at_fire_boundary()) ...
+// opcode_prefetch()`, one check covering both.  MEASURED, `INT.F3AA idx 2`:
+// `irq_take` was already true on the `E` row (which deferred, a store being
+// staged) and the tail popped one clock later with no boundary evaluated.
+wire bnd_epop = ((st == S_EPOP) || (st == S_TAIL_POP) || tailw_go) &&
+                retire_ok_n;
 // ...and the boundary of a PRE-DECODE-EXECUTED form, which has no `E` row at
 // all: `step()` checks it after `loader_decode` returns (S9b), i.e. on the
 // clock the successor's cold pop would ride.  `bnd_armed` is what separates

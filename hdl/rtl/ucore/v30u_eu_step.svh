@@ -552,7 +552,17 @@ S_TAIL_W: begin
         // to the tail's pop inside this same edge, not hand it the next clock.
         // The `stop` that stood here charged one clock against a step the
         // model charges nothing for.
-        st = opc_valid ? S_INSTR_END : S_TAIL_POP;
+        if (opc_valid) begin
+            st = S_INSTR_END;
+        end else if (retire_ok_n && irq_take) begin
+            // the tail's own boundary, taken right where the model takes it
+            irq_shadow  = 1'b0;
+            irq_sel_nmi = irq_nmi_lvl;
+            st = S_IRQ_D;
+            stop = 1'b1;
+        end else begin
+            st = S_TAIL_POP;
+        end
     end
 end
 
