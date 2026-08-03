@@ -112,7 +112,26 @@ S_DECODE2: begin
             psw = (psw & PSW_WRITABLE) | PSW_FORCED;
             st = S_HALTED;
         end else begin
-            st = S_1BL_LEAD;
+            // §35.3 -- THE 1BL EXECUTE STROBE IS THIS EDGE, NOT THE NEXT ONE.
+            // The model is `charge(1); wait_retire_lead(); <write>; charge(1);`
+            // -- the write commits at clk_ = pop+1, i.e. it is VISIBLE DURING
+            // the clock this arm hands over to, so it has to be made on the
+            // edge that hands over.  The wait's condition is available here:
+            // `q_ripe_lead_n` is the next-state view and says "the head is
+            // poppable by pop+2", which is `wait_retire_lead`'s test AT
+            // clk_ = pop+1, exactly.
+            //
+            // `S_1BL_LEAD` keeps the case where it is NOT yet satisfied and
+            // becomes a PURE WAIT; `S_1BL_CHG` is the trailing `charge(1)`
+            // both paths owe.  MEASURED, `FA idx 4`: the golden's status
+            // nibble is already 2 (IE=0) on clock 1 and `S_1BL_LEAD` was
+            // standing there, so the write landed on the edge ENDING clock 1.
+            if (q_ripe_lead_n) begin
+                `include "v30u_eu_1bl.svh"
+                st = S_1BL_CHG;
+            end else begin
+                st = S_1BL_LEAD;
+            end
         end
         stop = 1'b1;
     end else begin
@@ -134,23 +153,22 @@ S_DECODE2: begin
 end
 
 S_1BL_LEAD: begin
-    // `wait_retire_lead`: the execute strobe is the clock BEFORE the
-    // successor's opcode pop, so a late queue takes the flag write with it.
+    // `wait_retire_lead`, and NOTHING ELSE: the execute strobe is the clock
+    // BEFORE the successor's opcode pop, so a late queue takes the flag write
+    // with it -- but the write itself is made on the edge that hands over to
+    // the clock it must be visible during (see S_DECODE2).
     if (!q_ripe_lead_n) stop = 1'b1;
     else begin
-        case (pla3_xop(ld_pla))
-            PLA3_BL1_SET_DIR: psw[FDIR] = 1'b1;
-            PLA3_BL1_CLR_DIR: psw[FDIR] = 1'b0;
-            PLA3_BL1_SET_IE:  psw[FIE]  = 1'b1;
-            PLA3_BL1_CLR_IE:  psw[FIE]  = 1'b0;
-            PLA3_BL1_SET_CY:  psw[FCY]  = 1'b1;
-            PLA3_BL1_CLR_CY:  psw[FCY]  = 1'b0;
-            PLA3_BL1_NOT_CY:  psw[FCY]  = ~psw[FCY];
-            default: ;
-        endcase
-        psw = (psw & PSW_WRITABLE) | PSW_FORCED;
-        st = S_INSTR_END;
+        `include "v30u_eu_1bl.svh"
+        st = S_1BL_CHG;
+        stop = 1'b1;
     end
+end
+
+S_1BL_CHG: begin
+    // "pre-decode-executed forms retire in 2 clocks" -- the trailing
+    // `biu.charge(1)`, which both arms of the strobe owe.
+    st = S_INSTR_END;
 end
 
 //----------------------------------------------------------------------------
@@ -399,6 +417,28 @@ S_ROW: begin
     end else if (row_pre_wait) begin
         stop = 1'b1;                                    // deliver_read
     end else if (row_bus && !row_posted && eu_slot_busy) begin
+        // F11 AGAIN, AND THIS TIME IN THE PAIRING DIMENSION.  `bus_write` is
+        //     if (pend_.active) { if (!opr_fresh_) deliver_read();
+        //                         emit_pending(); }
+        //     biu_.write_request(...);        <- the slot wait is IN HERE
+        // so the staged write is PAIRED BEFORE the slot is waited on.  The act
+        // decode had that right (`eu_pair` carries no slot term, and the BIU
+        // took the word), and only the STEP stalled first -- so `pend_active`
+        // stayed set, the row re-ran `row_pre_wait` against an OPR the pairing
+        // had just re-taken, and the row cost two extra clocks.
+        // MEASURED, `F3AA idx 2`: the third store row stands on golden rows
+        // 13-17 where the model stands on 13-15, and rows 14-16 are exactly
+        // this -- `eu_pair` already asserted on 13 with `pnd` still 1.
+        if (row_bus && pend_active) begin
+            if (!opr_fresh) begin
+                if (rd_done_cnt != 2'd0) rd_done_cnt = rd_done_cnt - 2'd1;
+                if (rdq_n != 2'd0) begin
+                    opr = rdq0; rdq0 = rdq1; rdq_n = rdq_n - 2'd1;
+                end
+            end
+            pend_active = 1'b0;
+            opr_fresh   = 1'b0;
+        end
         // stall_slot -- F11's rule, in the SLOT dimension.  `BiuTimed::post`
         // waits on the slot and THEN takes it, both inside the row, so a row
         // that posts this clock does NOT wait this clock.  `eu_slot_busy_n`
@@ -506,8 +546,13 @@ S_TAIL_W: begin
         end
         pend_active = 1'b0;
         opr_fresh   = 1'b0;
+        // §35.4 -- `emit_pending()` IS ZERO CLOCKS, ALWAYS (it fills a slot the
+        // bus has already reserved), and `deliver_read()` is a WAIT: zero when
+        // the condition already holds.  So the satisfied arm must FALL THROUGH
+        // to the tail's pop inside this same edge, not hand it the next clock.
+        // The `stop` that stood here charged one clock against a step the
+        // model charges nothing for.
         st = opc_valid ? S_INSTR_END : S_TAIL_POP;
-        if (st != S_INSTR_END) stop = 1'b1;
     end
 end
 

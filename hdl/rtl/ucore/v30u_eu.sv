@@ -320,7 +320,7 @@ localparam bit [5:0]
     S_PFX_CHG   = 6'd4,   // a prefix's own second clock
     S_EXT_CHG1  = 6'd5,   // 0F: charge(1) before the second byte
     S_EXT_POP   = 6'd6,   // 0F: the real opcode, popped as an S
-    S_1BL_LEAD  = 6'd7,   // wait_retire_lead, then the flag write
+    S_1BL_LEAD  = 6'd7,   // wait_retire_lead ALONE (the write is at S_DECODE2)
     S_MODRM     = 6'd8,   // pop the ModR/M byte (opcode+1)
     S_D8_A      = 6'd9,   // opcode+2: no byte demanded
     S_D8_B      = 6'd10,  // opcode+3: the disp8 (M8's `pen`)
@@ -344,7 +344,8 @@ localparam bit [5:0]
     S_INSTR_END = 6'd29,  // ZERO-COST: step() returns
     S_HALTED    = 6'd30,  // the part is parked
     S_RESET     = 6'd31,  // F25: the internal reset dispatch, 4 clocks
-    S_IRQ_D     = 6'd32;  // the recognised boundary's ONE decision clock
+    S_IRQ_D     = 6'd32,  // the recognised boundary's ONE decision clock
+    S_1BL_CHG   = 6'd33;  // ...and the 1BL form's own trailing charge(1)
 
 //============================================================================
 // THE COMPOSITION (campaign risk #1, second half) -- F7, see the ledger
@@ -1250,6 +1251,15 @@ wire at_bnd   = bnd_row || bnd_epop || bnd_opc;
 wire irq_take = irq_any && !irq_shadow;
 wire irq_fire = at_bnd && irq_take;
 
+// §35.4 -- ...AND F11's RULE APPLIES TO THE TAIL'S OWN FALL-THROUGH.  With
+// `S_TAIL_W` made zero-cost the tail's POP now happens inside the delivery's
+// edge, so the act decode has to reconstruct the hand-over the step is about
+// to make -- otherwise the EU eats a byte the BIU was never asked for (the
+// first attempt did exactly that: the three string forms' ARCH fell from
+// 500 to their cycle counts while nothing timed moved).
+wire tailw_go = (st == S_TAIL_W) && !opc_valid &&
+                (opr_fresh || !(nr_wait || !opr_free_now));
+
 wire q_demand = ((st == S_OPC_POP) && !irq_fire) ||
                 (st == S_EXT_POP) || (st == S_MODRM) ||
                 (st == S_D16_LO) ||
@@ -1258,12 +1268,13 @@ wire q_demand = ((st == S_OPC_POP) && !irq_fire) ||
                 q_demand_row || row_epop ||
                 // F11 again: both deferred-pop states TAKE the byte only past
                 // the retire deadline, so neither may DEMAND it before.
-                (((st == S_EPOP) || (st == S_TAIL_POP)) && retire_ok_n &&
-                 !irq_fire);
+                (((st == S_EPOP) || (st == S_TAIL_POP) || tailw_go) &&
+                 retire_ok_n && !irq_fire);
 
 assign q_pop   = q_demand;
 assign q_first = (st == S_OPC_POP) ? pop_is_first
-               : (st == S_EPOP) || (st == S_TAIL_POP) || row_epop ? 1'b1
+               : (st == S_EPOP) || (st == S_TAIL_POP) || tailw_go ||
+                 row_epop ? 1'b1
                : 1'b0;
 
 // --- the bus request -------------------------------------------------------
@@ -1326,8 +1337,16 @@ wire poste_wr_opr = poste && opr_wr_gate;
 wire row_pre_deliver = (st == S_ROW) && !row_blocked && (rowq >= row_qn) &&
                        !row_pre_wait && row_pre_pair && !opr_fresh &&
                        !row_wr_opr;
+// ...and F11a's rule on the READ side applies to THIS delivery too.  When the
+// completion IS the lookahead (`nr_have`'s `eu_rd_done_n`) the word is not in
+// the store yet -- block (a) puts it there in the same edge the step then pops
+// it -- so the act decode has to read `eu_rdata_n` directly.  `opr_live` had
+// this for the `F` row and `opr_now` did not, so every `REP MOVS` middle
+// iteration whose read landed on the pairing clock drove the STALE OPR:
+// `F3A4 idx 1` row 14, exp 37032 got 0.
 wire [15:0] opr_now = (row_wr_opr || poste_wr_opr) ? s1_now
                     : (row_pre_deliver && (rdq_n != 2'd0)) ? rdq0
+                    : (row_pre_deliver && eu_rd_done_n)    ? eu_rdata_n
                     : opr;
 assign eu_pair  = ((st == S_ROW) && !row_blocked && (rowq >= row_qn) &&
                    !row_pre_wait &&
