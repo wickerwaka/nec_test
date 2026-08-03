@@ -8,6 +8,12 @@
 #include <cstdlib>
 
 namespace sim {
+// U2 pass-3 C3 diagnostic; defined in exec.cpp, also declared in exec_impl.h.
+extern int g_rddone_max;
+bool qdepth_trace();
+}  // namespace sim
+
+namespace sim {
 
 uint8_t BiuTimed::seg_code(uint8_t seg_idx) {
     switch (seg_idx) {
@@ -632,6 +638,14 @@ void BiuTimed::tick() {
                 if (cur_.rd_last && !is_write(cur_.bs)) {
                     rd_done_q_.push_back(e + 2);
                     last_wval_ = cur_.rd_val;    // the read lands in OPR
+                    // U2 pass-3, C3: the completion deque's PROVEN depth.
+                    if (int(rd_done_q_.size()) > g_rddone_max) {
+                        g_rddone_max = int(rd_done_q_.size());
+                        if (qdepth_trace())
+                            std::fprintf(stderr,
+                                         "QD rd_done=%d upc=%04X clk=%ld\n",
+                                         g_rddone_max, cur_.upc, clk_);
+                    }
                 }
             }
             run_ = false;

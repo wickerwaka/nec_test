@@ -257,6 +257,11 @@ reg  [1:0] opr_held;
 reg  [7:0] rd_first_hi;   // a split read's first half
 reg        rd_was_split;
 integer    pk;
+// M5b: the ACCESS's own A0, captured on the FIRST half a pairing fills and
+// reused on the second -- ONE pass through the 8-bit rotator per ACCESS, not
+// one per CYCLE.  (`sim/biu_timed.cpp::mem_write` computes `d` once, outside
+// its own two-cycle loop.)  Combinational scratch, not state.
+reg        pair_odd;
 reg  [1:0] done_ctr;      // eu_done lands at e+2 -- see the T4 block
 reg        done_wr;
 reg        rd_done_p;
@@ -480,13 +485,31 @@ assign ube_n = (display && (r_cdage != 3'd0)) ? r_cmt_ube_n
 wire [19:0] t1_addr = r_cur_late_t1 ? {data_ps(r_cur_seg), r_cur_addr[15:0]}
                                   : r_cur_addr;
 
+// THE PAIRING IS A MID-CLOCK FACT.  `sim/biu_timed.cpp` fills `cur_.data` from
+// inside `mem_write`, which the EU calls DURING the clock, and the row that
+// same tick() emits already carries the word (`r.ad_data = is_write ?
+// cur_.data`).  So the AD data lanes must show the word THIS clock's pairing
+// puts there -- the store whose data arrives on its own T1 (`50`: the `E` row
+// posts the cycle and the post-`E` row pairs it) otherwise drives the stale
+// register through the whole T1.
+//
+// Loop rule (sec.20.2 as corrected by C1): this is REGISTER-ONLY LOOKAHEAD.
+// Its cone is `r_run`/`r_cur_*` plus the EU's combinational `eu_pair` /
+// `eu_wdata`, which are functions of EU REGISTERS only, and `ad_o` is a pin
+// that feeds nothing inside the core.  It never enters the next-state cone.
+wire        pair_now   = eu_pair && r_run && r_cur_wr && r_cur_need;
+wire [15:0] cur_data_o = pair_now
+                       ? (r_cur_addr[0] ? {eu_wdata[7:0], eu_wdata[15:8]}
+                                        : eu_wdata)
+                       : r_cur_data;
+
 assign ad_o = halt_pin                ? {4'h0, r_last_fetch_addr}
             : (disp_inta || cur_inta) ? 20'h0
             : display                 ? r_cmt_addr
             : (r_run && (r_ts == TS_T1))  ? (r_cur_wr && t1_half2
-                                         ? {r_cur_addr[19:16], r_cur_data}
+                                         ? {r_cur_addr[19:16], cur_data_o}
                                          : t1_addr)
-                                      : {data_ps(r_cur_seg), r_cur_data};
+                                      : {data_ps(r_cur_seg), cur_data_o};
 
 assign ad_oe_addr = (display || (r_run && (r_ts == TS_T1))) &&
                     !disp_inta && !cur_inta && !halt_pin;
@@ -592,6 +615,7 @@ always_comb begin
     opr_free_p = r_opr_free_p;
     rd_val = r_rd_val;
     ready_prev = r_ready_prev;
+    pair_odd = 1'b0;              // combinational scratch (M5b); no latch
     for (ri = 0; ri < 6; ri = ri + 1) q_mem[ri] = r_q_mem[ri];
     for (ri = 0; ri < 2; ri = ri + 1) begin
         rq_bs[ri] = r_rq_bs[ri];
@@ -854,26 +878,30 @@ always_comb begin
         if (eu_pair && ((pk == 0) || eu_pair2)) begin
             rd_val = eu_wdata;
             if (run && cur_need) begin
-                cur_data = cur_addr[0] ? {eu_wdata[7:0], eu_wdata[15:8]}
-                                       : eu_wdata;
+                if (pk == 0) pair_odd = cur_addr[0];
+                cur_data = pair_odd ? {eu_wdata[7:0], eu_wdata[15:8]}
+                                    : eu_wdata;
                 cur_need = 1'b0;
                 // 11.4: ...but only until the AD output latch takes the word
                 // at T2.  A pairing that lands after that clock never holds.
                 if ((ts == TS_T1) && (opr_held != 2'd3))
                     opr_held = opr_held + 2'd1;
             end else if (cmt_valid && cmt_need) begin
-                cmt_data = cmt_addr[0] ? {eu_wdata[7:0], eu_wdata[15:8]}
-                                       : eu_wdata;
+                if (pk == 0) pair_odd = cmt_addr[0];
+                cmt_data = pair_odd ? {eu_wdata[7:0], eu_wdata[15:8]}
+                                    : eu_wdata;
                 cmt_need = 1'b0;
                 if (opr_held != 2'd3) opr_held = opr_held + 2'd1;
             end else if ((rq_n != 2'd0) && rq_need[0]) begin
-                rq_data[0] = rq_addr[0][0] ? {eu_wdata[7:0], eu_wdata[15:8]}
-                                           : eu_wdata;
+                if (pk == 0) pair_odd = rq_addr[0][0];
+                rq_data[0] = pair_odd ? {eu_wdata[7:0], eu_wdata[15:8]}
+                                      : eu_wdata;
                 rq_need[0] = 1'b0;
                 if (opr_held != 2'd3) opr_held = opr_held + 2'd1;
             end else if ((rq_n == 2'd2) && rq_need[1]) begin
-                rq_data[1] = rq_addr[0][0] ? {eu_wdata[7:0], eu_wdata[15:8]}
-                                           : eu_wdata;
+                if (pk == 0) pair_odd = rq_addr[0][0];
+                rq_data[1] = pair_odd ? {eu_wdata[7:0], eu_wdata[15:8]}
+                                      : eu_wdata;
                 rq_need[1] = 1'b0;
                 if (opr_held != 2'd3) opr_held = opr_held + 2'd1;
             end

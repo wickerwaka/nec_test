@@ -472,7 +472,20 @@ wire [19:0] row_phys = {seg_val, 4'd0} + {4'd0, ind};
 wire row_reads_opr = (e_s1 == 5'd6);
 
 // wait_next_read(extra): the next outstanding EU read, in order.
-wire nr_have   = (rd_done_cnt != 2'd0);
+//
+// `|| eu_rd_done_n` is F11a's rule on the READ side, and it was missing.  The
+// WRITE side already reads its completion as REGISTER-ONLY LOOKAHEAD
+// (`retire_ok_n`'s `eu_wr_done_n`, published from `r_done_ctr`/`r_done_wr`),
+// because `wait_bus`'s deadline is a clock, not a flag: the row runs ON the
+// completion clock.  `wait_next_read` is the same deadline -- the model waits
+// `while (clk_ < rd_done_q_.front())` and runs AT that clock -- so the read
+// side must read the same lookahead.  Without it the EU's own `rd_done_cnt`
+// only rises on the clock AFTER the completion and every `F` row that waits on
+// a read runs one clock late (`58 idx 0`: the successor's F pop at row 14
+// where the golden has it at row 13; the whole POP/RET/direct-address family).
+// The consumer sees the count already incremented because block (a) runs
+// BEFORE the chain in the same edge.
+wire nr_have   = (rd_done_cnt != 2'd0) || eu_rd_done_n;
 wire nr_wait   = !nr_have && (rd_pending != 2'd0);
 // ...and `extra` (wait_opr's +1) bites only when the completion is on THIS
 // clock -- otherwise the deadline is already past.
@@ -521,17 +534,13 @@ wire row_is_wb   = (e_type == TY_CTL) && (e_ectl == E_WRITEBACK) && row_wb_mem;
 wire row_is_inta = (e_type == TY_CTL) && (e_ectl == E_INTA);
 wire row_bus     = row_is_read || row_is_wr || row_is_wb || row_is_inta;
 
-// the access this row asks for
+// the access this row asks for.  Its OFFSET is `ind_now`, which is the row's
+// OWN IND write when it has one -- see "THE ROW'S OWN TRANSFERS" below, next
+// to the source muxes it needs.
 wire [2:0] acc_seg   = row_is_wb ? wb_seg : row_seg;
 wire       acc_byte  = row_is_wb ? wb_byte : row_bbyte;
-wire [15:0] acc_off  = row_is_wb ? wb_ea : ind;
 wire       acc_io    = row_is_wb ? 1'b0 : row_io;
 wire [15:0] acc_segv = (acc_seg == SEG_ZERO) ? 16'h0000 : sreg[acc_seg[1:0]];
-wire [19:0] acc_phys = acc_io ? {4'd0, acc_off}
-                              : ({acc_segv, 4'd0} + {4'd0, acc_off});
-wire [19:0] acc_phys2= acc_io ? {4'd0, acc_off + 16'd1}
-                              : ({acc_segv, 4'd0} + {4'd0, acc_off + 16'd1});
-wire       acc_split = !acc_byte && acc_phys[0];
 
 // The PRE-DECODE operand read (loader_impl.h): the operand the sequence
 // READS, and only that one.
@@ -915,6 +924,36 @@ always @* begin
 end
 
 //============================================================================
+// THE ROW'S OWN TRANSFERS  (family A, U2 pass 3)
+//============================================================================
+// exec_impl.h::run_micro does the two parallel transfers FIRST and issues the
+// row's bus cycle AFTERWARDS, off `m_.ind`.  So the address a row posts is the
+// IND THE ROW ITSELF JUST WROTE whenever the row writes IND -- which is how
+// every non-ModR/M address in the ROM is formed (`50`: `SIGMA -> SP  SIGMA ->
+// IND  E  CTL MEMW SS`; the ModR/M forms get IND from the loader, which is why
+// they were already green and this was invisible for two passes).
+//
+// The EU already had exactly this rule for the WRITE DATA (`opr_now`, "the
+// value this row is about to put there").  It is the same rule; it was applied
+// to one destination only.  `s1_now` / `s2_now` are the two transfer values,
+// and dest2 is written after dest1, so dest2 wins if both name IND.
+wire [15:0] s1_now = (e_s1 == 5'd7) ? {8'd0, q_byte} : s1_val;
+wire [15:0] s2_now = (e_s2 == 4'd5) ? {8'd0, q_byte} : s2_val;
+// The CMP suppression: a SIGMA source that does not commit drives nothing.
+wire wr_ind1 = e_have1 && (e_d1 == 5'd5) &&
+               !((e_s1 == 5'd20) && !sig_commits);
+wire wr_ind2 = e_have2 && (e_d2 == 2'd2) &&
+               !((e_s2 == 4'd4) && !sig_commits);
+wire [15:0] ind_now = wr_ind2 ? s2_now : wr_ind1 ? s1_now : ind;
+
+wire [15:0] acc_off  = row_is_wb ? wb_ea : ind_now;
+wire [19:0] acc_phys = acc_io ? {4'd0, acc_off}
+                              : ({acc_segv, 4'd0} + {4'd0, acc_off});
+wire [19:0] acc_phys2= acc_io ? {4'd0, acc_off + 16'd1}
+                              : ({acc_segv, 4'd0} + {4'd0, acc_off + 16'd1});
+wire       acc_split = !acc_byte && acc_phys[0];
+
+//============================================================================
 // COMBINATIONAL OUTPUTS -- what the BIU samples during THIS clock
 //============================================================================
 // The F interlock has to be clear before any of the row's acts happen.
@@ -992,19 +1031,30 @@ assign eu_word = pr_active ? !pr_byte : (row_is_inta ? 1'b1 : !acc_byte);
 // The data pairing (`emit_pending`).  The row's OWN `-> OPR` write counts:
 // the model writes OPR and then emits, both on the row's clock, so the value
 // the store takes is the one this row is about to put there.
-wire row_wr_opr = (st == S_ROW) && e_have1 && !row_blocked &&
-                  (rowq >= row_qn) &&
-                  ((e_d1 == 5'd6) ||
-                   ((e_d1 == 5'd18) && (r_kind == OK_MEM)) ||
-                   ((e_d1 == 5'd19) && (m_kind == OK_MEM))) &&
-                  !((e_s1 == 5'd20) && !sig_commits);
-wire [15:0] opr_now = row_wr_opr
-                    ? ((e_s1 == 5'd7) ? {8'd0, q_byte} : s1_val)
-                    : opr;
-assign eu_pair  = (st == S_ROW) && !row_blocked && (rowq >= row_qn) &&
-                  !row_pre_wait &&
-                  (pend_active || row_is_wr || row_is_wb) &&
-                  (opr_fresh || row_wr_opr);
+//
+// THE POST-`E` ROW IS A ROW WITH A CLOCK (family A, U2 pass 3).  F8 gave it no
+// STATE -- it is a one-bit debt discharged at the top of the next edge -- but
+// the model runs it as an ordinary row, and `exec_impl.h:1095`'s
+// `if (pend_.active && opr_fresh_) emit_pending();` fires on it like any other.
+// `50`'s store is paired by exactly that: the `E` row `0029` posts the cycle
+// and the post-`E` row `002A` (`M -> OPR`) hands it the data.  The clock it
+// happens on is the clock `poste` STANDS on, so the pairing act belongs there.
+// Without this the deferred store ran with whatever OPR held (`50 idx 2`:
+// data 0000 against the golden's AX) -- eu_pair never asserted at all.
+wire opr_wr_gate = e_have1 &&
+                   ((e_d1 == 5'd6) ||
+                    ((e_d1 == 5'd18) && (r_kind == OK_MEM)) ||
+                    ((e_d1 == 5'd19) && (m_kind == OK_MEM))) &&
+                   !((e_s1 == 5'd20) && !sig_commits);
+wire row_wr_opr = (st == S_ROW) && !row_blocked && (rowq >= row_qn) &&
+                  opr_wr_gate;
+wire poste_wr_opr = poste && opr_wr_gate;
+wire [15:0] opr_now = (row_wr_opr || poste_wr_opr) ? s1_now : opr;
+assign eu_pair  = ((st == S_ROW) && !row_blocked && (rowq >= row_qn) &&
+                   !row_pre_wait &&
+                   (pend_active || row_is_wr || row_is_wb) &&
+                   (opr_fresh || row_wr_opr))
+               || (poste && pend_active && (opr_fresh || poste_wr_opr));
 assign eu_pair2 = pend_active ? pend_split : acc_split;
 assign eu_wdata = opr_now;
 
@@ -1163,10 +1213,13 @@ always @(posedge clk) begin
 
 `ifndef SYNTHESIS
         if (eutrace)
-            $display("EU st=%0d upc=%0d.%02X.%0d row=%07x q=%02x ripe=%0d slot=%0d post=%0d bs=%0d a=%05x pair=%0d rdd=%0d wrd=%0d oprf=%0d wr_out=%0d pc=%04x",
+            $display("EU st=%0d upc=%0d.%02X.%0d row=%07x q=%02x ripe=%0d slot=%0d post=%0d bs=%0d a=%05x pair=%0d wd=%04x rdd=%0d wrd=%0d oprf=%0d wr_out=%0d pc=%04x ind=%04x opr=%04x of=%0d pnd=%0d pe=%0d rdq=%0d rdc=%0d a=%04x b=%04x c=%04x sig=%04x",
                      st, upc_page, upc_opc, upc_loc, row, q_byte, q_ripe,
                      eu_slot_busy_n, eu_post, eu_bs, eu_addr, eu_pair,
-                     eu_rd_done_n, eu_wr_done_n, eu_opr_free_n, wr_out, pc);
+                     eu_wdata,
+                     eu_rd_done_n, eu_wr_done_n, eu_opr_free_n, wr_out, pc,
+                     ind, opr, opr_fresh, pend_active, poste, rdq_n,
+                     rd_done_cnt, tmpa, tmpb, tmpc, sigma);
 `endif
         stop = 1'b0;
         for (chain = 0; chain < 4'd12; chain = chain + 4'd1) begin

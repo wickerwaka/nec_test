@@ -11,6 +11,14 @@ namespace sim {
 
 long g_row_cover[ucrom::kRowCount] = {};
 
+int g_rdq_max = 0;
+int g_rddone_max = 0;
+
+bool qdepth_trace() {
+    static const bool v = ::getenv("V30SIM_QDEPTH") != nullptr;
+    return v;
+}
+
 std::string row_text(const ucrom::MicroOp& op) {
     char buf[128];
     char rest[64];

@@ -235,6 +235,18 @@ std::string row_text(const ucrom::MicroOp& op);
 // a property of the run, not of a Cpu instance.
 extern long g_row_cover[ucrom::kRowCount];
 
+// --- U2 pass-3 diagnostic: THE COMPLETED-READ STORE DEPTH (C3) --------------
+// `rdq_` is the EU's store of read words that have LANDED but that no `F` row
+// has delivered into OPR yet; the RTL renders it as `rdq0`/`rdq1` + `rdq_n`,
+// i.e. a bound of 2, and pass 2 asserted that bound WITHOUT proving it.  These
+// two counters are the proof instrument: process-global maxima, printed by
+// `V30SIM_QDEPTH=1` (one stderr line per NEW maximum, carrying the ROM row that
+// pushed it), so a run over a form's whole tranche states the form's true
+// bound.  Diagnostic only -- nothing reads them back.
+extern int g_rdq_max;       // max |rdq_|          (EU-side completed reads)
+extern int g_rddone_max;    // max |rd_done_q_|    (BIU-side completion times)
+bool qdepth_trace();
+
 
 namespace exec_detail {
 constexpr int kMaxRows = 100000;
@@ -642,6 +654,12 @@ void CpuT<Bus>::bus_read(uint8_t seg, uint16_t off, bool byte, bool io, uint16_t
         v = biu_.mem_read(seg == kSegZero ? 0 : m_.sreg[seg], off, !byte, seg,
                           upc);
     rdq_.push_back(v);
+    if (int(rdq_.size()) > g_rdq_max) {
+        g_rdq_max = int(rdq_.size());
+        if (qdepth_trace())
+            std::fprintf(stderr, "QD rdq=%d upc=%04X clk=%ld\n", g_rdq_max,
+                         upc, biu_.clock());
+    }
 }
 
 template <class Bus>
@@ -678,6 +696,12 @@ void CpuT<Bus>::bus_inta(uint16_t upc) {
         emit_pending();
     }
     rdq_.push_back(biu_.inta_read(upc));
+    if (int(rdq_.size()) > g_rdq_max) {
+        g_rdq_max = int(rdq_.size());
+        if (qdepth_trace())
+            std::fprintf(stderr, "QD rdq=%d upc=%04X clk=%ld (inta)\n",
+                         g_rdq_max, upc, biu_.clock());
+    }
 }
 
 // --- the interpreter -------------------------------------------------------

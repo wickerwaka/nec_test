@@ -371,8 +371,17 @@ S_ROW: begin
         if ({1'b0, rowq} < row_qn) stop = 1'b1;         // a second byte
     end else if (row_pre_wait_n) begin
         stop = 1'b1;                                    // deliver_read
-    end else if (row_bus && !row_posted && eu_slot_busy_n) begin
-        stop = 1'b1;                                    // stall_slot
+    end else if (row_bus && !row_posted && eu_slot_busy) begin
+        // stall_slot -- F11's rule, in the SLOT dimension.  `BiuTimed::post`
+        // waits on the slot and THEN takes it, both inside the row, so a row
+        // that posts this clock does NOT wait this clock.  `eu_slot_busy_n`
+        // already carries this row's OWN post (it is what set it), so without
+        // `!eu_post` the step stalls on an event it itself caused and the row
+        // runs one clock too long -- invisible on an aligned store (the pairing
+        // still lands before T1) and fatal on a SPLIT one, where the extra
+        // clocks push the pairing past the FIRST half's T1 (`50 idx 1`, data
+        // 0000 on rows 6-8 against the golden's AX).
+        stop = 1'b1;
     end
     if (!stop) begin
         // the F interlock's own delivery, taken once
