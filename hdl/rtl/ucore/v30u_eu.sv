@@ -889,9 +889,16 @@ wire [15:0] mul_lo     = it_byte
 // DIV (restoring)
 wire [15:0] div_divisor = it_byte ? {8'd0, it_bop[7:0]} : it_bop;
 wire [15:0] div_lo0     = it_byte ? {8'd0, tmpa[7:0]} : tmpa;
+// F32 -- THE RESTORING DIVIDER'S COMPARE IS ONE BIT WIDER THAN ITS OPERANDS.
+// `alu.cpp::kDiv` computes `hi = (a << 1) | (lo >> (w-1))` in a uint32_t and
+// does NOT mask it before `if (hi >= divisor)`: the bit shifted OUT of the high
+// half is exactly what decides the subtract, and it is the whole point of a
+// restoring step.  This shifted `it_a[w-1]` away, so every dividend whose high
+// half reached the top bit took the wrong branch.  MEASURED: `F6.6 idx 2`
+// (0x9151 / 179) `exp ax=94cf got 5100`.
 wire [16:0] div_hi0     = it_byte
-                        ? {9'd0, it_a[6:0], div_lo0[7]}
-                        : {1'b0, it_a[14:0], div_lo0[15]};
+                        ? {8'd0, it_a[7:0], div_lo0[7]}
+                        : {it_a[15:0], div_lo0[15]};
 wire [15:0] div_lo1     = (div_lo0 << 1) & it_mask;
 wire        div_fits    = (div_hi0 >= {1'b0, div_divisor});
 wire [15:0] div_hi1     = div_fits ? (div_hi0[15:0] - div_divisor)
