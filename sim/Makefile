@@ -8,7 +8,8 @@ BIN  := v30sim
 SRCS := main.cpp ucrom.cpp disasm.cpp json.cpp biu.cpp ea.cpp alu.cpp \
         loader.cpp exec.cpp case_runner.cpp \
         image_runner.cpp \
-        rows.cpp biu_timed.cpp exec_timed.cpp timed_runner.cpp
+        rows.cpp biu_timed.cpp exec_timed.cpp timed_runner.cpp \
+        biu_script.cpp
 OBJS := $(SRCS:.cpp=.o)
 DEPS := $(OBJS:.o=.d)
 

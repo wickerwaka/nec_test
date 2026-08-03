@@ -21,6 +21,8 @@
 #include "image_runner.h"
 #include "pla3_table.h"
 #include "timed_runner.h"
+
+namespace sim { int run_biu_script(const char* path, std::FILE* out); }
 #include "ucrom.h"
 
 namespace {
@@ -45,6 +47,7 @@ int usage(const char* argv0) {
                  "                      stub); see sim/image_runner.cpp\n"
                  "  trace  <romfile> <idx>      trace one case from stdin\n"
                  "  timed-run <romfile> [--waits N] [--ndjson] [--mirror]\n"
+                 "  biu-script <script>  BIU-only scripted run (ucore U1)\n"
                  "                     [--case=IDX] [--steps=N]\n"
                  "                     run cases from stdin in TIMED mode,\n"
                  "                     emitting one row per CPU clock\n",
@@ -230,6 +233,15 @@ int cmd_timed_run(int argc, char** argv) {
     return sim::run_timed(rom, stdin, stdout, opt);
 }
 
+// ucore stage U1: the BIU alone, driven by a script (sim/biu_script.cpp).
+int cmd_biu_script(int argc, char** argv) {
+    if (argc < 1) {
+        std::fprintf(stderr, "usage: v30sim biu-script <script>\n");
+        return 2;
+    }
+    return sim::run_biu_script(argv[0], stdout);
+}
+
 int cmd_timed_boot(int argc, char** argv) {
     if (argc < 2) {
         std::fprintf(stderr,
@@ -279,6 +291,8 @@ int main(int argc, char** argv) {
         return cmd_timed_run(argc - 2, argv + 2);
     if (std::strcmp(cmd, "timed-boot") == 0)
         return cmd_timed_boot(argc - 2, argv + 2);
+    if (std::strcmp(cmd, "biu-script") == 0)
+        return cmd_biu_script(argc - 2, argv + 2);
     std::fprintf(stderr, "v30sim: unknown command '%s'\n", cmd);
     return usage(argv[0]);
 }
