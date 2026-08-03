@@ -334,7 +334,14 @@ S_PRERD: begin
         if (rdq_n != 2'd0) begin
             opr = rdq0; rdq0 = rdq1; rdq_n = rdq_n - 2'd1;
         end
-        opr_fresh = 1'b1;
+        // F27 -- THE PRE-DECODE READ DOES NOT MAKE OPR "FRESH".  The loader
+        // assigns `m.opr = biu.mem_read(...)` DIRECTLY (loader_impl.h:495) and
+        // never touches `opr_fresh_`, which `begin_sequence()` left false --
+        // the pairing latch is armed by a `-> OPR` TRANSFER, not by a read.
+        // With it set, `86`/`87`'s write-back row emitted the store the instant
+        // it posted, handing the bus the operand the pre-read had just brought
+        // IN (`86 idx 0`: 9054) instead of the register the post-`E` row
+        // `tmpb -> M` is about to swap OUT (9f3e).
         row_posted = 1'b0;
         st = ld_grpd ? S_GRPD_CHG : S_ENTER;
         if (ld_grpd) stop = 1'b1;
@@ -424,6 +431,9 @@ S_RLOOP: begin
     // (shift-by-1, so COUNT is always 1) hung on it.
     if (rloop_n == 16'd0) begin      // this was the last iteration
         al_spent = 1'b1;
+        // F26: the sequencer leaves the `R` row HERE, not before the loop.
+        if (upc_loc == 4'hF) upc_opc = upc_opc + 8'd1;
+        upc_loc = upc_loc + 4'd1;
         st = S_ROW;
     end
     stop = 1'b1;

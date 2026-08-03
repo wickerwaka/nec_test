@@ -155,8 +155,18 @@ begin
     end
 
     // --- cadence -------------------------------------------------------
-    upc_loc = nloc;
-    if (carry) upc_opc = upc_opc + 8'd1;
+    // F26 -- AN `R` ROW KEEPS THE SEQUENCER WHILE IT ITERATES.  The loop is
+    // `while (m_.count != 0) { ... wr_dst1(op.d1, ...) }` INSIDE the row's own
+    // iteration, so every step writes THE R ROW'S Dest1.  Advancing `upc`
+    // before entering S_RLOOP handed the loop its SUCCESSOR's row word:
+    // `D1.4`'s `0116 SIGMA -> tmpb  W R ALU OPC` wrote through `0117`'s
+    // `SIGMA -> M` instead, so the shift result never reached tmpb and every
+    // shift/rotate form left its operand untouched.  The advance now happens
+    // where the loop ENDS -- which is also where the model leaves the row.
+    if (!e_is_rloop || (count == 16'd0)) begin
+        upc_loc = nloc;
+        if (carry) upc_opc = upc_opc + 8'd1;
+    end
     rowq = 2'd0; row_posted = 1'b0; row_paired = 1'b0;
 
     if (e_is_rloop) begin
