@@ -485,6 +485,10 @@ int run_timed_boot(const ucrom::UcRom& rom, const char* image_path, long clocks,
     const long evpipe = (ev.pin == 1) ? 4 : 3;   // the measured pin pipeline
     size_t evt_n = 0;
     long rep_unmatched = 0;
+    // S9b census (sec.19.8.2): the mid-string withdrawals the replay took, and
+    // the element count of the last one.  Diagnostic; no model state.
+    long rep_withdrew = 0;
+    int rep_elems = 0;
     // The replayed boundary, re-armed after every firing.  `set_evt_at` is the
     // mid-string coordinate the ROM's own withdrawal path (009A -> 009B ->
     // REPX 0223) hangs off -- the SAME call image_runner.cpp makes.
@@ -520,6 +524,7 @@ int run_timed_boot(const ucrom::UcRom& rom, const char* image_path, long clocks,
         // which therefore ends at the same kind of boundary (sec.19.8.1).
         if (cpu.fired_boundary() || m.intr_pending) {
             const bool withdrew = m.intr_pending;
+            if (withdrew) { ++rep_withdrew; rep_elems = cpu.rep_elements(); }
             m.intr_pending = false;
             long d = cpu.boundary_clk();
             if (!cpu.fired_boundary()) {
@@ -528,6 +533,12 @@ int run_timed_boot(const ucrom::UcRom& rom, const char* image_path, long clocks,
                 // where the chip's did.  REPORTED, never silently swallowed
                 // (image_runner.cpp keeps the same counter).
                 ++rep_unmatched;
+                if (std::getenv("V30SIM_EVTTRACE"))
+                    std::fprintf(stderr, "REPBAD clk=%ld cs=%04X pc=%04X ev=%ld"
+                                         " want cs=%ld ip=%ld at=%ld\n",
+                                 biu.clock(), unsigned(m.sreg[kCS]),
+                                 unsigned(m.pc), biu.ev_count(),
+                                 ev.cs[evt_n], ev.ip[evt_n], ev.at[evt_n]);
                 d = biu.clock();
             }
             (void)withdrew;
@@ -571,7 +582,12 @@ int run_timed_boot(const ucrom::UcRom& rom, const char* image_path, long clocks,
                     biu.charge_to(dec + 3);     // B = dec+1, entry at B+2
                 }
                 biu.unhalt();
-                cpu.interrupt(evkind);
+                bool ok = cpu.interrupt(evkind);
+                if (std::getenv("V30SIM_EVTTRACE"))
+                    std::fprintf(stderr, "WAKE-VEC A=%ld dec=%ld ok=%d "
+                                         "clk=%ld susp=%d\n",
+                                 a, dec, int(ok), biu.clock(),
+                                 int(biu.suspended()));
                 ++evt_n;
                 continue;
             }
@@ -586,10 +602,18 @@ int run_timed_boot(const ucrom::UcRom& rom, const char* image_path, long clocks,
             }
             // The HALT status and the prefetch freeze are driven by the HLT
             // DECODE now (loader_impl.h, S9a); the bus just parks.
+            if (std::getenv("V30SIM_EVTTRACE"))
+                std::fprintf(stderr, "PARK clk=%ld anchor=%ld A=%ld "
+                                     "pending=%d pin=%d\n",
+                             biu.clock(), biu.evt_anchor(), a,
+                             int(ev.at.size() - evt_n), ev.pin);
             while (biu.clock() < clocks && ++guard < 100000) biu.tick_idle();
             break;
         }
     }
+    if (rep_withdrew)
+        std::fprintf(stderr, "timed-boot: REP-WITHDRAW %ld elements %d\n",
+                     rep_withdrew, rep_elems);
     if (rep_unmatched)
         std::fprintf(stderr, "timed-boot: REP-WITHDRAW-UNMATCHED %ld\n",
                      rep_unmatched);

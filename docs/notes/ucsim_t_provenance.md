@@ -4780,6 +4780,10 @@ tranche's 188-seed denominator is unchanged.
 | by pin | INT 6/14, NMI 8/14, POLL 5/5 |
 | divergences within 4 rows of an ACKNOWLEDGE | **0 / 14** |
 
+The pilot's selection is reproducible and is pinned by its own sha256 over the
+sorted seed paths: **`92689dac4b5e8e86`** (re-derived after the session's fixes,
+unchanged; the pilot's own re-score on the final model is 26 / 33).
+
 **The bar, stated before the run, and what can fail:**
 
 1. **Zero hard failures** over the full 1,008 (`GEN_DRIFT` / `REGEN_ERROR` /
@@ -4806,3 +4810,336 @@ tranche's 188-seed denominator is unchanged.
    6-11 rows BEFORE the chip's HALT status display.  A first-divergence family
    AT the acknowledge, or any family the pilot did not see at scale, is a
    FINDING and is reported as one.
+
+### 20.1 The driver — two replayed coordinates, and nothing else new
+
+`timed-boot --evt=<file>` (`sim/timed_runner.cpp`).  The rig's schedule goes
+into the SAME `BiuTimed::set_evt` S9a already had, and the recorded boundaries
+go into the SAME `CpuT` predicate S9a already had, with the two guards a
+whole-program run needs:
+
+```
+set_fire_pc(ip)   the CS:IP the chip's frame recorded    (S9a)
+set_fire_cs(cs)   ...and its segment                     (S9b, -1 = off)
+set_fire_ev(at)   ...at or after the recorded bus ordinal(S9b, -1 = off)
+set_evt_at(at)    the mid-string coordinate (image_runner.cpp's own call)
+```
+
+With both guards at -1 the predicate is byte for byte S9a's, which is why the
+whole single-instruction corpus is unmoved (§20.7).  Every consequence then
+comes out of the existing mechanisms: M14's `D = max(B, A+3|4)`, `entry = D+2`;
+the suppressed pop (§19.3); the ROM's own REPX withdrawal and PFXCNT rewind;
+§19.6's HALT wake, re-expressed once as
+
+```
+dec = max(A + pipe, the clock the part is halted on)
+      vectored:  prefetcher restarts at dec (INT) / bus held (NMI), entry dec+3
+      masked:    prefetcher restarts at dec, the resumed opcode pops at dec+1
+```
+
+which reproduces §19.6's A+3 / A+4 / A+6 / A+7 exactly when `A + pipe` is the
+later term, i.e. in every single-instruction golden.
+
+### 20.2 What the S9a pilot's "4 rows from the acknowledge" turned out to be
+
+§19.12 read 9 of 12 EVT captures parting within 4 rows of the acknowledge and
+called the population "blocked on the DRIVER, not on bus physics".  That is
+what it was: with the driver in place the acknowledge stops being the
+divergence site for the seeds that were parting there, and the residual moves
+to two OTHER places, one of which is a genuine model error and one of which is
+the campaign's own standing wait-axis exclusion:
+
+| | 50-seed pilot (pre-fix) | full run, after §20.3-20.5 |
+|---|---|---|
+| within 4 rows of an acknowledge | 0 / 14 | 24 / 330 |
+| within 12 rows of an acknowledge | — | 55 / 330, **44 of them WAITED** |
+| within 12 rows of the HALT status | 7 / 14 | 81 / 330, 64 of them at w0 |
+| neither (the ordinary `qs`/`bs` families) | 7 / 14 | 194 / 330 |
+
+So the pilot's own falsifiable prediction (§20.0 item 6) is **half FALSIFIED
+and reported as such**: the acknowledge is NOT clean at scale.  It is, however,
+clean at w0 and a WAITED family above it — which is exactly "INTA under waits
+is scoped out" (§19.14 item 3) showing up as data for the first time.
+
+### 20.3 M17 — THE HLT BLOCK IS ONE MORE TERM OF M7's INDEX-2 SAMPLE, AND THE HALT DISPLAY DRIVES THE ADDRESS LATCH AS IT STANDS
+
+**MEASURED.**  M16 (§19.5) says prefetch is blocked FROM THE HLT DECODE CYCLE,
+and it was measured on the w0 pin-event goldens where the decode clock and the
+completion eval are the same clock.  Under waits they are not, and the chip
+grants a refill the model refused.  The block is not a rule of its own:
+
+```
+M7  (T3):   eligibility is decided at CYCLE INDEX 2 and merely APPLIED at the
+            completion eval
+M17 (S9b):  ...and the HALT is one of its terms:
+            pf_arm = (occupancy <= 4) && !halted     -- sampled at index 2
+```
+
+w0-neutral BY CONSTRUCTION, exactly as M7 is: at w0 index 2 IS the eval, so the
+sample and its consumer are the same clock (measured: the w0 ratchet is 168,997
+before and after, to the case, and the 600 HALT goldens are unmoved).
+
+**And the HALT display's ADDRESS is read at the display clock, not at the
+decode.**  M16 already says the decode does not take a committed fetch back, so
+the fetch granted at the decode's own eval RUNS — and it is then that fetch's
+address the HALT cycle drives.  The model snapshotted `last_fetch_addr_` at
+`note_halt()` time and drove the address of the fetch BEFORE it.
+
+**The two are one statement and the census says so.**  Each alone is worth
+nothing; together they are worth 210 seeds:
+
+| model | EVT population cycle-exact |
+|---|---|
+| neither | **468 / 1,008** |
+| index-2 HALT sample only | 468 / 1,008 |
+| display-clock address only | 469 / 1,008 |
+| **both** | **678 / 1,008** |
+
+and the gain is entirely in the WAITED classes, which is where M16's w0
+measurement had nothing to say:
+
+| | fix0 | fix1 | fix2 | fix3 | wrand1 | wrand2 | wrand3 | wrand7 | wrand15 |
+|---|---|---|---|---|---|---|---|---|---|
+| before | 238/410 | 19/51 | 5/39 | 17/54 | 57/128 | 44/105 | 42/95 | 28/64 | 18/62 |
+| after | 238/410 | **38**/51 | **33**/39 | **38**/54 | **95**/128 | **69**/105 | **74**/95 | **50**/64 | **43**/62 |
+
+Falsifier: any capture whose HLT blocks a refill its index-2 clock permitted,
+or whose HALT display carries an address other than the last fetch's.
+
+### 20.4 A PRE-DECODE-EXECUTED FORM RETIRES AT A BOUNDARY TOO
+
+`HLT`, `EI`, `DI`, `STC`, `CMC`, ... are ONE_BYTE_LOGIC: `loader_decode`
+executes them and `step()` returns before `run_micro`, so they have **no `E`
+row** and S9a's recognition check never ran for them.  In a single-instruction
+case that is invisible (the case IS the ROM form).  In a whole-program replay
+it means every firing boundary that follows one of these was silently skipped —
+and the replay then withdrew from whatever string loop it met next, which is
+precisely the `REP-WITHDRAW-UNMATCHED` report.  Measured: 9 of the 1,008 before,
+5 after.  A HALT is excluded from the check by construction: a halted part's
+wake is its own sequence (§19.6).
+
+### 20.5 The DISPLAY CLOCK and the T1 are two different things
+
+M1/M2 put the winner's status on the pins at `eval + 1` and its T1 at
+`eval + 2`.  For every ordinary access those are the same statement, because
+the eval sits at `last_i - 1` (w0) or at `last_i` (waited) and `eval + 2` IS
+the first free clock.  The HALT pseudo-cycle is the one access where they come
+apart: its eval is at index 1 (S8/S9's measured status release) while its T4 is
+still at index 3.  So:
+
+```
+display = eval + 1        T1 = max(eval + 2, the bus's first FREE clock)
+```
+
+Before this the model tied the T1 to the display and put the woken fetch's T1
+INSIDE the still-running HALT cycle, where it could never open at all: the
+commit stranded, the M10 request slot stayed taken, and every following EU
+access spun out its 4,096-clock backpressure guard — a silent 78,000-clock
+garbage run, not a visible failure.  w-neutral by construction for every
+non-HALT access (measured: w0 168,997, w1/w3 1,200/1,200, the whole registered
+fuzz population byte-identical).
+
+### 20.6 §19.8.2 RESOLVED — the chained REP-abort's extra clock is CADENCE-KEYED, and the rival is FALSIFIED
+
+§19.8.2 left the +1 clock MEASURED but its anchor open, and named the closer:
+"a WAITED capture of a chained withdrawal — which is also the first thing that
+would test whether it is eval-keyed or index-keyed."  **The bank already had
+them.**  The S9b census is every EVT seed whose replay takes a mid-string
+withdrawal: 24 seeds, 12 of them chained (>= 2 elements), and 7 of the chained
+ones have a divergence-free prefix that runs THROUGH the acknowledge — three of
+those at w1, w2 and random-w7.
+
+The rival is runnable (`V30SIM_REPCHAIN=eval`): a WRITE-ACCEPT / completion-
+EVAL anchor moves with the completing store's wait count, because the store's
+eval moves from T3 to T4+N.  The two are IDENTICAL at w0, which is why the w0
+corpus never separated them.
+
+| seed | waits | elements | cadence anchor (the model) | eval-keyed rival |
+|---|---|---|---|---|
+| mc1/2305 | fix1 | 2 | **EXACT** (0 diffs) | DIVERGE at row 393 |
+| mc2/409 | wrand7 | 4 | **EXACT** (0 diffs) | DIVERGE at row 585 |
+| mc2/2748 | fix2 | 3 | diverges at 495 (elsewhere) | first divergence moves to **315** |
+| mc1/3209, mc2/2625, mc2/3561, mc2/573 | w0 | 9,3,3,7 | unchanged | unchanged |
+
+and the whole 169,000-case w0 suite scores **168,997 under BOTH**, as predicted.
+
+**Verdict: the extra clock does NOT move with the bus.**  It is a row-cadence /
+decode-pipeline clock, not a bus-completion one; the write-accept anchor
+`interrupt_model.md` records is FALSIFIED as the *timing* anchor at three
+distinct wait levels.  The offset itself stays MEASURED-without-a-named-row (it
+is still "one clock", not a ROM row), so the honest status is: **anchor
+RESOLVED, magnitude still measured.**  Falsifier: any waited chained withdrawal
+whose flush is not at the loop row + 10.
+
+### 20.7 The registered bar, scored
+
+The registration's clauses, in order, against the run:
+
+| # | the registered clause | result |
+|---|---|---|
+| 1a | zero `GEN_DRIFT` / `REGEN_ERROR` / `SIM_ERROR` over the 1,008 | **PASS** (0 / 0 / 0) |
+| 1b | zero `REP-WITHDRAW-UNMATCHED` | **FAIL — 9 on the first full run, 5 after §20.4** |
+| 2 | a closed taxonomy | **PASS** (§20.8; no "unknown" bucket) |
+| 3 | >= 45 % of the 1,008 cycle-exact on the FIRST full run | **PASS**, 468 / 1,008 = **46.4 %** |
+| 4 | M1-M4 on the first full run are the ratchet baseline | **RECORDED** (below) |
+| 5 | zero newly broken on the registered 1,702 | **PASS**, 0 moved / 0 newly broken / 0 lost prefix |
+| 6 | the acknowledge is no longer a divergence site | **HALF FALSIFIED** (§20.2) |
+
+**Clause 1b is a registered FAILURE and is reported as one, not restated.**
+What the 5 are: in every one of them the timed model's OWN first divergence is
+earlier than the chip's acknowledge (543 vs 579, 535 vs the NMI entry, 163 vs
+197, 383 vs 411, 190 vs 250), so the model reached the recorded bus ordinal at
+a different instruction and withdrew from the string loop it was in.  Four of
+the five ALSO fail the FUNCTIONAL replay (`ucsim_fuzz`: mc1/1620, mc1/444,
+mc1/150, mc2/2788 are STREAM divergences today), i.e. they are inherited, not
+introduced.  The fifth (mc1/2389) passes functionally and is an open S9b item.
+**No fix was applied to make clause 1b pass**; §20.4 removed the four it was
+right to remove and the rest stand.
+
+**The ratchet, as registered — the FIRST full run is the baseline of record:**
+
+| metric | baseline (first full run) | after §20.3-20.5 (the new standing value) |
+|---|---|---|
+| M1 cycle-exact | 468 / 1,008 (46.4 %) | **678 / 1,008 (67.3 %)** |
+| M2 median divergence-free prefix (rows) | 940 | **1,341** |
+| M3 median prefix fraction | 0.691 | **1.000** |
+| M4 fraction >= 0.5 / >= 0.9 | 540 / 469 | **774 / 679** |
+| population / OPEN_BUS | 1,008 / 157 | 1,008 / 157 (frozen) |
+
+By pin: INT 556 / 813, NMI 104 / 174, POLL 18 / 21.  897 of the 1,008 replay a
+firing; 111 carry a pin event that the capture shows never fired (masked INT,
+POLL, a window that closed before the entry) and are scored with the schedule
+armed and no boundary.
+
+### 20.8 The divergence taxonomy — closed, 330 seeds
+
+Every diverging seed's first divergence is classified by the nearest marker in
+the CHIP capture (an acknowledge or the HALT status, within 12 rows):
+
+| family | seeds | kinds | w0 / waited | reading |
+|---|---|---|---|---|
+| **ORDINARY** | 194 | `qs` 121, `bs` 61, `data` 9, `nxta` 3 | 97 / 97 | the SAME families the registered 1,702 already has (`qs` 277, `bs` 100, `data` 27, `nxta` 26 there).  Not an event question. |
+| **HALTWAKE** | 81 | `qs` 54, `bs` 27 | 64 / 17 | the wake's own geometry -- the woken fetch's display clock, and the HALT status that the chip sometimes never drives at all because the wake beat it to the register (32 seeds `bs PASV!=HALT`).  §19.6 was measured on w0 goldens whose assert clock is far from the HALT display; these are the ones where it is not. |
+| **ACK** | 55 | `bs` 47, `qs` 8 | 11 / **44** | the acknowledge neighbourhood, and it is a WAIT-AXIS family -- INTA under waits, the campaign's standing exclusion (§19.14 item 3), measured here for the first time. |
+
+There is no unknown bucket.  9 seeds also emit a `STEP-ABORT` (the pre-existing
+runaway-sequence report; 28 of the registered 3,242 do too, so it is not an S9b
+family): 5 are OPEN_BUS-excluded, 2 are cycle-EXACT over their window (the
+runaway is past the compare window) and 2 are already in the taxonomy above.
+
+### 20.9 ADDENDUM #5 — the dated re-scores (2026-08-02)
+
+**Fuzz bank, the REGISTERED population (§13.0) — UNTOUCHED:**
+
+| | after §19 | after S9b |
+|---|---|---|
+| scored / EVT / OPEN_BUS | 1,702 / 1,165 / 375 | **1,702 / 1,165 / 375** |
+| cycle-exact | 1,272 / 1,702 (74.7 %) | **1,272 / 1,702 (74.7 %)** |
+| first-divergence family | `qs` 277, `bs` 100, `data` 27, `nxta` 26 | identical |
+
+byte-identical over all 1,702 scored seeds: 0 moved, 0 newly exact, 0 newly
+broken, no first-divergence row changed.
+
+**Fuzz bank, the S9b UNLOCKED population — NEW TABLE:**
+
+| | |
+|---|---|
+| population | **1,008** (1,165 EVT − 157 OPEN_BUS) |
+| cycle-exact | **678 / 1,008 (67.3 %)** |
+| median prefix fraction | 1.000 |
+| first-divergence family | `qs` 183, `bs` 135, `data` 9, `nxta` 3 |
+
+**COMBINED, both populations, clearly labelled as such:**
+
+| | |
+|---|---|
+| scored | **2,710** = 1,702 registered + 1,008 unlocked |
+| cycle-exact | **1,950 / 2,710 (72.0 %)** |
+
+**Victory tranche (B2) — UNTOUCHED, and it has no EVT half:** 154 / 188
+(81.9 %), 216 cells, 28 OPEN_BUS, **0 EVT by construction** (§14.0 set `no_evt`
+at generation; re-checked 216 / 216 this session).  **V5 therefore remains a
+registered FAILURE**, unchanged by this addendum: the tranche's denominator,
+numerator and exclusions are all exactly what §18 recorded.
+
+**Law cards:** 7 GREEN / 0 RED / 4 UNRESOLVED — unchanged.
+**wvec (silicon, T2b P2):** 88 / 88 count, 88 / 88 digest, bus cycles +0.0 % —
+unchanged.
+
+### 20.10 Gates (measured, this machine, immediately before the commit)
+
+```
+make -C sim test                                                          # disasm gate: PASS
+python3 sw/pla3_check.py                                                  # OK (21 checks)
+python3 sw/ucsim_check.py --suite tests/v30/v0.1                          # 169000/169000
+python3 sw/ucsim_check.py --suite tests/v30/v0.2                          # 347000/347000
+python3 sw/ucsim_check.py --suite tests/v30/v0.3                          # 3699998/3699998
+python3 sw/ucsim_check.py --suite tests/v30/v20suite --no-mirror          # 3125000/3125000
+python3 sw/ucsim_check.py --suite tests/v30/mod3_illegal --residue stale-ea  # 128/128
+                                                              # functional total 7,341,126
+python3 sw/timed_gate.py --suite tests/v30/v0.1    --forms all            # 168,997 / 169,000
+python3 sw/timed_gate.py --suite tests/v30/v0.1-w1 --forms all --waits 1  # 1,200/1,200
+python3 sw/timed_gate.py --suite tests/v30/v0.1-w3 --forms all --waits 3  # 1,200/1,200
+python3 sw/timed_gate.py --suite tests/v30/v0.1-w1 --forms EB  --waits 1  # 200/200
+python3 sw/check_boot.py --timed 220                                      # MATCHES over 220 rows
+python3 sw/timed_scenario.py                                              # 18 PASS, 0 FAIL, 9 SKIP
+python3 sw/timed_enter_replay.py          # pushes/walk/full/active/halt_display 154/154 x5
+python3 sw/timed_ins_replay.py --raw      # rails 1312/1312, vs-chip 2624/2624, R2 782/800,
+                                          # whole-program 173,556/173,556 all on the same T1
+python3 sw/timed_wvec_gate.py             # count 88/88, digest 88/88, cycles +0.0 %
+python3 sw/timed_lawcards.py              # 7 GREEN / 0 RED / 4 UNRESOLVED
+python3 sw/timed_fuzz.py                  # 1,272/1,702 exact, EVT 1,165 excluded (unchanged)
+python3 sw/timed_fuzz.py --seeddir sw/testdata/t4/b2-tranche/seeds        # 154/188
+python3 sw/timed_fuzz.py --pop evt --evt-replay                           # 678/1,008  (NEW)
+python3 sw/timed_fuzz.py --evt-replay      # REGISTERED 1,272/1,702  EVT-unlocked 678/1,008
+                                           # COMBINED   1,950/2,710  (NEW)
+```
+
+`sw/check_enter_nesting.py` is the VERILATOR/RTL leg (CLAUDE.md) and is NOT in
+this set: S9b touches `sim/` and `sw/timed_fuzz.py` only, and the working tree
+carries unrelated uncommitted `hdl/` and `sw/` changes from another branch.
+
+### 20.11 Ledger delta
+
+| | after §19 | after this addendum |
+|---|---|---|
+| `timed_fuzz`, REGISTERED | 1,272 / 1,702 | unchanged (byte-identical) |
+| `timed_fuzz`, EVT | 1,165 EXCLUDED | **678 / 1,008 scored** (157 OPEN_BUS still excluded) |
+| `timed_fuzz`, COMBINED | — | **1,950 / 2,710 (72.0 %)** |
+| `timed_fuzz`, VICTORY TRANCHE | 154 / 188 | unchanged; 0 EVT by construction |
+| v0.1 w0 / w1 / w3 / `EB` w1 | 168,997 / 1,200 / 1,200 / 200 | unchanged |
+| boot / scenario / ENTER / INS / wvec / law cards | as §19.11 | unchanged |
+| functional corpus | 7,341,126 | unchanged |
+| mechanisms | M1-M16, M2r, M5b | **+ M17 (the HLT block is M7's index-2 sample; the HALT display drives the live address latch)** |
+| §19.8.2 chained REP abort | MEASURED, mechanism OPEN | **ANCHOR RESOLVED (cadence-keyed); the eval/write-accept rival FALSIFIED at w1, w2, wrand7** |
+| scaffolding | S9 half removed | **S9 REMOVED** — both halves; `timed-boot` replays pin events |
+| open w0 physics questions | 3 tails | 3 tails + the HALTWAKE family (§20.8) |
+
+### 20.12 What is left, and the stimulus for each
+
+1. **INTA UNDER WAITS is still not a law** — but it is now DATA: 44 waited
+   seeds part within 12 rows of an acknowledge (§20.8 `ACK`).  The capture that
+   would close it is unchanged from §19.14: a w1/w3 pin-event tranche of
+   SINGLE-INSTRUCTION goldens, where the acknowledge geometry can be read
+   directly instead of inferred from a 1,000-row program.  Until then no gate
+   claims a law and this family is reported, not modelled.
+2. **The HALT WAKE geometry** (81 seeds, 64 of them at w0) is the one genuinely
+   NEW open surface this session opened.  Two shapes, both nameable: the woken
+   fetch's display clock (the chip drives it one clock earlier than the model
+   when the wake lands inside the HALT cycle), and 32 seeds where the chip
+   never drives the HALT status at all because the wake reached the register
+   first.  The stimulus is a single-instruction `HLT.INT` / `HLT.RES` sweep with
+   the assert clock walked ACROSS the HALT display window — the existing
+   pin-event generator already produces it, only the `delay` axis needs the
+   sweep.  NOT modelled here: it would be a fitted offset.
+3. **The 5 `REP-WITHDRAW-UNMATCHED`** (registered FAIL, §20.7).  Four are
+   inherited functional-stream divergences; mc1/2389 is the one open case.
+4. **The chained REP abort's MAGNITUDE** is still a measured clock without a
+   ROM row, even though §20.6 resolved its anchor.
+5. The three w0 tails (`0F12`, `C1.6`, `F7.4`) are untouched and unrelated.
+6. **No board session was used.**  The conditional board items (the waited
+   chained-withdrawal capture, a w1/w3 pin-event tranche, the four card
+   stimuli) were NOT run: the waited chained withdrawal turned out to be
+   already IN the bank (§20.6), which is what the board session was for, and
+   nothing else in this session's plan reached the point of needing silicon.
+   No pre-registration was written for a board session and none was taken.

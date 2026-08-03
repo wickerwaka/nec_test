@@ -78,6 +78,8 @@ void BiuTimed::begin_case() {
     ci_ = 0;
     cmt_valid_ = false;
     cmt_t1_ = -1;
+    cmt_disp_ = -1;
+    cur_t1_ = -1;
     last_addr_ = 0;
     last_data_ = 0;
     last_ps_ = 0;
@@ -118,6 +120,7 @@ void BiuTimed::begin_case() {
     opr_free_clk_ = -1;
     last_wval_ = 0;
     bus_idx_ = 0;
+    last_wr_waits_ = 0;
     wlfsr_ = wseed_;
     // S9a: the pin schedule is a per-case rig input; clear it here so a form
     // without an `evt` record can never inherit the previous case's.
@@ -171,14 +174,26 @@ int BiuTimed::occupancy() const {
 static const bool kEvalTrace = ::getenv("V30SIM_EVALTRACE") != nullptr;
 
 
+// DIAGNOSTIC ONLY (S9b): `V30SIM_TICKTRACE=<clk>` dumps the bus register state
+// for 14 clocks from <clk>.  Touches no model state.
+static const long kTickTrace =
+    ::getenv("V30SIM_TICKTRACE") ? ::atol(::getenv("V30SIM_TICKTRACE")) : -1;
+
 void BiuTimed::tick() {
     long c = clk_;
+    if (kTickTrace >= 0 && c >= kTickTrace && c < kTickTrace + 14)
+        std::fprintf(stderr, "TK %ld run=%d ci=%d bs=%d cmtv=%d cmt_t1=%ld "
+                             "cmtfetch=%d halted=%d susp=%d slot=%d acc=%ld\n",
+                     c, int(run_), ci_, int(cur_.bs), int(cmt_valid_), cmt_t1_,
+                     int(cmt_.is_fetch), int(halted_), int(suspended_),
+                     int(eu_slot_busy_), eu_accept_clk_);
 
     // A committed cycle opens its T1 on this clock.
     if (!run_ && cmt_valid_ && cmt_t1_ == c) {
         run_ = true;
         cur_ = cmt_;
         ci_ = 0;
+        cur_t1_ = c;              // S9b: this cycle's own T1 clock
         cmt_valid_ = false;
         // M10: the bus has TAKEN the whole request -- the slot is free from
         // this clock, which is the clock the blocked row issues on.  `rd_last`
@@ -217,7 +232,17 @@ void BiuTimed::tick() {
     // can only load it once the finishing cycle has let go.
     if (halt_pending_ && !run_ && !cmt_valid_ && c != no_eval_) {
         cmt_ = halt_acc_;
+        // S9b -- THE HALT DISPLAY DRIVES THE ADDRESS LATCH AS IT STANDS WHEN
+        // THE CYCLE TAKES THE REGISTER, not as it stood at the HLT decode.
+        // M16 already says the decode does not take a committed fetch back, so
+        // a fetch granted at the decode's own eval RUNS -- and then it is that
+        // fetch's address the HALT cycle drives.  MEASURED on the waited EVT
+        // captures, where the two differ by exactly the extra fetch (chip
+        // 0504, model 0502 with the decode-time snapshot).
+        cmt_.addr = (uint32_t(data_ps(2)) << 16) | (last_fetch_addr_ & 0xFFFFu);
+        cmt_.data = uint16_t(last_fetch_addr_ & 0xFFFF);
         cmt_valid_ = true;
+        cmt_disp_ = c;
         cmt_t1_ = c + 1;
         halt_pending_ = false;
     }
@@ -225,7 +250,7 @@ void BiuTimed::tick() {
     if (run_ && ci_ == 1 && cur_.sys_word)
         cur_.data = sys_word_at(cur_.addr);
 
-    const bool display = cmt_valid_ && cmt_t1_ == c + 1;
+    const bool display = cmt_valid_ && c >= cmt_disp_ && c < cmt_t1_;
     // S9a (Access::no_addr): an INTA drives no address.  Freeze the FLOATING
     // AD -- the last data phase, upper nibble 0 -- into the access on its
     // display clock, so the display row and T1 both carry it through the
@@ -391,7 +416,14 @@ void BiuTimed::tick() {
         }
         // M7 -- THE PREFETCH-ELIGIBILITY TEST IS SAMPLED AT A FIXED CYCLE
         // INDEX (2 = T3), NOT AT THE COMPLETION EVAL.  See biu_timed.h.
-        if (ci_ == 2) pf_arm_ = occupancy() <= 4;
+        // S9b -- ...and the HALT BLOCK IS SAMPLED AT THE SAME INDEX.  M16
+        // ("prefetch is blocked from the HLT DECODE cycle") was measured on
+        // the w0 goldens, where index 2 and the eval are the same clock; under
+        // waits they are not, and the chip grants a refill the model refused.
+        // The block is not a separate rule: it is one more term of the
+        // eligibility answer M7 already says is decided at index 2 and merely
+        // APPLIED at the completion eval.
+        if (ci_ == 2) pf_arm_ = occupancy() <= 4 && !halted_;
         if (ci_ == eval_i) {
             eval_here = true;
             pf_arm_valid_ = true;   // this eval applies the index-2 sample
@@ -451,6 +483,7 @@ void BiuTimed::tick() {
                 // cycle per waited access".
                 if (eu_pending_) --eu_pending_;
                 if (is_write(cur_.bs)) {
+                    last_wr_waits_ = cur_.waits;
                     wr_done_clk_ = e + 2;
                     if (wr_pending_) --wr_pending_;
                 } else if (rd_pending_ && cur_.rd_last) {
@@ -491,14 +524,42 @@ void BiuTimed::et(char decision, char why) const {
             oldest, newest, pf_land_from_, pf_land_to_, unsigned(fetch_ptr_));
 }
 
+// S9b -- THE DISPLAY CLOCK AND THE T1 ARE TWO DIFFERENT THINGS, AND THE ONLY
+// THING BETWEEN THEM IS WHETHER THE BUS IS FREE.
+//
+// M1/M2 say the winner's status is loaded into the register at the eval (so it
+// is on the pins from eval + 1) and its T1 opens at eval + 2.  For EVERY
+// ordinary cycle those are the same statement, because the eval sits at
+// `last_i - 1` (w0) or at `last_i` (waited) and eval + 2 IS the first clock the
+// bus is free.  The HALT pseudo-cycle is the one access where they come apart:
+// its eval is at index 1 (S8/S9, the measured status release) while its T4 is
+// still at index 3, so a cycle granted at that eval is DISPLAYED at index 2 and
+// has to wait for index 4 to open its T1.
+//
+// MEASURED, and it is the chip's own rows: over the EVT captures with a HALT
+// wake the golden drives the woken fetch's CODE status on the HALT cycle's T3
+// AND T4 and opens its T1 the clock after -- two display clocks, one T1.  A
+// model that ties the T1 to the display puts the T1 inside the still-running
+// HALT cycle, where it can never open at all.
+//
+//     display = eval + 1        T1 = max(eval + 2, the bus's first free clock)
+//
+// w-neutral by construction for every non-HALT access.
+long BiuTimed::bus_free_clk() const {
+    if (!run_) return clk_;                 // nothing running: no constraint
+    return cur_t1_ + cur_.last_i + 1;       // the clock after this cycle's T4
+}
+
 void BiuTimed::eval() {
     flush_eval_ = false;   // F3: the flush-only T4 point is spent by any commit
+    const long free_clk = bus_free_clk();
     if (!req_.empty()) {
         et('R', '-');
         cmt_ = req_.front();
         req_.pop_front();
         cmt_valid_ = true;
-        cmt_t1_ = clk_ + 1;
+        cmt_disp_ = clk_;
+        cmt_t1_ = free_clk > clk_ + 1 ? free_clk : clk_ + 1;
         // M10: the slot's occupant now has the T1 that frees it -- the LAST
         // cycle of the access -- so a row blocked on it knows the clock it may
         // issue on.  While a split's first half is committed the accept clock
@@ -509,10 +570,16 @@ void BiuTimed::eval() {
                     clk_ - 1, clk_, cmt_t1_, unsigned(cmt_.addr));
         return;
     }
-    if (suspended_ || halted_) { et('.', suspended_ ? 'S' : 'H'); return; }
+    // F2 keeps SUSP at the eval: it is measured to reach the BIU one row
+    // early and to take back a fetch the eval has just chosen.
+    if (suspended_) { et('.', 'S'); return; }
     // M7: at a COMPLETION eval the answer was decided at index 2 of the cycle
-    // that is finishing; at an IDLE eval the queue is read live.
-    if (pf_arm_valid_ ? !pf_arm_ : occupancy() > 4) { et('.', 'O'); return; }
+    // that is finishing; at an IDLE eval the queue -- and the HALT -- are read
+    // live, because there is no cycle to have sampled them.
+    if (pf_arm_valid_ ? !pf_arm_ : (occupancy() > 4 || halted_)) {
+        et('.', 'O');
+        return;
+    }
     // M6 (biu_timed.h): no fetch is chosen while the previous fetch's bytes
     // are LANDING in the queue.
     if (clk_ - 1 >= pf_land_from_ && clk_ - 1 <= pf_land_to_) { et('.', 'M'); return; }
@@ -524,7 +591,8 @@ void BiuTimed::eval() {
     last_fetch_addr_ = cmt_.addr;
     fetch_ptr_ = uint16_t(fetch_ptr_ + cmt_.push_n);
     cmt_valid_ = true;
-    cmt_t1_ = clk_ + 1;
+    cmt_disp_ = clk_;
+    cmt_t1_ = free_clk > clk_ + 1 ? free_clk : clk_ + 1;
     if (kFlushTrace)
         fprintf(stderr, "FC %ld disp=%ld t1=%ld kind=F addr=%05x\n",
                 clk_ - 1, clk_, cmt_t1_, unsigned(cmt_.addr));
@@ -559,7 +627,7 @@ void BiuTimed::withdraw_fetch() {
     // Only a commit that has not reached the status PINS yet can be taken
     // back: once its display clock has been emitted (cmt_t1_ == clk_, i.e. the
     // T1 opens on the clock about to run) the cycle is irrevocably announced.
-    if (cmt_valid_ && cmt_.is_fetch && cmt_t1_ > clk_) {
+    if (cmt_valid_ && cmt_.is_fetch && cmt_disp_ >= clk_) {
         cmt_valid_ = false;
         fetch_ptr_ = cmt_prev_fp_;
     }

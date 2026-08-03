@@ -107,6 +107,11 @@ public:
         wseed_ = seed ? seed : uint16_t(0xACE1);
     }
     long bus_idx() const { return bus_idx_; }
+    // S9b (sec.19.8.2 falsifier): the wait count of the last WRITE cycle that
+    // completed.  Diagnostic instrument only -- it exists so the chained
+    // REP-abort's rival anchor ("write-accept / eval-keyed", which moves with
+    // the wait count) can be RUN against the census instead of argued about.
+    int last_write_waits() const { return last_wr_waits_; }
     // S5 on the status lines is the IE flag, so the row emitter needs a live
     // view of the PSW.  Bound to the interpreter's own machine state.
     void bind_psw(const uint16_t* psw) { psw_ = psw; }
@@ -215,6 +220,7 @@ public:
     // clears `suspended_`; `halted_` is the S8/S9 park and outlives it.)
     void unhalt() { halted_ = false; }
     bool halted() const { return halted_; }
+    bool suspended() const { return suspended_; }   // diagnostic only
     void charge_to(long c) { while (clk_ < c) tick(); }
     // F2 SUSP IS ONE CLOCK EARLY.  The ROM's bus-control field is decoded a
     // row ahead of the datapath, so SUSP reaches the BIU on the same clock
@@ -380,6 +386,7 @@ private:
     // completion eval if this clock ends on an eval point.
     void tick();
     void eval();
+    long bus_free_clk() const;
     void et(char decision, char why) const;   // T3 diagnostic (env-gated)
     void post(const Access& a);
     // occupancy including bytes already fetched but not yet pushed
@@ -409,7 +416,12 @@ private:
     int ci_ = 0;            // clock index within the running cycle (0 = T1)
     bool cmt_valid_ = false;
     Access cmt_;
-    long cmt_t1_ = -1;      // absolute clock of the committed cycle's T1
+    long cmt_t1_ = -1;
+    // S9b: the clock the winner's status reaches the pins on (eval + 1).
+    // For every non-HALT access this is cmt_t1_ - 1; see eval().
+    long cmt_disp_ = -1;
+    long cur_t1_ = -1;      // the RUNNING cycle's own T1 clock
+    int last_wr_waits_ = 0;      // absolute clock of the committed cycle's T1
     uint16_t cmt_prev_fp_ = 0;   // fetch_ptr before the committed fetch took it
 
     // retained pin state (idle rows and undriven byte lanes)

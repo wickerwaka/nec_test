@@ -80,6 +80,9 @@ public:
     // which is the functional model's standing behaviour (ledger R2).  The
     // TIMED bus overrides it with the rig's replayed POLL_N level (S9a).
     bool poll_busy() const { return false; }
+    // S9b: the timed instrument's wait count (sec.19.8.2 falsifier).  The
+    // functional bus has no waits.
+    int last_write_waits() const { return 0; }
     // ...and no boundary clock: the functional runner replays the firing
     // boundary architecturally and never arms `CpuT::set_fire_pc`, so this is
     // only here to keep the shared interpreter compiling on both policies.

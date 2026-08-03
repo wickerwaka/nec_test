@@ -53,6 +53,18 @@
 
 namespace sim {
 
+// S9b -- THE FALSIFIER FOR sec.19.8.2's OPEN MECHANISM, runnable.
+// `V30SIM_REPCHAIN=eval` scales the chained REP-abort's extra clock with the
+// completing store's wait count, which is what a WRITE-ACCEPT / completion-
+// EVAL anchor predicts (the eval moves from T3 to T4+N under waits) and what a
+// cadence/index anchor does not.  The two are IDENTICAL at w0 -- which is why
+// the w0 corpus never separated them -- so the discriminating stimulus is a
+// WAITED chained withdrawal.  Default 0 = the cadence anchor, unchanged.
+inline int rep_chain_eval() {
+    static const int v = ::getenv("V30SIM_REPCHAIN") &&
+                         std::string(::getenv("V30SIM_REPCHAIN")) == "eval";
+    return v;
+}
 std::string row_text(const ucrom::MicroOp& op);
 
 
@@ -402,7 +414,9 @@ bool CpuT<Bus>::cond_true(uint8_t cond) {
                 // the previous store's display (gives 0, i.e. no change).  The
                 // falsifier is any chained abort whose flush is not at the
                 // loop row + 10, or any one-element abort that needs the +1.
-                if (rep_elems_ >= 2) biu_.charge(1);
+                if (rep_elems_ >= 2)
+                    biu_.charge(1 + rep_chain_eval() *
+                                        biu_.last_write_waits());
                 return false;
             }
             if (m_.rep_test == kTestZ)
@@ -750,6 +764,19 @@ bool CpuT<Bus>::step() {
     }
     if (ld.executed) {
         rep_abort_at_ = -1;
+        // S9b -- A PRE-DECODE-EXECUTED FORM RETIRES AT A BOUNDARY TOO.
+        // `HLT`, `EI`, `DI`, `STC`, ... never enter the ROM, so they have no
+        // `E` row and the recognition check below never ran for them.  In a
+        // single-instruction case that is invisible (the case IS the ROM
+        // form); in a whole-program replay it means every boundary that
+        // follows one of these was silently skipped, and the replay then
+        // withdrew from whatever string loop it met next -- 9 of the 1,008
+        // EVT seeds, all of them reported as REP-WITHDRAW-UNMATCHED.  A HALT
+        // is excluded: a halted part's wake is its own sequence (sec.19.6).
+        if (!ld.halt && at_fire_boundary()) {
+            boundary_clk_ = biu_.boundary_no_pop();
+            fired_boundary_ = true;
+        }
         return true;
     }
 
