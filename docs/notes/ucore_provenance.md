@@ -1202,3 +1202,297 @@ All on the same tree, `--core ucore`, v0.1 at w0 unless stated.
 8. **The HLT one-clock-lead contract** (`eu_halt`/`eu_unhalt` LEAD by one
    clock, §11.6) is still unverified — it is reached when the ladder gets to
    the 1BL forms, which is family B.
+
+# STAGE U2 — PASS 3
+
+**STATUS: the four families of §23 are CLOSED as families.  Gate U2 (G3) is
+still NOT met — 149,214 / 169,000 — but the shape has changed: what is left is
+a named, enumerated tail, not a family.**
+
+## §27 TRIAGE — the two items pass 2 routed, both answered from the SIM
+
+### §27.1 C3's fired assertion: THE BOUND WAS RIGHT AND THE RTL WAS MIS-COUNTING
+
+§26/C3 asserted a bound it had not proved, and it fired.  The model holds the
+truth, so it was asked.  `V30SIM_QDEPTH=1` (new, `sim/exec_impl.h` +
+`sim/biu_timed.cpp`, one stderr line per NEW maximum carrying the ROM row that
+pushed it) driven by the new `sw/qdepth_probe.py` over the WHOLE v0.1 suite at
+w0 — 347 forms, 169,000 cases:
+
+| store | max depth | reached by |
+|---|---|---|
+| `rdq_` (EU-side completed reads) | **2** | 34 forms (`A6` `A7` `CA`..`CF` `61` `62` `F6.6`/`.7` `F7.6`/`.7` `HLT.INT` …); 264 forms never exceed 0 |
+| `rd_done_q_` (BIU-side completion clocks) | **1** | 245 forms; **never 2** |
+
+and on the three forms that tripped the assertion — `F3A4`, `F3A5`, `C8` — the
+model's `rdq_` never exceeds **1**.
+
+**VERDICT: the architecture's risk-#2 bound of TWO SLOTS IS CORRECT.**  The
+assertion stays exactly as written; the RTL was accumulating completed reads it
+never took out.  Two machines were behind it, and both are §16's named class:
+
+* **F19 — both counting conditions read the terminator one clock early.**
+  `count` is a LIVE BLOCKING variable in `v30u_eu_cond.svh`, so after
+  `count = count - 1` it IS the post-decrement value — what the model tests
+  against 0.  Testing it against 1 made `REP MOVS` with CX==1 take the loop
+  back where the model falls through, running a SECOND element and issuing a
+  read nobody consumed.  `CNTZ` (ENTER's level walk) had the same off-by-one
+  the other way.  F13's bug, third and fourth instance.
+* **F20 — the pre-pair flush is a `deliver_read()`, not just a wait.**  The
+  model's `bus_read`/`bus_write` open with
+  `if (pend_.active) { if (!opr_fresh_) deliver_read(); emit_pending(); }`;
+  the EU had only the wait, and only its `wait_opr_free` half.  Nothing popped
+  the store, nothing paired, `pend_active` never cleared.  That is where a REP
+  string's every-iteration store is paired — by the NEXT iteration's read row —
+  and it is what filled `rdq` at CX==3.
+
+*Falsifier for the bound*: any stimulus in which the MODEL's `rdq_` reaches 3.
+
+### §27.2 The `0F20` hang: the same F19
+
+`ADD4S`'s digit loop is a `CNTZ` loop.  It fell with F19 and needed nothing of
+its own.  Forms reporting `fewer than 2 F pops` went **17 → 5**, and three of
+the five are `HLT.*`, where `eu_unhalt` is unimplemented by design.
+
+## §28 THE FAMILIES — one statement, seven renderings
+
+Everything below is the SAME sentence in different clothes, and stating it once
+is the whole of pass 3:
+
+> **A row's ACTS are computed from the row's own transfers, on the row's own
+> clock; and the machine a row runs on is the machine it belongs to.**
+
+The EU already contained that rule — `opr_now`, "the value this row is about to
+put there".  It had been applied to ONE destination, on ONE state.
+
+### F14 — the row's own transfers (family A)
+
+`exec_impl.h::run_micro` does the two parallel transfers FIRST and issues the
+bus cycle afterwards off `m_.ind`, so a row that writes IND posts the address IT
+JUST WROTE.  That is how every non-ModR/M address in the ROM is formed
+(`50`: `SIGMA -> SP  SIGMA -> IND  E  CTL MEMW SS`); the ModR/M forms take IND
+from the loader, which is why they were green and this was invisible for two
+passes.  `ind_now` is `opr_now`'s mirror, dest2 winning over dest1 because the
+model writes dest2 second.  The same rule reaches the REDIRECT: `flush(cs, pc)`
+runs after the transfers, so `pc_now`/`cs_now`; without them every taken jump
+refilled from `target - disp`.
+
+### F15 — the post-`E` row is a row with a CLOCK (family A)
+
+F8 gave it no STATE; it still has ACTS.  `exec_impl.h:1095`'s pairing fires on
+it like any other row — `50`'s store is paired by exactly that.  `eu_pair` now
+carries a `poste` term.  And the pairing is a MID-CLOCK fact (`biu_timed` fills
+`cur_.data` inside `mem_write`; the row that same `tick()` emits already carries
+the word), so the AD data lanes read it through a register-only lookahead.
+
+### F16 — `stall_slot` was F11's own bug, one dimension over (family A)
+
+`BiuTimed::post` waits on the slot and THEN takes it, both inside the row, so
+the demand (`eu_post`, registered slot) and the take (the step,
+`eu_slot_busy_n`) read DIFFERENT views and the row ran one clock long.
+Invisible on an aligned store, fatal on a SPLIT one, where the extra clocks
+pushed the pairing past the FIRST half's T1.  One view now, the demand's.
+
+### F17 — M5b: ONE rotation per ACCESS, not per CYCLE (family A)
+
+Both halves of a split store drive the same rotated word; the fill computed A0
+per cycle.  `pair_odd` is captured on the first half a pairing fills.
+
+### F18 — `wait_next_read` is a DEADLINE, like `wait_bus` (family A)
+
+The write side already read its completion as register-only lookahead
+(`eu_wr_done_n`, F11a); the read side did not, so every `F` row waiting on a
+read ran one clock late.  `nr_have` now carries `|| eu_rd_done_n`.  **This one
+term moved the whole POP/RET/direct-address family to cycle-exact.**
+
+### F21 / F22 / F23 — the post-`E` row runs on the machine it belongs to (family B)
+
+Family B was never "the ALU/write-back path"; it was ONE ordering fact seen
+three ways.  The model runs the post-`E` row inside `run_micro` and only THEN
+returns and lets the successor's `loader_decode` touch anything.  In the EU the
+two land on DIFFERENT EDGES — the successor's decode is chained zero-cost into
+the `E` row's own edge (it must be: `st` has to be S_MODRM/S_NORM_CHG during
+the decoder's clock or the ModR/M byte is demanded one clock late), while the
+post-`E` row is F8's one-bit debt discharged at the top of the NEXT edge.
+
+* **F21** — `opr` is a LIVE BLOCKING variable: the `F` interlock's delivery
+  writes it just above the row body, and `s1_val` is a WIRE off the REGISTER.
+  `58`'s `OPR -> M` wrote AX = 0000 in 500/500 cases.  F11b's trap, third
+  instance.
+* **F22** — the four latches the post-`E` row reads and `loader_decode`'s
+  prologue RESETS (`pfxcnt`, the operand kinds, the `ALU OPC` base, the ALU
+  latch) are simply deferred past the discharge — `v30u_eu_iend_late.svh`.
+* **F23** — ...and the opcode latch was OVERWRITTEN, not reset, so deferral
+  cannot reach it: by the post-`E` row's clock the EU held the SUCCESSOR's
+  opcode and every `ALU OPC` row resolved against it.  The whole
+  accumulator-immediate block executed the operation the injected `90` selects
+  — index 2, ADC — and `14` (ADC AL,imm8) was the ONE form of its group that
+  passed.  The decoder's opcode latch loads at the END of its clock and the
+  post-`E` row reads it before that, so the row's own opcode context travels
+  with the debt: **9 bits**.
+
+### F24 — a row that FLUSHES cannot POP (family D)
+
+`exec_impl.h`'s CTL block calls `biu_.flush()` BEFORE the cadence reaches
+`opcode_prefetch`, so on a redirect row the queue has already been emptied and
+the pop waits for the refill.  The EU took the byte the flush was about to
+discard and then decoded a byte that did not exist.  `!row_flush` is a term of
+BOTH the demand and the take; adding it to one only, as the first attempt did,
+left the machine visibly split (F11, again).
+
+### F25 — power-on reset is a MICROCODE MARCH, not a state (the boot gate)
+
+`CpuT::reset()` runs the ROM's own sequence at page 7 opcode 00000011 — 01D0
+`ZEROS -> DS`, 01D1 SUSP, 01D2 `ONES -> CS`, 01D3 `ZEROS -> PC` FLUSH, 01D4 `E`
+MFS, 01D5 `ZEROS -> SS` — and only THEN does the decoder see its first byte.
+The EU came out of reset in S_OPC_POP and the whole boot was seven clocks
+early.  Two facts, both already stated by `run_timed_boot` and both pinned by
+the capture, not fitted: the part comes out of reset with the PREFETCHER
+SUSPENDED, and the internal dispatch is FOUR CLOCKS (01D0 at release+4, the
+FLUSH at release+7 where the capture shows its `E` blip, the first CODE T1 at
+release+9).  A backdoor-loaded case starts mid-stream and must not run it —
+that is what `bkd_load` selects, and it is why no v0.1 rung moved (form-by-form
+diff of the two whole-suite censuses: 14,112 → 14,112, zero forms either way).
+
+### F26 — an `R` row keeps the sequencer while it iterates (family C)
+
+The loop is `while (m_.count != 0) { … wr_dst1(op.d1, …) }` INSIDE the row's own
+iteration, so every step writes THE R ROW'S Dest1.  Advancing `upc` before
+entering S_RLOOP handed the loop its SUCCESSOR's row word: `D1.4`'s
+`0116 SIGMA -> tmpb  W R ALU OPC` wrote through `0117`'s `SIGMA -> M`, so
+`shl bx,1` returned BX unchanged.  §16's named class, sixth instance.
+
+### F27 — a pre-decode read does not arm the pairing latch (family C)
+
+`loader_impl.h:495` assigns `m.opr = biu.mem_read(…)` DIRECTLY and never
+touches `opr_fresh_`, which `begin_sequence()` left false: the latch is armed by
+a `-> OPR` TRANSFER, not by a read.  S_PRERD set it, so `86`/`87`'s write-back
+row emitted its store the instant it posted — handing the bus the operand the
+pre-read had just brought IN instead of the register the post-`E` row is about
+to swap OUT.
+
+### F28 — a row suppresses its own write-back
+
+`suppress_commit` is set INSIDE the row body, on the very row whose `[-06-]` it
+cancels (CMP), so the act decode must reconstruct it.  `38`/`39`/`80.7` posted
+a store that never happened and the successor's F landed one clock late.
+
+### §28.1 THE FIRST TIME §20.2's LOOP RULE ACTUALLY BIT
+
+`eu_rdata_n` was `rd_val`, the SHARED OPR shadow that a pairing also writes, so
+reading it back from the EU's act cone (F14's `pc_now` off an `F` row's
+delivered word — `C3`'s `00F3 OPR -> PC  F E  CTL FLUSH`) closed
+`eu_wdata -> rd_val -> eu_rdata_n -> opr_live -> opr_now -> eu_wdata`.
+Verilator named it (UNOPTFLAT on `s1_now`) and two intermediate attempts to
+break it structurally failed for the same reason: **anything computed inside
+the single next-state process is in the next-state cone, because Verilator (and
+synthesis) treats that process as one node.**  That is the price of §20.2's
+"ONE next-state function", and it is worth writing down.
+
+The fix is what the model says: `rdq_` holds READ words, `last_wval_` holds the
+last write.  One fact, one register — `rd_land` / `r_rd_land`, and
+`eu_rdata_n` is that flop.  No UNOPTFLAT and no inferred latch on the build.
+
+## §29 THE RUNG TABLE AND THE GATE LEDGER
+
+All on the same tree, `--core ucore`, v0.1 at w0.
+
+| gate | command | result |
+|---|---|---|
+| rungs 1–2d | `check_core.py --core ucore --opcodes B8,8A,8B,88,89 --cases 500` | **2500/2500** |
+| (not claimed) | `… --opcodes 8C,8E` | 1000/1000 |
+| rung 3 — family A | `… --opcodes 50,A4 --cases 500` | **1000/1000** |
+| rung 6 — family D | `… --opcodes EB,74 --cases 500` | **1000/1000** |
+| rung 8 — family C | `… --opcodes D1.4,86 --cases 500` | **1000/1000** |
+| rung 9 | `… --opcodes C3 --cases 500` | **500/500** |
+| **boot march (F3's routed gate)** | `check_boot.py --core ucore 220` | **220/220 MATCHES** |
+| G0 | `check_ucore_tables.py` | **9988/9988 PASS** |
+| U1 lockstep | `ulockstep.py --suite --waits 0,1,2,3` | **32/32 LOCKSTEP** |
+| CE hold | `check_core.py --core ucore --opcodes 88 --cases 100 --ce-div 3 --ce-hold-check` | **0 violations** |
+| FSM spot (shared TB touched) | `check_core.py --opcodes B8,8A,8B,88,89 --cases 500` | **2500/2500** |
+| the MODEL, unmoved | `timed_gate.py --suite tests/v30/v0.1 --forms all` | **169,000/169,000, row-diffs 0** |
+| **G3** | `check_core.py --core ucore --opcodes all --cases 0` | **149,214 / 169,000 — NOT MET** |
+
+### §29.1 The census, pass by pass
+
+Reconnaissance (`--cases 60`, 20,820 cases over 347 forms), not a gate:
+
+| after | cases full | forms cycle-exact | forms fully green | forms hanging |
+|---|---|---|---|---|
+| pass 2 (start) | 7,775 | 141 | 102 | 17 |
+| family A (F14–F18) | 8,856 | 186 | 118 | 16 |
+| triage (F19, F20) | 8,986 | 188 | 118 | **5** |
+| family B (F21–F23) | 13,114 | 204 | 191 | 5 |
+| family D (F24) | 14,112 | 231 | 218 | 5 |
+| family C (F26, F27) | 17,591 | 285 | 277 | 5 |
+| F28 + the redirect's OPR | **18,000** | **293** | **285** | 5 |
+
+**No form regressed at any step** — every rung was scored by a form-by-form
+diff of the two whole-suite censuses, not by the total.
+
+### §29.2 G3, stated honestly, BOTH numbers
+
+The work order asked for two numbers because the sim carries registered
+residue against SILICON.  At **w0 it does not**: `timed_gate.py` over the whole
+v0.1 suite reports **169,000/169,000 arch, 169,000/169,000 window, 169,000
+rows-exact, row-diffs 0**.  So at w0 there is nothing to subtract, and the two
+numbers coincide:
+
+* G3 through the golden comparator: **149,214 / 169,000** (88.3 %).
+* G3 minus the sim's registered w0 residue: **149,214 / 169,000** — the same
+  number, because that residue is empty at w0.
+
+(The 907+3 residue rows named in the pass-3 brief are a WAIT-AXIS quantity —
+they belong to U3, not to this gate.  Re-derive them there; do not carry the
+figure forward from memory.)
+
+## §30 WHAT IS LEFT — 62 RED FORMS, ENUMERATED
+
+Not a family: a tail.  Grouped by first divergence, with the case count each
+costs out of 169,000.
+
+| group | forms | cost | reading |
+|---|---|---|---|
+| **interrupt / HLT entries** | `INT.*` (7), `NMI.*` (2), `HLT.*` (3), `INT.F3AA` | 2,400 | **UNIMPLEMENTED BY DESIGN** (§19.3): no interrupt entry, `eu_unhalt` is tied 0, the POLL pipeline is the static level only.  Not a bug list — a work list |
+| **the `0F 10-1F` bit block** | `0F10`-`0F1F` (16) | 4,988 | `data`/arch: the write-back's UNUSED LANE differs by one bit-position's worth.  The `BIT` arm's port-B mask and the byte-store data-lane law.  ONE mechanism, almost certainly |
+| **BCD adjust + BCD strings** | `27` `2F` `37` `3F` `0F20` `0F22` `0F26` | 3,225 | the adjust unit: `27`/`2F`/`37`/`3F` are cycle-EXACT and arch-red, so it is `bcd_adjust` alone.  `0F20`/`0F22` add the string loop |
+| **CALL and the flush display** | `E8` `FF.2` `FF.3` `9A` | 1,686 | `qop`: the flush's `E` blip is ONE CLOCK EARLY in about half the cases.  The row order is right; this is the BIU's `e_pend` / "a ready-but-not-yet-started EU request owns the next slot" term (F1(c)), not the EU |
+| **multi-cycle pushes** | `60` (PUSHA) `62` (BOUND) `CC` `CD` `CE` | 2,182 | `busstat`: the RTL runs consecutive stores BACK TO BACK where the golden has idle `Ti` between them.  Task #33's multi-push bus-hold datapoint, now reproducible in RTL |
+| **DIV / MUL** | `F6.5` `F6.6` `F6.7` `F7.5` `F7.6` `F7.7` | 2,179 | the iterative divider: `busstat`/`qop` |
+| **word string moves** | `A5` `2E.A5` | 506 | S5's fallback ("a store that reaches T1 unpaired drives what is standing in OPR") rotates PER CYCLE; M5b says per ACCESS.  F17's rule in the one place it was not applied — needs an `odd_base` bit per queued cycle |
+| **the rest** | `C8` (ENTER) `F3A4` `F3A5` `F3AA` `F3AB` `F2AA` `8F.0` `FA` `FB` `POLL.LO` | 2,620 | individually diagnosed, no shared reading yet |
+
+## §31 HANDOFF — what pass 4 picks up
+
+1. **The order is by cost and by confidence**: the `0F 10-1F` block (16 forms,
+   4,988 cases, one suspected mechanism), then BCD adjust (7 forms, 3,225),
+   then the multi-cycle pushes (5 forms, 2,182), then DIV/MUL, then CALL's
+   flush display.  `A5`/`2E.A5` is a KNOWN fix (an `odd_base` bit per queued
+   cycle in `v30u_biu.sv`, the same rule F17 already applies to the pairing
+   loop) and is the cheapest single win left.
+2. **The interrupt entries are the biggest single block (2,400 cases) and are
+   NOT bugs.**  They are `eu_unhalt`, the interrupt entry vectors, the POLL
+   pin pipeline and `intr_pending`'s missing writer.  Build them as a rung,
+   not as fixes.
+3. **The instruments**, all new in pass 3 and all cheap:
+   * `sw/uscope.py FORM IDX [--rowtrace] [--full]` — the microscope of §25.5,
+     built.  Golden row, RTL row and the EU's own per-CE-clock state line on
+     ONE index, plus the MODEL's micro-row schedule.  Every diagnosis in this
+     section is one invocation of it.
+   * `sw/uarch.py FORMS` — the FINAL-REGISTER field histogram, which is what a
+     cycle-exact / arch-red form needs and what `check_core` does not print.
+   * `sw/ucore_census.py LOG [BASELINE]` — the census + the form-by-form
+     REGRESSED/IMPROVED diff.  Run it on every rung; the total is not evidence.
+   * `sw/qdepth_probe.py` + `V30SIM_QDEPTH=1` — the model's own bound prover.
+   * `+eutrace` now carries `ind opr opr_fresh pend poste rdq rd_done tmpa tmpb
+     tmpc sigma` and `eu_wdata`, which is what made F14/F21/F23 one-shot reads.
+4. **REGISTERED RESIDUE, booked and not patched**: a successor that is a PREFIX
+   increments `pfxcnt` in S_DECODE on edge `c`, and F22's deferred reset then
+   zeroes it on edge `c+1`.  No v0.1 case reaches it (the injected successor is
+   always `90`); it is a real hazard for whole-program replay and must be
+   settled before U3's image work.
+5. **The structural lesson of §28.1 is a constraint on every future fix**:
+   nothing the EU's act decode reads may be computed inside the BIU's single
+   next-state process.  If a fact is needed there, give it a flop.
+6. **Still not run**: `ulockstep` batch mode over golden cases, the wait axes
+   (U3), the second Codex review (this pass ended at a rung boundary before it).
