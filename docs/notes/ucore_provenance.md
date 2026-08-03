@@ -1580,3 +1580,295 @@ specifically `e_pend` rather than another announcement-state term — "source
 alone does not verify it", the per-case traces are needed.  It is carried in
 §30 as a reading, not as a diagnosis.  And it found no single mechanism joining
 BCD, multi-push and CALL into a larger family, as briefed.
+
+# STAGE U2 — PASS 4
+
+**STATUS: the costed tail of §30 is FOUR-FIFTHS CLOSED and its remaining
+members are named, not grouped.  Gate U2 (G3) is still NOT met —
+164,787 / 169,000 — but 2,400 of the 4,213 red cases are the interrupt and
+HALT entries, which are still UNIMPLEMENTED BY DESIGN and are a RUNG, not a
+bug list.  Of what the RTL is currently built to do the score is
+164,787 / 166,600 = 98.9 %.**
+
+Pass 3 said its own remainder was "a tail, not a family".  That was half
+right.  Three of §30's five groups fell to ONE finding (F31), which is the
+pass's whole lesson: a tail enumerated by FIRST DIVERGENCE is not the same
+thing as a tail enumerated by MECHANISM, and §30 was the former.
+
+## §33 THE FOUR FINDINGS
+
+### F22 SETTLED — deferral and travel are ONE rule, and the field decides which
+
+§31.4 booked a REGISTERED RESIDUE: `loader_decode`'s per-instruction latch
+reset is DEFERRED past the post-`E` row's discharge
+(`v30u_eu_iend_late.svh`), and an audit found EXACTLY ONE field the
+successor's edge-`c` decode chain also writes — `pfxcnt`, incremented by
+S_DECODE's prefix arm.
+
+The settlement is not a patch to the deferral; it is the observation that
+F22 and F23/D1 were never two mechanisms.  Both are §28's one sentence —
+*the post-`E` row runs on the machine it belongs to* — and **which
+RENDERING a field takes is decided by exactly one question: does the
+successor's decode chain WRITE this field on edge `c`?**
+
+| answer | rendering | why |
+|---|---|---|
+| no | DEFER the successor's reset past the discharge | the register still holds the predecessor's value at the discharge, so no copy is needed |
+| yes | the value must TRAVEL with F8's debt | the register has already moved on; a deferred reset lands ON TOP of the successor's own write |
+
+`pfxcnt` is the ONE field in both sets, so deferring it was wrong in both
+directions at once: the post-`E` row read `pfxcnt + 1` (the successor
+prefix's increment stacked on the predecessor's count), and the deferred
+reset then landed on edge `c+1` and DESTROYED that increment.
+
+The second is the one that matters.  `PFXCNT` is read on exactly ONE ROM row
+in the whole part — `0225 PFXCNT -> tmpa`, the REPX withdrawal's
+`PC := PC - PFXCNT - 1` — and a `REP` string is BY CONSTRUCTION reached
+through a prefix.  Under whole-program replay every mid-string interrupt
+would have resumed at the opcode instead of at the first prefix: **the 8086
+lost-prefix bug the V30's ROM exists to avoid**, reintroduced by an RTL
+rendering artefact.
+
+`pfxcnt` therefore joined the debt (`pe_pfxcnt` / `pfxcnt_eff`, captured at
+all three `poste` raises) and its reset went back into S_INSTR_END's
+IMMEDIATE block, where `loader_decode`'s prologue puts it.  **The debt is
+EIGHTEEN bits.**
+
+MEASURED, directed — no v0.1 case reaches the residue (the injected
+successor is always `90`), so the falsifier had to be built.  `pfxcnt` is
+now on `+eutrace` as `pfx=`; the stimulus is a `poste`-raising instruction
+followed by a prefixed one (`B8 34 12` / `F3 A4`, CX=2):
+
+| | `pfx` through the REP string, incl. the REPX exit rows 7.40.x |
+|---|---|
+| deferred reset (the residue) | **0** |
+| the debt (F22 settled) | **1** |
+
+*Falsifier*: any other ROM row that reads PFXCNT, or any edge-`c`
+decode-chain write to one of `iend_late`'s remaining fields.
+
+**...and the debt was EU state the SS map did not carry.**  `SSA_E_POSTE`
+was already mapped, so a freeze at `poste = 1` was representable and NOT
+restorable.  Appended `SSA_E_PE_OPC_REG` / `_PE_PFXCNT` / `_PE_FLAGS`
+(`{iend_owed, pe_op8, pe_opc8080}`), each symbol exactly twice.
+
+### F31 — OPR OWNERSHIP IS ONE COUNTER, AND IT IS THE BIU'S
+
+**Class: SPEC (composition).  F11's named error, third instance, and the
+single largest finding of the pass: +4,436 cases and three of §30's five
+groups.**
+
+The EU kept its own `opr_owned` count of the stores it had paired and
+tested it against the BIU's release PULSE.  The BIU kept `opr_held`, which
+IS `BiuTimed::opr_held_`.  One event, two reconstructions — and the EU's
+copy was wrong in BOTH of its parts.
+
+* **THE VIEW.**  `opr_free_now_n` read `eu_opr_free_n`, the release computed
+  DURING the T2 clock, so the `F` row completed at the end of T2.  The
+  model's instant is `opr_free_clk_ = T2 + 1` and the row runs ON that
+  clock.  Every non-OPR-reading `F` row therefore ran ONE CLOCK EARLY.
+  That is the whole multi-cycle-push group: `60`'s ROM alternates
+  `SIGMA -> tmpb  SIGMA -> IND  CTL MEMW SS` with `<reg> -> OPR  F  CTL`,
+  and **the idle `Ti` the golden shows between consecutive stores IS that
+  clock**.  `60` was green on push #1 only, and only by accident — the
+  FARJMP bubble after 023B put the clock back, which is exactly why the
+  reading in §30 said "back to back" and not "one clock early".
+* **THE COUNT.**  The model's `++opr_held_` is CONDITIONAL —
+  `if (!(r == &cur_ && run_ && ci_ > 1))`, a fact about the BIU's own
+  running cycle — so **an EU-side count can never be faithful**, whatever
+  it is fitted to.  `opr_owned += (pend_split ? 2 : 1)` also over-counted a
+  split against the pulse test.  MEASURED after fixing the view alone:
+  ALL 96 odd-SP `60` cases failed and ALL 104 even-SP cases passed, 200/200
+  on the split/aligned line.
+
+The fix is the F11 rule and nothing else: the BIU publishes the model's own
+predicate off the REGISTER —
+
+```
+assign eu_opr_free = (r_opr_held == 2'd0);      // `while (opr_held_ > 0) tick()`
+```
+
+— and the EU's counter, the `_n` port, and with them `opr_free_now_n`,
+`f_wait_n`, `row_pre_wait_n` and `row_blocked_n` are DELETED.  One
+expression, both views; the demand and the take cannot drift.
+
+`opr_free_p` / `set_oprfree` stay as the model's `opr_free_clk_` and are
+documented as PROVABLY VACUOUS: `opr_free_clk_` is only ever set to `c + 1`
+inside `tick()` for clock `c`, which leaves `clk_ == c + 1`, so the second
+`wait_opr_free` loop's guard is false on entry in every reachable state.
+
+SS: `SSA_E_OPR_OWNED` retired, `SSA_E_PE_FLAGS` moved into the hole,
+`SS_EU_COUNT` 114 → 113, EU region contiguous 0x100–0x170.
+
+**What it moved** (form-by-form, whole-suite censuses):
+`60` 0→500, `62` 81→500, `CC` 0→500, `CD` 0→500, `CE` 237→500 (the
+multi-cycle pushes), `9A` 0→500, `FF.3` 0→500 (half of CALL),
+`F6.7` 123→500, `F7.7` 126→500, `F6.6` 105→353, `F7.6` 75→330 (DIV).
+Zero regressions.
+
+### F32 — THE RESTORING DIVIDER'S COMPARE IS ONE BIT WIDER THAN ITS OPERANDS
+
+**Class: RTL bug.**  F31 left all four DIV forms CYCLE-EXACT 500/500 and
+ARCH red, which is the cleanest possible statement that what remained was a
+value.
+
+`alu.cpp::kDiv` computes `hi = (a << 1) | (lo >> (w-1))` in a `uint32_t`
+and does **not** mask it before `if (hi >= divisor)`.  The bit shifted OUT
+of the high half is exactly what decides the subtract — that extra bit IS
+the restoring step.  The RTL built `div_hi0` as `{it_a[6:0], lo[7]}` (byte)
+and `{it_a[14:0], lo[15]}` (word), dropping it, so every dividend whose
+high half reached the top bit took the wrong branch.  `div_hi0` was already
+declared `[16:0]`; only the two concatenations were short.
+
+MEASURED: `F6.6 idx 2` (0x9151 / 179) `exp ax=94cf got 5100`.
+`F6.6` 353→500, `F7.6` 330→500.
+
+### F33 — THE QS=E GUARD READ THE REQUEST QUEUE A CLOCK BEHIND
+
+**Class: SPEC (view).**  §30 carried CALL's one-clock `E` blip as a READING
+("the BIU's `e_pend` / F1(c) term, not the EU") and §32 records that Codex
+declined to confirm it from source alone — "the per-case traces are
+needed".  The traces confirm the term and name the defect, and it is not a
+new rule.
+
+F1(c): the flush display waits for a ready-but-not-yet-started EU request's
+STATUS clock.  The model tests `req_` **live** inside `record()`, and by
+then the row's own `post()` has already run — the row body precedes the
+row's `charge(1)`.  The RTL tested the REGISTER `r_rq_n`, one clock behind,
+so a flush row that ALSO posts saw an empty request queue and took the QS
+port on its own clock.
+
+MEASURED, `E8 idx 1` — the flush row 0.e8.4 stands on clock 6, the push row
+0.e8.5 posts on clock 7, the MEMW announcement is clock 8:
+
+| clock | model | RTL (before) |
+|---|---|---|
+| 6 | blocked by the push-absorb hold [5,6] | same |
+| 7 | `req_` NOT empty → deferred | `r_rq_n == 0` → **E fired** |
+| 8 | the announcement stands → **E** | (already spent) |
+
+`E8 idx 0`, whose flush row does not share its clock with a post, was green
+before and after — which is why this only ever showed on CALL.  Fix:
+`(r_rq_n == 2'd0) && !eu_post`, where `eu_post` is the EU's ordinary
+combinational request line, already read by `ann_kill` two blocks above.
+
+`E8` 140→500, `FF.2` 174→500.
+
+## §34 THE CENSUS AND THE GATE LEDGER
+
+### §34.1 The census, step by step
+
+Whole-suite `--cases 0` (169,000 cases over 347 forms), scored by a
+form-by-form diff at every step.  **No form regressed at any step.**
+
+| after | cases full | cycle-exact forms | fully green forms |
+|---|---|---|---|
+| pass 3 (start) | 159,348 | 313 | 313 |
+| F22 settled | 159,348 | 313 | 313 |
+| F31 (the OPR hold) | 163,784 | 324 | 322 |
+| F32 (the divider) | 164,101 | 326 | 324 |
+| F33 (the QS=E guard) | **164,787** | **326** | **326** |
+
+F22 moving nothing is the finding, not a disappointment: it is D1's shape —
+*a finding whose fix moves no number is still a finding* — and its
+falsifier had to be built by hand because the corpus cannot reach it.
+
+### §34.2 The gate ledger
+
+All on the same tree, `--core ucore`, v0.1 at w0.
+
+| gate | command | result |
+|---|---|---|
+| rungs 1–2d | `check_core.py --core ucore --opcodes B8,8A,8B,88,89 --cases 500` | **2500/2500** |
+| rung 3 — family A | `… --opcodes 50,A4` | **1000/1000** |
+| rung 6 — family D | `… --opcodes EB,74` | **1000/1000** |
+| rung 8 — family C | `… --opcodes D1.4,86` | **1000/1000** |
+| rung 12 — the multi-cycle pushes (F31) | `… --opcodes 60,62,CC,CD,CE` | **2500/2500** |
+| rung 13 — DIV (F32) | `… --opcodes F6.6,F6.7,F7.6,F7.7` | **2000/2000** |
+| rung 14 — CALL (F33) | `… --opcodes E8,FF.2,FF.3,9A` | **2000/2000** |
+| **boot march** | `check_boot.py --core ucore 220` | **220/220 MATCHES** |
+| G0 | `check_ucore_tables.py` | **9988/9988 PASS** |
+| U1 lockstep | `ulockstep.py --suite --waits 0,1,2,3` | **ALL SCENARIOS LOCKSTEP** |
+| CE hold | `check_core.py --core ucore --opcodes 88 --cases 100 --ce-div 3 --ce-hold-check` | **0 violations** |
+| the MODEL, unmoved | `timed_gate.py --suite tests/v30/v0.1 --forms all` | **169,000/169,000, row-diffs 0** |
+| **G3** | `check_core.py --core ucore --opcodes all --cases 0` | **164,787 / 169,000 — NOT MET** |
+
+G3 stated honestly, both numbers, as §29.2 requires: at w0 the sim carries
+NO registered residue against silicon (`timed_gate.py` reports
+169,000/169,000 arch, 169,000/169,000 window, row-diffs 0), so the two
+numbers coincide — **164,787 / 169,000 (97.51 %)** through the golden
+comparator, and the same figure minus the (empty) w0 residue.  Excluding
+the 12 forms that are unimplemented by design, **164,787 / 166,600 =
+98.91 %** of what the RTL is currently built to do.
+
+## §35 WHAT IS LEFT — 21 RED FORMS, 4,213 CASES
+
+Enumerated by MECHANISM this time, not by first divergence.
+
+| group | forms | cost | reading |
+|---|---|---|---|
+| **the interrupt and HALT entries** | `INT.*` (7), `NMI.*` (2), `HLT.*` (3) | **2,400** | **UNIMPLEMENTED BY DESIGN, and the last such block.**  No interrupt entry, `eu_unhalt` tied 0, no `intr_pending` writer, the POLL pipeline is the static level only.  A RUNG — see §35.1 |
+| **strings / ENTER** | `C8` `F3A4` `F3A5` `F3AA` `F3AB` `F2AA` | **1,601** | TWO signatures, and they may be one mechanism: (a) the final `F` pop is LATE because the RTL's `pend_active` is still set at the `E` row (`F3AA idx 2`: golden pops at row 24, RTL at 27, and the window is 3 clocks long); (b) the store DATA is wrong on the middle iterations (`F3A4 idx 1` row 14 `exp 37032 got 0`).  Both live in the every-iteration staging/pairing chain F20 opened |
+| **the 1BL status nibble** | `FA` `FB` | 112 | the ONLY divergence is the IE bit of the status nibble on row 1 — `FA` (DI) shows the golden's IE already LOW where the RTL still has it high, `FB` (EI) the mirror.  18/200 and 28/200: the LATE-QUEUE cases of the 1BL execute strobe (`S_1BL_LEAD` / `q_ripe_lead_n`) against the display clock the nibble is sampled on |
+| **`POLL.LO`** | `POLL.LO` | 100 | `qop` at row 3.  `9B`'s `JMP INTR` at `006F` needs the POLL pin pipeline, so it belongs with the interrupt rung |
+
+### §35.1 THE INTERRUPT RUNG — what it is, and the ONE question to settle first
+
+The BIU has carried M14/M15/M18 (INTA) and M16/M17/M20/M21 (HALT) since U1
+and they have never fired; `row_is_inta`, `BS_INTA`, `eu_halt`/`eu_unhalt`
+and the `poll_pipe` shift register are all already in the EU.  What is
+missing is the RECOGNITION and the ENTRY:
+
+1. `CpuT::interrupt()` — the hardware micro-PC force to page 7 opcode 0x00
+   (loc 0 = BRK, loc 2 = NMI) or 0x02 (INT), with the loader bypassed and
+   every latch it would have written presented explicitly (`xop` MUST be
+   cleared — ledger A24 — and `op8`/`imm8`/`bus_word` false, or the vector
+   arithmetic at 01EC truncates `2*vector`).
+2. `bus_inta` — an ordinary read that carries NO address and NO segment and
+   must not go through `sr_segment()` / `sr_is_io()`.
+3. `eu_unhalt` and the wake.
+4. `intr_pending`'s writer, which is also what `POLL.LO` and the REP
+   withdrawal (`0223 JMP INTR`) read.
+
+**Settle this before writing any of it.**  `sim/timed_runner.cpp` states the
+firing geometry as MEASURED on all 800 running INT/NMI goldens —
+
+>  `D = max(B, A + pipe)`, pipe = 3 (INT level) / 4 (NMI edge latch),
+>  entry = `D + 2`, and at the boundary the successor's opcode pop is RUN
+>  BUT SUPPRESSED
+
+— where `A` is the pin assert clock and `B` the boundary's would-pop clock.
+But **the sim does not PREDICT `B`: it REPLAYS it**, from the golden's own
+pushed frame (`derive_replay`, `set_fire_pc`).  The frozen FSM core *does*
+predict it from the pins alone and is 169,000/169,000, so the geometry is
+predictable — but its recognition block is a large fitted machine (`int_p`,
+`nmi_p`/`nmi_latch`, `shadow`, `ie_p`, the POP-PSW boundary-race law, the
+IRET arm, a deeper REP sampling stage), which is precisely the shape the
+SIMPLICITY principle says to distrust.
+
+So the question the rung opens with is: **what holds the boundary when the
+pin has not asserted by `B`?**  `max(B, A + pipe)` says the part waits; no
+hardware term has yet been named that could make it wait.  Either the max
+is an artefact of the replay driver (and the RTL must not copy it), or
+there is a mechanism nobody has written down.  The census that decides it
+is the one `timed_runner.cpp` already describes — every `(A, B)` cell of
+`INT.90` / `INT.B8` / `NMI.90` / `NMI.B8`, 16 + 23 + 12 + 20 distinct
+cells — re-scored against the RTL rather than against the model.
+Do that census FIRST; do not fit.
+
+### §35.2 Residue booked, not patched
+
+* **The BIU's `opr_held` increment may still carry an off-by-one.**  The
+  model holds unless `r == &cur_ && run_ && ci_ > 1`, i.e. it DOES hold at
+  `ci_ ∈ {0,1}` = T1 **and T2**; `v30u_biu.sv`'s pairing block increments
+  the running cycle's hold only `if (ts == TS_T1)`.  Now that F31 has made
+  everything depend on that counter this matters, and no current stimulus
+  reaches it (G3 is unchanged either way, and all five push forms are
+  500/500).  Registered, with the falsifier: any pairing that lands on a
+  running write cycle's T2.
+* **The ucore save-state sweep does not pass** (`--ss-sweep` aborts at
+  `v30u_biu.sv:1372` `$stop`).  Pre-existing, and `sw/ss_lint.py --core
+  ucore` is U3's deliverable per §3/§13; the map changes this pass made
+  (three appends, one retirement) are therefore unverified by any sweep and
+  are asserted only by the exactly-twice grep.
+
