@@ -2656,3 +2656,237 @@ negative results kept in the ledger with the same weight as the positive ones.
    count changed — and a v1 stream restores it as 0, which is the value
    `begin_sequence()` writes anyway.  The next field that needs its own address
    is the one that bumps it.
+
+---
+
+# STAGE U3 — the wait/event axes, the whole-program ladder, and the platform
+
+## §43 THE HLT-SWEEP TRIAGE — §42.6's ONE GAP, ANSWERED
+
+§42.6 item 2 handed U3 the only place the ucore stood below the model: the four
+HLT delay sweeps at **88/97, 86/95, 35/46, 32/45**, *"never triaged"*.  It is
+now triaged, to **two mechanisms and nothing else** — the whole residue, all 34
+cells, falls into exactly two first-divergence columns with no third and no
+catch-all.
+
+### §43.0 FIRST, THE RATCHET ITSELF WAS WRONG — AND IT WAS WRONG THE CHEAP WAY
+
+§42.6 compared against `CLAUDE.md`'s quick reference (91/97, **92/95**, **42/46**,
+**40/45**) and computed the gap as 3+6+7+8 = 24 cells.  **Those are the
+pre-§26.7.6 figures.**  Re-measuring the model leg from scratch on this tree:
+
+```
+timed_gate.py --suite tests/v30/s10-hltsweep-w{0,1} --forms all --waits {0,1}
+timed_gate.py --suite tests/v30/s13-hltsweep-w{2,3} --forms all --waits {2,3}
+    ->  91/97,  95/95,  44/46,  42/45
+```
+
+which is what `ucsim_t_provenance.md` §26.11's own delta row says, and the quick
+reference had simply never been updated when the S15 cleanup copied it forward.
+The real gap is therefore **31 cells, not 24**.  Corrected in `CLAUDE.md` (with
+the staleness recorded in place, not silently overwritten) and routed to the
+model's own ledger as `ucsim_t_provenance.md` §27.2.
+
+*Method note, because it is the transferable part:* the gap was computed from a
+PER-CASE pass/fail list on both legs, not from the two totals.  The totals hide
+that the two engines fail **different cases** — and in particular they hide
+that the ucore was already beating the model on six of them.
+
+### §43.1 THE CENSUS IS A BAND, AND THE BAND MOVES WITH THE WAIT LEVEL
+
+Per-case, both legs, all four sweeps.  The sweep coordinate is the pin delay
+`d` (`HLT.RES` idx = `d`; `HLT.INT` idx = `d - 1`).
+
+| sweep | MODEL fails | uCORE fails (entry) |
+|---|---|---|
+| `w0` `HLT.INT` | idx 1,2,3,4 | idx 2,3,4,5,6 |
+| `w0` `HLT.RES` | idx 2,3 | idx 2,3,5,6 |
+| `w1` `HLT.INT` | — | idx 7,8,9,10,11 |
+| `w1` `HLT.RES` | — | idx 7,9,10,11 |
+| `w2` `HLT.INT` | idx 6,7 | idx 9,10,11,12,13,14 |
+| `w2` `HLT.RES` | — | idx 9,11,12,13,14 |
+| `w3` `HLT.INT` | idx 7,8,9 | idx 11,12,13,14,15,16,17 |
+| `w3` `HLT.RES` | — | idx 11,13,...,17 |
+
+The ucore's failures are a **contiguous band with exactly one hole**, and the
+hole is `d*` — §23.3's threshold-1 delay coordinate (4 at w0, 8 at w1, and 10 /
+12 at w2 / w3).  Below the band the wake beats the display cleanly; above it
+the part is properly halted and `D = max(A + 4, H + 3)` is in its linear
+`A + 4` regime.  The band is the threshold-1 neighbourhood, exactly where
+§23.4 booked the model's own residue — the ucore's was simply WIDER.
+
+### F41 — M21 WAS RENDERED FOR THE STATUS AND NOT FOR THE PADS
+
+**Class: RTL BUG (a mechanism rendered half).  LANDED: +8 cells,
+88/86/35/32 -> 90/88/37/34, and G3 unmoved at 169,000/169,000.**
+
+M21, verbatim (§23.4): *"the HALT pseudo-cycle holds the bus only until its
+STATUS RELEASE (20.5's index-1 eval).  From the release on, every clock is an
+ordinary IDLE eval, exactly as when the bus is parked."*
+
+`v30u_biu.sv` had that term on the status and nowhere else:
+
+```
+assign bs     = display ? r_cmt_bs : (r_run && !st_rel) ? r_cur_bs : BS_PASV;
+wire   halt_pin = (display && r_cmt_halt) || (r_run && r_cur_halt);
+```
+
+`halt_pin` forces `ad_o = {4'h0, r_last_fetch_addr}` and explicitly gates
+`ad_oe_addr` off (`&& !halt_pin`).  So a woken fetch whose DISPLAY landed
+inside the HALT pseudo-cycle's own T2..T4 — which is the entire band — had its
+address one-shot suppressed and published the HALT's retained
+`last_fetch_addr` instead.  The status was right; the pads were a clock-count
+behind a mechanism that had already been stated.
+
+The fix is the SAME TERM, not a new one:
+
+```
+wire halt_pin = (display && r_cmt_halt) || (r_run && r_cur_halt && !st_rel);
+```
+
+MEASURED, `HLT.RES` w0 `idx 6`: golden row 7 `9ad8c`, RTL `0ad8c` before,
+`9ad8c` after.  Every case whose woken display lands on a clock the comparator
+can SEE the pads on (T4 / Ti / T1) closed — two per sweep, eight in all — and
+no case anywhere else moved.
+
+*Falsifier*: any HALT pseudo-cycle that drives its retained address past its own
+status release, or any woken display inside one that does not publish.
+
+### F42 — THE REMAINING `seg` FAMILY IS AN INSTRUMENT CEILING: THE uCORE IS RIGHT ON THE PINS AND THE TB CANNOT SEE IT
+
+**Class: INSTRUMENT (comparator asymmetry).  23 of the 29 ucore-only cells.
+NOT an RTL fault, and therefore NOT patched.**
+
+After F41 the residue splits into exactly two first-divergence columns:
+
+| family | cells | of which the model ALSO fails |
+|---|---|---|
+| `seg` (with `bus` / `data`) | 24 | 1 |
+| `busstat` | 10 | 4 |
+
+The `seg` family is every case whose woken display lands on a clock the TB's
+T-state tracker calls **T2 or T3**.  `hdl/tb/tb_v30_core.sv` does not read the
+core's pins directly: it composes the observed AD from a **protocol-inferred
+drive mask** with float retention —
+
+```
+com_phase    = bs_active && (tb_t == ST_T4 || tb_t == ST_TI);
+drive_hi_a   = (com_phase && BS != PASV) || (tb_t == ST_T1 && lat_type != PASV);
+cycle_live   = tb_t != ST_TI && lat_type != BS_PASV && lat_type != 3'b011;  // 011 = HALT
+core_ps_drive= cycle_live && (tb_t inside {T2,T3,TW,T4});
+eff_hi       = (drive_hi_a || core_ps_drive) ? AD[19:16] : hold[19:16];
+```
+
+`lat_type` is the LATCHED status of the cycle in progress, and for a HALT
+pseudo-cycle that is `HALT` — which `cycle_live` excludes — so for the whole
+duration of a HALT-typed cycle the composer substitutes `hold` for the pads at
+T2/T3 **whatever the core drives**.  The GOLDEN has no such mask: it is a raw
+silicon pin capture.  And the MODEL has no such mask either: `sim/rows.cpp`
+writes `r.ad_addr` directly.  The mask exists on exactly one of the three legs.
+
+**PROVED, not inferred.**  A `+padtrace` line was added to `v30u_biu.sv`
+(guarded `ifndef SYNTHESIS`, gated on the plusarg, one row per clock naming the
+three pad enables and the value on `ad_o` — the pad-drive counterpart of the
+`u` line's eval terms).  It says the core is right:
+
+```
+HLT.RES w0 idx 5, the divergent row (TB tstate T3):
+  P 13 ad=9ad8c oe_addr=1 oe_ps=0 oe_data=0 disp=1 strel=1 haltpin=0 curhalt=1 bs=4
+  golden row 6:  9ad8c  SS  ad8c  CODE T3      <- IDENTICAL
+  TB `r` row 6:  2ad8a  CS  ad8a  CODE T3      <- the composer's `hold`
+
+HLT.RES w2 idx 11, the divergent row (TB tstate T3):
+  P 19 ad=9ad8c oe_addr=1 oe_ps=0 oe_data=0 disp=1 strel=1 haltpin=0 curhalt=1 bs=4
+  golden row 9:  9ad8c  SS  ad8c  CODE T3      <- IDENTICAL
+```
+
+Two forms, two wait levels: the ucore drives the golden's address, with the
+address enable asserted, on the golden's own clock, and the comparator reports
+the retained value.  **The cells are unreachable through this TB, not wrong in
+this core.**
+
+GOVERNANCE.  This is risk #4 of the campaign plan (*"multiplexed-pad float →
+ledger open item 1, not patches"*) arriving from the instrument side, and it is
+booked, not fixed, for a stated reason: `tb_v30_core.sv` is SHARED with the
+frozen FSM core and with every standing RTL ratchet in `CLAUDE.md`.  Re-latching
+`lat_type` at a display so the pads become visible after a status release is a
+one-term change with a plausible shape, but it would move the FSM core's scores
+too, so it needs its own pre-registered before/after on both cores and it is
+not U3's to make on the way past.  **Recorded as U3 open item 1.**
+
+*Falsifier*: a `+padtrace` row inside the band where `oe_addr` is low, or where
+`ad_o` differs from the golden's captured address at the display clock.
+
+### F43 — M20's CANCELLATION IS ONE EDGE LATE, BECAUSE THE ucore's HALT DISPLAY IS REGISTERED
+
+**Class: RTL, DIAGNOSED AND BOOKED — 6 of the 29 ucore-only cells, exactly one
+per form per wait level at w1/w2/w3.  Not fitted, not patched.**
+
+M20 (§23.4): *"`halt_pending_` is the HLT row's write WAITING for the status
+register.  A wake decided before that write happens takes the part out of HALT
+and the write never happens."*  Threshold 1: **the HALT status is driven iff
+`A - H >= -2`**, i.e. *the HALT displays unless the wake is already visible to
+the microcode on or before the display clock.*
+
+MEASURED, `HLT.RES` w1 `idx 7`: the golden never drives HALT at all — rows 5
+and 6 are `PASV`, `PASV`, then the woken `CODE` — and the ucore drives `HALT`
+at row 5 and stands its T1 at row 6.  The wake beat the display on silicon and
+did not in the ucore, by ONE CLOCK.
+
+The reason is the register boundary, and it is F35's seam one step further on:
+
+* the MODEL's display block sits at the **top of `tick(c)`** and both decides
+  and displays on clock `c` (`if (halt_pending_ && !run_ && !cmt_valid_ ...)
+  { cmt_ = halt_acc_; }`), so `unhalt()` called before `tick(c)` cancels it;
+* the ucore's display is **REGISTERED**: the same test runs at the end of the
+  edge ending clock `c-1`, sets `cmt_*`, and `display = r_cmt_valid && !ann_kill`
+  shows it at `c`.  `eu_unhalt` clears `halt_pending` in block (a) at the top of
+  edge `c` — one edge too late to un-decide a display already committed.
+
+So the cancellation must be evaluated against the display's **DECISION EDGE**,
+not against its display clock.  That is F40's shape exactly — *"both taps are
+`edge - 4`; what changed is the REFERENCE EDGE"* — and it is one rendering
+decision, not a search: the wake itself must stay at `D = A + 3` (it is at
+100 % on all four `evt` cells and on the whole out-of-band sweep), so the
+cancellation needs its own one-clock-earlier view of the same pin pipeline
+rather than a moved tap.
+
+**NOT LANDED, for a stated reason.**  It touches the eval instant — the spine of
+the whole BIU — while `check_core --core ucore --opcodes all --cases 0` is at
+169,000/169,000 and four whole-program ladders were being scored against this
+binary.  It is handed to U4 with its mechanism named and its falsifier written,
+which is the same way §40 handed pass 6 its two forms.  **Recorded as U3 open
+item 2.**
+
+*Falsifier*: any sweep cell where the golden drives the HALT status although the
+wake was visible to the microcode on or before the display's DECISION edge; or
+any cell that needs the cancellation at the display clock rather than one edge
+earlier.
+
+### §43.2 THE SCOREBOARD, AND THE SIX CELLS WHERE THE ucore BEATS THE MODEL
+
+| sweep | model | ucore, entry | ucore, after F41 | delta |
+|---|---|---|---|---|
+| `s10-hltsweep-w0` | 91/97 | 88/97 | **90/97** | −1 |
+| `s10-hltsweep-w1` | 95/95 | 86/95 | **88/95** | −7 |
+| `s13-hltsweep-w2` | 44/46 | 35/46 | **37/46** | −7 |
+| `s13-hltsweep-w3` | 42/45 | 32/45 | **34/45** | −8 |
+| **total** | **272/283** | 241/283 | **249/283** | **−23** |
+
+Read case by case rather than by the totals, the −23 is **29 cells the ucore
+misses that the model does not, minus SIX the model misses that the ucore does
+not**: `s10-hltsweep-w0` `HLT.INT` idx 1, `s13-hltsweep-w2` `HLT.INT` idx 6, 7
+and `s13-hltsweep-w3` `HLT.INT` idx 7, 8, 9.  All six carry the model's
+`bus`/`data`/`ube` signature — §26.7.7's withdrawn-announcement pad retention —
+and the ucore reproduces the golden on all of them.
+
+Per the campaign's governance that is a **ucore-BEATS-sim event**, governed on
+F39's precedent: the sweeps are scored against SILICON captures, the model
+carries a registered residue there that it does not claim to close, and the
+ucore's rendering is the one the capture agrees with.  It is a MEASUREMENT
+routed to the model's ledger (`ucsim_t_provenance.md` §27.2), not a claim that
+the model is broken, and nothing in `sim/` was changed for it.
+
+And the −23 that remains is now **23 instrument-ceiling cells (F42) + 6 cells of
+one named, diagnosed rendering (F43)** — with no unexplained residue at all,
+which is the state §23.4 asked for and did not have.

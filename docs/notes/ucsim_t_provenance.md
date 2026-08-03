@@ -9369,3 +9369,129 @@ ledger states a measurement and does not adjudicate their card.
 | victory tranche V0-V5 | V0-V4 PASS, V5 registered FAILURE | **UNTOUCHED — 154/188, V5 remains a registered FAILURE.**  Its 34 misses are now classified (§26.6.1) |
 | functional corpus | 7,341,126 | unchanged, re-run in full |
 | v0.1-w1 / -w3 / `EB` / the five evt tranches | 1,200 / 1,200 / 200 / 200-1,200-1,200-200-1,200 | unchanged, all of them |
+
+---
+
+## 27. POST-CLOSURE ADDENDUM #12 — TWO CORRECTIONS ROUTED IN FROM THE `ucore` RTL CAMPAIGN (2026-08-03)
+
+This addendum is written by the **`ucore`** campaign (stage U3), not by a
+`ucsim-t` session.  It carries back the two things the RTL twin found out about
+*this* ledger and *this* model.  Nothing in `sim/` was changed by it; both items
+are booked with their evidence, their falsifier and their fix shape, exactly as
+§26.10 requires of a routed finding.
+
+The governing rule is the RTL campaign's own (plan, "Governing statement"):
+**RTL-vs-sim divergence is a bug; an RTL-vs-SILICON divergence the sim does not
+share is a ledger finding, never a local patch.**  Item 27.1 is the mirror
+image of that — a SIM-vs-silicon divergence the RTL does *not* share — and it
+belongs here rather than in the RTL ledger.
+
+### 27.1 THE MODEL COMMITS FLAGS AT THE ROW; THE CHIP COMMITS AT THE READ'S DATA EDGE
+
+**Class: SIM ERRATUM (sim-vs-silicon).  Moves no gate today, and that is why it
+must be written down rather than remembered.**
+
+`docs/facts/interrupt_model.md`, verbatim: *"POP PSW consumes the popped image
+at its read's data edge (the new IE shows in the PS bits during the read's own
+T4)."*
+
+`sim/exec_impl.h` does not render that.  `wr_dst1`'s FLAGS arm (`case 15:
+m_.set_flags(v)`) runs when the micro-row RETIRES, i.e. after the row's `F`
+interlock releases — three clocks later than the chip.  The rendering the chip
+has is a general one and names no opcode: **a micro-row's destination
+write-enable is a LEVEL for as long as the row STANDS**, so a destination fed
+from the read latch takes the word the instant the latch closes, not when the
+row finally releases.  For every other destination that is invisible — nothing
+runs between the row's arrival and its release — but FLAGS is wired to the
+outside world twice over (S5 on the status pins, and the IE gate of the
+recognition pipeline), so there the early load SHOWS.
+
+**THE RULE HITS EXACTLY TWO ROM ROWS.**  Re-derived here from the ROM itself
+(`v30sim disasm docs/V20BITS.TXT`), not quoted: rows carrying source `OPR`,
+destination `FLAGS` **and** the `F` interlock are
+
+```
+007A OPR    -> FLAGS                     F E  CTL      (POP PSW)
+01EA OPR    -> FLAGS                     F E  CTL      (RETI)
+```
+
+and nothing else.  Five other rows write FLAGS (`007E`, `01D1`, `027C`, `027F`,
+`03F2`) and not one of them takes `OPR` through an `F`.  That is the SAME pair
+E1 measured on silicon (*"µ01EA's flag commit obeys the SAME race table as POP
+PSW's µ007A"*, 108/108 H-IDENTICAL), reached from the ROM instead of from the
+board.
+
+**THE EVIDENCE IS THE RTL TWIN.**  `docs/notes/ucore_provenance.md` §42 / F39
+built the chip's rendering (the BIU publishes `eu_rd_edge`, the T3/Tw -> T4
+advance, and the EU takes it in block (a) after `ie_now` is frozen) and it
+closed `INT.9D` 111 -> 200 against the GOLDENS.  Two independent corroborations
+came with it:
+
+* the recognition follows: `ie_p[2]` is IE at c-3, the boundary stands on
+  golden row 13, so IE has to be up by row 10 — which the T3->T4 write gives
+  and the row's own release (edge 10) does not;
+* **a column both gates MASK came out right by itself.**  `check_core` compares
+  col 1 only on driven rows, so the T4 PS nibble is scored by neither gate —
+  yet the RTL reproduces `INT.9D idx 1`'s golden `5fad2` on row 9 bit for bit,
+  where the model holds `1` until row 12.  `ulockstep --golden`'s UNMASKED view
+  is where this shows: it is the one real, non-retention model-vs-RTL
+  difference in the whole 347-form corpus (§42.6 item 4).
+
+**WHY IT MOVES NO NUMBER, STATED HONESTLY.**  `BiuTimed::data_ps()` reads
+`psw_` LIVE, and both comparators mask that column, so the model is at
+169,000/169,000 with the erratum in place and correcting it would move only a
+masked column.  The model also has **no IE pipeline and no pin tap at all**
+(`sim/pin_replay.h` replays the firing boundary out of the golden's own pushed
+frame), so the recognition consequence cannot bite it either.  This is a latent
+correctness gap, not a scoring gap — the D1 shape.
+
+**THE FIX SHAPE**, for whoever next opens `biu_timed`: a one-line change to
+`wr_dst1`'s FLAGS arm plus the `F` wait's ordering, so the FLAGS destination
+takes the word at the read's data edge instead of at the row's release.  It is
+NOT to be taken as part of a scoring change; it needs its own before/after on
+`ulockstep --golden`'s unmasked view, which is the only instrument that sees
+it.
+
+*Falsifier*: any `OPR -> FLAGS` row whose flag write is NOT visible at its
+read's T4, or any third ROM row acquiring that source/destination pair.
+
+### 27.2 THE QUICK REFERENCE'S HLT SWEEP FIGURES WERE STALE — CORRECTED UPWARD
+
+`CLAUDE.md`'s gate quick reference carried the four HLT delay sweeps as
+**91/97, 92/95, 42/46, 40/45**.  Three of those four are the PRE-§26.7.6
+figures.  §26.11's own delta row in this document records the corrected set —
+
+| | after §25 | after §26 |
+|---|---|---|
+| the four HLT sweeps | 91/97, 92/95, 42/46, 40/45 | **91/97, 95/95, 44/46, 42/45** |
+
+— and the quick reference was never updated to match when the S15 cleanup
+copied it forward.  Re-measured from scratch on this tree (`timed_gate.py
+--suite tests/v30/s10-hltsweep-w{0,1}` / `s13-hltsweep-w{2,3}`, `--forms all`,
+`--waits {0,1,2,3}`): **91/97, 95/95, 44/46, 42/45**, i.e. §26.11 is right and
+the quick reference was wrong.  `CLAUDE.md` is corrected, with the staleness
+recorded in place rather than silently overwritten.
+
+The failing cells are enumerated for the first time here, because the `ucore`
+triage needed them and a total hides them:
+
+| sweep | model FAILS at | delay coordinate |
+|---|---|---|
+| `s10-hltsweep-w0` `HLT.INT` | idx 1, 2, 3, 4 | `d` = 2..5 |
+| `s10-hltsweep-w0` `HLT.RES` | idx 2, 3 | `d` = 2, 3 |
+| `s10-hltsweep-w1` | — | none |
+| `s13-hltsweep-w2` `HLT.INT` | idx 6, 7 | `d` = 10, 11 |
+| `s13-hltsweep-w3` `HLT.INT` | idx 7, 8, 9 | `d` = 12, 13, 14 |
+
+All eleven are inside §23.4's registered residue band — the four-clock
+neighbourhood of threshold 1 (`A - H ∈ {-4,-3,-2,-1}`) — and the w2/w3 ones
+carry only `bus`/`data`/`ube`, which is §26.7.7's withdrawn-announcement pad
+retention.  **No offset is fitted to them and none is claimed**, unchanged from
+§23.4.
+
+**AND THE RTL BEATS THE MODEL ON SIX OF THEM.**  The `ucore` is cycle-exact on
+`s13-hltsweep-w2` `HLT.INT` idx 6, 7 and `s13-hltsweep-w3` `HLT.INT` idx 7, 8,
+9, and on `s10-hltsweep-w0` `HLT.INT` idx 1 — six cells where the model is not.
+That is recorded here as a MEASUREMENT, not as a claim about which rendering is
+right; the RTL's own residue on these sweeps is larger than the model's overall
+and is triaged in `ucore_provenance.md` §43.

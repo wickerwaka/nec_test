@@ -63,8 +63,11 @@ ratchets: monotone, never re-scored downward without a loud, itemized entry.)
   `--no-mirror` reproduces the historical 168,997), `v0.1-w1` / `-w3`
   1,200/1,200, `v0.1-w1 --forms EB` 200/200, the four `v0.1-w*evt` cells
   200 / 1,200 / 200 / 1,200, `v0.1-w1evt-biased` 1,200/1,200 (preserved),
-  and the four HLT delay sweeps `s10-hltsweep-w{0,1}` **91/97**, **92/95**
-  and `s13-hltsweep-w{2,3}` **42/46**, **40/45**.
+  and the four HLT delay sweeps `s10-hltsweep-w{0,1}` **91/97**, **95/95**
+  and `s13-hltsweep-w{2,3}` **44/46**, **42/45**.  (These were STALE here at
+  92/95, 42/46, 40/45 — the pre-§26.7.6 figures — from the S15 cleanup until
+  ucore U3 re-measured the model leg and found the quick reference disagreeing
+  with `ucsim_t_provenance.md` §26.11's own delta row.  Corrected UPWARD.)
 - **Timed, whole-program**: `sw/check_boot.py --timed 220`,
   `sw/timed_scenario.py` (18/0/9), `sw/timed_enter_replay.py` (154/154 x5),
   `sw/timed_ins_replay.py --raw` (rails 1312/1312, vs-chip 2624/2624),

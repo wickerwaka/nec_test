@@ -527,7 +527,13 @@ assign ss_bus_quiet = !r_run && !r_cmt_valid && (r_rq_n == 2'd0) && !r_halt_pend
 //----------------------------------------------------------------------------
 wire disp_inta = display && r_cmt_noaddr;
 wire cur_inta  = r_run && (r_ts == TS_T1) && r_cur_noaddr;
-wire halt_pin  = (display && r_cmt_halt) || (r_run && r_cur_halt);
+// M21, THE PAD HALF.  "The HALT pseudo-cycle holds the bus only until its
+// STATUS RELEASE; from the release on every clock is an ordinary idle eval."
+// That was rendered for the STATUS (`bs`, below, is already `!st_rel`) and NOT
+// for the PADS, so a woken fetch whose DISPLAY lands inside the HALT's own
+// T2..T4 had its address one-shot suppressed by `halt_pin` and published the
+// HALT's retained `last_fetch_addr` instead.  One term, the same term.
+wire halt_pin  = (display && r_cmt_halt) || (r_run && r_cur_halt && !st_rel);
 
 assign bs = display        ? r_cmt_bs
           : (r_run && !st_rel) ? r_cur_bs
@@ -1652,6 +1658,33 @@ always @(posedge clk) begin
                      rq_n);
             /* verilator lint_on WIDTHEXPAND */
         utrace_clk <= utrace_clk + 1;
+    end
+end
+
+//----------------------------------------------------------------------------
+// `+padtrace` -- THE PAD-DRIVE ATTRIBUTION.  The TB composes the observed AD
+// from a PROTOCOL-INFERRED drive mask (float retention), so what the module
+// actually drives on a clock the protocol calls "inside a HALT cycle" is not
+// visible in the `r` stream at all.  The HLT-sweep residue is exactly that
+// question, so the terms get their own line: one row per clock naming the
+// three pad enables and the value on `ad_o`, next to the `u` line's eval
+// terms.  Guarded out of synthesis and gated on the plusarg.
+//----------------------------------------------------------------------------
+logic padtrace_en;
+integer padtrace_clk;
+initial begin
+    padtrace_en = $test$plusargs("padtrace");
+    padtrace_clk = 0;
+end
+always @(posedge clk) begin
+    if (srst) padtrace_clk <= 0;
+    else if (ce) begin
+        if (padtrace_en)
+            $display("P %0d ad=%05x oe_addr=%0d oe_ps=%0d oe_data=%0d disp=%0d strel=%0d haltpin=%0d curhalt=%0d ts=%0d bs=%0d cmtaddr=%05x",
+                     padtrace_clk, ad_o, ad_oe_addr, ad_oe_ps, ad_oe_data,
+                     display, st_rel, halt_pin, r_cur_halt, r_ts, bs,
+                     r_cmt_addr);
+        padtrace_clk <= padtrace_clk + 1;
     end
 end
 `endif
