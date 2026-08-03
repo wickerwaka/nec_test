@@ -762,3 +762,73 @@ gate are unchanged or better.
 inside the same 907 — a fact §10.7's table did not report because it tabulated
 only the three STOS-family forms at `cx = 1`.  The total (907) was always
 right; its decomposition in §10.7 was not.  Both bands are now exact.
+
+---
+
+# ADDENDUM — the post-closure trajectory, 2026-08-03
+
+*Appended, not edited: nothing in §(a)-§(g) or in the R1 addendum above is
+changed. Ten post-closure addenda have run since this document was registered
+(ledger §16-§25). Every number below cites the ledger section it was measured
+in.*
+
+## Where the registered bars stand today
+
+| bar, as registered in §(a) | at closure | **today** | § |
+|---|---|---|---|
+| **v0.1 cycle rows at w0** | 165,490 / 166,400 (99.45 % of reachable) | **168,997 / 169,000** — the 2,600-case pin-event exclusion **S9 no longer exists**, so the denominator is the whole suite | 16, **19**, 24.12, 25.7 |
+| ...and its remaining cases | 12 tails, carried as an open BIU question | **3**, and **RE-CATEGORISED**: zero `tstate`, zero `busstat` — an EMISSION/HARNESS residue, not a model residue | 10.6, 24.11 |
+| v0.1-w1 / -w3 | 2,400 / 2,400 | 2,400 / 2,400 | 25.7 |
+| **the four `v0.1-w*evt` cells** | did not exist | **200 / 1,200 / 200 / 1,200** | 22.9, 24.7 |
+| **whole-program, COMBINED** | 947 / 1,702 banked only | **1,980 / 2,710** (REGISTERED 1,272/1,702, EVT-unlocked 708/1,008) | 20.8, 24.12, 25.7 |
+| wvec vs SILICON, per-cycle digest | 63 / 88 | **88 / 88** (count 88/88, cycles +0.0 %) | 17, 18 |
+| law cards | 7 GREEN / 0 RED / 4 UNRESOLVED | **8 GREEN / 0 RED / 3 UNRESOLVED** — C2 closed on its own silicon and re-runnable board-free | 24.9 |
+| INS `case250` vs chip | 2,624 / 2,624 | unchanged | 25.7 |
+| boot / ENTER / scenario | 220 rows; 154/154 ×5; 18-0-9 | unchanged | 25.7 |
+| **THE VICTORY TRANCHE (V5)** | **FAILED**, 117 / 188 | **STILL FAILED**, re-scored **154 / 188** on the same frozen tranche. V5's clause demanded whole-program exactness; 34 seeds still miss. **The registered verdict does not change.** | 24.12, 25.7 |
+| functional corpus | 7,341,126 | unchanged, re-run in full before every commit | 25.7 |
+
+## The mechanism ledger
+
+*(Numbering below is the PROVENANCE LEDGER's, which §(b)'s table above does not
+share — §(b) renumbered the closure set for this document and stops there.)*
+
+**Ledger M1-M9 at closure (§15) → M1-M13 by addendum #3 (§18) → M1-M22 today**,
+plus M2r and M5b throughout: +M10/M11 (§16), +M12 (§17), +M13 (§18),
++M14/M15/M16 (§19), +M17 (§20), +M18 (§21), +M19 (§22), +M20/M21 (§23),
+**+M22 (§25)**. Two numbered mechanisms have been **retracted** across the whole
+campaign — M3b (§8.4) and M3c (§9.1) — alongside §(b)'s four retracted fitted
+constructs; and three post-closure READINGS were withdrawn before landing: the
+post-write turnaround (§18), the acknowledge-gap hypothesis for the 44 waited
+`ACK` seeds (§22.5), and the `d*` series as a 2-clock grid slot (§25.5).
+§24.15's three "silicon in hand" mechanisms are all closed in §25; group A of
+the open surface is now empty.
+
+## What the rig gave back
+
+Three instrument findings, each caught by the ledger's own discipline rather
+than by a gate:
+
+* **the STICKY CLOCK DIVIDER** (§21.1) — a rig-integrity hazard in the emission
+  path; two readings retracted, fixes made in §22.6 and **actually exercised for
+  the first time in §24.12** (`div_readback` said PINNED on every S13 probe);
+* **`parse_result`'s PSW** (§23.1) — read from the wrong pass of the capture;
+  it was never a chip question, and it is why `HLT.INT` at w1 produced 0 of 49
+  goldens;
+* **the BIASED `v0.1-w1evt` TRANCHE** (§23.1) — 706 draws rejected for a reason
+  with no physics in it, selecting the sample on program length. Re-emitted
+  unbiased in §24.7: **0 such rerolls, and the model still scores 1,200/1,200**,
+  so §22's headline survives the removal of its own selection effect. The old
+  tranche is preserved by rename and also scores 1,200/1,200.
+
+## The honest shape of it
+
+The w0 number moved by **+3,507**, and only **+907** of that is a mechanism —
+R1's REP re-entry (§16). The other **+2,600** is the pin-event forms becoming
+PRODUCIBLE at all (S9a, §19): the stimulus moved, not the model. The
+whole-program number moved because a population was **UNLOCKED** (§20), and the
+residue inside it has barely moved since — **1,950 → 1,980** across §20 to §25.
+Every mechanism landed after closure was landed on a directed cell or a census,
+and the last board session spent **5 min 43 s** of wall time against a
+45-minute budget (§24.12). **V5 is still a registered FAILURE and this addendum
+does not re-score it.**

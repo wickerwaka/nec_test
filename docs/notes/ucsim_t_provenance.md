@@ -7694,3 +7694,388 @@ taken.
 **Nothing on this list is a mechanism the model gets WRONG and knows it.**
 Items 1-3 are places where the chip is measured and the model is not yet told
 why; 4-5 are stimulus gaps; 6-9 are population numbers; 10-12 are tools.
+
+## 25. POST-CLOSURE ADDENDUM #10 — S14, THE THREE GROUP-1 MECHANISMS (2026-08-03)
+
+**This section is an ADDENDUM.  Nothing in §0-§24 is edited or retracted by
+it**, with one READING withdrawn in §25.5 (§24.8's "one slot on the 2-clock
+eval grid", which was offered as a reading and explicitly *not landed*) and one
+CORRECTION to §24.8's own residue table recorded in §25.2.
+
+§24.15 group A named three mechanisms as **open with the silicon already in
+hand**, and said of all three that they were board-free from here.  They were.
+This session takes all three: **no board contact of any kind** — no socket
+call, no `serve`, no flash, no new capture.  Every number below is read off the
+four committed HLT delay sweeps, the banked S2/S13 captures and the fuzz bank.
+
+The instruments are `sw/s14_census.py` (the woken-prefetch census, chip and
+model side by side) and `sw/s14_dstar.py` (the anchor-to-HALT pitch, chip
+only).  Both are measurement tools, not gates.
+
+### 25.0 The census that decides it — the whole band, four wait levels
+
+§24.8 measured the chip's woken-prefetch DISPLAY law (`D = max(A + 4, H + 3)`,
+228/228) and found, at the band's upper edge, three cells where *"the chip
+DISPLAYS a CODE prefetch and then WITHDRAWS it"*.  Posed against the two
+readings §22.10 item 1 offered, the discriminating quantity is not the three
+cells — it is the whole `A - H` band read against `F`, **the clock the HALT
+pseudo-cycle frees the bus** (`F = H + 5 + N`).  `sw/s14_census.py --band`,
+CHIP column only; the table lists the transition neighbourhood at each wait
+level (`HLT.RES` drives no woken CODE CYCLE and so decides nothing here):
+
+| N | `A-H` | `D` | `F` | `F - D` | the chip | the drop clock `W` |
+|---|---|---|---|---|---|---|
+| 0 | −2 | 6 | 8 | **2** | RUNS, T1 = 8 | — |
+| 0 | −1 | 6 | 8 | **2** | RUNS, T1 = 8 | — |
+| 0 | 0 | 7 | 8 | 1 | RUNS | — |
+| 1 | −2 | 8 | 11 | **3** | **DROPPED** | 11 |
+| 1 | −1 | 8 | 11 | **3** | **DROPPED** | 11 |
+| 1 | 0 | 9 | 11 | **2** | RUNS, T1 = 11 | — |
+| 2 | −2 / −1 | 9 | 13 | **4** | **DROPPED** | 12 |
+| 2 | 0 | 10 | 13 | **3** | **DROPPED** | 13 |
+| 2 | +1 | 11 | 13 | **2** | RUNS, T1 = 13 | — |
+| 3 | −2 / −1 | 10 | 15 | **5** | **DROPPED** | 14 |
+| 3 | 0 | 11 | 15 | **4** | **DROPPED** | 14 |
+| 3 | +1 | 12 | 15 | **3** | **DROPPED** | 15 |
+| 3 | +2 | 13 | 15 | **2** | RUNS, T1 = 15 | — |
+
+```
+the fetch RUNS iff  F - D <= 2 ;  it is DROPPED iff  F - D >= 3
+the drop clock      W = max(D + 3, F - 1)
+the acknowledge     display W + 1, T1 = W + 2
+```
+
+**20 `HLT.INT` band cells (5 delays x 4 wait levels), 9 dropped and 11 run,
+zero exceptions.**  And it says
+at once why **w0 has no withdrawal at any delay**: at w0 `D >= H + 3` and
+`F = H + 5`, so `F - D <= 2` is unconditional.  The 0-wait sweep is not a
+different regime — it is the same inequality, never satisfied.
+
+### 25.1 §22.10 item 1's two readings — ONE IS FALSIFIED AND THE OTHER IS NOT WHAT HAPPENS
+
+§22.10 item 1 posed the edge as *"`eval()` consumes the request at the GRANT,
+and either `susp()` or `post()` may then call `withdraw_fetch()` before the
+display clock ... without re-raising `pf_owed_`"*, i.e. **the acknowledge takes
+the fetch back**.  The alternative on the table was **M12-style preemption**:
+the request was never cancelled and the acknowledge simply wins a later eval.
+
+**Both are refuted as the CAUSE, and the cells say so in one line:** the drop
+clock `W = max(D + 3, F - 1)` contains no term that depends on the acknowledge.
+It is keyed to the fetch's OWN display and to the bus.  The model's acknowledge
+is posted at `A + 6` (§19.6's measured HALT entry, unchanged), and in **9 of the
+9 dropped cells that is 1 to 3 clocks BEFORE `W`**:
+
+| N | `A-H` | acknowledge posted `A+6` | drop `W` |
+|---|---|---|---|
+| 1 | −2 / −1 | 9 / 10 | 11 / 11 |
+| 2 | −2 / −1 / 0 | 10 / 11 / 12 | 12 / 12 / 13 |
+| 3 | −2 / −1 / 0 / +1 | 11 / 12 / 13 / 14 | 14 / 14 / 14 / 15 |
+
+The acknowledge is **already waiting** when the announcement goes.  It is not
+the agent; it is the next customer.
+
+### 25.2 M22 — AN ANNOUNCEMENT EXPIRES, AND IT IS ONE INDEX
+
+**MEASURED / LAW, labelled separately.**  What is MEASURED is §25.0's table.
+What follows is the simplest mechanism consistent with it, and it is a LAW:
+
+```
+the status register is written by the arbiter at the GRANT and lets go again at
+the announced cycle's own RELEASE INDEX, counted from the clock the register was
+LOADED.  A cycle that never OPENS a T1 never latches a wait count (M2r: "the rig
+latches this access's wait count at T1 ENTRY"), so its release falls at the
+ZERO-WAIT index -- three clocks after the display -- deferred to the running
+cycle's own T4 if that is later, because the register is not given up while a
+cycle still owns the bus.  When it lets go, the cycle it announced has either
+STARTED or it is GONE.
+```
+
+`cmt_expire_ = max(cmt_disp_ + 3, cmt_t1_ - 1)`, and the cycle runs iff its T1
+opens strictly before that clock.  For **every ordinary grant** `cmt_t1_ ==
+cmt_disp_ + 1` and the expiry is three clocks in the future, which is why
+nothing in the w0/w1/w3 corpus moves: the rule can only bite where the display
+and the T1 are separated, and M21's idle evals during a HALT pseudo-cycle are
+the only place in the whole corpus where they are.
+
+**AND `disp + 3` IS NOT A SECOND NUMBER.**  It is the zero-wait eval instant
+itself.  M2r puts the release/eval at cycle index 2 at `N = 0`, which for an
+ordinary cycle is `T1 + 2 = disp + 3` — the same clock.  The two readings
+separate only when the T1 waits, and the chip says the DISPLAY is the anchor:
+at w0 `A - H = −2` and `−1` the chip's woken fetch opens T1 at `disp + 2` and
+releases its status at `disp + 3` **= T1 + 1**, one clock earlier than the
+T1-anchored reading, and its whole acknowledge chain follows.  That is M2r's own
+sentence taken literally — at `N = 0` the rig's READY is asserted
+unconditionally (`nec_bus.sv`: `ready_q <= cfg_wait_states == 0`), so nothing
+the T1 latches can move the instant and it is the part's own countdown from the
+register load; at `N > 0` READY goes low and the wait counter, loaded at T1
+ENTRY, is what stretches the cycle, so the instant rides the T1 (`last_i`),
+unchanged.
+
+So M22 is **one index, `disp + 3`, and two consequences**: the announcement
+expires there if the bus has not taken it, and at zero waits the cycle's own
+eval instant is there too.
+
+**AND IT UNDOES THE GRANT.**  M19's request is *"consumed by the GRANT"*; an
+announcement that expires was never taken, so the fetch pointer rewinds and
+`pf_owed_` goes back to what it was.  **That is §22.10 item 1's edge, answered:
+`withdraw_fetch()` re-raises `pf_owed_` too**, for the same reason and in the
+same line — un-granting must un-consume.  It is landed on that principle and it
+is **MEASURED NEUTRAL** (§25.7: nothing in the 3,242-seed bank or the 169,000
+w0 goldens moves either way), which is exactly what §22.10 said of it: *"nothing
+in the banked corpus discriminates it."*  It still does not; what the corpus now
+discriminates is the EXPIRY, and the re-arm is the state that expiry implies.
+
+**A CORRECTION to §24.8's residue table.**  §24.8 tabulated the band residue as
+a display OFFSET (`+2` at `A-H = −2`, `+1` at `−1`) and read `A-H = −2` as *"the
+chip PREFETCHES and the model does not"*.  The first half is right and the
+second is the wrong description of the same cell: at `A-H = −2` under waits the
+chip DISPLAYS a prefetch and drops it, exactly as at `−1` and `0` — the chip's
+rows at w1 `d8` (`A-H = −2`) and `d9` (`−1`) are BYTE-IDENTICAL over their whole
+78-row window, every column, every row.  The offsets were real; the mechanism behind them was one, not two.
+
+### 25.3 M21's second half — THE HALT'S OWN EVAL APPLIES NO INDEX-2 LATCH
+
+The display law was still one clock late at `A - H = −1` and produced no
+prefetch at all at `−2`, at all four wait levels, and the reason is a latch
+belonging to a cycle that no longer exists.  M7's eligibility answer is sampled
+at cycle index 2 and applied at the completion eval.  **The HALT pseudo-cycle's
+eval sits at index 1 — before its own index 2 exists** — so it has no sample of
+its own, and applying the LAST cycle's (taken while the part was still running,
+i.e. before the HLT decode ever set `halted_`) is reading a decision about a
+machine state that is gone.
+
+M21 already says every clock AFTER the HALT's status release is an ORDINARY IDLE
+EVAL, reading the queue and `halted_` live.  This is that same sentence one
+clock earlier: **the release eval is an idle eval too.**  One line
+(`pf_arm_valid_ = !cur_.is_halt`), and with it `D = max(A + 4, H + 3)` is exact
+at every delay of all four sweeps — the model's `D` column in
+`s14_census.py --band` is now identical to the chip's in **every** cell.
+
+### 25.4 What the model now reproduces
+
+`sw/s14_census.py --band`, MODEL against CHIP, all four wait levels:
+
+```
+D   codeT1   W   iD   iT1
+    IDENTICAL, chip vs model, in ALL 40 band cells
+    (5 delays x 2 forms x 4 wait levels; 0 column mismatches)
+```
+
+The run/drop split, the drop clock, the acknowledge's display and its T1 are
+right at `N = 0, 1, 2, 3`.  What is left in those cells is **pin content on the
+display window and nothing else** (§25.6).
+
+### 25.5 THE `d*` SERIES 8, 12, 14, 16 IS TWO FETCH PITCHES — no new mechanism
+
+§24.15 item 3 carried `H − anchor = 8, 12, 14, 16` as *"a `+2` step that appears
+once at `N = 1` and never grows ... reads as one slot on the 2-clock eval grid;
+not landed"*, and asked for a `w >= 4` sweep.  **No sweep is needed and there is
+no new term.**  `sw/s14_dstar.py` prints the bus cycles between the anchor and
+the HALT display, chip only, off the banked captures:
+
+| N | anchor T1 → next CODE T1 (**the fetch pitch**) | next CODE T1 → `H` | `H − anchor` |
+|---|---|---|---|
+| 0 | **4** | 4 | **8** |
+| 1 | **6** | 6 | **12** |
+| 2 | **7** | 7 | **14** |
+| 3 | **8** | 8 | **16** |
+
+**There are exactly TWO prefetches between the trigger and the HALT, and
+`H = anchor + 2 × pitch` exactly, at all four wait levels and BOTH forms.**
+The pitch itself is M1/M2r verbatim: back-to-back cycles are `4` apart at
+`N = 0` (eval at T3, next T1 at T4+1) and `5 + N` apart at `N > 0` (eval at T4,
+display T4+1, next T1 T4+2) — the SAME `e_i = N == 0 ? 2 : 3 + N` the ledger has
+carried since §11.1.  The series' `+4, +2, +2` step is `2 ×` the one-clock move
+of the eval instant from T3 to T4 at `N = 1`, doubled because there are two
+fetches; and `d* = (H − anchor) − 4 = 2·pitch − 4`.
+
+§24.8's "one slot on the 2-clock eval grid" reading is **WITHDRAWN** — it was
+offered as a reading and explicitly not landed, and it is wrong: the step is not
+a grid slot, it is the eval instant the model already has, counted twice.
+
+### 25.6 WHAT DID NOT CLOSE — the display window's upper pins, and two w0 cells
+
+**The registered gate targets of this session were `s10-hltsweep-w0` 97/97 and
+`-w1` 95/95.  Both are MISSED and are reported as registered FAILURES.**
+Measured: **w0 90 → 91 / 97, w1 91 → 92 / 95**, w2 41 → 42 / 46, w3 39 → 40 / 45.
+What moved instead is the row residue, from **3,213 to 712 diffs** over the four
+sweeps (w0 678 → 609, w1 518 → **17**, w2 801 → **34**, w3 1216 → **52**), and
+**every timing column is gone from w1/w2/w3**: the residue there is `ube`,
+`bus`, `seg`, `data` only.
+
+Two named items are left, and neither is a timing error:
+
+1. **THE DISPLAY WINDOW'S UPPER PINS — MEASURED, MECHANISM OPEN.**  On a display
+   window longer than one clock, from the SECOND display clock on and continuing
+   through T1, the chip drives `A19-A16` with the SEGMENT STATUS (`6` = CS with
+   IE set) instead of the address nibble, and `UBE` takes the announced cycle's
+   own value instead of changing at T1.  12 cells, 3-15 row cells each.
+   *What forbids fitting it:* the ordinary corpus (168,997 w0 goldens, `bus`
+   compared on every driven row) says `A19-A16` carries the ADDRESS at T1, and
+   the one program that produces a multi-clock display window has a fetch
+   address whose top nibble collides with the SS status code — so the sweep
+   cannot separate "address" from "status" on its own first display clock.
+   **A second program with a different fetch address is the stimulus**, and it
+   is board-free: it is one more `emit_evt_case` seed.
+2. **`HLT.INT` w0 `d2` / `d3` (`A - H = −4, −3`) — 179 and 158 diffs, and
+   `HLT.RES` w0 `d2`/`d3` at 3 each.**  These are M20's regime, where the wake
+   beats the HLT row to the register and NO HALT status is driven at all; the
+   model's woken display is one clock late there and the whole tail shifts.
+   Untouched by M22 (there is no HALT pseudo-cycle to expire against) and not
+   chased.  The `A - H <= −3` band is its own question.
+   *(The w0 `A-H = −2 / −1` cells fell from 184/146 to 133/133 and remain
+   non-exact: their acknowledge PAIR is one clock late because the second
+   acknowledge's schedule is not derived from the eval instant M22 corrected.
+   Named, not fitted.)*
+
+### 25.7 Gates (measured, this machine, immediately before the commit)
+
+```
+make -C sim test                                                          # disasm gate: PASS
+python3 sw/pla3_check.py                                                  # OK (21 checks)
+python3 sw/ucsim_check.py --suite tests/v30/v0.1                          # 169000/169000
+python3 sw/ucsim_check.py --suite tests/v30/v0.2                          # 347000/347000
+python3 sw/ucsim_check.py --suite tests/v30/v0.3                          # 3699998/3699998
+python3 sw/ucsim_check.py --suite tests/v30/v20suite --no-mirror          # 3125000/3125000
+python3 sw/ucsim_check.py --suite tests/v30/mod3_illegal --residue stale-ea  # 128/128
+                                                              # functional total 7,341,126
+python3 sw/timed_gate.py --suite tests/v30/v0.1    --forms all            # 168,997 / 169,000  (17 row diffs, data 9 / bus 8)
+python3 sw/timed_gate.py --suite tests/v30/v0.1-w1 --forms all --waits 1  # 1,200/1,200
+python3 sw/timed_gate.py --suite tests/v30/v0.1-w3 --forms all --waits 3  # 1,200/1,200
+python3 sw/timed_gate.py --suite tests/v30/v0.1-w1 --forms EB  --waits 1  # 200/200
+python3 sw/timed_gate.py --suite tests/v30/v0.1-w0evt --waits 0           # 200/200
+python3 sw/timed_gate.py --suite tests/v30/v0.1-w1evt --waits 1           # 1,200/1,200
+python3 sw/timed_gate.py --suite tests/v30/v0.1-w1evt-biased --waits 1    # 1,200/1,200
+python3 sw/timed_gate.py --suite tests/v30/v0.1-w2evt --waits 2           # 200/200
+python3 sw/timed_gate.py --suite tests/v30/v0.1-w3evt --waits 3           # 1,200/1,200
+python3 sw/check_boot.py --timed 220                                      # MATCHES over 220 rows
+python3 sw/timed_scenario.py                                              # 18 PASS, 0 FAIL, 9 SKIP
+python3 sw/timed_enter_replay.py          # pushes/walk/full/active/halt_display 154/154 x5
+python3 sw/timed_ins_replay.py --raw      # rails 1312/1312, vs-chip 2624/2624, R2 782/800
+python3 sw/timed_wvec_gate.py             # count 88/88, digest 88/88, cycles +0.0 %
+python3 sw/timed_lawcards.py              # 8 GREEN / 0 RED / 3 UNRESOLVED
+python3 sw/timed_fuzz.py --evt-replay     # REGISTERED 1,272/1,702  EVT 708/1,008
+                                          # COMBINED   1,980/2,710
+python3 sw/timed_fuzz.py --seeddir sw/testdata/t4/b2-tranche/seeds        # 154/188
+                                                              # --- THE HLT SWEEP, FOUR WAIT LEVELS ---
+python3 sw/timed_gate.py --suite tests/v30/s10-hltsweep-w0 --waits 0 --forms all   # 91/97   (was 90; 678 -> 609 diffs)
+python3 sw/timed_gate.py --suite tests/v30/s10-hltsweep-w1 --waits 1 --forms all   # 92/95   (was 91; 518 ->  17 diffs)
+python3 sw/timed_gate.py --suite tests/v30/s13-hltsweep-w2 --waits 2 --forms all   # 42/46   (was 41; 801 ->  34 diffs)
+python3 sw/timed_gate.py --suite tests/v30/s13-hltsweep-w3 --waits 3 --forms all   # 40/45   (was 39; 1216 -> 52 diffs)
+                                                              # --- the census (chip, or chip vs model) ---
+python3 sw/s14_census.py --band
+python3 sw/s14_dstar.py
+```
+
+**Monotonicity.**  Every standing ratchet of §24.0.1 is at its entry value or
+above and **none moved down**; **zero newly broken** on every scored population.
+The ratchets that MOVED are the four HLT sweeps, all upward.  The functional
+7,341,126 was re-run in full before this commit.  V0-V5 are untouched and
+**V5 remains a registered FAILURE** (B2 154/188, unchanged).
+
+**Retention** (the monotonicity claims must be artifacts, not prose).
+`sw/testdata/s14/` — `fuzz_m22_movement.json.gz` (all 3,242 fuzz-bank seeds,
+`verdict` / `first_bad` / `kind` BEFORE and AFTER, the BEFORE arm produced by
+checking `sim/` out at HEAD and rebuilding, nothing else differing between the
+arms), `hltsweep_m22_movement.json` (the four sweeps' `timed_gate --report`
+in both arms), `census_band.txt` and `dstar.txt` (the two measurement tools'
+output verbatim), with a `SHA256SUMS`.
+
+**Per-seed fuzz movement, all 3,242 seeds, BEFORE vs AFTER:**
+
+```
+verdict changes 0    newly broken 0    newly exact 0
+first divergence LATER 8, EARLIER 0
+```
+
+and two of the eight are the seeds §22.5 named by hand: `mc1` soup 1798
+(234 -> 434) and `mc2` soup 140 (240 -> 449), *"part at rows 234 / 240, far
+UPSTREAM of their acknowledge; M19 cannot reach them"* — M22 reaches them, and
+moves each about 200 rows later.  The other six move one row and change their
+first-divergence label from `bs` to `ube`, which is §25.6 item 1 showing up in
+the whole-program population as well.
+
+**No board contact of any kind.**  No socket call, no `serve`, no flash, no new
+capture, no `emit_suite` run.
+
+**Instrument provenance, declared as §24.0.0 declares it.**  The working tree
+still carries UNCOMMITTED `hdl/` and `sw/` changes from the `biu-rebuild`
+branch.  They are inert here for a stronger reason than in §24: **nothing in
+this session runs anything but `sim/v30sim` and the committed suites** — no
+capture path, no emission path, no `v30run`.  `sim/` was CLEAN at HEAD entering
+the session, and this commit's whole `sim/` diff is 33 non-comment lines in
+`biu_timed.{h,cpp}` plus their comment blocks; nothing else in `sim/` moved.
+
+### 25.8 Provenance class, per finding
+
+| finding | class | evidence | falsifier |
+|---|---|---|---|
+| the woken fetch RUNS iff `F - D <= 2` and is DROPPED iff `F - D >= 3` | **MEASURED** | 20 `HLT.INT` band cells, 4 wait levels, 0 exceptions | a dropped cell with `F - D <= 2`, or a run cell with `F - D >= 3` |
+| the drop clock is `W = max(D + 3, F - 1)`, acknowledge at `W+1` / `W+2` | **MEASURED** | the 9 dropped cells, 3 wait levels | any drop off it |
+| the drop does NOT depend on the acknowledge | **MEASURED** | the acknowledge is posted 1-3 clocks BEFORE `W` in 9 of 9 | a cell whose drop clock moves with the acknowledge |
+| **M22** — an announcement expires at its ZERO-WAIT release index, counted from the display | **LAW** (the simplest mechanism consistent with the three rows above) | the four sweeps' `D/T1/W/iD/iT1` columns now identical to the chip's in every band cell; w0 168,997 and all three fuzz populations unmoved | see §25.2 |
+| at `N = 0` the eval instant is `disp + 3`, not `T1 + 2` | **MEASURED** | `HLT.INT` w0 `A-H = −2, −1`: the chip releases at `T1 + 1` and its acknowledge chain follows | a zero-wait cycle with a late T1 whose eval is at `T1 + 2` |
+| **M21 second half** — the HALT's release eval applies no index-2 latch | **LAW** | `D = max(A+4, H+3)` exact at every delay of four sweeps, from 2 wrong cells a level | a cell where the woken display needs the latch |
+| `withdraw_fetch()` / expiry re-raise `pf_owed_` | **LAW, MEASURED NEUTRAL** | 3,242 seeds and 169,000 w0 goldens identical either way | a case that discriminates them |
+| `H − anchor = 2 × the fetch pitch`; pitch = `4` at `N=0`, `5+N` at `N>0` | **MEASURED** | banked S2/S13 captures, 4 wait levels x 2 forms, exact | a sweep whose `H` is not `anchor + 2·pitch` |
+| §24.8's "one slot on the 2-clock eval grid" | **WITHDRAWN** (never landed) | §25.5 | — |
+| the display window's upper pins (`A19-A16` = status from the 2nd display clock; `UBE` at display+1) | **MEASURED, MECHANISM OPEN** | 12 cells; and 6 fuzz seeds' first divergence relabels `bs -> ube` | see §25.6 item 1 |
+
+### 25.9 Ledger delta
+
+| | after §24 | after this addendum |
+|---|---|---|
+| §24.15 item 1 (M19's grant-then-withdraw) | discriminated, mechanism open, *"the highest-priority item in the campaign"* | **CLOSED — M22.**  Both §22.10 readings refuted as the cause; the drop is the announcement's own expiry and is keyed to the display, not to the acknowledge |
+| §24.15 item 2 (the band's `+2`/`+1` display offset) | a fixed index, mechanism unnamed | **CLOSED — M21's second half.**  The offsets were one mechanism (the HALT's release eval applying a dead latch), not two, and §24.8's `A-H = −2` description is corrected |
+| §24.15 item 3 (the `d*` series 8, 12, 14, 16) | *"reads as one slot on the 2-clock eval grid; not landed"*; a `w >= 4` sweep booked | **CLOSED — `2 ×` the fetch pitch, which is M1/M2r.**  No new term, no sweep needed, and the grid reading is withdrawn |
+| §22.10 item 1's edge (`pf_owed_` after a withdrawal) | UNTESTED, nothing discriminates it | **LANDED and MEASURED NEUTRAL** — un-granting un-consumes, for the same reason the expiry does |
+| the four HLT sweeps | 90/97, 91/95, 41/46, 39/45 — 3,213 row diffs | **91/97, 92/95, 42/46, 40/45 — 712 row diffs.**  Every TIMING column gone at w1/w2/w3; registered 97/97 and 95/95 **NOT MET** |
+| mechanisms | M1-M21, M2r, M5b | **+ M22 (an announcement expires; at `N = 0` the eval instant is counted from the display)**; M21 extended by its own second half |
+| the open surface | 12 items | **11** — three closed, two new (the display window's upper pins, §25.6 item 1; the w0 `A - H <= -3` regime, §25.6 item 2) |
+| `timed_fuzz` REG / EVT / COMBINED | 1,272/1,702, 708/1,008, 1,980/2,710 | unchanged, all three (0 newly broken, 0 newly exact, 8 later) |
+| law cards | 8 GREEN / 0 RED / 3 UNRESOLVED | unchanged |
+| `timed_wvec_gate` | count 88/88, digest 88/88 | unchanged |
+| victory tranche V0-V5 | V0-V4 PASS, V5 registered FAILURE | **UNTOUCHED — 154/188, V5 remains a registered FAILURE** |
+| functional corpus | 7,341,126 | unchanged, re-run in full |
+| v0.1 w0 / w1 / w3 / `EB` | 168,997 / 1,200 / 1,200 / 200 | unchanged |
+
+### 25.10 THE TOTAL REMAINING OPEN SURFACE
+
+§24.15 left twelve items in four groups.  **Group A is empty**: all three of its
+mechanisms are closed here.  What is left is eleven items — its other nine plus
+the two this session opened — and none of them is a mechanism the model gets
+wrong and knows it.
+
+**A. MECHANISMS OPEN, SILICON IN HAND — EMPTY.**
+
+**B. STIMULUS GAPS (2 law cards + 1 new).**
+
+1. **C6 / C7 (LC3, uRMW)** — board-by-construction.  Protocol stands verbatim:
+   **positive control FIRST**, and **FAILED-VACUOUS is a reportable outcome,
+   not a pass** (§21.0 S3b).
+2. **C11 (LC4 `owns_slot`)** — the reservation SOURCE is an EU micro-state, not
+   observable on the pins; needs an instrument, not board time (§24.6).
+3. **NEW — the display window's upper pins** (§25.6 item 1).  MEASURED,
+   mechanism open; the stimulus is **board-free**: one more `emit_evt_case`
+   seed whose fetch address does not collide with the SS status code.
+
+**C. POPULATION RESIDUES, reported as the numbers they are.**
+
+4. **`timed_fuzz`** — REGISTERED 1,272/1,702, EVT 708/1,008, COMBINED
+   1,980/2,710.  First-divergence families `qs` 468 / `bs` 188 / `data` 37 /
+   `nxta` 29 / `ube` 7 / `ps` 1.
+5. **The 20-seed `ACK` residue** (§23.5) — three named signatures, untouched.
+6. **Victory tranche B2 154/188 — V5 remains a REGISTERED FAILURE.**
+7. **`v0.1` w0 168,997 / 169,000** — the 3 are §24.11's EMISSION/HARNESS
+   residue, not a BIU question.
+8. **`HLT.INT` w0 `d2`/`d3` and the w0 `A-H = −2/−1` acknowledge pair**
+   (§25.6 item 2) — M20's `A - H <= −3` regime and the second acknowledge's
+   own schedule.  Board-free; not chased here.
+
+**D. INSTRUMENT ITEMS, booked — all three unchanged, none used by a surviving
+claim.**
+
+9. `stable_key` reads pad residue on pre-first-T1 idle rows (§24.10).
+10. `0F12`'s accessed byte is the harness's `63 C0` preload (§24.11).
+11. `s12_census.cycles()` is T1-anchored and mis-frames a cycle whose display
+    falls inside the HALT pseudo-cycle (§24.1).

@@ -1,0 +1,34 @@
+HLT.INT w0 (d=30)  anchor T1=145  HALT display H=153   H-anchor=8
+    CODE  T1=145  T4=148  len=4   addr=57CB1
+    CODE  T1=149  T4=152  len=4   addr=57CB2   pitch 4
+    HALT  T1=154  T4=157  len=4   addr=67CB2   pitch 5
+HLT.INT w1 (d=30)  anchor T1=207  HALT display H=219   H-anchor=12
+    CODE  T1=207  T4=211  len=5   addr=57CB1
+    CODE  T1=213  T4=217  len=5   addr=57CB2   pitch 6
+    HALT  T1=220  T4=224  len=5   addr=67CB2   pitch 7
+HLT.INT w2 (d=24)  anchor T1=240  HALT display H=254   H-anchor=14
+    CODE  T1=240  T4=245  len=6   addr=57CB1
+    CODE  T1=247  T4=252  len=6   addr=57CB2   pitch 7
+    HALT  T1=255  T4=260  len=6   addr=67CB2   pitch 8
+HLT.INT w3 (d=24)  anchor T1=273  HALT display H=289   H-anchor=16
+    CODE  T1=273  T4=279  len=7   addr=57CB1
+    CODE  T1=281  T4=287  len=7   addr=57CB2   pitch 8
+    HALT  T1=290  T4=296  len=7   addr=67CB2   pitch 9
+
+HLT.RES w0 (d=30)  anchor T1=145  HALT display H=153   H-anchor=8
+    CODE  T1=145  T4=148  len=4   addr=9AD89
+    CODE  T1=149  T4=152  len=4   addr=9AD8A   pitch 4
+    HALT  T1=154  T4=157  len=4   addr=2AD8A   pitch 5
+HLT.RES w1 (d=30)  anchor T1=207  HALT display H=219   H-anchor=12
+    CODE  T1=207  T4=211  len=5   addr=9AD89
+    CODE  T1=213  T4=217  len=5   addr=9AD8A   pitch 6
+    HALT  T1=220  T4=224  len=5   addr=2AD8A   pitch 7
+HLT.RES w2 (d=24)  anchor T1=240  HALT display H=254   H-anchor=14
+    CODE  T1=240  T4=245  len=6   addr=9AD89
+    CODE  T1=247  T4=252  len=6   addr=9AD8A   pitch 7
+    HALT  T1=255  T4=260  len=6   addr=2AD8A   pitch 8
+HLT.RES w3 (d=24)  anchor T1=273  HALT display H=289   H-anchor=16
+    CODE  T1=273  T4=279  len=7   addr=9AD89
+    CODE  T1=281  T4=287  len=7   addr=9AD8A   pitch 8
+    HALT  T1=290  T4=296  len=7   addr=2AD8A   pitch 9
+

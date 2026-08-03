@@ -96,6 +96,8 @@ void BiuTimed::begin_case() {
     pf_infl_to_ = -2;
     pf_infl_n_ = 0;
     pf_owed_ = false;           // M19
+    cmt_expire_ = -1;           // M22
+    cmt_was_owed_ = false;
     pop_is_first_ = true;
     consumed_.clear();
     qs_pending_ = kQsNone;
@@ -180,8 +182,54 @@ static const bool kEvalTrace = ::getenv("V30SIM_EVALTRACE") != nullptr;
 static const long kTickTrace =
     ::getenv("V30SIM_TICKTRACE") ? ::atol(::getenv("V30SIM_TICKTRACE")) : -1;
 
+// M22 -- AN ANNOUNCEMENT EXPIRES.  The status register is written by the
+// arbiter at the GRANT and it lets go again at the announced cycle's own
+// release index, counted from the T1 the grant reserved.  A cycle that never
+// OPENS a T1 never latches a wait count (M2r: "the rig latches this access's
+// wait count at T1 ENTRY"), so its release falls at the ZERO-WAIT index --
+// three clocks after the display -- and it may not be given up before the
+// clock the bus it is waiting for finishes on.  If the bus has not taken the
+// cycle by then the announcement is simply GONE: the pins go passive for that
+// clock and the arbiter chooses again at its end.
+//
+//     cmt_expire_ = max(cmt_disp_ + 3, cmt_t1_ - 1)
+//     the cycle RUNS iff its T1 opens STRICTLY BEFORE that clock
+//
+// For every ordinary grant `cmt_t1_ == cmt_disp_ + 1` and the expiry is three
+// clocks in the future, so nothing changes; the rule can only bite where the
+// display and the T1 are separated, which is the woken HALT (M21's idle evals
+// run while the HALT pseudo-cycle still owns the bus) and nowhere else in the
+// corpus.
+//
+// MEASURED on the four-wait-level HLT sweep, 16 band cells, zero exceptions:
+// the chip DISPLAYS the woken prefetch at `D = max(A + 4, H + 3)` and then
+// drops it for the acknowledge in every cell where `F - D >= 3` (`F` = the
+// clock the HALT pseudo-cycle frees the bus), runs it in every cell where
+// `F - D <= 2`, and the passive clock it drops on is `max(D + 3, F - 1)`.
+// w0 has NO withdrawal at any delay, and that is the same rule: at w0
+// `D >= H + 3` and `F = H + 5`, so `F - D <= 2` always.
+//
+// AND IT UNDOES THE GRANT.  M19's request is "consumed by the GRANT"; an
+// announcement that expires was never taken, so the fetch pointer rewinds and
+// `pf_owed_` goes back to what it was -- the same sentence `withdraw_fetch`
+// makes, now made at the other end of the display.
+void BiuTimed::expire_cmt() {
+    if (!cmt_valid_ || cmt_t1_ < cmt_expire_ || clk_ < cmt_expire_) return;
+    cmt_valid_ = false;
+    if (cmt_.is_fetch) {
+        fetch_ptr_ = cmt_prev_fp_;
+        pf_owed_ = cmt_was_owed_;   // the arbiter never took the request
+    } else {
+        req_.push_front(cmt_);      // an EU access is not the BIU's to lose
+    }
+}
+
 void BiuTimed::tick() {
     long c = clk_;
+    // M22: the announcement expires before anything else this clock -- in
+    // particular before the T1 it can no longer open (the two coincide when
+    // `cmt_t1_ == cmt_disp_ + 3`, and the expiry wins).
+    expire_cmt();
     if (kTickTrace >= 0 && c >= kTickTrace && c < kTickTrace + 14)
         std::fprintf(stderr, "TK %ld run=%d ci=%d bs=%d cmtv=%d cmt_t1=%ld "
                              "cmtfetch=%d halted=%d susp=%d slot=%d acc=%ld\n",
@@ -217,8 +265,27 @@ void BiuTimed::tick() {
         cur_.last_i = 3 + cur_.waits;
         // S8/S9: the HALT's status release is at index 1 at every wait level;
         // every other cycle releases at the READY sample (M2r).
+        // M22 (second consequence) -- AT ZERO WAITS THE EVAL INSTANT IS COUNTED FROM THE
+        // DISPLAY, NOT FROM THE T1.  M2r says the eval rides the READY
+        // sample; at N = 0 the rig's READY is high unconditionally (nec_bus.sv
+        // `ready_q <= cfg_wait_states == 0`), so nothing the T1 latches can
+        // move it and the instant is the part's own, counted from the clock
+        // the status register was LOADED.  At N > 0 READY goes low and the
+        // wait counter -- loaded at T1 ENTRY -- is what stretches the cycle,
+        // so the instant rides the T1 (`last_i`), unchanged.
+        //
+        // For every cycle whose T1 opens the clock after its display the two
+        // readings are the SAME CLOCK (`disp + 3 == T1 + 2`), which is why the
+        // whole w0 corpus cannot tell them apart; they separate only where the
+        // bus made the T1 wait, and M22 says that is the woken HALT and
+        // nothing else.  MEASURED: `HLT.INT` w0 `A - H = -2` and `-1`, where
+        // the chip's woken fetch opens T1 at `disp + 2` and releases its
+        // status at `disp + 3` = T1 + 1 (the model released at T1 + 2 and put
+        // the whole acknowledge chain one clock late -- 141 row diffs a cell).
         cur_.eval_i = cur_.is_halt ? 1
-                      : (cur_.waits == 0) ? 2 : cur_.last_i;
+                      : (cur_.waits == 0)
+                            ? int(cur_.disp + 3 - c > 1 ? cur_.disp + 3 - c : 1)
+                            : cur_.last_i;
         // ...driving whatever OPR still holds if nothing paired it, through
         // the SAME single pass of the A0 swapper `mem_write` uses (M5b: the
         // rotation is a property of the ACCESS, not of the cycle).
@@ -244,7 +311,10 @@ void BiuTimed::tick() {
         cmt_.data = uint16_t(last_fetch_addr_ & 0xFFFF);
         cmt_valid_ = true;
         cmt_disp_ = c;
+        cmt_.disp = c;                                        // M22
         cmt_t1_ = c + 1;
+        cmt_expire_ = c + 3;        // M22 (never reached: T1 is at c + 1)
+        cmt_was_owed_ = pf_owed_;
         halt_pending_ = false;
     }
     // The data phase opens on T2.
@@ -427,7 +497,19 @@ void BiuTimed::tick() {
         if (ci_ == 2) pf_arm_ = occupancy() <= 4 && !halted_;
         if (ci_ == eval_i) {
             eval_here = true;
-            pf_arm_valid_ = true;   // this eval applies the index-2 sample
+            // M21 (second half).  The index-2 sample belongs to the cycle that
+            // is FINISHING, and the HALT pseudo-cycle's eval sits at index 1 --
+            // BEFORE its own index 2 exists.  It therefore has no latch to
+            // apply, and applying the LAST cycle's (taken while the part was
+            // still running, i.e. before the HLT decode ever set `halted_`) is
+            // reading a decision about a machine state that is gone.  The
+            // HALT's eval is an ORDINARY IDLE EVAL -- it reads the queue and
+            // `halted_` LIVE -- which is exactly what M21 already says of
+            // every clock AFTER it.  MEASURED: with the latch applied the
+            // woken prefetch's display is one clock late at `A - H = -1` and
+            // absent at `-2`, at all four wait levels; without it
+            // `D = max(A + 4, H + 3)` is exact at every delay.
+            pf_arm_valid_ = !cur_.is_halt;
             // M2r: THE COMPLETION EVAL'S DISPLAY CLOCK IS NOT AN EVAL POINT.
             // At w0 that clock is T4, which is inside the cycle and so was
             // never an idle-eval candidate -- "T4 is NOT an eval point" (M1)
@@ -573,12 +655,16 @@ void BiuTimed::eval() {
         req_.pop_front();
         cmt_valid_ = true;
         cmt_disp_ = clk_;
+        cmt_.disp = clk_;                                     // M22
         cmt_t1_ = free_clk > clk_ + 1 ? free_clk : clk_ + 1;
         // M10: the slot's occupant now has the T1 that frees it -- the LAST
         // cycle of the access -- so a row blocked on it knows the clock it may
         // issue on.  While a split's first half is committed the accept clock
         // stays unknown (-1) and the blocked row keeps waiting.
         if (cmt_.rd_last) eu_accept_clk_ = cmt_t1_;
+        cmt_was_owed_ = pf_owed_;                             // M22
+        cmt_expire_ = (cmt_disp_ + 3 > cmt_t1_ - 1) ? cmt_disp_ + 3
+                                                    : cmt_t1_ - 1;
         if (kFlushTrace)
             fprintf(stderr, "FC %ld disp=%ld t1=%ld kind=R addr=%05x\n",
                     clk_ - 1, clk_, cmt_t1_, unsigned(cmt_.addr));
@@ -600,6 +686,7 @@ void BiuTimed::eval() {
     // are LANDING in the queue.
     if (clk_ - 1 >= pf_land_from_ && clk_ - 1 <= pf_land_to_) { et('.', 'M'); return; }
     et('F', '-');
+    cmt_was_owed_ = pf_owed_;   // M22: ...and gives it back if it expires
     pf_owed_ = false;      // M19: the arbiter has taken the request
     cmt_ = make_fetch();
     // The fetch pointer advances when the cycle is COMMITTED, not when its
@@ -609,7 +696,10 @@ void BiuTimed::eval() {
     fetch_ptr_ = uint16_t(fetch_ptr_ + cmt_.push_n);
     cmt_valid_ = true;
     cmt_disp_ = clk_;
+    cmt_.disp = clk_;                                         // M22
     cmt_t1_ = free_clk > clk_ + 1 ? free_clk : clk_ + 1;
+    cmt_expire_ = (cmt_disp_ + 3 > cmt_t1_ - 1) ? cmt_disp_ + 3
+                                                : cmt_t1_ - 1;
     if (kFlushTrace)
         fprintf(stderr, "FC %ld disp=%ld t1=%ld kind=F addr=%05x\n",
                 clk_ - 1, clk_, cmt_t1_, unsigned(cmt_.addr));
@@ -647,6 +737,11 @@ void BiuTimed::withdraw_fetch() {
     if (cmt_valid_ && cmt_.is_fetch && cmt_disp_ >= clk_) {
         cmt_valid_ = false;
         fetch_ptr_ = cmt_prev_fp_;
+        // M22/22.10: a grant that is TAKEN BACK did not consume the request.
+        // M19 says the request is "consumed by the GRANT"; un-granting must
+        // un-consume it, and that is 22.10 item 1's edge answered in the only
+        // way that keeps M19 one sentence.
+        pf_owed_ = cmt_was_owed_;
     }
 }
 

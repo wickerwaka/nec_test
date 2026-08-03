@@ -1,0 +1,308 @@
+{
+ "s10-hltsweep-w0": {
+  "before": {
+   "suite": "tests/v30/s10-hltsweep-w0",
+   "waits": 0,
+   "total": {
+    "n": 97,
+    "arch_ok": 97,
+    "window": 97,
+    "row_mm": 678,
+    "rows_exact": 90
+   },
+   "columns": {
+    "busstat": 103,
+    "bus": 100,
+    "data": 78,
+    "pins": 72,
+    "tstate": 169,
+    "seg": 74,
+    "memcmd": 59,
+    "qop": 12,
+    "qbyte": 4,
+    "len": 4,
+    "ube": 3
+   },
+   "forms": {
+    "HLT.INT": {
+     "n": 48,
+     "arch_ok": 48,
+     "window": 48,
+     "row_mm": 667,
+     "rows_exact": 44
+    },
+    "HLT.RES": {
+     "n": 49,
+     "arch_ok": 49,
+     "window": 49,
+     "row_mm": 11,
+     "rows_exact": 46
+    }
+   }
+  },
+  "after": {
+   "suite": "tests/v30/s10-hltsweep-w0",
+   "waits": 0,
+   "total": {
+    "n": 97,
+    "arch_ok": 97,
+    "window": 97,
+    "row_mm": 609,
+    "rows_exact": 91
+   },
+   "columns": {
+    "busstat": 82,
+    "bus": 89,
+    "data": 67,
+    "pins": 70,
+    "tstate": 157,
+    "seg": 67,
+    "memcmd": 55,
+    "qop": 12,
+    "qbyte": 4,
+    "len": 4,
+    "ube": 2
+   },
+   "forms": {
+    "HLT.INT": {
+     "n": 48,
+     "arch_ok": 48,
+     "window": 48,
+     "row_mm": 603,
+     "rows_exact": 44
+    },
+    "HLT.RES": {
+     "n": 49,
+     "arch_ok": 49,
+     "window": 49,
+     "row_mm": 6,
+     "rows_exact": 47
+    }
+   }
+  }
+ },
+ "s10-hltsweep-w1": {
+  "before": {
+   "suite": "tests/v30/s10-hltsweep-w1",
+   "waits": 1,
+   "total": {
+    "n": 95,
+    "arch_ok": 95,
+    "window": 95,
+    "row_mm": 518,
+    "rows_exact": 91
+   },
+   "columns": {
+    "seg": 81,
+    "memcmd": 66,
+    "busstat": 76,
+    "bus": 70,
+    "data": 58,
+    "ube": 5,
+    "pins": 35,
+    "tstate": 117,
+    "qop": 6,
+    "qbyte": 2,
+    "len": 2
+   },
+   "forms": {
+    "HLT.INT": {
+     "n": 46,
+     "arch_ok": 46,
+     "window": 46,
+     "row_mm": 513,
+     "rows_exact": 43
+    },
+    "HLT.RES": {
+     "n": 49,
+     "arch_ok": 49,
+     "window": 49,
+     "row_mm": 5,
+     "rows_exact": 48
+    }
+   }
+  },
+  "after": {
+   "suite": "tests/v30/s10-hltsweep-w1",
+   "waits": 1,
+   "total": {
+    "n": 95,
+    "arch_ok": 95,
+    "window": 95,
+    "row_mm": 17,
+    "rows_exact": 92
+   },
+   "columns": {
+    "seg": 2,
+    "ube": 9,
+    "bus": 6
+   },
+   "forms": {
+    "HLT.INT": {
+     "n": 46,
+     "arch_ok": 46,
+     "window": 46,
+     "row_mm": 17,
+     "rows_exact": 43
+    },
+    "HLT.RES": {
+     "n": 49,
+     "arch_ok": 49,
+     "window": 49,
+     "row_mm": 0,
+     "rows_exact": 49
+    }
+   }
+  }
+ },
+ "s13-hltsweep-w2": {
+  "before": {
+   "suite": "tests/v30/s13-hltsweep-w2",
+   "waits": 2,
+   "total": {
+    "n": 46,
+    "arch_ok": 46,
+    "window": 46,
+    "row_mm": 801,
+    "rows_exact": 41
+   },
+   "columns": {
+    "seg": 111,
+    "memcmd": 89,
+    "busstat": 121,
+    "bus": 114,
+    "data": 101,
+    "ube": 9,
+    "pins": 54,
+    "tstate": 187,
+    "qop": 9,
+    "qbyte": 3,
+    "len": 3
+   },
+   "forms": {
+    "HLT.INT": {
+     "n": 21,
+     "arch_ok": 21,
+     "window": 21,
+     "row_mm": 796,
+     "rows_exact": 17
+    },
+    "HLT.RES": {
+     "n": 25,
+     "arch_ok": 25,
+     "window": 25,
+     "row_mm": 5,
+     "rows_exact": 24
+    }
+   }
+  },
+  "after": {
+   "suite": "tests/v30/s13-hltsweep-w2",
+   "waits": 2,
+   "total": {
+    "n": 46,
+    "arch_ok": 46,
+    "window": 46,
+    "row_mm": 34,
+    "rows_exact": 42
+   },
+   "columns": {
+    "seg": 5,
+    "ube": 13,
+    "bus": 12,
+    "data": 4
+   },
+   "forms": {
+    "HLT.INT": {
+     "n": 21,
+     "arch_ok": 21,
+     "window": 21,
+     "row_mm": 34,
+     "rows_exact": 17
+    },
+    "HLT.RES": {
+     "n": 25,
+     "arch_ok": 25,
+     "window": 25,
+     "row_mm": 0,
+     "rows_exact": 25
+    }
+   }
+  }
+ },
+ "s13-hltsweep-w3": {
+  "before": {
+   "suite": "tests/v30/s13-hltsweep-w3",
+   "waits": 3,
+   "total": {
+    "n": 45,
+    "arch_ok": 45,
+    "window": 45,
+    "row_mm": 1216,
+    "rows_exact": 39
+   },
+   "columns": {
+    "seg": 170,
+    "memcmd": 135,
+    "busstat": 189,
+    "bus": 185,
+    "data": 166,
+    "ube": 14,
+    "pins": 72,
+    "tstate": 265,
+    "qop": 12,
+    "qbyte": 4,
+    "len": 4
+   },
+   "forms": {
+    "HLT.INT": {
+     "n": 20,
+     "arch_ok": 20,
+     "window": 20,
+     "row_mm": 1211,
+     "rows_exact": 15
+    },
+    "HLT.RES": {
+     "n": 25,
+     "arch_ok": 25,
+     "window": 25,
+     "row_mm": 5,
+     "rows_exact": 24
+    }
+   }
+  },
+  "after": {
+   "suite": "tests/v30/s13-hltsweep-w3",
+   "waits": 3,
+   "total": {
+    "n": 45,
+    "arch_ok": 45,
+    "window": 45,
+    "row_mm": 52,
+    "rows_exact": 40
+   },
+   "columns": {
+    "seg": 9,
+    "ube": 19,
+    "bus": 18,
+    "data": 6
+   },
+   "forms": {
+    "HLT.INT": {
+     "n": 20,
+     "arch_ok": 20,
+     "window": 20,
+     "row_mm": 52,
+     "rows_exact": 15
+    },
+    "HLT.RES": {
+     "n": 25,
+     "arch_ok": 25,
+     "window": 25,
+     "row_mm": 0,
+     "rows_exact": 25
+    }
+   }
+  }
+ }
+}

@@ -346,6 +346,8 @@ private:
         // shows 29A0 on both halves of its last store.
         bool odd_base = false;
         uint16_t rd_val = 0;   // a READ's datapath value -> OPR at its T4+1
+        // M22: the clock this access's status reached the pins on.
+        long disp = -1;
         // S8/S9 -- THE HALT BUS PSEUDO-CYCLE.  MEASURED on the socket, T2b P3
         // (sw/testdata/t2b/p1-susp, the ENTER store stub's own HLT, w0/w1/w3 x
         // two preparation histories x 5 repetitions x 4 and 8 MHz):
@@ -401,6 +403,7 @@ private:
     // completion eval if this clock ends on an eval point.
     void tick();
     void eval();
+    void expire_cmt();   // M22 -- see biu_timed.cpp
     long bus_free_clk() const;
     void et(char decision, char why) const;   // T3 diagnostic (env-gated)
     void post(const Access& a);
@@ -438,6 +441,9 @@ private:
     long cur_t1_ = -1;      // the RUNNING cycle's own T1 clock
     int last_wr_waits_ = 0;      // absolute clock of the committed cycle's T1
     uint16_t cmt_prev_fp_ = 0;   // fetch_ptr before the committed fetch took it
+    // M22 -- the clock the ANNOUNCEMENT expires.  See `expire()` in the .cpp.
+    long cmt_expire_ = -1;
+    bool cmt_was_owed_ = false;  // M19's latch as it stood before this grant
 
     // retained pin state (idle rows and undriven byte lanes)
     uint32_t last_addr_ = 0;
