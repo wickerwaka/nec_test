@@ -119,6 +119,16 @@ void BiuTimed::begin_case() {
     last_wval_ = 0;
     bus_idx_ = 0;
     wlfsr_ = wseed_;
+    // S9a: the pin schedule is a per-case rig input; clear it here so a form
+    // without an `evt` record can never inherit the previous case's.
+    ev_trigger_ = 0;
+    ev_pin_ = 0;
+    ev_addr_ = 0;
+    ev_delay_ = 0;
+    ev_hold_ = 0;
+    ev_pins_ = 0;
+    ev_anchor_ = -1;
+    first_fpop_ = -1;
 }
 
 // M2r: the rig's wait draw for the bus cycle whose T1 opens now.  Mirrors
@@ -180,6 +190,11 @@ void BiuTimed::tick() {
         // older access's T1.
         if (!cur_.is_fetch && cur_.rd_last && eu_accept_clk_ == c)
             eu_slot_busy_ = false;
+        // S9a: the rig's fetch-trigger anchor (tb_v30_core.sv: the CODE T1
+        // whose 20-bit address is `ev_addr`).
+        if (ev_trigger_ == 1 && ev_anchor_ < 0 && cur_.is_fetch &&
+            cur_.addr == ev_addr_)
+            ev_anchor_ = c;
         // M2r: the rig latches this access's wait count at T1 ENTRY, which
         // fixes the cycle's length and its ONE eval instant.
         cur_.waits = next_waits();
@@ -211,6 +226,11 @@ void BiuTimed::tick() {
         cur_.data = sys_word_at(cur_.addr);
 
     const bool display = cmt_valid_ && cmt_t1_ == c + 1;
+    // S9a (Access::no_addr): an INTA drives no address.  Freeze the FLOATING
+    // AD -- the last data phase, upper nibble 0 -- into the access on its
+    // display clock, so the display row and T1 both carry it through the
+    // ordinary address path.
+    if (display && cmt_.no_addr) cmt_.addr = uint32_t(last_data_);
     const int last_i = cur_.last_i;                 // index of T4
     const int eval_i = cur_.eval_i;                 // M2r: the eval instant
 
@@ -321,6 +341,11 @@ void BiuTimed::tick() {
     last_ps_ = r.ps;
     last_ube_ = r.ube_n;
 
+    // S9a: the rig's fpop-trigger anchor -- the WINDOW-OPENING `F` pop
+    // (tb_v30_core.sv: `recording && QS == 2'b01 && fcount == 0`).
+    if (ev_trigger_ == 2 && ev_anchor_ < 0 && r.qs == kQsFirst) ev_anchor_ = c;
+    if (first_fpop_ < 0 && r.qs == kQsFirst) first_fpop_ = c;
+
     if (rows_) rows_->row(r);
     if (kEvalTrace) {
         int popp = 0;
@@ -412,7 +437,14 @@ void BiuTimed::tick() {
                 pf_infl_to_ = e + 2;
                 pf_infl_n_ = cur_.push_n;
             }
-            if (!cur_.is_fetch) {
+            // S9a: ...and the HALT PSEUDO-CYCLE is not an EU access at all.
+            // It never went through `post()` (the HLT row drives the status
+            // register directly), so it must not complete one either: before
+            // this guard it decremented `eu_pending_` and pushed a phantom
+            // read-completion clock into `rd_done_q_`, which the FIRST `F` row
+            // after the wake then consumed instead of waiting for its own
+            // acknowledge -- HLT.INT's second INTA landed 3 clocks early.
+            if (!cur_.is_fetch && !cur_.is_halt) {
                 // eu_done: the data handover / store retire lands with the
                 // push, one clock after the eval -- which is what mission-H
                 // saw as "post-access EU schedules stretch by exactly one
@@ -610,6 +642,12 @@ void BiuTimed::queue_preload(const std::vector<uint8_t>& q, uint16_t cs,
             need -= 2;
         }
     }
+    // S9a: ...and the LAST of those pre-window fetch addresses is the address
+    // a HALT display would drive if the part halts before making a fetch of
+    // its own (the HALT law's "fetch pointer - 2", stated as the address it is
+    // derived from).  Without this the prefetched HALT variants displayed
+    // address 0.
+    last_fetch_addr_ = last_addr_;
 }
 
 void BiuTimed::flush(uint16_t cs, uint16_t pc) {
@@ -724,6 +762,32 @@ void BiuTimed::opcode_prefetch(uint16_t cs) {
     // takes its byte the moment the queue can give it up.
     opc_byte_ = pop(cs, 0xFFFE, false);
     opc_valid_ = true;
+}
+
+// S9a -- THE RECOGNITION BOUNDARY IS THE RETIRE, NOT THE POP.
+//
+// `opcode_prefetch` takes the successor's opcode at
+// `max(retire deadline, byte poppable)` (M8's max-of-two-deadlines).  The
+// RECOGNITION decision sits at the FIRST of those two only: the instruction's
+// own retire.  It does not need the byte -- it is the decision NOT to take
+// one -- and a recognised boundary therefore does not slide when the queue is
+// dry.
+//
+// MEASURED, and the queue geometry is what separates the two readings: the
+// anchor instruction's fetch delivers TWO bytes at an even address and ONE at
+// an odd one, so half the `INT.*` / `NMI.*` goldens have the successor byte
+// standing at the retire clock and half do not -- and the acknowledge lands at
+// the SAME offset from the retire in both (`INT.90` 200/200, `NMI.90` 200/200
+// with this rule; 177 and 186 with the pop deadline, and every one of the 37
+// failures was an odd-address, dry-queue case).
+//
+// The pop itself is SUPPRESSED: the byte stays in the queue and the QS port
+// stays idle (`INT.90` case 0 row 3 against `IE0.90` case 0 row 3 -- the same
+// geometry with and without the recognition).
+long BiuTimed::boundary_no_pop() {
+    if (opc_valid_) return clk_;   // already latched: this IS the pop clock
+    wait_bus();
+    return clk_;
 }
 
 uint8_t BiuTimed::pop(uint16_t cs, uint16_t upc, bool disp_last) {
@@ -1011,7 +1075,8 @@ uint16_t BiuTimed::inta_read(uint16_t upc) {
     uint16_t v = core_.inta_read(upc);
     Access acc;
     acc.bs = kBsInta;
-    acc.addr = 0;
+    acc.addr = 0;         // filled from the FLOATING AD at the display clock
+    acc.no_addr = true;   // see Access::no_addr
     acc.ube_n = 0;
     acc.segc = 2;
     acc.data = v;
@@ -1029,7 +1094,14 @@ void BiuTimed::note_halt(uint16_t upc) {
     // HALT display lands at the previous cycle's e+2 at w0, w1 and w3 alike,
     // which is one clock past the slot a granted cycle would have taken --
     // exactly "the HLT row drives it, nothing arbitrates it".
-    withdraw_fetch();
+    //
+    // S9a: and it does NOT take a committed fetch back.  "Prefetch is blocked
+    // FROM the decode cycle" is a statement about the DECISION, not a
+    // retroactive withdrawal: a fetch the eval at the end of the OPCODE POP
+    // clock already granted runs to completion and the HALT display waits for
+    // it.  MEASURED on the prefetched HALT variants, where the pop sits on an
+    // idle bus and the golden shows CODE display / T1 / T2 / T3 / T4 and only
+    // then the HALT (`HLT.RES` case 1 rows 1-6; 300 of the 600 HALT cases).
     Access acc;
     acc.bs = kBsHalt;
     // M10 (T4): the HALT display's upper nibble is a LIVE PS, not a constant.

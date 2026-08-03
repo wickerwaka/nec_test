@@ -10,6 +10,7 @@
 #include "biu.h"
 #include "exec.h"
 #include "json.h"
+#include "pin_replay.h"
 #include "state.h"
 
 namespace sim {
@@ -62,77 +63,8 @@ struct CaseResult {
     int near_wrap = 0, wrapped = 0, code_wrap = 0;
 };
 
-// --- the pin-event replay directive ----------------------------------------
-// FUNCTIONAL policy (ledger: "pin-event forms"): the simulator does NOT predict
-// the cycle-exact catch window.  It REPLAYS the boundary the golden recorded --
-// the same class of decision as the `iord=` replay (R3) -- and computes every
-// architectural consequence.  Two numbers identify the boundary:
-//
-//   resume_ip  the PC the chip pushed, i.e. the instruction the interrupt
-//              preempted.  Read out of the golden's own pushed frame at
-//              SS:SP (final SS/SP, final memory image), which is the only
-//              recorded statement of "which boundary fired".
-//   elements   for a REP aborted mid-string (resume_ip == the prefix address,
-//              which is where the V30 resumes -- no lost-prefix bug): the
-//              number of string elements the golden's BUS TRACE shows
-//              completing before the acknowledge.  Counted as MEMW cycles
-//              ahead of the first INTA row.
-//
-// A case whose golden shows no push at all (SP unchanged, no PSW frame) did not
-// fire (masked INT, HALT masked-resume, POLL) and runs as an ordinary case.
-struct Replay {
-    bool active = false;
-    bool nmi = false;
-    uint16_t resume_ip = 0;
-    int elements = -1;
-};
-
-bool is_rep_prefix(unsigned b) {
-    return b == 0xF3 || b == 0xF2 || b == 0x65 || b == 0x64;
-}
-
-Replay derive_replay(const json::Value& c, const uint16_t* iregs,
-                     const uint16_t* eregs,
-                     const std::map<uint32_t, uint8_t>& img) {
-    Replay r;
-    const json::Value* evt = c.get("evt");
-    if (!evt || evt->type != json::Value::kObj) return r;
-    const json::Value* pin = evt->get("pin");
-    r.nmi = pin && pin->i() != 0;
-
-    uint32_t ss = eregs[10], sp = eregs[4];
-    auto word = [&](uint32_t off) -> uint32_t {
-        uint32_t a = ((ss << 4) + (off & 0xFFFF)) & 0xFFFFF;
-        uint32_t a1 = ((ss << 4) + ((off + 1) & 0xFFFF)) & 0xFFFFF;
-        auto lo = img.find(a), hi = img.find(a1);
-        return uint32_t((lo == img.end() ? 0 : lo->second) |
-                        ((hi == img.end() ? 0 : hi->second) << 8));
-    };
-    // A real V30 interrupt frame: PSW at SP+4 with the forced reserved bits
-    // 15:12 all set, and SP six lower than it started.
-    if (sp == iregs[4]) return r;
-    if ((word(sp + 4) & 0xF000) != 0xF000) return r;
-    r.active = true;
-    r.resume_ip = uint16_t(word(sp));
-
-    const json::Value* by = c.get("bytes");
-    bool rep = by && by->type == json::Value::kArr && !by->arr.empty() &&
-               is_rep_prefix(unsigned(by->arr[0].u()));
-    if (rep && r.resume_ip == iregs[12]) {
-        int n = 0;
-        const json::Value* cy = c.get("cycles");
-        if (cy && cy->type == json::Value::kArr) {
-            for (const auto& row : cy->arr) {
-                if (row.type != json::Value::kArr || row.arr.size() < 9) continue;
-                const std::string& bs = row.arr[7].str;
-                if (bs == "INTA") break;
-                if (bs == "MEMW" && row.arr[8].str == "T1") ++n;
-            }
-        }
-        r.elements = n;
-    }
-    return r;
-}
+// The pin-event replay directive now lives in pin_replay.h, shared verbatim
+// with the TIMED runner (S9a).  The policy statement is there.
 
 CaseResult run_one(const ucrom::UcRom& rom, Biu& biu, const json::Value& c,
                    const RunOptions& opt, std::FILE* trace_out) {

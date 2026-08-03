@@ -337,6 +337,12 @@ close the window on a prefixed case, because it needs `n_fpops(golden)` F pops.
 Every entry here is KNOWN wrong and exists only so the next stage has something
 to replace.  None of them may be cited as a law.
 
+**S9a UPDATE (2026-08-02, §19):** S9's SINGLE-INSTRUCTION half is **REMOVED** —
+`timed-run` executes all thirteen pin-event forms cycle-exactly and the w0
+denominator is the full 169,000.  What remains of S9 is `timed-boot`'s missing
+event replay (the fuzz bank's 1,165 `EVT` seeds) and the interrupt/INTA WAIT
+AXIS, which has no oracle.
+
 **T1 UPDATE:** S1, S2, S3, S4 and S10 are **REMOVED** (replaced by the
 mechanisms in §7.1-§7.8).  S5 is **partly removed** — the write cycle is now
 scheduled by the BIU at a grid slot, but the write-data pairing latch is still
@@ -353,7 +359,7 @@ the interpreter's.  S6 (uniform waits), S7 (no arbitration reservations), S8
 | S6 | **Uniform waits only.** `--waits N` applies N wait states to every cycle. | The wait axis needs per-access wait vectors and the `wrand` Galois-LFSR generator (`docs/notes/random_wait_rig.md`). | T2 (wait axis) |
 | S7 | **No arbitration / maturity model.** Fetch and data accesses never contend, because they cannot overlap (S1). | The whole chip-oracle-v2..v7 corpus is about that contention. | T1 (arbitration rules A/B) |
 | S8 | **No flush timing, no BUSLOCK, no HALT display.** `flush()` costs exactly one clock and emits a QS=E point sample; `lock_n` is hardwired inactive. | Measured flush law + NEAR +1-late; BUSLOCK and HALT have their own display rules. | T1 (flush/BUSLOCK/HALT) |
-| S9 | **No interrupt/INTA timing.** `timed-run` runs instructions only; the pin-event replay that `case_runner` performs is not implemented in the timed path, so `INT.* / NMI.* / HLT.* / POLL.*` pseudo-forms have no timed arch result. | Scope exclusion inherited from the RTL campaign: interrupt/INTA timing under waits stays OUT of every timed gate until measured. | T4 (board block may open it) |
+| S9 | **No interrupt/INTA timing.** `timed-run` runs instructions only; the pin-event replay that `case_runner` performs is not implemented in the timed path, so `INT.* / NMI.* / HLT.* / POLL.*` pseudo-forms have no timed arch result. | Scope exclusion inherited from the RTL campaign: interrupt/INTA timing under waits stays OUT of every timed gate until measured. | **S9a (§19): the single-instruction half is REMOVED — 2,600 / 2,600 cycle-exact at w0.**  `timed-boot`'s event replay (S9b) and the wait axis stand. |
 | S10 | **Instruction-boundary QS=F rule.** See 2.8. | Prefixes each pop an F. | T1 |
 
 ---
@@ -4358,3 +4364,354 @@ tranche re-score is 154 / 188, the same number §17 recorded.  What the session
 bought is a retraction, a mechanism, and a residual that is now 13 events
 instead of 93 — with the next two blockers (§18.3(a) and (c)) measured and
 named rather than guessed at.
+
+---
+
+## 19. POST-CLOSURE ADDENDUM #4 — S9a, THE TIMED PIN-EVENT PATH (2026-08-02)
+
+**This section is an ADDENDUM.  Nothing in §0-§18 is edited or retracted by it.**
+It closes the last standing piece of scaffolding **S9** for the OFFLINE w0
+oracles: `timed-run` now executes the thirteen arch-excluded pin-event forms
+cycle-exactly, and the reachable w0 denominator moves from **166,400 to the
+full 169,000**.
+
+### 19.0 What was excluded, and what the exclusion now is
+
+§10.6 booked the w0 denominator as `169,000 - 2,600`, the 2,600 being the
+thirteen pin-event forms whose ROWS the timed model could not produce
+(`INT.90 INT.B8 INT.9D INT.8ED0 INT.8ED8 INT.F3AA INT.FB NMI.90 NMI.B8
+HLT.INT HLT.NMI HLT.RES POLL.REL`; `IE0.90` and `POLL.LO` were always in the
+scored set because neither fires).  All 2,600 are now **cycle-exact**, so:
+
+```
+169,000 total
+      0 excluded                <- S9's single-instruction half is REMOVED
+  ------
+169,000 reachable at w0      168,997 exact      3 short
+```
+
+The 3 short are the SAME three tails §10.6 named (`0F12`, `C1.6`, `F7.4`, one
+case each) — no new residual, and no pin-event case among them.  **The
+ratchet is stated on the new denominator: 168,997 / 169,000 (99.998 %),
+against the previous 166,397 / 166,400.**  In absolute terms 2,600 cases moved
+from "not attempted" to "exact" and none moved the other way.
+
+What S9 still covers is the **multi-instruction** half: `timed-boot` has no
+event replay, so the fuzz bank's 1,165 `EVT` seeds remain the registered
+exclusion (untouched this session; see §19.7 for the preview).  Interrupt/INTA
+timing **UNDER WAITS** also stays scoped out and is scoped out again here
+explicitly: the pin-event goldens are w0 only, so w0 INTA is fully oracled and
+nothing above w0 is.  No wait-axis behaviour was guessed at.
+
+### 19.1 The firing policy — REPLAY, and where the rig's own schedule is used
+
+The functional policy (ledger §38, now `sim/pin_replay.h`, shared verbatim by
+`case_runner.cpp` and `timed_runner.cpp`) is unchanged: the golden's own
+pushed frame at `SS:SP` names the instruction the interrupt preempted, and a
+mid-string `REP` abort is identified by its completed-element count read off
+the golden's bus trace.  Nothing about WHICH boundary fires is predicted.
+
+The timed path needs one coordinate the functional path does not — the clock
+the rig's pin goes active — and it is read verbatim out of the golden's `evt`
+/ `pins` fields, in the same class as `iord` and the INTA constant.  The
+translation is `hdl/tb/tb_v30_core.sv`'s scheduler, mirrored exactly and with
+no fitted offset, because the BIU tracks the scheduler's OWN anchors on its
+own row stream:
+
+| trigger | anchor | assert clock `A` |
+|---|---|---|
+| `fetch` | the `CODE` T1 whose 20-bit address is `evt.addr` | anchor + 2 + `delay` |
+| `fpop` | the window-opening `F` pop | anchor + `delay` |
+
+held for `evt.hold` clocks (0 = to the end of the case); `pins` bit 2 is the
+static POLL_N level.  (`BiuTimed::set_evt` / `assert_clk`.)
+
+### 19.2 M14 — THE INTERRUPT ENTRY SEQUENCE RUNS AT THE DECISION CLOCK + 2, AND THE DECISION CLOCK IS A MAX OF TWO THINGS
+
+**MEASURED.**  One rule replaces every separate number
+`docs/facts/interrupt_model.md` records for the running case:
+
+```
+D = max(B, A + 3)      INT   (the pin LEVEL through three flops)
+D = max(B, A + 4)      NMI   (the EDGE latches at +3, read the clock after)
+entry = D + 2
+```
+
+`B` is the replayed boundary's **retire** clock — `wait_bus()`'s deadline, the
+`E` row's own clock — and NOT the would-pop clock (§19.3).  Everything else
+falls out of the ROM's own rows and the ordinary bus grid:
+
+* **INT**: the entry row `01E0` IS the acknowledge, so the INTA request is
+  ready at `D+2` — the measured *"the INTA request is READY during B+2"*, and
+  the measured 7/8/10 assert-to-INTA1 spread is then just the arbitration.
+* **NMI**: `01DA`, `01DB` (FARJMP, 2 clocks), `01EC`, `01ED`, and `01EE`
+  issues the IVT read — `D+2+5 = D+7`, the measured *"ready during B+7, IVT
+  T1 = B+9 on a quiet bus"*.  The five clocks are ROM rows, not a constant.
+* **INTA1 -> INTA2** needs no rule at all: `01E1`'s `F` releases at the
+  acknowledge's `eu_done` and `01E2` posts one clock later, which puts INTA2's
+  T1 exactly 7 clocks after INTA1's on a quiet bus.  Measured 200/200 per form.
+
+**Both terms of the max are load-bearing, and the census says so.**  Over the
+800 running `INT.90 / INT.B8 / NMI.90 / NMI.B8` goldens, scored cell by cell
+in `(A, B)` against the window the golden's own eval grid leaves for the
+acknowledge request (16 + 23 + 12 + 20 distinct cells):
+
+| model | exact |
+|---|---|
+| `entry = B + 2` alone | 768 / 800 (32 late-assert cases 1-2 clocks early) |
+| `entry = max(B+2, A+p)`, p = 5 / 6 | **800 / 800** |
+
+and `p` is pinned from both sides: `p = 4` breaks the `A=1, B=3` cell, `p = 6`
+(for INT) breaks `A=0, B=3`.  Falsifier: any case whose acknowledge is
+inconsistent with the max.
+
+### 19.3 The recognition boundary is the RETIRE, not the POP — and the pop is SUPPRESSED
+
+`opcode_prefetch` takes the successor's opcode at `max(retire, byte poppable)`
+(M8).  The recognition decision sits at the FIRST of those two only: it is the
+decision NOT to take a byte, so it does not slide when the queue is dry.
+
+The queue geometry separates the two readings for free: the anchor
+instruction's fetch delivers TWO bytes at an even address and ONE at an odd
+one, so half the goldens have the successor byte standing at the retire and
+half do not.  With the POP deadline `INT.90` scores 177/200 and `NMI.90`
+186/200 and **every one of the 37 failures is an odd-address, dry-queue case**;
+with the RETIRE deadline both are 200/200.
+
+And the pop itself does not happen: the byte stays in the queue and the QS
+port stays idle.  `INT.90` case 0 row 3 against `IE0.90` case 0 row 3 is the
+same geometry with and without the recognition — `F` in one, nothing in the
+other.  (`BiuTimed::boundary_no_pop`, `CpuT::set_fire_pc`.)  The sequence
+still runs its post-`E` row, which costs no clocks but carries datapath work:
+`9D`'s `SIGMA -> SP` lives there, and dropping it put every `INT.9D` push two
+bytes low.
+
+### 19.4 M15 — THE INTA CYCLE DRIVES NO ADDRESS
+
+**MEASURED** (`interrupt_model.md` "INTA cycle drive", and all 1,400 vectored
+golden acknowledge cycles): AD15-0 FLOAT through the commit display and T1 —
+they keep whatever the last data phase left standing — and AD19-16 are driven
+to 0 over both.  From T2 on it is an ordinary read display: the acknowledge
+byte on the lanes, PS = IE:seg as usual, UBE low.  Modelled as one flag
+(`Access::no_addr`) that freezes the floating AD into the access on its
+display clock, so the display row and T1 both reach the pins through the
+ordinary address path.
+
+### 19.5 M16 — HLT IS DECODED, NOT MICROCODED, AND THE DECODE IS WHERE IT ACTS
+
+`HLT` is a pre-decode-executed (ONE_BYTE_LOGIC) form, and the measured HALT
+display law is a statement about its DECODE clock, not its retire:
+
+* the HALT status takes the register on the first clock the register is free
+  **from the decode cycle on** (the pop clock + 1);
+* **prefetch is blocked from the decode cycle** — so the eval at the end of
+  the OPCODE POP clock still grants a fetch and the one at the end of the
+  decode clock does not;
+* and it does **NOT** take a committed fetch back.  "Blocked from the decode
+  cycle" is about the DECISION, not a retroactive withdrawal.
+
+The three are separated by the corpus itself: `HLT.RES` case 0 (a fetch
+running over the pop) shows that fetch completing and NOTHING following it;
+case 1 (the pop on an idle bus) shows `CODE` display / T1 / T2 / T3 / T4 and
+only then the HALT.  Arming at the retire puts the display one clock late on
+the first and withdrawing the fetch loses the second — 300 of the 600 HALT
+cases each way.  The pre-window fetch-address replay (`queue_preload`) now
+also primes `last_fetch_addr_`, because a part that halts before making a
+fetch of its own still drives the last PRE-window fetch's address.
+
+**And the HALT pseudo-cycle is not an EU access.**  It never went through
+`post()`, so it must not complete one either: before this session's guard it
+decremented `eu_pending_` and pushed a phantom read-completion clock into
+`rd_done_q_`, which the first `F` row after the wake then consumed instead of
+waiting for its own acknowledge (`HLT.INT`'s second INTA landed 3 clocks
+early).  A latent corruption that only a wake could expose.
+
+### 19.6 The HALT wake — one clock, then the same machinery
+
+**MEASURED** (`interrupt_model.md` "HALT wake", reproduced 600/600):
+
+| | |
+|---|---|
+| `HLT.RES` (masked INT) | the prefetcher restarts at the decision clock `A+3`; the resumed opcode pops at `A+4` |
+| `HLT.INT` | entry at `A+6`; the prefetcher restarts at `A+3` and a cold queue lets one fetch commit before the acknowledge |
+| `HLT.NMI` | entry at `A+7`, IVT read posted at `A+12`, its T1 at `A+14` — and **the bus is HELD**: the prefetcher does not restart before the entry |
+
+Read against §19.2 this is ONE statement: **the HALT wake costs one clock.**
+The decision sits at the earliest clock the pin pipeline allows (`A+3` for the
+INT level, `A+4` for the NMI latch) and the machine's would-pop clock is one
+later — `B = A+4` / `A+5` — after which `entry = B+2` is the running rule
+unchanged, and the masked resume's pop is that same `B`.  The bus-held
+asymmetry on NMI is measured, not derived.
+
+### 19.7 POLL — the ROM's last substantive rows, and the SAME 3-deep pin pipeline
+
+The 9B `BUSY` loop is three ROM rows and nothing else:
+
+```
+006C  JMP BUSY 3     taken   = 2 clocks
+006F  JMP INTR 5     not taken = 1
+0070  JMP 0          taken   = 2
+                     ---------------
+                     5 clocks per sample
+```
+
+That IS the measured *"sampling the pin every 5 clocks"* — no timer, no
+counter.  `kCondBusy` stops being hard-FALSE and becomes the rig's replayed
+POLL_N level; on the functional bus there is no clock and no pin, so it is a
+constant false and 9B still retires in one pass (ledger R2 unchanged).
+
+**And the level is read through the SAME three flops the INT level is.**  The
+row running on clock `c` decides on POLL_N at `c-3`.  MEASURED and a clean
+fit: over the 200 `POLL.REL` goldens the missed-sample count `k` — the
+golden's own `gap = 3 + 5k` to the next `F` pop — is reproduced by
+`k = min{ j : 2 + 5j - d >= A }` at
+
+| d | 0 | 1 | 2 | **3** | 4 | 5 | 6 |
+|---|---|---|---|---|---|---|---|
+| cases matched | 65 | 124 | 164 | **200** | 171 | 135 | 76 |
+
+zero exceptions at d = 3 over `A` = 1..27 and `k` = 1..6.  Falsifier: any POLL
+release whose `k` needs a different depth.  Rows `0070`/`0071` and the `BUSY`
+branch are now EXECUTED — the ROM's last substantive unexecuted surface.
+
+### 19.8 REP interruption — the withdrawal is the same boundary, and one clock is MEASURED but UNEXPLAINED
+
+The mid-string withdrawal machinery is the ROM's own (`REPX` 0223 -> 0225-0227:
+the PFXCNT rewind and the FLUSH) and the timed path reproduces it unchanged.
+Two things had to be said:
+
+1. **The rewound PC IS `resume_ip`, so the recognised-boundary rule applies
+   without modification** — including the suppressed pop, which is why the
+   golden shows no `F` between the withdrawal flush and the acknowledge.  With
+   the boundary armed, all 35 one-element aborts are exact and the flush lands
+   at the loop row + 10 = the measured `pop+16 = edge+9`.
+
+2. **A CHAINED abort (>= 2 elements) takes its decision one clock later.**
+   `interrupt_model.md` already records the two anchors separately — the first
+   boundary POP-anchored at `pop+7`, a chained one WRITE-ACCEPT-anchored — and
+   the row cadence lands on the first by itself.  MEASURED, uniform, no
+   exceptions: over the 56 `INT.F3AA` withdrawals the model matches all 35
+   one-element aborts and is EXACTLY +1 early in all 21 chained ones (14 at
+   two elements, 7 at three) — a single clock, not a per-iteration drift.
+
+   **PROVENANCE: MEASURED offset, MECHANISM OPEN.**  Two anchors were tried
+   and refuted against the goldens: the completing store's display clock
+   (+2 on the chained cases) and the previous store's display (no change).
+   Falsifier: any chained abort whose flush is not at the loop row + 10, or
+   any one-element abort that needs the +1.
+
+### 19.9 The checker — the pin-event flags policy, imported not forked
+
+`sw/timed_gate.py` compared the golden's recorded `final.flags` literally,
+which for a vectored form is the POST-HANDLER store-stub PUSH PSW — an
+unreliable capture on both sides.  `check_core.check_case` has had the right
+rule since block 4 (`_pushed_psw_flags`: the architectural finals are the
+interrupt-pushed PSW with IE/BRK cleared, derived from each side's own memory
+image).  It is now IMPORTED into the timed gate, per the file's own standing
+rule that `check_core` is never forked.  Without it `INT.9D` scored 148/200
+ARCH while both sides agreed on the frame they pushed — the POP-PSW boundary
+race, read as a model failure.
+
+### 19.10 Recognition-law consistency — a free measurement
+
+The firing boundary is REPLAYED, so the recognition laws are not used to
+decide WHETHER a case fires.  They are, however, checkable against the timed
+row stream, and §19.2's census IS that check: over the 800 running INT/NMI
+goldens the decision clock implied by the golden's own acknowledge position is
+`max(B, A + 3)` for INT and `max(B, A + 4)` for NMI in **800 / 800** cases,
+with `A` computed from the rig's schedule and `B` from the model's own retire.
+The measured recognition laws (would-pop-3, edge+3 latched) are therefore
+consistent with the timed model's clocks on every running case in the corpus,
+and the 600 HALT cases add the same statement at the pin's own earliest clock.
+
+### 19.11 Gates (measured, this machine, immediately before the commit)
+
+```
+make -C sim test                                                          # disasm gate: PASS
+python3 sw/pla3_check.py                                                  # OK (21 checks)
+python3 sw/ucsim_check.py --suite tests/v30/v0.1                          # 169000/169000
+python3 sw/ucsim_check.py --suite tests/v30/v0.2                          # 347000/347000
+python3 sw/ucsim_check.py --suite tests/v30/v0.3                          # 3699998/3699998
+python3 sw/ucsim_check.py --suite tests/v30/v20suite --no-mirror          # 3125000/3125000
+python3 sw/ucsim_check.py --suite tests/v30/mod3_illegal --residue stale-ea  # 128/128
+                                                              # functional total 7,341,126
+python3 sw/timed_gate.py --suite tests/v30/v0.1    --forms all            # 168,997 / 169,000
+python3 sw/timed_gate.py --suite tests/v30/v0.1-w1 --forms all --waits 1  # 1,200/1,200
+python3 sw/timed_gate.py --suite tests/v30/v0.1-w3 --forms all --waits 3  # 1,200/1,200
+python3 sw/timed_gate.py --suite tests/v30/v0.1-w1 --forms EB  --waits 1  # 200/200
+python3 sw/check_boot.py --timed 220                                      # MATCHES over 220 rows
+python3 sw/timed_scenario.py                                              # 18 PASS, 0 FAIL, 9 SKIP
+python3 sw/timed_enter_replay.py          # pushes/walk/full/active/halt_display 154/154 x5
+python3 sw/timed_ins_replay.py --raw      # rails 1312/1312, vs-chip 2624/2624, R2 782/800,
+                                          # whole-program 173,556/173,556 all on the same T1
+python3 sw/timed_wvec_gate.py             # count 88/88, digest 88/88, cycles +0.0 %
+python3 sw/timed_lawcards.py              # 7 GREEN / 0 RED / 4 UNRESOLVED
+python3 sw/timed_fuzz.py                  # 1,272/1,702 exact, EVT 1,165 excluded (unchanged)
+python3 sw/timed_fuzz.py --seeddir sw/testdata/t4/b2-tranche/seeds        # 154/188
+```
+
+`sw/check_enter_nesting.py` is the VERILATOR/RTL leg (CLAUDE.md) and is NOT in
+this set: S9a touches `sim/` and `sw/timed_gate.py` only, and the working tree
+carries unrelated uncommitted `hdl/` changes from another branch.
+
+**Monotonicity.** Over the 347 forms of the v0.1 w0 suite the 13 pin-event
+forms went 0 -> 200 each and **no other form moved**; the three tails
+(`0F12`, `C1.6`, `F7.4`) are the same three cases with the same diffs.  w1/w3
+and `EB` w1 are byte-identical.  `timed_fuzz` is byte-identical on all 1,702
+scored seeds (0 newly exact, 0 newly broken, no first-divergence row moved),
+which is expected: every shared-code change is inert without an armed
+`fire_pc` / `rep_abort` / pin schedule, and the two that are not
+(`halt_decode`, the HALT pseudo-cycle guard) are exercised by the ENTER
+tranche's own `HLT`, which stays 154/154.
+
+### 19.12 EVT pilot preview (S9b), 20 stratified seeds — NOT a gate
+
+The registered `EVT` exclusion was NOT touched.  As a preview, 20 of the
+bank's 1,165 `EVT` seeds were scored through the UNCHANGED `timed-boot` path
+(which still has no event replay):
+
+* **4 of 20 are already cycle-exact over the whole capture** — their event has
+  no bus consequence inside the window;
+* of the 12 whose capture contains an `INTA` row, **9 part within 4 rows of
+  that acknowledge** (gaps 0, 0, 3, 3, 3, 4, 4, 4, 7) and the first-divergence
+  column is the bus STATUS in every one;
+* the remaining 3 (gaps 125, 259, 989) part earlier, in the ordinary `qs`
+  family the non-EVT population already has.
+
+Reading: the population is blocked on the DRIVER, not on bus physics — what
+`timed-boot` needs is the event replay `image_runner.cpp` already has in the
+bus-ordinal coordinate, plus §19.2's decision clock expressed in it.  Nothing
+in the preview suggests a missing law.
+
+### 19.13 Ledger delta
+
+| | after §18 | after this addendum |
+|---|---|---|
+| v0.1 w0 REACHABLE denominator | 166,400 (S9: −2,600) | **169,000 (S9 single-instruction half REMOVED)** |
+| v0.1 cycle rows at w0 | 166,397 / 166,400 | **168,997 / 169,000** |
+| ...pin-event forms | 0 / 2,600 (excluded) | **2,600 / 2,600** |
+| arch through the TIMED path | 166,800 / 169,000 | **169,000 / 169,000** |
+| v0.1-w1 / -w3, `EB` w1 | 1,200 / 1,200, 200/200 | unchanged |
+| boot / scenario / ENTER / INS / wvec / law cards | as §18.4 | unchanged |
+| `timed_fuzz`, banked / tranche | 1,272 / 1,702, 154 / 188 | unchanged (EVT still excluded) |
+| functional corpus | 7,341,126 / 7,341,126 | unchanged |
+| open w0 physics questions | 3 tails | 3 tails (same three cases) |
+| mechanisms | M1-M13, M2r, M5b | **+ M14 (decision clock), M15 (INTA drives no address), M16 (the HLT decode)** |
+| scaffolding | S9 (pin events) | S9 **half removed**: single-instruction closed, `timed-boot` EVT replay open (S9b) |
+
+### 19.14 S9b handoff
+
+1. **`timed-boot` event replay.**  The one thing the 1,165-seed `EVT`
+   population needs.  `image_runner.cpp` already carries the coordinate (the
+   ordered bus position plus the recorded resume `CS:IP`); the timed driver
+   needs the same two coordinates plus §19.2's `entry = max(B, A+3/4) + 2`,
+   and `A` in that path comes from the capture's own pin schedule rather than
+   from a golden `evt` record.  Re-freeze the fuzz bar before scoring.
+2. **The chained-REP-abort clock (§19.8.2)** is MEASURED but its mechanism is
+   open.  The stimulus that would close it is a waited capture of a chained
+   withdrawal — which is also the first thing that would test whether it is
+   eval-keyed or index-keyed.
+3. **INTA under waits stays scoped out.**  The pin-event goldens are w0 only.
+   A w1/w3 pin-event tranche is the capture that would open it; until then no
+   gate may pretend a law exists.
+4. The three w0 tails (`0F12`, `C1.6`, `F7.4`) are untouched and unrelated.

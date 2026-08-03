@@ -114,6 +114,7 @@ LoadResult loader_decode_8080(Machine& m, Bus& biu) {
 
     if (!ext && pla3::one_byte_logic(v)) {
         out.executed = true;
+        if (pla3::bl1_op(v) == pla3::Bl1Op::kHalt) biu.halt_decode(0xFFFF);
         switch (pla3::bl1_op(v)) {
             case pla3::Bl1Op::kSetIe: m.psw |= kFlagIE; break;
             case pla3::Bl1Op::kClrIe: m.psw &= uint16_t(~kFlagIE); break;
@@ -310,6 +311,25 @@ LoadResult loader_decode(Machine& m, Bus& biu) {
         // separates pop+3 from pop+4 on the odd half; one rule gives pop+3.
         // (A "PS is a register loaded at T2" model was tried and FALSIFIED --
         // provenance 9.4: the even half shows PS changing WITHIN a data phase.)
+        // S9a -- HLT IS DECODED, NOT MICROCODED, AND THE DECODE IS WHERE IT
+        // ACTS.  MEASURED (docs/facts/interrupt_model.md, "HALT display law"):
+        // the HALT status appears at the first clock the status register is
+        // free FROM THE DECODE CYCLE ON, and PREFETCH IS BLOCKED FROM THE
+        // DECODE CYCLE -- so the eval at the end of the OPCODE POP clock still
+        // grants a fetch (`HLT.RES` case 1: pop on an idle bus, CODE display
+        // one clock later) while the one at the end of the decode clock does
+        // not (`HLT.RES` case 0: the fetch running over the pop completes and
+        // NOTHING follows it).  The other ONE_BYTE_LOGIC forms keep the
+        // retire-lead wait, which is about their FLAG write reaching the PS
+        // pins; HLT writes no flag and the queue it would wait on is the one
+        // it has just frozen.
+        if (pla3::bl1_op(v) == pla3::Bl1Op::kHalt) {
+            biu.halt_decode(0xFFFF);
+            m.halted = true;
+            out.halt = true;
+            m.set_flags(m.psw);   // the shared block's normalisation, verbatim
+            return out;
+        }
         biu.wait_retire_lead();
         switch (pla3::bl1_op(v)) {
             case pla3::Bl1Op::kSetDir: m.psw |= kFlagDIR; break;

@@ -150,8 +150,72 @@ public:
     void io_write(uint16_t port, uint16_t data, bool word, uint16_t upc);
     uint16_t inta_read(uint16_t upc);
     void note_halt(uint16_t upc);
+    // The HLT DECODE drives the status register and freezes the prefetcher --
+    // see loader_impl.h's ONE_BYTE_LOGIC block (S9a).
+    void halt_decode(uint16_t upc) { note_halt(upc); }
     // S8/S9: run one clock with no EU behind it (the parked, halted bus).
     void tick_idle() { tick(); }
+
+    // --- S9a: the pin-event machinery -------------------------------------
+    //
+    // THE RIG'S PIN SCHEDULE, replayed.  `hdl/tb/tb_v30_core.sv`'s pin-event
+    // scheduler arms on one of two anchors and then counts clocks:
+    //   trigger 1 (fetch): the CODE T1 whose 20-bit address is `addr`;
+    //                      the pin is driven from anchor + 2 + delay
+    //   trigger 2 (fpop):  the window-opening `F` pop;
+    //                      the pin is driven from anchor + delay
+    // and it is held for `hold` clocks (0 = to the end of the case).  This is
+    // a RIG INPUT, in the same class as `iord` / the INTA constant: nothing
+    // about the part is predicted from it.  The BIU tracks the two anchors
+    // because they are pin events on ITS OWN row stream.
+    void set_evt(int trigger, int pin, uint32_t addr, long delay, long hold,
+                 int pins_cfg) {
+        ev_trigger_ = trigger; ev_pin_ = pin; ev_addr_ = addr & 0xFFFFFu;
+        ev_delay_ = delay; ev_hold_ = hold; ev_pins_ = pins_cfg;
+        ev_anchor_ = -1;
+    }
+    // The clock the scheduled pin goes active on, or -1 while the anchor has
+    // not been seen yet.
+    long assert_clk() const {
+        if (ev_trigger_ == 0 || ev_anchor_ < 0) return -1;
+        return ev_anchor_ + (ev_trigger_ == 1 ? 2 : 0) + ev_delay_;
+    }
+    // POLL_N as the 9B `JMP BUSY` row samples it.  Static level from `pins`
+    // bit 2, pulled low while the scheduled POLL event drives.
+    //
+    // S9a -- AND IT IS THE SAME 3-DEEP PIN PIPELINE THE INT LEVEL GOES
+    // THROUGH.  `interrupt_model.md`'s INT law is "the decision at B sees the
+    // pin level of cycle B-3"; POLL_N is read through the same three flops, so
+    // the row running on clock `c` decides on the level of clock `c-3`.
+    //
+    // MEASURED, and it is a CLEAN FIT with no exceptions: over the 200
+    // POLL.REL goldens the missed-sample count k (the golden's own
+    // `gap = 3 + 5k` to the next `F` pop) is reproduced by
+    // `k = min{ j : 2 + 5j - d >= A }` at d = 3 in 200 / 200 cases, and at no
+    // other depth -- d = 2 gets 164, d = 4 gets 171, d = 0 gets 65.  The
+    // falsifier is any POLL release whose k needs a different depth.
+    static constexpr long kPinPipe = 3;
+    bool poll_busy() const {
+        if (!(ev_pins_ & 4)) return false;          // POLL_N statically low
+        if (ev_trigger_ == 0 || ev_pin_ != 2) return true;
+        const long a = assert_clk();
+        const long t = clk_ - kPinPipe;
+        if (a < 0 || t < a) return true;            // release not seen yet
+        return ev_hold_ != 0 && t >= a + ev_hold_;
+    }
+    // The recognition BOUNDARY: the clock the successor's opcode WOULD have
+    // been popped on.  Same deadline as `opcode_prefetch`, but the byte stays
+    // in the queue and no `F` reaches the QS port -- a recognised boundary
+    // suppresses its own pop (MEASURED: every vectored golden shows the
+    // would-pop cycle with QS idle).
+    long boundary_no_pop();
+    long evt_anchor() const { return ev_anchor_; }
+    long first_fpop() const { return first_fpop_; }
+    // The part leaves HALT: the prefetcher runs again.  (`flush()` already
+    // clears `suspended_`; `halted_` is the S8/S9 park and outlives it.)
+    void unhalt() { halted_ = false; }
+    bool halted() const { return halted_; }
+    void charge_to(long c) { while (clk_ < c) tick(); }
     // F2 SUSP IS ONE CLOCK EARLY.  The ROM's bus-control field is decoded a
     // row ahead of the datapath, so SUSP reaches the BIU on the same clock
     // edge that loads the prefetch COMMIT register -- and a fetch the eval
@@ -277,6 +341,13 @@ private:
         //     the pseudo-cycle would not stretch.)
         //   * the bus then PARKS: zero non-passive status rows afterwards.
         bool is_halt = false;
+        // S9a -- THE INTA CYCLE DRIVES NO ADDRESS.  MEASURED
+        // (docs/facts/interrupt_model.md, "INTA cycle drive", and every
+        // vectored golden): AD15-0 FLOAT through the commit display and T1 --
+        // they keep whatever the last data phase left standing -- and AD19-16
+        // are driven to 0 over both.  From T2 on it is an ordinary read
+        // display: the acknowledge byte on the lanes, PS = IE:seg as usual.
+        bool no_addr = false;
         uint8_t push_n = 0;    // queue bytes this fetch delivers
         uint8_t push_b[2] = {0, 0};
         // M2r: the wait count the rig latches at this cycle's T1 entry, and
@@ -473,6 +544,15 @@ private:
     // separates the two sets at all.
     long pf_infl_to_ = -2;
     int pf_infl_n_ = 0;
+    // S9a: the rig's pin schedule and its two anchors (see set_evt).
+    int ev_trigger_ = 0;
+    int ev_pin_ = 0;
+    uint32_t ev_addr_ = 0;
+    long ev_delay_ = 0;
+    long ev_hold_ = 0;
+    int ev_pins_ = 0;
+    long ev_anchor_ = -1;
+    long first_fpop_ = -1;
     // S8/S9: once the part is halted the prefetcher never runs again.
     bool halted_ = false;
     bool halt_pending_ = false;

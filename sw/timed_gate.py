@@ -83,7 +83,7 @@ def run_form(cases, waits, mirror):
         return check_core.parse_out(out)
 
 
-def arch_check(c, sim, flags_mask):
+def arch_check(c, sim, flags_mask, events=None, i0=None, i1=None):
     """Sparse-delta final-register comparison, check_core's policy.
     -> (ok, bad_field_list)"""
     if sim is None or sim.get("final") is None:
@@ -91,6 +91,30 @@ def arch_check(c, sim, flags_mask):
     exp = dict(c["initial"]["regs"])
     exp.update(c["final"]["regs"])
     got = sim["final"]
+
+    # PIN-EVENT FORMS: the golden's recorded final.flags is the POST-HANDLER
+    # store-stub PUSH PSW, an unreliable capture on both sides; the
+    # ARCHITECTURAL final flags are the interrupt-pushed PSW with IE/BRK
+    # cleared.  check_core.check_case applies exactly this rule for the RTL
+    # gate (`_pushed_psw_flags`), so it is IMPORTED here rather than forked --
+    # otherwise the POP-PSW boundary race (INT.9D) scores as a model failure
+    # when both sides agree on the frame they pushed.
+    if events is not None and (c.get("evt") is not None or "close_addr" in c):
+        init_ram = {a & 0xFFFFF: v for a, v in c["initial"]["ram"]}
+        golden_img = dict(init_ram)
+        golden_img.update({a & 0xFFFFF: v for a, v in c["final"]["ram"]})
+        memv = dict(init_ram)
+        for a, b in check_core.sim_writes(events, i0, i1):
+            memv[a & 0xFFFFF] = b
+        gp = check_core._pushed_psw_flags(exp.get("sp"), exp.get("ss"),
+                                          golden_img)
+        sp_ = check_core._pushed_psw_flags(got.get("sp"), got.get("ss"), memv)
+        if gp is not None and sp_ is not None and (gp & 0xF000) == 0xF000:
+            exp = dict(exp)
+            exp["flags"] = gp
+            got = dict(got)
+            got["flags"] = sp_
+
     bad = []
     for k in REGS:
         if k == "flags":
@@ -102,17 +126,17 @@ def arch_check(c, sim, flags_mask):
 
 
 def row_check(c, sim):
-    """-> (window_ok, n_mismatch, Counter(column), rows_sim)"""
-    rows, _events, _i0, _i1 = check_core.build_rows_sim(
+    """-> (window_ok, n_mismatch, Counter(column), rows_sim, events, i0, i1)"""
+    rows, events, i0, i1 = check_core.build_rows_sim(
         sim["recs"], c["initial"]["queue"], n_close=check_core.n_fpops(c) - 1)
     if rows is None:
-        return False, None, Counter(), None
+        return False, None, Counter(), None, events, i0, i1
     mm, _masked = check_core.diff_rows(c["cycles"], rows)
     dc = check_core.dontcare_cells(c)
     if dc:
         mm = [m for m in mm if (m[0], m[1]) not in dc]
     hist = Counter(check_core.COL_NAME.get(m[1], str(m[1])) for m in mm)
-    return True, len(mm), hist, rows
+    return True, len(mm), hist, rows, events, i0, i1
 
 
 def side_by_side(c, rows_sim, title):
@@ -185,16 +209,19 @@ def main():
         shown = 0
         for i, c in enumerate(cases):
             sim = sims.get(i)
-            ok, bad = arch_check(c, sim, mask)
             f["n"] += 1
+            if sim is None:
+                f["arch_bad"] += 1
+                f["no_rows"] += 1
+                continue
+            wok, nmm, h, rows, events, i0, i1 = row_check(c, sim)
+            # the row window is built FIRST: the pin-event flags policy reads
+            # the sim's own writes out of it (see arch_check)
+            ok, bad = arch_check(c, sim, mask, events if wok else None, i0, i1)
             f["arch_ok" if ok else "arch_bad"] += 1
             if not ok and shown < args.details:
                 shown += 1
                 print(f"  {name}[{i}] ARCH {bad}: {c['name']}")
-            if sim is None:
-                f["no_rows"] += 1
-                continue
-            wok, nmm, h, rows = row_check(c, sim)
             if not wok:
                 f["no_window"] += 1
                 continue

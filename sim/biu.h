@@ -75,6 +75,20 @@ public:
     // interrupt-boundary replay is expressed in (see image_runner.cpp).
     long ev_count() const { return ev_; }
 
+    // The functional bus has no clock and therefore no sampled pins: the 9B
+    // `JMP BUSY` row always reads "not busy" and POLL retires in one pass,
+    // which is the functional model's standing behaviour (ledger R2).  The
+    // TIMED bus overrides it with the rig's replayed POLL_N level (S9a).
+    bool poll_busy() const { return false; }
+    // ...and no boundary clock: the functional runner replays the firing
+    // boundary architecturally and never arms `CpuT::set_fire_pc`, so this is
+    // only here to keep the shared interpreter compiling on both policies.
+    long boundary_no_pop() { return -1; }
+    // The HLT decode.  The functional drivers log the HALT transaction
+    // themselves (image_runner / case_runner own the ordered-stream contract),
+    // so this is a no-op here and the timed bus overrides it (S9a).
+    void halt_decode(uint16_t) {}
+
     // The functional bus has no clock; -1 so the shared interpreter's
     // env-gated ROW TRACE (exec_impl.h, V30SIM_ROWTRACE) compiles on both
     // bus policies.  A diagnostic only -- nothing reads it for behaviour.

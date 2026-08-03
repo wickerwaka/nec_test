@@ -104,6 +104,18 @@ public:
     void set_rep_abort(int n) { rep_abort_at_ = n; }
     int rep_elements() const { return rep_elems_; }
 
+    // --- S9a: the recognition boundary, in the TIMED domain -----------------
+    // The pin-event firing BOUNDARY is replayed (pin_replay.h): the golden's
+    // own pushed frame names the instruction the interrupt preempted, so the
+    // boundary is the one whose live PC is that address.  `fire_pc` arms it;
+    // when the sequence reaches the `E` row with that PC the successor's
+    // opcode pop is RUN BUT SUPPRESSED (BiuTimed::boundary_no_pop) and the
+    // sequence returns, leaving the driver the clock the pop would have taken.
+    // A no-op on the functional bus (which is never armed).  -1 disables.
+    void set_fire_pc(long pc) { fire_pc_ = pc; }
+    bool fired_boundary() const { return fired_boundary_; }
+    long boundary_clk() const { return boundary_clk_; }
+
     void set_trace(std::FILE* f) { trace_ = f; }
 
     int rows_executed() const { return rows_; }
@@ -171,6 +183,9 @@ private:
     int rep_abort_at_ = -1;
     int rep_elems_ = 0;
     long evt_at_ = -1;
+    long fire_pc_ = -1;
+    bool fired_boundary_ = false;
+    long boundary_clk_ = -1;
     uint16_t hw_owned_[kHwCount] = {};
     long hw_writes_[kHwCount] = {};
 };
@@ -342,17 +357,45 @@ bool CpuT<Bus>::cond_true(uint8_t cond) {
             if (rep_abort_at_ >= 0 && rep_elems_ >= rep_abort_at_)
                 m_.intr_pending = true;
             if (m_.count == 0) return false;
-            if (m_.intr_pending) return false;
+            if (m_.intr_pending) {
+                // S9a -- A CHAINED REP ABORT'S DECISION EDGE IS ONE CLOCK
+                // LATER THAN THE LOOP ROW'S.  `interrupt_model.md` records the
+                // two anchors separately and MEASURED them apart: the FIRST
+                // boundary is POP-anchored (the decision edge at a fixed
+                // opcode-pop+7, its flush invariant at pop+16) while a chained
+                // boundary (>= 2 elements completed) is WRITE-ACCEPT-anchored.
+                // The row cadence lands on the pop-anchored edge by itself; on
+                // a chained boundary it is exactly ONE CLOCK short.
+                //
+                // MEASURED, uniform, no exceptions: over the 56 `INT.F3AA`
+                // mid-string withdrawals the model's flush matches the golden
+                // in all 35 one-element aborts and is EXACTLY +1 early in all
+                // 21 chained ones (14 at two elements, 7 at three) -- a single
+                // clock, not a per-iteration drift.
+                //
+                // PROVENANCE: MEASURED offset, MECHANISM OPEN.  Two anchors
+                // were tried and REFUTED against the goldens: the completing
+                // store's display clock (gives +2 on the chained cases) and
+                // the previous store's display (gives 0, i.e. no change).  The
+                // falsifier is any chained abort whose flush is not at the
+                // loop row + 10, or any one-element abort that needs the +1.
+                if (rep_elems_ >= 2) biu_.charge(1);
+                return false;
+            }
             if (m_.rep_test == kTestZ)
                 return ((psw & kFlagZ) != 0) == m_.rep_pol;
             if (m_.rep_test == kTestCy)
                 return ((psw & kFlagCY) != 0) == m_.rep_pol;
             return true;
         }
-        // BUSY (the 9B POLL pin) has no model: POLL_N low is the only case the
-        // suite's POLL.LO/POLL.REL forms end in, and both retire the
-        // instruction, so the condition is hard-FALSE (ledger R2).
-        case exec_detail::kCondBusy: return false;
+        // BUSY is the 9B POLL_N pin, sampled on the row's own clock.  On the
+        // functional bus there is no clock and no pin, so `poll_busy()` is a
+        // constant false and 9B still retires in one pass (ledger R2,
+        // unchanged).  On the TIMED bus it is the rig's replayed pin level,
+        // and the ROM's own 3-row loop (006C `JMP BUSY 3` taken = 2 clocks,
+        // 006F `JMP INTR 5` not taken = 1, 0070 `JMP 0` taken = 2) is the
+        // measured FIVE-CLOCK sampling period -- no timer, no counter.
+        case exec_detail::kCondBusy: return biu_.poll_busy();
         case exec_detail::kCondIntr: return m_.intr_pending;
         case exec_detail::kCondOpc: {
             if (m_.mode8080) {
@@ -671,6 +714,7 @@ bool CpuT<Bus>::interrupt(EventKind kind) {
 template <class Bus>
 bool CpuT<Bus>::step() {
     begin_sequence();
+    fired_boundary_ = false;
     biu_.clear_consumed();
     LoadResult ld = loader_decode(m_, biu_);
     if (trace_) {
@@ -1012,7 +1056,18 @@ bool CpuT<Bus>::run_micro(const MicroPc& entry) {
         if (ending) {
             row_clocks = 0;
         } else if (op.e && !pend_.active) {
-            biu_.opcode_prefetch(m_.sreg[kCS]);
+            // S9a: a RECOGNISED boundary runs the retire deadline and keeps
+            // the byte -- no pop, no clock charged past it.  The sequence
+            // still finishes its post-`E` row (which costs no clocks but does
+            // carry datapath work -- `9D`'s `SIGMA -> SP` lives there); only
+            // the successor's decode is what does not happen.
+            if (fire_pc_ >= 0 && m_.pc == uint16_t(fire_pc_)) {
+                boundary_clk_ = biu_.boundary_no_pop();
+                fired_boundary_ = true;
+                row_clocks = 0;
+            } else {
+                biu_.opcode_prefetch(m_.sreg[kCS]);
+            }
         }
         biu_.charge(row_clocks + rloop_iters);
 
@@ -1035,7 +1090,13 @@ bool CpuT<Bus>::run_micro(const MicroPc& entry) {
     // here.  Without it the deferred boundary hands over one clock early and
     // the successor's first byte demand lands at pop+1 instead of pop+2 --
     // the whole `O -> I0` residual of the Q1 family (sw/q1diff.py).
+    if (fired_boundary_) return true;          // S9a: no successor decode
     const bool deferred = !biu_.opcode_pending();
+    if (fire_pc_ >= 0 && m_.pc == uint16_t(fire_pc_)) {
+        boundary_clk_ = biu_.boundary_no_pop();   // S9a, the deferred path
+        fired_boundary_ = true;
+        return true;
+    }
     biu_.opcode_prefetch(m_.sreg[kCS]);
     if (deferred) biu_.charge(1);
     return true;
