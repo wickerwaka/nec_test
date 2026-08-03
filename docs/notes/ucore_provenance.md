@@ -903,3 +903,77 @@ ucore state element the probe cannot see moving on a CE-low clock.
 
 The general rule this is the second instance of (F2 was the first): **a gate
 that names an internal signal is only as current as that signal's meaning.**
+
+## §21 RUNGS 2c/2d — THE STORE PATH.  `88` and `89` 500/500
+
+### F11 — THE DEMAND AND THE TAKE ARE ONE EVENT
+
+**Class: SPEC (composition).**  This is the whole store-path bug, and it is
+one rule, not four fixes.
+
+The EU asks for a queue byte in TWO places that must never disagree:
+
+* `q_demand` / `q_pop` — a COMBINATIONAL wire.  It is what puts the pop on the
+  bus: the BIU consumes it inside the clock it names, and the byte is gone;
+* the CLOCKED STEP — `v30u_eu_row.svh`'s cadence block, `S_EPOP`,
+  `S_TAIL_POP` — which is what CONSUMES the byte into `opc_byte`.
+
+If the wire is true on a clock the step does not take the byte, the BIU pops a
+byte nobody keeps.  If the step takes on a clock the wire was false, the EU
+keeps a byte the BIU never handed over.  Pass 1 had **both**, and the census of
+`88`'s first divergences (`qop` at the successor's pop, 366/500) was the sum:
+
+| where | what pass 1 had | why it is wrong |
+|---|---|---|
+| `row_epop` | `retire_ok` off the PRE-EDGE `wr_out` | the step reads `wr_out` AFTER its own increment, so the E row's retire deadline counted every store EXCEPT the one this very row is posting.  Measured: `88 idx 3`, the F pop fired at the code fetch's T3 (row 5), nine clocks before the golden's row 11 |
+| `row_epop` | no slot / pre-pair term | the step will not reach its cadence block at all on a clock it stalls on `stall_slot` or `deliver_read`; the wire fired anyway |
+| `q_demand` | `(st == S_EPOP) \|\| (st == S_TAIL_POP)` UNCONDITIONAL | both states exist precisely to WAIT past the retire deadline.  They demanded a byte on every clock of that wait and took one only at the end -- the bytes in between were popped and dropped |
+
+The fix is the rule: **every term the step applies is a term of the demand.**
+`row_epop` now carries all four stalls and `retire_ok_e`, which reconstructs
+combinationally exactly what the step will see -- `wr_out` PLUS this row's own
+post (`acc_split ? 2 : 1`) -- and the two deferred-pop states carry
+`retire_ok_n`.  Nothing was added to the model; a fitted term would have been
+the wrong answer here by construction, because the two sides are the same event.
+
+### F11a — a one-view corollary, and why it is loop-free
+
+The retire deadline now exists in ONE view, `retire_ok_n`, read by the act
+decode AND the step.  That looks like it breaks §20.2's loop rule -- an `_n`
+signal reaching a combinational output.  It does not, and the reason is a
+mechanism statement: **`done_ctr` IS the deadline**, so the pulse the next clock
+will carry is a function of the REGISTERS alone —
+
+```
+wire done_fire   = (r_done_ctr == 2'd1);
+wire rd_done_nxt = done_fire && !r_done_wr;
+wire wr_done_nxt = done_fire &&  r_done_wr;
+```
+
+— published directly and used by the BIU's own next-state body, so there is one
+expression and it never enters the next-state cone.  Verilator still reports no
+`UNOPTFLAT`.  The registered `eu_wr_done` port is gone: one fact, one view.
+
+### F11b — the trap that cost a build
+
+`retire_ok_n` is a WIRE off the REGISTER `wr_out`.  Inside the clocked step,
+`wr_out` is a LIVE blocking variable that the row has already incremented.
+Substituting the wire for the expression inside `v30u_eu_row.svh` silently
+moved the test back onto the pre-edge count: `88` went cycles-exact 500/500 but
+`ip` came out ONE HIGH in 366/500 (the successor's decode started nine clocks
+early while the pop stayed put).  Booked because it will recur: **in this EU a
+wire named like a step variable is not that step variable.**
+
+### §21.1 The rung table now
+
+| rung | form | full | note |
+|---|---|---|---|
+| 1 | `B8` | **500/500** | GREEN (pass 1) |
+| 2a | `8A` | **500/500** | GREEN (pass 1) |
+| 2b | `8B` | 302/500 | split (unaligned) word loads — next |
+| 2c | `88` | **500/500** | GREEN — the store path, F11 |
+| 2d | `89` | **500/500** | GREEN — the store path, F11 |
+
+Standing gates on the same tree: `check_ucore_tables` **9988/9988 (G0)**,
+`ulockstep.py --suite --waits 0,1,2,3` **32/32 LOCKSTEP**, `--ce-div 3
+--ce-hold-check` **0 violations**, FSM spot on the five forms **2500/2500**.

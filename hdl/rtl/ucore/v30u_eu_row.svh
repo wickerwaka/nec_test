@@ -148,6 +148,10 @@ begin
         // pairing latch still owes data defers it to the sequence tail.
         // The retire deadline is read AFTER this row's own post (`wr_out` was
         // just incremented above), not from the pre-edge wire.
+        // `wr_out` here is the LIVE count -- incremented by this row's own post
+        // a few lines up -- which is exactly what `retire_ok_e` reconstructs
+        // combinationally for the demand (F11).  The wire `retire_ok_n` reads
+        // the REGISTER and must not be used here.
         retire_now = (wr_out == 2'd0) || ((wr_out == 2'd1) && eu_wr_done_n);
         if (!pend_active && !opc_valid && retire_now && q_ripe) begin
             opc_byte = q_byte;

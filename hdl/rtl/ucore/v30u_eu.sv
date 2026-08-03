@@ -80,7 +80,6 @@ module v30u_eu (
     output     [15:0] eu_wdata,
     input      [15:0] eu_rdata_n,
     input             eu_rd_done_n,
-    input             eu_wr_done,
     input             eu_wr_done_n,
     input             eu_opr_free,
     input             eu_opr_free_n,
@@ -488,9 +487,10 @@ wire opr_free_now   = (opr_owned == 2'd0) ||
 wire opr_free_now_n = (opr_owned == 2'd0) ||
                       ((opr_owned == 2'd1) && eu_opr_free_n);
 
-// wait_bus (the retire deadline): every posted store, then its e+2.
-wire retire_ok   = (wr_out == 2'd0) ||
-                   ((wr_out == 2'd1) && eu_wr_done);
+// wait_bus (the retire deadline): every posted store, then its e+2.  ONE view
+// only -- `eu_wr_done_n` is registered logic (see the BIU's `done_fire`), so
+// the act decode may read it, and act and step MUST read the same thing: they
+// are the same event seen from two sides (F11).
 wire retire_ok_n = (wr_out == 2'd0) ||
                    ((wr_out == 2'd1) && eu_wr_done_n);
 
@@ -926,15 +926,31 @@ wire q_demand_row = row_need_q && !row_blocked;
 
 // The E row's successor pop (max-of-two-deadlines: the E row's own clock and
 // the retire deadline).  A staged write defers it to the sequence tail.
+//
+// F11: THE DEMAND AND THE TAKE ARE ONE EVENT.  This wire is what puts the pop
+// on the bus; v30u_eu_row.svh's cadence block is what consumes the byte.  They
+// must be true on exactly the same clocks, so every term the step applies is a
+// term here -- the row must RUN this clock (all four stalls), and the retire
+// deadline must count THE WRITE THIS ROW IS ABOUT TO POST, which the step sees
+// (it reads `wr_out` after its own increment) and the pre-edge wire did not.
+wire       row_slot_wait = row_bus && !row_posted && eu_slot_busy;
+wire [2:0] row_wr_add    = (row_is_wr || row_is_wb)
+                           ? (acc_split ? 3'd2 : 3'd1) : 3'd0;
+wire [2:0] wr_after      = {1'b0, wr_out} + row_wr_add;
+wire       retire_ok_e   = (wr_after == 3'd0) ||
+                           ((wr_after == 3'd1) && eu_wr_done_n);
 wire row_epop = (st == S_ROW) && e_e && !pend_active && !opc_valid &&
-                !row_blocked && (rowq >= row_qn) && retire_ok;
+                !row_blocked && (rowq >= row_qn) && !row_pre_wait &&
+                !row_slot_wait && retire_ok_e;
 
 wire q_demand = (st == S_OPC_POP) || (st == S_EXT_POP) || (st == S_MODRM) ||
                 (st == S_D16_LO) ||
                 ((st == S_D8_B)   && (!ld_ripe_prev ? (chg == 2'd1) : 1'b1)) ||
                 ((st == S_D16_HI) && (!ld_ripe_prev ? (chg == 2'd1) : 1'b1)) ||
                 q_demand_row || row_epop ||
-                (st == S_EPOP) || (st == S_TAIL_POP);
+                // F11 again: both deferred-pop states TAKE the byte only past
+                // the retire deadline, so neither may DEMAND it before.
+                (((st == S_EPOP) || (st == S_TAIL_POP)) && retire_ok_n);
 
 assign q_pop   = q_demand;
 assign q_first = (st == S_OPC_POP) ? pop_is_first

@@ -134,8 +134,7 @@ module v30u_biu (
     input      [15:0] eu_wdata,
     output     [15:0] eu_rdata_n,
     output            eu_rd_done_n,// pulse at a completed read's e+2
-    output            eu_wr_done,  // pulse at a completed write's e+2
-    output            eu_wr_done_n,
+    output            eu_wr_done_n,// pulse at a completed write's e+2
     output            eu_opr_free, // 11.4 / M13: the store lets go of OPR
     output            eu_opr_free_n,
 
@@ -385,6 +384,14 @@ wire st_rel    = r_evald || eval_inst;
 // arbitrate, so EVERY clock is an ordinary idle eval.
 wire halt_free = r_run && r_cur_halt && r_evald;
 
+// M13 / 11.4: the completion pulse the NEXT clock will carry.  `done_ctr` is
+// the whole mechanism, so the pulse is known one clock ahead FROM THE REGISTERS
+// -- it is not part of the next-state cone, and publishing it therefore closes
+// no loop even though the EU's act decode reads it.
+wire done_fire   = (r_done_ctr == 2'd1);
+wire rd_done_nxt = done_fire && !r_done_wr;
+wire wr_done_nxt = done_fire &&  r_done_wr;
+
 // M3: the front byte is poppable when it is not one of the green ones.
 wire [3:0] poppable = (r_grn_ttl != 2'd0) ? (r_q_cnt - {2'b0, r_grn_n}) : r_q_cnt;
 assign q_ripe   = poppable != 4'd0;
@@ -433,12 +440,11 @@ assign qs = qs_e_now ? QS_EMPTY
 //----------------------------------------------------------------------------
 assign eu_slot_busy   = r_slot_busy;
 assign eu_slot_busy_n = slot_busy;
-assign eu_wr_done     = r_wr_done_p;
-assign eu_wr_done_n   = wr_done_p;
+assign eu_wr_done_n   = wr_done_nxt;
 assign eu_opr_free    = r_opr_free_p;
 assign eu_opr_free_n  = opr_free_p;
 assign eu_rdata_n     = rd_val;
-assign eu_rd_done_n   = rd_done_p;
+assign eu_rd_done_n   = rd_done_nxt;
 // The 1BL retire lead (`wait_retire_lead`): the front byte is poppable NOW or
 // will be on the next clock -- the green window has one clock left to run.
 // Consumed by the clocked step alone, so it exists in the `_n` view only.
@@ -776,13 +782,13 @@ always_comb begin
         set_grn = 1'b0; set_infl = 1'b0; set_absorb = 1'b0;
         set_land = 1'b0; set_noeval = 1'b0; new_ttl = 2'd0;
         set_oprfree = 1'b0;
-        rd_done_p = 1'b0; wr_done_p = 1'b0;
         // eu_done rides the eval: it lands at e+2, which is T4+1 at
-        // zero waits and T4+2 whenever the cycle took any Tw.
-        if (done_ctr == 2'd1) begin
-            done_ctr = 2'd0;
-            if (done_wr) wr_done_p = 1'b1; else rd_done_p = 1'b1;
-        end else if (done_ctr != 2'd0) done_ctr = done_ctr - 2'd1;
+        // zero waits and T4+2 whenever the cycle took any Tw.  The PULSE is
+        // `done_fire` (see the declaration): a function of the REGISTERS
+        // alone, which is why it can be published as `eu_*_done_n` without
+        // going through this next-state cone.
+        rd_done_p = rd_done_nxt; wr_done_p = wr_done_nxt;
+        if (done_ctr != 2'd0) done_ctr = done_ctr - 2'd1;
 
         //====================================================================
         // (b) THE EU's OWN ACTS -- the model makes them at `clk_ == c`, i.e.
