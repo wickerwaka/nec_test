@@ -1405,13 +1405,14 @@ All on the same tree, `--core ucore`, v0.1 at w0.
 | rung 6 — family D | `… --opcodes EB,74 --cases 500` | **1000/1000** |
 | rung 8 — family C | `… --opcodes D1.4,86 --cases 500` | **1000/1000** |
 | rung 9 | `… --opcodes C3 --cases 500` | **500/500** |
+| rung 10 | `… --opcodes A5,0F12 --cases 500` | **1000/1000** |
 | **boot march (F3's routed gate)** | `check_boot.py --core ucore 220` | **220/220 MATCHES** |
 | G0 | `check_ucore_tables.py` | **9988/9988 PASS** |
 | U1 lockstep | `ulockstep.py --suite --waits 0,1,2,3` | **32/32 LOCKSTEP** |
 | CE hold | `check_core.py --core ucore --opcodes 88 --cases 100 --ce-div 3 --ce-hold-check` | **0 violations** |
 | FSM spot (shared TB touched) | `check_core.py --opcodes B8,8A,8B,88,89 --cases 500` | **2500/2500** |
 | the MODEL, unmoved | `timed_gate.py --suite tests/v30/v0.1 --forms all` | **169,000/169,000, row-diffs 0** |
-| **G3** | `check_core.py --core ucore --opcodes all --cases 0` | **149,214 / 169,000 — NOT MET** |
+| **G3** | `check_core.py --core ucore --opcodes all --cases 0` | **156,123 / 169,000 — NOT MET** |
 
 ### §29.1 The census, pass by pass
 
@@ -1425,7 +1426,8 @@ Reconnaissance (`--cases 60`, 20,820 cases over 347 forms), not a gate:
 | family B (F21–F23) | 13,114 | 204 | 191 | 5 |
 | family D (F24) | 14,112 | 231 | 218 | 5 |
 | family C (F26, F27) | 17,591 | 285 | 277 | 5 |
-| F28 + the redirect's OPR | **18,000** | **293** | **285** | 5 |
+| F28 + the redirect's OPR | 18,000 | 293 | 285 | 5 |
+| rung 10 (M5b `odd_base`, F29) | **18,832** | **310** | **306** | 5 |
 
 **No form regressed at any step** — every rung was scored by a form-by-form
 diff of the two whole-suite censuses, not by the total.
@@ -1438,38 +1440,42 @@ v0.1 suite reports **169,000/169,000 arch, 169,000/169,000 window, 169,000
 rows-exact, row-diffs 0**.  So at w0 there is nothing to subtract, and the two
 numbers coincide:
 
-* G3 through the golden comparator: **149,214 / 169,000** (88.3 %).
-* G3 minus the sim's registered w0 residue: **149,214 / 169,000** — the same
+* G3 through the golden comparator: **156,123 / 169,000** (92.4 %).
+* G3 minus the sim's registered w0 residue: **156,123 / 169,000** — the same
   number, because that residue is empty at w0.
+
+**41 RED forms**, of which **12 (2,400 cases) are unimplemented by design**
+(`INT.*`, `NMI.*`, `HLT.*`).  Excluding those, the RTL is
+**156,123 / 166,600 = 93.7 %** of what it is currently built to do.
 
 (The 907+3 residue rows named in the pass-3 brief are a WAIT-AXIS quantity —
 they belong to U3, not to this gate.  Re-derive them there; do not carry the
 figure forward from memory.)
 
-## §30 WHAT IS LEFT — 62 RED FORMS, ENUMERATED
+## §30 WHAT IS LEFT — 41 RED FORMS, ENUMERATED
 
 Not a family: a tail.  Grouped by first divergence, with the case count each
-costs out of 169,000.
+costs out of 169,000.  (`0F 10-1F`, the word string moves and `8F.0` were in
+this table when it was first written and were closed by rung 10 — see §28's
+F29 and M5b's `odd_base`.  What follows is the list AFTER that.)
 
 | group | forms | cost | reading |
 |---|---|---|---|
-| **interrupt / HLT entries** | `INT.*` (7), `NMI.*` (2), `HLT.*` (3), `INT.F3AA` | 2,400 | **UNIMPLEMENTED BY DESIGN** (§19.3): no interrupt entry, `eu_unhalt` is tied 0, the POLL pipeline is the static level only.  Not a bug list — a work list |
-| **the `0F 10-1F` bit block** | `0F10`-`0F1F` (16) | 4,988 | `data`/arch: the write-back's UNUSED LANE differs by one bit-position's worth.  The `BIT` arm's port-B mask and the byte-store data-lane law.  ONE mechanism, almost certainly |
-| **BCD adjust + BCD strings** | `27` `2F` `37` `3F` `0F20` `0F22` `0F26` | 3,225 | the adjust unit: `27`/`2F`/`37`/`3F` are cycle-EXACT and arch-red, so it is `bcd_adjust` alone.  `0F20`/`0F22` add the string loop |
-| **CALL and the flush display** | `E8` `FF.2` `FF.3` `9A` | 1,686 | `qop`: the flush's `E` blip is ONE CLOCK EARLY in about half the cases.  The row order is right; this is the BIU's `e_pend` / "a ready-but-not-yet-started EU request owns the next slot" term (F1(c)), not the EU |
+| **interrupt / HLT entries** | `INT.*` (7), `NMI.*` (2), `HLT.*` (3) | 2,400 | **UNIMPLEMENTED BY DESIGN** (§19.3): no interrupt entry, `eu_unhalt` tied 0, the POLL pipeline is the static level only, `intr_pending` has no writer.  A work list, not a bug list |
+| **BCD adjust + BCD strings** | `27` `2F` `37` `3F` `0F20` `0F22` `0F26` | 3,225 | `27`/`2F`/`37`/`3F` are CYCLE-EXACT and arch-red, so it is the adjust unit ALONE (`sim/alu.cpp::bcd_adjust`) — the tightest-scoped item left.  `0F20`/`0F22` add the string loop |
 | **multi-cycle pushes** | `60` (PUSHA) `62` (BOUND) `CC` `CD` `CE` | 2,182 | `busstat`: the RTL runs consecutive stores BACK TO BACK where the golden has idle `Ti` between them.  Task #33's multi-push bus-hold datapoint, now reproducible in RTL |
-| **DIV / MUL** | `F6.5` `F6.6` `F6.7` `F7.5` `F7.6` `F7.7` | 2,179 | the iterative divider: `busstat`/`qop` |
-| **word string moves** | `A5` `2E.A5` | 506 | S5's fallback ("a store that reaches T1 unpaired drives what is standing in OPR") rotates PER CYCLE; M5b says per ACCESS.  F17's rule in the one place it was not applied — needs an `odd_base` bit per queued cycle |
-| **the rest** | `C8` (ENTER) `F3A4` `F3A5` `F3AA` `F3AB` `F2AA` `8F.0` `FA` `FB` `POLL.LO` | 2,620 | individually diagnosed, no shared reading yet |
+| **CALL and the flush display** | `E8` `FF.2` `FF.3` `9A` | 1,686 | `qop`: the flush's `E` blip is ONE CLOCK EARLY in about half the cases.  The row order is right; this is the BIU's `e_pend` / "a ready-but-not-yet-started EU request owns the next slot" term (F1(c)), not the EU |
+| **DIV** | `F6.6` `F6.7` `F7.6` `F7.7` | 1,571 | the iterative divider: `busstat` |
+| **strings / ENTER** | `C8` `F3A4` `F3A5` `F3AA` `F3AB` `F2AA` | 1,601 | the REP continuation and ENTER's nesting walk |
+| **the rest** | `FA` `FB` `POLL.LO` | 212 | `FA`/`FB` are 88-90 % green (the 1BL execute strobe's late-queue edge) |
 
 ## §31 HANDOFF — what pass 4 picks up
 
-1. **The order is by cost and by confidence**: the `0F 10-1F` block (16 forms,
-   4,988 cases, one suspected mechanism), then BCD adjust (7 forms, 3,225),
-   then the multi-cycle pushes (5 forms, 2,182), then DIV/MUL, then CALL's
-   flush display.  `A5`/`2E.A5` is a KNOWN fix (an `odd_base` bit per queued
-   cycle in `v30u_biu.sv`, the same rule F17 already applies to the pairing
-   loop) and is the cheapest single win left.
+1. **The order is by cost and by confidence**: BCD adjust first — `27` `2F`
+   `37` `3F` are CYCLE-EXACT and arch-red, so the whole difference is inside
+   one function and the microscope is not even needed (`sw/uarch.py 27,2F,37,3F`
+   is the entire instrument).  Then the multi-cycle pushes (5 forms, 2,182),
+   then DIV (4, 1,571), then CALL's flush display (4, 1,686).
 2. **The interrupt entries are the biggest single block (2,400 cases) and are
    NOT bugs.**  They are `eu_unhalt`, the interrupt entry vectors, the POLL
    pin pipeline and `intr_pending`'s missing writer.  Build them as a rung,
