@@ -26,6 +26,10 @@ Put this principle verbatim into every modeling subagent brief.
 ## Standing engineering discipline
 
 - Truthful commit messages: never assert a gate that is not met.
+- **Verify against the artifact, not against recall**: an agent's absence of
+  memory of an event is not evidence the event did not happen — check the
+  ledger/commit/task record before "correcting" it; deleting a true record
+  corrupts a truthful ledger exactly as badly as inventing one.
 - Ratchet gates are monotone; pre-register numeric bars before runs; report
   failures as registered, never restated.
 - Survey-then-fix: run the full batch, categorize all failures, then fix —
