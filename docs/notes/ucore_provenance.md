@@ -1809,7 +1809,7 @@ Enumerated by MECHANISM this time, not by first divergence.
 |---|---|---|---|
 | **the interrupt and HALT entries** | `INT.*` (7), `NMI.*` (2), `HLT.*` (3) | **2,400** | **UNIMPLEMENTED BY DESIGN, and the last such block.**  No interrupt entry, `eu_unhalt` tied 0, no `intr_pending` writer, the POLL pipeline is the static level only.  A RUNG — see §35.1 |
 | **strings / ENTER** | `C8` `F3A4` `F3A5` `F3AA` `F3AB` `F2AA` | **1,601** | TWO signatures, and they may be one mechanism: (a) the final `F` pop is LATE because the RTL's `pend_active` is still set at the `E` row (`F3AA idx 2`: golden pops at row 24, RTL at 27, and the window is 3 clocks long); (b) the store DATA is wrong on the middle iterations (`F3A4 idx 1` row 14 `exp 37032 got 0`).  Both live in the every-iteration staging/pairing chain F20 opened |
-| **the 1BL status nibble** | `FA` `FB` | 112 | the ONLY divergence is the IE bit of the status nibble on row 1 — `FA` (DI) shows the golden's IE already LOW where the RTL still has it high, `FB` (EI) the mirror.  18/200 and 28/200: the LATE-QUEUE cases of the 1BL execute strobe (`S_1BL_LEAD` / `q_ripe_lead_n`) against the display clock the nibble is sampled on |
+| **the 1BL status nibble** | `FA` `FB` | 112 | **DIAGNOSED — see §35.3.**  The ONLY divergence is the IE bit of the status nibble (`data_ps`'s `psw_ie`), and the RTL's 1BL flag write is ONE CLOCK LATE, always; it is visible only where a data phase samples the nibble on exactly that clock |
 | **`POLL.LO`** | `POLL.LO` | 100 | `qop` at row 3.  `9B`'s `JMP INTR` at `006F` needs the POLL pin pipeline, so it belongs with the interrupt rung |
 
 ### §35.1 THE INTERRUPT RUNG — what it is, and the ONE question to settle first
@@ -1872,3 +1872,37 @@ Do that census FIRST; do not fit.
   (three appends, one retirement) are therefore unverified by any sweep and
   are asserted only by the exactly-twice grep.
 
+### §35.3 `FA` / `FB` — DIAGNOSED, NOT LANDED
+
+The 1BL execute strobe is stated by the SPEC and MEASURED there, 250/250
+each half (`sim/loader_impl.h`, the `one_byte_logic` block):
+
+> These forms have no ROM row and no `E`.  **The EXECUTE STROBE — the clock
+> the flag write COMMITS ON — is the instruction's LAST clock, and that is
+> the clock BEFORE the successor's opcode pop.**
+>
+> even `ip`: the successor's byte is already queued, its pop is at pop+2,
+> and the golden shows the NEW IE at **pop+1** — 250/250
+> odd `ip`: the pop waits for the next fetch's T4+2, and the golden still
+> shows the OLD IE at pop+1 — 250/250
+
+MEASURED on the RTL, `FA idx 4` (an even-`ip` case): the pop rides clock 0,
+the golden's successor `F` is at clock 2, and the golden's nibble is
+already `2` (IE=0) at **clock 1**.  The EU trace shows `st = S_1BL_LEAD`
+STANDING on clock 1 — so the RTL's `psw` write lands on the edge ENDING
+clock 1 and the new IE is only visible from clock 2.
+
+The cause is one `stop`, and it is §16's named class for the seventh time.
+`S_DECODE2`'s one-byte-logic arm does `st = S_1BL_LEAD; stop = 1'b1;`, so
+the earliest edge on which the write can happen is the end of clock 1 —
+one clock after "commits on clock 1" requires.  The strobe's WAIT is real
+(it is what makes the odd-`ip` half show the OLD value), so the arm cannot
+simply be made zero-cost: the retire-lead test has to be taken in
+S_DECODE2's OWN edge, with S_1BL_LEAD kept for the case where it is not yet
+satisfied.
+
+NOT LANDED, deliberately: `FA`/`FB` are 89.8 % / 87.8 % green and every
+other `one_byte_logic` form (`F5` `F8` `F9` `FC` `FD` …) is 500/500, so a
+structural change to this arm has more to lose than to gain until it is
+made under the same measurement.  The bar for pass 5 is pre-registered:
+**`FA` 500/500 and `FB` 500/500 with no other 1BL form moving.**
