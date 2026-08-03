@@ -67,7 +67,7 @@ ratchets: monotone, never re-scored downward without a loud, itemized entry.)
   `sw/timed_wvec_gate.py` (88/88, +0.0 %), `sw/timed_lawcards.py`
   (**8 GREEN / 0 RED / 3 UNRESOLVED** — C6, C7, C11),
   `sw/timed_fuzz.py --evt-replay` (REGISTERED **1,272/1,702**, EVT
-  **708/1,008**, COMBINED **1,980/2,710**),
+  **709/1,008**, COMBINED **1,981/2,710**),
   `sw/timed_fuzz.py --seeddir sw/testdata/t4/b2-tranche/seeds`
   (**154/188** — V5 is a standing REGISTERED FAILURE, not to be re-opened).
 - **Measurement tools, NOT gates** (never quote them as a pass):
