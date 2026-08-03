@@ -26,12 +26,12 @@
 package v30_ss_pkg;
 
   localparam int          SS_ADDR_W    = 9;
-  localparam int          SS_VERSION   = 8'h80;   // ucore map v0 (stage U1)
+  localparam int          SS_VERSION   = 8'h81;   // ucore map v1 (stage U2)
   localparam logic [8:0]  SSA_TAG      = 9'h000;
   localparam logic [8:0]  SS_BIU_BASE  = 9'h001;
-  localparam int          SS_BIU_COUNT = 94;
+  localparam int          SS_BIU_COUNT = 96;
   localparam logic [8:0]  SS_EU_BASE   = 9'h100;
-  localparam int          SS_EU_COUNT  = 0;    // U2 seeds the EU region
+  localparam int          SS_EU_COUNT  = 111;   // stage U2
   localparam int          SS_COUNT     = 1 + SS_BIU_COUNT + SS_EU_COUNT;
   localparam logic [15:0] SS_TAG       = {8'(SS_VERSION), 8'(SS_COUNT)};
 
@@ -241,6 +241,125 @@ package v30_ss_pkg;
       default: ss_field_width = 0;
     endcase
   endfunction
+
+
+  localparam logic [8:0] SSA_B_RD_FIRST_HI      = 9'h05F;
+  localparam logic [8:0] SSA_B_RD_WAS_SPLIT     = 9'h060;
+
+  //--------------------------------------------------------------------------
+  // EU region (module v30u_eu): 0x100-0x16F
+  //--------------------------------------------------------------------------
+  localparam logic [8:0] SSA_E_AX                   = 9'h100;
+  localparam logic [8:0] SSA_E_CX                   = 9'h101;
+  localparam logic [8:0] SSA_E_DX                   = 9'h102;
+  localparam logic [8:0] SSA_E_BX                   = 9'h103;
+  localparam logic [8:0] SSA_E_SP                   = 9'h104;
+  localparam logic [8:0] SSA_E_BP                   = 9'h105;
+  localparam logic [8:0] SSA_E_IX                   = 9'h106;
+  localparam logic [8:0] SSA_E_IY                   = 9'h107;
+  localparam logic [8:0] SSA_E_ES                   = 9'h108;
+  localparam logic [8:0] SSA_E_CS                   = 9'h109;
+  localparam logic [8:0] SSA_E_SS                   = 9'h10A;
+  localparam logic [8:0] SSA_E_DS                   = 9'h10B;
+  localparam logic [8:0] SSA_E_PC                   = 9'h10C;
+  localparam logic [8:0] SSA_E_PSW                  = 9'h10D;
+  localparam logic [8:0] SSA_E_TMPA                 = 9'h10E;
+  localparam logic [8:0] SSA_E_TMPB                 = 9'h10F;
+  localparam logic [8:0] SSA_E_TMPC                 = 9'h110;
+  localparam logic [8:0] SSA_E_OPR                  = 9'h111;
+  localparam logic [8:0] SSA_E_IND                  = 9'h112;
+  localparam logic [8:0] SSA_E_COUNT                = 9'h113;
+  localparam logic [8:0] SSA_E_PFXCNT               = 9'h114;
+  localparam logic [8:0] SSA_E_STAT                 = 9'h115;
+  localparam logic [8:0] SSA_E_SIGN_NEG             = 9'h116;
+  localparam logic [8:0] SSA_E_BIT_N                = 9'h117;
+  localparam logic [8:0] SSA_E_AL_OP                = 9'h118;
+  localparam logic [8:0] SSA_E_AL_TMP               = 9'h119;
+  localparam logic [8:0] SSA_E_AL_BYTE              = 9'h11A;
+  localparam logic [8:0] SSA_E_AL_EACONST           = 9'h11B;
+  localparam logic [8:0] SSA_E_AL_EAVAL             = 9'h11C;
+  localparam logic [8:0] SSA_E_AL_ADJUST            = 9'h11D;
+  localparam logic [8:0] SSA_E_AL_ADJTMP            = 9'h11E;
+  localparam logic [8:0] SSA_E_AL_BITARM            = 9'h11F;
+  localparam logic [8:0] SSA_E_AL_BITN              = 9'h120;
+  localparam logic [8:0] SSA_E_AL_SPENT             = 9'h121;
+  localparam logic [8:0] SSA_E_UPC_PAGE             = 9'h122;
+  localparam logic [8:0] SSA_E_UPC_OPC              = 9'h123;
+  localparam logic [8:0] SSA_E_UPC_LOC              = 9'h124;
+  localparam logic [8:0] SSA_E_SEG_OVR_EN           = 9'h125;
+  localparam logic [8:0] SSA_E_SEG_OVR              = 9'h126;
+  localparam logic [8:0] SSA_E_REP_KIND             = 9'h127;
+  localparam logic [8:0] SSA_E_LOCK                 = 9'h128;
+  localparam logic [8:0] SSA_E_OPC_REG              = 9'h129;
+  localparam logic [8:0] SSA_E_OP8                  = 9'h12A;
+  localparam logic [8:0] SSA_E_IMM8                 = 9'h12B;
+  localparam logic [8:0] SSA_E_OPC_BASE             = 9'h12C;
+  localparam logic [8:0] SSA_E_OPC_FROM_RM          = 9'h12D;
+  localparam logic [8:0] SSA_E_MODRM_REG            = 9'h12E;
+  localparam logic [8:0] SSA_E_XOP                  = 9'h12F;
+  localparam logic [8:0] SSA_E_REP_TEST             = 9'h130;
+  localparam logic [8:0] SSA_E_REP_POL              = 9'h131;
+  localparam logic [8:0] SSA_E_BUS_WORD             = 9'h132;
+  localparam logic [8:0] SSA_E_OPC8080              = 9'h133;
+  localparam logic [8:0] SSA_E_MODE8080             = 9'h134;
+  localparam logic [8:0] SSA_E_INTR_PEND            = 9'h135;
+  localparam logic [8:0] SSA_E_HALTED               = 9'h136;
+  localparam logic [8:0] SSA_E_M_KIND               = 9'h137;
+  localparam logic [8:0] SSA_E_M_IDX                = 9'h138;
+  localparam logic [8:0] SSA_E_M_EA                 = 9'h139;
+  localparam logic [8:0] SSA_E_M_SEG                = 9'h13A;
+  localparam logic [8:0] SSA_E_M_BYTE               = 9'h13B;
+  localparam logic [8:0] SSA_E_R_KIND               = 9'h13C;
+  localparam logic [8:0] SSA_E_R_IDX                = 9'h13D;
+  localparam logic [8:0] SSA_E_R_EA                 = 9'h13E;
+  localparam logic [8:0] SSA_E_R_SEG                = 9'h13F;
+  localparam logic [8:0] SSA_E_R_BYTE               = 9'h140;
+  localparam logic [8:0] SSA_E_WB_KIND              = 9'h141;
+  localparam logic [8:0] SSA_E_WB_IDX               = 9'h142;
+  localparam logic [8:0] SSA_E_WB_EA                = 9'h143;
+  localparam logic [8:0] SSA_E_WB_SEG               = 9'h144;
+  localparam logic [8:0] SSA_E_WB_BYTE              = 9'h145;
+  localparam logic [8:0] SSA_E_PEND_ACT             = 9'h146;
+  localparam logic [8:0] SSA_E_PEND_OFF             = 9'h147;
+  localparam logic [8:0] SSA_E_PEND_SEG             = 9'h148;
+  localparam logic [8:0] SSA_E_PEND_BYTE            = 9'h149;
+  localparam logic [8:0] SSA_E_PEND_IO              = 9'h14A;
+  localparam logic [8:0] SSA_E_OPR_FRESH            = 9'h14B;
+  localparam logic [8:0] SSA_E_RDQ0                 = 9'h14C;
+  localparam logic [8:0] SSA_E_RDQ1                 = 9'h14D;
+  localparam logic [8:0] SSA_E_RDQ_N                = 9'h14E;
+  localparam logic [8:0] SSA_E_RD_PENDING           = 9'h14F;
+  localparam logic [8:0] SSA_E_RD_DONE_CNT          = 9'h150;
+  localparam logic [8:0] SSA_E_RD_AGE0              = 9'h151;
+  localparam logic [8:0] SSA_E_WR_OUT               = 9'h152;
+  localparam logic [8:0] SSA_E_OPR_OWNED            = 9'h153;
+  localparam logic [8:0] SSA_E_OPC_VALID            = 9'h154;
+  localparam logic [8:0] SSA_E_OPC_BYTE             = 9'h155;
+  localparam logic [8:0] SSA_E_POP_IS_FIRST         = 9'h156;
+  localparam logic [8:0] SSA_E_LD_B                 = 9'h157;
+  localparam logic [8:0] SSA_E_LD_PLA               = 9'h158;
+  localparam logic [8:0] SSA_E_LD_EXT               = 9'h159;
+  localparam logic [8:0] SSA_E_LD_PAGE              = 9'h15A;
+  localparam logic [8:0] SSA_E_LD_HASRM             = 9'h15B;
+  localparam logic [8:0] SSA_E_LD_RM                = 9'h15C;
+  localparam logic [8:0] SSA_E_LD_DISP              = 9'h15D;
+  localparam logic [8:0] SSA_E_LD_DLO               = 9'h15E;
+  localparam logic [8:0] SSA_E_LD_GRPD              = 9'h15F;
+  localparam logic [8:0] SSA_E_LD_BYTE              = 9'h160;
+  localparam logic [8:0] SSA_E_LD_PRERD             = 9'h161;
+  localparam logic [8:0] SSA_E_LD_RIPE_PREV         = 9'h162;
+  localparam logic [8:0] SSA_E_ST                   = 9'h163;
+  localparam logic [8:0] SSA_E_CHG                  = 9'h164;
+  localparam logic [8:0] SSA_E_POSTE                = 9'h165;
+  localparam logic [8:0] SSA_E_ROWQ                 = 9'h166;
+  localparam logic [8:0] SSA_E_ROW_POSTED           = 9'h167;
+  localparam logic [8:0] SSA_E_ROW_PAIRED           = 9'h168;
+  localparam logic [8:0] SSA_E_RLOOP_N              = 9'h169;
+  localparam logic [8:0] SSA_E_SUPPRESS             = 9'h16A;
+  localparam logic [8:0] SSA_E_FIRST_POP            = 9'h16B;
+  localparam logic [8:0] SSA_E_ROWB0                = 9'h16C;
+  localparam logic [8:0] SSA_E_ROWB1                = 9'h16D;
+  localparam logic [8:0] SSA_E_POLL_PIPE            = 9'h16E;
 
 endpackage
 

@@ -53,7 +53,7 @@ CORE_DIR = {"fsm": ROOT / "hdl" / "rtl" / "core",
 CORE_RTL = {
     "fsm": ["v30_ss_pkg.sv", "@tb", "v30_core.sv", "v30_biu.sv", "v30_eu.sv"],
     "ucore": ["v30u_ss_pkg.sv", "@tb", "v30_core.sv", "v30u_biu.sv",
-              "v30u_eu.sv"],
+              "v30u_ucrom.sv", "v30u_eu.sv"],
 }
 # tb_v30_core.sv's in-DUT probes (the `d`/`g`/`p` dumps and the coverage
 # readout) are bound to the FSM core's internal signal names; the TB is

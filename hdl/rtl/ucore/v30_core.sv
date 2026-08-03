@@ -82,13 +82,13 @@ logic   [1:0] scr_qop = '0;
 // BIU <-> EU
 //----------------------------------------------------------------------------
 wire  [7:0] q_byte;
-wire        q_ripe;
+wire        q_ripe, q_ripe_lead;
 wire  [3:0] q_cnt;
 wire        eu_pop, eu_first, eu_flush;
 wire [15:0] eu_flush_cs, eu_flush_ip;
-wire        eu_post, eu_word, eu_pair, eu_slot_busy;
+wire        eu_post, eu_word, eu_pair, eu_pair2, eu_split, eu_slot_busy;
 wire  [2:0] eu_bs;
-wire [19:0] eu_addr;
+wire [19:0] eu_addr, eu_addr2;
 wire  [1:0] eu_seg;
 wire [15:0] eu_wdata, eu_rdata;
 wire        eu_rd_done, eu_wr_done, eu_opr_free;
@@ -163,6 +163,7 @@ v30u_biu u_biu (
     .md8080     (md8080),
     .q_byte     (q_byte),
     .q_ripe     (q_ripe),
+    .q_ripe_lead(q_ripe_lead),
     .q_cnt_o    (q_cnt),
     .q_pop      (q_pop),
     .q_first    (q_first),
@@ -172,10 +173,13 @@ v30u_biu u_biu (
     .eu_post    (scr_en ? 1'b0 : eu_post),
     .eu_bs      (eu_bs),
     .eu_addr    (eu_addr),
+    .eu_addr2   (eu_addr2),
+    .eu_split   (eu_split),
     .eu_seg     (eu_seg),
     .eu_word    (eu_word),
     .eu_slot_busy (eu_slot_busy),
     .eu_pair    (scr_en ? 1'b0 : eu_pair),
+    .eu_pair2   (eu_pair2),
     .eu_wdata   (eu_wdata),
     .eu_rdata   (eu_rdata),
     .eu_rd_done (eu_rd_done),
@@ -204,6 +208,7 @@ v30u_eu u_eu (
     .srst       (RESET),
     .q_byte     (q_byte),
     .q_ripe     (q_ripe),
+    .q_ripe_lead(q_ripe_lead),
     .q_cnt      (q_cnt),
     .q_pop      (eu_pop),
     .q_first    (eu_first),
@@ -213,10 +218,13 @@ v30u_eu u_eu (
     .eu_post    (eu_post),
     .eu_bs      (eu_bs),
     .eu_addr    (eu_addr),
+    .eu_addr2   (eu_addr2),
+    .eu_split   (eu_split),
     .eu_seg     (eu_seg),
     .eu_word    (eu_word),
     .eu_slot_busy (eu_slot_busy),
     .eu_pair    (eu_pair),
+    .eu_pair2   (eu_pair2),
     .eu_wdata   (eu_wdata),
     .eu_rdata   (eu_rdata),
     .eu_rd_done (eu_rd_done),

@@ -105,6 +105,7 @@ module v30u_biu (
     // --- queue port (the consumer side) ---
     output      [7:0] q_byte,      // the front byte
     output            q_ripe,      // ...and it may be popped THIS clock (M3)
+    output            q_ripe_lead, // ...or will be on the NEXT one (1BL lead)
     output      [3:0] q_cnt_o,
     input             q_pop,       // consumer takes it (qualify with q_ripe)
     input             q_first,     // this pop is an F (instruction first byte)
@@ -116,10 +117,13 @@ module v30u_biu (
     input             eu_post,     // post an access this clock
     input       [2:0] eu_bs,       // 0 INTA 1 IOR 2 IOW 5 MEMR 6 MEMW
     input      [19:0] eu_addr,
+    input      [19:0] eu_addr2,    // the SECOND cycle of a split word access
+    input             eu_split,    // ...which the BIU manufactures (M10)
     input       [1:0] eu_seg,      // S4:S3 -- 0 ES 1 SS 2 CS/none 3 DS
     input             eu_word,
     output            eu_slot_busy,
     input             eu_pair,     // pair write data into the reserved cycle
+    input             eu_pair2,    // ...and it fills TWO of them (a split)
     input      [15:0] eu_wdata,
     output     [15:0] eu_rdata,
     output            eu_rd_done,  // pulse at a completed read's e+2
@@ -241,7 +245,10 @@ reg        rq_need [0:1];
 reg        rq_last [0:1];
 reg        slot_busy;
 reg        slot_accept;
-reg        opr_held;
+reg  [1:0] opr_held;
+reg  [7:0] rd_first_hi;   // a split read's first half
+reg        rd_was_split;
+integer    pk;
 reg  [1:0] done_ctr;      // eu_done lands at e+2 -- see the T4 block
 reg        done_wr;
 reg        rd_done_p;
@@ -286,6 +293,10 @@ wire halt_free = run && cur_halt && evald;
 // M3: the front byte is poppable when it is not one of the green ones.
 wire [3:0] poppable = (grn_ttl != 2'd0) ? (q_cnt - {2'b0, grn_n}) : q_cnt;
 assign q_ripe   = poppable != 4'd0;
+// The 1BL retire lead (`wait_retire_lead`): the front byte is poppable NOW or
+// will be on the next clock -- the green window has one clock left to run.
+assign q_ripe_lead = (poppable != 4'd0) ||
+                     ((grn_ttl == 2'd1) && (q_cnt != 4'd0));
 assign q_byte   = q_mem[q_head];
 assign q_cnt_o  = q_cnt;
 assign halted_o = halted;
@@ -386,6 +397,7 @@ reg  [4:0] occ;
 reg  [1:0] land_ttl;
 reg  [3:0] qi;
 reg [19:0] fetch_lin;
+reg  [1:0] rq_n_pre;
 reg        set_grn, set_infl, set_absorb, set_land, set_noeval;
 reg  [1:0] new_ttl;
 
@@ -479,7 +491,9 @@ always @(posedge clk) begin
             SSA_B_RQ1_LAST:     rq_last[1]    = ss_wdata[0];
             SSA_B_SLOT_BUSY:    slot_busy     = ss_wdata[0];
             SSA_B_SLOT_ACC:     slot_accept   = ss_wdata[0];
-            SSA_B_OPR_HELD:     opr_held      = ss_wdata[0];
+            SSA_B_OPR_HELD:     opr_held      = ss_wdata[1:0];
+            SSA_B_RD_FIRST_HI:  rd_first_hi   = ss_wdata[7:0];
+            SSA_B_RD_WAS_SPLIT: rd_was_split  = ss_wdata[0];
             SSA_B_DONE_CTR:     done_ctr      = ss_wdata[1:0];
             SSA_B_DONE_WR:      done_wr       = ss_wdata[0];
             SSA_B_RD_DONE_P:    rd_done_p     = ss_wdata[0];
@@ -517,7 +531,8 @@ always @(posedge clk) begin
             rq_wr[i]  = 1'b0; rq_need[i]  = 1'b0; rq_last[i]  = 1'b1;
         end
         slot_busy  = 1'b0; slot_accept  = 1'b0;
-        opr_held  = 1'b0; done_ctr  = 2'd0; done_wr  = 1'b0;
+        opr_held  = 2'd0; done_ctr  = 2'd0; done_wr  = 1'b0;
+        rd_first_hi = 8'd0; rd_was_split = 1'b0;
         rd_done_p  = 1'b0; wr_done_p  = 1'b0; opr_free_p  = 1'b0;
         rd_val  = 16'd0;
         ready_prev  = 1'b1;
@@ -567,6 +582,7 @@ always @(posedge clk) begin
         //     before tick(c) runs, so they are visible to this clock's eval.
         //====================================================================
 
+        rq_n_pre = rq_n;
         // the queue POP: a POINT SAMPLE riding this clock
         if (pop_l) begin
             q_head = (q_head == 3'd5) ? 3'd0 : q_head + 3'd1;
@@ -588,6 +604,10 @@ always @(posedge clk) begin
         // post(): the request enters the 2-deep backing store; only the cycle
         // that carries the EU's OWN request takes the single slot (M10).
         if (eu_post && (rq_n != 2'd2)) begin
+            // M4 / M10: the 16-bit bus splits an unaligned word into TWO byte
+            // cycles, and that split is ONE request to the EU -- the BIU
+            // manufactures the second cycle itself and frees the slot at the
+            // LAST of the two T1s (`rq_last`).
             rq_bs[rq_n[0]]     = eu_bs;
             rq_addr[rq_n[0]]   = eu_addr;
             rq_data[rq_n[0]]   = 16'd0;
@@ -596,16 +616,34 @@ always @(posedge clk) begin
             rq_noaddr[rq_n[0]] = (eu_bs == BS_INTA);
             rq_wr[rq_n[0]]     = (eu_bs == BS_MEMW) || (eu_bs == BS_IOW);
             rq_need[rq_n[0]]   = (eu_bs == BS_MEMW) || (eu_bs == BS_IOW);
-            rq_last[rq_n[0]]   = 1'b1;
+            rq_last[rq_n[0]]   = !eu_split;
             rq_n            = rq_n + 2'd1;
+            if (eu_split) begin
+                rq_bs[1]     = eu_bs;
+                rq_addr[1]   = eu_addr2;
+                rq_data[1]   = 16'd0;
+                rq_ube[1]    = eu_addr2[0] ? 1'b0 : 1'b1;
+                rq_seg[1]    = eu_seg;
+                rq_noaddr[1] = 1'b0;
+                rq_wr[1]     = (eu_bs == BS_MEMW) || (eu_bs == BS_IOW);
+                rq_need[1]   = (eu_bs == BS_MEMW) || (eu_bs == BS_IOW);
+                rq_last[1]   = 1'b1;
+                rq_n         = 2'd2;
+            end
             slot_busy       = 1'b1;
             slot_accept     = 1'b0;
         end
+`ifndef SYNTHESIS
+        else if (eu_post) $error("v30u_biu: post dropped, request store full");
+        if (eu_post && eu_split && (rq_n_pre != 2'd0))
+            $error("v30u_biu: split posted onto a non-empty request store");
+`endif
 
         // M5b: the write-data register is loaded through an 8-bit rotator
         // controlled by A0 of the ACCESS -- ONE pass, and both cycles of a
         // split then drive that same rotated word.
-        if (eu_pair) begin
+        for (pk = 0; pk < 2; pk = pk + 1)
+        if (eu_pair && ((pk == 0) || eu_pair2)) begin
             rd_val = eu_wdata;
             if (run && cur_need) begin
                 cur_data = cur_addr[0] ? {eu_wdata[7:0], eu_wdata[15:8]}
@@ -613,22 +651,23 @@ always @(posedge clk) begin
                 cur_need = 1'b0;
                 // 11.4: ...but only until the AD output latch takes the word
                 // at T2.  A pairing that lands after that clock never holds.
-                if (ts == TS_T1) opr_held = 1'b1;
+                if ((ts == TS_T1) && (opr_held != 2'd3))
+                    opr_held = opr_held + 2'd1;
             end else if (cmt_valid && cmt_need) begin
                 cmt_data = cmt_addr[0] ? {eu_wdata[7:0], eu_wdata[15:8]}
                                        : eu_wdata;
                 cmt_need = 1'b0;
-                opr_held = 1'b1;
+                if (opr_held != 2'd3) opr_held = opr_held + 2'd1;
             end else if ((rq_n != 2'd0) && rq_need[0]) begin
                 rq_data[0] = rq_addr[0][0] ? {eu_wdata[7:0], eu_wdata[15:8]}
                                            : eu_wdata;
                 rq_need[0] = 1'b0;
-                opr_held   = 1'b1;
+                if (opr_held != 2'd3) opr_held = opr_held + 2'd1;
             end else if ((rq_n == 2'd2) && rq_need[1]) begin
-                rq_data[1] = rq_addr[1][0] ? {eu_wdata[7:0], eu_wdata[15:8]}
+                rq_data[1] = rq_addr[0][0] ? {eu_wdata[7:0], eu_wdata[15:8]}
                                            : eu_wdata;
                 rq_need[1] = 1'b0;
-                opr_held   = 1'b1;
+                if (opr_held != 2'd3) opr_held = opr_held + 2'd1;
             end
         end
 
@@ -669,8 +708,8 @@ always @(posedge clk) begin
             // 11.4 -- THE OPR RELEASE DOES NOT STRETCH.  The store hands its
             // word to the AD output latch at T2 and OPR is free from T3, at
             // every wait level, while eu_done rides the eval.
-            if ((ts == TS_T2) && cur_wr && opr_held) begin
-                opr_held    = 1'b0;
+            if ((ts == TS_T2) && cur_wr && (opr_held != 2'd0)) begin
+                opr_held    = opr_held - 2'd1;
                 set_oprfree = 1'b1;
             end
             // M7 / M17 -- the prefetch-eligibility test (and the HALT block)
@@ -734,8 +773,24 @@ always @(posedge clk) begin
                     // the deadline is e+2: one clock from this T4 at w0, two
                     // whenever the cycle took a Tw.  ONE number again.
                     done_ctr = (land_ttl == 2'd0) ? 2'd1 : land_ttl;
-                    if (!cur_wr && cur_rd_last)
-                        rd_val = cur_data;      // the read lands in OPR
+                    // THE DATA-PATH BYTE SWAPPER (read half, sim/biu.cpp):
+                    // the system presents the whole ALIGNED WORD and the CPU
+                    // rotates the addressed byte into the low lane, carrying
+                    // the companion along.  A SPLIT word read composes its
+                    // value from the two halves' addressed lanes.
+                    if (!cur_wr) begin
+                        if (!cur_rd_last) begin
+                            rd_first_hi  = cur_data[15:8];
+                            rd_was_split = 1'b1;
+                        end else if (rd_was_split) begin
+                            rd_val = {cur_data[7:0], rd_first_hi};
+                            rd_was_split = 1'b0;
+                        end else begin
+                            rd_val = cur_addr[0]
+                                   ? {cur_data[7:0], cur_data[15:8]}
+                                   : cur_data;
+                        end
+                    end
                 end
                 run = 1'b0;
                 ts  = TS_TI;
@@ -1033,7 +1088,9 @@ always @(posedge clk) begin
         SSA_B_RQ1_LAST:     ss_rdata <= {15'b0, rq_last[1]};
         SSA_B_SLOT_BUSY:    ss_rdata <= {15'b0, slot_busy};
         SSA_B_SLOT_ACC:     ss_rdata <= {15'b0, slot_accept};
-        SSA_B_OPR_HELD:     ss_rdata <= {15'b0, opr_held};
+        SSA_B_OPR_HELD:     ss_rdata <= {14'b0, opr_held};
+        SSA_B_RD_FIRST_HI:  ss_rdata <= {8'b0, rd_first_hi};
+        SSA_B_RD_WAS_SPLIT: ss_rdata <= {15'b0, rd_was_split};
         SSA_B_DONE_CTR:     ss_rdata <= {14'b0, done_ctr};
         SSA_B_DONE_WR:      ss_rdata <= {15'b0, done_wr};
         SSA_B_RD_DONE_P:    ss_rdata <= {15'b0, rd_done_p};
