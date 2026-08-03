@@ -178,8 +178,12 @@ begin
         // blocking copies -- reconstructing them twice is what let the two
         // sides disagree in pass 1.  (`retire_ok_n` reads the REGISTER `wr_out`
         // and is NOT this predicate.)
+        // F24 is a term of the TAKE as well as of the demand: a row that
+        // FLUSHES has already emptied the queue by the time the model reaches
+        // `opcode_prefetch`, so it cannot keep a byte either.
         retire_now = retire_ok_e;
-        if (!pend_after && !opc_valid && retire_now && q_ripe) begin
+        if (!pend_after && !opc_valid && retire_now && q_ripe && !row_flush)
+        begin
             opc_byte = q_byte;
             opc_valid = 1'b1;
             pop_is_first = 1'b0;

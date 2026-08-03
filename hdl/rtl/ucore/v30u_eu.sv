@@ -969,6 +969,21 @@ wire wr_ind2 = e_have2 && (e_d2 == 2'd2) &&
                !((e_s2 == 4'd4) && !sig_commits);
 wire [15:0] ind_now = wr_ind2 ? s2_now : wr_ind1 ? s1_now : ind;
 
+// F14, the same rule for the REDIRECT.  `exec_impl.h`'s CTL block calls
+// `biu_.flush(m_.sreg[kCS], m_.pc)` AFTER the transfers, so a row that writes
+// PC (or CS) and flushes on the same row redirects to the value IT JUST WROTE
+// -- which is every taken jump in the ROM (`EB`: `015B  SIGMA -> PC  E  CTL
+// FLUSH`).  Reading the register gave the PRE-jump PC, so the refill fetched
+// from `target - disp`.  The queue pops a row makes also advance PC, and they
+// happen before the transfer, exactly as in `rd_src1`.
+wire [15:0] pc_after_q = pc + {15'd0, row_q1} + {15'd0, row_q2};
+wire wr_pc1 = e_have1 && (e_d1 == 5'd4) &&
+              !((e_s1 == 5'd20) && !sig_commits);
+wire wr_cs1 = e_have1 && (e_d1 == {3'd0, SR_CS}) &&
+              !((e_s1 == 5'd20) && !sig_commits);
+wire [15:0] pc_now = wr_pc1 ? s1_now : pc_after_q;
+wire [15:0] cs_now = wr_cs1 ? s1_now : sreg[SR_CS];
+
 wire [15:0] acc_off  = row_is_wb ? wb_ea : ind_now;
 wire [19:0] acc_phys = acc_io ? {4'd0, acc_off}
                               : ({acc_segv, 4'd0} + {4'd0, acc_off});
@@ -1008,9 +1023,18 @@ wire       retire_ok_e   = (wr_after == 3'd0) ||
 // terms as `eu_pair` below, which is the act that does the clearing.
 wire pend_new   = pend_active || (row_is_wr || row_is_wb);
 wire pend_after = pend_new && !(opr_fresh || row_wr_opr);
+// F24 -- A ROW THAT FLUSHES CANNOT POP.  `exec_impl.h`'s CTL block calls
+// `biu_.flush()` BEFORE the cadence block reaches `opcode_prefetch`, so on a
+// redirect row the queue the pop would take from has already been emptied and
+// the pop waits for the refill.  The EU had the demand and the flush as two
+// independent acts of the same clock and took the byte the flush was about to
+// discard: `EB idx 0` popped its successor at row 5, where the golden shows
+// PASV and the flush's own `E` on row 6.  The whole taken-JMP family (Jcc,
+// E9/E8/EB/EA, FF.2/.4, RET, INT) is this one term.
+wire row_flush = (e_type == TY_CTL) && !e_farjmp && (e_ictl == I_FLUSH);
 wire row_epop = (st == S_ROW) && e_e && !pend_after && !opc_valid &&
                 !row_blocked && (rowq >= row_qn) && !row_pre_wait &&
-                !row_slot_wait && retire_ok_e;
+                !row_slot_wait && retire_ok_e && !row_flush;
 
 wire q_demand = (st == S_OPC_POP) || (st == S_EXT_POP) || (st == S_MODRM) ||
                 (st == S_D16_LO) ||
@@ -1101,10 +1125,9 @@ assign eu_pair2 = pend_active ? pend_split : acc_split;
 assign eu_wdata = opr_now;
 
 // --- the CTL strobes -------------------------------------------------------
-assign q_flush  = row_acts_ok && (e_type == TY_CTL) && !e_farjmp &&
-                  (e_ictl == I_FLUSH);
-assign flush_cs = sreg[SR_CS];
-assign flush_ip = pc;
+assign q_flush  = row_acts_ok && row_flush;
+assign flush_cs = cs_now;
+assign flush_ip = pc_now;
 assign eu_susp  = row_acts_ok && (e_type == TY_CTL) && !e_farjmp &&
                   (e_ictl == I_SUSP);
 assign eu_resume = 1'b0;
