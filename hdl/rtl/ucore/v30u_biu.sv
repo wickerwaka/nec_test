@@ -268,6 +268,13 @@ reg        rd_done_p;
 reg        wr_done_p;
 reg        opr_free_p;
 reg [15:0] rd_val;        // OPR, shadowed (see M5b / the string loops)
+// ...and the READ-LANDING half of it, published on its own.  `rd_val` is the
+// shared shadow: a pairing writes the STORE's word into it (the "drives
+// whatever is still standing in OPR" path), which puts `eu_wdata` in its cone
+// and would close a combinational loop the moment the EU's act decode reads
+// the landing value back (sec.20.2's rule).  `rd_land` is written by the read
+// path ONLY, so `eu_rdata_n` stays register-only lookahead.
+reg [15:0] rd_land;
 
 // --- M2r: the ONLY wait mechanism -----------------------------------------
 reg        ready_prev;
@@ -345,6 +352,7 @@ reg r_rd_done_p;
 reg r_wr_done_p;
 reg r_opr_free_p;
 reg [15:0] r_rd_val;
+reg [15:0] r_rd_land;
 reg r_ready_prev;
 reg [7:0] r_q_mem [0:5];
 reg [2:0] r_rq_bs [0:1];
@@ -448,7 +456,7 @@ assign eu_slot_busy_n = slot_busy;
 assign eu_wr_done_n   = wr_done_nxt;
 assign eu_opr_free    = r_opr_free_p;
 assign eu_opr_free_n  = opr_free_p;
-assign eu_rdata_n     = rd_val;
+assign eu_rdata_n     = r_rd_land;
 assign eu_rd_done_n   = rd_done_nxt;
 // The 1BL retire lead (`wait_retire_lead`): the front byte is poppable NOW or
 // will be on the next clock -- the green window has one clock left to run.
@@ -614,6 +622,7 @@ always_comb begin
     wr_done_p = r_wr_done_p;
     opr_free_p = r_opr_free_p;
     rd_val = r_rd_val;
+    rd_land = r_rd_land;
     ready_prev = r_ready_prev;
     pair_odd = 1'b0;              // combinational scratch (M5b); no latch
     for (ri = 0; ri < 6; ri = ri + 1) q_mem[ri] = r_q_mem[ri];
@@ -771,7 +780,7 @@ always_comb begin
         opr_held  = 2'd0; done_ctr  = 2'd0; done_wr  = 1'b0;
         rd_first_hi = 8'd0; rd_was_split = 1'b0;
         rd_done_p  = 1'b0; wr_done_p  = 1'b0; opr_free_p  = 1'b0;
-        rd_val  = 16'd0;
+        rd_val  = 16'd0; rd_land = 16'd0;
         ready_prev  = 1'b1;
         if (bkd_load) begin
             // The backdoor injects a RIPE queue at CS:IP with the fetch
@@ -1030,11 +1039,13 @@ always_comb begin
                             rd_was_split = 1'b1;
                         end else if (rd_was_split) begin
                             rd_val = {cur_data[7:0], rd_first_hi};
+                            rd_land = rd_val;
                             rd_was_split = 1'b0;
                         end else begin
                             rd_val = cur_addr[0]
                                    ? {cur_data[7:0], cur_data[15:8]}
                                    : cur_data;
+                            rd_land = rd_val;
                         end
                     end
                 end
@@ -1303,6 +1314,7 @@ always_ff @(posedge clk) begin
     r_wr_done_p <= wr_done_p;
     r_opr_free_p <= opr_free_p;
     r_rd_val <= rd_val;
+    r_rd_land <= rd_land;
     r_ready_prev <= ready_prev;
     for (rj = 0; rj < 6; rj = rj + 1) r_q_mem[rj] <= q_mem[rj];
     for (rj = 0; rj < 2; rj = rj + 1) begin

@@ -532,7 +532,15 @@ wire row_need_q  = (st == S_ROW) && ({1'b0, rowq} < row_qn);
 
 // The bus rows.  [-06-] commits OPR to the r/m operand only when that operand
 // is memory (the 8F mod==3 ghost).
-wire row_wb_mem  = (wb_kind == OK_MEM) && !suppress_commit;
+// F28 -- A ROW SUPPRESSES ITS OWN WRITE-BACK.  `suppress_commit` is set INSIDE
+// v30u_eu_row.svh, on the very row whose `[-06-]` it cancels (CMP: the ALU does
+// not drive the result bus), so the act decode must reconstruct it rather than
+// read the register a clock behind.  Without it `38`/`39`/`80.7` posted a store
+// that never happened, `pend_after` deferred the successor's pop, and the F
+// landed one clock late.
+wire suppress_now = (e_s1 == 5'd20) && !sig_commits &&
+                    (e_d1 == 5'd19) && (m_kind == OK_MEM);
+wire row_wb_mem  = (wb_kind == OK_MEM) && !suppress_commit && !suppress_now;
 wire row_is_read = (e_type == TY_CTL) && (e_ectl == E_MEMR);
 wire row_is_wr   = (e_type == TY_CTL) && (e_ectl == E_MEMW);
 wire row_is_wb   = (e_type == TY_CTL) && (e_ectl == E_WRITEBACK) && row_wb_mem;
@@ -959,7 +967,14 @@ end
 // ...and the ACT decode needs the same live OPR (F21).  It is combinational,
 // so it does not get the step's blocking write for free: it reconstructs the
 // `F` delivery the row is about to make.  ONE expression, both sides (F11).
-wire [15:0] opr_live = (e_f && (rdq_n != 2'd0)) ? rdq0 : opr;
+// ...and when the completion is the LOOKAHEAD itself (`nr_have`'s
+// `eu_rd_done_n`) the word is not in the store yet -- block (a) puts it there
+// in the same edge the step then pops it, so the act decode must read
+// `eu_rdata_n` directly.  `C3`'s `00F3 OPR -> PC  F E  CTL FLUSH` redirects
+// off exactly that word, and read the STALE PC without this.
+wire [15:0] opr_live = (e_f && (rdq_n != 2'd0)) ? rdq0
+                     : (e_f && eu_rd_done_n)    ? eu_rdata_n
+                     : opr;
 wire [15:0] s1_now = (e_s1 == 5'd7) ? {8'd0, q_byte}
                    : (e_s1 == 5'd6) ? opr_live
                    : s1_val;
