@@ -1906,3 +1906,52 @@ other `one_byte_logic` form (`F5` `F8` `F9` `FC` `FD` …) is 500/500, so a
 structural change to this arm has more to lose than to gain until it is
 made under the same measurement.  The bar for pass 5 is pre-registered:
 **`FA` 500/500 and `FB` 500/500 with no other 1BL form moving.**
+
+### §35.4 The strings / ENTER group — where the clocks are, MEASURED
+
+`F3AA idx 2` (`rep stosb`, CX=3) is the sharpest member: **every bus row is
+IDENTICAL to the golden through the last store**; only the closing `F` pop
+is late, by three clocks (golden row 24, RTL row 27), and the window is
+28 rows against 25.  So nothing about the loop's bus behaviour is wrong —
+the whole cost is in `run_micro`'s TAIL.
+
+Read against the SPEC, the model's tail costs exactly:
+
+```
+if (pend_.active) { if (!opr_fresh_) deliver_read(); emit_pending(); }
+   deliver_read()   -- a WAIT: zero clocks when the condition already holds
+   emit_pending()   -- ZERO clocks, always (it fills a reserved slot)
+biu_.opcode_prefetch(cs);      -- wait_bus(), then the pop rides one clock
+if (deferred) biu_.charge(1);  -- M8b
+```
+
+The RTL's tail is `S_TAIL` → `S_TAIL_W` → `S_TAIL_POP`, and `S_TAIL`
+charges a clock UNCONDITIONALLY (`if (st != S_INSTR_END) stop = 1'b1;`)
+where the model charges only for the waits.  `S_TAIL_W` charges another on
+its way to `S_TAIL_POP`, against a zero-cost `emit_pending()`.
+
+MEASURED, the falsifying experiment (`S_TAIL` made fully zero-cost,
+whole-suite recon at 60 cases, form-by-form diff):
+
+| | forms |
+|---|---|
+| IMPROVED | `F3A4` 17→32, `F3A5` 15→29, `F3AA` 30→53, `F3AB` 45→51, `F2AA` 36→42 |
+| REGRESSED | `50` 60→3, `6A` 60→0, `86` 60→19, `87` 60→19, `A2` 60→1, `A3` 60→1, `EE` 60→0, `EF` 60→1 |
+
+REVERTED.  The result is the finding: **`S_TAIL`'s charge is not one event.**
+It is right for the eight forms that regressed and wrong for the string
+tail, so what is wrong is the CONDITION, not the `stop` — which is §16's
+named class yet again, and the same shape as F11: a state that charges for
+two different reasons will be fitted to one of them.  The next pass should
+derive the tail's clocks from the model's three terms above
+(`deliver_read`'s wait, `opcode_prefetch`'s wait + pop clock, M8b's
+`charge(1)`) rather than from the state graph, and the pre-registered bar
+is: **the six strings/ENTER forms green and none of those eight moving.**
+
+The group's SECOND signature — a wrong store DATA on middle iterations
+(`F3A4 idx 1` row 14 `exp 37032 got 0`) — is NOT yet shown to be the same
+mechanism and must be triaged separately.  Note for that triage: reading
+the SPEC, `pend_.active` is TRUE at the `E` row in the MODEL too for
+`REP STOS` (the last iteration's write is staged and never paired, because
+`emit_pending` fires only when `opr_fresh_` and a string loop refreshes OPR
+once), so the DEFERRAL itself is faithful and must not be "fixed".
