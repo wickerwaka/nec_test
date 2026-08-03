@@ -371,6 +371,12 @@ package v30_ss_pkg;
   // carry them restores a part that has forgotten the pin.  Two words: the
   // three pipelines packed (INT 4, NMI 5, IE 4 = 13 bits) and the latches.
   localparam logic [8:0] SSA_E_PIN_PIPE             = 9'h171;
+  // ...and `SSA_E_IRQ_LATCH` is the recognition's LATCH word: nmi_latch,
+  // irq_shadow, bnd_armed, irq_sel_nmi, unhalt_pend and (U2 pass 6) the REP
+  // boundary's anchor selector `rep_chain`.  Bit 5 of a word that was already
+  // in the map -- NO address is added and NO count changes, so SS_VERSION does
+  // NOT move; a v1 stream restores bit 5 as 0, which is the sequence-start
+  // value `begin_sequence()` writes anyway.
   localparam logic [8:0] SSA_E_IRQ_LATCH            = 9'h172;
 
 endpackage

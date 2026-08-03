@@ -80,6 +80,8 @@ module v30u_eu (
     output     [15:0] eu_wdata,
     input      [15:0] eu_rdata_n,
     input             eu_rd_done_n,
+    input             eu_rd_edge,   // the read's DATA EDGE (T3/Tw -> T4)
+    input      [15:0] eu_rd_edge_d,
     input             eu_wr_done_n,
     input             eu_opr_free,   // F31: the LEVEL `opr_held == 0`
 
@@ -241,6 +243,7 @@ reg  [3:0] int_p;          // pin_int:  int_p[k] is the level of clock c-1-k
 reg  [4:0] nmi_p;          // pin_nmi, one deeper (the latch is an EDGE)
 reg        nmi_latch;      // set at edge+3, so it reads true from edge+4
 reg  [3:0] ie_p;           // psw[FIE] through the SAME three flops
+reg        rep_chain;      // ...this REP boundary is a CHAINED one (>= 2)
 reg        irq_shadow;     // a segment-register write skips ONE boundary
 reg        bnd_armed;      // this `S_OPC_POP` is an instruction boundary
 reg        irq_sel_nmi;    // the kind, latched AT the boundary
@@ -597,9 +600,28 @@ wire irq_pin_int = int_p[2];                       // the pin at c-3
 wire irq_int_lvl = int_p[2] && ie_p[2];            // ...gated by IE at c-3
 wire irq_nmi_lvl = nmi_latch;
 wire irq_any     = irq_nmi_lvl || irq_int_lvl;
-// A REP iteration boundary samples ONE FLOP DEEPER (interrupt_model.md,
-// "REP abort": pin@edge-4) and reads the LIVE IE, not the pipelined one.
-wire irq_rep     = irq_nmi_lvl || (int_p[3] && psw[FIE]);
+// A REP iteration boundary samples at the SAME depth below its own decision
+// EDGE (interrupt_model.md, "REP abort": pin@edge-4) and reads the LIVE IE,
+// not the pipelined one -- but its edge is NOT the loop row's clock, and the
+// two anchors the SPEC records are one clock apart:
+//
+//   "the boundary-1 decision edge sits at a fixed opcode-pop+7 ... its flush
+//    is invariant at pop+16 = edge+9.  Chained boundaries (>= 2) are
+//    write-accept-anchored: decision at the accept edge, flush at accept+9."
+//
+// The `JMP REP` row stands at opcode-pop+6, so the FIRST boundary's edge is
+// the row's clock + 1 (tap c-3) and a CHAINED one's is + 2 (tap c-2) -- the
+// chained element's own store is still PENDING at the loop row, so its accept
+// is one clock further out.  MEASURED over the 56 `INT.F3AA` mid-string
+// aborts: the golden's flush is at pop+16 in ALL 35 one-element aborts and at
+// the last write's T1 + 8 (= accept + 9) in ALL 21 chained ones.
+//
+// This is why a SINGLE tap depth has no clean fit (U2 pass 5 recorded the scan
+// as a negative result: [0] 174, [1] 178, [2] 179, [3] 175) -- the two
+// boundaries want DIFFERENT depths, because they are anchored to different
+// edges.  Nothing here is fitted: both taps are `edge - 4`.
+wire irq_rep_1st = irq_nmi_lvl || (int_p[2] && psw[FIE]);   // edge = c+1
+wire irq_rep_chn = irq_nmi_lvl || (int_p[1] && psw[FIE]);   // edge = c+2
 
 //============================================================================
 // THE ROW'S DEMANDS
@@ -1444,6 +1466,7 @@ reg        bsw;             // the row's byte-source flag (Q / CONST)
 reg [13:0] pv;
 reg  [3:0] nloc;
 reg        carry, taken, bubble, retire_now;
+reg        rep_chained;  // ...and the value `rep_chain` had at THIS boundary
 reg        ie_now;      // block (g): the IE the gate's pipeline takes
 reg [15:0] ea;
 reg  [2:0] rseg;
@@ -1487,6 +1510,7 @@ always @(posedge clk) begin
         opc_base = 5'd0; opc_from_modrm = 1'b0; modrm_reg = 3'd0; xop = 4'd0;
         rep_test = TEST_NONE; rep_pol = 1'b0; bus_word = 1'b0;
         opc8080 = 1'b0; mode8080 = 1'b0; intr_pending = 1'b0; eu_halted = 1'b0;
+        rep_chain = 1'b0;
         m_kind = OK_NONE; m_idx = 3'd0; m_ea = 16'd0; m_seg = 3'd3; m_byte = 1'b0;
         r_kind = OK_NONE; r_idx = 3'd0; r_ea = 16'd0; r_seg = 3'd3; r_byte = 1'b0;
         wb_kind = OK_NONE; wb_idx = 3'd0; wb_ea = 16'd0; wb_seg = 3'd3;
@@ -1511,6 +1535,7 @@ always @(posedge clk) begin
         // anything else, and it is what `poll_busy()` / the INT sample assume.
         poll_pipe = {3{pin_poll_n}};
         int_p = {4{pin_int}}; nmi_p = {5{pin_nmi}}; ie_p = 4'd0;
+        rep_chained = 1'b0;
         nmi_latch = 1'b0; irq_shadow = 1'b0; bnd_armed = 1'b0;
         irq_sel_nmi = 1'b0; unhalt_pend = 1'b0;
         if (bkd_load) begin
@@ -1580,6 +1605,43 @@ always @(posedge clk) begin
         if (eu_wr_done_n && (wr_out != 2'd0)) wr_out = wr_out - 2'd1;
         if (q_pop && q_ripe && q_first && !first_pop_seen) first_pop_seen = 1'b1;
 
+        //--------------------------------------------------------------------
+        // ...AND THE FLAG REGISTER IS FED BY THE DATA LATCH, NOT BY THE ROW.
+        //--------------------------------------------------------------------
+        // A row's destination write-enable is a LEVEL for as long as the row
+        // STANDS.  For every other destination that is unobservable -- nothing
+        // between the row's arrival and its release can read the register --
+        // but FLAGS is wired to the outside world twice over (S5 on the status
+        // pins, and the IE gate of the recognition pipeline), so on the two
+        // rows whose destination is FLAGS and whose source is the read latch
+        // the early load is VISIBLE.  `interrupt_model.md`, verbatim:
+        //
+        //     "POP PSW consumes the popped image at its read's data edge
+        //      (the new IE shows in the PS bits during the read's own T4)"
+        //
+        // MEASURED, `INT.9D idx 1`: the golden's PS nibble is 5 on row 9 --
+        // the read's T4, so the register already held the popped image when
+        // that clock OPENED, i.e. it was loaded on the T3 -> T4 edge -- while
+        // the `OPR -> FLAGS` row itself does not release until row 10.  Two
+        // clocks, and they are exactly the two that decide the NEXT boundary:
+        // `ie_p[2]` is IE at c-3, the boundary stands on row 13, and IE has to
+        // be up by row 10 for it to be seen.  All 89 failing cases were
+        // pre-IE=0 pops -- the 111 pre-IE=1 ones never needed it.
+        //
+        // The rule names NO OPCODE.  `OPR -> FLAGS ... F` is exactly two ROM
+        // rows, 007A (POP PSW) and 01EA (RETI) -- which is the same pair E1
+        // measured on silicon ("mu01EA's flag commit obeys the SAME race table
+        // as POP PSW's mu007A", 108/108 H-IDENTICAL).  One rule, both rows.
+        //
+        // The row still performs its own `OPR -> FLAGS` when it releases; the
+        // value is the same word, so the commit is idempotent.  (The frozen
+        // FSM core renders this as `opc == 8'h9D && eu_rd_now` plus a second
+        // copy for `iret_pw`; this is that behaviour with the opcode test and
+        // the duplication taken out.)
+        if (eu_rd_edge && (st == S_ROW) && e_f &&
+            (e_s1 == 5'd6) && (e_d1 == 5'd15))
+            psw = (eu_rd_edge_d & PSW_WRITABLE) | PSW_FORCED;
+
         //====================================================================
         // (b) the post-E row's work, owed to THIS clock: it overlaps the
         //     successor's decode (exec_impl.h's cadence note) and the model
@@ -1647,8 +1709,8 @@ always @(posedge clk) begin
     `include "v30u_eu_ss_read.svh"
 end
 
-wire _unused_eu = &{1'b0, q_cnt, halted, lock_pfx, nmi_p[2:0], int_p[1:0],
-                    ie_p[3], ie_p[1:0],
+wire _unused_eu = &{1'b0, q_cnt, halted, lock_pfx, nmi_p[2:0], int_p[0],
+                    int_p[3], ie_p[3], ie_p[1:0],
                     ar_full, ar_m, row_paired, imm8,
                     r_ictl, r_ectl, r_sr, r_f, r_w, r_e, r_type, r_nopmove,
                     r_hasconst, r_s1, r_d1, r_s2, r_d2, r_r, dec_valid,

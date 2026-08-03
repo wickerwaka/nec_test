@@ -31,15 +31,27 @@ case (r_cond)
     C_NS:     taken = !(op8 ? tmpb[7] : tmpb[15]);
     C_REP:    begin
                   count = count - 16'd1;
+                  // `++rep_elems_`: from here on this sequence's boundaries are
+                  // CHAINED.  Read BEFORE the update, exactly as the model
+                  // reads `rep_elems_ >= 2` after its own increment.
+                  rep_chained = rep_chain;
+                  rep_chain = 1'b1;
                   if (count == 16'd0) taken = 1'b0;      // F19
-                  // "REP iterations are individually interruptible": the
-                  // sample runs one flop deeper than the boundary's
-                  // (interrupt_model.md, "REP abort", pin@edge-4) and the
+                  // "REP iterations are individually interruptible": the sample
+                  // is `edge - 4` (interrupt_model.md, "REP abort") and the
+                  // EDGE is one clock past this row on the FIRST boundary and
+                  // two on a chained one (see `irq_rep_1st`/`irq_rep_chn`); the
                   // recognition is LATCHED -- the withdrawal path's own
                   // `0223 JMP INTR` is what reads it back.
-                  else if (intr_pending || irq_rep) begin
+                  else if (intr_pending ||
+                           (rep_chained ? irq_rep_chn : irq_rep_1st)) begin
                       intr_pending = 1'b1;
                       taken = 1'b0;
+                      // ...and the chained boundary's decision edge being one
+                      // clock later moves the WHOLE withdrawal with it: the
+                      // model's `if (rep_elems_ >= 2) biu_.charge(1)`, which is
+                      // what puts the flush at accept+9 instead of edge+9.
+                      if (rep_chained) bubble = 1'b1;
                   end
                   else if (rep_test == TEST_Z)
                       taken = (psw[FZ] == rep_pol);

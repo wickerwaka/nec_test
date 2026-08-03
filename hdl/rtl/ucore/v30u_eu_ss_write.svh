@@ -128,6 +128,7 @@
                                          bnd_armed   = ss_wdata[2];
                                          irq_sel_nmi = ss_wdata[3];
                                          unhalt_pend = ss_wdata[4];
+                                         rep_chain   = ss_wdata[5];
                                        end
             SSA_E_PE_FLAGS:            begin
                                          pe_opc8080 = ss_wdata[0];

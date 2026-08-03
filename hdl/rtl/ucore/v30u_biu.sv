@@ -134,6 +134,8 @@ module v30u_biu (
     input      [15:0] eu_wdata,
     output     [15:0] eu_rdata_n,
     output            eu_rd_done_n,// pulse at a completed read's e+2
+    output            eu_rd_edge,  // ...and the READ'S DATA EDGE itself (T3->T4)
+    output     [15:0] eu_rd_edge_d,// the word the data latch closes on
     output            eu_wr_done_n,// pulse at a completed write's e+2
     output            eu_opr_free, // 11.4 / M13: the store lets go of OPR
                                  // (a LEVEL off the register: `opr_held == 0`)
@@ -415,6 +417,30 @@ wire halt_free = r_run && r_cur_halt && r_evald;
 wire done_fire   = (r_done_ctr == 2'd1);
 wire rd_done_nxt = done_fire && !r_done_wr;
 wire wr_done_nxt = done_fire &&  r_done_wr;
+
+// THE READ'S DATA EDGE.  `eu_rdata_n` / `eu_rd_done_n` are the DELIVERY -- the
+// word reaching OPR at e+2 -- and there is one consumer that does not wait for
+// it: the flag register (see v30u_eu.sv block (a), and interrupt_model.md,
+// "POP PSW consumes the popped image at its read's data edge -- the new IE
+// shows in the PS bits during the read's own T4").  This is that edge: the
+// T3/Tw -> T4 advance IS the READY sample (see the `case (ts)` below), so it
+// is the edge the read data latch closes on, and `cur_data` has held the word
+// since the end of T2.
+//
+// Register-only + `ready`, exactly like `done_fire`, so publishing it closes no
+// loop.  It deliberately does NOT carry this clock's `q_flush`: a flush is an
+// EU output, and the only consumer is a micro-row that is STANDING BLOCKED on
+// its own F interlock, which by construction is not the row that flushes.
+wire rd_data_edge = r_run && !r_cur_wr && !r_cur_fetch && !r_cur_halt &&
+                    r_cur_rd_last &&
+                    ((r_ts == TS_T3) || (r_ts == TS_TW)) && ready;
+// ...through the same byte rotator the landing uses, one clock earlier.
+wire [15:0] rd_edge_val = r_rd_was_split
+                          ? {r_cur_data[7:0], r_rd_first_hi}
+                          : (r_cur_addr[0] ? {r_cur_data[7:0], r_cur_data[15:8]}
+                                           : r_cur_data);
+assign eu_rd_edge   = rd_data_edge;
+assign eu_rd_edge_d = rd_edge_val;
 
 // M3: the front byte is poppable when it is not one of the green ones.
 wire [3:0] poppable = (r_grn_ttl != 2'd0) ? (r_q_cnt - {2'b0, r_grn_n}) : r_q_cnt;

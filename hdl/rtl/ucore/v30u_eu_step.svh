@@ -643,6 +643,7 @@ S_IRQ_D: begin
     opc_valid = 1'b0; pop_is_first = 1'b1; bnd_armed = 1'b0;
     irq_shadow = 1'b0;
     intr_pending = 1'b0;                       // `m_.intr_pending = false`
+    rep_chain = 1'b0;                          // `begin_sequence()`
     if (eu_halted) begin
         eu_halted = 1'b0;
         unhalt_pend = 1'b1;   // the NMI wake: `unhalt()` AT the entry clock
@@ -679,6 +680,7 @@ S_INSTR_END: begin
         `include "v30u_eu_iend_late.svh"
     end
     ending = 1'b0; rowq = 2'd0; row_posted = 1'b0; row_paired = 1'b0;
+    rep_chain = 1'b0;                    // `begin_sequence()`: rep_elems_ = 0
     // S9b: a form the PRE-DECODE executed (`FA` `FB` `F5` `F8` ... -- no `E`
     // row, so no boundary was taken above) retires at a boundary too, and it
     // is the cold pop that follows.  Everything else has already had its.
