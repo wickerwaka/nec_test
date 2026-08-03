@@ -687,3 +687,118 @@ reference); a `--core ucore` mode is U3's deliverable per §3.
 
 **GATE U1: GREEN on its own bar (the scripted lockstep set), with the boot leg
 booked as F3 and carried to U2.**
+
+---
+
+# STAGE U2 — the EU: sequencer, loader march, datapath, ALU
+
+**STATUS: IN FLIGHT.  Gate U2 (G3) is NOT met.**  Two rungs of the ladder are
+green; the report below is the state as it stands, with every number
+re-runnable.
+
+## §16 What U2 built
+
+| artifact | what it is |
+|---|---|
+| `hdl/rtl/ucore/v30u_ucrom.sv` | the two build-time tables of F1 (`ucdecode` 8192×10 → `ucrom` 1028×29), read COMBINATIONALLY off the `upc` flop |
+| `hdl/rtl/ucore/v30u_eu.sv` | the EU: the five stall wires, the datapath muxes, the ALU (combinational ops + the ONE shared iterative stepper), the combinational act outputs |
+| `…/v30u_eu_step.svh` | the model's program as states — `loader_decode` + `run_micro`'s control |
+| `…/v30u_eu_row.svh` / `_poste.svh` / `_wd1.svh` / `_cond.svh` | one micro-row's body, the post-`E` row, `wr_dst1`, `cond_true` |
+| `…/v30u_eu_ss_write.svh` / `_ss_read.svh` | the SS arms, generated; each `SSA_E_*` exactly twice |
+| `v30u_biu.sv` (delta) | the three EU-facing gaps U1 left UNEXERCISED: split accesses, the read-side A0 swapper, `opr_held` as a count, `q_ripe_lead` |
+
+### The inversion, stated once
+
+The model pumps the clock; the RTL cannot.  So:
+
+* every port the BIU samples is a COMBINATIONAL function of EU REGISTERS
+  ONLY — the state, the row standing on `upc`, the datapath;
+* `charge(n)` = "this state occupies n clocks";
+* every `while (…) tick()` = a STALL (the state is re-entered, its acts
+  withheld): `stall_q` / `stall_opr` / `stall_slot` / `stall_retire` /
+  `stall_pin`;
+* a model step that charges NOTHING is a ZERO-COST state executed inside the
+  edge that computed it, by a bounded chain loop.  **That loop is the whole
+  answer to "several model steps ride one clock"** — the pre-popped opcode,
+  the pure-decode logic, the EA adder, the operand binding and `step()`'s own
+  return all cost nothing, and if any of them were given a clock the whole
+  decoder schedule would slip.  Getting a `stop` wrong on a zero-cost arm is
+  the single most common bug class found in bring-up.
+
+## §17 THE RUNG LADDER — as it stands
+
+`python3 sw/check_core.py --core ucore --opcodes <form>`, v0.1 at w0,
+500 cases per form.
+
+| rung | form | full | note |
+|---|---|---|---|
+| 1 | `B8` | **500/500** | GREEN — immediate loads: the sequencer, the loader's no-ModR/M schedule, the E-row pre-pop |
+| 2a | `8A` | **500/500** | GREEN — ModR/M + EA + disp8/disp16 + the pre-decode operand read + `wait_opr` |
+| 2b | `8B` | 302/500 | split (unaligned) word loads outstanding |
+| 2c | `88` | 134/500 | the store path |
+| 2d | `89` | 121/500 | the store path |
+
+Standing gates on the same tree: `check_ucore_tables` **9988/9988 (G0)**,
+`ulockstep.py --suite --waits 0,1,2,3` **32/32 LOCKSTEP**, FSM spot-check on
+the same five forms **2500/2500**.
+
+## §18 FINDINGS
+
+### F7 — the EU reads the BIU's BLOCKING state from a second process
+
+**Class: instrument / composition.**  `v30u_biu` is one process whose
+registers change meaning inside the edge (that IS its transliteration of
+`tick()`).  `v30u_eu` is a second process reading them on the same edge, so
+what it observes is a SCHEDULING fact, not a contract.
+
+MEASURED, both ways round:
+
+* read LIVE (the levels `q_ripe` / `q_byte` / `q_cnt` / `eu_slot_busy` and the
+  pulses `eu_rd_done` / `eu_wr_done` / `eu_opr_free` alike) — B8 500/500,
+  8A 500/500;
+* LATCHED into clock-c flops in the EU — B8 **500 → 123**, every pop one clock
+  late, all four MOV forms to zero.
+
+So the levels a Verilated edge presents ARE the clock-c values.  **REFUTED:**
+"the EU must latch the BIU's levels".  Booked, not patched: the composition
+wants an explicit clock-c handshake published by the BIU (a `q_popped` strobe,
+a `slot_free` level) rather than shared blocking registers, and until it has
+one this is a dependency on Verilator's ordering that Quartus need not share.
+*Falsifier*: any simulator or synthesis flow in which the same RTL puts the
+first pop on a different clock.
+
+### F8 — the post-`E` row overlaps the successor's decode, so it cannot own a state
+
+**Class: SPEC.**  `exec_impl.h`'s cadence note says the `E` row and the row
+after it are charged by the SUCCESSOR's decode.  Concretely: the `E` row's
+`charge(1)` lands the clock, the post-`E` row then acts on that clock with
+`row_clocks = 0`, and the successor's first loader step rides the SAME clock.
+A state machine that gives the post-`E` row a state of its own puts every
+successor one clock late.  It is therefore carried as a one-bit debt
+(`poste`) discharged at the TOP of the next edge, before the successor's
+step — the model's own order.  Asserted: a post-`E` row carries no bus cycle
+and no queue pop.
+
+### F9 — `dbg_regs`' IP slot is the LIVE `pc`, not a retire snapshot
+
+**Class: instrument.**  The TB latches `fin_regs` at the window-closing `F`
+pop.  `opcode_prefetch` does NOT advance `m_.pc`, so at that clock the live
+`pc` IS the retired-instruction IP; a snapshot register written at the E row's
+edge is one edge too late and the TB reads the stale value (B8: `ip` off by
+the instruction length in 500/500 cases).  The snapshot flop was deleted.
+
+## §19 OPEN — what the next session picks up
+
+1. **The store path (88/89).**  First divergence is a `qop` at the row where
+   the successor's opcode is popped: the RTL retires early or the row stalls
+   on the M10 slot after its own post.  The instrument is `+eutrace` on the
+   ucore TB binary (one line per CE clock: state, upc, row word, the queue
+   view, `eu_post`/`eu_pair`/`wr_out`) read against `V30SIM_ROWTRACE=1`.
+2. **Split word accesses (8B).**  The BIU now manufactures the second cycle
+   from one post; the read-side composition is in but unproven.
+3. **Unimplemented by design so far**: the REP/string continuation
+   (`intr_pending` is a flop with no writer), the interrupt entries, `eu_unhalt`,
+   the POLL pin pipeline (`poll_pipe` samples the static level only), the 8080
+   loader (no BRKEM path — ledger R4).
+4. **Not yet run**: the boot march (`check_boot --core ucore`, F3's routed
+   gate), `ulockstep` batch mode over golden cases, the Codex reviews.
