@@ -1982,14 +1982,29 @@ named mechanism or to a named question.  Nothing here is a search.**
    one-byte-logic arm; the bar is pre-registered.
 4. **The two booked residues of §35.2**: the BIU's `opr_held` T2 increment,
    and the ucore save-state sweep (U3 owns `ss_lint --core ucore`).
-5. **Still not run**: `ulockstep` batch mode over golden cases, and the
-   WAIT AXES — which is U3, and which is the campaign's actual priority
-   (arbitrary-wait cycle-accuracy over w0).  Every finding of this pass is
-   a w0 finding; F31's OPR-release instant in particular is stated by the
-   SPEC as NOT stretching with the eval (11.4, the fixed index 2), and that
-   claim has never been exercised in the ucore at w>0.  **Re-derive the
-   wait-axis residue there; do not carry any figure forward from memory.**
-6. **The method that produced this pass**, for the record: every rung was
+5. **The WAIT AXES are NOT untouched — MEASURED at the close of this pass,
+   and the news is good.**  The standing wait-axis cells of the gate quick
+   reference, run on the ucore for the first time:
+
+   | cell | command | ucore |
+   |---|---|---|
+   | `v0.1-w1` all forms | `check_core.py --core ucore --suite-dir tests/v30/v0.1-w1 --waits 1 --opcodes all --cases 0` | **1200/1200** |
+   | `v0.1-w3` all forms | `… --suite-dir tests/v30/v0.1-w3 --waits 3` | **1200/1200** |
+   | `v0.1-w1 --forms EB` | `… --opcodes EB` | **200/200** |
+   | `v0.1-w0evt` | `… --suite-dir tests/v30/v0.1-w0evt --waits 0` | 0/200 — the interrupt rung |
+   | `v0.1-w1evt` | `… --suite-dir tests/v30/v0.1-w1evt --waits 1` | 0/800 — the interrupt rung |
+
+   So F31's OPR-release instant — which the SPEC states does NOT stretch
+   with the eval (11.4, the FIXED index 2) — **is** exercised at w1 and w3
+   and holds, and the three non-evt wait cells are GREEN on the same tree
+   that scores 164,787 at w0.  The evt cells are exactly the interrupt
+   rung and nothing else.  U3 still owns the wait axes proper (the random-
+   wait tranche gate is the campaign's victory condition); what this pass
+   adds is that the ucore does not enter U3 with a wait-axis debt on the
+   scripted cells.  **Re-derive any residue there; do not carry a figure
+   forward from memory.**
+6. **Still not run**: `ulockstep` batch mode over golden cases.
+7. **The method that produced this pass**, for the record: every rung was
    scored by a form-by-form diff of two whole-suite censuses
    (`sw/ucore_census.py LOG BASELINE`), never by the total; every fix was
    traced to a single model line with `sw/uscope.py FORM IDX --rowtrace`
