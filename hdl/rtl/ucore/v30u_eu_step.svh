@@ -448,7 +448,7 @@ S_EPOP: begin
         opc_valid = 1'b1;
         pop_is_first = 1'b0;
         poste = 1'b1; pe_opc_reg = opc_reg; pe_opc8080 = opc8080;  // F23
-        pe_op8 = op8;                                             // D1
+        pe_op8 = op8; pe_pfxcnt = pfxcnt;                         // D1 / F22
         st = S_TAIL;          // ...and the E row's own charge(1) spent this clk
     end
 end
@@ -512,6 +512,11 @@ S_INSTR_END: begin
     // `loader_decode()`'s per-instruction latch reset run here.
     seg_override = 1'b0; seg_ovr = 2'd3; rep_kind = REP_NONE; lock_pfx = 1'b0;
     rep_test = TEST_NONE; rep_pol = 1'b0; bus_word = 1'b0; opc8080 = 1'b0;
+    // F22 SETTLED: `pfxcnt` is reset HERE, with the rest of the prologue, and
+    // NOT in `iend_late` -- the prefix arm below writes it on this same edge,
+    // so a deferred reset would land on top of the successor's own count.  The
+    // post-`E` row reads its travelling copy (`pfxcnt_eff`).
+    pfxcnt = 8'd0;
     ld_ext = 1'b0; ld_hasrm = 1'b0; ld_grpd = 1'b0; ld_preread = 1'b0;
     ld_rm = 8'd0; ld_disp = 16'd0;
     // F22: the four latches the post-`E` row still reads are reset AFTER it,

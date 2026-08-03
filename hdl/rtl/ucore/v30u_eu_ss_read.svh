@@ -116,5 +116,9 @@
         SSA_E_ROWB0:               ss_rdata <= {8'b0, rowb0};
         SSA_E_ROWB1:               ss_rdata <= {8'b0, rowb1};
         SSA_E_POLL_PIPE:           ss_rdata <= {13'b0, poll_pipe};
+        SSA_E_PE_OPC_REG:          ss_rdata <= {8'b0, pe_opc_reg};
+        SSA_E_PE_PFXCNT:           ss_rdata <= {8'b0, pe_pfxcnt};
+        SSA_E_PE_FLAGS:            ss_rdata <= {13'b0, iend_owed, pe_op8,
+                                                pe_opc8080};
         default: ss_rdata <= 16'h0000;
     endcase

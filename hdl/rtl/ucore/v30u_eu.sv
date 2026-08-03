@@ -258,6 +258,7 @@ reg [15:0] tsel;           // F29: the LIVE tmp an arming row reads
 reg  [7:0] pe_opc_reg;     // F23: the opcode context the post-`E` row runs on
 reg        pe_opc8080;
 reg        pe_op8;         // ...INCLUDING the operand width (pass-3 review D1)
+reg  [7:0] pe_pfxcnt;      // ...and the prefix count (F22's registered residue)
 reg  [1:0] wr_out;         // posted write CYCLES not yet done
 reg  [1:0] opr_owned;      // stores that have taken OPR and not released it
 
@@ -608,9 +609,42 @@ endfunction
 // (`v30u_eu_step.svh`'s `op8 = ld_byte`), and the post-`E` row reads it in
 // three places: `al_byte = op8` when it latches an ALU op, `SIGNTGL`'s
 // `tmpb[7]` vs `tmpb[15]`, and `dir*sz` as a Source1.  Ten bits, not nine.
+// F22 SETTLED (pass 4) -- ...and `pfxcnt` travels with them, for the SAME
+// reason, which is the reason the residue existed at all.
+//
+// F22 and F23/D1 are ONE mechanism seen from two sides -- "the post-`E` row
+// runs on the machine it belongs to" -- and which RENDERING a field takes is
+// decided by exactly one question: DOES THE SUCCESSOR'S DECODE CHAIN WRITE
+// THIS FIELD ON EDGE `c`?
+//
+//   no  -> DEFER the successor's reset past the discharge (`iend_late`).  The
+//          register still holds the predecessor's value when the row reads it,
+//          so no copy is needed.
+//   yes -> the value must TRAVEL, because the register has already moved on.
+//
+// `pfxcnt` is the ONE field that is in both sets: `loader_decode`'s prologue
+// RESETS it and S_DECODE's prefix arm WRITES it (`pfxcnt = pfxcnt + 1`).
+// Deferring its reset was therefore wrong in both directions at once --
+//   * the post-`E` row read `pfxcnt + 1` (the successor prefix's increment
+//     stacked on the predecessor's count), and
+//   * the deferred reset then landed on edge `c+1` and DESTROYED that
+//     increment, so the successor ran its whole instruction with `pfxcnt = 0`.
+// The second is the one that matters: `pfxcnt` is read on exactly ONE ROM row
+// in the whole part -- `0225 PFXCNT -> tmpa`, the REPX withdrawal's
+// `PC := PC - PFXCNT - 1` rewind -- and a `REP` string is BY CONSTRUCTION
+// reached through a prefix.  Under whole-program replay every mid-string
+// interrupt would have resumed at the opcode instead of at the first prefix,
+// i.e. the 8086 lost-prefix bug the V30's ROM exists to avoid.
+//
+// So `pfxcnt` leaves the deferred set and joins the debt: the reset is back in
+// S_INSTR_END's immediate block (the successor's prologue, where the model puts
+// it) and the post-`E` row reads the copy.  The debt is EIGHTEEN bits.
+// *Falsifier*: any other ROM row that reads PFXCNT, or any edge-`c` decode-chain
+// write to one of `iend_late`'s remaining fields.
 wire [7:0] opc_reg_eff = poste ? pe_opc_reg : opc_reg;
 wire       opc8080_eff = poste ? pe_opc8080 : opc8080;
 wire       op8_eff     = poste ? pe_op8     : op8;
+wire [7:0] pfxcnt_eff  = poste ? pe_pfxcnt  : pfxcnt;
 wire [2:0] opc_sel = opc_from_modrm ? modrm_reg : opc_reg_eff[5:3];
 function automatic [4:0] opc8080_map(input [2:0] s);
     case (s)
@@ -948,7 +982,7 @@ always @* begin
         5'd7:  begin s1_val = {8'd0, q_byte}; s1_byte = 1'b1; end
         5'd8:  s1_val = dirsz;
         5'd9:  s1_val = 16'd0;
-        5'd10: s1_val = {8'd0, pfxcnt};
+        5'd10: s1_val = {8'd0, pfxcnt_eff};        // F22
         5'd12: s1_val = tmpa;
         5'd13: s1_val = tmpb;
         5'd14: s1_val = tmpc;
@@ -1267,6 +1301,7 @@ always @(posedge clk) begin
         rdq0 = 16'd0; rdq1 = 16'd0; rdq_n = 2'd0;
         rd_pending = 2'd0; rd_done_cnt = 2'd0; rd_age0 = 1'b0;
         iend_owed = 1'b0; pe_opc_reg = 8'd0; pe_opc8080 = 1'b0; pe_op8 = 1'b0;
+        pe_pfxcnt = 8'd0;
         wr_out = 2'd0; opr_owned = 2'd0;
         opc_valid = 1'b0; opc_byte = 8'd0; pop_is_first = 1'b1;
         ld_b = 8'd0; ld_pla = 14'd0; ld_ext = 1'b0; ld_page = 3'd0;
@@ -1354,13 +1389,13 @@ always @(posedge clk) begin
 
 `ifndef SYNTHESIS
         if (eutrace)
-            $display("EU st=%0d upc=%0d.%02X.%0d row=%07x q=%02x ripe=%0d slot=%0d post=%0d bs=%0d a=%05x pair=%0d wd=%04x rdd=%0d wrd=%0d oprf=%0d wr_out=%0d pc=%04x ind=%04x opr=%04x of=%0d pnd=%0d pe=%0d rdq=%0d rdc=%0d a=%04x b=%04x c=%04x sig=%04x",
+            $display("EU st=%0d upc=%0d.%02X.%0d row=%07x q=%02x ripe=%0d slot=%0d post=%0d bs=%0d a=%05x pair=%0d wd=%04x rdd=%0d wrd=%0d oprf=%0d wr_out=%0d pc=%04x ind=%04x opr=%04x of=%0d pnd=%0d pe=%0d rdq=%0d rdc=%0d a=%04x b=%04x c=%04x sig=%04x pfx=%0d",
                      st, upc_page, upc_opc, upc_loc, row, q_byte, q_ripe,
                      eu_slot_busy_n, eu_post, eu_bs, eu_addr, eu_pair,
                      eu_wdata,
                      eu_rd_done_n, eu_wr_done_n, eu_opr_free_n, wr_out, pc,
                      ind, opr, opr_fresh, pend_active, poste, rdq_n,
-                     rd_done_cnt, tmpa, tmpb, tmpc, sigma);
+                     rd_done_cnt, tmpa, tmpb, tmpc, sigma, pfxcnt_eff);
 `endif
         stop = 1'b0;
         for (chain = 0; chain < 4'd12; chain = chain + 4'd1) begin

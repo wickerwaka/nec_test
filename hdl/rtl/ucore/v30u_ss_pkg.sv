@@ -31,7 +31,7 @@ package v30_ss_pkg;
   localparam logic [8:0]  SS_BIU_BASE  = 9'h001;
   localparam int          SS_BIU_COUNT = 96;
   localparam logic [8:0]  SS_EU_BASE   = 9'h100;
-  localparam int          SS_EU_COUNT  = 111;   // stage U2
+  localparam int          SS_EU_COUNT  = 114;   // stage U2 (+3, pass 4)
   localparam int          SS_COUNT     = 1 + SS_BIU_COUNT + SS_EU_COUNT;
   localparam logic [15:0] SS_TAG       = {8'(SS_VERSION), 8'(SS_COUNT)};
 
@@ -360,6 +360,13 @@ package v30_ss_pkg;
   localparam logic [8:0] SSA_E_ROWB0                = 9'h16C;
   localparam logic [8:0] SSA_E_ROWB1                = 9'h16D;
   localparam logic [8:0] SSA_E_POLL_PIPE            = 9'h16E;
+  // F8's post-`E` DEBT is EU state: the row's own opcode context travels with
+  // it (F23 / D1 / F22 -- eighteen bits) and `iend_owed` says the successor's
+  // latch reset is still owed.  `SSA_E_POSTE` was already in the map, so a
+  // freeze at `poste=1` was representable and NOT restorable; these close it.
+  localparam logic [8:0] SSA_E_PE_OPC_REG           = 9'h16F;
+  localparam logic [8:0] SSA_E_PE_PFXCNT            = 9'h170;
+  localparam logic [8:0] SSA_E_PE_FLAGS             = 9'h171;
 
 endpackage
 

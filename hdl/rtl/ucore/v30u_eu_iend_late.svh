@@ -17,20 +17,23 @@
 //    `AA`  `SIGMA -> DI`  same                               di unchanged
 //    0225  `PFXCNT -> tmpa`                                  pfxcnt cleared
 //
-//  These four fields are exactly the ones the post-`E` row reads AND the
-//  edge-`c` chain never rewrites (S_TAKE_OPC / S_DECODE / S_DECODE2 write
-//  `ld_b`/`op8`/`xop`/`opc_reg`/`ld_hasrm` and nothing here), so deferring them
-//  to just after the discharge restores the model's order without moving the
-//  decoder's byte-demand schedule by a clock.  The operand BINDING that
+//  DEFERRAL IS ONLY LEGAL FOR A FIELD THE EDGE-`c` CHAIN NEVER WRITES.  That
+//  is the whole condition, and it is what the set below is selected by: the
+//  post-`E` row reads these AND S_TAKE_OPC / S_DECODE / S_DECODE2 / S_PFX_CHG /
+//  S_EXT_CHG1 write only `ld_b`/`op8`/`xop`/`opc_reg`/`ld_hasrm`/`pfxcnt`, so
+//  for everything here the REGISTER still holds the predecessor's value at the
+//  discharge and deferring the reset restores the model's order without moving
+//  the decoder's byte-demand schedule by a clock.  The operand BINDING that
 //  follows (S_NORM_CHG / the EA states) already runs on the later edge, after
 //  the discharge, so it still lands on top of this.
 //
-//  REGISTERED RESIDUE: a successor that is a PREFIX increments `pfxcnt` in
-//  S_DECODE on edge `c`, and this reset then zeroes it on edge `c+1`.  No
-//  v0.1 case reaches it (the injected successor is always `90`); it is a real
-//  hazard for whole-program replay and is booked, not patched.
+//  For a field the chain DOES write, deferral is not merely insufficient, it is
+//  actively wrong (it lands on top of the successor's own write) and the value
+//  must TRAVEL with F8's debt instead -- `opc_reg` (F23), `op8` (D1) and, as of
+//  pass 4, `pfxcnt`, which was F22's REGISTERED RESIDUE.  See the `pfxcnt_eff`
+//  block in `v30u_eu.sv`.  `pfxcnt`'s reset is therefore back in S_INSTR_END's
+//  IMMEDIATE block, where `loader_decode`'s prologue puts it.
 //============================================================================
-pfxcnt = 8'd0;
 m_kind = OK_NONE; r_kind = OK_NONE; wb_kind = OK_NONE;
 // ...and the `ALU OPC` permutation base, for the same reason (`40`/`48`, whose
 // INC/DEC comes from `opc_base = A_INC`, came out as ADD).
