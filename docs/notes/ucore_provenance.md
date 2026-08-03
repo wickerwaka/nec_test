@@ -1955,3 +1955,44 @@ the SPEC, `pend_.active` is TRUE at the `E` row in the MODEL too for
 `REP STOS` (the last iteration's write is staged and never paired, because
 `emit_pending` fires only when `opr_fresh_` and a string loop refreshes OPR
 once), so the DEFERRAL itself is faithful and must not be "fixed".
+
+## §37 HANDOFF — what pass 5 picks up
+
+**The order is by cost, and every item below is already diagnosed to a
+named mechanism or to a named question.  Nothing here is a search.**
+
+1. **THE INTERRUPT AND HALT RUNG — 2,400 cases, the last
+   unimplemented-by-design block.**  Open with §35.1's question and do the
+   `(A, B)` census BEFORE writing a line of recognition logic.  The entry
+   itself (`CpuT::interrupt()`'s micro-PC force + latch presentation,
+   `bus_inta`, `eu_unhalt`) is fully specified by the SPEC and is
+   mechanical; only the RECOGNITION is open.  This is also what fires the
+   BIU's M14/M15/M18 and M16/M17/M20/M21, unfired since U1, and what gives
+   the `eu_halt` one-clock-lead contract (§11.6) its first verification.
+   `POLL.LO` (100 cases) closes with it — `9B`'s `JMP INTR` at `006F` reads
+   the same latch.
+2. **The strings / ENTER tail — 1,601 cases, §35.4.**  `S_TAIL`'s charge is
+   two events wearing one `stop`.  Derive the tail's clocks from the
+   model's three terms, not from the state graph; the falsifying experiment
+   and its 5-improve / 8-regress split are already recorded, so the next
+   attempt starts from evidence.  Then triage the group's SECOND signature
+   (the middle-iteration store DATA) separately — and do NOT "fix" the
+   deferral, which is faithful.
+3. **`FA` / `FB` — 112 cases, §35.3.**  One `stop` in `S_DECODE2`'s
+   one-byte-logic arm; the bar is pre-registered.
+4. **The two booked residues of §35.2**: the BIU's `opr_held` T2 increment,
+   and the ucore save-state sweep (U3 owns `ss_lint --core ucore`).
+5. **Still not run**: `ulockstep` batch mode over golden cases, and the
+   WAIT AXES — which is U3, and which is the campaign's actual priority
+   (arbitrary-wait cycle-accuracy over w0).  Every finding of this pass is
+   a w0 finding; F31's OPR-release instant in particular is stated by the
+   SPEC as NOT stretching with the eval (11.4, the fixed index 2), and that
+   claim has never been exercised in the ucore at w>0.  **Re-derive the
+   wait-axis residue there; do not carry any figure forward from memory.**
+6. **The method that produced this pass**, for the record: every rung was
+   scored by a form-by-form diff of two whole-suite censuses
+   (`sw/ucore_census.py LOG BASELINE`), never by the total; every fix was
+   traced to a single model line with `sw/uscope.py FORM IDX --rowtrace`
+   before it was written; and the two findings that moved no number (F22)
+   or were reverted (§35.4) are in the ledger with the same weight as the
+   ones that did.
