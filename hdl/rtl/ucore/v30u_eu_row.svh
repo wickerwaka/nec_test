@@ -148,7 +148,7 @@ begin
         // pairing latch still owes data defers it to the sequence tail.
         // The retire deadline is read AFTER this row's own post (`wr_out` was
         // just incremented above), not from the pre-edge wire.
-        retire_now = (wr_out == 2'd0) || ((wr_out == 2'd1) && eu_wr_done);
+        retire_now = (wr_out == 2'd0) || ((wr_out == 2'd1) && eu_wr_done_n);
         if (!pend_active && !opc_valid && retire_now && q_ripe) begin
             opc_byte = q_byte;
             opc_valid = 1'b1;

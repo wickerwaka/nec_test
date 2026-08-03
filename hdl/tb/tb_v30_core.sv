@@ -1197,8 +1197,12 @@ initial      ce_hold_check = $test$plusargs("ce_hold_check");
 wire [18:0]  ce_probe = {dut.u_eu.state, dut.u_biu.state,
                          dut.u_biu.q_cnt, dut.u_eu.div_cnt};
 `else
-wire [18:0]  ce_probe = {3'b0, dut.u_biu.ts, dut.u_biu.q_cnt,
-                         dut.u_biu.fetch_ptr[7:0]};
+// ucore: `r_*` IS the state (the unprefixed names are the always_comb's
+// next-state view, which tracks the pins and so moves on CE-low clocks by
+// design -- F7).  Watching the next-state view would make this gate report the
+// contract instead of a violation.
+wire [18:0]  ce_probe = {3'b0, dut.u_biu.r_ts, dut.u_biu.r_q_cnt,
+                         dut.u_biu.r_fetch_ptr[7:0]};
 `endif
 logic [18:0] ce_probe_p = '0;
 logic        ce_p = 1'b1, reset_p = 1'b1;

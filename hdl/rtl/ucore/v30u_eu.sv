@@ -57,7 +57,7 @@ module v30u_eu (
     // queue port
     input       [7:0] q_byte,
     input             q_ripe,
-    input             q_ripe_lead,   // ...and it will be ripe NEXT clock
+    input             q_ripe_lead_n, // ...and it will be ripe NEXT clock
     input       [3:0] q_cnt,
     output            q_pop,
     output            q_first,
@@ -74,13 +74,16 @@ module v30u_eu (
     output      [1:0] eu_seg,
     output            eu_word,
     input             eu_slot_busy,
+    input             eu_slot_busy_n,
     output            eu_pair,
     output            eu_pair2,     // the pairing fills TWO reserved cycles
     output     [15:0] eu_wdata,
-    input      [15:0] eu_rdata,
-    input             eu_rd_done,
+    input      [15:0] eu_rdata_n,
+    input             eu_rd_done_n,
     input             eu_wr_done,
+    input             eu_wr_done_n,
     input             eu_opr_free,
+    input             eu_opr_free_n,
 
     // prefetch control
     output            eu_susp,
@@ -324,19 +327,32 @@ localparam bit [5:0]
 //============================================================================
 // THE COMPOSITION (campaign risk #1, second half) -- F7, see the ledger
 //============================================================================
-// v30u_biu is ONE process with BLOCKING assignments (they ARE its sequential
-// semantics) and this module reads its state from a SECOND process on the same
-// edge.  MEASURED, not assumed: the levels (`q_ripe`, `q_byte`, `q_cnt`,
-// `eu_slot_busy`) read inside this edge carry the value of the clock the edge
-// CLOSES -- the EU is evaluated first -- while the completion pulses
-// (`eu_rd_done` / `eu_wr_done` / `eu_opr_free`) are produced by the BIU's own
-// step (a) and describe that same clock.  So every EU-facing signal is a
-// clock-c fact and is read live.  Latching the levels was tried and is
-// REFUTED: it puts every pop one clock late (B8 500 -> 123).
+// The BIU publishes TWO NAMED VIEWS of every quantity this module consumes
+// (v30u_biu's "THE EU CONTRACT" block), and WHICH ONE to read is decided by
+// WHERE the value is used, not by what a simulator happens to schedule:
 //
-// This is a SCHEDULING dependency, not a contract, and it is booked as U2's
-// open item: the composition wants an explicit clock-c handshake from the BIU
-// rather than shared blocking registers.
+//   * the COMBINATIONAL ACT DECODE below (`q_pop`, `eu_post`, `eu_pair`,
+//     `q_flush`, `eu_susp`, `eu_halt`) reads the REGISTERED view -- `q_ripe`,
+//     `q_byte`, `eu_slot_busy`, `eu_wr_done`, `eu_opr_free`.  An act is
+//     consumed by the BIU on the clock that names it, so it must be decided
+//     from the BIU's level DURING that clock;
+//
+//   * THE CLOCKED STEP reads the `_n` view -- `eu_slot_busy_n`,
+//     `eu_rd_done_n`, `eu_wr_done_n`, `eu_opr_free_n`, `eu_rdata_n`,
+//     `q_ripe_lead_n`, and the `*_n` stall wires derived from them.  That step
+//     produces the EU's state for the clock this edge OPENS and must therefore
+//     see the BIU as it will be then.
+//
+//   * `q_ripe` / `q_byte` are read by the clocked step in the REGISTERED view
+//     and that is not an exception: the byte the step consumes is the one the
+//     BIU handed over on the clock that is ending, which is the clock the pop
+//     rode.  Everything else the step consults is the BIU it is stepping into.
+//
+// Nothing here depends on process order, and no `_n` signal reaches a
+// combinational output of this module, so the EU->BIU direction stays a
+// registered boundary and closes no loop.  REFUTED, and kept refuted: LATCHING
+// the levels in this module -- that puts every pop one clock late (B8 500->123)
+// because a latch delays the whole view instead of naming the two.
 
 //============================================================================
 // THE MICRO-ROW STANDING ON `upc`
@@ -464,14 +480,22 @@ wire nr_wait   = !nr_have && (rd_pending != 2'd0);
 wire nr_extra_block = nr_have && rd_age0;
 
 // wait_opr_free: the store lets go of OPR at its own T2+1 (11.4, fixed index).
-wire opr_free_now = (opr_owned == 2'd0) ||
-                    ((opr_owned == 2'd1) && eu_opr_free);
+// F7: the same term in the two views -- the plain name for the act decode, the
+// `_n` name for the clocked step.  ONE expression each, differing only in which
+// BIU view it reads.
+wire opr_free_now   = (opr_owned == 2'd0) ||
+                      ((opr_owned == 2'd1) && eu_opr_free);
+wire opr_free_now_n = (opr_owned == 2'd0) ||
+                      ((opr_owned == 2'd1) && eu_opr_free_n);
 
 // wait_bus (the retire deadline): every posted store, then its e+2.
-wire retire_ok = (wr_out == 2'd0) ||
-                 ((wr_out == 2'd1) && eu_wr_done);
+wire retire_ok   = (wr_out == 2'd0) ||
+                   ((wr_out == 2'd1) && eu_wr_done);
+wire retire_ok_n = (wr_out == 2'd0) ||
+                   ((wr_out == 2'd1) && eu_wr_done_n);
 
-wire f_wait = row_reads_opr ? (nr_wait || !opr_free_now) : !opr_free_now;
+wire f_wait   = row_reads_opr ? (nr_wait || !opr_free_now)   : !opr_free_now;
+wire f_wait_n = row_reads_opr ? (nr_wait || !opr_free_now_n) : !opr_free_now_n;
 
 // BUSY is the 9B POLL_N pin, sampled through the same 3-deep pin pipeline the
 // INT level goes through (biu_timed.h::poll_busy).  The pipeline itself is U3
@@ -894,7 +918,8 @@ end
 // COMBINATIONAL OUTPUTS -- what the BIU samples during THIS clock
 //============================================================================
 // The F interlock has to be clear before any of the row's acts happen.
-wire row_blocked = (st == S_ROW) && e_f && f_wait;
+wire row_blocked   = (st == S_ROW) && e_f && f_wait;
+wire row_blocked_n = (st == S_ROW) && e_f && f_wait_n;
 
 // The row's own queue demand
 wire q_demand_row = row_need_q && !row_blocked;
@@ -921,7 +946,8 @@ assign q_first = (st == S_OPC_POP) ? pop_is_first
 // cycle, so the row first pairs it (`emit_pending`) and then posts its own.
 wire pend_go = pend_active && opr_fresh;
 wire row_pre_pair = row_bus && pend_active;
-wire row_pre_wait = row_pre_pair && !opr_fresh && !opr_free_now;
+wire row_pre_wait   = row_pre_pair && !opr_fresh && !opr_free_now;
+wire row_pre_wait_n = row_pre_pair && !opr_fresh && !opr_free_now_n;
 
 wire row_acts_ok = (st == S_ROW) && !row_blocked && (rowq >= row_qn) &&
                    !row_pre_wait;
@@ -1081,15 +1107,15 @@ always @(posedge clk) begin
         //====================================================================
         poll_pipe = {poll_pipe[1:0], pin_poll_n};
         rd_age0 = 1'b0;
-        if (eu_rd_done) begin
+        if (eu_rd_done_n) begin
             if (rd_done_cnt == 2'd0) rd_age0 = 1'b1;
             rd_done_cnt = rd_done_cnt + 2'd1;
             if (rd_pending != 2'd0) rd_pending = rd_pending - 2'd1;
-            if (rdq_n == 2'd0) rdq0 = eu_rdata; else rdq1 = eu_rdata;
+            if (rdq_n == 2'd0) rdq0 = eu_rdata_n; else rdq1 = eu_rdata_n;
             rdq_n = rdq_n + 2'd1;
         end
-        if (eu_wr_done && (wr_out != 2'd0)) wr_out = wr_out - 2'd1;
-        if (eu_opr_free && (opr_owned != 2'd0)) opr_owned = opr_owned - 2'd1;
+        if (eu_wr_done_n && (wr_out != 2'd0)) wr_out = wr_out - 2'd1;
+        if (eu_opr_free_n && (opr_owned != 2'd0)) opr_owned = opr_owned - 2'd1;
         if (q_pop && q_ripe && q_first && !first_pop_seen) first_pop_seen = 1'b1;
 
         //====================================================================
@@ -1106,8 +1132,8 @@ always @(posedge clk) begin
         if (eutrace)
             $display("EU st=%0d upc=%0d.%02X.%0d row=%07x q=%02x ripe=%0d slot=%0d post=%0d bs=%0d a=%05x pair=%0d rdd=%0d wrd=%0d oprf=%0d wr_out=%0d pc=%04x",
                      st, upc_page, upc_opc, upc_loc, row, q_byte, q_ripe,
-                     eu_slot_busy, eu_post, eu_bs, eu_addr, eu_pair,
-                     eu_rd_done, eu_wr_done, eu_opr_free, wr_out, pc);
+                     eu_slot_busy_n, eu_post, eu_bs, eu_addr, eu_pair,
+                     eu_rd_done_n, eu_wr_done_n, eu_opr_free_n, wr_out, pc);
 `endif
         stop = 1'b0;
         for (chain = 0; chain < 4'd12; chain = chain + 4'd1) begin

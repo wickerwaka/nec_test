@@ -50,12 +50,18 @@
 //  pf_infl_to_, push_absorb_*, the QByte ready stamps) is re-expressed as a
 //  small counter, with a SYNTHESIS bound assertion (campaign risk #2).
 //
-//  --- THE EDGE ------------------------------------------------------------
+//  --- THE EDGE -------------------------------------------------------------
 //
-//  The registers hold the state the model has at the START of `tick(c)`, i.e.
-//  AFTER its pre-row block.  One CE-high posedge therefore performs, in the
-//  model's own order and with blocking assignments (they ARE its sequential
-//  semantics; this is a single process, so nothing observes an intermediate):
+//  The module is ONE next-state function (`always_comb`) and ONE register bank
+//  (`always_ff`).  `r_<x>` IS the register -- the state the model has at the
+//  START of `tick(c)`; the unprefixed `<x>` is the value that same register
+//  takes at this edge, i.e. the state at the start of `tick(c+1)`.  The
+//  next-state body is written with blocking assignments because they ARE the
+//  model's sequential semantics, but they are now confined to one combinational
+//  process, so NO consumer -- inside the module or outside it -- can observe an
+//  intermediate.  See THE EU CONTRACT below for what the EU is allowed to read.
+//
+//  One evaluation of the next-state function performs, in the model's order:
 //
 //     (a) capture the clock-c predicates that later steps must not re-read
 //     (b) the EU's own acts, which the model makes at `clk_ == c` BEFORE
@@ -105,7 +111,7 @@ module v30u_biu (
     // --- queue port (the consumer side) ---
     output      [7:0] q_byte,      // the front byte
     output            q_ripe,      // ...and it may be popped THIS clock (M3)
-    output            q_ripe_lead, // ...or will be on the NEXT one (1BL lead)
+    output            q_ripe_lead_n, // ...or will be on the NEXT one (1BL lead)
     output      [3:0] q_cnt_o,
     input             q_pop,       // consumer takes it (qualify with q_ripe)
     input             q_first,     // this pop is an F (instruction first byte)
@@ -122,13 +128,16 @@ module v30u_biu (
     input       [1:0] eu_seg,      // S4:S3 -- 0 ES 1 SS 2 CS/none 3 DS
     input             eu_word,
     output            eu_slot_busy,
+    output            eu_slot_busy_n,
     input             eu_pair,     // pair write data into the reserved cycle
     input             eu_pair2,    // ...and it fills TWO of them (a split)
     input      [15:0] eu_wdata,
-    output     [15:0] eu_rdata,
-    output            eu_rd_done,  // pulse at a completed read's e+2
+    output     [15:0] eu_rdata_n,
+    output            eu_rd_done_n,// pulse at a completed read's e+2
     output            eu_wr_done,  // pulse at a completed write's e+2
+    output            eu_wr_done_n,
     output            eu_opr_free, // 11.4 / M13: the store lets go of OPR
+    output            eu_opr_free_n,
 
     // --- prefetch control ---
     input             eu_susp,     // F2: SUSP, one row early
@@ -262,6 +271,92 @@ reg        ready_prev;
 // --- the one negedge process ----------------------------------------------
 reg        t1_half2;
 
+// --- THE REGISTERS (F7).  Written ONLY by the one `always_ff` at
+//     the end of this module; every name above is the NEXT-STATE
+//     view the `always_comb` computes from these.
+//     See the F7 CONTRACT block in the header.
+
+reg r_run;
+reg [2:0] r_ts;
+reg [2:0] r_cur_bs;
+reg [19:0] r_cur_addr;
+reg [15:0] r_cur_data;
+reg r_cur_ube_n;
+reg [1:0] r_cur_seg;
+reg r_cur_fetch;
+reg r_cur_halt;
+reg r_cur_noaddr;
+reg r_cur_wr;
+reg r_cur_need;
+reg r_cur_rd_last;
+reg [1:0] r_cur_pn;
+reg r_cur_late_t1;
+reg r_evald;
+reg [1:0] r_sev;
+reg [2:0] r_dage;
+reg r_cmt_valid;
+reg [2:0] r_cmt_bs;
+reg [19:0] r_cmt_addr;
+reg [15:0] r_cmt_data;
+reg r_cmt_ube_n;
+reg [1:0] r_cmt_seg;
+reg r_cmt_fetch;
+reg r_cmt_halt;
+reg r_cmt_noaddr;
+reg r_cmt_wr;
+reg r_cmt_need;
+reg r_cmt_rd_last;
+reg [1:0] r_cmt_pn;
+reg [2:0] r_cdage;
+reg [15:0] r_cmt_prev_fp;
+reg r_cmt_was_owed;
+reg [15:0] r_last_fetch_addr;
+reg [2:0] r_q_head;
+reg [3:0] r_q_cnt;
+reg [1:0] r_grn_n;
+reg [1:0] r_grn_ttl;
+reg [15:0] r_fetch_ptr;
+reg [15:0] r_cs_r;
+reg r_suspended;
+reg r_halted;
+reg r_halt_pending;
+reg r_pf_owed;
+reg r_pf_arm;
+reg r_pf_land;
+reg [1:0] r_infl_ttl;
+reg [1:0] r_infl_n;
+reg [1:0] r_absorb_ttl;
+reg r_no_eval;
+reg r_flush_eval;
+reg r_e_pend;
+reg [1:0] r_rq_n;
+reg r_slot_busy;
+reg r_slot_accept;
+reg [1:0] r_opr_held;
+reg [7:0] r_rd_first_hi;
+reg r_rd_was_split;
+reg [1:0] r_done_ctr;
+reg r_done_wr;
+reg r_rd_done_p;
+reg r_wr_done_p;
+reg r_opr_free_p;
+reg [15:0] r_rd_val;
+reg r_ready_prev;
+reg [7:0] r_q_mem [0:5];
+reg [2:0] r_rq_bs [0:1];
+reg [19:0] r_rq_addr [0:1];
+reg [15:0] r_rq_data [0:1];
+reg r_rq_ube [0:1];
+reg [1:0] r_rq_seg [0:1];
+reg r_rq_noaddr [0:1];
+reg r_rq_wr [0:1];
+reg r_rq_need [0:1];
+reg r_rq_last [0:1];
+
+integer ri;   // the always_comb's array copy-in
+integer rj;   // the always_ff's array commit
+
+
 //============================================================================
 // COMBINATIONAL VIEWS  (all read ONLY at the top of the edge, see step (a))
 //============================================================================
@@ -274,62 +369,84 @@ endfunction
 // F2 (generalised): SUSP -- and an EU bus request, which reaches the BIU
 // through the same one-row-early control decode -- takes back a fetch the
 // eval has just chosen, before its status reaches the pins.
-wire ann_kill  = (eu_susp || eu_post || q_flush) && cmt_valid && cmt_fetch &&
-                 (cdage == 3'd0);
+wire ann_kill  = (eu_susp || eu_post || q_flush) && r_cmt_valid && r_cmt_fetch &&
+                 (r_cdage == 3'd0);
 // M2: `cmt_valid` is cleared when its T1 opens, so "an announcement stands"
 // IS "this clock is a display clock".
-wire display   = cmt_valid && !ann_kill;
+wire display   = r_cmt_valid && !ann_kill;
 
 // M1/M2r: the eval instant.  See the header.
-wire eval_inst = run && !evald &&
-                 (cur_halt ? (dage >= 3'd2)
-                           : ((dage >= 3'd3) && ready_prev));
+wire eval_inst = r_run && !r_evald &&
+                 (r_cur_halt ? (r_dage >= 3'd2)
+                           : ((r_dage >= 3'd3) && r_ready_prev));
 // M2: ...and the status register is RELEASED at that instant (inclusive).
-wire st_rel    = evald || eval_inst;
+wire st_rel    = r_evald || eval_inst;
 // M21: from the HALT's status release on there is no bus cycle left to
 // arbitrate, so EVERY clock is an ordinary idle eval.
-wire halt_free = run && cur_halt && evald;
+wire halt_free = r_run && r_cur_halt && r_evald;
 
 // M3: the front byte is poppable when it is not one of the green ones.
-wire [3:0] poppable = (grn_ttl != 2'd0) ? (q_cnt - {2'b0, grn_n}) : q_cnt;
+wire [3:0] poppable = (r_grn_ttl != 2'd0) ? (r_q_cnt - {2'b0, r_grn_n}) : r_q_cnt;
 assign q_ripe   = poppable != 4'd0;
-// The 1BL retire lead (`wait_retire_lead`): the front byte is poppable NOW or
-// will be on the next clock -- the green window has one clock left to run.
-assign q_ripe_lead = (poppable != 4'd0) ||
-                     ((grn_ttl == 2'd1) && (q_cnt != 4'd0));
-assign q_byte   = q_mem[q_head];
-assign q_cnt_o  = q_cnt;
-assign halted_o = halted;
+assign q_byte   = r_q_mem[r_q_head];
+assign q_cnt_o  = r_q_cnt;
+assign halted_o = r_halted;
 
 // F1: a fetch owns the QUEUE PORT from its T1 until its bytes are in.  It
 // holds it THROUGH its completion eval (`!evald`); the landing clocks are
 // `absorb_ttl`.  A DOOMED fetch pushes nothing and lets go at the eval.
-wire qs_port_fetch = run && cur_fetch && !evald;
+wire qs_port_fetch = r_run && r_cur_fetch && !r_evald;
 wire pop_now       = q_pop && q_ripe;
 // F1, `e_from`: the queue port is not free on the FLUSH CLOCK ITSELF if a bus
 // cycle still owns it -- and only a FETCH owns it, so a flush landing on the
 // clock an EU read opens its T1 still takes the port at once.  From the next
 // clock on the term is vacuous (`c >= e_from` always holds), which is why it
 // is a term of the flush clock and not a flop.
-wire e_from_block = q_flush && run && cur_fetch;
-wire qs_e_now = (e_pend || q_flush) && !pop_now && !e_from_block &&
-                (absorb_ttl == 2'd0) && !qs_port_fetch &&
+wire e_from_block = q_flush && r_run && r_cur_fetch;
+wire qs_e_now = (r_e_pend || q_flush) && !pop_now && !e_from_block &&
+                (r_absorb_ttl == 2'd0) && !qs_port_fetch &&
                 // (c) a ready-but-not-started EU request owns the next slot
                 // and the flush display waits for that request's STATUS
                 // clock -- except on the flush clock itself.
-                ((rq_n == 2'd0) || q_flush ||
-                 (cmt_valid && !cmt_fetch) || (run && !cur_fetch));
+                ((r_rq_n == 2'd0) || q_flush ||
+                 (r_cmt_valid && !r_cmt_fetch) || (r_run && !r_cur_fetch));
 
 assign qs = qs_e_now ? QS_EMPTY
           : pop_now  ? (q_first ? QS_FIRST : QS_SUBSEQ)
                      : QS_NONE;
 
-assign eu_slot_busy = slot_busy;
-assign eu_rdata     = rd_val;
-assign eu_rd_done   = rd_done_p;
-assign eu_wr_done   = wr_done_p;
-assign eu_opr_free  = opr_free_p;
-assign ss_bus_quiet = !run && !cmt_valid && (rq_n == 2'd0) && !halt_pending;
+//----------------------------------------------------------------------------
+// THE EU CONTRACT (F7).  TWO NAMED VIEWS, EACH COMPUTED IN ONE PLACE.
+//
+//   `<x>`    -- THE REGISTER: the BIU's level DURING this clock.  The EU's
+//               COMBINATIONAL act decode reads these, because the act it
+//               drives is consumed by the BIU on the clock that names it.
+//   `<x>_n`  -- THE NEXT LEVEL: what that register takes at this edge, read
+//               straight off the next-state view above.  The EU's CLOCKED step
+//               reads these, because that step produces the EU's state for the
+//               clock this edge OPENS, and must see the BIU as it will then be.
+//
+// Neither view depends on the order in which the two modules' processes are
+// evaluated -- which is the whole point (F7).  The `_n` group drives EU FLOPS
+// only; no EU combinational output reads it, so it closes no loop and the BIU
+// keeps a registered boundary in the direction the EU drives.
+//----------------------------------------------------------------------------
+assign eu_slot_busy   = r_slot_busy;
+assign eu_slot_busy_n = slot_busy;
+assign eu_wr_done     = r_wr_done_p;
+assign eu_wr_done_n   = wr_done_p;
+assign eu_opr_free    = r_opr_free_p;
+assign eu_opr_free_n  = opr_free_p;
+assign eu_rdata_n     = rd_val;
+assign eu_rd_done_n   = rd_done_p;
+// The 1BL retire lead (`wait_retire_lead`): the front byte is poppable NOW or
+// will be on the next clock -- the green window has one clock left to run.
+// Consumed by the clocked step alone, so it exists in the `_n` view only.
+wire [3:0] poppable_n = (grn_ttl != 2'd0) ? (q_cnt - {2'b0, grn_n}) : q_cnt;
+assign q_ripe_lead_n  = (poppable_n != 4'd0) ||
+                        ((grn_ttl == 2'd1) && (q_cnt != 4'd0));
+
+assign ss_bus_quiet = !r_run && !r_cmt_valid && (r_rq_n == 2'd0) && !r_halt_pending;
 
 //----------------------------------------------------------------------------
 // PIN DRIVE.  The comparator stack samples AD twice per clock: mid-clock (the
@@ -337,48 +454,48 @@ assign ss_bus_quiet = !run && !cmt_valid && (rq_n == 2'd0) && !halt_pending;
 // negedge flop that switches a WRITE's AD15-0 from address to write data, so
 // the external T1-falling-edge address latch still sees the address.
 //----------------------------------------------------------------------------
-wire disp_inta = display && cmt_noaddr;
-wire cur_inta  = run && (ts == TS_T1) && cur_noaddr;
-wire halt_pin  = (display && cmt_halt) || (run && cur_halt);
+wire disp_inta = display && r_cmt_noaddr;
+wire cur_inta  = r_run && (r_ts == TS_T1) && r_cur_noaddr;
+wire halt_pin  = (display && r_cmt_halt) || (r_run && r_cur_halt);
 
-assign bs = display        ? cmt_bs
-          : (run && !st_rel) ? cur_bs
+assign bs = display        ? r_cmt_bs
+          : (r_run && !st_rel) ? r_cur_bs
                              : BS_PASV;
 
 // M2: UBE is NOT part of the status register -- it changes ONE CLOCK AFTER
 // the status does, so the DISPLAY clock keeps the old UBE.
-assign ube_n = (display && (cdage != 3'd0)) ? cmt_ube_n
-             : run                          ? cur_ube_n
+assign ube_n = (display && (r_cdage != 3'd0)) ? r_cmt_ube_n
+             : r_run                          ? r_cur_ube_n
                                             : last_ube;
 
 // M23: the address one-shot is fired by the DISPLAY and is ONE CLOCK LONG;
 // where the bus made the T1 wait it has already expired and A19-16 is back on
 // the segment status while A15-0 holds the address by pad retention.
-wire [19:0] t1_addr = cur_late_t1 ? {data_ps(cur_seg), cur_addr[15:0]}
-                                  : cur_addr;
+wire [19:0] t1_addr = r_cur_late_t1 ? {data_ps(r_cur_seg), r_cur_addr[15:0]}
+                                  : r_cur_addr;
 
-assign ad_o = halt_pin                ? {4'h0, last_fetch_addr}
+assign ad_o = halt_pin                ? {4'h0, r_last_fetch_addr}
             : (disp_inta || cur_inta) ? 20'h0
-            : display                 ? cmt_addr
-            : (run && (ts == TS_T1))  ? (cur_wr && t1_half2
-                                         ? {cur_addr[19:16], cur_data}
+            : display                 ? r_cmt_addr
+            : (r_run && (r_ts == TS_T1))  ? (r_cur_wr && t1_half2
+                                         ? {r_cur_addr[19:16], r_cur_data}
                                          : t1_addr)
-                                      : {data_ps(cur_seg), cur_data};
+                                      : {data_ps(r_cur_seg), r_cur_data};
 
-assign ad_oe_addr = (display || (run && (ts == TS_T1))) &&
+assign ad_oe_addr = (display || (r_run && (r_ts == TS_T1))) &&
                     !disp_inta && !cur_inta && !halt_pin;
-assign ad_oe_ps   = (!ad_oe_addr && !halt_pin && run &&
-                     (ts != TS_T1) && (ts != TS_TI)) ||
+assign ad_oe_ps   = (!ad_oe_addr && !halt_pin && r_run &&
+                     (r_ts != TS_T1) && (r_ts != TS_TI)) ||
                     disp_inta || cur_inta;
-assign ad_oe_data = (run && cur_wr && !cur_halt && !cur_noaddr &&
-                     (ts != TS_TI) && !display) || halt_pin;
+assign ad_oe_data = (r_run && r_cur_wr && !r_cur_halt && !r_cur_noaddr &&
+                     (r_ts != TS_TI) && !display) || halt_pin;
 
-assign rd_n = !(run && ((ts == TS_T2) || (ts == TS_T3) || (ts == TS_TW)) &&
-                !cur_wr && !cur_halt);
+assign rd_n = !(r_run && ((r_ts == TS_T2) || (r_ts == TS_T3) || (r_ts == TS_TW)) &&
+                !r_cur_wr && !r_cur_halt);
 
 always @(negedge clk)
     if (ss_we && ss_addr == SSA_B_T1_HALF2) t1_half2 <= ss_wdata[0];
-    else if (ce_half) t1_half2 <= run && (ts == TS_T1);
+    else if (ce_half) t1_half2 <= r_run && (r_ts == TS_T1);
 
 //============================================================================
 // THE CLOCK
@@ -401,7 +518,97 @@ reg  [1:0] rq_n_pre;
 reg        set_grn, set_infl, set_absorb, set_land, set_noeval;
 reg  [1:0] new_ttl;
 
-always @(posedge clk) begin
+always_comb begin
+    //=== F7: the next-state view starts from the registers ===========
+    run = r_run;
+    ts = r_ts;
+    cur_bs = r_cur_bs;
+    cur_addr = r_cur_addr;
+    cur_data = r_cur_data;
+    cur_ube_n = r_cur_ube_n;
+    cur_seg = r_cur_seg;
+    cur_fetch = r_cur_fetch;
+    cur_halt = r_cur_halt;
+    cur_noaddr = r_cur_noaddr;
+    cur_wr = r_cur_wr;
+    cur_need = r_cur_need;
+    cur_rd_last = r_cur_rd_last;
+    cur_pn = r_cur_pn;
+    cur_late_t1 = r_cur_late_t1;
+    evald = r_evald;
+    sev = r_sev;
+    dage = r_dage;
+    cmt_valid = r_cmt_valid;
+    cmt_bs = r_cmt_bs;
+    cmt_addr = r_cmt_addr;
+    cmt_data = r_cmt_data;
+    cmt_ube_n = r_cmt_ube_n;
+    cmt_seg = r_cmt_seg;
+    cmt_fetch = r_cmt_fetch;
+    cmt_halt = r_cmt_halt;
+    cmt_noaddr = r_cmt_noaddr;
+    cmt_wr = r_cmt_wr;
+    cmt_need = r_cmt_need;
+    cmt_rd_last = r_cmt_rd_last;
+    cmt_pn = r_cmt_pn;
+    cdage = r_cdage;
+    cmt_prev_fp = r_cmt_prev_fp;
+    cmt_was_owed = r_cmt_was_owed;
+    last_fetch_addr = r_last_fetch_addr;
+    q_head = r_q_head;
+    q_cnt = r_q_cnt;
+    grn_n = r_grn_n;
+    grn_ttl = r_grn_ttl;
+    fetch_ptr = r_fetch_ptr;
+    cs_r = r_cs_r;
+    suspended = r_suspended;
+    halted = r_halted;
+    halt_pending = r_halt_pending;
+    pf_owed = r_pf_owed;
+    pf_arm = r_pf_arm;
+    pf_land = r_pf_land;
+    infl_ttl = r_infl_ttl;
+    infl_n = r_infl_n;
+    absorb_ttl = r_absorb_ttl;
+    no_eval = r_no_eval;
+    flush_eval = r_flush_eval;
+    e_pend = r_e_pend;
+    rq_n = r_rq_n;
+    slot_busy = r_slot_busy;
+    slot_accept = r_slot_accept;
+    opr_held = r_opr_held;
+    rd_first_hi = r_rd_first_hi;
+    rd_was_split = r_rd_was_split;
+    done_ctr = r_done_ctr;
+    done_wr = r_done_wr;
+    rd_done_p = r_rd_done_p;
+    wr_done_p = r_wr_done_p;
+    opr_free_p = r_opr_free_p;
+    rd_val = r_rd_val;
+    ready_prev = r_ready_prev;
+    for (ri = 0; ri < 6; ri = ri + 1) q_mem[ri] = r_q_mem[ri];
+    for (ri = 0; ri < 2; ri = ri + 1) begin
+        rq_bs[ri] = r_rq_bs[ri];
+        rq_addr[ri] = r_rq_addr[ri];
+        rq_data[ri] = r_rq_data[ri];
+        rq_ube[ri] = r_rq_ube[ri];
+        rq_seg[ri] = r_rq_seg[ri];
+        rq_noaddr[ri] = r_rq_noaddr[ri];
+        rq_wr[ri] = r_rq_wr[ri];
+        rq_need[ri] = r_rq_need[ri];
+        rq_last[ri] = r_rq_last[ri];
+    end
+    // the per-edge working temporaries (no latches in always_comb)
+    ne_now = 1'b0; pl_now = 1'b0; kill_l = 1'b0; evi_l = 1'b0;
+    hfree_l = 1'b0; pop_l = 1'b0; qse_l = 1'b0; sev_now = 2'd0;
+    infl_now = 1'b0; infl_n_now = 2'd0; set_oprfree = 1'b0;
+    ev_here = 1'b0; ev_latch = 1'b0; did_grant = 1'b0;
+    gr_ok = 1'b0; occ = 5'd0; land_ttl = 2'd0; qi = 4'd0;
+    fetch_lin = 20'd0; rq_n_pre = 2'd0;
+    set_grn = 1'b0; set_infl = 1'b0; set_absorb = 1'b0;
+    set_land = 1'b0; set_noeval = 1'b0; new_ttl = 2'd0;
+    i = 0; pk = 0;
+
     if (ss_we) begin
         //--------------------------------------------------------------------
         // save-state WRITE decode (arm #1 of the exactly-twice discipline)
@@ -633,11 +840,6 @@ always @(posedge clk) begin
             slot_busy       = 1'b1;
             slot_accept     = 1'b0;
         end
-`ifndef SYNTHESIS
-        else if (eu_post) $error("v30u_biu: post dropped, request store full");
-        if (eu_post && eu_split && (rq_n_pre != 2'd0))
-            $error("v30u_biu: split posted onto a non-empty request store");
-`endif
 
         // M5b: the write-data register is loaded through an 8-bit rotator
         // controlled by A0 of the ACCESS -- ONE pass, and both cycles of a
@@ -984,120 +1186,215 @@ always @(posedge clk) begin
         else if (absorb_ttl != 2'd0) absorb_ttl = absorb_ttl - 2'd1;
         if (run && evald && (sev != 2'd3) && !evi_l) sev = sev + 2'd1;
 
-`ifndef SYNTHESIS
-        // --- bounded-counter contracts (campaign risk #2) ------------------
-        if (run && evald && (sev > 2'd2))
-            $error("v30u_biu: sev bound violated (%0d)", sev);
-        if (cmt_valid && (cdage == 3'd7))
-            $error("v30u_biu: announcement age saturated");
-        if (q_cnt > 4'd6)
-            $error("v30u_biu: queue overflow (%0d)", q_cnt);
-        if ((grn_ttl != 2'd0) && ({2'd0, grn_n} > q_cnt))
-            $error("v30u_biu: green byte count exceeds queue");
-`endif
     end
 end
+
+//============================================================================
+// THE REGISTERS.  One non-blocking commit of the next-state view above --
+// which is what makes every export below order-independent (F7).
+//============================================================================
+always_ff @(posedge clk) begin
+    r_run <= run;
+    r_ts <= ts;
+    r_cur_bs <= cur_bs;
+    r_cur_addr <= cur_addr;
+    r_cur_data <= cur_data;
+    r_cur_ube_n <= cur_ube_n;
+    r_cur_seg <= cur_seg;
+    r_cur_fetch <= cur_fetch;
+    r_cur_halt <= cur_halt;
+    r_cur_noaddr <= cur_noaddr;
+    r_cur_wr <= cur_wr;
+    r_cur_need <= cur_need;
+    r_cur_rd_last <= cur_rd_last;
+    r_cur_pn <= cur_pn;
+    r_cur_late_t1 <= cur_late_t1;
+    r_evald <= evald;
+    r_sev <= sev;
+    r_dage <= dage;
+    r_cmt_valid <= cmt_valid;
+    r_cmt_bs <= cmt_bs;
+    r_cmt_addr <= cmt_addr;
+    r_cmt_data <= cmt_data;
+    r_cmt_ube_n <= cmt_ube_n;
+    r_cmt_seg <= cmt_seg;
+    r_cmt_fetch <= cmt_fetch;
+    r_cmt_halt <= cmt_halt;
+    r_cmt_noaddr <= cmt_noaddr;
+    r_cmt_wr <= cmt_wr;
+    r_cmt_need <= cmt_need;
+    r_cmt_rd_last <= cmt_rd_last;
+    r_cmt_pn <= cmt_pn;
+    r_cdage <= cdage;
+    r_cmt_prev_fp <= cmt_prev_fp;
+    r_cmt_was_owed <= cmt_was_owed;
+    r_last_fetch_addr <= last_fetch_addr;
+    r_q_head <= q_head;
+    r_q_cnt <= q_cnt;
+    r_grn_n <= grn_n;
+    r_grn_ttl <= grn_ttl;
+    r_fetch_ptr <= fetch_ptr;
+    r_cs_r <= cs_r;
+    r_suspended <= suspended;
+    r_halted <= halted;
+    r_halt_pending <= halt_pending;
+    r_pf_owed <= pf_owed;
+    r_pf_arm <= pf_arm;
+    r_pf_land <= pf_land;
+    r_infl_ttl <= infl_ttl;
+    r_infl_n <= infl_n;
+    r_absorb_ttl <= absorb_ttl;
+    r_no_eval <= no_eval;
+    r_flush_eval <= flush_eval;
+    r_e_pend <= e_pend;
+    r_rq_n <= rq_n;
+    r_slot_busy <= slot_busy;
+    r_slot_accept <= slot_accept;
+    r_opr_held <= opr_held;
+    r_rd_first_hi <= rd_first_hi;
+    r_rd_was_split <= rd_was_split;
+    r_done_ctr <= done_ctr;
+    r_done_wr <= done_wr;
+    r_rd_done_p <= rd_done_p;
+    r_wr_done_p <= wr_done_p;
+    r_opr_free_p <= opr_free_p;
+    r_rd_val <= rd_val;
+    r_ready_prev <= ready_prev;
+    for (rj = 0; rj < 6; rj = rj + 1) r_q_mem[rj] <= q_mem[rj];
+    for (rj = 0; rj < 2; rj = rj + 1) begin
+        r_rq_bs[rj] <= rq_bs[rj];
+        r_rq_addr[rj] <= rq_addr[rj];
+        r_rq_data[rj] <= rq_data[rj];
+        r_rq_ube[rj] <= rq_ube[rj];
+        r_rq_seg[rj] <= rq_seg[rj];
+        r_rq_noaddr[rj] <= rq_noaddr[rj];
+        r_rq_wr[rj] <= rq_wr[rj];
+        r_rq_need[rj] <= rq_need[rj];
+        r_rq_last[rj] <= rq_last[rj];
+    end
+end
+
+`ifndef SYNTHESIS
+// The module's contracts, checked on the REGISTERED state -- the always_comb
+// above settles more than once per clock, so an immediate assertion inside it
+// would report transients (campaign risk #2 kept, instrument fixed).
+always_ff @(posedge clk) if (!srst) begin
+    if (ce && eu_post && (r_rq_n == 2'd2))
+        $error("v30u_biu: post dropped, request store full");
+    if (ce && eu_post && eu_split && (r_rq_n != 2'd0))
+        $error("v30u_biu: split posted onto a non-empty request store");
+    if (r_run && r_evald && (r_sev > 2'd2))
+        $error("v30u_biu: sev bound violated (%0d)", r_sev);
+    if (r_cmt_valid && (r_cdage == 3'd7))
+        $error("v30u_biu: announcement age saturated");
+    if (r_q_cnt > 4'd6)
+        $error("v30u_biu: queue overflow (%0d)", r_q_cnt);
+    if ((r_grn_ttl != 2'd0) && ({2'd0, r_grn_n} > r_q_cnt))
+        $error("v30u_biu: green byte count exceeds queue");
+end
+`endif
+
 
 //----------------------------------------------------------------------------
 // save-state READ mux (arm #2 of the exactly-twice discipline)
 //----------------------------------------------------------------------------
 always @(posedge clk) begin
     case (ss_addr)
-        SSA_B_RUN:          ss_rdata <= {15'b0, run};
-        SSA_B_TS:           ss_rdata <= {13'b0, ts};
-        SSA_B_CUR_BS:       ss_rdata <= {13'b0, cur_bs};
-        SSA_B_CUR_ADDR_LO:  ss_rdata <= cur_addr[15:0];
-        SSA_B_CUR_ADDR_HI:  ss_rdata <= {12'b0, cur_addr[19:16]};
-        SSA_B_CUR_DATA:     ss_rdata <= cur_data;
-        SSA_B_CUR_UBE_N:    ss_rdata <= {15'b0, cur_ube_n};
-        SSA_B_CUR_SEG:      ss_rdata <= {14'b0, cur_seg};
-        SSA_B_CUR_FETCH:    ss_rdata <= {15'b0, cur_fetch};
-        SSA_B_CUR_HALT:     ss_rdata <= {15'b0, cur_halt};
-        SSA_B_CUR_NOADDR:   ss_rdata <= {15'b0, cur_noaddr};
-        SSA_B_CUR_WR:       ss_rdata <= {15'b0, cur_wr};
-        SSA_B_CUR_NEED:     ss_rdata <= {15'b0, cur_need};
-        SSA_B_CUR_RDLAST:   ss_rdata <= {15'b0, cur_rd_last};
-        SSA_B_CUR_PN:       ss_rdata <= {14'b0, cur_pn};
-        SSA_B_CUR_LATET1:   ss_rdata <= {15'b0, cur_late_t1};
-        SSA_B_EVALD:        ss_rdata <= {15'b0, evald};
-        SSA_B_SEV:          ss_rdata <= {14'b0, sev};
-        SSA_B_DAGE:         ss_rdata <= {13'b0, dage};
-        SSA_B_CMT_VALID:    ss_rdata <= {15'b0, cmt_valid};
-        SSA_B_CMT_BS:       ss_rdata <= {13'b0, cmt_bs};
-        SSA_B_CMT_ADDR_LO:  ss_rdata <= cmt_addr[15:0];
-        SSA_B_CMT_ADDR_HI:  ss_rdata <= {12'b0, cmt_addr[19:16]};
-        SSA_B_CMT_DATA:     ss_rdata <= cmt_data;
-        SSA_B_CMT_UBE_N:    ss_rdata <= {15'b0, cmt_ube_n};
-        SSA_B_CMT_SEG:      ss_rdata <= {14'b0, cmt_seg};
-        SSA_B_CMT_FETCH:    ss_rdata <= {15'b0, cmt_fetch};
-        SSA_B_CMT_HALT:     ss_rdata <= {15'b0, cmt_halt};
-        SSA_B_CMT_NOADDR:   ss_rdata <= {15'b0, cmt_noaddr};
-        SSA_B_CMT_WR:       ss_rdata <= {15'b0, cmt_wr};
-        SSA_B_CMT_NEED:     ss_rdata <= {15'b0, cmt_need};
-        SSA_B_CMT_RDLAST:   ss_rdata <= {15'b0, cmt_rd_last};
-        SSA_B_CMT_PN:       ss_rdata <= {14'b0, cmt_pn};
-        SSA_B_CDAGE:        ss_rdata <= {13'b0, cdage};
-        SSA_B_CMT_PREV_FP:  ss_rdata <= cmt_prev_fp;
-        SSA_B_CMT_WAS_OWED: ss_rdata <= {15'b0, cmt_was_owed};
+        SSA_B_RUN:          ss_rdata <= {15'b0, r_run};
+        SSA_B_TS:           ss_rdata <= {13'b0, r_ts};
+        SSA_B_CUR_BS:       ss_rdata <= {13'b0, r_cur_bs};
+        SSA_B_CUR_ADDR_LO:  ss_rdata <= r_cur_addr[15:0];
+        SSA_B_CUR_ADDR_HI:  ss_rdata <= {12'b0, r_cur_addr[19:16]};
+        SSA_B_CUR_DATA:     ss_rdata <= r_cur_data;
+        SSA_B_CUR_UBE_N:    ss_rdata <= {15'b0, r_cur_ube_n};
+        SSA_B_CUR_SEG:      ss_rdata <= {14'b0, r_cur_seg};
+        SSA_B_CUR_FETCH:    ss_rdata <= {15'b0, r_cur_fetch};
+        SSA_B_CUR_HALT:     ss_rdata <= {15'b0, r_cur_halt};
+        SSA_B_CUR_NOADDR:   ss_rdata <= {15'b0, r_cur_noaddr};
+        SSA_B_CUR_WR:       ss_rdata <= {15'b0, r_cur_wr};
+        SSA_B_CUR_NEED:     ss_rdata <= {15'b0, r_cur_need};
+        SSA_B_CUR_RDLAST:   ss_rdata <= {15'b0, r_cur_rd_last};
+        SSA_B_CUR_PN:       ss_rdata <= {14'b0, r_cur_pn};
+        SSA_B_CUR_LATET1:   ss_rdata <= {15'b0, r_cur_late_t1};
+        SSA_B_EVALD:        ss_rdata <= {15'b0, r_evald};
+        SSA_B_SEV:          ss_rdata <= {14'b0, r_sev};
+        SSA_B_DAGE:         ss_rdata <= {13'b0, r_dage};
+        SSA_B_CMT_VALID:    ss_rdata <= {15'b0, r_cmt_valid};
+        SSA_B_CMT_BS:       ss_rdata <= {13'b0, r_cmt_bs};
+        SSA_B_CMT_ADDR_LO:  ss_rdata <= r_cmt_addr[15:0];
+        SSA_B_CMT_ADDR_HI:  ss_rdata <= {12'b0, r_cmt_addr[19:16]};
+        SSA_B_CMT_DATA:     ss_rdata <= r_cmt_data;
+        SSA_B_CMT_UBE_N:    ss_rdata <= {15'b0, r_cmt_ube_n};
+        SSA_B_CMT_SEG:      ss_rdata <= {14'b0, r_cmt_seg};
+        SSA_B_CMT_FETCH:    ss_rdata <= {15'b0, r_cmt_fetch};
+        SSA_B_CMT_HALT:     ss_rdata <= {15'b0, r_cmt_halt};
+        SSA_B_CMT_NOADDR:   ss_rdata <= {15'b0, r_cmt_noaddr};
+        SSA_B_CMT_WR:       ss_rdata <= {15'b0, r_cmt_wr};
+        SSA_B_CMT_NEED:     ss_rdata <= {15'b0, r_cmt_need};
+        SSA_B_CMT_RDLAST:   ss_rdata <= {15'b0, r_cmt_rd_last};
+        SSA_B_CMT_PN:       ss_rdata <= {14'b0, r_cmt_pn};
+        SSA_B_CDAGE:        ss_rdata <= {13'b0, r_cdage};
+        SSA_B_CMT_PREV_FP:  ss_rdata <= r_cmt_prev_fp;
+        SSA_B_CMT_WAS_OWED: ss_rdata <= {15'b0, r_cmt_was_owed};
         SSA_B_LAST_UBE:     ss_rdata <= {15'b0, last_ube};
-        SSA_B_LAST_FADDR:   ss_rdata <= last_fetch_addr;
-        SSA_B_Q0:           ss_rdata <= {8'b0, q_mem[0]};
-        SSA_B_Q1:           ss_rdata <= {8'b0, q_mem[1]};
-        SSA_B_Q2:           ss_rdata <= {8'b0, q_mem[2]};
-        SSA_B_Q3:           ss_rdata <= {8'b0, q_mem[3]};
-        SSA_B_Q4:           ss_rdata <= {8'b0, q_mem[4]};
-        SSA_B_Q5:           ss_rdata <= {8'b0, q_mem[5]};
-        SSA_B_Q_HEAD:       ss_rdata <= {13'b0, q_head};
-        SSA_B_Q_CNT:        ss_rdata <= {12'b0, q_cnt};
-        SSA_B_GRN_N:        ss_rdata <= {14'b0, grn_n};
-        SSA_B_GRN_TTL:      ss_rdata <= {14'b0, grn_ttl};
-        SSA_B_FETCH_PTR:    ss_rdata <= fetch_ptr;
-        SSA_B_CS:           ss_rdata <= cs_r;
-        SSA_B_SUSPENDED:    ss_rdata <= {15'b0, suspended};
-        SSA_B_HALTED:       ss_rdata <= {15'b0, halted};
-        SSA_B_HALT_PEND:    ss_rdata <= {15'b0, halt_pending};
-        SSA_B_PF_OWED:      ss_rdata <= {15'b0, pf_owed};
-        SSA_B_PF_ARM:       ss_rdata <= {15'b0, pf_arm};
-        SSA_B_PF_LAND:      ss_rdata <= {15'b0, pf_land};
-        SSA_B_INFL_TTL:     ss_rdata <= {14'b0, infl_ttl};
-        SSA_B_INFL_N:       ss_rdata <= {14'b0, infl_n};
-        SSA_B_ABSORB_TTL:   ss_rdata <= {14'b0, absorb_ttl};
-        SSA_B_NO_EVAL:      ss_rdata <= {15'b0, no_eval};
-        SSA_B_FLUSH_EVAL:   ss_rdata <= {15'b0, flush_eval};
-        SSA_B_E_PEND:       ss_rdata <= {15'b0, e_pend};
-        SSA_B_RQ_N:         ss_rdata <= {14'b0, rq_n};
-        SSA_B_RQ0_BS:       ss_rdata <= {13'b0, rq_bs[0]};
-        SSA_B_RQ0_ADDR_LO:  ss_rdata <= rq_addr[0][15:0];
-        SSA_B_RQ0_ADDR_HI:  ss_rdata <= {12'b0, rq_addr[0][19:16]};
-        SSA_B_RQ0_DATA:     ss_rdata <= rq_data[0];
-        SSA_B_RQ0_UBE:      ss_rdata <= {15'b0, rq_ube[0]};
-        SSA_B_RQ0_SEG:      ss_rdata <= {14'b0, rq_seg[0]};
-        SSA_B_RQ0_NOADDR:   ss_rdata <= {15'b0, rq_noaddr[0]};
-        SSA_B_RQ0_WR:       ss_rdata <= {15'b0, rq_wr[0]};
-        SSA_B_RQ0_NEED:     ss_rdata <= {15'b0, rq_need[0]};
-        SSA_B_RQ0_LAST:     ss_rdata <= {15'b0, rq_last[0]};
-        SSA_B_RQ1_BS:       ss_rdata <= {13'b0, rq_bs[1]};
-        SSA_B_RQ1_ADDR_LO:  ss_rdata <= rq_addr[1][15:0];
-        SSA_B_RQ1_ADDR_HI:  ss_rdata <= {12'b0, rq_addr[1][19:16]};
-        SSA_B_RQ1_DATA:     ss_rdata <= rq_data[1];
-        SSA_B_RQ1_UBE:      ss_rdata <= {15'b0, rq_ube[1]};
-        SSA_B_RQ1_SEG:      ss_rdata <= {14'b0, rq_seg[1]};
-        SSA_B_RQ1_NOADDR:   ss_rdata <= {15'b0, rq_noaddr[1]};
-        SSA_B_RQ1_WR:       ss_rdata <= {15'b0, rq_wr[1]};
-        SSA_B_RQ1_NEED:     ss_rdata <= {15'b0, rq_need[1]};
-        SSA_B_RQ1_LAST:     ss_rdata <= {15'b0, rq_last[1]};
-        SSA_B_SLOT_BUSY:    ss_rdata <= {15'b0, slot_busy};
-        SSA_B_SLOT_ACC:     ss_rdata <= {15'b0, slot_accept};
-        SSA_B_OPR_HELD:     ss_rdata <= {14'b0, opr_held};
-        SSA_B_RD_FIRST_HI:  ss_rdata <= {8'b0, rd_first_hi};
-        SSA_B_RD_WAS_SPLIT: ss_rdata <= {15'b0, rd_was_split};
-        SSA_B_DONE_CTR:     ss_rdata <= {14'b0, done_ctr};
-        SSA_B_DONE_WR:      ss_rdata <= {15'b0, done_wr};
-        SSA_B_RD_DONE_P:    ss_rdata <= {15'b0, rd_done_p};
-        SSA_B_WR_DONE_P:    ss_rdata <= {15'b0, wr_done_p};
-        SSA_B_OPR_FREE_P:   ss_rdata <= {15'b0, opr_free_p};
-        SSA_B_RD_VAL:       ss_rdata <= rd_val;
-        SSA_B_READY_PREV:   ss_rdata <= {15'b0, ready_prev};
+        SSA_B_LAST_FADDR:   ss_rdata <= r_last_fetch_addr;
+        SSA_B_Q0:           ss_rdata <= {8'b0, r_q_mem[0]};
+        SSA_B_Q1:           ss_rdata <= {8'b0, r_q_mem[1]};
+        SSA_B_Q2:           ss_rdata <= {8'b0, r_q_mem[2]};
+        SSA_B_Q3:           ss_rdata <= {8'b0, r_q_mem[3]};
+        SSA_B_Q4:           ss_rdata <= {8'b0, r_q_mem[4]};
+        SSA_B_Q5:           ss_rdata <= {8'b0, r_q_mem[5]};
+        SSA_B_Q_HEAD:       ss_rdata <= {13'b0, r_q_head};
+        SSA_B_Q_CNT:        ss_rdata <= {12'b0, r_q_cnt};
+        SSA_B_GRN_N:        ss_rdata <= {14'b0, r_grn_n};
+        SSA_B_GRN_TTL:      ss_rdata <= {14'b0, r_grn_ttl};
+        SSA_B_FETCH_PTR:    ss_rdata <= r_fetch_ptr;
+        SSA_B_CS:           ss_rdata <= r_cs_r;
+        SSA_B_SUSPENDED:    ss_rdata <= {15'b0, r_suspended};
+        SSA_B_HALTED:       ss_rdata <= {15'b0, r_halted};
+        SSA_B_HALT_PEND:    ss_rdata <= {15'b0, r_halt_pending};
+        SSA_B_PF_OWED:      ss_rdata <= {15'b0, r_pf_owed};
+        SSA_B_PF_ARM:       ss_rdata <= {15'b0, r_pf_arm};
+        SSA_B_PF_LAND:      ss_rdata <= {15'b0, r_pf_land};
+        SSA_B_INFL_TTL:     ss_rdata <= {14'b0, r_infl_ttl};
+        SSA_B_INFL_N:       ss_rdata <= {14'b0, r_infl_n};
+        SSA_B_ABSORB_TTL:   ss_rdata <= {14'b0, r_absorb_ttl};
+        SSA_B_NO_EVAL:      ss_rdata <= {15'b0, r_no_eval};
+        SSA_B_FLUSH_EVAL:   ss_rdata <= {15'b0, r_flush_eval};
+        SSA_B_E_PEND:       ss_rdata <= {15'b0, r_e_pend};
+        SSA_B_RQ_N:         ss_rdata <= {14'b0, r_rq_n};
+        SSA_B_RQ0_BS:       ss_rdata <= {13'b0, r_rq_bs[0]};
+        SSA_B_RQ0_ADDR_LO:  ss_rdata <= r_rq_addr[0][15:0];
+        SSA_B_RQ0_ADDR_HI:  ss_rdata <= {12'b0, r_rq_addr[0][19:16]};
+        SSA_B_RQ0_DATA:     ss_rdata <= r_rq_data[0];
+        SSA_B_RQ0_UBE:      ss_rdata <= {15'b0, r_rq_ube[0]};
+        SSA_B_RQ0_SEG:      ss_rdata <= {14'b0, r_rq_seg[0]};
+        SSA_B_RQ0_NOADDR:   ss_rdata <= {15'b0, r_rq_noaddr[0]};
+        SSA_B_RQ0_WR:       ss_rdata <= {15'b0, r_rq_wr[0]};
+        SSA_B_RQ0_NEED:     ss_rdata <= {15'b0, r_rq_need[0]};
+        SSA_B_RQ0_LAST:     ss_rdata <= {15'b0, r_rq_last[0]};
+        SSA_B_RQ1_BS:       ss_rdata <= {13'b0, r_rq_bs[1]};
+        SSA_B_RQ1_ADDR_LO:  ss_rdata <= r_rq_addr[1][15:0];
+        SSA_B_RQ1_ADDR_HI:  ss_rdata <= {12'b0, r_rq_addr[1][19:16]};
+        SSA_B_RQ1_DATA:     ss_rdata <= r_rq_data[1];
+        SSA_B_RQ1_UBE:      ss_rdata <= {15'b0, r_rq_ube[1]};
+        SSA_B_RQ1_SEG:      ss_rdata <= {14'b0, r_rq_seg[1]};
+        SSA_B_RQ1_NOADDR:   ss_rdata <= {15'b0, r_rq_noaddr[1]};
+        SSA_B_RQ1_WR:       ss_rdata <= {15'b0, r_rq_wr[1]};
+        SSA_B_RQ1_NEED:     ss_rdata <= {15'b0, r_rq_need[1]};
+        SSA_B_RQ1_LAST:     ss_rdata <= {15'b0, r_rq_last[1]};
+        SSA_B_SLOT_BUSY:    ss_rdata <= {15'b0, r_slot_busy};
+        SSA_B_SLOT_ACC:     ss_rdata <= {15'b0, r_slot_accept};
+        SSA_B_OPR_HELD:     ss_rdata <= {14'b0, r_opr_held};
+        SSA_B_RD_FIRST_HI:  ss_rdata <= {8'b0, r_rd_first_hi};
+        SSA_B_RD_WAS_SPLIT: ss_rdata <= {15'b0, r_rd_was_split};
+        SSA_B_DONE_CTR:     ss_rdata <= {14'b0, r_done_ctr};
+        SSA_B_DONE_WR:      ss_rdata <= {15'b0, r_done_wr};
+        SSA_B_RD_DONE_P:    ss_rdata <= {15'b0, r_rd_done_p};
+        SSA_B_WR_DONE_P:    ss_rdata <= {15'b0, r_wr_done_p};
+        SSA_B_OPR_FREE_P:   ss_rdata <= {15'b0, r_opr_free_p};
+        SSA_B_RD_VAL:       ss_rdata <= r_rd_val;
+        SSA_B_READY_PREV:   ss_rdata <= {15'b0, r_ready_prev};
         SSA_B_T1_HALF2:     ss_rdata <= {15'b0, t1_half2};
         default:            ss_rdata <= 16'h0000;
     endcase

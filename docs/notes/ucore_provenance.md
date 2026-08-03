@@ -745,6 +745,7 @@ the same five forms **2500/2500**.
 ## §18 FINDINGS
 
 ### F7 — the EU reads the BIU's BLOCKING state from a second process
+### *(RESOLVED at U2 pass 2 — the contract is in §20)*
 
 **Class: instrument / composition.**  `v30u_biu` is one process whose
 registers change meaning inside the edge (that IS its transliteration of
@@ -802,3 +803,103 @@ the instruction length in 500/500 cases).  The snapshot flop was deleted.
    loader (no BRKEM path — ledger R4).
 4. **Not yet run**: the boot march (`check_boot --core ucore`, F3's routed
    gate), `ulockstep` batch mode over golden cases, the Codex reviews.
+
+# STAGE U2 — PASS 2
+
+## §20 F7 CLOSED — the EU/BIU handshake is a MODULE CONTRACT
+
+Pass 1 left the composition standing on Verilator's block order, which Quartus
+does not share.  Pass 2 replaced it.  Nothing in this section is a new
+mechanism: it is the SAME model, rendered so that the rendering is the same in
+every tool.
+
+### §20.1 What the measurement actually was
+
+Reading the Verilated schedule (`obj_dir_ucore/…DepSet…cpp`) settled the
+question pass 1 left open — and refined F7's own wording.  The EU's clocked
+step was reading the BIU **in two different timings at once**, decided by
+nothing but whether Verilator had chosen to materialise a signal or inline it:
+
+| what the EU's clocked step read | the value it got |
+|---|---|
+| `q_ripe`, `q_byte` (materialised, assigned after both bodies) | the level **DURING the clock that is ending** |
+| `slot_busy`, `rd_done_p`, `wr_done_p`, `opr_free_p`, `rd_val`, `halted`, `q_ripe_lead` (inlined onto the BIU's mid-edge registers) | the level **DURING the clock the edge OPENS** |
+
+That mixture is not arbitrary, and that is the finding: **each half was right,
+for its own reason.**
+
+* the byte the step consumes is the one the BIU handed over on the clock that
+  is ending — the clock the pop rode.  It must be the ENDING clock's queue;
+* every other fact the step consults is a fact about the machine it is
+  stepping INTO, because the step's product is the EU's state for the clock the
+  edge opens.  It must be the OPENING clock's BIU.
+
+And the EU's COMBINATIONAL act decode (`q_pop`, `eu_post`, `eu_pair`,
+`q_flush`, `eu_susp`, `eu_halt`) already read the BIU as an ordinary registered
+output — Verilator settles those assigns after the edge, which is exactly a
+level read during the clock the act names.  That direction was never at risk.
+
+So the composition wanted **two named views**, not one latch.  Pass 1's
+refutation stands and is now explained: latching in the EU delayed the WHOLE
+view, including the half that was already right, which is why B8 went 500->123.
+
+### §20.2 The contract, as built
+
+`v30u_biu` is now ONE next-state function and ONE register bank:
+
+* `r_<x>` **is** the register — the state the model has at the start of
+  `tick(c)`.  Written only by the single `always_ff`;
+* `<x>` (unprefixed) is that register's NEXT value — the state at the start of
+  `tick(c+1)` — computed by the single `always_comb`, whose body is pass 1's
+  program **verbatim**, blocking assignments and all.  They are still the
+  model's sequential semantics; they are now confined to one combinational
+  process, so no consumer can observe an intermediate.
+
+The module then publishes, in ONE place (`THE EU CONTRACT` block):
+
+| view | signals | who reads it |
+|---|---|---|
+| REGISTERED | `q_byte` `q_ripe` `q_cnt_o` `eu_slot_busy` `eu_wr_done` `eu_opr_free` `halted_o` | the EU's combinational act decode; and the clocked step for the queue pair |
+| NEXT (`_n`) | `eu_slot_busy_n` `eu_rd_done_n` `eu_wr_done_n` `eu_opr_free_n` `eu_rdata_n` `q_ripe_lead_n` | the EU's clocked step ONLY |
+
+The EU derives the same split for the four stall terms that mix EU state with a
+BIU level — `opr_free_now`/`_n`, `retire_ok`/`_n`, `f_wait`/`_n`,
+`row_blocked`/`_n`, `row_pre_wait`/`_n` — one expression each, differing only in
+which view it reads.
+
+**No `_n` signal reaches a combinational output of `v30u_eu`.**  That is the
+loop rule, and it is what keeps the EU->BIU direction a registered boundary:
+`eu_post` is qualified by the REGISTERED `eu_slot_busy`, so `slot_busy`'s
+next-state (which depends on `eu_post`) closes nothing.  Verilator reports no
+`UNOPTFLAT` and no inferred latch on the whole build.
+
+### §20.3 The result — behaviour preserved BIT FOR BIT
+
+Everything below is the same tree, before and after, on the same command lines.
+
+| gate | before F7 | after F7 |
+|---|---|---|
+| `check_core --core ucore --opcodes B8 --cases 500` | 500/500 | **500/500** |
+| `… --opcodes 8A` | 500/500 | **500/500** |
+| `… --opcodes 8B` | 302/500 | **302/500** |
+| `… --opcodes 88` | 134/500 | **134/500** |
+| `… --opcodes 89` | 121/500 | **121/500** |
+| `ulockstep.py --suite --waits 0,1,2,3` | 32/32 LOCKSTEP | **32/32 LOCKSTEP** |
+| `check_ucore_tables.py` (G0) | 9988/9988 | **9988/9988** |
+| FSM spot, same five forms | 2500/2500 | **2500/2500** |
+
+The three RED forms reproducing their exact pass-1 scores is the strongest
+statement available: the change is a rendering change and touches no mechanism.
+
+### §20.4 F10 — the CE-hold gate was watching the wrong signal
+
+**Class: instrument.**  `tb_v30_core.sv`'s non-FSM `ce_probe` named
+`dut.u_biu.ts / q_cnt / fetch_ptr`.  After the split those are the
+next-state view, which tracks the pins and therefore moves on CE-low clocks BY
+DESIGN; the gate reported `CE_HOLD_VIOL 2629` for a core that had not advanced
+at all.  The probe now names `r_ts / r_q_cnt / r_fetch_ptr` — the state — and
+reads **0** at `--ce-div 3`, as it did before the change.  *Falsifier*: any
+ucore state element the probe cannot see moving on a CE-low clock.
+
+The general rule this is the second instance of (F2 was the first): **a gate
+that names an internal signal is only as current as that signal's meaning.**

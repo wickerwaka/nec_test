@@ -82,16 +82,18 @@ logic   [1:0] scr_qop = '0;
 // BIU <-> EU
 //----------------------------------------------------------------------------
 wire  [7:0] q_byte;
-wire        q_ripe, q_ripe_lead;
+wire        q_ripe, q_ripe_lead_n;
 wire  [3:0] q_cnt;
 wire        eu_pop, eu_first, eu_flush;
 wire [15:0] eu_flush_cs, eu_flush_ip;
-wire        eu_post, eu_word, eu_pair, eu_pair2, eu_split, eu_slot_busy;
+wire        eu_post, eu_word, eu_pair, eu_pair2, eu_split;
+wire        eu_slot_busy, eu_slot_busy_n;
 wire  [2:0] eu_bs;
 wire [19:0] eu_addr, eu_addr2;
 wire  [1:0] eu_seg;
-wire [15:0] eu_wdata, eu_rdata;
-wire        eu_rd_done, eu_wr_done, eu_opr_free;
+wire [15:0] eu_wdata, eu_rdata_n;
+wire        eu_rd_done_n, eu_wr_done, eu_wr_done_n;
+wire        eu_opr_free, eu_opr_free_n;
 wire        eu_susp, eu_resume, eu_halt, eu_unhalt, biu_halted;
 wire        psw_ie, md8080;
 wire [15:0] ss_eu_rdata, ss_biu_rdata;
@@ -163,7 +165,7 @@ v30u_biu u_biu (
     .md8080     (md8080),
     .q_byte     (q_byte),
     .q_ripe     (q_ripe),
-    .q_ripe_lead(q_ripe_lead),
+    .q_ripe_lead_n(q_ripe_lead_n),
     .q_cnt_o    (q_cnt),
     .q_pop      (q_pop),
     .q_first    (q_first),
@@ -178,13 +180,16 @@ v30u_biu u_biu (
     .eu_seg     (eu_seg),
     .eu_word    (eu_word),
     .eu_slot_busy (eu_slot_busy),
+    .eu_slot_busy_n (eu_slot_busy_n),
     .eu_pair    (scr_en ? 1'b0 : eu_pair),
     .eu_pair2   (eu_pair2),
     .eu_wdata   (eu_wdata),
-    .eu_rdata   (eu_rdata),
-    .eu_rd_done (eu_rd_done),
+    .eu_rdata_n (eu_rdata_n),
+    .eu_rd_done_n (eu_rd_done_n),
     .eu_wr_done (eu_wr_done),
+    .eu_wr_done_n (eu_wr_done_n),
     .eu_opr_free(eu_opr_free),
+    .eu_opr_free_n(eu_opr_free_n),
     .eu_susp    (scr_en ? 1'b0 : eu_susp),
     .eu_resume  (scr_en ? 1'b0 : eu_resume),
     .eu_halt    (scr_en ? 1'b0 : eu_halt),
@@ -208,7 +213,7 @@ v30u_eu u_eu (
     .srst       (RESET),
     .q_byte     (q_byte),
     .q_ripe     (q_ripe),
-    .q_ripe_lead(q_ripe_lead),
+    .q_ripe_lead_n(q_ripe_lead_n),
     .q_cnt      (q_cnt),
     .q_pop      (eu_pop),
     .q_first    (eu_first),
@@ -223,13 +228,16 @@ v30u_eu u_eu (
     .eu_seg     (eu_seg),
     .eu_word    (eu_word),
     .eu_slot_busy (eu_slot_busy),
+    .eu_slot_busy_n (eu_slot_busy_n),
     .eu_pair    (eu_pair),
     .eu_pair2   (eu_pair2),
     .eu_wdata   (eu_wdata),
-    .eu_rdata   (eu_rdata),
-    .eu_rd_done (eu_rd_done),
+    .eu_rdata_n (eu_rdata_n),
+    .eu_rd_done_n (eu_rd_done_n),
     .eu_wr_done (eu_wr_done),
+    .eu_wr_done_n (eu_wr_done_n),
     .eu_opr_free(eu_opr_free),
+    .eu_opr_free_n(eu_opr_free_n),
     .eu_susp    (eu_susp),
     .eu_resume  (eu_resume),
     .eu_halt    (eu_halt),

@@ -116,7 +116,7 @@ end
 S_1BL_LEAD: begin
     // `wait_retire_lead`: the execute strobe is the clock BEFORE the
     // successor's opcode pop, so a late queue takes the flag write with it.
-    if (!q_ripe_lead) stop = 1'b1;
+    if (!q_ripe_lead_n) stop = 1'b1;
     else begin
         case (pla3_xop(ld_pla))
             PLA3_BL1_SET_DIR: psw[FDIR] = 1'b1;
@@ -321,7 +321,7 @@ end
 S_PRERD: begin
     // the pre-decode operand read; `wait_opr` opens micro-row 0 at its T4 + 2
     if (!row_posted) begin
-        if (eu_slot_busy) stop = 1'b1;
+        if (eu_slot_busy_n) stop = 1'b1;
         else begin
             row_posted = 1'b1;
             rd_pending = rd_pending + 2'd1;
@@ -360,7 +360,7 @@ end
 // exec_impl.h -- run_micro
 //----------------------------------------------------------------------------
 S_ROW: begin
-    if (row_blocked) begin
+    if (row_blocked_n) begin
         stop = 1'b1;                                    // stall_opr
     end else if (row_need_q && !q_ripe) begin
         stop = 1'b1;                                    // stall_q
@@ -369,9 +369,9 @@ S_ROW: begin
         pc = pc + 16'd1;
         rowq = rowq + 2'd1;
         if ({1'b0, rowq} < row_qn) stop = 1'b1;         // a second byte
-    end else if (row_pre_wait) begin
+    end else if (row_pre_wait_n) begin
         stop = 1'b1;                                    // deliver_read
-    end else if (row_bus && !row_posted && eu_slot_busy) begin
+    end else if (row_bus && !row_posted && eu_slot_busy_n) begin
         stop = 1'b1;                                    // stall_slot
     end
     if (!stop) begin
@@ -417,7 +417,7 @@ end
 
 S_EPOP: begin
     // the E row's successor pop, deferred past the retire deadline
-    if (!retire_ok) stop = 1'b1;
+    if (!retire_ok_n) stop = 1'b1;
     else if (!q_ripe) stop = 1'b1;
     else begin
         opc_byte = q_byte;
@@ -438,7 +438,7 @@ end
 
 S_TAIL_W: begin
     // `if (!opr_fresh_) deliver_read(); emit_pending();`
-    if (!opr_fresh && (nr_wait || !opr_free_now)) stop = 1'b1;
+    if (!opr_fresh && (nr_wait || !opr_free_now_n)) stop = 1'b1;
     else begin
         if (!opr_fresh) begin
             if (rd_done_cnt != 2'd0) rd_done_cnt = rd_done_cnt - 2'd1;
@@ -458,7 +458,7 @@ end
 S_TAIL_POP: begin
     // the DEFERRED opcode pre-pop: `wait_bus()` then the pop, then M8b's
     // clock after it (`if (deferred) biu.charge(1)`).
-    if (!retire_ok) stop = 1'b1;
+    if (!retire_ok_n) stop = 1'b1;
     else if (!q_ripe) stop = 1'b1;
     else begin
         opc_byte = q_byte;
