@@ -439,7 +439,17 @@ wire qs_e_now = (r_e_pend || q_flush) && !pop_now && !e_from_block &&
                 // (c) a ready-but-not-started EU request owns the next slot
                 // and the flush display waits for that request's STATUS
                 // clock -- except on the flush clock itself.
-                ((r_rq_n == 2'd0) || q_flush ||
+                // F33 -- ...and "a ready-but-not-yet-started EU request" MEANS
+                // the one this clock is posting.  The model tests `req_` LIVE
+                // inside `record()`, and the row's `post()` has already run by
+                // then (the body precedes the row's own `charge(1)`); the RTL
+                // tested the REGISTER `r_rq_n`, which is one clock behind, so a
+                // flush row that also posts saw an empty queue and took the QS
+                // port at once.  `eu_post` is the EU's ordinary combinational
+                // request line -- the same one `ann_kill` above reads.
+                // MEASURED: `E8 idx 1` shows E on the push's ANNOUNCEMENT
+                // clock (row 8), not on the flush row's own clock (row 7).
+                (((r_rq_n == 2'd0) && !eu_post) || q_flush ||
                  (r_cmt_valid && !r_cmt_fetch) || (r_run && !r_cur_fetch));
 
 assign qs = qs_e_now ? QS_EMPTY
