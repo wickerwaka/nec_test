@@ -1846,15 +1846,25 @@ predictable — but its recognition block is a large fitted machine (`int_p`,
 IRET arm, a deeper REP sampling stage), which is precisely the shape the
 SIMPLICITY principle says to distrust.
 
-So the question the rung opens with is: **what holds the boundary when the
-pin has not asserted by `B`?**  `max(B, A + pipe)` says the part waits; no
-hardware term has yet been named that could make it wait.  Either the max
-is an artefact of the replay driver (and the RTL must not copy it), or
-there is a mechanism nobody has written down.  The census that decides it
-is the one `timed_runner.cpp` already describes — every `(A, B)` cell of
-`INT.90` / `INT.B8` / `NMI.90` / `NMI.B8`, 16 + 23 + 12 + 20 distinct
-cells — re-scored against the RTL rather than against the model.
-Do that census FIRST; do not fit.
+The question the rung opened with was: **what holds the boundary when the
+pin has not asserted by `B`?**  **ANSWERED by the third Codex review — see
+§36/C5.  Nothing does, and the `max` must NOT be rendered.**  It is an
+artefact of the replay driver: `derive_replay()` / `set_fire_pc()` PIN `B`
+to the golden's pushed frame first, and only then is that already-selected
+boundary delayed by the `max`; the late-assert branch is therefore the
+replay compensating for having chosen a boundary the part had already run
+past, not a rule the part obeys.  Nothing can selectively hold a boundary
+for a pin that has not asserted without foreknowledge, and holding EVERY
+boundary against a possible future pin would stall ordinary execution.
+
+**So the ucore's rule is the causal one, and it is small**: pipeline the
+INT LEVEL and edge-latch NMI; test the MATURED event at each eligible
+boundary; suppress the pop only at the FIRST boundary where the condition
+is already true; otherwise pop and go on to the next boundary.  That is
+what the frozen FSM core does (`v30_eu.sv`: `pop_want = S_FIRST &&
+!irq_take`), and it is what makes it 169,000/169,000 from the pins alone.
+The `(A, B)` census `timed_runner.cpp` describes is still worth running —
+but as a CHECK on the causal rule, not as the thing being fitted.
 
 ### §35.2 Residue booked, not patched
 
@@ -1955,6 +1965,91 @@ the SPEC, `pend_.active` is TRUE at the `E` row in the MODEL too for
 `REP STOS` (the last iteration's write is staged and never paired, because
 `emit_pending` fires only when `opr_fresh_` and a string loop refreshes OPR
 once), so the DEFERRAL itself is faithful and must not be "fixed".
+
+## §36 THE THIRD CODEX REVIEW (2026-08-03, thread `019fc8ba` resumed again)
+
+**A note on the method first, because it cost 43 minutes.**  The review was
+first asked as ONE prompt carrying seven questions and the whole of §33-§35.
+It read the tree, made four source greps, and then WEDGED — no output for
+39 minutes, cancelled at 43.  Re-asked as two SHORT prompts naming exactly
+what to read, it answered both in 37 and 44 seconds.  Booked as a working
+rule: **a review prompt is not a brief.  Ask one question, name the files,
+demand a verdict line.**
+
+Two findings, both UPHELD, and the second is the one that matters.
+
+### C4 — M13's 8080 arm of `wait_opr_free` was never rendered.  **LANDED.**
+
+Q: F31 collapsed the OPR interlock to ONE view (the registered level) while
+F18 had insisted the READ side needs a register-only LOOKAHEAD.  Both are
+"a deadline the row runs on".  Is one of them now wrong?
+
+A: **"PRINCIPLED BUT FRAGILE."**  The asymmetry is correct, and Codex stated
+the distinction in one line that is worth keeping verbatim:
+
+> read completion is a future eval-derived timestamp becoming due on this
+> edge; OPR release is a T2 ownership transition whose post-edge registered
+> level defines T3.
+
+`wait_next_read` waits `while (clk_ < rd_done_q_.front())` on a deadline
+PUSHED at `e + 2` — a timestamp, so the row must see it becoming due, which
+is the lookahead.  `wait_opr_free` waits on a LEVEL whose T2 decrement makes
+the registered zero visible during T3.  Two different kinds of fact, two
+different views, and F18 and F31 are both right.
+
+The FRAGILITY is the finding: `wait_opr_free()` opens with
+`if (md8080_ && *md8080_) { wait_bus(); return; }` — M13, "in 8080 emulation
+mode the store does not let go until it has RETIRED", stretching with the
+eval — and **the EU had no mode term at all**, in F31's rendering or in the
+pulse rendering it replaced.  Pre-existing, not F31's; but F31 made
+`opr_free_now` the one place it can live, so it lives there now:
+
+```
+wire opr_free_now = mode8080 ? retire_ok_n : eu_opr_free;
+```
+
+`retire_ok_n` IS the RTL's `wait_bus` deadline, so the arm is the SPEC's own
+line and nothing is fitted.  UNREACHABLE on the current stimulus (`mode8080`
+is set only by an `MFC` row; the 8080 loader / BRKEM path is ledger R4), so
+the census proves the no-op — G3 164,787 either way, zero forms moved.
+D1's shape again.  *Falsifier*: the first 8080-mode store the ucore
+executes, which is R4's gate.
+
+### C5 — the interrupt boundary's `max` is a REPLAY ARTEFACT.  **DECISIVE.**
+
+Q: is `D = max(B, A + pipe)` renderable as hardware — what holds the
+boundary when the pin has not asserted by `B`?
+
+A: **it is not, and nothing does.**
+
+> Nothing can selectively hold boundary `B` for a pin that has not yet
+> asserted without foreknowledge; holding every boundary awaiting a possible
+> future pin would stall ordinary execution.
+
+The evidence is the order of operations in the driver itself:
+`derive_replay()` and `set_fire_pc(rp.resume_ip)` PIN `B` to the golden's
+pushed frame FIRST, and only afterwards is that already-selected boundary
+delayed by the `max`.  The late-assert branch is the replay compensating for
+having chosen a boundary the part had already run past — not a rule the part
+obeys.  And the frozen FSM core, which scores 169,000/169,000 from the pins
+alone, contains no such term: at `S_FIRST` it suppresses the pop only when
+the pipelined event is ALREADY recognised (`pop_want = S_FIRST && !irq_take`)
+and otherwise pops and continues to the next boundary.
+
+**This is the most valuable answer of the three reviews**, because it stops
+pass 5 from fitting a forward-looking term into hardware that cannot have
+one.  §35.1 is rewritten around it: pipeline the INT LEVEL, edge-latch NMI,
+test the matured event at each eligible boundary, suppress only the FIRST
+boundary where the condition is already true.  The `(A, B)` census stays —
+as a CHECK on that causal rule, not as the thing being fitted.
+
+### Not reached
+
+The wedged first attempt also carried questions on `opr_free_p`'s
+vacuity, the BIU's `opr_held` T2 increment (§35.2), F33's `!eu_post`
+equivalence, the SS-map retirement, and whether the strings' two signatures
+share a mechanism.  **None of those were answered**; they stand as I left
+them, and they are the natural opening for the fourth review.
 
 ## §37 HANDOFF — what pass 5 picks up
 
