@@ -32,7 +32,13 @@ sys.path.insert(0, str(SW))
 from decode_capture import decode  # noqa: E402
 
 ROOT = SW.parent
-BIN = ROOT / "hdl" / "tb" / "obj_dir" / "Vtb_v30_core"
+# --core {fsm,ucore}: the two RTL engines are drop-in alternatives built into
+# separate obj_dirs by sw/check_core.py.  fsm is the default so the standing
+# boot gate is re-runnable unchanged.
+CORE = "fsm"
+def _bin():
+    d = "obj_dir" if CORE == "fsm" else f"obj_dir_{CORE}"
+    return ROOT / "hdl" / "tb" / d / "Vtb_v30_core"
 CAPTURE = SW / "testdata" / "largemode_boot_real.hex"
 BOOTBIN = SW / "boot.bin"
 SIM = ROOT / "sim" / "v30sim"
@@ -63,7 +69,7 @@ def run_sim(n):
     # (sim/timed_runner.cpp: `biu.set_mirror(true); // the capture board's
     # 64 KB wiring`).  Without it the RTL fetches unwritten memory from
     # release+9 on and every subsequent row differs.
-    r = subprocess.run([str(BIN), f"+bootimg={img}", f"+bootn={n}",
+    r = subprocess.run([str(_bin()), f"+bootimg={img}", f"+bootn={n}",
                         "+mirror=1", f"+out={out}"],
                        capture_output=True, text=True)
     if "BOOT DONE" not in r.stdout:
@@ -102,8 +108,15 @@ def run_timed(n):
 
 
 def main():
+    global CORE
     argv = [a for a in sys.argv[1:] if not a.startswith("-")]
     timed = "--timed" in sys.argv
+    for a in sys.argv[1:]:
+        if a.startswith("--core="):
+            CORE = a.split("=", 1)[1]
+        elif a == "--core":
+            CORE = sys.argv[sys.argv.index(a) + 1]
+    argv = [a for a in argv if a not in ("fsm", "ucore")]
     n = int(argv[0]) if argv else 220
     real = load_real()
     sim = run_timed(n) if timed else run_sim(n + 4)
@@ -155,8 +168,19 @@ def main():
         print(f"real loop period {t1s[1] - t1s[0]}; "
               f"sim loop period "
               f"{(t1s_s[1] - t1s_s[0]) if len(t1s_s) >= 2 else '?'}")
+    first_bad = None
+    for i in range(min(n, len(real), len(sim))):
+        r, s_ = real[i], sim[i]
+        if (QS_NAME[r["qs"]] != QS_NAME[s_["qs"]]) or \
+           (i >= 8 and r["bs_early"] != s_["bs_early"]) or \
+           (i >= 9 and (r["t_state"] != s_["t"] or r["ube_n"] != s_["ube_n"])):
+            first_bad = i
+            break
     print(f"\n{'BOOT REPLAY MATCHES' if bad == 0 else f'{bad} rows differ'}"
-          f" over {n} rows from RESET release")
+          f" over {n} rows from RESET release"
+          + ("" if first_bad is None
+             else f"; first divergent row = release+{first_bad}"
+                  f" (matching prefix {first_bad} rows)"))
     return 0 if bad == 0 else 1
 
 

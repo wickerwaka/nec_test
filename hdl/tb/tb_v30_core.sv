@@ -677,6 +677,17 @@ logic eudbg_en;
 initial eudbg_en = $test$plusargs("eudbg");
 
 //----------------------------------------------------------------------------
+// ENGINE-SPECIFIC PROBES.  Everything below the `ifdef reaches INSIDE the DUT
+// by hierarchical reference (dut.u_eu.* / dut.u_biu.*) and is therefore bound
+// to the FSM core's internal signal names.  The TB itself is ENGINE-NEUTRAL --
+// it drives and samples chip pins plus the V30_BACKDOOR group only -- so the
+// probes are compiled only when the RTL file list is the FSM core's
+// (sw/check_core.py --core fsm passes -DV30_FSM_PROBES).  The ucore file list
+// omits the define; its own probe set arrives with the ucore EU in U2.
+// Nothing in the FSM build changes: the define is on by default for it.
+//----------------------------------------------------------------------------
+`ifdef V30_FSM_PROBES
+//----------------------------------------------------------------------------
 // Phase 2k RESERVATION-ONSET instrumentation (measurement only, TB-side; no
 // functional RTL change). Latch, on every eu_req RISING edge, the EU state
 // generating the reservation (onset_state = the reservation's OWN source, e.g.
@@ -829,7 +840,150 @@ always @(posedge clk) begin
                   dut.u_eu.eu_seg, dut.u_eu.eu_addr, dut.u_eu.eu_req);
 end
 
+`endif  // V30_FSM_PROBES
+
+//----------------------------------------------------------------------------
+// SCRIPTED-CONSUMER MODE (+scr=<file>).  ENGINE-NEUTRAL: it drives scr_en /
+// scr_qop and the V30_BACKDOOR injection group only -- the same core ports
+// both engines already carry -- and records the ordinary `r` stream.  It is
+// the RTL leg of `sw/ulockstep.py`; the sim leg is `v30sim biu-script`, and
+// the two read the SAME script file.
+//
+// The script's ops are consumed in order.  `w n` burns n clocks; `f` / `s`
+// hold the pop DEMAND until the BIU serves it (M8: pop = max(demand, ready)),
+// which is the clock QS reports it on; `e` flushes for exactly one clock.
+//----------------------------------------------------------------------------
+string  scr_path;
+integer scr_fi;
+integer scrn;
+logic [7:0]  scr_q [0:5];
+logic [31:0] sv;
+integer scr_qlen, scr_rc, scr_wait;
+string  scr_tok;
+logic [1:0] qs_p = 2'b00;   // the QS the row just written carried
+
+always @(posedge clk) if (!reset && ce) qs_p <= QS;
+
+task automatic scr_next(output string tk);
+    integer r;
+    r = $fscanf(scr_fi, "%s", tk);
+    if (r != 1) tk = "end";
+endtask
+
+task automatic scr_hex(output logic [31:0] v);
+    integer r;
+    r = $fscanf(scr_fi, "%h", v);
+    if (r != 1) v = 0;
+endtask
+
 initial begin
+    if ($value$plusargs("scr=%s", scr_path)) begin
+        if (!$value$plusargs("out=%s", out_path)) out_path = "core_out.txt";
+        scr_fi = $fopen(scr_path, "r");
+        fo = $fopen(out_path, "w");
+        if (scr_fi == 0 || fo == 0) begin
+            $display("FATAL: cannot open %s / %s", scr_path, out_path);
+            $finish;
+        end
+        for (int mi = 0; mi < 1048576; mi++) mem[mi] = 8'h90;
+        scr_qlen = 0;
+        for (int qi = 0; qi < 6; qi++) scr_q[qi] = 8'h00;
+        bkd_regs = '0;
+        // header
+        forever begin
+            scr_next(scr_tok);
+            if (scr_tok == "ops" || scr_tok == "end") break;
+            if (scr_tok == "waits") begin
+                scr_hex(sv); waits_cfg = int'(sv);
+            end else if (scr_tok == "fill") begin
+                scr_hex(sv);
+                for (int mi = 0; mi < 1048576; mi++) mem[mi] = sv[7:0];
+            end else if (scr_tok == "psw") begin
+                scr_hex(sv); bkd_regs[208 +: 16] = sv[15:0];
+            end else if (scr_tok == "cs") begin
+                scr_hex(sv); bkd_regs[144 +: 16] = sv[15:0];
+            end else if (scr_tok == "ip") begin
+                scr_hex(sv); bkd_fetch_ip = sv[15:0];
+            end else if (scr_tok == "q") begin
+                scr_hex(sv); scr_qlen = int'(sv);
+                for (int qi = 0; qi < scr_qlen; qi++) begin
+                    scr_hex(sv); scr_q[qi] = sv[7:0];
+                end
+            end else if (scr_tok == "mem") begin
+                scr_hex(sv);
+                begin
+                    logic [19:0] ma; ma = sv[19:0];
+                    scr_hex(sv);
+                    mem[ma] = sv[7:0];
+                end
+            end else begin
+                $display("FATAL: bad script header token %s", scr_tok);
+                $finish;
+            end
+        end
+        // the fetch pointer is IP + qlen, exactly as compose_batch computes it
+        bkd_fetch_ip = bkd_fetch_ip + 16'(scr_qlen);
+        bkd_qlen = 3'(scr_qlen);
+        for (int qi = 0; qi < 6; qi++) bkd_queue[qi*8 +: 8] = scr_q[qi];
+        scr_en = 1;
+
+        reset = 1;
+        case_active = 1;
+        @(posedge clk);
+        bkd_load = 1;
+        repeat (2) @(posedge clk);
+        $fdisplay(fo, "= 0");
+        @(negedge clk);
+        reset = 0;
+        bkd_load = 0;
+        recording = 1;
+
+        // ops.  PHASE CONTRACT: control between ops always sits just after a
+        // NEGEDGE, so `scr_qop` is never assigned in the same time slot as the
+        // posedge that records the row (that race made the driver look one
+        // clock fast).  `scr_qop` for clock k is set in k's low half; the row
+        // for clock k is written at k's closing posedge, and `qs_p` carries
+        // that row's QS across to the next negedge for the service test.
+        forever begin
+            scr_next(scr_tok);
+            if (scr_tok == "end") break;
+            if (scr_tok == "w") begin
+                scr_hex(sv);
+                scr_qop = 2'b00;
+                repeat (int'(sv)) begin @(posedge clk); @(negedge clk); end
+            end else if (scr_tok == "f" || scr_tok == "s") begin
+                // a pop is a DEMAND held until the BIU serves it (M8)
+                scr_qop = (scr_tok == "f") ? 2'b01 : 2'b11;
+                scr_wait = 0;
+                while (scr_wait < 4096) begin
+                    @(posedge clk); @(negedge clk);
+                    if (qs_p != 2'b00) break;
+                    scr_wait = scr_wait + 1;
+                end
+                scr_qop = 2'b00;
+            end else if (scr_tok == "e") begin
+                scr_hex(sv); bkd_regs[144 +: 16] = sv[15:0];  // new CS
+                scr_hex(sv); bkd_fetch_ip = sv[15:0];         // new IP
+                scr_qop = 2'b10;
+                @(posedge clk); @(negedge clk);
+                scr_qop = 2'b00;
+            end else begin
+                $display("FATAL: bad script op %s", scr_tok);
+                $finish;
+            end
+        end
+        scr_qop = 2'b00;
+        recording = 0;
+        $fdisplay(fo, ".");
+        $fclose(fo);
+        $fclose(scr_fi);
+        $display("SCRIPT DONE");
+        $finish;
+    end
+end
+
+initial begin
+    if ($test$plusargs("scr")) wait (0);
     if ($value$plusargs("bootimg=%s", bootimg_path)) begin
         if (!$value$plusargs("bootn=%d", bootn)) bootn = 300;
         if (!$value$plusargs("out=%s", out_path)) out_path = "core_out.txt";
@@ -862,6 +1016,7 @@ initial begin
         recording = 0;
         $fdisplay(fo, ".");
 `ifndef SYNTHESIS
+`ifdef V30_FSM_PROBES
 `ifdef VERILATOR
         // Family-5/7 hardening coverage (task #24 coda leg b): boot-replay path
         // -- the fuzz corpus runs here, so the strio-gadget gate hits show up.
@@ -876,6 +1031,7 @@ initial begin
                  dut.u_biu.cov_ff_t4, dut.u_biu.cov_ff_ti);
 `endif
 `endif
+`endif
         $fclose(fo);
         $display("BOOT DONE");
         $finish;
@@ -884,6 +1040,7 @@ end
 
 initial begin
     if ($test$plusargs("bootimg")) wait (0);
+    if ($test$plusargs("scr")) wait (0);
     if (!$value$plusargs("batch=%s", batch_path)) batch_path = "batch.txt";
     if (!$value$plusargs("out=%s", out_path))     out_path = "core_out.txt";
     fi = $fopen(batch_path, "r");
@@ -995,6 +1152,7 @@ initial begin
     end
 
 `ifndef SYNTHESIS
+`ifdef V30_FSM_PROBES
 `ifdef VERILATOR
     // Family-5/7 hardening coverage readout (task #24 coda). Batch-cumulative
     // hit counts for the three new strio gates; leg (b) requires all three
@@ -1006,6 +1164,7 @@ initial begin
     $display("COV f7a_idle_arm=%0d f7a_eval_ext=%0d f5a_t3_veto=%0d",
              dut.u_biu.cov_f7a_idle_arm, dut.u_biu.cov_f7a_eval_ext,
              dut.u_biu.cov_f5a_t3_veto);
+`endif
 `endif
 `endif
     $fclose(fo);
@@ -1029,36 +1188,34 @@ end
 // change is a gating bug (the core ran on a disabled clock). Used with
 // +ce_div=N (N>1); harmless at N=1 (ce_p is always high so never checks).
 //----------------------------------------------------------------------------
-logic       ce_hold_check;
-initial     ce_hold_check = $test$plusargs("ce_hold_check");
-logic [6:0] eu_state_p  = '0;
-logic [2:0] biu_state_p = '0;
-logic [2:0] q_cnt_p     = '0;
-logic [5:0] div_cnt_p   = '0;
-logic       ce_p = 1'b1, reset_p = 1'b1;
-integer     ce_hold_viol = 0;
+logic        ce_hold_check;
+initial      ce_hold_check = $test$plusargs("ce_hold_check");
+// The watched state is engine-specific; the CHECK is not.  One concatenation
+// per engine keeps the rule ("the core must not advance on a CE-low clock")
+// identical for both.
+`ifdef V30_FSM_PROBES
+wire [18:0]  ce_probe = {dut.u_eu.state, dut.u_biu.state,
+                         dut.u_biu.q_cnt, dut.u_eu.div_cnt};
+`else
+wire [18:0]  ce_probe = {3'b0, dut.u_biu.ts, dut.u_biu.q_cnt,
+                         dut.u_biu.fetch_ptr[7:0]};
+`endif
+logic [18:0] ce_probe_p = '0;
+logic        ce_p = 1'b1, reset_p = 1'b1;
+integer      ce_hold_viol = 0;
 
 always @(posedge clk) begin
     if (ce_hold_check && !reset_p && !ce_p) begin
-        if (dut.u_eu.state  !== eu_state_p  ||
-            dut.u_biu.state !== biu_state_p ||
-            dut.u_biu.q_cnt !== q_cnt_p     ||
-            dut.u_eu.div_cnt !== div_cnt_p) begin
+        if (ce_probe !== ce_probe_p) begin
             ce_hold_viol <= ce_hold_viol + 1;
             if (ce_hold_viol <= 10)
-                $display("CE-HOLD VIOLATION @%0t: eu %0d->%0d biu %0d->%0d qcnt %0d->%0d div %0d->%0d",
-                         $time, eu_state_p, dut.u_eu.state,
-                         biu_state_p, dut.u_biu.state,
-                         q_cnt_p, dut.u_biu.q_cnt,
-                         div_cnt_p, dut.u_eu.div_cnt);
+                $display("CE-HOLD VIOLATION @%0t: probe %05x->%05x",
+                         $time, ce_probe_p, ce_probe);
         end
     end
-    eu_state_p  <= dut.u_eu.state;
-    biu_state_p <= dut.u_biu.state;
-    q_cnt_p     <= dut.u_biu.q_cnt;
-    div_cnt_p   <= dut.u_eu.div_cnt;
-    ce_p        <= ce;
-    reset_p     <= reset;
+    ce_probe_p <= ce_probe;
+    ce_p       <= ce;
+    reset_p    <= reset;
 end
 
 final if (ce_hold_check)

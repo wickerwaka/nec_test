@@ -43,11 +43,39 @@ TB_DIR = ROOT / "hdl" / "tb"
 OBJ = TB_DIR / "obj_dir"
 BIN = OBJ / "Vtb_v30_core"
 
-RTL = [ROOT / "hdl" / "rtl" / "core" / "v30_ss_pkg.sv",
-       ROOT / "hdl" / "tb" / "tb_v30_core.sv",
-       ROOT / "hdl" / "rtl" / "core" / "v30_core.sv",
-       ROOT / "hdl" / "rtl" / "core" / "v30_biu.sv",
-       ROOT / "hdl" / "rtl" / "core" / "v30_eu.sv"]
+# --- engine selection (ucore campaign, stage U1) ---------------------------
+# The two cores are DROP-IN alternatives: same module name `v30_core`, same
+# port list, same package name `v30_ss_pkg`.  Only the RTL file list, the
+# include path, the obj_dir and one define change.  `fsm` is the default so
+# every FSM baseline gate is re-runnable unchanged.
+CORE_DIR = {"fsm": ROOT / "hdl" / "rtl" / "core",
+            "ucore": ROOT / "hdl" / "rtl" / "ucore"}
+CORE_RTL = {
+    "fsm": ["v30_ss_pkg.sv", "@tb", "v30_core.sv", "v30_biu.sv", "v30_eu.sv"],
+    "ucore": ["v30u_ss_pkg.sv", "@tb", "v30_core.sv", "v30u_biu.sv",
+              "v30u_eu.sv"],
+}
+# tb_v30_core.sv's in-DUT probes (the `d`/`g`/`p` dumps and the coverage
+# readout) are bound to the FSM core's internal signal names; the TB is
+# otherwise engine-neutral.  See its "ENGINE-SPECIFIC PROBES" block.
+CORE_DEFS = {"fsm": ["-DV30_FSM_PROBES"], "ucore": []}
+
+
+def core_paths(core):
+    d = CORE_DIR[core]
+    return [(TB_DIR / "tb_v30_core.sv") if f == "@tb" else (d / f)
+            for f in CORE_RTL[core]]
+
+
+def core_objdir(core):
+    return OBJ if core == "fsm" else TB_DIR / f"obj_dir_{core}"
+
+
+def core_bin(core):
+    return core_objdir(core) / "Vtb_v30_core"
+
+
+RTL = core_paths("fsm")
 
 REGS = ["ax", "cx", "dx", "bx", "sp", "bp", "si", "di",
         "es", "cs", "ss", "ds", "ip", "flags"]
@@ -75,10 +103,13 @@ DEFAULT_OPS = ["B8", "40", "48", "50", "58", "86", "87", "88", "89",
                "E6", "E7", "EE", "EF"]
 
 
-def build(force=False):
-    if BIN.exists() and not force:
-        newest = max(p.stat().st_mtime for p in RTL)
-        if BIN.stat().st_mtime > newest:
+def build(force=False, core="fsm"):
+    rtl = core_paths(core)
+    obj = core_objdir(core)
+    binp = core_bin(core)
+    if binp.exists() and not force:
+        newest = max(p.stat().st_mtime for p in rtl)
+        if binp.stat().st_mtime > newest:
             return
     # --assert: compile the SVAs. Without it every `assert` in the RTL is
     # silently dropped, so an assertion that "passes" has simply never run. A
@@ -89,9 +120,10 @@ def build(force=False):
            "-DV30_PFX_ASSERT", "--assert",
            "-Wall", "-Wno-UNUSEDSIGNAL", "-Wno-VARHIDDEN",
            "-Wno-TIMESCALEMOD", "-Wno-WIDTHEXPAND", "-Wno-BLKSEQ",
-           "--top-module", "tb_v30_core",
-           "-I" + str(ROOT / "hdl" / "rtl" / "core"),   # race_law.svh include
-           "-Mdir", str(OBJ)] + [str(p) for p in RTL]
+           "-Wno-DECLFILENAME", "-Wno-UNUSEDPARAM",
+           "--top-module", "tb_v30_core"] + CORE_DEFS[core] + [
+           "-I" + str(CORE_DIR[core]),   # race_law.svh / table includes
+           "-Mdir", str(obj)] + [str(p) for p in rtl]
     print("building:", " ".join(cmd))
     subprocess.run(cmd, check=True, cwd=ROOT)
 
@@ -518,6 +550,11 @@ def check_case(c, sim, flags_mask, arch_only=False):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--build", action="store_true")
+    ap.add_argument("--core", choices=("fsm", "ucore"), default="fsm",
+                    help="RTL engine: 'fsm' (default, the frozen reference "
+                         "core) or 'ucore' (the ROM-driven twin of sim/). "
+                         "Swaps the RTL file list, include path and obj_dir; "
+                         "the TB is engine-neutral.")
     ap.add_argument("--opcodes", default="all",
                     help="comma list; 'all' = every form in the suite "
                          "dir; 'legacy' = the historic DEFAULT_OPS")
@@ -584,9 +621,10 @@ def main():
         ap.error(f"invalid --ss-cases LIST: {e}")
 
     suite = Path(args.suite_dir)
-    build(args.build)
+    build(args.build, args.core)
     if args.build:
         return 0
+    binp = core_bin(args.core)
     # RR4: documented pre-existing exclusions (VOID contamination artifacts +
     # known cycle edges), per-suite. Verified pre-existing (identical pre/post
     # the prefix-clear fix) so future totals stay clean. {form: {idx: reason}}.
@@ -678,7 +716,7 @@ def main():
                 batch = Path(td) / f"batch{suffix}.txt"
                 outf = Path(td) / f"out{suffix}.txt"
                 compose_batch(cs, batch, arch_only=args.arch_only)
-                sa = [str(BIN), f"+batch={batch}", f"+out={outf}",
+                sa = [str(binp), f"+batch={batch}", f"+out={outf}",
                       f"+waits={args.waits}", f"+ce_div={args.ce_div}"]
                 if mirror:
                     sa.append("+mirror=1")
