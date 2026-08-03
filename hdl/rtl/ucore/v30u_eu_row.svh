@@ -106,6 +106,23 @@ begin
         end
         // --- the bus cycle (posted combinationally on this clock) ------
         if (e_ectl == E_INTATAIL) bus_word = 1'b1;
+        // F20: `if (pend_.active) { if (!opr_fresh_) deliver_read();
+        // emit_pending(); }` -- a staged store runs BEFORE this row's own
+        // cycle, and it is given the completed-read store's head if the row's
+        // transfers did not already refresh OPR.  The wire the BIU reads is
+        // `opr_now`'s `row_pre_deliver` arm: same event, same expression.
+        if (row_bus && pend_active) begin
+            if (!opr_fresh) begin
+                if (rd_done_cnt != 2'd0) rd_done_cnt = rd_done_cnt - 2'd1;
+                if (rdq_n != 2'd0) begin
+                    opr = rdq0; rdq0 = rdq1; rdq_n = rdq_n - 2'd1;
+                end
+            end
+            pend_active = 1'b0;
+            opr_fresh   = 1'b0;
+            if (opr_owned != 2'd3)
+                opr_owned = opr_owned + (pend_split ? 2'd2 : 2'd1);
+        end
         if (row_bus) begin
             if (row_is_wr || row_is_wb) begin
                 pend_active = 1'b1;

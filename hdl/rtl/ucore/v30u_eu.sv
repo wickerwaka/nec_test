@@ -1006,10 +1006,20 @@ assign q_first = (st == S_OPC_POP) ? pop_is_first
 // --- the bus request -------------------------------------------------------
 // exec_impl.h::bus_read / bus_write: a staged write must run before the next
 // cycle, so the row first pairs it (`emit_pending`) and then posts its own.
+// F20 -- THE PRE-PAIR FLUSH IS A `deliver_read()`, NOT JUST A WAIT.  The
+// model's guard is `if (pend_.active) { if (!opr_fresh_) deliver_read();
+// emit_pending(); }`, and `deliver_read()` is `wait_read()` PLUS a POP of the
+// completed-read store into OPR.  The EU had only the wait, and only its
+// `wait_opr_free` half: nothing popped, nothing paired, `pend_active` never
+// cleared.  `REP MOVS` is where it shows -- every iteration's store is paired
+// by the NEXT iteration's read row -- and it is what tripped C3's assertion at
+// CX==3 (two completed reads in the store because none were ever taken out).
 wire pend_go = pend_active && opr_fresh;
 wire row_pre_pair = row_bus && pend_active;
-wire row_pre_wait   = row_pre_pair && !opr_fresh && !opr_free_now;
-wire row_pre_wait_n = row_pre_pair && !opr_fresh && !opr_free_now_n;
+wire row_pre_wait   = row_pre_pair && !opr_fresh &&
+                      (nr_wait || !opr_free_now);
+wire row_pre_wait_n = row_pre_pair && !opr_fresh &&
+                      (nr_wait || !opr_free_now_n);
 
 wire row_acts_ok = (st == S_ROW) && !row_blocked && (rowq >= row_qn) &&
                    !row_pre_wait;
@@ -1049,11 +1059,20 @@ wire opr_wr_gate = e_have1 &&
 wire row_wr_opr = (st == S_ROW) && !row_blocked && (rowq >= row_qn) &&
                   opr_wr_gate;
 wire poste_wr_opr = poste && opr_wr_gate;
-wire [15:0] opr_now = (row_wr_opr || poste_wr_opr) ? s1_now : opr;
+// F20's delivery is a transfer like any other, so the `emit_pending()` that
+// follows it takes the word it delivers -- the head of the completed-read
+// store.  The row's OWN `-> OPR` write comes FIRST in the model's order
+// (transfers, then the row-type block's bus call), so it wins.
+wire row_pre_deliver = (st == S_ROW) && !row_blocked && (rowq >= row_qn) &&
+                       !row_pre_wait && row_pre_pair && !opr_fresh &&
+                       !row_wr_opr;
+wire [15:0] opr_now = (row_wr_opr || poste_wr_opr) ? s1_now
+                    : (row_pre_deliver && (rdq_n != 2'd0)) ? rdq0
+                    : opr;
 assign eu_pair  = ((st == S_ROW) && !row_blocked && (rowq >= row_qn) &&
                    !row_pre_wait &&
                    (pend_active || row_is_wr || row_is_wb) &&
-                   (opr_fresh || row_wr_opr))
+                   (opr_fresh || row_wr_opr || row_pre_deliver))
                || (poste && pend_active && (opr_fresh || poste_wr_opr));
 assign eu_pair2 = pend_active ? pend_split : acc_split;
 assign eu_wdata = opr_now;

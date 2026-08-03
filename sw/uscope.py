@@ -74,10 +74,12 @@ def main():
                             f"+waits={a.waits}", "+ce_div=1", "+eutrace"],
                            cwd=ROOT, capture_output=True, text=True)
         eul = [ln for ln in r.stdout.splitlines() if ln.startswith("EU ")]
+        sims = {}
         if not outf.exists():
-            print("TB produced no output:\n" + r.stdout[-4000:] + r.stderr[-4000:])
-            eu_rows = None
-            sims = {}
+            print("# TB produced no output (last 40 EU lines + tail):")
+            for ln in eul[-40:]:
+                print("  " + ln)
+            print(r.stdout[-1500:] + r.stderr[-1500:])
         else:
             sims = check_core.parse_out(outf)
         eu_rows = eul
