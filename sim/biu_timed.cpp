@@ -444,6 +444,19 @@ void BiuTimed::tick() {
             // run on every clock.  The grid is NOT the eval cadence.)
             no_eval_ = c + 1;
         }
+        // M21 -- THE HALT PSEUDO-CYCLE HOLDS THE BUS ONLY UNTIL ITS STATUS
+        // RELEASE.  20.5 already measured that the HALT is the one access
+        // whose eval (index 1, the status release) and whose T4 (index 3) are
+        // different clocks.  This is the other half of that sentence: from the
+        // release on there is no bus cycle left to arbitrate, so EVERY clock is
+        // an ordinary idle eval, exactly as it is when the bus is parked.  For
+        // a HALT that is never woken this changes nothing -- the live read at
+        // an idle eval sees `halted_` and refuses (the 600 w0 HALT goldens are
+        // byte-identical) -- and for a woken one it is what lets the restart be
+        // granted at max(A + 3, the HALT's own eval), which is the MEASURED law
+        // of the S2 sweep: the woken fetch's DISPLAY = max(A + 4, H + 3) at
+        // both wait levels and both forms.
+        if (cur_.is_halt && ci_ > cur_.eval_i) eval_here = true;
         // F3: the flush-only point commits the REDIRECT PREFETCH only.  A
         // pending EU request still owns the first slot, and an EU access is
         // never granted at a T4 -- so with a request outstanding this point

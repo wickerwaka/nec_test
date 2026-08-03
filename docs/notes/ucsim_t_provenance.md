@@ -6508,3 +6508,357 @@ one command each and are not duplicated here.
 5. **`HLT.INT` at w1's 0/49 goldens** (§21.10 item 5) — untouched.
 6. **The three w0 tails** (`0F12`, `C1.6`, `F7.4`) — untouched, 17 row diffs.
 
+
+## 23. POST-CLOSURE ADDENDUM #8 — S12, THE BOARD-FREE CENSUS SESSION (2026-08-03)
+
+**This section is an ADDENDUM.  Nothing in §0-§22 is edited or retracted by
+it**, with two CLARIFICATIONS recorded in §23.1 (the emission instrument) and
+§23.4 (what §20.8's `ACK` family actually contains).
+
+Three targets were taken, all three oracled offline: the 44 waited `ACK` seeds
+(§22.5, left unexplained), `HLT.INT` at w1's 0/49 goldens (§21.10 item 5), and
+the HALT-wake race (§21.10 item 2).  **No board contact of any kind** — no
+socket call, no `serve`, no flash, no new capture.  Everything below is read
+off the S10 banked captures, the committed suites and the fuzz bank.
+
+The instrument is `sw/s12_census.py` (`hltsweep` / `psw` / `regold` /
+`ackfam`), and it is a measurement tool, not a gate.
+
+### 23.1 THE `HLT.INT` w1 CELL WAS NEVER A CHIP QUESTION — the PSW was read from a DIFFERENT PASS
+
+§21.5's instrument note recorded `HLT.INT` at w1 producing **0 of 49 goldens**
+(`implausible final PSW 0` on every delay) and called the golden half of that
+cell a gap.  It is not a gap in the silicon and it is not about `HLT`, about
+`INT` or about waits.  **It is `parse_result`, and it is reproduced offline.**
+
+The board image RE-RUNS the test program for as long as the capture lasts.  One
+pass writes `psw_push_addr` twice — a `0x0000` clear, then that pass's
+`PUSH PSW` — and then the done marker.  `parse_result` read the registers from
+the FIRST pass (`regw[0..]`) and validated the FIRST done marker, but took the
+PSW from `pushes[-1]`, **the LAST write in the whole capture**.  A capture
+prefix that ends between a later pass's clear and that pass's own push
+therefore returns `0`.
+
+`sw/s12_census.py psw`, over all 220 retained S10 captures, both at the
+emission cap and at full length:
+
+| cap | old rule plausible | new rule plausible | identical | n |
+|---|---|---|---|---|
+| 2048 (`EMIT_CAP`) | **no** | yes | no | **56** |
+| 2048 | yes | yes | no | **1** |
+| 2048 | yes | yes | yes | 163 |
+| 4096 (`EMIT_CAP_RETRY`) | no | yes | no | 2 |
+| 4096 | yes | yes | no | **1** |
+| 4096 | yes | yes | yes | 217 |
+
+**The new rule — the last push BEFORE the done marker — is plausible in
+440/440 parses.**  Two consequences, and the second is the one that matters:
+
+1. 56 of 220 captures at the emission cap would have been REROLLED for this
+   reason alone.  The emit logs agree: `tests/v30/v0.1-w1evt/emit_log.txt`
+   carries **706 `implausible final PSW 0` rerolls** (INT.F3AA 292, INT.90 197,
+   HLT.INT 171, INT.9D 45, NMI.90 0) against **0 at w0**, 0 at w2 and 7 at w3.
+   It is not a wait-axis effect: it is where record 2048 happens to fall in the
+   repeat cycle, and the repeat's LENGTH is what the wait level changes.
+2. `INT.9D_w3_2` returns a PLAUSIBLE BUT DIFFERENT PSW under the old rule
+   (`0xf852` vs `0xfc87`) at both caps.  **§19.9's "unreliable POST-HANDLER
+   capture" is now NAMED**: it is cross-pass contamination, not a chip
+   ambiguity.  §19.9's workaround stands and is unchanged; this says why it was
+   needed.
+
+**The fix is three lines in `sw/v30run.py::parse_result`** (bound the push
+search at `done[0]`), and it is an EMISSION-PATH change: no committed golden
+moves, no gate is scored through it.
+
+**RECORDED, not fixed here: `tests/v30/v0.1-w1evt` is a BIASED SAMPLE.**  706
+draws were rejected for a reason that has nothing to do with the physics, so
+the 1,200 cases in that suite are the ones whose 2048-record prefix happened to
+end in a safe phase — i.e. selected on total program length.  Every retained
+case is a valid chip measurement and the 1,200/1,200 score is a true statement
+about those 1,200 cases; the SAMPLE is not the one the seed base intended.
+Re-emitting it is a board item and is booked as one (§23.6 item 4).
+
+### 23.2 THE MISSING CELL, RE-DERIVED OFFLINE — and the method is VALIDATED against three suites it did not need to produce
+
+`emit_evt_case` now takes an optional `recs_in`: an already-captured record
+list for exactly this image, instead of a board run.  Everything else in the
+emission pipeline is unchanged and single-sourced.
+
+**The validation was done first and it is exact.**  Re-deriving the THREE cells
+that the emission path DID produce, from the banked directed captures — which
+are separate board runs of the same images, taken by `s10_board.cmd_s2`'s
+`reps_capture` rather than by `emit_evt_case` — reproduces the committed
+goldens **hash-identically, 146 / 146 cases**:
+
+```
+HLT.RES w1  49/49 identical      HLT.RES w0  49/49 identical
+HLT.INT w0  48/48 identical      (and 48, not 49, is the committed count)
+```
+
+The `HLT.INT` w0 suite's own MISSING delay is reproduced too: `d=0` is rejected
+by `recognition off-window` — a real rejection, the interrupt lands before the
+test instruction — and the re-derivation rejects exactly it.
+
+`HLT.INT` at w1 then yields **46 / 49** goldens (`d = 0, 1, 2` rejected by the
+same real `recognition off-window` rule, `A - H = -9, -8, -7`).
+`tests/v30/s10-hltsweep-w1/HLT.INT.json.gz` is written, and its `emit_log.txt`
+states the provenance explicitly: **the truth source is the socketed chip at
+`div=8`, but a BANKED chip run re-parsed offline, not a new board sitting.**
+
+**§21.10 item 5 is CLOSED.**
+
+### 23.3 THE HALT-WAKE "RACE" IS NOT A RACE — re-posed, it is TWO SHARP THRESHOLDS, and the ~57-clock excursion is the METRIC
+
+§21.5 diagnosed its own failed prediction as a moving-endpoints coordinate
+problem and named the right coordinate without using it.  This section uses it.
+`H` = the HALT status display clock (constant per program, independent of the
+delay: 153 at w0, 219 at w1).  `A` = the clock the part first samples the
+asserted pin — the rig's own law (`nec_bus.sv`: arm on the anchor's `CODE` T1,
+count `delay`, stage the pin on the following `tick_fall`), which is the
+`t1 + 2 + delay` the emission path already computes.
+
+**THE EXCURSION IS TWO CELLS AND IT IS THE METRIC CHANGING REFERENT.**
+`woken_fetch_t1` was defined as *the first `CODE` cycle after the HALT display*.
+At `HLT.INT` w1 `d = 8, 9` the first post-HALT bus cycle is **the acknowledge**,
+not a prefetch, so the metric silently walks forward to the HANDLER's first
+fetch:
+
+```
+HLT.INT w1 d8  A-H=-2   first post-HALT cycle = INTA at H+8   `woke CODE' = H+65
+HLT.INT w1 d9  A-H=-1   first post-HALT cycle = INTA at H+8   `woke CODE' = H+65
+```
+
+2 of 196 cells; the other 194 have a `CODE` there and the metric is honest.
+**And it is not metastable:** every cell of the sweep is 5 repetitions
+byte-identical (`stable_identical`), the ONE exception in the whole 196 being
+`HLT.INT_w0_d0`, which is 8 delays away from the threshold and outside the
+golden population.  *No race is recorded, because none was measured.*
+
+**THRESHOLD 1 — the HALT status is driven iff `A - H >= -2`.**
+196/196 cells, BOTH forms, BOTH wait levels, zero exceptions:
+
+| | w0 | w1 |
+|---|---|---|
+| `d*` (delay coordinate) | 4 | 8 |
+| `A - H` at `d*` | **-2** | **-2** |
+| `H -` anchor T1 | 8 | 12 |
+
+`d*(w1) - d*(w0) = +4` is therefore **exactly** the growth of the anchor-to-
+display distance (12 - 8 = two bus-cycle pitches at +2 clocks each), and
+§21.0's registered `+1` was measuring the difference of two moving points.
+§21.5 said that; this QUANTIFIES it.  Read through the 3-deep pin pipeline
+(§19.7) the threshold is `A + 3 >= H + 1`: **the HALT displays unless the wake
+is already visible to the microcode on or before the display clock.**
+
+**THRESHOLD 2 — the woken fetch's DISPLAY = `max(A + 4, H + 3)`**, i.e. its
+grant is at `max(A + 3, the HALT's own completion eval)`.  `A + 3` is §19.6's
+"the prefetcher restarts at the decision clock" unchanged; `H + 2` is §20.5's
+already-measured "the HALT's eval is at index 1".  It is M14's shape — a
+decision clock that is a MAX of two things — with no new term, and it is why
+the first post-HALT slot sits at `H+8` in the two `A - H ∈ {-2,-1}` cells and
+at `H+6` from `A - H = 0` on.
+
+### 23.4 M20 and M21 — the wake writes the same register, and the HALT holds the bus only to its status release
+
+Two mechanisms, both one line, both stated as the simplest thing consistent
+with §23.3's measurements.
+
+```
+M20  a FLUSH-free statement: `halt_pending_` is the HLT row's write WAITING for
+     the status register.  A wake decided before that write happens takes the
+     part out of HALT and the write never happens.  `unhalt()` clears it.
+
+M21  the HALT pseudo-cycle holds the bus only until its status release (20.5's
+     index-1 eval).  From the release on, every clock is an ordinary IDLE eval,
+     exactly as when the bus is parked.
+```
+
+M20 is **§20.8's own sentence made executable** — *"32 seeds where the chip
+never drives the HALT status at all because the wake reached the register
+first"*.  Nothing new is computed: the caller has already advanced the BIU to
+the decision clock, so "the display has not been taken yet when `unhalt()`
+runs" IS "the wake beat it to the register".
+
+M21 is w0-neutral and HALT-neutral BY THE LIVE READ, not by construction: at an
+idle eval the model reads the queue and `halted_` live, so a HALT that is never
+woken still refuses every one of the new eval points.
+
+**Scored, and the two are separable (the campaign's own standard):**
+
+| | S2 sweep w0 | S2 sweep w1 | fuzz EVT population |
+|---|---|---|---|
+| entry (with §23.2's new cell) | 85 / 97 | 77 / 95 | 678 / 1,008 |
+| + M20 | 86 / 97 | 86 / 95 | — |
+| **+ M20 + M21** | **90 / 97** | **91 / 95** | **708 / 1,008** |
+
+*Falsifier for M20:* any capture in which the HALT status is driven although the
+wake was decided at or before the clock the display would have taken.
+*Falsifier for M21:* any woken fetch whose display is earlier than
+`max(A + 4, H + 3)`, or any un-woken HALT that grants a fetch inside its own
+pseudo-cycle.
+
+**WHAT IS LEFT, AND IT IS BOUNDED.**  The residue is 11 of 192 sweep cells and
+they are all in `A - H ∈ {-4, -3, -2, -1}` — the four-clock neighbourhood of
+threshold 1 — plus one `A - H = 0` cell with a single-row `bus`/`ube` diff.
+Outside that band the model is exact at both wait levels and both forms.  No
+offset is fitted to it and none is claimed.
+
+### 23.5 THE 44 WAITED `ACK` SEEDS ARE NOT ONE MACHINE — the partition is the HALT STATUS ROW, and most of them close
+
+§22.5 removed the acknowledge-gap hypothesis and left the family unexplained.
+§22.10 item 2 asked for exactly one thing: *"a per-seed diff of the waited
+members against the model at the divergence row, which is banked and has never
+been read case by case."*  That is `sw/s12_census.py ackfam`, and the answer is
+in the first-divergence ROW itself.
+
+**The classifier is not a hypothesis — it is the diff.**  Over the 50 EVT `ACK`
+members of the BEFORE arm (39 waited; §22.5's 52/41 and §20.8's 55/44 are the
+same family under different marker tie-breaks):
+
+| does the FIRST DIVERGENCE ROW carry a HALT-status mismatch? | seeds | now cycle-EXACT |
+|---|---|---|
+| **yes** | **30** (29 waited) | **23** |
+| no | 20 | 0 |
+
+**So the family was never an acknowledge family.**  It is filed under `ACK` BY
+CONSTRUCTION: the taxonomy assigns each divergence to its nearest marker in the
+CHIP capture, and in these seeds the chip **never drove a HALT status at all**,
+so there is no HALT marker to be nearest to and the acknowledge wins by
+default.  §20.8's `ACK` bucket and its `HALTWAKE` bucket are the same
+mechanism, split by whether the chip happened to display the status.
+
+The movement is monotone and it is the family's own:
+
+| EVT `ACK` family | before | after |
+|---|---|---|
+| seeds | 50 | **20** |
+| waited | 39 | **10** |
+| w0 | 11 | 10 |
+| first-divergence kind | `bs` 42 / `qs` 8 | `bs` 12 / `qs` 8 |
+| members with a HALT row in the first diff | 30 | **0** |
+
+Of the 30 that left, 23 are cycle-EXACT and 7 still diverge but far downstream
+and out of the acknowledge neighbourhood (`mc2` 3601 226 -> 1082, `mc2` 2494
+522 -> 983, `mc1` 3013 231 -> 807, `mc2` 2221 395 -> 1013, `mc2` 1934
+321 -> 968, `mc2` 2217 225 -> 811, `mc2` 1143 201 -> 477).
+
+**THE RESIDUE, NAMED, 20 seeds (10 waited, 10 w0):** none of them carries a
+HALT row in its first divergence.  Their signatures are three, not one —
+`bs PASV!=INTA` (7: the acknowledge itself, model and chip one slot apart),
+`qs` flush-position (7), and `bs CODE!=PASV nxta 0505!=00ff` (2: `mc1` 1798 and
+`mc2` 140, which are EXACTLY the two seeds §22.5 already identified as parting
+far upstream of their acknowledge).  Three `t30-raw` seeds sit apart from all
+of these with `ndiff` > 3,400.  **This is a smaller and more coherent open item
+than the one it replaces, and it is reported as the residue it is** — no
+mechanism is claimed for it.
+
+### 23.6 Gates (measured, this machine, immediately before the commit)
+
+```
+make -C sim test                                                          # disasm gate: PASS
+python3 sw/pla3_check.py                                                  # OK (21 checks)
+python3 sw/ucsim_check.py --suite tests/v30/v0.1                          # 169000/169000
+python3 sw/ucsim_check.py --suite tests/v30/v0.2                          # 347000/347000
+python3 sw/ucsim_check.py --suite tests/v30/v0.3                          # 3699998/3699998
+python3 sw/ucsim_check.py --suite tests/v30/v20suite --no-mirror          # 3125000/3125000
+python3 sw/ucsim_check.py --suite tests/v30/mod3_illegal --residue stale-ea  # 128/128
+                                                              # functional total 7,341,126
+python3 sw/timed_gate.py --suite tests/v30/v0.1    --forms all            # 168,997 / 169,000  (17 row diffs)
+python3 sw/timed_gate.py --suite tests/v30/v0.1-w1 --forms all --waits 1  # 1,200/1,200
+python3 sw/timed_gate.py --suite tests/v30/v0.1-w3 --forms all --waits 3  # 1,200/1,200
+python3 sw/timed_gate.py --suite tests/v30/v0.1-w1 --forms EB  --waits 1  # 200/200
+python3 sw/timed_gate.py --suite tests/v30/v0.1-w0evt --waits 0           # 200/200
+python3 sw/timed_gate.py --suite tests/v30/v0.1-w1evt --waits 1           # 1,200/1,200
+python3 sw/timed_gate.py --suite tests/v30/v0.1-w2evt --waits 2           # 200/200
+python3 sw/timed_gate.py --suite tests/v30/v0.1-w3evt --waits 3           # 1,200/1,200
+python3 sw/check_boot.py --timed 220                                      # MATCHES over 220 rows
+python3 sw/timed_scenario.py                                              # 18 PASS, 0 FAIL, 9 SKIP
+python3 sw/timed_enter_replay.py          # pushes/walk/full/active/halt_display 154/154 x5
+python3 sw/timed_ins_replay.py --raw      # rails 1312/1312, vs-chip 2624/2624, R2 782/800
+python3 sw/timed_wvec_gate.py             # count 88/88, digest 88/88, cycles +0.0 %
+python3 sw/timed_lawcards.py              # 7 GREEN / 0 RED / 4 UNRESOLVED (S3 still not run)
+python3 sw/timed_fuzz.py --evt-replay     # REGISTERED 1,272/1,702  EVT 708/1,008
+                                          # COMBINED   1,980/2,710
+python3 sw/timed_fuzz.py --seeddir sw/testdata/t4/b2-tranche/seeds        # 154/188
+                                                              # --- THE S2 SWEEP ---
+python3 sw/timed_gate.py --suite tests/v30/s10-hltsweep-w0 --waits 0      # 90/97   (was 85/97)
+python3 sw/timed_gate.py --suite tests/v30/s10-hltsweep-w1 --waits 1      # 91/95   (was 41/49, one form)
+                                                              # --- the census (no model) ---
+python3 sw/s12_census.py hltsweep ; python3 sw/s12_census.py psw
+python3 sw/s12_census.py ackfam --report <timed_fuzz --report>
+```
+
+**Monotonicity.** Every standing ratchet is at or above its entry value and
+none moved down.  Per seed over all 3,242 fuzz-bank seeds, BEFORE arm produced
+by stashing the `sim/` diff and rebuilding, nothing else differing:
+**30 newly EXACT, 0 newly broken, 40 first divergences LATER, 1 EARLIER.**
+The one earlier is `mc2` soup 1415, 418 -> 417 — one row, on a seed that
+diverges in both arms — and it is reported, not restated.  The REGISTERED
+1,702-seed table is byte-identical in every headline number (1,272/1,702, and
+`qs` 277 / `bs` 100 / `data` 27 / `nxta` 26 unchanged).
+
+**No board contact of any kind.**  No socket call, no `serve`, no flash, no new
+capture.  The one artifact written into a suite (`s10-hltsweep-w1/HLT.INT`) is
+re-derived from a BANKED capture and says so in its own `emit_log.txt`.
+
+**Retention.** `sw/testdata/s12/` — `census.txt` (the `hltsweep` and `psw`
+sub-commands verbatim), `fuzz_m20_m21_movement.json.gz` (all 3,242 seeds,
+`cat` / `exact` / `first_bad` / `kind` BEFORE and AFTER),
+`ackfam_before.json.gz` / `ackfam_after.json.gz` (every diverging seed's
+first-divergence context and marker geometry), with a `SHA256SUMS`.
+
+### 23.7 Provenance class, per finding
+
+| finding | class | evidence | falsifier |
+|---|---|---|---|
+| the emission PSW came from a different repeat pass | **MEASURED** | 220 banked captures x 2 caps; 58 old-rule failures, 1 plausible-but-wrong; 706 matching emit-log rerolls | a capture where the last push before the done marker is not that pass's |
+| the offline re-derivation equals the emission path | **MEASURED** | 146/146 hash-identical over three independently-emitted cells | any cell that differs |
+| the HALT status is driven iff `A - H >= -2` | **MEASURED** | 196/196 sweep cells, 2 forms x 2 wait levels | a driven cell below the threshold, or a suppressed one above it |
+| `d*(w1) - d*(w0) = +4` is the anchor-to-display distance | **MEASURED** | `H -` anchor = 8 (w0) / 12 (w1) | a wait level where the two disagree |
+| the ~57-clock excursion is the metric, and the cells are deterministic | **MEASURED (negative)** | 2/196 cells; 5/5 repetitions identical in 195/196 | a repetition-unstable cell at the threshold |
+| the woken fetch's display = `max(A + 4, H + 3)` | **MEASURED** | the sweep, outside the 4-clock residue band | any display off it |
+| **M20** — the wake and the HLT row write the same register | **LAW** (simplest mechanism consistent with threshold 1) | +1 / +9 sweep cells, +30 fuzz seeds, w0 168,997 unmoved | see §23.4 |
+| **M21** — the HALT holds the bus only to its status release | **LAW** (simplest mechanism consistent with threshold 2) | +4 / +5 sweep cells; the 600 w0 HALT goldens unmoved | see §23.4 |
+| the `ACK` family's partition is the HALT status row | **MEASURED** | 30/50 members part ON a HALT row; 23 of those now exact; 0 of the other 20 moved | an `ACK` member with a HALT-row first divergence that M20/M21 does not move |
+
+### 23.8 Ledger delta
+
+| | after §22 | after this addendum |
+|---|---|---|
+| the 44 waited `ACK` seeds (§22.10 item 2) | unexplained, no hypothesis | **PARTITIONED — 29 of the 39 waited members part on a HALT STATUS ROW, not an acknowledge; 23 now cycle-exact.  Residue 20 seeds (10 waited), three named signatures** |
+| `HLT.INT` w1 goldens (§21.10 item 5) | 0 / 49, `implausible final PSW 0` | **CLOSED — 46/49 re-derived offline; the cause is `parse_result`, fixed** |
+| the HALT-wake race (§21.10 item 2) | a ~57-clock excursion, "a race found" | **NO RACE — 2/196 cells, a metric changing referent; 195/196 cells 5-of-5 repetition-identical.  Two sharp thresholds instead, both wait- and form-invariant** |
+| §21.0 S2's registered clause 2 (`+1`, FALSIFIED) | diagnosed as a coordinate error | **QUANTIFIED — `+4` = two bus-cycle pitches of anchor-to-display distance** |
+| §19.9's "unreliable post-handler PSW capture" | a known-bad field, worked around | **NAMED — cross-pass contamination; the workaround stands** |
+| `tests/v30/v0.1-w1evt` | 1,200 cases, 1,200/1,200 | unchanged AND **recorded as a BIASED SAMPLE** (706 draws rejected by the PSW artifact) |
+| `timed_fuzz` EVT / COMBINED | 678/1,008, 1,950/2,710 | **708/1,008, 1,980/2,710** |
+| `timed_fuzz` REGISTERED | 1,272/1,702 | unchanged, byte-identical |
+| S2 sweep, model-scored | w0 85/97; w1 41/49 (one form only) | **w0 90/97; w1 91/95 (both forms)** |
+| mechanisms | M1-M19, M2r, M5b | **+ M20 (the wake beats the HLT row to the status register) + M21 (the HALT holds the bus only to its status release)** |
+| v0.1 w0 / w1 / w3 / `EB` w1 | 168,997 / 1,200 / 1,200 / 200 | unchanged |
+| the four `v0.1-w*evt` cells | 200 / 1,200 / 200 / 1,200 | unchanged |
+| victory tranche V0-V5 | V0-V4 PASS, V5 registered FAILURE | **UNTOUCHED — 154/188, V5 remains a registered FAILURE** |
+| law cards | 7 GREEN / 0 RED / 4 UNRESOLVED | unchanged — **S3 still NOT RUN** |
+| functional corpus | 7,341,126 | unchanged |
+
+### 23.9 What is left, and the stimulus for each — THE PROBE QUEUE
+
+1. **The `A - H ∈ {-4 .. -1}` residue** (§23.4) — 11 of 192 sweep cells, the
+   four-clock neighbourhood of the display-suppression threshold.  **Board-free
+   and the stimulus is now COMMITTED**: `tests/v30/s10-hltsweep-w{0,1}` score
+   it with `timed_gate` and no new machinery.  A finer probe would add w2/w3
+   sweeps of the same two forms, which IS a board item.
+2. **The 20-seed `ACK` residue** (§23.5) — three named signatures, no HALT row
+   in any first divergence.  The `bs PASV!=INTA` seven are the natural next
+   census.
+3. **M19's own edge — the grant-then-withdraw** (§22.10 item 1) — UNTOUCHED,
+   still the highest-priority DIRECTED-CELL item, still needs silicon.
+4. **Re-emit `v0.1-w1evt` with the fixed `parse_result`** (§23.1) — a board
+   item, and the first one to take if the wait-axis sample's neutrality matters
+   for a later claim.
+5. **S3's four law cards** (C2, C6, C7, C11) — untouched, still un-run.
+6. **The three w0 tails** (`0F12`, `C1.6`, `F7.4`) — untouched, 17 row diffs.
+7. **`sw/testdata/s10/s2-hltsweep/HLT.INT_w0_d0`** — the ONE
+   repetition-unstable cell of the 196 (`stable_identical: false`), 8 delays
+   below the threshold and never scored.  Cheap to re-take and worth taking:
+   it is the only cell in the whole sweep that is a candidate for a real race.

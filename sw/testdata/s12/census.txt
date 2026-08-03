@@ -1,0 +1,65 @@
+# s12_census, verbatim (ucsim_t_provenance.md 23).  OFFLINE, no board.
+
+=== S2 HLT sweep, re-posed against the HALT DISPLAY clock ===
+(A = the clock the part first samples the asserted pin; H = the
+ HALT status display clock, constant per program per 21.5)
+
+  HLT.INT w0: H = [153]   anchor T1 = [145]   H - anchor = [8]
+  HLT.INT w1: H = [219]   anchor T1 = [207]   H - anchor = [12]
+  HLT.RES w0: H = [153]   anchor T1 = [145]   H - anchor = [8]
+  HLT.RES w1: H = [219]   anchor T1 = [207]   H - anchor = [12]
+
+  THRESHOLD 1: the HALT status is driven iff A - H >= ?
+    HLT.INT  w0: driven for A-H >= -2  (not driven up to A-H = -3); d* = 4, cells 45/49
+    HLT.INT  w1: driven for A-H >= -2  (not driven up to A-H = -3); d* = 8, cells 41/49
+    HLT.RES  w0: driven for A-H >= -2  (not driven up to A-H = -3); d* = 4, cells 45/49
+    HLT.RES  w1: driven for A-H >= -2  (not driven up to A-H = -3); d* = 8, cells 41/49
+
+  THRESHOLD 2: the first bus cycle after the HALT display
+    form     w   A-H   first-post   t1-H   T4(halt)-H   INTA1-H
+    HLT.INT  0    -2   CODE         +5          +4   9
+    HLT.INT  0    -1   CODE         +5          +4   9
+    HLT.INT  0    +0   CODE         +5          +4   9
+    HLT.INT  0    +1   CODE         +6          +4   10
+    HLT.INT  0    +2   CODE         +7          +4   11
+    HLT.INT  0    +3   CODE         +8          +4   12
+    HLT.INT  1    -2   INTA         +8          +5   8
+    HLT.INT  1    -1   INTA         +8          +5   8
+    HLT.INT  1    +0   CODE         +6          +5   12
+    HLT.INT  1    +1   CODE         +6          +5   12
+    HLT.INT  1    +2   CODE         +7          +5   13
+    HLT.INT  1    +3   CODE         +8          +5   14
+    HLT.RES  0    -2   CODE         +5          +4   None
+    HLT.RES  0    -1   CODE         +5          +4   None
+    HLT.RES  0    +0   CODE         +5          +4   None
+    HLT.RES  0    +1   CODE         +6          +4   None
+    HLT.RES  0    +2   CODE         +7          +4   None
+    HLT.RES  0    +3   CODE         +8          +4   None
+    HLT.RES  1    -2   CODE         +8          +5   None
+    HLT.RES  1    -1   CODE         +8          +5   None
+    HLT.RES  1    +0   CODE         +6          +5   None
+    HLT.RES  1    +1   CODE         +6          +5   None
+    HLT.RES  1    +2   CODE         +7          +5   None
+    HLT.RES  1    +3   CODE         +8          +5   None
+
+  THE `woken fetch' METRIC (first CODE strictly after H) vs the
+  FIRST BUS CYCLE after H -- the 21.5 excursion is the difference:
+    HLT.INT w1 d8   A-H=-2   first post = INTA at H+8   but `woke CODE' = H+65  ->  metric jumps 57 clocks
+    HLT.INT w1 d9   A-H=-1   first post = INTA at H+8   but `woke CODE' = H+65  ->  metric jumps 57 clocks
+
+=== the emission PSW rule, over every banked S10 capture ===
+  old = the last write to psw_push_addr in the CAPTURE
+  new = the last write to psw_push_addr BEFORE the done marker
+
+  captures: 220
+   cap   old-plausible  new-plausible  identical   n
+   2048   False         True           False      56
+   2048   True          True           False      1
+   2048   True          True           True       163
+   4096   False         True           False      2
+   4096   True          True           False      1
+   4096   True          True           True       217
+
+  PLAUSIBLE-BUT-DIFFERENT (the old rule silently returned another pass's PSW):
+    INT.9D_w3_2 cap=2048  old=0xf852  new=0xfc87
+    INT.9D_w3_2 cap=4096  old=0xf852  new=0xfc87

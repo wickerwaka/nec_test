@@ -492,9 +492,25 @@ def parse_result(recs, meta):
     regs_out = {name: regw[i]["data"]
                 for i, name in enumerate(meta["store_order"])}
 
-    # PSW from the PUSH PSW memory write in the scratch area
+    # PSW from the PUSH PSW memory write in the scratch area.
+    #
+    # SAME PASS AS THE DONE MARKER.  The board image RE-RUNS the program for as
+    # long as the capture lasts, and every repetition writes `psw_push_addr`
+    # again (a 0x0000 clear, then that pass's PUSH PSW).  `regw` and `done` are
+    # already read from the FIRST pass; taking `pushes[-1]` read the LAST pass
+    # in the capture instead, so the returned PSW belonged to a different run of
+    # the program than every other field.  Two consequences, both MEASURED on
+    # the 220 banked S10 captures (ucsim_t_provenance.md 23.1):
+    #   * a capture whose prefix ends between a later pass's clear and its own
+    #     PUSH PSW returned 0 -- `implausible final PSW 0`, 706 emission
+    #     rerolls at w1 and the whole HLT.INT w1 golden cell (0/49);
+    #   * a capture that ends after a later pass's PUSH returned a PLAUSIBLE but
+    #     WRONG PSW (1 of 220), which is the "unreliable post-handler capture"
+    #     19.9 already worked around without naming.
+    # Bounding the search at the done marker makes the whole record one pass.
+    d0 = done[0]["start"]
     pushes = [t for t in txns if KIND[t["kind"]] == "MEMW"
-              and t["addr"] == meta["psw_push_addr"]]
+              and t["addr"] == meta["psw_push_addr"] and t["start"] < d0]
     regs_out["PSW"] = pushes[-1]["data"] if pushes else None
 
     # final PC from stub placement (design section 4)

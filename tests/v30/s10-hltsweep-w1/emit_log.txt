@@ -1,0 +1,1 @@
+# TRUTH SOURCE: SOCKET (real chip, use_core=False), RE-DERIVED OFFLINE from the BANKED S10 capture sw/testdata/s10/s2-hltsweep/HLT.INT_w1_d*.raw.hex.gz (div=8, 4 MHz; sha in that directory's manifest.json).  No board contact.  46/49 cases.  See ucsim_t_provenance.md 23.1

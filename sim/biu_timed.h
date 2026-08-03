@@ -218,7 +218,22 @@ public:
     long first_fpop() const { return first_fpop_; }
     // The part leaves HALT: the prefetcher runs again.  (`flush()` already
     // clears `suspended_`; `halted_` is the S8/S9 park and outlives it.)
-    void unhalt() { halted_ = false; }
+    //
+    // M20 -- THE WAKE AND THE HLT ROW WRITE THE SAME STATUS REGISTER, AND THE
+    // WAKE CAN GET THERE FIRST.  `halt_pending_` is the HLT row's write
+    // WAITING for the register to be free (S8/S9: the display takes it on the
+    // first clock the bus is idle and the eval's display slot is not).  A wake
+    // that is decided BEFORE that clock takes the part out of HALT while the
+    // write is still queued -- and the write never happens.  Nothing new is
+    // computed here: the caller has already advanced the BIU to the decision
+    // clock, so "the display has not been taken yet when unhalt() runs" IS
+    // "the wake beat it to the register".  MEASURED on the S2 delay sweep:
+    // the HALT status is driven iff A - H >= -2 at BOTH wait levels and BOTH
+    // forms, 196/196 cells, and A + 3 (the pin pipeline, 19.7) >= H + 1 is
+    // that same inequality.  20.8's 32 seeds "where the chip never drives the
+    // HALT status at all because the wake reached the register first" are this
+    // sentence, and this is the line that says it.
+    void unhalt() { halted_ = false; halt_pending_ = false; }
     bool halted() const { return halted_; }
     bool suspended() const { return suspended_; }   // diagnostic only
     void charge_to(long c) { while (clk_ < c) tick(); }

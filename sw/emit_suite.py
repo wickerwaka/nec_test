@@ -1260,8 +1260,11 @@ def gen_evt_case(spec, rng):
 PRELOAD_CYCLES = 50
 
 
-def emit_evt_case(spec, case, host, tag, preload_n=0, waits=0):
-    """Run one pin-event case on hardware, return the suite test object."""
+def emit_evt_case(spec, case, host, tag, preload_n=0, waits=0, recs_in=None):
+    """Run one pin-event case on hardware, return the suite test object.
+
+    `recs_in` (optional) supplies an ALREADY-CAPTURED record list for exactly
+    this image instead of running the board; see the note at its use below."""
     nec_regs = {INTEL2NEC[k]: v for k, v in case["regs"].items()}
     instr = case["instr"]
     ivt = case["ivt"]
@@ -1294,15 +1297,25 @@ def emit_evt_case(spec, case, host, tag, preload_n=0, waits=0):
             "operand byte overwritten by code/preload at phys "
             f"{_bad[0]:04x}: want {_bad[1]:02x} got {_bad[2]:02x} "
             "(ram-vs-instruction collision; F4bc instrument-failure #3)")
-    recs, fired = run_image(image, host, tag, waits=waits, evt=evt,
-                            iord=None, pins=pins or None, want_fired=True,
-                            cap=EMIT_CAP, use_core=EMIT_USE_CORE, div=EMIT_DIV)
+    if recs_in is not None:
+        # OFFLINE RE-DERIVATION.  `recs_in` is a capture of THIS image that was
+        # already taken from the socket and RETAINED (raw 64-bit words + sha).
+        # Nothing else changes: the same image is composed and the same
+        # parse/row/final-state pipeline runs on it.  The caller is responsible
+        # for the provenance statement -- the truth source is still the chip,
+        # but it is a BANKED chip run, not a new one.
+        recs, fired = recs_in, True
+    else:
+        recs, fired = run_image(image, host, tag, waits=waits, evt=evt,
+                                iord=None, pins=pins or None, want_fired=True,
+                                cap=EMIT_CAP, use_core=EMIT_USE_CORE,
+                                div=EMIT_DIV)
     if evt and not fired:
         raise RunError("event did not fire")
     try:
         res = parse_result(recs, meta)
     except RunError as e:
-        if "no done marker" not in str(e):
+        if "no done marker" not in str(e) or recs_in is not None:
             raise
         recs, fired = run_image(image, host, tag, waits=waits, evt=evt,  # E retry
                                 iord=None, pins=pins or None, want_fired=True,
