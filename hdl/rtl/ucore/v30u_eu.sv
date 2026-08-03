@@ -526,7 +526,26 @@ wire nr_extra_block = nr_have && rd_age0;
 // So the counter is the BIU's `opr_held` (which IS `BiuTimed::opr_held_`) and
 // the published fact is the model's own predicate off the REGISTER.  One
 // expression, both views -- the act decode and the clocked step cannot drift.
-wire opr_free_now = eu_opr_free;
+//
+// C4 (THE THIRD CODEX REVIEW) -- ...AND M13's 8080 ARM WAS NEVER RENDERED.
+// `wait_opr_free()` opens with `if (md8080_ && *md8080_) { wait_bus(); return; }`
+// -- "in 8080 EMULATION MODE the store does not let go until it has RETIRED.
+// In native mode the store hands its word to the AD output latch at T2 and OPR
+// is free from T3 (11.4, the FIXED index 2 that does NOT stretch).  With MD set
+// the release is the store's own eu_done -- the completion eval + 2, the
+// deadline `wait_bus()` already carries -- so it STRETCHES with the eval like
+// every other eval-keyed quantity."  The EU had NO mode term at all, in this
+// rendering OR in the pulse rendering F31 replaced, so this is PRE-EXISTING and
+// not F31's -- but F31 made this the one place it can live.  `wait_bus`'s
+// deadline is `retire_ok_n`, so the arm is the SPEC's own line, verbatim.
+//
+// UNREACHABLE ON THE CURRENT STIMULUS and therefore UNVERIFIED BY IT: `mode8080`
+// is set only by an `MFC` row, and the 8080 loader / BRKEM path is ledger R4,
+// unimplemented.  The census proves the no-op (G3 164,787 either way, zero forms
+// moved), which is D1's shape -- a latent correctness fix whose score does not
+// move.  *Falsifier*: the first 8080-mode store the ucore executes, which is
+// R4's own gate; that is where this arm gets its verification, not here.
+wire opr_free_now = mode8080 ? retire_ok_n : eu_opr_free;
 
 // wait_bus (the retire deadline): every posted store, then its e+2.  ONE view
 // only -- `eu_wr_done_n` is registered logic (see the BIU's `done_fire`), so
