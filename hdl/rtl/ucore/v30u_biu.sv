@@ -968,7 +968,19 @@ always_comb begin
                 cur_need = 1'b0;
                 // 11.4: ...but only until the AD output latch takes the word
                 // at T2.  A pairing that lands after that clock never holds.
-                if ((ts == TS_T1) && (opr_held != 2'd3))
+                //
+                // U2 pass 5 -- AND "AFTER THAT CLOCK" MEANS AFTER T2, NOT AFTER
+                // T1 (ledger 35.2's booked residue, resolved).  The model's
+                // guard is `if (!(r == &cur_ && run_ && ci_ > 1)) ++opr_held_;`
+                // and `ci_` is 0=T1, 1=T2 (the release sits at `ci_ == 1` and
+                // publishes `opr_free_clk_ = c + 1` = T3), so the hold IS taken
+                // at T2 and only refused from T3 on.  Provably a no-op on the
+                // current stimulus, which is why the census cannot see it: the
+                // release below runs in this same edge and takes it straight
+                // back, leaving only `set_oprfree` -- itself documented VACUOUS.
+                // *Falsifier*: any pairing on a running write cycle's T2 whose
+                // `opr_free_p` the save-state stream then carries.
+                if (((ts == TS_T1) || (ts == TS_T2)) && (opr_held != 2'd3))
                     opr_held = opr_held + 2'd1;
             end else if (cmt_valid && cmt_need) begin
                 if (pk == 0) pair_odd = cmt_addr[0];
@@ -1428,19 +1440,37 @@ end
 // The module's contracts, checked on the REGISTERED state -- the always_comb
 // above settles more than once per clock, so an immediate assertion inside it
 // would report transients (campaign risk #2 kept, instrument fixed).
+//
+// U2 pass 5 -- ...AND THEY ARE `assert ... else $error`, NOT A BARE `$error`.
+// The save-state sweep (`--ss-sweep`, SS1) SCRAMBLES the whole stream with an
+// LFSR before restoring it, and quiesces the design's contracts for that
+// window with `$assertoff(0)` (tb_v30_core `ss_asserts_off`).  `$assertoff`
+// governs ASSERTIONS; a bare `if (...) $error(...)` is an ordinary statement
+// and is not quiesced, so every one of these fired on the scrambled state and
+// took the run down -- which is the whole of the `--ss-sweep` failure booked
+// in ledger 35.2 as "pre-existing".  It was never a design fault: it is the
+// instrument, and `v30_biu.sv`'s class-5 block already had the right form.
 always_ff @(posedge clk) if (!srst) begin
-    if (ce && eu_post && (r_rq_n == 2'd2))
-        $error("v30u_biu: post dropped, request store full");
-    if (ce && eu_post && eu_split && (r_rq_n != 2'd0))
-        $error("v30u_biu: split posted onto a non-empty request store");
-    if (r_run && r_evald && (r_sev > 2'd2))
-        $error("v30u_biu: sev bound violated (%0d)", r_sev);
-    if (r_cmt_valid && (r_cdage == 3'd7))
-        $error("v30u_biu: announcement age saturated");
-    if (r_q_cnt > 4'd6)
-        $error("v30u_biu: queue overflow (%0d)", r_q_cnt);
-    if ((r_grn_ttl != 2'd0) && ({2'd0, r_grn_n} > r_q_cnt))
-        $error("v30u_biu: green byte count exceeds queue");
+    assert (!(ce && eu_post && (r_rq_n == 2'd2)))
+        else $error("v30u_biu: post dropped, request store full");
+    assert (!(ce && eu_post && eu_split && (r_rq_n != 2'd0)))
+        else $error("v30u_biu: split posted onto a non-empty request store");
+    // ...and the HALT pseudo-cycle is EXEMPT, by M21's own arithmetic: its
+    // status release sits at index 1 while its T4 is at `3 + waits`, so `sev`
+    // legitimately reaches 3 at any wait level above zero.  The bound was
+    // derived for cycles whose eval is at `last_i` or `last_i - 1` and it is
+    // still asserted for every one of those.  MEASURED, and it is the whole of
+    // `HLT.INT` / `HLT.RES` "SIM FAILED" at w1 and w3 -- the first time a woken
+    // HALT was ever run under waits.  `sev`'s only consumer saturates anyway
+    // (`land_ttl` is 0 for `sev_now >= 2`).
+    assert (!(r_run && r_evald && !r_cur_halt && (r_sev > 2'd2)))
+        else $error("v30u_biu: sev bound violated (%0d)", r_sev);
+    assert (!(r_cmt_valid && (r_cdage == 3'd7)))
+        else $error("v30u_biu: announcement age saturated");
+    assert (r_q_cnt <= 4'd6)
+        else $error("v30u_biu: queue overflow (%0d)", r_q_cnt);
+    assert (!((r_grn_ttl != 2'd0) && ({2'd0, r_grn_n} > r_q_cnt)))
+        else $error("v30u_biu: green byte count exceeds queue");
 end
 `endif
 

@@ -1564,10 +1564,12 @@ always @(posedge clk) begin
             // deque; this EU stores TWO completed reads.  That bound is a
             // CLAIM about the microcode, so it is asserted, not assumed --
             // and asserted HERE, where both values are the live ones.
-            if (rdq_n == 2'd2)
-                $error("v30u_eu: completed-read store overflow (rdq_n=2)");
-            if (rd_done_cnt == 2'd3)
-                $error("v30u_eu: rd_done_cnt saturated");
+            // `assert ... else`, not a bare `$error`: see v30u_biu.sv's
+            // contract block -- the save-state sweep quiesces ASSERTIONS.
+            assert (rdq_n != 2'd2)
+                else $error("v30u_eu: completed-read store overflow (rdq_n=2)");
+            assert (rd_done_cnt != 2'd3)
+                else $error("v30u_eu: rd_done_cnt saturated");
 `endif
             if (rd_done_cnt == 2'd0) rd_age0 = 1'b1;
             rd_done_cnt = rd_done_cnt + 2'd1;
