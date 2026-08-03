@@ -437,7 +437,7 @@ S_EPOP: begin
         opc_byte = q_byte;
         opc_valid = 1'b1;
         pop_is_first = 1'b0;
-        poste = 1'b1;
+        poste = 1'b1; pe_opc_reg = opc_reg; pe_opc8080 = opc8080;  // F23
         st = S_TAIL;          // ...and the E row's own charge(1) spent this clk
     end
 end
@@ -492,15 +492,16 @@ S_INSTR_END: begin
     // ZERO-COST: `step()` returns; the successor's `clear_consumed()` and
     // `loader_decode()`'s per-instruction latch reset run here.
     seg_override = 1'b0; seg_ovr = 2'd3; rep_kind = REP_NONE; lock_pfx = 1'b0;
-    pfxcnt = 8'd0;
-    m_kind = OK_NONE; r_kind = OK_NONE; wb_kind = OK_NONE;
-    opc_base = 5'd0; opc_from_modrm = 1'b0; modrm_reg = 3'd0;
     rep_test = TEST_NONE; rep_pol = 1'b0; bus_word = 1'b0; opc8080 = 1'b0;
     ld_ext = 1'b0; ld_hasrm = 1'b0; ld_grpd = 1'b0; ld_preread = 1'b0;
     ld_rm = 8'd0; ld_disp = 16'd0;
-    // the address adder stands on the SIGMA path with its default operation
-    al_op = A_ADD; al_tmp = 2'd0; al_byte = 1'b0;
-    al_eaconst = 1'b0; al_adjust = 2'd0; al_bitarm = 1'b0; al_spent = 1'b0;
+    // F22: the four latches the post-`E` row still reads are reset AFTER it,
+    // which is the model's own order.  When the discharge has not happened yet
+    // the reset is OWED and the `poste` block pays it.
+    if (poste) iend_owed = 1'b1;
+    else begin
+        `include "v30u_eu_iend_late.svh"
+    end
     ending = 1'b0; rowq = 2'd0; row_posted = 1'b0; row_paired = 1'b0;
     if (!opc_valid) pop_is_first = 1'b1;                // clear_consumed()
     st = opc_valid ? S_TAKE_OPC : S_OPC_POP;

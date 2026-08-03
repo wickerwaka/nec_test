@@ -7,7 +7,16 @@
 begin
     // --- the two parallel transfers -----------------------------------
     if (e_have1 && !e_is_rloop) begin
-        v1  = (e_s1 == 5'd7) ? {8'd0, rowb0} : s1_val;
+        // F21: `opr` is a LIVE BLOCKING variable here -- the `F` interlock's
+        // delivery (S_ROW, just above) has already written it, and the model
+        // does the delivery at the TOP of the row, before the transfers.
+        // `s1_val` is a WIRE off the REGISTER, so it still holds the pre-edge
+        // word: `58`'s `OPR -> M` wrote AX = 0 in 500/500 cases.  F11b's trap,
+        // third instance -- in this EU a wire named like a step variable is
+        // not that step variable.
+        v1  = (e_s1 == 5'd7) ? {8'd0, rowb0}
+            : (e_s1 == 5'd6) ? opr
+            : s1_val;
         bsw = (e_s1 == 5'd7) || (e_s1 == 5'd23);
         if (e_s1 == 5'd6) opr_fresh = 1'b0;      // reading OPR CONSUMES it
         if (e_s1 == 5'd20) begin
@@ -174,13 +183,13 @@ begin
             opc_byte = q_byte;
             opc_valid = 1'b1;
             pop_is_first = 1'b0;
-            poste = 1'b1;
+            poste = 1'b1; pe_opc_reg = opc_reg; pe_opc8080 = opc8080;  // F23
             st = S_TAIL;
         end else if (!pend_after && !opc_valid) begin
             st = S_EPOP;
             stop = 1'b1;
         end else begin
-            poste = 1'b1;
+            poste = 1'b1; pe_opc_reg = opc_reg; pe_opc8080 = opc8080;  // F23
             st = S_TAIL;
         end
     end else begin

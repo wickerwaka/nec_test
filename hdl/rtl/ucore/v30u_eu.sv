@@ -252,6 +252,9 @@ reg  [1:0] rdq_n;
 reg  [1:0] rd_pending;     // posted reads (rd_last) not yet completed
 reg  [1:0] rd_done_cnt;    // completed, not yet consumed by an F row
 reg        rd_age0;        // the oldest completion pulsed on THIS clock
+reg        iend_owed;      // F22: the post-`E` row owes the successor its reset
+reg  [7:0] pe_opc_reg;     // F23: the opcode context the post-`E` row runs on
+reg        pe_opc8080;
 reg  [1:0] wr_out;         // posted write CYCLES not yet done
 reg  [1:0] opr_owned;      // stores that have taken OPR and not released it
 
@@ -575,7 +578,21 @@ function automatic [15:0] szp(input [16:0] r, input bbyte);
 endfunction
 
 // alu_opc_select
-wire [2:0] opc_sel = opc_from_modrm ? modrm_reg : opc_reg[5:3];
+//
+// F23 -- ...AND THE OPCODE LATCH THE `ALU OPC` MUX READS.  `opc_reg` is not
+// RESET by the successor's decode, it is OVERWRITTEN (S_DECODE2, `opc_reg =
+// ld_b`), so F22's deferral cannot reach it: by the post-`E` row's clock the
+// EU already held the SUCCESSOR's opcode and every `ALU OPC` row resolved
+// against it.  The whole accumulator-immediate block picked the operation the
+// injected `90` selects -- index 2, ADC -- which is why `14` (ADC AL,imm8) was
+// the ONE form of its group that passed and `24` (AND) came out as an add.
+//
+// The decoder's opcode latch loads at the END of its own clock; the post-`E`
+// row reads it BEFORE that.  So the row's own opcode context travels with F8's
+// debt: 9 bits, captured where `poste` is raised.
+wire [7:0] opc_reg_eff = poste ? pe_opc_reg : opc_reg;
+wire       opc8080_eff = poste ? pe_opc8080 : opc8080;
+wire [2:0] opc_sel = opc_from_modrm ? modrm_reg : opc_reg_eff[5:3];
 function automatic [4:0] opc8080_map(input [2:0] s);
     case (s)
         3'd0: opc8080_map = A_ADD;
@@ -588,8 +605,8 @@ function automatic [4:0] opc8080_map(input [2:0] s);
         default: opc8080_map = A_CMP;
     endcase
 endfunction
-wire [4:0] alu_opc_sel = opc8080 ? opc8080_map(opc_sel)
-                                 : (opc_base + {2'b0, opc_sel});
+wire [4:0] alu_opc_sel = opc8080_eff ? opc8080_map(opc_sel)
+                                     : (opc_base + {2'b0, opc_sel});
 
 wire [4:0] eff_op = (al_op == A_OPC) ? alu_opc_sel : al_op;
 // the operation the row NOW standing latches (exec_impl.h's `new_op`)
@@ -937,7 +954,13 @@ end
 // value this row is about to put there").  It is the same rule; it was applied
 // to one destination only.  `s1_now` / `s2_now` are the two transfer values,
 // and dest2 is written after dest1, so dest2 wins if both name IND.
-wire [15:0] s1_now = (e_s1 == 5'd7) ? {8'd0, q_byte} : s1_val;
+// ...and the ACT decode needs the same live OPR (F21).  It is combinational,
+// so it does not get the step's blocking write for free: it reconstructs the
+// `F` delivery the row is about to make.  ONE expression, both sides (F11).
+wire [15:0] opr_live = (e_f && (rdq_n != 2'd0)) ? rdq0 : opr;
+wire [15:0] s1_now = (e_s1 == 5'd7) ? {8'd0, q_byte}
+                   : (e_s1 == 5'd6) ? opr_live
+                   : s1_val;
 wire [15:0] s2_now = (e_s2 == 4'd5) ? {8'd0, q_byte} : s2_val;
 // The CMP suppression: a SIGMA source that does not commit drives nothing.
 wire wr_ind1 = e_have1 && (e_d1 == 5'd5) &&
@@ -1174,6 +1197,7 @@ always @(posedge clk) begin
         pend_byte = 1'b0; pend_io = 1'b0; opr_fresh = 1'b0;
         rdq0 = 16'd0; rdq1 = 16'd0; rdq_n = 2'd0;
         rd_pending = 2'd0; rd_done_cnt = 2'd0; rd_age0 = 1'b0;
+        iend_owed = 1'b0; pe_opc_reg = 8'd0; pe_opc8080 = 1'b0;
         wr_out = 2'd0; opr_owned = 2'd0;
         opc_valid = 1'b0; opc_byte = 8'd0; pop_is_first = 1'b1;
         ld_b = 8'd0; ld_pla = 14'd0; ld_ext = 1'b0; ld_page = 3'd0;
@@ -1228,6 +1252,11 @@ always @(posedge clk) begin
         if (poste) begin
             poste = 1'b0;
             `include "v30u_eu_poste.svh"
+        end
+        // F22: ...and the successor's latch reset it was standing in front of.
+        if (iend_owed) begin
+            iend_owed = 1'b0;
+            `include "v30u_eu_iend_late.svh"
         end
 
 `ifndef SYNTHESIS
