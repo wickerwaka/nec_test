@@ -2942,3 +2942,115 @@ falsifier did not fire.  (It also swept in the seven cells the retracted
 "ucore beats the model" claim had been about: they are `seg` cells where BOTH
 engines miss the golden — the model for §26.7.7's pad retention, the ucore for
 the composer — and neither is a win.)
+
+### F44 — THE MICROCODE ROM FAILS TO LOAD **SILENTLY**, AND THE RUN LOOKS NORMAL
+
+**Class: VACUITY RISK (build/instrument).  Moves no number today; it is
+recorded because U4 is the stage that changes `HEXDIR`.**
+
+`v30u_ucrom.sv` loads both tables with `$readmemh({HEXDIR, ...})`, where
+
+```
+parameter string HEXDIR = "hdl/rtl/ucore/"   // sim runs from the repo ROOT;
+                                             // a synthesis project overrides it
+```
+
+The parameter and its override are by design and are documented in the module.
+What is NOT safe is the failure mode.  Run the same frozen binary from any other
+working directory:
+
+```
+%Warning: hdl/rtl/ucore/ucdecode.hex:0: $readmem file not found
+%Warning: hdl/rtl/ucore/ucrom.hex:0: $readmem file not found
+DONE 1 cases
+    -> 22 `r` rows emitted, exit as normal
+```
+
+Two **warnings**, not errors; the core comes up with an all-zero microcode ROM
+and an all-zero decode table; the TB still reports `DONE`, still exits 0, and
+still produces a full, plausible-looking row stream.  Any harness that scores a
+DIGEST, a COUNT, or a self-consistency property rather than a golden would grade
+that as a PASS.  This is the vacuous-gate pattern the campaign has already been
+bitten by twice (`check_enter_nesting.py`'s silently-ignored flags; the
+compiled-out assertion in `check_core.py`'s `build()` comment).
+
+It was found by the U3 ladder work, not by a gate: `sw/tb_bootrun.py` forces
+`cwd=ROOT` for exactly this reason.  Every U3 number in §44 was taken with the
+tables loaded — `check_ucore_tables.py` is 9988/9988 on the same tree and the
+G3 census is 169,000/169,000, neither of which is reachable with a zero ROM.
+
+**THE GUARD IS ONE LINE AND IT IS U4's**, because U4 is where `HEXDIR` is
+overridden by a Quartus project and a typo would be invisible: assert a known
+ROM word after load (`ucrom[0]`, or any row `check_ucore_tables.py` already
+pins) and `$fatal` if it is zero.  A ROM that did not load is not a core.
+
+*Falsifier*: a `$readmemh` failure path that already errors rather than warns,
+or a build in which an all-zero ROM cannot produce a completing run.
+
+### F45 — `--ss-mode 4`'s SEED **IS** THE BIT INDEX, AND A SMALL-SEED SWEEP READS AS A BLIND GATE
+
+**Class: INSTRUMENT (interpretation).  Found by running the ucore's first
+bit-flip negative control; the instrument is sound and its GUIDANCE was not.**
+
+Save-state mode 4 is the G5' negative control: flip ONE bit of the frozen
+stream, restore, resume, and require that a bit mapping to LIVE state perturbs
+the continuation.  A gate whose flips never diverge is blind, so this is the
+control that proves `--ss-sweep` is not passing by construction.
+
+The ucore had never run it.  Run with seeds 0..25 it reports, 26 times:
+
+```
+89 SS4 idx 0: swept=3 perturbed=0 (0%) inert(unexercised)
+```
+
+which is exactly what a blind gate looks like.  **It is not blind; the seeds
+were.**  `tb_v30_core.sv`:
+
+```
+bit_idx = ss_scramble_seed % (SS_COUNT*16);
+if (bit_idx < 16) bit_idx = bit_idx + 16;   // skip the tag word
+wrd = bit_idx / 16;  bpos = bit_idx % 16;
+```
+
+The seed is not a PRNG seed — **it is the bit index itself.**  With
+`SS_COUNT` = 211 the space is 3,376 bits, and seeds 0..25 all land in **word 1
+and only word 1**.  Consecutive seeds walk consecutive bits of one SS address;
+to walk ADDRESSES the seed must step by 16.
+
+Stepping by 16 across the map (`seed = 16*word + 3`, one probe per word, form
+`89`, 3 freeze points):
+
+| form | words probed | SENSITIVE | inert |
+|---|---|---|---|
+| `89` (3 freeze points) | 21 (words 2..205) | **3** (40, 50, 100) | 18 |
+| `8B` (6 freeze points) | 8 (words 41..105) | **5** (41, 49, 99, 101, 105) | 3 |
+
+`8B`'s words 99, 101 and 105 perturb at **100 %** — every freeze point — and 41
+and 49 at 67 %.  Two forms, thirteen sensitive words, up to 6 of 6 freeze
+points each.
+
+**So mode 4 IS live on the ucore** — flips reach live flops and perturb the
+continuation — and the control is discharged.
+
+Two corrections to the instrument's own guidance, which is a comment in
+`tb_v30_core.sv` and is what a future session will read:
+
+1. *"Run many seeds"* is not enough and is actively misleading: many
+   CONSECUTIVE seeds probe one address.  The sweep must step by 16.
+2. *"most flips must diverge"* is too strong.  Only 3 of 21 probed words moved,
+   and that is expected rather than alarming: at a freeze point three clocks
+   into a `MOV`, most of a 211-address map is genuinely not live, and
+   `ss_field_width` (§42.2) already establishes that many stream bits are above
+   their field's width and are don't-cares by construction.  The honest bar is
+   **"some must diverge, and which ones is form- and freeze-point-dependent"** —
+   a per-word SENSITIVE/inert census, not a fraction.
+
+Neither correction is made to the TB here (it is frozen for U3 scoring and
+shared with the FSM core); both are booked as **U3 open item 3**, together with
+the observation that the same seed arithmetic applies to the FSM core's mode-4
+runs and any historical "0% perturbed" reading taken with small seeds should be
+re-read before it is quoted.
+
+*Falsifier*: a mode-4 seed below 16*`SS_COUNT` that lands outside
+`word = seed/16`, or a form/freeze point at which no word in the map is
+sensitive.
