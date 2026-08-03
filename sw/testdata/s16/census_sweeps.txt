@@ -1,0 +1,44 @@
+capture                                    status i0   L  t1  Na   Nt   Ns   ube  | verdict
+HLT.INT_w0_d4                              CODE   156  2  158 5    6    6    1>0  | UNCONF T1=status ube@d+1
+HLT.INT_w0_d4                              INTA   160  2  162 0    6    6    0>0  | UNCONF T1=status ube=held
+HLT.INT_w0_d5                              CODE   156  2  158 5    6    6    1>0  | UNCONF T1=status ube@d+1
+HLT.INT_w0_d5                              INTA   160  2  162 0    6    6    0>0  | UNCONF T1=status ube=held
+HLT.RES_w0_d4                              CODE   156  2  158 9    2    2    1>0  | UNCONF T1=status ube@d+1
+HLT.RES_w0_d5                              CODE   156  2  158 9    2    2    1>0  | UNCONF T1=status ube@d+1
+# sw/testdata/s10/s2-hltsweep w0: 98 captures, window lengths {1: 79845, 2: 6}
+HLT.INT_w1_d10                             CODE   223  2  225 5    6    6    1>0  | UNCONF T1=status ube@d+1
+HLT.INT_w1_d8                              CODE   222  2  -   5    -    6    1>0  | UNCONF ube@d+1
+HLT.INT_w1_d9                              CODE   222  2  -   5    -    6    1>0  | UNCONF ube@d+1
+HLT.RES_w1_d10                             CODE   223  2  225 9    2    2    1>0  | UNCONF T1=status ube@d+1
+HLT.RES_w1_d8                              CODE   222  2  -   9    -    2    1>0  | UNCONF ube@d+1
+HLT.RES_w1_d9                              CODE   222  2  -   9    -    2    1>0  | UNCONF ube@d+1
+# sw/testdata/s10/s2-hltsweep w1: 98 captures, window lengths {1: 65319, 2: 6}
+HLT.INT_w2_d10                             CODE   257  3  -   5    -    6    1>0  | UNCONF ube@d+1
+HLT.INT_w2_d11                             CODE   257  3  -   5    -    6    1>0  | UNCONF ube@d+1
+HLT.INT_w2_d12                             CODE   258  2  -   5    -    6    1>0  | UNCONF ube@d+1
+HLT.INT_w2_d13                             CODE   259  2  261 5    6    6    1>0  | UNCONF T1=status ube@d+1
+HLT.RES_w2_d10                             CODE   257  3  -   9    -    2    1>0  | UNCONF ube@d+1
+HLT.RES_w2_d11                             CODE   257  3  -   9    -    2    1>0  | UNCONF ube@d+1
+HLT.RES_w2_d12                             CODE   258  2  -   9    -    2    1>0  | UNCONF ube@d+1
+HLT.RES_w2_d13                             CODE   259  2  261 9    2    2    1>0  | UNCONF T1=status ube@d+1
+# sw/testdata/s13/p1b-ahsweep w2: 50 captures, window lengths {1: 28651, 2: 4, 3: 4}
+HLT.INT_w3_d12                             CODE   292  4  -   5    -    6    1>0  | UNCONF ube@d+1
+HLT.INT_w3_d13                             CODE   292  4  -   5    -    6    1>0  | UNCONF ube@d+1
+HLT.INT_w3_d14                             CODE   293  3  -   5    -    6    1>0  | UNCONF ube@d+1
+HLT.INT_w3_d15                             CODE   294  2  -   5    -    6    1>0  | UNCONF ube@d+1
+HLT.INT_w3_d16                             CODE   295  2  297 5    6    6    1>0  | UNCONF T1=status ube@d+1
+HLT.RES_w3_d12                             CODE   292  4  -   9    -    2    1>0  | UNCONF ube@d+1
+HLT.RES_w3_d13                             CODE   292  4  -   9    -    2    1>0  | UNCONF ube@d+1
+HLT.RES_w3_d14                             CODE   293  3  -   9    -    2    1>0  | UNCONF ube@d+1
+HLT.RES_w3_d15                             CODE   294  2  -   9    -    2    1>0  | UNCONF ube@d+1
+HLT.RES_w3_d16                             CODE   295  2  297 9    2    2    1>0  | UNCONF T1=status ube@d+1
+# sw/testdata/s13/p1b-ahsweep w3: 50 captures, window lengths {1: 25141, 2: 4, 3: 2, 4: 4}
+
+SUMMARY  multi-clock windows 30   UNCONFOUNDED (Na != Ns) 30
+  T1 nibble == segment status : 12 / 12
+  T1 nibble == display+1      : 0 / 12
+  low 16 equal at d+1 and T1  : 12 / 12
+  UBE differs from the pre-announce value at display+1 : 28 / 30 windows (the other 2 announce the SAME UBE)
+  UBE at display+1 == UBE at T1 : 12 / 12
+  status x length: {'CODE.L2': 18, 'INTA.L2': 2, 'CODE.L3': 6, 'CODE.L4': 4}
+  Na x Ns: {'5/6': 14, '0/6': 2, '9/2': 14}

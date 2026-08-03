@@ -832,3 +832,38 @@ Every mechanism landed after closure was landed on a directed cell or a census,
 and the last board session spent **5 min 43 s** of wall time against a
 45-minute budget (§24.12). **V5 is still a registered FAILURE and this addendum
 does not re-score it.**
+
+---
+
+# ADDENDUM — the PRE-RTL CLEANUP, 2026-08-03 (ledger §26)
+
+*Appended, not edited. Ledger §26 (addendum #11) is a board-free cleanup
+session whose purpose is that the RTL-regeneration campaign can treat the
+provenance ledger as its spec. Two rows of the trajectory table above move and
+one is CORRECTED; everything else is unchanged and was re-run.*
+
+| bar | in the table above | **after §26** | § |
+|---|---|---|---|
+| **v0.1 cycle rows at w0** | 168,997 / 169,000 | **169,000 / 169,000**, of which **3 are collision-dependent** and scored on the board's own 64 KiB-mirrored RAM. `--no-mirror` reproduces 168,997 exactly. The rule is `ucsim_check`'s, ported to the row comparison; its measured reach is 4 goldens in 169,000 | 26.3 |
+| ...and its remaining cases | 3, an EMISSION/HARNESS residue | **0.** All three are ONE mechanism — 64 KiB image aliasing — and all three go `ndiff = 0` under `--mirror` with nothing else changed. §24.13's `0F12` HYPOTHESIS is promoted to **MEASURED** | 26.3 |
+| law cards | 8 GREEN / 0 RED / 3 UNRESOLVED | **unchanged 8 / 0 / 3** — but C6/C7's STATED REASON was factually wrong and is corrected: the bank carries **10,516** one-prefetch-gap RMW pairs at both Tw parities, so the obstacle is a missing pin-observable signature, not a missing population | 26.5 |
+| whole-program REG / EVT / COMBINED | 1,272/1,702, 708/1,008, 1,980/2,710 | **unchanged**, and the 730 non-exact seeds are now a **CLOSED TAXONOMY** of seven families with an EMPTY catch-all. **Architectural state differs in 0 of 730** | 26.4 |
+| THE VICTORY TRANCHE (V5) | STILL FAILED, 154 / 188 | **UNTOUCHED, still 154 / 188, still a registered FAILURE.** Its 34 misses are classified: same families as the main banks, no new one | 26.6.1 |
+| functional corpus | 7,341,126 | unchanged, re-run in full | 26.9 |
+
+**Three committed claims are corrected in §26 and are listed here so this
+document does not carry them forward silently:**
+
+1. §23.3 / §23.7 / §23.8's *"the ~57-clock excursion is the METRIC changing
+   referent, 2 of 196 cells"* — **FALSIFIED.** It is 0 of 196; the excursion was
+   an INSTRUMENT framing defect (`s12_census.cycles()` anchored on the rig's
+   T-state counter), and §24.15 item 12's *"not used for any surviving claim"*
+   was wrong. The VERDICT (no race) survives; the reason is replaced (§26.2).
+2. §24.11's two-family reading of the three w0 tails — **superseded by one
+   family**, and its word *"undeclared"* for the `C1.6` / `F7.4` companion lane
+   is corrected to *undeclared at that LINEAR address, declared at that
+   PHYSICAL cell* (§26.3).
+3. §25.10 item 5's *"20-seed `ACK` residue, three named signatures,
+   untouched"* — it is **18**, one signature is **gone** (M22 moved its two
+   members out of the family), and all 18 are absorbed into §26.4's taxonomy
+   (§26.6.2).

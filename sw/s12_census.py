@@ -41,6 +41,8 @@ S1 = ROOT / "sw" / "testdata" / "s10" / "s1-tranche"
 BS = {0: "INTA", 1: "IOR", 2: "IOW", 3: "HALT", 4: "CODE", 5: "MEMR",
       6: "MEMW", 7: "PASV"}
 QS = {0: "-", 1: "F", 2: "E", 3: "S"}
+PASV = 7                                   # `bs_early` = nothing announced
+HALT = 3
 
 
 # --------------------------------------------------------------------------- #
@@ -57,21 +59,42 @@ def rows_of(path):
 
 
 def cycles(rows):
-    """Bus cycles as dicts, T1-anchored, over `s10_board.capture` rows."""
-    out, cur = [], None
-    for i, r in enumerate(rows):
-        if r["t"] == 1:
-            if cur:
-                out.append(cur)
-            cur = {"kind": BS[r["bs_early"]], "t1": i, "t4": None, "tw": 0,
-                   "addr": r["ad_addr"]}
-        elif cur is not None:
-            if r["t"] == 4:
-                cur["tw"] += 1
-            elif r["t"] == 5:
-                cur["t4"] = i
-    if cur:
-        out.append(cur)
+    """Bus cycles as dicts, DISPLAY-anchored, over `s10_board.capture` rows.
+
+    THE ANCHORING RULE: a cycle is framed by what the part ANNOUNCED.  The
+    display IS the status pulse (21.1), so one bus cycle is one contiguous run
+    of the same non-`PASV` `bs_early`; `d` is the clock the status first
+    appears and `t1` is the T1 row INSIDE that run -- or `None`, which is an
+    announcement the part displayed and then never took a T1 for.
+
+    This replaces a T1-anchored reading that was wrong at exactly one place
+    (24.1, 24.15 item 12): the RIG's T-state counter keeps running THROUGH the
+    HALT pseudo-cycle, so a woken prefetch whose display falls inside those
+    T-states never gets a T1 of its own, and anchoring on `t == 1` could not
+    see that cycle at all -- it walked to the next one (18 of the 296 banked
+    sweep cells, every one of them in `A - H` in {-2 .. +1}: 9 walked to the
+    acknowledge, 9 to the NEXT prefetch).  No HALT special case is needed: the
+    same one rule frames every cycle in the corpus (199,282 status runs over
+    the 296 banked captures, and not one of them carries a second T1).
+    """
+    out, i, n = [], 0, len(rows)
+    while i < n:
+        b = rows[i]["bs_early"]
+        if b == PASV:                       # nothing announced on this clock
+            i += 1
+            continue
+        j = i                               # the status pulse, end to end
+        while j + 1 < n and rows[j + 1]["bs_early"] == b:
+            j += 1
+        t1 = next((k for k in range(i, j + 1) if rows[k]["t"] == 1), None)
+        t4 = tw = None
+        if t1 is not None:
+            t4 = next((k for k in range(t1, n) if rows[k]["t"] == 5), None)
+            tw = sum(1 for k in range(t1, t4 if t4 is not None else n)
+                     if rows[k]["t"] == 4)
+        out.append({"kind": BS[b], "d": i, "t1": t1, "t4": t4, "tw": tw or 0,
+                    "addr": None if t1 is None else rows[t1]["ad_addr"]})
+        i = j + 1
     return out
 
 
@@ -107,14 +130,16 @@ def sweep_cells(form, waits):
         # the clock the PART first samples the level.  Identical to the
         # `assert_cyc = t1 + 2 + delay_hw` the emission path already uses.
         A = anchor + 2 + d
-        hd = next((i for i, r in enumerate(rows) if r["bs_early"] == 3), None)
+        hd = next((i for i, r in enumerate(rows) if r["bs_early"] == HALT), None)
         hcyc = next((c for c in cyc if c["kind"] == "HALT"), None)
-        inta = next((c["t1"] for c in cyc if c["kind"] == "INTA"), None)
-        # everything strictly AFTER the HALT pseudo-cycle itself
+        inta = next((c for c in cyc if c["kind"] == "INTA"), None)
+        # everything ANNOUNCED strictly after the HALT's own announcement.
+        # (24.1: NOT "after the HALT pseudo-cycle's T4" -- the woken prefetch
+        #  is displayed INSIDE those T-states and that framing walked past it.)
         post = [c for c in cyc
-                if hcyc is not None and c["t1"] > hcyc["t4"]]
+                if hcyc is not None and c["d"] > hcyc["d"]]
         first_post = post[0] if post else None
-        woke = next((c["t1"] for c in post if c["kind"] == "CODE"), None)
+        woke = next((c for c in post if c["kind"] == "CODE"), None)
         out.append({
             "form": form, "waits": waits, "delay": d,
             "anchor_t1": anchor, "A": A,
@@ -122,9 +147,12 @@ def sweep_cells(form, waits):
             "halt_t4": None if not hcyc else hcyc["t4"],
             "AH": None if hd is None else A - hd,
             "first_post_kind": None if not first_post else first_post["kind"],
+            "first_post_d": None if not first_post else first_post["d"],
             "first_post_t1": None if not first_post else first_post["t1"],
-            "woke_code_t1": woke,
-            "inta1_t1": inta,
+            "woke_code_d": None if not woke else woke["d"],
+            "woke_code_t1": None if not woke else woke["t1"],
+            "inta1_d": None if not inta else inta["d"],
+            "inta1_t1": None if not inta else inta["t1"],
         })
     return out
 
@@ -157,9 +185,12 @@ def cmd_hltsweep(args):
                   f"(not driven up to A-H = {hi:+d}); d* = "
                   f"{min(c['delay'] for c in drv)}, cells {len(drv)}/{len(cells)}")
     print()
-    # THRESHOLD 2 -- what occupies the first bus slot after the HALT cycle
-    print("  THRESHOLD 2: the first bus cycle after the HALT display")
-    print("    form     w   A-H   first-post   t1-H   T4(halt)-H   INTA1-H")
+    # THRESHOLD 2 -- what occupies the first bus slot after the HALT display.
+    # Every clock below is a DISPLAY clock (21.1 / 24.1): D is the status
+    # pulse, not the rig's T1.
+    print("  THRESHOLD 2: the first bus cycle ANNOUNCED after the HALT display")
+    print("    form     w   A-H   first-post    D-H   max(A+4,H+3)-H"
+          "   T4(halt)-H   INTA1 D-H")
     for form in ("HLT.INT", "HLT.RES"):
         for w in (0, 1):
             cells = [c for c in allc
@@ -168,28 +199,44 @@ def cmd_hltsweep(args):
             seen = {}
             for c in cells:
                 H = c["halt_display"]
-                k = (c["AH"], c["first_post_kind"], c["first_post_t1"] - H,
-                     c["halt_t4"] - H,
-                     None if c["inta1_t1"] is None else c["inta1_t1"] - H)
+                k = (c["AH"], c["first_post_kind"], c["first_post_d"] - H,
+                     max(c["A"] + 4, H + 3) - H, c["halt_t4"] - H,
+                     None if c["inta1_d"] is None else c["inta1_d"] - H)
                 seen.setdefault(k, 0)
                 seen[k] += 1
             for k in sorted(seen):
                 if k[0] <= 3 or seen[k] > 1:
                     print(f"    {form:8s} {w}  {k[0]:+4d}   {k[1]:<9} "
-                          f"{k[2]:+5d}   {k[3]:+9d}   {k[4]}")
+                          f"{k[2]:+6d}   {k[3]:+12d}   {k[4]:+9d}   {k[5]}")
+    print()
+    # THRESHOLD 2, scored -- the woken fetch's DISPLAY against the law
+    drv = [c for c in allc if c["halt_display"] is not None
+           and c["woke_code_d"] is not None]
+    off = [c for c in drv
+           if c["woke_code_d"] != max(c["A"] + 4, c["halt_display"] + 3)]
+    print(f"  THRESHOLD 2, scored: woken fetch DISPLAY == max(A+4, H+3) on "
+          f"{len(drv) - len(off)}/{len(drv)} driven cells")
+    for c in off:
+        H = c["halt_display"]
+        print(f"    OFF-LAW {c['form']} w{c['waits']} d{c['delay']} "
+              f"A-H={c['AH']:+d}: D = H{c['woke_code_d']-H:+d}, law says "
+              f"H{max(c['A']+4, H+3)-H:+d}")
     print()
     # THE EXCURSION, named
-    print("  THE `woken fetch' METRIC (first CODE strictly after H) vs the")
-    print("  FIRST BUS CYCLE after H -- the 21.5 excursion is the difference:")
+    print("  THE `woken fetch' METRIC (first CODE announced after H) vs the")
+    print("  FIRST BUS CYCLE announced after H -- the 21.5 excursion, if any:")
+    exc = 0
     for c in allc:
         if c["halt_display"] is None:
             continue
         H = c["halt_display"]
-        if c["woke_code_t1"] is not None and c["first_post_kind"] != "CODE":
+        if c["woke_code_d"] is not None and c["first_post_kind"] != "CODE":
+            exc += 1
             print(f"    {c['form']} w{c['waits']} d{c['delay']:<3} A-H={c['AH']:+d}"
-                  f"   first post = {c['first_post_kind']} at H{c['first_post_t1']-H:+d}"
-                  f"   but `woke CODE' = H{c['woke_code_t1']-H:+d}"
-                  f"  ->  metric jumps {c['woke_code_t1']-c['first_post_t1']} clocks")
+                  f"   first post = {c['first_post_kind']} at H{c['first_post_d']-H:+d}"
+                  f"   but `woke CODE' = H{c['woke_code_d']-H:+d}"
+                  f"  ->  metric jumps {c['woke_code_d']-c['first_post_d']} clocks")
+    print(f"    -> {exc} cells")
     if args.dump:
         json.dump(allc, open(args.dump, "w"), indent=1)
         print(f"\n  dump -> {args.dump}")

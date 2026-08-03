@@ -1,0 +1,7 @@
+capture                                    status i0   L  t1  Na   Nt   Ns   ube  | verdict
+# sw/testdata/s10/s1-tranche: 24 captures, window lengths {1: 10591}
+# sw/testdata/s10/s5-a30: 32 captures, window lengths {1: 21782}
+# sw/testdata/s13/p2a-c2ramp: 24 captures, window lengths {1: 4800}
+# sw/testdata/s13/p5-race: 24 captures, window lengths {1: 19152}
+# sw/testdata/t2b: 6 captures, window lengths {1: 560}
+# sw/testdata/t4: 2 captures, window lengths {1: 324}

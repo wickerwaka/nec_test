@@ -1,0 +1,14 @@
+### BEFORE arm (HEAD sim/biu_timed.cpp) on this working tree
+tests/v30/v0.1 w0 : TOTAL   arch 169000/169000   window 169000/169000   rows-exact 169000   row-diffs 0   [3 collision-dependent under 64K mirror] 
+tests/v30/v0.1-w1 w1 : TOTAL   arch 1200/1200   window 1200/1200   rows-exact 1200   row-diffs 0 
+tests/v30/v0.1-w3 w3 : TOTAL   arch 1200/1200   window 1200/1200   rows-exact 1200   row-diffs 0 
+tests/v30/v0.1-w0evt w0 : TOTAL   arch 200/200   window 200/200   rows-exact 200   row-diffs 0 
+tests/v30/v0.1-w1evt w1 : TOTAL   arch 1200/1200   window 1200/1200   rows-exact 1200   row-diffs 0 
+tests/v30/v0.1-w1evt-biased w1 : TOTAL   arch 1200/1200   window 1200/1200   rows-exact 1200   row-diffs 0 
+tests/v30/v0.1-w2evt w2 : TOTAL   arch 200/200   window 200/200   rows-exact 200   row-diffs 0 
+tests/v30/v0.1-w3evt w3 : TOTAL   arch 1200/1200   window 1200/1200   rows-exact 1200   row-diffs 0 
+tests/v30/s10-hltsweep-w0 w0 : TOTAL   arch 97/97   window 97/97   rows-exact 91   row-diffs 609 row-diff columns: tstate=157, bus=89, busstat=82, pins=70, data=67, seg=67, memcmd=55, qop=12, qbyte=4, len=4, ube=2 
+tests/v30/s10-hltsweep-w1 w1 : TOTAL   arch 95/95   window 95/95   rows-exact 92   row-diffs 17 row-diff columns: ube=9, bus=6, seg=2 
+tests/v30/s13-hltsweep-w2 w2 : TOTAL   arch 46/46   window 46/46   rows-exact 42   row-diffs 34 row-diff columns: ube=13, bus=12, seg=5, data=4 
+tests/v30/s13-hltsweep-w3 w3 : TOTAL   arch 45/45   window 45/45   rows-exact 40   row-diffs 52 row-diff columns: ube=19, bus=18, seg=9, data=6 
+v0.1-w1 EB : TOTAL   arch 200/200   window 200/200   rows-exact 200   row-diffs 0

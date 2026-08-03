@@ -41,7 +41,12 @@ def main():
             hd = next(i for i, r in enumerate(rows) if r["bs_early"] == 3)
             anchor = next(c["t1"] for c in cyc
                           if c["kind"] == "CODE" and c["addr"] == anchor_lin)
-            seq = [c for c in cyc if anchor <= c["t1"] <= hd + 2]
+            # `t1` is None for an announcement the part displayed and never
+            # took a T1 for (s12_census.cycles, 24.1); the pre-HALT stretch has
+            # none, and skipping them keeps this listing the T1-to-T1 pitch it
+            # has always been.
+            seq = [c for c in cyc
+                   if c["t1"] is not None and anchor <= c["t1"] <= hd + 2]
             print(f"{form} w{w} (d={delay})  anchor T1={anchor}  "
                   f"HALT display H={hd}   H-anchor={hd - anchor}")
             prev = None

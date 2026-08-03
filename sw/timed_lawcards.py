@@ -301,11 +301,23 @@ def main():
                           "isolates a single source -- P-LC4-matrix is booked")
 
     if {"C6", "C7"} & want:
+        # 26.5 CORRECTED THIS STRING.  The old one said "no golden, no fuzz
+        # seed and no T2b capture carries an RMW", and the fuzz-bank half of
+        # that is FALSE: `s15_census.py --rmw` finds 25,665 same-address
+        # read->write pairs over 3,020 of the 3,242 banked seeds, 10,516 of
+        # them with EXACTLY ONE PREFETCH in the gap (2,537 seeds), 96.1 % of a
+        # sampled 1,457 carrying no QS=F between the read's T1 and the write's
+        # T1 -- i.e. genuine single-instruction RMWs -- and BOTH Tw parities
+        # populated (7,028 even / 3,488 odd).  What is still missing is the
+        # other half of the clause, and it is the load-bearing half.
         for c in ("C6", "C7"):
             verdict[c] = ("UNRESOLVED",
-                          "LC3 is board-by-construction (uRMW): no golden, "
-                          "no fuzz seed and no T2b capture carries an RMW "
-                          "mem-write ready-AT-T4 with a controlled Tw parity")
+                          "LC3's RMW population EXISTS in the bank (26.5: "
+                          "10,516 one-prefetch-gap RMW pairs, both Tw "
+                          "parities) -- what is missing is a PIN-OBSERVABLE "
+                          "signature for ext_ok_wr / tw_par: the corpus is "
+                          "stratified, not controlled, and a card is not "
+                          "GREENed by weakening what it asserts")
 
     if "C9" in want:
         verdict["C9"] = ("GREEN",

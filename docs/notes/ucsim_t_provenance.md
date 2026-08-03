@@ -8079,3 +8079,1252 @@ claim.**
 10. `0F12`'s accessed byte is the harness's `63 C0` preload (§24.11).
 11. `s12_census.cycles()` is T1-anchored and mis-frames a cycle whose display
     falls inside the HALT pseudo-cycle (§24.1).
+
+---
+
+## 26. POST-CLOSURE ADDENDUM #11 — S15, THE PRE-RTL CLEANUP (2026-08-03)
+
+**This section is an ADDENDUM.**  Nothing in §0-§25 is edited, but THREE
+committed claims are CORRECTED here and each correction is stated where the
+claim lived: §23.3 / §23.7 / §23.8's *"~57-clock excursion is the metric
+changing referent, 2 of 196 cells"* is **FALSIFIED** (§26.2), §24.11's
+two-family reading of the w0 tails is **superseded by one family** (§26.3), and
+`timed_lawcards`'s stated reason for holding C6/C7 UNRESOLVED is **factually
+wrong about the banked corpus** (§26.5).
+
+**NO BOARD CONTACT OF ANY KIND.**  No socket call, no `serve`, no flash, no new
+capture, no `emit_suite` run.  Every number below is read off the committed
+suites, the banked captures and the fuzz bank.
+
+The session's purpose is the user's, and it is quoted because it decides what
+counts as done: *"I want things really clean before starting RTL."*  The
+RTL-regeneration campaign will treat this ledger as its spec, so the bar is
+that **every number is artifact-free and every residual is either mechanised or
+in a CLOSED NAMED TAXONOMY with a documented closer.**  §26.10 is the
+CLEAN-STATE STATEMENT: the complete list of what an RTL campaign inherits.
+
+New instruments, all measurement tools and none of them a gate:
+`sw/s15_census.py` (the fuzz-residue census and the RMW census).
+Instruments repaired: `sw/t2b_board.py::stable_key`,
+`sw/s12_census.py::cycles`, `sw/timed_gate.py` (the 64 KiB-mirror retry).
+
+---
+
+### 26.1 D#9 — `stable_key` HASHED A PAD IT DOES NOT DRIVE, and the fix costs no information
+
+§24.10 booked it and did not make it: *"`stable_key` should exclude the
+pre-first-T1 idle rows, or `ube_n` on rows where nothing drives it.  Until it
+does, a `stable_identical: false` on a cell whose `t` / `bs_early` / `qs`
+streams agree is an INSTRUMENT flag."*
+
+**The measurement was re-made over all 24 retained P5 streams, not the 2 key
+classes §24.10 diffed**, and it is sharper than §24.10's:
+
+```
+sw/testdata/s13/p5-race/HLT.INT_w0_d0.v{0..23}.rows.json.gz, 4,063 rows each
+first t == 1 row: index 9, in all 24
+rows that differ ANYWHERE across all 24:  0..8   -- and nothing else
+fields:   ube_n 9 rows | ad_addr 9 | ad_data 8 | ps 8
+zero differences in:  t, bs_early, bs_late, qs, rd_n, lock_n, rst, idx
+```
+
+and the structural reading is the fix: **every field that differs is a
+MULTIPLEXED pad** (AD0-15, A16-19/PS, UBE/S7); **every field that does not is a
+DEDICATED pin** (S0-S2, QS0-1, LOCK).  Of the four multiplexed ones only
+`ube_n` ever reached the key — `ad_addr` / `ad_data` were already gated by
+T-state and `ps` is not in the key at all.
+
+**The rule, one sentence: hash a multiplexed pad only in the T-states in which
+the part drives it.**  `ube_n` is UBE/S7 and is driven as UBE in T1, exactly as
+the address is driven on AD in T1.  One line in `sw/t2b_board.py::stable_key`.
+
+*Why this and not "drop the leading idle rows":*  measured, both ways.
+Dropping `ube_n` off T1 costs **no information** — over all 408 banked row
+streams a TI sample of `ube_n` after the first T1 equals the preceding row's
+value in **391,922 / 391,922** cases, zero exceptions, so off T1 the pad simply
+holds.  Trimming the leading rows instead would make the key blind to the
+reset-to-first-fetch latency, which is a real quantity (demonstrated: deleting
+one leading idle row changes the new key and does not change a prefix-trimmed
+one).  No list of excluded row indices exists anywhere.
+
+**Verification.**
+
+| | old key | new key |
+|---|---|---|
+| P5's 24 retained distinct streams | **2** distinct | **1** |
+| `s10/s2-hltsweep`, 196 cells | 181 distinct | **181** — no separation lost |
+| `s13/p1b-ahsweep`, 100 cells | 70 distinct | 69 |
+
+The single merge is `HLT.INT_w2_d{0,1,2,3}`, which differ **only on rows 0-8**
+in `ube_n`/`ad_addr`/`ad_data` and are identical in every field on rows 9-4062:
+the old key was separating them on pad residue, which is a FALSE separation.
+Single-field mutation of a DRIVEN row still changes the key in every column
+tested (`t`, `bs_early`, `qs`, `ad_addr`, `ube_n`, `lock_n`, `ad_data`); a
+mutation of `ube_n` on an UNDRIVEN TI row changes the old key and no longer
+changes the new one, which is the fix.
+
+**Blast radius: no gate, ratchet or audit compares a stored key to a recomputed
+one.**  Every `stable_key` call site (`t2b_board`, `s10_board`, `t4_board`,
+`s13_board`) appends keys inside ONE capture loop and then asks
+`len(set(keys)) == 1` / `len({...}) == 1`.  No code path reads `stable_key`
+back out of a `manifest.json`.  The one stored-vs-recomputed comparison in the
+tree (`t4_board`'s `t2b_sha` / `matches_t2b`) compares the accesses digest, not
+`stable_key`; `t4_board.tranche_key` is a separate function that already drops
+`rows[:9]` on its own §14.1 grounds and was never exposed.  Stored keys stay
+valid within their own manifest and are **not comparable across this change** —
+recorded in the function's docstring.
+
+**§24.10's verdict STANDS and is strengthened**, and §24.14's *"the S2 sweep's
+determinism 195/196 -> 196/196 in the decisions"* stands on direct evidence: the
+one flagged S2 cell IS the cell P5 re-captured 50 times with every distinct
+variant retained.
+
+**AND ONE CLAIM IS DOWNGRADED, HONESTLY.**  §24.10 says of the OTHER flagged
+cell, `HLT.INT_w2_d0`, that it is *"the same artifact"*.  **That is NOT
+verifiable offline and is reported as un-run.**  `s13/p1b-ahsweep` banks only
+ONE rows stream per cell (the first repetition) beside five per-rep raw shas, so
+the other four repetitions' keys cannot be recomputed.  What IS shown offline is
+corroboration only: in that same sweep `w2_d0..d3` differ from each other only
+on rows 0-8, so capture-to-capture pre-first-T1 residue demonstrably occurs in
+that session; and 50/100 p1b groups (162/196 in S2) have all-distinct raw shas,
+so raw pad float is near-universal while the flag fired once.  **RETENTION GAP:
+verifying it needs per-rep rows banked, which needs the board.**
+
+---
+
+### 26.2 D#11 — `s12_census.cycles()` FRAMED CYCLES ON THE RIG'S COUNTER, and it DID feed a surviving claim
+
+§24.15 item 12 booked the defect and added *"Not used for any surviving
+claim."*  **That sentence is FALSE and this section is the correction.**
+
+`cycles()` opened a bus cycle on every row with `r["t"] == 1` — the **rig's**
+T-state counter, which keeps running through the HALT pseudo-cycle.  A cycle the
+part ANNOUNCES inside those T-states therefore never gets a T1 of its own and
+was invisible to the instrument.  The shape, verbatim from `HLT.INT_w1_d8`
+(`A - H = -2`, `H` = 219):
+
+```
+  H+0  t=0  HALT  69090      <- the HALT display
+  H+1  t=1  HALT  67CB2      <- the rig's T1 for the HALT pseudo-cycle
+  H+2  t=2  PASV  67CB2
+  H+3  t=3  CODE  67CB2      <- THE WOKEN PREFETCH IS ANNOUNCED HERE
+  H+4  t=4  CODE  57CB4         ... and never takes a T1
+  H+5  t=5  PASV  67CB4      <- the rig's T4 for the HALT pseudo-cycle
+  H+7  t=0  INTA  67CB4
+  H+8  t=1  INTA  07CB4      <- what the old instrument called "first post-HALT"
+```
+
+Quantified over the 196 S2 + 100 S13 cells (296, of which 228 drive the HALT
+status):
+
+| | |
+|---|---|
+| cells where the T1-anchored reading picks a DIFFERENT cycle | **18 / 296** (S2 4: `HLT.{INT,RES}` w1 d8/d9; S13 14) |
+| ... it walked to the ACKNOWLEDGE | 9 (`HLT.INT`, w1/w2/w3) |
+| ... it walked to the NEXT prefetch | 9 (`HLT.RES`, w1/w2/w3) |
+| `A - H` of those 18 | −2 (6), −1 (6), 0 (4), +1 (2) — all inside the residue band |
+| cells where it picks the right cycle but reports its T1 instead of its DISPLAY | 210 (200 off by one clock, 10 by two) |
+| by wait level | w0 **0 / 90**, w1 4/82, w2 6/30, w3 8/26 |
+
+**The fix, and it needed no HALT special case.**  A bus cycle is ONE CONTIGUOUS
+RUN OF THE SAME NON-`PASV` `bs_early`; `d` is the clock the status first
+appears and `t1` is the T1 row inside that run, or `None` when the part
+displayed a cycle and never took one.  The display IS the status pulse (§21.1,
+§24.1).  The corpus justifies the generality directly: over the 296 banked
+captures there are **199,282 status runs and not one carries a second T1**, so
+"one run = one cycle" frames every cycle in the corpus by the same rule.  58
+runs carry ZERO T1 — those are the announcements the old rule could not
+represent at all.  `anchor_t1`, `halt_t1` and `halt_t4` are **296/296
+identical** before and after, which is why THRESHOLD 1 cannot move.
+
+**Per-claim verdict — every §23 conclusion that came through the tool:**
+
+| claim | verdict | on the corrected instrument |
+|---|---|---|
+| THRESHOLD 1 — the HALT status is driven iff `A - H >= -2`; `d*` 4 / 8; `H -` anchor 8 / 12 | **UNCHANGED** | output block byte-identical; driven 172/196 |
+| `d*(w1) - d*(w0) = +4`, and §24.8/§25.5's `H -` anchor `= 8,12,14,16`, `d* = (H-`anchor`)-4`, `H = anchor + 2 x pitch` | **UNCHANGED** | `s14_dstar.py` byte-identical |
+| THRESHOLD 2 as a LAW — the woken fetch's DISPLAY `= max(A + 4, H + 3)` | **UNCHANGED, and now scored on this instrument too** | **172/172** (w0/w1) and **228/228** over four wait levels, measured from the banked captures — independently reproducing §24.1 and §24.8, which were measured a different way |
+| §23.3's PROSE for that law — *"the first post-HALT slot sits at `H+8` ... and at `H+6` from `A-H = 0` on"* | **CHANGED** | it sits at **H+3** and **H+4**, i.e. exactly `max(A+4, H+3)`.  `H+8`/`H+6` were the T1 of the wrong cycle and of the right one |
+| **§23.3 / §23.7 / §23.8 — *"the ~57-clock excursion is the METRIC changing referent", 2 of 196 cells*** | **FALSIFIED** | **0 of 196.**  The excursion does not exist on the corrected instrument |
+| §23.3's 5-of-5 repetition determinism | UNCHANGED | read from manifests; never touched `cycles()` |
+| M20 / M21 (§23.4), `psw`, `regold`, `ackfam` | UNCHANGED | scored by `timed_gate`, which does not import `s12_census`; `psw` output byte-identical |
+
+**What actually happened at `HLT.INT` w1 d8/d9.**  §23.3 wrote *"the first
+post-HALT bus cycle is the acknowledge, not a prefetch, so the metric silently
+walks forward to the HANDLER's first fetch."*  The chip's rows say the first
+post-HALT bus cycle **IS a prefetch** — announced at `H+3`, precisely
+`max(A+4, H+3)`, held two clocks and then **withdrawn without ever opening a
+T1**; the acknowledge is announced four clocks later at `H+7`.  On the corrected
+instrument the first cycle announced after the HALT display is a CODE prefetch
+on **228 / 228** driven cells at every wait level and **never** the
+acknowledge.
+
+**The VERDICT survives and the REASON is replaced.**  There was no race and the
+57 clocks were an artifact — but the artifact is the INSTRUMENT'S FRAMING, not
+"the metric changing referent", and the definition §23.3 blamed ("the first CODE
+announced after `H`") was correct all along.  §23.7's `MEASURED (negative)` row
+and §23.8's ledger row should be read with this correction attached.
+
+**A FREE POSITIVE RESULT.**  Those 18 cells are displayed-then-withdrawn
+prefetches — §22.10 item 1 / §24.8's grant-then-withdraw, which M22 (§25.2) now
+explains.  §24.8 discriminated it on THREE w2/w3 cells; the corrected instrument
+shows the same shape on **18 cells across w1, w2 and w3, and on 0 of the 90
+driven w0 cells** — which is M22's own `F - D <= 2` inequality being
+unconditional at w0 (§25.0), now measured a second way, on the raw captures
+rather than the goldens.
+
+**Cross-check between two independent instruments and two independent data
+paths** — `s14_census.py --band` reads the committed GOLDEN row streams, the
+fixed `s12_census.cycles()` reads the BANKED RAW captures:
+
+```
+228 / 228 cells agree on every field both determine -- 908 / 908 field comparisons
+  A-H 228/228   D 224/224   codeT1 114/114   dropped-or-not 114/114
+  iD 114/114    iT1 114/114
+```
+
+`s14_census.py --band`, `s14_dstar.py` and `s12_census.py psw` are all
+byte-identical before and after.
+
+*Retention note.*  `sw/testdata/s12/census.txt` is left as it is: it records
+verbatim what the defective instrument said and is EVIDENCE.  It is now
+known-superseded and §23.6's retention line should be read that way.
+
+---
+
+### 26.3 THE THREE w0 TAILS ARE ONE MECHANISM, AND IT IS THE BOARD'S 64 KiB MIRROR
+
+**NO BOARD CONTACT.**  Everything below is offline, from the banked goldens,
+`testimage.compose` and the timed sim.  §24.11 read the three tails and split
+them into two stories; there is only ONE, it is simple, and it is fully
+measured.
+
+#### 26.3.1 The mechanism
+
+The capture board is **64 KiB of RAM mirrored across the 1 MiB space**
+(`sim/biu.h::set_mirror`, `sw/testimage.py::compose`, which composes a 64 KiB
+image).  A golden's `initial.ram` is a list of **20-bit linear** addresses.
+The timed sim runs a **flat 1 MiB** memory by default.
+
+So whenever a case's operand window and its own code footprint alias to the
+same 16-bit cell, the two models disagree about one byte:
+
+* the chip returns the **composed image** byte at `linear & 0xFFFF`;
+* the flat model returns whatever `initial.ram` declares at that **20-bit**
+  address, or `compose`'s `0x90` fill if it declares nothing.
+
+That is the whole of the 17-row residue.  It is an EMISSION/HARNESS fact, and
+it is a **memory-model** fact, not a masking question.
+
+#### 26.3.2 THE GENERAL DISCRIMINATOR, run over all 169,000
+
+> A golden is **ALIAS-EXPOSED** if some byte lane of some bus cycle it records
+> has a 16-bit physical alias that the golden's OWN `initial.ram` declares
+> under a DIFFERENT 20-bit linear address.
+
+Run offline over `tests/v30/v0.1` — **4 of 169,000 are alias-exposed, and
+nothing else is**:
+
+```
+0F12 [219] clr1 cl byte [si+78b6h]
+      lane 2713A (declared 8F) aliases phys 713A, declared at 5713A = 63   <- ACCESSED lane
+      lane 2713B (declared --) aliases phys 713B, declared at 5713B = C0
+C1.6 [205] shl6 w,imm8 word [bp+bf04h]
+      lane 4D607 (declared --) aliases phys D607, declared at BD607 = 63   <- companion lane
+D2.0 [108] rol b,cl byte [si+e51ch]
+      lane 23972 (declared E5) aliases phys 3972, declared at 33972 = E5   <- VALUES AGREE
+F7.4 [174] mulu w word [bx+si-02h]
+      lane 6C4DD (declared --) aliases phys C4DD, declared at 3C4DD = F7   <- companion lane
+```
+
+The census **predicts the residue exactly**: the three whose aliasing
+declarations DISAGREE (or where one side declares nothing) are the three tails;
+the fourth, `D2.0[108]`, is alias-exposed but both declarations are `E5`, so
+flat and mirrored return the same byte and it never diverged.  4 exposed, 3
+divergent, 1 benign — no case is unaccounted for and no case is left over.
+
+`_operand_survives` (`sw/emit_suite.py`, the F4bc / instrument-failure-#3 guard)
+is the emission-side form of the same rule and it **rejects `0F12[219]`
+outright**: `want 8f got 63 at phys 713a`.  That guard post-dates v0.1
+emission; these are its pre-guard survivors.
+
+#### 26.3.3 Tail 1 — `0F12[219]`: the HYPOTHESIS IS CONFIRMED, promote to MEASURED
+
+§24.13 registered the falsifier as *"the composed image holding `8F` there"*.
+The composed image was regenerated exactly as `emit_case` builds it
+(`preload_n = 2` for the odd index, `PC -= 4`, `run_instr = 63 C0 63 C0 0F 12
+84 B6 78`, stub at `7141`):
+
+```
+anchor(un-preloaded) 5713C   anchor_phys 713C   preloaded anchor_phys 7138
+image[7134..7148] = 90 90 90 90 | 63 C0 63 C0 | 0F 12 84 B6 78 | 90 ...
+EA = DS:(SI+78B6) = 1A670 + CACA = 2713A      phys 713A       (EVEN)
+DECLARED  ram[2713A] = 8F
+COMPOSED  image[713A] = 63          <- THE FALSIFIER DID NOT FIRE
+```
+
+`phys 713A` is the **first byte of the SECOND `63 C0` preload pair**.  The
+golden records both `[2713A, 8F]` (the generator's operand) and `[5713A, 63]`
+(the fill the chip was actually seen to read) — **it is the only case in
+169,000 whose own `initial.ram` is self-contradictory under the mirror**
+(single-rule census: 1/169,000 in `v0.1`, 0/1,200 in `-w1`, 0/1,200 in `-w3`).
+
+Bus rows: the read at `2713A` is `ube_n = 1` (low lane only).  Chip `data =
+C063`, model `data = 908F`; both then clear bit 1 correctly and write back
+`C061` / `908D`.  `arch_check` passes on both because `clr1` to memory touches
+no register.
+
+**VERDICT: VERIFIED.  §24.13's `0F12` row is promoted HYPOTHESIS, BOOKED ->
+MEASURED.**  §25.10 item 10 is closed.
+
+#### 26.3.4 Tails 2 and 3 — `C1.6[205]` and `F7.4[174]`: CONFIRMED in substance, CORRECTED in wording
+
+§24.11's claim was re-derived independently, not taken on trust.  Both are the
+**second cycle of a split word read**, at an EVEN address, `ube_n = 1`, so only
+the LOW lane is enabled and the companion HIGH byte is whatever the memory
+drives:
+
+| | cycle | accessed lane | declared | chip | model | companion lane | chip | model |
+|---|---|---|---|---|---|---|---|---|
+| `C1.6[205]` | 2nd of split at `4D605`, T1 addr `4D606` | `4D606` low | `54` | `54` | `54` | `4D607` high | `63` | `90` |
+| `F7.4[174]` | 2nd of split at `6C4DB`, T1 addr `6C4DC` | `6C4DC` low | `DF` | `DF` | `DF` | `6C4DD` high | `F7` | `90` |
+
+Their first cycles (odd address, `ube_n = 0`, high lane) match on both sides:
+`4D605 = 3C`, `6C4DB = E8`.  **"The accessed byte is correct in every cycle of
+both cases" is CONFIRMED.**
+
+**One word of §24.11 is WRONG and is corrected here.**  It called the companion
+lane *"undeclared"*.  It is undeclared **at that linear address**, but the case
+DOES declare the physical cell — under the code's linear address:
+
+* `C1.6`: `4D607` -> phys `D607` = `BD607`, the **first `63 C0` preload byte**;
+* `F7.4`: `6C4DD` -> phys `C4DD` = `3C4DD`, the **instruction's own `F7`
+  opcode byte**.
+
+That matters, because it means the two families are not two things.  `C1.6`
+and `F7.4` are the SAME aliasing as `0F12`; the only difference is whether the
+aliased image byte lands on the **byte-enabled** lane (`0F12`, so the
+arithmetic also moves) or on the **disabled companion** lane (`C1.6`, `F7.4`).
+A "mask the undeclared lane" rule would have been a fitted rule for the wrong
+mechanism.
+
+#### 26.3.5 The falsification that settles it
+
+Re-running the three cases on the board's real memory model — `v30sim
+timed-run --mirror`, nothing else changed, no golden edited, no cell masked:
+
+```
+0F12[219] mirror=True  ndiff=0
+C1.6[205] mirror=True  ndiff=0
+F7.4[174] mirror=True  ndiff=0
+```
+
+All 17 rows go away at once.  **There is no model residue in `v0.1` at w0.**
+
+#### 26.3.6 THE ACCOUNTING CHANGE — AND THE RATCHET MOVES.  READ THIS.
+
+> ### `168,997 / 169,000`  ->  `169,000 / 169,000`
+> ### A COMMITTED RATCHET HAS BEEN RE-SCORED.  BOTH NUMBERS STAND ABOVE.
+
+The denominator is **unchanged at 169,000**.  No population was cut, no case
+excluded, no golden edited, no `(row, col)` masked, and **no per-case list
+exists anywhere in the code**.
+
+**The exact rule that moved it** — it is not new.  `sw/ucsim_check.py` has
+carried it since the bringup-log collision-criterion correction, and
+`sim/biu.h::set_mirror` documents it in the C++:
+
+> a case that fails on the FLAT 1 MiB model and is CLEAN under the board's real
+> 64 KiB-mirrored RAM is COLLISION-DEPENDENT — its memory footprint holds two
+> distinct 20-bit addresses aliasing to one 16-bit cell, so it is only
+> meaningful under the model it was captured on.  It is scored as captured, on
+> the mirrored model, and **counted and printed separately**.  A real
+> divergence fails under BOTH.
+
+`ucsim_check` applied it to the ARCHITECTURAL comparison only.
+`sw/timed_gate.py` had the `--mirror` switch but no retry.  This addendum ports
+the retry to the ROW comparison (`timed_gate.mirror_retry`), which is the same
+question — the mirrored cell decides which byte the bus carried.  `--no-mirror`
+disables it and reproduces the old number exactly.
+
+The rule is phrased about goldens whose footprint aliases in the 64 KiB space.
+It names no opcode, no form and no index.  Its reach is measured, not asserted:
+**exactly 4 goldens in 169,000 can be touched by it at all** (§26.2), and it
+rescues 3.  It is **strict** — a case must be arch-clean AND window-clean AND
+rows-exact under the mirror to be adopted; a partial improvement rescues
+nothing.
+
+Gate output now carries it on its face:
+
+```
+0F12     64K-mirror retry: 1 collision-dependent golden(s) scored as captured: idx [219]
+C1.6     64K-mirror retry: 1 collision-dependent golden(s) scored as captured: idx [205]
+F7.4     64K-mirror retry: 1 collision-dependent golden(s) scored as captured: idx [174]
+TOTAL   arch 169000/169000   window 169000/169000   rows-exact 169000   row-diffs 0   [3 collision-dependent under 64K mirror]
+```
+
+**What the new number means, exactly.**  `169,000 / 169,000` = every case in
+`tests/v30/v0.1` is cycle-exact against the chip at w0 **on the memory model
+the capture was taken on** — 168,997 of them on a flat 1 MiB model, and 3 that
+are only well-posed on the board's 64 KiB mirror, scored there and named on
+every run.  It is NOT a claim that the model changed: the RTL, the BIU and the
+timed sim are untouched by this addendum.  The honest one-line form is
+**`169,000 / 169,000`, of which 3 are collision-dependent** — and if a reader
+wants the old convention it is one flag away.
+
+---
+
+### 26.4 THE 729-SEED RESIDUE CENSUS — the largest unexamined population in the campaign, and it CLOSES
+
+`timed_fuzz` has stood at REGISTERED **1,272 / 1,702** and EVT **708 / 1,008**
+(EVT **709** after M23, §26.7) since §23, and §25.10 item 4 reported it as *"the numbers they are"* with a
+first-divergence family breakdown (`qs` 468 / `bs` 188 / `data` 37 / `nxta` 29 /
+`ube` 7 / `ps` 1).  **That breakdown is the COLUMN that parted, which is an
+effect.**  Five EVT-focused sessions scored the populations; none opened them
+case by case.  430 + 299 = **729 seeds** (300 before M23, §26.7) were the largest unexamined
+population in the project.
+
+The instrument is `sw/s15_census.py` and it classifies on the BUS STRUCTURE,
+because that is the thing a BIU is.  Per seed it re-runs the same model through
+the same comparison and reads three things:
+
+* the **LAUNCH SEQUENCE** — every bus cycle as (status, address) in order, chip
+  against model.  If the sequences agree, the two sides ran the same bus
+  program.
+* the **LAUNCH TIMES** — the T1 clock of each of those cycles.  Sequences agree
+  and times do not => the difference is WHEN a cycle was granted, and the first
+  offending cycle's delta is the whole content of the divergence.
+* the **PINS** — what is left when sequence and times both agree.
+
+plus two SEVERITY axes read with the campaign's own instruments, not new ones:
+`fuzz_classify.compare_functional` (does the ordered functional event stream
+part?) and `fuzz_classify.arch_dump` (do the 12 `STORE_ORDER` registers and the
+PSW agree?).
+
+**THE TAXONOMY IS CLOSED.  Every one of the 729 lands in exactly one family and
+the catch-all is EMPTY.**
+
+| family | what it says | REG 430 | EVT 299 |
+|---|---|---|---|
+| **PF_LOST** | at the first slot the two disagree about, the CHIP prefetched and the model did not | **239** | 70 |
+| **SCHEDULE** | the same cycles, in the same order, at different clocks | 79 | **114** |
+| **PF_GAINED** | the MODEL prefetched and the chip did not | 23 | **84** |
+| **TAIL_EXTRA** | the model is still running where the chip has parked | 30 | 3 |
+| **DATA_SEQ** | two data cycles that differ | 28 | 8 |
+| **PF_ADDR** | both fetched, at different addresses | 17 | 10 |
+| **PIN** | schedules identical; a pin column differs | 14 | 10 |
+
+**THE STRONGEST NUMBER IN THIS SECTION, and it is a negative:**
+
+```
+architectural state DIFFERS:    0 / 729     -- REG 0/430, EVT 0/299
+architectural state AGREES:   355 / 729
+no arch dump inside window:   374 / 729
+```
+
+**Not one of the 729 finishes in a different architectural state from the chip
+where the comparison is available at all.**  The 374 with no dump are
+seeds whose schedule difference pushed the register store past the comparison
+window — a consequence of the timing residue, not an independent failure.  So
+the whole 729-seed residue is a BUS-TIMING residue: it is not the model
+computing something else.
+
+#### 26.4.1 `PF_LOST` — one arbitration statement, and its two sub-signatures
+
+309 of the 729 (239 REG + 70 EVT).  At the first slot the two sides disagree
+about, the chip grants the PREFETCHER and the model grants the EU.  The
+arbitration cell, chip status -> model status:
+
+```
+REG:  CODE->MEMW 159   CODE->MEMR 75   CODE->IOW 3   CODE->IOR 2
+EVT:  CODE->MEMW  35   CODE->MEMR 26
+```
+
+**Sub-signature A — THE PREFETCH IN THE READ-MODIFY-WRITE GAP (111 seeds:
+80 REG + 31 EVT).**  These are exact ORDER SWAPS: the same two cycles the other
+way round.
+
+```
+chip:  ... MEMR:0453f   CODE:076a6   MEMW:0453f  ...
+model: ... MEMR:0453f   MEMW:0453f   CODE:076a6  ...
+```
+
+Of the 111, **82 have a READ then a WRITE bracketing the chip's fetch and 67 of
+those are to the SAME ADDRESS** — a read-modify-write with a prefetch taking the
+gap.  §26.5 shows this is not 111 rare cases but the visible tip of a
+5-figure banked population.
+
+**Sub-signature B — ONE PREFETCH SHORT AT A FLUSHING WRITE (88 seeds: 78 REG +
+10 EVT).**  A single, spectacularly uniform shape, `recov = MISS` in 78/78,
+`sig = qs E!=-` in every member, chip-side context `(MEMW, +0)` in every member,
+**76 of 78 at ZERO WAITS**:
+
+```
+chip:  MEMW:X   CODE:00480  CODE:00482  CODE:00484   MEMW:Y   CODE:00008 ...
+model: MEMW:X   CODE:00480  CODE:00482               MEMW:Y   CODE:00008 ...
+```
+
+The chip issues THREE prefetches before the write that carries the queue clear;
+the model issues TWO, and the sequences realign immediately afterwards.  It is
+concentrated in `t30-brkem` (46 of 78) — the bank whose exact rate is 5/62 and
+which is otherwise entirely PF_LOST (50 of its 57 non-exact seeds), so **this
+one signature is essentially the whole of that bank's score.**
+
+*What is claimed:* the shape, the counts and the wait-level concentration are
+**MEASURED**.  *What is NOT claimed:* no mechanism is landed for either
+sub-signature.  Both say the same thing in the same words — at a slot both
+requesters want, the chip grants the prefetch and the model grants the EU — and
+that is a statement about arbitration priority, which is exactly what law card
+**C11 (`owns_slot`)** is about and is exactly the card that stands UNRESOLVED
+because the reservation SOURCE is an EU micro-state and is not observable on the
+pins (§24.6).  These 309 seeds are the pin-side shadow of that card.
+
+#### 26.4.2 `SCHEDULE` — 193 seeds, and the model is EARLY
+
+79 REG + 114 EVT.  Sequences identical, clocks not.  The first offending
+cycle's delta (model T1 minus chip T1) is **negative in 154 of the 193** — the
+model launches the cycle BEFORE the chip does — and its mode is **-3** (67 of
+193, in both populations).  Its status is CODE in 102 of 193, and the chip cycle
+it follows is an IDLE gap or a `MEMR` in 145 of 193.
+
+*Not fitted, and deliberately.*  A -3 offset applied at a `MEMR` boundary is
+exactly the shape of a fitted table, and §21.0.1's standing refusal applies.  It
+is recorded as **MEASURED, MECHANISM OPEN**, and its discriminator is named in
+§26.10.
+
+#### 26.4.3 `PF_GAINED` — 107 seeds, and in the EVT population it is the HALT
+
+23 REG + 84 EVT.  In EVT the arbitration cell is **`HALT -> CODE` in 69 of the
+84**: the chip drives the HALT status and the model prefetches instead.  That is
+M20's regime (§23.4, §25.6 item 2) seen from the whole-program population rather
+than from the delay sweep, and it explains the `func_bad` count in that family
+(80 of 84) without any of them being an architectural error — `func_stream`
+carries `("HALT",)` as an event, so a HALT the model does not drive parts the
+functional stream by construction.  **The 80 `func_bad` in PF_GAINED are a
+HALT-status accounting effect, not 80 functional bugs**, and the arch column
+(0 differ) is the check that says so.
+
+#### 26.4.4 The rest, named
+
+* **`TAIL_EXTRA` 33** — the chip's launch list ends and the model keeps
+  launching (median 481 further cycles, max 847), `sig = bs PASV!=MEMR` in all
+  33.  The chip has parked and the model has not.  These were sitting inside
+  `PIN` in the first cut of this census and were split out because leaving them
+  there would have made the taxonomy lie; the split is recorded because the
+  first cut is in this session's own retention.
+* **`DATA_SEQ` 36** — the two sides run genuinely different data cycles.  This
+  is the family with real reach: 35 of 36 are `func_bad` and 35 of 36 have no
+  arch dump in the window, so **they are the one family the arch column cannot
+  clear** (the single seed that HAS a dump is arch-OK).  The first differing
+  functional event is a `MEMR` in 31 of 36, and the arbitration cell is
+  `MEMR -> MEMR` at a different address in 29 of 36.  **This is the census's own hand-over: 36 seeds, named,
+  and the highest-value population left in the fuzz bank.**
+* **`PF_ADDR` 27** — both sides fetch, at different addresses; 16 of 27 are
+  arch-clean and 14 of 27 realign by skipping one fetch.
+* **`PIN` 24** — the schedules are identical and a pin differs: `qs -!=F` 20,
+  `data` 3, `ps 2!=6` 1.  The `ube` member of this family is GONE: it was
+  §25.6 item 1's display-window upper pins, and §26.7 closes it.
+
+#### 26.4.5 What the census did NOT find, stated because it was looked for
+
+* **No seed with a divergent architectural end-state.**  0 / 729.
+* **No family outside the seven.**  The catch-all is empty by construction and
+  is empty in fact.
+* **No new mechanism worth landing.**  Every family that has a coherent
+  signature (PF_LOST's two, SCHEDULE's -3) has it as an OFFSET or a PRIORITY,
+  and landing either from the census alone would be fitting.  §26.10 names the
+  discriminator for each.
+
+---
+
+### 26.5 THE RMW POPULATION — and law card C6/C7's STATED REASON is factually wrong
+
+`sw/timed_lawcards.py` has held **C6** (LC3 even-parity RMW-write early) and
+**C7** (LC3 write-scoped) UNRESOLVED with this reason string, verbatim:
+
+> "LC3 is board-by-construction (uRMW): no golden, **no fuzz seed** and no T2b
+> capture carries an RMW mem-write ready-AT-T4 with a controlled Tw parity"
+
+and §24.6 declined the positive-control search on the grounds that it is *"a
+SEARCH with an open-ended board budget and a signature detector that does not
+exist in the repo."*  §26.4.1 built the detector as a by-product.  Run over the
+whole bank, CHIP ONLY, no model anywhere (`s15_census.py --rmw`):
+
+```
+banked seeds scanned                                          3,242
+seeds carrying >= 1 same-address READ -> WRITE pair            3,020
+pairs total                                                   25,665
+pairs where a PREFETCH took the gap                           20,527  (2,915 seeds)
+pairs whose gap is EXACTLY ONE PREFETCH -- LC3's own cell     10,516  (2,537 seeds)
+```
+
+**They are single-instruction read-modify-writes, and the queue-status pins
+prove it.**  `QS = F` marks the first byte of a new instruction.  Over a
+random sample of 1,457 one-prefetch-gap pairs, the number carrying NO `QS = F`
+between the read's T1 and the write's T1 — i.e. no new instruction began, so
+the read and the write belong to the SAME instruction — is
+
+```
+1,400 / 1,457   =  96.1 %
+```
+
+**And the parity is stratified**, which is the substitute a 5-figure random
+population offers for a controlled probe:
+
+| prefetch Tw | parity | pairs | write T1 − prefetch T4, mode |
+|---|---|---|---|
+| 0 | 0 | 5,327 | +1 (3,800) |
+| 1 | 1 | 2,315 | +2 (1,812) |
+| 2 | 0 | 1,459 | +2 (1,359) |
+| 3 | 1 | 879 | +2 (834) |
+| 4-15 | both | 536 | +2 |
+
+```
+parity 0 : 7,028      parity 1 : 3,488
+waited seeds only --  parity 0 : 3,245    parity 1 : 3,488
+```
+
+**THE CONSEQUENCE, stated at the strength the evidence supports and no
+higher.**
+
+1. The clause **"no fuzz seed ... carries an RMW"** is **FALSE**: 3,020 of
+   3,242 banked seeds do, and 2,537 of them carry the exact cell LC3 names — an
+   RMW with a single prefetch in the gap — at BOTH Tw parities, on silicon,
+   already on disk.  The reason string must be corrected.
+2. The clause **"ready-AT-T4 with a CONTROLLED Tw parity"** is NOT falsified,
+   and it is the load-bearing half: "ready-AT-T4" is an internal EU condition
+   and "controlled" is what a random corpus is not.  What the bank gives is a
+   STRATIFIED population, not a controlled one.
+3. So C6/C7 are **NOT moved to GREEN here** — a card is not moved to GREEN by
+   weakening what it asserts (§21.0 S3, verbatim).  What changes is that the
+   card's obstacle is no longer *"the corpus contains no such cycle"*; it is
+   *"the pin-observable signature of `ext_ok_wr` / `tw_par` has not been
+   written down."*  That is a different, smaller and BOARD-FREE problem, and it
+   is booked as such in §26.10.
+4. **CROSS-CAMPAIGN.**  `docs/notes/biu_law_cards.md` records **G-LC3-uRMW** as
+   *"the only cell that cannot be board-free"* and gates C6/C7 on it
+   board-by-construction.  That premise rests on the same "no golden carries
+   RMW" statement and is now contradicted by 10,516 banked silicon instances.
+   The RTL campaign should re-open it rather than budget board time for it.
+
+*For scale, and NOT as a gate:* over the 2,067 RMW-carrying seeds inside the
+scored population the model is cycle-exact on **1,546 (74.8 %)**, which is the
+same rate as the corpus at large — so the RMW cell is not where the model is
+unusually weak; it is where a card said no evidence existed.
+
+---
+
+### 26.6 THE THREE SMALL POPULATIONS — the tranche, the `ACK` residue, and M20's w0 regime
+
+All three are classified against §26.4's taxonomy rather than given taxonomies
+of their own.  That is the point: a taxonomy that needs a new family for every
+population is not closed.
+
+#### 26.6.1 The 34 victory-tranche misses — SAME FAMILIES, no new one
+
+`timed_fuzz --seeddir sw/testdata/t4/b2-tranche/seeds` is **154 / 188** and V5
+remains a REGISTERED FAILURE; nothing here re-scores it.  All 216 tranche seeds
+are `pop = REG` and **none carries an `evt` axis**, so the comparator is REG 430.
+The tranche is a **fully disjoint capture** — zero path overlap with the main
+fuzz bank — so this is a genuine held-out test of the taxonomy.
+
+| family | tranche 34 | REG 430 |
+|---|---|---|
+| PF_LOST | 12 (35.3 %) | 239 (55.6 %) |
+| SCHEDULE | 12 (35.3 %) | 79 (18.4 %) |
+| PF_GAINED | 6 (17.6 %) | 23 (5.3 %) |
+| TAIL_EXTRA | 2 | 30 (7.0 %) |
+| DATA_SEQ | 1 | 28 (6.5 %) |
+| PIN | 1 | 14 (3.3 %) |
+| PF_ADDR | **0** | 17 (4.0 %) |
+| **architectural state differs** | **0 / 34** | **0 / 430** |
+
+**Yes — the same families, and NO family appears here that is absent from the
+main banks.**  The only main-bank family missing is `PF_ADDR`, expected count
+1.3, so its absence is not a signal.  The SIGNATURES match too, not just the
+names: the top first-divergence signature is `qs -!=F` at 14/34 (41 %) against
+167/430 (39 %); `SCHEDULE`'s modal delta is `-3` (6 of 12) as it is in REG (32
+of 79); and **all 6 tranche `PF_GAINED` are the arbitration cell
+`MEMR -> CODE`, which is the only `PF_GAINED` cell in the entire REG bank
+(23/23)** — the same cell, not a new one.
+
+The proportions do shift and part of it is accounted for: the tranche is
+**w0-poor** (10.1 % of scored seeds at `fix0` against 17.5 % in REG), which
+deflates `PF_LOST`, whose big sub-signature B is 76/78 at w0 — and indeed
+`qs E!=-` is 2/34 here against 80/430 in REG.  Restricted to waited seeds only
+the residual excess is `PF_GAINED` 20.7 % against 5.6 % (6 observed, 1.6
+expected, Poisson p ~ 0.006) and `SCHEDULE` 34.5 % against 23.0 %.  **Real
+enrichment of an EXISTING cell, not a new one.**
+
+#### 26.6.2 The `ACK` residue — it is 18, not 20, and the taxon is CLOSED
+
+§25.10 item 5 carries *"The 20-seed `ACK` residue (§23.5) — three named
+signatures, untouched."*  **That line is STALE and is corrected here.**
+Regenerated with `s12_census.py ackfam` on the current binary the family is
+**18 (8 waited), all EVT.**
+
+`mc1` soup 1798 and `mc2` soup 140 have LEFT the family: §25.7 records M22
+moving their first divergence 234 -> 434 and 240 -> 449, and it also changed the
+divergence KIND from `bs` to `qs`, so by nearest-marker they are now HALT-family
+(`off` −8 and −11).  **§23.5's third signature, `bs CODE!=PASV nxta
+0505!=00ff`, no longer exists anywhere in the corpus.**
+
+**All 18 land in exactly TWO of §26.4's families** — `SCHEDULE` 12,
+`PF_GAINED` 6.  Zero `PIN`, zero `PF_LOST`, zero `PF_ADDR`, zero `DATA_SEQ`,
+zero `TAIL_*`.  Architectural state differs in **0 of 18**.
+
+> **The `ACK` taxon is ABSORBED.  It was never a mechanism family** — §23.5
+> already showed the label is assigned by nearest marker — **and every member
+> now sits inside the main taxonomy.**  It is retired as a separate open item.
+
+Two signatures survive as sub-shapes, each with its discriminator:
+
+| §23.5 signature | now | family | discriminator |
+|---|---|---|---|
+| `bs PASV!=INTA` | **7** | all 7 SCHEDULE | below |
+| `qs` flush-position | **7** | 4 SCHEDULE + 3 PF_GAINED | `qs E!=-` x3 (all `fix0`, chip cell == sim cell `CODE`, delta +1) and `qs -!=E` / `-!=F` x4 |
+| `bs CODE!=PASV nxta` | **0** | — | **GONE** (M22) |
+| `t30-raw`, `ndiff > 3,400` | 3 (seeds 155, 235, 310) | all 3 PF_GAINED | the model takes a prefetch slot the chip gives to `INTA`/`PASV`; `func` BAD, `arch` NODUMP |
+
+**The `bs PASV!=INTA` seven, named exactly.**  Their bus SEQUENCES are
+identical (`chip_cell == sim_cell`), so it is pure scheduling.  Five of the
+seven (`mc1` 28 / 272 / 2137, `mc2` 1069 / 1357 — at `fix0`, `fix1`, `wrand1`,
+`wrand2`, `wrand3`) have a byte-identical FIRST acknowledge and a second
+acknowledge whose T1 is exactly **-3**, and all five are `func` ok **and
+`arch` OK** — pure timing residue.  The other two (`mc1` 356, `mc1` 2672) are
+-2 on BOTH acknowledges and are `func` BAD.  From `mc1/28` at w0:
+
+```
+        chip                          model
+1129    INTA display (A1)             INTA display (A1)       same
+1130    INTA T1                       INTA T1                 same
+1133    PASV T4                       INTA display (A2)   <-- the model announces A2 on A1's T4
+1136    INTA display (A2) = A1_T4 + 3
+```
+
+**The chip puts the second acknowledge's display at `A1_T4 + 3`; the model puts
+it at `A1_T4 + 0`.**  The model applies the inter-acknowledge gap correctly in
+the HLT sweeps and omits it here; the conditional is not identified.  This is
+the SAME open question as §25.6 item 2 seen from the other side, and the two are
+merged into one ledger item in §26.10.
+
+#### 26.6.3 M20's `A - H <= -3` regime — it is FOUR CELLS, all at w0, and it is not a band
+
+*Instrument note, and it matters:* `sw/s14_census.py` **cannot see this regime
+at all** — its `feat()` returns `None` when no HALT status is driven, which is
+the defining property of M20's regime.  The measurement below is taken with
+`timed_gate.run_form` + `row_check` directly on the committed suites.
+
+Full accounting of all **283** sweep cells (2 forms x 4 wait levels):
+
+| region | cells | non-exact |
+|---|---|---|
+| `A - H >= +3` | 188 | **0** |
+| `|A - H| <= 2` | 40 | 14 |
+| `A - H <= -3` | 55 | **4** |
+
+**51 of the 55 cells in the regime are byte-exact, including EVERY cell at w1,
+w2 and w3.**  The residue is `d2` / `d3` at w0 in both forms and nowhere else.
+
+| form | N | d | `A-H` | chip woken display | model | offset | ndiff |
+|---|---|---|---|---|---|---|---|
+| HLT.INT | 0 | 1 | −5 | row 2, T1 3 | row 2, T1 3 | **0** | 0 |
+| HLT.INT | 0 | 2 | −4 | row 4, T1 5 | **none** | tail **−2** | 179 |
+| HLT.INT | 0 | 3 | −3 | row 4, T1 5 | row 5, T1 6 | **+1** | 158 |
+| HLT.RES | 0 | 2 | −4 | row 4 | **none** | — | 3 |
+| HLT.RES | 0 | 3 | −3 | row 4 | **none** | — | 3 |
+| both | 1,2,3 | all | −10 … −3 | — | — | **0** | 0 (48 cells) |
+
+At `d2` the offsets are **−2 uniformly through the whole tail** (first
+acknowledge display 8 -> 6, its T1 9 -> 7, second acknowledge 15 -> 13 / 16 -> 14,
+the following `MEMR` chain 25 -> 23 / 26 -> 24).  At `d3` they are **+1 uniformly
+through the whole tail**.  Neither is a display-only offset: both are a
+whole-tail shift.
+
+**§25.6 item 2's blanket sentence is CORRECTED.**  It says of `HLT.INT` w0
+`d2`/`d3` that *"the model's woken display is one clock late there."*  That is
+true of `d3` only.  At `d2` the model announces **no woken prefetch at all** and
+its whole tail runs **2 clocks EARLY** — which is what §24.1's own table already
+said ("no woken prefetch at all").  The §25.6 summary flattened two
+opposite-signed cells into one.
+
+**Is the offset a SEVENTH fixed index?  The question is not testable here** —
+it is `0` at every wait level except w0, so there is nothing for it to move
+with.  It does not "move with `N`"; it exists only at `N = 0`.
+
+**The sharpest fact, and the one that should drive any follow-up.**  The chip's
+rows for `HLT.INT` w0 `d2` and `d3` are **byte-identical over all 61 rows**, and
+`HLT.RES` w0 `d2`/`d3` likewise (`d4`/`d5` are byte-identical over all 63 rows
+too) — the same pairing §25.2 records at w1 `d8`/`d9`.  **The chip is
+delay-insensitive across the pair and the model is not**: it loses the prefetch
+at `d2` and is one clock late at `d3`, for a stimulus the chip cannot tell
+apart.  Any mechanism must first make the model's answer IDENTICAL across the
+pair; the `+1` and the `−2` are two faces of ONE wrong decision, not two bugs.
+
+#### 26.6.4 The w0 acknowledge PAIR — ONE RULE, 135/135, and it is M22's own sentence
+
+§25.6 item 2's parenthesis said the `A-H = −2 / −1` w0 cells *"remain
+non-exact: their acknowledge PAIR is one clock late because the second
+acknowledge's schedule is not derived from the eval instant M22 corrected.
+Named, not fitted."*  It is now measured exactly, over **all 135 `HLT.INT`
+cells of all four sweeps**, chip side:
+
+```
+A2_display - A1_display  =  7 / 9 / 10 / 11    at N = 0 / 1 / 2 / 3
+                            135 / 135 cells, ZERO exceptions
+```
+
+**That series is not a new number.**  It is `e_i + 5` with §11.1's own
+`e_i = (N == 0 ? 2 : 3 + N)` = 2/4/5/6 — equivalently §25.5's fetch pitch
+(4/6/7/8) `+ 3`.  M18 already says the pair rides the completion eval; this is
+M18 with the anchor read off the DISPLAY.
+
+The model reproduces it on **133 / 135**, giving 8 instead of 7 on exactly
+`HLT.INT` w0 `d4` (`A-H = −2`) and `d5` (`−1`), 133 row diffs each.  **The
+first acknowledge is byte-exact in both** (display 10, T1 12, chip and model
+alike); only the second moves, display and T1 together, by `+1`.
+
+**The discriminator is exact and exhaustive.**  Over the same 135 cells,
+`A1_T1 − A1_display` is **1 in 133 cells and 2 in exactly 2** — and those 2 are
+precisely `d4`/`d5` at w0, where the acknowledge is announced while the woken
+CODE cycle still owns the bus.  So:
+
+```
+chip    A2_display = A1_DISPLAY + (7, 9, 10, 11)     135 / 135
+model   A2_display = A1_T1      + (6, 8,  9, 10)     133 / 135
+```
+
+The two rules are THE SAME RULE wherever the display-to-T1 gap is 1, and they
+separate only where it is 2.  **The chip anchors the second acknowledge on the
+first's DISPLAY; the model anchors it on the first's T1** — which is M22's own
+sentence (*"at `N = 0` … it is the part's own countdown from the register
+load"*, `disp + 3` and not `T1 + 2`) applied to the acknowledge chain instead of
+to the announcement's expiry, the one place M22 landed it.
+
+**PROVENANCE: MEASURED, MECHANISM OPEN.  NOT LANDED, deliberately.**  It meets
+every condition the campaign asks of a landable law — one rule, every cell,
+every wait level, no exception, no new number — and it is nonetheless left open
+here for a stated reason: landing it moves the completion-eval anchor, which is
+the most load-bearing instant in the model, and the two candidate populations
+point OPPOSITE WAYS.  The sweep cells want the second acknowledge `+1` EARLIER;
+§26.6.2's seven `bs PASV!=INTA` fuzz seeds want theirs `-3` LATER and their
+display-to-T1 gap is already 1, so display-anchoring alone is NEUTRAL on them.
+**Do not assume the two close together.**  The directed cell that separates them
+is named in §26.10.
+
+---
+
+### 26.7 M23 — THE ADDRESS ONE-SHOT IS FIRED BY THE DISPLAY, NOT BY THE T1
+
+§25.6 item 1 left this MEASURED with the mechanism open, and named the obstacle:
+
+> *the ordinary corpus (168,997 w0 goldens, `bus` compared on every driven row)
+> says `A19-A16` carries the ADDRESS at T1, and the one program that produces a
+> multi-clock display window has a fetch address whose top nibble collides with
+> the SS status code — so the sweep cannot separate "address" from "status" on
+> its own first display clock.  **A second program with a different fetch
+> address is the stimulus.***
+
+**The second program was already banked, in the same sweep, and nobody had
+looked at it.**  No board contact was needed.
+
+#### 26.7.1 The detector, and one instrument defect found on the way
+
+`sw/s16_dispwin.py` (a measurement tool, not a gate).  A **display window** is
+the maximal run of clocks on which a non-`PASV` status stands on `bs_early`
+BEFORE that cycle's own T1 opens, excluding clocks that are the BODY
+(T1 .. last Tw) of a cycle already running with that same status — the exclusion
+is what stops a back-to-back same-status pair from reading as one long window.
+A window is GRANTED if the row after it is that status's T1 and WITHDRAWN if it
+is not.  It reproduces §25.6's 12 cells exactly (w1 `d8/d9/d10`, w2 `d10-d13`,
+w3 `d12-d16`; 103 row cells = the 17 + 34 + 52 residue).
+
+*Defect found and fixed before any number was taken:* on records that open
+mid-cycle — every committed GOLDEN case starts at its first `F` pop — the
+T2/T3/Tw rows whose T1 is off the front have no body, so their status read as an
+announcement, fabricating a window of length 3 at w1, 4 at w2 and 5 at w3 on
+half the waited golden cases.  Rows before a record's first T1 are now excluded.
+The raw captures are reset-anchored and were never affected.
+
+#### 26.7.2 The census — 42 multi-clock windows exist, and ALL 42 are UNCONFOUNDED
+
+| corpus | 1-clock windows | multi-clock |
+|---|---|---|
+| the four HLT delay sweeps (raw captures) | 198,956 | **30** (L = 2, 3, 4) |
+| the fuzz bank, 3,242 seeds' `chip_rows` | 975,280 | **12** (L = 2, 3, 5, in 7 seeds) |
+| `s1-tranche`, `s5-a30`, `p2a-c2ramp`, `p5-race`, `t2b`, `t4` | 56,209 | **0** |
+| every committed golden suite (v0.1, v0.2, the w1/w3 and evt tranches) | 1,396,331 | **0** |
+
+**42 multi-clock windows in the entire banked corpus, and in all 42 the nibble
+at `disp + 1` differs from that cycle's own segment status** — the confound is
+broken in every one of them.
+
+#### 26.7.3 THE RULE
+
+```
+M23  the clock that loads the STATUS register also starts the ADDRESS PHASE,
+     and the address phase is ONE CLOCK LONG.  On `disp + 1` the part drives
+     the announced cycle's A19-A0 and its UBE; from `disp + 2` A19-A16 is back
+     on the SEGMENT STATUS while A15-A0 holds the address by pad retention.
+```
+
+Evidence, all pins, no model:
+
+```
+granted windows with L >= 2                                     22
+  T1 nibble == the segment status                            22 / 22
+  T1 nibble == the `disp + 1` nibble                          0 / 22
+  low 16 bits identical on `disp + 1` and on T1              22 / 22
+  UBE at `disp + 1` == UBE at T1                             42 / 42
+```
+
+identical at w0, w1, w2 and w3, for CODE and for INTA, at every window length.
+
+**The confound was broken by `HLT.RES` — the OTHER form of the same sweep.**
+It injects `CS = 90F7`, `IP = 9E19`, i.e. linear `0x9AD89`, so the nibble on
+`disp + 1` is **9** — PS3 set, the 8080 EMULATION-MODE bit — in a capture that
+is not in emulation mode and whose every genuine status sample reads 1 / 2 / 3.
+**No segment-status code can be 9 there, so the nibble names itself as the
+address.**  `s16_dispwin.py --oracle` predicts both nibbles (5 / 9 address,
+6 / 2 status) from the injected `CS:IP` and `FLAGS` alone — no model, no pins —
+and one screen shows it: `HLT.RES_w3_d16` row 295 `A19-16 = 2`, row 296
+(`disp + 1`) `A19-16 = 9`, row 297 (T1) `A19-16 = 2`.
+
+**A free rig cross-check** falls out of the same scan: the half-clock identity
+`ps(c) == ad_addr(c+1) >> 16` holds on **13,169,004** fuzz-bank samples with 37
+misses, and all 37 are at row 7 — the documented pre-first-T1 pad residue of
+§26.1.  The two columns are one pin group half a clock apart, which is what
+makes a one-clock address window observable at all.
+
+#### 26.7.4 Reconciliation with the 168,997 w0 goldens — VERIFIED, not asserted
+
+Every cycle in every committed golden suite has a **one-clock** display window
+(**1,396,331 / 1,396,331**), so `disp + 1 == T1` and M23 collapses to "the
+address is at T1".  The ordinary corpus is not evidence against the rule; it is
+the `L == 1` special case of it, and that is measured rather than argued.
+
+#### 26.7.5 The independent cross-check, two instruments
+
+`timed_fuzz`'s first-divergence family `ube` was 7 seeds.  **All 7 sit on
+`disp + 1` of a multi-clock display window**, and the census independently found
+exactly 7 CODE multi-clock windows, in exactly those 7 seeds.  Two instruments
+that share no code agree to the seed.
+
+#### 26.7.6 What it moved
+
+About ten non-comment lines in `sim/biu_timed.{cpp}`: the display block gets
+`if (c != cmt_disp_) { r.ps = data_ps(cmt_.segc); r.ube_n = cmt_.ube_n; }` and
+the T1 row gets the same statement for a T1 that is not `disp + 1`.  Both are
+DEAD CODE for every cycle whose T1 opens the clock after its display, which is
+every cycle in the ordinary corpus.
+
+| gate | before | after |
+|---|---|---|
+| `s10-hltsweep-w0` | 91/97, 609 row diffs | 91/97, **599** (`ube` column gone) |
+| `s10-hltsweep-w1` | 92/95, 17 | **95 / 95, 0** |
+| `s13-hltsweep-w2` | 42/46, 34 | **44 / 46, 12** |
+| `s13-hltsweep-w3` | 40/45, 52 | **42 / 45, 18** |
+| `timed_fuzz` EVT / COMBINED | 708/1,008, 1,980/2,710 | **709 / 1,008, 1,981 / 2,710** |
+| everything else | — | byte-identical |
+
+Per-seed over all 3,242 fuzz-bank seeds: **newly broken 0, newly exact 1, first
+divergence LATER 7, EARLIER 0** — the movers are exactly the 7 `ube` seeds, and
+`mc2` soup 327 goes fully cycle-exact (266 -> 1,501).
+
+**§25.6 registered `s10-hltsweep-w1` at 95/95 and MISSED it as a registered
+FAILURE.  It is MET here.**
+
+#### 26.7.7 What did NOT close — a NEW open item, and it is not M23
+
+The whole remaining w2/w3 sweep residue is **6 diffs x 5 cells, one uniform
+signature**: after a **WITHDRAWN** multi-clock announcement the pads retain the
+WITHDRAWN cycle's address and UBE (the chip holds `7CB4` / `ube 0`; the model
+reverts to the HALT's `7CB2` / `ube 1`, because the HALT pseudo-cycle re-drives
+`cur_.data` on its own T2-T4 rows, which §12.3 says are PASSIVE).  The same
+family shows in `mc2` soup 672 (still `ube` at row 284).
+
+**MEASURED, MECHANISM OPEN.  Board-free, and the stimulus is already banked.**
+It was deliberately not chased: it is about the retention lanes and the HALT
+pseudo-cycle's passive rows, which is a different mechanism from the address
+one-shot, and folding it into M23 would be fitting.
+
+---
+
+### 26.8 Provenance class, per finding
+
+| finding | class | evidence | falsifier |
+|---|---|---|---|
+| the 24 P5 streams differ ONLY on rows 0-8, and only in MULTIPLEXED pads | **MEASURED** | all 24 retained streams, 4,063 rows, every field | a difference on a row at or after the first T1 |
+| off T1, `ube_n` carries no independent information | **MEASURED** | 391,922 / 391,922 banked TI samples equal the preceding row | a TI sample that differs from its predecessor |
+| `stable_key` gated to driven T-states loses no separation | **MEASURED** | S2 196 cells 181 -> 181 distinct; the one p1b merge is 4 cells differing only on rows 0-8 | a pair of cells that differ in a DECISION field and now collide |
+| `HLT.INT_w2_d0` is the same pad artifact | **UNVERIFIABLE OFFLINE — reported as un-run** | only one rows stream per sweep cell is banked | needs per-rep rows, i.e. the board |
+| `s12_census.cycles()` mis-frames 18 of 296 cells and reports T1-for-display in 210 | **MEASURED** | the banked S2 + S13 captures | a cell it frames correctly that this says it does not |
+| "one status run = one cycle" frames every cycle in the corpus | **MEASURED** | 199,282 status runs, not one carrying a second T1 | a run with two T1s |
+| **§23.3's "~57-clock excursion is the metric changing referent, 2/196"** | **FALSIFIED** | 0/196 on the corrected instrument; the first post-HALT cycle is a CODE prefetch on 228/228 driven cells | — |
+| `D = max(A + 4, H + 3)`, re-measured from the RAW captures | **MEASURED** | 172/172 (w0/w1) and 228/228 (four wait levels), a second instrument and a second data path | any display off it |
+| the two instruments agree | **MEASURED** | 908 / 908 field comparisons over 228 cells | any field where they disagree |
+| all three w0 tails are ONE mechanism — 64 KiB image aliasing | **MEASURED** | all three go `ndiff = 0` under `--mirror`, nothing else changed | a tail that survives the mirror |
+| `0F12[219]`'s accessed byte is the harness's `63 C0` preload | **MEASURED** (was HYPOTHESIS, BOOKED) | composed image `[713A] = 63`; the golden declares both `[2713A]=8F` and `[5713A]=63` | the composed image holding `8F` there — CHECKED, it holds `63` |
+| exactly 4 goldens in `v0.1` are alias-exposed; the 4th is benign | **MEASURED** | offline census over 169,000 | a 5th exposed golden, or a divergence in a non-exposed case |
+| the 730-seed residue falls in SEVEN families with an empty catch-all | **MEASURED** | `s15_census` over both populations, retained per seed | a seed that fits none of the seven |
+| **architectural state differs in 0 of 730** | **MEASURED (negative)** | `fuzz_classify.arch_dump`, 356 of 730 have a dump and all agree | any seed whose 12 registers or PSW differ |
+| `PF_LOST` — at a contested slot the chip grants the prefetch and the model the EU | **MEASURED** | 309 seeds; 111 exact order swaps; 82 read-write brackets, 67 same-address | a contested slot where the chip grants the EU and the model the prefetch, at the same geometry |
+| `SCHEDULE` — the model launches EARLY, mode −3 | **MEASURED, MECHANISM OPEN** | 154 of 188 negative, mode −3 in both populations | an offset that moves with `N` at a fixed geometry |
+| the bank carries 10,516 one-prefetch-gap RMW cycles at both Tw parities | **MEASURED** | 3,020/3,242 seeds; 96.1 % of a 1,457 sample carry no `QS = F` between the read's T1 and the write's T1 | a sample where the read and the write are shown to belong to different instructions |
+| **`timed_lawcards`'s C6/C7 reason "no fuzz seed carries an RMW"** | **FALSIFIED** | the row above | — |
+| C6/C7 can be scored board-free | **NOT CLAIMED** | the corpus is stratified, not controlled; "ready-AT-T4" is an internal condition | — |
+| the tranche's 34 misses are the same families | **MEASURED** | disjoint capture, zero path overlap; no family absent from the main banks appears | a tranche family the main banks do not carry |
+| the `ACK` residue is 18 and lands in two existing families | **MEASURED** | `ackfam` on the current binary; 0/18 arch-bad | an `ACK` member outside the seven families |
+| `A2_display − A1_display = 7 / 9 / 10 / 11` at `N = 0..3` | **MEASURED** | 135 / 135 `HLT.INT` cells, four wait levels, zero exceptions | any pair off the series |
+| the chip anchors the second acknowledge on the first's DISPLAY, the model on its T1 | **MEASURED, MECHANISM OPEN — NOT LANDED** | the two rules agree wherever the display-to-T1 gap is 1 (133/135) and separate exactly where it is 2 (2/135) | a cell with a gap of 2 whose second acknowledge is T1-anchored |
+| `A - H <= -3` is 4 cells, all at w0; 51/55 byte-exact | **MEASURED** | all 283 sweep cells | a non-exact cell in the regime at w1/w2/w3 |
+| the chip's `HLT.INT` w0 `d2` and `d3` rows are BYTE-IDENTICAL | **MEASURED** | all 61 rows | any column that differs |
+| **§25.6 item 2's "the model's woken display is one clock late there"** | **CORRECTED** | true at `d3`; at `d2` there is no woken display at all and the tail is 2 clocks EARLY | — |
+
+---
+
+### 26.9 Gates (measured, this machine, immediately before the commit)
+
+```
+make -C sim test                                                          # disasm gate: PASS
+python3 sw/pla3_check.py                                                  # OK (21 checks)
+python3 sw/ucsim_check.py --suite tests/v30/v0.1                          # 169000/169000
+python3 sw/ucsim_check.py --suite tests/v30/v0.2                          # 347000/347000
+python3 sw/ucsim_check.py --suite tests/v30/v0.3                          # 3699998/3699998
+python3 sw/ucsim_check.py --suite tests/v30/v20suite --no-mirror          # 3125000/3125000
+python3 sw/ucsim_check.py --suite tests/v30/mod3_illegal --residue stale-ea  # 128/128
+                                                              # functional total 7,341,126
+python3 sw/timed_gate.py --suite tests/v30/v0.1    --forms all            # 169,000 / 169,000  row-diffs 0
+                                                                          #   [3 collision-dependent under the 64K mirror]
+python3 sw/timed_gate.py --suite tests/v30/v0.1    --forms all --no-mirror # 168,997 / 169,000  (17 row diffs, data 9 / bus 8)
+python3 sw/timed_gate.py --suite tests/v30/v0.1-w1 --forms all --waits 1  # 1,200/1,200
+python3 sw/timed_gate.py --suite tests/v30/v0.1-w3 --forms all --waits 3  # 1,200/1,200
+python3 sw/timed_gate.py --suite tests/v30/v0.1-w1 --forms EB  --waits 1  # 200/200
+python3 sw/timed_gate.py --suite tests/v30/v0.1-w0evt --waits 0           # 200/200
+python3 sw/timed_gate.py --suite tests/v30/v0.1-w1evt --waits 1           # 1,200/1,200
+python3 sw/timed_gate.py --suite tests/v30/v0.1-w1evt-biased --waits 1    # 1,200/1,200
+python3 sw/timed_gate.py --suite tests/v30/v0.1-w2evt --waits 2           # 200/200
+python3 sw/timed_gate.py --suite tests/v30/v0.1-w3evt --waits 3           # 1,200/1,200
+python3 sw/check_boot.py --timed 220                                      # MATCHES over 220 rows
+python3 sw/timed_scenario.py                                              # 18 PASS, 0 FAIL, 9 SKIP
+python3 sw/timed_enter_replay.py          # pushes/walk/full/active/halt_display 154/154 x5
+python3 sw/timed_ins_replay.py --raw      # rails 1312/1312, vs-chip 2624/2624, R2 782/800
+python3 sw/timed_wvec_gate.py             # count 88/88, digest 88/88, cycles +0.0 %
+python3 sw/timed_lawcards.py              # 8 GREEN / 0 RED / 3 UNRESOLVED
+python3 sw/timed_fuzz.py --evt-replay     # REGISTERED 1,272/1,702   EVT 709/1,008
+                                          # COMBINED   1,981/2,710
+python3 sw/timed_fuzz.py --seeddir sw/testdata/t4/b2-tranche/seeds        # 154/188
+                                                              # --- THE HLT SWEEP, FOUR WAIT LEVELS ---
+python3 sw/timed_gate.py --suite tests/v30/s10-hltsweep-w0 --waits 0 --forms all   # 91/97   (609 -> 599 diffs)
+python3 sw/timed_gate.py --suite tests/v30/s10-hltsweep-w1 --waits 1 --forms all   # 95/95   (was 92; 17 -> 0)
+python3 sw/timed_gate.py --suite tests/v30/s13-hltsweep-w2 --waits 2 --forms all   # 44/46   (was 42; 34 -> 12)
+python3 sw/timed_gate.py --suite tests/v30/s13-hltsweep-w3 --waits 3 --forms all   # 42/45   (was 40; 52 -> 18)
+                                                              # --- the censuses (measurement tools) ---
+python3 sw/s15_census.py --report <timed_fuzz --report> --pop reg|evt --dump ...
+python3 sw/s15_census.py --report <...> --rmw
+python3 sw/s16_dispwin.py --sweeps --fuzz --goldens --identity --oracle
+python3 sw/s12_census.py hltsweep ; python3 sw/s12_census.py psw
+python3 sw/s14_census.py --band ; python3 sw/s14_dstar.py
+```
+
+**Monotonicity.**  Every standing ratchet of §24.0.1 is at its entry value or
+above and **none moved down**; **zero newly broken** on every scored population.
+The ratchets that MOVED, all upward:
+
+| ratchet | entry | now | why |
+|---|---|---|---|
+| `v0.1` w0 timed | 168,997 / 169,000 | **169,000 / 169,000** | §26.3.6, an ACCOUNTING change with `--no-mirror` preserving the old convention exactly |
+| `s10-hltsweep-w1` | 92 / 95 | **95 / 95** | M23 |
+| `s13-hltsweep-w2` | 42 / 46 | **44 / 46** | M23 |
+| `s13-hltsweep-w3` | 40 / 45 | **42 / 45** | M23 |
+| `timed_fuzz` EVT / COMBINED | 708 / 1,008, 1,980 / 2,710 | **709 / 1,008, 1,981 / 2,710** | M23 |
+| `s10-hltsweep-w0` row diffs | 609 | **599** | M23 (cells unchanged at 91/97) |
+
+**`timed_fuzz` REGISTERED is byte-identical at 1,272 / 1,702**, and the victory
+tranche is untouched at **154 / 188 — V5 remains a REGISTERED FAILURE.**  The
+functional 7,341,126 was re-run in full before this commit.
+
+**No board contact of any kind.**  No socket call, no `serve`, no flash, no new
+capture, no `emit_suite` run.  No suite's CONTENT changed: every number above is
+scored against artifacts that were already committed.
+
+**Retention.**  `sw/testdata/s15/` — `census_reg.json.gz` / `census_evt.json.gz`
+(every non-exact seed's family, severity axes and local cycle window),
+`census_reg.txt` / `census_evt.txt` (the tool's output verbatim),
+`rmw_pairs.json.gz` / `rmw_census.txt` (the 25,665-pair RMW population),
+`fuzz_base_report.json.gz` (the `timed_fuzz` report the census was taken from),
+with a `SHA256SUMS`.  `sw/testdata/s16/` — `gates.BEFORE.txt` /
+`gates.AFTER.txt`, `census_{sweeps,banked,fuzz}.txt`, `oracle.txt`,
+`fuzz_m23_movement.json`, with a `SHA256SUMS`.
+
+**Instrument provenance, declared as §24.0.0 and §25.7 declare it.**  The
+working tree still carries UNCOMMITTED `hdl/` and `sw/` changes from the
+`biu-rebuild` branch.  They are inert here for §25.7's stronger reason:
+**nothing in this session runs anything but `sim/v30sim` and the committed
+suites** — no capture path, no emission path, no `v30run`.  `sim/` was CLEAN at
+HEAD entering the session and this commit's whole `sim/` diff is ~10
+non-comment lines in `biu_timed.cpp` (M23) plus their comment blocks.
+
+---
+
+### 26.10 THE CLEAN-STATE STATEMENT — what an RTL campaign inherits
+
+This is the deliverable the session exists for.  It is the COMPLETE list.  If
+something is not on it, the RTL campaign does not inherit it from `ucsim-t`.
+
+#### A. THE MECHANISMS — 25 named laws, each with a section, an evidence line and a falsifier
+
+`M1-M23` plus `M2r` and `M5b`, with `M3c` RETRACTED and `M7b`, `M8a`, `M8b`,
+`M10a`, `M10b`, `M12b` as named sub-laws.  Every one carries a provenance class
+(ROM / PLA / LAW / MEASURED / ASSUMPTION), the evidence that bought it and the
+observation that would refute it, in the `Provenance class, per finding` table
+of the section that landed it.  **The RTL spec is those tables, not this
+list.**  Section index:
+
+| | landed in |
+|---|---|
+| M1, M2, M2r, M3, M4, M5, M5b | §7, §8, §9, §11.1 |
+| M6, M7, M7b, M8, M8a, M8b, M9 | §10, §13 |
+| M10, M10a, M10b, M11 | §14, §16 |
+| M12, M12b | §17 |
+| M13 | §18 |
+| M14 (decision clock `= max(B, A+3\|4)`, entry `= D+2`), M15 (INTA drives no address), M16 (the HLT decode) | §19 |
+| M17 (the HLT block is M7's index-2 sample), M18 (the acknowledge pair rides the completion eval) | §20 |
+| M19 (the redirect is a standing request; SUSP does not take it back) | §22 |
+| M20 (the wake beats the HLT row to the status register), M21 (the HALT holds the bus only to its status release) | §23 |
+| M21's second half (the release eval applies no index-2 latch), M22 (an announcement expires at its zero-wait release index, counted from the DISPLAY) | §25 |
+| M23 (the address one-shot is fired by the DISPLAY; the address phase is ONE CLOCK long) | §26 |
+
+**Two standing REFUTATIONS an RTL rebuild must not re-introduce:** §24.8's
+*"one slot on the 2-clock eval grid"* is WITHDRAWN (§25.5 — the step is the eval
+instant counted twice), and §23.3's *`d*(w1) - d*(w0) = +4` generalises as a
+line* is REFUTED (§24.8 — the series is `8, 12, 14, 16`).
+
+#### B. THE GATES — the standing ratchets, monotone
+
+Every number in CLAUDE.md's gate quick reference, which this session refreshed
+against the live tool set.  The headline set:
+
+```
+functional corpus            7,341,126 / 7,341,126
+v0.1 w0                        169,000 / 169,000   (3 collision-dependent, --no-mirror = 168,997)
+v0.1-w1 / -w3 / EB w1            1,200 / 1,200 each, 200/200
+the four v0.1-w*evt cells      200 / 1,200 / 200 / 1,200   (+ the preserved -biased tranche 1,200/1,200)
+the four HLT sweeps          91/97, 95/95, 44/46, 42/45
+timed_fuzz REG / EVT / COMB  1,272/1,702, 709/1,008, 1,981/2,710
+victory tranche B2                 154 / 188   -- V5 is a REGISTERED FAILURE
+law cards                    8 GREEN / 0 RED / 3 UNRESOLVED (C6, C7, C11)
+boot / scenario / ENTER / INS / wvec   220 rows; 18-0-9; 154/154 x5; 1312/1312 + 2624/2624; 88/88 +0.0 %
+ROM / PLA                    disasm byte-exact; 21 PLA checks
+```
+
+**Rule of the house, unchanged:** a ratchet is never re-scored downward, and a
+re-score UPWARD is reported with BOTH numbers, the general rule that moved it
+and its measured reach.  §26.3.6 is this session's one such move and is the
+template.
+
+#### C. THE CLOSED TAXONOMIES — every residual population, and its closer
+
+| population | n | taxonomy | the closer |
+|---|---|---|---|
+| `timed_fuzz` REGISTERED non-exact | **430** | §26.4's seven families, catch-all EMPTY | per family, below |
+| `timed_fuzz` EVT non-exact | **299** | the same seven | per family, below |
+| `PF_LOST` | 309 | two sub-signatures: the RMW-gap prefetch (111) and one prefetch short at a flushing write (88) | a directed cell that varies ONLY the EU-request arrival clock against a prefetch grant — the pin-side form of law card **C11 (`owns_slot`)**, whose reservation SOURCE is the unobservable term |
+| `SCHEDULE` | 193 | one offset, mode `-3`, model EARLY in 154/193 | a directed cell at a `MEMR`->next-cycle boundary at four wait levels: if the offset is invariant it is a fixed index (the campaign's seventh such), if it moves with `N` it is bus-keyed |
+| `PF_GAINED` | 107 | `HALT -> CODE` in 69 (M20's regime, whole-program view) | §26.6's `A - H <= -3` measurement; the same stimulus |
+| `DATA_SEQ` | **36** | genuinely different data cycles; 35/36 `func_bad`, 35/36 no arch dump | **THE HIGHEST-VALUE POPULATION LEFT.**  Extend the comparison window past the register store on these 36 so the arch column can speak, then read the first differing `MEMR` address |
+| `PF_ADDR` | 27 | 16 arch-clean, 14 realign by skipping one fetch | rides `PF_LOST`'s closer |
+| `TAIL_EXTRA` | 33 | the chip parked, the model did not | rides the window question with `DATA_SEQ` |
+| `PIN` | 24 | `qs -!=F` 20, `data` 3, `ps` 1 | the `ube` member is gone — M23 (§26.7) |
+| victory tranche misses | 34 | §26.6 | as reported there |
+| the `ACK` residue | **18**, was 20 | ABSORBED into the seven families (§26.6.2) | retired as a separate taxon |
+| `v0.1` w0 tails | **0** | CLOSED — the 64 KiB mirror (§26.3) | none needed |
+
+**The one number that governs all of them:** *architectural state differs in
+**0 of 729**.*  The entire fuzz residue is bus timing, not computation.
+
+#### D. THE OPEN SURFACE — what is measured and not yet explained
+
+1. **The WITHDRAWN announcement's pad retention** (§26.7.7) — after a
+   withdrawn multi-clock announcement the chip's pads hold the WITHDRAWN
+   cycle's address and UBE and the model reverts to the HALT's.  6 diffs x 5
+   cells, one uniform signature, board-free, stimulus already banked.  This is
+   the whole remaining w2/w3 sweep residue.
+2. **The second acknowledge's ANCHOR** (§26.6.4) — the chip anchors it on the
+   first acknowledge's DISPLAY (`+7/9/10/11` at `N = 0..3`, 135/135), the model
+   on its T1.  One rule, no new number, NOT landed because the sweep cells and
+   §26.6.2's seven `bs PASV!=INTA` fuzz seeds point opposite ways.  **The
+   directed cell that separates them: an acknowledge announced while another
+   cycle still owns the bus (display-to-T1 gap of 2), at more than one wait
+   level.**
+3. **The `A - H <= -3` regime** (§26.6.3) — 4 cells, all at w0.  The chip's
+   `d2` and `d3` rows are BYTE-IDENTICAL and the model's are not; any mechanism
+   must make the model delay-insensitive across the pair FIRST.
+4. **`PF_LOST`'s arbitration priority** and **`SCHEDULE`'s `-3`** (§26.4) —
+   both MEASURED, both explicitly NOT fitted.
+5. **Law card C11** (`owns_slot`) — the reservation SOURCE is an EU micro-state
+   and is not observable on the pins.  Needs an instrument, not board time.
+6. **Law cards C6 / C7** (LC3, the Tw-parity RMW commit) — **the obstacle has
+   CHANGED** (§26.5): the corpus is no longer empty of RMW cycles, it is full of
+   them; what is missing is a pin-observable signature for `ext_ok_wr` /
+   `tw_par`.  Board-free from here.
+7. **Victory tranche V5** — 154/188, a REGISTERED FAILURE.  Not re-opened, not
+   re-scored, and not to be quietly restated.
+
+#### E. THE INSTRUMENT CAVEATS — what a future reader must not trust naively
+
+1. **`stable_key` changed in this session** (§26.1).  Keys stored in manifests
+   before it are internally valid and **not comparable across the change**.
+2. **`s12_census.cycles()` changed in this session** (§26.2), and the
+   pre-change output is preserved in `sw/testdata/s12/census.txt` as EVIDENCE
+   of what the defective instrument said.  §23.3's `H+8` / `H+6` prose and
+   §23.7 / §23.8's *"2 of 196 cells"* are read with §26.2's correction
+   attached.
+3. **`sim/biu_timed.cpp` gained M23** (§26.7): the address phase is one clock
+   long and is fired by the display.  It is dead code for every cycle whose T1
+   opens the clock after its display, which is every cycle in every committed
+   golden suite (1,396,331 / 1,396,331 one-clock windows).
+4. **`timed_gate` now retries a failing case on the board's 64 KiB mirror**
+   (§26.3.6).  Its measured reach is 4 goldens in 169,000; `--no-mirror`
+   restores the historical convention exactly.
+5. **`tests/v30/v0.1-w1evt` was a BIASED SAMPLE and was re-emitted** (§23.1,
+   §24.7).  The biased tranche is preserved by rename and both score
+   1,200/1,200.
+6. **`HLT.INT_w2_d0`'s `stable_identical: false`** is NOT verified as the same
+   pad artifact as `HLT.INT_w0_d0` — the per-repetition rows were never banked
+   (§26.1).  A RETENTION GAP, and it needs the board.
+7. **Retention rule, learned the hard way** (§24.12): a suite scored from the
+   working tree is not a suite.  Every gate in section B above is re-scorable
+   from a clean checkout.
+
+#### F. WHAT IS NOT INHERITED
+
+The `biu-rebuild` branch's own law cards, closures and case files
+(`docs/notes/biu_*.md`) are a DIFFERENT campaign against a DIFFERENT
+implementation.  Where the two touch — C6/C7's uRMW premise (§26.5) — this
+ledger states a measurement and does not adjudicate their card.
+
+---
+
+### 26.11 Ledger delta
+
+| | after §25 | after this addendum |
+|---|---|---|
+| §25.10 item 9 — `stable_key` reads pad residue | booked, not made | **MADE** (§26.1).  One rule: hash a multiplexed pad only in the T-states the part drives it in.  P5's 24 streams collapse 2 -> 1; no separation lost anywhere.  `HLT.INT_w2_d0`'s corroboration is a RETENTION GAP and is reported as un-run |
+| §25.10 item 10 — `0F12`'s `63 C0` preload | HYPOTHESIS, BOOKED | **MEASURED** (§26.3).  The registered falsifier was run and did not fire |
+| §25.10 item 11 — `s12_census.cycles()` T1-anchored | booked; *"not used for any surviving claim"* | **FIXED, and the quoted sentence is FALSE** (§26.2).  §23.3 / §23.7 / §23.8's *"~57-clock excursion is the metric changing referent, 2 of 196"* is **FALSIFIED — 0 of 196.**  The verdict (no race) survives; the reason is replaced |
+| §25.10 item 7 — `v0.1` w0 168,997 / 169,000 | an EMISSION/HARNESS residue, 3 cases | **CLOSED.**  All three are ONE mechanism, the board's 64 KiB mirror; **169,000 / 169,000** with 3 named collision-dependent goldens, `--no-mirror` = 168,997 |
+| §25.10 item 3 — the display window's upper pins | MEASURED, MECHANISM OPEN; *"a second program is the stimulus"* | **CLOSED — M23** (§26.7).  The second program was already banked (the sweep's OTHER form, whose `disp+1` nibble is 9 = PS3, a code no status can carry).  42 multi-clock windows in the whole corpus, all 42 unconfounded |
+| §25.10 item 5 — the 20-seed `ACK` residue | *"three named signatures, untouched"* | **STALE AND CORRECTED: it is 18**, one signature is GONE (M22 moved its two members out), and all 18 are ABSORBED into §26.4's taxonomy — `SCHEDULE` 12, `PF_GAINED` 6, 0 arch-bad.  The `ACK` taxon is RETIRED (§26.6.2) |
+| §25.10 item 8 — `HLT.INT` w0 `d2`/`d3` and the acknowledge pair | named, not fitted | **MEASURED** (§26.6.3, §26.6.4).  The regime is 4 cells, all at w0, 51/55 byte-exact; the acknowledge pair is ONE rule, `A2_disp = A1_DISPLAY + (7,9,10,11)`, **135/135**, and the model's T1 anchor separates from it on exactly 2 cells.  **NOT LANDED**, for a stated reason |
+| §25.10 item 4 — `timed_fuzz`'s residue | *"the numbers they are"*, a column breakdown | **A CLOSED TAXONOMY** (§26.4): seven families over 729 seeds, catch-all EMPTY, and **architectural state differs in 0 of 729** |
+| §25.10 items 1-2 — law cards C6/C7, C11 | UNRESOLVED, board-by-construction | **C6/C7 stay UNRESOLVED and their REASON is corrected** (§26.5): the bank carries 10,516 one-prefetch-gap RMW pairs at both Tw parities, so the obstacle is a missing pin-observable signature, not a missing population.  C11 unchanged — and §26.4.1's 309 `PF_LOST` seeds are its pin-side shadow |
+| §25.6's registered `s10-hltsweep-w1` 95/95 | **MISSED**, reported as a registered FAILURE | **MET** — 95/95, 0 row diffs (§26.7.6) |
+| mechanisms | M1-M22, M2r, M5b | **+ M23 (the address one-shot is fired by the DISPLAY; the address phase is one clock long)** |
+| the open surface | 11 items | **8** — five closed, two new (the withdrawn announcement's pad retention, §26.7.7; the second acknowledge's anchor, §26.6.4), and the taxonomies now carry their own closers (§26.10 C) |
+| `timed_fuzz` REG / EVT / COMBINED | 1,272/1,702, 708/1,008, 1,980/2,710 | 1,272/1,702 (byte-identical), **709/1,008**, **1,981/2,710** |
+| the four HLT sweeps | 91/97, 92/95, 42/46, 40/45 — 712 row diffs | **91/97, 95/95, 44/46, 42/45 — 629 row diffs** |
+| law cards | 8 GREEN / 0 RED / 3 UNRESOLVED | unchanged |
+| victory tranche V0-V5 | V0-V4 PASS, V5 registered FAILURE | **UNTOUCHED — 154/188, V5 remains a registered FAILURE.**  Its 34 misses are now classified (§26.6.1) |
+| functional corpus | 7,341,126 | unchanged, re-run in full |
+| v0.1-w1 / -w3 / `EB` / the five evt tranches | 1,200 / 1,200 / 200 / 200-1,200-1,200-200-1,200 | unchanged, all of them |

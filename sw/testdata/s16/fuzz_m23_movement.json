@@ -1,0 +1,101 @@
+{
+ "seeds": 3242,
+ "moved": 7,
+ "newly_broken": 0,
+ "newly_exact": 1,
+ "later": 7,
+ "earlier": 0,
+ "detail": [
+  {
+   "path": "/home/wickerwaka/src/nec_test/tests/v30/fuzz_bank/mc1/seeds/soup_1383_a345b16e0348.json.gz",
+   "before": {
+    "cat": "DIVERGE",
+    "first_bad": 161,
+    "kind": "ube"
+   },
+   "after": {
+    "cat": "DIVERGE",
+    "first_bad": 171,
+    "kind": "bs"
+   }
+  },
+  {
+   "path": "/home/wickerwaka/src/nec_test/tests/v30/fuzz_bank/mc2/seeds/soup_1052_d57362908aab.json.gz",
+   "before": {
+    "cat": "DIVERGE",
+    "first_bad": 161,
+    "kind": "ube"
+   },
+   "after": {
+    "cat": "DIVERGE",
+    "first_bad": 171,
+    "kind": "bs"
+   }
+  },
+  {
+   "path": "/home/wickerwaka/src/nec_test/tests/v30/fuzz_bank/mc2/seeds/soup_1068_b9258eee8019.json.gz",
+   "before": {
+    "cat": "DIVERGE",
+    "first_bad": 161,
+    "kind": "ube"
+   },
+   "after": {
+    "cat": "DIVERGE",
+    "first_bad": 171,
+    "kind": "bs"
+   }
+  },
+  {
+   "path": "/home/wickerwaka/src/nec_test/tests/v30/fuzz_bank/mc2/seeds/soup_327_69333036edc4.json.gz",
+   "before": {
+    "cat": "DIVERGE",
+    "first_bad": 266,
+    "kind": "ube"
+   },
+   "after": {
+    "cat": "EXACT",
+    "first_bad": 1501,
+    "kind": "-"
+   }
+  },
+  {
+   "path": "/home/wickerwaka/src/nec_test/tests/v30/fuzz_bank/mc2/seeds/soup_3530_d57362908aab.json.gz",
+   "before": {
+    "cat": "DIVERGE",
+    "first_bad": 161,
+    "kind": "ube"
+   },
+   "after": {
+    "cat": "DIVERGE",
+    "first_bad": 171,
+    "kind": "bs"
+   }
+  },
+  {
+   "path": "/home/wickerwaka/src/nec_test/tests/v30/fuzz_bank/mc2/seeds/soup_594_d57362908aab.json.gz",
+   "before": {
+    "cat": "DIVERGE",
+    "first_bad": 161,
+    "kind": "ube"
+   },
+   "after": {
+    "cat": "DIVERGE",
+    "first_bad": 171,
+    "kind": "bs"
+   }
+  },
+  {
+   "path": "/home/wickerwaka/src/nec_test/tests/v30/fuzz_bank/mc2/seeds/soup_672_818e62cdc125.json.gz",
+   "before": {
+    "cat": "DIVERGE",
+    "first_bad": 280,
+    "kind": "ube"
+   },
+   "after": {
+    "cat": "DIVERGE",
+    "first_bad": 284,
+    "kind": "ube"
+   }
+  }
+ ]
+}

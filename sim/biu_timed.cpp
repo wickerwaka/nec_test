@@ -395,6 +395,17 @@ void BiuTimed::tick() {
             r.ad_data = is_write(cur_.bs) ? cur_.data
                                           : uint16_t(cur_.addr & 0xFFFF);
             r.ps = uint8_t((cur_.addr >> 16) & 0xF);
+            // M23 -- ...but A19-A16 is a SHARED pad group, and the address
+            // one-shot that owns it is fired by the DISPLAY, not by the T1
+            // (see the display block below).  For every cycle whose T1 opens
+            // the clock after its display -- which is every cycle in the
+            // ordinary corpus -- `c == cur_.disp + 1` and this is dead code.
+            // Where the bus made the T1 wait, the one-shot has already
+            // expired and the upper nibble is back on the segment status
+            // while A15-A0 still holds the address by pad retention.
+            if (cur_.disp >= 0 && c != cur_.disp + 1)
+                r.ad_addr = (uint32_t(data_ps(cur_.segc)) << 16) |
+                            (cur_.addr & 0xFFFFu);
         } else {
             r.ad_addr = cur_.addr;
             r.ad_data = cur_.data;
@@ -418,13 +429,46 @@ void BiuTimed::tick() {
         r.ad_addr = cmt_.addr;
         r.ad_data = uint16_t(cmt_.addr & 0xFFFF);
         r.ps = uint8_t((cmt_.addr >> 16) & 0xF);
-        // ...but UBE is NOT part of that register.  It changes at T1, one
-        // clock after the status and address do.  MEASURED: `E8` case 0 golden
-        // rows 14-15 (the split push's second half is displayed with the first
-        // half's UBE and only asserts its own at T1) and rows 18-19 (the
-        // redirect fetch is displayed with the write's UBE).  Every CODE cycle
-        // drives UBE low, which is why this is invisible until an EU access
-        // sits next to a fetch.
+        // ...but UBE is NOT part of that register.  It changes ONE CLOCK AFTER
+        // the status does.  MEASURED: `E8` case 0 golden rows 14-15 (the split
+        // push's second half is displayed with the first half's UBE and only
+        // asserts its own a clock later) and rows 18-19 (the redirect fetch is
+        // displayed with the write's UBE).  Every CODE cycle drives UBE low,
+        // which is why this is invisible until an EU access sits next to a
+        // fetch.
+        //
+        // M23 -- THE ADDRESS ONE-SHOT IS FIRED BY THE DISPLAY, NOT BY THE T1.
+        // The clock that loads the status register also starts the address
+        // phase, and the address phase is ONE CLOCK LONG: on `disp + 1` the
+        // part drives the announced cycle's A19-A0 and its UBE, and from
+        // `disp + 2` A19-A16 is back on the segment status while A15-A0 holds
+        // the address by pad retention.  For an ordinary cycle `disp + 1` IS
+        // the T1 and the whole rule collapses to "address at T1", which is
+        // what the 168,997 w0 goldens say and why they cannot see it.
+        //
+        // MEASURED (sw/s16_dispwin.py, banked captures only, no board):
+        // exactly 42 display windows longer than one clock exist in the whole
+        // banked corpus -- 30 in the four HLT delay sweeps and 12 in the
+        // 3,242-seed fuzz bank -- against 1,231,445 one-clock windows there
+        // and 1,396,331 one-clock windows and NOT ONE longer in every
+        // committed golden suite.  In all 42 the nibble on `disp + 1` differs
+        // from the cycle's own segment status; in the 22 that reach a T1 the
+        // T1 nibble IS that status, 22/22, and never the `disp + 1` one,
+        // 0/22; the low 16 bits are the same address on both clocks, 22/22;
+        // and UBE at `disp + 1` is the value the T1 carries, 22/22.
+        // The `HLT.RES` sweep breaks 25.6's confound by itself: its injected
+        // CS:IP puts the woken fetch at 0x9AD8x, so the nibble on `disp + 1`
+        // is 9 -- PS3 set, the 8080 emulation-mode bit -- in a capture whose
+        // every genuine status sample reads 1, 2 or 3.  No status code can be
+        // 9 there, so the nibble names itself as the address.
+        //
+        // `r.ps` is the END-of-clock sample, i.e. the pin during clock c + 1:
+        // on the display clock that is `disp + 1` (the address), and on any
+        // later announcement clock it is `disp + 2` or beyond (the status).
+        if (c != cmt_disp_) {
+            r.ps = data_ps(cmt_.segc);
+            r.ube_n = cmt_.ube_n;
+        }
         if (r.upc == 0xFFFF) r.upc = cmt_.upc;
     }
 

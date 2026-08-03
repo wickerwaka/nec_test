@@ -1,0 +1,130 @@
+== s15_census -- 430 non-exact seeds (pop=reg)
+
+  seeds 430   diverging 430   now-exact 0
+
+  === TOP-LEVEL FAMILY (the bus structure) ===
+    PF_LOST     239   first offending cycle: median #84     delta median +0  range -4..+3
+    SCHEDULE     79   first offending cycle: median #87     delta median -3  range -22..+1
+    TAIL_EXTRA   30   first offending cycle: median #0      delta median +0  range +0..+0
+    DATA_SEQ     28   first offending cycle: median #64     delta median +0  range -4..+0
+    PF_GAINED    23   first offending cycle: median #66     delta median -5  range -7..+0
+    PF_ADDR      17   first offending cycle: median #73     delta median +0  range -2..+3
+    PIN          14   first offending cycle: median #0      delta median +0  range +0..+0
+
+  family x population:
+    pop      DATA_SEQ    PF_ADDR  PF_GAINED    PF_LOST        PIN   SCHEDULE TAIL_EXTRA
+    REG            28         17         23        239         14         79         30
+
+  === SEVERITY (the campaign's own instruments) ===
+    functional event stream parts     60 / 430
+    functional stream TRUNCATED      250 / 430
+    architectural state AGREES       199 / 430
+    architectural state DIFFERS        0 / 430
+    no arch dump inside the window   231 / 430
+
+  severity x family:
+    family         n  func-bad  arch-bad  arch-OK  nodump
+    DATA_SEQ      28        28         0        0      28
+    PF_ADDR       17         2         0       11       6
+    PF_GAINED     23        21         0        0      23
+    PF_LOST      239         4         0      116     123
+    PIN           14         3         0       11       3
+    SCHEDULE      79         2         0       61      18
+    TAIL_EXTRA    30         0         0        0      30
+
+  === SCHEDULE family: the first offending cycle ===
+    delta (model T1 minus chip T1) of the FIRST cycle that moved:
+       -22  1
+       -19  1
+       -16  2
+       -12  1
+       -11  1
+       -10  1
+        -9  5
+        -8  1
+        -7  2
+        -5  3
+        -4  10
+        -3  32
+        -2  14
+        -1  4
+        +1  1
+    its status:
+      CODE   50
+      MEMW   15
+      MEMR   13
+      IOR    1
+    the chip cycle it FOLLOWS (what the schedule reacted to):
+      MEMR   33
+      IDLE   25
+      CODE   19
+      MEMW   2
+
+  === RECOVERY (does the bus sequence realign?) ===
+    family         n   MISS  EXTRA   NONE   the odd cycle(s), top 4
+    DATA_SEQ      28      2      0     26   MEMRx1  MEMR CODE CODE CODE CODEx1
+    PF_ADDR       17      8      0      9   CODEx7  CODE CODEx1
+    PF_GAINED     23      0      0     23   
+    PF_LOST      239     87     20    132   CODEx87  MEMRx11  MEMR MEMRx9
+    PIN           14      0      0      0   
+    SCHEDULE      79      0      0      0   
+    TAIL_EXTRA    30      0      0      0   
+
+  === ORDER SWAP (the same two cycles, the other way round) ===
+    PF_LOST    80/239
+
+  === the ARBITRATION cell, chip status -> model status ===
+    CODE   -> MEMW   159
+    CODE   -> MEMR   75
+    MEMR   -> MEMR   27
+    MEMR   -> CODE   23
+    CODE   -> CODE   17
+    CODE   -> IOW    3
+    CODE   -> IOR    2
+    MEMR   -> MEMW   1
+
+  === TAIL families: one side still running ===
+    TAIL_EXTRA    30   extra cycles: median 481  max 847   sig: bs PASV!=MEMRx30
+
+  === PIN family: which pin ===
+      11  qs -!=F
+       3  data
+    chip-side context (cycle + offset):
+         5  MEMR   +1
+         3  MEMW   +1
+         3  CODE   +4
+         2  CODE   +3
+         1  IDLE   +1
+
+  === first-divergence SIGNATURE over all diverging seeds ===
+     167  qs -!=F
+      80  qs E!=-
+      39  bs PASV!=MEMR
+      31  bs CODE!=MEMR nxta
+      27  data
+      26  nxta
+      15  qs -!=S
+      13  qs -!=E
+      11  bs CODE!=MEMW nxta
+       9  bs CODE!=PASV nxta
+       9  bs PASV!=MEMW
+       2  qs F!=-
+       1  bs MEMR!=CODE nxta
+
+  by wait class (diverging seeds):
+    fix0       161
+    fix1       30
+    fix2       19
+    fix3       21
+    wrand1     81
+    wrand15    15
+    wrand2     44
+    wrand3     40
+    wrand7     19
+  by bank:
+    mc1        159
+    mc2        154
+    t30-brkem  57
+    t30-raw    60
+
+  dump -> sw/testdata/s15/census_reg.json.gz

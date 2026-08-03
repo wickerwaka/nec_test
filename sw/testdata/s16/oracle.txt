@@ -1,0 +1,9 @@
+form     w  CS   IP    linear  addr-nibble  IE  status-nibble
+HLT.INT  0  4FB3 8181  57CB1   5            1   6
+HLT.RES  0  90F7 9E19  9AD89   9            0   2
+HLT.INT  1  4FB3 8181  57CB1   5            1   6
+HLT.RES  1  90F7 9E19  9AD89   9            0   2
+HLT.INT  2  4FB3 8181  57CB1   5            1   6
+HLT.RES  2  90F7 9E19  9AD89   9            0   2
+HLT.INT  3  4FB3 8181  57CB1   5            1   6
+HLT.RES  3  90F7 9E19  9AD89   9            0   2

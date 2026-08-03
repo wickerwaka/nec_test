@@ -28,10 +28,15 @@ What is reported, per form and in total:
             is EXPECTED to be large: the naive bus is strictly serial with no
             prefetch scheduler.  The number is a baseline to ratchet down, and
             the per-column histogram is the work list.
+  mirror    collision-dependent goldens, scored on the board's real 64K-mirrored
+            RAM (`mirror_retry`, the rule ucsim_check already applies to the
+            architectural comparison).  Reported separately, never hidden.
 
 Usage:
   timed_gate.py [--suite tests/v30/v0.1] [--forms B8,88,...] [--cases N]
                 [--waits N] [--raw-flags] [--details N] [--report out.json]
+                [--mirror]           run EVERY case on 64K-mirrored RAM
+                [--no-mirror]        disable the flat-fail -> 64K-mirror retry
                 [--sbs FORM:IDX]     print one case's golden vs sim rows
 """
 
@@ -139,6 +144,59 @@ def row_check(c, sim):
     return True, len(mm), hist, rows, events, i0, i1
 
 
+def case_result(c, sim, mask):
+    """One case's verdict under one memory model.
+    -> dict(arch_ok, bad, window, nmm, hist, rows)"""
+    if sim is None:
+        return {"arch_ok": False, "bad": ["no-final"], "window": False,
+                "nmm": None, "hist": Counter(), "rows": None, "nosim": True}
+    wok, nmm, h, rows, events, i0, i1 = row_check(c, sim)
+    # the row window is built FIRST: the pin-event flags policy reads the
+    # sim's own writes out of it (see arch_check)
+    ok, bad = arch_check(c, sim, mask, events if wok else None, i0, i1)
+    return {"arch_ok": ok, "bad": bad, "window": wok, "nmm": nmm,
+            "hist": h, "rows": rows, "nosim": False}
+
+
+def _clean(r):
+    return bool(r["arch_ok"] and r["window"] and r["nmm"] == 0)
+
+
+def mirror_retry(cases, res, waits, mask):
+    """The 64K-MIRROR RETRY, ported UNCHANGED in rule from sw/ucsim_check.py
+    (which ports it from check_core; see sim/biu.h `set_mirror`).
+
+    The capture board is 64 KB of RAM mirrored across the 1 MB space.  A golden
+    whose memory footprint holds two distinct 20-bit addresses aliasing to one
+    16-bit cell is ONLY MEANINGFUL under that model: the byte the chip returned
+    at one linear address was placed there by the composed image under another.
+    Such a golden is COLLISION-DEPENDENT.  The flat 1 MB model cannot reproduce
+    it and must not be asked to.
+
+    The rule, stated about goldens in general and never about a case list:
+      a case that fails FLAT and is CLEAN under the board's real 64K-mirrored
+      RAM is scored as captured, on the mirrored model, and counted separately.
+      A real divergence fails under BOTH and is untouched.
+
+    `ucsim_check` applies exactly this to the ARCHITECTURAL comparison; here the
+    same rule is applied to the ROW comparison, which is strictly the same
+    question -- the mirrored cell decides which byte the bus carried.  Nothing
+    is masked and no golden is edited; only the memory model is the one the
+    capture was taken on.  -> [rescued case indices]
+    """
+    retry = [i for i, r in enumerate(res) if not _clean(r)]
+    if not retry:
+        return []
+    msims = run_form([cases[i] for i in retry], waits, True)
+    out = []
+    for k, i in enumerate(retry):
+        mr = case_result(cases[i], msims.get(k), mask)
+        if _clean(mr):
+            res[i] = mr
+            out.append(i)
+    return out
+
+
 def side_by_side(c, rows_sim, title):
     gold = c["cycles"]
     print(f"\n=== {title} ===")
@@ -174,7 +232,10 @@ def main():
     ap.add_argument("--forms", default="B8")
     ap.add_argument("--cases", type=int, default=0, help="0 = all")
     ap.add_argument("--waits", type=int, default=0)
-    ap.add_argument("--mirror", action="store_true")
+    ap.add_argument("--mirror", action="store_true",
+                    help="run EVERY case on 64K-mirrored RAM")
+    ap.add_argument("--no-mirror", action="store_true",
+                    help="disable the flat-fail -> 64K-mirror retry")
     ap.add_argument("--raw-flags", action="store_true")
     ap.add_argument("--details", type=int, default=4)
     ap.add_argument("--report", default="")
@@ -205,34 +266,44 @@ def main():
         mask = 0xFFFF if args.raw_flags else flags_mask_of(name, meta)
         sims = run_form(cases, args.waits, args.mirror)
 
+        res = [case_result(c, sims.get(i), mask) for i, c in enumerate(cases)]
+
+        # 64K-mirror retry: the board's real wiring, for collision-dependent
+        # goldens only.  Skipped when every case is already mirrored.
+        mirror_ok = []
+        if not args.no_mirror and not args.mirror:
+            mirror_ok = mirror_retry(cases, res, args.waits, mask)
+
         f = Counter()
         shown = 0
         for i, c in enumerate(cases):
-            sim = sims.get(i)
+            r = res[i]
             f["n"] += 1
-            if sim is None:
+            if r["nosim"]:
                 f["arch_bad"] += 1
                 f["no_rows"] += 1
                 continue
-            wok, nmm, h, rows, events, i0, i1 = row_check(c, sim)
-            # the row window is built FIRST: the pin-event flags policy reads
-            # the sim's own writes out of it (see arch_check)
-            ok, bad = arch_check(c, sim, mask, events if wok else None, i0, i1)
-            f["arch_ok" if ok else "arch_bad"] += 1
-            if not ok and shown < args.details:
+            f["arch_ok" if r["arch_ok"] else "arch_bad"] += 1
+            if not r["arch_ok"] and shown < args.details:
                 shown += 1
-                print(f"  {name}[{i}] ARCH {bad}: {c['name']}")
-            if not wok:
+                print(f"  {name}[{i}] ARCH {r['bad']}: {c['name']}")
+            if not r["window"]:
                 f["no_window"] += 1
                 continue
             f["window"] += 1
-            f["row_mm"] += nmm
-            if nmm == 0:
+            f["row_mm"] += r["nmm"]
+            if r["nmm"] == 0:
                 f["rows_exact"] += 1
-            hist += h
+            hist += r["hist"]
             if sbs_form:
-                side_by_side(c, rows, f"{name} case {sbs_idx} (waits={args.waits})")
+                side_by_side(c, r["rows"],
+                             f"{name} case {sbs_idx} (waits={args.waits})")
 
+        if mirror_ok:
+            f["mirror"] = len(mirror_ok)
+            print("%-8s 64K-mirror retry: %d collision-dependent golden(s) "
+                  "scored as captured: idx %s"
+                  % (name, len(mirror_ok), mirror_ok[:8]))
         per_form[name] = dict(f)
         tot += f
         if f["arch_bad"]:
@@ -244,7 +315,9 @@ def main():
 
     print("\nTOTAL   arch %d/%d   window %d/%d   rows-exact %d   row-diffs %d"
           % (tot["arch_ok"], tot["n"], tot["window"], tot["n"],
-             tot["rows_exact"], tot["row_mm"]))
+             tot["rows_exact"], tot["row_mm"])
+          + ("   [%d collision-dependent under 64K mirror]" % tot["mirror"]
+             if tot["mirror"] else ""))
     if hist:
         print("row-diff columns: " +
               ", ".join(f"{k}={v}" for k, v in hist.most_common()))

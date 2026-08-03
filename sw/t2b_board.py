@@ -86,13 +86,42 @@ def stable_key(rows):
     (t_state, bs) over the whole trace (0 ambiguous cells) and at div=4 exactly
     one cell (T3/PASV, the read data phase) is ambiguous -- i.e. it is the
     sampling edge racing the strobe, not a chip behaviour.  `bs_late` is already
-    folded into `bs_early` on TI/T4 rows by run_chip's own like-sampling rule."""
+    folded into `bs_early` on TI/T4 rows by run_chip's own like-sampling rule.
+
+    A THIRD field is now GATED rather than hashed on every row, MEASURED not
+    assumed (P5, 24.10; instrument item D#9).  `ube_n` is a MULTIPLEXED pad --
+    UBE/S7, driven as UBE in T1 exactly like the address on AD -- and the key
+    already gates every other multiplexed pad to the states the part drives it
+    in (`ad_addr` to T1, `ad_data` to T3/Tw/T4).  `ube_n` was the one that was
+    not, so it read the PREVIOUS program's residue: `HLT.INT_w0_d0` at 50
+    repetitions gave 24 distinct raw 64-bit streams whose ONLY differences
+    anywhere in 4,063 rows are on rows 0..8 -- every row before the first T1,
+    i.e. before the part has driven the bus once -- in `ube_n` (9 rows),
+    `ad_addr` (9), `ad_data` (8) and `ps` (8), of which only `ube_n` reached
+    the key.  The DEDICATED pins (`t`, `bs_early`, `qs`, `lock_n`) have ZERO
+    differences in the whole stream.  Gating `ube_n` to T1 costs no
+    information: over the 408 banked row streams a TI sample of the pin equals
+    the immediately preceding row's in 391,922 of 391,922 cases -- off T1 the
+    pad simply HOLDS, and before the first T1 there is nothing to hold.  The
+    leading idle rows themselves are KEPT (their count is the reset-to-first-
+    fetch latency, a real chip quantity); it is the undriven PAD that is
+    excluded, not the row.
+
+    THE RULE: hash a multiplexed pad only in the T-states in which the part
+    drives it.
+
+    COMPARABILITY: `stable_key` strings stored in manifests written before this
+    change were computed with `ube_n` hashed on every row.  They are still
+    valid WITHIN their own capture session (every key in one manifest was
+    computed by one function), but a stored key is NOT comparable against a key
+    computed by this function."""
     out = []
     for r in rows:
         t = r["t"]
         a = r["ad_addr"] if t == 1 else -1
         d = r["ad_data"] if t in (3, 4) else -1
-        out.append((t, r["bs_early"], r["qs"], r["ube_n"], r["lock_n"], a, d))
+        u = r["ube_n"] if t == 1 else -1        # UBE/S7: driven as UBE in T1
+        out.append((t, r["bs_early"], r["qs"], u, r["lock_n"], a, d))
     return hashlib.sha256(repr(out).encode()).hexdigest()
 
 

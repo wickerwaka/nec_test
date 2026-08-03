@@ -1,0 +1,144 @@
+== s15_census -- 299 non-exact seeds (pop=evt)
+
+  seeds 299   diverging 299   now-exact 0
+
+  === TOP-LEVEL FAMILY (the bus structure) ===
+    SCHEDULE    114   first offending cycle: median #87     delta median -3  range -16..+2
+    PF_GAINED    84   first offending cycle: median #67     delta median -1  range -7..+2
+    PF_LOST      70   first offending cycle: median #110    delta median +0  range -2..+46
+    PF_ADDR      10   first offending cycle: median #120    delta median +1  range -2..+2
+    PIN          10   first offending cycle: median #0      delta median +0  range +0..+0
+    DATA_SEQ      8   first offending cycle: median #76     delta median +0  range -3..+1
+    TAIL_EXTRA    3   first offending cycle: median #0      delta median +0  range +0..+0
+
+  family x population:
+    pop      DATA_SEQ    PF_ADDR  PF_GAINED    PF_LOST        PIN   SCHEDULE TAIL_EXTRA
+    EVT             8         10         84         70         10        114          3
+
+  === SEVERITY (the campaign's own instruments) ===
+    functional event stream parts    106 / 299
+    functional stream TRUNCATED      122 / 299
+    architectural state AGREES       156 / 299
+    architectural state DIFFERS        0 / 299
+    no arch dump inside the window   143 / 299
+
+  severity x family:
+    family         n  func-bad  arch-bad  arch-OK  nodump
+    DATA_SEQ       8         7         0        1       7
+    PF_ADDR       10         2         0        5       5
+    PF_GAINED     84        80         0        2      82
+    PF_LOST       70         9         0       43      27
+    PIN           10         0         0       10       0
+    SCHEDULE     114         8         0       95      19
+    TAIL_EXTRA     3         0         0        0       3
+
+  === SCHEDULE family: the first offending cycle ===
+    delta (model T1 minus chip T1) of the FIRST cycle that moved:
+       -16  1
+       -11  1
+        -9  1
+        -8  4
+        -7  2
+        -6  2
+        -5  6
+        -4  7
+        -3  35
+        -2  14
+        -1  3
+        +1  32
+        +2  6
+    its status:
+      CODE   52
+      MEMR   37
+      INTA   14
+      MEMW   10
+      IOR    1
+    the chip cycle it FOLLOWS (what the schedule reacted to):
+      IDLE   58
+      MEMR   29
+      CODE   24
+      INTA   2
+      MEMW   1
+
+  === RECOVERY (does the bus sequence realign?) ===
+    family         n   MISS  EXTRA   NONE   the odd cycle(s), top 4
+    DATA_SEQ       8      0      0      8   
+    PF_ADDR       10      6      0      4   CODE CODEx3  CODEx3
+    PF_GAINED     84      0      1     83   CODEx1
+    PF_LOST       70     13      5     52   CODEx12  MEMRx4  CODE CODE CODEx1  MEMR MEMRx1
+    PIN           10      0      0      0   
+    SCHEDULE     114      0      0      0   
+    TAIL_EXTRA     3      0      0      0   
+
+  === ORDER SWAP (the same two cycles, the other way round) ===
+    PF_ADDR    1/10
+    PF_LOST    31/70
+
+  === the ARBITRATION cell, chip status -> model status ===
+    HALT   -> CODE   69
+    CODE   -> MEMW   35
+    CODE   -> MEMR   26
+    MEMR   -> CODE   10
+    CODE   -> CODE   10
+    CODE   -> INTA   5
+    INTA   -> CODE   5
+    CODE   -> IOR    2
+    HALT   -> MEMW   2
+    MEMR   -> MEMW   2
+    CODE   -> IOW    2
+    MEMR   -> MEMR   2
+    HALT   -> MEMR   1
+    INTA   -> INTA   1
+
+  === TAIL families: one side still running ===
+    TAIL_EXTRA     3   extra cycles: median 290  max 701   sig: bs PASV!=MEMRx3
+
+  === PIN family: which pin ===
+       9  qs -!=F
+       1  ps 2!=6
+    chip-side context (cycle + offset):
+         3  CODE   +3
+         3  CODE   +4
+         1  IDLE   +1
+         1  MEMR   +0
+         1  CODE   +1
+         1  MEMR   +1
+
+  === first-divergence SIGNATURE over all diverging seeds ===
+     142  qs -!=F
+      25  bs MEMR!=PASV nxta
+      18  qs -!=E
+      15  qs E!=-
+      12  qs -!=F bs PASV!=CODE
+      11  bs PASV!=MEMR
+      10  data
+      10  qs -!=S
+       9  bs CODE!=MEMR nxta
+       8  bs PASV!=INTA
+       6  bs PASV!=MEMW
+       6  bs INTA!=PASV
+       6  bs PASV!=CODE
+       5  qs F!=-
+       3  bs CODE!=PASV nxta
+       3  bs CODE!=MEMW nxta
+       3  nxta
+       1  qs S!=-
+       1  bs MEMR!=CODE nxta
+       1  ps 2!=6
+
+  by wait class (diverging seeds):
+    fix0       169
+    fix1       10
+    fix2       5
+    fix3       12
+    wrand1     31
+    wrand15    12
+    wrand2     31
+    wrand3     18
+    wrand7     11
+  by bank:
+    mc1        148
+    mc2        131
+    t30-raw    20
+
+  dump -> sw/testdata/s15/census_evt.json.gz

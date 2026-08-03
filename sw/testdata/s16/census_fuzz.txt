@@ -1,0 +1,24 @@
+# fuzz bank: 3242 seeds, 975292 display windows, lengths {1: 975280, 2: 10, 3: 1, 5: 1}
+# rig identity ps(c) == ad_addr(c+1)>>16 : 37 mismatches / 13169004
+capture                                    status i0   L  t1  Na   Nt   Ns   ube  | verdict
+mc1/soup_1383_a345b16e0348                 CODE   160  2  162 0    6    6    1>0  | UNCONF T1=status ube@d+1
+mc1/soup_1383_a345b16e0348                 INTA   164  2  166 0    6    6    0>0  | UNCONF T1=status ube=held
+mc2/soup_1052_d57362908aab                 CODE   160  2  162 0    6    6    1>0  | UNCONF T1=status ube@d+1
+mc2/soup_1052_d57362908aab                 INTA   164  2  166 0    6    6    0>0  | UNCONF T1=status ube=held
+mc2/soup_1068_b9258eee8019                 CODE   160  2  162 0    6    6    1>0  | UNCONF T1=status ube@d+1
+mc2/soup_1068_b9258eee8019                 INTA   164  2  166 0    6    6    0>0  | UNCONF T1=status ube=held
+mc2/soup_327_69333036edc4                  CODE   265  3  -   0    -    6    1>0  | UNCONF ube@d+1
+mc2/soup_3530_d57362908aab                 CODE   160  2  162 0    6    6    1>0  | UNCONF T1=status ube@d+1
+mc2/soup_3530_d57362908aab                 INTA   164  2  166 0    6    6    0>0  | UNCONF T1=status ube=held
+mc2/soup_594_d57362908aab                  CODE   160  2  162 0    6    6    1>0  | UNCONF T1=status ube@d+1
+mc2/soup_594_d57362908aab                  INTA   164  2  166 0    6    6    0>0  | UNCONF T1=status ube=held
+mc2/soup_672_818e62cdc125                  CODE   279  5  -   0    -    6    1>0  | UNCONF ube@d+1
+
+SUMMARY  multi-clock windows 12   UNCONFOUNDED (Na != Ns) 12
+  T1 nibble == segment status : 10 / 10
+  T1 nibble == display+1      : 0 / 10
+  low 16 equal at d+1 and T1  : 10 / 10
+  UBE differs from the pre-announce value at display+1 : 7 / 12 windows (the other 5 announce the SAME UBE)
+  UBE at display+1 == UBE at T1 : 10 / 10
+  status x length: {'CODE.L2': 5, 'INTA.L2': 5, 'CODE.L3': 1, 'CODE.L5': 1}
+  Na x Ns: {'0/6': 12}

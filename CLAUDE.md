@@ -44,14 +44,41 @@ Put this principle verbatim into every modeling subagent brief.
 
 ## Gate quick reference
 
-- Functional: `python3 sw/ucsim_check.py --suite tests/v30/<suite>`
-  (mod3_illegal needs `--residue stale-ea`); full set = v0.1, v0.2, v0.3,
-  v20suite, mod3_illegal = 7,341,126 cases.
-- Timed: `sw/timed_gate.py` (v0.1 w0 + `-w1 --waits 1` / `-w3 --waits 3`),
-  `sw/check_boot.py --timed`, `sw/timed_scenario.py`, `sw/timed_lawcards.py`,
-  `sw/timed_ins_replay.py`, `sw/timed_fuzz.py`, `sw/timed_enter_replay.py`
-  (the C++ sim's ENTER gate). NOTE: `sw/check_enter_nesting.py` is the
-  VERILATOR/RTL leg only — it takes NO arguments (unknown flags are
-  silently ignored), so do not use it to gate sim/ work. General rule:
-  verify a flag exists (--help) before trusting a run that used it.
-- ROM/PLA: `make -C sim test` (disasm byte-exact), `python3 sw/pla3_check.py`.
+(current as of ucsim-t §26, the pre-RTL cleanup. Values are the standing
+ratchets: monotone, never re-scored downward without a loud, itemized entry.)
+
+- **ROM/PLA**: `make -C sim test` (disasm byte-exact),
+  `python3 sw/pla3_check.py` (21 checks).
+- **Functional**: `python3 sw/ucsim_check.py --suite tests/v30/<suite>`
+  (mod3_illegal needs `--residue stale-ea`; v20suite needs `--no-mirror`);
+  full set = v0.1 169,000 + v0.2 347,000 + v0.3 3,699,998 + v20suite
+  3,125,000 + mod3_illegal 128 = **7,341,126 cases**.
+- **Timed, per-suite** — `sw/timed_gate.py --suite tests/v30/<suite>
+  --forms all [--waits N]`:
+  `v0.1` **169,000/169,000** (3 collision-dependent under the 64K mirror;
+  `--no-mirror` reproduces the historical 168,997), `v0.1-w1` / `-w3`
+  1,200/1,200, `v0.1-w1 --forms EB` 200/200, the four `v0.1-w*evt` cells
+  200 / 1,200 / 200 / 1,200, `v0.1-w1evt-biased` 1,200/1,200 (preserved),
+  and the four HLT delay sweeps `s10-hltsweep-w{0,1}` **91/97**, **92/95**
+  and `s13-hltsweep-w{2,3}` **42/46**, **40/45**.
+- **Timed, whole-program**: `sw/check_boot.py --timed 220`,
+  `sw/timed_scenario.py` (18/0/9), `sw/timed_enter_replay.py` (154/154 x5),
+  `sw/timed_ins_replay.py --raw` (rails 1312/1312, vs-chip 2624/2624),
+  `sw/timed_wvec_gate.py` (88/88, +0.0 %), `sw/timed_lawcards.py`
+  (**8 GREEN / 0 RED / 3 UNRESOLVED** — C6, C7, C11),
+  `sw/timed_fuzz.py --evt-replay` (REGISTERED **1,272/1,702**, EVT
+  **708/1,008**, COMBINED **1,980/2,710**),
+  `sw/timed_fuzz.py --seeddir sw/testdata/t4/b2-tranche/seeds`
+  (**154/188** — V5 is a standing REGISTERED FAILURE, not to be re-opened).
+- **Measurement tools, NOT gates** (never quote them as a pass):
+  `sw/s11_census.py`, `sw/s12_census.py` (`hltsweep`/`psw`/`regold`/`ackfam`),
+  `sw/s14_census.py --band`, `sw/s14_dstar.py`, `sw/s15_census.py`
+  (the fuzz-residue taxonomy and `--rmw`, the RMW population).
+- **Board discipline**: `s13_board.div_guard()` PINS the divider and asks the
+  transport for the readback — an UNPINNED readback is a rig-integrity
+  FINDING. Every board probe calls it. Socket only (`use_core=False`,
+  explicit — the board's CFG is sticky).
+- NOTE: `sw/check_enter_nesting.py` is the VERILATOR/RTL leg only — it takes
+  NO arguments (unknown flags are silently ignored), so do not use it to gate
+  sim/ work. **General rule: verify a flag exists (`--help`) before trusting a
+  run that used it.**
