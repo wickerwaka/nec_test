@@ -77,10 +77,24 @@ begin
             endcase
             al_adjust = 2'd0;
         end
+        // F29 -- ...AND SO DO THE ARMING CAPTURES.  `exec_impl.h` builds its
+        // `tmps[]` from the LIVE `m_.tmpa/b/c` in the ALU-latch block, which
+        // runs AFTER the row's transfers -- and the rows that arm BIT and ABS
+        // are exactly the rows that load the tmp they read (`0F10`:
+        // `02AC  M -> tmpb  CX -> tmpa  ALU BIT tmpa`).  `tmps_lat` is a WIRE
+        // off the REGISTERS, so the bit index came from the PREVIOUS
+        // instruction's tmpa and the whole 0F 10-1F block tested the wrong bit.
+        // F11b's trap again.
+        case (r_alutmp)
+            2'd0: tsel = tmpa;
+            2'd1: tsel = tmpb;
+            2'd2: tsel = tmpc;
+            default: tsel = 16'd0;
+        endcase
         if (r_aluop == A_BIT)
-            bit_n = tmps_lat[r_alutmp][3:0] & (op8 ? 4'd7 : 4'd15);
+            bit_n = tsel[3:0] & (op8 ? 4'd7 : 4'd15);
         if (r_aluop == A_ABS)
-            sign_neg = op8 ? tmps_lat[r_alutmp][7] : tmps_lat[r_alutmp][15];
+            sign_neg = op8 ? tsel[7] : tsel[15];
     end else if (e_type == TY_JMP) begin
         `include "v30u_eu_cond.svh"
         if (taken) begin

@@ -254,6 +254,7 @@ reg  [1:0] rd_done_cnt;    // completed, not yet consumed by an F row
 reg        rd_age0;        // the oldest completion pulsed on THIS clock
 reg        iend_owed;      // F22: the post-`E` row owes the successor its reset
 reg  [2:0] rst_ctr;        // F25: the reset dispatch's four clocks
+reg [15:0] tsel;           // F29: the LIVE tmp an arming row reads
 reg  [7:0] pe_opc_reg;     // F23: the opcode context the post-`E` row runs on
 reg        pe_opc8080;
 reg  [1:0] wr_out;         // posted write CYCLES not yet done

@@ -182,6 +182,12 @@ reg  [2:0] cur_bs;
 reg [19:0] cur_addr;
 reg [15:0] cur_data;      // read data latched at T2 / paired write data
 reg        cur_ube_n;
+// M5b: the ACCESS's own A0, carried by every cycle of it.  The S5 fallback
+// (`a store that reaches T1 unpaired drives what is still standing in OPR`)
+// rotates by THIS, not by the cycle's own address -- `sim/biu_timed.cpp` keeps
+// it as `Access::odd_base` for exactly that reason, and the second half of a
+// split word store has an EVEN address but an ODD base (`A5` MOVSW).
+reg        cur_odd;
 reg  [1:0] cur_seg;
 reg        cur_fetch;
 reg        cur_halt;
@@ -201,6 +207,7 @@ reg  [2:0] cmt_bs;
 reg [19:0] cmt_addr;
 reg [15:0] cmt_data;
 reg        cmt_ube_n;
+reg        cmt_odd;
 reg  [1:0] cmt_seg;
 reg        cmt_fetch;
 reg        cmt_halt;
@@ -246,6 +253,7 @@ reg  [2:0] rq_bs   [0:1];
 reg [19:0] rq_addr [0:1];
 reg [15:0] rq_data [0:1];
 reg        rq_ube  [0:1];
+reg        rq_odd  [0:1];
 reg  [1:0] rq_seg  [0:1];
 reg        rq_noaddr [0:1];
 reg        rq_wr   [0:1];
@@ -293,6 +301,7 @@ reg [2:0] r_cur_bs;
 reg [19:0] r_cur_addr;
 reg [15:0] r_cur_data;
 reg r_cur_ube_n;
+reg r_cur_odd;
 reg [1:0] r_cur_seg;
 reg r_cur_fetch;
 reg r_cur_halt;
@@ -310,6 +319,7 @@ reg [2:0] r_cmt_bs;
 reg [19:0] r_cmt_addr;
 reg [15:0] r_cmt_data;
 reg r_cmt_ube_n;
+reg r_cmt_odd;
 reg [1:0] r_cmt_seg;
 reg r_cmt_fetch;
 reg r_cmt_halt;
@@ -359,6 +369,7 @@ reg [2:0] r_rq_bs [0:1];
 reg [19:0] r_rq_addr [0:1];
 reg [15:0] r_rq_data [0:1];
 reg r_rq_ube [0:1];
+reg r_rq_odd [0:1];
 reg [1:0] r_rq_seg [0:1];
 reg r_rq_noaddr [0:1];
 reg r_rq_wr [0:1];
@@ -563,6 +574,7 @@ always_comb begin
     cur_addr = r_cur_addr;
     cur_data = r_cur_data;
     cur_ube_n = r_cur_ube_n;
+    cur_odd = r_cur_odd;
     cur_seg = r_cur_seg;
     cur_fetch = r_cur_fetch;
     cur_halt = r_cur_halt;
@@ -580,6 +592,7 @@ always_comb begin
     cmt_addr = r_cmt_addr;
     cmt_data = r_cmt_data;
     cmt_ube_n = r_cmt_ube_n;
+    cmt_odd = r_cmt_odd;
     cmt_seg = r_cmt_seg;
     cmt_fetch = r_cmt_fetch;
     cmt_halt = r_cmt_halt;
@@ -631,6 +644,7 @@ always_comb begin
         rq_addr[ri] = r_rq_addr[ri];
         rq_data[ri] = r_rq_data[ri];
         rq_ube[ri] = r_rq_ube[ri];
+        rq_odd[ri] = r_rq_odd[ri];
         rq_seg[ri] = r_rq_seg[ri];
         rq_noaddr[ri] = r_rq_noaddr[ri];
         rq_wr[ri] = r_rq_wr[ri];
@@ -755,12 +769,12 @@ always_comb begin
         //--------------------------------------------------------------------
         run  = 1'b0; ts  = TS_TI;
         cur_bs  = BS_PASV; cur_addr  = 20'd0; cur_data  = 16'd0;
-        cur_ube_n  = 1'b1; cur_seg  = 2'd2; cur_fetch  = 1'b0;
+        cur_ube_n  = 1'b1; cur_seg  = 2'd2; cur_fetch  = 1'b0; cur_odd = 1'b0;
         cur_halt  = 1'b0; cur_noaddr  = 1'b0; cur_wr  = 1'b0;
         cur_need  = 1'b0; cur_rd_last  = 1'b1; cur_pn  = 2'd0;
         cur_late_t1  = 1'b0; evald  = 1'b0; sev  = 2'd0; dage  = 3'd0;
         cmt_valid  = 1'b0; cmt_bs  = BS_PASV; cmt_addr  = 20'd0;
-        cmt_data  = 16'd0; cmt_ube_n  = 1'b1; cmt_seg  = 2'd2;
+        cmt_data  = 16'd0; cmt_ube_n  = 1'b1; cmt_seg  = 2'd2; cmt_odd = 1'b0;
         cmt_fetch  = 1'b0; cmt_halt  = 1'b0; cmt_noaddr  = 1'b0;
         cmt_wr  = 1'b0; cmt_need  = 1'b0; cmt_rd_last  = 1'b1;
         cmt_pn  = 2'd0; cdage  = 3'd0; cmt_prev_fp  = 16'd0;
@@ -774,6 +788,7 @@ always_comb begin
         for (i = 0; i < 2; i = i + 1) begin
             rq_bs[i]  = BS_PASV; rq_addr[i]  = 20'd0; rq_data[i]  = 16'd0;
             rq_ube[i]  = 1'b1; rq_seg[i]  = 2'd2; rq_noaddr[i]  = 1'b0;
+            rq_odd[i]  = 1'b0;
             rq_wr[i]  = 1'b0; rq_need[i]  = 1'b0; rq_last[i]  = 1'b1;
         end
         slot_busy  = 1'b0; slot_accept  = 1'b0;
@@ -858,6 +873,7 @@ always_comb begin
             rq_addr[rq_n[0]]   = eu_addr;
             rq_data[rq_n[0]]   = 16'd0;
             rq_ube[rq_n[0]]    = (eu_word || eu_addr[0]) ? 1'b0 : 1'b1;
+            rq_odd[rq_n[0]]    = eu_addr[0];
             rq_seg[rq_n[0]]    = eu_seg;
             rq_noaddr[rq_n[0]] = (eu_bs == BS_INTA);
             rq_wr[rq_n[0]]     = (eu_bs == BS_MEMW) || (eu_bs == BS_IOW);
@@ -869,6 +885,7 @@ always_comb begin
                 rq_addr[1]   = eu_addr2;
                 rq_data[1]   = 16'd0;
                 rq_ube[1]    = eu_addr2[0] ? 1'b0 : 1'b1;
+                rq_odd[1]    = eu_addr[0];   // the ACCESS's base, not this cycle's
                 rq_seg[1]    = eu_seg;
                 rq_noaddr[1] = 1'b0;
                 rq_wr[1]     = (eu_bs == BS_MEMW) || (eu_bs == BS_IOW);
@@ -1089,12 +1106,14 @@ always_comb begin
                 // the next eval.
                 cmt_bs = rq_bs[0]; cmt_addr = rq_addr[0];
                 cmt_data = rq_data[0]; cmt_ube_n = rq_ube[0];
+                cmt_odd = rq_odd[0];
                 cmt_seg = rq_seg[0]; cmt_noaddr = rq_noaddr[0];
                 cmt_wr = rq_wr[0]; cmt_need = rq_need[0];
                 cmt_rd_last = rq_last[0];
                 cmt_fetch = 1'b0; cmt_halt = 1'b0; cmt_pn = 2'd0;
                 rq_bs[0] = rq_bs[1]; rq_addr[0] = rq_addr[1];
                 rq_data[0] = rq_data[1]; rq_ube[0] = rq_ube[1];
+                rq_odd[0] = rq_odd[1];
                 rq_seg[0] = rq_seg[1]; rq_noaddr[0] = rq_noaddr[1];
                 rq_wr[0] = rq_wr[1]; rq_need[0] = rq_need[1];
                 rq_last[0] = rq_last[1];
@@ -1121,6 +1140,7 @@ always_comb begin
                     fetch_lin = {cs_r, 4'd0} + {4'd0, fetch_ptr};
                     cmt_bs = BS_CODE; cmt_addr = fetch_lin; cmt_data = 16'd0;
                     cmt_ube_n = 1'b0; cmt_seg = 2'd2; cmt_noaddr = 1'b0;
+                    cmt_odd = 1'b0;
                     cmt_wr = 1'b0; cmt_need = 1'b0; cmt_rd_last = 1'b1;
                     cmt_fetch = 1'b1; cmt_halt = 1'b0;
                     // word fetch at an even address (+2), single upper-lane
@@ -1166,11 +1186,13 @@ always_comb begin
                 // an EU access is not the BIU's to lose: back to the FRONT
                 rq_bs[1] = rq_bs[0]; rq_addr[1] = rq_addr[0];
                 rq_data[1] = rq_data[0]; rq_ube[1] = rq_ube[0];
+                rq_odd[1] = rq_odd[0];
                 rq_seg[1] = rq_seg[0]; rq_noaddr[1] = rq_noaddr[0];
                 rq_wr[1] = rq_wr[0]; rq_need[1] = rq_need[0];
                 rq_last[1] = rq_last[0];
                 rq_bs[0] = cmt_bs; rq_addr[0] = cmt_addr;
                 rq_data[0] = cmt_data; rq_ube[0] = cmt_ube_n;
+                rq_odd[0] = cmt_odd;
                 rq_seg[0] = cmt_seg; rq_noaddr[0] = cmt_noaddr;
                 rq_wr[0] = cmt_wr; rq_need[0] = cmt_need;
                 rq_last[0] = cmt_rd_last;
@@ -1185,7 +1207,7 @@ always_comb begin
         if (!run && cmt_valid && (cdage != 3'd0)) begin
             run = 1'b1; ts = TS_T1;
             cur_bs = cmt_bs; cur_addr = cmt_addr; cur_data = cmt_data;
-            cur_ube_n = cmt_ube_n; cur_seg = cmt_seg;
+            cur_ube_n = cmt_ube_n; cur_seg = cmt_seg; cur_odd = cmt_odd;
             cur_fetch = cmt_fetch; cur_halt = cmt_halt;
             cur_noaddr = cmt_noaddr; cur_wr = cmt_wr; cur_need = cmt_need;
             cur_rd_last = cmt_rd_last; cur_pn = cmt_pn;
@@ -1202,7 +1224,7 @@ always_comb begin
             // S5: a store that reaches T1 without having been given data
             // drives whatever is STILL STANDING in OPR, rotated by its own A0.
             if (cur_need && cur_wr)
-                cur_data = cur_addr[0] ? {rd_val[7:0], rd_val[15:8]} : rd_val;
+                cur_data = cur_odd ? {rd_val[7:0], rd_val[15:8]} : rd_val;
         end else if (run) begin
             if (dage != 3'd7) dage = dage + 3'd1;
         end
@@ -1219,7 +1241,7 @@ always_comb begin
             // LIVE PS, not a constant -- the chip carries IE on it.
             cmt_addr = {data_ps(2'd2), last_fetch_addr};
             cmt_data = last_fetch_addr;
-            cmt_ube_n = 1'b1; cmt_seg = 2'd2; cmt_noaddr = 1'b0;
+            cmt_ube_n = 1'b1; cmt_seg = 2'd2; cmt_noaddr = 1'b0; cmt_odd = 1'b0;
             cmt_wr = 1'b0; cmt_need = 1'b0; cmt_rd_last = 1'b1;
             cmt_fetch = 1'b0; cmt_halt = 1'b1; cmt_pn = 2'd0;
             cmt_valid = 1'b1; cdage = 3'd0; cmt_was_owed = pf_owed;
@@ -1255,6 +1277,7 @@ always_ff @(posedge clk) begin
     r_cur_addr <= cur_addr;
     r_cur_data <= cur_data;
     r_cur_ube_n <= cur_ube_n;
+    r_cur_odd <= cur_odd;
     r_cur_seg <= cur_seg;
     r_cur_fetch <= cur_fetch;
     r_cur_halt <= cur_halt;
@@ -1272,6 +1295,7 @@ always_ff @(posedge clk) begin
     r_cmt_addr <= cmt_addr;
     r_cmt_data <= cmt_data;
     r_cmt_ube_n <= cmt_ube_n;
+    r_cmt_odd <= cmt_odd;
     r_cmt_seg <= cmt_seg;
     r_cmt_fetch <= cmt_fetch;
     r_cmt_halt <= cmt_halt;
@@ -1322,6 +1346,7 @@ always_ff @(posedge clk) begin
         r_rq_addr[rj] <= rq_addr[rj];
         r_rq_data[rj] <= rq_data[rj];
         r_rq_ube[rj] <= rq_ube[rj];
+        r_rq_odd[rj] <= rq_odd[rj];
         r_rq_seg[rj] <= rq_seg[rj];
         r_rq_noaddr[rj] <= rq_noaddr[rj];
         r_rq_wr[rj] <= rq_wr[rj];
