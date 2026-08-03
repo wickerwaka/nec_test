@@ -2106,3 +2106,257 @@ named mechanism or to a named question.  Nothing here is a search.**
    before it was written; and the two findings that moved no number (F22)
    or were reverted (§35.4) are in the ledger with the same weight as the
    ones that did.
+
+## §38 THE FOUR FINDINGS OF PASS 5
+
+### F34 — RECOGNITION IS CAUSAL, AND THE BOUNDARY IS A WINDOW
+
+**Class: SPEC (composition).  The last unimplemented-by-design block, and the
+largest single move of the campaign: +2,232 cases at w0 and +1,654 across the
+four `evt` wait cells, which were 0 to a case.**
+
+§36/C5 settled what NOT to build: `timed_runner.cpp`'s `D = max(B, A + pipe)`
+is an artefact of the replay driver and no hardware term can hold a boundary
+for a pin that has not asserted.  What is left is small, and every piece of it
+is a sentence of `docs/facts/interrupt_model.md` transliterated:
+
+* the INT LEVEL and the IE GATE through **three flops** ("the decision at B
+  sees the pin level of cycle B-3"), the NMI EDGE latched at edge+3 ("latest
+  catching edge = B-4").  The IE pipeline is why there is no separate EI
+  shadow flag, and `INT.FB` needs nothing of its own.
+* **THE BOUNDARY IS A WINDOW, NOT A CLOCK.**  `boundary_no_pop()` returns the
+  RETIRE deadline; the part then SITS at the pop point until the byte arrives
+  and `irq_take` is a LEVEL sampled on every clock of that wait.  That is the
+  plain reading of the frozen FSM's `pop_want = (S_FIRST && !irq_take)`, and
+  it is what the goldens show — MEASURED, `INT.90 idx 14`: the retire is met
+  on row 3 with a dry queue, the pin matures on row 4, and the chip's row-4
+  pop is SUPPRESSED.  A one-clock boundary declines it and pops.
+  The window is also what makes the replay's `max` *look* right: the replay
+  had already chosen a boundary that fires.
+* the POP is what CLOSES the window, so the pop is what SPENDS the sreg
+  shadow — "the chip re-enables the boundary sample at the shadowed
+  instruction's successor pop", verbatim.
+* the shadow is a **DECODE-TIME CLASS** (`pla3_sreg_mov`), not a sreg WRITE.
+  The write-derived rendering was built first and is REFUTED by the model's
+  row order: `8E`'s sreg write is on the POST-`E` row (`0.8e.1`), which runs
+  AFTER the cadence, so at the boundary no write has happened yet and the
+  golden still skips the sample (`INT.8ED0 idx 16` row 4).
+* the ENTRY is `CpuT::interrupt()` verbatim — page 7 opcode `0x00` loc 0/2
+  (BRK/NMI) or `0x02` (INT), the loader bypassed and every latch it would have
+  written presented explicitly (`xop` cleared or the vector fetch's `SR = IO`
+  re-classifies; `op8` false or 01EC's `2*vector` truncates) — one internal
+  decision clock after the boundary, so the first ROM row runs at **B + 2**.
+* THE WAKE.  A halted part has no boundary, so the decision clock D is the
+  first clock the pipeline has matured the event; the would-pop clock is D+1
+  and the entry is two past that.  `timed_runner.cpp`'s three HALT numbers
+  fall straight out: `HLT.RES` pop at A+4, `HLT.INT` entry at A+6 with the
+  prefetcher restarting at the DECISION, `HLT.NMI` entry at A+7 with the bus
+  HELD until the entry clock.  The INT wake is IE-INDEPENDENT (where the V30
+  differs from the 8086); a masked INT is the same `S_OPC_POP` with `irq_take`
+  false.
+* `intr_pending` has exactly the writer the SPEC gives it and no other: the
+  REP iteration boundary, sampled one flop deeper, latched so the withdrawal
+  path's own `0223 JMP INTR` reads it back.
+
+There is EXACTLY ONE boundary evaluation per pop point, and every pop point is
+one: the `E` row's cadence, `S_EPOP`, `S_TAIL_POP`, the tail's zero-cost
+fall-through (`tailw_go`), and the cold `S_OPC_POP` of a pre-decode-executed
+predecessor (`bnd_armed` — which is also what keeps a PREFIX's pop from being
+a boundary, because the model's prefix loop is inside `loader_decode`).
+
+**GOVERNANCE, as the review scoped it:** recognition timing differences
+against the SIM on `evt` cases are EXPECTED — the sim replays — so the gate for
+this rung is the GOLDEN (`check_core`), with `ulockstep` informative only.  In
+practice the exception was never exercised: `ulockstep`'s scenarios carry no
+pin events and it is ALL SCENARIOS LOCKSTEP on the same tree.
+
+### F35 — THREE FIRST VERIFICATIONS OF CODE THAT HAD NEVER FIRED
+
+The BIU's M14/M15/M18 and M16/M17/M20/M21 had been carried since U1 and never
+run.  Firing them found three faults, and none of them is the rung's:
+
+* **M16: `halted` was applied to the prefetch grant IN THE SAME EDGE as
+  `eu_halt`.**  `note_halt` sets `halt_pending_` and `halted_` together in the
+  model, but the two are read from opposite ends of `tick(c)` — the DISPLAY
+  block is at the TOP and claims clock `c` itself (which is why `eu_halt`
+  leads), while `halted_` is read by the prefetch eligibility at the END, and
+  the model's `note_halt` runs at `clk_ = pop+1`, i.e. after `tick(pop)` has
+  already granted.  So only `halt_pending` belongs at the top of the edge;
+  `halted` is applied past the grant.  MEASURED, `HLT.RES idx 1`: the golden's
+  CODE display / T1-T4 on rows 1-5 and the HALT only on row 6, where the RTL
+  refused the fetch outright.  300 of the 600 HALT cases.
+* **the backdoor preload did not walk the injected bytes for
+  `last_fetch_addr`**, as `queue_preload` does, so every HALT display in the
+  corpus drove address 0.
+* **the `sev` bound assertion is wrong for the HALT pseudo-cycle**, found by
+  the WAIT AXIS: by M21's own arithmetic the HALT's status release is at index
+  1 while its T4 is at `3 + waits`, so `sev = 3` is correct there at any wait
+  level above zero.  `HLT.INT` / `HLT.RES` went from SIM FAILED to 200/200 at
+  w1 and w3.
+
+...and `poll_pipe` comes out of reset holding the PIN, not ones, which is the
+`POLL.LO` half that failed at row 3 (`poll_busy()` reads a statically low
+POLL_N as not-busy on clock 0).
+
+### F36 — A PURE-ALIAS WIRE IS NOT THE PRE-EDGE VIEW.  F11b's trap, third form
+
+This module's convention is that a WIRE read inside the clocked block still
+holds the clock the edge CLOSES, which is what lets block (a) update registers
+with blocking assignments at the top of the edge.  **That is true of a wire
+with logic in it and FALSE of `wire w = r;`** — a pure alias is substituted,
+so the step reads the register LIVE.
+
+MEASURED: `HLT.NMI` woke one clock early on every case (entry at A+6 where the
+golden has A+7) because `S_HALTED` read `nmi_latch` the moment block (a) set
+it.  The fix is structural, not a rename: the pin pipelines advance at the
+**END** of the edge (block (g)), so those registers carry the clock-`c` view
+for the whole edge and nothing depends on read order.  They are read from BOTH
+sides of the module — the combinational act decode gates `q_pop` with
+`irq_fire` — and the two MUST see the same clock or the demand and the take
+drift, which is F11 again.
+
+### F37 — THE 1BL EXECUTE STROBE IS THE HANDING-OVER EDGE (§35.3, LANDED)
+
+Pre-registered bar MET: `FA` 500/500, `FB` 500/500, and no other
+one-byte-logic form moved (`F5` `F8` `F9` `FC` `FD` all 500/500).  `INT.FB`
+closed with them, 139 → 200 — it was never an interrupt fault.
+
+The model is `charge(1); wait_retire_lead(); <write>; charge(1);`, so the write
+commits at `clk_ = pop+1`: it is VISIBLE DURING the clock `S_DECODE2` hands
+over to, and therefore has to be MADE ON THE EDGE THAT HANDS OVER.  The wait's
+condition is available there — `q_ripe_lead_n` is the next-state view and IS
+`wait_retire_lead`'s test at `clk_ = pop+1`, exactly.  `S_1BL_LEAD` becomes a
+PURE WAIT for the case where it is not yet satisfied and `S_1BL_CHG` is the
+trailing `charge(1)` both paths owe; the write itself moved to
+`v30u_eu_1bl.svh`, one expression for both arms.
+
+### F38 — THE STRING TAIL WAS THREE F11s, AND `S_TAIL`'s CHARGE WAS NOT ONE
+
+§35.4 booked "`S_TAIL`'s charge is not one event ... what is wrong is the
+CONDITION, not the `stop`".  **The condition is right and the `stop` is
+right**: `S_TAIL`'s `stop` IS the `E` row's own `charge(1)` on every path into
+it (the E-row cadence, the `S_EPOP` pop, and the `pend_after` hand-over), which
+is why pass 4's zero-cost experiment regressed eight forms.  What was wrong is
+three separate things, and each is F11 — one event, two reconstructions:
+
+1. **`emit_pending()` IS ZERO CLOCKS** (it fills a slot the bus has already
+   reserved) and `deliver_read()` is a WAIT.  `S_TAIL_W` charged a clock on its
+   way to `S_TAIL_POP` regardless.  The satisfied arm now falls through inside
+   the same edge — and the act decode needs `tailw_go`, because the first
+   attempt without it ate a byte the BIU was never asked for (the three string
+   forms' ARCH fell to their cycle counts while nothing timed moved: a
+   REGRESSION `ucore_census` does not see, since it scores `full` only).
+2. **THE `stall_slot` ARM PAIRED IN THE ACT AND NOT IN THE STEP.**  `bus_write`
+   is `if (pend_.active) { deliver_read(); emit_pending(); } write_request()`
+   — the staged write is paired BEFORE the slot is waited on.  `eu_pair`
+   carried no slot term (correctly), so the BIU took the word while
+   `pend_active` stayed set; the row then re-ran `row_pre_wait` against an OPR
+   the pairing had just re-taken and cost TWO extra clocks.  MEASURED, `F3AA
+   idx 2`: the third store row stands on rows 13-17 where the model stands on
+   13-15, with `eu_pair` already asserted on 13 and `pnd` still 1.
+3. **F11a's READ-SIDE RULE WAS MISSING FROM `opr_now`.**  When the completion
+   IS the lookahead the word is not in the store yet — block (a) puts it there
+   in the same edge — so the act decode must read `eu_rdata_n` directly.
+   `opr_live` had this for the `F` row and `opr_now`'s pre-deliver arm did not,
+   so every `REP MOVS` middle iteration whose read landed on the pairing clock
+   drove the STALE OPR: `F3A4 idx 1` row 14, exp 37032 got 0.
+
+That third one is §35.4's booked SECOND SIGNATURE, and it closed `C8`, `F3A4`
+and `F3A5` together — **the two signatures were one mechanism after all**, and
+the deferral was never touched, exactly as §35.4 required.  Pre-registered bar
+MET: the six strings/ENTER forms green and none of the eight moving.
+
+## §39 THE CENSUS AND THE GATE LEDGER
+
+### §39.1 The census, step by step
+
+Whole-suite `--cases 0` (169,000 cases over 347 forms), scored by a
+form-by-form diff at every step.  **No form regressed at any step.**
+
+| after | cases full | cycle-exact forms | fully green forms |
+|---|---|---|---|
+| pass 4 (start) | 164,787 | 326 | 326 |
+| F34/F35/F36 — the interrupt and HALT rung | 167,019 | 335 | 335 |
+| F37 + F38 — the 1BL strobe and the string tail | 168,815 | 345 | 345 |
+| the tail's own boundary | **168,886** | **345** | **345** |
+| the two §35.2 residues (no-ops, as predicted) | 168,886 | 345 | 345 |
+
+**Twenty-one forms moved and two are left.**
+
+### §39.2 The gate ledger
+
+All on the same tree, `--core ucore`.
+
+| gate | command | result |
+|---|---|---|
+| **G3** | `check_core.py --core ucore --opcodes all --cases 0` | **168,886 / 169,000 (99.93 %)** |
+| **boot march** | `check_boot.py --core ucore 220` | **220/220 MATCHES** |
+| G0 | `check_ucore_tables.py` | **9988/9988 PASS** |
+| U1 lockstep | `ulockstep.py --suite --waits 0,1,2,3` | **ALL SCENARIOS LOCKSTEP** |
+| CE hold | `… --opcodes 88 --cases 100 --ce-div 3 --ce-hold-check` | **0 violations** |
+| **save state** | `… --ss-sweep` over 10 forms | **PASS, 616 freeze points** |
+| the MODEL, unmoved | `timed_gate.py --suite tests/v30/v0.1 --forms all` | **169,000/169,000, row-diffs 0** |
+| `v0.1-w1` all forms | `… --suite-dir tests/v30/v0.1-w1 --waits 1` | **1200/1200** |
+| `v0.1-w3` all forms | `… --suite-dir tests/v30/v0.1-w3 --waits 3` | **1200/1200** |
+| `v0.1-w1 --forms EB` | `… --opcodes EB` | **200/200** |
+| `v0.1-w0evt` | `… --waits 0` | 167/200 (INT.F3AA only) |
+| `v0.1-w1evt` | `… --waits 1` | **1050/1200** |
+| `v0.1-w2evt` | `… --waits 2` | 174/200 (INT.F3AA only) |
+| `v0.1-w3evt` | `… --waits 3` | **1063/1200** |
+| HLT delay sweeps (FIRST ucore measurement) | `s10-hltsweep-w{0,1}`, `s13-hltsweep-w{2,3}` | 88/97, 86/95, 35/46, 32/45 |
+
+G3 stated honestly, both numbers, as §29.2 requires: at w0 the sim carries NO
+registered residue against silicon, so the two numbers coincide — **168,886 /
+169,000 through the golden comparator**, and the same figure minus the (empty)
+w0 residue.  **There are no longer any forms unimplemented by design**, so the
+second figure §34.2 quoted (excluding 12 such forms) no longer exists: 99.93 %
+is of everything the part does in this suite.
+
+Every `evt` cell was **0** at the start of this pass.  The quick-reference
+numbers for the four HLT delay sweeps are the FSM's ratchets and are NOT a
+ucore ratchet; these are the ucore's first.
+
+## §40 WHAT IS LEFT — 2 RED FORMS, 114 CASES
+
+| form | cost | mechanism, diagnosed |
+|---|---|---|
+| `INT.9D` | 89 | **ALL of them pre-IE=0.**  The chip's flag register takes the popped image at the READ'S DATA EDGE — "the new IE shows in the PS bits during the read's own T4" — three clocks before the `OPR -> FLAGS` row writes it, so the following boundary's `ie_p[2]` sees IE=1 and this rendering's does not.  MEASURED, `idx 1`: the golden's PS nibble is 5 from row 9 and the RTL's is 1 until row 12.  The 111 pre-IE=1 cases PASS, which is the reason the POP-PSW boundary race law is **not** needed here: "pre-IE=0 pops never race, 89/89 class A in the tranche". |
+| `INT.F3AA` | 25 | the REP abort's **ANCHORING** law, not the pin pipeline: the first boundary is POP-anchored (a fixed opcode-pop+7 decision edge, flush at pop+16), chained ones are WRITE-ACCEPT-anchored, and "a next-iteration write issued but not yet committed at the edge is withdrawn (no bus activity)" — the RTL issues that withdrawn store (`idx 0` row 14, exp PASV got MEMW).  **A DEPTH SCAN OF THE REP TAP IS RECORDED AS A NEGATIVE RESULT**: `int_p[0]` 174, `[1]` 178, `[2]` 179, `[3]` 175.  There is no clean fit, so the tap stays at the depth `interrupt_model.md` MEASURES (pin@edge-4 = `int_p[3]`) and the four cases `int_p[2]` would buy are left on the table rather than fitted. |
+
+### §40.1 Residue booked, not patched
+
+* **The far-CALL / far-JMP `CS` shadow** is documented ("the sreg-load /
+  far-CALL recognition shadow") and is NOT in the ucore's decode class; no
+  golden combines it with a pin event.
+* **The taken-branch recognition boundary** (`post_flush`, tapping one clock
+  earlier at a flush) is a fuzz-seed refinement in the FSM and is not
+  rendered; no golden reaches it.
+* **`ss_field_width` has no EU entries**, so save-state mode 5 (the round-trip
+  width sweep) still treats the whole EU region as unmapped.  SS1 passes;
+  mode 5 is U3's, with `ss_lint --core ucore`.
+* **`opr_free_p` / `set_oprfree`** stay documented as PROVABLY VACUOUS (F31),
+  and the `opr_held` T2 fix is visible only through them.
+
+## §41 HANDOFF — what U3 picks up
+
+1. **The ucore enters U3 with no wait-axis debt on the scripted cells** and
+   with the whole `evt` axis measured for the first time.  The random-wait
+   tranche gate is the campaign's victory condition and is U3's.
+2. **The two red forms above**, both diagnosed to a named mechanism.  Neither
+   is a search; `INT.9D` is one rendering decision (where the flag register
+   takes a popped image from) and `INT.F3AA` is the abort's anchoring law,
+   which the FSM has and the SPEC does not (the sim REPLAYS it, so there is no
+   transliteration available — it would have to be fitted, and this pass
+   declined to).
+3. **`ss_lint --core ucore`** (§3/§13) now has a working SS1 sweep to build on,
+   and owes `ss_field_width` its EU half.
+4. **Still not run**: `ulockstep` batch mode over golden cases.
+5. **The method, unchanged and still the thing that worked**: every rung scored
+   by a form-by-form diff of two whole-suite censuses, never by the total;
+   every fix traced to a single model line with `uscope.py FORM IDX` before it
+   was written; and the two experiments that were REVERTED or came out NEGATIVE
+   (the write-derived shadow, the REP tap depth scan) are in this ledger with
+   the same weight as the ones that landed.
+   One addition: **`ucore_census.py` scores `full` only.**  The zero-cost
+   `S_TAIL_W` attempt regressed three forms' ARCH by 836 cases and the delta
+   read "REGRESSED: none".  Read the `arch` column too.
