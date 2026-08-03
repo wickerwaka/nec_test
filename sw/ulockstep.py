@@ -35,13 +35,31 @@ causes and the eval/QS strobes) next to the `r` rows; V30SIM_EVALTRACE=1 is the
 model's own equivalent (`ET`/`QT` lines on stderr).  `--utrace` turns both on
 and prints them alongside the context window.
 
+BATCH MODE over the GOLDEN CORPUS (U2 pass 6, the instrument's missing leg).
+The scripted scenarios exercise the BIU ALONE; `--golden` runs whole CASES from
+a suite directory through BOTH ENGINES -- the model (`v30sim timed-run`) and the
+ucore RTL (the TB's `+batch` consumer) -- from the SAME backdoor injection, and
+diffs the raw `r` records clock for clock.  The two legs emit the same record
+format (sw/check_core.py::parse_out), so no golden is involved: this is a
+MODEL-vs-RTL comparison, which is what `check_core` (RTL-vs-golden) and
+`timed_gate` (model-vs-golden) cannot see between them -- a column BOTH of them
+mask can still differ, and a case both of them pass can still differ off-window.
+
+Governance is unchanged: the model is the SPEC and a divergence here is an RTL
+bug -- EXCEPT on the recognition columns of an `evt` case, where the model
+REPLAYS (F34 / C5, pin_replay.h) and the GOLDEN is the gate.
+
 Usage:
     ulockstep.py <script>...            diff each script
     ulockstep.py --suite               the built-in stage-U1 bring-up set
     ulockstep.py --waits 0,1,2,3 ...   run each script at each wait level
+    ulockstep.py --golden 88,A4,INT.9D [--cases N] [--waits 0]
+    ulockstep.py --golden all --cases 5
 """
 
 import argparse
+import gzip
+import json
 import subprocess
 import sys
 import tempfile
@@ -49,7 +67,10 @@ from pathlib import Path
 
 SW = Path(__file__).resolve().parent
 ROOT = SW.parent
+sys.path.insert(0, str(SW))
+import check_core                                        # noqa: E402
 SIM = ROOT / "sim" / "v30sim"
+ROM = ROOT / "docs" / "V20BITS.TXT"
 UBIN = ROOT / "hdl" / "tb" / "obj_dir_ucore" / "Vtb_v30_core"
 
 T_STR = {0: "Ti", 1: "T1", 2: "T2", 3: "T3", 4: "Tw", 5: "T4"}
@@ -261,6 +282,101 @@ def write_suite(td, waits):
     return out
 
 
+#---------------------------------------------------------------------------
+# BATCH MODE: whole golden CASES through both engines
+#---------------------------------------------------------------------------
+def _recs_to_rows(recs):
+    """parse_out's record dicts -> this module's row dicts (same fields)."""
+    return [{"t": r["t"], "bs": r["bs_early"], "qs": r["qs"],
+             "ube_n": r["ube_n"], "ad_addr": r["ad_addr"],
+             "ad_data": r["ad_data"], "ps": r["ps"]} for r in recs]
+
+
+def run_model_batch(cases, waits):
+    with tempfile.TemporaryDirectory() as td:
+        out = Path(td) / "rows.txt"
+        with open(out, "wb") as fo:
+            r = subprocess.run([str(SIM), "timed-run", str(ROM),
+                                f"--waits={waits}"],
+                               input=json.dumps(cases).encode(), stdout=fo)
+        if r.returncode != 0:
+            sys.exit(f"model leg exited {r.returncode}")
+        return check_core.parse_out(out)
+
+
+def run_rtl_batch(cases, waits):
+    with tempfile.TemporaryDirectory() as td:
+        batch, out = Path(td) / "b.txt", Path(td) / "o.txt"
+        check_core.compose_batch(cases, batch)
+        r = subprocess.run([str(check_core.core_bin("ucore")),
+                            f"+batch={batch}", f"+out={out}",
+                            f"+waits={waits}", "+ce_div=1"],
+                           cwd=ROOT, capture_output=True, text=True)
+        if not out.exists():
+            sys.exit(f"rtl leg produced no output: {r.stdout[-800:]}")
+        return check_core.parse_out(out)
+
+
+def golden_jobs(suite, forms, ncases, waits, ctx, quiet):
+    """-> (ok, per-form summary lines)."""
+    if forms == "all":
+        names = sorted(p.name.split(".json")[0] for p in suite.glob("*.json.gz"))
+    else:
+        names = [f.strip() for f in forms.split(",") if f.strip()]
+    ok = True
+    tot_cases = tot_bad = 0
+    for name in names:
+        f = suite / f"{name}.json.gz"
+        if not f.exists():
+            print(f"  {name}: no suite file")
+            continue
+        cases = json.load(gzip.open(f))
+        if ncases:
+            cases = cases[:ncases]
+        msim = run_model_batch(cases, waits)
+        mrtl = run_rtl_batch(cases, waits)
+        bad = []
+        for c in cases:
+            i = c["idx"]
+            a, b = msim.get(i), mrtl.get(i)
+            if a is None or b is None:
+                bad.append((i, "no output"))
+                continue
+            nc = check_core.n_fpops(c) - 1
+            _x, ea, ia0, ia1 = check_core.build_rows_sim(
+                a["recs"], c["initial"]["queue"], n_close=nc)
+            _y, eb, ib0, ib1 = check_core.build_rows_sim(
+                b["recs"], c["initial"]["queue"], n_close=nc)
+            if ia0 is None or ib0 is None:
+                bad.append((i, (0, ["no-window"])))
+                continue
+            # THE WINDOW, not the raw stream: both engines are driven past the
+            # case's close and record a different number of trailing clocks,
+            # which is a property of the two DRIVERS and not of the part.  The
+            # window is check_core's own -- [first F .. F #n_close].
+            sr = _recs_to_rows(a["recs"][ia0:ia1 + 1])
+            rr = _recs_to_rows(b["recs"][ib0:ib1 + 1])
+            n = min(len(sr), len(rr))
+            first = next(((k, cmp_row(sr[k], rr[k]))
+                          for k in range(n) if cmp_row(sr[k], rr[k])), None)
+            if first is None and len(sr) != len(rr):
+                first = (n, ["len"])
+            if first is not None:
+                bad.append((i, first))
+                if not quiet and len(bad) == 1:
+                    diff(f"{name} idx {i}", sr, rr, ctx)
+        tot_cases += len(cases)
+        tot_bad += len(bad)
+        status = "LOCKSTEP" if not bad else f"{len(bad)} DIVERGE"
+        print(f"  {name}: {len(cases) - len(bad)}/{len(cases)} {status}"
+              + ("" if not bad else "  first: "
+                 + ", ".join(f"idx {i}@{d[0]}:{','.join(d[1])}"
+                             for i, d in bad[:3])))
+        ok &= not bad
+    print(f"\n  TOTAL {tot_cases - tot_bad}/{tot_cases} cases lockstep")
+    return ok
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("scripts", nargs="*")
@@ -271,10 +387,26 @@ def main():
     ap.add_argument("--ctx", type=int, default=8)
     ap.add_argument("--utrace", action="store_true",
                     help="enable the RTL +utrace / model EVALTRACE channels")
+    ap.add_argument("--golden", metavar="FORMS",
+                    help="BATCH MODE: comma list of suite forms (or 'all') run "
+                         "through BOTH engines and diffed against each other")
+    ap.add_argument("--cases", type=int, default=0,
+                    help="--golden: cases per form (0 = all)")
+    ap.add_argument("--suite-dir", default=str(ROOT / "tests" / "v30" / "v0.1"))
+    ap.add_argument("--quiet", action="store_true",
+                    help="--golden: summary lines only, no context window")
     args = ap.parse_args()
 
     if not UBIN.exists():
         sys.exit(f"missing {UBIN}: run `sw/check_core.py --build --core ucore`")
+
+    if args.golden:
+        w = int(args.waits.split(",")[0])
+        ok = golden_jobs(Path(args.suite_dir), args.golden, args.cases, w,
+                         args.ctx, args.quiet)
+        print("\nULOCKSTEP-GOLDEN: "
+              + ("ALL CASES LOCKSTEP" if ok else "DIVERGENCES"))
+        return 0 if ok else 1
 
     ok = True
     with tempfile.TemporaryDirectory() as td:
