@@ -119,5 +119,9 @@
         SSA_E_PE_PFXCNT:           ss_rdata <= {8'b0, pe_pfxcnt};
         SSA_E_PE_FLAGS:            ss_rdata <= {13'b0, iend_owed, pe_op8,
                                                 pe_opc8080};
+        SSA_E_PIN_PIPE:            ss_rdata <= {3'b0, ie_p, nmi_p, int_p};
+        SSA_E_IRQ_LATCH:           ss_rdata <= {11'b0, unhalt_pend, irq_sel_nmi,
+                                                bnd_armed, irq_shadow,
+                                                nmi_latch};
         default: ss_rdata <= 16'h0000;
     endcase

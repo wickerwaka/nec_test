@@ -230,6 +230,22 @@ reg        mode8080;
 reg        intr_pending;
 reg        eu_halted;
 
+// --- the interrupt recognition (U2 pass 5; docs/facts/interrupt_model.md) ---
+// The pins reach the decision through flops, and THAT is the whole mechanism:
+// the ucore does NOT render `timed_runner.cpp`'s `D = max(B, A + pipe)`, which
+// the third Codex review (ledger C5) showed to be an artefact of the REPLAY
+// driver -- nothing in hardware can hold a boundary for a pin that has not
+// asserted yet.  What is left is causal and small: pipeline the INT LEVEL,
+// edge-latch NMI, and test the MATURED event at each boundary.
+reg  [3:0] int_p;          // pin_int:  int_p[k] is the level of clock c-1-k
+reg  [4:0] nmi_p;          // pin_nmi, one deeper (the latch is an EDGE)
+reg        nmi_latch;      // set at edge+3, so it reads true from edge+4
+reg  [3:0] ie_p;           // psw[FIE] through the SAME three flops
+reg        irq_shadow;     // a segment-register write skips ONE boundary
+reg        bnd_armed;      // this `S_OPC_POP` is an instruction boundary
+reg        irq_sel_nmi;    // the kind, latched AT the boundary
+reg        unhalt_pend;    // the NMI wake's `unhalt()`, owed to the entry clock
+
 // operand latches M / R / WB
 reg  [1:0] m_kind, r_kind, wb_kind;
 reg  [2:0] m_idx,  r_idx,  wb_idx;
@@ -327,7 +343,8 @@ localparam bit [5:0]
     S_TAIL_POP  = 6'd28,  // ...and its deferred opcode pre-pop
     S_INSTR_END = 6'd29,  // ZERO-COST: step() returns
     S_HALTED    = 6'd30,  // the part is parked
-    S_RESET     = 6'd31;  // F25: the internal reset dispatch, 4 clocks
+    S_RESET     = 6'd31,  // F25: the internal reset dispatch, 4 clocks
+    S_IRQ_D     = 6'd32;  // the recognised boundary's ONE decision clock
 
 //============================================================================
 // THE COMPOSITION (campaign risk #1, second half) -- F7, see the ledger
@@ -428,13 +445,6 @@ wire       e_hasc  = row_nop ? 1'b0  : r_hasconst;
 wire e_is_rloop = (e_type == TY_ALU) && e_r;
 wire e_have1 = !e_nopmv;
 wire e_have2 = !e_hasc && ((e_s2 != 4'd15) || (e_d2 != 2'd3));
-
-//============================================================================
-// PLA3 (combinational case ROM, generated)
-//============================================================================
-wire [1:0] pla_mode = mode8080 ? PLA3_MODE_8080 : PLA3_MODE_NATIVE;
-// the byte standing on the queue port, decoded for the HALT one-shot below
-wire [13:0] pla_qb  = pla3_lookup(pla_mode, q_byte);
 
 //============================================================================
 // SEGMENT / WIDTH HELPERS
@@ -559,10 +569,36 @@ wire retire_ok_n = (wr_out == 2'd0) ||
 wire f_wait = row_reads_opr ? (nr_wait || !opr_free_now) : !opr_free_now;
 
 // BUSY is the 9B POLL_N pin, sampled through the same 3-deep pin pipeline the
-// INT level goes through (biu_timed.h::poll_busy).  The pipeline itself is U3
-// work (the pin-event replay); the static level is what U2 needs.
+// INT level goes through (biu_timed.h::poll_busy, "AND IT IS THE SAME 3-DEEP
+// PIN PIPELINE").  U2 pass 5: the pipeline is REAL now, and its RESET VALUE is
+// the pin -- a shift register that has been clocked since power-on holds the
+// level it has been seeing, and `poll_busy()` reads a STATICALLY LOW POLL_N as
+// "not busy" on clock 0 (`if (!(ev_pins_ & 4)) return false;`).  Reset to all
+// ones instead made the first three clocks read BUSY, which is exactly the
+// `POLL.LO` half that failed at row 3.
 reg [2:0] poll_pipe;
 wire poll_busy = poll_pipe[2];
+
+//----------------------------------------------------------------------------
+// THE RECOGNITION (interrupt_model.md's two laws, and nothing else)
+//----------------------------------------------------------------------------
+// "the boundary decision runs during the would-pop cycle B and sees the pin
+// level of cycle B-3" -- so the INT LEVEL and the IE GATE go through the same
+// three flops, which is also why there is no separate EI shadow flag.
+// "NMI latch: set 3 cycles after the pin edge; latest catching edge = B-4".
+//
+// EVERY read of these registers from inside the clocked step goes through
+// these wires: block (a) shifts the pipelines with BLOCKING assignments at the
+// top of the edge, so the REGISTERS already hold the NEXT clock's view while
+// the wires still hold THIS clock's (F11b's trap, and the whole module's
+// convention).
+wire irq_pin_int = int_p[2];                       // the pin at c-3
+wire irq_int_lvl = int_p[2] && ie_p[2];            // ...gated by IE at c-3
+wire irq_nmi_lvl = nmi_latch;
+wire irq_any     = irq_nmi_lvl || irq_int_lvl;
+// A REP iteration boundary samples ONE FLOP DEEPER (interrupt_model.md,
+// "REP abort": pin@edge-4) and reads the LIVE IE, not the pipelined one.
+wire irq_rep     = irq_nmi_lvl || (int_p[3] && psw[FIE]);
 
 //============================================================================
 // THE ROW'S DEMANDS
@@ -1158,16 +1194,72 @@ wire pend_after = pend_new && !(opr_fresh || row_wr_opr);
 wire row_flush = (e_type == TY_CTL) && !e_farjmp && (e_ictl == I_FLUSH);
 wire row_epop = (st == S_ROW) && e_e && !pend_after && !opc_valid &&
                 !row_blocked && (rowq >= row_qn) && !row_pre_wait &&
-                !row_slot_wait && retire_ok_e && !row_flush;
+                !row_slot_wait && retire_ok_e && !row_flush && !irq_fire;
 
-wire q_demand = (st == S_OPC_POP) || (st == S_EXT_POP) || (st == S_MODRM) ||
+//----------------------------------------------------------------------------
+// THE BOUNDARY, AND WHY IT IS NOT THE POP
+//----------------------------------------------------------------------------
+// `BiuTimed::boundary_no_pop()` is `if (opc_valid_) return clk_; wait_bus();`
+// -- the RETIRE deadline and NOTHING ELSE.  The recognition decision does not
+// need the byte (it is the decision NOT to take one), so a recognised boundary
+// does not slide when the queue is dry, and it is NOT cancelled by a flush
+// (F24 is a fact about a POP; there is no pop here).  MEASURED in the SPEC:
+// `INT.90` 200/200 with the retire deadline, 177 with the pop deadline, and
+// every one of the 23 failures an odd-address dry-queue case.
+//
+// So `bnd_row` is `row_epop` with the two POP-ONLY terms removed (`q_ripe`,
+// which lives in the step, and `!row_flush`).
+//
+// ...AND THE BOUNDARY IS A WINDOW, NOT A CLOCK.  `boundary_no_pop()` returns
+// the retire deadline, but the model then takes its decision at
+// `max(B, A + pipe)` -- and C5 says that `max` cannot be hardware.  What CAN
+// be, and is what the frozen FSM does, is the plain reading of
+// `pop_want = (state == S_FIRST && !irq_take)`: the part SITS at the pop point
+// from the retire deadline until the byte arrives, and `irq_take` is a LEVEL
+// sampled on every clock of that wait.  The two agree on every replayed case
+// because the replay had already chosen a boundary that fires -- but only the
+// window is causal, and it is what the goldens show.
+// MEASURED: `INT.90 idx 14`, retire met on row 3 with a dry queue and the pin
+// maturing on row 4; the chip's row-4 pop is SUPPRESSED.  A one-clock boundary
+// declines it and pops.
+wire bnd_row  = (st == S_ROW) && e_e && !pend_after && !opc_valid &&
+                !row_blocked && (rowq >= row_qn) && !row_pre_wait &&
+                !row_slot_wait && retire_ok_e;
+wire bnd_epop = ((st == S_EPOP) || (st == S_TAIL_POP)) && retire_ok_n;
+// ...and the boundary of a PRE-DECODE-EXECUTED form, which has no `E` row at
+// all: `step()` checks it after `loader_decode` returns (S9b), i.e. on the
+// clock the successor's cold pop would ride.  `bnd_armed` is what separates
+// that `S_OPC_POP` from the one a PREFIX hands over -- the model's prefix loop
+// is INSIDE `loader_decode`, so there is no boundary between a prefix and its
+// instruction, which is the measured "no sample between 26 and 8B".
+wire bnd_opc  = (st == S_OPC_POP) && bnd_armed;
+wire at_bnd   = bnd_row || bnd_epop || bnd_opc;
+
+// THE SHADOW IS A DECODE-TIME CLASS, NOT A WRITE.  "Recognition-deferring
+// instructions: every segment-register load -- measured on `MOV SS,AW` AND
+// `MOV DS0,AW`" ... "8C sreg-STORE shadows recognition too".  It was tempting
+// to derive it from the sreg WRITE itself, and that is REFUTED by the row
+// order: `8E`'s write is on the POST-`E` row (`0.8e.1`), which the model runs
+// AFTER the cadence -- so at the boundary no write has happened yet, and the
+// golden still skips the sample (`INT.8ED0 idx 16` row 4: the chip pops, the
+// write-derived rendering vectored).  The class is what the PLA already says
+// (`pla3_sreg_mov`, the same bit that makes the ModR/M `reg` field an SREG),
+// and it is set where the loader latches it.
+// REGISTERED RESIDUE: the far-CALL / far-JMP `CS` write is documented to
+// shadow too and is NOT in this class; no golden combines the two.
+wire irq_take = irq_any && !irq_shadow;
+wire irq_fire = at_bnd && irq_take;
+
+wire q_demand = ((st == S_OPC_POP) && !irq_fire) ||
+                (st == S_EXT_POP) || (st == S_MODRM) ||
                 (st == S_D16_LO) ||
                 ((st == S_D8_B)   && (!ld_ripe_prev ? (chg == 2'd1) : 1'b1)) ||
                 ((st == S_D16_HI) && (!ld_ripe_prev ? (chg == 2'd1) : 1'b1)) ||
                 q_demand_row || row_epop ||
                 // F11 again: both deferred-pop states TAKE the byte only past
                 // the retire deadline, so neither may DEMAND it before.
-                (((st == S_EPOP) || (st == S_TAIL_POP)) && retire_ok_n);
+                (((st == S_EPOP) || (st == S_TAIL_POP)) && retire_ok_n &&
+                 !irq_fire);
 
 assign q_pop   = q_demand;
 assign q_first = (st == S_OPC_POP) ? pop_is_first
@@ -1260,11 +1352,45 @@ assign eu_resume = 1'b0;
 // the edge ending c-1 (U1 finding, provenance sec.11.6) -- so `eu_halt` LEADS
 // by one clock, and the clock it must ride is the OPCODE'S OWN POP CLOCK.
 // One rule, both paths: the loader's own F pop and the E row's pre-pop.
-wire qb_is_halt = pla3_one_byte_logic(pla_qb) &&
-                  (pla3_xop(pla_qb) == PLA3_BL1_HALT);
+//
+// U2 pass 5 -- VERIFIED FOR THE FIRST TIME, and it is RIGHT: the model's HALT
+// DISPLAY block sits at the TOP of `tick(c)` and writes `cmt_disp_ = c`, i.e.
+// it claims the clock it runs on, where a GRANT (decided at the end of
+// `tick(c)`) claims `c + 1`.  The RTL's register boundary supplies exactly
+// that one clock of skew, so the pop-clock lead is what puts the HALT display
+// on `pop + 1` -- which is where 300 of the 600 goldens have it.
+//
+// What was WRONG is the other half of the same edge, and it is a BIU fact, not
+// this one: `halted` was applied to the prefetch grant IN THE SAME EDGE, so
+// the eval at the end of the pop clock refused a fetch the part grants.  See
+// `v30u_biu.sv`'s "M16 -- THE DECODE DOES NOT TAKE A COMMITTED FETCH BACK".
+wire qb_is_halt = pla3_one_byte_logic(pla3_lookup(
+                      mode8080 ? PLA3_MODE_8080 : PLA3_MODE_NATIVE, q_byte)) &&
+                  (pla3_xop(pla3_lookup(
+                      mode8080 ? PLA3_MODE_8080 : PLA3_MODE_NATIVE, q_byte))
+                   == PLA3_BL1_HALT);
 assign eu_halt = q_pop && q_ripe && q_first && qb_is_halt && !mode8080 &&
                  !eu_halted;
-assign eu_unhalt = 1'b0;
+
+// THE WAKE.  A halted part has no instruction boundary to sample, so the
+// decision sits at the EARLIEST CLOCK THE PIN PIPELINE ALLOWS -- which is the
+// same pipeline, read in the same place.  `timed_runner.cpp` states the
+// geometry and it falls straight out of `B = D + 1`, `entry = B + 2`:
+//
+//   HLT.RES  D = A+3 (the INT level matures), pop at A+4  -- "the prefetcher
+//            resumes at the decision cycle, the next instruction pops one
+//            cycle later"
+//   HLT.INT  D = A+3, B = A+4, entry at A+6 -- "INTA request ready at
+//            assert+6"; the prefetcher restarts at the DECISION
+//   HLT.NMI  D = A+4 (the latch reads true at edge+4), B = A+5, entry at A+7
+//            -- and the BUS IS HELD: the wake does not happen until the entry
+//            clock, which is what `unhalt_pend` carries.
+//
+// The INT wake is IE-INDEPENDENT (measured, and it is where the V30 differs
+// from the 8086): a masked INT resumes the stream without vectoring, which is
+// the same `S_OPC_POP` with `irq_take` false.
+wire hlt_wake_int = (st == S_HALTED) && !irq_nmi_lvl && irq_pin_int;
+assign eu_unhalt = hlt_wake_int || unhalt_pend;
 
 assign psw_ie  = psw[FIE];
 assign md8080  = mode8080;
@@ -1293,6 +1419,7 @@ reg        bsw;             // the row's byte-source flag (Q / CONST)
 reg [13:0] pv;
 reg  [3:0] nloc;
 reg        carry, taken, bubble, retire_now;
+reg        ie_now;      // block (g): the IE the gate's pipeline takes
 reg [15:0] ea;
 reg  [2:0] rseg;
 reg  [1:0] rmmod;
@@ -1353,7 +1480,14 @@ always @(posedge clk) begin
         st = S_OPC_POP; chg = 2'd0; ending = 1'b0; poste = 1'b0;
         rowq = 2'd0; row_posted = 1'b0; row_paired = 1'b0; rloop_n = 16'd0;
         suppress_commit = 1'b0; first_pop_seen = 1'b0;
-        rowb0 = 8'd0; rowb1 = 8'd0; poste = 1'b0; poll_pipe = 3'b111;
+        rowb0 = 8'd0; rowb1 = 8'd0; poste = 1'b0;
+        // the pin pipelines come out of reset holding the LEVEL they have been
+        // seeing -- a shift register clocked since power-on cannot hold
+        // anything else, and it is what `poll_busy()` / the INT sample assume.
+        poll_pipe = {3{pin_poll_n}};
+        int_p = {4{pin_int}}; nmi_p = {5{pin_nmi}}; ie_p = 4'd0;
+        nmi_latch = 1'b0; irq_shadow = 1'b0; bnd_armed = 1'b0;
+        irq_sel_nmi = 1'b0; unhalt_pend = 1'b0;
         if (bkd_load) begin
             gpr[0] = bkd_regs[  0 +: 16];  gpr[1] = bkd_regs[ 16 +: 16];
             gpr[2] = bkd_regs[ 32 +: 16];  gpr[3] = bkd_regs[ 48 +: 16];
@@ -1388,11 +1522,16 @@ always @(posedge clk) begin
             rst_ctr  = 3'd0;
             st = S_RESET;
         end
+        ie_p = {4{psw[FIE]}};      // ...and so does the IE gate's own pipeline
     end else if (ce) begin
         //====================================================================
         // (a) the BIU's completion pulses, sampled on the clock they ride
         //====================================================================
         poll_pipe = {poll_pipe[1:0], pin_poll_n};
+        // ...and the IE the gate's own pipeline is about to take, frozen HERE
+        // because the chain below may write `psw` (see block (g)).
+        ie_now = psw[FIE];
+        unhalt_pend = 1'b0;
         rd_age0 = 1'b0;
         if (eu_rd_done_n) begin
 `ifndef SYNTHESIS
@@ -1445,6 +1584,32 @@ always @(posedge clk) begin
                 `include "v30u_eu_step.svh"
             end
         end
+
+        //====================================================================
+        // (g) THE PIN PIPELINES, ADVANCED AT THE *END* OF THE EDGE
+        //====================================================================
+        // Not a style choice.  These registers are read from BOTH sides of the
+        // module -- by the combinational act decode (`irq_fire` gates `q_pop`)
+        // and by the clocked step -- and the two MUST see the same clock, or
+        // the demand and the take drift (F11, again).  Shifting them in block
+        // (a) put the clock-c+1 view in front of the step while the act decode
+        // still had clock c: MEASURED, `HLT.NMI` woke one clock early on every
+        // case (entry at A+6 where the golden has A+7), because the step read
+        // `nmi_latch` the moment block (a) set it.
+        //
+        // Advanced here, the registers carry the clock-c view for the WHOLE
+        // edge and nothing depends on read order.  (The trap that made this
+        // necessary: a wire that is a PURE ALIAS of a register -- `wire w = r;`
+        // -- is substituted by the simulator, so it is NOT the pre-edge view
+        // the rest of this module gets from a wire with real logic in it.
+        // F11b's trap, third form.)
+        int_p = {int_p[2:0], pin_int};
+        nmi_p = {nmi_p[3:0], pin_nmi};
+        ie_p  = {ie_p[2:0], ie_now};
+        // the NMI LATCH is an EDGE, set three clocks after it: `nmi_p[3]` is
+        // the pin at c-3 and `nmi_p[4]` the pin at c-4, so the latch reads true
+        // from c+1 = edge+4 -- "latest catching edge = B-4".
+        if (nmi_p[3] && !nmi_p[4]) nmi_latch = 1'b1;
     end
 end
 
@@ -1455,7 +1620,8 @@ always @(posedge clk) begin
     `include "v30u_eu_ss_read.svh"
 end
 
-wire _unused_eu = &{1'b0, pin_int, pin_nmi, q_cnt, halted, lock_pfx,
+wire _unused_eu = &{1'b0, q_cnt, halted, lock_pfx, nmi_p[2:0], int_p[1:0],
+                    ie_p[3], ie_p[1:0],
                     ar_full, ar_m, row_paired, imm8,
                     r_ictl, r_ectl, r_sr, r_f, r_w, r_e, r_type, r_nopmove,
                     r_hasconst, r_s1, r_d1, r_s2, r_d2, r_r, dec_valid,

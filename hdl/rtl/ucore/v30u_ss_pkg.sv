@@ -31,7 +31,7 @@ package v30_ss_pkg;
   localparam logic [8:0]  SS_BIU_BASE  = 9'h001;
   localparam int          SS_BIU_COUNT = 96;
   localparam logic [8:0]  SS_EU_BASE   = 9'h100;
-  localparam int          SS_EU_COUNT  = 113;   // stage U2 (+3 post-E, -1 F31)
+  localparam int          SS_EU_COUNT  = 115;   // U2 p5 (+2 recognition)
   localparam int          SS_COUNT     = 1 + SS_BIU_COUNT + SS_EU_COUNT;
   localparam logic [15:0] SS_TAG       = {8'(SS_VERSION), 8'(SS_COUNT)};
 
@@ -247,7 +247,7 @@ package v30_ss_pkg;
   localparam logic [8:0] SSA_B_RD_WAS_SPLIT     = 9'h060;
 
   //--------------------------------------------------------------------------
-  // EU region (module v30u_eu): 0x100-0x16F
+  // EU region (module v30u_eu): 0x100-0x172
   //--------------------------------------------------------------------------
   localparam logic [8:0] SSA_E_AX                   = 9'h100;
   localparam logic [8:0] SSA_E_CX                   = 9'h101;
@@ -366,6 +366,12 @@ package v30_ss_pkg;
   localparam logic [8:0] SSA_E_PE_OPC_REG           = 9'h16F;
   localparam logic [8:0] SSA_E_PE_PFXCNT            = 9'h170;
   localparam logic [8:0] SSA_E_PE_FLAGS             = 9'h153;
+  // U2 pass 5 -- THE RECOGNITION IS EU STATE TOO.  The pin pipelines are
+  // flops, so a freeze that lands three clocks after an assert and does not
+  // carry them restores a part that has forgotten the pin.  Two words: the
+  // three pipelines packed (INT 4, NMI 5, IE 4 = 13 bits) and the latches.
+  localparam logic [8:0] SSA_E_PIN_PIPE             = 9'h171;
+  localparam logic [8:0] SSA_E_IRQ_LATCH            = 9'h172;
 
 endpackage
 

@@ -18,8 +18,20 @@ case (st)
 S_OPC_POP: begin
     // pop_opcode with an EMPTY latch: the pop rides this clock, then the
     // decoder spends one (`if (!pre) biu.charge(1)`).
-    if (!q_ripe) stop = 1'b1;
+    //
+    // ...and when this pop is an INSTRUCTION BOUNDARY (`bnd_armed` -- a
+    // pre-decode-executed predecessor, or the wake from HALT) the recognition
+    // is tested FIRST and needs no byte.
+    if (bnd_armed && irq_take) begin
+        bnd_armed   = 1'b0;
+        irq_shadow  = 1'b0;
+        irq_sel_nmi = irq_nmi_lvl;
+        st = S_IRQ_D;
+        stop = 1'b1;
+    end else if (!q_ripe) stop = 1'b1;
     else begin
+        // the pop closes the window and spends the shadow
+        bnd_armed = 1'b0; irq_shadow = 1'b0;
         ld_b = q_byte;
         pc   = pc + 16'd1;
         pop_is_first = 1'b0;
@@ -90,8 +102,13 @@ S_DECODE2: begin
     ld_pla = pv;
     if (!ld_ext && pla3_one_byte_logic(pv)) begin
         if (pla3_xop(pv) == PLA3_BL1_HALT) begin
-            // S9a: `eu_halt` already rode the opcode's own pop clock.
+            // S9a: `halt_decode()` is called HERE, after `pop_opcode`'s own
+            // `charge(1)`, so `eu_halt` rides the DECODE clock -- the state
+            // this arm hands over to.  One rule, both paths.
             eu_halted = 1'b1;
+            // clear_consumed(): the wake's pop is a fresh instruction's `F`,
+            // and the HALT path never reaches `S_INSTR_END` to say so.
+            pop_is_first = 1'b1;
             psw = (psw & PSW_WRITABLE) | PSW_FORCED;
             st = S_HALTED;
         end else begin
@@ -105,6 +122,9 @@ S_DECODE2: begin
         op8  = ld_byte;
         imm8 = ld_byte || (ld_b == 8'h83) || (ld_b == 8'h6B);
         xop  = pla3_xop(pv);
+        // ...and the sreg-MOV class arms the recognition shadow (`8C` / `8E`,
+        // load AND store -- both measured).  One boundary, spent by it.
+        if (!ld_ext && pla3_sreg_mov(pv)) irq_shadow = 1'b1;
         ld_page = ld_ext ? 3'd4 : ((rep_kind != REP_NONE) ? 3'd1 : 3'd0);
         opc_reg = ld_b;
         ld_hasrm = pla3_has_modrm(pv);
@@ -442,8 +462,21 @@ end
 S_EPOP: begin
     // the E row's successor pop, deferred past the retire deadline
     if (!retire_ok_n) stop = 1'b1;
+    // ...and the BOUNDARY is that deadline alone (`boundary_no_pop`'s
+    // `wait_bus()`), so it is taken here whether or not the byte is ripe.
+    // The post-`E` row still runs -- the model reaches it through the same
+    // `ending` pass -- so the debt is raised exactly as the pop path raises it.
+    else if (irq_take) begin
+        irq_shadow = 1'b0;
+        irq_sel_nmi = irq_nmi_lvl;
+        poste = 1'b1; pe_opc_reg = opc_reg; pe_opc8080 = opc8080;
+        pe_op8 = op8; pe_pfxcnt = pfxcnt;
+        st = S_IRQ_D;
+        stop = 1'b1;
+    end
     else if (!q_ripe) stop = 1'b1;
     else begin
+        irq_shadow = 1'b0;
         opc_byte = q_byte;
         opc_valid = 1'b1;
         pop_is_first = 1'b0;
@@ -482,8 +515,18 @@ S_TAIL_POP: begin
     // the DEFERRED opcode pre-pop: `wait_bus()` then the pop, then M8b's
     // clock after it (`if (deferred) biu.charge(1)`).
     if (!retire_ok_n) stop = 1'b1;
+    // the same boundary, on the deferred arm (`exec_impl.h`'s second
+    // `at_fire_boundary()` call).  `poste` was raised by the `E` row itself
+    // here, so only the decision is owed.
+    else if (irq_take) begin
+        irq_shadow = 1'b0;
+        irq_sel_nmi = irq_nmi_lvl;
+        st = S_IRQ_D;
+        stop = 1'b1;
+    end
     else if (!q_ripe) stop = 1'b1;
     else begin
+        irq_shadow = 1'b0;
         opc_byte = q_byte;
         opc_valid = 1'b1;
         pop_is_first = 1'b0;
@@ -494,7 +537,63 @@ S_TAIL_POP: begin
 end
 
 S_HALTED: begin
-    stop = 1'b1;                                        // stall_pin
+    // stall_pin -- and THE WAKE.  A halted part has no boundary of its own, so
+    // the decision clock D is simply the first clock the pin pipeline has
+    // matured the event on; the would-pop clock is D+1 and the entry, as ever,
+    // is two clocks past that.  `eu_unhalt` is combinational off this state
+    // (INT) or owed to the entry clock (NMI, where the bus is HELD).
+    if (irq_nmi_lvl) begin
+        bnd_armed = 1'b1;
+        st = S_OPC_POP;
+    end else if (irq_pin_int) begin
+        eu_halted = 1'b0;              // `eu_unhalt` rides THIS clock
+        bnd_armed = 1'b1;
+        st = S_OPC_POP;
+    end
+    stop = 1'b1;
+end
+
+S_IRQ_D: begin
+    // `CpuT::interrupt()`.  ONE internal decision clock (the boundary was the
+    // clock before), then the entry's first row.  The loader is BYPASSED, so
+    // every latch it would have written is presented explicitly -- in
+    // particular `xop`, without which the vector fetch's `SR = IO` would be
+    // re-classified as a port access (ledger A24), and `op8`, without which
+    // 01EC's `2*vector` truncates.
+    upc_page = 3'd7;
+    upc_opc  = irq_sel_nmi ? 8'h00 : 8'h02;   // 01D8 (BRK/NMI) / 01E0 (INTA)
+    upc_loc  = irq_sel_nmi ? 4'd2  : 4'd0;
+    if (irq_sel_nmi) nmi_latch = 1'b0;
+    seg_override = 1'b0; seg_ovr = 2'd3; rep_kind = REP_NONE; lock_pfx = 1'b0;
+    pfxcnt = 8'd0;
+    m_kind = OK_NONE; m_idx = 3'd0; m_ea = 16'd0; m_seg = 3'd3; m_byte = 1'b0;
+    r_kind = OK_NONE; r_idx = 3'd0; r_ea = 16'd0; r_seg = 3'd3; r_byte = 1'b0;
+    wb_kind = OK_NONE; wb_idx = 3'd0; wb_ea = 16'd0; wb_seg = 3'd3;
+    wb_byte = 1'b0;
+    opc_base = 5'd0; opc_from_modrm = 1'b0; modrm_reg = 3'd0; opc_reg = 8'd0;
+    rep_test = TEST_NONE; rep_pol = 1'b0; xop = 4'd0;
+    op8 = 1'b0; imm8 = 1'b0; bus_word = 1'b0; opc8080 = 1'b0;
+    al_op = A_ADD; al_tmp = 2'd0; al_byte = 1'b0;
+    al_eaconst = 1'b0; al_eaval = 16'd0;
+    al_adjust = 2'd0; al_adjtmp = 2'd0; al_bitarm = 1'b0; al_bitn = 4'd0;
+    al_spent = 1'b0;
+    // begin_sequence(): the pairing latch and the completed-read store
+    pend_active = 1'b0; pend_off = 16'd0; pend_seg = 3'd3;
+    pend_byte = 1'b0; pend_io = 1'b0; opr_fresh = 1'b0;
+    rdq0 = 16'd0; rdq1 = 16'd0; rdq_n = 2'd0;
+    ld_ext = 1'b0; ld_hasrm = 1'b0; ld_grpd = 1'b0; ld_preread = 1'b0;
+    ld_rm = 8'd0; ld_disp = 16'd0;
+    ending = 1'b0; rowq = 2'd0; row_posted = 1'b0; row_paired = 1'b0;
+    suppress_commit = 1'b0;
+    opc_valid = 1'b0; pop_is_first = 1'b1; bnd_armed = 1'b0;
+    irq_shadow = 1'b0;
+    intr_pending = 1'b0;                       // `m_.intr_pending = false`
+    if (eu_halted) begin
+        eu_halted = 1'b0;
+        unhalt_pend = 1'b1;   // the NMI wake: `unhalt()` AT the entry clock
+    end
+    st = S_ROW;
+    stop = 1'b1;
 end
 
 S_RESET: begin
@@ -525,7 +624,13 @@ S_INSTR_END: begin
         `include "v30u_eu_iend_late.svh"
     end
     ending = 1'b0; rowq = 2'd0; row_posted = 1'b0; row_paired = 1'b0;
-    if (!opc_valid) pop_is_first = 1'b1;                // clear_consumed()
+    // S9b: a form the PRE-DECODE executed (`FA` `FB` `F5` `F8` ... -- no `E`
+    // row, so no boundary was taken above) retires at a boundary too, and it
+    // is the cold pop that follows.  Everything else has already had its.
+    if (!opc_valid) begin
+        pop_is_first = 1'b1;                            // clear_consumed()
+        bnd_armed = 1'b1;
+    end
     st = opc_valid ? S_TAKE_OPC : S_OPC_POP;
     if (st == S_OPC_POP) stop = 1'b1;
 end

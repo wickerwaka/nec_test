@@ -202,8 +202,23 @@ begin
         // FLUSHES has already emptied the queue by the time the model reaches
         // `opcode_prefetch`, so it cannot keep a byte either.
         retire_now = retire_ok_e;
-        if (!pend_after && !opc_valid && retire_now && q_ripe && !row_flush)
+        // S9a -- A RECOGNISED BOUNDARY RUNS THE RETIRE DEADLINE AND KEEPS THE
+        // BYTE.  The sequence still finishes its post-`E` row (which costs no
+        // clocks but does carry datapath work -- `9D`'s `SIGMA -> SP` lives
+        // there); only the successor's decode is what does not happen.
+        if (irq_fire) begin
+            irq_sel_nmi = irq_nmi_lvl;
+            poste = 1'b1; pe_opc_reg = opc_reg; pe_opc8080 = opc8080;
+            pe_op8 = op8; pe_pfxcnt = pfxcnt;
+            st = S_IRQ_D;
+            stop = 1'b1;
+        end else if (!pend_after && !opc_valid && retire_now && q_ripe &&
+                     !row_flush)
         begin
+            // the POP is what closes the boundary window, so it is the pop
+            // that spends the shadow -- "the chip re-enables the boundary
+            // sample at the shadowed instruction's successor pop".
+            irq_shadow = 1'b0;
             opc_byte = q_byte;
             opc_valid = 1'b1;
             pop_is_first = 1'b0;

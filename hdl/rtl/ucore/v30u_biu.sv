@@ -565,6 +565,9 @@ always @(negedge clk)
 //============================================================================
 
 integer i;
+integer lfa_need;   // S9a: the pre-window fetch walk (backdoor preload)
+reg [15:0] lfa_p;
+reg [19:0] lfa_a;
 // step (a) captures -- clock-c values the later steps must not re-read
 reg        ne_now, pl_now, kill_l, evi_l, hfree_l, pop_l, qse_l;
 reg  [1:0] sev_now;
@@ -620,6 +623,7 @@ always_comb begin
     cmt_prev_fp = r_cmt_prev_fp;
     cmt_was_owed = r_cmt_was_owed;
     last_fetch_addr = r_last_fetch_addr;
+    lfa_p = 16'd0; lfa_need = 0; lfa_a = 20'd0;   // the preload walk, below
     q_head = r_q_head;
     q_cnt = r_q_cnt;
     grn_n = r_grn_n;
@@ -819,7 +823,31 @@ always_comb begin
             fetch_ptr  = bkd_ip;
             q_cnt      = {1'b0, bkd_qlen};
             for (i = 0; i < 6; i = i + 1) q_mem[i]  = bkd_queue[i*8 +: 8];
-            last_fetch_addr  = 16'd0;
+            // S9a -- ...AND THE LAST OF THOSE PRE-WINDOW FETCHES IS AN ADDRESS
+            // THE PART REMEMBERS.  `queue_preload` walks the injected bytes
+            // with the real fetch geometry (a word at an even address, one
+            // upper-lane byte at an odd one) and keeps the LAST fetch address,
+            // because that is what a HALT display drives if the part halts
+            // before making a fetch of its own -- the HALT law's "fetch
+            // pointer - 2", stated as the address it is derived from.  Left at
+            // zero, every HALT display in the injected corpus drove 0 (the
+            // `(1, 'bus')` first-divergence of all three `HLT.*` forms).
+            lfa_p    = bkd_ip - {13'd0, bkd_qlen};
+            lfa_need = {29'd0, bkd_qlen};
+            last_fetch_addr = 16'd0;
+            for (i = 0; i < 6; i = i + 1) begin
+                if (lfa_need > 0) begin
+                    lfa_a = {bkd_cs, 4'd0} + {4'd0, lfa_p};
+                    last_fetch_addr = lfa_a[15:0];
+                    if (lfa_p[0]) begin
+                        lfa_p    = lfa_p + 16'd1;
+                        lfa_need = lfa_need - 1;
+                    end else begin
+                        lfa_p    = lfa_p + 16'd2;
+                        lfa_need = lfa_need - 2;
+                    end
+                end
+            end
         end else begin
             // The synthesis reset flow: the vector fetch at FFFF0.
             cs_r       = 16'hFFFF;
@@ -875,7 +903,22 @@ always_comb begin
         if (eu_susp)   suspended = 1'b1;
         if (eu_resume) suspended = 1'b0;
         if (eu_unhalt) begin halted = 1'b0; halt_pending = 1'b0; end
-        if (eu_halt)   begin halted = 1'b1; halt_pending = 1'b1; end
+        // M16 -- THE DECODE DOES NOT TAKE A COMMITTED FETCH BACK, AND THAT IS
+        // A STATEMENT ABOUT *THIS* EDGE.  `note_halt` sets BOTH flags at once
+        // in the model, but the two are read from opposite ends of `tick(c)`:
+        // the DISPLAY block is at the top (it claims clock `c` itself, which
+        // is why `eu_halt` leads), while `halted_` is read by the prefetch
+        // eligibility at the END -- and the model's `note_halt` runs at
+        // clk_ = pop+1, i.e. AFTER `tick(pop)` has already granted.
+        //
+        // So only `halt_pending` belongs here.  `halted` is applied below, past
+        // the grant, and therefore first bites at the end of the DECODE clock:
+        // "a fetch the eval at the end of the OPCODE POP clock already granted
+        // runs to completion and the HALT display waits for it."  MEASURED,
+        // U2 pass 5, and it is the block's first verification: `HLT.RES idx 1`
+        // has the golden's CODE display / T1-T4 on rows 1-5 and the HALT only
+        // on row 6, where this line refused the fetch outright.
+        if (eu_halt)   halt_pending = 1'b1;
 
         // post(): the request enters the 2-deep backing store; only the cycle
         // that carries the EU's OWN request takes the single slot (M10).
@@ -1243,6 +1286,10 @@ always_comb begin
         end else if (run) begin
             if (dage != 3'd7) dage = dage + 3'd1;
         end
+
+        // M16 (see above): the park itself, applied PAST the grant, so the
+        // eval that has already run this edge kept its answer.
+        if (eu_halt) halted = 1'b1;
 
         // S8/S9: the HALT status takes the register on the FIRST clock the
         // register is FREE -- the bus idle and not the eval's display slot.

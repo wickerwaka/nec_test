@@ -32,7 +32,15 @@ case (r_cond)
     C_REP:    begin
                   count = count - 16'd1;
                   if (count == 16'd0) taken = 1'b0;      // F19
-                  else if (intr_pending) taken = 1'b0;
+                  // "REP iterations are individually interruptible": the
+                  // sample runs one flop deeper than the boundary's
+                  // (interrupt_model.md, "REP abort", pin@edge-4) and the
+                  // recognition is LATCHED -- the withdrawal path's own
+                  // `0223 JMP INTR` is what reads it back.
+                  else if (intr_pending || irq_rep) begin
+                      intr_pending = 1'b1;
+                      taken = 1'b0;
+                  end
                   else if (rep_test == TEST_Z)
                       taken = (psw[FZ] == rep_pol);
                   else if (rep_test == TEST_CY)

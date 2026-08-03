@@ -117,6 +117,18 @@
             SSA_E_POLL_PIPE:           poll_pipe = ss_wdata[2:0];
             SSA_E_PE_OPC_REG:          pe_opc_reg = ss_wdata[7:0];
             SSA_E_PE_PFXCNT:           pe_pfxcnt = ss_wdata[7:0];
+            SSA_E_PIN_PIPE:            begin
+                                         int_p = ss_wdata[3:0];
+                                         nmi_p = ss_wdata[8:4];
+                                         ie_p  = ss_wdata[12:9];
+                                       end
+            SSA_E_IRQ_LATCH:           begin
+                                         nmi_latch   = ss_wdata[0];
+                                         irq_shadow  = ss_wdata[1];
+                                         bnd_armed   = ss_wdata[2];
+                                         irq_sel_nmi = ss_wdata[3];
+                                         unhalt_pend = ss_wdata[4];
+                                       end
             SSA_E_PE_FLAGS:            begin
                                          pe_opc8080 = ss_wdata[0];
                                          pe_op8     = ss_wdata[1];
