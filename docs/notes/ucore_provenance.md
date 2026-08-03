@@ -1038,3 +1038,83 @@ shape of what is left, and the shape is FOUR FAMILIES, not a hundred forms:
 
 Family A is the next rung by the ladder's own order (push/pop/split stores) and
 is the one with the most leverage; family D is the boot march's prerequisite.
+
+### F13 — THE ITERATIVE STEPPER'S TERMINATOR, READ ONE CLOCK EARLY
+
+**Class: RTL bug — and the FIFTH instance of §16's named class** ("getting a
+`stop` wrong on a zero-cost arm is the single most common bug class found in
+bring-up"; this is its loop-terminator cousin).  Found by following §23's own
+rule that a case which never closes its window is triaged before anything is
+scored.
+
+`S_RLOOP` decremented `rloop_n` and THEN tested `rloop_n == 1`.  The model is
+`while (m_.count != 0) { ++iters; --count; … }` — exactly COUNT iterations — so
+the test belongs after the decrement against **0**.  Reading it against 1 runs
+COUNT-1 iterations, and at COUNT==1 runs none: the counter wraps at 0 and the
+state never leaves.
+
+**All sixteen `D0.x` / `D1.x` forms are shift/rotate BY ONE**, so COUNT is
+always 1 and all sixteen hung — 60/60 cases each reported `fewer than 2 F pops
+in sim`, which is what a hang looks like from the comparator.  `D2.x`/`D3.x`
+(by CL) hung only on the cases where CL happened to be 1.  One character:
+
+```
+if (rloop_n == 16'd0) begin      // this was the last iteration
+```
+
+After it, the sixteen forms run: `D0.0` 56/200 cycle-exact, `D0.4` 44/200,
+`D1.4` 50/200, with the remaining divergence a `data` field — family C, the
+pairing latch's CONTENT, not this mechanism.  No green rung moved.
+
+*Falsifier*: any `R` row whose iteration count differs from `count` at entry.
+
+## §24 U2 PASS-2 GATE LEDGER
+
+All on the same tree, `--core ucore`, v0.1 at w0 unless stated.
+
+| gate | command | result |
+|---|---|---|
+| rung 1 | `check_core.py --core ucore --opcodes B8 --cases 500` | **500/500** |
+| rung 2a | `… --opcodes 8A` | **500/500** |
+| rung 2b | `… --opcodes 8B` | **500/500** |
+| rung 2c | `… --opcodes 88` | **500/500** |
+| rung 2d | `… --opcodes 89` | **500/500** |
+| (not claimed) | `… --opcodes 8C` / `8E` | 500/500 each |
+| G0 | `check_ucore_tables.py` | **9988/9988 PASS** |
+| U1 lockstep | `ulockstep.py --suite --waits 0,1,2,3` | **32/32 LOCKSTEP** |
+| CE hold | `check_core.py --core ucore --opcodes 88 --cases 100 --ce-div 3 --ce-hold-check` | **0 violations** |
+| FSM spot (shared TB touched) | `check_core.py --opcodes B8,8A,8B,88,89 --cases 500` | **2500/2500** |
+| G3 | ALL of v0.1 w0 row-identical | **NOT MET** — see §23 |
+
+## §25 HANDOFF — what pass 3 picks up
+
+0. **DONE in pass 2 — F13, the hang.**  See below.  `0F20` is the only
+   `fewer than 2 F pops` case left; triage it first, before scoring anything.
+2. **Family A, the non-ModR/M address source** — the ladder's own next rung
+   (push/pop).  The evidence is already reduced: `50 idx 2` (`push ax`) is
+   ROW-ALIGNED with the golden for all 12 clocks (`ts`/`bs` identical) and
+   wrong in exactly two fields — it posts `0x982D0` where the golden posts
+   `0x9CF2E`, and its write data is `0` where the golden has `AX`.  So the
+   sequencer, the slot and the retire are right and the row's ADDRESS and OPR
+   SOURCE are not.  Read `v30u_eu.sv`'s `row_seg` / `acc_off` / `s1_val`
+   against `exec_impl.h::sr_segment` and the `50` micro-rows
+   (`upc 0.50.0 = 1c6ffcea`, `0.50.1 = 14e25bea`).  Twelve forms, one
+   mechanism — do NOT let it become twelve cases.
+3. **Then families B, C, D** in the ladder's order (B is INC/DEC/1BL, which is
+   the ladder's next named rung after push/pop; D is the boot march's
+   prerequisite).
+4. **The microscope** used throughout pass 2 is worth rebuilding in three
+   lines: compose a ONE-case batch with `check_core.compose_batch`, run the
+   ucore TB with `+eutrace`, and print `c["cycles"]` (golden) next to
+   `check_core.build_rows_sim(...)` (RTL).  Row index == CE clock index ==
+   `+eutrace` line number, so a divergence at row N is read directly off
+   trace line N+1.  That correspondence is what made F11 and F12 one-shot
+   diagnoses.
+5. **Still not run**: the boot march (`check_boot --core ucore`, F3's routed
+   gate), `ulockstep` batch mode over golden cases, the wait axes (U3).
+6. **Still unimplemented by design**: the REP/string continuation
+   (`intr_pending` has no writer), the interrupt entries, `eu_unhalt`, the POLL
+   pin pipeline beyond the static level, the 8080 loader (ledger R4).
+7. **The HLT one-clock-lead contract** (`eu_halt`/`eu_unhalt` LEAD by one
+   clock, §11.6) is still unverified — it is reached when the ladder gets to
+   the 1BL forms, which is family B.

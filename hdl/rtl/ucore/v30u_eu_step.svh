@@ -408,7 +408,12 @@ S_RLOOP: begin
     end
     if (it_writes_tmpa) tmpa = it_tmpa;
     if (e_w && (it_fmask != 16'd0)) commit_flags(it_fmask, it_flags);
-    if (rloop_n == 16'd1) begin      // this was the last iteration
+    // `while (count != 0)`: the model runs the operation COUNT times, so the
+    // terminator is read AFTER this clock's decrement -- reading it before
+    // (`== 1`) runs COUNT-1 iterations and, at COUNT==1, none at all: the
+    // counter wraps and the state never leaves.  All sixteen D0.x/D1.x forms
+    // (shift-by-1, so COUNT is always 1) hung on it.
+    if (rloop_n == 16'd0) begin      // this was the last iteration
         al_spent = 1'b1;
         st = S_ROW;
     end
