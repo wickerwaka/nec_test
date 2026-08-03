@@ -977,3 +977,64 @@ wire named like a step variable is not that step variable.**
 Standing gates on the same tree: `check_ucore_tables` **9988/9988 (G0)**,
 `ulockstep.py --suite --waits 0,1,2,3` **32/32 LOCKSTEP**, `--ce-div 3
 --ce-hold-check` **0 violations**, FSM spot on the five forms **2500/2500**.
+
+## §22 RUNG 2b — SPLIT LOADS.  `8B` 500/500
+
+### F12 — A SPLIT IS ONE ACCESS, AND A READ HANDS OVER ONCE
+
+**Class: SPEC.**  The BIU's T4 block armed `done_ctr` — the `eu_done`
+one-shot — on **every** completing EU cycle.  For a split READ that is two
+cycles, so OPR was handed over at the FIRST half's `e+2`, carrying half a word
+and releasing `wait_opr` four clocks early.  Measured on `8B idx 7`
+(`mov bp, word [si]`, `si` odd): the successor's F pop landed at row 12, the
+second `MEMR`'s T3, where the golden has it at row 16.
+
+`sim/biu_timed.cpp` says it in one line and the RTL now says the same:
+
+```
+} else if (rd_pending_ && cur_.rd_last) --rd_pending_;
+if (cur_.rd_last && !is_write(cur_.bs)) rd_done_q_.push_back(e + 2);
+```
+
+A WRITE reports both halves — `wr_pending_` is a COUNT (the EU adds 2 for a
+split, `acc_split ? 2 : 1`) and the retire deadline is a MAX, so both are
+correct and neither is early.  A READ hands OPR over exactly once, on the cycle
+that completes the word, which is the same cycle the byte-lane composition
+two lines below already keys on (`rd_was_split`).  So the guard is
+`if (cur_wr || cur_rd_last)` — one term, no split-specific path.
+
+### §22.1 The rung table now
+
+| rung | form | full | note |
+|---|---|---|---|
+| 1 | `B8` | **500/500** | GREEN (pass 1) |
+| 2a | `8A` | **500/500** | GREEN (pass 1) |
+| 2b | `8B` | **500/500** | GREEN — split loads, F12 |
+| 2c | `88` | **500/500** | GREEN — the store path, F11 |
+| 2d | `89` | **500/500** | GREEN — the store path, F11 |
+| — | `8C` `8E` | **500/500** | incidentally green, not a claimed rung |
+
+## §23 THE CENSUS — where the ladder actually stands
+
+F11 + F12 are not local: they are in the sequencer's pop discipline and the
+BIU's completion, which every form uses.  A reconnaissance sweep of the WHOLE
+v0.1 suite at 60 cases (`check_core.py --core ucore --opcodes all --cases 60`,
+20,820 cases over 347 forms) now reads:
+
+* **7,767 / 20,820 cases full**
+* **136 forms cycle-exact** at 60/60; **102 of those also arch-exact**
+
+**This is reconnaissance, not a gate.**  The rung bar is unchanged: 500/500
+full on the form's own v0.1 tranche.  What it buys the next session is the
+shape of what is left, and the shape is FOUR FAMILIES, not a hundred forms:
+
+| family | forms (examples) | first divergence | reading |
+|---|---|---|---|
+| **A — the non-ModR/M address source** | `50` `58` `9C` `9D` `C2` `C3` `A0` `A1` `A4` `AA` `D7` `8F.0` | `bus` at the first EU access (row 4-8) | every form whose address comes from something other than a ModR/M EA — the stack pointer, the direct address, the string pointers, XLAT. `50 idx 2` posts `0x982D0` where the golden has `0x9CF2E`, and its write data is 0 where the golden has `AX`. ONE mechanism (the row's `ind`/OPR source), not twelve |
+| **B — arch only, cycles already exact** | `40` `48` (INC/DEC reg, 1BL) `8D` (LEA) `84` `85` (TEST) | none in the rows; regs differ | the sequencer and the bus are right; the ALU/write-back path is not. `8D idx 2` writes `0000` for an EA of `de60` |
+| **C — the write DATA** | `86` `87` (XCHG r/m) | `data` at the store's T1 | the pairing latch's content, not its timing |
+| **D — the redirect** | `EB` `E9` `E8` `74`..`7F` `FF.2` `FF.4` `F6.4` `F7.6` | `qop` | the taken-JMP / FLUSH family (M11's bubble). `74` is already 30/60 — the NOT-taken half passes |
+| — | `D0.4` `0F20` | `fewer than 2 F pops in sim` | the case never closes its window: a hang, to triage FIRST (rig integrity) |
+
+Family A is the next rung by the ladder's own order (push/pop/split stores) and
+is the one with the most leverage; family D is the boot march's prerequisite.

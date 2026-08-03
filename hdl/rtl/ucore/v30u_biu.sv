@@ -980,7 +980,17 @@ always_comb begin
                     done_wr = cur_wr;
                     // the deadline is e+2: one clock from this T4 at w0, two
                     // whenever the cycle took a Tw.  ONE number again.
-                    done_ctr = (land_ttl == 2'd0) ? 2'd1 : land_ttl;
+                    //
+                    // M4/M10: A SPLIT IS ONE ACCESS.  A WRITE reports both of
+                    // its cycles -- `wr_pending_` is a count and the retire
+                    // deadline is a max -- but a READ hands OPR over exactly
+                    // once, on `rd_last`, because that is the cycle that
+                    // completes the word (the composition two lines below).
+                    // Arming on the first half delivers the half-word early:
+                    // measured on 8B, the successor's pop came four clocks
+                    // before the golden's.
+                    if (cur_wr || cur_rd_last)
+                        done_ctr = (land_ttl == 2'd0) ? 2'd1 : land_ttl;
                     // THE DATA-PATH BYTE SWAPPER (read half, sim/biu.cpp):
                     // the system presents the whole ALIGNED WORD and the CPU
                     // rotates the addressed byte into the low lane, carrying
