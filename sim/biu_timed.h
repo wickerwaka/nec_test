@@ -534,6 +534,27 @@ private:
     // waited capture where a pop between T3 and T4 changes the decision.
     bool pf_arm_ = true;
     bool pf_arm_valid_ = false;
+    // M19 -- THE REDIRECT IS A STANDING REQUEST, AND SUSP DOES NOT TAKE IT
+    // BACK.  A FLUSH empties the queue and loads a new fetch pointer, which
+    // raises the prefetcher's bus request there and then.  SUSP is an input to
+    // the condition that RAISES that request; it is not a reset of the request
+    // itself, so a request already standing when a later micro-row asserts
+    // SUSP is still standing, and the first slot the bus can give it takes it.
+    //
+    // The whole of the effect lives in one window: a FLUSH whose redirect
+    // cannot be granted at once (the bus is mid-cycle) followed by a SUSP
+    // before the next eval.  The ROM's REP-withdrawal path is exactly that --
+    // `0227 SIGMA -> PC CTL FLUSH` ... `022C tmpb -> tmpc CTL SUSP` -- and the
+    // slot that then comes free is the FIRST ACKNOWLEDGE's completion eval.
+    // That is the whole of 21.3's prefetch-in-the-acknowledge-gap.
+    //
+    // The request is CONSUMED BY THE GRANT -- the eval that chooses a fetch
+    // clears it.  (Clearing it at the fetch's T1 instead is FALSIFIED: the
+    // flush can land on the very clock a PRE-flush fetch opens its T1 on --
+    // one already displayed, so F2 cannot take it back -- and that fetch would
+    // then swallow the request the flush had just raised.  Measured: w1 181
+    // vs 200 rows-exact on `INT.F3AA`.)
+    bool pf_owed_ = false;
     // M7b -- THE OUTSTANDING-FETCH TERM CLEARS WHEN THE BYTES ARE POPPABLE,
     // NOT WHEN THEY ARE WRITTEN.  The queue counter takes the bytes at the
     // push edge (e+1, M3); the "a fetch is out" term the scheduler adds to it

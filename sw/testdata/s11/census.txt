@@ -1,0 +1,47 @@
+=== s11_census gap (chip rows only) ===
+=== acknowledge-gap census ===
+  waits | clean pairs | pairs with something between
+      0 |         200 | 0
+      1 |         763 | 37
+      2 |         177 | 23
+      3 |         776 | 24
+
+  what sits between (status of the intervening cycles):
+    w1 CODE: 37
+    w2 CODE: 23
+    w3 CODE: 24
+
+  M18 residual (INTA2 T1 - (eval + 5)); 0 = the law holds:
+    w0 delta=+0: 200
+    w1 delta=+0: 763
+    w1 delta=+3: 37
+    w2 delta=+0: 177
+    w2 delta=+4: 23
+    w3 delta=+0: 776
+    w3 delta=+5: 24
+
+  FREE clocks between INTA1's last clock and INTA2's T1:
+    w0: {3: 200}
+    w1: {4: 763, 7: 37}
+    w2: {4: 177, 8: 23}
+    w3: {4: 776, 9: 24}
+
+=== the flush's position vs the gap prefetch ===
+  w0:
+    clean pair          last E before INTA1 T1, at offset -> {-6: 75, None: 125}
+    prefetch in the gap  last E before INTA1 T1, at offset -> {}
+  w1:
+    clean pair          last E before INTA1 T1, at offset -> {-8: 50, None: 713}
+    prefetch in the gap  last E before INTA1 T1, at offset -> {-1: 37}
+  w2:
+    clean pair          last E before INTA1 T1, at offset -> {-9: 39, None: 138}
+    prefetch in the gap  last E before INTA1 T1, at offset -> {-1: 23}
+  w3:
+    clean pair          last E before INTA1 T1, at offset -> {-13: 16, -12: 23, None: 737}
+    prefetch in the gap  last E before INTA1 T1, at offset -> {-1: 24}
+
+=== BUSLOCK_N across the acknowledge pair (S10 raw words) ===
+  INT.F3AA_w1_0.raw.hex.gz: INTA1 T1=274 INTA2 T1=283  LOCK_N low on 9/10 clocks of the interval  CODE T1s inside it: []
+  INT.F3AA_w1_2.raw.hex.gz: INTA1 T1=274 INTA2 T1=283  LOCK_N low on 9/10 clocks of the interval  CODE T1s inside it: []
+  INT.F3AA_w3_0.raw.hex.gz: INTA1 T1=346 INTA2 T1=362  LOCK_N low on 16/17 clocks of the interval  CODE T1s inside it: [354]
+  INT.F3AA_w3_2.raw.hex.gz: INTA1 T1=354 INTA2 T1=365  LOCK_N low on 11/12 clocks of the interval  CODE T1s inside it: []

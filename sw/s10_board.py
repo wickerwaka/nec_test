@@ -42,6 +42,7 @@ sys.path.insert(0, str(SW))
 
 import testimage                                        # noqa: E402
 import emit_suite as es                                 # noqa: E402
+import v30run                                           # noqa: E402
 from v30run import run_image                            # noqa: E402
 from t2b_board import stable_key, HOST, DIVS, REPS      # noqa: E402
 
@@ -71,7 +72,8 @@ assert es.EMIT_USE_CORE is False, "S10 refuses to run: truth source is not the s
 #
 # Every S10 probe therefore pins the divider EXPLICITLY, and records it.
 # --------------------------------------------------------------------------- #
-DIV_OF_RECORD = 8              # 4 MHz -- the whole banked corpus's frequency
+DIV_OF_RECORD = v30run.DIV_OF_RECORD    # 8 = 4 MHz, the corpus frequency
+assert DIV_OF_RECORD == es.EMIT_DIV, "divider of record disagrees with the emission pin"
 
 
 def pin_div(div=DIV_OF_RECORD, waits=0):
@@ -85,7 +87,8 @@ def pin_div(div=DIV_OF_RECORD, waits=0):
 # --------------------------------------------------------------------------- #
 # capture primitive -- t2b_board.capture() plus the pin-event arguments
 # --------------------------------------------------------------------------- #
-def capture(image, waits=0, div=None, evt=None, pins=None, tag="s10"):
+def capture(image, waits=0, div=DIV_OF_RECORD, evt=None, pins=None,
+            tag="s10"):
     """One socket capture WITH an optional rig pin-event schedule.
 
     Row semantics are `t2b_board.capture()`'s exactly (reset-trimmed, TI/T4

@@ -33,6 +33,20 @@ from analyze_capture import decode_large, decode_words  # noqa: E402
 
 REMOTE_DIR = "/media/fat/v30"
 
+# THE CLOCK DIVIDER OF RECORD (ucsim_t_provenance.md 21.1).
+#
+# `cfg(div=None)` sends '-' meaning "leave the board default", and the divider
+# lives ON THE BOARD: it survives process exit AND session exit.  Every capture
+# taken without setting it therefore inherits whatever the previous session
+# left, and the whole banked corpus's frequency was never RECORDED anywhere.
+# MEASURED cost: at div=4 (8 MHz) the address-phase sampling edge lands before
+# the status pulse and the DISPLAY CLOCK disappears from `bs_early`, a COMPARED
+# column -- two S10 readings were produced by it and retracted.
+#
+# 8 = 4 MHz = the frequency the banked corpus is (recoverably) at.  Capture
+# drivers SET it; they do not inherit it.
+DIV_OF_RECORD = 8
+
 
 class RunError(Exception):
     pass
@@ -157,6 +171,11 @@ class ServeRunner:
         # spec explicitly requested for a run re-enables it afterwards.
         self.rig_clean = False
         self._force_clean_rig()
+        # DIVIDER PROVENANCE (21.1): what THIS connection has commanded.  None
+        # means "never set" -- the board's own sticky value, whose frequency is
+        # unknown to this process.  `div_readback` is what a capture manifest
+        # records so an un-pinned capture is catchable at read time.
+        self.div_commanded = None
 
     def cfg(self, waits, use_core=None, div=None):
         key = (waits, use_core, div)
@@ -173,6 +192,19 @@ class ServeRunner:
             self.close()
             raise RunError(f"serve: cfg failed: {line[:120]}")
         self.last_waits = key
+        if div is not None:
+            self.div_commanded = int(div)   # 21.1 provenance
+
+    @property
+    def div_readback(self):
+        """The divider provenance string for a capture manifest (21.1).
+        UNPINNED is not an error here -- it is the fact that must be RECORDED,
+        because a suite whose manifest says UNPINNED has no known frequency."""
+        if self.div_commanded is None:
+            return ("div=UNPINNED (inherited sticky board state; frequency "
+                    "UNKNOWN to this process -- ucsim_t_provenance 21.1)")
+        return (f"div={self.div_commanded} ({32 // self.div_commanded} MHz), "
+                f"commanded by this connection")
 
     def _force_clean_rig(self):
         """Force the wait rig clean at connect (random OFF, replay OFF),

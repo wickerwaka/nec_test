@@ -95,6 +95,7 @@ void BiuTimed::begin_case() {
     pf_land_from_ = pf_land_to_ = -2;
     pf_infl_to_ = -2;
     pf_infl_n_ = 0;
+    pf_owed_ = false;           // M19
     pop_is_first_ = true;
     consumed_.clear();
     qs_pending_ = kQsNone;
@@ -572,7 +573,9 @@ void BiuTimed::eval() {
     }
     // F2 keeps SUSP at the eval: it is measured to reach the BIU one row
     // early and to take back a fetch the eval has just chosen.
-    if (suspended_) { et('.', 'S'); return; }
+    // M19: ...but SUSP gates the RAISING of a prefetch request, not a request
+    // the flush already raised.  See biu_timed.h.
+    if (suspended_ && !pf_owed_) { et('.', 'S'); return; }
     // M7: at a COMPLETION eval the answer was decided at index 2 of the cycle
     // that is finishing; at an IDLE eval the queue -- and the HALT -- are read
     // live, because there is no cycle to have sampled them.
@@ -584,6 +587,7 @@ void BiuTimed::eval() {
     // are LANDING in the queue.
     if (clk_ - 1 >= pf_land_from_ && clk_ - 1 <= pf_land_to_) { et('.', 'M'); return; }
     et('F', '-');
+    pf_owed_ = false;      // M19: the arbiter has taken the request
     cmt_ = make_fetch();
     // The fetch pointer advances when the cycle is COMMITTED, not when its
     // data lands: the address is latched into the bus cycle here.
@@ -738,6 +742,10 @@ void BiuTimed::flush(uint16_t cs, uint16_t pc) {
     suspended_ = false;
     pf_land_from_ = pf_land_to_ = -2;   // M6: the flush discards what was landing
     pf_infl_to_ = -2;                   // M7b: ...and their accounting with them
+    // M19: the flush raises the prefetcher's request (empty queue, new fetch
+    // pointer).  It stands until the bus takes it -- a later SUSP does not
+    // reset it.  See biu_timed.h.
+    pf_owed_ = true;
     // M7: the sampled quantity is the QUEUE COUNTER, and the flush zeroes it.
     // A latch taken at index 2 of a cycle the flush then invalidates cannot
     // hold the eval off -- the redirect must be free to go at once.  MEASURED:

@@ -70,6 +70,10 @@ def censusleg(real, sim):
 
 
 def board_idle():
+    # 21.1: this is the LAST thing a board session runs, so it is also what
+    # hands the NEXT session its sticky clock divider.  `run_chip` now defaults
+    # to `v30run.DIV_OF_RECORD`, so idling the board also leaves the divider at
+    # the corpus frequency instead of at whatever this session was sweeping.
     img0, _ = testimage.compose(regs={}, instr=bytes([0x90]))
     check_seq.run_chip(img0, HOST, use_core=False)
 

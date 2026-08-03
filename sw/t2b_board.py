@@ -36,7 +36,7 @@ import testimage                                        # noqa: E402
 import char_enter as ce                                 # noqa: E402
 import check_seq                                        # noqa: E402
 import fuzz_classify as fc                              # noqa: E402
-from v30run import run_image                            # noqa: E402
+from v30run import run_image, DIV_OF_RECORD             # noqa: E402
 
 HOST = "root@mister-nec"
 OUT = ROOT / "sw" / "testdata" / "t2b"
@@ -47,13 +47,18 @@ REPS = 5
 # --------------------------------------------------------------------------- #
 # capture primitive: raw words retained, run_chip's own row semantics applied
 # --------------------------------------------------------------------------- #
-def capture(image, waits=0, div=None, wvec=None, wrand=None, tag="t2b"):
+def capture(image, waits=0, div=DIV_OF_RECORD, wvec=None, wrand=None,
+            tag="t2b"):
     """One socket capture.  Returns (rows, raw_hex_lines, sha256).
 
     rows use check_seq.run_chip's semantics exactly (reset-trimmed, TI/T4
     bs_early replaced by the end-of-cycle sample) so every existing derived
     record in the repo is comparable; the RAW 64-bit words are returned
-    untouched and hashed, per the blackbox retention rule."""
+    untouched and hashed, per the blackbox retention rule.
+
+    21.1: `div` DEFAULTS to the divider of record and is always sent.  The
+    dual-frequency promotion path passes it explicitly; nothing inherits the
+    board's sticky value by omission any more."""
     recs, words = run_image(bytes(image), HOST, tag=tag, waits=waits,
                             use_core=False, div=div, wvec=wvec, wrand=wrand,
                             want_raw=True)

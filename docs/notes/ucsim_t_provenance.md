@@ -6149,3 +6149,362 @@ and is recorded, not scored.
    than a single-instruction golden.  **Testing that candidate against the 44 is
    the cheapest next step in the whole campaign** and it is board-free.
 7. The three w0 tails (`0F12`, `C1.6`, `F7.4`) are untouched and unrelated.
+
+## 22. POST-CLOSURE ADDENDUM #7 — THE ACKNOWLEDGE-GAP ARBITRATION (2026-08-03)
+
+**This section is an ADDENDUM.  Nothing in §0-§21 is edited or retracted by it,
+with one CLARIFICATION recorded in §22.4 (M18's census population).**
+
+§21.10 item 1 named the prefetch in the acknowledge gap as "the single largest
+and cleanest open item this session produced", said it was board-free and said
+the stimulus was already banked.  All three were true.  This session is that
+work: **no board contact, no new capture, no new golden** — the four S1 cells,
+the 44 waited `ACK` seeds and the whole w0 corpus were already on disk, and the
+whole of §22 is read off them.
+
+### 22.0 THE TWO READINGS, stated before the model was touched
+
+§21.3 localised the residual exhaustively but did not say which way the
+arbitration goes.  Two mechanisms were on the table, and they predict opposite
+things:
+
+| | reading | what it predicts |
+|---|---|---|
+| **A** | the eligibility machinery (M4's threshold, M7's index-2 sample, M7b) simply KEEPS RUNNING across the gap and the MODEL is wrongly suppressing it | the chip's gap cycle is an ordinary prefetch, granted at an ordinary eval, from the ordinary fetch pointer |
+| **B** | the model is right to run it and the CHIP holds it off — a LOCK-adjacent hold between the two acknowledges (max-mode INTA pairs conventionally assert LOCK across the pair) | `lock_n` separates the gap cases from the clean ones, and no bus cycle may run while it is low |
+
+**B is FALSIFIED by the chip's own `lock_n`, and it is falsified twice over.**
+`sw/s11_census.py lock` reads bit 50 of the S10 raw capture words
+(`hdl/rtl/nec_bus.sv`, "Capture record"; large mode = the real BUSLOCK_N):
+
+```
+INT.F3AA_w1_0: INTA1 T1=274 INTA2 T1=283  LOCK_N low 9/10 clocks   CODE T1s inside: []
+INT.F3AA_w1_2: INTA1 T1=274 INTA2 T1=283  LOCK_N low 9/10 clocks   CODE T1s inside: []
+INT.F3AA_w3_0: INTA1 T1=346 INTA2 T1=362  LOCK_N low 16/17 clocks  CODE T1s inside: [354]
+INT.F3AA_w3_2: INTA1 T1=354 INTA2 T1=365  LOCK_N low 11/12 clocks  CODE T1s inside: []
+```
+
+1. **LOCK is asserted in BOTH populations.**  It goes low on INTA1's T1 and
+   releases on INTA2's T1, in the clean cells and the gap cell alike, so it
+   cannot be the discriminator.
+2. **A CODE cycle runs INSIDE the locked interval.**  `INT.F3AA_w3_0` drives a
+   full CODE cycle (T1 at 354, inside 346..362) with `LOCK_N` low throughout.
+   Whatever BUSLOCK does on this part, it does not hold the prefetcher off.
+
+So the direction is **A: the model was suppressing an eligible prefetch**, and
+the rest of this section is which suppression, and why it is w0-neutral.
+
+### 22.1 The census — 2,000 acknowledge pairs, and the gap cycle is an ORDINARY prefetch
+
+`sw/s11_census.py gap`, over all four S1 suites (chip rows only):
+
+| waits | clean pairs | pairs with a cycle between | what the cycle is | FREE clocks in the gap |
+|---|---|---|---|---|
+| 0 | 200 | **0** | — | 3, 200/200 |
+| 1 | 763 | 37 | `CODE`, 37/37 | 4 clean / **7** with the prefetch |
+| 2 | 177 | 23 | `CODE`, 23/23 | 4 clean / **8** |
+| 3 | 776 | 24 | `CODE`, 24/24 | 4 clean / **9** |
+
+and the gap cycle's position is not approximate either:
+
+```
+the gap prefetch's T1  =  INTA1's COMPLETION EVAL + 2      37/37, 23/23, 24/24
+```
+
+which is M1 verbatim — *display at eval+1, T1 at eval+2*.  **The chip grants it
+at INTA1's own completion eval**; there is no special slot, no second grid, no
+new instant.  And the fetch is from the REWOUND pointer (`INT.F3AA` case 8 at
+w1: the chip fetches `0C02A0` and the data phase is `AAF3`, the REP prefix
+pair), so the redirect had already happened when the acknowledge ran.
+
+### 22.2 The discriminator is WHERE THE FLUSH LANDS, and it is a two-valued census
+
+`sw/s11_census.py flush` — the position of the chip's own queue-clear (`QS=E`)
+relative to INTA1's T1, against whether the gap was taken:
+
+| waits | clean pairs | pairs with the gap prefetch |
+|---|---|---|
+| 0 | E at **-6** (75) or no E before the acknowledge (125) | — |
+| 1 | E at **-8** (50) / none (713) | E at **-1**, **37/37** |
+| 2 | E at **-9** (39) / none (138) | E at **-1**, **23/23** |
+| 3 | E at **-13** (16), **-12** (23) / none (737) | E at **-1**, **24/24** |
+
+**Two populations, no overlap, zero exceptions.**  Reading it as machinery:
+
+* **no E before the acknowledge** — the interrupt was taken at the REP's own
+  end, there is no withdrawal and no rewind flush, and the queue still holds
+  its bytes.  Nothing is owed.
+* **E well before the acknowledge** — the flush landed on an idle bus, the
+  redirect went out AT ONCE (it is the CODE cycle immediately before INTA1),
+  and by the acknowledge it has already run.
+* **E at -1** — the flush landed while a cycle was still running, so there was
+  no eval to grant the redirect at, and the ROM's own `SUSP` arrived before the
+  next one.  The redirect is still owed when the acknowledge finishes.
+
+The ROM is where that third case comes from, and it is the plain reading of the
+withdrawal path (`v30sim disasm`):
+
+```
+0225  PFXCNT -> tmpa                    CTL
+0226  SIGMA  -> tmpb                    ALU DEC tmpb
+0227  SIGMA  -> PC                   E  CTL FLUSH     <- the PFXCNT rewind flush
+0228                                    JMP Z 3
+0229  SIGMA  -> tmpb                W R ALU OPC tmpb
+022A  SIGMA  -> M                      CTL [-06-]
+022B                                E  CTL
+022C  tmpb -> tmpc   SP -> tmpb        CTL SUSP       <- ...and SUSP, five rows on
+```
+
+`FLUSH` at `0227`, `SUSP` at `022C` — five rows, and fewer clocks than that
+when `0228`'s conditional jump is taken (measured 2 clocks in `INT.F3AA` case 8
+at w1).  If the bus is free in between, the redirect goes.  If it is not, the
+model's `suspended_` swallowed it.
+
+### 22.3 M19 — THE REDIRECT IS A STANDING REQUEST, AND SUSP DOES NOT TAKE IT BACK
+
+**MEASURED / LAW, and the two halves are labelled separately** (Codex review,
+this session).  What is MEASURED is §22.1's placement and §22.2's separation:
+the gap cycle is a CODE prefetch at INTA1's completion eval + 2 (84/84), and the
+flush's position splits the two populations with zero overlap (2,000 pairs).
+What follows is the SIMPLEST MECHANISM consistent with those measurements, and
+it is a LAW, not a second measurement:
+
+```
+a FLUSH empties the queue and loads a new fetch pointer -- which RAISES the
+prefetcher's bus request.  SUSP is an input to the condition that RAISES that
+request; it is not a reset of the request itself.  A request already standing
+when a later micro-row asserts SUSP is still standing, and the first slot the
+bus can give it takes it.
+```
+
+The request is **consumed by the GRANT** — the eval that chooses the fetch
+clears it.  (Clearing it at the fetch's T1 instead was tried and is
+**FALSIFIED**: the flush can land on the very clock a PRE-flush fetch opens its
+T1 on — one already displayed, so F2 cannot take it back — and that fetch then
+swallows the request the flush had just raised.  Measured IN SESSION on the
+banked cells: `INT.F3AA` w1 scores 181/200 with the T1 clearing and 200/200 with
+the grant clearing.  **The alternate implementation is NOT retained** — the
+number is a run, not an artifact, and is recorded as such.)
+
+Three lines in `sim/biu_timed.cpp`: `pf_owed_` set in `flush()`, cleared where
+`eval()` commits a fetch, and the suspend gate becomes
+`if (suspended_ && !pf_owed_)`.  **Nothing else in `sim/` moved** — the INTA
+path, M14, M15, M18, M4/M7/M7b and the eval grid are untouched, and the whole
+`sim/` diff of this session is those three lines plus their comment block.  (As
+in §21.8, the working tree carries unrelated uncommitted `hdl/` and `sw/`
+changes from another branch, so "nothing else moved" is a statement about
+`sim/`, not about the whole diff.)
+
+**SCOPE, stated wider than the stimulus:** the discriminating population is the
+ROM's REP-withdrawal ordering alone (`0227 FLUSH` ... `022C SUSP`), while the
+implementation arms the latch on EVERY `flush()`.  That is the deliberate
+choice — a flush-keyed request is the part's own machinery and a
+withdrawal-keyed one would be a special case — but the evidence does not reach
+the other flush sites, and no other flush site in the corpus is followed by a
+SUSP before its redirect can go.
+
+**W0-NEUTRAL BY MEASUREMENT, NOT BY CONSTRUCTION**, and that is stated as the
+weaker claim it is: the window M19 opens is "a flush whose redirect cannot be
+granted at once, followed by a SUSP before the next eval", and nothing in the
+w0 geometry forbids it a priori.  It is therefore a MEASURED neutrality —
+**168,997 / 169,000 to the case, the same three forms (`0F12`, `C1.6`, `F7.4`)
+and the same 17 row diffs, zero forms moved** — and the falsifier is any w0
+golden that moves.
+
+*Falsifier for M19 itself:* an acknowledge pair whose flush lands at -1 and
+which is NOT followed by a gap prefetch, or a gap prefetch whose T1 is not at
+INTA1's completion eval + 2, at any wait level.
+
+### 22.4 §21.2's M18 census — CLARIFIED, not retracted
+
+§21.2 reports `INTA2 T1 = INTA1's completion eval + 5` at **2,339 / 2,339**
+with w0 800, w1 763, w3 776.  Its w1 and w3 figures are EXACTLY this section's
+**CLEAN-PAIR** counts (763 and 776, to the pair), so that census was over clean
+pairs and the gap pairs were the residual §21.3 then named.  (Its w0 800 is
+drawn from the wider w0 pin-event corpus, not from `v0.1-w0evt`'s 200; §22.1's
+2,000 is the four `v0.1-w*evt` suites only.)  Stated over ALL pairs the law
+reads:
+
+```
+INTA2's T1 = (INTA1's completion eval) + 5 + (the length of any cycle that took the slot)
+```
+
+measured residual `+3` at w1 (37/37), `+4` at w2 (23/23), `+5` at w3 (24/24) —
+i.e. `N + 2`, which is what M1 gives for a `4+N`-clock cycle granted at INTA1's
+eval and an acknowledge granted at ITS eval.  **The second acknowledge is an
+ordinary EU request and its geometry is M1's**; `+5` is what that reduces to
+when nothing takes the slot.  No new term, and the model reproduces all four
+wait levels with the INTA path unchanged, which is the proof.
+
+### 22.5 The 44 waited `ACK` seeds — TESTED, and the candidate is REFUTED FOR THEM
+
+§21.10 item 6 named "a prefetch taking the slot between the two acknowledge
+cycles" as the leading candidate for the whole-program `ACK` family and called
+testing it "the cheapest next step in the whole campaign".  It was the cheapest
+next step, it has been taken, and **for the 44 it is refuted**:
+
+| | |
+|---|---|
+| EVT seeds whose CHIP capture shows a cycle between two acknowledges | **3 / 1,008** |
+| ...of those, the one whose first divergence is at or after the gap | **1** — `mc2` soup 283, first divergence **516 -> 775**, +259 rows |
+| ...the other two (`mc1` 1798, `mc2` 140) | part at rows 234 / 240, far UPSTREAM of their acknowledge; M19 cannot reach them |
+| the `ACK` family (first divergence within 12 rows of an acknowledge, acknowledge nearest), re-derived here | 52 seeds, 41 of them waited |
+| their movement under M19 | **51 unmoved, 1 later, 0 earlier, 0 newly broken** |
+
+(The 52/41 differs from §20.8's 55/44 only in the marker tie-break; the seeds
+are the same family.)
+
+**The reading, stated plainly: the acknowledge gap is a REAL mechanism and a
+RARE one.**  It needs a REP withdrawal whose rewind flush lands on a busy bus,
+which the directed `INT.F3AA` tranche produces in 84 of 800 pairs and the fuzz
+bank produces in 3 of 1,008 seeds.  §21.10 item 6's guess that a 1,000-row
+program "has far more opportunity to do" it is **measured FALSE** — the
+opportunity is not program length, it is the withdrawal.  So the 44 waited
+`ACK` seeds part for a reason that is still unnamed, and this section removes
+the leading candidate rather than confirming it.  That is a smaller result than
+the four cells, and it is reported as the smaller result it is.
+
+### 22.6 The booked rig fixes — the divider is PINNED (§21.1 item 4)
+
+Offline code only; **the board was not run**, and the change is defensive.
+Verified by code-reading and against the existing capture manifests.
+
+* `sw/v30run.py` — **`DIV_OF_RECORD = 8`** (4 MHz, the corpus frequency) lives
+  where the divider physically does, next to the transport that sends `CFG`.
+  `ServeRunner` now records `div_commanded` and exposes **`div_readback`**,
+  which says either `div=8 (4 MHz), commanded by this connection` or
+  `div=UNPINNED (inherited sticky board state; frequency UNKNOWN)`.  UNPINNED is
+  not an error — it is the fact that has to be RECORDED.
+* `sw/emit_suite.py` — **`EMIT_DIV = 8`**, pinned exactly as `EMIT_USE_CORE` is,
+  and passed EXPLICITLY on every emission `run_image()` (both `emit_case`
+  paths, both `emit_evt_case` paths, both preload-calibration calls).  `cmd_emit`
+  and `cmd_emit_boundary` stamp `div=` into the `# TRUTH SOURCE` line, write
+  `emit_div_stamp()` beside it, and write the runner's `div_readback` into
+  `emit_log.txt` at the END of the emission — the divider's analogue of the
+  existing `# WAIT-RIG` guard, which is the guard that did not cover this hazard.
+* `sw/check_seq.py::run_chip` and `sw/t2b_board.py::capture` now DEFAULT to
+  `DIV_OF_RECORD` instead of `None`.  `None` still means "leave the board
+  default" for the one caller that sweeps frequency deliberately; it is no
+  longer what an ordinary capture does by accident.
+* `sw/b1_recapture.py::board_idle` — unchanged in body, and that is the point:
+  because `run_chip` now sets the divider, **the last call of every board
+  session leaves the next one at the corpus frequency**.  §21.1's second booked
+  fix, obtained by fixing the first properly.
+* `sw/s10_board.py` — `DIV_OF_RECORD` is now imported from `v30run` and
+  asserted equal to `emit_suite.EMIT_DIV`, so the three cannot drift apart.
+
+**Against the existing manifests:** `sw/testdata/s10/*/manifest.json` already
+carry `"div": 8` and a per-cell `"divs"` list, so the S10 retention already
+satisfies the recording rule; what was missing was the EMISSION path, and that
+is what is added.  The banked `v0.1-w{0,1,2,3}evt` `emit_log.txt` files carry
+`div=8 (4 MHz, PINNED)` because §21's `cmd_s1` called `pin_div()` around them —
+that was a session-level pin, not a path-level one, and it is now a path-level
+one.
+
+### 22.7 Gates (measured, this machine, immediately before the commit)
+
+```
+make -C sim test                                                          # disasm gate: PASS
+python3 sw/pla3_check.py                                                  # OK (21 checks)
+python3 sw/ucsim_check.py --suite tests/v30/v0.1                          # 169000/169000
+python3 sw/ucsim_check.py --suite tests/v30/v0.2                          # 347000/347000
+python3 sw/ucsim_check.py --suite tests/v30/v0.3                          # 3699998/3699998
+python3 sw/ucsim_check.py --suite tests/v30/v20suite --no-mirror          # 3125000/3125000
+python3 sw/ucsim_check.py --suite tests/v30/mod3_illegal --residue stale-ea  # 128/128
+                                                              # functional total 7,341,126
+python3 sw/timed_gate.py --suite tests/v30/v0.1    --forms all            # 168,997 / 169,000
+python3 sw/timed_gate.py --suite tests/v30/v0.1-w1 --forms all --waits 1  # 1,200/1,200
+python3 sw/timed_gate.py --suite tests/v30/v0.1-w3 --forms all --waits 3  # 1,200/1,200
+python3 sw/timed_gate.py --suite tests/v30/v0.1-w1 --forms EB  --waits 1  # 200/200
+python3 sw/check_boot.py --timed 220                                      # MATCHES over 220 rows
+python3 sw/timed_scenario.py                                              # 18 PASS, 0 FAIL, 9 SKIP
+python3 sw/timed_enter_replay.py          # pushes/walk/full/active/halt_display 154/154 x5
+python3 sw/timed_ins_replay.py --raw      # rails 1312/1312, vs-chip 2624/2624, R2 782/800
+python3 sw/timed_wvec_gate.py             # count 88/88, digest 88/88, cycles +0.0 %
+python3 sw/timed_lawcards.py              # 7 GREEN / 0 RED / 4 UNRESOLVED (S3 still not run)
+python3 sw/timed_fuzz.py --evt-replay     # REGISTERED 1,272/1,702  EVT 678/1,008
+                                          # COMBINED   1,950/2,710
+python3 sw/timed_fuzz.py --seeddir sw/testdata/t4/b2-tranche/seeds        # 154/188
+                                                              # --- THE FOUR S1 CELLS ---
+python3 sw/timed_gate.py --suite tests/v30/v0.1-w0evt --forms all --waits 0  # 200/200   (was 200)
+python3 sw/timed_gate.py --suite tests/v30/v0.1-w1evt --forms all --waits 1  # 1,200/1,200 (was 1,163)
+python3 sw/timed_gate.py --suite tests/v30/v0.1-w2evt --forms all --waits 2  # 200/200   (was 177)
+python3 sw/timed_gate.py --suite tests/v30/v0.1-w3evt --forms all --waits 3  # 1,200/1,200 (was 1,176)
+                                                              # --- the census (no model) ---
+python3 sw/s11_census.py gap   --suites tests/v30/v0.1-w{0,1,2,3}evt:{0,1,2,3}
+python3 sw/s11_census.py flush --suites ...
+python3 sw/s11_census.py lock
+```
+
+**Monotonicity.** Every standing ratchet is at or above its entry value and
+none moved down.  The four S1 cells went 200/163/177/176 -> **200/200/200/200**
+on `INT.F3AA`, and the two full waited tranches went 1,163 -> **1,200** and
+1,176 -> **1,200**.  The fuzz populations are unchanged in every headline
+number, and per seed over all 2,710 scored: **0 newly broken, 0 newly exact,
+2 seeds' first divergence LATER, 0 earlier** (`mc1` soup 3361 929->931, `mc2`
+soup 283 516->775).  One first-divergence family label changed with them
+(`bs` -> `ps` on soup 283), which is the same seed, later.
+
+**No board contact of any kind.**  No socket call, no `serve`, no flash; the
+rig-fix half of this session is code that was read, not run.
+
+**Retention** (Codex review: the monotonicity claims must be artifacts, not
+prose).  `sw/testdata/s11/` —
+`fuzz_m19_movement.json.gz` (all 3,242 fuzz-bank seeds, `cat` / `exact` /
+`first_bad` BEFORE and AFTER M19; the BEFORE arm produced by stashing the `sim/`
+diff and rebuilding, nothing else differing between the arms) and `census.txt`
+(the three `s11_census` sub-commands' output verbatim), with a `SHA256SUMS`.
+The four cells and the w0 ratchet are re-derivable from the committed suites in
+one command each and are not duplicated here.
+
+### 22.8 Provenance class, per finding
+
+| finding | class | evidence | falsifier |
+|---|---|---|---|
+| LOCK is asserted across the acknowledge pair and does NOT block a CODE cycle | **MEASURED** | S10 raw words, bit 50; 4 cells, one with a CODE T1 inside the locked interval | a capture where a cycle inside a locked interval is refused |
+| the gap cycle is a CODE prefetch at INTA1's completion eval + 2 | **MEASURED** | 84/84 gap pairs over w1/w2/w3 | any gap cycle elsewhere |
+| the flush's position separates the two populations exactly | **MEASURED** | 2,000 pairs, four wait levels, zero overlap | a `-1` pair with no prefetch, or a `<= -6` pair with one |
+| **M19** — SUSP does not reset a request the flush raised | **LAW** (the simplest mechanism consistent with the two MEASURED rows above) | the four cells 800/800; w0 168,997 unmoved | see §22.3 |
+| the acknowledge's `+5` generalises to `+5 + (slot length)` | **MEASURED** | +3/+4/+5 at w1/w2/w3, 84/84 | any residual off that |
+| the 44 waited `ACK` seeds are NOT the acknowledge gap | **MEASURED (negative)** | 3/1,008 seeds have the shape at all; 51/52 unmoved | a seed of the family that M19 does move |
+| the divider pin | **INSTRUMENT** | code-read + existing manifests; NOT run on the board | a board session whose `emit_log.txt` says UNPINNED |
+
+### 22.9 Ledger delta
+
+| | after §21 | after this addendum |
+|---|---|---|
+| the prefetch in the acknowledge gap (§21.10 item 1) | 61 of 2,400, localised, unexplained | **CLOSED — M19**; all four S1 cells 200/200, the two waited tranches 1,200/1,200 |
+| `v0.1-w1evt` / `-w3evt` (all forms) | 1,163 / 1,200 and 1,176 / 1,200 | **1,200 / 1,200 and 1,200 / 1,200** |
+| `v0.1-w0evt` / `-w2evt` (`INT.F3AA`) | 200 / 200 and 177 / 200 | **200 / 200 and 200 / 200** |
+| the acknowledge pair's geometry | `eval + 5`, clean pairs only (2,339/2,339) | **`eval + 5 + the slot's length`**, all 2,000 pairs (1,916 clean + 84 gap), four wait levels |
+| §21.4's 19 non-exact w1 chain cases | prefetch-in-gap, unexplained | **gone** (they are the same 19 of the 37) |
+| the 44 waited `ACK` seeds (§21.10 item 6) | leading candidate: the acknowledge gap | **candidate REFUTED**; 3/1,008 seeds carry the shape, 51/52 unmoved.  Still open, now with one fewer hypothesis |
+| the divider provenance fixes (§21.10 item 4) | booked, not made | **MADE** — pinned in `v30run`/`emit_suite`, defaulted in `check_seq`/`t2b_board`, recorded in `emit_log.txt`; `board_idle` now leaves the corpus frequency |
+| mechanisms | M1-M18, M2r, M5b | **+ M19 (the flush's redirect is a standing request; SUSP does not reset it)** |
+| `timed_fuzz` REG / EVT / COMBINED | 1,272/1,702, 678/1,008, 1,950/2,710 | unchanged, all three (0 newly broken, 0 newly exact, 2 later) |
+| victory tranche V0-V5 | V0-V4 PASS, V5 registered FAILURE | **UNTOUCHED — 154/188, V5 remains a registered FAILURE** |
+| law cards | 7 GREEN / 0 RED / 4 UNRESOLVED | unchanged — **S3 still NOT RUN** |
+| functional corpus | 7,341,126 | unchanged |
+| v0.1 w0 / w1 / w3 | 168,997 / 1,200 / 1,200 | unchanged |
+
+### 22.10 What is left, and the stimulus for each
+
+1. **M19's own edge — THE HIGHEST-PRIORITY FOLLOW-UP** (Codex review, this
+   session).  `eval()` consumes the request at the GRANT, and either `susp()`
+   or `post()` may then call `withdraw_fetch()` before the display clock,
+   cancelling the committed fetch and rewinding `fetch_ptr_` **without
+   re-raising `pf_owed_`** — so a redirect that was granted and then withdrawn
+   under SUSP is lost by the model.  Whether the chip re-issues it is UNTESTED:
+   nothing in the banked corpus discriminates it (the four cells and the whole
+   fuzz bank are exact either way).  The stimulus is a directed cell — a flush,
+   a grant, an EU post one clock later, and a SUSP, all under waits — and it
+   decides whether cancellation must re-arm the latch.
+2. **The 44 waited `ACK` seeds** (§22.5) — still unexplained, and now WITHOUT
+   the acknowledge-gap hypothesis.  The next stimulus is not silicon: it is a
+   per-seed diff of the 41 waited members against the model at the divergence
+   row, which is banked and has never been read case by case.
+3. **The HALT-wake race** (§21.10 item 2) — untouched here.
+4. **S3's four law cards** (C2, C6, C7, C11) — untouched, still un-run.
+5. **`HLT.INT` at w1's 0/49 goldens** (§21.10 item 5) — untouched.
+6. **The three w0 tails** (`0F12`, `C1.6`, `F7.4`) — untouched, 17 row diffs.
+

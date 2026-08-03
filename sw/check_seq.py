@@ -29,7 +29,7 @@ sys.path.insert(0, str(SW))
 import random                                          # noqa: E402
 import testimage                                       # noqa: E402
 from gen_seq import generate, form_universe, far_int_support  # noqa: E402
-from v30run import run_image                           # noqa: E402
+from v30run import run_image, DIV_OF_RECORD            # noqa: E402
 from fuzz_cov import Coverage, DEFAULT_COV, DEFAULT_DIV  # noqa: E402
 
 
@@ -121,9 +121,12 @@ def _run_tb_in(td, image, n, waits, evt, wrand, wvec):
 
 
 def run_chip(image, host, use_core=None, waits=0, evt=None, wrand=None,
-             wvec=None):
+             wvec=None, div=DIV_OF_RECORD):
+    # 21.1: the divider is SET, never inherited.  `div=None` still means "leave
+    # the board default" for the one caller that sweeps frequency deliberately,
+    # but it is no longer what a plain capture does by accident.
     recs = run_image(bytes(image), host, tag="seq", use_core=use_core,
-                     waits=waits, evt=evt, wrand=wrand, wvec=wvec)
+                     waits=waits, evt=evt, wrand=wrand, wvec=wvec, div=div)
     rel = next(i for i, r in enumerate(recs) if not r["rst"])
     return recs[rel:]
 

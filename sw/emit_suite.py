@@ -142,6 +142,30 @@ EMIT_CAP_RETRY = 4096  # rec <=500 for single-instr + short REP (item A / E scan
 # cases run away. use_core was added AFTER v0.1 emission (2035cce, post-8b5a7d7),
 # so v0.1 always used the socket; emission was never pinned. Pin it here.
 EMIT_USE_CORE = False
+# THE CLOCK DIVIDER IS STICKY, AND UNTIL S10 THE EMISSION PATH NEVER SET IT
+# (ucsim_t_provenance.md 21.1).  `ServeRunner.cfg(div=None)` sends '-' meaning
+# "leave the board default"; the divider lives ON THE BOARD and survives
+# process and session exit, so every emission inherited whatever the previous
+# session happened to leave behind.  That is not cosmetic: MEASURED A/B over 12
+# identical cases, 143 pre-T1 `Ti` rows each --
+#     div=8 (4 MHz)  bs_early on the pre-T1 Ti row = the NEW cycle's status  143/143
+#     div=4 (8 MHz)  bs_early on the pre-T1 Ti row = PASV                    143/143
+# -- i.e. at 8 MHz the address-phase sampling edge lands before the status
+# pulse and the DISPLAY CLOCK vanishes from the capture, in `bs_early`, which
+# is a COMPARED column.  Two S10 readings were produced by it and retracted.
+#
+# So the divider is PINNED here, exactly as the truth source is, and every
+# emission run_image() call passes it explicitly.  8 = 4 MHz = the frequency
+# the whole banked corpus was (recoverably) emitted at.
+EMIT_DIV = 8
+
+
+def emit_div_stamp():
+    """The provenance line every emission writes into its `emit_log.txt`.
+    A suite whose log has no `div=` line was emitted before the pin and its
+    frequency is UNRECORDED (recoverable only from its content, 21.1)."""
+    return (f"# CLOCK DIVIDER: div={EMIT_DIV} ({32 // EMIT_DIV} MHz), PINNED "
+            f"at the emission call sites (ucsim_t_provenance 21.1)")
 
 
 #----------------------------------------------------------------------------
@@ -1272,7 +1296,7 @@ def emit_evt_case(spec, case, host, tag, preload_n=0, waits=0):
             "(ram-vs-instruction collision; F4bc instrument-failure #3)")
     recs, fired = run_image(image, host, tag, waits=waits, evt=evt,
                             iord=None, pins=pins or None, want_fired=True,
-                            cap=EMIT_CAP, use_core=EMIT_USE_CORE)
+                            cap=EMIT_CAP, use_core=EMIT_USE_CORE, div=EMIT_DIV)
     if evt and not fired:
         raise RunError("event did not fire")
     try:
@@ -1282,7 +1306,8 @@ def emit_evt_case(spec, case, host, tag, preload_n=0, waits=0):
             raise
         recs, fired = run_image(image, host, tag, waits=waits, evt=evt,  # E retry
                                 iord=None, pins=pins or None, want_fired=True,
-                                cap=EMIT_CAP_RETRY, use_core=EMIT_USE_CORE)
+                                cap=EMIT_CAP_RETRY, use_core=EMIT_USE_CORE,
+                                div=EMIT_DIV)
         res = parse_result(recs, meta)
 
     close_addr = stub_linear if spec["close"] == "handler" else None
@@ -1622,7 +1647,7 @@ def emit_case(spec, case, host, tag, preload_n=0, waits=0):
             "(ram-vs-instruction collision; F4bc instrument-failure #3)")
     recs = run_image(image, host, tag, waits=waits,
                      iord=case.get("iord"), iords=case.get("iords"),
-                     cap=EMIT_CAP, use_core=EMIT_USE_CORE)
+                     cap=EMIT_CAP, use_core=EMIT_USE_CORE, div=EMIT_DIV)
     try:
         res = parse_result(recs, meta)
     except RunError as e:
@@ -1630,7 +1655,8 @@ def emit_case(spec, case, host, tag, preload_n=0, waits=0):
             raise
         recs = run_image(image, host, tag, waits=waits,      # E: retry at 4096
                          iord=case.get("iord"), iords=case.get("iords"),
-                         cap=EMIT_CAP_RETRY, use_core=EMIT_USE_CORE)
+                         cap=EMIT_CAP_RETRY, use_core=EMIT_USE_CORE,
+                         div=EMIT_DIV)
         res = parse_result(recs, meta)
 
     rows, events, i0, i1, q0, qf, fetched, memrd = \
@@ -1835,7 +1861,8 @@ def cmd_preload_cal(host):
               "DS0": 0x9999, "DS1": 0xAAAA, "SS": 0xBBBB,
               "PS": 0x0000, "PC": 0x0500, "PSW": 0x08D5}
     image, meta = testimage.compose(regs=inject, instr=PRELOAD_BYTES * 8)
-    recs = run_image(image, host, tag="pc0", use_core=EMIT_USE_CORE)
+    recs = run_image(image, host, tag="pc0", use_core=EMIT_USE_CORE,
+                     div=EMIT_DIV)
     res = parse_result(recs, meta)
     diffs = {k: (v, res["regs"].get(k)) for k, v in
              testimage.compose(regs=inject, instr=b"")[1]["regs_in"].items()
@@ -1847,7 +1874,8 @@ def cmd_preload_cal(host):
         instr = PRELOAD_BYTES * n + b"\x90"
         image, meta = testimage.compose(
             regs={"PS": 0, "PC": 0x0500}, instr=instr)
-        recs = run_image(image, host, tag=f"pc{n}", use_core=EMIT_USE_CORE)
+        recs = run_image(image, host, tag=f"pc{n}", use_core=EMIT_USE_CORE,
+                         div=EMIT_DIV)
         try:
             rows, events, i0, i1, q0, qf, _, _ = \
                 build_rows(recs, meta["anchor_linear"], n_skip_f=n)
@@ -2018,10 +2046,25 @@ def cmd_emit(host, opcodes, n_cases, out_dir, seed_base, preload_n,
             f"(EMIT_USE_CORE={EMIT_USE_CORE!r}); goldens require use_core=False")
     truth = "SOCKET (real chip, use_core=False)"
     stamp = (f"# TRUTH SOURCE: {truth}  seed_base={seed_base}  "
-             f"cases={n_cases}  waits={waits}  forms={len(opcodes)}")
+             f"cases={n_cases}  waits={waits}  forms={len(opcodes)}  "
+             f"div={EMIT_DIV}")
     with log.open("a") as f:
         f.write(stamp + "\n")
+        f.write(emit_div_stamp() + "\n")     # 21.1 -- the divider provenance
     print(stamp, flush=True)
+    print(emit_div_stamp(), flush=True)
+    # DIVIDER PROVENANCE (21.1, mechanized guard): the same shape as the
+    # wait-rig guard below, for the hazard the wait-rig guard did not cover.
+    # Written UNCONDITIONALLY at the END of the emission (the divider corrupts
+    # a COMPARED column at every wait level, not just at w0), so the line
+    # records what the connection actually COMMANDED, not what this file
+    # intends.  A suite whose log says UNPINNED has no known frequency.
+    def _div_readback():
+        import v30run as _v30
+        r = _v30._runners.get(host)
+        return ("# DIVIDER: " + r.div_readback) if r is not None else \
+            "# DIVIDER: (no runner: nothing was captured)"
+
     # WAIT-RIG PROVENANCE (task #24, mechanized guard): connect the runner (which
     # force-cleans the rig at connect) and record the rig readback, so a tainted
     # capture is caught at read-time. A "Tw in a waits=0 golden" is a provenance
@@ -2113,6 +2156,9 @@ def cmd_emit(host, opcodes, n_cases, out_dir, seed_base, preload_n,
             json.dump(dict(seed_base=seed_base, op=op, map=seeds), sf)
         print(f"{op}: wrote {len(tests)} tests ({rerolls} rerolls) -> {fn} "
               f"in {time.time() - t0:.0f}s", flush=True)
+    with log.open("a") as f:
+        f.write(_div_readback() + "\n")      # 21.1 -- what was COMMANDED
+    print(_div_readback(), flush=True)
     return 0
 
 
@@ -2139,10 +2185,13 @@ def cmd_emit_boundary(host, opcodes, n_cases, out_dir, seed_base, preload_n,
     truth = "SOCKET (real chip, use_core=False)"
     stamp = (f"# TRUTH SOURCE: {truth}  seed_base={seed_base}  "
              f"cases={n_cases}  waits={waits}  forms={len(opcodes)}  "
+             f"div={EMIT_DIV}  "
              f"DIRECTED-BOUNDARY offsets={[hex(o) for o in BOUNDARY_OFFSETS]}")
     with log.open("a") as f:
         f.write(stamp + "\n")
+        f.write(emit_div_stamp() + "\n")     # 21.1 -- the divider provenance
     print(stamp, flush=True)
+    print(emit_div_stamp(), flush=True)
     if waits == 0:
         import v30run as _v30
         try:
