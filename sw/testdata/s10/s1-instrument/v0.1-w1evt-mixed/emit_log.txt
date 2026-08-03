@@ -1,0 +1,1614 @@
+# TRUTH SOURCE: SOCKET (real chip, use_core=False)  seed_base=v30-s10-w1evt  cases=200  waits=1  forms=6
+INT.90 case-seed 1 reroll: pf assert before window (-2)
+INT.90 case-seed 4 reroll: pf assert before window (-2)
+INT.90 case-seed 5 reroll: pf assert before window (-91)
+INT.90 case-seed 6 reroll: pf assert before window (-95)
+INT.90 case-seed 7 reroll: pf assert before window (-90)
+INT.90 case-seed 8 reroll: pf assert before window (-2)
+INT.90 case-seed 9 reroll: no F pop from close addr 020ea
+INT.90 case-seed 10 reroll: pf assert before window (-95)
+INT.90 case-seed 11 reroll: pf assert before window (-72)
+INT.90 case-seed 12 reroll: pf assert before window (-2)
+INT.90 case-seed 13 reroll: pf assert before window (-71)
+INT.90 case-seed 14 reroll: pf assert before window (-93)
+INT.90 case-seed 15 reroll: pf assert before window (-90)
+INT.90 case-seed 16 reroll: no F pop from close addr 04988
+INT.90 case-seed 17 reroll: pf assert before window (-2)
+INT.90 case-seed 20 reroll: pf assert before window (-92)
+INT.90 case-seed 21 reroll: no F pop from close addr 02eda
+INT.90 case-seed 22 reroll: pf assert before window (-71)
+INT.90 case-seed 23 reroll: pf assert before window (-90)
+INT.90 case-seed 26 reroll: no F pop from close addr 0574e
+INT.90 case-seed 27 reroll: pf assert before window (-76)
+INT.90 case-seed 30 reroll: pf assert before window (-90)
+INT.90 case-seed 31 reroll: pf assert before window (-90)
+INT.90 case-seed 32 reroll: pf assert before window (-2)
+INT.90 case-seed 33 reroll: pf assert before window (-77)
+INT.90 case-seed 34 reroll: pf assert before window (-2)
+INT.90 case-seed 35 reroll: pf assert before window (-93)
+INT.90 case-seed 36 reroll: pf assert before window (-89)
+INT.90 case-seed 37 reroll: no F pop from close addr 0835c
+INT.90 case-seed 38 reroll: pf assert before window (-1)
+INT.90 case-seed 39 reroll: pf assert before window (-72)
+INT.90 case-seed 40 reroll: no F pop from close addr 013a8
+INT.90 case-seed 41 reroll: pf assert before window (-91)
+INT.90 case-seed 42 reroll: pf assert before window (-72)
+INT.90 case-seed 43 reroll: pf assert before window (-2)
+INT.90 case-seed 44 reroll: pf assert before window (-89)
+INT.90 case-seed 45 reroll: pf assert before window (-74)
+INT.90 case-seed 46 reroll: pf assert before window (-1)
+INT.90 case-seed 47 reroll: no F pop from close addr 0ab30
+INT.90 case-seed 48 reroll: pf assert before window (-77)
+INT.90 case-seed 49 reroll: pf assert before window (-72)
+INT.90 case-seed 50 reroll: pf assert before window (-92)
+INT.90 case-seed 51 reroll: pf assert before window (-90)
+INT.90 case-seed 52 reroll: no F pop from close addr 05bd8
+INT.90 case-seed 53 reroll: pf assert before window (0)
+INT.90 case-seed 54 reroll: pf assert before window (-72)
+INT.90 case-seed 55 reroll: pf assert before window (-77)
+INT.90 case-seed 56 reroll: no F pop from close addr 06a7c
+INT.90 case-seed 57 reroll: pf assert before window (-77)
+INT.90 case-seed 58 reroll: pf assert before window (-92)
+INT.90 case-seed 59 reroll: no F pop from close addr 0e7f2
+INT.90 case-seed 60 reroll: pf assert before window (-73)
+INT.90 case-seed 61 reroll: pf assert before window (-71)
+INT.90 case-seed 62 reroll: no F pop from close addr 07c96
+INT.90 case-seed 63 reroll: pf assert before window (-77)
+INT.90 case-seed 64 reroll: pf assert before window (-71)
+INT.90 case-seed 67 reroll: pf assert before window (0)
+INT.90 case-seed 68 reroll: pf assert before window (-2)
+INT.90 case-seed 69 reroll: no F pop from close addr 0235a
+INT.90 case-seed 70 reroll: no F pop from close addr 0e794
+INT.90 case-seed 71 reroll: pf assert before window (-72)
+INT.90 case-seed 72 reroll: pf assert before window (-93)
+INT.90 case-seed 75 reroll: no F pop from close addr 091fc
+INT.90 case-seed 76 reroll: no F pop from close addr 038d8
+INT.90 case-seed 77 reroll: pf assert before window (-90)
+INT.90 case-seed 78 reroll: no F pop from close addr 05928
+INT.90 case-seed 79 reroll: no F pop from close addr 0136c
+INT.90 case-seed 80 reroll: pf assert before window (-72)
+INT.90 case-seed 81 reroll: pf assert before window (-94)
+INT.90 case-seed 82 reroll: pf assert before window (-1)
+INT.90 case-seed 83 reroll: no F pop from close addr 099ea
+INT.90 case-seed 84 reroll: pf assert before window (-93)
+INT.90 case-seed 85 reroll: no F pop from close addr 0c508
+INT.90 case-seed 86 reroll: pf assert before window (-1)
+INT.90 case-seed 87 reroll: pf assert before window (-75)
+INT.90 case-seed 88 reroll: no F pop from close addr 0431e
+INT.90 case-seed 89 reroll: pf assert before window (0)
+INT.90 case-seed 90 reroll: pf assert before window (0)
+INT.90 case-seed 91 reroll: pf assert before window (-90)
+INT.90 case-seed 92 reroll: pf assert before window (-72)
+INT.90 case-seed 93 reroll: no F pop from close addr 0b702
+INT.90 case-seed 94 reroll: pf assert before window (-95)
+INT.90 case-seed 95 reroll: pf assert before window (-77)
+INT.90 case-seed 96 reroll: no F pop from close addr 0a90c
+INT.90 case-seed 97 reroll: pf assert before window (-93)
+INT.90 case-seed 100 reroll: no F pop from close addr 0cc18
+INT.90 case-seed 101 reroll: pf assert before window (-71)
+INT.90 case-seed 102 reroll: pf assert before window (-71)
+INT.90 case-seed 103 reroll: pf assert before window (-90)
+INT.90 case-seed 104 reroll: no F pop from close addr 0bee6
+INT.90 case-seed 105 reroll: pf assert before window (-75)
+INT.90 case-seed 106 reroll: pf assert before window (-90)
+INT.90 case-seed 107 reroll: pf assert before window (0)
+INT.90 case-seed 108 reroll: pf assert before window (-90)
+INT.90 case-seed 109 reroll: pf assert before window (-72)
+INT.90 case-seed 114 reroll: pf assert before window (-2)
+INT.90 case-seed 115 reroll: pf assert before window (-75)
+INT.90 case-seed 116 reroll: pf assert before window (0)
+INT.90 case-seed 117 reroll: pf assert before window (-90)
+INT.90 case-seed 118 reroll: pf assert before window (-2)
+INT.90 case-seed 119 reroll: pf assert before window (-89)
+INT.90 case-seed 120 reroll: pf assert before window (-94)
+INT.90 case-seed 121 reroll: pf assert before window (-90)
+INT.90 case-seed 122 reroll: pf assert before window (-91)
+INT.90 case-seed 123 reroll: no F pop from close addr 0b4a2
+INT.90 case-seed 124 reroll: pf assert before window (-74)
+INT.90 case-seed 125 reroll: no F pop from close addr 0c3ec
+INT.90 case-seed 126 reroll: pf assert before window (0)
+INT.90 case-seed 127 reroll: pf assert before window (-90)
+INT.90 case-seed 130 reroll: pf assert before window (-76)
+INT.90 case-seed 131 reroll: no F pop from close addr 019aa
+INT.90 case-seed 134 reroll: no F pop from close addr 0ab1e
+INT.90 case-seed 135 reroll: no F pop from close addr 037f4
+INT.90 case-seed 136 reroll: no F pop from close addr 06bdc
+INT.90 case-seed 137 reroll: no F pop from close addr 06e3c
+INT.90 case-seed 138 reroll: pf assert before window (0)
+INT.90 case-seed 139 reroll: pf assert before window (-75)
+INT.90 case-seed 140 reroll: pf assert before window (-1)
+INT.90 case-seed 141 reroll: pf assert before window (-71)
+INT.90 case-seed 142 reroll: pf assert before window (-91)
+INT.90 case-seed 143 reroll: pf assert before window (-1)
+INT.90 case-seed 144 reroll: pf assert before window (-89)
+INT.90 case-seed 145 reroll: pf assert before window (-1)
+INT.90 case-seed 146 reroll: no F pop from close addr 01626
+INT.90 case-seed 150 reroll: no F pop from close addr 09248
+INT.90 case-seed 154 reroll: pf assert before window (-72)
+INT.90 case-seed 157 reroll: pf assert before window (-91)
+INT.90 case-seed 160 reroll: pf assert before window (-89)
+INT.90 case-seed 161 reroll: pf assert before window (-71)
+INT.90 case-seed 162 reroll: pf assert before window (-72)
+INT.90 case-seed 163 reroll: pf assert before window (-1)
+INT.90 case-seed 164 reroll: no F pop from close addr 0bd44
+INT.90 case-seed 165 reroll: pf assert before window (-92)
+INT.90 case-seed 166 reroll: no F pop from close addr 045dc
+INT.90 case-seed 167 reroll: pf assert before window (-95)
+INT.90 case-seed 168 reroll: pf assert before window (-2)
+INT.90 case-seed 169 reroll: no F pop from close addr 082a4
+INT.90 case-seed 170 reroll: pf assert before window (0)
+INT.90 case-seed 171 reroll: no F pop from close addr 0ea72
+INT.90 case-seed 172 reroll: pf assert before window (-89)
+INT.90 case-seed 173 reroll: no F pop from close addr 0d2e6
+INT.90 case-seed 174 reroll: no F pop from close addr 0e6b0
+INT.90 case-seed 176 reroll: recognition off-window: pushed ff0c vs min cb40
+INT.90 case-seed 177 reroll: no F pop from close addr 00ab6
+INT.90 case-seed 179 reroll: no F pop from close addr 0cf02
+INT.90 case-seed 180 reroll: pf assert before window (-1)
+INT.90 case-seed 181 reroll: no F pop from close addr 0b064
+INT.90 case-seed 182 reroll: pf assert before window (-74)
+INT.90 case-seed 183 reroll: pf assert before window (-76)
+INT.90 case-seed 184 reroll: no F pop from close addr 04d54
+INT.90 case-seed 185 reroll: pf assert before window (-90)
+INT.90 case-seed 186 reroll: pf assert before window (-71)
+INT.90 case-seed 187 reroll: pf assert before window (-91)
+INT.90 case-seed 190 reroll: pf assert before window (-90)
+INT.90 case-seed 191 reroll: no F pop from close addr 03b64
+INT.90 case-seed 192 reroll: pf assert before window (-2)
+INT.90 case-seed 193 reroll: no F pop from close addr 0242c
+INT.90 case-seed 194 reroll: no F pop from close addr 07830
+INT.90 case-seed 195 reroll: no F pop from close addr 03434
+INT.90 case-seed 196 reroll: pf assert before window (-2)
+INT.90 case-seed 199 reroll: pf assert before window (0)
+INT.90 case-seed 200 reroll: pf assert before window (-1)
+INT.90 case-seed 201 reroll: pf assert before window (-72)
+INT.90 case-seed 202 reroll: pf assert before window (-89)
+INT.90 case-seed 205 reroll: pf assert before window (-89)
+INT.90 case-seed 206 reroll: pf assert before window (-1)
+INT.90 case-seed 209 reroll: implausible final PSW 0
+INT.90 case-seed 212 reroll: no F pop from close addr 083e8
+INT.90 case-seed 213 reroll: pf assert before window (-76)
+INT.90 case-seed 214 reroll: no F pop from close addr 0dfa2
+INT.90 case-seed 215 reroll: no F pop from close addr 0799a
+INT.90 case-seed 216 reroll: no F pop from close addr 09b52
+INT.90 case-seed 217 reroll: no F pop from close addr 02708
+INT.90 case-seed 218 reroll: pf assert before window (0)
+INT.90 case-seed 219 reroll: no F pop from close addr 02b6a
+INT.90 case-seed 220 reroll: pf assert before window (-74)
+INT.90 case-seed 221 reroll: pf assert before window (-94)
+INT.90 case-seed 224 reroll: pf assert before window (-89)
+INT.90 case-seed 225 reroll: no F pop from close addr 0a0e6
+INT.90 case-seed 226 reroll: no F pop from close addr 0cd4c
+INT.90 case-seed 228 reroll: recognition off-window: pushed ff0c vs min 6b1f
+INT.90 case-seed 229 reroll: recognition off-window: pushed ff0c vs min 5922
+INT.90 case-seed 231 reroll: no F pop from close addr 021d8
+INT.90 case-seed 232 reroll: no F pop from close addr 04a22
+INT.90 case-seed 233 reroll: pf assert before window (-92)
+INT.90 case-seed 235 reroll: no F pop from close addr 0890e
+INT.90 case-seed 237 reroll: pf assert before window (-1)
+INT.90 case-seed 238 reroll: pf assert before window (0)
+INT.90 case-seed 239 reroll: pf assert before window (-1)
+INT.90 case-seed 240 reroll: pf assert before window (-1)
+INT.90 case-seed 241 reroll: pf assert before window (-89)
+INT.90 case-seed 242 reroll: no F pop from close addr 0e9fc
+INT.90 case-seed 243 reroll: pf assert before window (-72)
+INT.90 case-seed 244 reroll: pf assert before window (-90)
+INT.90 case-seed 245 reroll: pf assert before window (-2)
+INT.90 case-seed 246 reroll: pf assert before window (-90)
+INT.90 case-seed 249 reroll: pf assert before window (-92)
+INT.90 case-seed 250 reroll: pf assert before window (-77)
+INT.90 case-seed 251 reroll: pf assert before window (0)
+INT.90 case-seed 252 reroll: pf assert before window (-89)
+INT.90 case-seed 253 reroll: pf assert before window (0)
+INT.90 case-seed 254 reroll: pf assert before window (-2)
+INT.90 case-seed 255 reroll: pf assert before window (-89)
+INT.90 case-seed 256 reroll: pf assert before window (-76)
+INT.90 case-seed 257 reroll: pf assert before window (-92)
+INT.90 case-seed 258 reroll: pf assert before window (-77)
+INT.90 case-seed 259 reroll: no F pop from close addr 04c42
+INT.90 case-seed 260 reroll: no F pop from close addr 05e4c
+INT.90 case-seed 261 reroll: pf assert before window (0)
+INT.90 case-seed 262 reroll: pf assert before window (-90)
+INT.90 case-seed 263 reroll: no F pop from close addr 09882
+INT.90 case-seed 264 reroll: no F pop from close addr 0abd4
+INT.90 case-seed 265 reroll: pf assert before window (-72)
+INT.90 case-seed 266 reroll: pf assert before window (-2)
+INT.90 case-seed 267 reroll: pf assert before window (-1)
+INT.90 case-seed 268 reroll: pf assert before window (-90)
+INT.90 case-seed 269 reroll: pf assert before window (-94)
+INT.90 case-seed 270 reroll: pf assert before window (-74)
+INT.90 case-seed 273 reroll: pf assert before window (0)
+INT.90 case-seed 274 reroll: no F pop from close addr 0bb0e
+INT.90 case-seed 275 reroll: pf assert before window (0)
+INT.90 case-seed 276 reroll: no F pop from close addr 0a33e
+INT.90 case-seed 277 reroll: pf assert before window (-71)
+INT.90 case-seed 278 reroll: pf assert before window (-90)
+INT.90 case-seed 279 reroll: no F pop from close addr 09fe6
+INT.90 case-seed 282 reroll: no F pop from close addr 04138
+INT.90 case-seed 283 reroll: pf assert before window (-77)
+INT.90 case-seed 286 reroll: pf assert before window (0)
+INT.90 case-seed 287 reroll: pf assert before window (0)
+INT.90 case-seed 288 reroll: pf assert before window (-77)
+INT.90 case-seed 289 reroll: pf assert before window (-91)
+INT.90 case-seed 290 reroll: no F pop from close addr 08e20
+INT.90 case-seed 291 reroll: pf assert before window (-77)
+INT.90 case-seed 292 reroll: pf assert before window (-2)
+INT.90 case-seed 293 reroll: no F pop from close addr 06304
+INT.90 case-seed 294 reroll: pf assert before window (0)
+INT.90 case-seed 296 reroll: recognition off-window: pushed ff0c vs min 6fa4
+INT.90 case-seed 298 reroll: pf assert before window (-2)
+INT.90 case-seed 299 reroll: pf assert before window (-89)
+INT.90 case-seed 300 reroll: pf assert before window (-91)
+INT.90 case-seed 301 reroll: pf assert before window (0)
+INT.90 case-seed 302 reroll: pf assert before window (0)
+INT.90 case-seed 303 reroll: pf assert before window (0)
+INT.90 case-seed 304 reroll: pf assert before window (-91)
+INT.90 case-seed 305 reroll: pf assert before window (-2)
+INT.90 case-seed 306 reroll: pf assert before window (-71)
+INT.90 case-seed 307 reroll: pf assert before window (-73)
+INT.90 case-seed 308 reroll: pf assert before window (-95)
+INT.90 case-seed 309 reroll: pf assert before window (-76)
+INT.90 case-seed 310 reroll: no F pop from close addr 0b51a
+INT.90 case-seed 311 reroll: pf assert before window (-89)
+INT.90 case-seed 312 reroll: pf assert before window (-93)
+INT.90 case-seed 313 reroll: pf assert before window (0)
+INT.90 case-seed 314 reroll: pf assert before window (-1)
+INT.90 case-seed 315 reroll: no F pop from close addr 051fa
+INT.90 case-seed 316 reroll: pf assert before window (-89)
+INT.90 case-seed 317 reroll: pf assert before window (-94)
+INT.90 case-seed 319 reroll: no F pop from close addr 0eac6
+INT.90 case-seed 321 reroll: no F pop from close addr 0983c
+INT.90 case-seed 322 reroll: pf assert before window (-89)
+INT.90 case-seed 323 reroll: no F pop from close addr 0ca30
+INT.90 case-seed 324 reroll: no F pop from close addr 04b7e
+INT.90 case-seed 325 reroll: pf assert before window (-92)
+INT.90 case-seed 326 reroll: no F pop from close addr 03b2c
+INT.90 case-seed 327 reroll: pf assert before window (0)
+INT.90 case-seed 328 reroll: no F pop from close addr 0505e
+INT.90 case-seed 329 reroll: pf assert before window (-2)
+INT.90 case-seed 330 reroll: no F pop from close addr 05446
+INT.90 case-seed 331 reroll: no F pop from close addr 0bc1e
+INT.90 case-seed 334 reroll: pf assert before window (-2)
+INT.90 case-seed 337 reroll: pf assert before window (-71)
+INT.90 case-seed 340 reroll: pf assert before window (-74)
+INT.90 case-seed 341 reroll: pf assert before window (-2)
+INT.90 case-seed 344 reroll: no F pop from close addr 072e8
+INT.90 case-seed 347 reroll: no F pop from close addr 09e70
+INT.90 case-seed 348 reroll: pf assert before window (-72)
+INT.90 case-seed 349 reroll: pf assert before window (-90)
+INT.90 case-seed 350 reroll: pf assert before window (-89)
+INT.90 case-seed 351 reroll: pf assert before window (-2)
+INT.90 case-seed 352 reroll: pf assert before window (-93)
+INT.90 case-seed 353 reroll: pf assert before window (-90)
+INT.90 case-seed 355 reroll: no F pop from close addr 07a78
+INT.90 case-seed 359 reroll: pf assert before window (-1)
+INT.90 case-seed 360 reroll: pf assert before window (-77)
+INT.90 case-seed 361 reroll: pf assert before window (-72)
+INT.90 case-seed 362 reroll: no F pop from close addr 0a0f0
+INT.90 case-seed 363 reroll: pf assert before window (-71)
+INT.90 case-seed 364 reroll: pf assert before window (-1)
+INT.90 case-seed 365 reroll: pf assert before window (0)
+INT.90 case-seed 366 reroll: no F pop from close addr 0df50
+INT.90 case-seed 367 reroll: pf assert before window (-90)
+INT.90 case-seed 369 reroll: no F pop from close addr 07ce8
+INT.90 case-seed 371 reroll: pf assert before window (-89)
+INT.90 case-seed 372 reroll: pf assert before window (-1)
+INT.90 case-seed 373 reroll: no F pop from close addr 01894
+INT.90 case-seed 374 reroll: no F pop from close addr 059be
+INT.90 case-seed 375 reroll: pf assert before window (-76)
+INT.90 case-seed 376 reroll: pf assert before window (0)
+INT.90 case-seed 379 reroll: pf assert before window (-1)
+INT.90 case-seed 380 reroll: pf assert before window (-71)
+INT.90 case-seed 381 reroll: pf assert before window (0)
+INT.90 case-seed 382 reroll: no F pop from close addr 0ca2e
+INT.90 case-seed 387 reroll: no F pop from close addr 0cfe2
+INT.90 case-seed 388 reroll: pf assert before window (-75)
+INT.90 case-seed 389 reroll: pf assert before window (-91)
+INT.90 case-seed 390 reroll: pf assert before window (-90)
+INT.90 case-seed 391 reroll: pf assert before window (-71)
+INT.90 case-seed 393 reroll: no F pop from close addr 0da20
+INT.90 case-seed 395 reroll: pf assert before window (-1)
+INT.90 case-seed 398 reroll: pf assert before window (-74)
+INT.90 case-seed 399 reroll: pf assert before window (-95)
+INT.90 case-seed 400 reroll: pf assert before window (-1)
+INT.90 case-seed 401 reroll: pf assert before window (-76)
+INT.90 case-seed 402 reroll: pf assert before window (-1)
+INT.90 case-seed 407 reroll: pf assert before window (-75)
+INT.90 case-seed 408 reroll: pf assert before window (-1)
+INT.90 case-seed 409 reroll: pf assert before window (-1)
+INT.90 case-seed 410 reroll: pf assert before window (-1)
+INT.90 case-seed 411 reroll: pf assert before window (-73)
+INT.90 case-seed 412 reroll: pf assert before window (-75)
+INT.90 case-seed 413 reroll: pf assert before window (-72)
+INT.90 case-seed 414 reroll: pf assert before window (-94)
+INT.90 case-seed 415 reroll: pf assert before window (0)
+INT.90 case-seed 416 reroll: no F pop from close addr 06038
+INT.90 case-seed 417 reroll: pf assert before window (-95)
+INT.90 case-seed 420 reroll: pf assert before window (-2)
+INT.90 case-seed 421 reroll: no F pop from close addr 0d032
+INT.90 case-seed 422 reroll: no F pop from close addr 0cb6e
+INT.90 case-seed 423 reroll: pf assert before window (-74)
+INT.90 case-seed 424 reroll: pf assert before window (-2)
+INT.90 case-seed 425 reroll: pf assert before window (-89)
+INT.90 case-seed 426 reroll: no F pop from close addr 0d02c
+INT.90 case-seed 428 reroll: recognition off-window: pushed ff0c vs min 19b6
+INT.90 case-seed 429 reroll: recognition off-window: pushed ff0c vs min 1eec
+INT.90 case-seed 431 reroll: pf assert before window (0)
+INT.90 case-seed 432 reroll: pf assert before window (-73)
+INT.90 case-seed 433 reroll: no F pop from close addr 0afe2
+INT.90 case-seed 434 reroll: pf assert before window (-72)
+INT.90 case-seed 435 reroll: pf assert before window (-89)
+INT.90 case-seed 436 reroll: pf assert before window (-72)
+INT.90 case-seed 437 reroll: pf assert before window (-91)
+INT.90 case-seed 438 reroll: pf assert before window (0)
+INT.90 case-seed 439 reroll: no F pop from close addr 0d2ba
+INT.90 case-seed 440 reroll: pf assert before window (-76)
+INT.90 case-seed 441 reroll: no F pop from close addr 03774
+INT.90 case-seed 442 reroll: pf assert before window (0)
+INT.90 case-seed 443 reroll: no F pop from close addr 0c1a0
+INT.90 case-seed 446 reroll: pf assert before window (-2)
+INT.90 case-seed 447 reroll: no F pop from close addr 01f94
+INT.90 case-seed 450 reroll: pf assert before window (-1)
+INT.90 case-seed 451 reroll: pf assert before window (-94)
+INT.90 case-seed 452 reroll: no F pop from close addr 0ce2e
+INT.90 case-seed 453 reroll: implausible final PSW 0
+INT.90 case-seed 454 reroll: no F pop from close addr 02162
+INT.90 case-seed 455 reroll: no F pop from close addr 0abbe
+INT.90 case-seed 456 reroll: no F pop from close addr 048cc
+INT.90 case-seed 457 reroll: no F pop from close addr 03e60
+INT.90 case-seed 460 reroll: pf assert before window (-2)
+INT.90 case-seed 461 reroll: pf assert before window (0)
+INT.90 case-seed 462 reroll: pf assert before window (-90)
+INT.90 case-seed 465 reroll: no F pop from close addr 04332
+INT.90 case-seed 466 reroll: pf assert before window (-94)
+INT.90 case-seed 468 reroll: no F pop from close addr 00ee6
+INT.90 case-seed 470 reroll: pf assert before window (-95)
+INT.90 case-seed 471 reroll: pf assert before window (-2)
+INT.90 case-seed 472 reroll: no F pop from close addr 03a44
+INT.90 case-seed 473 reroll: pf assert before window (-72)
+INT.90 case-seed 474 reroll: no F pop from close addr 09350
+INT.90 case-seed 475 reroll: no F pop from close addr 0bbd0
+INT.90 case-seed 476 reroll: pf assert before window (0)
+INT.90 case-seed 477 reroll: no F pop from close addr 04f46
+INT.90 case-seed 480 reroll: pf assert before window (-95)
+INT.90 case-seed 481 reroll: no F pop from close addr 052cc
+INT.90 case-seed 484 reroll: pf assert before window (-73)
+INT.90 case-seed 487 reroll: no F pop from close addr 0cfd0
+INT.90 case-seed 490 reroll: pf assert before window (-73)
+INT.90 case-seed 491 reroll: pf assert before window (-89)
+INT.90 case-seed 492 reroll: pf assert before window (-92)
+INT.90 case-seed 493 reroll: no F pop from close addr 05264
+INT.90 case-seed 494 reroll: no F pop from close addr 0deaa
+INT.90 case-seed 495 reroll: pf assert before window (-89)
+INT.90 case-seed 496 reroll: pf assert before window (-71)
+INT.90 case-seed 497 reroll: pf assert before window (-94)
+INT.90 case-seed 498 reroll: pf assert before window (-71)
+INT.90 case-seed 499 reroll: pf assert before window (-72)
+INT.90 case-seed 502 reroll: pf assert before window (-72)
+INT.90 case-seed 503 reroll: pf assert before window (-75)
+INT.90 case-seed 504 reroll: pf assert before window (-94)
+INT.90 case-seed 505 reroll: no F pop from close addr 0273a
+INT.90 case-seed 507 reroll: recognition off-window: pushed ff0c vs min 16cb
+INT.90 case-seed 510 reroll: no F pop from close addr 0704a
+INT.90 case-seed 511 reroll: no F pop from close addr 0e09e
+INT.90 case-seed 513 reroll: pf assert before window (-94)
+INT.90 case-seed 514 reroll: pf assert before window (-72)
+INT.90 case-seed 515 reroll: pf assert before window (-94)
+INT.90 case-seed 516 reroll: pf assert before window (-2)
+INT.90 case-seed 517 reroll: pf assert before window (0)
+INT.90 case-seed 518 reroll: pf assert before window (-1)
+INT.90 case-seed 519 reroll: pf assert before window (-76)
+INT.90 case-seed 520 reroll: no F pop from close addr 07bac
+INT.90 case-seed 521 reroll: pf assert before window (-2)
+INT.90 case-seed 522 reroll: pf assert before window (-93)
+INT.90 case-seed 523 reroll: pf assert before window (-2)
+INT.90 case-seed 524 reroll: pf assert before window (-71)
+INT.90 case-seed 525 reroll: no F pop from close addr 09df6
+INT.90 case-seed 526 reroll: no F pop from close addr 096e6
+INT.90 case-seed 527 reroll: pf assert before window (-93)
+INT.90 case-seed 530 reroll: pf assert before window (-89)
+INT.90 case-seed 531 reroll: pf assert before window (-2)
+INT.90 case-seed 532 reroll: pf assert before window (-1)
+INT.90 case-seed 533 reroll: pf assert before window (-1)
+INT.90 case-seed 534 reroll: pf assert before window (-1)
+INT.90 case-seed 535 reroll: pf assert before window (-94)
+INT.90 case-seed 536 reroll: no F pop from close addr 0de5a
+INT.90 case-seed 537 reroll: no F pop from close addr 0e9ee
+INT.90 case-seed 538 reroll: pf assert before window (0)
+INT.90 case-seed 539 reroll: no F pop from close addr 0281e
+INT.90 case-seed 540 reroll: pf assert before window (-73)
+INT.90 case-seed 542 reroll: no F pop from close addr 02c4e
+INT.90 case-seed 544 reroll: pf assert before window (-89)
+INT.90 case-seed 545 reroll: no F pop from close addr 015bc
+INT.90 case-seed 546 reroll: no F pop from close addr 07378
+INT.90 case-seed 547 reroll: pf assert before window (-1)
+INT.90 case-seed 548 reroll: pf assert before window (-75)
+INT.90 case-seed 551 reroll: pf assert before window (-2)
+INT.90 case-seed 552 reroll: pf assert before window (-77)
+INT.90 case-seed 553 reroll: pf assert before window (-95)
+INT.90 case-seed 554 reroll: no F pop from close addr 042d8
+INT.90 case-seed 555 reroll: no F pop from close addr 0c3b2
+INT.90 case-seed 556 reroll: pf assert before window (-1)
+INT.90 case-seed 557 reroll: no F pop from close addr 0aa2e
+INT.90 case-seed 558 reroll: pf assert before window (-90)
+INT.90 case-seed 559 reroll: pf assert before window (0)
+INT.90 case-seed 560 reroll: pf assert before window (-73)
+INT.90 case-seed 561 reroll: pf assert before window (-1)
+INT.90 case-seed 562 reroll: no F pop from close addr 00e84
+INT.90 case-seed 563 reroll: pf assert before window (-74)
+INT.90 case-seed 564 reroll: pf assert before window (-2)
+INT.90 case-seed 565 reroll: pf assert before window (0)
+INT.90 case-seed 568 reroll: pf assert before window (-72)
+INT.90 case-seed 569 reroll: pf assert before window (-74)
+INT.90 case-seed 570 reroll: pf assert before window (-1)
+INT.90 case-seed 571 reroll: no F pop from close addr 050ca
+INT.90 case-seed 573 reroll: recognition off-window: pushed ff0c vs min b076
+INT.90 case-seed 575 reroll: pf assert before window (-91)
+INT.90 case-seed 576 reroll: no F pop from close addr 05c82
+INT.90 case-seed 577 reroll: pf assert before window (-94)
+INT.90 case-seed 578 reroll: pf assert before window (-91)
+INT.90 case-seed 579 reroll: pf assert before window (-74)
+INT.90 case-seed 580 reroll: pf assert before window (-74)
+INT.90 case-seed 581 reroll: implausible final PSW 65518
+INT.90 case-seed 582 reroll: pf assert before window (-2)
+INT.90 case-seed 583 reroll: pf assert before window (-91)
+INT.90 case-seed 584 reroll: no F pop from close addr 0286a
+INT.90 case-seed 585 reroll: pf assert before window (-2)
+INT.90 case-seed 586 reroll: pf assert before window (-1)
+INT.90 case-seed 587 reroll: pf assert before window (-89)
+INT.90 case-seed 588 reroll: pf assert before window (-95)
+INT.90 case-seed 589 reroll: pf assert before window (-72)
+INT.90 case-seed 590 reroll: pf assert before window (-1)
+INT.90 case-seed 593 reroll: no F pop from close addr 0cde4
+INT.90 case-seed 594 reroll: pf assert before window (-74)
+INT.90 case-seed 599 reroll: no F pop from close addr 00fda
+INT.90 case-seed 600 reroll: no F pop from close addr 0dcc0
+INT.90 case-seed 601 reroll: pf assert before window (-92)
+INT.90 case-seed 602 reroll: pf assert before window (-90)
+INT.90 case-seed 603 reroll: pf assert before window (-2)
+INT.90 case-seed 604 reroll: pf assert before window (-89)
+INT.90 case-seed 605 reroll: pf assert before window (-91)
+INT.90 case-seed 606 reroll: pf assert before window (-1)
+INT.90 case-seed 608 reroll: recognition off-window: pushed ff0c vs min ff92
+INT.90 case-seed 610 reroll: pf assert before window (0)
+INT.90 case-seed 611 reroll: pf assert before window (0)
+INT.90 case-seed 612 reroll: pf assert before window (-92)
+INT.90 case-seed 613 reroll: no F pop from close addr 0573a
+INT.90 case-seed 614 reroll: pf assert before window (-76)
+INT.90 case-seed 615 reroll: pf assert before window (-74)
+INT.90 case-seed 616 reroll: pf assert before window (-2)
+INT.90 case-seed 617 reroll: pf assert before window (-2)
+INT.90 case-seed 618 reroll: pf assert before window (-90)
+INT.90 case-seed 625 reroll: pf assert before window (-76)
+INT.90 case-seed 626 reroll: pf assert before window (-73)
+INT.90 case-seed 627 reroll: pf assert before window (0)
+INT.90 case-seed 630 reroll: pf assert before window (-91)
+INT.90 case-seed 631 reroll: pf assert before window (-73)
+INT.90 case-seed 632 reroll: pf assert before window (-2)
+INT.90 case-seed 633 reroll: pf assert before window (-75)
+INT.90 case-seed 634 reroll: pf assert before window (0)
+INT.90 case-seed 635 reroll: pf assert before window (-1)
+INT.90 case-seed 636 reroll: pf assert before window (-89)
+INT.90 case-seed 637 reroll: no F pop from close addr 0c4fa
+INT.90 case-seed 638 reroll: pf assert before window (-2)
+INT.90 case-seed 639 reroll: pf assert before window (-73)
+INT.90 case-seed 642 reroll: pf assert before window (-89)
+INT.90 case-seed 643 reroll: pf assert before window (-1)
+INT.90 case-seed 645 reroll: recognition off-window: pushed ff0c vs min df2f
+INT.90 case-seed 649 reroll: no F pop from close addr 08080
+INT.90 case-seed 650 reroll: pf assert before window (-89)
+INT.90 case-seed 651 reroll: pf assert before window (-93)
+INT.90 case-seed 652 reroll: pf assert before window (-92)
+INT.90 case-seed 653 reroll: pf assert before window (-74)
+INT.90 case-seed 654 reroll: no F pop from close addr 03c90
+INT.90 case-seed 656 reroll: no F pop from close addr 02c72
+INT.90 case-seed 657 reroll: recognition off-window: pushed ff0c vs min 8e04
+INT.90 case-seed 659 reroll: pf assert before window (0)
+INT.90 case-seed 660 reroll: pf assert before window (-75)
+INT.90 case-seed 661 reroll: pf assert before window (-2)
+INT.90 case-seed 662 reroll: pf assert before window (-2)
+INT.90 case-seed 663 reroll: pf assert before window (-93)
+INT.90 case-seed 664 reroll: pf assert before window (-71)
+INT.90 case-seed 665 reroll: pf assert before window (-94)
+INT.90 case-seed 666 reroll: pf assert before window (-71)
+INT.90 case-seed 667 reroll: pf assert before window (0)
+INT.90 case-seed 668 reroll: pf assert before window (-89)
+INT.90 case-seed 669 reroll: pf assert before window (-90)
+INT.90 case-seed 670 reroll: pf assert before window (-94)
+INT.90 case-seed 671 reroll: no F pop from close addr 059be
+INT.90 case-seed 672 reroll: pf assert before window (-73)
+INT.90 case-seed 673 reroll: no F pop from close addr 02418
+INT.90 case-seed 674 reroll: no F pop from close addr 0ee0c
+INT.90 case-seed 675 reroll: pf assert before window (-90)
+INT.90 case-seed 676 reroll: no F pop from close addr 0957c
+INT.90 case-seed 677 reroll: pf assert before window (-76)
+INT.90 case-seed 678 reroll: pf assert before window (-72)
+INT.90 case-seed 679 reroll: pf assert before window (-89)
+INT.90 case-seed 680 reroll: pf assert before window (-2)
+INT.90 case-seed 681 reroll: pf assert before window (-89)
+INT.90 case-seed 684 reroll: pf assert before window (-92)
+INT.90 case-seed 685 reroll: pf assert before window (-2)
+INT.90 case-seed 686 reroll: no F pop from close addr 0c22a
+INT.90 case-seed 687 reroll: no F pop from close addr 064ae
+INT.90 case-seed 688 reroll: pf assert before window (-1)
+INT.90 case-seed 689 reroll: no F pop from close addr 02508
+INT.90 case-seed 690 reroll: no F pop from close addr 0a714
+INT.90 case-seed 691 reroll: pf assert before window (-73)
+INT.90 case-seed 692 reroll: pf assert before window (-89)
+INT.90 case-seed 693 reroll: pf assert before window (-92)
+INT.90 case-seed 694 reroll: pf assert before window (-73)
+INT.90 case-seed 695 reroll: no F pop from close addr 0c4c0
+INT.90 case-seed 696 reroll: no F pop from close addr 0d418
+INT.90 case-seed 697 reroll: pf assert before window (-89)
+INT.90 case-seed 698 reroll: pf assert before window (-91)
+INT.90 case-seed 699 reroll: pf assert before window (0)
+INT.90 case-seed 700 reroll: no F pop from close addr 00e38
+INT.90 case-seed 701 reroll: no F pop from close addr 05558
+INT.90 case-seed 704 reroll: pf assert before window (-77)
+INT.90 case-seed 705 reroll: no F pop from close addr 0dbce
+INT.90 case-seed 706 reroll: no F pop from close addr 03d8c
+INT.90 case-seed 707 reroll: no F pop from close addr 0ec30
+INT.90 case-seed 708 reroll: no F pop from close addr 0d3da
+INT.90 case-seed 709 reroll: pf assert before window (-92)
+INT.90 case-seed 710 reroll: no F pop from close addr 0d36a
+INT.90 case-seed 711 reroll: pf assert before window (-89)
+INT.90 case-seed 712 reroll: pf assert before window (-74)
+INT.90 case-seed 713 reroll: pf assert before window (-72)
+INT.90 case-seed 714 reroll: pf assert before window (0)
+INT.90 case-seed 715 reroll: pf assert before window (-73)
+INT.90 case-seed 716 reroll: pf assert before window (-1)
+INT.90 case-seed 717 reroll: pf assert before window (-92)
+INT.90 case-seed 718 reroll: pf assert before window (-73)
+INT.90 case-seed 719 reroll: pf assert before window (-2)
+INT.90 case-seed 720 reroll: pf assert before window (-93)
+INT.90 case-seed 721 reroll: pf assert before window (-2)
+INT.90 case-seed 722 reroll: pf assert before window (-76)
+INT.90 case-seed 723 reroll: pf assert before window (-94)
+INT.90 case-seed 724 reroll: no F pop from close addr 03ea6
+INT.90 case-seed 725 reroll: pf assert before window (-89)
+INT.90 case-seed 726 reroll: pf assert before window (-91)
+INT.90 case-seed 727 reroll: pf assert before window (-71)
+INT.90 case-seed 728 reroll: pf assert before window (-94)
+INT.90 case-seed 729 reroll: no F pop from close addr 09bae
+INT.90 case-seed 730 reroll: pf assert before window (-93)
+INT.90 case-seed 731 reroll: pf assert before window (-75)
+INT.90 case-seed 732 reroll: no F pop from close addr 0a00c
+INT.90 case-seed 733 reroll: no F pop from close addr 0aa1a
+INT.90 case-seed 734 reroll: pf assert before window (-74)
+INT.90 case-seed 737 reroll: pf assert before window (-94)
+INT.90 case-seed 738 reroll: pf assert before window (-92)
+INT.90 case-seed 739 reroll: pf assert before window (-77)
+INT.90 case-seed 740 reroll: pf assert before window (-71)
+INT.90 case-seed 741 reroll: no F pop from close addr 07ef4
+INT.90 case-seed 742 reroll: no F pop from close addr 07d76
+INT.90 case-seed 743 reroll: pf assert before window (-75)
+INT.90 case-seed 744 reroll: no F pop from close addr 053e8
+INT.90 case-seed 747 reroll: no F pop from close addr 04c6a
+INT.90 case-seed 748 reroll: pf assert before window (-93)
+INT.90 case-seed 749 reroll: pf assert before window (-2)
+INT.90 case-seed 750 reroll: pf assert before window (-73)
+INT.90 case-seed 751 reroll: no F pop from close addr 0a400
+INT.90 case-seed 752 reroll: pf assert before window (-1)
+INT.90 case-seed 753 reroll: pf assert before window (-90)
+INT.90 case-seed 754 reroll: no F pop from close addr 0a5dc
+INT.90 case-seed 755 reroll: pf assert before window (-71)
+INT.90 case-seed 756 reroll: no F pop from close addr 046ae
+INT.90 case-seed 758 reroll: recognition off-window: pushed ff0c vs min 4395
+INT.90 case-seed 760 reroll: no F pop from close addr 0333e
+INT.90 case-seed 761 reroll: pf assert before window (-92)
+INT.90 case-seed 762 reroll: pf assert before window (-71)
+INT.90 case-seed 763 reroll: implausible final PSW 0
+INT.90 case-seed 764 reroll: pf assert before window (-1)
+NMI.90 case-seed 0 reroll: no F pop from close addr 0a84a
+NMI.90 case-seed 1 reroll: no F pop from close addr 01034
+NMI.90 case-seed 3 reroll: no F pop from close addr 0baae
+NMI.90 case-seed 4 reroll: no F pop from close addr 01412
+NMI.90 case-seed 5 reroll: no F pop from close addr 08f4e
+NMI.90 case-seed 6 reroll: pf assert before window (-3)
+NMI.90 case-seed 7 reroll: pf assert before window (-3)
+NMI.90 case-seed 8 reroll: no F pop from close addr 0cf3c
+NMI.90 case-seed 9 reroll: no F pop from close addr 01808
+NMI.90 case-seed 10 reroll: no F pop from close addr 08c46
+NMI.90 case-seed 11 reroll: no F pop from close addr 0864e
+NMI.90 case-seed 12 reroll: no F pop from close addr 071e6
+NMI.90 case-seed 13 reroll: pf assert before window (0)
+NMI.90 case-seed 16 reroll: pf assert before window (0)
+NMI.90 case-seed 19 reroll: no F pop from close addr 0702a
+NMI.90 case-seed 20 reroll: no F pop from close addr 0a826
+NMI.90 case-seed 21 reroll: no F pop from close addr 0127a
+NMI.90 case-seed 22 reroll: pf assert before window (-3)
+NMI.90 case-seed 25 reroll: no F pop from close addr 03baa
+NMI.90 case-seed 26 reroll: pf assert before window (-3)
+NMI.90 case-seed 29 reroll: pf assert before window (-3)
+NMI.90 case-seed 30 reroll: pf assert before window (-3)
+NMI.90 case-seed 35 reroll: pf assert before window (-3)
+NMI.90 case-seed 36 reroll: pf assert before window (-3)
+NMI.90 case-seed 37 reroll: pf assert before window (0)
+NMI.90 case-seed 38 reroll: pf assert before window (0)
+NMI.90 case-seed 43 reroll: no F pop from close addr 0d184
+NMI.90 case-seed 44 reroll: no F pop from close addr 0c6e4
+NMI.90 case-seed 45 reroll: no F pop from close addr 0b598
+NMI.90 case-seed 46 reroll: no F pop from close addr 08a3a
+NMI.90 case-seed 47 reroll: no F pop from close addr 0777a
+NMI.90 case-seed 48 reroll: no F pop from close addr 042dc
+NMI.90 case-seed 49 reroll: pf assert before window (-3)
+NMI.90 case-seed 50 reroll: no F pop from close addr 09a92
+NMI.90 case-seed 51 reroll: no F pop from close addr 0703e
+NMI.90 case-seed 52 reroll: pf assert before window (-2)
+NMI.90 case-seed 53 reroll: pf assert before window (-2)
+NMI.90 case-seed 54 reroll: pf assert before window (-1)
+NMI.90 case-seed 55 reroll: no F pop from close addr 0eea6
+NMI.90 case-seed 56 reroll: no F pop from close addr 0e062
+NMI.90 case-seed 57 reroll: no F pop from close addr 0759a
+NMI.90 case-seed 58 reroll: pf assert before window (-1)
+NMI.90 case-seed 59 reroll: pf assert before window (-3)
+NMI.90 case-seed 60 reroll: pf assert before window (-1)
+NMI.90 case-seed 61 reroll: no F pop from close addr 04086
+NMI.90 case-seed 62 reroll: no F pop from close addr 06660
+NMI.90 case-seed 63 reroll: pf assert before window (-3)
+NMI.90 case-seed 64 reroll: no F pop from close addr 04a68
+NMI.90 case-seed 65 reroll: no F pop from close addr 0bef0
+NMI.90 case-seed 66 reroll: no F pop from close addr 01d6c
+NMI.90 case-seed 67 reroll: pf assert before window (0)
+NMI.90 case-seed 68 reroll: pf assert before window (-2)
+NMI.90 case-seed 69 reroll: no F pop from close addr 08376
+NMI.90 case-seed 70 reroll: no F pop from close addr 027f4
+NMI.90 case-seed 71 reroll: no F pop from close addr 0d10c
+NMI.90 case-seed 72 reroll: pf assert before window (-3)
+NMI.90 case-seed 75 reroll: pf assert before window (0)
+NMI.90 case-seed 76 reroll: pf assert before window (-3)
+NMI.90 case-seed 77 reroll: pf assert before window (-2)
+NMI.90 case-seed 78 reroll: no F pop from close addr 03f00
+NMI.90 case-seed 79 reroll: pf assert before window (-3)
+NMI.90 case-seed 80 reroll: no F pop from close addr 04ce0
+NMI.90 case-seed 85 reroll: no F pop from close addr 07a76
+NMI.90 case-seed 86 reroll: no F pop from close addr 06cd2
+NMI.90 case-seed 89 reroll: pf assert before window (-3)
+NMI.90 case-seed 90 reroll: pf assert before window (-2)
+NMI.90 case-seed 91 reroll: no F pop from close addr 075d4
+NMI.90 case-seed 92 reroll: no F pop from close addr 0d7f6
+NMI.90 case-seed 93 reroll: no F pop from close addr 05738
+NMI.90 case-seed 94 reroll: pf assert before window (0)
+NMI.90 case-seed 97 reroll: no F pop from close addr 0553c
+NMI.90 case-seed 100 reroll: no F pop from close addr 0c79c
+NMI.90 case-seed 101 reroll: no F pop from close addr 02d96
+NMI.90 case-seed 102 reroll: no F pop from close addr 071c4
+NMI.90 case-seed 103 reroll: no F pop from close addr 0dbaa
+NMI.90 case-seed 104 reroll: no F pop from close addr 0dec2
+NMI.90 case-seed 105 reroll: pf assert before window (0)
+NMI.90 case-seed 108 reroll: no F pop from close addr 08be0
+NMI.90 case-seed 111 reroll: no F pop from close addr 0bdec
+NMI.90 case-seed 114 reroll: no F pop from close addr 0891e
+NMI.90 case-seed 115 reroll: pf assert before window (-3)
+NMI.90 case-seed 116 reroll: pf assert before window (-1)
+NMI.90 case-seed 119 reroll: pf assert before window (-3)
+NMI.90 case-seed 120 reroll: pf assert before window (-1)
+NMI.90 case-seed 121 reroll: pf assert before window (-3)
+NMI.90 case-seed 122 reroll: no F pop from close addr 057b0
+NMI.90 case-seed 125 reroll: no F pop from close addr 03072
+NMI.90 case-seed 126 reroll: pf assert before window (0)
+NMI.90 case-seed 127 reroll: no F pop from close addr 088d2
+NMI.90 case-seed 128 reroll: no F pop from close addr 07b3c
+NMI.90 case-seed 129 reroll: no F pop from close addr 07e26
+NMI.90 case-seed 130 reroll: pf assert before window (-3)
+NMI.90 case-seed 131 reroll: pf assert before window (0)
+NMI.90 case-seed 134 reroll: pf assert before window (-1)
+NMI.90 case-seed 135 reroll: no F pop from close addr 05498
+NMI.90 case-seed 136 reroll: no F pop from close addr 0dec4
+NMI.90 case-seed 137 reroll: no F pop from close addr 09a80
+NMI.90 case-seed 138 reroll: no F pop from close addr 012d6
+NMI.90 case-seed 139 reroll: no F pop from close addr 0d2d2
+NMI.90 case-seed 140 reroll: no F pop from close addr 036ae
+NMI.90 case-seed 141 reroll: pf assert before window (-1)
+NMI.90 case-seed 142 reroll: no F pop from close addr 05c84
+NMI.90 case-seed 143 reroll: pf assert before window (-3)
+NMI.90 case-seed 144 reroll: pf assert before window (-3)
+NMI.90 case-seed 145 reroll: pf assert before window (-3)
+NMI.90 case-seed 146 reroll: no F pop from close addr 0d56c
+NMI.90 case-seed 147 reroll: pf assert before window (-1)
+NMI.90 case-seed 148 reroll: no F pop from close addr 0a646
+NMI.90 case-seed 149 reroll: no F pop from close addr 06522
+NMI.90 case-seed 150 reroll: pf assert before window (-3)
+NMI.90 case-seed 151 reroll: no F pop from close addr 0c92a
+NMI.90 case-seed 152 reroll: pf assert before window (-3)
+NMI.90 case-seed 153 reroll: no F pop from close addr 09ab0
+NMI.90 case-seed 154 reroll: pf assert before window (-1)
+NMI.90 case-seed 155 reroll: no F pop from close addr 0eab2
+NMI.90 case-seed 156 reroll: no F pop from close addr 016bc
+NMI.90 case-seed 157 reroll: pf assert before window (-1)
+NMI.90 case-seed 160 reroll: pf assert before window (-3)
+NMI.90 case-seed 162 reroll: no F pop from close addr 0acc4
+NMI.90 case-seed 164 reroll: no F pop from close addr 046fc
+NMI.90 case-seed 165 reroll: no F pop from close addr 0c352
+NMI.90 case-seed 168 reroll: no F pop from close addr 0d230
+NMI.90 case-seed 169 reroll: no F pop from close addr 06922
+NMI.90 case-seed 170 reroll: no F pop from close addr 080e6
+NMI.90 case-seed 171 reroll: pf assert before window (-3)
+NMI.90 case-seed 172 reroll: no F pop from close addr 0b6d0
+NMI.90 case-seed 173 reroll: no F pop from close addr 0b0d2
+NMI.90 case-seed 176 reroll: no F pop from close addr 0ec6a
+NMI.90 case-seed 177 reroll: pf assert before window (-2)
+NMI.90 case-seed 178 reroll: no F pop from close addr 0956a
+NMI.90 case-seed 179 reroll: no F pop from close addr 05ddc
+NMI.90 case-seed 180 reroll: pf assert before window (-1)
+NMI.90 case-seed 181 reroll: pf assert before window (0)
+NMI.90 case-seed 182 reroll: no F pop from close addr 01eee
+NMI.90 case-seed 183 reroll: no F pop from close addr 08936
+NMI.90 case-seed 184 reroll: no F pop from close addr 06a40
+NMI.90 case-seed 185 reroll: no F pop from close addr 05620
+NMI.90 case-seed 186 reroll: no F pop from close addr 091da
+NMI.90 case-seed 187 reroll: pf assert before window (-3)
+NMI.90 case-seed 188 reroll: no F pop from close addr 0e79e
+NMI.90 case-seed 189 reroll: no F pop from close addr 02162
+NMI.90 case-seed 190 reroll: no F pop from close addr 0e264
+NMI.90 case-seed 191 reroll: no F pop from close addr 05b14
+NMI.90 case-seed 192 reroll: no F pop from close addr 0c86c
+NMI.90 case-seed 193 reroll: pf assert before window (-1)
+NMI.90 case-seed 194 reroll: no F pop from close addr 00d10
+NMI.90 case-seed 195 reroll: pf assert before window (-3)
+NMI.90 case-seed 196 reroll: no F pop from close addr 01d82
+NMI.90 case-seed 199 reroll: pf assert before window (-1)
+NMI.90 case-seed 200 reroll: no F pop from close addr 076d0
+NMI.90 case-seed 201 reroll: no F pop from close addr 0d9e0
+NMI.90 case-seed 202 reroll: no F pop from close addr 05a3c
+NMI.90 case-seed 203 reroll: no F pop from close addr 03b70
+NMI.90 case-seed 204 reroll: no F pop from close addr 05e78
+NMI.90 case-seed 205 reroll: pf assert before window (-1)
+NMI.90 case-seed 208 reroll: pf assert before window (-3)
+NMI.90 case-seed 209 reroll: no F pop from close addr 01b62
+NMI.90 case-seed 210 reroll: no F pop from close addr 0b2ba
+NMI.90 case-seed 213 reroll: no F pop from close addr 0bf68
+NMI.90 case-seed 214 reroll: no F pop from close addr 07c74
+NMI.90 case-seed 215 reroll: pf assert before window (-3)
+NMI.90 case-seed 216 reroll: no F pop from close addr 0c73e
+NMI.90 case-seed 217 reroll: no F pop from close addr 0ce56
+NMI.90 case-seed 218 reroll: pf assert before window (-1)
+NMI.90 case-seed 219 reroll: no F pop from close addr 02dec
+NMI.90 case-seed 220 reroll: pf assert before window (-3)
+NMI.90 case-seed 221 reroll: pf assert before window (-2)
+NMI.90 case-seed 224 reroll: pf assert before window (-3)
+NMI.90 case-seed 225 reroll: pf assert before window (-3)
+NMI.90 case-seed 228 reroll: no F pop from close addr 09dda
+NMI.90 case-seed 229 reroll: no F pop from close addr 08b26
+NMI.90 case-seed 230 reroll: no F pop from close addr 04062
+NMI.90 case-seed 231 reroll: pf assert before window (-2)
+NMI.90 case-seed 232 reroll: no F pop from close addr 06926
+NMI.90 case-seed 234 reroll: no F pop from close addr 09010
+NMI.90 case-seed 236 reroll: no F pop from close addr 02366
+NMI.90 case-seed 239 reroll: no F pop from close addr 051d4
+NMI.90 case-seed 240 reroll: pf assert before window (-3)
+NMI.90 case-seed 241 reroll: pf assert before window (-1)
+NMI.90 case-seed 244 reroll: pf assert before window (0)
+NMI.90 case-seed 247 reroll: no F pop from close addr 02e3e
+NMI.90 case-seed 248 reroll: no F pop from close addr 048fe
+NMI.90 case-seed 249 reroll: pf assert before window (-1)
+NMI.90 case-seed 250 reroll: pf assert before window (0)
+NMI.90 case-seed 253 reroll: pf assert before window (-3)
+NMI.90 case-seed 254 reroll: no F pop from close addr 0d148
+NMI.90 case-seed 255 reroll: no F pop from close addr 07afa
+NMI.90 case-seed 256 reroll: no F pop from close addr 0b590
+NMI.90 case-seed 259 reroll: no F pop from close addr 09d64
+NMI.90 case-seed 260 reroll: no F pop from close addr 09bd4
+NMI.90 case-seed 261 reroll: pf assert before window (-3)
+NMI.90 case-seed 262 reroll: no F pop from close addr 04772
+NMI.90 case-seed 263 reroll: no F pop from close addr 0e2c0
+NMI.90 case-seed 266 reroll: no F pop from close addr 0a76e
+NMI.90 case-seed 267 reroll: no F pop from close addr 0772c
+NMI.90 case-seed 268 reroll: no F pop from close addr 0609e
+NMI.90 case-seed 269 reroll: no F pop from close addr 0b220
+NMI.90 case-seed 270 reroll: no F pop from close addr 01044
+NMI.90 case-seed 271 reroll: pf assert before window (0)
+NMI.90 case-seed 272 reroll: no F pop from close addr 02780
+NMI.90 case-seed 273 reroll: pf assert before window (-3)
+NMI.90 case-seed 274 reroll: pf assert before window (-3)
+NMI.90 case-seed 275 reroll: no F pop from close addr 0941e
+NMI.90 case-seed 276 reroll: no F pop from close addr 0ac66
+NMI.90 case-seed 277 reroll: pf assert before window (-3)
+NMI.90 case-seed 278 reroll: no F pop from close addr 08eb2
+NMI.90 case-seed 279 reroll: pf assert before window (-3)
+NMI.90 case-seed 280 reroll: no F pop from close addr 0ae96
+NMI.90 case-seed 281 reroll: pf assert before window (-3)
+NMI.90 case-seed 282 reroll: pf assert before window (0)
+NMI.90 case-seed 283 reroll: pf assert before window (-3)
+NMI.90 case-seed 284 reroll: pf assert before window (-2)
+NMI.90 case-seed 285 reroll: no F pop from close addr 0e9ac
+NMI.90 case-seed 286 reroll: pf assert before window (-3)
+NMI.90 case-seed 287 reroll: pf assert before window (-3)
+NMI.90 case-seed 288 reroll: no F pop from close addr 046ee
+NMI.90 case-seed 289 reroll: no F pop from close addr 07250
+NMI.90 case-seed 290 reroll: pf assert before window (-1)
+NMI.90 case-seed 291 reroll: no F pop from close addr 0bb66
+NMI.90 case-seed 292 reroll: no F pop from close addr 0b4be
+NMI.90 case-seed 293 reroll: no F pop from close addr 0b950
+NMI.90 case-seed 294 reroll: no F pop from close addr 05626
+NMI.90 case-seed 295 reroll: pf assert before window (-3)
+NMI.90 case-seed 296 reroll: no F pop from close addr 0eaa8
+NMI.90 case-seed 299 reroll: no F pop from close addr 0662c
+NMI.90 case-seed 300 reroll: no F pop from close addr 033be
+NMI.90 case-seed 305 reroll: no F pop from close addr 05ef0
+NMI.90 case-seed 306 reroll: no F pop from close addr 0711a
+NMI.90 case-seed 307 reroll: pf assert before window (0)
+NMI.90 case-seed 308 reroll: no F pop from close addr 0cf2a
+NMI.90 case-seed 311 reroll: pf assert before window (-2)
+NMI.90 case-seed 312 reroll: pf assert before window (-1)
+NMI.90 case-seed 313 reroll: no F pop from close addr 0a5a4
+NMI.90 case-seed 314 reroll: pf assert before window (-3)
+NMI.90 case-seed 315 reroll: no F pop from close addr 00ca4
+NMI.90 case-seed 316 reroll: no F pop from close addr 00e34
+NMI.90 case-seed 317 reroll: pf assert before window (-2)
+NMI.90 case-seed 318 reroll: pf assert before window (-1)
+NMI.90 case-seed 319 reroll: no F pop from close addr 0dfce
+NMI.90 case-seed 320 reroll: pf assert before window (-3)
+NMI.90 case-seed 321 reroll: no F pop from close addr 043a4
+NMI.90 case-seed 322 reroll: no F pop from close addr 093e4
+NMI.90 case-seed 323 reroll: no F pop from close addr 06fa0
+NMI.90 case-seed 324 reroll: no F pop from close addr 08958
+NMI.90 case-seed 325 reroll: pf assert before window (-3)
+NMI.90 case-seed 326 reroll: no F pop from close addr 06d7e
+NMI.90 case-seed 327 reroll: pf assert before window (0)
+NMI.90 case-seed 328 reroll: no F pop from close addr 0aa34
+NMI.90 case-seed 329 reroll: no F pop from close addr 06112
+NMI.90 case-seed 330 reroll: no F pop from close addr 038b0
+NMI.90 case-seed 331 reroll: pf assert before window (-1)
+NMI.90 case-seed 332 reroll: pf assert before window (-2)
+NMI.90 case-seed 333 reroll: no F pop from close addr 0c210
+NMI.90 case-seed 334 reroll: pf assert before window (-1)
+NMI.90 case-seed 335 reroll: pf assert before window (-1)
+NMI.90 case-seed 338 reroll: no F pop from close addr 07e08
+NMI.90 case-seed 339 reroll: pf assert before window (0)
+NMI.90 case-seed 343 reroll: no F pop from close addr 0169a
+NMI.90 case-seed 345 reroll: no F pop from close addr 0c23e
+NMI.90 case-seed 346 reroll: no F pop from close addr 06de6
+NMI.90 case-seed 347 reroll: no F pop from close addr 06688
+NMI.90 case-seed 348 reroll: pf assert before window (-3)
+NMI.90 case-seed 349 reroll: no F pop from close addr 0c48a
+NMI.90 case-seed 350 reroll: no F pop from close addr 00bbc
+NMI.90 case-seed 351 reroll: pf assert before window (-2)
+NMI.90 case-seed 354 reroll: pf assert before window (-2)
+NMI.90 case-seed 355 reroll: pf assert before window (-3)
+NMI.90 case-seed 356 reroll: no F pop from close addr 0ae60
+NMI.90 case-seed 357 reroll: pf assert before window (-1)
+NMI.90 case-seed 360 reroll: pf assert before window (-1)
+NMI.90 case-seed 361 reroll: no F pop from close addr 083b0
+NMI.90 case-seed 362 reroll: pf assert before window (-3)
+NMI.90 case-seed 363 reroll: no F pop from close addr 0d460
+NMI.90 case-seed 364 reroll: pf assert before window (-3)
+NMI.90 case-seed 365 reroll: no F pop from close addr 0ceb2
+NMI.90 case-seed 366 reroll: pf assert before window (-3)
+NMI.90 case-seed 367 reroll: pf assert before window (-2)
+NMI.90 case-seed 370 reroll: no F pop from close addr 05966
+NMI.90 case-seed 371 reroll: pf assert before window (0)
+NMI.90 case-seed 372 reroll: pf assert before window (-3)
+NMI.90 case-seed 373 reroll: no F pop from close addr 07682
+NMI.90 case-seed 374 reroll: no F pop from close addr 0b566
+NMI.90 case-seed 375 reroll: no F pop from close addr 0724a
+NMI.90 case-seed 376 reroll: no F pop from close addr 02298
+NMI.90 case-seed 377 reroll: no F pop from close addr 07290
+NMI.90 case-seed 378 reroll: pf assert before window (-1)
+NMI.90 case-seed 379 reroll: no F pop from close addr 0119a
+NMI.90 case-seed 380 reroll: pf assert before window (0)
+NMI.90 case-seed 383 reroll: no F pop from close addr 0d236
+NMI.90 case-seed 384 reroll: no F pop from close addr 0e8c8
+NMI.90 case-seed 385 reroll: pf assert before window (-3)
+NMI.90 case-seed 386 reroll: no F pop from close addr 0b416
+NMI.90 case-seed 387 reroll: pf assert before window (-2)
+NMI.90 case-seed 388 reroll: pf assert before window (0)
+NMI.90 case-seed 389 reroll: no F pop from close addr 07858
+NMI.90 case-seed 390 reroll: pf assert before window (-3)
+NMI.90 case-seed 391 reroll: no F pop from close addr 0ba84
+NMI.90 case-seed 392 reroll: no F pop from close addr 09d04
+NMI.90 case-seed 393 reroll: pf assert before window (-2)
+NMI.90 case-seed 394 reroll: no F pop from close addr 08554
+NMI.90 case-seed 395 reroll: no F pop from close addr 02918
+NMI.90 case-seed 396 reroll: no F pop from close addr 037d2
+NMI.90 case-seed 399 reroll: pf assert before window (-3)
+NMI.90 case-seed 400 reroll: no F pop from close addr 0738c
+NMI.90 case-seed 401 reroll: no F pop from close addr 0d1fa
+NMI.90 case-seed 402 reroll: no F pop from close addr 0e4d2
+NMI.90 case-seed 403 reroll: pf assert before window (-3)
+NMI.90 case-seed 404 reroll: no F pop from close addr 0ee60
+NMI.90 case-seed 407 reroll: no F pop from close addr 0e578
+NMI.90 case-seed 408 reroll: no F pop from close addr 0dac6
+NMI.90 case-seed 409 reroll: pf assert before window (-3)
+NMI.90 case-seed 412 reroll: pf assert before window (-3)
+NMI.90 case-seed 413 reroll: pf assert before window (-3)
+NMI.90 case-seed 416 reroll: no F pop from close addr 07490
+NMI.90 case-seed 417 reroll: no F pop from close addr 09e9e
+NMI.90 case-seed 418 reroll: no F pop from close addr 03726
+NMI.90 case-seed 419 reroll: no F pop from close addr 06024
+NMI.90 case-seed 420 reroll: no F pop from close addr 0be3a
+NMI.90 case-seed 421 reroll: pf assert before window (-2)
+NMI.90 case-seed 422 reroll: pf assert before window (-3)
+NMI.90 case-seed 423 reroll: no F pop from close addr 0a86a
+NMI.90 case-seed 424 reroll: no F pop from close addr 02822
+NMI.90 case-seed 425 reroll: no F pop from close addr 0a7d4
+NMI.90 case-seed 428 reroll: no F pop from close addr 05098
+NMI.90 case-seed 429 reroll: pf assert before window (0)
+NMI.90 case-seed 430 reroll: pf assert before window (-3)
+NMI.90 case-seed 431 reroll: no F pop from close addr 06d54
+NMI.90 case-seed 432 reroll: no F pop from close addr 0c460
+NMI.90 case-seed 433 reroll: no F pop from close addr 07fac
+NMI.90 case-seed 434 reroll: pf assert before window (-1)
+NMI.90 case-seed 435 reroll: no F pop from close addr 0a3b2
+NMI.90 case-seed 436 reroll: pf assert before window (-3)
+NMI.90 case-seed 437 reroll: pf assert before window (-3)
+NMI.90 case-seed 438 reroll: pf assert before window (-1)
+NMI.90 case-seed 439 reroll: no F pop from close addr 09a6e
+NMI.90 case-seed 440 reroll: no F pop from close addr 0bb1c
+NMI.90 case-seed 441 reroll: no F pop from close addr 0316a
+NMI.90 case-seed 444 reroll: no F pop from close addr 0a60a
+NMI.90 case-seed 446 reroll: no F pop from close addr 0d4d6
+NMI.90 case-seed 448 reroll: no F pop from close addr 0b0b4
+NMI.90 case-seed 449 reroll: no F pop from close addr 05bb2
+NMI.90 case-seed 450 reroll: pf assert before window (0)
+NMI.90 case-seed 453 reroll: pf assert before window (0)
+NMI.90 case-seed 454 reroll: pf assert before window (0)
+NMI.90 case-seed 455 reroll: no F pop from close addr 072f8
+NMI.90 case-seed 456 reroll: no F pop from close addr 04a62
+NMI.90 case-seed 457 reroll: pf assert before window (0)
+NMI.90 case-seed 458 reroll: pf assert before window (-3)
+NMI.90 case-seed 459 reroll: no F pop from close addr 05020
+NMI.90 case-seed 460 reroll: no F pop from close addr 01476
+NMI.90 case-seed 461 reroll: pf assert before window (-3)
+NMI.90 case-seed 462 reroll: no F pop from close addr 01350
+NMI.90 case-seed 465 reroll: pf assert before window (-1)
+NMI.90 case-seed 466 reroll: no F pop from close addr 0be5a
+NMI.90 case-seed 470 reroll: no F pop from close addr 0d490
+NMI.90 case-seed 472 reroll: pf assert before window (-3)
+NMI.90 case-seed 475 reroll: pf assert before window (-3)
+NMI.90 case-seed 476 reroll: pf assert before window (-3)
+NMI.90 case-seed 477 reroll: no F pop from close addr 04262
+NMI.90 case-seed 478 reroll: pf assert before window (-3)
+NMI.90 case-seed 481 reroll: no F pop from close addr 03530
+NMI.90 case-seed 484 reroll: pf assert before window (-2)
+NMI.90 case-seed 485 reroll: pf assert before window (-3)
+NMI.90 case-seed 486 reroll: no F pop from close addr 06420
+NMI.90 case-seed 489 reroll: pf assert before window (-3)
+NMI.90 case-seed 490 reroll: no F pop from close addr 0bb0a
+NMI.90 case-seed 491 reroll: no F pop from close addr 01320
+NMI.90 case-seed 493 reroll: no F pop from close addr 08fa0
+NMI.90 case-seed 495 reroll: no F pop from close addr 0ee90
+NMI.90 case-seed 496 reroll: no F pop from close addr 0a25c
+NMI.90 case-seed 497 reroll: no F pop from close addr 043f4
+NMI.90 case-seed 498 reroll: no F pop from close addr 051e6
+NMI.90 case-seed 499 reroll: no F pop from close addr 0741e
+NMI.90 case-seed 500 reroll: pf assert before window (-1)
+NMI.90 case-seed 501 reroll: no F pop from close addr 0c224
+NMI.90 case-seed 502 reroll: pf assert before window (-2)
+NMI.90 case-seed 503 reroll: pf assert before window (-3)
+NMI.90 case-seed 504 reroll: pf assert before window (0)
+NMI.90 case-seed 505 reroll: pf assert before window (-1)
+NMI.90 case-seed 506 reroll: no F pop from close addr 08ec8
+NMI.90 case-seed 507 reroll: pf assert before window (-1)
+NMI.90 case-seed 508 reroll: no F pop from close addr 06854
+NMI.90 case-seed 511 reroll: no F pop from close addr 0796c
+NMI.90 case-seed 512 reroll: pf assert before window (-1)
+NMI.90 case-seed 513 reroll: pf assert before window (0)
+NMI.90 case-seed 514 reroll: no F pop from close addr 0444e
+NMI.90 case-seed 515 reroll: no F pop from close addr 0a48a
+NMI.90 case-seed 516 reroll: no F pop from close addr 02ad8
+NMI.90 case-seed 519 reroll: no F pop from close addr 0c494
+NMI.90 case-seed 520 reroll: pf assert before window (-3)
+NMI.90 case-seed 521 reroll: pf assert before window (-1)
+NMI.90 case-seed 522 reroll: no F pop from close addr 0d102
+NMI.90 case-seed 523 reroll: pf assert before window (0)
+NMI.90 case-seed 524 reroll: pf assert before window (-2)
+NMI.90 case-seed 529 reroll: no F pop from close addr 08a8a
+NMI.90 case-seed 530 reroll: no F pop from close addr 02e06
+NMI.90 case-seed 531 reroll: pf assert before window (-3)
+NMI.90 case-seed 532 reroll: no F pop from close addr 0a116
+NMI.90 case-seed 533 reroll: no F pop from close addr 07a06
+NMI.90 case-seed 534 reroll: pf assert before window (-3)
+NMI.90 case-seed 535 reroll: pf assert before window (-3)
+NMI.90 case-seed 536 reroll: no F pop from close addr 09e4e
+NMI.90 case-seed 537 reroll: pf assert before window (-3)
+NMI.90 case-seed 538 reroll: no F pop from close addr 067b6
+NMI.90 case-seed 543 reroll: no F pop from close addr 051fa
+NMI.90 case-seed 546 reroll: pf assert before window (-3)
+NMI.90 case-seed 549 reroll: no F pop from close addr 0c102
+NMI.90 case-seed 550 reroll: no F pop from close addr 06352
+NMI.90 case-seed 551 reroll: pf assert before window (0)
+NMI.90 case-seed 552 reroll: no F pop from close addr 00ba8
+NMI.90 case-seed 553 reroll: no F pop from close addr 02624
+NMI.90 case-seed 554 reroll: pf assert before window (-2)
+NMI.90 case-seed 555 reroll: no F pop from close addr 0d948
+NMI.90 case-seed 556 reroll: pf assert before window (-2)
+NMI.90 case-seed 557 reroll: pf assert before window (-2)
+NMI.90 case-seed 558 reroll: pf assert before window (-2)
+NMI.90 case-seed 559 reroll: pf assert before window (-2)
+NMI.90 case-seed 560 reroll: pf assert before window (-1)
+NMI.90 case-seed 561 reroll: no F pop from close addr 046d6
+NMI.90 case-seed 564 reroll: pf assert before window (-3)
+NMI.90 case-seed 565 reroll: pf assert before window (-1)
+NMI.90 case-seed 566 reroll: no F pop from close addr 00958
+NMI.90 case-seed 567 reroll: pf assert before window (-3)
+NMI.90 case-seed 568 reroll: pf assert before window (-2)
+NMI.90 case-seed 569 reroll: pf assert before window (0)
+NMI.90 case-seed 570 reroll: pf assert before window (0)
+NMI.90 case-seed 571 reroll: pf assert before window (-3)
+NMI.90 case-seed 572 reroll: pf assert before window (0)
+NMI.90 case-seed 573 reroll: pf assert before window (-3)
+NMI.90 case-seed 574 reroll: pf assert before window (-2)
+NMI.90 case-seed 577 reroll: no F pop from close addr 09504
+NMI.90 case-seed 578 reroll: pf assert before window (-3)
+NMI.90 case-seed 579 reroll: no F pop from close addr 05734
+NMI.90 case-seed 580 reroll: no F pop from close addr 0a060
+NMI.90 case-seed 581 reroll: pf assert before window (0)
+NMI.90 case-seed 582 reroll: no F pop from close addr 06400
+NMI.90 case-seed 583 reroll: pf assert before window (-3)
+NMI.90 case-seed 584 reroll: no F pop from close addr 0ca8c
+NMI.90 case-seed 585 reroll: no F pop from close addr 0652c
+NMI.90 case-seed 586 reroll: pf assert before window (0)
+NMI.90 case-seed 587 reroll: no F pop from close addr 00c44
+NMI.90 case-seed 588 reroll: no F pop from close addr 0c5a2
+NMI.90 case-seed 589 reroll: no F pop from close addr 0d5e8
+NMI.90 case-seed 590 reroll: no F pop from close addr 0191e
+NMI.90 case-seed 591 reroll: pf assert before window (-1)
+NMI.90 case-seed 596 reroll: pf assert before window (-2)
+NMI.90 case-seed 597 reroll: pf assert before window (-2)
+NMI.90 case-seed 598 reroll: pf assert before window (-3)
+NMI.90 case-seed 601 reroll: no F pop from close addr 05c8a
+NMI.90 case-seed 602 reroll: pf assert before window (-3)
+NMI.90 case-seed 605 reroll: pf assert before window (-1)
+NMI.90 case-seed 606 reroll: pf assert before window (-3)
+NMI.90 case-seed 607 reroll: no F pop from close addr 0bdf4
+NMI.90 case-seed 608 reroll: pf assert before window (-3)
+NMI.90 case-seed 609 reroll: no F pop from close addr 01936
+NMI.90 case-seed 611 reroll: no F pop from close addr 0b8a2
+NMI.90 case-seed 613 reroll: no F pop from close addr 0c68e
+NMI.90 case-seed 614 reroll: pf assert before window (-2)
+NMI.90 case-seed 615 reroll: no F pop from close addr 054b0
+NMI.90 case-seed 616 reroll: no F pop from close addr 06226
+NMI.90 case-seed 617 reroll: pf assert before window (-1)
+NMI.90 case-seed 618 reroll: pf assert before window (-2)
+NMI.90 case-seed 619 reroll: pf assert before window (0)
+NMI.90 case-seed 620 reroll: pf assert before window (-1)
+NMI.90 case-seed 621 reroll: no F pop from close addr 06dee
+NMI.90 case-seed 622 reroll: pf assert before window (-1)
+NMI.90 case-seed 626 reroll: no F pop from close addr 09ac0
+NMI.90 case-seed 628 reroll: no F pop from close addr 0c98a
+NMI.90 case-seed 629 reroll: no F pop from close addr 079fe
+NMI.90 case-seed 630 reroll: pf assert before window (0)
+NMI.90 case-seed 631 reroll: no F pop from close addr 0781c
+NMI.90 case-seed 632 reroll: no F pop from close addr 0b152
+NMI.90 case-seed 635 reroll: pf assert before window (0)
+NMI.90 case-seed 638 reroll: pf assert before window (-1)
+NMI.90 case-seed 639 reroll: no F pop from close addr 066ee
+NMI.90 case-seed 640 reroll: no F pop from close addr 00aee
+NMI.90 case-seed 641 reroll: no F pop from close addr 0a0e2
+NMI.90 case-seed 642 reroll: pf assert before window (-2)
+NMI.90 case-seed 643 reroll: pf assert before window (-2)
+NMI.90 case-seed 644 reroll: no F pop from close addr 020c6
+NMI.90 case-seed 645 reroll: no F pop from close addr 04722
+NMI.90 case-seed 646 reroll: pf assert before window (-3)
+NMI.90 case-seed 649 reroll: no F pop from close addr 0328e
+NMI.90 case-seed 650 reroll: no F pop from close addr 0acd6
+NMI.90 case-seed 651 reroll: pf assert before window (-1)
+NMI.90 case-seed 652 reroll: pf assert before window (-1)
+NMI.90 case-seed 653 reroll: no F pop from close addr 03e5e
+NMI.90 case-seed 654 reroll: pf assert before window (-2)
+NMI.90 case-seed 655 reroll: pf assert before window (0)
+NMI.90 case-seed 658 reroll: pf assert before window (-1)
+NMI.90 case-seed 659 reroll: no F pop from close addr 06e40
+NMI.90 case-seed 660 reroll: no F pop from close addr 0e110
+NMI.90 case-seed 661 reroll: no F pop from close addr 0b166
+NMI.90 case-seed 662 reroll: no F pop from close addr 01980
+NMI.90 case-seed 664 reroll: no F pop from close addr 0c28a
+NMI.90 case-seed 666 reroll: no F pop from close addr 0bc16
+NMI.90 case-seed 667 reroll: pf assert before window (-1)
+NMI.90 case-seed 668 reroll: pf assert before window (-2)
+NMI.90 case-seed 669 reroll: no F pop from close addr 09cf6
+NMI.90 case-seed 670 reroll: no F pop from close addr 0e1d4
+NMI.90 case-seed 671 reroll: no F pop from close addr 05906
+NMI.90 case-seed 672 reroll: pf assert before window (-2)
+NMI.90 case-seed 673 reroll: pf assert before window (-3)
+NMI.90 case-seed 674 reroll: pf assert before window (-3)
+NMI.90 case-seed 675 reroll: no F pop from close addr 0ea3a
+NMI.90 case-seed 676 reroll: no F pop from close addr 0277c
+NMI.90 case-seed 677 reroll: no F pop from close addr 0c67a
+NMI.90 case-seed 678 reroll: pf assert before window (-1)
+NMI.90 case-seed 679 reroll: pf assert before window (0)
+NMI.90 case-seed 680 reroll: pf assert before window (-1)
+NMI.90 case-seed 683 reroll: no F pop from close addr 04cac
+NMI.90 case-seed 686 reroll: pf assert before window (-1)
+NMI.90 case-seed 687 reroll: pf assert before window (-3)
+NMI.90 case-seed 688 reroll: no F pop from close addr 098c6
+NMI.90 case-seed 689 reroll: pf assert before window (-3)
+NMI.90 case-seed 690 reroll: no F pop from close addr 0771a
+NMI.90 case-seed 691 reroll: no F pop from close addr 0a6f8
+NMI.90 case-seed 692 reroll: no F pop from close addr 09e84
+NMI.90 case-seed 693 reroll: no F pop from close addr 0ba4a
+NMI.90 case-seed 694 reroll: no F pop from close addr 039a0
+NMI.90 case-seed 695 reroll: pf assert before window (-2)
+NMI.90 case-seed 696 reroll: pf assert before window (-1)
+NMI.90 case-seed 697 reroll: no F pop from close addr 0dbce
+NMI.90 case-seed 698 reroll: no F pop from close addr 0aa64
+NMI.90 case-seed 699 reroll: no F pop from close addr 05ee2
+NMI.90 case-seed 700 reroll: pf assert before window (-3)
+NMI.90 case-seed 703 reroll: no F pop from close addr 03946
+NMI.90 case-seed 704 reroll: pf assert before window (-1)
+NMI.90 case-seed 707 reroll: pf assert before window (-3)
+NMI.90 case-seed 708 reroll: pf assert before window (-3)
+NMI.90 case-seed 709 reroll: pf assert before window (-3)
+NMI.90 case-seed 710 reroll: no F pop from close addr 08462
+NMI.90 case-seed 711 reroll: pf assert before window (-3)
+NMI.90 case-seed 712 reroll: no F pop from close addr 0805a
+NMI.90 case-seed 713 reroll: no F pop from close addr 0eedc
+NMI.90 case-seed 714 reroll: no F pop from close addr 07cc0
+NMI.90 case-seed 715 reroll: no F pop from close addr 04086
+NMI.90 case-seed 716 reroll: no F pop from close addr 02afc
+NMI.90 case-seed 717 reroll: pf assert before window (-3)
+NMI.90 case-seed 718 reroll: no F pop from close addr 02bf4
+NMI.90 case-seed 719 reroll: no F pop from close addr 0ec82
+NMI.90 case-seed 720 reroll: pf assert before window (-1)
+NMI.90 case-seed 721 reroll: no F pop from close addr 00916
+NMI.90 case-seed 722 reroll: no F pop from close addr 04a46
+NMI.90 case-seed 723 reroll: pf assert before window (-3)
+NMI.90 case-seed 724 reroll: no F pop from close addr 09768
+NMI.90 case-seed 725 reroll: no F pop from close addr 02b5c
+NMI.90 case-seed 726 reroll: pf assert before window (0)
+NMI.90 case-seed 727 reroll: pf assert before window (-2)
+NMI.90 case-seed 728 reroll: no F pop from close addr 04de8
+NMI.90 case-seed 729 reroll: no F pop from close addr 08f16
+NMI.90 case-seed 732 reroll: pf assert before window (-3)
+NMI.90 case-seed 733 reroll: no F pop from close addr 00824
+NMI.90 case-seed 734 reroll: pf assert before window (-3)
+NMI.90 case-seed 735 reroll: pf assert before window (-1)
+NMI.90 case-seed 736 reroll: no F pop from close addr 015f8
+NMI.90 case-seed 737 reroll: pf assert before window (0)
+NMI.90 case-seed 738 reroll: no F pop from close addr 0a944
+NMI.90 case-seed 741 reroll: pf assert before window (-3)
+NMI.90 case-seed 742 reroll: pf assert before window (-2)
+NMI.90 case-seed 745 reroll: no F pop from close addr 062ec
+NMI.90 case-seed 746 reroll: pf assert before window (-1)
+NMI.90 case-seed 747 reroll: no F pop from close addr 02a1c
+NMI.90 case-seed 748 reroll: no F pop from close addr 0dd0e
+NMI.90 case-seed 749 reroll: no F pop from close addr 0e826
+NMI.90 case-seed 750 reroll: no F pop from close addr 0c8fa
+NMI.90 case-seed 751 reroll: no F pop from close addr 0986e
+NMI.90 case-seed 752 reroll: no F pop from close addr 00d7c
+NMI.90 case-seed 753 reroll: no F pop from close addr 0b7d6
+NMI.90 case-seed 754 reroll: pf assert before window (-1)
+NMI.90 case-seed 755 reroll: no F pop from close addr 0a132
+NMI.90 case-seed 756 reroll: no F pop from close addr 08c4a
+NMI.90 case-seed 757 reroll: pf assert before window (-3)
+NMI.90 case-seed 758 reroll: pf assert before window (-3)
+NMI.90 case-seed 761 reroll: no F pop from close addr 029fe
+NMI.90 case-seed 764 reroll: pf assert before window (-3)
+NMI.90 case-seed 765 reroll: no F pop from close addr 0cf8c
+NMI.90 case-seed 766 reroll: no F pop from close addr 0d4f2
+NMI.90 case-seed 767 reroll: no F pop from close addr 0b780
+NMI.90 case-seed 768 reroll: pf assert before window (-3)
+NMI.90 case-seed 771 reroll: no F pop from close addr 083a8
+NMI.90 case-seed 774 reroll: pf assert before window (0)
+NMI.90 case-seed 775 reroll: pf assert before window (-2)
+NMI.90 case-seed 776 reroll: no F pop from close addr 00e60
+NMI.90 case-seed 777 reroll: no F pop from close addr 09bd0
+NMI.90 case-seed 778 reroll: no F pop from close addr 0c51a
+NMI.90 case-seed 781 reroll: pf assert before window (0)
+NMI.90 case-seed 782 reroll: no F pop from close addr 03b4c
+NMI.90 case-seed 783 reroll: no F pop from close addr 0564c
+NMI.90 case-seed 784 reroll: pf assert before window (-3)
+NMI.90 case-seed 785 reroll: pf assert before window (-1)
+NMI.90 case-seed 786 reroll: pf assert before window (-3)
+NMI.90 case-seed 789 reroll: no F pop from close addr 0eebe
+NMI.90 case-seed 791 reroll: no F pop from close addr 051a2
+NMI.90 case-seed 793 reroll: pf assert before window (-3)
+NMI.90 case-seed 794 reroll: no F pop from close addr 00cca
+HLT.INT case-seed 48 reroll: implausible final PSW 0
+HLT.INT case-seed 200 reroll: implausible final PSW 0
+HLT.RES case-seed 0 reroll: implausible final PSW 0
+HLT.RES case-seed 2 reroll: implausible final PSW 7513
+HLT.RES case-seed 63 reroll: implausible final PSW 44445
+HLT.RES case-seed 153 reroll: implausible final PSW 49245
+INT.F3AA case-seed 4 reroll: no F pop from close addr 03866
+INT.F3AA case-seed 10 reroll: no F pop from close addr 06ce2
+INT.F3AA case-seed 21 reroll: pf assert before window (-89)
+INT.F3AA case-seed 22 reroll: pf assert before window (0)
+INT.F3AA case-seed 25 reroll: no F pop from close addr 07dd0
+INT.F3AA case-seed 36 reroll: pf assert before window (-2)
+INT.F3AA case-seed 47 reroll: pf assert before window (-75)
+INT.F3AA case-seed 52 reroll: pf assert before window (0)
+INT.F3AA case-seed 53 reroll: pf assert before window (-1)
+INT.F3AA case-seed 54 reroll: pf assert before window (-1)
+INT.F3AA case-seed 69 reroll: pf assert before window (-75)
+INT.F3AA case-seed 71 reroll: recognition off-window: pushed ff0c vs min bc5e
+INT.F3AA case-seed 77 reroll: no F pop from close addr 06d9a
+INT.F3AA case-seed 78 reroll: pf assert before window (-71)
+INT.F3AA case-seed 81 reroll: pf assert before window (-95)
+INT.F3AA case-seed 82 reroll: pf assert before window (-77)
+INT.F3AA case-seed 89 reroll: pf assert before window (-1)
+INT.F3AA case-seed 90 reroll: no F pop from close addr 09988
+INT.F3AA case-seed 97 reroll: pf assert before window (-74)
+INT.F3AA case-seed 116 reroll: no F pop from close addr 0c36c
+INT.F3AA case-seed 119 reroll: pf assert before window (0)
+INT.F3AA case-seed 120 reroll: pf assert before window (0)
+INT.F3AA case-seed 123 reroll: pf assert before window (-72)
+INT.F3AA case-seed 126 reroll: pf assert before window (-75)
+INT.F3AA case-seed 127 reroll: pf assert before window (0)
+INT.F3AA case-seed 130 reroll: pf assert before window (-72)
+INT.F3AA case-seed 133 reroll: no F pop from close addr 057fe
+INT.F3AA case-seed 138 reroll: pf assert before window (-2)
+INT.F3AA case-seed 139 reroll: no F pop from close addr 045dc
+INT.F3AA case-seed 140 reroll: pf assert before window (-2)
+INT.F3AA case-seed 145 reroll: pf assert before window (-1)
+INT.F3AA case-seed 152 reroll: pf assert before window (0)
+INT.F3AA case-seed 155 reroll: pf assert before window (0)
+INT.F3AA case-seed 164 reroll: pf assert before window (-2)
+INT.F3AA case-seed 175 reroll: pf assert before window (-2)
+INT.F3AA case-seed 179 reroll: implausible final PSW 65518
+INT.F3AA case-seed 185 reroll: pf assert before window (-73)
+INT.F3AA case-seed 190 reroll: pf assert before window (0)
+INT.F3AA case-seed 191 reroll: no F pop from close addr 026ba
+INT.F3AA case-seed 193 reroll: recognition off-window: pushed ff0c vs min e7f8
+INT.F3AA case-seed 197 reroll: pf assert before window (-2)
+INT.F3AA case-seed 202 reroll: pf assert before window (-71)
+INT.F3AA case-seed 211 reroll: pf assert before window (-2)
+INT.F3AA case-seed 214 reroll: pf assert before window (-72)
+INT.F3AA case-seed 215 reroll: pf assert before window (-74)
+INT.F3AA case-seed 222 reroll: pf assert before window (-76)
+INT.F3AA case-seed 223 reroll: pf assert before window (-76)
+INT.F3AA case-seed 224 reroll: pf assert before window (-72)
+INT.F3AA case-seed 227 reroll: pf assert before window (-94)
+INT.F3AA case-seed 228 reroll: pf assert before window (-72)
+INT.F3AA case-seed 231 reroll: pf assert before window (-1)
+INT.F3AA case-seed 236 reroll: pf assert before window (-91)
+INT.F3AA case-seed 238 reroll: recognition off-window: pushed ff0c vs min 8f41
+INT.F3AA case-seed 242 reroll: pf assert before window (-91)
+INT.9D case-seed 1 reroll: pf assert before window (0)
+INT.9D case-seed 2 reroll: pf assert before window (-1)
+INT.9D case-seed 3 reroll: pf assert before window (-5)
+INT.9D case-seed 6 reroll: no F pop from close addr 086e2
+INT.9D case-seed 7 reroll: pf assert before window (-4)
+INT.9D case-seed 8 reroll: pf assert before window (-2)
+INT.9D case-seed 9 reroll: pf assert before window (-3)
+INT.9D case-seed 10 reroll: pf assert before window (-93)
+INT.9D case-seed 11 reroll: pf assert before window (-93)
+INT.9D case-seed 12 reroll: pf assert before window (-2)
+INT.9D case-seed 15 reroll: pf assert before window (-2)
+INT.9D case-seed 16 reroll: pf assert before window (-1)
+INT.9D case-seed 17 reroll: pf assert before window (-2)
+INT.9D case-seed 18 reroll: pf assert before window (-2)
+INT.9D case-seed 21 reroll: pf assert before window (-76)
+INT.9D case-seed 22 reroll: pf assert before window (-2)
+INT.9D case-seed 23 reroll: pf assert before window (-3)
+INT.9D case-seed 28 reroll: pf assert before window (-7)
+INT.9D case-seed 31 reroll: pf assert before window (-1)
+INT.9D case-seed 32 reroll: pf assert before window (-7)
+INT.9D case-seed 33 reroll: pf assert before window (-9)
+INT.9D case-seed 34 reroll: pf assert before window (-2)
+INT.9D case-seed 35 reroll: pf assert before window (-9)
+INT.9D case-seed 36 reroll: pf assert before window (-1)
+INT.9D case-seed 37 reroll: pf assert before window (-1)
+INT.9D case-seed 38 reroll: pf assert before window (-95)
+INT.9D case-seed 39 reroll: pf assert before window (-73)
+INT.9D case-seed 40 reroll: pf assert before window (-3)
+INT.9D case-seed 45 reroll: pf assert before window (0)
+INT.9D case-seed 46 reroll: no F pop from close addr 0d584
+INT.9D case-seed 49 reroll: pf assert before window (-7)
+INT.9D case-seed 50 reroll: pf assert before window (-72)
+INT.9D case-seed 51 reroll: pf assert before window (0)
+INT.9D case-seed 52 reroll: pf assert before window (-4)
+INT.9D case-seed 53 reroll: pf assert before window (-3)
+INT.9D case-seed 56 reroll: pf assert before window (-89)
+INT.9D case-seed 57 reroll: pf assert before window (-74)
+INT.9D case-seed 58 reroll: pf assert before window (-91)
+INT.9D case-seed 59 reroll: no F pop from close addr 0ae0a
+INT.9D case-seed 60 reroll: no F pop from close addr 087ec
+INT.9D case-seed 61 reroll: pf assert before window (-3)
+INT.9D case-seed 64 reroll: pf assert before window (-8)
+INT.9D case-seed 67 reroll: pf assert before window (-2)
+INT.9D case-seed 70 reroll: pf assert before window (-5)
+INT.9D case-seed 72 reroll: recognition off-window: pushed ff0c vs min 7e51
+INT.9D case-seed 76 reroll: implausible final PSW 0
+INT.9D case-seed 77 reroll: pf assert before window (-1)
+INT.9D case-seed 80 reroll: pf assert before window (-4)
+INT.9D case-seed 81 reroll: pf assert before window (-73)
+INT.9D case-seed 82 reroll: pf assert before window (-72)
+INT.9D case-seed 83 reroll: pf assert before window (-75)
+INT.9D case-seed 84 reroll: pf assert before window (0)
+INT.9D case-seed 85 reroll: pf assert before window (-5)
+INT.9D case-seed 86 reroll: pf assert before window (-1)
+INT.9D case-seed 89 reroll: pf assert before window (-93)
+INT.9D case-seed 90 reroll: pf assert before window (-8)
+INT.9D case-seed 91 reroll: pf assert before window (-1)
+INT.9D case-seed 92 reroll: no F pop from close addr 0465c
+INT.9D case-seed 93 reroll: pf assert before window (-9)
+INT.9D case-seed 94 reroll: pf assert before window (-2)
+INT.9D case-seed 95 reroll: no F pop from close addr 0759e
+INT.9D case-seed 98 reroll: pf assert before window (-4)
+INT.9D case-seed 102 reroll: no F pop from close addr 08c14
+INT.9D case-seed 104 reroll: pf assert before window (-8)
+INT.9D case-seed 105 reroll: pf assert before window (-1)
+INT.9D case-seed 106 reroll: pf assert before window (-9)
+INT.9D case-seed 107 reroll: pf assert before window (-9)
+INT.9D case-seed 108 reroll: pf assert before window (-75)
+INT.9D case-seed 109 reroll: pf assert before window (-2)
+INT.9D case-seed 110 reroll: pf assert before window (0)
+INT.9D case-seed 113 reroll: pf assert before window (0)
+INT.9D case-seed 114 reroll: pf assert before window (-1)
+INT.9D case-seed 116 reroll: no F pop from close addr 0b344
+INT.9D case-seed 117 reroll: no F pop from close addr 02bce
+INT.9D case-seed 119 reroll: pf assert before window (-5)
+INT.9D case-seed 120 reroll: pf assert before window (0)
+INT.9D case-seed 121 reroll: pf assert before window (-90)
+INT.9D case-seed 122 reroll: pf assert before window (-91)
+INT.9D case-seed 123 reroll: pf assert before window (-6)
+INT.9D case-seed 124 reroll: pf assert before window (-5)
+INT.9D case-seed 125 reroll: pf assert before window (-2)
+INT.9D case-seed 126 reroll: pf assert before window (-4)
+INT.9D case-seed 127 reroll: no F pop from close addr 056e8
+INT.9D case-seed 132 reroll: pf assert before window (-8)
+INT.9D case-seed 133 reroll: pf assert before window (-2)
+INT.9D case-seed 134 reroll: pf assert before window (-2)
+INT.9D case-seed 135 reroll: pf assert before window (0)
+INT.9D case-seed 136 reroll: pf assert before window (0)
+INT.9D case-seed 137 reroll: pf assert before window (0)
+INT.9D case-seed 138 reroll: pf assert before window (-2)
+INT.9D case-seed 141 reroll: pf assert before window (-95)
+INT.9D case-seed 142 reroll: no F pop from close addr 0b510
+INT.9D case-seed 145 reroll: pf assert before window (-95)
+INT.9D case-seed 146 reroll: pf assert before window (-74)
+INT.9D case-seed 147 reroll: no F pop from close addr 01e7a
+INT.9D case-seed 148 reroll: pf assert before window (-72)
+INT.9D case-seed 149 reroll: pf assert before window (0)
+INT.9D case-seed 150 reroll: no F pop from close addr 00ee4
+INT.9D case-seed 151 reroll: pf assert before window (-2)
+INT.9D case-seed 152 reroll: no F pop from close addr 0372a
+INT.9D case-seed 155 reroll: pf assert before window (0)
+INT.9D case-seed 160 reroll: pf assert before window (-2)
+INT.9D case-seed 163 reroll: pf assert before window (-2)
+INT.9D case-seed 164 reroll: pf assert before window (0)
+INT.9D case-seed 166 reroll: recognition off-window: pushed ff0c vs min b3c2
+INT.9D case-seed 167 reroll: recognition off-window: pushed ff0c vs min ba29
+INT.9D case-seed 169 reroll: pf assert before window (-5)
+INT.9D case-seed 170 reroll: pf assert before window (-7)
+INT.9D case-seed 171 reroll: pf assert before window (-1)
+INT.9D case-seed 172 reroll: pf assert before window (-71)
+INT.9D case-seed 175 reroll: no F pop from close addr 02d92
+INT.9D case-seed 176 reroll: pf assert before window (-1)
+INT.9D case-seed 177 reroll: pf assert before window (0)
+INT.9D case-seed 178 reroll: pf assert before window (-8)
+INT.9D case-seed 179 reroll: pf assert before window (-3)
+INT.9D case-seed 180 reroll: pf assert before window (0)
+INT.9D case-seed 183 reroll: pf assert before window (-91)
+INT.9D case-seed 184 reroll: pf assert before window (0)
+INT.9D case-seed 185 reroll: pf assert before window (-72)
+INT.9D case-seed 186 reroll: pf assert before window (-2)
+INT.9D case-seed 187 reroll: pf assert before window (-89)
+INT.9D case-seed 188 reroll: pf assert before window (0)
+INT.9D case-seed 193 reroll: pf assert before window (-1)
+INT.9D case-seed 196 reroll: no F pop from close addr 0cf52
+INT.9D case-seed 197 reroll: pf assert before window (-73)
+INT.9D case-seed 198 reroll: pf assert before window (0)
+INT.9D case-seed 199 reroll: pf assert before window (-92)
+INT.9D case-seed 200 reroll: pf assert before window (-6)
+INT.9D case-seed 201 reroll: pf assert before window (0)
+INT.9D case-seed 202 reroll: pf assert before window (-2)
+INT.9D case-seed 203 reroll: pf assert before window (-9)
+INT.9D case-seed 204 reroll: pf assert before window (-2)
+INT.9D case-seed 205 reroll: pf assert before window (-72)
+INT.9D case-seed 206 reroll: pf assert before window (0)
+INT.9D case-seed 209 reroll: pf assert before window (-2)
+INT.9D case-seed 210 reroll: no F pop from close addr 02cc4
+INT.9D case-seed 211 reroll: pf assert before window (-1)
+INT.9D case-seed 214 reroll: pf assert before window (-93)
+INT.9D case-seed 215 reroll: pf assert before window (-77)
+INT.9D case-seed 216 reroll: pf assert before window (-1)
+INT.9D case-seed 217 reroll: pf assert before window (-8)
+INT.9D case-seed 220 reroll: pf assert before window (-3)
+INT.9D case-seed 221 reroll: pf assert before window (-2)
+INT.9D case-seed 222 reroll: pf assert before window (0)
+INT.9D case-seed 223 reroll: no F pop from close addr 0c96e
+INT.9D case-seed 224 reroll: no F pop from close addr 0d4e4
+INT.9D case-seed 225 reroll: pf assert before window (-1)
+INT.9D case-seed 226 reroll: pf assert before window (-5)
+INT.9D case-seed 229 reroll: pf assert before window (-89)
+INT.9D case-seed 230 reroll: no F pop from close addr 07ff2
+INT.9D case-seed 231 reroll: pf assert before window (-4)
+INT.9D case-seed 232 reroll: pf assert before window (-4)
+INT.9D case-seed 233 reroll: pf assert before window (0)
+INT.9D case-seed 236 reroll: pf assert before window (-72)
+INT.9D case-seed 237 reroll: pf assert before window (-72)
+INT.9D case-seed 238 reroll: pf assert before window (-9)
+INT.9D case-seed 241 reroll: pf assert before window (-6)
+INT.9D case-seed 242 reroll: pf assert before window (-8)
+INT.9D case-seed 243 reroll: no F pop from close addr 0d89a
+INT.9D case-seed 244 reroll: pf assert before window (-1)
+INT.9D case-seed 245 reroll: pf assert before window (-2)
+INT.9D case-seed 246 reroll: pf assert before window (-1)
+INT.9D case-seed 247 reroll: pf assert before window (-2)
+INT.9D case-seed 248 reroll: pf assert before window (0)
+INT.9D case-seed 251 reroll: pf assert before window (-1)
+INT.9D case-seed 252 reroll: pf assert before window (-75)
+INT.9D case-seed 253 reroll: no F pop from close addr 00b18
+INT.9D case-seed 254 reroll: pf assert before window (-2)
+INT.9D case-seed 255 reroll: pf assert before window (-2)
+INT.9D case-seed 256 reroll: no F pop from close addr 08baa
+INT.9D case-seed 257 reroll: pf assert before window (-5)
+INT.9D case-seed 258 reroll: pf assert before window (0)
+INT.9D case-seed 259 reroll: pf assert before window (-3)
+INT.9D case-seed 261 reroll: recognition off-window: pushed ff0c vs min 5f14
+INT.9D case-seed 263 reroll: pf assert before window (-7)
+INT.9D case-seed 264 reroll: pf assert before window (-71)
+INT.9D case-seed 268 reroll: recognition off-window: pushed ff0c vs min d6a6
+INT.9D case-seed 270 reroll: pf assert before window (0)
+INT.9D case-seed 271 reroll: pf assert before window (-2)
+INT.9D case-seed 272 reroll: pf assert before window (-4)
+INT.9D case-seed 273 reroll: no F pop from close addr 098de
+INT.9D case-seed 274 reroll: pf assert before window (-3)
+INT.9D case-seed 275 reroll: pf assert before window (-1)
+INT.9D case-seed 276 reroll: no F pop from close addr 03522
+INT.9D case-seed 279 reroll: no F pop from close addr 057da
+INT.9D case-seed 280 reroll: pf assert before window (-92)
+INT.9D case-seed 281 reroll: pf assert before window (-1)
+INT.9D case-seed 282 reroll: pf assert before window (-90)
+INT.9D case-seed 283 reroll: pf assert before window (0)
+INT.9D case-seed 284 reroll: pf assert before window (-1)
+INT.9D case-seed 287 reroll: pf assert before window (-1)
+INT.9D case-seed 288 reroll: pf assert before window (-4)
+INT.9D case-seed 289 reroll: pf assert before window (0)
+INT.9D case-seed 290 reroll: pf assert before window (-73)
+INT.9D case-seed 297 reroll: pf assert before window (-6)
+INT.9D case-seed 298 reroll: pf assert before window (-9)
+INT.9D case-seed 299 reroll: pf assert before window (-72)
+INT.9D case-seed 300 reroll: pf assert before window (-2)
+INT.9D case-seed 301 reroll: pf assert before window (-2)
+INT.9D case-seed 302 reroll: pf assert before window (-91)
+INT.9D case-seed 303 reroll: pf assert before window (-2)
+INT.9D case-seed 304 reroll: pf assert before window (-4)
+INT.9D case-seed 305 reroll: pf assert before window (-6)
+INT.9D case-seed 306 reroll: pf assert before window (-2)
+INT.9D case-seed 308 reroll: no F pop from close addr 0ba30
+INT.9D case-seed 310 reroll: pf assert before window (-3)
+INT.9D case-seed 311 reroll: pf assert before window (0)
+INT.9D case-seed 314 reroll: pf assert before window (-4)
+INT.9D case-seed 315 reroll: pf assert before window (-76)
+INT.9D case-seed 318 reroll: pf assert before window (-3)
+INT.9D case-seed 319 reroll: no F pop from close addr 01846
+INT.9D case-seed 320 reroll: pf assert before window (-1)
+INT.9D case-seed 321 reroll: no F pop from close addr 0c330
+INT.9D case-seed 322 reroll: pf assert before window (0)
+INT.9D case-seed 323 reroll: pf assert before window (-2)
+INT.9D case-seed 324 reroll: pf assert before window (-76)
+INT.9D case-seed 325 reroll: pf assert before window (-2)
+INT.9D case-seed 328 reroll: pf assert before window (-3)
+INT.9D case-seed 329 reroll: pf assert before window (-6)
+INT.9D case-seed 331 reroll: recognition off-window: pushed ff0c vs min 356f
+INT.9D case-seed 333 reroll: pf assert before window (-4)
+INT.9D case-seed 336 reroll: pf assert before window (-2)
+INT.9D case-seed 337 reroll: pf assert before window (-71)
+INT.9D case-seed 338 reroll: pf assert before window (-2)
+INT.9D case-seed 339 reroll: pf assert before window (-3)
+INT.9D case-seed 340 reroll: pf assert before window (-3)
+INT.9D case-seed 341 reroll: no F pop from close addr 0c036
+INT.9D case-seed 346 reroll: pf assert before window (-77)
+INT.9D case-seed 347 reroll: pf assert before window (-91)
+INT.9D case-seed 349 reroll: no F pop from close addr 0c560
+INT.9D case-seed 350 reroll: no F pop from close addr 0cbbc
+INT.9D case-seed 352 reroll: pf assert before window (-1)
+INT.9D case-seed 355 reroll: pf assert before window (0)
+INT.9D case-seed 359 reroll: recognition off-window: pushed ff0c vs min 0f13
+INT.9D case-seed 363 reroll: pf assert before window (-2)
+INT.9D case-seed 364 reroll: pf assert before window (-8)
+INT.9D case-seed 365 reroll: pf assert before window (-1)
+INT.9D case-seed 366 reroll: pf assert before window (-2)
+INT.9D case-seed 367 reroll: no F pop from close addr 01e66
+INT.9D case-seed 368 reroll: pf assert before window (-8)
+INT.9D case-seed 369 reroll: pf assert before window (-3)
+INT.9D case-seed 370 reroll: no F pop from close addr 0dfb6
+INT.9D case-seed 371 reroll: pf assert before window (-5)
+INT.9D case-seed 374 reroll: pf assert before window (-3)
+INT.9D case-seed 375 reroll: pf assert before window (0)
+INT.9D case-seed 376 reroll: pf assert before window (-1)
+INT.9D case-seed 377 reroll: pf assert before window (-5)
+INT.9D case-seed 378 reroll: pf assert before window (0)
+INT.9D case-seed 379 reroll: no F pop from close addr 0478a
+INT.9D case-seed 380 reroll: pf assert before window (-2)
+INT.9D case-seed 381 reroll: pf assert before window (0)
+INT.9D case-seed 382 reroll: pf assert before window (0)
+INT.9D case-seed 385 reroll: pf assert before window (-4)
+INT.9D case-seed 388 reroll: pf assert before window (-72)
+INT.9D case-seed 389 reroll: pf assert before window (-1)
+INT.9D case-seed 392 reroll: pf assert before window (-4)
+INT.9D case-seed 393 reroll: pf assert before window (-72)
+INT.9D case-seed 394 reroll: pf assert before window (-1)
+INT.9D case-seed 395 reroll: pf assert before window (-1)
+INT.9D case-seed 398 reroll: pf assert before window (-2)
+INT.9D case-seed 399 reroll: pf assert before window (0)
+INT.9D case-seed 400 reroll: pf assert before window (-1)
+INT.9D case-seed 403 reroll: pf assert before window (-1)
+INT.9D case-seed 406 reroll: pf assert before window (-2)
+INT.9D case-seed 408 reroll: implausible final PSW 64030
+INT.9D case-seed 410 reroll: pf assert before window (-2)
+INT.9D case-seed 411 reroll: pf assert before window (-71)
+INT.9D case-seed 414 reroll: no F pop from close addr 00ca2
+INT.9D case-seed 415 reroll: pf assert before window (-89)
+INT.9D case-seed 416 reroll: pf assert before window (-4)
+INT.9D case-seed 417 reroll: pf assert before window (-6)
+INT.9D case-seed 418 reroll: pf assert before window (-1)
+INT.9D case-seed 421 reroll: pf assert before window (-71)
+INT.9D case-seed 422 reroll: pf assert before window (-2)
+INT.9D case-seed 425 reroll: pf assert before window (-4)
+INT.9D case-seed 426 reroll: no F pop from close addr 0292c
+INT.9D case-seed 427 reroll: pf assert before window (-2)
+INT.9D case-seed 428 reroll: pf assert before window (0)
+INT.9D case-seed 431 reroll: pf assert before window (-3)
+INT.9D case-seed 432 reroll: pf assert before window (-1)
+INT.9D case-seed 435 reroll: pf assert before window (-1)
+INT.9D case-seed 436 reroll: pf assert before window (0)
+INT.9D case-seed 437 reroll: pf assert before window (-1)
+INT.9D case-seed 438 reroll: pf assert before window (0)
+INT.9D case-seed 441 reroll: pf assert before window (-2)
+INT.9D case-seed 442 reroll: pf assert before window (0)
+INT.9D case-seed 443 reroll: pf assert before window (-8)
+INT.9D case-seed 444 reroll: pf assert before window (-2)
+INT.9D case-seed 445 reroll: pf assert before window (-2)
+INT.9D case-seed 446 reroll: no F pop from close addr 04ef0
+INT.9D case-seed 447 reroll: pf assert before window (-8)
+INT.9D case-seed 448 reroll: no F pop from close addr 0ce8a
+INT.9D case-seed 449 reroll: pf assert before window (-2)
+INT.9D case-seed 452 reroll: no F pop from close addr 0e630
+INT.9D case-seed 453 reroll: pf assert before window (-2)
+INT.9D case-seed 454 reroll: pf assert before window (-5)
+INT.9D case-seed 457 reroll: pf assert before window (-1)
+INT.9D case-seed 458 reroll: no F pop from close addr 0ae7c
+INT.9D case-seed 459 reroll: pf assert before window (-5)
+INT.9D case-seed 460 reroll: pf assert before window (-1)
+INT.9D case-seed 463 reroll: pf assert before window (0)
+INT.9D case-seed 466 reroll: pf assert before window (-1)
+INT.9D case-seed 467 reroll: pf assert before window (-1)
+INT.9D case-seed 468 reroll: pf assert before window (-89)
+INT.9D case-seed 469 reroll: pf assert before window (-1)
+INT.9D case-seed 474 reroll: pf assert before window (-1)
+INT.9D case-seed 475 reroll: pf assert before window (-6)
+INT.9D case-seed 476 reroll: pf assert before window (-9)
+INT.9D case-seed 478 reroll: implausible final PSW 17240
+INT.9D case-seed 480 reroll: pf assert before window (-2)
+INT.9D case-seed 481 reroll: pf assert before window (-91)
+INT.9D case-seed 482 reroll: pf assert before window (0)
+INT.9D case-seed 483 reroll: pf assert before window (0)
+INT.9D case-seed 484 reroll: pf assert before window (-2)
+INT.9D case-seed 485 reroll: pf assert before window (-4)
+INT.9D case-seed 486 reroll: pf assert before window (-1)
+INT.9D case-seed 488 reroll: no F pop from close addr 08de2
+INT.9D case-seed 490 reroll: pf assert before window (-7)
+INT.9D case-seed 493 reroll: pf assert before window (-74)
+INT.9D case-seed 494 reroll: pf assert before window (-2)
+INT.9D case-seed 495 reroll: pf assert before window (-2)
+INT.9D case-seed 498 reroll: pf assert before window (-6)
+INT.9D case-seed 499 reroll: no F pop from close addr 08e6c
+INT.9D case-seed 500 reroll: pf assert before window (-1)
+INT.9D case-seed 501 reroll: pf assert before window (-2)
+INT.9D case-seed 502 reroll: pf assert before window (-8)
+INT.9D case-seed 503 reroll: pf assert before window (-73)
+INT.9D case-seed 504 reroll: pf assert before window (-2)
+INT.9D case-seed 505 reroll: pf assert before window (0)
+INT.9D case-seed 508 reroll: pf assert before window (-2)
+INT.9D case-seed 509 reroll: no F pop from close addr 0e120
+INT.9D case-seed 510 reroll: pf assert before window (-89)
+INT.9D case-seed 512 reroll: implausible final PSW 0
+INT.9D case-seed 516 reroll: pf assert before window (-71)
+INT.9D case-seed 517 reroll: pf assert before window (0)
+INT.9D case-seed 518 reroll: pf assert before window (0)
+INT.9D case-seed 519 reroll: pf assert before window (-5)
+INT.9D case-seed 524 reroll: pf assert before window (-1)
+INT.9D case-seed 525 reroll: no F pop from close addr 0345e
+INT.9D case-seed 526 reroll: pf assert before window (-94)
+INT.9D case-seed 527 reroll: pf assert before window (-4)
+INT.9D case-seed 528 reroll: pf assert before window (-71)
+INT.9D case-seed 531 reroll: pf assert before window (0)
+INT.9D case-seed 533 reroll: implausible final PSW 0
+INT.9D case-seed 535 reroll: no F pop from close addr 02b5e
+INT.9D case-seed 536 reroll: pf assert before window (-1)
+INT.9D case-seed 537 reroll: pf assert before window (-7)
+INT.9D case-seed 538 reroll: pf assert before window (-2)
+INT.9D case-seed 539 reroll: pf assert before window (-2)
+INT.9D case-seed 540 reroll: pf assert before window (-90)
+INT.9D case-seed 541 reroll: pf assert before window (-3)
+INT.9D case-seed 546 reroll: pf assert before window (0)
+INT.9D case-seed 547 reroll: no F pop from close addr 0bbee
+INT.9D case-seed 548 reroll: pf assert before window (0)
+INT.9D case-seed 551 reroll: pf assert before window (-4)
+INT.9D case-seed 554 reroll: pf assert before window (-9)
+INT.9D case-seed 555 reroll: pf assert before window (-3)

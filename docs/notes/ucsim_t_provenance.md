@@ -5727,3 +5727,425 @@ Confirmed by reading the harness, not by running it:
    gate.  Its verdict counts are read from stdout, and the C1/C3 explanatory
    note string is known-stale (it still describes the pre-B1 RED reading while
    printing GREEN); the stale string is a booked cleanup and is NOT evidence.
+
+### 21.1 THE INSTRUMENT FIRST — the board's clock divider is STICKY, and the emission path never pinned it
+
+**This subsection is placed FIRST because two of this session's early readings
+were INSTRUMENT ARTIFACTS, and they were caught, retracted and re-measured
+before anything was landed.**  Reporting the catch is more useful than
+reporting only the survivors.
+
+`ServeRunner.cfg` sends `CFG <div> <waits> - 0 <use_core>`, and `div = None`
+sends `'-'`, meaning *leave the board default*.  The divider lives ON THE BOARD:
+it survives process exit and session exit.  **`emit_suite.py` never passes
+`div`** — no golden suite in this repo records the frequency it was emitted at,
+and every emission inherits whatever the previous session left behind.
+
+**The board was found at `div = 4` (8 MHz) at the start of this session**, and
+the first two S1 emissions inherited it.  What that does, MEASURED as a
+controlled A/B over 12 IDENTICAL cases (same seeds, same images, same waits,
+same code path — only the divider changed), 143 pre-T1 `Ti` rows in each arm:
+
+| board divider | `bs_early` on the `Ti` row immediately before a `T1` |
+|---|---|
+| `div = 8` (4 MHz) | the NEW cycle's status — `CODE`/`INTA`/`MEMR`/`MEMW`, **143 / 143** |
+| `div = 4` (8 MHz) | **`PASV`, 143 / 143** |
+
+At 8 MHz the address-phase sampling edge lands *before* the status pulse and
+**the DISPLAY CLOCK disappears from the capture entirely**.  This is the T2b
+§12.1 phenomenon — "within-cycle pulses read at a fixed sampling edge" — but
+§12.1 met it in `rd_n` and raw `bs_late`, which are EXCLUDED fields.  At 8 MHz
+it lands in `bs_early`, which is a **COMPARED** column, so it corrupts the gate
+instead of a projection.
+
+**The two readings it produced, both RETRACTED before landing:**
+
+1. *"the pre-T1 display clock is absent under waits"* — 12,480 / 12,480 `PASV`
+   on the first emission, against 4,244 / 4,244 real status in the existing
+   `v0.1-w1` tranche.  100 % vs 0 % is not physics, which is what prompted the
+   diagnosis.
+2. *"the HALT status display is 1 clock under waits, not 2"* — 800 / 800, and
+   apparently a clean falsification of §12.3.  **It was the divider.**
+
+**Re-measured with the divider PINNED at `div = 8`, both reverse completely**,
+and the corrected data independently REPRODUCES §12.3 on a stimulus §12.3 never
+used: the HALT status is **2 clocks, first row `Ti`, at w0, w1 AND w3 —
+200/200 per form per wait level, 1,200 cases**.  §12.3 stands, confirmed twice
+by two different instruments.
+
+**Nothing in the banked corpus is retracted.**  `v0.1`, `v0.1-w1` and
+`v0.1-w3` all carry the correct display status in their stored rows, so they
+were emitted at 4 MHz; their divider provenance was never RECORDED, but it is
+recoverable from their content and it is right.
+
+**Booked instrument fixes** (not made here — this session does not modify the
+committed emission path):
+- `emit_suite.cmd_emit` should PIN `div` and stamp it into `emit_log.txt`
+  beside the existing `# TRUTH SOURCE` and `# WAIT-RIG` lines.  The wait-rig
+  guard already exists for exactly this class of hazard; the divider has no
+  equivalent.
+- `board_idle()` should leave the divider at the corpus frequency, so a session
+  cannot hand the next one a surprise.
+
+`sw/s10_board.py` pins the divider explicitly in every probe
+(`DIV_OF_RECORD = 8`, `pin_div()`) and records it in every manifest.  The
+uncorrected first emission is retained as evidence under
+`sw/testdata/s10/s1-instrument/`.
+
+### 21.2 M18 — THE SECOND ACKNOWLEDGE SITS AT THE FIRST'S COMPLETION EVAL + 5, AND INTA UNDER WAITS NEEDS NO NEW TERM
+
+**MEASURED.**  The registered discriminator (§21.0 S1 prediction 3) offered two
+readings for the INTA1→INTA2 gap.  **Both are FALSIFIED**, and the resolution is
+not a new term at all — it is the campaign's own ONE INSTANT.
+
+The measured gap, over the S1 tranche plus the w0 corpus:
+
+| `Tw` on the acknowledge | 0 | 1 | 2 | 3 |
+|---|---|---|---|---|
+| INTA1 T1 → INTA2 T1 | **7** | **9** | **10** | **11** |
+| reading A, bus-keyed `7 + N` | 7 ✓ | 8 ✗ | 9 ✗ | 10 ✗ |
+| reading B, cadence-keyed `7` | 7 ✓ | 7 ✗ | 7 ✗ | 7 ✗ |
+
+Reading A is right only at w0, where it is degenerate with B — which is exactly
+why the w0 corpus never separated them.
+
+**The one statement that covers all four:**
+
+```
+INTA2's T1  =  (INTA1's COMPLETION EVAL) + 5      at every wait level
+```
+
+with the eval being §11.1's instant and nothing else: at w0 it sits at
+`last_i - 1` = `T1 + 2`; when the cycle carries waits it sits at `last_i` =
+`T1 + 3 + N`.  Substituting gives 7 / 9 / 10 / 11 with no free parameter.
+
+**The census: 2,339 / 2,339, zero exceptions, three wait levels**
+(w0 800, w1 763, w3 776), and **w2 was HELD OUT of the derivation and then
+confirmed at 177 / 177** — the gap is 10 there, which only the eval-relative
+form predicts.
+
+The constant 5 is not fitted: §19.2 already derives the w0 number from the
+ROM's own rows (`01E1`'s `F` releases at the acknowledge's `eu_done`, `01E2`
+posts one clock later) plus M1/M2's display law.  What S10 adds is that the
+anchor those rows hang off is the EVAL, and the eval moves once — at w0→w1 —
+and never again.  **The apparent wait dependence of the acknowledge is entirely
+the eval's own step.**
+
+*Falsifier:* any acknowledge pair whose second T1 is not at the first's
+completion eval + 5, at any wait level.
+
+**And the model already contains this.**  Scored on the fresh S1 tranche, with
+no model change of any kind:
+
+| form | w1 rows-exact | w3 rows-exact |
+|---|---|---|
+| `INT.90` | **200/200** | **200/200** |
+| `NMI.90` | **200/200** | **200/200** |
+| `HLT.INT` | **200/200** | **200/200** |
+| `HLT.RES` | **200/200** | **200/200** |
+| `INT.9D` | **200/200** | **200/200** |
+| `INT.F3AA` | 163/200 | 176/200 |
+| **TOTAL** | **1,163 / 1,200** | **1,176 / 1,200** |
+
+arch **1,200/1,200** and window **1,200/1,200** at both wait levels.
+
+**Registered clause B1c, scored: FIVE of the six forms score 200/200 at BOTH
+waits.**  The registered meaning of that number is explicit — *"any form
+scoring 200/200 at BOTH waits proves that form's waited acknowledge geometry
+needs NO new term"* — so:
+
+> **INTA UNDER WAITS IS NO LONGER AN OPEN LAW.**  M14 (the decision clock),
+> M15 (the acknowledge drives no address) and the one-instant machine predict
+> the waited acknowledge geometry exactly, on 2,000 fresh single-instruction
+> goldens at two wait levels, with ZERO row diffs.  §19.14 item 3 and §20.12
+> item 1 are CLOSED for the single-instruction population.
+
+M15 was checked separately and holds under waits: AD19-16 = 0 on every
+acknowledge T1 at w1 and w3, and AD15-0 carries the previous data phase.
+
+### 21.3 The one S1 residual is a PREFETCH IN THE ACKNOWLEDGE GAP — and it is exhaustively localised
+
+`INT.F3AA` is the only form that is not exact, and the reason is not the
+interrupt.  Between INTA1 and INTA2 the chip sometimes grants a **CODE
+prefetch**; the model does not.  The correspondence is exact — not
+approximate — in every cell:
+
+| waits | clean INTA pairs (nothing between) | `rows-exact` |
+|---|---|---|
+| 0 | 200 / 200 | **200 / 200** |
+| 1 | 163 / 200 | **163 / 200** |
+| 2 | 177 / 200 | **177 / 200** |
+| 3 | 176 / 200 | **176 / 200** |
+
+**Every** case with a clean pair is cycle-exact and **every** case with a
+prefetch in the gap is not: 37 of 37 at w1, 23 of 23 at w2, 24 of 24 at w3, and
+the intervening cycle is `CODE` in 100 % of them.
+
+So the residual is an **arbitration** question — does the prefetch win the slot
+the second acknowledge has reserved — and it belongs to the LC1/LC4 resume
+family the campaign already tracks, not to interrupt timing.  It is named,
+bounded (61 of 2,400) and carries its own discriminating population.
+
+### 21.4 S4 — the chained withdrawal is EXACT at four wait levels, and w2 is new silicon
+
+§20.6 resolved the chained abort's anchor as cadence-keyed and left the
+magnitude measured-without-a-row.  S4 puts the chain length and the wait level
+on the same factorial for the first time (`w2` had never been captured):
+
+| waits | chain 2 | chain 3 | chain 4 | non-exact at chain >= 2 |
+|---|---|---|---|---|
+| 0 | 53-ish | | | **0** |
+| 1 | 53 | 38 | 10 | 19 (all prefetch-in-gap) |
+| 2 | 53 | 42 | 16 | **0** |
+| 3 | 44 | 44 | 25 | **0** |
+
+**325 chain >= 2 cases at w0/w2/w3: zero failures.**  At w1 the 19 failures are
+the SAME prefetch-in-gap phenomenon that also hits chain-1 (18 of them are
+chain-1), so they are not a chain effect.
+
+**The registered prediction needed restating, and is restated honestly rather
+than scored as written.**  §21.0 S4 registered `offset(chain>=2) = +1` — that
+was the offset of the model *before* §20.6, and §20.6 already landed the
+cadence-keyed anchor.  What S4 therefore measures is whether the LANDED anchor
+survives a wait level it was never fitted on, and it does: **w2 is a held-out
+cell and the chained withdrawal is cycle-exact there.**
+
+**§20.12 item 4 is closed as far as measurement can close it:** the extra clock
+is chain-length-invariant and wait-invariant, confirmed at four wait levels and
+three chain lengths.  It remains, as §20.6 said, **a clock without a named ROM
+row** — no row is claimed here either.
+
+### 21.5 S2 — the HALT wake, MEASURED; one registered prediction CONFIRMED, one FALSIFIED, and a race found
+
+Registered as **UNMODELLED — MEASURING**, and it stays that way: no offset is
+fitted below.
+
+| registered prediction | result |
+|---|---|
+| 1. a SINGLE sharp threshold `d*` in the delay axis | **CONFIRMED** — `sharp = True` for both forms at both wait levels; below `d*` the chip never drives the HALT status, at and above it always does.  No scatter, no second band |
+| 3. the HALT display is 2 clocks whenever driven | **CONFIRMED** — `halt_len = 2` at every delay and both wait levels (and this is the §12.3 reproduction of §21.1) |
+| 4. the sweep CROSSES the max, and the two estimates of `d*` agree | **CONFIRMED** — the woken fetch's T1 is flat (floor-bound) below the crossing and then tracks the delay one-for-one above it: at w0, `woke = 158` for `d <= 6` then `152 + d`; at w1, flat then `214 + d`.  That IS §20.1's `dec = max(A + pipe, the clock the part is halted on)`, visible directly |
+| 2. `d*(w1) - d*(w0) = +1` | **FALSIFIED — measured +4** (`d* = 4` at w0, `8` at w1, both forms) |
+
+**Clause 2 is a registered FAILURE and is reported as one.**  The diagnosis is
+that the prediction was posed in the WRONG COORDINATE, and that is itself the
+useful part: `delay` is measured from the anchor's `CODE` T1, and **both** the
+anchor clock and the HALT display clock move when the wait level changes, so
+`d*` in the delay coordinate measures the difference of two moving points and
+has no reason to shift by the pseudo-cycle's single `Tw`.  The HALT display's
+own clock is fixed per program and independent of the delay (153 at w0, 219 at
+w1, over all 49 delays), which is what makes the threshold sharp.  No
+re-derived offset is claimed; the correct coordinate is `A` relative to the
+HALT display clock, and stating it is left as the measurement it is.
+
+**And the sweep found something that was not predicted at all.**  AT the
+threshold — `d = 8, 9` at w1, i.e. exactly the delays where the wake and the
+HALT display race for the status register — the woken fetch's T1 jumps to
+**284**, against 225-227 on both sides of it.  A ~57-clock excursion confined
+to the two delay cells at the race point, with the acknowledge itself unmoved
+(`inta1` = 227 there, in line with its neighbours).  This is the `HALTWAKE`
+family's own geometry caught in a directed sweep instead of inferred from a
+1,000-row program.  **It is REPORTED, not modelled** — §20.12 item 2 refused a
+fitted offset and that refusal stands.  The stimulus that would close it is the
+same sweep at finer delay granularity around the race with the full row stream
+diffed against the model, which is now cheap: the captures are banked.
+
+*Instrument note, reported not hidden:* `HLT.INT` at w1 produced **0 of 49
+goldens** (`implausible final PSW 0` on every delay) from the single fixed
+program state the sweep holds constant, while `HLT.RES` produced 49/49 and both
+forms produced 49/49 at w0.  The pins-only sweep (which is what §21.5 is scored
+on) is unaffected — it uses the directed capture path, and all 196 cells fired.
+The missing golden half of that one cell is recorded as a gap.
+
+### 21.6 S5 — A30 IS SETTLED: silicon takes BANK B in emulation mode, and the 14th-decoder-input mechanism is REFUTED
+
+The ledger's own directed capture (`ucsim_provenance.md` §61: *"a contained
+program that does `BRKEM`, stays in 8080 mode, and takes an INTR"*), built and
+run.  The program is three instructions and a stub: `BRKEM 0x20` at the anchor,
+`IVT[0x20]` pointing at an 8080 stub of `FB` (8080 `EI`, since BRKEM clears IE)
+followed by 8080 `NOP`s, and the rig asserting INTR at a swept delay.
+
+**The capture does exactly what it was designed to do**, read off the pins with
+no model in the loop (`h0_w0_d60`, bus cycles 36-54):
+
+```
+36  CODE  0x00506           the BRKEM bytes
+37  MEMR  0x00080  \        IVT[0x20] -- the BRKEM vector fetch
+38  MEMR  0x00082  /
+39  MEMW  0x03efe   ps=5    PSW push        MD=0
+40  MEMW  0x03efc   ps=d    CS  push        MD=1   <- the mode bit takes effect
+41  MEMW  0x03efa   ps=d    IP  push        MD=1        mid-push-chain
+42..47 CODE 0x00800..0x0080a  ps=e  MD=1 IE=1   the 8080 stub, interruptible
+48  INTA  ps=e  MD=1 IE=1  \   THE ACKNOWLEDGE
+49  INTA  ps=e  MD=1 IE=1  /   -- a TWO-CYCLE PAIR in emulation mode
+50  MEMR  0x003fc  \        IVT[0xFF] -- the acknowledged vector
+51  MEMR  0x003fe  /
+```
+
+**The census, over 2 preparation histories x waits {0,1} x 8 delays x 3 reps:**
+
+| | |
+|---|---|
+| acknowledges with **MD = 1 on every cycle of the run** | **32** |
+| acknowledges with MD = 0 somewhere (VOID by the registered instrument falsifier) | **0** |
+| run-length histogram over the MD=1 acknowledges | **{2: 32}** |
+
+Registered target was >= 20 independent MD=1 acknowledges; 32 were taken, and
+**not one cell was voided** — the stub kept the part in emulation mode with IE
+set through every acknowledge, which is precisely the contamination §61 and
+§14.5 named as the reason the earlier evidence did not count.
+
+**VERDICT, against the two registered predictions:**
+
+> **BANK B / FIXED PRIORITY.**  Every emulation-mode acknowledge is a
+> **two-cycle pair**.  The emulation-mode-input hypothesis — A30, the 14th input
+> to the micro-address decoder — predicts a **SINGLE** acknowledge, and a single
+> acknowledge does not occur in 32 of 32 deliberately-produced,
+> uncontaminated observations.  **A30's mechanism is REFUTED.**
+
+This moves A30 from `n = 1` incidental datapoint (§14.5) to a directed result
+at `n = 32`, and from the ledger's **free choice (EU-semantic)** class to
+**MEASURED**.  What is NOT claimed, and is stated so it is not read in: this
+refutes the *selection mechanism*, it does not prove bank A is dead silicon —
+nothing observable distinguishes "dead" from "never selected", and the ROM rows
+`01DC`-`01DF` remain 0/4 executed.  The honest ledger entry is *"silicon takes
+bank B in emulation mode; the emulation-mode decoder input is refuted; whether
+bank A is reachable at all is unobservable from the bus."*
+
+A cross-reference erratum goes to the functional ledger regardless, because
+§(d) already records that `has_brkem` under-reports 8080 excursions and that
+A30's "bank A unreached even with 8080 mode live" was evaluated over a set now
+known to be too small.  That statement is now superseded by a directed
+measurement rather than by a corpus count.
+
+### 21.7 S3 — THE CARD STIMULI WERE NOT RUN, and that is recorded rather than hidden
+
+Registered as three sub-probes (C2's fill ramp, C6/C7's positive-control-first
+uRMW, C11's single-source matrix) with a target of 11 GREEN / 0 RED / 0
+UNRESOLVED.  **None of the three was run.**  The session's board time went to
+S1 (which had to be emitted three times before the instrument was trustworthy,
+§21.1), S2, S4 and S5.
+
+`timed_lawcards.py` is therefore **unchanged at 7 GREEN / 0 RED / 4
+UNRESOLVED**, and C2/C6/C7/C11 remain stimulus gaps with exactly the booked
+probes they had entering the session (`biu_law_cards.md` §A.1).  This follows
+the §14.5 precedent for B3: an un-run probe is reported as un-run.  No card was
+moved, weakened or scored on a substitute stimulus.
+
+The registered protocol for C6/C7 stands unmodified for whoever runs it — the
+**positive control comes FIRST**, and **FAILED-VACUOUS is a reportable outcome,
+not a pass**.
+
+### 21.8 Gates (measured, this machine, immediately before the commit)
+
+```
+python3 sw/ucsim_check.py --suite tests/v30/v0.1                          # 169000/169000
+python3 sw/ucsim_check.py --suite tests/v30/v0.2                          # 347000/347000
+python3 sw/ucsim_check.py --suite tests/v30/v0.3                          # 3699998/3699998
+python3 sw/ucsim_check.py --suite tests/v30/v20suite --no-mirror          # 3125000/3125000
+python3 sw/ucsim_check.py --suite tests/v30/mod3_illegal --residue stale-ea  # 128/128
+                                                              # functional total 7,341,126
+python3 sw/timed_gate.py --suite tests/v30/v0.1    --forms all            # 168,997 / 169,000
+python3 sw/timed_gate.py --suite tests/v30/v0.1-w1 --forms all --waits 1  # 1,200/1,200
+python3 sw/timed_gate.py --suite tests/v30/v0.1-w3 --forms all --waits 3  # 1,200/1,200
+python3 sw/check_boot.py --timed 220                                      # MATCHES over 220 rows
+python3 sw/timed_scenario.py                                              # 18 PASS, 0 FAIL, 9 SKIP
+python3 sw/timed_wvec_gate.py             # count 88/88, digest 88/88, cycles +0.0 %
+python3 sw/timed_lawcards.py              # 7 GREEN / 0 RED / 4 UNRESOLVED (S3 not run)
+python3 sw/timed_fuzz.py --evt-replay     # REGISTERED 1,272/1,702  EVT 678/1,008
+                                          # COMBINED   1,950/2,710
+                                                              # --- NEW, this session ---
+python3 sw/timed_gate.py --suite tests/v30/v0.1-w1evt --forms all --waits 1  # 1,163/1,200
+python3 sw/timed_gate.py --suite tests/v30/v0.1-w3evt --forms all --waits 3  # 1,176/1,200
+python3 sw/timed_gate.py --suite tests/v30/v0.1-w0evt --forms INT.F3AA --waits 0  # 200/200
+python3 sw/timed_gate.py --suite tests/v30/v0.1-w2evt --forms INT.F3AA --waits 2  # 177/200
+python3 sw/s10_analyze.py inta --suite tests/v30/v0.1-w1evt                  # the eval+5 law
+```
+
+`sw/check_enter_nesting.py` is the VERILATOR/RTL leg (CLAUDE.md) and is NOT in
+this set: S10 adds `sw/s10_board.py`, `sw/s10_analyze.py`, captures and golden
+tranches only — **no `sim/` source and no model behaviour was changed at any
+point in this session** — and the working tree carries unrelated uncommitted
+`hdl/` and `sw/` changes from another branch (§21.0.0).
+
+**Monotonicity.** Every standing ratchet is at or above its entry value and
+none moved down.  Because no model code was touched, the w0/w1/w3 suites, the
+fuzz populations, wvec, boot, scenario and the law cards are unchanged to the
+case; the S1/S4 tranches are NEW populations with their own new denominators
+and do not enter any existing ratchet.
+
+**Board session log.** One session, socket only (`use_core=False` on every
+call), **nothing flashed, no bitstream touched, `safe_flash.sh` and
+`v30ctl.py prep` never invoked**.  Single-writer checked before contact — no
+foreign `v30run serve` / `v30ctl` locally or on `root@mister-nec`.  Roughly
+**12,000 socket captures in ~8.5 minutes of board time** against a 30-minute
+budget (the emitted case counts plus their rerolls, at 0.03-0.15 s/case): shakedown 0.7 s; S1 emitted THREE times (mixed-anchor 120 s,
+cold-anchor at the inherited divider 97 s, cold-anchor with the divider pinned
+97 s) plus ~120 s of divider A/B diagnosis; S4 12 s; S5 6.4 s; S2 35 s;
+`s1cells` 7.9 s.  The CUT RULE was never invoked — the population was not cut
+and repetitions were not cut.  `board_idle()` run at the end —
+**board idle, `use_core=0`, confirmed**.
+
+**Retention.** `sw/testdata/s10/` — `s1-tranche` (24 declared protocol cells,
+full per-clock rows + raw 64-bit words, 5 reps each, 6 promoted to both
+frequencies), `s2-hltsweep` (196 cells + the pins-only sweep table),
+`s5-a30` (32 cells + the observation table), `s1-instrument` (the uncorrected
+first emission, retained as the §21.1 evidence).  **`SHA256SUMS` over all 535
+files, one per probe directory.**  All 24 S1 protocol cells fired, and all are
+pin-identical over their 5 repetitions; one cell (`INT.9D_w1_0`) differs
+BETWEEN the two frequencies, which is the §12.1 within-cycle-pulse phenomenon
+and is recorded, not scored.
+
+### 21.9 Ledger delta
+
+| | after §20 | after this addendum |
+|---|---|---|
+| INTA under waits | **SCOPED OUT**, 44 waited `ACK` seeds as data | **CLOSED for the single-instruction population** — M18; 5 of 6 forms 200/200 at w1 AND w3 |
+| pin-event goldens | w0 only (2,600) | **+ 2,800 waited**: w1 1,200, w3 1,200, w0evt 200, w2evt 200 |
+| the acknowledge pair's geometry | `7` clocks at w0, unexplained above | **`INTA2 T1 = INTA1's completion eval + 5`, 2,339/2,339 at N = 0,1,2,3** (w2 held out) |
+| §20.12 item 4, the chained abort's magnitude | measured clock, chain axis confounded | **chain- and wait-invariant over {0,1,2,3} x {2,3,4}; 325 chain>=2 cases at w0/w2/w3 exact.  ROM row still unnamed** |
+| A30 | free choice; n = 1 incidental datapoint | **MEASURED, n = 32: silicon takes BANK B in emulation mode; the 14th-decoder-input mechanism REFUTED** |
+| the HALT wake geometry | 81 seeds, two named shapes, unmodelled | **swept and measured**: sharp threshold, 2-clock display at all waits, the `max` visible; a **~57-clock excursion AT the race point** found and reported.  Still unmodelled, deliberately |
+| law cards | 7 GREEN / 0 RED / 4 UNRESOLVED | **unchanged — S3 NOT RUN** |
+| mechanisms | M1-M17, M2r, M5b | **+ M18 (the acknowledge pair rides the completion eval)** |
+| instrument | — | **the STICKY CLOCK DIVIDER (§21.1): a rig-integrity hazard in the emission path, caught, two false readings retracted, fixes booked** |
+| functional corpus | 7,341,126 | unchanged |
+| v0.1 w0 / w1 / w3 | 168,997 / 1,200 / 1,200 | unchanged |
+| `timed_fuzz` REG / EVT / COMBINED | 1,272/1,702, 678/1,008, 1,950/2,710 | unchanged, all three |
+| victory tranche V0-V5 | V0-V4 PASS, **V5 registered FAILURE** | **UNTOUCHED — V5 remains a registered FAILURE** (no re-score was run, so its bar was not met and no addendum is offered) |
+
+### 21.10 What is left, and the stimulus for each
+
+1. **The prefetch in the acknowledge gap** (§21.3) — 61 of 2,400, exhaustively
+   localised, 100 % `CODE`.  The single largest and cleanest open item this
+   session produced, and it is an ARBITRATION question in the LC1/LC4 family,
+   not an interrupt one.  The stimulus exists and is banked: the 61 cases carry
+   their own discriminating pairs at three wait levels.
+2. **The HALT-wake race** (§21.5) — the ~57-clock excursion at `d = 8, 9` at
+   w1.  Stimulus: the same sweep at finer granularity around the race point
+   with full row streams diffed against the model.  Captures are banked; only
+   the diff is missing.  **Not modelled — a fitted offset is still refused.**
+3. **S3's four law cards** (§21.7) — C2, C6, C7, C11, un-run, with their
+   registered protocols intact.  C6/C7's positive-control-first rule and its
+   FAILED-VACUOUS outcome stay as written.
+4. **The divider-provenance fixes** (§21.1) — pin and stamp `div` in
+   `emit_suite.cmd_emit`; leave a known divider in `board_idle()`.  Neither is
+   made here.
+5. **`HLT.INT` at w1 emitted 0/49 goldens** from the S2 sweep's fixed program
+   state (`implausible final PSW 0`).  The pins-only measurement is unaffected;
+   the golden half of that cell is a gap.
+6. **The whole-program `ACK` family is NOT explained by the acknowledge
+   geometry, and that is now established rather than assumed.**  `evtsurvey`
+   was re-run over a fresh `timed_fuzz --pop evt --evt-replay --report` and the
+   §20.8 taxonomy is **byte-identical**: 330 diverging seeds, 24/330 within 4
+   rows of an acknowledge, families `qs/INTA` 86, `bs/INTA` 59, `qs/HALT` 54,
+   `bs/HALT` 29.  It could not have moved — **M18 is a CONFIRMATION that the
+   model already contained the law, not a change to it**, and no model code was
+   touched.  The consequence is the useful part: since the waited acknowledge
+   geometry is now measured EXACT on 2,000 directed single-instruction goldens,
+   the 44 waited `ACK` seeds must part for some other reason, and §21.3 names
+   the leading candidate — a prefetch taking the slot between the two
+   acknowledge cycles, which a 1,000-row program has far more opportunity to do
+   than a single-instruction golden.  **Testing that candidate against the 44 is
+   the cheapest next step in the whole campaign** and it is board-free.
+7. The three w0 tails (`0F12`, `C1.6`, `F7.4`) are untouched and unrelated.

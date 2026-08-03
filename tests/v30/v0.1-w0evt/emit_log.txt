@@ -1,0 +1,1 @@
+# TRUTH SOURCE: SOCKET (real chip, use_core=False)  seed_base=v30-s10-w0evt  cases=200  waits=0  forms=6  anchor=COLD-only  delay=wait-scaled x(4+N)/4  div=8 (4 MHz, PINNED)

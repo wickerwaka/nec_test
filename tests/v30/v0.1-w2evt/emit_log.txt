@@ -1,0 +1,14 @@
+# TRUTH SOURCE: SOCKET (real chip, use_core=False)  seed_base=v30-s10-w2evt  cases=200  waits=2  forms=6  anchor=COLD-only  delay=wait-scaled x(4+N)/4  div=8 (4 MHz, PINNED)
+INT.F3AA case-seed 73 reroll: recognition off-window: pushed ff0c vs min b66f
+INT.F3AA case-seed 80 reroll: no F pop from close addr 06998
+INT.F3AA case-seed 86 reroll: recognition off-window: pushed ff0c vs min ef58
+INT.F3AA case-seed 96 reroll: no F pop from close addr 06484
+INT.F3AA case-seed 141 reroll: recognition off-window: pushed ff0c vs min 8a94
+INT.F3AA case-seed 146 reroll: recognition off-window: pushed ff0c vs min 1589
+INT.F3AA case-seed 163 reroll: recognition off-window: pushed ff0c vs min ed0e
+INT.F3AA case-seed 178 reroll: recognition off-window: pushed ff0c vs min 96eb
+INT.F3AA case-seed 185 reroll: recognition off-window: pushed ff0c vs min 079a
+INT.F3AA case-seed 188 reroll: recognition off-window: pushed ff0c vs min b111
+INT.F3AA case-seed 193 reroll: recognition off-window: pushed ff0c vs min 3500
+INT.F3AA case-seed 196 reroll: recognition off-window: pushed ff0c vs min 5e6d
+INT.F3AA case-seed 208 reroll: no F pop from close addr 0bf86
