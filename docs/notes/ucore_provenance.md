@@ -867,8 +867,12 @@ BIU level — `opr_free_now`/`_n`, `retire_ok`/`_n`, `f_wait`/`_n`,
 `row_blocked`/`_n`, `row_pre_wait`/`_n` — one expression each, differing only in
 which view it reads.
 
-**No `_n` signal reaches a combinational output of `v30u_eu`.**  That is the
-loop rule, and it is what keeps the EU->BIU direction a registered boundary:
+**No `_n` signal FROM THE NEXT-STATE CONE reaches a combinational output of
+`v30u_eu`.**  (Corrected after the Codex review — see §26/C1.  The rule was
+first written without the qualifier, and `eu_wr_done_n` is a standing
+counter-example to the unqualified form: it does reach `q_pop`, legitimately,
+because it is register-only lookahead, F11a.)  That is the loop rule, and it is
+what keeps the EU->BIU direction a registered boundary:
 `eu_post` is qualified by the REGISTERED `eu_slot_busy`, so `slot_busy`'s
 next-state (which depends on `eu_post`) closes nothing.  Verilator reports no
 `UNOPTFLAT` and no inferred latch on the whole build.
@@ -1068,6 +1072,76 @@ pairing latch's CONTENT, not this mechanism.  No green rung moved.
 
 *Falsifier*: any `R` row whose iteration count differs from `count` at entry.
 
+## §26 THE CODEX REVIEW (2026-08-03, session `019fc8ba`)
+
+Briefed on §§20-23, the three RTL files, and `sim/biu_timed.{h,cpp}` +
+`sim/exec_impl.h`, with the SIMPLICITY principle verbatim and the governance
+rule, and asked to attack the contract hardest-first.  Three findings landed;
+all three are FOLDED, none was cosmetic.
+
+**C1 — §20.2's loop rule was stated too broadly.**  UPHELD.  `eu_wr_done_n`
+does reach a combinational output: `eu_wr_done_n -> retire_ok_n/retire_ok_e ->
+row_epop/q_demand -> q_pop`.  The EXEMPTION is sound (its cone terminates in
+`r_done_ctr`/`r_done_wr` and touches no next-state variable, so the path never
+returns to its source), but the RULE as written did not carry the exemption.
+Corrected in §20.2: the invariant is *no `_n` from the NEXT-STATE CONE*;
+register-only lookahead is an explicit, named exception.  A rule with a silent
+exception is a rule that will be violated by the next person, including me.
+
+**C2 — F11 was still a reconstruction, and the reconstruction was incomplete.**
+UPHELD, and it was a live bug.  `row_epop` tested the PRE-EDGE `pend_active`,
+while the step tests it AFTER the row's own `emit_pending`
+(`exec_impl.h:1095`, immediately before the cadence).  With `pend_active=1` and
+`opr_fresh=1` entering an E row: the demand is false, the step clears the
+latch, and the cadence then takes a byte the bus was never asked for — F11's
+forbidden case, in F11's own fix.
+
+The repair is not another reconstruction.  `pend_after` and `retire_ok_e` are
+now WIRES, and `v30u_eu_row.svh`'s cadence reads THOSE WIRES instead of
+recomputing the same predicates from its live blocking copies.  **The demand
+and the take are now literally the same expressions**, which is what F11 said
+and what pass 2 had not yet actually built.  Codex's simplicity note named this
+exactly: "duplicates the E-row transition in two representations… this is
+reconstruction, not one shared event predicate."
+
+**C3 — the completed-read store bound was an unproved claim.**  UPHELD.  The
+model's `rd_done_q_` is an unbounded deque; this EU has `rdq0`/`rdq1` and no
+full check.  Per campaign risk #2 (bounded counters carry SYNTHESIS bound
+assertions), the bound is now ASSERTED, where both values are the live ones:
+
+```
+if (rdq_n == 2'd2) $error("v30u_eu: completed-read store overflow (rdq_n=2)");
+if (rd_done_cnt == 2'd3) $error("v30u_eu: rd_done_cnt saturated");
+```
+
+**It fires.**  `F3A4` / `F3A5` (REP MOVS) trip it immediately; `C8` (ENTER)
+trips it within 60 cases.  Those three forms now report `SIM FAILED` where they
+previously reported 0/60 — that is the instrument working, not a regression,
+and it is a REGISTERED finding for the strings/REP rung: **either the microcode
+never has three completed reads outstanding and the RTL is mis-counting, or the
+store must be deeper.**  The assertion decides which, and it decides it loudly
+instead of silently dropping a word.
+
+Codex declined to propose a single mechanism behind more than one of §23's four
+families, as briefed.  It also flagged, correctly, that "synthesis-correct
+under Quartus 17.1" is not established by any evidence in-repo — U4 owns that,
+and §20 should not be read as more than "conventional register/next-state
+topology, race-free by construction".
+
+### §26.1 Re-measured after folding C1-C3
+
+No green rung moved, and no form regressed (form-by-form diff of the two
+whole-suite censuses):
+
+| | before C1-C3 | after |
+|---|---|---|
+| the seven green forms at 500 | 3500/3500 | **3500/3500** |
+| whole-suite `--cases 60` | 7,767 full | **7,775 full** |
+| forms cycle-exact | 136 | **141** |
+| forms fully green | 102 | **102** |
+| forms reporting a hang | 18 | **17** (`0F20` + the string/HLT/0F group) |
+| forms regressed | — | **none** |
+
 ## §24 U2 PASS-2 GATE LEDGER
 
 All on the same tree, `--core ucore`, v0.1 at w0 unless stated.
@@ -1099,22 +1173,32 @@ All on the same tree, `--core ucore`, v0.1 at w0 unless stated.
    SOURCE are not.  Read `v30u_eu.sv`'s `row_seg` / `acc_off` / `s1_val`
    against `exec_impl.h::sr_segment` and the `50` micro-rows
    (`upc 0.50.0 = 1c6ffcea`, `0.50.1 = 14e25bea`).  Twelve forms, one
-   mechanism — do NOT let it become twelve cases.
-3. **Then families B, C, D** in the ladder's order (B is INC/DEC/1BL, which is
+   mechanism — do NOT let it become twelve cases.  **Sharpened in pass 2:**
+   for `50 idx 2` the SEGMENT is already right — the RTL posts `0x982D0`,
+   which is `SS(0x982D) * 16 + 0`, against the golden's `0x9CF6E` =
+   `SS*16 + (SP-2)`.  So `ind` is simply NEVER LOADED, and the write data is
+   `0` for the same reason OPR is never loaded.  The failure is the E-row
+   TRANSFERS of `upc 0.50.0` (`s1=28 d1=13 s2=1 d2=3`, a CTL row with
+   `ictl=7 ectl=2 sr=2`), i.e. `rd_src1`/`rd_src2`/`wr_dst1` decode — not the
+   address arithmetic and not the segment.
+2. **Then C3's registered finding**: `F3A4`/`F3A5`/`C8` trip the
+   completed-read-store assertion (§26/C3).  Decide it before the strings/REP
+   rung: mis-count, or a deeper store.
+4. **Then families B, C, D** in the ladder's order (B is INC/DEC/1BL, which is
    the ladder's next named rung after push/pop; D is the boot march's
    prerequisite).
-4. **The microscope** used throughout pass 2 is worth rebuilding in three
+5. **The microscope** used throughout pass 2 is worth rebuilding in three
    lines: compose a ONE-case batch with `check_core.compose_batch`, run the
    ucore TB with `+eutrace`, and print `c["cycles"]` (golden) next to
    `check_core.build_rows_sim(...)` (RTL).  Row index == CE clock index ==
    `+eutrace` line number, so a divergence at row N is read directly off
    trace line N+1.  That correspondence is what made F11 and F12 one-shot
    diagnoses.
-5. **Still not run**: the boot march (`check_boot --core ucore`, F3's routed
+6. **Still not run**: the boot march (`check_boot --core ucore`, F3's routed
    gate), `ulockstep` batch mode over golden cases, the wait axes (U3).
-6. **Still unimplemented by design**: the REP/string continuation
+7. **Still unimplemented by design**: the REP/string continuation
    (`intr_pending` has no writer), the interrupt entries, `eu_unhalt`, the POLL
    pin pipeline beyond the static level, the 8080 loader (ledger R4).
-7. **The HLT one-clock-lead contract** (`eu_halt`/`eu_unhalt` LEAD by one
+8. **The HLT one-clock-lead contract** (`eu_halt`/`eu_unhalt` LEAD by one
    clock, §11.6) is still unverified — it is reached when the ladder gets to
    the 1BL forms, which is family B.

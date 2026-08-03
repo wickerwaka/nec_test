@@ -939,7 +939,14 @@ wire [2:0] row_wr_add    = (row_is_wr || row_is_wb)
 wire [2:0] wr_after      = {1'b0, wr_out} + row_wr_add;
 wire       retire_ok_e   = (wr_after == 3'd0) ||
                            ((wr_after == 3'd1) && eu_wr_done_n);
-wire row_epop = (st == S_ROW) && e_e && !pend_active && !opc_valid &&
+// ...and the E row's OWN pairing latch.  `exec_impl.h`'s
+// `if (pend_.active && opr_fresh_) emit_pending();` runs IMMEDIATELY BEFORE the
+// cadence, so the cadence sees the latch CLEARED -- reading the pre-edge
+// `pend_active` here would take a byte the bus was never asked for.  Same two
+// terms as `eu_pair` below, which is the act that does the clearing.
+wire pend_new   = pend_active || (row_is_wr || row_is_wb);
+wire pend_after = pend_new && !(opr_fresh || row_wr_opr);
+wire row_epop = (st == S_ROW) && e_e && !pend_after && !opc_valid &&
                 !row_blocked && (rowq >= row_qn) && !row_pre_wait &&
                 !row_slot_wait && retire_ok_e;
 
@@ -1124,6 +1131,16 @@ always @(posedge clk) begin
         poll_pipe = {poll_pipe[1:0], pin_poll_n};
         rd_age0 = 1'b0;
         if (eu_rd_done_n) begin
+`ifndef SYNTHESIS
+            // campaign risk #2.  The model's `rd_done_q_` is an unbounded
+            // deque; this EU stores TWO completed reads.  That bound is a
+            // CLAIM about the microcode, so it is asserted, not assumed --
+            // and asserted HERE, where both values are the live ones.
+            if (rdq_n == 2'd2)
+                $error("v30u_eu: completed-read store overflow (rdq_n=2)");
+            if (rd_done_cnt == 2'd3)
+                $error("v30u_eu: rd_done_cnt saturated");
+`endif
             if (rd_done_cnt == 2'd0) rd_age0 = 1'b1;
             rd_done_cnt = rd_done_cnt + 2'd1;
             if (rd_pending != 2'd0) rd_pending = rd_pending - 2'd1;

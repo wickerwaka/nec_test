@@ -146,20 +146,20 @@ begin
     end else if (e_e) begin
         // the successor's opcode pop rides the E row's own clock; a store the
         // pairing latch still owes data defers it to the sequence tail.
-        // The retire deadline is read AFTER this row's own post (`wr_out` was
-        // just incremented above), not from the pre-edge wire.
-        // `wr_out` here is the LIVE count -- incremented by this row's own post
-        // a few lines up -- which is exactly what `retire_ok_e` reconstructs
-        // combinationally for the demand (F11).  The wire `retire_ok_n` reads
-        // the REGISTER and must not be used here.
-        retire_now = (wr_out == 2'd0) || ((wr_out == 2'd1) && eu_wr_done_n);
-        if (!pend_active && !opc_valid && retire_now && q_ripe) begin
+        // F11, stated the only way that cannot drift: the demand and the take
+        // read THE SAME WIRES.  `retire_ok_e` and `pend_after` are the exact
+        // post-row values this block would otherwise recompute from its live
+        // blocking copies -- reconstructing them twice is what let the two
+        // sides disagree in pass 1.  (`retire_ok_n` reads the REGISTER `wr_out`
+        // and is NOT this predicate.)
+        retire_now = retire_ok_e;
+        if (!pend_after && !opc_valid && retire_now && q_ripe) begin
             opc_byte = q_byte;
             opc_valid = 1'b1;
             pop_is_first = 1'b0;
             poste = 1'b1;
             st = S_TAIL;
-        end else if (!pend_active && !opc_valid) begin
+        end else if (!pend_after && !opc_valid) begin
             st = S_EPOP;
             stop = 1'b1;
         end else begin
