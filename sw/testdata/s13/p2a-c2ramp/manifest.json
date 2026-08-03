@@ -1,0 +1,109 @@
+{
+ "probe": "P2a -- C2, LC1's queue-fill ramp",
+ "spec": "docs/notes/ucsim_t_provenance.md 24.0 P2a; biu_law_cards.md A.1 (C2)",
+ "use_core": false,
+ "host": "root@mister-nec",
+ "cells": {
+  "p6s2:ws0:wmax0": {
+   "sha": "c838cc6a82739df5f49583428a58a8283e19d0eba2de2ace55a063f7e7911e81",
+   "rows": 4063
+  },
+  "p6s2:ws5:wmax1": {
+   "sha": "9aa936ab8a56e0a7d7e9dddf22f9de913f0eb8c4d3fd8b04d72c2d298753bb65",
+   "rows": 4063
+  },
+  "p6s2:ws7:wmax3": {
+   "sha": "f4767d9d34e116d1a761a5a6258032c7327a4dbc8d22ae176aa931b0ad9507a0",
+   "rows": 4063
+  },
+  "p6s2:ws11:wmax7": {
+   "sha": "980af8b9328e965492c25a7546c1395b8f34ba9798595862f7980a6795ed7205",
+   "rows": 4063
+  },
+  "p6s6:ws0:wmax0": {
+   "sha": "51d77528d25f37dce38946d7f19a7c502c7966dc51cc2c8febd0627ec9f6f65e",
+   "rows": 4063
+  },
+  "p6s6:ws5:wmax1": {
+   "sha": "9aa936ab8a56e0a7d7e9dddf22f9de913f0eb8c4d3fd8b04d72c2d298753bb65",
+   "rows": 4063
+  },
+  "p6s6:ws7:wmax3": {
+   "sha": "f4767d9d34e116d1a761a5a6258032c7327a4dbc8d22ae176aa931b0ad9507a0",
+   "rows": 4063
+  },
+  "p6s6:ws11:wmax7": {
+   "sha": "980af8b9328e965492c25a7546c1395b8f34ba9798595862f7980a6795ed7205",
+   "rows": 4063
+  },
+  "p10s2:ws0:wmax0": {
+   "sha": "512c7bff70747496378f2c91140bf5c1455335323d7466d23889ecd108284cae",
+   "rows": 4063
+  },
+  "p10s2:ws5:wmax1": {
+   "sha": "49d0a6bb6473055cbfdb0add289e7fdc53322044825d6b95397c468438f3769e",
+   "rows": 4063
+  },
+  "p10s2:ws7:wmax3": {
+   "sha": "8b6ffea907dae67b6a3197df9bdb6154fe4cccf951b3dea96b2aa63ba733c120",
+   "rows": 4063
+  },
+  "p10s2:ws11:wmax7": {
+   "sha": "2f041060a6135f101a07a489bf4a84445c6ac209a977e40150365f17a47e183d",
+   "rows": 4063
+  },
+  "p10s6:ws0:wmax0": {
+   "sha": "f2feec576710d621383aad2fd9c10059a9d558d737294bfb211fd3e62d6c4c8e",
+   "rows": 4063
+  },
+  "p10s6:ws5:wmax1": {
+   "sha": "49d0a6bb6473055cbfdb0add289e7fdc53322044825d6b95397c468438f3769e",
+   "rows": 4063
+  },
+  "p10s6:ws7:wmax3": {
+   "sha": "8b6ffea907dae67b6a3197df9bdb6154fe4cccf951b3dea96b2aa63ba733c120",
+   "rows": 4063
+  },
+  "p10s6:ws11:wmax7": {
+   "sha": "2f041060a6135f101a07a489bf4a84445c6ac209a977e40150365f17a47e183d",
+   "rows": 4063
+  },
+  "p16s2:ws0:wmax0": {
+   "sha": "3e9c41310e6fbae573ab178b24551efbc642971b8642a179118a5aab4817d82f",
+   "rows": 4063
+  },
+  "p16s2:ws5:wmax1": {
+   "sha": "6c85e6891dd7b5129eb0fc56c6f8c7e18c62fa9abae0e3191ff7290c283042d9",
+   "rows": 4063
+  },
+  "p16s2:ws7:wmax3": {
+   "sha": "f3b2e32a2fc3497bce5af9d2d17cdc1694c882c99b72eb6d3e709ee5f0a25bd3",
+   "rows": 4063
+  },
+  "p16s2:ws11:wmax7": {
+   "sha": "7f2c5b61d25257ecb71b400c07764846865658ee3a2e2191713b1b8dcf9b1850",
+   "rows": 4063
+  },
+  "p16s6:ws0:wmax0": {
+   "sha": "3e9c41310e6fbae573ab178b24551efbc642971b8642a179118a5aab4817d82f",
+   "rows": 4063
+  },
+  "p16s6:ws5:wmax1": {
+   "sha": "6c85e6891dd7b5129eb0fc56c6f8c7e18c62fa9abae0e3191ff7290c283042d9",
+   "rows": 4063
+  },
+  "p16s6:ws7:wmax3": {
+   "sha": "f3b2e32a2fc3497bce5af9d2d17cdc1694c882c99b72eb6d3e709ee5f0a25bd3",
+   "rows": 4063
+  },
+  "p16s6:ws11:wmax7": {
+   "sha": "7f2c5b61d25257ecb71b400c07764846865658ee3a2e2191713b1b8dcf9b1850",
+   "rows": 4063
+  }
+ },
+ "div_guard": {
+  "readback": "div=8 (4 MHz), commanded by this connection",
+  "state": "PINNED"
+ },
+ "seconds": 4.1
+}

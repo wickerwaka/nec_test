@@ -138,6 +138,67 @@ def lc1(verbose):
 
 
 # --------------------------------------------------------------------------- #
+# C2 -- LC1's queue-fill RAMP, against the S13 frozen silicon
+# --------------------------------------------------------------------------- #
+C2RAMP = ROOT / "sw/testdata/s13/p2a-c2ramp/c2_table.json"
+
+
+def c2_ramp():
+    """C2 says the prefetch 'resumes IMMEDIATELY at the fill threshold' -- i.e.
+    the FIRST refill after a queue flush has an idle gap STRICTLY SMALLER than
+    the steady-state `cidle` of 3.  The Arm-C sled isolates the steady state
+    and not the transient, which is why this card stood UNRESOLVED from (c) to
+    23.9.  S13's P2a supplies the missing stimulus (ucsim_t_provenance 24.3):
+    repeated contained far-JMP flushes ahead of a fetch-limited sled, 24 cells
+    over flush period x sled x the four corpus wait vectors, captured from the
+    SOCKET with the divider pinned.
+
+    This is a BOARD-FREE RE-RUNNABLE gate: the chip's own gap distributions are
+    frozen in `c2_table.json`, the stimulus rebuilds from its own seed, and the
+    sim is re-run here on the SAME image and the SAME wait vector.
+
+    GREEN needs BOTH halves of what the card asserts and neither is weakened:
+      1. the chip's post-flush gaps are ALL strictly below the steady-state
+         cidle of 3, and the steady-state population DOES carry a >= 3 tail
+         (otherwise there is no contrast to reproduce and the cell is vacuous);
+      2. the sim reproduces the chip's post-flush AND steady distributions
+         PER CELL, not merely in aggregate.
+    """
+    if not C2RAMP.exists():
+        return ("UNRESOLVED",
+                "no queue-fill-ramp capture in this repo (sw/testdata/s13/"
+                "p2a-c2ramp) -- run `s13_board.py c2ramp`")
+    import s13_board as S13                                   # noqa: E402
+    tab = json.loads(C2RAMP.read_text())
+    cp, cs = Counter(), Counter()
+    percell = 0
+    for r in tab:
+        image = S13.c2_image(r["period"], r["sled"])
+        wv = WG.wv_of(r["ws"], r["wmax"])
+        srows = S13.sim_rows_image(image, wv, r["chip_rows"])
+        sp, ss = S13.ramp_gaps(srows)
+        sp = {str(k): v for k, v in sorted(Counter(sp).items())}
+        ss = {str(k): v for k, v in sorted(Counter(ss).items())}
+        percell += (sp == r["chip_post"] and ss == r["chip_steady"])
+        cp += Counter({int(k): v for k, v in r["chip_post"].items()})
+        cs += Counter({int(k): v for k, v in r["chip_steady"].items()})
+    npost = sum(cp.values())
+    below = sum(v for k, v in cp.items() if k < 3)
+    tail = sum(v for k, v in cs.items() if k >= 3)
+    why = (f"queue-fill ramp, {len(tab)} silicon cells (S13 P2a): chip "
+           f"post-flush gaps {dict(sorted(cp.items()))} -- {below}/{npost} "
+           f"strictly below the steady cidle of 3; chip steady "
+           f"{dict(sorted(cs.items()))} carries a >=3 tail of {tail}; sim "
+           f"reproduces {percell}/{len(tab)} cells exactly")
+    if not npost:
+        return ("UNRESOLVED", "the stimulus produced no post-flush refill "
+                              "at all -- probe-design finding, not a pass")
+    if below != npost or not tail:
+        return ("RED", why)
+    return ("GREEN" if percell == len(tab) else "RED", why)
+
+
+# --------------------------------------------------------------------------- #
 # C4 / C5 / C10 / C11 / C12 -- the directed wvec law seeds, against silicon
 # --------------------------------------------------------------------------- #
 def wvec_cell(seed, ws, wmax, base):
@@ -194,22 +255,25 @@ def main():
                   f"({d['chip_events']} pause events)  sim {d['sim']} "
                   f"({d['sim_events']})  (sim converged {d['converged']})")
         v = "GREEN" if ok else "RED"
-        # C1/C2 ride the same sled but state the GAP and the RAMP, which the
-        # cidle distribution only summarises -- so they are reported at the
-        # strength the stimulus actually supports.
-        note = ("the cidle=3 PIN is now REACHABLE (M6, 12.1: the model could "
-                "not emit 3 at high N before T2b) but the PAUSE POPULATION is "
-                "not reproduced -- sim %d vs chip %d events at N=8, %d vs %d "
-                "at N=12: the model still resumes far more eagerly than the "
-                "part, which is LC1/LC2 unimplemented (11.10) and a T3 input"
+        # C1 rides the sled and states the steady-state GAP; C2 states the
+        # RAMP and has its own stimulus (S13 P2a) -- the sled's steady state
+        # never isolated the transient, which is why C2 stood UNRESOLVED.
+        #
+        # NOTE, corrected in S13 (the stale string was booked as a cleanup in
+        # ucsim_t_provenance 21.0.5 item 6): this note used to say "the PAUSE
+        # POPULATION is not reproduced" while PRINTING equal counts.  It is a
+        # leftover of the pre-T2b RED reading and it contradicted its own
+        # numbers.  What the run actually measures is stated instead.
+        note = ("the cidle=3 PIN is REACHABLE (M6, 12.1: the model could not "
+                "emit 3 at high N before T2b) and the PAUSE POPULATION now "
+                "matches to the event -- sim %d vs chip %d events at N=8, "
+                "%d vs %d at N=12, distributions identical"
                 % (det[8]['sim_events'], det[8]['chip_events'],
                    det[12]['sim_events'], det[12]['chip_events']))
         verdict["C3"] = (v, "cidle pin at N=8/12 vs the frozen sled -- " + note)
         verdict["C1"] = (v, "the sled IS the fetch-limited waited stream; "
                             "steady-state gap read as the cidle mode -- " + note)
-        verdict["C2"] = ("UNRESOLVED",
-                         "the fill RAMP needs a queue-fill transient, which "
-                         "the sled's steady state does not isolate")
+        verdict["C2"] = c2_ramp()
 
     for card, seed in (("C4", 90364), ("C5", 90364), ("C12", 90270)):
         if card not in want:

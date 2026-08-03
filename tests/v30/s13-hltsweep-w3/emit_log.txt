@@ -1,0 +1,6 @@
+# TRUTH SOURCE: SOCKET (real chip, use_core=False)  seed_base=v30-s10-hlt (the S2 sweep's OWN fixed seed, so w2/w3 are the SAME program as w0/w1)  waits=3  div=8 (4 MHz, PINNED)  guard=PINNED
+HLT.INT_w3_d0 golden: recognition off-window: pushed ff0c vs min 8182
+HLT.INT_w3_d1 golden: recognition off-window: pushed ff0c vs min 8182
+HLT.INT_w3_d2 golden: recognition off-window: pushed ff0c vs min 8182
+HLT.INT_w3_d3 golden: recognition off-window: pushed ff0c vs min 8182
+HLT.INT_w3_d4 golden: recognition off-window: pushed ff0c vs min 8182

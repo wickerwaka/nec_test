@@ -1,0 +1,47 @@
+{
+ "probe": "P5 -- HLT.INT_w0_d0, the repetition-unstable cell",
+ "spec": "docs/notes/ucsim_t_provenance.md 24.0 P5",
+ "use_core": false,
+ "host": "root@mister-nec",
+ "reps": 50,
+ "cells": {
+  "HLT.INT_w0_d0": {
+   "reps": 50,
+   "distinct": 24,
+   "counts": {
+    "bdea9bccf8e1ce6987f889badc80b1d51032e13b489139059dabf34ed28c578d": 1,
+    "7677add9ece3fca87217421fecdf65ed72fbf24327d757d4b57d6227c3c74975": 2,
+    "385b2383e89b9ffe49f71a6bfe5cac5e9f47182a7700f210a9fbc823c51f1708": 14,
+    "c9f11d232e0e3201b7247ea3f759bf217307d411625ced24b0630d383af79d63": 7,
+    "b6e09a3c579f6932693cb77f82a7834a1e1f81ea8abddb20ed7a8c17e714e943": 4,
+    "148ece48c0cf75daa8b78ab65862dee12d8bdf0a03dd6fb55b7f419aaff6c5c6": 1,
+    "891811c2cd82b3025d71f5ef4a2213806ca1baed9fbc12053412ff297eafd170": 2,
+    "476a965aebb5a9d81b94c238d6caf0182604017b3e93488b43fa6067e9c5bb7b": 1,
+    "7722bebe27edcfc453cfae5acfe013bfa56db8e0932a8c9e6ecdf9df00e9032c": 1,
+    "2600e03537c5c86504bbd1ad5a43858ca035238dd9b3e27f4134e67517cf5907": 1,
+    "8e3492048cd2ff86b8090cb6c9b46d3dbf75fee989dba289746b204c5bbb9ca3": 1,
+    "10be7b5b72cbd960e1fc0e1303ae5a3b0a55a031e59aa877a9b6283666415cdf": 1,
+    "89b5796774a8607ccc48d7596fbda364b5400d58a05745b3aee9b5794657ea11": 1,
+    "ae076d75908d373c2082e3e4779b24a96c8e80cedce5ceb519519edb9a11edee": 1,
+    "395fdd1084f46078e38c13b6dcfa7cb6966141ea756716d244461fdf754f10cf": 3,
+    "de41c60c9ba093f7f5c5224ba77893dce1f2737272e79fd5c673ae12ba822e93": 1,
+    "50807eef0b7400e2981a876931e14b585940ec074b6ce52cb145e11789aaa8f6": 1,
+    "ae4ad52857133147000920b142af4e3d2c17aa65c705648b8ee700dd3c23016b": 1,
+    "b9c289b0b001a982c84380f9286b62e9db3c0d96442b2836edd0d1e3777735b5": 1,
+    "eda767608bde6abd51a1fe384e73410b17291512501d16881e06c6e9b924b70b": 1,
+    "2eb5af0038cf89dc4f5c7cef769d1a0003c912af7cd0ba455efb7c488aad7fd7": 1,
+    "b8c4c1edffa547e9311e490abee1a1e3e74102fa9f95a7aa40be467e2a1b189c": 1,
+    "089771428c72f36eeb64646202fb5da0baf8e062e2da49a967d2be7dbbcd67f2": 1,
+    "db20bfcf3947c2a75fc03144a926ea6f537adedf89c2f6fd8d2d99d8b51d9bca": 1
+   },
+   "fired": {
+    "true": 50
+   }
+  }
+ },
+ "div_guard": {
+  "readback": "div=8 (4 MHz), commanded by this connection",
+  "state": "PINNED"
+ },
+ "seconds": 4.6
+}
