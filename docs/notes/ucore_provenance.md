@@ -432,3 +432,258 @@ Open items U1 inherits from this stage:
 5. **Not yet done, by design**: no `v30u_*.sv`, no `sw/ulockstep.py`, no
    `hdl/files_ucore.qip`, no `--core {fsm,ucore}` switch in `check_core.py`.
    U0 added no RTL to the build and no core RTL to `hdl/rtl/ucore/`.
+
+---
+
+# STAGE U1 — the BIU, and the lockstep instrument
+
+## §8 What U1 built
+
+| artifact | what it is |
+|---|---|
+| `hdl/rtl/ucore/v30u_biu.sv` | the mechanism BIU — a transliteration of `sim/biu_timed.{h,cpp}`, M1-M23 + M2r/M5b + F1/F2/F3, each carrying its ledger tag |
+| `hdl/rtl/ucore/v30_core.sv` | the top: port list byte-compatible with HEAD `hdl/rtl/core/v30_core.sv` (chip pins, CE/CE_HALF, SS group, V30_BACKDOOR incl. `scr_en`/`scr_qop` + `dbg_*`), SS staging + tag + the three SYNTHESIS assertions |
+| `hdl/rtl/ucore/v30u_eu.sv` | the stage-U1 placeholder: every output tied to its inert value, no state, no SS addresses |
+| `hdl/rtl/ucore/v30u_ss_pkg.sv` | the new map, `SS_VERSION 0x80`, **94 BIU addresses**, `SS_EU_COUNT 0`, `SS_COUNT 95` |
+| `sim/biu_script.cpp` + `v30sim biu-script` | the model's BIU driven ALONE by a script — the missing oracle leg (see §11) |
+| `sw/ulockstep.py` | the standing instrument: same script through both legs, raw `r`-records diffed clock-for-clock, first divergence ±8 |
+| `sw/check_core.py --core {fsm,ucore}` | engine selection: RTL file list + include path + obj_dir + one define.  `fsm` is the default |
+| `sw/check_boot.py --core {fsm,ucore}` | the same switch on the boot leg, plus a "matching prefix" report |
+
+**The package name is deliberately `v30_ss_pkg` in both cores.** The two cores
+are drop-in alternatives selected by the FILE LIST; `hdl/tb/tb_v30_core.sv`
+imports the package by name and must not be parameterised on the engine.
+
+## §9 GATE U1 — RESULT: **GREEN on the scripted set; the boot leg is VACUOUS**
+
+`python3 sw/ulockstep.py --suite --waits 0,1,2,3` — **32 / 32 scenarios
+LOCKSTEP**, i.e. every clock of every scenario identical to the model under the
+column policy of §10:
+
+| scenario | what it exercises | w0 | w1 | w2 | w3 |
+|---|---|---|---|---|---|
+| `fill-from-empty` | the fetch scheduler from an empty queue; M4/M7 refill threshold; M6 landing block; the queue filling to 6 | 64 | 64 | 64 | 64 |
+| `starved-pops` | a byte consumed every clock: M3's latency pipeline (poppable at e+3), M7/M7b resume | 45 | 65 | 75 | 85 |
+| `preloaded-drain` | a FULL injected queue then a burst of pops: the resume decision with the queue crossing the threshold | 38 | 38 | 38 | 38 |
+| `paced-pops` | pops every 3 clocks: M8's `pop = max(demand, ready)` with the DEMAND binding | 29 | 29 | 29 | 29 |
+| `odd-base` | an odd fetch pointer: the single upper-lane byte fetch (+1) and the even/odd width alternation | 34 | 34 | 39 | 44 |
+| `flush-inflight` | F1's parked QS=E, F3's flush-only T4 eval point, M12's latch invalidation, M19's standing request | 39 | 39 | 39 | 39 |
+| `flush-idle` | a flush on an idle bus: the E takes the port at once and the redirect commits at the end of the flush clock (M12) | 57 | 57 | 57 | 57 |
+| `flush-double` | two flushes back to back, the second while the first redirect is in flight (doomed on both sides of the announcement) | 43 | 43 | 43 | 43 |
+
+(the numbers are the clock counts compared, all identical on both legs).
+
+The wait sweep is what makes this a test of the SPINE rather than of w0: at w0
+the eval instant sits at T3 and at w>0 at T4, so every landing window
+(`grn`/`infl`/`absorb`) and every status release moves with it.  The same eight
+scripts pass at all four wait levels with no wait-keyed term in the RTL.
+
+**Sim-side and FSM-side gates on the same tree**: `make -C sim test` disasm
+gate **PASS**; `sw/pla3_check.py` **OK, 21 checks**; `sw/check_ucore_tables.py`
+**PASS — G0 GREEN, 9988/9988**; `sw/check_core.py --opcodes all` (FSM)
+**169,000 / 169,000 full**, matching §2's clean-HEAD baseline number for number;
+`sw/check_boot.py` (FSM, both legs) **220 rows**; `sw/ss_lint.py` **PASS**;
+`--ce-div 3 --ce-hold-check` **0 violations** on the rewritten engine-neutral
+probe.
+
+## §10 FINDINGS
+
+### F3 — the boot capture is NOT a BIU-only stream; `check_boot --core ucore` is VACUOUS at U1
+
+**Class: SPEC.** The stage brief asked for `check_boot.py --core ucore` at
+220/220 and, failing that, for the maximal EU-free prefix.  Measured, with the
+EU stubbed: **204 of 220 rows differ, and the matching prefix is 7 rows.**
+
+That prefix is **vacuous**, and this is the honest reading rather than a
+7-row pass: `check_boot`'s own column policy compares `bs` only from
+release+8 and `t`/`ube`/`addr`/`data`/`ps` only from release+9, so rows 0-6
+carry no compared content beyond `qs`, which is idle on both legs.
+
+The cause is structural, not a defect.  The chip's reset sequence is a
+MICROCODE MARCH: the ROM rows load CS=FFFF / IP=0000 and end in a **FLUSH**,
+and the capture shows exactly that — QS=**E** at release+7, the first CODE
+status at release+8, the first CODE T1 at release+9.  Those three clocks are
+M19's standing request being raised by the flush and granted at the flush
+clock's eval.  With no sequencer there is no march, no flush, and the ucore BIU
+instead free-runs its prefetcher from reset and is ~2 fetches ahead by
+release+9.
+
+*Consequence*: the boot gate is **routed in full to U2**, where the sequencer
+runs the reset march out of `ucrom.hex`.  It is not booked as a ucore
+divergence — the two legs are not running the same machine.
+
+*Falsifier*: a demonstration that the release+7 `E` and the release+9 first T1
+can be produced by the BIU alone from the reset state, without a micro-row
+asserting the flush.
+
+### F4 — `e_from` is a term of the FLUSH CLOCK, not a flop
+
+**Class: SPEC (RTL bug, found and fixed by the instrument).**  The model's F1
+computes `e_from_ = (a fetch owns the port) ? clk+1 : clk` and then tests
+`c >= e_from_`.  The first RTL cut carried that as a one-clock flop set at the
+flush edge — which blocks the clock AFTER the flush instead of the flush clock
+itself.  `flush-double` at **w1** is the one scenario in the set that separates
+the two: the second flush lands on the redirect fetch's T4, and the chip shows
+its `E` on T4+1 while the flopped version pushed it to T4+2.
+
+The fix is also the simplification: for every clock after the flush the test
+`c >= e_from` is vacuously true, so the term is purely combinational on the
+flush clock and the flop is deleted (SS map 95 → 94 addresses).
+
+*Falsifier*: any flush whose `E` is deferred by more than the flush clock
+itself while no fetch owns the queue port.
+
+### F5 — the eval instant needs no wait knowledge: `dage >= 3 && ready_prev`
+
+**Class: SPEC.**  The model computes the completion-eval instant from the wait
+count it knows (`eval_i = w==0 ? 2 : 3+w`, plus M22's `max(disp+3, ...)` branch
+at zero waits and M21's index-1 HALT case).  The RTL has no wait count, and
+does not need one: with `dage` = the cycle's age counted from its own DISPLAY
+clock and `ready_prev` = the registered READY pin,
+
+```
+eval instant  ==  the first clock with  dage >= 3  and  ready_prev
+```
+
+reproduces all three of the model's branches at once — at w0 that is T3, at
+w>0 it is T4 (READY is high only from the last Tw), and M22's
+"counted from the DISPLAY, not from the T1" IS `dage >= 3`.  The HALT
+pseudo-cycle keeps its own measured index-1 release (`dage >= 2`,
+wait-independent) and is the ONLY exception in the module.
+
+This is the campaign's SIMPLICITY directive paying out: the RTL is SHORTER
+than the model here because the model has to reconstruct what the hardware
+simply has.  Validated by the wait sweep in §9 (32/32 at w0-w3).
+
+### F6 — one number initialises all three landing windows
+
+**Class: SPEC.**  M3 (`ready = e+3`), M7b (`infl to = e+2`) and F1(b)
+(`absorb = e+1..e+2`) are three separately-measured windows.  In the RTL they
+are three TTL counters loaded at T4 from the SAME value, `2 - sev`, where `sev`
+is the distance from this cycle's eval to its T4 (1 at w0, 0 under waits, 2 in
+M22's delayed-T1 corner).  `eu_done` (e+2) is the same number again.  No wait
+term, no table.
+
+## §11 THE OBSERVATIONS THAT NEEDED NEW TOOLING (and what did not change)
+
+1. **`v30sim biu-script`** (`sim/biu_script.cpp`, one new subcommand, plus a
+   forward declaration and a dispatch line in `main.cpp`).  `timed-run` and
+   `timed-boot` both run the interpreter, so neither can be the oracle for a
+   BIU-only RTL.  The subcommand instantiates `sim::BiuTimed` and calls the Bus
+   concept's own methods in the order a script names.  **It adds NOTHING to the
+   model**: no BiuTimed source line changed, and the sim-side standing gates
+   were re-run on the resulting build (§9).
+
+2. **The TB's scripted-consumer driver** (`+scr=<file>`).  ENGINE-NEUTRAL by
+   construction: it drives `scr_en` / `scr_qop` and the V30_BACKDOOR injection
+   group only — ports BOTH cores already carry — and records the ordinary `r`
+   stream.  It reads the SAME script file as the sim leg.
+
+3. **The TB's in-DUT probes are now `` `ifdef V30_FSM_PROBES ``.**  This was
+   FORCED: the `d` / `g` / `p` dumps, the coverage readout and the CE-hold
+   check reach inside the DUT by hierarchical reference (`dut.u_eu.state`,
+   `dut.u_biu.cov_*`, ~75 signals) and are bound to the FSM core's internal
+   names, so the TB would not ELABORATE against any other engine.  The TB
+   itself is engine-neutral — it drives and samples chip pins plus the backdoor
+   group.  `--core fsm` passes the define, so the FSM build is unchanged; the
+   CE-hold check was additionally rewritten as one probe CONCATENATION per
+   engine so the RULE stays identical for both.  **The FSM baseline was fully
+   re-verified afterwards** (§9: 169,000/169,000, boot 220, ss_lint, CE-hold).
+
+4. **The scripted-consumer protocol gained a FLUSH command.**  The FSM top ties
+   `q_flush` low under `scr_en`, so its scripted mode cannot reach the F1 /
+   F3 / M12 / M19 family at all.  ucore spends the otherwise-unused `2'b10`
+   (E) `scr_qop` encoding on "flush + redirect to `bkd_cs`:`bkd_fetch_ip`".
+   Recorded here because it is a divergence between the two cores' BACKDOOR
+   contracts, not between their machines.
+
+5. **A phase contract in the TB driver, learned the hard way.**  The first cut
+   assigned `scr_qop` in the same time slot as the recording posedge and raced
+   the recorder, making the RTL leg look exactly one clock fast on every
+   scenario.  Control between ops now always sits just after a NEGEDGE, and the
+   service test reads a `qs_p` flop carrying the row's own QS.  This is the
+   §"vacuous-gate pattern" again in miniature: the harness, not the DUT.
+
+6. **ONE interface contract, booked for U2.** The model's `note_halt` /
+   `unhalt` land in `tick(c)`'s PRE-ROW block, which in RTL is the edge ending
+   `c-1`.  `eu_halt` / `eu_unhalt` are therefore specified to LEAD by one
+   clock — the same one-row-early control decode F2 already measures for SUSP.
+   Nothing else in the interface leads.  HALT is not reachable from the
+   scripted-consumer protocol, so this is UNVERIFIED at U1 and is U2's first
+   HALT gate.
+
+## §12 The ulockstep column policy (and why it is not "all fields")
+
+`sw/ulockstep.py` applies `sw/check_core.py::diff_rows`'s policy verbatim —
+bus/data compared only on rows where the pins are DRIVEN:
+
+```
+every row          t, bs, qs, ube_n
+driven rows only   ad_data, ps      (T1/T2/T3/Tw, or bs != PASV)
+address rows only  ad_addr          (T1, or Ti/T4 with bs != PASV)
+```
+
+Two reasons, both pre-existing:
+
+* **Idle-row retention.** The model REPLAYS the pre-window fetch address
+  sequence (`queue_preload`, T0 open item 3) so its idle pins carry the
+  pre-window data phase; the RTL is handed a backdoor state with no history.
+  check_core has masked exactly this since the FSM core's first gate.
+* **`ad_addr` is the MID-clock sample.** It is an ADDRESS only at T1 and on an
+  announcing row; on a T2/T3/Tw row of a read the composed bus is whatever the
+  MEMORY drives, which the model does not model and no golden samples.
+
+*Falsifier for the policy*: a golden row whose verdict depends on a field this
+tool masks.
+
+## §13 SS map state
+
+`v30u_ss_pkg.sv`, `SS_VERSION 0x80` (the 0x80 family bit, so a ucore stream can
+never be mistaken for an FSM one).  **94 BIU addresses**, each `SSA_B_*` symbol
+appearing EXACTLY TWICE in `v30u_biu.sv` (one write-decode arm, one read-mux
+arm) — the inherited audit invariant, honoured from the first commit.
+`SS_EU_COUNT` is 0 and `SS_COUNT` is 95; U2 seeds the EU region and the map is
+append-only from there.  `sw/ss_lint.py` still targets the FSM map (frozen
+reference); a `--core ucore` mode is U3's deliverable per §3.
+
+## §14 U2 handoff
+
+1. **The sequencer is the gate-opener.** F3 says the boot stream needs the
+   microcode reset march; the 220-row boot parity and every batch-mode gate
+   wait on it.  `ucdecode.hex` → `ucrom.hex` (F1's two tables) is the fetch
+   path; `upc = {page[2:0], opc[7:0], rowgrp[1:0], row[1:0]}`.
+2. **The BIU's EU-facing port set is what U2 must drive**: `q_pop`/`q_first`/
+   `q_flush`(+cs/ip), `eu_post`/`eu_bs`/`eu_addr`/`eu_seg`/`eu_word` against
+   `eu_slot_busy` (M10), `eu_pair`/`eu_wdata` (S5 + M5b), `eu_rd_done`/
+   `eu_wr_done`/`eu_opr_free` (the F/OPR interlock), `eu_susp`/`eu_resume`
+   (F2, one row early) and `eu_halt`/`eu_unhalt` (§11.6, one clock early).
+3. **Unexercised at U1, by construction**: everything behind an EU request —
+   M10's slot, M13's MD-selected OPR release, M5b on a paired store, M15's
+   INTA, M16/M17/M20/M21's HALT, M22's expiry (reachable only through a woken
+   HALT), M23's late-T1 address one-shot.  They are IMPLEMENTED and lint-clean
+   but have never fired; U2 must gate each as its rung lands, and the standing
+   assertion set in `v30u_biu.sv` (`sev` bound, announcement-age saturation,
+   queue overflow, green-count) is armed for all of them.
+4. **`sw/ulockstep.py` is the standing bring-up tool**, and `--utrace` is its
+   attribution channel: one `u` row per clock naming the eval-instant terms and
+   the QS-port arbiter's inputs, to be read against the model's own
+   `V30SIM_EVALTRACE` `ET`/`QT` lines.  Risk #1 (the pumped-clock inversion) is
+   what it exists for.
+5. **Standing gates U2 must keep green**: `sw/ulockstep.py --suite --waits
+   0,1,2,3` (32/32), `sw/check_ucore_tables.py`, and the whole FSM baseline of
+   §2 after any shared-file change.
+
+## §15 U1 gate ledger
+
+| gate | bar | result |
+|---|---|---|
+| **U1.1** ucore top + BIU elaborate against the UNMODIFIED-in-substance TB | Verilator 0 errors | **PASS** — the TB needed only the engine-specific probes guarded (§11.3), which is engine-neutral |
+| **U1.2** `--core {fsm,ucore}` swaps the engine | both build, `fsm` default | **PASS** |
+| **U1.3 = GATE U1** lockstep vs the model on the scripted set | 100 %, waits 0-3 | **PASS — 32/32 scenarios, every clock** (§9) |
+| **U1.4** boot parity 220 rows | 220/220 | **NOT MET — and VACUOUS at U1** (finding F3); routed in full to U2 |
+| **U1.5** FSM baseline re-verified after the shared-TB change | the §2 numbers | **PASS — 169,000/169,000 full**, boot 220 both legs, ss_lint, CE-hold 0 |
+| **U1.6** sim-side standing gates green | disasm, pla3, G0 | **PASS** |
+| **U1.7** SS map seeded, exactly-twice from the first commit | lint-grep | **PASS** — 94×2, `SS_VERSION 0x80` (§13) |
+
+**GATE U1: GREEN on its own bar (the scripted lockstep set), with the boot leg
+booked as F3 and carried to U2.**

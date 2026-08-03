@@ -77,4 +77,14 @@ and a second table would be dead silicon.
 
 ## Status
 
-U0: tables only. No core RTL in this directory yet.
+- **U0** — generated tables only (gate G0 green).
+- **U1** — `v30u_biu.sv` (the mechanism BIU), `v30_core.sv` (the top),
+  `v30u_eu.sv` (a tied-off placeholder) and `v30u_ss_pkg.sv` (94 BIU
+  addresses, `SS_VERSION 0x80`).  Gate U1: `sw/ulockstep.py --suite --waits
+  0,1,2,3` = **32/32 scenarios lockstep with `sim/`, every clock**.  The boot
+  leg is booked as finding F3 (the reset sequence is a microcode march, not a
+  BIU-only stream) and is carried to U2.  No EU: the sequencer is U2.
+
+Select the engine with `sw/check_core.py --core ucore` / `--build --core
+ucore`; `fsm` remains the default so every FSM baseline gate is re-runnable
+unchanged.
