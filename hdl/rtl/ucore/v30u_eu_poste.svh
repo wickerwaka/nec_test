@@ -50,7 +50,7 @@ begin
         al_spent   = 1'b0;
         al_op      = r_aluop;
         al_tmp     = r_alutmp;
-        al_byte    = op8;
+        al_byte    = op8_eff;                     // D1
         al_eaconst = 1'b0;
     end else if (e_type == TY_CTL && !e_farjmp) begin
         case (e_ictl)
@@ -60,7 +60,7 @@ begin
             4'd1:  begin psw[FIE] = 1'b0; psw[FBRK] = 1'b0; end
             4'd6:  begin psw[FCY] = 1'b0; psw[FV] = 1'b0; end
             4'd7:  begin psw[FCY] = 1'b1; psw[FV] = 1'b1; end
-            4'd12: sign_neg = sign_neg ^ (op8 ? tmpb[7] : tmpb[15]);
+            4'd12: sign_neg = sign_neg ^ (op8_eff ? tmpb[7] : tmpb[15]);
             4'd4:  begin psw[FCY] = 1'b0; sign_neg = 1'b1; end
             4'd13: if (!stat[FZ]) sign_neg = 1'b0;
             default: ;

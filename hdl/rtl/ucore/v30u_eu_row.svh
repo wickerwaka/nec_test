@@ -212,12 +212,14 @@ begin
             opc_valid = 1'b1;
             pop_is_first = 1'b0;
             poste = 1'b1; pe_opc_reg = opc_reg; pe_opc8080 = opc8080;  // F23
+            pe_op8 = op8;                                         // D1
             st = S_TAIL;
         end else if (!pend_after && !opc_valid) begin
             st = S_EPOP;
             stop = 1'b1;
         end else begin
             poste = 1'b1; pe_opc_reg = opc_reg; pe_opc8080 = opc8080;  // F23
+            pe_op8 = op8;                                         // D1
             st = S_TAIL;
         end
     end else begin

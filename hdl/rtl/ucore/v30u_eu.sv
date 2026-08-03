@@ -257,6 +257,7 @@ reg  [2:0] rst_ctr;        // F25: the reset dispatch's four clocks
 reg [15:0] tsel;           // F29: the LIVE tmp an arming row reads
 reg  [7:0] pe_opc_reg;     // F23: the opcode context the post-`E` row runs on
 reg        pe_opc8080;
+reg        pe_op8;         // ...INCLUDING the operand width (pass-3 review D1)
 reg  [1:0] wr_out;         // posted write CYCLES not yet done
 reg  [1:0] opr_owned;      // stores that have taken OPR and not released it
 
@@ -601,8 +602,15 @@ endfunction
 // The decoder's opcode latch loads at the END of its own clock; the post-`E`
 // row reads it BEFORE that.  So the row's own opcode context travels with F8's
 // debt: 9 bits, captured where `poste` is raised.
+// D1 (SECOND CODEX REVIEW, §32) -- and `op8` travels with them.  F23 shadowed
+// nine bits and claimed that was the row's whole opcode context; it was not.
+// S_DECODE2 OVERWRITES `op8` on edge `c` exactly as it overwrites `opc_reg`
+// (`v30u_eu_step.svh`'s `op8 = ld_byte`), and the post-`E` row reads it in
+// three places: `al_byte = op8` when it latches an ALU op, `SIGNTGL`'s
+// `tmpb[7]` vs `tmpb[15]`, and `dir*sz` as a Source1.  Ten bits, not nine.
 wire [7:0] opc_reg_eff = poste ? pe_opc_reg : opc_reg;
 wire       opc8080_eff = poste ? pe_opc8080 : opc8080;
+wire       op8_eff     = poste ? pe_op8     : op8;
 wire [2:0] opc_sel = opc_from_modrm ? modrm_reg : opc_reg_eff[5:3];
 function automatic [4:0] opc8080_map(input [2:0] s);
     case (s)
@@ -776,6 +784,24 @@ always @* begin
             ev_flags = szp({1'b0, b_m}, ev_byte);
         end
     endcase
+    // F30 -- THE ADJUST UNIT WAS COMPUTED AND DISCARDED.  `alu_eval` takes the
+    // ARMED path BEFORE the ordinary op table (`sim/alu.cpp:127`): an ADJD/ADJA
+    // armed by the previous row REPLACES the ADD/SUB pass with one pass of the
+    // decimal corrector.  The EU built `adj_lo`/`adj_hi`/`adj_corr`/`adj_sum`/
+    // `adj_val8`/`adj_rhi`/`adj_flags` faithfully -- and then never selected
+    // them, so all three outputs sat in this module's `_unused_eu` sink and
+    // `27`/`2F`/`37`/`3F` came out as the raw `tmpb + ONES` (`27 idx 3`:
+    // exp e369, got e368 -- the correction, exactly, missing).
+    //
+    // The corrector sits on the LOW LANE of port B only; the HIGH lane goes
+    // through raw and the ONE carry chain runs the whole 16 bits, which is what
+    // `adj_rhi` already computes.
+    if ((al_adjust != 2'd0) && ((eff_op == A_ADD) || (eff_op == A_SUB))) begin
+        ev_val   = {adj_rhi, adj_val8};
+        ev_flags = adj_flags;
+        ev_mask  = ARITH_MASK;
+        ev_commits = 1'b1;
+    end
 end
 
 // --- the ONE shared iterative stepper --------------------------------------
@@ -908,8 +934,8 @@ wire [15:0] r_rd = (r_kind == OK_REG)  ? (r_byte ? rb16(r_idx, gpr[r_idx[1:0]])
                  : (r_kind == OK_SREG) ? sreg[r_idx[1:0]]
                  : (r_kind == OK_MEM)  ? opr : 16'd0;
 
-wire [15:0] dirsz = (op8 ? (psw[FDIR] ? 16'hFFFF : 16'h0001)
-                         : (psw[FDIR] ? 16'hFFFE : 16'h0002));
+wire [15:0] dirsz = (op8_eff ? (psw[FDIR] ? 16'hFFFF : 16'h0001)
+                             : (psw[FDIR] ? 16'hFFFE : 16'h0002));
 
 reg  [15:0] s1_val;
 reg         s1_byte;
@@ -1240,7 +1266,7 @@ always @(posedge clk) begin
         pend_byte = 1'b0; pend_io = 1'b0; opr_fresh = 1'b0;
         rdq0 = 16'd0; rdq1 = 16'd0; rdq_n = 2'd0;
         rd_pending = 2'd0; rd_done_cnt = 2'd0; rd_age0 = 1'b0;
-        iend_owed = 1'b0; pe_opc_reg = 8'd0; pe_opc8080 = 1'b0;
+        iend_owed = 1'b0; pe_opc_reg = 8'd0; pe_opc8080 = 1'b0; pe_op8 = 1'b0;
         wr_out = 2'd0; opr_owned = 2'd0;
         opc_valid = 1'b0; opc_byte = 8'd0; pop_is_first = 1'b1;
         ld_b = 8'd0; ld_pla = 14'd0; ld_ext = 1'b0; ld_page = 3'd0;
@@ -1354,7 +1380,6 @@ end
 
 wire _unused_eu = &{1'b0, pin_int, pin_nmi, q_cnt, halted, lock_pfx,
                     ar_full, ar_m, row_paired, imm8,
-                    adj_val8, adj_rhi, adj_flags,
                     r_ictl, r_ectl, r_sr, r_f, r_w, r_e, r_type, r_nopmove,
                     r_hasconst, r_s1, r_d1, r_s2, r_d2, r_r, dec_valid,
                     SR_ES, SR_SS, SR_DS, R_CW, R_DW, R_SP, BS_PASV,

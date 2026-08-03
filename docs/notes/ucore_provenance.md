@@ -1412,7 +1412,7 @@ All on the same tree, `--core ucore`, v0.1 at w0.
 | CE hold | `check_core.py --core ucore --opcodes 88 --cases 100 --ce-div 3 --ce-hold-check` | **0 violations** |
 | FSM spot (shared TB touched) | `check_core.py --opcodes B8,8A,8B,88,89 --cases 500` | **2500/2500** |
 | the MODEL, unmoved | `timed_gate.py --suite tests/v30/v0.1 --forms all` | **169,000/169,000, row-diffs 0** |
-| **G3** | `check_core.py --core ucore --opcodes all --cases 0` | **156,123 / 169,000 — NOT MET** |
+| **G3** | `check_core.py --core ucore --opcodes all --cases 0` | **159,348 / 169,000 — NOT MET** |
 
 ### §29.1 The census, pass by pass
 
@@ -1427,7 +1427,9 @@ Reconnaissance (`--cases 60`, 20,820 cases over 347 forms), not a gate:
 | family D (F24) | 14,112 | 231 | 218 | 5 |
 | family C (F26, F27) | 17,591 | 285 | 277 | 5 |
 | F28 + the redirect's OPR | 18,000 | 293 | 285 | 5 |
-| rung 10 (M5b `odd_base`, F29) | **18,832** | **310** | **306** | 5 |
+| rung 10 (M5b `odd_base`, F29) | 18,832 | 310 | 306 | 5 |
+| rung 11 (F30, the BCD adjust) | **19,221** | **313** | **313** | 5 |
+| review fold D1 (`op8` in the shadow) | 19,221 | 313 | 313 | 5 |
 
 **No form regressed at any step** — every rung was scored by a form-by-form
 diff of the two whole-suite censuses, not by the total.
@@ -1440,13 +1442,13 @@ v0.1 suite reports **169,000/169,000 arch, 169,000/169,000 window, 169,000
 rows-exact, row-diffs 0**.  So at w0 there is nothing to subtract, and the two
 numbers coincide:
 
-* G3 through the golden comparator: **156,123 / 169,000** (92.4 %).
-* G3 minus the sim's registered w0 residue: **156,123 / 169,000** — the same
+* G3 through the golden comparator: **159,348 / 169,000** (94.3 %).
+* G3 minus the sim's registered w0 residue: **159,348 / 169,000** — the same
   number, because that residue is empty at w0.
 
-**41 RED forms**, of which **12 (2,400 cases) are unimplemented by design**
+**34 RED forms**, of which **12 (2,400 cases) are unimplemented by design**
 (`INT.*`, `NMI.*`, `HLT.*`).  Excluding those, the RTL is
-**156,123 / 166,600 = 93.7 %** of what it is currently built to do.
+**159,348 / 166,600 = 95.6 %** of what it is currently built to do.
 
 (The 907+3 residue rows named in the pass-3 brief are a WAIT-AXIS quantity —
 they belong to U3, not to this gate.  Re-derive them there; do not carry the
@@ -1459,10 +1461,12 @@ costs out of 169,000.  (`0F 10-1F`, the word string moves and `8F.0` were in
 this table when it was first written and were closed by rung 10 — see §28's
 F29 and M5b's `odd_base`.  What follows is the list AFTER that.)
 
+(The BCD group left this table with rung 11 — F30, §31.0's first item, landed.
+`27` `2F` `37` `3F` `0F20` `0F22` `0F26` are all 500/500.)
+
 | group | forms | cost | reading |
 |---|---|---|---|
 | **interrupt / HLT entries** | `INT.*` (7), `NMI.*` (2), `HLT.*` (3) | 2,400 | **UNIMPLEMENTED BY DESIGN** (§19.3): no interrupt entry, `eu_unhalt` tied 0, the POLL pipeline is the static level only, `intr_pending` has no writer.  A work list, not a bug list |
-| **BCD adjust + BCD strings** | `27` `2F` `37` `3F` `0F20` `0F22` `0F26` | 3,225 | `27`/`2F`/`37`/`3F` are CYCLE-EXACT and arch-red, so it is the adjust unit ALONE (`sim/alu.cpp::bcd_adjust`) — the tightest-scoped item left.  `0F20`/`0F22` add the string loop |
 | **multi-cycle pushes** | `60` (PUSHA) `62` (BOUND) `CC` `CD` `CE` | 2,182 | `busstat`: the RTL runs consecutive stores BACK TO BACK where the golden has idle `Ti` between them.  Task #33's multi-push bus-hold datapoint, now reproducible in RTL |
 | **CALL and the flush display** | `E8` `FF.2` `FF.3` `9A` | 1,686 | `qop`: the flush's `E` blip is ONE CLOCK EARLY in about half the cases.  The row order is right; this is the BIU's `e_pend` / "a ready-but-not-yet-started EU request owns the next slot" term (F1(c)), not the EU |
 | **DIV** | `F6.6` `F6.7` `F7.6` `F7.7` | 1,571 | the iterative divider: `busstat` |
@@ -1471,9 +1475,11 @@ F29 and M5b's `odd_base`.  What follows is the list AFTER that.)
 
 ## §31 HANDOFF — what pass 4 picks up
 
-0. **TWO ITEMS ARE ALREADY DIAGNOSED — do not re-derive them.**
+0. **ONE ITEM IS ALREADY DIAGNOSED — do not re-derive it.**  (The other,
+   the BCD adjust unit, was diagnosed and then LANDED as F30/rung 11; it is
+   kept below because the reading is the template for the next one.)
 
-   * **The BCD adjust unit is COMPUTED AND DISCARDED.**  `v30u_eu.sv` builds
+   * **The BCD adjust unit was COMPUTED AND DISCARDED — FIXED, rung 11.**  `v30u_eu.sv` builds
      `adj_lo` / `adj_hi` / `adj_corr` / `adj_sum` / `adj_val8` / `adj_rhi` /
      `adj_flags` — a faithful transliteration of `sim/alu.cpp::bcd_adjust` —
      and then the `case (eff_op)` for `A_ADD` / `A_SUB` never consults
@@ -1495,11 +1501,10 @@ F29 and M5b's `odd_base`.  What follows is the list AFTER that.)
      "multi-push bus-hold" datapoint: it is `wait_opr_free`, and `CC`/`CD`/`CE`
      (the INT frame pushes) and `62` are the same chain.
 
-1. **The order is by cost and by confidence**: BCD adjust first — `27` `2F`
-   `37` `3F` are CYCLE-EXACT and arch-red, so the whole difference is inside
-   one function and the microscope is not even needed (`sw/uarch.py 27,2F,37,3F`
-   is the entire instrument).  Then the multi-cycle pushes (5 forms, 2,182),
-   then DIV (4, 1,571), then CALL's flush display (4, 1,686).
+1. **The order is by cost and by confidence**: the multi-cycle pushes first
+   (5 forms, 2,182 cases, and §31.0 already names the mechanism — `opr_owned`
+   releases too early against `wait_opr_free`), then CALL's flush display
+   (4, 1,686), then DIV (4, 1,571), then the strings/ENTER group.
 2. **The interrupt entries are the biggest single block (2,400 cases) and are
    NOT bugs.**  They are `eu_unhalt`, the interrupt entry vectors, the POLL
    pin pipeline and `intr_pending`'s missing writer.  Build them as a rung,
@@ -1530,3 +1535,48 @@ F29 and M5b's `odd_base`.  What follows is the list AFTER that.)
    next-state process.  If a fact is needed there, give it a flop.
 6. **Still not run**: `ulockstep` batch mode over golden cases, the wait axes
    (U3), the second Codex review (this pass ended at a rung boundary before it).
+
+## §32 THE SECOND CODEX REVIEW (2026-08-03, thread `019fc8ba` resumed)
+
+Briefed on §§20-31, the six RTL files and the SPEC (`sim/exec_impl.h`,
+`sim/loader_impl.h`, `sim/biu_timed.{h,cpp}`), with the SIMPLICITY principle
+verbatim and the governance rule, and asked to attack the pass-3 findings
+hardest-first and to say plainly where I was wrong.  It reviewed the tree at
+`93f9074254` — before F30 landed.
+
+**D1 — F23's "nine bits" was WRONG.  UPHELD, and folded.**  `op8` is
+OVERWRITTEN by the successor's `S_DECODE2` on edge `c` exactly as `opc_reg`
+is, and the post-`E` row reads it in three places: `al_byte = op8` when it
+latches an ALU op, `SIGNTGL`'s `tmpb[7]` vs `tmpb[15]`, and `dir*sz` as a
+Source1.  The shadow is TEN bits, not nine.  Folded (`pe_op8` / `op8_eff`).
+No v0.1 case at w0 reaches the divergent path — the census is 19,221 → 19,221,
+zero forms either way — so this is a LATENT correctness fix of the same shape
+as §31.4's registered `pfxcnt` residue, and Codex was right that the CLAIM was
+wrong even though the score did not move.  *A finding whose fix moves no number
+is still a finding.*
+
+**F30 — the BCD adjust unit, independently confirmed.**  Codex reached the
+same reading from the source alone ("RTL computes `adj_*` but ordinary
+`A_ADD/A_SUB` ignores `al_adjust`") and confirmed the SPEC has ONE mechanism
+for all four native forms.  Landed before the review returned; §31.0 has the
+evidence.
+
+**The multi-push grouping — CONFIRMED as one mechanism.**  "Non-OPR-reading
+`F` rows call `wait_opr_free()` in the SPEC", matching §31.0's 023A/023B/023C
+schedule.
+
+**Not defects, checked and cleared:** §28.1's `rd_land` split ("matches the
+SPEC separation between EU `rdq_` and the BIU OPR shadow `last_wval_`"), and
+the audit that the only `_n` signals still reaching the act cone —
+`eu_rd_done_n`, `eu_wr_done_n`, `eu_rdata_n` — all terminate in BIU registers
+(`r_done_ctr` / `r_done_wr` / `r_rd_land`), while `eu_slot_busy_n`,
+`eu_opr_free_n` and `q_ripe_lead_n` stay clocked-step-only.  F16 (the
+registered slot view: "using `eu_slot_busy_n` made the take observe the busy
+bit caused by its own post"), F18/F14's lookahead, and F26 (the `R` row keeping
+`upc`) were each upheld against the SPEC line by line.
+
+**Declined, correctly:** the claim that CALL's one-clock `E` blip is
+specifically `e_pend` rather than another announcement-state term — "source
+alone does not verify it", the per-case traces are needed.  It is carried in
+§30 as a reading, not as a diagnosis.  And it found no single mechanism joining
+BCD, multi-push and CALL into a larger family, as briefed.
