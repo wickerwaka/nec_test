@@ -56,8 +56,16 @@ def run_sim(n):
     out = Path(td) / "out.txt"
     data = BOOTBIN.read_bytes()
     img.write_text("\n".join(f"{b:02x}" for b in data) + "\n")
+    # +mirror=1: the capture board is 64 KB-wired, so the reset vector at
+    # FFFF0 must alias into the 64 KB image.  The TB memory became 1 MB FLAT in
+    # c78421fe07 (default amask = FFFFF) while this leg kept relying on the old
+    # implicit mirror; the sim leg has always been explicit about it
+    # (sim/timed_runner.cpp: `biu.set_mirror(true); // the capture board's
+    # 64 KB wiring`).  Without it the RTL fetches unwritten memory from
+    # release+9 on and every subsequent row differs.
     r = subprocess.run([str(BIN), f"+bootimg={img}", f"+bootn={n}",
-                        f"+out={out}"], capture_output=True, text=True)
+                        "+mirror=1", f"+out={out}"],
+                       capture_output=True, text=True)
     if "BOOT DONE" not in r.stdout:
         print(r.stdout, r.stderr)
         sys.exit("sim failed")
