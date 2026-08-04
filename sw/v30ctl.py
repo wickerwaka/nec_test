@@ -86,6 +86,12 @@ R_IORD     = REG_OFF + 0x18
 R_EVT_ADDR = REG_OFF + 0x1C
 R_EVT_CFG  = REG_OFF + 0x20
 R_WRAND    = REG_OFF + 0x24   # seeded random per-access waits (Phase 1 rig)
+
+# THE RIG's pin-event HOLD WIDTH, and the single place it is written down.
+# `hdl/rtl/hps_axi_slave.sv`'s `evt_hold` is the authority; this must track it.
+# 8 until 2026-08-04 (F46: silent truncation of a banked hold=300 to 44),
+# 12 since -- `set_event` below packs [23:16] + [30:27] to reach it.
+RIG_EVT_HOLD_BITS = 12
 R_IORDS_CTL  = REG_OFF + 0x28 # iords FIFO: [0] reset (pulse) [1] enable
 R_IORDS_PUSH = REG_OFF + 0x2C # iords FIFO: [15:0] append one value
 
@@ -206,10 +212,31 @@ class Harness:
     def set_event(self, addr=None, delay=0, hold=0, pin=0, arm=True):
         """Arm the pin-event scheduler: on a CODE T1 at linear `addr`,
         wait `delay` CPU clocks, drive pin (0=INT 1=NMI 2=POLL) for `hold`
-        clocks (0 = until disarmed). arm=False disarms."""
+        clocks (0 = until disarmed). arm=False disarms.
+
+        EVT_CFG (0x20) layout, and the hold is SPLIT because it grew into the
+        only free space the word had:
+
+            [15:0]  delay      [23:16] hold[7:0]    [26:24] pin
+            [30:27] hold[11:8] [31]    arm
+
+        The hold register was EIGHT bits until 2026-08-04 and truncated
+        SILENTLY (F46: 760 banked EVT seeds asked for 300 and the socket got
+        300 & 0xFF = 44).  It is 12 bits now, and out-of-range raises rather
+        than truncating -- a rig that quietly applies a different directive
+        than the one it was handed poisons every capture it takes."""
         if addr is not None:
             self.write32(R_EVT_ADDR, addr & 0xFFFFF)
-        v = (delay & 0xFFFF) | ((hold & 0xFF) << 16) | ((pin & 7) << 24)
+        if not 0 <= hold < (1 << RIG_EVT_HOLD_BITS):
+            raise ValueError(
+                f"evt hold {hold} does not fit the rig's "
+                f"{RIG_EVT_HOLD_BITS}-bit register (max "
+                f"{(1 << RIG_EVT_HOLD_BITS) - 1}); truncating it silently is "
+                f"F46 and it is not done here")
+        if not 0 <= delay < (1 << 16):
+            raise ValueError(f"evt delay {delay} does not fit 16 bits")
+        v = ((delay & 0xFFFF) | ((hold & 0xFF) << 16) | ((pin & 7) << 24)
+             | (((hold >> 8) & 0xF) << 27))
         if arm:
             v |= 1 << 31
         self.write32(R_EVT_CFG, v)

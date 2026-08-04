@@ -70,7 +70,7 @@ module nec_bus
     input             evt_arm,
     input      [19:0] evt_addr,
     input      [15:0] evt_delay,
-    input       [7:0] evt_hold,
+    input      [11:0] evt_hold,      // 12 bits since 2026-08-04 (F46 / gap R1)
     input       [2:0] evt_pin,     // 0=INT 1=NMI 2=POLL_N(active low)
     output reg        evt_fired,
 
@@ -478,7 +478,7 @@ localparam bit [1:0] EV_IDLE = 2'd0, EV_DELAY = 2'd1, EV_ACTIVE = 2'd2,
                      EV_DONE = 2'd3;
 reg  [1:0] ev_st;
 reg [15:0] ev_cnt;
-reg  [7:0] ev_hold_cnt;
+reg [11:0] ev_hold_cnt;
 reg        ev_drive;
 
 // address match latched at the falling edge (address phase) so the
@@ -517,7 +517,7 @@ always_ff @(posedge clk) begin
                 if (ev_hold_cnt <= 1) begin
                     ev_drive <= 1'b0;
                     ev_st    <= EV_DONE;
-                end else ev_hold_cnt <= ev_hold_cnt - 8'd1;
+                end else ev_hold_cnt <= ev_hold_cnt - 12'd1;
             end
             // evt_hold==0: hold until disarmed
         end

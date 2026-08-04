@@ -111,7 +111,14 @@ module hps_axi_slave
     output reg        cfg_iords_en,
     output reg [19:0] evt_addr,
     output reg [15:0] evt_delay,
-    output reg  [7:0] evt_hold,
+    // 12 bits since 2026-08-04 (F46 / gap R1).  It was 8, and 760 banked EVT
+    // seeds asked for hold=300, which the register truncated to 300&0xFF = 44
+    // SILENTLY -- the rig applied a hold the bank does not record.  The width
+    // is now the widest drop-in EVT_CFG (0x20) has room for: the low 8 bits
+    // stay at [23:16] and the high 4 take the free space at [30:27], so
+    // evt_pin[26:24] and evt_arm[31] do not move and an old host that writes
+    // zeros there gets exactly the old behaviour.
+    output reg [11:0] evt_hold,
     output reg  [2:0] evt_pin,
     output reg        evt_arm,
     input             evt_fired,
@@ -272,7 +279,7 @@ always_ff @(posedge clk) begin
                     8'h1C: evt_addr <= wdata[19:0];
                     8'h20: begin
                         evt_delay <= wdata[15:0];
-                        evt_hold  <= wdata[23:16];
+                        evt_hold  <= {wdata[30:27], wdata[23:16]};
                         evt_pin   <= wdata[26:24];
                         evt_arm   <= wdata[31];
                     end
@@ -395,7 +402,8 @@ always_ff @(posedge clk) begin
                     8'h14: rdata <= {19'd0, cap_count};
                     8'h18: rdata <= {16'd0, cfg_iord};
                     8'h1C: rdata <= {12'd0, evt_addr};
-                    8'h20: rdata <= {evt_arm, 4'd0, evt_pin, evt_hold, evt_delay};
+                    8'h20: rdata <= {evt_arm, evt_hold[11:8], evt_pin,
+                                     evt_hold[7:0], evt_delay};
                     8'h24: rdata <= {cfg_wseed, 8'd0, cfg_wmax, 2'd0,
                                      cfg_wait_replay, cfg_wait_rand};
                     8'h28: rdata <= {23'd0, cfg_iords_cnt, 1'd0, cfg_iords_en};

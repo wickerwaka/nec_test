@@ -51,6 +51,7 @@ from fuzz_classify import Ctx, classify, EscalationPolicy  # noqa: E402
 from gen_soup import gen_soup, SoupKnobs                 # noqa: E402
 from gen_raw import gen_raw                              # noqa: E402
 from v30run import run_image, RunError                  # noqa: E402
+import v30ctl                                           # noqa: E402
 
 RESERVED_LO = 0xFF00
 NMIN, NMAX = 24, 80
@@ -176,6 +177,16 @@ def build(cfg):
                      evt_pin=pin, wild=cfg["wild"], knobs=knobs)
     if cfg["evt"] and g.get("has_halt"):
         cfg["evt"]["hold"] = 300
+    if cfg["evt"]:
+        # F46 / gap R1: `hold` is what the HOST ASKED FOR.  Record what the RIG
+        # CAN APPLY beside it, so a banked seed says which one its capture was
+        # taken under instead of leaving it to be re-derived from an RTL width
+        # that has already changed once.  These are added AFTER `cfg_hash` is
+        # computed (derive_case) on purpose: the hash covers the axes, and the
+        # rig's register width is not one of them.
+        cfg["evt"]["hold_bits"] = v30ctl.RIG_EVT_HOLD_BITS
+        cfg["evt"]["hold_applied"] = (cfg["evt"]["hold"]
+                                      & ((1 << v30ctl.RIG_EVT_HOLD_BITS) - 1))
     # task #32: SOUP HLT-fence fill (0xF4) when the fence axis is on; else 0x90.
     # RAW always 0x90 (payload mode relies on the NOP surround; raw scrubs 0xF4).
     g["fill"] = 0xF4 if (cfg["tier"] != "raw" and cfg.get("fence")) else 0x90
