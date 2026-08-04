@@ -1478,6 +1478,344 @@ assign dbg_regs = {psw, pc, sreg[3], sreg[2], sreg[1], sreg[0],
 assign dbg_first_pop = first_pop_seen;
 assign dbg_pend = (rd_pending != 2'd0) || (rdq_n != 2'd0) || poste;
 
+//--------------------------------------------------------------------------
+// THE RESET NEXT-STATE (U4 pass 3, second structural pass -- sec.52.3)
+//--------------------------------------------------------------------------
+// `srst` used to be an ARM of the run next-state function, which put it in
+// the same expression tree as the twelve-position chain and let Quartus
+// distribute it through the whole cone -- measured: `c_reset_q` ->
+// `v30u_eu|wb_seg[0]~0` -> `v30u_biu|q_ripe_lead_n` -> twelve chain
+// positions -> `opc_base[4]`, 58.9 ns against a 31.25 ns requirement, and
+// NOT coverable by the CE multicycle because it LAUNCHES OUTSIDE THE CORE
+// (`system_large.sv:372`: `core_reset = c_reset_q | ~cfg_use_core`).
+//
+// Given its own function, the reset value is constants + the pin levels +
+// the backdoor and nothing else, `_n` is provably independent of `srst`,
+// and the register bank picks between them.  Same medicine as the CE fix
+// and the same expectation: zero ladder deltas.
+reg     [15:0] gpr_r [0:7];
+reg     [15:0] sreg_r [0:3];
+reg     [15:0] pc_r;
+reg     [15:0] psw_r;
+reg     [15:0] tmpa_r;
+reg     [15:0] tmpb_r;
+reg     [15:0] tmpc_r;
+reg     [15:0] opr_r;
+reg     [15:0] ind_r;
+reg     [15:0] count_r;
+reg      [7:0] pfxcnt_r;
+reg     [15:0] stat_r;
+reg            sign_neg_r;
+reg      [3:0] bit_n_r;
+reg      [4:0] al_op_r;
+reg      [1:0] al_tmp_r;
+reg            al_byte_r;
+reg            al_eaconst_r;
+reg     [15:0] al_eaval_r;
+reg      [1:0] al_adjust_r;
+reg      [1:0] al_adjtmp_r;
+reg            al_bitarm_r;
+reg      [3:0] al_bitn_r;
+reg            al_spent_r;
+reg      [2:0] upc_page_r;
+reg      [7:0] upc_opc_r;
+reg      [3:0] upc_loc_r;
+reg            seg_override_r;
+reg      [1:0] seg_ovr_r;
+reg      [2:0] rep_kind_r;
+reg            lock_pfx_r;
+reg      [7:0] opc_reg_r;
+reg            op8_r;
+reg            imm8_r;
+reg      [4:0] opc_base_r;
+reg            opc_from_modrm_r;
+reg      [2:0] modrm_reg_r;
+reg      [3:0] xop_r;
+reg      [1:0] rep_test_r;
+reg            rep_pol_r;
+reg            bus_word_r;
+reg            opc8080_r;
+reg            mode8080_r;
+reg            intr_pending_r;
+reg            eu_halted_r;
+reg      [3:0] int_p_r;
+reg      [4:0] nmi_p_r;
+reg            nmi_latch_r;
+reg      [3:0] ie_p_r;
+reg            rep_chain_r;
+reg            irq_shadow_r;
+reg            bnd_armed_r;
+reg            irq_sel_nmi_r;
+reg            unhalt_pend_r;
+reg      [1:0] m_kind_r;
+reg      [1:0] r_kind_r;
+reg      [1:0] wb_kind_r;
+reg      [2:0] m_idx_r;
+reg      [2:0] r_idx_r;
+reg      [2:0] wb_idx_r;
+reg     [15:0] m_ea_r;
+reg     [15:0] r_ea_r;
+reg     [15:0] wb_ea_r;
+reg      [2:0] m_seg_r;
+reg      [2:0] r_seg_r;
+reg      [2:0] wb_seg_r;
+reg            m_byte_r;
+reg            r_byte_r;
+reg            wb_byte_r;
+reg            pend_active_r;
+reg     [15:0] pend_off_r;
+reg      [2:0] pend_seg_r;
+reg            pend_byte_r;
+reg            pend_io_r;
+reg            opr_fresh_r;
+reg     [15:0] rdq0_r;
+reg     [15:0] rdq1_r;
+reg      [1:0] rdq_n_r;
+reg      [1:0] rd_pending_r;
+reg      [1:0] rd_done_cnt_r;
+reg            rd_age0_r;
+reg            iend_owed_r;
+reg      [2:0] rst_ctr_r;
+reg     [15:0] tsel_r;
+reg      [7:0] pe_opc_reg_r;
+reg            pe_opc8080_r;
+reg            pe_op8_r;
+reg      [7:0] pe_pfxcnt_r;
+reg      [1:0] wr_out_r;
+reg            opc_valid_r;
+reg      [7:0] opc_byte_r;
+reg            pop_is_first_r;
+reg      [7:0] ld_b_r;
+reg     [13:0] ld_pla_r;
+reg            ld_ext_r;
+reg      [2:0] ld_page_r;
+reg            ld_hasrm_r;
+reg      [7:0] ld_rm_r;
+reg     [15:0] ld_disp_r;
+reg      [7:0] ld_dlo_r;
+reg            ld_grpd_r;
+reg            ld_byte_r;
+reg            ld_preread_r;
+reg            ld_ripe_prev_r;
+reg      [5:0] st_r;
+reg      [1:0] chg_r;
+reg            ending_r;
+reg      [1:0] rowq_r;
+reg            row_posted_r;
+reg            row_paired_r;
+reg     [15:0] rloop_n_r;
+reg            suppress_commit_r;
+reg            first_pop_seen_r;
+reg      [7:0] rowb0_r;
+reg      [7:0] rowb1_r;
+reg            poste_r;
+reg      [2:0] poll_pipe_r;
+
+integer rsi;                // the reset function's own array index
+always @* begin
+    //-- preload, so an unassigned reset arm holds rather than latches
+    for (rsi = 0; rsi < 8; rsi = rsi + 1) gpr_r[rsi] = gpr[rsi];
+    for (rsi = 0; rsi < 4; rsi = rsi + 1) sreg_r[rsi] = sreg[rsi];
+    pc_r = pc;
+    psw_r = psw;
+    tmpa_r = tmpa;
+    tmpb_r = tmpb;
+    tmpc_r = tmpc;
+    opr_r = opr;
+    ind_r = ind;
+    count_r = count;
+    pfxcnt_r = pfxcnt;
+    stat_r = stat;
+    sign_neg_r = sign_neg;
+    bit_n_r = bit_n;
+    al_op_r = al_op;
+    al_tmp_r = al_tmp;
+    al_byte_r = al_byte;
+    al_eaconst_r = al_eaconst;
+    al_eaval_r = al_eaval;
+    al_adjust_r = al_adjust;
+    al_adjtmp_r = al_adjtmp;
+    al_bitarm_r = al_bitarm;
+    al_bitn_r = al_bitn;
+    al_spent_r = al_spent;
+    upc_page_r = upc_page;
+    upc_opc_r = upc_opc;
+    upc_loc_r = upc_loc;
+    seg_override_r = seg_override;
+    seg_ovr_r = seg_ovr;
+    rep_kind_r = rep_kind;
+    lock_pfx_r = lock_pfx;
+    opc_reg_r = opc_reg;
+    op8_r = op8;
+    imm8_r = imm8;
+    opc_base_r = opc_base;
+    opc_from_modrm_r = opc_from_modrm;
+    modrm_reg_r = modrm_reg;
+    xop_r = xop;
+    rep_test_r = rep_test;
+    rep_pol_r = rep_pol;
+    bus_word_r = bus_word;
+    opc8080_r = opc8080;
+    mode8080_r = mode8080;
+    intr_pending_r = intr_pending;
+    eu_halted_r = eu_halted;
+    int_p_r = int_p;
+    nmi_p_r = nmi_p;
+    nmi_latch_r = nmi_latch;
+    ie_p_r = ie_p;
+    rep_chain_r = rep_chain;
+    irq_shadow_r = irq_shadow;
+    bnd_armed_r = bnd_armed;
+    irq_sel_nmi_r = irq_sel_nmi;
+    unhalt_pend_r = unhalt_pend;
+    m_kind_r = m_kind;
+    r_kind_r = r_kind;
+    wb_kind_r = wb_kind;
+    m_idx_r = m_idx;
+    r_idx_r = r_idx;
+    wb_idx_r = wb_idx;
+    m_ea_r = m_ea;
+    r_ea_r = r_ea;
+    wb_ea_r = wb_ea;
+    m_seg_r = m_seg;
+    r_seg_r = r_seg;
+    wb_seg_r = wb_seg;
+    m_byte_r = m_byte;
+    r_byte_r = r_byte;
+    wb_byte_r = wb_byte;
+    pend_active_r = pend_active;
+    pend_off_r = pend_off;
+    pend_seg_r = pend_seg;
+    pend_byte_r = pend_byte;
+    pend_io_r = pend_io;
+    opr_fresh_r = opr_fresh;
+    rdq0_r = rdq0;
+    rdq1_r = rdq1;
+    rdq_n_r = rdq_n;
+    rd_pending_r = rd_pending;
+    rd_done_cnt_r = rd_done_cnt;
+    rd_age0_r = rd_age0;
+    iend_owed_r = iend_owed;
+    rst_ctr_r = rst_ctr;
+    tsel_r = tsel;
+    pe_opc_reg_r = pe_opc_reg;
+    pe_opc8080_r = pe_opc8080;
+    pe_op8_r = pe_op8;
+    pe_pfxcnt_r = pe_pfxcnt;
+    wr_out_r = wr_out;
+    opc_valid_r = opc_valid;
+    opc_byte_r = opc_byte;
+    pop_is_first_r = pop_is_first;
+    ld_b_r = ld_b;
+    ld_pla_r = ld_pla;
+    ld_ext_r = ld_ext;
+    ld_page_r = ld_page;
+    ld_hasrm_r = ld_hasrm;
+    ld_rm_r = ld_rm;
+    ld_disp_r = ld_disp;
+    ld_dlo_r = ld_dlo;
+    ld_grpd_r = ld_grpd;
+    ld_byte_r = ld_byte;
+    ld_preread_r = ld_preread;
+    ld_ripe_prev_r = ld_ripe_prev;
+    st_r = st;
+    chg_r = chg;
+    ending_r = ending;
+    rowq_r = rowq;
+    row_posted_r = row_posted;
+    row_paired_r = row_paired;
+    rloop_n_r = rloop_n;
+    suppress_commit_r = suppress_commit;
+    first_pop_seen_r = first_pop_seen;
+    rowb0_r = rowb0;
+    rowb1_r = rowb1;
+    poste_r = poste;
+    poll_pipe_r = poll_pipe;
+
+        //--------------------------------------------------------------------
+        // RESET == begin_case() plus the backdoor injection
+        //--------------------------------------------------------------------
+        for (rsi = 0; rsi < 8; rsi = rsi + 1) gpr_r[rsi] = 16'd0;
+        for (rsi = 0; rsi < 4; rsi = rsi + 1) sreg_r[rsi] = 16'd0;
+        pc_r = 16'd0; psw_r = PSW_FORCED;
+        tmpa_r = 16'd0; tmpb_r = 16'd0; tmpc_r = 16'd0;
+        opr_r = 16'd0; ind_r = 16'd0; count_r = 16'd0; pfxcnt_r = 8'd0;
+        stat_r = 16'd0; sign_neg_r = 1'b0; bit_n_r = 4'd0;
+        al_op_r = A_ADD; al_tmp_r = 2'd0; al_byte_r = 1'b0;
+        al_eaconst_r = 1'b0; al_eaval_r = 16'd0;
+        al_adjust_r = 2'd0; al_adjtmp_r = 2'd0; al_bitarm_r = 1'b0; al_bitn_r = 4'd0;
+        al_spent_r = 1'b0;
+        upc_page_r = 3'd0; upc_opc_r = 8'd0; upc_loc_r = 4'd0;
+        seg_override_r = 1'b0; seg_ovr_r = 2'd3; rep_kind_r = REP_NONE;
+        lock_pfx_r = 1'b0; opc_reg_r = 8'd0; op8_r = 1'b0; imm8_r = 1'b0;
+        opc_base_r = 5'd0; opc_from_modrm_r = 1'b0; modrm_reg_r = 3'd0; xop_r = 4'd0;
+        rep_test_r = TEST_NONE; rep_pol_r = 1'b0; bus_word_r = 1'b0;
+        opc8080_r = 1'b0; mode8080_r = 1'b0; intr_pending_r = 1'b0; eu_halted_r = 1'b0;
+        rep_chain_r = 1'b0;
+        m_kind_r = OK_NONE; m_idx_r = 3'd0; m_ea_r = 16'd0; m_seg_r = 3'd3; m_byte_r = 1'b0;
+        r_kind_r = OK_NONE; r_idx_r = 3'd0; r_ea_r = 16'd0; r_seg_r = 3'd3; r_byte_r = 1'b0;
+        wb_kind_r = OK_NONE; wb_idx_r = 3'd0; wb_ea_r = 16'd0; wb_seg_r = 3'd3;
+        wb_byte_r = 1'b0;
+        pend_active_r = 1'b0; pend_off_r = 16'd0; pend_seg_r = 3'd3;
+        pend_byte_r = 1'b0; pend_io_r = 1'b0; opr_fresh_r = 1'b0;
+        rdq0_r = 16'd0; rdq1_r = 16'd0; rdq_n_r = 2'd0;
+        rd_pending_r = 2'd0; rd_done_cnt_r = 2'd0; rd_age0_r = 1'b0;
+        iend_owed_r = 1'b0; pe_opc_reg_r = 8'd0; pe_opc8080_r = 1'b0; pe_op8_r = 1'b0;
+        pe_pfxcnt_r = 8'd0;
+        wr_out_r = 2'd0;
+        opc_valid_r = 1'b0; opc_byte_r = 8'd0; pop_is_first_r = 1'b1;
+        ld_b_r = 8'd0; ld_pla_r = 14'd0; ld_ext_r = 1'b0; ld_page_r = 3'd0;
+        ld_hasrm_r = 1'b0; ld_rm_r = 8'd0; ld_disp_r = 16'd0; ld_dlo_r = 8'd0;
+        ld_grpd_r = 1'b0; ld_byte_r = 1'b0; ld_preread_r = 1'b0; ld_ripe_prev_r = 1'b0;
+        st_r = S_OPC_POP; chg_r = 2'd0; ending_r = 1'b0; poste_r = 1'b0;
+        rowq_r = 2'd0; row_posted_r = 1'b0; row_paired_r = 1'b0; rloop_n_r = 16'd0;
+        suppress_commit_r = 1'b0; first_pop_seen_r = 1'b0;
+        rowb0_r = 8'd0; rowb1_r = 8'd0; poste_r = 1'b0;
+        // the pin pipelines come out of reset holding the LEVEL they have been
+        // seeing -- a shift register clocked since power-on cannot hold
+        // anything else, and it is what `poll_busy()` / the INT sample assume.
+        poll_pipe_r = {3{pin_poll_n}};
+        int_p_r = {4{pin_int}}; nmi_p_r = {5{pin_nmi}}; ie_p_r = 4'd0;
+        rep_chained = 1'b0;
+        nmi_latch_r = 1'b0; irq_shadow_r = 1'b0; bnd_armed_r = 1'b0;
+        irq_sel_nmi_r = 1'b0; unhalt_pend_r = 1'b0;
+        if (bkd_load) begin
+            gpr_r[0] = bkd_regs[  0 +: 16];  gpr_r[1] = bkd_regs[ 16 +: 16];
+            gpr_r[2] = bkd_regs[ 32 +: 16];  gpr_r[3] = bkd_regs[ 48 +: 16];
+            gpr_r[4] = bkd_regs[ 64 +: 16];  gpr_r[5] = bkd_regs[ 80 +: 16];
+            gpr_r[6] = bkd_regs[ 96 +: 16];  gpr_r[7] = bkd_regs[112 +: 16];
+            sreg_r[0] = bkd_regs[128 +: 16]; sreg_r[1] = bkd_regs[144 +: 16];
+            sreg_r[2] = bkd_regs[160 +: 16]; sreg_r[3] = bkd_regs[176 +: 16];
+            pc_r = bkd_regs[192 +: 16];
+            psw_r = (bkd_regs[208 +: 16] & PSW_WRITABLE) | PSW_FORCED;
+        end else begin
+            // F25 -- POWER-ON RESET IS A MICROCODE MARCH, not a state.
+            // `CpuT::reset()` runs the ROM's own sequence at page 7 opcode
+            // 00000011 (01D0..01D5: ZEROS -> DS/FLAGS/ES/SS, ONES -> CS,
+            // ZEROS -> PC, FLUSH, MFS) and only THEN does the decoder see its
+            // first byte.  The EU came out of reset in S_OPC_POP, so the whole
+            // boot was seven clocks early and `check_boot --core ucore` broke
+            // at release+7 (the real part shows the march's queue flush; the
+            // EU had already popped).  A BACKDOOR-LOADED case starts mid-
+            // stream and must NOT run it -- that is what `bkd_load` selects,
+            // and it is why every v0.1 rung is unaffected.
+            //
+            // `run_timed_boot` states the geometry and the capture pins it:
+            // the part comes out of reset with the PREFETCHER SUSPENDED (there
+            // is no fetch pointer until 01D3 loads PS:PC and flushes), and the
+            // internal dispatch is FOUR CLOCKS -- 01D0 runs at release+4, the
+            // FLUSH row 01D3 at release+7 where the capture shows its `E`
+            // blip, and the first CODE T1 at release+9.  Four clocks is the
+            // one constant, not a per-row cost.
+            upc_page_r = 3'd7;
+            upc_opc_r  = 8'h03;
+            upc_loc_r  = 4'd0;
+            rst_ctr_r  = 3'd0;
+            st_r = S_RESET;
+        end
+        ie_p_r = {4{psw_r[FIE]}};      // ...and so does the IE gate's own pipeline
+end
+
 //==========================================================================
 // THE NEXT-STATE SHADOW  (U4 pass 3 -- the ENABLE-FORM refactor, sec.51.7)
 //==========================================================================
@@ -1828,90 +2166,8 @@ always @* begin
 
     if (ss_we) begin
         `include "v30u_eu_ss_write.svh"
-    end else if (srst) begin
-        //--------------------------------------------------------------------
-        // RESET == begin_case() plus the backdoor injection
-        //--------------------------------------------------------------------
-        for (i = 0; i < 8; i = i + 1) gpr_n[i] = 16'd0;
-        for (i = 0; i < 4; i = i + 1) sreg_n[i] = 16'd0;
-        pc_n = 16'd0; psw_n = PSW_FORCED;
-        tmpa_n = 16'd0; tmpb_n = 16'd0; tmpc_n = 16'd0;
-        opr_n = 16'd0; ind_n = 16'd0; count_n = 16'd0; pfxcnt_n = 8'd0;
-        stat_n = 16'd0; sign_neg_n = 1'b0; bit_n_n = 4'd0;
-        al_op_n = A_ADD; al_tmp_n = 2'd0; al_byte_n = 1'b0;
-        al_eaconst_n = 1'b0; al_eaval_n = 16'd0;
-        al_adjust_n = 2'd0; al_adjtmp_n = 2'd0; al_bitarm_n = 1'b0; al_bitn_n = 4'd0;
-        al_spent_n = 1'b0;
-        upc_page_n = 3'd0; upc_opc_n = 8'd0; upc_loc_n = 4'd0;
-        seg_override_n = 1'b0; seg_ovr_n = 2'd3; rep_kind_n = REP_NONE;
-        lock_pfx_n = 1'b0; opc_reg_n = 8'd0; op8_n = 1'b0; imm8_n = 1'b0;
-        opc_base_n = 5'd0; opc_from_modrm_n = 1'b0; modrm_reg_n = 3'd0; xop_n = 4'd0;
-        rep_test_n = TEST_NONE; rep_pol_n = 1'b0; bus_word_n = 1'b0;
-        opc8080_n = 1'b0; mode8080_n = 1'b0; intr_pending_n = 1'b0; eu_halted_n = 1'b0;
-        rep_chain_n = 1'b0;
-        m_kind_n = OK_NONE; m_idx_n = 3'd0; m_ea_n = 16'd0; m_seg_n = 3'd3; m_byte_n = 1'b0;
-        r_kind_n = OK_NONE; r_idx_n = 3'd0; r_ea_n = 16'd0; r_seg_n = 3'd3; r_byte_n = 1'b0;
-        wb_kind_n = OK_NONE; wb_idx_n = 3'd0; wb_ea_n = 16'd0; wb_seg_n = 3'd3;
-        wb_byte_n = 1'b0;
-        pend_active_n = 1'b0; pend_off_n = 16'd0; pend_seg_n = 3'd3;
-        pend_byte_n = 1'b0; pend_io_n = 1'b0; opr_fresh_n = 1'b0;
-        rdq0_n = 16'd0; rdq1_n = 16'd0; rdq_n_n = 2'd0;
-        rd_pending_n = 2'd0; rd_done_cnt_n = 2'd0; rd_age0_n = 1'b0;
-        iend_owed_n = 1'b0; pe_opc_reg_n = 8'd0; pe_opc8080_n = 1'b0; pe_op8_n = 1'b0;
-        pe_pfxcnt_n = 8'd0;
-        wr_out_n = 2'd0;
-        opc_valid_n = 1'b0; opc_byte_n = 8'd0; pop_is_first_n = 1'b1;
-        ld_b_n = 8'd0; ld_pla_n = 14'd0; ld_ext_n = 1'b0; ld_page_n = 3'd0;
-        ld_hasrm_n = 1'b0; ld_rm_n = 8'd0; ld_disp_n = 16'd0; ld_dlo_n = 8'd0;
-        ld_grpd_n = 1'b0; ld_byte_n = 1'b0; ld_preread_n = 1'b0; ld_ripe_prev_n = 1'b0;
-        st_n = S_OPC_POP; chg_n = 2'd0; ending_n = 1'b0; poste_n = 1'b0;
-        rowq_n = 2'd0; row_posted_n = 1'b0; row_paired_n = 1'b0; rloop_n_n = 16'd0;
-        suppress_commit_n = 1'b0; first_pop_seen_n = 1'b0;
-        rowb0_n = 8'd0; rowb1_n = 8'd0; poste_n = 1'b0;
-        // the pin pipelines come out of reset holding the LEVEL they have been
-        // seeing -- a shift register clocked since power-on cannot hold
-        // anything else, and it is what `poll_busy()` / the INT sample assume.
-        poll_pipe_n = {3{pin_poll_n}};
-        int_p_n = {4{pin_int}}; nmi_p_n = {5{pin_nmi}}; ie_p_n = 4'd0;
-        rep_chained = 1'b0;
-        nmi_latch_n = 1'b0; irq_shadow_n = 1'b0; bnd_armed_n = 1'b0;
-        irq_sel_nmi_n = 1'b0; unhalt_pend_n = 1'b0;
-        if (bkd_load) begin
-            gpr_n[0] = bkd_regs[  0 +: 16];  gpr_n[1] = bkd_regs[ 16 +: 16];
-            gpr_n[2] = bkd_regs[ 32 +: 16];  gpr_n[3] = bkd_regs[ 48 +: 16];
-            gpr_n[4] = bkd_regs[ 64 +: 16];  gpr_n[5] = bkd_regs[ 80 +: 16];
-            gpr_n[6] = bkd_regs[ 96 +: 16];  gpr_n[7] = bkd_regs[112 +: 16];
-            sreg_n[0] = bkd_regs[128 +: 16]; sreg_n[1] = bkd_regs[144 +: 16];
-            sreg_n[2] = bkd_regs[160 +: 16]; sreg_n[3] = bkd_regs[176 +: 16];
-            pc_n = bkd_regs[192 +: 16];
-            psw_n = (bkd_regs[208 +: 16] & PSW_WRITABLE) | PSW_FORCED;
-        end else begin
-            // F25 -- POWER-ON RESET IS A MICROCODE MARCH, not a state.
-            // `CpuT::reset()` runs the ROM's own sequence at page 7 opcode
-            // 00000011 (01D0..01D5: ZEROS -> DS/FLAGS/ES/SS, ONES -> CS,
-            // ZEROS -> PC, FLUSH, MFS) and only THEN does the decoder see its
-            // first byte.  The EU came out of reset in S_OPC_POP, so the whole
-            // boot was seven clocks early and `check_boot --core ucore` broke
-            // at release+7 (the real part shows the march's queue flush; the
-            // EU had already popped).  A BACKDOOR-LOADED case starts mid-
-            // stream and must NOT run it -- that is what `bkd_load` selects,
-            // and it is why every v0.1 rung is unaffected.
-            //
-            // `run_timed_boot` states the geometry and the capture pins it:
-            // the part comes out of reset with the PREFETCHER SUSPENDED (there
-            // is no fetch pointer until 01D3 loads PS:PC and flushes), and the
-            // internal dispatch is FOUR CLOCKS -- 01D0 runs at release+4, the
-            // FLUSH row 01D3 at release+7 where the capture shows its `E`
-            // blip, and the first CODE T1 at release+9.  Four clocks is the
-            // one constant, not a per-row cost.
-            upc_page_n = 3'd7;
-            upc_opc_n  = 8'h03;
-            upc_loc_n  = 4'd0;
-            rst_ctr_n  = 3'd0;
-            st_n = S_RESET;
-        end
-        ie_p_n = {4{psw_n[FIE]}};      // ...and so does the IE gate's own pipeline
-    end else begin   // <- was `else if (ce)`: see the commit block
+    end else begin   // <- was `else if (srst)` then `else if (ce)`:
+                     //    both selects are on the register bank now
         //====================================================================
         // (a) the BIU's completion pulses, sampled on the clock they ride
         //====================================================================
@@ -2088,124 +2344,127 @@ end
 // place `ce` appears.  This is the clock-enable port.
 //--------------------------------------------------------------------------
 always @(posedge clk) begin
+    //-- ss_we > srst > ce, exactly the priority the one clocked block had
     if (ss_we || srst || ce) begin
-        for (ci = 0; ci < 8; ci = ci + 1) gpr[ci] <= gpr_n[ci];
-        for (ci = 0; ci < 4; ci = ci + 1) sreg[ci] <= sreg_n[ci];
-        pc <= pc_n;
-        psw <= psw_n;
-        tmpa <= tmpa_n;
-        tmpb <= tmpb_n;
-        tmpc <= tmpc_n;
-        opr <= opr_n;
-        ind <= ind_n;
-        count <= count_n;
-        pfxcnt <= pfxcnt_n;
-        stat <= stat_n;
-        sign_neg <= sign_neg_n;
-        bit_n <= bit_n_n;
-        al_op <= al_op_n;
-        al_tmp <= al_tmp_n;
-        al_byte <= al_byte_n;
-        al_eaconst <= al_eaconst_n;
-        al_eaval <= al_eaval_n;
-        al_adjust <= al_adjust_n;
-        al_adjtmp <= al_adjtmp_n;
-        al_bitarm <= al_bitarm_n;
-        al_bitn <= al_bitn_n;
-        al_spent <= al_spent_n;
-        upc_page <= upc_page_n;
-        upc_opc <= upc_opc_n;
-        upc_loc <= upc_loc_n;
-        seg_override <= seg_override_n;
-        seg_ovr <= seg_ovr_n;
-        rep_kind <= rep_kind_n;
-        lock_pfx <= lock_pfx_n;
-        opc_reg <= opc_reg_n;
-        op8 <= op8_n;
-        imm8 <= imm8_n;
-        opc_base <= opc_base_n;
-        opc_from_modrm <= opc_from_modrm_n;
-        modrm_reg <= modrm_reg_n;
-        xop <= xop_n;
-        rep_test <= rep_test_n;
-        rep_pol <= rep_pol_n;
-        bus_word <= bus_word_n;
-        opc8080 <= opc8080_n;
-        mode8080 <= mode8080_n;
-        intr_pending <= intr_pending_n;
-        eu_halted <= eu_halted_n;
-        int_p <= int_p_n;
-        nmi_p <= nmi_p_n;
-        nmi_latch <= nmi_latch_n;
-        ie_p <= ie_p_n;
-        rep_chain <= rep_chain_n;
-        irq_shadow <= irq_shadow_n;
-        bnd_armed <= bnd_armed_n;
-        irq_sel_nmi <= irq_sel_nmi_n;
-        unhalt_pend <= unhalt_pend_n;
-        m_kind <= m_kind_n;
-        r_kind <= r_kind_n;
-        wb_kind <= wb_kind_n;
-        m_idx <= m_idx_n;
-        r_idx <= r_idx_n;
-        wb_idx <= wb_idx_n;
-        m_ea <= m_ea_n;
-        r_ea <= r_ea_n;
-        wb_ea <= wb_ea_n;
-        m_seg <= m_seg_n;
-        r_seg <= r_seg_n;
-        wb_seg <= wb_seg_n;
-        m_byte <= m_byte_n;
-        r_byte <= r_byte_n;
-        wb_byte <= wb_byte_n;
-        pend_active <= pend_active_n;
-        pend_off <= pend_off_n;
-        pend_seg <= pend_seg_n;
-        pend_byte <= pend_byte_n;
-        pend_io <= pend_io_n;
-        opr_fresh <= opr_fresh_n;
-        rdq0 <= rdq0_n;
-        rdq1 <= rdq1_n;
-        rdq_n <= rdq_n_n;
-        rd_pending <= rd_pending_n;
-        rd_done_cnt <= rd_done_cnt_n;
-        rd_age0 <= rd_age0_n;
-        iend_owed <= iend_owed_n;
-        rst_ctr <= rst_ctr_n;
-        tsel <= tsel_n;
-        pe_opc_reg <= pe_opc_reg_n;
-        pe_opc8080 <= pe_opc8080_n;
-        pe_op8 <= pe_op8_n;
-        pe_pfxcnt <= pe_pfxcnt_n;
-        wr_out <= wr_out_n;
-        opc_valid <= opc_valid_n;
-        opc_byte <= opc_byte_n;
-        pop_is_first <= pop_is_first_n;
-        ld_b <= ld_b_n;
-        ld_pla <= ld_pla_n;
-        ld_ext <= ld_ext_n;
-        ld_page <= ld_page_n;
-        ld_hasrm <= ld_hasrm_n;
-        ld_rm <= ld_rm_n;
-        ld_disp <= ld_disp_n;
-        ld_dlo <= ld_dlo_n;
-        ld_grpd <= ld_grpd_n;
-        ld_byte <= ld_byte_n;
-        ld_preread <= ld_preread_n;
-        ld_ripe_prev <= ld_ripe_prev_n;
-        st <= st_n;
-        chg <= chg_n;
-        ending <= ending_n;
-        rowq <= rowq_n;
-        row_posted <= row_posted_n;
-        row_paired <= row_paired_n;
-        rloop_n <= rloop_n_n;
-        suppress_commit <= suppress_commit_n;
-        first_pop_seen <= first_pop_seen_n;
-        rowb0 <= rowb0_n;
-        rowb1 <= rowb1_n;
-        poste <= poste_n;
-        poll_pipe <= poll_pipe_n;
+        for (ci = 0; ci < 8; ci = ci + 1)
+            gpr[ci] <= (srst && !ss_we) ? gpr_r[ci] : gpr_n[ci];
+        for (ci = 0; ci < 4; ci = ci + 1)
+            sreg[ci] <= (srst && !ss_we) ? sreg_r[ci] : sreg_n[ci];
+        pc <= (srst && !ss_we) ? pc_r : pc_n;
+        psw <= (srst && !ss_we) ? psw_r : psw_n;
+        tmpa <= (srst && !ss_we) ? tmpa_r : tmpa_n;
+        tmpb <= (srst && !ss_we) ? tmpb_r : tmpb_n;
+        tmpc <= (srst && !ss_we) ? tmpc_r : tmpc_n;
+        opr <= (srst && !ss_we) ? opr_r : opr_n;
+        ind <= (srst && !ss_we) ? ind_r : ind_n;
+        count <= (srst && !ss_we) ? count_r : count_n;
+        pfxcnt <= (srst && !ss_we) ? pfxcnt_r : pfxcnt_n;
+        stat <= (srst && !ss_we) ? stat_r : stat_n;
+        sign_neg <= (srst && !ss_we) ? sign_neg_r : sign_neg_n;
+        bit_n <= (srst && !ss_we) ? bit_n_r : bit_n_n;
+        al_op <= (srst && !ss_we) ? al_op_r : al_op_n;
+        al_tmp <= (srst && !ss_we) ? al_tmp_r : al_tmp_n;
+        al_byte <= (srst && !ss_we) ? al_byte_r : al_byte_n;
+        al_eaconst <= (srst && !ss_we) ? al_eaconst_r : al_eaconst_n;
+        al_eaval <= (srst && !ss_we) ? al_eaval_r : al_eaval_n;
+        al_adjust <= (srst && !ss_we) ? al_adjust_r : al_adjust_n;
+        al_adjtmp <= (srst && !ss_we) ? al_adjtmp_r : al_adjtmp_n;
+        al_bitarm <= (srst && !ss_we) ? al_bitarm_r : al_bitarm_n;
+        al_bitn <= (srst && !ss_we) ? al_bitn_r : al_bitn_n;
+        al_spent <= (srst && !ss_we) ? al_spent_r : al_spent_n;
+        upc_page <= (srst && !ss_we) ? upc_page_r : upc_page_n;
+        upc_opc <= (srst && !ss_we) ? upc_opc_r : upc_opc_n;
+        upc_loc <= (srst && !ss_we) ? upc_loc_r : upc_loc_n;
+        seg_override <= (srst && !ss_we) ? seg_override_r : seg_override_n;
+        seg_ovr <= (srst && !ss_we) ? seg_ovr_r : seg_ovr_n;
+        rep_kind <= (srst && !ss_we) ? rep_kind_r : rep_kind_n;
+        lock_pfx <= (srst && !ss_we) ? lock_pfx_r : lock_pfx_n;
+        opc_reg <= (srst && !ss_we) ? opc_reg_r : opc_reg_n;
+        op8 <= (srst && !ss_we) ? op8_r : op8_n;
+        imm8 <= (srst && !ss_we) ? imm8_r : imm8_n;
+        opc_base <= (srst && !ss_we) ? opc_base_r : opc_base_n;
+        opc_from_modrm <= (srst && !ss_we) ? opc_from_modrm_r : opc_from_modrm_n;
+        modrm_reg <= (srst && !ss_we) ? modrm_reg_r : modrm_reg_n;
+        xop <= (srst && !ss_we) ? xop_r : xop_n;
+        rep_test <= (srst && !ss_we) ? rep_test_r : rep_test_n;
+        rep_pol <= (srst && !ss_we) ? rep_pol_r : rep_pol_n;
+        bus_word <= (srst && !ss_we) ? bus_word_r : bus_word_n;
+        opc8080 <= (srst && !ss_we) ? opc8080_r : opc8080_n;
+        mode8080 <= (srst && !ss_we) ? mode8080_r : mode8080_n;
+        intr_pending <= (srst && !ss_we) ? intr_pending_r : intr_pending_n;
+        eu_halted <= (srst && !ss_we) ? eu_halted_r : eu_halted_n;
+        int_p <= (srst && !ss_we) ? int_p_r : int_p_n;
+        nmi_p <= (srst && !ss_we) ? nmi_p_r : nmi_p_n;
+        nmi_latch <= (srst && !ss_we) ? nmi_latch_r : nmi_latch_n;
+        ie_p <= (srst && !ss_we) ? ie_p_r : ie_p_n;
+        rep_chain <= (srst && !ss_we) ? rep_chain_r : rep_chain_n;
+        irq_shadow <= (srst && !ss_we) ? irq_shadow_r : irq_shadow_n;
+        bnd_armed <= (srst && !ss_we) ? bnd_armed_r : bnd_armed_n;
+        irq_sel_nmi <= (srst && !ss_we) ? irq_sel_nmi_r : irq_sel_nmi_n;
+        unhalt_pend <= (srst && !ss_we) ? unhalt_pend_r : unhalt_pend_n;
+        m_kind <= (srst && !ss_we) ? m_kind_r : m_kind_n;
+        r_kind <= (srst && !ss_we) ? r_kind_r : r_kind_n;
+        wb_kind <= (srst && !ss_we) ? wb_kind_r : wb_kind_n;
+        m_idx <= (srst && !ss_we) ? m_idx_r : m_idx_n;
+        r_idx <= (srst && !ss_we) ? r_idx_r : r_idx_n;
+        wb_idx <= (srst && !ss_we) ? wb_idx_r : wb_idx_n;
+        m_ea <= (srst && !ss_we) ? m_ea_r : m_ea_n;
+        r_ea <= (srst && !ss_we) ? r_ea_r : r_ea_n;
+        wb_ea <= (srst && !ss_we) ? wb_ea_r : wb_ea_n;
+        m_seg <= (srst && !ss_we) ? m_seg_r : m_seg_n;
+        r_seg <= (srst && !ss_we) ? r_seg_r : r_seg_n;
+        wb_seg <= (srst && !ss_we) ? wb_seg_r : wb_seg_n;
+        m_byte <= (srst && !ss_we) ? m_byte_r : m_byte_n;
+        r_byte <= (srst && !ss_we) ? r_byte_r : r_byte_n;
+        wb_byte <= (srst && !ss_we) ? wb_byte_r : wb_byte_n;
+        pend_active <= (srst && !ss_we) ? pend_active_r : pend_active_n;
+        pend_off <= (srst && !ss_we) ? pend_off_r : pend_off_n;
+        pend_seg <= (srst && !ss_we) ? pend_seg_r : pend_seg_n;
+        pend_byte <= (srst && !ss_we) ? pend_byte_r : pend_byte_n;
+        pend_io <= (srst && !ss_we) ? pend_io_r : pend_io_n;
+        opr_fresh <= (srst && !ss_we) ? opr_fresh_r : opr_fresh_n;
+        rdq0 <= (srst && !ss_we) ? rdq0_r : rdq0_n;
+        rdq1 <= (srst && !ss_we) ? rdq1_r : rdq1_n;
+        rdq_n <= (srst && !ss_we) ? rdq_n_r : rdq_n_n;
+        rd_pending <= (srst && !ss_we) ? rd_pending_r : rd_pending_n;
+        rd_done_cnt <= (srst && !ss_we) ? rd_done_cnt_r : rd_done_cnt_n;
+        rd_age0 <= (srst && !ss_we) ? rd_age0_r : rd_age0_n;
+        iend_owed <= (srst && !ss_we) ? iend_owed_r : iend_owed_n;
+        rst_ctr <= (srst && !ss_we) ? rst_ctr_r : rst_ctr_n;
+        tsel <= (srst && !ss_we) ? tsel_r : tsel_n;
+        pe_opc_reg <= (srst && !ss_we) ? pe_opc_reg_r : pe_opc_reg_n;
+        pe_opc8080 <= (srst && !ss_we) ? pe_opc8080_r : pe_opc8080_n;
+        pe_op8 <= (srst && !ss_we) ? pe_op8_r : pe_op8_n;
+        pe_pfxcnt <= (srst && !ss_we) ? pe_pfxcnt_r : pe_pfxcnt_n;
+        wr_out <= (srst && !ss_we) ? wr_out_r : wr_out_n;
+        opc_valid <= (srst && !ss_we) ? opc_valid_r : opc_valid_n;
+        opc_byte <= (srst && !ss_we) ? opc_byte_r : opc_byte_n;
+        pop_is_first <= (srst && !ss_we) ? pop_is_first_r : pop_is_first_n;
+        ld_b <= (srst && !ss_we) ? ld_b_r : ld_b_n;
+        ld_pla <= (srst && !ss_we) ? ld_pla_r : ld_pla_n;
+        ld_ext <= (srst && !ss_we) ? ld_ext_r : ld_ext_n;
+        ld_page <= (srst && !ss_we) ? ld_page_r : ld_page_n;
+        ld_hasrm <= (srst && !ss_we) ? ld_hasrm_r : ld_hasrm_n;
+        ld_rm <= (srst && !ss_we) ? ld_rm_r : ld_rm_n;
+        ld_disp <= (srst && !ss_we) ? ld_disp_r : ld_disp_n;
+        ld_dlo <= (srst && !ss_we) ? ld_dlo_r : ld_dlo_n;
+        ld_grpd <= (srst && !ss_we) ? ld_grpd_r : ld_grpd_n;
+        ld_byte <= (srst && !ss_we) ? ld_byte_r : ld_byte_n;
+        ld_preread <= (srst && !ss_we) ? ld_preread_r : ld_preread_n;
+        ld_ripe_prev <= (srst && !ss_we) ? ld_ripe_prev_r : ld_ripe_prev_n;
+        st <= (srst && !ss_we) ? st_r : st_n;
+        chg <= (srst && !ss_we) ? chg_r : chg_n;
+        ending <= (srst && !ss_we) ? ending_r : ending_n;
+        rowq <= (srst && !ss_we) ? rowq_r : rowq_n;
+        row_posted <= (srst && !ss_we) ? row_posted_r : row_posted_n;
+        row_paired <= (srst && !ss_we) ? row_paired_r : row_paired_n;
+        rloop_n <= (srst && !ss_we) ? rloop_n_r : rloop_n_n;
+        suppress_commit <= (srst && !ss_we) ? suppress_commit_r : suppress_commit_n;
+        first_pop_seen <= (srst && !ss_we) ? first_pop_seen_r : first_pop_seen_n;
+        rowb0 <= (srst && !ss_we) ? rowb0_r : rowb0_n;
+        rowb1 <= (srst && !ss_we) ? rowb1_r : rowb1_n;
+        poste <= (srst && !ss_we) ? poste_r : poste_n;
+        poll_pipe <= (srst && !ss_we) ? poll_pipe_r : poll_pipe_n;
     end
 end
 

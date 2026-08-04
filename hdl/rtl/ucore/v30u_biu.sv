@@ -627,6 +627,264 @@ reg  [1:0] rq_n_pre;
 reg        set_grn, set_infl, set_absorb, set_land, set_noeval;
 reg  [1:0] new_ttl;
 
+//--------------------------------------------------------------------------
+// THE RESET NEXT-STATE (U4 pass 3, second structural pass -- sec.52.3)
+//--------------------------------------------------------------------------
+// `srst` was an ARM of the next-state function above, so it sat in the same
+// expression tree as the whole BIU and the whole EU chain that consumes this
+// module's `_n` view.  Measured on the pass-3 fit: the design's ONLY violating
+// paths launched at `system_large|c_reset_q` and `hps_axi_slave|cfg_use_core`
+// -- one signal, `core_reset = c_reset_q | ~cfg_use_core` (system_large.sv:372)
+// -- and ran `v30u_eu|wb_seg[0]~0` -> `v30u_biu|grn_n` -> `q_ripe_lead_n` ->
+// the EU's twelve chain positions, 58.9 ns against 31.25 ns.  It could not be
+// excepted: it LAUNCHES OUTSIDE the core, so no CE multicycle covers it.
+//
+// Given its own function the reset value is constants and the backdoor, the
+// run view is provably independent of `srst`, and the bank selects.
+reg            run_rst;
+reg      [2:0] ts_rst;
+reg      [2:0] cur_bs_rst;
+reg     [19:0] cur_addr_rst;
+reg     [15:0] cur_data_rst;
+reg            cur_ube_n_rst;
+reg            cur_odd_rst;
+reg      [1:0] cur_seg_rst;
+reg            cur_fetch_rst;
+reg            cur_halt_rst;
+reg            cur_noaddr_rst;
+reg            cur_wr_rst;
+reg            cur_need_rst;
+reg            cur_rd_last_rst;
+reg      [1:0] cur_pn_rst;
+reg            cur_late_t1_rst;
+reg            evald_rst;
+reg      [1:0] sev_rst;
+reg      [2:0] dage_rst;
+reg            cmt_valid_rst;
+reg      [2:0] cmt_bs_rst;
+reg     [19:0] cmt_addr_rst;
+reg     [15:0] cmt_data_rst;
+reg            cmt_ube_n_rst;
+reg            cmt_odd_rst;
+reg      [1:0] cmt_seg_rst;
+reg            cmt_fetch_rst;
+reg            cmt_halt_rst;
+reg            cmt_noaddr_rst;
+reg            cmt_wr_rst;
+reg            cmt_need_rst;
+reg            cmt_rd_last_rst;
+reg      [1:0] cmt_pn_rst;
+reg      [2:0] cdage_rst;
+reg     [15:0] cmt_prev_fp_rst;
+reg            cmt_was_owed_rst;
+reg     [15:0] last_fetch_addr_rst;
+reg      [2:0] q_head_rst;
+reg      [3:0] q_cnt_rst;
+reg      [1:0] grn_n_rst;
+reg      [1:0] grn_ttl_rst;
+reg     [15:0] fetch_ptr_rst;
+reg     [15:0] cs_r_rst;
+reg            suspended_rst;
+reg            halted_rst;
+reg            halt_pending_rst;
+reg            pf_owed_rst;
+reg            pf_arm_rst;
+reg            pf_land_rst;
+reg      [1:0] infl_ttl_rst;
+reg      [1:0] infl_n_rst;
+reg      [1:0] absorb_ttl_rst;
+reg            no_eval_rst;
+reg            flush_eval_rst;
+reg            e_pend_rst;
+reg      [1:0] rq_n_rst;
+reg            slot_busy_rst;
+reg            slot_accept_rst;
+reg      [1:0] opr_held_rst;
+reg      [7:0] rd_first_hi_rst;
+reg            rd_was_split_rst;
+reg      [1:0] done_ctr_rst;
+reg            done_wr_rst;
+reg            rd_done_p_rst;
+reg            wr_done_p_rst;
+reg            opr_free_p_rst;
+reg     [15:0] rd_val_rst;
+reg     [15:0] rd_land_rst;
+reg            ready_prev_rst;
+reg      [7:0] q_mem_rst [0:5];
+reg      [2:0] rq_bs_rst [0:1];
+reg     [19:0] rq_addr_rst [0:1];
+reg     [15:0] rq_data_rst [0:1];
+reg            rq_ube_rst [0:1];
+reg            rq_odd_rst [0:1];
+reg      [1:0] rq_seg_rst [0:1];
+reg            rq_noaddr_rst [0:1];
+reg            rq_wr_rst [0:1];
+reg            rq_need_rst [0:1];
+reg            rq_last_rst [0:1];
+
+integer i_rst;        // the reset function's own working values --
+reg [15:0] lfa_p_rst;  // block-local, so the run function keeps its own
+integer    lfa_need_rst;
+reg [19:0] lfa_a_rst;
+always_comb begin
+    lfa_p_rst = 16'd0; lfa_need_rst = 0; lfa_a_rst = 20'd0; i_rst = 0;
+    //-- preload, so an unassigned reset arm holds rather than latches
+    run_rst = r_run;
+    ts_rst = r_ts;
+    cur_bs_rst = r_cur_bs;
+    cur_addr_rst = r_cur_addr;
+    cur_data_rst = r_cur_data;
+    cur_ube_n_rst = r_cur_ube_n;
+    cur_odd_rst = r_cur_odd;
+    cur_seg_rst = r_cur_seg;
+    cur_fetch_rst = r_cur_fetch;
+    cur_halt_rst = r_cur_halt;
+    cur_noaddr_rst = r_cur_noaddr;
+    cur_wr_rst = r_cur_wr;
+    cur_need_rst = r_cur_need;
+    cur_rd_last_rst = r_cur_rd_last;
+    cur_pn_rst = r_cur_pn;
+    cur_late_t1_rst = r_cur_late_t1;
+    evald_rst = r_evald;
+    sev_rst = r_sev;
+    dage_rst = r_dage;
+    cmt_valid_rst = r_cmt_valid;
+    cmt_bs_rst = r_cmt_bs;
+    cmt_addr_rst = r_cmt_addr;
+    cmt_data_rst = r_cmt_data;
+    cmt_ube_n_rst = r_cmt_ube_n;
+    cmt_odd_rst = r_cmt_odd;
+    cmt_seg_rst = r_cmt_seg;
+    cmt_fetch_rst = r_cmt_fetch;
+    cmt_halt_rst = r_cmt_halt;
+    cmt_noaddr_rst = r_cmt_noaddr;
+    cmt_wr_rst = r_cmt_wr;
+    cmt_need_rst = r_cmt_need;
+    cmt_rd_last_rst = r_cmt_rd_last;
+    cmt_pn_rst = r_cmt_pn;
+    cdage_rst = r_cdage;
+    cmt_prev_fp_rst = r_cmt_prev_fp;
+    cmt_was_owed_rst = r_cmt_was_owed;
+    last_fetch_addr_rst = r_last_fetch_addr;
+    q_head_rst = r_q_head;
+    q_cnt_rst = r_q_cnt;
+    grn_n_rst = r_grn_n;
+    grn_ttl_rst = r_grn_ttl;
+    fetch_ptr_rst = r_fetch_ptr;
+    cs_r_rst = r_cs_r;
+    suspended_rst = r_suspended;
+    halted_rst = r_halted;
+    halt_pending_rst = r_halt_pending;
+    pf_owed_rst = r_pf_owed;
+    pf_arm_rst = r_pf_arm;
+    pf_land_rst = r_pf_land;
+    infl_ttl_rst = r_infl_ttl;
+    infl_n_rst = r_infl_n;
+    absorb_ttl_rst = r_absorb_ttl;
+    no_eval_rst = r_no_eval;
+    flush_eval_rst = r_flush_eval;
+    e_pend_rst = r_e_pend;
+    rq_n_rst = r_rq_n;
+    slot_busy_rst = r_slot_busy;
+    slot_accept_rst = r_slot_accept;
+    opr_held_rst = r_opr_held;
+    rd_first_hi_rst = r_rd_first_hi;
+    rd_was_split_rst = r_rd_was_split;
+    done_ctr_rst = r_done_ctr;
+    done_wr_rst = r_done_wr;
+    rd_done_p_rst = r_rd_done_p;
+    wr_done_p_rst = r_wr_done_p;
+    opr_free_p_rst = r_opr_free_p;
+    rd_val_rst = r_rd_val;
+    rd_land_rst = r_rd_land;
+    ready_prev_rst = r_ready_prev;
+    for (i_rst = 0; i_rst < $size(r_q_mem); i_rst = i_rst + 1) q_mem_rst[i_rst] = r_q_mem[i_rst];
+    for (i_rst = 0; i_rst < $size(r_rq_bs); i_rst = i_rst + 1) rq_bs_rst[i_rst] = r_rq_bs[i_rst];
+    for (i_rst = 0; i_rst < $size(r_rq_addr); i_rst = i_rst + 1) rq_addr_rst[i_rst] = r_rq_addr[i_rst];
+    for (i_rst = 0; i_rst < $size(r_rq_data); i_rst = i_rst + 1) rq_data_rst[i_rst] = r_rq_data[i_rst];
+    for (i_rst = 0; i_rst < $size(r_rq_ube); i_rst = i_rst + 1) rq_ube_rst[i_rst] = r_rq_ube[i_rst];
+    for (i_rst = 0; i_rst < $size(r_rq_odd); i_rst = i_rst + 1) rq_odd_rst[i_rst] = r_rq_odd[i_rst];
+    for (i_rst = 0; i_rst < $size(r_rq_seg); i_rst = i_rst + 1) rq_seg_rst[i_rst] = r_rq_seg[i_rst];
+    for (i_rst = 0; i_rst < $size(r_rq_noaddr); i_rst = i_rst + 1) rq_noaddr_rst[i_rst] = r_rq_noaddr[i_rst];
+    for (i_rst = 0; i_rst < $size(r_rq_wr); i_rst = i_rst + 1) rq_wr_rst[i_rst] = r_rq_wr[i_rst];
+    for (i_rst = 0; i_rst < $size(r_rq_need); i_rst = i_rst + 1) rq_need_rst[i_rst] = r_rq_need[i_rst];
+    for (i_rst = 0; i_rst < $size(r_rq_last); i_rst = i_rst + 1) rq_last_rst[i_rst] = r_rq_last[i_rst];
+
+        //--------------------------------------------------------------------
+        // RESET == the model's begin_case(), plus the backdoor injection.
+        //--------------------------------------------------------------------
+        run_rst  = 1'b0; ts_rst  = TS_TI;
+        cur_bs_rst  = BS_PASV; cur_addr_rst  = 20'd0; cur_data_rst  = 16'd0;
+        cur_ube_n_rst  = 1'b1; cur_seg_rst  = 2'd2; cur_fetch_rst  = 1'b0; cur_odd_rst = 1'b0;
+        cur_halt_rst  = 1'b0; cur_noaddr_rst  = 1'b0; cur_wr_rst  = 1'b0;
+        cur_need_rst  = 1'b0; cur_rd_last_rst  = 1'b1; cur_pn_rst  = 2'd0;
+        cur_late_t1_rst  = 1'b0; evald_rst  = 1'b0; sev_rst  = 2'd0; dage_rst  = 3'd0;
+        cmt_valid_rst  = 1'b0; cmt_bs_rst  = BS_PASV; cmt_addr_rst  = 20'd0;
+        cmt_data_rst  = 16'd0; cmt_ube_n_rst  = 1'b1; cmt_seg_rst  = 2'd2; cmt_odd_rst = 1'b0;
+        cmt_fetch_rst  = 1'b0; cmt_halt_rst  = 1'b0; cmt_noaddr_rst  = 1'b0;
+        cmt_wr_rst  = 1'b0; cmt_need_rst  = 1'b0; cmt_rd_last_rst  = 1'b1;
+        cmt_pn_rst  = 2'd0; cdage_rst  = 3'd0; cmt_prev_fp_rst  = 16'd0;
+        cmt_was_owed_rst  = 1'b0;
+        q_head_rst  = 3'd0; grn_n_rst  = 2'd0; grn_ttl_rst  = 2'd0;
+        suspended_rst  = 1'b0; halted_rst  = 1'b0; halt_pending_rst  = 1'b0;
+        pf_owed_rst  = 1'b0; pf_arm_rst  = 1'b1; pf_land_rst  = 1'b0;
+        infl_ttl_rst  = 2'd0; infl_n_rst  = 2'd0; absorb_ttl_rst  = 2'd0;
+        no_eval_rst  = 1'b0; flush_eval_rst  = 1'b0; e_pend_rst  = 1'b0;
+        rq_n_rst  = 2'd0;
+        for (i_rst = 0; i_rst < 2; i_rst = i_rst + 1) begin
+            rq_bs_rst[i_rst]  = BS_PASV; rq_addr_rst[i_rst]  = 20'd0; rq_data_rst[i_rst]  = 16'd0;
+            rq_ube_rst[i_rst]  = 1'b1; rq_seg_rst[i_rst]  = 2'd2; rq_noaddr_rst[i_rst]  = 1'b0;
+            rq_odd_rst[i_rst]  = 1'b0;
+            rq_wr_rst[i_rst]  = 1'b0; rq_need_rst[i_rst]  = 1'b0; rq_last_rst[i_rst]  = 1'b1;
+        end
+        slot_busy_rst  = 1'b0; slot_accept_rst  = 1'b0;
+        opr_held_rst  = 2'd0; done_ctr_rst  = 2'd0; done_wr_rst  = 1'b0;
+        rd_first_hi_rst = 8'd0; rd_was_split_rst = 1'b0;
+        rd_done_p_rst  = 1'b0; wr_done_p_rst  = 1'b0; opr_free_p_rst  = 1'b0;
+        rd_val_rst  = 16'd0; rd_land_rst = 16'd0;
+        ready_prev_rst  = 1'b1;
+        if (bkd_load) begin
+            // The backdoor injects a RIPE queue at CS:IP with the fetch
+            // pointer past it -- `queue_preload`'s post-state exactly.
+            cs_r_rst       = bkd_cs;
+            fetch_ptr_rst  = bkd_ip;
+            q_cnt_rst      = {1'b0, bkd_qlen};
+            for (i_rst = 0; i_rst < 6; i_rst = i_rst + 1) q_mem_rst[i_rst]  = bkd_queue[i_rst*8 +: 8];
+            // S9a -- ...AND THE LAST OF THOSE PRE-WINDOW FETCHES IS AN ADDRESS
+            // THE PART REMEMBERS.  `queue_preload` walks the injected bytes
+            // with the real fetch geometry (a word at an even address, one
+            // upper-lane byte at an odd one) and keeps the LAST fetch address,
+            // because that is what a HALT display drives if the part halts
+            // before making a fetch of its own -- the HALT law's "fetch
+            // pointer - 2", stated as the address it is derived from.  Left at
+            // zero, every HALT display in the injected corpus drove 0 (the
+            // `(1, 'bus')` first-divergence of all three `HLT.*` forms).
+            lfa_p_rst    = bkd_ip - {13'd0, bkd_qlen};
+            lfa_need_rst = {29'd0, bkd_qlen};
+            last_fetch_addr_rst = 16'd0;
+            for (i_rst = 0; i_rst < 6; i_rst = i_rst + 1) begin
+                if (lfa_need_rst > 0) begin
+                    lfa_a_rst = {bkd_cs, 4'd0} + {4'd0, lfa_p_rst};
+                    last_fetch_addr_rst = lfa_a_rst[15:0];
+                    if (lfa_p_rst[0]) begin
+                        lfa_p_rst    = lfa_p_rst + 16'd1;
+                        lfa_need_rst = lfa_need_rst - 1;
+                    end else begin
+                        lfa_p_rst    = lfa_p_rst + 16'd2;
+                        lfa_need_rst = lfa_need_rst - 2;
+                    end
+                end
+            end
+        end else begin
+            // The synthesis reset flow: the vector fetch at FFFF0.
+            cs_r_rst       = 16'hFFFF;
+            fetch_ptr_rst  = 16'h0000;
+            q_cnt_rst      = 4'd0;
+            for (i_rst = 0; i_rst < 6; i_rst = i_rst + 1) q_mem_rst[i_rst]  = 8'h00;
+            last_fetch_addr_rst  = 16'd0;
+        end
+end
+
 always_comb begin
     //=== F7: the next-state view starts from the registers ===========
     run = r_run;
@@ -834,81 +1092,8 @@ always_comb begin
             SSA_B_READY_PREV:   ready_prev    = ss_wdata[0];
             default: ;
         endcase
-    end else if (srst) begin
-        //--------------------------------------------------------------------
-        // RESET == the model's begin_case(), plus the backdoor injection.
-        //--------------------------------------------------------------------
-        run  = 1'b0; ts  = TS_TI;
-        cur_bs  = BS_PASV; cur_addr  = 20'd0; cur_data  = 16'd0;
-        cur_ube_n  = 1'b1; cur_seg  = 2'd2; cur_fetch  = 1'b0; cur_odd = 1'b0;
-        cur_halt  = 1'b0; cur_noaddr  = 1'b0; cur_wr  = 1'b0;
-        cur_need  = 1'b0; cur_rd_last  = 1'b1; cur_pn  = 2'd0;
-        cur_late_t1  = 1'b0; evald  = 1'b0; sev  = 2'd0; dage  = 3'd0;
-        cmt_valid  = 1'b0; cmt_bs  = BS_PASV; cmt_addr  = 20'd0;
-        cmt_data  = 16'd0; cmt_ube_n  = 1'b1; cmt_seg  = 2'd2; cmt_odd = 1'b0;
-        cmt_fetch  = 1'b0; cmt_halt  = 1'b0; cmt_noaddr  = 1'b0;
-        cmt_wr  = 1'b0; cmt_need  = 1'b0; cmt_rd_last  = 1'b1;
-        cmt_pn  = 2'd0; cdage  = 3'd0; cmt_prev_fp  = 16'd0;
-        cmt_was_owed  = 1'b0;
-        q_head  = 3'd0; grn_n  = 2'd0; grn_ttl  = 2'd0;
-        suspended  = 1'b0; halted  = 1'b0; halt_pending  = 1'b0;
-        pf_owed  = 1'b0; pf_arm  = 1'b1; pf_land  = 1'b0;
-        infl_ttl  = 2'd0; infl_n  = 2'd0; absorb_ttl  = 2'd0;
-        no_eval  = 1'b0; flush_eval  = 1'b0; e_pend  = 1'b0;
-        rq_n  = 2'd0;
-        for (i = 0; i < 2; i = i + 1) begin
-            rq_bs[i]  = BS_PASV; rq_addr[i]  = 20'd0; rq_data[i]  = 16'd0;
-            rq_ube[i]  = 1'b1; rq_seg[i]  = 2'd2; rq_noaddr[i]  = 1'b0;
-            rq_odd[i]  = 1'b0;
-            rq_wr[i]  = 1'b0; rq_need[i]  = 1'b0; rq_last[i]  = 1'b1;
-        end
-        slot_busy  = 1'b0; slot_accept  = 1'b0;
-        opr_held  = 2'd0; done_ctr  = 2'd0; done_wr  = 1'b0;
-        rd_first_hi = 8'd0; rd_was_split = 1'b0;
-        rd_done_p  = 1'b0; wr_done_p  = 1'b0; opr_free_p  = 1'b0;
-        rd_val  = 16'd0; rd_land = 16'd0;
-        ready_prev  = 1'b1;
-        if (bkd_load) begin
-            // The backdoor injects a RIPE queue at CS:IP with the fetch
-            // pointer past it -- `queue_preload`'s post-state exactly.
-            cs_r       = bkd_cs;
-            fetch_ptr  = bkd_ip;
-            q_cnt      = {1'b0, bkd_qlen};
-            for (i = 0; i < 6; i = i + 1) q_mem[i]  = bkd_queue[i*8 +: 8];
-            // S9a -- ...AND THE LAST OF THOSE PRE-WINDOW FETCHES IS AN ADDRESS
-            // THE PART REMEMBERS.  `queue_preload` walks the injected bytes
-            // with the real fetch geometry (a word at an even address, one
-            // upper-lane byte at an odd one) and keeps the LAST fetch address,
-            // because that is what a HALT display drives if the part halts
-            // before making a fetch of its own -- the HALT law's "fetch
-            // pointer - 2", stated as the address it is derived from.  Left at
-            // zero, every HALT display in the injected corpus drove 0 (the
-            // `(1, 'bus')` first-divergence of all three `HLT.*` forms).
-            lfa_p    = bkd_ip - {13'd0, bkd_qlen};
-            lfa_need = {29'd0, bkd_qlen};
-            last_fetch_addr = 16'd0;
-            for (i = 0; i < 6; i = i + 1) begin
-                if (lfa_need > 0) begin
-                    lfa_a = {bkd_cs, 4'd0} + {4'd0, lfa_p};
-                    last_fetch_addr = lfa_a[15:0];
-                    if (lfa_p[0]) begin
-                        lfa_p    = lfa_p + 16'd1;
-                        lfa_need = lfa_need - 1;
-                    end else begin
-                        lfa_p    = lfa_p + 16'd2;
-                        lfa_need = lfa_need - 2;
-                    end
-                end
-            end
-        end else begin
-            // The synthesis reset flow: the vector fetch at FFFF0.
-            cs_r       = 16'hFFFF;
-            fetch_ptr  = 16'h0000;
-            q_cnt      = 4'd0;
-            for (i = 0; i < 6; i = i + 1) q_mem[i]  = 8'h00;
-            last_fetch_addr  = 16'd0;
-        end
-    end else begin   // <- was `else if (ce)`; the CE is on the register bank now
+    end else begin   // <- was `else if (srst)` then `else if (ce)`:
+                     //    both selects are on the register bank now
         //====================================================================
         // (a) CAPTURE the clock-c predicates
         //====================================================================
@@ -1409,87 +1594,88 @@ end
 // and it is the only form from which Quartus extracts a clock enable.
 //============================================================================
 always_ff @(posedge clk) if (ss_we || srst || ce) begin
-    r_run <= run;
-    r_ts <= ts;
-    r_cur_bs <= cur_bs;
-    r_cur_addr <= cur_addr;
-    r_cur_data <= cur_data;
-    r_cur_ube_n <= cur_ube_n;
-    r_cur_odd <= cur_odd;
-    r_cur_seg <= cur_seg;
-    r_cur_fetch <= cur_fetch;
-    r_cur_halt <= cur_halt;
-    r_cur_noaddr <= cur_noaddr;
-    r_cur_wr <= cur_wr;
-    r_cur_need <= cur_need;
-    r_cur_rd_last <= cur_rd_last;
-    r_cur_pn <= cur_pn;
-    r_cur_late_t1 <= cur_late_t1;
-    r_evald <= evald;
-    r_sev <= sev;
-    r_dage <= dage;
-    r_cmt_valid <= cmt_valid;
-    r_cmt_bs <= cmt_bs;
-    r_cmt_addr <= cmt_addr;
-    r_cmt_data <= cmt_data;
-    r_cmt_ube_n <= cmt_ube_n;
-    r_cmt_odd <= cmt_odd;
-    r_cmt_seg <= cmt_seg;
-    r_cmt_fetch <= cmt_fetch;
-    r_cmt_halt <= cmt_halt;
-    r_cmt_noaddr <= cmt_noaddr;
-    r_cmt_wr <= cmt_wr;
-    r_cmt_need <= cmt_need;
-    r_cmt_rd_last <= cmt_rd_last;
-    r_cmt_pn <= cmt_pn;
-    r_cdage <= cdage;
-    r_cmt_prev_fp <= cmt_prev_fp;
-    r_cmt_was_owed <= cmt_was_owed;
-    r_last_fetch_addr <= last_fetch_addr;
-    r_q_head <= q_head;
-    r_q_cnt <= q_cnt;
-    r_grn_n <= grn_n;
-    r_grn_ttl <= grn_ttl;
-    r_fetch_ptr <= fetch_ptr;
-    r_cs_r <= cs_r;
-    r_suspended <= suspended;
-    r_halted <= halted;
-    r_halt_pending <= halt_pending;
-    r_pf_owed <= pf_owed;
-    r_pf_arm <= pf_arm;
-    r_pf_land <= pf_land;
-    r_infl_ttl <= infl_ttl;
-    r_infl_n <= infl_n;
-    r_absorb_ttl <= absorb_ttl;
-    r_no_eval <= no_eval;
-    r_flush_eval <= flush_eval;
-    r_e_pend <= e_pend;
-    r_rq_n <= rq_n;
-    r_slot_busy <= slot_busy;
-    r_slot_accept <= slot_accept;
-    r_opr_held <= opr_held;
-    r_rd_first_hi <= rd_first_hi;
-    r_rd_was_split <= rd_was_split;
-    r_done_ctr <= done_ctr;
-    r_done_wr <= done_wr;
-    r_rd_done_p <= rd_done_p;
-    r_wr_done_p <= wr_done_p;
-    r_opr_free_p <= opr_free_p;
-    r_rd_val <= rd_val;
-    r_rd_land <= rd_land;
-    r_ready_prev <= ready_prev;
-    for (rj = 0; rj < 6; rj = rj + 1) r_q_mem[rj] <= q_mem[rj];
+    r_run <= (srst && !ss_we) ? run_rst : run;
+    r_ts <= (srst && !ss_we) ? ts_rst : ts;
+    r_cur_bs <= (srst && !ss_we) ? cur_bs_rst : cur_bs;
+    r_cur_addr <= (srst && !ss_we) ? cur_addr_rst : cur_addr;
+    r_cur_data <= (srst && !ss_we) ? cur_data_rst : cur_data;
+    r_cur_ube_n <= (srst && !ss_we) ? cur_ube_n_rst : cur_ube_n;
+    r_cur_odd <= (srst && !ss_we) ? cur_odd_rst : cur_odd;
+    r_cur_seg <= (srst && !ss_we) ? cur_seg_rst : cur_seg;
+    r_cur_fetch <= (srst && !ss_we) ? cur_fetch_rst : cur_fetch;
+    r_cur_halt <= (srst && !ss_we) ? cur_halt_rst : cur_halt;
+    r_cur_noaddr <= (srst && !ss_we) ? cur_noaddr_rst : cur_noaddr;
+    r_cur_wr <= (srst && !ss_we) ? cur_wr_rst : cur_wr;
+    r_cur_need <= (srst && !ss_we) ? cur_need_rst : cur_need;
+    r_cur_rd_last <= (srst && !ss_we) ? cur_rd_last_rst : cur_rd_last;
+    r_cur_pn <= (srst && !ss_we) ? cur_pn_rst : cur_pn;
+    r_cur_late_t1 <= (srst && !ss_we) ? cur_late_t1_rst : cur_late_t1;
+    r_evald <= (srst && !ss_we) ? evald_rst : evald;
+    r_sev <= (srst && !ss_we) ? sev_rst : sev;
+    r_dage <= (srst && !ss_we) ? dage_rst : dage;
+    r_cmt_valid <= (srst && !ss_we) ? cmt_valid_rst : cmt_valid;
+    r_cmt_bs <= (srst && !ss_we) ? cmt_bs_rst : cmt_bs;
+    r_cmt_addr <= (srst && !ss_we) ? cmt_addr_rst : cmt_addr;
+    r_cmt_data <= (srst && !ss_we) ? cmt_data_rst : cmt_data;
+    r_cmt_ube_n <= (srst && !ss_we) ? cmt_ube_n_rst : cmt_ube_n;
+    r_cmt_odd <= (srst && !ss_we) ? cmt_odd_rst : cmt_odd;
+    r_cmt_seg <= (srst && !ss_we) ? cmt_seg_rst : cmt_seg;
+    r_cmt_fetch <= (srst && !ss_we) ? cmt_fetch_rst : cmt_fetch;
+    r_cmt_halt <= (srst && !ss_we) ? cmt_halt_rst : cmt_halt;
+    r_cmt_noaddr <= (srst && !ss_we) ? cmt_noaddr_rst : cmt_noaddr;
+    r_cmt_wr <= (srst && !ss_we) ? cmt_wr_rst : cmt_wr;
+    r_cmt_need <= (srst && !ss_we) ? cmt_need_rst : cmt_need;
+    r_cmt_rd_last <= (srst && !ss_we) ? cmt_rd_last_rst : cmt_rd_last;
+    r_cmt_pn <= (srst && !ss_we) ? cmt_pn_rst : cmt_pn;
+    r_cdage <= (srst && !ss_we) ? cdage_rst : cdage;
+    r_cmt_prev_fp <= (srst && !ss_we) ? cmt_prev_fp_rst : cmt_prev_fp;
+    r_cmt_was_owed <= (srst && !ss_we) ? cmt_was_owed_rst : cmt_was_owed;
+    r_last_fetch_addr <= (srst && !ss_we) ? last_fetch_addr_rst : last_fetch_addr;
+    r_q_head <= (srst && !ss_we) ? q_head_rst : q_head;
+    r_q_cnt <= (srst && !ss_we) ? q_cnt_rst : q_cnt;
+    r_grn_n <= (srst && !ss_we) ? grn_n_rst : grn_n;
+    r_grn_ttl <= (srst && !ss_we) ? grn_ttl_rst : grn_ttl;
+    r_fetch_ptr <= (srst && !ss_we) ? fetch_ptr_rst : fetch_ptr;
+    r_cs_r <= (srst && !ss_we) ? cs_r_rst : cs_r;
+    r_suspended <= (srst && !ss_we) ? suspended_rst : suspended;
+    r_halted <= (srst && !ss_we) ? halted_rst : halted;
+    r_halt_pending <= (srst && !ss_we) ? halt_pending_rst : halt_pending;
+    r_pf_owed <= (srst && !ss_we) ? pf_owed_rst : pf_owed;
+    r_pf_arm <= (srst && !ss_we) ? pf_arm_rst : pf_arm;
+    r_pf_land <= (srst && !ss_we) ? pf_land_rst : pf_land;
+    r_infl_ttl <= (srst && !ss_we) ? infl_ttl_rst : infl_ttl;
+    r_infl_n <= (srst && !ss_we) ? infl_n_rst : infl_n;
+    r_absorb_ttl <= (srst && !ss_we) ? absorb_ttl_rst : absorb_ttl;
+    r_no_eval <= (srst && !ss_we) ? no_eval_rst : no_eval;
+    r_flush_eval <= (srst && !ss_we) ? flush_eval_rst : flush_eval;
+    r_e_pend <= (srst && !ss_we) ? e_pend_rst : e_pend;
+    r_rq_n <= (srst && !ss_we) ? rq_n_rst : rq_n;
+    r_slot_busy <= (srst && !ss_we) ? slot_busy_rst : slot_busy;
+    r_slot_accept <= (srst && !ss_we) ? slot_accept_rst : slot_accept;
+    r_opr_held <= (srst && !ss_we) ? opr_held_rst : opr_held;
+    r_rd_first_hi <= (srst && !ss_we) ? rd_first_hi_rst : rd_first_hi;
+    r_rd_was_split <= (srst && !ss_we) ? rd_was_split_rst : rd_was_split;
+    r_done_ctr <= (srst && !ss_we) ? done_ctr_rst : done_ctr;
+    r_done_wr <= (srst && !ss_we) ? done_wr_rst : done_wr;
+    r_rd_done_p <= (srst && !ss_we) ? rd_done_p_rst : rd_done_p;
+    r_wr_done_p <= (srst && !ss_we) ? wr_done_p_rst : wr_done_p;
+    r_opr_free_p <= (srst && !ss_we) ? opr_free_p_rst : opr_free_p;
+    r_rd_val <= (srst && !ss_we) ? rd_val_rst : rd_val;
+    r_rd_land <= (srst && !ss_we) ? rd_land_rst : rd_land;
+    r_ready_prev <= (srst && !ss_we) ? ready_prev_rst : ready_prev;
+    for (rj = 0; rj < 6; rj = rj + 1)
+        r_q_mem[rj] <= (srst && !ss_we) ? q_mem_rst[rj] : q_mem[rj];
     for (rj = 0; rj < 2; rj = rj + 1) begin
-        r_rq_bs[rj] <= rq_bs[rj];
-        r_rq_addr[rj] <= rq_addr[rj];
-        r_rq_data[rj] <= rq_data[rj];
-        r_rq_ube[rj] <= rq_ube[rj];
-        r_rq_odd[rj] <= rq_odd[rj];
-        r_rq_seg[rj] <= rq_seg[rj];
-        r_rq_noaddr[rj] <= rq_noaddr[rj];
-        r_rq_wr[rj] <= rq_wr[rj];
-        r_rq_need[rj] <= rq_need[rj];
-        r_rq_last[rj] <= rq_last[rj];
+        r_rq_bs[rj] <= (srst && !ss_we) ? rq_bs_rst[rj] : rq_bs[rj];
+        r_rq_addr[rj] <= (srst && !ss_we) ? rq_addr_rst[rj] : rq_addr[rj];
+        r_rq_data[rj] <= (srst && !ss_we) ? rq_data_rst[rj] : rq_data[rj];
+        r_rq_ube[rj] <= (srst && !ss_we) ? rq_ube_rst[rj] : rq_ube[rj];
+        r_rq_odd[rj] <= (srst && !ss_we) ? rq_odd_rst[rj] : rq_odd[rj];
+        r_rq_seg[rj] <= (srst && !ss_we) ? rq_seg_rst[rj] : rq_seg[rj];
+        r_rq_noaddr[rj] <= (srst && !ss_we) ? rq_noaddr_rst[rj] : rq_noaddr[rj];
+        r_rq_wr[rj] <= (srst && !ss_we) ? rq_wr_rst[rj] : rq_wr[rj];
+        r_rq_need[rj] <= (srst && !ss_we) ? rq_need_rst[rj] : rq_need[rj];
+        r_rq_last[rj] <= (srst && !ss_we) ? rq_last_rst[rj] : rq_last[rj];
     end
 end
 
