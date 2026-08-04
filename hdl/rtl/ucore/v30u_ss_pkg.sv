@@ -64,10 +64,13 @@ package v30_ss_pkg;
   // F49 (U4): 0x81 -> 0x82.  The five architectural flops the census found
   // UNMAPPED are appended, which ADDS ADDRESSES, so the version moves -- a v1
   // stream has no words for them and must not be silently accepted.
-  localparam int          SS_VERSION   = 8'h82;   // ucore map v2 (stage U4, F49)
+  // F52 (SM3 sitting 3): 0x82 -> 0x83.  H1's recognition floor is FOUR new
+  // BIU flops (`bnd_pending`, `bnd_arm`, `bnd_stamp`, `bnd_cnt`), appended at
+  // 0x066-0x069 -- same rule, same reason.
+  localparam int          SS_VERSION   = 8'h83;   // ucore map v3 (SM3 s3, F52)
   localparam logic [8:0]  SSA_TAG      = 9'h000;
   localparam logic [8:0]  SS_BIU_BASE  = 9'h001;
-  localparam int          SS_BIU_COUNT = 101;  // U4 F49 (+5: 4 odd/land BIU)
+  localparam int          SS_BIU_COUNT = 105;  // U4 F49 (+5); SM3 s3 F52 (+4)
   localparam logic [8:0]  SS_EU_BASE   = 9'h100;
   localparam int          SS_EU_COUNT  = 116;  // U2 p5 (+2 recog); U4 F49 (+1)
   localparam int          SS_COUNT     = 1 + SS_BIU_COUNT + SS_EU_COUNT;
@@ -201,6 +204,21 @@ package v30_ss_pkg;
   localparam logic [8:0] SSA_B_RQ0_ODD          = 9'h063;
   localparam logic [8:0] SSA_B_RQ1_ODD          = 9'h064;
   localparam logic [8:0] SSA_B_RD_LAND          = 9'h065;
+
+  // ---------------------------------------------------------------------------
+  // F52 (SM3 sitting 3) -- H1's RECOGNITION FLOOR.  `BiuTimed::bnd_pending_` /
+  // `bnd_arm_` / `bnd_floor_`, the model's three, with the absolute clock
+  // re-expressed as the RTL's bounded pair (`bnd_stamp` = the granted
+  // announcement carries the stamp, `bnd_cnt` = clocks left from its T1 to
+  // index 2).  An acknowledge behind us is state that OUTLIVES the entry
+  // sequence -- a freeze between an IRET and the next boundary that does not
+  // carry it restores a part that has forgotten the acknowledge and takes the
+  // next one two clocks early.
+  // ---------------------------------------------------------------------------
+  localparam logic [8:0] SSA_B_BND_PENDING      = 9'h066;
+  localparam logic [8:0] SSA_B_BND_ARM          = 9'h067;
+  localparam logic [8:0] SSA_B_BND_STAMP        = 9'h068;
+  localparam logic [8:0] SSA_B_BND_CNT          = 9'h069;
 
   //--------------------------------------------------------------------------
   // EU region (module v30u_eu): 0x100-0x173
@@ -450,6 +468,10 @@ package v30_ss_pkg;
       SSA_B_RQ0_ODD:         ss_field_width = 1;   // F49
       SSA_B_RQ1_ODD:         ss_field_width = 1;   // F49
       SSA_B_RD_LAND:         ss_field_width = 16;  // F49
+      SSA_B_BND_PENDING:     ss_field_width = 1;   // F52
+      SSA_B_BND_ARM:         ss_field_width = 1;   // F52
+      SSA_B_BND_STAMP:       ss_field_width = 1;   // F52
+      SSA_B_BND_CNT:         ss_field_width = 2;   // F52
       //---------------------------------------------------------------------
       // EU region (v30u_eu.sv).  One entry per SSA_E_* symbol; the width is
       // the read mux's own slice, which the write decode matches field for

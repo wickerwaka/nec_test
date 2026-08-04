@@ -103,6 +103,13 @@ module v30u_eu (
     output            eu_unhalt,
     input             halted,
 
+    // H1 (SM3 sitting 3): the re-entry acknowledge's recognition floor.  The
+    // register is the BIU's -- every edge that arms, stamps and spends it is
+    // a bus event -- and only its READER lives here.
+    input             bnd_hold,     // the floor is not met
+    output            eu_bnd_take,  // a recognition boundary IS taken this clock
+    output            eu_bnd_post,  // ...and it is a retire, not a REP withdrawal
+
     // machine state the pins carry
     output            psw_ie,
     output            md8080,
@@ -1303,8 +1310,31 @@ wire at_bnd   = bnd_row || bnd_epop || bnd_opc;
 // and it is set where the loader latches it.
 // REGISTERED RESIDUE: the far-CALL / far-JMP `CS` write is documented to
 // shadow too and is NOT in this class; no golden combines the two.
-wire irq_take = irq_any && !irq_shadow;
+// H1 -- AND THE BOUNDARY IS NOT TAKEN BEFORE THE RESTARTED PREFETCHER'S
+// INDEX 2 WHEN AN ACKNOWLEDGE IS BEHIND IT.  `BiuTimed::boundary_no_pop()`
+// stalls the model's clock there (`wait_bnd_floor()`), and the RTL rendering
+// of a `while (...) tick()` is a STALL: the window stays open and the take is
+// withheld.  That is the SAME statement here because the byte cannot arrive
+// inside the hold -- the floor is stamped by the fetch that refills a queue
+// the flush emptied, and that fetch's first byte is poppable at its eval + 3
+// (M2r), index 5 at w0 and later under waits, strictly after index 2.  So the
+// part cannot leave the boundary by popping instead; it sits, exactly as the
+// model's tick loop sits.
+//
+// `!intr_pending` is the model's `post_redirect` argument: a REP MID-STRING
+// WITHDRAWAL is not an instruction retire -- its recognition was taken inside
+// the loop (sec.19.8.1) and the ROM's REPX path flushes AFTER that decision,
+// so there is no boundary for the reload to hold off.  MEASURED in the spec:
+// flooring it too costs `INT.F3AA` 26 of 200 at w0 and nothing elsewhere.
+wire bnd_block = bnd_hold && !intr_pending;
+wire irq_take = irq_any && !irq_shadow && !bnd_block;
 wire irq_fire = at_bnd && irq_take;
+// ...and the boundary that fires is the one that CLEARS the arm and suspends
+// the prefetcher.  `at_bnd` implies `!opc_valid` on all three of its arms,
+// which is `boundary_no_pop()`'s own early return ("already latched: this IS
+// the pop clock") -- a pre-popped successor never reaches the floor at all.
+assign eu_bnd_take = irq_fire;
+assign eu_bnd_post = !intr_pending;
 
 // §35.4 -- ...AND F11's RULE APPLIES TO THE TAIL'S OWN FALL-THROUGH.  With
 // `S_TAIL_W` made zero-cost the tail's POP now happens inside the delivery's

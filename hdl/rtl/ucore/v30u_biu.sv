@@ -158,6 +158,11 @@ module v30u_biu (
     input             eu_unhalt,   // M20: the wake (leads 1)
     output            halted_o,
 
+    // --- H1: the RE-ENTRY acknowledge's recognition floor (SM3 sitting 3) ---
+    output            bnd_hold,     // the floor is not met: no boundary yet
+    input             eu_bnd_take,  // a recognition boundary IS taken this clock
+    input             eu_bnd_post,  // ...and it is a retire, not a REP withdrawal
+
     // --- backdoor / reset injection ---
     input             bkd_load,
     input      [15:0] bkd_cs,
@@ -259,6 +264,59 @@ reg  [1:0] absorb_ttl;    // F1(b): the QS port while the bytes land
 reg        no_eval;       // M2r: the display slot is NOT an eval point
 reg        flush_eval;    // F3: the flush-only T4 eval point
 reg        e_pend;        // F1: a parked QS=E
+
+// --- H1 (SM3 sitting 3) -- THE RE-ENTRY ACKNOWLEDGE'S RECOGNITION FLOOR ----
+//
+// `BiuTimed::bnd_pending_` / `bnd_arm_` / `bnd_floor_`, edge for edge:
+//
+//     an INTA cycle             ARMS   bnd_pending
+//     a flush, while armed      ARMS   the stamp             (bnd_arm)
+//     the restarted prefetch's
+//     GRANT                     STAMPS the floor at that fetch's INDEX 2
+//     a queue pop               SPENDS it
+//     the recognition boundary  READS it, SUSPENDS the prefetcher and CLEARS
+//                               the arm
+//
+// i.e. AN ACKNOWLEDGE THAT HAS AN ACKNOWLEDGE BEHIND IT IS NOT RECOGNISED
+// BEFORE THE RESTARTED PREFETCHER'S INDEX 2.  MEASURED on the socket over the
+// 1,008-seed EVT bank -- 2,318 re-entry acknowledges, ZERO exceptions,
+//     INTA1 T1 = max(F1 + 6, F1 + L + 1)
+// -- and DISCRIMINATED by a directed board cell (`sw/sm3_h1_cell.py`, FLASH
+// #4, `sm3_h1_prereg_2026-08-04.md` sec.7) which REFUTED the two rival
+// readings outright: the FIRST acknowledge of a record pays NO floor after a
+// near JMP, a far JMP, a CALL/RET pair or a bare IRET chain, while EVERY
+// acknowledge from the second on pays it in all five stimuli -- including a
+// pure NOP sled with no redirect in it at all.  The re-keyed model is 326/326
+// on those captures against 249/326 before.  Ledger sec.61 / sec.62.
+//
+// NO NEW NUMBER AND NO NEW INSTANT: index 2 is the cycle-relative instant this
+// machine already samples the queue counter on (`pf_arm`), and at w0 it IS the
+// completion eval (M2r).
+//
+// THE MECHANISM BEHIND THE ARM IS NOT ESTABLISHED.  The candidate is the IE
+// restore (the entry clears IE, the IRET's PSW pop restores it, and a
+// recognition cannot act on a RISING IE for two clocks); the cell that would
+// settle it (`--variants clipopf`) produced no acknowledge at all.  Carried as
+// MEASURED with the arm named and the mechanism OPEN.
+//
+// THE ABSOLUTE CLOCK, IN BOUNDED FORM.  The model stamps `bnd_floor_ =
+// cmt_t1_ + 2` at the GRANT, from its own prediction of the T1; this module
+// has no wait counter and cannot predict a T1 (see the header's ABSOLUTE
+// CLOCKS block), so the grant marks the ANNOUNCEMENT (`bnd_stamp`) and the
+// clock the announcement's T1 actually opens starts a 2-clock counter.  The
+// two are the same value for every announcement that opens the T1 it was
+// granted for.  For one WITHDRAWN before its T1 (M22's expiry, F2's
+// `ann_kill`) the model keeps a floor at a clock that never happened; here the
+// mark goes back to `bnd_arm`, so the fetch that IS restarted stamps it --
+// which is what the law's own words say ("the RESTARTED prefetch's grant").
+//
+// *Falsifier*: an acknowledge with a prior acknowledge behind it that opens at
+// a clock other than `max(F1 + 6, F1 + L + 1)`; a FIRST acknowledge that pays
+// the floor; or a `clipopf`-shaped cell that acknowledges and pays it.
+reg        bnd_pending;   // an acknowledge is behind us
+reg        bnd_arm;       // ...and a flush has run: the next fetch grant stamps
+reg        bnd_stamp;     // ...that grant happened; its T1 starts the count
+reg  [1:0] bnd_cnt;       // clocks left from that T1 to index 2 (0 = floor met)
 
 // --- the EU request slot (M10) and its 2-deep backing store ----------------
 reg  [1:0] rq_n;
@@ -363,6 +421,10 @@ reg [1:0] r_absorb_ttl;
 reg r_no_eval;
 reg r_flush_eval;
 reg r_e_pend;
+reg r_bnd_pending;      // H1
+reg r_bnd_arm;
+reg r_bnd_stamp;
+reg [1:0] r_bnd_cnt;
 reg [1:0] r_rq_n;
 reg r_slot_busy;
 reg r_slot_accept;
@@ -459,6 +521,14 @@ assign q_ripe   = poppable != 4'd0;
 assign q_byte   = r_q_mem[r_q_head];
 assign q_cnt_o  = r_q_cnt;
 assign halted_o = r_halted;
+
+// H1 -- THE FLOOR, PUBLISHED AS THE MODEL ASKS IT.  `boundary_no_pop()` is
+// `if (post_redirect && bnd_pending_) wait_bnd_floor();`, and
+// `wait_bnd_floor()` is `while (clk_ < bnd_floor_) tick()`.  An UNSTAMPED
+// floor is `-1` in the model, so it holds nothing -- which is exactly why
+// `bnd_arm` alone (a flush with no restart granted yet) is NOT a term here.
+// REGISTER-ONLY, so the EU's combinational act decode may read it (F7).
+assign bnd_hold = r_bnd_pending && (r_bnd_stamp || (r_bnd_cnt != 2'd0));
 
 // F1: a fetch owns the QUEUE PORT from its T1 until its bytes are in.  It
 // holds it THROUGH its completion eval (`!evald`); the landing clocks are
@@ -640,6 +710,7 @@ reg  [3:0] qi;
 reg [19:0] fetch_lin;
 reg  [1:0] rq_n_pre;
 reg        set_grn, set_infl, set_absorb, set_land, set_noeval;
+reg        set_bnd;   // H1: the floor counter is loaded this edge
 reg  [1:0] new_ttl;
 
 //--------------------------------------------------------------------------
@@ -711,6 +782,10 @@ reg      [1:0] absorb_ttl_rst;
 reg            no_eval_rst;
 reg            flush_eval_rst;
 reg            e_pend_rst;
+reg            bnd_pending_rst;   // H1
+reg            bnd_arm_rst;
+reg            bnd_stamp_rst;
+reg      [1:0] bnd_cnt_rst;
 reg      [1:0] rq_n_rst;
 reg            slot_busy_rst;
 reg            slot_accept_rst;
@@ -799,6 +874,10 @@ always_comb begin
     no_eval_rst = r_no_eval;
     flush_eval_rst = r_flush_eval;
     e_pend_rst = r_e_pend;
+    bnd_pending_rst = r_bnd_pending;
+    bnd_arm_rst = r_bnd_arm;
+    bnd_stamp_rst = r_bnd_stamp;
+    bnd_cnt_rst = r_bnd_cnt;
     rq_n_rst = r_rq_n;
     slot_busy_rst = r_slot_busy;
     slot_accept_rst = r_slot_accept;
@@ -845,6 +924,11 @@ always_comb begin
         pf_owed_rst  = 1'b0; pf_arm_rst  = 1'b1; pf_land_rst  = 1'b0;
         infl_ttl_rst  = 2'd0; infl_n_rst  = 2'd0; absorb_ttl_rst  = 2'd0;
         no_eval_rst  = 1'b0; flush_eval_rst  = 1'b0; e_pend_rst  = 1'b0;
+        // H1: reset has no acknowledge behind it -- the goldens and
+        // `timed-boot` alike start from RESET, which is the model's own
+        // `bnd_pending_ = false` initialiser.
+        bnd_pending_rst  = 1'b0; bnd_arm_rst  = 1'b0;
+        bnd_stamp_rst  = 1'b0; bnd_cnt_rst  = 2'd0;
         rq_n_rst  = 2'd0;
         for (i_rst = 0; i_rst < 2; i_rst = i_rst + 1) begin
             rq_bs_rst[i_rst]  = BS_PASV; rq_addr_rst[i_rst]  = 20'd0; rq_data_rst[i_rst]  = 16'd0;
@@ -958,6 +1042,10 @@ always_comb begin
     no_eval = r_no_eval;
     flush_eval = r_flush_eval;
     e_pend = r_e_pend;
+    bnd_pending = r_bnd_pending;
+    bnd_arm = r_bnd_arm;
+    bnd_stamp = r_bnd_stamp;
+    bnd_cnt = r_bnd_cnt;
     rq_n = r_rq_n;
     slot_busy = r_slot_busy;
     slot_accept = r_slot_accept;
@@ -995,6 +1083,7 @@ always_comb begin
     fetch_lin = 20'd0; rq_n_pre = 2'd0;
     set_grn = 1'b0; set_infl = 1'b0; set_absorb = 1'b0;
     set_land = 1'b0; set_noeval = 1'b0; new_ttl = 2'd0;
+    set_bnd = 1'b0;
     i = 0; pk = 0;
 
     if (ss_we) begin
@@ -1098,6 +1187,10 @@ always_comb begin
             SSA_B_RQ0_ODD:      rq_odd[0]     = ss_wdata[0];
             SSA_B_RQ1_ODD:      rq_odd[1]     = ss_wdata[0];
             SSA_B_RD_LAND:      rd_land       = ss_wdata;
+            SSA_B_BND_PENDING:  bnd_pending   = ss_wdata[0];   // F52
+            SSA_B_BND_ARM:      bnd_arm       = ss_wdata[0];   // F52
+            SSA_B_BND_STAMP:    bnd_stamp     = ss_wdata[0];   // F52
+            SSA_B_BND_CNT:      bnd_cnt       = ss_wdata[1:0]; // F52
             SSA_B_DONE_CTR:     done_ctr      = ss_wdata[1:0];
             SSA_B_DONE_WR:      done_wr       = ss_wdata[0];
             SSA_B_RD_DONE_P:    rd_done_p     = ss_wdata[0];
@@ -1124,6 +1217,7 @@ always_comb begin
         infl_n_now = infl_n;
         set_grn = 1'b0; set_infl = 1'b0; set_absorb = 1'b0;
         set_land = 1'b0; set_noeval = 1'b0; new_ttl = 2'd0;
+        set_bnd = 1'b0;
         set_oprfree = 1'b0;
         // eu_done rides the eval: it lands at e+2, which is T4+1 at
         // zero waits and T4+2 whenever the cycle took any Tw.  The PULSE is
@@ -1143,6 +1237,9 @@ always_comb begin
         if (pop_l) begin
             q_head = (q_head == 3'd5) ? 3'd0 : q_head + 3'd1;
             q_cnt  = q_cnt - 4'd1;
+            // H1: `pop()`'s `bnd_floor_ = -1` -- THE FLOOR IS SPENT BY THE POP.
+            // The arm itself is not: only a recognition boundary clears that.
+            bnd_stamp = 1'b0; bnd_cnt = 2'd0;
         end
         if (qse_l) e_pend = 1'b0;
 
@@ -1151,9 +1248,30 @@ always_comb begin
             cmt_valid = 1'b0;
             fetch_ptr = cmt_prev_fp;
             pf_owed   = cmt_was_owed;   // un-granting un-consumes the request
+            // H1: un-granting un-stamps.  The law is about the RESTARTED
+            // prefetch, and a fetch withdrawn before its T1 never restarted;
+            // the arm goes back so the fetch that does restart stamps it.
+            if (bnd_stamp) begin bnd_stamp = 1'b0; bnd_arm = 1'b1; end
         end
         if (eu_susp)   suspended = 1'b1;
         if (eu_resume) suspended = 1'b0;
+        // H1 -- `boundary_no_pop()`, the ONLY reader.  The EU has already
+        // withheld the boundary until `bnd_hold` fell (that is the model's
+        // `wait_bnd_floor()`), so what is left here is the model's own last
+        // three lines plus its `susp()`:
+        //
+        //   * the recognition that PAYS the floor also HOLDS THE PREFETCHER
+        //     OFF -- the chip grants the slot between the floor and the
+        //     acknowledge's own request to NOTHING, which is the census's two
+        //     idle clocks.  `post_redirect && bnd_pending_`, not `bnd_hold`:
+        //     a floor already spent by a pop still suspends.
+        //   * the arm is cleared on EVERY fired boundary, withdrawal included
+        //     (the model's three clears sit OUTSIDE its `if`).
+        if (eu_bnd_take) begin
+            if (eu_bnd_post && bnd_pending) suspended = 1'b1;
+            bnd_pending = 1'b0; bnd_arm = 1'b0;
+            bnd_stamp   = 1'b0; bnd_cnt = 2'd0;
+        end
         if (eu_unhalt) begin halted = 1'b0; halt_pending = 1'b0; end
         // M16 -- THE DECODE DOES NOT TAKE A COMMITTED FETCH BACK, AND THAT IS
         // A STATEMENT ABOUT *THIS* EDGE.  `note_halt` sets BOTH flags at once
@@ -1171,6 +1289,12 @@ always_comb begin
         // has the golden's CODE display / T1-T4 on rows 1-5 and the HALT only
         // on row 6, where this line refused the fetch outright.
         if (eu_halt)   halt_pending = 1'b1;
+
+        // H1 -- `inta_read()`: AN ACKNOWLEDGE ARMS THE NEXT RECOGNITION'S
+        // FLOOR.  The model sets it in `inta_read` and then posts, so it is
+        // armed by the request, not by the cycle running; both cycles of the
+        // INTA pair set it and the second is a no-op.
+        if (eu_post && (eu_bs == BS_INTA)) bnd_pending = 1'b1;
 
         // post(): the request enters the 2-deep backing store; only the cycle
         // that carries the EU's OWN request takes the single slot (M10).
@@ -1271,6 +1395,15 @@ always_comb begin
             // zeroes it, so a latch taken at index 2 of a cycle the flush has
             // just invalidated cannot hold the redirect off.
             pf_arm = 1'b1;
+            // H1 -- `flush()`: if an acknowledge is behind us, the next
+            // recognition boundary is not taken until the RESTARTED
+            // prefetcher's index 2.  Armed by the LAST redirect before that
+            // boundary -- EACH flush re-arms -- and stamped at the restart's
+            // grant.  (The model's `bnd_floor_ = -1` beside it is the two
+            // clears here.)
+            if (bnd_pending) begin
+                bnd_arm = 1'b1; bnd_stamp = 1'b0; bnd_cnt = 2'd0;
+            end
             // M12: ...AND SO DOES EVERY OTHER LATCH THE COMPLETING CYCLE LEFT
             // BEHIND -- the reserved display slot, and the QS-port absorb
             // hold (released, but not before the flush's own clock).
@@ -1473,6 +1606,13 @@ always_comb begin
                     fetch_ptr = fetch_ptr + {14'd0, cmt_pn};
                     cmt_was_owed = pf_owed;  // M22: ...given back if it expires
                     pf_owed = 1'b0;          // M19: the arbiter has taken it
+                    // H1 -- `commit_fetch()`'s `if (bnd_arm_) { bnd_arm_ =
+                    // false; bnd_floor_ = cmt_t1_ + 2; }`.  The GRANT is where
+                    // the model stamps, because the boundary is asked for ON
+                    // the clock the T1 opens and that clock's T1 transition
+                    // has not run yet.  Here the grant MARKS the announcement
+                    // and its T1 (step (e)) starts the two-clock count.
+                    if (bnd_arm) begin bnd_arm = 1'b0; bnd_stamp = 1'b1; end
                     gr_ok = 1'b1;
                 end
             end
@@ -1501,6 +1641,10 @@ always_comb begin
         if (cmt_valid && !did_grant && (cdage >= 3'd3) &&
             (!run || (ts == TS_T4))) begin
             cmt_valid = 1'b0;
+            // H1: an announcement that EXPIRES never opened a T1, so it never
+            // restarted the prefetch -- same disposition as the F2 withdrawal
+            // above, the arm goes back to the fetch that does.
+            if (bnd_stamp) begin bnd_stamp = 1'b0; bnd_arm = 1'b1; end
             if (cmt_fetch) begin
                 fetch_ptr = cmt_prev_fp;
                 pf_owed   = cmt_was_owed;
@@ -1537,6 +1681,11 @@ always_comb begin
             dage  = cdage;
             evald = 1'b0; sev = 2'd0;
             cmt_valid = 1'b0;
+            // H1: `bnd_floor_ = cmt_t1_ + 2` -- the T1 the announcement
+            // actually opens is index 0, so the floor is two clocks on.  This
+            // edge ends the clock BEFORE the T1, so the counter is loaded with
+            // 2 and reads 2 / 1 / 0 on indices 0 / 1 / 2.
+            if (bnd_stamp) begin bnd_stamp = 1'b0; set_bnd = 1'b1; end
             // M10: the bus has TAKEN the whole request -- the slot is free
             // from this clock, which is the clock the blocked row issues on.
             if (!cmt_fetch && cmt_rd_last && slot_accept) begin
@@ -1594,6 +1743,8 @@ always_comb begin
         else if (infl_ttl   != 2'd0) infl_ttl   = infl_ttl - 2'd1;
         if (set_absorb) absorb_ttl = new_ttl;
         else if (absorb_ttl != 2'd0) absorb_ttl = absorb_ttl - 2'd1;
+        if (set_bnd) bnd_cnt = 2'd2;                       // H1
+        else if (bnd_cnt != 2'd0) bnd_cnt = bnd_cnt - 2'd1;
         if (run && evald && (sev != 2'd3) && !evi_l) sev = sev + 2'd1;
 
     end
@@ -1664,6 +1815,10 @@ always_ff @(posedge clk) if (ss_we || srst || ce) begin
     r_no_eval <= (srst && !ss_we) ? no_eval_rst : no_eval;
     r_flush_eval <= (srst && !ss_we) ? flush_eval_rst : flush_eval;
     r_e_pend <= (srst && !ss_we) ? e_pend_rst : e_pend;
+    r_bnd_pending <= (srst && !ss_we) ? bnd_pending_rst : bnd_pending;
+    r_bnd_arm <= (srst && !ss_we) ? bnd_arm_rst : bnd_arm;
+    r_bnd_stamp <= (srst && !ss_we) ? bnd_stamp_rst : bnd_stamp;
+    r_bnd_cnt <= (srst && !ss_we) ? bnd_cnt_rst : bnd_cnt;
     r_rq_n <= (srst && !ss_we) ? rq_n_rst : rq_n;
     r_slot_busy <= (srst && !ss_we) ? slot_busy_rst : slot_busy;
     r_slot_accept <= (srst && !ss_we) ? slot_accept_rst : slot_accept;
@@ -1729,6 +1884,19 @@ always_ff @(posedge clk) if (!srst) begin
         else $error("v30u_biu: queue overflow (%0d)", r_q_cnt);
     assert (!((r_grn_ttl != 2'd0) && ({2'd0, r_grn_n} > r_q_cnt)))
         else $error("v30u_biu: green byte count exceeds queue");
+    // H1 (F52) -- THE FLOOR IS A BOUNDED RELATIVE COUNTER, never an absolute
+    // clock (campaign risk #2).  Three properties, all derived and none
+    // fitted: it never loads more than the two clocks index 2 stands from the
+    // T1; the two halves of the stamp are EXCLUSIVE (an announcement is either
+    // waiting for its T1 or being counted from it); and no part of the floor
+    // outlives the acknowledge that armed it.
+    assert (!(r_bnd_cnt > 2'd2))
+        else $error("v30u_biu: bnd_cnt bound violated (%0d)", r_bnd_cnt);
+    assert (!(r_bnd_stamp && (r_bnd_cnt != 2'd0)))
+        else $error("v30u_biu: bnd stamp and count are both live");
+    assert (r_bnd_pending ||
+            !(r_bnd_arm || r_bnd_stamp || (r_bnd_cnt != 2'd0)))
+        else $error("v30u_biu: bnd floor state with no acknowledge behind it");
 end
 `endif
 
@@ -1831,6 +1999,10 @@ always @(posedge clk) begin
         SSA_B_RQ0_ODD:      ss_rdata <= {15'b0, r_rq_odd[0]};    // F49
         SSA_B_RQ1_ODD:      ss_rdata <= {15'b0, r_rq_odd[1]};    // F49
         SSA_B_RD_LAND:      ss_rdata <= r_rd_land;               // F49
+        SSA_B_BND_PENDING:  ss_rdata <= {15'b0, r_bnd_pending};  // F52
+        SSA_B_BND_ARM:      ss_rdata <= {15'b0, r_bnd_arm};      // F52
+        SSA_B_BND_STAMP:    ss_rdata <= {15'b0, r_bnd_stamp};    // F52
+        SSA_B_BND_CNT:      ss_rdata <= {14'b0, r_bnd_cnt};      // F52
         SSA_B_DONE_CTR:     ss_rdata <= {14'b0, r_done_ctr};
         SSA_B_DONE_WR:      ss_rdata <= {15'b0, r_done_wr};
         SSA_B_RD_DONE_P:    ss_rdata <= {15'b0, r_rd_done_p};

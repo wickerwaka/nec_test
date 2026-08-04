@@ -64,15 +64,16 @@ CORES = {
         # in the module docstring; omitting them makes the EU census vacuous.
         "eu": [UCORE / "v30u_eu.sv"] + sorted(UCORE.glob("v30u_eu_*.svh")),
         "expect": {
-            # U4/F49: map v2.  The five architectural flops the CENSUS found
-            # unmapped are now in the map, which adds addresses, so the version
-            # moves (a v1 stream has no words for them).  v1 was
-            # 0x81 / 96 / 115 / 212 / 0x81D4.
-            "SS_VERSION": 0x82,   # ucore map v2 (0x80 family: never an FSM stream)
-            "SS_BIU_COUNT": 101,
+            # SM3 sitting 3 / F52: map v3.  H1's recognition floor is four new
+            # BIU flops (bnd_pending, bnd_arm, bnd_stamp, bnd_cnt), appended at
+            # 0x066-0x069 -- addresses added, so the version moves again.
+            # v2 was 0x82 / 101 / 116 / 218 / 0x82DA;
+            # v1 was 0x81 /  96 / 115 / 212 / 0x81D4.
+            "SS_VERSION": 0x83,   # ucore map v3 (0x80 family: never an FSM stream)
+            "SS_BIU_COUNT": 105,
             "SS_EU_COUNT": 116,
-            "SS_COUNT": 218,
-            "SS_TAG": 0x82DA,     # (0x82 << 8) | 218
+            "SS_COUNT": 222,
+            "SS_TAG": 0x83DE,     # (0x83 << 8) | 222
         },
     },
 }
