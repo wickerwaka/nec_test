@@ -5,7 +5,7 @@ ledger?*  Not "can an RTL core be made to pass the suites" — the repo already
 had one of those — but: **is the ledger a SPEC?**  Is what the ucsim and
 ucsim-t campaigns wrote down enough, by itself, to build the hardware from?
 
-Ledger: `docs/notes/ucore_provenance.md` (§0-§54).
+Ledger: `docs/notes/ucore_provenance.md` (§0-§56).
 Plan as executed: `~/.claude/plans/zippy-swinging-meerkat.md`.
 Branch `ucsim`.  Companion verdicts:
 `docs/notes/ucsim_campaign_verdict_2026-08-01.md` (architecture),
@@ -28,10 +28,10 @@ against the reference implementation, not smoothed away.
 |---|---|
 | **Is it right on the deterministic surface?** | **G3 = 169,000 / 169,000.**  `check_core --core ucore --opcodes all --cases 0`, every form, every case, cycle-exact AND architecturally exact against the silicon goldens.  At w0 the reference model carries no registered residue, so this figure is the same with or without it subtracted (§29.2's two-number rule). |
 | **Is it right off it?** | **Eleven of thirteen ladder suites land ON the model's own ledger number** — `w1`/`w3` 1,200 each, `EB` 200, the four `evt` cells 200/1,200/200/1,200, `w1evt-biased` 1,200, boot 220 **and** 400, `ulockstep --golden all --cases 50` **17,350/17,350**, wvec **88/88 at +0.0 %**, ENTER **154/154 ×5**, INS **1,312/1,312** and **2,624/2,624**.  The two that do not are the HLT delay sweeps (**259/283** against the model's 272) — itemised in §(d), not excused. |
-| **Does it fit, and does it close?** | **G6 GREEN: 26 % ALMs (11,078 / 41,910), Fmax 45.56 MHz against a registered ≥ 32 MHz, worst setup +8.922 ns and TNS 0.000 on EVERY clock domain**, 0 errors, 0 inferred latches, 0 `lpm_divide`.  Two structural passes got it there and the sim ladder was re-scored three times across them **with zero deltas**. |
+| **Does it fit, and does it close?** | **G6 GREEN: 27 % ALMs (11,117 / 41,910), Fmax 48.03 MHz against a registered ≥ 32 MHz, worst setup +9.121 ns and TNS 0.000 on EVERY clock domain**, 0 errors, 0 inferred latches, 0 `lpm_divide` — the FINAL (U5) build, §55.1; the U4 pass-3 build it supersedes was 26 % / 45.56 MHz / +8.922 ns.  Two structural passes got it there and the sim ladder was re-scored three times across them **with zero deltas**. |
 | **Does it run?** | **First light 800/800 on all three legs** — chip-vs-golden, core-vs-chip, core-vs-golden — after a `use_core=0` chip-path proof of MATCH over 800 rows.  **Three flashes, all from HEAD**, all through `safe_flash.sh` with its VERIFY leg; first light re-proved 800/800 ×3 on the U5 bitstream in its own session. |
 | **Does it meet the campaign's victory condition?** | **THE PRIORITY TRANCHE IN FABRIC: 176 / 178 (98.9 %), with V0 through V5 ALL MET** — including V3 at ZERO seeds apart.  200 fresh stratified `wrand` programs, frozen and committed before the first capture, chip-vs-fabric, 0 hard failures in 483 captures with the divider PINNED on every one. |
-| **Is the model of the bitstream the bitstream?** | **Fabric ↔ Verilator pairwise identity 200/200**, for the ucore *and* for the FSM core.  §48.4 registered a fabric-vs-sim gap as *"the MORE important result if it happens"*.  It did not happen, and the stronger statement is true. |
+| **Is the model of the bitstream the bitstream?** | **On the priority tranche, yes: fabric ↔ Verilator pairwise identity 200/200**, for the ucore *and* for the FSM core.  §48.4 registered a fabric-vs-sim gap as *"the MORE important result if it happens"*; on that population it did not happen.  **On the HLT delay sweeps it DID** — 143/283 in fabric against 259/283 under the TB on the same RTL — and §55.2's bar 2 named that consequence in advance.  It is one class, 116 of 116 (the INTA float), it is **NOT ESTABLISHED as the harness's** on the evidence gathered, and it is §(d) open item 0. |
 
 ### What that means, stated once
 
@@ -69,29 +69,40 @@ ledger is a spec you can build from without grading".
 
 ## (b) THE FINDINGS LEDGER — F1-F51, IN SUMMARY
 
-Fifty-one numbered findings, five Codex review findings (C1-C8), and the
-retractions.  Every one carries evidence and a falsifier in
-`ucore_provenance.md`.  Grouped by what KIND of thing each was, because that is
-the transferable part.
+**Fifty-one numbered findings (F1-F51, plus F11's sub-items F11a/F11b), EIGHT
+Codex review findings across four reviews (C1-C3 §26, C4-C5 §36, C6-C8 §45.1),
+THREE more from the fifth review of this document (C9-C11, §(g)), and the
+retractions.**  Every one carries evidence and a falsifier in
+`ucore_provenance.md`.
 
-### The document was right and the rendering was wrong (24)
+Grouped below by what KIND of thing each was, because that is the transferable
+part.  **The partition is EXHAUSTIVE over F1-F51 and the four groups are
+disjoint: 32 + 3 + 8 + 8 = 51.**  (An earlier draft of this section grouped
+loosely, double-counted `F51` and `F41`, omitted `F9` entirely, and printed
+counts that summed to 46 — caught by C9.)
 
-The largest class, and the campaign's central lesson.  `F4` (`e_from` is a term
-of the flush clock, not a flop) · `F8` (the post-`E` row cannot own a state) ·
-`F11` + `F11a`/`F11b` (**the demand and the take are one event** — the single
-most-repeated error, six instances) · `F12` (a split is one access; a read hands
-over once) · `F13` (the iterative stepper's terminator read one clock early —
-sixteen forms hung) · `F14`-`F18` (a row's acts are computed from the row's own
-transfers) · `F19`/`F20` · `F21`-`F23` (the post-`E` row runs on the machine it
-belongs to; the debt is eighteen bits) · `F24` (a row that flushes cannot pop) ·
-`F26`-`F28` · `F30` (the BCD adjust unit was computed and discarded) · `F31`
+### A. The document was right and the RENDERING was wrong — 32
+
+The largest class, and the campaign's central lesson.
+`F4` (`e_from` is a term of the flush clock, not a flop) · `F8` (the post-`E`
+row cannot own a state) · `F11` + `F11a`/`F11b` (**the demand and the take are
+one event** — the single most-repeated error, six instances) · `F12` (a split is
+one access; a read hands over once) · `F13` (the iterative stepper's terminator
+read one clock early — sixteen forms hung) · `F14` `F15` `F16` `F17` `F18` (a
+row's acts are computed from the row's own transfers) · `F19` `F20` · `F21`
+`F22` `F23` (the post-`E` row runs on the machine it belongs to; the debt is
+eighteen bits) · `F24` (a row that flushes cannot pop) · `F25` (power-on reset
+is a MICROCODE MARCH, not a state) · `F26` `F27` `F28` · `F29` (M5b's
+`odd_base`) · `F30` (the BCD adjust unit was computed and discarded) · `F31`
 (**OPR ownership is one counter and it is the BIU's** — +4,436 cases, the
 largest single move) · `F32` (the restoring divider's compare is one bit wider
-than its operands) · `F33` · `F36`-`F38` · `F47` (`begin_sequence()`'s
-`opr_fresh` line was never transcribed at the instruction boundary — +89 fuzz
-seeds) · `F51` (**the HALT pseudo-cycle has no data phase** — U5).
+than its operands) · `F33` · `F35` (three first verifications of code that had
+never fired) · `F36` `F37` `F38` · `F41` (M21 was rendered for the status and
+not for the pads) · `F47` (`begin_sequence()`'s `opr_fresh` line was never
+transcribed at the instruction boundary — +89 fuzz seeds) · `F51` (**the HALT
+pseudo-cycle has no data phase** — U5).
 
-### The document did not say it, and silicon did (5)
+### B. The document did not say it, and SILICON did — 3
 
 Where the SIM has no rendering to diverge from, so the gate is the golden and
 `ulockstep` is informative only — governance §42.1, and the exception was never
@@ -101,31 +112,34 @@ last unimplemented-by-design block, +2,232 cases at w0 and +1,654 across the
 `evt` cells, which were 0 to a case) · `F39` (the flag register is fed by the
 data latch, not by the row — and it hits **exactly two ROM rows**, `007A` and
 `01EA`, which is the same pair E1 measured on silicon) · `F40` (the REP abort
-has **two anchors**, which is why the tap-depth scan had no fit) · `F41` (M21 was
-rendered for the status and not for the pads) · `F51`.
+has **two anchors**, which is why the tap-depth scan had no fit).
 
-### The instrument was the defect (8)
+### C. The INSTRUMENT was the defect — 8
 
 `F2` (`check_boot`'s RTL leg was stale vs the TB — found by the ROADMAP's own
-"rebuild from a clean tree before citing" rule) · `F7`/`F10` (a gate that names
-an internal signal is only as current as that signal's meaning) · `F42` →
-**REFUTED**, see below · `F44` (the microcode ROM fails to load **silently**, and
-the run looks normal — a vacuity risk, closed with four probes and a `$fatal`,
-proved armed by three negative controls) · `F45` (`--ss-mode 4`'s seed **is** the
-bit index, so a small-seed sweep reads as a blind gate) · `F46` (the rig's
-`evt_hold` register is 8 bits, and 760 EVT seeds were banked asking for 300) ·
-`F48`'s harness half (a gate whose denominator follows the engine is not a gate).
+"rebuild from a clean tree before citing" rule) · `F7` and `F10` (a gate that
+names an internal signal is only as current as that signal's meaning) · `F9`
+(`dbg_regs`' IP slot is the LIVE `pc`, not a retire snapshot — the TB read a
+stale value in 500/500 `B8` cases) · `F42` → **REFUTED**, see below · `F44` (the
+microcode ROM fails to load **silently**, and the run looks normal — a vacuity
+risk, closed with four probes and a `$fatal`, proved armed by three negative
+controls) · `F45` (`--ss-mode 4`'s seed **is** the bit index, so a small-seed
+sweep reads as a blind gate) · `F46` (the rig's `evt_hold` register is 8 bits,
+and 760 EVT seeds were banked asking for 300).
 
-### Structural, hygiene, and platform (9)
+### D. Structural design inputs, proofs, and platform — 8
 
 `F1` (the micro-PC is 15 bits, so the flattening is TWO tables) · `F3` (the boot
-capture is not a BIU-only stream — the reset is a MICROCODE MARCH, `F25`) ·
-`F5`/`F6` (**the eval instant needs no wait knowledge**, and one number
-initialises all three landing windows — the RTL is SHORTER than the model here)
-· `F29` · `F35` · `F43` (M20's cancellation is one edge late — diagnosed,
-**not landed**) · `F49` (five architectural flops absent from the save-state map,
-found by the census that runs RTL→map, which is the only instrument that could)
-· `F50` (three hygiene items) · `F48`'s proof half.
+capture is not a BIU-only stream, so the U1 boot gate was VACUOUS and was routed
+whole to U2) · `F5` and `F6` (**the eval instant needs no wait knowledge**, and
+one number initialises all three landing windows — the RTL is SHORTER than the
+model here) · `F43` (M20's cancellation is one edge late — diagnosed,
+**not landed**, twice) · `F48` (the two EU bound assertions fire on six banked
+seeds; the bound PROVED over every graded corpus, its own falsifier MET on
+runaway stimulus, the capacity deliberately NOT deepened, and the harness's
+self-shrinking denominator fixed) · `F49` (five architectural flops absent from
+the save-state map, found by the census that runs RTL→map, which is the only
+instrument that could) · `F50` (three hygiene items).
 
 ### THE RETRACTIONS AND SELF-CORRECTIONS — the complete set
 
@@ -148,9 +162,12 @@ found by the census that runs RTL→map, which is the only instrument that could
    cell.  It is the plan's registered **risk #4** (multiplexed-pad float) — the
    chip's pads retain the previous data phase at an INTA's T1 and the core's AD
    inside `system_large` is an internal tri-state Quartus resolves to a mux, so
-   there is nothing to retain.  Neither candidate fix was taken, and the reason
-   the *scorer* was not swapped is stated in the ledger: **that would be choosing
-   a comparator after seeing the result.**
+   there is nothing to retain.  **That attribution is recorded as NOT ESTABLISHED**
+   (C11) with the settling intervention pre-registered and unrun — it is F42's
+   argument one population over, and F42 was population-complete at 24/24 and
+   still wrong.  Neither candidate fix was taken, and the reason the *scorer* was
+   not swapped is stated in the ledger: **that would be choosing a comparator
+   after seeing the result.**
 2. **"The ucore beats the model on six HLT cells" — RETRACTED (§43.2).**  A
    numbering artefact: the model's failures were compared by ARRAY POSITION and
    the ucore's by the `idx` FIELD, and **the `idx` field is the pin delay `d`**.
@@ -220,8 +237,8 @@ this project will ever get, and it is why the campaign was worth running.
 | four HLT delay sweeps, corrected comparator | **259 / 283** | **16 / 283** |
 | RTL, code lines (blank/comment stripped, generated tables excluded) | **4,785** | 5,919 |
 | RTL, total lines including the ledger commentary | 7,911 | 8,970 |
-| ALMs | 11,078 / 41,910 = **26 %** | 25 % |
-| Fmax | **45.56 MHz** | (its own build: setup +4.296 ns, TNS 0) |
+| ALMs | 11,117 / 41,910 = **27 %** (U5 build; 11,078 / 26 % at U4 pass 3) | 25 % |
+| Fmax | **48.03 MHz** (U5 build; 45.56 at U4 pass 3) | (its own build: setup +4.296 ns, TNS 0) |
 | `lpm_divide` instances | **0** | 2 |
 | save-state map | 218 addresses, 201 flops, 0 UNMAPPED | 203 addresses, 181 flops, 0 UNMAPPED |
 | per-opcode timing exceptions | **0** ("grep for one" stays true) | the class-5 unified law, `race_law.svh`, the IRET arm |
@@ -541,7 +558,68 @@ not passage*: the rows marked RED / NOT MET reproduce as exactly that.
 
 ---
 
-*Campaign closed 2026-08-04.  Ledger: `docs/notes/ucore_provenance.md` (§0-§54).
+## (g) THE FIFTH CODEX REVIEW — ON THIS DOCUMENT, AND WHAT IT CHANGED
+
+Scoped to three asks with the file set named exactly (§36's wedge lesson), on
+the thread that carried C1-C8.  It returned a verdict line on each and **two of
+the three went against me.**
+
+**C9 — the document FAILED the S4r standard on four counts.  All four fixed
+before the closing commit.**
+
+1. **Stale G6 numbers.**  §(a) and §(c) quoted **26 % ALMs / 45.56 MHz /
+   +8.922 ns** — the U4 pass-3 build — while the bitstream this campaign closes
+   on is the U5 one at **27 % / 48.03 MHz / +9.121 ns** (§55.1).  Corrected, with
+   the superseded figures kept beside them rather than deleted.
+2. **The fabric-bar miss was misidentified.**  §(a)'s "is the model of the
+   bitstream the bitstream?" row asserted *"It did not happen"* of a fabric-vs-sim
+   gap — while §56 documents a 116-cell one.  The claim was true of the priority
+   tranche (200/200) and false in general, and §55.2's bar 2 had **named that
+   consequence in advance** (*"a fabric result far below the offline one would be
+   a FABRIC-vs-SIM finding … and is the MORE important result if it happens"*).
+   The row now says which population each half is true of and points at open
+   item 0.  *This is the S4r defect that mattered*: a registration contained a
+   clause, the clause fired, and the report did not invoke it.
+3. **The F1-F51 / C1-C8 accounting was incomplete.**  §(b) grouped loosely,
+   printed counts summing to **46**, double-counted `F51` and `F41`, omitted
+   `F9` entirely, and said "five Codex review findings (C1-C8)".  §(b) is now an
+   **exhaustive, disjoint partition — 32 + 3 + 8 + 8 = 51** — verified
+   mechanically over the section text rather than by eye, and the review count
+   is stated correctly.
+4. **The ledger citation omitted §55-§56.**  Corrected in the header and the
+   footer.
+
+**C10 — the U5 mask call: SOUND.**  The three things that could have been wrong
+were put to it explicitly: removing a comparator mask at a closure at all; not
+fixing the frozen FSM core when the fix is one line; and presenting a ratchet
+moving DOWN as a corrected-instrument re-score rather than as a regression.
+None was called wrong, and the ledger's framing of the FSM numbers was accepted
+as honest.
+
+**C11 — the INTA classification: NOT ESTABLISHED.**  The one that matters, and
+it is the review earning its keep for the second campaign running.  §56 argued
+that the 116-cell fabric gap is a harness property and not a core defect.  That
+is **F42's argument one population over** — and F42 was accepted as sound by
+C6, measured population-complete at 24/24, and REFUTED in fabric anyway.  116/116
+is a correlation over a population; it is not an intervention.  Adopted verbatim:
+the attribution is now recorded as a READING and the claim as NOT ESTABLISHED,
+with the settling measurement pre-registered and unrun in §56.3a — a `core_ad`
+retention model, both bar halves required, and *any* of the 116 still failing
+means those cells are the core's.
+
+**What the five reviews are actually worth, stated once**: C3 asserted a bound
+that then FIRED and turned out to be right about the bound and wrong about the
+blame; C5 stopped a forward-looking term being fitted into hardware that cannot
+have one; C6 accepted a conclusion and rejected the strength of its evidence,
+and running the measurement it demanded is what exposed the numbering artefact
+that produced this campaign's one retraction; and C11 has just done C6's job
+again, on this document, about a claim I was about to publish as settled.  **The
+recurring value is not catching errors of fact — it is catching the moment a
+reading gets promoted to a finding.**
+
+---
+
+*Campaign closed 2026-08-04.  Ledger: `docs/notes/ucore_provenance.md` (§0-§56).
 Branch `ucsim`.  Governance: RTL-vs-sim = a bug in the RTL; RTL-vs-silicon the
 sim does not share = a bug in the RTL; RTL-vs-silicon the sim DOES share = a
 ledger finding, and no ucore landing without the sim landing first.*

@@ -5190,21 +5190,63 @@ is 800/800 on the same bitstream in the same session.  `check_core.diff_rows`
 carries no such exclusion because it was built for the Verilator TB, which
 models retention.
 
-**It is therefore an INTEGRATION property of the A/B harness, not a defect in
-the core** — and, unlike F42, that claim is not an argument from a mask: it is
-116 of 116 cells with no exceptions, a zero-cell counter-population, and a
-socket control at 49/49 on the same driver in the same session.  Booked as
-**U5 open item**, with the fix named: either give the harness's `core_ad` a
-retention model (a one-line `always @* if (drive) hold <= …` in
-`system_large.sv`, which changes the A/B harness and therefore BOTH cores'
-fabric numbers and needs its own pre-registered before/after), or teach the
-fabric scorer `check_ab_hw`'s float-retention exclusion.  **Neither is taken
-here**: the first is a harness change at a closure and the second would be
-choosing a comparator after seeing the result.
+**THE READING — and it is a READING, not a finding.**  On this evidence the
+116 cells look like an INTEGRATION property of the A/B harness rather than a
+defect in the core: 116 of 116 with no exceptions, a zero-cell
+counter-population, `HLT.RES` identical on both legs cell for cell, and a socket
+control at 49/49 on the same driver in the same session.  Booked as **U5 open
+item 0**, with two candidate fixes named and **NEITHER taken**: give the
+harness's `core_ad` a retention model in `system_large.sv` (which changes the
+A/B harness and therefore BOTH cores' fabric numbers, so it needs its own
+pre-registered before/after), or teach the fabric scorer `check_ab_hw`'s
+float-retention exclusion.  The first is a harness change at a closure; **the
+second would be choosing a comparator after seeing the result**, which is not a
+thing this campaign is allowed to do.
 
-*Falsifier*: a fabric cell whose first divergence is an INTA row but whose
-golden value is NOT the retained previous data phase; or a non-INTA fabric-only
-failure at any wait level.
+### §56.3a WHY THIS IS "NOT ESTABLISHED" AND NOT "SHOWN" — C11, AND F42's GHOST
+
+The argument in §56.3 has the SAME SHAPE as F42's: *"the failing cells are an
+artefact of how the pins are observed, not of the core."*  F42 made that
+argument from a structural reading of a mask plus two probes, was accepted as
+sound-but-under-evidenced by C6, was measured on its whole population 24/24 —
+and was still **REFUTED** in fabric, because a population-wide correlation is
+not a causal demonstration.  §56.3's evidence is stronger in every dimension
+(116/116, a zero-cell counter-population, an identical-on-both-legs control form,
+and a 49/49 socket control) and it is **still the same kind of evidence.**
+
+C11's verdict, adopted verbatim as the ledger's own: **NOT ESTABLISHED.**  The
+attribution is a reading, not a finding, and it is recorded as a reading.
+
+**THE MEASUREMENT THAT WOULD SETTLE IT, PRE-REGISTERED AND NOT RUN.**  It is
+an INTERVENTION, which is what §56.3's correlation is missing:
+
+* **The intervention**: give `system_large.sv`'s `core_ad` an explicit
+  retention model — a register that captures the last DRIVEN value of AD and
+  supplies it when no driver is active — so the FPGA's internal net reproduces
+  the pad behaviour the chip has.  Nothing in either core changes.
+* **The population**: the same four HLT delay sweeps, all 283 cells, same
+  driver, same goldens, plus the 49-cell socket control.
+* **THE BAR, BOTH HALVES, AND BOTH ARE REQUIRED**:
+  1. **ALL 116 fabric-only cells CLOSE** — the fabric total goes to **259/283**,
+     equal to the TB's, not merely toward it.  A partial close means the class
+     was not one mechanism and the residue is the core's.
+  2. **NOTHING ELSE MOVES**: `HLT.RES` stays 47/49, 48/49, 24/25, 24/25; the
+     19 cells that fail on BOTH legs still fail on both; the socket control
+     stays 49/49; and first light stays 800/800 ×3.
+* **WHAT REFUTES THE ATTRIBUTION**: any of the 116 still failing with the
+  retention model in place — then those cells are the CORE's, exactly as F42's
+  17 turned out to be, and they are reported as a refutation and not
+  re-explained.
+* **Cost and why it is not run here**: it is a change to the A/B harness that
+  both cores' fabric numbers depend on, so it needs its own pre-registered
+  before/after on both cores, a Quartus compile and a flash — at a closure, and
+  after the campaign's own gates are green.  It is handed on with its mechanism
+  named and its bar written, which is the disposition F43 has carried through
+  two stages.
+
+*Falsifier for the reading as it stands*: a fabric cell whose first divergence
+is an INTA row but whose golden value is NOT the retained previous data phase;
+or a non-INTA fabric-only failure at any wait level.
 
 ### §56.4 F42's REFUTATION, CLOSED
 
