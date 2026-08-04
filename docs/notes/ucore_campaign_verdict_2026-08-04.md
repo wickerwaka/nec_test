@@ -89,8 +89,9 @@ and the retractions.**  Every one carries evidence and a falsifier in
 Grouped below by what KIND of thing each was, because that is the transferable
 part.  **The partition is EXHAUSTIVE over F1-F51 and the four groups are
 disjoint: 32 + 3 + 8 + 8 = 51.**  (An earlier draft of this section grouped
-loosely, double-counted `F51` and `F41`, omitted `F9` entirely, and printed
-counts that summed to 46 — caught by C9.)
+loosely, double-counted `F51`, split `F48` across two groups, buried `F25`
+inside `F3`'s entry, omitted `F9` entirely, and printed group counts of
+24 + 5 + 8 + 9 = **46** — caught by C9.)
 
 ### A. The document was right and the RENDERING was wrong — 32
 
@@ -305,25 +306,50 @@ visible.
 Nothing below is hidden in a subsection.  Where an item has a mechanism it is
 named; where it does not, that is said.
 
-### 0. The INTA float in fabric — 116 cells, and it is the HARNESS, not the core
+### 0. The INTA float in fabric — 116 cells, attribution **NOT ESTABLISHED**
 
-The one bar U5 registered and missed (§56).  On the fixed bitstream the four HLT
-sweeps score **143/283 in fabric** against **259/283** offline, and the whole
-116-cell gap is a single class with no exceptions: at an INTA's T1 the chip's AD
-pads float and RETAIN the previous data phase, and the core's AD inside
-`system_large` is an internal `tri` net that Quartus resolves to a mux — there
-is nothing to retain.  The plan registered this as **risk #4** before any RTL
-existed (*"multiplexed-pad float → G7-only divergences → ledger open item 1, not
-patches"*), and `sw/check_ab_hw.py` already excludes float-retention rows for
-exactly this reason, which is why first light is 800/800 on the same bitstream in
+The one registered bar this campaign MISSED (§55.2 bar 2, §56.1), and the one
+open item whose *classification* — not merely its fix — is unfinished.
+
+On the fixed bitstream the four HLT sweeps score **143/283 in fabric** against
+**259/283** offline on the same RTL.  The whole 116-cell gap is a single class
+with no exceptions, and that partition IS published because it is measured:
+**116 of 116** fabric-only failures are on an INTA row, there is no
+counter-population, no cell fails offline and passes in fabric, and `HLT.RES` is
+identical on both legs cell for cell.
+
+The **reading** of that partition is that at an INTA's T1 the chip's AD pads
+float and RETAIN the previous data phase, while the core's AD inside
+`system_large` is an internal `tri` net Quartus resolves to a mux, so there is
+nothing to retain — the plan's registered **risk #4**, and already the stated
+column policy of `sw/check_ab_hw.py`, which is 800/800 on the same bitstream in
 the same session.
 
-Two candidate fixes, **neither taken**: give the harness's `core_ad` a retention
-model in `system_large.sv` (changes the shared A/B harness and therefore BOTH
-cores' fabric numbers — needs its own pre-registered before/after), or teach the
-fabric scorer `check_ab_hw`'s exclusion (**would be choosing a comparator after
-seeing the result**).  *Falsifier*: a fabric cell whose first divergence is an
-INTA row whose golden value is NOT the retained previous data phase, or any
+**That reading is NOT ESTABLISHED, and it is published as a reading (C11).**  It
+is F42's argument one population over: *"the failing cells are an artefact of how
+the pins are observed, not of the core."*  F42 was accepted as sound by C6,
+measured population-complete at **24/24**, and **REFUTED in fabric anyway** —
+because a correlation over a population is not an intervention.  Nothing in the
+evidence here is of a different kind.
+
+**The settling measurement is pre-registered and NOT run (§56.3a).**  Give
+`core_ad` an explicit retention model in `system_large.sv` — touching neither
+core, and `v30u_biu.sv` in particular not at all, since its INTA path renders
+`Access::no_addr` faithfully — and require BOTH halves: (i) all 116 close and the
+fabric total reaches **259/283 exactly**, every `HLT.INT` cell matching its
+offline result cell for cell; and (ii) nothing else moves — `HLT.RES` unchanged,
+the 19 both-legs failures still failing, no new non-INTA divergence, the
+F42-signature count still zero, the socket control 49/49 and first light
+800/800 ×3.  **Any of the 116 still failing means those cells are the CORE's**,
+and they are then reported as a refutation and not re-explained.
+
+Two candidate fixes, **neither taken**: the retention model above (a change to
+the shared A/B harness, so it needs its own pre-registered before/after on both
+cores), or teaching the fabric scorer `check_ab_hw`'s exclusion — **which would
+be choosing a comparator after seeing the result**.
+
+*Falsifier for the reading as it stands*: a fabric cell whose first divergence is
+an INTA row whose golden value is NOT the retained previous data phase, or any
 non-INTA fabric-only failure.
 
 ### 1. The HLT delay sweeps — 24 cells, 13 of them the ucore's alone
@@ -602,7 +628,7 @@ before the closing commit.**
    report did not invoke it.  The row now says which population each half is true
    of and points at open item 0.
 3. **The F1-F51 / review-finding accounting was incomplete.**  §(b) grouped
-   loosely, printed counts that did not sum to 51, double-counted `F51`, split
+   loosely, printed group counts of 24 + 5 + 8 + 9 = 46, double-counted `F51`, split
    `F48` across two groups, buried `F25` inside `F3`'s entry, omitted **`F9`**
    entirely, and said "five Codex review findings (C1-C8)" — a count and a range
    that contradict each other.  §(b) is now an **exhaustive, disjoint partition
