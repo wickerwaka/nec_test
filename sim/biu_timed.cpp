@@ -385,6 +385,19 @@ void BiuTimed::tick() {
     }
 
     if (run_) {
+        // I1 / F39 -- THE FLAG REGISTER IS FED BY THE DATA LATCH, NOT BY THE
+        // ROW.  This clock IS the T3/Tw -> T4 advance of a completing EU read,
+        // which is the READY sample and the instant the AD input latch closes.
+        // If an `OPR -> FLAGS ... F` row is STANDING (arm_flags_latch), its
+        // destination is already selected and takes the word here -- before
+        // this same clock's `r.ps` is composed, which is the whole observable
+        // consequence and the reason silicon shows it: `interrupt_model.md`,
+        // "the new IE shows in the PS bits during the read's own T4".
+        // Everything else the EU does with the word still waits for the
+        // handover at e+2 (`rd_done_q_`); this moves the COMMIT, not the data.
+        if (flags_latch_ && ci_ == last_i && cur_.rd_last && !cur_.is_fetch &&
+            !cur_.is_halt && !is_write(cur_.bs))
+            *flags_latch_ = uint16_t((cur_.rd_val & kPswWritable) | kPswForced);
         r.tstate = (ci_ == 0)          ? uint8_t(kT1)
                    : (ci_ == 1)        ? uint8_t(kT2)
                    : (ci_ == 2)        ? uint8_t(kT3)

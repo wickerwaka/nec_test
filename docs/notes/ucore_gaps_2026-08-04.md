@@ -31,6 +31,17 @@ verdict), `docs/notes/ucore_provenance.md` §0-§57 (the ledger) and
 > | **X1** — the fabric leg of the retention intervention | **ATTEMPTED AND BLOCKED, NOT REFUTED.**  The BASELINE reproduces on FLASH #4 (**143/283**, 116 fabric-only, 116/116 INTA, socket control 49/49) but the INTERVENTION cannot be synthesised: Quartus folds `core_ad === 1'bz` to a constant and deletes the hold register.  Pre-registered as a liveness test (§59.3) and reported as registered (§59.7.1).  **C11's NOT ESTABLISHED stands.** |
 > | **NEW — a rig-integrity finding** | **`s10_board` / `s13_board` could not take a capture at HEAD** and had not been able to since 2026-08-02: `want_raw=True` was passed to a `run_image` that never had the parameter, on any branch.  No standing gate runs an s10/s13 probe, so nothing saw it.  REPAIRED, §59.7.11 |
 
+> **THIRD UPDATE, session SM3 (2026-08-04) — the measured census is
+> `docs/notes/sm3_residue_census_2026-08-04.md` and `ucore_provenance.md` §60 is
+> the current state.**  Four more items moved.
+>
+> | item | now |
+> |---|---|
+> | **I1** — the sim's `9D` flag-commit erratum | **CLOSED — FIXED in `sim/`** (§60.4).  Rendered as F39's mechanism and naming no opcode: the BIU publishes the read data-latch edge and a STANDING `OPR -> FLAGS ... F` row's destination takes it there.  Hits exactly `007A` and `01EA`.  `INT.9D` case 1 row 9 is now `05FAD2` against the golden's `05FAD2`; the full sim ladder re-run with **zero** other movement. |
+> | **T8** — "three are an exact byte swap … M5b's A0 swapper applied where the chip does not" | **THE ATTRIBUTION IS REFUTED** (§60.3).  `raw_3868` has the OPPOSITE SIGN — the chip rotates at an EVEN address where the model does not — so the three do not share a sign and no change to the A0 rotator closes them.  What the rows establish is that the engines' **OPR** holds the chip's two bytes in the other order: the defect is on the LOAD side, not the drive side.  **Nothing was patched.**  The observation stands; the mechanism is NOT named. |
+> | **T5 / the EVT partition** — "547 ucore-only non-exact seeds" | **SUPERSEDED BY MEASUREMENT.**  On SM2's rebuilt column the partition is **ucore-only 5 / shared 535 / sim-only 110**, net +105.  The five are named in the census §2.2; all five are at waits ≥ 1. |
+> | **I3** — INTA under waits, the second acknowledge's ANCHOR | **its whole-program evidence column is REBUILT and it speaks.**  Census **H1**: the chip idles **2 clocks** between the last prefetch and a RE-ENTRY acknowledge's announcement and grants the slot to nothing — 445/445 of the ucore's INTA cell, 6-clock CODE-T1-to-INTA-T1 gap on all of them.  The ucore prefetches into it; the model announces 2 clocks early.  **The largest single mechanism in the residue.  NOT taken** — it moves the interrupt-entry anchor and needs its own pre-registration. |
+
 **This document is measurement and enumeration only.** No mechanism was
 proposed, no RTL was changed, nothing was fixed. Where a number could be stale
 it was **re-run**, and where a re-run disagreed with the ledger that is stated

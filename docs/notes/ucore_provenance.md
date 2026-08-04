@@ -6253,3 +6253,236 @@ taken, the honest statement of the gate is:
 > `check_fuzz_bank` **PASS**; `check_fuzz_bank --strict` **FAILS on
 > `new-sig TIMING 166`**, all 166 on re-captured seeds, cause understood,
 > ledger admission NOT taken.
+
+## §60 SESSION SM3 — THE RESIDUE CENSUS, AND TWO LANDINGS
+
+**2026-08-04, branch `ucsim`, from HEAD `369e4953ce`.  Offline only — banked
+captures, Verilator and the C++ model.  NO BOARD CONTACT.**  The first working
+sitting of the silicon-match phase (task #36).  SM1 repaired the rig and opened
+the invalidation register; SM2 re-captured the 760 and un-suspended the EVT
+column; **SM3 asks what is actually left.**
+
+The census itself is a document of its own — **`docs/notes/sm3_residue_census_2026-08-04.md`** —
+because it is the artifact the rest of the phase is planned against.  This
+section is the ledger record: what moved, what was landed, and what was refuted.
+
+### §60.1 ITEM 0 — THE `sig_ledger` ADMISSION, WITH ITS CONTROL
+
+§59.7.13 routed the admission as a decision and did not take it.  The decision
+was taken by the coordinator; SM3 executed it, **control first**.
+
+**The control is a full re-derivation, not a re-reading of SM2's report.**
+`sw/sm3_sigctl.py` (new) replays every one of the 3,242 banked seeds through the
+SAME `check_fuzz_bank.replay_classify` the gate uses, and records per seed the
+verdict, the signature, whether that signature is already in the ledger, and
+whether the seed carries a `recapture` block with `evt.hold == 300` **and**
+`evt.hold_bits == 12`:
+
+```
+sm3_sigctl: 3242 banked seeds, 11705 known signatures
+new-sig TIMING seeds: 166   distinct signatures: 140
+  on RE-CAPTURED seeds : 166
+  on any OTHER seed    : 0
+  failing the control  : 0
+errors: 0  gen-drift: 0
+```
+
+and, by arithmetic over the same artifact, `stable 3242 improved 0 worse 0`.
+**SM2's attribution reproduces exactly.**
+
+**AND THE GATE ITSELF WAS RE-RUN IN FULL AFTER THE ADMISSION, UNMODIFIED:**
+
+```
+check_fuzz_bank: PASS | 3242 banked seeds | stable 3242 improved 0 worse 0
+                      | gen_drift 0 regen_err 0 | float-floor 0
+                      | new-sig TIMING 0
+rc = 0   under --strict
+```
+
+**A RIG-INTEGRITY FINDING FELL OUT OF TAKING THE CONTROL SERIOUSLY.**
+`hdl/tb/obj_dir/Vtb_v30_core` — the FSM TB that `check_fuzz_bank` binds to
+through `check_seq.BIN` — was built at 05:43 from a `tb_v30_core.sv` that commit
+`5c5fdbf50a` changed at **07:28**.  It was **STALE**, and nothing could see it:
+`check_seq` never calls `check_core.build()`, and `check_core.build()` is the
+only thing in the tree that carries `tb_v30_core.sv` in a dependency check.  The
+binary was **REBUILT** and the control re-run on it, **and it reproduces SM2's
+166 / 140 exactly** — so no figure was scored wrong.  This is the vacuous-gate
+pattern's fifth incarnation and it is recorded in the census §7 with a suggested
+standing fix (have `check_seq` build, or have `check_fuzz_bank` assert the
+binary is newer than its dependency set).  *Not taken here; it is a change to an
+archived gate's plumbing and it belongs to whoever next opens that path.*
+
+**THE ADMISSION.**  `sw/sm3_sig_admit.py` (new, and deliberately a committed
+tool rather than an ad-hoc edit so the act is reproducible and its control is
+re-runnable).  It **refuses to write** unless every signature it is about to
+admit is reachable only from a true-300 / 12-bit re-captured seed.
+
+* 140 signatures added to `sigs`, in `fuzz_bank._update_ledger`'s own entry
+  shape plus one extra `admitted` key, so `check_fuzz_bank`'s reader
+  (`set(json["sigs"])`) is unaffected and no other consumer sees a schema change;
+* a new top-level **`admissions`** list carries the event once: date, why, the
+  control, the gate before and after, the counts, and the full signature list;
+* **`sigs` 11,705 → 11,845; 0 removed; every pre-existing entry byte-identical**
+  (`sigv` and `legacy_baseline` untouched, verified by comparison against a
+  pre-edit copy).
+
+*Why an `admissions` record and not a silent insert*: the ledger is a NOVELTY
+register.  A signature that enters it without provenance makes the next
+campaign's "this is new" mean something different from this campaign's, and
+there would be nothing in the file to say so.
+
+### §60.2 THE CENSUS — the headline, and the number that is new
+
+Full tables in `sm3_residue_census_2026-08-04.md`.  The ledger-level facts:
+
+**The EVT partition, measured for the first time on the rebuilt column:**
+
+| population | scored | ucore | sim | ucore-ONLY | sim-ONLY | shared | net |
+|---|---|---|---|---|---|---|---|
+| REGISTERED | 1,702 | 219 | 430 | **9** | 220 | 210 | +211 |
+| **EVT** | 1,008 | **540** | **645** | **5** | 110 | 535 | **+105** |
+
+The REGISTERED row reproduces §58.4 seed for seed.  **The EVT row replaces
+SM1's 547 / 269 / 30** — that partition was the rig, and INV-1 struck it; the
+ucore's own whole-program event residue that the model does not share is
+**FIVE SEEDS**, named in the census §2.2.
+
+**The ucore's EVT family census, its own engine, the first ever taken:**
+`PF_GAINED` **463** · `SCHEDULE` 29 · `PF_LOST` 22 · `DATA_SEQ` 14 ·
+`TAIL_EXTRA` 5 · `PIN` 4 · `PF_ADDR` 3 = **540**, catch-all EMPTY, 0 `NOW_EXACT`.
+The model's, for the same population: `SCHEDULE` **563** · `PF_LOST` 44 ·
+`PF_GAINED` 15 · `PIN` 9 · `PF_ADDR` 6 · `DATA_SEQ` 5 · `TAIL_EXTRA` 3 = 645.
+
+**H1 — THE RE-ENTRY ACKNOWLEDGE'S LEAD-IN.  445 ucore seeds + 491 sim seeds,
+437 of them the same seed.  The largest single mechanism in the silicon-match
+residue, and it is one clock count.**
+
+Of the ucore's 463 `PF_GAINED`, **445 have `INTA` on the chip and `CODE` in the
+core at the first cycle the sequences differ**, with `delta = -2` on **445/445**
+and the chip's divergent INTA1 T1 exactly **6 clocks after the preceding CODE
+fetch's T1** on **445/445**.  A zero-wait fetch is 4 clocks, so **the chip
+leaves the bus IDLE for two clocks and then announces the acknowledge.**  The
+ucore's prefetcher takes that slot; the model announces on the fetch's own T4.
+*Both engines are wrong, in opposite directions, by the same two clocks, on the
+same seeds.*
+
+It is not the first acknowledge — the wake from HALT is right in 443/445; it is
+acknowledge **#2** in 382 of 445, #3 in 36, #4 in 25.  All wait classes, both
+campaigns, `pin = 0` on all 445, no sub-population and no exceptions.
+
+**This is the missing whole-program half of `gaps` §I.3**, whose evidence column
+was the EVT population INV-1 suspended.  The column is un-suspended and this is
+what it says.  M18 (INTA2's spacing) is unaffected and correct in both engines.
+
+**NOT TAKEN.**  It moves the interrupt-entry anchor, which is spine, and it
+needs its own pre-registered before/after on the four `evt` golden cells,
+`timed_lawcards`, the b2 tranche and both engines' REGISTERED columns.
+Registering it is the next sitting's first job.
+
+*Falsifier*: a seed in the 445 whose chip acknowledge opens at a gap other than
+6 clocks after the preceding fetch's T1, or a re-entry acknowledge in which the
+chip DOES grant the prefetch slot.
+
+### §60.3 ITEM 2.1 — T8's BYTE-SWAP ATTRIBUTION IS **REFUTED**
+
+`gaps` §T.8 / §49.7 attribute three shared seeds to *"M5b's A0 swapper applied
+where the chip does not"*.  Measured row by row (`sw/sm3_bswap.py`, new):
+
+| seed | write | chip | both engines | A0 | UBE_n | model rotation |
+|---|---|---|---|---|---|---|
+| `mc1/raw_2340_8df9460dd643` | MEMW `03efd` | `35ab` | `ab35` | **1** | 0 | applied |
+| `mc2/raw_3868_3995afd408b7` | MEMW `03ef8` | `b6cd` | `cdb6` | **0** | 1 | **NOT applied** |
+| `t30-raw/raw_453_99bdf08b95ea` | MEMW `0b97d` | `ad00` | `00ad` | **1** | 0 | applied |
+| `t30-raw/raw_624_d20cc1a550cc` | MEMW `9998e` | `f206` | `fa87` | 0 | 0 | n/a (not a swap) |
+
+**`raw_3868` has the OPPOSITE SIGN**: the chip rotates at an EVEN address where
+the model does not.  The three do not share a sign, so no removal, narrowing or
+inversion of the A0 rotator closes them — and M5b's own four-quadrant
+measurement (`88` / `C6.0` / `50`, validated 366/366 over the `88` byte-store
+rows) forbids removing it.
+
+What the rows DO establish is better posed: on all three, the chip's driven word
+is the rotator applied to **`swap8(OPR_model)`** — *the engines' OPR holds the
+same two bytes as the chip's, in the other order.*  **The defect is on the side
+that LOADS the datapath, not the side that drives the bus.**  `raw_2340` names
+the instruction: `FE F6` (the FE group's undocumented `/6`, mod = 11, `op8 = 1`)
+at ROM row **`01CE`**, whose OPR is `35AB` where the chip's is `AB35`; the
+seed's own control is two cycles later, where an ordinary `51` PUSH CX (row
+`0029`) at an odd stack address splits correctly and both engines agree.
+
+**Reported as a refutation.  NOTHING WAS CHANGED.**  §T.8's sentence should be
+read as the observation it is and not as an attribution.
+
+### §60.4 ITEM 2.2 — **I1 LANDED**: the sim's `9D` flag-commit erratum is FIXED
+
+`gaps` §I.1, F39, and the one place this campaign owed the model a fix: the RTL
+matches silicon and the MODEL does not.  `sim/exec_impl.h` committed FLAGS when
+the micro-row RETIRED; the chip commits at the read's data edge.
+
+**Rendered as the mechanism, naming no opcode.**  A micro-row's destination
+write-enable is a LEVEL for as long as the row STANDS, so a destination fed from
+the read latch takes the word when the LATCH CLOSES — the T3/Tw → T4 advance,
+which is the READY sample.  The BIU is the only thing that knows when that edge
+is, so it is the BIU that publishes it (the RTL calls the same edge
+`eu_rd_edge`):
+
+```
+biu_timed.h    arm_flags_latch(uint16_t* psw)   -- non-null = a standing row
+                                                   has FLAGS selected
+biu_timed.cpp  in tick(), at ci_ == last_i of a completing EU read and BEFORE
+               that same clock's r.ps is composed:  *flags_latch_ = word
+biu.h          arm_flags_latch(uint16_t*) {}     -- the functional bus has no
+                                                   clock and no T-states
+exec_impl.h    the `F` row arms it iff  s1 == OPR && d1 == FLAGS,
+               and disarms it after deliver_read()
+```
+
+The predicate hits **EXACTLY TWO ROM ROWS** — `007A` (POP PSW) and `01EA`
+(RETI), the only rows carrying source `OPR`, destination `FLAGS` and the `F`
+interlock; five other rows write FLAGS and none takes OPR through an `F`.  That
+is the same pair E1 measured on silicon.  The word is unchanged: `rdq_` is
+filled at ISSUE time, so this re-orders the COMMIT and not the data, and
+`wr_dst1`'s FLAGS arm writes the identical word again at retire.
+
+**PRE-REGISTERED BAR, and it is met exactly.**  `INT.9D` case 1, row 9 (the
+read's own T4), golden vs model:
+
+| | before | **after** |
+|---|---|---|
+| row 9 composed AD | golden `05FAD2`, model `01FAD2` | golden `05FAD2`, model **`05FAD2`** |
+
+**THE FULL SIM-SIDE REGRESSION, ALL RE-RUN AFTER THE LANDING:**
+
+| gate | registered | **after I1** |
+|---|---|---|
+| `make -C sim test` (disasm byte-exact) | PASS | **PASS** |
+| `timed_gate --suite tests/v30/v0.1 --forms all` | 169,000 / 169,000, row-diffs 0 | **169,000 / 169,000, row-diffs 0** |
+| `ulockstep --golden all --cases 50` | 17,350 / 17,350 | **17,350 / 17,350 ALL LOCKSTEP** |
+| `timed_wvec_gate` | 88/88, +0.0 % | **88/88, 16,048 vs 16,048, +0.0 %** |
+| `timed_enter_replay` | 154/154 ×5 | **154/154 ×5** |
+| `timed_ins_replay --raw` | 1,312 / 2,624 | **1,312/1,312 and 2,624/2,624**, 173,556/173,556 same-T1 |
+| `timed_lawcards` | 8 GREEN / 0 RED / 3 UNRESOLVED | **8 / 0 / 3** (C6, C7, C11) |
+| `timed_fuzz --core sim --evt-replay` | REG 1,272/1,702 · EVT 363/1,008 · COMBINED 1,635/2,710 | **identical, to the seed** |
+| `timed_fuzz --core ucore --evt-replay` | REG 1,483/1,702 · EVT 468/1,008 · COMBINED 1,951/2,710 | **identical** (no RTL was touched) |
+
+**Nothing moved except the column the fix is about.**  `ulockstep`'s masked view
+was already ALL LOCKSTEP and stays so; what closes is its UNMASKED `9D` T4 PS
+nibble, which §42.4 item 4 booked as *"the RTL matches the silicon and the MODEL
+does not"*.  **`gaps` §I.1 is CLOSED.**
+
+*Falsifier*: any `OPR -> FLAGS` row whose flag write is NOT visible at its
+read's T4, or any third ROM row acquiring that source/destination pair.
+
+### §60.5 WHAT SM3 DID NOT DO, AND WHY
+
+* **No board contact.**  I3's §26.6.4 directed cell — an acknowledge announced
+  while another cycle still owns the bus, at more than one wait level — is now
+  backed by H1's 445-seed shadow and is the one board request this session
+  produces.  **Not taken.**
+* **H1 not fixed** (§60.2).  The census's own rule: the session that discovers a
+  spine-moving mechanism does not also land it without a pre-registration.
+* **The HLT sweeps were not re-run**; the census cites §T.1's 259/283 and its
+  13 ucore-only cells rather than re-measuring them.
+* **`s15_census` was not modified.**  That it lands 540 EVT seeds in seven
+  inherited families with an EMPTY catch-all is evidence the taxonomy
+  generalises off the population it was built on.

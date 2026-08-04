@@ -125,6 +125,10 @@ public:
     void charge(int) {}
     void wait_read() {}
     void wait_opr_free() {}
+    // I1 / F39: the read data-latch edge.  The functional model has no clock
+    // and no T-states, so there is no edge for the standing row's FLAGS
+    // destination to take -- the row's own retire write does the job.
+    void arm_flags_latch(uint16_t*) {}
     void wait_opr() {}
     void write_request(uint16_t, uint16_t, bool, uint8_t, bool, uint16_t) {}
     void opcode_prefetch(uint16_t) {}

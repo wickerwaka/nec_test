@@ -93640,6 +93640,1266 @@
    "tier": "soup",
    "waits_class": "wrand",
    "count": 1
+  },
+  "06860a92518e4fb1": {
+   "first_campaign": "mc1",
+   "first_verdict": "TIMING",
+   "klass": null,
+   "tier": "unknown",
+   "waits_class": "recapture-evt",
+   "count": 1,
+   "admitted": "2026-08-04"
+  },
+  "06e2b43ad85090cb": {
+   "first_campaign": "mc1",
+   "first_verdict": "TIMING",
+   "klass": null,
+   "tier": "unknown",
+   "waits_class": "recapture-evt",
+   "count": 1,
+   "admitted": "2026-08-04"
+  },
+  "08d2e349534cd801": {
+   "first_campaign": "mc1",
+   "first_verdict": "TIMING",
+   "klass": null,
+   "tier": "unknown",
+   "waits_class": "recapture-evt",
+   "count": 1,
+   "admitted": "2026-08-04"
+  },
+  "09ee3120d4b2f0d2": {
+   "first_campaign": "mc1",
+   "first_verdict": "TIMING",
+   "klass": null,
+   "tier": "unknown",
+   "waits_class": "recapture-evt",
+   "count": 1,
+   "admitted": "2026-08-04"
+  },
+  "0a8519baeb336d09": {
+   "first_campaign": "mc2",
+   "first_verdict": "TIMING",
+   "klass": null,
+   "tier": "unknown",
+   "waits_class": "recapture-evt",
+   "count": 1,
+   "admitted": "2026-08-04"
+  },
+  "0ee756790595c2f8": {
+   "first_campaign": "mc1",
+   "first_verdict": "TIMING",
+   "klass": null,
+   "tier": "unknown",
+   "waits_class": "recapture-evt",
+   "count": 1,
+   "admitted": "2026-08-04"
+  },
+  "0f20f8ec7b8e6b63": {
+   "first_campaign": "mc1",
+   "first_verdict": "TIMING",
+   "klass": null,
+   "tier": "unknown",
+   "waits_class": "recapture-evt",
+   "count": 1,
+   "admitted": "2026-08-04"
+  },
+  "121c456932496ad4": {
+   "first_campaign": "mc1",
+   "first_verdict": "TIMING",
+   "klass": null,
+   "tier": "unknown",
+   "waits_class": "recapture-evt",
+   "count": 1,
+   "admitted": "2026-08-04"
+  },
+  "128981fe3b603309": {
+   "first_campaign": "mc1",
+   "first_verdict": "TIMING",
+   "klass": null,
+   "tier": "unknown",
+   "waits_class": "recapture-evt",
+   "count": 2,
+   "admitted": "2026-08-04"
+  },
+  "14925312c2817d34": {
+   "first_campaign": "mc2",
+   "first_verdict": "TIMING",
+   "klass": null,
+   "tier": "unknown",
+   "waits_class": "recapture-evt",
+   "count": 1,
+   "admitted": "2026-08-04"
+  },
+  "149e52247fd73030": {
+   "first_campaign": "mc2",
+   "first_verdict": "TIMING",
+   "klass": null,
+   "tier": "unknown",
+   "waits_class": "recapture-evt",
+   "count": 1,
+   "admitted": "2026-08-04"
+  },
+  "1c0c81f63ae42533": {
+   "first_campaign": "mc1",
+   "first_verdict": "TIMING",
+   "klass": null,
+   "tier": "unknown",
+   "waits_class": "recapture-evt",
+   "count": 1,
+   "admitted": "2026-08-04"
+  },
+  "1dc51a5190864ab6": {
+   "first_campaign": "mc2",
+   "first_verdict": "TIMING",
+   "klass": null,
+   "tier": "unknown",
+   "waits_class": "recapture-evt",
+   "count": 1,
+   "admitted": "2026-08-04"
+  },
+  "1df0de680c5efdbd": {
+   "first_campaign": "mc2",
+   "first_verdict": "TIMING",
+   "klass": null,
+   "tier": "unknown",
+   "waits_class": "recapture-evt",
+   "count": 1,
+   "admitted": "2026-08-04"
+  },
+  "1eba4ab657ddbe31": {
+   "first_campaign": "mc2",
+   "first_verdict": "TIMING",
+   "klass": null,
+   "tier": "unknown",
+   "waits_class": "recapture-evt",
+   "count": 1,
+   "admitted": "2026-08-04"
+  },
+  "1fed07ad5b485155": {
+   "first_campaign": "mc2",
+   "first_verdict": "TIMING",
+   "klass": null,
+   "tier": "unknown",
+   "waits_class": "recapture-evt",
+   "count": 1,
+   "admitted": "2026-08-04"
+  },
+  "208165fe19df496e": {
+   "first_campaign": "mc1",
+   "first_verdict": "TIMING",
+   "klass": null,
+   "tier": "unknown",
+   "waits_class": "recapture-evt",
+   "count": 1,
+   "admitted": "2026-08-04"
+  },
+  "25ea6ad037dbac5f": {
+   "first_campaign": "mc1",
+   "first_verdict": "TIMING",
+   "klass": null,
+   "tier": "unknown",
+   "waits_class": "recapture-evt",
+   "count": 1,
+   "admitted": "2026-08-04"
+  },
+  "261afd5816ae5abb": {
+   "first_campaign": "mc1",
+   "first_verdict": "TIMING",
+   "klass": null,
+   "tier": "unknown",
+   "waits_class": "recapture-evt",
+   "count": 1,
+   "admitted": "2026-08-04"
+  },
+  "26b2b86b4af14c52": {
+   "first_campaign": "mc1",
+   "first_verdict": "TIMING",
+   "klass": null,
+   "tier": "unknown",
+   "waits_class": "recapture-evt",
+   "count": 1,
+   "admitted": "2026-08-04"
+  },
+  "2884cd9617bb8c02": {
+   "first_campaign": "mc1",
+   "first_verdict": "TIMING",
+   "klass": null,
+   "tier": "unknown",
+   "waits_class": "recapture-evt",
+   "count": 1,
+   "admitted": "2026-08-04"
+  },
+  "28f9893ae1e8efbd": {
+   "first_campaign": "mc2",
+   "first_verdict": "TIMING",
+   "klass": null,
+   "tier": "unknown",
+   "waits_class": "recapture-evt",
+   "count": 1,
+   "admitted": "2026-08-04"
+  },
+  "2c0821b378c7350e": {
+   "first_campaign": "mc1",
+   "first_verdict": "TIMING",
+   "klass": null,
+   "tier": "unknown",
+   "waits_class": "recapture-evt",
+   "count": 1,
+   "admitted": "2026-08-04"
+  },
+  "2ff88b1a9ff0ef24": {
+   "first_campaign": "mc1",
+   "first_verdict": "TIMING",
+   "klass": null,
+   "tier": "unknown",
+   "waits_class": "recapture-evt",
+   "count": 1,
+   "admitted": "2026-08-04"
+  },
+  "316cbbe265158de3": {
+   "first_campaign": "mc2",
+   "first_verdict": "TIMING",
+   "klass": null,
+   "tier": "unknown",
+   "waits_class": "recapture-evt",
+   "count": 1,
+   "admitted": "2026-08-04"
+  },
+  "3316fb03281e2e46": {
+   "first_campaign": "mc2",
+   "first_verdict": "TIMING",
+   "klass": null,
+   "tier": "unknown",
+   "waits_class": "recapture-evt",
+   "count": 2,
+   "admitted": "2026-08-04"
+  },
+  "35f3bb60f93d78cd": {
+   "first_campaign": "mc1",
+   "first_verdict": "TIMING",
+   "klass": null,
+   "tier": "unknown",
+   "waits_class": "recapture-evt",
+   "count": 1,
+   "admitted": "2026-08-04"
+  },
+  "377cabea70d7e268": {
+   "first_campaign": "mc2",
+   "first_verdict": "TIMING",
+   "klass": null,
+   "tier": "unknown",
+   "waits_class": "recapture-evt",
+   "count": 1,
+   "admitted": "2026-08-04"
+  },
+  "37b19473ca77c9c2": {
+   "first_campaign": "mc1",
+   "first_verdict": "TIMING",
+   "klass": null,
+   "tier": "unknown",
+   "waits_class": "recapture-evt",
+   "count": 1,
+   "admitted": "2026-08-04"
+  },
+  "384beaebf496aea5": {
+   "first_campaign": "mc1",
+   "first_verdict": "TIMING",
+   "klass": null,
+   "tier": "unknown",
+   "waits_class": "recapture-evt",
+   "count": 1,
+   "admitted": "2026-08-04"
+  },
+  "38c52ce108a5aa47": {
+   "first_campaign": "mc2",
+   "first_verdict": "TIMING",
+   "klass": null,
+   "tier": "unknown",
+   "waits_class": "recapture-evt",
+   "count": 1,
+   "admitted": "2026-08-04"
+  },
+  "3c35c21799dbb0e1": {
+   "first_campaign": "mc1",
+   "first_verdict": "TIMING",
+   "klass": null,
+   "tier": "unknown",
+   "waits_class": "recapture-evt",
+   "count": 2,
+   "admitted": "2026-08-04"
+  },
+  "3d0e55459d6fc137": {
+   "first_campaign": "mc2",
+   "first_verdict": "TIMING",
+   "klass": null,
+   "tier": "unknown",
+   "waits_class": "recapture-evt",
+   "count": 1,
+   "admitted": "2026-08-04"
+  },
+  "3d7bdddf6bebd0ca": {
+   "first_campaign": "mc1",
+   "first_verdict": "TIMING",
+   "klass": null,
+   "tier": "unknown",
+   "waits_class": "recapture-evt",
+   "count": 1,
+   "admitted": "2026-08-04"
+  },
+  "43952d8e00da22f9": {
+   "first_campaign": "mc1",
+   "first_verdict": "TIMING",
+   "klass": null,
+   "tier": "unknown",
+   "waits_class": "recapture-evt",
+   "count": 2,
+   "admitted": "2026-08-04"
+  },
+  "454fdd5db566dc13": {
+   "first_campaign": "mc1",
+   "first_verdict": "TIMING",
+   "klass": null,
+   "tier": "unknown",
+   "waits_class": "recapture-evt",
+   "count": 1,
+   "admitted": "2026-08-04"
+  },
+  "46c3e0e917052b7d": {
+   "first_campaign": "mc1",
+   "first_verdict": "TIMING",
+   "klass": null,
+   "tier": "unknown",
+   "waits_class": "recapture-evt",
+   "count": 1,
+   "admitted": "2026-08-04"
+  },
+  "4888d673053f4a65": {
+   "first_campaign": "mc2",
+   "first_verdict": "TIMING",
+   "klass": null,
+   "tier": "unknown",
+   "waits_class": "recapture-evt",
+   "count": 1,
+   "admitted": "2026-08-04"
+  },
+  "4df992f43e0ac352": {
+   "first_campaign": "mc2",
+   "first_verdict": "TIMING",
+   "klass": null,
+   "tier": "unknown",
+   "waits_class": "recapture-evt",
+   "count": 1,
+   "admitted": "2026-08-04"
+  },
+  "4f19600b5fedea3c": {
+   "first_campaign": "mc2",
+   "first_verdict": "TIMING",
+   "klass": null,
+   "tier": "unknown",
+   "waits_class": "recapture-evt",
+   "count": 1,
+   "admitted": "2026-08-04"
+  },
+  "4f595ede40d7c3af": {
+   "first_campaign": "mc2",
+   "first_verdict": "TIMING",
+   "klass": null,
+   "tier": "unknown",
+   "waits_class": "recapture-evt",
+   "count": 1,
+   "admitted": "2026-08-04"
+  },
+  "4f7eb97bdd506b9b": {
+   "first_campaign": "mc1",
+   "first_verdict": "TIMING",
+   "klass": null,
+   "tier": "unknown",
+   "waits_class": "recapture-evt",
+   "count": 1,
+   "admitted": "2026-08-04"
+  },
+  "545403624037befc": {
+   "first_campaign": "mc1",
+   "first_verdict": "TIMING",
+   "klass": null,
+   "tier": "unknown",
+   "waits_class": "recapture-evt",
+   "count": 1,
+   "admitted": "2026-08-04"
+  },
+  "55091c9df3ee4b33": {
+   "first_campaign": "mc2",
+   "first_verdict": "TIMING",
+   "klass": null,
+   "tier": "unknown",
+   "waits_class": "recapture-evt",
+   "count": 1,
+   "admitted": "2026-08-04"
+  },
+  "59c1e0e9d6636ec2": {
+   "first_campaign": "mc2",
+   "first_verdict": "TIMING",
+   "klass": null,
+   "tier": "unknown",
+   "waits_class": "recapture-evt",
+   "count": 1,
+   "admitted": "2026-08-04"
+  },
+  "5a9c57e6a072b6cd": {
+   "first_campaign": "mc1",
+   "first_verdict": "TIMING",
+   "klass": null,
+   "tier": "unknown",
+   "waits_class": "recapture-evt",
+   "count": 2,
+   "admitted": "2026-08-04"
+  },
+  "5cabe94f7f6b6f4b": {
+   "first_campaign": "mc2",
+   "first_verdict": "TIMING",
+   "klass": null,
+   "tier": "unknown",
+   "waits_class": "recapture-evt",
+   "count": 1,
+   "admitted": "2026-08-04"
+  },
+  "63bc431c4b517914": {
+   "first_campaign": "mc1",
+   "first_verdict": "TIMING",
+   "klass": null,
+   "tier": "unknown",
+   "waits_class": "recapture-evt",
+   "count": 1,
+   "admitted": "2026-08-04"
+  },
+  "63ed6fb4edbbf0aa": {
+   "first_campaign": "mc2",
+   "first_verdict": "TIMING",
+   "klass": null,
+   "tier": "unknown",
+   "waits_class": "recapture-evt",
+   "count": 1,
+   "admitted": "2026-08-04"
+  },
+  "6538b06e592a6949": {
+   "first_campaign": "mc1",
+   "first_verdict": "TIMING",
+   "klass": null,
+   "tier": "unknown",
+   "waits_class": "recapture-evt",
+   "count": 1,
+   "admitted": "2026-08-04"
+  },
+  "65d9d9cb755012c9": {
+   "first_campaign": "mc1",
+   "first_verdict": "TIMING",
+   "klass": null,
+   "tier": "unknown",
+   "waits_class": "recapture-evt",
+   "count": 7,
+   "admitted": "2026-08-04"
+  },
+  "65da8eb7643dd491": {
+   "first_campaign": "mc2",
+   "first_verdict": "TIMING",
+   "klass": null,
+   "tier": "unknown",
+   "waits_class": "recapture-evt",
+   "count": 1,
+   "admitted": "2026-08-04"
+  },
+  "6b650094edc84235": {
+   "first_campaign": "mc1",
+   "first_verdict": "TIMING",
+   "klass": null,
+   "tier": "unknown",
+   "waits_class": "recapture-evt",
+   "count": 1,
+   "admitted": "2026-08-04"
+  },
+  "6d5504f210cf4a3b": {
+   "first_campaign": "mc2",
+   "first_verdict": "TIMING",
+   "klass": null,
+   "tier": "unknown",
+   "waits_class": "recapture-evt",
+   "count": 1,
+   "admitted": "2026-08-04"
+  },
+  "6ef0f92c3dd55d4a": {
+   "first_campaign": "mc1",
+   "first_verdict": "TIMING",
+   "klass": null,
+   "tier": "unknown",
+   "waits_class": "recapture-evt",
+   "count": 2,
+   "admitted": "2026-08-04"
+  },
+  "6fe6e604dbc60f72": {
+   "first_campaign": "mc1",
+   "first_verdict": "TIMING",
+   "klass": null,
+   "tier": "unknown",
+   "waits_class": "recapture-evt",
+   "count": 1,
+   "admitted": "2026-08-04"
+  },
+  "710ae653cc979f9f": {
+   "first_campaign": "mc1",
+   "first_verdict": "TIMING",
+   "klass": null,
+   "tier": "unknown",
+   "waits_class": "recapture-evt",
+   "count": 1,
+   "admitted": "2026-08-04"
+  },
+  "71db0c3cb5d27bf7": {
+   "first_campaign": "mc1",
+   "first_verdict": "TIMING",
+   "klass": null,
+   "tier": "unknown",
+   "waits_class": "recapture-evt",
+   "count": 1,
+   "admitted": "2026-08-04"
+  },
+  "72bdfbaf51097996": {
+   "first_campaign": "mc1",
+   "first_verdict": "TIMING",
+   "klass": null,
+   "tier": "unknown",
+   "waits_class": "recapture-evt",
+   "count": 4,
+   "admitted": "2026-08-04"
+  },
+  "7396755f1c94549c": {
+   "first_campaign": "mc1",
+   "first_verdict": "TIMING",
+   "klass": null,
+   "tier": "unknown",
+   "waits_class": "recapture-evt",
+   "count": 1,
+   "admitted": "2026-08-04"
+  },
+  "7443f8998320e447": {
+   "first_campaign": "mc2",
+   "first_verdict": "TIMING",
+   "klass": null,
+   "tier": "unknown",
+   "waits_class": "recapture-evt",
+   "count": 1,
+   "admitted": "2026-08-04"
+  },
+  "7cb7804e46d61be9": {
+   "first_campaign": "mc1",
+   "first_verdict": "TIMING",
+   "klass": null,
+   "tier": "unknown",
+   "waits_class": "recapture-evt",
+   "count": 1,
+   "admitted": "2026-08-04"
+  },
+  "7e99d42d1c100f3f": {
+   "first_campaign": "mc2",
+   "first_verdict": "TIMING",
+   "klass": null,
+   "tier": "unknown",
+   "waits_class": "recapture-evt",
+   "count": 1,
+   "admitted": "2026-08-04"
+  },
+  "7f7848fcf00650e1": {
+   "first_campaign": "mc1",
+   "first_verdict": "TIMING",
+   "klass": null,
+   "tier": "unknown",
+   "waits_class": "recapture-evt",
+   "count": 1,
+   "admitted": "2026-08-04"
+  },
+  "80c912de51999125": {
+   "first_campaign": "mc2",
+   "first_verdict": "TIMING",
+   "klass": null,
+   "tier": "unknown",
+   "waits_class": "recapture-evt",
+   "count": 1,
+   "admitted": "2026-08-04"
+  },
+  "82d6f8ee4243018f": {
+   "first_campaign": "mc2",
+   "first_verdict": "TIMING",
+   "klass": null,
+   "tier": "unknown",
+   "waits_class": "recapture-evt",
+   "count": 1,
+   "admitted": "2026-08-04"
+  },
+  "848ec13748b2168b": {
+   "first_campaign": "mc2",
+   "first_verdict": "TIMING",
+   "klass": null,
+   "tier": "unknown",
+   "waits_class": "recapture-evt",
+   "count": 1,
+   "admitted": "2026-08-04"
+  },
+  "87e8e21a725e654f": {
+   "first_campaign": "mc2",
+   "first_verdict": "TIMING",
+   "klass": null,
+   "tier": "unknown",
+   "waits_class": "recapture-evt",
+   "count": 1,
+   "admitted": "2026-08-04"
+  },
+  "8a5ffbbb5ff1c3d1": {
+   "first_campaign": "mc1",
+   "first_verdict": "TIMING",
+   "klass": null,
+   "tier": "unknown",
+   "waits_class": "recapture-evt",
+   "count": 1,
+   "admitted": "2026-08-04"
+  },
+  "8a9c6bd752fd9602": {
+   "first_campaign": "mc1",
+   "first_verdict": "TIMING",
+   "klass": null,
+   "tier": "unknown",
+   "waits_class": "recapture-evt",
+   "count": 1,
+   "admitted": "2026-08-04"
+  },
+  "8bcc8d316458dca8": {
+   "first_campaign": "mc2",
+   "first_verdict": "TIMING",
+   "klass": null,
+   "tier": "unknown",
+   "waits_class": "recapture-evt",
+   "count": 1,
+   "admitted": "2026-08-04"
+  },
+  "8c18dcb96563c930": {
+   "first_campaign": "mc1",
+   "first_verdict": "TIMING",
+   "klass": null,
+   "tier": "unknown",
+   "waits_class": "recapture-evt",
+   "count": 1,
+   "admitted": "2026-08-04"
+  },
+  "92f17afd9a4296a7": {
+   "first_campaign": "mc2",
+   "first_verdict": "TIMING",
+   "klass": null,
+   "tier": "unknown",
+   "waits_class": "recapture-evt",
+   "count": 1,
+   "admitted": "2026-08-04"
+  },
+  "93175e86758db6e5": {
+   "first_campaign": "mc1",
+   "first_verdict": "TIMING",
+   "klass": null,
+   "tier": "unknown",
+   "waits_class": "recapture-evt",
+   "count": 1,
+   "admitted": "2026-08-04"
+  },
+  "942783c9a15d1a92": {
+   "first_campaign": "mc2",
+   "first_verdict": "TIMING",
+   "klass": null,
+   "tier": "unknown",
+   "waits_class": "recapture-evt",
+   "count": 1,
+   "admitted": "2026-08-04"
+  },
+  "9599c947de4d9cd0": {
+   "first_campaign": "mc2",
+   "first_verdict": "TIMING",
+   "klass": null,
+   "tier": "unknown",
+   "waits_class": "recapture-evt",
+   "count": 1,
+   "admitted": "2026-08-04"
+  },
+  "98d81292a4e047d5": {
+   "first_campaign": "mc1",
+   "first_verdict": "TIMING",
+   "klass": null,
+   "tier": "unknown",
+   "waits_class": "recapture-evt",
+   "count": 1,
+   "admitted": "2026-08-04"
+  },
+  "9b789569ced9b450": {
+   "first_campaign": "mc1",
+   "first_verdict": "TIMING",
+   "klass": null,
+   "tier": "unknown",
+   "waits_class": "recapture-evt",
+   "count": 1,
+   "admitted": "2026-08-04"
+  },
+  "9dee17edec528300": {
+   "first_campaign": "mc2",
+   "first_verdict": "TIMING",
+   "klass": null,
+   "tier": "unknown",
+   "waits_class": "recapture-evt",
+   "count": 1,
+   "admitted": "2026-08-04"
+  },
+  "a0b039ff0c757174": {
+   "first_campaign": "mc2",
+   "first_verdict": "TIMING",
+   "klass": null,
+   "tier": "unknown",
+   "waits_class": "recapture-evt",
+   "count": 1,
+   "admitted": "2026-08-04"
+  },
+  "a109ceca818ef0e1": {
+   "first_campaign": "mc2",
+   "first_verdict": "TIMING",
+   "klass": null,
+   "tier": "unknown",
+   "waits_class": "recapture-evt",
+   "count": 1,
+   "admitted": "2026-08-04"
+  },
+  "a1a7975745883e34": {
+   "first_campaign": "mc2",
+   "first_verdict": "TIMING",
+   "klass": null,
+   "tier": "unknown",
+   "waits_class": "recapture-evt",
+   "count": 1,
+   "admitted": "2026-08-04"
+  },
+  "a332e4006ee699a0": {
+   "first_campaign": "mc1",
+   "first_verdict": "TIMING",
+   "klass": null,
+   "tier": "unknown",
+   "waits_class": "recapture-evt",
+   "count": 1,
+   "admitted": "2026-08-04"
+  },
+  "a3ad9959f0adc6e3": {
+   "first_campaign": "mc2",
+   "first_verdict": "TIMING",
+   "klass": null,
+   "tier": "unknown",
+   "waits_class": "recapture-evt",
+   "count": 1,
+   "admitted": "2026-08-04"
+  },
+  "a47eb6e2cf25ce44": {
+   "first_campaign": "mc1",
+   "first_verdict": "TIMING",
+   "klass": null,
+   "tier": "unknown",
+   "waits_class": "recapture-evt",
+   "count": 1,
+   "admitted": "2026-08-04"
+  },
+  "a515df201d272626": {
+   "first_campaign": "mc2",
+   "first_verdict": "TIMING",
+   "klass": null,
+   "tier": "unknown",
+   "waits_class": "recapture-evt",
+   "count": 1,
+   "admitted": "2026-08-04"
+  },
+  "aa1fed636ad5a5ff": {
+   "first_campaign": "mc2",
+   "first_verdict": "TIMING",
+   "klass": null,
+   "tier": "unknown",
+   "waits_class": "recapture-evt",
+   "count": 1,
+   "admitted": "2026-08-04"
+  },
+  "ac0fc0707b757fb9": {
+   "first_campaign": "mc1",
+   "first_verdict": "TIMING",
+   "klass": null,
+   "tier": "unknown",
+   "waits_class": "recapture-evt",
+   "count": 4,
+   "admitted": "2026-08-04"
+  },
+  "adc3a63e1e9a78f0": {
+   "first_campaign": "mc2",
+   "first_verdict": "TIMING",
+   "klass": null,
+   "tier": "unknown",
+   "waits_class": "recapture-evt",
+   "count": 1,
+   "admitted": "2026-08-04"
+  },
+  "b1b71afe2fa25b0d": {
+   "first_campaign": "mc2",
+   "first_verdict": "TIMING",
+   "klass": null,
+   "tier": "unknown",
+   "waits_class": "recapture-evt",
+   "count": 1,
+   "admitted": "2026-08-04"
+  },
+  "b1f35e782ef8999d": {
+   "first_campaign": "mc1",
+   "first_verdict": "TIMING",
+   "klass": null,
+   "tier": "unknown",
+   "waits_class": "recapture-evt",
+   "count": 1,
+   "admitted": "2026-08-04"
+  },
+  "b4216e3e1de2f068": {
+   "first_campaign": "mc2",
+   "first_verdict": "TIMING",
+   "klass": null,
+   "tier": "unknown",
+   "waits_class": "recapture-evt",
+   "count": 2,
+   "admitted": "2026-08-04"
+  },
+  "b68860b9178d8c4b": {
+   "first_campaign": "mc2",
+   "first_verdict": "TIMING",
+   "klass": null,
+   "tier": "unknown",
+   "waits_class": "recapture-evt",
+   "count": 1,
+   "admitted": "2026-08-04"
+  },
+  "ba51be1fe5e65462": {
+   "first_campaign": "mc2",
+   "first_verdict": "TIMING",
+   "klass": null,
+   "tier": "unknown",
+   "waits_class": "recapture-evt",
+   "count": 1,
+   "admitted": "2026-08-04"
+  },
+  "be27e8216f6ffce6": {
+   "first_campaign": "mc1",
+   "first_verdict": "TIMING",
+   "klass": null,
+   "tier": "unknown",
+   "waits_class": "recapture-evt",
+   "count": 1,
+   "admitted": "2026-08-04"
+  },
+  "be36f48db0c6a2ea": {
+   "first_campaign": "mc2",
+   "first_verdict": "TIMING",
+   "klass": null,
+   "tier": "unknown",
+   "waits_class": "recapture-evt",
+   "count": 1,
+   "admitted": "2026-08-04"
+  },
+  "be5d2ba403357ff9": {
+   "first_campaign": "mc1",
+   "first_verdict": "TIMING",
+   "klass": null,
+   "tier": "unknown",
+   "waits_class": "recapture-evt",
+   "count": 1,
+   "admitted": "2026-08-04"
+  },
+  "bff2a8715b26c632": {
+   "first_campaign": "mc2",
+   "first_verdict": "TIMING",
+   "klass": null,
+   "tier": "unknown",
+   "waits_class": "recapture-evt",
+   "count": 1,
+   "admitted": "2026-08-04"
+  },
+  "cb64f2e0247e7171": {
+   "first_campaign": "mc1",
+   "first_verdict": "TIMING",
+   "klass": null,
+   "tier": "unknown",
+   "waits_class": "recapture-evt",
+   "count": 1,
+   "admitted": "2026-08-04"
+  },
+  "cbe04a551c1338e3": {
+   "first_campaign": "mc1",
+   "first_verdict": "TIMING",
+   "klass": null,
+   "tier": "unknown",
+   "waits_class": "recapture-evt",
+   "count": 2,
+   "admitted": "2026-08-04"
+  },
+  "ced17246b473b892": {
+   "first_campaign": "mc2",
+   "first_verdict": "TIMING",
+   "klass": null,
+   "tier": "unknown",
+   "waits_class": "recapture-evt",
+   "count": 2,
+   "admitted": "2026-08-04"
+  },
+  "cf287d611cfde234": {
+   "first_campaign": "mc2",
+   "first_verdict": "TIMING",
+   "klass": null,
+   "tier": "unknown",
+   "waits_class": "recapture-evt",
+   "count": 1,
+   "admitted": "2026-08-04"
+  },
+  "d32e341a7a9c6089": {
+   "first_campaign": "mc1",
+   "first_verdict": "TIMING",
+   "klass": null,
+   "tier": "unknown",
+   "waits_class": "recapture-evt",
+   "count": 1,
+   "admitted": "2026-08-04"
+  },
+  "d3add8b551566917": {
+   "first_campaign": "mc1",
+   "first_verdict": "TIMING",
+   "klass": null,
+   "tier": "unknown",
+   "waits_class": "recapture-evt",
+   "count": 1,
+   "admitted": "2026-08-04"
+  },
+  "d436183ae9cd46f9": {
+   "first_campaign": "mc1",
+   "first_verdict": "TIMING",
+   "klass": null,
+   "tier": "unknown",
+   "waits_class": "recapture-evt",
+   "count": 1,
+   "admitted": "2026-08-04"
+  },
+  "d4d8f41c2a0925bd": {
+   "first_campaign": "mc1",
+   "first_verdict": "TIMING",
+   "klass": null,
+   "tier": "unknown",
+   "waits_class": "recapture-evt",
+   "count": 1,
+   "admitted": "2026-08-04"
+  },
+  "d576f5eb7e537c35": {
+   "first_campaign": "mc1",
+   "first_verdict": "TIMING",
+   "klass": null,
+   "tier": "unknown",
+   "waits_class": "recapture-evt",
+   "count": 2,
+   "admitted": "2026-08-04"
+  },
+  "d7698101d7265e92": {
+   "first_campaign": "mc2",
+   "first_verdict": "TIMING",
+   "klass": null,
+   "tier": "unknown",
+   "waits_class": "recapture-evt",
+   "count": 1,
+   "admitted": "2026-08-04"
+  },
+  "d905eacf172baa3b": {
+   "first_campaign": "mc2",
+   "first_verdict": "TIMING",
+   "klass": null,
+   "tier": "unknown",
+   "waits_class": "recapture-evt",
+   "count": 1,
+   "admitted": "2026-08-04"
+  },
+  "d9b570e4ff9f7110": {
+   "first_campaign": "mc2",
+   "first_verdict": "TIMING",
+   "klass": null,
+   "tier": "unknown",
+   "waits_class": "recapture-evt",
+   "count": 1,
+   "admitted": "2026-08-04"
+  },
+  "da79c3396b95bc6e": {
+   "first_campaign": "mc1",
+   "first_verdict": "TIMING",
+   "klass": null,
+   "tier": "unknown",
+   "waits_class": "recapture-evt",
+   "count": 1,
+   "admitted": "2026-08-04"
+  },
+  "dab916079f4f9ff1": {
+   "first_campaign": "mc1",
+   "first_verdict": "TIMING",
+   "klass": null,
+   "tier": "unknown",
+   "waits_class": "recapture-evt",
+   "count": 1,
+   "admitted": "2026-08-04"
+  },
+  "dc63624f90b09a4c": {
+   "first_campaign": "mc2",
+   "first_verdict": "TIMING",
+   "klass": null,
+   "tier": "unknown",
+   "waits_class": "recapture-evt",
+   "count": 1,
+   "admitted": "2026-08-04"
+  },
+  "ddcb5a28b51aa5ba": {
+   "first_campaign": "mc1",
+   "first_verdict": "TIMING",
+   "klass": null,
+   "tier": "unknown",
+   "waits_class": "recapture-evt",
+   "count": 1,
+   "admitted": "2026-08-04"
+  },
+  "ddee339308a263eb": {
+   "first_campaign": "mc2",
+   "first_verdict": "TIMING",
+   "klass": null,
+   "tier": "unknown",
+   "waits_class": "recapture-evt",
+   "count": 1,
+   "admitted": "2026-08-04"
+  },
+  "de08991467c64c39": {
+   "first_campaign": "mc1",
+   "first_verdict": "TIMING",
+   "klass": null,
+   "tier": "unknown",
+   "waits_class": "recapture-evt",
+   "count": 1,
+   "admitted": "2026-08-04"
+  },
+  "de7d35ca4bf38adf": {
+   "first_campaign": "mc2",
+   "first_verdict": "TIMING",
+   "klass": null,
+   "tier": "unknown",
+   "waits_class": "recapture-evt",
+   "count": 1,
+   "admitted": "2026-08-04"
+  },
+  "e02a003bffe08cbf": {
+   "first_campaign": "mc2",
+   "first_verdict": "TIMING",
+   "klass": null,
+   "tier": "unknown",
+   "waits_class": "recapture-evt",
+   "count": 1,
+   "admitted": "2026-08-04"
+  },
+  "e331f547a9f090c3": {
+   "first_campaign": "mc2",
+   "first_verdict": "TIMING",
+   "klass": null,
+   "tier": "unknown",
+   "waits_class": "recapture-evt",
+   "count": 1,
+   "admitted": "2026-08-04"
+  },
+  "e376d393cc8d92e0": {
+   "first_campaign": "mc2",
+   "first_verdict": "TIMING",
+   "klass": null,
+   "tier": "unknown",
+   "waits_class": "recapture-evt",
+   "count": 1,
+   "admitted": "2026-08-04"
+  },
+  "e4dce116beca16b4": {
+   "first_campaign": "mc2",
+   "first_verdict": "TIMING",
+   "klass": null,
+   "tier": "unknown",
+   "waits_class": "recapture-evt",
+   "count": 1,
+   "admitted": "2026-08-04"
+  },
+  "e5f0d814e2dfb8d9": {
+   "first_campaign": "mc2",
+   "first_verdict": "TIMING",
+   "klass": null,
+   "tier": "unknown",
+   "waits_class": "recapture-evt",
+   "count": 1,
+   "admitted": "2026-08-04"
+  },
+  "e70b349ccc4e7eff": {
+   "first_campaign": "mc1",
+   "first_verdict": "TIMING",
+   "klass": null,
+   "tier": "unknown",
+   "waits_class": "recapture-evt",
+   "count": 1,
+   "admitted": "2026-08-04"
+  },
+  "e7a936261b23c56e": {
+   "first_campaign": "mc1",
+   "first_verdict": "TIMING",
+   "klass": null,
+   "tier": "unknown",
+   "waits_class": "recapture-evt",
+   "count": 1,
+   "admitted": "2026-08-04"
+  },
+  "e801bc7fd4273e43": {
+   "first_campaign": "mc1",
+   "first_verdict": "TIMING",
+   "klass": null,
+   "tier": "unknown",
+   "waits_class": "recapture-evt",
+   "count": 1,
+   "admitted": "2026-08-04"
+  },
+  "e8a2e782e9c67bd2": {
+   "first_campaign": "mc1",
+   "first_verdict": "TIMING",
+   "klass": null,
+   "tier": "unknown",
+   "waits_class": "recapture-evt",
+   "count": 2,
+   "admitted": "2026-08-04"
+  },
+  "e8d12760789eb432": {
+   "first_campaign": "mc1",
+   "first_verdict": "TIMING",
+   "klass": null,
+   "tier": "unknown",
+   "waits_class": "recapture-evt",
+   "count": 1,
+   "admitted": "2026-08-04"
+  },
+  "ee8953d51006e2a9": {
+   "first_campaign": "mc2",
+   "first_verdict": "TIMING",
+   "klass": null,
+   "tier": "unknown",
+   "waits_class": "recapture-evt",
+   "count": 2,
+   "admitted": "2026-08-04"
+  },
+  "ee8ecf9d51a33400": {
+   "first_campaign": "mc2",
+   "first_verdict": "TIMING",
+   "klass": null,
+   "tier": "unknown",
+   "waits_class": "recapture-evt",
+   "count": 2,
+   "admitted": "2026-08-04"
+  },
+  "f057ccb968f9f1e6": {
+   "first_campaign": "mc1",
+   "first_verdict": "TIMING",
+   "klass": null,
+   "tier": "unknown",
+   "waits_class": "recapture-evt",
+   "count": 1,
+   "admitted": "2026-08-04"
+  },
+  "f3e88380b7834574": {
+   "first_campaign": "mc2",
+   "first_verdict": "TIMING",
+   "klass": null,
+   "tier": "unknown",
+   "waits_class": "recapture-evt",
+   "count": 1,
+   "admitted": "2026-08-04"
+  },
+  "f4a0b6695ccf60cb": {
+   "first_campaign": "mc2",
+   "first_verdict": "TIMING",
+   "klass": null,
+   "tier": "unknown",
+   "waits_class": "recapture-evt",
+   "count": 1,
+   "admitted": "2026-08-04"
+  },
+  "f70f8b75a60f2775": {
+   "first_campaign": "mc1",
+   "first_verdict": "TIMING",
+   "klass": null,
+   "tier": "unknown",
+   "waits_class": "recapture-evt",
+   "count": 1,
+   "admitted": "2026-08-04"
+  },
+  "f88bf7e1dae84201": {
+   "first_campaign": "mc1",
+   "first_verdict": "TIMING",
+   "klass": null,
+   "tier": "unknown",
+   "waits_class": "recapture-evt",
+   "count": 1,
+   "admitted": "2026-08-04"
+  },
+  "f9e91015120a36e9": {
+   "first_campaign": "mc2",
+   "first_verdict": "TIMING",
+   "klass": null,
+   "tier": "unknown",
+   "waits_class": "recapture-evt",
+   "count": 1,
+   "admitted": "2026-08-04"
+  },
+  "fb4d8674534f8da2": {
+   "first_campaign": "mc2",
+   "first_verdict": "TIMING",
+   "klass": null,
+   "tier": "unknown",
+   "waits_class": "recapture-evt",
+   "count": 1,
+   "admitted": "2026-08-04"
+  },
+  "fc0039ebb452a5b1": {
+   "first_campaign": "mc2",
+   "first_verdict": "TIMING",
+   "klass": null,
+   "tier": "unknown",
+   "waits_class": "recapture-evt",
+   "count": 1,
+   "admitted": "2026-08-04"
+  },
+  "fc6f5638a26fb8da": {
+   "first_campaign": "mc2",
+   "first_verdict": "TIMING",
+   "klass": null,
+   "tier": "unknown",
+   "waits_class": "recapture-evt",
+   "count": 1,
+   "admitted": "2026-08-04"
+  },
+  "fd0e7f4cc973f5fb": {
+   "first_campaign": "mc2",
+   "first_verdict": "TIMING",
+   "klass": null,
+   "tier": "unknown",
+   "waits_class": "recapture-evt",
+   "count": 2,
+   "admitted": "2026-08-04"
+  },
+  "fdcf7aa29b2a20f2": {
+   "first_campaign": "mc1",
+   "first_verdict": "TIMING",
+   "klass": null,
+   "tier": "unknown",
+   "waits_class": "recapture-evt",
+   "count": 1,
+   "admitted": "2026-08-04"
   }
  },
  "legacy_baseline": {
@@ -99552,5 +100812,162 @@
     "hw_ab": true
    }
   ]
- }
+ },
+ "admissions": [
+  {
+   "date": "2026-08-04",
+   "by": "session SM3, item 0",
+   "why": "INV-1 re-capture (SM2, 2026-08-04): the 760 EVT seeds whose banked evt.hold of 300 the 8-bit rig truncated to 44 were re-captured on FLASH #4 at a TRUE 300-clock hold.  372 of them moved FUNCTIONAL -> TIMING, and a seed that was never TIMING never had a TIMING signature in this ledger -- so these signatures are novel to the REGISTER and not to the machine.  They are the first observations of the part entering its interrupt handler 2-5 times under a level it was never physically given before.",
+   "seeds": 166,
+   "signatures": 140,
+   "control": "every admitted signature is reachable ONLY from a seed carrying a `recapture` block with evt.hold == 300 and evt.hold_bits == 12; 0 from any other banked seed (sw/sm3_sigctl.py, full 3,242-seed replay)",
+   "gate_before": "check_fuzz_bank --strict FAIL, new-sig TIMING 166",
+   "gate_after": "check_fuzz_bank --strict expected rc=0",
+   "ledger_before": 11705,
+   "ledger_after": 11845,
+   "recorded": "2026-08-04T17:11:32Z",
+   "sigs": [
+    "06860a92518e4fb1",
+    "06e2b43ad85090cb",
+    "08d2e349534cd801",
+    "09ee3120d4b2f0d2",
+    "0a8519baeb336d09",
+    "0ee756790595c2f8",
+    "0f20f8ec7b8e6b63",
+    "121c456932496ad4",
+    "128981fe3b603309",
+    "14925312c2817d34",
+    "149e52247fd73030",
+    "1c0c81f63ae42533",
+    "1dc51a5190864ab6",
+    "1df0de680c5efdbd",
+    "1eba4ab657ddbe31",
+    "1fed07ad5b485155",
+    "208165fe19df496e",
+    "25ea6ad037dbac5f",
+    "261afd5816ae5abb",
+    "26b2b86b4af14c52",
+    "2884cd9617bb8c02",
+    "28f9893ae1e8efbd",
+    "2c0821b378c7350e",
+    "2ff88b1a9ff0ef24",
+    "316cbbe265158de3",
+    "3316fb03281e2e46",
+    "35f3bb60f93d78cd",
+    "377cabea70d7e268",
+    "37b19473ca77c9c2",
+    "384beaebf496aea5",
+    "38c52ce108a5aa47",
+    "3c35c21799dbb0e1",
+    "3d0e55459d6fc137",
+    "3d7bdddf6bebd0ca",
+    "43952d8e00da22f9",
+    "454fdd5db566dc13",
+    "46c3e0e917052b7d",
+    "4888d673053f4a65",
+    "4df992f43e0ac352",
+    "4f19600b5fedea3c",
+    "4f595ede40d7c3af",
+    "4f7eb97bdd506b9b",
+    "545403624037befc",
+    "55091c9df3ee4b33",
+    "59c1e0e9d6636ec2",
+    "5a9c57e6a072b6cd",
+    "5cabe94f7f6b6f4b",
+    "63bc431c4b517914",
+    "63ed6fb4edbbf0aa",
+    "6538b06e592a6949",
+    "65d9d9cb755012c9",
+    "65da8eb7643dd491",
+    "6b650094edc84235",
+    "6d5504f210cf4a3b",
+    "6ef0f92c3dd55d4a",
+    "6fe6e604dbc60f72",
+    "710ae653cc979f9f",
+    "71db0c3cb5d27bf7",
+    "72bdfbaf51097996",
+    "7396755f1c94549c",
+    "7443f8998320e447",
+    "7cb7804e46d61be9",
+    "7e99d42d1c100f3f",
+    "7f7848fcf00650e1",
+    "80c912de51999125",
+    "82d6f8ee4243018f",
+    "848ec13748b2168b",
+    "87e8e21a725e654f",
+    "8a5ffbbb5ff1c3d1",
+    "8a9c6bd752fd9602",
+    "8bcc8d316458dca8",
+    "8c18dcb96563c930",
+    "92f17afd9a4296a7",
+    "93175e86758db6e5",
+    "942783c9a15d1a92",
+    "9599c947de4d9cd0",
+    "98d81292a4e047d5",
+    "9b789569ced9b450",
+    "9dee17edec528300",
+    "a0b039ff0c757174",
+    "a109ceca818ef0e1",
+    "a1a7975745883e34",
+    "a332e4006ee699a0",
+    "a3ad9959f0adc6e3",
+    "a47eb6e2cf25ce44",
+    "a515df201d272626",
+    "aa1fed636ad5a5ff",
+    "ac0fc0707b757fb9",
+    "adc3a63e1e9a78f0",
+    "b1b71afe2fa25b0d",
+    "b1f35e782ef8999d",
+    "b4216e3e1de2f068",
+    "b68860b9178d8c4b",
+    "ba51be1fe5e65462",
+    "be27e8216f6ffce6",
+    "be36f48db0c6a2ea",
+    "be5d2ba403357ff9",
+    "bff2a8715b26c632",
+    "cb64f2e0247e7171",
+    "cbe04a551c1338e3",
+    "ced17246b473b892",
+    "cf287d611cfde234",
+    "d32e341a7a9c6089",
+    "d3add8b551566917",
+    "d436183ae9cd46f9",
+    "d4d8f41c2a0925bd",
+    "d576f5eb7e537c35",
+    "d7698101d7265e92",
+    "d905eacf172baa3b",
+    "d9b570e4ff9f7110",
+    "da79c3396b95bc6e",
+    "dab916079f4f9ff1",
+    "dc63624f90b09a4c",
+    "ddcb5a28b51aa5ba",
+    "ddee339308a263eb",
+    "de08991467c64c39",
+    "de7d35ca4bf38adf",
+    "e02a003bffe08cbf",
+    "e331f547a9f090c3",
+    "e376d393cc8d92e0",
+    "e4dce116beca16b4",
+    "e5f0d814e2dfb8d9",
+    "e70b349ccc4e7eff",
+    "e7a936261b23c56e",
+    "e801bc7fd4273e43",
+    "e8a2e782e9c67bd2",
+    "e8d12760789eb432",
+    "ee8953d51006e2a9",
+    "ee8ecf9d51a33400",
+    "f057ccb968f9f1e6",
+    "f3e88380b7834574",
+    "f4a0b6695ccf60cb",
+    "f70f8b75a60f2775",
+    "f88bf7e1dae84201",
+    "f9e91015120a36e9",
+    "fb4d8674534f8da2",
+    "fc0039ebb452a5b1",
+    "fc6f5638a26fb8da",
+    "fd0e7f4cc973f5fb",
+    "fdcf7aa29b2a20f2"
+   ]
+  }
+ ]
 }

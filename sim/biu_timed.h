@@ -261,6 +261,16 @@ public:
     // completed and its data handed over (eu_done = T4 + 1 at zero waits).
     void wait_read();
     void wait_next_read(int extra);
+    // I1 / F39 -- THE FLAG REGISTER IS FED BY THE DATA LATCH, NOT BY THE ROW.
+    // A micro-row's destination write-enable is a LEVEL for as long as the row
+    // STANDS.  While an `OPR -> FLAGS ... F` row is blocked on its interlock
+    // its destination is already selected, so the PSW takes the word on the
+    // clock the AD input latch CLOSES -- the T3/Tw -> T4 advance of the read it
+    // is waiting for -- and not when the row finally releases.  The EU arms
+    // this before it blocks and disarms it after; the BIU is the only thing
+    // that knows when that edge is.  (The RTL publishes the same edge as
+    // `eu_rd_edge`.)  Non-null = armed.
+    void arm_flags_latch(uint16_t* psw) { flags_latch_ = psw; }
     void wait_opr_free();
     void wait_bus();
     // The clock before the queue's next byte can be popped.  A pre-decode-
@@ -729,6 +739,7 @@ private:
     // misread as a post-write bus turnaround: 475 events carry that stated
     // signature and 398 of them were ALREADY exact (18.1).
     std::deque<long> rd_done_q_;   // completed reads' T4 + 1, in order
+    uint16_t* flags_latch_ = nullptr;   // I1 / F39, see arm_flags_latch()
     // ...and the WRITE side of the same register: how many stores have been
     // GIVEN their data and not yet handed it to the bus, plus the clock the
     // last of them frees OPR on.  A store that is only RESERVED (S5) does not

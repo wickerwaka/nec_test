@@ -855,7 +855,40 @@ bool CpuT<Bus>::run_micro(const MicroPc& entry) {
         // land in OPR (ledger, "F = bus interlock").  In TIMED mode the wait
         // is real -- and it covers the PRE-DECODE operand read too, which the
         // loader delivers straight into OPR without going through `rdq_`.
-        if (op.f) deliver_read(op.s1 == exec_detail::kSrcOpr);
+        if (op.f) {
+            // I1 / F39 -- THE FLAG REGISTER IS FED BY THE DATA LATCH, NOT BY
+            // THE ROW.  A micro-row's destination write-enable is a LEVEL for
+            // as long as the row STANDS: a row blocked on its `F` interlock
+            // has its control decoded and its destination selected, so a
+            // destination fed from the read latch takes the word when the
+            // LATCH CLOSES, not when the row releases.  Invisible for every
+            // other destination -- nothing runs between the row's arrival and
+            // its release -- but FLAGS is wired to the outside world twice
+            // over (S5 on the status pins and the IE gate of the recognition
+            // pipeline), so there the early load SHOWS, and silicon shows it:
+            // `interrupt_model.md`, "POP PSW consumes the popped image at its
+            // read's data edge (the new IE shows in the PS bits during the
+            // read's own T4)".
+            //
+            // The rule names no opcode.  It hits EXACTLY TWO ROM ROWS -- 007A
+            // (POP PSW) and 01EA (RETI), the only rows in the ROM carrying
+            // source OPR, destination FLAGS and the `F` interlock.  Five other
+            // rows write FLAGS and none takes OPR through an `F`; E1 measured
+            // that same pair on silicon (108/108 H-IDENTICAL).
+            //
+            // The word is already known: `rdq_` is filled at ISSUE time (the
+            // functional read runs eagerly), so this is a re-ordering of the
+            // COMMIT and not a new value.  `wr_dst1`'s FLAGS arm below writes
+            // the identical word again when the row retires.
+            //
+            // *Falsifier*: any `OPR -> FLAGS` row whose flag write is NOT
+            // visible at its read's T4, or any third ROM row acquiring that
+            // source/destination pair.
+            bool latch_flags = (op.s1 == exec_detail::kSrcOpr && op.d1 == 15);
+            if (latch_flags) biu_.arm_flags_latch(&m_.psw);
+            deliver_read(op.s1 == exec_detail::kSrcOpr);
+            if (latch_flags) biu_.arm_flags_latch(nullptr);
+        }
 
         // SIGMA and the flag outputs are read from the LATCHED operation
         // evaluated on the tmps as they stand at the START of the row.

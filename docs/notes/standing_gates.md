@@ -81,7 +81,12 @@ passes and must not be quoted as any):
 | the b2 tranche | 171/188 — V5, REGISTERED FAILURE | `ucore_provenance.md` §44.2 |
 
 The complete, itemised list of what is **not** yet functional or timing-accurate
-is `docs/notes/ucore_gaps_2026-08-04.md`.
+is `docs/notes/ucore_gaps_2026-08-04.md`, and **the measured census of what is
+left against silicon — family × population, the shared/only partitions and the
+ranked mechanism hypotheses — is `docs/notes/sm3_residue_census_2026-08-04.md`
+(SM3, 2026-08-04).**  Read the census before planning work on the residue: its
+**H1** accounts for 445 of the ucore's 540 EVT seeds and 491 of the model's 645,
+437 of them the same seed, in ONE mechanism.
 
 ### BOARD PROBES — NOT GATES, BUT THEY MUST STILL RUN
 
@@ -123,7 +128,7 @@ no ucore counterpart.
 | ea_step_lint | `python3 sw/ea_step_lint.py` | every operand EA step wraps via `ea_step2` (F4a) | greps `rtl/core/v30_eu.sv` |
 | check_mod3_illegal | `python3 sw/check_mod3_illegal.py` | LEA mod=11 executes chip-exact (task #30) | `check_seq.BIN` |
 | check_enter_nesting | `python3 sw/check_enter_nesting.py` | ENTER walk == chip: MASK tranche + WAITED tranche (task #31, both ENTER bugs) | `check_seq.BIN`; **takes NO arguments** — unknown flags are silently ignored |
-| check_fuzz_bank | `python3 sw/check_fuzz_bank.py [--strict]` | the 3,242-seed banked corpus round-trips: regenerate → TB replay → re-classify, verdicts stable (task #29 phase 6).  **Re-run 2026-08-04 over the corpus INV-1's re-capture re-based: `PASS \| 3242 seeds \| stable 3242 improved 0 worse 0 \| gen_drift 0 \| float-floor 0 \| new-sig TIMING 166`.  `--strict` now FAILS on that last figure** — all **166** are on re-captured seeds (140 distinct signatures) and **0** on any seed SM2 did not touch, because 372 of the 760 moved `FUNCTIONAL → TIMING` and a seed that was never TIMING never had a TIMING signature in the novelty ledger.  **The ledger was NOT edited**: admitting 140 signatures to a novelty register to turn a warning green is a decision about what "novel" means for every future campaign, and it is routed as one (`ucore_provenance.md` §59.7.13) | `check_seq.BIN` |
+| check_fuzz_bank | `python3 sw/check_fuzz_bank.py [--strict]` | the 3,242-seed banked corpus round-trips: regenerate → TB replay → re-classify, verdicts stable (task #29 phase 6).  **Re-run 2026-08-04 over the corpus INV-1's re-capture re-based: `PASS \| 3242 seeds \| stable 3242 improved 0 worse 0 \| gen_drift 0 \| float-floor 0 \| new-sig TIMING 166`.**  `--strict` FAILED on that last figure at SM2; the 140 distinct signatures were **ADMITTED at SM3** (`sw/sm3_sig_admit.py`, `sig_ledger.json`'s new `admissions` key, `sigs` 11,705 → 11,845, 0 pre-existing entries touched) after an independent full-bank control (`sw/sm3_sigctl.py`) re-derived **166 / 166 on true-300 / 12-bit re-captured seeds and 0 on any other**.  **`--strict` now exits 0.**  `ucore_provenance.md` §59.7.13 (the decision) and §60.1 (the control and the admission).  **NOTE, SM3**: `hdl/tb/obj_dir/Vtb_v30_core` — the binary this gate binds to — was found **STALE** (built before `5c5fdbf50a` changed `tb_v30_core.sv`), because `check_seq` never calls `check_core.build()`.  Rebuilt; the control reproduces SM2's figures exactly on the new binary, so nothing was scored wrong — but **rebuild the FSM TB before quoting this gate** until that plumbing is fixed | `check_seq.BIN` |
 | ss_lint, FSM leg | `python3 sw/ss_lint.py --core fsm` | the archived core's save-state map is consistent (203 addresses, 181 flops, 0 UNMAPPED) | `--core fsm` |
 | the full FSM sweep | `sw/t30_sweep.sh` | the RR-era pre-reflash bar: the lints + gates + every golden suite, **explicitly `--core fsm` on every leg since 2026-08-04** | pinned |
 
