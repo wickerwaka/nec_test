@@ -6651,3 +6651,138 @@ floor; or a `clipopf`-shaped cell that acknowledges and pays it.
   family does not shrink"*, and the census must be re-taken against the ucore
   after the RTL leg, not against the model now.
 * **The `clipopf` question was left open** (§61.3), not explained.
+
+## §62 SESSION SM3, SITTING 3 — H1 IN THE `ucore`: PRE-REGISTRATION
+
+**Written and COMMITTED BEFORE the RTL was touched and before any scoring run.**
+Branch `ucsim`, from `56e54dba10`.  **Offline only** — banked captures,
+Verilator and the C++ model.  No board contact.
+
+> **Standing principle, applied throughout.**  *"This is 80's era hardware,
+> they aren't wasting silicon on anything that isn't necessary.  Complex or
+> confusing behavior that we see is likely to be simple systems interacting in
+> ways you do not fully understand yet."*
+
+Companions: §61 (the `sim/` landing and the directed board cell),
+`sm3_h1_prereg_2026-08-04.md` (the socket measurement and the cell's own
+pre-registration), `sm3_residue_census_2026-08-04.md` §5.1/§5.2.
+
+### §62.1 THE BEFORE FIGURES, RE-MEASURED ON THIS TREE (not cited)
+
+`timed_fuzz --core ucore --evt-replay`, 3,242 seeds, 2,710 scored:
+
+| column | before |
+|---|---|
+| REGISTERED | **1,483 / 1,702** |
+| EVT | **468 / 1,008** |
+| COMBINED | **1,951 / 2,710** |
+
+`sm3_ackcmp --core ucore`, 3,070 chip acknowledges, 2,759 paired.  The
+**RE-ENTRY** table's `L = 4` row — the whole of the H1 population:
+
+| chip prev fetch | chip gap | ucore, before | n |
+|---|---|---|---|
+| `L = 4` | 6 | **gap 4, from an INSERTED prefetch** | **1,117 / 1,289** |
+| `L = 4` | 6 | gap 6 (already right) | 91 |
+| `L = 5` | 6 | gap 6 | 333 / 363 |
+| `L = 6` | 7 | gap 7 | 157 / 169 |
+| `L = 7..19` | L+1 | L+1, exact | — |
+
+The FIRST (wake) table's `L = 4` row is **290 / 310 at gap 4** and must STAY
+at gap 4: §61.3's cell says the first acknowledge pays no floor.
+
+### §62.2 WHAT IS BEING LANDED — the same one register, edge for edge
+
+The `sim/` mechanism (§61.4) transliterated into `hdl/rtl/ucore/`, with the
+model as the SPEC per the ucore README.  The five edges and where each one
+goes:
+
+| the model's edge | `sim/biu_timed.cpp` | the RTL |
+|---|---|---|
+| an INTA cycle ARMS | `inta_read()`: `bnd_pending_ = true` | `v30u_biu.sv` step (b), the `eu_post` arm, on `eu_bs == BS_INTA` |
+| a flush while armed ARMS THE STAMP | `flush()`: `if (bnd_pending_) { bnd_arm_ = true; bnd_floor_ = -1; }` | step (b), inside `if (q_flush)` |
+| the restarted prefetch's GRANT STAMPS the floor at that fetch's index 2 | `commit_fetch()`: `bnd_floor_ = cmt_t1_ + 2` | step (d), the fetch-grant arm, and the T1-open block in step (e) starts a bounded 2-clock counter (the RTL cannot predict `cmt_t1_`; it uses the T1 the announcement actually opens) |
+| a pop SPENDS it | `pop()`: `bnd_floor_ = -1` | step (b), the `pop_l` arm |
+| the recognition boundary READS it, SUSPENDS the prefetcher and CLEARS the arm | `boundary_no_pop()` | `bnd_hold` (a REGISTERED-view BIU output) gates `irq_take` in `v30u_eu.sv`; `eu_bnd_take` / `eu_bnd_post` carry the clear and the SUSP back |
+
+**No new constant.**  Index 2 is `pf_arm_`'s existing instant and at w0 it IS
+the completion eval (M2r).  The two bounded claims of §61.4 travel unchanged:
+the floor is NOT read by the ordinary retire, and NOT by the REP mid-string
+withdrawal (`eu_bnd_post = !intr_pending`).
+
+**THE ONE PLACE THE RTL CANNOT BE LITERAL, STATED BEFORE THE RUN.**  The model
+stamps an ABSOLUTE clock at the grant from its own prediction `cmt_t1_`; the
+RTL has no wait counter and cannot predict a T1, so it marks the announcement
+and starts the counter when that announcement's T1 actually opens.  The two
+agree on every announcement that opens the T1 it was granted for, and differ
+only for an announcement WITHDRAWN before its T1 (M22 expiry / F2's
+`ann_kill`), where the model keeps a floor at a clock that never happened.  In
+the RTL the mark goes with the withdrawn announcement, which is why
+`ulockstep` is the bring-up instrument and not a formality.
+
+### §62.3 THE BARS — registered before the run, reported as registered
+
+**MUST MOVE UP** (`timed_fuzz --core ucore --evt-replay`):
+
+| column | before | **registered bar** | point estimate |
+|---|---|---|---|
+| EVT | 468 / 1,008 | **>= 700 / 1,008** | ~845 |
+| COMBINED | 1,951 / 2,710 | **>= 2,183 / 2,710** | ~2,328 |
+
+*Where the bar comes from*: the census's ucore H1 class is **445 seeds**, so
+the arithmetic ceiling is 468 + 445 = **913**.  The `sim/` leg closed
+**417 of its own 491** H1 seeds (85 %); 85 % of 445 is 378, i.e. 846.  The bar
+is set well under that, at **700**, so that a partial closure is still reported
+as a partial closure and not as a failure.
+
+**MUST MOVE** (`sm3_ackcmp --core ucore`, the RE-ENTRY table): the `L = 4`
+row's **1,117 `gap 4` acknowledges drop to <= 100**, and the FIRST (wake)
+table's `L = 4` row **stays at 290 gap 4** (a first acknowledge that pays the
+floor is a REGISTERED FAILURE of this landing).
+
+**MUST NOT MOVE — the ucore's own ratchets**, itemised:
+
+| gate | registered |
+|---|---|
+| `timed_fuzz --core ucore` REGISTERED | **1,483 / 1,702** EXACTLY |
+| `ulockstep --golden all --cases 50` | **17,350 / 17,350** |
+| `check_core --opcodes all --cases 0` | **169,000 / 169,000** |
+| `check_core --suite-dir tests/v30/f4a_boundary` / `f0lock_tranche` | 160 / 160, 400 / 400 |
+| the 23 `v0.3` block-I/O forms | 229,999 / 229,999 |
+| `v0.1-w1` / `-w3` | 1,200 / 1,200 |
+| `v0.1-w1 --forms EB` | 200 |
+| the four `evt` cells | 200 / 1,200 / 200 / 1,200 |
+| `v0.1-w1evt-biased` | 1,200 |
+| `check_boot --core ucore` | 220 and 400 |
+| `check_ab_sim --core ucore` | MATCH over 187 rows |
+| `timed_wvec_gate --core ucore` | 88 / 88, +0.0 % |
+| `timed_enter_replay --core ucore` | 154 / 154 x5 |
+| `timed_ins_replay --core ucore --raw` | 1,312 / 1,312 and 2,624 / 2,624 |
+| `timed_fuzz --core ucore --seeddir .../b2-tranche/seeds` | **171 / 188** |
+| the four HLT sweeps (ucore) | **91/97, 90/95, 40/46, 38/45 = 259 / 283** |
+| `x1_retention.py` offline baseline / `X1_AD_RETENTION` | 143 / 283 and 259 / 283, 0 survivors |
+| `ss_lint.py` (default `--core ucore`) | exit 0, census 0 UNMAPPED |
+| `check_core --ce-div 4 --ce-hold-check` | `CE_HOLD_VIOL 0` |
+| `gen_ucore_qsf --check` | PASS |
+
+**SAVE-STATE.**  The mechanism adds architectural flops, so `SS_VERSION`
+**0x82 -> 0x83** and the BIU count moves with them, per the addressed-register-
+file precedent (append-only, never renumber).  `ss_lint` must exit 0 with **0
+UNMAPPED**, and the `--ss-sweep` modes must stay clean.
+
+**BOUNDED-COUNTER DISCIPLINE** (campaign risk #2).  The floor is carried as a
+2-bit relative counter with a synthesis bound assertion beside the module's
+existing ones, never as an absolute clock.
+
+### §62.4 THE FALSIFIERS FOR THIS LEG
+
+1. **`ulockstep --golden all --cases 50` is not 17,350 / 17,350.**  The two
+   engines are then not rendering the same mechanism, and per the work order
+   the landing STOPS and the divergence is booked with its attribution — it is
+   not papered over.
+2. A **FIRST** acknowledge that pays the floor (`sm3_ackcmp`'s wake table
+   moving off 290 gap-4).
+3. Any ucore ratchet in the table above moving DOWN.
+4. EVT below the 700 bar.
+
+Reported as registered, never restated.
