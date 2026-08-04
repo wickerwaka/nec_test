@@ -90,42 +90,55 @@ ratchets: monotone, never re-scored downward without a loud, itemized entry.)
   is 1,272) and `--seeddir …/b2-tranche/seeds` **171/188** (the sim is 154)
   — both RAISED by U4/F47 from 1,394 and 168, which were the U3 close's figures;
   the four HLT sweeps **90/97, 88/95, 37/46, 34/45** (below the model by 23
-  cells: 17 the TB cannot score + 6 diagnosed — §43).
+  cells: 6 diagnosed — §43 — and 17 that §43 called an instrument ceiling until
+  **U4 pass 3 REFUTED that in fabric**, §52.9: those cells are the ucore's).
   **`--rig-hold reg8`** exists because the rig's `evt_hold` register is 8 bits;
   it moves the SIM's EVT number too (+71), so it is OFF by default and the EVT
   ratchet is NOT re-registered against it (F46).
 - **`sw/ss_lint.py --core ucore` exits 0** (U4/F49). It was KNOWN-RED through
   U3 because five architectural flops were absent from the ucore's save-state
   map; they are mapped now, `SS_VERSION` **0x82** / `SS_COUNT` **218** /
-  `SS_TAG` **0x82DA**, census **223 flops, 0 UNMAPPED**. The `--core fsm` leg is
-  unchanged and still exits 0.
+  `SS_TAG` **0x82DA**, census **201 flops, 0 UNMAPPED** (it was 223 until U4
+  pass 3: the enable-form refactor made 22 of the 24 whitelisted per-edge
+  temporaries combinational BY DECLARATION, which is exactly the fix U3 booked
+  and could not take while the RTL was frozen — the MAP did not move). The
+  `--core fsm` leg is unchanged and still exits 0.
 - **U4 additions**: `sw/check_ab_sim.py --core {fsm,ucore}` — the core inside
   the REAL integration (system_large) vs the chip's own boot capture; both legs
   **MATCH over 187 rows**. (It had been unbuildable since 2026-07-13; three
   files had drifted out of its RTL list.) `sw/gen_ucore_qsf.py --check` gates
   that `hdl/nec_test_ucore.qsf` is a faithful derivative of `nec_test.qsf`, i.e.
   that the two A/B bitstreams differ by the CORE and nothing else.
-- **SYNTHESIS: THE FIT PASSES, THE TIMING DOES NOT (U4 pass 2, §51.6-51.7).**
-  §50's diagnosis is REFUTED: the microcode ROM read is 1,026 cells (3 % of the
-  EU), and the 32,534-cell blow-up was the 12×-UNROLLED CHAIN in `v30u_eu.sv`.
-  Folding the 24 provably position-0-only arms took the EU to **12,400 cells**
-  and the design fits at **29 % ALMs, 0 errors**, with a `.sof`
-  (`eaf8cd89f6…`). **But STA is RED: Fmax 13.99 MHz against a registered
-  ≥ 32 MHz, setup slack −40.233 ns.** A multicycle exception was tried and
-  measured and does NOT close it — `ce` is threaded through the EU's 61-level
-  cone to the FF's DATA input (no `ena` node), so Quartus did not extract the
-  clock enable and the registers are clocked every sys clock. The fix is the
-  ENABLE-FORM refactor (`always_comb` → `_n`, `always_ff if (ce)` commit), which
-  is U5's first item. **Nothing has been flashed**; the FSM bitstream on the
-  board is untouched (`nec_test.sof 1cc4bf55…`, `.rbf 2643d8ce…`).
-- **The §48.4 priority tranche is FROZEN** (200 fresh stratified `wrand` seeds,
-  manifest sha `92e3de08…`) with three of its four legs captured before any
-  flash: `vsim_ucore` **176/178 (98.9 %)**, `fsmcore` (the FLASHED FSM
-  bitstream, in fabric) 163/178, `vsim_fsm` 59/178. The ucore-in-fabric leg
-  needs a timing-clean bitstream. Two findings: a FRESH population is EASIER
-  than the adversarially-banked one (so V1's 85 % bar is soft), and the flashed
-  FSM bitstream agrees with HEAD's FSM RTL on only 62/178 — the A/B's FSM leg
-  must be rebuilt from the same HEAD.
+- **SYNTHESIS: G6 IS GREEN AND THE ucore HAS RUN IN SILICON (U4 pass 3, §52).**
+  The ENABLE-FORM refactor put `ce` on the register enable ports, and a second
+  structural pass took `srst` out of the next-state cone as well (it launched
+  outside the core, so no multicycle could cover it — §52.2/52.3). Result:
+  **26 % ALMs (11,078/41,910), Fmax 45.56 MHz against a registered ≥ 32 MHz,
+  worst setup +8.922 ns and TNS 0.000 on EVERY clock domain**, 0 errors, 0
+  latches, 0 `lpm_divide`. `nec_test.sdc` carries the 4/3 CE multicycle with its
+  falsifier written beside it. Bitstream `nec_test_ucore.sof cdf5edee00…`,
+  `.rbf 91697c83b3…`. **The whole sim ladder was re-scored THREE times across
+  the two structural passes with ZERO DELTAS**, plus `--ce-div 4
+  --ce-hold-check` = `CE_HOLD_VIOL 0` on all 347 forms.
+- **IN FABRIC (U4 pass 3, §52.5-52.8).** FLASH #1 + FLASH #2, both from HEAD,
+  both through `sw/safe_flash.sh` with its VERIFY leg; task #31's flash debt is
+  **DISCHARGED**. First light **800/800 on all three legs** (chip-vs-golden,
+  core-vs-chip, core-vs-golden). **The §48.4 priority tranche, all four legs:
+  the ucore in fabric is 176/178 (98.9 %) against 59/178 for the FSM core built
+  from the same HEAD — V0 through V5 ALL MET**, including V3 at ZERO seeds
+  apart. A second frozen 500-seed population scores **435/449 (96.9 %)** in
+  fabric with 0 errors in 1,000 captures. Scored pairwise, fabric and Verilator
+  are **identical on 200/200** for BOTH cores, which closes §51.8b: its 62/178
+  was entirely the stale 2026-07-30 bitstream.
+- **TWO FINDINGS OUT OF THE FABRIC LEGS.** (a) **F42 is REFUTED** — its
+  registered prediction was that the 17 uncountable HLT cells would PASS in
+  fabric; they fail, the sweeps score 29/283 there, and the socket control on
+  the identical driver reproduces the golden 49/49. The ucore drives the HALT
+  display's upper nibble differently from silicon (`0x0AD8A` where the golden
+  has `0x2AD8A`) and drops it a row early. (b) **the FROZEN FSM CORE HAS
+  REGRESSED 104 SEEDS** on the random-wait axis between the 2026-07-30 build
+  (163/178) and HEAD (59/178, in fabric and in Verilator alike). Not the
+  ucore's, and no standing gate sees it.
 - **`timed_fuzz` now prints `BOUND WARNINGS`** — seeds whose EU completed-read
   store SATURATED, i.e. ran outside the regime `sw/qdepth_probe.py` proves
   (`rdq_` ≤ 2, `rd_done_q_` ≤ 1 on v0.1 at w0 **and**, U4, on w1/w3 and all four

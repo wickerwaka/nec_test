@@ -7,12 +7,13 @@
    "bs": 2
   }
  },
- "vsim_ucore": {
-  "exact": 176,
+ "fsmhead": {
+  "exact": 59,
   "scored": 178,
   "excused": 22,
   "fam": {
-   "bs": 2
+   "bs": 83,
+   "qs": 36
   }
  },
  "fsmcore": {
@@ -31,6 +32,14 @@
   "fam": {
    "bs": 83,
    "qs": 36
+  }
+ },
+ "vsim_ucore": {
+  "exact": 176,
+  "scored": 178,
+  "excused": 22,
+  "fam": {
+   "bs": 2
   }
  }
 }
