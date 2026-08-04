@@ -7719,3 +7719,251 @@ landed.**
 * **H4 / H5 / H6 and the 8080 work were not opened.**
 * **The H7 opcode census was not taken** (§65.1) — it is a new hypothesis and
   needs its own pre-registration.
+
+## §66 SESSION SM3, SITTING 6 — H4 AND H5: THE PRE-REGISTRATION
+
+**2026-08-04, branch `ucsim`, from HEAD `dd73f4147c`.  OFFLINE ONLY — banked
+captures, Verilator and the C++ model.  NO BOARD CONTACT, and none is asked
+for.**  Targets: the last two unexamined items of §62.9's ranked list —
+**H4 (`DATA_SEQ`)** and **H5 (the 13 HLT sweep cells)**.
+
+> **Standing principle, applied throughout.**  *"This is 80's era hardware,
+> they aren't wasting silicon on anything that isn't necessary.  Complex or
+> confusing behavior that we see is likely to be simple systems interacting in
+> ways you do not fully understand yet."*
+
+**This section is written and COMMITTED BEFORE either change is built or
+scored.**  §64.1's standing rule is honoured throughout: every key below is
+either derived from silicon rows alone or validated on a population that was
+not used to select it.
+
+### §66.1 THE BEFORE FIGURES, RE-MEASURED ON THIS TREE (not cited)
+
+`timed_fuzz --evt-replay`, 3,242 seeds, 2,710 scored, both engines, fresh:
+
+| column | `ucore` | `sim` |
+|---|---|---|
+| REGISTERED | **1,483 / 1,702** | **1,272 / 1,702** |
+| EVT | **906 / 1,008** | **780 / 1,008** |
+| COMBINED | **2,389 / 2,710** | **2,052 / 2,710** |
+
+(§64.5's rule stands: the two columns are NOT a head-to-head on the EVT axis.
+Every partition below that compares the engines is taken on the **REGISTERED**
+column, which is the column where the comparison means what it looks like.)
+
+The four HLT delay sweeps, both legs, re-measured:
+`ucore` **91/97, 90/95, 40/46, 38/45 = 259/283**;
+`sim` **91/97, 95/95, 44/46, 42/45 = 272/283**.
+
+### §66.2 H4 — THE PARTITION, ON THE REGISTERED COLUMN
+
+`s15_census --core {ucore,sim} --pop all` against this sitting's own reports,
+`--core` matched to the report (R4's rule).  The ucore's family census
+reproduces §58.4 / the census §3 cell for cell (`PF_LOST` 129 · `DATA_SEQ` 55 ·
+`PF_GAINED` 46 · `SCHEDULE` 34 · `TAIL_EXTRA` 33 · `PF_ADDR` 12 · `PIN` 12,
+catch-all **0**).
+
+**`DATA_SEQ` on the REGISTERED column, partitioned seed by seed:**
+
+| | seeds |
+|---|---|
+| ucore `DATA_SEQ` | **41** |
+| sim `DATA_SEQ` | **28** |
+| **sim-ONLY** (the ucore is exact, the model is not) | **0** |
+| **ucore-ONLY** (the model is exact, the ucore is not) | **4** — `mc1/1937`, `mc1/3325`, `mc2/3291`, `t30-raw/84` |
+| shared, `DATA_SEQ` in BOTH engines | **28** |
+| shared, `DATA_SEQ` in the ucore and ANOTHER family in the model | **9** (`PF_LOST` 4 · `SCHEDULE` 3 · `TAIL_EXTRA` 2) |
+
+**So the census's *"41 against 28, the ucore is WORSE"* is 4 defects plus 9
+RELABELS, not 13 defects.**
+
+**PARTITION B's INVARIANT, and it is exception-free but for one seed:** on
+**27 of the 28** seeds that are `DATA_SEQ` in both engines the two engines'
+FIRST DIVERGING ROW is the SAME ROW INDEX with the SAME first-divergence
+detail, and `s15_census`'s slot coordinates (`at_cyc`, the chip cell and the
+engine cell) agree on **28 of 28**.  The one exception is `mc1/2241`.  *This is
+one shared defect seen from two sides, not two.*  Its shape is a wrong
+**ADDRESS** at a `MEMR` launch (27 of 28), not a wrong word — so **T8's
+load-side byte-swap signature does NOT generalise to `DATA_SEQ`**: only 9 of
+the ucore's 55 `DATA_SEQ` seeds have a `data` first-kind at all, and on the 4
+ucore-only ones `chip_word != swap8(ucore_word)` (checked; `9090`/`f896`,
+`0000`/`3f01`, `0480`/`0499`, `0000`/`8b39`).
+
+### §66.3 H4 — WHAT PARTITION A ACTUALLY IS: **A TESTBENCH DEFECT, NOT THE CORE**
+
+The four ucore-only `DATA_SEQ` seeds were read row by row against the chip and
+against the regenerated image (`ucsim_fuzz.regen`).  On all four the divergence
+is the DATA PHASE of a read whose T1 address both engines agree on, and:
+
+* the CHIP's word is what the seed's own image holds at that address;
+* the ucore's word is **nowhere in the 64 KB image** on 3 of 4;
+* on all four, an **`IOW` cycle earlier in the same run wrote that word to a
+  PORT whose number equals the memory address later read.**
+
+`hdl/tb/tb_v30_core.sv`'s memory commit is gated on
+`lat_write = lat_type == 3'b110 || lat_type == 3'b010` — **`3'b010` is `IOW`** —
+so **an I/O write stores into `mem[]`.**  The read side is not symmetric: `IOR`
+is served from `iord_ser` and `INTA` from `INT_VECTOR`, neither from `mem`.
+The socket harness does not do this (that is exactly why the chip reads the
+image), and `sim/` does not (it is exact on all four).
+
+**Chip-side census, engine-free** (chip rows only, over the 2,710 scored
+seeds): **37** seeds contain an `IOW` whose port number is later READ as
+memory.  The ucore is non-exact on **37 of 37**; the model is exact on **8** of
+them, and **7 of those 8 are REGISTERED seeds** — `mc1/412`, `mc1/1937`,
+`mc1/3325`, `mc2/2216`, `mc2/3291`, `t30-raw/84`, `t30-raw/123` — i.e.
+**seven of the NINE seeds `gaps` §T.2 calls "the ucore's OWN registered-bank
+residue".**  The remaining two are `mc1/721` (§49.8's `10`/ADC carry-in) and
+`mc2/584` (`qs F!=-`).
+
+**THE FIX (rig, one term).**  The memory commit is for MEMORY writes:
+`lat_write` keeps `3'b110` for the commit and drops `3'b010`.  Nothing else
+changes; `lat_write` is not used anywhere else that an IOW should reach.
+
+**THE BARS, REGISTERED BEFORE THE RUN.**
+
+* **P1 (the attribution)** — with the commit restricted to `MEMW`, **at least
+  6 of the 7** REGISTERED seeds above become **cycle-exact** in the ucore leg.
+  Point estimate **7 / 7**.  **Fewer than 5 ⇒ the attribution is REFUTED**, the
+  TB change is reverted and the finding is reported as a refutation.
+* **P2 (no golden depends on it)** — `check_core --core ucore --opcodes all
+  --cases 0` stays **169,000 / 169,000**; `f4a_boundary` **160/160**;
+  `f0lock_tranche` **400/400**; and the 23 `v0.3` block-I/O forms stay
+  **229,999 / 229,999** (`OUTM` is the one golden family that drives `IOW`, so
+  this is the load-bearing cell of P2).
+* **P3 (monotone)** — `timed_fuzz --core ucore` REGISTERED **>= 1,483**, EVT
+  **>= 906**, b2 tranche **>= 171 / 188**; the four HLT sweeps **unchanged** at
+  91/97, 90/95, 40/46, 38/45 (no `IOW` occurs in them).
+* **P4 (the model is untouched)** — `timed_fuzz --core sim` is **1,272 / 780 /
+  2,052 to the seed**: the model does not use this TB.
+* **P5 (the shared instrument)** — the TB is shared with the ARCHIVED FSM core
+  and with `check_fuzz_bank` through `check_seq.BIN`.  `check_core --core fsm
+  --opcodes all --cases 0` must stay at its corrected **168,400 / 169,000**, and
+  `check_fuzz_bank --strict` is re-run and **reported as measured**; if it
+  reports `new-sig TIMING > 0` that is a registered outcome to be reported, NOT
+  silently admitted (§60.1's admission is not re-opened here).
+
+*Falsifier*: any of the seven still non-exact with the SAME `data` detail after
+the change; or a golden cell that moves.
+
+**WHAT IS NOT CLAIMED.**  Partition B (the 28 shared) is NOT explained here.
+It is left as a partition with an invariant and a directed instrument
+(§66.6).
+
+### §66.4 H5 — THE 13 CELLS, SEPARATED CELL BY CELL
+
+Both legs re-measured per case (`check_core --core ucore --details 100` and a
+per-case run of `timed_gate`'s own scorer), by the `idx` FIELD, which is the
+pin delay `d` (§43.0's numbering trap):
+
+| sweep | ucore fails `idx` | model fails `idx` | ucore-ONLY |
+|---|---|---|---|
+| `s10-w0` `HLT.INT` | 2,3,4,5 | 2,3,4,5 | — |
+| `s10-w0` `HLT.RES` | 2,3 | 2,3 | — |
+| `s10-w1` `HLT.INT` | 7,8,9,10 | — | **7,8,9,10** |
+| `s10-w1` `HLT.RES` | 7 | — | **7** |
+| `s13-w2` `HLT.INT` | 9,10,11,12,13 | 10,11 | **9,12,13** |
+| `s13-w2` `HLT.RES` | 9 | — | **9** |
+| `s13-w3` `HLT.INT` | 11,12,13,14,15,16 | 12,13,14 | **11,15,16** |
+| `s13-w3` `HLT.RES` | 11 | — | **11** |
+
+**24 ucore / 11 model, the model's a strict subset, 13 ucore-only** — §T.1
+reproduced exactly.  Split by FIRST-DIVERGENCE COLUMN, per cell:
+
+| half | cells | which |
+|---|---|---|
+| **F43, the `busstat` half** | **6** | `HLT.INT` and `HLT.RES` at **`d = 2w + 5`** for w = 1, 2, 3 — i.e. w1 `d=7`, w2 `d=9`, w3 `d=11`, **one cell per form per wait level, exactly as F43 registered**.  All six: `busstat exp 'PASV' got 'HALT'`, the ucore drives the HALT display on a row where the golden never does. |
+| **the undiagnosed `seg`/`bus` half** | **7** | `HLT.INT` only: w1 `d=8,9,10`; w2 `d=12,13`; w3 `d=15,16`.  All at the TOP of each sweep's `d` band, immediately above the model's own failing band at w2/w3 (10,11 and 12,13,14).  Signature `seg exp 'CS' got 'SS'` with the composed bus differing by exactly `0x10000` — the S4:S3 segment indicator, `10` (CS) against `01` (SS). |
+
+6 + 7 = 13, no remainder, no catch-all.
+
+### §66.5 H5 — F43 RE-EXAMINED, AND WHY THE DECLINE NO LONGER HOLDS
+
+**The decline, quoted.**  §43 (U3): *"NOT LANDED, for a stated reason.  It
+touches the eval instant — the spine of the whole BIU — while `check_core
+--core ucore --opcodes all --cases 0` is at 169,000/169,000 and four
+whole-program ladders were being scored against this binary."*  Codex C7
+concurred: *"Diagnosis sound; not landing it is the right call"* — it *"touches
+the BIU display/eval spine"* and §43 had *"a diagnosis and a falsifier but no
+gate proof"*.  §54.3 (U5) declined again *"for §43's own stated reason (it
+touches the BIU's eval instant, the module's spine, at a closure)"*.
+
+**The reasoning was never about the mechanism.**  Both declines are scheduling
+arguments: *a closure is being scored against this binary, do not move the
+spine now.*  Neither says the mechanism is wrong; C7 endorsed it and only
+corrected its WORDING.  Three things have since changed:
+
+1. the campaign is no longer at a closure — this is the silicon-match phase,
+   whose governing directive is that *"a divergence from silicon is a work item
+   regardless of whether the model shares it"*;
+2. the comparator changed at U5 and **F51 landed in exactly this block**
+   (`v30u_biu.sv`'s HALT display), so the spine has already been moved once
+   under the current instrument, with a full re-score and zero deltas;
+3. §43's own worry — *"no gate proof"* — is answerable now: the sweeps are the
+   gate, they are banked, they score in under a second per leg, and the whole
+   ucore ladder re-runs offline.
+
+**So the decline is retired on its own terms, and the mechanism is landed.**
+
+**WHAT IS BEING LANDED — one tap, no new state, no new number.**  F43's
+sentence is *"the HALT-display decision must test the wake condition visible on
+its OWN decision edge."*  M20 threshold 1 says the display at clock `H` is
+suppressed when the wake decision `D` satisfies `D <= H`; `D = A + 3` is
+MEASURED at 100 % on all four `evt` cells.  The display's decision edge is the
+edge ending `H-1`, where `eu_unhalt` reads `int_p[2]` — the pin at `c-3` — and
+is therefore true only for `D <= H-1`.  The condition `D == H` is visible at
+that same edge one stage further down the SAME pipeline: `int_p[1]`, the pin at
+`c-2`.  This is the construction `v30u_eu.sv` already uses, verbatim, for the
+REP boundary: *"the two anchors the SPEC records are one clock apart … tap
+`c-3` and tap `c-2` … Nothing here is fitted: both taps are `edge - 4`."*
+
+```
+v30u_eu.sv    wire hlt_wake_disp = (st == S_HALTED) && !irq_nmi_lvl && int_p[1];
+              assign eu_unhalt_disp = hlt_wake_disp || unhalt_pend;
+v30_core.sv   one wire
+v30u_biu.sv   the display test at the S8/S9 block gains ONE TERM:
+                  if (halt_pending && !run && !cmt_valid && !set_noeval
+                      && !eu_unhalt_disp)
+```
+
+No flop is added, so **`SS_VERSION` stays `0x83` and `SS_COUNT` stays as
+mapped**; `ss_lint` must still exit 0 with 0 UNMAPPED.
+
+**THE BARS, REGISTERED BEFORE THE RUN.**
+
+* **Q1 (MUST MOVE UP)** — the four HLT sweeps: the **6 F43 cells close**, i.e.
+  `s10-w1` **>= 92/95**, `s13-w2` **>= 42/46**, `s13-w3` **>= 40/45**, total
+  **>= 265 / 283** against 259.  The point estimate is exactly **265**.
+* **Q2 (w0 IS ALLOWED TO MOVE, IN ONE DIRECTION ONLY)** — `s10-w0` is
+  **>= 91/97**.  `HLT.RES d=3` and `HLT.INT d=3` at w0 carry the SAME
+  `busstat exp 'PASV' got 'HALT'` signature and are MODEL-SHARED, so they may
+  close and take the ucore above the model at w0; they may **not** open.
+* **Q3 (the undiagnosed half must not move)** — the 7 `seg`-first cells stay
+  failing; if any of them closes, the two halves are not independent and that
+  is REPORTED, not absorbed.
+* **Q4 (MUST NOT MOVE)** — `check_core --core ucore --opcodes all --cases 0`
+  **169,000 / 169,000**; the four `evt` golden cells **200 / 1,200 / 200 /
+  1,200**; `v0.1-w1evt-biased` **1,200**; `v0.1-w1`/`-w3` **1,200 / 1,200**;
+  `EB` at w1 **200**; `check_boot --core ucore` **220 and 400**;
+  `ulockstep --golden all --cases 50` **17,350 / 17,350**;
+  `timed_wvec_gate --core ucore` **88/88, +0.0 %**;
+  `timed_enter_replay --core ucore` **154/154 x5**;
+  `timed_ins_replay --core ucore --raw` **1,312 / 1,312** and **2,624 / 2,624**;
+  `timed_fuzz --core ucore` REGISTERED / EVT / b2 **monotone, never down**;
+  `ss_lint` exit 0, 0 UNMAPPED; `check_core --ce-div 4 --ce-hold-check`
+  `CE_HOLD_VIOL 0`.
+* **Q5** — `x1_retention.py`'s offline baseline / `X1_AD_RETENTION` legs are
+  re-run and reported; they are the fabric-shaped scorer for these same cells.
+
+*Falsifiers*: `ulockstep` not 17,350 (the two engines are then not rendering the
+same mechanism, and the landing STOPS); any Q4 ratchet down; fewer than 6 F43
+cells closing; a `seg`-half cell closing.
+
+### §66.6 WHAT THIS SITTING WILL NOT DO
+
+* **No board contact**, and no cell is requested.
+* **Partition B (H4's 28 shared `DATA_SEQ` seeds) is not fixed.**  It is a
+  model-owned class and the session that measures it does not also land it.
+* **The 8080 / `gaps` §F.1 work is not opened** (a pending USER decision).
+* **`s15_census` is not modified**; no memory file is touched; Codex is not
+  launched.
