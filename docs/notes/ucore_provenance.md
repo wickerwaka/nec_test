@@ -8212,3 +8212,22 @@ tree; the rebuild above reconstructed one from
 flag set (plus `-Wno-MULTIDRIVEN -Wno-PINCONNECTEMPTY`, which `tb_sys.sv`'s AXI
 task-driven handshake needs).  It belongs in `x1_retention.build()` with a
 dependency check, and it is **not taken here**.
+
+### §67.8 THE POST-FIX `DATA_SEQ` CENSUS — H4's FAMILY, RE-TAKEN
+
+`s15_census --core ucore --pop reg` on this sitting's own post-landing report
+(`--core` matched to the report):
+
+```
+  212 non-exact REG seeds (was 219)
+  PF_LOST 106 · DATA_SEQ 36 · TAIL_EXTRA 29 · PF_GAINED 24 · PF_ADDR 8 ·
+  SCHEDULE 5 · PIN 4      catch-all 0
+```
+
+**`DATA_SEQ` on the REGISTERED column is 41 -> 36** against the model's 28, and
+**the ucore-only part of it is now ZERO** — the two remaining ucore-only REG
+seeds are `mc1/721` (`PIN`) and `mc2/584` (`PF_ADDR`), neither of them
+`DATA_SEQ`.  What is left of H4 is **§67.2's partition B and the relabels**:
+seeds the model misses too, on 27 of 28 of which the two engines' first
+divergence is byte-identical.  **H4 is no longer a place where the ucore is
+worse than the model in its own right.**
