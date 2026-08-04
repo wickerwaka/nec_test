@@ -86,8 +86,9 @@ ratchets: monotone, never re-scored downward without a loud, itemized entry.)
   `timed_wvec_gate.py --core ucore` **88/88, +0.0 %** (the FSM core is 71/88);
   `timed_enter_replay.py --core ucore` **154/154 x5**;
   `timed_ins_replay.py --core ucore --raw` **1,312/1,312** and **2,624/2,624**;
-  `timed_fuzz.py --core ucore --evt-replay` REGISTERED **1,394/1,702** (the sim
-  is 1,272) and `--seeddir …/b2-tranche/seeds` **168/188** (the sim is 154);
+  `timed_fuzz.py --core ucore --evt-replay` REGISTERED **1,483/1,702** (the sim
+  is 1,272) and `--seeddir …/b2-tranche/seeds` **171/188** (the sim is 154)
+  — both RAISED by U4/F47 from 1,394 and 168, which were the U3 close's figures;
   the four HLT sweeps **90/97, 88/95, 37/46, 34/45** (below the model by 23
   cells: 17 the TB cannot score + 6 diagnosed — §43).
   **`--rig-hold reg8`** exists because the rig's `evt_hold` register is 8 bits;
@@ -104,6 +105,15 @@ ratchets: monotone, never re-scored downward without a loud, itemized entry.)
   files had drifted out of its RTL list.) `sw/gen_ucore_qsf.py --check` gates
   that `hdl/nec_test_ucore.qsf` is a faithful derivative of `nec_test.qsf`, i.e.
   that the two A/B bitstreams differ by the CORE and nothing else.
+- **SYNTHESIS IS RED (U4/G6, §50)**: the ucore does NOT fit the 5CSEBA6.
+  `quartus_fit` fails with `Error (11802) Can't fit design in device` on ROUTING
+  CONGESTION at 67 % ALMs, because Quartus 17.1 will not put an
+  asynchronously-read array in an M10K (`Info (276007) … uninferred due to
+  asynchronous read logic`, for `ucrom` and ~37 `pla3_tables.svh` arrays). No
+  bitstream exists and nothing has been flashed; the FSM bitstream on the board
+  is untouched. The architecture's own registered fallback — a REGISTERED ROM
+  output with the F2 tap moved one stage — is now required, and it is a CADENCE
+  change, so the whole sim ladder must be re-run on it.
 - **`timed_fuzz` now prints `BOUND WARNINGS`** — seeds whose EU completed-read
   store SATURATED, i.e. ran outside the regime `sw/qdepth_probe.py` proves
   (`rdq_` ≤ 2, `rd_done_q_` ≤ 1 on v0.1 at w0 **and**, U4, on w1/w3 and all four
