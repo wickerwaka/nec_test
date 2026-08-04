@@ -48,8 +48,33 @@ Put this principle verbatim into every modeling subagent brief.
 
 ## Gate quick reference
 
-(current as of ucsim-t §26, the pre-RTL cleanup. Values are the standing
-ratchets: monotone, never re-scored downward without a loud, itemized entry.)
+**THE STANDING CORE IS `ucore` SINCE 2026-08-04.** The trace-fitted FSM core
+(`hdl/rtl/core/`) was **ARCHIVED** by user decision on that date —
+`docs/notes/fsm_core_archive_2026-08-04.md`, evidence in
+`ucore_campaign_verdict_2026-08-04.md` §(e) item 1. Nothing moved or was
+deleted; `--core fsm` still builds and runs. What changed:
+
+* `check_core.py`, `check_boot.py`, `check_ab_sim.py`, `ss_lint.py` and
+  `ss_flopcensus.py` now **default to `--core ucore`** (they defaulted to `fsm`).
+  The `timed_*` tools still default to `--core sim`, the C++ model.
+* The FSM-specific gates moved to an **"ARCHIVED — on demand"** section of
+  `docs/notes/standing_gates.md`: `check_race_law`, `check_ff_t4`,
+  `check_lc6_gate`, `prefix_clear_lint`, `ea_step_lint`, `check_mod3_illegal`,
+  `check_enter_nesting`, `check_fuzz_bank`, `ss_lint --core fsm`, and
+  `sw/t30_sweep.sh` (now `--core fsm` on every leg). They gate an archived
+  artifact; a green run of them says nothing about the ucore.
+* `docs/notes/standing_gates.md` is the authoritative list; **§D of it records
+  the default-flip audit** — every consumer of the old default was made
+  explicit rather than left to inherit the new one.
+* **What the ucore does NOT yet do is enumerated in
+  `docs/notes/ucore_gaps_2026-08-04.md`** — read that before assuming a gap is
+  unknown. Headlines: 8080/BRKEM is structurally unreachable while `sim/`
+  implements it; three of the four golden suites have never been run against the
+  ucore (and `v0.2` cannot be, `KeyError: 'opcodes'`); the ucore's own
+  registered-fuzz residue is **9 seeds** (210 of its 219 are model-shared).
+
+(The ratchets below are current as of ucsim-t §26 plus the ucore campaign U5.
+Values are monotone: never re-scored downward without a loud, itemized entry.)
 
 - **ROM/PLA**: `make -C sim test` (disasm byte-exact),
   `python3 sw/pla3_check.py` (21 checks).
@@ -77,9 +102,16 @@ ratchets: monotone, never re-scored downward without a loud, itemized entry.)
   **709/1,008**, COMBINED **1,981/2,710**),
   `sw/timed_fuzz.py --seeddir sw/testdata/t4/b2-tranche/seeds`
   (**154/188** — V5 is a standing REGISTERED FAILURE, not to be re-opened).
-- **The `ucore` RTL twin** (`--core ucore`, stage U3 close; these are the
-  ucore's OWN ratchets, not the model's — see `ucore_provenance.md` §44):
-  `check_core.py --core ucore --opcodes all --cases 0` **169,000/169,000**;
+- **The `ucore`** (now the DEFAULT `--core`; these are the ucore's OWN ratchets,
+  not the model's — see `ucore_provenance.md` §44 and §54.4):
+  `check_core.py --opcodes all --cases 0` **169,000/169,000**;
+  **`--suite-dir tests/v30/f4a_boundary` 160/160** and
+  **`--suite-dir tests/v30/f0lock_tranche` 400/400** (both first measured
+  against the ucore 2026-08-04, at the default flip; identical to the archived
+  core's); **the 23 `v0.3` block-I/O forms (6C-6F + REP/segment variants)
+  229,999/229,999 cycles AND arch** (2026-08-04, the ucore's first — this is
+  where INM/OUTM is gated, and `timed_ins_replay`'s 1,312/2,624 is the bit-field
+  INS `0F 31`/`0F 39`, not block I/O);
   `v0.1-w1`/`-w3` 1,200; `EB` 200; the four `evt` cells 200/1,200/200/1,200;
   `v0.1-w1evt-biased` 1,200; `check_boot.py --core ucore` 220 and 400;
   `ulockstep.py --golden all --cases 50` **17,350/17,350**;
@@ -105,8 +137,10 @@ ratchets: monotone, never re-scored downward without a loud, itemized entry.)
   `SS_TAG` **0x82DA**, census **201 flops, 0 UNMAPPED** (it was 223 until U4
   pass 3: the enable-form refactor made 22 of the 24 whitelisted per-edge
   temporaries combinational BY DECLARATION, which is exactly the fix U3 booked
-  and could not take while the RTL was frozen — the MAP did not move). The
-  `--core fsm` leg is unchanged and still exits 0.
+  and could not take while the RTL was frozen — the MAP did not move). It is now
+  the DEFAULT leg (`sw/ss_lint.py`, no flag). The `--core fsm` leg is unchanged,
+  still exits 0 (203 addresses, 181 flops, 0 UNMAPPED), and is now an on-demand
+  archived gate. The two maps are NOT stream-compatible.
 - **THE COMPARATOR CHANGED AT U5, AND IT MOVED THE FROZEN FSM CORE'S NUMBERS
   DOWN.  Read this before quoting any FSM RTL figure.**  `tb_v30_core.sv`'s
   composed-AD mask used to substitute the retained nibble for A19-16 across a
@@ -125,8 +159,10 @@ ratchets: monotone, never re-scored downward without a loud, itemized entry.)
   (they were 216/283, measured for the first time at U5).  **The defect predates
   the instrument change by every commit in the repo**; nothing was made worse,
   something was made visible.  It is a ONE-LINE fix in `v30_biu.sv`'s `ad_o` /
-  `ad_oe_ps` and it is deliberately NOT taken — see the disposition decision
-  routed to the user in `ucore_campaign_verdict_2026-08-04.md` §(e).
+  `ad_oe_ps` and it is deliberately NOT taken.  **THE DISPOSITION IS NOW TAKEN:
+  the FSM core is ARCHIVED** (2026-08-04) with this defect present and unfixed —
+  `docs/notes/fsm_core_archive_2026-08-04.md`.  Quote **168,400 / 169,000** and
+  **16 / 283**, with the comparator named, or do not quote it.
 - **U4 additions**: `sw/check_ab_sim.py --core {fsm,ucore}` — the core inside
   the REAL integration (system_large) vs the chip's own boot capture; both legs
   **MATCH over 187 rows**. (It had been unbuildable since 2026-07-13; three
@@ -188,11 +224,19 @@ ratchets: monotone, never re-scored downward without a loud, itemized entry.)
   `sw/s11_census.py`, `sw/s12_census.py` (`hltsweep`/`psw`/`regold`/`ackfam`),
   `sw/s14_census.py --band`, `sw/s14_dstar.py`, `sw/s15_census.py`
   (the fuzz-residue taxonomy and `--rmw`, the RMW population).
+  **`s15_census.py` REPLAYS THE C++ MODEL UNCONDITIONALLY** (`:169`,
+  `tf.run_sim`) — it has no `--core` and takes only the SEED LIST from
+  `--report`. Pointed at a `--core ucore` report it runs clean and reports the
+  MODEL's families for the ucore's seeds. There is no instrument that classifies
+  an RTL core's own fuzz residue by the seven families
+  (`ucore_gaps_2026-08-04.md` §R.4).
 - **Board discipline**: `s13_board.div_guard()` PINS the divider and asks the
   transport for the readback — an UNPINNED readback is a rig-integrity
   FINDING. Every board probe calls it. Socket only (`use_core=False`,
   explicit — the board's CFG is sticky).
-- NOTE: `sw/check_enter_nesting.py` is the VERILATOR/RTL leg only — it takes
-  NO arguments (unknown flags are silently ignored), so do not use it to gate
-  sim/ work. **General rule: verify a flag exists (`--help`) before trusting a
-  run that used it.**
+- NOTE: `sw/check_enter_nesting.py` is the VERILATOR/RTL leg only, and since
+  2026-08-04 it is an **ARCHIVED, on-demand** gate: it binds to the FSM core
+  through `check_seq.BIN` and takes NO arguments (unknown flags are silently
+  ignored), so do not use it to gate `sim/` work or ucore work. **General rule:
+  verify a flag exists (`--help`) before trusting a run that used it** — and
+  that it is not merely accepted-and-ignored.

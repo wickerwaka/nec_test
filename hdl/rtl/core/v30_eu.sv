@@ -1,4 +1,25 @@
 //============================================================================
+//  *** ARCHIVED 2026-08-04 - NOT MAINTAINED ***
+//
+//  Part of the TRACE-FITTED core (hdl/rtl/core/), superseded as the project's
+//  reference implementation by hdl/rtl/ucore/ (`--core ucore`, the default
+//  since 2026-08-04).  `--core fsm` still builds and runs; nothing moved.
+//
+//  This file is the "rail forest" the standing SIMPLICITY directive names: the
+//  class-5 unified law, race_law.svh's generated race table, the IRET race arm,
+//  two lpm_divide instances and per-opcode timing exceptions.  Every rail was a
+//  correct local fit to a real capture; the finding is that fitted rails do not
+//  generalise off the traces they were fitted to.  The mechanism-derived core
+//  has ZERO per-opcode timing exceptions and 0 lpm_divide, in 4,785 RTL lines
+//  against this core's 5,919.
+//
+//  KNOWN DEFECTS (core-wide, listed in full in v30_core.sv's banner):
+//  the wait-axis cadence deficit (59/178 in fabric, 18/1702 on the registered
+//  fuzz bank), the un-bisected 104-seed regression, and F51's HALT pad drive
+//  (which lives in v30_biu.sv).
+//
+//  ARCHIVE RECORD: docs/notes/fsm_core_archive_2026-08-04.md
+//============================================================================
 //
 //  v30_eu - V30 (uPD70116) execution unit, Campaign 3 opcode tranche
 //

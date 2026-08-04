@@ -620,7 +620,7 @@ pessimistic on the first half and correct on the second.
 
 | the goal, in its own words | the ucore |
 |---|---|
-| running in this same FPGA behind the same harness | **yes** — 26 % ALMs, Fmax 45.56 MHz, TNS 0.000 on every clock domain; two flashes from HEAD through `safe_flash.sh`; first light **800/800** on all three legs after a `use_core=0` chip-path proof |
+| running in this same FPGA behind the same harness | **yes** — **27 % ALMs, Fmax 48.03 MHz, worst setup +9.121 ns, TNS 0.000 on every clock domain** (the U5 build, §55.1; the U4 pass-3 build this supersedes was 26 % / 45.56 MHz / +8.922 ns); **THREE** flashes from HEAD through `safe_flash.sh`; first light **800/800** on all three legs after a `use_core=0` chip-path proof |
 | indistinguishable from the socketed chip, per-cycle bus/queue | **169,000 / 169,000** on v0.1 (cycles AND arch); `w1`/`w3`/`EB`/four `evt` cells/`w1evt-biased` all on the model's number; boot 220 and 400; wvec **88/88 at +0.0 %** |
 | across the FULL corpus | **not yet** — 1,483/1,702 on the registered fuzz bank, 171/188 on the b2 tranche, 259/283 on the HLT sweeps |
 | **on the axis this project ranks first (arbitrary waits)** | **176 / 178 IN FABRIC on fresh random-wait programs, against 59/178 for the hand-built core from the same HEAD**, with fabric ↔ Verilator identical on 200/200 for both |
@@ -668,3 +668,97 @@ pessimistic on the first half and correct on the second.
 **A reference implementation that can silently regress, and that carries a
 defect no gate can see, is the argument for the disposition decision — in both
 directions.  It is the user's call and this campaign does not take it.**
+
+---
+
+## Amendment (2026-08-04) — THE DISPOSITIONS TAKEN, AND THE HONEST GAP LIST
+
+The `ucore` campaign closed by routing three decisions to the campaign owner
+(verdict §(e)). **One is now taken.**
+
+### 1. The FSM core's disposition: **ARCHIVED**
+
+User decision, 2026-08-04. It is the third option the verdict named — *"keep the
+RTL, delete the claim"* — and the record is
+**`docs/notes/fsm_core_archive_2026-08-04.md`**.
+
+What that means, exactly:
+
+* **Nothing moved and nothing was deleted.** `hdl/rtl/core/` is where it always
+  was, `--core fsm` still builds and still runs, `hdl/files.qip` still describes
+  its Quartus build, and its last-from-HEAD bitstream sha
+  (`nec_test.sof a4533dfef0…`) is recorded. The A/B capability and the whole
+  history stay intact.
+* **The default flipped.** `check_core.py`, `check_boot.py`, `check_ab_sim.py`,
+  `ss_lint.py` and `ss_flopcensus.py` now default to `--core ucore`. Every
+  consumer of the old default was found and made EXPLICIT rather than left to
+  inherit the new one — most importantly `sw/t30_sweep.sh`, whose six
+  `check_core` legs would otherwise have silently changed meaning
+  (`docs/notes/standing_gates.md` §D).
+* **The FSM-specific gates became ARCHIVED / on-demand.** They gate an archived
+  artifact. `docs/notes/standing_gates.md` is now split into a standing set
+  (core-neutral + ucore) and an archived block.
+* **The claim was deleted, not the measurements.** Its 169,000/169,000 was real
+  on the comparator it was graded with for its whole life; on the corrected
+  comparator it is 168,400/169,000 and 16/283. Both numbers are the record and
+  the comparator must be named.
+
+**Why**, in four lines with the evidence behind each: 59/178 vs 176/178 in
+fabric on the axis this project ranks first, from the same HEAD; a 104-seed
+random-wait regression that **no standing gate observes** and that is not
+bisected; the F51 HALT pad-drive defect present and unfixed; and the rail forest
+(class-5 unified law, `race_law.svh`, the IRET arm, two `lpm_divide`) that the
+mechanism ledger superseded with zero per-opcode timing exceptions.
+
+**Still routed and still untaken**: the `evt_hold` widen / EVT re-banking, and
+whether **V1′** becomes the standing bar.
+
+### 2. The honest gap list — `docs/notes/ucore_gaps_2026-08-04.md`
+
+The complete enumeration of what the ucore is **not** yet doing, each item with
+its evidence pointer, its owner under the governance partition
+(ucore / model-shared / harness-NOT-ESTABLISHED / rig / coverage) and its
+specified closer. Measurement and enumeration only — no mechanism was proposed
+and no RTL was changed. What that exercise surfaced that the campaign had not:
+
+* **8080 / BRKEM is STRUCTURALLY UNREACHABLE in the ucore** — the loader never
+  selects `pla3_mode8080` and `ld_page_n` never emits pages 5/6 — **while
+  `sim/` implements it.** An undeclared RTL-vs-model gap that no gate can see;
+  in the fuzz bank it is covered by a standing acceptance rule that fires on 50
+  registered seeds for both engines.
+* **Three of the four golden suites have never been run against the ucore**, and
+  **`v0.2` cannot be run at all**: `check_core.py:709` reads a `metadata.json`
+  `opcodes` map that `v0.2`'s emitter schema does not carry (`KeyError`, either
+  core). That is a better explanation of the un-revisited U0 deferral than
+  "nobody got to it".
+* **INM/OUTM (6C-6F) was rendered but ungated — now MEASURED and GREEN**:
+  **229,999 / 229,999** cycles AND arch over all 23 `v0.3` block-I/O forms.
+  `f4a_boundary` **160/160** and `f0lock_tranche` **400/400** likewise measured
+  against the ucore for the first time.
+* **The ucore's own registered-fuzz residue is NINE seeds**, not 219: of its 219
+  non-exact seeds, **210 are seeds the model misses too** and 220 more are seeds
+  the ucore gets right and the model does not (net +211, which reproduces §49.6
+  and decomposes it). Eight of the nine are `data`-first — F47's shape. This
+  also corrects §49.8's *"residual TEN"*: `t30-raw/15` is model-shared.
+* **Three of the seven inherited families the ucore closed NOTHING in** —
+  `TAIL_EXTRA` 30, `DATA_SEQ` 28, `PF_GAINED` 23, the same seeds in both
+  engines. The +211 is carried entirely by `PF_LOST` (−129) and `SCHEDULE`
+  (−67).
+* **`s15_census.py` cannot classify an RTL core's residue** — it replays the C++
+  model unconditionally and has no `--core`. So there is no instrument that
+  gives an RTL core its own family census.
+* **The SIM does NOT carry F51's HALT defect** — verified two ways
+  (`note_halt` renders `data_ps(2)` explicitly; and the model's sweep numbers
+  did not move when the TB mask was removed, because the model never went
+  through that TB). No fix is owed to `sim/` on that axis. The one fix that IS
+  owed is still `9D`'s flag commit (F39 / §27.1).
+
+### 3. What remains the project's distance to "done"
+
+Unchanged in substance from the previous amendment, now with the sizes measured:
+the whole-program gap (**9** ucore-owned registered seeds + 17 b2-tranche seeds
++ 14 in-silicon seeds), **F43** and the 13-cell HLT deficit, the **116-cell
+fabric INTA class whose attribution is NOT ESTABLISHED** with its settling
+intervention pre-registered and unrun, the **8080 page**, the **three un-run
+golden suites**, and the FSM regression bisect that the archive disposition
+makes optional rather than owed.

@@ -1,4 +1,31 @@
 //============================================================================
+//  *** ARCHIVED 2026-08-04 - NOT MAINTAINED ***
+//
+//  This is the TRACE-FITTED core (campaigns 3-4).  It is superseded as the
+//  project's reference implementation by the MECHANISM-DERIVED core in
+//  hdl/rtl/ucore/ (`--core ucore`, which is the default since 2026-08-04).
+//  Nothing here was moved or deleted: `--core fsm` still builds and runs, and
+//  hdl/files.qip still describes this core's Quartus build.  What changed is
+//  the DEFAULT and the CLAIM, not the artifact.
+//
+//  KNOWN DEFECTS, PRESENT AND DELIBERATELY UNFIXED:
+//   1. 59/178 in fabric on fresh random-wait programs (the ucore is 176/178
+//      from the same HEAD); 71/88 on the wvec silicon freeze; 18/1702 on the
+//      registered fuzz bank.  The deficit is pure CADENCE on the wait axis.
+//   2. REGRESSED BY 104 SEEDS on the random-wait axis between the 2026-07-30
+//      build and HEAD, and NO STANDING GATE SEES IT (the ladder runs
+//      `check_core --core fsm` on four opcodes).  Not bisected.
+//   3. F51 - the HALT pseudo-cycle's upper nibble.  This core drives NOTHING
+//      on A19-16 across a HALT display and its T1, where the part drives a
+//      live PS (v30_biu.sv `ad_o` / `ad_oe_ps`).  A one-line fix, NOT taken.
+//      On the corrected comparator (the TB's composed-AD mask removed at U5)
+//      this core is 168,400/169,000 on v0.1 and 16/283 on the HLT sweeps.
+//      The defect predates the instrument change by every commit in the repo.
+//
+//  DO NOT quote this core's numbers without naming the comparator.
+//  ARCHIVE RECORD: docs/notes/fsm_core_archive_2026-08-04.md
+//  DISPOSITION EVIDENCE: docs/notes/ucore_campaign_verdict_2026-08-04.md
+//============================================================================
 //
 //  v30_core - cycle-accurate NEC V30 (uPD70116) CPU core, max mode
 //

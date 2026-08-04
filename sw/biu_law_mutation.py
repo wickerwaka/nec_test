@@ -93,7 +93,11 @@ def restore():
 
 
 def golden(suite, waits, cases):
-    r = sh([sys.executable, "sw/check_core.py", "--suite-dir", f"tests/v30/{suite}",
+    # --core fsm EXPLICIT: this tool mutates hdl/rtl/core/v30_biu.sv and
+    # race_law.svh (the ARCHIVED FSM core).  Pinned when check_core.py's
+    # default flipped fsm -> ucore, 2026-08-04.
+    r = sh([sys.executable, "sw/check_core.py", "--core", "fsm",
+            "--suite-dir", f"tests/v30/{suite}",
             "--opcodes", "all", "--cases", str(cases), "--waits", str(waits)])
     m = re.search(r"TOTAL:\s*(\d+)/(\d+)", r.stdout)
     if not m:

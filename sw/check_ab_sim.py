@@ -130,8 +130,10 @@ def load_real():
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("nrows", nargs="?", type=int, default=200)
-    ap.add_argument("--core", choices=("fsm", "ucore"), default="fsm",
-                    help="RTL engine inside system_large (default: fsm)")
+    ap.add_argument("--core", choices=("fsm", "ucore"), default="ucore",
+                    help="RTL engine inside system_large (default: ucore "
+                         "since 2026-08-04; 'fsm' is the ARCHIVED core, still "
+                         "invokable - docs/notes/fsm_core_archive_2026-08-04.md)")
     ap.add_argument("--build", action="store_true")
     ap.add_argument("--keep", action="store_true")
     a = ap.parse_args()

@@ -33,9 +33,13 @@ from decode_capture import decode  # noqa: E402
 
 ROOT = SW.parent
 # --core {fsm,ucore}: the two RTL engines are drop-in alternatives built into
-# separate obj_dirs by sw/check_core.py.  fsm is the default so the standing
-# boot gate is re-runnable unchanged.
-CORE = "fsm"
+# separate obj_dirs by sw/check_core.py.  `ucore` is the DEFAULT since
+# 2026-08-04 (the FSM core was ARCHIVED - see
+# docs/notes/fsm_core_archive_2026-08-04.md); `--core fsm` still runs the
+# archived leg.  NOTE there is no `choices=` validation on this hand-rolled
+# parser: an unknown name yields a nonexistent obj_dir_<name> and a clean
+# "missing binary" error, not a silent wrong-core run.
+CORE = "ucore"
 def _bin():
     d = "obj_dir" if CORE == "fsm" else f"obj_dir_{CORE}"
     return ROOT / "hdl" / "tb" / d / "Vtb_v30_core"

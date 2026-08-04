@@ -46,8 +46,13 @@ BIN = OBJ / "Vtb_v30_core"
 # --- engine selection (ucore campaign, stage U1) ---------------------------
 # The two cores are DROP-IN alternatives: same module name `v30_core`, same
 # port list, same package name `v30_ss_pkg`.  Only the RTL file list, the
-# include path, the obj_dir and one define change.  `fsm` is the default so
-# every FSM baseline gate is re-runnable unchanged.
+# include path, the obj_dir and one define change.
+#
+# `ucore` is the DEFAULT since 2026-08-04 (the FSM core was ARCHIVED - see
+# docs/notes/fsm_core_archive_2026-08-04.md).  `--core fsm` stays a first-class
+# leg and every FSM gate is re-runnable by passing it explicitly.  NOTE the
+# asymmetric obj_dir naming below is historical: fsm builds into the UNSUFFIXED
+# `obj_dir`, which nine other tools hardcode, so it was NOT renamed.
 CORE_DIR = {"fsm": ROOT / "hdl" / "rtl" / "core",
             "ucore": ROOT / "hdl" / "rtl" / "ucore"}
 CORE_RTL = {
@@ -75,6 +80,11 @@ def core_bin(core):
     return core_objdir(core) / "Vtb_v30_core"
 
 
+# Legacy module-level constants, both pinned to the FSM layout and both with NO
+# consumers anywhere in the tree (checked 2026-08-04): `BIN` above and `RTL`
+# here.  They are NOT routed through core_bin()/core_paths(), so anything that
+# starts using them would silently get the ARCHIVED core.  Use core_bin(core) /
+# core_paths(core).
 RTL = core_paths("fsm")
 
 REGS = ["ax", "cx", "dx", "bx", "sp", "bp", "si", "di",
@@ -103,7 +113,7 @@ DEFAULT_OPS = ["B8", "40", "48", "50", "58", "86", "87", "88", "89",
                "E6", "E7", "EE", "EF"]
 
 
-def build(force=False, core="fsm"):
+def build(force=False, core="ucore"):
     rtl = core_paths(core)
     obj = core_objdir(core)
     binp = core_bin(core)
@@ -554,9 +564,11 @@ def check_case(c, sim, flags_mask, arch_only=False):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--build", action="store_true")
-    ap.add_argument("--core", choices=("fsm", "ucore"), default="fsm",
-                    help="RTL engine: 'fsm' (default, the frozen reference "
-                         "core) or 'ucore' (the ROM-driven twin of sim/). "
+    ap.add_argument("--core", choices=("fsm", "ucore"), default="ucore",
+                    help="RTL engine: 'ucore' (DEFAULT since 2026-08-04, the "
+                         "ROM-driven twin of sim/) or 'fsm' (the trace-fitted "
+                         "core, ARCHIVED 2026-08-04 - still fully invokable, "
+                         "see docs/notes/fsm_core_archive_2026-08-04.md). "
                          "Swaps the RTL file list, include path and obj_dir; "
                          "the TB is engine-neutral.")
     ap.add_argument("--opcodes", default="all",

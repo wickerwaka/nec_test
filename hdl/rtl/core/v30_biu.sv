@@ -1,4 +1,29 @@
 //============================================================================
+//  *** ARCHIVED 2026-08-04 - NOT MAINTAINED ***
+//
+//  Part of the TRACE-FITTED core (hdl/rtl/core/), superseded as the project's
+//  reference implementation by hdl/rtl/ucore/ (`--core ucore`, the default
+//  since 2026-08-04).  `--core fsm` still builds and runs; nothing moved.
+//
+//  KNOWN DEFECTS IN THIS FILE, PRESENT AND DELIBERATELY UNFIXED:
+//   * F51 - THE HALT PSEUDO-CYCLE'S UPPER NIBBLE.  `ad_o`'s HALT arm drives
+//     {4'h0, fetch_phys[15:0] - 16'd2} and `ad_oe_ps` explicitly excludes
+//     `cur_kind != K_HALT`, so this BIU drives NOTHING on A19-16 across a HALT
+//     display and its T1 - where the goldens carry data_ps(2) = {md, ie, CS}
+//     (6 in all 200 HLT.INT, 2 in all 200 HLT.RES, {2,6} in HLT.NMI, never 0).
+//     The TB's composed-AD mask hid this until U5 removed it; in fabric there
+//     is no pad retention and it does not hide.  A ONE-LINE fix, NOT taken -
+//     the flashed A/B bitstream is built from HEAD and must stay that way.
+//     Cost on the corrected comparator: v0.1 168,400/169,000, HLT sweeps
+//     16/283.  The ucore's equivalent fix is F51 (ucore_provenance.md sec.54).
+//   * The wait-axis cadence deficit: 59/178 in fabric on fresh random-wait
+//     programs, 71/88 on the wvec silicon freeze (access COUNT matches the
+//     chip in all 88 cells - the miss is pure CADENCE).
+//   * A 104-seed random-wait regression between the 2026-07-30 build and HEAD
+//     that no standing gate observes.  Not bisected.
+//
+//  ARCHIVE RECORD: docs/notes/fsm_core_archive_2026-08-04.md
+//============================================================================
 //
 //  v30_biu - V30 (uPD70116) bus interface unit
 //

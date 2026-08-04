@@ -92,7 +92,11 @@ def sh(cmd):
 
 
 def build():
-    r = sh([sys.executable, "sw/check_core.py", "--build", "--suite-dir",
+    # --core fsm EXPLICIT: this tool mutates hdl/rtl/core/v30_biu.sv (the
+    # ARCHIVED FSM core) and has no ucore counterpart.  Pinned when
+    # check_core.py's default flipped fsm -> ucore, 2026-08-04.
+    r = sh([sys.executable, "sw/check_core.py", "--build", "--core", "fsm",
+            "--suite-dir",
             "tests/v30/v0.1", "--opcodes", "all", "--cases", "1", "--waits", "0"])
     if r.returncode != 0:
         raise RuntimeError("verilator build FAILED (stale-binary guard)")

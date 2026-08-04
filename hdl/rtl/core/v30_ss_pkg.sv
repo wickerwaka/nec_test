@@ -1,4 +1,19 @@
 //============================================================================
+//  *** ARCHIVED 2026-08-04 - NOT MAINTAINED ***
+//
+//  The save-state map of the TRACE-FITTED core (hdl/rtl/core/), superseded as
+//  the project's reference implementation by hdl/rtl/ucore/ (`--core ucore`,
+//  the default since 2026-08-04).  `--core fsm` still builds and runs.
+//
+//  This map itself carries NO known defect: `ss_lint --core fsm` is rc=0 with
+//  203 addresses, 181 architectural flops and 0 UNMAPPED (re-verified
+//  2026-08-04).  It is archived because the CORE is, not because it is wrong.
+//  The ucore's map is v30u_ss_pkg.sv (218 addresses, 201 flops, 0 UNMAPPED,
+//  SS_VERSION 0x82) and the two are NOT stream-compatible - a save state taken
+//  from one core cannot be restored into the other.
+//
+//  ARCHIVE RECORD: docs/notes/fsm_core_archive_2026-08-04.md
+//============================================================================
 //  v30_ss_pkg - save-state ADDRESS MAP (v2, single source of truth)
 //
 //  Addressed register-file interface (savestate_v2_design.md, fable 2026-07-21;

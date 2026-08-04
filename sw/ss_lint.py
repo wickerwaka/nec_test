@@ -99,8 +99,11 @@ def field_widths(pkg_text):
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    ap.add_argument("--core", choices=tuple(CORES), default="fsm",
-                    help="which core's save-state map to lint (default: fsm)")
+    ap.add_argument("--core", choices=tuple(CORES), default="ucore",
+                    help="which core's save-state map to lint (default: ucore "
+                         "since 2026-08-04; 'fsm' is the ARCHIVED core's map, "
+                         "still linted on demand - "
+                         "docs/notes/fsm_core_archive_2026-08-04.md)")
     args = ap.parse_args()
     cfg = CORES[args.core]
     PKG, EXPECT = cfg["pkg"], cfg["expect"]

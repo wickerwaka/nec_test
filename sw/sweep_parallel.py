@@ -17,9 +17,9 @@ ROOT = Path(__file__).resolve().parent.parent
 CHECK = ROOT / "sw" / "check_core.py"
 
 
-def run_one(op, suite_dir, cases, waits, shard_dir, extra=()):
+def run_one(op, suite_dir, cases, waits, shard_dir, extra=(), core="ucore"):
     lf = shard_dir / f"{op}.jsonl"
-    cmd = [sys.executable, str(CHECK), "--arch-only",
+    cmd = [sys.executable, str(CHECK), "--arch-only", "--core", core,
            "--suite-dir", suite_dir, "--opcodes", op,
            "--result-log", str(lf), "--details", "0", "--waits", str(waits),
            *extra]
@@ -42,6 +42,11 @@ def main():
     ap.add_argument("--out", default="sw/v20_arch_sweep_parallel.jsonl")
     ap.add_argument("--raw-flags", action="store_true")
     ap.add_argument("--no-mirror", action="store_true")
+    # EXPLICIT since 2026-08-04: this driver used to inherit check_core.py's
+    # default, which was `fsm` and is now `ucore` (the FSM core was ARCHIVED -
+    # docs/notes/fsm_core_archive_2026-08-04.md).  Passing it removes the
+    # silent dependency in both directions.
+    ap.add_argument("--core", choices=("fsm", "ucore"), default="ucore")
     a = ap.parse_args()
     extra = ([("--raw-flags",) if a.raw_flags else ()][0]
              + (("--no-mirror",) if a.no_mirror else ()))
@@ -56,7 +61,7 @@ def main():
     print("pre-building model (if stale) ...", flush=True)
     sys.path.insert(0, str(ROOT / "sw"))
     import check_core
-    check_core.build(force=False)
+    check_core.build(force=False, core=a.core)
 
     import time
     t0 = time.time()
@@ -65,7 +70,7 @@ def main():
         done = 0
         with concurrent.futures.ProcessPoolExecutor(max_workers=a.procs) as ex:
             futs = {ex.submit(run_one, op, a.suite_dir, a.cases, a.waits,
-                              shard_dir, extra): op for op in ops}
+                              shard_dir, extra, a.core): op for op in ops}
             for f in concurrent.futures.as_completed(futs):
                 op, rc, lf, tail = f.result()
                 done += 1

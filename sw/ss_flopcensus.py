@@ -420,8 +420,9 @@ def main_ucore():
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    ap.add_argument("--core", choices=("fsm", "ucore"), default="fsm",
-                    help="which core's RTL to census (default: fsm)")
+    ap.add_argument("--core", choices=("fsm", "ucore"), default="ucore",
+                    help="which core's RTL to census (default: ucore since "
+                         "2026-08-04; 'fsm' is the ARCHIVED core)")
     args = ap.parse_args()
     if args.core == "ucore":
         return main_ucore()
