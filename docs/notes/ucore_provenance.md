@@ -6486,3 +6486,168 @@ read's T4, or any third ROM row acquiring that source/destination pair.
 * **`s15_census` was not modified.**  That it lands 540 EVT seeds in seven
   inherited families with an EMPTY catch-all is evidence the taxonomy
   generalises off the population it was built on.
+
+---
+
+## §61 SESSION SM3, SITTING 2 — H1: MEASURED, DISCRIMINATED ON SILICON, LANDED IN `sim/`
+
+**2026-08-04, branch `ucsim`, from HEAD `6ed8812e18`.  Pre-registration
+committed at `72fdaca572` BEFORE the first board contact; the directed cell
+then RAN on the socket (FLASH #4, no flashing) and REFUTED the reading that had
+been landed, which was re-keyed rather than defended.**  Full record:
+`docs/notes/sm3_h1_prereg_2026-08-04.md`.
+
+### §61.1 The chip-side measurement — 2,318 acknowledges, zero exceptions
+
+`sw/sm3_ackgeom.py` (new, a measurement tool) over the 1,008-seed EVT bank.
+Every acknowledge that is not the first of its record is preceded on the bus by
+a CODE fetch — 2,318 of 2,318 — and
+
+```
+    INTA1 T1 = max( F1 + 6 , F1 + L + 1 )
+```
+
+with `F1` that fetch's T1 and `L` its length.  The second term is the ordinary
+next-cycle slot (M2r's `e+2`) and carries no new number; the first bites at
+`L = 4` alone, where it costs exactly **2 clocks**.
+
+Two supporting chip-side measurements, both new and both engine-free:
+
+* `sw/sm3_popgeom.py`, **50,422** flush→pop events over all 3,242 banked seeds:
+  the first opcode pop after a flush lands at the refilling fetch's **`e + 3`**
+  (`F1 + 5 / 7 / 8 / 9` at `L = 4 / 5 / 6 / 7`).  That is **§11.1 M2r's own law
+  re-derived from silicon**, and it says the acknowledge opens BEFORE the byte
+  is poppable at every wait level ≥ 1 — so S9a's *"the recognition boundary is
+  the retire, not the pop"* STANDS.
+* `sw/sm3_ackcmp.py` pairs chip and engine by acknowledge ORDINAL: before this
+  sitting the sim was at gap 4 on 1,585 of the 1,597 `L = 4` re-entries and
+  EXACT on every `L ≥ 5` one; the ucore inserted a prefetch and landed 2 clocks
+  late on 1,117 of 1,289.  **The whole of H1 is the w0 column.**
+
+### §61.2 Two rivals refuted OFFLINE, before the board
+
+* **C0, "`entry = B + 4`"** — the w0 `INT.*` / `NMI.*` goldens are **B-limited
+  in 1,266 of 1,800 cases** (measured with `V30SIM_EVTTRACE`) and the model is
+  200/200 on them with M14's `B + 2`.  A uniform `+2` moves all of them.
+* **C2, "an IE-restoring instruction defers recognition"** — `INT.9D` (POPF)
+  and `INT.FB` (STI) are B-limited goldens, 190/200 and 160/200, and exact.
+
+### §61.3 THE DIRECTED CELL — and it REFUTED the landed reading
+
+`sw/sm3_h1_cell.py` (new), socket only, divider pinned with the `div_guard`
+readback recorded, **120 captures** retained with full per-clock rows, the raw
+64-bit words and `SHA256SUMS` (242 files) in `sw/testdata/sm3-h1cell/`,
+`board_idle()` run and OK, single writer confirmed before contact.
+
+Six stimuli: a NOP sled (no redirect at all), `EB 00` near JMPs, far JMPs, a
+`CALL next` / `RET` chain, a chain of `CF` IRETs popping PRE-PLANTED frames, and
+a `CLI ; POPF` chain.  Assert delay swept, waits 0/1/2/3, hold 16 and 300.
+
+| acknowledge | `nop` | `ebnext` | `farnext` | `callret` | `iretnext` |
+|---|---|---|---|---|---|
+| **ord 1**, w0, B-limited | 4 | **4** | **4** | **4** | **4** |
+| **ord ≥ 2**, w0 / w1 / w2 / w3 | **6 / 6 / 7 / 8** | 6/6/7/8 | 6/6/7/8 | 6/6/7/8 | 6/6/7/8 |
+
+* **C1 (the REDIRECT reading) is REFUTED**: three different queue-flushing
+  redirects sit immediately before an ord-1 boundary and pay NO floor.
+* **C3 (IRET-specific) is REFUTED**: `iretnext`'s ord-1 acknowledge follows a
+  bare IRET with the banked population's own `flush→F1 = 4` spacing and pays
+  no floor.
+* **What pays it is every acknowledge with an ACKNOWLEDGE BEHIND IT** — in all
+  five stimuli, *including a pure NOP sled with no redirect in it anywhere*.
+  H1's own name was right: it is the RE-ENTRY.
+* `clipopf` produced **NO ACKNOWLEDGE AT ALL** in 24 captures (`fired = True`
+  on every one).  The IE-rise question is **NOT ANSWERED**, and *"a `CLI ;
+  POPF` chain restoring IE never acknowledges a held INT level"* is booked as
+  an open observation.
+
+### §61.4 THE LANDED MECHANISM (`sim/`), and it is one register
+
+**MEASURED.**  `BiuTimed::bnd_pending_` / `bnd_floor_`:
+
+```
+   an INTA cycle            ARMS   bnd_pending_
+   a flush, while armed     ARMS   the stamp
+   the restarted prefetch's GRANT  STAMPS bnd_floor_ = its T1 + 2   (index 2)
+   a queue pop              SPENDS bnd_floor_
+   boundary_no_pop()        READS  the floor, SUSPENDS the prefetcher,
+                                   and CLEARS bnd_pending_
+```
+
+i.e. **an acknowledge that has an acknowledge behind it is not recognised
+before the restarted prefetcher's INDEX 2** — the cycle-relative instant this
+machine already samples the queue counter on (`pf_arm_`; at w0 index 2 IS the
+completion eval, M2r).  No new number and no new instant.  The recognition that
+pays the floor also holds the prefetcher off, which is the census's two idle
+clocks.
+
+**Two bounded claims, both stated because both were TRIED and MEASURED:**
+
+1. the floor is NOT read by the ordinary retire (`opcode_prefetch`).  It is
+   unobservable there — after a redirect the pop is byte-limited at `e+3`,
+   index 5 or later — and charging the EU to it anyway costs `INT.F3AA` **75 of
+   200** at w0.
+2. the floor is NOT read by the REP mid-string withdrawal
+   (`boundary_no_pop(post_redirect = false)` when `intr_pending`).  A
+   withdrawal is not an instruction retire; §26.6.4 already recorded that the
+   two populations *"point OPPOSITE WAYS"*.  Flooring it costs `INT.F3AA`
+   **26 of 200** at w0.
+
+**THE MECHANISM BEHIND THE ARM IS NOT ESTABLISHED.**  The candidate is the IE
+restore — the entry clears IE, the IRET's PSW pop restores it, and a
+recognition cannot act on a RISING IE for two clocks — and the cell that would
+settle it did not fire.  Recorded as MEASURED with the arm named and the
+mechanism OPEN.
+
+*Falsifier*: an acknowledge with a prior acknowledge behind it that opens at a
+clock other than `max(F1 + 6, F1 + L + 1)`; a FIRST acknowledge that pays the
+floor; or a `clipopf`-shaped cell that acknowledges and pays it.
+
+### §61.5 THE NUMBERS — pre-registered, and reported as registered
+
+**The directed cell, scored against the model on the same 120 captures:**
+
+| | pre-H1 | **after** |
+|---|---|---|
+| acknowledge clocks reproduced | 249 / 326 | **326 / 326** |
+
+**MOVED UP** (`timed_fuzz --core sim --evt-replay`; bars registered at
+`72fdaca572` were EVT ≥ 700 and COMBINED ≥ 1,972):
+
+| column | before | **after** |
+|---|---|---|
+| EVT | 363 / 1,008 | **780 / 1,008**  (+417) |
+| COMBINED | 1,635 / 2,710 | **2,052 / 2,710**  (+417) |
+
+**DID NOT MOVE**, all re-run on the final binary:
+
+| gate | registered | after |
+|---|---|---|
+| `timed_fuzz --core sim` REGISTERED | 1,272 / 1,702 | **1,272 / 1,702** |
+| `make -C sim test` | PASS | **PASS** |
+| `timed_gate v0.1 --forms all` | 169,000 / 169,000, row-diffs 0 | **169,000 / 169,000, row-diffs 0** |
+| `v0.1-w1` / `-w3` (`--waits 1` / `3`) | 1,200 | **1,200 / 1,200** |
+| `v0.1-w1 --forms EB` | 200 | **200** |
+| the four `evt` cells | 200 / 1,200 / 200 / 1,200 | **200 / 1,200 / 200 / 1,200** |
+| `v0.1-w1evt-biased` | 1,200 | **1,200** |
+| the four HLT sweeps | 91/97, 95/95, 44/46, 42/45 | **91/97, 95/95, 44/46, 42/45** |
+| `check_boot --timed 220` | MATCH | **MATCH** |
+| `timed_scenario` | 18 / 0 / 9 | **18 / 0 / 9** |
+| `timed_enter_replay` | 154 / 154 ×5 | **154 / 154** |
+| `timed_ins_replay --raw` | 1,312 / 2,624 | **1,312 / 1,312 and 2,624 / 2,624** |
+| `timed_wvec_gate` | 88/88, +0.0 % | **88/88, 16,048 vs 16,048, +0.0 %** |
+| `timed_lawcards` | 8 GREEN / 0 RED / 3 UNRESOLVED | **8 / 0 / 3** |
+| b2 tranche | 154 / 188 | **154 / 188** |
+
+### §61.6 WHAT THIS SITTING DID NOT DO
+
+* **The ucore was NOT changed.**  H1 is landed in `sim/` only.  The RTL leg —
+  the same arm and the same index-2 floor in `hdl/rtl/ucore/`, its own full
+  regression, `ss_lint`, `ulockstep` and an `SS_VERSION` bump if a flop
+  appears — is the next sitting's first job, and `sw/sm3_ackcmp.py --core
+  ucore` is the instrument that scores it (the ucore's own before figure is in
+  §61.1).
+* **H2 was not re-censused.**  Its registered falsifier is *"H1 lands and this
+  family does not shrink"*, and the census must be re-taken against the ucore
+  after the RTL leg, not against the model now.
+* **The `clipopf` question was left open** (§61.3), not explained.

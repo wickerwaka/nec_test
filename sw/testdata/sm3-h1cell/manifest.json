@@ -1,0 +1,149 @@
+{
+ "cell": "SM3 H1 -- the recognition boundary after a REDIRECT",
+ "spec": "docs/notes/sm3_h1_prereg_2026-08-04.md sec.5",
+ "prereg_commit": "72fdaca572",
+ "use_core": false,
+ "host": "root@mister-nec",
+ "div": 8,
+ "waits": [
+  0,
+  1,
+  2,
+  3
+ ],
+ "variants": [
+  "clipopf"
+ ],
+ "delays": [
+  12,
+  17
+ ],
+ "hold": 300,
+ "cells": {
+  "clipopf:w0:d12": {
+   "sha": "c6d85d8476c8b749800b8421c7d5d227cd8971068db77ae1b77f6a8cf4125265",
+   "rows": 4063,
+   "fired": true
+  },
+  "clipopf:w0:d13": {
+   "sha": "4d82a1eb3562f2e39d55e54c3579281e2f58eed124f5ffa415942da8822e23c5",
+   "rows": 4063,
+   "fired": true
+  },
+  "clipopf:w0:d14": {
+   "sha": "4d82a1eb3562f2e39d55e54c3579281e2f58eed124f5ffa415942da8822e23c5",
+   "rows": 4063,
+   "fired": true
+  },
+  "clipopf:w0:d15": {
+   "sha": "4d82a1eb3562f2e39d55e54c3579281e2f58eed124f5ffa415942da8822e23c5",
+   "rows": 4063,
+   "fired": true
+  },
+  "clipopf:w0:d16": {
+   "sha": "4d82a1eb3562f2e39d55e54c3579281e2f58eed124f5ffa415942da8822e23c5",
+   "rows": 4063,
+   "fired": true
+  },
+  "clipopf:w0:d17": {
+   "sha": "4d82a1eb3562f2e39d55e54c3579281e2f58eed124f5ffa415942da8822e23c5",
+   "rows": 4063,
+   "fired": true
+  },
+  "clipopf:w1:d12": {
+   "sha": "2595d540ea65458bd20c6cbc3e83eb38a4c1a9d485edf1ce980b021924751242",
+   "rows": 4063,
+   "fired": true
+  },
+  "clipopf:w1:d13": {
+   "sha": "c23a7c933c683b86e8996bfbac6f783831109dfa17c015ed2b84686c7c744138",
+   "rows": 4063,
+   "fired": true
+  },
+  "clipopf:w1:d14": {
+   "sha": "c23a7c933c683b86e8996bfbac6f783831109dfa17c015ed2b84686c7c744138",
+   "rows": 4063,
+   "fired": true
+  },
+  "clipopf:w1:d15": {
+   "sha": "c23a7c933c683b86e8996bfbac6f783831109dfa17c015ed2b84686c7c744138",
+   "rows": 4063,
+   "fired": true
+  },
+  "clipopf:w1:d16": {
+   "sha": "c23a7c933c683b86e8996bfbac6f783831109dfa17c015ed2b84686c7c744138",
+   "rows": 4063,
+   "fired": true
+  },
+  "clipopf:w1:d17": {
+   "sha": "c23a7c933c683b86e8996bfbac6f783831109dfa17c015ed2b84686c7c744138",
+   "rows": 4063,
+   "fired": true
+  },
+  "clipopf:w2:d12": {
+   "sha": "3412b5b22124fad748cb5a96d0d4fb51b92bac5e3323ddc47e128d4fe5cd3648",
+   "rows": 4063,
+   "fired": true
+  },
+  "clipopf:w2:d13": {
+   "sha": "3412b5b22124fad748cb5a96d0d4fb51b92bac5e3323ddc47e128d4fe5cd3648",
+   "rows": 4063,
+   "fired": true
+  },
+  "clipopf:w2:d14": {
+   "sha": "3412b5b22124fad748cb5a96d0d4fb51b92bac5e3323ddc47e128d4fe5cd3648",
+   "rows": 4063,
+   "fired": true
+  },
+  "clipopf:w2:d15": {
+   "sha": "3412b5b22124fad748cb5a96d0d4fb51b92bac5e3323ddc47e128d4fe5cd3648",
+   "rows": 4063,
+   "fired": true
+  },
+  "clipopf:w2:d16": {
+   "sha": "3412b5b22124fad748cb5a96d0d4fb51b92bac5e3323ddc47e128d4fe5cd3648",
+   "rows": 4063,
+   "fired": true
+  },
+  "clipopf:w2:d17": {
+   "sha": "3412b5b22124fad748cb5a96d0d4fb51b92bac5e3323ddc47e128d4fe5cd3648",
+   "rows": 4063,
+   "fired": true
+  },
+  "clipopf:w3:d12": {
+   "sha": "de6ea571829aa748a395092b376404daf1c5974b8bcc5f9cc6a7cac34fdddda8",
+   "rows": 4063,
+   "fired": true
+  },
+  "clipopf:w3:d13": {
+   "sha": "de6ea571829aa748a395092b376404daf1c5974b8bcc5f9cc6a7cac34fdddda8",
+   "rows": 4063,
+   "fired": true
+  },
+  "clipopf:w3:d14": {
+   "sha": "de6ea571829aa748a395092b376404daf1c5974b8bcc5f9cc6a7cac34fdddda8",
+   "rows": 4063,
+   "fired": true
+  },
+  "clipopf:w3:d15": {
+   "sha": "de6ea571829aa748a395092b376404daf1c5974b8bcc5f9cc6a7cac34fdddda8",
+   "rows": 4063,
+   "fired": true
+  },
+  "clipopf:w3:d16": {
+   "sha": "de6ea571829aa748a395092b376404daf1c5974b8bcc5f9cc6a7cac34fdddda8",
+   "rows": 4063,
+   "fired": true
+  },
+  "clipopf:w3:d17": {
+   "sha": "de6ea571829aa748a395092b376404daf1c5974b8bcc5f9cc6a7cac34fdddda8",
+   "rows": 4063,
+   "fired": true
+  }
+ },
+ "div_guard": {
+  "readback": "div=8 (4 MHz), commanded by this connection",
+  "state": "PINNED"
+ },
+ "seconds": 2.4
+}

@@ -104,6 +104,7 @@ void BiuTimed::begin_case() {
     pf_owed_ = false;           // M19
     bnd_floor_ = -1;            // H1
     bnd_arm_ = false;
+    bnd_pending_ = false;
     cmt_expire_ = -1;           // M22
     cmt_was_owed_ = false;
     pop_is_first_ = true;
@@ -937,11 +938,11 @@ void BiuTimed::flush(uint16_t cs, uint16_t pc) {
     // pointer).  It stands until the bus takes it -- a later SUSP does not
     // reset it.  See biu_timed.h.
     pf_owed_ = true;
-    // H1: the recognition boundary that follows this redirect is not taken
-    // until the RESTARTED prefetcher's index 2.  Armed here, stamped at that
-    // fetch's T1.
-    bnd_arm_ = true;
-    bnd_floor_ = -1;
+    // H1: if an acknowledge is behind us, the next recognition boundary is
+    // not taken until the RESTARTED prefetcher's index 2.  Armed here (by the
+    // LAST redirect before that boundary -- each flush re-arms), stamped at
+    // the restart's grant.
+    if (bnd_pending_) { bnd_arm_ = true; bnd_floor_ = -1; }
     // M7: the sampled quantity is the QUEUE COUNTER, and the flush zeroes it.
     // A latch taken at index 2 of a cycle the flush then invalidates cannot
     // hold the eval off -- the redirect must be free to go at once.  MEASURED:
@@ -1075,7 +1076,16 @@ long BiuTimed::boundary_no_pop(bool post_redirect) {
     // (sec.19.8.1) and the ROM's own REPX path does the flush AFTER the
     // decision, so there is no boundary for the reload to hold off.  MEASURED:
     // flooring it too costs `INT.F3AA` 26 of 200 at w0 and 0 elsewhere.
-    if (post_redirect) wait_bnd_floor();
+    if (post_redirect && bnd_pending_) {
+        wait_bnd_floor();
+        // ...and the recognition that PAYS the floor also holds the
+        // prefetcher off: the chip grants the slot between the floor and the
+        // acknowledge's own request to NOTHING (the census's two idle clocks).
+        susp();
+    }
+    bnd_pending_ = false;
+    bnd_floor_ = -1;
+    bnd_arm_ = false;
     return clk_;
 }
 
@@ -1373,6 +1383,8 @@ void BiuTimed::io_write(uint16_t port, uint16_t data, bool word, uint16_t upc) {
 
 uint16_t BiuTimed::inta_read(uint16_t upc) {
     uint16_t v = core_.inta_read(upc);
+    // H1: AN ACKNOWLEDGE ARMS THE NEXT RECOGNITION'S FLOOR.  See biu_timed.h.
+    bnd_pending_ = true;
     Access acc;
     acc.bs = kBsInta;
     acc.addr = 0;         // filled from the FLOATING AD at the display clock

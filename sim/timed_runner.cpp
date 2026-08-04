@@ -545,12 +545,6 @@ int run_timed_boot(const ucrom::UcRom& rom, const char* image_path, long clocks,
             const long a = biu.assert_clk();
             const long braw = d;
             if (a >= 0 && a + evpipe > d) d = a + evpipe;
-            // H1: the RECOGNITION suspends the prefetcher on its own decision
-            // clock.  The acknowledge's request is not raised until D + 2
-            // (M14, unchanged), and the eval in between would otherwise hand
-            // the slot to a prefetch the chip does not run.
-            biu.charge_to(d);
-            biu.susp();
             biu.charge_to(d + 2);
             if (std::getenv("V30SIM_EVTTRACE"))
                 std::fprintf(stderr,

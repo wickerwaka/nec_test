@@ -608,8 +608,28 @@ private:
     // with F1 the refilling CODE fetch's T1 and L its length -- i.e.
     // max(boundary + 4, the next free bus slot) with boundary = F1 + 2.
     // The floor bites only at L = 4 (w0), where it costs exactly 2 clocks.
+    //
+    // AND IT IS ARMED BY THE PREVIOUS ACKNOWLEDGE, NOT BY THE REDIRECT.
+    // The DIRECTED BOARD CELL (`sw/sm3_h1_cell.py`, socket, FLASH #4,
+    // sm3_h1_prereg_2026-08-04.md sec.5) says so and it refutes the redirect
+    // reading outright: the FIRST acknowledge of a record pays NO floor after
+    // a near JMP, a far JMP, a CALL/RET pair or a bare IRET chain (gap 4 at
+    // w0, B-limited), while EVERY acknowledge from the second on pays it in
+    // ALL FIVE stimuli -- including a pure NOP sled with no redirect in it at
+    // all.  `bnd_pending_` is that arm: an INTA cycle sets it, the recognition
+    // boundary that reads the floor clears it.  It resets to FALSE, because
+    // every population this model runs -- the goldens and `timed-boot` alike
+    // -- starts from RESET with no acknowledge behind it.
+    //
+    // The MECHANISM behind the arm is NOT ESTABLISHED.  The candidate is the
+    // IE restore: the entry clears IE, the IRET's PSW pop restores it, and a
+    // recognition cannot act on a RISING IE for two clocks.  The cell that
+    // would settle it is `sm3_h1_cell.py --variants clipopf` (a CLI ; POPF
+    // chain, IE rising at a boundary with no acknowledge behind it); as first
+    // run it produced NO ACKNOWLEDGE at all, which is its own open question.
     long bnd_floor_ = -1;       // the boundary may not be taken before this
     bool bnd_arm_ = false;      // ...stamped by the next fetch after a flush
+    bool bnd_pending_ = false;  // ...and only ARMED at all by a prior ACK
     // M7b -- THE OUTSTANDING-FETCH TERM CLEARS WHEN THE BYTES ARE POPPABLE,
     // NOT WHEN THEY ARE WRITTEN.  The queue counter takes the bytes at the
     // push edge (e+1, M3); the "a fetch is out" term the scheduler adds to it

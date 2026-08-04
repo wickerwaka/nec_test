@@ -68,7 +68,7 @@ INTA, CODE, HALT = 0, 4, 3
 # --------------------------------------------------------------------------- #
 # the four stimuli
 # --------------------------------------------------------------------------- #
-VARIANTS = ("nop", "ebnext", "farnext", "callret")
+VARIANTS = ("nop", "ebnext", "farnext", "callret", "iretnext", "clipopf")
 
 
 def program(variant, n=40):
@@ -95,6 +95,22 @@ def program(variant, n=40):
     elif variant == "farnext":
         for _ in range(n):
             p.emit_farjmp_next()
+    elif variant == "iretnext":
+        # `CF` IRET, N of them back to back.  Each pops a PRE-PLANTED frame
+        # (ip = the next IRET, cs = 0, psw = IE set) off the stack and jumps to
+        # it, so the part executes an IRET at a boundary that is NOT a return
+        # from an acknowledge.  This is the ONE cell that separates "the
+        # instruction is IRET" from "the boundary follows an interrupt entry".
+        for _ in range(n * 3):
+            p.emit([0xCF])
+    elif variant == "clipopf":
+        # `FA 9D` CLI ; POPF, N of them.  Each POPF restores a PLANTED flags
+        # word with IE SET, so IE RISES at that boundary -- and the part is
+        # not returning from an acknowledge.  This separates "IE rose here"
+        # from "the previous entry left something behind".
+        for _ in range(n * 2):
+            p.emit([0xFA])
+            p.emit([0x9D])
     elif variant == "callret":
         for _ in range(n):
             p.emit([0xE8, 0x00, 0x00])     # CALL next  (pushes, redirects)
@@ -114,6 +130,19 @@ def image_of(variant):
             "BP": 0x3456, "IX": 0x2500, "IY": 0x2A00}
     ram = [(a, rng.getrandbits(8)) for a in range(DATA_LO, DATA_HI + 0x100)]
     ram += handler
+    if variant == "clipopf":
+        ram = [x for x in ram if not (SP0 <= x[0] < SP0 + 2 * 200)]
+        for k in range(200):
+            ram.append((SP0 + 2 * k, 0x02))
+            ram.append((SP0 + 2 * k + 1, 0xF2))
+    if variant == "iretnext":
+        # the planted IRET frames: (ip, cs, psw) triples walking up from SP0
+        ram = [x for x in ram if not (SP0 <= x[0] < SP0 + 6 * 130)]
+        for k in range(130):
+            ip = PC0 + 1 + k
+            for j, w in enumerate((ip, 0x0000, 0xF202)):
+                ram.append((SP0 + 6 * k + 2 * j, w & 0xFF))
+                ram.append((SP0 + 6 * k + 2 * j + 1, w >> 8))
     image, meta = check_seq.compose(dict(seed=0, instr=instr, regs=regs,
                                          ram=ram, ivt=ivt))
     return image, meta
@@ -122,12 +151,12 @@ def image_of(variant):
 # --------------------------------------------------------------------------- #
 # the observable -- read off the pins, no engine
 # --------------------------------------------------------------------------- #
-def measure(rows):
-    """The FIRST acknowledge's lead-in geometry, chip side.  -> dict or None."""
+def measure(rows, which=0):
+    """One acknowledge's lead-in geometry, chip side.  -> dict or None."""
     cy, ak = ag.acks(rows)
-    if not ak:
+    if len(ak) <= which:
         return None
-    ci, nlen = ak[0]
+    ci, nlen = ak[which]
     kind, t1, end, disp = cy[ci]
     if ci == 0:
         return None
@@ -158,6 +187,7 @@ def measure(rows):
             "refill_gap": None if refill is None else t1 - refill[1],
             "prevprev_kind": None if prevprev is None else fc.BS_NAME[prevprev[0]],
             "prevprev_end": None if prevprev is None else prevprev[2],
+            "ord": which + 1, "nack": len(ak),
             "ncode_before": sum(1 for c in cy[:ci] if c[0] == CODE),
             "nhalt": sum(1 for c in cy if c[0] == HALT)}
 
@@ -203,7 +233,8 @@ def cmd_run(args):
                         break
                     continue
                 g = measure(rows)
-                rec = {"key": key, "variant": variant, "waits": w, "delay": d,
+                gs = [measure(rows, i) for i in range(6)]
+                rec = {"key": key, "acks": [x for x in gs if x], "variant": variant, "waits": w, "delay": d,
                        "sha": sha, "fired": bool(fired), "nrows": len(rows),
                        "geom": g}
                 rows_out.append(rec)
@@ -286,6 +317,73 @@ def cmd_idle(args):
     return 0
 
 
+# --------------------------------------------------------------------------- #
+# the ENGINE legs on the SAME captures -- `timed_fuzz`'s own replay policy,
+# imported rather than forked (regeneration is not needed: the image is built
+# here deterministically and the sha is recorded in the manifest).
+# --------------------------------------------------------------------------- #
+def engine_rows(image, meta, chip_rows, waits, evt, core):
+    import tempfile
+    import timed_fuzz as tf
+    import ucsim_fuzz as uf
+    entry = {"waits": {"wrand": False, "fixed": waits},
+             "evt": {"pin": evt[3], "delay": evt[1], "hold": evt[2],
+                     "hold_bits": 12, "hold_applied": evt[2]}}
+    win = len(chip_rows)
+    with tempfile.TemporaryDirectory() as td:
+        if core == "sim":
+            cstream = uf.chip_stream(chip_rows, win)
+            fires = uf.entry_points(cstream, evt[3])
+            frames = [uf.frame_of(cstream, i) for i in fires]
+            keep = 0
+            while keep < len(fires) and frames[keep][0] >= 0:
+                keep += 1
+            d = {"pin": evt[3], "addr": evt[0], "delay": evt[1],
+                 "hold": evt[2], "pins": 0, "at": fires[:keep],
+                 "cs": [f[0] for f in frames[:keep]],
+                 "ip": [f[1] for f in frames[:keep]]}
+            rows, err = tf.run_sim(image, entry, len(chip_rows), td, d)
+        else:
+            rows, err = tf.run_tb(image, entry, len(chip_rows), td, core, evt)
+    return rows
+
+
+def cmd_score(args):
+    recs = json.loads((OUT / "cells.json").read_text())
+    imgs = {v: image_of(v) for v in VARIANTS}
+    agree = Counter()
+    tab = defaultdict(Counter)
+    for r in recs:
+        if not r["geom"]:
+            continue
+        rows = json.load(gzip.open(
+            OUT / f"{r['key'].replace(':', '_')}.rows.json.gz", "rt"))
+        image, meta = imgs[r["variant"]]
+        evt = (meta["anchor_linear"] & 0xFFFFF, r["delay"], args.hold, 0)
+        erows = engine_rows(image, meta, rows, r["waits"], evt, args.core)
+        for k, cg in enumerate(r.get("acks") or [r["geom"]]):
+            g = measure(erows, k) if erows else None
+            same = bool(g and g["ack_t1"] == cg["ack_t1"] and
+                        g["gap"] == cg["gap"])
+            grp = (r["variant"], r["waits"], "ord1" if k == 0 else "ord2+")
+            agree[(grp, same)] += 1
+            tab[grp][(cg["prev_len"], cg["gap"], None if not g else g["prev_len"],
+                      None if not g else g["gap"])] += 1
+    print(f"\n  --- engine `{args.core}` vs the directed captures ---")
+    tot_ok = tot_n = 0
+    for k in sorted(tab, key=lambda x: (x[2], x[0], x[1])):
+        ok = agree[(k, True)]
+        n = ok + agree[(k, False)]
+        tot_ok += ok
+        tot_n += n
+        print(f"  {k[2]:<5} {k[0]:<8} w{k[1]}  agree {ok}/{n}   " +
+              "  ".join(f"chip L{a}/gap{b} | eng L{c}/gap{d}: {m}"
+                        for (a, b, c, d), m in sorted(tab[k].items(),
+                                                      key=lambda x: -x[1])))
+    print(f"  TOTAL ack-clock agreement: {tot_ok}/{tot_n}")
+    return 0
+
+
 def main():
     ap = argparse.ArgumentParser()
     sub = ap.add_subparsers(dest="cmd", required=True)
@@ -300,6 +398,10 @@ def main():
     p.set_defaults(fn=cmd_run)
     p = sub.add_parser("report")
     p.set_defaults(fn=lambda a: (report(), 0)[1])
+    p = sub.add_parser("score")
+    p.add_argument("--core", default="sim", choices=("sim", "ucore", "fsm"))
+    p.add_argument("--hold", type=int, default=16)
+    p.set_defaults(fn=cmd_score)
     p = sub.add_parser("idle")
     p.set_defaults(fn=cmd_idle)
     a = ap.parse_args()

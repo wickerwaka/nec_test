@@ -31,8 +31,8 @@ it lives in did not exist before SM2's re-capture.
 
 | rank | mechanism | ucore seeds | sim seeds | shared | owner | §|
 |---|---|---|---|---|---|---|
-| **H1** | **the RE-ENTRY acknowledge's lead-in**: the chip idles **2 clocks** between the last prefetch and the INTA it is about to announce, and grants that slot to **nothing**.  The ucore fills it with a prefetch; the model announces immediately. | **445 / 540** | **491 / 645** | **437** | **shared** — `sim/` first | §5.1 |
-| H2 | the `qs -!=F` / `qs E!=-` queue-status pair around an acknowledge (the rest of the EVT column, both engines) | 41 / 540 | 57 / 645 | — | shared | §5.2 |
+| **H1** | **the RE-ENTRY acknowledge's lead-in**: the chip idles **2 clocks** between the last prefetch and the INTA it is about to announce, and grants that slot to **nothing**.  The ucore fills it with a prefetch; the model announces immediately.  **LANDED IN `sim/` 2026-08-04 (SM3 sitting 2): EVT 363 -> 780, COMBINED 1,635 -> 2,052; discriminated on the socket by a directed cell that REFUTED both the redirect and the IRET readings — it is the RE-ENTRY, `ucore_provenance.md` §61 / `sm3_h1_prereg_2026-08-04.md`.  THE ucore LEG IS NOT TAKEN.** | **445 / 540** | **491 / 645** | **437** | **shared** — `sim/` first | §5.1 |
+| H2 | the `qs -!=F` / `qs E!=-` queue-status pair around an acknowledge (the rest of the EVT column, both engines) — **NOT re-censused; its falsifier is "H1 lands and this family does not shrink" and the re-census belongs after the ucore leg** | 41 / 540 | 57 / 645 | — | shared | §5.2 |
 | H3 | `PF_LOST`'s arbitration priority (the largest REGISTERED family, unchanged since ucsim-t) | 107 / 219 | 239 / 430 | 110 | shared | §5.3 |
 | H4 | `DATA_SEQ` — F47's shape, *the right cycle, the right address, the wrong word*; **41 in the ucore's own engine against 28 in the model's** | 41 / 219 | 28 / 430 | 28 | mixed | §5.4 |
 | H5 | the HALT-display decision edge (**F43**, diagnosed, twice declined) + the `seg`/`bus`-first half that is **not** diagnosed | 13 cells | — | — | ucore | §5.5 |
@@ -273,8 +273,17 @@ re-entry**, and I3 records that its evidence column *"was the EVT population,
 which INV-1 has just suspended"*.  The column is un-suspended and this is what
 it says.
 
-**Owner: shared.**  The model has it too, so the mechanism is the model's and
-the fix is routed to `sim/` first.  **NOT TAKEN THIS SESSION** — it moves the
+**LANDED IN `sim/` ON 2026-08-04, SM3 SITTING 2 — AND THE READING ABOVE IS NOT
+THE ONE THAT LANDED.**  The directed board cell (`sw/sm3_h1_cell.py`, socket,
+FLASH #4) REFUTED both "it is the redirect" and "it is the IRET": the FIRST
+acknowledge of a record pays no floor after a near JMP, a far JMP, a CALL/RET
+pair or a bare IRET chain, while EVERY acknowledge from the second on pays it in
+all five stimuli, *including a pure NOP sled*.  The law that landed is
+`INTA1 T1 = max(F1 + 6, F1 + L + 1)` ARMED BY THE PREVIOUS ACKNOWLEDGE —
+`ucore_provenance.md` §61, `sm3_h1_prereg_2026-08-04.md`.  Sim EVT
+**363 -> 780**, COMBINED **1,635 -> 2,052**, nothing else moved; the ucore leg
+is NOT taken.  Original disposition, for the record:
+**NOT TAKEN THIS SESSION** — it moves the
 interrupt-entry anchor, which is spine, and it needs its own pre-registered
 before/after on the four `evt` golden cells, `timed_lawcards`, the b2 tranche
 and both engines' REGISTERED columns.  Registering it is the next session's
