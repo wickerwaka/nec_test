@@ -3717,3 +3717,97 @@ fuzz REGISTERED **1,394/1,702**, EVT **184/1,008**, COMBINED **1,578/2,710**,
 `BOUND WARNINGS` **6**; b2 tranche **168/188**; wvec **88/88, +0.0 %**; ENTER
 **154/154 x5**; `ss_lint --core ucore` **rc=0**; FSM core **1,400/1,400** and
 its `ss_lint` leg unchanged.
+
+## §48 THE IN-FABRIC PRE-REGISTRATION — WRITTEN AND COMMITTED BEFORE ANY BOARD CONTACT
+
+Standing discipline (`CLAUDE.md`): *"pre-register predictions and commit before
+first board contact."*  Everything in this section is registered BEFORE a
+bitstream exists, so none of it can be tuned to a result.
+
+### §48.0 THE STATE OF THE BOARD AT REGISTRATION
+
+`root@mister-nec`, reachable, `up 22 days`; JTAG chain present
+(`DE-SoC [1-1.2.4]`, `SOCVHPS` + `5CSEBA6/5CSEMA6`).  **Single-writer check: no
+`v30`/serve/python process on the board.**  The FSM baseline bitstream is
+archived (`nec_test.rbf sha256 2643d8ce…`, `nec_test.sof sha256 1cc4bf55…`).
+
+### §48.1 THE PRE-FLASH GATE, ALREADY MET
+
+`check_ab_sim --core ucore` puts the ucore inside the REAL integration
+(`system_large` + `nec_bus` + the capture path) and diffs its boot against the
+chip's own capture.  **MATCHES over 187 rows from RESET release, 0 rows
+differ**, with the loop `CODE T1 @00100` recurrence identical to silicon's
+(`[26, 90, 154]`).  The FSM leg, restored, gives the same.  A bitstream is not
+flashed on a core that has not passed this.
+
+### §48.2 FLASH #1 — `use_core=0` FIRST
+
+The first thing the new bitstream must prove is that it did NOT disturb the
+chip path.  `use_core=0`, boot capture, compared against the standing golden.
+**Bar: identical.**  A difference here is a PLATFORM finding and stops the
+stage — it would mean the ucore revision changed something outside the core,
+which `sw/gen_ucore_qsf.py --check` is supposed to make impossible.
+
+### §48.3 F42's FALSIFIABLE PREDICTION, REGISTERED WITH ITS SCORE SHEET
+
+§45.4 item 5, verbatim in substance: if the 17 uncountable HLT cells really are
+the TESTBENCH's composed-AD drive mask and not the core, then **in fabric —
+where the analyser samples real pins and no drive mask exists — those cells must
+PASS.**
+
+* **PREDICTION: all 17 PASS in fabric.**
+* Scored explicitly, cell by cell, in the `idx` = pin-delay `d` numbering
+  (§43.0's numbering trap: the `idx` FIELD is `d`, not the array position).
+* **If any of the 17 fails in fabric, F42 is REFUTED** and the ucore owns those
+  cells — that is the honest outcome and it is to be reported as a refutation,
+  not re-explained.
+* The 6 cells of F43 (the diagnosed HALT-display rendering) are NOT part of
+  this prediction and are expected to fail in fabric too.
+
+### §48.4 THE STANDING PRIORITY GATE — THE FRESH RANDOM-WAIT TRANCHE
+
+The project's #1 ranking is arbitrary-wait accuracy, and this is the campaign's
+victory condition.  ~200 stratified `wrand` seeds, **frozen before capture**
+(seed list + image shas committed before the first capture), chip capture vs
+ucore-in-fabric replay.
+
+| # | bar | registered value |
+|---|---|---|
+| **V0** | hard failures | **0** — no wedge, `div_guard` PINNED readback on EVERY capture, full per-clock rows + sha256 retained (never digests alone) |
+| **V1** | ucore-in-fabric cycle-exact vs the socket | **>= 85.0 %** — the BANKED b2 tranche is 89.4 % (168/188) and fresh seeds are not cherry-picked, so the bar is set below it and is still falsifiable |
+| **V2** | denominator integrity | the two legs score **identical denominators**; a denominator that follows the engine is not a gate (§44.2's own lesson) |
+| **V3** | fabric-vs-Verilator control | the SAME seeds through the Verilator ucore land **within ±2 seeds** of the fabric number. A larger gap is a **FABRIC-vs-SIM finding** — the bitstream and the model of it disagreeing — and is the MORE important result if it happens |
+| **V4** | comparative | the ucore beats the FSM core on the SAME seeds (the FSM is 18/1,702 on the registered bank and 71/88 on the wvec freeze, so this should be decisive; a near-tie would itself be a finding) |
+| **V5** | residue | every non-exact seed lands in the inherited taxonomy (`qs` / `bs` / `data` / `nxta` / `ps` / `t`), **0 unclassified** |
+
+**V1 is a NEW registration on a NEW population and is NOT the retired
+campaign's V5.**  That one — 188/188 on the banked tranche — remains a standing
+REGISTERED FAILURE at 168/188 and is not re-opened here (§44.2).
+
+### §48.5 THE RIG WIDENING (F46) IS **DEFERRED**, AND WHY
+
+The optional item was to widen the rig's `evt_hold` register in this same
+bitstream so fresh captures use true holds.  **Not taken**, for two reasons and
+one measurement:
+
+1. **It would confound the headline comparison.**  The FSM-vs-ucore A/B has to
+   differ by the CORE and nothing else — that is the whole point of generating
+   `nec_test_ucore.qsf` from `nec_test.qsf` and gating it with `--check`.
+   Widening the rig in the ucore bitstream only would put a RIG change inside
+   the core comparison.  Widening it in both means rebuilding both, which is a
+   different and larger piece of work.
+2. **It is not on the priority gate's path.**  §48.4's tranche is the
+   random-WAIT axis; its seeds carry no `evt` directive, so a corrected hold
+   moves nothing there.  F46's own text routes the EVT ratchet decision to
+   *"the campaign owner, not a side effect of an RTL stage."*
+3. **Measured, and it is not a one-line widening.**  `hps_axi_slave.sv:273-277`
+   packs register `0x20` as `evt_delay[15:0] | evt_hold[23:16] |
+   evt_pin[26:24] | evt_arm[31]`.  A 16-bit hold COLLIDES with `evt_delay`.
+   The free space is bits `[30:27]` — four bits — so the widest drop-in is a
+   **12-bit** hold (`{wdata[30:27], wdata[23:16]}`, max 4,095, which does cover
+   the banked 300).  That is a HOST-PROTOCOL change as well as an RTL one:
+   `fuzz_campaign._evt_tuple`, `check_seq.run_tb` and `check_seq.run_chip` all
+   pack this word and would have to move together.
+
+Recorded as a U5 item with the packing already worked out, so whoever takes it
+starts from a measurement rather than a guess.
