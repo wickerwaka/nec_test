@@ -4760,3 +4760,111 @@ confirm the board is not wedged.  Both flashes are in `sw/testdata/flash_log.jso
    the campaign owner wants the EVT ratchet re-registered.
 5. The 2 `bs` seeds of the tranche residue and the 14 of the 500-seed one — the
    last of the ucore's own fabric residue, and the smallest it has ever been.
+
+---
+
+# STAGE U5 — CLOSURE
+
+## §53 THE PRE-REGISTRATION FOR F42's REFUTATION FIX
+
+Written and committed **before** the TB or the RTL is touched, so nothing below
+can be tuned to a result.  §52.10 item 1 handed U5 an RTL item: *"the ucore
+drives the HALT display's upper nibble differently from silicon and drops it a
+row early; that is a named, measured, scoreable divergence in fabric and it is
+the ucore's."*
+
+### §53.1 THE MEASUREMENT THAT DEFINES THE ITEM (fabric, already on disk)
+
+`sw/testdata/u4-f42/`, the U4 pass-3 capture, `HLT.RES` w0 `idx 10`
+(the `idx` field is the pin delay `d` — §43.0's numbering trap):
+
+| row | tstate/bs | GOLDEN `bus` / `data` | uCORE IN FABRIC |
+|---|---|---|---|
+| 3 | Ti HALT | `0x2AD8A` / `AD8A` | **`0x0AD8A`** / `AD8A` |
+| 4 | T1 HALT | `0x2AD8A` / `AD8A` | **`0x0AD8A`** / `AD8A` |
+| 5 | T2 PASV | `0x2AD8A` / `AD8A` | **`0x29090`** / **`9090`** |
+| 6 | T3 PASV | `0x2AD8A` / `AD8A` | **`0x29090`** / **`9090`** |
+
+TWO defects, not one.  (a) the upper nibble: the ucore leaves A19-16 UNDRIVEN
+across the HALT display and its T1 (`halt_pin` gates both `ad_oe_addr` and
+`ad_oe_ps` off and publishes through `ad_oe_data` alone), where the part drives
+**a LIVE PS** — M10, and `sim/biu_timed.cpp::note_halt`'s
+`acc.addr = (data_ps(2) << 16) | last_fetch_addr`.  (b) the low lane: from T2
+the ucore lets AD15-0 go, where the part still shows the announced address.
+The SIM reproduces the golden on all four rows exactly
+(`timed_gate --sbs HLT.RES:10`, row-diffs 0).
+
+### §53.2 THE MECHANISM, STATED BEFORE THE FIX IS WRITTEN
+
+**The HALT pseudo-cycle has no data phase.**  Every other cycle hands AD15-0
+over at the end of T1 — to the write data (`t1_half2`) or to the memory — and
+`halt_pin` was written as though a HALT did the same, on the DATA path, with
+the upper nibble dropped.  A HALT hands the bus to nobody, so the announced
+address is never taken away from it: **the address drive stands for the whole
+pseudo-cycle**, upper nibble included, and the upper nibble is `data_ps(2)`
+because that is what `note_halt` puts in the access's `addr` (M10).  One term,
+no new state, and F41's `!st_rel` term is subsumed — a woken DISPLAY landing
+inside the HALT still wins, because `display` precedes it in the pin mux.
+
+### §53.3 THE INSTRUMENT — AND IT HIDES THE SAME DEFECT IN **BOTH** CORES
+
+`hdl/tb/tb_v30_core.sv`:
+
+```
+wire drive_hi_a = (com_phase && BS != 3'b011) || (tb_t == ST_T1 && lat_type != 3'b011);
+```
+
+`3'b011` is HALT, so on a HALT display and its T1 the composer substitutes
+`hold` for A19-16 **whatever the core drives**.  It has always given the right
+answer for a reason that is not luck and is not correctness: the retained
+nibble is the PREVIOUS cycle's PS, and the previous cycle is a CS fetch with
+the same IE, so `hold[19:16] == data_ps(2)` by construction.  Measured over the
+committed goldens, the HALT display's upper nibble is **`6` in all 200
+`HLT.INT`, `2` in all 200 `HLT.RES`, and `{2,6}` in `HLT.NMI`** — i.e.
+`{md, ie, CS}` and NEVER `0`.  Both cores drive `0`/nothing there:
+`v30u_biu.sv:583` `{4'h0, r_last_fetch_addr}`, and the FROZEN FSM core's
+`v30_biu.sv:1914` `{4'h0, fetch_phys[15:0] - 16'd2}` with `ad_oe_ps` explicitly
+excluding `cur_kind != K_HALT`.
+
+The mask is removed for the address phase — `drive_hi_a = com_phase ||
+(tb_t == ST_T1)` — which is engine-neutral by construction (it names no core
+signal) and is U3 open item 1 discharged with the pre-registered before/after
+on BOTH cores that §45.3 required.
+
+### §53.4 THE BARS, REGISTERED
+
+Baselines on the clean-HEAD binaries (`fsm` sha256 `f177d0f67d…`, `ucore`
+`2e9e0f6404…`, both rebuilt from HEAD and bit-identical to the tree's):
+
+| leg | `s10-w0` | `s10-w1` | `s13-w2` | `s13-w3` | total |
+|---|---|---|---|---|---|
+| the MODEL | 91/97 | 95/95 | 44/46 | 42/45 | **272/283** |
+| **ucore**, TB as committed | 90/97 | 88/95 | 37/46 | 34/45 | **249/283** |
+| **FSM**, TB as committed (FIRST MEASUREMENT) | 86/97 | 80/95 | 27/46 | 23/45 | **216/283** |
+
+1. **With the mask removed and NO RTL fix**: both cores lose every HLT cell
+   whose HALT display is scored — `check_core --opcodes all` (v0.1) falls by
+   the 600 `HLT.INT`/`HLT.RES`/`HLT.NMI` cases to **168,400** on BOTH cores,
+   and both sweep totals fall.  *If either core does NOT fall, §53.3's reading
+   of the mask is wrong and the fix is not yet justified.*
+2. **With the mask removed AND the ucore fixed**: `check_core --core ucore
+   --opcodes all --cases 0` is **169,000/169,000** again and the four sweeps
+   are **at or above 249/283**.  *If v0.1 does not return to 169,000 the fix is
+   incomplete and is not landed.*
+3. **The FSM core is NOT fixed** — this campaign does not touch the frozen
+   core's RTL (the flashed FSM A/B bitstream is built from HEAD and must stay
+   that way, §52.8).  Its post-mask numbers are recorded as a **finding routed
+   to the campaign owner with the disposition decision**, not as a regression
+   this stage created: the defect predates the instrument change by every
+   commit in the repo.
+4. **The whole ucore ladder is re-scored** and the expectation is **zero
+   deltas** outside the HLT cells: G3, `w1`/`w3`, `EB`, the four `evt` cells,
+   `w1evt-biased`, boot 220/400, both lockstep legs, wvec, ENTER, INS, the fuzz
+   bank and the b2 tranche.  A move anywhere else falsifies "one term, no new
+   state".
+5. **What this gate CANNOT see, stated in advance**: defect (b), the low lane
+   from T2.  The TB retains AD15-0 across a HALT-typed cycle
+   (`cycle_live` excludes HALT), so rows 5/6 are scored from `hold` and read
+   correct whether the core drives them or not.  **Defect (b) is verifiable
+   only in fabric.**  It is fixed by the same one term and its offline evidence
+   is the `+padtrace` enable pattern, not a scored cell.
