@@ -7542,3 +7542,180 @@ part, not what parted.
   hypothesis with a registered falsifier and a directed cell, not as a law.
 * **No board contact in half A.**  H4 / H5 / H6 and the 8080 work (`gaps` §F.1,
   a pending USER decision) were not opened.
+
+## §65 SESSION SM3, SITTING 5 (half B) — THE TWO DIRECTED CELLS RAN
+
+**2026-08-04, branch `ucsim`, socket only (`use_core=False`), FLASH #4, NO
+FLASHING.**  Pre-registration committed at **`8c5fc9750d`** BEFORE the first
+board contact: `docs/notes/sm3_h7_h3_prereg_2026-08-04.md`.  Single writer
+confirmed before contact (`0 users`, no serve process on `mister-nec`); the
+divider PINNED with the `div_guard` readback recorded in both manifests
+(`div=8 (4 MHz), commanded by this connection` -> **PINNED**); full per-clock
+rows + raw 64-bit words + `SHA256SUMS` retained; `board_idle()` run at the end
+and **OK**; no transport error and no stop in either cell.
+
+| cell | captures | retained files | tool | seconds |
+|---|---|---|---|---|
+| H7 (§63.3) | **160** | 322 (`sw/testdata/sm3-h7cell/`) | `sw/sm3_h7_cell.py` | 15.2 |
+| H3 class B (§63.6) | **96** | 194 (`sw/testdata/sm3-h3cell/`) | `sw/sm3_h3_cell.py` | 9.7 |
+
+**NOTHING WAS LANDED.**  Neither cell's authorising outcome fired, and no
+engine source was touched, so every standing ratchet stands where §64 left it.
+
+### §65.1 H7 — **Q4 FIRED.  THE CELL IS INCONCLUSIVE, AND THE NEGATIVE RESULT
+IS SHARP.**
+
+160 captures: 2 stimuli (`nop` = queue PRIMED, `ebnext` = queue DRY) × waits
+0/1/2/3 × delays 4…23, `hold = 2` on every one, **160/160 fired and 160/160
+contain the NMI vector read**.
+
+| | w0 | w1 | w2 | w3 |
+|---|---|---|---|---|
+| chip floor `min(V − A)`, **primed** (`nop`) | **13** | **13** | **13** | **13** |
+| chip floor `min(V − A)`, **dry** (`ebnext`) | **13** | **13** | **13** | **13** |
+
+* **Q1 HOLDS.** Cells with `V − A < 12`: **0**.  H7's standing falsifier is not
+  met.
+* **Q1b HOLDS.** Every (variant, wait) cell has a knee — the gap histograms run
+  13…18 — so `A` is the coordinate it is taken to be and the rig is sound.
+* **Q2 DID NOT FIRE.** The floor does not move with the queue state.  **No
+  landing is authorised**, and none was taken.
+* **Q3 DID NOT FIRE** either: the floor is not 12.
+* **Q4 FIRED — the pre-registered inconclusive branch.**  This stimulus never
+  reaches `A + 12`.  Per §2.4 as written, **that is NOT a refutation of §63.2**;
+  those 30 banked seeds are silicon.
+
+**THE ENGINE LEG, on the same 160 captures and the same instrument** (measured
+offline BEFORE the board for the ucore, §2.3, and re-run for both engines
+after):
+
+| | chip floor | `ucore` floor | `sim` floor | delta |
+|---|---|---|---|---|
+| all 8 (variant, wait) cells | **13** | **13** | **13** | **+0, everywhere** |
+
+**On this stimulus both engines are EXACTLY right.**  In the coordinate §63.2
+uses, the chip's recognition instant here is `A + 4`, with **zero exceptions in
+160 captures**, and the bank's `14 at A+3 / 7 at A+4` split has landed entirely
+in the `A + 4` camp.
+
+**WHAT THE CELL RULES OUT, AND IT IS THE POINT OF IT.**  Composing the window
+`[A, V)` for the cell's 160 captures and for the banked population:
+
+| | cycles in `[A, V)` | EU cycles in the window | `bs` at `A+3` |
+|---|---|---|---|
+| **the cell**, 160 | 0:1 · 1:111 · 2:45 · 3:3 | **0 on all 160** | CODE 122 · PASV 38 |
+| **banked, at the floor `A+12`**, 30 | 0:6 · 1:17 · 2:7 | **0 on all 30** | CODE 23 · PASV 7 |
+| banked, `A+13`, 18 | 1:16 · 2:2 | 0 on 16, 1 on 2 | CODE 14 · PASV 4 |
+
+**The cell's population and the bank's floor population are the same population
+on every axis measurable in the window — and they disagree by one clock.**
+Together with §63.3's four eliminations (wait class, rig delay, bus owner at A,
+queue occupancy at A) and this cell's two more (queue PRIMED vs DRY, and the
+window's own composition), **essentially everything local to the pin event is
+now excluded.**
+
+**THE LEAD THIS HANDS THE NEXT SITTING, and it is where simplicity points.**
+The selector is not on the pin side; it is **which instruction's boundary the
+recognition lands on.**  The evidence converges from three directions:
+
+* the cell's two stimuli are a NOP sled and an `EB 00` chain — **two opcodes** —
+  and both are 100 % `A + 4`;
+* the golden NMI forms are `NMI.90` (NOP) and `NMI.B8` (`MOV AW, imm16`) —
+  **two opcodes** — and §63.3's refutation is that shortening the pipeline
+  breaks exactly their 17 A-limited cases, i.e. **they too are `A + 4`**;
+* the `A + 3` camp lives only in `gen_soup`'s random instruction streams.
+
+That reading also **dissolves §63.3's contradiction** without a new number: the
+two silicon populations are not disagreeing about the latch, they are running
+different instructions.  *The measurement that would take it, and it needs no
+board*: the opcode at the recognition boundary for the 30 banked `A+12` seeds
+against the 18 `A+13` ones, read out of the model's `V30SIM_EVTTRACE` boundary
+against the regenerated image.  **NOT taken here** — it is a new hypothesis, it
+belongs in its own pre-registration, and this sitting's scope is the two cells.
+
+*H7 stays BLOCKED*, with its registered falsifiers unchanged and one more
+eliminated axis under them.
+
+### §65.2 H3 CLASS B — **R4 MISSED: THE CELL DID NOT REACH THE FAMILY, AND
+BOTH ENGINES ARE EXACT ON EVERY SLOT IT DID REACH**
+
+96 captures: 3 variants (`mw` baseline, `mwseg` = ES: override so the EU's
+request arrives later, `mr` = no-ModRM read so it arrives earlier) × pads 0…7 ×
+waits 0/1/2/3, **3,744 EU accesses**, no pin event.
+
+* **R1 — PARTLY MET, and the part that is not is stated.**  The pad sweep does
+  move the achieved occupancy, but only at **w0**, where it spans **{2, 3, 4,
+  5}** — 3 or more values in all three variants, as registered.  At **w1/w2/w3
+  it spans only {2, 3}**, two values, so §63.6's cell (a) is answered at w0 and
+  **is NOT answered at the higher wait levels by this stimulus.**  Reported as
+  registered, not restated.
+* **R2 — MET, and VACUOUSLY.**  Within every (variant, wait, occupancy) cell
+  the chip's grant order is constant — but the constant is the same one
+  everywhere: **prefetch-first on 3,744 of 3,744 accesses**, at every
+  occupancy from 2 to 5, in all three variants, at all four wait levels.  The
+  previous cycle is `CODE` on **312/312** accesses in every (variant, wait)
+  cell.  A coordinate that never varies cannot be a function of anything.
+* **R3 — the request instant DID move**, which is the one thing that worked as
+  designed.  The gap from the preceding fetch's T1, per variant:
+
+  | | w0 | w1 | w2 | w3 |
+  |---|---|---|---|---|
+  | `mr` (early) | 4:253 · 6:47 · 7:12 | 6:312 | 7:312 | 8:312 |
+  | `mw` (baseline) | 4:229 · 6:83 | 6:168 · 8:144 | 7:312 | 8:312 |
+  | `mwseg` (late) | 4:206 · 6:106 | 6:168 · 8:144 | 7:312 | 8:312 |
+
+  Three distinct curves at w0 and two at w1, so the EU's request really was
+  placed at different instants relative to the prefetcher's eligibility.
+* **R4 — MISSED, AND THAT IS THE RESULT.**  §63.6's class-B signature is *the
+  two sides open a cycle on the same clock and disagree about whose it is*.
+  Scored by ordinal against **both** engines on the same captures:
+
+  | | same-clock, different owner | agreement |
+  |---|---|---|
+  | `sim` | **0** | **3,744 / 3,744** at every occupancy |
+  | `ucore` | **0** | **3,744 / 3,744** at every occupancy |
+
+  **Zero.  The pre-registration says exactly what this means**: *"the cell has
+  not reached the family … and no conclusion about the tie-break may be drawn
+  from these captures."*  It is honoured.
+
+**WHAT IT ESTABLISHES ANYWAY, and it is not nothing.**  On a controlled
+arbitration sweep — a flush, a known refill, occupancy 2 through 5, three EU
+request instants, four wait levels, 3,744 accesses — **both engines reproduce
+the chip's grant order exactly, without a single exception.**  Class B is
+therefore NOT reachable by *"a redirect, then an EU access at varied
+occupancy"*, and §63.6's negative result on occupancy is reinforced from the
+other side: the coordinate the work order named does not produce the family
+even when it is swept deliberately.
+
+**WHY THE CELL MISSED, and the spec that follows from it.**  Every access in
+this stimulus is preceded by a `CODE` fetch (312/312) because the `EB 00` flush
+resynchronises the refill, and the pad moves the EU request in **whole bytes**
+— 2 to 3 clocks at a time — not in clocks.  So the EU request never lands ON
+the prefetcher's eligibility instant; it always lands clearly after it, and
+there is no tie to break.  The wait sweep does shift the phase by one clock per
+level and the engines agree at all four, which is a real four-phase control,
+but four phases of a coarse sweep is not the same as the contested slot.
+
+*The cell that would reach it* (spec only, NOT taken): the same body with the
+EU request moved in **CLOCK** steps rather than byte steps — a per-access wait
+vector on the fetch immediately preceding the access (the mechanism
+`timed_wvec_gate` already drives), so the prefetcher's eligibility instant
+walks past a fixed EU request one clock at a time.  Alternatively, drive the
+access from a queue that is NOT refilling after a flush — the banked family's
+contested slots skew to occ 3-5 with the prefetcher steady-state, not
+recovering.
+
+**Class B remains open, remains 184-of-221 a `sim/` debt, and nothing was
+landed.**
+
+### §65.3 WHAT THIS HALF DID NOT DO
+
+* **No flashing**; FLASH #4 is still on the board and neither cell used the
+  core.  `board_idle()` OK.
+* **Nothing landed in either engine.**  Neither cell's authorising outcome
+  fired (H7's Q2, H3's single pre-registered mechanism), so no ratchet was
+  touched and none needed re-measuring.
+* **H4 / H5 / H6 and the 8080 work were not opened.**
+* **The H7 opcode census was not taken** (§65.1) — it is a new hypothesis and
+  needs its own pre-registration.
