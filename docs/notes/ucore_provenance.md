@@ -3811,3 +3811,182 @@ one measurement:
 
 Recorded as a U5 item with the packing already worked out, so whoever takes it
 starts from a measurement rather than a guess.
+
+## §49 F47 CLOSED — `begin_sequence()`'s OTHER LINE WAS NOT TRANSCRIBED AT THE INSTRUCTION BOUNDARY
+
+**Class: RTL BUG (a mechanism rendered half — §16's named class, and F41's
+shape exactly).  LANDED: REGISTERED 1,394 -> 1,483 (+89), tranche 168 -> 171.**
+
+§45.4 item 6 sent U4 here first: 83 registered seeds where the ucore *"gets the
+write cycle's address and timing exactly right and the DATA WORD wrong"*, on
+opcodes the 169,000-case golden suite does not reach.
+
+### §49.1 THE CENSUS, RE-DERIVED, AND THE PREDICATE STATED
+
+Re-derived on the current binary rather than inherited (the seed list is not
+U3's).  The predicate is a property of the DIFF, not of the opcode: *the seed is
+in the scored REGISTERED population, the ucore diverges, the FIRST diverging
+row's only parting column is `ad_data` at a T2/T3 clock, and the chip
+transaction containing that row is `MEMW` or `IOW`.*
+
+**95 seeds** (MEMW 81, IOW 14) of 308 ucore divergences; all 104 `data`-first
+rows carry exactly one item, 0 mixed.  `ndiff = 2` — just the write's T2+T3 —
+in **38**, and `<= 6` in **51**.  28 distinct owning opcodes.  Tranche: 3.
+
+### §49.2 THE DISCRIMINATOR, RUN BEFORE ANY RTL READING
+
+For each family seed: is the MODEL's word at that same row right?
+
+| | REGISTERED | tranche |
+|---|---|---|
+| **A — model RIGHT, ucore WRONG -> RTL BUG** | **84** (73 of them the model is exact over the whole seed) | 3 |
+| B — model diverged EARLIER, cannot discriminate (excluded, not counted against anything) | 7 | 0 |
+| **C — model ALSO wrong -> SHARED, ledger not patch** | 4 | 0 |
+
+### §49.3 THE MECHANISM — ONE LINE, AND IT IS A PROPERTY OF THE BOUNDARY
+
+`CpuT::step()` (`sim/exec_impl.h:777`) opens EVERY instruction with
+`begin_sequence()` (`:710`):
+
+```cpp
+pend_ = Pending{};  rdq_.clear();  opr_fresh_ = false;  rep_elems_ = 0;
+```
+
+The RTL transcribes that block **verbatim at the interrupt entry**
+(`v30u_eu_step.svh`, comment *"`begin_sequence()`: the pairing latch and the
+completed-read store"*) and at reset.  At **`S_INSTR_END`** — the ORDINARY
+instruction boundary — only ONE member survived:
+
+```systemverilog
+rep_chain = 1'b0;                    // `begin_sequence()`: rep_elems_ = 0
+```
+
+So a `-> OPR` write in instruction N left the **pairing latch armed into N+1**,
+and `eu_pair` fired on N+1's POSTING row and handed the BIU **N's operand**.
+`soup_1008` (`PUSH AX`, `ndiff = 2`) is the whole bug in four clocks:
+
+```
+clk 488  upc=0.50.1  post=1 pair=1  a=03efe  wd=0f94  of=1   <- posts MEMW and PAIRS it same clock
+clk 489  upc=0.50.2  (M -> OPR)     opr=0f94 of=0            <- the supply row, stalled
+clk 490  T1 MEMW a=03efe   chip d=9d00   ucore d=0f94   sim d=9d00
+clk 500  upc=0.9c.0                opr=9d00 of=1            <- AX lands, 10 clocks late
+```
+
+`0f94` is what the PREVIOUS instruction's row `4.26.13` (`SIGMA -> OPR`) left in
+OPR.  **This is why the opcode list is diffuse and why the golden suite cannot
+reach it: the leak is a property of the BOUNDARY, not of either instruction, and
+a single-instruction case cannot build it.**  It needs a `-> OPR` in N and a
+store posted before its own supply row in N+1.
+
+Corroborating state, measured over the 84: **75 have NO architectural
+divergence at all before the failing write**; at its T1 `eu_opr_free = 0` in
+84/84 and `opr_fresh = 0` in 76/84; and in **67/84 the CORRECT word arrives in
+`opr` a few clocks LATER**, on the instruction's own datum-supply row.
+
+### §49.4 THE CAUSAL PROOF — THE MODEL WAS BROKEN THE SAME WAY ON PURPOSE
+
+Not an argument, an experiment, with the bars registered **before** the run: a
+scratch copy of `sim/` with **exactly one line commented out of
+`begin_sequence()` — `opr_fresh_ = false;`** — and nothing else.
+
+| bar | registered | **measured** |
+|---|---|---|
+| family seeds reproducing the ucore's EXACT wrong word | **>= 60/84** | **74/84**, and the patched model's first divergence lands on the SAME ROW INDEX in all 74 |
+| controls left exact | **>= 180/200** | **200/200** |
+| tranche | — | **3/3**, identical `ndiff` |
+
+*Falsifier, and it is honoured*: a family seed whose entry-time `opr_fresh` is
+already 0 and whose word is still wrong.  **Four of the 84 are exactly that**,
+so mechanism 1 is explicitly NOT claimed to be universal — §49.6 names the rest.
+
+*Registered, not restated*: a cheaper PROXY predicate was pre-registered at 0
+hits on the control and came in at 29, and at 3 after its supply-row detector
+was corrected to count `-> M` / `-> R`.  **It never reached 0.**  The claim
+rests on the patched-model experiment, not on the proxy.
+
+### §49.5 THE FIX, AND WHY IT GOES IN `iend_late`
+
+One line, no table, no per-opcode case, in `v30u_eu_iend_late.svh`:
+
+```systemverilog
+opr_fresh = 1'b0;
+```
+
+Deferred there rather than in `S_INSTR_END`'s immediate block **by that file's
+own stated condition**: the post-`E` row STILL READS `opr_fresh` (the `poste &&
+pend_active && (opr_fresh || poste_wr_opr)` arm of `eu_pair`, and `opr_now`),
+and the edge-`c` chain never writes it — so the register still holds the
+predecessor's value at the discharge and `iend_owed` pays it in the model's
+order.  That is F22's rule applied, not a new one.
+
+### §49.6 THE SCORE — AGAINST THE PRE-REGISTERED BAND, INCLUDING WHERE IT OVERSHOT
+
+| gate | before | registered bar | **after** |
+|---|---|---|---|
+| `check_core --core ucore --opcodes all` | 169,000/169,000 | **0 new failures** | **169,000/169,000** ✅ |
+| fuzz REGISTERED | 1,394/1,702 | **>= 1,434**, expected 1,446, **<= 1,464** | **1,483/1,702 (87.1 %)** |
+| b2 victory tranche | 168/188 | **171/188** | **171/188 (91.0 %)** ✅ exactly |
+| fuzz EVT | 184/1,008 | — | **192/1,008** |
+| fuzz COMBINED | 1,578/2,710 | — | **1,675/2,710 (61.8 %)** |
+| `BOUND WARNINGS` | 6 | — | **5** |
+
+**THE REGISTERED BAND WAS OVERSHOT AND THAT IS RECORDED AS A DEVIATION, NOT AS
+A WIN.**  +89 against a band whose top was +70.  The falsifier (*"if REGISTERED
+moves by fewer than 40, the attribution is wrong"*) is not met by a wide margin,
+so the attribution stands; but the size estimate was built from three
+sub-counts (40 near-certain / 52 whole-diff-equal / 70 model-exact) and all
+three under-predicted, which means the leak also converted seeds whose diff the
+patched-model experiment did not model exactly.  Named as an open estimate
+error rather than smoothed away.
+
+**The ucore now beats the model on the registered bank by 211 seeds**
+(1,483 vs 1,272) and on the victory tranche by 17 (171 vs 154).
+
+### §49.7 THE FOUR SHARED SEEDS — A LEDGER FINDING, DELIBERATELY NOT PATCHED
+
+| seed | cycle | chip | **both engines** |
+|---|---|---|---|
+| `raw_2340_8df9460dd643` | MEMW `0x3efd` (odd) | `35ab` | `ab35` |
+| `raw_3868_3995afd408b7` | MEMW `0x3ef8` ube=1 | `b6cd` | `cdb6` |
+| `raw_453_99bdf08b95ea` | MEMW `0xb97d` (odd) | `ad00` | `00ad` |
+| `raw_624_d20cc1a550cc` | MEMW `0x9998e` | `f206` | `fa87` (not a swap) |
+
+Three of four are an exact **byte swap on an odd-address word write** — M5b's
+"one pass through the A0 swapper" (`BiuTimed::mem_write`'s `swap8` on `a & 1`)
+applied where the chip does not.  The ucore and the model **agree with each
+other and disagree with the socket**, with identical `ndiff` on all four.  Per
+governance this is an RTL-vs-silicon question the sim SHARES: a ledger finding,
+never a patch.  Patching the ucore's rotation would knowingly create an
+RTL-vs-silicon defect that the model would then contradict.
+
+### §49.8 THE RESIDUAL TEN, NAMED
+
+* **6 — `8F`'s write-back drives a stale OPR when the pop lands at or after
+  T1.**  `soup_2862`: row `0.8f.3` asserts `eu_pair` at 586-587 with `wd=0000`;
+  the pop's `af05` reaches the EU at **591, the write's own T1**.  The model
+  gets it free because `rdq_` is filled at ISSUE time, and `deliver_read()`'s
+  comment records the measured chip behaviour verbatim: *"`8F.0` mod0 — the
+  write-back's cycle is reserved at the load's T3 eval, three clocks before the
+  load's data reaches OPR, and drives that data anyway."*  The ucore's
+  `opr_now` lookahead covers a completion on the pairing clock ONLY.
+  *Falsifier*: an `8F` seed whose completion lands strictly before T1 and whose
+  word is still wrong.
+* **3 — `10`/ADC, an ALU carry-in.**  `soup_721`: at `0.10.1` the ucore's
+  `tmpa/tmpb/tmpc` are byte-identical to the model's and `sigma` differs by
+  exactly **1** — CY=1 where the model has CY=0.  Two instructions back are
+  `9E` SAHF (AH bit -> CY=1) then `F5` CMC (CY -> 0), both executed by the
+  loader with ZERO micro-rows.  **Which of the two fails to land was NOT
+  decided**, because both produce CY=1.  *The measurement that decides it*:
+  `SSA_E_PSW` is already in the map, so `+ss_at=<clk>` reads PSW out at the
+  boundary between them **on the frozen binary, no RTL change**, against
+  `PSW=` in `v30sim image --trace`.
+* **1 — `raw_15` under `50`**, chip `ffc9` / ucore `ffc7`, off by 2.  Unexplained.
+
+### §49.9 THE OTHER TWO MEMBERS OF `begin_sequence()`, STILL NOT TRANSCRIBED
+
+`pend_*` and `rdq0/rdq1/rdq_n` are the remaining members that `S_INSTR_END`
+does not reset.  `pend_active` is provably 0 there (`S_TAIL_W` emits first), but
+**`rdq` demonstrably is not** — `soup_2862` carries `rdq=1 rdc=1` across the
+boundary into `0.97`, where the model would have dropped it.  Whether that is
+load-bearing is its own measurement (re-run the bank with `rdq_n = 0` added and
+see whether anything moves **in either direction**).  Not done here; U5 item.

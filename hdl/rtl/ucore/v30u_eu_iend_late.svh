@@ -35,6 +35,28 @@
 //  IMMEDIATE block, where `loader_decode`'s prologue puts it.
 //============================================================================
 m_kind = OK_NONE; r_kind = OK_NONE; wb_kind = OK_NONE;
+// F47 -- `begin_sequence()`'s OTHER line.  `CpuT::step()` (sim/exec_impl.h:777)
+// opens EVERY instruction with `begin_sequence()` (:710), which is
+// `pend_ = Pending{}; rdq_.clear(); opr_fresh_ = false; rep_elems_ = 0;`.
+// S_IRQ_D transcribes that whole block verbatim (v30u_eu_step.svh, "`begin_
+// sequence()`: the pairing latch and the completed-read store") and so does
+// reset -- but S_INSTR_END, the ORDINARY instruction boundary, transcribed only
+// its `rep_elems_` line (`rep_chain = 1'b0`).  So a `-> OPR` write in
+// instruction N left the PAIRING LATCH ARMED into N+1, and `eu_pair` fired on
+// N+1's POSTING row and handed the BIU N's operand: the write cycle is
+// addressed and timed exactly right and carries the WRONG DATA WORD, which is
+// F47's whole shape.  Diffuse by opcode (50-57, 6A, 8F, A2/A3, EE, AA, 86, ...)
+// because the leak is a property of the BOUNDARY, not of either instruction --
+// which is why the 169,000-case golden suite never reaches it: a
+// single-instruction case cannot build it.
+//
+// DEFERRED HERE rather than in S_INSTR_END's immediate block, by this file's
+// own stated condition: the post-`E` row STILL READS `opr_fresh` (the `poste &&
+// pend_active && (opr_fresh || poste_wr_opr)` arm of `eu_pair`, and `opr_now`),
+// and the edge-`c` chain (S_TAKE_OPC / S_DECODE / S_DECODE2 / S_PFX_CHG /
+// S_EXT_CHG1) never writes it -- so the register still holds the predecessor's
+// value at the discharge and `iend_owed` pays it in the model's order.
+opr_fresh = 1'b0;
 // ...and the `ALU OPC` permutation base, for the same reason (`40`/`48`, whose
 // INC/DEC comes from `opc_base = A_INC`, came out as ADD).
 opc_base = 5'd0; opc_from_modrm = 1'b0; modrm_reg = 3'd0;
