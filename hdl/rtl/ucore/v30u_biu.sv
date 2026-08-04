@@ -538,13 +538,28 @@ assign ss_bus_quiet = !r_run && !r_cmt_valid && (r_rq_n == 2'd0) && !r_halt_pend
 //----------------------------------------------------------------------------
 wire disp_inta = display && r_cmt_noaddr;
 wire cur_inta  = r_run && (r_ts == TS_T1) && r_cur_noaddr;
-// M21, THE PAD HALF.  "The HALT pseudo-cycle holds the bus only until its
-// STATUS RELEASE; from the release on every clock is an ordinary idle eval."
-// That was rendered for the STATUS (`bs`, below, is already `!st_rel`) and NOT
-// for the PADS, so a woken fetch whose DISPLAY lands inside the HALT's own
-// T2..T4 had its address one-shot suppressed by `halt_pin` and published the
-// HALT's retained `last_fetch_addr` instead.  One term, the same term.
-wire halt_pin  = (display && r_cmt_halt) || (r_run && r_cur_halt && !st_rel);
+// M10 / F51 -- THE HALT PSEUDO-CYCLE HAS NO DATA PHASE.
+//
+// Every other cycle hands AD15-0 over at the end of T1: to the write data
+// (`t1_half2`) or to the memory.  A HALT hands the bus to NOBODY, so the
+// address it announced is never taken away from it and it stands on the pads
+// for the whole pseudo-cycle -- A19-16 included, and A19-16 is `data_ps(2)`
+// because that is what `note_halt` puts in the access's own `addr` (M10: the
+// HALT display's upper nibble is a LIVE PS, not a constant).
+//
+// This replaces `halt_pin`, which rendered the HALT as though it DID have a
+// data phase: it published `{4'h0, r_last_fetch_addr}` through `ad_oe_data`
+// with both address enables gated OFF, so the upper nibble was undriven and
+// the low lane was let go at the status release.  MEASURED IN FABRIC
+// (sec.52.9, sec.53.1): golden `0x2AD8A` against the ucore's `0x0AD8A` on the
+// display and its T1, and `0x29090` from T2 where the golden still shows
+// `0x2AD8A`.  The socket control on the identical driver reproduces the golden
+// 49/49, so it is the core and not the rig.
+//
+// F41's `!st_rel` term is SUBSUMED, not dropped: a woken fetch whose DISPLAY
+// lands inside this cycle still publishes, because `display` precedes
+// `halt_hold` in the pin mux and in `ad_oe_addr` below.
+wire halt_hold = r_run && r_cur_halt;
 
 assign bs = display        ? r_cmt_bs
           : (r_run && !st_rel) ? r_cur_bs
@@ -580,21 +595,21 @@ wire [15:0] cur_data_o = pair_now
                                         : eu_wdata)
                        : r_cur_data;
 
-assign ad_o = halt_pin                ? {4'h0, r_last_fetch_addr}
-            : (disp_inta || cur_inta) ? 20'h0
+assign ad_o = (disp_inta || cur_inta) ? 20'h0
             : display                 ? r_cmt_addr
+            : halt_hold               ? r_cur_addr
             : (r_run && (r_ts == TS_T1))  ? (r_cur_wr && t1_half2
                                          ? {r_cur_addr[19:16], cur_data_o}
                                          : t1_addr)
                                       : {data_ps(r_cur_seg), cur_data_o};
 
-assign ad_oe_addr = (display || (r_run && (r_ts == TS_T1))) &&
-                    !disp_inta && !cur_inta && !halt_pin;
-assign ad_oe_ps   = (!ad_oe_addr && !halt_pin && r_run &&
+assign ad_oe_addr = (display || (r_run && (r_ts == TS_T1)) || halt_hold) &&
+                    !disp_inta && !cur_inta;
+assign ad_oe_ps   = (!ad_oe_addr && r_run &&
                      (r_ts != TS_T1) && (r_ts != TS_TI)) ||
                     disp_inta || cur_inta;
 assign ad_oe_data = (r_run && r_cur_wr && !r_cur_halt && !r_cur_noaddr &&
-                     (r_ts != TS_TI) && !display) || halt_pin;
+                     (r_ts != TS_TI) && !display);
 
 assign rd_n = !(r_run && ((r_ts == TS_T2) || (r_ts == TS_T3) || (r_ts == TS_TW)) &&
                 !r_cur_wr && !r_cur_halt);
@@ -1896,9 +1911,9 @@ always @(posedge clk) begin
     if (srst) padtrace_clk <= 0;
     else if (ce) begin
         if (padtrace_en)
-            $display("P %0d ad=%05x oe_addr=%0d oe_ps=%0d oe_data=%0d disp=%0d strel=%0d haltpin=%0d curhalt=%0d ts=%0d bs=%0d cmtaddr=%05x",
+            $display("P %0d ad=%05x oe_addr=%0d oe_ps=%0d oe_data=%0d disp=%0d strel=%0d halthold=%0d curhalt=%0d ts=%0d bs=%0d cmtaddr=%05x",
                      padtrace_clk, ad_o, ad_oe_addr, ad_oe_ps, ad_oe_data,
-                     display, st_rel, halt_pin, r_cur_halt, r_ts, bs,
+                     display, st_rel, halt_hold, r_cur_halt, r_ts, bs,
                      r_cmt_addr);
         padtrace_clk <= padtrace_clk + 1;
     end

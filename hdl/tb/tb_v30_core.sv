@@ -285,14 +285,42 @@ always @(negedge clk) begin
 end
 
 // composed bus value with float retention (protocol-inferred drive).
-// INTA cycles drive no address (AD19:16 = 0 during T1 only); HALT
-// pseudo-cycles drive AD15:0 only.
+// INTA cycles drive no address on AD15:0 (they drive AD19:16 = 0 during the
+// address phase, which is the "float pattern" the goldens carry).
+//
+// ucore U5 / ledger sec.53.3 -- THE ADDRESS PHASE DRIVES A19-16 ON EVERY CYCLE
+// TYPE, HALT INCLUDED.  This wire used to read
+//     (com_phase && BS != 3'b011) || (tb_t == ST_T1 && lat_type != 3'b011)
+// i.e. it substituted `hold` for A19-16 across a HALT display and its T1
+// whatever the core drove there.  That is not a model of the part: measured
+// over the committed goldens the HALT display's upper nibble is `6` in all 200
+// HLT.INT, `2` in all 200 HLT.RES and {2,6} in HLT.NMI -- it is `data_ps(2)`
+// = {md, ie, CS}, M10's LIVE PS, and never 0.  The mask read correct anyway
+// because the retained nibble is the previous cycle's PS and the previous
+// cycle is a CS fetch with the same IE, so `hold[19:16] == data_ps(2)` by
+// construction.  In FABRIC there is no retention and the ucore's undriven
+// nibble showed up as `0x0AD8A` against the golden's `0x2AD8A` (sec.52.9,
+// F42 REFUTED).  Engine-neutral: this names no core signal, and it exposes
+// the SAME defect in the frozen FSM core (sec.53.4 bar 3).
 logic [19:0] hold = '0;
-wire com_phase  = bs_active && (tb_t == ST_T4 || tb_t == ST_TI);
+// ...and the SECOND half of the same mask (ucore U5, F42's other population).
+// A display can land at T4 or Ti of an ordinary cycle -- but M21 says the HALT
+// pseudo-cycle "holds the bus only until its STATUS RELEASE; from the release
+// on, every clock is an ordinary IDLE eval, exactly as when the bus is
+// parked", so a HALT-typed cycle can carry a display at its T2/T3/Tw too and
+// that display drives an address like any other.  The GOLDENS say so directly:
+// `s10-hltsweep-w0 HLT.RES idx 5` golden row 6 is `9ad8c SS ad8c CODE T3`, a
+// full 20-bit address on a row the tracker calls T3.  Without this the
+// composer substituted `hold` there and 24 sweep cells were unscoreable --
+// which is what F42 read as an instrument ceiling.
+wire halt_cyc   = lat_type == 3'b011;
+wire com_phase  = bs_active && (tb_t == ST_T4 || tb_t == ST_TI ||
+                                (halt_cyc && (tb_t == ST_T2 ||
+                                              tb_t == ST_T3 ||
+                                              tb_t == ST_TW)));
 wire drive_lo_a = (com_phase && BS != 3'b000) ||
                   (tb_t == ST_T1 && lat_type != 3'b000);
-wire drive_hi_a = (com_phase && BS != 3'b011) ||
-                  (tb_t == ST_T1 && lat_type != 3'b011);
+wire drive_hi_a = com_phase || (tb_t == ST_T1);
 wire cycle_live      = tb_t != ST_TI && lat_type != BS_PASV &&
                        lat_type != 3'b011;
 wire core_ps_drive   = cycle_live && (tb_t == ST_T2 || tb_t == ST_T3 ||
