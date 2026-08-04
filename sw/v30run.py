@@ -311,11 +311,19 @@ class ServeRunner:
         return bytes(out) if out else b""
 
     def run(self, image, timeout=3.0, evt=None, iord=None, pins=None,
-            cap=None, iords=None):
+            cap=None, iords=None, want_raw=False):
         """evt = (linear_addr, delay, hold, pin 0=INT 1=NMI 2=POLL);
         iord = 16-bit I/O read data; pins = static PINS bits (b0 INT,
         b1 NMI, b2 POLL_N); cap = capture-record prefix to return
-        (v2 serve only). Returns (recs, evt_fired)."""
+        (v2 serve only). Returns (recs, evt_fired), or
+        (recs, evt_fired, words) with want_raw.
+
+        `want_raw` returns the UNDECODED 64-bit capture words.  SM2 / §59.7:
+        `s10_board.capture()` has asked for them since ADDENDUM #6 and this
+        module never had the parameter, so every s10/s13 probe raised
+        `TypeError` at import-time-clean/run-time.  The words were already
+        being unpacked here and thrown away; the blackbox retention rule
+        (*full per-clock rows + sha256, never digests alone*) wants them."""
         opts = ""
         if evt is not None:
             a, d, ho, p = evt
@@ -367,6 +375,8 @@ class ServeRunner:
                                f"{fields[4]} != {want:08x}")
         blob = base64.b64decode(self._readline(10))
         words = struct.unpack(f"<{len(blob) // 8}Q", blob)
+        if want_raw:
+            return decode_words(words), fired, words
         return decode_words(words), fired
 
     def close(self):
@@ -407,9 +417,11 @@ def _run_image_legacy(image, host, tag="test", waits=0):
 
 def run_image(image, host, tag="test", waits=0, evt=None, iord=None,
               pins=None, want_fired=False, cap=None, use_core=None,
-              wrand=None, wvec=None, iords=None, div=None):
+              wrand=None, wvec=None, iords=None, div=None, want_raw=False):
     """Run an image, return capture records (or (recs, evt_fired) with
-    want_fired). Uses the persistent serve session unless V30_NO_SERVE=1;
+    want_fired, or (recs, evt_fired, raw_words) with want_raw -- which
+    implies want_fired, because that is the shape `s10_board.capture()`
+    unpacks). Uses the persistent serve session unless V30_NO_SERVE=1;
     transport errors get one reconnect, then one legacy-path attempt
     before giving up (legacy path supports no evt/iord/pins).
 
@@ -424,8 +436,10 @@ def run_image(image, host, tag="test", waits=0, evt=None, iord=None,
     path only."""
     if os.environ.get("V30_NO_SERVE") == "1":
         if evt is not None or iord is not None or pins is not None \
-                or use_core is not None or wrand is not None or wvec is not None:
-            raise RunError("evt/iord/pins/use_core/wrand/wvec require serve")
+                or use_core is not None or wrand is not None or wvec is not None \
+                or want_raw:
+            raise RunError("evt/iord/pins/use_core/wrand/wvec/want_raw "
+                           "require serve")
         return _run_image_legacy(image, host, tag, waits)
     r = _runners.get(host)
     if r is None:
@@ -436,8 +450,11 @@ def run_image(image, host, tag="test", waits=0, evt=None, iord=None,
             r.cfg(waits, use_core, div)
             r.wrand(wrand if wvec is None else None)
             r.replay(wvec)
-            recs, fired = r.run(image, evt=evt, iord=iord, pins=pins,
-                                cap=cap, iords=iords)
+            got = r.run(image, evt=evt, iord=iord, pins=pins,
+                        cap=cap, iords=iords, want_raw=want_raw)
+            if want_raw:
+                return got                       # (recs, fired, words)
+            recs, fired = got
             return (recs, fired) if want_fired else recs
         except RunError as e:
             r.close()
@@ -445,9 +462,10 @@ def run_image(image, host, tag="test", waits=0, evt=None, iord=None,
                 print(f"serve path failed twice ({e}); trying legacy path",
                       file=sys.stderr)
     if evt is not None or iord is not None or pins is not None \
-            or use_core is not None or wrand is not None or wvec is not None:
-        raise RunError("serve path failed and evt/iord/pins/use_core/wrand/wvec "
-                       "have no legacy fallback")
+            or use_core is not None or wrand is not None or wvec is not None \
+            or want_raw:
+        raise RunError("serve path failed and evt/iord/pins/use_core/wrand/"
+                       "wvec/want_raw have no legacy fallback")
     return _run_image_legacy(image, host, tag, waits)
 
 
