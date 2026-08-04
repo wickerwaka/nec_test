@@ -18,8 +18,21 @@
 //  its output exactly as the die's PLA + ROM stand on the micro-address
 //  register.  Registering either output would insert a bubble the part does
 //  not have: `loc` crosses a rowgrp boundary every four rows WITHOUT a taken
-//  jump, so a registered decode would cost a clock there.  (U4 owns the
-//  synthesis shape; the `ramstyle` hints below are what Quartus is asked for.)
+//  jump, so a registered decode would cost a clock there.
+//
+//  AND THE TOOL AGREES IT MAY STAY THAT WAY.  U4 pass 1 read Quartus's
+//  `Info (276007) ... uninferred due to asynchronous read logic` as the cause
+//  of the 32,534-cell EU and called for a registered ROM.  Pass 2 MEASURED it
+//  instead: these two tables, read exactly as below off a registered 15-bit
+//  micro-address, cost 1,120 logic cells standalone and 1,026 in the design --
+//  3 % of the EU, not 60 %.  The area was the UNROLLED CHAIN in v30u_eu.sv
+//  (ucore_provenance.md sec.51), and the read stays combinational because it
+//  is what the part does.
+//
+//  NOTE: the word "synthesis" followed by an identifier inside a comment is
+//  parsed by Quartus as a PRAGMA -- sec.50.4's `Warning (10335): Unrecognized
+//  synthesis attribute "shape"` came from a COMMENT on this line.  Harmless
+//  there, silent and not harmless if the next word is a real attribute name.
 //
 //  Provenance: hdl/rtl/ucore/ucrom.hex / ucdecode.hex, emitted by
 //  sw/gen_ucore_tables.py and gated byte-for-byte against the C++ model by
@@ -50,8 +63,15 @@ module v30u_ucrom #(
     output     [28:0] rom_word
 );
 
-(* ramstyle = "M10K" *) reg [9:0]  ucdecode [0:8191];
-(* ramstyle = "M10K" *) reg [28:0] ucrom    [0:1027];
+// `ucdecode` is TWELVE bits wide for a TEN-bit word, and that is deliberate:
+// `ucdecode.hex` carries three hex digits (a 10-bit value has no shorter hex
+// form), and against a `[9:0]` target Quartus emitted `Warning (10230):
+// truncated value with size 12 to match size of target (10)` on EVERY ONE of
+// its 8,192 lines -- 8,192 warnings burying the map log (sec.50.4).  Bits
+// [11:10] are constant zero in every entry, so they cost nothing after
+// synthesis, and `dec_w[9:0]` below is the word.
+reg [11:0] ucdecode [0:8191];
+reg [28:0] ucrom    [0:1027];
 
 initial begin
     $readmemh({HEXDIR, "ucdecode.hex"}, ucdecode);
@@ -96,14 +116,14 @@ initial begin
         $fatal(1, "v30u_ucrom: ucrom.hex did not load from '%s' -- the ROM is EMPTY (F44)", HEXDIR);
     if (ucrom[1027] === 29'd0 || (^ucrom[1027]) === 1'bx)
         $fatal(1, "v30u_ucrom: ucrom.hex is SHORT from '%s' -- row 1027 never loaded (F44)", HEXDIR);
-    if (ucdecode[13'h0000] === 10'd0 || (^ucdecode[13'h0000]) === 1'bx)
+    if (ucdecode[13'h0000] === 12'd0 || (^ucdecode[13'h0000]) === 1'bx)
         $fatal(1, "v30u_ucrom: ucdecode.hex did not load from '%s' -- the decode table is EMPTY (F44)", HEXDIR);
-    if (ucdecode[13'h1E43] === 10'd0 || (^ucdecode[13'h1E43]) === 1'bx)
+    if (ucdecode[13'h1E43] === 12'd0 || (^ucdecode[13'h1E43]) === 1'bx)
         $fatal(1, "v30u_ucrom: ucdecode.hex is SHORT from '%s' -- the last valid entry (0x1E43) never loaded (F44)", HEXDIR);
 end
 `endif
 
-wire [9:0] dec_w = ucdecode[dec_addr];
+wire [9:0] dec_w = ucdecode[dec_addr][9:0];
 
 assign dec_valid = dec_w[9];
 assign dec_bank  = dec_w[8:0];

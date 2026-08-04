@@ -350,6 +350,22 @@ localparam bit [5:0]
     S_IRQ_D     = 6'd32,  // the recognised boundary's ONE decision clock
     S_1BL_CHG   = 6'd33;  // ...and the 1BL form's own trailing charge(1)
 
+// THE NINE STATES A ZERO-COST HAND-OVER CAN LEAVE THE CHAIN STANDING IN.
+// Every OTHER arm's predecessors set `stop`, so no other state can occupy a
+// chain position >= 1 -- the property v30u_eu_step.svh's 24 `chain == 4'd0`
+// guards rest on, and the one this fails safe against.
+//
+// A FUNCTION AND NOT A WIRE, and that is F11b's trap for the fourth time: `st`
+// is written with BLOCKING assignments inside the chain, so a `wire` off it
+// carries the PRE-EDGE state and the test would ask about position 0's state
+// at position 1.  Measured as written: 392/4164.
+function automatic logic st_zero_ok(input [5:0] s);
+    st_zero_ok = (s == S_TAKE_OPC) || (s == S_DECODE) || (s == S_DECODE2)
+              || (s == S_EA_CALC)  || (s == S_BIND)   || (s == S_ENTER)
+              || (s == S_TAIL)     || (s == S_TAIL_POP)
+              || (s == S_INSTR_END);
+endfunction
+
 //============================================================================
 // THE COMPOSITION (campaign risk #1, second half) -- F7, see the ledger
 //============================================================================
@@ -1457,7 +1473,23 @@ assign dbg_pend = (rd_pending != 2'd0) || (rdq_n != 2'd0) || poste;
 `ifndef SYNTHESIS
 reg eutrace = 0;
 initial if ($test$plusargs("eutrace")) eutrace = 1;
+reg chain_report = 0;
+initial if ($test$plusargs("chaindepth")) chain_report = 1;
+reg [3:0] chain_used, chain_hi = 4'd0;
+reg [5:0] chain_first;
+`ifdef CHAIN_PROBE
+reg cp_seen [0:1023];
+integer cpi;
+initial for (cpi = 0; cpi < 1024; cpi = cpi + 1) cp_seen[cpi] = 1'b0;
 `endif
+`endif
+
+// The bounded zero-cost chain.  See the loop at the bottom of the clocked
+// block: `CHAIN_MAX` is how many of the model's zero-cost steps may ride one
+// clock, and it costs a FULL UNROLLED COPY of the step case per unit -- which
+// is why 24 of the 33 arms are folded out of positions >= 1 (v30u_eu_step.svh).
+localparam bit [3:0] CHAIN_MAX = 4'd12;
+
 integer i;
 reg        stop;
 reg  [3:0] chain;
@@ -1700,11 +1732,60 @@ always @(posedge clk) begin
                      rd_done_cnt, tmpa, tmpb, tmpc, sigma, pfxcnt_eff);
 `endif
         stop = 1'b0;
-        for (chain = 0; chain < 4'd12; chain = chain + 4'd1) begin
+`ifndef SYNTHESIS
+        chain_used = 4'd0;
+        chain_first = st;
+`endif
+        for (chain = 0; chain < CHAIN_MAX; chain = chain + 4'd1) begin
             if (!stop) begin
-                `include "v30u_eu_step.svh"
+`ifndef SYNTHESIS
+                chain_used = chain + 4'd1;
+`ifdef CHAIN_PROBE
+                if (!cp_seen[{chain, st}]) begin : cprobe
+                    integer fd;
+                    cp_seen[{chain, st}] = 1'b1;
+                    fd = $fopen(`CHAIN_PROBE, "a");
+                    $fwrite(fd, "POS %0d ST %0d\n", chain, st);
+                    $fclose(fd);
+                end
+`endif
+`endif
+                // THE FAIL-SAFE.  The 24 position-0-only arms are folded out
+                // of positions >= 1 (see v30u_eu_step.svh's header).  If one
+                // ever DID stand there the folded copy would assign nothing,
+                // `stop` would stay low, and the machine would sit on the same
+                // state forever.  This turns that impossible case into a spent
+                // clock -- the same failure the CHAIN OVERFLOW `$fatal` names,
+                // but survivable in fabric where there is no assertion.
+                if ((chain != 4'd0) && !st_zero_ok(st)) stop = 1'b1;
+                else begin
+                    `include "v30u_eu_step.svh"
+                end
             end
         end
+`ifndef SYNTHESIS
+        // THE CHAIN BOUND IS A CLAIM, SO IT IS CHECKED.  `CHAIN_MAX` is the
+        // number of ZERO-COST model steps that may ride one clock; running out
+        // while `stop` is still low would silently push the remainder into the
+        // NEXT clock -- a cadence error, not a hang, and therefore invisible
+        // without this line.
+        if (!stop)
+            $fatal(1, "v30u_eu: CHAIN OVERFLOW at CHAIN_MAX=%0d (entered in st=%0d, now st=%0d)",
+                   CHAIN_MAX, chain_first, st);
+        if (chain_used > chain_hi) begin
+            chain_hi = chain_used;
+            if (chain_report)
+                $display("CHAIN_DEPTH_MAX %0d entry_st %0d", chain_hi, chain_first);
+            `ifdef CHAIN_PROBE
+            begin : probe
+                integer fd;
+                fd = $fopen(`CHAIN_PROBE, "a");
+                $fwrite(fd, "%0d %0d\n", chain_hi, chain_first);
+                $fclose(fd);
+            end
+            `endif
+        end
+`endif
 
         //====================================================================
         // (g) THE PIN PIPELINES, ADVANCED AT THE *END* OF THE EDGE

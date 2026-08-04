@@ -9,13 +9,38 @@
 //      (`st = ...;` with no `stop`) -- the model's steps that charge nothing.
 //
 //  Governance: sim/loader_impl.h and sim/exec_impl.h are the SPEC.
+//
+//  --- `if (chain == 4'd0)` -- WHY 24 OF THE 33 ARMS CARRY IT (U4 pass 2) ----
+//
+//  The chain loop in v30u_eu.sv is UNROLLED: every position costs a full copy
+//  of this file, and at CHAIN_MAX = 12 that copy was measured at ~2,200 logic
+//  cells -- 12 x 2,200 is what made the EU 30,621 cells and the design
+//  unroutable (ucore_provenance.md sec.51).  But a state can only STAND at
+//  chain position >= 1 if some arm hands over to it WITHOUT setting `stop`,
+//  and only NINE do:
+//
+//      S_TAKE_OPC  S_DECODE  S_DECODE2  S_EA_CALC  S_BIND
+//      S_ENTER     S_TAIL    S_TAIL_POP S_INSTR_END
+//
+//  Every other arm's predecessors all set `stop` -- read them: S_ROW is
+//  entered only from S_ENTER / S_ROW_CHG / S_RLOOP / S_IRQ_D / S_RESET and all
+//  five stop; S_DECODE2 stops on every path, which makes S_MODRM, S_NORM_CHG,
+//  S_HALTED, S_1BL_LEAD and S_1BL_CHG position-0-only; S_BIND's
+//  `if (st != S_ENTER) stop` makes S_PRERD and S_GRPD_CHG position-0-only; and
+//  so on.  The 24 guarded arms are therefore UNREACHABLE at chain >= 1, the
+//  guard folds them out of eleven of the twelve copies, and the property is
+//  falsifiable two ways: the CHAIN OVERFLOW `$fatal` in v30u_eu.sv fires if a
+//  guarded state ever stands at chain >= 1, and the `st_zero_ok` fail-safe
+//  around this include spends a clock rather than hanging if one ever did in
+//  fabric.  MEASURED as well as argued: a (position, state) census over the
+//  golden suite + boot saw exactly those nine states at position >= 1.
 //============================================================================
 case (st)
 
 //----------------------------------------------------------------------------
 // loader_impl.h -- `pop_opcode`, the prefix loop
 //----------------------------------------------------------------------------
-S_OPC_POP: begin
+S_OPC_POP: if (chain == 4'd0) begin
     // pop_opcode with an EMPTY latch: the pop rides this clock, then the
     // decoder spends one (`if (!pre) biu.charge(1)`).
     //
@@ -73,18 +98,18 @@ S_DECODE: begin
     end
 end
 
-S_PFX_CHG: begin
+S_PFX_CHG: if (chain == 4'd0) begin
     pop_is_first = 1'b1;                        // prefix_retire()
     st = S_OPC_POP;
     stop = 1'b1;
 end
 
-S_EXT_CHG1: begin
+S_EXT_CHG1: if (chain == 4'd0) begin
     st = S_EXT_POP;
     stop = 1'b1;
 end
 
-S_EXT_POP: begin
+S_EXT_POP: if (chain == 4'd0) begin
     // the second byte of the 0F page IS the opcode, and it pops as an S
     if (!q_ripe) stop = 1'b1;
     else begin
@@ -152,7 +177,7 @@ S_DECODE2: begin
     end
 end
 
-S_1BL_LEAD: begin
+S_1BL_LEAD: if (chain == 4'd0) begin
     // `wait_retire_lead`, and NOTHING ELSE: the execute strobe is the clock
     // BEFORE the successor's opcode pop, so a late queue takes the flag write
     // with it -- but the write itself is made on the edge that hands over to
@@ -165,7 +190,7 @@ S_1BL_LEAD: begin
     end
 end
 
-S_1BL_CHG: begin
+S_1BL_CHG: if (chain == 4'd0) begin
     // "pre-decode-executed forms retire in 2 clocks" -- the trailing
     // `biu.charge(1)`, which both arms of the strobe owe.
     st = S_INSTR_END;
@@ -174,7 +199,7 @@ end
 //----------------------------------------------------------------------------
 // loader_impl.h -- ModR/M, displacement, effective address
 //----------------------------------------------------------------------------
-S_MODRM: begin
+S_MODRM: if (chain == 4'd0) begin
     if (!q_ripe) stop = 1'b1;
     else begin
         ld_rm = q_byte;
@@ -192,7 +217,7 @@ S_MODRM: begin
     end
 end
 
-S_D8_A: begin
+S_D8_A: if (chain == 4'd0) begin
     // opcode+2: no byte is demanded.  M8's `pen` needs to know whether the
     // byte was ALREADY poppable when the demand arrives.
     ld_ripe_prev = q_ripe;
@@ -200,7 +225,7 @@ S_D8_A: begin
     stop = 1'b1;
 end
 
-S_D8_B: begin
+S_D8_B: if (chain == 4'd0) begin
     if (!q_ripe) stop = 1'b1;
     else if (!ld_ripe_prev && (chg == 2'd0)) begin
         chg = 2'd1;                                     // the `pen` clock
@@ -212,7 +237,7 @@ S_D8_B: begin
     end
 end
 
-S_D16_LO: begin
+S_D16_LO: if (chain == 4'd0) begin
     if (!q_ripe) stop = 1'b1;
     else begin
         ld_dlo = q_byte;
@@ -222,14 +247,14 @@ S_D16_LO: begin
     end
 end
 
-S_D16_A: begin
+S_D16_A: if (chain == 4'd0) begin
     ld_ripe_prev = q_ripe;
     chg = 2'd0;
     st = S_D16_HI;
     stop = 1'b1;
 end
 
-S_D16_HI: begin
+S_D16_HI: if (chain == 4'd0) begin
     if (!q_ripe) stop = 1'b1;
     else if (!ld_ripe_prev && (chg == 2'd0)) begin
         chg = 2'd1;
@@ -241,7 +266,7 @@ S_D16_HI: begin
     end
 end
 
-S_EA_CHG: begin
+S_EA_CHG: if (chain == 4'd0) begin
     st = S_EA_CALC;              // the EA-compute clock is THIS one
 end
 
@@ -273,7 +298,7 @@ end
 //----------------------------------------------------------------------------
 // loader_impl.h -- group dispatch, OPC select, operand binding
 //----------------------------------------------------------------------------
-S_NORM_CHG: begin
+S_NORM_CHG: if (chain == 4'd0) begin
     st = S_BIND;                 // the opcode+1 clock is THIS one
 end
 
@@ -356,7 +381,7 @@ S_BIND: begin
     if (st != S_ENTER) stop = 1'b1;
 end
 
-S_PRERD: begin
+S_PRERD: if (chain == 4'd0) begin
     // the pre-decode operand read; `wait_opr` opens micro-row 0 at its T4 + 2
     if (!row_posted) begin
         if (eu_slot_busy_n) stop = 1'b1;
@@ -387,7 +412,7 @@ S_PRERD: begin
     end
 end
 
-S_GRPD_CHG: begin
+S_GRPD_CHG: if (chain == 4'd0) begin
     st = S_ENTER;
 end
 
@@ -405,7 +430,7 @@ end
 //----------------------------------------------------------------------------
 // exec_impl.h -- run_micro
 //----------------------------------------------------------------------------
-S_ROW: begin
+S_ROW: if (chain == 4'd0) begin
     if (row_blocked) begin
         stop = 1'b1;                                    // stall_opr
     end else if (row_need_q && !q_ripe) begin
@@ -465,13 +490,13 @@ S_ROW: begin
     end
 end
 
-S_ROW_CHG: begin
+S_ROW_CHG: if (chain == 4'd0) begin
     // the taken-JMP / FARJMP redirect bubble (M11 / 7.7)
     st = S_ROW;
     stop = 1'b1;
 end
 
-S_RLOOP: begin
+S_RLOOP: if (chain == 4'd0) begin
     // `R`: one iterative step per clock, COUNT times.  The row's own ALU
     // latch drives the ONE shared iterative unit; afterwards it is SPENT.
     count = count - 16'd1;
@@ -500,7 +525,7 @@ S_RLOOP: begin
     stop = 1'b1;
 end
 
-S_EPOP: begin
+S_EPOP: if (chain == 4'd0) begin
     // the E row's successor pop, deferred past the retire deadline
     if (!retire_ok_n) stop = 1'b1;
     // ...and the BOUNDARY is that deadline alone (`boundary_no_pop`'s
@@ -535,7 +560,7 @@ S_TAIL: begin
     if (st != S_INSTR_END) stop = 1'b1;
 end
 
-S_TAIL_W: begin
+S_TAIL_W: if (chain == 4'd0) begin
     // `if (!opr_fresh_) deliver_read(); emit_pending();`
     if (!opr_fresh && (nr_wait || !opr_free_now)) stop = 1'b1;
     else begin
@@ -592,7 +617,7 @@ S_TAIL_POP: begin
     end
 end
 
-S_HALTED: begin
+S_HALTED: if (chain == 4'd0) begin
     // stall_pin -- and THE WAKE.  A halted part has no boundary of its own, so
     // the decision clock D is simply the first clock the pin pipeline has
     // matured the event on; the would-pop clock is D+1 and the entry, as ever,
@@ -609,7 +634,7 @@ S_HALTED: begin
     stop = 1'b1;
 end
 
-S_IRQ_D: begin
+S_IRQ_D: if (chain == 4'd0) begin
     // `CpuT::interrupt()`.  ONE internal decision clock (the boundary was the
     // clock before), then the entry's first row.  The loader is BYPASSED, so
     // every latch it would have written is presented explicitly -- in
@@ -653,7 +678,7 @@ S_IRQ_D: begin
     stop = 1'b1;
 end
 
-S_RESET: begin
+S_RESET: if (chain == 4'd0) begin
     // F25: `biu.susp(); biu.charge(kResetEntryClocks);` -- the internal reset
     // dispatch, before the ROM's own reset rows at 7.03.0 (01D0).
     rst_ctr = rst_ctr + 3'd1;
