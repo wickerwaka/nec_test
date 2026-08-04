@@ -105,15 +105,27 @@ ratchets: monotone, never re-scored downward without a loud, itemized entry.)
   files had drifted out of its RTL list.) `sw/gen_ucore_qsf.py --check` gates
   that `hdl/nec_test_ucore.qsf` is a faithful derivative of `nec_test.qsf`, i.e.
   that the two A/B bitstreams differ by the CORE and nothing else.
-- **SYNTHESIS IS RED (U4/G6, §50)**: the ucore does NOT fit the 5CSEBA6.
-  `quartus_fit` fails with `Error (11802) Can't fit design in device` on ROUTING
-  CONGESTION at 67 % ALMs, because Quartus 17.1 will not put an
-  asynchronously-read array in an M10K (`Info (276007) … uninferred due to
-  asynchronous read logic`, for `ucrom` and ~37 `pla3_tables.svh` arrays). No
-  bitstream exists and nothing has been flashed; the FSM bitstream on the board
-  is untouched. The architecture's own registered fallback — a REGISTERED ROM
-  output with the F2 tap moved one stage — is now required, and it is a CADENCE
-  change, so the whole sim ladder must be re-run on it.
+- **SYNTHESIS: THE FIT PASSES, THE TIMING DOES NOT (U4 pass 2, §51.6-51.7).**
+  §50's diagnosis is REFUTED: the microcode ROM read is 1,026 cells (3 % of the
+  EU), and the 32,534-cell blow-up was the 12×-UNROLLED CHAIN in `v30u_eu.sv`.
+  Folding the 24 provably position-0-only arms took the EU to **12,400 cells**
+  and the design fits at **29 % ALMs, 0 errors**, with a `.sof`
+  (`eaf8cd89f6…`). **But STA is RED: Fmax 13.99 MHz against a registered
+  ≥ 32 MHz, setup slack −40.233 ns.** A multicycle exception was tried and
+  measured and does NOT close it — `ce` is threaded through the EU's 61-level
+  cone to the FF's DATA input (no `ena` node), so Quartus did not extract the
+  clock enable and the registers are clocked every sys clock. The fix is the
+  ENABLE-FORM refactor (`always_comb` → `_n`, `always_ff if (ce)` commit), which
+  is U5's first item. **Nothing has been flashed**; the FSM bitstream on the
+  board is untouched (`nec_test.sof 1cc4bf55…`, `.rbf 2643d8ce…`).
+- **The §48.4 priority tranche is FROZEN** (200 fresh stratified `wrand` seeds,
+  manifest sha `92e3de08…`) with three of its four legs captured before any
+  flash: `vsim_ucore` **176/178 (98.9 %)**, `fsmcore` (the FLASHED FSM
+  bitstream, in fabric) 163/178, `vsim_fsm` 59/178. The ucore-in-fabric leg
+  needs a timing-clean bitstream. Two findings: a FRESH population is EASIER
+  than the adversarially-banked one (so V1's 85 % bar is soft), and the flashed
+  FSM bitstream agrees with HEAD's FSM RTL on only 62/178 — the A/B's FSM leg
+  must be rebuilt from the same HEAD.
 - **`timed_fuzz` now prints `BOUND WARNINGS`** — seeds whose EU completed-read
   store SATURATED, i.e. ran outside the regime `sw/qdepth_probe.py` proves
   (`rdq_` ≤ 2, `rd_done_q_` ≤ 1 on v0.1 at w0 **and**, U4, on w1/w3 and all four
