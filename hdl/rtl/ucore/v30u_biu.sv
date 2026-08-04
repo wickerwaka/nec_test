@@ -805,6 +805,15 @@ always_comb begin
             SSA_B_OPR_HELD:     opr_held      = ss_wdata[1:0];
             SSA_B_RD_FIRST_HI:  rd_first_hi   = ss_wdata[7:0];
             SSA_B_RD_WAS_SPLIT: rd_was_split  = ss_wdata[0];
+            // F49 (U4): the four the flop census found UNMAPPED here.  The
+            // three `*_odd` carry the split access's ODD BASE (the byte swap at
+            // :1329); `rd_land` is A COMPLETED READ'S DATA on its way to
+            // `eu_rdata_n`, so a restore without it loses a landed word.
+            SSA_B_CUR_ODD:      cur_odd       = ss_wdata[0];
+            SSA_B_CMT_ODD:      cmt_odd       = ss_wdata[0];
+            SSA_B_RQ0_ODD:      rq_odd[0]     = ss_wdata[0];
+            SSA_B_RQ1_ODD:      rq_odd[1]     = ss_wdata[0];
+            SSA_B_RD_LAND:      rd_land       = ss_wdata;
             SSA_B_DONE_CTR:     done_ctr      = ss_wdata[1:0];
             SSA_B_DONE_WR:      done_wr       = ss_wdata[0];
             SSA_B_RD_DONE_P:    rd_done_p     = ss_wdata[0];
@@ -1600,6 +1609,11 @@ always @(posedge clk) begin
         SSA_B_OPR_HELD:     ss_rdata <= {14'b0, r_opr_held};
         SSA_B_RD_FIRST_HI:  ss_rdata <= {8'b0, r_rd_first_hi};
         SSA_B_RD_WAS_SPLIT: ss_rdata <= {15'b0, r_rd_was_split};
+        SSA_B_CUR_ODD:      ss_rdata <= {15'b0, r_cur_odd};      // F49
+        SSA_B_CMT_ODD:      ss_rdata <= {15'b0, r_cmt_odd};      // F49
+        SSA_B_RQ0_ODD:      ss_rdata <= {15'b0, r_rq_odd[0]};    // F49
+        SSA_B_RQ1_ODD:      ss_rdata <= {15'b0, r_rq_odd[1]};    // F49
+        SSA_B_RD_LAND:      ss_rdata <= r_rd_land;               // F49
         SSA_B_DONE_CTR:     ss_rdata <= {14'b0, r_done_ctr};
         SSA_B_DONE_WR:      ss_rdata <= {15'b0, r_done_wr};
         SSA_B_RD_DONE_P:    ss_rdata <= {15'b0, r_rd_done_p};

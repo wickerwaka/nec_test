@@ -75,6 +75,12 @@ set_global_assignment -name VERILOG_MACRO "MISTER_DISABLE_YC=1"
 set_global_assignment -name VERILOG_MACRO "MISTER_DISABLE_ALSA=1"
 
 source sys/sys.tcl
+# ucore U4: the ucore bitstream is a SEPARATE QUARTUS REVISION, not a switch
+# here -- the .qsf is read by a restricted settings parser that has no `if`
+# (measured: Error 125048 on every line of a Tcl conditional).  See
+# hdl/nec_test_ucore.qsf, which is this file with one line changed, generated
+# by `sw/gen_ucore_qsf.py` so the two cannot drift.  Revisions also give the
+# two-bitstream A/B its own output directory, which is what U4 wants anyway.
 source files.qip
 
 set_global_assignment -name ENABLE_SIGNALTAP ON

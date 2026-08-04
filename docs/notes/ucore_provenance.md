@@ -3594,3 +3594,126 @@ crash, and the harness exits 0.**
 saturates while the MODEL's stays within two — that would be C3's shape after
 all, and an accounting error to find.  The instrument for it is the
 `BOUND WARNINGS` line next to a `qdepth_probe` run on the same seed.
+
+## §47 F49 AND F44 — THE TWO PLATFORM ITEMS U3 ROUTED, BOTH CLOSED
+
+### §47.1 F49 — THE FIVE UNMAPPED FLOPS ARE IN THE MAP; `ss_lint --core ucore` EXITS 0
+
+U3 open item 5, and U4's first platform job because *"a restore that loses a
+completed read's data is a real defect, not a bookkeeping one."*  The five
+architectural flops the census found are appended per the map's own APPEND-ONLY
+rule — at the end of each module's dense region, renumbering nothing:
+
+| flop | what it holds | address | width |
+|---|---|---|---|
+| `r_cur_odd` | the split access's ODD BASE (byte swap, `v30u_biu.sv:1329`) | `0x061` | 1 |
+| `r_cmt_odd` | " | `0x062` | 1 |
+| `r_rq_odd[0]` | " | `0x063` | 1 |
+| `r_rq_odd[1]` | " | `0x064` | 1 |
+| `r_rd_land` | **a completed read's data**, on its way to `eu_rdata_n` | `0x065` | 16 |
+| `rst_ctr` | F25's four-clock reset march position | `0x173` | 3 |
+
+`SS_VERSION` **0x81 -> 0x82**, `SS_BIU_COUNT` 96 -> **101**, `SS_EU_COUNT`
+115 -> **116**, `SS_COUNT` 212 -> **218**, `SS_TAG` 0x81D4 -> **0x82DA**.  The
+version moves because addresses were ADDED: a v1 stream has no words for them
+and must not be silently accepted.  `sw/ss_lint.py`'s pinned `EXPECT` moved
+with it, v1's values recorded in place rather than overwritten.
+
+| gate | before | **after** |
+|---|---|---|
+| `ss_lint --core ucore`, map audit | PASS (96x2 + 115x2 + tag = 212) | **PASS (101x2 + 116x2 + tag = 218)** |
+| `ss_lint --core ucore`, flop census | **FAIL**, 5 UNMAPPED, `rc=1` | **PASS, 223 flops, 0 UNMAPPED, `rc=0`** |
+| `ss_lint --core fsm` | PASS, 203 / 181 flops, `rc=0` | **unchanged, `rc=0`** |
+| save state, scramble (mode 1) | 80/80 | **20/20 freeze-point sets, 574 points, 0 diverging k** |
+| save state, idempotence (mode 2) | 24/24 | **20/20, 574 points, 0 diverging k** |
+| save state, width (mode 5) | PASS | **20/20, 574 points** — the five new addresses round-trip at their declared widths |
+| save state under RANDOM waits | 10/10 x2 | **10/10 at `wmax3`/`ACE1` and 10/10 at `wmax7`/`5678`** |
+
+**Mode 5 is the load-bearing row.**  It is the width round-trip, and it now
+passes over a map that contains the five addresses — which is precisely what it
+could not do before, because *"both instruments only visit addresses that
+EXIST"*.  The blind spot is closed by the same instrument that could not see
+it, only after the census (which runs RTL -> map) told it where to look.
+
+**KNOWN-RED IS NOW GREEN.**  `CLAUDE.md`'s "KNOWN-RED, deliberately" entry for
+`ss_lint --core ucore` is retired, not silenced.
+
+### §47.2 F44 — THE ROM CANNOT LOAD SILENTLY-EMPTY ANY MORE, AND THE GUARD IS PROVED ARMED
+
+F44, measured at U3: a wrong `HEXDIR` yields **two warnings, an all-zero
+microcode ROM, and a run that completes normally.**  For a core whose entire
+architecture is two tables that is the worst possible failure mode, and U4 is
+the stage that overrides `HEXDIR`.
+
+Two halves, because the two tools differ:
+
+1. **The default is now picked per tool** rather than left for a project to
+   remember.  `ifdef SYNTHESIS` -> `"rtl/ucore/"` (Quartus runs from `hdl/`);
+   otherwise `"hdl/rtl/ucore/"` (simulation runs from the repo root).
+2. **Four probes and a `$fatal`**, in a SEPARATE `initial` from the `$readmemh`
+   one and under `ifndef SYNTHESIS` — the load block must stay a bare sequence
+   of `$readmemh` calls or Quartus can decline to infer the M10Ks and build
+   91,732 bits out of registers, which would be a worse outcome than the bug
+   being guarded.  The probes test *"did anything load here"*, not *"is this
+   the expected word"*: the CONTENT is already gated byte-for-byte by
+   `sw/check_ucore_tables.py` (G0, 9,988 checks), and pinning words here would
+   only add a second place to update.  `!==` so an X fails exactly as a 0 does.
+
+   * `ucrom[0]`, `ucdecode[0]` — the file is absent or empty
+   * `ucrom[1027]` — the file is SHORT (last row, and it is non-zero)
+   * `ucdecode[0x1E43]` — the decode table's LAST VALID entry.  Its literal
+     last address is a legitimate `0x000`, so probing that would prove nothing.
+
+**PROVED ARMED, not inferred** — §44.3's standard.  Three negative controls,
+each a separate Verilator build of `v30u_ucrom` with `-GHEXDIR`:
+
+```
+HEXDIR="no/such/dir/"  -> %Fatal ... ucrom.hex did not load ... the ROM is EMPTY (F44)
+HEXDIR="shortdir/"     -> %Fatal ... ucrom.hex is SHORT ... row 1027 never loaded (F44)
+HEXDIR=<the real path> -> silent, rc=0
+```
+
+The two `$readmemh` warnings still appear in the first case — they were the
+ONLY signal before, and a warning in a build log is not a gate.
+
+### §47.3 THE SYNTHESIS MANIFEST — AND WHY IT IS A REVISION, NOT A SWITCH
+
+`hdl/files_ucore.qip` is written: the platform files verbatim from `files.qip`,
+the ucore's five modules in `CORE_RTL["ucore"]` order, and `SEARCH_PATH
+rtl/ucore` so the EU's nine `.svh` includes resolve by basename.
+
+**The first arrangement was wrong and the tool said so.**  A `V30_CORE`
+environment switch inside `nec_test.qsf` fails: Quartus reads the `.qsf` with a
+restricted settings parser that has no `if` — `Error (125048)` on every line of
+the conditional, `Error (125080) Can't open project`.  So the ucore is a
+Quartus **REVISION**, `nec_test_ucore`, which is the tool's own mechanism for
+exactly this and additionally gives the two-bitstream A/B its own output
+directory:
+
+```
+quartus_sh --flow compile nec_test -c nec_test_ucore     # -> output_files_ucore/
+quartus_sh --flow compile nec_test -c nec_test           # -> output_files/  (FSM, unchanged)
+```
+
+`hdl/nec_test_ucore.qsf` is **GENERATED** by `sw/gen_ucore_qsf.py` from
+`nec_test.qsf` by changing exactly two lines (the sourced `.qip` and the output
+directory) and copying device, pins, timing and every `VERILOG_MACRO` verbatim.
+`--check` re-derives and compares.  That is the gate on the A/B's central
+claim: **the two bitstreams differ by the CORE and by nothing else.**  A
+hand-maintained copy would drift, and a drifted copy turns a controlled
+comparison into an uncontrolled one without saying so.
+
+The FSM baseline bitstream was archived BEFORE any of this ran
+(`~/.cache/ucsimt-tmp/u4-quartus/fsm-baseline-output_files.tgz`;
+`nec_test.rbf` `sha256 2643d8ce…`, `nec_test.sof` `sha256 1cc4bf55…`).
+
+### §47.4 ZERO REGRESSIONS, RE-MEASURED AFTER BOTH
+
+The RTL changed (the map grew, the ROM module gained a guard), so the ladder was
+re-run rather than inherited:
+
+G3 **169,000/169,000**; `w1`/`w3` **1,200/1,200**; boot **220 and 400 MATCH**;
+fuzz REGISTERED **1,394/1,702**, EVT **184/1,008**, COMBINED **1,578/2,710**,
+`BOUND WARNINGS` **6**; b2 tranche **168/188**; wvec **88/88, +0.0 %**; ENTER
+**154/154 x5**; `ss_lint --core ucore` **rc=0**; FSM core **1,400/1,400** and
+its `ss_lint` leg unchanged.

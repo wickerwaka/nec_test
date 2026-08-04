@@ -24,9 +24,9 @@
 //  flop in the RTL must be mapped or explicitly whitelisted:
 //
 //    region  file(s)                     arch flops  mapped  whitelist  UNMAPPED
-//    BIU     v30u_biu.sv                        83      79          0         4
-//    EU      v30u_eu.sv + 9 includes            140     115         24         1
-//    TOTAL                                      223     194         24         5
+//    BIU     v30u_biu.sv                        83      83          0         0
+//    EU      v30u_eu.sv + 9 includes            140     116         24         0
+//    TOTAL                                      223     199         24         0
 //
 //  Whitelist: sw/ss_flop_whitelist_ucore.txt, 24 entries, ALL of them
 //  block-local working values of the EU's single clocked block (written before
@@ -35,15 +35,19 @@
 //  module scope; declaring them INSIDE the always block would remove both them
 //  and the whitelist.
 //
-//  The 5 UNMAPPED are a REAL GAP, recorded here rather than silenced:
-//    v30u_biu.sv  r_cur_odd, r_cmt_odd, r_rq_odd, r_rd_land
+//  F49 (U3 open item 5) -- CLOSED IN U4.  The census's first run found FIVE
+//  architectural flops absent from the map:
+//    v30u_biu.sv  r_cur_odd, r_cmt_odd, r_rq_odd[0:1], r_rd_land
 //    v30u_eu.sv   rst_ctr
-//  `r_rd_land` drives `eu_rdata_n` -- a completed read's data -- and the three
-//  `*_odd` flops carry the split access's ODD BASE, which decides the byte swap
-//  at v30u_biu.sv:1329.  `rst_ctr` is F25's four-clock reset march.  None is
-//  scrambled by the SS1 sweep or probed by mode 5, because both instruments
-//  only visit addresses that exist: this is exactly the blind spot the census
-//  was written for.
+//  `r_rd_land` drives `eu_rdata_n` -- A COMPLETED READ'S DATA, so a restore
+//  without it loses a landed word -- and the three `*_odd` flops carry the
+//  split access's ODD BASE, which decides the byte swap at v30u_biu.sv:1329.
+//  `rst_ctr` is F25's four-clock reset march.  None was scrambled by the SS1
+//  sweep or probed by mode 5, because BOTH INSTRUMENTS ONLY VISIT ADDRESSES
+//  THAT EXIST: no instrument that walks the map can find a flop nobody put in
+//  the map, which is the whole reason the census runs RTL -> map instead.
+//  They are appended at 0x061-0x065 (BIU) and 0x173 (EU); SS_VERSION 0x81 ->
+//  0x82 and the counts move with them.
 //  ---------------------------------------------------------------------------
 //
 //  APPEND-ONLY: new fields append at the end of their module's dense region
@@ -57,17 +61,20 @@
 package v30_ss_pkg;
 
   localparam int          SS_ADDR_W    = 9;
-  localparam int          SS_VERSION   = 8'h81;   // ucore map v1 (stage U2)
+  // F49 (U4): 0x81 -> 0x82.  The five architectural flops the census found
+  // UNMAPPED are appended, which ADDS ADDRESSES, so the version moves -- a v1
+  // stream has no words for them and must not be silently accepted.
+  localparam int          SS_VERSION   = 8'h82;   // ucore map v2 (stage U4, F49)
   localparam logic [8:0]  SSA_TAG      = 9'h000;
   localparam logic [8:0]  SS_BIU_BASE  = 9'h001;
-  localparam int          SS_BIU_COUNT = 96;
+  localparam int          SS_BIU_COUNT = 101;  // U4 F49 (+5: 4 odd/land BIU)
   localparam logic [8:0]  SS_EU_BASE   = 9'h100;
-  localparam int          SS_EU_COUNT  = 115;   // U2 p5 (+2 recognition)
+  localparam int          SS_EU_COUNT  = 116;  // U2 p5 (+2 recog); U4 F49 (+1)
   localparam int          SS_COUNT     = 1 + SS_BIU_COUNT + SS_EU_COUNT;
   localparam logic [15:0] SS_TAG       = {8'(SS_VERSION), 8'(SS_COUNT)};
 
   //--------------------------------------------------------------------------
-  // BIU region (module v30u_biu): 0x001-0x05E
+  // BIU region (module v30u_biu): 0x001-0x065
   //--------------------------------------------------------------------------
   localparam logic [8:0] SSA_B_T1_HALF2         = 9'h001;
   localparam logic [8:0] SSA_B_RUN              = 9'h002;
@@ -177,8 +184,26 @@ package v30_ss_pkg;
   localparam logic [8:0] SSA_B_RD_FIRST_HI      = 9'h05F;
   localparam logic [8:0] SSA_B_RD_WAS_SPLIT     = 9'h060;
 
+  // ---------------------------------------------------------------------------
+  // F49 (U4) -- THE FIVE FLOPS THE CENSUS FOUND, APPENDED.
+  // The census exists to run RTL -> map, which is the only direction that can
+  // see a flop nobody put in the map; sec.44.3's "211 symbols, each exactly
+  // twice" and mode 5's width sweep both only visit addresses that EXIST.  It
+  // found five on its first run and this is the fix, appended at the end of the
+  // BIU's dense region per the APPEND-ONLY rule above.
+  //   `r_rd_land` drives `eu_rdata_n` -- A COMPLETED READ'S DATA.  A restore
+  //   that loses it is a real defect, not a bookkeeping one.
+  //   the three `*_odd` flops carry the split access's ODD BASE, which decides
+  //   the byte swap at v30u_biu.sv:1329.
+  // ---------------------------------------------------------------------------
+  localparam logic [8:0] SSA_B_CUR_ODD          = 9'h061;
+  localparam logic [8:0] SSA_B_CMT_ODD          = 9'h062;
+  localparam logic [8:0] SSA_B_RQ0_ODD          = 9'h063;
+  localparam logic [8:0] SSA_B_RQ1_ODD          = 9'h064;
+  localparam logic [8:0] SSA_B_RD_LAND          = 9'h065;
+
   //--------------------------------------------------------------------------
-  // EU region (module v30u_eu): 0x100-0x172
+  // EU region (module v30u_eu): 0x100-0x173
   //--------------------------------------------------------------------------
   localparam logic [8:0] SSA_E_AX                   = 9'h100;
   localparam logic [8:0] SSA_E_CX                   = 9'h101;
@@ -310,6 +335,11 @@ package v30_ss_pkg;
   // value `begin_sequence()` writes anyway.
   localparam logic [8:0] SSA_E_IRQ_LATCH            = 9'h172;
 
+  // F49 (U4): the census's fifth flop.  `rst_ctr` is F25's four-clock reset
+  // march -- the EU comes out of RESET running the ROM's own sequence at page 7
+  // opcode 0x03, and this counter is where in that march it stands.
+  localparam logic [8:0] SSA_E_RST_CTR              = 9'h173;
+
   function automatic int ss_field_width(input logic [8:0] a);
     case (a)
       SSA_TAG: ss_field_width = 16;
@@ -415,6 +445,11 @@ package v30_ss_pkg;
       // at the END of the package, so every symbol is in scope.
       SSA_B_RD_FIRST_HI:     ss_field_width = 8;
       SSA_B_RD_WAS_SPLIT:    ss_field_width = 1;
+      SSA_B_CUR_ODD:         ss_field_width = 1;   // F49
+      SSA_B_CMT_ODD:         ss_field_width = 1;   // F49
+      SSA_B_RQ0_ODD:         ss_field_width = 1;   // F49
+      SSA_B_RQ1_ODD:         ss_field_width = 1;   // F49
+      SSA_B_RD_LAND:         ss_field_width = 16;  // F49
       //---------------------------------------------------------------------
       // EU region (v30u_eu.sv).  One entry per SSA_E_* symbol; the width is
       // the read mux's own slice, which the write decode matches field for
@@ -536,6 +571,7 @@ package v30_ss_pkg;
       SSA_E_PE_FLAGS:            ss_field_width = 3;
       SSA_E_PIN_PIPE:            ss_field_width = 13;
       SSA_E_IRQ_LATCH:           ss_field_width = 6;
+      SSA_E_RST_CTR:             ss_field_width = 3;   // F49
       default: ss_field_width = 0;
     endcase
   endfunction

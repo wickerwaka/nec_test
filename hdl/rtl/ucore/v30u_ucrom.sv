@@ -28,10 +28,17 @@
 //============================================================================
 
 module v30u_ucrom #(
-    // The tables live next to the RTL.  Simulation runs from the repo ROOT
-    // (sw/check_core.py, sw/ulockstep.py); a synthesis project overrides this
-    // with its own relative path.
+    // The tables live next to the RTL, and the two tools run from DIFFERENT
+    // working directories, so the default is picked per tool rather than left
+    // for a project to remember to override (F44: forgetting yielded two
+    // warnings, an all-zero ROM, and a run that completed normally).
+    //   simulation  cwd = the repo ROOT   (sw/check_core.py, sw/ulockstep.py)
+    //   Quartus     cwd = hdl/            (hdl/nec_test.qpf)
+`ifdef SYNTHESIS
+    parameter string HEXDIR = "rtl/ucore/"
+`else
     parameter string HEXDIR = "hdl/rtl/ucore/"
+`endif
 ) (
     // 13-bit micro-address {page[2:0], opc[7:0], rowgrp[1:0]}
     input      [12:0] dec_addr,
@@ -50,6 +57,51 @@ initial begin
     $readmemh({HEXDIR, "ucdecode.hex"}, ucdecode);
     $readmemh({HEXDIR, "ucrom.hex"}, ucrom);
 end
+
+`ifndef SYNTHESIS
+//----------------------------------------------------------------------------
+// F44 -- THE SILENT-EMPTY FAILURE MODE, CLOSED.
+//
+// A wrong HEXDIR yields two `$readmemh` WARNINGS, an all-zero microcode ROM,
+// and a run that COMPLETES NORMALLY -- measured, U3.  A core whose entire
+// architecture is two tables must not be allowed to run without them, and a
+// warning in a build log is not a gate.  So: probe both tables after the load
+// and take the run down if either did not arrive.
+//
+// Four probes, and each one catches a different thing:
+//   ucrom[0], ucdecode[0]  -- the file is ABSENT or EMPTY (nothing loaded)
+//   ucrom[1027]            -- the file is SHORT (the tail never arrived);
+//                             1027 is the last row and it is non-zero
+//   ucdecode[0x1E43]       -- likewise for the decode table: its LAST VALID
+//                             entry (the last one with the valid bit set --
+//                             its literal last address is a legitimate 0x000,
+//                             so probing that would prove nothing)
+// The test is "did anything load here", NOT "is this the expected word": the
+// CONTENT is already gated byte-for-byte against the C++ model's own parse by
+// sw/check_ucore_tables.py (G0, 9,988 checks), and pinning words here would
+// only add a second place to update when the tables are regenerated.
+// `!==` so an X (an unwritten Verilator array) fails exactly as a 0 does.
+//
+// A SEPARATE `initial` FROM THE `$readmemh` ONE, AND `ifndef SYNTHESIS`.  The
+// load block has to stay a bare sequence of $readmemh calls or Quartus can
+// decline to infer the M10Ks and build 91,732 bits out of registers instead --
+// which would be a far worse outcome than the bug being guarded against.  The
+// SYNTHESIS side of F44 is therefore not this assertion: it is the `ifdef`ed
+// HEXDIR above plus verifying the INITIALISED CONTENTS in the post-fit
+// netlist, which is what ucore_provenance.md sec.45.4 item 2 asks for.
+//----------------------------------------------------------------------------
+initial begin
+    #0;   // after the load block, whatever order the two are elaborated in
+    if (ucrom[0] === 29'd0 || (^ucrom[0]) === 1'bx)
+        $fatal(1, "v30u_ucrom: ucrom.hex did not load from '%s' -- the ROM is EMPTY (F44)", HEXDIR);
+    if (ucrom[1027] === 29'd0 || (^ucrom[1027]) === 1'bx)
+        $fatal(1, "v30u_ucrom: ucrom.hex is SHORT from '%s' -- row 1027 never loaded (F44)", HEXDIR);
+    if (ucdecode[13'h0000] === 10'd0 || (^ucdecode[13'h0000]) === 1'bx)
+        $fatal(1, "v30u_ucrom: ucdecode.hex did not load from '%s' -- the decode table is EMPTY (F44)", HEXDIR);
+    if (ucdecode[13'h1E43] === 10'd0 || (^ucdecode[13'h1E43]) === 1'bx)
+        $fatal(1, "v30u_ucrom: ucdecode.hex is SHORT from '%s' -- the last valid entry (0x1E43) never loaded (F44)", HEXDIR);
+end
+`endif
 
 wire [9:0] dec_w = ucdecode[dec_addr];
 

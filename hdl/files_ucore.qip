@@ -1,0 +1,50 @@
+# ---------------------------------------------------------------------------
+#  files_ucore.qip -- the SIBLING of files.qip that builds the ucore bitstream.
+#
+#  The two cores are drop-in alternatives selected by the RTL FILE LIST: the
+#  module stays named `v30_core`, the package stays named `v30_ss_pkg`, and
+#  system_large.sv / nec_test.sv / the TB are untouched.  This file is the
+#  synthesis-side twin of `sw/check_core.py`'s CORE_RTL["ucore"], and the two
+#  must list the same modules in the same order.
+#
+#  Selected by the `V30_CORE` environment variable, read in nec_test.qsf:
+#      V30_CORE=ucore  quartus_sh --flow compile nec_test     -> this file
+#      (unset / anything else)                                -> files.qip
+#
+#  EXACTLY ONE of rtl/core/v30_ss_pkg.sv and rtl/ucore/v30u_ss_pkg.sv may be
+#  compiled -- they declare the same package name on purpose.
+# ---------------------------------------------------------------------------
+
+# --- platform: identical to files.qip, and deliberately so ------------------
+set_global_assignment -name VERILOG_FILE rtl/video_gen.v
+set_global_assignment -name SYSTEMVERILOG_FILE rtl/system_large.sv
+set_global_assignment -name SYSTEMVERILOG_FILE rtl/nec_bus.sv
+set_global_assignment -name SYSTEMVERILOG_FILE rtl/test_mem.sv
+set_global_assignment -name SYSTEMVERILOG_FILE rtl/capture_buf.sv
+set_global_assignment -name SYSTEMVERILOG_FILE rtl/wvec_buf.sv
+set_global_assignment -name SYSTEMVERILOG_FILE rtl/iords_buf.sv
+set_global_assignment -name SYSTEMVERILOG_FILE rtl/hps_axi_slave.sv
+
+# --- the ucore, in CORE_RTL["ucore"] order ----------------------------------
+#  (`@tb` in that list is the Verilator testbench and has no synthesis twin.)
+set_global_assignment -name SYSTEMVERILOG_FILE rtl/ucore/v30u_ss_pkg.sv
+set_global_assignment -name SYSTEMVERILOG_FILE rtl/ucore/v30_core.sv
+set_global_assignment -name SYSTEMVERILOG_FILE rtl/ucore/v30u_biu.sv
+set_global_assignment -name SYSTEMVERILOG_FILE rtl/ucore/v30u_ucrom.sv
+set_global_assignment -name SYSTEMVERILOG_FILE rtl/ucore/v30u_eu.sv
+
+# So the EU's nine `include "v30u_eu_*.svh"` resolve by BASENAME via the
+# project-relative search path, independent of the compiler's cwd -- the same
+# arrangement files.qip uses for the FSM core's race_law.svh.
+#
+# ...AND IT IS ALSO WHERE THE TWO MICROCODE TABLES LIVE.  F44: v30u_ucrom.sv
+# takes HEXDIR as a parameter and a WRONG PATH yields two warnings, an all-zero
+# ROM, and a run that completes normally.  The module now picks its own default
+# under `ifdef SYNTHESIS` ("rtl/ucore/", i.e. relative to this project's cwd)
+# and $fatal-s on a table that did not load, so a bad path is loud in both
+# tools.  Verify the INITIALISED CONTENTS in the post-fit netlist, not merely
+# that the compile passed.
+set_global_assignment -name SEARCH_PATH rtl/ucore
+
+set_global_assignment -name SDC_FILE nec_test.sdc
+set_global_assignment -name SYSTEMVERILOG_FILE nec_test.sv

@@ -124,5 +124,7 @@
                                                 irq_sel_nmi,
                                                 bnd_armed, irq_shadow,
                                                 nmi_latch};
+        // F49 (U4): F25's four-clock reset march position.
+        SSA_E_RST_CTR:             ss_rdata <= {13'b0, rst_ctr};
         default: ss_rdata <= 16'h0000;
     endcase

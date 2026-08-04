@@ -135,5 +135,7 @@
                                          pe_op8     = ss_wdata[1];
                                          iend_owed  = ss_wdata[2];
                                        end
+            // F49 (U4): F25's four-clock reset march position.
+            SSA_E_RST_CTR:             rst_ctr = ss_wdata[2:0];
             default: ;
         endcase
