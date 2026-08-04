@@ -8231,3 +8231,42 @@ seeds are `mc1/721` (`PIN`) and `mc2/584` (`PF_ADDR`), neither of them
 seeds the model misses too, on 27 of 28 of which the two engines' first
 divergence is byte-identical.  **H4 is no longer a place where the ucore is
 worse than the model in its own right.**
+
+### §67.9 P5's SECOND HALF — `check_fuzz_bank --strict`, REPORTED AS REGISTERED
+
+§66.3's P5 registered this as *"re-run and reported as measured; if it reports
+`new-sig TIMING > 0` that is a registered outcome to be reported, NOT silently
+admitted."*  It did.
+
+```
+  IMPROVED mc1/1937 : FUNCTIONAL -> TIMING
+  IMPROVED mc1/3325 : FUNCTIONAL -> TIMING
+  IMPROVED mc1/3741 : FUNCTIONAL -> TIMING
+  IMPROVED mc1/412  : TIMING -> KNOWN_ACCEPTED
+  IMPROVED t30-raw/123 : FUNCTIONAL -> TIMING
+
+check_fuzz_bank: FAIL | 3242 banked seeds | stable 3237 improved 5 worse 0
+                | gen_drift 0 regen_err 0 | float-floor 0
+                | new-sig TIMING 3 (strict-fail)
+```
+
+**`worse` is ZERO and `gen_drift` is ZERO.**  The gate's `FAIL` is entirely the
+`--strict` novelty clause: three signatures that were never in the ledger
+appeared, because five seeds now replay to a BETTER verdict and a better verdict
+has a different signature.  All five are in this sitting's own `IOW` population
+(§66.3), which is the corroboration that matters: **`check_fuzz_bank` binds to
+the ARCHIVED FSM core, so the TB fix improves the FSM leg on the same seeds it
+improves the ucore's.  A defect in the shared instrument is exactly what that
+looks like; a defect in the ucore is not.**
+
+**THE ADMISSION IS NOT TAKEN AND IS ROUTED TO THE COORDINATOR**, per §60.1's
+precedent (`sw/sm3_sig_admit.py` exists, refuses to write without a control, and
+records an `admissions` entry).  A signature admitted without provenance changes
+what "new" means for the next campaign.  Nothing was written to
+`tests/v30/fuzz_bank/sig_ledger.json` this sitting; `sigs` is still **11,845**.
+The decision is: admit the 3 with an `admissions` record naming this sitting's
+TB fix as their cause, or leave `--strict` red until someone does.
+
+*The control that would go with the admission, if it is taken*: the 3 must be
+reachable ONLY from the 5 improved seeds — `sw/sm3_sigctl.py --ledger <pre>`
+already computes exactly that.
