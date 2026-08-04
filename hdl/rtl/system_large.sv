@@ -129,7 +129,7 @@ wire        iords_active = cfg_iords_en && (iords_raddr < cfg_iords_cnt);
 wire [15:0] iord_eff     = iords_active ? iords_rdata : cfg_iord;
 wire [19:0] evt_addr;
 wire [15:0] evt_delay;
-wire  [7:0] evt_hold;
+wire [11:0] evt_hold;        // 12 bits since 2026-08-04 (F46 / gap R1)
 wire  [2:0] evt_pin;
 wire        evt_arm, evt_fired;
 
@@ -408,9 +408,60 @@ assign hb_rd_n      = cfg_use_core ? core_rd_n      : NEC_RD_N;
 assign hb_ube_n     = cfg_use_core ? core_ube_n     : NEC_UBE_N;
 assign hb_buslock_n = cfg_use_core ? core_buslock_n : NEC_BUSLOCK_N;
 
+//----------------------------------------------------------------------------
+// X1 / §56.3a -- THE PAD-RETENTION MODEL FOR THE INTERNAL CORE'S AD.
+// OFF unless `X1_AD_RETENTION` is defined.  Default builds are bit-identical.
+//
+// On the real part the AD pads FLOAT at an INTA's T1 and RETAIN the previous
+// data phase.  Inside the FPGA `core_ad` is an internal net with no keeper, so
+// there is nothing to retain and the analyser reads whatever the resolution
+// gives it -- the reading §56.3 offers for the 116 fabric-only INTA cells, and
+// the reading C11 refused to promote to a finding without an INTERVENTION.
+// This is that intervention: a register that captures the last DRIVEN value of
+// AD and supplies it when no driver is active.
+//
+// NOTHING IN EITHER CORE CHANGES.  `v30u_biu.sv`'s INTA path deliberately
+// drives no address (`sim/biu_timed.cpp`'s `Access::no_addr`) and is not
+// touched, exactly as the registration requires.
+//
+// THE ONE DEVIATION FROM THE LETTER OF §56.3a, STATED BEFORE THE RUN: the
+// retention is applied on the OBSERVATION path (`hb_ad_sample`, what nec_bus
+// captures) and NOT as a keeper driving `core_ad` itself.  Two reasons, and
+// the first is decisive:
+//   1. a keeper driving the net cannot be written without an "is anyone else
+//      driving" term, and the only honest source of that term is the core's
+//      own output enable -- which is not a port, and manufacturing one in the
+//      harness would be re-deriving the core's OE from its status pins, i.e.
+//      a fitted rule in the exact place the intervention must not have one.
+//   2. it keeps the core's INPUT untouched.  Feeding a retained value back
+//      into the core would change what the core SEES, and an intervention
+//      that also changes the core confounds the question -- which is the
+//      registration's own stated constraint.
+// So this tests the claim as it is actually made ("the row READS the harness's
+// INTA vector byte instead of the retained previous data phase") and no more.
+//----------------------------------------------------------------------------
+`ifdef X1_AD_RETENTION
+reg  [19:0] core_ad_hold;
+wire [19:0] core_ad_z;
+wire [19:0] core_ad_eff;
+genvar gad;
+generate
+    for (gad = 0; gad < 20; gad = gad + 1) begin : g_ad_ret
+        assign core_ad_z[gad]   = (core_ad[gad] === 1'bz);
+        assign core_ad_eff[gad] = core_ad_z[gad] ? core_ad_hold[gad]
+                                                 : core_ad[gad];
+    end
+endgenerate
+always_ff @(posedge clk)
+    for (int i = 0; i < 20; i = i + 1)
+        if (!core_ad_z[i]) core_ad_hold[i] <= core_ad[i];
+`else
+wire [19:0] core_ad_eff = core_ad;
+`endif
+
 // AD sample fed back to nec_bus, and the physical drive to the chip. No
 // feedback loop: NEC_AD's driver (hb_ad_drive) is registered inside nec_bus.
-assign hb_ad_sample  = cfg_use_core ? core_ad : NEC_AD;
+assign hb_ad_sample  = cfg_use_core ? core_ad_eff : NEC_AD;
 assign NEC_AD[15:0]  = (!cfg_use_core && hb_ad_dir) ? hb_ad_drive : 16'hzzzz;
 assign NEC_AD[19:16] = 4'hz;
 

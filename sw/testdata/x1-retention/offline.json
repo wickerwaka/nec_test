@@ -1,0 +1,74 @@
+{
+ "s10-hltsweep-w0/HLT.INT": {
+  "fail": [
+   2,
+   3,
+   4,
+   5
+  ],
+  "pass": 44,
+  "n": 48
+ },
+ "s10-hltsweep-w0/HLT.RES": {
+  "fail": [
+   2,
+   3
+  ],
+  "pass": 47,
+  "n": 49
+ },
+ "s10-hltsweep-w1/HLT.INT": {
+  "fail": [
+   7,
+   8,
+   9,
+   10
+  ],
+  "pass": 42,
+  "n": 46
+ },
+ "s10-hltsweep-w1/HLT.RES": {
+  "fail": [
+   7
+  ],
+  "pass": 48,
+  "n": 49
+ },
+ "s13-hltsweep-w2/HLT.INT": {
+  "fail": [
+   9,
+   10,
+   11,
+   12,
+   13
+  ],
+  "pass": 16,
+  "n": 21
+ },
+ "s13-hltsweep-w2/HLT.RES": {
+  "fail": [
+   9
+  ],
+  "pass": 24,
+  "n": 25
+ },
+ "s13-hltsweep-w3/HLT.INT": {
+  "fail": [
+   11,
+   12,
+   13,
+   14,
+   15,
+   16
+  ],
+  "pass": 14,
+  "n": 20
+ },
+ "s13-hltsweep-w3/HLT.RES": {
+  "fail": [
+   11
+  ],
+  "pass": 24,
+  "n": 25
+ }
+}
