@@ -6786,3 +6786,207 @@ existing ones, never as an absolute clock.
 4. EVT below the 700 bar.
 
 Reported as registered, never restated.
+
+### §62.5 THE LANDING — where each of the model's edges lives in the RTL
+
+Landed at `2fbbb65101`.  `hdl/rtl/ucore/v30u_biu.sv` carries the register,
+because every edge that arms, stamps and spends it is a BUS event; only the
+READER is in `v30u_eu.sv`.
+
+| the model (`sim/biu_timed.cpp`) | the RTL |
+|---|---|
+| `inta_read()`: `bnd_pending_ = true` | step **(b)**, `if (eu_post && (eu_bs == BS_INTA)) bnd_pending = 1'b1;` — set from the REQUEST, exactly as the model sets it before its own `post()` |
+| `flush()`: `if (bnd_pending_) { bnd_arm_ = true; bnd_floor_ = -1; }` | step **(b)**, inside `if (q_flush)`, beside M19's `pf_owed` and M7's `pf_arm` |
+| `commit_fetch()`: `if (bnd_arm_) { bnd_arm_ = false; bnd_floor_ = cmt_t1_ + 2; }` | step **(d)**, the fetch-grant arm: `if (bnd_arm) begin bnd_arm = 0; bnd_stamp = 1; end` — the grant MARKS the announcement… |
+| …that `cmt_t1_` | …and step **(e)**'s T1-open block loads `bnd_cnt = 2`, so the counter reads 2 / 1 / 0 on the fetch's indices 0 / 1 / 2 |
+| `pop()`: `bnd_floor_ = -1` | step **(b)**, the `pop_l` arm — `bnd_stamp` and `bnd_cnt` cleared, `bnd_pending` untouched |
+| `boundary_no_pop()`'s `wait_bnd_floor()` | `bnd_hold` (register-only, so the EU's act decode may read it) gates `irq_take` in `v30u_eu.sv`.  A `while (…) tick()` renders as a STALL, which is what the EU's boundary window already is |
+| its `susp()` and its three clears | step **(b)**, `if (eu_bnd_take) begin if (eu_bnd_post && bnd_pending) suspended = 1'b1; …clear all four; end` |
+| `post_redirect = !m_.intr_pending` | `eu_bnd_post = !intr_pending`; the gate is `bnd_hold && !intr_pending` |
+| its `if (opc_valid_) return clk_;` early return | free: all three arms of `at_bnd` already imply `!opc_valid` |
+
+**Why the stall cannot be escaped by popping instead** — the one thing that had
+to be argued rather than transcribed, and it is arithmetic, not a choice.  The
+floor is stamped by the fetch that refills a queue the flush emptied, and that
+fetch's first byte is poppable at its **eval + 3** (M2r) = index 5 at w0 and
+later under waits, strictly after index 2.  So while `bnd_hold` stands there is
+no ripe byte, `pop_now` is false, and the part sits at the boundary exactly as
+the model's tick loop sits.
+
+**The two deviations, both registered in §62.2 before the run.**  (a) the floor
+is `T1 + 2` from the T1 the announcement ACTUALLY opens, not from the model's
+prediction; (b) an announcement WITHDRAWN before its T1 (M22 expiry, F2's
+`ann_kill`) gives the arm BACK, where the model keeps a floor at a clock that
+never happened.  **`ulockstep --golden all --cases 50` is 17,350 / 17,350**, so
+neither deviation is reachable on the golden population; both are written into
+`v30u_biu.sv` beside the code.
+
+**Save-state**: four flops, `SS_VERSION` **0x82 → 0x83**, BIU count 101 → 105,
+`SS_COUNT` 218 → 222, `SS_TAG` **0x83DE**, addresses **0x066-0x069**, append-only.
+
+**Bounded-counter discipline**: three assertions beside the module's existing
+ones — `bnd_cnt <= 2`; `bnd_stamp` and `bnd_cnt` are mutually exclusive; and no
+part of the floor outlives the acknowledge that armed it.
+
+### §62.6 PREDICTION vs OUTCOME — reported as registered
+
+**MOVED UP** (`timed_fuzz --core ucore --evt-replay`, 3,242 seeds / 2,710
+scored, `BOUND WARNINGS` 5, `ENGINE ABORTS` 0, `INVALIDATED` 0):
+
+| column | before | registered bar | point estimate | **after** |
+|---|---|---|---|---|
+| EVT | 468 / 1,008 | ≥ 700 | ~845 | **906 / 1,008**  (+438) |
+| COMBINED | 1,951 / 2,710 | ≥ 2,183 | ~2,328 | **2,389 / 2,710**  (+438) |
+
+The arithmetic ceiling was 468 + 445 = 913; **438 of the census's 445 H1 seeds
+closed.**  The bar is met by 206 and the point estimate beaten by 61.
+
+**AND THE ucore NOW LEADS THE MODEL ON BOTH COLUMNS**: EVT **906 vs 780**,
+COMBINED **2,389 vs 2,052**, on a bank where the ucore PREDICTS and the model
+REPLAYS.  (`--core sim` re-run on this tree: 1,272 / 780 / 2,052, unchanged to
+the seed — `sim/` was not touched.)
+
+**MOVED, as registered** (`sm3_ackcmp --core ucore`; 3,070 chip acknowledges,
+paired **2,759 → 3,067**, because fewer sequences part):
+
+| table | row | before | bar | **after** |
+|---|---|---|---|---|
+| RE-ENTRY | `L = 4`, engine at gap 4 | **1,117** | ≤ 100 | **0** |
+| RE-ENTRY | `L = 4`, engine at gap 6 (chip's own) | 91 | — | **1,594 / 1,595** |
+| RE-ENTRY | `L = 5` / 6 / 7 | 333/363 · 157/169 · 111/114 | — | **362/363 · 170/170 · 115/115** |
+| FIRST (wake) | `L = 4`, engine at gap 4 | 290 | **must stay 290** | **290** |
+
+The whole re-entry table is now exact except two acknowledges whose preceding
+fetch the engine gives a different LENGTH — i.e. nothing is left in H1's own
+population.  The wake table did not move at all, which is §61.3's board result
+holding in RTL.
+
+**DID NOT MOVE — every ucore ratchet, re-run on the final RTL:**
+
+| gate | registered | after |
+|---|---|---|
+| `ulockstep --golden all --cases 50` | 17,350 / 17,350 | **17,350 / 17,350** |
+| `check_core --opcodes all --cases 0` | 169,000 / 169,000 | **169,000 / 169,000** |
+| `timed_fuzz --core ucore` REGISTERED | 1,483 / 1,702 | **1,483 / 1,702** (and the 219 residue is identical signature for signature and family for family) |
+| `v0.1-w1` / `-w3` | 1,200 / 1,200 | **1,200 / 1,200** |
+| `v0.1-w1 --opcodes EB` | 200 | **200** |
+| the four `evt` cells | 200 / 1,200 / 200 / 1,200 | **200 / 1,200 / 200 / 1,200** |
+| `v0.1-w1evt-biased` | 1,200 | **1,200** |
+| `f4a_boundary` / `f0lock_tranche` | 160 / 400 | **160 / 400** |
+| the 23 `v0.3` block-I/O forms | 229,999 / 229,999 | **229,999 / 229,999** |
+| the four HLT sweeps | 91/97, 90/95, 40/46, 38/45 | **91/97, 90/95, 40/46, 38/45 = 259/283** |
+| `check_boot --timed 220` / `400` | MATCH | **MATCH / MATCH** |
+| `check_ab_sim` | 187 rows MATCH | **187 rows MATCH** |
+| `gen_ucore_qsf --check` | PASS | **up to date** |
+| `timed_wvec_gate --core ucore` | 88/88, +0.0 % | **88/88, 16,048 vs 16,048, +0.0 %** |
+| `timed_enter_replay --core ucore` | 154 ×5 | **154/154 on all five legs** |
+| `timed_ins_replay --core ucore --raw` | 1,312 / 2,624 | **rails 1,312/1,312, vs-chip 2,624/2,624, resolved 800/800** |
+| b2 tranche | 171 / 188 | **171 / 188** |
+| `ss_lint` | rc 0, 0 UNMAPPED | **PASS, 105×2 BIU + 116×2 EU + tag = 222, 205 flops, 0 UNMAPPED** |
+| `--ss-sweep` modes 1 / 2 / 5 | 80/80 · 24/24 · width PASS | **80/80 · 24/24 · PASS** |
+| `check_core --ce-div 4 --ce-hold-check` | `CE_HOLD_VIOL 0` | **`CE_HOLD_VIOL 0`** |
+| `x1_retention offline` (tb_v30_core) | 259 / 283 | **259 / 283** |
+| `x1_retention` tb_sys base / ret | 143 / 259, 116 closed, 0 survivors, 0 differing | **143 / 259, 116 closed, 0 survivors, 0 differing** — and the re-captured `base` cells are **byte-identical after decompression** to the banked ones, so H1 moved no HLT-sweep cell in that leg either |
+
+**No falsifier fired.**  §62.4's four: `ulockstep` is exact; no first
+acknowledge pays the floor; no ratchet moved down; EVT cleared the bar by 206.
+
+### §62.7 THE H2 RE-CENSUS — its registered falsifier FIRED
+
+Census §5.2 booked **H2** (`qs -!=F` / `qs E!=-` around an acknowledge) as
+*"almost certainly downstream of H1"* with the falsifier *"H1 lands and this
+family does not shrink"*.  Re-censused on BOTH engines on fresh reports, with
+`--core` matched to the report:
+
+| ucore EVT first-divergence signature | before (540) | **after (102)** |
+|---|---|---|
+| `bs PASV!=CODE` — **H1's own** | **446** | **4** |
+| `qs -!=F` | 25 | **25** |
+| `qs E!=-` | 16 | **16** |
+| `bs INTA!=PASV` | 6 | **6** |
+| `bs PASV!=MEMR` | 5 | **5** |
+| `bs PASV!=MEMW` | 3 | **3** |
+| `qs -!=E` | 3 | **3** |
+| `bs PASV!=HALT` / `qs F!=-` | 2 / 2 | **2 / 2** |
+| `data` (any) | 2 | 6 |
+
+**The H2 pair is 41 before and 41 after — not one seed.**  On the model, whose
+H1 landed in sitting 2, the same pair went **57 → 101**.  The falsifier is met
+on both engines: **H2 is NOT downstream of H1.**
+
+Family × population, `s15_census`, `--core` matched to the report:
+
+| family | ucore REG 219 | ucore EVT **540 → 102** | sim EVT **645 → 228** |
+|---|---|---|---|
+| `PF_GAINED` | 25 (unchanged) | **463 → 21** | 15 → 15 |
+| `PF_LOST` | 107 (unchanged) | 22 → **22** | 44 → **70** |
+| `SCHEDULE` | 5 (unchanged) | 29 → **29** | 563 → **114** |
+| `DATA_SEQ` | 41 (unchanged) | 14 → **14** | 5 → 5 |
+| `PIN` | 4 (unchanged) | 4 → **8** | 9 → 11 |
+| `TAIL_EXTRA` | 28 (unchanged) | 5 → **5** | 3 → 3 |
+| `PF_ADDR` | 9 (unchanged) | 3 → **3** | 6 → 10 |
+| catch-all | **0** | **0** | 0 |
+
+**H1 removed exactly one family and touched no other.**  `PF_GAINED` −442,
+`PIN` +4 (four seeds that used to part earlier now part on a pin row), every
+other cell identical.  On the model H1 took `SCHEDULE` 563 → 114 and pushed
++26 into `PF_LOST` and +4 into `PF_ADDR`, which is why the two engines' EVT
+residues are now shaped differently (102 vs 228).
+
+**AND H2 IS NOT A FAMILY AT ALL — it is a symptom sitting on four of them.**
+Cross-tabulating the ucore's 102 EVT seeds, signature × family:
+
+| signature | `PF_GAINED` | `PF_LOST` | `DATA_SEQ` | `SCHEDULE` | total |
+|---|---|---|---|---|---|
+| `qs -!=F` | **17** | — | 6 | 2 | 25 |
+| `qs E!=-` | — | **11** | — | 5 | 16 |
+
+So "H2" names *where the two streams are first seen to part*, not *what
+parted*: the queue-status port is simply the earliest-visible pin. **The next
+sitting must rank by FAMILY, not by signature** — H2 as written is retired as a
+mechanism hypothesis and its 41 seeds are redistributed into H3 (11), H4 (6)
+and the two families below.
+
+### §62.8 ONE THING NOBODY WAS LOOKING FOR — the `0x0008` vector class
+
+14 of the ucore's 29 remaining EVT `SCHEDULE` seeds carry the SAME first
+divergence: **`bs MEMR!=PASV nxta 0008`** — the CHIP starts a memory read at
+`0x0008` and the engine is idle.  `0x0008` is interrupt vector **2**, the NMI
+vector, and **all 14 have `evt.pin = 1` (NMI) with `evt.hold = 2`** — a
+two-clock NMI pulse.  Across wait classes (fix0 7 · fix3 2 · wrand1 2 · wrand2,
+wrand15, wrand7 1 each).  The model has **27** of the same signature.
+
+It was 15 before H1 and 14 after, i.e. **H1 neither caused it nor hides it**.
+
+Booked as an OBSERVATION, not a mechanism: the chip takes an NMI on a pulse
+both engines decline (or takes it at a clock at which they have already
+declined it).  *Falsifier*: a seed in the 14 whose `evt.pin` is not 1, or whose
+chip `0x0008` read is not a vector fetch.  *The measurement that would sharpen
+it needs no board*: the NMI edge latch's minimum pulse width against the
+engines' `nmi_latch`, over the banked pulses.
+
+### §62.9 THE RANKED LIST FOR THE NEXT SITTING
+
+Post-H1 residue: **ucore 321** (219 REG + 102 EVT), **sim 658** (430 + 228).
+
+| rank | mechanism | ucore | sim | why here |
+|---|---|---|---|---|
+| **H3** | **`PF_LOST`'s arbitration priority** | **107 REG + 22 EVT = 129** | 239 + 70 = 309 | the largest single family in BOTH engines, and now by a wide margin.  Unchanged since ucsim-t (`ucsim_t_provenance.md` §26.10 D item 4, `gaps` §I.5).  It owns 11 of the 16 `qs E!=-` seeds H2 used to claim |
+| **H4** | **`DATA_SEQ`** — the right cycle, the right address, the wrong word | **41 REG + 14 EVT = 55** | 28 + 5 = 33 | the ucore is WORSE than the model here, so it is the largest ucore-owned family.  F47's shape |
+| **H7** | the `0x0008` NMI-vector class (§62.8) | 14 EVT | 27 EVT | one signature, one pin value, one hold value, zero exceptions — the sharpest small population in the census |
+| **H5** | the 13 ucore-only HLT sweep cells (F43 + the undiagnosed half) | 24 of 283 (11 model-shared) | — | unchanged; `gaps` §T.1 |
+| **H6** | the fabric INTA float-retention class | 116 cells | — | harness; attribution NOT ESTABLISHED, fabric leg is SM2's |
+| — | ~~**H2**~~ | **RETIRED as a mechanism** (§62.7): it is a signature, not a family, and its seeds belong to H3, H4 and `PF_GAINED` | | |
+
+`TAIL_EXTRA` (28 REG + 5 EVT) and `PF_ADDR` (9 + 3) are the two families no
+hypothesis names; they are small, they did not move, and nobody has looked at
+them.
+
+### §62.10 WHAT THIS SITTING DID NOT DO
+
+* **No board contact.**  Everything is banked captures, Verilator and the model.
+* **No H3 / H4 / H5 work** — the work order scopes them out and they are the
+  next sitting's.
+* **`sim/` was not touched**, and its three columns were re-measured to say so.
+* The `clipopf` question (§61.3) is still open, and the mechanism behind the
+  arm is still NOT ESTABLISHED — H1 is carried as MEASURED, not as a law.
