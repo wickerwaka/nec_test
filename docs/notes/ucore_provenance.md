@@ -6212,3 +6212,44 @@ ends in, with the socketed part held in reset. **The board carries BS-A
 (FLASH #4, `67ddd59413d5…`) and is not wedged.** FLASH #5 was not taken and
 FLASH #6 was not needed: nothing was ever captured on a bitstream other than
 BS-A.
+
+### §59.7.13 `check_fuzz_bank` OVER THE RE-BASED CORPUS — **PASS, WITH ONE
+REGISTERED CONSEQUENCE THAT IS NOT SMOOTHED**
+
+The 3,242-seed replay-regression control was re-run over the corpus the
+re-capture changed. Nothing about it was adjusted first.
+
+```
+check_fuzz_bank: PASS | 3242 banked seeds | stable 3242 improved 0 worse 0
+                      | gen_drift 0 regen_err 0 | float-floor 0
+                      | new-sig TIMING 166
+```
+
+**`stable 3242`, `worse 0`, `gen_drift 0`, `float-floor 0`** — every banked
+seed, re-captured and untouched alike, round-trips to the verdict it now
+carries, and no image drifted.
+
+**`new-sig TIMING 166` is real and it is registered, not explained away.**
+`check_fuzz_bank` WARNS on it and **`check_fuzz_bank --strict` now FAILS on
+it.** Attributed by predicate over the artifact:
+
+| where the 166 sit | seeds | distinct signatures |
+|---|---|---|
+| entries carrying a `recapture` block (the 760) | **166** | **140** |
+| every other banked seed | **0** | **0** |
+
+**Zero on any seed this session did not touch**, which is the same control the
+248 gave for the EVT column. The cause is mechanical: 372 of the 760 moved
+`FUNCTIONAL → TIMING`, and a seed that was never a TIMING seed never had a
+TIMING signature in `tests/v30/fuzz_bank/sig_ledger.json` (11,705 signatures,
+all of them recorded from captures taken under the truncated hold).
+
+**THE NOVELTY LEDGER WAS NOT EDITED, DELIBERATELY.** Adding 140 signatures to a
+NOVELTY register in order to turn a warning green is a change to what "novel"
+means for every future campaign, and it would have been made by the session that
+caused the warning. It is a decision, and it is routed as one. Until it is
+taken, the honest statement of the gate is:
+
+> `check_fuzz_bank` **PASS**; `check_fuzz_bank --strict` **FAILS on
+> `new-sig TIMING 166`**, all 166 on re-captured seeds, cause understood,
+> ledger admission NOT taken.
