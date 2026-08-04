@@ -217,7 +217,8 @@ python3 sw/check_core.py --core fsm --opcodes all --cases 0
 `timed_ins_replay.py`, `check_boot.py`, `check_ab_sim.py`, `ss_lint.py`).  Since
 2026-08-04 it is **no longer the default** — pass it explicitly.  The build
 swaps only the RTL file list, the include path, the `obj_dir` and one define
-(`sw/check_core.py:46-71`): FSM builds into `hdl/tb/obj_dir/` with
+(`sw/check_core.py`, the "engine selection" block at `:46`): FSM builds into
+`hdl/tb/obj_dir/` with
 `-DV30_FSM_PROBES`, the ucore into `hdl/tb/obj_dir_ucore/` without it.
 
 **The FSM-specific gate set, before trusting any FSM result:**
