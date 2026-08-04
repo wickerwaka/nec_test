@@ -4868,3 +4868,183 @@ Baselines on the clean-HEAD binaries (`fsm` sha256 `f177d0f67d…`, `ucore`
    correct whether the core drives them or not.  **Defect (b) is verifiable
    only in fabric.**  It is fixed by the same one term and its offline evidence
    is the `+padtrace` enable pattern, not a scored cell.
+
+## §54 THE RESULT — F51, AND THE INSTRUMENT THAT HID IT IN BOTH CORES
+
+### F51 — THE HALT PSEUDO-CYCLE HAS NO DATA PHASE
+
+**Class: RTL BUG (a mechanism rendered half) — §16's named class one last time,
+and F41's shape exactly.  LANDED.**
+
+`halt_pin` rendered the HALT as though it DID have a data phase: it published
+`{4'h0, r_last_fetch_addr}` through `ad_oe_data` with BOTH address enables gated
+off.  Two consequences, both measured in fabric (§53.1):
+
+* **A19-16 was UNDRIVEN** across the HALT display and its T1, where the part
+  drives a LIVE PS — M10, and `note_halt`'s
+  `acc.addr = (data_ps(2) << 16) | last_fetch_addr`.  Golden `0x2AD8A`, ucore
+  `0x0AD8A`.
+* **AD15-0 was LET GO at the status release**, where the golden still shows the
+  announced address at T2/T3.  Golden `0x2AD8A`, ucore `0x29090` — the fabric's
+  internal `core_ad` tri-state has no pad retention, so a value the part
+  *holds* has to be *driven*.
+
+The fix is the mechanism sentence and one wire:
+
+```systemverilog
+wire halt_hold = r_run && r_cur_halt;   // no data phase: nothing takes AD away
+```
+
+placed in the ORDINARY address path (`ad_o`'s `display` arm still precedes it,
+so **F41's `!st_rel` term is subsumed, not dropped** — a woken fetch whose
+display lands inside the pseudo-cycle still publishes).  `ad_oe_data`'s
+`|| halt_pin` and `ad_oe_ps`'s / `ad_oe_addr`'s `!halt_pin` all disappear with
+it: one term REPLACED three exceptions.
+
+*Falsifier*: a HALT pseudo-cycle whose announced address is not on AD for its
+whole duration, or any clock inside one on which the part drives a status
+nibble rather than A19-16.
+
+### §54.1 THE INSTRUMENT — AND WHY IT HAD ALWAYS READ CORRECT
+
+`tb_v30_core.sv`'s `drive_hi_a` substituted `hold` for A19-16 across a HALT
+display and its T1 whatever the core drove, and `com_phase` refused a display at
+a HALT-typed cycle's T2/T3/Tw although the goldens carry a full 20-bit address
+there (`s10-hltsweep-w0 HLT.RES idx 5` golden row 6: `9ad8c SS ad8c CODE T3`).
+
+**The first mask read correct by construction and not by correctness.**  The
+retained nibble is the previous cycle's PS; the previous cycle is a CS fetch
+with the same IE; so `hold[19:16] == data_ps(2)` identically.  Measured over the
+committed goldens the HALT display's upper nibble is **`6` in all 200
+`HLT.INT`, `2` in all 200 `HLT.RES`, `{2,6}` in `HLT.NMI`** — and never `0`,
+which is what both cores drove.  In FABRIC there is no retention, which is why
+§52.9 saw it and no offline gate ever had.
+
+Both terms removed.  Engine-neutral by construction: neither names a core
+signal.  **This discharges U3 open item 1** (§45.3) with the pre-registered
+before/after on BOTH cores that it demanded.
+
+### §54.2 THE BARS OF §53.4, SCORED
+
+| # | registered | measured | |
+|---|---|---|---|
+| 1 | mask off, no RTL fix: BOTH cores fall by the 600 v0.1 HLT cases | **ucore 0/600, FSM 0/600**, `exp 0x28D1E got 0x08D1E` — the upper nibble, 2 → 0; v0.1 **168,400/169,000** on both | ✅ exactly |
+| 2 | mask off + fix: G3 back to 169,000, sweeps ≥ 249/283 | **169,000 / 169,000**; sweeps **91/97, 90/95, 40/46, 38/45 = 259/283** | ✅ |
+| 3 | the FSM core NOT fixed; its numbers routed, not called a regression this stage created | FSM v0.1 **168,400/169,000**, sweeps **0/97, 4/95, 5/46, 7/45 = 16/283** | recorded |
+| 4 | zero deltas everywhere else | see §54.4 — **every cell** | ✅ |
+| 5 | defect (b) is offline-INVISIBLE (the TB retains AD15-0 across a HALT-typed cycle) and is fabric-only | stated in advance; unchanged | — |
+
+### §54.3 THE HLT SWEEPS NOW — AND THE ucore-ONLY RESIDUE IS 13, NOT 23
+
+Per case, both legs, in ONE numbering (the `idx` FIELD is the pin delay `d`,
+§43.0's trap):
+
+| sweep | model | ucore, entry | **ucore, after F51 + the honest mask** |
+|---|---|---|---|
+| `s10-hltsweep-w0` | 91/97 | 90/97 | **91/97 — ON the model** |
+| `s10-hltsweep-w1` | 95/95 | 88/95 | **90/95** |
+| `s13-hltsweep-w2` | 44/46 | 37/46 | **40/46** |
+| `s13-hltsweep-w3` | 42/45 | 34/45 | **38/45** |
+| **total** | **272/283** | 249/283 | **259/283** |
+
+The model's 11 failures remain a **strict subset** of the ucore's 24, and **at
+w0 the two failing sets are now IDENTICAL** — `HLT.INT` d ∈ {2,3,4,5},
+`HLT.RES` d ∈ {2,3} on both legs.  The 13 ucore-only cells are:
+
+| sweep | ucore-only failing `idx` |
+|---|---|
+| `s10-w1` | `HLT.INT` 7,8,9,10 · `HLT.RES` 7 |
+| `s13-w2` | `HLT.INT` 9,12,13 · `HLT.RES` 9 |
+| `s13-w3` | `HLT.INT` 11,15,16 · `HLT.RES` 11 |
+
+The `busstat`-first half is **F43**, still diagnosed and still not landed for
+§43's own stated reason (it touches the BIU's eval instant, the module's spine,
+at a closure).  The `seg`/`bus`-first half is residue the corrected instrument
+NEWLY EXPOSES and is **NOT diagnosed** — booked, with a falsifier, rather than
+absorbed into F43's count.  §43.2's arithmetic ("17 cells no comparator on this
+TB can score") is retired: those cells are scoreable now, and 10 of them pass.
+
+### §54.4 THE FULL LADDER, RE-SCORED ON THE FIXED RTL — ZERO DELTAS
+
+One rebuild of each binary from the committed tree; every cell re-run, not
+inherited.
+
+| gate | standing | **U5** |
+|---|---|---|
+| **G3** `check_core --core ucore --opcodes all --cases 0` | 169,000 | **169,000 / 169,000** |
+| `v0.1-w1` / `-w3` | 1,200 / 1,200 | **1,200 / 1,200** |
+| `v0.1-w1 --opcodes EB` | 200 | **200 / 200** |
+| `w0evt` / `w1evt` / `w2evt` / `w3evt` | 200 / 1,200 / 200 / 1,200 | **200 / 1,200 / 200 / 1,200** |
+| `v0.1-w1evt-biased` | 1,200 | **1,200 / 1,200** |
+| `check_boot --core ucore` 220 / 400 | MATCH / MATCH | **MATCH / MATCH** |
+| `ulockstep --suite --waits 0,1,2,3` | ALL LOCKSTEP | **ALL SCENARIOS LOCKSTEP** |
+| `ulockstep --golden all --cases 50` | 17,350 | **17,350 / 17,350** |
+| `timed_wvec_gate --core ucore` | 88/88, +0.0 % | **88/88 digest, 88/88 count, +0.0 %** |
+| `timed_enter_replay --core ucore` | 154/154 ×5 | **154/154 ×5** |
+| `timed_ins_replay --core ucore --raw` | 1,312 / 2,624 | **1,312/1,312 and 2,624/2,624** |
+| `timed_fuzz --core ucore --evt-replay` REGISTERED | 1,483/1,702 | **1,483/1,702 (87.1 %)** |
+| … EVT / COMBINED | 192/1,008 · 1,675/2,710 | **192/1,008 · 1,675/2,710** |
+| … `BOUND WARNINGS` / `ENGINE ABORTS` | 5 / 0 | **5 / 0** |
+| `timed_fuzz --seeddir …/b2-tranche/seeds` | 171/188 | **171/188 (91.0 %)** |
+| denominators (both populations) | 2,710 / 532 · 188 / 28 | **held** |
+| `ss_lint --core ucore` | rc=0, 0 UNMAPPED | **rc=0, 201 flops, 0 UNMAPPED** |
+| `ss_lint --core fsm` | rc=0 | **rc=0, 203 / 181 flops** |
+| `--ce-div 4 --ce-hold-check` | 0 violations | **100/100, 0 violations** |
+| save state, modes 1 / 2 | 80/80 · 24/24 | **80/80 · 24/24** |
+| `check_ab_sim --core ucore` / `--core fsm` | 187 rows | **187 rows MATCH, both** |
+| `gen_ucore_qsf --check` | up to date | **up to date** |
+| **G0** `check_ucore_tables` | 9,988 | **9,988 PASS** |
+| the MODEL, unmoved | 169,000, row-diffs 0 | **169,000/169,000, row-diffs 0** |
+| **the b3 priority tranche, re-scored on the fixed binary** | `core` 176/178 · `vsim_ucore` 176/178 | **176/178 and 176/178, residue `bs`=2 — IDENTICAL** |
+| `fsmhead` / `vsim_fsm` on the same tranche | 59/178 | **59/178 and 59/178, residue `bs`=83 `qs`=36** |
+
+That last row is the load-bearing one for "one term, no new state": the fix is
+**inert on the victory tranche**, which is what a pin-drive change confined to
+the HALT pseudo-cycle must be.
+
+### §54.5 THE TWO `bs` SEEDS OF THE TRANCHE RESIDUE — CLASSIFIED
+
+§52.10 item 5, answered by the governance rule rather than by a patch.
+
+| seed | waits | ucore first-div | SIM first-div | **ucore vs SIM, pairwise** |
+|---|---|---|---|---|
+| `mc1_300043` | `wrand wmax 2` | row **403**, ndiff 3,419/4,000 | row **403**, ndiff **3,419/4,000** | **0 / 4,000 rows differ** |
+| `mc1_300122` | `wrand wmax 7` | row **402**, ndiff 3,570/4,000 | row **402**, ndiff **3,570/4,000** | **0 / 4,000 rows differ** |
+
+At the divergent row the two engines are byte-identical — `mc1_300043`
+`a=0xD6285 d=0x6205 ps=0xD`, `mc1_300122` `a=0xCFC1D d=0xFC1D ps=0xC` on BOTH —
+and both issue an EU `MEMR` where the chip issues a `CODE` fetch (chip
+`a=0x0050C ps=0`, a T1 code fetch).  Both are in V5's closed taxonomy as `bs`,
+and the `bs` family is exactly where the model's own registered bank residue
+sits (§44.2: `qs` 145, `bs` 37, `data` 23).
+
+**VERDICT: a divergence the reference model SHARES, bit for bit — §0 governance
+rule 3, a ledger finding routed to `sim/`, never a ucore patch.**  Patching the
+RTL to beat the model here would create an RTL-vs-model divergence in the
+direction the governance forbids, and the sim is the spec.  *Falsifier*: a
+re-derivation in which the sim's rows at those clocks differ from the ucore's.
+
+**So the entire residue of the campaign's victory condition is not the RTL's.**
+
+### §54.6 V1's RE-REGISTRATION — A NOTE, NOT A REWRITE
+
+§52.10 item 3.  **The old record stands exactly as written**: V1 was registered
+at ≥ 85.0 % before board contact and was MET at 98.9 %.  §51.8a's defect note
+stands beside it — the bar was set below the banked tranche's 89.4 % on the
+reasoning that fresh seeds are not cherry-picked, and the measured direction is
+the opposite (the frozen FSM core: 91.6 % fresh, 1.1 % banked).
+
+Two fresh-population baselines exist, both frozen and committed before capture:
+**178 seeds → 176 (98.9 %)** and **449 seeds → 435 (96.9 %)**.
+
+Registered here as the successor bar, for the campaign owner to adopt or amend
+(§(e) item 3 of the verdict):
+
+> **V1′** — on a fresh, frozen, stratified `wrand` population of ≥ 150 scored
+> seeds, captured after the freeze is committed, the ucore in fabric is
+> cycle-exact on **≥ 96.0 %** — one point below the LOWER of the two measured
+> baselines — **and** strictly above the FSM core built from the same HEAD on
+> the same seeds by **≥ 30 points**.
+
+The second clause is the discriminating one: it is what a barely-better core
+cannot clear, and it is what §51.8a found V1 alone could not supply.
