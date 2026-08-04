@@ -798,7 +798,7 @@ bool CpuT<Bus>::step() {
         // EVT seeds, all of them reported as REP-WITHDRAW-UNMATCHED.  A HALT
         // is excluded: a halted part's wake is its own sequence (sec.19.6).
         if (!ld.halt && at_fire_boundary()) {
-            boundary_clk_ = biu_.boundary_no_pop();
+            boundary_clk_ = biu_.boundary_no_pop(!m_.intr_pending);
             fired_boundary_ = true;
         }
         return true;
@@ -1169,7 +1169,9 @@ bool CpuT<Bus>::run_micro(const MicroPc& entry) {
             // carry datapath work -- `9D`'s `SIGMA -> SP` lives there); only
             // the successor's decode is what does not happen.
             if (at_fire_boundary()) {
-                boundary_clk_ = biu_.boundary_no_pop();
+                // H1: a mid-string REP withdrawal is not an instruction
+                // retire, so it does not carry the post-redirect floor.
+                boundary_clk_ = biu_.boundary_no_pop(!m_.intr_pending);
                 fired_boundary_ = true;
                 row_clocks = 0;
             } else {
@@ -1200,7 +1202,7 @@ bool CpuT<Bus>::run_micro(const MicroPc& entry) {
     if (fired_boundary_) return true;          // S9a: no successor decode
     const bool deferred = !biu_.opcode_pending();
     if (at_fire_boundary()) {
-        boundary_clk_ = biu_.boundary_no_pop();   // S9a, the deferred path
+        boundary_clk_ = biu_.boundary_no_pop(!m_.intr_pending);  // S9a deferred
         fired_boundary_ = true;
         return true;
     }

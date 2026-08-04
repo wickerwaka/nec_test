@@ -86,7 +86,7 @@ public:
     // ...and no boundary clock: the functional runner replays the firing
     // boundary architecturally and never arms `CpuT::set_fire_pc`, so this is
     // only here to keep the shared interpreter compiling on both policies.
-    long boundary_no_pop() { return -1; }
+    long boundary_no_pop(bool = true) { return -1; }
     // The HLT decode.  The functional drivers log the HALT transaction
     // themselves (image_runner / case_runner own the ordered-stream contract),
     // so this is a no-op here and the timed bus overrides it (S9a).

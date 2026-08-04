@@ -102,6 +102,8 @@ void BiuTimed::begin_case() {
     pf_infl_to_ = -2;
     pf_infl_n_ = 0;
     pf_owed_ = false;           // M19
+    bnd_floor_ = -1;            // H1
+    bnd_arm_ = false;
     cmt_expire_ = -1;           // M22
     cmt_was_owed_ = false;
     pop_is_first_ = true;
@@ -771,6 +773,16 @@ void BiuTimed::eval() {
     cmt_t1_ = free_clk > clk_ + 1 ? free_clk : clk_ + 1;
     cmt_expire_ = (cmt_disp_ + 3 > cmt_t1_ - 1) ? cmt_disp_ + 3
                                                 : cmt_t1_ - 1;
+    // H1: the RESTARTED prefetch after a redirect stamps the recognition
+    // floor at its own INDEX 2 -- the cycle-relative instant this machine
+    // already samples the queue counter on (`pf_arm_`; at w0 index 2 IS the
+    // completion eval, M2r).  Stamped at the GRANT, because the boundary is
+    // asked for on the clock the T1 opens on and the T1 transition has not
+    // run yet at that point.
+    if (bnd_arm_) {
+        bnd_arm_ = false;
+        bnd_floor_ = cmt_t1_ + 2;
+    }
     if (kFlushTrace)
         fprintf(stderr, "FC %ld disp=%ld t1=%ld kind=F addr=%05x\n",
                 clk_ - 1, clk_, cmt_t1_, unsigned(cmt_.addr));
@@ -925,6 +937,11 @@ void BiuTimed::flush(uint16_t cs, uint16_t pc) {
     // pointer).  It stands until the bus takes it -- a later SUSP does not
     // reset it.  See biu_timed.h.
     pf_owed_ = true;
+    // H1: the recognition boundary that follows this redirect is not taken
+    // until the RESTARTED prefetcher's index 2.  Armed here, stamped at that
+    // fetch's T1.
+    bnd_arm_ = true;
+    bnd_floor_ = -1;
     // M7: the sampled quantity is the QUEUE COUNTER, and the flush zeroes it.
     // A latch taken at index 2 of a cycle the flush then invalidates cannot
     // hold the eval off -- the redirect must be free to go at once.  MEASURED:
@@ -1004,6 +1021,15 @@ void BiuTimed::clear_consumed() {
 
 void BiuTimed::opcode_prefetch(uint16_t cs) {
     if (opc_valid_) return;
+    // H1: the floor is NOT read here.  It is a RECOGNITION-edge instant
+    // (S9a already separates the recognition boundary from the pop deadline),
+    // and the byte pipeline has its own: after a redirect the successor's pop
+    // is byte-limited at the refilling fetch's eval + 3, which is index 5 at
+    // w0 and later under waits -- strictly after the floor at index 2, so the
+    // floor could never be the binding term.  Charging the EU to it anyway
+    // (tried, and MEASURED) costs `INT.F3AA` 75 of 200 w0 cases and 18 of 200
+    // at w1, because the REP-withdrawal path flushes and then SUSPENDS, so its
+    // restart is the one that does NOT come at once (M19 / sec.21.3).
     // MAX-OF-TWO-DEADLINES.  The successor's opcode pop rides the E row's own
     // clock, but an instruction does not retire until its bus work is done:
     // the pop is the LATER of the E-row clock and eu_done of the last EU
@@ -1039,9 +1065,17 @@ void BiuTimed::opcode_prefetch(uint16_t cs) {
 // The pop itself is SUPPRESSED: the byte stays in the queue and the QS port
 // stays idle (`INT.90` case 0 row 3 against `IE0.90` case 0 row 3 -- the same
 // geometry with and without the recognition).
-long BiuTimed::boundary_no_pop() {
+long BiuTimed::boundary_no_pop(bool post_redirect) {
     if (opc_valid_) return clk_;   // already latched: this IS the pop clock
     wait_bus();
+    // H1: ...and a retire that follows a REDIRECT does not happen before the
+    // restarted prefetcher's INDEX 2 (see `bnd_floor_` in biu_timed.h).
+    // `post_redirect` is FALSE for the REP mid-string withdrawal, which is not
+    // an instruction retire at all: its recognition was taken inside the loop
+    // (sec.19.8.1) and the ROM's own REPX path does the flush AFTER the
+    // decision, so there is no boundary for the reload to hold off.  MEASURED:
+    // flooring it too costs `INT.F3AA` 26 of 200 at w0 and 0 elsewhere.
+    if (post_redirect) wait_bnd_floor();
     return clk_;
 }
 
@@ -1101,6 +1135,7 @@ uint8_t BiuTimed::pop(uint16_t cs, uint16_t upc, bool disp_last) {
         ++guard < 4096)
         tick();
     if (q_.empty()) return 0x90;
+    bnd_floor_ = -1;               // H1: the floor is spent by the pop
     uint8_t b = q_.front().b;
     q_.pop_front();
     consumed_.push_back(b);
@@ -1113,6 +1148,16 @@ uint8_t BiuTimed::pop(uint16_t cs, uint16_t upc, bool disp_last) {
 void BiuTimed::wait_retire_lead() {
     int guard = 0;
     while ((q_.empty() || q_.front().ready > clk_ + 1) && ++guard < 4096) tick();
+}
+
+// H1 -- THE RECOGNITION FLOOR AFTER A REDIRECT.  A flush ARMS it, the GRANT
+// of the restarted prefetch STAMPS it at that fetch's index 2, and a pop
+// SPENDS it.  It is stamped at the grant and not at the T1 transition because
+// the boundary is asked for ON the clock the restarted T1 opens, before that
+// clock's T1 transition has run.
+void BiuTimed::wait_bnd_floor() {
+    int guard = 0;
+    while (clk_ < bnd_floor_ && ++guard < 32) tick();
 }
 
 void BiuTimed::wait_bus() {

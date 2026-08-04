@@ -213,7 +213,7 @@ public:
     // in the queue and no `F` reaches the QS port -- a recognised boundary
     // suppresses its own pop (MEASURED: every vectored golden shows the
     // would-pop cycle with QS idle).
-    long boundary_no_pop();
+    long boundary_no_pop(bool post_redirect = true);
     long evt_anchor() const { return ev_anchor_; }
     long first_fpop() const { return first_fpop_; }
     // The part leaves HALT: the prefetcher runs again.  (`flush()` already
@@ -273,6 +273,7 @@ public:
     void arm_flags_latch(uint16_t* psw) { flags_latch_ = psw; }
     void wait_opr_free();
     void wait_bus();
+    void wait_bnd_floor();   // H1: the post-redirect retire floor
     // The clock before the queue's next byte can be popped.  A pre-decode-
     // executed form's execute strobe sits there -- see loader_impl.h,
     // ONE_BYTE_LOGIC.
@@ -586,6 +587,29 @@ private:
     // then swallow the request the flush had just raised.  Measured: w1 181
     // vs 200 rows-exact on `INT.F3AA`.)
     bool pf_owed_ = false;
+    // H1 (SM3 sitting 2) -- THE RETIRE AFTER A REDIRECT.
+    //
+    // A queue-flushing redirect does not retire on the clock the restarted
+    // prefetcher takes the bus: the boundary sits TWO CLOCKS LATER, at that
+    // fetch's T1 + 2.  One fixed index, and it is a property of the RETIRE,
+    // not of the interrupt: `boundary_no_pop()` and the ordinary
+    // `opcode_prefetch()` deadline both read it.
+    //
+    // It is INVISIBLE in ordinary code, which is why nothing measured it
+    // until the whole-program event axis existed: after a flush the
+    // successor's opcode pop is BYTE-limited at the refilling fetch's
+    // eval + 3 (M2r), i.e. at T1 + 5 with no waits and later with them, so
+    // the retire deadline never wins the max.  It is visible only where the
+    // boundary is read WITHOUT a pop -- S9a's recognition boundary.
+    //
+    // MEASURED on the socket, `sw/sm3_ackgeom.py` over the 1,008-seed EVT
+    // bank: 2,318 re-entry acknowledges, ZERO exceptions,
+    //     INTA1 T1 = max(F1 + 6, F1 + L + 1)
+    // with F1 the refilling CODE fetch's T1 and L its length -- i.e.
+    // max(boundary + 4, the next free bus slot) with boundary = F1 + 2.
+    // The floor bites only at L = 4 (w0), where it costs exactly 2 clocks.
+    long bnd_floor_ = -1;       // the boundary may not be taken before this
+    bool bnd_arm_ = false;      // ...stamped by the next fetch after a flush
     // M7b -- THE OUTSTANDING-FETCH TERM CLEARS WHEN THE BYTES ARE POPPABLE,
     // NOT WHEN THEY ARE WRITTEN.  The queue counter takes the bytes at the
     // push edge (e+1, M3); the "a fetch is out" term the scheduler adds to it
