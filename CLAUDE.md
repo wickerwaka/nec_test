@@ -112,7 +112,8 @@ Values are monotone: never re-scored downward without a loud, itemized entry.)
   `sw/timed_wvec_gate.py` (88/88, +0.0 %), `sw/timed_lawcards.py`
   (**8 GREEN / 0 RED / 3 UNRESOLVED** — C6, C7, C11),
   `sw/timed_fuzz.py --evt-replay` (REGISTERED **1,272/1,702**, EVT
-  **709/1,008**, COMBINED **1,981/2,710**),
+  **144/248**, COMBINED **1,416/1,950**, `INVALIDATED` 760 — the EVT and
+  COMBINED figures were RE-REGISTERED by **INV-1**, below),
   `sw/timed_fuzz.py --seeddir sw/testdata/t4/b2-tranche/seeds`
   (**154/188** — V5 is a standing REGISTERED FAILURE, not to be re-opened).
 - **The `ucore`** (now the DEFAULT `--core`; these are the ucore's OWN ratchets,
@@ -132,7 +133,10 @@ Values are monotone: never re-scored downward without a loud, itemized entry.)
   `timed_enter_replay.py --core ucore` **154/154 x5**;
   `timed_ins_replay.py --core ucore --raw` **1,312/1,312** and **2,624/2,624**;
   `timed_fuzz.py --core ucore --evt-replay` REGISTERED **1,483/1,702** (the sim
-  is 1,272) and `--seeddir …/b2-tranche/seeds` **171/188** (the sim is 154)
+  is 1,272), EVT **170/248** (the sim is 144 — on the EVT seeds whose directive
+  the rig actually applied the ucore BEATS the model; as banked it appeared to
+  lose by 517, which was INV-1), COMBINED **1,653/1,950**,
+  and `--seeddir …/b2-tranche/seeds` **171/188** (the sim is 154)
   — both RAISED by U4/F47 from 1,394 and 168, which were the U3 close's figures;
   the four HLT sweeps **91/97, 90/95, 40/46, 38/45** = 259/283 (below the model
   by **13** cells, all at w1/w2/w3 — at w0 the two failing sets are IDENTICAL).
@@ -141,9 +145,23 @@ Values are monotone: never re-scored downward without a loud, itemized entry.)
   and the TB's composed-AD mask stopped hiding it.  §43.2's "17 cells no
   comparator on this TB can score" is RETIRED — F42 was refuted in fabric
   (§52.9), the cells are scoreable, and 10 of them now pass.
-  **`--rig-hold reg8`** exists because the rig's `evt_hold` register is 8 bits;
-  it moves the SIM's EVT number too (+71), so it is OFF by default and the EVT
-  ratchet is NOT re-registered against it (F46).
+  **The rig's `evt_hold` register is 12 bits since 2026-08-04** (F46 / gap R1,
+  landed in RTL, **not yet in any bitstream**). `--rig-hold` keeps `reg8` to
+  reproduce the 8-bit era and gains `applied`, which reads the seed's own
+  `evt.hold_bits`.
+- **INV-1 — THE FIRST INVALIDATION** (`docs/notes/invalidation_ledger.md`,
+  opened 2026-08-04; the register the correctness-target directive names did not
+  exist before). 760 banked EVT seeds asked for a pin hold of 300 that the rig's
+  8-bit register truncated to 44, so a PREDICTING engine was scored against a
+  capture taken under a directive it is never given. Their `chip_rows` are true
+  silicon and are RETAINED; **nothing gates on them**. The exclusion is DERIVED
+  from the record (`timed_fuzz.f46_invalidated`), not from a list or a rename —
+  nothing was moved and nothing was deleted, because the same files are the
+  `check_fuzz_bank` 3,242-seed corpus. **The full 1,008-seed EVT column is a
+  SUSPENDED gate** (`standing_gates.md` § SUSPENDED) pending an SM2 re-capture.
+  Note also: the **w1evt-biased precedent is an archive-by-rename, NOT an
+  invalidation** — §24.7 says the old suite is *not retracted* and it is still a
+  live gate. It supplies the habit, not the disposition.
 - **`sw/ss_lint.py --core ucore` exits 0** (U4/F49). It was KNOWN-RED through
   U3 because five architectural flops were absent from the ucore's save-state
   map; they are mapped now, `SS_VERSION` **0x82** / `SS_COUNT` **218** /
@@ -224,6 +242,18 @@ Values are monotone: never re-scored downward without a loud, itemized entry.)
   that would be choosing a comparator after seeing a result. `HLT.RES` in fabric
   is IDENTICAL to `HLT.RES` offline cell for cell, which is the control that
   makes the class readable.
+  **X1's §56.3a INTERVENTION RAN OFFLINE 2026-08-04 AND BOTH BARS ARE MET**
+  (`ucore_provenance.md` §58.6). New instrument `hdl/tb/tb_sys.sv` — the
+  Verilated `system_large`, image loaded and event armed through the AXI bridge
+  exactly as the ARM does it — driven by `sw/x1_retention.py` through
+  `emit_suite`'s own driver. **Its baseline is 143/283, the FABRIC number
+  exactly, with 116 base-only failures all on INTA rows**; with
+  `X1_AD_RETENTION` the total is **259/283**, 116 closed, **0 survivors**, and
+  **0** cells differing from their offline result. The attribution is still NOT
+  ESTABLISHED — §56.3a's bar is written on fabric numbers plus a socket control,
+  and no board was touched. **The fabric leg is SM2's.** The retention is
+  applied on the OBSERVATION path (`hb_ad_sample`), not as a keeper on
+  `core_ad`; the deviation and why is written into `system_large.sv` beside it.
 - **The board carries the ucore bitstream** (`nec_test_ucore.sof 924c4a61e0…`,
   FLASH #3) since U5, with `use_core=0` proved MATCH 800 on it. The FSM A/B
   bitstream built from HEAD is `nec_test.sof a4533dfef0…` if it is needed again.
@@ -237,12 +267,16 @@ Values are monotone: never re-scored downward without a loud, itemized entry.)
   `sw/s11_census.py`, `sw/s12_census.py` (`hltsweep`/`psw`/`regold`/`ackfam`),
   `sw/s14_census.py --band`, `sw/s14_dstar.py`, `sw/s15_census.py`
   (the fuzz-residue taxonomy and `--rmw`, the RMW population).
-  **`s15_census.py` REPLAYS THE C++ MODEL UNCONDITIONALLY** (`:169`,
-  `tf.run_sim`) — it has no `--core` and takes only the SEED LIST from
-  `--report`. Pointed at a `--core ucore` report it runs clean and reports the
-  MODEL's families for the ucore's seeds. There is no instrument that classifies
-  an RTL core's own fuzz residue by the seven families
-  (`ucore_gaps_2026-08-04.md` §R.4).
+  **`s15_census.py` HAS AN ENGINE SINCE 2026-08-04** (gap R4, closed):
+  `--core {sim,ucore,fsm}`, default `sim` so every historical invocation means
+  what it meant. It used to call `tf.run_sim` unconditionally, so pointed at a
+  `--core ucore` report it ran clean and reported the MODEL's families for the
+  ucore's seeds. **MATCH `--core` TO THE REPORT's core.** The ucore's own
+  registered-bank family census (its first, `ucore_provenance.md` §58.4):
+  `PF_LOST` 107 · `DATA_SEQ` **41** · `TAIL_EXTRA` 28 · `PF_GAINED` 25 ·
+  `PF_ADDR` 9 · `SCHEDULE` 5 · `PIN` 4 = 219, catch-all empty. `DATA_SEQ` is 13
+  seeds LARGER than the model-replayed table showed, which retires §T.3's
+  reading that the ucore "closed nothing" in that family.
 - **Board discipline**: `s13_board.div_guard()` PINS the divider and asks the
   transport for the readback — an UNPINNED readback is a rig-integrity
   FINDING. Every board probe calls it. Socket only (`use_core=False`,

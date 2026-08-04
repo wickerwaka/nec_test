@@ -5,6 +5,21 @@ changes.** Companion to `docs/notes/ucore_campaign_verdict_2026-08-04.md` (the
 verdict), `docs/notes/ucore_provenance.md` §0-§57 (the ledger) and
 `docs/notes/fsm_core_archive_2026-08-04.md` (the other core's disposition).
 
+> **STATUS BANNER, added 2026-08-04 by session SM1 — READ BEFORE ACTING ON ANY
+> ITEM BELOW.** This document is a DATED SNAPSHOT and is deliberately not
+> rewritten. Six of its items have moved; `ucore_provenance.md` **§58** is the
+> current state.
+>
+> | item | now |
+> |---|---|
+> | **R1 / T5** — `evt_hold` is 8 bits | **FIXED in RTL** (12 bits, §58.3). Not yet in any bitstream. |
+> | **T5** — "the EVT column is rig-poisoned and is not a gate" | **ACTED ON**: `INV-1`, `docs/notes/invalidation_ledger.md`. The 1,008-seed column is a SUSPENDED gate; the 248-seed un-poisoned sub-gate is registered at ucore **170/248**, sim **144/248**. |
+> | **R3** — the F45 guidance comment | **FIXED** (§58.5) |
+> | **R4** — `s15_census` cannot classify an RTL core's residue | **CLOSED**: it has `--core`, and §T.3's table is superseded by the ucore's OWN census (§58.4) |
+> | **R5** — the CE-hold probe has no EU coverage | **FIXED** (§58.5), gate re-run green |
+> | **X1** — the `core_ad` retention intervention, pre-registered and unrun | **RUN OFFLINE, BOTH BARS MET** (§58.6). Fabric leg outstanding; attribution still NOT ESTABLISHED. |
+> | **T3 / T4 / T8 / I3 / I5** — "model-shared" | **RECLASSIFIED AS WORK** by the 2026-08-04 correctness-target directive (§58.1). The owner column below is the OLD partition. |
+
 **This document is measurement and enumeration only.** No mechanism was
 proposed, no RTL was changed, nothing was fixed. Where a number could be stale
 it was **re-run**, and where a re-run disagreed with the ledger that is stated

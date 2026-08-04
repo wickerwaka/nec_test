@@ -2,22 +2,57 @@
 
 ## GOVERNANCE RULE (read before changing anything in this directory)
 
-**The correctness target at every gate is "identical to `sim/` clock-for-clock",
-including the simulator's own registered non-exactnesses versus silicon** (the
-907-case REP w0 family, Q2's unmeasured raise, V5's 154/188). Concretely:
+**SUPERSEDED 2026-08-04 by the user directive in `CLAUDE.md` — the
+silicon-match phase.** The rule below governed U0-U5 and is kept, struck
+through in effect, because every finding those stages booked was classified
+under it and a reader of that ledger needs the rule it was written against.
 
-1. **RTL-vs-sim divergence is a bug in the RTL.** Fix the RTL.
-2. **RTL-vs-silicon divergence that the sim does NOT share is a bug in the RTL.**
-   Fix the RTL.
-3. **RTL-vs-silicon divergence that the sim DOES share is a ledger finding**, and
-   it is booked in `docs/notes/ucore_provenance.md` under the inherited
-   taxonomy. It is *never* patched locally in the RTL: the sim is the spec, so
-   the fix lands in `sim/` first, is re-gated there, and only then is
-   regenerated/re-implemented here. **No ucore landing without the sim landing
-   first.**
+### The rule NOW
 
-Reproducing a known-imperfect sim behaviour is the *pass* condition, not a
-defect. Do not "improve" ucore past the model.
+**SILICON MATCH is the only correctness bar.** *"Matching the model is no longer
+acceptable."*
+
+1. **RTL-vs-silicon divergence is a WORK ITEM. Always.** Whether or not the
+   model shares it. There is no longer a class of divergence that is closed by
+   pointing at `sim/`.
+2. **The C++ sim is an INSTRUMENT, not the reference.** It keeps every job it
+   was good at — lockstep (`ulockstep`), attribution, the family census, telling
+   a rendering bug apart from a spec bug — and loses exactly one: it does not
+   decide what is correct. Silicon does.
+3. **Model-shared is an ATTRIBUTION, not an acceptance.** "Both engines miss it"
+   still routes the fix to `sim/` first where the mechanism is the model's, and
+   the ucore still regenerates from it — the dependency direction is unchanged
+   and it is still the cheap way to fix a shared mechanism once. What changed is
+   that the item stays OPEN on the ucore's books until silicon matches, instead
+   of being booked as inherited residue and closed.
+4. **A defective rig is fixed and RE-CAPTURED.** Goldens invalidated by a rig
+   defect are DISCARDED from all gate sets — archived by rename, with an entry
+   in the invalidation ledger (`ucore_provenance.md` §58.3). Raw captures are
+   retained; nothing gates on them.
+
+Reproducing a known-imperfect sim behaviour is **no longer a pass condition.**
+
+### The rule U0-U5 was built under (HISTORICAL — do not apply)
+
+> **The correctness target at every gate is "identical to `sim/`
+> clock-for-clock", including the simulator's own registered non-exactnesses
+> versus silicon** (the 907-case REP w0 family, Q2's unmeasured raise, V5's
+> 154/188). Concretely:
+>
+> 1. **RTL-vs-sim divergence is a bug in the RTL.** Fix the RTL.
+> 2. **RTL-vs-silicon divergence that the sim does NOT share is a bug in the
+>    RTL.** Fix the RTL.
+> 3. **RTL-vs-silicon divergence that the sim DOES share is a ledger finding**,
+>    and it is booked in `docs/notes/ucore_provenance.md` under the inherited
+>    taxonomy. It is *never* patched locally in the RTL: the sim is the spec, so
+>    the fix lands in `sim/` first, is re-gated there, and only then is
+>    regenerated/re-implemented here. **No ucore landing without the sim landing
+>    first.**
+>
+> Reproducing a known-imperfect sim behaviour is the *pass* condition, not a
+> defect. Do not "improve" ucore past the model.
+
+**What the change reclassifies, itemised**: `ucore_provenance.md` §58.2.
 
 ## Hard constraints inherited from the closed campaigns
 

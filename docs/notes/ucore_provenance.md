@@ -5346,3 +5346,302 @@ written: **§56.3a** (the `core_ad` retention intervention that settles open
 item 0) and the **FSM regression bisect** (2026-07-30 → HEAD).
 
 **GATE U5: GREEN.  CAMPAIGN CLOSED.**
+
+---
+
+## §58 THE SILICON-MATCH PHASE — the governance change, and session SM1
+
+**2026-08-04, branch `ucsim`, session SM1.**  §0-§57 are the ucore campaign,
+which closed at U5 under a rule that no longer applies.  This section opens the
+phase that replaces it.  **Nothing above is edited**; every finding §0-§57 books
+was classified under the OLD rule and a reader needs the rule it was written
+against.
+
+### §58.0 THE DIRECTIVE, VERBATIM
+
+The user directive of 2026-08-04, as it stands in `CLAUDE.md`:
+
+> ## Correctness target (user directive 2026-08-04 — supersedes the ucore
+> campaign's RTL-vs-sim governance)
+>
+> **SILICON MATCH is the only correctness bar.** "Matching the model is no
+> longer acceptable." The C++ sim remains an instrument (lockstep, census,
+> attribution) but is NOT the reference: a divergence from silicon is a work
+> item regardless of whether the model shares it; model-shared residue is no
+> longer accepted residue. Where the rig or a golden is found defective, fix
+> the rig and RE-CAPTURE; goldens invalidated by rig defects are DISCARDED
+> from all gate sets — archived by rename with an invalidation ledger entry
+> (the w1evt-biased precedent; raw captures stay retained, nothing gates on
+> them).
+
+Propagated to `hdl/rtl/ucore/README.md`, whose GOVERNANCE RULE now states the
+silicon-first rule and keeps the U0-U5 rule quoted beneath it, marked
+HISTORICAL — DO NOT APPLY.
+
+### §58.1 WHAT IT RECLASSIFIES — the itemised list
+
+The partition that changes is the **`model-shared`** row of the gap report's
+owner table.  Under §0 rule 3 a model-shared divergence was *a ledger finding*
+and the ucore's books were closed on it.  It is now **WORK**, still routed to
+`sim/` first where the mechanism is the model's — the dependency direction is
+unchanged, and it is still the cheap way to fix a shared mechanism once — but it
+stays OPEN on the ucore's books until silicon matches.
+
+| item | was | **is now** |
+|---|---|---|
+| **T3 — the 210 model-shared registered-bank seeds** | *"seeds the model misses too"*, closed by the inherited seven-family taxonomy | **210 open work items.**  Their families are now measurable in the ucore's OWN engine for the first time (§58.4). |
+| **T4 — the 2 `bs` seeds of the priority tranche** | *"never a ucore patch"*, 0/4,000 rows apart from the sim | **open.**  Being byte-identical to the model at the divergent row is now an ATTRIBUTION (the mechanism is the model's), not a disposition. |
+| **T8 — the 4 shared seeds of §49.7** | model-shared, *"deliberately not patched"* | **open.**  Three are an exact byte swap on an odd-address word write — M5b's A0 swapper applied where the chip does not.  Both engines agree with each other and disagree with the socket, which is now the definition of a bug rather than of a pass. |
+| **I3 — INTA under waits, the second acknowledge's ANCHOR** | model-shared, *"the ucore inherits whichever way it lands"* | **open**, and it needs the directed cell §26.6.4 names.  Its whole-program evidence column was the EVT population, which INV-1 has just suspended — so this item's instrument must be rebuilt before it can be worked. |
+| **I5 — the four ucsim-t open-surface items** (§26.10 D) | model-shared, inherited *"because the ledger does"* | **four open work items.**  The withdrawn announcement's pad retention is the whole remaining w2/w3 sweep residue on the model side and is board-free with stimulus already banked. |
+| **I1 — the sim's `9D` flag-commit erratum** | *"the one place this campaign owes the model a fix"* | **unchanged in substance and sharper in standing**: here the RTL matches silicon and the MODEL does not, so under the new bar the model is simply wrong and the fix is owed outright. |
+
+**What does NOT change.**  A divergence the ucore has and the model does not is
+still a ucore bug (it always was).  `ulockstep` is still the only instrument that
+compares the two engines directly, and it is *more* useful now, not less: it
+separates "the rendering is wrong" from "the spec is wrong", which is exactly the
+question the new bar asks about every open item.
+
+### §58.2 SESSION SM1 — WHAT WAS DONE
+
+1. **Governance propagated** — `hdl/rtl/ucore/README.md`, and this section.
+2. **The `evt_hold` widen (R1 / T5), landed and build-proved** — §58.3.
+3. **R4 closed: `s15_census` gained an engine**, and the ucore's own family
+   census exists for the first time — §58.4.
+4. **R3 and R5 closed** — §58.5.
+5. **X1's intervention run offline, and it is MET on that leg** — §58.6.
+6. **The invalidation sweep, and INV-1** — `docs/notes/invalidation_ledger.md`,
+   summarised at §58.7.
+
+### §58.3 THE `evt_hold` WIDEN — LANDED, BUILD-READY, NOT YET IN SILICON
+
+Gap **R1**, verdict §(e) item 2, routed to the owner and now taken.
+
+```
+hps_axi_slave.sv   evt_hold  8 -> 12 bits, packed {wdata[30:27], wdata[23:16]}
+nec_bus.sv         input [11:0] evt_hold, ev_hold_cnt 8 -> 12
+system_large.sv    the wire
+v30ctl.py          RIG_EVT_HOLD_BITS = 12, ONE definition; set_event RAISES
+                   on an out-of-range hold instead of truncating
+fuzz_campaign.py   every new capture banks evt.hold_bits + evt.hold_applied
+timed_fuzz.py      --rig-hold gains `applied` (reads the seed's own record)
+```
+
+`EVT_CFG (0x20)`'s free space is bits `[30:27]`, so the hold is **split**:
+`[23:16]` low, `[30:27]` high.  `evt_pin[26:24]` and `evt_arm[31]` do not move
+and a host writing zeros in `[30:27]` reproduces the old behaviour exactly —
+which is what makes this a drop-in rather than a protocol break.  The readback
+at `0x20` is composed to match.
+
+**The root cause is not the width.**  It is that the rig applied a directive
+other than the one it was handed, silently.  `set_event` now raises; that is the
+part of this change that prevents the next F46.
+
+**Build state**: `sw/check_ab_sim.py` (the ucore inside the REAL integration)
+rebuilt on the widened RTL and is **187 rows MATCH**, unchanged.  The new
+`tb_sys` harness (§58.6) drives the widened `EVT_CFG` packing and runs 283 cells
+with 0 errors, so the split packing is exercised end-to-end offline.  **No
+Quartus run and no flash** — every flashed bitstream is 8-bit-hold silicon
+(`flash_log.jsonl` ends at FLASH #3).  **SM2 owns the bitstream.**
+
+### §58.4 R4 — `s15_census` HAS AN ENGINE, AND THE ucore HAS A FAMILY CENSUS
+
+**Gap R4 closed.**  `s15_census.py` called `tf.run_sim` unconditionally and took
+only the SEED LIST from `--report`; pointed at a `--core ucore` report it ran
+clean and reported the MODEL's families for the ucore's seeds.  It now has
+`--core {sim,ucore,fsm}` with `choices=`, dispatching through a single `replay()`
+that knows the two engines take DIFFERENT event inputs (the model is HANDED the
+capture's acknowledges; an RTL core is handed the rig's directive and predicts
+them).  Default stays `sim`, so every historical invocation means what it meant.
+
+**VALIDATION — the 9 / 210 / 220 partition, reproduced exactly.**  Two
+`timed_fuzz` runs over the frozen 1,702-seed registered bank, compared seed by
+seed:
+
+```
+REG: scored 1,702    ucore non-exact 219    sim non-exact 430
+     ucore-ONLY  9      sim-ONLY 220      shared 210      net +211
+```
+
+and the nine are the same nine §T.2 names: `mc1/412`, `mc1/721`, `mc1/1937`,
+`mc1/3325`, `mc2/584`, `mc2/2216`, `mc2/3291`, `t30-raw/84`, `t30-raw/123`.
+
+**Two controls, and the second is the sharp one.**
+
+| leg | result |
+|---|---|
+| `--core sim` on the SIM's 430 | `PF_LOST` 239 · `SCHEDULE` 79 · `TAIL_EXTRA` 30 · `DATA_SEQ` 28 · `PF_GAINED` 23 · `PF_ADDR` 17 · `PIN` 14 — **§T.3's model column, cell for cell** |
+| `--core sim` on the UCORE's 219 | `PF_LOST` 110 · `TAIL_EXTRA` 30 · `DATA_SEQ` 28 · `PF_GAINED` 23 · `SCHEDULE` 12 · `PF_ADDR` 4 · `PIN` 3 — **§T.3's shared-210 column, cell for cell** — *and it reports **9 `NOW_EXACT`***, which are exactly the nine ucore-only seeds.  The model is cycle-exact on them.  That is the old tool's blind spot made visible by the new flag: 9 of the 219 rows in the table it used to print were rows about seeds the replayed engine does not miss. |
+
+**THE ucore's OWN REGISTERED-BANK FAMILY CENSUS — the first one ever taken.**
+219 seeds, its own engine, 0 `NOW_EXACT` (a self-consistency control: the census
+engine and the report engine agree on every seed):
+
+| family | **ucore, its own 219** | the model's families on the shared 210 | the model's own 430 |
+|---|---|---|---|
+| `PF_LOST` | **107** | 110 | 239 |
+| `DATA_SEQ` | **41** | 28 | 28 |
+| `TAIL_EXTRA` | **28** | 30 | 30 |
+| `PF_GAINED` | **25** | 23 | 23 |
+| `PF_ADDR` | **9** | 4 | 17 |
+| `SCHEDULE` | **5** | 12 | 79 |
+| `PIN` | **4** | 3 | 14 |
+| catch-all | **0** | 0 | 0 |
+| **total** | **219** | **210** | **430** |
+
+Read it against the old table and one thing jumps: **`DATA_SEQ` is 41 in the
+ucore's own engine against 28 in the model's.**  §T.3 recorded `DATA_SEQ` as one
+of three families *"the ucore closed NOTHING in"* — 28 seeds, the same seeds in
+both engines — and concluded they are the MODEL's mechanisms.  In the ucore's
+own engine the family is **13 seeds LARGER**, which means the shape does not
+partition the way the model-replayed table implied: the ucore has `DATA_SEQ`
+divergences of its own, on seeds the model misses for a different reason.  That
+is F47's shape (the right cycle, the right address, the wrong word) appearing in
+a population where it had been invisible.  **Booked, not diagnosed.**
+
+`SCHEDULE` moves the other way — 5 against 12 — so on these seeds the ucore's
+arbitration is closer to the chip than the model's even where both miss.
+
+The ucore-only nine, in the ucore's own families: `DATA_SEQ` 4 · `PF_ADDR` 2 ·
+`PF_LOST` 1 · `PF_GAINED` 1 · `PIN` 1.
+
+*Falsifier for the `DATA_SEQ` reading*: a re-derivation in which the 13 extra
+seeds are `DATA_SEQ` in the model's engine too — i.e. the difference is the
+instrument and not the engine.
+
+### §58.5 R3 AND R5
+
+* **R3** — `tb_v30_core.sv`'s mode-4 guidance comment said *"run many seeds:
+  most flips must diverge"*.  It now says what F45 actually established: mode
+  4's seed IS the bit index, so **step the seed by 16** to walk one bit per
+  stream word, and the bar is *some* must diverge, form- and
+  freeze-point-dependent.  A reader of the old comment builds a blind gate that
+  only ever touches the first stream word.
+* **R5** — the CE-hold probe watched the BIU only (`r_ts`, `r_q_cnt`,
+  `r_fetch_ptr`), so a clean `+ce_div` cell was BIU-state evidence and the EU
+  side rested on the golden row match.  The probe now carries the ucore EU's
+  spine — its micro-PC `upc_page` / `upc_opc` / `upc_loc`, which is what
+  `u_eu.state` was for the archived core — and the probe word is 64 bits and
+  zero-extended for both engines so a widening is not an engine fact.
+  **Re-run: `check_core.py --ce-div 4 --ce-hold-check --opcodes all`
+  = `CE_HOLD_VIOL 0` on every form, 694/694 full.**  The gate is greener for a
+  better reason than it was.
+
+### §58.6 X1 — THE §56.3a INTERVENTION, VERILATED LEG: **MET**
+
+Reported **as registered**.  §56.3a pre-registered the intervention, the
+population and a two-half bar, and handed it on unrun.  This session ran its
+OFFLINE half.
+
+**The instrument, because it did not exist.**  Neither Verilator harness could
+ask X1's question: `tb_v30_core` is the core ALONE behind a TB memory that
+**models pad retention** (which is why it scores 259/283 and can never see the
+fabric's 116 cells), and `tb_ab` is `system_large` with a FIXED boot image, no
+event scheduler and no image load.  **`hdl/tb/tb_sys.sv`** is new: `system_large`
+driven exactly as the ARM drives it on the board — image loaded through the AXI
+`A_MEM` window under `host_reset`, `CFG` / `PINS` / `EVT_ADDR` / `EVT_CFG`
+written through the bridge, `use_core=1`, the real `nec_bus` capture path
+drained as the same 64-bit records `decode_words` parses off the board.
+`sw/x1_retention.py` drives it through **`emit_suite`'s own driver**, so the
+number is on `check_core`'s scale by construction, exactly as `u4_f42_fabric`
+does for the FPGA.
+
+**THE ONE DEVIATION FROM THE LETTER OF §56.3a, STATED BEFORE THE RUN** (it is
+written into `system_large.sv` beside the code): the retention is applied on the
+**observation path** — `hb_ad_sample`, what `nec_bus` captures — and NOT as a
+keeper driving `core_ad` itself.  Two reasons, the first decisive: a keeper on
+the net needs an "is anyone else driving" term whose only honest source is the
+core's own output enable, which is not a port, and manufacturing one in the
+harness would be re-deriving the core's OE from its status pins — a fitted rule
+in the exact place the intervention must not have one.  Second, it keeps the
+core's INPUT untouched, which is the registration's own constraint.  It
+therefore tests the claim **as it is actually made** — *"the row READS the
+harness's INTA vector byte instead of the retained previous data phase"* — and
+no more.  `v30u_biu.sv` is not touched; nothing in either core is.
+
+**THE PRE-CONDITION, AND IT IS THE STRONGEST PART OF THE RESULT.**  Before the
+intervention can be scored, the Verilated integration has to BE the fabric on
+this population.  It is:
+
+| leg | score |
+|---|---|
+| `tb_v30_core` offline (models retention) | **259 / 283** |
+| **`tb_sys` baseline, `X1_AD_RETENTION` OFF** | **143 / 283** |
+| the FABRIC, §56.1 (cited, not re-measured) | **143 / 283** |
+| `tb_sys` with the retention model ON | **259 / 283** |
+
+The baseline reproduces the fabric total **exactly**, its 116 base-only failures
+are **116**, and **116 of 116** have an **INTA** row as the golden's
+first-divergence row.  The Verilated `system_large` is the bitstream on this
+population, which is what makes the intervention scoreable offline at all.
+
+**SCORED AGAINST THE REGISTERED BAR:**
+
+* **BAR (i) — all 116 close, and the total reaches 259/283 EXACTLY, not merely
+  toward it: MET.**  closed 116, **survived 0**, ret total 259 = offline 259.
+* **BAR (ii) — nothing else moves; every cell matching its OFFLINE result cell
+  for cell: MET.**  **0** cells differ from offline after the intervention.
+  `HLT.RES` is cell-identical (47/49, 48/49, 24/25, 24/25) and no non-INTA row
+  acquires a new first divergence.
+
+**WHAT THIS DOES AND DOES NOT SETTLE.**  §56.3a's bar is written on FABRIC
+numbers and includes a 49/49 socket control and a `use_core=0` 800-row MATCH —
+board measurements, and **no board was touched this session**.  So the
+attribution is **not yet ESTABLISHED**; what is established is that the
+mechanism §56.3 named is **sufficient, offline, to account for all 116 cells and
+for nothing else**, on an integration that reproduces the fabric baseline cell
+for cell.  A correlation has become an intervention with a clean result on one
+leg.  **The fabric leg is SM2's**, and it needs its own pre-registered
+before/after on both cores, a Quartus compile and a flash — the cost §56.3a
+already priced.  C11's verdict stands until then.
+
+*What would still refute it*: the fabric leg failing to reproduce this, or any
+of the 116 surviving in silicon.
+
+### §58.7 THE INVALIDATION SWEEP — INV-1
+
+Full entry: **`docs/notes/invalidation_ledger.md`**, a file this session opened
+because the directive names a register that did not exist.
+
+**INV-1 — the EVT-scored fuzz population, as a gate.**  760 banked seeds carry
+`evt.hold = 300` and the rig's register was 8 bits, so the socket was held 44
+clocks.  Measured this session: all 760 are inside the 1,008-seed scored EVT
+population; the other 248 carry `hold = 2`.  The `chip_rows` are TRUE silicon —
+what is false is the **label**, and therefore the directive an engine is handed.
+
+| engine | the poisoned 760 | **the un-poisoned 248** | as banked, 1,008 |
+|---|---|---|---|
+| ucore | 22 | **170 (68.5 %)** | 192 |
+| sim | 565 | **144 (58.1 %)** | 709 |
+
+**On the EVT seeds whose directive the rig actually applied the ucore beats the
+model by 26 seeds; as banked it "loses" by 517.**  That is the whole content of
+§T.5's 547 ucore-only non-exact seeds.
+
+The exclusion is **derived from the record**, not from a list and not from a
+rename (`timed_fuzz.f46_invalidated`): a seed is out iff its banked `hold`
+disagrees with what the rig that captured it could hold.  Nothing was moved and
+nothing was deleted — the 760 files are still read by `check_fuzz_bank`'s
+3,242-seed corpus and by `s15_census --rmw`, and moving them would have silently
+changed both.  `timed_fuzz` prints them on an `INVALIDATED` line and sums them
+into nothing.
+
+**Gate movement**: `REGISTERED` **unchanged** at ucore 1,483/1,702 and sim
+1,272/1,702 (re-run).  `EVT` re-registered at **ucore 170/248, sim 144/248**.
+`COMBINED` re-registered at **ucore 1,653/1,950, sim 1,416/1,950**.  **The full
+1,008-seed EVT column is SUSPENDED pending an SM2 re-capture** on a bitstream
+carrying the 12-bit hold.
+
+The sweep also **cleared** everything else it examined, and the clearances are
+recorded so the suspicions are not re-raised: every `tests/v30` golden suite
+(the emitter's max declared hold is **6**), the b2 / b3 / b4 tranches (no `evt`
+axis at all), the sticky-divider era (retracted before landing; the rig pinned at
+§22.6), and the composed-AD mask (a comparator defect — no golden was ever
+emitted from a TB, and §57.2's 3,242-seed replay moved no verdict).
+
+**And a correction to the precedent the directive cites**: the w1evt-biased
+event was an **archive-by-rename, not an invalidation** — §24.7 says in terms
+*"the old suite is not retracted"*, and the biased suite is a live standing gate
+today.  It supplies the habit (rename, never delete; keep the evidence with the
+artifact; its own commit; report both numbers) and not the disposition.
+**INV-1 is this project's first actual invalidation.**
