@@ -6331,6 +6331,16 @@ register.  A signature that enters it without provenance makes the next
 campaign's "this is new" mean something different from this campaign's, and
 there would be nothing in the file to say so.
 
+**ADDENDUM, 2026-08-04 (SM3 sitting 5, §64.4).**  Codex found that the control
+above could not be re-run after its own admission — `sm3_sigctl.py` read the
+LIVE ledger, which by then contained the 140.  `--ledger <path>` was added, the
+pre-admission ledger retrieved from git
+(`git show 369e4953ce:tests/v30/fuzz_bank/sig_ledger.json`, **11,705**
+signatures against the live file's 11,845), and the control re-run on the
+current tree: **166 new-sig TIMING seeds / 140 distinct signatures / 166 on
+re-captured seeds / 0 on any other / 0 failing the control / 0 errors / 0
+gen-drift.**  Reproduced exactly.
+
 ### §60.2 THE CENSUS — the headline, and the number that is new
 
 Full tables in `sm3_residue_census_2026-08-04.md`.  The ledger-level facts:
@@ -7227,3 +7237,308 @@ Class A's own `delta = +2` says the second reading has to be on the table.
   nothing that could move them was touched.
 * **H4 / H5 / H6 were not opened** — the work order scopes them out.
 * **The 24 class-A seeds with no `0F FF` in the image were not explained.**
+
+## §64 SESSION SM3, SITTING 5 — THE CODEX REMEDIATION PACKAGE
+
+**2026-08-04, branch `ucsim`, from HEAD `a195b06c36`.**  Half A of the sitting:
+the six concerns raised by the Codex critical review of the silicon-match phase
+(verdict **GO-WITH-CONCERNS**).  Half B — the two directed board cells §63.3 and
+§63.6 specify — is §65.
+
+> **Standing principle, applied throughout.**  *"This is 80's era hardware,
+> they aren't wasting silicon on anything that isn't necessary.  Complex or
+> confusing behavior that we see is likely to be simple systems interacting in
+> ways you do not fully understand yet."*
+
+### §64.1 CONCERN 1 — **GOVERNANCE ERRATUM.  H1's RE-KEY WAS POST-HOC.**
+
+**The finding is upheld exactly as Codex stated it, and it is booked as an
+erratum against this project's own pre-registration discipline, not explained
+away.**
+
+`sm3_h1_prereg_2026-08-04.md` §5 registered P3: *"if `JMPLOOP` and `RETLOOP`
+show gap 4 at w0 … **C1 is REFUTED, the `sim/` landing is REVERTED**, and H1 is
+re-opened as a per-redirect question — the landing is not defended against its
+own falsifier."*  P3 **fired**.  What P3 authorised was the REJECTION of C1.
+What §7.2 then did was read the same 120 captures for the coordinate that DOES
+separate their two populations — *an acknowledge with an acknowledge behind it*
+— install it as the new arm (`bnd_pending_`), and report **326/326 on those same
+120 captures** as the landing's evidence.
+
+**That 326/326 is a FIT, not a test.**  The discriminator was selected by
+looking at the data it is scored on.  §7.2's own words — *"What was reverted is
+the KEY, not the floor"* — describe the manoeuvre accurately and do not make it
+legitimate.  The floor's SHAPE (`max(F1+6, F1+L+1)`) was pre-registered and is
+untouched by this; the ARM is what was chosen after the fact.
+
+**THE MITIGATION — validation on data that did not select the key.**  The arm
+was chosen on `sw/testdata/sm3-h1cell/` (120 directed captures, 5 stimuli).  The
+banked EVT population is disjoint from it in every sense that matters: different
+programs, different campaign, captured weeks earlier, and **not consulted when
+the arm was chosen**.  It splits further into two campaign banks that were
+generated and captured independently.  Scoring the arm's own law — *every
+acknowledge with an acknowledge behind it opens at `max(F1+6, F1+L+1)` after a
+CODE fetch* — over each bank ALONE (`sw/sm3_ackgeom.py`, chip rows only, no
+engine in the loop):
+
+| partition | re-entry acknowledges | **law violations** |
+|---|---|---|
+| `mc1` | 1,129 | **0** |
+| `mc2` | 1,188 | **0** |
+| `t30-raw` | 1 | **0** |
+| all three | **2,318** | **0** |
+
+Two independent populations of over a thousand acknowledges each, neither used
+to select the key, and **zero exceptions in either**.  That is what makes the
+arm quotable.  **The 326/326 figure is NOT quotable as evidence for the arm**
+and is struck in that role; it remains true as a statement about the model's
+reproduction of those captures once the arm was in.
+
+**The standing rule this produced** is now in `CLAUDE.md`'s discipline section,
+one line: *a refuted key's replacement must be validated on data that was not
+used to select it.*
+
+### §64.2 CONCERN 2 — **THE 17-CASE SCREEN, ADJUDICATED.  THE SCREEN IS NOT A
+FLOOR DETECTOR, AND THE HYPOTHESIS IS NEITHER CONFIRMED NOR REFUTED BY IT.**
+
+Codex's screen over the full bank — `ord == 1`, `prev_len == 4`, `gap == 6` —
+returns **17** hits, reproduced here exactly (`sw/sm3_ackgeom.py`, then the
+first-acknowledge slice: gap 4 on **295**, gap 6 on **17**, other on 6).  These
+are first acknowledges sitting where H1 says only a RE-ENTRY may sit.
+
+The coordinator's hypothesis was that an **NMI or other non-INTA entry** hides
+behind them: `sm3_ackgeom`'s ordinal counts INTA cycles only, so an entry
+announced by a vector read leaves an acknowledge behind without incrementing it.
+
+**THE EVENT-AXIS READ.  All 17 carry `evt.pin = 0` (INT), so the rig asserted no
+NMI on any of them.**  Reading the chip rows before the first INTA for an IVT
+vector fetch (a `MEMR` below `0x00400` — a software `INT`, a trap, or an NMI):
+
+| | seeds |
+|---|---|
+| an interrupt ENTRY before the first INTA | **3** — `mc1/2672` (vector `0x00000`), `mc1/356` (`0x0000c`), `mc2/3821` (`0x001ac`) |
+| **no acknowledge-like event of any kind** | **14** |
+
+Taken at face value that is the brief's second branch — a falsification hit.
+**It is not, and the test that decides it is the engines.**
+
+**THE DECIDING TEST.**  Neither engine floors a FIRST acknowledge: both arms are
+INTA-only and `bnd_pending_` resets to false.  So if an engine reproduces the
+chip's gap-6 clock, that clock is not a floor — it is where the EU retired.
+Per seed, first-acknowledge T1, chip vs engine:
+
+| | reproduce the chip's first-acknowledge T1 |
+|---|---|
+| `ucore` | **14 / 17** |
+| `sim` | 11 / 17 |
+
+and the **3 the ucore misses are exactly the 3 with an entry behind them.**
+The 14 with nothing behind them are reproduced by an engine that applies no
+floor to them, so **they are not exceptions to H1's partition at all.**
+
+**WHY THE SCREEN MISLEADS, and it is the simplicity principle in one line.**
+For a RE-ENTRY the boundary is pinned to the preceding fetch — the redirect
+flushed the queue and the restarted prefetch IS that fetch — so `gap` measures
+the floor.  For a FIRST acknowledge there is no redirect, the recognition
+boundary is wherever the current instruction happens to retire, and `gap` 4 vs 6
+measures **the length of the instruction that was executing**.  The screen
+carries a premise from one population into another where it does not hold.
+Nothing about the part is complicated here; one coordinate stopped meaning what
+it meant.
+
+**WHAT THE 3 RESIDUAL SEEDS ACTUALLY SHOW — and it is the hypothesis, on the
+only cases where it is testable.**  Their chip rows, cycle for cycle:
+
+```
+  mc1/2672   MEMR:00000@235 MEMR:00002@239            <- vector 0 (the divide trap)
+             MEMW:03efe@247 MEMW:03efc@254 MEMW:03efa@260   <- the entry's frame
+             CODE:00480@264 CODE:00482@268            <- gen_soup's handler: CF = IRET
+             MEMR:03efa@274 MEMR:03efc@278 MEMR:03efe@282   <- the IRET's three pops
+             CODE:00516@286                           <- the RESTARTED prefetch, L = 4
+             INTA  T1 @292                            =  286 + 6.  THE FLOOR, PAID.
+  mc1/356    identical shape, vector 0x0000c, restart @210, INTA @216 = 210 + 6.
+```
+
+**Those two are re-entries in every mechanical sense** — an interrupt entry, a
+handler, an IRET, a flush, a restarted prefetch, and the acknowledge at that
+prefetch's index 2.  The *only* reason `sm3_ackgeom` calls them ord 1 is that
+the entry was announced by a vector read instead of an INTA cycle.  **Both
+engines put the acknowledge at gap 4** — the un-floored back-to-back slot — and
+are wrong by exactly the 2 clocks the floor costs.
+
+The third, `mc2/3821`, is **not** a floor case: its handler runs
+`CODE:00480 → 00482 → 00484 → MEMW → CODE:00008`, i.e. it is the **8080 landing
+pad already booked as §63.5 class A**, and both engines diverge long before the
+acknowledge for that reason.
+
+**THE POPULATION CONTROL, and why the arm is NOT being widened this sitting.**
+Over all 771 first acknowledges in the EVT bank, 12 have both `prev = CODE
+L = 4` and an entry behind them.  **Eight of the twelve sit at gap 4 — below the
+floor.**  A floor is a minimum; if any prior entry armed it, those eight could
+not open at index 0.  Resolving them: the floor is *stamped* by the restarted
+prefetch after a flush and *spent* by a pop (§61.4), so it only bites at the
+first boundary after the restart.  Measuring the distance from the last vector
+read to the acknowledge and testing for the IRET's contiguous stack-pop triple
+immediately before the lead-in fetch:
+
+| | seeds | gap |
+|---|---|---|
+| the entry's IRET returns **immediately** before the acknowledge | **2** (`mc1/2672`, `mc1/356`) | **6 — floored** |
+| the entry returned long ago (9-60 bus cycles, pops in between) | 10 | 4 on eight, 6 on the 8080 seed, 161 on one |
+
+which is consistent with an entry-generic arm plus the spend rule, and is
+**equally consistent with the arm being INTA-only and those two seeds being
+coincidence at n = 2.**  Two seeds cannot separate them.
+
+**THE DISPOSITION — BOOKED, NOT PATCHED.**
+
+* **H1's first-vs-re-entry partition SURVIVES.**  The 17 are not an exception
+  class: 14 are ordinary retires and 1 is the 8080 gap.
+* **H1a is OPENED as a hypothesis: the arm is the interrupt ENTRY SEQUENCE, not
+  the INTA bus cycle.**  Simplicity argues for it directly — the part has ONE
+  microcoded entry sequence and an INTA-announced entry and a vector-read entry
+  are the same microcode; a machine that armed on the bus cycle would need two.
+  **Evidence: 2 seeds.  It is NOT landed.**
+* **Widening the arm was considered and REJECTED for this sitting**, on the
+  project's own rule that fixes are mechanism-level.  The model's arm sits in
+  `BiuTimed::inta_read` (`sim/biu_timed.cpp:1387`); there is **no entry hook in
+  the BIU at all**, and the only BIU-visible signature of a vector-read entry is
+  its ADDRESS.  Arming on "a `MEMR` below `0x400`" is an address-keyed rule with
+  no mechanism behind it — precisely the fitted-table shape the standing
+  principle names as a signal of misunderstanding.  §61.4 already carries *"THE
+  MECHANISM BEHIND THE ARM IS NOT ESTABLISHED"*; widening it on an address
+  match would make that worse, not better.
+* ***Registered falsifier for H1a***: a banked or directed capture in which an
+  interrupt entry announced by a vector read is followed IMMEDIATELY by its
+  IRET's restarted prefetch and an acknowledge, and that acknowledge opens at
+  the back-to-back slot rather than `max(F1+6, F1+L+1)`.  Two such would kill
+  it; the two that exist both go the other way.
+* ***The cell that would settle it***, specified and NOT taken: the
+  `sm3_h1_cell` `iretnext` stimulus with the pre-planted frames reached by a
+  software `INT n` instead of by the rig's pin, so the entry is real and carries
+  no INTA.  It is the same rig, the same driver and the same scorer;
+  `sm3_h1_cell.py` needs one new stimulus and no new instrument.
+* **Neither engine's arm was changed.  No ratchet moved.**
+
+### §64.3 CONCERN 4 — **THE `f46_invalidated` PREDICATE IS TIGHTENED**
+
+Codex: the predicate tests only REPRESENTABILITY (`h != h & mask`); it never
+compares `hold_applied` with `hold`, so a directive that is perfectly
+representable and still mis-applied would stay silently SCORED.  Upheld.  INV-1
+exists to make exactly that impossible, and the predicate implemented only the
+one defect that had been found rather than the property the ledger claims.
+
+`sw/timed_fuzz.py::f46_invalidated` now has **two limbs**:
+
+```python
+if h != (h & ((1 << bits) - 1)):                       # (a) representability
+    return True
+if "hold_applied" in e and int(e["hold_applied"]) != h: # (b) APPLICATION
+    return True
+return False
+```
+
+Limb (a) is a derivation of limb (b) for the one defect we know; it is not the
+whole of it.  A record with no `hold_applied` field falls through to (a), which
+is the pre-widen behaviour and correct by date.
+
+**CODEX'S OWN EQUIVALENCE TEST — the proof that no current record is
+mis-applied.**  If any banked record carried `hold_applied != hold`, the two
+`--rig-hold` modes would hand the engine different directives and the totals
+would part:
+
+```
+  timed_fuzz --core sim --evt-replay --pop evt --rig-hold banked
+  timed_fuzz --core sim --evt-replay --pop evt --rig-hold applied
+```
+
+The two reports are **BYTE-IDENTICAL** (`diff` clean, including every
+by-wait-class and by-bank cell): `EVT 780/1008`, `SCORED 1008`,
+`DIVERGE 228 / EXACT 780 / OPEN_BUS 157`, and **no `INVALIDATED` line on either
+— the tightened predicate returns False across the whole bank.**
+
+**THE FULL GATES, RE-RUN ON THE TIGHTENED PREDICATE — every figure UNCHANGED:**
+
+| gate | registered | measured |
+|---|---|---|
+| `timed_fuzz --core sim --evt-replay` REGISTERED | 1,272 / 1,702 | **1,272 / 1,702** |
+| … EVT | 780 / 1,008 | **780 / 1,008** |
+| … COMBINED | 2,052 / 2,710 | **2,052 / 2,710** |
+| `timed_fuzz --core ucore --evt-replay` REGISTERED | 1,483 / 1,702 | **1,483 / 1,702** |
+| … EVT | 906 / 1,008 | **906 / 1,008** |
+| … COMBINED | 2,389 / 2,710 | **2,389 / 2,710** |
+| `INVALIDATED`, both engines | 0 | **0** |
+| `BOUND WARNINGS` / `ENGINE ABORTS`, ucore | 5 / 0 | **5 / 0** |
+
+### §64.4 CONCERN 6 — **THE `sig_ledger` ADMISSION CONTROL IS REPRODUCIBLE AGAIN**
+
+Codex: `sm3_sigctl.py` loads the LIVE novelty ledger, so once the 140
+signatures were admitted to it the recorded **166 seeds / 140 signatures** could
+no longer be reproduced by the tool that produced it.  Upheld — a control that
+cannot be re-run is not a control.
+
+`--ledger <path>` added (default unchanged: the live
+`tests/v30/fuzz_bank/sig_ledger.json`), and the ledger actually used is now
+stamped into the tool's own output and into its report JSON.
+
+**THE REPRODUCTION, from git, on the current tree:**
+
+```
+git show 369e4953ce:tests/v30/fuzz_bank/sig_ledger.json > <pre>.json   # 11,705 sigs
+                                          (the live file today: 11,845 = +140)
+python3 sw/sm3_sigctl.py --jobs 8 --ledger <pre>.json --out …
+
+  sm3_sigctl: 3242 banked seeds, 11705 known signatures from <pre>.json
+  new-sig TIMING seeds: 166   distinct signatures: 140
+    on RE-CAPTURED seeds : 166
+    on any OTHER seed    : 0
+    failing the control (not a true-300/12-bit re-capture): 0
+  errors: 0  gen-drift: 0
+```
+
+**166 / 140 / 0 / 0 / 0 — the admission run of §60.1 reproduces exactly**, on a
+tree whose live ledger already contains the admitted signatures.  Recorded as
+the addendum §60.1 asks for.
+
+### §64.5 CONCERN 3 — **THE EVT COLUMN IS NOT A HEAD-TO-HEAD**
+
+Codex: the ucore's and the model's EVT figures are quoted side by side and read
+as a comparison, but the two engines are handed different information —
+`evt_tuple` (the rig's directive alone, a PREDICTION) versus `evt_directive`
+(the rig's directive **plus the capture's own acknowledge positions and pushed
+CS:IP**, a REPLAY).  Upheld.
+
+The rule is written into `standing_gates.md` §B as its own subsection: each
+figure is a valid silicon-match ratchet for its own engine; **no delta, margin
+or ranking may be computed between the two columns**, and the REGISTERED column
+(1,702 seeds, no `evt` axis, nothing from the capture handed to either engine)
+is the column to use when a head-to-head is wanted.  The §B rows that already
+say the ucore *"LEADS this column"* are left as written with the correction
+attached, because rewriting a recorded claim in place would hide that it was
+made.
+
+### §64.6 CONCERN 5 — **H2's SPAN, RE-VERIFIED ON THE CURRENT RESIDUE**
+
+Already satisfied by §62.7's cross-tab; re-measured on this sitting's own fresh
+reports so the citation is not to a stale run.  `s15_census --core ucore --pop
+evt` over the ucore report above (**102 EVT diverging seeds**, unchanged):
+
+| signature | `PF_GAINED` | `PF_LOST` | `DATA_SEQ` | `SCHEDULE` | total |
+|---|---|---|---|---|---|
+| `qs -!=F` | 17 | — | 6 | 2 | **25** |
+| `qs E!=-` | — | 11 | — | 5 | **16** |
+| **the H2 pair** | 17 | 11 | 6 | 7 | **41 across 4 families** |
+
+**≥ 3 families confirmed — 4.**  Identical to §62.7 cell for cell.  H2 stays
+RETIRED as a mechanism hypothesis: it names where the streams are first seen to
+part, not what parted.
+
+### §64.7 WHAT HALF A DID NOT DO
+
+* **No engine was changed.**  `sim/` and `hdl/rtl/ucore/` are untouched; the
+  only code edits are `sw/timed_fuzz.py`'s predicate and `sw/sm3_sigctl.py`'s
+  `--ledger` option, both of which were proved inert on every standing figure.
+* **The arm was NOT widened** (§64.2), and H1a is carried as a 2-seed
+  hypothesis with a registered falsifier and a directed cell, not as a law.
+* **No board contact in half A.**  H4 / H5 / H6 and the 8080 work (`gaps` §F.1,
+  a pending USER decision) were not opened.

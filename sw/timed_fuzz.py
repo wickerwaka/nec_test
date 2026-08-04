@@ -204,13 +204,33 @@ def f46_invalidated(entry):
     This is a predicate and not a seed list on purpose.  A list can drift away
     from what it describes and a rename can be undone silently; a derivation
     from the record cannot, and it self-heals -- a re-capture on the widened rig
-    banks `hold_bits = 12`, and the seed leaves this set by arithmetic."""
+    banks `hold_bits = 12`, and the seed leaves this set by arithmetic.
+
+    TWO LIMBS, and the second was added at SM3 sitting 5 (Codex concern #4).
+
+      (a) REPRESENTABILITY.  `hold` does not fit the rig's register width, so
+          the socket was silently given `hold & mask`.  That is F46 exactly.
+      (b) APPLICATION.  The record itself says the rig applied something other
+          than what the bank asks for (`hold_applied != hold`).  Limb (a) is a
+          DERIVATION of limb (b) for the one defect we found; it is not the
+          whole of it.  A directive that is perfectly representable and still
+          mis-applied -- a scheduler that clamps, a host that rounds, a future
+          field the RTL widens again -- passes (a) and is caught only by (b).
+          Without this limb such a capture would stay silently SCORED, which is
+          the failure mode INV-1 exists to make impossible.
+
+    A record with no `hold_applied` field cannot be tested by (b); it falls
+    through to (a), which is the pre-widen behaviour and is correct by date."""
     e = entry.get("evt") or {}
     if not e:
         return False
     h = int(e.get("hold", 0))
     bits = int(e.get("hold_bits", 8))
-    return h != (h & ((1 << bits) - 1))
+    if h != (h & ((1 << bits) - 1)):
+        return True
+    if "hold_applied" in e and int(e["hold_applied"]) != h:
+        return True
+    return False
 
 
 def evt_tuple(entry, meta, hold_mode="banked"):

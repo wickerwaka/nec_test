@@ -47,6 +47,13 @@ them).
   failures as registered, never restated.
 - Survey-then-fix: run the full batch, categorize all failures, then fix —
   mechanism-level only.
+- **A refuted key's REPLACEMENT must be validated on data that was not used to
+  select it.** Rejecting a pre-registered candidate on a directed capture is
+  what pre-registration is for; choosing its successor by scanning the same
+  capture and then scoring the successor on that capture is fitting, and the
+  score is not evidence. State the erratum, then validate on a disjoint
+  population before the replacement is quoted. (Written after Codex found the
+  pattern in H1's re-key; the worked mitigation is `ucore_provenance.md` §64.1.)
 - Consult Codex (`codex:rescue`, resumed thread) as critical reviewer at
   campaign phase boundaries and before closing any verdict document.
 - Board work: single-writer check first, socket only (`use_core=False`),
@@ -135,9 +142,10 @@ Values are monotone: never re-scored downward without a loud, itemized entry.)
   `timed_enter_replay.py --core ucore` **154/154 x5**;
   `timed_ins_replay.py --core ucore --raw` **1,312/1,312** and **2,624/2,624**;
   `timed_fuzz.py --core ucore --evt-replay` REGISTERED **1,483/1,702** (the sim
-  is 1,272), EVT **468/1,008** (the sim is 363 — **on the REBUILT column the
-  ucore beats the model by 105 seeds**; as banked it appeared to lose by 517,
-  which was INV-1, now CLOSED by the SM2 re-capture), COMBINED **1,951/2,710**,
+  is 1,272), EVT **468/1,008** (the sim is 363 — ~~on the REBUILT column the
+  ucore beats the model by 105 seeds~~ **STRUCK as a comparison, see the rule
+  below**; as banked it appeared to lose by 517, which was INV-1, now CLOSED by
+  the SM2 re-capture), COMBINED **1,951/2,710**,
   and `--seeddir …/b2-tranche/seeds` **171/188** (the sim is 154)
   — both RAISED by U4/F47 from 1,394 and 168, which were the U3 close's figures;
   the four HLT sweeps **91/97, 90/95, 40/46, 38/45** = 259/283 (below the model
@@ -147,6 +155,16 @@ Values are monotone: never re-scored downward without a loud, itemized entry.)
   and the TB's composed-AD mask stopped hiding it.  §43.2's "17 cells no
   comparator on this TB can score" is RETIRED — F42 was refuted in fabric
   (§52.9), the cells are scoreable, and 10 of them now pass.
+- **THE EVT COLUMN IS NOT A HEAD-TO-HEAD** (SM3 sitting 5, Codex concern 3;
+  the rule is `standing_gates.md` §B, "HOW THE EVT COLUMN MAY AND MAY NOT BE
+  QUOTED"). Under `--evt-replay` the model is handed `evt_directive` — the rig's
+  schedule **plus the capture's own acknowledge positions and pushed CS:IP** —
+  and REPLAYS; the RTL core is handed `evt_tuple`, the rig's directive alone,
+  and PREDICTS. Each figure is a valid silicon-match ratchet for its own engine.
+  **No delta, margin or ranking may be computed between the two EVT columns**;
+  use REGISTERED (1,702 seeds, nothing from the capture handed to either) when a
+  head-to-head is wanted. Every "the ucore beats the model by N" written of the
+  EVT column anywhere in this repo is struck in that role.
   **The rig's `evt_hold` register is 12 bits since 2026-08-04** (F46 / gap R1)
   — in RTL, in the host tool, **in FLASH #4 and on the board** since SM2, proved
   on the wire (`EVT_CFG` round-trips 256 / 300 / 4,095) and ON THE PIN (2 INTA

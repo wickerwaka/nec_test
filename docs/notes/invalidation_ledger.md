@@ -150,8 +150,28 @@ express it. So the exclusion is **DERIVED FROM THE RECORD**, in code, at
 ```python
 h    = int(e.get("hold", 0))
 bits = int(e.get("hold_bits", 8))   # no field => the 8-bit rig, by date
-return h != (h & ((1 << bits) - 1))
+if h != (h & ((1 << bits) - 1)):                        # (a) REPRESENTABILITY
+    return True
+if "hold_applied" in e and int(e["hold_applied"]) != h:  # (b) APPLICATION
+    return True
+return False
 ```
+
+**Limb (b) was added 2026-08-04 (SM3 sitting 5, `ucore_provenance.md` §64.3)
+after a Codex review found that the predicate implemented only the one defect
+we had found, not the property this entry claims.** Limb (a) asks whether the
+rig *could* hold the number; limb (b) asks whether it *did*. (a) derives (b) for
+F46 and for nothing else: a representable-but-mis-applied directive — a
+scheduler that clamps, a host that rounds, a register widened again later —
+passes (a) and would have stayed silently SCORED. **The root cause named above
+is "the rig silently applied a directive other than the one it was handed", and
+limb (b) is that sentence as a predicate.**
+
+*Proof that no current record is mis-applied*: `timed_fuzz --core sim
+--evt-replay --pop evt` under `--rig-hold banked` and `--rig-hold applied`
+produces **byte-identical** reports (EVT 780/1,008 both, no `INVALIDATED` line
+on either). If any banked record disagreed with itself the two modes would hand
+the engine different directives and part.
 
 A derivation is strictly stronger than a rename here, and the reason is the
 project's own standing lesson about vacuous gates: **a list can drift away from

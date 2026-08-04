@@ -12,6 +12,16 @@ the signature is already in the novelty ledger, and whether the seed carries a
 It is a MEASUREMENT, not a gate.  The gate stays `check_fuzz_bank`.
 
   sm3_sigctl.py --jobs 8 --out ~/.cache/ucsimt-tmp/sm3/sigctl.json
+
+REPRODUCIBILITY (SM3 sitting 5, Codex concern #6).  "New" is relative to a
+novelty ledger, and this tool used to read whatever `tests/v30/fuzz_bank/
+sig_ledger.json` said TODAY.  Once the 140 signatures were ADMITTED to that
+file the recorded 166/140 could no longer be reproduced by the tool that
+produced it -- a control that cannot be re-run is not a control.  `--ledger`
+names the ledger explicitly, so the admission run is reproducible from git:
+
+  git show 369e4953ce:tests/v30/fuzz_bank/sig_ledger.json > /tmp/pre.json
+  sm3_sigctl.py --ledger /tmp/pre.json --out ...      # -> 166 seeds / 140 sigs
 """
 import argparse
 import gzip
@@ -64,13 +74,19 @@ def main():
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("--jobs", type=int, default=os.cpu_count())
     ap.add_argument("--out", required=True)
+    ap.add_argument("--ledger", default="",
+                    help="novelty ledger to score 'new' against (default: the "
+                         "live tests/v30/fuzz_bank/sig_ledger.json).  Name a "
+                         "pre-admission copy retrieved from git to REPRODUCE "
+                         "an admission run after its signatures were admitted.")
     a = ap.parse_args()
 
-    known = set(json.loads(cfb.LEDGER.read_text()).get("sigs", {})) \
-        if cfb.LEDGER.exists() else set()
+    ledger = Path(a.ledger) if a.ledger else cfb.LEDGER
+    known = set(json.loads(ledger.read_text()).get("sigs", {})) \
+        if ledger.exists() else set()
     seeds = sorted(cfb.BANK.glob("*/seeds/*.json.gz"))
-    print(f"sm3_sigctl: {len(seeds)} banked seeds, {len(known)} known signatures,"
-          f" jobs={a.jobs}", flush=True)
+    print(f"sm3_sigctl: {len(seeds)} banked seeds, {len(known)} known signatures"
+          f" from {ledger}, jobs={a.jobs}", flush=True)
 
     with Pool(a.jobs, initializer=_init) as pool:
         recs = pool.map(_one, [str(p) for p in seeds], chunksize=4)
@@ -97,7 +113,7 @@ def main():
           " gen-drift:", sum(1 for r in recs if r.get("sha_ok") is False))
 
     Path(a.out).write_text(json.dumps(
-        {"n_seeds": len(recs), "n_known_sigs": len(known),
+        {"n_seeds": len(recs), "ledger": str(ledger), "n_known_sigs": len(known),
          "new_sig_seeds": len(newsig),
          "new_sig_distinct": sorted({r["sig"] for r in newsig}),
          "recs": recs}, indent=1))

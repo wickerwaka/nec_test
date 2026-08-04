@@ -58,6 +58,43 @@ entry. Figures are `ucore_provenance.md` §54.4's, re-run 2026-08-04.
 | the MODEL, unmoved | `python3 sw/timed_gate.py --suite tests/v30/v0.1 --forms all` | 169,000 / 169,000, row-diffs 0 |
 | the MODEL's fuzz bank | `python3 sw/timed_fuzz.py --core sim --evt-replay` | REGISTERED **1,272 / 1,702**; EVT **780 / 1,008**; COMBINED **2,052 / 2,710**; `INVALIDATED` **0**.  Same INV-1 closure; it was `EVT 709/1,008` as banked (STRUCK), then `144/248` interim.  **RAISED 2026-08-04 by SM3 sitting 2's H1 landing: EVT 363 -> 780, COMBINED 1,635 -> 2,052, +417 seeds, REGISTERED unchanged to the seed (`ucore_provenance.md` §61).  The ucore leg WAS TAKEN at sitting 3 (§62) and the ucore now LEADS this column: EVT 906 vs 780, COMBINED 2,389 vs 2,052 — on a bank where the ucore PREDICTS and the model REPLAYS.**  Before H1 the rebuilt column read 363 and the ucore led by 105; as banked it appeared to trail by 517.  The 248 never-poisoned seeds are unchanged at 170 / 144, which is the control that says the re-capture moved nothing it did not touch |
 
+### HOW THE EVT COLUMN MAY AND MAY NOT BE QUOTED (SM3 sitting 5, 2026-08-04)
+
+**The two EVT figures above are NOT a head-to-head, and quoting them as one is
+a category error.**  Registered here because the two rows sit next to each
+other and invite exactly that reading.
+
+Under `--evt-replay` the two engines are given **different information about
+the same capture**:
+
+| | what it is handed | what it must produce |
+|---|---|---|
+| `--core sim` | `timed_fuzz.evt_directive` — the rig's schedule **plus the capture's own acknowledge positions and the chip's pushed CS:IP** (`uf.entry_points` / `uf.frame_of`) | the rest of the trace, with the recognition instants supplied |
+| `--core ucore` | `timed_fuzz.evt_tuple` — the rig's `(anchor, delay, hold, pin)` and **nothing from the capture** | the recognition instants **and** the rest of the trace |
+
+So the model **REPLAYS** and the RTL core **PREDICTS**.  Each number is a
+silicon-match score, and each is a valid ratchet for its own engine: that is
+what they are for, and the correctness target (`CLAUDE.md`) makes silicon the
+bar for both.  What they are not is a comparison of the two engines' accuracy,
+because a replayer is scored on a strictly easier problem than a predictor.
+
+* **Legitimate**: "the ucore is 906/1,008 against silicon"; "the model is
+  780/1,008 against silicon"; "both rose when H1 landed".
+* **NOT legitimate**: "the ucore beats the model by 126 seeds"; "the ucore is
+  the more accurate engine on the EVT axis"; any ranking, delta or margin
+  computed between the two columns.
+
+The **REGISTERED** column (1,702 seeds, no `evt` axis) does not have this
+problem — neither engine is handed anything from the capture there — and it is
+the column to use when a head-to-head is actually wanted.
+
+*This rule was written after a Codex review of the silicon-match phase found
+the head-to-head reading already in circulation, including in the §B rows
+above.*  The prose in the two rows is left as written, with this section as its
+correction, because rewriting a recorded claim in place would hide that it was
+made.  **Where the rows above say the ucore "LEADS this column", read: the two
+columns are scored under different information and no lead is established.**
+
 ### SUSPENDED — **EMPTY** (the section is kept; the entry closed 2026-08-04)
 
 A suspended gate is not a failing gate and it is not a passing one: its
