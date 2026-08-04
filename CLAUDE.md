@@ -89,9 +89,13 @@ ratchets: monotone, never re-scored downward without a loud, itemized entry.)
   `timed_fuzz.py --core ucore --evt-replay` REGISTERED **1,483/1,702** (the sim
   is 1,272) and `--seeddir …/b2-tranche/seeds` **171/188** (the sim is 154)
   — both RAISED by U4/F47 from 1,394 and 168, which were the U3 close's figures;
-  the four HLT sweeps **90/97, 88/95, 37/46, 34/45** (below the model by 23
-  cells: 6 diagnosed — §43 — and 17 that §43 called an instrument ceiling until
-  **U4 pass 3 REFUTED that in fabric**, §52.9: those cells are the ucore's).
+  the four HLT sweeps **91/97, 90/95, 40/46, 38/45** = 259/283 (below the model
+  by **13** cells, all at w1/w2/w3 — at w0 the two failing sets are IDENTICAL).
+  These were 90/97, 88/95, 37/46, 34/45 = 249/283 through **U5**, and the move is
+  two changes at once: **F51** landed (the HALT pseudo-cycle has no data phase)
+  and the TB's composed-AD mask stopped hiding it.  §43.2's "17 cells no
+  comparator on this TB can score" is RETIRED — F42 was refuted in fabric
+  (§52.9), the cells are scoreable, and 10 of them now pass.
   **`--rig-hold reg8`** exists because the rig's `evt_hold` register is 8 bits;
   it moves the SIM's EVT number too (+71), so it is OFF by default and the EVT
   ratchet is NOT re-registered against it (F46).
@@ -103,6 +107,26 @@ ratchets: monotone, never re-scored downward without a loud, itemized entry.)
   temporaries combinational BY DECLARATION, which is exactly the fix U3 booked
   and could not take while the RTL was frozen — the MAP did not move). The
   `--core fsm` leg is unchanged and still exits 0.
+- **THE COMPARATOR CHANGED AT U5, AND IT MOVED THE FROZEN FSM CORE'S NUMBERS
+  DOWN.  Read this before quoting any FSM RTL figure.**  `tb_v30_core.sv`'s
+  composed-AD mask used to substitute the retained nibble for A19-16 across a
+  HALT display and its T1, whatever the core drove there.  The goldens carry
+  `data_ps(2)` = `{md, ie, CS}` on those rows — **`6` in all 200 `HLT.INT`, `2`
+  in all 200 `HLT.RES`** — and **both cores drive `0`**; the mask read correct
+  only because the retained nibble is the previous CS fetch's PS, which is the
+  same value by construction.  In fabric there is no retention and it does not
+  (§52.9).  Mask removed (engine-neutral, it names no core signal), **the ucore
+  FIXED (F51)** and **the frozen FSM core NOT** — this campaign does not touch
+  its RTL, because its flashed A/B bitstream is built from HEAD and §52.8 says
+  it must stay that way.  On the corrected comparator:
+  `check_core.py --core fsm --opcodes all --cases 0` is **168,400 / 169,000**
+  (it was 169,000; the delta is exactly the 600 `HLT.INT`/`HLT.RES`/`HLT.NMI`
+  cases, 0/600) and its four HLT sweeps are **0/97, 4/95, 5/46, 7/45 = 16/283**
+  (they were 216/283, measured for the first time at U5).  **The defect predates
+  the instrument change by every commit in the repo**; nothing was made worse,
+  something was made visible.  It is a ONE-LINE fix in `v30_biu.sv`'s `ad_o` /
+  `ad_oe_ps` and it is deliberately NOT taken — see the disposition decision
+  routed to the user in `ucore_campaign_verdict_2026-08-04.md` §(e).
 - **U4 additions**: `sw/check_ab_sim.py --core {fsm,ucore}` — the core inside
   the REAL integration (system_large) vs the chip's own boot capture; both legs
   **MATCH over 187 rows**. (It had been unbuildable since 2026-07-13; three

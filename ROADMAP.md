@@ -598,3 +598,73 @@ What it would look like:
 * **Parked probes not run**, recorded rather than hidden: status-latch
   persistence (verify its ROM-sweep precondition offline first), R6 BCD `CL=0`,
   the two POLL `BUSY` split probes, R7 CMP4S, F1 BUSLOCK.
+
+## Amendment (2026-08-04) — the `ucore` campaign: THE RTL, REGENERATED
+
+Verdict: `docs/notes/ucore_campaign_verdict_2026-08-04.md`.
+Ledger: `docs/notes/ucore_provenance.md` (§0-§54).  Branch `ucsim`.
+
+### The project's central goal now has a SECOND, mechanism-derived realization
+
+This file opens with **"a cycle-accurate FPGA recreation of the NEC V30
+(μPD70116), verified cycle-for-cycle against the real chip"**, and defines done
+as *"the V30 core, running in this same FPGA behind the same harness interface,
+produces capture traces indistinguishable from the socketed real chip across the
+full test corpus"*.
+
+**A second core now does that, and it was written FROM A DOCUMENT.**  The
+previous section of this file specified this campaign — *"the mechanism ledger
+IS the RTL spec"* — and predicted it would produce *"a better starting point
+than the current rail forest, not a finished core"*.  That prediction was too
+pessimistic on the first half and correct on the second.
+
+| the goal, in its own words | the ucore |
+|---|---|
+| running in this same FPGA behind the same harness | **yes** — 26 % ALMs, Fmax 45.56 MHz, TNS 0.000 on every clock domain; two flashes from HEAD through `safe_flash.sh`; first light **800/800** on all three legs after a `use_core=0` chip-path proof |
+| indistinguishable from the socketed chip, per-cycle bus/queue | **169,000 / 169,000** on v0.1 (cycles AND arch); `w1`/`w3`/`EB`/four `evt` cells/`w1evt-biased` all on the model's number; boot 220 and 400; wvec **88/88 at +0.0 %** |
+| across the FULL corpus | **not yet** — 1,483/1,702 on the registered fuzz bank, 171/188 on the b2 tranche, 259/283 on the HLT sweeps |
+| **on the axis this project ranks first (arbitrary waits)** | **176 / 178 IN FABRIC on fresh random-wait programs, against 59/178 for the hand-built core from the same HEAD**, with fabric ↔ Verilator identical on 200/200 for both |
+
+### What remains
+
+1. **The whole-program gap is the project's remaining distance to "done".**
+   1,483/1,702 and 171/188 are the numbers to move, and the residue is named:
+   §49.8's ten (`8F`'s stale-OPR write-back, `10`/ADC's carry-in with the
+   deciding measurement already written down, one unexplained), §49.7's four
+   SHARED seeds (an odd-address byte swap the model and the RTL agree on and the
+   socket does not), and 219 unclassified.  **Every one of those is a question
+   about the MODEL first**, by governance: no ucore landing without the sim
+   landing first.
+2. **The two `bs` seeds of the victory tranche are NOT the RTL's** — the ucore
+   and the sim are identical on 4,000/4,000 rows on both.  The tranche's whole
+   residue is a model-vs-silicon question.
+3. **F43** — the HALT-display decision must test the wake on its own decision
+   edge.  Diagnosed with a falsifier, twice declined (U4, U5) because it touches
+   the BIU's eval instant.  It is most of the 13-cell HLT deficit.
+4. **The sim owes one fix**: `9D`'s flag commit at the read's data edge (F39),
+   where the RTL matches silicon and the model does not.  One line in
+   `wr_dst1`'s FLAGS arm.
+5. **Q2's EU-raise half, the four UNRESOLVED law cards, `has_brkem`, A30** —
+   all still open exactly as the ucsim-t campaign routed them.  The ucore
+   inherits them because the ledger does.
+6. **Three decisions are the user's** and are laid out with the evidence both
+   ways in verdict §(e): the FSM core's disposition (keep as reference /
+   retire / demote to archive), the `evt_hold` widen and EVT re-banking, and
+   the adoption of the successor bar **V1′**.
+
+### Two findings about the OTHER core, which no standing gate saw
+
+* **The frozen FSM core has regressed 104 seeds on the random-wait axis** between
+  the 2026-07-30 build and HEAD — 163/178 → 59/178, in fabric and Verilator
+  alike.  The ladder runs `check_core --core fsm` on four opcodes, and its
+  registered fuzz figure (18/1,702) is too low for a further loss to show.
+  *Falsifier*: a bisect that does not move this number.
+* **It drives nothing on A19-16 across a HALT display**, where the goldens carry
+  a live PS.  The testbench's composed-AD mask hid it — in BOTH cores — because
+  the retained nibble happens to equal the right answer.  Mask removed at U5;
+  the ucore fixed, the FSM not.  On the corrected comparator the FSM is
+  168,400/169,000 on v0.1 and 16/283 on the HLT sweeps.
+
+**A reference implementation that can silently regress, and that carries a
+defect no gate can see, is the argument for the disposition decision — in both
+directions.  It is the user's call and this campaign does not take it.**
