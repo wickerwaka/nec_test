@@ -23,6 +23,19 @@ in ways not yet understood. A large fitted table, a many-cased rule, or a
 per-opcode special case is a signal of misunderstanding, not a deliverable.
 Put this principle verbatim into every modeling subagent brief.
 
+## Correctness target (user directive 2026-08-04 — supersedes the ucore
+campaign's RTL-vs-sim governance)
+
+**SILICON MATCH is the only correctness bar.** "Matching the model is no
+longer acceptable." The C++ sim remains an instrument (lockstep, census,
+attribution) but is NOT the reference: a divergence from silicon is a work
+item regardless of whether the model shares it; model-shared residue is no
+longer accepted residue. Where the rig or a golden is found defective, fix
+the rig and RE-CAPTURE; goldens invalidated by rig defects are DISCARDED
+from all gate sets — archived by rename with an invalidation ledger entry
+(the w1evt-biased precedent; raw captures stay retained, nothing gates on
+them).
+
 ## Standing engineering discipline
 
 - Truthful commit messages: never assert a gate that is not met.
