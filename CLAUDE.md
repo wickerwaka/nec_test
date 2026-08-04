@@ -203,8 +203,9 @@ Values are monotone: never re-scored downward without a loud, itemized entry.)
   live gate. It supplies the habit, not the disposition.
 - **`sw/ss_lint.py --core ucore` exits 0** (U4/F49). It was KNOWN-RED through
   U3 because five architectural flops were absent from the ucore's save-state
-  map; they are mapped now, `SS_VERSION` **0x82** / `SS_COUNT` **218** /
-  `SS_TAG` **0x82DA**, census **201 flops, 0 UNMAPPED** (it was 223 until U4
+  map; they are mapped now, `SS_VERSION` **0x83** / **222** addresses /
+  `SS_TAG` **0x83DE** (bumped at SM3 sitting 3 by F52, the H1 floor's four
+  BIU flops at 0x066-0x069), census **205 flops, 0 UNMAPPED** (it was 223 until U4
   pass 3: the enable-form refactor made 22 of the 24 whitelisted per-edge
   temporaries combinational BY DECLARATION, which is exactly the fix U3 booked
   and could not take while the RTL was frozen — the MAP did not move). It is now
