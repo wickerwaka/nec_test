@@ -5109,3 +5109,116 @@ T1, and the display dropped one row early.  F51 is the fix.  Registered:
    with `use_core=0` re-proved on it — one flash rather than two, and the
    lower-risk choice at a closure.  Recorded as a deliberate deviation from
    §52.10's parting state.
+
+## §56 THE FABRIC RE-SCORE — SCORED AGAINST §55.2, AND F51 HOLDS IN SILICON
+
+FLASH #3, `sw/safe_flash.sh` with its VERIFY leg (MAGIC OK, `pwr_good` /
+`cpu_running` true, ledger appended), single-writer checked first.
+`nec_test_ucore.sof 924c4a61e0…`.
+
+### §56.1 THE FOUR REGISTERED BARS
+
+| # | registered | **measured** | |
+|---|---|---|---|
+| 4 | `use_core=0` boot vs the standing golden, taken FIRST | **MATCH over 800 rows** — and first light re-proved on the new bitstream, `chip-vs-golden` / `core-vs-chip` / `core-vs-golden` all **MATCH 800** | ✅ |
+| 3 | the socket control reproduces the golden 49/49 | **49 / 49**, 0 misses, on the identical driver | ✅ |
+| 1 | **ZERO cells still showing the F42 signature** (`0x0AD8A` where the golden has `0x2AD8A` on the HALT display) | **ZERO.**  No cell's first divergence is the HALT display's own `bus` or `data` any more, at any wait level | ✅ |
+| 2 | fabric total ≥ 249/283, expected 259 ± 4 | **143 / 283**, against 29/283 before | ❌ **MISSED — and the miss is ONE CLASS, measured** |
+
+**Bar 2 is reported as MISSED, not re-explained** — that is the F42 rule, and it
+is applied to U5's own prediction with the same edge.  What follows is the
+measurement, not the excuse.
+
+### §56.2 THE MISS IS ONE CLASS, AND IT IS 116 OF 116
+
+Scored cell by cell against the OFFLINE (TB) result on the same binary's RTL, in
+one numbering:
+
+| sweep / form | offline | **fabric** | fabric-only failures | all on an INTA row? | offline failures also fail in fabric? |
+|---|---|---|---|---|---|
+| `s10-w0` `HLT.INT` | 44/48 | **0/48** | 44 | **yes** | yes |
+| `s10-w0` `HLT.RES` | 47/49 | **47/49** | 0 | — | yes |
+| `s10-w1` `HLT.INT` | 42/46 | **0/46** | 42 | **yes** | yes |
+| `s10-w1` `HLT.RES` | 48/49 | **48/49** | 0 | — | yes |
+| `s13-w2` `HLT.INT` | 16/21 | **0/21** | 16 | **yes** | yes |
+| `s13-w2` `HLT.RES` | 24/25 | **24/25** | 0 | — | yes |
+| `s13-w3` `HLT.INT` | 14/20 | **0/20** | 14 | **yes** | yes |
+| `s13-w3` `HLT.RES` | 24/25 | **24/25** | 0 | — | yes |
+| **total** | **259/283** | **143/283** | **116** | **116 / 116** | **all** |
+
+Two statements, both exact and both worth reading twice:
+
+1. **`HLT.RES` in fabric is IDENTICAL to `HLT.RES` offline, cell for cell** —
+   47/49, 48/49, 24/25, 24/25 on both legs, the same failing `idx` on both.
+   That is V3's shape on the sweeps and it is perfect: the Verilator model of
+   this bitstream is the bitstream.
+2. **Every one of the 116 fabric-only failures is an INTA row**, and there are
+   no others; and **no cell fails offline and passes in fabric** — the fabric is
+   strictly stricter, never differently strict.
+
+### §56.3 WHAT THE INTA CLASS IS — AND IT IS NOT THE CORE
+
+MEASURED, `HLT.INT` w0 `idx 10`, the first divergent row (16), an INTA **T1**:
+
+```
+golden  [T1] bus=0x09090  data=0x9090   INTA T1
+ucore   [T1] bus=0x000FF  data=0x00FF   INTA T1
+row 17  [T2] bus=0x60003F data=0x00FF   INTA T2   <- IDENTICAL on both
+```
+
+`sim/biu_timed.cpp` states the mechanism and both engines agree with it: *"S9a
+(`Access::no_addr`): an INTA drives no address.  Freeze the FLOATING AD — the
+last data phase, upper nibble 0."*  The chip's AD pads float at an INTA's T1 and
+**retain** the previous data phase (`0x9090`).  In the FPGA the core's AD is an
+internal `tri` net inside `system_large`; Quartus resolves an undriven internal
+tri-state to a mux, **not** to a charge-retaining pad, so there is nothing to
+retain and the row reads the harness's INTA vector byte instead.
+
+This is the campaign plan's **risk #4** — *"multiplexed-pad float → G7-only
+divergences → ledger open item 1, not patches"* — arriving exactly where it was
+predicted to.  It is already the documented column policy of the OTHER fabric
+gate: `sw/check_ab_hw.py`'s own docstring reads *"Float-retention rows are
+excluded by the policy (the core's internal AD net has no charge retention, so
+raw float bytes legitimately differ from the chip's)"*, which is why first light
+is 800/800 on the same bitstream in the same session.  `check_core.diff_rows`
+carries no such exclusion because it was built for the Verilator TB, which
+models retention.
+
+**It is therefore an INTEGRATION property of the A/B harness, not a defect in
+the core** — and, unlike F42, that claim is not an argument from a mask: it is
+116 of 116 cells with no exceptions, a zero-cell counter-population, and a
+socket control at 49/49 on the same driver in the same session.  Booked as
+**U5 open item**, with the fix named: either give the harness's `core_ad` a
+retention model (a one-line `always @* if (drive) hold <= …` in
+`system_large.sv`, which changes the A/B harness and therefore BOTH cores'
+fabric numbers and needs its own pre-registered before/after), or teach the
+fabric scorer `check_ab_hw`'s float-retention exclusion.  **Neither is taken
+here**: the first is a harness change at a closure and the second would be
+choosing a comparator after seeing the result.
+
+*Falsifier*: a fabric cell whose first divergence is an INTA row but whose
+golden value is NOT the retained previous data phase; or a non-INTA fabric-only
+failure at any wait level.
+
+### §56.4 F42's REFUTATION, CLOSED
+
+§48.3's registered prediction was refuted in fabric at U4 (§52.9) and §52.10
+item 1 handed U5 the RTL item.  It is closed:
+
+| | U4 pass 3 | **U5** |
+|---|---|---|
+| the four sweeps, IN FABRIC | **29 / 283** | **143 / 283** |
+| cells still showing `0x0AD8A` for `0x2AD8A` | 254 | **0** |
+| the socket control, same driver | 49/49 | **49/49** |
+| the four sweeps, offline | 249/283 | **259/283** |
+| `HLT.RES`, fabric vs offline | different | **IDENTICAL, cell for cell** |
+
+### §56.5 THE BOARD, LEFT
+
+The **ucore** bitstream (`924c4a61e0…`) is on the fabric — §55.2 item 6's
+declared deviation from §52.10's parting state, one flash rather than two — with
+`use_core=0` proved MATCH 800 on it and the harness back in its chip-capture
+role.  `board_idle` run twice; **two consecutive clean 4,063-row idle captures**
+afterwards, the divider left at `DIV_OF_RECORD = 8`, `use_core=False`.  The
+flash is in `sw/testdata/flash_log.jsonl`.  The priority tranche was NOT
+re-captured, as registered.

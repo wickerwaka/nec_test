@@ -3,3 +3,4 @@
 {"ts":"2026-07-28T17:18:21Z","sof_path":"hdl/output_files/nec_test.sof","sha256":"2df26239e6e4dcfda1413c164be7cd8e85b2107c7dde4bd001dc4cdc502ec015","git_describe":"fae64d5","verify":"OK"}
 {"ts":"2026-08-04T03:53:33Z","sof_path":"/home/wickerwaka/src/nec_test/hdl/output_files_ucore/nec_test_ucore.sof","sha256":"cdf5edee00bfccac6b0f22a08076fe0c3932917123f0327dd8c4114159ec156b","git_describe":"a17933359e","verify":"OK"}
 {"ts":"2026-08-04T04:06:15Z","sof_path":"/home/wickerwaka/src/nec_test/hdl/output_files/nec_test.sof","sha256":"a4533dfef09b896ebb08763658b053e7cfb0946877b1ce43831fbd7b89f500e2","git_describe":"31e96121a5-dirty","verify":"OK"}
+{"ts":"2026-08-04T04:47:09Z","sof_path":"hdl/output_files_ucore/nec_test_ucore.sof","sha256":"924c4a61e0ad235e6257695a775d86cc51735ebba0cf9cf5f9ffb651bcc5105d","git_describe":"24d8aac922-dirty","verify":"OK"}
