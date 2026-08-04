@@ -54,7 +54,7 @@ import check_seq                                        # noqa: E402
 import fuzz_classify as fc                              # noqa: E402
 import sm3_ackgeom as ag                                # noqa: E402
 from gen_seq import (Prog, PC0, SP0, DATA_LO, DATA_HI,  # noqa: E402
-                     far_int_support)
+                     far_int_support, SWINT_VEC)
 from s10_board import capture, DIV_OF_RECORD            # noqa: E402
 from s13_board import div_guard                         # noqa: E402
 from t2b_board import HOST                              # noqa: E402
@@ -65,10 +65,40 @@ assert es.EMIT_USE_CORE is False, "H1 cell refuses to run: truth is the socket"
 OUT = ROOT / "sw" / "testdata" / "sm3-h1cell"
 INTA, CODE, HALT = 0, 4, 3
 
+
+def set_out(name):
+    """Point the cell at a DIFFERENT retention directory.  Sitting 7's H1a cell
+    is a new question on the same instrument, and overwriting sitting 5's
+    `manifest.json` would destroy a retained record to save a directory."""
+    global OUT
+    OUT = ROOT / "sw" / "testdata" / name
+    return OUT
+
+
 # --------------------------------------------------------------------------- #
-# the four stimuli
+# the stimuli
 # --------------------------------------------------------------------------- #
-VARIANTS = ("nop", "ebnext", "farnext", "callret", "iretnext", "clipopf")
+VARIANTS = ("nop", "ebnext", "farnext", "callret", "iretnext", "clipopf",
+            "swintnext")
+
+# H7 sitting 7, the OPCODE axis (§65.1's lead).  Each is a straight-line sled of
+# ONE instruction, chosen so the stream has a dense, uniform boundary set and no
+# cumulative side effect over ~200 iterations.  The two GOLDEN NMI forms' own
+# opcodes are first; the rest are drawn from `sm3_h7_opcode`'s census of the
+# banked seeds that sit at the chip floor.
+OPCODE_SLEDS = {
+    "op90nop":   ([0x90], "NOP -- golden NMI.90's opcode"),
+    "opB8mov":   ([0xB8, 0x34, 0x12], "MOV AW,imm16 -- golden NMI.B8's opcode"),
+    "opFCcld":   ([0xFC], "CLD -- 1 byte, flag only"),
+    "op41inc":   ([0x41], "INC CW -- 1 byte, register only"),
+    "op84test":  ([0x84, 0xC0], "TEST AL,AL -- 2 bytes, flags only"),
+    "op03add":   ([0x03, 0xC0], "ADD AW,AW -- 2 bytes, register only"),
+    "op2Fdas":   ([0x2F], "DAS -- 1 byte, AL/flags only"),
+    "opB0mov8":  ([0xB0, 0x5A], "MOV AL,imm8 -- 2 bytes"),
+    "op70jo":    ([0x70, 0x00], "JO +0 -- NOT taken (OF clear): no redirect"),
+    "op71jno":   ([0x71, 0x00], "JNO +0 -- TAKEN: a redirect every instruction"),
+}
+H7_VARIANTS = tuple(OPCODE_SLEDS)
 
 
 def program(variant, n=40):
@@ -111,10 +141,28 @@ def program(variant, n=40):
         for _ in range(n * 2):
             p.emit([0xFA])
             p.emit([0x9D])
+    elif variant == "swintnext":
+        # `CD 20` INT SWINT_VEC, N of them back to back.  The vector points at
+        # `far_int_support`'s bare `CF` handler, so each one is a REAL
+        # interrupt ENTRY -- the same microcoded entry sequence, the same
+        # pushed frame, IE cleared -- announced by a VECTOR READ and carrying
+        # NO INTA CYCLE, returning immediately by IRET.  This is `mc1/2672`'s
+        # shape (§64.2) built on purpose.
+        #
+        # It is also self-selecting: IE is CLEAR from the entry until the IRET
+        # restores it, so the ONLY boundary in the whole stream at which a
+        # maskable INT can be recognised is the one immediately after each
+        # IRET's restarted prefetch -- exactly the boundary H1a is about.
+        for _ in range(n * 2):
+            p.emit([0xCD, SWINT_VEC])
     elif variant == "callret":
         for _ in range(n):
             p.emit([0xE8, 0x00, 0x00])     # CALL next  (pushes, redirects)
             p.emit([0xC3])                 # RET        (pops,   redirects)
+    elif variant in OPCODE_SLEDS:
+        body = OPCODE_SLEDS[variant][0]
+        for _ in range(max(1, (n * 3 * 2) // len(body))):
+            p.emit(list(body))
     else:
         raise SystemExit(f"unknown variant {variant}")
     return p.assemble()
@@ -309,6 +357,95 @@ def report(recs=None):
                                                    key=lambda x: -x[1])[:8]))
 
 
+# --------------------------------------------------------------------------- #
+# SITTING 7 -- H1a's verdict, read off the retained rows with no engine
+# --------------------------------------------------------------------------- #
+HANDLER_AT = 0x0480
+
+
+def entry_shape(rows, ack_t1):
+    """Is `mc1/2672`'s shape immediately behind this acknowledge?
+
+    Scanning BACK from the acknowledge's T1, in order:
+      1. a contiguous triple of stack reads (the IRET's three pops),
+      2. before them a CODE fetch of the handler at HANDLER_AT,
+      3. before that a MEMR below 0x00400 -- an IVT VECTOR READ, i.e. an
+         interrupt ENTRY that was announced by a vector read and NOT by an
+         INTA cycle.
+    Returns one of 'swint-entry', 'iret-only', 'inta-behind', 'other'."""
+    cy = ag.cycles(rows, len(rows))
+    ci = next((k for k, c in enumerate(cy) if c[1] == ack_t1), None)
+    if ci is None or ci < 4:
+        return "other"
+    back = cy[max(0, ci - 14):ci][::-1]
+    if any(c[0] == INTA for c in back):
+        return "inta-behind"
+    pops = [c for c in back if c[0] == 5]        # MEMR
+    trip = [c for c in pops if 0x03000 <= (rows[c[1]]["ad_addr"] & 0xFFFFF)
+            < 0x04000]
+    if len(trip) < 3:
+        return "other"
+    handler = any(c[0] == CODE and
+                  (rows[c[1]]["ad_addr"] & 0xFFFFF) >> 1 == HANDLER_AT >> 1
+                  for c in back)
+    vec = any(c[0] == 5 and (rows[c[1]]["ad_addr"] & 0xFFFFF) < 0x00400
+              for c in back)
+    if handler and vec:
+        return "swint-entry"
+    return "iret-only"
+
+
+def h1a_report(recs=None):
+    """H1a: does a software-INT entry -- a REAL interrupt entry with NO INTA
+    cycle -- arm the re-entry recognition floor for the NEXT acknowledge?
+
+    The observable is `refill_gap`: the clocks from the RESTARTED PREFETCH's T1
+    to the acknowledge's T1.  H1's floor is `max(F1 + 6, F1 + L + 1)`, so with
+    the restart's L = 4 a FLOORED acknowledge sits at 6 and an UNFLOORED one at
+    4.  Two clocks, read off the pins."""
+    if recs is None:
+        recs = json.loads((OUT / "cells.json").read_text())
+    print("\n  --- SM3 H1a: is the arm the interrupt ENTRY or the INTA CYCLE? ---")
+    print("  (PRE-REGISTERED, sm3_s7_prereg_2026-08-04.md §3:"
+          "  A1 entry-generic -> swintnext FLOORED (refill_gap 6) and iretnext"
+          " UNFLOORED (4);  A2 INTA-only -> BOTH unfloored.)")
+    tab = defaultdict(Counter)
+    shapes = defaultdict(Counter)
+    for r in recs:
+        g = r["geom"]
+        if not g or g.get("refill_gap") is None:
+            continue
+        stem = r["key"].replace(":", "_")
+        p = OUT / f"{stem}.rows.json.gz"
+        sh = "?"
+        if p.exists():
+            rows = json.load(gzip.open(p, "rt"))
+            sh = entry_shape(rows, g["ack_t1"])
+        shapes[(r["variant"], r["waits"])][sh] += 1
+        if sh in ("swint-entry", "iret-only"):
+            tab[(r["variant"], r["waits"], sh)][
+                (g["refill_len"], g["refill_gap"])] += 1
+    print(f"\n  {'variant':<11}{'w':>3}  lead-in shape behind the FIRST acknowledge")
+    for k in sorted(shapes):
+        print(f"  {k[0]:<11}{k[1]:>3}  {dict(shapes[k])}")
+    print(f"\n  {'variant':<11}{'w':>3} {'shape':<12} (refill L -> gap): n")
+    floored = unfloored = 0
+    for k in sorted(tab):
+        cells = sorted(tab[k].items(), key=lambda x: -x[1])
+        print(f"  {k[0]:<11}{k[1]:>3} {k[2]:<12} " +
+              "  ".join(f"L{a}->gap{b}:{n}" for (a, b), n in cells))
+        for (L, gp), n in cells:
+            if L is None or gp is None:
+                continue
+            if gp >= max(6, L + 1):
+                floored += n
+            elif gp == L:
+                unfloored += n
+    print(f"\n  TOTALS over scored first acknowledges: "
+          f"FLOORED {floored}   UNFLOORED {unfloored}")
+    return 0
+
+
 def cmd_idle(args):
     import v30run
     img0, _ = testimage.compose(regs={}, instr=bytes([0x90]))
@@ -395,16 +532,25 @@ def main():
     p.add_argument("--hold", type=int, default=6)
     p.add_argument("--pilot", action="store_true")
     p.add_argument("--prereg", default="72fdaca572")
+    p.add_argument("--out", default="")
     p.set_defaults(fn=cmd_run)
     p = sub.add_parser("report")
+    p.add_argument("--out", default="")
     p.set_defaults(fn=lambda a: (report(), 0)[1])
     p = sub.add_parser("score")
     p.add_argument("--core", default="sim", choices=("sim", "ucore", "fsm"))
     p.add_argument("--hold", type=int, default=16)
+    p.add_argument("--out", default="")
     p.set_defaults(fn=cmd_score)
+    p = sub.add_parser("h1a")
+    p.add_argument("--out", default="sm3-h1acell")
+    p.set_defaults(fn=lambda a: h1a_report())
     p = sub.add_parser("idle")
+    p.add_argument("--out", default="")
     p.set_defaults(fn=cmd_idle)
     a = ap.parse_args()
+    if getattr(a, "out", ""):
+        set_out(a.out)
     return a.fn(a)
 
 

@@ -183,6 +183,307 @@ def measure(rows):
     return out
 
 
+def set_out(name):
+    global OUT
+    OUT = ROOT / "sw" / "testdata" / name
+    return OUT
+
+
+# --------------------------------------------------------------------------- #
+# SITTING 7 -- THE WAIT-VECTOR CELL (§65.2's own spec, taken)
+#
+# §65.2's negative result came with the reason it missed, and the fix it names:
+# *"the same body with the EU request moved in CLOCK steps rather than byte
+# steps -- a per-access wait vector on the fetch immediately preceding the
+# access, so the prefetcher's eligibility instant walks past a fixed EU request
+# one clock at a time."*
+#
+# The rig CAN express it: `v30run.Runner.replay()` loads the harness `wvec_buf`
+# RAM and arms Phase 2a replay, and `s10_board.capture(wvec=...)` now passes it
+# through.  The SAME vector is handed to `sim/` (`--wvec`, one count per line in
+# BUS-ACCESS order) and to the Verilator TB (`+wvec`), both of which index it by
+# bus-cycle ordinal from run start -- `sim/timed_runner.cpp:394` says so beside
+# the code, and `timed_wvec_gate`'s 88/88 against the chip baseline is the
+# standing evidence that the three indices agree.
+#
+# The vector is PERIODIC and phase-swept rather than addressed by absolute
+# ordinal, so it needs no prediction of where each access falls: the loop body
+# has a fixed number of bus cycles, `period`, MEASURED off a baseline capture,
+# and the vector puts `+extra` waits on the access `r` cycles BEFORE every EU
+# access.  r = 1 is §65.2's sentence exactly; sweeping r walks it round.
+# --------------------------------------------------------------------------- #
+def eu_ordinals(rows):
+    """The bus-cycle ORDINALS (index into `ag.cycles`) of the EU accesses."""
+    cy = ag.cycles(rows, len(rows))
+    return [k for k, c in enumerate(cy) if fc.BS_NAME[c[0]] in EU_KINDS], cy
+
+
+def period_of(rows):
+    """The loop body's bus-cycle count, measured: the modal gap between
+    consecutive EU-access ordinals.  Returns (period, n_accesses)."""
+    idx, _ = eu_ordinals(rows)
+    if len(idx) < 3:
+        return None, len(idx)
+    d = Counter(b - a for a, b in zip(idx, idx[1:]))
+    return d.most_common(1)[0][0], len(idx)
+
+
+def make_wvec(w, period, eu0, r, extra, n=4096):
+    """`w` everywhere, `w + extra` on every access `r` cycles before an EU
+    access.  `eu0` is the first EU access's ordinal, so the phase is anchored
+    to the stimulus and not to the loader stub."""
+    tgt = (eu0 - r) % period
+    return [w + extra if (i % period) == tgt else w for i in range(n)]
+
+
+def achieved_waits(rows):
+    """Per bus cycle, the number of wait states the CHIP actually took:
+    a cycle is T1..T4 plus Tw, so length - 4.  Read off the pins."""
+    cy = ag.cycles(rows, len(rows))
+    return [max(0, (c[2] - c[1] + 1) - 4) for c in cy]
+
+
+def _engine_rows_wvec(image, waits, nrows, core, wv):
+    """The engine leg with the SAME wait vector.  Deliberately LOCAL rather
+    than a new parameter on `timed_fuzz.run_{sim,tb}`: those two are the
+    standing fuzz gate's own entry points and this cell is not a reason to
+    move them."""
+    import subprocess
+    import tempfile
+    import timed_fuzz as tf
+    with tempfile.TemporaryDirectory() as td:
+        wvf = Path(td) / "wvec.txt"
+        if core == "sim":
+            wvf.write_text("\n".join(str(int(x)) for x in wv) + "\n")
+            img = Path(td) / "img.bin"
+            img.write_bytes(bytes(image))
+            argv = [str(tf.SIM), "timed-boot", str(tf.ROM), str(img),
+                    f"--clocks={nrows}", "--ndjson", f"--wvec={wvf}"]
+            p = subprocess.run(argv, capture_output=True)
+            rows = []
+            for l in p.stdout.decode().splitlines():
+                if l.startswith("{"):
+                    o = json.loads(l)
+                    if "t" in o:
+                        rows.append(o)
+            return rows
+        # the TB reads +wvec with $readmemh -- hex, one byte per line
+        wvf.write_text("\n".join(f"{int(x) & 0xFF:02x}" for x in wv) + "\n")
+        img = Path(td) / "img.hex"
+        outp = Path(td) / "out.txt"
+        img.write_text("\n".join(f"{b:02x}" for b in bytes(image)) + "\n")
+        argv = [str(tf.tb_bin(core)), f"+bootimg={img}", f"+bootn={nrows}",
+                "+mirror=1", f"+out={outp}", f"+wvec={wvf}"]
+        p = subprocess.run(argv, capture_output=True, timeout=600)
+        if "BOOT DONE" not in p.stdout.decode():
+            return []
+        rows = []
+        for line in outp.read_text().splitlines():
+            f = line.split()
+            if f and f[0] == "r":
+                rows.append({"t": int(f[1]), "bs_early": int(f[2]),
+                             "qs": int(f[3]), "ube_n": int(f[4]),
+                             "ad_addr": int(f[5], 16), "ad_data": int(f[6], 16),
+                             "ps": int(f[7], 16)})
+        return rows
+
+
+def cmd_wrun(args):
+    OUT.mkdir(parents=True, exist_ok=True)
+    waits = [int(x) for x in args.waits.split(",") if x != ""]
+    extras = [int(x) for x in args.extras.split(",") if x != ""]
+    variants = [v for v in args.variants.split(",") if v]
+    man = {"cell": "SM3 H3 class B -- the WAIT-VECTOR walk (§65.2's own spec)",
+           "spec": "docs/notes/sm3_s7_prereg_2026-08-04.md §4",
+           "prereg_commit": args.prereg, "use_core": False, "host": HOST,
+           "div": DIV_OF_RECORD, "waits": waits, "pad": args.pad,
+           "extras": extras, "variants": variants, "evt": None, "cells": {}}
+    man["div_guard"] = div_guard("sm3-h3wvec")
+    recs = []
+    t0 = time.time()
+    consec_err = 0
+    stop = False
+    for variant in variants:
+        if stop:
+            break
+        image, meta = image_of(variant, args.pad)
+        for w in waits:
+            if stop:
+                break
+            # ---- the BASELINE, uniform waits, no vector: this is what the
+            #      period and the phase anchor are MEASURED from
+            try:
+                brows, braw, bsha, _ = capture(image, waits=w,
+                                               div=DIV_OF_RECORD, evt=None,
+                                               tag="sm3h3w")
+            except Exception as e:                            # noqa: BLE001
+                print(f"  {variant}:w{w}: BASELINE TRANSPORT ERROR {e}",
+                      flush=True)
+                consec_err += 1
+                if consec_err >= 5:
+                    man["stopped"] = f"{variant}:w{w}:base"
+                    stop = True
+                continue
+            consec_err = 0
+            period, nacc = period_of(brows)
+            idx, _ = eu_ordinals(brows)
+            if not period or not idx:
+                print(f"  {variant}:w{w}: NO PERIOD (accesses={nacc}) -- skip",
+                      flush=True)
+                continue
+            eu0 = idx[0]
+            key0 = f"{variant}:w{w}:base"
+            man["cells"][key0] = {"sha": bsha, "rows": len(brows),
+                                  "period": period, "eu0": eu0,
+                                  "naccess": nacc}
+            stem0 = key0.replace(":", "_")
+            with gzip.open(OUT / f"{stem0}.rows.json.gz", "wt") as f:
+                json.dump(brows, f, separators=(",", ":"))
+            with gzip.open(OUT / f"{stem0}.raw.hex.gz", "wt") as f:
+                f.write("\n".join(braw) + "\n")
+            recs.append({"key": key0, "variant": variant, "waits": w,
+                         "pad": args.pad, "r": None, "extra": 0,
+                         "period": period, "eu0": eu0, "sha": bsha,
+                         "nrows": len(brows), "acc": measure(brows),
+                         "wvec": None})
+            print(f"  {variant}:w{w}: baseline period={period} eu0={eu0} "
+                  f"accesses={nacc}", flush=True)
+            for extra in extras:
+                for r in range(period):
+                    key = f"{variant}:w{w}:e{extra}:r{r}"
+                    wv = make_wvec(w, period, eu0, r, extra)
+                    try:
+                        rows, raw, sha, _ = capture(
+                            image, waits=w, div=DIV_OF_RECORD, evt=None,
+                            tag="sm3h3w", wvec=wv)
+                        consec_err = 0
+                    except Exception as e:                    # noqa: BLE001
+                        consec_err += 1
+                        print(f"  {key}: TRANSPORT ERROR {e}", flush=True)
+                        if consec_err >= 5:
+                            print("  *** 5 consecutive transport errors -- "
+                                  "STOP ***", flush=True)
+                            man["stopped"] = key
+                            stop = True
+                            break
+                        continue
+                    ach = achieved_waits(rows)
+                    want = wv[:len(ach)]
+                    hit = sum(1 for a, b in zip(ach, want) if a == b)
+                    acc = measure(rows)
+                    recs.append({"key": key, "variant": variant, "waits": w,
+                                 "pad": args.pad, "r": r, "extra": extra,
+                                 "period": period, "eu0": eu0, "sha": sha,
+                                 "nrows": len(rows), "acc": acc,
+                                 "align_hit": hit, "align_n": len(ach),
+                                 "wvec_head": wv[:64]})
+                    man["cells"][key] = {"sha": sha, "rows": len(rows),
+                                         "naccess": len(acc),
+                                         "align": f"{hit}/{len(ach)}"}
+                    stem = key.replace(":", "_")
+                    with gzip.open(OUT / f"{stem}.rows.json.gz", "wt") as f:
+                        json.dump(rows, f, separators=(",", ":"))
+                    with gzip.open(OUT / f"{stem}.raw.hex.gz", "wt") as f:
+                        f.write("\n".join(raw) + "\n")
+                    gaps = Counter(a["gap"] for a in acc)
+                    print(f"  {key}: align {hit}/{len(ach)}  "
+                          f"{len(acc)} accesses  gaps "
+                          f"{dict(sorted(gaps.items()))} "
+                          f"({time.time()-t0:.0f}s)", flush=True)
+                if stop:
+                    break
+    man["seconds"] = round(time.time() - t0, 1)
+    (OUT / "manifest.json").write_text(json.dumps(man, indent=1))
+    (OUT / "cells.json").write_text(json.dumps(recs, indent=1))
+    n = _sha_dir(OUT)
+    print(f"  retained {n} files with SHA256SUMS in {OUT}")
+    wreport(recs)
+    return 0
+
+
+def wreport(recs=None):
+    if recs is None:
+        recs = json.loads((OUT / "cells.json").read_text())
+    swept = [r for r in recs if r.get("r") is not None]
+    print("\n  --- SM3 H3 class B, the WAIT-VECTOR walk ---")
+    print(f"  captures {len(recs)} ({len(swept)} vector cells), "
+          f"EU accesses {sum(len(r['acc']) for r in recs)}")
+    if swept:
+        hit = sum(r["align_hit"] for r in swept)
+        tot = sum(r["align_n"] for r in swept)
+        print(f"\n  R0 ALIGNMENT: the chip's achieved per-cycle waits vs the "
+              f"vector it was handed: {hit}/{tot} "
+              f"({100.0*hit/max(1,tot):.1f} %)")
+    print("\n  S1 -- does the phase sweep MOVE the EU access's lead-in gap?")
+    for v in sorted({r["variant"] for r in recs}):
+        for w in sorted({r["waits"] for r in recs}):
+            grp = [r for r in recs if r["variant"] == v and r["waits"] == w]
+            if not grp:
+                continue
+            allg = set()
+            line = []
+            for r in sorted(grp, key=lambda x: (x["extra"],
+                                                -1 if x["r"] is None
+                                                else x["r"])):
+                g = Counter(a["gap"] for a in r["acc"])
+                allg |= set(g)
+                tag = "base" if r["r"] is None else f"e{r['extra']}r{r['r']}"
+                line.append(f"{tag}:{dict(sorted(g.items()))}")
+            print(f"    {v:<7} w{w}  distinct gaps {sorted(allg)}")
+            for l in line:
+                print(f"        {l}")
+    return 0
+
+
+def cmd_wscore(args):
+    """The class-B signature -- same clock, different owner -- against BOTH
+    engines on the vector cells, paired by ordinal."""
+    recs = json.loads((OUT / "cells.json").read_text())
+    tab = defaultdict(lambda: [0, 0])
+    swaps = []
+    nacc = 0
+    for r in recs:
+        image, meta = image_of(r["variant"], r["pad"])
+        rows = json.load(gzip.open(
+            OUT / f"{r['key'].replace(':', '_')}.rows.json.gz", "rt"))
+        if r.get("r") is None:
+            wv = [r["waits"]] * 4096
+        else:
+            wv = make_wvec(r["waits"], r["period"], r["eu0"], r["r"],
+                           r["extra"])
+        erows = _engine_rows_wvec(image, r["waits"], len(rows), args.core, wv)
+        eacc = measure(erows) if erows else []
+        for k, ca in enumerate(r["acc"]):
+            if k >= len(eacc):
+                break
+            ea = eacc[k]
+            nacc += 1
+            same = (ca["t1"] == ea["t1"] and ca["prev_kind"] == ea["prev_kind"])
+            key = (r["variant"], r["waits"], ca["occ"])
+            tab[key][0] += 1
+            tab[key][1] += 1 if same else 0
+            if not same and ca["t1"] == ea["t1"]:
+                swaps.append((r["key"], k, ca["prev_kind"], ea["prev_kind"],
+                              ca["occ"]))
+    print(f"\n  --- engine `{args.core}` vs the H3 WAIT-VECTOR cells, "
+          f"{nacc} paired accesses ---")
+    for v in sorted({k[0] for k in tab}):
+        for w in sorted({k[1] for k in tab if k[0] == v}):
+            cells = sorted((k[2], tab[k]) for k in tab
+                           if k[0] == v and k[1] == w)
+            print(f"    {v:<7} w{w}  " + "  ".join(
+                f"occ{o} {c[1]}/{c[0]}" for o, c in cells))
+    tot = sum(c[0] for c in tab.values())
+    ok = sum(c[1] for c in tab.values())
+    print(f"\n  AGREEMENT: {ok}/{tot}")
+    print(f"  S2 -- SAME-CLOCK, DIFFERENT OWNER (the class-B signature): "
+          f"{len(swaps)}")
+    for s in swaps[:20]:
+        print(f"    {s[0]} access#{s[1]}  chip prev={s[2]} eng prev={s[3]} "
+              f"occ={s[4]}")
+    return 0
+
+
 def cmd_run(args):
     OUT.mkdir(parents=True, exist_ok=True)
     waits = [int(x) for x in args.waits.split(",") if x != ""]
@@ -368,17 +669,41 @@ def main():
     r.add_argument("--pads", default="0,1,2,3,4,5,6,7")
     r.add_argument("--variants", default=",".join(VARIANTS))
     r.add_argument("--prereg", default="")
-    sub.add_parser("report")
+    r.add_argument("--out", default="")
+    rp = sub.add_parser("report")
+    rp.add_argument("--out", default="")
     s = sub.add_parser("score")
     s.add_argument("--core", default="sim", choices=("sim", "ucore", "fsm"))
-    sub.add_parser("idle")
+    s.add_argument("--out", default="")
+    w = sub.add_parser("wrun")
+    w.add_argument("--waits", default="0,1,2,3")
+    w.add_argument("--pad", type=int, default=3)
+    w.add_argument("--extras", default="1,2")
+    w.add_argument("--variants", default=",".join(VARIANTS))
+    w.add_argument("--prereg", default="")
+    w.add_argument("--out", default="sm3-h3wvec")
+    wr = sub.add_parser("wreport")
+    wr.add_argument("--out", default="sm3-h3wvec")
+    ws = sub.add_parser("wscore")
+    ws.add_argument("--core", default="sim", choices=("sim", "ucore", "fsm"))
+    ws.add_argument("--out", default="sm3-h3wvec")
+    idl = sub.add_parser("idle")
+    idl.add_argument("--out", default="")
     a = ap.parse_args()
+    if getattr(a, "out", ""):
+        set_out(a.out)
     if a.cmd == "run":
         return cmd_run(a)
     if a.cmd == "report":
         return report()
     if a.cmd == "score":
         return cmd_score(a)
+    if a.cmd == "wrun":
+        return cmd_wrun(a)
+    if a.cmd == "wreport":
+        return wreport()
+    if a.cmd == "wscore":
+        return cmd_wscore(a)
     return h1.cmd_idle(a)
 
 

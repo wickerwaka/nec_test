@@ -262,7 +262,12 @@ def main():
     c = sub.add_parser("capture")
     c.add_argument("--leg", required=True,
                    choices=["chip", "core", "fsmcore",
-                            "chip_f4", "core_f4"])
+                            "chip_f4", "core_f4",
+                            # SM3 sitting 7 / FLASH #5: the same two positions
+                            # again, beside the `_f4` pair rather than over it.
+                            # A leg is scored against the SOCKET capture taken
+                            # on its OWN bitstream and never another flash's.
+                            "chip_f5", "core_f5"])
     c.add_argument("--host", default=HOST)
     c.add_argument("--force", action="store_true")
     c.set_defaults(fn=cmd_capture)

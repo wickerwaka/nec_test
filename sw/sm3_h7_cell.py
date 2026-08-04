@@ -87,6 +87,17 @@ CODE, MEMR = 4, 5
 # same two-clock pulse here and the only free coordinate is where it lands.
 HOLD = 2
 VARIANTS = ("nop", "ebnext")
+# SITTING 7, the OPCODE axis: §65.1's lead is that the selector is WHICH
+# INSTRUCTION'S BOUNDARY the recognition lands on.  These are `sm3_h1_cell`'s
+# opcode sleds -- the two golden NMI forms' own opcodes plus opcodes drawn from
+# `sm3_h7_opcode`'s chip-side census of the banked floor population.
+OPVARIANTS = h1.H7_VARIANTS
+
+
+def set_out(name):
+    global OUT
+    OUT = ROOT / "sw" / "testdata" / name
+    return OUT
 
 
 def measure(rows, anchor, delay):
@@ -288,11 +299,17 @@ def main():
     r.add_argument("--delays", type=int, default=16)
     r.add_argument("--d0", type=int, default=6)
     r.add_argument("--prereg", default="")
-    sub.add_parser("report")
+    r.add_argument("--out", default="")
+    rp = sub.add_parser("report")
+    rp.add_argument("--out", default="")
     s = sub.add_parser("score")
     s.add_argument("--core", default="sim", choices=("sim", "ucore", "fsm"))
-    sub.add_parser("idle")
+    s.add_argument("--out", default="")
+    idl = sub.add_parser("idle")
+    idl.add_argument("--out", default="")
     a = ap.parse_args()
+    if getattr(a, "out", ""):
+        set_out(a.out)
     if a.cmd == "run":
         return cmd_run(a)
     if a.cmd == "report":

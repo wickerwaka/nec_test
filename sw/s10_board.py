@@ -88,7 +88,7 @@ def pin_div(div=DIV_OF_RECORD, waits=0):
 # capture primitive -- t2b_board.capture() plus the pin-event arguments
 # --------------------------------------------------------------------------- #
 def capture(image, waits=0, div=DIV_OF_RECORD, evt=None, pins=None,
-            tag="s10"):
+            tag="s10", wvec=None):
     """One socket capture WITH an optional rig pin-event schedule.
 
     Row semantics are `t2b_board.capture()`'s exactly (reset-trimmed, TI/T4
@@ -97,11 +97,20 @@ def capture(image, waits=0, div=DIV_OF_RECORD, evt=None, pins=None,
     record is comparable.  The RAW 64-bit words are returned untouched and
     hashed, per the blackbox retention rule.
 
+    `wvec` is an explicit PER-BUS-ACCESS wait vector (Phase 2a replay,
+    `v30run.Runner.replay` -> the harness `wvec_buf` RAM).  It is indexed by
+    bus-cycle ordinal from run start, which is the same index `sim/` uses for
+    `--wvec` and `hdl/tb/tb_v30_core.sv` for `+wvec` -- so a cell can hand the
+    identical vector to the socket and to both engines.  When it is given the
+    uniform `waits` value is what the vector does NOT cover; the caller is
+    responsible for filling the vector with it.  SM3 sitting 7 (§68.5) added
+    this passthrough; `run_image` has carried `wvec` since Phase 2a.
+
     Returns (rows, raw_hex_lines, sha256, evt_fired).
     """
     recs, fired, words = run_image(bytes(image), HOST, tag=tag, waits=waits,
                                    use_core=False, div=div, evt=evt, pins=pins,
-                                   want_fired=True, want_raw=True)
+                                   want_fired=True, want_raw=True, wvec=wvec)
     raw = [f"{w:016x}" for w in words]
     sha = hashlib.sha256(("\n".join(raw) + "\n").encode()).hexdigest()
     rel = next(i for i, r in enumerate(recs) if not r["rst"])
