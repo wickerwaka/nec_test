@@ -739,6 +739,33 @@ def main():
                 if r.returncode != 0 or not outf.exists():
                     print(f"{op}: SIM FAILED\n{r.stdout}\n{r.stderr}")
                     return None
+                # F48/U4 -- THE BOUND WARNINGS ARE A HARD FAILURE *HERE*.
+                # The EU's completed-read store bound is PROVED over the graded
+                # corpus (`sw/qdepth_probe.py`: `rdq_` <= 2 and `rd_done_q_` <= 1
+                # on v0.1 at w0 -- 347 forms, 169,000 cases -- and, U4, on w1/w3
+                # and all four evt suites too).  It is NOT a universal
+                # invariant: on the whole-program fuzz bank the MODEL's own
+                # stores reach 3 and 4, so the RTL's assertions were downgraded
+                # to `$warning` and its counters made to SATURATE, and a banked
+                # seed that leaves the regime now runs to completion and gets
+                # SCORED instead of aborting.
+                #
+                # That downgrade must not silently weaken the GOLDEN gate, which
+                # is where the bound IS a theorem.  So it is re-armed at exactly
+                # the scope the proof covers: a fire on a golden case is a
+                # regression in the proven regime, and this gate says so.
+                # (Verilator writes `$warning` to STDOUT, not stderr -- measured.)
+                _bound = [ln for ln in r.stdout.splitlines()
+                          if "completed-read store overflow" in ln
+                          or "rd_done_cnt saturated" in ln]
+                if _bound:
+                    print(f"{op}: EU BOUND VIOLATED ON A GOLDEN CASE "
+                          f"({len(_bound)} fire(s)) -- the store bound is PROVED "
+                          f"over this corpus (sw/qdepth_probe.py), so this is a "
+                          f"regression, not an out-of-regime run:")
+                    for ln in _bound[:4]:
+                        print(f"    {ln.strip()}")
+                    return None
                 if args.ce_hold_check:
                     for ln in r.stdout.splitlines():
                         if "CE_HOLD_VIOL" in ln or "CE-HOLD VIOLATION" in ln:

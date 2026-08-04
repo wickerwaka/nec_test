@@ -151,9 +151,18 @@ begin
                 pend_seg  = acc_seg;
                 pend_byte = acc_byte;
                 pend_io   = acc_io;
-                wr_out    = wr_out + (acc_split ? 2'd2 : 2'd1);
+                // F48/U4, the same house rule as `rdq_n`/`rd_done_cnt` in
+                // v30u_eu.sv: a bounded counter SATURATES, it does not wrap.
+                // `wr_out` and `rd_pending` are the two the bound audit found
+                // with NO guard of any kind -- not even a simulation-only
+                // assertion -- so before this they wrapped in simulation and in
+                // fabric alike.  Both are decremented with an explicit
+                // `!= 2'd0` floor already; this is the matching ceiling.
+                if (acc_split) wr_out = (wr_out >= 2'd2) ? 2'd3
+                                                         : wr_out + 2'd2;
+                else if (wr_out != 2'd3) wr_out = wr_out + 2'd1;
             end else begin
-                rd_pending = rd_pending + 2'd1;
+                if (rd_pending != 2'd3) rd_pending = rd_pending + 2'd1;
             end
         end
     end

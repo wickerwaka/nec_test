@@ -3440,3 +3440,157 @@ golden reaches either); `opr_free_p`/`set_oprfree` stay PROVABLY VACUOUS (F31).
    bugs and CANNOT close them.  What U3 establishes is that the ucore has no
    ENTER waited-tranche debt of its own; the supersession claim still rests on
    U4's first flash, as the plan says.
+
+# STAGE U4 — SYNTHESIS AND IN-FABRIC A/B
+
+## §46 F48 DISCHARGED — THE BOUND IS A THEOREM OVER THE CORPUS AND NOT OVER ARBITRARY CODE
+
+**The work item was the PROOF, not the assertion.**  §44's F48 recorded the two
+EU bound assertions firing on six banked whole-program seeds and stated the
+obligation plainly: *"the plan's risk #2, whose proof obligation is NOT
+discharged"* — prove the real bound from the sim, or find the RTL accounting
+error.  The C3 precedent (§27.1) went the RTL's-fault way.  **This one does
+not**, and the measurement says so in both directions.
+
+### §46.1 THE POSITIVE PROOF, RE-MEASURED AND EXTENDED TO THE WAIT AXES
+
+`sw/qdepth_probe.py` drives the MODEL — which holds the truth — with
+`V30SIM_QDEPTH=1` and reports the deepest either store ever reaches.  §27.1 ran
+it on **v0.1 at w0 only**.  That is the gap that mattered, because the wait axis
+is the axis this project ranks first, so it was re-run there and extended:
+
+| corpus | `rdq_` max | `rd_done_q_` max | RTL capacity |
+|---|---|---|---|
+| `v0.1` w0, 347 forms / 169,000 cases | **2** (34 forms; hist 264/49/34) | **1** (245 forms) | 2 / 3 |
+| `v0.1-w1` at w1 | **2** (`F7.6`) | **1** (`8B` `F7.6`) | 2 / 3 |
+| `v0.1-w3` at w3 | **2** (`F7.6`) | **1** (`8B` `F7.6`) | 2 / 3 |
+| `v0.1-w0evt` / `w1evt` / `w2evt` / `w3evt` | **2** | **1** | 2 / 3 |
+
+The w0 row reproduces §27.1's table **form for form and histogram for
+histogram** on this tree.  The four wait/evt rows are NEW.  **On every graded
+corpus the store bound of two slots is correct and carries margin, and that is
+now measured on the wait axis rather than assumed to carry over from w0.**
+
+### §46.2 THE NEGATIVE RESULT — AND §27.1's OWN FALSIFIER IS MET
+
+§27.1 registered the falsifier verbatim: *"any stimulus in which the MODEL's
+`rdq_` reaches 3."*  Driven over the six seeds' whole programs, the model's own
+stores reach:
+
+| seed | model `rdq_` max | model `rd_done_q_` max | RTL assertion that fired |
+|---|---|---|---|
+| `mc1/2123` | 1 | **19** | `rd_done_cnt` saturated |
+| `mc1/3613` | **8,334** | **8,334** | `rdq_n=2` overflow |
+| `mc2/2244` | 1 | **9** | `rd_done_cnt` saturated |
+| `t30-raw/440` | **8,334** | **8,334** | `rdq_n=2` overflow |
+| `t30-raw/446` | 1 | **4** | `rd_done_cnt` saturated |
+| `t30-raw/829` | 2 | 1 | `rdq_n=2` overflow |
+
+**The falsifier is met.**  This is therefore NOT C3's shape: there the model
+stayed in bound and the RTL was mis-counting; here **both engines leave the
+regime together**, and the deepening is not a discovery about the part.  Both
+are already far off the chip when it happens — the model's first divergence row
+is 230 / 1,184 / 729 / 328 / 429 / 498 against bound crossings at clk 835 /
+1,050 / 1,696 / 4,002 / 3,751 / never, and the model's own row diffs on these
+six run 1,540-3,638 of 4,000.  A store depth reached 200-1,200 rows after an
+engine left the silicon's trajectory is a property of the runaway, not of the
+V30.
+
+*So the capacity is NOT deepened.*  Fitting two more slots to garbage stimulus
+would be the large-fitted-table failure the standing design principle names.
+
+### §46.3 WHAT WAS ACTUALLY WRONG — THE COUNTERS WRAP IN THE BITSTREAM
+
+The audit that the proof forced turned up the real defect, and it is a U4
+defect rather than a U3 one:
+
+```
+hdl/nec_test.qsf:60   set_global_assignment -name VERILOG_MACRO "SYNTHESIS=1"
+```
+
+Both assertions live inside `ifndef SYNTHESIS`.  **In the bitstream they do not
+exist**, and nothing else stood between an over-deep store and silently-wrong
+behaviour: `rd_done_cnt` went `3 -> 0` and **dropped four completions** — its
+only consumer is `nr_have = (rd_done_cnt != 0)`, so the EU would then wait
+forever on reads that had already landed — and `rdq_n` went `2 -> 3` and handed
+`rdq1` out twice.  The in-silicon fuzz of item 7 runs with no assertions at all,
+so this is exactly the path U4 is about to drive.
+
+**The BIU already had the house rule and the EU did not.**  Every bounded
+counter in `v30u_biu.sv` either saturates or is guarded — `sev` (:1377,
+`sev != 2'd3`), `cdage` (:1270, `cdage != 3'd7`), `rq_n` (:957 and :1287, both
+`rq_n != 2'd2`).  The EU's did neither.  Applied there, one line each, and the
+audit found **two more with no guard of any kind, not even an assertion**:
+
+| counter | site | before | after |
+|---|---|---|---|
+| `rd_done_cnt` | `v30u_eu.sv` | wraps `3 -> 0` | saturates at 3 |
+| `rdq_n` | `v30u_eu.sv` | wraps `2 -> 3` | saturates at 2 |
+| `rd_pending` | `v30u_eu_row.svh`, `_step.svh` | wraps, **unasserted** | saturates at 3 |
+| `wr_out` | `v30u_eu_row.svh` (`+2` on a split) | wraps, **unasserted** | saturates at 3 |
+
+All four already had an explicit `!= 2'd0` floor on their decrements; this is
+the matching ceiling.  Inert on every graded path by §46.1's proof, load-bearing
+in fabric.
+
+### §46.4 THE SEVERITY NOW MATCHES THE SCOPE — AND IS RE-ARMED WHERE THE PROOF HOLDS
+
+With the behaviour defined, an unconditional `$stop` is actively harmful: it
+makes the Verilator leg differ from the bitstream, and **an aborted seed is not
+scored, and an unscored seed is not evidence.**  The two assertions are now
+`assert (...) else $warning(...)` — still SVAs, so `$assertoff(0)` still
+quiesces them for the save-state scramble (F50 item 2's trap), still counted
+among the contracts, no longer fatal.
+
+**A `$warning` nobody counts is a vacuous gate, so it is counted in two places
+and the golden gate is re-armed at exactly the scope the proof covers:**
+
+* `sw/check_core.py` — a bound fire on a GOLDEN case is a **hard failure**.
+  There the bound is a theorem (§46.1), so a fire is a regression.  Verified
+  not to false-fire on the 15 forms that legitimately reach depth 2
+  (`A6 A7 CA-CF 61 62 F6.6 F6.7 F7.6 F7.7 HLT.INT`): **7,200/7,200**.
+* `sw/timed_fuzz.py` — a new `BOUND WARNINGS` line names and counts the seeds
+  that left the regime; they are **scored normally, not excused**.  It reports
+  **6**, and they are exactly F48's six — an independent reproduction of the
+  finding by the instrument that replaced it.
+  (`run_tb` had to carry them out: Verilator writes `$warning` to **stdout**,
+  not stderr, and stamps every line with the sim time, so the lines are
+  deduplicated on the message.)
+
+### §46.5 THE RE-SCORE — THE ENGINE CHANGED, THE NUMBERS DID NOT
+
+**The scoring engine changed, so the whole ladder was re-run rather than
+inherited.**  U3's numbers remain true of commit `06edf0b927`, which rebuilds
+bit for bit to `sha256 b76b7734…` (verified at the start of this stage).
+
+| gate | U3 (`b76b7734`) | **U4 post-F48** |
+|---|---|---|
+| G3 `check_core --core ucore --opcodes all` | 169,000/169,000 | **169,000/169,000** |
+| `v0.1-w1` / `-w3` | 1,200 / 1,200 | **1,200 / 1,200** |
+| `v0.1-w1 --opcodes EB` | 200 | **200** |
+| `w0evt` / `w1evt` / `w2evt` / `w3evt` | 200 / 1,200 / 200 / 1,200 | **200 / 1,200 / 200 / 1,200** |
+| `v0.1-w1evt-biased` | 1,200 | **1,200** |
+| `check_boot --core ucore` 220 / 400 | MATCHES / MATCHES | **MATCHES / MATCHES** |
+| `ulockstep --golden all --cases 50` | 17,350/17,350 | **17,350/17,350** |
+| `timed_wvec_gate --core ucore` | 88/88, +0.0 % | **88/88, +0.0 %** |
+| `timed_enter_replay --core ucore` | 154/154 x5 | **154/154 x5** |
+| `timed_ins_replay --core ucore --raw` | 1,312 / 2,624 | **1,312/1,312 and 2,624/2,624** |
+| `timed_fuzz` REGISTERED | 1,394/1,702 | **1,394/1,702** |
+| `timed_fuzz` EVT / COMBINED | 184/1,008 / 1,578/2,710 | **184/1,008 / 1,578/2,710** |
+| b2 victory tranche | 168/188 | **168/188** |
+| the four HLT sweeps | 90/97, 88/95, 37/46, 34/45 | **90/97, 88/95, 37/46, 34/45** |
+| FSM core, untouched | 1,400/1,400 | **1,400/1,400** |
+| **`ENGINE ABORTS`** | **6** | **0** |
+| **`BOUND WARNINGS`** | (did not exist) | **6, named and scored** |
+
+**Every cell reproduces, and the denominators held** (2,710 scored / 532
+`OPEN_BUS`; 188 / 28).  That is the intended reading and not a coincidence: on
+the golden corpus the saturation is unreachable by §46.1's proof, and on the
+bank the six un-aborted seeds all still score as `DIVERGE`, so no `EXACT` count
+could move.  **What moved is that six seeds now produce evidence instead of a
+crash, and the harness exits 0.**
+
+*Falsifier for the whole finding*: a stimulus on which the ucore's store
+saturates while the MODEL's stays within two — that would be C3's shape after
+all, and an accounting error to find.  The instrument for it is the
+`BOUND WARNINGS` line next to a `qdepth_probe` run on the same seed.

@@ -274,7 +274,20 @@ def run_tb(image, entry, nrows, td, core, evt=None):
                          "qs": int(f[3]), "ube_n": int(f[4]),
                          "ad_addr": int(f[5], 16), "ad_data": int(f[6], 16),
                          "ps": int(f[7], 16)})
-    return rows, ""
+    # F48/U4: a SUCCESSFUL run can still have left the regime the store-bound
+    # proof covers -- the assertions are `$warning` now, so they no longer take
+    # the run down.  Carry those lines out (deduplicated: a saturating store
+    # warns on every completion, and thousands of identical lines are noise, not
+    # information) so the report can COUNT them.  Everything else on stderr is
+    # dropped exactly as before, so no other caller sees a behaviour change.
+    # Verilator writes `$warning` to STDOUT (measured), not stderr; and it
+    # stamps every line with the sim time, so dedup on the MESSAGE -- the part
+    # after the `] ` -- or a saturating store contributes one "unique" line per
+    # completion and the dedup does nothing.
+    warn = sorted({ln.split("] ", 1)[-1].strip() for ln in so.splitlines()
+                   if "completed-read store overflow" in ln
+                   or "rd_done_cnt saturated" in ln})
+    return rows, "\n".join(warn)
 
 
 def first_kind(d):
@@ -514,6 +527,24 @@ def main():
               f"excused by the capture)")
         for r in aborts[:8]:
             print(f"    {r['cid']}/{r['k']:<6} {r.get('stderr','')[:150]}")
+    # F48/U4 -- SEEDS THAT LEFT THE PROVEN REGIME, COUNTED.
+    # The EU's completed-read store bound is a theorem over the GRADED corpus
+    # and not over arbitrary code (`sw/qdepth_probe.py`; the model's own stores
+    # reach 3 and 4 on this very bank).  So the RTL saturates instead of
+    # wrapping and warns instead of aborting -- but "warns" is only a gate if
+    # somebody counts it, so it is counted here and named in the report.  These
+    # seeds are SCORED normally; the line says how many of them ran outside the
+    # regime the bound proof covers.
+    oor = [r for r in res
+           if "completed-read store overflow" in (r.get("stderr") or "")
+           or "rd_done_cnt saturated" in (r.get("stderr") or "")]
+    if oor:
+        print(f"  BOUND WARNINGS  {len(oor)}  (seeds whose completed-read store "
+              f"saturated -- OUTSIDE the regime sw/qdepth_probe.py proves; "
+              f"scored normally, not excused)")
+        for r in oor[:8]:
+            print(f"    {r['cid']}/{r['k']:<6} cat={r.get('cat')} "
+                  f"ndiff={r.get('ndiff')}/{r.get('n')}")
     if args.evt_replay:
         for lbl, grp in (("REGISTERED", reg), ("EVT-unlocked", evtp),
                          ("COMBINED", all_scored)):

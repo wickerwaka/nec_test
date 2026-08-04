@@ -1591,16 +1591,48 @@ always @(posedge clk) begin
             // and asserted HERE, where both values are the live ones.
             // `assert ... else`, not a bare `$error`: see v30u_biu.sv's
             // contract block -- the save-state sweep quiesces ASSERTIONS.
+            //
+            // F48/U4 -- THE CLAIM IS CORPUS-SCOPED, AND THE SEVERITY NOW SAYS SO.
+            // sec.27.1 PROVED the bound over the whole 169,000-case golden suite
+            // (`rdq_` max 2, `rd_done_q_` max 1) and that proof stands.  It is
+            // NOT a universal invariant over arbitrary code: on the six banked
+            // whole-program seeds that trip these lines the MODEL's own stores
+            // reach 3 and 4 (and 8,334) on the same stimuli -- the falsifier
+            // sec.27.1 registered, met.  So this is NOT C3's shape (there the
+            // model stayed in bound and the RTL was mis-counting): both engines
+            // leave the regime together, and both are already 200-1,200 rows off
+            // the chip when they do.  A fire is therefore a REPORT that the run
+            // left the proven regime, not proof of an accounting error, and it
+            // must not take the run down -- an aborted seed is not scored, and
+            // an unscored seed is not evidence.  `$warning`, not `$error`: still
+            // an SVA (so `$assertoff(0)` still quiesces it for the save-state
+            // scramble -- F50 item 2's trap), still counted among the contracts,
+            // no longer fatal.  On the GOLDEN ladder the net is unchanged: the
+            // row-for-row comparison against `sim/` fails on its own if the
+            // store ever saturates there, and sec.27.1 proves it cannot.
             assert (rdq_n != 2'd2)
-                else $error("v30u_eu: completed-read store overflow (rdq_n=2)");
+                else $warning("v30u_eu: completed-read store overflow (rdq_n=2)");
             assert (rd_done_cnt != 2'd3)
-                else $error("v30u_eu: rd_done_cnt saturated");
+                else $warning("v30u_eu: rd_done_cnt saturated");
 `endif
+            // ...AND THE COUNTERS SATURATE RATHER THAN WRAP.  The assertions
+            // above live inside `ifndef SYNTHESIS`, so in the BITSTREAM they do
+            // not exist: the only thing standing between an over-deep store and
+            // silently-wrong behaviour is what the counter itself does.  Before
+            // this, `rd_done_cnt` went 3 -> 0 and DROPPED FOUR COMPLETIONS
+            // (`nr_have` reads `rd_done_cnt != 0`, so the EU would then wait
+            // forever on reads that had already landed), and `rdq_n` went 2 -> 3
+            // and handed `rdq1` out twice.  Saturation is the house rule the BIU
+            // already follows for every one of its bounded counters -- `sev`
+            // (v30u_biu.sv:1377), `cdage` (:1270), `rq_n` (:957, :1287) -- and
+            // it is what a store with a fixed number of slots physically does.
+            // Inert on every graded path by sec.27.1's proof; load-bearing in
+            // fabric, where the in-silicon fuzz runs with no assertions at all.
             if (rd_done_cnt == 2'd0) rd_age0 = 1'b1;
-            rd_done_cnt = rd_done_cnt + 2'd1;
+            if (rd_done_cnt != 2'd3) rd_done_cnt = rd_done_cnt + 2'd1;
             if (rd_pending != 2'd0) rd_pending = rd_pending - 2'd1;
             if (rdq_n == 2'd0) rdq0 = eu_rdata_n; else rdq1 = eu_rdata_n;
-            rdq_n = rdq_n + 2'd1;
+            if (rdq_n != 2'd2) rdq_n = rdq_n + 2'd1;
         end
         if (eu_wr_done_n && (wr_out != 2'd0)) wr_out = wr_out - 2'd1;
         if (q_pop && q_ripe && q_first && !first_pop_seen) first_pop_seen = 1'b1;

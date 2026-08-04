@@ -362,7 +362,8 @@ S_PRERD: begin
         if (eu_slot_busy_n) stop = 1'b1;
         else begin
             row_posted = 1'b1;
-            rd_pending = rd_pending + 2'd1;
+            // F48/U4: saturate, do not wrap (see v30u_eu_row.svh).
+            if (rd_pending != 2'd3) rd_pending = rd_pending + 2'd1;
             stop = 1'b1;
         end
     end else if (rd_done_cnt == 2'd0) begin
