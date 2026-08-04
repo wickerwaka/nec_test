@@ -134,6 +134,21 @@ recognition shadows nothing reaches (§F.4).
 **Owner: ucore. This is the largest functional gap and it is the only one that
 is also an undeclared RTL-vs-model divergence.**
 
+> **AND IT IS NOW COSTED, 2026-08-04 (SM3 sitting 4, `ucore_provenance.md`
+> §63.5).**  This gap was carried as functional-only.  Measured against the
+> banked bus captures it is **92 seeds of the ucore's timed residue** — 71 % of
+> the `PF_LOST` family the ranked list called *"H3, arbitration priority"*.  The
+> mechanism is one place: `sw/gen_soup.py` points **all 256 IVT vectors** at a
+> bare handler at `0x0480` (`CF` IRET / `CB` RETF), so every soup program that
+> takes an interrupt lands there; in 8080 mode the chip and the model execute
+> that `CF` as **`RST 1`** (two-byte push, then fetch on at `0x00008` — present
+> in 92/92 of the chip windows) and the ucore executes it as the native IRET's
+> three stack pops.  Engine cell at the contested slot: **`MEMR` on 92/92** for
+> the ucore, **`MEMW` on 88/88** for the model.  All **50** banked `has_brkem`
+> seeds are in this class and in no other family; 42 more reach it without the
+> flag (18 of those contain a `0F FF` pair, **24 do not, and how those 24 enter
+> 8080 mode is NOT ESTABLISHED**).
+
 The tables carry 8080 mode. `ucrom.hex` holds BRKEM at `0348-034B`, the 8080
 main page `110` at `034C-03FB`, the 8080 `ED` page `101` at `03FC-0403` (RETEM
 `03FC-03FE`, CALLN `0400-0401`); `ucdecode.hex` is a full 8,192-entry

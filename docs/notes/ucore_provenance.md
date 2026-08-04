@@ -6990,3 +6990,240 @@ them.
 * **`sim/` was not touched**, and its three columns were re-measured to say so.
 * The `clipopf` question (§61.3) is still open, and the mechanism behind the
   arm is still NOT ESTABLISHED — H1 is carried as MEASURED, not as a law.
+
+## §63 SESSION SM3, SITTING 4 — H7 MEASURED AND BLOCKED; H3 PARTITIONED
+
+**2026-08-04, branch `ucsim`, from HEAD `a23c329792`.  OFFLINE ONLY — banked
+captures, the golden suites, Verilator and the C++ model.  NO BOARD CONTACT.
+NOTHING WAS LANDED IN EITHER ENGINE, and every standing ratchet is untouched
+because no engine source was changed** (one experiment was built, measured and
+reverted; see §63.4).
+
+> **Standing principle, applied throughout.**  *"This is 80's era hardware,
+> they aren't wasting silicon on anything that isn't necessary.  Complex or
+> confusing behavior that we see is likely to be simple systems interacting in
+> ways you do not fully understand yet."*
+
+Companions: §62.8/§62.9 (H7's booking and the ranked list),
+`sm3_residue_census_2026-08-04.md` §5.3 (H3), `docs/facts/interrupt_model.md`
+(the 2026-07-12 chip-side NMI/INT laws), `ucore_gaps_2026-08-04.md` §F.1
+(8080 / BRKEM).
+
+New instrument: **`sw/sm3_nmigeom.py`** — a MEASUREMENT tool, never a gate.
+It reads the rig's own assert clock out of every banked EVT seed and pairs it
+with the recognition the capture shows (the NMI vector read at `0x00008` for
+pin 1, INTA1 for pin 0), with an optional `--core` leg through `timed_fuzz`'s
+own regeneration path, wait vectors and event directive.
+
+### §63.1 H7 — THE ASSERT CLOCK, AND THE CONTROL THAT MAKES IT USABLE
+
+The rig asserts the pin during capture cycle **`idx(trigger CODE T1) + 2 +
+delay`**.  That is not assumed here, it is established four ways:
+
+* it is what `docs/facts/interrupt_model.md` says the scheduler does;
+* it is what `hdl/tb/tb_v30_core.sv` says beside its own copy of the scheduler,
+  and its `ev_cnt <= ev_delay + 1` countdown produces exactly that row;
+* it is what `hdl/rtl/nec_bus.sv`'s `ev_st` FSM produces read edge by edge —
+  `mem_addr_match` is latched at the T1 row's `tick_fall`, `ev_match` is read at
+  that same row's `tick_rise`, and `EV_DELAY` then costs `delay + 1` more ticks;
+* the model's own `biu.assert_clk()`, read out with `V30SIM_EVTTRACE` on
+  `mc1/570` (anchor 145, delay 10), returns **A = 157 = 145 + 10 + 2**.
+
+**And the control**: run the same instrument over the **pin-0** population
+(929 banked INT seeds) and the chip's minimum assert-to-INTA1-T1 distance comes
+out at **7**, with the HALT-limited mass at **8** — i.e. exactly
+`interrupt_model.md`'s *"assert → INTA1 T1: minimum 7 (running) ... constant 8
+from HALT"*, measured independently three weeks later on a different
+population.  The coordinate is right.
+
+### §63.2 H7's INVARIANT — IT IS A FLOOR, AND BOTH ENGINES' FLOOR IS ONE CLOCK TOO HIGH
+
+208 banked seeds carry `evt.pin = 1`.  **Every one of them has `hold = 2`**, so
+the part is offered a two-clock pulse and the only free coordinate is where the
+pulse lands.  Of the 193 whose capture contains the vector read:
+
+| | chip | `ucore` | `sim` |
+|---|---|---|---|
+| minimum vector-read T1, measured from A | **A + 12** | **A + 13** | **A + 13** |
+| seeds sitting on that minimum | **30** | 27 | 48 |
+
+Restricted to the seeds with **no earlier divergence** (the engine reproduces
+the capture up to the vector read), the split is total:
+
+| chip gap `V − A` | seeds | `ucore` exact |
+|---|---|---|
+| **12** (the chip's floor) | **14** | **0 / 14** |
+| ≥ 13 | 147 | **144 / 147** |
+
+**H7 is not a signature and not a `SCHEDULE` accident: it is a FLOOR, and the
+census's 14 seeds are exactly the seeds that reach it.**  It is invariant under
+wait class (fix0/1/2/3 and wrand1/2/3/7/15 all appear on both sides of the
+line), under the rig delay (10 … 813), and under what owns the bus at A.
+
+Read against the model's own decision clock (`V30SIM_EVTTRACE`'s
+`A` / `B`, 183 seeds): the chip's answer is `V = max(B, A + 3) + 9` on **136**
+of them against **115** for the landed `max(B, A + 4) + 9`, and every seed the
+two readings disagree about has `B ≤ A + 3` — i.e. the whole of the difference
+is the **pin term**, never the boundary term.
+
+### §63.3 …AND THE GOLDEN SUITES REFUTE THE UNIFORM READING
+
+The obvious mechanism — *"the NMI edge latch matures at edge+2, not edge+3"*,
+one register, no new constant — was **BUILT AND MEASURED, AND IT IS REFUTED.**
+
+`sim/timed_runner.cpp`'s NMI pin pipeline set to 3 in both the golden path and
+the whole-program path, rebuilt, and the suites re-run:
+
+```
+   NMI.90    rows-exact 200 -> 194        (row-diffs 0 -> 858)
+   NMI.B8    rows-exact 200 -> 189        (row-diffs 0 -> 1447)
+   HLT.NMI   rows-exact 200 -> 200        (unchanged)
+```
+
+**17 golden cases break, and they are precisely the 17 the EVTTRACE census
+identifies as A-LIMITED** (`B − A = 2` on 4 cases, `= 3` on 13).  The change
+was reverted; `NMI.90` / `NMI.B8` / `HLT.NMI` are **600 / 600 rows-exact**
+again on the restored binary, and `make -C sim test` is **PASS**.
+
+So two silicon populations disagree by one clock in the same regime, and the
+disagreement is **inside the fuzz bank too**: among the 25 clean banked NMI
+seeds with `B ≤ A + 3`, **14 fire at `A + 3`** and **7 fire at `A + 4`**.  The
+discriminating variable is NOT the wait class, NOT the rig delay, NOT the bus
+owner or T-state at A, and NOT the queue occupancy at A — all four were
+tabulated and all four cut across the split.
+
+**H7 is therefore BLOCKED, not landed, and it is a sharper statement than the
+observation §62.8 booked.**  What was an *"observation, not a mechanism"* is now
+a measured floor with a measured refutation attached.
+
+*Falsifiers, registered*: a banked NMI seed whose vector read opens earlier than
+`A + 12`; a golden NMI case with `B ≤ A + 3` whose entry is at `A + 12`; or a
+whole-program seed with `B ≥ A + 4` that does not sit at `B + 9`.
+
+**THE DIRECTED CELL THAT WOULD DISCRIMINATE** (socket, capture only, no
+flashing — NOT taken this sitting).  One fixed instruction stream, the assert
+delay swept **one clock at a time** so that A walks through `B − 6 … B − 2`
+with everything else held, at waits 0/1/2/3, and the whole sweep run **twice**:
+once with the queue PRIMED at the boundary and once with it DRY (the one axis
+that separates the golden A-limited cases, which are all cold `fetch`-trigger
+cases, from the banked seeds).  The cell reads out where `A + 12` appears and
+where `A + 13` does.  If the answer moves with the queue state the extra clock
+is on the ENTRY (bus) side and the latch is right; if it does not, the latch
+depth is conditional on something neither engine reads and the cell says on
+what.  `sw/sm3_nmigeom.py` scores it unchanged.
+
+### §63.4 WHAT WAS BUILT AND REVERTED
+
+`sim/timed_runner.cpp` was edited (NMI `evpipe` and the golden path's `pipe`,
+4 → 3), `make -C sim` run, the suites measured (§63.3), and the file restored
+with `git checkout` and rebuilt.  The tree carries **no engine change from this
+sitting**; the only new file is the measurement tool `sw/sm3_nmigeom.py`.
+
+### §63.5 H3 — `PF_LOST` IS **TWO** FAMILIES, AND THE BIGGER ONE IS NOT ARBITRATION
+
+`s15_census --core ucore` and `--core sim`, each matched to its own post-H1
+report, dumped per seed.  `PF_LOST` is 129 (ucore) / 309 (sim).  It splits on a
+single, mechanical, board-free criterion — **the address of the chip's cycle at
+the first contested slot**:
+
+| class | criterion | `ucore` | `sim` | shared |
+|---|---|---|---|---|
+| **A — the 8080 landing pad** | chip cell is `CODE 00484` **and** the chip's window contains `CODE:00008` | **92** | **88** | 87 |
+| **B — the arbitration residue** | everything else | **37** | **221** | — |
+
+**Class A is one place in the harness, not a law about prefetching.**
+`sw/gen_soup.py` points **all 256 IVT vectors** at a bare handler at
+**`0x0480`** — `CF` (IRET) with `CB` (RETF) beside it.  So every soup program
+that takes any interrupt lands there.  At that `CF`:
+
+* the **chip** pushes a two-byte return address and fetches on at **`0x00008`**
+  — `CODE:00008` is present in **92 / 92** and **88 / 88** of the two classes.
+  That is the 8080 `RST 1`: the part is in **8080 EMULATION MODE**;
+* the **model** does the same thing, cycle for cycle (`mc1/1198`, rows 2636-2647
+  side by side: `MEMW a5d47`, `MEMW a5d48`, `CODE 00008`).  Its **only** error is
+  that the chip takes **one more prefetch first**;
+* the **ucore** executes `CF` as the native **IRET** and issues the three stack
+  pops.  It has no 8080 mode — `ucore_gaps_2026-08-04.md` §F.1, already booked.
+
+Each engine's half of class A is exception-free **and they are different
+defects**:
+
+| | `sim` (88) | `ucore` (92) |
+|---|---|---|
+| engine's cell at the contested slot | **`MEMW` 88 / 88** (the RST's own push) | **`MEMR` 92 / 92** (the native IRET's first pop) |
+| `delta` (engine T1 − chip T1) | **+2 on 88 / 88** | **+2 on 92 / 92** |
+| recovery | `MISS` 87, `NONE` 1 | `NONE` 92 / 92 |
+
+* the **model's** class A is one mechanism with one number: *the chip grants
+  exactly ONE MORE PREFETCH between the 8080 opcode pop and the `RST`'s first
+  store, and that store's T1 is two clocks later.*  The prefetch is the
+  CONSEQUENCE — the chip's EU is two clocks slower to its first store on this
+  path — so it is an 8080-path microcode latency, **not** an arbitration
+  priority, and it should not be filed under H3 at all;
+* the **ucore's** class A is the 8080 gap.  Its `PF_LOST` label is an artefact
+  of "the first bus-visible disagreement": the two machines are executing
+  different instructions.
+
+All **50** banked seeds carrying the generator's own `has_brkem` flag are in
+class A and in **no other family**; 42 more reach it without the flag (18 of
+those 42 contain a `0F FF` byte pair in the image, 24 do not — how those 24
+enter 8080 mode is **NOT ESTABLISHED** and is booked as an open question, not
+guessed at).
+
+**Consequence for the ranked list: 92 of the ucore's 129 H3 seeds — 71 % —
+are the already-booked 8080 gap wearing `PF_LOST`'s clothes.  Ranking by
+FAMILY misattributes them, exactly as §62.7 found ranking by SIGNATURE did.**
+
+### §63.6 H3 CLASS B — the real arbitration family, partitioned but NOT closed
+
+| | `sim` (221) | `ucore` (37) |
+|---|---|---|
+| `delta = 0` — both sides launch at the SAME clock | **184 / 221** | 23 / 37 |
+| the engine's cell | `MEMW` 106 · `MEMR` 102 · `INTA` 5 · `IOW` 5 · `IOR` 3 | `MEMR` 33 · `HALT` 2 · `INTA` 2 |
+| recovery | `NONE` 184 · `EXTRA` 25 · `MISS` 12 | `EXTRA` 25 · `NONE` 11 · `MISS` 1 |
+
+With `delta = 0` on 184 of 221 this is a **GRANT-ORDER SWAP and not a timing
+slip**: the two sides open a cycle on the same clock and disagree about *whose*
+it is — the chip's prefetcher, the engine's EU.  `mc1/1608` is the family in one
+line: chip `CODE:00530@518` then `MEMW:0aabe@524`; model `MEMW:0aabe@518` then
+`CODE:00530@524`, and the two realign immediately (`seq_match 1.0`).
+
+**The one candidate the work order names was tested and is NOT the answer.**
+Chip-side queue occupancy at the contested slot (counted from the capture:
+bytes delivered by completed CODE cycles since the last `QS = E`, minus pops):
+
+```
+  contested slots (221)   occ 0:2   2:33   3:76   4:83   5:27
+  control, every other chip CODE grant in the same captures (34,832)
+                          occ 0:2532  1:48  2:16772  3:8634  4:5664  5:1182
+```
+
+The contested slots are strongly skewed to a **full-ish queue** (186 of 221 at
+occ 3-5, against a control dominated by occ 2), which is the right shape for
+*"the chip prefetches from a fuller queue than the model allows"* — but occ 0
+through 5 all occur, so **there is no single threshold and M4's `occ + inflight
+≤ 4` boundary is not off by one.**  Reported as a negative result.
+
+**The ucore already closes 184 of the model's 221 class-B seeds** (37 against
+221), so on the genuine arbitration axis the ucore is far closer to silicon
+than the model is, and class B is overwhelmingly a **`sim/` debt**.
+
+*The directed cells that would discriminate class B* (spec only, not taken):
+(a) a fixed instruction whose EU access is issued at a known clock, with the
+queue pre-loaded to occ 0…6 in six otherwise identical captures, at waits 0-3 —
+this reads the grant priority as a function of occupancy alone; (b) the same
+with the EU request arriving one clock EARLIER and one clock LATER than the
+prefetcher's eligibility instant, which separates *"the chip's tie-break is
+prefetch-first"* from *"the chip's EU request is one clock later than modelled"*.
+Class A's own `delta = +2` says the second reading has to be on the table.
+
+### §63.7 WHAT THIS SITTING DID NOT DO
+
+* **No board contact**, and no flashing.  Two directed cells are specified and
+  left un-taken (§63.3, §63.6).
+* **Nothing was landed.**  No RTL, no `sim/`, no save-state, no `SS_VERSION`
+  move; the only tree change is the new measurement tool.  Every standing
+  ratchet in §62.3 stands where §62.6 left it, unmeasured this sitting because
+  nothing that could move them was touched.
+* **H4 / H5 / H6 were not opened** — the work order scopes them out.
+* **The 24 class-A seeds with no `0F FF` in the image were not explained.**

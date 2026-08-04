@@ -92,6 +92,18 @@ engines since 2026-08-04** (`ucore_provenance.md` §61 / §62).  **H2 is RETIRED
 is **§62.9**: H3 `PF_LOST`, H4 `DATA_SEQ`, H7 the `0x0008` NMI-vector class,
 H5, H6.
 
+**SM3 sitting 4 (2026-08-04, `ucore_provenance.md` §63) moved NO GATE — it
+landed nothing in either engine — but it changed what two of those names mean.**
+**H7** is a measured FLOOR (chip `A + 12`, both engines `A + 13`) whose
+one-register reading was BUILT AND REFUTED: it breaks 17 golden `NMI.90` /
+`NMI.B8` cases, and the conflict reproduces inside the fuzz bank itself, so H7
+is BLOCKED with a directed cell.  **H3 is TWO families**: 92 of the ucore's 129
+(88 of the model's 309) are the 8080 / BRKEM gap at the harness's own IVT
+landing pad (`ucore_gaps_2026-08-04.md` §F.1, now costed), NOT arbitration; the
+real arbitration residue is 37 ucore / 221 sim, and M4's `occ + inflight ≤ 4`
+boundary was tested chip-side and is NOT the answer.  New MEASUREMENT tool (not
+a gate): `sw/sm3_nmigeom.py`.
+
 ### BOARD PROBES — NOT GATES, BUT THEY MUST STILL RUN
 
 A rig-integrity finding from SM2, recorded here because it is the *reason* this

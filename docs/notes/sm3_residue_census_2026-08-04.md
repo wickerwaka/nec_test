@@ -41,6 +41,19 @@ it lives in did not exist before SM2's re-capture.
 > `DATA_SEQ` (55 / 33), H7 the `0x0008` NMI-vector class (14 / 27), H5, H6.
 > The tables in §3 and §5 are RETAINED AS MEASURED — they are the pre-H1
 > state, and every post-H1 figure is in §62.6-§62.9.
+>
+> **UPDATE, 2026-08-04 — SM3 sitting 4 (`ucore_provenance.md` §63).  NOTHING
+> LANDED; both remaining top-ranked items were MEASURED and one of them was
+> REFUTED.**  **H7** is now a *floor*, not an observation: the chip's NMI
+> vector-read T1 has a hard minimum of **A + 12** (30 banked seeds sit on it,
+> none lower) and both engines' minimum is **A + 13**; on seeds with no earlier
+> divergence the split is total, 0/14 at the chip's floor against 144/147 above
+> it.  The one-register reading *"the NMI edge latch matures one clock sooner"*
+> was **built, run and REFUTED** — it breaks **17 golden `NMI.90`/`NMI.B8`
+> cases**, exactly the A-limited ones — and the conflict reproduces **inside the
+> bank** (14 seeds fire at `A+3`, 7 at `A+4`, same regime).  H7 is BLOCKED with
+> a directed cell (§63.3).  **H3** is PARTITIONED — see §5.3 — and 71 % of the
+> ucore's share of it is the 8080/BRKEM gap, not arbitration.
 
 | rank | mechanism | ucore seeds | sim seeds | shared | owner | §|
 |---|---|---|---|---|---|---|
@@ -339,6 +352,28 @@ it and should be **re-censused after H1 lands rather than attacked first.**
 > falsifiable.
 
 ### §5.3 H3 — `PF_LOST`'s arbitration priority.  107 ucore / 239 sim REGISTERED seeds.
+
+> **PARTITIONED 2026-08-04 (SM3 sitting 4, `ucore_provenance.md` §63.5-§63.6),
+> and the headline is that `PF_LOST` IS NOT ONE FAMILY.**  Split on the address
+> of the chip's cycle at the first contested slot:
+> **class A**, chip cell `CODE 00484` with `CODE:00008` in the chip's window —
+> **92 ucore / 88 sim, 87 shared** — is the harness's own bare-IRET IVT landing
+> pad at `0x0480` (`sw/gen_soup.py` points all 256 vectors there) executed in
+> **8080 EMULATION MODE**, where `CF` is `RST 1` and not `IRET`.  All 50 banked
+> `has_brkem` seeds are in it and in no other family.  For the **model** it is
+> one exception-free mechanism — `delta = +2` on 88/88, engine cell `MEMW` on
+> 88/88: *the chip grants one more prefetch between the 8080 opcode pop and the
+> `RST`'s first store, and that store is two clocks later* — i.e. an 8080-path
+> EU latency, **not** an arbitration priority.  For the **ucore** the same seeds
+> are the already-booked 8080 gap (`ucore_gaps` §F.1): engine cell `MEMR` on
+> 92/92, it runs the native IRET's pops.  **71 % of the ucore's H3 population is
+> therefore not H3 at all.**
+> **Class B**, the 221 sim / 37 ucore remainder, IS the arbitration family:
+> `delta = 0` on 184 of 221, i.e. a GRANT-ORDER SWAP at one slot, not a timing
+> slip.  The work order's named candidate — M4's `occ + inflight ≤ 4` off by one
+> — was TESTED chip-side and REFUTED: contested-slot occupancy runs 0…5.  The
+> ucore closes 184 of the model's 221, so class B is overwhelmingly a `sim/`
+> debt.  **NOT CLOSED**; two directed cells specified in §63.6.
 
 Unchanged and inherited: `ucsim_t_provenance.md` §26.10 D item 4, `gaps` §I.5.
 It is the largest single family on the registered bank in both engines and the
