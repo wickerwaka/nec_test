@@ -18,6 +18,13 @@ silently missing from the ucore build.  `--check` re-derives and compares,
 which is the gate: a stale revision file is a build comparing two things that
 differ by more than the core.
 
+NOTE, measured: **Quartus REWRITES the revision .qsf it compiles**, appending
+the assignments it picked up from `source sys/sys.tcl` (the ~180 pin locations
+and the PRE_FLOW_SCRIPT).  So this file must be regenerated before a build and
+`--check` must be run BEFORE compiling, not after -- a post-build `--check`
+failure is Quartus's materialisation, not drift.  Regenerating is always safe:
+everything Quartus appends is re-derived from the sourced .tcl anyway.
+
     sw/gen_ucore_qsf.py [--check]
 """
 import argparse
