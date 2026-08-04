@@ -19,6 +19,17 @@ verdict), `docs/notes/ucore_provenance.md` §0-§57 (the ledger) and
 > | **R5** — the CE-hold probe has no EU coverage | **FIXED** (§58.5), gate re-run green |
 > | **X1** — the `core_ad` retention intervention, pre-registered and unrun | **RUN OFFLINE, BOTH BARS MET** (§58.6). Fabric leg outstanding; attribution still NOT ESTABLISHED. |
 > | **T3 / T4 / T8 / I3 / I5** — "model-shared" | **RECLASSIFIED AS WORK** by the 2026-08-04 correctness-target directive (§58.1). The owner column below is the OLD partition. |
+>
+> **SECOND UPDATE, session SM2 (2026-08-04) — `ucore_provenance.md` §59 is the
+> current state.** Five more items moved, and one of them moved the other way.
+>
+> | item | now |
+> |---|---|
+> | **R1 / T5** — `evt_hold`, and the poisoned EVT column | **CLOSED.** FLASH #4 (`67ddd59413d5…`) carries the 12-bit register; the board's host tool was replaced too; the register AND the pin were proved; **all 760 re-captured**, 0 errors, 0 GEN-DRIFT.  The 1,008-seed column is **UN-SUSPENDED** at ucore **468/1,008**, sim **363/1,008** — *the ucore now LEADS by 105 where as banked it trailed by 517.*  `invalidation_ledger.md` §CLOSURE. |
+> | **R6** — the s10/s13 per-repetition rows | **CLOSED, and the answer is YES.**  10 reps × 5 cells, full rows banked: every difference is on rows 0-8 (before the first T1) in the multiplexed pads, none on a dedicated pin.  §59.7.8 |
+> | **X3** — the tranche not re-captured on the shipped bitstream | **CLOSED.**  Re-captured on FLASH #4: **176/178**, same `bs = 2` residue, socket leg 178/178.  §59.7.9 |
+> | **X1** — the fabric leg of the retention intervention | **ATTEMPTED AND BLOCKED, NOT REFUTED.**  The BASELINE reproduces on FLASH #4 (**143/283**, 116 fabric-only, 116/116 INTA, socket control 49/49) but the INTERVENTION cannot be synthesised: Quartus folds `core_ad === 1'bz` to a constant and deletes the hold register.  Pre-registered as a liveness test (§59.3) and reported as registered (§59.7.1).  **C11's NOT ESTABLISHED stands.** |
+> | **NEW — a rig-integrity finding** | **`s10_board` / `s13_board` could not take a capture at HEAD** and had not been able to since 2026-08-02: `want_raw=True` was passed to a `run_image` that never had the parameter, on any branch.  No standing gate runs an s10/s13 probe, so nothing saw it.  REPAIRED, §59.7.11 |
 
 **This document is measurement and enumeration only.** No mechanism was
 proposed, no RTL was changed, nothing was fixed. Where a number could be stale
@@ -54,25 +65,25 @@ are new and the three ledger statements they correct.
 | **T2** | timing, offline | **the ucore's own registered-fuzz-bank residue is NINE seeds** — the complete set on which the model is cycle-exact and the ucore is not. Measured this session, engine against engine | 9 of 1,702 | **ucore** | §49.8's three sub-mechanisms; the `10`/ADC deciding measurement is written down and un-run |
 | **T3** | timing, offline | the other **210** of the ucore's 219 registered non-exact seeds are seeds **the model misses too** | 210 of 1,702 | **model-shared** | the inherited seven-family closers, `ucsim_t_provenance.md` §26.10 C |
 | **T4** | timing, offline | **the 2 `bs` seeds of the priority tranche** — ucore ≡ SIM on 4,000/4,000 rows on both | 2 of 178 | **model-shared** | a `sim/` landing first; never a ucore patch |
-| **T5** | timing, offline | **the EVT column is RIG-POISONED and is not a gate** — 547 of the 1,008 EVT seeds are ucore-only non-exact, and F46 explains them: 760 seeds banked `hold = 300` into an **8-bit** register | 547 of 1,008 | **rig** (F46) | widen `evt_hold` to 12 bits + re-bank + re-capture — a decision routed to the owner |
+| **T5** | timing, offline | **CLOSED (SM2) — re-captured; the column is a gate again at ucore 468/1,008, sim 363/1,008.**  ~~the EVT column is RIG-POISONED and is not a gate~~ — 547 of the 1,008 EVT seeds are ucore-only non-exact, and F46 explains them: 760 seeds banked `hold = 300` into an **8-bit** register | 547 of 1,008 | **rig** (F46) | widen `evt_hold` to 12 bits + re-bank + re-capture — a decision routed to the owner |
 | **T6** | timing, offline | **the b2 victory tranche: 171/188.** V5 is a standing REGISTERED FAILURE | 17 of 188 | mixed | **not re-opened, not re-scored** |
 | **T7** | timing, offline | **5 `BOUND WARNINGS`** — seeds whose EU completed-read store saturated, i.e. ran outside the regime `qdepth_probe.py` proves | 5 seeds | ucore (scoped) | none taken — deepening the capacity would be the large-fitted-table failure the standing principle names |
 | **T8** | timing, offline | the **4 shared seeds** of §49.7 — three are an exact byte swap on an odd-address word write (M5b's A0 swapper applied where the chip does not) | 4 seeds | **model-shared** | `sim/` |
 | **T9** | timing, offline | the **14 seeds** of the 500-seed in-silicon population (435/449) | 14 of 449 | mixed (`bs` 11, `qs` 3) | as reported §52.7 |
-| **X1** | timing, fabric | **the 116 fabric-only INTA-retention cells.** 116/116, one class, no counter-population — and **the attribution is NOT ESTABLISHED** | 116 of 283 | **harness — NOT ESTABLISHED** | the `core_ad` retention intervention, **pre-registered and unrun**, §56.3a. *Any* of the 116 still failing reclassifies those cells as the CORE's. |
+| **X1** | timing, fabric | **STILL OPEN; the fabric intervention is BLOCKED (SM2, §59.7.1) — baseline reproduces at 143/283 on FLASH #4.**  the 116 fabric-only INTA-retention cells. 116/116, one class, no counter-population — and **the attribution is NOT ESTABLISHED** | 116 of 283 | **harness — NOT ESTABLISHED** | the `core_ad` retention intervention, **pre-registered and unrun**, §56.3a. *Any* of the 116 still failing reclassifies those cells as the CORE's. |
 | **X2** | timing, fabric | **the fabric scorer is strictly stricter than the TB**: 143/283 in fabric vs 259/283 offline on the same RTL. §55.2 bar 2 was registered at ≥ 249 and is reported **MISSED** | 116 cells | see X1 | see X1 |
-| **X3** | timing, fabric | **the priority tranche was NOT re-captured on the U5 bitstream** (registered as a deliberate deviation); its 176/178 is the pass-3 bitstream's, with the RTL change proved inert offline | 483 captures not spent | rig (declared) | a re-capture, if the A/B is re-run |
+| **X3** | timing, fabric | **CLOSED (SM2) — re-captured on FLASH #4: 176/178, residue `bs`=2.**  ~~the priority tranche was NOT re-captured on the U5 bitstream~~ (registered as a deliberate deviation); its 176/178 is the pass-3 bitstream's, with the RTL change proved inert offline | 483 captures not spent | rig (declared) | a re-capture, if the A/B is re-run |
 | **I1** | inherited | **the sim's `9D` flag-commit erratum** — the RTL matches silicon and the MODEL does not. **The one place this campaign owes the model a fix.** | 2 ROM rows | **model** | one line in `wr_dst1`'s FLAGS arm + the `F` wait's ordering; belongs to whoever next opens `biu_timed` |
 | **I2** | inherited | **the SIM does NOT carry F51's HALT defect** — verified two ways this session | **CLOSED** | — | — |
 | **I3** | inherited | **INTA under waits** is closed as a law for the single-instruction population (M18) and the ucore is 200/1,200/200/1,200 on all four `evt` cells — but the **second acknowledge's ANCHOR** is still open and the whole-program EVT column is T5-poisoned | 1 open rule | model-shared | §26.6.4's directed cell: an acknowledge announced while another cycle still owns the bus, at more than one wait level |
 | **I4** | inherited | **law cards C6 / C7 / C11 remain UNRESOLVED** (re-run this session: 8 GREEN / 0 RED / 3 UNRESOLVED). They bear on the ucore's spec completeness: C11's `owns_slot` is an EU micro-state the ucore renders from an enumerated source set that no silicon capture isolates | 3 cards | model-shared | C6/C7 need a pin-observable signature for `ext_ok_wr` / `tw_par`; C11 needs an instrument, not board time |
 | **I5** | inherited | the four remaining items of the ucsim-t **open surface** (§26.10 D): the withdrawn announcement's pad retention, `PF_LOST`'s arbitration priority, `SCHEDULE`'s `-3`, the `A − H ≤ −3` regime | 4 items | model-shared | as written in §26.10 D |
-| **R1** | rig | **`evt_hold` is 8 bits.** Decision OPEN. The 12-bit drop-in is measured; it is a host-protocol change in three call sites AND must go into both bitstreams | 760 of 1,008 seeds | **rig** | the owner's decision (verdict §(e) item 2) |
+| **R1** | rig | **CLOSED (SM2) — 12 bits in RTL, in the host tool, in FLASH #4 and on the board; proved on the wire and on the pin.**  ~~`evt_hold` is 8 bits. Decision OPEN.~~ The 12-bit drop-in is measured; it is a host-protocol change in three call sites AND must go into both bitstreams | 760 of 1,008 seeds | **rig** | the owner's decision (verdict §(e) item 2) |
 | **R2** | rig | **the TB still models pad FLOAT RETENTION and the fabric does not.** That asymmetry is exactly X1's mechanism, and it is the remaining scope of the U5 mask work | whole TB | rig | rides X1's intervention |
 | **R3** | rig | **F45's guidance comment in `tb_v30_core.sv` is still wrong** — it says *"Run many seeds: most flips must diverge"*; the correct guidance is *step the seed by 16* | 1 comment | rig | one comment edit; TB was frozen for scoring |
 | **R4** | rig | **`s15_census.py` cannot classify an RTL core's residue.** It takes only the SEED LIST from `--report` and unconditionally replays the C++ model (`s15_census.py:169`). Pointed at a `--core ucore` report it silently reports the MODEL's families | the whole taxonomy leg | **rig** | give it `timed_fuzz.run_tb`; until then there is **no instrument that classifies the ucore's own fuzz residue by the seven families** |
 | **R5** | rig | the ucore's **CE-hold probe has no EU coverage** (F50 item 3) — it watches BIU state only | 1 probe | rig | add `u_eu` state to `tb_v30_core.sv:1204`'s digest |
-| **R6** | rig | the **s10/s13 sweep retention gaps**: `HLT.INT_w2_d0`'s `stable_identical: false` is NOT verified as the same pad artefact as `HLT.INT_w0_d0` — the per-repetition rows were never banked | 1 cell | rig | needs the board: bank per-rep rows |
+| **R6** | rig | **CLOSED (SM2) — VERIFIED as the same pad artefact; 10 reps × 5 cells banked.**  ~~the s10/s13 sweep retention gaps~~: `HLT.INT_w2_d0`'s `stable_identical: false` is NOT verified as the same pad artefact as `HLT.INT_w0_d0` — the per-repetition rows were never banked | 1 cell | rig | needs the board: bank per-rep rows |
 | **R7** | doc | **`ROADMAP.md` carries stale U4 pass-3 figures** (26 % ALMs / 45.56 MHz, "two flashes") where the campaign closed on the U5 build (27 % / 48.03 MHz, three flashes) | 2 statements | doc | **FIXED this session** in `ROADMAP.md`; recorded in §Z.3 item 3 |
 
 ---
@@ -451,6 +462,17 @@ the ucore's.
 
 ### §T.5 THE EVT COLUMN IS RIG-POISONED AND IS NOT A GATE
 
+> **CLOSED 2026-08-04, session SM2.**  The 760 were re-captured on FLASH #4 at
+> their banked hold of 300 and the column is a gate again: **ucore 468/1,008
+> (46.4 %), sim 363/1,008 (36.0 %)**, `INVALIDATED` 0.  The "547 ucore-only
+> non-exact seeds" below were the rig: on the corrected captures the ucore
+> LEADS the model by 105 seeds where as banked it appeared to trail by 517.
+> The falsifier stated at the foot of this item was answered directly on the
+> pin — 2 INTA T1 rows at `hold=44`, 6 at 300, 12 at 600.
+> See `docs/notes/invalidation_ledger.md` §CLOSURE and
+> `ucore_provenance.md` §59.7.3-§59.7.7.  **The reading below is retained as
+> written, because it was right.**
+
 **Owner: rig (F46).** Measured this session, same two-report comparison:
 
 ```
@@ -575,6 +597,25 @@ INTERVENTION, which is what the correlation is missing.
   it needs its own pre-registered before/after on both cores, a Quartus compile
   and a flash.
 
+> **SM2, 2026-08-04 — THE FABRIC LEG WAS ATTEMPTED AND IS *BLOCKED*, NOT
+> REFUTED.**  The BASELINE re-measured on FLASH #4 reproduces this table
+> **cell for cell and form for form: 143/283, 116 fabric-only, 116/116 on an
+> INTA T1 row**, with the socket control at 49/49 and the `use_core=0` boot at
+> MATCH 800 ×3 — so the population is intact on the new bitstream.  The
+> INTERVENTION could not be built: `core_ad === 1'bz` is a four-state test on
+> an internal tri-state, and Quartus 17.1 folds it to a constant, deletes the
+> hold register for want of fanout, and hands back a bitstream identical in
+> function to the baseline (**demonstrated in isolation**: the same construct
+> alone synthesises to 5 logic cells and *"No output dependent on input pin
+> clk"*).  Running the after-leg on it would have reported "116 survive",
+> which reads like a refutation and would have been an instrument failure.
+> **Pre-registered as a liveness test in `ucore_provenance.md` §59.3 and
+> reported as it was registered, in §59.7.1.  C11's NOT ESTABLISHED stands.**
+> A synthesizable keeper needs an "is anyone driving" term whose only honest
+> source is the core's own output enable — not a port, and forbidden by this
+> registration to manufacture — so the item is handed on with its cause named
+> rather than re-scoped after the fact.
+
 **Two candidate fixes, NEITHER taken.** The retention model above, or teaching
 the fabric scorer `check_ab_hw`'s exclusion — **which would be choosing a
 comparator after seeing the result**, and is not a thing this campaign is
@@ -626,7 +667,14 @@ of the miss is entirely §X.1.
 * **internal state** — `+ss_at`, `+eutrace`, `uscope --rowtrace`, the bound
   assertions. The deciding measurement for §T.2 item 2 is one of these.
 
-**And one thing NEITHER covers**: the priority tranche was **not re-captured on
+**And one thing NEITHER covers** — **CLOSED 2026-08-04 (SM2)**: the priority
+tranche was re-captured on FLASH #4, both legs, and the ucore in fabric scores
+**176/178 (98.9 %) with the same two-seed `bs` residue**, against a socket leg
+that is 178/178 against itself.  The controlled substitution is removed and the
+number reproduces.  `ucore_provenance.md` §59.7.9.  **The original statement of
+the gap follows.**
+
+*(as originally written)* the priority tranche was **not re-captured on
 the U5 bitstream** (§55.2 item 6, a declared deviation). Its 176/178 is the
 pass-3 bitstream's number, with the F51 change proved INERT on that population
 offline (`vsim_ucore` 176/178, residue `bs` = 2, identical before and after).
@@ -792,7 +840,22 @@ inherits them because the ledger does.
   where the archived core's probe also watches `u_eu.state` and `u_eu.div_cnt`.
   So the clean `+ce_div` cells are **BIU-state evidence**; the EU-side evidence
   is the golden row match, not `CE_HOLD_VIOL`. Reported, not patched.
-* **§R.6 — the s10/s13 sweep retention gaps.** `HLT.INT_w2_d0`'s
+* **§R.6 — the s10/s13 sweep retention gaps.  CLOSED 2026-08-04 (SM2), and
+  the answer is YES.**  `sw/r6_perrep.py` banked 10 repetitions of FULL rows
+  for all five cells the sweeps record as `stable_identical: false`, plus
+  §26.1's reference cell.  In every cell the first T1 is row 9 and **every**
+  difference between **any** two repetitions lies on rows **0-8**, in the
+  MULTIPLEXED pads only (`ad_addr`, `ad_data`, `ps`, `ube_n`), with the
+  DEDICATED pins (`t`, `bs_early`, `qs`, `lock_n`, `rst`) differing **nowhere**.
+  `HLT.INT_w2_d0` is the SAME pad artefact as `HLT.INT_w0_d0`: **VERIFIED.**
+  All five are `stable_identical: TRUE` under the CURRENT key — their banked
+  `false` was computed with a pre-§26.1 key, which is exactly what the caveat
+  below says is not comparable.  Independently corroborated by X3: 27 of 200 b3
+  socket captures differ from their pass-3 counterparts, all on rows 0-8, zero
+  at or after the first T1.  `ucore_provenance.md` §59.7.8.  **The original
+  statement of the gap follows.**
+
+* *(as originally written)* **§R.6 — the s10/s13 sweep retention gaps.** `HLT.INT_w2_d0`'s
   `stable_identical: false` is **NOT verified** as the same pad artefact as
   `HLT.INT_w0_d0` — `s13/p1b-ahsweep` banks only ONE rows stream per cell beside
   five per-rep raw shas, so the other four repetitions' keys cannot be

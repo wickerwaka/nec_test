@@ -5853,3 +5853,362 @@ precedes FLASH #5:
    left at `use_core=False` and `DIV_OF_RECORD = 8`.
 
 A wedged board is a STOP with the state documented, not an improvisation.
+
+---
+
+## §59.7 SESSION SM2 — WHAT HAPPENED
+
+Everything below was measured after §59.0-§59.6 was committed (`64641a5644`).
+Reported against the registration, never restated.
+
+### §59.7.0 THE TWO BUILDS
+
+`quartus_sh --flow compile nec_test -c nec_test_ucore`, 17.1.0 Lite,
+`5CSEBA6U23I7`.
+
+| | **BS-A** (FLASH #4) | **BS-B** (not flashed) |
+|---|---|---|
+| `X1_AD_RETENTION` | not defined | defined |
+| wall | 8:36 | 10:50 |
+| A&S / Fitter errors | **0** | **0** |
+| inferred latches / `lpm_divide` | **0 / 0** | 0 / 0 |
+| ALMs | **11,164 / 41,910 = 27 %** | 11,154 / 41,910 = 27 % |
+| registers | 6,129 | 6,105 |
+| RAM blocks | 105 / 553 = 19 % | 105 / 553 |
+| **Fmax vs the registered ≥ 32 MHz** | **45.19 MHz (+41 %)** | — |
+| worst setup / TNS | **+9.123 ns, TNS 0.000 on EVERY clock domain** | — |
+| worst hold / TNS | **+0.252 ns, TNS 0.000** | — |
+| `.sof` sha256 | **`67ddd59413d58934716260966cfc981f4f0d7065e90b8a8e655010e7687e4320`** | `0d2ef4bfaa8134e7c449101f0b58392b22e9e5976221fb3e7e30799aa686dc1c` |
+| `.rbf` sha256 | `30139a991a605eac3327e0d9668ed5c6740e9ecc07111bea7155b361e9c19740` | — |
+
+`gen_ucore_qsf --check` was up to date before each build and is up to date now;
+the BS-B macro line was added to `nec_test.qsf`, propagated by
+`gen_ucore_qsf.py`, and **reverted** — it is not in the tree.
+
+BS-A is 45.19 MHz where U5's was 48.03; that is placement, not a constraint
+change (same SDC, same settings, one register file widened by 4 bits), and the
+registered bar is ≥ 32 MHz with margin.
+
+### §59.7.1 THE §59.3 LIVENESS TEST ON BS-B — **FAILED. THE X1 FABRIC
+AFTER-LEG IS BLOCKED AND IS *NOT* A REFUTATION.**
+
+Registered before the build, and it fired exactly as registered.
+
+| the test | result |
+|---|---|
+| the 20 `core_ad_hold[*]` registers present in the fit | **ABSENT — 0 occurrences** in `nec_test_ucore.fit.rpt` AND in `.map.rpt`; `g_ad_ret` likewise 0 |
+| the macro actually reached the compiler | **YES** — `Info (293029): New assignment VERILOG_MACRO with value X1_AD_RETENTION=1 has been added` |
+| `core_ad` in synthesis | `Warning (13048): Converted tri-state node "…|core_ad[15]" into a selector`, ×16 |
+
+**THE MECHANISM, ISOLATED.** Rather than argue from an absence in a 4 MB
+report, the construct was compiled ALONE — a two-driver `tri` net, the same
+`=== 1'bz` test, the same hold register, nothing else
+(`~/.cache/ucsimt-tmp/sm2/ztest/`):
+
+```
+Warning (21074): Design contains 1 input pin(s) that do not drive logic
+    Warning (15610): No output dependent on input pin "clk"
+Info (21057): Implemented 20 device resources after synthesis
+    Info (21061): Implemented 5 logic cells
+```
+
+**The clock drives nothing.** Quartus 17.1 folds `net === 1'bz` on an internal
+tri-state to a constant, so `core_ad_eff ≡ core_ad`, the hold register loses its
+fanout and is deleted at elaboration. **BS-B is BS-A with a different sha256.**
+
+So, per §59.3: **the X1 fabric after-leg was NOT RUN, FLASH #5 was NOT taken,
+and C11's `NOT ESTABLISHED` stands.** Running it would have reported
+"116 survive", which reads exactly like a refutation and would have been an
+instrument failure — the registration exists because that sentence is easier to
+write than to retract.
+
+**WHY THE OBVIOUS REPAIR IS NOT TAKEN HERE.** A synthesizable keeper needs an
+"is anyone driving" term, and inside `system_large` the only honest source of it
+is the core's own output enable — which is not a port. §56.3a forbids
+manufacturing it in the harness *by name*, and it is right to: that is a fitted
+rule in the exact place the intervention must not have one. Choosing a
+different mechanism after seeing this result would also be choosing an
+instrument after seeing a result. **It is handed on unrun, with its cause named
+and reproduced in nine lines of Verilog** — the disposition F43 and §56.3a have
+both carried.
+
+### §59.7.2 FLASH #4, AND THE BOARD SANITY LEGS
+
+`sw/safe_flash.sh hdl/output_files_ucore/nec_test_ucore.sof`, PREP → FLASH →
+VERIFY all clean, ledger appended (`sw/testdata/flash_log.jsonl`, sha256
+`67ddd59413d5…`). **`/media/fat/v30/v30ctl.py` was replaced with the repo's
+12-bit copy first** (the old one preserved on the board as
+`v30ctl.py.pre-sm2.bak`, md5 `8eff261e3b…`) — §59.0's recorded rig fact, acted
+on rather than discovered later.
+
+| leg | registered | **measured** |
+|---|---|---|
+| `check_ab_hw all 800` chip-vs-golden | MATCH 800 (§59.5 #3) | **MATCH over 800 rows** |
+| core-vs-chip | first light | **MATCH over 800 rows** |
+| core-vs-golden | first light | **MATCH over 800 rows** |
+| `div_guard` | PINNED | **`div=8 (4 MHz), commanded by this connection` → PINNED**, on every probe |
+
+### §59.7.3 THE WIRE PROOF — §59.2 ITEM 3, **BOTH HALVES**
+
+**The register.** `sw/inv1_recapture.py probe`, run THROUGH THE BOARD's own
+`v30ctl.py` (not a host reimplementation — that is the point). Host packing
+self-test 63/63; the board reports `RIG_EVT_HOLD_BITS = 12`; and `EVT_CFG`
+reads back correctly for every case including the ones the 8-bit rig could not
+express:
+
+```
+delay=0     hold=256  pin=0  raw=0x88000000 -> hold 256   OK
+delay=0     hold=300  pin=0  raw=0x882C0000 -> hold 300   OK
+delay=0     hold=4095 pin=0  raw=0xF8FF0000 -> hold 4095  OK
+delay=65535 hold=300  pin=2  raw=0x8A2CFFFF -> hold 300   OK
+```
+
+`0x882C` is the split doing its job: `[23:16] = 0x2C = 44` — the exact value
+F46 truncated to — plus `[30:27] = 1`, i.e. 256. **8/8 round-trip.**
+
+**THE PIN.** A register that carries 300 is not a scheduler that counts to 300,
+and INV-1's falsifier is written on the pin. `inv1_recapture.py holdproof`: ONE
+seed, ONE image, five directives differing only in `hold`, INTA T1 rows counted:
+
+| `hold` | 2 | 44 | 255 | **300** | 600 |
+|---|---|---|---|---|---|
+| INTA T1 rows | 2 | **2** | 6 | **6** | **12** |
+
+The seed's OLD banked capture has **2**. So the part entered its handler ONCE
+under what the rig actually applied and **three times** under what the bank
+asked for, and at 600 it enters six times. **The hold is monotone past 255 and
+the widen is on the wire.** This is F46's own mechanism
+(`ucore_gaps_2026-08-04.md` §T.5) measured directly on silicon rather than
+inferred from a score.
+
+### §59.7.4 THE RE-CAPTURE OF THE 760 — **DONE, 0 ERRORS, 0 GEN-DRIFT**
+
+Socket, `use_core=False`, `div=DIV_OF_RECORD=8`, per-seed image hash-check
+against the banked `image_sha256` before every capture.
+
+```
+CAPTURE: 760 new, 0 already present, 0 errors, 0 gen-drift, 45s
+```
+
+`evt_fired` **760/760**; no seed ran away or failed to enter, so §59.2's
+"unreadable" conditions did not arise. Full per-clock rows plus a sha256 per
+capture are retained at `sw/testdata/inv1-recapture/raw/`.
+
+**WHAT THE PART DOES UNDER A TRUE 300-CLOCK LEVEL — the measurement §59.2
+registered fresh, and it is the whole of INV-1 in one table:**
+
+| INTA T1 rows in the capture | 0 | 2 | 4 | 6 | 8 | 10 |
+|---|---|---|---|---|---|---|
+| OLD (the 8-bit rig, hold applied 44) | 28 | **732** | 0 | 0 | 0 | 0 |
+| **NEW (hold applied 300)** | 21 | 1 | 40 | 125 | **265** | **308** |
+
+Every one of the 760 differs from its predecessor. Under the applied 44 the
+socket entered its handler ONCE in 732 of 760 seeds; under the banked 300 it
+enters two to five times. **A predicting engine was being scored against the
+first table while being handed the second table's directive.** That is the
+entire content of §T.5's "547 ucore-only non-exact seeds".
+
+### §59.7.5 THE RE-BANK — IN PLACE, WITH THE ORIGINALS ARCHIVED
+
+**Archive first**: `sw/testdata/inv1-archive/{mc1,mc2}/seeds/` — 760
+byte-identical copies with `SHA256SUMS` (sha256
+`6f79283222d169fdf1f7a8e599c403faacdd0d8d8801abb55c567d89a392355a`) and a
+manifest. **OUTSIDE `tests/v30/fuzz_bank/`**, because `check_fuzz_bank` globs
+`*/seeds/*.json.gz` under that root and an archive inside it would have silently
+grown the 3,242-seed corpus.
+
+Then the 760 entries were **rewritten in place** — which is INV-1's own stated
+closure mechanism, *"the seeds re-enter the gate without anyone editing a list"*
+— carrying `evt.hold_bits = 12`, `evt.hold_applied = 300`, and a `recapture`
+block naming the bitstream, the flash, the prior `chip_rows` sha256 and the
+archive path.
+
+`replay_verdict` was **recomputed**, because leaving it would have made
+`check_fuzz_bank` report 700-odd spurious verdict moves, and recomputing it
+SILENTLY would have made that gate vacuous on these seeds. So it is recomputed
+and the movement is REPORTED — and the movement is itself a result:
+
+| banked replay verdict → re-captured | seeds |
+|---|---|
+| `FUNCTIONAL` → **`TIMING`** | **372** |
+| `FUNCTIONAL` → `FUNCTIONAL` | 348 |
+| `FUNCTIONAL` → **`KNOWN_ACCEPTED`** | **18** |
+| `TIMING` → `TIMING` | 20 |
+| `KNOWN_ACCEPTED` → `KNOWN_ACCEPTED` | 2 |
+| **worse** | **0** |
+
+**390 of 760 improved and none got worse.** A capture taken under the directive
+the bank records stops looking like a functional divergence, because it never
+was one.
+
+### §59.7.6 THE §59.2 INTEGRITY BARS — **ALL MET**
+
+```
+=== INV-1 CLOSURE BARS (§59.2) ===
+  bar 1  hold=300 entries with hold_bits=12 and hold_applied=300: 760/760   MET
+  bar 2  f46_invalidated True over the whole bank: 0                        MET
+  bar 4  archived originals: 760                                           MET
+  (evt-armed banked seeds: 1165)
+```
+
+and `timed_fuzz` no longer prints an `INVALIDATED` line at all, for either
+engine — the exclusion self-healed by arithmetic, with no list edited and no
+file renamed, exactly as INV-1 said a derivation would.
+
+### §59.7.7 THE RE-OPENED EVT COLUMN — **NEW MEASUREMENTS, NO BAR**
+
+`timed_fuzz --evt-replay`, both engines, 3,242 banked seeds, 2,710 scored,
+532 `OPEN_BUS`.
+
+| column | **ucore** | **sim** | status |
+|---|---|---|---|
+| **REGISTERED** | **1,483 / 1,702 (87.1 %)** | **1,272 / 1,702 (74.7 %)** | **UNCHANGED**, to the seed. The control that says the re-capture touched nothing it should not have. |
+| **EVT**, full 1,008 | **468 / 1,008 (46.4 %)** | **363 / 1,008 (36.0 %)** | **NEW.** The gate is UN-SUSPENDED. |
+| **COMBINED** | **1,951 / 2,710 (72.0 %)** | **1,635 / 2,710 (60.3 %)** | **NEW.** |
+| `INVALIDATED` | **0** | **0** | closed |
+| `BOUND WARNINGS` / `ENGINE ABORTS` | 5 / 0 | — | unchanged |
+
+**The column decomposes, and the decomposition is the control:**
+
+| sub-population | ucore | sim |
+|---|---|---|
+| the **248** never poisoned (`hold = 2`) | **170 / 248** | **144 / 248** |
+| the **760** re-captured | **298 / 760** | **219 / 760** |
+| **total** | **468 / 1,008** | **363 / 1,008** |
+
+The 248 are **identical to SM1's interim sub-gate, seed for seed** — nothing in
+the re-capture moved a seed it did not touch. And on the 760 the ucore went
+**22 → 298** while the model went **565 → 219**.
+
+**THE SIGN FLIPPED, AS INV-1 PREDICTED IT WOULD.** As banked, the EVT column
+said the ucore LOST to the model by 517 seeds. On captures taken under the
+directive the bank actually records, **the ucore beats the model by 105**
+(46.4 % vs 36.0 %). SM1 predicted this from the un-poisoned 248 alone, where the
+margin was 26; the corrected full column reproduces the sign and widens it.
+§T.5's 547 "ucore-only non-exact" seeds were the rig.
+
+### §59.7.8 R6 — **CLOSED, AND VERIFIED**
+
+`sw/r6_perrep.py` (new): the per-repetition rows `reps_capture` never kept.
+Every cell in the banked sweeps recorded `stable_identical: false`, plus §26.1's
+reference cell, **10 repetitions each, full rows banked per repetition**
+(`sw/testdata/r6-perrep/`).
+
+| cell | source | distinct KEYS / 10 | distinct RAW / 10 | rows that differ | at/after the first T1 | columns |
+|---|---|---|---|---|---|---|
+| `HLT.INT_w0_d0` | `s10/s2-hltsweep` | **1** | 6 | 0-8 | **0** | mux only |
+| **`HLT.INT_w2_d0`** | `s13/p1b-ahsweep` | **1** | 10 | 0-8 | **0** | mux only |
+| `INT.90_w1_d0` | `s10/s1-tranche` | **1** | 3 | 0-8 | **0** | mux only |
+| `NMI.90_w1_d0` | `s10/s1-tranche` | **1** | 2 | 0-8 | **0** | mux only |
+| `HLT.INT_w1_d0` | `s10/s1-tranche` | **1** | 6 | 0-8 | **0** | mux only |
+
+The first T1 is row **9** in every cell. Every difference between any two
+repetitions lies on rows **0-8** — before the part has driven the bus once — and
+only on the MULTIPLEXED pads (`ad_addr`, `ad_data`, `ps`, `ube_n`). The
+DEDICATED pins (`t`, `bs_early`, `qs`, `lock_n`, `rst`) differ **nowhere, in any
+cell, in any repetition**. That is §26.1's signature exactly.
+
+**`HLT.INT_w2_d0`'s instability IS the same pad artefact as `HLT.INT_w0_d0`'s:
+VERIFIED.** And all five cells are `stable_identical: TRUE` under the CURRENT
+key — their banked `false` was computed with a PRE-§26.1 key, which §26.1's own
+caveat says is not comparable across the change. This probe compared only keys
+it computed itself, on rows it captured itself, in one session.
+
+**An independent corroboration fell out of X3** (§59.7.9): of the 200 b3 socket
+captures, **27 differ from the pass-3 socket capture of the same seed, and the
+differences are on rows 0-8 in the multiplexed pads with ZERO rows at or after
+the first T1** — the same artefact, on a different population, across two
+bitstreams and two sessions. *Nothing on the die is wasted: a multiplexed pad
+with nothing driving it holds the last thing that did, and before the first T1
+that is the previous program's residue.*
+
+### §59.7.9 X3 — THE PRIORITY TRANCHE, RE-CAPTURED ON THE SHIPPED BITSTREAM
+
+§55.2 item 6 declared 176/178 a **pass-3 bitstream** number carried forward
+under a controlled offline substitution. The substitution is now REMOVED: both
+legs re-captured on FLASH #4, into `raw_chip_f4` / `raw_core_f4` beside the
+originals (never over them), and scored against the socket capture taken on the
+SAME bitstream.
+
+| leg | **FLASH #4** | pass-3 (for reference) |
+|---|---|---|
+| `core_f4` — the ucore in fabric | **176 / 178 (98.9 %)**, residue `bs = 2`, excused 22 | 176/178, `bs = 2` |
+| `chip_f4` — the socket against itself | **178 / 178 (100.0 %)** | — |
+
+**No prediction was registered on this total and none is claimed; it is reported
+as measured, and it reproduces.** §X.3's *"one thing NEITHER leg covers"* is
+closed: the shipped bitstream's own fabric number is 176/178 with the same
+two-seed `bs` residue, so the offline inertness argument was correct.
+
+### §59.7.10 X1 — THE FABRIC **BASELINE**, ON BS-A
+
+§59.5 prediction 1, and it is the one that had to be taken first.
+
+| sweep / form | §56.1 (FLASH #3) | **FLASH #4** | offline |
+|---|---|---|---|
+| `s10-w0` `HLT.INT` | 0/48 | **0/48** | 44/48 |
+| `s10-w0` `HLT.RES` | 47/49 | **47/49** | 47/49 |
+| `s10-w1` `HLT.INT` | 0/46 | **0/46** | 42/46 |
+| `s10-w1` `HLT.RES` | 48/49 | **48/49** | 48/49 |
+| `s13-w2` `HLT.INT` | 0/21 | **0/21** | 16/21 |
+| `s13-w2` `HLT.RES` | 24/25 | **24/25** | 24/25 |
+| `s13-w3` `HLT.INT` | 0/20 | **0/20** | 14/20 |
+| `s13-w3` `HLT.RES` | 24/25 | **24/25** | 24/25 |
+| **total** | **143/283** | **143 / 283** | 259/283 |
+
+**PREDICTION 1 MET, cell for cell and form for form.** Fabric-only failures
+**116**, and **116 of 116** have an `INTA` / `T1` row as the golden's
+first-divergence row — read off the golden's own bus-status field, not off a
+name. The `evt_hold` widen is inert on this population, as registered.
+
+**The socket control, §59.5 prediction 2**: `s10-hltsweep-w0` / `HLT.RES`, same
+driver, `EMIT_USE_CORE=False`, **49 / 49 vs the golden. MET.** The
+rig-integrity leg did not move, so the section is readable.
+
+Captures: `sw/testdata/x1-retention/*.fab_f4.json.gz` and `*.soc_f4.json.gz`,
+beside SM1's Verilated `base`/`ret` legs. `sw/testdata/u4-f42/` is untouched and
+still holds §56's FLASH #3 capture.
+
+### §59.7.11 A RIG-INTEGRITY FINDING — **`s10_board` / `s13_board` COULD NOT
+TAKE A CAPTURE AT HEAD**
+
+Found by running one. `sw/s10_board.py:102`'s `capture()` calls
+
+```python
+recs, fired, words = run_image(..., want_fired=True, want_raw=True)
+```
+
+and **`sw/v30run.py`'s `run_image` has no `want_raw` parameter** — it never has:
+`git log --all -S want_raw -- sw/v30run.py` is EMPTY on every branch. The call
+raises `TypeError` immediately. `s10_board.capture()` is the entry point for
+`reps_capture`, which is what `s13_board ahsweep`, `s10_board` and every
+sweep-emission path go through, so **no s10/s13 probe could run at HEAD on this
+branch.** It has been that way since ADDENDUM #6 landed the call
+(`400ccbb014`, 2026-08-02); the working tree that took those captures carried a
+`v30run.py` that was never committed.
+
+This is the vacuous-gate failure mode the project already has a rule about, in a
+place no gate looks: *nothing in `standing_gates.md` runs an s10/s13 probe*, so
+the breakage was invisible until something needed the board.
+
+**REPAIRED**, minimally and in the one honest place: `ServeRunner.run` and
+`run_image` gain `want_raw`, returning the undecoded 64-bit capture words that
+were **already being unpacked and thrown away** two lines above the return. No
+behaviour changes for any existing caller. The blackbox retention rule (*full
+per-clock rows + sha256, never digests alone*) is what wants those words, and
+`r6_perrep.py`'s per-repetition `raw_sha` is computed from them.
+
+*Falsifier for the claim that this is now fixed*: `sw/r6_perrep.py capture`,
+which is a live s10/s13-path probe and ran 50 captures through it this session.
+
+### §59.7.12 THE BOARD, LEFT
+
+`board_idle()` run **twice**; `div_guard` **PINNED** at the close; **two
+consecutive idle captures, 4,063 rows each, byte-identical**
+(sha256 `9a7543ca0358973c…` both times). Final `v30ctl.py status`:
+`use_core: False`, `cfg 0x00ff0008` (large mode, `div = 8`),
+`ctrl 0x5` = `HOST_RESET | SKIP_PWRUP` — the normal parked state every capture
+ends in, with the socketed part held in reset. **The board carries BS-A
+(FLASH #4, `67ddd59413d5…`) and is not wedged.** FLASH #5 was not taken and
+FLASH #6 was not needed: nothing was ever captured on a bitstream other than
+BS-A.

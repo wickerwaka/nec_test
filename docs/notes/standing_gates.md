@@ -49,25 +49,27 @@ entry. Figures are `ucore_provenance.md` §54.4's, re-run 2026-08-04.
 | wvec silicon freeze | `python3 sw/timed_wvec_gate.py --core ucore` | 88 / 88, **+0.0 %** |
 | ENTER replay | `python3 sw/timed_enter_replay.py --core ucore` | 154 / 154 ×5 |
 | INS replay | `python3 sw/timed_ins_replay.py --core ucore --raw` | 1,312 / 1,312 and 2,624 / 2,624 |
-| the registered fuzz bank | `python3 sw/timed_fuzz.py --core ucore --evt-replay` | REGISTERED **1,483 / 1,702**; EVT **170 / 248**; COMBINED **1,653 / 1,950**; `INVALIDATED` **760**; `BOUND WARNINGS` 5, `ENGINE ABORTS` 0; denominators 1,950 scored / 532 `OPEN_BUS`.  **The EVT and COMBINED figures were RE-REGISTERED 2026-08-04 by INV-1** (`docs/notes/invalidation_ledger.md`): 760 EVT seeds were banked asking for a pin hold of 300 that the rig's 8-bit register truncated to 44, so they are excluded from every gate.  They were `EVT 192/1,008` and `COMBINED 1,675/2,710`.  REGISTERED did not move. |
+| the registered fuzz bank | `python3 sw/timed_fuzz.py --core ucore --evt-replay` | REGISTERED **1,483 / 1,702**; EVT **468 / 1,008**; COMBINED **1,951 / 2,710**; `INVALIDATED` **0**; `BOUND WARNINGS` 5, `ENGINE ABORTS` 0; denominators 2,710 scored / 532 `OPEN_BUS`.  **INV-1 IS CLOSED (SM2, 2026-08-04): the 760 poisoned EVT seeds were RE-CAPTURED on FLASH #4 at their banked hold of 300, and the full 1,008-seed column is a gate again** (`docs/notes/invalidation_ledger.md` §CLOSURE, `ucore_provenance.md` §59.7.7).  This figure has now been registered three times and every move is itemised: `192/1,008` as banked (STRUCK — rig-poisoned), `170/248` on the un-poisoned sub-population (SM1's interim gate, still true of those 248), and **468/1,008 on the rebuilt population**.  REGISTERED has not moved through any of it. |
 | the b2 victory tranche | `python3 sw/timed_fuzz.py --core ucore --seeddir sw/testdata/t4/b2-tranche/seeds` | **171 / 188** — V5 is a standing REGISTERED FAILURE, not to be re-opened |
 | save-state map | `python3 sw/ss_lint.py` | rc=0; 218 addresses, 201 flops, 0 UNMAPPED, `SS_VERSION` 0x82 |
 | save-state sweeps | `check_core.py --ss-sweep …` modes 1 / 2 / 5 | 80/80 · 24/24 · width PASS |
 | CE hold | `check_core.py --ce-div 4 --ce-hold-check` | `CE_HOLD_VIOL 0` |
 | the core inside the real integration | `python3 sw/check_ab_sim.py` | 187 rows MATCH |
 | the MODEL, unmoved | `python3 sw/timed_gate.py --suite tests/v30/v0.1 --forms all` | 169,000 / 169,000, row-diffs 0 |
-| the MODEL's fuzz bank | `python3 sw/timed_fuzz.py --core sim --evt-replay` | REGISTERED **1,272 / 1,702**; EVT **144 / 248**; COMBINED **1,416 / 1,950**; `INVALIDATED` 760.  Same INV-1 re-registration; it was `EVT 709/1,008`, `COMBINED 1,981/2,710` |
+| the MODEL's fuzz bank | `python3 sw/timed_fuzz.py --core sim --evt-replay` | REGISTERED **1,272 / 1,702**; EVT **363 / 1,008**; COMBINED **1,635 / 2,710**; `INVALIDATED` **0**.  Same INV-1 closure; it was `EVT 709/1,008` as banked (STRUCK), then `144/248` interim.  **On the rebuilt column the ucore leads the model by 105 seeds (468 vs 363); as banked it appeared to trail by 517.**  The 248 never-poisoned seeds are unchanged at 170 / 144, which is the control that says the re-capture moved nothing it did not touch |
 
-### SUSPENDED (2026-08-04, session SM1)
+### SUSPENDED — **EMPTY** (the section is kept; the entry closed 2026-08-04)
 
 A suspended gate is not a failing gate and it is not a passing one: its
 population was withdrawn and no number over it means anything until the
 population is rebuilt.  Suspending is loud on purpose — an unlisted gate that
 quietly stopped being run is the failure mode this section exists to prevent.
 
-| gate | why | what closes it |
+**Nothing is suspended today.**
+
+| gate | why | **what closed it** |
 |---|---|---|
-| **the FULL 1,008-seed EVT column** (`timed_fuzz --evt-replay`, both engines) | **INV-1 / F46** — 760 of its 1,008 seeds were captured under a pin hold the rig could not apply.  `docs/notes/invalidation_ledger.md` | an SM2 re-capture of the 760 on a bitstream carrying the **12-bit** `evt_hold` (landed in RTL 2026-08-04, **not yet in any bitstream** — `flash_log.jsonl` ends at FLASH #3).  The 248-seed sub-gate above stands in the meantime. |
+| ~~the FULL 1,008-seed EVT column~~ (`timed_fuzz --evt-replay`, both engines) | **INV-1 / F46** — 760 of its 1,008 seeds were captured under a pin hold the rig could not apply | **CLOSED 2026-08-04, session SM2.**  FLASH #4 (`67ddd59413d5…`) carries the 12-bit `evt_hold`; the board's host tool was replaced with the 12-bit copy; the register AND the pin were proved (`EVT_CFG` 8/8 round-trip; on the pin, 2 INTA T1 rows at `hold=44` vs 6 at 300 vs 12 at 600); all 760 re-captured from the socket with 0 errors and 0 GEN-DRIFT; `f46_invalidated` now False on all 760 by arithmetic.  The gate is live again at **ucore 468/1,008, sim 363/1,008.** |
 
 **Known-RED, standing and registered** (reproduce as exactly this; they are not
 passes and must not be quoted as any):
@@ -75,11 +77,29 @@ passes and must not be quoted as any):
 | | number | where it is written down |
 |---|---|---|
 | the four HLT delay sweeps | **91/97, 90/95, 40/46, 38/45 = 259/283** (the model is 272/283) | `ucore_gaps_2026-08-04.md` §T1 |
-| the fabric HLT sweeps | **143/283** — the 116-cell INTA class, attribution **NOT ESTABLISHED** | `ucore_provenance.md` §56.3a |
+| the fabric HLT sweeps | **143/283** — the 116-cell INTA class, attribution **NOT ESTABLISHED**.  **RE-MEASURED on FLASH #4 (SM2): 143/283, cell for cell and form for form, 116 fabric-only failures, 116/116 on an INTA T1 row.**  The §56.3a INTERVENTION could not be run in fabric: `core_ad === 1'bz` is folded to a constant by Quartus 17.1, so the retention register is deleted and the "after" bitstream is the "before" one.  **Reported as BLOCKED, NOT as a refutation** (`ucore_provenance.md` §59.7.1) | `ucore_provenance.md` §56.3a, §59.7.1, §59.7.10 |
 | the b2 tranche | 171/188 — V5, REGISTERED FAILURE | `ucore_provenance.md` §44.2 |
 
 The complete, itemised list of what is **not** yet functional or timing-accurate
 is `docs/notes/ucore_gaps_2026-08-04.md`.
+
+### BOARD PROBES — NOT GATES, BUT THEY MUST STILL RUN
+
+A rig-integrity finding from SM2, recorded here because it is the *reason* this
+subsection exists: **`sw/s10_board.py` and `sw/s13_board.py` could not take a
+capture at HEAD** and had not been able to since 2026-08-02.  `s10_board.capture()`
+passes `want_raw=True` to `v30run.run_image`, which had no such parameter on any
+branch (`git log --all -S want_raw -- sw/v30run.py` is empty), so every s10/s13
+probe raised `TypeError` on its first capture.  **No standing gate runs an s10 or
+s13 probe**, so nothing saw it until something needed the board.  REPAIRED in SM2
+(`ucore_provenance.md` §59.7.11) by adding the parameter and returning the
+undecoded 64-bit words that were already being unpacked and discarded.
+
+| probe | command | what it is for |
+|---|---|---|
+| R6 per-repetition rows | `python3 sw/r6_perrep.py capture --reps 10` then `analyse` | banks EVERY repetition's full rows for the sweep cells whose `stable_identical` is false, and classifies the differences by pad class.  **It is also the live falsifier for the repair above** — it is an s10/s13-path probe and it takes 50 captures. |
+| the X1 fabric legs | `python3 sw/x1_fabric.py baseline --leg <tag>` / `socket --leg <tag>` / `score` | the 283 HLT-sweep cells through the FPGA core, and §52.9's 49-cell socket control, written beside `sw/testdata/u4-f42/` rather than over it |
+| the INV-1 re-capture | `python3 sw/inv1_recapture.py archive|probe|holdproof|capture|rebank|verify` | INV-1's closure apparatus.  `verify` is arithmetic over the artifact and is board-free |
 
 ---
 

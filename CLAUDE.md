@@ -112,8 +112,10 @@ Values are monotone: never re-scored downward without a loud, itemized entry.)
   `sw/timed_wvec_gate.py` (88/88, +0.0 %), `sw/timed_lawcards.py`
   (**8 GREEN / 0 RED / 3 UNRESOLVED** — C6, C7, C11),
   `sw/timed_fuzz.py --evt-replay` (REGISTERED **1,272/1,702**, EVT
-  **144/248**, COMBINED **1,416/1,950**, `INVALIDATED` 760 — the EVT and
-  COMBINED figures were RE-REGISTERED by **INV-1**, below),
+  **363/1,008**, COMBINED **1,635/2,710**, `INVALIDATED` **0** — the EVT and
+  COMBINED figures moved TWICE on 2026-08-04: re-registered by **INV-1** onto
+  the 248-seed un-poisoned sub-population, then re-registered again when SM2
+  RE-CAPTURED the 760 and the full column re-opened; see below),
   `sw/timed_fuzz.py --seeddir sw/testdata/t4/b2-tranche/seeds`
   (**154/188** — V5 is a standing REGISTERED FAILURE, not to be re-opened).
 - **The `ucore`** (now the DEFAULT `--core`; these are the ucore's OWN ratchets,
@@ -133,9 +135,9 @@ Values are monotone: never re-scored downward without a loud, itemized entry.)
   `timed_enter_replay.py --core ucore` **154/154 x5**;
   `timed_ins_replay.py --core ucore --raw` **1,312/1,312** and **2,624/2,624**;
   `timed_fuzz.py --core ucore --evt-replay` REGISTERED **1,483/1,702** (the sim
-  is 1,272), EVT **170/248** (the sim is 144 — on the EVT seeds whose directive
-  the rig actually applied the ucore BEATS the model; as banked it appeared to
-  lose by 517, which was INV-1), COMBINED **1,653/1,950**,
+  is 1,272), EVT **468/1,008** (the sim is 363 — **on the REBUILT column the
+  ucore beats the model by 105 seeds**; as banked it appeared to lose by 517,
+  which was INV-1, now CLOSED by the SM2 re-capture), COMBINED **1,951/2,710**,
   and `--seeddir …/b2-tranche/seeds` **171/188** (the sim is 154)
   — both RAISED by U4/F47 from 1,394 and 168, which were the U3 close's figures;
   the four HLT sweeps **91/97, 90/95, 40/46, 38/45** = 259/283 (below the model
@@ -145,8 +147,10 @@ Values are monotone: never re-scored downward without a loud, itemized entry.)
   and the TB's composed-AD mask stopped hiding it.  §43.2's "17 cells no
   comparator on this TB can score" is RETIRED — F42 was refuted in fabric
   (§52.9), the cells are scoreable, and 10 of them now pass.
-  **The rig's `evt_hold` register is 12 bits since 2026-08-04** (F46 / gap R1,
-  landed in RTL, **not yet in any bitstream**). `--rig-hold` keeps `reg8` to
+  **The rig's `evt_hold` register is 12 bits since 2026-08-04** (F46 / gap R1)
+  — in RTL, in the host tool, **in FLASH #4 and on the board** since SM2, proved
+  on the wire (`EVT_CFG` round-trips 256 / 300 / 4,095) and ON THE PIN (2 INTA
+  T1 rows at `hold=44`, 6 at 300, 12 at 600). `--rig-hold` keeps `reg8` to
   reproduce the 8-bit era and gains `applied`, which reads the seed's own
   `evt.hold_bits`.
 - **INV-1 — THE FIRST INVALIDATION** (`docs/notes/invalidation_ledger.md`,
@@ -157,8 +161,14 @@ Values are monotone: never re-scored downward without a loud, itemized entry.)
   silicon and are RETAINED; **nothing gates on them**. The exclusion is DERIVED
   from the record (`timed_fuzz.f46_invalidated`), not from a list or a rename —
   nothing was moved and nothing was deleted, because the same files are the
-  `check_fuzz_bank` 3,242-seed corpus. **The full 1,008-seed EVT column is a
-  SUSPENDED gate** (`standing_gates.md` § SUSPENDED) pending an SM2 re-capture.
+  `check_fuzz_bank` 3,242-seed corpus. **CLOSED 2026-08-04 by session SM2**
+  (`invalidation_ledger.md` § CLOSURE, `ucore_provenance.md` §59.7): all 760
+  re-captured on FLASH #4 at their banked hold of 300 — 0 errors, 0 GEN-DRIFT,
+  `evt_fired` 760/760 — the originals archived byte-identical at
+  `sw/testdata/inv1-archive/`, and the entries rewritten IN PLACE so
+  `f46_invalidated` goes False by arithmetic with no list edited. The column is
+  **UN-SUSPENDED**. Under the applied 44 the part entered its handler ONCE in
+  732 of 760 seeds; under the banked 300 it enters two to five times.
   Note also: the **w1evt-biased precedent is an archive-by-rename, NOT an
   invalidation** — §24.7 says the old suite is *not retracted* and it is still a
   live gate. It supplies the habit, not the disposition.
@@ -254,8 +264,22 @@ Values are monotone: never re-scored downward without a loud, itemized entry.)
   and no board was touched. **The fabric leg is SM2's.** The retention is
   applied on the OBSERVATION path (`hb_ad_sample`), not as a keeper on
   `core_ad`; the deviation and why is written into `system_large.sv` beside it.
-- **The board carries the ucore bitstream** (`nec_test_ucore.sof 924c4a61e0…`,
-  FLASH #3) since U5, with `use_core=0` proved MATCH 800 on it. The FSM A/B
+  **THE FABRIC LEG WAS ATTEMPTED IN SM2 AND IS `BLOCKED`, NOT REFUTED**
+  (`ucore_provenance.md` §59.7.1). The BASELINE reproduces on FLASH #4 —
+  **143/283, cell for cell and form for form, 116 fabric-only, 116/116 on an
+  INTA T1 row**, socket control **49/49**, boot MATCH 800 ×3 — but the
+  INTERVENTION cannot be SYNTHESISED: `core_ad === 1'bz` is a four-state test on
+  an internal tri-state and Quartus 17.1 folds it to a constant, deletes the
+  hold register for want of fanout, and returns a bitstream identical in
+  function to the baseline. Demonstrated in isolation (the construct alone gives
+  *"No output dependent on input pin clk"*). A §59.3 liveness test was
+  PRE-REGISTERED for exactly this, so the after-leg was NOT RUN and FLASH #5 was
+  NOT taken — an inert instrument would have reported "116 survive", which reads
+  like a refutation. **C11 stays NOT ESTABLISHED.**
+- **The board carries the ucore bitstream** (`nec_test_ucore.sof
+  67ddd59413d5…`, **FLASH #4**, SM2 — HEAD with the 12-bit `evt_hold`; 27 %
+  ALMs, Fmax 45.19 MHz, worst setup +9.123 ns, TNS 0.000 on every domain),
+  with `use_core=0` proved MATCH 800 ×3 on it. FLASH #3 was `924c4a61e0…`. The FSM A/B
   bitstream built from HEAD is `nec_test.sof a4533dfef0…` if it is needed again.
 - **`timed_fuzz` now prints `BOUND WARNINGS`** — seeds whose EU completed-read
   store SATURATED, i.e. ran outside the regime `sw/qdepth_probe.py` proves
@@ -277,6 +301,17 @@ Values are monotone: never re-scored downward without a loud, itemized entry.)
   `PF_ADDR` 9 · `SCHEDULE` 5 · `PIN` 4 = 219, catch-all empty. `DATA_SEQ` is 13
   seeds LARGER than the model-replayed table showed, which retires §T.3's
   reading that the ucore "closed nothing" in that family.
+- **A RIG-INTEGRITY FINDING, SM2**: `sw/s10_board.py` / `sw/s13_board.py` COULD
+  NOT TAKE A CAPTURE at HEAD, and had not been able to since 2026-08-02. Their
+  `capture()` passes `want_raw=True` to `v30run.run_image`, which had no such
+  parameter on ANY branch (`git log --all -S want_raw -- sw/v30run.py` is
+  empty), so the first capture raised `TypeError`. **No standing gate runs an
+  s10/s13 probe**, so nothing saw it until something needed the board. REPAIRED
+  (`ucore_provenance.md` §59.7.11): the parameter returns the undecoded 64-bit
+  words that were already being unpacked and discarded. The live falsifier is
+  `sw/r6_perrep.py capture`, an s10/s13-path probe. **Verify a flag exists AND
+  that the callee accepts it — this is the accepted-and-ignored trap's mirror
+  image, and it hid in a place with no gate.**
 - **Board discipline**: `s13_board.div_guard()` PINS the divider and asks the
   transport for the readback — an UNPINNED readback is a rig-integrity
   FINDING. Every board probe calls it. Socket only (`use_core=False`,
