@@ -4277,3 +4277,168 @@ Everything below was run on ONE binary built from commit `5dce53a1a7`.
 28) with them.**  That is the intended result: folding a provably unreachable
 arm out of an unrolled loop is a synthesis-shape change and nothing else, and
 the ladder is the instrument that says so rather than the argument.
+
+### §51.6 GATE G6 — **THE FIT PASSES AND THE TIMING DOES NOT.**  NOTHING WAS FLASHED
+
+`quartus_sh --flow compile nec_test -c nec_test_ucore`, 17.1.0 Lite,
+`5CSEBA6U23I7`, wall 25:00 (A&S 3:24, Fitter 20:03, Assembler 0:13).
+
+| gate | registered expectation | pass 1 | **pass 2** | |
+|---|---|---|---|---|
+| A&S errors | 0 | 0 | **0** | ✅ |
+| Fitter | a `.sof` | **`Error (11802) Can't fit`** | **Successful, 0 errors** | ✅ |
+| ALMs | FSM = 25 % | 67 % (unfitted) | **12,272 / 41,910 = 29 %** | ✅ |
+| routing congestion | — | the failure | **none; routing 6:02** | ✅ |
+| `lpm_divide` / latches | 0 / 0 | 0 / 0 | **0 / 0** | ✅ |
+| bitstream | a `.sof` | none | **`nec_test_ucore.sof` sha256 `eaf8cd89f6545ee6c279481d7a81fc3c059bc05bc626ef3f90e8bdfd85ec93ce`**, `.rbf` `b184e940ee…` | ✅ |
+| **Fmax >= 32 MHz with margin** | >= 32 MHz | NOT MEASURED | **13.99 MHz.  Setup slack −40.233 ns, TNS −46,794** | ❌ |
+
+**THE REGISTERED TIMING BAR IS NOT MET AND THE FABRIC HALF STOPS HERE.  No
+bitstream was loaded; the FSM baseline on the board is untouched
+(`nec_test.sof 1cc4bf55…`, `nec_test.rbf 2643d8ce…`, re-verified after the
+compile).**
+
+### §51.7 WHY IT IS A REAL VIOLATION AND NOT A MISSING EXCEPTION — THE THING THAT WAS TRIED, AND WHY IT WAS TAKEN BACK OUT
+
+The obvious reading is that this is a CONSTRAINT gap.  `nec_bus` divides the
+32 MHz sys clock down to the CPU clock — `cfg_clk_div` sys clocks per CPU
+cycle, *"even, >= 4"*, and 8 at the divider of record — so the core advances on
+one sys clock in eight, and a core register-to-register path ought to have
+250 ns rather than 31.25 ns.  `nec_test.sdc` carries no `set_multicycle_path`,
+so TimeQuest analyses every one of them as single-cycle.
+
+**A multicycle exception was written, applied, and MEASURED — and it does not
+close the design.**
+
+| SDC | worst setup slack | worst path |
+|---|---|---|
+| as committed (no exception) | **−40.233** | `v30u_eu\|upc_opc[1]` -> `v30u_eu\|m_kind[0]` |
+| `-from`/`-to` the EU's registers, `-setup 4` | −30.923 | `v30u_biu\|r_q_cnt[3]` -> `v30u_eu\|m_kind[0]` |
+| `-from`/`-to` the whole core, `-setup 4` | **−28.510** | **`nec_bus\|div_cnt[1]`** -> `v30u_eu\|m_kind[0]` |
+
+The residue names the mechanism, and `report_timing -detail full_path` on it is
+the measurement that ends the argument:
+
+```
+From Node   nec_bus:bus|div_cnt[1]
+To Node     …|v30u_eu:u_eu|m_kind[0]~DUPLICATE      (the FF's DATA input)
+Data Delay  59.111 ns      Number of Logic Levels  61
+```
+
+**`ce` is threaded through the EU's 61-level combinational cone, not presented
+at the registers' ENABLE port.**  The path terminates on `datac`/`dataf` LUT
+inputs — there is no `ena` node anywhere in it.  So the EU's state registers
+are clocked EVERY sys clock and hold by re-selecting themselves in the
+datapath; the "core only advances on CE" structure is true of the RTL and false
+of the netlist Quartus built from it.
+
+That is decisive twice over:
+
+1. **The violation is real.**  `div_cnt` changes every sys clock, so `ce`
+   settles only 31.25 ns before the capturing edge and 59.1 ns of logic hangs
+   off it.  The register never sees a settled `D`.
+2. **The exception is invalid.**  Its own registered falsifier — *"any core
+   register written from another core register OUTSIDE the `ce` branch"* — is
+   met by EVERY core register, because the tool did not extract the enable.
+   The SDC change was therefore **reverted**, `nec_test.sdc` is byte-identical
+   to HEAD, and the −40.233 ns above is the number that stands.
+
+**The fix is structural and it is the same one shape §50 reached for by a
+different road.**  Put the chain in an `always_comb` producing `_n` values and
+commit them with `always_ff @(posedge clk) if (ce) <state> <= <state>_n;`.
+That places `ce` on the enable port, at which point the 61-level cone becomes a
+genuine multicycle-4 path, the exception in this section becomes TRUE, and —
+as a free consequence — `upc_n` exists as a wire, which is the only thing a
+registered microcode ROM ever needed.  It is a large, reviewable change to the
+campaign's most delicate file and it is **NOT started here**: this pass's
+instruction is to report and stop rather than operate unreviewed.
+
+*Falsifier for §51.7*: an `ena` pin on a `v30u_eu` state register in the
+post-fit netlist — that would mean the enable WAS extracted, and the div_cnt
+path is then something else.
+
+### §51.8 THE PRIORITY TRANCHE — FROZEN, AND THREE OF ITS FOUR LEGS TAKEN
+
+§48.4's gate needs four legs.  Three of them need no bitstream, and they were
+taken; the fourth is the ucore in fabric and it does not exist.
+
+**Frozen first.**  `sw/u4_tranche.py freeze` -> 200 seeds, 40 each at
+`wmax` 1/2/3/7/15, `cid mc1` from `k=300000`, no `evt` directive, every image's
+sha256 recorded; manifest sha256
+`92e3de085bdfdf3063299c6985decbb7152d1be66d99a546871326b065e29167`, committed
+in `758d9c1b42` **before** the first capture and before any flash.
+
+| leg | what it is | cycle-exact vs the chip |
+|---|---|---|
+| `chip` | the socketed V30, `use_core=0` | (the reference) |
+| **`vsim_ucore`** | the ucore under Verilator | **176/178 — 98.9 %** |
+| `fsmcore` | the FSM core in fabric, `use_core=1`, on the **already-flashed** bitstream | 163/178 — 91.6 % |
+| `vsim_fsm` | the FSM core under Verilator | 59/178 — 33.1 % |
+| `core` | **the ucore in fabric** | **NOT TAKEN — §51.6** |
+
+Denominators identical on every leg by construction (the `OPEN_BUS` excuse is
+computed from the CHIP capture, once, and applied to all of them): 178 scored,
+22 excused.  Comparison windows are real — median 1,274 rows, p10 934, max
+4,000.  V0 holds: 0 hard failures, 0 transport errors in 800 captures, the
+divider PINNED on every one, full per-clock rows plus a `SHA256SUMS` over all
+800 files retained.
+
+**Two findings fall out of the legs that do not need a bitstream.**
+
+**(a) A FRESH random-wait population is EASIER than the banked one, so V1's
+85 % bar is soft and V4 is the gate that discriminates.**  The banks were built
+from seeds where the model already diverged — they are adversarially selected —
+and V1 was set at 85 % *"below the banked tranche's 89.4 % because fresh seeds
+are not cherry-picked."*  Measured, the direction is the opposite: the FROZEN
+core scores **91.6 %** on this fresh population and **18/1,702** on the banked
+one.  V1 as registered would be cleared by a core that is barely better than
+the one this campaign is replacing.  Recorded as a defect in the
+pre-registration, not corrected after the fact.
+
+**(b) THE FLASHED FSM BITSTREAM AND THE FSM RTL AT HEAD ARE NOT THE SAME
+MACHINE — 62/178.**  Scored directly against each other on the same seeds,
+`fsmcore` (fabric) and `vsim_fsm` (Verilator) agree on only **62 of 178**
+(`bs` 81, `qs` 35), and the fabric leg is the one that is CLOSER to silicon
+(91.6 % vs 33.1 %).  This is V3's shape — *"a FABRIC-vs-SIM finding, and the
+MORE important result if it happens"* — but on the FSM core, not the ucore.
+Its consequence for the campaign is procedural: **the FSM leg of the
+two-bitstream A/B must be a bitstream built from the SAME HEAD as the ucore's**,
+or the A/B compares the ucore against an unidentified artifact.  Task #31's
+standing flash debt is the likely cause and is NOT superseded — nothing was
+flashed.
+
+**What the taken legs already say about the ucore**, with the fabric leg
+missing and therefore claiming nothing about fabric: on 178 fresh random-wait
+programs the ucore under Verilator reproduces the socketed chip cycle for cycle
+on **176**, residue **2 seeds, both `bs`, 0 unclassified** (V5's taxonomy, met),
+against the frozen FSM core's 59.  That is the sim-side half of the victory
+condition; the fabric half is unrun for a second stage.
+
+### §51.9 GATE LEDGER AND U5 HANDOFF
+
+| gate | verdict |
+|---|---|
+| the full sim ladder (§51.5) | **GREEN, zero deltas** |
+| G6 A&S / fit / area / bitstream | **GREEN** — 29 % ALMs, `.sof` produced |
+| **G6 Fmax** | **RED — 13.99 MHz against a registered >= 32 MHz** |
+| §48.1 `check_ab_sim --core ucore` | GREEN, 187 rows |
+| §48.2 flash #1 | **NOT RUN** — no timing-clean bitstream |
+| §48.3 F42's 17 cells | **UNSCORED** — still a live registered prediction |
+| §48.4 priority tranche | **FROZEN + 3 of 4 legs**; the fabric leg unrun |
+| FSM-vs-ucore two-bitstream A/B | **NOT RUN**; task #31's flash debt NOT superseded |
+
+**U5 picks up, in this order:**
+
+1. **The enable-form refactor of `v30u_eu` (§51.7).**  `always_comb` -> `_n`,
+   `always_ff if (ce)` commit.  It is the one change that makes the 61-level
+   cone legal, and it makes `upc_n` a wire for free.  The sim ladder must be
+   re-scored on it — but note it is a *structural* change, not a cadence one,
+   so the expectation is again zero deltas, and the ladder is the instrument
+   that says so.
+2. Then re-run G6 **with** §51.7's multicycle exception, which becomes true at
+   that point, and require **Fmax >= 32 MHz with margin** before any flash.
+3. Then §48.2 / §48.3 / §48.4's fabric leg, unchanged — the tranche is already
+   frozen and its chip leg already captured, so the fabric leg is one command.
+4. **Build the FSM A/B bitstream from the same HEAD** (§51.8b) before scoring
+   V4, and re-register V1 against a fresh-population baseline (§51.8a).
+5. `sw/u4_f42_fabric.py` is written and committed and needs only a bitstream.
