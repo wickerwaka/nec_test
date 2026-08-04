@@ -5162,7 +5162,7 @@ Two statements, both exact and both worth reading twice:
    no others; and **no cell fails offline and passes in fabric** — the fabric is
    strictly stricter, never differently strict.
 
-### §56.3 WHAT THE INTA CLASS IS — AND IT IS NOT THE CORE
+### §56.3 WHAT THE INTA CLASS LOOKS LIKE — AND WHY THAT IS A READING
 
 MEASURED, `HLT.INT` w0 `idx 10`, the first divergent row (16), an INTA **T1**:
 
@@ -5223,20 +5223,30 @@ an INTERVENTION, which is what §56.3's correlation is missing:
 * **The intervention**: give `system_large.sv`'s `core_ad` an explicit
   retention model — a register that captures the last DRIVEN value of AD and
   supplies it when no driver is active — so the FPGA's internal net reproduces
-  the pad behaviour the chip has.  Nothing in either core changes.
+  the pad behaviour the chip has.  **Nothing in either core changes, and
+  `v30u_biu.sv` in particular must NOT be touched**: its INTA path deliberately
+  drives no address (`disp_inta || cur_inta` selecting `20'h0` with `ad_oe_ps`),
+  which is `sim/biu_timed.cpp`'s `Access::no_addr` rendered faithfully.  An
+  intervention that also changed the core would confound exactly the question
+  being asked.
 * **The population**: the same four HLT delay sweeps, all 283 cells, same
   driver, same goldens, plus the 49-cell socket control.
 * **THE BAR, BOTH HALVES, AND BOTH ARE REQUIRED**:
   1. **ALL 116 fabric-only cells CLOSE** — the fabric total goes to **259/283**,
      equal to the TB's, not merely toward it.  A partial close means the class
      was not one mechanism and the residue is the core's.
-  2. **NOTHING ELSE MOVES**: `HLT.RES` stays 47/49, 48/49, 24/25, 24/25; the
-     19 cells that fail on BOTH legs still fail on both; the socket control
-     stays 49/49; and first light stays 800/800 ×3.
+  2. **NOTHING ELSE MOVES**: `HLT.RES` stays cell-identical at 47/49, 48/49,
+     24/25, 24/25; **every `HLT.INT` cell matches its OFFLINE result cell for
+     cell**, not merely in total; no non-INTA row acquires a new first
+     divergence; **the F42-signature count stays ZERO**; the socket control
+     stays 49/49; and the `use_core=0` chip-path proof stays MATCH over 800 rows
+     with first light 800/800 ×3.
 * **WHAT REFUTES THE ATTRIBUTION**: any of the 116 still failing with the
-  retention model in place — then those cells are the CORE's, exactly as F42's
-  17 turned out to be, and they are reported as a refutation and not
-  re-explained.
+  retention model demonstrably supplying the prior driven data phase at the
+  INTA's T1, or any fabric-only NON-INTA divergence appearing.  A surviving
+  divergence is **reclassified as CORE-OWNED** unless a separately
+  pre-registered mechanism is established for it — exactly as F42's 17 turned
+  out to be the core's, and it is reported as a refutation and not re-explained.
 * **Cost and why it is not run here**: it is a change to the A/B harness that
   both cores' fabric numbers depend on, so it needs its own pre-registered
   before/after on both cores, a Quartus compile and a flash — at a closure, and

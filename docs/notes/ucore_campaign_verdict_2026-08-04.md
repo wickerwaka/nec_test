@@ -20,9 +20,19 @@ replace, on the axis this project ranks first.**
 
 The answer is not an opinion about the ledger; it is six numbers, every one of
 them reproduced by a re-run immediately before this document was committed.
-*Reproduction is not passage:* where a bar was missed it is recorded as missed,
-and the largest of those (the FSM core's own numbers) is recorded as a finding
-against the reference implementation, not smoothed away.
+
+*Reproduction is not passage.*  **One registered bar was MISSED in this
+campaign's final stage and it is the largest miss on the record: §55.2 bar 2,
+the fabric HLT sweeps, registered at ≥ 249/283 with 259 ± 4 expected, measured
+at 143/283** (§56.1).  It is reported as missed in §(b), §(d) open item 0 and
+the gate ledger, and its attribution is explicitly NOT ESTABLISHED.
+
+The **FSM core's** 168,400/169,000 and 16/283 are a different kind of thing and
+are not counted among the misses: they are §53.4 **bar 3**, a
+pre-registered ROUTED FINDING — the bar said in advance that the frozen core
+would not be fixed and that its numbers would go to the campaign owner with the
+disposition decision.  Conflating the two would flatter this document in one
+direction and slander the FSM core in the other.
 
 | the question | the number |
 |---|---|
@@ -69,10 +79,11 @@ ledger is a spec you can build from without grading".
 
 ## (b) THE FINDINGS LEDGER — F1-F51, IN SUMMARY
 
-**Fifty-one numbered findings (F1-F51, plus F11's sub-items F11a/F11b), EIGHT
-Codex review findings across four reviews (C1-C3 §26, C4-C5 §36, C6-C8 §45.1),
-THREE more from the fifth review of this document (C9-C11, §(g)), and the
-retractions.**  Every one carries evidence and a falsifier in
+**Fifty-one numbered findings (F1-F51, plus F11's sub-items F11a/F11b), TWELVE
+Codex review findings across FIVE reviews — C1-C3 (§26), **D1** (§32, which is
+labelled D1 in the ledger and is easy to lose out of a C-numbered count),
+C4-C5 (§36), C6-C8 (§45.1) and C9-C11 (§(g), the review of this document) —
+and the retractions.**  Every one carries evidence and a falsifier in
 `ucore_provenance.md`.
 
 Grouped below by what KIND of thing each was, because that is the transferable
@@ -571,21 +582,35 @@ before the closing commit.**
    +8.922 ns** — the U4 pass-3 build — while the bitstream this campaign closes
    on is the U5 one at **27 % / 48.03 MHz / +9.121 ns** (§55.1).  Corrected, with
    the superseded figures kept beside them rather than deleted.
-2. **The fabric-bar miss was misidentified.**  §(a)'s "is the model of the
-   bitstream the bitstream?" row asserted *"It did not happen"* of a fabric-vs-sim
-   gap — while §56 documents a 116-cell one.  The claim was true of the priority
-   tranche (200/200) and false in general, and §55.2's bar 2 had **named that
-   consequence in advance** (*"a fabric result far below the offline one would be
-   a FABRIC-vs-SIM finding … and is the MORE important result if it happens"*).
-   The row now says which population each half is true of and points at open
-   item 0.  *This is the S4r defect that mattered*: a registration contained a
-   clause, the clause fired, and the report did not invoke it.
-3. **The F1-F51 / C1-C8 accounting was incomplete.**  §(b) grouped loosely,
-   printed counts summing to **46**, double-counted `F51` and `F41`, omitted
-   `F9` entirely, and said "five Codex review findings (C1-C8)".  §(b) is now an
-   **exhaustive, disjoint partition — 32 + 3 + 8 + 8 = 51** — verified
-   mechanically over the section text rather than by eye, and the review count
-   is stated correctly.
+2. **The missed bar was misidentified — the S4r defect that mattered.**  §(a)
+   said *"where a bar was missed it is recorded as missed, and the largest of
+   those (**the FSM core's own numbers**)"*.  Wrong on both halves.  The largest
+   — and only — **missed registered bar** is §55.2 **bar 2**, the fabric HLT
+   sweeps: registered ≥ 249/283, measured 143/283.  The FSM core's
+   168,400/169,000 and 16/283 are §53.4 **bar 3**, a *pre-registered ROUTED
+   FINDING*: the bar said in advance that the frozen core would not be fixed.
+   Calling a routed finding "the largest missed bar" flatters the document (it
+   hides the real miss) and slanders the FSM core (it books a declared
+   disposition as a failure).  §(a) now separates them explicitly.
+   **And a second instance of the same defect, found while fixing the first**:
+   §(a)'s "is the model of the bitstream the bitstream?" row asserted *"It did
+   not happen"* of a fabric-vs-sim gap while §56 documents a 116-cell one — true
+   of the priority tranche (200/200), false in general — and §55.2's bar 2 had
+   **named that consequence in advance** (*"a fabric result far below the offline
+   one would be a FABRIC-vs-SIM finding … and is the MORE important result if it
+   happens"*).  A registration contained a clause, the clause fired, and the
+   report did not invoke it.  The row now says which population each half is true
+   of and points at open item 0.
+3. **The F1-F51 / review-finding accounting was incomplete.**  §(b) grouped
+   loosely, printed counts that did not sum to 51, double-counted `F51`, split
+   `F48` across two groups, buried `F25` inside `F3`'s entry, omitted **`F9`**
+   entirely, and said "five Codex review findings (C1-C8)" — a count and a range
+   that contradict each other.  §(b) is now an **exhaustive, disjoint partition
+   — 32 + 3 + 8 + 8 = 51** — verified mechanically by regexing the section text
+   rather than by eye.  The review count is corrected to **twelve findings across
+   five reviews**, which required noticing that the second review's finding is
+   labelled **D1**, not `C`-anything, and had been dropped from every count in
+   the document.
 4. **The ledger citation omitted §55-§56.**  Corrected in the header and the
    footer.
 
