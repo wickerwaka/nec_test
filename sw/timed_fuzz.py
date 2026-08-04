@@ -150,26 +150,67 @@ def tb_wait_args(entry):
 
 
 def rig_hold(entry, mode="banked"):
-    """The pin HOLD, in the two spellings that exist.
+    """The pin HOLD, in the three spellings that exist.
 
     `banked` -- the number the seed record stores, i.e. what the HOST ASKED
     FOR.  This is what every standing scoring of this harness used, so it is
     the default and the registered ledger is reproducible with it.
 
-    `reg8` -- the number the PART WAS GIVEN.  The rig's hold is an EIGHT-BIT
-    register field (`hdl/rtl/hps_axi_slave.sv`: `evt_hold <= wdata[23:16]`,
-    carried as `input [7:0] evt_hold` into `hdl/rtl/nec_bus.sv`'s scheduler),
-    so a banked hold of 300 reached the socket as 300 & 0xFF = 44 clocks.
-    Both engine legs are told the same thing, so this is a property of the
-    DRIVER and never of the part -- the same class of correction as the
-    comparison window (ucore_provenance.md sec.42.2).
+    `reg8` -- the number the PART WAS GIVEN in the 8-BIT ERA.  The rig's hold
+    was an EIGHT-BIT register field (`hdl/rtl/hps_axi_slave.sv`:
+    `evt_hold <= wdata[23:16]`, carried as `input [7:0] evt_hold` into
+    `hdl/rtl/nec_bus.sv`'s scheduler), so a banked hold of 300 reached the
+    socket as 300 & 0xFF = 44 clocks.  Both engine legs are told the same
+    thing, so this is a property of the DRIVER and never of the part -- the
+    same class of correction as the comparison window
+    (ucore_provenance.md sec.42.2).  The register is 12 bits since 2026-08-04;
+    this mode remains because the 760 seeds captured BEFORE that are still on
+    disk and reading them any other way misstates what the socket did.
+
+    `applied` -- the seed's OWN record of what its rig could apply.  Captures
+    taken after the widen carry `evt.hold_bits` / `evt.hold_applied`
+    (`fuzz_campaign.build`); this mode uses them and falls back to `reg8` for
+    a record that predates the field, because every such record was taken on
+    the 8-bit rig.  This is the mode that stops the width from having to be
+    re-derived from whatever the RTL happens to say today.
 
     It matters to a PREDICTING engine and barely at all to a REPLAYING one:
     with INT level-asserted for 300 clocks instead of 44 an engine that
     computes its own recognition re-enters the handler two to four times
     where the socket entered once."""
-    h = int((entry.get("evt") or {}).get("hold", 0))
-    return (h & 0xFF) if mode == "reg8" else h
+    e = entry.get("evt") or {}
+    h = int(e.get("hold", 0))
+    if mode == "reg8":
+        return h & 0xFF
+    if mode == "applied":
+        if "hold_applied" in e:
+            return int(e["hold_applied"])
+        return h & 0xFF          # pre-widen capture: the 8-bit rig, by date
+    return h
+
+
+def f46_invalidated(entry):
+    """INV-1 (docs/notes/invalidation_ledger.md): was this capture taken under
+    a directive the RIG COULD NOT APPLY?
+
+    DERIVED, never listed.  A banked seed records `evt.hold` -- what the HOST
+    ASKED FOR -- and, since 2026-08-04, `evt.hold_bits` -- what the RIG THAT
+    TOOK THE CAPTURE could hold.  A record with no `hold_bits` was taken on the
+    8-bit rig, by date: the field was added in the same commit that widened the
+    register.  If the two disagree, the socket was given a DIFFERENT directive
+    from the one the bank records, and scoring a PREDICTING engine against that
+    capture asks it to reproduce something it was never told.
+
+    This is a predicate and not a seed list on purpose.  A list can drift away
+    from what it describes and a rename can be undone silently; a derivation
+    from the record cannot, and it self-heals -- a re-capture on the widened rig
+    banks `hold_bits = 12`, and the seed leaves this set by arithmetic."""
+    e = entry.get("evt") or {}
+    if not e:
+        return False
+    h = int(e.get("hold", 0))
+    bits = int(e.get("hold_bits", 8))
+    return h != (h & ((1 << bits) - 1))
 
 
 def evt_tuple(entry, meta, hold_mode="banked"):
@@ -332,6 +373,7 @@ def one(path, evt_replay=False, core="sim", hold_mode="banked"):
             rows, err = run_tb(image, entry, len(recs), td, core, ev)
     out["stderr"] = err.strip()[:200]
     out["pop"] = "EVT" if entry.get("evt") else "REG"
+    out["invalidated"] = f46_invalidated(entry)
     if not rows:
         # The ENGINE produced nothing (an RTL assertion `$stop`, a driver
         # abort).  The scored population is a property of the CAPTURE
@@ -472,13 +514,16 @@ def main():
                     help="replay engine: the C++ timed model (sim) or an RTL "
                          "core in the Verilator TB (ucore / fsm)")
     # U3.  The pin-hold the seed record stores is what the HOST asked for;
-    # the rig's register is 8 bits wide (see `rig_hold`).  `banked` is the
-    # default so every standing number of this harness is reproducible; `reg8`
-    # is the like-for-like directive and applies to BOTH legs identically.
-    ap.add_argument("--rig-hold", default="banked", choices=("banked", "reg8"),
+    # the rig's register was 8 bits wide (see `rig_hold`), 12 since 2026-08-04.
+    # `banked` is the default so every standing number of this harness is
+    # reproducible; `reg8` is the 8-bit-era like-for-like directive and applies
+    # to BOTH legs identically; `applied` reads the seed's own record.
+    ap.add_argument("--rig-hold", default="banked",
+                    choices=("banked", "reg8", "applied"),
                     help="pin hold fed to the engine: as banked (the host's "
-                         "request, the standing default) or truncated to the "
-                         "rig's 8-bit register (what the socket was given)")
+                         "request, the standing default), truncated to the "
+                         "8-bit-era register (what the socket was given), or "
+                         "the seed record's own evt.hold_applied")
     ap.add_argument("--pop", default="all", choices=("all", "reg", "evt"),
                     help="restrict to the registered (no-evt) or the EVT "
                          "population; selection only, scoring is unchanged")
@@ -509,7 +554,13 @@ def main():
                                   args.rig_hold) for p in paths], chunksize=4)
 
     cat = Counter(r["cat"] for r in res)
-    all_scored = [r for r in res if r["cat"] in ("EXACT", "DIVERGE")]
+    # INV-1: a capture taken under a directive the rig could not apply leaves
+    # the GATE.  It does not leave the tree, it is not deleted, and it is
+    # reported on its own line below -- but nothing gates on it.
+    inval = [r for r in res
+             if r["cat"] in ("EXACT", "DIVERGE") and r.get("invalidated")]
+    all_scored = [r for r in res
+                  if r["cat"] in ("EXACT", "DIVERGE") and not r.get("invalidated")]
     reg = [r for r in all_scored if r.get("pop") != "EVT"]
     evtp = [r for r in all_scored if r.get("pop") == "EVT"]
     eng = {"sim": "the TIMED sim"}.get(args.core, f"the {args.core} RTL core")
@@ -545,6 +596,13 @@ def main():
         for r in oor[:8]:
             print(f"    {r['cid']}/{r['k']:<6} cat={r.get('cat')} "
                   f"ndiff={r.get('ndiff')}/{r.get('n')}")
+    if inval:
+        ex = sum(1 for r in inval if r["exact"])
+        print(f"  INVALIDATED     {len(inval)}  (INV-1 / F46: banked under a "
+              f"pin hold the rig could not apply -- NOT SCORED, NOT A GATE; "
+              f"their chip_rows are retained and are true captures of the hold "
+              f"the rig DID apply.  For reference only, cycle-exact "
+              f"{ex}/{len(inval)}.  docs/notes/invalidation_ledger.md)")
     if args.evt_replay:
         for lbl, grp in (("REGISTERED", reg), ("EVT-unlocked", evtp),
                          ("COMBINED", all_scored)):

@@ -49,13 +49,25 @@ entry. Figures are `ucore_provenance.md` §54.4's, re-run 2026-08-04.
 | wvec silicon freeze | `python3 sw/timed_wvec_gate.py --core ucore` | 88 / 88, **+0.0 %** |
 | ENTER replay | `python3 sw/timed_enter_replay.py --core ucore` | 154 / 154 ×5 |
 | INS replay | `python3 sw/timed_ins_replay.py --core ucore --raw` | 1,312 / 1,312 and 2,624 / 2,624 |
-| the registered fuzz bank | `python3 sw/timed_fuzz.py --core ucore --evt-replay` | REGISTERED **1,483 / 1,702**; EVT 192/1,008; COMBINED 1,675/2,710; `BOUND WARNINGS` 5, `ENGINE ABORTS` 0; denominators 2,710 scored / 532 `OPEN_BUS` |
+| the registered fuzz bank | `python3 sw/timed_fuzz.py --core ucore --evt-replay` | REGISTERED **1,483 / 1,702**; EVT **170 / 248**; COMBINED **1,653 / 1,950**; `INVALIDATED` **760**; `BOUND WARNINGS` 5, `ENGINE ABORTS` 0; denominators 1,950 scored / 532 `OPEN_BUS`.  **The EVT and COMBINED figures were RE-REGISTERED 2026-08-04 by INV-1** (`docs/notes/invalidation_ledger.md`): 760 EVT seeds were banked asking for a pin hold of 300 that the rig's 8-bit register truncated to 44, so they are excluded from every gate.  They were `EVT 192/1,008` and `COMBINED 1,675/2,710`.  REGISTERED did not move. |
 | the b2 victory tranche | `python3 sw/timed_fuzz.py --core ucore --seeddir sw/testdata/t4/b2-tranche/seeds` | **171 / 188** — V5 is a standing REGISTERED FAILURE, not to be re-opened |
 | save-state map | `python3 sw/ss_lint.py` | rc=0; 218 addresses, 201 flops, 0 UNMAPPED, `SS_VERSION` 0x82 |
 | save-state sweeps | `check_core.py --ss-sweep …` modes 1 / 2 / 5 | 80/80 · 24/24 · width PASS |
 | CE hold | `check_core.py --ce-div 4 --ce-hold-check` | `CE_HOLD_VIOL 0` |
 | the core inside the real integration | `python3 sw/check_ab_sim.py` | 187 rows MATCH |
 | the MODEL, unmoved | `python3 sw/timed_gate.py --suite tests/v30/v0.1 --forms all` | 169,000 / 169,000, row-diffs 0 |
+| the MODEL's fuzz bank | `python3 sw/timed_fuzz.py --core sim --evt-replay` | REGISTERED **1,272 / 1,702**; EVT **144 / 248**; COMBINED **1,416 / 1,950**; `INVALIDATED` 760.  Same INV-1 re-registration; it was `EVT 709/1,008`, `COMBINED 1,981/2,710` |
+
+### SUSPENDED (2026-08-04, session SM1)
+
+A suspended gate is not a failing gate and it is not a passing one: its
+population was withdrawn and no number over it means anything until the
+population is rebuilt.  Suspending is loud on purpose — an unlisted gate that
+quietly stopped being run is the failure mode this section exists to prevent.
+
+| gate | why | what closes it |
+|---|---|---|
+| **the FULL 1,008-seed EVT column** (`timed_fuzz --evt-replay`, both engines) | **INV-1 / F46** — 760 of its 1,008 seeds were captured under a pin hold the rig could not apply.  `docs/notes/invalidation_ledger.md` | an SM2 re-capture of the 760 on a bitstream carrying the **12-bit** `evt_hold` (landed in RTL 2026-08-04, **not yet in any bitstream** — `flash_log.jsonl` ends at FLASH #3).  The 248-seed sub-gate above stands in the meantime. |
 
 **Known-RED, standing and registered** (reproduce as exactly this; they are not
 passes and must not be quoted as any):
