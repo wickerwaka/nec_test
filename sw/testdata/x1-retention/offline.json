@@ -19,56 +19,47 @@
  },
  "s10-hltsweep-w1/HLT.INT": {
   "fail": [
-   7,
    8,
    9,
    10
   ],
-  "pass": 42,
+  "pass": 43,
   "n": 46
  },
  "s10-hltsweep-w1/HLT.RES": {
-  "fail": [
-   7
-  ],
-  "pass": 48,
+  "fail": [],
+  "pass": 49,
   "n": 49
  },
  "s13-hltsweep-w2/HLT.INT": {
   "fail": [
-   9,
    10,
    11,
    12,
    13
   ],
-  "pass": 16,
+  "pass": 17,
   "n": 21
  },
  "s13-hltsweep-w2/HLT.RES": {
-  "fail": [
-   9
-  ],
-  "pass": 24,
+  "fail": [],
+  "pass": 25,
   "n": 25
  },
  "s13-hltsweep-w3/HLT.INT": {
   "fail": [
-   11,
    12,
    13,
    14,
    15,
    16
   ],
-  "pass": 14,
+  "pass": 15,
   "n": 20
  },
  "s13-hltsweep-w3/HLT.RES": {
-  "fail": [
-   11
-  ],
-  "pass": 24,
+  "fail": [],
+  "pass": 25,
   "n": 25
  }
 }

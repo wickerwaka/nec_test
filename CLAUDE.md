@@ -141,15 +141,26 @@ Values are monotone: never re-scored downward without a loud, itemized entry.)
   `timed_wvec_gate.py --core ucore` **88/88, +0.0 %** (the FSM core is 71/88);
   `timed_enter_replay.py --core ucore` **154/154 x5**;
   `timed_ins_replay.py --core ucore --raw` **1,312/1,312** and **2,624/2,624**;
-  `timed_fuzz.py --core ucore --evt-replay` REGISTERED **1,483/1,702** (the sim
-  is 1,272), EVT **468/1,008** (the sim is 363 — ~~on the REBUILT column the
+  `timed_fuzz.py --core ucore --evt-replay` REGISTERED **1,490/1,702** (the sim
+  is 1,272), EVT **910/1,008** (the sim is 780 — ~~on the REBUILT column the
   ucore beats the model by 105 seeds~~ **STRUCK as a comparison, see the rule
   below**; as banked it appeared to lose by 517, which was INV-1, now CLOSED by
-  the SM2 re-capture), COMBINED **1,951/2,710**,
-  and `--seeddir …/b2-tranche/seeds` **171/188** (the sim is 154)
-  — both RAISED by U4/F47 from 1,394 and 168, which were the U3 close's figures;
-  the four HLT sweeps **91/97, 90/95, 40/46, 38/45** = 259/283 (below the model
-  by **13** cells, all at w1/w2/w3 — at w0 the two failing sets are IDENTICAL).
+  the SM2 re-capture), COMBINED **2,400/2,710**,
+  and `--seeddir …/b2-tranche/seeds` **172/188** (the sim is 154).
+  REGISTERED / EVT / COMBINED / b2 were **1,483 / 906 / 2,389 / 171** until
+  **SM3 sitting 6** (`ucore_provenance.md` §66-§67) raised them by fixing a
+  **TESTBENCH** defect, not an engine — `tb_v30_core.sv` committed `IOW` cycles
+  into `mem[]`, so an I/O write to port P corrupted memory at address P on the
+  RTL legs only; **seven of the NINE seeds `gaps` §T.2 calls "the ucore's own
+  registered-bank residue" were the instrument, and that residue is now TWO
+  seeds** (`mc1/721`, `mc2/584`).  EVT took a further +2 from F43.
+  The four HLT sweeps are **91/97, 92/95, 42/46, 40/45 = 265/283** (below the
+  model by **7** cells, all at w1/w2/w3 and all the undiagnosed `seg`/`bus`
+  half — at w0 the two failing sets are IDENTICAL).  They were 259/283 until
+  SM3 sitting 6 landed **F43** — the HALT display's decision now tests the wake
+  one stage further down the same pin pipeline (`int_p[1]`, published as
+  `eu_unhalt_disp`) — which closed all six `busstat` cells
+  (`HLT.INT` and `HLT.RES` at `d = 2w+5`, w = 1,2,3) and nothing else.
   These were 90/97, 88/95, 37/46, 34/45 = 249/283 through **U5**, and the move is
   two changes at once: **F51** landed (the HALT pseudo-cycle has no data phase)
   and the TB's composed-AD mask stopped hiding it.  §43.2's "17 cells no
@@ -274,10 +285,19 @@ Values are monotone: never re-scored downward without a loud, itemized entry.)
   (`ucore_provenance.md` §58.6). New instrument `hdl/tb/tb_sys.sv` — the
   Verilated `system_large`, image loaded and event armed through the AXI bridge
   exactly as the ARM does it — driven by `sw/x1_retention.py` through
-  `emit_suite`'s own driver. **Its baseline is 143/283, the FABRIC number
+  `emit_suite`'s own driver. **Its baseline was 143/283, the FABRIC number
   exactly, with 116 base-only failures all on INTA rows**; with
-  `X1_AD_RETENTION` the total is **259/283**, 116 closed, **0 survivors**, and
-  **0** cells differing from their offline result. The attribution is still NOT
+  `X1_AD_RETENTION` the total was **259/283**, 116 closed, **0 survivors**, and
+  **0** cells differing from their offline result.
+  **RE-MEASURED ON REBUILT BINARIES AT SM3 SITTING 6 (§67.6-§67.7): base
+  146/283, ret 265/283, 119 base-only, 119/119 INTA, 119 closed, 0 survivors,
+  0 differing — BOTH BARS STILL MET.**  Two things to carry: (a)
+  `x1_retention.py capture` **binds to `hdl/tb/obj_dir_sys{,_ret}/tb_sys` and
+  rebuilds NOTHING** — the binaries were stale by a day and the tool reported a
+  false "6 survivors" until they were rebuilt by hand; there is still no build
+  recipe for `tb_sys` in the tree; (b) with F43 in the RTL the Verilated
+  integration is 146 where **FLASH #3's bitstream is 143**, so **no fabric
+  figure may be quoted against this tree's `tb_sys` until a re-flash**. The attribution is still NOT
   ESTABLISHED — §56.3a's bar is written on fabric numbers plus a socket control,
   and no board was touched. **The fabric leg is SM2's.** The retention is
   applied on the OBSERVATION path (`hb_ad_sample`), not as a keeper on

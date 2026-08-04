@@ -8166,3 +8166,49 @@ FLASH #3 does not carry F43.  If `base` moves to 149 the Verilated integration
 and the flashed bitstream no longer agree, **and that is correct**: the
 correspondence is re-established by a re-flash, not by keeping the RTL still.
 **No board was touched this sitting and none is asked for.**
+
+### §67.7 THE REBUILT `tb_sys` LEGS — **BOTH X1 BARS MET, 0 SURVIVORS, AND THE `base` NUMBER MISSED ITS PREDICTION BY 3**
+
+Both legs rebuilt from this tree (the stale directories archived by rename to
+`hdl/tb/obj_dir_sys{,_ret}.stale-070{4,5}` — nothing deleted) and re-captured,
+283 cells each, **0 errors**.  Reported as registered:
+
+| | §67.6 predicted | **measured** |
+|---|---|---|
+| `tb_sys` base | 149 / 283 | **146 / 283** — **MISSED by 3** |
+| `tb_sys` ret | 265 / 283 | **265 / 283** ✅ |
+| `offline` (`tb_v30_core`) | 265 / 283 | **265 / 283** |
+| base-only failures | 116 | **119** |
+| …of which the golden's first-divergence row is an **INTA** row | 116 | **119 of 119** |
+| **BAR (i)** all base-only close, total == offline exactly | MET | **119 closed, 0 SURVIVED, 265 == 265 — MET** |
+| **BAR (ii)** nothing else moves | MET | **0 cells differing from offline — MET** |
+
+**THE MISS, AND WHAT IT MEANS.**  The prediction assumed all six F43 cells
+would pass in the retention-FREE integration once F43 landed.  Three of them do;
+**the other three ALSO carry an INTA-row failure in `base`**, so they moved out
+of "fails everywhere" and into the **base-only INTA class** instead — which is
+why `base` rose by 3 rather than 6 (140 → 137 failing) and the INTA class rose
+by 3 (116 → 119).  The arithmetic closes exactly: `137 = 18 + 119`.
+**The class got PURER, not weaker: 119 of 119, still no counter-population.**
+
+**AND THE STALE RUN IS RETRACTED IN ITS ENTIRETY.**  §67.6's "6 SURVIVORS /
+BAR (i) NOT MET" was a stale binary scoring pre-F43 RTL against a post-F43
+reference column.  On the rebuilt instrument there are **ZERO** survivors.  The
+survivors were the F43 cells and nothing else, which is itself the check that
+the rebuild is the only variable.
+
+**THE FABRIC CORRESPONDENCE IS NOW BROKEN, DELIBERATELY AND ON THE RECORD.**
+§58.6's *"`tb_sys` base reproduces the fabric's 143/283 exactly"* was true of the
+RTL FLASH #3 carries.  With F43 in the tree the Verilated integration is
+**146/283** and the flashed bitstream is still 143.  **That is a re-flash item,
+not a defect**, and until a re-flash happens **no fabric figure may be quoted
+against this tree's `tb_sys`**.  C11's `NOT ESTABLISHED` on the X1 attribution
+is UNCHANGED — this leg was never able to establish it, and §56.3a's bar is
+written on fabric numbers plus a socket control.  **No board was touched.**
+
+**A SECOND RIG DEBT, ROUTED.**  `tb_sys` has no build recipe anywhere in the
+tree; the rebuild above reconstructed one from
+`hdl/tb/obj_dir_sys/Vtb_sys__ver.d`'s dependency list and `check_core.build()`'s
+flag set (plus `-Wno-MULTIDRIVEN -Wno-PINCONNECTEMPTY`, which `tb_sys.sv`'s AXI
+task-driven handshake needs).  It belongs in `x1_retention.build()` with a
+dependency check, and it is **not taken here**.
