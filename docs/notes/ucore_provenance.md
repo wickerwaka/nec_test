@@ -5645,3 +5645,211 @@ event was an **archive-by-rename, not an invalidation** — §24.7 says in terms
 today.  It supplies the habit (rename, never delete; keep the evidence with the
 artifact; its own commit; report both numbers) and not the disposition.
 **INV-1 is this project's first actual invalidation.**
+
+## §59 SESSION SM2 — THE BOARD RE-CAPTURE.  **PRE-REGISTRATION**
+
+Standing discipline: *pre-register predictions and commit before first board
+contact.*  Everything in §59.0-§59.6 was written and committed BEFORE any
+capture was taken.  §59.7 onward is the record of what happened.
+
+### §59.0 THE STATE OF THE BOARD AND OF THE TREE AT REGISTRATION
+
+`root@mister-nec`, reachable, `up 22 days 19:40`.  **Single-writer check: no
+`v30` / `serve` / `python` process on the board** (`ps ax`, empty).  JTAG:
+`jtagconfig` sees `1) DE-SoC [1-1.2.4]` with `SOCVHPS` + `5CSEBA6`.
+
+On the fabric today is **FLASH #3**, `nec_test_ucore.sof
+924c4a61e0ad235e6257695a775d86cc51735ebba0cf9cf5f9ffb651bcc5105d` — U5's
+bitstream, and **8-bit-hold silicon**: every flash in `sw/testdata/flash_log.jsonl`
+predates the F46 widen.
+
+Tree: branch `ucsim`, HEAD `e390216132`, **no modified tracked files**.
+`sw/gen_ucore_qsf.py --check` is up to date, so the two A/B bitstreams still
+differ by the CORE and by nothing else.
+
+**A rig fact recorded before it can be discovered after a failure**: the board's
+own copy of the host tool, `/media/fat/v30/v30ctl.py`, is `md5
+8eff261e3bfbaf7ef17755aaed7b1ec4` and the repo's is `385de605c220bca84a1a773f5e7517c8`.
+The board copy PREDATES the 12-bit widen.  The `serve` session that takes every
+capture runs the BOARD's copy (`v30run.ServeRunner.ensure` → `cd /media/fat/v30
+&& exec python3 v30ctl.py serve`), so **deploying the repo's `v30ctl.py` to the
+board is part of the rig fix, not an afterthought** — a 12-bit bitstream driven
+by an 8-bit host is still an 8-bit rig, and it would fail silently in exactly
+the way F46 did.
+
+### §59.1 THE POPULATION, RE-COUNTED FROM THE ARTIFACT
+
+Not from the ledger: recomputed here by `f46_invalidated`'s own arithmetic over
+every banked seed.
+
+| bank | seeds | `evt` armed | `hold=2, bits=8` | `hold=300, bits=8` | **INVALIDATED** |
+|---|---|---|---|---|---|
+| `mc1` | 1,295 | 502 | 133 | 369 | **369** |
+| `mc2` | 1,294 | 503 | 112 | 391 | **391** |
+| `t30-raw` | 568 | 160 | 160 | 0 | 0 |
+| `t30-brkem` | 85 | 0 | — | — | 0 |
+| **total** | **3,242** | **1,165** | **405** | **760** | **760** |
+
+This reproduces INV-1's 760 = 369 + 391 exactly.
+
+### §59.2 THE EVT RE-CAPTURE — INTEGRITY BARS, REGISTERED
+
+These are bars on **the rig**, and they are the only things about the re-capture
+that can be registered in advance.
+
+1. **Every new capture banks `evt.hold_bits = 12`** and **`evt.hold_applied ==
+   evt.hold == 300`**.  A capture that banks anything else is not banked.
+2. **`timed_fuzz.f46_invalidated` returns False on all 760 by arithmetic**, with
+   no list edited and no file renamed, and `timed_fuzz`'s `INVALIDATED` line
+   drops to **0**.  This is INV-1's own stated closure mechanism and it is the
+   bar, not a description of one.
+3. **The wire is proved before the population is captured** (§59.3 item 3): a
+   hold > 255 is written through `v30ctl.set_event`, `EVT_CFG` is read back, the
+   split packing `[23:16]` + `[30:27]` is confirmed to round-trip, and one
+   directed capture demonstrates a hold of 300 clocks actually held on the pin.
+   **If the readback does not round-trip, NOTHING is re-captured** and the
+   session stops at that point with the finding.
+4. **Nothing is deleted.**  The 760 original entries are archived byte-identical,
+   with a sha256 manifest, OUTSIDE `tests/v30/fuzz_bank/` — because
+   `check_fuzz_bank` globs `*/seeds/*.json.gz` under that root and an archive
+   placed inside it would silently grow the 3,242-seed corpus, which is the
+   second falsehood INV-1 refused to introduce to record the first.
+5. **The image is hash-checked per seed before its capture** against the banked
+   `image_sha256`.  A GEN-DRIFT seed is not captured and is reported.
+
+**NO BAR IS REGISTERED ON THE CHIP's CYCLE BEHAVIOUR.**  What the part does with
+a *true* 300-clock INT level has never been observed in this project.  It is a
+MEASUREMENT and it is registered fresh: whatever `timed_fuzz --evt-replay`
+reports over the re-captured 1,008 is the number, for both engines, and the old
+`EVT 192/1,008` / `709/1,008` are STRUCK and are not a floor, a ceiling or a
+comparison.  In particular **it is NOT registered that the ucore improves.**
+
+*What would make the re-capture itself unreadable*: the socket failing to enter
+its handler at all under a 300-clock level (a wedged or runaway image), or
+`event_fired` false on a seed whose old capture had it true.  Both are reported
+as rig findings, not scored.
+
+### §59.3 THE BITSTREAMS AND THE BOARD LEGS
+
+**BS-A** = HEAD, 12-bit `evt_hold`, **`X1_AD_RETENTION` NOT defined** →
+**FLASH #4**.  This is the golden-and-population-capture bitstream and every
+item below except §59.5 runs on it.
+
+**BS-B** = BS-A + `X1_AD_RETENTION` → **FLASH #5**, and it exists for the X1
+after-leg and nothing else.
+
+**THE RETENTION-vs-SOCKET FINDING, TAKEN FROM THE RTL AND NOT ASSUMED.**
+`hdl/rtl/system_large.sv:464`:
+
+```verilog
+assign hb_ad_sample  = cfg_use_core ? core_ad_eff : NEC_AD;
+```
+
+`core_ad_eff` is the retained signal and it is selected **only when
+`cfg_use_core = 1`**.  At `use_core = 0` — every socket capture, every golden,
+every emission — `hb_ad_sample` is `NEC_AD`, the physical pins, and the
+retention model is not in the path at all.  **So the retention cannot touch a
+socket capture.**  Recorded, and *not* used: goldens and the 760 are captured on
+**BS-A only** anyway, because a bitstream difference that is inert by reading is
+still a bitstream difference, and §55.2 item 5's lesson is that a controlled
+substitution must be declared rather than assumed.
+
+**THE INSTRUMENT-INERTNESS GUARD ON BS-B, AND WHY IT IS REGISTERED HERE.**  The
+retention model is written with `core_ad[gad] === 1'bz`.  That is a four-state
+comparison on an internal `tri` net, and Quartus resolves internal tri-states to
+multiplexers.  If synthesis constant-folds `core_ad_z` to 0 then
+`core_ad_eff === core_ad`, the `core_ad_hold` register has **no fanout**, and
+the fitter deletes it — and BS-B is BS-A wearing a different name.  **A run of
+the X1 after-leg on an inert BS-B would report "116 survive", which reads
+exactly like a REFUTATION and would be an instrument failure.**  So, registered
+before the build:
+
+* **LIVENESS TEST**: the BS-B fit must show the **20 `core_ad_hold[*]`
+  registers present** (`g_ad_ret` / `core_ad_hold` in the fitter's node list)
+  **and** the Analysis & Synthesis log must carry no warning that the
+  `z`-comparison was folded to a constant.
+* **If the liveness test fails, the X1 fabric after-leg is NOT RUN and is
+  reported as BLOCKED on a synthesis limitation** — with the mechanism named —
+  and the C11 attribution stays NOT ESTABLISHED.  It is *not* reported as a
+  refutation.  A null instrument produces a null result and this session will
+  not launder one into the other.
+
+### §59.4 THE X1 FABRIC BARS — QUOTED, NOT PARAPHRASED
+
+From §56.3a, verbatim:
+
+> * **THE BAR, BOTH HALVES, AND BOTH ARE REQUIRED**:
+>   1. **ALL 116 fabric-only cells CLOSE** — the fabric total goes to **259/283**,
+>      equal to the TB's, not merely toward it.  A partial close means the class
+>      was not one mechanism and the residue is the core's.
+>   2. **NOTHING ELSE MOVES**: `HLT.RES` stays cell-identical at 47/49, 48/49,
+>      24/25, 24/25; **every `HLT.INT` cell matches its OFFLINE result cell for
+>      cell**, not merely in total; no non-INTA row acquires a new first
+>      divergence; **the F42-signature count stays ZERO**; the socket control
+>      stays 49/49; and the `use_core=0` chip-path proof stays MATCH over 800
+>      rows with first light 800/800 ×3.
+> * **WHAT REFUTES THE ATTRIBUTION**: any of the 116 still failing with the
+>   retention model demonstrably supplying the prior driven data phase at the
+>   INTA's T1, or any fabric-only NON-INTA divergence appearing.  A surviving
+>   divergence is **reclassified as CORE-OWNED** unless a separately
+>   pre-registered mechanism is established for it — exactly as F42's 17 turned
+>   out to be the core's, and it is reported as a refutation and not
+>   re-explained.
+
+SM1 met both halves on the Verilated leg (§58.6): `tb_sys` baseline **143/283**
+— the fabric number exactly, 116 base-only failures, 116/116 with an INTA row as
+the golden's first-divergence row — and with `X1_AD_RETENTION` **259/283**,
+closed 116, **survived 0**, **0** cells differing from offline.  **This session
+runs the leg the bar was actually written on.**
+
+### §59.5 THE PREDICTIONS, WHERE AN HONEST PREDICTION EXISTS
+
+Registered.  Each is falsifiable and each is reported as registered.
+
+1. **BS-A's fabric baseline on the 283 cells is 143/283**, with 116 fabric-only
+   failures, 116/116 on an INTA row.  The reasoning is stated so the prediction
+   can be wrong for a reason: BS-A differs from FLASH #3 only by the `evt_hold`
+   widen, the four HLT sweeps carry `hold = 0` (the invalidation sweep measured
+   this and cleared them), bits `[30:27]` of `EVT_CFG` were written as zero by
+   the old host, so the widen is **inert on this population by construction**;
+   and SM1's `tb_sys` baseline reproduced 143/283 cell for cell.
+   *Falsifier*: any total other than 143/283 on BS-A.  A move here is a
+   **bitstream-vintage finding** and it invalidates the comparability of the X1
+   before/after, which is why it is taken FIRST.
+2. **The socket control reproduces the golden 49/49** on BS-A
+   (`s10-hltsweep-w0` / `HLT.RES`, `EMIT_USE_CORE=False`, `use_core=0`).  This
+   is the rig-integrity leg, not a result: **if it moves, nothing else in §59 is
+   readable.**
+3. **`use_core=0` boot vs the standing golden MATCHes over 800 rows** on BS-A,
+   taken FIRST, before anything else.
+4. **X3, the b3 priority tranche re-captured on BS-A**: no prediction is
+   registered on the total.  §55.2 item 6 declared its 176/178 a pass-3
+   bitstream number carried forward under a controlled offline substitution;
+   this session removes the substitution.  The honest statement is that 176/178
+   is the number being *checked*, not a bar — a move in either direction is the
+   finding, and V0-V5 are re-scored as measured.
+5. **R6**: no prediction.  Banking the s10/s13 per-repetition rows makes
+   `HLT.INT_w2_d0`'s `stable_identical: false` *verifiable*; whether it verifies
+   as the same pad artefact as `HLT.INT_w0_d0` is the measurement.  §26.1's
+   caveat is carried: `stable_key` changed at §26.1 and keys stored before it
+   are internally valid and **not comparable across the change**, so this
+   session compares only keys it computes itself.
+6. **The re-captured EVT column**: NO PREDICTION, per §59.2.
+
+### §59.6 SEQUENCING, AND WHY IT IS THIS ORDER
+
+A capture on the wrong bitstream is worthless, so everything BS-A-dependent
+precedes FLASH #5:
+
+1. FLASH #4 (BS-A) + `v30ctl.py` deployed to the board + `div_guard` PINNED +
+   `use_core=0` 800-row boot MATCH + the 12-bit-hold wire proof (§59.2 item 3).
+2. The 760-seed EVT re-capture (socket, `use_core=False`).
+3. R6 per-repetition rows (socket).
+4. X3 priority tranche (both legs).
+5. X1 baseline in fabric (`use_core=1`) + the 49/49 socket control.
+6. FLASH #5 (BS-B) — **only if the §59.3 liveness test passes** — and the X1
+   after-leg.
+7. FLASH #6 back to BS-A if any BS-A capture remains; `board_idle`; the board
+   left at `use_core=False` and `DIV_OF_RECORD = 8`.
+
+A wedged board is a STOP with the state documented, not an improvisation.
