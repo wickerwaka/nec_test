@@ -3054,3 +3054,389 @@ re-read before it is quoted.
 *Falsifier*: a mode-4 seed below 16*`SS_COUNT` that lands outside
 `word = seed/16`, or a form/freeze point at which no word in the map is
 sensitive.
+
+## §44 THE U3 GATE LADDER
+
+Every number below was taken on **one binary**, rebuilt clean from the
+committed tree at the end of the stage
+(`sha256 b76b7734a5ecbba36c99e8bf7e9a82c9b3928d1d5dabf19ac7d22d21bf712436`).
+That matters: the binary was rebuilt twice mid-session by concurrent scoring,
+so the whole ladder was re-run afterwards rather than assembled from runs taken
+at different times.  The forced rebuild reproduced the same sha bit for bit.
+
+### §44.1 THE SCRIPTED CORPUS AND THE WHOLE-PROGRAM LADDER
+
+| gate | command | sim / standing | **ucore** |
+|---|---|---|---|
+| **G3** | `check_core --core ucore --opcodes all --cases 0` | 169,000 | **169,000 / 169,000** |
+| `v0.1-w1` | `--suite-dir v0.1-w1 --waits 1` | 1,200 | **1,200/1,200** |
+| `v0.1-w3` | `--suite-dir v0.1-w3 --waits 3` | 1,200 | **1,200/1,200** |
+| `v0.1-w1 --opcodes EB` | | 200 | **200/200** |
+| `v0.1-w0evt` / `w1evt` / `w2evt` / `w3evt` | | 200 / 1,200 / 200 / 1,200 | **200 / 1,200 / 200 / 1,200** |
+| **`v0.1-w1evt-biased`** (ucore FIRST) | `--waits 1` | 1,200 | **1,200/1,200** |
+| boot march | `check_boot --core ucore 220` | 220 | **220/220 MATCHES** |
+| **boot march, deeper** (ucore FIRST) | `check_boot --core ucore 400` | — | **400/400 MATCHES** |
+| G0 tables | `check_ucore_tables.py` | 9,988 | **9,988/9,988 PASS** |
+| U1 lockstep | `ulockstep --suite --waits 0,1,2,3` | — | **ALL SCENARIOS LOCKSTEP** |
+| U2 lockstep | `ulockstep --golden all --cases 5` | — | **1,735/1,735** |
+| **U3 lockstep, 10x deeper** | `ulockstep --golden all --cases 50` | — | **17,350/17,350 ALL LOCKSTEP** |
+| **`timed_wvec_gate --core ucore`** | 88-program silicon freeze (T2b P2) | 88/88, +0.0 % | **88/88 digest, 88/88 count, 16,048 vs 16,048, +0.0 %** |
+| **`timed_enter_replay --core ucore`** | 7 wait slices | 154/154 x5 | **154/154 x5** |
+| **`timed_ins_replay --core ucore --raw`** | case250 INS | rails 1,312 / vs-chip 2,624 | **1,312/1,312 and 2,624/2,624** |
+| HLT sweeps | `s10-w{0,1}`, `s13-w{2,3}` | 91/97, 95/95, 44/46, 42/45 | **90/97, 88/95, 37/46, 34/45** (§43) |
+| ROM disasm | `make -C sim test` | PASS | PASS |
+| PLA | `pla3_check.py` | 21 checks | OK |
+| the MODEL, unmoved | `timed_gate --suite v0.1 --forms all` | 169,000 | 169,000, row-diffs 0 |
+| FSM core, untouched | `check_core --core fsm --opcodes 88,9D,INT.9D,INT.F3AA` | 1,400 | **1,400/1,400** |
+
+**Eleven of thirteen ladder rows land ON the sim's number.** The two that do not
+are the HLT sweeps (§43: 17 cells this TB cannot score + 6 of one diagnosed
+rendering) — itemised and governed, per the U3 gate.
+
+Three of these are **new legs, not new runs**: `timed_wvec_gate`,
+`timed_enter_replay` and `timed_ins_replay` drove the C++ model only.  Each now
+takes `--core {sim,ucore,...}` as an **engine swap** — the digest, the
+comparison window, the column policy and the scoring are shared,
+un-parameterised code, and **each sim leg was re-measured after the refactor and
+is unchanged.**  A refactor that moves the sim's number is a bug in the leg, and
+that check was run before any ucore number was taken.  The shared `+bootimg`
+driver is `sw/tb_bootrun.py`.
+
+**The wvec cross-check is worth its own line.**  The same gate through the
+FROZEN FSM core scores **71/88** — 22/22 at `ws0:wmax0` and 17 misses spread
+over the three waited configs, with the access COUNT matching the chip in all
+88 cells.  The FSM's deficit is therefore pure CADENCE on the wait axis, which
+is the axis this project ranks first.  On the silicon wvec freeze the ucore
+strictly dominates the frozen core, **88 vs 71**.
+
+### §44.2 THE FUZZ BANK — WHERE THE ucore BEATS THE MODEL, AND ONE RIG FINDING
+
+`sw/timed_fuzz.py` gained the same `--core` engine leg (regeneration + sha gate,
+`ucsim_fuzz.window_of`, `fuzz_classify.diff_rows`, `excuse()` and the report
+format all shared).  The bar was **pre-registered before any ucore run**
+(`~/.cache/ucsimt-tmp/u3-fuzz/PREREG.txt`): the ucore must reach ≥ the sim on
+each population, with IDENTICAL denominators.  Denominators held in every run
+(2,710 scored / 532 `OPEN_BUS`; 188 / 28), which is the harness-integrity guard,
+not a result.
+
+| population | sim | **ucore** | sim `reg8` | **ucore `reg8`** |
+|---|---|---|---|---|
+| REGISTERED | 1,272/1,702 | **1,394/1,702  (+122)** | 1,272/1,702 | **1,394/1,702** |
+| EVT | 709/1,008 | 184/1,008 | 780/1,008 | **866/1,008  (+86)** |
+| COMBINED | 1,981/2,710 | 1,578/2,710 | 2,052/2,710 | **2,260/2,710  (+208)** |
+| b2 victory tranche | 154/188 | **168/188  (+14)** | — | — |
+
+*(All eight cells re-run independently after the stage's work was reported; the
+sim legs reproduce the standing ledger byte for byte.)*
+
+**THE ucore BEATS THE MODEL ON THE REGISTERED POPULATION AND ON THE VICTORY
+TRANCHE.**  205 REG seeds and 18 tranche seeds where the model diverges and the
+ucore is cycle-exact against the socket capture; the model's first-divergence
+families on them are `qs` (145), `bs` (37) and `data` (23) — the QS pin's exact
+fetch/execute pop clock and the T4/Ti bus-status arbitration.  Governed exactly
+as F39 and §42.1 govern this class: the gate is the SILICON capture, the model
+carries a registered residue there that it does not claim to close, and nothing
+in `sim/` was changed.  For scale, the same bank through the FROZEN FSM core
+scores **18/1,702** on REGISTERED.
+
+**V5 IS REPRODUCED AS REGISTERED, NOT RE-OPENED.**  The tranche's 168/188 is a
+PARITY CHECK: V0 (0 hard failures) ✅, V1 89.4 % ≥ 55.6 % ✅, V2 median prefix
+fraction 1.000 ✅, V3 100 % named families ✅, V4 wrand-vs-fixed 1.3 points ✅,
+and **V5 remains a FAILURE** (168/188 ≠ 188/188).  The registered record stands.
+
+### F46 — THE RIG'S `evt_hold` REGISTER IS 8 BITS, AND 760 EVT SEEDS WERE BANKED ASKING FOR 300
+
+**Class: RIG / BANK INTEGRITY.  It is why the EVT column above needs two
+readings, and it is not the ucore's.**
+
+```
+hps_axi_slave.sv:275   evt_hold <= wdata[23:16]      // 8 bits
+nec_bus.sv:73          input [7:0] evt_hold
+```
+
+**760 of the 1,008 EVT seeds bank `hold = 300`.**  The socket was therefore held
+for `300 & 0xFF` = **44** clocks, not 300.  The MODEL cannot notice: under
+`--evt-replay` it is HANDED the capture's acknowledge positions
+(`sim/pin_replay.h`, §42.1).  The ucore PREDICTS them from the directive, so
+given a 300-clock INT level it re-enters the handler 2-4 times where the chip
+entered once — **545 of 545 INTR trails diverge as "extra INTA pairs", and 540
+of those 545 put the FIRST acknowledge on exactly the chip's clock.**  The
+recognition is right; the directive was never physically applied.
+
+Feeding both legs the hold the rig could actually apply (`--rig-hold reg8`, a
+DRIVER property in §42.2's class) moves the sim's EVT number by **+71** as well
+as the ucore's by +682 — so it is **OFF BY DEFAULT** and is NOT applied to the
+registered table here.  Re-registering the EVT ratchet against a corrected hold
+is a decision for the campaign owner, not a side effect of an RTL stage.
+Recorded as **U3 open item 4**, with the note that `check_seq.run_tb` and
+`fuzz_campaign.capture_tb` carry the same unmasked hold and are the likely
+reason this population was promoted into the banks at all.
+
+*Falsifier*: a capture in the EVT population whose acknowledge pattern is
+consistent with a hold longer than 255 clocks.
+
+### F47 — 83 SEEDS: THE RIGHT CYCLE, THE RIGHT ADDRESS, THE WRONG WORD
+
+**Class: RTL, NAMED AND NOT FITTED.  83 REGISTERED seeds + 4 tranche seeds.**
+
+The ucore's whole remaining REG deficit is one shape: a **write cycle it
+addresses and times exactly right, carrying the wrong DATA WORD.**  73 of 83
+sit inside a `MEMW` (59) or `IOW` (14) cycle; 42 of 83 have a total diff of ≤ 6
+rows — one wrong word and nothing else.  `t`, `bs`, `ube`, the address and the
+wait pattern all match the socket.
+
+It is not a memory-map artefact: re-running all 83 against the alternative TB
+memory model (16×-replicated flat image instead of `+mirror=1`) flips **0 of
+83** and costs 1 of 300 controls, so `+mirror=1` stands.  The owning opcode is
+diffuse (`FF`/mod3, `F3`, `6A`, `A2`/`A3`, `8F`, `65`, `62`) — **an EU value
+path the 169,000-case golden suite does not reach**, which is exactly what a
+whole-program bank is for.  Not fitted, not patched; handed to U4 as the first
+place to look.
+
+### F48 — TWO EU BOUND ASSERTIONS **FIRE** ON SIX BANKED SEEDS — RISK #2, REALISED
+
+**Class: RTL.  The campaign plan's risk #2 was "absolute-clock longs → bounded
+relative counters with SYNTHESIS bound assertions (`rd_done_q` depth ≤ 2 to
+prove)".  The proof obligation is NOT discharged: the bound is violated by real
+programs.**
+
+Six seeds hard-abort the ucore — `mc1/2123`, `mc1/3613`, `mc2/2244`,
+`t30-raw/440`, `t30-raw/446`, `t30-raw/829` — on two assertions:
+
+```
+v30u_eu.sv:1594   completed-read store overflow (rdq_n = 2)     x3
+v30u_eu.sv:1596   rd_done_cnt saturated                          x3
+```
+
+Three of the six are at FIXED w0/w1/w3, so this is not a random-wait-only
+corner.  The assertions did their job — this is the bound assertion catching a
+real bound violation, which is the outcome the plan asked them to be able to
+produce.  Reported, not patched.
+
+**And the harness had been HIDING them.**  `timed_fuzz`'s old `SIM_ERROR` path
+returned BEFORE the population was assigned, so a crashing engine silently
+shrank its own denominator (1,702 → 1,698).  Fixed: in-population seeds stay in
+and score as total divergences, the count prints on its own `ENGINE ABORTS`
+line, and it forces a non-zero exit.  The sim leg had zero aborts, so no
+standing number moves.  *A gate whose denominator follows the engine is not a
+gate.*
+
+### §44.3 THE PLATFORM
+
+| gate | result |
+|---|---|
+| `ss_lint.py --core fsm` | **PASS, byte-identical to baseline** (82x2 BIU + 120x2 EU + tag = 203; census 181 flops, 0 unmapped), `rc=0` |
+| **`ss_lint.py --core ucore`** (NEW) | map audit **PASS** — 96x2 BIU + 115x2 EU + tag = 212, **211 symbols each exactly twice, 0 zero-width**, reproducing §42.4's ad-hoc count independently — and flop census **FAIL**, `rc=1` (see F49) |
+| flop census, in the map header | **223 architectural flops** (BIU 83, EU 140), 194 mapped, 24 whitelisted, **5 UNMAPPED** |
+| `+ce_div` hold-check, w0 | 9 forms x 7 divisors x 100 cases = **63/63 cells, 100/100 rows, 0 violations** |
+| `+ce_div` hold-check, wait axis | 5 forms x 3 divisors x `w1`/`w3` = **30/30 cells, 0 violations** (9,300 case-runs in total) |
+| save state, scramble (mode 1) | **80/80**, every freeze point PASS |
+| save state, idempotence (mode 2) | **24/24**, no diverging k |
+| save state, 10 forms | **10/10 PASS**, 154 freeze points |
+| save state, width (mode 5) | **PASS**, 126 freeze points x 211 addresses |
+| **save state under RANDOM waits** (ucore FIRST) | `--ss-wrand --ss-wmax 3` seed `ACE1` **10/10**; `--ss-wmax 7` seed `5678` **10/10** |
+| **bit-flip negative control** (mode 4, ucore FIRST) | **SENSITIVE** — 13 sensitive words over two forms, three at 100 % (see F45) |
+| SYNTHESIS assertions | **13 runtime contract checks enumerated** (not 3); 8 are true SVAs, **6 of 8 LIVE-FIRED inside the frozen binary** |
+
+**THE ASSERTION AUDIT, AND WHY THE BRIEF'S "THREE" WAS WRONG.**  `grep assert
+hdl/rtl/ucore/*.sv` misses the `.svh` includes — the same include-vacuity trap
+`ss_lint` had.  There are 13 checks: 8 `assert … else $error` and 5 BARE
+`$error`.  Six of the eight were fired IN THE FROZEN BINARY, with no RTL
+touched, by using `--ss-mode 4`'s targeted bit flip to drive mapped state out of
+bounds — that is proof of arming, not inference.  The remaining two
+(`v30u_biu.sv:1500` announcement-age saturated, `v30u_eu.sv:1596`
+`rd_done_cnt`) are proved COMPILED-IN by the elaborated failure string with
+resolved `file:line` in the binary, backed by a build-flag negative control (the
+string is present with `--assert`, absent without).  Stated honestly: for those
+two the claim is **"present in the model"**, not "observed to fire".
+
+### F49 — FIVE ARCHITECTURAL FLOPS ARE ABSENT FROM THE ucore SAVE-STATE MAP
+
+**Class: RTL / SAVE-STATE.  The census's whole reason for existing, and it found
+one on its first run.**
+
+```
+v30u_biu.sv:306  r_cur_odd     v30u_biu.sv:324  r_cmt_odd
+v30u_biu.sv:374  r_rq_odd[0:1] v30u_biu.sv:367  r_rd_land
+v30u_eu.sv :274  rst_ctr
+```
+
+Verified independently of the linter by direct inspection: each is a `reg`
+assigned with `<=` on the clock edge and read across it, and **none has an
+`SSA_*` arm**.  `r_rd_land` drives `eu_rdata_n` — **a completed read's data**.
+The three `*_odd` flops carry the split access's ODD BASE, which decides the
+byte swap at `v30u_biu.sv:1329`.  `rst_ctr` is F25's four-clock reset march.
+
+**THIS IS THE BLIND SPOT §42.4 AND MODE 5 COULD NOT SEE, AND IT IS STRUCTURAL.**
+"211 symbols, each exactly twice" and the width sweep both only visit addresses
+that EXIST; the SS1 scramble only scrambles what it can address.  No instrument
+that walks the map can find a flop nobody put in the map.  That is precisely why
+the census runs the other way — from the RTL to the map — and it is why the
+ucore leg was worth building rather than trusting §42.4's ad-hoc count.
+
+Fixing it adds addresses and therefore **bumps `SS_VERSION`**, which is why it
+is not done here (the RTL is frozen for U3 scoring and five ladder suites were
+being scored against this binary).  **U3 open item 5**, and it is U4's first
+platform job — a restore that loses a completed read's data is a real defect,
+not a bookkeeping one.
+
+*Falsifier*: a demonstration that any of the five cannot hold a value across a
+freeze point on any reachable path.
+
+### F50 — THREE HYGIENE ITEMS THE CENSUS TURNED UP ON THE WAY
+
+1. **`ending` (`v30u_eu.sv:304`) is DEAD RTL** — assigned at reset and at
+   `step.svh:398/641/682`, **read nowhere**; F22 replaced it with `poste`.
+   Verilator drops it from the generated model.  Confirmed by direct grep.
+2. **Two un-converted BARE `$error` remain in `v30u_eu_poste.svh:72,75`** (plus
+   three in `v30_core.sv:129,130,135`).  `v30u_biu.sv:1476-1484` documents this
+   exact form as having taken `--ss-sweep` DOWN before pass 5 converted the
+   BIU's, because **`$assertoff(0)` governs assertions and not ordinary
+   statements**, so these are not quiesced during the scramble window.  Latent,
+   not active: 10 mode-1 seeds x 4 forms, 0 fires.
+3. **The ucore's CE-hold probe has NO EU coverage.**  `tb_v30_core.sv:1204`
+   watches `{r_ts, r_q_cnt, r_fetch_ptr[7:0]}` — BIU only — where the FSM probe
+   at line 1197 includes `u_eu.state` and `u_eu.div_cnt`.  So §44.3's 93 clean
+   `+ce_div` cells are **BIU-state evidence**; the EU-side evidence is the
+   100/100 golden row match, not `CE_HOLD_VIOL`.  Reported, not patched (TB
+   frozen).  **U3 open item 6.**
+
+The 24 whitelist entries (`sw/ss_flop_whitelist_ucore.txt`) are a fourth item of
+the same kind and are honest about it: they exist ONLY because the EU's
+block-local working values are declared at module scope.  Declaring them inside
+the `always` block would make them automatic and delete both them and the
+whitelist file.  Each entry carries a hand-checked dominating write; that check
+is lexical dominance, not a dataflow proof.
+
+## §45 THE FOURTH CODEX REVIEW, THE U3 CLOSE, AND THE U4 HANDOFF
+
+### §45.1 THE CODEX REVIEW (2026-08-03, thread `019fc8ba` resumed a fourth time)
+
+Scoped to three asks, with the file set named exactly (§43; `ucsim_t` §23.3/§23.4;
+`v30u_biu.sv`'s PIN DRIVE block; `tb_v30_core.sv`'s composed-bus block) — the
+wedge lesson from §36 applied.
+
+**C6 — F42 (the instrument ceiling).**  *Sound, "with the 23-cell generalization
+supported structurally rather than solely by two probes."*  It named the
+falsifying measurement: sample the DUT's raw AD at the comparator's sampling
+edge, bypassing `eff_hi`/`eff_lo`, and align it to the golden row.
+**RUN, on the whole population: 24 of 24, 0 ambiguous alignments** (§43.3).  The
+review's one reservation is discharged by measurement rather than argument.
+
+**C7 — F43 (M20's cancellation edge).**  *Diagnosis sound; not landing it is the
+right call* (it "touches the BIU display/eval spine" and §43 has a diagnosis and
+a falsifier but no gate proof).  One wording correction, adopted: the first
+draft's "a one-clock-earlier VIEW of the pipeline" *"risks suggesting duplicated
+state"*; the principled statement is **"the HALT-display decision must test the
+wake condition visible on its own decision edge"** — a term added to the
+existing decision test, nothing new stored.  §43's F43 now says that.
+
+**C8 — governance.**  Routing-not-patching confirmed: *"patching RTL to
+reproduce a model residue would knowingly create an RTL-versus-silicon defect,
+contrary to the stated governance."*  The stale-ratchet correction *"strengthens
+monotonicity"* — remeasured, both figures recorded, gap recomputed per case
+rather than history rewritten.  C8 also correctly noted the `CLAUDE.md` edit
+itself was outside the review's permitted file set and so is NOT verified by it.
+
+**The review's practical value this round was C6**, and it was the good kind:
+it accepted the conclusion and rejected the strength of the evidence.  Running
+the measurement it asked for is also what exposed §43.0's numbering artefact and
+produced the retraction — a review that only checked the reasoning would have
+left a false finding in two ledgers.
+
+### §45.2 GATE U3 — THE RESULT
+
+**GREEN, with two itemised and governed deltas.**
+
+* **The ladder**: eleven of thirteen suites land ON the sim's ledger number
+  (G3 169,000; `w1`/`w3`; `EB`; four `evt` cells; `w1evt-biased`; boot; wvec
+  88/88 +0.0 %; ENTER 154/154 x5; INS 1,312/1,312 and 2,624/2,624), and the
+  lockstep net was deepened 10x to **17,350/17,350**.
+* **Where it BEATS the sim**: REGISTERED fuzz **1,394/1,702** (sim 1,272), the
+  b2 victory tranche **168/188** (sim 154), and — under the hold the rig can
+  physically apply — EVT **866/1,008** (sim 780) and COMBINED **2,260/2,710**
+  (sim 2,052).  Governed as F39/§42.1 govern the class: silicon is the gate,
+  `sim/` was not changed, the events are routed to the model's ledger.
+* **Delta 1, the HLT sweeps** (−23 cells): **17 cells no comparator on this TB
+  can score** (F42, measured 24/24) **+ 6 cells of one diagnosed rendering**
+  (F43).  Zero unexplained.
+* **Delta 2, the EVT fuzz column**: not the part's.  **F46** — the rig's
+  `evt_hold` register is 8 bits and 760 of 1,008 seeds were banked asking for
+  300.  Both legs move when it is corrected; the ratchet is therefore NOT
+  re-registered here.
+* **The platform**: `ss_lint --core ucore` landed (FSM leg byte-identical),
+  census documented in the map header, 93 `+ce_div` cells clean over 9,300
+  case-runs, save state green in modes 1/2/5 and — a ucore first — under random
+  waits, and the bit-flip negative control discharged.  `ss_lint --core ucore`
+  **exits 1**, truthfully, on F49.
+
+Findings **F41-F50**.  Two landed (F41; the `timed_fuzz` denominator fix), one
+retracted with its artefact preserved (§43.0), and the rest booked with
+mechanisms and falsifiers.
+
+### §45.3 THE SIX U3 OPEN ITEMS
+
+| # | item | owner |
+|---|---|---|
+| 1 | **F42** — the TB's composed-AD drive mask hides a display inside a HALT-typed cycle. Re-latching `lat_type` at a display is a one-term change, but the TB is shared with the frozen FSM core: needs its own pre-registered before/after on BOTH cores | U4 |
+| 2 | **F43** — the HALT-display decision must test the wake on its own decision edge (6 cells) | U4 |
+| 3 | **F45** — `--ss-mode 4`'s guidance comment: "step the seed by 16", and "most flips must diverge" is too strong | U4 |
+| 4 | **F46** — whether to re-register the EVT ratchet against `--rig-hold reg8`; `check_seq.run_tb` / `fuzz_campaign.capture_tb` carry the same unmasked hold | **campaign owner, not an RTL stage** |
+| 5 | **F49** — five unmapped architectural flops; fixing bumps `SS_VERSION` | U4, FIRST |
+| 6 | **F50** — dead `ending`; the bare `$error` pair in `poste.svh`; the CE-hold probe's BIU-only coverage | U4 |
+
+Carried forward unchanged from §40.1/§42.6: the far-CALL/far-JMP `CS` shadow and
+the taken-branch recognition boundary stay documented-but-not-rendered (no
+golden reaches either); `opr_free_p`/`set_oprfree` stay PROVABLY VACUOUS (F31).
+
+### §45.4 HANDOFF — WHAT U4 PICKS UP
+
+1. **THE PREREQUISITE NOBODY HAS BUILT YET: `hdl/files_ucore.qip` DOES NOT
+   EXIST.**  Only `hdl/files.qip` is in the tree, and it hard-lists
+   `rtl/core/v30_{ss_pkg,core,biu,eu}.sv` plus `SEARCH_PATH rtl/core`.  The
+   sibling manifest the plan's U4 stage runs Quartus through is still to be
+   written; `sw/check_core.py`'s `CORE_RTL["ucore"]` is the file list it needs
+   (`v30u_ss_pkg.sv`, `v30_core.sv`, `v30u_biu.sv`, `v30u_ucrom.sv`,
+   `v30u_eu.sv`, `SEARCH_PATH rtl/ucore`).
+2. **AND THE FIRST THING TO PUT IN IT IS F44's GUARD.**  `v30u_ucrom.sv` takes
+   `HEXDIR` as a parameter *"a synthesis project overrides this with its own
+   relative path"* — and a wrong path yields two WARNINGS, an all-zero
+   microcode ROM, and a run that completes normally (F44, measured).  U4 is the
+   stage that overrides `HEXDIR`.  Assert a known ROM word after load and
+   `$fatal` if it is zero, BEFORE trusting any synthesis or in-fabric number.
+   For Quartus the two `$readmemh` arrays additionally want `.mif`/`.hex`
+   initialisation that the fitter will actually honour — verify the initialised
+   contents in the post-fit netlist, not just that it compiled.
+3. **Synthesis expectations, as the plan registered them**, restated so U4 can
+   score them rather than re-derive them: **0 errors**; **map time in the ~4 min
+   band** (the FSM core's rail forest takes ~25); **Fmax ≥ 32 MHz with margin**,
+   with the one critical cone being the flow-through M10K row fetch (the
+   fallback if 17.1 refuses flow-through is a registered output with the F2 tap
+   moved one stage); **M10K ≈ 15-24 of ~553**, of which the ROM alone is
+   `ucdecode` 8192x10 = 81,920 b plus `ucrom` 1028x29 = 29,812 b ≈ 11-14 M10K,
+   both already carrying `(* ramstyle = "M10K" *)`; and **zero `lpm_divide`,
+   zero inferred latches** (campaign-4 discipline — the EU has ONE shared
+   iterative stepper by construction).
+4. **THE PRIORITY GATE IS STILL THE PRIORITY GATE.**  The standing project
+   ranking is arbitrary-wait accuracy first; U3 leaves the ucore with **no
+   wait-axis debt on any scripted cell**, at **88/88 on the silicon wvec freeze
+   where the frozen FSM core is 71/88**, and beating the model on the
+   registered fuzz bank.  The fresh random-wait tranche in hardware, A/B against
+   the socket, is U4's and is the campaign's victory condition.
+5. **F42 IS A TESTABLE PREDICTION FOR U4, NOT JUST AN EXCUSE.**  If the 17
+   uncountable HLT cells really are the testbench's composed-AD mask and not the
+   core, then **in fabric — where the analyser samples real pins and no drive
+   mask exists — those cells must PASS.**  That is a falsifiable, pre-registered
+   consequence of F42 and U4 should score it explicitly.
+6. **First place to look for a real bug is F47**: 83 registered seeds where the
+   ucore gets the write cycle's address and timing exactly right and the DATA
+   WORD wrong, on opcodes (`FF`/mod3, `F3`, `6A`, `A2`/`A3`, `8F`, `65`, `62`)
+   the 169,000-case golden suite does not reach.  Then **F48**, the two EU bound
+   assertions that fire on six banked seeds — the plan's risk #2, whose proof
+   obligation is NOT discharged.
+7. **Task #31's ENTER debt**: the ucore's ENTER leg is clean at 154/154 x5 over
+   all seven wait slices.  Stated honestly, so is the FROZEN FSM core's on this
+   same tranche — so `goldens_waited.json.gz` does not exercise the two task-#31
+   bugs and CANNOT close them.  What U3 establishes is that the ucore has no
+   ENTER waited-tranche debt of its own; the supersession claim still rests on
+   U4's first flash, as the plan says.

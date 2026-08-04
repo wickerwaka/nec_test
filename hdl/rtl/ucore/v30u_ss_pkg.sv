@@ -13,7 +13,38 @@
 //
 //  AUDIT INVARIANT (inherited): every RTL state register <-> exactly ONE SSA_*
 //  symbol <-> one read-mux arm <-> one write-decode arm.  Each SSA_B_* appears
-//  exactly TWICE in v30u_biu.sv, each SSA_E_* exactly twice in v30u_eu.sv.
+//  exactly TWICE in v30u_biu.sv, each SSA_E_* exactly twice in v30u_eu.sv --
+//  and for the EU that means twice across v30u_eu.sv PLUS its `.svh` includes,
+//  which is where both save arms actually live.
+//
+//  ---------------------------------------------------------------------------
+//  THE FLOP CENSUS (stage U3 platform audit, `sw/ss_lint.py --core ucore`).
+//  The audit above only sees symbols ALREADY in the map, so it cannot see a
+//  flop nobody mapped.  The census runs the other way -- every architectural
+//  flop in the RTL must be mapped or explicitly whitelisted:
+//
+//    region  file(s)                     arch flops  mapped  whitelist  UNMAPPED
+//    BIU     v30u_biu.sv                        83      79          0         4
+//    EU      v30u_eu.sv + 9 includes            140     115         24         1
+//    TOTAL                                      223     194         24         5
+//
+//  Whitelist: sw/ss_flop_whitelist_ucore.txt, 24 entries, ALL of them
+//  block-local working values of the EU's single clocked block (written before
+//  read on every clock, nothing survives the edge) plus the write-only
+//  vestigial `ending`.  They are whitelisted only because they are declared at
+//  module scope; declaring them INSIDE the always block would remove both them
+//  and the whitelist.
+//
+//  The 5 UNMAPPED are a REAL GAP, recorded here rather than silenced:
+//    v30u_biu.sv  r_cur_odd, r_cmt_odd, r_rq_odd, r_rd_land
+//    v30u_eu.sv   rst_ctr
+//  `r_rd_land` drives `eu_rdata_n` -- a completed read's data -- and the three
+//  `*_odd` flops carry the split access's ODD BASE, which decides the byte swap
+//  at v30u_biu.sv:1329.  `rst_ctr` is F25's four-clock reset march.  None is
+//  scrambled by the SS1 sweep or probed by mode 5, because both instruments
+//  only visit addresses that exist: this is exactly the blind spot the census
+//  was written for.
+//  ---------------------------------------------------------------------------
 //
 //  APPEND-ONLY: new fields append at the end of their module's dense region
 //  (never renumber); any map edit bumps SS_VERSION and the counts.

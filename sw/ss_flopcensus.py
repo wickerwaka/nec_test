@@ -42,7 +42,35 @@ CLASSIFICATION RULE (documented so it is auditable, not a heuristic pile-up):
     whitelist (sw/ss_flop_whitelist.txt), one `name  # justification` per line.
 
 Exit 0 = clean, non-zero = a listed violation. No build required.
+
+--core ucore
+------------
+The ucore (hdl/rtl/ucore) is a second, independent core with a DIFFERENT coding
+style, so the `<=`-target rule above is vacuous on it and a second classifier is
+used (see scan_clocked):
+
+  * Its EU is ONE `always @(posedge clk)` block written in the model's own
+    software style: every architectural register is a module-scope `reg`
+    assigned with BLOCKING `=` inside that clocked block. There is not a single
+    `<=` in it, so the FSM rule would census 1 flop out of ~140 -- vacuous.
+  * Its BIU is `always_comb` next-state + `always_ff` registration, so the
+    flops are the `r_*` copies and the bare names are combinational.
+  * The EU body is split across `v30u_eu_*.svh` INCLUDES, and both save arms
+    live in includes. A census that scanned only the `.sv` files would see
+    neither the state nor the map, so the ucore scan FLATTENS `include` first.
+
+  ucore rule: a `reg` is a FLOP iff it is an assignment target (`=` or `<=`,
+  they are the same question) inside a block sensitive to a CLOCK EDGE. That is
+  the general statement; the FSM's `<=` rule is its special case. The FSM leg
+  keeps the original code path so its output is byte-stable as a standing gate.
+
+  ucore "mapped": the read arms name `r_foo` and the write arms name `foo`, and
+  several arms PACK many one-bit fields across MULTIPLE LINES, so the ucore scan
+  accumulates an SSA_ statement to its `;` before harvesting names -- a
+  line-at-a-time harvest silently loses every packed field on a continuation
+  line and reports it UNMAPPED.
 """
+import argparse
 import re
 import sys
 from pathlib import Path
@@ -51,6 +79,9 @@ ROOT = Path(__file__).resolve().parent.parent
 BIU = ROOT / "hdl/rtl/core/v30_biu.sv"
 EU = ROOT / "hdl/rtl/core/v30_eu.sv"
 WHITELIST = ROOT / "sw/ss_flop_whitelist.txt"
+
+UCORE_DIR = ROOT / "hdl/rtl/ucore"
+UCORE_WHITELIST = ROOT / "sw/ss_flop_whitelist_ucore.txt"
 
 # Preprocessor macros whose guarded regions are excluded from the board build.
 # `ifndef SYNTHESIS` -> sim region; `ifdef <one of these>` -> sim region.
@@ -148,10 +179,158 @@ def scan(path, prefix):
     return regs, logic_names, ssa_names, nb_targets
 
 
-def load_whitelist():
+# ---------------------------------------------------------------------------
+# ucore classifier: flatten includes, then classify by BLOCK, not by `<=`.
+# ---------------------------------------------------------------------------
+INCLUDE = re.compile(r'`include\s+"([^"]+)"')
+# a block sensitive to a clock edge -- always / always_ff @(posedge|negedge ..)
+ALWAYS_SEQ = re.compile(r"^always(?:_ff)?\s*@\s*\(?\s*(?:posedge|negedge)\b")
+ALWAYS_ANY = re.compile(r"^always(?:_comb|_latch)?\b")
+# a module-scope construct: ends whatever block context was open
+MODSCOPE = re.compile(r"^(?:assign|wire|logic|reg|integer|genvar|localparam|"
+                      r"parameter|typedef|function|task|initial|final|module|"
+                      r"endmodule|import|export|input|output|inout)\b")
+BLK_OPEN = re.compile(r"\b(?:begin|case[xz]?|function|task|fork)\b")
+BLK_CLOSE = re.compile(r"\b(?:end|endcase|endfunction|endtask|join(?:_any|_none)?)\b")
+UC_PREFIX = re.compile(
+    r"^(?:begin\b\s*|end\b\s*|else\b\s*|@\s*\([^)]*\)\s*|"
+    r"if\s*\([^)]*\)\s*|for\s*\([^)]*\)\s*|while\s*\([^)]*\)\s*|"
+    r"case[xz]?\s*\([^)]*\)\s*|[A-Za-z_]\w*\s*:\s*|"
+    r"(?:\d+'[hbdoHBDO])?[0-9A-Fa-fxzXZ_]+\s*:\s*|default\s*:\s*)+")
+UC_ASSIGN = re.compile(r"^([A-Za-z_]\w*)\s*(?:\[[^\]]*\])*\s*(?:<=(?!=)|=(?![=~]))")
+INT_DECL = re.compile(r"^(?:integer|int)\b\s*(.+?)\s*$")
+FOR_HEADER = re.compile(r"\bfor\s*\([^)]*\)")
+
+
+def flatten(path, out=None):
+    """Textual `include` expansion -- what the compiler actually sees."""
+    out = [] if out is None else out
+    for i, raw in enumerate(path.read_text().splitlines(), 1):
+        m = INCLUDE.search(raw)
+        if m and not raw.strip().startswith("//"):
+            sub = path.parent / m.group(1)
+            if sub.exists():
+                flatten(sub, out=out)
+                continue
+        out.append((path.name, i, raw))
+    return out
+
+
+def _nocomment(s):
+    i = s.find("//")
+    return (s[:i] if i >= 0 else s).strip()
+
+
+def scan_clocked(paths, prefix):
+    """Block-aware census over the flattened source of one region."""
+    lines = []
+    for p in paths:
+        flatten(p, out=lines)
+
+    simstack, struct_depth, depth = [], 0, 0
+    ctx = None                          # 'seq' | 'comb' | None
+    regs, logic, ints = {}, {}, {}
+    ssa_names = set()
+    seq_t = set()
+    arm, arm_open = [], False
+
+    for fname, ln, raw in lines:
+        s = _nocomment(raw)
+
+        m = re.match(r"`(ifdef|ifndef)\s+(\w+)", s)
+        if m:
+            kind, sym = m.groups()
+            simstack.append((kind == "ifndef" and sym == "SYNTHESIS") or
+                            (kind == "ifdef" and sym in SIM_IFDEF))
+            continue
+        if s.startswith("`else"):
+            if simstack:
+                simstack[-1] = not simstack[-1]
+            continue
+        if s.startswith("`endif"):
+            if simstack:
+                simstack.pop()
+            continue
+        if s.startswith("`"):
+            continue
+
+        if "struct packed" in s:
+            struct_depth += 1
+        elif struct_depth and "}" in s:
+            struct_depth -= 1
+            continue
+        if struct_depth:
+            continue
+
+        sim_active = any(simstack)
+
+        # --- SSA arm names, accumulated to the statement's `;` (packed arms
+        #     span lines; a per-line harvest loses the continuation fields) ---
+        if arm_open or (prefix in s):
+            arm_open = True
+            arm.append(s)
+            if ";" in s:
+                for nm in re.findall(r"\b([A-Za-z_]\w*)\b", " ".join(arm)):
+                    ssa_names.add(nm)
+                arm, arm_open = [], False
+
+        # --- block context ---
+        if depth == 0:
+            if ALWAYS_SEQ.match(s):
+                ctx = "seq"
+            elif ALWAYS_ANY.match(s):
+                ctx = "comb"
+            elif MODSCOPE.match(s):
+                ctx = None
+
+        # --- declarations (module scope) ---
+        if depth == 0:
+            pm = PORT_REG.match(s)
+            if pm:
+                regs[pm.group(1)] = (fname, ln, sim_active)
+            elif s.endswith(";"):
+                body = s[:-1]
+                rm = MODULE_REG.match(body + ";")
+                if rm:
+                    for nm in parse_names(rm.group(1)):
+                        regs[nm] = (fname, ln, sim_active)
+                else:
+                    lm = LOGIC_DECL.match(body + ";")
+                    im = INT_DECL.match(body)
+                    if lm:
+                        for nm in parse_names(lm.group(1)):
+                            logic.setdefault(nm, (fname, ln, sim_active))
+                    elif im:
+                        for nm in parse_names(im.group(1)):
+                            ints.setdefault(nm, (fname, ln, sim_active))
+
+        # --- assignment targets, attributed to their block ---
+        # A `for` header's induction variable is re-initialised on every entry
+        # to the loop, so it carries nothing across the edge; drop the whole
+        # header (no ucore `for` header contains a nested paren) and keep the
+        # loop BODY, which is where the real assignments are.
+        if ctx is not None:
+            s = FOR_HEADER.sub(" ", s)
+            for stmt in s.split(";"):
+                if not stmt.strip():
+                    continue
+                am = UC_ASSIGN.match(UC_PREFIX.sub("", stmt.strip()))
+                if am and ctx == "seq":
+                    seq_t.add(am.group(1))
+
+        code = re.sub(r'"[^"]*"', "", s)
+        depth += len(BLK_OPEN.findall(code)) - len(BLK_CLOSE.findall(code))
+        if depth < 0:
+            depth = 0
+
+    return regs, logic, ints, ssa_names, seq_t
+
+
+def load_whitelist(path=None):
     entries = {}
-    if WHITELIST.exists():
-        for ln in WHITELIST.read_text().splitlines():
+    path = path or WHITELIST
+    if path.exists():
+        for ln in path.read_text().splitlines():
             ln = ln.strip()
             if not ln or ln.startswith("#"):
                 continue
@@ -166,7 +345,81 @@ def load_whitelist():
     return entries
 
 
+def main_ucore():
+    """The ucore leg: flattened includes + clocked-block classification."""
+    errs = []
+    wl = load_whitelist(UCORE_WHITELIST)
+    for name, just in wl.items():
+        if just is None:
+            errs.append(f"whitelist entry '{name}' has no justification "
+                        f"(format: `name  # reason`)")
+
+    eu_files = [UCORE_DIR / "v30u_eu.sv"] + sorted(UCORE_DIR.glob("v30u_eu_*.svh"))
+    regions = (
+        ("BIU", "SSA_B_", [UCORE_DIR / "v30u_biu.sv"]),
+        ("EU", "SSA_E_", eu_files),
+    )
+
+    summary = []
+    for region, prefix, paths in regions:
+        regs, logic_names, ints, ssa_names, seq_t = scan_clocked(paths, prefix)
+
+        flops = {n: v for n, v in regs.items() if n in seq_t}
+        comb_regs = [n for n in regs if n not in seq_t]
+        arch = {n: v for n, v in flops.items() if not v[2]}
+        simonly = {n: v for n, v in flops.items() if v[2]}
+
+        mapped, unmapped, whitelisted = [], [], []
+        for n, v in sorted(arch.items()):
+            if n in ssa_names:
+                mapped.append(n)
+            elif n in wl:
+                whitelisted.append(n)
+            else:
+                unmapped.append((n, v))
+                errs.append(f"{region}: architectural flop '{n}' "
+                            f"({v[0]}:{v[1]}) is UNMAPPED "
+                            f"(no SSA_{region[0]}_ arm, no whitelist entry)")
+
+        # LOGIC-FLOP / INTEGER-FLOP GUARD: the ucore's convention is that
+        # sequential state is declared `reg`. A `logic`/`wire`/`integer`
+        # assigned in a clocked block is state this census would not see.
+        for n, v in sorted(list(logic_names.items()) + list(ints.items())):
+            if n in seq_t and n not in regs and not v[2]:
+                errs.append(f"{region}: '{n}' ({v[0]}:{v[1]}) is assigned in a "
+                            f"clocked block but is not declared `reg` (a flop "
+                            f"the census misses) -- declare it `reg` or "
+                            f"whitelist it")
+
+        label = paths[0].name if len(paths) == 1 else \
+            f"{paths[0].name} +{len(paths) - 1} includes"
+        summary.append((region, label, len(arch), len(mapped),
+                        len(whitelisted), len(unmapped), len(simonly)))
+        print(f"{region} ({label}): {len(arch)} architectural flops -> "
+              f"{len(mapped)} SSA-mapped, {len(whitelisted)} whitelisted, "
+              f"{len(unmapped)} UNMAPPED; {len(simonly)} sim-only exempt "
+              f"({len(comb_regs)} comb/next-state regs skipped)")
+
+    tot_arch = sum(r[2] for r in summary)
+    tot_wl = sum(r[4] for r in summary)
+    if errs:
+        print("\nss_flopcensus: FAIL")
+        for e in errs:
+            print(f"  - {e}")
+        return 1
+    print(f"\nss_flopcensus: PASS ({tot_arch} architectural flops, all "
+          f"SSA-mapped or whitelisted; {tot_wl} whitelist entries)")
+    return 0
+
+
 def main():
+    ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
+    ap.add_argument("--core", choices=("fsm", "ucore"), default="fsm",
+                    help="which core's RTL to census (default: fsm)")
+    args = ap.parse_args()
+    if args.core == "ucore":
+        return main_ucore()
+
     errs = []
     wl = load_whitelist()
     for name, just in wl.items():

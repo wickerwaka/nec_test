@@ -8,6 +8,36 @@ ordered bus TRANSACTION stream.  This harness runs the same seeds through
 `v30sim timed-boot` from RESET and compares the PER-CLOCK PIN ROWS against the
 socket capture the bank stores.
 
+U3: the harness now has TWO ENGINE LEGS, selected with `--core`:
+
+  --core sim     (default)  `sim/v30sim timed-boot`, the C++ timed model
+  --core ucore              the ROM-driven RTL core in the Verilator TB
+                            (`hdl/tb/obj_dir_ucore/Vtb_v30_core`, +bootimg)
+  --core fsm                the original FSM RTL core (`obj_dir`), same driver
+
+The ENGINE is the only thing the flag changes.  The regeneration path and its
+sha gate, the comparison window, the column policy, the scored-population
+`excuse()` rules, the population tags and the report format are shared code and
+are not parameterised by the leg, so a number moving between legs is the PART's
+rendering and never the harness's.
+
+Two things are necessarily engine-NATIVE and are named here rather than hidden:
+
+  * the WAIT input.  The model takes `--waits` / `--wmax --wseed`; the TB takes
+    `+waits` / `+wrand=1 +wmax +wseed`.  Both drive the SAME 16-bit Galois LFSR
+    (poly 0xB400, seeded from wseed, one draw per bus cycle at T1 entry,
+    n = (draw[7:0]*(wmax+1))>>8) -- the TB's copy carries the standing
+    "MUST stay byte-for-byte equivalent to the mirror in hdl/rtl/nec_bus.sv"
+    comment, and the phase is checked empirically by the wrand wait classes
+    scoring like the fixed ones rather than collapsing.
+  * the EXTERNAL EVENT.  The model has no pin scheduler, so `--evt-replay`
+    REPLAYS the capture's own acknowledge positions into it (`evt_directive`).
+    The TB has the rig's scheduler in it, so it is given the rig's own
+    directive -- the identical `(anchor_linear, delay, hold, pin)` tuple
+    `fuzz_campaign._evt_tuple` handed the board -- and PREDICTS where the
+    acknowledge lands.  Same axis, same seed record, strictly the harder side
+    for the RTL.
+
 Three things are inherited rather than re-invented, deliberately:
 
   * the REGENERATION path (`ucsim_fuzz.regen`) and its sha256 gate -- a drift
@@ -33,6 +63,7 @@ wrand slices).
 Usage:
   timed_fuzz.py [--bank mc1,mc2,t30-raw,t30-brkem] [--limit N] [--jobs N]
                 [--pilot N] [--report out.json] [--details N] [--all]
+                [--core sim|ucore|fsm]
 """
 
 import argparse
@@ -101,7 +132,59 @@ def wait_args(entry, td):
     return [f"--waits={int(w.get('fixed') or 0)}"]
 
 
-def evt_directive(entry, meta, recs, win):
+def tb_bin(core):
+    """The Verilator TB binary for an RTL leg -- `sw/check_boot._bin`'s rule,
+    unchanged: the FSM core is `obj_dir`, every other core is `obj_dir_<core>`."""
+    d = "obj_dir" if core == "fsm" else f"obj_dir_{core}"
+    return ROOT / "hdl" / "tb" / d / "Vtb_v30_core"
+
+
+def tb_wait_args(entry):
+    """`wait_args` for the TB: the SAME bank record, the same LFSR, the TB's
+    spelling.  +wseed is read with %h (check_seq.run_tb's convention)."""
+    w = entry.get("waits") or {}
+    if w.get("wrand"):
+        return ["+wrand=1", f"+wmax={int(w.get('wmax', 0))}",
+                f"+wseed={int(w.get('wseed', 0)):04x}"]
+    return [f"+waits={int(w.get('fixed') or 0)}"]
+
+
+def rig_hold(entry, mode="banked"):
+    """The pin HOLD, in the two spellings that exist.
+
+    `banked` -- the number the seed record stores, i.e. what the HOST ASKED
+    FOR.  This is what every standing scoring of this harness used, so it is
+    the default and the registered ledger is reproducible with it.
+
+    `reg8` -- the number the PART WAS GIVEN.  The rig's hold is an EIGHT-BIT
+    register field (`hdl/rtl/hps_axi_slave.sv`: `evt_hold <= wdata[23:16]`,
+    carried as `input [7:0] evt_hold` into `hdl/rtl/nec_bus.sv`'s scheduler),
+    so a banked hold of 300 reached the socket as 300 & 0xFF = 44 clocks.
+    Both engine legs are told the same thing, so this is a property of the
+    DRIVER and never of the part -- the same class of correction as the
+    comparison window (ucore_provenance.md sec.42.2).
+
+    It matters to a PREDICTING engine and barely at all to a REPLAYING one:
+    with INT level-asserted for 300 clocks instead of 44 an engine that
+    computes its own recognition re-enters the handler two to four times
+    where the socket entered once."""
+    h = int((entry.get("evt") or {}).get("hold", 0))
+    return (h & 0xFF) if mode == "reg8" else h
+
+
+def evt_tuple(entry, meta, hold_mode="banked"):
+    """The RIG's own event directive for the TB's scheduler -- byte for byte
+    `fuzz_campaign._evt_tuple`, i.e. exactly what check_seq.run_chip handed the
+    board when this seed was captured.  The TB then PREDICTS the acknowledge;
+    nothing from the capture is fed back in."""
+    e = entry.get("evt")
+    if not e:
+        return None
+    return (int(meta["anchor_linear"]) & 0xFFFFF, int(e.get("delay", 0)),
+            rig_hold(entry, hold_mode), int(e.get("pin", 0)))
+
+
+def evt_directive(entry, meta, recs, win, hold_mode="banked"):
     """S9b -- the `timed-boot` pin-event replay directive, or None.
 
     Two coordinates and nothing else, both of them INPUTS:
@@ -137,7 +220,7 @@ def evt_directive(entry, meta, recs, win):
     return {"pin": pin,
             "addr": int(meta["anchor_linear"]) & 0xFFFFF,
             "delay": int(evt.get("delay", 0)),
-            "hold": int(evt.get("hold", 0)),
+            "hold": rig_hold(entry, hold_mode),
             "pins": 0,
             "at": fires,
             "cs": [f[0] for f in frames],
@@ -164,6 +247,36 @@ def run_sim(image, entry, nrows, td, evt=None):
     return rows, p.stderr.decode()
 
 
+def run_tb(image, entry, nrows, td, core, evt=None):
+    """The RTL leg.  +bootimg replay -- no backdoor, the image's own loader stub
+    runs in the core, records start at the RESET-release edge, which is the
+    frame `chip_rows` is stored in and the frame `timed-boot` emits.  +mirror=1
+    is the capture board's 64 KB wiring and is the SAME memory the model is
+    given (`sim/timed_runner.cpp:432  biu.set_mirror(true)`)."""
+    img = Path(td) / "img.hex"
+    outp = Path(td) / "out.txt"
+    img.write_text("\n".join(f"{b:02x}" for b in bytes(image)) + "\n")
+    argv = [str(tb_bin(core)), f"+bootimg={img}", f"+bootn={nrows}",
+            "+mirror=1", f"+out={outp}"] + tb_wait_args(entry)
+    if evt is not None:
+        a, d, h, pin = evt
+        argv += [f"+evaddr={a:05x}", f"+evdelay={d}", f"+evhold={h}",
+                 f"+evpin={pin}"]
+    p = subprocess.run(argv, capture_output=True, timeout=600)
+    so = p.stdout.decode()
+    if "BOOT DONE" not in so:
+        return [], (so[-200:] + " " + p.stderr.decode()[-200:]).strip()
+    rows = []
+    for line in outp.read_text().splitlines():
+        f = line.split()
+        if f and f[0] == "r":
+            rows.append({"t": int(f[1]), "bs_early": int(f[2]),
+                         "qs": int(f[3]), "ube_n": int(f[4]),
+                         "ad_addr": int(f[5], 16), "ad_data": int(f[6], 16),
+                         "ps": int(f[7], 16)})
+    return rows, ""
+
+
 def first_kind(d):
     """One-word family for a RowDiff -- what parted FIRST, on the first row
     that parted at all."""
@@ -172,7 +285,7 @@ def first_kind(d):
     return "qsflicker" if d.flicker else "qs"
 
 
-def one(path, evt_replay=False):
+def one(path, evt_replay=False, core="sim", hold_mode="banked"):
     entry = json.loads(gzip.decompress(Path(path).read_bytes()))
     out = {"path": str(path), "cid": entry.get("cid"), "k": entry.get("k"),
            "verdict": entry.get("verdict"), "reason": entry.get("promoted_reason"),
@@ -191,15 +304,44 @@ def one(path, evt_replay=False):
     recs = entry["chip_rows"]
     win = uf.window_of(recs)
     ex = excuse(entry, recs, win, evt_replay)
-    evt = evt_directive(entry, meta, recs, win) if (evt_replay and not ex) \
-        else None
-    if evt is not None:
-        out["fires"] = len(evt["at"])
+    armed = evt_replay and not ex
     with tempfile.TemporaryDirectory() as td:
-        rows, err = run_sim(image, entry, len(recs), td, evt)
+        if core == "sim":
+            evt = evt_directive(entry, meta, recs, win, hold_mode) \
+                if armed else None
+            if evt is not None:
+                out["fires"] = len(evt["at"])
+            rows, err = run_sim(image, entry, len(recs), td, evt)
+        else:
+            ev = evt_tuple(entry, meta, hold_mode) if armed else None
+            if ev is not None:
+                out["fires"] = None      # the RTL predicts them; not replayed
+            rows, err = run_tb(image, entry, len(recs), td, core, ev)
     out["stderr"] = err.strip()[:200]
+    out["pop"] = "EVT" if entry.get("evt") else "REG"
     if not rows:
-        out["cat"] = "SIM_ERROR"
+        # The ENGINE produced nothing (an RTL assertion `$stop`, a driver
+        # abort).  The scored population is a property of the CAPTURE
+        # (`excuse` above) and must NOT move with the engine, so:
+        #   * a seed the capture already excuses stays excused, and
+        #   * a seed inside the population stays inside it and scores as a
+        #     total divergence.
+        # Silently dropping it would hand the failing engine a smaller
+        # denominator, i.e. a free pass.  Counted separately so it cannot hide.
+        out["engine_error"] = True
+        out["cat"] = ex or "DIVERGE"
+        out["excused"] = ex
+        if ex:
+            return out
+        out["n"] = win
+        out["ndiff"] = win
+        out["chip_rows"] = len(recs)
+        out["sim_rows"] = 0
+        out["first_bad"] = 0
+        out["kind"] = "abort"
+        out["detail"] = out["stderr"]
+        out["flicker_only"] = False
+        out["exact"] = False
         return out
     dr = fc.diff_rows(recs, rows)
     out["n"] = dr.n
@@ -221,8 +363,8 @@ def one(path, evt_replay=False):
     out["cat"] = ex or ("EXACT" if out["exact"] else "DIVERGE")
     out["excused"] = ex
     # S9b population tag: which of the two tables this seed belongs to.  The
-    # REGISTERED population is exactly the seeds with no `evt` axis.
-    out["pop"] = "EVT" if entry.get("evt") else "REG"
+    # REGISTERED population is exactly the seeds with no `evt` axis (set above,
+    # before the engine-abort return, so both paths carry it).
     return out
 
 
@@ -311,10 +453,25 @@ def main():
                     help="score the EVT seeds through the pin-event replay "
                          "(reported separately; the registered table is "
                          "unchanged)")
+    # U3.  The ENGINE, and nothing else.  `sim` is the default so every
+    # standing invocation of this harness scores exactly what it scored before.
+    ap.add_argument("--core", default="sim", choices=("sim", "ucore", "fsm"),
+                    help="replay engine: the C++ timed model (sim) or an RTL "
+                         "core in the Verilator TB (ucore / fsm)")
+    # U3.  The pin-hold the seed record stores is what the HOST asked for;
+    # the rig's register is 8 bits wide (see `rig_hold`).  `banked` is the
+    # default so every standing number of this harness is reproducible; `reg8`
+    # is the like-for-like directive and applies to BOTH legs identically.
+    ap.add_argument("--rig-hold", default="banked", choices=("banked", "reg8"),
+                    help="pin hold fed to the engine: as banked (the host's "
+                         "request, the standing default) or truncated to the "
+                         "rig's 8-bit register (what the socket was given)")
     ap.add_argument("--pop", default="all", choices=("all", "reg", "evt"),
                     help="restrict to the registered (no-evt) or the EVT "
                          "population; selection only, scoring is unchanged")
     args = ap.parse_args()
+    if args.core != "sim" and not tb_bin(args.core).exists():
+        sys.exit(f"timed_fuzz: no TB binary at {tb_bin(args.core)}")
 
     paths = sorted(str(x) for x in Path(args.seeddir).glob("*.json.gz")) \
         if args.seeddir else seeds_of([b for b in args.bank.split(",") if b])
@@ -335,17 +492,28 @@ def main():
 
     t0 = time.time()
     with Pool(args.jobs) as pool:
-        res = pool.starmap(one, [(p, args.evt_replay) for p in paths],
-                           chunksize=4)
+        res = pool.starmap(one, [(p, args.evt_replay, args.core,
+                                  args.rig_hold) for p in paths], chunksize=4)
 
     cat = Counter(r["cat"] for r in res)
     all_scored = [r for r in res if r["cat"] in ("EXACT", "DIVERGE")]
     reg = [r for r in all_scored if r.get("pop") != "EVT"]
     evtp = [r for r in all_scored if r.get("pop") == "EVT"]
-    print(f"== timed_fuzz -- fuzz-bank chip_rows through the TIMED sim "
+    eng = {"sim": "the TIMED sim"}.get(args.core, f"the {args.core} RTL core")
+    print(f"== timed_fuzz -- fuzz-bank chip_rows through {eng} "
           f"({len(paths)} seeds, {time.time()-t0:.0f} s)")
     print("  categories      " + "  ".join(f"{k}={v}" for k, v in
                                            sorted(cat.items())))
+    aborts = [r for r in res if r.get("engine_error")]
+    if aborts:
+        # Loud by construction: an engine that cannot RUN a seed is scored as a
+        # miss on it, and the count is stated on its own line.
+        print(f"  ENGINE ABORTS   {len(aborts)}  "
+              f"(scored as total divergences; "
+              f"{sum(1 for r in aborts if r.get('excused'))} were already "
+              f"excused by the capture)")
+        for r in aborts[:8]:
+            print(f"    {r['cid']}/{r['k']:<6} {r.get('stderr','')[:150]}")
     if args.evt_replay:
         for lbl, grp in (("REGISTERED", reg), ("EVT-unlocked", evtp),
                          ("COMBINED", all_scored)):
@@ -405,7 +573,7 @@ def main():
         Path(args.report).write_text(json.dumps(res))
         print(f"  report -> {args.report}")
     bad = cat.get("GEN_DRIFT", 0) + cat.get("REGEN_ERROR", 0) + \
-        cat.get("SIM_ERROR", 0)
+        cat.get("SIM_ERROR", 0) + len(aborts)
     return 1 if bad else 0
 
 

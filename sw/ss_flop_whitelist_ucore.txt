@@ -1,0 +1,51 @@
+# ss_flopcensus --core ucore whitelist -- regs the clocked-block rule counts as
+# flops that carry NO state across a clock edge.
+#
+# Format: one entry per line, `signal_name  # justification`.
+# The justification (text after #) is MANDATORY; an entry without one FAILS.
+#
+# WHY THIS FILE EXISTS AND THE FSM ONE IS EMPTY.  The ucore's EU is one
+# `always @(posedge clk)` block written in the model's software style: blocking
+# `=` throughout.  Its BLOCK-LOCAL WORKING VALUES are therefore module-scope
+# `reg`s too, indistinguishable by declaration from architectural state.  Every
+# entry below is one of those: on every clock it is WRITTEN BEFORE IT IS READ,
+# by a write that dominates every read of it, so no value survives the edge and
+# there is nothing for a save-state to carry.  Each was checked by hand against
+# its write sites and its read sites (U3 platform audit); the line records where
+# the dominating write is.
+#
+# THIS IS A WORKAROUND FOR A DECLARATION, NOT A DESIGN DECISION.  SystemVerilog
+# lets these be declared INSIDE the always block, which would make them
+# automatic and remove them from the census by construction -- and would remove
+# this file with them.  Booked as a U3 finding, not patched (RTL frozen).
+#
+# Do NOT add an entry here to silence a genuine save-state gap.  A reg that
+# carries live machine state across a clock edge MUST be mapped.
+
+# --- v30u_eu.sv: the clocked block's own working values --------------------
+stop         # written v30u_eu.sv:1670 (`stop = 0`) before the chain loop reads it
+ie_now       # written v30u_eu.sv:1583, top of the `else if (ce)` arm, before its one read at 1697
+v1           # the row's Source1 value: written v30u_eu_poste.svh:17 / row.svh:17 before wd1.svh reads it
+v2           # the row's Source2 value: written v30u_eu_poste.svh:29 before its reads
+bsw          # the row's byte-source flag: written alongside v1 (poste.svh:18, row.svh)
+pv           # the loader's PLA word: written v30u_eu_step.svh:52 before its reads at 53+
+nloc         # next upc_loc: written unconditionally v30u_eu_row.svh:54, read at 177
+carry        # upc_loc wrap: written unconditionally v30u_eu_row.svh:55, read at 178
+taken        # branch condition: written unconditionally v30u_eu_row.svh:56, decided in cond.svh
+bubble       # row-charge flag: written unconditionally v30u_eu_row.svh:57, read at 237
+retire_now   # written v30u_eu_row.svh:204, read at 215 in the same `e_e` branch
+rep_chained  # the REP boundary's chained flag, written v30u_eu_cond.svh:37 before its reads at 47+
+tsel         # F29's live tmp: full-case write v30u_eu_row.svh:89-92, read at 95-97
+ea           # effective address under construction: written in every arm of the mod/rm case (step.svh:253+)
+rseg         # the operand's segment: written v30u_eu_step.svh:263, read at 269
+rmmod        # mod field: written v30u_eu_step.svh:250, read at 259+
+rmreg        # reg field: written v30u_eu_step.svh:284, read at 292
+rmrm         # r/m field: written v30u_eu_step.svh:251, read at 252+
+tk           # M<->R swap temp, single statement v30u_eu_step.svh:332
+ti           # M<->R swap temp, single statement v30u_eu_step.svh:333
+te           # M<->R swap temp, single statement v30u_eu_step.svh:334
+ts           # M<->R swap temp, single statement v30u_eu_step.svh:335
+tb           # M<->R swap temp, single statement v30u_eu_step.svh:336
+
+# --- vestigial ------------------------------------------------------------
+ending       # WRITE-ONLY: assigned at v30u_eu.sv:1529 and step.svh:398/641/682, read NOWHERE. F22 replaced it with `poste`; dead reg, booked as a U3 finding.
