@@ -97,6 +97,7 @@ wire        eu_rd_edge;
 wire [15:0] eu_rd_edge_d;
 wire        eu_opr_free;
 wire        eu_susp, eu_resume, eu_halt, eu_unhalt, biu_halted;
+wire        eu_unhalt_disp;                       // F43 (SM3 sitting 6)
 wire        bnd_hold, eu_bnd_take, eu_bnd_post;   // H1 (SM3 sitting 3)
 wire        psw_ie, md8080;
 wire [15:0] ss_eu_rdata, ss_biu_rdata;
@@ -197,6 +198,7 @@ v30u_biu u_biu (
     .eu_resume  (scr_en ? 1'b0 : eu_resume),
     .eu_halt    (scr_en ? 1'b0 : eu_halt),
     .eu_unhalt  (scr_en ? 1'b0 : eu_unhalt),
+    .eu_unhalt_disp(scr_en ? 1'b0 : eu_unhalt_disp),
     .halted_o   (biu_halted),
     .bnd_hold   (bnd_hold),
     .eu_bnd_take(scr_en ? 1'b0 : eu_bnd_take),
@@ -248,6 +250,7 @@ v30u_eu u_eu (
     .eu_resume  (eu_resume),
     .eu_halt    (eu_halt),
     .eu_unhalt  (eu_unhalt),
+    .eu_unhalt_disp(eu_unhalt_disp),
     .halted     (biu_halted),
     .bnd_hold   (bnd_hold),
     .eu_bnd_take(eu_bnd_take),

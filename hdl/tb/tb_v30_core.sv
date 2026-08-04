@@ -261,6 +261,14 @@ logic        lat_ube  = 1'b1;
 wire lat_read  = lat_type == 3'b100 || lat_type == 3'b101 ||
                  lat_type == 3'b001 || lat_type == 3'b000;
 wire lat_write = lat_type == 3'b110 || lat_type == 3'b010;
+// ...and the MEMORY half of it.  SM3 sitting 6 (ledger sec.66.3): the write
+// COMMIT below used `lat_write`, so an `IOW` to port P stored into `mem[P]`.
+// The read side was never symmetric -- `IOR` is served from `iord_ser` and
+// `INTA` from `INT_VECTOR`, neither from `mem` -- and neither the socket
+// harness nor `sim/` does it, which is why the chip reads the seed's own image
+// where the RTL legs read the I/O datum.  A write cycle still HANDS THE DATA
+// LANES OVER (`core_data_drive` keeps `lat_write`); only the store is memory's.
+wire lat_memw  = lat_type == 3'b110;
 
 // memory read drive during T2/T3/Tw of read cycles (nec_bus-equivalent);
 // INTA cycles return the vector byte, IOR cycles the configured data
@@ -435,7 +443,7 @@ always @(posedge clk) begin
         hold <= {eff_hi, eff_lo};
 
         // apply CPU writes at the end of the first T3 (as nec_bus does)
-        if (tb_t == ST_T3 && lat_write && case_active) begin
+        if (tb_t == ST_T3 && lat_memw && case_active) begin
             if (!lat_addr[0]) begin
                 undo_addr.push_back(lat_a);
                 undo_val.push_back(mem[lat_a]);

@@ -156,6 +156,8 @@ module v30u_biu (
     input             eu_resume,
     input             eu_halt,     // M20: the HLT row's status write (leads 1)
     input             eu_unhalt,   // M20: the wake (leads 1)
+    input             eu_unhalt_disp, // F43: the same wake as the DISPLAY's
+                                 // own decision edge sees it (int_p[1])
     output            halted_o,
 
     // --- H1: the RE-ENTRY acknowledge's recognition floor (SM3 sitting 3) ---
@@ -1709,7 +1711,15 @@ always_comb begin
         // MEASURED at w0/w1/w3 alike: one clock later than a granted cycle's
         // display, because a grant loads the register AT the eval and the HLT
         // row can only load it once the finishing cycle has let go.
-        if (halt_pending && !run && !cmt_valid && !set_noeval) begin
+        // F43 (SM3 sitting 6) -- ...AND THE DECISION TESTS THE WAKE VISIBLE ON
+        // ITS OWN EDGE.  This block decides the display for clock `H` at the
+        // edge ending `H-1`; `eu_unhalt` above cancels a display whose wake
+        // fired at or before `H-1`, and M20's threshold-1 (`A - H >= -2`,
+        // i.e. suppress iff `D <= H`) needs the `D == H` case too.  That is
+        // `eu_unhalt_disp`, the same wake one stage further down the same pin
+        // pipeline.  A term added to the existing test; nothing new is stored.
+        if (halt_pending && !run && !cmt_valid && !set_noeval &&
+            !eu_unhalt_disp) begin
             cmt_bs = BS_HALT;
             // S9b: the HALT display drives the address latch AS IT STANDS when
             // the cycle takes the register.  M10(T4): the upper nibble is a

@@ -101,6 +101,12 @@ module v30u_eu (
     output            eu_resume,
     output            eu_halt,
     output            eu_unhalt,
+    // F43 (SM3 sitting 6): the SAME wake, tapped ONE STAGE further down the
+    // SAME pin pipeline, for the reader whose decision edge leads its own
+    // clock -- the BIU's HALT display.  No new state: `int_p[1]` against
+    // `int_p[2]`, exactly as `irq_rep_chn` reads a chained REP boundary
+    // against `irq_rep_1st`.
+    output            eu_unhalt_disp,
     input             halted,
 
     // H1 (SM3 sitting 3): the re-entry acknowledge's recognition floor.  The
@@ -1495,6 +1501,17 @@ assign eu_halt = q_pop && q_ripe && q_first && qb_is_halt && !mode8080 &&
 // the same `S_OPC_POP` with `irq_take` false.
 wire hlt_wake_int = (st == S_HALTED) && !irq_nmi_lvl && irq_pin_int;
 assign eu_unhalt = hlt_wake_int || unhalt_pend;
+
+// F43 -- THE HALT-DISPLAY DECISION MUST TEST THE WAKE VISIBLE ON ITS OWN
+// DECISION EDGE.  M20 threshold 1 says the display at clock `H` is suppressed
+// when the wake decision `D` satisfies `D <= H`; `D = A + 3` is MEASURED at
+// 100 % on all four `evt` cells.  The BIU decides the display at the edge
+// ending `H-1`, where `eu_unhalt` reads `int_p[2]` (the pin at `c-3`) and so
+// is true only for `D <= H-1`.  The remaining case `D == H` is visible AT THAT
+// SAME EDGE one stage further down: `int_p[1]`, the pin at `c-2`.  Both taps
+// are `edge - 4`; what changed is the REFERENCE EDGE (F40's shape).
+wire hlt_wake_disp = (st == S_HALTED) && !irq_nmi_lvl && int_p[1];
+assign eu_unhalt_disp = hlt_wake_disp || unhalt_pend;
 
 assign psw_ie  = psw[FIE];
 assign md8080  = mode8080;

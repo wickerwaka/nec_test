@@ -7967,3 +7967,202 @@ cells closing; a `seg`-half cell closing.
 * **The 8080 / `gaps` §F.1 work is not opened** (a pending USER decision).
 * **`s15_census` is not modified**; no memory file is touched; Codex is not
   launched.
+
+## §67 SESSION SM3, SITTING 6 — THE RESULTS, REPORTED AS REGISTERED
+
+**2026-08-04, branch `ucsim`.  Offline only, NO BOARD CONTACT.**  §66 is the
+pre-registration and was committed before either change was built.  Everything
+below is re-run on this tree; nothing is cited.
+
+### §67.1 H4 — **P1 MET AT ITS POINT ESTIMATE, 7 / 7.  THE RIG WAS THE DEFECT.**
+
+`hdl/tb/tb_v30_core.sv`: the memory commit's guard is now `lat_memw`
+(`lat_type == 3'b110`) instead of `lat_write`, so an `IOW` no longer stores into
+`mem[]`.  `lat_write` is UNCHANGED where it belongs — `core_data_drive` still
+hands the data lanes to a write of either kind.  **One term; nothing else in
+the TB, and no engine, was touched by this change.**
+
+| bar | registered | **measured** |
+|---|---|---|
+| **P1** the 7 REGISTERED seeds | **>= 6 / 7**, point estimate 7 | **7 / 7** — `mc1/412`, `mc1/1937`, `mc1/3325`, `mc2/2216`, `mc2/3291`, `t30-raw/84`, `t30-raw/123` are all CYCLE-EXACT |
+| — seeds improved / worsened, whole bank | — | **9 improved, 0 worsened** (the 7 above + `mc1/2850`, `mc1/3741` on the EVT axis) |
+| **P2** `check_core --core ucore --opcodes all --cases 0` | 169,000 | **169,000 / 169,000** |
+| **P2** `f4a_boundary` / `f0lock_tranche` | 160 / 400 | **160 / 160** and **400 / 400** |
+| **P2** the 23 `v0.3` block-I/O forms (`OUTM` drives `IOW`) | 229,999 | **229,999 / 229,999** cycles AND arch |
+| **P3** `timed_fuzz --core ucore` REGISTERED | >= 1,483 | **1,490 / 1,702** (+7) |
+| **P3** … EVT | >= 906 | **908 / 1,008** (+2) |
+| **P3** … COMBINED | — | **2,398 / 2,710** (+9) |
+| **P3** b2 victory tranche | >= 171 | **172 / 188** (+1) |
+| **P3** the four HLT sweeps | unchanged | **91/97, 90/95, 40/46, 38/45** — unchanged, cell for cell |
+| **P4** `timed_fuzz --core sim` | 1,272 / 780 / 2,052 | **1,272 / 780 / 2,052, to the seed** |
+| **P5** `check_core --core fsm --opcodes all --cases 0` | 168,400 | **168,400 / 169,000** |
+
+**WHAT THIS DOES TO `gaps` §T.2.**  Seven of the nine seeds that document
+*"the ucore's OWN registered-bank residue"* were the testbench's.  Re-partitioned
+on this sitting's own reports, **the ucore's registered-bank ucore-only residue
+is TWO seeds**:
+
+| seed | first divergence | `ndiff` | what it is |
+|---|---|---|---|
+| `mc1/721` | `data b084 != b085` | **2 / 968** | §49.8 item 2, the `10`/ADC carry-in.  Its deciding measurement (`+ss_at` on `SSA_E_PSW`) is still written down and still un-run |
+| `mc2/584` | `qs F != -` | 404 / 1,774 | not `data`, and not covered by any of §49.8's three sub-mechanisms |
+
+**§T.2's *"eight of nine are `data`"* now reads: seven of the eight were the
+instrument.**  The remaining `data` seed is `mc1/721` and it is off by ONE.
+
+*Falsifier for the attribution, and it did not fire*: no seed regressed, and
+every golden that reaches `IOW` (the 23 block-I/O forms) is unmoved.
+
+**WHY NOTHING WAS SCORED WRONG THAT CANNOT BE RE-SCORED.**  The defect is in a
+REPLAY instrument, not in a capture: every chip row in the bank was taken on the
+socket, where the harness does not do this — which is exactly how the defect was
+found (the chip reads the seed's own image at an address the RTL legs read the
+I/O datum from).  No golden and no capture is invalidated, and `INV-1` is not
+re-opened.  The figures that move are the RTL legs' own replay scores, and they
+move **UP**, itemised above.
+
+### §67.2 H4 — WHAT IS **NOT** CLOSED: PARTITION B, AND ITS DIRECTED INSTRUMENT
+
+§66.2's partition B — the **28** REGISTERED seeds that are `DATA_SEQ` in BOTH
+engines, with the SAME first diverging row and the SAME detail on **27 of 28** —
+is untouched and is NOT the rig: the two engines agree with each other and
+disagree with the socket, which is §49.7's class scaled from 4 seeds to 27.
+Its shape, measured: the first parting is a `MEMR` LAUNCH ADDRESS (27 of 28),
+`delta = 0` at the slot in most, and `ndiff` in the thousands — the run takes a
+different path from there, so it is a FUNCTIONAL divergence with a timing
+family label, not a timing family.
+
+Three of the 28 are especially sharp and are the directed instrument this
+sitting produces, board-free: `mc2/1718`, `mc2/3061` and `t30-raw/899` have the
+chip reading **`0x00004`** — the INT 1 vector — where both engines read a
+computed effective address.  *The chip takes an entry the engines do not.*
+`t30-raw/962` is the cheapest member (`ndiff = 4` of 4,000).
+
+*The measurement, specified*: replay those four with `v30sim image --trace` and
+the ucore's `+ss_at` at the divergent clock and compare the ARCHITECTURAL state
+(PSW's trap/break bits above all) at the last agreeing instruction boundary.
+**Not run here** — the session that measures a class does not also land it.
+
+### §67.3 H5 — **Q1 MET AT ITS POINT ESTIMATE.  F43 IS LANDED AND THE SIX CELLS CLOSED.**
+
+The landing is §66.5's, exactly: `v30u_eu.sv` publishes `eu_unhalt_disp` —
+the same wake read one stage further down the same pin pipeline (`int_p[1]`
+against `eu_unhalt`'s `int_p[2]`) — `v30_core.sv` carries one wire, and
+`v30u_biu.sv`'s S8/S9 display test gains ONE TERM.  **No flop was added.**
+
+| bar | registered | **measured** |
+|---|---|---|
+| **Q1** `s10-hltsweep-w1` | >= 92 / 95 | **92 / 95** |
+| **Q1** `s13-hltsweep-w2` | >= 42 / 46 | **42 / 46** |
+| **Q1** `s13-hltsweep-w3` | >= 40 / 45 | **40 / 45** |
+| **Q1** total | >= 265 / 283 | **265 / 283** (was 259) |
+| **Q2** `s10-hltsweep-w0` | >= 91 / 97 | **91 / 97**, failing set unchanged (`HLT.INT` 2,3,4,5 · `HLT.RES` 2,3) |
+| **Q3** the 7 `seg`-first cells | must NOT close | **none closed** — `HLT.INT` w1 8,9,10 · w2 12,13 · w3 15,16 still fail |
+
+**Exactly the six F43 cells closed and nothing else moved on these sweeps.**
+The ucore's failing set is now `HLT.INT` w0 2,3,4,5 · w1 8,9,10 · w2 10,11,12,13
+· w3 12,13,14,15,16 and `HLT.RES` w0 2,3 — **18 cells against the model's 11,
+so the ucore-only count is 13 -> 7**, and every one of the 7 is the undiagnosed
+`seg`/`bus` half.  `HLT.RES` is now **PERFECT at w1, w2 and w3** (49/49, 25/25,
+25/25); its only failures are the two model-shared w0 cells.
+
+**AND THE ucore DID NOT MOVE AWAY FROM THE MODEL.**  The model already passes
+all six of these cells (it is 95/95 at w1), so F43 brought the RTL TO the
+reference, not away from it — which is why `ulockstep` is untouched.
+
+**Q4 — THE FULL LADDER, RE-RUN ON THE FINAL BINARY:**
+
+| gate | registered | **after F43** |
+|---|---|---|
+| `check_core --core ucore --opcodes all --cases 0` | 169,000 | **169,000 / 169,000** |
+| `v0.1-w1` / `-w3` | 1,200 / 1,200 | **1,200 / 1,200** |
+| `v0.1-w1 --opcodes EB` | 200 | **200 / 200** |
+| the four `evt` cells | 200 / 1,200 / 200 / 1,200 | **200 / 1,200 / 200 / 1,200** |
+| `v0.1-w1evt-biased` | 1,200 | **1,200 / 1,200** |
+| `f4a_boundary` / `f0lock_tranche` | 160 / 400 | **160 / 160** and **400 / 400** |
+| the 23 `v0.3` block-I/O forms | 229,999 | **229,999 / 229,999** |
+| `check_boot --core ucore` 220 / 400 | MATCH | **MATCH / MATCH** |
+| **`ulockstep --golden all --cases 50`** | 17,350 | **17,350 / 17,350 ALL CASES LOCKSTEP** |
+| `timed_wvec_gate --core ucore` | 88/88, +0.0 % | **88/88, 16,048 vs 16,048, +0.0 %** |
+| `timed_enter_replay --core ucore` | 154/154 ×5 | **154 / 154** (full, active, halt_display) |
+| `timed_ins_replay --core ucore --raw` | 1,312 / 2,624 | **1,312 / 1,312** and **2,624 / 2,624**, 173,556/173,556 same-T1 |
+| `timed_fuzz --core ucore` REGISTERED | >= 1,490 | **1,490 / 1,702** |
+| … EVT | >= 908 | **910 / 1,008** (+2 more) |
+| … COMBINED | — | **2,400 / 2,710** |
+| b2 victory tranche | >= 172 | **172 / 188** |
+| `BOUND WARNINGS` / `ENGINE ABORTS` | 5 / 0 | **5 / 0** |
+| `ss_lint.py` | rc 0, 0 UNMAPPED | **rc 0, 205 flops, 0 UNMAPPED, `SS_VERSION` 0x83 unchanged** |
+| `check_core --ce-div 4 --ce-hold-check` | `CE_HOLD_VIOL 0` | **`CE_HOLD_VIOL 0`** on all cells |
+| `check_ab_sim --core ucore` | 187 rows MATCH | **MATCH over 187 rows** |
+| **Q5** `x1_retention offline` (the same TB column) | 259 / 283 | **265 / 283** — it IS the `tb_v30_core` column |
+| **Q5** `x1_retention` `tb_sys` legs | 143 / 259 | **see §67.6 — the binaries were STALE and the run is NOT a measurement of this tree** |
+
+**No falsifier fired.**  `ulockstep` is exact; no Q4 ratchet moved down; six
+cells closed, not fewer; no `seg`-half cell closed.
+
+### §67.4 THE RATCHETS THAT MOVED, ITEMISED
+
+| ratchet | before | **after** | which change |
+|---|---|---|---|
+| `timed_fuzz --core ucore` REGISTERED | 1,483 / 1,702 | **1,490 / 1,702** | the TB (§67.1) |
+| `timed_fuzz --core ucore` EVT | 906 / 1,008 | **910 / 1,008** | TB +2, F43 +2 |
+| `timed_fuzz --core ucore` COMBINED | 2,389 / 2,710 | **2,400 / 2,710** | both |
+| b2 victory tranche | 171 / 188 | **172 / 188** | the TB |
+| the four HLT sweeps | 259 / 283 | **265 / 283** | F43 |
+| `x1_retention offline` | 259 / 283 | **265 / 283** | F43 (it is the same TB column) |
+| the ucore's REGISTERED ucore-only residue | 9 seeds | **2 seeds** | the TB |
+
+Everything else in `standing_gates.md` §B is unmoved and was re-measured, not
+inherited.
+
+### §67.5 WHAT THIS SITTING DID NOT DO
+
+* **No board contact**, and no cell is requested.  §67.2's directed instrument
+  is offline.
+* **Partition B is not fixed** (§67.2), and the 7 `seg`/`bus` HLT cells are
+  still **NOT DIAGNOSED** — their signature is `seg exp 'CS' got 'SS'` with the
+  composed bus differing by exactly `0x10000` (the S4:S3 indicator), all on
+  `HLT.INT`, all at the top of each sweep's `d` band.  Booked, not absorbed.
+* **The 8080 / `gaps` §F.1 work was not opened** (a pending USER decision).
+* **No memory file was touched and Codex was not launched.**
+
+### §67.6 A RIG-INTEGRITY FINDING NOBODY WAS LOOKING FOR — **THE VACUOUS-GATE PATTERN, SIXTH INCARNATION**
+
+`x1_retention.py capture` binds to `hdl/tb/obj_dir_sys{,_ret}/tb_sys` and
+**checks only that the file EXISTS** (`if not _LEG["bin"].exists(): sys.exit`).
+Nothing in the tree rebuilds it, and there is no build script for it at all —
+`tb_sys` was built ad hoc when §58.6 created it.  Both binaries date from
+**07:04 / 07:05 on 2026-08-04**, i.e. before this sitting's RTL.
+
+Run as-is after F43 the tool reported **`ret` 259 vs offline 265, 6 SURVIVORS,
+BAR (i) NOT MET**, and the six survivors were **exactly the six F43 cells with
+exactly the F43 signature** (`first = (5|6|7, 'busstat', 'PASV')`).  That is not
+a refutation of anything; it is a **stale binary scoring old RTL against a new
+reference column.**  Reported here rather than quoted anywhere as a result.
+
+This is the same failure mode as `sm3_residue_census` §7 item 1 (the stale
+`Vtb_v30_core` that `check_seq` never rebuilds) and it is the FIFTH and SIXTH
+instances of *a gate that binds to a binary nothing in the tree owns*.
+**A standing fix is routed, not taken here** (it belongs with whoever next opens
+the `tb_sys` path): give `x1_retention` a `build()` with `tb_sys.sv`,
+`system_large.sv` and `CORE_RTL["ucore"]` in its dependency set, exactly as
+`check_core.build()` already does for `tb_v30_core`.
+
+**THE RE-RUN, PRE-REGISTERED BEFORE THE REBUILD.**  Both legs are rebuilt from
+this tree and re-captured.  Predicted, from the arithmetic of the old run
+(`base` 140 failing = 24 offline failures + 116 INTA-class; offline is now 18):
+
+| leg | before (stale) | **predicted** |
+|---|---|---|
+| `tb_sys` base | 143 / 283 | **149 / 283** |
+| `tb_sys` ret | 259 / 283 | **265 / 283**, equal to `offline` |
+| bar (i) | 116 closed, 6 survivors | **116 closed, 0 survivors** |
+| bar (ii) | 6 differing | **0 differing** |
+
+**AND A CONSEQUENCE THAT MUST BE STATED WHATEVER THE RESULT.**  The fabric
+baseline that §58.6 and §59.7.1 record — *"`tb_sys` base reproduces the fabric's
+143/283 exactly"* — is a statement about the RTL **the bitstream carries**.
+FLASH #3 does not carry F43.  If `base` moves to 149 the Verilated integration
+and the flashed bitstream no longer agree, **and that is correct**: the
+correspondence is re-established by a re-flash, not by keeping the RTL still.
+**No board was touched this sitting and none is asked for.**
