@@ -3990,3 +3990,141 @@ does not reset.  `pend_active` is provably 0 there (`S_TAIL_W` emits first), but
 boundary into `0.97`, where the model would have dropped it.  Whether that is
 load-bearing is its own measurement (re-run the bank with `rdq_n = 0` added and
 see whether anything moves **in either direction**).  Not done here; U5 item.
+
+## §50 GATE G6 (SYNTHESIS) — **RED.** THE COMBINATIONAL ROM READ DOES NOT FIT THE DEVICE
+
+**This is the stage's hard result and it stops the fabric half of U4.  There is
+no ucore bitstream.  Nothing was flashed.**
+
+### §50.1 THE NUMBERS, AGAINST THE REGISTERED EXPECTATIONS
+
+`quartus_sh` 17.1.0 Lite, revision `nec_test_ucore`, device `5CSEBA6U23I7`.
+
+| gate (§45.4 item 3) | registered expectation | **measured** | |
+|---|---|---|---|
+| Analysis & Synthesis errors | **0** | **0**, `rc=0` | ✅ |
+| `quartus_map` wall | **~4 min band** (not 25) | **772.9 s = 12 min 53 s** | ❌ (the FSM revision's own A&S is **2:49**) |
+| **zero `lpm_divide`** | 0 | **0** | ✅ — and strictly better than the FSM core, which instantiates one (`lpm_divide:Div0`) |
+| **zero inferred latches** | 0 | **0** | ✅ (the 161 "latch" strings in the report are all Altera IP net names — `address_latch`, `SigmaLatch`, `burstcount_latch`) |
+| M10K for the two ROM tables | **~11-14** (of the design's 15-24 / 553) | **0** | ❌ |
+| ALMs | the FSM design is 25 % | **28,048 / 41,910 = 67 %** | ❌ |
+| Fmax >= 32 MHz with margin | >= 32 MHz | **NOT MEASURED — STA never ran** | ❌ |
+| bitstream | a `.sof` | **none produced** | ❌ |
+
+```
+Error (11802): Can't fit design in device.
+Error (170143): Final fitting attempt was unsuccessful
+Fitter Status : Failed        elapsed 00:35:49, CPU 00:56:21, peak VM 3,900 MB
+```
+
+**And it did not fail on AREA — it failed on ROUTING.**  67 % of the ALMs were
+placed; what broke was the router:
+
+```
+Warning (16684): The router is trying to resolve an exceedingly large amount of
+congestion.  At the moment, it predicts long routing run time and/or
+significant setup or hold timing failures.
+```
+
+### §50.2 THE CAUSE, IN QUARTUS'S OWN WORDS
+
+The architecture's one registered risk-#3 was *"BRAM flow-through/Fmax (one
+cone)"*, with the fallback stated in advance: *"if 17.1 refuses flow-through,
+a registered output with the F2 tap moved one stage."*  **17.1 refuses, and it
+says exactly why:**
+
+```
+Info (276007): RAM logic "…|v30u_eu:u_eu|v30u_ucrom:u_ucrom|ucrom" is
+               uninferred due to ASYNCHRONOUS READ LOGIC     (v30u_ucrom.sv:54)
+```
+
+...and the same message for **~37 more arrays**, all of them
+`hdl/rtl/ucore/pla3_tables.svh` (lines 110 / 373 / 636).  A Cyclone V M10K read
+port is REGISTERED by construction, so `(* ramstyle = "M10K" *)` cannot make an
+asynchronously-read array a block RAM — the attribute is a preference, not an
+override.  Both microcode tables and the whole PLA3 set therefore became LUT
+logic:
+
+| entity | combinational cells | registers | block memory bits |
+|---|---|---|---|
+| **FSM** `v30_core` | 12,257 | 1,150 | 0 |
+| **FSM** `v30_eu` | 11,471 (11,315 own) | 860 | 0 |
+| **ucore** `v30_core` | **32,534** | 1,069 | 0 |
+| **ucore** `v30u_eu` | **31,647 (30,621 own)** | 675 | 0 |
+| **ucore** `v30u_ucrom` | 1,026 | 0 | **0** |
+
+The core is **2.65x the FSM core's combinational logic**, and the design's
+`Total block memory bits` is **840,863 — byte-identical to the FSM build's**,
+which is the cleanest single proof that not one bit of the microcode went into
+a memory block.  (The ROM's own module shows only 1,026 cells because Quartus
+flattens the combinational read across the boundary and the giant mux lands in
+the EU's own total.)
+
+### §50.3 WHAT THIS MEANS — THE FALLBACK IS NOW REQUIRED, NOT OPTIONAL
+
+The architecture documented both shapes and this is the measurement that
+chooses between them.  **The combinational-ROM-read decision is REFUTED by the
+tool.**  The registered fallback — *"a registered output with the F2 tap moved
+one stage"* — is the way forward, and it is not a synthesis tweak: **it changes
+the EU's cadence**, so it must go back through the entire sim ladder (G3's
+169,000, the wait axes, lockstep, the silicon replays, the fuzz bank) before it
+can be trusted, and the whole of §46/§47/§49's re-scoring would have to be
+repeated on it.  That is U5-scale work and it is NOT started here.
+
+Two smaller, independent reductions are worth measuring at the same time,
+because the PLA3 arrays are 37 of the ~38 uninferred nodes and were never the
+headline:
+
+1. **`pla3_tables.svh`'s arrays are combinationally read too.**  §26.10 calls
+   PLA3 *"a combinational generated case ROM (~10.7 Kb)"* — small in BITS, but
+   it is 37 uninferred nodes and a large share of the congestion.  Whether they
+   want registering, or are simply better written as a `case` the synthesiser
+   maps to logic deliberately, is a separate measurement.
+2. **`ucdecode` is 8192 x 10 = 81,920 b of which only 1,656 entries are valid**
+   (measured).  A direct-addressed 8,192-entry table was chosen so the RTL
+   carries *"ZERO match/priority logic"*; at 80 % empty it is also 80 % of the
+   mux that will not route.
+
+### §50.4 TWO HYGIENE FINDINGS THE COMPILE TURNED UP
+
+1. **`Warning (10335): Unrecognized synthesis attribute "shape"` at
+   `v30u_ucrom.sv(22)`.**  Line 22 is a **COMMENT**: *"(U4 owns the synthesis
+   shape; the `ramstyle` hints below are what Quartus is asked for.)"*  Quartus
+   parses `synthesis <word>` inside a comment as a PRAGMA.  Harmless here — the
+   attribute is unrecognised and ignored — but it is a live hazard: a comment
+   that happens to contain `synthesis` followed by a REAL attribute name would
+   silently change the build.  Not fixed in this tree because a comment edit
+   forces a 13-minute re-map; fix it with the fallback work.
+2. **`Warning (10230): truncated value with size 12 to match size of target
+   (10)` on EVERY line of `ucdecode.hex`** — 8,192 of them.  The array is
+   `[9:0]` and the hex file carries 3 hex digits.  Numerically harmless (the
+   words are `{valid, bank[8:0]}`, max `0x3FF`) and Verilator is silent about
+   it, but it buries the map log.  Emitting the table as 10 bits (or declaring
+   the array 12) removes 8,192 warnings.
+
+### §50.5 WHAT DID **NOT** HAPPEN, AND WHY — STATED PLAINLY
+
+Items 7-10 of the U4 plan are **NOT DONE**, and the reason is a single hard
+fact: **the fitter produced no bitstream.**  Nothing was flashed, so:
+
+* **no milestone flash #1** (`use_core=0` chip-path check, then `use_core=1`);
+* **no first light**, no in-silicon A/B fuzz;
+* **F42's falsifiable prediction (§48.3) is UNSCORED** — the 17 TB-masked HLT
+  cells still have no fabric measurement, and it remains a live, registered,
+  falsifiable prediction;
+* **the standing priority gate (§48.4) is UNRUN** — no fresh random-wait
+  tranche was captured;
+* **no FSM-vs-ucore two-bitstream A/B**, and therefore **task #31's ENTER flash
+  debt is NOT superseded** — it stands exactly as it did.
+
+**The board was left untouched.**  It was checked for reachability and
+single-writer status (§48.0) and nothing else; no capture was taken, no
+bitstream loaded, `use_core` was never set.  The FSM baseline bitstream is
+unchanged on disk and unchanged on the board — `nec_test.rbf sha256 2643d8ce…`,
+`nec_test.sof sha256 1cc4bf55…`, re-verified after the compile.
+
+The one in-fabric-shaped result that DOES stand is §48.1's, and it is not
+nothing: `check_ab_sim --core ucore` puts the ucore inside the real integration
+(`system_large` + `nec_bus` + the capture path) and it **MATCHES the chip's own
+boot capture over 187 rows, 0 rows differ**, with the loop `CODE T1 @00100`
+recurrence identical to silicon's.  That is the pre-flash gate, met.
