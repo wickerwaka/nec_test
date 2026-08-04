@@ -641,8 +641,16 @@ always @(negedge clk) begin : ss_controller
                 // G4 sensitivity: flip ONE non-tag stream bit, restore the
                 // corrupted image, resume. A bit that maps to live state must
                 // perturb the continuation (or a visible final delta). The bit
-                // index = ss_scramble_seed; word 0 (tag) is skipped. Run many
-                // seeds: most flips must diverge -> the gate is NOT blind.
+                // index = ss_scramble_seed; word 0 (tag) is skipped.
+                //
+                // HOW TO DRIVE IT (F45; the guidance here used to read "run
+                // many seeds: most flips must diverge", and that builds a BLIND
+                // gate).  Mode 4's seed IS the bit index, so a small-seed sweep
+                // only ever touches the FIRST WORD of the stream.  STEP THE
+                // SEED BY 16 to walk one bit per stream word.  And the bar is
+                // "SOME must diverge, and which ones is form- and
+                // freeze-point-dependent" -- not "most": a bit that is dead at
+                // this freeze point is dead legitimately.
                 integer bit_idx, wrd, bpos;
                 ss_save(ss_saved);
                 for (int si = 0; si < SS_COUNT; si++) ss_work[si] = ss_saved[si];
@@ -1221,18 +1229,29 @@ initial      ce_hold_check = $test$plusargs("ce_hold_check");
 // The watched state is engine-specific; the CHECK is not.  One concatenation
 // per engine keeps the rule ("the core must not advance on a CE-low clock")
 // identical for both.
+// The probe word is 64 bits and zero-extended for BOTH engines, so an engine's
+// watched set can be widened without the declaration becoming an engine fact.
 `ifdef V30_FSM_PROBES
-wire [18:0]  ce_probe = {dut.u_eu.state, dut.u_biu.state,
+wire [63:0]  ce_probe = {dut.u_eu.state, dut.u_biu.state,
                          dut.u_biu.q_cnt, dut.u_eu.div_cnt};
 `else
 // ucore: `r_*` IS the state (the unprefixed names are the always_comb's
 // next-state view, which tracks the pins and so moves on CE-low clocks by
 // design -- F7).  Watching the next-state view would make this gate report the
 // contract instead of a violation.
-wire [18:0]  ce_probe = {3'b0, dut.u_biu.r_ts, dut.u_biu.r_q_cnt,
-                         dut.u_biu.r_fetch_ptr[7:0]};
+//
+// R5 / F50 item 3 (2026-08-04): the EU is IN the probe now.  It watched the
+// BIU only, so a clean `+ce_div` cell was BIU-state evidence and the EU side
+// rested on the golden row match -- the enumerate-the-known blind spot this
+// project has hit five times.  The ucore EU's spine is its micro-PC
+// (`upc_page` / `upc_opc` / `upc_loc`, the three SSA_E_UPC_* addresses),
+// which is what `u_eu.state` was for the archived core.
+wire [63:0]  ce_probe = {dut.u_biu.r_ts, dut.u_biu.r_q_cnt,
+                         dut.u_biu.r_fetch_ptr[7:0],
+                         dut.u_eu.upc_page, dut.u_eu.upc_opc,
+                         dut.u_eu.upc_loc};
 `endif
-logic [18:0] ce_probe_p = '0;
+logic [63:0] ce_probe_p = '0;
 logic        ce_p = 1'b1, reset_p = 1'b1;
 integer      ce_hold_viol = 0;
 
@@ -1241,7 +1260,7 @@ always @(posedge clk) begin
         if (ce_probe !== ce_probe_p) begin
             ce_hold_viol <= ce_hold_viol + 1;
             if (ce_hold_viol <= 10)
-                $display("CE-HOLD VIOLATION @%0t: probe %05x->%05x",
+                $display("CE-HOLD VIOLATION @%0t: probe %016x->%016x",
                          $time, ce_probe_p, ce_probe);
         end
     end

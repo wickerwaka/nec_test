@@ -49,9 +49,18 @@ A seed that is SEQUENCE-clean, FUNC-clean and ARCH-clean is a pure timing
 residue.  A seed that is not is a model error with architectural reach, and
 the census exists to say which of the 730 are which.
 
+THE ENGINE IS A FLAG (R4, 2026-08-04).  This tool used to call `tf.run_sim`
+UNCONDITIONALLY and take only the SEED LIST from `--report`, so pointing it at a
+`--core ucore` report ran clean and silently reported the MODEL's families for
+the ucore's seeds -- the accepted-and-ignored shape.  `--core` now selects the
+replay engine exactly as `timed_fuzz --core` does, with the same `choices=`, so
+an RTL core's own residue gets its own census.  **`--core` must match the
+report's core**; the report supplies which seeds diverged and the engine
+supplies why, and mixing them describes neither.
+
 Usage:
-  s15_census.py --report r.json [--pop reg|evt|all] [--jobs N]
-                [--dump out.json.gz] [--seeds N] [--show FAMILY]
+  s15_census.py --report r.json [--core sim|ucore|fsm] [--pop reg|evt|all]
+                [--jobs N] [--dump out.json.gz] [--seeds N] [--show FAMILY]
 """
 import argparse
 import gzip
@@ -158,15 +167,44 @@ def signature(d, chip, sim, i):
     return " ".join(parts)
 
 
+def replay(entry, image, meta, chip, win, core, hold_mode):
+    """Run the seed through ONE engine and return its rows.
+
+    The two engines take DIFFERENT event inputs and that is the whole reason
+    this used to be hard-wired:
+
+      the C++ model  is HANDED the capture's acknowledge positions
+                     (`tf.evt_directive`, a REPLAY directive) -- it does not
+                     predict them.
+      an RTL core    is handed the RIG's own directive (`tf.evt_tuple`,
+                     addr/delay/hold/pin) and PREDICTS the acknowledges, which
+                     is exactly why the EVT population reads differently
+                     between them (F46 / gap T5).
+
+    So the census of an RTL core's residue is not the model's census with a
+    different binary; it is a different measurement, and it is one this tool
+    could not take until now."""
+    with tempfile.TemporaryDirectory() as td:
+        if core == "sim":
+            evt = (tf.evt_directive(entry, meta, chip, win)
+                   if entry.get("evt") else None)
+            rows, _err = tf.run_sim(image, entry, len(chip), td, evt)
+        else:
+            evt = (tf.evt_tuple(entry, meta, hold_mode)
+                   if entry.get("evt") else None)
+            rows, _err = tf.run_tb(image, entry, len(chip), td, core, evt)
+    return rows
+
+
 def one(rec):
     path = rec["path"]
+    core = rec.get("_core", "sim")
     entry = json.loads(gzip.decompress(Path(path).read_bytes()))
     image, meta, _g, _sha = uf.regen(entry)
     chip = entry["chip_rows"]
     win = uf.window_of(chip)
-    evt = tf.evt_directive(entry, meta, chip, win) if entry.get("evt") else None
-    with tempfile.TemporaryDirectory() as td:
-        sim, _err = tf.run_sim(image, entry, len(chip), td, evt)
+    sim = replay(entry, image, meta, chip, win, core,
+                 rec.get("_rig_hold", "banked"))
     dr = fc.diff_rows(chip, sim)
     w = entry.get("waits") or {}
     out = {"path": path, "cid": rec["cid"], "k": rec["k"], "pop": rec["pop"],
@@ -555,6 +593,18 @@ def cmd_rmw(a):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--report", required=True)
+    # R4.  The engine, with `choices=` -- a typo must not silently become a
+    # different measurement, which is the trap this tool WAS.
+    ap.add_argument("--core", default="sim", choices=("sim", "ucore", "fsm"),
+                    help="replay engine, exactly as timed_fuzz --core: the C++ "
+                         "timed model (sim, the default and every historical "
+                         "run of this tool) or an RTL core in the Verilator TB "
+                         "(ucore / fsm).  MATCH IT TO THE REPORT's core.")
+    ap.add_argument("--rig-hold", default="banked",
+                    choices=("banked", "reg8", "applied"),
+                    help="RTL legs only: the pin hold handed to the predicting "
+                         "engine (timed_fuzz.rig_hold).  The model leg is a "
+                         "REPLAY and ignores it.")
     ap.add_argument("--pop", default="all", choices=("all", "reg", "evt"))
     ap.add_argument("--jobs", type=int, default=os.cpu_count() or 4)
     ap.add_argument("--dump", default="")
@@ -575,7 +625,12 @@ def main():
         div = [r for r in div if r.get("pop") == want]
     if a.seeds:
         div = div[:a.seeds]
-    print(f"== s15_census -- {len(div)} non-exact seeds (pop={a.pop})",
+    for r in div:                    # the engine travels with the work item
+        r["_core"] = a.core
+        r["_rig_hold"] = a.rig_hold
+    print(f"== s15_census -- {len(div)} non-exact seeds (pop={a.pop}, "
+          f"engine={a.core}"
+          f"{'' if a.core == 'sim' else f', rig-hold={a.rig_hold}'})",
           flush=True)
     with Pool(a.jobs) as pool:
         rows = pool.map(one, div, chunksize=4)
