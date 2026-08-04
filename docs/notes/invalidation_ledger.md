@@ -43,8 +43,11 @@ the captured data is TRUE and its LABEL is FALSE.
 
 ## INV-1 — THE EVT-SCORED FUZZ POPULATION, AS A GATE
 
-**Opened 2026-08-04 (SM1). Status: INVALIDATED. The rig defect is FIXED; the
-re-capture is SM2's and needs a bitstream.**
+**Opened 2026-08-04 (SM1). CLOSED 2026-08-04 (SM2) by re-capture.
+Status: **CLOSED — the population is REBUILT and back in the gate.**
+The rig defect is FIXED in RTL, in the host tool, in the bitstream (FLASH #4)
+and on the board.  The closure record is §CLOSURE below and
+`ucore_provenance.md` §59.7.3-§59.7.7.**
 
 ### WHAT
 
@@ -179,6 +182,110 @@ current. The gaps report was right and the gate list had not caught up.
 *Falsifier for this entry*: a capture in the 760 whose acknowledge pattern is
 consistent with a hold longer than 255 clocks — i.e. evidence the truncation did
 not actually happen on the wire.
+
+### §CLOSURE — SM2, 2026-08-04.  THE RE-CAPTURE
+
+**The bitstream INV-1 was waiting for exists**: `FLASH #4`,
+`nec_test_ucore.sof 67ddd59413d58934716260966cfc981f4f0d7065e90b8a8e655010e7687e4320`,
+built from HEAD with the 12-bit `evt_hold`.  The board's own host tool was
+replaced with the repo's 12-bit copy in the same step — a 12-bit bitstream
+driven by an 8-bit host is still an 8-bit rig, and the old copy is preserved on
+the board as `v30ctl.py.pre-sm2.bak`.
+
+**THE WIRE WAS PROVED BEFORE THE POPULATION WAS TOUCHED**, in the two halves the
+falsifier asks for.  `EVT_CFG` round-trips 8/8 including 256, 300 and 4,095
+(`hold = 300` packs to `0x882C0000`: `[23:16] = 44` — the exact value F46
+truncated to — plus `[30:27] = 1`).  And on the PIN, one seed, one image, five
+directives differing only in `hold`, INTA T1 rows counted: **2 at `hold=44`, 6
+at 300, 12 at 600**, against **2** in that seed's old banked capture.  The part
+entered its handler ONCE under what the rig applied and THREE times under what
+the bank asked for.
+
+**THE RE-CAPTURE.**  All 760, socket (`use_core=False`), divider PINNED, each
+seed's image hash-checked against its banked `image_sha256` first:
+**760 new, 0 errors, 0 GEN-DRIFT, `evt_fired` 760/760.**
+
+**WHAT THE PART DOES UNDER A TRUE 300-CLOCK LEVEL** — registered as a
+measurement, never as a bar, because it had never been observed:
+
+| INTA T1 rows | 0 | 2 | 4 | 6 | 8 | 10 |
+|---|---|---|---|---|---|---|
+| OLD (44 applied) | 28 | **732** | 0 | 0 | 0 | 0 |
+| **NEW (300 applied)** | 21 | 1 | 40 | 125 | **265** | **308** |
+
+### THE ARCHIVE, AND THE MECHANISM THAT KEEPS BOTH
+
+`sw/testdata/inv1-archive/{mc1,mc2}/seeds/` — **760 byte-identical copies** of
+the entries as they stood before the re-capture, with `SHA256SUMS`
+(sha256 `6f79283222d169fdf1f7a8e599c403faacdd0d8d8801abb55c567d89a392355a`) and
+a manifest.  **Deliberately OUTSIDE `tests/v30/fuzz_bank/`**: `check_fuzz_bank`
+globs `*/seeds/*.json.gz` under that root, so an archive placed inside it would
+have silently grown the 3,242-seed corpus — the same reasoning that kept the
+originals from being moved in the first place.  (They are also in git history at
+`64641a5644`; the copy exists so the guarantee does not depend on that.)
+
+The entries themselves were **rewritten IN PLACE**, which is this entry's own
+stated closure — *"a re-capture on the widened rig banks `hold_bits = 12`, and
+the seed leaves this set by arithmetic… the seeds re-enter the gate without
+anyone editing a list."*  Each carries a `recapture` block naming the bitstream,
+the flash, the prior `chip_rows` sha256, the prior `banked_ts`, the prior
+`replay_verdict` and the archive path.
+
+`replay_verdict` was **recomputed and the movement REPORTED**, because leaving
+it stale would have made `check_fuzz_bank` cry 700 spurious regressions and
+recomputing it silently would have made that gate vacuous on these seeds:
+
+| banked → re-captured | seeds |
+|---|---|
+| `FUNCTIONAL` → **`TIMING`** | **372** |
+| `FUNCTIONAL` → `FUNCTIONAL` | 348 |
+| `FUNCTIONAL` → **`KNOWN_ACCEPTED`** | **18** |
+| `TIMING` → `TIMING` | 20 |
+| `KNOWN_ACCEPTED` → `KNOWN_ACCEPTED` | 2 |
+| **worse** | **0** |
+
+### THE CLOSURE BARS (`ucore_provenance.md` §59.2, pre-registered) — ALL MET
+
+| bar | result |
+|---|---|
+| every `hold=300` entry banks `hold_bits = 12` and `hold_applied = 300` | **760/760 MET** |
+| `f46_invalidated` True anywhere in the bank | **0 MET** |
+| the originals archived | **760 MET** |
+| `timed_fuzz`'s `INVALIDATED` line | **gone, both engines** — the derivation self-healed |
+
+### GATE STATUS — the second movement, and the sign flip
+
+| gate | SM1 (INV-1 as opened) | **SM2 (re-captured)** |
+|---|---|---|
+| `timed_fuzz --core ucore` **REGISTERED** | 1,483/1,702 | **1,483/1,702 — UNCHANGED, to the seed** |
+| `timed_fuzz --core sim` **REGISTERED** | 1,272/1,702 | **1,272/1,702 — UNCHANGED** |
+| **EVT**, ucore | 170/248 (interim sub-gate) | **468 / 1,008 (46.4 %)** |
+| **EVT**, sim | 144/248 | **363 / 1,008 (36.0 %)** |
+| **COMBINED**, ucore | 1,653/1,950 | **1,951 / 2,710 (72.0 %)** |
+| **COMBINED**, sim | 1,416/1,950 | **1,635 / 2,710 (60.3 %)** |
+| the full 1,008-seed EVT column | **SUSPENDED** | **UN-SUSPENDED.  It is a gate again.** |
+
+**The decomposition is the control**, and it is why the new number can be
+trusted:
+
+| sub-population | ucore | sim |
+|---|---|---|
+| the **248** never poisoned | **170/248** | **144/248** — *identical to SM1, seed for seed* |
+| the **760** re-captured | **298/760** (was 22) | **219/760** (was 565) |
+| total | **468/1,008** | **363/1,008** |
+
+**THE SIGN FLIPPED.**  As banked, this column said the ucore lost to the model
+by **517** seeds.  On captures taken under the directive the bank actually
+records, **the ucore beats the model by 105.**  SM1 predicted the sign from the
+un-poisoned 248 alone (a 26-seed margin) and the corrected full column
+reproduces it and widens it.  §T.5's "547 ucore-only non-exact seeds" were the
+rig, and are gone.
+
+*The falsifier this entry registered* — *a capture in the 760 whose acknowledge
+pattern is consistent with a hold longer than 255 clocks* — was **not** met by
+any of the 760 old captures (732 of them show a single handler entry), and its
+mirror image was demonstrated directly on the pin.  **INV-1 is closed as
+diagnosed.**
 
 ---
 

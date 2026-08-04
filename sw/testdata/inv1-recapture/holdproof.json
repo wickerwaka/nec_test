@@ -1,0 +1,93 @@
+{
+ "seed": "mc1/0",
+ "cid": "mc1",
+ "k": 0,
+ "banked_evt": {
+  "pin": 0,
+  "delay": 45,
+  "hold": 300
+ },
+ "waits": {
+  "wrand": false,
+  "wmax": null,
+  "wseed": null,
+  "fixed": 2
+ },
+ "image_sha256": "2986efcd0013d9c5f98391d79ee927bcf982be949a0bb58a370c0716414891ec",
+ "old_capture_inta_t1": 2,
+ "legs": [
+  {
+   "hold": 2,
+   "fired": true,
+   "n_rows": 4063,
+   "inta_t1": 2,
+   "inta_at": [
+    299,
+    309
+   ],
+   "rows_sha256": "1a05afcab1fde6c34973c9aece531d4d03f746aad2a9e43d7fef241bde0dcf75"
+  },
+  {
+   "hold": 44,
+   "fired": true,
+   "n_rows": 4063,
+   "inta_t1": 2,
+   "inta_at": [
+    299,
+    309
+   ],
+   "rows_sha256": "ced39b87852cdecc37084884061e5903b84d4276e532ea6cf51f22f286581661"
+  },
+  {
+   "hold": 255,
+   "fired": true,
+   "n_rows": 4063,
+   "inta_t1": 6,
+   "inta_at": [
+    299,
+    309,
+    403,
+    413,
+    507,
+    517
+   ],
+   "rows_sha256": "8513ce65b329da2b0691878372997660d241072f5bb252cba81c9bf6a542c411"
+  },
+  {
+   "hold": 300,
+   "fired": true,
+   "n_rows": 4063,
+   "inta_t1": 6,
+   "inta_at": [
+    299,
+    309,
+    403,
+    413,
+    507,
+    517
+   ],
+   "rows_sha256": "8513ce65b329da2b0691878372997660d241072f5bb252cba81c9bf6a542c411"
+  },
+  {
+   "hold": 600,
+   "fired": true,
+   "n_rows": 4063,
+   "inta_t1": 12,
+   "inta_at": [
+    299,
+    309,
+    403,
+    413,
+    507,
+    517,
+    611,
+    621,
+    715,
+    725,
+    819,
+    829
+   ],
+   "rows_sha256": "21521b6a49dbf3e91b7b298b53b6ae3c5ca80f31b8999fe7c646481b272e40a2"
+  }
+ ]
+}

@@ -1,0 +1,8 @@
+{
+ "what": "INV-1 -- the 760 EVT seeds captured under an 8-bit evt_hold",
+ "why": "docs/notes/invalidation_ledger.md INV-1 / F46",
+ "note": "byte-identical copies of the banked entries as they stood BEFORE the SM2 re-capture.  chip_rows here are TRUE silicon for a 44-clock hold.  NOTHING GATES ON THEM.",
+ "archived_utc": "2026-08-04T15:25:20Z",
+ "count": 760,
+ "sha256sums_sha256": "6f79283222d169fdf1f7a8e599c403faacdd0d8d8801abb55c567d89a392355a"
+}

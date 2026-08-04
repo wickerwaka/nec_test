@@ -1,0 +1,9 @@
+{
+ "bitstream": "BS-A (FLASH #4)",
+ "sof_sha256": "67ddd59413d58934716260966cfc981f4f0d7065e90b8a8e655010e7687e4320",
+ "rbf_sha256": "30139a991a605eac3327e0d9668ed5c6740e9ecc07111bea7155b361e9c19740",
+ "flash_index": 4,
+ "git_head_at_preregistration": "64641a5644",
+ "rig": "evt_hold 12 bits (F46 fix) in RTL AND in /media/fat/v30/v30ctl.py",
+ "leg": "socket, use_core=False, div=DIV_OF_RECORD=8 (PINNED readback)"
+}

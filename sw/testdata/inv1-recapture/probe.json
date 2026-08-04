@@ -1,0 +1,63 @@
+{
+ "utc": "2026-08-04T15:27:42Z",
+ "host": "root@mister-nec",
+ "rig_evt_hold_bits": 12,
+ "packing_selftest": {
+  "cases": 63,
+  "bad": 0
+ },
+ "board": {
+  "RIG_EVT_HOLD_BITS": 12,
+  "rt": [
+   {
+    "delay": 0,
+    "hold": 2,
+    "pin": 0,
+    "raw": 2147614720
+   },
+   {
+    "delay": 0,
+    "hold": 44,
+    "pin": 0,
+    "raw": 2150367232
+   },
+   {
+    "delay": 0,
+    "hold": 255,
+    "pin": 0,
+    "raw": 2164195328
+   },
+   {
+    "delay": 0,
+    "hold": 256,
+    "pin": 0,
+    "raw": 2281701376
+   },
+   {
+    "delay": 0,
+    "hold": 300,
+    "pin": 0,
+    "raw": 2284584960
+   },
+   {
+    "delay": 0,
+    "hold": 4095,
+    "pin": 0,
+    "raw": 4177461248
+   },
+   {
+    "delay": 7,
+    "hold": 300,
+    "pin": 1,
+    "raw": 2301362183
+   },
+   {
+    "delay": 65535,
+    "hold": 300,
+    "pin": 2,
+    "raw": 2318204927
+   }
+  ]
+ },
+ "readback_ok": true
+}
