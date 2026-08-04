@@ -93,9 +93,23 @@ ratchets: monotone, never re-scored downward without a loud, itemized entry.)
   **`--rig-hold reg8`** exists because the rig's `evt_hold` register is 8 bits;
   it moves the SIM's EVT number too (+71), so it is OFF by default and the EVT
   ratchet is NOT re-registered against it (F46).
-- **KNOWN-RED, deliberately**: `sw/ss_lint.py --core ucore` exits **1**. That is
-  truthful, not broken — five architectural flops are absent from the ucore's
-  save-state map (F49). The `--core fsm` leg is unchanged and still exits 0.
+- **`sw/ss_lint.py --core ucore` exits 0** (U4/F49). It was KNOWN-RED through
+  U3 because five architectural flops were absent from the ucore's save-state
+  map; they are mapped now, `SS_VERSION` **0x82** / `SS_COUNT` **218** /
+  `SS_TAG` **0x82DA**, census **223 flops, 0 UNMAPPED**. The `--core fsm` leg is
+  unchanged and still exits 0.
+- **U4 additions**: `sw/check_ab_sim.py --core {fsm,ucore}` — the core inside
+  the REAL integration (system_large) vs the chip's own boot capture; both legs
+  **MATCH over 187 rows**. (It had been unbuildable since 2026-07-13; three
+  files had drifted out of its RTL list.) `sw/gen_ucore_qsf.py --check` gates
+  that `hdl/nec_test_ucore.qsf` is a faithful derivative of `nec_test.qsf`, i.e.
+  that the two A/B bitstreams differ by the CORE and nothing else.
+- **`timed_fuzz` now prints `BOUND WARNINGS`** — seeds whose EU completed-read
+  store SATURATED, i.e. ran outside the regime `sw/qdepth_probe.py` proves
+  (`rdq_` ≤ 2, `rd_done_q_` ≤ 1 on v0.1 at w0 **and**, U4, on w1/w3 and all four
+  evt suites). It reports **6**, they are scored normally and not excused, and
+  `ENGINE ABORTS` is **0**. A bound fire on a GOLDEN case is a hard failure in
+  `check_core.py` — that is where the bound is a theorem.
 - **Measurement tools, NOT gates** (never quote them as a pass):
   `sw/s11_census.py`, `sw/s12_census.py` (`hltsweep`/`psw`/`regold`/`ackfam`),
   `sw/s14_census.py --band`, `sw/s14_dstar.py`, `sw/s15_census.py`
