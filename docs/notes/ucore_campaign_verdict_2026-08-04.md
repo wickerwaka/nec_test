@@ -590,7 +590,7 @@ not passage*: the rows marked RED / NOT MET reproduce as exactly that.
 | **U5** | **F51 — the HALT pseudo-cycle has no data phase**, and the TB mask removed | bar 1 MET exactly (both cores 0/600, nibble 2 → 0); bar 2 MET (**ucore back to 169,000/169,000**, sweeps 249 → **259/283**); bar 3 the FSM at **168,400** and **16/283**, routed; bar 4 **zero deltas** on the whole ladder | `ce8b6bcdb6` |
 | **U5** | the two `bs` tranche seeds CLASSIFIED | **ucore ≡ SIM on 4,000/4,000 rows** on both — a shared divergence, ledger not patch | `24d8aac922` |
 | **U5** | the fabric re-score PRE-REGISTERED before board contact; **G6 re-run** on the fixed RTL | **0 errors, 27 % ALMs, Fmax 48.03 MHz** (up from 45.56), setup **+9.121 ns**, TNS **0.000 on every domain**, hold +0.244; `.sof 924c4a61e0…` | `24d8aac922` |
-| **U5** | **FLASH #3 + the fabric re-score** | chip path **MATCH 800**, first light **800/800 ×3**, socket control **49/49**; sweeps **29/283 → 143/283**; bar 1 (zero F42-signature cells) **MET absolutely**; **bar 2 MISSED** at 143 vs a registered ≥ 249, the miss **116/116 one class** | `99c77a61fe` |
+| **U5** | **FLASH #3 + the fabric re-score** | chip path **MATCH 800**, first light **800/800 ×3**, socket control **49/49**; sweeps **29/283 → 143/283**; bar 1 (zero F42-signature cells) **MET absolutely**; **bar 2 MISSED** at 143 vs a registered ≥ 249, the miss **116/116 one class** | `d5a904173a` |
 | **U5** | verdict, ROADMAP, `CLAUDE.md`, ledger §53-§56; every standing gate re-run | §(a) | this commit |
 
 ---

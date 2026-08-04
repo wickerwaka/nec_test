@@ -5280,3 +5280,69 @@ role.  `board_idle` run twice; **two consecutive clean 4,063-row idle captures**
 afterwards, the divider left at `DIV_OF_RECORD = 8`, `use_core=False`.  The
 flash is in `sw/testdata/flash_log.jsonl`.  The priority tranche was NOT
 re-captured, as registered.
+
+## §57 GATE U5, AND THE CAMPAIGN CLOSE
+
+### §57.1 GATE U5 — GREEN, WITH ONE REGISTERED MISS AND ONE ROUTED FINDING
+
+| item | verdict |
+|---|---|
+| **F42's refutation closed as an RTL item** (§52.10 item 1) | **F51 LANDED.**  Offline the sweeps 249 → **259/283** and v0.1 back to **169,000/169,000** on the corrected comparator; in fabric **29 → 143/283** with **ZERO** cells still carrying the signature |
+| **the TB's composed-AD mask** (U3 open item 1) | **DISCHARGED** — removed, engine-neutral, with the pre-registered before/after on BOTH cores that §45.3 demanded |
+| **the 2 `bs` tranche-residue seeds** (§52.10 item 5) | **CLASSIFIED — not the RTL's.**  ucore ≡ SIM on **4,000/4,000 rows** on both |
+| **V1's re-registration** (§52.10 item 3) | **§54.6** — the old record stands, its own defect note stands, and **V1′** is registered for the owner to adopt or amend |
+| **the full ladder** | **ZERO DELTAS** (§54.4), including the priority tranche re-scored on the fixed binary at 176/178 with the identical `bs`=2 residue |
+| **G6 on the fixed RTL** | **GREEN with MORE margin than before** — 27 % ALMs, **Fmax 48.03 MHz** (was 45.56), setup +9.121 ns, TNS 0.000 on every domain |
+| **the board** | FLASH #3, chip path MATCH 800, first light 800/800 ×3, socket control 49/49, `board_idle` ×2, two clean 4,063-row idle captures, divider at `DIV_OF_RECORD` |
+| **§55.2 bar 2** | **MISSED — 143/283 against a registered ≥ 249**, reported as missed; the miss is one class, 116/116, and its attribution is **NOT ESTABLISHED** with the settling intervention registered and unrun (§56.3a) |
+| **§53.4 bar 3** | the FSM core's numbers on the corrected comparator, **ROUTED to the campaign owner** exactly as the bar said in advance they would be |
+
+### §57.2 EVERY STANDING GATE, RE-RUN AT THE CLOSE
+
+Not inherited — re-run on the closing tree, after both the TB and the RTL
+changed.
+
+| gate | result |
+|---|---|
+| `make -C sim test` | **disasm gate: PASS** (byte-exact vs `V20UC.TXT`) |
+| `sw/pla3_check.py` | **OK — 21 checks passed** |
+| `sw/ucsim_check.py --suite tests/v30/v0.1` | **169,000 / 169,000 ARCH** |
+| `sw/check_ucore_tables.py` (**G0**) | **PASS — 9,988 / 9,988**, both legs |
+| `sw/optable.py --selfcheck` | **0 errors** |
+| `sw/prefix_clear_lint.py` | **PASS** (20 `S_FIRST` sites, 4 PFX-KEEP, no drift) |
+| `sw/ea_step_lint.py` | **PASS** |
+| `sw/check_race_law.py` | **PASS 2/2** — regeneration byte-identical, header sha matches |
+| `sw/check_lc6_gate.py` | **PASS** |
+| `sw/check_mod3_illegal.py` | **PASS** — 128/128 cycle-exact, 128/128 arch-confined, moffs 2/2 |
+| `sw/check_ff_t4.py` | **PASS** — 9/9 seeds, 9 `SLOT_FF_T4` fires, invariant armed |
+| `sw/check_enter_nesting.py` (the FSM/RTL leg) | **PASS** — MASK 512 goldens, WAITED 154, 0 unexpected divergences |
+| **`sw/check_fuzz_bank.py`** (the FSM leg, 3,242 banked seeds) | **PASS — stable 3,242, improved 0, WORSE 0, gen_drift 0, regen_err 0, float-floor 0, new-sig TIMING 0** |
+| `sw/ss_lint.py --core ucore` / `--core fsm` | **rc=0** / **rc=0** |
+| the whole ucore ladder | **§54.4 — zero deltas** |
+
+**`check_fuzz_bank` is the load-bearing row for the instrument change.**  It
+replays the entire 3,242-seed banked chip corpus through the FSM TB and
+re-classifies every seed, and it reports **worse 0** — so removing the
+composed-AD mask moved **no** banked seed's chip-vs-TB verdict.  The mask's
+effect is confined to exactly the rows it was masking, which is what
+"engine-neutral" has to mean in practice and not merely in argument.
+
+### §57.3 WHAT THE CAMPAIGN ANSWERED
+
+The verdict is `docs/notes/ucore_campaign_verdict_2026-08-04.md`.  In one line:
+**the mechanism ledger IS a spec you can build hardware from — and it is NOT a
+spec you can build hardware from without grading.**  Fifty-one findings are the
+distance between those two sentences, and about two thirds of them are places
+where the document was right and the transliteration was wrong in a way only a
+comparator could see.
+
+### §57.4 WHAT IS ROUTED TO THE CAMPAIGN OWNER
+
+Three decisions, evidence laid out both ways in verdict §(e), **none taken
+here**: the **FSM core's disposition** (keep as reference / retire / demote to
+archive), the **`evt_hold` widen** and the EVT re-banking, and whether **V1′**
+becomes the standing bar.  Plus two measurements handed on with their bars
+written: **§56.3a** (the `core_ad` retention intervention that settles open
+item 0) and the **FSM regression bisect** (2026-07-30 → HEAD).
+
+**GATE U5: GREEN.  CAMPAIGN CLOSED.**
