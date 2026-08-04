@@ -25,7 +25,7 @@ verdict), `docs/notes/ucore_provenance.md` §0-§57 (the ledger) and
 >
 > | item | now |
 > |---|---|
-> | **R1 / T5** — `evt_hold`, and the poisoned EVT column | **CLOSED.** FLASH #4 (`67ddd59413d5…`) carries the 12-bit register; the board's host tool was replaced too; the register AND the pin were proved; **all 760 re-captured**, 0 errors, 0 GEN-DRIFT.  The 1,008-seed column is **UN-SUSPENDED** at ucore **468/1,008**, sim **363/1,008** — *the ucore now LEADS by 105 where as banked it trailed by 517.*  `invalidation_ledger.md` §CLOSURE. |
+> | **R1 / T5** — `evt_hold`, and the poisoned EVT column | **CLOSED.** FLASH #4 (`67ddd59413d5…`) carries the 12-bit register; the board's host tool was replaced too; the register AND the pin were proved; **all 760 re-captured**, 0 errors, 0 GEN-DRIFT.  The 1,008-seed column is **UN-SUSPENDED** at ucore **468/1,008**, sim **363/1,008** — *the ucore now LEADS by 105 where as banked it trailed by 517.*  **SM3 sitting 3, after H1 in both engines: ucore 906/1,008, sim 780/1,008.**  `invalidation_ledger.md` §CLOSURE. |
 > | **R6** — the s10/s13 per-repetition rows | **CLOSED, and the answer is YES.**  10 reps × 5 cells, full rows banked: every difference is on rows 0-8 (before the first T1) in the multiplexed pads, none on a dedicated pin.  §59.7.8 |
 > | **X3** — the tranche not re-captured on the shipped bitstream | **CLOSED.**  Re-captured on FLASH #4: **176/178**, same `bs = 2` residue, socket leg 178/178.  §59.7.9 |
 > | **X1** — the fabric leg of the retention intervention | **ATTEMPTED AND BLOCKED, NOT REFUTED.**  The BASELINE reproduces on FLASH #4 (**143/283**, 116 fabric-only, 116/116 INTA, socket control 49/49) but the INTERVENTION cannot be synthesised: Quartus folds `core_ad === 1'bz` to a constant and deletes the hold register.  Pre-registered as a liveness test (§59.3) and reported as registered (§59.7.1).  **C11's NOT ESTABLISHED stands.** |
@@ -40,7 +40,7 @@ verdict), `docs/notes/ucore_provenance.md` §0-§57 (the ledger) and
 > | **I1** — the sim's `9D` flag-commit erratum | **CLOSED — FIXED in `sim/`** (§60.4).  Rendered as F39's mechanism and naming no opcode: the BIU publishes the read data-latch edge and a STANDING `OPR -> FLAGS ... F` row's destination takes it there.  Hits exactly `007A` and `01EA`.  `INT.9D` case 1 row 9 is now `05FAD2` against the golden's `05FAD2`; the full sim ladder re-run with **zero** other movement. |
 > | **T8** — "three are an exact byte swap … M5b's A0 swapper applied where the chip does not" | **THE ATTRIBUTION IS REFUTED** (§60.3).  `raw_3868` has the OPPOSITE SIGN — the chip rotates at an EVEN address where the model does not — so the three do not share a sign and no change to the A0 rotator closes them.  What the rows establish is that the engines' **OPR** holds the chip's two bytes in the other order: the defect is on the LOAD side, not the drive side.  **Nothing was patched.**  The observation stands; the mechanism is NOT named. |
 > | **T5 / the EVT partition** — "547 ucore-only non-exact seeds" | **SUPERSEDED BY MEASUREMENT.**  On SM2's rebuilt column the partition is **ucore-only 5 / shared 535 / sim-only 110**, net +105.  The five are named in the census §2.2; all five are at waits ≥ 1. |
-> | **I3** — INTA under waits, the second acknowledge's ANCHOR | **its whole-program evidence column is REBUILT and it speaks.**  Census **H1**: the chip idles **2 clocks** between the last prefetch and a RE-ENTRY acknowledge's announcement and grants the slot to nothing — 445/445 of the ucore's INTA cell, 6-clock CODE-T1-to-INTA-T1 gap on all of them.  The ucore prefetches into it; the model announces 2 clocks early.  **The largest single mechanism in the residue.  NOT taken** — it moves the interrupt-entry anchor and needs its own pre-registration. |
+> | **I3** — INTA under waits, the second acknowledge's ANCHOR | **its whole-program evidence column is REBUILT and it speaks.**  Census **H1**: the chip idles **2 clocks** between the last prefetch and a RE-ENTRY acknowledge's announcement and grants the slot to nothing — 445/445 of the ucore's INTA cell, 6-clock CODE-T1-to-INTA-T1 gap on all of them.  The ucore prefetches into it; the model announces 2 clocks early.  **The largest single mechanism in the residue.  CLOSED 2026-08-04**: pre-registered, discriminated on the socket (the directed cell REFUTED both the redirect and the IRET readings — it is the RE-ENTRY, armed by the PREVIOUS acknowledge), landed in `sim/` at SM3 sitting 2 and in `hdl/rtl/ucore/` at SM3 sitting 3 as ONE register.  ucore EVT **468 → 906 / 1,008**, sim **363 → 780**; `sm3_ackcmp`'s re-entry `L = 4` row 1,117 wrong → **0**, the wake row unmoved.  `ucore_provenance.md` §61-§62. |
 
 **This document is measurement and enumeration only.** No mechanism was
 proposed, no RTL was changed, nothing was fixed. Where a number could be stale
@@ -76,7 +76,7 @@ are new and the three ledger statements they correct.
 | **T2** | timing, offline | **the ucore's own registered-fuzz-bank residue is NINE seeds** — the complete set on which the model is cycle-exact and the ucore is not. Measured this session, engine against engine | 9 of 1,702 | **ucore** | §49.8's three sub-mechanisms; the `10`/ADC deciding measurement is written down and un-run |
 | **T3** | timing, offline | the other **210** of the ucore's 219 registered non-exact seeds are seeds **the model misses too** | 210 of 1,702 | **model-shared** | the inherited seven-family closers, `ucsim_t_provenance.md` §26.10 C |
 | **T4** | timing, offline | **the 2 `bs` seeds of the priority tranche** — ucore ≡ SIM on 4,000/4,000 rows on both | 2 of 178 | **model-shared** | a `sim/` landing first; never a ucore patch |
-| **T5** | timing, offline | **CLOSED (SM2) — re-captured; the column is a gate again at ucore 468/1,008, sim 363/1,008.**  ~~the EVT column is RIG-POISONED and is not a gate~~ — 547 of the 1,008 EVT seeds are ucore-only non-exact, and F46 explains them: 760 seeds banked `hold = 300` into an **8-bit** register | 547 of 1,008 | **rig** (F46) | widen `evt_hold` to 12 bits + re-bank + re-capture — a decision routed to the owner |
+| **T5** | timing, offline | **CLOSED (SM2) — re-captured; the column is a gate again.  RE-SCORED at SM3 sitting 3 (H1): ucore 906/1,008, sim 780/1,008.**  ~~the EVT column is RIG-POISONED and is not a gate~~ — 547 of the 1,008 EVT seeds are ucore-only non-exact, and F46 explains them: 760 seeds banked `hold = 300` into an **8-bit** register | 547 of 1,008 | **rig** (F46) | widen `evt_hold` to 12 bits + re-bank + re-capture — a decision routed to the owner |
 | **T6** | timing, offline | **the b2 victory tranche: 171/188.** V5 is a standing REGISTERED FAILURE | 17 of 188 | mixed | **not re-opened, not re-scored** |
 | **T7** | timing, offline | **5 `BOUND WARNINGS`** — seeds whose EU completed-read store saturated, i.e. ran outside the regime `qdepth_probe.py` proves | 5 seeds | ucore (scoped) | none taken — deepening the capacity would be the large-fitted-table failure the standing principle names |
 | **T8** | timing, offline | the **4 shared seeds** of §49.7 — three are an exact byte swap on an odd-address word write (M5b's A0 swapper applied where the chip does not) | 4 seeds | **model-shared** | `sim/` |
@@ -475,7 +475,9 @@ the ucore's.
 
 > **CLOSED 2026-08-04, session SM2.**  The 760 were re-captured on FLASH #4 at
 > their banked hold of 300 and the column is a gate again: **ucore 468/1,008
-> (46.4 %), sim 363/1,008 (36.0 %)**, `INVALIDATED` 0.  The "547 ucore-only
+> (46.4 %), sim 363/1,008 (36.0 %)**, `INVALIDATED` 0.  *(SM3 sitting 3,
+> after H1 landed in BOTH engines: **ucore 906/1,008 (89.9 %), sim
+> 780/1,008 (77.4 %)** — the ucore now leads by 126.)*  The "547 ucore-only
 > non-exact seeds" below were the rig: on the corrected captures the ucore
 > LEADS the model by 105 seeds where as banked it appeared to trail by 517.
 > The falsifier stated at the foot of this item was answered directly on the
@@ -797,13 +799,18 @@ inherits them because the ledger does.
    and UBE and the model reverts to the HALT's. 6 diffs × 5 cells, one uniform
    signature, board-free, stimulus already banked. This is the whole remaining
    w2/w3 sweep residue on the model side.
-2. **The second acknowledge's ANCHOR** — §I.3.
+2. ~~**The second acknowledge's ANCHOR** — §I.3.~~  **CLOSED 2026-08-04 by
+   H1** in both engines (§I.3 above; `ucore_provenance.md` §61-§62).
 3. **The `A − H ≤ −3` regime** (§26.6.3) — 4 cells, all at w0. The chip's `d2`
    and `d3` rows are BYTE-IDENTICAL and the model's are not; any mechanism must
    make the model delay-insensitive across the pair FIRST.
 4. **`PF_LOST`'s arbitration priority** and **`SCHEDULE`'s `-3`** — both
    MEASURED, both explicitly **NOT fitted**. These are the two families that
    carry the ucore's +211 (§T.3), so a mechanism here would move both engines.
+   **SM3 sitting 3 promotes `PF_LOST` to the #1 open mechanism (H3)**: with H1
+   closed it is 107 REG + 22 EVT = **129** ucore seeds and 239 + 70 = **309**
+   model seeds, the largest single family in both engines
+   (`ucore_provenance.md` §62.9).
 
 ---
 

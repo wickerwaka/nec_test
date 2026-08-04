@@ -49,14 +49,14 @@ entry. Figures are `ucore_provenance.md` §54.4's, re-run 2026-08-04.
 | wvec silicon freeze | `python3 sw/timed_wvec_gate.py --core ucore` | 88 / 88, **+0.0 %** |
 | ENTER replay | `python3 sw/timed_enter_replay.py --core ucore` | 154 / 154 ×5 |
 | INS replay | `python3 sw/timed_ins_replay.py --core ucore --raw` | 1,312 / 1,312 and 2,624 / 2,624 |
-| the registered fuzz bank | `python3 sw/timed_fuzz.py --core ucore --evt-replay` | REGISTERED **1,483 / 1,702**; EVT **468 / 1,008**; COMBINED **1,951 / 2,710**; `INVALIDATED` **0**; `BOUND WARNINGS` 5, `ENGINE ABORTS` 0; denominators 2,710 scored / 532 `OPEN_BUS`.  **INV-1 IS CLOSED (SM2, 2026-08-04): the 760 poisoned EVT seeds were RE-CAPTURED on FLASH #4 at their banked hold of 300, and the full 1,008-seed column is a gate again** (`docs/notes/invalidation_ledger.md` §CLOSURE, `ucore_provenance.md` §59.7.7).  This figure has now been registered three times and every move is itemised: `192/1,008` as banked (STRUCK — rig-poisoned), `170/248` on the un-poisoned sub-population (SM1's interim gate, still true of those 248), and **468/1,008 on the rebuilt population**.  REGISTERED has not moved through any of it. |
+| the registered fuzz bank | `python3 sw/timed_fuzz.py --core ucore --evt-replay` | REGISTERED **1,483 / 1,702**; EVT **906 / 1,008**; COMBINED **2,389 / 2,710**; `INVALIDATED` **0**; `BOUND WARNINGS` 5, `ENGINE ABORTS` 0; denominators 2,710 scored / 532 `OPEN_BUS`.  **INV-1 IS CLOSED (SM2, 2026-08-04): the 760 poisoned EVT seeds were RE-CAPTURED on FLASH #4 at their banked hold of 300, and the full 1,008-seed column is a gate again** (`docs/notes/invalidation_ledger.md` §CLOSURE, `ucore_provenance.md` §59.7.7).  This figure has now been registered three times and every move is itemised: `192/1,008` as banked (STRUCK — rig-poisoned), `170/248` on the un-poisoned sub-population (SM1's interim gate, still true of those 248), **468/1,008 on the rebuilt population**, and **906/1,008** once H1 landed in the ucore (**SM3 sitting 3, 2026-08-04**, `ucore_provenance.md` §62 — the re-entry acknowledge's recognition floor, ONE register, +438 seeds).  REGISTERED has not moved through any of it, to the seed. |
 | the b2 victory tranche | `python3 sw/timed_fuzz.py --core ucore --seeddir sw/testdata/t4/b2-tranche/seeds` | **171 / 188** — V5 is a standing REGISTERED FAILURE, not to be re-opened |
-| save-state map | `python3 sw/ss_lint.py` | rc=0; 218 addresses, 201 flops, 0 UNMAPPED, `SS_VERSION` 0x82 |
+| save-state map | `python3 sw/ss_lint.py` | rc=0; **222 addresses, 205 flops, 0 UNMAPPED, `SS_VERSION` 0x83** (SM3 s3 / F52: H1's four `bnd_*` BIU flops at 0x066-0x069; it was 218 / 201 / 0x82) |
 | save-state sweeps | `check_core.py --ss-sweep …` modes 1 / 2 / 5 | 80/80 · 24/24 · width PASS |
 | CE hold | `check_core.py --ce-div 4 --ce-hold-check` | `CE_HOLD_VIOL 0` |
 | the core inside the real integration | `python3 sw/check_ab_sim.py` | 187 rows MATCH |
 | the MODEL, unmoved | `python3 sw/timed_gate.py --suite tests/v30/v0.1 --forms all` | 169,000 / 169,000, row-diffs 0 |
-| the MODEL's fuzz bank | `python3 sw/timed_fuzz.py --core sim --evt-replay` | REGISTERED **1,272 / 1,702**; EVT **780 / 1,008**; COMBINED **2,052 / 2,710**; `INVALIDATED` **0**.  Same INV-1 closure; it was `EVT 709/1,008` as banked (STRUCK), then `144/248` interim.  **RAISED 2026-08-04 by SM3 sitting 2's H1 landing: EVT 363 -> 780, COMBINED 1,635 -> 2,052, +417 seeds, REGISTERED unchanged to the seed (`ucore_provenance.md` §61).  The ucore leg of H1 is NOT TAKEN, so the ucore's EVT 468 is now BELOW the model's 780 on this column and that is expected, not a regression.**  Before H1 the rebuilt column read 363 and the ucore led by 105; as banked it appeared to trail by 517.  The 248 never-poisoned seeds are unchanged at 170 / 144, which is the control that says the re-capture moved nothing it did not touch |
+| the MODEL's fuzz bank | `python3 sw/timed_fuzz.py --core sim --evt-replay` | REGISTERED **1,272 / 1,702**; EVT **780 / 1,008**; COMBINED **2,052 / 2,710**; `INVALIDATED` **0**.  Same INV-1 closure; it was `EVT 709/1,008` as banked (STRUCK), then `144/248` interim.  **RAISED 2026-08-04 by SM3 sitting 2's H1 landing: EVT 363 -> 780, COMBINED 1,635 -> 2,052, +417 seeds, REGISTERED unchanged to the seed (`ucore_provenance.md` §61).  The ucore leg WAS TAKEN at sitting 3 (§62) and the ucore now LEADS this column: EVT 906 vs 780, COMBINED 2,389 vs 2,052 — on a bank where the ucore PREDICTS and the model REPLAYS.**  Before H1 the rebuilt column read 363 and the ucore led by 105; as banked it appeared to trail by 517.  The 248 never-poisoned seeds are unchanged at 170 / 144, which is the control that says the re-capture moved nothing it did not touch |
 
 ### SUSPENDED — **EMPTY** (the section is kept; the entry closed 2026-08-04)
 
@@ -85,8 +85,12 @@ is `docs/notes/ucore_gaps_2026-08-04.md`, and **the measured census of what is
 left against silicon — family × population, the shared/only partitions and the
 ranked mechanism hypotheses — is `docs/notes/sm3_residue_census_2026-08-04.md`
 (SM3, 2026-08-04).**  Read the census before planning work on the residue: its
-**H1** accounts for 445 of the ucore's 540 EVT seeds and 491 of the model's 645,
-437 of them the same seed, in ONE mechanism.
+**H1** accounted for 445 of the ucore's 540 EVT seeds and 491 of the model's
+645, 437 of them the same seed, in ONE mechanism — **and it is CLOSED in both
+engines since 2026-08-04** (`ucore_provenance.md` §61 / §62).  **H2 is RETIRED**
+(its falsifier fired; it is a signature, not a family).  The current ranked list
+is **§62.9**: H3 `PF_LOST`, H4 `DATA_SEQ`, H7 the `0x0008` NMI-vector class,
+H5, H6.
 
 ### BOARD PROBES — NOT GATES, BUT THEY MUST STILL RUN
 

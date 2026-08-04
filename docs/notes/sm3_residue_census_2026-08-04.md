@@ -29,6 +29,19 @@ Companions: `ucore_provenance.md` §58-§59 (the phase ledger),
 of the model's, and it is the same seeds in both.**  It is new — the population
 it lives in did not exist before SM2's re-capture.
 
+> **UPDATE, 2026-08-04 — SM3 sittings 2 and 3.  H1 IS CLOSED IN BOTH ENGINES**
+> and this census's own numbers moved with it.  `sim/` at sitting 2 (EVT
+> 363 → 780), `hdl/rtl/ucore/` at sitting 3 (EVT **468 → 906 / 1,008**,
+> COMBINED **1,951 → 2,389 / 2,710**, REGISTERED unmoved at 1,483 / 1,702).
+> **H2's registered falsifier FIRED** — its family is 41 before and 41 after on
+> the ucore and GREW 57 → 101 on the model — so it is NOT downstream of H1;
+> the cross-tab in `ucore_provenance.md` §62.7 retires it as a mechanism
+> altogether (it is a *signature* sitting on four families).  The ranked list
+> below is superseded by **§62.9**: H3 `PF_LOST` (129 ucore / 309 sim), H4
+> `DATA_SEQ` (55 / 33), H7 the `0x0008` NMI-vector class (14 / 27), H5, H6.
+> The tables in §3 and §5 are RETAINED AS MEASURED — they are the pre-H1
+> state, and every post-H1 figure is in §62.6-§62.9.
+
 | rank | mechanism | ucore seeds | sim seeds | shared | owner | §|
 |---|---|---|---|---|---|---|
 | **H1** | **the RE-ENTRY acknowledge's lead-in**: the chip idles **2 clocks** between the last prefetch and the INTA it is about to announce, and grants that slot to **nothing**.  The ucore fills it with a prefetch; the model announces immediately.  **LANDED IN `sim/` 2026-08-04 (SM3 sitting 2): EVT 363 -> 780, COMBINED 1,635 -> 2,052; discriminated on the socket by a directed cell that REFUTED both the redirect and the IRET readings — it is the RE-ENTRY, `ucore_provenance.md` §61 / `sm3_h1_prereg_2026-08-04.md`.  THE ucore LEG IS NOT TAKEN.** | **445 / 540** | **491 / 645** | **437** | **shared** — `sim/` first | §5.1 |
@@ -313,6 +326,17 @@ early or late clears the queue two clocks early or late — so it is ranked belo
 it and should be **re-censused after H1 lands rather than attacked first.**
 
 *Falsifier*: H1 lands and this family does not shrink.
+
+> **IT FIRED, 2026-08-04 (SM3 sitting 3, `ucore_provenance.md` §62.7).**  H1
+> landed in the ucore and the pair is **25 + 16 = 41 before and 41 after**, not
+> one seed; on the model, whose H1 landed a sitting earlier, it **GREW 57 →
+> 101**.  H2 is not downstream of H1.  **And it is not a mechanism at all**:
+> cross-tabulated against `s15_census`'s families the 41 split
+> `PF_GAINED` 17 · `PF_LOST` 11 · `DATA_SEQ` 6 · `SCHEDULE` 7 — the queue-status
+> port is simply the earliest-visible pin, not the thing that parted.  **H2 is
+> RETIRED as a hypothesis** and its seeds are redistributed into H3 and H4.
+> The reading above is retained as written, because stating it is what made it
+> falsifiable.
 
 ### §5.3 H3 — `PF_LOST`'s arbitration priority.  107 ucore / 239 sim REGISTERED seeds.
 
