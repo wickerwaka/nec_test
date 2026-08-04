@@ -154,15 +154,30 @@ ratchets: monotone, never re-scored downward without a loud, itemized entry.)
   fabric with 0 errors in 1,000 captures. Scored pairwise, fabric and Verilator
   are **identical on 200/200** for BOTH cores, which closes §51.8b: its 62/178
   was entirely the stale 2026-07-30 bitstream.
-- **TWO FINDINGS OUT OF THE FABRIC LEGS.** (a) **F42 is REFUTED** — its
+- **TWO FINDINGS OUT OF THE FABRIC LEGS.** (a) **F42 was REFUTED** — its
   registered prediction was that the 17 uncountable HLT cells would PASS in
-  fabric; they fail, the sweeps score 29/283 there, and the socket control on
-  the identical driver reproduces the golden 49/49. The ucore drives the HALT
+  fabric; they failed, the sweeps scored 29/283 there, and the socket control on
+  the identical driver reproduced the golden 49/49. The ucore drove the HALT
   display's upper nibble differently from silicon (`0x0AD8A` where the golden
-  has `0x2AD8A`) and drops it a row early. (b) **the FROZEN FSM CORE HAS
-  REGRESSED 104 SEEDS** on the random-wait axis between the 2026-07-30 build
-  (163/178) and HEAD (59/178, in fabric and in Verilator alike). Not the
-  ucore's, and no standing gate sees it.
+  has `0x2AD8A`) and dropped it a row early. **CLOSED at U5 by F51** — in fabric
+  on FLASH #3 the sweeps are **143/283** and **ZERO cells still carry the
+  signature**. (b) **the FROZEN FSM CORE HAS REGRESSED 104 SEEDS** on the
+  random-wait axis between the 2026-07-30 build (163/178) and HEAD (59/178, in
+  fabric and in Verilator alike). Not the ucore's, and no standing gate sees it.
+- **THE FABRIC SCORER IS STRICTER THAN THE TB, BY ONE CLASS — the INTA float
+  (U5 §56).** `sw/u4_f42_fabric.py` scores **143/283** where the TB scores
+  259/283 on the same RTL, and **116 of 116** fabric-only failures are INTA
+  rows: the chip's pads RETAIN the previous data phase at an INTA's T1 and the
+  core's AD inside `system_large` is an internal tri-state Quartus resolves to a
+  mux, so there is nothing to retain. The plan's registered **risk #4**.
+  `sw/check_ab_hw.py` already excludes float-retention rows for this reason and
+  is 800/800 on the same bitstream. **Do not "fix" this by swapping scorers** —
+  that would be choosing a comparator after seeing a result. `HLT.RES` in fabric
+  is IDENTICAL to `HLT.RES` offline cell for cell, which is the control that
+  makes the class readable.
+- **The board carries the ucore bitstream** (`nec_test_ucore.sof 924c4a61e0…`,
+  FLASH #3) since U5, with `use_core=0` proved MATCH 800 on it. The FSM A/B
+  bitstream built from HEAD is `nec_test.sof a4533dfef0…` if it is needed again.
 - **`timed_fuzz` now prints `BOUND WARNINGS`** — seeds whose EU completed-read
   store SATURATED, i.e. ran outside the regime `sw/qdepth_probe.py` proves
   (`rdq_` ≤ 2, `rd_done_q_` ≤ 1 on v0.1 at w0 **and**, U4, on w1/w3 and all four

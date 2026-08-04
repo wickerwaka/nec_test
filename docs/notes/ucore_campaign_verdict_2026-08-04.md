@@ -29,7 +29,7 @@ against the reference implementation, not smoothed away.
 | **Is it right on the deterministic surface?** | **G3 = 169,000 / 169,000.**  `check_core --core ucore --opcodes all --cases 0`, every form, every case, cycle-exact AND architecturally exact against the silicon goldens.  At w0 the reference model carries no registered residue, so this figure is the same with or without it subtracted (§29.2's two-number rule). |
 | **Is it right off it?** | **Eleven of thirteen ladder suites land ON the model's own ledger number** — `w1`/`w3` 1,200 each, `EB` 200, the four `evt` cells 200/1,200/200/1,200, `w1evt-biased` 1,200, boot 220 **and** 400, `ulockstep --golden all --cases 50` **17,350/17,350**, wvec **88/88 at +0.0 %**, ENTER **154/154 ×5**, INS **1,312/1,312** and **2,624/2,624**.  The two that do not are the HLT delay sweeps (**259/283** against the model's 272) — itemised in §(d), not excused. |
 | **Does it fit, and does it close?** | **G6 GREEN: 26 % ALMs (11,078 / 41,910), Fmax 45.56 MHz against a registered ≥ 32 MHz, worst setup +8.922 ns and TNS 0.000 on EVERY clock domain**, 0 errors, 0 inferred latches, 0 `lpm_divide`.  Two structural passes got it there and the sim ladder was re-scored three times across them **with zero deltas**. |
-| **Does it run?** | **First light 800/800 on all three legs** — chip-vs-golden, core-vs-chip, core-vs-golden — after a `use_core=0` chip-path proof of MATCH over 800 rows.  Two flashes, both from HEAD, both through `safe_flash.sh` with its VERIFY leg. |
+| **Does it run?** | **First light 800/800 on all three legs** — chip-vs-golden, core-vs-chip, core-vs-golden — after a `use_core=0` chip-path proof of MATCH over 800 rows.  **Three flashes, all from HEAD**, all through `safe_flash.sh` with its VERIFY leg; first light re-proved 800/800 ×3 on the U5 bitstream in its own session. |
 | **Does it meet the campaign's victory condition?** | **THE PRIORITY TRANCHE IN FABRIC: 176 / 178 (98.9 %), with V0 through V5 ALL MET** — including V3 at ZERO seeds apart.  200 fresh stratified `wrand` programs, frozen and committed before the first capture, chip-vs-fabric, 0 hard failures in 483 captures with the divider PINNED on every one. |
 | **Is the model of the bitstream the bitstream?** | **Fabric ↔ Verilator pairwise identity 200/200**, for the ucore *and* for the FSM core.  §48.4 registered a fabric-vs-sim gap as *"the MORE important result if it happens"*.  It did not happen, and the stronger statement is true. |
 
@@ -136,8 +136,21 @@ found by the census that runs RTL→map, which is the only instrument that could
    honest outcome and it is to be reported as a refutation, not re-explained."*
    In fabric the sweeps scored **29/283**; the socket control on the identical
    driver reproduced the golden **49/49**.  Reported as a refutation (§52.9) and
-   then **fixed** (F51, §53-§54).  The mask was hiding a real divergence rather
-   than manufacturing one — the opposite of what F42 claimed.
+   then **fixed** (F51, §53-§56): in fabric on the fixed bitstream the sweeps are
+   **143/283** and **ZERO cells still carry the signature**.  The mask was
+   hiding a real divergence rather than manufacturing one — the opposite of what
+   F42 claimed.
+1b. **U5's OWN bar 2 was MISSED, and is reported as missed (§56).**  The fabric
+   total was registered at ≥ 249/283 and came in at **143/283**.  The miss is one
+   class, measured rather than argued: **116 of 116** fabric-only failures are
+   INTA rows, there is no counter-population, no cell fails offline and passes in
+   fabric, and `HLT.RES` in fabric is identical to `HLT.RES` offline cell for
+   cell.  It is the plan's registered **risk #4** (multiplexed-pad float) — the
+   chip's pads retain the previous data phase at an INTA's T1 and the core's AD
+   inside `system_large` is an internal tri-state Quartus resolves to a mux, so
+   there is nothing to retain.  Neither candidate fix was taken, and the reason
+   the *scorer* was not swapped is stated in the ledger: **that would be choosing
+   a comparator after seeing the result.**
 2. **"The ucore beats the model on six HLT cells" — RETRACTED (§43.2).**  A
    numbering artefact: the model's failures were compared by ARRAY POSITION and
    the ucore's by the `idx` FIELD, and **the `idx` field is the pin delay `d`**.
@@ -263,6 +276,27 @@ visible.
 
 Nothing below is hidden in a subsection.  Where an item has a mechanism it is
 named; where it does not, that is said.
+
+### 0. The INTA float in fabric — 116 cells, and it is the HARNESS, not the core
+
+The one bar U5 registered and missed (§56).  On the fixed bitstream the four HLT
+sweeps score **143/283 in fabric** against **259/283** offline, and the whole
+116-cell gap is a single class with no exceptions: at an INTA's T1 the chip's AD
+pads float and RETAIN the previous data phase, and the core's AD inside
+`system_large` is an internal `tri` net that Quartus resolves to a mux — there
+is nothing to retain.  The plan registered this as **risk #4** before any RTL
+existed (*"multiplexed-pad float → G7-only divergences → ledger open item 1, not
+patches"*), and `sw/check_ab_hw.py` already excludes float-retention rows for
+exactly this reason, which is why first light is 800/800 on the same bitstream in
+the same session.
+
+Two candidate fixes, **neither taken**: give the harness's `core_ad` a retention
+model in `system_large.sv` (changes the shared A/B harness and therefore BOTH
+cores' fabric numbers — needs its own pre-registered before/after), or teach the
+fabric scorer `check_ab_hw`'s exclusion (**would be choosing a comparator after
+seeing the result**).  *Falsifier*: a fabric cell whose first divergence is an
+INTA row whose golden value is NOT the retained previous data phase, or any
+non-INTA fabric-only failure.
 
 ### 1. The HLT delay sweeps — 24 cells, 13 of them the ucore's alone
 
@@ -500,8 +534,10 @@ not passage*: the rows marked RED / NOT MET reproduce as exactly that.
 | U4 p3 | the FSM core's 104-seed random-wait regression | 163/178 (2026-07-30 build) vs **59/178** (HEAD), fabric and Verilator alike | `7b4027ff34` |
 | **U5** | the F42-refutation fix PRE-REGISTERED before the TB or the RTL was touched | four bars, including the prediction that removing the mask costs BOTH cores 600 v0.1 cases | `ee0bb4148c` |
 | **U5** | **F51 — the HALT pseudo-cycle has no data phase**, and the TB mask removed | bar 1 MET exactly (both cores 0/600, nibble 2 → 0); bar 2 MET (**ucore back to 169,000/169,000**, sweeps 249 → **259/283**); bar 3 the FSM at **168,400** and **16/283**, routed; bar 4 **zero deltas** on the whole ladder | `ce8b6bcdb6` |
-| **U5** | the two `bs` tranche seeds CLASSIFIED | **ucore ≡ SIM on 4,000/4,000 rows** on both — a shared divergence, ledger not patch | this commit |
-| **U5** | verdict, ROADMAP, `CLAUDE.md`, ledger §54; every standing gate re-run | §(a) | this commit |
+| **U5** | the two `bs` tranche seeds CLASSIFIED | **ucore ≡ SIM on 4,000/4,000 rows** on both — a shared divergence, ledger not patch | `24d8aac922` |
+| **U5** | the fabric re-score PRE-REGISTERED before board contact; **G6 re-run** on the fixed RTL | **0 errors, 27 % ALMs, Fmax 48.03 MHz** (up from 45.56), setup **+9.121 ns**, TNS **0.000 on every domain**, hold +0.244; `.sof 924c4a61e0…` | `24d8aac922` |
+| **U5** | **FLASH #3 + the fabric re-score** | chip path **MATCH 800**, first light **800/800 ×3**, socket control **49/49**; sweeps **29/283 → 143/283**; bar 1 (zero F42-signature cells) **MET absolutely**; **bar 2 MISSED** at 143 vs a registered ≥ 249, the miss **116/116 one class** | `99c77a61fe` |
+| **U5** | verdict, ROADMAP, `CLAUDE.md`, ledger §53-§56; every standing gate re-run | §(a) | this commit |
 
 ---
 
