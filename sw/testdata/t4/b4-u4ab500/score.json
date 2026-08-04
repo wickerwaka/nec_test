@@ -1,0 +1,21 @@
+{
+ "core": {
+  "exact": 435,
+  "scored": 449,
+  "excused": 51,
+  "fam": {
+   "bs": 11,
+   "qs": 3
+  }
+ },
+ "vsim_ucore": {
+  "exact": 433,
+  "scored": 449,
+  "excused": 51,
+  "fam": {
+   "bs": 11,
+   "qs": 3,
+   "data": 2
+  }
+ }
+}
