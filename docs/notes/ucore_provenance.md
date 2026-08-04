@@ -4128,3 +4128,152 @@ nothing: `check_ab_sim --core ucore` puts the ucore inside the real integration
 (`system_large` + `nec_bus` + the capture path) and it **MATCHES the chip's own
 boot capture over 187 rows, 0 rows differ**, with the loop `CODE T1 @00100`
 recurrence identical to silicon's.  That is the pre-flash gate, met.
+
+## §51 U4 PASS 2 — §50's CAUSE IS **REFUTED BY MEASUREMENT**.  THE AREA WAS THE UNROLLED CHAIN, NOT THE ROM
+
+**The headline: the EU went from 32,534 combinational cells to 12,400 with the
+ROM read left exactly as it was, no cadence change, and every ladder number
+unmoved.**  §50 read Quartus's `Info (276007) … uninferred due to asynchronous
+read logic` as the CAUSE of the blow-up and routed U5-scale work — a registered
+microcode ROM, which is a cadence change and therefore a re-derivation of the
+whole campaign.  That inference was not measured, and it was wrong.
+
+### §51.1 THE ATTRIBUTION, MEASURED FOUR WAYS
+
+An `Info (276007)` says only *"this array did not become a block RAM."*  It says
+nothing about what the array COSTS as logic.  Four `quartus_map` runs on the
+same tool and device (17.1.0 Lite, `5CSEBA6U23I7`) answer that; the harness is
+`v30u_eu` as its own top with virtual pins, whose baseline (**32,011** logic
+cells) reproduces the in-design figure (**30,621** own) closely enough to
+attribute with.
+
+| what was measured | how | **logic cells** |
+|---|---|---|
+| `ucdecode` 8192×10 **and** `ucrom` 1028×29, chained, read asynchronously off a registered 15-bit `upc` — i.e. the exact shape §50 blamed | standalone module | **1,120** |
+| the same two, in the design | `v30u_ucrom` own, map report | **1,026** |
+| the three `pla3` case ROMs (3×256×14) | baseline − stubbed-`pla3` build (30,264) | **~1,750** |
+| **ONE POSITION of the unrolled chain loop** | (17,224 @ `CHAIN_MAX=6` − 8,426 @ `CHAIN_MAX=2`) / 4 | **~2,200** |
+
+`32,011 ≈ 4,000 base + 12 × 2,200`.  **The microcode tables are 3 % of the EU.
+The chain loop is 82 % of it.**  The registered-ROM fallback would have bought
+about a thousand cells for a cadence change; it is NOT taken, and
+`v30u_ucrom.sv`'s header now carries the measurement so the next reader does
+not re-derive it from the same `Info` line.
+
+### §51.2 THE MECHANISM — TWELVE COPIES OF THE STEP CASE, ELEVEN OF THEM MOSTLY DEAD
+
+`v30u_eu.sv`'s chain loop is *"how several model steps ride one clock"*: a
+bounded `for (chain = 0; chain < 12; …) if (!stop) \`include
+"v30u_eu_step.svh"`.  It is UNROLLED by construction — twelve full copies of a
+33-arm case containing the whole datapath (`v30u_eu_row.svh`, `_wd1`, `_cond`,
+`_1bl`).
+
+But a state can only STAND at chain position ≥ 1 if some arm hands over to it
+**without setting `stop`**, and reading the arms, only **nine** do:
+
+```
+S_TAKE_OPC  S_DECODE  S_DECODE2  S_EA_CALC  S_BIND
+S_ENTER     S_TAIL    S_TAIL_POP S_INSTR_END
+```
+
+Every other predecessor stops.  `S_ROW` — the largest arm in the file — is
+entered only from `S_ENTER`, `S_ROW_CHG`, `S_RLOOP`, `S_IRQ_D` and `S_RESET`,
+and all five set `stop`.  `S_DECODE2` sets `stop` on every path, which makes
+`S_MODRM`, `S_NORM_CHG`, `S_HALTED`, `S_1BL_LEAD` and `S_1BL_CHG`
+position-0-only.  `S_BIND`'s `if (st != S_ENTER) stop = 1'b1` does the same for
+`S_PRERD` and `S_GRPD_CHG`.  And so on for all 24.
+
+**Argued from the transition graph AND measured.**  A `(position, state)` census
+instrumented into the chain and run over the golden suite (347 forms × 12) plus
+the boot march saw:
+
+| chain position | distinct states seen |
+|---|---|
+| 0 | 24 |
+| 1 | **9** — exactly the nine above |
+| 2 | 5 |
+| 3 | 3 |
+| 4 | 2 |
+| 5 | 1 |
+
+and a maximum chain depth of **6**.  The nine observed at position ≥ 1 are
+exactly the nine the transition graph predicts — the census did not add a state
+the argument missed, and the argument did not permit one the census never saw.
+
+So the 24 arms now open with `if (chain == 4'd0)`, the unroll folds them out of
+eleven of the twelve copies, and **`CHAIN_MAX` stays at 12** — the bound is not
+tightened, so no new corpus-scoped claim is made about chain depth.
+
+### §51.3 THE TWO FALSIFIERS, BOTH NEW, AND THE TRAP THAT MADE ONE NECESSARY
+
+1. **`CHAIN OVERFLOW`** — the loop now `$fatal`s if it ends with `stop` still
+   low.  That fires if a folded state ever stands at position ≥ 1 (the folded
+   copy assigns nothing, so `stop` cannot rise), and it fires equally if the
+   chain ever genuinely needs more than `CHAIN_MAX` steps.  The bound was a
+   silent claim before this line: running out would have pushed the remainder
+   into the NEXT clock — a cadence error, not a hang, and invisible.
+2. **`st_zero_ok()`** — a fail-safe around the include that spends a clock
+   rather than hanging if an impossible state ever did stand there in fabric,
+   where there is no assertion.
+
+**It is a FUNCTION and not a wire, and that is F11b's trap for the fourth time
+in this campaign.**  `st` is written with BLOCKING assignments inside the chain,
+so a `wire st_zero_ok = (st == …)` carries the PRE-EDGE state — it asks about
+position 0's state at position 1.  Written that way it scored **392/4,164** on
+the golden subset; as a function of the live value, 4,164/4,164.  The module
+already warns about this trap three times and it still caught this change.
+
+### §51.4 SYNTHESIS — GATE G6, RE-RUN
+
+| gate (§45.4 item 3) | registered expectation | pass 1 | **pass 2** | |
+|---|---|---|---|---|
+| Analysis & Synthesis errors | 0 | 0 | **0** | ✅ |
+| `quartus_map` wall | ~4 min band | 12:53 | **3:24** | ✅ |
+| `v30_core` combinational cells | (FSM: 12,257) | 32,534 | **12,400** | ✅ |
+| `v30u_eu` own | (FSM `v30_eu`: 11,315) | 30,621 | **10,481** | ✅ |
+| `v30u_biu` own | (FSM: 781) | 883 | **872** | — |
+| whole design, logic cells | (FSM: 37,222) | 37,222¹ | **19,469** | ✅ |
+| zero `lpm_divide` | 0 | 0 | **0** | ✅ (the FSM core instantiates two) |
+| zero inferred latches | 0 | 0 | **0** | ✅ |
+| `Warning (10230)` truncations | — | 9,220 | **1,028** | §50.4 item 2, part-fixed |
+
+¹ pass 1's whole-design figure is the same 37,222 because the fitter never ran;
+the A&S total is what is being compared.
+
+**The microcode tables are still LUT logic and still `Info (276007)`, ON
+PURPOSE** — that is §51.1's measurement, not an oversight, and `ucdecode` is
+now declared `[11:0]` so its 8,192 truncation warnings no longer bury the log
+(§50.4 item 2).  §50.4 item 1 — the comment Quartus parsed as a `synthesis`
+pragma — is fixed, and the hazard is written down where the comment was.
+
+### §51.5 THE FULL LADDER, RE-SCORED ON THE FOLDED RTL — ZERO DELTAS
+
+Everything below was run on ONE binary built from commit `5dce53a1a7`.
+
+| gate | standing | **pass 2** |
+|---|---|---|
+| **G3** `check_core --core ucore --opcodes all --cases 0` | 169,000 | **169,000/169,000** |
+| `v0.1-w1` / `-w3` | 1,200 / 1,200 | **1,200 / 1,200** |
+| `v0.1-w1 --opcodes EB` | 200 | **200/200** |
+| `w0evt` / `w1evt` / `w2evt` / `w3evt` | 200 / 1,200 / 200 / 1,200 | **200 / 1,200 / 200 / 1,200** |
+| `v0.1-w1evt-biased` | 1,200 | **1,200/1,200** |
+| HLT sweeps `s10-w{0,1}`, `s13-w{2,3}` | 90/97, 88/95, 37/46, 34/45 | **90/97, 88/95, 37/46, 34/45** |
+| `check_boot --core ucore` 220 / 400 | MATCH / MATCH | **MATCH / MATCH** |
+| `ulockstep --suite --waits 0,1,2,3` | ALL LOCKSTEP | **ALL LOCKSTEP** |
+| `ulockstep --golden all --cases 50` | 17,350 | **17,350/17,350** |
+| `timed_wvec_gate --core ucore` | 88/88, +0.0 % | **88/88, 16,048 vs 16,048, +0.0 %** |
+| `timed_enter_replay --core ucore` | 154/154 ×5 | **154/154 ×5** |
+| `timed_ins_replay --core ucore --raw` | 1,312 / 2,624 | **1,312/1,312 and 2,624/2,624** |
+| `timed_fuzz --core ucore --evt-replay` REGISTERED | 1,483/1,702 | **1,483/1,702 (87.1 %)** |
+| … EVT / COMBINED | 192/1,008 · 1,675/2,710 | **192/1,008 · 1,675/2,710** |
+| … `BOUND WARNINGS` / `ENGINE ABORTS` | 5 / 0 | **5 / 0** |
+| `timed_fuzz --seeddir …/b2-tranche/seeds` | 171/188 | **171/188 (91.0 %)** |
+| `ss_lint --core ucore` | rc=0, 223 flops, 0 UNMAPPED | **rc=0, 223 flops, 0 UNMAPPED** |
+| `check_ab_sim --core ucore` | 187 rows MATCH | **187 rows MATCH** |
+| `gen_ucore_qsf --check` | up to date | **up to date** |
+| G0 `check_ucore_tables` | 9,988 | **9,988 PASS** |
+
+**Every cell, and the fuzz denominators (2,710 scored / 532 `OPEN_BUS`; 188 /
+28) with them.**  That is the intended result: folding a provably unreachable
+arm out of an unrolled loop is a synthesis-shape change and nothing else, and
+the ladder is the instrument that says so rather than the argument.
