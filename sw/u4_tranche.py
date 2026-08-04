@@ -159,7 +159,7 @@ def cmd_vsim(a):
     import tempfile
     man = json.loads((OUT / "manifest.json").read_bytes())
     chip = OUT / "raw_chip"
-    leg = OUT / "raw_vsim"
+    leg = OUT / f"raw_vsim_{a.core}"
     leg.mkdir(parents=True, exist_ok=True)
     done = 0
     for name, cell in sorted(man["cells"].items()):
@@ -168,10 +168,14 @@ def cmd_vsim(a):
             continue
         recs = json.loads(gzip.decompress(cf.read_bytes()))["rows"]
         image, cfg = _image_of(cell)
-        w = cfg["waits"]
+        # timed_fuzz.run_tb, NOT check_seq.run_tb: the latter is pinned to the
+        # FSM `obj_dir` binary, and V3 is a control on the UCORE.
+        entry = {"waits": cfg["waits"]}
         with tempfile.TemporaryDirectory() as td:
-            rows = check_seq.run_tb(image, len(recs),
-                                    wrand=(w["wmax"], w["wseed"]))
+            rows, err = tf.run_tb(image, entry, len(recs), td, a.core)
+        if not rows:
+            print(f"  ERR {name}: {err.strip()[:120]}", flush=True)
+            continue
         body = json.dumps({"name": name, "leg": "vsim", "cell": cell,
                            "rows": rows}).encode()
         (leg / f"{name}.json.gz").write_bytes(gzip.compress(body))
@@ -256,6 +260,7 @@ def main():
     c.add_argument("--force", action="store_true")
     c.set_defaults(fn=cmd_capture)
     v = sub.add_parser("vsim")
+    v.add_argument("--core", default="ucore", choices=["ucore", "fsm"])
     v.set_defaults(fn=cmd_vsim)
     s = sub.add_parser("score")
     s.add_argument("--legs", default="core")
