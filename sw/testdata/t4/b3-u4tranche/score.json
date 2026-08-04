@@ -1,45 +1,16 @@
 {
- "core": {
+ "chip_f5": {
+  "exact": 178,
+  "scored": 178,
+  "excused": 22,
+  "fam": {}
+ },
+ "core_f5": {
   "exact": 176,
   "scored": 178,
   "excused": 22,
   "fam": {
    "bs": 2
-  }
- },
- "vsim_ucore": {
-  "exact": 176,
-  "scored": 178,
-  "excused": 22,
-  "fam": {
-   "bs": 2
-  }
- },
- "fsmcore": {
-  "exact": 163,
-  "scored": 178,
-  "excused": 22,
-  "fam": {
-   "bs": 14,
-   "qs": 1
-  }
- },
- "fsmhead": {
-  "exact": 59,
-  "scored": 178,
-  "excused": 22,
-  "fam": {
-   "bs": 83,
-   "qs": 36
-  }
- },
- "vsim_fsm": {
-  "exact": 59,
-  "scored": 178,
-  "excused": 22,
-  "fam": {
-   "bs": 83,
-   "qs": 36
   }
  }
 }

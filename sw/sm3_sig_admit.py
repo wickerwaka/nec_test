@@ -47,6 +47,22 @@ WHY = ("INV-1 re-capture (SM2, 2026-08-04): the 760 EVT seeds whose banked "
        "entering its interrupt handler 2-5 times under a level it was never "
        "physically given before.")
 
+# SM3 sitting 7.  A SECOND admissible cause, with its OWN control.  The tool
+# refuses to write without a control, and the right response to a new cause is
+# a new control -- not a weaker one.  `--cause` selects which, and the two
+# controls are computed by two different tools over two different artifacts.
+WHY_IOW = ("tb_v30_core IOW-store defect fixed (ucore_provenance.md §66.3 / "
+           "§67.1): the testbench's memory commit was gated on `lat_write`, "
+           "which includes 3'b010 = IOW, so an I/O write to port P stored into "
+           "mem[P] for the RTL legs only.  The socket harness never did this "
+           "and `sim/` never did this, which is how the defect was found.  "
+           "With the commit restricted to MEMW, FIVE banked seeds replay to a "
+           "BETTER verdict on the FSM leg this gate binds to, and a better "
+           "verdict carries a different signature.  The signatures are novel "
+           "to the REGISTER and not to the machine: nothing regressed "
+           "(`worse 0`, `gen_drift 0`), and every one of them is reachable "
+           "only from a seed the defect could touch.")
+
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
@@ -55,6 +71,16 @@ def main():
     ap.add_argument("--apply", action="store_true",
                     help="write the ledger (default: dry-run)")
     ap.add_argument("--date", default="2026-08-04")
+    ap.add_argument("--cause", default="inv1", choices=("inv1", "iow"),
+                    help="which admissible cause, and therefore which CONTROL "
+                         "gates the write.  `inv1` (default): the seed carries "
+                         "a recapture block with evt.hold==300 and "
+                         "hold_bits==12.  `iow`: the seed is in the chip-side "
+                         "IOW population (`sw/sm3_iowpop.py --out`, named by "
+                         "--pop).")
+    ap.add_argument("--pop", default="",
+                    help="sm3_iowpop.py --out artifact; required for "
+                         "--cause iow")
     a = ap.parse_args()
 
     ctl = json.loads(Path(a.ctl).read_text())
@@ -66,16 +92,40 @@ def main():
         print("nothing to admit"); return 1
 
     # --- THE CONTROL.  It gates the write. --------------------------------- #
-    bad = [r for r in new
-           if not (r["recaptured"] and r.get("evt_hold") == 300
-                   and r.get("evt_hold_bits") == 12)]
-    print(f"control: {len(new)} new-sig TIMING seeds, "
+    if a.cause == "inv1":
+        why, ctl_txt = WHY, (
+            "every admitted signature is reachable ONLY from a seed carrying "
+            "a `recapture` block with evt.hold == 300 and evt.hold_bits == 12; "
+            "0 from any other banked seed (sw/sm3_sigctl.py, full 3,242-seed "
+            "replay)")
+        bad = [r for r in new
+               if not (r["recaptured"] and r.get("evt_hold") == 300
+                       and r.get("evt_hold_bits") == 12)]
+        label = "a true-300 / 12-bit re-captured seed"
+    else:
+        if not a.pop:
+            print("--cause iow requires --pop (sm3_iowpop.py --out)")
+            return 2
+        pop = json.loads(Path(a.pop).read_text())
+        popset = set(pop["paths"])
+        why = WHY_IOW
+        ctl_txt = (
+            "every admitted signature is reachable ONLY from a seed in the "
+            f"chip-side IOW population ({len(popset)} of {pop['n_bank']} "
+            "banked seeds: the chip rows contain an IOW cycle whose port "
+            "number is later read as memory).  The population is derived from "
+            "the CAPTURES alone -- no engine, no testbench -- because the "
+            "defect was in a replay instrument and a population defined by "
+            "that instrument would be circular (sw/sm3_iowpop.py)")
+        bad = [r for r in new if r["path"] not in popset]
+        label = "the chip-side IOW population"
+    print(f"control ({a.cause}): {len(new)} new-sig TIMING seeds, "
           f"{len({r['sig'] for r in new})} distinct signatures")
-    print(f"  from a true-300 / 12-bit re-captured seed : {len(new) - len(bad)}")
-    print(f"  from ANY OTHER seed                       : {len(bad)}")
+    print(f"  from {label:<42s}: {len(new) - len(bad)}")
+    print(f"  from ANY OTHER seed                              : {len(bad)}")
     if bad:
-        print("\nCONTROL FAILED -- these are not INV-1 consequences and are "
-              "NOT admitted:")
+        print(f"\nCONTROL FAILED -- these are not `{a.cause}` consequences "
+              "and are NOT admitted:")
         for r in bad[:20]:
             print(f"   {r['path']}  hold={r.get('evt_hold')} "
                   f"bits={r.get('evt_hold_bits')} recap={r['recaptured']}")
@@ -105,18 +155,23 @@ def main():
             "first_campaign": r["campaign"], "first_verdict": fc.TIMING,
             "klass": None, "tier": "raw" if r["seed"].startswith("raw") else
             ("soup" if r["seed"].startswith("soup") else "unknown"),
-            "waits_class": "recapture-evt", "count": per[s],
+            "waits_class": ("recapture-evt" if a.cause == "inv1"
+                            else "tb-iow-fix"),
+            "count": per[s],
             "admitted": a.date,
         }
     led.setdefault("admissions", []).append({
-        "date": a.date, "by": "session SM3, item 0",
-        "why": WHY,
+        "date": a.date,
+        "by": ("session SM3, item 0" if a.cause == "inv1"
+               else "session SM3, sitting 7"),
+        "cause": a.cause,
+        "why": why,
         "seeds": len(new), "signatures": len(sigs),
-        "control": ("every admitted signature is reachable ONLY from a seed "
-                    "carrying a `recapture` block with evt.hold == 300 and "
-                    "evt.hold_bits == 12; 0 from any other banked seed "
-                    "(sw/sm3_sigctl.py, full 3,242-seed replay)"),
-        "gate_before": "check_fuzz_bank --strict FAIL, new-sig TIMING 166",
+        "control": ctl_txt,
+        "gate_before": ("check_fuzz_bank --strict FAIL, new-sig TIMING 166"
+                        if a.cause == "inv1" else
+                        "check_fuzz_bank --strict FAIL, stable 3237 improved 5 "
+                        "worse 0 gen_drift 0, new-sig TIMING 3"),
         "gate_after": "check_fuzz_bank --strict expected rc=0",
         "ledger_before": before, "ledger_after": len(led["sigs"]),
         "recorded": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),

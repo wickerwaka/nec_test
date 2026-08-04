@@ -8270,3 +8270,391 @@ TB fix as their cause, or leave `--strict` red until someone does.
 *The control that would go with the admission, if it is taken*: the 3 must be
 reachable ONLY from the 5 improved seeds — `sw/sm3_sigctl.py --ledger <pre>`
 already computes exactly that.
+
+## §68 SESSION SM3, SITTING 7 — FLASH #5, AND THE THREE DIRECTED CELLS
+
+**2026-08-04, branch `ucsim`, from HEAD `2e93cd0499`.  Task #36.  A BOARD
+SITTING WITH FLASHING AUTHORISED.**  Pre-registration committed at
+**`8339740709`** BEFORE the first board contact:
+`docs/notes/sm3_s7_prereg_2026-08-04.md`.  Single writer confirmed before
+contact (`0 users`, no serve process on `mister-nec`) and again before the
+flash; the divider PINNED with `div_guard`'s readback recorded in every
+manifest (`div=8 (4 MHz), commanded by this connection` -> **PINNED**); full
+per-clock rows + raw 64-bit words + `SHA256SUMS` retained for every cell;
+`use_core` was **False** as found and is **False** as left, verified on the
+board; `board_idle()` run at the end and **OK**; **0 transport errors in the
+whole sitting**.
+
+> **Standing principle, applied throughout.**  *"This is 80's era hardware,
+> they aren't wasting silicon on anything that isn't necessary.  Complex or
+> confusing behavior that we see is likely to be simple systems interacting in
+> ways you do not fully understand yet."*
+
+**NO ENGINE WAS CHANGED.**  `git diff 2e93cd0499 -- hdl/rtl hdl/tb sim/` is
+EMPTY at the close of this sitting, so every ratchet in `standing_gates.md` §B
+is unmoved **by construction and not by assumption**.  The only tree changes
+are `sw/` instruments, retained captures, and (§68.8) the novelty ledger.
+
+### §68.1 THE BITSTREAM — **ALL QUARTUS BARS MET; FLASH #5**
+
+`gen_ucore_qsf.py --check` green first (`nec_test_ucore.qsf` is up to date),
+then `quartus_sh --flow compile nec_test -c nec_test_ucore`, 17.1.0 Lite,
+`5CSEBA6U23I7`, top `sys_top`.
+
+| bar | registered | **measured** |
+|---|---|---|
+| errors, A&S / Fitter / Assembler / TimeQuest | 0 | **0 / 0 / 0 / 0** |
+| latches as a RESOURCE | 0 | **0** (no latch line in the A&S resource summary) |
+| `lpm_divide` | 0 | **0** |
+| Fmax, core clock `emu\|pll\|…\|divclk` | >= 32 MHz | **45.67 MHz** |
+| worst setup slack | > 0 | **+9.355 ns** (`divclk`); tck +9.226, CLK2_50 +13.510, audio +24.433 |
+| TNS, every domain, setup AND hold | 0.000 | **0.000 on all eight** (worst hold +0.249) |
+| ALMs | — | **11,167 / 41,910 (27 %)**, 6,087 registers, 105/553 RAM blocks, 9/112 DSP, 2/6 PLL, 107/314 pins |
+
+Against U4 pass 3 (11,078 ALMs / 45.56 MHz / +8.922 ns) the design is 89 ALMs
+larger, 0.11 MHz faster and 0.43 ns slacker — three landings' worth of change
+and no timing cost.
+
+**The 23 `Warning (10240)` "inferring latch(es)" lines are pre-existing** and
+are not the bar: all 23 name block-local temporaries (`ie_now`, `v1`, `bsw`,
+`carry`, `taken`, …) inside `v30u_eu.sv`'s next-state `always @*` at line 2096,
+which is the ucore's combinational spine and predates every landing in this
+campaign.  The bar is the LATCH RESOURCE and it is zero.
+
+**FLASH #5**, `sw/safe_flash.sh` with its VERIFY leg, appended to
+`sw/testdata/flash_log.jsonl`:
+
+```
+  sof   hdl/output_files_ucore/nec_test_ucore.sof
+  sha256 315de4bc9e304596b9c56a6cf36bde9fa2291e222d5548e927306de7d9fce98f
+  ts    2026-08-04T22:36:55Z   git_describe 8339740709-dirty   verify OK
+  (the `-dirty` is the sitting's own retained captures, not source)
+```
+
+**FIRST LIGHT — the prediction MET.**  `sw/check_ab_hw.py all 800`:
+**chip-vs-golden MATCH over 800 rows**, **core-vs-chip MATCH over 800**,
+**core-vs-golden MATCH over 800** — **800 / 800 on all three legs.**
+`div_guard` **PINNED** on the first probe.
+
+### §68.2 THE FABRIC RE-SCORE — **146 / 283, THE PREDICTION EXACTLY, AND THE FAILING SET IS IDENTICAL TO `tb_sys` BASE'S CELL FOR CELL**
+
+`sw/u4_f42_fabric.py capture` (283 cells, **0 errors**, 8 s) then `score`:
+
+| | §2 predicted | **measured** |
+|---|---|---|
+| total | **146 / 283** | **146 / 283** |
+| `s10-hltsweep-w0` `HLT.INT` / `HLT.RES` failing | 48 / 2 | **48 / 2** |
+| `s10-hltsweep-w1` `HLT.INT` / `HLT.RES` | 46 / **0** | **46 / 0** |
+| `s13-hltsweep-w2` `HLT.INT` / `HLT.RES` | 21 / **0** | **21 / 0** |
+| `s13-hltsweep-w3` `HLT.INT` / `HLT.RES` | 20 / **0** | **20 / 0** |
+| the failing SET vs `tb_sys` base's 137 | — | **IDENTICAL, all 137 cells (set equality, not a count match)** |
+| first divergence on an INTA row | 119 | **119 of 137**, and `137 = 18 + 119` closes exactly against the offline TB's 18 |
+
+**§67.7's arithmetic is confirmed in silicon**: the Verilated integration and
+the fabric now agree at 146, which is what the re-flash was for.  The
+correspondence §67.7 deliberately broke is RE-ESTABLISHED.
+
+**THE SIX F43 CELLS, WHICH IS WHERE A DISPLAY-NIBBLE CLAIM DIES (F42's lesson).**
+On FLASH #4 all six failed in fabric with F43's own `busstat` signature.  On
+FLASH #5:
+
+| cell | FLASH #4 | **FLASH #5** | predicted |
+|---|---|---|---|
+| `s10-hltsweep-w1/HLT.RES` idx 7 | `row5:busstat` | **PASS** | PASS ✅ |
+| `s13-hltsweep-w2/HLT.RES` idx 9 | `row6:busstat` | **PASS** | PASS ✅ |
+| `s13-hltsweep-w3/HLT.RES` idx 11 | `row7:busstat` | **PASS** | PASS ✅ |
+| `s10-hltsweep-w1/HLT.INT` idx 7 | `row5:busstat` | **`row13:bus`, golden row = `INTA T1`** | `row12:bus` — class ✅, INDEX MISSED by 1 |
+| `s13-hltsweep-w2/HLT.INT` idx 9 | `row6:busstat` | **`row15:bus`, golden row = `INTA T1`** | `row14:bus` — same |
+| `s13-hltsweep-w3/HLT.INT` idx 11 | `row7:busstat` | **`row17:bus`, golden row = `INTA T1`** | `row16:bus` — same |
+| the `busstat` signature at `d = 2w+5`, w = 1,2,3 | 6 cells | **0 of 283 — EXTINCT** | EXTINCT ✅ |
+
+**F43 IS IN FABRIC AND DOES IN FABRIC WHAT IT DOES OFFLINE.**  The three
+`HLT.INT` cells did not close because they carry a SECOND, independent failure
+on an INTA T1 row — the float class — which is exactly §67.7's reading of why
+`tb_sys` base rose by 3 and not by 6, now confirmed on real pads.
+
+**TWO REGISTERED MISSES, reported as registered and not restated:**
+
+1. **the row INDEX** of the three `HLT.INT` cells is **13 / 15 / 17** where the
+   prediction, taken from `tb_sys` base, said **12 / 14 / 16**.  The offset is
+   **+1 on every one of the 119 INTA-class cells** and 0 on the other 18 — a
+   systematic one-row phase difference between the two instruments' first
+   -divergence COORDINATE, not a difference in which cells pass.  The failing
+   SETS are identical.
+2. **`s10-hltsweep-w0` idx 3, both forms**, was predicted UNCHANGED and its
+   first-divergence row moved **`row3:busstat` -> `row4:busstat`**.  The cells
+   still FAIL and still fail in the same column; one earlier display row is
+   suppressed and the cell does not close.  The four w0 `busstat` cells
+   (`HLT.INT` idx 2,3 and `HLT.RES` idx 2,3) remain the only `busstat` cells in
+   the whole sweep, and they are the MODEL-SHARED pair (§66.5's Q2 allowed them
+   to close; they did not, in fabric as offline).
+
+**C11's `NOT ESTABLISHED` on the X1 attribution is UNCHANGED.**  This scorer
+does not re-litigate it and was not used to.
+
+**A RIG DEBT, ROUTED (the same class as §67.6/§67.7).**  `u4_f42_fabric` has no
+LEG NAMING: `capture` writes `sw/testdata/u4-f42/*.core.json.gz` and a
+re-capture on a new bitstream OVERWRITES the previous one's record.  Nothing
+was lost — the files are tracked, so FLASH #4's capture was recovered from
+`HEAD` and **archived by rename to `*.core_f4.json.gz`** (nothing deleted) —
+but the tool should carry `--leg` the way `u4_tranche` does.  **Not taken here.**
+
+### §68.3 THE b3 PRIORITY TRANCHE ON FLASH #5 — REPORTED AS MEASURED
+
+New legs `chip_f5` / `core_f5`, written BESIDE the `_f4` pair and never over
+it, each scored against the socket capture taken on its OWN bitstream.
+200 cells per leg, **0 errors in 400 captures**, 13 s each.
+
+| leg | FLASH #4 | **FLASH #5** |
+|---|---|---|
+| `chip_f5` (the socket, the reference) | 178 / 178 | **178 / 178 (100.0 %)**, excused 22 |
+| `core_f5` (the ucore in fabric) | 176 / 178 (98.9 %) | **176 / 178 (98.9 %)**, excused 22, residue `bs = 2` |
+
+Predicted `>= 176`; **MET**, and identical to FLASH #4 to the seed.  V0-V5's
+margins are unmoved by three landings.
+
+### §68.4 CELL (a) — **H1a: THE ARM IS NOT THE INTA CYCLE.  A2 IS REFUTED, AND NOTHING IS LANDED.**
+
+240 captures (`swintnext` + `iretnext` × waits 0-3 × delays 6…35, `hold = 300`),
+482 files with `SHA256SUMS` in `sw/testdata/sm3-h1acell/`, 26.9 s, 0 errors.
+
+**THE SHAPE CONTROL IS PERFECT AND IT IS WHAT MAKES THE CELL READABLE.**
+`entry_shape` classifies every first acknowledge's lead-in off the retained
+rows with no engine: **`swintnext` 30/30 `swint-entry` at every wait level**
+(a vector read below `0x400`, the bare handler at `0x0480`, the IRET's three
+stack pops, the restarted prefetch, and NO INTA behind it) and **`iretnext`
+30/30 `iret-only`** (the same IRET and restart, popping planted frames, no
+entry of any kind).  The stimulus does exactly what it was built to do.
+
+**THE CHIP, w0 — where the two candidates differ by TWO clocks:**
+
+| stimulus | `refill L -> gap` | reading |
+|---|---|---|
+| `swintnext` | **L4 -> gap 6, 30 / 30** | **FLOORED** at `max(F1+6, F1+L+1)` |
+| `iretnext` | **L4 -> gap 4 on 25 / 30** (min 4; 1 at 6, 3 at 8, 1 at 10 — later boundaries) | **UNFLOORED**, the back-to-back slot |
+
+**THE ENGINE LEG ON THE SAME CAPTURES, AND IT IS THE DECIDER** (both engines
+implement the INTA-only arm today, i.e. candidate A2):
+
+| | chip | `ucore` | `sim` | agreement |
+|---|---|---|---|---|
+| `swintnext` ord 1, w0 | **gap 6** | **gap 4** | **gap 4** | **0 / 30, BOTH engines** |
+| `iretnext` ord 1, w0 | gap 4 | gap 4 | gap 4 | **30 / 30** |
+| `iretnext` ord **2+**, w0 (an INTA IS behind it now) | gap 6 | gap 6 | gap 6 | 99/101 and 101/101 |
+
+*The same stimulus, the same boundary, un-floored at ordinal 1 and floored at
+ordinal 2+ — and the engines get ordinal 2+ right and ordinal 1 wrong only when
+a SOFTWARE ENTRY sits behind it.*  That is A1's signature and A2 cannot produce
+it.  **§64.2's two banked seeds are reproduced at 30/30 on a directed
+population that did not exist when the hypothesis was written**, which is
+§64.1's rule satisfied.
+
+**A2 IS REFUTED.**  §3's registered refuting outcome — *">= 95 % of
+`swint-entry` first acknowledges UNFLOORED"* — did not fire; **0 of 30** are
+unfloored.
+
+**AND YET NOTHING IS LANDED, BECAUSE THE AUTHORISING OUTCOME IS NOT MET AS
+WRITTEN.**  §3 required BOTH halves at `>= 95 %` **at every wait level**, and
+the CONTROL half fails at w1/w2/w3, where `iretnext` sits at `L+1` (6, 7, 8).
+The reason is a defect in the bar, and it is booked as one rather than
+corrected after the fact: at `w >= 1` the floor `max(6, L+1)` COLLAPSES onto
+`L+1`, so the coordinate cannot express "unfloored" there at all — and both
+engines reproduce the chip exactly at those levels with an INTA-only arm, which
+says the `L+1` term is structural and not the entry.  **The discriminating
+regime is w0 alone, and the right statistic is the MINIMUM (a floor is a
+minimum), not a proportion over all four levels.**  Re-reading a registered bar
+onto a better statistic after seeing the data is exactly the manoeuvre §64.1
+booked as an erratum, and it is not done here.
+
+**DISPOSITION.**  H1a is **MEASURED AND DISCRIMINATED, NOT LANDED.**  The
+landing §3 specifies — the arm becomes *"the EU's interrupt-entry microcode
+started"*, published by the EU and consumed by the BIU, one wire, no address
+match, strictly generalising today's arm — is carried to the next sitting with
+its bar rewritten on w0 and on minima, and with §3's full must-not-move ladder
+unchanged.  **No engine source was touched and no ratchet moved.**
+
+### §68.5 CELL (b) — **H7: THE OPCODE AT THE BOUNDARY DOES NOT SELECT THE FLOOR.  §65.1's LEAD IS REFUTED FROM TWO SIDES.**
+
+**THE BOARD-FREE CENSUS THAT CHOSE THE OPCODES** (`sw/sm3_h7_opcode.py`, a
+MEASUREMENT tool, never a gate; chip-side, no engine, the opcode read off the
+`QS` port with a single address pointer): 208 banked NMI seeds, **193 with a
+recognition, 0 unplaced pops**.
+
+* the `gap = V − A` histogram reproduces §63.2 exactly — **12 : 30, 13 : 18**;
+* **no opcode partitions the two camps** — `B9`, `CF`, `EA`, `E9` appear at
+  both;
+* **`90` (NOP) sits at gap 12 on FOUR banked seeds.**  Hand-verified on
+  `mc1/raw_3571`: the image is a solid `90` sled, `A = 316`, `V = 328`.  §65.1's
+  own directed NOP-sled cell floors at **13** over 40 captures and the golden
+  `NMI.90` is A-limited at 13.  **Same opcode, same sled, two floors.**
+* a coordinate the lead did not predict: the floor population is
+  **BANK-ASSOCIATED** — `mc2` **0 of 75** at gap 12, `mc1` **26 of 85**,
+  `t30-raw` **4 of 33**.  `gen_git` tracks the bank exactly and `banked_ts` is
+  the same day for all 193, so it is a property of the two GENERATORS' programs
+  and not of a capture era.  **Booked, not chased.**
+
+**THE BOARD CELL**: `sm3_h7_cell.py` with §63.3's geometry unchanged (assert
+delay swept one clock at a time, `hold = 2`, waits 0-3, `d0 = 6`, 16 delays)
+and the STIMULUS as the only new axis — ten one-instruction sleds.
+**640 captures**, 1,282 files with `SHA256SUMS` in `sw/testdata/sm3-h7opcell/`,
+62.5 s, 0 errors.
+
+| | result |
+|---|---|
+| the floor `min(V − A)`, **every one of the 10 variants × 4 wait levels** | **13, all 40 cells** |
+| **Q1 falsifier**, cells with `V − A < 12` | **0** — the floor holds |
+| the engine leg, `ucore` and `sim`, on the SAME 640 captures | **13 on all 40 cells, both engines, delta +0 everywhere** |
+
+**O2 AT ITS POINT ESTIMATE.**  Ten opcodes — including both golden NMI forms'
+own opcodes, a Jcc not taken and the same Jcc taken (a redirect at every
+instruction) — and the floor does not move by one clock.  **§65.1's lead is
+REFUTED**, from the bank (a gap-12 NOP) and from the board (a gap-13 NOP), and
+**H7 stays BLOCKED with the opcode axis added to the eliminated list**
+(wait class, rig delay, bus owner at A, queue occupancy at A, queue primed vs
+dry, the window's composition, and now the instruction at the boundary).
+The bank association of §68.5's census is the only live lead it leaves.
+
+### §68.6 CELL (c) — **H3 CLASS B: THE WAIT-VECTOR WALK RAN, AND S3 FIRED**
+
+`sm3_h3_cell.py wrun`, §65.2's own spec taken: a PERIODIC, phase-swept
+per-access wait vector that puts `+extra` waits on the access `r` bus cycles
+before every EU access, with `period` MEASURED off a uniform-waits baseline in
+the same cell.  3 variants × 4 waits × (baseline + 2 extras × `period` phases).
+**186 captures, 7,254 EU accesses**, 374 files with `SHA256SUMS` in
+`sw/testdata/sm3-h3wvec/`, 20.6 s, 0 errors.
+
+**THE RIG COULD EXPRESS IT** — `cfg_wait_replay` + `wvec_buf` in
+`hdl/rtl/nec_bus.sv`, `v30run.Runner.replay()` on the host — and the only
+missing piece was `s10_board.capture()`'s passthrough, added here.
+
+| bar | registered | **measured** |
+|---|---|---|
+| **R0** the chip's ACHIEVED per-cycle waits vs the vector it was handed | `>= 95 %` | **45,699 / 45,699 = 100.0 %** |
+| **S1** distinct lead-in `gap` values per (variant, wait) | `>= 3` | **3 to 5 in all 12 cells** (§65.2's byte-step sweep gave 2-3) |
+| **S2** same-clock / different-owner pairs | `>= 1` would reach the family | **0 against `sim`, 0 against `ucore`** |
+| agreement, paired by ordinal | — | **7,254 / 7,254 against BOTH engines** |
+
+**S3 — THE REGISTERED NEGATIVE — FIRES.**  R0 met, S1 met, S2 zero over 7,254
+paired accesses against a `>= 3,000` bar.  **Class B is not reachable by a
+clock-resolution walk of the prefetcher's eligibility instant either**, which
+is the second stimulus §63.6 named and the second one to miss.  Both engines
+reproduce the chip's grant order EXACTLY at every occupancy from 2 to 5, at
+every wait level, with a one-clock-resolution phase sweep — that is a stronger
+control than §65.2's and it says the same thing.  **Nothing landed.**
+
+**AND R0 IS A RESULT IN ITS OWN RIGHT.**  100.0 % over 45,699 bus cycles is the
+first DIRECT, per-cycle proof on this bitstream that the harness's `wvec_buf`
+index and the engines' bus-cycle ordinal are the same index.
+`timed_wvec_gate`'s 88/88 was evidence about a frozen corpus's digests; this is
+the vector, cycle by cycle, on 186 fresh captures.
+
+**WHERE CLASS B IS NOT**: not at a queue-occupancy threshold (§63.6), not in a
+byte-step sweep of the request instant (§65.2), and not in a clock-step sweep
+of the eligibility instant (here).  All three stimuli share one property — the
+access is reached through an `EB 00` flush and a cold refill.  **The spec that
+follows, NOT taken**: drive the access from a prefetcher in STEADY STATE, never
+flushed, which is §65.2's own second suggestion and the only one of its two not
+yet tried.
+
+### §68.7 WHAT MOVED, AND WHAT DID NOT
+
+| | before | **after** |
+|---|---|---|
+| the board's bitstream | FLASH #4 `67ddd59413d5…` | **FLASH #5 `315de4bc9e30…`** |
+| the fabric HLT sweeps | 143 / 283 | **146 / 283** (and the failing SET is now identical to `tb_sys` base's) |
+| the fabric F43 signature | 6 cells | **0** |
+| `sig_ledger.json` `sigs` | 11,845 | **11,848** (§68.8) |
+| `check_fuzz_bank --strict` | FAIL | **rc 0** (§68.8) |
+| **everything in `standing_gates.md` §B** | — | **UNMOVED, and `git diff 2e93cd0499 -- hdl/rtl hdl/tb sim/` is EMPTY** |
+
+### §68.8 THE STRICT ADMISSION — **THE CONTROL HOLDS, AND IT IS A NEW CONTROL RATHER THAN A WEAKER ONE**
+
+§67.9 routed the decision; the coordinator's decision was ADMIT WITH CONTROL.
+
+**THE CONTROL, run FIRST and pre-registered in §6.**  New tool
+**`sw/sm3_iowpop.py`** derives §66.3's `IOW` population from the CAPTURES
+ALONE — no engine, no testbench, because the defect WAS a replay instrument and
+a population defined by it would be circular.  Over the full 3,242-seed bank:
+**47 seeds** whose chip rows contain an `IOW` whose port number is later read as
+memory (§66.3's 37 was over the 2,710 SCORED seeds; all seven seeds §66.3 names
+cross-check as members).
+
+`sw/sm3_sigctl.py --jobs 6` over the whole bank against the live ledger:
+`new-sig TIMING seeds: 3, distinct signatures: 3, errors 0, gen-drift 0` —
+**`mc1/1937`, `mc1/3325`, `t30-raw/123`**.
+
+| registered control | **measured** |
+|---|---|
+| all **5** improved seeds in the `IOW` population | **5 / 5** (`mc1/412`, `mc1/1937`, `mc1/3325`, `mc1/3741`, `t30-raw/123`) |
+| all **3** new-signature seeds in it | **3 / 3** |
+| any improved or new-signature seed OUTSIDE it | **0** |
+
+**THE ADMISSION.**  `sm3_sig_admit.py`'s existing control is INV-1's and is
+hard-wired to a `recapture` block with `evt.hold == 300` / `hold_bits == 12`.
+These three signatures fail that control **correctly** — they are not INV-1
+consequences.  The right response to a new cause is a NEW CONTROL, not a weaker
+one, so the tool gained `--cause {inv1,iow}`: `inv1` is unchanged to the line,
+and `iow` gates on membership of `sm3_iowpop`'s population, with its own `why`
+naming §66.3's testbench fix and its own `waits_class` (`tb-iow-fix`).  The two
+controls are computed by two different tools over two different artifacts, so
+neither can be quietly substituted for the other.
+
+
+**THE GATE, BEFORE AND AFTER:**
+
+```
+  before (rebuilt FSM TB, live ledger 11,845):
+    IMPROVED mc1/1937 : FUNCTIONAL -> TIMING       IMPROVED mc1/412  : TIMING -> KNOWN_ACCEPTED
+    IMPROVED mc1/3325 : FUNCTIONAL -> TIMING       IMPROVED t30-raw/123 : FUNCTIONAL -> TIMING
+    IMPROVED mc1/3741 : FUNCTIONAL -> TIMING
+    check_fuzz_bank: FAIL | 3242 banked seeds | stable 3237 improved 5 worse 0
+                   | gen_drift 0 regen_err 0 | float-floor 0
+                   | new-sig TIMING 3 (strict-fail)          rc = 1
+
+  admitted: 3 signatures over 3 seeds, sigs 11,845 -> 11,848,
+            0 pre-existing entries touched
+            b98079550c897a09  bb7f08a4adb12327  cea29561559cf048
+
+  after (same tree, same TB, ledger 11,848):
+    check_fuzz_bank: PASS | 3242 banked seeds | stable 3237 improved 5 worse 0
+                   | gen_drift 0 regen_err 0 | float-floor 0
+                   | new-sig TIMING 0                        rc = 0
+```
+
+`worse` is **0** and `gen_drift` is **0** on both sides of the admission, which
+is the property that makes admitting legitimate at all: nothing regressed, five
+seeds replay to a BETTER verdict, and a better verdict carries a signature the
+novelty register has never seen.
+
+### §68.9 WHAT THIS SITTING DID NOT DO
+
+* **No engine was changed.**  `git diff 2e93cd0499 -- hdl/rtl hdl/tb sim/` is
+  EMPTY.  H1a's landing was AUTHORISED BY THE EVIDENCE AND NOT BY THE BAR, and
+  the bar is what governs (§68.4).
+* **The 8080 / `gaps` §F.1 work was not opened** — a pending USER decision.
+* **The X1 OE-port work was not opened** — a pending USER decision, and C11's
+  `NOT ESTABLISHED` is unchanged.
+* **No memory file was touched and Codex was not launched.**
+* **The `u4_f42_fabric` leg-naming debt and the `x1_retention` build debt
+  (§67.6, §67.7) were routed, not taken.**
+
+### §68.10 THE LEADS THIS SITTING HANDS THE NEXT ONE
+
+1. **H1a's landing, with the bar rewritten.**  The mechanism is §3's: the arm
+   becomes *"the EU's interrupt-entry microcode started"*, published by the EU
+   and consumed by the BIU — one wire, no address match, strictly generalising
+   today's INTA-only arm.  The bar must be written on **w0 alone** (the only
+   regime where the two candidates differ by two clocks) and on the **MINIMUM**
+   `refill_gap`, not on a proportion at all four wait levels.  The evidence is
+   banked: `sw/testdata/sm3-h1acell/`, 240 captures, and the chip-vs-engine
+   split is 0/30 against 30/30 with a 100 %-clean shape control.
+2. **H7's only surviving lead is the BANK ASSOCIATION** (`mc2` 0/75 at the
+   floor, `mc1` 26/85, `t30-raw` 4/33, with `gen_git` tracking the bank and
+   `banked_ts` identical).  It is a property of the two GENERATORS' programs
+   and it is board-free to chase: what does `mc2`'s generator never emit?
+3. **H3 class B: the steady-state prefetcher.**  All three stimuli that have
+   missed reach the access through an `EB 00` flush and a cold refill.
+   §65.2's own second suggestion — *"drive the access from a queue that is NOT
+   refilling after a flush"* — is the only untried one.
+4. **The `u4_f42_fabric` `--leg` debt**, so the next re-flash does not
+   overwrite the previous bitstream's fabric record.

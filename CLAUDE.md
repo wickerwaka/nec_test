@@ -316,10 +316,20 @@ Values are monotone: never re-scored downward without a loud, itemized entry.)
   NOT taken — an inert instrument would have reported "116 survive", which reads
   like a refutation. **C11 stays NOT ESTABLISHED.**
 - **The board carries the ucore bitstream** (`nec_test_ucore.sof
-  67ddd59413d5…`, **FLASH #4**, SM2 — HEAD with the 12-bit `evt_hold`; 27 %
-  ALMs, Fmax 45.19 MHz, worst setup +9.123 ns, TNS 0.000 on every domain),
-  with `use_core=0` proved MATCH 800 ×3 on it. FLASH #3 was `924c4a61e0…`. The FSM A/B
-  bitstream built from HEAD is `nec_test.sof a4533dfef0…` if it is needed again.
+  **315de4bc9e30…**, **FLASH #5**, SM3 sitting 7 2026-08-04 — built from
+  `8339740709`, the FIRST bitstream carrying **H1/F52** and **F43**; 27 % ALMs
+  (11,167/41,910), Fmax **45.67 MHz**, worst setup **+9.355 ns**, TNS 0.000 on
+  every setup AND hold domain, 0 errors, 0 latches, 0 `lpm_divide`), with
+  first light **800/800 on all three `check_ab_hw` legs**. FLASH #4 was
+  `67ddd59413d5…` and FLASH #3 `924c4a61e0…`. The FSM A/B bitstream built from
+  HEAD is `nec_test.sof a4533dfef0…` if it is needed again.
+  **THE FABRIC FIGURES ABOVE ARE FLASH #3/#4-ERA AND ARE SUPERSEDED**
+  (`ucore_provenance.md` **§68.2**): on FLASH #5 `sw/u4_f42_fabric.py` scores
+  **146/283**, the INTA-float class is **119** cells, the fabric failing SET is
+  **identical to `tb_sys` base's all 137 cells**, and **F43's `busstat`
+  signature at `d = 2w+5` is EXTINCT in fabric (0 of 283)** — §67.7's "no
+  fabric figure may be quoted against this tree" is DISCHARGED. **C11 is still
+  NOT ESTABLISHED**; the re-flash did not touch that question.
 - **`timed_fuzz` now prints `BOUND WARNINGS`** — seeds whose EU completed-read
   store SATURATED, i.e. ran outside the regime `sw/qdepth_probe.py` proves
   (`rdq_` ≤ 2, `rd_done_q_` ≤ 1 on v0.1 at w0 **and**, U4, on w1/w3 and all four

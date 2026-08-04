@@ -94900,6 +94900,33 @@
    "waits_class": "recapture-evt",
    "count": 1,
    "admitted": "2026-08-04"
+  },
+  "b98079550c897a09": {
+   "first_campaign": "mc1",
+   "first_verdict": "TIMING",
+   "klass": null,
+   "tier": "unknown",
+   "waits_class": "tb-iow-fix",
+   "count": 1,
+   "admitted": "2026-08-04"
+  },
+  "bb7f08a4adb12327": {
+   "first_campaign": "mc1",
+   "first_verdict": "TIMING",
+   "klass": null,
+   "tier": "unknown",
+   "waits_class": "tb-iow-fix",
+   "count": 1,
+   "admitted": "2026-08-04"
+  },
+  "cea29561559cf048": {
+   "first_campaign": "t30-raw",
+   "first_verdict": "TIMING",
+   "klass": null,
+   "tier": "unknown",
+   "waits_class": "tb-iow-fix",
+   "count": 1,
+   "admitted": "2026-08-04"
   }
  },
  "legacy_baseline": {
@@ -100967,6 +100994,25 @@
     "fc6f5638a26fb8da",
     "fd0e7f4cc973f5fb",
     "fdcf7aa29b2a20f2"
+   ]
+  },
+  {
+   "date": "2026-08-04",
+   "by": "session SM3, sitting 7",
+   "cause": "iow",
+   "why": "tb_v30_core IOW-store defect fixed (ucore_provenance.md \u00a766.3 / \u00a767.1): the testbench's memory commit was gated on `lat_write`, which includes 3'b010 = IOW, so an I/O write to port P stored into mem[P] for the RTL legs only.  The socket harness never did this and `sim/` never did this, which is how the defect was found.  With the commit restricted to MEMW, FIVE banked seeds replay to a BETTER verdict on the FSM leg this gate binds to, and a better verdict carries a different signature.  The signatures are novel to the REGISTER and not to the machine: nothing regressed (`worse 0`, `gen_drift 0`), and every one of them is reachable only from a seed the defect could touch.",
+   "seeds": 3,
+   "signatures": 3,
+   "control": "every admitted signature is reachable ONLY from a seed in the chip-side IOW population (47 of 3242 banked seeds: the chip rows contain an IOW cycle whose port number is later read as memory).  The population is derived from the CAPTURES alone -- no engine, no testbench -- because the defect was in a replay instrument and a population defined by that instrument would be circular (sw/sm3_iowpop.py)",
+   "gate_before": "check_fuzz_bank --strict FAIL, stable 3237 improved 5 worse 0 gen_drift 0, new-sig TIMING 3",
+   "gate_after": "check_fuzz_bank --strict expected rc=0",
+   "ledger_before": 11845,
+   "ledger_after": 11848,
+   "recorded": "2026-08-04T23:18:50Z",
+   "sigs": [
+    "b98079550c897a09",
+    "bb7f08a4adb12327",
+    "cea29561559cf048"
    ]
   }
  ]
