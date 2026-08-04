@@ -7,13 +7,12 @@
    "bs": 2
   }
  },
- "fsmhead": {
-  "exact": 59,
+ "vsim_ucore": {
+  "exact": 176,
   "scored": 178,
   "excused": 22,
   "fam": {
-   "bs": 83,
-   "qs": 36
+   "bs": 2
   }
  },
  "fsmcore": {
@@ -25,7 +24,7 @@
    "qs": 1
   }
  },
- "vsim_fsm": {
+ "fsmhead": {
   "exact": 59,
   "scored": 178,
   "excused": 22,
@@ -34,12 +33,13 @@
    "qs": 36
   }
  },
- "vsim_ucore": {
-  "exact": 176,
+ "vsim_fsm": {
+  "exact": 59,
   "scored": 178,
   "excused": 22,
   "fam": {
-   "bs": 2
+   "bs": 83,
+   "qs": 36
   }
  }
 }
