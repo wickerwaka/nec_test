@@ -49,12 +49,18 @@ The ucore (hdl/rtl/ucore) is a second, independent core with a DIFFERENT coding
 style, so the `<=`-target rule above is vacuous on it and a second classifier is
 used (see scan_clocked):
 
-  * Its EU is ONE `always @(posedge clk)` block written in the model's own
-    software style: every architectural register is a module-scope `reg`
-    assigned with BLOCKING `=` inside that clocked block. There is not a single
-    `<=` in it, so the FSM rule would census 1 flop out of ~140 -- vacuous.
-  * Its BIU is `always_comb` next-state + `always_ff` registration, so the
-    flops are the `r_*` copies and the bare names are combinational.
+  * Its EU and its BIU are both a NEXT-STATE FUNCTION plus a REGISTER BANK
+    (`always @*`/`always_comb` producing the next value, `always_ff @(posedge
+    clk) if (ss_we || srst || ce)` committing it -- ucore U4 pass 3, the
+    enable-form refactor).  In the BIU the flops are the `r_*` copies and the
+    bare names are combinational; in the EU it is the other way round, the flop
+    keeps the name and the next-state value is `<name>_n`.
+  * The EU was ONE `always @(posedge clk)` block written in the model's own
+    software style until U4 pass 3 -- every architectural register a
+    module-scope `reg` assigned with BLOCKING `=` inside that clocked block,
+    not a single `<=` in it, so the FSM rule would have censused 1 flop out of
+    ~140.  That is why this second classifier exists; it is still needed,
+    because the blocking style inside the next-state function is unchanged.
   * The EU body is split across `v30u_eu_*.svh` INCLUDES, and both save arms
     live in includes. A census that scanned only the `.sv` files would see
     neither the state nor the map, so the ucore scan FLATTENS `include` first.

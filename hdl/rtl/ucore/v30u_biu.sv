@@ -61,6 +61,17 @@
 //  process, so NO consumer -- inside the module or outside it -- can observe an
 //  intermediate.  See THE EU CONTRACT below for what the EU is allowed to read.
 //
+//  U4 pass 3 -- WHERE `ce` IS.  It is on the REGISTER BANK's enable
+//  (`always_ff @(posedge clk) if (ss_we || srst || ce)`), not in the
+//  next-state function, whose third arm is now the unconditional `else`.  The
+//  two forms are identical in behaviour -- the next-state body preloads every
+//  value from its own register, so a CE-low evaluation reproduces the register
+//  and the commit is a no-op either way -- but only this one lets Quartus
+//  extract a clock enable.  With `ce` inside the function it went into the
+//  DATA cone instead: the BIU's registers clocked every SYS clock, and a
+//  `v30u_biu` -> `v30u_eu` path was the worst violation left after the EU's
+//  own exception (ledger sec.51.7, `r_q_cnt[3]` -> `m_kind[0]`).
+//
 //  One evaluation of the next-state function performs, in the model's order:
 //
 //     (a) capture the clock-c predicates that later steps must not re-read
@@ -897,7 +908,7 @@ always_comb begin
             for (i = 0; i < 6; i = i + 1) q_mem[i]  = 8'h00;
             last_fetch_addr  = 16'd0;
         end
-    end else if (ce) begin
+    end else begin   // <- was `else if (ce)`; the CE is on the register bank now
         //====================================================================
         // (a) CAPTURE the clock-c predicates
         //====================================================================
@@ -1391,8 +1402,13 @@ end
 //============================================================================
 // THE REGISTERS.  One non-blocking commit of the next-state view above --
 // which is what makes every export below order-independent (F7).
+//
+// ...AND THE ENABLE (U4 pass 3).  Every source below is preloaded from its own
+// register at the top of the next-state function, so a CE-low commit would
+// write each register back to itself: gating the bank is exactly equivalent,
+// and it is the only form from which Quartus extracts a clock enable.
 //============================================================================
-always_ff @(posedge clk) begin
+always_ff @(posedge clk) if (ss_we || srst || ce) begin
     r_run <= run;
     r_ts <= ts;
     r_cur_bs <= cur_bs;

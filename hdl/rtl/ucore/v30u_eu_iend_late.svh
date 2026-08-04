@@ -34,7 +34,7 @@
 //  block in `v30u_eu.sv`.  `pfxcnt`'s reset is therefore back in S_INSTR_END's
 //  IMMEDIATE block, where `loader_decode`'s prologue puts it.
 //============================================================================
-m_kind = OK_NONE; r_kind = OK_NONE; wb_kind = OK_NONE;
+m_kind_n = OK_NONE; r_kind_n = OK_NONE; wb_kind_n = OK_NONE;
 // F47 -- `begin_sequence()`'s OTHER line.  `CpuT::step()` (sim/exec_impl.h:777)
 // opens EVERY instruction with `begin_sequence()` (:710), which is
 // `pend_ = Pending{}; rdq_.clear(); opr_fresh_ = false; rep_elems_ = 0;`.
@@ -56,10 +56,10 @@ m_kind = OK_NONE; r_kind = OK_NONE; wb_kind = OK_NONE;
 // and the edge-`c` chain (S_TAKE_OPC / S_DECODE / S_DECODE2 / S_PFX_CHG /
 // S_EXT_CHG1) never writes it -- so the register still holds the predecessor's
 // value at the discharge and `iend_owed` pays it in the model's order.
-opr_fresh = 1'b0;
+opr_fresh_n = 1'b0;
 // ...and the `ALU OPC` permutation base, for the same reason (`40`/`48`, whose
 // INC/DEC comes from `opc_base = A_INC`, came out as ADD).
-opc_base = 5'd0; opc_from_modrm = 1'b0; modrm_reg = 3'd0;
+opc_base_n = 5'd0; opc_from_modrm_n = 1'b0; modrm_reg_n = 3'd0;
 // the address adder stands on the SIGMA path with its default operation
-al_op = A_ADD; al_tmp = 2'd0; al_byte = 1'b0;
-al_eaconst = 1'b0; al_adjust = 2'd0; al_bitarm = 1'b0; al_spent = 1'b0;
+al_op_n = A_ADD; al_tmp_n = 2'd0; al_byte_n = 1'b0;
+al_eaconst_n = 1'b0; al_adjust_n = 2'd0; al_bitarm_n = 1'b0; al_spent_n = 1'b0;

@@ -14,34 +14,34 @@ begin
         // word: `58`'s `OPR -> M` wrote AX = 0 in 500/500 cases.  F11b's trap,
         // third instance -- in this EU a wire named like a step variable is
         // not that step variable.
-        v1  = (e_s1 == 5'd7) ? {8'd0, rowb0}
-            : (e_s1 == 5'd6) ? opr
+        v1  = (e_s1 == 5'd7) ? {8'd0, rowb0_n}
+            : (e_s1 == 5'd6) ? opr_n
             : s1_val;
         bsw = (e_s1 == 5'd7) || (e_s1 == 5'd23);
-        if (e_s1 == 5'd6) opr_fresh = 1'b0;      // reading OPR CONSUMES it
+        if (e_s1 == 5'd6) opr_fresh_n = 1'b0;      // reading OPR CONSUMES it
         if (e_s1 == 5'd20) begin
             if (sig_mask != 16'd0)
-                stat = (stat & ~sig_mask) | (sig_flags & sig_mask);
+                stat_n = (stat_n & ~sig_mask) | (sig_flags & sig_mask);
         end
         if ((e_s1 == 5'd20) && !sig_commits) begin
             // CMP: the ALU does not drive the result bus, so neither the
             // register/OPR write nor its memory commit happens
-            if ((e_d1 == 5'd19) && (m_kind == OK_MEM)) suppress_commit = 1'b1;
+            if ((e_d1 == 5'd19) && (m_kind_n == OK_MEM)) suppress_commit_n = 1'b1;
         end else begin
             `include "v30u_eu_wd1.svh"
         end
     end
     if (e_have2 && !e_is_rloop) begin
-        v2 = (e_s2 == 4'd5) ? {8'd0, rowb1} : s2_val;
+        v2 = (e_s2 == 4'd5) ? {8'd0, rowb1_n} : s2_val;
         if (e_s2 == 4'd4) begin
             if (sig_mask != 16'd0)
-                stat = (stat & ~sig_mask) | (sig_flags & sig_mask);
+                stat_n = (stat_n & ~sig_mask) | (sig_flags & sig_mask);
         end
         if (!((e_s2 == 4'd4) && !sig_commits)) begin
             case (e_d2)
-                2'd0: tmpa = v2;
-                2'd1: tmpb = v2;
-                2'd2: ind  = v2;
+                2'd0: tmpa_n = v2;
+                2'd1: tmpb_n = v2;
+                2'd2: ind_n  = v2;
                 default: ;
             endcase
         end
@@ -51,31 +51,31 @@ begin
         commit_flags(sig_mask, sig_flags);
 
     // --- row type ------------------------------------------------------
-    nloc  = upc_loc + 4'd1;
-    carry = (upc_loc == 4'hF);
+    nloc  = upc_loc_n + 4'd1;
+    carry = (upc_loc_n == 4'hF);
     taken = 1'b0;
     bubble = 1'b0;
 
     if (e_type == TY_ALU) begin
         // the NEXT latched operation
-        al_adjust  = (al_op == A_ADJD) ? 2'd1 : (al_op == A_ADJA) ? 2'd2 : 2'd0;
-        al_adjtmp  = al_tmp;
-        al_bitarm  = (al_op == A_BIT);
-        al_bitn    = bit_n;
-        al_spent   = 1'b0;
-        al_op      = r_aluop;
-        al_tmp     = r_alutmp;
-        al_byte    = op8;
-        al_eaconst = 1'b0;
+        al_adjust_n  = (al_op_n == A_ADJD) ? 2'd1 : (al_op_n == A_ADJA) ? 2'd2 : 2'd0;
+        al_adjtmp_n  = al_tmp_n;
+        al_bitarm_n  = (al_op_n == A_BIT);
+        al_bitn_n    = bit_n_n;
+        al_spent_n   = 1'b0;
+        al_op_n      = r_aluop;
+        al_tmp_n     = r_alutmp;
+        al_byte_n    = op8_n;
+        al_eaconst_n = 1'b0;
         // An armed ADJD/ADJA the next latched op does NOT consume DISCHARGES:
         // the adjust unit writes its plain truncation back (030B, EXT).
-        if ((al_adjust != 2'd0) && (nxt_op != A_ADD) && (nxt_op != A_SUB)) begin
-            case (al_adjtmp)
-                2'd0: tmpa = tmpa & ((al_adjust == 2'd2) ? 16'h000F : 16'h00FF);
-                2'd1: tmpb = tmpb & ((al_adjust == 2'd2) ? 16'h000F : 16'h00FF);
-                default: tmpc = tmpc & ((al_adjust == 2'd2) ? 16'h000F : 16'h00FF);
+        if ((al_adjust_n != 2'd0) && (nxt_op != A_ADD) && (nxt_op != A_SUB)) begin
+            case (al_adjtmp_n)
+                2'd0: tmpa_n = tmpa_n & ((al_adjust_n == 2'd2) ? 16'h000F : 16'h00FF);
+                2'd1: tmpb_n = tmpb_n & ((al_adjust_n == 2'd2) ? 16'h000F : 16'h00FF);
+                default: tmpc_n = tmpc_n & ((al_adjust_n == 2'd2) ? 16'h000F : 16'h00FF);
             endcase
-            al_adjust = 2'd0;
+            al_adjust_n = 2'd0;
         end
         // F29 -- ...AND SO DO THE ARMING CAPTURES.  `exec_impl.h` builds its
         // `tmps[]` from the LIVE `m_.tmpa/b/c` in the ALU-latch block, which
@@ -86,15 +86,15 @@ begin
         // instruction's tmpa and the whole 0F 10-1F block tested the wrong bit.
         // F11b's trap again.
         case (r_alutmp)
-            2'd0: tsel = tmpa;
-            2'd1: tsel = tmpb;
-            2'd2: tsel = tmpc;
-            default: tsel = 16'd0;
+            2'd0: tsel_n = tmpa_n;
+            2'd1: tsel_n = tmpb_n;
+            2'd2: tsel_n = tmpc_n;
+            default: tsel_n = 16'd0;
         endcase
         if (r_aluop == A_BIT)
-            bit_n = tsel[3:0] & (op8 ? 4'd7 : 4'd15);
+            bit_n_n = tsel_n[3:0] & (op8_n ? 4'd7 : 4'd15);
         if (r_aluop == A_ABS)
-            sign_neg = op8 ? tsel[7] : tsel[15];
+            sign_neg_n = op8_n ? tsel_n[7] : tsel_n[15];
     end else if (e_type == TY_JMP) begin
         `include "v30u_eu_cond.svh"
         if (taken) begin
@@ -102,55 +102,55 @@ begin
             carry = 1'b0;
             // M11: NO bubble on a jump BACK BY ONE ROW -- the target is the
             // row the sequencer read one clock ago.
-            if ((r_loc + 4'd1) != upc_loc) bubble = 1'b1;
+            if ((r_loc + 4'd1) != upc_loc_n) bubble = 1'b1;
         end
     end else begin
         // --- CTL -------------------------------------------------------
         if (e_farjmp) begin
-            upc_page = 3'd7;
-            upc_opc  = {r_farloc, 3'd0};
+            upc_page_n = 3'd7;
+            upc_opc_n  = {r_farloc, 3'd0};
             nloc  = 4'd0;
             carry = 1'b0;
             bubble = 1'b1;              // a FARJMP pays the redirect bubble
         end else begin
             case (e_ictl)
-                I_MFS:     mode8080 = 1'b0;
-                I_MFC:     mode8080 = 1'b1;
-                I_ENDEM:   mode8080 = 1'b0;
-                I_CITF:    begin psw[FIE] = 1'b0; psw[FBRK] = 1'b0; end
-                I_CLRCYV:  begin psw[FCY] = 1'b0; psw[FV] = 1'b0; end
-                I_SETCYV:  begin psw[FCY] = 1'b1; psw[FV] = 1'b1; end
-                I_SIGNTGL: sign_neg = sign_neg ^ (op8 ? tmpb[7] : tmpb[15]);
-                I_BCDINIT: begin psw[FCY] = 1'b0; sign_neg = 1'b1; end
-                I_BCDNZ:   if (!stat[FZ]) sign_neg = 1'b0;
+                I_MFS:     mode8080_n = 1'b0;
+                I_MFC:     mode8080_n = 1'b1;
+                I_ENDEM:   mode8080_n = 1'b0;
+                I_CITF:    begin psw_n[FIE] = 1'b0; psw_n[FBRK] = 1'b0; end
+                I_CLRCYV:  begin psw_n[FCY] = 1'b0; psw_n[FV] = 1'b0; end
+                I_SETCYV:  begin psw_n[FCY] = 1'b1; psw_n[FV] = 1'b1; end
+                I_SIGNTGL: sign_neg_n = sign_neg_n ^ (op8_n ? tmpb_n[7] : tmpb_n[15]);
+                I_BCDINIT: begin psw_n[FCY] = 1'b0; sign_neg_n = 1'b1; end
+                I_BCDNZ:   if (!stat_n[FZ]) sign_neg_n = 1'b0;
                 default: ;                // SUSP / FLUSH rode this clock
             endcase
-            psw = (psw & PSW_WRITABLE) | PSW_FORCED;
+            psw_n = (psw_n & PSW_WRITABLE) | PSW_FORCED;
         end
         // --- the bus cycle (posted combinationally on this clock) ------
-        if (e_ectl == E_INTATAIL) bus_word = 1'b1;
+        if (e_ectl == E_INTATAIL) bus_word_n = 1'b1;
         // F20: `if (pend_.active) { if (!opr_fresh_) deliver_read();
         // emit_pending(); }` -- a staged store runs BEFORE this row's own
         // cycle, and it is given the completed-read store's head if the row's
         // transfers did not already refresh OPR.  The wire the BIU reads is
         // `opr_now`'s `row_pre_deliver` arm: same event, same expression.
-        if (row_bus && pend_active) begin
-            if (!opr_fresh) begin
-                if (rd_done_cnt != 2'd0) rd_done_cnt = rd_done_cnt - 2'd1;
-                if (rdq_n != 2'd0) begin
-                    opr = rdq0; rdq0 = rdq1; rdq_n = rdq_n - 2'd1;
+        if (row_bus && pend_active_n) begin
+            if (!opr_fresh_n) begin
+                if (rd_done_cnt_n != 2'd0) rd_done_cnt_n = rd_done_cnt_n - 2'd1;
+                if (rdq_n_n != 2'd0) begin
+                    opr_n = rdq0_n; rdq0_n = rdq1_n; rdq_n_n = rdq_n_n - 2'd1;
                 end
             end
-            pend_active = 1'b0;
-            opr_fresh   = 1'b0;
+            pend_active_n = 1'b0;
+            opr_fresh_n   = 1'b0;
         end
         if (row_bus) begin
             if (row_is_wr || row_is_wb) begin
-                pend_active = 1'b1;
-                pend_off  = acc_off;
-                pend_seg  = acc_seg;
-                pend_byte = acc_byte;
-                pend_io   = acc_io;
+                pend_active_n = 1'b1;
+                pend_off_n  = acc_off;
+                pend_seg_n  = acc_seg;
+                pend_byte_n = acc_byte;
+                pend_io_n   = acc_io;
                 // F48/U4, the same house rule as `rdq_n`/`rd_done_cnt` in
                 // v30u_eu.sv: a bounded counter SATURATES, it does not wrap.
                 // `wr_out` and `rd_pending` are the two the bound audit found
@@ -158,19 +158,19 @@ begin
                 // assertion -- so before this they wrapped in simulation and in
                 // fabric alike.  Both are decremented with an explicit
                 // `!= 2'd0` floor already; this is the matching ceiling.
-                if (acc_split) wr_out = (wr_out >= 2'd2) ? 2'd3
-                                                         : wr_out + 2'd2;
-                else if (wr_out != 2'd3) wr_out = wr_out + 2'd1;
+                if (acc_split) wr_out_n = (wr_out_n >= 2'd2) ? 2'd3
+                                                         : wr_out_n + 2'd2;
+                else if (wr_out_n != 2'd3) wr_out_n = wr_out_n + 2'd1;
             end else begin
-                if (rd_pending != 2'd3) rd_pending = rd_pending + 2'd1;
+                if (rd_pending_n != 2'd3) rd_pending_n = rd_pending_n + 2'd1;
             end
         end
     end
 
     // --- the write-data pairing latch (`emit_pending`) -----------------
-    if (pend_active && opr_fresh) begin
-        pend_active = 1'b0;
-        opr_fresh   = 1'b0;
+    if (pend_active_n && opr_fresh_n) begin
+        pend_active_n = 1'b0;
+        opr_fresh_n   = 1'b0;
     end
 
     // --- cadence -------------------------------------------------------
@@ -182,20 +182,20 @@ begin
     // `SIGMA -> M` instead, so the shift result never reached tmpb and every
     // shift/rotate form left its operand untouched.  The advance now happens
     // where the loop ENDS -- which is also where the model leaves the row.
-    if (!e_is_rloop || (count == 16'd0)) begin
-        upc_loc = nloc;
-        if (carry) upc_opc = upc_opc + 8'd1;
+    if (!e_is_rloop || (count_n == 16'd0)) begin
+        upc_loc_n = nloc;
+        if (carry) upc_opc_n = upc_opc_n + 8'd1;
     end
-    rowq = 2'd0; row_posted = 1'b0; row_paired = 1'b0;
+    rowq_n = 2'd0; row_posted_n = 1'b0; row_paired_n = 1'b0;
 
     if (e_is_rloop) begin
         // `R`: the row's own operation runs COUNT times, one step per clock
-        if (count == 16'd0) begin
-            al_spent = 1'b1;
-            st = S_ROW;
+        if (count_n == 16'd0) begin
+            al_spent_n = 1'b1;
+            st_n = S_ROW;
         end else begin
-            rloop_n = count;
-            st = S_RLOOP;
+            rloop_n_n = count_n;
+            st_n = S_RLOOP;
         end
         stop = 1'b1;
     end else if (e_e) begin
@@ -216,34 +216,34 @@ begin
         // clocks but does carry datapath work -- `9D`'s `SIGMA -> SP` lives
         // there); only the successor's decode is what does not happen.
         if (irq_fire) begin
-            irq_sel_nmi = irq_nmi_lvl;
-            poste = 1'b1; pe_opc_reg = opc_reg; pe_opc8080 = opc8080;
-            pe_op8 = op8; pe_pfxcnt = pfxcnt;
-            st = S_IRQ_D;
+            irq_sel_nmi_n = irq_nmi_lvl;
+            poste_n = 1'b1; pe_opc_reg_n = opc_reg_n; pe_opc8080_n = opc8080_n;
+            pe_op8_n = op8_n; pe_pfxcnt_n = pfxcnt_n;
+            st_n = S_IRQ_D;
             stop = 1'b1;
-        end else if (!pend_after && !opc_valid && retire_now && q_ripe &&
+        end else if (!pend_after && !opc_valid_n && retire_now && q_ripe &&
                      !row_flush)
         begin
             // the POP is what closes the boundary window, so it is the pop
             // that spends the shadow -- "the chip re-enables the boundary
             // sample at the shadowed instruction's successor pop".
-            irq_shadow = 1'b0;
-            opc_byte = q_byte;
-            opc_valid = 1'b1;
-            pop_is_first = 1'b0;
-            poste = 1'b1; pe_opc_reg = opc_reg; pe_opc8080 = opc8080;  // F23
-            pe_op8 = op8; pe_pfxcnt = pfxcnt;                     // D1 / F22
-            st = S_TAIL;
-        end else if (!pend_after && !opc_valid) begin
-            st = S_EPOP;
+            irq_shadow_n = 1'b0;
+            opc_byte_n = q_byte;
+            opc_valid_n = 1'b1;
+            pop_is_first_n = 1'b0;
+            poste_n = 1'b1; pe_opc_reg_n = opc_reg_n; pe_opc8080_n = opc8080_n;  // F23
+            pe_op8_n = op8_n; pe_pfxcnt_n = pfxcnt_n;                     // D1 / F22
+            st_n = S_TAIL;
+        end else if (!pend_after && !opc_valid_n) begin
+            st_n = S_EPOP;
             stop = 1'b1;
         end else begin
-            poste = 1'b1; pe_opc_reg = opc_reg; pe_opc8080 = opc8080;  // F23
-            pe_op8 = op8; pe_pfxcnt = pfxcnt;                     // D1 / F22
-            st = S_TAIL;
+            poste_n = 1'b1; pe_opc_reg_n = opc_reg_n; pe_opc8080_n = opc8080_n;  // F23
+            pe_op8_n = op8_n; pe_pfxcnt_n = pfxcnt_n;                     // D1 / F22
+            st_n = S_TAIL;
         end
     end else begin
-        st = bubble ? S_ROW_CHG : S_ROW;
+        st_n = bubble ? S_ROW_CHG : S_ROW;
         stop = 1'b1;
     end
 end

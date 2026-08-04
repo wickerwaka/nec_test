@@ -47,6 +47,17 @@
 //  Nothing clocked runs unless `srst` or `ce`; reset is ungated so `bkd_load`
 //  fires regardless of CE.  There is no negedge process in the EU.
 //
+//  U4 pass 3 -- WHERE `ce` IS.  The module is a NEXT-STATE FUNCTION
+//  (`always @*`, producing `<reg>_n`) plus a REGISTER BANK
+//  (`always_ff @(posedge clk) if (ss_we || srst || ce)`).  `ce` appears in the
+//  commit and NOWHERE ELSE, which is the whole reason for the shape: written
+//  the other way -- one clocked block whose third arm was `else if (ce)` --
+//  Quartus extracted no clock enable, threaded `ce` through the EU's 61-level
+//  cone to every flip-flop's DATA input, clocked the registers every SYS clock
+//  and made the multicycle exception the divided CPU clock earns FALSE
+//  (ledger sec.51.7).  The behaviour is identical either way and the full ladder
+//  was re-scored to say so; the NETLIST is not.
+//
 //============================================================================
 
 module v30u_eu (
@@ -1467,6 +1478,153 @@ assign dbg_regs = {psw, pc, sreg[3], sreg[2], sreg[1], sreg[0],
 assign dbg_first_pop = first_pop_seen;
 assign dbg_pend = (rd_pending != 2'd0) || (rdq_n != 2'd0) || poste;
 
+//==========================================================================
+// THE NEXT-STATE SHADOW  (U4 pass 3 -- the ENABLE-FORM refactor, sec.51.7)
+//==========================================================================
+// One `_n` per state register.  The clocked body below is now an `always @*`
+// that preloads these from the flops and works on them with the SAME blocking
+// assignments it always used -- so `_n` IS what a blocking write to the
+// register meant there, and a module-level wire still reads the FLOP, i.e.
+// the PRE-EDGE view this whole module is built on (F11b; see the recognition
+// block's `EVERY read of these registers from inside the clocked step goes
+// through these wires' note).  That is why the flops keep their names and the
+// body was renamed, and not the other way round: nothing outside the body
+// moves, so no combinational reader changes what it sees.
+//
+// THE POINT IS THE COMMIT.  `always @(posedge clk) if (ss_we||srst||ce)` puts
+// CE on the register's ENABLE PORT.  Before this, `ce` was threaded through
+// the EU's 61-level combinational cone to every FF's DATA input; Quartus
+// extracted no clock enable (`report_timing`: `div_cnt[1]` -> `m_kind[0]`,
+// 61 logic levels, terminating on `datac`/`dataf` and no `ena` node anywhere),
+// so the registers clocked every SYS clock and the multicycle exception the
+// divided CPU clock earns was INVALID BY ITS OWN FALSIFIER (sec.51.7).  `ce`
+// does not appear in this cone at all now -- the body's third arm is the
+// unconditional `else`.
+//
+// `upc_page_n` / `upc_opc_n` / `upc_loc_n` exist as wires as a free
+// consequence -- the only thing a registered microcode ROM ever needed.
+//
+// *Falsifier*: a `v30u_eu` state register with no `ena` in the post-fit
+// netlist, or a ladder cell that moves.  This is a SYNTHESIS-SHAPE change and
+// the expectation is zero deltas.
+reg     [15:0] gpr_n [0:7];
+reg     [15:0] sreg_n [0:3];
+reg     [15:0] pc_n;
+reg     [15:0] psw_n;
+reg     [15:0] tmpa_n;
+reg     [15:0] tmpb_n;
+reg     [15:0] tmpc_n;
+reg     [15:0] opr_n;
+reg     [15:0] ind_n;
+reg     [15:0] count_n;
+reg      [7:0] pfxcnt_n;
+reg     [15:0] stat_n;
+reg            sign_neg_n;
+reg      [3:0] bit_n_n;
+reg      [4:0] al_op_n;
+reg      [1:0] al_tmp_n;
+reg            al_byte_n;
+reg            al_eaconst_n;
+reg     [15:0] al_eaval_n;
+reg      [1:0] al_adjust_n;
+reg      [1:0] al_adjtmp_n;
+reg            al_bitarm_n;
+reg      [3:0] al_bitn_n;
+reg            al_spent_n;
+reg      [2:0] upc_page_n;
+reg      [7:0] upc_opc_n;
+reg      [3:0] upc_loc_n;
+reg            seg_override_n;
+reg      [1:0] seg_ovr_n;
+reg      [2:0] rep_kind_n;
+reg            lock_pfx_n;
+reg      [7:0] opc_reg_n;
+reg            op8_n;
+reg            imm8_n;
+reg      [4:0] opc_base_n;
+reg            opc_from_modrm_n;
+reg      [2:0] modrm_reg_n;
+reg      [3:0] xop_n;
+reg      [1:0] rep_test_n;
+reg            rep_pol_n;
+reg            bus_word_n;
+reg            opc8080_n;
+reg            mode8080_n;
+reg            intr_pending_n;
+reg            eu_halted_n;
+reg      [3:0] int_p_n;
+reg      [4:0] nmi_p_n;
+reg            nmi_latch_n;
+reg      [3:0] ie_p_n;
+reg            rep_chain_n;
+reg            irq_shadow_n;
+reg            bnd_armed_n;
+reg            irq_sel_nmi_n;
+reg            unhalt_pend_n;
+reg      [1:0] m_kind_n;
+reg      [1:0] r_kind_n;
+reg      [1:0] wb_kind_n;
+reg      [2:0] m_idx_n;
+reg      [2:0] r_idx_n;
+reg      [2:0] wb_idx_n;
+reg     [15:0] m_ea_n;
+reg     [15:0] r_ea_n;
+reg     [15:0] wb_ea_n;
+reg      [2:0] m_seg_n;
+reg      [2:0] r_seg_n;
+reg      [2:0] wb_seg_n;
+reg            m_byte_n;
+reg            r_byte_n;
+reg            wb_byte_n;
+reg            pend_active_n;
+reg     [15:0] pend_off_n;
+reg      [2:0] pend_seg_n;
+reg            pend_byte_n;
+reg            pend_io_n;
+reg            opr_fresh_n;
+reg     [15:0] rdq0_n;
+reg     [15:0] rdq1_n;
+reg      [1:0] rdq_n_n;
+reg      [1:0] rd_pending_n;
+reg      [1:0] rd_done_cnt_n;
+reg            rd_age0_n;
+reg            iend_owed_n;
+reg      [2:0] rst_ctr_n;
+reg     [15:0] tsel_n;
+reg      [7:0] pe_opc_reg_n;
+reg            pe_opc8080_n;
+reg            pe_op8_n;
+reg      [7:0] pe_pfxcnt_n;
+reg      [1:0] wr_out_n;
+reg            opc_valid_n;
+reg      [7:0] opc_byte_n;
+reg            pop_is_first_n;
+reg      [7:0] ld_b_n;
+reg     [13:0] ld_pla_n;
+reg            ld_ext_n;
+reg      [2:0] ld_page_n;
+reg            ld_hasrm_n;
+reg      [7:0] ld_rm_n;
+reg     [15:0] ld_disp_n;
+reg      [7:0] ld_dlo_n;
+reg            ld_grpd_n;
+reg            ld_byte_n;
+reg            ld_preread_n;
+reg            ld_ripe_prev_n;
+reg      [5:0] st_n;
+reg      [1:0] chg_n;
+reg            ending_n;
+reg      [1:0] rowq_n;
+reg            row_posted_n;
+reg            row_paired_n;
+reg     [15:0] rloop_n_n;
+reg            suppress_commit_n;
+reg            first_pop_seen_n;
+reg      [7:0] rowb0_n;
+reg      [7:0] rowb1_n;
+reg            poste_n;
+reg      [2:0] poll_pipe_n;
+
 //============================================================================
 // THE CLOCK
 //============================================================================
@@ -1475,7 +1633,28 @@ reg eutrace = 0;
 initial if ($test$plusargs("eutrace")) eutrace = 1;
 reg chain_report = 0;
 initial if ($test$plusargs("chaindepth")) chain_report = 1;
-reg [3:0] chain_used, chain_hi = 4'd0;
+reg [3:0] chain_hi = 4'd0;
+reg [3:0] chain_used;   // <- now a COMB output of the next-state block
+// the eutrace SNAPSHOT: the flop-valued fields the trace line used to
+// read MID-EDGE (after blocks (a)/(b), before the chain).  Everything
+// else it prints is a module-level wire, which the observer reads at the
+// edge and therefore reads pre-edge exactly as the old code did.
+reg      [5:0] trc_st;
+reg      [2:0] trc_upc_page;
+reg      [7:0] trc_upc_opc;
+reg      [3:0] trc_upc_loc;
+reg      [1:0] trc_wr_out;
+reg     [15:0] trc_pc;
+reg     [15:0] trc_ind;
+reg     [15:0] trc_opr;
+reg            trc_opr_fresh;
+reg            trc_pend_active;
+reg            trc_poste;
+reg      [1:0] trc_rdq_n;
+reg      [1:0] trc_rd_done_cnt;
+reg     [15:0] trc_tmpa;
+reg     [15:0] trc_tmpb;
+reg     [15:0] trc_tmpc;
 reg [5:0] chain_first;
 `ifdef CHAIN_PROBE
 reg cp_seen [0:1023];
@@ -1491,6 +1670,7 @@ initial for (cpi = 0; cpi < 1024; cpi = cpi + 1) cp_seen[cpi] = 1'b0;
 localparam bit [3:0] CHAIN_MAX = 4'd12;
 
 integer i;
+integer ci;                 // the commit block's own index
 reg        stop;
 reg  [3:0] chain;
 reg [15:0] v1, v2;
@@ -1509,76 +1689,202 @@ reg  [2:0] ti, ts;
 reg [15:0] te;
 reg        tb;
 
-`define SETPSW(v) begin psw = ((v) & PSW_WRITABLE) | PSW_FORCED; end
+`define SETPSW(v) begin psw_n = ((v) & PSW_WRITABLE) | PSW_FORCED; end
 
 // commit_flags
 task automatic commit_flags(input [15:0] mask, input [15:0] fl);
     begin
-        psw = ((psw & ~mask) | (fl & mask));
-        psw = (psw & PSW_WRITABLE) | PSW_FORCED;
+        psw_n = ((psw_n & ~mask) | (fl & mask));
+        psw_n = (psw_n & PSW_WRITABLE) | PSW_FORCED;
     end
 endtask
 
-always @(posedge clk) begin
+//--------------------------------------------------------------------------
+// THE NEXT-STATE FUNCTION.  This was `always @(posedge clk)` with blocking
+// assignments; it is the SAME code on `_n`, and the only behavioural change
+// is that `ce` no longer appears in it -- the third arm is the unconditional
+// `else`, because a CE-low clock is now expressed by the COMMIT BLOCK not
+// capturing rather than by this block not running.
+//--------------------------------------------------------------------------
+always @* begin
+    //-- preload: `_n` starts at the flop, so an arm that assigns nothing holds
+    for (i = 0; i < 8; i = i + 1) gpr_n[i] = gpr[i];
+    for (i = 0; i < 4; i = i + 1) sreg_n[i] = sreg[i];
+    pc_n = pc;
+    psw_n = psw;
+    tmpa_n = tmpa;
+    tmpb_n = tmpb;
+    tmpc_n = tmpc;
+    opr_n = opr;
+    ind_n = ind;
+    count_n = count;
+    pfxcnt_n = pfxcnt;
+    stat_n = stat;
+    sign_neg_n = sign_neg;
+    bit_n_n = bit_n;
+    al_op_n = al_op;
+    al_tmp_n = al_tmp;
+    al_byte_n = al_byte;
+    al_eaconst_n = al_eaconst;
+    al_eaval_n = al_eaval;
+    al_adjust_n = al_adjust;
+    al_adjtmp_n = al_adjtmp;
+    al_bitarm_n = al_bitarm;
+    al_bitn_n = al_bitn;
+    al_spent_n = al_spent;
+    upc_page_n = upc_page;
+    upc_opc_n = upc_opc;
+    upc_loc_n = upc_loc;
+    seg_override_n = seg_override;
+    seg_ovr_n = seg_ovr;
+    rep_kind_n = rep_kind;
+    lock_pfx_n = lock_pfx;
+    opc_reg_n = opc_reg;
+    op8_n = op8;
+    imm8_n = imm8;
+    opc_base_n = opc_base;
+    opc_from_modrm_n = opc_from_modrm;
+    modrm_reg_n = modrm_reg;
+    xop_n = xop;
+    rep_test_n = rep_test;
+    rep_pol_n = rep_pol;
+    bus_word_n = bus_word;
+    opc8080_n = opc8080;
+    mode8080_n = mode8080;
+    intr_pending_n = intr_pending;
+    eu_halted_n = eu_halted;
+    int_p_n = int_p;
+    nmi_p_n = nmi_p;
+    nmi_latch_n = nmi_latch;
+    ie_p_n = ie_p;
+    rep_chain_n = rep_chain;
+    irq_shadow_n = irq_shadow;
+    bnd_armed_n = bnd_armed;
+    irq_sel_nmi_n = irq_sel_nmi;
+    unhalt_pend_n = unhalt_pend;
+    m_kind_n = m_kind;
+    r_kind_n = r_kind;
+    wb_kind_n = wb_kind;
+    m_idx_n = m_idx;
+    r_idx_n = r_idx;
+    wb_idx_n = wb_idx;
+    m_ea_n = m_ea;
+    r_ea_n = r_ea;
+    wb_ea_n = wb_ea;
+    m_seg_n = m_seg;
+    r_seg_n = r_seg;
+    wb_seg_n = wb_seg;
+    m_byte_n = m_byte;
+    r_byte_n = r_byte;
+    wb_byte_n = wb_byte;
+    pend_active_n = pend_active;
+    pend_off_n = pend_off;
+    pend_seg_n = pend_seg;
+    pend_byte_n = pend_byte;
+    pend_io_n = pend_io;
+    opr_fresh_n = opr_fresh;
+    rdq0_n = rdq0;
+    rdq1_n = rdq1;
+    rdq_n_n = rdq_n;
+    rd_pending_n = rd_pending;
+    rd_done_cnt_n = rd_done_cnt;
+    rd_age0_n = rd_age0;
+    iend_owed_n = iend_owed;
+    rst_ctr_n = rst_ctr;
+    tsel_n = tsel;
+    pe_opc_reg_n = pe_opc_reg;
+    pe_opc8080_n = pe_opc8080;
+    pe_op8_n = pe_op8;
+    pe_pfxcnt_n = pe_pfxcnt;
+    wr_out_n = wr_out;
+    opc_valid_n = opc_valid;
+    opc_byte_n = opc_byte;
+    pop_is_first_n = pop_is_first;
+    ld_b_n = ld_b;
+    ld_pla_n = ld_pla;
+    ld_ext_n = ld_ext;
+    ld_page_n = ld_page;
+    ld_hasrm_n = ld_hasrm;
+    ld_rm_n = ld_rm;
+    ld_disp_n = ld_disp;
+    ld_dlo_n = ld_dlo;
+    ld_grpd_n = ld_grpd;
+    ld_byte_n = ld_byte;
+    ld_preread_n = ld_preread;
+    ld_ripe_prev_n = ld_ripe_prev;
+    st_n = st;
+    chg_n = chg;
+    ending_n = ending;
+    rowq_n = rowq;
+    row_posted_n = row_posted;
+    row_paired_n = row_paired;
+    rloop_n_n = rloop_n;
+    suppress_commit_n = suppress_commit;
+    first_pop_seen_n = first_pop_seen;
+    rowb0_n = rowb0;
+    rowb1_n = rowb1;
+    poste_n = poste;
+    poll_pipe_n = poll_pipe;
+
     if (ss_we) begin
         `include "v30u_eu_ss_write.svh"
     end else if (srst) begin
         //--------------------------------------------------------------------
         // RESET == begin_case() plus the backdoor injection
         //--------------------------------------------------------------------
-        for (i = 0; i < 8; i = i + 1) gpr[i] = 16'd0;
-        for (i = 0; i < 4; i = i + 1) sreg[i] = 16'd0;
-        pc = 16'd0; psw = PSW_FORCED;
-        tmpa = 16'd0; tmpb = 16'd0; tmpc = 16'd0;
-        opr = 16'd0; ind = 16'd0; count = 16'd0; pfxcnt = 8'd0;
-        stat = 16'd0; sign_neg = 1'b0; bit_n = 4'd0;
-        al_op = A_ADD; al_tmp = 2'd0; al_byte = 1'b0;
-        al_eaconst = 1'b0; al_eaval = 16'd0;
-        al_adjust = 2'd0; al_adjtmp = 2'd0; al_bitarm = 1'b0; al_bitn = 4'd0;
-        al_spent = 1'b0;
-        upc_page = 3'd0; upc_opc = 8'd0; upc_loc = 4'd0;
-        seg_override = 1'b0; seg_ovr = 2'd3; rep_kind = REP_NONE;
-        lock_pfx = 1'b0; opc_reg = 8'd0; op8 = 1'b0; imm8 = 1'b0;
-        opc_base = 5'd0; opc_from_modrm = 1'b0; modrm_reg = 3'd0; xop = 4'd0;
-        rep_test = TEST_NONE; rep_pol = 1'b0; bus_word = 1'b0;
-        opc8080 = 1'b0; mode8080 = 1'b0; intr_pending = 1'b0; eu_halted = 1'b0;
-        rep_chain = 1'b0;
-        m_kind = OK_NONE; m_idx = 3'd0; m_ea = 16'd0; m_seg = 3'd3; m_byte = 1'b0;
-        r_kind = OK_NONE; r_idx = 3'd0; r_ea = 16'd0; r_seg = 3'd3; r_byte = 1'b0;
-        wb_kind = OK_NONE; wb_idx = 3'd0; wb_ea = 16'd0; wb_seg = 3'd3;
-        wb_byte = 1'b0;
-        pend_active = 1'b0; pend_off = 16'd0; pend_seg = 3'd3;
-        pend_byte = 1'b0; pend_io = 1'b0; opr_fresh = 1'b0;
-        rdq0 = 16'd0; rdq1 = 16'd0; rdq_n = 2'd0;
-        rd_pending = 2'd0; rd_done_cnt = 2'd0; rd_age0 = 1'b0;
-        iend_owed = 1'b0; pe_opc_reg = 8'd0; pe_opc8080 = 1'b0; pe_op8 = 1'b0;
-        pe_pfxcnt = 8'd0;
-        wr_out = 2'd0;
-        opc_valid = 1'b0; opc_byte = 8'd0; pop_is_first = 1'b1;
-        ld_b = 8'd0; ld_pla = 14'd0; ld_ext = 1'b0; ld_page = 3'd0;
-        ld_hasrm = 1'b0; ld_rm = 8'd0; ld_disp = 16'd0; ld_dlo = 8'd0;
-        ld_grpd = 1'b0; ld_byte = 1'b0; ld_preread = 1'b0; ld_ripe_prev = 1'b0;
-        st = S_OPC_POP; chg = 2'd0; ending = 1'b0; poste = 1'b0;
-        rowq = 2'd0; row_posted = 1'b0; row_paired = 1'b0; rloop_n = 16'd0;
-        suppress_commit = 1'b0; first_pop_seen = 1'b0;
-        rowb0 = 8'd0; rowb1 = 8'd0; poste = 1'b0;
+        for (i = 0; i < 8; i = i + 1) gpr_n[i] = 16'd0;
+        for (i = 0; i < 4; i = i + 1) sreg_n[i] = 16'd0;
+        pc_n = 16'd0; psw_n = PSW_FORCED;
+        tmpa_n = 16'd0; tmpb_n = 16'd0; tmpc_n = 16'd0;
+        opr_n = 16'd0; ind_n = 16'd0; count_n = 16'd0; pfxcnt_n = 8'd0;
+        stat_n = 16'd0; sign_neg_n = 1'b0; bit_n_n = 4'd0;
+        al_op_n = A_ADD; al_tmp_n = 2'd0; al_byte_n = 1'b0;
+        al_eaconst_n = 1'b0; al_eaval_n = 16'd0;
+        al_adjust_n = 2'd0; al_adjtmp_n = 2'd0; al_bitarm_n = 1'b0; al_bitn_n = 4'd0;
+        al_spent_n = 1'b0;
+        upc_page_n = 3'd0; upc_opc_n = 8'd0; upc_loc_n = 4'd0;
+        seg_override_n = 1'b0; seg_ovr_n = 2'd3; rep_kind_n = REP_NONE;
+        lock_pfx_n = 1'b0; opc_reg_n = 8'd0; op8_n = 1'b0; imm8_n = 1'b0;
+        opc_base_n = 5'd0; opc_from_modrm_n = 1'b0; modrm_reg_n = 3'd0; xop_n = 4'd0;
+        rep_test_n = TEST_NONE; rep_pol_n = 1'b0; bus_word_n = 1'b0;
+        opc8080_n = 1'b0; mode8080_n = 1'b0; intr_pending_n = 1'b0; eu_halted_n = 1'b0;
+        rep_chain_n = 1'b0;
+        m_kind_n = OK_NONE; m_idx_n = 3'd0; m_ea_n = 16'd0; m_seg_n = 3'd3; m_byte_n = 1'b0;
+        r_kind_n = OK_NONE; r_idx_n = 3'd0; r_ea_n = 16'd0; r_seg_n = 3'd3; r_byte_n = 1'b0;
+        wb_kind_n = OK_NONE; wb_idx_n = 3'd0; wb_ea_n = 16'd0; wb_seg_n = 3'd3;
+        wb_byte_n = 1'b0;
+        pend_active_n = 1'b0; pend_off_n = 16'd0; pend_seg_n = 3'd3;
+        pend_byte_n = 1'b0; pend_io_n = 1'b0; opr_fresh_n = 1'b0;
+        rdq0_n = 16'd0; rdq1_n = 16'd0; rdq_n_n = 2'd0;
+        rd_pending_n = 2'd0; rd_done_cnt_n = 2'd0; rd_age0_n = 1'b0;
+        iend_owed_n = 1'b0; pe_opc_reg_n = 8'd0; pe_opc8080_n = 1'b0; pe_op8_n = 1'b0;
+        pe_pfxcnt_n = 8'd0;
+        wr_out_n = 2'd0;
+        opc_valid_n = 1'b0; opc_byte_n = 8'd0; pop_is_first_n = 1'b1;
+        ld_b_n = 8'd0; ld_pla_n = 14'd0; ld_ext_n = 1'b0; ld_page_n = 3'd0;
+        ld_hasrm_n = 1'b0; ld_rm_n = 8'd0; ld_disp_n = 16'd0; ld_dlo_n = 8'd0;
+        ld_grpd_n = 1'b0; ld_byte_n = 1'b0; ld_preread_n = 1'b0; ld_ripe_prev_n = 1'b0;
+        st_n = S_OPC_POP; chg_n = 2'd0; ending_n = 1'b0; poste_n = 1'b0;
+        rowq_n = 2'd0; row_posted_n = 1'b0; row_paired_n = 1'b0; rloop_n_n = 16'd0;
+        suppress_commit_n = 1'b0; first_pop_seen_n = 1'b0;
+        rowb0_n = 8'd0; rowb1_n = 8'd0; poste_n = 1'b0;
         // the pin pipelines come out of reset holding the LEVEL they have been
         // seeing -- a shift register clocked since power-on cannot hold
         // anything else, and it is what `poll_busy()` / the INT sample assume.
-        poll_pipe = {3{pin_poll_n}};
-        int_p = {4{pin_int}}; nmi_p = {5{pin_nmi}}; ie_p = 4'd0;
+        poll_pipe_n = {3{pin_poll_n}};
+        int_p_n = {4{pin_int}}; nmi_p_n = {5{pin_nmi}}; ie_p_n = 4'd0;
         rep_chained = 1'b0;
-        nmi_latch = 1'b0; irq_shadow = 1'b0; bnd_armed = 1'b0;
-        irq_sel_nmi = 1'b0; unhalt_pend = 1'b0;
+        nmi_latch_n = 1'b0; irq_shadow_n = 1'b0; bnd_armed_n = 1'b0;
+        irq_sel_nmi_n = 1'b0; unhalt_pend_n = 1'b0;
         if (bkd_load) begin
-            gpr[0] = bkd_regs[  0 +: 16];  gpr[1] = bkd_regs[ 16 +: 16];
-            gpr[2] = bkd_regs[ 32 +: 16];  gpr[3] = bkd_regs[ 48 +: 16];
-            gpr[4] = bkd_regs[ 64 +: 16];  gpr[5] = bkd_regs[ 80 +: 16];
-            gpr[6] = bkd_regs[ 96 +: 16];  gpr[7] = bkd_regs[112 +: 16];
-            sreg[0] = bkd_regs[128 +: 16]; sreg[1] = bkd_regs[144 +: 16];
-            sreg[2] = bkd_regs[160 +: 16]; sreg[3] = bkd_regs[176 +: 16];
-            pc = bkd_regs[192 +: 16];
-            psw = (bkd_regs[208 +: 16] & PSW_WRITABLE) | PSW_FORCED;
+            gpr_n[0] = bkd_regs[  0 +: 16];  gpr_n[1] = bkd_regs[ 16 +: 16];
+            gpr_n[2] = bkd_regs[ 32 +: 16];  gpr_n[3] = bkd_regs[ 48 +: 16];
+            gpr_n[4] = bkd_regs[ 64 +: 16];  gpr_n[5] = bkd_regs[ 80 +: 16];
+            gpr_n[6] = bkd_regs[ 96 +: 16];  gpr_n[7] = bkd_regs[112 +: 16];
+            sreg_n[0] = bkd_regs[128 +: 16]; sreg_n[1] = bkd_regs[144 +: 16];
+            sreg_n[2] = bkd_regs[160 +: 16]; sreg_n[3] = bkd_regs[176 +: 16];
+            pc_n = bkd_regs[192 +: 16];
+            psw_n = (bkd_regs[208 +: 16] & PSW_WRITABLE) | PSW_FORCED;
         end else begin
             // F25 -- POWER-ON RESET IS A MICROCODE MARCH, not a state.
             // `CpuT::reset()` runs the ROM's own sequence at page 7 opcode
@@ -1598,55 +1904,28 @@ always @(posedge clk) begin
             // FLUSH row 01D3 at release+7 where the capture shows its `E`
             // blip, and the first CODE T1 at release+9.  Four clocks is the
             // one constant, not a per-row cost.
-            upc_page = 3'd7;
-            upc_opc  = 8'h03;
-            upc_loc  = 4'd0;
-            rst_ctr  = 3'd0;
-            st = S_RESET;
+            upc_page_n = 3'd7;
+            upc_opc_n  = 8'h03;
+            upc_loc_n  = 4'd0;
+            rst_ctr_n  = 3'd0;
+            st_n = S_RESET;
         end
-        ie_p = {4{psw[FIE]}};      // ...and so does the IE gate's own pipeline
-    end else if (ce) begin
+        ie_p_n = {4{psw_n[FIE]}};      // ...and so does the IE gate's own pipeline
+    end else begin   // <- was `else if (ce)`: see the commit block
         //====================================================================
         // (a) the BIU's completion pulses, sampled on the clock they ride
         //====================================================================
-        poll_pipe = {poll_pipe[1:0], pin_poll_n};
+        poll_pipe_n = {poll_pipe_n[1:0], pin_poll_n};
         // ...and the IE the gate's own pipeline is about to take, frozen HERE
         // because the chain below may write `psw` (see block (g)).
-        ie_now = psw[FIE];
-        unhalt_pend = 1'b0;
-        rd_age0 = 1'b0;
+        ie_now = psw_n[FIE];
+        unhalt_pend_n = 1'b0;
+        rd_age0_n = 1'b0;
         if (eu_rd_done_n) begin
-`ifndef SYNTHESIS
-            // campaign risk #2.  The model's `rd_done_q_` is an unbounded
-            // deque; this EU stores TWO completed reads.  That bound is a
-            // CLAIM about the microcode, so it is asserted, not assumed --
-            // and asserted HERE, where both values are the live ones.
-            // `assert ... else`, not a bare `$error`: see v30u_biu.sv's
-            // contract block -- the save-state sweep quiesces ASSERTIONS.
-            //
-            // F48/U4 -- THE CLAIM IS CORPUS-SCOPED, AND THE SEVERITY NOW SAYS SO.
-            // sec.27.1 PROVED the bound over the whole 169,000-case golden suite
-            // (`rdq_` max 2, `rd_done_q_` max 1) and that proof stands.  It is
-            // NOT a universal invariant over arbitrary code: on the six banked
-            // whole-program seeds that trip these lines the MODEL's own stores
-            // reach 3 and 4 (and 8,334) on the same stimuli -- the falsifier
-            // sec.27.1 registered, met.  So this is NOT C3's shape (there the
-            // model stayed in bound and the RTL was mis-counting): both engines
-            // leave the regime together, and both are already 200-1,200 rows off
-            // the chip when they do.  A fire is therefore a REPORT that the run
-            // left the proven regime, not proof of an accounting error, and it
-            // must not take the run down -- an aborted seed is not scored, and
-            // an unscored seed is not evidence.  `$warning`, not `$error`: still
-            // an SVA (so `$assertoff(0)` still quiesces it for the save-state
-            // scramble -- F50 item 2's trap), still counted among the contracts,
-            // no longer fatal.  On the GOLDEN ladder the net is unchanged: the
-            // row-for-row comparison against `sim/` fails on its own if the
-            // store ever saturates there, and sec.27.1 proves it cannot.
-            assert (rdq_n != 2'd2)
-                else $warning("v30u_eu: completed-read store overflow (rdq_n=2)");
-            assert (rd_done_cnt != 2'd3)
-                else $warning("v30u_eu: rd_done_cnt saturated");
-`endif
+            // (the two completed-read SVAs are in the clocked observer below --
+            //  a combinational block fires them once per SETTLE, not once per CE
+            //  clock.  They read only flop values, which is what they read here
+            //  too: nothing above this point touches either counter.)
             // ...AND THE COUNTERS SATURATE RATHER THAN WRAP.  The assertions
             // above live inside `ifndef SYNTHESIS`, so in the BITSTREAM they do
             // not exist: the only thing standing between an over-deep store and
@@ -1660,14 +1939,14 @@ always @(posedge clk) begin
             // it is what a store with a fixed number of slots physically does.
             // Inert on every graded path by sec.27.1's proof; load-bearing in
             // fabric, where the in-silicon fuzz runs with no assertions at all.
-            if (rd_done_cnt == 2'd0) rd_age0 = 1'b1;
-            if (rd_done_cnt != 2'd3) rd_done_cnt = rd_done_cnt + 2'd1;
-            if (rd_pending != 2'd0) rd_pending = rd_pending - 2'd1;
-            if (rdq_n == 2'd0) rdq0 = eu_rdata_n; else rdq1 = eu_rdata_n;
-            if (rdq_n != 2'd2) rdq_n = rdq_n + 2'd1;
+            if (rd_done_cnt_n == 2'd0) rd_age0_n = 1'b1;
+            if (rd_done_cnt_n != 2'd3) rd_done_cnt_n = rd_done_cnt_n + 2'd1;
+            if (rd_pending_n != 2'd0) rd_pending_n = rd_pending_n - 2'd1;
+            if (rdq_n_n == 2'd0) rdq0_n = eu_rdata_n; else rdq1_n = eu_rdata_n;
+            if (rdq_n_n != 2'd2) rdq_n_n = rdq_n_n + 2'd1;
         end
-        if (eu_wr_done_n && (wr_out != 2'd0)) wr_out = wr_out - 2'd1;
-        if (q_pop && q_ripe && q_first && !first_pop_seen) first_pop_seen = 1'b1;
+        if (eu_wr_done_n && (wr_out_n != 2'd0)) wr_out_n = wr_out_n - 2'd1;
+        if (q_pop && q_ripe && q_first && !first_pop_seen_n) first_pop_seen_n = 1'b1;
 
         //--------------------------------------------------------------------
         // ...AND THE FLAG REGISTER IS FED BY THE DATA LATCH, NOT BY THE ROW.
@@ -1702,50 +1981,59 @@ always @(posedge clk) begin
         // FSM core renders this as `opc == 8'h9D && eu_rd_now` plus a second
         // copy for `iret_pw`; this is that behaviour with the opcode test and
         // the duplication taken out.)
-        if (eu_rd_edge && (st == S_ROW) && e_f &&
+        if (eu_rd_edge && (st_n == S_ROW) && e_f &&
             (e_s1 == 5'd6) && (e_d1 == 5'd15))
-            psw = (eu_rd_edge_d & PSW_WRITABLE) | PSW_FORCED;
+            psw_n = (eu_rd_edge_d & PSW_WRITABLE) | PSW_FORCED;
 
         //====================================================================
         // (b) the post-E row's work, owed to THIS clock: it overlaps the
         //     successor's decode (exec_impl.h's cadence note) and the model
         //     runs it BEFORE the successor's step.
         //====================================================================
-        if (poste) begin
-            poste = 1'b0;
+        if (poste_n) begin
+            poste_n = 1'b0;
             `include "v30u_eu_poste.svh"
         end
         // F22: ...and the successor's latch reset it was standing in front of.
-        if (iend_owed) begin
-            iend_owed = 1'b0;
+        if (iend_owed_n) begin
+            iend_owed_n = 1'b0;
             `include "v30u_eu_iend_late.svh"
         end
 
 `ifndef SYNTHESIS
-        if (eutrace)
-            $display("EU st=%0d upc=%0d.%02X.%0d row=%07x q=%02x ripe=%0d slot=%0d post=%0d bs=%0d a=%05x pair=%0d wd=%04x rdd=%0d wrd=%0d oprf=%0d wr_out=%0d pc=%04x ind=%04x opr=%04x of=%0d pnd=%0d pe=%0d rdq=%0d rdc=%0d a=%04x b=%04x c=%04x sig=%04x pfx=%0d",
-                     st, upc_page, upc_opc, upc_loc, row, q_byte, q_ripe,
-                     eu_slot_busy_n, eu_post, eu_bs, eu_addr, eu_pair,
-                     eu_wdata,
-                     eu_rd_done_n, eu_wr_done_n, eu_opr_free, wr_out, pc,
-                     ind, opr, opr_fresh, pend_active, poste, rdq_n,
-                     rd_done_cnt, tmpa, tmpb, tmpc, sigma, pfxcnt_eff);
+        //-- the eutrace SNAPSHOT (the $display is in the clocked observer)
+        trc_st = st_n;
+        trc_upc_page = upc_page_n;
+        trc_upc_opc = upc_opc_n;
+        trc_upc_loc = upc_loc_n;
+        trc_wr_out = wr_out_n;
+        trc_pc = pc_n;
+        trc_ind = ind_n;
+        trc_opr = opr_n;
+        trc_opr_fresh = opr_fresh_n;
+        trc_pend_active = pend_active_n;
+        trc_poste = poste_n;
+        trc_rdq_n = rdq_n_n;
+        trc_rd_done_cnt = rd_done_cnt_n;
+        trc_tmpa = tmpa_n;
+        trc_tmpb = tmpb_n;
+        trc_tmpc = tmpc_n;
 `endif
         stop = 1'b0;
 `ifndef SYNTHESIS
         chain_used = 4'd0;
-        chain_first = st;
+        chain_first = st_n;
 `endif
         for (chain = 0; chain < CHAIN_MAX; chain = chain + 4'd1) begin
             if (!stop) begin
 `ifndef SYNTHESIS
                 chain_used = chain + 4'd1;
 `ifdef CHAIN_PROBE
-                if (!cp_seen[{chain, st}]) begin : cprobe
+                if (!cp_seen[{chain, st_n}]) begin : cprobe
                     integer fd;
-                    cp_seen[{chain, st}] = 1'b1;
+                    cp_seen[{chain, st_n}] = 1'b1;
                     fd = $fopen(`CHAIN_PROBE, "a");
-                    $fwrite(fd, "POS %0d ST %0d\n", chain, st);
+                    $fwrite(fd, "POS %0d ST %0d\n", chain, st_n);
                     $fclose(fd);
                 end
 `endif
@@ -1757,35 +2045,15 @@ always @(posedge clk) begin
                 // state forever.  This turns that impossible case into a spent
                 // clock -- the same failure the CHAIN OVERFLOW `$fatal` names,
                 // but survivable in fabric where there is no assertion.
-                if ((chain != 4'd0) && !st_zero_ok(st)) stop = 1'b1;
+                if ((chain != 4'd0) && !st_zero_ok(st_n)) stop = 1'b1;
                 else begin
                     `include "v30u_eu_step.svh"
                 end
             end
         end
-`ifndef SYNTHESIS
-        // THE CHAIN BOUND IS A CLAIM, SO IT IS CHECKED.  `CHAIN_MAX` is the
-        // number of ZERO-COST model steps that may ride one clock; running out
-        // while `stop` is still low would silently push the remainder into the
-        // NEXT clock -- a cadence error, not a hang, and therefore invisible
-        // without this line.
-        if (!stop)
-            $fatal(1, "v30u_eu: CHAIN OVERFLOW at CHAIN_MAX=%0d (entered in st=%0d, now st=%0d)",
-                   CHAIN_MAX, chain_first, st);
-        if (chain_used > chain_hi) begin
-            chain_hi = chain_used;
-            if (chain_report)
-                $display("CHAIN_DEPTH_MAX %0d entry_st %0d", chain_hi, chain_first);
-            `ifdef CHAIN_PROBE
-            begin : probe
-                integer fd;
-                fd = $fopen(`CHAIN_PROBE, "a");
-                $fwrite(fd, "%0d %0d\n", chain_hi, chain_first);
-                $fclose(fd);
-            end
-            `endif
-        end
-`endif
+        // (CHAIN OVERFLOW and the depth tracker are in the clocked observer:
+        //  `stop` / `chain_used` / `chain_first` are comb outputs of this block
+        //  now, and the check must run ONCE per CE clock on the SETTLED values.)
 
         //====================================================================
         // (g) THE PIN PIPELINES, ADVANCED AT THE *END* OF THE EDGE
@@ -1805,15 +2073,202 @@ always @(posedge clk) begin
         // -- is substituted by the simulator, so it is NOT the pre-edge view
         // the rest of this module gets from a wire with real logic in it.
         // F11b's trap, third form.)
-        int_p = {int_p[2:0], pin_int};
-        nmi_p = {nmi_p[3:0], pin_nmi};
-        ie_p  = {ie_p[2:0], ie_now};
+        int_p_n = {int_p_n[2:0], pin_int};
+        nmi_p_n = {nmi_p_n[3:0], pin_nmi};
+        ie_p_n  = {ie_p_n[2:0], ie_now};
         // the NMI LATCH is an EDGE, set three clocks after it: `nmi_p[3]` is
         // the pin at c-3 and `nmi_p[4]` the pin at c-4, so the latch reads true
         // from c+1 = edge+4 -- "latest catching edge = B-4".
-        if (nmi_p[3] && !nmi_p[4]) nmi_latch = 1'b1;
+        if (nmi_p_n[3] && !nmi_p_n[4]) nmi_latch_n = 1'b1;
     end
 end
+
+//--------------------------------------------------------------------------
+// THE COMMIT -- the ONLY place an EU state register is written, and the only
+// place `ce` appears.  This is the clock-enable port.
+//--------------------------------------------------------------------------
+always @(posedge clk) begin
+    if (ss_we || srst || ce) begin
+        for (ci = 0; ci < 8; ci = ci + 1) gpr[ci] <= gpr_n[ci];
+        for (ci = 0; ci < 4; ci = ci + 1) sreg[ci] <= sreg_n[ci];
+        pc <= pc_n;
+        psw <= psw_n;
+        tmpa <= tmpa_n;
+        tmpb <= tmpb_n;
+        tmpc <= tmpc_n;
+        opr <= opr_n;
+        ind <= ind_n;
+        count <= count_n;
+        pfxcnt <= pfxcnt_n;
+        stat <= stat_n;
+        sign_neg <= sign_neg_n;
+        bit_n <= bit_n_n;
+        al_op <= al_op_n;
+        al_tmp <= al_tmp_n;
+        al_byte <= al_byte_n;
+        al_eaconst <= al_eaconst_n;
+        al_eaval <= al_eaval_n;
+        al_adjust <= al_adjust_n;
+        al_adjtmp <= al_adjtmp_n;
+        al_bitarm <= al_bitarm_n;
+        al_bitn <= al_bitn_n;
+        al_spent <= al_spent_n;
+        upc_page <= upc_page_n;
+        upc_opc <= upc_opc_n;
+        upc_loc <= upc_loc_n;
+        seg_override <= seg_override_n;
+        seg_ovr <= seg_ovr_n;
+        rep_kind <= rep_kind_n;
+        lock_pfx <= lock_pfx_n;
+        opc_reg <= opc_reg_n;
+        op8 <= op8_n;
+        imm8 <= imm8_n;
+        opc_base <= opc_base_n;
+        opc_from_modrm <= opc_from_modrm_n;
+        modrm_reg <= modrm_reg_n;
+        xop <= xop_n;
+        rep_test <= rep_test_n;
+        rep_pol <= rep_pol_n;
+        bus_word <= bus_word_n;
+        opc8080 <= opc8080_n;
+        mode8080 <= mode8080_n;
+        intr_pending <= intr_pending_n;
+        eu_halted <= eu_halted_n;
+        int_p <= int_p_n;
+        nmi_p <= nmi_p_n;
+        nmi_latch <= nmi_latch_n;
+        ie_p <= ie_p_n;
+        rep_chain <= rep_chain_n;
+        irq_shadow <= irq_shadow_n;
+        bnd_armed <= bnd_armed_n;
+        irq_sel_nmi <= irq_sel_nmi_n;
+        unhalt_pend <= unhalt_pend_n;
+        m_kind <= m_kind_n;
+        r_kind <= r_kind_n;
+        wb_kind <= wb_kind_n;
+        m_idx <= m_idx_n;
+        r_idx <= r_idx_n;
+        wb_idx <= wb_idx_n;
+        m_ea <= m_ea_n;
+        r_ea <= r_ea_n;
+        wb_ea <= wb_ea_n;
+        m_seg <= m_seg_n;
+        r_seg <= r_seg_n;
+        wb_seg <= wb_seg_n;
+        m_byte <= m_byte_n;
+        r_byte <= r_byte_n;
+        wb_byte <= wb_byte_n;
+        pend_active <= pend_active_n;
+        pend_off <= pend_off_n;
+        pend_seg <= pend_seg_n;
+        pend_byte <= pend_byte_n;
+        pend_io <= pend_io_n;
+        opr_fresh <= opr_fresh_n;
+        rdq0 <= rdq0_n;
+        rdq1 <= rdq1_n;
+        rdq_n <= rdq_n_n;
+        rd_pending <= rd_pending_n;
+        rd_done_cnt <= rd_done_cnt_n;
+        rd_age0 <= rd_age0_n;
+        iend_owed <= iend_owed_n;
+        rst_ctr <= rst_ctr_n;
+        tsel <= tsel_n;
+        pe_opc_reg <= pe_opc_reg_n;
+        pe_opc8080 <= pe_opc8080_n;
+        pe_op8 <= pe_op8_n;
+        pe_pfxcnt <= pe_pfxcnt_n;
+        wr_out <= wr_out_n;
+        opc_valid <= opc_valid_n;
+        opc_byte <= opc_byte_n;
+        pop_is_first <= pop_is_first_n;
+        ld_b <= ld_b_n;
+        ld_pla <= ld_pla_n;
+        ld_ext <= ld_ext_n;
+        ld_page <= ld_page_n;
+        ld_hasrm <= ld_hasrm_n;
+        ld_rm <= ld_rm_n;
+        ld_disp <= ld_disp_n;
+        ld_dlo <= ld_dlo_n;
+        ld_grpd <= ld_grpd_n;
+        ld_byte <= ld_byte_n;
+        ld_preread <= ld_preread_n;
+        ld_ripe_prev <= ld_ripe_prev_n;
+        st <= st_n;
+        chg <= chg_n;
+        ending <= ending_n;
+        rowq <= rowq_n;
+        row_posted <= row_posted_n;
+        row_paired <= row_paired_n;
+        rloop_n <= rloop_n_n;
+        suppress_commit <= suppress_commit_n;
+        first_pop_seen <= first_pop_seen_n;
+        rowb0 <= rowb0_n;
+        rowb1 <= rowb1_n;
+        poste <= poste_n;
+        poll_pipe <= poll_pipe_n;
+    end
+end
+
+`ifndef SYNTHESIS
+//--------------------------------------------------------------------------
+// THE CLOCKED OBSERVER -- everything that must happen ONCE PER CE CLOCK.
+//--------------------------------------------------------------------------
+// A combinational block fires its side effects once per SETTLE, not once per
+// clock, so none of this can live in the next-state function: `sw/uscope.py`'s
+// contract is `row index == CE clock index == +eutrace line number`, and a
+// $fatal on a transient value would take a run down for a state the machine
+// never stood in.  Everything read here is either a FLOP or a comb value that
+// has SETTLED by the edge, which is the same value the old in-line code read.
+always @(posedge clk) begin
+    if (ce && !srst && !ss_we) begin
+        // campaign risk #2 / F48: the completed-read store's bound.  Read off
+        // the flops, which is what the old in-line assertions read too --
+        // nothing before block (a) touches either counter.
+        if (eu_rd_done_n) begin
+            assert (rdq_n != 2'd2)
+                else $warning("v30u_eu: completed-read store overflow (rdq_n=2)");
+            assert (rd_done_cnt != 2'd3)
+                else $warning("v30u_eu: rd_done_cnt saturated");
+        end
+        // v30u_eu_poste.svh's two shape assertions.  `poste` is not touched
+        // before the post-E block, so the flop IS the value that guarded them.
+        if (poste && row_bus)
+            $error("v30u_eu: a post-E row carries a bus cycle (upc %0d.%02X.%0d)",
+                   upc_page, upc_opc, upc_loc);
+        if (poste && (row_q1 || row_q2))
+            $error("v30u_eu: a post-E row pops a queue byte");
+        if (eutrace)
+            $display("EU st=%0d upc=%0d.%02X.%0d row=%07x q=%02x ripe=%0d slot=%0d post=%0d bs=%0d a=%05x pair=%0d wd=%04x rdd=%0d wrd=%0d oprf=%0d wr_out=%0d pc=%04x ind=%04x opr=%04x of=%0d pnd=%0d pe=%0d rdq=%0d rdc=%0d a=%04x b=%04x c=%04x sig=%04x pfx=%0d",
+                     trc_st, trc_upc_page, trc_upc_opc, trc_upc_loc, row, q_byte, q_ripe,
+                     eu_slot_busy_n, eu_post, eu_bs, eu_addr, eu_pair,
+                     eu_wdata,
+                     eu_rd_done_n, eu_wr_done_n, eu_opr_free, trc_wr_out, trc_pc,
+                     trc_ind, trc_opr, trc_opr_fresh, trc_pend_active, trc_poste, trc_rdq_n,
+                     trc_rd_done_cnt, trc_tmpa, trc_tmpb, trc_tmpc, sigma, pfxcnt_eff);
+        // THE CHAIN BOUND IS A CLAIM, SO IT IS CHECKED.  `CHAIN_MAX` is the
+        // number of ZERO-COST model steps that may ride one clock; running out
+        // while `stop` is still low would silently push the remainder into the
+        // NEXT clock -- a cadence error, not a hang, and therefore invisible
+        // without this line.
+        if (!stop)
+            $fatal(1, "v30u_eu: CHAIN OVERFLOW at CHAIN_MAX=%0d (entered in st=%0d, now st=%0d)",
+                   CHAIN_MAX, chain_first, st_n);
+        if (chain_used > chain_hi) begin
+            chain_hi = chain_used;
+            if (chain_report)
+                $display("CHAIN_DEPTH_MAX %0d entry_st %0d", chain_hi, chain_first);
+            `ifdef CHAIN_PROBE
+            begin : probe
+                integer fd;
+                fd = $fopen(`CHAIN_PROBE, "a");
+                $fwrite(fd, "%0d %0d\n", chain_hi, chain_first);
+                $fclose(fd);
+            end
+            `endif
+        end
+    end
+end
+`endif
 
 //============================================================================
 // save-state READ mux (arm #2 of the exactly-twice discipline)
