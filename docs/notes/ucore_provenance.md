@@ -5048,3 +5048,64 @@ Registered here as the successor bar, for the campaign owner to adopt or amend
 
 The second clause is the discriminating one: it is what a barely-better core
 cannot clear, and it is what §51.8a found V1 alone could not supply.
+
+## §55 THE FABRIC RE-SCORE — PRE-REGISTERED BEFORE ANY BOARD CONTACT
+
+Standing discipline: *pre-register predictions and commit before first board
+contact.*  Nothing below is written after a capture.
+
+### §55.0 THE STATE OF THE BOARD AT REGISTRATION
+
+`root@mister-nec`, reachable, `up 22 days`.  **Single-writer check: no
+`v30`/serve/python process on the board.**  On the fabric today is the
+FSM-from-HEAD bitstream (`nec_test.sof a4533dfef0…`) left there by §52.10.
+
+### §55.1 THE BITSTREAM UNDER TEST — G6 RE-RUN ON THE FIXED RTL
+
+`quartus_sh --flow compile nec_test -c nec_test_ucore`, 17.1.0 Lite,
+`5CSEBA6U23I7`, wall **8:56**.
+
+| gate | registered | U4 pass 3 | **U5 (F51)** | |
+|---|---|---|---|---|
+| A&S / Fitter errors | 0 | 0 | **0** | ✅ |
+| ALMs | FSM = 25 % | 11,078 / 26 % | **11,117 / 41,910 = 27 %** | ✅ |
+| registers | — | 6,148 | **6,060** | — |
+| M10K / RAM blocks | — | 105 / 19 % | **105 / 553 = 19 %** | — |
+| **Fmax >= 32 MHz WITH MARGIN** | >= 32 MHz | 45.56 MHz | **48.03 MHz (+50 %)** | ✅ |
+| worst setup slack / TNS | — | +8.922 / 0.000 | **+9.121 ns / 0.000 on EVERY clock domain** | ✅ |
+| worst hold | — | +0.247 | **+0.244 ns, TNS 0.000** | ✅ |
+| bitstream | a `.sof` | `cdf5edee00…` | **`.sof 924c4a61e0ad235e6257695a775d86cc51735ebba0cf9cf5f9ffb651bcc5105d`**, `.rbf 87882aa8b9…` | ✅ |
+
+F51 cost 39 ALMs and BOUGHT 2.5 MHz.  `gen_ucore_qsf --check` is up to date, so
+the two A/B bitstreams still differ by the CORE and by nothing else.
+
+### §55.2 THE PREDICTION, AND ITS FALSIFIER
+
+§52.9 measured the four HLT delay sweeps IN FABRIC at **29/283** with the
+signature `0x0AD8A` against the golden's `0x2AD8A` on the HALT display and its
+T1, and the display dropped one row early.  F51 is the fix.  Registered:
+
+1. **The F42-refutation SIGNATURE IS GONE: ZERO cells whose first divergence is
+   the HALT display's own `bus` or `data`.**  This is the sharp one.  *If any
+   cell still reports `0x0AD8A` where the golden has `0x2AD8A`, F51 is
+   incomplete and is reported as incomplete.*
+2. **The fabric total is >= 249/283** — the ucore's pre-U5 offline number, a
+   deliberately conservative floor — and the EXPECTED value is the corrected
+   offline number, **259/283 ± 4 cells**.  A fabric result far below the
+   offline one would be a FABRIC-vs-SIM finding (V3's shape) and is the more
+   important result if it happens.
+3. **The socket control must reproduce the golden 49/49** on the identical
+   driver (`EMIT_USE_CORE=False`, `use_core=0`).  This is the rig-integrity
+   leg, not a result: if it moves, nothing else in this section is readable.
+4. **`use_core=0` boot vs the standing golden must MATCH over 800 rows** on the
+   new bitstream, taken FIRST, before anything else — §48.2's chip-path proof,
+   which is what `gen_ucore_qsf --check` is supposed to make impossible to fail.
+5. **The priority tranche is NOT re-captured.**  Its fabric leg was scored at
+   §52.6 on the pass-3 bitstream and the RTL change is proved INERT on it
+   offline (§54.4: `vsim_ucore` 176/178 with residue `bs`=2, identical before
+   and after).  Re-capturing would spend 483 board captures to reproduce a
+   number a controlled offline re-score already reproduces.
+6. **The board is left with the ucore bitstream on it**, not the FSM one,
+   with `use_core=0` re-proved on it — one flash rather than two, and the
+   lower-risk choice at a closure.  Recorded as a deliberate deviation from
+   §52.10's parting state.
