@@ -119,7 +119,13 @@ def cmd_capture(a):
     man = json.loads((OUT / "manifest.json").read_bytes())
     leg = OUT / f"raw_{a.leg}"
     leg.mkdir(parents=True, exist_ok=True)
-    use_core = (a.leg != "chip")
+    # SM2 / X3: the `_f4` legs are the SAME two positions re-captured on
+    # FLASH #4, written beside the pass-3 ones rather than over them (§55.2
+    # item 6 declared the carried-forward substitution; removing it must not
+    # also destroy the thing it is being compared against).  The A/B POSITION
+    # is read from the leg's prefix, so a new leg name cannot silently change
+    # which side of the harness is captured.
+    use_core = not a.leg.startswith("chip")
     consec = done = err = 0
     t0 = time.time()
     for name, cell in sorted(man["cells"].items()):
@@ -200,7 +206,7 @@ def cmd_score(a):
     res = {L: {"exact": 0, "scored": 0, "excused": 0, "fam": {}, "miss": []}
            for L in legs}
     for name, cell in sorted(man["cells"].items()):
-        chip = _load("chip", name)
+        chip = _load(a.ref, name)
         if chip is None:
             continue
         win = uf.window_of(chip)
@@ -239,7 +245,7 @@ def cmd_score(a):
             for m in res[L]["miss"]:
                 print(f"  {L} {m[0]} first={m[1]} row={m[2]} "
                       f"ndiff={m[3]}/{m[4]}")
-    (OUT / "score.json").write_text(json.dumps(
+    (OUT / a.out).write_text(json.dumps(
         {L: {k: v for k, v in res[L].items() if k != "miss"} for L in legs},
         indent=1))
     return 0
@@ -255,7 +261,8 @@ def main():
     f.set_defaults(fn=cmd_freeze)
     c = sub.add_parser("capture")
     c.add_argument("--leg", required=True,
-                   choices=["chip", "core", "fsmcore"])
+                   choices=["chip", "core", "fsmcore",
+                            "chip_f4", "core_f4"])
     c.add_argument("--host", default=HOST)
     c.add_argument("--force", action="store_true")
     c.set_defaults(fn=cmd_capture)
@@ -264,6 +271,12 @@ def main():
     v.set_defaults(fn=cmd_vsim)
     s = sub.add_parser("score")
     s.add_argument("--legs", default="core")
+    s.add_argument("--ref", default="chip",
+                   help="the leg every other leg is scored AGAINST -- the "
+                        "socket capture.  SM2/X3 scores the FLASH #4 legs "
+                        "against `chip_f4`, the socket capture taken on the "
+                        "same bitstream, never against another flash's.")
+    s.add_argument("--out", default="score.json")
     s.add_argument("-v", "--verbose", action="store_true")
     s.set_defaults(fn=cmd_score)
     a = ap.parse_args()

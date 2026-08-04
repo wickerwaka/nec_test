@@ -1,0 +1,16 @@
+{
+ "core_f4": {
+  "exact": 176,
+  "scored": 178,
+  "excused": 22,
+  "fam": {
+   "bs": 2
+  }
+ },
+ "chip_f4": {
+  "exact": 178,
+  "scored": 178,
+  "excused": 22,
+  "fam": {}
+ }
+}

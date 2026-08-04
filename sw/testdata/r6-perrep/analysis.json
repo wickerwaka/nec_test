@@ -1,0 +1,176 @@
+{
+ "HLT.INT_w0_d0": {
+  "reps": 10,
+  "n_distinct_keys": 1,
+  "n_distinct_raw": 6,
+  "stable_identical": true,
+  "first_t1_row": 9,
+  "n_diff_rows": 9,
+  "diff_rows": [
+   0,
+   1,
+   2,
+   3,
+   4,
+   5,
+   6,
+   7,
+   8
+  ],
+  "diff_rows_at_or_after_first_t1": [],
+  "n_diff_rows_at_or_after_first_t1": 0,
+  "cols_dedicated": [],
+  "cols_multiplexed": [
+   "ad_addr",
+   "ad_data",
+   "ps",
+   "ube_n"
+  ],
+  "cols_other": [],
+  "col_counts": {
+   "ube_n": 81,
+   "ps": 32,
+   "ad_data": 72,
+   "ad_addr": 81
+  },
+  "pad_artefact_signature": true
+ },
+ "HLT.INT_w2_d0": {
+  "reps": 10,
+  "n_distinct_keys": 1,
+  "n_distinct_raw": 10,
+  "stable_identical": true,
+  "first_t1_row": 9,
+  "n_diff_rows": 9,
+  "diff_rows": [
+   0,
+   1,
+   2,
+   3,
+   4,
+   5,
+   6,
+   7,
+   8
+  ],
+  "diff_rows_at_or_after_first_t1": [],
+  "n_diff_rows_at_or_after_first_t1": 0,
+  "cols_dedicated": [],
+  "cols_multiplexed": [
+   "ad_addr",
+   "ad_data",
+   "ps"
+  ],
+  "cols_other": [],
+  "col_counts": {
+   "ad_data": 72,
+   "ad_addr": 81,
+   "ps": 32
+  },
+  "pad_artefact_signature": true
+ },
+ "INT.90_w1_d0": {
+  "reps": 10,
+  "n_distinct_keys": 1,
+  "n_distinct_raw": 3,
+  "stable_identical": true,
+  "first_t1_row": 9,
+  "n_diff_rows": 9,
+  "diff_rows": [
+   0,
+   1,
+   2,
+   3,
+   4,
+   5,
+   6,
+   7,
+   8
+  ],
+  "diff_rows_at_or_after_first_t1": [],
+  "n_diff_rows_at_or_after_first_t1": 0,
+  "cols_dedicated": [],
+  "cols_multiplexed": [
+   "ad_addr",
+   "ad_data",
+   "ps"
+  ],
+  "cols_other": [],
+  "col_counts": {
+   "ps": 72,
+   "ad_data": 72,
+   "ad_addr": 81
+  },
+  "pad_artefact_signature": true
+ },
+ "NMI.90_w1_d0": {
+  "reps": 10,
+  "n_distinct_keys": 1,
+  "n_distinct_raw": 2,
+  "stable_identical": true,
+  "first_t1_row": 9,
+  "n_diff_rows": 9,
+  "diff_rows": [
+   0,
+   1,
+   2,
+   3,
+   4,
+   5,
+   6,
+   7,
+   8
+  ],
+  "diff_rows_at_or_after_first_t1": [],
+  "n_diff_rows_at_or_after_first_t1": 0,
+  "cols_dedicated": [],
+  "cols_multiplexed": [
+   "ad_addr",
+   "ad_data",
+   "ube_n"
+  ],
+  "cols_other": [],
+  "col_counts": {
+   "ube_n": 81,
+   "ad_data": 72,
+   "ad_addr": 81
+  },
+  "pad_artefact_signature": true
+ },
+ "HLT.INT_w1_d0": {
+  "reps": 10,
+  "n_distinct_keys": 1,
+  "n_distinct_raw": 6,
+  "stable_identical": true,
+  "first_t1_row": 9,
+  "n_diff_rows": 9,
+  "diff_rows": [
+   0,
+   1,
+   2,
+   3,
+   4,
+   5,
+   6,
+   7,
+   8
+  ],
+  "diff_rows_at_or_after_first_t1": [],
+  "n_diff_rows_at_or_after_first_t1": 0,
+  "cols_dedicated": [],
+  "cols_multiplexed": [
+   "ad_addr",
+   "ad_data",
+   "ps",
+   "ube_n"
+  ],
+  "cols_other": [],
+  "col_counts": {
+   "ube_n": 81,
+   "ad_data": 72,
+   "ad_addr": 81,
+   "ps": 8
+  },
+  "pad_artefact_signature": true
+ }
+}
