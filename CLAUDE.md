@@ -77,6 +77,25 @@ ratchets: monotone, never re-scored downward without a loud, itemized entry.)
   **709/1,008**, COMBINED **1,981/2,710**),
   `sw/timed_fuzz.py --seeddir sw/testdata/t4/b2-tranche/seeds`
   (**154/188** — V5 is a standing REGISTERED FAILURE, not to be re-opened).
+- **The `ucore` RTL twin** (`--core ucore`, stage U3 close; these are the
+  ucore's OWN ratchets, not the model's — see `ucore_provenance.md` §44):
+  `check_core.py --core ucore --opcodes all --cases 0` **169,000/169,000**;
+  `v0.1-w1`/`-w3` 1,200; `EB` 200; the four `evt` cells 200/1,200/200/1,200;
+  `v0.1-w1evt-biased` 1,200; `check_boot.py --core ucore` 220 and 400;
+  `ulockstep.py --golden all --cases 50` **17,350/17,350**;
+  `timed_wvec_gate.py --core ucore` **88/88, +0.0 %** (the FSM core is 71/88);
+  `timed_enter_replay.py --core ucore` **154/154 x5**;
+  `timed_ins_replay.py --core ucore --raw` **1,312/1,312** and **2,624/2,624**;
+  `timed_fuzz.py --core ucore --evt-replay` REGISTERED **1,394/1,702** (the sim
+  is 1,272) and `--seeddir …/b2-tranche/seeds` **168/188** (the sim is 154);
+  the four HLT sweeps **90/97, 88/95, 37/46, 34/45** (below the model by 23
+  cells: 17 the TB cannot score + 6 diagnosed — §43).
+  **`--rig-hold reg8`** exists because the rig's `evt_hold` register is 8 bits;
+  it moves the SIM's EVT number too (+71), so it is OFF by default and the EVT
+  ratchet is NOT re-registered against it (F46).
+- **KNOWN-RED, deliberately**: `sw/ss_lint.py --core ucore` exits **1**. That is
+  truthful, not broken — five architectural flops are absent from the ucore's
+  save-state map (F49). The `--core fsm` leg is unchanged and still exits 0.
 - **Measurement tools, NOT gates** (never quote them as a pass):
   `sw/s11_census.py`, `sw/s12_census.py` (`hltsweep`/`psw`/`regold`/`ackfam`),
   `sw/s14_census.py --band`, `sw/s14_dstar.py`, `sw/s15_census.py`
