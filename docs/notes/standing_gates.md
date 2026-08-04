@@ -99,7 +99,7 @@ undecoded 64-bit words that were already being unpacked and discarded.
 |---|---|---|
 | R6 per-repetition rows | `python3 sw/r6_perrep.py capture --reps 10` then `analyse` | banks EVERY repetition's full rows for the sweep cells whose `stable_identical` is false, and classifies the differences by pad class.  **It is also the live falsifier for the repair above** — it is an s10/s13-path probe and it takes 50 captures. |
 | the X1 fabric legs | `python3 sw/x1_fabric.py baseline --leg <tag>` / `socket --leg <tag>` / `score` | the 283 HLT-sweep cells through the FPGA core, and §52.9's 49-cell socket control, written beside `sw/testdata/u4-f42/` rather than over it |
-| the INV-1 re-capture | `python3 sw/inv1_recapture.py archive|probe|holdproof|capture|rebank|verify` | INV-1's closure apparatus.  `verify` is arithmetic over the artifact and is board-free |
+| the INV-1 re-capture | `python3 sw/inv1_recapture.py {archive, probe, holdproof, capture, rebank, verify}` | INV-1's closure apparatus.  `verify` is arithmetic over the artifact and is board-free |
 
 ---
 
