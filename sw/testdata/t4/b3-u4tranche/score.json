@@ -1,11 +1,10 @@
 {
- "fsmcore": {
-  "exact": 163,
+ "core": {
+  "exact": 176,
   "scored": 178,
   "excused": 22,
   "fam": {
-   "bs": 14,
-   "qs": 1
+   "bs": 2
   }
  },
  "vsim_ucore": {
@@ -14,6 +13,15 @@
   "excused": 22,
   "fam": {
    "bs": 2
+  }
+ },
+ "fsmcore": {
+  "exact": 163,
+  "scored": 178,
+  "excused": 22,
+  "fam": {
+   "bs": 14,
+   "qs": 1
   }
  },
  "vsim_fsm": {
