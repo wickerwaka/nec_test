@@ -14,8 +14,23 @@ observes the socketed chip: the capture path, memory model and pin sampling
 serve both identically. The on-silicon confirmation is sw/check_seq.py with
 CFG.use_core toggled on the board (Mission C/E).
 
-Usage: check_ab_sim.py [nrows] [--build] [--keep]
+Usage: check_ab_sim.py [nrows] [--core {fsm,ucore}] [--build] [--keep]
+
+ucore U4: `--core ucore` swaps the RTL list for the ROM-driven twin, exactly as
+`sw/check_core.py --core` does -- the module is `v30_core` and the package is
+`v30_ss_pkg` in both, so system_large.sv / nec_bus.sv / tb_ab.sv are untouched.
+This is the SIMULATION half of the in-fabric A/B: it puts the ucore inside the
+real integration, behind the real capture path, before any bitstream is flashed.
+
+  U4 FINDING: this gate had been UNBUILDABLE since the save-state package
+  landed.  `v30_ss_pkg.sv` was never added to the list below, and both
+  v30_core.sv and v30_eu.sv `import v30_ss_pkg::*`, so verilator exited with
+  "Importing from missing package 'v30_ss_pkg'".  The binary in obj_dir_ab
+  dated from 2026-07-13, the day this file was written, and nothing had rebuilt
+  it since -- a gate that cannot build is a gate nobody was running.  Fixed
+  here as part of standing it up for the ucore.
 """
+import argparse
 import subprocess
 import sys
 import tempfile
@@ -27,21 +42,39 @@ from decode_capture import decode  # noqa: E402
 
 ROOT = SW.parent
 TB_DIR = ROOT / "hdl" / "tb"
-OBJ = TB_DIR / "obj_dir_ab"
-BIN = OBJ / "tb_ab"
 CAPTURE = SW / "testdata" / "largemode_boot_real.hex"
 
-RTL = [
+# the integration, shared by both cores and deliberately identical
+_PLATFORM = [
     TB_DIR / "tb_ab.sv",
     ROOT / "hdl" / "rtl" / "system_large.sv",
     ROOT / "hdl" / "rtl" / "nec_bus.sv",
     ROOT / "hdl" / "rtl" / "test_mem.sv",
     ROOT / "hdl" / "rtl" / "capture_buf.sv",
+    ROOT / "hdl" / "rtl" / "wvec_buf.sv",
+    ROOT / "hdl" / "rtl" / "iords_buf.sv",
     ROOT / "hdl" / "rtl" / "hps_axi_slave.sv",
-    ROOT / "hdl" / "rtl" / "core" / "v30_core.sv",
-    ROOT / "hdl" / "rtl" / "core" / "v30_biu.sv",
-    ROOT / "hdl" / "rtl" / "core" / "v30_eu.sv",
 ]
+# ...and this list must stay a subset of hdl/files.qip's.  Three files had
+# drifted out of it (v30_ss_pkg.sv, wvec_buf.sv, iords_buf.sv) and the gate had
+# not built since 2026-07-13 as a result.
+_CORE_DIR = {"fsm": ROOT / "hdl" / "rtl" / "core",
+             "ucore": ROOT / "hdl" / "rtl" / "ucore"}
+# the package FIRST -- v30_core.sv and v30_eu.sv both import it.
+_CORE_RTL = {
+    "fsm": ["v30_ss_pkg.sv", "v30_core.sv", "v30_biu.sv", "v30_eu.sv"],
+    "ucore": ["v30u_ss_pkg.sv", "v30_core.sv", "v30u_biu.sv",
+              "v30u_ucrom.sv", "v30u_eu.sv"],
+}
+
+
+def core_rtl(core):
+    d = _CORE_DIR[core]
+    return _PLATFORM + [d / f for f in _CORE_RTL[core]]
+
+
+def core_obj(core):
+    return TB_DIR / ("obj_dir_ab" if core == "fsm" else f"obj_dir_ab_{core}")
 
 T_NAME = {0: "Ti", 1: "T1", 2: "T2", 3: "T3", 4: "Tw", 5: "T4"}
 BS_NAME = {0: "INTA", 1: "IOR", 2: "IOW", 3: "HALT",
@@ -49,24 +82,30 @@ BS_NAME = {0: "INTA", 1: "IOR", 2: "IOW", 3: "HALT",
 QS_NAME = {0: "-", 1: "F", 2: "E", 3: "S"}
 
 
-def build(force=False):
-    stale = force or not BIN.exists()
+def build(core, force=False):
+    rtl, obj = core_rtl(core), core_obj(core)
+    binp = obj / "tb_ab"
+    stale = force or not binp.exists()
     if not stale:
-        bt = BIN.stat().st_mtime
-        stale = any(f.stat().st_mtime > bt for f in RTL)
+        bt = binp.stat().st_mtime
+        # the ucore EU is split across .svh includes -- they are inputs too
+        deps = list(rtl) + sorted(_CORE_DIR[core].glob("*.svh"))
+        stale = any(f.stat().st_mtime > bt for f in deps)
     if not stale:
-        return
+        return binp
     cmd = ["verilator", "--binary", "--timing", "-Wno-fatal",
-           "--top-module", "tb_ab", "-Mdir", str(OBJ), "-o", "tb_ab",
-           *[str(f) for f in RTL]]
-    print("building tb_ab ...", file=sys.stderr)
+           "--top-module", "tb_ab", "-Mdir", str(obj), "-o", "tb_ab",
+           "-I" + str(_CORE_DIR[core]),      # the EU's nine .svh includes
+           *[str(f) for f in rtl]]
+    print(f"building tb_ab ({core}) ...", file=sys.stderr)
     r = subprocess.run(cmd, capture_output=True, text=True)
-    if r.returncode != 0 or not BIN.exists():
+    if r.returncode != 0 or not binp.exists():
         sys.stderr.write(r.stdout + r.stderr)
-        sys.exit("tb_ab build failed")
+        sys.exit(f"tb_ab build failed ({core})")
+    return binp
 
 
-def run_core(nrows, keep=False):
+def run_core(BIN, nrows, keep=False):
     td = tempfile.mkdtemp(prefix="ab_")
     cap = Path(td) / "core_cap.hex"
     r = subprocess.run([str(BIN), f"+cap={cap}", f"+ncap={nrows + 20}"],
@@ -89,15 +128,20 @@ def load_real():
 
 
 def main():
-    args = sys.argv[1:]
-    force = "--build" in args
-    keep = "--keep" in args
-    pos = [a for a in args if not a.startswith("-")]
-    n = int(pos[0]) if pos else 200
+    ap = argparse.ArgumentParser()
+    ap.add_argument("nrows", nargs="?", type=int, default=200)
+    ap.add_argument("--core", choices=("fsm", "ucore"), default="fsm",
+                    help="RTL engine inside system_large (default: fsm)")
+    ap.add_argument("--build", action="store_true")
+    ap.add_argument("--keep", action="store_true")
+    a = ap.parse_args()
+    n, force, keep = a.nrows, a.build, a.keep
 
-    build(force)
+    binp = build(a.core, force)
     real = load_real()
-    sim = run_core(n)
+    sim = run_core(binp, n, keep)
+    print(f"== check_ab_sim: {a.core} core inside system_large, "
+          f"vs the chip's own boot capture ==")
 
     bad = 0
     for i in range(min(n, len(real), len(sim))):
