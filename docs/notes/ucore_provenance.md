@@ -14333,13 +14333,18 @@ scored**, because packing five flops of one mechanism into two unrelated words
 to save a map code is exactly the cleverness the package's own note says to
 refuse.
 
-**G6 (SYNTHESIS) IS GREEN.**  One clean CONTROL/DEFAULT build, compile rc 0 in
-573 s: **E1 PASS · E2 PASS** (0 errors, map/fit/asm all Successful) **· E3
-47.01 MHz** (bar ≥ 32) **· E4 +8.97 ns · E5 TNS 0.000 on every domain, setup AND
-hold.**  RECORDED, not barred: **ALMs 11,286 / 41,910 (27 %)** — **+160** on
-sitting 17's 11,126, which is what an arm, a four-deep pipeline and a third
-vector door cost — **0 latches, 0 `lpm_divide`**.  Receipt
-**`c26b887ecf34dec5…`**, input manifest 88 files `9f7125caf51ddc91…`.
+**G6 (SYNTHESIS) IS GREEN, AND IT WAS RUN TWICE.**  One clean CONTROL/DEFAULT
+build on the DIRTY working tree and a second on the COMMITTED one
+(`e38405ab68`, clean), compile rc 0 in 573 s and 531 s: **E1 PASS · E2 PASS**
+(0 errors, map/fit/asm all Successful) **· E3 47.01 MHz** (bar ≥ 32) **· E4
++8.97 ns · E5 TNS 0.000 on every domain, setup AND hold** — **the same figures
+to the digit on both**, which is a repeatability control §74.4 says this design
+does not always give.  RECORDED, not barred: **ALMs 11,286 / 41,910 (27 %)** —
+**+160** on sitting 17's 11,126, which is what an arm, a four-deep pipeline and
+a third vector door cost — **0 latches, 0 `lpm_divide`**.  The gating receipt is
+the CLEAN-TREE one: **`0d9539f945271a99…`**, input manifest 88 files
+`6d436d6df0b26ff4…`, git `e38405ab68` (the dirty-tree run was
+`c26b887ecf34dec5…` / `9f7125caf51ddc91…`).
 **A bitstream was produced and NOT flashed.**  The board still carries FLASH #9
 and `use_core` was never set: **NO BOARD CONTACT THIS SITTING.**
 

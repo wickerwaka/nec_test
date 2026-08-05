@@ -150,15 +150,18 @@ is what makes the comparison below readable at all.
 > §74.4 still governs: one green build is not closure.
 
 > **SM3 sitting 25 (2026-08-05) — the leg RAN on the BRK/TF arm and is GREEN.**
-> One clean CONTROL/DEFAULT build, compile rc 0 in 573 s: **E1 PASS · E2 PASS**
-> (0 errors, map/fit/asm all Successful) **· E3 47.01 MHz** (bar ≥ 32) **· E4
-> +8.97 ns · E5 TNS 0.000 on every domain, setup AND hold.**  RECORDED, not
-> barred: **ALMs 11,286 / 41,910 (27 %)** — **+160** on sitting 17's 11,126,
-> which is what an arm, a four-deep pipeline and a third vector door cost —
-> **0 latches, 0 `lpm_divide`**.  Receipt **`c26b887ecf34dec5…`**, input
-> manifest 88 files `9f7125caf51ddc91…`.  **A bitstream was produced and NOT
-> flashed**; the board still carries FLASH #9.  §74.4 still governs: one green
-> build is not closure.
+> TWO clean CONTROL/DEFAULT builds — the dirty working tree and the COMMITTED
+> tree `e38405ab68` — compile rc 0 in 573 s and 531 s, **the same figures to the
+> digit on both**: **E1 PASS · E2 PASS** (0 errors, map/fit/asm all Successful)
+> **· E3 47.01 MHz** (bar ≥ 32) **· E4 +8.97 ns · E5 TNS 0.000 on every domain,
+> setup AND hold.**  RECORDED, not barred: **ALMs 11,286 / 41,910 (27 %)** —
+> **+160** on sitting 17's 11,126, which is what an arm, a four-deep pipeline
+> and a third vector door cost — **0 latches, 0 `lpm_divide`**.  Gating receipt
+> **`0d9539f945271a99…`** (clean tree), input manifest 88 files
+> `6d436d6df0b26ff4…`; the dirty-tree run was `c26b887ecf34dec5…`.  **A
+> bitstream was produced and NOT flashed**; the board still carries FLASH #9.
+> §74.4 still governs: one green build is not closure — but two builds of two
+> trees agreeing to the digit is more than §74.4's four builds gave.
 
 > **SM3 sitting 17 (2026-08-05) — the leg RAN on F54 and is GREEN.**  One clean
 > CONTROL/DEFAULT build, compile rc 0 in 524 s: **E1 PASS · E2 PASS** (0 errors,
