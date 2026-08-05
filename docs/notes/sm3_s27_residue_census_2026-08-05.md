@@ -93,7 +93,7 @@ Every one of these six figures reproduces the standing ratchet **to the seed**.
 | `check_boot --core ucore --timed 220` / `400` | **MATCH / MATCH** |
 | `ulockstep --golden all --cases 50` | **17,350 / 17,350** |
 | `timed_wvec_gate --core ucore` | **88 / 88, +0.0 %** |
-| `timed_enter_replay --core ucore` | **154 / 154 ×3 legs** |
+| `timed_enter_replay --core ucore` | **154 / 154 ×5 legs** ⚠ *see the ERRATUM below — this cell read "×3 legs" as committed* |
 | `timed_ins_replay --core ucore --raw` | resolved **800 / 800**, write rails **1,312 / 1,312**, vs-chip rails **2,624 / 2,624** |
 | **the MODEL's `v0.1` timed wall** — `timed_gate --suite v0.1 --forms all` | **169,000 / 169,000**, arch and window, **row-diffs 0** |
 | **the MODEL's four HLT sweeps** — `timed_gate` per suite | **97/97 · 95/95 · 46/46 · 45/45 = 283 / 283**, row-diffs 0 on all four |
@@ -101,6 +101,22 @@ Every one of these six figures reproduces the standing ratchet **to the seed**.
 | `test_artifact` | **45 / 45** |
 | G6 (Quartus), CONTROL build at HEAD | **PASS** — 47.85 MHz, +8.602 ns, TNS 0.000, ALMs 11,147 (27 %), 0 latches, 0 `lpm_divide` |
 | the 7,341,126-case functional set (`ucsim_check`) | **NOT re-run this sitting.**  Measured at sitting 26 (§87.A.3) on a tree whose 88-file `hdl/` manifest hash and whose `sim/` receipt are **identical to this one's**; it is cited, not restated as a fresh measurement |
+
+> ⚠ **ERRATUM (verdict finalization, 2026-08-05) — `timed_enter_replay`'s LEG
+> COUNT.**  The row above read **"154 / 154 ×3 legs"** as committed at
+> `74fa20f892`.  It is **×5**.  `standing_gates.md` §B has registered **154 / 154
+> ×5** throughout; `sw/timed_enter_replay.py` prints **five** counters —
+> `pushes`, `walk`, `full`, `active`, `halt_display` — each **154 / 154**, on the
+> TB receipt `cede73e73a318753…`, which is this census's own binary.  **`sw/timed_enter_replay.py`'s own
+> source is the check**: `n["pushes"]`, `n["walk"]`, `n["full"]`, `n["active"]`
+> and `n["halt_display"]` are five distinct accumulators, four printed in the
+> loop at line 180 and `halt_display` printed beside them.  **NO NUMBER MOVES —
+> 154 / 154 is right on every leg; the LEG COUNT was wrong.**  The same
+> mis-statement is corrected erratum-style at `ucore_provenance.md` §87.A.3 and
+> §88.B.1, where the original text is preserved because that ledger is
+> append-only.  Found by the phase verdict's cross-check
+> (`sm3_verdict_2026-08-05.md`, appendix item 1) and reported rather than
+> silently corrected.
 
 ---
 
@@ -153,6 +169,12 @@ in either engine fails to classify.
 Independent reproduction of §87.A.3's own two numbers ("the `ucore`'s OWN
 registered residue is 14"; "the `ucore` is still exact on 366 seeds the model is
 not"), derived here from two fresh dumps rather than carried.
+
+**All fourteen `ucore`-only seeds are individually located**: nine are the
+catch-all (§5), two are L3 (`mc1/721`, `mc2/584`) and three are L2 (`mc2/2808`,
+and — added at the verdict's finalization, §4.2's erratum — **`mc2/549`** and
+**`mc2/1791`**).  As committed, this section gave the count and located twelve;
+the last two are named at §4.2.
 
 ---
 
@@ -213,6 +235,43 @@ machines are executing **different instructions**.
 `PF_LOST` 102 − class A 92 = **10** (4 REGISTERED, 6 EVT).  It was 37 `ucore`
 seeds at §63.6 and the family has shrunk by 27 across the campaign's landings
 without ever being worked.  **Deferred, not refuted.**
+
+> ⚠ **ERRATUM / COMPLETION (verdict finalization, 2026-08-05) — THE TWO
+> UNLOCATED `ucore`-ONLY SEEDS ARE NAMED, AND THEY ARE BOTH HERE.**
+>
+> As committed at `74fa20f892` this census gave **`ucore`-only = 14** (§2.3) and
+> a catch-all of **9** (§4/§5), and named three of the remaining five
+> individually — `mc1/721` and `mc2/584` at L3, `mc2/2808` at L2.  **It did not
+> say where the other two were**, and `sm3_verdict_2026-08-05.md`'s appendix
+> item 3 flagged that rather than deriving it.  **DERIVED NOW, from this
+> census's own two dumps and this section's own criterion — nothing new was
+> measured and no layer size moves:**
+>
+> | seed | pop | family | wait | chip cell | engine cell | `recov` | layer |
+> |---|---|---|---|---|---|---|---|
+> | **`mc2/549`** | EVT | `PF_LOST` | `wrand3`, pin 0 | `CODE 00506` | `INTA 0645f` | `NONE` | **L2 — H3-B** |
+> | **`mc2/1791`** | EVT | `PF_LOST` | `wrand1`, pin 0 | `CODE 0050a` | `INTA 0fb80` | `MISS` | **L2 — H3-B** |
+>
+> **How they are placed, mechanically.**  Both are `PF_LOST`, so by §4's
+> partition they are L1 or L2 and nothing else.  §63.5's class-A criterion —
+> *the chip's cell at the first contested slot is `CODE 00484` **and** the chip's
+> window contains `CODE:00008`* — is FALSE for both (their contested cells are
+> `CODE 00506` and `CODE 0050a`, and neither window carries the 8080 `RST 1`
+> vector fetch).  Therefore **L2**.  Re-running that criterion over the whole
+> `PF_LOST` family reproduces this section's own two counts to the seed —
+> **class A 92 (81 REG + 11 EVT), L2 10 (4 REG + 6 EVT)** — which is the control
+> that says the placement is the census's arithmetic and not a new judgement.
+>
+> **The full L2 membership, so it is never unenumerated again**: `mc1/444`,
+> `mc1/2603`, `mc2/199`, **`mc2/549`**, **`mc2/1791`**, `mc2/2808`,
+> `t30-raw/61`, `t30-raw/235`, `t30-raw/805`, `t30-raw/987`.  Of those, **five
+> are `ucore`-only** (`mc2/549`, `mc2/1791`, `mc2/2808` at L2 plus `mc1/721` and
+> `mc2/584` at L3) and **nine are the catch-all** — 5 + 9 = **14**, which closes
+> the reconciliation §2.3 left open.
+>
+> ⚠ **THIS DOES NOT MOVE THE CATCH-ALL.**  Both seeds carry a USER DECISION
+> (H3-B, DEFERRED, `gaps` FIFTH UPDATE); neither is undispositioned, and the
+> number the verdict turns on is still **NINE**.
 
 ### §4.3 L4 — the model-shared column, by family
 

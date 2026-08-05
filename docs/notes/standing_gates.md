@@ -724,6 +724,9 @@ no census of the UNKNOWN.
 
 ### The SEVENTH sub-pattern, and what was built against it (SM3 sitting 14)
 
+**⚠ UPDATED AT THE SILICON-MATCH PHASE VERDICT (2026-08-05): the count is NINE,
+not seven.  The eighth and the ninth are numbered at the foot of this section.**
+
 `ucore_provenance.md` records **seven incarnations of a second, distinct
 pattern**: not "the gate is blind to the defect" but **"the gate ran against
 bytes nobody proved were the bytes it named."** They are one bug — *a file path
@@ -739,4 +742,31 @@ explicitly out of scope until it gets its own sitting.
 **The rule this produced**: *a scorer must be able to name the receipt id of
 every artifact it executed, and a number with no artifact id is not quotable.*
 `sw/test_artifact.py` is the falsifier for the layer itself, because a
-freshness layer that has never rejected anything would be incarnation eight.
+freshness layer that has never rejected anything would be a vacuous gate in its
+own right.
+
+### The EIGHTH and NINTH incarnations — numbered at the phase verdict (2026-08-05)
+
+Two more of the same pattern were found after the receipt layer landed. Both are
+recorded in `ucore_provenance.md` with the framing and the lesson; the **ninth**
+was recorded **without a number**, and `sm3_verdict_2026-08-05.md` appendix
+item 4 flagged that. Numbered here, with the chain in full:
+
+| # | where | what it was | what closed or governs it |
+|---|---|---|---|
+| 5 | §60.1 | `hdl/tb/obj_dir/Vtb_v30_core` was STALE — `check_seq` never called `check_core.build()` | rebuilt; the control reproduced SM2's figures exactly, so nothing had been scored wrong |
+| 6 | §67.6 / §67.7 | `x1_retention` bound to a binary **nothing in the tree owned**; it reported "6 SURVIVORS, BAR (i) NOT MET" from a stale binary scoring old RTL | the stale run RETRACTED IN ITS ENTIRETY; a real `build()` with a dependency set (§69.2) |
+| 7 | §73.7 | `build()` ran `verilator --binary`, which writes **`Vtb_sys`**; the scorer opened **`tb_sys`** — so `build()` compiled the current RTL into a file `capture` never opened, and printed `REBUILT` | §69.2's *"283 records byte-identical"* was **a binary compared with ITSELF** and is RETRACTED; `BIN` fixed, post-condition added, claim RE-PROVED twice |
+| **8** | §83.0a | a capture recorded WHAT it measured and never WHICH TREE; both `x1_retention` columns were two landings stale | **THE ERA GUARD**: every capture embeds the artifact layer's input-manifest hash and `score` REFUSES, naming both hashes. Demonstrated non-vacuous in three modes — ABSENT, MIXED, MISMATCH |
+| **8b** | §83.0b | the ENTIRE `sm3_s16_fabric` offline/`vsys` pair was pre-F56, **and it was invisible because both halves were** | re-taken on one tree with the expectation registered first: both 1,321 → 1,347, +26 = F56's +14 + F57's +12 exactly |
+| **9** | §87.C.1 | `sm3_s16_fabric score --leg offline` writes its own REFERENCE from per-cell files that **do not exist**, silently overwriting it with `{"exact": 0, "total": 0}` — after which the cross-check reports *"over 0 common cells: 0 disagreements"* | caught by the number 0 appearing where 1,371 belongs; recovered by re-running `offline`. **`offline` is a REFERENCE leg, not a scoreable `--leg`** |
+
+**The rule the EIGHTH produced**: *a cross-check between two instruments is only
+as current as the older of them* — and an era must be part of a capture's
+identity, not a fact about when it was taken.
+
+**The rule the NINTH produced**: *a comparison between two instruments is worth
+nothing until you have looked at its DENOMINATOR.* **A cross-check that reports
+zero disagreements over zero common cells is a FAILED cross-check, not a passing
+one**, and any scorer that can silently write its own reference has an
+empty-denominator failure mode until it is proved otherwise.

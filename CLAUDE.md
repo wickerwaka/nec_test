@@ -114,9 +114,17 @@ deleted; `--core fsm` still builds and runs. What changed:
 * **What the ucore does NOT yet do is enumerated in
   `docs/notes/ucore_gaps_2026-08-04.md`** — read that before assuming a gap is
   unknown. Headlines: 8080/BRKEM is structurally unreachable while `sim/`
-  implements it; three of the four golden suites have never been run against the
-  ucore (and `v0.2` cannot be, `KeyError: 'opcodes'`); the ucore's own
-  registered-fuzz residue is **9 seeds** (210 of its 219 are model-shared).
+  implements it (and it is **DEFERRED BY USER DECISION 2026-08-05** — not to be
+  tested or considered until a later campaign); three of the four golden suites
+  have never been run against the ucore (and `v0.2` cannot be,
+  `KeyError: 'opcodes'`).  ⚠ **That document's residue headline is a 2026-08-04
+  snapshot and is SUPERSEDED**: it said *"the ucore's own registered-fuzz residue
+  is 9 seeds (210 of its 219 are model-shared)"*.  The current partition is
+  `sm3_s27_residue_census_2026-08-05.md`: total banked-corpus residue **222**
+  seeds of 2,710 scored, `ucore`-ONLY **14**, model-shared raw intersection
+  **208** (of which 99 fall in L1-L3 and **109** remain in the `sim/`-first
+  routing layer), and the **UNDISPOSITIONED CATCH-ALL IS NINE SEEDS** — a
+  DIFFERENT nine from §T.2's, disjoint from it seed for seed.
 
 (The ratchets below are current as of ucsim-t §26 plus the ucore campaign U5.
 Values are monotone: never re-scored downward without a loud, itemized entry.)
@@ -156,16 +164,22 @@ Values are monotone: never re-scored downward without a loud, itemized entry.)
   `sw/timed_ins_replay.py --raw` (rails 1312/1312, vs-chip 2624/2624),
   `sw/timed_wvec_gate.py` (88/88, +0.0 %), `sw/timed_lawcards.py`
   (**8 GREEN / 0 RED / 3 UNRESOLVED** — C6, C7, C11),
-  `sw/timed_fuzz.py --evt-replay` (REGISTERED **1,272/1,702**, EVT
-  **788/1,008**, COMBINED **2,060/2,710** — EVT/COMBINED RAISED by FIVE seeds
-  at SM3 sitting 21 by **F57**, and the ucore gained the SAME FIVE, which is
-  that landing's same-mechanism proof; they were 783 / 2,055 — `INVALIDATED` **0** — the EVT and
-  COMBINED figures moved TWICE on 2026-08-04 (INV-1's re-registration, then
-  SM2's re-capture re-opening the full column at 363), then TWICE more:
+  `sw/timed_fuzz.py --evt-replay` (REGISTERED **1,338/1,702**, EVT
+  **798/1,008**, COMBINED **2,136/2,710**, `INVALIDATED` **0** — RAISED at SM3
+  sitting 26 by the **ILLEGAL-FORM STALL** (`ucore_provenance.md` §87.A: `F` is
+  the OPR interlock and at `mod == 3` it has nothing to wait for, so the EU
+  parks; ONE predicate, no opcode named, swept exact over 8,192 forms), 65 seeds
+  gained and **ZERO lost over all 3,242**.  It was 1,282 / 789 / 2,071, and
+  1,272 / 788 / 2,060 before SM3 sitting 23's BRK/TF trap; EVT/COMBINED had been
+  RAISED by FIVE seeds at sitting 21 by **F57**, and the ucore gained the SAME
+  FIVE, which is that landing's same-mechanism proof; they were 783 / 2,055.  The
+  EVT and COMBINED figures moved TWICE on 2026-08-04 (INV-1's re-registration,
+  then SM2's re-capture re-opening the full column at 363), then TWICE more:
   **+417 when H1 landed** (SM3 sitting 2, the re-entry recognition floor) and
   **+2 when the IE-restore law replaced it** (sitting 11); see below),
   `sw/timed_fuzz.py --seeddir sw/testdata/t4/b2-tranche/seeds`
-  (**154/188** — V5 is a standing REGISTERED FAILURE, not to be re-opened).
+  (**159/188** — RAISED from 154 at SM3 sitting 26 by the same landing; V5 is a
+  standing REGISTERED FAILURE, not to be re-opened).
 - **The `ucore`** (now the DEFAULT `--core`; these are the ucore's OWN ratchets,
   not the model's — see `ucore_provenance.md` §44 and §54.4):
   `check_core.py --opcodes all --cases 0` **169,000/169,000**;
@@ -182,8 +196,13 @@ Values are monotone: never re-scored downward without a loud, itemized entry.)
   `timed_wvec_gate.py --core ucore` **88/88, +0.0 %** (the FSM core is 71/88);
   `timed_enter_replay.py --core ucore` **154/154 x5**;
   `timed_ins_replay.py --core ucore --raw` **1,312/1,312** and **2,624/2,624**;
-  `timed_fuzz.py --core ucore --evt-replay` REGISTERED **1,502/1,702**, EVT
-  **920/1,008**, COMBINED **2,422/2,710** — **RAISED at SM3 SITTING 25 by the
+  `timed_fuzz.py --core ucore --evt-replay` REGISTERED **1,557/1,702**, EVT
+  **931/1,008**, COMBINED **2,488/2,710** — **RAISED at SM3 SITTING 26 by the
+  ILLEGAL-FORM STALL** (`ucore_provenance.md` **§87.A**, the SAME predicate as
+  the model's leg: ONE new wire beside `f_wait` plus ONE flop, `opr_loaded`,
+  SS-mapped at `0x175`; **66 seeds gained, ZERO lost over all 3,242** — all 34
+  `TAIL_EXTRA` and 32 `PF_LOST`).  It was **1,502 / 920 / 2,422**, **RAISED at
+  SM3 SITTING 25 by the
   ucore's BRK/TF SINGLE-STEP LEG** (`ucore_provenance.md` **§86**): five flops,
   no opcode named, the take on the existing boundary wire into the existing
   vector-1 door (`01D8` row 0 is `CONST 1`, row 2 is `CONST 2` — the trap and
@@ -201,7 +220,8 @@ Values are monotone: never re-scored downward without a loud, itemized entry.)
   below**; as banked it appeared to lose by 517, which was INV-1, now CLOSED by
   the SM2 re-capture; 910→913 = the IE law's +2 at sitting 11 + F53's +1 at
   sitting 16), COMBINED **2,403/2,710**,
-  and `--seeddir …/b2-tranche/seeds` **172/188** (the sim is 154).
+  and `--seeddir …/b2-tranche/seeds` **177/188** (the sim is 159) — RAISED from
+  172 at SM3 sitting 26 by the illegal-form stall.
   REGISTERED / EVT / COMBINED / b2 were **1,483 / 906 / 2,389 / 171** until
   **SM3 sitting 6** (`ucore_provenance.md` §66-§67) raised them by fixing a
   **TESTBENCH** defect, not an engine — `tb_v30_core.sv` committed `IOW` cycles
@@ -227,7 +247,8 @@ Values are monotone: never re-scored downward without a loud, itemized entry.)
   are 6 family-B (model-shared, one row late — the model owns the mechanism)
   + 4 family-D (a `nec_bus` two-sample-per-clock instrument class the default
   TB cannot score by construction — §77, falsifier recorded; NOT patched).
-  New standing figure: **S16 display walk 1,294/1,371** (`tests/v30/
+  Its standing figure AT THAT SITTING was **S16 display walk 1,294/1,371**
+  (superseded — the current figure is 1,320/1,371, above) (`tests/v30/
   s16-dispwalk-*`).  It was 1,252 until sitting 17 landed **F54** — the NMI
   half of the HALT-announcement CANCELLATION law (silicon, 1,512 captures, no
   exception: the announcement at clock `H` is cancelled iff the pin rise
@@ -245,7 +266,8 @@ Values are monotone: never re-scored downward without a loud, itemized entry.)
   silicon's `K=6` — **one clock, 24 cells**, closed by a display-only
   `cancel_halt_disp()` at `A+6` (the ucore's `eu_unhalt_disp` in the model's
   idiom; `halted_` and the `A+7` wake schedule untouched).  **The MODEL's S16
-  leg is a new standing figure: 1,249/1,371** (`sm3_s16_score.py --core sim`,
+  leg at THAT SITTING was 1,249/1,371** (superseded — the current figure is
+  1,305/1,371, above) (`sm3_s16_score.py --core sim`,
   343·331·300·275; it was 1,225, +24/−0 cell for cell).  **Family B is
   PARTITIONED and BOOKED** (§79.G): it is IDENTICAL in both engines cell for
   cell AND diff for diff, and it is TWO signatures — the wake's prefetch after
@@ -295,7 +317,11 @@ Values are monotone: never re-scored downward without a loud, itemized entry.)
   Note also: the **w1evt-biased precedent is an archive-by-rename, NOT an
   invalidation** — §24.7 says the old suite is *not retracted* and it is still a
   live gate. It supplies the habit, not the disposition.
-- **`sw/ss_lint.py --core ucore` exits 0** — since SM3 sitting 25 at
+- **`sw/ss_lint.py --core ucore` exits 0** — since SM3 sitting 26 at
+  **`SS_VERSION` 0x87 / `SS_COUNT` 219 / `SS_TAG` 0x87DB, 205 flops, 0
+  UNMAPPED** (§87.A APPENDS one address, `SSA_E_OPR_LOADED` at `0x175` — ONE
+  BIT, the OPR-valid interlock that decides whether an `F` row sourcing OPR has
+  anything to wait for; `SS_EU_COUNT` 117 → 118).  It was, since SM3 sitting 25,
   **`SS_VERSION` 0x86 / `SS_COUNT` 218 / `SS_TAG` 0x86DA, 204 flops, 0
   UNMAPPED** (§86 APPENDS one address, `SSA_E_BRK` at `0x174`, carrying the
   BRK/TF arm's five flops).  It was, since SM3 sitting 21,
@@ -353,14 +379,21 @@ Values are monotone: never re-scored downward without a loud, itemized entry.)
   paths launching from `system_large|c_ready_q` into `v30u_eu` at 62–63 logic
   levels. **G6 WAS RED AT HEAD AND NO GATE SAW IT: the standing set has no
   Quartus leg.** Run a control build after any `hdl/rtl/ucore/` landing.
-  **CURRENT BAND (2026-08-05, both configurations, from a clean `db`): control
-  45.89 MHz / +8.493 ns, retention 45.87 MHz / +8.802 ns, TNS 0.000 on every
-  domain setup AND hold, 27 % ALMs (11,133 / 11,122), 0 errors, 0 latches, 0
-  `lpm_divide`, 0 failing paths from `c_ready_q` on either.**  The earlier U4
-  figures (26 % ALMs, 45.56 MHz, `.sof cdf5edee00…`) are that era's and are not
-  this tree's. `nec_test.sdc` carries the 4/3 CE multicycle with its
-  falsifier written beside it. Bitstream `nec_test_ucore.sof cdf5edee00…`,
-  `.rbf 91697c83b3…`. **The whole sim ladder was re-scored THREE times across
+  **CURRENT BAND (SM3 sitting 27, 2026-08-05, both configurations, from a clean
+  `db`): control 47.85 MHz / +8.602 ns / ALMs 11,147 (27 %), receipt
+  `3cdd586554780bb4…`; retention 45.72 MHz / +7.181 ns / ALMs 11,165 (27 %); TNS
+  0.000 on every domain setup AND hold, 0 errors, 0 latches, 0 `lpm_divide`.**
+  It was control 45.89 / +8.493 and retention 45.87 / +8.802 at sitting 12
+  (11,133 / 11,122 ALMs), and the earlier U4
+  figures (26 % ALMs, 45.56 MHz, `.sof cdf5edee00…`, `.rbf 91697c83b3…`) are
+  that era's and are not this tree's — for the CURRENT bitstream see the board
+  line below. ⚠ **ONE GREEN BUILD IS NOT CLOSURE and the multi-seed worst-of-N
+  gate is NOT BUILT**: every timing figure in this ladder from §52 onward is ONE
+  DRAW of a distribution nobody has characterised, and the same tree has drawn
+  19.42 and 45.91 MHz (§74.4, §74.4a — Analysis & Synthesis is not reproducible
+  run to run; the REGISTER counts are, the COMBINATIONAL counts are not).
+  `nec_test.sdc` carries the 4/3 CE multicycle with its
+  falsifier written beside it. **The whole sim ladder was re-scored THREE times across
   the two structural passes with ZERO DELTAS**, plus `--ce-div 4
   --ce-hold-check` = `CE_HOLD_VIOL 0` on all 347 forms.
 - **IN FABRIC (U4 pass 3, §52.5-52.8).** FLASH #1 + FLASH #2, both from HEAD,
@@ -407,10 +440,16 @@ Values are monotone: never re-scored downward without a loud, itemized entry.)
   0 differing — BOTH BARS STILL MET.**  Two things to carry: (a)
   `x1_retention.py capture` **binds to `hdl/tb/obj_dir_sys{,_ret}/tb_sys` and
   rebuilds NOTHING** — the binaries were stale by a day and the tool reported a
-  false "6 survivors" until they were rebuilt by hand; there is still no build
-  recipe for `tb_sys` in the tree; (b) with F43 in the RTL the Verilated
-  integration is 146 where **FLASH #3's bitstream is 143**, so **no fabric
-  figure may be quoted against this tree's `tb_sys` until a re-flash**. The attribution is still NOT
+  false "6 survivors" until they were rebuilt by hand — ⚠ **BOTH CLAUSES ARE
+  SUPERSEDED**: `tb_sys` gained a real `build()` with a declared dependency set at
+  §69.2 and an ERA GUARD at §83.0, and the era guard REFUSES to score a column
+  taken on another tree, which is the structural answer to both; (b) with F43 in
+  the RTL the Verilated
+  integration was 146 where **FLASH #3's bitstream was 143**, so **no fabric
+  figure could be quoted against that tree's `tb_sys` until a re-flash** —
+  ⚠ **DISCHARGED**: FLASH #6, #9 and #10 have been taken since, and on FLASH #10
+  the `tb_sys ret` column and fabric agree on **all 1,654 cells across both
+  populations, PASS/FAIL and coordinate alike** (see the board line below). The attribution is still NOT
   ESTABLISHED — §56.3a's bar is written on fabric numbers plus a socket control,
   and no board was touched. **The fabric leg is SM2's.** The retention is
   applied on the OBSERVATION path (`hb_ad_sample`), not as a keeper on
@@ -472,7 +511,31 @@ Values are monotone: never re-scored downward without a loud, itemized entry.)
   pre-registered falsifier** — `mc2/2788`, where a second read is outstanding
   while an earlier one already sits in the completed-read store, so the row is
   NOT blocked and runs on the same clock.
-- **THE BOARD CARRIES FLASH #9 SINCE SM3 SITTING 19** (`nec_test_ucore.sof
+- **THE BOARD CARRIES FLASH #10 SINCE SM3 SITTING 27** — `nec_test_ucore.sof`
+  **`1a01a6975e4a…`**, `.rbf` **`9e3f0ceaa4f1…`**, built from `f3f7b6b20d` WITH
+  `X1_AD_RETENTION=1`, through `sw/safe_flash.sh` with its VERIFY leg,
+  `flash_log.jsonl` **13 entries**.  G6 green on the CONTROL build at HEAD first
+  (receipt `3cdd586554780bb4…`, **47.85 MHz, +8.602 ns, TNS 0.000, ALMs 11,147
+  (27 %)**, 88-file manifest `2d259c06167d1fa3…`); the retention build measured
+  **45.72 MHz, +7.181 ns, TNS 0.000, ALMs 11,165 (27 %)**.  **IT IS THE FIRST
+  BITSTREAM TO CARRY F55, F56, F57, THE BRK/TF LEG AND THE ILLEGAL-FORM STALL**
+  — five landings at once — and every registered prediction was met cell for
+  cell (`ucore_provenance.md` §88.A): first light **MATCH 800 ×3**,
+  `x1_fabric baseline --leg fab_f10` **279/283** = the `tb_sys ret` column with
+  **0 PASS/FAIL disagreements and 0 differing coordinates over all 283** and its
+  four failures NAMED IN ADVANCE, the S16 walk in fabric **1,347/1,371 rows-only**
+  with **0 / 0** against `vsys_ret` and its 24 failures named in advance, the b3
+  priority tranche **178/178 on both legs**, socket controls **49/49** and
+  **41/41**, `use_core=0` chip proof **MATCH 800** after everything, `div_guard`
+  PINNED on every probe, **0 transport errors in 2,394 captures**, `board_idle()`
+  clean.  ⚠ **THREE of the five are CONFIRMED in fabric (F55, F56, F57); the
+  BRK/TF trap and the illegal-form stall are IN the bitstream but were NOT
+  REACHABLE by the two scored populations** — all 1,654 of their goldens are the
+  one-byte program `[0xF4]` with `PSW.TF` clear — which was derived BEFORE the
+  run, not after (§88.A.4).  **A FABRIC FIGURE TAKEN ON ANY EARLIER FLASH MAY NOT
+  BE QUOTED AGAINST THIS TREE.**
+  *Superseded, kept because a fabric figure is only readable against its own
+  bitstream:* **FLASH #9, SM3 SITTING 19** (`nec_test_ucore.sof
   **01aca4c0b1e7…**, `.rbf 58154c546dba…`, built from `134249a2ad` WITH
   `X1_AD_RETENTION=1`; G6 green on the CONTROL build at HEAD first — receipt
   `2bf170fa9eee15f7…`, 45.49 MHz, +9.146 ns, TNS 0.000, 88-file manifest
@@ -517,9 +580,9 @@ Values are monotone: never re-scored downward without a loud, itemized entry.)
 - **`timed_fuzz` now prints `BOUND WARNINGS`** — seeds whose EU completed-read
   store SATURATED, i.e. ran outside the regime `sw/qdepth_probe.py` proves
   (`rdq_` ≤ 2, `rd_done_q_` ≤ 1 on v0.1 at w0 **and**, U4, on w1/w3 and all four
-  evt suites). It reports **5** on the ucore leg (CORRECTED from **6** here at
-  SM3 sitting 12 — `standing_gates.md` §B has said 5 since SM3 sitting 3 and
-  this line was stale; measured 5 twice, before and after §73's pass), they are
+  evt suites). It reports **4** on the ucore leg (`standing_gates.md` §B; it was
+  **5** until SM3 sitting 25's BRK/TF leg took one out, and **6** in this file
+  until SM3 sitting 12 corrected it against the artifact), they are
   scored normally and not excused, and `ENGINE ABORTS` is **0**. A bound fire on a GOLDEN case is a hard failure in
   `check_core.py` — that is where the bound is a theorem.
 - **Measurement tools, NOT gates** (never quote them as a pass):
@@ -531,8 +594,14 @@ Values are monotone: never re-scored downward without a loud, itemized entry.)
   what it meant. It used to call `tf.run_sim` unconditionally, so pointed at a
   `--core ucore` report it ran clean and reported the MODEL's families for the
   ucore's seeds. **MATCH `--core` TO THE REPORT's core.** The ucore's own
-  registered-bank family census (its first, `ucore_provenance.md` §58.4):
-  `PF_LOST` 107 · `DATA_SEQ` **41** · `TAIL_EXTRA` 28 · `PF_GAINED` 25 ·
+  bank-wide family census, **CURRENT** (SM3 sitting 27, `ucore_provenance.md`
+  §88.B.2 / `sm3_s27_residue_census_2026-08-05.md` §2.1): `PF_LOST` **102** ·
+  `SCHEDULE` **44** · `DATA_SEQ` **41** · `PF_GAINED` **15** · `PF_ADDR` **11** ·
+  `PIN` **9** = **222**; **`TAIL_EXTRA` is 0** and the taxonomy catch-all is
+  EMPTY.  The model's, same run: `PF_LOST` 282 · `SCHEDULE` 196 · `DATA_SEQ` 30 ·
+  `PF_ADDR` 27 · `PIN` 26 · `PF_GAINED` 13 = **574**, `TAIL_EXTRA` 0.
+  *The superseded text — the ucore's FIRST such census, `ucore_provenance.md`
+  §58.4:* `PF_LOST` 107 · `DATA_SEQ` **41** · `TAIL_EXTRA` 28 · `PF_GAINED` 25 ·
   `PF_ADDR` 9 · `SCHEDULE` 5 · `PIN` 4 = 219, catch-all empty. `DATA_SEQ` is 13
   seeds LARGER than the model-replayed table showed, which retires §T.3's
   reading that the ucore "closed nothing" in that family.

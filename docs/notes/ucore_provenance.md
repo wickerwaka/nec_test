@@ -14685,6 +14685,19 @@ model-exclusive column grew by five.  Booked here rather than left to be
 rediscovered.  In the other direction the ucore is still exact on **366** seeds
 the model is not.
 
+> ⚠ **ERRATUM (verdict finalization, 2026-08-05) — `timed_enter_replay`'s LEG
+> COUNT IN THE LADDER TABLE ABOVE.**  The row reads **`154 / 154` ×3 legs**.  It
+> is **×5**.  **THE TABLE IS LEFT AS COMMITTED** — this ledger is append-only and
+> rewriting a recorded claim in place would hide that it was made.
+> `standing_gates.md` §B has registered **154 / 154 ×5** throughout, and
+> `sw/timed_enter_replay.py` prints **five** counters — `pushes`, `walk`, `full`,
+> `active`, `halt_display` — each **154 / 154**, on TB receipt
+> `cede73e73a318753…`.  Verified against the ARTIFACT: the five are five distinct
+> accumulators in the scorer's own source.  **NO NUMBER MOVES; the LEG COUNT
+> does.**  §88.B.1 carries the same mis-statement and the same erratum; the
+> sitting-27 census's §1.3 is corrected in place with its own erratum note.
+> Found by `sm3_verdict_2026-08-05.md`'s cross-check (appendix item 1).
+
 ### §87.B PART B — **`mc1/721` IS NOT LANDED, AND THE REASON IS THE ONE B-5 REGISTERED IN ADVANCE**
 
 **B-4, MEASURED FIRST.**  The MODEL is `EXACT` on `mc1/721` **and** on
@@ -14791,6 +14804,25 @@ belongs.  Recovered by re-running `offline`; the cross-check above is the
 non-vacuous one.  **`offline` is a REFERENCE leg, not a scoreable `--leg`**, and
 the pattern is this document's own: a comparison between two instruments is
 worth nothing until you have looked at its DENOMINATOR.
+
+> ⚠ **ERRATUM / NUMBERING (verdict finalization, 2026-08-05) — THIS IS THE
+> **NINTH** INCARNATION OF THE VACUOUS-GATE PATTERN, AND IT WAS RECORDED WITHOUT
+> A NUMBER.**  §83.0a numbers the era guard the **EIGHTH**; the defect above is
+> the same pattern one turn later — *"the gate ran against bytes nobody proved
+> were the bytes it named"*, here degenerating to *the gate ran against no bytes
+> at all* — and it was written with the framing and the lesson but no place in
+> the chain.  **It is INCARNATION NINE.**  The chain, in full:
+> §60.1 (5, the stale `Vtb_v30_core`) · §67.6 (6, `x1_retention` bound to a
+> binary nothing in the tree owned) · §73.7 (7, `build()` wrote `Vtb_sys` and the
+> scorer opened `tb_sys`) · §83.0a (8, a capture that recorded WHAT and never
+> WHICH TREE) · **§87.C.1 (9, a `--leg` that overwrites its own reference with an
+> empty one and then agrees with it perfectly)**.
+> **The ninth's rule, stated as a rule**: *a comparison between two instruments
+> is worth nothing until you have looked at its DENOMINATOR* — and, generally,
+> **a cross-check that reports zero disagreements over zero common cells is a
+> FAILED cross-check, not a passing one.**  `standing_gates.md`'s meta-finding
+> section is updated from seven to nine with the same chain.  Flagged by
+> `sm3_verdict_2026-08-05.md` appendix item 4.
 
 ### §87.D WHAT THIS SITTING DID NOT DO
 
@@ -15008,6 +15040,14 @@ row-diffs 0**, and the BRK/TF floor cell **EXACT at depth 4 (`ucore`) and 3
 (`sim`) and at no other depth in [1,7]**.  The 7,341,126-case functional set was
 **NOT re-run** and is cited from §87.A.3 on an identical `hdl/` manifest and
 `sim/` receipt — stated as a citation, not restated as a measurement.
+
+> ⚠ **ERRATUM (verdict finalization, 2026-08-05) — `timed_enter_replay 154/154
+> ×3` ABOVE IS `×5`.**  **THE PARAGRAPH IS LEFT AS COMMITTED** (append-only).
+> `standing_gates.md` §B registers **154 / 154 ×5**, and the scorer prints five
+> counters — `pushes`, `walk`, `full`, `active`, `halt_display` — each
+> **154 / 154**, on TB receipt `cede73e73a318753…`.  **NO NUMBER MOVES; the LEG
+> COUNT does.**  Same erratum at §87.A.3.  See
+> `sm3_verdict_2026-08-05.md` appendix item 1.
 
 ### §88.B.2 THE FAMILY CENSUS, `--core` MATCHED TO THE REPORT
 
