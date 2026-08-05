@@ -520,7 +520,8 @@ private:
     // point itself.
     //
     // M12 -- AND A FLUSH INVALIDATES THAT RESERVATION, exactly as it already
-    // invalidates M7's `pf_arm_`, M6's `pf_land_` and M7b's `pf_infl_`: a
+    // invalidates M7's `pf_arm_` and M7b's `pf_infl_` (and, until F56 deleted
+    // it, M6's `pf_land_`): a
     // decision the completing cycle latched about a queue the flush has just
     // emptied cannot outlive it.  So the end of the FLUSH CLOCK is an eval
     // point again and the redirect commits there.  With its sibling in
@@ -537,34 +538,44 @@ private:
     // gets the first right and the second wrong, which is the masking
     // regression two prior landings were reverted for.
     long no_eval_ = -1;
-    // M6 -- A FETCH'S BYTES ARE WRITTEN INTO THE QUEUE ON **T4+1**, AND THAT
-    // CLOCK IS NOT A PREFETCH-GRANT POINT.  ONE clock, keyed to T4 and NOT to
-    // the completion eval -- so, like the OPR release (11.4) and the F3AA
-    // closing pop (T2b P4), it sits at a FIXED CYCLE-RELATIVE INDEX and does
-    // not stretch.  The consequence is a single wait-independent number: the
-    // earliest eval that may resume a prefetch after a pushing fetch is
-    // **T4+2**, and that fetch's T1 opens at **T4+4**, at every wait level.
+    // ~~M6~~ -- **DELETED 2026-08-05, SM3 sitting 21, as F56.  DO NOT
+    // RE-PROPOSE IT WITHOUT READING `ucore_provenance.md` §82 AND
+    // `sm3_s21a_prereg_2026-08-05.md`.**
     //
-    // MEASURED, T2b, three independent stimuli:
-    //   * P1, the ENTER w0 store stub (sw/testdata/t2b/p1-susp, both
-    //     preparation histories): chip and model are clock-identical for 197
-    //     clocks and part on exactly the eval at T4+1.  Blocking it makes all
-    //     four captured cells clock-identical over the whole 4,063-clock run.
-    //   * P5, the Arm-C fetch-limited sled at N = 8 / N = 12
-    //     (sw/testdata/t2b/p5-armc): the chip's minimum resume gap pins at
-    //     cidle = 3, which is T1 = T4+4 -- unreachable if the block were keyed
-    //     to the eval, because under waits that would push the grant to T4+3.
-    //   * the boot loop and the `0F39` tail, the other two legs of the
-    //     "SUSP lead" conflict, both close on it (12.1).
+    // M6 said: A FETCH'S BYTES ARE WRITTEN INTO THE QUEUE ON T4+1, AND THAT
+    // CLOCK IS NOT A PREFETCH-GRANT POINT -- one clock, keyed to T4, so the
+    // earliest eval that may resume a prefetch after a pushing fetch is T4+2
+    // and that fetch's T1 opens at T4+4, at every wait level.  It was measured
+    // in T2b 12.1 on three stimuli (P1's ENTER store stub, P5's Arm-C sled at
+    // N = 8/12, the boot loop and the `0F39` tail) and it was a `long` pair of
+    // fields here.
     //
-    // It is a SEPARATE pair of fields from the QS-port hold below for exactly
-    // one reason: a FLUSH discards the bytes, so nothing is written and the
-    // redirect prefetch is not held off, while the QS port stays busy anyway
-    // (MEASURED both ways: clearing the QS window at the flush costs 6,848
-    // qop rows; NOT clearing the scheduler window costs 1,555 branch-form
-    // cases -- E9/EA/EB/E2/E3/70-7F, every one of them a flush).
-    long pf_land_from_ = -2;
-    long pf_land_to_ = -2;
+    // WHAT REFUTES IT IS ITS OWN FIRING CENSUS, taken on this tree with a
+    // counter on the branch: the block is REACHED AND TAKEN **22 times in the
+    // entire tree**.  ZERO on `v0.1`'s 169,000 cases, ZERO on `v0.1-w1`,
+    // `-w3` and the `evt` cells, ZERO on `timed_scenario`, `timed_enter_replay`,
+    // `timed_ins_replay` and `timed_wvec_gate`, and **ZERO on all 228
+    // `timed_lawcards` processes -- including C1/C2/C3, the Arm-C sled that
+    // MEASURED it**.  THREE firings in one seed of the 3,242-seed fuzz bank,
+    // whose verdict does not move either way.  The remaining NINETEEN are the
+    // HALT sweeps and the S16 display walk, and every one of them is a cell
+    // where SILICON GRANTS AND M6 REFUSES -- family B's B-1, 18 cells, closed
+    // by this deletion and by nothing else.
+    //
+    // WHY IT WENT REDUNDANT WITHOUT ANYONE NOTICING: `no_eval_` (M2r, above)
+    // already kills the clock after any completion eval, and under waits the
+    // completion eval IS at T4 -- so `no_eval_ == T4 + 1` and M6's window is
+    // covered by construction at every wait level above zero.  M6 was only
+    // ever reachable at w0, where the completion eval is at T3.  That is also
+    // why family B was a w0-only residue: not a wait-dependent law, but the
+    // one wait level at which this branch existed at all.
+    //
+    // This does NOT say the T2b measurement was wrong.  It says the rule it
+    // authorised is redundant where it agrees with silicon and wrong where it
+    // does not, and 12.1's own consequence (`T4+2` / `T4+4`) is produced by
+    // M2r's eval geometry alone.  FALSIFIER, standing: any population on which
+    // the deleted branch would fire AND silicon agrees with it.
+
     // M7 -- THE PREFETCH-ELIGIBILITY TEST IS SAMPLED AT A FIXED CYCLE INDEX
     // (2 = T3) AND LATCHED; the COMPLETION EVAL only applies what that clock
     // decided.  The predicate itself is UNCHANGED (M4: occupancy including

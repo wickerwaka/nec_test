@@ -98,7 +98,6 @@ void BiuTimed::begin_case() {
     halted_ = false;
     halt_pending_ = false;
     last_fetch_addr_ = 0;
-    pf_land_from_ = pf_land_to_ = -2;
     pf_infl_to_ = -2;
     pf_infl_n_ = 0;
     pf_owed_ = false;           // M19
@@ -674,8 +673,6 @@ void BiuTimed::tick() {
                 // the bytes are in -- see the QS-port block above.
                 push_absorb_from_ = e + 1;
                 push_absorb_clk_ = e + 2;
-                // M6: keyed to T4, NOT to the eval.  See biu_timed.h.
-                pf_land_from_ = pf_land_to_ = c + 1;
                 // M7b: ...and the accounting term for those bytes lives until
                 // they are POPPABLE.
                 pf_infl_to_ = e + 2;
@@ -737,11 +734,11 @@ void BiuTimed::et(char decision, char why) const {
     long newest = q_.empty() ? -1 : q_.back().ready;
     fprintf(stderr,
             "ET %ld %c%c q=%d occ=%d req=%d susp=%d halt=%d run=%d "
-            "cur=%d ci=%d nw=%d old=%ld new=%ld land=%ld,%ld fp=%u\n",
+            "cur=%d ci=%d nw=%d old=%ld new=%ld fp=%u\n",
             clk_ - 1, decision, why, int(q_.size()), occupancy(), int(req_.size()),
             int(suspended_), int(halted_), int(run_),
             run_ ? int(cur_.bs) : -1, run_ ? ci_ : -1, run_ ? cur_.waits : -1,
-            oldest, newest, pf_land_from_, pf_land_to_, unsigned(fetch_ptr_));
+            oldest, newest, unsigned(fetch_ptr_));
 }
 
 // S9b -- THE DISPLAY CLOCK AND THE T1 ARE TWO DIFFERENT THINGS, AND THE ONLY
@@ -806,9 +803,6 @@ void BiuTimed::eval() {
         et('.', 'O');
         return;
     }
-    // M6 (biu_timed.h): no fetch is chosen while the previous fetch's bytes
-    // are LANDING in the queue.
-    if (clk_ - 1 >= pf_land_from_ && clk_ - 1 <= pf_land_to_) { et('.', 'M'); return; }
     et('F', '-');
     cmt_was_owed_ = pf_owed_;   // M22: ...and gives it back if it expires
     pf_owed_ = false;      // M19: the arbiter has taken the request
@@ -972,7 +966,6 @@ void BiuTimed::flush(uint16_t cs, uint16_t pc) {
     cs_ = cs;
     fetch_ptr_ = pc;
     suspended_ = false;
-    pf_land_from_ = pf_land_to_ = -2;   // M6: the flush discards what was landing
     pf_infl_to_ = -2;                   // M7b: ...and their accounting with them
     // M19: the flush raises the prefetcher's request (empty queue, new fetch
     // pointer).  It stands until the bus takes it -- a later SUSP does not
