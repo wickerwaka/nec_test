@@ -1,0 +1,19 @@
+{
+ "leg": "fab_f10",
+ "use_core": true,
+ "board": true,
+ "host": "root@mister-nec",
+ "div_guard": {
+  "open": {
+   "readback": "div=8 (4 MHz), commanded by this connection",
+   "state": "PINNED"
+  },
+  "close": {
+   "readback": "div=8 (4 MHz), commanded by this connection",
+   "state": "PINNED"
+  }
+ },
+ "cells": 1371,
+ "errors": 0,
+ "seconds": 36.0
+}

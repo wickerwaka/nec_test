@@ -14800,3 +14800,186 @@ worth nothing until you have looked at its DENOMINATOR.
 * H3-B, the `8F` mod-3 ghost cell (§84.6), model-architecture work and the
   8080/BRKEM gap were not opened.  No memory file was touched.  Codex was not
   launched.
+
+---
+
+## §88 SESSION SM3, SITTING 27 — **FLASH #10: FIVE LANDINGS REACH FABRIC AT ONCE, AND EVERY REGISTERED PREDICTION IS MET CELL FOR CELL. THE HLT SWEEPS' FABRIC RESIDUE IS NOW EXACTLY THE FOUR FAMILY-D CELLS, S16's IS EXACTLY THOSE FOUR × SIX PROGRAMS, AND THE b3 PRIORITY TRANCHE IS 178/178 IN SILICON'S OWN INSTRUMENT.**
+
+Pre-registration: `docs/notes/sm3_s27_prereg_2026-08-05.md`, committed
+`f3f7b6b20d` **before any bitstream was loaded and before any board capture was
+taken**.  Parent `6b232b9afa`.  Nothing was landed this sitting: `git diff` over
+`hdl/rtl/` and `sim/` is EMPTY.  No memory file touched.  Codex not launched.
+
+## §88.A PART A — THE FLASH MILESTONE
+
+### §88.A.0 THE BOARD
+
+`root@mister-nec` reachable, `up 24 days 03:27`.  **Single-writer check: no
+`v30` / serve / python process on the board**, made twice — at registration and
+again immediately before the flash.  JTAG chain present (`DE-SoC [1-1.2.4]`,
+`SOCVHPS` + `5CSEBA6/5CSEMA6`).  `div_guard` **PINNED on every probe, both
+ends**; **0 transport errors** in 2,394 captures; no wedge; `board_idle()` clean
+at the close and the board still runs an image after it.
+
+### §88.A.1 THE PROMOTION RULE, MET FIRST
+
+`quartus_gate.py` at HEAD, ONE clean CONTROL/DEFAULT build from a deleted
+`db`/`incremental_db`, compile rc 0 in **544 s**: **E1 PASS · E2 PASS** (0 stage
+errors, 0 error lines, map/fit/asm all Successful) **· E3 47.85 MHz** (bar ≥ 32)
+**· E4 +8.602 ns · E5 TNS 0.000**, setup AND hold, every domain.  RECORDED, not
+barred: **ALMs 11,147 / 41,910 (27 %)**, 0 latches, 0 `lpm_divide`.  Receipt
+**`3cdd586554780bb4…`**, tree **`6b232b9afa`** (clean), input manifest **88 files
+`2d259c06167d1fa3…`** — **byte-identical to sitting 26's (§87.A.3)**, the check
+that says `hdl/` has not moved since the illegal-form stall landed.  The figures
+reproduce sitting 26's **to the digit** on a different receipt id, which §74.4
+says this design does not guarantee.
+
+The FLASHED bitstream is the **RETENTION** build from the same regenerated
+`.qsf`: `quartus_map --verilog_macro="X1_AD_RETENTION=1"` + `fit` + `asm` +
+`sta`, 0 errors, **Fmax 45.72 MHz, worst setup +7.181 ns, TNS 0.000 on every
+domain, ALMs 11,165 / 41,910 (27 %)**, 0 latches, 0 `lpm_divide`; receipt
+**`a2d605a47f61af37…`**, recorded as
+`~/.cache/ucsimt-tmp/sm3s27/quartus_gate_retention.json`.  *Its 88-file manifest
+hash is NOT the control's, because Quartus had appended pin assignments to the
+revision `.qsf` by the time it was parsed — the same artefact §80.B.1 records.
+The GATE is the control build; this row is RECORDED.*  The `.qsf` was restored
+from the generator afterwards and `gen_ucore_qsf --check` is green.
+
+**FLASH #10** through `sw/safe_flash.sh` with its VERIFY leg:
+`nec_test_ucore.sof`
+**`1a01a6975e4aca6fe9cefe83002034789dfee5c728cd72c59ea2acbc7f7a9498`**,
+`.rbf` `9e3f0ceaa4f192f7fd6dac50d06c8a29b9355ce7173b8f6a6c00b00a1637f195`,
+VERIFY **OK**, `flash_log.jsonl` 12 → **13 entries**.
+
+### §88.A.2 THE OFFLINE RE-PROOF, RUN FIRST — AND THIS TIME IT REPRODUCED
+
+§83.0/§83.0b's lesson was applied rather than re-learned: **both `tb_sys`
+columns were RE-CAPTURED on this tree before the board was touched**, not
+inherited.
+
+| column | figure | reproduction |
+|---|---|---|
+| `x1_retention ret` (283 cells, 59 s, DUT receipt `c5bfeffe0f60f2e6…`) | **279 / 283** | **byte-identical to the banked column on all 283 cells** — the only key that moves in any of the eight files is `_meta` |
+| `sm3_s16_fabric vsys_ret` (1,371 cells, 302 s) | **1,347 / 1,371** | **byte-identical on all 72 files**, 0 PASS/FAIL disagreements and 0 differing coordinates vs `offline` |
+| `x1_retention` BAR (i) / BAR (ii) | **MET / MET** | 245 closed, 0 survivors, 0 cells differing from `offline` |
+
+### §88.A.3 **THE OLD FLASH-#10 PREDICTIONS ARE SUPERSEDED, NOT MISSED**
+
+§81.A.7 and `standing_gates.md` carried **`x1_fabric` 273/283** and
+**`sm3_s16_fabric` 1,321/1,371** as the registered FLASH #10 predictions.  They
+were written at **sitting 20, when F55 was the ONLY landing ahead of FLASH #9**.
+**Four further landings have gone in since** — F56, F57, the ucore's BRK/TF leg
+and the illegal-form stall — and the offline references moved with them
+(273 → **279**, 1,321 → **1,347**; +6 and +26, which is F56's +4/+14 and F57's
++2/+12 exactly).  The superseded numbers stay in the ledger verbatim; the
+sitting-27 pre-registration replaces them **from the current offline columns**
+and states the supersession.  *A prediction stated against a stale reference is
+§83.0's defect one sitting later.*
+
+### §88.A.4 **WHAT FABRIC COULD AND COULD NOT EXERCISE — DERIVED BEFORE THE RUN**
+
+Read off the populations, not argued: **all 1,654 goldens of the four HLT sweeps
+and the S16 walk are the SAME ONE-BYTE PROGRAM `[0xF4]` (`HLT`), and `PSW.TF` is
+CLEAR in every one of the 1,654 initial states.**  So
+
+* **the BRK/TF single-step trap is NOT reachable there** (it arms on `PSW.TF`),
+* **the illegal-form stall is NOT reachable there** (it fires only on
+  `62`/`C4`/`C5`/`FE`,`FF` `/3`,`/5` at `mod == 3`, §87.A's 8,192-form sweep, and
+  none of those bytes is in the image),
+* so **the whole predicted fabric delta on those two populations is F55 + F56 +
+  F57 and nothing else.**
+
+The trap's silicon evidence is a **socket** population already banked
+(`sw/sm3_tf_floor_cell.py`, 30 retained captures, internal trap, drives no pin,
+deterministic from RESET) and **no board contact was taken for it**.  The two
+landings reach fabric only through the **b3 priority tranche**, which is
+random-soup images — and that is exactly where the sitting's second result is.
+
+### §88.A.5 THE RESULTS, REPORTED AS REGISTERED
+
+| | prediction | **measured** |
+|---|---|---|
+| **P0** G6 at HEAD | E1-E5 green, receipt read | **PASS**, §88.A.1 — **MET** |
+| **P1** first light `check_ab_hw all 800` | MATCH ×3 | **MATCH / MATCH / MATCH over 800 rows** — **MET** |
+| **P2** `x1_fabric baseline --leg fab_f10` | **279 / 283**, = `tb_sys ret` cell for cell | **279 / 283**, and against `ret` over all 283: **0 PASS/FAIL disagreements, 0 differing first-divergence coordinates** — **MET** |
+| **P2a** the four failing cells, NAMED IN ADVANCE | `w1.INT/8,9` · `w2.INT/12` · `w3.INT/15` at rows 11/11/13/15, col `pins` | **exactly those four, exactly those coordinates, and no others moved** — **MET** |
+| **P3** socket control `soc_f10`, `use_core=False` | 49 / 49 | **49 / 49** — **MET** |
+| **P4** `sm3_s16_fabric fabric --leg fab_f10`, ROWS ONLY | **1,347 / 1,371**, 0 disagreements vs `vsys_ret` | **1,347 / 1,371**, **0 PASS/FAIL disagreements and 0 differing coordinates over all 1,371** — **MET** |
+| **P4a** its 24 failing cells, NAMED IN ADVANCE | the four family-D coordinates × six programs | **exactly those 24** — **MET** |
+| **P4b** S16 socket control | 41 / 41 | **41 / 41** — **MET** |
+| **P5** b3 priority tranche | `chip_f10` 178/178, **`core_f10` 178/178, residue EMPTY** | **178 / 178** and **178 / 178 (100.0 %)**, residue EMPTY, 0 errors in 400 captures — **MET** |
+| **P6** `use_core=0` chip proof AFTER everything | MATCH 800 | **MATCH over 800 rows** — **MET** |
+| **P7** `div_guard` | PINNED both ends of every leg | **PINNED, every probe** — **MET** |
+| **P8** transport | 0 errors, `board_idle` clean | **0 errors, no wedge, `board_idle()` clean** — **MET** |
+| **P9** resting state | FLASH #10 retention, `use_core` False, `cfg 0xff0008` | **exactly that**, `ctrl 0x5` — **MET** |
+
+**EVERY REGISTERED PREDICTION IS MET.  NONE IS RESTATED.**
+
+Per suite the fabric sweeps, against FLASH #9's:
+
+| suite | FLASH #9 | **FLASH #10** |
+|---|---|---|
+| `s10-w0` `HLT.INT` | 44 / 48 | **48 / 48** |
+| `s10-w0` `HLT.RES` | 47 / 49 | **49 / 49** |
+| `s10-w1` `HLT.INT` | 44 / 46 | **44 / 46** |
+| `s10-w1` `HLT.RES` | 49 / 49 | **49 / 49** |
+| `s13-w2` `HLT.INT` | 18 / 21 | **20 / 21** |
+| `s13-w2` `HLT.RES` | 25 / 25 | **25 / 25** |
+| `s13-w3` `HLT.INT` | 16 / 20 | **19 / 20** |
+| `s13-w3` `HLT.RES` | 25 / 25 | **25 / 25** |
+| **total** | **268 / 283** | **279 / 283** |
+
+### §88.A.6 **WHAT IS NOW ESTABLISHED IN FABRIC**
+
+**(a) F55, F56 AND F57 ARE IN SILICON'S INSTRUMENT AND THEY HOLD THERE.**  +11
+sweep cells and +56 S16 cells, and the FABRIC RESIDUE ON BOTH POPULATIONS IS NOW
+**EXACTLY FAMILY D AND NOTHING ELSE** — four cells on the sweeps, the same four
+coordinates × six programs on S16.  Family B is gone in fabric as it is offline;
+the catch-all is **EMPTY on both populations in fabric**.
+
+**(b) §80.B.3(c)'s GENERAL RULE SURVIVES ITS THIRD TEST AND IS NOW 3,308 OF
+3,308.**  *Where `tb_v30_core` and `tb_sys` disagree, fabric sides with
+`tb_sys`.*  It was 1,654 of 1,654 at FLASH #9; this sitting adds another 1,654
+cells across the same two populations, PASS/FAIL and coordinate alike, on a
+bitstream five landings newer.  **`tb_sys` predicted fabric exactly, twice, from
+a tree that had never been near the board.**
+
+**(c) THE b3 PRIORITY TRANCHE IS 178 / 178 IN FABRIC — V3 IS ZERO SEEDS APART.**
+`core_f9` was 176/178 with residue `bs = 2` (`mc1_300043`, `mc1_300122`) and had
+been 176 on FLASH #4, #5 and #9 alike.  It is **178 / 178 (100.0 %) on FLASH
+#10**, and the offline `vsim_ucore` column measured on this tree **before the
+board was touched** said 178/178 first — so this was a REGISTERED PREDICTION,
+not a discovery after the fact.  `chip_f10` is 178/178, the socket reference for
+its own bitstream.
+
+**AND `gaps` §T4 IS EMPTY.**  *"the 2 `bs` seeds of the priority tranche — ucore
+≡ SIM on 4,000/4,000 rows on both — model-shared, decisively"* has no members
+left in the ucore, offline or in fabric.  **The ATTRIBUTION to a particular
+landing is NOT ESTABLISHED and is not guessed at**: the banked `vsim_ucore`
+column reproduces 176/178 on the same scorer in the same run that scores HEAD at
+178/178 (and `core_f5`/`core_f9` at 176), so the scorer is not what moved — but
+five landings separate the banked column from HEAD and this sitting did not
+bisect them.  Booked as measured, with the question named.
+
+### §88.A.7 THE RESTING STATE
+
+The board carries **FLASH #10**, the retention build,
+`nec_test_ucore.sof 1a01a6975e4a…`, `use_core` **False**, `cfg 0xff0008`
+(`clk_div` 8 = `DIV_OF_RECORD`), `ctrl 0x5`, `board_idle()` clean.  The
+disposition is §73.8's, taken on the measurement: the retention model is on the
+OBSERVATION path (`hb_ad_sample`) under `cfg_use_core ? core_ad_eff : NEC_AD`,
+so the socket position is unaffected by construction, and `check_ab_hw chip 800`
+run AFTER the whole sitting is **MATCH over 800 rows**.  FLASH #9's
+`.sof 01aca4c0b1e7…` remains on disk.
+
+### §88.A.8 THE RATCHETS THAT MOVED
+
+| ratchet | before | **after** | which change |
+|---|---|---|---|
+| the fabric HLT sweeps | 268 / 283 (FLASH #9) | **279 / 283 (FLASH #10)** | F55 + F56 + F57 reaching fabric |
+| **S16 IN FABRIC**, rows only | 1,291 / 1,371 (FLASH #9) | **1,347 / 1,371 (FLASH #10)** | same |
+| the b3 priority tranche, core leg | `core_f9` 176 / 178 | **`core_f10` 178 / 178** | see §88.A.6(c); attribution open |
+| the b3 priority tranche, offline | `vsim_ucore` 176 / 178 (banked) | **178 / 178 at HEAD** | same |
+| the board's bitstream | FLASH #9 `01aca4c0b1e7…` | **FLASH #10 `1a01a6975e4a…`** | this sitting |
+| G6 Fmax · ALMs (control) | 47.85 · 11,147 | **47.85 · 11,147 — unmoved** | `hdl/` did not move |
+

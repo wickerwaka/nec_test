@@ -1,11 +1,15 @@
 {
- "vsim_prehead": {
-  "exact": 176,
+ "chip_f10": {
+  "exact": 178,
   "scored": 178,
   "excused": 22,
-  "fam": {
-   "bs": 2
-  }
+  "fam": {}
+ },
+ "core_f10": {
+  "exact": 178,
+  "scored": 178,
+  "excused": 22,
+  "fam": {}
  },
  "vsim_ucore": {
   "exact": 178,

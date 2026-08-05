@@ -10,3 +10,4 @@
 {"ts":"2026-08-05T07:27:52Z","sof_path":"/home/wickerwaka/src/nec_test/hdl/output_files_ucore/nec_test_ucore.sof","sha256":"b29c35df24de0cb5bfa3fb9249997da726884cbf99afe3a685db8369c7e5e142","git_describe":"54c7ee3af4","verify":"OK"}
 {"ts":"2026-08-05T07:29:58Z","sof_path":"/home/wickerwaka/.cache/ucsimt-tmp/sm3s13/flash6_outdir_backup/nec_test_ucore.sof","sha256":"626fb30ebee2ad979bdef5ba6e6c013281c901282cd28defc53501200de1ef46","git_describe":"54c7ee3af4-dirty","verify":"OK"}
 {"ts":"2026-08-05T13:06:49Z","sof_path":"hdl/output_files_ucore/nec_test_ucore.sof","sha256":"01aca4c0b1e7d75514dd9a41c9b81b82fdc3af1c77b4d2c6a0413228974e58f2","git_describe":"134249a2ad-dirty","verify":"OK"}
+{"ts":"2026-08-05T23:01:06Z","sof_path":"hdl/output_files_ucore/nec_test_ucore.sof","sha256":"1a01a6975e4aca6fe9cefe83002034789dfee5c728cd72c59ea2acbc7f7a9498","git_describe":"f3f7b6b20d-dirty","verify":"OK"}
