@@ -123,8 +123,16 @@ def cmd_chip(a):
 def engine_rows(core, cases, w):
     import check_core as cc
     if core == "sim":
+        # RIG DEFECT FIXED, SM3 sitting 18.  `v30sim timed-run` keys its record
+        # stream by the case's ARRAY POSITION (`timed_runner.cpp` 658-662); the
+        # RTL batch is keyed by the golden's own `idx` (`compose_batch`).  On
+        # the S16 suites `idx` is the DELAY, starts at 1..4 and has gaps, so the
+        # `sims.get(c["idx"])` below read the WRONG CASE on the model leg -- the
+        # model column of `ucore_provenance.md` §78.I was measured through it.
+        # Re-key to `idx` here so everything downstream is engine-neutral.
         import timed_gate as tg
-        sims = tg.run_form(cases, w, False)
+        s = tg.run_form(cases, w, False)
+        sims = {c["idx"]: s.get(i) for i, c in enumerate(cases)}
     else:
         binp = cc.core_bin(core)
         with tempfile.TemporaryDirectory() as td:

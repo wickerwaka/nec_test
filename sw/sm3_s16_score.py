@@ -99,6 +99,35 @@ def classify_first(exp, got, mm):
     return name
 
 
+def sims_for(core, cases, w, binp):
+    """The engine's record stream for one form file, keyed as `parse_out` keys
+    it.  `--core sim` is the C++ model through `timed_gate.run_form`, which is
+    the STANDING sim driver and returns `check_core.parse_out`'s own dict -- so
+    every line below this is engine-neutral and the PASS definition is
+    identical on both legs (SM3 sitting 18)."""
+    if core == "sim":
+        # RIG NOTE (SM3 s18).  `v30sim timed-run` keys its record stream by the
+        # ARRAY POSITION of the case it was handed (`timed_runner.cpp` 658-662),
+        # while `compose_batch` keys the RTL batch by the golden's own `idx`.
+        # The S16 suites' `idx` is the DELAY and starts at 1..4 with gaps (141
+        # non-composable cells), so a `sims.get(c["idx"])` written for the RTL
+        # leg silently reads the WRONG CASE on the model leg.  Re-key here, once.
+        import timed_gate as tg
+        s = tg.run_form(cases, w, False)
+        return {c["idx"]: s.get(i) for i, c in enumerate(cases)}
+    import tempfile
+    with tempfile.TemporaryDirectory() as td:
+        b, o = Path(td) / "b.txt", Path(td) / "o.txt"
+        cc.compose_batch(cases, b)
+        rr = subprocess.run(
+            [str(binp), f"+batch={b}", f"+out={o}",
+             f"+waits={w}", "+ce_div=1"],
+            cwd=ROOT, capture_output=True, text=True)
+        if rr.returncode != 0 or not o.exists():
+            return None
+        return cc.parse_out(o)
+
+
 def run_one(args):
     waits, p, core, details = args
     sd = suite_dir(waits, p)
@@ -123,37 +152,43 @@ def run_one(args):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--core", default="ucore", choices=("ucore", "fsm"))
+    ap.add_argument("--core", default="ucore", choices=("ucore", "fsm", "sim"))
     ap.add_argument("--jobs", type=int, default=4)
     ap.add_argument("--details", type=int, default=8)
     ap.add_argument("--save", help="write the per-cell PASS map here")
     a = ap.parse_args()
 
-    cc.require_bin(a.core, "sm3_s16_score")
-    jobs = [(w, p, a.core, a.details) for w in WAITS for p in PROGRAMS]
-    with ThreadPoolExecutor(max_workers=a.jobs) as ex:
-        res = [r for r in ex.map(run_one, jobs) if r]
+    if a.core == "sim":
+        # the model has no `check_core.py --core sim` leg; its headline figure
+        # is derived from the SAME per-cell map the RTL legs' `--save` writes
+        # (`not mm and arch_ok`), which is what `N/M full` counts.
+        import simbin
+        simbin.ensure(why="sm3_s16_score")
+    else:
+        cc.require_bin(a.core, "sm3_s16_score")
+        jobs = [(w, p, a.core, a.details) for w in WAITS for p in PROGRAMS]
+        with ThreadPoolExecutor(max_workers=a.jobs) as ex:
+            res = [r for r in ex.map(run_one, jobs) if r]
 
-    tot_p = tot_n = 0
-    per_w = {}
-    for r in res:
-        for form, (ok, n) in r["forms"].items():
-            tot_p += ok
-            tot_n += n
-            w = per_w.setdefault(r["waits"], [0, 0])
-            w[0] += ok
-            w[1] += n
-        if "error" in r:
-            print(f"  ERROR w{r['waits']} p{r['p']}: {r['error'][:200]}")
-    for w in sorted(per_w):
-        print(f"  w{w}: {per_w[w][0]}/{per_w[w][1]}")
-    print(f"S16 TOTAL ({a.core}): {tot_p}/{tot_n}")
+        tot_p = tot_n = 0
+        per_w = {}
+        for r in res:
+            for form, (ok, n) in r["forms"].items():
+                tot_p += ok
+                tot_n += n
+                w = per_w.setdefault(r["waits"], [0, 0])
+                w[0] += ok
+                w[1] += n
+            if "error" in r:
+                print(f"  ERROR w{r['waits']} p{r['p']}: {r['error'][:200]}")
+        for w in sorted(per_w):
+            print(f"  w{w}: {per_w[w][0]}/{per_w[w][1]}")
+        print(f"S16 TOTAL ({a.core}): {tot_p}/{tot_n}")
 
     # ---- the per-cell classification (in-process, one binary invocation per
     # suite dir would double the work; re-run the engine here through
     # check_core's own helpers instead)
-    import tempfile
-    binp = cc.core_bin(a.core)
+    binp = None if a.core == "sim" else cc.core_bin(a.core)
     L1 = L2 = 0
     L3_bad = []
     arch_bad = []
@@ -170,17 +205,10 @@ def main():
                 if not fn.exists():
                     continue
                 cases = json.load(gzip.open(fn))
-                with tempfile.TemporaryDirectory() as td:
-                    b, o = Path(td) / "b.txt", Path(td) / "o.txt"
-                    cc.compose_batch(cases, b)
-                    rr = subprocess.run(
-                        [str(binp), f"+batch={b}", f"+out={o}",
-                         f"+waits={w}", "+ce_div=1"],
-                        cwd=ROOT, capture_output=True, text=True)
-                    if rr.returncode != 0 or not o.exists():
-                        print(f"  SIM FAIL {sd.name}/{form}")
-                        continue
-                    sims = cc.parse_out(o)
+                sims = sims_for(a.core, cases, w, binp)
+                if sims is None:
+                    print(f"  SIM FAIL {sd.name}/{form}")
+                    continue
                 for c in cases:
                     sim = sims.get(c["idx"])
                     if sim is None:
