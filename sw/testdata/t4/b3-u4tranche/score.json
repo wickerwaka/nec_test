@@ -1,16 +1,16 @@
 {
- "chip_f9": {
-  "exact": 178,
-  "scored": 178,
-  "excused": 22,
-  "fam": {}
- },
- "core_f9": {
+ "vsim_prehead": {
   "exact": 176,
   "scored": 178,
   "excused": 22,
   "fam": {
    "bs": 2
   }
+ },
+ "vsim_ucore": {
+  "exact": 178,
+  "scored": 178,
+  "excused": 22,
+  "fam": {}
  }
 }

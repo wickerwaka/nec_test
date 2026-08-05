@@ -273,7 +273,14 @@ def main():
                             # §73.9 booked), so `_f9` sits beside `_f5` and is
                             # scored against `chip_f9`, its own bitstream's
                             # socket capture.
-                            "chip_f9", "core_f9"])
+                            "chip_f9", "core_f9",
+                            # SM3 sitting 27 / FLASH #10, the milestone that
+                            # puts F55/F56/F57 + the BRK/TF leg + the
+                            # illegal-form stall into fabric for the first
+                            # time.  Same rule: `_f10` sits BESIDE `_f9` and is
+                            # scored against `chip_f10`, its own bitstream's
+                            # socket capture, never another flash's.
+                            "chip_f10", "core_f10"])
     c.add_argument("--host", default=HOST)
     c.add_argument("--force", action="store_true")
     c.set_defaults(fn=cmd_capture)
