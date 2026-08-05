@@ -12751,10 +12751,11 @@ takes exactly two values:
 
 | class | seeds | first divergence | fresh gap |
 |---|---|---|---|
-| **one clock late** | **14** | **`A + 11`** | **13** (and one 14) |
+| **one clock late** | **14** | **`A + 11`** | **13** on 12 of them, 14 on 2 |
 | **boundary slid** | **16** | **`A + 3`** | 14 … 91 |
 
-* **The 14.** Rows are byte-identical through `A + 10`.  At `A + 11` the banked
+* **The 14** (12 at gap 13, 2 at 14).  Rows are byte-identical through
+  `A + 10`.  At `A + 11` the banked
   capture shows the NMI vector read's DISPLAY and the fresh one is still PASV;
   the fresh display comes one clock later and its T1 at `A + 13`.  **The entire
   difference is ONE CLOCK at the recognition and nothing else** — the missing

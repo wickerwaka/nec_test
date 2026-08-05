@@ -363,8 +363,9 @@ a gate): `sw/sm3_nmigeom.py`.
 >   within-seed variance in **1,089** captures, so the effect is *not* sub-clock
 >   jitter within a session.
 > * The pin-0 control reproduces **30/30**, including two seeds banked at 12.
-> * Row-level: on **14** of the 30 the fresh run is byte-identical through
->   `A + 10` and the recognition is **EXACTLY ONE CLOCK LATER**; on the other
+> * Row-level: on **14** of the 30 (12 at gap 13, 2 at 14) the fresh run is
+>   byte-identical through `A + 10` and the recognition is **EXACTLY ONE CLOCK
+>   LATER**; on the other
 >   **16** the first divergence is `qs` at `A + 3`, §63.2's own
 >   recognition-instant coordinate, and the vector read slides to the next
 >   boundary.  **All 31 movers move LATER; none earlier.**
