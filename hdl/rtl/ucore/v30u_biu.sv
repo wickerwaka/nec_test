@@ -1480,28 +1480,11 @@ always_comb begin
                     // Arming on the first half delivers the half-word early:
                     // measured on 8B, the successor's pop came four clocks
                     // before the golden's.
-                    if (cur_wr || cur_rd_last)
+                    // F57: the WRITE half only.  The READ's completion is
+                    // stamped at the cycle's own EVAL -- see the F57 block
+                    // after the T-state advance.
+                    if (cur_wr)
                         done_ctr = (land_ttl == 2'd0) ? 2'd1 : land_ttl;
-                    // THE DATA-PATH BYTE SWAPPER (read half, sim/biu.cpp):
-                    // the system presents the whole ALIGNED WORD and the CPU
-                    // rotates the addressed byte into the low lane, carrying
-                    // the companion along.  A SPLIT word read composes its
-                    // value from the two halves' addressed lanes.
-                    if (!cur_wr) begin
-                        if (!cur_rd_last) begin
-                            rd_first_hi  = cur_data[15:8];
-                            rd_was_split = 1'b1;
-                        end else if (rd_was_split) begin
-                            rd_val = {cur_data[7:0], rd_first_hi};
-                            rd_land = rd_val;
-                            rd_was_split = 1'b0;
-                        end else begin
-                            rd_val = cur_addr[0]
-                                   ? {cur_data[7:0], cur_data[15:8]}
-                                   : cur_data;
-                            rd_land = rd_val;
-                        end
-                    end
                 end
                 run = 1'b0;
                 ts  = TS_TI;
@@ -1520,6 +1503,49 @@ always_comb begin
                     TS_TW:   ts = ready ? TS_T4 : TS_TW;
                     default: ts = TS_T4;
                 endcase
+            end
+            //--------------------------------------------------------------
+            // F57 -- A READ'S COMPLETION IS STAMPED AT THE CYCLE'S OWN EVAL.
+            //
+            // It sits HERE, after the T-state advance, because the advance is
+            // what captures `cur_data = ad_i` at T2 -- and a cycle whose
+            // DISPLAY WAITED has its eval AT T2 (M22: at w0 the eval instant
+            // is counted from the display, `e_i = disp + 3 - T1`).
+            //
+            // The pulse lands at `e + 2` (`done_ctr = 2`), which is exactly
+            // what the old T4 arm computed for every cycle whose T1 opens the
+            // clock after its display -- w0 `e = T4-1` -> T4+1, waited
+            // `e = T4` -> T4+2, both unchanged.  What it could NOT express is
+            // `e + 2 < T4 + 1`, because a counter armed at T4 cannot fire
+            // before T4+1; the old `(land_ttl == 0) ? 1 : land_ttl` clamp IS
+            // that inability.  MEASURED: silicon's second acknowledge is
+            // `display + 7` at every delay and the model's/ucore's was
+            // `T1 + 6`; they part only where a T1 WAITED, which in this whole
+            // corpus is the acknowledge after a woken HALT.
+            //
+            // NO NEW FLOP: `sev_now` already distinguishes "the eval is this
+            // T4" from "the eval was earlier", so the two arms cannot both
+            // fire, and the composition moves to a clock at which every
+            // register it reads is already valid.  The model's edge is
+            // `sim/biu_timed.cpp`, the `ci_ == eval_i` block.
+            //--------------------------------------------------------------
+            if (evi_l && !cur_fetch && !cur_halt && !cur_wr) begin
+                if (!cur_rd_last) begin
+                    rd_first_hi  = cur_data[15:8];
+                    rd_was_split = 1'b1;
+                end else begin
+                    done_wr  = 1'b0;
+                    done_ctr = 2'd2;
+                    if (rd_was_split) begin
+                        rd_val = {cur_data[7:0], rd_first_hi};
+                        rd_was_split = 1'b0;
+                    end else begin
+                        rd_val = cur_addr[0]
+                               ? {cur_data[7:0], cur_data[15:8]}
+                               : cur_data;
+                    end
+                    rd_land = rd_val;
+                end
             end
             // F3: the flush-only point commits the REDIRECT PREFETCH only.  A
             // pending EU request still owns the first slot and an EU access is
