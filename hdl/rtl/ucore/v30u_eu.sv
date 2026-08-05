@@ -270,7 +270,64 @@ reg        rep_chain;      // ...this REP boundary is a CHAINED one (>= 2)
 reg        irq_shadow;     // a segment-register write skips ONE boundary
 reg        bnd_armed;      // this `S_OPC_POP` is an instruction boundary
 reg        irq_sel_nmi;    // the kind, latched AT the boundary
+reg        irq_sel_brk;    // ...and the THIRD kind: the single-step trap
 reg        unhalt_pend;    // the NMI wake's `unhalt()`, owed to the entry clock
+
+// --- the BRK/TF single-step trap (§86; the law is §84.3 / §85.2b) ----------
+// THE ARM DOES NOT SEE A `TF` THAT ROSE TOO RECENTLY, and it is an ARM, not a
+// gate: a bit SAMPLED at one instruction boundary and TAKEN at the NEXT.
+//
+//   "At every instruction boundary the machine first TAKES the trap if the arm
+//    bit is set (and the entry clears it), and then SAMPLES `TF` into the arm
+//    bit.  A PREFIX BYTE ENDS AN INSTRUCTION BOUNDARY."   -- §84.1, verbatim
+//
+// MEASURED against silicon on a directed board cell built for it (§85.2b):
+// the floor is **3 clocks**, 121,890 rows at 0 row-diffs, with no other value
+// in [1,7] within four orders of magnitude.  §84.7's PURE GATE -- "take at the
+// first boundary at which TF has been up for at least N clocks" -- is REFUTED
+// by that cell's two SATURATED controls (`popfmemr`/`popfmul`, whose first
+// boundary sits 13 and 25 clocks past the rise): the chip STILL waits one more
+// boundary there, so the fitting `N` sets are {5,6,7} against {26,27,28} and
+// no `N` exists.  That is an arm bit, and it is measured.
+//
+// NOTHING HERE NAMES AN OPCODE.  §84.1 wrote the POPF/IRET asymmetry as an
+// opcode rule; §84.3 re-read it as ONE FLOOR (007A and 01EA are both
+// `OPR -> FLAGS  F E` rows with identical geometry -- what differs is CLOCKS,
+// because `9D` retires AT its own flag write and `CF` flushed the queue at
+// 01E8), and the cell's `iret`/`popfnone` pair MEASURES the consequence:
+// phase 2 against phase 3 at both wait levels, which only a clock floor gets.
+// THE DEPTH IS **4**, AND IT IS THE MEASURED FLOOR OF **3** -- the difference
+// is a COORDINATE, and it is the one `ie_p` already pays.  The model stamps the
+// rise in `sample_ie()`, called at the TOP of `tick()`, so a PSW bit that is up
+// during clock `c` is stamped `rise = c`; block (a) here freezes `brk_now` from
+// the same register at the same instant and it reaches `brk_p[0]` one flop
+// later.  MEASURED, engine vs engine on the cell's own sleds:
+// `rise_sim = rise_rtl + 1` on 8 of 8 first rises (`popfnone`/`popfclc`/
+// `popfmul`/`iret` x w0, w3), so the model's `c >= rise + 3` IS this module's
+// `c >= rise + 4`.  It is the same offset that makes the INT gate read
+// `ie_p[2]` -- three flops -- where the model's `kIeFloor` is 2.
+//
+// AND SILICON SAYS SO INDEPENDENTLY.  §85's cell re-scored with this core as
+// the engine, per clock over its 30 retained captures, at every candidate
+// depth in [1,7]:
+//     1: 71,304   2: 71,304   3: 33,941   **4: 0**   5: 14,630
+//     6: 43,762   7: 61,033          (121,860 rows each)
+// One value is EXACT and nothing else is within four orders of magnitude --
+// the same shape, on the same captures, that gave the model its 3.
+//
+// `V30_BRK_FLOOR` is the INSTRUMENT KNOB that made that table possible and
+// nothing else: a compile-time define with the landed value as its default, no
+// gate sets it, and the synthesised design carries exactly `BRK_FLOOR` flops.
+// (The model's is `V30SIM_BRKFLOOR`; this is the same instrument, RTL side.)
+//   *Falsifier*: any capture on which a depth other than 4 scores fewer
+//   row-diffs against silicon than 4 does.
+`ifndef V30_BRK_FLOOR
+ `define V30_BRK_FLOOR 4
+`endif
+localparam int BRK_FLOOR = `V30_BRK_FLOOR;
+reg [BRK_FLOOR-1:0] brk_p;  // psw[FBRK] through the SAME flops as `ie_p`
+reg        brk_arm;        // THE ARM.  One flop, and it crosses boundaries.
+reg        brk_smp;        // ...a boundary's F pop rode the PREVIOUS clock
 
 // operand latches M / R / WB
 reg  [1:0] m_kind, r_kind, wb_kind;
@@ -1326,7 +1383,7 @@ wire pend_after = pend_new && !(opr_fresh || row_wr_opr);
 wire row_flush = (e_type == TY_CTL) && !e_farjmp && (e_ictl == I_FLUSH);
 wire row_epop = (st == S_ROW) && e_e && !pend_after && !opc_valid &&
                 !row_blocked && (rowq >= row_qn) && !row_pre_wait &&
-                !row_slot_wait && retire_ok_e && !row_flush && !irq_fire;
+                !row_slot_wait && retire_ok_e && !row_flush && !bnd_fire;
 
 //----------------------------------------------------------------------------
 // THE BOUNDARY, AND WHY IT IS NOT THE POP
@@ -1409,13 +1466,30 @@ wire at_bnd   = bnd_row || bnd_epop || bnd_opc;
 // after an NMI suspends a fetch the chip runs, and `NMI.B8` falls 200 -> 188
 // (12 cases, all `row 6 busstat: exp CODE got PASV`).
 wire irq_take = irq_any && !irq_shadow;
-wire irq_fire = at_bnd && irq_take;
+// §86 -- AND THE TRAP RIDES THE SAME BOUNDARY.  `at_fire_boundary()` in the
+// model is `ext_fire() || brk_take_`: ONE recognition path with one more term
+// on it, not a second path.  The floor is `ie_p`'s sentence one bit over --
+// "TF up NOW **and** up three clocks ago" -- and the take is the ARM, which
+// was sampled at the PREVIOUS boundary (see `brk_smp` below).
+wire brk_seen = psw[FBRK] && brk_p[BRK_FLOOR-1];
+wire bnd_take = irq_take || brk_arm;
+wire bnd_fire = at_bnd && bnd_take;
 // ...and the boundary that fires is the one that CLEARS the arm and suspends
 // the prefetcher.  `at_bnd` implies `!opc_valid` on all three of its arms,
 // which is `boundary_no_pop()`'s own early return ("already latched: this IS
 // the pop clock") -- a pre-popped successor never reaches the floor at all.
-assign eu_bnd_take = irq_fire;
-assign eu_bnd_post = !intr_pending && !ie_p[3] && !irq_nmi_lvl;
+assign eu_bnd_take = bnd_fire;
+// §86 -- ...AND THE SUSPEND BELONGS TO THE RECOGNITION THAT PAID THE IE
+// FLOOR, WHICH THE TRAP NEVER DOES.  `irq_take` is the added term.  It is
+// INERT on every path that existed before the trap, because this wire is only
+// ever consumed as `eu_bnd_take && eu_bnd_post` and the old `eu_bnd_take`
+// (`at_bnd && irq_take`) already implied it.  The trap is not IE-gated, for
+// the same reason a non-maskable recognition is not -- and `!irq_nmi_lvl` is
+// already here saying exactly that about NMI.  In the model the suspend is
+// inside `if (post_redirect && live)` with `live = maskable() && ...`, and
+// `maskable()` is `ev_pin_ == 0`: a run with no pin directive never suspends,
+// which is every seed a BRK trap fires in.
+assign eu_bnd_post = irq_take && !intr_pending && !ie_p[3] && !irq_nmi_lvl;
 
 // §35.4 -- ...AND F11's RULE APPLIES TO THE TAIL'S OWN FALL-THROUGH.  With
 // `S_TAIL_W` made zero-cost the tail's POP now happens inside the delivery's
@@ -1426,7 +1500,7 @@ assign eu_bnd_post = !intr_pending && !ie_p[3] && !irq_nmi_lvl;
 wire tailw_go = (st == S_TAIL_W) && !opc_valid &&
                 (opr_fresh || !(nr_wait || !opr_free_now));
 
-wire q_demand = ((st == S_OPC_POP) && !irq_fire) ||
+wire q_demand = ((st == S_OPC_POP) && !bnd_fire) ||
                 (st == S_EXT_POP) || (st == S_MODRM) ||
                 (st == S_D16_LO) ||
                 ((st == S_D8_B)   && (!ld_ripe_prev ? (chg == 2'd1) : 1'b1)) ||
@@ -1435,7 +1509,7 @@ wire q_demand = ((st == S_OPC_POP) && !irq_fire) ||
                 // F11 again: both deferred-pop states TAKE the byte only past
                 // the retire deadline, so neither may DEMAND it before.
                 (((st == S_EPOP) || (st == S_TAIL_POP) || tailw_go) &&
-                 retire_ok_n && !irq_fire);
+                 retire_ok_n && !bnd_fire);
 
 assign q_pop   = q_demand;
 assign q_first = (st == S_OPC_POP) ? pop_is_first
@@ -1701,6 +1775,10 @@ reg            rep_chain_r;
 reg            irq_shadow_r;
 reg            bnd_armed_r;
 reg            irq_sel_nmi_r;
+reg            irq_sel_brk_r;
+reg [BRK_FLOOR-1:0] brk_p_r;
+reg            brk_arm_r;
+reg            brk_smp_r;
 reg            unhalt_pend_r;
 reg      [1:0] m_kind_r;
 reg      [1:0] r_kind_r;
@@ -1822,6 +1900,10 @@ always @* begin
     irq_shadow_r = irq_shadow;
     bnd_armed_r = bnd_armed;
     irq_sel_nmi_r = irq_sel_nmi;
+    irq_sel_brk_r = irq_sel_brk;
+    brk_p_r = brk_p;
+    brk_arm_r = brk_arm;
+    brk_smp_r = brk_smp;
     unhalt_pend_r = unhalt_pend;
     m_kind_r = m_kind;
     r_kind_r = r_kind;
@@ -1934,6 +2016,8 @@ always @* begin
         rep_chained = 1'b0;
         nmi_latch_r = 1'b0; irq_shadow_r = 1'b0; bnd_armed_r = 1'b0;
         irq_sel_nmi_r = 1'b0; unhalt_pend_r = 1'b0;
+        irq_sel_brk_r = 1'b0; brk_p_r = '0; brk_arm_r = 1'b0;
+        brk_smp_r = 1'b0;
         if (bkd_load) begin
             gpr_r[0] = bkd_regs[  0 +: 16];  gpr_r[1] = bkd_regs[ 16 +: 16];
             gpr_r[2] = bkd_regs[ 32 +: 16];  gpr_r[3] = bkd_regs[ 48 +: 16];
@@ -2053,6 +2137,10 @@ reg            rep_chain_n;
 reg            irq_shadow_n;
 reg            bnd_armed_n;
 reg            irq_sel_nmi_n;
+reg            irq_sel_brk_n;
+reg [BRK_FLOOR-1:0] brk_p_n;
+reg            brk_arm_n;
+reg            brk_smp_n;
 reg            unhalt_pend_n;
 reg      [1:0] m_kind_n;
 reg      [1:0] r_kind_n;
@@ -2124,6 +2212,25 @@ reg      [2:0] poll_pipe_n;
 `ifndef SYNTHESIS
 reg eutrace = 0;
 initial if ($test$plusargs("eutrace")) eutrace = 1;
+// §86 -- THE ARM'S OWN INSTRUMENT, and it is the one the model already has
+// (`V30SIM_BRKTRACE`).  One line per SAMPLE INSTANT and one per TAKE, so the
+// RTL's coordinate can be checked against the model's retire stream on
+// captures with TF CLEAR -- no trap in the loop, which is what makes it a
+// ruler rather than a score.  §85.2a's acceptance test, RTL side.
+reg brktrace = 0;
+initial if ($test$plusargs("brktrace")) brktrace = 1;
+// the CE clock index, on the same contract the eutrace line number carries
+// ("row index == CE clock index"): cleared by `srst`, advanced once per
+// enabled clock.  Simulation only.
+int unsigned ce_clk = 0;
+// §86.G -- THE TWO FLAG-WRITE PROBES, and they are why `mc1/721` is decided.
+// `1BL` reports every ONE_BYTE_LOGIC execute strobe's PSW before and after;
+// `PE` reports every POST-`E` discharge's, with the row it is discharging.
+// Together they say WHICH of two writes to the same register landed and IN
+// WHAT ORDER -- which the save-state map's PSW word alone cannot, because both
+// orders can end on the same value.  Simulation only, `+brktrace`, and they read registers.
+reg [15:0] trc_1bl_pre, trc_1bl_post; reg trc_1bl_hit;
+reg [15:0] trc_pe_pre, trc_pe_post; reg trc_pe_hit; reg [11:0] trc_pe_upc;
 reg chain_report = 0;
 initial if ($test$plusargs("chaindepth")) chain_report = 1;
 reg [3:0] chain_hi = 4'd0;
@@ -2173,6 +2280,7 @@ reg  [3:0] nloc;
 reg        carry, taken, bubble, retire_now;
 reg        rep_chained;  // ...and the value `rep_chain` had at THIS boundary
 reg        ie_now;      // block (g): the IE the gate's pipeline takes
+reg        brk_now;     // §86: ...and the TF the arm's pipeline takes
 reg [15:0] ea;
 reg  [2:0] rseg;
 reg  [1:0] rmmod;
@@ -2254,6 +2362,10 @@ always @* begin
     irq_shadow_n = irq_shadow;
     bnd_armed_n = bnd_armed;
     irq_sel_nmi_n = irq_sel_nmi;
+    irq_sel_brk_n = irq_sel_brk;
+    brk_p_n = brk_p;
+    brk_arm_n = brk_arm;
+    brk_smp_n = brk_smp;
     unhalt_pend_n = unhalt_pend;
     m_kind_n = m_kind;
     r_kind_n = r_kind;
@@ -2326,10 +2438,28 @@ always @* begin
         //====================================================================
         // (a) the BIU's completion pulses, sampled on the clock they ride
         //====================================================================
+`ifndef SYNTHESIS
+        trc_1bl_hit = 1'b0; trc_pe_hit = 1'b0;
+`endif
         poll_pipe_n = {poll_pipe_n[1:0], pin_poll_n};
         // ...and the IE the gate's own pipeline is about to take, frozen HERE
         // because the chain below may write `psw` (see block (g)).
         ie_now = psw_n[FIE];
+        brk_now = psw_n[FBRK];
+        // §86 -- THE ARM'S TWO EVENTS, BOTH READ OFF REGISTERS ONLY, AND BOTH
+        // BEFORE THE CHAIN.  The SAMPLE lands one clock past the boundary's own
+        // F pop (`brk_smp`, raised below on the pop's own clock); the TAKE is
+        // in the chain, at the four arms that reach `S_IRQ_D`, and it CLEARS
+        // the arm.  Ordering them this way round is what makes a take that
+        // coincides with a sample resolve as the model resolves it -- the model
+        // takes first and samples second, in one statement:
+        //     if (brk_take_) { brk_arm_ = false; } else { brk_arm_ = seen; }
+        if (brk_smp) brk_arm_n = brk_seen;
+        // ...and the F pop that ENDS this boundary, which is exactly the pop
+        // the `QS = 1` pins announce (`q_first`).  A PREFIX retires with one of
+        // its own, so this single predicate is §85.3's "the retire boundaries
+        // AND the prefix hand-over" with no second term.
+        brk_smp_n = q_pop && q_ripe && q_first;
         unhalt_pend_n = 1'b0;
         rd_age0_n = 1'b0;
         if (eu_rd_done_n) begin
@@ -2406,7 +2536,14 @@ always @* begin
         //====================================================================
         if (poste_n) begin
             poste_n = 1'b0;
+`ifndef SYNTHESIS
+            trc_pe_hit = 1'b1; trc_pe_pre = psw_n;
+            trc_pe_upc = {upc_opc_n, upc_loc_n};
+`endif
             `include "v30u_eu_poste.svh"
+`ifndef SYNTHESIS
+            trc_pe_post = psw_n;
+`endif
         end
         // F22: ...and the successor's latch reset it was standing in front of.
         if (iend_owed_n) begin
@@ -2473,7 +2610,7 @@ always @* begin
         // (g) THE PIN PIPELINES, ADVANCED AT THE *END* OF THE EDGE
         //====================================================================
         // Not a style choice.  These registers are read from BOTH sides of the
-        // module -- by the combinational act decode (`irq_fire` gates `q_pop`)
+        // module -- by the combinational act decode (`bnd_fire` gates `q_pop`)
         // and by the clocked step -- and the two MUST see the same clock, or
         // the demand and the take drift (F11, again).  Shifting them in block
         // (a) put the clock-c+1 view in front of the step while the act decode
@@ -2490,6 +2627,32 @@ always @* begin
         int_p_n = {int_p_n[2:0], pin_int};
         nmi_p_n = {nmi_p_n[3:0], pin_nmi};
         ie_p_n  = {ie_p_n[2:0], ie_now};
+        // §86 -- `psw[FBRK]` on the SAME pipeline, frozen at the same instant
+        // and shifted in the same place, because it answers the same kind of
+        // question: a flag written into the PSW reaches a recognition decision
+        // through flops, and the arm may not act on one that rose too recently.
+        brk_p_n = BRK_FLOOR'({brk_p_n, brk_now});
+        // ...AND THE SAMPLE INSTANT IS ONE CLOCK PAST THE OPCODE POP.  Not a
+        // choice: §85.2a MEASURED it in the model, engine-vs-chip with no trap
+        // in the loop, by pairing every `brk_retire` clock with the chip's own
+        // `QS = 1` pops on TF-CLEAR captures -- `90 9D 8B 8E B8 E7 CF` at
+        // pop + 1, 459 of 459, and `F8` at pop + 0 until that path was
+        // corrected, 70 of 70 at both wait levels, 0 violators over 2,900
+        // boundaries afterwards.  `brk_smp` is that clock and nothing else.
+        //
+        // AND THIS IS WHY THERE IS NO PREFIX SPECIAL CASE.  §85.3 asks for the
+        // retire boundaries AND the prefix hand-over; `q_first` is ONE
+        // predicate that is both, because a prefix retires as its own 2-clock
+        // instruction with its own F pop (`prefix_retire()` -> `pop_is_first`)
+        // and the `0F` escape's first byte does too.  "A PREFIX BYTE ENDS AN
+        // INSTRUCTION BOUNDARY" is already what the pop stream says.  Contrast
+        // `bnd_armed`, which the INT recognition needs precisely to EXCLUDE the
+        // prefix hand-over ("the measured *no sample between 26 and 8B*"):
+        // sample and take are different events at the same boundary, and the
+        // two lines that say so live in block (a) above, BEFORE the chain, so
+        // that a boundary's own TAKE (which clears the arm inside the chain)
+        // can never be overwritten by a sample landing on the same clock.
+
         // the NMI LATCH is an EDGE, set three clocks after it: `nmi_p[3]` is
         // the pin at c-3 and `nmi_p[4]` the pin at c-4, so the latch reads true
         // from c+1 = edge+4 -- "latest catching edge = B-4".
@@ -2566,6 +2729,10 @@ always @(posedge clk) begin
         irq_shadow <= (srst && !ss_we) ? irq_shadow_r : irq_shadow_n;
         bnd_armed <= (srst && !ss_we) ? bnd_armed_r : bnd_armed_n;
         irq_sel_nmi <= (srst && !ss_we) ? irq_sel_nmi_r : irq_sel_nmi_n;
+        irq_sel_brk <= (srst && !ss_we) ? irq_sel_brk_r : irq_sel_brk_n;
+        brk_p <= (srst && !ss_we) ? brk_p_r : brk_p_n;
+        brk_arm <= (srst && !ss_we) ? brk_arm_r : brk_arm_n;
+        brk_smp <= (srst && !ss_we) ? brk_smp_r : brk_smp_n;
         unhalt_pend <= (srst && !ss_we) ? unhalt_pend_r : unhalt_pend_n;
         m_kind <= (srst && !ss_we) ? m_kind_r : m_kind_n;
         r_kind <= (srst && !ss_we) ? r_kind_r : r_kind_n;
@@ -2644,6 +2811,8 @@ end
 // never stood in.  Everything read here is either a FLOP or a comb value that
 // has SETTLED by the edge, which is the same value the old in-line code read.
 always @(posedge clk) begin
+    if (srst) ce_clk <= 0;
+    else if (ce && !ss_we) ce_clk <= ce_clk + 1;
     if (ce && !srst && !ss_we) begin
         // campaign risk #2 / F48: the completed-read store's bound.  Read off
         // the flops, which is what the old in-line assertions read too --
@@ -2678,6 +2847,25 @@ always @(posedge clk) begin
                    upc_page, upc_opc, upc_loc);
         if (poste && (row_q1 || row_q2))
             $error("v30u_eu: a post-E row pops a queue byte");
+        if (brktrace && trc_pe_hit)
+            $display("PE  clk=%0d pre=%04x post=%04x upc=%03X",
+                     ce_clk, trc_pe_pre, trc_pe_post, trc_pe_upc);
+        if (brktrace && trc_1bl_hit)
+            $display("1BL clk=%0d pre=%04x post=%04x psw=%04x pswn=%04x",
+                     ce_clk, trc_1bl_pre, trc_1bl_post, psw, psw_n);
+        if (brktrace) begin
+            // the RISE stamp, in the same sense the model's `sample_ie()`
+            // means it: at THIS clock the PSW carries TF and at the previous
+            // one it did not.
+            if (brk_now && !brk_p[0])
+                $display("BRKR clk=%0d", ce_clk);
+            if (brk_smp)
+                $display("BRKS clk=%0d seen=%0d psw_brk=%0d brk_p=%0d arm=%0d",
+                         ce_clk, brk_seen, psw[FBRK], brk_p, brk_arm);
+            if (bnd_fire)
+                $display("BRKT clk=%0d arm=%0d irq=%0d sel_brk=%0d",
+                         ce_clk, brk_arm, irq_take, !irq_take);
+        end
         if (eutrace)
             $display("EU st=%0d upc=%0d.%02X.%0d row=%07x q=%02x ripe=%0d slot=%0d post=%0d bs=%0d a=%05x pair=%0d wd=%04x rdd=%0d wrd=%0d oprf=%0d wr_out=%0d pc=%04x ind=%04x opr=%04x of=%0d pnd=%0d pe=%0d rdq=%0d rdc=%0d a=%04x b=%04x c=%04x sig=%04x pfx=%0d",
                      trc_st, trc_upc_page, trc_upc_opc, trc_upc_loc, row, q_byte, q_ripe,

@@ -130,6 +130,12 @@
                                          unhalt_pend_n = ss_wdata[4];
                                          rep_chain_n   = ss_wdata[5];
                                        end
+            SSA_E_BRK:                 begin                        // §86
+                                         brk_p_n       = BRK_FLOOR'(ss_wdata[3:0]);
+                                         brk_arm_n     = ss_wdata[4];
+                                         brk_smp_n     = ss_wdata[5];
+                                         irq_sel_brk_n = ss_wdata[6];
+                                       end
             SSA_E_PE_FLAGS:            begin
                                          pe_opc8080_n = ss_wdata[0];
                                          pe_op8_n     = ss_wdata[1];

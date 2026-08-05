@@ -81,12 +81,18 @@ package v30_ss_pkg;
   // form that matters -- an address never means two different things).  A v4
   // stream carries one word this map has nowhere to put, which is why the
   // version moves.
-  localparam int          SS_VERSION   = 8'h85;   // ucore map v5 (SM3 s21)
+  // SM3 SITTING 25 / §86: 0x85 -> 0x86.  The BRK/TF single-step arm APPENDS
+  // ONE address, `SSA_E_BRK` at 0x174 -- seven bits carrying `brk_p[3:0]`, the
+  // arm, its sample-instant pulse and the trap's kind bit.  Same rule, same
+  // reason as every append before it: a v5 stream has no word for them and
+  // must not be silently accepted.
+  localparam int          SS_VERSION   = 8'h86;   // ucore map v6 (SM3 s25)
   localparam logic [8:0]  SSA_TAG      = 9'h000;
   localparam logic [8:0]  SS_BIU_BASE  = 9'h001;
   localparam int          SS_BIU_COUNT = 100;  // U4 F49 (+5); s11 (-4); s21 (-1)
   localparam logic [8:0]  SS_EU_BASE   = 9'h100;
-  localparam int          SS_EU_COUNT  = 116;  // U2 p5 (+2 recog); U4 F49 (+1)
+  localparam int          SS_EU_COUNT  = 117;  // U2 p5 (+2 recog); U4 F49 (+1);
+                                              // SM3 s25 / §86 (+1, the BRK arm)
   localparam int          SS_COUNT     = 1 + SS_BIU_COUNT + SS_EU_COUNT;
   localparam logic [15:0] SS_TAG       = {8'(SS_VERSION), 8'(SS_COUNT)};
 
@@ -372,12 +378,23 @@ package v30_ss_pkg;
   // in the map -- NO address is added and NO count changes, so SS_VERSION does
   // NOT move; a v1 stream restores bit 5 as 0, which is the sequence-start
   // value `begin_sequence()` writes anyway.
+
   localparam logic [8:0] SSA_E_IRQ_LATCH            = 9'h172;
 
   // F49 (U4): the census's fifth flop.  `rst_ctr` is F25's four-clock reset
   // march -- the EU comes out of RESET running the ROM's own sequence at page 7
   // opcode 0x03, and this counter is where in that march it stands.
   localparam logic [8:0] SSA_E_RST_CTR              = 9'h173;
+
+  // §86 (SM3 sitting 25) -- THE BRK/TF SINGLE-STEP ARM, one word, appended at
+  // the end of the EU's dense region exactly as the append-only rule says.
+  // Seven bits: `brk_p[3:0]` (the TF pipeline), `brk_arm` (the arm itself),
+  // `brk_smp` (its sample instant, one clock past the boundary's F pop) and
+  // `irq_sel_brk` (which of the three doors `S_IRQ_D` is walking through).
+  // A freeze between the sample and the take that did not carry these would
+  // restore a part that has forgotten a trap it had already decided to take,
+  // which is exactly what U2 pass 5 said about the pin pipelines.
+  localparam logic [8:0] SSA_E_BRK                  = 9'h174;
 
   function automatic int ss_field_width(input logic [8:0] a);
     case (a)
@@ -609,6 +626,7 @@ package v30_ss_pkg;
       SSA_E_PE_FLAGS:            ss_field_width = 3;
       SSA_E_PIN_PIPE:            ss_field_width = 13;
       SSA_E_IRQ_LATCH:           ss_field_width = 6;
+      SSA_E_BRK:                 ss_field_width = 7;
       SSA_E_RST_CTR:             ss_field_width = 3;   // F49
       default: ss_field_width = 0;
     endcase

@@ -5,6 +5,9 @@
 //  satisfied, S_1BL_LEAD when it was not) -- one expression, both paths.
 //============================================================================
 begin
+`ifndef SYNTHESIS
+    trc_1bl_pre = psw_n; trc_1bl_hit = 1'b1;
+`endif
     case (pla3_xop(ld_pla_n))
         PLA3_BL1_SET_DIR: psw_n[FDIR] = 1'b1;
         PLA3_BL1_CLR_DIR: psw_n[FDIR] = 1'b0;
@@ -16,4 +19,7 @@ begin
         default: ;
     endcase
     psw_n = (psw_n & PSW_WRITABLE) | PSW_FORCED;
+`ifndef SYNTHESIS
+    trc_1bl_post = psw_n;
+`endif
 end

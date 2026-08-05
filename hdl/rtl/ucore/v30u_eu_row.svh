@@ -215,8 +215,9 @@ begin
         // BYTE.  The sequence still finishes its post-`E` row (which costs no
         // clocks but does carry datapath work -- `9D`'s `SIGMA -> SP` lives
         // there); only the successor's decode is what does not happen.
-        if (irq_fire) begin
+        if (bnd_fire) begin
             irq_sel_nmi_n = irq_nmi_lvl;
+            irq_sel_brk_n = !irq_take; brk_arm_n = 1'b0;          // §86
             poste_n = 1'b1; pe_opc_reg_n = opc_reg_n; pe_opc8080_n = opc8080_n;
             pe_op8_n = op8_n; pe_pfxcnt_n = pfxcnt_n;
             st_n = S_IRQ_D;

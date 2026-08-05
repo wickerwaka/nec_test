@@ -78,11 +78,16 @@ CORES = {
             # so SSA_B_PF_LAND / 0x038 leaves the map.  It is the first
             # MID-REGION retirement: the code is a HOLE `ss_addr_of` steps
             # over and NO symbol is renumbered.
-            "SS_VERSION": 0x85,   # ucore map v5 (0x80 family: never an FSM stream)
+            # SM3 sitting 25 / §86: v5 -> v6.  The BRK/TF single-step arm
+            # APPENDS one EU address, SSA_E_BRK at 0x174 -- seven bits carrying
+            # the TF pipeline `brk_p[3:0]`, the ARM itself, its sample-instant
+            # pulse `brk_smp` and the trap's kind bit `irq_sel_brk`.  Same rule
+            # and same reason as every append before it.
+            "SS_VERSION": 0x86,   # ucore map v6 (0x80 family: never an FSM stream)
             "SS_BIU_COUNT": 100,
-            "SS_EU_COUNT": 116,
-            "SS_COUNT": 217,
-            "SS_TAG": 0x85D9,     # (0x85 << 8) | 217
+            "SS_EU_COUNT": 117,
+            "SS_COUNT": 218,
+            "SS_TAG": 0x86DA,     # (0x86 << 8) | 218
         },
     },
 }

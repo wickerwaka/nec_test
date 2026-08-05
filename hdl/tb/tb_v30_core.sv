@@ -665,6 +665,29 @@ always @(negedge clk) begin : ss_controller
                 $display("SS5 WIDTH-SWEEP idx=%0d done (%0d addrs)", ss_at,
                          SS_COUNT-1);
             end
+            6: begin
+                // SM3 sitting 25 -- §49.8's DECIDING MEASUREMENT, and it is a
+                // READ.  "`SSA_E_PSW` is already in the map, so `+ss_at=<clk>`
+                // reads PSW out at the boundary ... on the frozen binary, no
+                // RTL change".  Mode 6 is that read: freeze, save the addressed
+                // stream, PRINT the words the caller asked for, restore.  It
+                // writes nothing the save/restore did not already write and it
+                // is the only mode that produces state as OUTPUT rather than as
+                // a self-check.  `ss_scramble_seed` selects the address (0 =
+                // print the whole stream).
+                ss_save(ss_saved);
+                if (ss_scramble_seed == 0) begin
+                    for (int si = 0; si < SS_COUNT; si++)
+                        $display("SS6 idx=%0d word=%0d addr=%03x val=%04x",
+                                 ss_at, si, ss_addr_of(si), ss_saved[si]);
+                end else begin
+                    for (int si = 0; si < SS_COUNT; si++)
+                        if (ss_addr_of(si) == 9'(ss_scramble_seed))
+                            $display("SS6 idx=%0d addr=%03x val=%04x",
+                                     ss_at, ss_addr_of(si), ss_saved[si]);
+                end
+                ss_load(ss_saved);
+            end
             4: begin
                 // G4 sensitivity: flip ONE non-tag stream bit, restore the
                 // corrupted image, resume. A bit that maps to live state must

@@ -182,11 +182,21 @@ Values are monotone: never re-scored downward without a loud, itemized entry.)
   `timed_wvec_gate.py --core ucore` **88/88, +0.0 %** (the FSM core is 71/88);
   `timed_enter_replay.py --core ucore` **154/154 x5**;
   `timed_ins_replay.py --core ucore --raw` **1,312/1,312** and **2,624/2,624**;
-  `timed_fuzz.py --core ucore --evt-replay` REGISTERED **1,490/1,702** (the sim
-  is 1,272), EVT **918/1,008** (RAISED from 913 by F57 at SM3 sitting 21, the
-  same five seeds the model gained), COMBINED **2,408** (the sim is 2,060; the
-  two columns are scored under DIFFERENT information and no lead is established
-  — `standing_gates.md` §B).  Historically EVT read 913 (the sim was 782 — ~~on the REBUILT column the
+  `timed_fuzz.py --core ucore --evt-replay` REGISTERED **1,502/1,702**, EVT
+  **920/1,008**, COMBINED **2,422/2,710** — **RAISED at SM3 SITTING 25 by the
+  ucore's BRK/TF SINGLE-STEP LEG** (`ucore_provenance.md` **§86**): five flops,
+  no opcode named, the take on the existing boundary wire into the existing
+  vector-1 door (`01D8` row 0 is `CONST 1`, row 2 is `CONST 2` — the trap and
+  NMI are the SAME ROM entry two rows apart), and the SAMPLING boundary is ONE
+  predicate, the `QS = 1` opcode pop, because a prefix retires with its own F
+  pop.  The pipeline is FOUR deep and that IS the model's MEASURED floor of 3:
+  `rise_sim = rise_rtl + 1` (8/8, engine vs engine) and silicon says 4
+  independently at 0 row-diffs against ≥ 14,630 everywhere else in [1,7].  ALL
+  ELEVEN PREDICTED SEEDS CLOSED and **0 were lost over all 3,242**.  It was
+  1,490 / 918 / 2,408 (EVT had been RAISED from 913 by F57 at SM3 sitting 21,
+  the same five seeds the model gained).  The ucore and sim columns are scored
+  under DIFFERENT information and no lead is established
+  — `standing_gates.md` §B.  Historically EVT read 913 (the sim was 782 — ~~on the REBUILT column the
   ucore beats the model by 105 seeds~~ **STRUCK as a comparison, see the rule
   below**; as banked it appeared to lose by 517, which was INV-1, now CLOSED by
   the SM2 re-capture; 910→913 = the IE law's +2 at sitting 11 + F53's +1 at
@@ -285,7 +295,10 @@ Values are monotone: never re-scored downward without a loud, itemized entry.)
   Note also: the **w1evt-biased precedent is an archive-by-rename, NOT an
   invalidation** — §24.7 says the old suite is *not retracted* and it is still a
   live gate. It supplies the habit, not the disposition.
-- **`sw/ss_lint.py --core ucore` exits 0** — since SM3 sitting 21 at
+- **`sw/ss_lint.py --core ucore` exits 0** — since SM3 sitting 25 at
+  **`SS_VERSION` 0x86 / `SS_COUNT` 218 / `SS_TAG` 0x86DA, 204 flops, 0
+  UNMAPPED** (§86 APPENDS one address, `SSA_E_BRK` at `0x174`, carrying the
+  BRK/TF arm's five flops).  It was, since SM3 sitting 21,
   **`SS_VERSION` 0x85 / `SS_COUNT` 217 / `SS_TAG` 0x85D9, 200 flops, 0
   UNMAPPED** (F56 DELETED `pf_land`; `SSA_B_PF_LAND` / `9'h038` is the map's
   **first MID-REGION retirement** — a HOLE `ss_addr_of` steps over, with NO

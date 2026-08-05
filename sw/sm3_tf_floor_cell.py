@@ -298,6 +298,62 @@ def run_sim(image, waits, floor, clocks=4200):
         shutil.rmtree(td, ignore_errors=True)
 
 
+# SM3 SITTING 25 -- THE SECOND ENGINE.  §85.3 asked for this cell re-scored
+# with the `ucore` as the engine, "which is now the sharpest gate the trap
+# has".  The RTL leg is the SAME stimulus through the Verilated TB's `+bootimg`
+# replay -- the image's own loader stub runs in the core from RESET, which is
+# the frame the retained chip rows are stored in -- and the floor is the RTL's
+# own compile-time knob `V30_BRK_FLOOR`, the exact counterpart of the model's
+# `V30SIM_BRKFLOOR`.  The scan binaries live outside the receipt layer on
+# purpose: they are INSTRUMENTS built to be wrong, and the only binary any gate
+# quotes is the receipted default (`sw/check_core.py --core ucore`), which is
+# what `--core ucore` uses at the LANDED floor.
+UCORE_SCAN = Path(os.path.expanduser("~/.cache/ucsimt-tmp/s25scan"))
+UCORE_LANDED_FLOOR = 4   # §86: the model's 3, one coordinate over
+
+
+def _ucore_bin(floor):
+    if floor == UCORE_LANDED_FLOOR:
+        b = ROOT / "hdl" / "tb" / "obj_dir_ucore" / "Vtb_v30_core"
+        if b.exists():
+            return b
+    b = UCORE_SCAN / f"f{floor}" / "Vtb_v30_core"
+    if not b.exists():
+        raise SystemExit(f"sm3_tf_floor_cell: no ucore binary for floor {floor} "
+                         f"({b}) -- build the scan set first")
+    return b
+
+
+def run_ucore(image, waits, floor, clocks=4200):
+    td = tempfile.mkdtemp(prefix="s24u_")
+    try:
+        img = Path(td) / "img.hex"
+        outp = Path(td) / "out.txt"
+        img.write_text("\n".join(f"{b:02x}" for b in bytes(image)) + "\n")
+        argv = [str(_ucore_bin(floor)), f"+bootimg={img}", f"+bootn={clocks}",
+                "+mirror=1", f"+out={outp}", f"+waits={waits}"]
+        p = subprocess.run(argv, capture_output=True, timeout=900)
+        so = p.stdout.decode()
+        if "BOOT DONE" not in so:
+            return [], (so[-200:] + " " + p.stderr.decode()[-200:]).strip()
+        rows = []
+        for line in outp.read_text().splitlines():
+            f = line.split()
+            if f and f[0] == "r":
+                rows.append({"t": int(f[1]), "bs_early": int(f[2]),
+                             "qs": int(f[3]), "ube_n": int(f[4]),
+                             "ad_addr": int(f[5], 16), "ad_data": int(f[6], 16),
+                             "ps": int(f[7], 16)})
+        return rows, ""
+    finally:
+        import shutil
+        shutil.rmtree(td, ignore_errors=True)
+
+
+def run_engine(core, image, waits, floor, clocks=4200):
+    return (run_sim if core == "sim" else run_ucore)(image, waits, floor, clocks)
+
+
 def brk_walk(image, waits):
     """dist(rise -> Bj) for the FIRST armed setter, off the engine's own retire
     trace.  This is the CLOCK RULER of the whole cell, and it is the engine's;
@@ -348,7 +404,7 @@ def cmd_predict(args):
             dist, ops = brk_walk(image, w)
             cell = {"walk": dist, "walk_ops": ops, "floor": {}}
             for f in floors:
-                rows, _ = run_sim(image, w, f)
+                rows, _ = run_engine(args.core, image, w, f)
                 ph = phases(rows, v)
                 cell["floor"][str(f)] = {"n": len(ph),
                                          "phases": ph[:12],
@@ -357,9 +413,15 @@ def cmd_predict(args):
             print(f"{v:10s} w{w} walk={dist} "
                   + "  ".join(f"F{f}:{_hist(cell['floor'][str(f)]['phases'])}"
                               for f in floors), flush=True)
+    tab["core"] = args.core
     OUT.mkdir(parents=True, exist_ok=True)
-    (OUT / "predictions.json").write_text(json.dumps(tab, indent=1))
-    print(f"\nwrote {OUT/'predictions.json'}")
+    # THE PRE-REGISTERED TABLE IS THE MODEL'S AND IT IS NEVER OVERWRITTEN: it
+    # was committed before the first board contact and it is what W-2 is scored
+    # against as registered.  A second engine writes a second file.
+    name = ("predictions.json" if args.core == "sim"
+            else f"predictions-{args.core}.json")
+    (OUT / name).write_text(json.dumps(tab, indent=1))
+    print(f"\nwrote {OUT/name}")
 
 
 def _hist(ph):
@@ -495,7 +557,8 @@ def cmd_score(args):
             with gzip.open(OUT / f"{v}_w{w}_r0.rows.json.gz", "rt") as fh:
                 rows = json.load(fh)
             image, _m = image_of(v)
-            srows, _ = run_sim(image, w, 3, clocks=len(rows))
+            srows, _ = run_engine(args.core, image, w,
+                                  UCORE_LANDED_FLOOR, clocks=len(rows))
             d = fc.diff_rows(rows, srows, limit=len(rows), window=len(rows))
             tot += min(len(rows), len(srows))
             nd += len(d.rows)
@@ -506,7 +569,9 @@ def cmd_score(args):
 
     # --- W-2  the floor, on BOTH tables ------------------------------------
     scored = [v for v in POPF_VARIANTS + ("iret",)]
-    for tab in ("predictions.json", "predictions_corrected.json"):
+    tables = (("predictions.json", "predictions_corrected.json")
+              if args.core == "sim" else (f"predictions-{args.core}.json",))
+    for tab in tables:
         fp = OUT / tab
         if not fp.exists():
             continue
@@ -583,7 +648,8 @@ def cmd_score(args):
                 with gzip.open(OUT / f"{v}_w{w}_r0.rows.json.gz", "rt") as fh:
                     rows = json.load(fh)
                 image, _m = image_of(v)
-                srows, _ = run_sim(image, w, f, clocks=len(rows))
+                srows, _ = run_engine(args.core, image, w, f,
+                                      clocks=len(rows))
                 d = fc.diff_rows(rows, srows, limit=len(rows), window=len(rows))
                 tot += min(len(rows), len(srows))
                 nd += len(d.rows)
@@ -593,8 +659,10 @@ def cmd_score(args):
         print(f"        floor {f}: {tot} rows, {nd} row-diffs"
               + (f"   [{', '.join(worst)}]" if worst else "   EXACT"))
     rep["bars"]["W-6"] = pc
-    (OUT / "score.json").write_text(json.dumps(rep, indent=1))
-    print(f"\nwrote {OUT/'score.json'}")
+    rep["core"] = args.core
+    name = "score.json" if args.core == "sim" else f"score-{args.core}.json"
+    (OUT / name).write_text(json.dumps(rep, indent=1))
+    print(f"\nwrote {OUT/name}")
 
 
 def main():
@@ -603,6 +671,7 @@ def main():
     p = sub.add_parser("predict")
     p.add_argument("--floors", default="1,2,3,4,5,6,7")
     p.add_argument("--waits", default="0,3")
+    p.add_argument("--core", default="sim", choices=("sim", "ucore"))
     p.set_defaults(fn=cmd_predict)
     p = sub.add_parser("run")
     p.add_argument("--waits", default="0,3")
@@ -612,6 +681,10 @@ def main():
     p.set_defaults(fn=cmd_run)
     p = sub.add_parser("score")
     p.add_argument("--floors", default="1,2,3,4,5,6,7")
+    p.add_argument("--core", default="sim", choices=("sim", "ucore"),
+                   help="the ENGINE scored against the retained chip rows: "
+                        "the C++ timed model (sim) or the ucore RTL in the "
+                        "Verilator TB")
     p.set_defaults(fn=cmd_score)
     p = sub.add_parser("idle")
     p.set_defaults(fn=cmd_idle)

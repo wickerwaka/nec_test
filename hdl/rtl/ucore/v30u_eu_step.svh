@@ -47,10 +47,12 @@ S_OPC_POP: if (chain == 4'd0) begin
     // ...and when this pop is an INSTRUCTION BOUNDARY (`bnd_armed` -- a
     // pre-decode-executed predecessor, or the wake from HALT) the recognition
     // is tested FIRST and needs no byte.
-    if (bnd_armed_n && irq_take) begin
+    if (bnd_armed_n && bnd_take) begin
         bnd_armed_n   = 1'b0;
         irq_shadow_n  = 1'b0;
         irq_sel_nmi_n = irq_nmi_lvl;
+        irq_sel_brk_n = !irq_take;      // §86: an EXTERNAL recognition wins
+        brk_arm_n     = 1'b0;           //      ...and the arm is spent either way
         st_n = S_IRQ_D;
         stop = 1'b1;
     end else if (!q_ripe) stop = 1'b1;
@@ -532,9 +534,10 @@ S_EPOP: if (chain == 4'd0) begin
     // `wait_bus()`), so it is taken here whether or not the byte is ripe.
     // The post-`E` row still runs -- the model reaches it through the same
     // `ending` pass -- so the debt is raised exactly as the pop path raises it.
-    else if (irq_take) begin
+    else if (bnd_take) begin
         irq_shadow_n = 1'b0;
         irq_sel_nmi_n = irq_nmi_lvl;
+        irq_sel_brk_n = !irq_take; brk_arm_n = 1'b0;              // §86
         poste_n = 1'b1; pe_opc_reg_n = opc_reg_n; pe_opc8080_n = opc8080_n;
         pe_op8_n = op8_n; pe_pfxcnt_n = pfxcnt_n;
         st_n = S_IRQ_D;
@@ -580,10 +583,11 @@ S_TAIL_W: if (chain == 4'd0) begin
         // model charges nothing for.
         if (opc_valid_n) begin
             st_n = S_INSTR_END;
-        end else if (retire_ok_n && irq_take) begin
+        end else if (retire_ok_n && bnd_take) begin
             // the tail's own boundary, taken right where the model takes it
             irq_shadow_n  = 1'b0;
             irq_sel_nmi_n = irq_nmi_lvl;
+            irq_sel_brk_n = !irq_take; brk_arm_n = 1'b0;          // §86
             st_n = S_IRQ_D;
             stop = 1'b1;
         end else begin
@@ -599,9 +603,10 @@ S_TAIL_POP: begin
     // the same boundary, on the deferred arm (`exec_impl.h`'s second
     // `at_fire_boundary()` call).  `poste` was raised by the `E` row itself
     // here, so only the decision is owed.
-    else if (irq_take) begin
+    else if (bnd_take) begin
         irq_shadow_n = 1'b0;
         irq_sel_nmi_n = irq_nmi_lvl;
+        irq_sel_brk_n = !irq_take; brk_arm_n = 1'b0;              // §86
         st_n = S_IRQ_D;
         stop = 1'b1;
     end
@@ -641,8 +646,15 @@ S_IRQ_D: if (chain == 4'd0) begin
     // particular `xop`, without which the vector fetch's `SR = IO` would be
     // re-classified as a port access (ledger A24), and `op8`, without which
     // 01EC's `2*vector` truncates.
+    // §86 -- THE THIRD DOOR IS THE ONE THAT WAS ALREADY THERE.  The ROM's
+    // 01D8 entry is `CONST 1` at row 0 and `CONST 2` at row 2: the single-step
+    // vector and the NMI vector are the SAME entry, two rows apart, and the
+    // trap needs no new sequence -- only a `loc` of 0 where NMI takes 2.
+    // `FBRK` is cleared on the way in by `I_CITF` (v30u_eu_poste.svh vector 1),
+    // exactly as `FIE` is, so the arm's own floor drains behind the entry and
+    // the handler does not single-step itself.
     upc_page_n = 3'd7;
-    upc_opc_n  = irq_sel_nmi_n ? 8'h00 : 8'h02;   // 01D8 (BRK/NMI) / 01E0 (INTA)
+    upc_opc_n  = (irq_sel_nmi_n || irq_sel_brk_n) ? 8'h00 : 8'h02;
     upc_loc_n  = irq_sel_nmi_n ? 4'd2  : 4'd0;
     if (irq_sel_nmi_n) nmi_latch_n = 1'b0;
     seg_override_n = 1'b0; seg_ovr_n = 2'd3; rep_kind_n = REP_NONE; lock_pfx_n = 1'b0;

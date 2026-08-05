@@ -1,0 +1,194 @@
+{
+ "bars": {
+  "W-0a": {
+   "captures": 18,
+   "entries": 0,
+   "bar": 0,
+   "met": true
+  },
+  "W-1": {
+   "disagreeing_cells": [],
+   "met": true
+  },
+  "W-0b": {
+   "rows": 24372,
+   "ndiff": 0,
+   "bar": 0,
+   "met": true
+  },
+  "W-2": {
+   "predictions-ucore.json": {
+    "per_cell": {
+     "popfnone:w0": [
+      3,
+      4,
+      5
+     ],
+     "popfnone:w3": [
+      4,
+      5,
+      6
+     ],
+     "popfclc:w0": [
+      3,
+      4
+     ],
+     "popfclc:w3": [
+      4,
+      5
+     ],
+     "popfinc:w0": [
+      3,
+      4
+     ],
+     "popfinc:w3": [
+      4,
+      5
+     ],
+     "popftest:w0": [
+      3,
+      4
+     ],
+     "popftest:w3": [
+      4,
+      5
+     ],
+     "popfxchg:w0": [
+      3,
+      4,
+      5
+     ],
+     "popfxchg:w3": [
+      4,
+      5,
+      6
+     ],
+     "popfadd:w0": [
+      3,
+      4,
+      5
+     ],
+     "popfadd:w3": [
+      4,
+      5,
+      6
+     ],
+     "popfmovi:w0": [
+      3,
+      4,
+      5,
+      6
+     ],
+     "popfmovi:w3": [
+      4,
+      5,
+      6,
+      7
+     ],
+     "popfpfx:w0": [
+      1,
+      2,
+      3,
+      4
+     ],
+     "popfpfx:w3": [
+      1,
+      2,
+      3,
+      4,
+      5
+     ],
+     "popfmemr:w0": [
+      3,
+      4,
+      5,
+      6,
+      7
+     ],
+     "popfmemr:w3": [
+      4,
+      5,
+      6,
+      7
+     ],
+     "popfmul:w0": [
+      3,
+      4,
+      5,
+      6,
+      7
+     ],
+     "popfmul:w3": [
+      4,
+      5,
+      6,
+      7
+     ],
+     "iret:w0": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7
+     ],
+     "iret:w3": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7
+     ]
+    },
+    "survivors": [
+     4
+    ],
+    "cells": 22,
+    "cells_matching_3": 13,
+    "misses_at_3": [
+     "popfnone:w3",
+     "popfclc:w3",
+     "popfinc:w3",
+     "popftest:w3",
+     "popfxchg:w3",
+     "popfadd:w3",
+     "popfmovi:w3",
+     "popfmemr:w3",
+     "popfmul:w3"
+    ]
+   }
+  },
+  "W-3": {
+   "met": true,
+   "iret": {
+    "w0": 2,
+    "w3": 2
+   },
+   "popfnone": {
+    "w0": 3,
+    "w3": 3
+   }
+  },
+  "W-4": {
+   "phase2": 0,
+   "not_a_start": 0,
+   "met": true
+  },
+  "W-5": {
+   "pairs": 90,
+   "bad": [],
+   "met": true
+  },
+  "W-6": {
+   "4": {
+    "rows": 121860,
+    "ndiff": 0,
+    "cells_with_diffs": []
+   }
+  }
+ },
+ "core": "ucore"
+}

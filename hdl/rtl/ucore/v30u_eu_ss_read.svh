@@ -124,6 +124,10 @@
                                                 irq_sel_nmi,
                                                 bnd_armed, irq_shadow,
                                                 nmi_latch};
+        // §86: the single-step arm, all of it, in one word -- the TF pipeline
+        // `brk_p`, the ARM, the sample-instant pulse and the trap's kind bit.
+        SSA_E_BRK:                 ss_rdata <= {9'b0, irq_sel_brk, brk_smp,
+                                                brk_arm, 4'(brk_p)};
         // F49 (U4): F25's four-clock reset march position.
         SSA_E_RST_CTR:             ss_rdata <= {13'b0, rst_ctr};
         default: ss_rdata <= 16'h0000;

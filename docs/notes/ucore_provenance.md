@@ -14109,3 +14109,402 @@ final binary:
 | W-3 the `iret`/`popfnone` asymmetry | **phase 2 vs 3, both waits** |
 | W-4 traps taken at a prefix boundary | **0 of 108 entries** |
 | W-5 storm grace | **0 on 90 / 90 pairs** |
+
+## §86 SESSION SM3, SITTING 25 — **THE `ucore`'s BRK/TF LEG IS LANDED AND IT IS FIVE FLOPS. THE SAMPLING BOUNDARY TURNED OUT TO BE ONE PREDICATE, NOT TWO — IT IS THE `QS = 1` POP — AND THE DEPTH IS 4 BECAUSE THE COORDINATE IS ONE CLOCK OVER, WHICH SILICON AND THE TWO ENGINES SAY INDEPENDENTLY. AND `TAIL_EXTRA` IS THE ILLEGAL-FORM HALT THE LEDGER ALREADY WROTE DOWN, ONE FAMILY WIDER.**
+
+Pre-registration: `docs/notes/sm3_s25_prereg_2026-08-05.md`, committed at
+`4cca409483` **before any RTL was edited and before any figure below was
+measured**.
+
+### §86.A THE LANDING — the arm, and the one thing §85.3 asked for twice that is really once
+
+`v30u_eu.sv` + `v30u_eu_step.svh` + `v30u_eu_row.svh` + the two save-state
+includes. **Five flops, no opcode named anywhere:**
+
+* **`brk_p[3:0]`** — `psw[FBRK]` frozen at the same instant and shifted in the
+  same block (g) as `ie_p`, so the floor term is `psw[FBRK] && brk_p[3]`:
+  `ie_p`'s own sentence one bit over.
+* **`brk_arm`** — THE ARM.  §84.7's pure gate is refuted (§85.3); this is a bit
+  SAMPLED at one boundary and TAKEN at the next.
+* **`brk_smp`** — the sample instant, one clock past the boundary's own F pop.
+* **`irq_sel_brk`** — which of the three doors `S_IRQ_D` walks through.
+
+and two events:
+
+* **TAKE** — `bnd_fire = at_bnd && brk_arm`, on the EXISTING boundary wire, at
+  the five sites that already reach `S_IRQ_D`, which also clear the arm.  The
+  entry is the door that was already there: **`01D8` is `CONST 1` at row 0 and
+  `CONST 2` at row 2**, so the single-step vector and the NMI vector are the
+  SAME ROM entry two rows apart and the trap needs a `loc` of 0 where NMI takes
+  2.  `FBRK` is cleared on the way in by `I_CITF`, exactly as `FIE` is.
+* **SAMPLE** — on the clock after an **F pop** (`q_pop && q_ripe && q_first`).
+
+**AND THAT SECOND LINE IS THE SITTING'S SIMPLIFICATION.**  §85.3 asked for "the
+retire boundaries **and** the prefix hand-over", and §84.7 called the prefix
+boundary "THE ONE PLACE THE TWO ENGINES DO NOT ALREADY AGREE".  In this core it
+is **ONE PREDICATE, NOT TWO**: a prefix retires as its own two-clock instruction
+with its own F pop (`prefix_retire()` → `pop_is_first`), and so does the `0F`
+escape's first byte, so *"A PREFIX BYTE ENDS AN INSTRUCTION BOUNDARY"* is
+already what the pop stream says.  **The sampling boundaries are simply the
+opcode pops the `QS = 1` pins announce.**  Nothing was added to say it.  The
+contrast is worth keeping in view: `bnd_armed` exists precisely to EXCLUDE the
+prefix hand-over from the INT recognition ("the measured *no sample between 26
+and 8B*") — sample and take are different events at the same boundary, and the
+RTL now says so in two different wires instead of one commented exception.
+
+Two divergences from the model were **booked in the pre-registration, not
+discovered afterwards**: the trap is not shadowed behind a segment-register load
+(neither engine shadows it; silicon is documented to, this tree has no cell,
+falsifier written down), and `eu_bnd_post` gains an `irq_take` term because the
+prefetcher suspend belongs to the recognition that PAYS the IE floor and the
+trap never pays it.  The second is provably inert: that wire is only ever
+consumed as `eu_bnd_take && eu_bnd_post`, and the old `eu_bnd_take` already
+implied `irq_take`.
+
+### §86.B THE COORDINATE, MEASURED TWICE AND FROM BOTH ENDS — **the depth is 4 and it IS the measured floor of 3**
+
+§85.2b measured the floor at **3 clocks from the rise to the sample instant**.
+It did not say which RTL clock either end of that is.  Both ends were measured
+here, each by a test with **no trap in the loop**, and each was registered
+before it was run.
+
+**(A-0), THE SAMPLE END — the registered bar, and it is §85.2a's own statistic
+on §85.2a's own population.**  On the six TF-CLEAR control captures
+(`notfnone` / `notfclc` / `iretnotf` × w0, w3):
+
+| | measured |
+|---|---|
+| RTL sample clocks that are not exactly one past an emitted `QS = 1` row | **0 of 1,268** |
+| RTL sample stream vs the MODEL's `brk_retire` stream, element for element | **0 mismatches over 1,262 boundaries** |
+| traps taken (TF is clear) | **0** |
+
+The RTL stream is the model's **exactly**, plus ONE extra element at the head —
+the first opcode pop after RESET, where the RTL has a boundary and the model has
+no predecessor instruction to retire.  It samples an arm that reads a cleared
+`FBRK` and it is inert.
+
+**THE RISE END — and this is where the 4 comes from.**  The model stamps the
+rise inside `sample_ie()`, which is called at the TOP of `tick()`, so a PSW bit
+that is up during clock `c` is stamped `rise = c`; block (a) here freezes
+`brk_now` off the same register at the same instant and it reaches `brk_p[0]`
+one flop later.  MEASURED, engine against engine on the cell's own sleds:
+
+> **`rise_sim = rise_rtl + 1` on 8 of 8 first rises** (`popfnone` / `popfclc` /
+> `popfmul` / `iret` × w0, w3).
+
+so the model's `c >= rise + 3` **is** this module's `c >= rise + 4`.  **It is
+not a new constant, and the proof that it is not is already in the tree**: the
+INT gate reads `ie_p[2]` — three flops — where the model's `kIeFloor` is **2**.
+The same offset, on the same kind of pipeline, landed and silicon-validated
+three sittings ago.
+
+**AND SILICON SAYS 4 INDEPENDENTLY, BY §85.2b's OWN METHOD.**  `V30_BRK_FLOOR`
+is the RTL counterpart of `V30SIM_BRKFLOOR` — a compile-time knob that lets the
+engine be wrong on purpose so the table can exist — and the cell was re-scored
+with the `ucore` as the engine at every candidate depth in [1, 7], per clock,
+against all 30 RETAINED captures (**no board contact; the trap is internal and
+the captures are deterministic from RESET**):
+
+| depth | rows | row-diffs |
+|---|---|---|
+| 1 | 121,860 | 71,304 |
+| 2 | 121,860 | 71,304 |
+| 3 | 121,860 | 33,941 |
+| **4** | **121,860** | **0 — EXACT on all 30 captures** |
+| 5 | 121,860 | 14,630 |
+| 6 | 121,860 | 43,762 |
+| 7 | 121,860 | 61,033 |
+
+**One value is exact and nothing else is within four orders of magnitude** — the
+same shape, on the same captures, that gave the model its 3.  *Falsifier,
+written beside the define*: any capture on which a depth other than 4 scores
+fewer row-diffs against silicon than 4 does.
+
+**THE ORDER THIS HAPPENED IN IS STATED PLAINLY, because §85.0's lesson is this
+campaign's.**  The leg was built at depth 3 (§85.3's literal wording), the fuzz
+bank was scored at depth 3 and came in at REGISTERED **1,496** against a
+registered **≥ 1,500** with **2 seeds lost**, and THAT is what sent the cell's
+floor scan out.  The cell did not choose 4 because the bank asked it to: the
+cell was **pre-registered as an owed gate at the landed depth** (A-5 / A-6), it
+would have failed at depth 3 with 33,941 row-diffs whatever the bank said, and
+the rise-coordinate measurement above is independent of both.  The depth-3
+figures are recorded here rather than smoothed.
+
+### §86.C THE CELL, `ucore` LEG — the sharpest gate the trap has, and the model's number is the bar
+
+`python3 sw/sm3_tf_floor_cell.py score --core ucore` (new leg; the `--core sim`
+leg is byte-for-byte what it was and reproduces §85.2b exactly).
+
+| bar | model (§85.2b) | **`ucore`** |
+|---|---|---|
+| **W-6** per clock, every capture | 121,890 rows, **0** row-diffs | **121,860 rows, 0 row-diffs, EXACT on all 30** |
+| **W-2** surviving depths, on that engine's own prediction table | **{3}**, 22 / 22 cells | **{4}**, **22 / 22 cells** |
+| **W-0a** the TF-clear null | 0 entries / 18 captures | **0 / 18** |
+| **W-0b** the clock ruler on the law-free controls | 0 / 24,378 rows | **0 / 24,372 rows** |
+| **W-1** determinism | 30 / 30 cells | **30 / 30** |
+| **W-3** `iret` vs `popfnone` | 2 vs 3, both waits | **2 vs 3, both waits** |
+| **W-4** traps taken AT a prefix boundary · pushed IPs that are not a start | 0 · 0 | **0 · 0** |
+| **W-5** storm grace 0 | 90 / 90 pairs | **90 / 90** |
+
+**W-2's 22/22 includes `popfmemr` and `popfmul`** — the two SATURATED controls
+whose first boundary sits 13 and 25 clocks past the rise and which are what
+refuted §84.7's pure gate.  The RTL reproduces the chip's *one more boundary*
+there, which is the arm being an arm.
+
+### §86.D THE FUZZ BANK — **the prediction was the ELEVEN and the outcome is a PROPER SUPERSET, with ZERO lost over all 3,242**
+
+| gate | before | registered bar | **after** |
+|---|---|---|---|
+| `timed_fuzz --core ucore --evt-replay` REGISTERED | 1,490 / 1,702 | ≥ 1,500 | **1,502 / 1,702** |
+| … EVT | 918 / 1,008 | ≥ 919 | **920 / 1,008** |
+| … COMBINED | 2,408 / 2,710 | ≥ 2,419 | **2,422 / 2,710** |
+| … seed by seed, all 3,242 | — | **no EXACT may be lost** | **0 lost, 65 gained** |
+| `mc2/2361`, the software-`INT 1` control | EXACT | unmoved | **EXACT** |
+
+**ALL ELEVEN PREDICTED SEEDS CLOSED** — `mc1/2034`, `mc1/2952` (EVT),
+`mc1/3090`, `mc2/1107`, `mc2/1718`, `mc2/1738`, `mc2/2960`, `t30-raw/682`,
+`t30-raw/736`, `t30-raw/750`, `t30-raw/768` — the exact set the model gained at
+§84.8, named in the pre-registration off the model's own gains and off a ucore
+baseline re-measured this sitting to the seed.  **THREE MORE SCORED SEEDS CLOSED
+THAT WERE NOT PREDICTED** (`mc2/1567`, `mc2/3278` EVT, `t30-raw/542`) and 51
+`OPEN_BUS` seeds moved to EXACT; the gained set is a PROPER SUPERSET of the
+prediction and it is reported as measured, per A-4.  `BOUND WARNINGS` **5 → 4**,
+`ENGINE ABORTS` **0**, `INVALIDATED` **0**.
+
+**THE FAMILY CENSUS MOVED, AND ONE FAMILY ALMOST VANISHED**
+(`s15_census --core ucore --pop reg`, matched to the report's core):
+
+| family | §58.4 / baseline | **after** |
+|---|---|---|
+| `PF_LOST` | 107 | 111 |
+| `DATA_SEQ` | 41 | 33 |
+| `TAIL_EXTRA` | 28 | 29 |
+| `SCHEDULE` | 5 | 13 |
+| `PF_ADDR` | 9 | 8 |
+| `PIN` | 4 | 4 |
+| **`PF_GAINED`** | **25** | **2** |
+| total | 219 | **200** |
+
+catch-all **EMPTY** in both.  `PF_GAINED` 25 → 2 is the landing's own signature:
+the ucore was running prefetches the chip did not, because the chip had trapped
+and flushed and the ucore had not.
+
+### §86.E THE LADDER — **NOT ONE CELL MOVED DOWN**
+
+| gate | registered | this sitting |
+|---|---|---|
+| `check_core --opcodes all --cases 0` | 169,000 | **169,000 / 169,000** |
+| `v0.1-w1` / `-w3` | 1,200 each | **1,200 / 1,200** each |
+| `v0.1-w1 --opcodes EB` | 200 | **200 / 200** |
+| the four `evt` cells | 200 / 1,200 / 200 / 1,200 | **200 / 1,200 / 200 / 1,200** |
+| `v0.1-w1evt-biased` | 1,200 | **1,200 / 1,200** |
+| `f4a_boundary` · `f0lock_tranche` | 160 · 400 | **160 / 160** · **400 / 400** |
+| the 23 `v0.3` block-I/O forms | 229,999 | **229,999 / 229,999** |
+| `check_boot --timed 220` / `--timed 400` | MATCH | **MATCH over 220 rows** / **MATCH** |
+| `ulockstep --golden all --cases 50` | 17,350 | **17,350 / 17,350** |
+| `timed_wvec_gate --core ucore` | 88 / 88, +0.0 % | **88 / 88, +0.0 %** |
+| `timed_enter_replay --core ucore` | 154 ×5 | **154 / 154** on every leg |
+| `timed_ins_replay --core ucore --raw` | 1,312 / 2,624 | **1,312 / 1,312** and **2,624 / 2,624** |
+| `--seeddir b2-tranche` | 172 / 188 | **172 / 188** |
+| the four HLT sweeps | 279 / 283 | **97 + 93 + 45 + 44 = 279 / 283** |
+| S16 `--core ucore` | 1,320 / 1,371 | **1,320 / 1,371** (the 4 family-D cells, unchanged) |
+| `check_ab_sim` | 187 rows MATCH | **MATCH over 187 rows** |
+| `check_core --ce-div 4 --ce-hold-check` | `CE_HOLD_VIOL 0` | **0 on every form** |
+| `--ss-sweep` modes 1 / 2 / 5 | 80 / 24 / PASS | **80 / 80 · 24 / 24 · 4 / 4 PASS** |
+| G0 `check_ucore_tables` | 9,988 | **9,988, PASS** |
+| `pla3_check` · `simbin --disasm` | 21 · 1,285 | **21** · **1,285 PASS** |
+| `gen_ucore_qsf --check` · `test_artifact` | PASS · 45/45 | **PASS** · **PASS** |
+| the MODEL, unmoved | 1,282 / 789 / 2,071 | **1,282 / 789 / 2,071** (`sim/` was not touched) |
+
+**`ulockstep` IS VACUOUS FOR THIS TRAP and was registered as such before it was
+run**: a single-instruction case has no successor boundary to trap at and the
+case runner leaves the arm off in both engines.  It is a non-regression check.
+The cross-engine proof is §86.C's 30 captures scored against both engines and
+§86.D's seed-level agreement.
+
+**SAVE STATE.**  `ss_lint` rc = 0.  `SS_VERSION` **0x85 → 0x86**, `SS_COUNT`
+**217 → 218**, `SS_EU_COUNT` **116 → 117**, `SS_TAG` **0x85D9 → 0x86DA**, census
+**204 architectural flops, 0 UNMAPPED** (was 200).  ONE address is appended —
+`SSA_E_BRK` at `0x174`, seven bits carrying `brk_p[3:0]`, `brk_arm`, `brk_smp`
+and `irq_sel_brk` — which is the append-only rule as written.  A first form
+borrowed the three spare bits of `SSA_E_PIN_PIPE` and three more in
+`SSA_E_IRQ_LATCH` to avoid adding an address; it was **abandoned before it was
+scored**, because packing five flops of one mechanism into two unrelated words
+to save a map code is exactly the cleverness the package's own note says to
+refuse.
+
+**G6 (SYNTHESIS) IS GREEN.**  One clean CONTROL/DEFAULT build, compile rc 0 in
+573 s: **E1 PASS · E2 PASS** (0 errors, map/fit/asm all Successful) **· E3
+47.01 MHz** (bar ≥ 32) **· E4 +8.97 ns · E5 TNS 0.000 on every domain, setup AND
+hold.**  RECORDED, not barred: **ALMs 11,286 / 41,910 (27 %)** — **+160** on
+sitting 17's 11,126, which is what an arm, a four-deep pipeline and a third
+vector door cost — **0 latches, 0 `lpm_divide`**.  Receipt
+**`c26b887ecf34dec5…`**, input manifest 88 files `9f7125caf51ddc91…`.
+**A bitstream was produced and NOT flashed.**  The board still carries FLASH #9
+and `use_core` was never set: **NO BOARD CONTACT THIS SITTING.**
+
+### §86.F PART B — **`TAIL_EXTRA` IS THE ILLEGAL-FORM HALT, AND THE LEDGER ALREADY WROTE IT DOWN FROM THE OTHER END**
+
+29 shared REGISTERED seeds (`s15_census`'s definition: the cycle sequences agree
+over the whole common prefix, the times agree, and one side launched MORE bus
+cycles).  Surveyed with `fuzz_classify`'s own column policy.
+
+**THE INVARIANT IS UNANIMOUS AND IT IS THREE SENTENCES.**
+
+| | 29 seeds |
+|---|---|
+| the CHIP's last bus cycle is a **`CODE` fetch** | **29 / 29** |
+| the ENGINE's first extra cycle is a **`MEMR`** | **29 / 29** |
+| either side ever drove the **HALT status** | **0 / 29** |
+| the chip's idle tail (`bs = PASV`, **`qs = 0`**, pads frozen) | **957 – 3,906 rows**, to the end of every capture |
+
+So the chip's **EU stops entirely** — it stops popping the queue, the queue
+fills, the prefetcher stops, and the part makes no bus cycle for the rest of the
+window — **without driving `HALT`**.  And what it stops on is one family:
+
+| the form the engine executes across the chip's stop | n |
+|---|---|
+| `62` `CHKIND`/BOUND, `mod == 3` | 8 |
+| `C4` `LES`, `mod == 3` | 6 |
+| `FF` group `/3` (CALL FAR) and `/5` (JMP FAR), `mod == 3` | 5 |
+| `C5` `LDS`, `mod == 3` | 4 |
+| `FE` group `/3` and `/5`, `mod == 3` | 4 |
+| not resolved by this extractor (it names `9D` / `78`, which carry no ModR/M) | 2 |
+
+**`mod == 3` on 27 of 27 resolvable seeds, with no exception**, and every one of
+the five opcodes is a form whose microcode must read a **multi-word operand from
+memory** — a four-byte bound pair, a four-byte far pointer — which a register
+operand cannot supply.
+
+**AND THE LEDGER ALREADY WROTE THIS DOWN**, from the other end and from the
+socket, on 2026-07-27.  `tests/v30/mod3_illegal/metadata.json`, verbatim:
+
+> "BOUND(62)/LES(C4)/LDS(C5) mod3 **HALT on BOTH chip and core** (V20
+> illegal-form halt, ~row 190) - core-correct, NOT fixed."
+
+**What the survey ADDS is `FE` and `FF` at `/3` and `/5`** — the FAR CALL/JMP
+group forms, memory-only for exactly the same reason — which are 9 of the 29 and
+which that metadata does not name.  What it also adds is that the two TIMED
+engines do NOT reproduce the halt (the archived FSM core did), which is the
+whole of `TAIL_EXTRA`.
+
+**CANDIDATES, RANKED BY POPULATION EXPLAINED**
+
+1. **The illegal-form halt: a memory-mandatory microcode sequence given a
+   register operand has no exit, and the part parks with the queue full.**
+   Covers the invariant on 27 / 27 resolvable seeds, is already MEASURED on
+   silicon by task #30, and explains all four columns of the table above
+   including the absence of a `HALT` status (the part is not in HALT; it is
+   stuck).
+2. *A `POLL`/`WAIT` stall.*  **Refuted**: `0x9B` is not the executing form on
+   any of the 29, and the stop is unanimous on a set of five opcodes that share
+   a decode property.
+3. *A capture-window or rig artefact.*  **Refuted by the chip's own rows**: the
+   pads freeze mid-window with `qs = 0` for up to 3,906 further rows and the
+   functional event stream is TRUNCATED (`compare_functional`), so the part
+   really stopped executing.
+
+**DISPOSITION — SURVEYED, NOT LANDED, and the reason is scope, not evidence.**
+One mechanism covers the population, which is the bar the pre-registration set
+for a landing.  It is not taken here because the landing is a change to the
+**SPEC ENGINE's TERMINATION behaviour** — both engines must learn to park
+forever on decode of a named form set — and that needs its own pre-registration
+with its own bars (which suites and goldens contain these forms; what "park"
+means for the model's row emission; whether the archived FSM core's halt row is
+the same instant), plus a full ladder on both engines.  Landing it at the end of
+a sitting that already carries an RTL landing would be exactly the rushed change
+this campaign's method exists to prevent.  **REGISTERED PREDICTION for whoever
+takes it: 29 REGISTERED seeds close, in BOTH engines, and `TAIL_EXTRA` goes to
+0.**  Nothing in `sim/` or `hdl/rtl/` was changed for it.
+
+### §86.G PART C — **`mc1/721` IS DECIDED, AND IT IS A THIRD OUTCOME: BOTH WRITES LAND, IN THE WRONG ORDER**
+
+§49.8 asked which of `9E` SAHF and `F5` CMC fails to land, "because both produce
+CY=1", and named the measurement: *"`SSA_E_PSW` is already in the map, so
+`+ss_at=<clk>` reads PSW out at the boundary between them on the frozen binary,
+no RTL change, against `PSW=` in `v30sim image --trace`."*  **It was run as
+written** (`ss_mode=6`, a new READ-ONLY save-state mode that prints the addressed
+stream and restores it), and the PSW walk over clocks 294-315 shows **exactly
+one change in the window: CY 0 → 1**.  That does not separate the two, so the
+two writes were instrumented directly:
+
+```
+1BL clk=303  pre=f202 post=f203                 <- F5 CMC, flipping CY 0 -> 1
+PE  clk=304  pre=f203 post=f203  upc=9e2        <- 9E SAHF's post-E row 007E,
+                                                   `tmpa -> FLAGS`, ONE CLOCK LATER
+```
+
+**NEITHER WRITE IS LOST.  THEY COMMIT IN THE WRONG ORDER.**  `9E`'s flag write
+is not on its `E` row at all — the ROM is
+
+```
+007C AL:AH  -> tmpaL          007D FLAGS -> tmpaH   E          007E tmpa -> FLAGS
+```
+
+so the write lives on the **POST-`E` row**, and the model runs the post-`E` row
+BEFORE the successor's step — `v30u_eu_poste.svh`'s own header says so in as
+many words.  Here the successor's `ONE_BYTE_LOGIC` strobe gets there first, and
+the post-`E` then writes the same value back on top of it.  Model **CY = 0**
+(`f202`), ucore **CY = 1** (`f203`) — §49.8's *"CY=1 where the model has CY=0"*,
+exactly, and the `sigma` that differs by 1 two instructions later follows.
+
+**THE MECHANISM, NAMED.**  Block (b) discharges `poste` at the TOP of an edge.
+On the **E-row PRE-POP path** (`row_epop`) `poste_n` is raised INSIDE the chain,
+and the successor's zero-cost loader steps — `S_TAIL → S_INSTR_END →
+S_TAKE_OPC → S_DECODE → S_DECODE2` and its 1BL write — ride the SAME edge, after
+block (b) has already run.  The post-`E` therefore slips to the next clock.
+**The golden suite cannot see it**: with no pre-pop the successor's steps ride
+the NEXT clock and block (b) gets there first, which is why `9E` is
+169,000 / 169,000 arch-exact.
+
+*Falsifier*: any `<ROM form whose post-`E` row writes a register>` followed by a
+`<1BL form that writes the same register>` with a PRE-POPPED successor, where
+the ucore's final value is the successor's write rather than the post-`E`'s.
+
+**THE FIX IS SPECIFIED AND NOT TAKEN.**  Discharge `poste` inline at the point
+it is raised when the chain continues in the same edge.  Predicted effect:
+`mc1/721` closes (`ndiff` 2).  It is not taken this sitting because it moves the
+**chain's discharge order**, which is the most load-bearing ordering in the
+module (F11 / F11b / F22 / F23 all live on it), and it needs its own
+pre-registration and its own ladder rather than a same-sitting patch.
+
+### §86.H PART C — **`mc2/584` IS NOT DIAGNOSED, AND THAT IS THE BOOKED STATE**
+
+`wrand wmax=15`.  The first divergence is a **MISSED `F` POP at row 1135**,
+inside an eight-clock wait run of a `CODE` fetch: the chip pops a first byte
+there and **so does the model**; the `ucore` does not.  Seven rows later the
+`ucore`'s next fetch redirects to `0x00535` where the chip continues
+sequentially to `0x00538`, and the run parts for 404 rows.  It is a
+queue-availability difference under a long wait run — the `qs` / `PF_LOST`
+family — and it is **NOT the trap and NOT §86.G's post-`E` order**.  No
+mechanism is named and none is guessed.
+
+**SO THE `ucore`'s OWN REGISTERED RESIDUE IS STILL TWO, NOT ZERO.**  `mc1/721`
+is now diagnosed to the clock with a named mechanism and a specified fix;
+`mc2/584` is not.  The sitting's own bar was "closing them takes the ledger to
+ZERO", and it did not.
+
+### §86.I THE RATCHETS THAT MOVED
+
+| gate | before | after |
+|---|---|---|
+| `timed_fuzz --core ucore` REGISTERED | 1,490 / 1,702 | **1,502 / 1,702** |
+| … EVT | 918 / 1,008 | **920 / 1,008** |
+| … COMBINED | 2,408 / 2,710 | **2,422 / 2,710** |
+| `ss_lint` `SS_VERSION` / `SS_COUNT` / flops | 0x85 / 217 / 200 | **0x86 / 218 / 204** |
+| G6 Fmax · ALMs | 45.49 MHz · 11,126 | **47.01 MHz · 11,286 (27 %)** |
+| **NEW** `sm3_tf_floor_cell score --core ucore` W-6 | — | **121,860 rows, 0 row-diffs, depth 4, all 30 captures** |
+| **NEW** … the same at depths 1, 2, 3, 5, 6, 7 | — | 71,304 / 71,304 / 33,941 / 14,630 / 43,762 / 61,033 |
+
+Everything else in §86.E is UNMOVED.  **The MODEL's columns are untouched**
+(1,282 / 789 / 2,071): `sim/` was not edited this sitting.
+
+### §86.J WHAT THIS SITTING DID NOT DO
+
+* **NO BOARD CONTACT, NO FLASHING, `use_core` NEVER SET.**  The board still
+  carries FLASH #9; a G6 bitstream was produced and not flashed.
+* **`TAIL_EXTRA` is SURVEYED and NOT landed** (§86.F gives the mechanism and the
+  reason).  `mc1/721`'s fix is SPECIFIED and NOT landed (§86.G).
+* H3-B, the `8F` mod-3 ghost cell (§84.6), model-architecture work and the
+  8080/BRKEM gap were not opened.  No memory file was touched.  Codex was not
+  launched.
