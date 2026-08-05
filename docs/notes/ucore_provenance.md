@@ -11619,3 +11619,357 @@ Everything else in `standing_gates.md` §B was re-measured, not inherited.
   and are now visible in a golden suite for the first time.
 * **The 8080 work and H3-B were not opened.  No memory file was touched.
   Codex was not launched.**
+
+## §78 SESSION SM3, SITTING 17 — **THE 42 CELLS ARE NOT H7.  THEY ARE THE MISSING NMI HALF OF F43's HALT-DISPLAY SUPPRESSION, AND THE LAW IS ONE SENTENCE WITH ONE CONSTANT PER PIN: `A <= H - K`, `K = 3` ON INT AND `K = 6` ON NMI.  LANDED IN THE ucore WITH NO FLOP ADDED, +42 / −0 CELL FOR CELL.**
+
+**2026-08-05, branch `ucsim`, from HEAD `6e4c60cce6`.  NO BOARD CONTACT — the
+authorising population is sitting 16's S16 walk, captured before any of this
+existed; `use_core` was never set, nothing was flashed, and no capture was
+taken.**
+
+> **Standing principle, applied throughout.**  *"A guiding principal here needs
+> to be simplicity.  This is 80's era hardware, they aren't wasting silicon on
+> anything that isn't necessary.  Complex or confusing behavior that we see is
+> likely to be simple systems interacting in ways you do not fully understand
+> yet."*
+
+The pre-registration is `docs/notes/sm3_s17_prereg_2026-08-05.md`, committed as
+`d6e2d852cb` **before `hdl/rtl/ucore/**` was touched**, and this section reports
+against it and does not restate it.
+
+### §78.A THE INSTRUMENT — `sw/sm3_haltsupp.py`, and it asks ONE question
+
+New MEASUREMENT tool (never a gate).  It reads the S16 cell's retained
+per-clock rows (`sw/testdata/sm3-s16cell/`, 1,512 captures) and the emitted
+goldens, and puts every cell in one coordinate:
+
+    arm   the capture row of the CODE T1 at the case's anchor -- the row the
+          rig's `ev_st` FSM arms on (`nec_bus.sv` 486-527)
+    A     the row the pin goes HIGH on = arm + delay + 2
+    H     the row the HALT status appears on.  H is a property of the
+          (form, program, wait level) and NOT of the delay: **8 / 12 / 14 / 16**
+          at w0 / w1 / w2 / w3, on all 18 programs.
+
+### §78.B THE SILICON LAW — F54, AND IT IS **ONE CONSTANT PER PIN**
+
+A `HLT` whose pin event arrives early enough **never puts a HALT status on the
+bus at all**.  The part still executes the HALT — the pushed frame is the one
+AFTER the `F4`, which is exactly why `emit_evt_case`'s `recognition off-window`
+guard composes these cases instead of rejecting them — and the ANNOUNCEMENT is
+cancelled.
+
+| form | pin | ie | largest `A − arm` that suppresses, w0 · w1 · w2 · w3 | **K = H − that** |
+|---|---|---|---|---|
+| `HLT.INT` | INT | 1 | 5 · 9 · 11 · 13 | **3** |
+| `HLT.RES` | INT | 0 | 5 · 9 · 11 · 13 | **3** |
+| `HLT.NMI` | NMI | either | 2 · 6 · 8 · 10 | **6** |
+
+> **F54.  The HALT announcement at clock `H` is cancelled iff the pin event's
+> assert clock `A` satisfies `A <= H − K`, with `K = 3` on the INT pin and
+> `K = 6` on the NMI pin.**
+
+**Invariant over the wait level** (4), **over the program** (6 per form,
+spanning all three S16 nibble classes) and **over IE** (`HLT.INT` ie=1 and
+`HLT.RES` ie=0 share `K = 3`).  126 cells behind every table entry, **no
+exception in 1,512**.  There is no per-delay table here and no second HALT
+rule: two integers, one per pin.
+
+*Falsifier, registered*: a silicon capture whose HALT announcement fires with a
+pin event at `A <= H − K`, or is cancelled with one at `A >= H − K + 1`.
+
+### §78.C **§77.E's H7 ATTRIBUTION IS WITHDRAWN**, and the proof is one row index
+
+§77.E read the 42 `HLT.NMI` cells as *"the recognition-floor / `0x0008`
+NMI-vector class (**H7**)"*.  That is wrong, and the measurement that says so
+needs no board:
+
+* the FIRST divergence is `(row, busstat) PASV -> HALT` on **42 / 42**;
+* on **36 / 42** the golden and the ucore put the NMI vector read (`MEMR` T1 at
+  `0x00008`) at the **IDENTICAL row index** and the captures are the **same
+  length**.  The 6 exceptions are ALL `w3 d7` (one per program): there the
+  ucore's window is one row longer and the vector read is pushed past the
+  window close, which is the spurious HALT's own displacement and not a
+  different recognition instant — the first divergence on those six is the same
+  `PASV -> HALT`;
+* on the same population the NMI vector read is **`A + 14` on 372 / 372**
+  halted cells with no exception, and 13 or 14 on the 132 suppressed/running
+  ones — i.e. the S16 population's NMI floor is **13**, which is where BOTH
+  engines already are.
+
+So the recognition timing was never in question on these cells; only whether
+the announcement fires.  **H7's evidence set LOSES 42 cells and GAINS a fourth
+directed population** (1,512 captures at floor 13/14, alongside `sm3_h7_cell`'s
+160 and `sm3_h7_opcode`'s 640).  **H7 stays BLOCKED**, untouched otherwise.
+
+> **ERRATUM against the pre-registration, and the prereg is LEFT AS COMMITTED.**
+> `sm3_s17_prereg_2026-08-05.md` §2.3 states the identical-row / same-length
+> result *"on the band cells"* without qualification.  It holds on **36 of 42**,
+> as measured above; the six `w3 d7` cells are the exception and are stated
+> there.  The document is NOT edited — it is the record of what was believed
+> before the RTL was touched — and the correction lives here.  The load-bearing
+> half of the claim, the first divergence being `PASV -> HALT`, is **42 / 42**
+> and is unaffected.
+
+### §78.D WHY NO POPULATION HAD EVER SHOWN IT
+
+`HLT.NMI` is in no HLT delay sweep (§77.E).  The three standing `HLT.NMI`
+golden suites are `v0.1` **200** · `v0.2` **1,000** · `v0.3` **10,000** =
+**11,200 cases**, every one at `delay >= 8`, and **every one of them carries a
+HALT status**.  At w0 the band is `d <= 0`.  The S16 cell is the first
+population in the tree to sample `d <= 8` on this form — which is also why the
+landing cannot move them.
+
+### §78.E THE ucore's DEFECT, DERIVED BEFORE IT WAS TOUCHED
+
+The INT half is already right, and it is right in TWO places: `eu_unhalt`
+clears the BIU's `halt_pending` outright (`v30u_biu.sv`, `if (eu_unhalt)`),
+covering every `A <= H − 4`, and F43's `eu_unhalt_disp` covers the single
+remaining `D == H` clock.  **`sm3_haltsupp.py engine --core ucore` scores the
+INT half at 0 disagreements over 1,008 cells, all four wait levels, both
+forms.**
+
+The NMI wake reaches NEITHER path until `unhalt_pend`, which `S_IRQ_D` sets at
+`c0 + 2` and which therefore reads true only from `c0 + 3 = A + 7`
+(`c0` = the first `S_HALTED` clock with `nmi_latch` up, and `nmi_latch` reads
+true from `A + 4`).  Suppression then needs `A + 7 <= H − 1`, i.e. **`A <= H − 8`
+— which is exactly the measured ucore threshold.**  The arithmetic was checked
+against the data *before* anything was changed, and it is what the two
+candidates were written on.
+
+### §78.F **CANDIDATE V-A — BUILT TO BE REVERTED, AND ITS PREDICTION IS HALF MET AND HALF MISSED.  REPORTED AS REGISTERED.**
+
+`hlt_wake_disp = (st == S_HALTED) && (int_p[1] || nmi_latch)`.  §3.3 registered:
+*"closes all 42 AND breaks exactly 24 currently-PASSING cells — `HLT.NMI` at
+w0 d1 · w1 d5 · w2 d7 · w3 d9, all six programs"*.
+
+| | registered | **measured** |
+|---|---|---|
+| breaks exactly 24, at `A = H − 5` | 24 at those coordinates | **24, at exactly `w0 d1 · w1 d5 · w2 d7 · w3 d9`, all six programs** — **MET** |
+| closes all 42 | 42 | **0** — **MISSED** |
+
+**P1 is a REGISTERED FAILURE as a conjunction**, and the half that missed is
+the informative one.  `eu_unhalt_disp` is a ONE-CLOCK test taken at the edge
+ending `H − 1`, and `(st == S_HALTED) && irq_nmi_lvl` is true for exactly one
+clock (`c0`) because the EU leaves `S_HALTED` on that very edge.  So the term
+can only ever fire when `c0 == H − 1`, i.e. at `A == H − 5` and nowhere else —
+which is precisely the 24 cells it broke and the reason it closed none of the
+42.  The clock arithmetic of §78.E is therefore **confirmed to the clock**, and
+what it corrected is the MECHANISM assumption: the durable suppression for INT
+is `halt_pending` being cleared, not the one-clock display test.  Total row
+failures went 92 → 116; the RTL was restored.
+
+### §78.G **THE LANDING — F54, AND IT ADDS NO FLOP**
+
+`hdl/rtl/ucore/v30u_eu.sv` only:
+
+```systemverilog
+wire hlt_wake_nmi_disp = eu_halted && (st != S_HALTED);
+assign eu_unhalt_disp  = hlt_wake_disp || unhalt_pend || hlt_wake_nmi_disp;
+```
+
+`eu_halted` and `st <= S_HALTED` are written in the **SAME arm** (`S_DECODE2`),
+so the term is false everywhere before the HALT; and the INT wake clears
+`eu_halted` in the same arm that leaves `S_HALTED`, so it is false there too.
+**It is NMI-specific by construction, not by a pin test.**  It is true across
+`c0+1 .. c0+2` and `unhalt_pend` takes over at `c0+3`, so the union is
+`c >= c0+1` with no gap: the display decided at the edge ending `H − 1` is
+cancelled iff `c0 + 1 <= H − 1`, i.e. `A + 5 <= H − 1`, i.e. **`A <= H − 6`**.
+No flop, no pin tap, no constant, no state.
+
+### §78.H THE RESULT, REPORTED AS REGISTERED
+
+| | registered bar | **measured** |
+|---|---|---|
+| **P2** V-B closes 42, breaks 0 | 42 / 0 | **42 / 0** — **MET** |
+| **P3** engine's suppressing-`d` set identical to the golden's, 12 (form, wait) cells | 0 disagreements | **0**, all three forms, all four wait levels — **MET** |
+| **L1** all 42 band cells PASS | 42 | **42** — **MET** |
+| **L2** zero currently-PASSING S16 cell fails | 0 | **0** — **MET** |
+| **L3** S16 total >= 1,294 | 1,294 | **1,294 / 1,371** — **MET at the point estimate** |
+| **L4** the four HLT sweeps >= 273 | 273 | **273 / 283** = `91/97 · 93/95 · 45/46 · 44/45` — **MET, unmoved** (they carry no `HLT.NMI`) |
+| **L5** the standing ladder unmoved | — | **MET**, itemised in §78.J |
+| **L6** `sm3_haltsupp engine` 0 disagreements | 0 | **0** |
+| falsifier 1 | any currently-PASSING cell fails | **DID NOT FIRE** |
+| falsifier 2 | `check_core` below 169,000 | **DID NOT FIRE** — **169,000 / 169,000** |
+| falsifier 3 | `ulockstep` below 17,350 | **DID NOT FIRE** — **17,350 / 17,350** |
+| falsifier 4 | the four HLT sweeps below 273 | **DID NOT FIRE** |
+| falsifier 5 | `NMI.90` / `NMI.B8` move | **DID NOT FIRE** — **200 / 200 each**, cycles AND arch |
+
+**No falsifier fired, so the change STANDS.**
+
+#### §78.H.1 THE CONTROL — THE SAME POPULATION, THE PRE-F54 BINARY
+
+The RTL was reverted, rebuilt, the whole cell re-scored with `--save`, then
+restored, rebuilt and re-scored again.  **This is the attribution:**
+
+| | pre-F54 | **F54** |
+|---|---|---|
+| S16 total | 1,252 / 1,371 | **1,294 / 1,371** |
+| w0 · w1 · w2 · w3 | 340 · 316 · 306 · 290 | **346 · 328 · 318 · 302** |
+| §77.E's L3 residue (`busstat_other`) | **52** | **10** |
+| family-A/C nibble signatures (L1) | 0 | **0** |
+| family-E `ube` signatures (L2) | 0 | **0** |
+| architectural failures | 33 | **27** |
+| **cells gained / lost, cell for cell** | — | **+42 / −0** |
+
+The 42 gained are, exactly: `w0 HLT.NMI d0` · `w1 d3,4` · `w2 d5,6` ·
+`w3 d7,8`, six programs each.  **Nothing else in 1,371 cells moved in either
+direction.**  Six of the 42 were also architectural failures (the `w0 d0` cell,
+whose pushed frame the spurious HALT displaced), which is why the arch column
+falls 33 → 27; no arch failure was created.
+
+### §78.I **THE MODEL — MEASURED, BOOKED, NOT LANDED**
+
+`sm3_haltsupp.py engine --core sim`, scored through `timed_gate`'s own
+`case_result` so the dontcare mask is the standing one:
+
+| form | silicon's largest suppressing `d`, w0·w1·w2·w3 | the MODEL's | gap |
+|---|---|---|---|
+| `HLT.RES` | 3 · 7 · 9 · 11 | **3 · 7 · 9 · 11** | **EXACT** |
+| `HLT.INT` | 3 · 7 · 9 · 11 | **2 · 4 · 5 · 6** | short by 1 · 3 · 4 · 5 |
+| `HLT.NMI` | 0 · 4 · 6 · 8 | **none at any composable delay** | the whole law |
+
+`sim/` was **NOT TOUCHED** (`git diff -- sim` EMPTY), and the model additionally
+lacks F53, so its S16 row score is dominated by the display nibble and is not a
+usable bar for this.  **The next sitting has a bar it can write on this table.**
+That the model gets the ie=0 form exactly right and the ie=1 form wrong at every
+wait level is itself the lead: whatever it does, it is not one rule for the pin.
+
+### §78.I.1 **FAMILY B, RE-DIAGNOSED — IT IS ONE SENTENCE WITH TWO OUTCOMES, AND IT IS THE WAKE'S FIRST PREFETCH, ONE CLOCK LATE**
+
+The scope allowed family B as a bonus if the NMI law landed cleanly.  It was not
+opened, but it WAS diagnosed, and the diagnosis is sharper than §77.A.3's:
+
+The post-F54 residue is **77 cells**: 50 row-failing (first-divergence classes
+`busstat_other` **10** · `B_late` **16** · `D_tstate` **24**) and 27
+architectural.  **Fourteen of the 50 are ONE divergence at ONE row**, and they
+carry ALL TEN of the `busstat_other` residue plus four of the `B_late`: they are
+`HLT.INT` w0 d2 and d3 (p0,p3,p4,p5) and `HLT.RES` w0 d2 and d3 (p1,p3,p5) —
+i.e. the TOP TWO delays of the INT suppression band at w0, `A − arm` in
+{4, 5} = {H−4, H−3}.  On every one of the fourteen the golden's row 4 carries a
+**`CODE` display clock** — the wake's first prefetch announcement — and the
+ucore's row 4 is `PASV`:
+
+| cells | golden row 4-6 | ucore row 4-6 | n diffs |
+|---|---|---|---|
+| `HLT.RES` d2/d3, 6 cells | `CODE Ti` … | `PASV Ti`, then the SAME fetch one clock later | **3** |
+| `HLT.INT` d3, 4 cells | `CODE Ti · CODE T1 · CODE T2` | `PASV Ti · CODE Ti · CODE T1` | 158-212 |
+| `HLT.INT` d2, 4 cells | `CODE Ti · CODE T1 · CODE T2` | `PASV Ti · PASV Ti · INTA Ti` | 179-245 |
+
+**One mechanism, two outcomes**: the wake's prefetch announcement is issued ONE
+CLOCK LATE, and at `d2` that one clock puts it past the acknowledge's own slot,
+so the fetch is not late — it is LOST, and the ucore goes straight to `INTA`.
+§77.E read two of those groups as *"the same regime, opposite outcome"*; they
+are the same clock.  The regime is specifically **the suppressed-announcement
+one**
+— these are cells where F54's law cancelled the HALT display, so there is no
+HALT pseudo-cycle for the wake to come out of, and it is at **w0 only**.
+
+It is **MODEL-SHARED** (§76.B.2), so `sim/` owns the mechanism, and it is
+**BOOKED, NOT LANDED**: it is a prefetch-release clock, a different mechanism
+from F54's display cancel, and folding it in after the ladder had been run would
+be exactly the fitting this campaign forbids.
+*Falsifier for whoever takes it*: move the wake's prefetch release one clock
+earlier in this regime and all 14 must close while the four HLT sweeps and the
+11,200 `HLT.NMI` goldens do not move.  **The remaining 36 row-failing cells are
+NOT this** — they are `HLT.INT` at w0 d4,d5 · w1 d8,d9 · w2 d12 · w3 d15, the
+family-D two-sample class §77.A.2 booked with its own falsifier, and they are
+untouched here.
+
+### §78.J THE LADDER — EVERY CELL RE-RUN ON THE FINAL BINARY
+
+`Vtb_v30_core` **inputs sha `9fb97ea436e55177…`** (receipt id
+`445d1add69509624…` for the ladder run; a later identical rebuild is
+`a385f54004f51536…`, same inputs hash, so the two are the same function of the
+same files — the id carries the timestamp, the inputs hash carries the tree).
+
+| gate | standing | **measured** |
+|---|---|---|
+| `check_core --core ucore --opcodes all --cases 0` | 169,000 | **169,000 / 169,000** |
+| — of which `NMI.90` · `NMI.B8` · `HLT.NMI` · `HLT.INT` · `HLT.RES` | 200 each | **200 / 200 each**, cycles AND arch |
+| `v0.1-w1` / `-w3` | 1,200 each | **1,200 / 1,200** each |
+| `EB` at w1 | 200 | **200 / 200** |
+| the four `evt` cells | 200 / 1,200 / 200 / 1,200 | **identical** |
+| `w1evt-biased` | 1,200 | **1,200 / 1,200** |
+| `f4a_boundary` / `f0lock_tranche` | 160 / 400 | **160 / 160** and **400 / 400** |
+| the 23 `v0.3` block-I/O forms | 229,999 | **229,999 / 229,999** cycles AND arch |
+| `check_boot --timed 220` / `--timed 400` | MATCH | **MATCH over 220 rows** / **over 400 rows** |
+| `ulockstep --golden all --cases 50` | 17,350 | **17,350 / 17,350 ALL CASES LOCKSTEP** |
+| `timed_wvec_gate --core ucore` | 88/88, +0.0 % | **88/88, 16,048 vs 16,048, +0.0 %** |
+| `timed_enter_replay --core ucore` | 154 ×5 | **154/154 ×5** |
+| `timed_ins_replay --core ucore --raw` | 1,312 / 2,624 | **rails 1,312/1,312 · vs-chip 2,624/2,624**, 173,556/173,556 same-T1 |
+| `timed_fuzz --core ucore --evt-replay` | REGISTERED 1,490 · EVT 913 · COMBINED 2,403 | **1,490 · 913 · 2,403**, `BOUND WARNINGS` 5, `ENGINE ABORTS` 0 |
+| `timed_fuzz … b2-tranche` | 172/188 | **172 / 188** (V5 still the standing REGISTERED FAILURE) |
+| `ss_lint` | rc 0, 201 flops, 0 UNMAPPED | **PASS — 201 architectural flops (BIU 83, EU 118), 0 UNMAPPED, 2 whitelisted.**  NO FLOP WAS ADDED, so `SS_VERSION` / `SS_COUNT` / the map do not move |
+| save-state sweeps, modes 1 / 2 / 5 | 80 · 24 · PASS | **80/80 · 24/24 · 4/4** |
+| `check_core --ce-div 4 --ce-hold-check` | `CE_HOLD_VIOL 0` | **`CE_HOLD_VIOL 0` on all 347 forms, 169,000/169,000** |
+| `check_ab_sim` | 187 rows MATCH | **MATCH over 187 rows** |
+| `check_ucore_tables` (G0) | 9,988 | **PASS, 9,988 byte-identical on both legs** |
+| `pla3_check` · `simbin --disasm` · `test_artifact` | 21 · 1,285 · 45/45 | **OK (21)** · **PASS (1,285 rows)** · **NON-VACUOUS (45/45)** |
+| the four HLT sweeps | 273/283 | **273 / 283** — unmoved |
+| **the MODEL** | — | **NOT TOUCHED.  `git diff -- sim` EMPTY**; `timed_gate` on the five HLT/NMI forms **1,000 / 1,000, row-diffs 0** |
+
+### §78.J.1 **G6, THE QUARTUS LEG — RAN AND IS GREEN**
+
+`standing_gates.md` triggers it on any commit touching `hdl/rtl/ucore/**`, and
+F54 does.  `sw/quartus_gate.py --label "SM3-s17 F54"`, ONE clean CONTROL/DEFAULT
+build from a deleted `db`/`incremental_db`, **compile rc 0 in 524 s**:
+
+| | bar | **measured** |
+|---|---|---|
+| **E1** `gen_ucore_qsf --check` | green | **PASS** — `nec_test_ucore.qsf` up to date |
+| **E2** 0 errors, every stage `Successful` | 0 | **PASS** — 0 stage errors, 0 error lines; map, fit and asm all Successful |
+| **E3** `divclk` Fmax | ≥ 32 MHz | **PASS — 45.49 MHz** (the other three domains 144.40 / 71.37 / 59.96) |
+| **E4** worst setup slack | > 0 | **PASS — +9.146 ns** |
+| **E5** TNS, setup AND hold, every domain | 0.000 | **PASS — 0.000 on all four domains, both directions** (worst holds +0.256 / +0.278 / +0.390 / +0.601) |
+
+RECORDED, NOT BARRED: **ALMs 11,126 / 41,910 (27 %)** — it was 11,058 (26 %) at
+F53, i.e. **+68 ALMs**, which is what a term added to one mux costs and is the
+only resource move — 6,110 fit registers (F53: 6,111), **0 latches, 0
+`lpm_divide`**.  Receipt `d7e27e7c4fe810bc…`
+(`hdl/output_files_ucore/quartus_gate.json`, appended to
+`sw/testdata/receipts/quartus_bitstream.jsonl`), input manifest **88 files
+sha256 `567b11fffd6414a6…`**.
+
+*Two things must be said plainly.*  (a) The receipt records the tree as
+**`d6e2d852cb-dirty`** — `d6e2d852cb` is this sitting's own pre-registration
+commit and the dirt is F54's one file plus these docs; the 88-file manifest
+covers `hdl/`, and the only tracked `hdl/` change in the tree is
+`hdl/rtl/ucore/v30u_eu.sv`, i.e. F54 itself.  (b) **A bitstream WAS PRODUCED and
+was NOT FLASHED**: `nec_test_ucore.sof b4e818965e2bee59…`, `.rbf
+fc3cb1816ff3b007…`.  **The board still carries FLASH #6**, which predates both
+F53 and F54.  **§74.4 still governs any single Fmax figure**: one green build
+establishes repeatability of one draw, not closure.
+
+### §78.K THE RATCHETS THAT MOVED, ITEMISED
+
+| ratchet | before | **after** | which change |
+|---|---|---|---|
+| the S16 display walk | 1,252 / 1,371 (§77.D.1) | **1,294 / 1,371** | F54 |
+| — per wait level | 340 · 316 · 306 · 290 | **346 · 328 · 318 · 302** | F54 |
+| §77.E's L3 residue | 52 | **10** | F54 |
+| S16 architectural failures | 33 | **27** | F54 |
+| **everything else in `standing_gates.md` §B** | — | **re-measured, not inherited; not one figure moved** | — |
+
+### §78.L WHAT THIS SITTING DID NOT DO, AND THE STATE IT LEAVES
+
+* **NO BOARD CONTACT, NO FLASHING, `use_core` NEVER SET.**  Nothing here has
+  been measured in fabric; the board still carries FLASH #6, which predates
+  both F53 and F54.  A fabric leg is the obvious next confirmation and it is
+  **NOT claimed**.
+* **H7 IS STILL BLOCKED.**  §78.C removes 42 cells from its evidence set and
+  adds a fourth directed population at floor 13; the bank's 30 `A + 12` seeds
+  are untouched.  Two axes were eliminated this sitting and are booked here so
+  they are not re-run: **(i)** the arm is not ambiguous — of the 30 gap-12
+  seeds **28 have exactly ONE CODE T1 at the anchor** in the whole capture, so
+  "the rig armed on a different occurrence than the analysis" is REFUTED;
+  **(ii)** the divider is not it — `check_seq.run_chip` and `emit_suite` both
+  pin `DIV_OF_RECORD = 8`, and `NEC_NMI` is combinational off `ev_drive`, which
+  moves only on `tick_rise`.  **The live statement is now sharper than it was**:
+  three directed populations totalling **2,312 captures** floor at 13 and the
+  banked soup is the ONLY population in the tree that reaches 12.
+* **The bank cannot test F54**: of 1,165 banked `evt` seeds, **693** carry a
+  HALT status in-window and **exactly ONE of them is a pin-1 seed**.  The law's
+  independent validation has to come from a new population or from fabric.
+* **`sim/` was not touched**; §78.I's model gaps are booked with their numbers.
+* **Family B, family D, the 8080 work and H3-B were not opened.  No memory file
+  was touched.  Codex was not launched.**

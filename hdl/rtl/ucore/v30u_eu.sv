@@ -1586,7 +1586,40 @@ assign eu_unhalt = hlt_wake_int || unhalt_pend;
 // SAME EDGE one stage further down: `int_p[1]`, the pin at `c-2`.  Both taps
 // are `edge - 4`; what changed is the REFERENCE EDGE (F40's shape).
 wire hlt_wake_disp = (st == S_HALTED) && !irq_nmi_lvl && int_p[1];
-assign eu_unhalt_disp = hlt_wake_disp || unhalt_pend;
+
+// F54 (SM3 sitting 17) -- ...AND THE NMI HALF OF THE SAME SENTENCE.  MEASURED
+// on the S16 display walk, 1,512 retained captures, `sw/sm3_haltsupp.py chip`:
+// the HALT announcement at `H` is cancelled iff the assert clock `A` satisfies
+// `A <= H - K`, with **K = 3 on the INT pin and K = 6 on the NMI pin** --
+// one value per pin, invariant over the four wait levels, over six programs
+// per form, and over IE (`HLT.INT` ie=1 and `HLT.RES` ie=0 share K=3).
+//
+// The INT half is already right, and it is right in TWO places: `eu_unhalt`
+// clears the BIU's `halt_pending` outright (`v30u_biu.sv` "if (eu_unhalt)"),
+// which covers every `A <= H-4`, and `eu_unhalt_disp` above covers the single
+// remaining `D == H` clock.  The NMI wake reaches NEITHER until `unhalt_pend`,
+// which `S_IRQ_D` sets at `c0+2` and which therefore reads true only from
+// `c0+3 = A+7` -- so the ucore's effective K was **8**, and the 42 S16 cells
+// at `A` in {H-7, H-6} are exactly that difference.  (S17 candidate V-A put
+// `irq_nmi_lvl` in `hlt_wake_disp`; that test is ONE clock long, so it reached
+// exactly `A == H-5` and nothing else.  It broke the 24 cells that predicts
+// and closed none of the 42 -- registered, measured, reverted.)
+//
+// `c0` is the first `S_HALTED` clock with `nmi_latch` up.  The EU leaves
+// `S_HALTED` on that edge and does not clear `eu_halted` until `S_IRQ_D`, so
+// `eu_halted && (st != S_HALTED)` is true across `c0+1 .. c0+2` and
+// `unhalt_pend` takes over at `c0+3`: the union is `c >= c0+1`, and the
+// display decided at the edge ending `H-1` is therefore cancelled iff
+// `c0 + 1 <= H - 1`, i.e. `A + 5 <= H - 1`, i.e. **`A <= H - 6`**.
+// NO FLOP IS ADDED and no pin is tested: `eu_halted` and `st <= S_HALTED` are
+// written in the SAME arm (`S_DECODE2`), so the term is false everywhere
+// before the HALT, and the INT wake clears `eu_halted` in the same arm that
+// leaves `S_HALTED`, so it is false there too.  It is NMI-specific by
+// construction.
+//   *Falsifier*: a silicon capture whose HALT announcement fires with the NMI
+//   asserted at `A <= H-6`, or is cancelled with it asserted at `A >= H-5`.
+wire hlt_wake_nmi_disp = eu_halted && (st != S_HALTED);
+assign eu_unhalt_disp = hlt_wake_disp || unhalt_pend || hlt_wake_nmi_disp;
 
 assign psw_ie  = psw[FIE];
 assign md8080  = mode8080;

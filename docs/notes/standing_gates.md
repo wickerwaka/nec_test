@@ -148,6 +148,18 @@ is what makes the comparison below readable at all.
 > 6dbbc687c3c6ca3d…`); the board still carries FLASH #6, which predates F53.
 > §74.4 still governs: one green build is not closure.
 
+> **SM3 sitting 17 (2026-08-05) — the leg RAN on F54 and is GREEN.**  One clean
+> CONTROL/DEFAULT build, compile rc 0 in 524 s: **E1 PASS · E2 PASS** (0 errors,
+> map/fit/asm all Successful) **· E3 45.49 MHz** (bar ≥ 32) **· E4 +9.146 ns ·
+> E5 TNS 0.000 on all four domains, setup AND hold.**  RECORDED, not barred:
+> **ALMs 11,126 / 41,910 (27 %)** — **+68** on F53's 11,058, which is what one
+> added mux term costs — 6,110 fit registers, **0 latches, 0 `lpm_divide`**.
+> Receipt **`d7e27e7c4fe810bc…`**, input manifest 88 files `567b11fffd6414a6…`,
+> tree `d6e2d852cb-dirty` (the dirt is F54's one `hdl/` file plus docs).
+> **A bitstream was produced and NOT flashed** (`nec_test_ucore.sof
+> b4e818965e2bee59…`, `.rbf fc3cb1816ff3b007…`); the board still carries
+> FLASH #6, which predates both F53 and F54.  §74.4 still governs.
+
 **NON-VACUITY — PROVED, AND *NOT* THE WAY IT WAS REGISTERED.**
 `sm3_s13_prereg_2026-08-05.md` §3 registered **Q2: the gate goes RED on a
 worktree of `144e67416b`, reproducing 19.42 MHz.** ***IT DID NOT.*** That build
@@ -258,7 +270,7 @@ passes and must not be quoted as any):
 | | number | where it is written down |
 |---|---|---|
 | the four HLT delay sweeps | **91/97, 93/95, 45/46, 44/45 = 273/283** (the model is 272/283) — RAISED from 265 at **SM3 sitting 16**: **F53** landed (the address phase is ONE CLOCK on the DISPLAY side of the pin mux as well as the T1 side, for an INTA's zero as well as an address, and UBE is loaded by the address phase and then HELD).  §76.D.2's families **A, C and E are one law and all their signature cells are closed**; the residue is **10 cells, two mechanisms, catch-all empty**: **6 family-B** (`w0.INT/2,3` · `w0.RES/2,3` at `(4,busstat)` and `w0.INT/4,5` at `(17,busstat)` — an announcement one capture row late, MODEL-SHARED) and **4 family-D** (`w1.INT/8,9` · `w2.INT/12` · `w3.INT/15` — the analyser's SECOND BS sample, see §77.A.2: the pattern occurs 4 times in 217,507,379 committed golden rows and they ARE these four cells, and `tb_v30_core` cannot render a fix for them because it samples BS once).  It was 259 before sitting 6 and 265 before this one | `ucore_provenance.md` **§77**, `sm3_s16_prereg_2026-08-05.md` |
-| **NEW — the S16 directed display walk** | **1,252 / 1,371** (`python3 sw/sm3_s16_score.py --core ucore`) — a board population captured 2026-08-05 that did not exist when anything was scored: 3 forms × 6 frozen programs × 4 wait levels × 21 delays, socket only, `div_guard` PINNED, raw words + rows + sha256 in `sw/testdata/sm3-s16cell/`, goldens in `tests/v30/s16-dispwalk-w<w>-p<p>/`.  It is the AUTHORISING population for F53: pre-F53 **1,207/1,371** with **72** family-A/C nibble and **5** family-E `ube` signature cells, post-F53 **1,252/1,371** with **0** and **0**, cell for cell **+45 / −0**.  Its 119 residual cells are 52 `busstat` (**42 of them `HLT.NMI`, i.e. **H7**, a form no HLT sweep contains, in a band that SCALES with the wait level: w0 d0, w1 d3-4, w2 d5-6, w3 d7-8), 16 one-row-late, 24 family-D and 33 architectural — the 33 are BIT-IDENTICAL on both legs | `ucore_provenance.md` §77.D/§77.E |
+| the S16 directed display walk | **1,294 / 1,371** (`python3 sw/sm3_s16_score.py --core ucore`) — a board population captured 2026-08-05 that did not exist when anything was scored: 3 forms × 6 frozen programs × 4 wait levels × 21 delays, socket only, `div_guard` PINNED, raw words + rows + sha256 in `sw/testdata/sm3-s16cell/`, goldens in `tests/v30/s16-dispwalk-w<w>-p<p>/`.  It is the AUTHORISING population for **F53** and for **F54**, and both attributions are controls on the same cells: pre-F53 **1,207** with **72** family-A/C nibble and **5** family-E `ube` cells, post-F53 **1,252** with **0** and **0** (+45 / −0); pre-F54 **1,252**, post-F54 **1,294**, cell for cell **+42 / −0** (**SM3 sitting 17**, `ucore_provenance.md` §78).  Per wait level **346 · 328 · 318 · 302**.  Its 77 residual cells are **10** `busstat_other` (6 `HLT.RES` d2/d3 w0 + 4 `HLT.INT` d2 w0 — the w0 wake race, MODEL-SHARED), 16 one-row-late, 24 family-D and **27** architectural.  **§77.E's reading of the 42 `HLT.NMI` cells as H7 IS WITHDRAWN** — they were F43's missing NMI half (§78.C) and they are closed | `ucore_provenance.md` §77.D/§77.E, **§78** |
 | the fabric HLT sweeps | **265/283 on FLASH #6 (SM3 sitting 12, 2026-08-05) — the OFFLINE COLUMN EXACTLY, and the 119-cell INTA class is CLOSED.**  It was 146/283 on FLASH #5, 143/283 on FLASH #4 and #3.  **§56.3a's INTERVENTION RAN IN FABRIC AND C11 IS ESTABLISHED AT THE MECHANISM LEVEL — ⚠ but its REGISTERED NUMERICAL BARS were SUPERSEDED, NOT MET** (`ucore_provenance.md` **§73.9a**, SM3 s13 / Codex concern 3a: §56.3a registered **116 cells / 259 of 283**, F43 then moved the offline reference at sitting 6, and **119 / 265 of 283** is what ran.  What carries the finding is that §56.3a's registered REFUTATION did not occur in any cell): `x1_fabric baseline --leg fab_f6` **265/283**, **119 of 119 closed, 0 survivors**, the 18 remaining cells are the SAME 18 named in advance with the SAME first-divergence coordinate on every one, and scored strictly against the `tb_sys ret` leg over all 283 cells there are **0 PASS/FAIL disagreements and 0 differing coordinates**.  Socket control **49/49**; `check_ab_hw all 800` first light **MATCH ×3**; `use_core=0` chip proof **MATCH 800** after everything; `div_guard` PINNED both sides; **0 transport errors**.  **C11 IS ESTABLISHED** — the INTA pad-float retention attribution is a FINDING (the CODEX REVIEW item in `ucore_campaign_verdict` §(g); **NOT** `timed_lawcards`' C11, which is the LC4 `owns_slot` card and is untouched).  **The 18 survivors are core-owned and unexplained**: 4 `w0` `busstat` (model-shared, §68.2) and 14 `seg`/`bus` at the top of each sweep's `d` band (§67.3) — and fabric and TB now agree on them cell for cell, so they are diagnosable entirely offline | `ucore_provenance.md` **§73.8/§73.9**, §56.3a |
 | ~~**R7 / R7′**~~ — **R7′ IS CLOSED, SM3 sitting 12** | R7 was refuted at sitting 9 (its "81 registers escaped the name scope" compared two DIFFERENT STAGES of one flow; stage for stage the collection GREW, and `nec_test.sdc` was NOT and still is NOT edited).  **R7′ — `READY` reaching the EU's next-state cone single-cycle at 55–63 levels, with closure depending on whether the fitter happened to break it — WAS REAL, and at HEAD it had SWAPPED SIDES: the DEFAULT build (macro OFF) measured **19.42 MHz**, worst setup **−20.254**, TNS **−13,129.815**, 20,000/20,000 failing paths launching from `system_large|c_ready_q` into `v30u_eu` at 62–63 levels — reproduced to the digit from a DELETED `db`.  **G6 was RED at HEAD and no gate saw it, because the standing set has no Quartus leg.**  **CLOSED by ONE MUX**: the read's data-edge PSW load (`interrupt_model.md`'s POP-PSW rule, unchanged) moved off the head of the twelve-position chain onto the `psw` register's own `D` pin, gated `row_blocked`.  Control **45.89 MHz / +8.493 / TNS 0.000**, retention **45.87 / +8.802 / 0.000**, **0** failing paths on both, worst `c_ready_q` path **19 levels**.  Ladder **ZERO-DELTA at the seed** (38/38 steps; 5 of 3,242 fuzz report entries differ and every one is a `$warning` LINE NUMBER); no flop added or removed on any entity across six builds.  A first form WITHOUT `row_blocked` was built, worked, and was REVERTED by its own pre-registered falsifier | `ucore_provenance.md` **§73**, `sm3_s12_prereg_2026-08-04.md`, `sm3_s12b_prereg_2026-08-04.md` |
 | the b2 tranche | 171/188 — V5, REGISTERED FAILURE | `ucore_provenance.md` §44.2 |
@@ -315,6 +327,24 @@ landing pad (`ucore_gaps_2026-08-04.md` §F.1, now costed), NOT arbitration; the
 real arbitration residue is 37 ucore / 221 sim, and M4's `occ + inflight ≤ 4`
 boundary was tested chip-side and is NOT the answer.  New MEASUREMENT tool (not
 a gate): `sw/sm3_nmigeom.py`.
+
+> **SM3 sitting 17 (2026-08-05) — H7's EVIDENCE SET SHRANK AND ITS DIRECTED
+> COLUMN GREW.**  §77.E's 42 `HLT.NMI` cells were attributed to H7; that is
+> **WITHDRAWN** (`ucore_provenance.md` §78.C) — on all 42 the golden and the
+> ucore put the NMI vector read at the IDENTICAL row and the first divergence is
+> `busstat PASV -> HALT`, so they are F43's missing NMI half (F54) and are now
+> closed.  The S16 population becomes a FOURTH directed measurement of the NMI
+> floor: **`A + 14` on 372/372 halted cells, 13 on the running ones**, both
+> engines exact.  With `sm3_h7_cell` (160) and `sm3_h7_opcode`'s board cell
+> (640) that is **2,312 directed captures at floor 13** against the banked
+> soup's 30 at 12 — the bank is now the ONLY population in the tree that reaches
+> 12.  Two more axes eliminated: **the arm is not ambiguous** (28 of the 30
+> gap-12 seeds have exactly ONE CODE T1 at the anchor in the whole capture) and
+> **the divider is not it** (`DIV_OF_RECORD = 8` on both capture paths;
+> `NEC_NMI` is combinational off `ev_drive`).  **H7 stays BLOCKED.**
+> New MEASUREMENT tool (not a gate): `sw/sm3_haltsupp.py` — the HALT-announcement
+> suppression census, silicon leg from retained rows and engine leg over the
+> emitted goldens.
 
 ### BOARD PROBES — NOT GATES, BUT THEY MUST STILL RUN
 
