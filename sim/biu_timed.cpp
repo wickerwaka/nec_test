@@ -102,9 +102,8 @@ void BiuTimed::begin_case() {
     pf_infl_to_ = -2;
     pf_infl_n_ = 0;
     pf_owed_ = false;           // M19
-    bnd_floor_ = -1;            // H1
-    bnd_arm_ = false;
-    bnd_pending_ = false;
+    ie_rise_ = -1;              // SM3 s11: no IE rise has happened yet
+    ie_prev_ = false;
     cmt_expire_ = -1;           // M22
     cmt_was_owed_ = false;
     pop_is_first_ = true;
@@ -233,8 +232,28 @@ void BiuTimed::expire_cmt() {
     }
 }
 
+// SM3 sitting 11 -- THE IE RISING EDGE.  `psw_` is the live architectural PSW
+// the EU commits into (it is already read for the PS lanes, `data_ps` above),
+// so the instant this records IS the EU's own kFlagIE commit edge -- I1/F39's
+// early commit at the read latch's close of a POP included, with no second
+// opinion about when that happens.  One sample, one comparison.
+//
+// It is sampled from `tick()` AND from the top of `boundary_no_pop()`, because
+// a recognition boundary is asked for ON a clock whose tick has not run yet:
+// without the second call the rise that happens on the boundary's own clock is
+// stamped one clock late and the floor it owes is never paid.
+void BiuTimed::sample_ie() {
+    const bool ie = psw_ && (*psw_ & kFlagIE);
+    if (ie && !ie_prev_) ie_rise_ = clk_;
+    static const bool kIeTrace = std::getenv("V30SIM_IETRACE") != nullptr;
+    if (kIeTrace && ie != ie_prev_)
+        std::fprintf(stderr, "IE clk=%ld -> %d\n", clk_, int(ie));
+    ie_prev_ = ie;
+}
+
 void BiuTimed::tick() {
     long c = clk_;
+    sample_ie();
     // M22: the announcement expires before anything else this clock -- in
     // particular before the T1 it can no longer open (the two coincide when
     // `cmt_t1_ == cmt_disp_ + 3`, and the expiry wins).
@@ -774,16 +793,6 @@ void BiuTimed::eval() {
     cmt_t1_ = free_clk > clk_ + 1 ? free_clk : clk_ + 1;
     cmt_expire_ = (cmt_disp_ + 3 > cmt_t1_ - 1) ? cmt_disp_ + 3
                                                 : cmt_t1_ - 1;
-    // H1: the RESTARTED prefetch after a redirect stamps the recognition
-    // floor at its own INDEX 2 -- the cycle-relative instant this machine
-    // already samples the queue counter on (`pf_arm_`; at w0 index 2 IS the
-    // completion eval, M2r).  Stamped at the GRANT, because the boundary is
-    // asked for on the clock the T1 opens on and the T1 transition has not
-    // run yet at that point.
-    if (bnd_arm_) {
-        bnd_arm_ = false;
-        bnd_floor_ = cmt_t1_ + 2;
-    }
     if (kFlushTrace)
         fprintf(stderr, "FC %ld disp=%ld t1=%ld kind=F addr=%05x\n",
                 clk_ - 1, clk_, cmt_t1_, unsigned(cmt_.addr));
@@ -938,11 +947,6 @@ void BiuTimed::flush(uint16_t cs, uint16_t pc) {
     // pointer).  It stands until the bus takes it -- a later SUSP does not
     // reset it.  See biu_timed.h.
     pf_owed_ = true;
-    // H1: if an acknowledge is behind us, the next recognition boundary is
-    // not taken until the RESTARTED prefetcher's index 2.  Armed here (by the
-    // LAST redirect before that boundary -- each flush re-arms), stamped at
-    // the restart's grant.
-    if (bnd_pending_) { bnd_arm_ = true; bnd_floor_ = -1; }
     // M7: the sampled quantity is the QUEUE COUNTER, and the flush zeroes it.
     // A latch taken at index 2 of a cycle the flush then invalidates cannot
     // hold the eval off -- the redirect must be free to go at once.  MEASURED:
@@ -1069,32 +1073,39 @@ void BiuTimed::opcode_prefetch(uint16_t cs) {
 long BiuTimed::boundary_no_pop(bool post_redirect) {
     if (opc_valid_) return clk_;   // already latched: this IS the pop clock
     wait_bus();
-    // H1: ...and a retire that follows a REDIRECT does not happen before the
-    // restarted prefetcher's INDEX 2 (see `bnd_floor_` in biu_timed.h).
+    // SM3 SITTING 11 -- THE FLOOR IS THE IE RESTORE, AND IT IS THE EDGE ALONE.
+    // A MASKABLE recognition may not act until two clocks after PSW.IE's
+    // rising edge.  A NON-MASKABLE one bypasses BY CONSTRUCTION -- it does not
+    // read the stamp -- and there is no exemption clause anywhere.
+    //
     // `post_redirect` is FALSE for the REP mid-string withdrawal, which is not
     // an instruction retire at all: its recognition was taken inside the loop
     // (sec.19.8.1) and the ROM's own REPX path does the flush AFTER the
     // decision, so there is no boundary for the reload to hold off.  MEASURED:
     // flooring it too costs `INT.F3AA` 26 of 200 at w0 and 0 elsewhere.
-    // H1a DIAGNOSTIC (env-gated, `V30SIM_BNDTRACE=1`).  One line per
-    // recognition boundary: the clock, whether the arm stands, and whether the
-    // floor is LIVE (stamped by a restart and not yet spent by a pop).  It
-    // reads no state the block below does not, and nothing reads it back.
+    //
+    // The rise is sampled HERE as well as in `tick()`: the boundary is asked
+    // for on a clock whose tick has not run yet, and the rise this floor is
+    // about happens on exactly that clock (the IRET's PSW restore commits at
+    // its own retire).
+    sample_ie();
+    // DIAGNOSTIC (env-gated, `V30SIM_BNDTRACE=1`).  One line per recognition
+    // boundary: the clock, the pin, the last IE rise and whether the floor is
+    // LIVE.  It reads no state the block below does not.
     static const bool kBndTrace = std::getenv("V30SIM_BNDTRACE") != nullptr;
+    const bool live = maskable() && ie_rise_ >= 0 && clk_ < ie_rise_ + kIeFloor;
     if (kBndTrace)
-        fprintf(stderr, "BND clk=%ld post=%d pend=%d floor=%ld live=%d\n",
-                clk_, int(post_redirect), int(bnd_pending_), bnd_floor_,
-                int(bnd_floor_ >= 0 && clk_ < bnd_floor_));
-    if (post_redirect && bnd_pending_) {
-        wait_bnd_floor();
+        fprintf(stderr, "BND clk=%ld post=%d pin=%d ierise=%ld floor=%ld "
+                        "live=%d\n",
+                clk_, int(post_redirect), ev_pin_, ie_rise_,
+                ie_rise_ >= 0 ? ie_rise_ + kIeFloor : -1, int(live));
+    if (post_redirect && live) {
+        wait_ie_floor();
         // ...and the recognition that PAYS the floor also holds the
         // prefetcher off: the chip grants the slot between the floor and the
         // acknowledge's own request to NOTHING (the census's two idle clocks).
         susp();
     }
-    bnd_pending_ = false;
-    bnd_floor_ = -1;
-    bnd_arm_ = false;
     return clk_;
 }
 
@@ -1154,7 +1165,6 @@ uint8_t BiuTimed::pop(uint16_t cs, uint16_t upc, bool disp_last) {
         ++guard < 4096)
         tick();
     if (q_.empty()) return 0x90;
-    bnd_floor_ = -1;               // H1: the floor is spent by the pop
     uint8_t b = q_.front().b;
     q_.pop_front();
     consumed_.push_back(b);
@@ -1169,14 +1179,12 @@ void BiuTimed::wait_retire_lead() {
     while ((q_.empty() || q_.front().ready > clk_ + 1) && ++guard < 4096) tick();
 }
 
-// H1 -- THE RECOGNITION FLOOR AFTER A REDIRECT.  A flush ARMS it, the GRANT
-// of the restarted prefetch STAMPS it at that fetch's index 2, and a pop
-// SPENDS it.  It is stamped at the grant and not at the T1 transition because
-// the boundary is asked for ON the clock the restarted T1 opens, before that
-// clock's T1 transition has run.
-void BiuTimed::wait_bnd_floor() {
+// SM3 sitting 11 -- THE RECOGNITION FLOOR IS THE IE RESTORE.  A maskable
+// recognition may not act until TWO CLOCKS after PSW.IE's rising edge.  There
+// is no arm, no stamp and no spend: the edge is the whole mechanism.
+void BiuTimed::wait_ie_floor() {
     int guard = 0;
-    while (clk_ < bnd_floor_ && ++guard < 32) tick();
+    while (clk_ < ie_rise_ + kIeFloor && ++guard < 32) tick();
 }
 
 void BiuTimed::wait_bus() {
@@ -1392,12 +1400,6 @@ void BiuTimed::io_write(uint16_t port, uint16_t data, bool word, uint16_t upc) {
 
 uint16_t BiuTimed::inta_read(uint16_t upc) {
     uint16_t v = core_.inta_read(upc);
-    // H1: AN ACKNOWLEDGE ARMS THE NEXT RECOGNITION'S FLOOR.  See biu_timed.h.
-    // (SM3 sitting 10 REPLACED this with an entry-generic arm published by the
-    // EU's `FARJMP` into the interrupt-entry routine, and REVERTED it: the
-    // arm is right for every INTA and software-`INT` re-entry and WRONG for a
-    // non-maskable one.  The line stands; the refutation is in biu_timed.h.)
-    bnd_pending_ = true;
     Access acc;
     acc.bs = kBsInta;
     acc.addr = 0;         // filled from the FLOATING AD at the display clock

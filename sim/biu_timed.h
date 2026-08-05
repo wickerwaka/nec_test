@@ -273,7 +273,14 @@ public:
     void arm_flags_latch(uint16_t* psw) { flags_latch_ = psw; }
     void wait_opr_free();
     void wait_bus();
-    void wait_bnd_floor();   // H1: the post-redirect retire floor
+    void wait_ie_floor();    // SM3 s11: the rising-IE recognition floor
+    void sample_ie();        // ...and the one edge sample it needs
+    // A recognition the IE gate applies to.  The rig's pin schedule already
+    // names the kind (`set_evt`): 0 = INT, 1 = NMI, 2 = POLL_N.  Only the
+    // maskable one is gated -- an NMI is not IE-gated and has nothing to wait
+    // for, which is the WHOLE of the exemption and it is not a case in the
+    // law, it is the law's own domain.
+    bool maskable() const { return ev_pin_ == 0; }
     // The clock before the queue's next byte can be popped.  A pre-decode-
     // executed form's execute strobe sits there -- see loader_impl.h,
     // ONE_BYTE_LOGIC.
@@ -609,79 +616,69 @@ private:
     // max(boundary + 4, the next free bus slot) with boundary = F1 + 2.
     // The floor bites only at L = 4 (w0), where it costs exactly 2 clocks.
     //
-    // AND IT IS ARMED BY THE PREVIOUS ACKNOWLEDGE, NOT BY THE REDIRECT.
-    // The DIRECTED BOARD CELL (`sw/sm3_h1_cell.py`, socket, FLASH #4,
-    // sm3_h1_prereg_2026-08-04.md sec.5) says so and it refutes the redirect
-    // reading outright: the FIRST acknowledge of a record pays NO floor after
-    // a near JMP, a far JMP, a CALL/RET pair or a bare IRET chain (gap 4 at
-    // w0, B-limited), while EVERY acknowledge from the second on pays it in
-    // ALL FIVE stimuli -- including a pure NOP sled with no redirect in it at
-    // all.  `bnd_pending_` is that arm: an INTA cycle sets it, the recognition
-    // boundary that reads the floor clears it.  It resets to FALSE, because
-    // every population this model runs -- the goldens and `timed-boot` alike
-    // -- starts from RESET with no acknowledge behind it.
+    // AND THE ARM IS THE **IE RESTORE**.  SM3 SITTING 11, LANDED 2026-08-04
+    // (`ucore_provenance.md` §72, `sm3_s11_prereg_2026-08-04.md`).
     //
-    // H1a -- "THE ARM IS THE INTERRUPT ENTRY, NOT THE INTA CYCLE" WAS BUILT
-    // AND IS REFUTED.  READ THIS BEFORE PROPOSING IT AGAIN.  (SM3 sitting 10,
-    // `ucore_provenance.md` §71; the cell that opened it is §68.4.)
+    //     A MASKABLE recognition may not act until TWO CLOCKS after PSW.IE's
+    //     RISING EDGE.  A NON-MASKABLE one is not IE-gated and waits for
+    //     nothing.
     //
-    // WHAT IS TRUE.  The directed board cell settles the chip's behaviour and
-    // it is not in doubt: `sm3_h1_cell.py`'s `swintnext` stimulus is a chain
-    // of software `INT n` whose handler is a bare IRET -- a REAL entry with NO
-    // INTA anywhere in the stream -- and at w0 the chip floors the following
-    // acknowledge on 30 of 30 captures, while the `iretnext` CONTROL (the same
-    // IRET and the same restarted prefetch, popping PRE-PLANTED frames with no
-    // entry behind them) is UNFLOORED at the minimum.  An INTA-only arm cannot
-    // produce that pair, and does not: it is 0/30 on the cell.
+    // That is the whole mechanism.  There is no arm, no stamp, no spend and no
+    // exemption clause: one edge on a flag the recognition pipeline already
+    // reads.  The entry clears IE (`CITF`, `01F5`), the handler's IRET pops a
+    // PSW that raises it, and the floor is the two clocks the raised flag
+    // needs before a gated recognition can stand on it.
     //
-    // WHAT WAS BUILT.  The EU publishes "the entry microcode started" on the
-    // ONE row that starts it: the entry routine is the page-7 block
-    // `111.0001?000` at `01EC` (the `?` is the ROM's own statement that `INT`
-    // and `INTEM` are the same rows), the only door into it is `FARJMP`, and
-    // all twelve entry sites go through that door -- `CC`/`CD`/`CE`, the
-    // divide trap (`0195`, `01A9`), `CHKIND` (`0283`), the hardware BRK/TF and
-    // NMI rows (`01D9`, `01DB`), both INTA vector-fetch tails (`01DF`,
-    // `01E3`), and `BRKEM`.  It strictly generalises this arm, PROVED on the
-    // ROM: the whole ROM has exactly THREE `[-05-]` INTA rows and all three
-    // sit inside blocks terminating in `FARJMP INT` with no `FLUSH` between.
-    // On the cell it is PERFECT -- 791/791 acknowledges against 671/791, the
-    // `swintnext` w0 column 0/30 -> 30/30, every control unmoved.
+    // HOW IT GOT HERE, because two rivals were built first and both were
+    // refuted, and a future agent will otherwise rebuild one of them:
     //
-    // WHAT REFUTED IT: THE DISJOINT BANK, AND THE CLASS IS THE PIN.  On the
-    // 3,242-seed fuzz bank the arm improves §64.2's two named seeds to EXACT
-    // (`mc1/2672`, `mc1/356` -- predicted, and they are the two whose shape is
-    // mechanically a re-entry) and BREAKS FIVE: `mc1/1241`, `mc1/2258`,
-    // `mc1/3052`, `mc2/1157`, `mc2/2932`.  EVT 780 -> 777.  All five are
-    // `evt.pin = 1` (NMI); both improved are `evt.pin = 0` (INT); ZERO INT
-    // seeds regress.  Their chip streams carry the SAME geometry as
-    // `mc1/2672` cycle for cycle -- entry, frame, the `0x0480` handler, the
-    // IRET's three pops, the restarted prefetch -- and the chip does NOT floor
-    // what follows.  Same shape, same arm, opposite answer, partitioned
-    // perfectly by whether the recognition is maskable.
+    //   C1  "the floor belongs to any REDIRECT" -- REFUTED by the sitting-2
+    //       board cell (§61.3): near JMP, far JMP, CALL/RET and a bare IRET
+    //       chain all sit before an unfloored ord-1 acknowledge.
+    //   A2  "the arm is the INTA CYCLE" -- REFUTED by the sitting-7 cell
+    //       (§68.4): a software `INT n` entry with NO INTA anywhere floors the
+    //       next acknowledge 30/30 at w0.
+    //   A1  "the arm is the interrupt ENTRY, generically" -- BUILT, PERFECT on
+    //       its own cell (791/791) and REFUTED by the disjoint bank (§71.4):
+    //       it broke FIVE seeds, all five `evt.pin = 1` (NMI), improved two,
+    //       both INT, and no INT seed regressed.  Same geometry, opposite
+    //       answer, partitioned perfectly by MASKABILITY.
     //
-    // WHAT SURVIVES, and it is this file's own older candidate: the floor is
-    // not an entry flop at all, it is the IE RESTORE.  The entry clears IE
-    // (`CITF`, `01F5`); the IRET's PSW pop raises it; and an IE-GATED
-    // recognition cannot act on a rising IE for two clocks.  That reading
-    // accounts for every population on the table with no cases: `swintnext`
-    // floored (IE rises at the IRET), `iretnext` unfloored (a planted frame
-    // pops IE = 1 into IE = 1, no rise), every INTA re-entry floored, §64.2's
-    // two seeds floored, and the five NMI seeds UNFLOORED because a
-    // non-maskable recognition is not gated by IE and has nothing to wait for.
-    // The entry-generic arm can only reach the same place by adding "...and
-    // NMI is exempt", which is a second case for one microcode -- the shape
-    // the standing principle names as a signal of misunderstanding.
+    // WHAT AUTHORISED THIS ONE.  §64.1 forbids the bank from validating a
+    // reading the bank selected, so a NEW directed board cell was
+    // pre-registered and run (`sm3_h1_cell.py --out sm3-s11cell`, socket,
+    // FLASH #5, 672 captures).  Its sleds put an IE RISE at a boundary with NO
+    // ENTRY AND NO ACKNOWLEDGE BEHIND IT and read the chosen boundary off the
+    // pins (the pushed frame's IP).  At w0, 24 delays per cell:
     //
-    // *Falsifier for what survives*: an NMI recognition FLOORED after an
-    // entry+IRET restart, or an IE-gated recognition UNFLOORED after one.
-    // It is NOT landed and must not be: it was selected on the bank, so
-    // §64.1 requires it be validated on a population the bank did not supply.
+    //   `CLI;POPF;NOP;NOP`  the POPF's OWN boundary is taken   0 / 24  times
+    //   `CLI;STI;NOP;NOP`   the STI's OWN boundary is taken    0 / 24
+    //   `POPF;NOP;NOP;NOP`  (IE 1 -> 1, NO RISE) own boundary  9 / 24  -- the
+    //                       CONTROL: the instrument can see it
+    //   `CLI;POPF`          NO ENTRY AT ALL                   24 / 24  -- the
+    //                       chain has no boundary a floored recognition can
+    //                       ever reach, which is why §61.3's `clipopf` was
+    //                       silent.  It was never a broken stimulus.
+    //   the same sleds on the **NMI** pin: the raising instruction's own
+    //   boundary is taken freely (9/24, 6/24) and `CLI;POPF` acknowledges
+    //   24/24.  NOT GATED, exactly as the five bank seeds said.
+    //
+    // AND THE FLOOR'S SIZE IS MEASURED IN THE SAME COORDINATE, chip side, no
+    // engine, w0, from the POP that commits IE to the entry's announcement:
+    // `iehot` (no rise) min 8 and `iretnext` (planted frame, no rise) min 8;
+    // `swintnext` (the IRET raises IE) min 10.  **+2, and it is H1's own two
+    // clocks re-anchored from "an INTA behind us" to "IE just rose".**
+    //
+    // *Falsifier*: an NMI recognition FLOORED after an entry + IRET restart;
+    // an IE-gated recognition UNFLOORED after one; or a maskable acknowledge
+    // taken at a boundary where PSW.IE is CLEAR.
     // `V30SIM_BNDTRACE=1` prints one line per recognition boundary (the clock,
-    // the arm, whether the floor is live) and is the instrument that read all
-    // of the above.
-    long bnd_floor_ = -1;       // the boundary may not be taken before this
-    bool bnd_arm_ = false;      // ...stamped by the next fetch after a flush
-    bool bnd_pending_ = false;  // ...and only ARMED at all by a prior ACK
+    // the pin, the last rise, whether the floor is live) and
+    // `V30SIM_IETRACE=1` prints every IE transition; they are the instruments
+    // that read all of the above.
+    static constexpr long kIeFloor = 2;   // MEASURED; see above
+    long ie_rise_ = -1;         // the clock PSW.IE last went 0 -> 1
+    bool ie_prev_ = false;      // ...the one sample the edge needs
     // M7b -- THE OUTSTANDING-FETCH TERM CLEARS WHEN THE BYTES ARE POPPABLE,
     // NOT WHEN THEY ARE WRITTEN.  The queue counter takes the bytes at the
     // push edge (e+1, M3); the "a fetch is out" term the scheduler adds to it

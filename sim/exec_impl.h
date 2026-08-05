@@ -1069,11 +1069,12 @@ bool CpuT<Bus>::run_micro(const MicroPc& entry) {
                 // the divide trap (`0195`, `01A9`), `CHKIND` (`0283`), the
                 // hardware BRK/TF and NMI rows (`01D9`, `01DB`), both INTA
                 // vector-fetch tails (`01DF`, `01E3`), and `BRKEM`.  A hook
-                // here that armed `BiuTimed::bnd_pending_` -- H1a's landing --
-                // WAS BUILT AND IS REFUTED; see `bnd_pending_` in biu_timed.h
-                // for what it cost and what survived it.  The funnel is
-                // recorded because the fact is true and re-usable; nothing
-                // arms from it today.
+                // here that armed a recognition-floor flop -- H1a's landing --
+                // WAS BUILT AND IS REFUTED (SM3 sitting 10), and SM3 sitting
+                // 11 replaced the floor's arm altogether with PSW.IE's rising
+                // edge; see `ie_rise_` in biu_timed.h.  The funnel is recorded
+                // because the fact is true and re-usable; nothing arms from it
+                // today, and nothing should.
                 // A FARJMP is a taken micro-jump and pays the same sequencer
                 // redirect bubble (7.7).  MEASURED on the shift family: with
                 // it, D2/D3/C0/C1 retire at pop+10+n for n>=1 and pop+9 for
