@@ -1,0 +1,172 @@
+==== WORST10 : 10 paths
+  slack  -20.254  levels=62  delay=51.247  from emu:emu|system_large:system_large|c_ready_q  ->  emu:emu|system_large:system_large|v30_core:u_core|v30u_eu:u_eu|opc_base[3]
+  slack  -20.222  levels=62  delay=51.215  from emu:emu|system_large:system_large|c_ready_q  ->  emu:emu|system_large:system_large|v30_core:u_core|v30u_eu:u_eu|opc_base[3]
+  slack  -20.207  levels=62  delay=51.200  from emu:emu|system_large:system_large|c_ready_q  ->  emu:emu|system_large:system_large|v30_core:u_core|v30u_eu:u_eu|opc_base[3]
+  slack  -20.205  levels=62  delay=51.198  from emu:emu|system_large:system_large|c_ready_q  ->  emu:emu|system_large:system_large|v30_core:u_core|v30u_eu:u_eu|opc_base[3]
+  slack  -20.204  levels=63  delay=51.197  from emu:emu|system_large:system_large|c_ready_q  ->  emu:emu|system_large:system_large|v30_core:u_core|v30u_eu:u_eu|opc_base[3]
+  slack  -20.190  levels=63  delay=51.183  from emu:emu|system_large:system_large|c_ready_q  ->  emu:emu|system_large:system_large|v30_core:u_core|v30u_eu:u_eu|opc_base[3]
+  slack  -20.189  levels=62  delay=51.182  from emu:emu|system_large:system_large|c_ready_q  ->  emu:emu|system_large:system_large|v30_core:u_core|v30u_eu:u_eu|opc_base[3]
+  slack  -20.188  levels=62  delay=51.181  from emu:emu|system_large:system_large|c_ready_q  ->  emu:emu|system_large:system_large|v30_core:u_core|v30u_eu:u_eu|opc_base[3]
+  slack  -20.181  levels=62  delay=51.174  from emu:emu|system_large:system_large|c_ready_q  ->  emu:emu|system_large:system_large|v30_core:u_core|v30u_eu:u_eu|opc_base[3]
+  slack  -20.181  levels=62  delay=51.174  from emu:emu|system_large:system_large|c_ready_q  ->  emu:emu|system_large:system_large|v30_core:u_core|v30u_eu:u_eu|opc_base[3]
+c_ready_q collection size 2
+==== from c_ready_q : 10 paths
+  slack  -20.254  levels=62  delay=51.247  from emu:emu|system_large:system_large|c_ready_q  ->  emu:emu|system_large:system_large|v30_core:u_core|v30u_eu:u_eu|opc_base[3]
+  slack  -20.222  levels=62  delay=51.215  from emu:emu|system_large:system_large|c_ready_q  ->  emu:emu|system_large:system_large|v30_core:u_core|v30u_eu:u_eu|opc_base[3]
+  slack  -20.207  levels=62  delay=51.200  from emu:emu|system_large:system_large|c_ready_q  ->  emu:emu|system_large:system_large|v30_core:u_core|v30u_eu:u_eu|opc_base[3]
+  slack  -20.205  levels=62  delay=51.198  from emu:emu|system_large:system_large|c_ready_q  ->  emu:emu|system_large:system_large|v30_core:u_core|v30u_eu:u_eu|opc_base[3]
+  slack  -20.204  levels=63  delay=51.197  from emu:emu|system_large:system_large|c_ready_q  ->  emu:emu|system_large:system_large|v30_core:u_core|v30u_eu:u_eu|opc_base[3]
+  slack  -20.190  levels=63  delay=51.183  from emu:emu|system_large:system_large|c_ready_q  ->  emu:emu|system_large:system_large|v30_core:u_core|v30u_eu:u_eu|opc_base[3]
+  slack  -20.189  levels=62  delay=51.182  from emu:emu|system_large:system_large|c_ready_q  ->  emu:emu|system_large:system_large|v30_core:u_core|v30u_eu:u_eu|opc_base[3]
+  slack  -20.188  levels=62  delay=51.181  from emu:emu|system_large:system_large|c_ready_q  ->  emu:emu|system_large:system_large|v30_core:u_core|v30u_eu:u_eu|opc_base[3]
+  slack  -20.181  levels=62  delay=51.174  from emu:emu|system_large:system_large|c_ready_q  ->  emu:emu|system_large:system_large|v30_core:u_core|v30u_eu:u_eu|opc_base[3]
+  slack  -20.181  levels=62  delay=51.174  from emu:emu|system_large:system_large|c_ready_q  ->  emu:emu|system_large:system_large|v30_core:u_core|v30u_eu:u_eu|opc_base[3]
+==== NODES worst from c_ready_q
+  -- path 1  slack -20.254 levels 62
+      launch       0.000  
+      clknet       8.215  
+      utco         8.215  node_37031
+      cell         8.215  node_143477
+      ic           8.533  node_37030
+      cell         8.620  node_37029
+      ic           8.882  node_37028
+      cell         8.972  node_37027
+      ic           9.282  node_37365
+      cell         9.377  node_37364
+      ic           9.620  node_112112
+      cell        10.134  node_112109
+      ic          10.380  node_112193
+      cell        10.861  node_13092
+      ic          11.203  node_13091
+      cell        11.286  node_13090
+      ic          11.693  node_112307
+      cell        11.775  node_112306
+      ic          11.999  node_112305
+      cell        12.509  node_13086
+      ic          12.742  node_13085
+      cell        12.824  node_13084
+      ic          13.035  node_13083
+      cell        13.117  node_13082
+      ic          13.330  node_13081
+      cell        13.411  node_13080
+      ic          14.756  node_13079
+      cell        14.848  node_13078
+      ic          15.088  node_13077
+      cell        15.186  node_13076
+      ic          15.553  node_113975
+      cell        15.777  node_12986
+      ic          16.507  node_17949
+      cell        16.604  node_17948
+      ic          17.443  node_22626
+      cell        17.908  node_22623
+      ic          18.138  node_22622
+      cell        18.600  node_22621
+      ic          18.823  node_52530
+      cell        19.378  node_52526
+      ic          20.147  node_91966
+      cell        20.230  node_91965
+      ic          20.482  node_114018
+      cell        20.862  node_114016
+      ic          21.385  node_114015
+      cell        21.929  node_12972
+      ic          22.272  node_12971
+      cell        22.371  node_12970
+      ic          23.150  node_113762
+      cell        23.710  node_13064
+      ic          24.507  node_17652
+      cell        24.605  node_17651
+      ic          25.288  node_104687
+      cell        25.852  node_104682
+      ic          26.045  node_104681
+      cell        26.616  node_14360
+      ic          27.427  node_103487
+      cell        27.998  node_14721
+      ic          28.524  node_111198
+      cell        29.061  node_13169
+      ic          29.820  node_13168
+      cell        29.901  node_13167
+      ic          30.566  node_13166
+      cell        30.653  node_13165
+      ic          31.441  node_13352
+      cell        31.538  node_13351
+      ic          32.146  node_14161
+      cell        32.248  node_14160
+      ic          32.951  node_17556
+      cell        33.512  node_17552
+      ic          33.748  node_17551
+      cell        34.353  node_17533
+      ic          34.919  node_106623
+      cell        35.499  node_13910
+      ic          36.401  node_109716
+      cell        36.911  node_109712
+      ic          37.155  node_109711
+      cell        37.377  node_13467
+      ic          37.615  node_13466
+      cell        37.702  node_13465
+      ic          38.561  node_17320
+      cell        39.044  node_17317
+      ic          39.285  node_17316
+      cell        39.770  node_17307
+      ic          40.600  node_113837
+      cell        40.951  node_13034
+      ic          41.538  node_13033
+      cell        41.633  node_13032
+      ic          42.341  node_14339
+      cell        42.912  node_14334
+      ic          43.625  node_14333
+      cell        43.716  node_14332
+      ic          44.276  node_110335
+      cell        44.771  node_13328
+      ic          45.092  node_13327
+      cell        45.177  node_13326
+      ic          46.020  node_24659
+      cell        46.119  node_24658
+      ic          46.332  node_110356
+      cell        46.892  node_13322
+      ic          47.786  node_110372
+      cell        47.878  node_110371
+      ic          48.445  node_110370
+      cell        48.957  node_13318
+      ic          49.882  node_14795
+      cell        50.396  node_14792
+      ic          51.098  node_25670
+      cell        51.182  node_25669
+      ic          51.972  node_111063
+      cell        52.063  node_111062
+      ic          52.720  node_111061
+      cell        52.976  node_13210
+      ic          53.345  node_16230
+      cell        53.929  node_16224
+      ic          54.873  node_16223
+      cell        55.254  node_16218
+      ic          55.575  node_19477
+      cell        55.674  node_19476
+      ic          56.697  node_27130
+      cell        56.776  node_27129
+      ic          58.097  node_27128
+      cell        58.177  node_27127
+      ic          58.407  node_27126
+      cell        58.487  node_27125
+      ic          58.743  node_27124
+      cell        58.822  node_27123
+      ic          59.125  node_27122
+      cell        59.202  node_27121
+      ic          59.202  node_27120
+      cell        59.462  node_27117
+==== c_ready_q -> v30u_eu : 5 paths
+  slack  -20.254  levels=62  delay=51.247  from emu:emu|system_large:system_large|c_ready_q  ->  emu:emu|system_large:system_large|v30_core:u_core|v30u_eu:u_eu|opc_base[3]
+  slack  -20.222  levels=62  delay=51.215  from emu:emu|system_large:system_large|c_ready_q  ->  emu:emu|system_large:system_large|v30_core:u_core|v30u_eu:u_eu|opc_base[3]
+  slack  -20.207  levels=62  delay=51.200  from emu:emu|system_large:system_large|c_ready_q  ->  emu:emu|system_large:system_large|v30_core:u_core|v30u_eu:u_eu|opc_base[3]
+  slack  -20.205  levels=62  delay=51.198  from emu:emu|system_large:system_large|c_ready_q  ->  emu:emu|system_large:system_large|v30_core:u_core|v30u_eu:u_eu|opc_base[3]
+  slack  -20.204  levels=63  delay=51.197  from emu:emu|system_large:system_large|c_ready_q  ->  emu:emu|system_large:system_large|v30_core:u_core|v30u_eu:u_eu|opc_base[3]
+==== c_ready_q -> v30u_biu : 5 paths
+  slack   22.293  levels=5  delay=8.322  from emu:emu|system_large:system_large|c_ready_q~DUPLICATE  ->  emu:emu|system_large:system_large|v30_core:u_core|v30u_biu:u_biu|r_cmt_valid
+  slack   22.365  levels=5  delay=8.265  from emu:emu|system_large:system_large|c_ready_q~DUPLICATE  ->  emu:emu|system_large:system_large|v30_core:u_core|v30u_biu:u_biu|r_cur_addr[2]
+  slack   22.365  levels=5  delay=8.265  from emu:emu|system_large:system_large|c_ready_q~DUPLICATE  ->  emu:emu|system_large:system_large|v30_core:u_core|v30u_biu:u_biu|r_cur_addr[9]
+  slack   22.421  levels=6  delay=8.233  from emu:emu|system_large:system_large|c_ready_q~DUPLICATE  ->  emu:emu|system_large:system_large|v30_core:u_core|v30u_biu:u_biu|r_cur_addr[0]
+  slack   22.427  levels=6  delay=8.231  from emu:emu|system_large:system_large|c_ready_q~DUPLICATE  ->  emu:emu|system_large:system_large|v30_core:u_core|v30u_biu:u_biu|r_cur_addr[0]~DUPLICATE
+FAILING_PATHS 20000
+--- launch registers of failing paths ---
+  20000  emu:emu|system_large:system_large|c_ready_q
+--- capture buckets ---
+  20000  EU

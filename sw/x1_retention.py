@@ -66,8 +66,23 @@ from analyze_capture import decode_words                 # noqa: E402
 
 OUT = ROOT / "sw" / "testdata" / "x1-retention"
 TB_DIR = ROOT / "hdl" / "tb"
-BIN = {"base": TB_DIR / "obj_dir_sys" / "tb_sys",
-       "ret": TB_DIR / "obj_dir_sys_ret" / "tb_sys"}
+# SM3 sitting 12 -- THE VACUOUS-GATE PATTERN, SEVENTH INCARNATION, AND IT IS
+# THIS FILE'S OWN.  These two names were `tb_sys`, which is what sitting 6's
+# ad-hoc hand-rebuild happened to call its output (`ucore_provenance.md`
+# §67.7).  `build()` below -- added at sitting 8 to close §67.6's SIXTH
+# incarnation -- runs plain `verilator --binary --top-module tb_sys`, and that
+# writes **`Vtb_sys`**.  So `build()` compiled the current RTL into a file
+# `capture` never opened, printed `REBUILT`, and `capture` then ran the
+# 2026-08-04 14:53 binary from sitting 6.  §69.2's "the 283 `ret` records are
+# BYTE-IDENTICAL to HEAD's" was a binary compared with ITSELF.
+#
+# MEASURED, not inferred: `hdl/tb/obj_dir_sys/{tb_sys,Vtb_sys}` differ, the
+# `tb_sys` files' mtime is sitting 6's and never moved across two `build()`
+# runs, and `Vtb_sys.mk` says `default: Vtb_sys`.
+#
+# The stale files are ARCHIVED BY RENAME (`tb_sys.stale-s6`), not deleted.
+BIN = {"base": TB_DIR / "obj_dir_sys" / "Vtb_sys",
+       "ret": TB_DIR / "obj_dir_sys_ret" / "Vtb_sys"}
 
 # u4_f42_fabric.py's population, unchanged, because "same driver, same goldens"
 # is half of what the registration asks for.
@@ -126,7 +141,20 @@ def build(leg, force=False):
         cmd.append("-DX1_AD_RETENTION")
     cmd += ["-I" + str(UCORE_DIR), "-Mdir", str(obj)] + [str(p) for p in rtl]
     print("building:", " ".join(cmd), flush=True)
+    t0 = time.time()
     subprocess.run(cmd, check=True, cwd=ROOT)
+    # THE FALSIFIER FOR THE SEVENTH INCARNATION (see BIN above).  A `build()`
+    # whose compiler writes somewhere other than the file `capture` opens is
+    # indistinguishable from a working one unless this is checked: the binary
+    # must EXIST and must be NEWER THAN THE COMPILE that just ran.
+    if not BIN[leg].exists():
+        sys.exit(f"x1_retention.build({leg}): verilator succeeded but "
+                 f"{BIN[leg]} does not exist -- BIN and the compiler disagree "
+                 f"about the output name")
+    if BIN[leg].stat().st_mtime < t0:
+        sys.exit(f"x1_retention.build({leg}): {BIN[leg]} was NOT written by "
+                 f"the compile that just ran (mtime precedes it) -- the "
+                 f"binary `capture` will run is not the one `build` made")
     return True
 
 
