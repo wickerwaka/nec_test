@@ -118,6 +118,23 @@ passes and must not be quoted as any):
 | **R7 — REFUTED 2026-08-04 (SM3 sitting 9).  R7′ replaces it** | ~~"the CE multicycle is collected by hierarchical name and 20 flops moved 81 registers out of it (2,220 → 2,139)"~~ — **the two figures are DIFFERENT STAGES of one flow.**  Stage for stage the collection **GREW**: 2,075 → **2,139** mid-fitter, 2,220 → **2,251** post-fit, **1,081 in both** pre-fitter.  **`nec_test.sdc` is UNCHANGED and must not be widened on R7's account.**  **R7′**: all **20,000/20,000** worst failing paths launch from `system_large\|c_ready_q`, an UNCONDITIONALLY clocked harness register that no CE collection can contain, and land in `v30u_eu` at **55–56 logic levels**.  The fragility is that **`READY` reaches the EU next-state cone single-cycle at 56 levels and the sign-off survives only because physical synthesis happens to break the cone**.  An RTL/harness item, still **NOT fixed**, needs its own pre-registration | `ucore_provenance.md` **§70**, erratum at §69.6 |
 | the b2 tranche | 171/188 — V5, REGISTERED FAILURE | `ucore_provenance.md` §44.2 |
 
+### **H1a — "THE RECOGNITION FLOOR'S ARM IS THE INTERRUPT ENTRY" WAS BUILT AND IS REFUTED (SM3 sitting 10, 2026-08-04).  DO NOT RE-PROPOSE IT WITHOUT READING §71.**
+
+Recorded here, in the gate document, because the landing's AUTHORISING LEG IS
+PERFECT and a future sitting reading only that will land it again.  On the
+banked h1a cell the entry-generic arm takes `sim` from **671/791 to 791/791**
+acknowledges, the `swintnext` w0 column from **0/30 to 30/30**, with every
+control unmoved — and on the DISJOINT 3,242-seed bank it improves §64.2's two
+named seeds to EXACT and **BREAKS FIVE**, `EVT 780 -> 777`.  All five broken
+seeds are `evt.pin = 1` (**NMI**); both improved are `evt.pin = 0` (INT); zero
+INT seeds regress; and chip-side the five carry `mc1/2672`'s geometry cycle for
+cycle.  **Reverted per its own pre-registration** (`sm3_s10_prereg_2026-08-04.md`
+§5.2/§6), proved at the seed — **0 of 3,242 differ on either engine** — and
+**no gate in this document moved.**  What survives is the IE-RESTORE reading
+(§71.6), which is NOT landed and must not be landed from the bank that selected
+it.  `sim/biu_timed.h` carries the refutation at the arm's own declaration and
+`V30SIM_BNDTRACE=1` is the instrument.
+
 The complete, itemised list of what is **not** yet functional or timing-accurate
 is `docs/notes/ucore_gaps_2026-08-04.md`, and **the measured census of what is
 left against silicon — family × population, the shared/only partitions and the

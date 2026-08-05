@@ -1061,6 +1061,19 @@ bool CpuT<Bus>::run_micro(const MicroPc& entry) {
                 m_.upc.opc = uint8_t(op.far_loc() << 3);
                 next_loc = 0;
                 carry = false;
+                // H1a NOTE (SM3 sitting 10).  This row is the interrupt
+                // entry's ONE door: the entry routine is the page-7 block
+                // `111.0001?000` at `01EC` (the `?` is the ROM's own statement
+                // that `INT` and `INTEM` are the same rows) and every entry in
+                // the part reaches it through a `FARJMP` -- `CC`/`CD`/`CE`,
+                // the divide trap (`0195`, `01A9`), `CHKIND` (`0283`), the
+                // hardware BRK/TF and NMI rows (`01D9`, `01DB`), both INTA
+                // vector-fetch tails (`01DF`, `01E3`), and `BRKEM`.  A hook
+                // here that armed `BiuTimed::bnd_pending_` -- H1a's landing --
+                // WAS BUILT AND IS REFUTED; see `bnd_pending_` in biu_timed.h
+                // for what it cost and what survived it.  The funnel is
+                // recorded because the fact is true and re-usable; nothing
+                // arms from it today.
                 // A FARJMP is a taken micro-jump and pays the same sequencer
                 // redirect bubble (7.7).  MEASURED on the shift family: with
                 // it, D2/D3/C0/C1 retire at pop+10+n for n>=1 and pop+9 for

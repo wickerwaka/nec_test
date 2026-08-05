@@ -924,6 +924,16 @@ inherits them because the ledger does.
   are module-level constants pinned to the FSM layout with no consumers —
   annotated as traps rather than deleted. Full audit in
   `docs/notes/standing_gates.md` §D.
+* **§R.9 — `sm3_ackgeom` CANNOT SEE AN NMI RECOGNITION, and that blind spot cost
+  a landing** (SM3 sitting 10, `ucore_provenance.md` §71.4). Its acknowledge
+  ordinal counts **INTA cycles**, so an NMI — which is announced by a vector
+  read and runs no INTA at all — is invisible to every census built on it,
+  including §64.2's 771-first-acknowledge population that BOUNDED H1a's expected
+  movement. The five bank seeds that refuted the entry-generic arm are all NMI
+  and none of them appears in that census. **What is missing is a
+  vector-read-keyed ordinal**, i.e. `sm3_nmigeom.py` given the same
+  first-acknowledge geometry `sm3_ackgeom` has. It is board-free, it runs on the
+  208 banked NMI seeds already on disk, and it would have predicted all five.
 
 ---
 

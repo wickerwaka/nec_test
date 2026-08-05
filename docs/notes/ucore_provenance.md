@@ -9108,3 +9108,285 @@ reports), so every number above is re-queryable without a rebuild.
 3. **Then the X1 fabric leg**, unchanged and still blocked (§69.10 lead 2).
 4. **H1a's landing**, **H7's bank association**, **H3's steady-state
    prefetcher** — all still queued (§68.10).
+
+## §71 SESSION SM3, SITTING 10 — **THE H1a LANDING WAS BUILT, IT IS PERFECT ON THE CELL, AND THE DISJOINT BANK REFUTES IT.  IT IS REVERTED, AND WHAT IT LEAVES BEHIND IS SHARPER THAN WHAT IT SET OUT TO LAND.**
+
+Pre-registration: `docs/notes/sm3_s10_prereg_2026-08-04.md`, committed at
+`15442b14d2` from HEAD `587d523637`, **before either engine was touched**
+(`git diff` against `sim/` and `hdl/rtl/` empty at that commit).  **No board
+contact anywhere in the sitting.**
+
+### §71.1 WHAT WAS LANDED, AND WHY IT IS ONE WIRE
+
+§68.4's carried disposition, taken verbatim: the recognition floor's arm
+becomes *"the EU's interrupt-entry microcode started"*, published by the EU and
+consumed by the BIU — one wire, no address match, strictly generalising the
+INTA-only arm.
+
+**THE ENTRY FUNNEL IS ONE PLACE AND THE ROM SAYS SO.**  Read off
+`./sim/v30sim disasm docs/V20BITS.TXT`: the interrupt-entry routine is the
+page-7 block **`111.0001?000`** (`01EC`…), and the `?` is the **ROM's own
+statement** that `INT` (far target 2) and `INTEM` (3) are the same rows.  The
+only door into it is the `FARJMP` micro-op, and **all twelve entry sites in the
+part go through that one door**:
+
+| site | entry | | site | entry |
+|---|---|---|---|---|
+| `0105` | `CC` — `INT 3` | | `01D9` | hardware `[-00-]` row 0 — **BRK / TF** |
+| `0108` | `CD` — `INT n` | | `01DB` | hardware `[-00-]` row 2 — **NMI** |
+| `010F` | `CE` — `INTO` | | `01DF` | hardware `02` bank A — **INTA vector fetch** |
+| `0195` | `F6`/`F7` — the DIVIDE trap | | `01E3` | hardware `02` bank B — **INTA vector fetch** |
+| `01A9` | `IDIV2` — the same trap | | `0349`, `0401` | `BRKEM`, via `FARJMP INTEM` |
+| `0283` | `62` — `CHKIND` / `BOUND` | | | |
+
+**THE GENERALISATION IS STRICT, PROVED ON THE ROM AND NOT ASSUMED.**  The whole
+ROM contains exactly **THREE** `[-05-]` (INTA) rows — `01DC`, `01E0`, `01E2` —
+and **all three sit inside blocks that terminate in `FARJMP INT`, with no
+`FLUSH` row between**.  So every case the old condition armed is armed by the
+new one, in the same order relative to both consumers (`flush()`'s re-arm and
+`boundary_no_pop()`'s spend).  A machine that armed on the bus cycle would need
+two mechanisms for one microcode.
+
+`sim/` was landed as one hook on `CpuT::run_micro`'s FARJMP branch
+(`(op.far_loc() >> 1) == 1`) plus `BiuTimed::note_int_entry()`, with the arm
+REMOVED from `inta_read()`.  **`hdl/rtl/` was never touched** — the sitting is
+sim-first by its own work order and the sim leg decided it.
+
+### §71.2 THE BAR, REWRITTEN — WHAT CHANGED AGAINST §3 AND WHY
+
+§3 of `sm3_s7_prereg_2026-08-04.md` demanded `>= 95 %` on BOTH halves **at every
+wait level**.  §68.4 booked its CONTROL half as **defective, structurally**: the
+floor is `max(F1+6, F1+L+1)` and at `w >= 1` the restart's `L` is 5/6/7, so the
+floor **collapses onto `L+1`** and *"unfloored" is inexpressible in the
+coordinate*.  Three changes, each named in the pre-registration before any run:
+
+1. **the discriminating regime is w0 ALONE** (w1-w3 remain must-not-move, but
+   carry no information about the arm);
+2. **the statistic is the MINIMUM, not a proportion** — a floor is a minimum;
+3. **the bar scores the ENGINE leg, not the chip leg** — §68.4 closed the chip
+   question (chip `swintnext` w0 30/30 floored, `iretnext` unfloored at the
+   minimum), so what was left to show is that an engine reproduces it.
+
+§3's full must-not-move ladder was carried unchanged.
+
+### §71.3 THE AUTHORISING LEG — **MET, AT THE POINT ESTIMATE, EXACTLY**
+
+`sm3_h1_cell.py score --hold 300 --out sm3-h1acell`, 240 banked captures, no
+board.  Baselines re-measured on HEAD before the source was touched.
+
+| leg | registered | baseline | **measured after** |
+|---|---|---|---|
+| `ord1 swintnext w0`, `sim` | **30 / 30** (floor `>= 29`) | 0 / 30 | **30 / 30** |
+| `ord2+ swintnext w0`, `sim` | **90 / 90** | 0 / 90 | **90 / 90** |
+| `ord1 iretnext` w0/w1/w2/w3 (CONTROL) | 30 each, unmoved | 30 each | **30 each — UNMOVED** |
+| `ord2+ iretnext` w0/w1/w2/w3 (CONTROL) | 101/87/60/60, unmoved | same | **UNMOVED** |
+| `swintnext` w1/w2/w3 | unmoved | 30/30 each | **UNMOVED** |
+| **cell TOTAL, `sim`** | **791 / 791** | 671 / 791 | **791 / 791** |
+
+**Every cell, at the point estimate, with the control untouched.**  The
+mechanism does exactly what §68.4 said it would.  The `ucore` baseline is
+667/791 (its four extra misses are `LNone` — the engine produces no
+acknowledge at that ordinal — a separate pre-existing defect); it was never
+landed, so it stands at 667/791.
+
+### §71.4 THE DISJOINT VALIDATION — **AND IT REFUTES THE ARM.  THE CLASS IS THE PIN.**
+
+§64.1's rule was honoured by construction: the `sm3-h1acell` captures SELECTED
+the mechanism, so the 3,242-seed fuzz bank — a different generator, a different
+sitting, a different bitstream, and no shared capture — is the **DISJOINT
+VALIDATION POPULATION**.  §64.2's two named seeds are members of it.
+
+| `timed_fuzz --core sim --evt-replay` | registered | baseline | **measured** |
+|---|---|---|---|
+| REGISTERED | **EXACTLY 1,272** | 1,272 | **1,272 — the equality HELD** |
+| EVT | `>= 780` | 780 | **777 — REGISTERED FAILURE, −3** |
+| COMBINED | `>= 2,052` | 2,052 | **2,049** |
+| b2 tranche | `>= 154` | 154 | **154 — unmoved** |
+| seeds WORSENED | **0** | — | **5 — REGISTERED FAILURE** |
+
+**The REGISTERED equality is a result in its own right** and it was predicted
+from the code rather than from a run: the arm's only readers are reached
+through `at_fire_boundary()`, so a population with no `evt` axis cannot observe
+it.  1,272 of 1,702, to the seed.
+
+**THE MOVEMENT, ITEMISED — 2 improved, 5 worsened, and nothing else moved
+verdict:**
+
+```
+  IMPROVED  mc1/2672  EVT  pin=0  DIVERGE(first_bad 289, "bs PASV!=INTA") -> EXACT
+  IMPROVED  mc1/356   EVT  pin=0  DIVERGE(first_bad 213, "bs PASV!=INTA") -> EXACT
+  WORSENED  mc1/1241  EVT  pin=1  EXACT -> DIVERGE  first_bad 267  "bs MEMR!=PASV nxta 0008"
+  WORSENED  mc1/2258  EVT  pin=1  EXACT -> DIVERGE  first_bad 654  "bs CODE!=PASV nxta 0536"
+  WORSENED  mc1/3052  EVT  pin=1  EXACT -> DIVERGE  first_bad 269  "bs MEMR!=PASV nxta 0008"
+  WORSENED  mc2/1157  EVT  pin=1  EXACT -> DIVERGE  first_bad 539  "bs CODE!=PASV nxta 0482"
+  WORSENED  mc2/2932  EVT  pin=1  EXACT -> DIVERGE  first_bad 411  "bs MEMR!=PASV nxta 0008"
+```
+
+**§4's PREDICTION FIRED EXACTLY.**  `mc1/2672` and `mc1/356` — the two seeds
+§64.2 called *"re-entries in every mechanical sense"*, on which both engines
+were *"wrong by exactly the 2 clocks the floor costs"* — go **EXACT**.  That is
+a prediction written into a committed file and then met on a population the
+mechanism was not selected on.  It is the strongest single piece of evidence
+this hypothesis has ever had.
+
+**AND THE FIVE ARE THE SAME SHAPE, CYCLE FOR CYCLE.**  Read chip-side off the
+banked rows with no engine, every one of the five carries `mc1/2672`'s geometry
+exactly — an IVT vector read below `0x400`, the three-word frame, the `0x0480`
+handler, the IRET's three contiguous stack pops, the restarted prefetch — and
+then the next recognition.  `mc1/3052`, from the entry that precedes it:
+
+```
+  MEMR:0000c MEMR:0000e        <- vector 3, a software INT3 entry (no INTA)
+  MEMW:03efe MEMW:03efc MEMW:03efa
+  CODE:00480 CODE:00482        <- the bare CF handler
+  MEMR:03efa MEMR:03efc MEMR:03efe   <- the IRET's three pops
+  CODE:00535 ...               <- the RESTARTED prefetch
+  ... and the NEXT recognition is an NMI, and the chip does NOT floor it.
+```
+
+**THE PARTITION IS PERFECT AND IT IS ONE COORDINATE.**  All five worsened seeds
+are **`evt.pin = 1` (NMI)**.  Both improved seeds are **`evt.pin = 0` (INT)**.
+**ZERO INT seeds regressed.**  Same shape, same arm, opposite answer, split by
+whether the recognition that follows is MASKABLE.
+
+`V30SIM_BNDTRACE=1` — a new env-gated stderr diagnostic in `boundary_no_pop`,
+one line per recognition boundary carrying the clock, the arm and whether the
+floor is LIVE — reads it directly.  On `mc1/3052` the seed's ONLY boundary is
+`BND clk=261 post=1 pend=1 floor=263 live=1`: the entry armed it, the IRET's
+flush re-armed it, the restart stamped 263, no pop spent it, and the model paid
+two clocks the chip does not pay.
+
+### §71.5 THE DISPOSITION — **REVERTED, BECAUSE THE BAR IS WHAT GOVERNS**
+
+The pre-registration says, in §5.2 and §6: `EVT >= 780`, `worsened = 0`, and
+*"Any of them down and the landing is REVERTED, not defended."*  EVT is 777 and
+five seeds are worse.  **The landing is REVERTED.**
+
+This is §68.4's rule applied in mirror image.  There, the evidence authorised a
+landing the bar did not; the bar won.  Here, the bar's authorising leg is met
+**perfectly** — 791/791, every control unmoved — and the ladder fails; the bar
+wins again.  A landing that makes the model **worse against silicon** on the
+disjoint validation population is refuted by the correctness target itself
+(CLAUDE.md: *silicon match is the only correctness bar*), net −3, and no
+argument from the cell can buy it back.
+
+**WHAT IS IN THE TREE AFTER THE REVERT** (`git diff` against `587d523637`,
+non-comment lines, is exactly five):
+
+* `sim/biu_timed.cpp` — the **`V30SIM_BNDTRACE`** diagnostic, kept.  It is the
+  instrument the finding rests on and the finding has to stay reproducible.
+  Env-gated `fprintf`, reads no state the block below it does not, nothing
+  reads it back.
+* comments only, in `sim/biu_timed.h` (the refutation, at the arm's own
+  declaration, so the next agent to propose this reads it first),
+  `sim/biu_timed.cpp` and `sim/exec_impl.h` (the entry funnel recorded as a
+  fact, with "nothing arms from it today" beside it).
+* **`hdl/` is byte-identical.**  The ucore was never touched.
+
+### §71.6 WHAT SURVIVES — **THE ARM MAY NOT BE AN ENTRY FLOP AT ALL.  IT MAY BE THE IE RESTORE, AND THAT IS THIS FILE'S OWN OLDER CANDIDATE.**
+
+`biu_timed.h` has carried, since §61.4 and long before any of this:
+
+> *"The MECHANISM behind the arm is NOT ESTABLISHED.  The candidate is the IE
+> restore: the entry clears IE, the IRET's PSW pop restores it, and a
+> recognition cannot act on a RISING IE for two clocks."*
+
+**It accounts for every population on the table, with no cases:**
+
+| population | IE at the boundary | chip | the IE-rise reading |
+|---|---|---|---|
+| `swintnext` w0 (INT pin) | entry cleared IE (`CITF`, `01F5`); the IRET's PSW pop RAISES it | **FLOORED 30/30** | an IE-gated recognition cannot act on a rising IE — held |
+| `iretnext` ord1 (INT pin) | a PLANTED frame pops IE = 1 into IE = 1 — **no rise** | **UNFLOORED**, min 4 | nothing to wait for |
+| `iretnext` ord2+ / every INTA re-entry | entry cleared IE, the handler's IRET raised it | **FLOORED** | held |
+| `mc1/2672`, `mc1/356` (INT pin) | same | **FLOORED** | held |
+| §64.2's "protected eight" | the rise is long past; pops in between | **UNFLOORED**, gap 4 | spent |
+| **the five NMI seeds** | IE rose at the IRET — but the recognition is **NON-MASKABLE** | **UNFLOORED** | an NMI is not gated by IE and has **nothing to wait for** |
+
+The entry-generic arm reaches the same place only by adding *"…and NMI is
+exempt"* — a second case for one microcode, which is exactly the shape the
+standing principle names as a signal of misunderstanding.  The IE reading needs
+no second case, and it needs no new flop: the recognition pipeline **already
+reads IE** (`psw_ie` is an existing `v30u_eu` port; the model already models
+`kFlagIE`'s early commit at `007A`/`01EA` under I1/F39, which is the same
+signal at the same edge).  *"Nothing on the die is wasted"* cuts directly for
+it: one rising-edge condition on a wire that is already there, against a
+dedicated flop plus an exemption.
+
+**IT IS NOT LANDED AND MUST NOT BE LANDED FROM HERE.**  It was selected on the
+BANK, in this sitting, so §64.1 forbids the bank from validating it.  What it
+needs is written down instead:
+
+* **its falsifier**: an NMI recognition **FLOORED** after an entry+IRET restart,
+  or an IE-gated recognition **UNFLOORED** after one;
+* **the cell that would settle it, and it is the one `sm3_h1_cell.py` already
+  failed to land**: `--variants clipopf` (a `CLI ; POPF` chain — IE RISING at a
+  boundary with **no entry and no acknowledge behind it**).  As first run it
+  produced NO ACKNOWLEDGE AT ALL (§61.4 records this as its own open question),
+  and **that is now the first thing to fix**, because it is the ONE stimulus
+  that separates "IE rose" from "an entry returned".  A `swintnmi` variant —
+  `swintnext`'s software entry with the rig asserting **NMI** instead of INT —
+  is its board-side twin and would confirm the five bank seeds on directed
+  captures;
+* **its disjoint validation**, which must be neither the h1a cell nor the
+  banked fuzz corpus.
+
+### §71.7 WHAT MOVED, AND WHAT DID NOT
+
+| | before | **after** |
+|---|---|---|
+| every gate in `standing_gates.md` §B | — | **UNMOVED, all of them** |
+| `timed_fuzz --core sim` REG / EVT / COMBINED | 1,272 / 780 / 2,052 | **1,272 / 780 / 2,052** |
+| `timed_fuzz --core ucore` REG / EVT / COMBINED | 1,490 / 910 / 2,400 | **1,490 / 910 / 2,400** |
+| b2, `sim` / `ucore` | 154 / 172 | **154 / 172** |
+| the h1a cell, `sim` / `ucore` | 671 / 667 of 791 | **671 / 667 of 791** |
+| `hdl/` | — | **byte-identical** |
+
+**THE REVERT IS PROVED AT THE SEED, NOT AT THE TOTAL.**  Per-seed reports were
+banked before the landing and re-run after the revert, and compared on
+`exact`, `first_bad`, `kind`, `cat`, `n`, `ndiff`, `sim_rows`:
+**0 of 3,242 seeds differ, on BOTH engines.**  A total can agree by
+cancellation; this cannot.
+
+Re-run and green after the revert: `make -C sim test` (disasm byte-exact),
+`pla3_check`, `check_ucore_tables` 9,988, `timed_gate --suite v0.1 --forms all`
+**169,000/169,000 row-diffs 0**, `check_core --core ucore --opcodes all`
+**169,000/169,000**, `ulockstep --golden all --cases 50` **17,350/17,350**,
+`check_boot --timed 220` and `--timed 400` MATCH, `check_ab_sim` 187 rows MATCH,
+`timed_wvec_gate --core ucore` 88/88 **+0.0 %**, `timed_enter_replay --core
+ucore` 154/154 ×5, `timed_ins_replay --core ucore --raw` 1,312 / 2,624,
+`timed_lawcards` 8 GREEN / 0 RED / 3 UNRESOLVED, `timed_scenario` 18/0/9,
+`ss_lint` rc 0 / 222 addresses / 205 flops / 0 UNMAPPED / `SS_VERSION` 0x83.
+**No `SS_VERSION` bump was needed** — the landing added no flop to either
+engine, as §1 of the pre-registration predicted.
+
+### §71.8 WHAT THIS SITTING DID NOT DO
+
+* **No board contact of any kind.**  `flash_log.jsonl` unchanged at 8 entries;
+  the board still carries FLASH #5.  No `div_guard`, no capture, no
+  `board_idle` — there was nothing to idle.
+* **The `ucore` was never touched.**  The landing is sim-first by the work
+  order and the sim leg decided it; building the RTL half of a refuted arm
+  would have been work spent on a result already in hand.
+* **The 8080 / `gaps` §F.1 work, R7′, and the X1 OE-port work were not
+  opened** — all pending USER decisions or their own pre-registration.
+* **No memory file was touched and Codex was not launched.**
+* No comparator, scorer, golden or ledger figure was changed.  **Nothing in
+  `standing_gates.md` §B moved, and nothing was re-scored downward.**
+
+### §71.9 THE LEADS THIS SITTING HANDS THE NEXT ONE
+
+1. **The IE-RESTORE reading of H1's arm (§71.6).**  It is the sharpest lead the
+   H1 line has produced: one condition on a wire both engines already have, no
+   flop, no cases, and it explains a partition the entry reading has to
+   special-case.  **Its blocker is an instrument, not a decision**: `clipopf`
+   must be made to produce an acknowledge.  Board cell, needs its own
+   pre-registration, and its validation population must be neither of the two
+   this sitting used.
+2. **`sm3_nmigeom.py` deserves a first-acknowledge census like
+   `sm3_ackgeom`'s.**  `sm3_ackgeom` counts INTA cycles, so **every NMI
+   recognition in the bank is invisible to it** — which is precisely why the
+   class that refuted this landing had never been seen.  A vector-read-keyed
+   ordinal over the 208 banked NMI seeds would have predicted the five.
+3. **§70.5's READY cone**, **§70.6's SDC falsifier instrument**, the X1 fabric
+   leg, **H7's bank association** and **H3's steady-state prefetcher** — all
+   unchanged and still queued.

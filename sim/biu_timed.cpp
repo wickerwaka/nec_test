@@ -1076,6 +1076,15 @@ long BiuTimed::boundary_no_pop(bool post_redirect) {
     // (sec.19.8.1) and the ROM's own REPX path does the flush AFTER the
     // decision, so there is no boundary for the reload to hold off.  MEASURED:
     // flooring it too costs `INT.F3AA` 26 of 200 at w0 and 0 elsewhere.
+    // H1a DIAGNOSTIC (env-gated, `V30SIM_BNDTRACE=1`).  One line per
+    // recognition boundary: the clock, whether the arm stands, and whether the
+    // floor is LIVE (stamped by a restart and not yet spent by a pop).  It
+    // reads no state the block below does not, and nothing reads it back.
+    static const bool kBndTrace = std::getenv("V30SIM_BNDTRACE") != nullptr;
+    if (kBndTrace)
+        fprintf(stderr, "BND clk=%ld post=%d pend=%d floor=%ld live=%d\n",
+                clk_, int(post_redirect), int(bnd_pending_), bnd_floor_,
+                int(bnd_floor_ >= 0 && clk_ < bnd_floor_));
     if (post_redirect && bnd_pending_) {
         wait_bnd_floor();
         // ...and the recognition that PAYS the floor also holds the
@@ -1384,6 +1393,10 @@ void BiuTimed::io_write(uint16_t port, uint16_t data, bool word, uint16_t upc) {
 uint16_t BiuTimed::inta_read(uint16_t upc) {
     uint16_t v = core_.inta_read(upc);
     // H1: AN ACKNOWLEDGE ARMS THE NEXT RECOGNITION'S FLOOR.  See biu_timed.h.
+    // (SM3 sitting 10 REPLACED this with an entry-generic arm published by the
+    // EU's `FARJMP` into the interrupt-entry routine, and REVERTED it: the
+    // arm is right for every INTA and software-`INT` re-entry and WRONG for a
+    // non-maskable one.  The line stands; the refutation is in biu_timed.h.)
     bnd_pending_ = true;
     Access acc;
     acc.bs = kBsInta;

@@ -621,12 +621,64 @@ private:
     // every population this model runs -- the goldens and `timed-boot` alike
     // -- starts from RESET with no acknowledge behind it.
     //
-    // The MECHANISM behind the arm is NOT ESTABLISHED.  The candidate is the
-    // IE restore: the entry clears IE, the IRET's PSW pop restores it, and a
-    // recognition cannot act on a RISING IE for two clocks.  The cell that
-    // would settle it is `sm3_h1_cell.py --variants clipopf` (a CLI ; POPF
-    // chain, IE rising at a boundary with no acknowledge behind it); as first
-    // run it produced NO ACKNOWLEDGE at all, which is its own open question.
+    // H1a -- "THE ARM IS THE INTERRUPT ENTRY, NOT THE INTA CYCLE" WAS BUILT
+    // AND IS REFUTED.  READ THIS BEFORE PROPOSING IT AGAIN.  (SM3 sitting 10,
+    // `ucore_provenance.md` §71; the cell that opened it is §68.4.)
+    //
+    // WHAT IS TRUE.  The directed board cell settles the chip's behaviour and
+    // it is not in doubt: `sm3_h1_cell.py`'s `swintnext` stimulus is a chain
+    // of software `INT n` whose handler is a bare IRET -- a REAL entry with NO
+    // INTA anywhere in the stream -- and at w0 the chip floors the following
+    // acknowledge on 30 of 30 captures, while the `iretnext` CONTROL (the same
+    // IRET and the same restarted prefetch, popping PRE-PLANTED frames with no
+    // entry behind them) is UNFLOORED at the minimum.  An INTA-only arm cannot
+    // produce that pair, and does not: it is 0/30 on the cell.
+    //
+    // WHAT WAS BUILT.  The EU publishes "the entry microcode started" on the
+    // ONE row that starts it: the entry routine is the page-7 block
+    // `111.0001?000` at `01EC` (the `?` is the ROM's own statement that `INT`
+    // and `INTEM` are the same rows), the only door into it is `FARJMP`, and
+    // all twelve entry sites go through that door -- `CC`/`CD`/`CE`, the
+    // divide trap (`0195`, `01A9`), `CHKIND` (`0283`), the hardware BRK/TF and
+    // NMI rows (`01D9`, `01DB`), both INTA vector-fetch tails (`01DF`,
+    // `01E3`), and `BRKEM`.  It strictly generalises this arm, PROVED on the
+    // ROM: the whole ROM has exactly THREE `[-05-]` INTA rows and all three
+    // sit inside blocks terminating in `FARJMP INT` with no `FLUSH` between.
+    // On the cell it is PERFECT -- 791/791 acknowledges against 671/791, the
+    // `swintnext` w0 column 0/30 -> 30/30, every control unmoved.
+    //
+    // WHAT REFUTED IT: THE DISJOINT BANK, AND THE CLASS IS THE PIN.  On the
+    // 3,242-seed fuzz bank the arm improves §64.2's two named seeds to EXACT
+    // (`mc1/2672`, `mc1/356` -- predicted, and they are the two whose shape is
+    // mechanically a re-entry) and BREAKS FIVE: `mc1/1241`, `mc1/2258`,
+    // `mc1/3052`, `mc2/1157`, `mc2/2932`.  EVT 780 -> 777.  All five are
+    // `evt.pin = 1` (NMI); both improved are `evt.pin = 0` (INT); ZERO INT
+    // seeds regress.  Their chip streams carry the SAME geometry as
+    // `mc1/2672` cycle for cycle -- entry, frame, the `0x0480` handler, the
+    // IRET's three pops, the restarted prefetch -- and the chip does NOT floor
+    // what follows.  Same shape, same arm, opposite answer, partitioned
+    // perfectly by whether the recognition is maskable.
+    //
+    // WHAT SURVIVES, and it is this file's own older candidate: the floor is
+    // not an entry flop at all, it is the IE RESTORE.  The entry clears IE
+    // (`CITF`, `01F5`); the IRET's PSW pop raises it; and an IE-GATED
+    // recognition cannot act on a rising IE for two clocks.  That reading
+    // accounts for every population on the table with no cases: `swintnext`
+    // floored (IE rises at the IRET), `iretnext` unfloored (a planted frame
+    // pops IE = 1 into IE = 1, no rise), every INTA re-entry floored, §64.2's
+    // two seeds floored, and the five NMI seeds UNFLOORED because a
+    // non-maskable recognition is not gated by IE and has nothing to wait for.
+    // The entry-generic arm can only reach the same place by adding "...and
+    // NMI is exempt", which is a second case for one microcode -- the shape
+    // the standing principle names as a signal of misunderstanding.
+    //
+    // *Falsifier for what survives*: an NMI recognition FLOORED after an
+    // entry+IRET restart, or an IE-gated recognition UNFLOORED after one.
+    // It is NOT landed and must not be: it was selected on the bank, so
+    // §64.1 requires it be validated on a population the bank did not supply.
+    // `V30SIM_BNDTRACE=1` prints one line per recognition boundary (the clock,
+    // the arm, whether the floor is live) and is the instrument that read all
+    // of the above.
     long bnd_floor_ = -1;       // the boundary may not be taken before this
     bool bnd_arm_ = false;      // ...stamped by the next fetch after a flush
     bool bnd_pending_ = false;  // ...and only ARMED at all by a prior ACK
