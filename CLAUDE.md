@@ -195,9 +195,17 @@ Values are monotone: never re-scored downward without a loud, itemized entry.)
   are 6 family-B (model-shared, one row late — the model owns the mechanism)
   + 4 family-D (a `nec_bus` two-sample-per-clock instrument class the default
   TB cannot score by construction — §77, falsifier recorded; NOT patched).
-  New standing figure: **S16 display walk 1,252/1,371** (`tests/v30/
-  s16-dispwalk-*`; 42 of its 52 open cells are `HLT.NMI` in a wait-scaling
-  band, out of scope, ledgered).
+  New standing figure: **S16 display walk 1,294/1,371** (`tests/v30/
+  s16-dispwalk-*`).  It was 1,252 until sitting 17 landed **F54** — the NMI
+  half of the HALT-announcement CANCELLATION law (silicon, 1,512 captures, no
+  exception: the announcement at clock `H` is cancelled iff the pin rise
+  `A <= H - K`, **K=3 on INT, K=6 on NMI**; invariant over waits, programs and
+  IE) — which closed the 42-cell band **+42/−0** with no flop added.  §77.E's
+  H7 attribution of that band is **WITHDRAWN**: it was never a recognition-
+  timing question (the NMI vector read sits at the identical row on 36/42; the
+  band scales with waits because `H` does).  The MODEL has this law wrong
+  three ways (`HLT.RES` exact, `HLT.INT` short by 1/3/4/5 delays at w0-w3,
+  `HLT.NMI` no suppression) — §78.I, bar-ready, sim landing owed.
   These were 90/97, 88/95, 37/46, 34/45 = 249/283 through **U5**, and the move is
   two changes at once: **F51** landed (the HALT pseudo-cycle has no data phase)
   and the TB's composed-AD mask stopped hiding it.  §43.2's "17 cells no
