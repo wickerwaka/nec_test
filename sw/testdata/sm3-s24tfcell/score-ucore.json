@@ -183,10 +183,129 @@
    "met": true
   },
   "W-6": {
+   "1": {
+    "rows": 121860,
+    "ndiff": 71304,
+    "cells_with_diffs": [
+     "popfadd:w0=3731",
+     "popfadd:w3=3235",
+     "popfclc:w0=3819",
+     "popfclc:w3=3332",
+     "popfinc:w0=3820",
+     "popfinc:w3=3332",
+     "popfmemr:w0=3672",
+     "popfmemr:w3=3517",
+     "popfmovi:w0=3722",
+     "popfmovi:w3=3535",
+     "popfmul:w0=3410",
+     "popfmul:w3=3527",
+     "popfnone:w0=3808",
+     "popfnone:w3=3327",
+     "popftest:w0=3743",
+     "popftest:w3=3541",
+     "popfxchg:w0=3801",
+     "popfxchg:w3=2919",
+     "storm:w0=3837",
+     "storm:w3=3676"
+    ]
+   },
+   "2": {
+    "rows": 121860,
+    "ndiff": 71304,
+    "cells_with_diffs": [
+     "popfadd:w0=3731",
+     "popfadd:w3=3235",
+     "popfclc:w0=3819",
+     "popfclc:w3=3332",
+     "popfinc:w0=3820",
+     "popfinc:w3=3332",
+     "popfmemr:w0=3672",
+     "popfmemr:w3=3517",
+     "popfmovi:w0=3722",
+     "popfmovi:w3=3535",
+     "popfmul:w0=3410",
+     "popfmul:w3=3527",
+     "popfnone:w0=3808",
+     "popfnone:w3=3327",
+     "popftest:w0=3743",
+     "popftest:w3=3541",
+     "popfxchg:w0=3801",
+     "popfxchg:w3=2919",
+     "storm:w0=3837",
+     "storm:w3=3676"
+    ]
+   },
+   "3": {
+    "rows": 121860,
+    "ndiff": 33941,
+    "cells_with_diffs": [
+     "popfadd:w3=3235",
+     "popfclc:w3=3332",
+     "popfinc:w3=3332",
+     "popfmemr:w3=3517",
+     "popfmovi:w3=3535",
+     "popfmul:w3=3527",
+     "popfnone:w3=3327",
+     "popftest:w3=3541",
+     "popfxchg:w3=2919",
+     "storm:w3=3676"
+    ]
+   },
    "4": {
     "rows": 121860,
     "ndiff": 0,
     "cells_with_diffs": []
+   },
+   "5": {
+    "rows": 121860,
+    "ndiff": 14630,
+    "cells_with_diffs": [
+     "popfclc:w0=3601",
+     "popfinc:w0=3601",
+     "popfpfx:w0=3601",
+     "popftest:w0=3827"
+    ]
+   },
+   "6": {
+    "rows": 121860,
+    "ndiff": 43762,
+    "cells_with_diffs": [
+     "popfadd:w0=3815",
+     "popfclc:w0=3601",
+     "popfclc:w3=3547",
+     "popfinc:w0=3601",
+     "popfinc:w3=3547",
+     "popfnone:w0=3701",
+     "popfpfx:w0=3601",
+     "popfpfx:w3=3547",
+     "popftest:w0=3827",
+     "popftest:w3=3570",
+     "popfxchg:w0=3566",
+     "storm:w0=3839"
+    ]
+   },
+   "7": {
+    "rows": 121860,
+    "ndiff": 61033,
+    "cells_with_diffs": [
+     "popfadd:w0=3815",
+     "popfadd:w3=3534",
+     "popfclc:w0=3601",
+     "popfclc:w3=3547",
+     "popfinc:w0=3601",
+     "popfinc:w3=3547",
+     "popfmovi:w0=3806",
+     "popfnone:w0=3701",
+     "popfnone:w3=3450",
+     "popfpfx:w0=3601",
+     "popfpfx:w3=3547",
+     "popftest:w0=3827",
+     "popftest:w3=3570",
+     "popfxchg:w0=3566",
+     "popfxchg:w3=3250",
+     "storm:w0=3839",
+     "storm:w3=3231"
+    ]
    }
   }
  },

@@ -322,10 +322,24 @@ in BOTH engines; the ucore's version DELETES five flops, a port and four
 save-state addresses and adds none.
 
 The complete, itemised list of what is **not** yet functional or timing-accurate
-is `docs/notes/ucore_gaps_2026-08-04.md`, and **the measured census of what is
-left against silicon — family × population, the shared/only partitions and the
-ranked mechanism hypotheses — is `docs/notes/sm3_residue_census_2026-08-04.md`
-(SM3, 2026-08-04).**  Read the census before planning work on the residue: its
+is `docs/notes/ucore_gaps_2026-08-04.md`.
+
+> ⚠ **THE CURRENT MEASURED CENSUS IS
+> `docs/notes/sm3_s27_residue_census_2026-08-05.md` (SM3 sitting 27), AND IT IS
+> MARKED AS THE PHASE VERDICT'S INPUT.**  One tree, one census, both engines,
+> every population, with every disposition CARRIED from the ledgers as a named
+> exclusion.  Headline partition of the ucore's **222**-seed banked residue:
+> **8080/BRKEM class A 92** (deferred by user) · **H3-B 10** (deferred by user) ·
+> **spec'd-awaiting-a-cell 2** · **model-shared 109** (`sim/` first) ·
+> **instrument-class family D 0** in this corpus · ⚠ **CATCH-ALL 9 — ucore-only,
+> no disposition of any kind, enumerated seed by seed**, five of which had never
+> been named in this repository.  The **model-only** residue is **366** seeds and
+> is FROZEN by user decision.  Outside the corpus the only undispositioned item
+> is the **27-cell S16 `ARCH` class**.  `ucore_provenance.md` **§88.B**.
+
+*The superseded census*, retained because its H1/H2/H3 history is still the
+reading for how the residue got here, is
+**`docs/notes/sm3_residue_census_2026-08-04.md`** (SM3, 2026-08-04).  Read the census before planning work on the residue: its
 **H1** accounted for 445 of the ucore's 540 EVT seeds and 491 of the model's
 645, 437 of them the same seed, in ONE mechanism — **and it is CLOSED in both
 engines since 2026-08-04** (`ucore_provenance.md` §61 / §62).  **H2 is RETIRED**

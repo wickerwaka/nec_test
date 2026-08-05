@@ -14983,3 +14983,113 @@ run AFTER the whole sitting is **MATCH over 800 rows**.  FLASH #9's
 | the board's bitstream | FLASH #9 `01aca4c0b1e7…` | **FLASH #10 `1a01a6975e4a…`** | this sitting |
 | G6 Fmax · ALMs (control) | 47.85 · 11,147 | **47.85 · 11,147 — unmoved** | `hdl/` did not move |
 
+
+## §88.B PART B — **THE VERDICT-INPUT CENSUS: THE CATCH-ALL IS NINE SEEDS, AND FIVE OF THE NINE HAVE NEVER BEEN NAMED IN THIS REPOSITORY**
+
+**`docs/notes/sm3_s27_residue_census_2026-08-05.md`** — one tree
+(`f3f7b6b20d`, the tree FLASH #10 was built from), one census, both engines,
+every population.  **NO fix, NO landing, NO proposal**: `git diff` over
+`hdl/rtl/` and `sim/` is empty for the whole sitting.
+
+### §88.B.1 EVERY PER-POPULATION TOTAL REPRODUCED, TO THE SEED
+
+`timed_fuzz` `ucore` **1,557 / 931 / 2,488**, `sim` **1,338 / 798 / 2,136**,
+`INVALIDATED` 0, `ENGINE ABORTS` 0, `BOUND WARNINGS` 4; b2 tranche **177 / 188**
+and **159 / 188**; the four HLT sweeps **279 / 283** (`ucore`) and **283 / 283**
+(model); S16 **1,320 / 1,371** and **1,305 / 1,371**; the b3 tranche in fabric
+**178 / 178**.  The whole structural ladder green on this tree —
+`simbin --disasm` 1,285 rows, `pla3_check` 21, `check_ucore_tables` 9,988,
+`ss_lint` 205 flops / 0 UNMAPPED, `check_core --opcodes all` **169,000 /
+169,000**, `check_boot` 220 and 400 MATCH, `ulockstep` **17,350 / 17,350**,
+`timed_wvec_gate` 88/88 +0.0 %, `timed_enter_replay` 154/154 ×3,
+`timed_ins_replay` 800/800 · 1,312/1,312 · 2,624/2,624, `check_ab_sim` 187 rows
+MATCH, `test_artifact` 45/45, the model's `v0.1` timed wall **169,000 / 169,000
+row-diffs 0**, and the BRK/TF floor cell **EXACT at depth 4 (`ucore`) and 3
+(`sim`) and at no other depth in [1,7]**.  The 7,341,126-case functional set was
+**NOT re-run** and is cited from §87.A.3 on an identical `hdl/` manifest and
+`sim/` receipt — stated as a citation, not restated as a measurement.
+
+### §88.B.2 THE FAMILY CENSUS, `--core` MATCHED TO THE REPORT
+
+`ucore` **222** = `PF_LOST` 102 · `SCHEDULE` 44 · `DATA_SEQ` 41 · `PF_GAINED` 15
+· `PF_ADDR` 11 · `PIN` 9, **`TAIL_EXTRA` 0**, taxonomy catch-all EMPTY.
+`sim` **574** = `PF_LOST` 282 · `SCHEDULE` 196 · `DATA_SEQ` 30 · `PF_ADDR` 27 ·
+`PIN` 26 · `PF_GAINED` 13, **`TAIL_EXTRA` 0**, catch-all EMPTY.
+Cross-engine: **shared 208 · `ucore`-only 14 · model-only 366** — an INDEPENDENT
+reproduction of §87.A.3's own two numbers, derived from two fresh dumps rather
+than carried.
+
+### §88.B.3 THE PARTITION BY DISPOSITION — **EVERY DISPOSITION CARRIED, NONE RE-LITIGATED**
+
+| layer | REG | EVT | total | disposition |
+|---|---|---|---|---|
+| **L1** 8080 / BRKEM class A | 81 | 11 | **92** | DEFERRED BY USER DECISION 2026-08-05 |
+| **L2** H3-B, the grant-order swap | 4 | 6 | **10** | DEFERRED BY USER DECISION.  *Not refuted* |
+| **L3** spec'd, awaiting a directed cell | 2 | 0 | **2** | `mc1/721` (§87.B), `mc2/584` (§86.H) |
+| **L4** model-shared — `sim/` FIRST | 54 | 55 | **109** | the shared-mechanism ROUTING rule, not an exemption |
+| **L6** instrument-class, family D | 0 | 0 | **0** | 4 sweep + 24 S16 cells, on the `tb_sys` column by user disposition |
+| ⚠ **CATCH-ALL** | **4** | **5** | **9** | **`ucore`-only, NO disposition of any kind** |
+| | **145** | **77** | **222** | |
+| **FROZEN** — the model-only residue | | | **366** | USER DECISION: no model-only work |
+
+**L1 WAS COUNTED FRESH, NOT INHERITED, AND IT IS STILL EXCEPTION-FREE.**  §63.5's
+mechanical criterion (chip cell `CODE 00484` **and** `CODE:00008` in the chip's
+window) re-applied at HEAD gives **92 — §63.5's number exactly**, four sittings
+and five landings later; the whole 50-seed `t30-brkem` bank is inside it; the
+engine's cell at the contested slot is **`MEMR` 92/92**, `delta` **+2 on 92/92**,
+recovery **`NONE` 92/92**.
+
+### §88.B.4 **THE CATCH-ALL, ENUMERATED SEED BY SEED**
+
+Definition stated before the count: a banked seed on which the `ucore` diverges
+from silicon, **the model does not**, and which carries no user decision, no
+booked mechanism, no specified cell and no named hypothesis.
+
+```
+mc1/1023   REG DATA_SEQ  nxta            row 874  ndiff 2605/4000 wrand15  chip MEMR 053b7  eng MEMR 053b8
+mc2/640    REG DATA_SEQ  data            row 451  ndiff  354/4000 fix0     chip MEMW 0eaa7  eng MEMW 0eaa8
+t30-raw/15 REG DATA_SEQ  data            row 539  ndiff  123/4000 fix0     chip MEMR aa576  eng MEMR aa574
+mc2/887    REG PF_ADDR   nxta            row 436  ndiff    8/4000 wrand1   chip CODE 0ddfe  eng CODE 041de
+mc1/2468   EVT PF_GAINED qs -!=F         row 319  ndiff  760/1140 wrand7   chip MEMR 00008  eng CODE 00510
+mc1/3034   EVT PF_GAINED bs PASV!=CODE   row 484  ndiff   88/4000 fix0     chip INTA 0f4fb  eng CODE 0050a
+mc2/327    EVT DATA_SEQ  t Ti!=T1        row 270  ndiff 1370/1709 fix2     chip INTA 00506  eng PASV 60506
+mc1/1629   EVT PIN       data            row 3419 ndiff    2/3628 wrand7
+mc1/3072   EVT PIN       data            row 903  ndiff    2/1100 fix0
+```
+
+**Four of the nine** are §87.A.3's already-booked *"the model closed five seeds
+the `ucore` does not"* (the fifth, `mc2/2808`, is H3-B and sits at L2).
+**FIVE — `mc1/1629`, `mc1/2468`, `mc1/3034`, `mc1/3072`, `mc2/327` — appear in
+NO ledger in this repository**; a grep of `docs/notes/` for each returns zero
+hits.  That is what a catch-all is for, and it is why the census was taken
+rather than assembled from the ledgers.
+
+**ONE OBSERVATION, RECORDED AS AN OBSERVATION.**  On `mc1/1023`, `mc2/640` and
+`t30-raw/15` the two sides open **the same cycle, of the same type, at the same
+clock**, and the ADDRESS differs by **±1 or ±2 in the low bits**.  That is the
+shape `gaps` §T8 describes for a different, model-shared population (*"an exact
+byte swap on an odd-address word write — M5b's `A0` swapper applied where the
+chip does not"*).  **NOT CLAIMED**: §T8's seeds were model-shared and these three
+are `ucore`-only, so they cannot be the same defect without a measurement nobody
+has taken.  Its falsifier is written into the census.
+
+### §88.B.5 THE ONE NON-BANK ITEM WITH NO DISPOSITION
+
+The `ucore`'s S16 residue is **24 family-D + 27 `ARCH`**, and the 27 `ARCH` cells
+(architectural read-back on `HLT.RES` at `w1`/`w2`: `sp`/`bp`, `ax`/`dx`,
+`sp`/`si`/`flags`) are **booked and undispositioned**.  They are not inside the
+9 — that count is defined over the fuzz corpus — and the census says so
+explicitly, so that "catch-all = 9" is never read as "nine unexplained things in
+the whole project".  **The honest total undispositioned surface is 9 banked
+seeds plus 27 S16 `ARCH` cells, and nothing else.**
+
+### §88.C WHAT THIS SITTING DID NOT DO
+
+* **Nothing was landed.**  `git diff` over `hdl/rtl/` and `sim/` is empty.  The
+  only tool change is `u4_tranche --leg` gaining `chip_f10`/`core_f10`.
+* **No fix was proposed in half B** — the two observations above are recorded
+  with falsifiers and explicitly not claimed.
+* H3-B, the 8080 gap, the `8F` ghost cell, family D, H7 and the model-only
+  residue were **not opened** — each is carried as its owner's named exclusion.
+* **No memory file was touched.  Codex was not launched** — the closing review
+  is the coordinator's, against this census.
