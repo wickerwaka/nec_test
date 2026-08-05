@@ -20,10 +20,9 @@
  "s10-hltsweep-w1/HLT.INT": {
   "fail": [
    8,
-   9,
-   10
+   9
   ],
-  "pass": 43,
+  "pass": 44,
   "n": 46
  },
  "s10-hltsweep-w1/HLT.RES": {
@@ -33,12 +32,9 @@
  },
  "s13-hltsweep-w2/HLT.INT": {
   "fail": [
-   10,
-   11,
-   12,
-   13
+   12
   ],
-  "pass": 17,
+  "pass": 20,
   "n": 21
  },
  "s13-hltsweep-w2/HLT.RES": {
@@ -48,13 +44,9 @@
  },
  "s13-hltsweep-w3/HLT.INT": {
   "fail": [
-   12,
-   13,
-   14,
-   15,
-   16
+   15
   ],
-  "pass": 15,
+  "pass": 19,
   "n": 20
  },
  "s13-hltsweep-w3/HLT.RES": {

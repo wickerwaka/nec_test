@@ -267,7 +267,13 @@ def main():
                             # again, beside the `_f4` pair rather than over it.
                             # A leg is scored against the SOCKET capture taken
                             # on its OWN bitstream and never another flash's.
-                            "chip_f5", "core_f5"])
+                            "chip_f5", "core_f5",
+                            # SM3 sitting 19 / FLASH #9, the first re-capture
+                            # since #5: #6/#7/#8 were never taken (the debt
+                            # §73.9 booked), so `_f9` sits beside `_f5` and is
+                            # scored against `chip_f9`, its own bitstream's
+                            # socket capture.
+                            "chip_f9", "core_f9"])
     c.add_argument("--host", default=HOST)
     c.add_argument("--force", action="store_true")
     c.set_defaults(fn=cmd_capture)
