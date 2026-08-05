@@ -147,10 +147,11 @@ Values are monotone: never re-scored downward without a loud, itemized entry.)
   `sw/timed_wvec_gate.py` (88/88, +0.0 %), `sw/timed_lawcards.py`
   (**8 GREEN / 0 RED / 3 UNRESOLVED** — C6, C7, C11),
   `sw/timed_fuzz.py --evt-replay` (REGISTERED **1,272/1,702**, EVT
-  **363/1,008**, COMBINED **1,635/2,710**, `INVALIDATED` **0** — the EVT and
-  COMBINED figures moved TWICE on 2026-08-04: re-registered by **INV-1** onto
-  the 248-seed un-poisoned sub-population, then re-registered again when SM2
-  RE-CAPTURED the 760 and the full column re-opened; see below),
+  **782/1,008**, COMBINED **2,054/2,710**, `INVALIDATED` **0** — the EVT and
+  COMBINED figures moved TWICE on 2026-08-04 (INV-1's re-registration, then
+  SM2's re-capture re-opening the full column at 363), then TWICE more:
+  **+417 when H1 landed** (SM3 sitting 2, the re-entry recognition floor) and
+  **+2 when the IE-restore law replaced it** (sitting 11); see below),
   `sw/timed_fuzz.py --seeddir sw/testdata/t4/b2-tranche/seeds`
   (**154/188** — V5 is a standing REGISTERED FAILURE, not to be re-opened).
 - **The `ucore`** (now the DEFAULT `--core`; these are the ucore's OWN ratchets,
@@ -170,10 +171,11 @@ Values are monotone: never re-scored downward without a loud, itemized entry.)
   `timed_enter_replay.py --core ucore` **154/154 x5**;
   `timed_ins_replay.py --core ucore --raw` **1,312/1,312** and **2,624/2,624**;
   `timed_fuzz.py --core ucore --evt-replay` REGISTERED **1,490/1,702** (the sim
-  is 1,272), EVT **910/1,008** (the sim is 780 — ~~on the REBUILT column the
+  is 1,272), EVT **913/1,008** (the sim is 782 — ~~on the REBUILT column the
   ucore beats the model by 105 seeds~~ **STRUCK as a comparison, see the rule
   below**; as banked it appeared to lose by 517, which was INV-1, now CLOSED by
-  the SM2 re-capture), COMBINED **2,400/2,710**,
+  the SM2 re-capture; 910→913 = the IE law's +2 at sitting 11 + F53's +1 at
+  sitting 16), COMBINED **2,403/2,710**,
   and `--seeddir …/b2-tranche/seeds` **172/188** (the sim is 154).
   REGISTERED / EVT / COMBINED / b2 were **1,483 / 906 / 2,389 / 171** until
   **SM3 sitting 6** (`ucore_provenance.md` §66-§67) raised them by fixing a
@@ -182,13 +184,20 @@ Values are monotone: never re-scored downward without a loud, itemized entry.)
   RTL legs only; **seven of the NINE seeds `gaps` §T.2 calls "the ucore's own
   registered-bank residue" were the instrument, and that residue is now TWO
   seeds** (`mc1/721`, `mc2/584`).  EVT took a further +2 from F43.
-  The four HLT sweeps are **91/97, 92/95, 42/46, 40/45 = 265/283** (below the
-  model by **7** cells, all at w1/w2/w3 and all the undiagnosed `seg`/`bus`
-  half — at w0 the two failing sets are IDENTICAL).  They were 259/283 until
-  SM3 sitting 6 landed **F43** — the HALT display's decision now tests the wake
-  one stage further down the same pin pipeline (`int_p[1]`, published as
-  `eu_unhalt_disp`) — which closed all six `busstat` cells
-  (`HLT.INT` and `HLT.RES` at `d = 2w+5`, w = 1,2,3) and nothing else.
+  The four HLT sweeps are **91/97, 93/95, 45/46, 44/45 = 273/283** — the ucore
+  now EXCEEDS the model's 272/283.  They were 259/283 until SM3 sitting 6
+  landed **F43** (the HALT display's decision tests the wake one stage further
+  down the same pin pipeline, `int_p[1]` / `eu_unhalt_disp`; closed six
+  `busstat` cells, 265), and 265 until sitting 16 landed **F53** — the display
+  one-shot's three pins (address nibble / status nibble / UBE) as ONE law,
+  authorized by the S16 display-walk cell (S1-S5 all 100 %), which closed
+  families A (14 `seg`/`bus` cells), C (2) and E (5).  The 10 residual cells
+  are 6 family-B (model-shared, one row late — the model owns the mechanism)
+  + 4 family-D (a `nec_bus` two-sample-per-clock instrument class the default
+  TB cannot score by construction — §77, falsifier recorded; NOT patched).
+  New standing figure: **S16 display walk 1,252/1,371** (`tests/v30/
+  s16-dispwalk-*`; 42 of its 52 open cells are `HLT.NMI` in a wait-scaling
+  band, out of scope, ledgered).
   These were 90/97, 88/95, 37/46, 34/45 = 249/283 through **U5**, and the move is
   two changes at once: **F51** landed (the HALT pseudo-cycle has no data phase)
   and the TB's composed-AD mask stopped hiding it.  §43.2's "17 cells no
