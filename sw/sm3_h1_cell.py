@@ -103,6 +103,78 @@ VARIANTS = ("nop", "ebnext", "farnext", "callret", "iretnext", "clipopf",
 S11_PAD = 2
 S11_VARIANTS = ("iepop", "iesti", "iehot")
 
+# --------------------------------------------------------------------------- #
+# SITTING 13 -- THE PADDING-LENGTH CELL (Codex phase-review concern 4b).
+#
+# §72.7's law is written "two clocks after PSW.IE's rising edge".  On the
+# sitting-11 geometry that reading and a BOUNDARY-QUANTISATION one -- a sampler
+# that simply rejects the first boundary after the rise, whatever its distance
+# in clocks -- are OBSERVATIONALLY IDENTICAL, because the pad instruction is a
+# NOP and the first boundary after the rise sits ~2 clocks away.  The two
+# readings coincide only at that spacing.
+#
+# THEY SEPARATE IF THE FIRST BOUNDARY AFTER THE RISE IS MOVED FAR AWAY IN
+# CLOCKS.  Put a LONG instruction immediately after the POPF and ask whether
+# the boundary it ends is available:
+#
+#     a 2-clock TIMER          ->  it is >= 2 clocks after the rise: AVAILABLE
+#     BOUNDARY QUANTISATION    ->  it is the first boundary after the rise:
+#                                  REJECTED, and the entry appears one further on
+#
+# So the axis is the PAD INSTRUCTION'S CLOCK LENGTH, measured off the pins on a
+# no-rise control of the SAME geometry, and the observable is unchanged: which
+# boundary the pushed IP names.  Every sled is five instructions long and the
+# `hot` twin has the same byte period, so the two are read on one scale.
+S13_PADS = {
+    "nop":  ([0x90],       "NOP -- the sitting-11 spacing, the anchor"),
+    "cld":  ([0xFC],       "CLD -- 1 byte, flag only"),
+    "xchg": ([0x93],       "XCHG AW,BW -- 1 byte, registers only"),
+    "rol":  ([0xD2, 0xC0], "ROL AL,CL with CL = 3 -- AL/flags only, variable"),
+    "mul":  ([0xF6, 0xE3], "MUL BL -- AW/flags only, the LONG pad"),
+}
+S13_VARIANTS = tuple([f"pad{k}" for k in S13_PADS]
+                     + [f"hot{k}" for k in S13_PADS])
+
+
+def s13_sled(variant):
+    """(instruction byte-lists of ONE period, label of the boundary AFTER each).
+
+      pad*  CLI ; POPF ; PAD ; NOP ; NOP     -- IE RISES at the POPF
+      hot*  POPF ; PAD ; NOP ; NOP ; NOP     -- IE already up, popped word up:
+                                                the SAME geometry with NO RISE
+
+    `OWN` is the boundary the IE-writing instruction itself ends; `B1` is the
+    FIRST boundary after it -- the one this cell moves in clocks -- and `DEAD`
+    is the boundary at which IE is clear.
+    """
+    kind, pad = variant[:3], variant[3:]
+    body = list(S13_PADS[pad][0])
+    if kind == "pad":
+        return ([[0xFA], [0x9D], body, [0x90], [0x90]],
+                ["DEAD", "OWN", "B1", "B2", "B3"])
+    return ([[0x9D], body, [0x90], [0x90], [0x90]],
+            ["OWN", "B1", "B2", "B3", "B4"])
+
+
+def s13_boundary(ip, variant):
+    """Which boundary of the sled the pushed IP names.  -> label or None.
+
+    The pushed IP is the address of the instruction that WOULD have run next,
+    i.e. the START of instruction j -- so the entry was taken at the boundary
+    AFTER instruction j-1.  Anything that is not an instruction start is
+    reported as None rather than rounded to one."""
+    instrs, labels = s13_sled(variant)
+    starts, off = [], 0
+    for b in instrs:
+        starts.append(off)
+        off += len(b)
+    period = off
+    o = (ip - PC0) % period
+    if o not in starts:
+        return None
+    j = starts.index(o)
+    return labels[(j - 1) % len(labels)]
+
 # H7 sitting 7, the OPCODE axis (§65.1's lead).  Each is a straight-line sled of
 # ONE instruction, chosen so the stream has a dense, uniform boundary set and no
 # cumulative side effect over ~200 iterations.  The two GOLDEN NMI forms' own
@@ -210,6 +282,13 @@ def program(variant, n=40):
         for _ in range(n):
             p.emit([0xE8, 0x00, 0x00])     # CALL next  (pushes, redirects)
             p.emit([0xC3])                 # RET        (pops,   redirects)
+    elif variant in S13_VARIANTS:
+        # SITTING 13: `CLI ; POPF ; PAD ; NOP ; NOP` (or the no-rise `hot`
+        # twin).  The pad's CLOCK length is the axis; see `s13_sled`.
+        instrs, _labels = s13_sled(variant)
+        for _ in range(n * 2):
+            for b in instrs:
+                p.emit(list(b))
     elif variant in OPCODE_SLEDS:
         body = OPCODE_SLEDS[variant][0]
         for _ in range(max(1, (n * 3 * 2) // len(body))):
@@ -229,7 +308,8 @@ def image_of(variant):
             "BP": 0x3456, "IX": 0x2500, "IY": 0x2A00}
     ram = [(a, rng.getrandbits(8)) for a in range(DATA_LO, DATA_HI + 0x100)]
     ram += handler
-    if variant in ("clipopf", "iepop", "iesti", "iehot"):
+    if variant in ("clipopf", "iepop", "iesti", "iehot") \
+            or variant in S13_VARIANTS:
         ram = [x for x in ram if not (SP0 <= x[0] < SP0 + 2 * 200)]
         for k in range(200):
             ram.append((SP0 + 2 * k, 0x02))
@@ -632,6 +712,153 @@ def s11_report(recs=None):
     return 0
 
 
+def s13_rows(recs):
+    """(variant, pin, w) -> {label: [pop->ann clocks]}, plus the no-entry count.
+
+    Chip side, no engine.  `pop_t1` is the POPF's own stack read -- the clock at
+    which IE was committed, read off the pins -- and `ann_t1` is the entry's
+    announcement, so `ann - pop` is an ABSOLUTE clock coordinate that needs no
+    model.  It is the same coordinate §72.3 used to measure the +2."""
+    tab = defaultdict(lambda: defaultdict(list))
+    noent = Counter()
+    tot = Counter()
+    unmapped = Counter()
+    for r in recs:
+        v = r["variant"]
+        if v not in S13_VARIANTS:
+            continue
+        grp = (v, r.get("pin", 0), r["waits"])
+        tot[grp] += 1
+        fr = r.get("frames") or []
+        if not fr:
+            noent[grp] += 1
+            continue
+        f = fr[0]
+        lab = s13_boundary(f["ip"], v)
+        if lab is None:
+            unmapped[grp] += 1
+            continue
+        d = None if f.get("pop_t1") is None else f["ann_t1"] - f["pop_t1"]
+        tab[grp][lab].append(d)
+    return tab, noent, tot, unmapped
+
+
+def s13_report(recs=None, wait=0):
+    """SITTING 13 -- IS THE FLOOR TWO CLOCKS, OR ONE BOUNDARY?
+
+    Pre-registration: `docs/notes/sm3_s13_prereg_2026-08-05.md` §4."""
+    if recs is None:
+        recs = json.loads((OUT / "cells.json").read_text())
+    tab, noent, tot, unmapped = s13_rows(recs)
+    print("\n  --- SM3 sitting 13: the boundary chosen, by PAD CLOCK LENGTH ---")
+    print("  (PRE-REGISTERED, sm3_s13_prereg_2026-08-05.md §4."
+          "  `pad*` = IE RISES at the POPF;  `hot*` = the SAME geometry, NO"
+          " rise.)")
+    print(f"\n  {'variant':<9}{'pin':>4}{'w':>3} {'n':>4} {'noENT':>6} {'?':>3}"
+          f"   boundary histogram of the FIRST entry"
+          f"   [min(ann-pop) in clocks]")
+    for k in sorted(set(tab) | set(noent), key=lambda x: (x[0], x[1], x[2])):
+        h = tab[k]
+        cells = "  ".join(
+            f"{lab}:{len(v)}"
+            + ("" if not [x for x in v if x is not None]
+               else f"[{min(x for x in v if x is not None)}]")
+            for lab, v in sorted(h.items()))
+        print(f"  {k[0]:<9}{k[1]:>4}{k[2]:>3} {tot[k]:>4} {noent[k]:>6} "
+              f"{unmapped[k]:>3}   {cells}")
+
+    # the PAD's clock length, measured on the NO-RISE control at this wait
+    print(f"\n  --- the pad instruction's CLOCK length, measured on the "
+          f"NO-RISE control (`hot*`, pin 0, w{wait}) ---")
+    print("      L_pad := min(ann-pop | B1) - min(ann-pop | OWN), both on the"
+          " control")
+    lpad = {}
+    for pad in S13_PADS:
+        k = (f"hot{pad}", 0, wait)
+        h = tab.get(k, {})
+
+        def mn(lab):
+            v = [x for x in h.get(lab, []) if x is not None]
+            return min(v) if v else None
+        own, b1 = mn("OWN"), mn("B1")
+        lpad[pad] = None if (own is None or b1 is None) else b1 - own
+        print(f"      {pad:<5} {S13_PADS[pad][1]:<44} OWN={own} B1={b1}  "
+              f"L_pad={lpad[pad]}")
+
+    print(f"\n  --- THE VERDICT COORDINATES (pin 0, w{wait}) ---")
+    print("      P2  a floor exists            : OWN = 0 and DEAD = 0 on every"
+          " `pad*`")
+    print("      P3  THE DISCRIMINATOR         : is B1 TAKEN when L_pad >> 2?")
+    print("            B1 >= 1  -> a CLOCK test (the landed rendering)")
+    print("            B1  = 0  -> BOUNDARY QUANTISATION")
+    for pad in S13_PADS:
+        k = (f"pad{pad}", 0, wait)
+        h = tab.get(k, {})
+        n = {lab: len(h.get(lab, [])) for lab in
+             ("DEAD", "OWN", "B1", "B2", "B3")}
+        print(f"      pad{pad:<5} L_pad={str(lpad[pad]):<5} "
+              f"DEAD={n['DEAD']:<3} OWN={n['OWN']:<3} B1={n['B1']:<3} "
+              f"B2={n['B2']:<3} B3={n['B3']:<3} noENTRY={noent[k]}")
+    print(f"\n      P4  the NMI control (pin 1): OWN must be AVAILABLE")
+    for pad in S13_PADS:
+        k = (f"pad{pad}", 1, wait)
+        h = tab.get(k, {})
+        print(f"      pad{pad:<5} " + "  ".join(
+            f"{lab}:{len(h.get(lab, []))}" for lab in
+            ("DEAD", "OWN", "B1", "B2", "B3")) + f"  noENTRY={noent[k]}")
+    return 0
+
+
+def s13_engine(args):
+    """P5 -- the SAME question put to an engine, scored cell for cell.
+
+    A divergence here is a REGISTERED FAILURE to report, not to patch: the
+    landed rendering is `int_p[2] && ie_p[2] && psw[FIE]`, and whether that
+    reproduces silicon on a geometry it was never fitted to is exactly what
+    concern 4 asks."""
+    recs = json.loads((OUT / "cells.json").read_text())
+    imgs = {v: image_of(v) for v in sorted({r["variant"] for r in recs})}
+    eng = []
+    for r in recs:
+        if r["variant"] not in S13_VARIANTS or r["waits"] != args.wait:
+            continue
+        image, meta = imgs[r["variant"]]
+        evt = (meta["anchor_linear"] & 0xFFFFF, r["delay"], args.hold,
+               r.get("pin", 0))
+        rows = engine_rows(image, meta, [None] * r["nrows"], r["waits"], evt,
+                           args.core)
+        fr = entry_frames(rows) if rows else []
+        eng.append({"variant": r["variant"], "pin": r.get("pin", 0),
+                    "waits": r["waits"], "delay": r["delay"],
+                    "frames": fr[:1], "nrows": len(rows or [])})
+    print(f"\n  === engine `{args.core}` on the SAME images, w{args.wait} ===")
+    s13_report(eng, wait=args.wait)
+    # cell for cell against the chip
+    chip = {(r["variant"], r.get("pin", 0), r["waits"], r["delay"]): r
+            for r in recs}
+    same = diff = 0
+    bad = []
+    for e in eng:
+        c = chip[(e["variant"], e["pin"], e["waits"], e["delay"])]
+        cl = (s13_boundary(c["frames"][0]["ip"], e["variant"])
+              if c.get("frames") else "NOENTRY")
+        el = (s13_boundary(e["frames"][0]["ip"], e["variant"])
+              if e.get("frames") else "NOENTRY")
+        if cl == el:
+            same += 1
+        else:
+            diff += 1
+            bad.append((e["variant"], e["pin"], e["delay"], cl, el))
+    print(f"\n  CELL FOR CELL vs the chip, w{args.wait}: "
+          f"AGREE {same}   DIFFER {diff}")
+    for b in bad[:40]:
+        print(f"    {b[0]} p{b[1]} d{b[2]}: chip {b[3]}  engine {b[4]}")
+    (OUT / f"s13_engine_{args.core}_w{args.wait}.json").write_text(
+        json.dumps({"core": args.core, "wait": args.wait, "agree": same,
+                    "differ": diff, "bad": bad}, indent=1) + "\n")
+    return 0
+
+
 def cmd_idle(args):
     import v30run
     img0, _ = testimage.compose(regs={}, instr=bytes([0x90]))
@@ -738,6 +965,16 @@ def main():
     p = sub.add_parser("s11")
     p.add_argument("--out", default="sm3-s11cell")
     p.set_defaults(fn=lambda a: s11_report())
+    p = sub.add_parser("s13")
+    p.add_argument("--out", default="sm3-s13cell")
+    p.add_argument("--wait", type=int, default=0)
+    p.set_defaults(fn=lambda a: s13_report(wait=a.wait))
+    p = sub.add_parser("s13-engine")
+    p.add_argument("--out", default="sm3-s13cell")
+    p.add_argument("--core", default="ucore", choices=("sim", "ucore", "fsm"))
+    p.add_argument("--wait", type=int, default=0)
+    p.add_argument("--hold", type=int, default=300)
+    p.set_defaults(fn=s13_engine)
     p = sub.add_parser("idle")
     p.add_argument("--out", default="")
     p.set_defaults(fn=cmd_idle)
