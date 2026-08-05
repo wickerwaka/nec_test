@@ -10931,3 +10931,121 @@ Two NEW items are booked honestly rather than left implied:
 |---|---|---|
 | **U1a** | `s13_board.py` is migrated at `main()` only.  A board script that IMPORTS it and calls its functions directly never reaches the postcondition | a board sitting could still run an unasserted model.  `simbin.require_bin()` is the one-line fix at the point of use |
 | **U1b** | the model reads `V30SIM_*` environment variables at RUN time (`QDEPTH`, `FLUSHTRACE`, `EVALTRACE`, `TICKTRACE`, `IETRACE`, `BNDTRACE`, `EVTTRACE`).  They are trace-only today, and RUN-time environment is not part of an artifact's identity in this layer at all | a future behavioural env var would be invisible to every receipt.  The rule to hold is: **the model must not grow a behavioural environment variable** |
+
+### §76.B THE 18 SURVIVORS — RE-DERIVED PER CELL, AND THEY ARE **TWO FAMILIES, NO THIRD**
+
+Re-derived from the banked sweeps (`sw/testdata/x1-retention/offline.json` and
+the per-cell `*.ret.json.gz` rows) and re-measured on THIS tree with
+`check_core.py --core ucore --suite-dir tests/v30/<sweep> --opcodes all
+--cases 0 --waits <w>`:
+
+| sweep | measured here | |
+|---|---|---|
+| `s10-hltsweep-w0` | **91 / 97** | `HLT.INT` 44/48 · `HLT.RES` 47/49 |
+| `s10-hltsweep-w1` | **92 / 95** | `HLT.INT` 43/46 · `HLT.RES` 49/49 |
+| `s13-hltsweep-w2` | **42 / 46** | `HLT.INT` 17/21 · `HLT.RES` 25/25 |
+| `s13-hltsweep-w3` | **40 / 45** | `HLT.INT` 15/20 · `HLT.RES` 25/25 |
+| **total** | **265 / 283** | 18 survivors |
+
+> ⚠ **`CLAUDE.md` QUOTED 91/90/40/38 = 259/283 FOR THE ucore.**  That is the
+> **pre-F43** set (§43.2-era), stale since sitting 6.  §67.3 measured
+> 91/92/42/40 = **265** and `offline.json` carries it; this sitting re-measured
+> it a third time and gets 265 with the same coordinates.  Corrected UPWARD.
+
+| # | cell | w | delay | first div | signature | golden busstat/tstate | family |
+|---|---|---|---|---|---|---|---|
+| 1-2 | `s10-w0/HLT.INT/2,3` | 0 | 2,3 | (4, `busstat`) | `exp 'CODE' got 'PASV'` | CODE / Ti | **B** |
+| 3-4 | `s10-w0/HLT.RES/2,3` | 0 | 2,3 | (4, `busstat`) | `exp 'CODE' got 'PASV'` | CODE / Ti | **B** |
+| 5-6 | `s10-w0/HLT.INT/4,5` | 0 | 4,5 | (7, `bus`) | `exp 0x67CB4 got 0x57CB4`, Δ **+0x10000** | CODE / T4 | **A** |
+| 7-8 | `s10-w1/HLT.INT/8,9` | 1 | 8,9 | (9, `seg`) | `exp 'CS' got 'SS'` | CODE / Tw | **A** |
+| 9 | `s10-w1/HLT.INT/10` | 1 | 10 | (10, `bus`) | Δ **+0x10000** | CODE / T4 | **A** |
+| 10-12 | `s13-w2/HLT.INT/10,11,12` | 2 | 10-12 | (10\|11, `seg`) | `exp 'CS' got 'SS'` | CODE / Tw | **A** |
+| 13 | `s13-w2/HLT.INT/13` | 2 | 13 | (12, `bus`) | Δ **+0x10000** | CODE / T4 | **A** |
+| 14-17 | `s13-w3/HLT.INT/12,13,14,15` | 3 | 12-15 | (11\|12\|13, `seg`) | `exp 'CS' got 'SS'` | CODE / Tw | **A** |
+| 18 | `s13-w3/HLT.INT/16` | 3 | 16 | (14, `bus`) | Δ **+0x10000** | CODE / T4 | **A** |
+
+**FAMILY A — 14 cells.**  The `seg` cells and the `bus` cells are ONE family:
+`check_core` blanks the decoded `seg` column on T4, so the same defect reports
+as `seg` where the row is a `Tw` and as `bus` where it is a `T4`.  Every
+divergence row's golden `busstat` is **CODE** — **not one is INTA**, so this
+family has nothing to do with §56's INTA class.
+
+**FAMILY B — 4 cells.**  `busstat exp 'CODE' got 'PASV'` on a `Ti` row: the
+golden asserts the post-HALT CODE status one capture row before the ucore does.
+All four at **w0, delays 2 and 3**, two in each form, and **byte-identical to
+the model's** — same cells, same rows, same mismatch counts.
+
+#### §76.B.1 THE OCCUPANCY MAP — FIVE CONTIGUOUS RUNS, EVERY ONE STRICTLY INTERIOR
+
+`-` absent from the golden, `.` pass, `X` fail; delay index 0 leftmost.
+
+```
+s10-hltsweep-w0/HLT.INT  w0  -.XXXX.....................   44/48
+s10-hltsweep-w0/HLT.RES  w0  ..XX......................    47/49
+s10-hltsweep-w1/HLT.INT  w1  ---.....XXX...............    43/46
+s10-hltsweep-w1/HLT.RES  w1  ..........................    49/49
+s13-hltsweep-w2/HLT.INT  w2  ----......XXXX............    17/21
+s13-hltsweep-w3/HLT.INT  w3  -----.......XXXXX.........    15/20
+```
+
+Both immediate neighbours of every run exist in the golden and **PASS** (w0.INT
+1 and 6; w0.RES 1 and 4; w1.INT 7 and 11; w2.INT 9 and 14; w3.INT 11 and 17).
+Nothing sits at an end of the delay axis, so this is not a boundary effect of
+the sweep.
+
+**AND THE RUNS ARE PINNED TO A STRUCTURAL LANDMARK.**  Let `H` be the first
+delay whose golden capture contains a `HALT`-status row (4 / 8 / 10 / 12 at
+w0 / w1 / w2 / w3):
+
+| sweep | family A band | relative to `H` | width |
+|---|---|---|---|
+| w0.INT | 4, 5 | `H` … `H+1` | **2 = waits + 2** |
+| w1.INT | 8, 9, 10 | `H` … `H+2` | **3 = waits + 2** |
+| w2.INT | 10-13 | `H` … `H+3` | **4 = waits + 2** |
+| w3.INT | 12-16 | `H` … `H+4` | **5 = waits + 2** |
+
+**Family A occupies exactly `waits + 2` consecutive delays, starting at the
+first delay that produces a HALT display, at every wait level.**  Family B is
+the two delays immediately BEFORE that, and only at w0.
+
+*Two instrument caveats, both load-bearing.*  (a) Family A is `HLT.INT`-only
+**because the `HLT.RES` capture windows are too short to contain the row** (5-23
+rows, ending at the display's T2, against `HLT.INT`'s 59-119) — `HLT.RES`'s
+49/49 at w1 is not evidence that the form is clean.  (b) The four
+`v0.1-w*evt` suites carry **800 HALT-display rows each at w1/w3** and the golden
+segment indicator is **CS on all 800** (`0x6` on every `HLT.INT`, `0x2` on every
+`HLT.RES`) — but their `evt.delay` minima are **18** and **24**, far outside the
+`H … H+waits+1` bands, so **their 1,200/1,200 is no evidence at all about this
+defect.**  A second population needs new cases emitted AT the band.
+
+#### §76.B.2 ENGINE vs ENGINE — §T.1 REFINED, NOT REPEATED
+
+Model re-measured this session: **91/97 + 95/95 + 44/46 + 42/45 = 272/283.**
+
+| | model | ucore |
+|---|---|---|
+| w0.INT | 2,3,4,5 | 2,3,4,5 |
+| w0.RES | 2,3 | 2,3 |
+| w1.INT | — | 8,9,10 |
+| w2.INT | 10,11 | 10,11,12,13 |
+| w3.INT | 12,13,14 | 12,13,14,15,16 |
+| | **11** | **18** |
+
+**The model's 11 are a STRICT SUBSET of the ucore's 18** (model-only = ∅), and
+on all 11 shared cells the model's full mismatch SET is a subset of the ucore's
+with **0 model-only entries**.  **But the model carries the family-A signature
+NOWHERE**: on `w0.INT/4,5` the model's first divergence is `row 17 busstat
+INTA→PASV` and on `w2/w3` it is `ube 0→1`, several rows LATER than the ucore's
+`seg`/`bus`.  So:
+
+* the 4 family-B cells are **genuinely model-shared, same mechanism, same rows**;
+* the other 7 shared cells fail on both engines for a **different and later**
+  reason that the ucore inherits, and the ucore adds family A on top at an
+  EARLIER row — which is what moves the reported first-divergence column;
+* **all 14 family-A cells are ucore-OWNED BY SIGNATURE**, though 7 of them are
+  model-shared as cells.
+
+**The sentence for the ledger is therefore**: *at w0 the failing cell SETS are
+identical but the first-divergence SIGNATURES are not* — `w0.INT/4,5` is the
+counterexample, and §T.1's "the failing sets are NOT identical between engines"
+is true at w1/w2/w3 and false at w0.
