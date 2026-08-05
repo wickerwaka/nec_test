@@ -598,8 +598,22 @@ assign bs = display        ? r_cmt_bs
 
 // M2: UBE is NOT part of the status register -- it changes ONE CLOCK AFTER
 // the status does, so the DISPLAY clock keeps the old UBE.
+//
+// F53b -- ...AND UBE IS LOADED BY THE ADDRESS PHASE AND THEN HELD.  It is not
+// re-driven by a cycle that is merely RUNNING.  The middle term used to be
+// `r_run ? r_cur_ube_n`, which re-asserts the running cycle's UBE on every
+// clock of its body; that is invisible for an ordinary cycle (the value it
+// re-drives is the one the T1 already latched) and WRONG the moment an
+// announcement that put its own UBE on the pin is WITHDRAWN -- the pads keep
+// the withdrawn cycle's UBE, and the running HALT pseudo-cycle re-drove its
+// own `1` over it.  That is ucsim-t sec.26.7.7's open item, seen from the RTL
+// side: MEASURED on `s13-hltsweep-w2 HLT.INT idx 10/11` rows 12-13 and
+// `-w3 idx 12/13/14` rows 14-15, where the chip holds `ube 0` from the
+// withdrawn wake fetch and the ucore reverted to the HALT's `1`.
+// Falsifier: a capture in which UBE changes on a clock that is neither a
+// display at `cdage != 0` nor a T1.
 assign ube_n = (display && (r_cdage != 3'd0)) ? r_cmt_ube_n
-             : r_run                          ? r_cur_ube_n
+             : (r_run && (r_ts == TS_T1))     ? r_cur_ube_n
                                             : last_ube;
 
 // M23: the address one-shot is fired by the DISPLAY and is ONE CLOCK LONG;
@@ -607,6 +621,35 @@ assign ube_n = (display && (r_cdage != 3'd0)) ? r_cmt_ube_n
 // the segment status while A15-0 holds the address by pad retention.
 wire [19:0] t1_addr = r_cur_late_t1 ? {data_ps(r_cur_seg), r_cur_addr[15:0]}
                                   : r_cur_addr;
+
+// F53 -- M23 ENFORCED ON THE **DISPLAY** SIDE OF THE SAME MUX, AND ON BOTH
+// KINDS OF ADDRESS PHASE.
+//
+// M23's comment above states the law and the RTL enforced it only where the
+// T1 was late.  `display` is cleared when its T1 opens (M2), so an announced
+// cycle that must wait for a busy bus keeps `display` asserted for EVERY
+// waiting clock, and `ad_o` republished the whole 20-bit address on all of
+// them.  The one-shot was one clock long on one side of the mux and unbounded
+// on the other.  Silicon: A19-16 carries the announced cycle's ADDRESS-PHASE
+// value for exactly ONE clock -- the display clock, `r_cdage == 0` -- and
+// `data_ps(seg)` on every clock after it until the T1.
+//
+// AN INTA HAS AN ADDRESS PHASE TOO; its value is simply ZERO (it announces no
+// address).  So the same one-shot governs it, and the `20'h0` term below was
+// the identical defect one cycle-type over: MEASURED on
+// `s10-hltsweep-w0 HLT.INT idx 4/5` row 11 (`INTA T4`, golden nibble `6`,
+// ucore `0`) and row 12 (a LATE `INTA T1`, golden `6`).  A NON-late INTA T1
+// carries `0`, exactly as `t1_addr` carries the address there -- rows 17/18 of
+// the same cell, and `-w2 idx 10` row 14.
+//
+// No flop is added and nothing outside the pin mux is touched.
+// Falsifier: any capture whose A19-16 carries an address on two consecutive
+// clocks of one announcement, or a segment status on the display clock itself.
+wire [3:0] disp_hi  = (r_cdage == 3'd0) ? r_cmt_addr[19:16]
+                                        : data_ps(r_cmt_seg);
+wire [3:0] dinta_hi = (r_cdage == 3'd0) ? 4'h0
+                                        : data_ps(r_cmt_seg);
+wire [3:0] cinta_hi = r_cur_late_t1 ? data_ps(r_cur_seg) : 4'h0;
 
 // THE PAIRING IS A MID-CLOCK FACT.  `sim/biu_timed.cpp` fills `cur_.data` from
 // inside `mem_write`, which the EU calls DURING the clock, and the row that
@@ -626,8 +669,9 @@ wire [15:0] cur_data_o = pair_now
                                         : eu_wdata)
                        : r_cur_data;
 
-assign ad_o = (disp_inta || cur_inta) ? 20'h0
-            : display                 ? r_cmt_addr
+assign ad_o = disp_inta                ? {dinta_hi, 16'h0}
+            : cur_inta                 ? {cinta_hi, 16'h0}
+            : display                 ? {disp_hi, r_cmt_addr[15:0]}
             : halt_hold               ? r_cur_addr
             : (r_run && (r_ts == TS_T1))  ? (r_cur_wr && t1_half2
                                          ? {r_cur_addr[19:16], cur_data_o}
