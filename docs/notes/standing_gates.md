@@ -29,6 +29,76 @@ C++ reference model — that is the spec engine and it did not change.
 | test_fuzz_classify / test_fuzz_accept | `python3 sw/test_fuzz_{classify,accept}.py` | the verdict tree + acceptance rules (offline) |
 | gen_ucore_qsf | `python3 sw/gen_ucore_qsf.py --check` | `hdl/nec_test_ucore.qsf` is a faithful derivative of `hdl/nec_test.qsf` — the two A/B bitstreams differ by the CORE and nothing else |
 
+### THE QUARTUS LEG (G6) — **NEW, SM3 SITTING 13.  IT IS TRIGGERED, NOT ALWAYS-ON.**
+
+`python3 sw/quartus_gate.py`
+
+**Why it exists**: `ucore_provenance.md` §73.1. Sitting 11 landed RTL, ran no
+synthesis — which was ALLOWED, because no gate demanded one — and the DEFAULT
+`nec_test_ucore` build was later measured at **19.42 MHz** with 20,000 failing
+paths. **Nothing in the tree saw it, because the standing set is board-free by
+design and had no Quartus leg at all.** That is this document's own vacuous-gate
+pattern by ABSENCE rather than by blindness.
+
+**What it does**: `gen_ucore_qsf --check` first (E1 — it must run BEFORE the
+build, because Quartus REWRITES the .qsf it compiles, §70.7), then **ONE clean
+CONTROL/DEFAULT build from a deleted `db`/`incremental_db`** — macro OFF, the
+configuration every bitstream is derived from — and it gates **only** the
+registered G6 essentials:
+
+| | bar |
+|---|---|
+| **E1** | `gen_ucore_qsf --check` green |
+| **E2** | 0 compile errors, every stage `Successful` |
+| **E3** | `divclk` Fmax **≥ 32 MHz** |
+| **E4** | worst setup slack **> 0** on every domain |
+| **E5** | TNS **0.000**, setup **AND** hold, every domain |
+
+ALMs, latches, `lpm_divide` and the register counts are **RECORDED in the
+receipt and are NOT bars** — a gate that asserts a resource number fails on
+noise, and one that records it lets the next agent see drift.
+
+**WHEN IT TRIGGERS.** Any commit touching `hdl/rtl/ucore/**`, the shared
+integration RTL (`hdl/rtl/system_large.sv`, `nec_bus.sv`, `nec_test.sv`,
+`hdl/sys/**`), `hdl/files_ucore.qip`, either `.qsf`, `nec_test.sdc`, or the
+generated ucore tables. **Its receipt is REQUIRED before any RTL landing is
+accepted or any bitstream is flashed.** The FAST LADDER does not wait on it —
+Verilator, the goldens and the fuzz bank run as they do today; the RTL
+PROMOTION does. That is the line where the ~9-minute cost is paid once.
+
+**THE RECEIPT** (`--receipt`, default `hdl/output_files_ucore/quartus_gate.json`)
+carries the input manifest hash over **88 files**, the tool version, the exact
+command, the parsed figures and the verdict, to
+`docs/notes/artifact_receipt_layer.md` §3's schema. Two receipts differ ONLY in
+what the builds differ in — the layer's §5 delta manifest, already load-bearing:
+HEAD vs `144e67416b` differ in **exactly one file, `rtl/ucore/v30u_eu.sv`**, which
+is what makes the comparison below readable at all.
+
+**NON-VACUITY — PROVED, AND *NOT* THE WAY IT WAS REGISTERED.**
+`sm3_s13_prereg_2026-08-05.md` §3 registered **Q2: the gate goes RED on a
+worktree of `144e67416b`, reproducing 19.42 MHz.** ***IT DID NOT.*** That build
+came back **45.91 MHz / +6.489 / TNS 0.000 / PASS**, and **Q2 IS A REGISTERED
+FAILURE, reported and not restated.** Non-vacuity is instead proved on the
+**PRESERVED 19.42 MHz REPORT SET ITSELF** — sitting 12's `ctrl_clean`, a real
+historical artifact retained under §73.13 — where the gate exits **1** and goes
+**RED at E3 (19.42), E4 (−20.254) and E5 (TNS −13,129.815)**. The scoring is
+non-vacuous on the exact state it was built to catch.
+
+> ⚠ **AND THE Q2 RESULT IS ITSELF A FINDING ABOUT THIS GATE AND ABOUT §73.
+> READ `ucore_provenance.md` §74.4 BEFORE QUOTING ANY SINGLE-BUILD Fmax.**
+> Four control builds of two trees that differ in one file:
+> | tree | `.qsf` used | Fmax |
+> |---|---|---|
+> | `144e67416b` | materialised (s12) | **19.42** |
+> | `144e67416b` | generated (s13) | **45.91** |
+> | form 2 / HEAD | materialised (s12) | **45.89** |
+> | form 2 / HEAD | generated (s13) | **43.59** |
+> **The DEFAULT build's Fmax is not a function of the RTL alone**, and §73.1's
+> "reproduced to the digit from a DELETED `db`" established repeatability of one
+> draw, not determinism. **A single green build does not establish closure on
+> this design.** The gate's value is that it makes a 26 MHz swing VISIBLE at the
+> landing rather than three sittings later; it is not a proof of closure.
+
 ## B. THE STANDING SET — the `ucore`
 
 Standing ratchets. Monotone: never re-scored downward without a loud, itemised

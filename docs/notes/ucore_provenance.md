@@ -10177,3 +10177,295 @@ transcripts and the six per-seed `timed_fuzz` reports.  Fabric captures:
    beside `_f5`, board work, uncontroversial.
 4. **H7's bank association** and **H3's steady-state prefetcher** (§68.10 leads
    2 and 3), both still board-free to open.
+
+## §74 SESSION SM3, SITTING 13 — **THE CODEX PHASE REVIEW'S FIVE CONCERNS EXECUTED.  THE C11 CONFOUND CONTROL IS CLEAN, BOUNDARY QUANTISATION IS REFUTED AT FOUR SPACINGS, AND THE NEW QUARTUS GATE'S FIRST ACT IS TO REFUTE ITS OWN NON-VACUITY PREDICTION AND EXPOSE A 26 MHz BUILD-TO-BUILD SWING.**
+
+**2026-08-05, branch `ucsim`, from HEAD `7debefcebd`.  A BOARD SITTING WITH
+FLASHING AUTHORISED, AND TWO FLASHES WERE TAKEN.**  Pre-registration
+`docs/notes/sm3_s13_prereg_2026-08-05.md` at **`d687a36f0c`**, committed
+**before the first board contact and before either engine was touched** —
+`git diff` against `sim/` and `hdl/rtl/` is EMPTY at that commit and **NO ENGINE
+WAS TOUCHED AT ANY POINT IN THIS SITTING**.  Single writer confirmed before
+contact (`0 users`, no serve process on `mister-nec`); `div_guard` **PINNED** on
+every probe; `use_core` **False** as found and **False** as left, verified;
+**0 transport errors in the whole sitting**; `flash_log.jsonl` **9 → 11
+entries**.
+
+> **Standing principle, applied throughout.**  *"A guiding principal here needs
+> to be simplicity.  This is 80's era hardware, they aren't wasting silicon on
+> anything that isn't necessary.  Complex or confusing behavior that we see is
+> likely to be simple systems interacting in ways you do not fully understand
+> yet."*
+
+**THE ONE-LINE RESULT.**  Concerns 3(a) and 4(a) are corrected in place with
+errata (§73.9a, §72.7b); concern 3(b)'s control puts the macro-OFF bitstream
+back on the board **inside one session, on one tree, through one fit flow**, and
+it reproduces **146/283 with the same 119-cell class and the same 18 survivors
+at identical coordinates — the FLASH #5 → #6 inference carries no RTL or fit
+confound**; concern 4(b)'s cell shows the **first boundary after an IE rise is
+free at 2, 3, 13 and 24 clocks, at ZERO cost against a no-rise control**, which
+**REFUTES boundary quantisation** and leaves §72.7's rendering standing; and
+concern 2's gate is built, is PASS at HEAD, is proved RED on a real preserved
+artifact — **and its registered non-vacuity prediction FAILED, which is how the
+26 MHz build-to-build swing of §74.4 was found.**
+
+### §74.1 CONCERN 3(a) AND 4(a) — THE TWO WORDING CORRECTIONS
+
+Both taken erratum-style, original text preserved with a marker beside it,
+because deleting a true record corrupts a ledger exactly as badly as inventing
+one.
+
+* **§73.9a** — C11's registered bars were **116 cells / 259 of 283**; what ran
+  is **119 / 265 of 283**, because F43 landed at sitting 6 and moved the offline
+  reference the bar is written RELATIVE to.  **The bars were SUPERSEDED, not
+  met.**  C11 is established at the **MECHANISM** level, on the ground that
+  §56.3a's registered REFUTATION did not occur in any cell.  Corrected in the
+  same terms in `standing_gates.md` §B and `ucore_gaps_2026-08-04.md`.
+* **§72.7b** — what sitting 11 established is IE gating, maskability, a floor of
+  at least one boundary and a +2 minimum.  What §72.7's wording ASSUMES is that
+  the floor is a count of CLOCKS.  The landed RTL is `int_p[2] && ie_p[2] &&
+  psw[FIE]` — a pipelined LEVEL test with no counter in it — and both
+  renderings were named with the question booked OPEN pending §74.3.
+* **Concern 5** is cited as it was returned: **NO ACTION, form 2 confirmed.**
+  §73.4's two falsifiers are in the tree and silent over the whole ladder.
+
+### §74.2 CONCERN 3(b) — **THE CONFOUND CONTROL, AND IT IS CLEAN**
+
+FLASH #7 is the CONTROL build (`X1_AD_RETENTION` **OFF**) produced by
+`sw/quartus_gate.py` at HEAD — the same build that is concern 2's PASS proof —
+`nec_test_ucore.sof` **`b29c35df24de0cb5bfa3fb9249997da726884cbf99afe3a685db8369c7e5e142`**,
+`.rbf` `44f17467ebd636ad9972d4a12ca6c72d19605da111749c3d7455417e3ce6777a`.
+FLASH #8 is the restore of **`626fb30ebee2…`**.  Both through `sw/safe_flash.sh`
+with its VERIFY leg.  Sitting 12's `ctrl_after2` was NOT reused: it predates
+`c7198e210f`, so its fit record is not current for HEAD.
+
+| # | registered | **measured on FLASH #7** |
+|---|---|---|
+| **C1** | **146 / 283** | **146 / 283 — exact** |
+| **C2** | the base-only class is exactly **119**, the SAME names | **119**, and `fabric base-only class == offline base-only class` is **True**; **119 / 119** have an **INTA** first-divergence row, read off the GOLDEN's bus status and not off a name |
+| **C3** | first-divergence **row AND column** identical to the offline `tb_sys base` record | ⚠ **MISSED — see below** |
+| **C4** | the SAME **18** survivors, same coordinates | **18**, and **0** whose coordinate moved |
+| **C5** | socket control **49 / 49** | **49 / 49** |
+| **C6** | FLASH #8 first light MATCH ×3 over 800 rows | **MATCH / MATCH / MATCH** |
+| **C7** | 0 transport errors | **0** |
+
+**AND THE PAIR THAT MATTERS IS `fab_f7` vs `fab_f8` — ONE TREE, ONE FIT FLOW,
+ONE BOARD SESSION, THE MACRO AND NOTHING ELSE:** 146/283 → 265/283, **119
+closed, 0 survivors, 0 of the 18 moved**, all 119 INTA.  `fab_f8` is
+**cell-for-cell identical to `fab_f6`** — the same bitstream, two flashes apart —
+which is the control that says the board and the rig did not drift across the
+session.  **The FLASH #5 → #6 inference contains no RTL or fit confound, and
+§73.9a's mechanism-level C11 is now supported by an intervention that varies ONE
+INPUT.**
+
+**C3 IS MISSED, AND IT IS REPORTED AS REGISTERED RATHER THAN RESTATED.**  On all
+**119** cells the fabric's first divergence is **exactly one row LATER** than the
+offline `tb_sys base` record's — `(+1, same column)` on 119 of 119, column `bus`
+in every case, and the golden's bus status is **INTA at BOTH coordinates**.  The
+18 survivors are at delta **0**, in this comparison and in `fab_f6` vs the
+offline `ret` leg alike, so the shift is confined to the class.  What is
+therefore established is that **the failing SET is identical between fabric and
+the offline base leg — 137 = 137, cell for cell, 0 either-only** — and that the
+two disagree by one row on WHERE inside the same INTA cycle the divergence first
+shows.  The natural reading is that Verilator's resolution of the internal
+tri-state and Quartus's mux resolution of it differ on the first affected row;
+**it is NOT diagnosed here, it is booked**, and it is a lead for whoever next
+touches `tb_sys`.
+
+### §74.3 CONCERN 4(b) — **THE DISCRIMINATING CELL.  BOUNDARY QUANTISATION IS REFUTED AT FOUR SPACINGS.**
+
+`sw/sm3_h1_cell.py run --out sm3-s13cell`, **3,840 captures**, socket only
+(`EMIT_USE_CORE` False and the module refuses to load otherwise), `div_guard`
+**PINNED** (`div=8 (4 MHz), commanded by this connection`), **`fired = True` on
+all 3,840**, 0 transport errors, 429 s, full per-clock rows + raw 64-bit words +
+**7,682 files under `SHA256SUMS`**, `board_idle()` run and OK.
+
+Ten sleds in matched pairs — `pad<k>` = `CLI ; POPF ; PAD<k> ; NOP ; NOP` (IE
+RISES at the POPF) and `hot<k>` = `POPF ; PAD<k> ; NOP ; NOP ; NOP` (IE already
+up, popped word up: **NO RISE**, the control) — with `PAD<k>` chosen for CLOCK
+LENGTH and nothing else.  **THE READER WAS VALIDATED ON RETAINED SILICON BEFORE
+ANY NEW CAPTURE**: over `sw/testdata/sm3-s11cell/` it reproduces §72.3 exactly
+(`iepop` pin 0 w0 **OWN 0, DEAD 0, B1 18, B2 6**; pin 1 **OWN 9**).
+
+**THE RESULT, pin 0, w0, 48 delays per cell:**
+
+| pad | `L_pad` on the NO-RISE control | `pad*` **B1** | `pad*` OWN | `pad*` DEAD | `min(ann−pop)` at B1: rise / no-rise |
+|---|---|---|---|---|---|
+| `CLD` | **2 clocks** | **30 / 48** | 0 | 0 | **10 / 10** |
+| `NOP` | 3 | **31 / 48** | 0 | 0 | **11 / 11** |
+| `XCHG AW,BW` | 3 | **31 / 48** | 0 | 0 | **11 / 11** |
+| `ROL AL,CL` (CL=3) | **13** | **36 / 48** | 0 | 0 | **21 / 21** |
+| `MUL BL` | **24** | **42 / 48** | 0 | 0 | **32 / 32** |
+
+`L_pad := min(ann−pop | B1) − min(ann−pop | OWN)`, both on the control, where
+`ann−pop` is the clocks from the POPF's own stack read (IE's commit, on the
+pins) to the entry's announcement — §72.3's own coordinate.
+
+**READ IT.**  The FIRST boundary after the rise is TAKEN at spacings of **2, 3,
+13 and 24 clocks**, and at a `min(ann−pop)` **IDENTICAL to the no-rise
+control's** in every case — i.e. **at ZERO cost.**  A sampler that rejects the
+first boundary after the rise, whatever its distance, would have refused all
+four and pushed every entry to B2.  **BOUNDARY QUANTISATION IS REFUTED.**
+
+**WHAT IS REFUSED IS EXACTLY TWO THINGS, ON ALL FIVE GEOMETRIES:** the rise's
+**OWN** boundary (spacing 0) — **0 of 48 on every pad** — and the boundary at
+which IE is **CLEAR** — **0 of 48 on every pad**.  So the floor is a small
+CLOCK/level quantity, not a boundary count, and this cell bounds it: **strictly
+greater than 0 and at most 2**, because `CLD`'s B1 sits 2 clocks out and is free.
+§72.7's *"two clocks"* is **the upper end of that interval and it survives**;
+what §72.7b booked as OPEN is now closed in §72.7's favour.
+
+**THE CONTROLS.**  **P1** (`hot<k>` B1 ≥ 1): 4 · 7 · 7 · 24 · 31 ✓.  **P1b**
+(`hot<k>` OWN ≥ 1 — the geometry control the pre-registration wrote in because
+the engine baseline exposed the risk): **17 · 17 · 17 · 8 · 8 ✓** — the 48-delay
+sweep reaches the OWN window on every pad, which sitting 11's 24-delay sweep
+would not have on the long ones, so **P2 is scored on all five**.  **P4**
+(`L_pad(mul) ≥ 8`): **24 ✓**.  **P6** (NMI, pin 1, `pad<k>` OWN ≥ 1): **18 · 19
+· 18 · 8 · 8 ✓** — the non-maskable recognition takes the rise's own boundary
+freely on every geometry, so maskability is reproduced on a sled set that did
+not exist when §72.7 was written.
+
+**P7 — THE ENGINE, AND IT IS EXACT.**  `sm3_h1_cell.py s13-engine --core ucore
+--wait 0 --hold 300`: the ucore is handed the identical images and the identical
+`(anchor, delay, hold, pin)` and **PREDICTS** the boundary; scored cell for cell
+over all **960** w0 captures it is **AGREE 960 / 960, DIFFER 0**, with its own
+histograms and its own `min(ann−pop)` values identical to the chip's on every
+leg — **on a geometry it was never fitted to, including a 24-clock pad.**  The
+registered outcome is MET and there is **no registered failure to report on this
+concern.**  The `sim` leg is structurally vacuous on this observable (§4.3 of the
+sitting-11 pre-registration) and was not scored.
+
+**WHAT THIS CELL CANNOT DO, AS REGISTERED IN ADVANCE**: separate a 1-clock floor
+from a 2-clock one.  No instruction retires in one clock, so no boundary exists
+at spacing 1, and the announcement offset jitters by ±1 across labels.  **The
+question it answers is CLOCKS vs BOUNDARIES**, and no number should be taken out
+of it that it did not carry.
+
+### §74.4 CONCERN 2 — **THE STANDING QUARTUS GATE, AND ITS FIRST ACT IS TO REFUTE ITS OWN REGISTERED PREDICTION**
+
+`sw/quartus_gate.py` is built to the review's design and written up in
+`standing_gates.md` §A: `gen_ucore_qsf --check` (E1, before the build, because
+Quartus rewrites the .qsf it compiles), one clean CONTROL/DEFAULT build from a
+deleted `db`, and only the registered G6 essentials as bars — 0 errors (E2),
+`divclk` Fmax ≥ 32 MHz (E3), worst setup > 0 (E4), TNS 0.000 setup AND hold
+(E5).  Resources are RECORDED, never gated.  The receipt is
+`artifact_receipt_layer.md` §3's schema.
+
+**Q1 — PASS AT HEAD, and the registered BAND is MISSED.**  `verdict PASS`;
+E2 0 errors, E3 **43.59 MHz**, E4 **+8.308**, E5 clean, ALMs 11,126 (27 %),
+latches 0, `lpm_divide` 0, 524 s.  The pre-registration wrote the band as
+**45.5 – 46.2 MHz** (sitting 12's 45.89) and **43.59 is below it.**  Reported as
+registered.  The GATE passes — its bar is ≥ 32, deliberately, and that is why.
+
+**Q2 — REGISTERED FAILURE.**  Registered: *the gate goes RED on a worktree of
+`144e67416b`, reproducing §73.1's 19.42 MHz.*  **It came back
+`Fmax 45.91 MHz / +6.489 / TNS 0.000 / PASS`, 534 s.**  The 19.42 MHz state
+**did not reproduce at the commit where it was measured.**  Not restated, not
+re-run for a better draw.
+
+**NON-VACUITY IS PROVED ANOTHER WAY, ON A REAL ARTIFACT.**  The 19.42 MHz report
+set itself is retained under §73.13 (`~/.cache/ucsimt-tmp/sm3s12/ctrl_clean/`).
+Gated with `--parse-only --tree`, `quartus_gate.py` **exits 1** and goes **RED at
+E3 (19.42), E4 (−20.254) and E5 (TNS −13,129.815)** with E2 still green.  The
+scoring is non-vacuous on precisely the state it was built to catch — proved on
+the historical artifact rather than by fishing for a re-draw, which would have
+been choosing a run after seeing the result.
+
+**AND HERE IS WHAT Q2 ACTUALLY FOUND.**  The receipts' input manifests differ in
+**exactly one file** — `rtl/ucore/v30u_eu.sv`, the R7′ form-2 change — which is
+`artifact_receipt_layer.md` §5's delta manifest doing its job on its first day.
+Four CONTROL builds of those two trees:
+
+| tree | the `.qsf` the build actually read | **`divclk` Fmax** | worst setup |
+|---|---|---|---|
+| `144e67416b` (pre-form-2) | **materialised** (sitting 12) | **19.42** | −20.254 |
+| `144e67416b` (pre-form-2) | **generated** (sitting 13) | **45.91** | +6.489 |
+| form 2 / HEAD | **materialised** (sitting 12) | **45.89** | +8.493 |
+| form 2 / HEAD | **generated** (sitting 13) | **43.59** | +8.308 |
+
+**THE DEFAULT BUILD'S Fmax IS NOT A FUNCTION OF THE RTL ALONE.**  §73.1's
+*"reproduced to the digit from a DELETED `db`"* established that ONE DRAW
+repeats, not that the outcome is determined; and on the generated `.qsf` the
+pre-form-2 tree is **faster** than HEAD.  Two consequences, both booked:
+
+1. **§73's R7′ before/after may not be quoted as "19.42 → 45.89".**  What is NOT
+   retracted is the STRUCTURAL result, which is independent of any Fmax draw:
+   the `c_ready_q` cone went from **62–63 logic levels to 19**, measured on the
+   netlist, with 0 failing paths and zero ladder delta.  That is why R7′ stays
+   CLOSED.  What is retracted is the reading that the pre-form-2 tree *is* a
+   19.42 MHz tree.
+2. **A single green Quartus build does not establish closure on this design**,
+   and the gate must not be quoted as if it did.  Its value is that it makes a
+   26 MHz swing VISIBLE at the landing instead of three sittings later.  A
+   multi-seed form (`--seed`, N fits, gate the WORST) is the obvious next
+   version and is **NOT** built here.
+
+### §74.5 WHAT MOVED, AND WHAT DID NOT
+
+| | before | **after** |
+|---|---|---|
+| C11's record | "§56.3a's both halves are MET" | **ESTABLISHED AT THE MECHANISM LEVEL, bars SUPERSEDED not met** (§73.9a) |
+| the C11 attribution's evidence | a cross-bitstream inference (macro + 90 lines of RTL + a whole fit) | **an intervention varying ONE INPUT, in one board session** (§74.2) |
+| §72.7's "two clocks" | asserted as the mechanism | **a MEASURED interval `(0, 2]`, with boundary quantisation REFUTED at four spacings** (§72.7b, §74.3) |
+| the standing gate set's Quartus leg | **ABSENT** — §73.14 lead 1 | **`sw/quartus_gate.py`, triggered, with a receipt** (`standing_gates.md` §A) |
+| the DEFAULT build's Fmax | quoted as a property of the tree | **NOT a function of the RTL alone: 19.42 and 45.91 from one commit** (§74.4) |
+| the board's bitstream | FLASH #6 `626fb30ebee2…` | **FLASH #8, the SAME `626fb30ebee2…`** — #7 was the control and it was taken back off |
+| `flash_log.jsonl` | 9 entries | **11** |
+| the fabric HLT sweeps, macro OFF | 146/283 on FLASH #5 (a different tree) | **146/283 on FLASH #7, THIS tree** |
+| the fabric HLT sweeps, macro ON | 265/283 on FLASH #6 | **265/283 on FLASH #8, cell for cell identical** |
+
+**UNMOVED, AND DELIBERATELY**: every ratchet in `standing_gates.md` §B. **NO
+ENGINE WAS TOUCHED** — `sim/` and `hdl/rtl/` are byte-identical to `7debefcebd`
+at the close of this sitting, so no ladder gate can have moved and none is
+re-claimed.  The only tree changes are instruments (`sw/sm3_h1_cell.py`,
+`sw/quartus_gate.py`), documents, and retained captures.
+
+### §74.6 WHAT THIS SITTING DID NOT DO
+
+* **The artifact/receipt layer was SPEC'd and NOT BUILT** — concern 1, routed to
+  its own sitting.  `docs/notes/artifact_receipt_layer.md`, with the receipt
+  schema, atomic build-and-promote, the A/B delta manifest, the layer's own
+  non-vacuity proof and a migration order costed against the seven recorded
+  incarnations of the identity bug.  `quartus_gate.py`'s receipt is written to
+  that schema and is its first instance.
+* **The 18 HLT survivors were not investigated**; they are booked, not absorbed.
+* **The multi-seed form of the Quartus gate was not built** (§74.4 consequence 2).
+* **§74.2's one-row C3 shift was not diagnosed**, only measured and bounded.
+* No Codex launch, no memory file touched, no 8080 / `gaps` §F.1, no comparator
+  or golden or scorer changed, nothing re-scored downward.
+
+### §74.7 EVIDENCE
+
+* Pre-registration `docs/notes/sm3_s13_prereg_2026-08-05.md` at `d687a36f0c`.
+* The cell: `sw/testdata/sm3-s13cell/` — 3,840 captures, `manifest.json`,
+  `cells.json`, per-clock rows + raw 64-bit words, **7,682 files under
+  `SHA256SUMS`**, and `s13_engine_ucore_w0.json` (the 960/960).
+* The fabric legs: `sw/testdata/x1-retention/*.fab_f7.json.gz`,
+  `*.soc_f7.json.gz`, `*.fab_f8.json.gz`, `score_fab_f7.json`,
+  `score_soc_f7.json`, `score_fab_f8.json`, plus `score_base.json` /
+  `score_ret.json` (the offline legs re-scored on `x1_fabric`'s OWN comparator so
+  the fabric and offline columns are on one scale).
+* The gate receipts, under `~/.cache/ucsimt-tmp/sm3s13/`:
+  `receipt_head.json` (Q1, PASS 43.59), `receipt_144e6741.json` (Q2, PASS 45.91
+  — the registered failure), `receipt_s12_ctrl_clean.json` (the non-vacuity
+  proof, RED at E3/E4/E5), with the four build transcripts beside them.  The
+  FLASH #7 output tree is preserved whole at `~/.cache/ucsimt-tmp/sm3s13/flash7/`
+  and FLASH #6/#8's at `flash6_outdir_backup/`.
+
+### §74.8 THE LEADS THIS SITTING HANDS THE NEXT ONE
+
+1. **THE BUILD-TO-BUILD Fmax SWING (§74.4) IS THE BIGGEST OPEN ITEM.**  A design
+   that draws 19.42 or 45.91 MHz from one commit is not closed by any single
+   build, and every timing figure in this ledger from §52 onward is one draw.
+   The cheap first move is `quartus_gate.py --seed N` gating the WORST of N
+   fits; the honest second is to find what the long path actually is when the
+   fitter loses it, since §73.2's elimination was done on a losing draw.
+2. **The one-row C3 shift (§74.2)** — fabric vs `tb_sys base`, +1 on all 119,
+   same column, INTA at both coordinates.  Entirely offline to diagnose.
+3. **The 18 HLT-sweep survivors** — unchanged from §73.14 lead 2, and now
+   measured identical on FLASH #7 and #8 as well.
+4. **The IE floor's exact size** is bounded to `(0, 2]` clocks by §74.3 and is
+   not resolvable on this instrument.  It needs a boundary at spacing 1, which
+   needs an instruction that retires in one clock — if one exists.
+5. **The b3 priority tranche on FLASH #6/#8** — still not re-captured
+   (§73.14 lead 3), still uncontroversial.

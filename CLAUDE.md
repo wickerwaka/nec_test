@@ -60,6 +60,13 @@ them).
   no flashing unless explicitly authorized, pre-register predictions and
   commit before first board contact, retain full per-clock rows + sha256
   (never digests alone), run board_idle and verify after every session.
+- **RTL promotion needs a Quartus receipt**: `python3 sw/quartus_gate.py` (G6:
+  `gen_ucore_qsf --check`, one clean CONTROL build, Fmax ≥ 32 MHz, worst setup
+  > 0, setup AND hold TNS 0.000) must PASS and its receipt exist before any RTL
+  landing is accepted or any bitstream flashed. The fast ladder does not wait
+  on it; the promotion does. **One green build is not closure** — the same tree
+  has drawn 19.42 and 45.91 MHz (`standing_gates.md` §A, `ucore_provenance.md`
+  §74.4).
 - /tmp discipline: no large temp files in /tmp (tmpfs quota); use
   `~/.cache/ucsimt-tmp` for big intermediates.
 - Provenance ledgers: every modeled behavior tagged ROM / PLA / LAW /
