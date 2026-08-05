@@ -14763,6 +14763,35 @@ Everything else in §87.A.3 is UNMOVED.  **This is the first sitting since U5 in
 which the MODEL's columns moved**, and they moved for the same one-line reason
 the `ucore`'s did.
 
+### §87.C.1 THE ERA GUARDS FIRED, AND THAT IS THE POINT OF THEM
+
+The landing moves the `ucore`'s binary, so §83.0's era guard REFUSED both
+software instruments by name and hash — `x1_retention score` ("ERA MISMATCH --
+REFUSING TO SCORE") and `sm3_s16_fabric score --leg vsys_ret`.  Both columns
+were RE-CAPTURED on this tree, with the expectation registered first (the HLT
+sweeps do not move, so neither should these):
+
+| | before (F57 era) | re-captured on this tree |
+|---|---|---|
+| `x1_retention` `offline` / `base` / `ret` | 279 / 34 / 279 | **279 / 34 / 279**, BAR (i) and BAR (ii) **MET**, 0 survivors, 0 cells differing from offline |
+| `sm3_s16_fabric` `offline` / `vsys_ret` | 1,347 / 1,347 | **1,347 / 1,347 / 1,371**, over **1,371 common cells: 0 PASS/FAIL disagreements, 0 differing first-divergence coordinates** |
+
+`fab_f9` is UNTOUCHED and remains a FLASH #9 figure — its DUT is a bitstream
+and its era is the flash log, not the tree.
+
+**AND ONE INSTRUMENT DEFECT WAS FOUND BY WALKING INTO IT.**
+`sm3_s16_fabric.py score --leg offline` writes `score_offline.json` from the
+per-cell `*.offline.json.gz` files — **which do not exist**, because
+`cmd_offline` is what produces that file directly.  Running it therefore
+silently OVERWRITES the reference with `{"exact": 0, "total": 0, "cells": {}}`,
+after which `score --leg vsys_ret --ref offline` reports **"over 0 common
+cells: 0 disagreements"** — a cross-check that passes because it compares
+nothing.  It happened here and was caught by the number 0 appearing where 1,371
+belongs.  Recovered by re-running `offline`; the cross-check above is the
+non-vacuous one.  **`offline` is a REFERENCE leg, not a scoreable `--leg`**, and
+the pattern is this document's own: a comparison between two instruments is
+worth nothing until you have looked at its DENOMINATOR.
+
 ### §87.D WHAT THIS SITTING DID NOT DO
 
 * **NO BOARD CONTACT, NO FLASHING, `use_core` NEVER SET.**
