@@ -13996,6 +13996,20 @@ smoothed.  Two things stop it being §84.2's pattern repeated:
 The **§85.0 provisional status** is therefore recommended LIFTED on this
 evidence, and the recommendation is flagged for review rather than asserted.
 
+> **COORDINATOR RULING, 2026-08-05 (review of sitting 24): LIFTED.**  The
+> disjoint-validation requirement §85.0 imposed is met: the cell's population
+> did not exist at selection; the law shape held on every bar that bears it
+> (W-0a/0b, W-1, W-3, W-4, W-5); the floor is MEASURED at 3 with the per-clock
+> table decisive (0 row-diffs at 3 over 121,890 rows against ≥11,032 at every
+> other value); and the W-2 instrument correction is firewalled from the
+> verdict by both of §85.2c's arguments (the discriminating cells contain no
+> `F8` and did not move; the correction carries its own trap-free acceptance
+> test at 0 violators / 2,900 boundaries).  §84's sim landing is no longer
+> provisional.  Its evidentiary basis is THIS cell + the full-corpus
+> non-regression; the struck 1→11 selecting-cell figure stays struck.  The
+> ucore leg proceeds from §85.3's corrected spec (arm flop + floor pipeline +
+> prefix sample-not-take), not §84.7's refuted one.
+
 ### §85.3 THE `ucore` LEG — **NOT LANDED, AND THE CELL REFUTED THE SPEC IT WAS GOING TO BE LANDED FROM**
 
 §84.7 wrote the RTL leg as small and already named by the core's own structure:
