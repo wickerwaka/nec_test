@@ -11124,3 +11124,76 @@ touched.
    model-shared.  Report and revert.
 4. fewer than 8 of the 14 family-A cells close → the mechanism is not the whole
    story; revert and book the partition.
+
+### §76.D **F52 — THE RESULT.  P1 IS A REGISTERED FAILURE; THE CHANGE IS CORRECT AND INSUFFICIENT, AND IT IS REVERTED AS REGISTERED.**
+
+| | registered | **measured** |
+|---|---|---|
+| **P1** the four HLT sweeps | ≥ **273 / 283**, point estimate **279** | **268 / 283** — `91/97 · 93/95 · 43/46 · 41/45`.  **MISSED.** |
+| **P1** family-A cells closed | ≥ **8** of 14 | **3** of 14 (`w1.INT/10`, `w2.INT/13`, `w3.INT/16`) |
+| **P2** `check_core --core ucore --opcodes all --cases 0` | 169,000 | **169,000 / 169,000**, cycles AND arch — **MET** |
+| **P2b** `ulockstep --golden all --cases 50` | 17,350 | **17,350 / 17,350 ALL CASES LOCKSTEP** — **MET** |
+| falsifier 1 | any currently-PASSING sweep cell fails | **DID NOT FIRE** — every sweep moved UP or stayed level; 0 cells regressed |
+| falsifier 3 | the four family-B cells close | **DID NOT FIRE** — all four still fail at `(4, busstat)`, unmoved |
+| **falsifier 4** | fewer than 8 of 14 close → *"the mechanism is not the whole story; revert and book the partition"* | **FIRED** |
+
+**REPORTED AS REGISTERED, NOT RESTATED.  Falsifier 4 fired and its registered
+disposition is taken: the change is REVERTED.**  §71's precedent governs — a
+landing that is built, measured and reverted leaves behind something sharper
+than what it set out to land, and that is what happened here.
+
+#### §76.D.1 WHAT THE INTERVENTION ESTABLISHED ANYWAY — AND IT IS NOT SMALL
+
+**THE FAMILY-A SIGNATURE IS GONE FROM ALL 14 CELLS.**  Not one residual cell's
+first divergence is `seg 'CS'→'SS'` or a `bus` Δ of `+0x10000` any more; every
+surviving first divergence moved LATER in the capture (w1 row 9 → 11, w2 row 10
+→ 12/13, w3 row 11 → 14/15) and changed column.  The diagnosis in §76.C.1 is
+therefore **supported**: the address one-shot really is one clock long, M23's
+law really was enforced on only one side of its mux, and re-enforcing it
+removes exactly the observable it predicts and nothing else.
+
+**WHAT IT DID NOT DO is close the cells**, because 11 of the 14 carry a SECOND,
+LATER divergence underneath the one that was masking it.  That is why the score
+moved by 3 and not by 14, and it is the honest content of falsifier 4.
+
+#### §76.D.2 THE RESIDUE, RE-PARTITIONED — 15 CELLS, FOUR FAMILIES
+
+Measured with `--details 20` on the F52 tree before the revert.  **This is the
+directed-cell spec the next sitting starts from, and it replaces "14
+undiagnosed `seg` cells" entirely.**
+
+| family | n | cells | signature (first divergence) |
+|---|---|---|---|
+| **B** (unchanged, **model-shared**) | 4 | `w0.INT/2,3` · `w0.RES/2,3` | `(4, busstat)` `exp 'CODE' got 'PASV'` — the post-HALT CODE status one row late |
+| **C** — *A19-16 UNDRIVEN* | 2 | `w0.INT/4,5` | `(11, bus)` `exp 0x69090 got 0x09090` — the golden carries the STATUS nibble `0x6` and the ucore drives **`0x0`**, i.e. it is not driving A19-16 at all where silicon does.  Then `(17, busstat)` `INTA→PASV`, which is the model-shared later divergence |
+| **D** — *T1 ONE ROW EARLY* | 4 | `w1.INT/8,9` · `w2.INT/12` · `w3.INT/15` | `(r, pins)` `exp 0 got 1` with `tstate exp 'Ti' got 'T1'` — the ucore opens the wake fetch's T1 one capture row before silicon |
+| **E** — *UBE* | 5 | `w2.INT/10,11` · `w3.INT/12,13,14` | `(r, ube)` `exp 0 got 1` on two consecutive rows — UBE held where silicon drops it |
+
+4 + 2 + 4 + 5 = **15**, and the catch-all is empty.  **Family C is the same law
+as F52 one step further on** — A19-16 must carry the status group whenever it
+is not carrying the address, and there is a window at w0 where the ucore drives
+neither.  **Family D is the F43/H1 shape** (*"the decision that opens a cycle is
+taken on the wrong edge relative to an external level"*) and is the family
+resemblance §5.5 of the residue census already flagged.
+
+#### §76.D.3 THE DIFF, PRESERVED, AND WHAT WOULD RE-LAND IT
+
+The change is two hunks in `hdl/rtl/ucore/v30u_biu.sv` and adds no flop:
+
+```systemverilog
+wire [19:0] disp_addr = (r_cdage == 3'd0)
+                      ? r_cmt_addr
+                      : {data_ps(r_cmt_seg), r_cmt_addr[15:0]};
+...
+assign ad_o = ... : display ? disp_addr : ...      // was: display ? r_cmt_addr
+```
+
+**A RE-LAND MUST NOT RE-USE §76.C's BAR, AND MUST NOT SCORE ITSELF ON THIS
+SITTING'S SWEEPS** — those numbers are now known, and a bar written after
+seeing them is not a bar.  What a re-land owes is the FULL ladder this sitting
+did not run (`v0.1-w1`/`-w3`, `EB`, the four `evt` cells, `w1evt-biased`,
+`f4a_boundary`, `f0lock_tranche`, the 23 `v0.3` block-I/O forms, `check_boot`,
+`timed_wvec_gate`, `timed_enter_replay`, `timed_ins_replay`, `timed_fuzz
+--core ucore`, `ss_lint`, `check_ab_sim`), pre-registered as unmoved, with
+**268/283 and 169,000/169,000 carried forward as ALREADY-MEASURED FACTS, not as
+predictions.**  The two heavy legs are already in hand and both are clean.
