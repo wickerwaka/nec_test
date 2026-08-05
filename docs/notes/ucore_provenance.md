@@ -9619,6 +9619,12 @@ the four HLT sweeps **91/97, 92/95, 42/46, 40/45 = 265/283** (`ucore`) and
 
 ### §72.7 THE LAW, AND ITS FALSIFIER
 
+> ⚠ **ERRATUM — "two clocks" IS A MEASURED MINIMUM, NOT AN ESTABLISHED
+> MECHANISM.  READ §72.7b BEFORE QUOTING THIS AS A TIMER.**  What sitting 11
+> established is IE gating, maskability and a floor of at least +2; the
+> sitting-11 geometry cannot distinguish a clock count from a boundary count.
+> The statement below is left exactly as it was written.
+
 > **A MASKABLE recognition may not act until two clocks after PSW.IE's RISING
 > EDGE.  A NON-MASKABLE one is not IE-gated and waits for nothing.**
 
@@ -9631,6 +9637,56 @@ re-entries with zero exceptions; the 289 golden IE-rise cases of §72.1; and
 IE-gated recognition UNFLOORED after one; a maskable acknowledge on silicon
 whose **pushed PSW has IE = 0**; or an `iepop`/`iesti`-shaped cell in which the
 raising instruction's own boundary is taken by the INT pin.
+
+### §72.7b **ERRATUM (SM3 sitting 13, Codex phase-review concern 4a) — WHAT §72.7 ESTABLISHES, AND WHAT IT ASSUMES**
+
+**ESTABLISHED by the sitting-11 cell, and none of it is retracted:**
+
+1. **IE GATING** — the boundary at which IE is CLEAR is never taken by a
+   maskable recognition (S3/S4, 0 of 24 on both sleds).
+2. **MASKABILITY** — the NMI pin takes every boundary freely, including the one
+   at which IE rose (S7 = 9, S8 = 24/24).  A non-maskable recognition is not
+   IE-gated.
+3. **A FLOOR OF AT LEAST ONE BOUNDARY** — the raising instruction's OWN boundary
+   is never taken by a maskable recognition (S1/S2, 0 of 24), while the same
+   instruction with NO rise gives that boundary up freely (S6 = 9).
+4. **A MINIMUM OF +2 CLOCKS** on the pop→announcement coordinate: 8 with no
+   rise, 10 with one.
+
+**NOT ESTABLISHED — and §72.7's wording asserts it:** that the floor is a
+**COUNT OF CLOCKS**.  A boundary-sampling pipeline that simply REJECTS THE FIRST
+BOUNDARY AFTER THE RISE, whatever its distance, produces the identical
+`{p0: 6, p3: 18}` histogram and the identical +2, because on `CLI ; POPF ; NOP ;
+NOP` the first boundary after the rise happens to sit about two clocks away.
+**The two readings coincide at that spacing and only at that spacing**, and
+sitting 11 had no other spacing.
+
+**AND THE LANDED RTL IS NOT A TIMER.**  What is in `hdl/rtl/ucore/v30u_biu.sv`
+is
+
+```
+    irq_int_lvl = int_p[2] && ie_p[2] && psw[FIE]
+```
+
+— a three-clock-old PIN, a three-clock-old IE, and the LIVE IE.  That is a
+**pipelined level test**: it cannot act on a rising IE because it demands IE up
+*now* and up three clocks ago, and the delay is the pipeline's, not a counter's.
+It MATCHES the measured law; it is not the unique mechanism that does, and it
+contains no register that counts to two.  There is likewise no such counter in
+`sim/` — `kIeFloor = 2` is a comparison against a stamp, which is the same
+ambiguity written in C++.
+
+**THE QUESTION IS THEREFORE OPEN, WITH BOTH RENDERINGS NAMED:**
+
+* **CLOCK / LEVEL** — a maskable recognition is permitted at any boundary two or
+  more clocks after the rise.  Both engines implement this.
+* **BOUNDARY QUANTISATION** — a maskable recognition is refused at the first
+  boundary after the rise and permitted at the next, regardless of how many
+  clocks separate them.
+
+**They are separated by a cell that moves the first boundary after the rise FAR
+AWAY IN CLOCKS**, which is what SM3 sitting 13 built and ran (`sm3_s13_prereg_
+2026-08-05.md` §2; the result is §74.3).  Read that before restating this law.
 
 ### §72.7a ONE STANDING GATE WAS **NOT RE-RUN**, AND IT IS BOOKED AS NOT RUN
 
@@ -9921,6 +9977,13 @@ still the BEFORE, **one flash and not two**, argued from a measurement.
 
 ### §73.8 **FLASH #6, AND THE FABRIC LEG — §56.3a's BOTH HALVES MET**
 
+> ⚠ **ERRATUM — THIS HEADING AND §73.9's ARE OVERSTATED.  READ §73.9a BEFORE
+> QUOTING EITHER.**  §56.3a registered **116 cells / 259 of 283**; what was
+> executed is **119 cells / 265 of 283**.  The registered numerical bars were
+> **SUPERSEDED** by F43, which landed at sitting 6 and moved the offline
+> reference — they were not met, because they were no longer the bars.  The
+> section's text is left exactly as it was written; the correction is beside it.
+
 `gen_ucore_qsf --check` green FIRST, then the retention bitstream rebuilt from
 that clean `.qsf` (Fmax 45.87, +8.802, TNS 0.000).  **FLASH #6** through
 `sw/safe_flash.sh` with its VERIFY leg: `nec_test_ucore.sof`
@@ -9968,6 +10031,10 @@ where this one scores 265.  **FLASH #5's `.sof` remains available under
 
 ### §73.9 **C11 IS ESTABLISHED**
 
+> ⚠ **ERRATUM — see §73.9a.**  C11 is established at the **MECHANISM** level.
+> The sentence *"§56.3a's both halves are MET"* is literally false: the bars
+> §56.3a registered were 116 and 259/283, and 119 and 265/283 were executed.
+
 The reading §56.3 offered and §56.3a refused to promote without an intervention
 — *at an INTA's T1 the chip's AD pads float and RETAIN the previous data phase,
 and the 119 fabric-only HLT-sweep failures are that and nothing else* — is now
@@ -9985,6 +10052,59 @@ and were never claimed to be: 4 `w0` `busstat` cells (the model-shared pair
 §68.2 names, ×2 forms) and 14 `seg`/`bus` cells at the top of each sweep's `d`
 band — §67.3's undiagnosed half.  They are core-owned and they are the next
 HLT-sweep item.
+
+### §73.9a **ERRATUM (SM3 sitting 13, Codex phase-review concern 3a) — C11's RECORD MISSTATES ITS BAR.  THE BARS WERE SUPERSEDED, NOT MET.**
+
+Written beside §73.8/§73.9 rather than over them, per this project's standing
+rule that deleting a true record corrupts a ledger exactly as badly as inventing
+one.  **Nothing about the measurement is retracted.**  What is corrected is the
+sentence that says a registered bar was met.
+
+**THE ARITHMETIC.**
+
+| | §56.3a REGISTERED (2026-08-04) | EXECUTED (§73.8, 2026-08-05) |
+|---|---|---|
+| the fabric-only class | **116 cells** | **119 cells** |
+| the fabric total the intervention must reach | **259 / 283** | **265 / 283** |
+| the offline reference it must EQUAL | 259 (the TB's, then) | 265 (the TB's, now) |
+
+**WHY THEY DIFFER, AND WHY IT IS NOT A MOVED GOALPOST.**  **F43 landed at SM3
+sitting 6**, between the registration and the execution, and it closed six
+`busstat` cells offline (`standing_gates.md` §B, known-RED table: the four HLT
+sweeps went **259 → 265** on the ucore).  §56.3a's bar is written as *"equal to
+the TB's, not merely toward it"* — a RELATIVE bar with an absolute number
+attached for convenience — and when the TB's number moved, the absolute number
+in the text stopped naming the same claim.  **The relative form was met exactly;
+the absolute form was superseded before it could be.**  This is transparent and
+dated, not retrospective: F43's move is recorded in the gate document, in the
+standing ratchet and in §67, all before FLASH #6 was built.
+
+**WHAT IS ESTABLISHED, STATED AT THE LEVEL THE EVIDENCE SUPPORTS.**
+
+> **C11 is ESTABLISHED at the MECHANISM level.**  The intervention closed
+> **exactly** the base-only class — 119 of 119 — with **nothing else moving**:
+> 0 PASS/FAIL disagreements and 0 differing first-divergence coordinates against
+> the offline reference over all 283 cells on the same tree, the same 18
+> survivors with the same coordinates, the socket control 49/49, and the
+> `use_core=0` chip path MATCH over 800 rows.  §56.3a's registered
+> **REFUTATION** — *"any of the class still failing, or any fabric-only NON-INTA
+> divergence"* — did not occur in any cell.
+
+**WHAT IS NOT ESTABLISHED BY THE NUMBERS AS WRITTEN.**  A claim of the form
+*"the registered bar 259/283 was met"*.  It was not; a different and larger
+number was reached against a reference that had moved for a documented and
+unrelated reason.  Anyone re-deriving §56.3a's bar from its own text will get
+116/259 and must be able to see, here, why the executed figures are 119/265.
+
+**AND THE MECHANISM CLAIM ITSELF STILL RESTED ON A CROSS-BITSTREAM INFERENCE**
+until SM3 sitting 13 ran the confound control §74.2 registers — FLASH #5 → #6
+changed the macro *and* 90 lines of `v30u_eu.sv` *and* a whole fit.  The
+disposition of C11 after that control is §74.2's, not this section's.
+
+**Corrected in the same terms**: `standing_gates.md` §B (the fabric-HLT-sweeps
+row) and `ucore_gaps_2026-08-04.md`.  **Concern 5 of the same review is cited
+here as it was returned: NO ACTION — form 2 is confirmed** (§73.4's two
+falsifiers are in the tree and silent over the whole ladder).
 
 ### §73.10 `fuzz_campaign lint` — **THE §72.7a NOT-RUN DEBT IS DISCHARGED, AND THERE WAS NEVER A HANG**
 
