@@ -1013,3 +1013,33 @@ future reader can tell measurement from inheritance.
 * **The FSM regression bisect** (2026-07-30 → HEAD) and the **§56.3a retention
   intervention** — both carried forward with their bars written, both unrun, as
   registered.
+
+---
+
+## ADDENDUM — SM3 SITTING 11 (2026-08-04): THE RECOGNITION FLOOR IS CLOSED, AND IT SHRANK THE CORE
+
+`ucore_provenance.md` §72.  H1's recognition floor — carried through this
+document as a MEASURED law with the MECHANISM OPEN since §61.4 — is closed.
+The arm is **PSW.IE's rising edge**, authorised by a new directed board cell
+(768 socket captures, `sw/testdata/sm3-s11cell/`, all eight registered outcomes
+met at the point estimate), and the law is:
+
+> a MASKABLE recognition may not act until two clocks after PSW.IE's rising
+> edge; a NON-MASKABLE one is not IE-gated and waits for nothing.
+
+Consequences for the gap list above:
+
+* **`bnd_pending` / `bnd_arm` / `bnd_stamp` / `bnd_cnt` no longer exist.**  Five
+  flops, one port and save-state addresses 0x066-0x069 are gone; `SS_VERSION`
+  0x83 → 0x84, census 205 → **201 flops**.  Any text above that describes the
+  ucore's floor as four BIU registers describes the pre-sitting-11 core.
+* **A silicon divergence this document never listed is closed**: the ucore used
+  to acknowledge a maskable interrupt at a boundary where the architectural IE
+  is CLEAR (pushed `PSW = 0xF002`).  No standing gate saw it; the directed cell
+  scored it 32 of 168 w0 captures, and the ucore is now **168/168, cell for
+  cell** on that cell.
+* **§T.2/§T.3's residue moved by two seeds, both EVT**: EVT 910 → **912**,
+  COMBINED 2,400 → **2,402**, REGISTERED 1,490 unchanged to the seed, WORSENED
+  **0** over all 3,242.  The registered-bank family census is unchanged.
+* **§X (fabric) is untouched** — this change is in no bitstream.  The board
+  still carries FLASH #5 and no synthesis was run.

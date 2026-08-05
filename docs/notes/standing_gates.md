@@ -49,14 +49,14 @@ entry. Figures are `ucore_provenance.md` §54.4's, re-run 2026-08-04.
 | wvec silicon freeze | `python3 sw/timed_wvec_gate.py --core ucore` | 88 / 88, **+0.0 %** |
 | ENTER replay | `python3 sw/timed_enter_replay.py --core ucore` | 154 / 154 ×5 |
 | INS replay | `python3 sw/timed_ins_replay.py --core ucore --raw` | 1,312 / 1,312 and 2,624 / 2,624 |
-| the registered fuzz bank | `python3 sw/timed_fuzz.py --core ucore --evt-replay` | REGISTERED **1,490 / 1,702**; EVT **910 / 1,008**; COMBINED **2,400 / 2,710**; `INVALIDATED` **0**; `BOUND WARNINGS` 5, `ENGINE ABORTS` 0; denominators 2,710 scored / 532 `OPEN_BUS`.  **INV-1 IS CLOSED (SM2, 2026-08-04): the 760 poisoned EVT seeds were RE-CAPTURED on FLASH #4 at their banked hold of 300, and the full 1,008-seed column is a gate again** (`docs/notes/invalidation_ledger.md` §CLOSURE, `ucore_provenance.md` §59.7.7).  This figure has now been registered three times and every move is itemised: `192/1,008` as banked (STRUCK — rig-poisoned), `170/248` on the un-poisoned sub-population (SM1's interim gate, still true of those 248), **468/1,008 on the rebuilt population**, and **906/1,008** once H1 landed in the ucore (**SM3 sitting 3, 2026-08-04**, `ucore_provenance.md` §62 — the re-entry acknowledge's recognition floor, ONE register, +438 seeds).  REGISTERED has not moved through any of it, to the seed — until **SM3 sitting 6**, which RAISED it **1,483 -> 1,490** by fixing a TESTBENCH defect, not an engine: `tb_v30_core.sv` committed `IOW` cycles into `mem[]`, so an I/O write to port P corrupted memory at address P for the RTL legs only (`ucore_provenance.md` §66.3 / §67.1).  EVT moved **906 -> 908** with it and **-> 910** with F43. |
+| the registered fuzz bank | `python3 sw/timed_fuzz.py --core ucore --evt-replay` | REGISTERED **1,490 / 1,702**; EVT **912 / 1,008**; COMBINED **2,402 / 2,710**; `INVALIDATED` **0**; `BOUND WARNINGS` 5, `ENGINE ABORTS` 0; denominators 2,710 scored / 532 `OPEN_BUS`.  **INV-1 IS CLOSED (SM2, 2026-08-04): the 760 poisoned EVT seeds were RE-CAPTURED on FLASH #4 at their banked hold of 300, and the full 1,008-seed column is a gate again** (`docs/notes/invalidation_ledger.md` §CLOSURE, `ucore_provenance.md` §59.7.7).  This figure has now been registered three times and every move is itemised: `192/1,008` as banked (STRUCK — rig-poisoned), `170/248` on the un-poisoned sub-population (SM1's interim gate, still true of those 248), **468/1,008 on the rebuilt population**, and **906/1,008** once H1 landed in the ucore (**SM3 sitting 3, 2026-08-04**, `ucore_provenance.md` §62 — the re-entry acknowledge's recognition floor, ONE register, +438 seeds).  REGISTERED has not moved through any of it, to the seed — until **SM3 sitting 6**, which RAISED it **1,483 -> 1,490** by fixing a TESTBENCH defect, not an engine: `tb_v30_core.sv` committed `IOW` cycles into `mem[]`, so an I/O write to port P corrupted memory at address P for the RTL legs only (`ucore_provenance.md` §66.3 / §67.1).  EVT moved **906 -> 908** with it and **-> 910** with F43, and **-> 912** at **SM3 sitting 11** (`ucore_provenance.md` §72 — the floor's arm becomes PSW.IE's rising edge, which DELETES five BIU flops; the two seeds gained are `mc1/2672` and `mc1/356`, and the model gained exactly the same two). |
 | the b2 victory tranche | `python3 sw/timed_fuzz.py --core ucore --seeddir sw/testdata/t4/b2-tranche/seeds` | **172 / 188** (RAISED from 171 at SM3 sitting 6 by the same TB fix, §67.1) — V5 is a standing REGISTERED FAILURE, not to be re-opened |
-| save-state map | `python3 sw/ss_lint.py` | rc=0; **222 addresses, 205 flops, 0 UNMAPPED, `SS_VERSION` 0x83** (SM3 s3 / F52: H1's four `bnd_*` BIU flops at 0x066-0x069; it was 218 / 201 / 0x82) |
+| save-state map | `python3 sw/ss_lint.py` | rc=0; **218 addresses, 201 flops, 0 UNMAPPED, `SS_VERSION` 0x84** (SM3 **s11**: H1's four `bnd_*` BIU flops are DELETED and 0x066-0x069 RETIRED, not reused — the recognition floor is one term on the EU's IE gate now.  It was 222 / 205 / 0x83 at SM3 s3 / F52, and 218 / 201 / 0x82 before that; the address COUNT coincides with the pre-F52 one and the MAP does not — 0x066-0x069 are vacant, so a v3 stream can never be read as a v4 one) |
 | save-state sweeps | `check_core.py --ss-sweep …` modes 1 / 2 / 5 | 80/80 · 24/24 · width PASS |
 | CE hold | `check_core.py --ce-div 4 --ce-hold-check` | `CE_HOLD_VIOL 0` |
 | the core inside the real integration | `python3 sw/check_ab_sim.py` | 187 rows MATCH |
 | the MODEL, unmoved | `python3 sw/timed_gate.py --suite tests/v30/v0.1 --forms all` | 169,000 / 169,000, row-diffs 0 |
-| the MODEL's fuzz bank | `python3 sw/timed_fuzz.py --core sim --evt-replay` | REGISTERED **1,272 / 1,702**; EVT **780 / 1,008**; COMBINED **2,052 / 2,710**; `INVALIDATED` **0**.  Same INV-1 closure; it was `EVT 709/1,008` as banked (STRUCK), then `144/248` interim.  **RAISED 2026-08-04 by SM3 sitting 2's H1 landing: EVT 363 -> 780, COMBINED 1,635 -> 2,052, +417 seeds, REGISTERED unchanged to the seed (`ucore_provenance.md` §61).  The ucore leg WAS TAKEN at sitting 3 (§62) and the ucore now LEADS this column: EVT 906 vs 780, COMBINED 2,389 vs 2,052 — on a bank where the ucore PREDICTS and the model REPLAYS.**  Before H1 the rebuilt column read 363 and the ucore led by 105; as banked it appeared to trail by 517.  The 248 never-poisoned seeds are unchanged at 170 / 144, which is the control that says the re-capture moved nothing it did not touch |
+| the MODEL's fuzz bank | `python3 sw/timed_fuzz.py --core sim --evt-replay` | REGISTERED **1,272 / 1,702**; EVT **782 / 1,008**; COMBINED **2,054 / 2,710**; `INVALIDATED` **0**.  Same INV-1 closure; it was `EVT 709/1,008` as banked (STRUCK), then `144/248` interim.  **RAISED 2026-08-04 by SM3 sitting 2's H1 landing: EVT 363 -> 780, COMBINED 1,635 -> 2,052, +417 seeds, REGISTERED unchanged to the seed (`ucore_provenance.md` §61), and again by SM3 sitting 11's re-arm onto the IE rise: EVT 780 -> 782, COMBINED 2,052 -> 2,054, REGISTERED still 1,272 to the seed (§72).  The ucore leg WAS TAKEN at sitting 3 (§62) and the ucore now LEADS this column: EVT 906 vs 780, COMBINED 2,389 vs 2,052 — on a bank where the ucore PREDICTS and the model REPLAYS.**  Before H1 the rebuilt column read 363 and the ucore led by 105; as banked it appeared to trail by 517.  The 248 never-poisoned seeds are unchanged at 170 / 144, which is the control that says the re-capture moved nothing it did not touch |
 
 ### HOW THE EVT COLUMN MAY AND MAY NOT BE QUOTED (SM3 sitting 5, 2026-08-04)
 
@@ -130,10 +130,22 @@ seeds are `evt.pin = 1` (**NMI**); both improved are `evt.pin = 0` (INT); zero
 INT seeds regress; and chip-side the five carry `mc1/2672`'s geometry cycle for
 cycle.  **Reverted per its own pre-registration** (`sm3_s10_prereg_2026-08-04.md`
 §5.2/§6), proved at the seed — **0 of 3,242 differ on either engine** — and
-**no gate in this document moved.**  What survives is the IE-RESTORE reading
-(§71.6), which is NOT landed and must not be landed from the bank that selected
-it.  `sim/biu_timed.h` carries the refutation at the arm's own declaration and
-`V30SIM_BNDTRACE=1` is the instrument.
+**no gate in this document moved.**  `sim/biu_timed.h` carries the refutation at
+the arm's own declaration and `V30SIM_BNDTRACE=1` is the instrument.
+
+**AND THE QUESTION IS CLOSED — SM3 SITTING 11 (`ucore_provenance.md` §72).**
+What survived §71 was the IE-RESTORE reading, and it was AUTHORISED by a NEW
+directed board cell (768 captures, `sw/testdata/sm3-s11cell/`, socket, FLASH #5)
+whose eight registered outcomes were **all met at the point estimate**: on
+`CLI;POPF;NOP;NOP` and `CLI;STI;NOP;NOP` the chip takes the boundary at which IE
+ROSE **0 times in 24 delays**, takes the boundary at which IE is CLEAR **0
+times**, takes NO ENTRY AT ALL on `CLI;POPF` in **24 of 24** — and on the **NMI**
+pin takes all of them freely.  §61.3's `clipopf` silence is EXPLAINED, not
+fixed: that chain has no boundary a floored recognition can ever reach.  **THE
+LAW IS: a maskable recognition may not act until two clocks after PSW.IE's
+rising edge; a non-maskable one is not IE-gated and waits for nothing.**  Landed
+in BOTH engines; the ucore's version DELETES five flops, a port and four
+save-state addresses and adds none.
 
 The complete, itemised list of what is **not** yet functional or timing-accurate
 is `docs/notes/ucore_gaps_2026-08-04.md`, and **the measured census of what is

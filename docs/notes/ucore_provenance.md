@@ -9390,3 +9390,271 @@ engine, as §1 of the pre-registration predicted.
 3. **§70.5's READY cone**, **§70.6's SDC falsifier instrument**, the X1 fabric
    leg, **H7's bank association** and **H3's steady-state prefetcher** — all
    unchanged and still queued.
+
+## §72 SESSION SM3, SITTING 11 — **THE IE RESTORE IS THE ARM.  IT IS AUTHORISED BY A NEW BOARD CELL, LANDED IN BOTH ENGINES, AND IT DELETES MORE THAN IT ADDS.**
+
+Pre-registration: `docs/notes/sm3_s11_prereg_2026-08-04.md`, committed at
+`0ceeb2f8cb` from HEAD `7fb3e5518b`, **before the first board contact and
+before either engine was touched** (`git diff` against `sim/` and `hdl/rtl/`
+empty at that commit; the only source change was the instrument).
+
+### §72.1 THE `clipopf` DIAGNOSIS — **THE STIMULUS WAS NEVER BROKEN.  ITS SILENCE IS THE HYPOTHESIS'S OWN PREDICTION.**
+
+§61.3 booked *"a `CLI ; POPF` chain restoring IE never acknowledges a held INT
+level"* as an open observation and §71.9 made fixing it the blocker on the
+whole IE line.  It is not a rig defect.  Read off the **24 RETAINED captures**
+in `sw/testdata/sm3-h1cell/`, chip side, no engine, **no board contact**:
+
+* the popped word is **`0xF202` on every POPF** — IE **is** set in the image;
+* the chain **runs to completion** — 81 stack reads at `0x3F00`, `0x3F02`, …
+  stepping by 2, then the harness epilogue and `HALT`.  It does not wedge;
+* `hold = 300` and `fired = True` on all 24 (`manifest.json`) — the rig DID
+  drive the pin, for ~25 iterations of the 12-clock loop;
+* the whole capture contains **0 INTA cycles and 0 memory writes** — nothing was
+  serviced between the `CLI` and the `POPF` either.
+
+**`FA 9D FA 9D …` has exactly two boundaries per iteration: after the POPF (IE
+has just RISEN) and after the CLI (IE is CLEAR).**  A law that forbids the
+boundary at which IE rose, and tests IE live at the next one, recognises
+**never**.  The fix is PADDING, and that is the cell below.
+
+**AND THE BANKED GOLDENS ALREADY CARRIED HALF THE ANSWER**, unread until now.
+`tests/v30/v0.1/INT.9D.json.gz` and `INT.FB.json.gz`, 400 silicon cases, scored
+with no engine on `pushed_IP − initial_IP − instruction length`:
+
+| golden | population | extra 1-byte NOPs before the entry |
+|---|---|---|
+| `INT.9D` (POPF), IE **1 → 1**, no rise | 111 | **0** in 104, 1 in 7 |
+| `INT.9D` (POPF), IE **0 → 1**, a RISE | **89** | **1 in 89 of 89 — never 0** |
+| `INT.FB` (STI), always a rise | **200** | 1 in 160, 2 in 40 — **never 0** |
+| `INT.8ED0` / `8ED8` (`MOV SS,r`), IE already 1 | 400 | never 0 — a SEPARATE, opcode-set shadow (`irq_shadow`) |
+| `INT.90` / `INT.B8`, IE already 1 | 400 | 0 occurs freely |
+
+On silicon **an IE RISE costs the raising instruction's own boundary and an
+unchanged IE costs nothing.**  What the goldens cannot say — they are
+single-instruction tests with a NOP sled behind them — is what happens at the
+*next* boundary when IE has gone down again.  That is the cell's question, and
+it is why the cell was still needed.
+
+### §72.2 THE CELL — 768 CAPTURES, AND THE OBSERVABLE IS THE PUSHED FRAME
+
+`sw/sm3_h1_cell.py run --out sm3-s11cell`, socket only (`EMIT_USE_CORE` False),
+`div_guard` **PINNED** (`div=8 (4 MHz), commanded by this connection`), 768
+captures, **`fired = True` on all 768**, 0 transport errors, 79 s, full
+per-clock rows + raw 64-bit words + **1,538 files under `SHA256SUMS`**,
+`board_idle()` run and OK.  **NO FLASHING — the board carries FLASH #5.**
+
+Four sleds, every instruction one byte, so the byte period is the boundary
+period: `iepop` = `CLI ; POPF ; NOP ; NOP`, `iesti` = `CLI ; STI ; NOP ; NOP`,
+`iehot` = `POPF ; NOP ; NOP ; NOP` with IE already up and the popped word
+popping IE up (**no rise** — the control), and `clipopf` = §61.3's, unchanged.
+Both pins, four wait levels, 24 delays.
+
+**THE OBSERVABLE IS READ OFF THE PINS WITH NO ENGINE.**  Every entry pushes
+three words with SP descending — PSW, CS, **IP** — and no sled contains another
+memory write, so a run of three MEMW cycles stepping down by 2 IS an entry and
+its third word is the **boundary the part chose**.  It reads identically for a
+maskable acknowledge (INTA pair in front) and an NMI (none), which is the only
+reason the two pins are comparable.  `phase = (pushed_IP − 0x0500) mod period`.
+The reader was **VALIDATED ON RETAINED SILICON BEFORE ANY NEW CAPTURE**:
+`nop_w0_d12` → `ip = 0x0504`, `iretnext_w0_d12` → `0x0501`, `callret_w0_d12` →
+`0x0503`, each sled's correct return address, and `psw = 0xF202` (IE **SET**)
+on all of them — which independently says silicon pushes the PSW **before**
+`CITF` clears IE.
+
+### §72.3 THE RESULT — **ALL EIGHT REGISTERED OUTCOMES MET AT THE POINT ESTIMATE**
+
+w0, the discriminating regime, 24 captures per cell:
+
+| # | leg | registered (IE) | **measured** | NOFLOOR | INHIBIT |
+|---|---|---|---|---|---|
+| S1 | `iepop` p0, OWN (p2) | **= 0** | **0** | ≥ 1 ✗ | = 0 ✓ |
+| S2 | `iesti` p0, OWN (p2) | **= 0** | **0** | ≥ 1 ✗ | = 0 ✓ |
+| S3 | `iepop` p0, DEAD (p1) | **= 0** | **0** | — | ≥ 1 ✗ |
+| S4 | `iesti` p0, DEAD (p1) | **= 0** | **0** | — | ≥ 1 ✗ |
+| S5 | `clipopf` p0, no entry | **24 / 24** | **24 / 24** | 0 ✗ | 0 ✗ |
+| S6 | `iehot` p0, OWN (p1) — CONTROL | **≥ 1** | **9** | ≥ 1 ✓ | ≥ 1 ✓ |
+| S7 | `iepop` p1 (**NMI**), OWN (p2) | **≥ 1** | **9** | ≥ 1 ✓ | = 0 ✗ |
+| S8 | `clipopf` p1 (**NMI**), entries | **≥ 20 / 24** | **24 / 24** | ≥ 20 ✓ | 0 ✗ |
+
+**The maskable histograms at w0 are `{p0: 6, p3: 18}` and NOTHING ELSE** — never
+the boundary at which IE rose, never the boundary at which IE is clear — and
+they repeat identically at w1, w2 and w3, which the bar did not ask for.
+**NOFLOOR is refuted by S1/S2/S5; INHIBIT by S3/S4/S7/S8.**  §64.1 is satisfied:
+the reading was selected on the bank in §71.4 and this population is a directed
+board cell that did not exist when it was written.
+
+**AND THE FLOOR'S SIZE FALLS OUT OF THE SAME CAPTURES**, chip side, no engine,
+w0, measured from the POP that commits IE to the entry's announcement:
+
+| population | IE at that pop | min |
+|---|---|---|
+| `iehot` p0 (POPF, IE 1 → 1) | **no rise** | **8** |
+| `iretnext` ord1 (planted frame, IE 1 → 1) | **no rise** | **8** |
+| `swintnext` ord1 (the IRET raises IE) | **a RISE** | **10** |
+
+**+2, and it is H1's own two clocks re-anchored from "an INTA behind us" to "IE
+just rose".**  No new number and no new instant, on a coordinate that needs no
+engine to read.
+
+### §72.4 THE LANDING — `sim/`
+
+**DELETED**: `bnd_pending_` (the INTA arm in `inta_read`), `bnd_arm_` (the
+flush re-arm), `bnd_floor_` (the restart-grant stamp), `wait_bnd_floor()`, the
+pop's spend, and the boundary's three clears — six hook sites.
+**ADDED**: `ie_rise_` / `ie_prev_`, `sample_ie()`, `wait_ie_floor()`,
+`maskable()` and `kIeFloor = 2`.  Net state **1 long + 2 bools → 1 long + 1
+bool**.  A non-maskable recognition bypasses **by construction** — it never
+reads the stamp — and there is no exemption clause anywhere in the law.
+
+`sample_ie()` is called from `tick()` **and** from the top of
+`boundary_no_pop()`: a recognition boundary is asked for on a clock whose tick
+has not run yet, and the rise this floor is about (the IRET's PSW restore
+committing at its own retire) happens on exactly that clock.  `V30SIM_IETRACE`
+is the new instrument that established it; `V30SIM_BNDTRACE` is re-pointed.
+
+| `timed_fuzz --core sim --evt-replay` | before | **after** |
+|---|---|---|
+| REGISTERED | 1,272 | **1,272 — the equality HELD, to the seed** |
+| EVT | 780 | **782** |
+| COMBINED | 2,052 | **2,054** |
+| b2 tranche | 154 | **154** |
+| **seeds WORSENED** | — | **0** |
+
+**PROVED AT THE SEED, NOT AT THE TOTAL**, over all 3,242 on
+`exact`/`first_bad`/`kind`/`cat`/`n`/`ndiff`/`sim_rows`: **IMPROVED 2, WORSENED
+0**, and the two improved are `mc1/2672` and `mc1/356` — §64.2's two named
+seeds, the same two the REFUTED entry-generic arm fixed in §71.4, and this time
+**the five NMI seeds do not move at all**.  Six further seeds move `ndiff`
+alone, same verdict and same `first_bad`.  `sm3_h1_cell.py score --core sim`
+goes **671 → 791/791**, the `swintnext` w0 column **0/30 → 30/30**, every
+`iretnext` control UNMOVED.
+
+### §72.5 THE LANDING — `hdl/rtl/ucore/`, AND IT IS A NET DELETION
+
+**The change is two wires:**
+
+```
+  irq_int_lvl = int_p[2] && ie_p[2] && psw[FIE]            (was: no psw[FIE])
+  eu_bnd_post = !intr_pending && !ie_p[3] && !irq_nmi_lvl  (was: !intr_pending)
+```
+
+Everything else is removal: `bnd_pending` / `bnd_arm` / `bnd_stamp` /
+`bnd_cnt` (**4 registers, 5 flops**), the `bnd_hold` output port and its EU
+input, the INTA arm, the flush re-arm, the grant stamp, the T1 counter, the pop
+spend, the withdrawal and expiry un-stamps, three SVAs, and `SSA_B_BND_*`
+**0x066-0x069**.  `SS_VERSION` **0x83 → 0x84**, `SS_BIU_COUNT` 105 → 101,
+`SS_COUNT` 222 → 218, `SS_TAG` 0x83DE → **0x84DA**; the vacated codes are
+**RETIRED, NOT REUSED**.  `ss_lint` PASS, census **201 flops** (was 205), **0
+UNMAPPED**.
+
+**WHY THE DELETION IS LEGITIMATE.**  A gate that demands IE up NOW *and* up
+three clocks ago cannot act on a rising IE, and that IS the floor.  With the
+live-IE term in place `bnd_hold` was **MEASURED INERT**: forced to zero, the
+whole 3,242-seed bank scores REGISTERED 1,490 / EVT 910 / COMBINED 2,400 — to
+the seed.  Four rivals were measured beside it and every one is recorded in the
+RTL next to the term it justifies:
+
+| variant tried | EVT |
+|---|---|
+| gate weakened to `ie_p[1]`, floor deleted outright | **822** |
+| floor re-anchored on the IE rise but gating NMI too | **908** — and the two lost seeds are BOTH `evt.pin = 1`, one of them `mc1/3052`, one of §71.4's five |
+| prefetcher suspend forced unconditional | **897** |
+| suspend without `!irq_nmi_lvl` | EVT fine, but `NMI.B8` **200 → 188** (12 cases, all `row 6 busstat: exp CODE got PASV`) |
+| **as landed** | **912** |
+
+| `timed_fuzz --core ucore --evt-replay` | before | **after** |
+|---|---|---|
+| REGISTERED | 1,490 | **1,490 — to the seed** |
+| EVT | 910 | **912** |
+| COMBINED | 2,400 | **2,402** |
+| b2 tranche | 172 | **172** |
+| **seeds WORSENED** | — | **0** |
+
+**IMPROVED 2, WORSENED 0**, proved at the seed over all 3,242 — and they are the
+SAME two seeds the model gained.  Only 2 of 3,242 differ in any scored field.
+`sm3_h1_cell.py score --core ucore --hold 300` goes **667 → 789/791**, the
+`swintnext` w0 column **0/30 → 30/30**; the 2 residual cells are `iretnext`
+ord2+ w0 `LNone`, the pre-existing defect §71.3 named (it was 4).
+
+**AND ON THE AUTHORISING CELL THE ucore IS NOW THE CHIP, CELL FOR CELL.**  All
+seven w0 legs, **168/168 captures** (it was 136/168): `iepop`/`iesti` p0
+`{p0: 6, p3: 18}` with OWN and DEAD at **zero**, `clipopf` p0 **NO ENTRY
+24/24**, and `iehot` p0 plus all three NMI legs unchanged — they were already
+exact, which is the control that says the change touched only what it claimed.
+
+**NOTE FOR THE NEXT AGENT — `sm3_h1_cell.py score` DEFAULTS TO `--hold 16`.**
+The banked `sm3-h1acell` captures were taken at `hold = 300`.  The `sim` leg
+REPLAYS the chip's acknowledge positions and does not care; the `ucore` leg
+PREDICTS and does, and at the default it scores **89/791** because the pin has
+dropped before the second boundary.  §71.3's figures are `--hold 300` figures.
+Quote the flag or do not quote the number.
+
+### §72.6 WHAT MOVED, ITEMISED
+
+| gate | before | **after** |
+|---|---|---|
+| `timed_fuzz --core sim --evt-replay` REG / EVT / COMBINED | 1,272 / 780 / 2,052 | **1,272 / 782 / 2,054** |
+| `timed_fuzz --core ucore --evt-replay` REG / EVT / COMBINED | 1,490 / 910 / 2,400 | **1,490 / 912 / 2,402** |
+| `ss_lint` addresses / flops / `SS_VERSION` | 222 / 205 / 0x83 | **218 / 201 / 0x84** |
+| the h1a cell, `sim` / `ucore` (`--hold 300`) | 671 / 667 of 791 | **791 / 789 of 791** |
+
+**UNMOVED, all re-run on the final binaries**: `make -C sim test`;
+`pla3_check` 21; `check_ucore_tables` 9,988; `timed_gate --suite v0.1 --forms
+all` **169,000/169,000 row-diffs 0** (`INT.9D` and `INT.FB` included);
+`check_core --core ucore --opcodes all --cases 0` **169,000/169,000**;
+`v0.1-w1`/`-w3` 1,200; `EB` 200; the four `evt` cells 200/1,200/200/1,200;
+`w1evt-biased` 1,200; block I/O **229,999/229,999**; f4a 160; f0lock 400;
+`check_boot --timed 220` and `--timed 400` MATCH on both engines;
+`ulockstep --golden all --cases 50` **17,350/17,350**;
+`timed_wvec_gate` 88/88 **+0.0 %** on both;
+`timed_enter_replay` 154/154 ×5 on both;
+`timed_ins_replay --raw` 1,312 / 2,624 on both;
+`timed_scenario` 18/0/9; `timed_lawcards` **8 GREEN / 0 RED / 3 UNRESOLVED**;
+`check_ab_sim` 187 rows MATCH; `ss-sweep` modes 1/2/5 4/4;
+`CE_HOLD_VIOL 0`; `gen_ucore_qsf --check`; `optable --selfcheck`;
+`test_fuzz_classify` / `test_fuzz_accept`;
+the four HLT sweeps **91/97, 92/95, 42/46, 40/45 = 265/283** (`ucore`) and
+**91/97, 95/95, 44/46, 42/45 = 272/283** (`sim`); b2 **154** / **172**.
+
+### §72.7 THE LAW, AND ITS FALSIFIER
+
+> **A MASKABLE recognition may not act until two clocks after PSW.IE's RISING
+> EDGE.  A NON-MASKABLE one is not IE-gated and waits for nothing.**
+
+MEASURED: the sitting-11 board cell (§72.3, S1-S8, 768 captures); §68.4's
+`swintnext` 30/30 floored against `iretnext` unfloored; §61.1's 2,318 banked
+re-entries with zero exceptions; the 289 golden IE-rise cases of §72.1; and
+§71.4's five NMI seeds, which are now explained rather than special-cased.
+
+*Falsifier*: an NMI recognition FLOORED after an entry + IRET restart; an
+IE-gated recognition UNFLOORED after one; a maskable acknowledge on silicon
+whose **pushed PSW has IE = 0**; or an `iepop`/`iesti`-shaped cell in which the
+raising instruction's own boundary is taken by the INT pin.
+
+### §72.8 WHAT THIS SITTING DID NOT DO
+
+* **No flashing.**  `flash_log.jsonl` unchanged; the board still carries
+  FLASH #5.  No synthesis was run — the RTL change is a net deletion of 5 flops
+  and a port, and its Quartus leg belongs to whichever sitting next needs a
+  bitstream.
+* **The fabric legs were not re-taken** (they are FLASH #5's and this change is
+  not in any bitstream).
+* No Codex launch, no memory file touched, no R7′, no 8080 / `gaps` §F.1.
+* No comparator, golden or scorer was changed; nothing was re-scored downward.
+
+### §72.9 THE ucore's REGISTERED-BANK FAMILY CENSUS, RE-TAKEN
+
+`sw/s15_census.py --core ucore --pop reg` on this sitting's own report (the
+`--core` matches the report's core, per the standing rule):
+
+```
+  PF_LOST 106 · DATA_SEQ 36 · TAIL_EXTRA 29 · PF_GAINED 24 · PF_ADDR 8 ·
+  SCHEDULE 5 · PIN 4  = 212        (= 1,702 − 1,490, catch-all empty)
+```
+
+**This sitting did not move it** — REGISTERED held at 1,490 to the seed, and the
+two seeds that moved are both EVT.  It is recorded because CLAUDE.md still
+quotes §58.4's `107 · 41 · 28 · 25 · 9 · 5 · 4 = 219`, which is the **1,483**-era
+table: the difference is SM3 sitting 6's testbench fix (§67.1), not anything
+here.  Quote 212 with the report it came from, or quote 219 with §58.4's.
