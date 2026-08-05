@@ -409,15 +409,16 @@ a gate): `sw/sm3_nmigeom.py`.
 The 1,371-cell S16 display walk replayed through the ucore instead of the
 socket.  **ROWS ONLY** (`check_core.diff_rows`) — a DUT leg has no
 architectural readback — so its totals are **NOT** `sm3_s16_score.py`'s
-1,294/1,371, which is `not mm and arch_ok`.  Quoting one against the other is a
+**1,320/1,371** (it was 1,294 before F56 and F57; §82), which is
+`not mm and arch_ok`.  Quoting one against the other is a
 comparator error; `offline` exists so the fabric total has a same-scale
 reference.
 
 | leg | **figure** |
 |---|---|
-| `offline` — `tb_v30_core` | **1,321 / 1,371** |
-| `vsys_ret` — Verilated `system_large`, `X1_AD_RETENTION` ON | **1,321 / 1,371** since **SM3 sitting 20** (it was 1,291; **F55**, `ucore_provenance.md` §81.A), with **0 PASS/FAIL disagreements and 0 differing coordinates against `offline` over all 1,371** |
-| **`fab_f9` — IN FABRIC, the population's first** | **1,291 / 1,371** — **taken on FLASH #9, which PREDATES F55.**  It matched `vsys_ret` cell for cell when both were 1,291.  The registered prediction for FLASH #10 is **1,321 / 1,371** (§81.A.7); until that flash this row is a PRE-F55 figure and must be quoted as one |
+| `offline` — `tb_v30_core` | **1,347 / 1,371 SINCE SM3 SITTING 22** (`ucore_provenance.md` §83.0b).  It was **1,321** and that figure was **PRE-F56**: the column was written before F56 and F57 landed in the ucore and was never re-taken.  **+26 = F56's +14 + F57's +12**, the same two numbers §82 measured on `sm3_s16_score`'s scale |
+| `vsys_ret` — Verilated `system_large`, `X1_AD_RETENTION` ON | **1,347 / 1,371 SINCE SM3 SITTING 22**, with **0 PASS/FAIL disagreements and 0 differing coordinates against `offline` over all 1,371** — the expectation was registered before the number was read and was MET.  It was 1,321 and was **PRE-F56 IN THE SAME WAY**, which is why the cross-check read green: *two instruments compared with each other are only as current as the older of them.*  Before that it was 1,291 (**F55**, §81.A) |
+| **`fab_f9` — IN FABRIC, the population's first** | **1,291 / 1,371** — **taken on FLASH #9, which PREDATES F55, F56 AND F57.**  Its era is the FLASH LOG, not the tree, and it is deliberately NOT era-stamped.  It matched `vsys_ret` cell for cell when both were 1,291; its "30 disagreements vs `vsys_ret`" was taken against the PRE-F56 column and must be **RE-DERIVED at the next flash, not restated**.  §81.A.7's registered FLASH #10 prediction of **1,321** was written against the pre-F56 offline column and is likewise superseded — the offline reference is now 1,347 |
 | `soc_f9` — the socket control, `use_core=False` | **41 / 41** |
 
 **The 30-cell `offline`-vs-`vsys_ret` gap is CLOSED** — it was F55, and F55 is
@@ -495,6 +496,22 @@ construction.  Demonstrated non-vacuous in three modes — ABSENT, MIXED (it nam
 "the column's own files DISAGREE") and MISMATCH — and green on the clean tree.
 `--no-era-guard` is the single documented escape and it is for reading an
 archived column as history.
+
+**AND THE SAME STALENESS WAS FOUND ONE INSTRUMENT OVER (§83.0b).**  BOTH
+`sm3_s16_fabric` SOFTWARE columns — `offline` (`tb_v30_core`) and `vsys_ret`
+(`tb_sys`) — were written BEFORE F56 and F57 landed in the ucore, and it was
+invisible precisely because they are compared with EACH OTHER and were stale
+TOGETHER: *a cross-check between two instruments is only as current as the older
+of them.*  Re-taken on one tree, with the expectation registered before the
+second number was read: **both 1,321 → 1,347 / 1,371, 0 PASS/FAIL disagreements
+and 0 differing coordinates over all 1,371** — **+26 each, F56's +14 and F57's
++12 exactly**.  **Quote 1,347, not 1,321.**  `fab_f9` **1,291 / 1,371** is
+UNTOUCHED and remains a FLASH #9 figure (its DUT is a bitstream, its era is the
+flash log), but its "30 disagreements vs `vsys_ret`" was taken against the
+PRE-F56 column and must be RE-DERIVED at the next flash, not restated.
+`sm3_s16_fabric vsys` now carries the same tree stamp and `score` refuses a
+stale or unstamped `vsys*` leg; a FABRIC leg is deliberately NOT stamped this
+way.
 
 ### **META-FINDING #5 RETIRED FOR `tb_v30_core` — THE COMPOSER ASKS THE CORE (SM3 sitting 20, §81.A.3)**
 

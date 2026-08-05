@@ -102,6 +102,11 @@ def div_guard(tag):
 
 
 # --------------------------------------------------------------------------- #
+# Set by `cmd_vsys` before `_capture` runs; see the note there.  Empty for
+# every other leg, which is what keeps the stamp out of the fabric manifests.
+_ERA = {}
+
+
 def _capture(a, use_core, subset=None, board=True):
     OUT.mkdir(parents=True, exist_ok=True)
     es.EMIT_USE_CORE = use_core
@@ -110,6 +115,7 @@ def _capture(a, use_core, subset=None, board=True):
           f"NOT a golden emission", flush=True)
     man = {"leg": a.leg, "use_core": use_core, "board": board,
            "host": HOST if board else None, "div_guard": {}}
+    man.update(_ERA)
     if board:
         man["div_guard"]["open"] = div_guard(f"{a.leg} open")
     t0 = time.time()
@@ -168,6 +174,16 @@ def cmd_vsys(a):
           f"{str(__import__('artifact').receipt_id(x1.BIN[leg]))[:16]}…",
           flush=True)
     es.run_image = x1.vsys_run
+    # THE ERA STAMP (SM3 sitting 22).  A `vsys` leg is a SOFTWARE leg: it is a
+    # function of the tree and of nothing else, so a capture that does not
+    # record WHICH tree can be compared with a reference column from another
+    # one and nothing will say so.  That is not hypothetical -- the banked
+    # `vsys_ret` column was captured before F56 and F57 landed in the ucore and
+    # was still being quoted at 1,321 against a post-F57 offline reference
+    # (`ucore_provenance.md` §83.0b).  A FABRIC leg is deliberately NOT stamped
+    # this way: its DUT is a bitstream, and its provenance is the flash log.
+    _ERA["tree"] = x1.tree_key()
+    _ERA["receipt"] = __import__("artifact").receipt_id(x1.BIN[leg])
     return _capture(a, True, board=False)
 
 
@@ -219,6 +235,25 @@ def cmd_offline(a):
 
 # --------------------------------------------------------------------------- #
 def cmd_score(a):
+    # THE ERA GUARD, for the SOFTWARE legs only (SM3 sitting 22).  A `vsys`
+    # column is a function of the tree; if its manifest says it was taken on a
+    # different one, the number is about the instrument, not the core.
+    man = OUT / f"manifest_{a.leg}.json"
+    if man.is_file():
+        m = json.loads(man.read_text())
+        if not m.get("board", True) and str(a.leg).startswith("vsys"):
+            import x1_retention as x1
+            want, got = x1.tree_key(), m.get("tree")
+            if got != want:
+                sys.exit(
+                    f"\nERA MISMATCH -- REFUSING TO SCORE.\n"
+                    f"  leg           {a.leg} (a SOFTWARE leg: tb_sys under "
+                    f"Verilator, no board)\n"
+                    f"  its tree      "
+                    f"{got or 'ABSENT (captured before the era stamp existed)'}\n"
+                    f"  current tree  {want}\n"
+                    f"  Re-capture it "
+                    f"(sm3_s16_fabric.py vsys --leg {a.leg} [--ret]).\n")
     cells = {}
     ok = tot = 0
     per = {}

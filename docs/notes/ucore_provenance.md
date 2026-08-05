@@ -13147,6 +13147,51 @@ The mutated files were restored and `sha256sum -c SHA256SUMS` is clean.
 `--no-era-guard` is the single documented escape and it is for reading an
 ARCHIVED column as history, which is not a statement about this tree.
 
+### §83.0b **THE SAME STALENESS, ONE INSTRUMENT OVER — THE ENTIRE S16 OFFLINE/vsys PAIR WAS PRE-F56, AND IT WAS INVISIBLE BECAUSE BOTH HALVES WERE**
+
+Found while checking that item 0's guard had no other consumer to break.
+`sw/testdata/sm3-s16fab/` holds two SOFTWARE columns, and both were written at
+**07:00 / 06:33 on 2026-08-05** — while **F56 landed in the ucore at 08:45 and
+F57 at 09:07**.  §82 re-measured the S16 walk on `sm3_s16_score`'s scale
+(1,308 → **1,320**) and did **not** re-take these two, so `standing_gates.md`
+and §81 have been quoting **1,321 / 1,371** for both.
+
+**Why nothing caught it**: the two columns are compared with EACH OTHER, and
+they were stale TOGETHER.  "0 PASS/FAIL disagreements, 0 differing coordinates"
+was true, and was a statement about two captures of the same dead tree.  *A
+cross-check between two instruments is only as current as the older of them.*
+
+Re-taken on this tree, with the expectation written down before the second
+number was read (*"if the two offline instruments still agree, `vsys_ret`
+reaches whatever `offline` reaches, with 0 disagreements and 0 differing
+coordinates; anything else is a finding"*):
+
+| column | banked (pre-F56) | **this tree** |
+|---|---|---|
+| `sm3_s16_fabric offline` (`tb_v30_core`, rows only) | 1,321 / 1,371 | **1,347 / 1,371** |
+| `sm3_s16_fabric vsys_ret` (`tb_sys`, `X1_AD_RETENTION`) | 1,321 / 1,371 | **1,347 / 1,371** |
+| the two against each other | 0 / 0 | **0 PASS/FAIL disagreements, 0 differing coordinates over all 1,371** |
+
+**+26 per instrument, which is F56's +14 and F57's +12 exactly** — the same two
+numbers §82 measured on the other scale.  §81's "the two offline instruments
+agree" rule holds, and now holds on a live tree.  The expectation was **MET**.
+
+`fab_f9` **1,291 / 1,371** is untouched and remains a **FLASH #9** figure: its
+DUT is a bitstream that predates F55, F56 and F57, and its era is the flash log,
+not the tree.  Its "30 disagreements vs `vsys_ret`" was measured against the
+PRE-F56 `vsys` column and must be re-derived, not restated, at the next flash.
+
+**THE STAMP, extended one instrument**: `sm3_s16_fabric vsys` now records the
+same `tree` key in its manifest and `score` REFUSES for a `vsys*` leg whose
+stamp is absent or stale.  **A FABRIC leg is deliberately NOT stamped this way**
+— its DUT is a bitstream and its provenance is the flash log, so a tree hash
+would be the wrong question and a wrong answer.  Its own non-vacuity was
+demonstrated by accident and is the better for it: the first re-capture was
+started before the stamp was written, `score` refused it by name, and it was
+re-taken.
+
+Superseded columns archived by copy as `…-pre-f56`.
+
 ### §83.1 THE BASELINES, RE-MEASURED ON THIS TREE (not cited)
 
 `timed_fuzz --evt-replay`, 3,242 seeds, 2,710 scored, both engines, fresh:
@@ -13364,6 +13409,12 @@ engines are rendering the same sentence.
 | `x1_retention` `offline` | 279 / 283 | **279 / 283** |
 | `x1_retention` `ret` | 273 / 283 (**STALE — F55 era**) | **279 / 283**, bars (i) and (ii) both **MET** |
 | `x1_retention` `base` | 146 / 283 (**STALE — F55 era**) | **34 / 283** (diagnostic column, never a ratchet) |
+| `sm3_s16_fabric offline` | 1,321 / 1,371 (**STALE — pre-F56**) | **1,347 / 1,371** |
+| `sm3_s16_fabric vsys_ret` | 1,321 / 1,371 (**STALE — pre-F56**) | **1,347 / 1,371**, 0 disagreements / 0 differing coordinates vs `offline` |
+
+The four re-taken columns are **CORRECTIONS OF STALE RECORDS, not movements**:
+every one of them is the number the tree already had at the end of sitting 21
+and nobody had asked it for.
 
 No RTL changed, no `sim/` changed, no golden moved, no bitstream built, no board
 touched.
