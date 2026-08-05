@@ -69,7 +69,12 @@ from causal_wrand import accesses, CODE                 # noqa: E402
 import timed_wvec_gate as WG                            # noqa: E402
 
 OUT = ROOT / "sw" / "testdata" / "s13"
-SIM = ROOT / "sim" / "v30sim"
+import simbin                                          # noqa: E402
+
+# U1: the C++ model THROUGH THE ARTIFACT/RECEIPT LAYER.  `simbin.SIM` is
+# `sim/build/v30sim`, the binary `simbin.recipe()` declares; nothing here
+# resolves the model by bare path any more.  See sw/simbin.py.
+SIM = simbin.SIM
 ROM = ROOT / "docs" / "V20BITS.TXT"
 MAXV = 4096
 
@@ -477,6 +482,10 @@ def cmd_idle(args):
 
 
 def main():
+    # U1 / P-2.  EAGERLY, before any loop: `ArtifactError` is a
+    # `RuntimeError`, and a per-case `except Exception` would turn one
+    # sentence naming a stale binary into N unreadable case failures.
+    simbin.ensure(why=__name__)
     ap = argparse.ArgumentParser()
     sub = ap.add_subparsers(dest="cmd", required=True)
 

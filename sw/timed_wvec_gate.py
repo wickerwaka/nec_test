@@ -60,7 +60,12 @@ from causal_wrand import accesses                  # noqa: E402
 from check_seq import compose                      # noqa: E402
 from gen_seq import generate                       # noqa: E402
 
-SIM = ROOT / "sim" / "v30sim"
+import simbin                                          # noqa: E402
+
+# U1: the C++ model THROUGH THE ARTIFACT/RECEIPT LAYER.  `simbin.SIM` is
+# `sim/build/v30sim`, the binary `simbin.recipe()` declares; nothing here
+# resolves the model by bare path any more.  See sw/simbin.py.
+SIM = simbin.SIM
 ROM = ROOT / "docs" / "V20BITS.TXT"
 BASE = ROOT / "docs" / "notes" / "biu_rebuild_wvec_baseline.json"
 # T2b P2: the corpus RE-FROZEN AGAINST SILICON (sw/t2b_board.py p2).  The old
@@ -189,6 +194,10 @@ def run_engine(core, seed, wv, nrows, td):
 
 
 def main():
+    # U1 / P-2.  EAGERLY, before any loop: `ArtifactError` is a
+    # `RuntimeError`, and a per-case `except Exception` would turn one
+    # sentence naming a stale binary into N unreadable case failures.
+    simbin.ensure(why=__name__)
     ap = argparse.ArgumentParser()
     ap.add_argument("--seeds", default="")
     ap.add_argument("--wvecs", default="")

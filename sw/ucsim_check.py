@@ -86,7 +86,12 @@ from pathlib import Path
 
 SW = Path(__file__).resolve().parent
 ROOT = SW.parent
-SIM = ROOT / "sim" / "v30sim"
+import simbin                                          # noqa: E402
+
+# U1: the C++ model THROUGH THE ARTIFACT/RECEIPT LAYER.  `simbin.SIM` is
+# `sim/build/v30sim`, the binary `simbin.recipe()` declares; nothing here
+# resolves the model by bare path any more.  See sw/simbin.py.
+SIM = simbin.SIM
 ROM = ROOT / "docs" / "V20BITS.TXT"
 V01 = ROOT / "tests" / "v30" / "v0.1"
 
@@ -584,6 +589,10 @@ def wrap_scan(suite: Path, forms, args):
 
 # --------------------------------------------------------------------------- #
 def main():
+    # U1 / P-2.  EAGERLY, before any loop: `ArtifactError` is a
+    # `RuntimeError`, and a per-case `except Exception` would turn one
+    # sentence naming a stale binary into N unreadable case failures.
+    simbin.ensure(why=__name__)
     ap = argparse.ArgumentParser()
     ap.add_argument("--suite", default=str(V01))
     ap.add_argument("--forms", default="all",

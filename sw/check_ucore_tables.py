@@ -30,7 +30,12 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
-SIM = ROOT / "sim/v30sim"
+import simbin                                          # noqa: E402
+
+# U1: the C++ model THROUGH THE ARTIFACT/RECEIPT LAYER.  `simbin.SIM` is
+# `sim/build/v30sim`, the binary `simbin.recipe()` declares; nothing here
+# resolves the model by bare path any more.  See sw/simbin.py.
+SIM = simbin.SIM
 V20BITS = ROOT / "docs/V20BITS.TXT"
 PLA3 = ROOT / "docs/pla3_outputs.txt"
 OUT = ROOT / "hdl/rtl/ucore"
@@ -122,8 +127,10 @@ def parse_pla():
 # the sim's own dump
 # --------------------------------------------------------------------------
 def sim_dump():
-    if not SIM.exists():
-        raise SystemExit(f"{SIM} not built -- run `make -C sim`")
+    # `SIM.exists()` was the whole freshness test here, and existence is not
+    # identity: it is content-equal to `make`'s mtime rule and G0 compared the
+    # ucore's tables against whatever binary happened to be on disk.
+    simbin.ensure(why="check_ucore_tables G0")
     out = subprocess.run([str(SIM), "dump-tables", str(V20BITS)],
                          capture_output=True, text=True, check=True).stdout
     rows, native, emu = [], [], []
@@ -192,6 +199,10 @@ def diff(label, got, want, fmt="%X", limit=5):
 
 
 def main():
+    # U1 / P-2.  EAGERLY, before any loop: `ArtifactError` is a
+    # `RuntimeError`, and a per-case `except Exception` would turn one
+    # sentence naming a stale binary into N unreadable case failures.
+    simbin.ensure(why=__name__)
     errs = 0
     s_rows, s_native, s_emu, s_pla = sim_dump()
     print(f"sim dump: {len(s_rows)} rows, {len(s_native)} micro-addresses, "

@@ -60,7 +60,12 @@ def _bin():
     return b
 CAPTURE = SW / "testdata" / "largemode_boot_real.hex"
 BOOTBIN = SW / "boot.bin"
-SIM = ROOT / "sim" / "v30sim"
+import simbin                                          # noqa: E402
+
+# U1: the C++ model THROUGH THE ARTIFACT/RECEIPT LAYER.  `simbin.SIM` is
+# `sim/build/v30sim`, the binary `simbin.recipe()` declares; nothing here
+# resolves the model by bare path any more.  See sw/simbin.py.
+SIM = simbin.SIM
 ROM = ROOT / "docs" / "V20BITS.TXT"
 
 T_NAME = {0: "Ti", 1: "T1", 2: "T2", 3: "T3", 4: "Tw", 5: "T4"}
@@ -127,6 +132,10 @@ def run_timed(n):
 
 
 def main():
+    # U1 / P-2.  EAGERLY, before any loop: `ArtifactError` is a
+    # `RuntimeError`, and a per-case `except Exception` would turn one
+    # sentence naming a stale binary into N unreadable case failures.
+    simbin.ensure(why=__name__)
     global CORE
     argv = [a for a in sys.argv[1:] if not a.startswith("-")]
     timed = "--timed" in sys.argv

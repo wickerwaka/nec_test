@@ -41,10 +41,25 @@ pattern one level down).
   plumbing, and it is fixed** — `check_seq.run_tb` now resolves through
   `check_core.recipe("fsm")`, so `check_fuzz_bank`, `check_mod3_illegal` and
   `check_enter_nesting` inherit it.
-* **What it does NOT cover**: `sim/v30sim`, the C++ model, has **no receipt** —
-  every `--core sim` figure in this document is still scored against a binary
-  whose freshness is a `make` timestamp. That, and five more, are itemised in
-  §75.7. **Read that list before assuming a gate is covered.**
+* **THE C++ MODEL IS COVERED TOO SINCE SM3 SITTING 15 (§76.A).**
+  `sw/simbin.py` is the SINGLE PRODUCER of the model, exactly as
+  `sw/check_core.py` is of `Vtb_v30_core`. **The binary is
+  `sim/build/v30sim`**, not `sim/v30sim` — `build()` promotes by renaming its
+  workdir, and with the artifact in `sim/` the workdir would have been the
+  source tree. **`sim/v30sim` is on no scorer's path any more.** Rebuild with
+  `python3 sw/simbin.py --build`; assert without building with
+  `--require`; print the id with `--id`.
+  **`docs/V20BITS.TXT` IS A DECLARED INPUT** (E-1): the model takes the
+  microcode ROM as `argv[1]` at RUN time, so under a "files the command reads"
+  rule the ROM the whole model executes would have sat outside the identity of
+  every `--core sim` number ever scored. Measured consequence, and it is the
+  argument for E-1 in one line: perturbing one byte of the ROM does **not**
+  move the compiled bytes (`cd2735e645a1cc35…` either way) and **does** move
+  the receipt, so a scorer bound to bytes alone could never have seen it.
+* **What it does NOT cover**: `ucore_provenance.md` §75.7's U2-U8 — the flash
+  log, the table generator, the golden suites (INV-1), three archived FSM
+  gates, the measurement tools, the board legs and `ss_lint`. **Read that list
+  before assuming a gate is covered.**
 * **A/B pairs are checkable**: `python3 sw/receipt_diff.py A B [--expect-command]`
   prints the symmetric difference of two receipts' inputs and exits non-zero if
   the delta is not the intended axis.
@@ -55,7 +70,7 @@ pattern one level down).
 
 | Gate | Command | Proves |
 |---|---|---|
-| ROM disasm | `make -C sim test` | the disassembly is byte-exact vs `V20UC.TXT` |
+| ROM disasm ⧉ | `python3 sw/simbin.py --disasm` | the disassembly is byte-exact vs `V20UC.TXT`, **1,285 rows**, on the RECEIPTED binary, printing its receipt id.  (`make -C sim test` is the same diff on an unreceipted `sim/v30sim` built by mtime; kept as a developer convenience, not quoted as this gate) |
 | PLA | `python3 sw/pla3_check.py` | 21 PLA checks |
 | check_ucore_tables (G0) | `python3 sw/check_ucore_tables.py` | the generated `hdl/rtl/ucore/` tables byte-match `sim/`: 1028 ROM rows + 8192 micro-addresses + 768 PLA entries = **9,988**, on an INDEPENDENT re-parse and on the emitted artifacts (`ucore_provenance.md` §4) |
 | optable selfcheck | `python3 sw/optable.py --selfcheck` | the opcode table agrees with fuzz_cov + instructions.json |

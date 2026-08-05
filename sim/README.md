@@ -178,12 +178,20 @@ they closed the 907-case REP `cx >= 2` residual and took v0.1 at w0 to
 ## Build and the standing gates
 
 ```sh
-make -C sim            # builds sim/v30sim
-make -C sim test       # GATE 1: the disasm gate
-python3 sw/pla3_check.py   # GATE 2: PLA identification, exit 0 / 21 checks
+python3 sw/simbin.py --build   # builds sim/build/v30sim THROUGH THE RECEIPT LAYER
+python3 sw/simbin.py --disasm  # GATE 1: the disasm gate, on the receipted binary
+python3 sw/pla3_check.py       # GATE 2: PLA identification, exit 0 / 21 checks
 ```
 
-The disasm gate is `sim/v30sim disasm docs/V20BITS.TXT | diff - docs/V20UC.TXT`
+**THE BINARY EVERY SCORER RUNS IS `sim/build/v30sim`** (SM3 sitting 15,
+`ucore_provenance.md` §76.A).  `sw/simbin.py` declares what it is a function of
+— the sources, the Makefile, **and `docs/V20BITS.TXT`, which is read at RUN
+time and is therefore part of the model's identity even though the compiler
+never opens it** — and every `--core sim` tool asserts that receipt before it
+scores anything.  `make -C sim` still works and still writes `sim/v30sim`; that
+binary has no receipt and is on no scorer's path.
+
+The disasm gate is `v30sim disasm docs/V20BITS.TXT | diff - docs/V20UC.TXT`
 and must produce no output — the streams are byte-identical, CRLF included.
 
 ## Running the suites

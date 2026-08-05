@@ -45,6 +45,8 @@ SW = Path(__file__).resolve().parent
 ROOT = SW.parent
 sys.path.insert(0, str(SW))
 
+import simbin                                          # noqa: E402
+
 import timed_gate                      # noqa: E402
 
 BB = ROOT / "sw" / "testdata" / "biu_blackbox"
@@ -113,6 +115,10 @@ def sim_schedule(byts, waits=0):
 
 
 def main():
+    # U1 / P-2.  EAGERLY, before any loop: `ArtifactError` is a
+    # `RuntimeError`, and a per-case `except Exception` would turn one
+    # sentence naming a stale binary into N unreadable case failures.
+    simbin.ensure(why=__name__)
     ap = argparse.ArgumentParser()
     ap.add_argument("--verbose", action="store_true")
     args = ap.parse_args()

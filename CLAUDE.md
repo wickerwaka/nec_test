@@ -76,9 +76,15 @@ them).
   `python3 sw/check_core.py --build --core <core>`; the layer never rebuilds
   behind your back, because an automatic rebuild is how the sixth incarnation
   stayed invisible for six days. `python3 sw/test_artifact.py` (**45/45**) is
-  the layer's own falsifier and must stay green. **NOT covered yet**:
-  `sim/v30sim` — every `--core sim` figure is still a `make` timestamp away
-  from unverified. §75.7 itemises the six remaining holes.
+  the layer's own falsifier and must stay green. **U1 IS CLOSED (SM3 sitting
+  15, §76.A)**: the C++ model is `sim/build/v30sim`, declared by
+  `sw/simbin.py` and rebuilt with `python3 sw/simbin.py --build`. **`sim/v30sim`
+  is no longer on any scorer's path** — the binary moved because `build()`
+  promotes by renaming its workdir and the old workdir was the source tree.
+  `docs/V20BITS.TXT` is a DECLARED INPUT of the model (erratum E-1: the ROM is
+  read at RUN time, exactly as the ucore's `ucrom.hex` is), so perturbing it
+  invalidates every `--core sim` receipt even though the compiled bytes do not
+  move. §75.7's remainder is now U2-U8 minus U1; §76.A restates it.
 - /tmp discipline: no large temp files in /tmp (tmpfs quota); use
   `~/.cache/ucsimt-tmp` for big intermediates.
 - Provenance ledgers: every modeled behavior tagged ROM / PLA / LAW /
@@ -115,7 +121,10 @@ deleted; `--core fsm` still builds and runs. What changed:
 (The ratchets below are current as of ucsim-t §26 plus the ucore campaign U5.
 Values are monotone: never re-scored downward without a loud, itemized entry.)
 
-- **ROM/PLA**: `make -C sim test` (disasm byte-exact),
+- **ROM/PLA**: `python3 sw/simbin.py --disasm` (disasm byte-exact, **1,285
+  rows**, on the RECEIPTED binary and printing its receipt id — this replaces
+  `make -C sim test`, which built an unreceipted `sim/v30sim` by mtime and is
+  kept only as a developer convenience),
   `python3 sw/pla3_check.py` (21 checks).
 - **Functional**: `python3 sw/ucsim_check.py --suite tests/v30/<suite>`
   (mod3_illegal needs `--residue stale-ea`; v20suite needs `--no-mirror`);

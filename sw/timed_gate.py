@@ -56,7 +56,12 @@ sys.path.insert(0, str(SW))
 import check_core                      # noqa: E402
 from ucsim_check import flags_mask_of, load_meta   # noqa: E402
 
-SIM = ROOT / "sim" / "v30sim"
+import simbin                                          # noqa: E402
+
+# U1: the C++ model THROUGH THE ARTIFACT/RECEIPT LAYER.  `simbin.SIM` is
+# `sim/build/v30sim`, the binary `simbin.recipe()` declares; nothing here
+# resolves the model by bare path any more.  See sw/simbin.py.
+SIM = simbin.SIM
 ROM = ROOT / "docs" / "V20BITS.TXT"
 V01 = ROOT / "tests" / "v30" / "v0.1"
 
@@ -227,6 +232,10 @@ def side_by_side(c, rows_sim, title):
 
 
 def main():
+    # U1 / P-2.  EAGERLY, before any loop: `ArtifactError` is a
+    # `RuntimeError`, and a per-case `except Exception` would turn one
+    # sentence naming a stale binary into N unreadable case failures.
+    simbin.ensure(why=__name__)
     ap = argparse.ArgumentParser()
     ap.add_argument("--suite", default=str(V01))
     ap.add_argument("--forms", default="B8")

@@ -76,6 +76,8 @@ SW = Path(__file__).resolve().parent
 ROOT = SW.parent
 sys.path.insert(0, str(SW))
 
+import simbin                                          # noqa: E402
+
 import fuzz_classify as fc                              # noqa: E402
 import timed_fuzz as tf                                 # noqa: E402
 import ucsim_fuzz as uf                                 # noqa: E402
@@ -591,6 +593,10 @@ def cmd_rmw(a):
 
 
 def main():
+    # U1 / P-2.  EAGERLY, before any loop: `ArtifactError` is a
+    # `RuntimeError`, and a per-case `except Exception` would turn one
+    # sentence naming a stale binary into N unreadable case failures.
+    simbin.ensure(why=__name__)
     ap = argparse.ArgumentParser()
     ap.add_argument("--report", required=True)
     # R4.  The engine, with `choices=` -- a typo must not silently become a

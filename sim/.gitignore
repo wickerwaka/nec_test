@@ -1,3 +1,4 @@
 v30sim
+build/
 *.o
 *.d

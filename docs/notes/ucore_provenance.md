@@ -10784,3 +10784,150 @@ the whole object.
   their `obj_dir`s, which is why the `.jsonl` exists).
 * `docs/notes/artifact_receipt_layer.md` — the spec, unedited, with the four
   erratum boxes and a status banner.
+
+## §76 SESSION SM3, SITTING 15 — **U1 IS CLOSED: THE C++ MODEL IS ON THE RECEIPT LAYER, AND THE ONE THING IT IS A FUNCTION OF THAT NOBODY WOULD HAVE DECLARED IS THE MICROCODE ROM.  THE FABRIC `+1` IS DIAGNOSED AND IT IS NOT A SCORER ARTIFACT.**
+
+**2026-08-05, branch `ucsim`, from HEAD `b0d7dc20c3`.  OFFLINE ONLY — NO BOARD
+CONTACT, no flash, no `use_core` flip, no capture.**
+
+> **Standing principle, applied throughout.**  *"A guiding principal here needs
+> to be simplicity.  This is 80's era hardware, they aren't wasting silicon on
+> anything that isn't necessary.  Complex or confusing behavior that we see is
+> likely to be simple systems interacting in ways you do not fully understand
+> yet."*
+
+### §76.A U1 — `sim/v30sim` ONTO THE LAYER
+
+§75.7 named the C++ model **THE LARGEST REMAINING HOLE**: seventeen tools ran
+it, every `--core sim` figure in this ledger was scored against it, and its
+relationship to `sim/*.cpp` was a `make` timestamp.  `sw/simbin.py` is now to
+the model what `check_core.recipe()` is to `Vtb_v30_core` — one declaration,
+all consumers.
+
+#### §76.A.1 WHAT THE BINARY IS A FUNCTION OF — **37 files, and the 37th is the surprise**
+
+| what | n | why it is in the identity |
+|---|---|---|
+| `sim/*.cpp` | 16 | the sources |
+| `sim/*.h` | 19 | including `pla3_table.h`, which is GENERATED from `docs/pla3_outputs.txt` but CHECKED IN — so the generator is a U3-shaped gap and the table itself is not |
+| `sim/Makefile` | 1 | it carries `CXX`/`CXXFLAGS`; a flag change is a different binary |
+| **`docs/V20BITS.TXT`** | **1** | **THE MICROCODE ROM, READ AT RUN TIME.**  `v30sim` takes it as `argv[1]`; all seventeen consumers pass this file and nothing else |
+
+**THE ROM IS THE E-1 CASE, AND THIS TIME IT IS MEASURED RATHER THAN ARGUED.**
+§75.6a established the rule — *`inputs` is what the ARTIFACT is a function of,
+not what the COMMAND reads* — on the ucore's `$readmemh` tables.  The model has
+exactly the same shape one layer over: the entire EU is `docs/V20BITS.TXT`, and
+`g++` never opens it.
+
+The measurement that makes the rule non-negotiable was taken here.  One byte of
+`docs/V20BITS.TXT` was flipped, the model rebuilt, and the byte flipped back:
+
+| | compiled output sha256 | `build_key` |
+|---|---|---|
+| before | `cd2735e645a1cc35…` | `3e2569007dbc…` |
+| ROM perturbed by ONE byte | **`cd2735e645a1cc35…` — IDENTICAL** | `04947522f16d…` — MOVED |
+| ROM restored | `cd2735e645a1cc35…` | **`3e2569007dbc…` — RETURNED** |
+
+**The bytes do not move and the identity does.**  A freshness check that
+compares the artifact — any hash of the binary, any mtime on it, any
+`diff` of a rebuild — is *structurally incapable* of seeing a microcode change.
+`sw/simbin.py --require` sees it and refuses, naming the file and both hashes;
+the run is in this sitting's transcript.  (Reverting the byte also returns
+`build_key` to its exact prior value, which is §C's content-key claim
+demonstrated on a real input rather than in the self-test.)
+
+**NOT inputs**: the per-invocation data files — `--wvec`, `--evt`, the image, a
+`biu-script`.  Those are the QUESTION, not the instrument.
+
+*Read the history file accordingly*: `sw/testdata/receipts/cxx_binary.jsonl`'s
+**middle** entry is the perturbation itself and records a `docs/V20BITS.TXT`
+hash of `b4fdcc34ef4c0fd7…`, which is not a state this tree was ever in for a
+scored number.  It is left in place because the `.jsonl` is an append-only
+record of what was built, and deleting a true entry corrupts a ledger exactly
+as badly as inventing one.  **No gate figure in §76.A.3 was taken under it** —
+every one of them ran before the perturbation or after the restore, and the
+restored `build_key` is bit-identical to the pre-perturbation one.
+
+**A residual, stated rather than implied**: `sim/Makefile` declares `CXX` and
+`CXXFLAGS` with `?=`, so an environment variable would win over it and would
+not appear in the receipt.  `CXX=g++` is pinned on the make command line (a
+command-line assignment beats both), and `CXXFLAGS`/`LDFLAGS` in the
+environment are **REFUSED** by `simbin._guard_env()` rather than silently
+omitted.
+
+#### §76.A.2 TWO STRUCTURAL DECISIONS, BOTH FORCED
+
+**(a) THE BINARY MOVED TO `sim/build/v30sim`.**  `artifact.build()` promotes by
+renaming its workdir, and the workdir is the artifact's parent.  With the
+artifact at `sim/v30sim` a build would have renamed the SOURCE TREE.  So the
+receipted binary lives in a directory of its own.  `make -C sim` still writes
+`sim/v30sim`; **that binary is on no scorer's path any more**, and the ROM/PLA
+disasm gate moved with everything else (`sw/simbin.py --disasm`, **1,285 rows
+byte-exact**, printing the receipt id).
+
+**(b) THE BUILD IS `make -B`.**  The layer's key is CONTENT; `make`'s is MTIME.
+If the layer decides to build it must not hand the decision back to a weaker
+test — a source whose content changed under an unchanged mtime would move the
+build key, run `make`, and `make` would skip the object.  `-B` removes the seam
+for **2.9 seconds**, which is the whole cost of a full rebuild here.
+
+**AND THE §75.4 CONTROL WAS RE-TAKEN BEFORE ANYTHING WAS MIGRATED**: a full
+`make -B` into a scratch directory OUTSIDE the repo reproduced the `sim/v30sim`
+that was on disk **byte for byte** (`cd2735e645a1cc35…`).  g++ 15.2.0 is
+byte-reproducible on this tree and output-path-independent, and nothing in the
+tree was stale at HEAD — so, exactly as at sitting 14, **the migration could
+not move a number through a rebuild, and it did not.**
+
+#### §76.A.3 THE MIGRATION TABLE — 18 FILES, AND EVERY FIGURE RE-RUN
+
+`SIM = ROOT / "sim" / "v30sim"` was the model's identity in **16** files.  All
+16 now read `SIM = simbin.SIM` and call `simbin.ensure()` **eagerly at the top
+of `main()`** — eagerly for §75.5a's reason: `ArtifactError` is a
+`RuntimeError`, and a per-case `except Exception` would turn one sentence
+naming a stale binary into N unreadable case failures.  `timed_scenario` and
+`s15_census` reach the model through an imported module and were migrated with
+them: **18 files.**
+
+| gate | re-run figure | standing figure |
+|---|---|---|
+| `timed_gate.py --suite tests/v30/v0.1 --forms all` | **arch 169,000/169,000 · window 169,000/169,000 · rows-exact 169,000 · row-diffs 0** | 169,000, row-diffs 0 ✓ |
+| `ucsim_check.py --suite tests/v30/v0.1` | **169,000 / 169,000** | 169,000 ✓ |
+| `timed_fuzz.py --evt-replay` (`--core sim`) | **REGISTERED 1,272/1,702 · EVT 782/1,008 · COMBINED 2,054/2,710** | 1,272 / 782 / 2,054 ✓, to the seed |
+| `timed_fuzz.py --seeddir …/b2-tranche/seeds` | **154 / 188** | 154/188 ✓ (V5 still the standing REGISTERED FAILURE) |
+| `timed_wvec_gate.py` | **88/88, bus cycles 16,048 vs 16,048, +0.0 %** | 88/88 +0.0 % ✓ |
+| `timed_enter_replay.py` | **154/154 ×5** (pushes, walk, full, active, halt_display) | 154×5 ✓ |
+| `timed_ins_replay.py --raw` | **rails 1,312/1,312 · vs-chip 2,624/2,624**, 173,556/173,556 same-T1 | 1,312 / 2,624 ✓ |
+| `timed_lawcards.py` | **GREEN 8 / 11 scored, 3 UNRESOLVED, 0 RED** | 8/0/3 ✓ |
+| `timed_scenario.py` | **18 PASS, 0 FAIL, 9 SKIP** | 18/0/9 ✓ |
+| `check_boot.py --timed 220` | **BOOT REPLAY MATCHES over 220 rows** | MATCH ✓ |
+| `ulockstep.py --golden all --cases 50` (BOTH engines) | **17,350 / 17,350 ALL CASES LOCKSTEP** | 17,350 ✓ |
+| `check_ucore_tables.py` (G0) | **PASS — 9,988 entries byte-identical on both legs** | 9,988 ✓ |
+| `simbin.py --disasm` (the ROM/PLA gate) | **PASS, 1,285 rows** | byte-exact ✓ |
+| `pla3_check.py` | **OK (21 checks)** | 21 ✓ |
+| `test_artifact.py` (the layer's own falsifier) | **45/45** | 45/45 ✓ |
+
+**NOT ONE NUMBER MOVED.**  Which is the expected result and is stated as a
+control: §76.A.2's measurement says the binary was already the right one, so
+these runs prove the migration introduced no behavioural change of its own —
+no altered argument, no changed working directory, no per-invocation rebuild.
+
+`check_ucore_tables` deserves a line of its own: its freshness test was
+`if not SIM.exists()`, and **existence is not identity** — G0 compared the
+ucore's 9,988 generated entries against whatever binary happened to be on disk.
+It is `simbin.ensure()` now.
+
+#### §76.A.4 THE §75.7 REMAINDER, SHRUNKEN
+
+**U1 is CLOSED.**  What is left is **U2-U8, unchanged in substance**: U2 the
+flash log (ends at the board; still a board sitting's one-field change), U3 the
+table generator (`pla3_table.h` joins the ucore's `.hex` files as *generated,
+checked in, hashed into consumers, generator unreceipted*), U4 the golden
+suites / INV-1, U5 the three archived FSM gates with their own `BIN` constants,
+U6 the measurement tools, U7 the board legs, U8 `ss_lint`.
+
+Two NEW items are booked honestly rather than left implied:
+
+| # | what | risk |
+|---|---|---|
+| **U1a** | `s13_board.py` is migrated at `main()` only.  A board script that IMPORTS it and calls its functions directly never reaches the postcondition | a board sitting could still run an unasserted model.  `simbin.require_bin()` is the one-line fix at the point of use |
+| **U1b** | the model reads `V30SIM_*` environment variables at RUN time (`QDEPTH`, `FLUSHTRACE`, `EVALTRACE`, `TICKTRACE`, `IETRACE`, `BNDTRACE`, `EVTTRACE`).  They are trace-only today, and RUN-time environment is not part of an artifact's identity in this layer at all | a future behavioural env var would be invisible to every receipt.  The rule to hold is: **the model must not grow a behavioural environment variable** |
