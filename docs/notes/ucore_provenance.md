@@ -11197,3 +11197,104 @@ did not run (`v0.1-w1`/`-w3`, `EB`, the four `evt` cells, `w1evt-biased`,
 --core ucore`, `ss_lint`, `check_ab_sim`), pre-registered as unmoved, with
 **268/283 and 169,000/169,000 carried forward as ALREADY-MEASURED FACTS, not as
 predictions.**  The two heavy legs are already in hand and both are clean.
+
+### §76.E **§74.2's `+1` ROW — SETTLED.  IT IS A REAL ONE-CLOCK INSTRUMENT DIFFERENCE, NOT A SCORER ARTEFACT, AND THE FABRIC IS THE STRONGER INSTRUMENT.**
+
+§74.2 booked it: on all **119** cells the fabric's first divergence is exactly
+one row LATER than the offline `tb_sys base` record's, same column, `INTA` at
+both coordinates.  *"It is NOT diagnosed here, it is booked."*  It is diagnosed
+now, offline, on the banked captures, with **no board contact**.
+
+#### §76.E.1 THE TWO SCORERS ARE THE SAME CODE, AND THE ROW ORIGIN IS CONTENT-ADDRESSED
+
+Both legs call the identical driver and the identical comparator:
+`x1_retention.py:261` and `x1_fabric.py:82` (and `u4_f42_fabric.py:89`) all call
+`emit_suite.emit_evt_case(...)`; the offline leg only swaps `es.run_image` for
+`vsys_run` at `x1_retention.py:241`.  **Row 0 is defined by observed BUS
+CONTENT, not by an index**: `emit_suite.py:1513-1516` finds the anchor code
+fetch (`t==1 && ad_addr==anchor_linear && bs_early==4`) and
+`emit_suite.py:1544` takes `i0 = fpop_is[n_skip_f]`.  A lead-in, arming or
+reset-release difference in a capture buffer therefore *cannot* shift the
+numbering — it would have to change the anchor match.  The first-divergence
+index is `check_core.py:425`'s `for i in range(n)` in `diff_rows`, read out at
+`x1_fabric.py:135` and `x1_retention.py:338`; `score_base.json` and
+`score_fab_f7.json` were produced by literally the same function.
+
+(For contrast `check_ab_hw.py:54` DOES use an index origin — `rel = next(i for
+i,r in enumerate(recs) if not r["rst"])` plus its `i>=8`/`i>=9` skips.  It plays
+no part in this comparison and is a different scale entirely.)
+
+#### §76.E.2 THE LANDMARK CONTROLS — ALL 283 CELLS, ALL BY THE IDENTICAL CODE PATH
+
+| control | result |
+|---|---|
+| row 0 identical, golden = base = ret = `fab_f6` = `fab_f7` | **283 / 283** |
+| capture LENGTH `base` == `fab_f7` | **283 / 283** |
+| the 18 survivors, δ(`fab_f7` − `base`) | **0 on 18 / 18** |
+| the 18 survivors, δ(`fab_f6` − `ret`) | **0 on 18 / 18** |
+| **offline `ret` vs fabric `fab_f6`, RAW ROWS** | **0 differing rows out of 15,351 — BIT-IDENTICAL** |
+| rows where `base` matches the golden and fabric does NOT | **0** |
+| rows where fabric matches the golden and `base` does not | **2,766** |
+| an AD-LAG artefact (`fab[i] == base[i-1]` on rows where they differ) | **0 of 6,569** |
+| the class, δ(`fab_f7` − `base`) | **+1 on 119 / 119**, `bus` → `bus` |
+
+**The `ret` vs `fab_f6` line is decisive on its own**: with the retention macro
+ON, the Verilated `system_large` and the fabric emit the SAME ROWS, cell for
+cell, over 15,351 rows.  A row-origin offset would appear there too, and it does
+not appear anywhere.
+
+#### §76.E.3 THE DIRECTION, AND IT IS THE OPPOSITE OF WHAT "AN OFFSET" WOULD MEAN
+
+At the offline base's first-divergence row `r`, **the fabric equals the golden
+exactly on 119 / 119** and the base differs on 119 / 119; the fabric then
+diverges at `r+1` on 119 / 119.  Golden T-state at `r` is `INTA/T4` on 44 cells
+and `INTA/Ti` on 75; at `r+1` it is `INTA/T1` on **119 / 119**.  At `r+1` the
+fabric's value is the NEXT data phase arriving one row early —
+`fab[r+1].data == golden[r+2].data` on **119/119**.
+
+```
+s10-hltsweep-w0/HLT.INT/1,  r = 6
+row 6  golden INTA/T4   G bus=0x09090  | base 0x00000 | fab 0x09090   <- fab MATCHES
+row 7  golden INTA/T1   G bus=0x09090  | base 0x00000 | fab 0x000ff   <- fab diverges
+row 8  golden INTA/T2   G bus=0x600ff  | base 0x600ff | fab 0x600ff
+```
+
+#### §76.E.4 THE MECHANISM — TWO SIMPLE SYSTEMS, EXACTLY AS THE PRINCIPLE PREDICTS
+
+`core_ad` has exactly two drivers: the core's `AD` under `AD_OE`, and
+`system_large.sv:379`'s `core_ad[15:0] = c_addrv_q ? c_rdata_q : 16'hzzzz`.
+Verilator resolves the net to `z` the instant both enables drop and the capture
+records **0**.  Quartus has nowhere to put a `z` on an internal tri-state — it
+builds a MUX — and the evidence says the mux passes `c_rdata_q` whenever the
+core's OE is off.  `c_rdata_q` is `nec_bus`'s `rdata_q`, loaded FREE-RUNNING and
+independently of `drive_en` at `nec_bus.sv:468`:
+
+```systemverilog
+rdata_q <= mem_cycle_type == BS_INTA ? {8'h00, cfg_int_vector} : mem_rdata;
+```
+
+So at the `T4`/`Ti` row it still holds the PREVIOUS read's data — which is
+exactly what the chip's floating pads retain, so the fabric gets one row of
+accidental, free retention — and at the following `INTA T1` it has ALREADY been
+reloaded with `{8'h00, vector}`, one row before the chip's pads receive it.
+**That is the whole `+1`: a harness read-data register that reloads early, and a
+synthesis tool with nowhere to put a `z`.**
+
+#### §76.E.5 THE VERDICT, AND THE BOOKKEEPING CONSEQUENCE
+
+**REAL ONE-CLOCK INSTRUMENT DIFFERENCE.  NOT a scorer or row-indexing
+artefact.**  §74.2's "natural reading" was correct and is now measured, with one
+refinement that must be recorded because it inverts the usual assumption:
+**the difference is not symmetric noise — on the affected row the FABRIC agrees
+with silicon and the Verilated `base` leg does not, on 119 / 119, and there is
+no row anywhere in the 283-cell population where `base` is right and the fabric
+is wrong.**  `tb_sys --leg base` is the WEAKER instrument of the two, by exactly
+one row per INTA turnaround.  This does not move any number: the `ret` leg,
+which is the one every X1 result is scored on, is bit-identical to the fabric.
+
+*The single confirming measurement, if anyone wants it, is offline and is
+specified*: a third `tb_sys` leg modelling the Quartus resolution rather than
+the pad — `core_ad_eff = core_ad_oe ? core_ad : {4'b0, c_rdata_q}` — must
+reproduce the fabric base leg EXACTLY: **146/283, the same 137 failing cells,
+first divergence at `r+1` on all 119, and 0 rows differing from `fab_f7` over
+all 283 cells.**  A build and a re-score, no board.  **Not run here.**
