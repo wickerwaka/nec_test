@@ -9954,6 +9954,18 @@ compared between the fabric leg and the `tb_sys ret` leg:
 class still failing, or any fabric-only NON-INTA divergence" — did not occur in
 any cell.**
 
+**THE RESTING BITSTREAM — FLASH #6 STAYS, AND THE DECISION IS TAKEN ON THE
+MEASUREMENT AND NOT ON THE ARGUMENT.**  The argument is that the retention model
+is applied to `hb_ad_sample` under `cfg_use_core ? core_ad_eff : NEC_AD`, so
+with `use_core = 0` it is not in the observation path at all.  The measurement
+is `sw/check_ab_hw.py chip 800` run AFTER the whole sitting: **chip-vs-golden
+MATCH over 800 rows**, `use_core` **False**, `cfg 0xff0008` (`clk_div` 8,
+`DIV_OF_RECORD`), `board_idle()` clean.  The socket-capture role — which is what
+every golden in this project comes from — is therefore unaffected, and there is
+no reason to spend a flash returning the board to a bitstream that scores 146
+where this one scores 265.  **FLASH #5's `.sof` remains available under
+`~/.cache/ucsimt-tmp/s8/flash5/` if a return is ever wanted.**
+
 ### §73.9 **C11 IS ESTABLISHED**
 
 The reading §56.3 offered and §56.3a refused to promote without an intervention
