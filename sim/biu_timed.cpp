@@ -426,7 +426,18 @@ void BiuTimed::tick() {
                    : (ci_ < last_i)    ? uint8_t(kTw)
                                        : uint8_t(kT4);
         r.bs = (ci_ >= eval_i) ? uint8_t(kBsPasv) : cur_.bs;
-        r.ube_n = cur_.ube_n;
+        // F53b -- UBE IS LOADED BY THE ADDRESS PHASE AND THEN HELD.  It is not
+        // re-driven by a cycle that is merely RUNNING.  This used to read
+        // `r.ube_n = cur_.ube_n` unconditionally, which is invisible for an
+        // ordinary cycle (the value it re-drives is the one its own T1 latched)
+        // and WRONG the moment an announcement that has already put its own UBE
+        // on the pin is WITHDRAWN: the pads keep the withdrawn cycle's UBE and
+        // the running cycle painted its own back over it.  `v30u_biu.sv`'s
+        // `ube_n` middle term, in the model's idiom -- the ucore's is
+        // `(r_run && r_ts == TS_T1) ? r_cur_ube_n : last_ube`.
+        // Falsifier: a capture in which UBE changes on a clock that is neither
+        // a display at `cdage != 0` nor a T1.
+        r.ube_n = (ci_ == 0) ? cur_.ube_n : last_ube_;
         if (ci_ == 0) {
             // The address-phase (mid-cycle) sample is the address; the
             // end-of-cycle sample is the address too, EXCEPT on a write, where
@@ -447,10 +458,30 @@ void BiuTimed::tick() {
             if (cur_.disp >= 0 && c != cur_.disp + 1)
                 r.ad_addr = (uint32_t(data_ps(cur_.segc)) << 16) |
                             (cur_.addr & 0xFFFFu);
-        } else {
+        } else if (!cur_.is_halt) {
             r.ad_addr = cur_.addr;
             r.ad_data = cur_.data;
             r.ps = data_ps(cur_.segc);
+        } else {
+            // F51 -- THE HALT PSEUDO-CYCLE HAS NO DATA PHASE, so after its own
+            // address phase it drives NOTHING and the pads hold.  Every other
+            // cycle hands AD over at the end of T1 -- to the write data, or to
+            // the memory -- and a HALT hands it to nobody.  This branch used to
+            // republish `cur_.addr` / `cur_.data` / `data_ps(segc)` on every
+            // clock of the pseudo-cycle's body, which is the SAME VALUE its own
+            // T1 put there unless something else took the pads in between, and
+            // the only thing that can is a multi-clock ANNOUNCEMENT that is
+            // then WITHDRAWN (`v30u_biu.sv` F53, `tb_v30_core.sv`'s `cycle_live`
+            // -- a HALT-typed cycle is excluded from `core_ps_drive`, and in
+            // fabric the pads themselves do this).  MEASURED on
+            // `s13-hltsweep-w2 HLT.INT idx 10/11` row 12 and `-w3 idx 12/13/14`
+            // row 14: the chip holds the withdrawn wake fetch's `067CB4` /
+            // `7CB4` / `ube 0` and the model reverted to the HALT's `067CB2` /
+            // `7CB2` / `ube 1`, which an INTA then froze into its own access
+            // (line 357) and carried two rows further.
+            r.ad_addr = last_addr_;
+            r.ad_data = last_data_;
+            r.ps = last_ps_;
         }
         if (r.upc == 0xFFFF) r.upc = cur_.upc;
     } else {
