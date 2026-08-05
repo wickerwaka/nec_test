@@ -12253,3 +12253,275 @@ is reverted.
   sweep misses** and it is the obvious next model landing.
 * **H7, family D, the 8080 work and H3-B were not opened.  No memory file was
   touched.  Codex was not launched.**
+
+## §80 SESSION SM3, SITTING 19 — **THE MODEL'S F53 LEG: FAMILY E IS THE ONE-SHOT'S THREE PINS, NOT ONE, AND +30 S16 / +5 SWEEP CELLS FALL OUT OF TWO SENTENCES THAT WERE ALREADY WRITTEN DOWN.  AND THE FLASH MILESTONE, WHOSE OWN RE-PROOF FOUND THAT F53's ADDRESS HALF IS NOT IN THE ucore AT ALL — IT IS IN `tb_v30_core`'s COMPOSER.**
+
+**2026-08-05, branch `ucsim`, from HEAD `d02671fbe4`.**  The pre-registration is
+`docs/notes/sm3_s19_prereg_2026-08-05.md`, committed as `96a9e782c9` **before
+`sim/` was touched**, and §B's is `sm3_s19b_prereg_2026-08-05.md`, committed
+**before board contact**.  This section reports against both and does not
+restate them.
+
+> **Standing principle, applied throughout.**  *"A guiding principal here needs
+> to be simplicity.  This is 80's era hardware, they aren't wasting silicon on
+> anything that isn't necessary.  Complex or confusing behavior that we see is
+> likely to be simple systems interacting in ways you do not fully understand
+> yet."*
+
+---
+
+## §80.A THE MODEL'S F53 LEG
+
+### §80.A.1 THE BASELINE, AND WHY §79.I's BOOKING WAS TOO NARROW
+
+§79.I booked the model's 30-cell `E_ube` S16 class as *"F53's UBE half, which
+the ucore has and the model does not"*.  Measured per cell before anything was
+written, the class is **35 cells — 30 S16 + 5 sweeps — and every one of them has
+the IDENTICAL SIX-DIFF SIGNATURE**:
+
+* S16, form `HLT.INT` only, all six programs: **w2 `d10`,`d11`** (12) and
+  **w3 `d12`,`d13`,`d14`** (18).
+* sweeps, form `HLT.INT`: **`s13-hltsweep-w2` `idx 10,11`**,
+  **`-w3` `idx 12,13,14`** (5) — i.e. **5 of the model's 11 sweep misses**, as
+  §79.I said, and the other 6 are family B.
+* first divergence `(12, ube, 0, 1)` at w2 and `(14, ube, 0, 1)` at w3; the
+  remaining five diffs are `ube` on the next row and **`bus`/`data` on the two
+  rows after that**.
+
+**Those `bus`/`data` diffs are the half §79.I missed.**  Read off
+`s13-hltsweep-w2 HLT.INT idx 10`, golden `G` against the model `M`:
+
+| row | | bus | ube | data | busstat | T |
+|---|---|---|---|---|---|---|
+| 9 | G=M | `057CB4` | 1 | `7CB4` | CODE | T3 |
+| 10 | G=M | `067CB4` | **0** | `7CB4` | CODE | Tw |
+| 11 | G=M | `067CB4` | 0 | `7CB4` | CODE | Tw |
+| 12 | **G** | **`067CB4`** | **0** | **`7CB4`** | PASV | T4 |
+| 12 | **M** | `067CB2` | **1** | `7CB2` | PASV | T4 |
+| 13 | **G** | `007CB4` | 0 | `7CB4` | INTA | Ti |
+| 13 | **M** | `007CB2` | 1 | `7CB2` | INTA | Ti |
+
+Rows 9-11 are the wake fetch's ANNOUNCEMENT, a multi-clock display window
+because the HALT pseudo-cycle still owns the bus: row 9 is its display clock
+(A19-16 = its own nibble `5`), rows 10-11 are `data_ps(CS)` = `6` — F53's
+address one-shot, which the model already had at M23 — and UBE turns 0 on row
+10, one clock after the status (M2).  **Then the announcement is WITHDRAWN**,
+and on row 12 — the HALT pseudo-cycle's own T4 — silicon shows the withdrawn
+cycle's **three** pins still standing.  The model repainted all three with the
+HALT's own, and row 13 follows because an INTA freezes the FLOATING AD into its
+access on its display clock (`biu_timed.cpp` 357), so the wrong retention
+propagates a cycle further.
+
+### §80.A.2 THE LAW — TWO SENTENCES, NEITHER OF THEM NEW, AND THEY ARE ONE MECHANISM
+
+> **(i) F53b.**  UBE is loaded by the ADDRESS PHASE and then HELD; it is not
+> re-driven by a cycle that is merely running.
+> **(ii) F51.**  A HALT pseudo-cycle has NO DATA PHASE; after its address phase
+> it drives nothing and the pads hold.
+
+`r.ube_n = (ci_ == 0) ? cur_.ube_n : last_ube_` and one `else if
+(!cur_.is_halt)` on the body branch.  No new constant, no per-delay table, no
+per-program case, **no new state** — the `last_*` retention registers already
+existed and the idle branch already used them.  Where no announcement
+intervenes, "hold" and "re-drive" are the SAME VALUE by construction, which is
+why 168,997 w0 goldens cannot see either.
+
+### §80.A.3 THE RESULT, REPORTED AS REGISTERED
+
+`sim/build/v30sim` inputs `cec517328db68299…`, artifact
+`c564a9c775b1307b…`.
+
+| | registered bar | **measured** |
+|---|---|---|
+| **P1** | the 35 `E_ube` cells CLOSE | **S16 30 → 0, sweeps 5 → 0** — **MET** |
+| **P2** | S16 **1,249 → 1,279**, +30/−0, per wait **343 · 331 · 312 · 293** | **1,279 / 1,371**, **gained 30, lost 0** cell for cell, **343 · 331 · 312 · 293** — **MET** |
+| **P3** | the four HLT sweeps **272 → 277** = `91/97 · 95/95 · 46/46 · 45/45` | **277 / 283**, exactly those four — **MET** |
+| **P4** | residue exactly `busstat_other` 10 · `B_late` 16 · `qop` 39 · `ARCH` 30 | **identical, `E_ube` absent, no class grown** — **MET** |
+| **P5** | `ulockstep --golden all --cases 50` 17,350 | **17,350 / 17,350 ALL CASES LOCKSTEP** — **MET** |
+| **P6** | the §79.F ladder unmoved | **MET except `timed_fuzz`'s EVT column, §80.A.4** — itemised in §80.A.5 |
+| **P7** | the ucore NOT TOUCHED | **`git diff -- hdl` EMPTY** — **MET** |
+| f1 f2 f3 f4 f5 f7 | — | **DID NOT FIRE** |
+| **f6** | — | **FIRED.  §80.A.4.** |
+
+### §80.A.4 **f6 FIRED, AND IT IS REPORTED AS FIRED — WITH THE ERRATUM THAT IT WAS BADLY WRITTEN**
+
+`timed_fuzz --core sim --evt-replay` moved **EVT 782 → 783** and **COMBINED
+2,054 → 2,055**.  REGISTERED is **1,272 to the seed** and `b2-tranche` is
+**154 / 188**, both unmoved.
+
+**The control — the pre-change source restored, rebuilt, re-run, and the
+artifact hashes chained back (`ab4bd9cd…`/`9411e211…` = sitting 18's exactly,
+then `cec51732…`/`c564a9c7…` again) — puts the whole move at ONE SEED.**
+`mc2/672`, an EVT seed: `DIVERGE → EXACT`, `ndiff 2 → 0`, and its
+first-divergence `kind` was **`ube`** — the law's own signature.  **3,241 of
+3,242 report records are byte-identical; 1 gained, 0 lost.**  For scale, F53's
+ucore landing moved the ucore's own EVT column by exactly one seed too (§77.G);
+whether it is the same seed was not measured here.
+
+> **ERRATUM against my own pre-registration.**  f6 was written as *"moves off
+> `1,272 / 782 / 2,054` by a single seed"* — **symmetrically**, so it cannot
+> tell a monotone gain from collateral damage, which is the only thing a
+> falsifier in that slot is for.  It fired on a **+1 with 0 lost**.  The
+> wording is left as committed and the correction is here; the disposition is
+> taken on the per-seed control and not on the total, and **the change
+> STANDS**.  The falsifier that should have been written, registered here for
+> whoever takes the next model landing: **any seed LOST, on either column.**
+
+### §80.A.5 THE LADDER — EVERY CELL RE-RUN ON THE FINAL BINARY
+
+| gate | standing | **measured** |
+|---|---|---|
+| `timed_gate v0.1 --forms all` | 169,000 | **169,000 / 169,000, row-diffs 0** |
+| `v0.1-w1` / `-w3` | 1,200 each | **1,200 / 1,200** each, row-diffs 0 |
+| `EB` at w1 | 200 | **200 / 200** |
+| the four `evt` cells | 200 / 1,200 / 200 / 1,200 | **identical**, row-diffs 0 |
+| `w1evt-biased` | 1,200 | **1,200 / 1,200** |
+| **the four HLT sweeps** | 272 | **277 / 283** — RAISED by 5 |
+| the 11,200 `HLT.NMI` goldens | — | **200 / 1,000 / 10,000**, row-diffs 0 |
+| `check_boot --timed 220` | MATCH | **MATCH over 220 rows** |
+| `timed_scenario` | 18 / 0 / 9 | **18 PASS, 0 FAIL, 9 SKIP** |
+| `timed_enter_replay` | 154 ×5 | **154/154 ×5** |
+| `timed_ins_replay --raw` | 1,312 / 2,624 | **rails 1,312/1,312 · vs-chip 2,624/2,624**, 173,556/173,556 same-T1 |
+| `timed_wvec_gate` | 88/88, +0.0 % | **88/88, 16,048 vs 16,048, +0.0 %** |
+| `timed_lawcards` | 8 GREEN / 0 RED / 3 UNRESOLVED | **GREEN 8 / 11 scored, 3 UNRESOLVED, 0 RED** |
+| `timed_fuzz --core sim --evt-replay` | 1,272 · 782 · 2,054 | **1,272 · 783 · 2,055**, `INVALIDATED` 0 — §80.A.4 |
+| `timed_fuzz … b2-tranche` | 154 / 188 | **154 / 188** |
+| `ulockstep --golden all --cases 50` | 17,350 | **17,350 / 17,350** |
+| `simbin --disasm` · `pla3_check` | 1,285 · 21 | **PASS (1,285 rows)** · **OK (21)** |
+| **the ucore** | — | **NOT TOUCHED.  `git diff -- hdl` EMPTY** |
+
+### §80.A.6 THE RATCHETS THAT MOVED, ITEMISED
+
+| ratchet | before | **after** | which change |
+|---|---|---|---|
+| the four HLT delay sweeps, **the MODEL** | 272 / 283 | **277 / 283** | the model's F53 leg |
+| the S16 walk, **the MODEL's leg** | 1,249 / 1,371 | **1,279 / 1,371** | the model's F53 leg |
+| — per wait level | 343 · 331 · 300 · 275 | **343 · 331 · 312 · 293** | the model's F53 leg |
+| the model's S16 `E_ube` class | 30 | **0 — the class is GONE** | the model's F53 leg |
+| `timed_fuzz --core sim` EVT | 782 / 1,008 | **783 / 1,008** | the model's F53 leg (`mc2/672`) |
+| `timed_fuzz --core sim` COMBINED | 2,054 / 2,710 | **2,055 / 2,710** | the model's F53 leg |
+| **NEW** — S16, `tb_v30_core`, **ROWS ONLY** | did not exist | **1,321 / 1,371** (`sm3_s16_fabric.py offline`) | the instrument, §80.B |
+
+---
+
+## §80.B THE FLASH MILESTONE — **F53 AND F54 ARE IN FABRIC, AND SO IS F55**
+
+**FLASH #9, 2026-08-05.**  Board contact: the reachability + single-writer check
+(recorded in the pre-registration as having happened), then one flash and five
+capture legs.  `div_guard` **PINNED** on every probe, both ends; **0 transport
+errors**; no wedge; `board_idle()` clean at the close.
+
+### §80.B.1 THE PROMOTION RULE, MET FIRST
+
+`quartus_gate.py` at HEAD, ONE clean CONTROL/DEFAULT build from a deleted
+`db`/`incremental_db`, compile rc 0 in **571 s**: **E1 PASS · E2 PASS** (0 stage
+errors, 0 error lines, map/fit/asm all Successful) **· E3 45.49 MHz** (bar ≥ 32)
+**· E4 +9.146 ns · E5 TNS 0.000**, setup AND hold, every domain.  RECORDED, not
+barred: **ALMs 11,126 / 41,910 (27 %)**, 0 latches, 0 `lpm_divide`.  Receipt
+**`2bf170fa9eee15f7…`**, input manifest **88 files `567b11fffd6414a6…`**, which
+is **byte-identical to sitting 17's** — the check that says `hdl/` has not moved
+since F54.  The receipt records the tree `96a9e782c9-dirty`; the dirt was §A's
+`sim/biu_timed.cpp` and docs, and `hdl/` was clean.
+
+The FLASHED bitstream is the **RETENTION** build from the same regenerated
+`.qsf` (`quartus_gate` puts the `.qsf` back after its own build, §70.7):
+`quartus_map --verilog_macro="X1_AD_RETENTION=1"` + `fit` + `asm` + `sta`.
+**0 errors, Fmax 44.99 MHz, worst setup +9.023 ns, TNS 0.000 on every domain,
+ALMs 11,205 / 41,910 (27 %), 0 latches, 0 `lpm_divide`**; recorded as
+`~/.cache/ucsimt-tmp/sm3s19/quartus_gate_retention.json`, receipt
+`fdce0639299276c9…`.  *Its 88-file manifest hash is NOT the control's, because
+Quartus had appended pin assignments to the revision `.qsf` by the time it was
+parsed; the GATE is the control build, and this row is RECORDED.*
+
+**FLASH #9** through `sw/safe_flash.sh` with its VERIFY leg:
+`nec_test_ucore.sof` **`01aca4c0b1e7d75514dd9a41c9b81b82fdc3af1c77b4d2c6a0413228974e58f2`**,
+`.rbf` `58154c546dbad34880f82ea1afe03f79f7a2d5413c3cb0b3472b9dd4487a94de`,
+VERIFY **OK**, `flash_log.jsonl` 11 → **12 entries**.
+
+### §80.B.2 THE RESULTS, REPORTED AS REGISTERED
+
+| | prediction | **measured** |
+|---|---|---|
+| **Q1** first light `check_ab_hw all 800` | MATCH ×3 | **MATCH / MATCH / MATCH over 800 rows** — **MET** |
+| **Q2** `x1_fabric baseline --leg fab_f9` | **268 / 283**, = `tb_sys ret` cell for cell | **268 / 283**, and against `tb_sys ret` over all 283: **0 PASS/FAIL disagreements, 0 differing first-divergence coordinates** — **MET** |
+| **Q2a** the 15 failing cells, NAMED IN ADVANCE | the list in §B.3 | **exactly that list, coordinate for coordinate** — **MET** |
+| **Q3** socket control `use_core=False` | 49 / 49 | **49 / 49** — **MET** |
+| **Q4** **the S16 population's FIRST fabric leg**, rows only | **1,291 / 1,371**, 0 disagreements vs `vsys_ret` | **1,291 / 1,371**, **0 PASS/FAIL disagreements and 0 differing coordinates over all 1,371** — **MET** |
+| **Q4a** its socket control | identical to the golden | **41 / 41** — **MET** |
+| **Q5** b3 priority tranche | `chip_f9` 178/178, `core_f9` 176/178, `bs = 2` | **178 / 178** and **176 / 178 (98.9 %)**, residue **`bs = 2`**, 0 errors in 400 captures — **MET** |
+| **Q6** `use_core=0` chip proof AFTER everything | MATCH 800 | **MATCH over 800 rows** — **MET** |
+| **Q7** `div_guard` | PINNED both ends of every leg | **PINNED, every probe** — **MET** |
+| **Q8** transport | 0 errors, `board_idle` clean | **0 errors, no wedge, `board_idle()` clean** — **MET** |
+
+Per suite the fabric sweeps are the offline `system_large` column cell for cell:
+`s10-w0` `HLT.INT` **44/48** `HLT.RES` **47/49**; `s10-w1` **44/46** and
+**49/49**; `s13-w2` **18/21** and **25/25**; `s13-w3` **16/20** and **25/25**.
+
+### §80.B.3 **WHAT IS NOW ESTABLISHED IN FABRIC**
+
+**(a) F53 AND F54 ARE IN SILICON'S INSTRUMENT AND THEY HOLD THERE.**  The
+sweeps were **265/283** on FLASH #6, which predates both; they are **268/283**
+now, and the whole `ube` column is correct on all 35 family-E cells where it was
+wrong on every one before.  F54's 42-cell `HLT.NMI` band and F53's 72 family-A/C
+nibble cells carry **no** signature in fabric on the S16 leg either — the 80
+residual S16 cells are 26 family-B, 24 family-D and the 30 of §80.B.3(b), and
+the catch-all is empty.
+
+**(b) F55 IS CONFIRMED IN FABRIC, ON A DIRECTED PREDICTION.**  The 35 cells were
+named in advance, from an instrument-vs-instrument disagreement found while
+re-proving `tb_sys`, and **all 35 failed in fabric with the predicted
+first-divergence coordinate and no others did.**  `halt_hold` keeps
+`ad_oe_addr` asserted for the whole HALT pseudo-cycle and publishes
+`r_cur_addr` on every clock of it; silicon leaves that address there by
+**retention**, not by **drive**.  `tb_v30_core.sv`'s `cycle_live` floats those
+clocks, so the DEFAULT TB has been scoring the cells green **on the
+instrument's authority, not the core's** — `standing_gates.md`'s meta-finding
+#5, exactly one law later, and this time caught by prediction rather than by
+accident.  **F53's UBE half is in the RTL; its ADDRESS half never was.**
+The fix is ONE TERM and is deliberately **NOT LANDED** (it would have put an
+unregistered change into the milestone's bitstream); its falsifier is in
+`sm3_s19b_prereg_2026-08-05.md` and it is **the obvious next RTL landing**.
+
+**(c) A THIRD INSTRUMENT IS NOW ON THE LADDER AND IT AGREES WITH FABRIC TO THE
+CELL.**  `tb_sys ret` predicted **268/283** and **1,291/1,371** before the board
+was touched and was right on **1,654 of 1,654 cells** across the two
+populations, PASS/FAIL and coordinate alike.  Where `tb_v30_core` and `tb_sys`
+disagree, **fabric sides with `tb_sys` every time** — which is the general rule
+this sitting establishes, and it is worth more than either number.
+
+### §80.B.4 THE RESTING STATE
+
+The board carries **FLASH #9**, the retention build, `use_core` **False**,
+`cfg 0xff0008` (`clk_div` 8 = `DIV_OF_RECORD`), `ctrl 0x5`, `board_idle()`
+clean.  The disposition is §73.8's and it is taken on the measurement: the
+retention model is on the OBSERVATION path (`hb_ad_sample`) under
+`cfg_use_core ? core_ad_eff : NEC_AD`, so the socket position is unaffected by
+construction, and `check_ab_hw chip 800` run AFTER the whole sitting is
+**MATCH over 800 rows**.  FLASH #6's `.sof 626fb30ebee2…` remains on disk.
+
+### §80.B.5 THE RATCHETS THAT MOVED, ITEMISED
+
+| ratchet | before | **after** | which change |
+|---|---|---|---|
+| the fabric HLT sweeps | 265 / 283 (FLASH #6) | **268 / 283 (FLASH #9)** | F53 + F54 reaching fabric |
+| `tb_sys` `ret`, the Verilated integration | 265 / 283 (s6) | **268 / 283** | same |
+| `tb_sys` `base` | 146 / 283 | **146 / 283 — unmoved** | control |
+| `tb_v30_core` offline, the four sweeps | 265 (s12) | **273 / 283** | F53 + F54, unchanged since s17 |
+| **NEW** — S16, ROWS ONLY, `tb_v30_core` | did not exist | **1,321 / 1,371** | the instrument |
+| **NEW** — S16, ROWS ONLY, `tb_sys ret` | did not exist | **1,291 / 1,371** | the instrument, and F55 |
+| **NEW** — **S16 IN FABRIC**, ROWS ONLY | **never captured** | **1,291 / 1,371** | FLASH #9 |
+| the b3 priority tranche | `chip_f5` 178, `core_f5` 176 | **`chip_f9` 178 / 178, `core_f9` 176 / 178** | FLASH #9; §73.9's re-capture debt for #6/#7/#8 is DISCHARGED at #9 |
+| the board's bitstream | FLASH #6/#8 `626fb30ebee2…` | **FLASH #9 `01aca4c0b1e7…`** | this sitting |
+
+`sm3_s16_score.py --core ucore` was re-measured, not inherited: **1,294 / 1,371**,
+per wait **346 · 328 · 318 · 302**, census `busstat_other` 10 · `B_late` 16 ·
+`D_tstate` 24 · `ARCH` 27 — identical to §78's.
+
+### §80.C WHAT THIS SITTING DID NOT DO, AND THE STATE IT LEAVES
+
+* **NO `hdl/` FILE WAS TOUCHED** — `git diff -- hdl` is EMPTY for the whole
+  sitting.  **F55 is BOOKED, NOT LANDED**, with its falsifier written down.
+* Family B stays **PARTITIONED and BOOKED** (§79.G); its two falsifiers are
+  unclaimed.  The model's `qop` 39 S16 class is untouched.
+* Family D, H7, H3-B and the 8080 work were not opened.
+* **No memory file was touched.  Codex was not launched.**

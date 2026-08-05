@@ -212,7 +212,7 @@ entry. Figures are `ucore_provenance.md` §54.4's, re-run 2026-08-04.
 | CE hold | `check_core.py --ce-div 4 --ce-hold-check` | `CE_HOLD_VIOL 0` |
 | the core inside the real integration ⧉ | `python3 sw/check_ab_sim.py` | 187 rows MATCH |
 | the MODEL, unmoved | `python3 sw/timed_gate.py --suite tests/v30/v0.1 --forms all` | 169,000 / 169,000, row-diffs 0 |
-| the MODEL's fuzz bank | `python3 sw/timed_fuzz.py --core sim --evt-replay` | REGISTERED **1,272 / 1,702**; EVT **782 / 1,008**; COMBINED **2,054 / 2,710**; `INVALIDATED` **0**.  Same INV-1 closure; it was `EVT 709/1,008` as banked (STRUCK), then `144/248` interim.  **RAISED 2026-08-04 by SM3 sitting 2's H1 landing: EVT 363 -> 780, COMBINED 1,635 -> 2,052, +417 seeds, REGISTERED unchanged to the seed (`ucore_provenance.md` §61), and again by SM3 sitting 11's re-arm onto the IE rise: EVT 780 -> 782, COMBINED 2,052 -> 2,054, REGISTERED still 1,272 to the seed (§72).  The ucore leg WAS TAKEN at sitting 3 (§62) and the ucore now LEADS this column: EVT 906 vs 780, COMBINED 2,389 vs 2,052 — on a bank where the ucore PREDICTS and the model REPLAYS.**  Before H1 the rebuilt column read 363 and the ucore led by 105; as banked it appeared to trail by 517.  The 248 never-poisoned seeds are unchanged at 170 / 144, which is the control that says the re-capture moved nothing it did not touch |
+| the MODEL's fuzz bank | `python3 sw/timed_fuzz.py --core sim --evt-replay` | REGISTERED **1,272 / 1,702**; EVT **783 / 1,008**; COMBINED **2,055 / 2,710** (EVT/COMBINED RAISED by ONE seed at **SM3 sitting 19** by the model's F53 leg — `mc2/672`, whose first-divergence `kind` was `ube`, `ucore_provenance.md` §80.A.4); `INVALIDATED` **0**.  Same INV-1 closure; it was `EVT 709/1,008` as banked (STRUCK), then `144/248` interim.  **RAISED 2026-08-04 by SM3 sitting 2's H1 landing: EVT 363 -> 780, COMBINED 1,635 -> 2,052, +417 seeds, REGISTERED unchanged to the seed (`ucore_provenance.md` §61), and again by SM3 sitting 11's re-arm onto the IE rise: EVT 780 -> 782, COMBINED 2,052 -> 2,054, REGISTERED still 1,272 to the seed (§72).  The ucore leg WAS TAKEN at sitting 3 (§62) and the ucore now LEADS this column: EVT 906 vs 780, COMBINED 2,389 vs 2,052 — on a bank where the ucore PREDICTS and the model REPLAYS.**  Before H1 the rebuilt column read 363 and the ucore led by 105; as banked it appeared to trail by 517.  The 248 never-poisoned seeds are unchanged at 170 / 144, which is the control that says the re-capture moved nothing it did not touch |
 
 ### HOW THE EVT COLUMN MAY AND MAY NOT BE QUOTED (SM3 sitting 5, 2026-08-04)
 
@@ -269,11 +269,11 @@ passes and must not be quoted as any):
 
 | | number | where it is written down |
 |---|---|---|
-| the four HLT delay sweeps | **91/97, 93/95, 45/46, 44/45 = 273/283** (the model is 272/283) — RAISED from 265 at **SM3 sitting 16**: **F53** landed (the address phase is ONE CLOCK on the DISPLAY side of the pin mux as well as the T1 side, for an INTA's zero as well as an address, and UBE is loaded by the address phase and then HELD).  §76.D.2's families **A, C and E are one law and all their signature cells are closed**; the residue is **10 cells, two mechanisms, catch-all empty**: **6 family-B** (`w0.INT/2,3` · `w0.RES/2,3` at `(4,busstat)` and `w0.INT/4,5` at `(17,busstat)` — an announcement one capture row late, MODEL-SHARED) and **4 family-D** (`w1.INT/8,9` · `w2.INT/12` · `w3.INT/15` — the analyser's SECOND BS sample, see §77.A.2: the pattern occurs 4 times in 217,507,379 committed golden rows and they ARE these four cells, and `tb_v30_core` cannot render a fix for them because it samples BS once).  It was 259 before sitting 6 and 265 before this one | `ucore_provenance.md` **§77**, `sm3_s16_prereg_2026-08-05.md` |
+| the four HLT delay sweeps | **91/97, 93/95, 45/46, 44/45 = 273/283** (the model is **277/283** since SM3 sitting 19 — `ucore_provenance.md` §80.A; it was 272) — RAISED from 265 at **SM3 sitting 16**: **F53** landed (the address phase is ONE CLOCK on the DISPLAY side of the pin mux as well as the T1 side, for an INTA's zero as well as an address, and UBE is loaded by the address phase and then HELD).  §76.D.2's families **A, C and E are one law and all their signature cells are closed**; the residue is **10 cells, two mechanisms, catch-all empty**: **6 family-B** (`w0.INT/2,3` · `w0.RES/2,3` at `(4,busstat)` and `w0.INT/4,5` at `(17,busstat)` — an announcement one capture row late, MODEL-SHARED) and **4 family-D** (`w1.INT/8,9` · `w2.INT/12` · `w3.INT/15` — the analyser's SECOND BS sample, see §77.A.2: the pattern occurs 4 times in 217,507,379 committed golden rows and they ARE these four cells, and `tb_v30_core` cannot render a fix for them because it samples BS once).  It was 259 before sitting 6 and 265 before this one | `ucore_provenance.md` **§77**, `sm3_s16_prereg_2026-08-05.md` |
 | the S16 directed display walk | **1,294 / 1,371** (`python3 sw/sm3_s16_score.py --core ucore`) — a board population captured 2026-08-05 that did not exist when anything was scored: 3 forms × 6 frozen programs × 4 wait levels × 21 delays, socket only, `div_guard` PINNED, raw words + rows + sha256 in `sw/testdata/sm3-s16cell/`, goldens in `tests/v30/s16-dispwalk-w<w>-p<p>/`.  It is the AUTHORISING population for **F53** and for **F54**, and both attributions are controls on the same cells: pre-F53 **1,207** with **72** family-A/C nibble and **5** family-E `ube` cells, post-F53 **1,252** with **0** and **0** (+45 / −0); pre-F54 **1,252**, post-F54 **1,294**, cell for cell **+42 / −0** (**SM3 sitting 17**, `ucore_provenance.md` §78).  Per wait level **346 · 328 · 318 · 302**.  Its 77 residual cells are **10** `busstat_other` (6 `HLT.RES` d2/d3 w0 + 4 `HLT.INT` d2 w0 — the w0 wake race, MODEL-SHARED), 16 one-row-late, 24 family-D and **27** architectural.  **§77.E's reading of the 42 `HLT.NMI` cells as H7 IS WITHDRAWN** — they were F43's missing NMI half (§78.C) and they are closed | `ucore_provenance.md` §77.D/§77.E, **§78** |
-| **the S16 directed display walk, the MODEL's leg** | **1,249 / 1,371** (`python3 sw/sm3_s16_score.py --core sim`, NEW at **SM3 sitting 18**) — the model had never been scored on the authorising population.  Per wait level **343 · 331 · 300 · 275**.  It was **1,225** before F54's model leg landed (+24 / −0 cell for cell, the 24 being `HLT.NMI` `w0 d0 · w1 d4 · w2 d6 · w3 d8` on all six programs).  Its 122 residual cells are **10** `busstat_other` + **16** `B_late` — the SAME 26-cell family B the ucore has, identical cell for cell AND diff for diff — plus **39** `qop`, **30** `E_ube` (F53's UBE half, which the model does not carry) and **30** architectural.  **`--core sim` scores through `timed_gate.run_form` and then the IDENTICAL `check_case`/`diff_rows`/`classify_first` the RTL legs use**, so the two figures are comparable; the control is that the ucore leg re-run at sitting 18 reproduces 1,294 / 1,371 | `ucore_provenance.md` **§79.B** |
+| **the S16 directed display walk, the MODEL's leg** | **1,279 / 1,371** (`python3 sw/sm3_s16_score.py --core sim`, NEW at **SM3 sitting 18**, RAISED at **sitting 19**) — the model had never been scored on the authorising population.  Per wait level **343 · 331 · 312 · 293**; it was **1,249** with **343 · 331 · 300 · 275** until sitting 19's F53 leg closed the whole 30-cell `E_ube` class **+30 / −0** (`ucore_provenance.md` §80.A).  It was **1,225** before F54's model leg landed (+24 / −0 cell for cell, the 24 being `HLT.NMI` `w0 d0 · w1 d4 · w2 d6 · w3 d8` on all six programs).  Its 122 residual cells are **10** `busstat_other` + **16** `B_late` — the SAME 26-cell family B the ucore has, identical cell for cell AND diff for diff — plus **39** `qop` and **30** architectural.  **`E_ube` is GONE** (it was 30): sitting 19 landed F53's law in the model as its two sentences — *UBE is loaded by the address phase and then HELD* and *a HALT pseudo-cycle has no data phase* — and family E turned out to be the one-shot's THREE pins, not one.  **`--core sim` scores through `timed_gate.run_form` and then the IDENTICAL `check_case`/`diff_rows`/`classify_first` the RTL legs use**, so the two figures are comparable; the control is that the ucore leg re-run at sitting 18 reproduces 1,294 / 1,371 | `ucore_provenance.md` **§79.B** |
 | ⚠ **A RIG DEFECT, FIXED AT SM3 sitting 18 — and it moved a booked number** | `v30sim timed-run` keys its record stream by the case's ARRAY POSITION; `compose_batch` keys the RTL batch by the golden's own `idx`.  The S16 suites are the first population in the tree where the two differ (`idx` is the DELAY, 141 cells non-composable, the sets start at 0 / 1 / 4 with gaps), and `sm3_haltsupp.py` used the RTL lookup on both legs.  **§78.I's model column was measured through it and is WITHDRAWN**: the model gets `HLT.INT` and `HLT.RES` EXACT at all four wait levels, and its NMI constant was `K = 7` against silicon's `K = 6` — one clock, not "three wrong ways".  The old lookup was replayed and reproduces §78.I's table exactly, including why `HLT.RES` escaped (its `idx` starts at 0) | `ucore_provenance.md` **§79.A**, `sm3_s18_prereg_2026-08-05.md` §0 |
-| the fabric HLT sweeps | **265/283 on FLASH #6 (SM3 sitting 12, 2026-08-05) — the OFFLINE COLUMN EXACTLY, and the 119-cell INTA class is CLOSED.**  It was 146/283 on FLASH #5, 143/283 on FLASH #4 and #3.  **§56.3a's INTERVENTION RAN IN FABRIC AND C11 IS ESTABLISHED AT THE MECHANISM LEVEL — ⚠ but its REGISTERED NUMERICAL BARS were SUPERSEDED, NOT MET** (`ucore_provenance.md` **§73.9a**, SM3 s13 / Codex concern 3a: §56.3a registered **116 cells / 259 of 283**, F43 then moved the offline reference at sitting 6, and **119 / 265 of 283** is what ran.  What carries the finding is that §56.3a's registered REFUTATION did not occur in any cell): `x1_fabric baseline --leg fab_f6` **265/283**, **119 of 119 closed, 0 survivors**, the 18 remaining cells are the SAME 18 named in advance with the SAME first-divergence coordinate on every one, and scored strictly against the `tb_sys ret` leg over all 283 cells there are **0 PASS/FAIL disagreements and 0 differing coordinates**.  Socket control **49/49**; `check_ab_hw all 800` first light **MATCH ×3**; `use_core=0` chip proof **MATCH 800** after everything; `div_guard` PINNED both sides; **0 transport errors**.  **C11 IS ESTABLISHED** — the INTA pad-float retention attribution is a FINDING (the CODEX REVIEW item in `ucore_campaign_verdict` §(g); **NOT** `timed_lawcards`' C11, which is the LC4 `owns_slot` card and is untouched).  **The 18 survivors are core-owned and unexplained**: 4 `w0` `busstat` (model-shared, §68.2) and 14 `seg`/`bus` at the top of each sweep's `d` band (§67.3) — and fabric and TB now agree on them cell for cell, so they are diagnosable entirely offline | `ucore_provenance.md` **§73.8/§73.9**, §56.3a |
+| the fabric HLT sweeps | **268/283 on FLASH #9 (SM3 sitting 19, 2026-08-05) — the fresh `tb_sys ret` column EXACTLY, 0 PASS/FAIL disagreements and 0 differing coordinates over all 283, and the 15 failing cells were NAMED IN ADVANCE with their coordinates.  F53 AND F54 ARE IN FABRIC (the sweeps were 265 on FLASH #6, which predates both).  The 15 are 6 family-B + 2+2 family-D + **5 F55** (`ucore_provenance.md` §80.B).  The FLASH #6 figure, superseded, was: 265/283 on FLASH #6 (SM3 sitting 12, 2026-08-05) — the OFFLINE COLUMN EXACTLY, and the 119-cell INTA class is CLOSED.**  It was 146/283 on FLASH #5, 143/283 on FLASH #4 and #3.  **§56.3a's INTERVENTION RAN IN FABRIC AND C11 IS ESTABLISHED AT THE MECHANISM LEVEL — ⚠ but its REGISTERED NUMERICAL BARS were SUPERSEDED, NOT MET** (`ucore_provenance.md` **§73.9a**, SM3 s13 / Codex concern 3a: §56.3a registered **116 cells / 259 of 283**, F43 then moved the offline reference at sitting 6, and **119 / 265 of 283** is what ran.  What carries the finding is that §56.3a's registered REFUTATION did not occur in any cell): `x1_fabric baseline --leg fab_f6` **265/283**, **119 of 119 closed, 0 survivors**, the 18 remaining cells are the SAME 18 named in advance with the SAME first-divergence coordinate on every one, and scored strictly against the `tb_sys ret` leg over all 283 cells there are **0 PASS/FAIL disagreements and 0 differing coordinates**.  Socket control **49/49**; `check_ab_hw all 800` first light **MATCH ×3**; `use_core=0` chip proof **MATCH 800** after everything; `div_guard` PINNED both sides; **0 transport errors**.  **C11 IS ESTABLISHED** — the INTA pad-float retention attribution is a FINDING (the CODEX REVIEW item in `ucore_campaign_verdict` §(g); **NOT** `timed_lawcards`' C11, which is the LC4 `owns_slot` card and is untouched).  **The 18 survivors are core-owned and unexplained**: 4 `w0` `busstat` (model-shared, §68.2) and 14 `seg`/`bus` at the top of each sweep's `d` band (§67.3) — and fabric and TB now agree on them cell for cell, so they are diagnosable entirely offline | `ucore_provenance.md` **§73.8/§73.9**, §56.3a |
 | ~~**R7 / R7′**~~ — **R7′ IS CLOSED, SM3 sitting 12** | R7 was refuted at sitting 9 (its "81 registers escaped the name scope" compared two DIFFERENT STAGES of one flow; stage for stage the collection GREW, and `nec_test.sdc` was NOT and still is NOT edited).  **R7′ — `READY` reaching the EU's next-state cone single-cycle at 55–63 levels, with closure depending on whether the fitter happened to break it — WAS REAL, and at HEAD it had SWAPPED SIDES: the DEFAULT build (macro OFF) measured **19.42 MHz**, worst setup **−20.254**, TNS **−13,129.815**, 20,000/20,000 failing paths launching from `system_large|c_ready_q` into `v30u_eu` at 62–63 levels — reproduced to the digit from a DELETED `db`.  **G6 was RED at HEAD and no gate saw it, because the standing set has no Quartus leg.**  **CLOSED by ONE MUX**: the read's data-edge PSW load (`interrupt_model.md`'s POP-PSW rule, unchanged) moved off the head of the twelve-position chain onto the `psw` register's own `D` pin, gated `row_blocked`.  Control **45.89 MHz / +8.493 / TNS 0.000**, retention **45.87 / +8.802 / 0.000**, **0** failing paths on both, worst `c_ready_q` path **19 levels**.  Ladder **ZERO-DELTA at the seed** (38/38 steps; 5 of 3,242 fuzz report entries differ and every one is a `$warning` LINE NUMBER); no flop added or removed on any entity across six builds.  A first form WITHOUT `row_blocked` was built, worked, and was REVERTED by its own pre-registered falsifier | `ucore_provenance.md` **§73**, `sm3_s12_prereg_2026-08-04.md`, `sm3_s12b_prereg_2026-08-04.md` |
 | the b2 tranche | 171/188 — V5, REGISTERED FAILURE | `ucore_provenance.md` §44.2 |
 
@@ -348,6 +348,52 @@ a gate): `sw/sm3_nmigeom.py`.
 > suppression census, silicon leg from retained rows and engine leg over the
 > emitted goldens.
 
+### THE S16 WALK THROUGH THE INTEGRATION — NEW, SM3 SITTING 19
+
+`python3 sw/sm3_s16_fabric.py {offline, vsys --ret, fabric, socket, score}`
+
+The 1,371-cell S16 display walk replayed through the ucore instead of the
+socket.  **ROWS ONLY** (`check_core.diff_rows`) — a DUT leg has no
+architectural readback — so its totals are **NOT** `sm3_s16_score.py`'s
+1,294/1,371, which is `not mm and arch_ok`.  Quoting one against the other is a
+comparator error; `offline` exists so the fabric total has a same-scale
+reference.
+
+| leg | **figure** |
+|---|---|
+| `offline` — `tb_v30_core`, which MODELS pad retention | **1,321 / 1,371** |
+| `vsys_ret` — Verilated `system_large`, `X1_AD_RETENTION` ON | **1,291 / 1,371** |
+| **`fab_f9` — IN FABRIC, the population's first** | **1,291 / 1,371**, **0 PASS/FAIL disagreements and 0 differing first-divergence coordinates against `vsys_ret` over all 1,371** |
+| `soc_f9` — the socket control, `use_core=False` | **41 / 41** |
+
+The 30-cell gap between `offline` and the other two is **F55** and it is the
+same mechanism as 5 of the 15 fabric sweep cells.
+
+### **F55 — BOOKED, NOT LANDED (SM3 sitting 19, `ucore_provenance.md` §80.B.3b)**
+
+`v30u_biu.sv`'s `halt_hold = r_run && r_cur_halt` keeps `ad_oe_addr` asserted
+for the WHOLE HALT pseudo-cycle and publishes `r_cur_addr` on every clock of it.
+Silicon leaves that address on the pads by **RETENTION**, not by **DRIVE**, and
+the two differ exactly when a multi-clock announcement takes the pads in between
+and is then WITHDRAWN.  `tb_v30_core.sv`'s `cycle_live` excludes a HALT-typed
+cycle from `core_ps_drive`, so the DEFAULT TB floats those clocks and has been
+scoring the 35 affected cells green **on the instrument's authority, not the
+core's** — the vacuous-gate meta-finding #5, one law later.  **F53's UBE half is
+in the RTL (`last_ube`); its ADDRESS half never was.**  Predicted in advance from
+the `tb_sys` re-proof and **confirmed in fabric on all 35 cells with the
+predicted coordinate and no others**.
+
+*The falsifier, registered*: gate `halt_hold`'s contribution to
+`ad_oe_addr`/`ad_o` to the address phase, and `tb_sys ret` must go
+**268 → 273** and S16 `vsys_ret` **1,291 → 1,321** while `tb_v30_core`'s own
+columns (**273/283** and **1,321/1,371**) do **NOT MOVE AT ALL** — on that
+instrument the change is invisible by construction.  Any movement of the
+`tb_v30_core` column means the term was cut wider than the law.
+
+**AND THE GENERAL RULE THIS SITTING ESTABLISHES**: where `tb_v30_core` and
+`tb_sys` disagree, **fabric sides with `tb_sys`** — 1,654 of 1,654 cells across
+the two populations, PASS/FAIL and coordinate alike.
+
 ### BOARD PROBES — NOT GATES, BUT THEY MUST STILL RUN
 
 A rig-integrity finding from SM2, recorded here because it is the *reason* this
@@ -365,12 +411,24 @@ undecoded 64-bit words that were already being unpacked and discarded.
 | R6 per-repetition rows | `python3 sw/r6_perrep.py capture --reps 10` then `analyse` | banks EVERY repetition's full rows for the sweep cells whose `stable_identical` is false, and classifies the differences by pad class.  **It is also the live falsifier for the repair above** — it is an s10/s13-path probe and it takes 50 captures. |
 | the X1 fabric legs | `python3 sw/x1_fabric.py baseline --leg <tag>` / `socket --leg <tag>` / `score` | the 283 HLT-sweep cells through the FPGA core, and §52.9's 49-cell socket control, written beside `sw/testdata/u4-f42/` rather than over it |
 | the INV-1 re-capture | `python3 sw/inv1_recapture.py {archive, probe, holdproof, capture, rebank, verify}` | INV-1's closure apparatus.  `verify` is arithmetic over the artifact and is board-free |
-| the b3 priority tranche | `python3 sw/u4_tranche.py capture --leg chip_f5 \| core_f5` then `score --legs chip_f5,core_f5 --ref chip_f5` | §48.4's victory condition, re-captured on every new bitstream as a NEW leg pair written BESIDE the last one.  **FLASH #5 (SM3 sitting 7): `chip_f5` 178/178, `core_f5` 176/178 (98.9 %), residue `bs = 2`, 0 errors in 400 captures — identical to FLASH #4's `chip_f4`/`core_f4` to the seed** |
+| the b3 priority tranche | `python3 sw/u4_tranche.py capture --leg chip_f5 \| core_f5` then `score --legs chip_f5,core_f5 --ref chip_f5` | §48.4's victory condition, re-captured on every new bitstream as a NEW leg pair written BESIDE the last one.  **FLASH #9 (SM3 sitting 19): `chip_f9` 178/178, `core_f9` 176/178 (98.9 %), residue `bs = 2`, 0 errors in 400 captures — identical to FLASH #5's and FLASH #4's to the seed.  §73.9's re-capture debt for #6/#7/#8 is DISCHARGED at #9.**  Before it: **FLASH #5 (SM3 sitting 7): `chip_f5` 178/178, `core_f5` 176/178 (98.9 %), residue `bs = 2`, 0 errors in 400 captures** |
 
-**THE BOARD CARRIES FLASH #6 SINCE 2026-08-05** — `nec_test_ucore.sof
+**THE BOARD CARRIES FLASH #9 SINCE 2026-08-05 (SM3 sitting 19)** —
+`nec_test_ucore.sof` **`01aca4c0b1e7…`** (`.rbf 58154c546dba…`), built from
+`134249a2ad` with **`X1_AD_RETENTION=1`**, through `sw/safe_flash.sh` with its
+VERIFY leg (`sw/testdata/flash_log.jsonl`, now **12 entries**).  **It is the
+first bitstream to carry F53 and F54.**  G6 was green on the CONTROL build at
+HEAD first (receipt `2bf170fa9eee15f7…`, 45.49 MHz, +9.146 ns, TNS 0.000, 88-file
+manifest `567b11fffd6414a6…` = sitting 17's); the retention build measured 44.99
+MHz, +9.023 ns, TNS 0.000, ALMs 11,205 (27 %).  First light **800/800 on all
+three `check_ab_hw` legs**; `use_core=0` chip proof **MATCH 800** after
+everything; `div_guard` **PINNED** on every probe; **0 transport errors**;
+`board_idle()` clean.  Resting `cfg 0xff0008`, `use_core` **False**.
+
+*The superseded text, kept because a fabric figure is only readable against its
+own bitstream:* **THE BOARD CARRIED FLASH #6 FROM 2026-08-05** — `nec_test_ucore.sof
 **626fb30ebee2…**` (`.rbf 460a71907f87…`), built from `536e207c76` with
-**`X1_AD_RETENTION=1`**, through `sw/safe_flash.sh` with its VERIFY leg
-(`sw/testdata/flash_log.jsonl`, now **9 entries**).  **IT IS THE RETENTION
+**`X1_AD_RETENTION=1`**, through `sw/safe_flash.sh` with its VERIFY leg.  **IT IS THE RETENTION
 BITSTREAM** — §56.3a's `core_ad` pad-float model is COMPILED IN, on the
 OBSERVATION path (`hb_ad_sample`) only, so the `use_core=0` socket position is
 unaffected by construction and MEASURED unaffected (`check_ab_hw chip 800`

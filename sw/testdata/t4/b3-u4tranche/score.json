@@ -1,11 +1,11 @@
 {
- "chip_f5": {
+ "chip_f9": {
   "exact": 178,
   "scored": 178,
   "excused": 22,
   "fam": {}
  },
- "core_f5": {
+ "core_f9": {
   "exact": 176,
   "scored": 178,
   "excused": 22,

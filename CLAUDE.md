@@ -137,7 +137,12 @@ Values are monotone: never re-scored downward without a loud, itemized entry.)
   1,200/1,200, `v0.1-w1 --forms EB` 200/200, the four `v0.1-w*evt` cells
   200 / 1,200 / 200 / 1,200, `v0.1-w1evt-biased` 1,200/1,200 (preserved),
   and the four HLT delay sweeps `s10-hltsweep-w{0,1}` **91/97**, **95/95**
-  and `s13-hltsweep-w{2,3}` **44/46**, **42/45**.  (These were STALE here at
+  and `s13-hltsweep-w{2,3}` **46/46**, **45/45** = **277/283** (RAISED from
+  272 at SM3 sitting 19 by the MODEL's F53 leg, `ucore_provenance.md` §80.A —
+  family E is the display one-shot's THREE pins, not just UBE, and the model
+  had neither half: `E_ube` 30 → 0 on S16 and 5 → 0 on the sweeps).  Its S16
+  leg is **1,279/1,371** (`sm3_s16_score.py --core sim`, per wait
+  343 · 331 · 312 · 293).  (These were STALE here at
   92/95, 42/46, 40/45 — the pre-§26.7.6 figures — from the S15 cleanup until
   ucore U3 re-measured the model leg and found the quick reference disagreeing
   with `ucsim_t_provenance.md` §26.11's own delta row.  Corrected UPWARD.)
@@ -147,7 +152,7 @@ Values are monotone: never re-scored downward without a loud, itemized entry.)
   `sw/timed_wvec_gate.py` (88/88, +0.0 %), `sw/timed_lawcards.py`
   (**8 GREEN / 0 RED / 3 UNRESOLVED** — C6, C7, C11),
   `sw/timed_fuzz.py --evt-replay` (REGISTERED **1,272/1,702**, EVT
-  **782/1,008**, COMBINED **2,054/2,710**, `INVALIDATED` **0** — the EVT and
+  **783/1,008**, COMBINED **2,055/2,710**, `INVALIDATED` **0** — the EVT and
   COMBINED figures moved TWICE on 2026-08-04 (INV-1's re-registration, then
   SM2's re-capture re-opening the full column at 363), then TWICE more:
   **+417 when H1 landed** (SM3 sitting 2, the re-entry recognition floor) and
@@ -432,7 +437,31 @@ Values are monotone: never re-scored downward without a loud, itemized entry.)
   pre-registered falsifier** — `mc2/2788`, where a second read is outstanding
   while an earlier one already sits in the completed-read store, so the row is
   NOT blocked and runs on the same clock.
-- **The board carries the ucore bitstream** (`nec_test_ucore.sof
+- **THE BOARD CARRIES FLASH #9 SINCE SM3 SITTING 19** (`nec_test_ucore.sof
+  **01aca4c0b1e7…**, `.rbf 58154c546dba…`, built from `134249a2ad` WITH
+  `X1_AD_RETENTION=1`; G6 green on the CONTROL build at HEAD first — receipt
+  `2bf170fa9eee15f7…`, 45.49 MHz, +9.146 ns, TNS 0.000, 88-file manifest
+  `567b11fffd6414a6…` identical to sitting 17's; the retention build 44.99 MHz,
+  +9.023 ns, TNS 0.000, 27 % ALMs).  **IT IS THE FIRST BITSTREAM TO CARRY F53
+  AND F54**, and the fabric legs are `ucore_provenance.md` §80.B: first light
+  **MATCH 800 ×3**, `x1_fabric baseline --leg fab_f9` **268/283** (it was 265 on
+  FLASH #6, which predates both) with the 15 failing cells NAMED IN ADVANCE and
+  **0 PASS/FAIL disagreements / 0 differing coordinates** against the fresh
+  `tb_sys ret` column, socket control **49/49**, the S16 walk's FIRST fabric leg
+  **1,291/1,371 rows-only** with **0 disagreements over all 1,371** against
+  `vsys_ret`, b3 **`chip_f9` 178/178 / `core_f9` 176/178**, `use_core=0` chip
+  proof **MATCH 800** after everything, `div_guard` PINNED throughout, 0
+  transport errors, `board_idle()` clean, `flash_log.jsonl` **12 entries**.
+  **AND IT PRODUCED F55, BOOKED NOT LANDED**: `halt_hold` keeps `ad_oe_addr`
+  asserted for the whole HALT pseudo-cycle, so the ucore DRIVES an address
+  silicon leaves there by RETENTION — invisible on `tb_v30_core` (whose
+  `cycle_live` floats those clocks) and worth 5 sweep + 30 S16 cells on
+  `tb_sys` and in fabric.  **F53's UBE half is in the RTL; its ADDRESS half
+  never was.**  Falsifier in `standing_gates.md`; it is the obvious next RTL
+  landing.  **General rule established: where `tb_v30_core` and `tb_sys`
+  disagree, fabric sides with `tb_sys` — 1,654 of 1,654 cells.**
+  *Superseded, kept because a fabric figure is only readable against its own
+  bitstream:* the board carried `nec_test_ucore.sof
   **626fb30ebee2…**, `.rbf 460a71907f87…`, **FLASH #6**, SM3 sitting 12
   2026-08-05 — built from `536e207c76` **WITH `X1_AD_RETENTION=1`**; 27 % ALMs
   (11,122/41,910), Fmax **45.87 MHz**, worst setup **+8.802 ns**, TNS 0.000 on
