@@ -59,10 +59,25 @@ it lives in did not exist before SM2's re-capture.
 |---|---|---|---|---|---|---|
 | **H1** | **the RE-ENTRY acknowledge's lead-in**: the chip idles **2 clocks** between the last prefetch and the INTA it is about to announce, and grants that slot to **nothing**.  The ucore fills it with a prefetch; the model announces immediately.  **LANDED IN `sim/` 2026-08-04 (SM3 sitting 2): EVT 363 -> 780, COMBINED 1,635 -> 2,052; discriminated on the socket by a directed cell that REFUTED both the redirect and the IRET readings — it is the RE-ENTRY, `ucore_provenance.md` §61 / `sm3_h1_prereg_2026-08-04.md`.  THE ucore LEG IS NOT TAKEN.** | **445 / 540** | **491 / 645** | **437** | **shared** — `sim/` first | §5.1 |
 | H2 | the `qs -!=F` / `qs E!=-` queue-status pair around an acknowledge (the rest of the EVT column, both engines) — **NOT re-censused; its falsifier is "H1 lands and this family does not shrink" and the re-census belongs after the ucore leg** | 41 / 540 | 57 / 645 | — | shared | §5.2 |
-| H3 | `PF_LOST`'s arbitration priority (the largest REGISTERED family, unchanged since ucsim-t) | 107 / 219 | 239 / 430 | 110 | shared | §5.3 |
-| H4 | `DATA_SEQ` — F47's shape, *the right cycle, the right address, the wrong word*; **41 in the ucore's own engine against 28 in the model's** | 41 / 219 | 28 / 430 | 28 | mixed | §5.4 |
-| H5 | the HALT-display decision edge (**F43**, diagnosed, twice declined) + the `seg`/`bus`-first half that is **not** diagnosed | 13 cells | — | — | ucore | §5.5 |
+| H3 | `PF_LOST`'s arbitration priority (the largest REGISTERED family, unchanged since ucsim-t) | 107 / 219 | 239 / 430 | 110 | shared · **USER 2026-08-05: class B (the grant-order swap) is DEFERRED — booked, not worked this campaign unless re-opened** | §5.3 |
+| H4 | `DATA_SEQ` — F47's shape, *the right cycle, the right address, the wrong word*; **41 in the ucore's own engine against 28 in the model's** | 41 / 219 | 28 / 430 | 28 | mixed · **USER 2026-08-05: H4-B PURSUE, NEXT SITTING** | §5.4 |
+| H5 | the HALT-display decision edge (**F43**, diagnosed, twice declined) + the `seg`/`bus`-first half that is **not** diagnosed | 13 cells | — | — | ucore — *superseded: F43/F53/F54/F55 all landed; the residue is family B + family D* · **USER 2026-08-05: family B PURSUE THIS SITTING; family D SCORE VIA `tb_sys`, not patched and not scored on `tb_v30_core`** | §5.5 |
 | H6 | the fabric INTA float-retention class (**X1**, attribution NOT ESTABLISHED, fabric leg BLOCKED) | 116 cells | — | — | harness | §5.6 |
+
+> **THE OWNER COLUMN CARRIES USER DISPOSITIONS AS OF 2026-08-05 (SM3 sitting
+> 21, item 0).**  The full table, with the two readings it is written to
+> prevent, is `docs/notes/ucore_gaps_2026-08-04.md` **FIFTH UPDATE**.  In brief:
+> **family B PURSUE** (sitting 21) · **H4-B PURSUE** (next sitting) · **H3-B
+> DEFERRED by user decision** · **`TAIL_EXTRA` SURVEY authorised** · **the
+> ucore's last two own registered-bank seeds — closers authorised** · **family D
+> = SCORE VIA `tb_sys`** (the 4 cells move to the `tb_sys`/fabric instrument
+> column; not patched, not scored on `tb_v30_core`) · **the MODEL's own residual
+> debt — the ~220 model-only seeds and its 39-seed `qop` S16 class — FROZEN by
+> user decision, no model-only work.**  The freeze is on the model-ONLY residue
+> and does **not** change the governance rule for SHARED mechanisms, which still
+> land `sim/` first.  §3.1's model column and §5.3's class B are therefore
+> **booked, not retracted**: they are live measurements the user has decided not
+> to spend this campaign on.
 
 **And one negative result that matters more than a fix would have.**  §T.8's
 attribution of the three byte-swap seeds to *"M5b's A0 swapper applied where the

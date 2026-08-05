@@ -1059,3 +1059,35 @@ CLOSED.**  Read this before treating any HLT-sweep cell as undiagnosed.
 | **NEW — family D is the ANALYSER'S SECOND BS SAMPLE** | `nec_bus.sv` samples `BS` TWICE per CPU clock (`bs_early` at the falling edge, which is the recorded status column; `bs_q` at the end of the clock, which is what `next_t_state` reads).  On these four cells silicon's announcement status is present at mid-clock and gone by the end of the SAME clock.  The ucore's `BS` is a whole-clock level, so both samples agree and the pattern is unreachable.  **Counted over every committed golden suite — 217,507,379 rows — the pattern occurs FOUR times and they ARE these four cells.**  `tb_v30_core.sv` has only ONE sample, used for both the recorded column and its own tracker, so on the default TB the cells are **unfixable by construction**; on `tb_sys` / fabric they would be scoreable.  **BOOKED, NOT LANDED**, with its falsifier: land a negedge status release and `tb_sys`/fabric must close all four while `tb_v30_core` must NOT. |
 | **NEW — an `HLT.NMI` band no banked population contained** | The S16 cell (`tests/v30/s16-dispwalk-*`) carries `HLT.NMI`, which **no HLT delay sweep does**.  42 of its 119 residual cells are `HLT.NMI` at **w0 d0 · w1 d3,4 · w2 d5,6 · w3 d7,8** — the chip does not HALT at all and goes straight to the `0x00008` vector read while the ucore drives the HALT status.  This is **H7**, and the band SCALES WITH THE WAIT LEVEL, i.e. it is a fixed number of CLOCKS.  Not opened here (H7 was out of scope); recorded because it is now visible in a golden suite for the first time. |
 | **NOT IN FABRIC** | F53 **is synthesised and is NOT flashed.**  G6 is GREEN on it — E1-E5 all PASS, `divclk` **45.57 MHz**, worst setup **+6.974 ns**, **TNS 0.000 setup AND hold on all four domains**, ALMs 11,058/41,910 (26 %), 0 latches, 0 `lpm_divide`, receipt `02a71f69e4d58df1…`; the bitstream `nec_test_ucore.sof f2c1b471ceb58ded…` / `.rbf 6dbbc687c3c6ca3d…` was produced and left on disk.  The board still carries FLASH #6, which predates it, so **no fabric figure may be quoted against this tree** until a re-flash — the same caveat §53 of this document raised after F43. |
+
+---
+
+## FIFTH UPDATE — **THE USER'S DISPOSITIONS ON THE REMAINING TIMING RESIDUE,
+## 2026-08-05** (SM3 sitting 21, item 0)
+
+**These are USER DECISIONS, not agent judgements.**  They are recorded here and
+in `sm3_residue_census_2026-08-04.md`'s owner rows before any work was done, so
+that the ownership column of this document and of the census means what the user
+decided rather than what the last sitting inherited.  Nothing below is a
+measurement; every number quoted in it is a pointer to where the measurement
+lives.
+
+| item | **the user's disposition, 2026-08-05** | where it is diagnosed |
+|---|---|---|
+| **family B** — the two-signature HLT/wake arbitration pair (**B-1** the wake-prefetch grant clock, **B-2** the second acknowledge's spacing) | **PURSUE — THIS SITTING (SM3 sitting 21).**  Worked as **two separate landings with two separate pre-registrations**, never one combined diff, because both sit in the arbitration (M1 / M2r / M7 / M21 / M22) the 7,341,126-case functional set and the 169,000-case timed wall ride on.  Landed-or-reverted per its own registered bar. | `ucore_provenance.md` **§79.G**, §78.I.1 |
+| **H4-B** — the `DATA_SEQ` residue's B partition | **PURSUE — NEXT SITTING.**  Explicitly OUT of sitting 21's scope. | census **§5.4**, `gaps` §T.2 |
+| **H3-B** — `PF_LOST` class B, the **GRANT-ORDER SWAP** at one contested slot (`delta = 0` on 184 of 221 sim seeds; 37 ucore / 221 sim) | **DEFERRED BY USER DECISION.**  It is **BOOKED, NOT WORKED** for the remainder of this campaign unless the user re-opens it.  Its two directed cells (§63.6) stay specified and unrun.  This is a scheduling decision, not a retraction: the diagnosis and the refutation of M4's `occ + inflight ≤ 4` both stand. | census **§5.3**, `ucore_provenance.md` §63.5-§63.6 |
+| **`TAIL_EXTRA`** — 28 seeds in the ucore's own registered-bank family census | **SURVEY AUTHORISED.**  A survey, not a landing: measure the family and report it.  No RTL or `sim/` change is authorised by this disposition. | `ucore_provenance.md` §58.4 |
+| **the ucore's last two OWN registered-bank seeds** | **CLOSERS AUTHORISED.**  The ucore-only residue (§T.2's nine, since worked down) may have its last two seeds closed. | `gaps` **§T.2** |
+| **family D** — the analyser's SECOND `BS` sample, 4 cells (`w1.INT/8,9` · `w2.INT/12` · `w3.INT/15`) | **DISPOSITION: SCORE VIA `tb_sys`.**  The four cells **MOVE TO THE `tb_sys` / FABRIC INSTRUMENT COLUMN**.  They are **NOT patched** and they are **NOT scored on `tb_v30_core`**, which samples `BS` once and on which they are unfixable by construction (FOURTH UPDATE, this document).  This resolves the booked falsifier's dangling half: the instrument that can render them is named, and the default TB is not asked to. | `gaps` FOURTH UPDATE; `ucore_provenance.md` §77.A.2 |
+| **the MODEL's OWN residual debt** — the ~220 model-only registered-bank seeds and the model's **39-seed `qop`** S16 class | **FROZEN BY USER DECISION.**  **No model-only work.**  A defect that exists in `sim/` and not in the ucore is not a work item for the remainder of this campaign.  **This does NOT touch the governance rule for SHARED mechanisms** — a mechanism present in both engines still lands **`sim/` first**, exactly as it has all campaign; the freeze is on the model-ONLY residue. | `ucore_provenance.md` §79.I, §80.A; census §3.1 |
+
+**Two readings this table is written to prevent.**
+
+1. *"H3-B is refuted."*  It is not.  It is **deferred** — a live, undiagnosed
+   arbitration family with a measured shape (`delta = 0`, a grant-order swap)
+   that the user has decided not to spend this campaign on.
+2. *"the model is frozen."*  It is not.  The **model-only residue** is frozen.
+   `sim/` remains the first landing site for every shared mechanism, including
+   family B, whose B-1 and B-2 are both model-shared to the diff count
+   (`ucore_provenance.md` §79.G(a)).
