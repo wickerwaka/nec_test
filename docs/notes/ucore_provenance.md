@@ -9688,3 +9688,360 @@ two seeds that moved are both EVT.  It is recorded because CLAUDE.md still
 quotes §58.4's `107 · 41 · 28 · 25 · 9 · 5 · 4 = 219`, which is the **1,483**-era
 table: the difference is SM3 sitting 6's testbench fix (§67.1), not anything
 here.  Quote 212 with the report it came from, or quote 219 with §58.4's.
+
+## §73 SESSION SM3, SITTING 12 — **R7′ IS REAL, IT HAD SWAPPED SIDES, IT IS CLOSED BY ONE MUX, AND C11 IS ESTABLISHED IN FABRIC**
+
+**2026-08-04/05, branch `ucsim`, from HEAD `144e67416b`.  Task #37.  A BOARD
+SITTING WITH FLASHING AUTHORISED, AND THE FLASH WAS TAKEN.**  Two
+pre-registrations, both committed before the work they govern:
+`docs/notes/sm3_s12_prereg_2026-08-04.md` at **`d2f413b8c3`**, BEFORE the first
+board contact of the sitting, and `sm3_s12b_prereg_2026-08-04.md` at
+**`2f39fafb2a`**, BEFORE the second form was built.  Single writer confirmed
+before contact (`0 users`, no serve process on `mister-nec`); `div_guard`
+**PINNED** on both sides of the fabric legs; `use_core` **False** as found and
+**False** as left, verified on the board; **0 transport errors in the whole
+sitting**; `sw/testdata/flash_log.jsonl` **8 → 9 entries**.
+
+> **Standing principle, applied throughout.**  *"A guiding principal here needs
+> to be simplicity.  This is 80's era hardware, they aren't wasting silicon on
+> anything that isn't necessary.  Complex or confusing behavior that we see is
+> likely to be simple systems interacting in ways you do not fully understand
+> yet."*
+
+**THE ONE-LINE RESULT.**  `READY` reached the EU's next-state chain through
+**one AND gate feeding one mux at the head of a twelve-position unrolled
+chain**; moving that mux onto the `psw` register's own `D` pin takes the cone
+from **62–63 logic levels to 19**, takes the DEFAULT build from **19.42 MHz back
+to 45.89**, costs **no flop and no ladder delta anywhere**, and the retention
+bitstream built on top of it scores **265/283 in fabric — the offline column
+exactly, 119 of 119 closed, 0 survivors, 0 cells differing.  §56.3a's both
+halves are MET and C11 is ESTABLISHED.**
+
+### §73.1 THE MEASUREMENT THAT CHANGED THE SITTING — **THE DEFAULT BUILD WAS THE ONE THAT MISSED**
+
+Both configurations rebuilt from HEAD, and then **both rebuilt again from a
+DELETED `db`/`incremental_db`**, because a claim this size may not rest on an
+incremental compile:
+
+| | §69.4/§70.1 (FLASH #5's tree) | **HEAD, incremental** | **HEAD, CLEAN db** |
+|---|---|---|---|
+| **control** (macro OFF) Fmax `divclk` | **45.67 MHz** | **19.42** | **19.42** |
+| control worst setup / TNS | +9.355 / 0.000 | **−20.254 / −13,129.815** | **identical** |
+| control ALMs / A&S registers | 11,167 / 4,797 | **11,123 / 4,793** | **identical** |
+| **retention** (macro ON) Fmax | **20.25 MHz** | **44.20** | **44.20** |
+| retention worst setup / TNS | −18.132 / −11,049.741 | **+8.626 / 0.000** | **identical** |
+| retention ALMs / A&S registers | 11,279 / 4,817 | **10,681 / 4,813** | **identical** |
+
+**The two builds had exchanged places on the same 20-flop difference**, which is
+what §70.5 said the fragility would look like if it were real.  The failing-path
+census on the control is R7′ verbatim: **20,000 of 20,000 launch from
+`emu|system_large|c_ready_q`, 20,000 of 20,000 capture inside `v30u_eu`**, worst
+ten at **62–63 logic levels, 51.2 ns against 31.25**, all to
+`v30u_eu|opc_base[3]` — character for character the endpoint §52.3 recorded for
+the `srst` cone it took out of the same chain.
+
+**So G6 was RED at HEAD for the configuration every bitstream is built from, and
+no gate in the tree saw it**: sitting 11 landed RTL (a net DELETION of five
+flops) and declared that it ran no synthesis (§72.8), which is allowed, and the
+standing gate set carries no Quartus leg.  That absence is the finding, not the
+sitting's conduct.
+
+### §73.2 WHERE THE CONE WAS — **ONE TERM, FOUND BY ELIMINATION AND CONFIRMED TWICE**
+
+`READY` enters `v30u_biu`'s next-state in exactly three places: `ready_prev`
+(straight to a flop), `rd_data_edge` (published as `eu_rd_edge`), and the
+`case (ts)` READY sample.  From the third, the post-advance `ts` is read once
+more — M22's expiry test — and what that reaches on the EU's side is
+`eu_slot_busy_n` and nothing else; `q_ripe_lead_n`, `eu_rd_done_n`,
+`eu_wr_done_n`, `eu_rdata_n` and `eu_rd_edge_d` are REGISTER-ONLY.
+`eu_slot_busy_n` has ONE consumer, `S_PRERD`'s `chain == 0` arm, and **every
+branch of it sets `stop`**, so its cone ends at `row_posted_n`/`rd_pending_n`.
+
+**By elimination the 62-level cone had to be `eu_rd_edge`, whose single consumer
+seeded `psw_n` in block (a) — at the head of the twelve-position chain.**  Both
+observed endpoints (§70.3's `wb_kind[1]`, this sitting's `opc_base[3]`) are
+chain outputs, and the surviving `c_ready_q` path after the fix lands on
+`row_posted` / `row_slot_wait`, which is the `eu_slot_busy_n` path the
+elimination predicted would remain.  Two independent confirmations of a reading
+taken from the source.
+
+### §73.3 FORM 1 — **BUILT, IT WORKED, AND ITS OWN FALSIFIER REFUTED IT**
+
+The data-edge PSW load moved to the `psw` register's `D` pin, block (a)'s write
+deleted, with a pre-registered assertion beside it.  It did what it was built
+to do — control **19.42 → 42.37 MHz**, **0** failing paths, worst `c_ready_q`
+path **19 levels**; retention **45.30 MHz** — and the ladder was **ZERO-DELTA on
+all 34 comparable gates**, fuzz reports included.
+
+**And the assertion FIRED**, on 1 seed of 3,242, `mc2/2788`:
+
+```
+  row_blocked=0  poste=0  iend_owed=0
+  f_wait=0  nr_wait=0  opr_free_now=1
+  rd_done_cnt=1  rd_pending=2  rdq_n=1  st=S_ROW  upc=7.08.6
+```
+
+A SECOND read outstanding while an EARLIER one already sits in the completed-read
+store, so `nr_have` holds, `nr_wait` is 0, **the row is NOT blocked** — and the
+`OPR -> FLAGS` row RUNS on the same clock the second read's data edge fires,
+writing `opr_live` (the EARLIER word) where the data edge wants `eu_rd_edge_d`
+(the CURRENT one).  Different values, and the order decides.  `ENGINE ABORTS`
+moved **0 → 1**, itself a reported-field delta.
+
+**REVERTED, per `sm3_s12_prereg` §9, which named this outcome in advance.**  The
+H1a precedent (§71) is the shape: a form that is perfect on its authorising leg
+and refuted by its own disjoint check comes out.
+
+### §73.4 FORM 2 — **`&& row_blocked`, AND IT IS EXACT IN BOTH CASES**
+
+Registered before it was built (`sm3_s12b_prereg`).  One term added to the take:
+
+```
+  wire rd_edge_take_raw  = eu_rd_edge && (st == S_ROW) && e_f &&
+                           (e_s1 == 5'd6) && (e_d1 == 5'd15);
+  wire rd_edge_psw_take  = rd_edge_take_raw && row_blocked;
+
+  psw <= (srst && !ss_we)             ? psw_r
+       : (rd_edge_psw_take && !ss_we) ? rd_edge_psw
+       :                                psw_n;
+```
+
+`row_blocked` is REGISTER-ONLY (`st`, `e_f`, `f_wait`), so the cone is
+unaffected.  The two cases partition the clock:
+
+* **`row_blocked` holds** — `S_ROW`'s `chain == 0` arm sets `stop` and assigns
+  nothing, positions 1-11 are skipped, `psw_n` reaches the commit equal to its
+  preload, and the `D`-pin write is the same clocked value.  Guarded by
+  **falsifier (A)**: `take_raw && row_blocked ⟹ !poste && !iend_owed`.
+* **`row_blocked` does not hold** — the row is a pure register transfer, so
+  `row_acts_ok` holds and the step performs `dest1 = FLAGS`, overwriting `psw_n`
+  entirely.  The deleted block-(a) write was DEAD.  Guarded by **falsifier (B)**:
+  `take_raw && !row_blocked ⟹ row_acts_ok && e_have1`.
+
+**BOTH FALSIFIERS ARE SILENT OVER THE WHOLE LADDER** — 169,000 golden cases,
+17,350 lockstep, 3,242 fuzz seeds, every suite — **and both STAY in the tree.**
+
+### §73.5 THE ZERO-DELTA BAR — **MET, AT THE SEED**
+
+The BEFORE leg was measured on this tree at HEAD before anything changed
+(`~/.cache/ucsimt-tmp/sm3s12/ladder_before.log`), not quoted from the ledger.
+**38 of 38 steps identical**, and at the seed:
+
+| report | entries | differing |
+|---|---|---|
+| `timed_fuzz --core ucore --evt-replay` | 3,242 | **5 — and every one of them is a LINE NUMBER inside a pre-existing `$warning` text** (`v30u_eu.sv:2551` → `:2620`), no scored field |
+| `timed_fuzz --core ucore --seeddir b2-tranche` | 216 | **0** |
+| `timed_fuzz --core sim --evt-replay` | 3,242 | **0** |
+
+Reproduced unmoved: `check_core --opcodes all --cases 0` **169,000/169,000**;
+`v0.1-w1`/`-w3` **1,200** each; `EB` **200**; the four `evt` cells
+**200/1,200/200/1,200**; `w1evt-biased` **1,200**; block I/O
+**229,999/229,999**; `f4a` **160**; `f0lock` **400**; `check_boot --timed
+220`/`400` MATCH; `ulockstep --golden all --cases 50` **17,350/17,350**;
+`timed_wvec_gate` **88/88 +0.0 %**; `timed_enter_replay` **154/154** on all five
+legs; `timed_ins_replay --raw` **1,312 / 2,624**; `check_ab_sim` **187 MATCH**;
+`CE_HOLD_VIOL 0`; `timed_scenario` **18/0/9**; `timed_lawcards` **8 GREEN / 0
+RED / 3 UNRESOLVED**; `timed_gate v0.1 --forms all` **169,000, row-diffs 0**;
+`--ss-sweep` modes 1/2/5 **80/80 · 24/24 · 2,776/2,776**; `ss_lint` **rc 0, 218
+addresses, 201 flops, `SS_VERSION` 0x84**; `make -C sim test`; `pla3_check`;
+`check_ucore_tables` **9,988**; `optable --selfcheck`; both fuzz self-tests;
+`x1_retention offline` **265/283**.  `ENGINE ABORTS` **0**.
+
+### §73.6 THE QUARTUS RESULT — **BOTH BUILDS, BOTH BARS, AND THE DEFAULT IS ABOVE FLASH #5's OWN BAND**
+
+| bar | registered | **control (macro OFF)** | **retention (macro ON)** |
+|---|---|---|---|
+| errors, A&S / Fitter / Assembler / TimeQuest | 0 | **0 / 0 / 0 / 0** | **0 / 0 / 0 / 0** |
+| latches as a RESOURCE | 0 | **0** | **0** |
+| `lpm_divide` | 0 | **0** | **0** |
+| **Fmax `divclk`** | **≥ 32 MHz** | **45.89** | **45.87** |
+| worst setup | > 0 | **+8.493** | **+8.802** |
+| TNS, setup AND hold, every domain | 0.000 | **0.000** | **0.000** |
+| ALMs | — | 11,133 (27 %) | 11,122 (27 %) |
+| failing paths from `c_ready_q` | — | **0** | **0** |
+| worst `c_ready_q` path | — | **19 levels, → `row_slot_wait`** | **19 levels, +12.595** |
+
+**AND NO FLOP MOVED.**  Across ALL SIX builds of this sitting (before / form 1 /
+form 2, × control / retention) the A&S per-entity register counts are
+**IDENTICAL**: `v30_core` **1,077**, `v30u_eu` **675**, `v30u_biu` **402**,
+`nec_bus` **309**, `system_large` **2,044** (control) / **2,065** (retention).
+
+> **A CORRECTION TO §69.3's LIVENESS ARITHMETIC, MADE HERE RATHER THAN LEFT.**
+> §69.3 reports the retention model as **+20** on the whole-design A&S total.
+> Measured per entity on six builds, `system_large`'s own A&S registers are
+> **25 → 46, i.e. +21**, in every pair.  The whole-design total wobbles by ±1
+> across builds in `mcp23009` — a MiSTer I2C expander this change cannot reach —
+> which is what made +21 read as +20 once.  **Quote the per-entity figure.**
+> §8's liveness bar is MET either way, and `core_ad_hold` is absent from
+> `Registers Removed During Synthesis` on every retention build.
+
+### §73.7 THE X1 OFFLINE RE-PROOF — AND **THE VACUOUS-GATE PATTERN, SEVENTH INCARNATION**
+
+`x1_retention.BIN` named `hdl/tb/obj_dir_sys{,_ret}/**tb_sys**`, which is what
+sitting 6's ad-hoc hand-rebuild happened to call its output (§67.7).  The
+`build()` added at **sitting 8 to close §67.6's SIXTH incarnation** runs plain
+`verilator --binary --top-module tb_sys`, and that writes **`Vtb_sys`**.  So
+`build()` compiled the current RTL into a file `capture` never opened, printed
+`REBUILT`, and `capture` ran the 14:53 binary from sitting 6.  Measured, not
+inferred: the two files differ, `Vtb_sys.mk` says `default: Vtb_sys`, and
+`tb_sys`'s mtime did not move across two `build()` runs.
+
+**WHAT THIS RETRACTS.**  §69.2's *"the 283 `ret` capture records are
+BYTE-IDENTICAL to HEAD's, and so are the 283 `base` records"* was **a binary
+compared with ITSELF** — the `AD_OE` re-key had never been exercised in
+simulation at all.  §2 of `sm3_s8_prereg_2026-08-04.md` is vacuous the same way.
+
+**WHAT IT DOES NOT RETRACT.**  Sitting 8's BEFORE-leg argument, which was right
+by accident: the 14:53 binary is built from sitting 6's RTL, and that is exactly
+the RTL FLASH #5 carries, so the `base` column it produced is a faithful model
+of FLASH #5 and the failing-set equality §68.2 established stands.
+
+**FIXED**: `BIN` points at `Vtb_sys`; `build()` now exits with a message if the
+binary does not exist or was not written by the compile that just ran; the two
+stale files are archived by rename to `tb_sys.stale-s6`, nothing deleted.
+
+**RE-PROVED on the rebuilt instrument, twice — once at HEAD and once on the
+form-2 tree — with identical results:**
+
+| leg | §69.2 (stale binary) | **HEAD, rebuilt** | **form-2 tree** |
+|---|---|---|---|
+| `offline` (`tb_v30_core`) | 265 / 283 | **265 / 283** | **265 / 283** |
+| `tb_sys` base | 146 / 283 | **146 / 283** | **146 / 283** |
+| `tb_sys` ret | 265 / 283 | **265 / 283** | **265 / 283** |
+| base-only failures, all INTA | 119 / 119 | **119 / 119** | **119 / 119** |
+| BAR (i) / BAR (ii) | MET | **MET / MET** | **MET / MET** |
+
+and **566 of 566 capture records byte-identical** to the sitting-8 record — which
+THIS time is a real measurement, because the binaries genuinely differ.  It says
+three things at once: **the `AD_OE` re-key IS exactly equivalent to the
+`=== 1'bz` form** (sitting 8's claim is true; its proof was not), **the
+sitting-11 IE-restore landing moved no HLT-sweep cell in either leg**, and **the
+R7′ structural pass moved none either.**  So FLASH #5's fabric **146/283** is
+still the BEFORE, **one flash and not two**, argued from a measurement.
+
+### §73.8 **FLASH #6, AND THE FABRIC LEG — §56.3a's BOTH HALVES MET**
+
+`gen_ucore_qsf --check` green FIRST, then the retention bitstream rebuilt from
+that clean `.qsf` (Fmax 45.87, +8.802, TNS 0.000).  **FLASH #6** through
+`sw/safe_flash.sh` with its VERIFY leg: `nec_test_ucore.sof`
+**`626fb30ebee2ad979bdef5ba6e6c013281c901282cd28defc53501200de1ef46`**,
+`.rbf` `460a71907f877e99092a2b985622ee24c70e09d645ae5f719c3da61c3e661878`,
+VERIFY OK, `flash_log.jsonl` 8 → **9 entries**.
+
+| | predicted (`sm3_s12_prereg` §7.1) | **MEASURED on FLASH #6** |
+|---|---|---|
+| first light, `check_ab_hw all 800`, three legs | MATCH 800 ×3 | **MATCH / MATCH / MATCH over 800 rows** |
+| `x1_fabric baseline --leg fab_f6` | **265 / 283** | **265 / 283** |
+| failing cells | 18 | **18** |
+| the 119-cell INTA class | all CLOSED, 0 survivors | **119 closed, 0 survivors** |
+| the survivors | the SAME 18, named in advance | **the same 18, and the same first-divergence coordinate on every one** |
+| socket control, same driver, `use_core=False` | 49 / 49 | **49 / 49** |
+| `use_core=0` chip proof, after everything | MATCH 800 | **MATCH over 800 rows** |
+| transport errors | 0 | **0** |
+
+Per suite, and it is the OFFLINE column cell for cell: `s10-w0` `HLT.INT`
+**44/48** `HLT.RES` **47/49**; `s10-w1` **43/46** and **49/49**; `s13-w2`
+**17/21** and **25/25**; `s13-w3` **15/20** and **25/25**.
+
+**And scored strictly rather than by total** — every one of the 283 cells
+compared between the fabric leg and the `tb_sys ret` leg:
+
+* **0 PASS/FAIL disagreements**,
+* **0 failing cells whose first-divergence coordinate differs**,
+* the base-only class is **119**, and **119 of 119 pass in fabric**.
+
+**BAR (i) MET.  BAR (ii) MET.  §56.3a's registered refutation — "any of the
+class still failing, or any fabric-only NON-INTA divergence" — did not occur in
+any cell.**
+
+### §73.9 **C11 IS ESTABLISHED**
+
+The reading §56.3 offered and §56.3a refused to promote without an intervention
+— *at an INTA's T1 the chip's AD pads float and RETAIN the previous data phase,
+and the 119 fabric-only HLT-sweep failures are that and nothing else* — is now
+**a FINDING**.  The intervention was run **in fabric, on a bitstream that meets
+every registered timing bar**, against a BEFORE established by measurement, with
+the socket control at 49/49 and the chip path unmoved at 800 rows.
+
+**THIS IS THE CODEX REVIEW ITEM `C11` in `ucore_campaign_verdict_2026-08-04.md`
+§(g).  IT IS NOT `timed_lawcards`' `C11`**, which is the BIU law card *"LC4
+`owns_slot` (enumerated)"* and remains `UNRESOLVED` on its own grounds — this
+sitting did not touch it, and the two share a label and nothing else.
+
+**WHAT REMAINS, STATED PLAINLY.**  The 18 survivors are NOT explained by this
+and were never claimed to be: 4 `w0` `busstat` cells (the model-shared pair
+§68.2 names, ×2 forms) and 14 `seg`/`bus` cells at the top of each sweep's `d`
+band — §67.3's undiagnosed half.  They are core-owned and they are the next
+HLT-sweep item.
+
+### §73.10 `fuzz_campaign lint` — **THE §72.7a NOT-RUN DEBT IS DISCHARGED, AND THERE WAS NEVER A HANG**
+
+`python3 sw/fuzz_campaign.py lint` ran to completion:
+**`LINT PASS: soup hits=0 compose_err=0; raw hits=0 compose_err=0`**, 10,000
+soup + 100,000 raw seeds.
+
+**The diagnosis is that it is silent, not stuck.**  `--report-every` defaults to
+**0**, so nothing at all is printed until each phase ENDS, and the raw phase is
+**100,000 seeds at ~69/s ≈ 25 minutes**.  §72.7a's *"State: S / do_wait at 0 %
+CPU with an open socket on fd 10"* is the WRAPPER SHELL waiting on its Python
+child, not the worker: measured here, the worker sits at **99.8 % CPU, STAT
+`RN`**, for the whole run.  No instrument is needed and no defect exists; the
+gate wants `--report-every 5000` on the command line, which is now written down.
+
+### §73.11 WHAT MOVED, AND WHAT DID NOT
+
+| | before | **after** |
+|---|---|---|
+| `v30u_eu.sv` block (a)'s data-edge PSW write | at the head of the 12-position chain | **on the `psw` register's `D` pin, gated `row_blocked`, with two falsifiers** |
+| **control build Fmax** | **19.42 MHz (RED against a registered ≥ 32)** | **45.89 MHz** |
+| retention build Fmax | 44.20 MHz | **45.87 MHz** |
+| worst `c_ready_q` cone | 62–63 levels, 20,000 failing paths | **19 levels, 0 failing paths** |
+| **R7′** | OPEN, aimed but unfixed | **CLOSED** |
+| `x1_retention.BIN` / `build()` | named a file the compiler never wrote | **`Vtb_sys`, with a post-condition that exits on a mismatch** |
+| the board's bitstream | FLASH #5 `315de4bc9e30…` | **FLASH #6 `626fb30ebee2…`, the retention build** |
+| `flash_log.jsonl` | 8 entries | **9** |
+| **the fabric HLT sweeps** | **146 / 283** | **265 / 283** |
+| **C11** (the Codex review item) | NOT ESTABLISHED | **ESTABLISHED** |
+| `fuzz_campaign lint` | BOOKED NOT RUN (§72.7a) | **PASS, and the "hang" explained** |
+| every ratchet in `standing_gates.md` §B | — | **UNMOVED, and re-measured twice rather than inherited** |
+
+### §73.12 WHAT THIS SITTING DID NOT DO
+
+* **`nec_test.sdc` was NOT edited.**  §70.3's measurement — no CE collection can
+  contain `c_ready_q` — still stands, and the fix was never an SDC one.
+* **No latency was added** and no pipeline stage was inserted anywhere.
+* **The 18 survivors were not investigated**; they are booked, not absorbed.
+* **The b3 priority tranche was NOT re-captured on FLASH #6** — it was not in
+  either pre-registration and a new leg pair belongs to whoever needs it.
+* **No golden was re-emitted**, no comparator or scorer was changed, and
+  nothing was re-scored downward.
+* **No memory file was touched, Codex was not launched, and the 8080 /
+  `gaps` §F.1 work was not opened** — a pending USER decision.
+
+### §73.13 EVIDENCE
+
+`docs/notes/sm3_s12_r7p/` — `cone.tcl` and four probe outputs (`CTRL_cone.txt`
+and `RET_cone.txt` before the pass, `CTRL_cone_after.txt`/`RET_cone_after.txt`
+for form 1, `RET_cone_form2.txt` for the landed form).  All six Quartus
+netlists preserved whole under `~/.cache/ucsimt-tmp/sm3s12/{ctrl,ctrl_clean,ret,
+ctrl_after,ret_after,ctrl_after2,ret_after2,flash6}/`, plus the two ladder
+transcripts and the six per-seed `timed_fuzz` reports.  Fabric captures:
+`sw/testdata/x1-retention/*.fab_f6.json.gz`, `*.soc_f6.json.gz`,
+`score_fab_f6.json`, `score_soc_f6.json`.
+
+### §73.14 THE LEADS THIS SITTING HANDS THE NEXT ONE
+
+1. **THE STANDING GATE SET HAS NO QUARTUS LEG, AND THAT IS WHY G6 WENT RED
+   UNSEEN.**  A ladder that never synthesises cannot see a 26 MHz regression
+   introduced by a net deletion of five flops.  The cheapest honest fix is a
+   `--core ucore` control build gated on Fmax and TNS, run at every RTL landing
+   that touches `hdl/rtl/ucore/` — and it is the sixth instance of this file's
+   own vacuous-gate pattern, this time by ABSENCE rather than by blindness.
+2. **The 18 HLT-sweep survivors** — 4 `w0` `busstat` (model-shared) and 14
+   `seg`/`bus` at the top of each `d` band (§67.3).  Now the ONLY fabric
+   residue on this population, and the fabric and the TB agree on them cell for
+   cell, so they are diagnosable entirely offline.
+3. **The b3 priority tranche on FLASH #6** — a new `chip_f6`/`core_f6` leg pair
+   beside `_f5`, board work, uncontroversial.
+4. **H7's bank association** and **H3's steady-state prefetcher** (§68.10 leads
+   2 and 3), both still board-free to open.

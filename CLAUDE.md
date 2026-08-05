@@ -240,13 +240,23 @@ Values are monotone: never re-scored downward without a loud, itemized entry.)
   files had drifted out of its RTL list.) `sw/gen_ucore_qsf.py --check` gates
   that `hdl/nec_test_ucore.qsf` is a faithful derivative of `nec_test.qsf`, i.e.
   that the two A/B bitstreams differ by the CORE and nothing else.
-- **SYNTHESIS: G6 IS GREEN AND THE ucore HAS RUN IN SILICON (U4 pass 3, §52).**
-  The ENABLE-FORM refactor put `ce` on the register enable ports, and a second
-  structural pass took `srst` out of the next-state cone as well (it launched
-  outside the core, so no multicycle could cover it — §52.2/52.3). Result:
-  **26 % ALMs (11,078/41,910), Fmax 45.56 MHz against a registered ≥ 32 MHz,
-  worst setup +8.922 ns and TNS 0.000 on EVERY clock domain**, 0 errors, 0
-  latches, 0 `lpm_divide`. `nec_test.sdc` carries the 4/3 CE multicycle with its
+- **SYNTHESIS: G6 IS GREEN — BUT READ §73 BEFORE QUOTING ANY Fmax.**
+  Three structural passes now stand between the ucore and timing closure, and
+  each one was a cone that had to come out of the EU's twelve-position chain:
+  the ENABLE-FORM refactor (`ce` onto the register enable ports), `srst` out of
+  the next-state cone (§52.2/52.3), and — **SM3 sitting 12, §73** — the read's
+  DATA-EDGE PSW load off the head of that chain onto the `psw` register's own
+  `D` pin. **Without the third, HEAD measured Fmax 19.42 MHz on the DEFAULT
+  build**, worst setup −20.254 ns, TNS −13,129.815, with 20,000/20,000 failing
+  paths launching from `system_large|c_ready_q` into `v30u_eu` at 62–63 logic
+  levels. **G6 WAS RED AT HEAD AND NO GATE SAW IT: the standing set has no
+  Quartus leg.** Run a control build after any `hdl/rtl/ucore/` landing.
+  **CURRENT BAND (2026-08-05, both configurations, from a clean `db`): control
+  45.89 MHz / +8.493 ns, retention 45.87 MHz / +8.802 ns, TNS 0.000 on every
+  domain setup AND hold, 27 % ALMs (11,133 / 11,122), 0 errors, 0 latches, 0
+  `lpm_divide`, 0 failing paths from `c_ready_q` on either.**  The earlier U4
+  figures (26 % ALMs, 45.56 MHz, `.sof cdf5edee00…`) are that era's and are not
+  this tree's. `nec_test.sdc` carries the 4/3 CE multicycle with its
   falsifier written beside it. Bitstream `nec_test_ucore.sof cdf5edee00…`,
   `.rbf 91697c83b3…`. **The whole sim ladder was re-scored THREE times across
   the two structural passes with ZERO DELTAS**, plus `--ce-div 4
@@ -315,72 +325,76 @@ Values are monotone: never re-scored downward without a loud, itemized entry.)
   PRE-REGISTERED for exactly this, so the after-leg was NOT RUN and FLASH #5 was
   NOT taken — an inert instrument would have reported "116 survive", which reads
   like a refutation. **C11 stays NOT ESTABLISHED.**
-  **AT SM3 SITTING 8 (task #37, §69) THE BLOCKER CHANGED — IT DID NOT LIFT.**
-  Both cores now carry **`output [19:0] AD_OE`**, the pads' own output enable,
-  driven by the expression the `assign AD[...]` statements already used (a wire,
-  no logic; user-approved 2026-08-04; the ARCHIVED FSM core's exception is
-  `fsm_core_archive_2026-08-04.md` §6a). The retention model is re-keyed onto it
-  and `=== 1'bz` is GONE, so **§59.7.1's blocker is CLOSED and measured closed**:
-  `system_large`'s own registers **27 → 47, exactly +20**; the isolated
-  construct gives **20 registers** where the z-form gives **0** and *"No output
-  dependent on input pin clk"*. The re-key is EXACTLY equivalent offline — base
-  146 / ret 265 unchanged and **566 of 566 capture records byte-identical to the
-  previous tree's**. **WHAT BLOCKS IT NOW IS TIMING**: the retention build is
-  **Fmax 20.25 MHz against the registered ≥ 32**, worst setup **−18.132 ns**,
-  TNS **−11,049.741** — so **NO BITSTREAM WAS FLASHED, the fabric leg was NOT
-  RUN, and `flash_log.jsonl` is unchanged.** A same-tree control with the macro
-  OFF reproduces FLASH #5 to the ALM and to 0.01 MHz, so **the port costs
-  nothing and the miss is entirely the 20-flop model.** **C11 STILL NOT
-  ESTABLISHED.** Note **C11 is ambiguous in this repo**: this one is the Codex
-  review item (`ucore_campaign_verdict_2026-08-04.md` §(g), the INTA
-  classification); `timed_lawcards`' `C11` is the unrelated BIU card *LC4
-  `owns_slot`* and is untouched.
-- **R7 — `nec_test.sdc`'s CE MULTICYCLE IS COLLECTED BY HIERARCHICAL NAME, AND
-  THAT MAKES EVERY ucore SIGN-OFF FRAGILE** (§69.6, found by the above and NOT
-  fixed). `get_registers {*|v30u_eu:*|*}` / `{*|v30u_biu:*|*}` plus a fitter
-  that DUPLICATES registers across the core boundary: adding 20 flops on a
-  capture path moved **81 registers out of the collection (2,220 → 2,139)** and
-  exposed a **48.7 ns `c_ready_q → v30u_eu|wb_kind`** path that **does not exist
-  in the control at all**. The 45.67 MHz sign-off therefore depends on where
-  physical synthesis happened to NAME its duplicates. The SDC's own falsifier
-  covers the exception OVER-applying; this is it UNDER-applying, and no gate
-  sees it. The fix — a STRUCTURAL collection (registers whose `ena` is the core
-  CE) plus a re-sign-off of BOTH revisions — is **routed, not taken**: widening
-  a timing exception after seeing a timing result is the same manoeuvre as
-  choosing a comparator after seeing a score.
+  **THE BLOCKER IS GONE AND THE LEG IS RUN — SM3 SITTING 12, §73.8/§73.9.**
+  Both cores carry **`output [19:0] AD_OE`** (the pads' own output enable, a
+  wire off the expression the `assign AD[...]` statements already used;
+  user-approved 2026-08-04; the ARCHIVED FSM core's exception is
+  `fsm_core_archive_2026-08-04.md` §6a), the retention model is keyed onto it,
+  `=== 1'bz` is GONE, and **it synthesises**: `system_large`'s own A&S
+  registers **25 → 46 (+21, measured per entity on six builds; §69.3's "+20" is
+  the whole-design figure and that wobbles by ±1 in an unrelated MiSTer
+  module)**, `core_ad_hold` absent from `Registers Removed During Synthesis`.
+  Sitting 8's TIMING blocker (retention at 20.25 MHz) is **CLOSED by §73's R7′
+  pass**: on this tree the retention build is **45.87 MHz / +8.802 / TNS
+  0.000**.  **FLASH #6 TAKEN 2026-08-05** and the fabric leg RUN:
+  **`x1_fabric baseline --leg fab_f6` = 265/283, the OFFLINE COLUMN EXACTLY —
+  119 of 119 INTA-class cells CLOSED, 0 survivors, the 18 remaining cells the
+  SAME 18 named in the pre-registration with the SAME first-divergence
+  coordinate, and 0 PASS/FAIL disagreements and 0 differing coordinates against
+  the `tb_sys ret` leg over all 283.**  Socket control **49/49**, first light
+  **MATCH 800 ×3**, `use_core=0` chip proof **MATCH 800** after everything.
+  **BOTH §56.3a BARS MET.  C11 IS ESTABLISHED** — the INTA pad-float
+  attribution is a FINDING.  Note **C11 is ambiguous in this repo**: this one is
+  the Codex review item (`ucore_campaign_verdict_2026-08-04.md` §(g));
+  `timed_lawcards`' `C11` is the unrelated BIU card *LC4 `owns_slot`* and is
+  untouched.  **What is still unexplained is the 18 survivors** — 4 `w0`
+  `busstat` (model-shared) and 14 `seg`/`bus` at the top of each sweep's `d`
+  band (§67.3) — now the ONLY fabric residue on this population, core-owned,
+  and diagnosable offline because fabric and TB agree on them cell for cell.
+- **R7 / R7′ — BOTH CLOSED (§70, §73).**  R7 (*"the CE multicycle is collected
+  by hierarchical name and 20 flops moved 81 registers out of it"*) was
+  **REFUTED at sitting 9**: the two figures were different STAGES of one flow,
+  the collection GREW stage for stage, and **`nec_test.sdc` was NOT edited and
+  must not be widened on R7's account.**  **R7′** — the real thing — was
+  *`READY` reaches the EU's next-state cone single-cycle at 55–63 logic levels
+  and closure depends on whether physical synthesis happens to break it*.  At
+  HEAD it had **SWAPPED SIDES**: the DEFAULT build measured **19.42 MHz /
+  −20.254 / TNS −13,129.815**, 20,000/20,000 failing paths from
+  `system_large|c_ready_q` into `v30u_eu`.  **CLOSED at sitting 12 BY ONE MUX**:
+  `eu_rd_edge` is the only carrier of the live READY pin into the EU and its
+  single consumer seeded `psw_n` at the head of the twelve-position chain; it is
+  now on the `psw` register's own `D` pin, gated by the register-only
+  `row_blocked`, with TWO `ifndef SYNTHESIS` falsifiers kept beside it.  Ladder
+  **ZERO-DELTA at the seed**, no flop added or removed on any entity.  A first
+  form without `row_blocked` was built, worked, and was **REVERTED by its own
+  pre-registered falsifier** — `mc2/2788`, where a second read is outstanding
+  while an earlier one already sits in the completed-read store, so the row is
+  NOT blocked and runs on the same clock.
 - **The board carries the ucore bitstream** (`nec_test_ucore.sof
-  **315de4bc9e30…**, **FLASH #5**, SM3 sitting 7 2026-08-04 — built from
-  `8339740709`, the FIRST bitstream carrying **H1/F52** and **F43**; 27 % ALMs
-  (11,167/41,910), Fmax **45.67 MHz**, worst setup **+9.355 ns**, TNS 0.000 on
-  every setup AND hold domain, 0 errors, 0 latches, 0 `lpm_divide`), with
-  first light **800/800 on all three `check_ab_hw` legs**. FLASH #4 was
-  `67ddd59413d5…` and FLASH #3 `924c4a61e0…`. The FSM A/B bitstream built from
-  HEAD is `nec_test.sof a4533dfef0…` if it is needed again.
-  **THE FABRIC FIGURES ABOVE ARE FLASH #3/#4-ERA AND ARE SUPERSEDED**
-  (`ucore_provenance.md` **§68.2**): on FLASH #5 `sw/u4_f42_fabric.py` scores
-  **146/283**, the INTA-float class is **119** cells, the fabric failing SET is
-  **identical to `tb_sys` base's all 137 cells**, and **F43's `busstat`
-  signature at `d = 2w+5` is EXTINCT in fabric (0 of 283)** — §67.7's "no
-  fabric figure may be quoted against this tree" is DISCHARGED. **C11 is still
-  NOT ESTABLISHED**; the re-flash did not touch that question.
-  **SM3 sitting 8 took NO FLASH** (§69.7), so the board still carries FLASH #5
-  and `flash_log.jsonl` is still 8 entries. Left verified: `check_ab_hw chip
-  800` **MATCH over 800 rows**, `div_guard` **PINNED**, `use_core` **False**,
-  `cfg = 0xff0008`, `board_idle()` clean, 0 transport errors. Sitting 8's
-  `AD_OE` port is in the tree but in NO bitstream; a same-tree retention-OFF
-  build was measured identical to FLASH #5 (11,167 ALMs, 6,087 registers,
-  45.67 MHz, +9.355 ns), which is what lets FLASH #5's 146/283 stand as the
-  before-leg without a re-flash.
-  **`u4_f42_fabric.py` NOW TAKES `--leg`** (§68.2's routed debt, discharged at
-  sitting 8): default `core` = FLASH #5's record, `core_f4` = FLASH #4's,
-  `core_f5` = an explicit duplicate of FLASH #5's. Each reproduces its own
-  number (146/283, 143/283). **`sw/x1_retention.py` now has a real `build()`**
-  and `capture` calls it — the §67.6 stale-binary trap is closed.
+  **626fb30ebee2…**, `.rbf 460a71907f87…`, **FLASH #6**, SM3 sitting 12
+  2026-08-05 — built from `536e207c76` **WITH `X1_AD_RETENTION=1`**; 27 % ALMs
+  (11,122/41,910), Fmax **45.87 MHz**, worst setup **+8.802 ns**, TNS 0.000 on
+  every setup AND hold domain, 0 errors, 0 latches, 0 `lpm_divide`), with first
+  light **800/800 on all three `check_ab_hw` legs**.  **IT IS THE RETENTION
+  BITSTREAM**: §56.3a's pad-float model is compiled in, on the OBSERVATION path
+  (`hb_ad_sample`) only, so the `use_core=0` socket position is unaffected by
+  construction and measured unaffected (`check_ab_hw chip 800` MATCH after the
+  whole sitting).  FLASH #5 was `315de4bc9e30…`, FLASH #4 `67ddd59413d5…`,
+  FLASH #3 `924c4a61e0…`; the FSM A/B bitstream is `nec_test.sof a4533dfef0…`.
+  **A FABRIC FIGURE TAKEN ON ANY EARLIER FLASH MAY NOT BE QUOTED AGAINST THIS
+  TREE.**  On FLASH #6 `x1_fabric` scores **265/283** (it was 146 on #5, 143 on
+  #3/#4) and the F43 `busstat` signature at `d = 2w+5` stays EXTINCT.  Left
+  verified: `check_ab_hw chip 800` **MATCH over 800 rows**, `div_guard`
+  **PINNED** on both sides of the fabric legs, `use_core` **False**,
+  `cfg = 0xff0008`, `board_idle()` clean, **0 transport errors**,
+  `flash_log.jsonl` **9 entries**.
 - **`timed_fuzz` now prints `BOUND WARNINGS`** — seeds whose EU completed-read
   store SATURATED, i.e. ran outside the regime `sw/qdepth_probe.py` proves
   (`rdq_` ≤ 2, `rd_done_q_` ≤ 1 on v0.1 at w0 **and**, U4, on w1/w3 and all four
-  evt suites). It reports **6**, they are scored normally and not excused, and
-  `ENGINE ABORTS` is **0**. A bound fire on a GOLDEN case is a hard failure in
+  evt suites). It reports **5** on the ucore leg (CORRECTED from **6** here at
+  SM3 sitting 12 — `standing_gates.md` §B has said 5 since SM3 sitting 3 and
+  this line was stale; measured 5 twice, before and after §73's pass), they are
+  scored normally and not excused, and `ENGINE ABORTS` is **0**. A bound fire on a GOLDEN case is a hard failure in
   `check_core.py` — that is where the bound is a theorem.
 - **Measurement tools, NOT gates** (never quote them as a pass):
   `sw/s11_census.py`, `sw/s12_census.py` (`hltsweep`/`psw`/`regold`/`ackfam`),
