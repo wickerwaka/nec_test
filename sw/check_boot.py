@@ -40,9 +40,24 @@ ROOT = SW.parent
 # parser: an unknown name yields a nonexistent obj_dir_<name> and a clean
 # "missing binary" error, not a silent wrong-core run.
 CORE = "ucore"
+_REQUIRED = set()
+
+
 def _bin():
+    """THE SCORER POSTCONDITION IS ASSERTED HERE (sw/artifact.py): the boot
+    march runs 220 and 400 cycles of RTL, and a MATCH from a binary nobody can
+    date is not a MATCH about this tree."""
     d = "obj_dir" if CORE == "fsm" else f"obj_dir_{CORE}"
-    return ROOT / "hdl" / "tb" / d / "Vtb_v30_core"
+    b = ROOT / "hdl" / "tb" / d / "Vtb_v30_core"
+    if CORE not in _REQUIRED and b.exists():
+        import artifact as art                              # noqa: PLC0415
+        art.require(b, why=f"check_boot --core {CORE}")
+        # P-1: a number with no artifact id is not quotable.
+        print(f"  RTL leg {art.relpath(b)}  receipt "
+              f"{str(art.receipt_id(b))[:16]}…", file=sys.stderr,
+              flush=True)
+        _REQUIRED.add(CORE)
+    return b
 CAPTURE = SW / "testdata" / "largemode_boot_real.hex"
 BOOTBIN = SW / "boot.bin"
 SIM = ROOT / "sim" / "v30sim"

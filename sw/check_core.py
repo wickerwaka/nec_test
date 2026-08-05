@@ -38,6 +38,8 @@ from pathlib import Path
 
 SW = Path(__file__).resolve().parent
 ROOT = SW.parent
+sys.path.insert(0, str(SW))
+import artifact as art                                       # noqa: E402
 SUITE = ROOT / "tests" / "v30" / "v0.1"
 TB_DIR = ROOT / "hdl" / "tb"
 OBJ = TB_DIR / "obj_dir"
@@ -113,33 +115,70 @@ DEFAULT_OPS = ["B8", "40", "48", "50", "58", "86", "87", "88", "89",
                "E6", "E7", "EE", "EF"]
 
 
-def build(force=False, core="ucore"):
+# --------------------------------------------------------------------------- #
+# THE TB BINARY, THROUGH THE ARTIFACT/RECEIPT LAYER (sw/artifact.py,
+# docs/notes/artifact_receipt_layer.md).
+#
+# This build used to compare MTIMES, and it was the good precedent in the tree --
+# it at least knew that the .svh includes are real dependencies.  It still could
+# not answer the only question that matters, which is `which bytes produced this
+# number?`, and it could not stop `check_seq` (which never called it at all) from
+# scoring 3,242 seeds against a two-week-old binary.  `recipe()` below is now the
+# SINGLE declaration of what `Vtb_v30_core` is a function of; every consumer --
+# check_seq, check_boot, ulockstep, timed_fuzz, timed_wvec_gate, check_fuzz_bank
+# -- asserts the postcondition against it rather than trusting a path.
+# --------------------------------------------------------------------------- #
+def recipe(core="ucore"):
+    """WHAT `Vtb_v30_core` IS A FUNCTION OF.  One declaration, all consumers.
+
+    --assert: compile the SVAs.  Without it every `assert` in the RTL is
+    silently dropped, so an assertion that "passes" has simply never run.  A
+    per-arm class-5 SVA was added, compiled out, and reported nothing - an
+    unfireable assertion manufactures false confidence, so the build always
+    enables them."""
     rtl = core_paths(core)
-    obj = core_objdir(core)
-    binp = core_bin(core)
-    if binp.exists() and not force:
-        # .svh includes are real dependencies (the ucore EU is split across
-        # them); a stale binary that silently keeps an old include is exactly
-        # the vacuous-gate pattern.
-        deps = list(rtl) + sorted(CORE_DIR[core].glob("*.svh"))
-        newest = max(p.stat().st_mtime for p in deps)
-        if binp.stat().st_mtime > newest:
-            return
-    # --assert: compile the SVAs. Without it every `assert` in the RTL is
-    # silently dropped, so an assertion that "passes" has simply never run. A
-    # per-arm class-5 SVA was added, compiled out, and reported nothing - an
-    # unfireable assertion manufactures false confidence, so the build now
-    # always enables them.
+    d = CORE_DIR[core]
+    # .svh includes are real dependencies (the ucore EU is split across them);
+    # a stale binary that silently keeps an old include is the vacuous-gate
+    # pattern, and this list is what `test_artifact.py`'s MUTATION check tests.
+    inputs = list(rtl) + sorted(d.glob("*.svh"))
+    # AND THE RUNTIME TABLES.  `v30u_ucrom.sv` `$readmemh`s `ucdecode.hex` and
+    # `ucrom.hex` AT RUN TIME, not at compile time -- so they are not "files the
+    # command reads", they are files the ARTIFACT reads, and the identity
+    # question ("which bytes produced this number?") does not care about the
+    # distinction.  The ucore's ENTIRE architecture is those two tables (F44
+    # exists because a wrong HEXDIR yields an all-zero ROM and a run that
+    # COMPLETES NORMALLY), and until now nothing in the tree hashed them into a
+    # scored number.  Declaring them here costs one 18 s rebuild on a table
+    # change and buys the receipt the right to be believed.
+    inputs += [p for p in sorted(d.glob("*.hex")) if p.is_file()]
     cmd = ["verilator", "--binary", "--timing", "-DV30_BACKDOOR",
            "-DV30_PFX_ASSERT", "--assert",
            "-Wall", "-Wno-UNUSEDSIGNAL", "-Wno-VARHIDDEN",
            "-Wno-TIMESCALEMOD", "-Wno-WIDTHEXPAND", "-Wno-BLKSEQ",
            "-Wno-DECLFILENAME", "-Wno-UNUSEDPARAM",
            "--top-module", "tb_v30_core"] + CORE_DEFS[core] + [
-           "-I" + str(CORE_DIR[core]),   # race_law.svh / table includes
-           "-Mdir", str(obj)] + [str(p) for p in rtl]
-    print("building:", " ".join(cmd))
-    subprocess.run(cmd, check=True, cwd=ROOT)
+           "-I" + art.TOK_ROOT + "/" + str(d.relative_to(ROOT)),
+           "-Mdir", art.TOK_OUT] + [
+           art.TOK_ROOT + "/" + str(p.relative_to(ROOT)) for p in rtl]
+    return art.Recipe(kind="verilator_binary", artifact=core_bin(core),
+                      inputs=inputs, command=cmd, tool="verilator",
+                      workdir=core_objdir(core),
+                      label=f"tb_v30_core/{core}")
+
+
+def build(force=False, core="ucore"):
+    """Build if the CONTENT KEY moved, then assert the scorer postcondition."""
+    art.ensure(recipe(core), force=force, quiet=False,
+               why=f"check_core --core {core}")
+
+
+def require_bin(core="ucore", why=""):
+    """P-2 for a consumer that does not want to build: assert that
+    `core_bin(core)` has a receipt matching THIS tree, or die naming what is
+    stale.  -> the binary Path."""
+    art.require(core_bin(core), why=why or f"--core {core}")
+    return core_bin(core)
 
 
 PREFIXES = {0xF3, 0xF2, 0xF0, 0x64, 0x65, 0x26, 0x2E, 0x36, 0x3E}

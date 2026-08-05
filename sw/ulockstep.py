@@ -397,8 +397,19 @@ def main():
                     help="--golden: summary lines only, no context window")
     args = ap.parse_args()
 
+    # THE SCORER POSTCONDITION (sw/artifact.py; artifact_receipt_layer.md §2).
+    # This used to be `if not UBIN.exists()`, and EXISTENCE IS NOT IDENTITY --
+    # that test passes against a binary of any age, which is the whole of the
+    # vacuous-gate pattern in one line.  `require()` does NOT rebuild (spec §8):
+    # a mismatch is an error with two hashes in it and the decision is the
+    # agent's, because an automatic rebuild here is how incarnation 2 stayed
+    # invisible for six days.
+    import artifact as art                                  # noqa: PLC0415
     if not UBIN.exists():
         sys.exit(f"missing {UBIN}: run `sw/check_core.py --build --core ucore`")
+    art.require(UBIN, why="ulockstep RTL leg")
+    print(f"ulockstep: RTL leg {art.relpath(UBIN)}  receipt "
+          f"{str(art.receipt_id(UBIN))[:16]}…")
 
     if args.golden:
         w = int(args.waits.split(",")[0])

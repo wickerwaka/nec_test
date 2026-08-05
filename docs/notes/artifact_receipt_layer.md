@@ -1,6 +1,27 @@
-# The shared artifact / receipt layer — SPECIFICATION ONLY
+# The shared artifact / receipt layer
 
-**Status: SPEC.  NOTHING IN THIS DOCUMENT IS BUILT.**  It is the design note the
+> ## ⚠ STATUS CHANGED — **IT IS BUILT (SM3 SITTING 14, 2026-08-05).**
+>
+> The text below is the SPECIFICATION exactly as sitting 13 wrote it, and it is
+> left unedited so that what was designed stays readable beside what was built.
+> **Where the implementation deviates, the deviation is recorded as an erratum
+> box beside the section it deviates from — never silently.**  Four such boxes
+> exist: §3 (E-1, E-2), §4 (E-3), §7 (E-4).
+>
+> | | |
+> |---|---|
+> | the layer | **`sw/artifact.py`** (559 lines) — `Recipe` / `build` / `require` / `ensure` / `diff_receipts` |
+> | §5's delta manifest | **`sw/receipt_diff.py`** |
+> | §6's non-vacuity proof | **`sw/test_artifact.py`** — **45/45 checks**, and it runs the real `tb_sys.stale-s6` fixture |
+> | the migration | `ucore_provenance.md` **§75** has the gate → receipt table and the itemised UNMIGRATED remainder |
+>
+> **What the build measured that the spec could not know**: every Verilator
+> binary in the tree was ALREADY byte-identical to a fresh rebuild, and
+> Verilator 5.032 is byte-reproducible here across `-Mdir` locations.  That is
+> what makes the migration provably number-neutral — see §75.
+
+**Status when written: SPEC.  NOTHING IN THIS DOCUMENT IS BUILT.**  It is the
+design note the
 second Codex phase review's **concern 1 (HIGH)** was routed to, written in SM3
 sitting 13 with the explicit instruction *not* to build it: it is a substantial
 infrastructure change and it gets its own sitting.  `sw/quartus_gate.py`'s
@@ -120,6 +141,36 @@ directory.
 6. **`figures` is never a bar.**  A gate's bars live in `verdict` + a `bars`
    block; resources and counts are recorded so the NEXT agent can see drift.
 
+> ### ERRATUM E-1 (SM3 sitting 14) — **`inputs` HAD TO INCLUDE FILES THE COMMAND NEVER READS**
+>
+> §3 rule 1 says `inputs.files` is "every file the command reads".  Built
+> against the real tree, that definition is **under-closed**, and the file it
+> omits is the one the whole ucore is made of.
+>
+> `hdl/rtl/ucore/v30u_ucrom.sv` does `$readmemh(ucrom.hex)` /
+> `$readmemh(ucdecode.hex)` **AT RUN TIME**.  Verilator never opens either
+> file; the *binary* opens them, every run.  So under the spec's wording the
+> ucore's **entire architecture — 1,028 microcode rows and 8,192 decode
+> entries — would have sat outside the identity of every number ever scored
+> against it.**  `v30u_ucrom.sv`'s own F44 block exists precisely because a
+> wrong `HEXDIR` yields an all-zero ROM and *a run that completes normally*.
+> The same applies to the FSM core's `int9d_race.hex`.
+>
+> **The rule as built is**: `inputs` is what the ARTIFACT is a function of, not
+> what the COMMAND reads.  The two `.hex` tables are declared, and a table
+> change costs one 18-second rebuild.  `check_ucore_tables` (G0) already
+> checked those bytes against `sim/`; nothing tied them to a SCORED NUMBER.
+>
+> ### ERRATUM E-2 (SM3 sitting 14) — **THE TOOL VERSION IS CHECKED, NOT ONLY RECORDED**
+>
+> §3 keeps `tool` outside the hashed `inputs` region, which is right — it is
+> not a file.  But a schema that only *records* it lets a compiler upgrade
+> silently invalidate every binary in the tree, which is the same shape as the
+> seven incarnations one level down.  As built, `tool` is inside `build_key`
+> (so an upgrade rebuilds) and `require()` re-probes it and fails on a
+> mismatch.  The probe command is carried in the receipt (`tool_probe`) so
+> `require()` can ask without a `Recipe`.  Three lines.
+
 ---
 
 ## §4 ATOMIC BUILD-AND-PROMOTE
@@ -141,6 +192,28 @@ actually happened in §73.7 (a fresh binary under a name nothing opened).
 **The postcondition the producer asserts before promoting**: every path in
 `outputs` was written by *this* command — checked by stat-ing the staging dir
 after the run, not by trusting the tool's exit code.  Incarnation 2 exits 0.
+
+> ### ERRATUM E-3 (SM3 sitting 14) — **THE PROMOTE IS TWO RENAMES, AND THE GUARANTEE IS RECOVERED ELSEWHERE**
+>
+> §4's `rename(<staging>, <destination>)` cannot be one step: POSIX will not
+> rename a directory onto a non-empty directory.  As built it is
+> `dest -> trash`, `staging -> dest`, `rm -rf trash`, and there is a
+> microsecond window in which the destination does not exist.
+>
+> **The property §4 wanted is not weakened, it is strengthened.**  `require()`
+> re-hashes the declared **`outputs`** as well as the inputs, so a destination
+> that is absent, partial, or paired with a receipt written for different bytes
+> is a hard error *whatever produced it* — a crashed promote, a hand-copied
+> binary, `cp` from another checkout, or the `tb_sys.stale-s6` restore that
+> §6's second self-test actually performs.  The promote protects the build; the
+> output hash protects the scorer, and the scorer is who the spec is for.
+>
+> One consequence worth writing down: the promote replaces the whole `obj_dir`,
+> so Verilator's incremental state is discarded on every real rebuild.
+> **MEASURED: a clean `tb_v30_core` build is 17.8 s and a clean `tb_sys` is
+> 12.6 s**, and a build whose content key has not moved costs **0 s** because
+> it does not run at all.  The old mtime path cost ~0.1 s on a no-op and could
+> not answer the question.  That is the whole price of the layer.
 
 ---
 
@@ -203,6 +276,29 @@ with, and is gated by, two self-tests:
 **Step 2 alone would have answered concern 3(b)'s bookkeeping half**, and steps
 1-3 are together perhaps a day.  Step 6 is its own project and must not be
 attempted with the others.
+
+> ### ERRATUM E-4 (SM3 sitting 14) — **WHAT THE MIGRATION ACTUALLY TOOK, AND WHY THE ORDER MOVED**
+>
+> Steps **1, 3 and 4 are DONE**, plus the whole of the standing Verilator
+> ladder, which this table did not itemise.  Steps **2, 5 and 6 are NOT**, and
+> the risk each still carries is itemised in `ucore_provenance.md` §75.
+>
+> **The order moved for one reason**: step 3 (`check_core.build`) turned out to
+> be the *only producer* of `Vtb_v30_core`, and eleven tools consume it.  So
+> `check_core.recipe()` became the single declaration and everything else
+> asserts against it — `check_seq` (which never built at all: **incarnation
+> #3**, and `check_fuzz_bank` / `check_mod3_illegal` / `check_enter_nesting`
+> inherit the fix through it), `check_boot`, `ulockstep`, `timed_fuzz`,
+> `timed_wvec_gate`, and `tb_bootrun` (the choke point for `timed_enter_replay`
+> and `timed_ins_replay`).  Doing step 3 without them would have left the
+> receipt sitting beside a binary that six standing gates still opened by path.
+>
+> **Step 2 (`safe_flash.sh` → `flash_log.jsonl`) was NOT taken and it is still
+> the highest value per line in the list.**  It was excluded because it is the
+> one item that ends at the board, and this sitting is board-free by its own
+> terms.  The build-side half it needs now exists: `quartus_gate` emits a §3
+> receipt with an `id` and hashed `outputs`, so `flash_log` gaining a
+> `receipt_id` is a one-field change whenever a board sitting next runs.
 
 ---
 

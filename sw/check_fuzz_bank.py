@@ -71,6 +71,17 @@ def replay_classify(entry, engine):
 
 
 def check(strict=False):
+    # RESOLVE THE TB BINARY FIRST, AND EAGERLY.  `check_seq.tb_bin()` builds if
+    # the content key moved and then asserts the artifact-layer postcondition
+    # (sw/artifact.py) -- this gate is INCARNATION #3's home, the one that
+    # scored 3,242 seeds against a binary `check_seq` never built.
+    #
+    # It is called HERE, before the loop, and not left to fire inside it: both
+    # `replay_classify` and the loop below catch `Exception`, so a stale binary
+    # would otherwise be swallowed 3,242 times as a per-seed `regen_err` /
+    # `ASSERT_PARK`.  The gate would still FAIL -- but it would fail as 3,242
+    # confusing seed errors instead of one sentence naming the stale file.
+    print(f"check_fuzz_bank: TB leg {check_seq.tb_bin()}", flush=True)
     engine = AcceptEngine.load()
     known_sigs = set(json.loads(LEDGER.read_text()).get("sigs", {})) \
         if LEDGER.exists() else set()

@@ -38,6 +38,7 @@ from pathlib import Path
 
 SW = Path(__file__).resolve().parent
 sys.path.insert(0, str(SW))
+import artifact as art            # noqa: E402
 from decode_capture import decode  # noqa: E402
 
 ROOT = SW.parent
@@ -82,27 +83,33 @@ BS_NAME = {0: "INTA", 1: "IOR", 2: "IOW", 3: "HALT",
 QS_NAME = {0: "-", 1: "F", 2: "E", 3: "S"}
 
 
-def build(core, force=False):
-    rtl, obj = core_rtl(core), core_obj(core)
-    binp = obj / "tb_ab"
-    stale = force or not binp.exists()
-    if not stale:
-        bt = binp.stat().st_mtime
-        # the ucore EU is split across .svh includes -- they are inputs too
-        deps = list(rtl) + sorted(_CORE_DIR[core].glob("*.svh"))
-        stale = any(f.stat().st_mtime > bt for f in deps)
-    if not stale:
-        return binp
+def recipe(core):
+    """WHAT `tb_ab` IS A FUNCTION OF.  `hdl/rtl/ucore/*.hex` is in the list
+    because `v30u_ucrom.sv` `$readmemh`s the microcode AT RUN TIME -- the
+    binary's behaviour is a function of two files the compiler never opened."""
+    rtl, d = core_rtl(core), _CORE_DIR[core]
+    inputs = (list(rtl) + sorted(d.glob("*.svh"))
+              + [p for p in sorted(d.glob("*.hex")) if p.is_file()])
     cmd = ["verilator", "--binary", "--timing", "-Wno-fatal",
-           "--top-module", "tb_ab", "-Mdir", str(obj), "-o", "tb_ab",
-           "-I" + str(_CORE_DIR[core]),      # the EU's nine .svh includes
-           *[str(f) for f in rtl]]
-    print(f"building tb_ab ({core}) ...", file=sys.stderr)
-    r = subprocess.run(cmd, capture_output=True, text=True)
-    if r.returncode != 0 or not binp.exists():
-        sys.stderr.write(r.stdout + r.stderr)
-        sys.exit(f"tb_ab build failed ({core})")
-    return binp
+           "--top-module", "tb_ab", "-Mdir", art.TOK_OUT, "-o", "tb_ab",
+           "-I" + art.TOK_ROOT + "/" + str(d.relative_to(ROOT)),
+           *[art.TOK_ROOT + "/" + str(f.relative_to(ROOT)) for f in rtl]]
+    return art.Recipe(kind="verilator_binary", artifact=core_obj(core) / "tb_ab",
+                      inputs=inputs, command=cmd, tool="verilator",
+                      workdir=core_obj(core), label=f"tb_ab/{core}")
+
+
+def build(core, force=False):
+    """Build if the CONTENT KEY moved, then assert the scorer postcondition.
+
+    This gate had NOT BUILT SINCE 2026-07-13 (three files had drifted out of
+    its RTL list) and nobody noticed, because a gate that cannot build is a
+    gate nobody was running.  The receipt makes the same class visible from the
+    other side: an input that drifts out of the declared list changes
+    `inputs.sha256`, and one that is missing from the tree hashes as
+    `MISSING`."""
+    return art.ensure(recipe(core), force=force, quiet=False,
+                      why=f"check_ab_sim --core {core}")
 
 
 def run_core(BIN, nrows, keep=False):
@@ -144,6 +151,9 @@ def main():
     sim = run_core(binp, n, keep)
     print(f"== check_ab_sim: {a.core} core inside system_large, "
           f"vs the chip's own boot capture ==")
+    # P-1: a number with no artifact id is not quotable.
+    print(f"   artifact {art.relpath(binp)}  receipt "
+          f"{str(art.receipt_id(binp))[:16]}…")
 
     bad = 0
     for i in range(min(n, len(real), len(sim))):

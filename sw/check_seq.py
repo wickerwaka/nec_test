@@ -45,7 +45,42 @@ def make_evt(seed, anchor_linear):
     return (anchor_linear & 0xFFFFF, delay, 2, pin)
 
 ROOT = SW.parent
+
+# --------------------------------------------------------------------------- #
+# THE BINARY -- INCARNATION #1's HOME, NOW ON THE ARTIFACT/RECEIPT LAYER.
+#
+# `standing_gates.md` §C: "`hdl/tb/obj_dir/Vtb_v30_core` -- the binary this gate
+# binds to -- was found STALE (built before `5c5fdbf50a` changed
+# `tb_v30_core.sv`), because `check_seq` never calls `check_core.build()`.
+# ... rebuild the FSM TB before quoting this gate UNTIL THAT PLUMBING IS FIXED."
+# This is that plumbing.  `check_fuzz_bank` (3,242 seeds), `check_mod3_illegal`
+# and `check_enter_nesting` all reach the TB through `run_tb` below, so all four
+# inherit the fix at once.
+#
+# The core is `fsm` DELIBERATELY and it is NOT changed here: these are ARCHIVED,
+# on-demand gates (`standing_gates.md` §C) and their registered figures are FSM
+# figures.  Migrating the plumbing must not move a number, so the engine stays
+# exactly where it was.
+#
+# `BIN` is kept because tools import it, and it is now ONLY a path -- ask
+# `tb_bin()` for a binary you intend to RUN, because that is the call that
+# asserts the receipt postcondition.
+# --------------------------------------------------------------------------- #
+CORE = "fsm"
 BIN = ROOT / "hdl" / "tb" / "obj_dir" / "Vtb_v30_core"
+_BIN_OK = []
+
+
+def tb_bin():
+    """The TB binary, BUILT IF THE CONTENT KEY MOVED and then proved fresh
+    against this tree.  Memoised: a 3,242-seed replay pays the hashing once."""
+    if not _BIN_OK:
+        import check_core                                   # noqa: PLC0415
+        import artifact                                     # noqa: PLC0415
+        binp = artifact.ensure(check_core.recipe(CORE), quiet=False,
+                               why=f"check_seq.run_tb (--core {CORE})")
+        _BIN_OK.append(binp)
+    return _BIN_OK[0]
 T_NAME = {0: "Ti", 1: "T1", 2: "T2", 3: "T3", 4: "Tw", 5: "T4"}
 BS_NAME = {0: "INTA", 1: "IOR", 2: "IOW", 3: "HALT",
            4: "CODE", 5: "MEMR", 6: "MEMW", 7: "PASV"}
@@ -82,7 +117,7 @@ def _run_tb_in(td, image, n, waits, evt, wrand, wvec):
     if len(image) == (1 << 16):
         image = bytes(image) * 16
     img.write_text("\n".join(f"{b:02x}" for b in image) + "\n")
-    args = [str(BIN), f"+bootimg={img}", f"+bootn={n}",
+    args = [str(tb_bin()), f"+bootimg={img}", f"+bootn={n}",
             f"+waits={waits}", f"+out={out}"]
     if wvec is not None:
         # explicit wait-vector replay; the +wvec file (one Tw/bus-cycle) mirrors

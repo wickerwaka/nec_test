@@ -66,11 +66,28 @@ ROOT = SW.parent
 PAD_CYCLES = 4
 
 
+_REQUIRED = set()
+
+
 def tb_bin(core="ucore"):
     """The verilated TB for an engine, laid out as sw/check_core.py builds it
-    (and named as sw/check_boot.py::_bin selects it)."""
+    (and named as sw/check_boot.py::_bin selects it).
+
+    THE SCORER POSTCONDITION IS ASSERTED HERE (sw/artifact.py), once per core
+    per process, because this function is the single choke point through which
+    `timed_enter_replay` and `timed_ins_replay` reach the RTL.  It does NOT
+    rebuild -- a mismatch is an error with two hashes in it."""
     d = "obj_dir" if core == "fsm" else f"obj_dir_{core}"
-    return ROOT / "hdl" / "tb" / d / "Vtb_v30_core"
+    b = ROOT / "hdl" / "tb" / d / "Vtb_v30_core"
+    if core not in _REQUIRED and b.exists():
+        import artifact as art                              # noqa: PLC0415
+        art.require(b, why=f"tb_bootrun --core {core}")
+        # P-1: a number with no artifact id is not quotable.
+        print(f"  RTL leg {art.relpath(b)}  receipt "
+              f"{str(art.receipt_id(b))[:16]}…", file=sys.stderr,
+              flush=True)
+        _REQUIRED.add(core)
+    return b
 
 
 def _hexfile(image, td, _seen={}):

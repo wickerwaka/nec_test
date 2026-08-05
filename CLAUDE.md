@@ -67,6 +67,18 @@ them).
   on it; the promotion does. **One green build is not closure** — the same tree
   has drawn 19.42 and 45.91 MHz (`standing_gates.md` §A, `ucore_provenance.md`
   §74.4).
+- **A number with no artifact id is not quotable** (SM3 sitting 14). Every
+  Verilator TB binary on a standing gate's path now carries a RECEIPT naming
+  the bytes it was built from (`sw/artifact.py`, spec
+  `docs/notes/artifact_receipt_layer.md`, migration `ucore_provenance.md` §75),
+  and the gate REFUSES to run against a binary whose declared inputs or outputs
+  no longer hash to the tree. Rebuild with
+  `python3 sw/check_core.py --build --core <core>`; the layer never rebuilds
+  behind your back, because an automatic rebuild is how the sixth incarnation
+  stayed invisible for six days. `python3 sw/test_artifact.py` (**45/45**) is
+  the layer's own falsifier and must stay green. **NOT covered yet**:
+  `sim/v30sim` — every `--core sim` figure is still a `make` timestamp away
+  from unverified. §75.7 itemises the six remaining holes.
 - /tmp discipline: no large temp files in /tmp (tmpfs quota); use
   `~/.cache/ucsimt-tmp` for big intermediates.
 - Provenance ledgers: every modeled behavior tagged ROM / PLA / LAW /

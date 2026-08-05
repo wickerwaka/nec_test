@@ -106,11 +106,24 @@ def run_sim(seed, wv, nrows, td):
     return rows[:nrows]
 
 
+_WVEC_REQUIRED = set()
+
+
 def tb_bin(core):
     """sw/check_boot.py::_bin, verbatim: the two RTL engines are drop-in
     alternatives built into separate obj_dirs by sw/check_core.py."""
     d = "obj_dir" if core == "fsm" else f"obj_dir_{core}"
-    return ROOT / "hdl" / "tb" / d / "Vtb_v30_core"
+    b = ROOT / "hdl" / "tb" / d / "Vtb_v30_core"
+    # THE SCORER POSTCONDITION (sw/artifact.py), once per core per process.
+    if core not in _WVEC_REQUIRED and b.exists():
+        import artifact as art                              # noqa: PLC0415
+        art.require(b, why=f"timed_wvec_gate --core {core}")
+        # P-1: a number with no artifact id is not quotable.
+        print(f"  RTL leg {art.relpath(b)}  receipt "
+              f"{str(art.receipt_id(b))[:16]}…", file=sys.stderr,
+              flush=True)
+        _WVEC_REQUIRED.add(core)
+    return b
 
 
 def run_tb(core, seed, wv, nrows, td):

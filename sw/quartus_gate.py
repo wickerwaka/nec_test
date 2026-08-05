@@ -39,7 +39,6 @@ specifies the shared schema this one is the first instance of.
 EXIT 0 = PASS, 1 = RED, 2 = the gate could not run (missing tool / report).
 """
 import argparse
-import hashlib
 import json
 import re
 import shutil
@@ -49,6 +48,8 @@ import time
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(ROOT / "sw"))
+import artifact as art                                       # noqa: E402
 HDL = ROOT / "hdl"
 QUARTUS_BIN = Path.home() / "intelFPGA_lite" / "17.1" / "quartus" / "bin"
 PROJECT = "nec_test"
@@ -80,9 +81,8 @@ def _qip_files(qip):
     return out
 
 
-def input_manifest():
-    """Every file the CONTROL build reads, hashed.  Missing files are recorded
-    as such rather than skipped -- a vanished input must change the hash."""
+def input_files():
+    """Every file the CONTROL build reads, as HDL-relative names."""
     files = set()
     for p in ("nec_test.qsf", "nec_test_ucore.qsf", "files_ucore.qip",
               "nec_test.sdc", "nec_test.sv"):
@@ -99,31 +99,20 @@ def input_manifest():
         if p.is_file() and p.suffix in (".v", ".sv", ".vhd", ".tcl", ".qip",
                                         ".sdc", ".qsf"):
             files.add(str(p.relative_to(HDL)))
-    ent = []
-    for rel in sorted(files):
-        f = HDL / rel
-        if f.is_file():
-            ent.append((rel, hashlib.sha256(f.read_bytes()).hexdigest()))
-        else:
-            ent.append((rel, "MISSING"))
-    blob = "\n".join(f"{h}  {r}" for r, h in ent).encode()
-    return {"n_files": len(ent),
-            "sha256": hashlib.sha256(blob).hexdigest(),
-            "files": dict(ent)}
+    return sorted(files)
 
 
-def git_state():
-    def sh(*a):
-        try:
-            return subprocess.run(a, cwd=ROOT, capture_output=True,
-                                  text=True, check=True).stdout.strip()
-        except Exception:                                    # noqa: BLE001
-            return "unknown"
-    # TRACKED modifications only: `output_files_ucore/` is untracked build
-    # output and its presence is not tree drift.
-    return {"head": sh("git", "rev-parse", "HEAD"),
-            "describe": sh("git", "describe", "--always", "--dirty"),
-            "dirty": bool(sh("git", "status", "--porcelain", "-uno", "--", "hdl"))}
+def input_manifest():
+    """Every file the CONTROL build reads, hashed, THROUGH THE SHARED LAYER.
+
+    SM3 sitting 14: this used to be a private copy of `artifact.manifest()`
+    keyed on HDL-RELATIVE names.  It is now the shared writer, keyed on
+    REPO-RELATIVE names like every other receipt in the tree, so
+    `sw/receipt_diff.py` can compare a bitstream receipt against a Verilator
+    one.  The file COUNT and the discovery rule are unchanged; the KEYS gained
+    their `hdl/` prefix and the hash therefore moved.  Nothing consumed the old
+    hash (`ucore_provenance.md` §75)."""
+    return art.manifest([HDL / f for f in input_files()])
 
 
 def tool_version():
@@ -299,6 +288,19 @@ def score(tree, log_text, a):
                   "error_lines": logf["error_lines"]}
 
 
+def _finish(rec, receipt_path):
+    """Stamp, id, write atomically, and append the repo-level history.
+
+    The `.jsonl` copy is the reason this matters: `hdl/output_files_ucore/` is
+    deleted by the gate's own next clean build, so a receipt that lived only
+    beside its artifact would be a history of exactly one entry."""
+    rec["completed"] = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
+    rec["id"] = art.canonical_id(rec)
+    art._write_json_atomic(Path(receipt_path), rec)
+    art.append_history(rec)
+    return rec
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("--receipt", default="")
@@ -321,11 +323,41 @@ def main():
     receipt_path = Path(a.receipt) if a.receipt else (tree / "quartus_gate.json")
     logpath = Path(a.log) if a.log else (tree.parent / "quartus_gate_build.log")
 
-    rec = {"gate": GATE_NAME, "gate_version": GATE_VERSION,
-           "ts": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
-           "label": a.label, "git": git_state(),
-           "tool_version": tool_version(),
-           "input_manifest": input_manifest(),
+    started = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
+    mf = input_manifest()
+    tv = tool_version()
+    # --- THE SHARED §3 SCHEMA (docs/notes/artifact_receipt_layer.md) -------- #
+    # SM3 sitting 14.  The s13 receipt was written TO this schema by hand; it is
+    # now written BY the shared layer, so `sw/receipt_diff.py` reads it, the
+    # `.jsonl` history keeps it after `hdl/output_files_ucore/` is deleted, and
+    # `id` is content-derived (two identical builds COLLIDE, and that collision
+    # is information -- §74.4a's 26 MHz swing is exactly a case where two
+    # receipts with the same `inputs.sha256` and different `outputs` is the
+    # finding).
+    #
+    # SCHEMA VERSIONING: every key the SM3-s13 shape carried is still present
+    # and still means what it meant (`gate`, `gate_version`, `ts`,
+    # `tool_version`, `input_manifest`, `configuration`, `tree`, `bars`,
+    # `figures`, `verdict`, `E1_gen_ucore_qsf`, `build`).  The §3 keys are
+    # ADDED beside them.  Nothing that read the old shape breaks.
+    rec = {"schema": art.SCHEMA, "schema_version": art.SCHEMA_VERSION,
+           "kind": "quartus_bitstream",
+           "name": art.relpath(tree / f"{REVISION}.sof"),
+           "label": a.label,
+           "inputs": mf,
+           "command": None,                       # filled by build()/parse-only
+           "env": {},
+           "tool": tv, "tool_name": "quartus_sh", "tool_probe": None,
+           "tool_sha256": None,
+           "outputs": {},
+           "git": art.git_state(),
+           "started": started, "completed": None, "rc": None,
+           "figures": {}, "verdict": None,
+           # --- the SM3-s13 keys, retained verbatim ------------------------ #
+           "gate": GATE_NAME, "gate_version": GATE_VERSION,
+           "ts": started,
+           "tool_version": tv,
+           "input_manifest": mf,
            "configuration": "CONTROL/DEFAULT (no X1_AD_RETENTION) -- the "
                             "configuration every bitstream is derived from",
            "tree": str(tree)}
@@ -347,8 +379,7 @@ def main():
         if r.returncode != 0:
             rec["verdict"] = "RED"
             rec["red_at"] = "E1"
-            receipt_path.parent.mkdir(parents=True, exist_ok=True)
-            receipt_path.write_text(json.dumps(rec, indent=1) + "\n")
+            _finish(rec, receipt_path)
             print(f"quartus_gate: RED at E1.  receipt {receipt_path}")
             return 1
 
@@ -361,6 +392,9 @@ def main():
         if b is None:
             return rc
         rec["build"] = b
+        rec["command"] = b["cmd"]
+        rec["rc"] = b["rc"]
+        rec["seconds"] = b["seconds"]
         # Quartus REWRITES the revision .qsf it compiles (§70.7).  Put it back
         # so the tree is not left dirty by its own gate; recorded, not hidden.
         subprocess.run([sys.executable, str(ROOT / "sw" / "gen_ucore_qsf.py")],
@@ -378,22 +412,30 @@ def main():
     if not a.no_qsf_check:
         ok = ok and rec["E1_gen_ucore_qsf"]["pass"]
     rec["verdict"] = "PASS" if ok else "RED"
-
-    receipt_path.parent.mkdir(parents=True, exist_ok=True)
-    receipt_path.write_text(json.dumps(rec, indent=1) + "\n")
+    # THE OUTPUTS, HASHED.  §8: the layer does NOT try to make Quartus
+    # bit-reproducible -- two builds from identical inputs may differ, the
+    # receipt records both hashes, and THAT DIFFERENCE IS DATA (§74.4a's 26 MHz
+    # swing is a finding a reproducibility requirement would have suppressed).
+    for ext in (".sof", ".rbf", ".sta.summary", ".fit.summary"):
+        f = tree / f"{REVISION}{ext}"
+        if f.is_file():
+            rec["outputs"][art.relpath(f)] = art.sha256_file(f)
+    _finish(rec, receipt_path)
 
     print("\n  --- quartus_gate (G6), the CONTROL/DEFAULT build ---")
     print(f"  tool     : {rec['tool_version']}")
     print(f"  inputs   : {rec['input_manifest']['n_files']} files, "
           f"sha256 {rec['input_manifest']['sha256'][:16]}…")
     print(f"  git      : {rec['git']['describe']}"
-          f"{'  (hdl DIRTY)' if rec['git']['dirty'] else ''}")
+          f"{'  (tree DIRTY)' if rec['git']['dirty_tracked'] else ''}")
     for k in sorted(bars):
         v = bars[k]
         print(f"  {'PASS' if v['pass'] else 'RED '} {k:<16} {v['value']}")
     print(f"  ALMs {figs['status'].get('alms')}   "
           f"latches {figs['resources'].get('latches')}   "
           f"lpm_divide {figs['resources'].get('lpm_divide')}")
+    print(f"  receipt id : {rec['id'][:16]}…   "
+          f"(history {art.RECEIPT_DIR / (rec['kind'] + '.jsonl')})")
     print(f"=== quartus_gate: {rec['verdict']}   receipt {receipt_path}")
     return 0 if ok else 1
 

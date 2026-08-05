@@ -550,6 +550,16 @@ def main():
     args = ap.parse_args()
     if args.core != "sim" and not tb_bin(args.core).exists():
         sys.exit(f"timed_fuzz: no TB binary at {tb_bin(args.core)}")
+    if args.core != "sim":
+        # THE SCORER POSTCONDITION (sw/artifact.py).  `.exists()` above is the
+        # test the whole vacuous-gate pattern passes; this is the one it does
+        # not.  It does NOT rebuild -- 1,702 REGISTERED + 1,008 EVT seeds is
+        # exactly the size of run whose number must be attributable to bytes.
+        import artifact as art                               # noqa: PLC0415
+        art.require(tb_bin(args.core), why=f"timed_fuzz --core {args.core}")
+        print(f"timed_fuzz: RTL leg {art.relpath(tb_bin(args.core))}  "
+              f"receipt {str(art.receipt_id(tb_bin(args.core)))[:16]}…",
+              flush=True)
 
     paths = sorted(str(x) for x in Path(args.seeddir).glob("*.json.gz")) \
         if args.seeddir else seeds_of([b for b in args.bank.split(",") if b])

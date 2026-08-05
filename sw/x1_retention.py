@@ -60,6 +60,7 @@ SW = Path(__file__).resolve().parent
 ROOT = SW.parent
 sys.path.insert(0, str(SW))
 
+import artifact as art                                   # noqa: E402
 import emit_suite as es                                  # noqa: E402
 import check_core as cc                                  # noqa: E402
 from analyze_capture import decode_words                 # noqa: E402
@@ -110,27 +111,37 @@ HARNESS_RTL = ["capture_buf.sv", "hps_axi_slave.sv", "iords_buf.sv",
 UCORE_DIR = ROOT / "hdl" / "rtl" / "ucore"
 
 
+def _rtl():
+    """The compile's file list, in order (the package first)."""
+    return ([UCORE_DIR / "v30u_ss_pkg.sv"]
+            + [ROOT / "hdl" / "rtl" / f for f in HARNESS_RTL]
+            + [UCORE_DIR / f for f in ("v30_core.sv", "v30u_biu.sv",
+                                       "v30u_ucrom.sv", "v30u_eu.sv")]
+            + [TB_DIR / "tb_sys.sv"])
+
+
 def build_deps():
     """Everything the binary is a function of.  A file missing from this list
-    is a vacuous gate waiting to happen -- see the note above."""
-    return ([ROOT / "hdl" / "rtl" / f for f in HARNESS_RTL]
-            + [TB_DIR / "tb_sys.sv"]
-            + cc.core_paths("ucore")[:1] + cc.core_paths("ucore")[2:]
-            + sorted(UCORE_DIR.glob("*.svh")))
+    is a vacuous gate waiting to happen -- see the note above.
+
+    The two `.hex` tables are here because `v30u_ucrom.sv` `$readmemh`s them AT
+    RUN TIME: they are not files the COMMAND reads, they are files the ARTIFACT
+    reads, and "which bytes produced this number?" does not care which."""
+    return (_rtl() + sorted(UCORE_DIR.glob("*.svh"))
+            + [p for p in sorted(UCORE_DIR.glob("*.hex")) if p.is_file()])
 
 
-def build(leg, force=False):
-    obj = BIN[leg].parent
-    deps = build_deps()
-    if BIN[leg].exists() and not force:
-        newest = max(p.stat().st_mtime for p in deps)
-        if BIN[leg].stat().st_mtime > newest:
-            return False
-    rtl = ([UCORE_DIR / "v30u_ss_pkg.sv"]
-           + [ROOT / "hdl" / "rtl" / f for f in HARNESS_RTL]
-           + [UCORE_DIR / f for f in ("v30_core.sv", "v30u_biu.sv",
-                                      "v30u_ucrom.sv", "v30u_eu.sv")]
-           + [TB_DIR / "tb_sys.sv"])
+def recipe(leg):
+    """THE X1 A/B PAIR, DECLARED.  `base` and `ret` differ by ONE ELEMENT OF
+    `command` and by NOTHING ELSE -- and since SM3 sitting 14 that sentence is
+    checkable rather than asserted:
+
+        python3 sw/receipt_diff.py hdl/tb/obj_dir_sys/Vtb_sys \\
+                                   hdl/tb/obj_dir_sys_ret/Vtb_sys \\
+                                   --expect-command
+
+    must report an IDENTICAL input manifest and a one-token command delta.
+    That is the build-side half of the claim §56.3a's whole reading rests on."""
     cmd = ["verilator", "--binary", "--timing",
            "-Wall", "-Wno-UNUSEDSIGNAL", "-Wno-VARHIDDEN",
            "-Wno-TIMESCALEMOD", "-Wno-WIDTHEXPAND", "-Wno-BLKSEQ",
@@ -139,29 +150,35 @@ def build(leg, force=False):
            "--top-module", "tb_sys"]
     if leg == "ret":
         cmd.append("-DX1_AD_RETENTION")
-    cmd += ["-I" + str(UCORE_DIR), "-Mdir", str(obj)] + [str(p) for p in rtl]
-    print("building:", " ".join(cmd), flush=True)
-    t0 = time.time()
-    subprocess.run(cmd, check=True, cwd=ROOT)
-    # THE FALSIFIER FOR THE SEVENTH INCARNATION (see BIN above).  A `build()`
-    # whose compiler writes somewhere other than the file `capture` opens is
-    # indistinguishable from a working one unless this is checked: the binary
-    # must EXIST and must be NEWER THAN THE COMPILE that just ran.
-    if not BIN[leg].exists():
-        sys.exit(f"x1_retention.build({leg}): verilator succeeded but "
-                 f"{BIN[leg]} does not exist -- BIN and the compiler disagree "
-                 f"about the output name")
-    if BIN[leg].stat().st_mtime < t0:
-        sys.exit(f"x1_retention.build({leg}): {BIN[leg]} was NOT written by "
-                 f"the compile that just ran (mtime precedes it) -- the "
-                 f"binary `capture` will run is not the one `build` made")
-    return True
+    cmd += ["-I" + art.TOK_ROOT + "/hdl/rtl/ucore", "-Mdir", art.TOK_OUT]
+    cmd += [art.TOK_ROOT + "/" + str(p.relative_to(ROOT)) for p in _rtl()]
+    return art.Recipe(kind="verilator_binary", artifact=BIN[leg],
+                      inputs=build_deps(), command=cmd, tool="verilator",
+                      workdir=BIN[leg].parent, label=f"tb_sys/{leg}")
+
+
+def build(leg, force=False):
+    """Build if the CONTENT KEY moved, then assert the scorer postcondition.
+
+    THE SEVENTH INCARNATION'S HAND-ROLLED FALSIFIER IS DELETED HERE, and it is
+    deleted because the shared layer does strictly more.  The old check was
+    "the binary EXISTS and its mtime is newer than the compile" -- which caught
+    the `Vtb_sys` / `tb_sys` name split, but only in the producer, only on the
+    one output it knew about, and only against mtime.  `artifact.build()`
+    asserts every DECLARED output was written into a staging directory by THIS
+    command before anything is promoted, and `artifact.require()` then re-hashes
+    both the inputs and the outputs from the tree at every scoring run."""
+    before = art.receipt_id(BIN[leg])
+    art.ensure(recipe(leg), force=force, quiet=False,
+               why=f"x1_retention --leg {leg}")
+    return art.receipt_id(BIN[leg]) != before
 
 
 def cmd_build(a):
     for leg in (("base", "ret") if a.leg == "all" else (a.leg,)):
         did = build(leg, force=a.force)
-        print(f"  {leg}: {'REBUILT' if did else 'up to date'}  {BIN[leg]}")
+        print(f"  {leg}: {'REBUILT' if did else 'up to date'}  {BIN[leg]}  "
+              f"receipt {str(art.receipt_id(BIN[leg]))[:16]}…")
     return 0
 
 
@@ -212,9 +229,12 @@ def cmd_capture(a):
     OUT.mkdir(parents=True, exist_ok=True)
     _LEG["bin"] = BIN[a.leg]
     # §67.6's lesson: never score against a binary nothing in the tree owns.
+    # `build()` now ends in `artifact.require()`, so reaching this line means a
+    # receipt exists whose input AND output hashes match the tree.
     build(a.leg)
-    if not _LEG["bin"].exists():
-        sys.exit(f"missing {_LEG['bin']} -- `x1_retention.py build --leg {a.leg}`")
+    print(f"  DUT {_LEG['bin']}  receipt "
+          f"{str(art.receipt_id(_LEG['bin']))[:16]}…   (P-1: quote this beside "
+          f"the number)", flush=True)
     # THE DUT PIN, exactly as u4_f42_fabric flips it: nothing here writes to
     # tests/v30/, and this is a DUT leg, not an emission.
     es.EMIT_USE_CORE = True

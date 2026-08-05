@@ -10522,3 +10522,265 @@ re-claimed.  The only tree changes are instruments (`sw/sm3_h1_cell.py`,
    needs an instruction that retires in one clock — if one exists.
 5. **The b3 priority tranche on FLASH #6/#8** — still not re-captured
    (§73.14 lead 3), still uncontroversial.
+
+## §75 SESSION SM3, SITTING 14 — **THE SHARED ARTIFACT / RECEIPT LAYER IS BUILT, IT REJECTS 45 THINGS IT MUST REJECT, AND THE FIRST TRANCHE OF GATES IS MIGRATED WITH ZERO NUMBERS MOVED — BECAUSE EVERY BINARY IN THE TREE WAS ALREADY THE RIGHT ONE AND IT IS NOW POSSIBLE TO SAY SO**
+
+`docs/notes/artifact_receipt_layer.md` was written at sitting 13 as a SPEC with
+an explicit instruction not to build it.  This sitting built it, migrated the
+first tranche, and re-ran every migrated gate at its standing figure.  The spec
+document is UNEDITED except for a status banner and **four ERRATUM boxes beside
+the sections the implementation deviates from** — E-1 and E-2 at §3, E-3 at §4,
+E-4 at §7.  Nothing deviates silently.
+
+**No engine changed.**  `git diff -- hdl/rtl sim` is EMPTY.  No board was
+touched.  No bitstream was built (`quartus_gate` was exercised `--parse-only`
+against the tree already on disk).
+
+### §75.1 WHAT IT IS — three files, and it is a postcondition and a hash
+
+| file | lines | what it is |
+|---|---|---|
+| `sw/artifact.py` | 559 | `Recipe` / `build` / `require` / `ensure` / `diff_receipts` |
+| `sw/receipt_diff.py` | 127 | §5's A/B delta manifest, as a command |
+| `sw/test_artifact.py` | 359 | §6's non-vacuity proof, as a runnable gate |
+
+Three entry points and no more:
+
+* **`build(recipe)`** — the PRODUCER.  Content-keyed, builds into a staging
+  directory, asserts every DECLARED output was written by THIS command, hashes,
+  writes the receipt, promotes.
+* **`require(artifact)`** — the SCORER POSTCONDITION.  Re-hashes the receipt's
+  declared inputs AND outputs from the tree, re-probes the tool version, and
+  raises `ArtifactError` with both hashes in it.  **It needs no `Recipe`** — the
+  receipt is self-describing, so any tool anywhere can assert it on any path it
+  is about to execute.  **It does not rebuild** (§8): an automatic rebuild here
+  is how incarnation 2 stayed invisible for six days.
+* **`ensure(recipe)`** — build-if-needed then require.  What a gate calls.
+
+**The build key is CONTENT, not mtime**:
+`build_key = sha256(inputs.sha256 | tool | command | env)`, and a build is
+skipped only if the key matches AND every declared output still hashes to what
+the receipt says.  Touching a file without changing it does not rebuild;
+reverting a file to an already-built state does not rebuild; upgrading Verilator
+does.  **Every freshness check this tree had before today compared mtimes, and
+mtime is exactly what incarnation 2 defeated** — the compiler wrote a different
+file, so the file the scorer opened kept an old mtime, and an old mtime is
+indistinguishable from "up to date" when nothing forces the comparison.
+
+The receipt is `artifact_receipt_layer.md` §3's schema, written **atomically
+beside the artifact** as `<artifact>.receipt.json` and **appended to
+`sw/testdata/receipts/<kind>.jsonl`** — which matters because `hdl/tb/.gitignore`
+ignores `obj_dir*/`, so a receipt that lived only beside its binary would be a
+history of exactly one entry that no clone ever sees.
+
+### §75.2 THE SEVEN INCARNATIONS, AND WHICH ONE EACH MECHANISM CLOSES
+
+| # | where | what the layer does about it |
+|---|---|---|
+| 1 | §67.6 | `x1_retention` had no `build()`.  `capture` now calls `build()` which ends in `require()`; a receipt-less binary is a hard error |
+| 2 | §73.7 | compiler wrote `Vtb_sys`, scorer opened `tb_sys`.  **`outputs` is DECLARED**, and `build()` stats the staging directory: a command that writes another name ABORTS and promotes nothing.  From the other side, `tb_sys` has no receipt, so `require()` refuses it |
+| 3 | `standing_gates.md` §C | `check_seq` never called `check_core.build()`.  `check_seq.run_tb` now resolves through `tb_bin()`, which is `ensure(check_core.recipe("fsm"))` — and `check_fuzz_bank`, `check_mod3_illegal` and `check_enter_nesting` all reach the TB through `run_tb`, so **all four inherit the fix at once** |
+| 4 | §73.1 | no Quartus leg existed.  `quartus_gate` closed that at s13; this sitting put its receipt on the shared writer, with hashed `outputs` and a `.jsonl` history that survives the gate's own next clean build |
+| 5 | `CLAUDE.md` | `s15_census` ran the model against a ucore report.  **NOT closed by this layer** — it is an engine-selection bug, not an artifact-identity one, and it was already fixed by gap R4.  Named here so the list stays honest |
+| 6 | §72.7a | a gate whose liveness nobody could read.  **NOT closed** — `--report-every` is the fix and it is already written down |
+| 7 | INV-1 | a capture whose conditions were not part of its identity.  **NOT closed** — that is spec §7 step 6, the golden suites, and it is its own project |
+
+**Four of seven have a mechanism now.  Three do not, and two of those three are
+not this layer's kind of bug.**
+
+### §75.3 THE LAYER'S OWN NON-VACUITY PROOF — `sw/test_artifact.py`, **45/45**
+
+> *"A receipt layer that has never rejected anything is incarnation 8."*
+> — the spec, §6
+
+It runs entirely inside a throw-away directory outside the repo, builds nothing
+real, and needs no tool but `python3`.  **It makes the layer fail, on purpose,
+in every way it is supposed to fail:**
+
+| | it must | and it does |
+|---|---|---|
+| MUTATION (a) | perturb one byte of one DECLARED input → the **SCORER** refuses, naming the file and BOTH hashes | `STALE` |
+| MUTATION (b) | perturb a genuinely IRRELEVANT file → the scorer **RUNS**, and no rebuild is triggered | a producer that HASHES THE WORLD fails here |
+| STALE | restore a known-old binary under the current name → refuse | **on `hdl/tb/obj_dir_sys/tb_sys.stale-s6`, the real artifact a real scorer really ran for six days** (§73.7).  The spec named this fixture; the test uses it |
+| NO RECEIPT | an artifact the layer never built → refuse | `NO RECEIPT` |
+| ABSENT | nothing at the path → refuse | `ARTIFACT ABSENT` |
+| WRONG NAME | command writes `Vout.bin`, recipe declares `out.bin` → **build ABORTS**, names what the command DID write, and **the previous artifact and its receipt survive byte-identical** | incarnations 2 and 7, as a unit test |
+| rc != 0 | abort, promote nothing | ✓ |
+| MISSING INPUT | a declared input that does not exist → abort | ✓ |
+| TOOL | a receipt built by a different tool version → refuse | erratum E-2 |
+| CONTENT KEY | `utime` an input without changing it → **do NOT rebuild**, id unmoved | ✓ |
+| §5 | identical inputs + differing command → command delta reported, `receipt_diff` exits **1** without `--expect-command` and **0** with it; a one-file input delta reports exactly one file | ✓ |
+
+`python3 sw/test_artifact.py` → **45/45 checks pass**, exit 0.
+
+### §75.4 THE MEASUREMENT THAT MADE THE MIGRATION SAFE — **VERILATOR IS BYTE-REPRODUCIBLE HERE, AND EVERY BINARY IN THE TREE WAS ALREADY CURRENT**
+
+A migration that rebuilds every binary in the ladder is a migration that can
+move every number in the ladder.  So this was MEASURED before anything was
+migrated, by rebuilding each binary into a scratch `-Mdir` outside the repo and
+comparing sha256 against what was on disk:
+
+| binary | on disk (pre-migration) | fresh scratch rebuild |
+|---|---|---|
+| `obj_dir/Vtb_v30_core` (fsm) | `49dbd7f5d7b28144…` | **identical** |
+| `obj_dir_ucore/Vtb_v30_core` | `ac57c4dfbca764ca…` | **identical** |
+| `obj_dir_sys/Vtb_sys` | `d82741c7bdea1cd1…` | **identical** |
+| `obj_dir_sys_ret/Vtb_sys` | `712b1a8454469a96…` | **identical** |
+
+Two facts fall out, and both are load-bearing:
+
+1. **Verilator 5.032 is byte-reproducible on this tree**, including across
+   different `-Mdir` locations.  So a rebuild through the layer produces the
+   same bytes by construction, and the migration **cannot** move a number
+   through a rebuild.
+2. **Nothing in the tree was stale at HEAD.**  §C's standing warning
+   ("rebuild the FSM TB before quoting `check_fuzz_bank`") was true when it was
+   written and is not true today — but *the only reason anyone can say so is
+   that it was just measured*, which is the entire argument for the layer.
+
+Re-hashed after every migrated build, all **six** artifacts are byte-identical
+to their pre-migration selves:
+
+| receipt | id | inputs | output sha256 |
+|---|---|---|---|
+| `tb_v30_core/ucore` | `6babd479d1ce5c92…` | 18 | `ac57c4dfbca764ca…` |
+| `tb_v30_core/fsm` | `88d42f2d77aadf6d…` | 7 | `49dbd7f5d7b28144…` |
+| `tb_ab/ucore` | `38f3d77a8ee18143…` | 25 | `abef13e787739f7d…` |
+| `tb_ab/fsm` | `98d5aa90def0dc0f…` | 14 | `928ce77107c7bd33…` |
+| `tb_sys/base` | `a6a88b1c779e0c26…` | 25 | `d82741c7bdea1cd1…` |
+| `tb_sys/ret` | `c957bf54d9e702d2…` | 25 | `712b1a8454469a96…` |
+
+### §75.5 THE MIGRATION TABLE — every migrated gate re-run at its standing figure
+
+**The bar was: the migration must not move a number.  It did not move one.**
+
+| gate | how it now binds | re-run figure | standing figure |
+|---|---|---|---|
+| `check_core.py --opcodes all --cases 0` | `ensure(recipe(core))` — **the single declaration**; `build()` is `ensure` | **169,000 / 169,000** (cycles AND arch) | 169,000 / 169,000 ✓ |
+| `ulockstep.py --golden all --cases 50` | `require(UBIN)` (was `if not UBIN.exists()`) | **17,350 / 17,350** ALL CASES LOCKSTEP | 17,350 / 17,350 ✓ |
+| `check_ab_sim.py` (ucore) | `ensure(recipe(core))` | **MATCH over 187 rows** | 187 ✓ |
+| `check_ab_sim.py --core fsm` | same | **MATCH over 187 rows** | 187 ✓ |
+| `check_core.py --core fsm --opcodes all --cases 0` (ARCHIVED leg) | `ensure(recipe("fsm"))` | **168,400 / 169,000** (cycles; arch 169,000) | 168,400 / 169,000 ✓ — `CLAUDE.md`'s corrected-comparator figure, to the case |
+| `timed_fuzz.py --core ucore --evt-replay` | `require(tb_bin)` | **REGISTERED 1,490/1,702 · EVT 912/1,008 · COMBINED 2,402/2,710 · BOUND WARNINGS 5 · ENGINE ABORTS 0** | identical, to the seed ✓ |
+| `timed_fuzz.py --core ucore --seeddir …/b2-tranche/seeds` | same | **172 / 188** | 172 / 188 ✓ |
+| `check_boot.py 220` / `400` (RTL leg) | `require` in `_bin()` | **MATCH / MATCH** | MATCH ✓ |
+| `timed_wvec_gate.py --core ucore` | `require` in `tb_bin()` | **88 / 88, bus cycles 16,048 vs 16,048, +0.0 %** | 88/88 +0.0 % ✓ |
+| `timed_enter_replay.py --core ucore` | `require` in `tb_bootrun.tb_bin()` | **154/154 ×5** (pushes, walk, full, active, halt_display) | 154/154 ×5 ✓ |
+| `timed_ins_replay.py --core ucore --raw` | same choke point | **rails 1,312/1,312 · vs-chip 2,624/2,624** | 1,312 / 2,624 ✓ |
+| `x1_retention.py score` | `build()` = `ensure(recipe(leg))`; the hand-rolled §73.7 falsifier DELETED | **offline 265/283 · base 146/283 · ret 265/283 · 119 base-only, 119 INTA · BAR (i) MET · BAR (ii) MET, 0 moved** | §73.7's table, cell for cell ✓ |
+| `check_fuzz_bank.py --strict` | `check_seq.run_tb` → `ensure(check_core.recipe("fsm"))` | **PASS · 3,242 banked seeds · stable 3,237 improved 5 worse 0 · gen_drift 0 · regen_err 0 · float-floor 0 · new-sig TIMING 0**, rc 0 | PASS, rc 0 ✓ |
+| `check_mod3_illegal.py` (ARCHIVED, via `check_seq`) | same | **PASS · 128 goldens cycle-exact 128/128 · arch-confined 128/128 · moffs-exact 2/2** | PASS ✓ |
+| `quartus_gate.py --parse-only` | shared receipt writer | **PASS · 88 files · E3 43.59 MHz · E4 +8.308 · E5 TNS 0.000 · ALMs 11,126 (27 %) · latches 0 · lpm_divide 0** | the bars, unchanged ✓ |
+
+### §75.5a `check_fuzz_bank` — RUN TWICE, PRE AND POST, AND THE OUTPUT IS BYTE-IDENTICAL
+
+This is the gate incarnation #3 lived in, so it is the one worth being careful
+about.  It was run **before** the migration (on the binary as found) and
+**after** (on the binary the layer built), 3,242 seeds each, ~23 minutes each,
+and the two transcripts `diff` to **zero lines** — the same five IMPROVED seeds
+(`mc1/1937`, `mc1/3325`, `mc1/3741`, `mc1/412`, `t30-raw/123`), the same
+`stable 3237 improved 5 worse 0`, `new-sig TIMING 0`, rc 0.
+
+**Which is the expected result and is stated as a control, not as a triumph**:
+§75.4 measured that the binary was already byte-identical to a fresh build, so
+the two runs executed the same bytes.  What the pair actually proves is that the
+migration introduced **no behavioural change of its own** — no altered TB
+argument, no changed working directory, no per-seed rebuild — over the longest
+run in the standing set.
+
+One line was added to `check_fuzz_bank.check()` AFTER those two runs and the
+gate was then run a THIRD time with the code exactly as committed: the TB
+binary is now resolved EAGERLY, before the seed loop.  It has to be, because
+both `replay_classify` and the loop catch `Exception`, and `ArtifactError` is a
+`RuntimeError` — so a stale binary would have been swallowed 3,242 times as a
+per-seed `regen_err`/`ASSERT_PARK` instead of once as a sentence naming the
+stale file.  The gate would still have FAILED; it would have failed unreadably.
+**The third run is identical to the other two line for line** (modulo the new
+`TB leg` header), rc 0, 22 m 58 s.
+
+`receipt_diff` was exercised on both §5 shapes:
+
+* **the X1 A/B pair** — `tb_sys/base` vs `tb_sys/ret`: **input manifests
+  IDENTICAL (25 files, same `inputs.sha256`)**, command delta exactly
+  `-DX1_AD_RETENTION`, outputs differ.  Exit **0** with `--expect-command`,
+  **1** without it.  *This is the build-side half of the claim §56.3a's whole
+  reading rests on, and it is now one command instead of a board sitting.*
+* **the two cores** — `tb_ab/fsm` vs `tb_ab/ucore`: the delta is **exactly 23
+  files, all of them `hdl/rtl/core/**` or `hdl/rtl/ucore/**`**, and NOTHING from
+  the shared integration.  Exit **1** unexpected, as it should be without a
+  declared axis.
+
+### §75.6 TWO FINDINGS THAT CAME OUT OF DECLARING THE INPUTS
+
+**(a) THE ucore's ENTIRE ARCHITECTURE WAS OUTSIDE EVERY IDENTITY IN THE TREE.**
+`hdl/rtl/ucore/v30u_ucrom.sv` `$readmemh`s `ucrom.hex` (1,028 rows) and
+`ucdecode.hex` (8,192 entries) **at RUN TIME**.  Verilator never opens either
+file.  So under the spec's own wording — "every file the command reads" — the
+two tables the whole core is made of would have sat outside the identity of
+every number ever scored against it, and `v30u_ucrom.sv`'s F44 block exists
+precisely because a wrong `HEXDIR` gives an all-zero ROM and *a run that
+completes normally*.  The same holds for the FSM core's `int9d_race.hex`.
+**The rule as built is: `inputs` is what the ARTIFACT is a function of, not what
+the COMMAND reads.**  Recorded as erratum **E-1**.  `check_ucore_tables` (G0)
+already checked those bytes against `sim/`; nothing tied them to a SCORED
+NUMBER, and now every ucore receipt carries both hashes.
+
+**(b) `quartus_gate`'s manifest was keyed on HDL-RELATIVE names**, so its 88
+hashes could not be compared against any other receipt in the tree.  Re-keyed to
+repo-relative through the shared writer.  The file COUNT and the discovery rule
+are unchanged at **88**; the manifest `sha256` moved because the KEYS gained
+their `hdl/` prefix.  **Nothing consumed the old hash** — there were no
+`quartus_gate.json` files on disk at HEAD, and `standing_gates.md`'s narrative
+citation of "exactly one file, `rtl/ucore/v30u_eu.sv`" now reads
+`hdl/rtl/ucore/v30u_eu.sv`.
+
+### §75.7 WHAT IS **NOT** MIGRATED — itemised, with the risk each still carries
+
+Partial coverage stated plainly beats completeness implied.  **The line drawn is:
+every tool that executes a VERILATOR TB BINARY and is a STANDING GATE asserts
+the postcondition.**  Everything below is outside that line.
+
+| # | what | risk it still carries |
+|---|---|---|
+| **U1** | **`sim/v30sim`** — the C++ model, built by `make -C sim`, consumed by **17 tools** (`timed_gate`, `timed_fuzz --core sim`, `ulockstep`'s model leg, `check_boot --timed`, `ucsim_check`, `timed_lawcards`, …) | **THE LARGEST REMAINING HOLE, and it is the same shape as all seven.**  Every `--core sim` figure in this ledger — including `timed_gate`'s 169,000 and the model's whole fuzz column — is scored against a binary with no receipt, whose relationship to `sim/*.cpp` is a `make` timestamp.  A stale `v30sim` is indistinguishable from a fresh one today |
+| **U2** | `sw/safe_flash.sh` → `flash_log.jsonl` (spec §7 **step 2**, *"highest value per line in the whole list"*) | "what is on the board" still resolves to a sha256 of a `.sof`, not to the inputs that produced it.  **Excluded deliberately: it is the one item that ends at the board and this sitting is board-free.**  The build-side half now exists — `quartus_gate`'s receipt has an `id` and hashed `outputs` — so this is a one-field change on the next board sitting |
+| **U3** | `gen_ucore_tables.py` / the generated tables (spec **step 5**) | `check_ucore_tables`' 9,988 is still "9,988", not "9,988 against receipt `<id>`".  **Partly mitigated by E-1**: the two `.hex` tables are now inside every ucore TB receipt, so a table change invalidates the binaries even though the GENERATOR has no receipt |
+| **U4** | `emit_suite` / the golden suites / the fuzz bank (spec **step 6**) | **incarnation 7 (INV-1) is not closed.**  A golden's capture conditions are still not part of its identity.  The spec says this is its own project and must not be attempted with the others; it was not |
+| **U5** | the ARCHIVED FSM gates that do NOT go through `check_seq.run_tb`: `check_ff_t4` (own `BIN` constant), `check_race_law`, `check_lc6_gate` | they gate an archived artifact and are on-demand only.  `check_ff_t4` in particular has its own hardcoded path to `obj_dir` and would happily run a stale binary |
+| **U6** | the MEASUREMENT tools that execute a TB: `sweep_popa`, `sweep_dispphase`, `causal_wrand`, `uscope`, `pi1a_trace`, `repro_segleak`, `s11`–`s16` censuses | not gates, and `CLAUDE.md` already forbids quoting them as passes.  A wrong-binary measurement still misleads the agent reading it |
+| **U7** | the BOARD legs: `x1_fabric`, `u4_f42_fabric`, `u4_tranche`, `check_ab_hw`, `s10_board`, `s13_board` | they execute the BITSTREAM, not a local binary.  Their identity question is U2's, and U2 is the answer |
+| **U8** | `ss_lint` / `ss_flopcensus` | they parse RTL text rather than run a binary, so they have no artifact to vouch for.  Listed for completeness, not as a risk |
+
+### §75.8 DEVIATIONS FROM THE SPEC — four, all recorded beside the text they deviate from
+
+| | where | what |
+|---|---|---|
+| **E-1** | §3 | `inputs` includes files the COMMAND never reads (the runtime `$readmemh` tables).  §75.6(a) |
+| **E-2** | §3 | the tool version is CHECKED by `require()`, not merely recorded, and it is inside `build_key` |
+| **E-3** | §4 | the promote is TWO renames, not one — POSIX cannot rename a directory onto a non-empty one.  The guarantee is recovered more strongly by `require()` re-hashing `outputs` |
+| **E-4** | §7 | the migration order moved: step 3 became the single declaration and six more consumers were migrated with it, because a receipt beside a binary that six gates still open by path is worth nothing |
+
+One addition, not a deviation: **`build_key`** — the brief's content-addressed
+key — is a field the schema did not have.  `id` is still §3's content hash of
+the whole object.
+
+### §75.9 WHAT THIS SITTING DID NOT DO
+
+* **No engine changed.**  `git diff -- hdl/rtl sim` is EMPTY.
+* **No board.**  No capture, no flash, no `use_core` flip.
+* **No bitstream built.**  `quartus_gate` ran `--parse-only` against the tree
+  already in `hdl/output_files_ucore/`; its **43.59 MHz** is §74.4a's
+  "form 2 / HEAD, generated `.qsf`" draw and is not a new measurement.
+* **No Codex.**  No memory file touched.
+* **No gate figure moved**, and none was re-scored in either direction.
+
+### §75.10 EVIDENCE
+
+* `sw/artifact.py`, `sw/receipt_diff.py`, `sw/test_artifact.py`.
+* `sw/testdata/receipts/verilator_binary.jsonl` and
+  `sw/testdata/receipts/quartus_bitstream.jsonl` — the repo-level receipt
+  history, which is what survives a `rm -rf` of any `obj_dir`.
+* `<artifact>.receipt.json` beside each of the six binaries (gitignored with
+  their `obj_dir`s, which is why the `.jsonl` exists).
+* `docs/notes/artifact_receipt_layer.md` — the spec, unedited, with the four
+  erratum boxes and a status banner.
