@@ -69,11 +69,15 @@ CORES = {
             # 0x066-0x069 -- addresses added, so the version moves again.
             # v2 was 0x82 / 101 / 116 / 218 / 0x82DA;
             # v1 was 0x81 /  96 / 115 / 212 / 0x81D4.
-            "SS_VERSION": 0x83,   # ucore map v3 (0x80 family: never an FSM stream)
-            "SS_BIU_COUNT": 105,
+            # SM3 sitting 11: v3 -> v4.  H1's four `bnd_*` BIU flops are DELETED
+            # (the recognition floor is one term on the EU's IE gate now), so
+            # 0x066-0x069 leave the map.  Removing addresses moves the version
+            # for the same reason adding them does.
+            "SS_VERSION": 0x84,   # ucore map v4 (0x80 family: never an FSM stream)
+            "SS_BIU_COUNT": 101,
             "SS_EU_COUNT": 116,
-            "SS_COUNT": 222,
-            "SS_TAG": 0x83DE,     # (0x83 << 8) | 222
+            "SS_COUNT": 218,
+            "SS_TAG": 0x84DA,     # (0x84 << 8) | 218
         },
     },
 }

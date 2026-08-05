@@ -109,12 +109,11 @@ module v30u_eu (
     output            eu_unhalt_disp,
     input             halted,
 
-    // H1 (SM3 sitting 3): the re-entry acknowledge's recognition floor.  The
-    // register is the BIU's -- every edge that arms, stamps and spends it is
-    // a bus event -- and only its READER lives here.
-    input             bnd_hold,     // the floor is not met
+    // SM3 sitting 11: what is left of H1's recognition floor.  The floor
+    // itself is now one term on this module's own IE gate and holds no state;
+    // these two lines carry the PREFETCHER SUSPEND that rides it.
     output            eu_bnd_take,  // a recognition boundary IS taken this clock
-    output            eu_bnd_post,  // ...and it is a retire, not a REP withdrawal
+    output            eu_bnd_post,  // ...it is a retire, and the IE gate HELD it
 
     // machine state the pins carry
     output            psw_ie,
@@ -637,7 +636,18 @@ wire poll_busy = poll_pipe[2];
 // the wires still hold THIS clock's (F11b's trap, and the whole module's
 // convention).
 wire irq_pin_int = int_p[2];                       // the pin at c-3
-wire irq_int_lvl = int_p[2] && ie_p[2];            // ...gated by IE at c-3
+// SM3 SITTING 11 -- THE GATE READS IE TWICE, AND THE SECOND READ IS THE LIVE
+// ONE.  `ie_p[2]` alone says only "IE was up three clocks ago"; a `CLI` since
+// then does not take it back, so the recognition fires at a boundary where the
+// architectural IE is CLEAR and pushes a PSW with IE = 0.  MEASURED on the
+// socket (`sm3_s11_prereg_2026-08-04.md` §4, S3/S4/S5): on `CLI;POPF;NOP;NOP`
+// and `CLI;STI;NOP;NOP` the chip takes the boundary after the CLI **0 times in
+// 24 delays at every wait level**, and on `CLI;POPF` -- where that boundary is
+// the only one IE ever reaches -- it takes NO ENTRY AT ALL in 24 of 24, while
+// the same sled on the **NMI** pin acknowledges 24 of 24.  This core scored
+// 3 / 5 / 24 of those, all of them at the forbidden boundary.
+//   *Falsifier*: a maskable acknowledge on silicon whose PUSHED PSW has IE = 0.
+wire irq_int_lvl = int_p[2] && ie_p[2] && psw[FIE];
 wire irq_nmi_lvl = nmi_latch;
 wire irq_any     = irq_nmi_lvl || irq_int_lvl;
 // A REP iteration boundary samples at the SAME depth below its own decision
@@ -1316,31 +1326,37 @@ wire at_bnd   = bnd_row || bnd_epop || bnd_opc;
 // and it is set where the loader latches it.
 // REGISTERED RESIDUE: the far-CALL / far-JMP `CS` write is documented to
 // shadow too and is NOT in this class; no golden combines the two.
-// H1 -- AND THE BOUNDARY IS NOT TAKEN BEFORE THE RESTARTED PREFETCHER'S
-// INDEX 2 WHEN AN ACKNOWLEDGE IS BEHIND IT.  `BiuTimed::boundary_no_pop()`
-// stalls the model's clock there (`wait_bnd_floor()`), and the RTL rendering
-// of a `while (...) tick()` is a STALL: the window stays open and the take is
-// withheld.  That is the SAME statement here because the byte cannot arrive
-// inside the hold -- the floor is stamped by the fetch that refills a queue
-// the flush emptied, and that fetch's first byte is poppable at its eval + 3
-// (M2r), index 5 at w0 and later under waits, strictly after index 2.  So the
-// part cannot leave the boundary by popping instead; it sits, exactly as the
-// model's tick loop sits.
+// SM3 SITTING 11 -- AND H1's SEPARATE FLOOR IS GONE.  It used to sit in the
+// BIU (`bnd_hold`, five flops, armed by an INTA) and hold this boundary open
+// for two clocks.  The gate above now demands IE up NOW **and** up three
+// clocks ago, so a recognition cannot act on a rising IE at all -- which IS
+// the floor -- and `bnd_hold` was MEASURED INERT against the whole 3,242-seed
+// bank (REGISTERED 1,490 / EVT 910 / COMBINED 2,400, to the seed, with it
+// forced to zero).  It is DELETED rather than left standing.
 //
-// `!intr_pending` is the model's `post_redirect` argument: a REP MID-STRING
-// WITHDRAWAL is not an instruction retire -- its recognition was taken inside
-// the loop (sec.19.8.1) and the ROM's REPX path flushes AFTER that decision,
-// so there is no boundary for the reload to hold off.  MEASURED in the spec:
-// flooring it too costs `INT.F3AA` 26 of 200 at w0 and nothing elsewhere.
-wire bnd_block = bnd_hold && !intr_pending;
-wire irq_take = irq_any && !irq_shadow && !bnd_block;
+// WHAT THE BIU STILL NEEDS FROM HERE is the prefetcher SUSPEND: the
+// recognition that PAYS the floor grants the slot between the floor and its
+// own request to NOTHING (the census's two idle clocks).  `eu_bnd_post`
+// carries that condition now -- `!intr_pending` (a REP MID-STRING WITHDRAWAL
+// is not an instruction retire: its recognition was taken inside the loop,
+// sec.19.8.1, and the ROM's REPX path flushes AFTER that decision) AND
+// `!ie_p[3]`, which is exactly "the IE gate is what held this boundary", since
+// the take needs `ie_p[2]` and IE was still low four clocks back.  MEASURED:
+// forcing the suspend unconditional costs EVT 910 -> 897.
+//
+// AND `!irq_nmi_lvl`, for the SAME reason the floor itself is maskable-only: a
+// non-maskable recognition is not IE-gated, never paid the floor, and must not
+// carry the suspend that goes with it.  MEASURED: without this term the entry
+// after an NMI suspends a fetch the chip runs, and `NMI.B8` falls 200 -> 188
+// (12 cases, all `row 6 busstat: exp CODE got PASV`).
+wire irq_take = irq_any && !irq_shadow;
 wire irq_fire = at_bnd && irq_take;
 // ...and the boundary that fires is the one that CLEARS the arm and suspends
 // the prefetcher.  `at_bnd` implies `!opc_valid` on all three of its arms,
 // which is `boundary_no_pop()`'s own early return ("already latched: this IS
 // the pop clock") -- a pre-popped successor never reaches the floor at all.
 assign eu_bnd_take = irq_fire;
-assign eu_bnd_post = !intr_pending;
+assign eu_bnd_post = !intr_pending && !ie_p[3] && !irq_nmi_lvl;
 
 // §35.4 -- ...AND F11's RULE APPLIES TO THE TAIL'S OWN FALL-THROUGH.  With
 // `S_TAIL_W` made zero-cost the tail's POP now happens inside the delivery's
