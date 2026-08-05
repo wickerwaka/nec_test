@@ -12853,3 +12853,233 @@ The board carries **FLASH #9**, `use_core` **False**, the divider **PINNED**,
 * **INV-2 was not written** (§81.B.6), and the direct assert-instant measurement
   §81.B.5 names was not taken.
 * **No memory file was touched.  Codex was not launched.**
+
+## §82 SESSION SM3, SITTING 21 — **FAMILY B IS CLOSED IN BOTH ENGINES, AND BOTH HALVES ARE DELETIONS OR RELOCATIONS, NOT ADDITIONS.  M6 IS REFUTED BY ITS OWN FIRING CENSUS AND IS GONE; THE READ'S COMPLETION CLOCK MOVES TO THE EVAL WHERE EVERY OTHER EVAL-KEYED QUANTITY ALREADY LIVES.  THE MODEL'S HLT SWEEPS ARE 283/283 AND THE ucore's S16 w0 IS 372/372.**
+
+**2026-08-05, branch `ucsim`, from HEAD `cba14841d2`.**  Two pre-registrations,
+two landings, four commits: `sm3_s21a_prereg_2026-08-05.md` (`b9c85a4a45`) and
+`sm3_s21b_prereg_2026-08-05.md` (`27901d6ef7`), each committed **before its own
+diff**.  This section reports against them and does not restate them.
+
+> **Standing principle, applied throughout.**  *"A guiding principal here needs
+> to be simplicity.  This is 80's era hardware, they aren't wasting silicon on
+> anything that isn't necessary.  Complex or confusing behavior that we see is
+> likely to be simple systems interacting in ways you do not fully understand
+> yet."*
+
+---
+
+### §82.0 ITEM 0 — THE USER'S DISPOSITIONS, RECORDED FIRST (`53ba661082`)
+
+`ucore_gaps_2026-08-04.md` **FIFTH UPDATE** and the owner rows of
+`sm3_residue_census_2026-08-04.md` now carry the 2026-08-05 user decisions:
+**family B PURSUE** (this sitting) · **H4-B PURSUE** (next) · **H3-B DEFERRED**
+(booked, not worked; *deferred, NOT refuted*) · **`TAIL_EXTRA` SURVEY
+authorised** · **the ucore's last two own registered-bank seeds — closers
+authorised** · **family D = SCORE VIA `tb_sys`** (the 4 cells move to the
+`tb_sys`/fabric instrument column; not patched, not scored on `tb_v30_core`) ·
+**the MODEL's own residual debt — ~220 model-only seeds and its 39-seed `qop`
+S16 class — FROZEN.**  The freeze is on the model-ONLY residue; shared
+mechanisms still land `sim/` first, which is how both halves below were worked.
+
+### §82.1 **THE SURVEY, AND IT CORRECTS §79.G's OWN CELL COUNTS**
+
+New MEASUREMENT tool (**not a gate**): `sw/sm3_famb_survey.py`.  It reads both
+regimes **off the GOLDEN alone** — B-1 is *"the golden carries no `HALT` status
+row"*, B-2 is *"it does, and the observable is the INTA pair's
+announcement-to-announcement gap"* — so the partition is a property of the
+population, not of the engine.
+
+| | sweeps | S16 | **per engine** |
+|---|---|---|---|
+| **B-1** the wake's first prefetch, CANCELLED-display regime | **4** | **14** | **18** |
+| **B-2** the acknowledge pair's spacing, display-PRESENT regime | **2** | **12** | **14** |
+
+The 26 S16 cells are `busstat_other` 10 + `B_late` 16, and `B_late` splits
+**4 at `(4, busstat)`** (B-1) and **12 at `(17, busstat)`** (B-2).  **The model
+and the ucore carry the same 26 cells, cell for cell.**
+
+> **ERRATUM against §79.G's falsifier text.**  It registered B-1 at *"13
+> signature-1 cells (10 S16 + 3 sweeps)"* and B-2 at *"13 signature-2 cells …
+> minus the `d3` overlap, plus 3 sweeps"*.  **There is no `d3` overlap**, the
+> sweeps split **4 / 2** and not 3 / 3, and S16 splits **14 / 12**.  §79.G is
+> LEFT AS COMMITTED; this is its correction, and the sitting's bars were
+> written on the measurement.
+
+### §82.2 **B-1 = F56.  M6 IS DELETED.**
+
+The clock, derived before anything was touched (`V30SIM_EVALTRACE`; `ET N` is
+the eval at the END of clock `N`; capture row = clock − 7):
+
+| clock | |
+|---|---|
+| end of 8 | the running fetch's COMPLETION eval — refused, `halted_` |
+| 9 | its `T4`; `pf_land_from_ = pf_land_to_ = 10` |
+| 10 | the bus is free — **for `d ≥ 4` the HALT display takes the register here** (`H = 10`) |
+| **end of 10** | the first idle eval — **`.M`, refused by M6** |
+| end of 11 | granted; display at 12 = row 5.  **The golden is row 4.** |
+
+§79.G's *"display at `H + 1`"* is the eval M6 refuses.  And **`no_eval_` (M2r)
+already covers M6's window at every wait level above zero** — the completion
+eval IS at `T4` there, so `no_eval_ == T4 + 1` — which is why family B was a
+w0-only residue: not a wait-dependent law, but the one wait level at which the
+branch was reachable at all.
+
+**THE FIRING CENSUS — the argument for DELETING rather than narrowing.**
+Counted on the branch itself, across every timed population in the tree:
+
+| population | evals reaching the branch and BLOCKED |
+|---|---|
+| `v0.1`, **169,000** cases | **0** |
+| `v0.1-w1` · `-w3` · `w1evt` | **0** |
+| `timed_scenario` (18 procs) | **0** |
+| `timed_enter_replay` (154) | **0** |
+| `timed_ins_replay --raw` (800) | **0** |
+| `timed_wvec_gate` (88) | **0** |
+| **`timed_lawcards` (228 procs)** — including **C1/C2/C3, the Arm-C sled that MEASURED M6 in T2b 12.1** | **0** |
+| the registered + EVT fuzz bank, **3,242 seeds** | **3**, in ONE seed, verdict unmoved |
+| the four HLT sweeps + the S16 walk | **19** — every one a cell silicon contradicts |
+
+**M6's own authorising populations no longer reach it.**  This is not a claim
+that the T2b measurement was wrong; it is the claim that the rule it authorised
+is redundant where it agrees with silicon and wrong where it does not, and that
+12.1's consequence (`T4+2` / `T4+4`) falls out of M2r's eval geometry alone.
+The refutation is written at the deleted fields' own declaration in
+`sim/biu_timed.h`.
+
+**THE LANDING.**  `sim/` (`78c1a7ab39`) loses `pf_land_from_` / `pf_land_to_`
+and their three sites — **two fields fewer, none added.**  The `ucore`
+(`e0b71ee5e3`) loses the `else if (pl_now)` arm and, with its only reader gone,
+`pf_land` / `r_pf_land` / `pl_now` / `set_land` / `pf_land_rst` — **one flop
+fewer, none added.**
+
+**THE FIRST MID-REGION SAVE-STATE RETIREMENT.**  `9'h038` held `pf_land`.
+s11's precedent retired addresses from the END of the BIU region, where
+shortening the dense range suffices; this one is in the middle and the map's
+APPEND-ONLY rule forbids renumbering the tail.  So **`9'h038` becomes a HOLE**:
+`ss_addr_of` steps over it with one `+1` term, **no symbol changes address**,
+and `SS_VERSION` moves **0x84 → 0x85**, `SS_COUNT` **218 → 217**, `SS_TAG`
+**0x84DA → 0x85D9**, so a v4 stream can never be read as a v5 one.  The package
+says out loud that a SECOND hole is the signal to re-think the region rather
+than add a second term.
+
+**THE RESULT, REPORTED AS REGISTERED.**  P1-P7 **ALL MET**, f1-f7 **NONE
+FIRED**:
+
+| | registered | **measured** |
+|---|---|---|
+| **P1** model | sweeps 277 → **281**, S16 1,279 → **1,293**, 14 closed 0 broken | **MET**, cell for cell; `busstat_other` 10 → 0, `B_late` 16 → 12, `qop` 39 and `ARCH` 30 unmoved |
+| **P2** ucore | sweeps 273 → **277**, S16 1,294 → **1,308** | **MET**, the SAME 14 cells; `D_tstate` 24 and `ARCH` 27 unmoved |
+| **P3** | `ulockstep` **17,350** | **17,350 / 17,350 ALL LOCKSTEP** |
+| **P4** | the ladder unmoved, both engines, fuzz **to the seed** | **MET — 0 of 3,242 seeds differ on EITHER engine** |
+| **P5** | `ss_lint` 217 / 200 / 0x85 | **rc 0, 217 addresses, 200 flops, 0 UNMAPPED** |
+| **P6** | G6 E1-E5 | **PASS.  E3 43.94 MHz · E4 +8.493 ns · E5 TNS 0.000 every domain.**  ALMs 11,131 (27 %), 0 latches, 0 `lpm_divide`.  Receipt `000cc32bc90ff270…`, manifest 88 files `3420a2e63226472f…` |
+| **P7** | `git diff -- hdl` empty at the `sim/` commit | **EMPTY** |
+
+### §82.3 **B-2 = F57.  THE READ'S COMPLETION CLOCK MOVES TO THE EVAL.**
+
+Measured off the model's own commit trace (`V30SIM_FLUSHTRACE`):
+
+| cell | INTA1 display | INTA1 T1 | INTA2 display, model | golden |
+|---|---|---|---|---|
+| `idx 5` — **FAILS** | 17 | **19** (= disp + 2) | **25** | **24** |
+| `idx 6` — passes | 18 | 19 (= disp + 1) | 25 | 25 |
+| `idx 7` — passes | 19 | 20 (= disp + 1) | 26 | 26 |
+
+**Silicon's second acknowledge is `display + 7`.  The model's was `T1 + 6`.**
+They are the same number for every cycle whose T1 opens the clock after its
+display and part only where a T1 WAITED — the acknowledge after a woken HALT,
+and nothing else in the corpus.  It is M22's `cmt_expire_` sentence one
+mechanism over.
+
+**WHERE THE CLOCK WAS LOST.**  `wait_next_read()` blocks until a completion
+stamp EXISTS and then until the clock it names.  The stamp's VALUE is `e + 2`
+— eval-keyed, M22's second consequence — but it was PUSHED in the `T4` block.
+On `idx 5` the eval is at clock 20, the stamp names **22**, it is not pushed
+until clock 22, and the wait cannot leave before **23** — one clock after the
+instant the model had itself computed.
+
+> **F57.**  A read's completion clock is stamped **at the cycle's own eval**.
+> The value is unchanged; what moves is the clock the EU can first SEE it on.
+
+**W0-NEUTRAL BY CONSTRUCTION** for every ordinary cycle (the wait's second stage
+is untouched, so the EU still leaves at `e + 2`) and identical under waits
+(`eval_i == last_i`, one clock, one site).  In the `ucore` (`660b19c405`) the
+arm is `done_ctr = 2'd2` at the eval and the byte composition moves with it so
+`rd_land` is registered before the pulse that delivers it; it sits AFTER the
+T-state advance because the advance is what captures `cur_data = ad_i` at T2 —
+and a cycle whose display waited has its eval AT T2.  **NO NEW FLOP**:
+`sev_now` already distinguishes "the eval is this T4" from "the eval was
+earlier".  The old `(land_ttl == 0) ? 1 : land_ttl` clamp IS the defect — a
+counter armed at T4 cannot fire before `T4 + 1`, so `e + 2 < T4 + 1` was
+inexpressible.
+
+**THE RESULT, REPORTED AS REGISTERED.**
+
+| | registered | **measured** |
+|---|---|---|
+| **P1** model | sweeps 281 → **283 / 283**, S16 1,293 → **1,305**, 12 closed 0 broken | **MET.**  `B_late` 12 → **0**, catch-all EMPTY.  *The model's first perfect HLT-sweep score.* |
+| **P2** model fuzz | REGISTERED **1,272 unchanged**, EVT 783 → **788**, COMBINED **2,060**, exactly 5 named seeds gained / 0 lost, b2 **154** | **MET**, and the five are `mc1/1383`, `mc2/594`, `mc2/1052`, `mc2/1068`, `mc2/3530` |
+| **P3** ucore, S16 + fuzz | S16 1,308 → **1,320**, `B_late` 12 → 0; fuzz up-only | **MET.**  Per wait **372 · 328 · 318 · 302** — **w0 IS 372/372**.  REGISTERED 1,490 unchanged, EVT 913 → **918**, COMBINED **2,408**, b2 **172** |
+| **P3** ucore, sweeps | 277 → **283 / 283** | ⚠ **NOT MET AS WRITTEN — 279 / 283.**  See §82.4. |
+| **P4** | `ulockstep` 17,350 | **17,350 / 17,350 ALL LOCKSTEP** |
+| **P5** | the ladder unmoved, both engines | **MET** |
+| **P6** | `ss_lint` UNCHANGED at 217 / 200 / 0x85 | **MET — no new state, which was the claim** |
+| **P7** | G6 E1-E5 | **PASS.  E3 45.83 MHz · E4 +8.402 ns · E5 TNS 0.000 every domain.**  ALMs 11,118 (27 %), 0 latches, 0 `lpm_divide`.  Receipt `a9f07afaa667de51…`, manifest `9d917dddab4bfdf7…` |
+| **f1 … f7** | — | **NONE FIRED** |
+
+**f7 — *"the ucore needing a DIFFERENT sentence from the model's"* — did not
+fire, and the proof is not an argument**: on the 3,242-seed bank the ucore
+gains **exactly the same five seeds** the model gained, and loses none.
+
+### §82.4 **P3's SWEEP FIGURE WAS MIS-DERIVED.  REPORTED AS REGISTERED, NOT RESTATED.**
+
+`sm3_s21b_prereg_2026-08-05.md` §2 registered the ucore's four HLT sweeps at
+**283 / 283**.  They measure **279 / 283**, and the bar was **arithmetically
+wrong when it was written**: 283 was carried across from the MODEL's leg, which
+has no family-D residue on its comparator.  The ucore's four survivors are
+`w1.INT/8,9` · `w2.INT/12` · `w3.INT/15` — **family D, not family B** — they
+are unfixable on `tb_v30_core` by construction (it samples `BS` once), and they
+are precisely the cells the user's own item-0 disposition moves to the
+`tb_sys`/fabric column.  **279 IS "the two B-2 sweep cells close and nothing
+else moves."**  The cell-level bar the number was meant to express is MET,
+`f1` and `f2` did not fire, and the landing stands — but the number is recorded
+as a MISS, because a bar that is quietly re-derived after the run is not a bar.
+
+### §82.5 THE RATCHETS THAT MOVED, ITEMISED
+
+| ratchet | before | **after** | which change |
+|---|---|---|---|
+| **the MODEL's four HLT sweeps** | 277 / 283 | **283 / 283** | F56 (+4) then F57 (+2) |
+| **the MODEL's S16 walk** | 1,279 / 1,371 | **1,305 / 1,371** | F56 (+14) then F57 (+12) |
+| the MODEL's S16 census | `busstat_other` 10 · `B_late` 16 · `qop` 39 · `ARCH` 30 | **`qop` 39 · `ARCH` 30** — family B GONE, catch-all EMPTY | F56 + F57 |
+| **the MODEL's fuzz EVT column** | 783 / 1,008 | **788 / 1,008** | F57 |
+| **the MODEL's fuzz COMBINED** | 2,055 / 2,710 | **2,060 / 2,710** | F57 |
+| **the ucore's four HLT sweeps** | 273 / 283 | **279 / 283** | F56 (+4) then F57 (+2) |
+| **the ucore's S16 walk** | 1,294 / 1,371 | **1,320 / 1,371** | F56 (+14) then F57 (+12) |
+| — per wait level | 346 · 328 · 318 · 302 | **372 · 328 · 318 · 302** | w0 is PERFECT |
+| the ucore's S16 census | `busstat_other` 10 · `B_late` 16 · `D_tstate` 24 · `ARCH` 27 | **`D_tstate` 24 · `ARCH` 27** | F56 + F57 |
+| **the ucore's fuzz EVT column** | 913 / 1,008 | **918 / 1,008** | F57 |
+| **the ucore's fuzz COMBINED** | 2,403 / 2,710 | **2,408 / 2,710** | F57 |
+| `SS_VERSION` / `SS_COUNT` / `SS_TAG` | 0x84 / 218 / 0x84DA | **0x85 / 217 / 0x85D9** | F56 — a flop DELETED |
+| `ss_lint` flops | 201 | **200** | F56 |
+| G6 Fmax / ALMs | 47.15 MHz / 11,104 | **45.83 MHz / 11,118** | recorded, not barred; §74.4 governs |
+| the two REGISTERED fuzz columns | 1,272 (sim) / 1,490 (ucore) | **UNCHANGED TO THE SEED through both landings** | — |
+
+### §82.6 WHAT THIS SITTING DID NOT DO, AND THE STATE IT LEAVES
+
+* **NO BOARD CONTACT, NO FLASHING, `use_core` NEVER SET.**  The board still
+  carries **FLASH #9**, which predates F55, F56 and F57.  Every fabric figure
+  in this document and in `standing_gates.md` remains a FLASH #9 figure.
+* **Family B is CLOSED in both engines.**  §79.G's booking is discharged; its
+  cell counts are corrected by §82.1 and its two falsifiers are met by §82.2
+  and §82.3.
+* **The residue that is left on the S16 walk is TWO classes and no third**: the
+  ucore's **24 `D_tstate`** (family D — the analyser's second `BS` sample, now
+  a `tb_sys` item by user disposition) and **27 `ARCH`**; the model's **39
+  `qop`** and **30 `ARCH`**, both inside the FROZEN model-only debt.
+* **H4-B, `TAIL_EXTRA`, H3-B and the 8080 work were not opened.  No memory file
+  was touched.  Codex was not launched.**
+* **Registered for FLASH #10, unchanged and now larger**: §81.A.7's F55
+  prediction still stands, and F56 and F57 join it — the fabric legs have never
+  seen any of the three.

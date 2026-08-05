@@ -136,13 +136,18 @@ Values are monotone: never re-scored downward without a loud, itemized entry.)
   `--no-mirror` reproduces the historical 168,997), `v0.1-w1` / `-w3`
   1,200/1,200, `v0.1-w1 --forms EB` 200/200, the four `v0.1-w*evt` cells
   200 / 1,200 / 200 / 1,200, `v0.1-w1evt-biased` 1,200/1,200 (preserved),
-  and the four HLT delay sweeps `s10-hltsweep-w{0,1}` **91/97**, **95/95**
-  and `s13-hltsweep-w{2,3}` **46/46**, **45/45** = **277/283** (RAISED from
+  and the four HLT delay sweeps `s10-hltsweep-w{0,1}` **97/97**, **95/95**
+  and `s13-hltsweep-w{2,3}` **46/46**, **45/45** = **283/283 — PERFECT since
+  SM3 sitting 21**, `ucore_provenance.md` §82: **F56** deleted M6 (+4) and
+  **F57** moved the read's completion clock to the cycle's own eval (+2).  It
+  was 277/283 (RAISED from
   272 at SM3 sitting 19 by the MODEL's F53 leg, `ucore_provenance.md` §80.A —
   family E is the display one-shot's THREE pins, not just UBE, and the model
   had neither half: `E_ube` 30 → 0 on S16 and 5 → 0 on the sweeps).  Its S16
-  leg is **1,279/1,371** (`sm3_s16_score.py --core sim`, per wait
-  343 · 331 · 312 · 293).  (These were STALE here at
+  leg is **1,305/1,371** (`sm3_s16_score.py --core sim`) — RAISED from 1,279 at
+  SM3 sitting 21 by F56 (+14) and F57 (+12), leaving **39 `qop` + 30 `ARCH`**,
+  both inside the model-only debt the USER FROZE 2026-08-05, with family B gone
+  and the catch-all EMPTY; it was 1,279 with per wait 343 · 331 · 312 · 293.  (These were STALE here at
   92/95, 42/46, 40/45 — the pre-§26.7.6 figures — from the S15 cleanup until
   ucore U3 re-measured the model leg and found the quick reference disagreeing
   with `ucsim_t_provenance.md` §26.11's own delta row.  Corrected UPWARD.)
@@ -152,7 +157,9 @@ Values are monotone: never re-scored downward without a loud, itemized entry.)
   `sw/timed_wvec_gate.py` (88/88, +0.0 %), `sw/timed_lawcards.py`
   (**8 GREEN / 0 RED / 3 UNRESOLVED** — C6, C7, C11),
   `sw/timed_fuzz.py --evt-replay` (REGISTERED **1,272/1,702**, EVT
-  **783/1,008**, COMBINED **2,055/2,710**, `INVALIDATED` **0** — the EVT and
+  **788/1,008**, COMBINED **2,060/2,710** — EVT/COMBINED RAISED by FIVE seeds
+  at SM3 sitting 21 by **F57**, and the ucore gained the SAME FIVE, which is
+  that landing's same-mechanism proof; they were 783 / 2,055 — `INVALIDATED` **0** — the EVT and
   COMBINED figures moved TWICE on 2026-08-04 (INV-1's re-registration, then
   SM2's re-capture re-opening the full column at 363), then TWICE more:
   **+417 when H1 landed** (SM3 sitting 2, the re-entry recognition floor) and
@@ -176,7 +183,10 @@ Values are monotone: never re-scored downward without a loud, itemized entry.)
   `timed_enter_replay.py --core ucore` **154/154 x5**;
   `timed_ins_replay.py --core ucore --raw` **1,312/1,312** and **2,624/2,624**;
   `timed_fuzz.py --core ucore --evt-replay` REGISTERED **1,490/1,702** (the sim
-  is 1,272), EVT **913/1,008** (the sim is 782 — ~~on the REBUILT column the
+  is 1,272), EVT **918/1,008** (RAISED from 913 by F57 at SM3 sitting 21, the
+  same five seeds the model gained), COMBINED **2,408** (the sim is 2,060; the
+  two columns are scored under DIFFERENT information and no lead is established
+  — `standing_gates.md` §B).  Historically EVT read 913 (the sim was 782 — ~~on the REBUILT column the
   ucore beats the model by 105 seeds~~ **STRUCK as a comparison, see the rule
   below**; as banked it appeared to lose by 517, which was INV-1, now CLOSED by
   the SM2 re-capture; 910→913 = the IE law's +2 at sitting 11 + F53's +1 at
@@ -189,8 +199,15 @@ Values are monotone: never re-scored downward without a loud, itemized entry.)
   RTL legs only; **seven of the NINE seeds `gaps` §T.2 calls "the ucore's own
   registered-bank residue" were the instrument, and that residue is now TWO
   seeds** (`mc1/721`, `mc2/584`).  EVT took a further +2 from F43.
-  The four HLT sweeps are **91/97, 93/95, 45/46, 44/45 = 273/283** — the ucore
-  now EXCEEDS the model's 272/283.  They were 259/283 until SM3 sitting 6
+  The four HLT sweeps are **97/97, 93/95, 45/46, 44/45 = 279/283 since SM3
+  sitting 21** (F56 +4, F57 +2; `ucore_provenance.md` §82), and its S16 walk is
+  **1,320/1,371** with **w0 at 372/372, PERFECT**.  **FAMILY B IS CLOSED IN
+  BOTH ENGINES.**  The FOUR survivors on the sweeps are `w1.INT/8,9` ·
+  `w2.INT/12` · `w3.INT/15` — **family D, which by USER DISPOSITION of
+  2026-08-05 is SCORED VIA `tb_sys` and not on `tb_v30_core`**, where it is
+  unfixable by construction.  §82.4 records that the sitting's own registered
+  283/283 for the ucore was a MIS-DERIVED bar and is reported as a MISS.
+  They were **273/283** —  They were 259/283 until SM3 sitting 6
   landed **F43** (the HALT display's decision tests the wake one stage further
   down the same pin pipeline, `int_p[1]` / `eu_unhalt_disp`; closed six
   `busstat` cells, 265), and 265 until sitting 16 landed **F53** — the display
@@ -268,7 +285,12 @@ Values are monotone: never re-scored downward without a loud, itemized entry.)
   Note also: the **w1evt-biased precedent is an archive-by-rename, NOT an
   invalidation** — §24.7 says the old suite is *not retracted* and it is still a
   live gate. It supplies the habit, not the disposition.
-- **`sw/ss_lint.py --core ucore` exits 0** (U4/F49). It was KNOWN-RED through
+- **`sw/ss_lint.py --core ucore` exits 0** — since SM3 sitting 21 at
+  **`SS_VERSION` 0x85 / `SS_COUNT` 217 / `SS_TAG` 0x85D9, 200 flops, 0
+  UNMAPPED** (F56 DELETED `pf_land`; `SSA_B_PF_LAND` / `9'h038` is the map's
+  **first MID-REGION retirement** — a HOLE `ss_addr_of` steps over, with NO
+  symbol renumbered).  The history below is the U4/F49 state and is superseded
+  in its numbers, not in its reasoning. (U4/F49). It was KNOWN-RED through
   U3 because five architectural flops were absent from the ucore's save-state
   map; they are mapped now, `SS_VERSION` **0x83** / **222** addresses /
   `SS_TAG` **0x83DE** (bumped at SM3 sitting 3 by F52, the H1 floor's four
