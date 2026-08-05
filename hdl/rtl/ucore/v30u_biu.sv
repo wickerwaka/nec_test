@@ -589,8 +589,38 @@ wire cur_inta  = r_run && (r_ts == TS_T1) && r_cur_noaddr;
 //
 // F41's `!st_rel` term is SUBSUMED, not dropped: a woken fetch whose DISPLAY
 // lands inside this cycle still publishes, because `display` precedes
-// `halt_hold` in the pin mux and in `ad_oe_addr` below.
-wire halt_hold = r_run && r_cur_halt;
+// `halt_addr` in the pin mux and in `ad_oe_addr` below.
+//
+// F55 -- ...AND "IT STANDS ON THE PADS" IS **RETENTION**, NOT **DRIVE**.
+//
+// The paragraph above is right about what the pads SHOW and wrong about who
+// puts it there.  This wire used to read `r_run && r_cur_halt`, which holds
+// `ad_oe_addr` asserted for the WHOLE pseudo-cycle and republishes
+// `r_cur_addr` on every clock of it.  A pad that is DRIVEN and a pad that is
+// FLOATING at its last driven value are the same value by construction -- until
+// a multi-clock announcement takes the pads in between and is then WITHDRAWN.
+// Then the part shows the WITHDRAWN cycle's address and the re-driving HALT
+// shows its own, and that is the whole of family E's address half: MEASURED on
+// `s13-hltsweep-w2 HLT.INT idx 10/11` row 13 and `-w3 idx 12/13/14` row 15,
+// and on the 30 S16 cells `w2 d10,d11` / `w3 d12,d13,d14` on all six programs.
+// It is the SAME sentence as F53b one pin over -- a pad is loaded by a PHASE
+// and held otherwise -- and `sim/biu_timed.cpp` already carries both (sec.80.A).
+//
+// WHY IT WAS INVISIBLE FOR SO LONG: `tb_v30_core.sv`'s composer is
+// protocol-inferred and excludes a HALT-typed cycle from `core_ps_drive`, so
+// the DEFAULT TB floats those clocks whatever the core does and scored the 35
+// cells green ON THE INSTRUMENT'S AUTHORITY.  `system_large` keys on the
+// core's own `AD_OE` port and does not; the fabric agrees with `system_large`
+// on 1,654 of 1,654 cells (sec.80.B).
+//
+// So the address one-shot ends with the address PHASE, and `ad_oe_ps` below
+// gains `!r_cur_halt` so that nothing else takes the pads either -- F51's
+// "after its address phase it drives nothing", rendered as an enable and not
+// as a value.  No flop is added, nothing outside the pin mux is touched.
+// Falsifier: any capture in which a HALT pseudo-cycle's AD changes on a clock
+// that is neither a display nor a T1 -- i.e. in which the pads are re-driven
+// after the announcement.
+wire halt_addr = r_run && r_cur_halt && (r_ts == TS_T1);
 
 assign bs = display        ? r_cmt_bs
           : (r_run && !st_rel) ? r_cur_bs
@@ -672,15 +702,22 @@ wire [15:0] cur_data_o = pair_now
 assign ad_o = disp_inta                ? {dinta_hi, 16'h0}
             : cur_inta                 ? {cinta_hi, 16'h0}
             : display                 ? {disp_hi, r_cmt_addr[15:0]}
-            : halt_hold               ? r_cur_addr
+            : halt_addr               ? r_cur_addr
             : (r_run && (r_ts == TS_T1))  ? (r_cur_wr && t1_half2
                                          ? {r_cur_addr[19:16], cur_data_o}
                                          : t1_addr)
                                       : {data_ps(r_cur_seg), cur_data_o};
 
-assign ad_oe_addr = (display || (r_run && (r_ts == TS_T1)) || halt_hold) &&
+// F55: `halt_addr` is now wholly subsumed by the `r_ts == TS_T1` term here and
+// is left named for what it selects in `ad_o` above -- the HALT's T1 publishes
+// `r_cur_addr` and not `t1_addr`, which is unchanged.
+assign ad_oe_addr = (display || (r_run && (r_ts == TS_T1)) || halt_addr) &&
                     !disp_inta && !cur_inta;
-assign ad_oe_ps   = (!ad_oe_addr && r_run &&
+// F55 / F51: a HALT pseudo-cycle has no data phase, so the PS/data drive does
+// not take the pads over when the address one-shot expires.  All three enables
+// are LOW for the body of a HALT and the pads RETAIN.  (`ad_oe_data` already
+// carries `!r_cur_halt`.)
+assign ad_oe_ps   = (!ad_oe_addr && r_run && !r_cur_halt &&
                      (r_ts != TS_T1) && (r_ts != TS_TI)) ||
                     disp_inta || cur_inta;
 assign ad_oe_data = (r_run && r_cur_wr && !r_cur_halt && !r_cur_noaddr &&
@@ -2002,9 +2039,9 @@ always @(posedge clk) begin
     if (srst) padtrace_clk <= 0;
     else if (ce) begin
         if (padtrace_en)
-            $display("P %0d ad=%05x oe_addr=%0d oe_ps=%0d oe_data=%0d disp=%0d strel=%0d halthold=%0d curhalt=%0d ts=%0d bs=%0d cmtaddr=%05x",
+            $display("P %0d ad=%05x oe_addr=%0d oe_ps=%0d oe_data=%0d disp=%0d strel=%0d haltaddr=%0d curhalt=%0d ts=%0d bs=%0d cmtaddr=%05x",
                      padtrace_clk, ad_o, ad_oe_addr, ad_oe_ps, ad_oe_data,
-                     display, st_rel, halt_hold, r_cur_halt, r_ts, bs,
+                     display, st_rel, halt_addr, r_cur_halt, r_ts, bs,
                      r_cmt_addr);
         padtrace_clk <= padtrace_clk + 1;
     end
