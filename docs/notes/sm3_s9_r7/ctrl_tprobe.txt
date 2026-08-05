@@ -1,0 +1,19 @@
+==== WORST10 : 10 paths
+  slack    9.226  mcp_setup=3  from emu:emu|system_large:system_large|test_mem:mem|altsyncram:mem_odd|altsyncram_cc91:auto_generated|sld_mod_ram_rom:mgl_prim2|ram_rom_data_reg[0]  ->  sld_hub:auto_hub|alt_sld_fab_with_jtag_input:\instrumentation_fabric_with_node_gen:fabric_gen_new_way:with_jtag_input_gen:instrumentation_fabric|alt_sld_fab:instrumentation_fabric|alt_sld_fab_alt_sld_fab:alt_sld_fab|alt_sld_fab_alt_sld_fab_sldfabric:sldfabric|sld_jtag_hub:\jtag_hub_gen:real_sld_jtag_hub|tdo
+  slack    9.308  mcp_setup=3  from emu:emu|system_large:system_large|capture_buf:capture|altsyncram:buffer|altsyncram_ls91:auto_generated|sld_mod_ram_rom:mgl_prim2|ram_rom_data_reg[0]  ->  sld_hub:auto_hub|alt_sld_fab_with_jtag_input:\instrumentation_fabric_with_node_gen:fabric_gen_new_way:with_jtag_input_gen:instrumentation_fabric|alt_sld_fab:instrumentation_fabric|alt_sld_fab_alt_sld_fab:alt_sld_fab|alt_sld_fab_alt_sld_fab_sldfabric:sldfabric|sld_jtag_hub:\jtag_hub_gen:real_sld_jtag_hub|tdo
+  slack    9.355  mcp_setup=19  from emu:emu|system_large:system_large|v30_core:u_core|v30u_eu:u_eu|upc_opc[3]~DUPLICATE  ->  emu:emu|system_large:system_large|nec_bus:bus|qs_q[1]
+  slack    9.357  mcp_setup=19  from emu:emu|system_large:system_large|v30_core:u_core|v30u_eu:u_eu|upc_opc[4]~DUPLICATE  ->  emu:emu|system_large:system_large|nec_bus:bus|qs_q[1]
+  slack    9.393  mcp_setup=19  from emu:emu|system_large:system_large|v30_core:u_core|v30u_eu:u_eu|upc_opc[3]~DUPLICATE  ->  emu:emu|system_large:system_large|nec_bus:bus|qs_q[1]
+  slack    9.395  mcp_setup=19  from emu:emu|system_large:system_large|v30_core:u_core|v30u_eu:u_eu|upc_opc[4]~DUPLICATE  ->  emu:emu|system_large:system_large|nec_bus:bus|qs_q[1]
+  slack    9.420  mcp_setup=19  from emu:emu|system_large:system_large|v30_core:u_core|v30u_eu:u_eu|upc_opc[3]~DUPLICATE  ->  emu:emu|system_large:system_large|nec_bus:bus|qs_q[1]
+  slack    9.422  mcp_setup=19  from emu:emu|system_large:system_large|v30_core:u_core|v30u_eu:u_eu|upc_opc[4]~DUPLICATE  ->  emu:emu|system_large:system_large|nec_bus:bus|qs_q[1]
+  slack    9.449  mcp_setup=19  from emu:emu|system_large:system_large|v30_core:u_core|v30u_eu:u_eu|upc_opc[3]~DUPLICATE  ->  emu:emu|system_large:system_large|nec_bus:bus|qs_q[1]
+  slack    9.451  mcp_setup=19  from emu:emu|system_large:system_large|v30_core:u_core|v30u_eu:u_eu|upc_opc[4]~DUPLICATE  ->  emu:emu|system_large:system_large|nec_bus:bus|qs_q[1]
+==== c_ready_q -> wb_kind : 0 paths
+==== from c_ready_q : 5 paths
+  slack   11.540  mcp_setup=20  from emu:emu|system_large:system_large|c_ready_q  ->  emu:emu|system_large:system_large|v30_core:u_core|v30u_eu:u_eu|row_posted
+  slack   11.544  mcp_setup=20  from emu:emu|system_large:system_large|c_ready_q  ->  emu:emu|system_large:system_large|v30_core:u_core|v30u_eu:u_eu|row_slot_wait~0_OTERM2375
+  slack   12.435  mcp_setup=19  from emu:emu|system_large:system_large|c_ready_q  ->  emu:emu|system_large:system_large|v30_core:u_core|v30u_eu:u_eu|row_posted
+  slack   12.439  mcp_setup=19  from emu:emu|system_large:system_large|c_ready_q  ->  emu:emu|system_large:system_large|v30_core:u_core|v30u_eu:u_eu|row_slot_wait~0_OTERM2375
+  slack   21.883  mcp_setup=5  from emu:emu|system_large:system_large|c_ready_q  ->  emu:emu|system_large:system_large|v30_core:u_core|v30u_biu:u_biu|r_cmt_data[3]
+==== to core_ad_hold : 0 paths

@@ -1,0 +1,33 @@
+SCOPE 2220
+DPIN_MAP 1719  EPIN_MAP 1014
+CE_GATED 915   NOT_CE_GATED 14   NO_PINS_FOUND 1291   (of 2220)
+  NOPINS emu:emu|system_large:system_large|v30_core:u_core|v30u_biu:u_biu|r_q_head[2]
+  NOPINS emu:emu|system_large:system_large|v30_core:u_core|v30u_biu:u_biu|r_q_head[0]
+  NOPINS emu:emu|system_large:system_large|v30_core:u_core|v30u_biu:u_biu|r_q_head[1]
+  NOPINS emu:emu|system_large:system_large|v30_core:u_core|v30u_biu:u_biu|Mux0~0_OTERM2295
+  NOPINS emu:emu|system_large:system_large|v30_core:u_core|v30u_biu:u_biu|Mux6~1_OTERM3158
+  NOPINS emu:emu|system_large:system_large|v30_core:u_core|v30u_biu:u_biu|Mux2~0_OTERM2291
+  NOPINS emu:emu|system_large:system_large|v30_core:u_core|v30u_biu:u_biu|Mux5~1_OTERM3154
+  NOPINS emu:emu|system_large:system_large|v30_core:u_core|v30u_eu:u_eu|opr_free_now~1_OTERM3869
+  NOPINS emu:emu|system_large:system_large|v30_core:u_core|v30u_eu:u_eu|opc_byte[0]_OTERM2431
+  NOPINS emu:emu|system_large:system_large|v30_core:u_core|v30u_eu:u_eu|opc_byte[5]_OTERM2451
+  NOPINS emu:emu|system_large:system_large|v30_core:u_core|v30u_eu:u_eu|opc_byte[5]_OTERM2455
+  NOPINS emu:emu|system_large:system_large|v30_core:u_core|v30u_eu:u_eu|opc_byte[3]_OTERM2437
+  NOPINS emu:emu|system_large:system_large|v30_core:u_core|v30u_biu:u_biu|Mux4~1_OTERM3156
+  NOPINS emu:emu|system_large:system_large|v30_core:u_core|v30u_eu:u_eu|opc_byte[6]_OTERM2449
+  NOPINS emu:emu|system_large:system_large|v30_core:u_core|v30u_biu:u_biu|Mux3~1_OTERM3160
+  NOPINS emu:emu|system_large:system_large|v30_core:u_core|v30u_eu:u_eu|nr_wait_OTERM2810
+  NOPINS emu:emu|system_large:system_large|v30_core:u_core|v30u_biu:u_biu|r_done_ctr[0]
+  NOCE   emu:emu|system_large:system_large|v30_core:u_core|v30u_biu:u_biu|r_evald~DUPLICATE
+  NOCE   emu:emu|system_large:system_large|v30_core:u_core|v30u_biu:u_biu|r_done_ctr[1]~DUPLICATE
+  NOPINS emu:emu|system_large:system_large|v30_core:u_core|v30u_biu:u_biu|r_done_wr
+  NOPINS emu:emu|system_large:system_large|v30_core:u_core|v30u_biu:u_biu|Mux7~1_OTERM3152
+  NOPINS emu:emu|system_large:system_large|v30_core:u_core|v30u_eu:u_eu|m_seg[0]_OTERM1834
+  NOPINS emu:emu|system_large:system_large|v30_core:u_core|v30u_eu:u_eu|opc_byte[0]_OTERM2425
+  NOPINS emu:emu|system_large:system_large|v30_core:u_core|v30u_eu:u_eu|m_seg[0]_OTERM1832
+  NOPINS emu:emu|system_large:system_large|v30_core:u_core|v30u_eu:u_eu|opc_byte[0]_OTERM2427
+  NOPINS emu:emu|system_large:system_large|v30_core:u_core|v30u_eu:u_eu|opc_byte[0]_OTERM2429
+  NOPINS emu:emu|system_large:system_large|v30_core:u_core|v30u_biu:u_biu|r_done_ctr[0]~DUPLICATE
+  NOPINS emu:emu|system_large:system_large|v30_core:u_core|v30u_eu:u_eu|Equal157~0_OTERM2032
+  NOPINS emu:emu|system_large:system_large|v30_core:u_core|v30u_eu:u_eu|rd_done_cnt[1]
+  NOPINS emu:emu|system_large:system_large|v30_core:u_core|v30u_eu:u_eu|rd_done_cnt[0]

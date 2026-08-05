@@ -1,0 +1,40 @@
+==== WORST10 : 10 paths
+  slack  -18.132  mcp_setup=55  from emu:emu|system_large:system_large|c_ready_q  ->  emu:emu|system_large:system_large|v30_core:u_core|v30u_eu:u_eu|wb_kind[1]
+  slack  -18.129  mcp_setup=56  from emu:emu|system_large:system_large|c_ready_q  ->  emu:emu|system_large:system_large|v30_core:u_core|v30u_eu:u_eu|wb_kind[1]
+  slack  -18.125  mcp_setup=56  from emu:emu|system_large:system_large|c_ready_q  ->  emu:emu|system_large:system_large|v30_core:u_core|v30u_eu:u_eu|wb_kind[1]
+  slack  -18.114  mcp_setup=55  from emu:emu|system_large:system_large|c_ready_q  ->  emu:emu|system_large:system_large|v30_core:u_core|v30u_eu:u_eu|wb_kind[1]
+  slack  -18.111  mcp_setup=56  from emu:emu|system_large:system_large|c_ready_q  ->  emu:emu|system_large:system_large|v30_core:u_core|v30u_eu:u_eu|wb_kind[1]
+  slack  -18.107  mcp_setup=56  from emu:emu|system_large:system_large|c_ready_q  ->  emu:emu|system_large:system_large|v30_core:u_core|v30u_eu:u_eu|wb_kind[1]
+  slack  -18.095  mcp_setup=56  from emu:emu|system_large:system_large|c_ready_q  ->  emu:emu|system_large:system_large|v30_core:u_core|v30u_eu:u_eu|wb_kind[1]
+  slack  -18.093  mcp_setup=55  from emu:emu|system_large:system_large|c_ready_q  ->  emu:emu|system_large:system_large|v30_core:u_core|v30u_eu:u_eu|wb_kind[1]
+  slack  -18.090  mcp_setup=56  from emu:emu|system_large:system_large|c_ready_q  ->  emu:emu|system_large:system_large|v30_core:u_core|v30u_eu:u_eu|wb_kind[1]
+  slack  -18.086  mcp_setup=56  from emu:emu|system_large:system_large|c_ready_q  ->  emu:emu|system_large:system_large|v30_core:u_core|v30u_eu:u_eu|wb_kind[1]
+==== c_ready_q -> wb_kind : 5 paths
+  slack  -18.132  mcp_setup=55  from emu:emu|system_large:system_large|c_ready_q  ->  emu:emu|system_large:system_large|v30_core:u_core|v30u_eu:u_eu|wb_kind[1]
+  slack  -18.129  mcp_setup=56  from emu:emu|system_large:system_large|c_ready_q  ->  emu:emu|system_large:system_large|v30_core:u_core|v30u_eu:u_eu|wb_kind[1]
+  slack  -18.125  mcp_setup=56  from emu:emu|system_large:system_large|c_ready_q  ->  emu:emu|system_large:system_large|v30_core:u_core|v30u_eu:u_eu|wb_kind[1]
+  slack  -18.114  mcp_setup=55  from emu:emu|system_large:system_large|c_ready_q  ->  emu:emu|system_large:system_large|v30_core:u_core|v30u_eu:u_eu|wb_kind[1]
+  slack  -18.111  mcp_setup=56  from emu:emu|system_large:system_large|c_ready_q  ->  emu:emu|system_large:system_large|v30_core:u_core|v30u_eu:u_eu|wb_kind[1]
+==== from c_ready_q : 5 paths
+  slack  -18.132  mcp_setup=55  from emu:emu|system_large:system_large|c_ready_q  ->  emu:emu|system_large:system_large|v30_core:u_core|v30u_eu:u_eu|wb_kind[1]
+  slack  -18.129  mcp_setup=56  from emu:emu|system_large:system_large|c_ready_q  ->  emu:emu|system_large:system_large|v30_core:u_core|v30u_eu:u_eu|wb_kind[1]
+  slack  -18.125  mcp_setup=56  from emu:emu|system_large:system_large|c_ready_q  ->  emu:emu|system_large:system_large|v30_core:u_core|v30u_eu:u_eu|wb_kind[1]
+  slack  -18.114  mcp_setup=55  from emu:emu|system_large:system_large|c_ready_q  ->  emu:emu|system_large:system_large|v30_core:u_core|v30u_eu:u_eu|wb_kind[1]
+  slack  -18.111  mcp_setup=56  from emu:emu|system_large:system_large|c_ready_q  ->  emu:emu|system_large:system_large|v30_core:u_core|v30u_eu:u_eu|wb_kind[1]
+==== to core_ad_hold : 5 paths
+  slack    4.818  mcp_setup=20  from emu:emu|system_large:system_large|v30_core:u_core|v30u_eu:u_eu|upc_opc[2]  ->  emu:emu|system_large:system_large|core_ad_hold[10]
+  slack    4.819  mcp_setup=20  from emu:emu|system_large:system_large|v30_core:u_core|v30u_eu:u_eu|upc_opc[6]  ->  emu:emu|system_large:system_large|core_ad_hold[10]
+  slack    4.826  mcp_setup=20  from emu:emu|system_large:system_large|v30_core:u_core|v30u_eu:u_eu|upc_opc[2]  ->  emu:emu|system_large:system_large|core_ad_hold[10]
+  slack    4.827  mcp_setup=20  from emu:emu|system_large:system_large|v30_core:u_core|v30u_eu:u_eu|upc_opc[6]  ->  emu:emu|system_large:system_large|core_ad_hold[10]
+  slack    4.841  mcp_setup=20  from emu:emu|system_large:system_large|v30_core:u_core|v30u_eu:u_eu|upc_opc[6]  ->  emu:emu|system_large:system_large|core_ad_hold[10]
+==== from core_ad_hold : 5 paths
+  slack   29.583  mcp_setup=1  from emu:emu|system_large:system_large|core_ad_hold[10]  ->  emu:emu|system_large:system_large|nec_bus:bus|ad_in_q[10]
+  slack   29.779  mcp_setup=1  from emu:emu|system_large:system_large|core_ad_hold[7]  ->  emu:emu|system_large:system_large|nec_bus:bus|ad_in_q[7]
+  slack   29.783  mcp_setup=1  from emu:emu|system_large:system_large|core_ad_hold[9]  ->  emu:emu|system_large:system_large|nec_bus:bus|ad_in_q[9]
+  slack   29.852  mcp_setup=1  from emu:emu|system_large:system_large|core_ad_hold[2]  ->  emu:emu|system_large:system_large|nec_bus:bus|ad_in_q[2]
+  slack   29.863  mcp_setup=1  from emu:emu|system_large:system_large|core_ad_hold[12]  ->  emu:emu|system_large:system_large|nec_bus:bus|ad_in_q[12]
+FAILING_PATHS 20000
+--- launch registers of failing paths ---
+  20000  emu:emu|system_large:system_large|c_ready_q
+--- capture buckets ---
+  20000  EU

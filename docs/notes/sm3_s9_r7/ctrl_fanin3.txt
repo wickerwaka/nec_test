@@ -1,0 +1,16 @@
+REG emu:emu|system_large:system_large|v30_core:u_core|v30u_eu:u_eu|wb_kind[1]~DUPLICATE pins={d ena sclr} faninkeepers=1771 self=1 divcnt=1 : 
+REG emu:emu|system_large:system_large|v30_core:u_core|v30u_eu:u_eu|wb_kind[1] pins={d ena sclr} faninkeepers=1771 self=1 divcnt=1 : 
+REG emu:emu|system_large:system_large|v30_core:u_core|v30u_eu:u_eu|wb_kind[0] pins={d ena sclr} faninkeepers=1787 self=1 divcnt=1 : 
+REG emu:emu|system_large:system_large|v30_core:u_core|v30u_eu:u_eu|row_posted pins={d} faninkeepers=979 self=1 divcnt=1 : READY@d 
+REG emu:emu|system_large:system_large|v30_core:u_core|v30u_eu:u_eu|st[2] pins={d ena sload} faninkeepers=885 self=1 divcnt=1 : 
+REG emu:emu|system_large:system_large|v30_core:u_core|v30u_eu:u_eu|st[0] pins={d ena sload} faninkeepers=885 self=1 divcnt=1 : 
+REG emu:emu|system_large:system_large|v30_core:u_core|v30u_eu:u_eu|st[3] pins={d ena sload} faninkeepers=885 self=1 divcnt=1 : 
+REG emu:emu|system_large:system_large|v30_core:u_core|v30u_eu:u_eu|st[5] pins={d ena} faninkeepers=885 self=1 divcnt=1 : 
+REG emu:emu|system_large:system_large|v30_core:u_core|v30u_eu:u_eu|st[4] pins={d ena sload} faninkeepers=885 self=1 divcnt=1 : 
+REG emu:emu|system_large:system_large|v30_core:u_core|v30u_eu:u_eu|st[1] pins={d ena sload} faninkeepers=885 self=1 divcnt=1 : 
+REG emu:emu|system_large:system_large|v30_core:u_core|v30u_eu:u_eu|opc_byte[1] pins={d} faninkeepers=883 self=1 divcnt=1 : 
+REG emu:emu|system_large:system_large|v30_core:u_core|v30u_eu:u_eu|opc_byte[0]_OTERM2431 pins={} faninkeepers=0 self=0 divcnt=0 : 
+REG emu:emu|system_large:system_large|v30_core:u_core|v30u_eu:u_eu|opc_byte[5]_OTERM2451 pins={} faninkeepers=0 self=0 divcnt=0 : 
+REG emu:emu|system_large:system_large|v30_core:u_core|v30u_eu:u_eu|opc_byte[5]_OTERM2455 pins={} faninkeepers=0 self=0 divcnt=0 : 
+REG emu:emu|system_large:system_large|v30_core:u_core|v30u_eu:u_eu|opc_byte[3]_OTERM2437 pins={} faninkeepers=0 self=0 divcnt=0 : 
+REG emu:emu|system_large:system_large|v30_core:u_core|v30u_eu:u_eu|opc_byte[6]_OTERM2449 pins={} faninkeepers=0 self=0 divcnt=0 : 

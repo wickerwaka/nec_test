@@ -8800,6 +8800,19 @@ retention model, and it is 20 flops.
 ### §69.6 WHY 20 FLOPS COST 25 MHz — **A NAME-SCOPED TIMING EXCEPTION, AND IT
 IS A FINDING ABOUT THE SIGN-OFF, NOT ABOUT THE MODEL**
 
+> **ERRATUM, entered 2026-08-04 by SM3 sitting 9 — READ §70 BEFORE USING THIS
+> SUBSECTION.**  The paragraph below beginning *"And the SDC's exception
+> collection moves with it: **2,220 → 2,139, 81 fewer**"* is **WRONG, and with
+> it R7's whole premise.**  The two numbers are read at DIFFERENT STAGES of the
+> flow: 2,220 is the control's POST-FIT figure and 2,139 is the retention
+> build's MID-FITTER figure.  Compared stage for stage the collection **GREW**
+> — 2,075 → 2,139 mid-fitter and 2,220 → **2,251** post-fit.  The exception is
+> not under-applying; nothing escaped it; **no register left the collection.**
+> The rest of this subsection — the worst path, the control's absence of it,
+> the fitter being where the difference is made — reproduces exactly and
+> stands.  The text is left as written, with this marker, because a ledger that
+> deletes its own errors is not a ledger.  §70 has the measurement.
+
 Synthesis is IDENTICAL between the two builds apart from the model itself
 (4,797 → 4,817 registers, exactly +20).  Everything else happens in the FITTER.
 
@@ -8902,3 +8915,196 @@ that any change to a shared harness needs.
 3. **H1a's landing** with the bar rewritten on w0 and on minima (§68.10 lead 1).
 4. **H7's bank association** and **H3's steady-state prefetcher** (§68.10
    leads 2 and 3), both board-free to open.
+
+## §70 SESSION SM3, SITTING 9 — **R7 IS REFUTED.  NOTHING ESCAPED THE EXCEPTION, AND THE SDC IS NOT EDITED**
+
+**2026-08-04, branch `ucsim`, from HEAD `7de3a347ae`.  Task #37.  A BOARD
+SITTING WITH FLASHING AUTHORISED — AND NO BOARD WAS TOUCHED, because the
+offline item it was contingent on did not survive its own first measurement.**
+
+> **Standing principle, applied throughout.**  *"A guiding principal here needs
+> to be simplicity.  This is 80's era hardware, they aren't wasting silicon on
+> anything that isn't necessary.  Complex or confusing behavior that we see is
+> likely to be simple systems interacting in ways you do not fully understand
+> yet."*
+
+**THE ONE-LINE RESULT.**  The sitting was commissioned to make the CE multicycle
+collection STRUCTURAL because §69.6 measured 81 registers escaping the
+hierarchical name scope.  **They did not escape.  The collection GREW.**  The
+"81 fewer" is a stage-mismatch inside a single Quartus log, and once it is read
+stage for stage the retention build's collection is 64 LARGER mid-fitter and 31
+LARGER post-fit.  **`nec_test.sdc` is therefore NOT edited**, no structural
+collection is shipped, no bitstream was built for flashing, and **C11's `NOT
+ESTABLISHED` stands** — for a third and again different reason.
+
+### §70.1 THE REPRODUCTION — the retention build is deterministic
+
+`gen_ucore_qsf --check` green first, then `quartus_map --verilog_macro=
+X1_AD_RETENTION=1` + `fit` + `sta` from HEAD, unchanged SDC.  Against §69.4:
+
+| | §69.4 | **this sitting** |
+|---|---|---|
+| ALMs | 11,279 (27 %) | **11,279 (27 %)** |
+| fitter registers | 6,139 | **6,139** |
+| worst setup, `divclk` | −18.132 ns | **−18.132 ns** |
+| TNS, setup, `divclk` | −11,049.741 | **−11,049.741** |
+
+Every number reproduces to the digit.  Nothing in what follows is a different
+build; it is the same build, interrogated.
+
+### §70.2 **R7's PREMISE, REFUTED — READ THE COLLECTION SIZE AT ONE STAGE**
+
+The SDC prints its own collection size every time Quartus reads it, and Quartus
+reads it EIGHT times per flow.  §69.6 compared the control's LAST print with the
+retention build's FIFTH.  Aligned by flow position — the `Info` lines are in the
+same order in both logs, at the same `Info (170189)/(170191)/(11801)` stage
+boundaries:
+
+| flow stage | control (macro OFF) | retention (macro ON) |
+|---|---|---|
+| fitter start (×3) | 1,081 | **1,081** |
+| fitter preparation end | 2,075 | **2,139** |
+| placement preparation | 2,075 | **2,139** |
+| after placement | 2,075 | **2,139** |
+| **post-fit (`fit.rpt`)** | **2,220** | **2,251** |
+| **STA (`sta.rpt`)** | **2,220** | **2,251** |
+
+**+64 mid-fitter, +31 post-fit.  The exception did not under-apply, no register
+left the collection, and the mechanism §69.6 named — "a duplicate that lands at
+the parent level is outside the name scope" — did not happen in this build.**
+Corroborating: the pre-fitter figure is **1,081 in both**, i.e. the netlist the
+fitter starts from is the same one, as A&S said (4,797 → 4,817 registers, the
+model's +20 and nothing else).
+
+### §70.3 WHAT ACTUALLY FAILS — **ONE LAUNCH REGISTER, AND IT IS NOT CE-GATED**
+
+`get_timing_paths -setup -less_than_slack 0` on the retention netlist, first
+20,000 paths:
+
+* **launch register: `emu|system_large|c_ready_q` on 20,000 of 20,000.**
+* **capture: inside `v30u_eu` on 20,000 of 20,000.**
+* worst ten: −18.132 … −18.086 ns, **55–56 logic levels**, all to
+  `v30u_eu|wb_kind[1]`.
+
+And `c_ready_q` is, in full (`system_large.sv:363`):
+
+```
+always_ff @(posedge clk) begin
+    c_ready_q <= hb_ready;      // no enable, no ce, every sys clock
+```
+
+**No collection of CE-gated registers — name-scoped, structural, generated or
+hand-written — can contain it**, and §52 registered exactly that in advance:
+*"Paths that CROSS the boundary … are NOT excepted and stay single-cycle, which
+is correct: their launch registers are not CE-gated."*  **The fix R7 asks for
+cannot move this path.**  That is the whole reason the SDC is left alone: not
+discipline about widening after seeing a result — though that rule holds too —
+but that the widening is measurably powerless.
+
+The retention model's OWN paths are not the problem either, measured on the same
+netlist: worst path INTO `core_ad_hold[*]` is **+4.818 ns** (from
+`v30u_eu|upc_opc[2]`, 20 levels), worst path OUT of it **+29.583 ns** (to
+`nec_bus|ad_in_q[10]`, 1 level).
+
+### §70.4 THE CONTROL, SAME QUERIES — and §69.6's live half
+
+On the macro-OFF netlist (FLASH #5's, 2,220 / 45.67 MHz / +9.355, restored from
+`~/.cache/ucsimt-tmp/sm3s9/ctrl_flash5/`):
+
+| query | control | retention |
+|---|---|---|
+| `-from c_ready_q -to *wb_kind*` | **0 paths** | −18.132, 55–56 levels |
+| worst `-from c_ready_q` | +11.540, **20 levels**, → `v30u_eu|row_posted` and `v30u_eu|row_slot_wait~0_OTERM2375` | −18.132, 56 levels |
+| worst core path overall | `v30u_eu|upc_opc[3]~DUPLICATE → nec_bus|qs_q[1]`, 19 levels, **+9.355** | — |
+
+§69.6's *"in the control that path does not exist"* is **CONFIRMED**, and
+`row_posted`'s `d`-pin fanin does contain `c_ready_q` while `wb_kind[1]`'s does
+not, so the READY cone reaches the EU in the control too — it is 20 levels deep
+there and 56 deep in the retention build.  Synthesis is the same netlist
+(§70.2), so **the whole of the difference is made inside the fitter**:
+`Retimed Register` rows in `fit.rpt` go 2,041 → **2,263** and `Duplicated`
+304 → **272**.  WHY physical synthesis restructured that one cone differently is
+**NOT established here** and is not guessed at.
+
+### §70.5 THE FRAGILITY IS REAL — IT IS JUST NOT IN THE SDC
+
+Restated as measured, and it is simpler than R7 was: **`READY` reaches the EU's
+next-state logic through a 55–56 level SINGLE-CYCLE combinational cone, and the
+signed-off build meets timing on it only because the fitter's physical synthesis
+happens to break that cone.**  Perturb the design and the fitter may not.  No
+gate in the tree sees this, which is the one thing R7 got right.
+
+**THE LEAD, NAMED AND NOT TAKEN.**  `hb_ready` is `nec_bus`'s `NEC_READY`
+output, and that is `ready_pin`, which updates only `if (tick_fall)`
+(`nec_bus.sv:541`).  So `c_ready_q` changes only on the sys clock AFTER
+`tick_fall`, and the core samples it at `tick_rise`, `cfg_clk_div/2` sys clocks
+later.  A multicycle on the harness→core input pipe is therefore arguable — but
+only if the divider is pinned, and **at the documented minimum `cfg_clk_div = 4`
+the margin is exactly ONE clock**, so at the minimum divider it buys nothing.
+It is a design decision (pin the divider, or CE-gate the input pipe, or shorten
+the cone) that needs its own pre-registration, its own falsifier and its own
+before/after on BOTH revisions.  **Choosing it now, after a failed bar, is the
+manoeuvre CLAUDE.md forbids by name.**  Handed on.
+
+### §70.6 A SECOND, SMALLER FINDING — **THE SDC's OWN FALSIFIER HAS NEVER BEEN RUN, AND IT NEEDS AN INSTRUMENT**
+
+`nec_test.sdc` has carried, since §52, the falsifier *"a `v30u_eu` or
+`v30u_biu` state register with no clock-enable input"*.  It has never been
+checked mechanically.  Attempted here on the control netlist and **NOT
+COMPLETED — reported as an instrument gap, not as a result**:
+
+* of the 2,220 collected registers, **1,014** expose an `ena` pin and **1,719** a
+  `d` pin under `get_pins`; **1,291** expose neither, because a Cyclone V ALM
+  register can take its data through `asdata`/`sload` and its enable as a data
+  feedback mux instead of the `ena` port.  A checker must handle all those forms
+  or it reports absence of evidence as evidence.
+* of the **929** that could be classified, **915** show CE evidence (`div_cnt`
+  in the `ena` fanin, or self-feedback on `d`) and **14** do not — all 14 are
+  `~DUPLICATE` nodes.  **This is not a finding in either direction.**
+* incidentally: **1,295 of the retention build's 2,251 collected names are
+  physical-synthesis artefacts** (`_OTERM…`, `~DUPLICATE`).  Reasoning about
+  that collection by name is fragile on its face — it simply did not fail in the
+  direction R7 predicted.
+
+`get_fanouts <src> -no_logic -through [get_pins *|ena]`, the recipe TimeQuest's
+own `help get_fanouts` gives for this, returns an EMPTY collection on this
+netlist and is recorded here as tried and non-working in 17.1 Lite.
+
+### §70.7 THE DISPOSITIONS
+
+* **`nec_test.sdc` is NOT EDITED.**  No structural collection, no generated
+  register list, no widening.  §70.3 is the reason and it is a measurement.
+* **NO BUILD WAS MADE FOR FLASHING and NO BOARD WAS TOUCHED.**  Zero board
+  contact in the sitting: no single-writer probe, no `div_guard`, no capture,
+  no `board_idle` — there was nothing to idle.  `sw/testdata/flash_log.jsonl`
+  is **unchanged at 8 entries**.  The board still carries **FLASH #5**.
+* **THE X1 / §56.3a FABRIC LEG WAS NOT RUN.**  Not attempted, not partially
+  scored, not quoted.  Its blocker is unchanged from §69: the retention build
+  misses Fmax.  What changed is that the ROUTE OUT of that blocker named in
+  §69.10 lead 1 is now known not to lead anywhere.
+* **C11 `NOT ESTABLISHED` STANDS.**
+* **R7 IS REFUTED AND RECLASSIFIED**, in `ucore_gaps_2026-08-04.md` and
+  `standing_gates.md`, to what §70.5 measures.
+* **EVERY STANDING GATE IS UNMOVED** — no RTL, no tool and no golden was
+  touched this sitting, so none was re-run and none is re-quoted.  The only
+  tracked file changed besides the notes is `hdl/nec_test_ucore.qsf`,
+  regenerated after Quartus materialised its sourced assignments into it
+  (`gen_ucore_qsf --check` green), which is the documented behaviour.
+
+### §70.8 EVIDENCE
+
+`docs/notes/sm3_s9_r7/` — the three TimeQuest probes and their outputs on both
+netlists.  Both netlists preserved whole under
+`~/.cache/ucsimt-tmp/sm3s9/{ctrl_flash5,ret_oldsdc}/` (db + incremental_db +
+reports), so every number above is re-queryable without a rebuild.
+
+### §70.9 THE LEADS THIS SITTING HANDS THE NEXT ONE
+
+1. **§70.5's READY cone** — the real fragility, board-free, with both netlists
+   preserved and a control ready-made.  It is an RTL/harness question, not an
+   SDC one, and it needs a pre-registration before any timing run.
+2. **§70.6's falsifier instrument** — small, board-free, and it would be the
+   first mechanical check of a claim the SDC has asserted since §52.
+3. **Then the X1 fabric leg**, unchanged and still blocked (§69.10 lead 2).
+4. **H1a's landing**, **H7's bank association**, **H3's steady-state
+   prefetcher** — all still queued (§68.10).
