@@ -326,6 +326,7 @@ wire        bus_tick_rise, bus_tick_fall;
 
 // shared internal AD bus for the core (like tb_v30_core's memory-driven AD)
 tri  [19:0] core_ad;
+wire [19:0] core_ad_oe;      // the core's OWN pad output enable (task #37)
 wire  [1:0] core_qs;
 wire  [2:0] core_bs;
 wire        core_rd_n, core_ube_n, core_buslock_n;
@@ -388,6 +389,7 @@ v30_core u_core
     .NMI       (c_nmi_q),
     .POLL_N    (c_polln_q),
     .AD        (core_ad),
+    .AD_OE     (core_ad_oe),
     .QS        (core_qs),
     .BS        (core_bs),
     .RD_N      (core_rd_n),
@@ -426,35 +428,48 @@ assign hb_buslock_n = cfg_use_core ? core_buslock_n : NEC_BUSLOCK_N;
 //
 // THE ONE DEVIATION FROM THE LETTER OF §56.3a, STATED BEFORE THE RUN: the
 // retention is applied on the OBSERVATION path (`hb_ad_sample`, what nec_bus
-// captures) and NOT as a keeper driving `core_ad` itself.  Two reasons, and
-// the first is decisive:
-//   1. a keeper driving the net cannot be written without an "is anyone else
-//      driving" term, and the only honest source of that term is the core's
-//      own output enable -- which is not a port, and manufacturing one in the
-//      harness would be re-deriving the core's OE from its status pins, i.e.
-//      a fitted rule in the exact place the intervention must not have one.
-//   2. it keeps the core's INPUT untouched.  Feeding a retained value back
-//      into the core would change what the core SEES, and an intervention
-//      that also changes the core confounds the question -- which is the
-//      registration's own stated constraint.
-// So this tests the claim as it is actually made ("the row READS the harness's
-// INTA vector byte instead of the retained previous data phase") and no more.
+// captures) and NOT as a keeper driving `core_ad` itself.  It keeps the core's
+// INPUT untouched -- feeding a retained value back into the core would change
+// what the core SEES, and an intervention that also changes the core confounds
+// the question, which is the registration's own stated constraint.  So this
+// tests the claim as it is actually made ("the row READS the harness's INTA
+// vector byte instead of the retained previous data phase") and no more.
+//
+// THE "IS ANYONE DRIVING" TERM (task #37, user-approved 2026-08-04).  The
+// original model asked the NET -- `core_ad[i] === 1'bz` -- and §59.7.1 measured
+// what that costs: Quartus 17.1 folds `=== 1'bz` on an INTERNAL tri-state to a
+// constant, `core_ad_eff` collapses to `core_ad`, `core_ad_hold` loses its
+// fanout and is DELETED at elaboration.  The construct is simulation-only, so
+// the fabric leg was blocked and the intervention could not be run in silicon.
+//
+// It now asks the CORE, through `AD_OE` -- the pads' own output enable, which
+// the real part has and which the core publishes as a wire off the same
+// expression its `assign AD[...]` already uses.  §56.3a's prohibition is on
+// MANUFACTURING an OE in the harness (re-deriving it from the status pins);
+// this is the core stating its own truth, so the prohibition is satisfied and
+// not evaded.  The core is unchanged in behaviour: one output port, one wire.
+//
+// EQUIVALENCE WITH THE `=== 1'bz` FORM, which is what the offline re-run
+// proves.  `core_ad` has EXACTLY TWO drivers: the core's `AD` (enabled by
+// `AD_OE`) and the harness read-data assign above (enabled by `c_addrv_q`, and
+// only on [15:0]).  So the net is z at bit i iff no driver is enabled at bit i,
+// which is exactly `!core_ad_drv[i]` below.  `tb_sys --leg ret` must reproduce
+// its recorded 265/283 cell for cell, and that is the check.
 //----------------------------------------------------------------------------
 `ifdef X1_AD_RETENTION
+wire [19:0] core_ad_drv = core_ad_oe | {4'b0, {16{c_addrv_q}}};
 reg  [19:0] core_ad_hold;
-wire [19:0] core_ad_z;
 wire [19:0] core_ad_eff;
 genvar gad;
 generate
     for (gad = 0; gad < 20; gad = gad + 1) begin : g_ad_ret
-        assign core_ad_z[gad]   = (core_ad[gad] === 1'bz);
-        assign core_ad_eff[gad] = core_ad_z[gad] ? core_ad_hold[gad]
-                                                 : core_ad[gad];
+        assign core_ad_eff[gad] = core_ad_drv[gad] ? core_ad[gad]
+                                                   : core_ad_hold[gad];
     end
 endgenerate
 always_ff @(posedge clk)
     for (int i = 0; i < 20; i = i + 1)
-        if (!core_ad_z[i]) core_ad_hold[i] <= core_ad[i];
+        if (core_ad_drv[i]) core_ad_hold[i] <= core_ad[i];
 `else
 wire [19:0] core_ad_eff = core_ad;
 `endif

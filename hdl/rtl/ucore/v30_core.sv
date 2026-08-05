@@ -40,6 +40,7 @@ module v30_core (
     input             NMI,
     input             POLL_N,
     inout      [19:0] AD,
+    output     [19:0] AD_OE,     // the pads' own output enable (task #37)
     output      [1:0] QS,
     output      [2:0] BS,
     output            RD_N,
@@ -284,6 +285,24 @@ v30u_eu u_eu (
 // data phase; AD[15:0] additionally carry write data.
 assign AD[15:0]  = (ad_oe_addr | ad_oe_data) ? ad_o[15:0]  : 16'hzzzz;
 assign AD[19:16] = (ad_oe_addr | ad_oe_ps)   ? ad_o[19:16] : 4'hz;
+
+// AD_OE -- THE PADS' OWN OUTPUT ENABLE, PUBLISHED (task #37, user-approved
+// 2026-08-04).  This is a WIRE, not a rule: it is bit-for-bit the SAME
+// expression the two `assign AD[...]` statements above already use to decide
+// whether to drive, so it adds no logic and cannot disagree with the drive.
+// The real part has two pad-enable groups (AD0-15, A16-19/PS0-3) and so does
+// this; the 20-bit form just replicates them so a consumer needs no knowledge
+// of where the groups split.
+//
+// WHY IT EXISTS.  ucore_provenance.md §56.3a's retention intervention needs an
+// "is anyone driving" term, and §56.3a forbids MANUFACTURING one in the
+// harness (that would be a fitted rule in the exact place the intervention
+// must not have one).  It does not forbid the core TELLING the truth: the
+// V30's pads have an output enable, so publishing it is the part's own
+// structure, not the instrument's.  §59.7.1's blocker -- Quartus 17.1 folds
+// `net === 1'bz` on an internal tri-state and deletes the retention register
+// -- is removed by construction, because the model no longer asks the net.
+assign AD_OE = {{4{ad_oe_addr | ad_oe_ps}}, {16{ad_oe_addr | ad_oe_data}}};
 
 // BUSLOCK is not implemented (inherited scope note; the FSM core drives it
 // from the EU's LOCK prefix, which U2 restores).

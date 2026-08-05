@@ -183,6 +183,7 @@ reg         ss_we_r = 1'b0;
 wire [15:0] ss_rdata;
 wire        ss_err;
 wire        ss_bus_quiet;
+wire [19:0] dut_ad_oe;   // task #37: connected, deliberately unconsumed here
 
 v30_core dut (
     .CLK       (clk),
@@ -194,6 +195,9 @@ v30_core dut (
     .NMI       (pin_nmi),
     .POLL_N    (pin_poll_n),
     .AD        (AD),
+    .AD_OE     (dut_ad_oe),   // published pad enable (task #37); the TB
+                              // models retention in its memory and does not
+                              // consume it -- see hdl/rtl/*/v30_core.sv
     .QS        (QS),
     .BS        (BS),
     .RD_N      (RD_N),

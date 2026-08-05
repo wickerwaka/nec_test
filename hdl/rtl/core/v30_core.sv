@@ -72,6 +72,7 @@ module v30_core (
     input             NMI,
     input             POLL_N,
     inout      [19:0] AD,
+    output     [19:0] AD_OE,     // the pads' own output enable (task #37)
     output      [1:0] QS,
     output      [2:0] BS,
     output            RD_N,
@@ -347,6 +348,14 @@ v30_eu u_eu (
 // the data phase; AD[15:0] additionally carry write data.
 assign AD[15:0]  = (ad_oe_addr | ad_oe_data) ? ad_o[15:0]  : 16'hzzzz;
 assign AD[19:16] = (ad_oe_addr | ad_oe_ps)   ? ad_o[19:16] : 4'hz;
+
+// AD_OE -- see hdl/rtl/ucore/v30_core.sv for the full note.  THE ONE CHANGE
+// MADE TO THIS ARCHIVED CORE SINCE 2026-08-04, user-authorised, scope: ONE
+// OUTPUT PORT AND ITS WIRE, no logic change, no behavioural change.  It exists
+// because the A/B discipline requires the two bitstreams to differ by the CORE
+// and by nothing else, so both cores must carry the same port list.  Recorded
+// in docs/notes/fsm_core_archive_2026-08-04.md.
+assign AD_OE = {{4{ad_oe_addr | ad_oe_ps}}, {16{ad_oe_addr | ad_oe_data}}};
 
 assign BUSLOCK_N = core_buslock_n;
 

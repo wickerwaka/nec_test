@@ -38,6 +38,15 @@ import check_core as cc                                  # noqa: E402
 
 HOST = "root@mister-nec"
 OUT = ROOT / "sw" / "testdata" / "u4-f42"
+
+# --leg -- THE BITSTREAM'S NAME ON ITS OWN RECORD (ucore_provenance.md §68.2's
+# routed rig debt, TAKEN at task #37).  `capture` used to write one fixed
+# filename, so a re-capture on a NEW bitstream silently OVERWROTE the previous
+# bitstream's fabric record -- and a fabric figure that cannot be attributed to
+# a bitstream is not a measurement.  The DEFAULT is `core`, which is the
+# historical name and is FLASH #5's record (§68.2), so every past invocation
+# still means exactly what it meant.
+DEFAULT_LEG = "core"
 SWEEPS = [("s10-hltsweep-w0", 0, list(range(0, 49))),
           ("s10-hltsweep-w1", 1, list(range(0, 49))),
           ("s13-hltsweep-w2", 2, list(range(0, 25))),
@@ -87,7 +96,7 @@ def cmd_capture(a):
                 t["idx"] = di
                 out[di] = t
                 n += 1
-            fn = OUT / f"{suite}.{form}.core.json.gz"
+            fn = OUT / f"{suite}.{form}.{a.leg}.json.gz"
             fn.write_bytes(gzip.compress(json.dumps(
                 {str(k): v for k, v in out.items()}).encode()))
             print(f"  {suite}/{form}: {len(out)} cells", flush=True)
@@ -100,7 +109,7 @@ def cmd_score(a):
     per = {}
     for suite, waits, delays in SWEEPS:
         for form in FORMS:
-            fn = OUT / f"{suite}.{form}.core.json.gz"
+            fn = OUT / f"{suite}.{form}.{a.leg}.json.gz"
             if not fn.exists():
                 continue
             dut = json.loads(gzip.decompress(fn.read_bytes()))
@@ -121,7 +130,8 @@ def cmd_score(a):
                     col = cc.COL_NAME.get(c, str(c))
                     per.setdefault((suite, form), []).append(
                         (idx, f"row{r}:{col}"))
-    print(f"=== F42 IN FABRIC: {ok}/{tot} cells identical to the golden")
+    print(f"=== F42 IN FABRIC [leg {a.leg}]: {ok}/{tot} cells "
+          f"identical to the golden")
     for k, v in sorted(per.items()):
         print(f"  {k[0]}/{k[1]}: " +
               " ".join(f"idx{ i }:{c}" for i, c in v))
@@ -133,8 +143,13 @@ def main():
     s = ap.add_subparsers(dest="cmd", required=True)
     c = s.add_parser("capture")
     c.add_argument("--host", default=HOST)
+    c.add_argument("--leg", default=DEFAULT_LEG,
+                   help="name this capture after its BITSTREAM "
+                        f"(default {DEFAULT_LEG!r} = FLASH #5, the historical "
+                        "filename)")
     c.set_defaults(fn=cmd_capture)
     v = s.add_parser("score")
+    v.add_argument("--leg", default=DEFAULT_LEG)
     v.set_defaults(fn=cmd_score)
     a = ap.parse_args()
     return a.fn(a)

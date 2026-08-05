@@ -270,6 +270,51 @@ Both are written down with their falsifiers and neither is started.
 
 ---
 
+## 6a. ADDENDUM — THE ONE AUTHORISED CHANGE SINCE THE ARCHIVE
+
+**Date**: 2026-08-04.  **Authority**: the user, task #37, verbatim —
+*"Okay, add the output enable."*  **Session**: SM3 sitting 8.
+
+**SCOPE, and it is the whole scope**: ONE OUTPUT PORT and the one wire that
+drives it.
+
+```
+    output [19:0] AD_OE          // added to hdl/rtl/core/v30_core.sv's port list
+    assign AD_OE = {{4{ad_oe_addr | ad_oe_ps}}, {16{ad_oe_addr | ad_oe_data}}};
+```
+
+**NO LOGIC CHANGED AND NO BEHAVIOUR CHANGED.**  The right-hand side is
+character-for-character the enable term the two `assign AD[...]` statements
+immediately above it have always used to decide whether to drive; it is
+published, not computed.  Nothing else in `hdl/rtl/core/` was touched — the
+BIU, the EU, the save-state package, `race_law.svh` and `int9d_race.hex` are
+byte-identical to the archive commit.
+
+**WHY THE ARCHIVED CORE HAD TO GET IT TOO.**  The change belongs to the ucore
+(§56.3a's retention intervention needs the core's own "is anyone driving" term
+— see `hdl/rtl/ucore/v30_core.sv`'s note).  It is applied here because the two
+cores are DROP-IN alternatives with the same module name and the same port
+list, and because the A/B discipline requires the two bitstreams to differ by
+the CORE and by nothing else.  A port list that differed between them would
+make the A/B uncontrolled in exactly the way §51.8b warns about.
+
+**WHAT IT DID NOT MOVE, measured on the same tree** (SM3 sitting 8's offline
+ladder):
+
+| leg | archive record | after `AD_OE` |
+|---|---|---|
+| `check_core.py --core fsm --opcodes all --cases 0` (corrected comparator) | 168,400 / 169,000 | **168,400 / 169,000** |
+| `sw/ss_lint.py --core fsm` | rc 0, 203 addresses, 181 flops, 0 UNMAPPED | **rc 0, 203 addresses, 181 flops, 0 UNMAPPED** (an output port is not a flop) |
+| `sw/check_ab_sim.py --core fsm` | MATCH over 187 rows | **MATCH over 187 rows** |
+
+**ONE CONSEQUENCE FOR §6's BITSTREAM RECORD.**  `nec_test.sof
+a4533dfef0…` (FLASH #2) was built from a tree WITHOUT this port.  It is still
+the last FSM bitstream built from a then-HEAD, and it is still not on the
+board.  §5's standing warning is unchanged and now has a second reason behind
+it: **if the A/B is re-run, build and flash BOTH cores from ONE HEAD.**
+
+---
+
 ## 7. WHERE THE REST OF IT IS WRITTEN DOWN
 
 | | |

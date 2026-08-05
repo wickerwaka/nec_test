@@ -79,6 +79,63 @@ FORMS = ["HLT.INT", "HLT.RES"]
 
 _LEG = {"bin": None}
 
+# --------------------------------------------------------------------------- #
+# THE BUILD, which this file did not have (ucore_provenance.md §67.6/§67.7's
+# routed rig debt, TAKEN at task #37 because this sitting must rebuild both
+# legs anyway).  §67.6 measured what its absence costs: `capture` checked only
+# that the binary EXISTED, so a stale `tb_sys` scored PRE-F43 RTL against a
+# POST-F43 reference column and reported "6 SURVIVORS, BAR (i) NOT MET" -- a
+# result that was entirely the instrument.  The dependency set is the same one
+# `check_core.build()` uses for `tb_v30_core`, plus the harness RTL tb_sys
+# integrates; the flag set is `check_core.build()`'s plus the two waivers
+# tb_sys.sv's AXI task-driven handshake needs.
+# --------------------------------------------------------------------------- #
+HARNESS_RTL = ["capture_buf.sv", "hps_axi_slave.sv", "iords_buf.sv",
+               "nec_bus.sv", "system_large.sv", "test_mem.sv", "wvec_buf.sv"]
+UCORE_DIR = ROOT / "hdl" / "rtl" / "ucore"
+
+
+def build_deps():
+    """Everything the binary is a function of.  A file missing from this list
+    is a vacuous gate waiting to happen -- see the note above."""
+    return ([ROOT / "hdl" / "rtl" / f for f in HARNESS_RTL]
+            + [TB_DIR / "tb_sys.sv"]
+            + cc.core_paths("ucore")[:1] + cc.core_paths("ucore")[2:]
+            + sorted(UCORE_DIR.glob("*.svh")))
+
+
+def build(leg, force=False):
+    obj = BIN[leg].parent
+    deps = build_deps()
+    if BIN[leg].exists() and not force:
+        newest = max(p.stat().st_mtime for p in deps)
+        if BIN[leg].stat().st_mtime > newest:
+            return False
+    rtl = ([UCORE_DIR / "v30u_ss_pkg.sv"]
+           + [ROOT / "hdl" / "rtl" / f for f in HARNESS_RTL]
+           + [UCORE_DIR / f for f in ("v30_core.sv", "v30u_biu.sv",
+                                      "v30u_ucrom.sv", "v30u_eu.sv")]
+           + [TB_DIR / "tb_sys.sv"])
+    cmd = ["verilator", "--binary", "--timing",
+           "-Wall", "-Wno-UNUSEDSIGNAL", "-Wno-VARHIDDEN",
+           "-Wno-TIMESCALEMOD", "-Wno-WIDTHEXPAND", "-Wno-BLKSEQ",
+           "-Wno-DECLFILENAME", "-Wno-UNUSEDPARAM",
+           "-Wno-MULTIDRIVEN", "-Wno-PINCONNECTEMPTY",
+           "--top-module", "tb_sys"]
+    if leg == "ret":
+        cmd.append("-DX1_AD_RETENTION")
+    cmd += ["-I" + str(UCORE_DIR), "-Mdir", str(obj)] + [str(p) for p in rtl]
+    print("building:", " ".join(cmd), flush=True)
+    subprocess.run(cmd, check=True, cwd=ROOT)
+    return True
+
+
+def cmd_build(a):
+    for leg in (("base", "ret") if a.leg == "all" else (a.leg,)):
+        did = build(leg, force=a.force)
+        print(f"  {leg}: {'REBUILT' if did else 'up to date'}  {BIN[leg]}")
+    return 0
+
 
 def golden(suite, form):
     fn = ROOT / "tests" / "v30" / suite / f"{form}.json.gz"
@@ -126,8 +183,10 @@ def vsys_run(image, host, tag="test", waits=0, evt=None, iord=None,
 def cmd_capture(a):
     OUT.mkdir(parents=True, exist_ok=True)
     _LEG["bin"] = BIN[a.leg]
+    # §67.6's lesson: never score against a binary nothing in the tree owns.
+    build(a.leg)
     if not _LEG["bin"].exists():
-        sys.exit(f"missing {_LEG['bin']} -- build it (see the module docstring)")
+        sys.exit(f"missing {_LEG['bin']} -- `x1_retention.py build --leg {a.leg}`")
     # THE DUT PIN, exactly as u4_f42_fabric flips it: nothing here writes to
     # tests/v30/, and this is a DUT leg, not an emission.
     es.EMIT_USE_CORE = True
@@ -305,6 +364,10 @@ def cmd_score(a):
 def main():
     ap = argparse.ArgumentParser()
     s = ap.add_subparsers(dest="cmd", required=True)
+    b = s.add_parser("build")
+    b.add_argument("--leg", choices=("base", "ret", "all"), default="all")
+    b.add_argument("--force", action="store_true")
+    b.set_defaults(fn=cmd_build)
     c = s.add_parser("capture")
     c.add_argument("--leg", choices=("base", "ret"), required=True)
     c.set_defaults(fn=cmd_capture)
