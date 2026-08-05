@@ -45,5 +45,15 @@
   "fail": [],
   "pass": 25,
   "n": 25
+ },
+ "_meta": {
+  "tree": "7a919458a81006f33bf10d72aa0e4d18fc1049ea79ebf267dab2366c32d8ad55",
+  "receipt": "aae50ceeb0fc56a54633d765290e3c2ca2433e175dd9ff3bc5d4b1f6f0871fcc",
+  "git": {
+   "head": "a8dbc40f1330f5ca96603eb7122bd52459adc7b6",
+   "describe": "a8dbc40f13-dirty",
+   "dirty_tracked": true
+  },
+  "when": "2026-08-05T09:24:11"
  }
 }

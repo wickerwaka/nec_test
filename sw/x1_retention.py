@@ -157,6 +157,75 @@ def recipe(leg):
                       workdir=BIN[leg].parent, label=f"tb_sys/{leg}")
 
 
+# --------------------------------------------------------------------------- #
+# THE ERA GUARD (SM3 sitting 22 item 0b).
+#
+# WHAT IT IS FOR, MEASURED not supposed.  At sitting 22's open, `score`
+# reported `ret 273/283` against `offline 279/283`, "6 SURVIVED", "BAR (i) NOT
+# MET" -- and every word of that was TRUE OF THE FILES AND FALSE OF THE TREE.
+# The `base`/`ret` captures were taken in the F55 era; `offline.json` had been
+# re-taken after F56 and F57.  So a POST-F57 reference column was compared with
+# a PRE-F56 measurement column, and the six "survivors" were exactly the six w0
+# cells F56/F57 had already closed.  Nothing in the file format could say so:
+# a capture recorded WHAT it measured and never WHICH TREE it measured.
+#
+# The fix is the smallest one that makes the mistake impossible rather than
+# merely unlikely: every capture embeds the artifact layer's own input manifest
+# hash for the binary that produced it, and `score` REFUSES -- loudly, naming
+# both hashes -- when a column's hash is not the current tree's.  It is the
+# same key `build_key()` is built on, minus the command, so it is IDENTICAL
+# across the base/ret A/B pair by construction: the pair differs by one
+# `-D`, and an era guard that fired on that would be useless.
+#
+# `offline.json` is guarded too, on `check_core`'s OWN input set, because it is
+# bar (ii)'s reference column and its staleness is exactly as silent.
+# --------------------------------------------------------------------------- #
+META = "_meta"
+
+
+def tree_key():
+    """The tb_sys legs' tree state: the manifest hash over everything the
+    binary is a function of.  Command-free ON PURPOSE (see above)."""
+    return art.manifest(build_deps())["sha256"]
+
+
+def offline_tree_key():
+    """The same question for `tb_v30_core`, which is a different binary built
+    from an overlapping but not identical file set."""
+    return art.manifest(cc.recipe("ucore").inputs)["sha256"]
+
+
+def _meta(leg):
+    return {"tree": tree_key(),
+            "receipt": art.receipt_id(BIN[leg]),
+            "leg": leg,
+            "git": art.git_state(),
+            "when": time.strftime("%Y-%m-%dT%H:%M:%S")}
+
+
+def _check_era(label, got, want):
+    """Refuse, loudly, naming both hashes.  `got` is the SET of stamps the
+    column's files carry.  Returns nothing on agreement; exits non-zero
+    otherwise."""
+    got = set(got) if not isinstance(got, set) else got
+    if got == {want}:
+        return
+    shown = " + ".join(
+        (h if h else "ABSENT (captured before the era guard existed)")
+        for h in sorted(got, key=lambda x: (x is None, x))) or "NO FILES"
+    if len(got) > 1:
+        shown += "   <-- the column's own files DISAGREE (half re-captured)"
+    sys.exit(
+        f"\nERA MISMATCH -- REFUSING TO SCORE.\n"
+        f"  column        {label}\n"
+        f"  its tree      {shown}\n"
+        f"  current tree  {want}\n"
+        f"  This comparison is between two different trees and any verdict it\n"
+        f"  produced would be a statement about the instrument, not the core.\n"
+        f"  Re-capture that column on this tree "
+        f"(x1_retention.py capture/offline).\n")
+
+
 def build(leg, force=False):
     """Build if the CONTENT KEY moved, then assert the scorer postcondition.
 
@@ -269,8 +338,9 @@ def cmd_capture(a):
                 out[di] = t
                 n += 1
             fn = OUT / f"{suite}.{form}.{a.leg}.json.gz"
-            fn.write_bytes(gzip.compress(json.dumps(
-                {str(k): v for k, v in out.items()}).encode()))
+            rec = {str(k): v for k, v in out.items()}
+            rec[META] = _meta(a.leg)          # the era guard, per file
+            fn.write_bytes(gzip.compress(json.dumps(rec).encode()))
             print(f"  {suite}/{form}: {len(out)} cells "
                   f"({time.time()-t0:.0f}s)", flush=True)
     print(f"CAPTURE {a.leg}: {n} cells, {err} errors, {time.time()-t0:.0f}s")
@@ -308,22 +378,32 @@ def cmd_offline(a):
             res[f"{suite}/{form}"] = {"fail": bad, "pass": np_, "n": nn}
             print(f"  {suite}/{form}: {res[f'{suite}/{form}']['pass']}/"
                   f"{res[f'{suite}/{form}']['n']}  fail={bad}", flush=True)
-    (OUT / "offline.json").write_text(json.dumps(res, indent=1))
     tp = sum(v["pass"] for v in res.values())
     tn = sum(v["n"] for v in res.values())
+    res[META] = {"tree": offline_tree_key(),
+                 "receipt": art.receipt_id(cc.core_bin("ucore")),
+                 "git": art.git_state(),
+                 "when": time.strftime("%Y-%m-%dT%H:%M:%S")}
+    (OUT / "offline.json").write_text(json.dumps(res, indent=1))
     print(f"OFFLINE (tb_v30_core, the retention-modelling TB): {tp}/{tn}")
     return 0
 
 
 def _score_leg(leg):
-    """(per-cell pass map, total, scored) for one DUT leg."""
+    """(per-cell pass map, total, scored) for one DUT leg.
+
+    ALSO returns the leg's era stamp -- `None` when ANY file of the column
+    lacks one, because a column is only as current as its oldest file."""
     cells, tot, ok = {}, 0, 0
+    era, seen = set(), 0
     for suite, _w, _d in SWEEPS:
         for form in FORMS:
             fn = OUT / f"{suite}.{form}.{leg}.json.gz"
             if not fn.exists():
                 continue
             dut = json.loads(gzip.decompress(fn.read_bytes()))
+            seen += 1
+            era.add((dut.pop(META, None) or {}).get("tree"))
             g = {t["idx"]: t for t in golden(suite, form)}
             for k, t in sorted(dut.items(), key=lambda x: int(x[0])):
                 idx = int(k)
@@ -342,22 +422,39 @@ def _score_leg(leg):
                              g[idx]["cycles"][r][7]
                              if r < len(g[idx]["cycles"]) else None)
                 cells[f"{suite}/{form}/{idx}"] = {"pass": good, "first": first}
-    return cells, ok, tot
+    # the WHOLE set, not a collapsed one: a column whose eight files disagree is
+    # a THIRD failure mode ("half re-captured"), and reporting it as merely
+    # absent would hide the very thing the guard exists to surface.
+    return cells, ok, tot, era
 
 
 def cmd_score(a):
     off = json.loads((OUT / "offline.json").read_bytes())
+    offmeta = off.pop(META, None) or {}
     offpass = {}
     for k, v in off.items():
         for i in v["fail"]:
             offpass[f"{k}/{i}"] = False
-    base, bok, btot = _score_leg("base")
-    ret, rok, rtot = _score_leg("ret")
+    base, bok, btot, bera = _score_leg("base")
+    ret, rok, rtot, rera = _score_leg("ret")
     offtot = sum(v["pass"] for v in off.values())
     offn = sum(v["n"] for v in off.values())
 
+    # ------------------------------------------------------------------ #
+    # THE ERA GUARD.  Before a single number is printed, because a printed
+    # number is a quoted number and this tool's whole failure mode was
+    # producing a quotable verdict about a tree it had not measured.
+    # ------------------------------------------------------------------ #
+    if not a.no_era_guard:
+        want, offwant = tree_key(), offline_tree_key()
+        _check_era("base (tb_sys, X1_AD_RETENTION OFF)", bera, want)
+        _check_era("ret  (tb_sys, X1_AD_RETENTION ON)", rera, want)
+        _check_era("offline (tb_v30_core)", {offmeta.get("tree")}, offwant)
+
     print("=== X1 / §56.3a, VERILATED LEG "
           "(system_large under Verilator; NO board) ===")
+    print(f"  tree     tb_sys inputs {tree_key()[:16]}…   "
+          f"tb_v30_core inputs {offline_tree_key()[:16]}…")
     print(f"  offline  tb_v30_core (models pad retention)  {offtot}/{offn}")
     print(f"  base     tb_sys, X1_AD_RETENTION OFF          {bok}/{btot}")
     print(f"  ret      tb_sys, X1_AD_RETENTION ON           {rok}/{rtot}")
@@ -422,6 +519,11 @@ def main():
     o = s.add_parser("offline")
     o.set_defaults(fn=cmd_offline)
     v = s.add_parser("score")
+    v.add_argument("--no-era-guard", action="store_true",
+                   help="score columns from different trees anyway.  There is "
+                        "exactly one legitimate use -- deliberately reading an "
+                        "ARCHIVED column (…-pre-fNN) as history -- and the "
+                        "result is NOT a statement about this tree.")
     v.set_defaults(fn=cmd_score)
     a = ap.parse_args()
     return a.fn(a)
