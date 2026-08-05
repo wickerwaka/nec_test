@@ -73,10 +73,18 @@ package v30_ss_pkg;
   // a v3 stream carries four words this map has nowhere to put.  The vacated
   // codes 0x066-0x069 are NOT reused (the map never renumbers); the region's
   // count falls and the tag falls with it.
-  localparam int          SS_VERSION   = 8'h84;   // ucore map v4 (SM3 s11)
+  // SM3 SITTING 21 / F56: 0x84 -> 0x85.  `pf_land` is DELETED -- M6 is
+  // refuted by its own firing census and is gone from both engines -- so
+  // SSA_B_PF_LAND leaves the map.  It is the FIRST address retired from the
+  // MIDDLE of a dense region: 9'h038 becomes a HOLE that `ss_addr_of` steps
+  // over, and NO symbol is renumbered (the append-only rule is kept in the
+  // form that matters -- an address never means two different things).  A v4
+  // stream carries one word this map has nowhere to put, which is why the
+  // version moves.
+  localparam int          SS_VERSION   = 8'h85;   // ucore map v5 (SM3 s21)
   localparam logic [8:0]  SSA_TAG      = 9'h000;
   localparam logic [8:0]  SS_BIU_BASE  = 9'h001;
-  localparam int          SS_BIU_COUNT = 101;  // U4 F49 (+5); SM3 s11 (-4)
+  localparam int          SS_BIU_COUNT = 100;  // U4 F49 (+5); s11 (-4); s21 (-1)
   localparam logic [8:0]  SS_EU_BASE   = 9'h100;
   localparam int          SS_EU_COUNT  = 116;  // U2 p5 (+2 recog); U4 F49 (+1)
   localparam int          SS_COUNT     = 1 + SS_BIU_COUNT + SS_EU_COUNT;
@@ -140,7 +148,10 @@ package v30_ss_pkg;
   localparam logic [8:0] SSA_B_HALT_PEND        = 9'h035;
   localparam logic [8:0] SSA_B_PF_OWED          = 9'h036;
   localparam logic [8:0] SSA_B_PF_ARM           = 9'h037;
-  localparam logic [8:0] SSA_B_PF_LAND          = 9'h038;
+  // 9'h038 -- RETIRED, NOT REUSED (SM3 s21 / F56).  It held `pf_land`, M6's
+  // queue-landing block.  `ss_addr_of` steps over it; `ss_field_width` has no
+  // arm for it and returns 0, which no instrument ever asks, because the dense
+  // iterator never visits it.
   localparam logic [8:0] SSA_B_INFL_TTL         = 9'h039;
   localparam logic [8:0] SSA_B_INFL_N           = 9'h03A;
   localparam logic [8:0] SSA_B_ABSORB_TTL       = 9'h03B;
@@ -181,9 +192,19 @@ package v30_ss_pkg;
   localparam logic [8:0] SSA_B_LAST_UBE         = 9'h05E;
 
   // dense-iteration helper (TB/harness): stream index -> address
+  // SM3 s21 / F56: the BIU region carries ONE RETIRED CODE, 9'h038, and the
+  // dense stream steps over it.  The `+ 1` is not a renumbering -- every
+  // surviving symbol keeps the address it has always had; what changes is the
+  // stream INDEX it appears at, and the SS_VERSION bump is what makes that
+  // safe.  A second retired code would need a second term, and that is the
+  // signal to re-think the region rather than add one.
   function automatic logic [8:0] ss_addr_of(input int i);
+    logic [8:0] a;
     if (i == 0)                 ss_addr_of = SSA_TAG;
-    else if (i <= SS_BIU_COUNT) ss_addr_of = SS_BIU_BASE + 9'(i - 1);
+    else if (i <= SS_BIU_COUNT) begin
+      a = SS_BIU_BASE + 9'(i - 1);
+      ss_addr_of = (a >= 9'h038) ? (a + 9'd1) : a;
+    end
     else                        ss_addr_of = SS_EU_BASE  + 9'(i - 1 - SS_BIU_COUNT);
   endfunction
 
@@ -416,7 +437,6 @@ package v30_ss_pkg;
       SSA_B_HALT_PEND:       ss_field_width = 1;
       SSA_B_PF_OWED:         ss_field_width = 1;
       SSA_B_PF_ARM:          ss_field_width = 1;
-      SSA_B_PF_LAND:         ss_field_width = 1;
       SSA_B_INFL_TTL:        ss_field_width = 2;
       SSA_B_INFL_N:          ss_field_width = 2;
       SSA_B_ABSORB_TTL:      ss_field_width = 2;

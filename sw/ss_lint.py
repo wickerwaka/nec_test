@@ -73,11 +73,16 @@ CORES = {
             # (the recognition floor is one term on the EU's IE gate now), so
             # 0x066-0x069 leave the map.  Removing addresses moves the version
             # for the same reason adding them does.
-            "SS_VERSION": 0x84,   # ucore map v4 (0x80 family: never an FSM stream)
-            "SS_BIU_COUNT": 101,
+            # SM3 sitting 21 / F56: v4 -> v5.  `pf_land` is DELETED (M6 is
+            # refuted by its own firing census and is gone from both engines),
+            # so SSA_B_PF_LAND / 0x038 leaves the map.  It is the first
+            # MID-REGION retirement: the code is a HOLE `ss_addr_of` steps
+            # over and NO symbol is renumbered.
+            "SS_VERSION": 0x85,   # ucore map v5 (0x80 family: never an FSM stream)
+            "SS_BIU_COUNT": 100,
             "SS_EU_COUNT": 116,
-            "SS_COUNT": 218,
-            "SS_TAG": 0x84DA,     # (0x84 << 8) | 218
+            "SS_COUNT": 217,
+            "SS_TAG": 0x85D9,     # (0x85 << 8) | 217
         },
     },
 }

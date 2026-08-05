@@ -46,8 +46,9 @@
 //
 //  --- ABSOLUTE CLOCKS -> BOUNDED RELATIVE COUNTERS -------------------------
 //
-//  Every absolute `long` clock in the model (cmt_t1_, cmt_expire_, pf_land_*,
-//  pf_infl_to_, push_absorb_*, the QByte ready stamps) is re-expressed as a
+//  Every absolute `long` clock in the model (cmt_t1_, cmt_expire_,
+//  pf_infl_to_, push_absorb_*, the QByte ready stamps -- and, until F56
+//  deleted M6 in both engines, pf_land_*) is re-expressed as a
 //  small counter, with a SYNTHESIS bound assertion (campaign risk #2).
 //
 //  --- THE EDGE -------------------------------------------------------------
@@ -258,7 +259,11 @@ reg        halted;        // S8/S9: once halted the prefetcher never runs again
 reg        halt_pending;  // M20: the HLT row's write WAITING for the register
 reg        pf_owed;       // M19: the redirect is a STANDING request
 reg        pf_arm;        // M7: the eligibility answer, sampled at T3
-reg        pf_land;       // M6: keyed to T4, ONE clock, wait-independent
+// ~~pf_land~~ -- DELETED 2026-08-05 as F56.  M6 (`no fetch is chosen while the
+// previous fetch's bytes are LANDING`) is REFUTED by its own firing census and
+// is gone from both engines; its save-state code 9'h038 is RETIRED, NOT
+// REUSED -- the package says so at the hole it leaves.
+// See sim/biu_timed.h at the deleted fields and ucore_provenance.md sec.82.
 reg  [1:0] infl_ttl;      // M7b: the outstanding-fetch term
 reg  [1:0] infl_n;
 reg  [1:0] absorb_ttl;    // F1(b): the QS port while the bytes land
@@ -386,7 +391,6 @@ reg r_halted;
 reg r_halt_pending;
 reg r_pf_owed;
 reg r_pf_arm;
-reg r_pf_land;
 reg [1:0] r_infl_ttl;
 reg [1:0] r_infl_n;
 reg [1:0] r_absorb_ttl;
@@ -739,7 +743,7 @@ integer lfa_need;   // S9a: the pre-window fetch walk (backdoor preload)
 reg [15:0] lfa_p;
 reg [19:0] lfa_a;
 // step (a) captures -- clock-c values the later steps must not re-read
-reg        ne_now, pl_now, kill_l, evi_l, hfree_l, pop_l, qse_l;
+reg        ne_now, kill_l, evi_l, hfree_l, pop_l, qse_l;
 reg  [1:0] sev_now;
 reg        infl_now;
 reg  [1:0] infl_n_now;
@@ -751,7 +755,7 @@ reg  [1:0] land_ttl;
 reg  [3:0] qi;
 reg [19:0] fetch_lin;
 reg  [1:0] rq_n_pre;
-reg        set_grn, set_infl, set_absorb, set_land, set_noeval;
+reg        set_grn, set_infl, set_absorb, set_noeval;
 reg  [1:0] new_ttl;
 
 //--------------------------------------------------------------------------
@@ -816,7 +820,6 @@ reg            halted_rst;
 reg            halt_pending_rst;
 reg            pf_owed_rst;
 reg            pf_arm_rst;
-reg            pf_land_rst;
 reg      [1:0] infl_ttl_rst;
 reg      [1:0] infl_n_rst;
 reg      [1:0] absorb_ttl_rst;
@@ -904,7 +907,6 @@ always_comb begin
     halt_pending_rst = r_halt_pending;
     pf_owed_rst = r_pf_owed;
     pf_arm_rst = r_pf_arm;
-    pf_land_rst = r_pf_land;
     infl_ttl_rst = r_infl_ttl;
     infl_n_rst = r_infl_n;
     absorb_ttl_rst = r_absorb_ttl;
@@ -954,7 +956,7 @@ always_comb begin
         cmt_was_owed_rst  = 1'b0;
         q_head_rst  = 3'd0; grn_n_rst  = 2'd0; grn_ttl_rst  = 2'd0;
         suspended_rst  = 1'b0; halted_rst  = 1'b0; halt_pending_rst  = 1'b0;
-        pf_owed_rst  = 1'b0; pf_arm_rst  = 1'b1; pf_land_rst  = 1'b0;
+        pf_owed_rst  = 1'b0; pf_arm_rst  = 1'b1;
         infl_ttl_rst  = 2'd0; infl_n_rst  = 2'd0; absorb_ttl_rst  = 2'd0;
         no_eval_rst  = 1'b0; flush_eval_rst  = 1'b0; e_pend_rst  = 1'b0;
         rq_n_rst  = 2'd0;
@@ -1063,7 +1065,6 @@ always_comb begin
     halt_pending = r_halt_pending;
     pf_owed = r_pf_owed;
     pf_arm = r_pf_arm;
-    pf_land = r_pf_land;
     infl_ttl = r_infl_ttl;
     infl_n = r_infl_n;
     absorb_ttl = r_absorb_ttl;
@@ -1099,14 +1100,14 @@ always_comb begin
         rq_last[ri] = r_rq_last[ri];
     end
     // the per-edge working temporaries (no latches in always_comb)
-    ne_now = 1'b0; pl_now = 1'b0; kill_l = 1'b0; evi_l = 1'b0;
+    ne_now = 1'b0; kill_l = 1'b0; evi_l = 1'b0;
     hfree_l = 1'b0; pop_l = 1'b0; qse_l = 1'b0; sev_now = 2'd0;
     infl_now = 1'b0; infl_n_now = 2'd0; set_oprfree = 1'b0;
     ev_here = 1'b0; ev_latch = 1'b0; did_grant = 1'b0;
     gr_ok = 1'b0; occ = 5'd0; land_ttl = 2'd0; qi = 4'd0;
     fetch_lin = 20'd0; rq_n_pre = 2'd0;
     set_grn = 1'b0; set_infl = 1'b0; set_absorb = 1'b0;
-    set_land = 1'b0; set_noeval = 1'b0; new_ttl = 2'd0;
+    set_noeval = 1'b0; new_ttl = 2'd0;
     i = 0; pk = 0;
 
     if (ss_we) begin
@@ -1168,7 +1169,6 @@ always_comb begin
             SSA_B_HALT_PEND:    halt_pending  = ss_wdata[0];
             SSA_B_PF_OWED:      pf_owed       = ss_wdata[0];
             SSA_B_PF_ARM:       pf_arm        = ss_wdata[0];
-            SSA_B_PF_LAND:      pf_land       = ss_wdata[0];
             SSA_B_INFL_TTL:     infl_ttl      = ss_wdata[1:0];
             SSA_B_INFL_N:       infl_n        = ss_wdata[1:0];
             SSA_B_ABSORB_TTL:   absorb_ttl    = ss_wdata[1:0];
@@ -1225,7 +1225,6 @@ always_comb begin
         // (a) CAPTURE the clock-c predicates
         //====================================================================
         ne_now     = no_eval;
-        pl_now     = pf_land;
         kill_l     = ann_kill;
         evi_l      = eval_inst;
         hfree_l    = halt_free;
@@ -1235,7 +1234,7 @@ always_comb begin
         infl_now   = (infl_ttl != 2'd0);
         infl_n_now = infl_n;
         set_grn = 1'b0; set_infl = 1'b0; set_absorb = 1'b0;
-        set_land = 1'b0; set_noeval = 1'b0; new_ttl = 2'd0;
+        set_noeval = 1'b0; new_ttl = 2'd0;
         set_oprfree = 1'b0;
         // eu_done rides the eval: it lands at e+2, which is T4+1 at
         // zero waits and T4+2 whenever the cycle took any Tw.  The PULSE is
@@ -1382,8 +1381,7 @@ always_comb begin
             cs_r      = flush_cs;
             fetch_ptr = flush_ip;
             suspended = 1'b0;
-            pf_land   = 1'b0;  pl_now  = 1'b0;   // M6: discards what landed
-            infl_ttl  = 2'd0;  infl_now = 1'b0;  // M7b: and its accounting
+            infl_ttl  = 2'd0;  infl_now = 1'b0;  // M7b: the accounting
             // M19: the flush RAISES the prefetcher's request.  It stands until
             // the bus takes it -- a later SUSP does not reset it.
             pf_owed = 1'b1;
@@ -1466,9 +1464,6 @@ always_comb begin
                     infl_n  = cur_pn;
                     new_ttl = land_ttl;
                     set_grn = 1'b1; set_infl = 1'b1; set_absorb = 1'b1;
-                    // M6: keyed to T4, NOT to the eval -- ONE clock, and it
-                    // is not a prefetch-grant point.
-                    set_land = 1'b1;
                 end
                 // S9a: the HALT pseudo-cycle is not an EU access at all -- it
                 // never went through post(), so it must not complete one.
@@ -1572,11 +1567,10 @@ always_comb begin
                 occ = {1'b0, q_cnt}
                     + ((run && cur_fetch) ? {3'b0, cur_pn} : 5'd0)
                     + (infl_now ? {3'b0, infl_n_now} : 5'd0);
+                // F56: the ONLY prefetch predicates are M7's index-2 arm,
+                // M19's SUSP gate (above) and the request queue.  M6's
+                // queue-landing block used to sit here and is DELETED.
                 if (ev_latch ? !pf_arm : ((occ > 5'd4) || halted))
-                    gr_ok = 1'b0;
-                else if (pl_now)
-                    // M6: no fetch is chosen while the previous fetch's bytes
-                    // are LANDING in the queue.
                     gr_ok = 1'b0;
                 else begin
                     fetch_lin = {cs_r, 4'd0} + {4'd0, fetch_ptr};
@@ -1707,7 +1701,6 @@ always_comb begin
         //====================================================================
         ready_prev = ready;
         no_eval    = set_noeval;
-        pf_land    = set_land;
         // `opr_free_clk_`, the model's SECOND wait_opr_free loop
         // (`while (clk_ < opr_free_clk_) tick()`).  It is VACUOUS and provably
         // so: `opr_free_clk_` is only ever set to `c+1` inside `tick()` for
@@ -1785,7 +1778,6 @@ always_ff @(posedge clk) if (ss_we || srst || ce) begin
     r_halt_pending <= (srst && !ss_we) ? halt_pending_rst : halt_pending;
     r_pf_owed <= (srst && !ss_we) ? pf_owed_rst : pf_owed;
     r_pf_arm <= (srst && !ss_we) ? pf_arm_rst : pf_arm;
-    r_pf_land <= (srst && !ss_we) ? pf_land_rst : pf_land;
     r_infl_ttl <= (srst && !ss_we) ? infl_ttl_rst : infl_ttl;
     r_infl_n <= (srst && !ss_we) ? infl_n_rst : infl_n;
     r_absorb_ttl <= (srst && !ss_we) ? absorb_ttl_rst : absorb_ttl;
@@ -1921,7 +1913,6 @@ always @(posedge clk) begin
         SSA_B_HALT_PEND:    ss_rdata <= {15'b0, r_halt_pending};
         SSA_B_PF_OWED:      ss_rdata <= {15'b0, r_pf_owed};
         SSA_B_PF_ARM:       ss_rdata <= {15'b0, r_pf_arm};
-        SSA_B_PF_LAND:      ss_rdata <= {15'b0, r_pf_land};
         SSA_B_INFL_TTL:     ss_rdata <= {14'b0, r_infl_ttl};
         SSA_B_INFL_N:       ss_rdata <= {14'b0, r_infl_n};
         SSA_B_ABSORB_TTL:   ss_rdata <= {14'b0, r_absorb_ttl};
@@ -2005,13 +1996,13 @@ always @(posedge clk) begin
         if (utrace_en)
             // clk | eval/QS strobes | the terms that gate them
             /* verilator lint_off WIDTHEXPAND */
-            $display("u %0d ts=%0d run=%0d dage=%0d rdyp=%0d ev=%0d evald=%0d sev=%0d cmt=%0d cdage=%0d fetch=%0d pn=%0d occ=%0d arm=%0d land=%0d infl=%0d absorb=%0d grn=%0d,%0d q=%0d owed=%0d susp=%0d halt=%0d ne=%0d fe=%0d epend=%0d qse=%0d pop=%0d rq=%0d",
+            $display("u %0d ts=%0d run=%0d dage=%0d rdyp=%0d ev=%0d evald=%0d sev=%0d cmt=%0d cdage=%0d fetch=%0d pn=%0d occ=%0d arm=%0d infl=%0d absorb=%0d grn=%0d,%0d q=%0d owed=%0d susp=%0d halt=%0d ne=%0d fe=%0d epend=%0d qse=%0d pop=%0d rq=%0d",
                      utrace_clk, ts, run, dage, ready_prev, eval_inst,
                      evald, sev, cmt_valid, cdage, cur_fetch, cur_pn,
                      q_cnt + ((run && cur_fetch) ? {2'b0, cur_pn} : 4'd0)
                            + ((cmt_valid && cmt_fetch) ? {2'b0, cmt_pn} : 4'd0)
                            + ((infl_ttl != 2'd0) ? {2'b0, infl_n} : 4'd0),
-                     pf_arm, pf_land, infl_ttl, absorb_ttl, grn_n,
+                     pf_arm, infl_ttl, absorb_ttl, grn_n,
                      grn_ttl, q_cnt, pf_owed, suspended, halted,
                      no_eval, flush_eval, e_pend, qs_e_now, pop_now,
                      rq_n);

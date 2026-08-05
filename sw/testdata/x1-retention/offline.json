@@ -1,20 +1,15 @@
 {
  "s10-hltsweep-w0/HLT.INT": {
   "fail": [
-   2,
-   3,
    4,
    5
   ],
-  "pass": 44,
+  "pass": 46,
   "n": 48
  },
  "s10-hltsweep-w0/HLT.RES": {
-  "fail": [
-   2,
-   3
-  ],
-  "pass": 47,
+  "fail": [],
+  "pass": 49,
   "n": 49
  },
  "s10-hltsweep-w1/HLT.INT": {
