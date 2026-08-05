@@ -1,0 +1,17 @@
+// §59.7.1's isolated construct, reproduced verbatim in shape: a two-driver
+// internal `tri` net, `=== 1'bz`, the hold register, nothing else.
+module top(input clk, input a_oe, input [19:0] a_val,
+           input b_oe, input [15:0] b_val, output [19:0] eff);
+tri [19:0] net;
+assign net        = a_oe ? a_val : 20'hzzzzz;
+assign net[15:0]  = b_oe ? b_val : 16'hzzzz;
+reg  [19:0] hold;
+wire [19:0] isz;
+genvar i;
+generate for (i=0;i<20;i=i+1) begin : g_ad_ret
+    assign isz[i] = (net[i] === 1'bz);
+    assign eff[i] = isz[i] ? hold[i] : net[i];
+end endgenerate
+always @(posedge clk)
+    for (int k=0;k<20;k=k+1) if (!isz[k]) hold[k] <= net[k];
+endmodule

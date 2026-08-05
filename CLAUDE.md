@@ -315,6 +315,39 @@ Values are monotone: never re-scored downward without a loud, itemized entry.)
   PRE-REGISTERED for exactly this, so the after-leg was NOT RUN and FLASH #5 was
   NOT taken — an inert instrument would have reported "116 survive", which reads
   like a refutation. **C11 stays NOT ESTABLISHED.**
+  **AT SM3 SITTING 8 (task #37, §69) THE BLOCKER CHANGED — IT DID NOT LIFT.**
+  Both cores now carry **`output [19:0] AD_OE`**, the pads' own output enable,
+  driven by the expression the `assign AD[...]` statements already used (a wire,
+  no logic; user-approved 2026-08-04; the ARCHIVED FSM core's exception is
+  `fsm_core_archive_2026-08-04.md` §6a). The retention model is re-keyed onto it
+  and `=== 1'bz` is GONE, so **§59.7.1's blocker is CLOSED and measured closed**:
+  `system_large`'s own registers **27 → 47, exactly +20**; the isolated
+  construct gives **20 registers** where the z-form gives **0** and *"No output
+  dependent on input pin clk"*. The re-key is EXACTLY equivalent offline — base
+  146 / ret 265 unchanged and **566 of 566 capture records byte-identical to the
+  previous tree's**. **WHAT BLOCKS IT NOW IS TIMING**: the retention build is
+  **Fmax 20.25 MHz against the registered ≥ 32**, worst setup **−18.132 ns**,
+  TNS **−11,049.741** — so **NO BITSTREAM WAS FLASHED, the fabric leg was NOT
+  RUN, and `flash_log.jsonl` is unchanged.** A same-tree control with the macro
+  OFF reproduces FLASH #5 to the ALM and to 0.01 MHz, so **the port costs
+  nothing and the miss is entirely the 20-flop model.** **C11 STILL NOT
+  ESTABLISHED.** Note **C11 is ambiguous in this repo**: this one is the Codex
+  review item (`ucore_campaign_verdict_2026-08-04.md` §(g), the INTA
+  classification); `timed_lawcards`' `C11` is the unrelated BIU card *LC4
+  `owns_slot`* and is untouched.
+- **R7 — `nec_test.sdc`'s CE MULTICYCLE IS COLLECTED BY HIERARCHICAL NAME, AND
+  THAT MAKES EVERY ucore SIGN-OFF FRAGILE** (§69.6, found by the above and NOT
+  fixed). `get_registers {*|v30u_eu:*|*}` / `{*|v30u_biu:*|*}` plus a fitter
+  that DUPLICATES registers across the core boundary: adding 20 flops on a
+  capture path moved **81 registers out of the collection (2,220 → 2,139)** and
+  exposed a **48.7 ns `c_ready_q → v30u_eu|wb_kind`** path that **does not exist
+  in the control at all**. The 45.67 MHz sign-off therefore depends on where
+  physical synthesis happened to NAME its duplicates. The SDC's own falsifier
+  covers the exception OVER-applying; this is it UNDER-applying, and no gate
+  sees it. The fix — a STRUCTURAL collection (registers whose `ena` is the core
+  CE) plus a re-sign-off of BOTH revisions — is **routed, not taken**: widening
+  a timing exception after seeing a timing result is the same manoeuvre as
+  choosing a comparator after seeing a score.
 - **The board carries the ucore bitstream** (`nec_test_ucore.sof
   **315de4bc9e30…**, **FLASH #5**, SM3 sitting 7 2026-08-04 — built from
   `8339740709`, the FIRST bitstream carrying **H1/F52** and **F43**; 27 % ALMs
@@ -330,6 +363,19 @@ Values are monotone: never re-scored downward without a loud, itemized entry.)
   signature at `d = 2w+5` is EXTINCT in fabric (0 of 283)** — §67.7's "no
   fabric figure may be quoted against this tree" is DISCHARGED. **C11 is still
   NOT ESTABLISHED**; the re-flash did not touch that question.
+  **SM3 sitting 8 took NO FLASH** (§69.7), so the board still carries FLASH #5
+  and `flash_log.jsonl` is still 8 entries. Left verified: `check_ab_hw chip
+  800` **MATCH over 800 rows**, `div_guard` **PINNED**, `use_core` **False**,
+  `cfg = 0xff0008`, `board_idle()` clean, 0 transport errors. Sitting 8's
+  `AD_OE` port is in the tree but in NO bitstream; a same-tree retention-OFF
+  build was measured identical to FLASH #5 (11,167 ALMs, 6,087 registers,
+  45.67 MHz, +9.355 ns), which is what lets FLASH #5's 146/283 stand as the
+  before-leg without a re-flash.
+  **`u4_f42_fabric.py` NOW TAKES `--leg`** (§68.2's routed debt, discharged at
+  sitting 8): default `core` = FLASH #5's record, `core_f4` = FLASH #4's,
+  `core_f5` = an explicit duplicate of FLASH #5's. Each reproduces its own
+  number (146/283, 143/283). **`sw/x1_retention.py` now has a real `build()`**
+  and `capture` calls it — the §67.6 stale-binary trap is closed.
 - **`timed_fuzz` now prints `BOUND WARNINGS`** — seeds whose EU completed-read
   store SATURATED, i.e. ran outside the regime `sw/qdepth_probe.py` proves
   (`rdq_` ≤ 2, `rd_done_q_` ≤ 1 on v0.1 at w0 **and**, U4, on w1/w3 and all four

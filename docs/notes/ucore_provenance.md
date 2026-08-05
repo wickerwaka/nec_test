@@ -8658,3 +8658,247 @@ novelty register has never seen.
    refilling after a flush"* — is the only untried one.
 4. **The `u4_f42_fabric` `--leg` debt**, so the next re-flash does not
    overwrite the previous bitstream's fabric record.
+
+## §69 SESSION SM3, SITTING 8 — THE `AD_OE` PORT, AND THE X1 FABRIC LEG **NOT TAKEN**
+
+**2026-08-04, branch `ucsim`, from HEAD `3047c2158d`.  Task #37.  A BOARD
+SITTING WITH FLASHING AUTHORISED — AND NO FLASH WAS TAKEN.**  Pre-registration
+committed at **`8133c13382`** BEFORE the first board contact:
+`docs/notes/sm3_s8_prereg_2026-08-04.md`.  Single writer confirmed before
+contact (`0 users`, no serve process on `mister-nec`); `div_guard` **PINNED**;
+`use_core` **False** as found and **False** as left, verified on the board;
+`board_idle()` run at the end and clean; **0 transport errors in the whole
+sitting**; `sw/testdata/flash_log.jsonl` is **unchanged at 8 entries**.
+
+> **Standing principle, applied throughout.**  *"This is 80's era hardware,
+> they aren't wasting silicon on anything that isn't necessary.  Complex or
+> confusing behavior that we see is likely to be simple systems interacting in
+> ways you do not fully understand yet."*
+
+**THE ONE-LINE RESULT.**  §59.7.1's blocker is **REMOVED** — the retention
+model now synthesises, and it is measured doing so.  It is replaced by a
+different and much more specific one: **the retention build MISSES the
+registered Fmax bar by 12 MHz**, so no bitstream was flashed, the fabric leg
+was not run, and **C11's `NOT ESTABLISHED` stands.**
+
+### §69.1 THE CHANGE — ONE OUTPUT PORT ON EACH CORE
+
+The user's decision, verbatim: ***"Okay, add the output enable."***
+
+```
+    output [19:0] AD_OE
+    assign AD_OE = {{4{ad_oe_addr | ad_oe_ps}}, {16{ad_oe_addr | ad_oe_data}}};
+```
+
+The right-hand side is character-for-character the enable term the two
+`assign AD[...]` statements already used.  It is published, not computed.  The
+ARCHIVED FSM core gets the same one port and the same one wire — the A/B
+discipline requires the two bitstreams to differ by the CORE alone — recorded
+as a user-authorised exception in `fsm_core_archive_2026-08-04.md` **§6a**.
+
+`system_large.sv`'s `X1_AD_RETENTION` model is re-keyed onto it:
+
+```
+    wire [19:0] core_ad_drv = core_ad_oe | {4'b0, {16{c_addrv_q}}};
+```
+
+and the `=== 1'bz` construct is GONE.  §56.3a's prohibition was on the HARNESS
+manufacturing an OE; the core stating its own is not that, which is the whole
+content of the user's decision.  The OBSERVATION-PATH deviation is unchanged
+and its rationale stays written beside the code.
+
+### §69.2 THE OFFLINE EQUIVALENCE PROOF — **EXACT, TO THE CLOCK**
+
+| leg | §67.7 (`=== 1'bz`) | **this tree (`AD_OE`)** |
+|---|---|---|
+| `tb_sys` base | 146 / 283 | **146 / 283** |
+| `tb_sys` ret | 265 / 283 | **265 / 283** |
+| `offline` (`tb_v30_core`) | 265 / 283 | **265 / 283** |
+| base-only failures, all INTA | 119 of 119 | **119 of 119** |
+| BAR (i) | MET | **119 closed, 0 survived, 265 == 265 — MET** |
+| BAR (ii) | MET | **0 cells differing from offline — MET** |
+
+And not merely in total: **the 283 `ret` capture records are BYTE-IDENTICAL to
+HEAD's, 283/283, and so are the 283 `base` records.**  The re-key is equivalent
+in every retained clock, not just in the score.
+
+The rest of the ladder, all re-run on this tree: `check_core` **ucore
+169,000/169,000**, **fsm 168,400/169,000**; `ulockstep --golden all --cases 50`
+**17,350/17,350**; `check_ab_sim` **MATCH 187** on both cores; `check_boot
+--timed 220`/`400` **MATCH**; `ss_lint` **rc 0** on both (222/205 flops ucore,
+203/181 fsm — an output port is not a flop); `gen_ucore_qsf --check` green.
+**The port is dead weight offline, as registered.**
+
+Both `tb_sys` legs were REBUILT: §67.6/§67.7's routed rig debt is **TAKEN** —
+`x1_retention.py` has a `build()` with a real dependency set and `capture`
+calls it.  §68.2's `--leg` debt on `u4_f42_fabric` is **TAKEN** as well
+(default `core`, so every past invocation still means what it meant; FLASH #5's
+record duplicated to `*.core_f5.json.gz`, verified reproducing 146/283, and
+`--leg core_f4` verified reproducing FLASH #4's 143/283).
+
+### §69.3 THE LIVENESS BAR — **MET.  §59.7.1's BLOCKER IS GONE.**
+
+§4 of the pre-registration wrote the bar as *"the retention registers named and
+counted in the fit report of the retention build, or NO flash."*  **The bar's
+LETTER is not measurable on this report and that is said plainly**: a control
+run first shows `nec_test_ucore.fit.rpt` does not name ordinary internal
+registers at all — `c_ready_q`, `c_addrv_q`, `hb_ad_dir`, `core_ad_eff`,
+`bus_tick_rise` are **0 occurrences each in FLASH #5's own fit report**.  A
+grep for a register name is a weak instrument, which is why §59.7.1 did not
+rest on it either.  The bar's SUBSTANCE — named and counted — is measured two
+ways, and both are decisive:
+
+| test | result |
+|---|---|
+| **`system_large`'s OWN dedicated logic registers, `Fitter Resource Utilization by Entity`** | **27 → 47.  Exactly +20**, the model's own count, in the entity that declares it |
+| A&S `Total registers`, whole design | 4,797 → **4,817.  Exactly +20** |
+| **§59.7.1's ISOLATED CONSTRUCT, both forms, compiled alone** (`~/.cache/ucsimt-tmp/s8/ztest/`) | the `=== 1'bz` form: `Warning (15610): No output dependent on input pin "clk"`, **Total registers 0** — §59.7.1 reproduced exactly.  The `AD_OE` form: no such warning, 40 logic cells against 17, **Total registers 20** |
+| `core_ad_hold` in `Registers Removed During Synthesis` | **absent** (and that table does name `system_large`-level registers — `nec_bus:bus|cap_record[59..63]`, `v30_core:u_core|ss_addr_q[0..8]` are in it) |
+
+**0 registers versus 20, on the identical construct, keyed on the net versus
+keyed on the port.**  That is the whole of what the user's decision bought, and
+it is bought.
+
+### §69.4 THE QUARTUS BARS — **Fmax MISSED BY 12 MHz.  REPORTED AS REGISTERED.**
+
+`gen_ucore_qsf --check` green first, then
+`quartus_map --verilog_macro="X1_AD_RETENTION=1"` + `fit` + `asm` + `sta`.
+
+| bar | registered | **measured** |
+|---|---|---|
+| errors, A&S / Fitter / Assembler / TimeQuest | 0 | **0 / 0 / 0 / 0** |
+| latches as a RESOURCE | 0 | **0** (the 23 `Warning (10240)` lines are the pre-existing `v30u_eu.sv` block-local temporaries) |
+| `lpm_divide` | 0 | **0** |
+| ALMs | — | 11,279 / 41,910 (27 %), 6,139 registers |
+| **Fmax, `emu\|pll\|…\|divclk`** | **>= 32 MHz** | **20.25 MHz — MISSED** |
+| **worst setup slack** | **> 0** | **−18.132 ns — MISSED** |
+| **TNS, setup, `divclk`** | **0.000** | **−11,049.741 — MISSED** |
+
+Hold is clean on every domain (worst +0.255, TNS 0.000).  **The setup bars are
+missed and they are reported as missed, not restated.**
+
+### §69.5 THE CONTROL THAT SAYS WHOSE THE MISS IS — **NOT THE PORT'S**
+
+A miss on a registered bar names a cost; it does not name a cause.  So the
+**same tree** was rebuilt with `quartus_sh --flow compile` and the macro OFF —
+one variable, the `ifdef`:
+
+| | FLASH #5 (§68.1) | **control: this tree, retention OFF** | **retention ON** |
+|---|---|---|---|
+| ALMs | 11,167 (27 %) | **11,167 (27 %)** | 11,279 (27 %) |
+| fitter registers | 6,087 | **6,087** | 6,139 |
+| A&S registers | — | 4,797 | **4,817 (= +20)** |
+| Fmax `divclk` | 45.67 MHz | **45.67 MHz** | **20.25 MHz** |
+| worst setup | +9.355 ns | **+9.355 ns** | −18.132 ns |
+| TNS `divclk` | 0.000 | **0.000** | −11,049.741 |
+| the SDC's v30u multicycle collection, at STA | 2,220 | **2,220** | **2,139** |
+
+**THE `AD_OE` PORT COSTS NOTHING — the control reproduces FLASH #5's numbers to
+the ALM, to the register and to 0.01 MHz.**  The whole of the miss is the
+retention model, and it is 20 flops.
+
+### §69.6 WHY 20 FLOPS COST 25 MHz — **A NAME-SCOPED TIMING EXCEPTION, AND IT
+IS A FINDING ABOUT THE SIGN-OFF, NOT ABOUT THE MODEL**
+
+Synthesis is IDENTICAL between the two builds apart from the model itself
+(4,797 → 4,817 registers, exactly +20).  Everything else happens in the FITTER.
+
+The retention build's worst path, all five of its worst five:
+
+```
+  From : emu|system_large|c_ready_q
+  To   : emu|system_large|v30_core:u_core|v30u_eu:u_eu|wb_kind[1]
+  Relationship 31.250   Data Delay 48.720   Skew −0.532   Slack −18.132
+```
+
+**In the control that path DOES NOT EXIST.**  Measured, not inferred:
+`report_timing -from c_ready_q -to wb_kind` on the control netlist returns
+**no paths**, with both collections non-empty (1 and 3).  The control's worst
+paths into `wb_kind` launch from `cfg_use_core` / `cfg_clk_div` at **8.3 ns,
+slack +22.2**, and its worst core path overall is
+`v30u_eu|upc_opc[3]~DUPLICATE → nec_bus|qs_q[1]` at 21.68 ns, slack +9.355.
+
+And the SDC's exception collection moves with it: **2,220 → 2,139, 81 fewer.**
+`nec_test.sdc` collects the CE multicycle **BY NAME** —
+`get_registers {*|v30u_eu:*|*}` and `{*|v30u_biu:*|*}` — and the fitter's
+physical synthesis DUPLICATES registers across the core boundary.  A duplicate
+that lands inside the `v30u_*` name scope is inside the exception; the same
+register duplicated at the parent level is outside it, single-cycle, and 4×
+over-constrained.
+
+**So FLASH #5's timing sign-off depends on where the fitter happened to name
+its duplicates.**  Perturb the design by 20 flops on a capture path and the
+duplication changes, 81 registers leave the exception, and a genuinely
+CE-gated path is scored against one sys clock instead of four.  The SDC's own
+falsifier is written for the opposite failure (*"a `v30u_eu` or `v30u_biu`
+state register with no clock-enable input"* — the exception lying by
+over-applying); **this is the exception failing by UNDER-applying, which no
+falsifier in the file covers and which no gate would have shown.**
+
+**IT IS BOOKED AND NOT FIXED HERE, DELIBERATELY.**  Widening the collection
+after seeing a timing result is choosing a timing exception to make a bar pass
+— the same manoeuvre as choosing a comparator after seeing a score.  The fix,
+routed: collect the CE-gated registers **structurally** (registers whose `ena`
+port is driven by the core's clock-enable) rather than by hierarchical name,
+and re-sign-off BOTH revisions against it, with the before/after on both cores
+that any change to a shared harness needs.
+
+### §69.7 THE DISPOSITIONS, TAKEN AS §8 WROTE THEM
+
+* **NO FLASH.**  A registered bar was missed and the design's own sys clock is
+  32 MHz, which the retention build cannot make.  A fabric number taken off a
+  bitstream that fails setup by 18 ns is not a measurement of anything, and
+  §59.7.1 exists because *"119 survive"* is easier to write than to retract.
+  **`flash_log.jsonl` is unchanged at 8 entries.**
+* **THE FABRIC LEG WAS NOT RUN.**  Not attempted, not partially scored, not
+  quoted.
+* **C11's `NOT ESTABLISHED` STANDS**, and the reason it stands has changed:
+  it is no longer *"the model cannot be synthesised"* (§59.7.1 — that is
+  CLOSED) but *"the model synthesises and does not close timing"*.
+* **THE BOARD IS UNTOUCHED AND STILL CARRIES FLASH #5.**  The resting-bitstream
+  decision is therefore not a decision: nothing was flashed, so nothing is
+  restored.  `sw/check_ab_hw.py chip 800` on it: **chip-vs-golden MATCH over
+  800 rows**, `div_guard` **PINNED**, `use_core` **False**, `board_idle()`
+  clean, `cfg = 0xff0008` (`clk_div` 8, `DIV_OF_RECORD`).
+
+### §69.8 WHAT MOVED, AND WHAT DID NOT
+
+| | before | **after** |
+|---|---|---|
+| `hdl/rtl/*/v30_core.sv` port list | no `AD_OE` | **`output [19:0] AD_OE`, both cores** |
+| `system_large.sv`'s retention key | `core_ad === 1'bz` (unsynthesisable) | **`core_ad_oe`, and it synthesises: +20 registers, measured** |
+| §59.7.1's blocker | OPEN | **CLOSED** |
+| the X1 fabric leg | BLOCKED (cannot build) | **BLOCKED (builds, misses Fmax)** |
+| C11 | NOT ESTABLISHED | **NOT ESTABLISHED** |
+| the board's bitstream | FLASH #5 `315de4bc9e30…` | **FLASH #5 `315de4bc9e30…`, untouched** |
+| `x1_retention.py` | no build recipe anywhere in the tree | **`build()` + dependency check; `capture` calls it** |
+| `u4_f42_fabric.py` | one fixed filename, overwrites on re-capture | **`--leg`, default `core`** |
+| **everything in `standing_gates.md` §B** | — | **UNMOVED, and re-measured rather than inherited** |
+
+### §69.9 WHAT THIS SITTING DID NOT DO
+
+* **No flash, no fabric capture, no golden re-emitted.**
+* **H1a's landing was not opened** (§68.10 lead 1) — still queued.
+* **The 8080 / `gaps` §F.1 work was not opened** — a pending USER decision.
+* **No memory file was touched and Codex was not launched.**
+* **`nec_test.sdc` was NOT edited** (§69.6).
+* **`timed_lawcards`' `C11` was NOT touched, and it is a DIFFERENT C11** —
+  that one is the BIU law card *"LC4 `owns_slot` (enumerated)"* and it remains
+  `UNRESOLVED` on its own grounds.  The C11 this sitting is about is the
+  **Codex review item** in `ucore_campaign_verdict_2026-08-04.md` §(g), *"the
+  INTA classification: NOT ESTABLISHED"*.  The two share a label and nothing
+  else; conflating them would close a card no evidence here touches.
+
+### §69.10 THE LEADS THIS SITTING HANDS THE NEXT ONE
+
+1. **THE SDC's NAME-SCOPED CE EXCEPTION (§69.6)** — now the only thing between
+   the retention model and a fabric answer, and a fragility in *every* bitstream
+   this project has signed off.  Board-free, and it has a control ready-made:
+   the same tree builds at 45.67 MHz with the macro off and 20.25 MHz with it
+   on, so any structural collection can be scored on both.
+2. **Then the X1 fabric leg**, unchanged: §56.3a's two halves, the population
+   restated at **119** and **265** in the pre-registration's §6, the 18
+   survivors named cell by cell in its §7, and the socket control at 49/49.
+3. **H1a's landing** with the bar rewritten on w0 and on minima (§68.10 lead 1).
+4. **H7's bank association** and **H3's steady-state prefetcher** (§68.10
+   leads 2 and 3), both board-free to open.
