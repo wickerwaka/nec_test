@@ -11973,3 +11973,283 @@ establishes repeatability of one draw, not closure.
 * **`sim/` was not touched**; §78.I's model gaps are booked with their numbers.
 * **Family B, family D, the 8080 work and H3-B were not opened.  No memory file
   was touched.  Codex was not launched.**
+
+## §79 SESSION SM3, SITTING 18 — **THE MODEL'S F54 LEG IS ONE INTEGER, AND TWO THIRDS OF §78.I's "THREE WRONG WAYS" WERE A RIG DEFECT.  THE MODEL HAD THE INT CONSTANT EXACT ALL ALONG; ITS NMI CONSTANT WAS `K = 7` AGAINST SILICON'S `K = 6`.  +24 / −0 CELL FOR CELL, AND FAMILY B IS PARTITIONED AND BOOKED.**
+
+**2026-08-05, branch `ucsim`, from HEAD `918fa67b57`.  NO BOARD CONTACT — every
+population here is banked; `use_core` was never set, nothing was flashed, no
+capture was taken.  NO `hdl/` FILE WAS TOUCHED, so G6 is not triggered and is
+not claimed.**
+
+> **Standing principle, applied throughout.**  *"A guiding principal here needs
+> to be simplicity.  This is 80's era hardware, they aren't wasting silicon on
+> anything that isn't necessary.  Complex or confusing behavior that we see is
+> likely to be simple systems interacting in ways you do not fully understand
+> yet."*
+
+The pre-registration is `docs/notes/sm3_s18_prereg_2026-08-05.md`, committed as
+`c7b9ff409e` **before `sim/` was touched**, and this section reports against it.
+
+### §79.A **THE RIG DEFECT — AND IT IS WHY §78.I's MODEL COLUMN IS WITHDRAWN**
+
+`v30sim timed-run` keys its record stream by the **array position** of the case
+it was handed (`sim/timed_runner.cpp` 658-662).  `check_core.compose_batch`
+keys the RTL batch by the golden's own **`idx`** (`check_core.py` 218).  Every
+suite in the tree before S16 runs `idx = 0,1,2,…`, so the two agree and nothing
+is visible.
+
+**The S16 walk is the first population where they do not.**  There `idx` is the
+pin-event DELAY; 141 of 1,512 cells are not composable; the surviving sets start
+at **0** (`HLT.RES`), **1** (`HLT.INT`) and as late as **4** (`HLT.NMI` at w3),
+with gaps.  `sw/sm3_haltsupp.py` used the RTL lookup on BOTH legs, so on the
+model leg it read the WRONG CASE — and that is the instrument §78.I's model
+column was measured through.
+
+**The control, run before the fix was trusted**: the old lookup, replayed
+against today's binary, reproduces §78.I's table exactly.
+
+| form | §78.I as booked | the OLD lookup, replayed | **the CORRECTED instrument** |
+|---|---|---|---|
+| `HLT.RES` | 3 · 7 · 9 · 11 (EXACT) | 3 · 7 · 9 · 11 | **3 · 7 · 9 · 11 — EXACT** |
+| `HLT.INT` | 2 · 4 · 5 · 6 | 2 · 4 · 5 · 6 | **3 · 7 · 9 · 11 — EXACT** |
+| `HLT.NMI` | none at any delay | none at any delay | **3 · 5 · 7** at w1·w2·w3 |
+
+`HLT.RES` escaped because its `idx` starts at 0 — for that form alone, position
+**is** `idx`.  That is the whole of §78.I's "the model gets the ie=0 form exactly
+right and the ie=1 form wrong at every wait level".
+
+> **ERRATUM against §78.I.  §78.I IS LEFT AS COMMITTED** — it is the record of
+> what was believed — **and the correction is here.**  Two of its three rows are
+> INSTRUMENT ARTEFACTS.  The model does NOT get `HLT.INT` wrong at any wait
+> level and does NOT lack the NMI law entirely.  **§78.I's lead — *"whatever it
+> does, it is not one rule for the pin"* — is WITHDRAWN.  It is one rule for the
+> pin, with one constant per pin, and one of the two constants was off by one
+> clock.**  Fixed in `sw/sm3_haltsupp.py` and in the new `--core sim` leg of
+> `sw/sm3_s16_score.py`; both re-key the model's stream to `idx` once, and
+> everything downstream is engine-neutral.
+
+*Falsifier for the fix, registered*: any suite on which the two legs' case
+ordering differs and the re-keyed model leg does not reproduce the RTL leg's
+per-case association.
+
+### §79.B THE MODEL'S FIRST S16 FIGURE, AND THE RESIDUE PARTITION
+
+`sw/sm3_s16_score.py --core sim` is new (the model had never been scored on the
+authorising population).  It runs the model through `timed_gate.run_form` and
+then **the identical code the RTL legs use** — `cc.check_case`, `cc.diff_rows`,
+`classify_first` — so the PASS definition is the same on both legs.  The control
+that says so: the ucore leg re-run today reproduces **1,294 / 1,371** and its
+per-cell map agrees with `check_core`'s own `N/M full` count.
+
+| | **the MODEL, before** | **the MODEL, after F54** | the ucore |
+|---|---|---|---|
+| S16 total | **1,225 / 1,371** | **1,249 / 1,371** | 1,294 / 1,371 |
+| w0 · w1 · w2 · w3 | 337 · 325 · 294 · 269 | **343 · 331 · 300 · 275** | 346 · 328 · 318 · 302 |
+| `busstat_other` | **34** | **10** | **10** |
+| `B_late` | 16 | 16 | 16 |
+| `D_tstate` | 0 | 0 | 24 |
+| `qop` | 39 | 39 | 0 |
+| `E_ube` | 30 | 30 | 0 |
+| `ARCH` | 30 | 30 | 27 |
+
+Read across, the two engines' S16 residues are **the same 26-cell family B, plus
+one class each that the other does not have**: the ucore's 24 `D_tstate` are
+§77.A.2's two-sample analyser class (unreachable for the model's row stream),
+and the model's **39 `qop` + 30 `E_ube`** are its own — `E_ube` is **F53's UBE
+half, which the model does not carry**, and it is 5 of the model's 11 HLT-sweep
+misses.  Both are **BOOKED HERE, NOT OPENED**.
+
+### §79.C THE LAW, AND THE MODEL ALREADY HAD HALF OF IT
+
+F54 (§78.B): *the HALT announcement at clock `H` is cancelled iff the pin
+event's assert clock `A` satisfies `A <= H − K`, with `K = 3` on the INT pin and
+`K = 6` on the NMI pin.*
+
+The model renders the cancellation as M20 already says it: the announcement is a
+**queued write** to the display register (`biu_timed.cpp` 329,
+`halt_pending_ && !run_ && !cmt_valid_ && c != no_eval_`) and `unhalt()` cancels
+the queued write, so **the release clock IS the threshold**.
+
+* the INT arms — masked (`HLT.RES`) and vectored (`HLT.INT`) alike — release at
+  **`a + 3` = `A + K`, `K = 3`.  Exact, 1,008 cells, 0 disagreements.**
+* the NMI arm released at **`a + 7`, i.e. `K = 7`** — one clock late, at every
+  wait level, on all six programs.  **24 cells**, and they are the TOP delay of
+  the NMI band at each level: `w0 d0 · w1 d4 · w2 d6 · w3 d8`.
+
+**Why no banked population had ever shown it** is §78.D's sentence again: the
+11,200 standing `HLT.NMI` goldens are all at `delay >= 8` and all carry a HALT
+status, and `HLT.NMI` is in no HLT delay sweep.  Only the S16 walk reaches
+`d <= 8` on this form.
+
+### §79.D THE LANDING — TWO LINES, AND `halted_` IS DELIBERATELY NOT TOUCHED
+
+```cpp
+// biu_timed.h -- the ucore's `eu_unhalt_disp` in the model's idiom
+void cancel_halt_disp() { halt_pending_ = false; }
+```
+```cpp
+// timed_runner.cpp, run_evt, the halted branch, the NMI arm
+biu.charge_to(a + 6);      // F54: A + K, K = 6 on the NMI pin
+biu.cancel_halt_disp();    // the ANNOUNCEMENT only
+biu.charge_to(a + 7);      // B = a+5, entry at B+2 -- UNCHANGED
+```
+
+This is the ucore's own shape: F54 lives on the **display path alone**
+(`eu_unhalt_disp`), and the EU's real unhalt sequencing (`unhalt_pend`, at
+`c0 + 3 = A + 7`) is left where it was.  So the model's `halted_` — the prefetch
+park — and the whole `A + 7` wake schedule are untouched.  **The wake's prefetch
+release is a different mechanism (family B) and is not folded in here.**  No new
+constant that F54 does not already name, no per-delay table, no per-program
+case, no new state.
+
+### §79.E THE RESULT, REPORTED AS REGISTERED
+
+| | registered bar | **measured** |
+|---|---|---|
+| **P1** | `sm3_haltsupp engine --core sim` 24 → 0 disagreements | **0**, all three forms, all four wait levels, all 12 (form, wait) cells — **MET** |
+| **P2** | exactly 24 close, 0 break; S16 1,225 → **1,249**; per wait **343 · 331 · 300 · 275** | **+24 / −0 cell for cell**, and the 24 are exactly `HLT.NMI` `w0 d0 · w1 d4 · w2 d6 · w3 d8` × 6 programs; **1,249 / 1,371**, **343 · 331 · 300 · 275** — **MET** |
+| **P3** | `busstat_other` 34 → 10, and they are the ucore's 10 | **10**, and they are the ucore's 10 cell for cell (`w0 HLT.INT d2` ×4, `w0 HLT.RES d2,d3` ×6) — **MET** |
+| **P4** | the four HLT sweeps UNMOVED at 272/283 | **91/97 · 95/95 · 44/46 · 42/45 = 272 / 283** — **MET** |
+| **P5** | the 11,200 `HLT.NMI` goldens unmoved | **200 / 1,000 / 10,000 = 11,200 / 11,200**, arch AND rows, **row-diffs 0** — **MET** |
+| **P6** | `ulockstep` 17,350 | **17,350 / 17,350 ALL CASES LOCKSTEP** — **MET.  This is the evidence that the model's rendering matches the ucore's edge for edge**, because the ucore has carried F54 since §78 |
+| **P7** | residue exactly `B_late` 16 · `busstat_other` 10 · `qop` 39 · `E_ube` 30 · `ARCH` 30 | **identical** — the NMI class is GONE and **no class grew** — **MET** |
+| f1 … f6 | any falsifier | **NONE FIRED** |
+
+**No falsifier fired, so the change STANDS.**
+
+### §79.F THE LADDER — EVERY CELL RE-RUN ON THE FINAL BINARY
+
+`sim/build/v30sim` receipt **`7dda28c3005e80c0…`**, artifact sha256
+`9411e211f5723e8f…`, build key `1523681df4d81899…`.
+
+| gate | standing | **measured** |
+|---|---|---|
+| `timed_gate --suite v0.1 --forms all` | 169,000, row-diffs 0 | **169,000 / 169,000, row-diffs 0** (3 collision-dependent under the mirror) |
+| `v0.1-w1` / `-w3` (with `--waits`) | 1,200 each | **1,200 / 1,200** each, row-diffs 0 |
+| `EB` at w1 | 200 | **200 / 200** |
+| the four `evt` cells | 200 / 1,200 / 200 / 1,200 | **identical**, row-diffs 0 |
+| `w1evt-biased` | 1,200 | **1,200 / 1,200** |
+| the four HLT sweeps | 272 | **272 / 283** |
+| the 11,200 `HLT.NMI` goldens | — | **11,200 / 11,200**, row-diffs 0 |
+| `ucsim_check`, the full functional set | 7,341,126 | **169,000** · **347,000** · **3,699,998** · **3,125,000** (`v20suite --no-mirror`) · **128** (`mod3_illegal --residue stale-ea`) = **7,341,126 / 7,341,126** |
+| `check_boot --timed 220` | MATCH | **MATCH over 220 rows**, loop period 64 both sides |
+| `timed_scenario` | 18 / 0 / 9 | **18 PASS, 0 FAIL, 9 SKIP** |
+| `timed_enter_replay` | 154 ×5 | **154/154 ×5** |
+| `timed_ins_replay --raw` | 1,312 / 2,624 | **rails 1,312/1,312 · vs-chip 2,624/2,624**, 173,556/173,556 same-T1 |
+| `timed_wvec_gate` | 88/88, +0.0 % | **88/88, 16,048 vs 16,048, +0.0 %** |
+| `timed_lawcards` | 8 GREEN / 0 RED / 3 UNRESOLVED | **GREEN 8 / 11 scored, 3 UNRESOLVED, 0 RED** |
+| `timed_fuzz --core sim --evt-replay` | 1,272 · 782 · 2,054 | **1,272 / 1,702 · 782 / 1,008 · 2,054 / 2,710**, `INVALIDATED` 0 |
+| `timed_fuzz … b2-tranche` | 154 / 188 | **154 / 188** (V5 still the standing REGISTERED FAILURE) |
+| `ulockstep --golden all --cases 50` | 17,350 | **17,350 / 17,350** |
+| `simbin --disasm` · `pla3_check` | 1,285 · 21 | **PASS (1,285 rows)** · **OK (21)** |
+| **the ucore** | — | **NOT TOUCHED.  `git diff -- hdl` EMPTY**; re-measured on the same populations at **1,294 / 1,371** and **273 / 283** |
+
+### §79.G **FAMILY B — PARTITIONED AND BOOKED, AND THE DIAGNOSIS IS SHARPER THAN §78.I.1's**
+
+The pre-registration offered **B1** (a one-term mechanism closing all 26 S16 and
+all 6 sweep cells in both engines) and **B2** (partition and book).  **The
+outcome is B2, and it is reported as registered, not explained away.**
+
+**(a) IT IS THE SAME MECHANISM IN BOTH ENGINES, TO THE DIFF.**  On the four HLT
+sweeps the w0 residue is identical in the C++ model and in the RTL — the same
+six cells, the same first divergences, the same totals:
+
+| cell | first divergence | n diffs, **both engines** |
+|---|---|---|
+| `HLT.INT` d2 | `(4, busstat) CODE -> PASV` | **179** |
+| `HLT.INT` d3 | `(4, busstat) CODE -> PASV` | **158** |
+| `HLT.INT` d4 · d5 | `(17, busstat) INTA -> PASV` | **128** each |
+| `HLT.RES` d2 · d3 | `(4, busstat) CODE -> PASV` | **3** each |
+
+§78.I.1 called family B "model-shared" from a census; this is the measurement
+that says it is the same mechanism to the diff count, and it is **26 cells on
+S16** (`busstat_other` 10 + `B_late` 16) and **6 on the sweeps**, **at w0 only**.
+
+**(b) IT IS TWO SIGNATURES, NOT ONE, AND BOTH ARE MEASURED OFF THE GOLDENS
+ALONE.**
+
+*Signature 1 — the wake's first prefetch, in the CANCELLED regime (`d2`, `d3`).*
+Silicon's post-wake schedule there is a function of `H`, not of `A`: **`d2` and
+`d3` produce byte-identical captures.**  Reading the golden announcement rows,
+the rule that fits w0 AND w1, both forms, is one sentence:
+
+> the wake's prefetch is granted at the RUNNING cycle's own eval if the wake
+> arrived by that cycle's index-2 arm sample — display at `eval + 1` — and
+> otherwise at the CANCELLED HALT's own slot, display at **`H + 1`**.
+
+w0: the running `CODE` cycle's eval is at `T3` (row 1), display 2, and the arm
+sample is at row 1, so `d0,d1 -> 2` and `d2,d3 -> H + 1 = 4`.  w1: the eval is at
+`T4` (row 3), display 4, arm sample at row 1, so `d0..d3 -> 4` and
+`d4..d7 -> H + 1 = 6`.  **Both groups measured, no exception.**  The model gets
+the first group right at both wait levels **and the second group right at w1**;
+at w0 it puts the second group at `H + 2` (`d3 -> 5`), and at `d2` that one
+clock puts the fetch past the acknowledge's own slot, so it is not late — it is
+**LOST**, and the model goes straight to `INTA`.  *That is §78.I.1's "same
+regime, opposite outcome", now with the arithmetic and with the w1 control that
+says the model is not uniformly wrong.*
+
+*Signature 2 — the SECOND acknowledge (`d4`, `d5`), and it is NOT the same
+sentence.*  Here the announcement IS made and the HALT pseudo-cycle runs; what
+is late is the second `INTA`.  Measured on `w0 p0 HLT.INT`:
+
+| | INTA1 announce | INTA2 announce | gap |
+|---|---|---|---|
+| golden `d5` | 10 | **17** | **7** |
+| golden `d6` | 11 | **18** | **7** |
+| model `d5` | 10 | **18** | 8 |
+| model `d6` | 11 | **18** | 7 |
+
+**Silicon spaces the acknowledge pair 7 clocks ANNOUNCEMENT to ANNOUNCEMENT.**
+The model reaches the same answer whenever the first display is one clock long
+and is one clock late when the display WAITS — the two coincide because a
+1-clock display puts `T4` at `disp + 4`.  Traced further, the divergence is the
+clock the EU posts the second request: silicon grants it at the idle eval one
+clock after the first acknowledge's READ COMPLETES (`d5` grant 16, `d6` grant
+17), the model grants at 17 in both.  **This is an EU data-dependency question,
+not a display-register question**, and folding it into signature 1 would be
+exactly the fitting this campaign forbids.
+
+**(c) WHY NOTHING WAS LANDED.**  Both signatures sit in the model's prefetch /
+eval arbitration — M1, M2r, M7, M21, M22 — which is the most heavily measured
+surface in `biu_timed.cpp` and which the whole 7.3M-case ladder rides on.
+Signature 1 needs the grant cadence after a cancelled display at w0 alone (the
+model is already right at w1, so it is not a missing rule but a wrong one clock
+in one regime); signature 2 needs the acknowledge pair's spacing to be taken
+from the announcement.  **Two mechanisms, two authorising arguments, and neither
+is one term.**  B1's bar was written to be missable and is **NOT MET**; B2 is the
+registered outcome and no code was written for either.
+
+*Falsifiers, registered for whoever takes it.*  **B-1**: make the wake's grant
+after a cancelled HALT display land at `H + 1` at w0 and all 13 signature-1
+cells (10 S16 + 3 sweeps) must close while w1/w2/w3, the four HLT sweeps' other
+cells, the 11,200 `HLT.NMI` goldens and the whole §79.F ladder do not move.
+**B-2**: take the acknowledge pair's spacing from the first acknowledge's
+ANNOUNCEMENT and all 13 signature-2 cells (16 S16 `B_late` at `d3,d4,d5` minus
+the `d3` overlap, plus 3 sweeps) must close under the same conditions.  A
+partial close, or a close that moves any other cell, is a REGISTERED FAILURE and
+is reverted.
+
+### §79.H THE RATCHETS THAT MOVED, ITEMISED
+
+| ratchet | before | **after** | which change |
+|---|---|---|---|
+| **NEW** — the S16 walk, **the MODEL's leg** | never scored | **1,249 / 1,371** (pre-F54 **1,225**) | F54's model leg |
+| — per wait level | 337 · 325 · 294 · 269 | **343 · 331 · 300 · 275** | F54's model leg |
+| the model's S16 `busstat_other` | 34 | **10** | F54's model leg |
+| §78.I's model column | 3 wrong ways | **WITHDRAWN — one wrong integer**, §79.A | the rig fix |
+| **everything else in `standing_gates.md` §B** | — | **re-measured, not inherited; not one figure moved** | — |
+
+### §79.I WHAT THIS SITTING DID NOT DO, AND THE STATE IT LEAVES
+
+* **NO BOARD CONTACT, NO FLASHING, `use_core` NEVER SET.**  The board still
+  carries FLASH #6, which predates F53 and F54.
+* **NO `hdl/` FILE WAS TOUCHED** (`git diff -- hdl` EMPTY), so **G6 is not
+  triggered and no Quartus figure is claimed**.  The ucore's numbers here are
+  re-measurements of §78's binary, not new builds.
+* **Family B is PARTITIONED and BOOKED** (§79.G) with two falsifiers and no code.
+* **The model's `qop` (39) and `E_ube` (30) S16 classes are BOOKED, NOT OPENED.**
+  `E_ube` is F53's UBE half — the address phase loads UBE and then HOLDS it —
+  which the ucore has and the model does not; it is **5 of the model's 11 HLT
+  sweep misses** and it is the obvious next model landing.
+* **H7, family D, the 8080 work and H3-B were not opened.  No memory file was
+  touched.  Codex was not launched.**

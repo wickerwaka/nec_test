@@ -203,9 +203,26 @@ Values are monotone: never re-scored downward without a loud, itemized entry.)
   IE) — which closed the 42-cell band **+42/−0** with no flop added.  §77.E's
   H7 attribution of that band is **WITHDRAWN**: it was never a recognition-
   timing question (the NMI vector read sits at the identical row on 36/42; the
-  band scales with waits because `H` does).  The MODEL has this law wrong
-  three ways (`HLT.RES` exact, `HLT.INT` short by 1/3/4/5 delays at w0-w3,
-  `HLT.NMI` no suppression) — §78.I, bar-ready, sim landing owed.
+  band scales with waits because `H` does).  **THE MODEL'S LEG LANDED AT SM3
+  SITTING 18 (§79), AND §78.I's "three wrong ways" IS WITHDRAWN AS A RIG
+  DEFECT**: `v30sim timed-run` keys its records by ARRAY POSITION and
+  `compose_batch` keys the RTL batch by the golden's `idx`, which first differ
+  on the S16 suites (`idx` is the DELAY, 141 cells non-composable, sets start
+  at 0/1/4 with gaps).  Corrected, the model had `HLT.INT` **and** `HLT.RES`
+  EXACT at all four wait levels and its NMI constant was `K=7` against
+  silicon's `K=6` — **one clock, 24 cells**, closed by a display-only
+  `cancel_halt_disp()` at `A+6` (the ucore's `eu_unhalt_disp` in the model's
+  idiom; `halted_` and the `A+7` wake schedule untouched).  **The MODEL's S16
+  leg is a new standing figure: 1,249/1,371** (`sm3_s16_score.py --core sim`,
+  343·331·300·275; it was 1,225, +24/−0 cell for cell).  **Family B is
+  PARTITIONED and BOOKED** (§79.G): it is IDENTICAL in both engines cell for
+  cell AND diff for diff, and it is TWO signatures — the wake's prefetch after
+  a CANCELLED display (silicon puts it at `H+1`; the model is right at w1 and
+  one clock late at w0) and the acknowledge pair's spacing (silicon spaces it
+  7 clocks ANNOUNCEMENT to ANNOUNCEMENT).  Two falsifiers registered, no code
+  written.  The model's other S16 classes, BOOKED not opened: `qop` 39 and
+  `E_ube` 30 — **`E_ube` is F53's UBE half, which the model does not carry,
+  and it is 5 of the model's 11 HLT-sweep misses.**
   These were 90/97, 88/95, 37/46, 34/45 = 249/283 through **U5**, and the move is
   two changes at once: **F51** landed (the HALT pseudo-cycle has no data phase)
   and the TB's composed-AD mask stopped hiding it.  §43.2's "17 cells no
