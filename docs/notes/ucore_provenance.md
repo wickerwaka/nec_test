@@ -11402,7 +11402,7 @@ status is present at mid-clock and gone by the end of the same clock.**
 
 The ucore's `bs` is a whole-clock level, so the analyser's two samples see the
 same value and the pattern is unreachable.  Counted over **every committed
-golden suite — 217,530,000 rows** (`v0.1` 4,547,843 · `v0.2` 9,990,517 · `v0.3`
+golden suite — 217,507,379 rows** (`v0.1` 4,547,843 · `v0.2` 9,990,517 · `v0.3`
 108,053,378 · `v20suite` 94,438,658 · the four sweeps · the evt tranches ·
 `f4a_boundary` · `f0lock_tranche` · `mod3_illegal`) — the pattern
 `bs(r) != PASV ∧ t(r) ∈ {T4,Ti} ∧ t(r+1) == Ti` occurs **4 times**, and they are
@@ -11580,10 +11580,26 @@ Everything else in `standing_gates.md` §B was re-measured, not inherited.
 
 ### §77.H WHAT THIS SITTING DID NOT DO, AND THE STATE IT LEAVES
 
-* **NO FLASHING.**  No bitstream was built or loaded; `use_core` was never set;
-  the board carries the same image it did at the open.  **Nothing here has been
+* **NO FLASHING.**  No bitstream was loaded; `use_core` was never set; the
+  board carries the same image it did at the open.  **Nothing here has been
   measured in fabric** — the ucore in fabric is still FLASH #6's, which predates
   F53.  A fabric leg is the obvious next confirmation and it is NOT claimed.
+* **G6, THE QUARTUS LEG, IS A DEBT — STARTED, NOT COMPLETED, AND SAID SO.**
+  `standing_gates.md` triggers it on any commit touching `hdl/rtl/ucore/**`, and
+  F53 does.  It was launched (`sw/quartus_gate.py --label "SM3-s16 F53"`);
+  **E1 PASSED** (`gen_ucore_qsf --check`: `nec_test_ucore.qsf` is up to date) and
+  Analysis & Synthesis completed in 2:33 with the report retained; **the FITTER
+  was still running when this sitting closed** — this machine has 8 GB of swap
+  in use and ~1 GB of free RAM, and the fitter was at 9.5 minutes of CPU with
+  20 % iowait.  **E2-E5 ARE THEREFORE UNSCORED.**  They gate RTL PROMOTION and a
+  FLASH; neither happened, and no Fmax, ALM or slack figure from this sitting
+  exists to quote.  The run writes its receipt to
+  `hdl/output_files_ucore/quartus_gate.json` and appends to
+  `sw/testdata/receipts/quartus_bitstream.jsonl` when it finishes; **the next
+  sitting must read that receipt (or re-run the gate) before F53 is promoted or
+  any bitstream carrying it is built.**  Recorded as a debt rather than
+  smoothed, because "the standing set is board-free by design and had no Quartus
+  leg at all" is exactly how §73.1 happened.
 * **Family D is BOOKED, not landed** (§77.A.2), with its falsifier written down.
 * **Family B is left to `sim/`** — it is model-shared and the mechanism is the
   model's.
