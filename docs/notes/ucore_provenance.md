@@ -10400,6 +10400,59 @@ pre-form-2 tree is **faster** than HEAD.  Two consequences, both booked:
    multi-seed form (`--seed`, N fits, gate the WORST) is the obvious next
    version and is **NOT** built here.
 
+### §74.4a **THE MECHANISM OF THE SWING, MEASURED — ANALYSIS & SYNTHESIS ITSELF IS NOT REPRODUCIBLE, AND `.qsf` MATERIALISATION IS REFUTED AS THE CAUSE**
+
+Post-hoc and EXPLORATORY — generated after seeing §74.4's result, labelled as
+such, and carrying no registered outcome.  Two candidate causes were named and
+one was tested directly.
+
+**CANDIDATE 1, `.qsf` MATERIALISATION — REFUTED.**  Sitting 12's builds all read
+a `.qsf` Quartus had rewritten with ~180 sourced assignments appended (§70.7);
+sitting 13's read the generated one, because `c7198e210f` had un-materialised it.
+`144e67416b` was therefore rebuilt a THIRD time, with the materialised `.qsf`
+restored byte for byte from `c7198e210f^`.  Result: **Fmax 45.91 MHz, worst
+setup +6.489, ALMs 11,148 — identical to the generated-`.qsf` build to the
+digit.**  The `.qsf` variant does not move this build.
+
+**CANDIDATE 2, THE FLOW'S OWN REPRODUCIBILITY — CONFIRMED, AND IT IS UPSTREAM OF
+THE FITTER.**  Analysis & Synthesis reports, four CONTROL builds:
+
+| build | Fmax | `v30u_eu` REG | `v30u_biu` REG | `v30_core` REG | **`v30u_eu` ALUT** | `v30u_biu` ALUT |
+|---|---|---|---|---|---|---|
+| s12 `ctrl_clean`, `144e67416b` | **19.42** | 675 | 402 | 1077 | **10,686** | 834 |
+| s13 `wt144`, `144e67416b` | **45.91** | 675 | 402 | 1077 | **10,711** | 830 |
+| s12 `ctrl_after2`, form 2 | 45.89 | 675 | 402 | 1077 | 10,756 | 795 |
+| s13 `flash7`, form 2 / HEAD | 43.59 | 675 | 402 | 1077 | 10,773 | 793 |
+
+**READ THE TWO HALVES SEPARATELY.**
+
+* **The REGISTER counts are IDENTICAL in all four** — `v30u_eu` **675**,
+  `v30u_biu` **402**, `v30_core` **1077** — which is §73.6's "AND NO FLOP MOVED"
+  reproduced across a further sitting and two more builds.  **That claim stands
+  entirely.**  It also proves the two `144e67416b` builds really are of that
+  tree: sitting 12's `ctrl_clean` and sitting 13's `wt144` synthesise the same
+  flop set, and the form-2 pair its own.  **The 19.42 measurement was of the
+  tree it was labelled with.**
+* **The COMBINATIONAL counts differ between every pair, INCLUDING the two builds
+  of the SAME COMMIT from a deleted `db`**: `v30u_eu` **10,686 vs 10,711**,
+  `v30u_biu` **834 vs 830**.  **Analysis & Synthesis is not reproducible run to
+  run on this flow.**  A different netlist is a different fitter problem, and on
+  a design whose critical path sits on a cliff — which is what §70.5 predicted
+  and §73.2 located — a ~25-ALUT difference in the EU is enough to decide
+  whether the long path gets broken.
+
+**SO THE SWING IS NOT "FITTER LUCK" IN THE LOOSE SENSE; IT IS A MEASURED
+UPSTREAM NON-DETERMINISM WITH A MEASURED DOWNSTREAM CLIFF.**  Simplicity, applied
+to the tooling: two simple systems interacting — a synthesiser that does not
+repeat itself exactly, and a path that is marginal — and the confusing behaviour
+is their product, not a third thing.
+
+**WHAT THIS DOES AND DOES NOT LICENCE.**  It does NOT licence re-running a build
+until it passes; that is choosing a run after seeing the result, and the gate
+must be quoted on the run it was given.  It DOES mean a single build is a SAMPLE,
+and §74.8 lead 1's multi-seed form is the fix.  **Every timing figure in this
+ledger from §52 onward is one sample of a distribution nobody has characterised.**
+
 ### §74.5 WHAT MOVED, AND WHAT DID NOT
 
 | | before | **after** |
