@@ -13620,3 +13620,170 @@ every seed's first divergence moved LATER or stayed.
   `--seeddir b2-tranche` 154/188.
 * **FALSIFIER**: any of those moving DOWN by one cell is a REGRESSION and the
   landing is reverted, not renegotiated.
+
+### §84.5 THE LADDER — **EVERY REGISTERED CELL RE-RUN ON THE FINAL BINARY**
+
+| gate | registered | this sitting |
+|---|---|---|
+| `timed_fuzz --core sim --evt-replay` REGISTERED | ≥ 1,282 | **1,282 / 1,702** (was 1,272) |
+| … EVT | ≥ 788 | **789 / 1,008** (was 788) |
+| … COMBINED | ≥ 2,070 | **2,071 / 2,710** (was 2,060) |
+| … seed-by-seed | no `EXACT` may be lost | **0 lost, 11 gained** |
+| `make -C sim test` | PASS | **PASS** (disasm byte-exact) |
+| `pla3_check` | 21 | **21** |
+| `ucsim_check v0.1` | 169,000 | **169,000 / 169,000** |
+| `ucsim_check mod3_illegal --residue stale-ea` | 128 | **128 / 128** |
+| `timed_gate v0.1 --forms all` | 169,000 | **169,000 / 169,000**, row-diffs 0 |
+| `timed_gate v0.1-w1 / -w3` | 1,200 | **1,200 / 1,200** each |
+| `timed_gate v0.1-w1 --forms EB` | 200 | **200 / 200** |
+| the four `evt` cells | 200 / 1,200 / 200 / 1,200 | **200 / 1,200 / 200 / 1,200** |
+| `v0.1-w1evt-biased` | 1,200 | **1,200 / 1,200** |
+| the four HLT sweeps | model 283/283 | **97 + 95 + 46 + 45 = 283 / 283** |
+| `check_boot --timed 220` | MATCH | **MATCH over 220 rows** |
+| `timed_scenario` | 18 / 0 / 9 | **18 PASS, 0 FAIL, 9 SKIP** |
+| `timed_enter_replay` | 154 ×5 | **154 / 154** on every leg |
+| `timed_ins_replay --raw` | 1,312 / 2,624 | **1,312 / 1,312** and **2,624 / 2,624** |
+| `timed_wvec_gate` | 88/88, +0.0 % | **88 / 88, +0.0 %** |
+| `timed_lawcards` | 8 / 0 / 3 | **8 GREEN / 0 RED / 3 UNRESOLVED** |
+| `--seeddir b2-tranche` | 154 / 188 | **154 / 188** |
+
+**NOT ONE CELL MOVED DOWN.**  The single-instruction legs cannot move by
+construction and it is worth saying why rather than only that they didn't:
+`set_brk_enable(true)` appears at exactly ONE call site in the tree
+(`timed_runner.cpp`'s whole-program replay), so the case runner's arm is off and
+a case with `TF` injected has no successor boundary to trap at anyway.
+
+### §84.6 PART B — **THE B2a SURVEY: 12 OF 12 ARE THE `8F` mod-3 GHOST READ, AND IT IS THE ONE DOCUMENTED DON'T-CARE**
+
+`sw/sm3_b2a_survey.py`, scoring through `fuzz_classify.diff_rows` (the repo's own
+column policy, not a hand-rolled one).  §83.5 booked these 12 as "the BIU's real
+residue".  **They are not a BIU class.**
+
+| seed | waits | first row | ins at the divergence | detail | resync | ndiff |
+|---|---|---|---|---|---|---|
+| `mc1/1543` | fix? | 424 | **`8F C0`** | `nxta 0994!=1e94` | 4 | 3,384 |
+| `mc1/2241` | wrand7 | 1,717 | **`8F C2`** | `nxta aab6!=8d40` | 4 | 120 |
+| `mc1/2512` | fix0 | 607 | **`8F E6`** | `nxta 0334!=3f00` | 4 | 3,009 |
+| `mc2/1104` | fix0 | 164 | **`8F ED`** | `nxta 5559!=3f00` | 2 | 3,807 |
+| `mc2/2438` | fix0 | 162 | **`8F DC`** | `nxta 2980!=3f00` | 5 | 3,490 |
+| `mc2/2648` | wrand3 | 315 | **`8F DC`** | `nxta 327c!=3efe` | 5 | 2,990 |
+| `mc2/3569` | fix0 | 162 | **`8F E9`** | `nxta 0000!=3f00` | 4 | 1,334 |
+| `mc2/3805` | fix2 | 260 | **`8F CB`** | `nxta 0100!=3f00` | 4 | 3,710 |
+| `t30-raw/428` | fix0 | 652 | **`8F FA`** | `nxta 14d2!=3c54` | 4 | 3,242 |
+| `t30-raw/508` | fix0 | 156 | **`8F E3`** | `nxta 0500!=3f00` | 4 | 3,570 |
+| `t30-raw/563` | wrand2 | 232 | **`8F CA`** | `nxta 3f00!=3f02` | 2 | 3,595 |
+| `t30-raw/962` | fix0 | 521 | **`8F F8`** | `nxta ca00!=ef1c` | 4 | 4 |
+
+**THE INVARIANT IS UNANIMOUS AND IT IS ONE OPCODE.**  Every ModR/M above is
+≥ `0xC0`: all twelve are `8F` with **mod == 3**, the undocumented
+register-destination `POP` — and the divergent columns are always the same three
+in the same order on ONE bus cycle (`nxta`, then `addr` at that cycle's T1, then
+`data`), after which the run resynchronises in 2 to 5 rows.  Across all 12 the
+divergence-run census is **457 runs, of which exactly 12 are headed by an `8F`
+mod3 — one per seed, and always the FIRST**.
+
+**AND THE LEDGER ALREADY WROTE THIS DOWN**, from the other end.
+`tests/v30/v0.1/metadata.json` `8F.0.dont_care`: *"it writes NO register, only
+`SP += 2`, and issues one stack read whose word is discarded … that read's
+committed ADDRESS and its data are stale internal EA/address-latch state carried
+in from pre-window execution history … no `(seg<<4)+reg+const` formula fits it
+and only PS/CS (fetch-stream shape) perturbs it.  A backdoor-injected core has
+no such history and drives the modeled SS:SP."*  **Which is exactly what the
+survey measures**: the model drives `0x3f00` — `SS:SP` — on 6 of the 12, and on
+`t30-raw/563` it drives `3f02` where the chip drives `3f00`, i.e. the model has
+already applied `SP += 2` and the chip's latch still holds the pop's own address.
+
+So B2a is **the ONE documented architectural don't-care being scored by an
+instrument that has no don't-care**: `ucsim_fuzz` honours it (`_ghost_8f`), which
+is precisely why these 12 are arch-exact, and `timed_fuzz` compares every column
+of every row and cannot.
+
+**CANDIDATES, RANKED BY POPULATION EXPLAINED**
+
+1. **The address latch is a RETAINED REGISTER and the `8F` mod3 form does not
+   write it** — the ghost read re-issues from whatever `IND` last held.  Covers
+   the invariant on 12/12 and covers `t30-raw/563`'s `3f00` vs `3f02` exactly.
+   **What is NEW here and is the reason this is worth a cell**: the metadata's
+   "no formula fits it" verdict was reached on **INJECTED single-instruction
+   cases, where by construction there is no history** — the note says so in as
+   many words.  A whole-program replay **runs the image's own loader stub from
+   RESET**, so the model has the same history available to it and the question
+   has never been asked in that regime.
+2. *The ghost read issues from the PRE-increment SP.*  Exact on `t30-raw/563`
+   and **refuted on the other 11** (`mc2/1104` would need `3efe` and the chip
+   drives `5559`).  Recorded as refuted, not carried.
+3. *A BIU launch-timing law.*  **Refuted by the geometry**: the cycle's position,
+   its T-states, the surrounding fetches and the queue status are all identical;
+   only the ADDRESS differs.  Nothing about this class is timing.
+
+**DISPOSITION — SURVEYED, NOT LANDED, and the honest reason is a number.**
+Closing the ghost would close **`t30-raw/962` outright** (`ndiff` 4, the ghost
+run and nothing else) and plausibly `mc1/2241` (120 rows, 7 runs).  On the other
+ten the ghost is the FIRST run of 8 to 134, and **this survey does not establish
+that the remaining 445 runs are its cascade** — they are not headed by an `8F`
+mod3 and no attribution is claimed for them here.  A landing sold as "closes
+B2a" would therefore be selling 12 seeds when the evidence supports 1, maybe 2.
+
+**THE CELL, SPECIFIED.**  (a) Make `IND` a retained register in the timed model
+and issue the `8F` mod3 ghost read from it; (b) pre-register the prediction
+per seed — the exact address the chip drove is already banked in the table above,
+so this is a 12-cell prediction with no free parameters; (c) score, and
+separately measure whether the downstream runs on the ten cascade seeds close
+too.  **Falsifier**: any seed where the retained `IND` reproduces neither the
+chip's address nor the model's.  The alternative disposition — giving the timed
+comparator the same don't-care the architectural one already has — is a
+COMPARATOR change after seeing a result and is NOT taken here.
+
+### §84.7 THE `ucore` LEG — **SPECIFIED, NOT LANDED, AND THE SPEC IS THE C++ EDGE FOR EDGE**
+
+The RTL leg is NOT in this sitting and is booked as the next one's first item.
+It is small and it is already named by the core's own structure:
+
+* `v30u_eu.sv` already pipelines `psw[FIE]` through **`ie_p[3:0]`** and demands
+  "IE up NOW **and** up three clocks ago" at `at_bnd`.  **§84.3's floor is the
+  same three clocks on the same kind of pipeline**, so the arm is `brk_p[3:0]`
+  built the same way from `psw[FBRK]`, and the take is `at_bnd && brk_p[3]`.
+* `FBRK` already exists and is already CLEARED on entry (`I_CITF`,
+  `v30u_eu_poste.svh` vector 1); nothing reads it, which is the whole gap.
+* The entry is the existing one — the vector-1 door §71 already routes.
+* **THE ONE PLACE THE TWO ENGINES DO NOT ALREADY AGREE** is the PREFIX
+  boundary: `v30u_eu.sv` states outright that it distinguishes `S_OPC_POP` from
+  the one a prefix hands over, "which is the measured *no sample between 26 and
+  8B*".  §84's arm needs the prefix boundary to SAMPLE (it is what makes
+  `mc2/1354` and `t30-raw/65` trap one boundary early) while the ucore's INT
+  recognition needs it not to TAKE.  **Those are consistent — sample and take
+  are different events at the same boundary** — but the RTL must say so
+  explicitly rather than inherit `bnd_armed`.
+* Gates owed with it: `ulockstep --golden all --cases 50` 17,350/17,350 as the
+  same-mechanism proof, the whole ucore ladder, `ss_lint` (**an `SS_VERSION`
+  bump is owed** — `brk_p` is 4 architectural-adjacent flops and the census is
+  a gate), and a G6 receipt.
+
+### §84.8 THE RATCHETS THAT MOVED
+
+| gate | before | after |
+|---|---|---|
+| `timed_fuzz --core sim` REGISTERED | 1,272 / 1,702 | **1,282 / 1,702** |
+| `timed_fuzz --core sim` EVT | 788 / 1,008 | **789 / 1,008** |
+| `timed_fuzz --core sim` COMBINED | 2,060 / 2,710 | **2,071 / 2,710** |
+
+Everything else in §84.5 is UNMOVED.  **The `ucore`'s columns are untouched and
+are still 1,490 / 918 / 2,408** — the model now BEATS the ucore on 11 seeds it
+did not before, and that gap is §84.7's work item, not a ucore regression.
+
+The eleven closers: `mc1/2034`, `mc1/2952` (EVT), `mc1/3090`, `mc2/1107`,
+`mc2/1718`, `mc2/1738`, `mc2/2960`, `t30-raw/682`, `t30-raw/736`, `t30-raw/750`,
+`t30-raw/768` — and `mc2/1718` is one of §83.2's three sharp seeds.
+
+### §84.9 WHAT THIS SITTING DID NOT DO
+
+* **NO BOARD CONTACT, NO FLASHING, `use_core` NEVER SET.**  The board still
+  carries FLASH #9.
+* **The `ucore` RTL was not touched.**  §84.7 specifies it.
+* The architectural model's own `tf` rule (`image_runner.cpp`) was NOT touched:
+  it is model-only work, it is frozen, and §83.4 already refuted it.  It is now
+  **known wrong in a named way** — it arms at the setter's own boundary where
+  silicon needs three clocks — and closing it is a separate item.
+* B2a is surveyed and NOT landed; §84.6 gives the number that says why.
+* `TAIL_EXTRA` / the last-2 closers, H3-B, and the 8080 work were not opened.
+  No memory file was touched.  Codex was not launched.

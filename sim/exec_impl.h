@@ -858,7 +858,11 @@ bool CpuT<Bus>::step() {
         // assignment covers the whole chain.  The TAKE is then decided here,
         // before the opcode runs, which is what lets the ordinary recognised-
         // boundary machinery carry the trap without a second path.
-        if (m_.pfxcnt > 0) brk_arm_ = (m_.psw & kFlagBRK) != 0;
+        if (m_.pfxcnt > 0) {
+            const long rise = biu_.brk_rise();
+            brk_arm_ = (m_.psw & kFlagBRK) != 0 &&
+                       (rise < 0 || biu_.clock() >= rise + kBrkFloor);
+        }
         brk_take_ = brk_arm_;
     }
     if (trace_) {
