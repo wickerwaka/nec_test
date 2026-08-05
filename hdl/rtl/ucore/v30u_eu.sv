@@ -1231,6 +1231,65 @@ wire       acc_split = !acc_byte && acc_phys[0];
 // The F interlock has to be clear before any of the row's acts happen.
 wire row_blocked = (st == S_ROW) && e_f && f_wait;
 
+//----------------------------------------------------------------------------
+// SM3 SITTING 12 (R7') -- THE READ'S DATA EDGE, AND WHY IT IS A `D`-PIN MUX
+// AND NOT A CHAIN INPUT.
+//----------------------------------------------------------------------------
+// `eu_rd_edge` is the ONLY thing in this module that carries the LIVE `READY`
+// pin.  (By elimination, `sm3_s12_prereg_2026-08-04.md` §2: READY reaches
+// `v30u_biu`'s next-state in three places; `ready_prev` goes straight to a
+// flop; the `ts` advance reaches the EU only through `eu_slot_busy_n`, which
+// `S_PRERD` consumes inside an arm that sets `stop` on every branch, so its
+// cone ends at `row_posted_n`/`rd_pending_n`; everything else the EU reads --
+// `q_ripe_lead_n`, `eu_rd_done_n`, `eu_wr_done_n`, `eu_rdata_n`,
+// `eu_rd_edge_d` -- is REGISTER-ONLY.)
+//
+// It used to be applied inside block (a), i.e. it SEEDED `psw_n` at the head of
+// the twelve-position chain, so one AND gate off the READY pin selected the
+// input of the deepest combinational structure in the core.  MEASURED:
+// `system_large|c_ready_q` -> `v30u_eu|opc_base[3]` at **62-63 logic levels,
+// 51.2 ns against 31.25**, on 20,000 of 20,000 failing paths, Fmax 19.42 MHz
+// (`docs/notes/sm3_s12_r7p/CTRL_cone.txt`).  The identical RTL closed at
+// 45.67 MHz one sitting earlier: the fitter's physical synthesis happens to
+// break that cone or happens not to (§70.5).  Same cone, same fix, as §52.3's
+// `srst`.  With the load moved here the control is **42.37 MHz, 0 failing
+// paths, worst `c_ready_q` path 19 levels**.
+//
+// THE RULE ITSELF IS UNCHANGED and it is `interrupt_model.md`'s:
+//   "POP PSW consumes the popped image at its read's data edge -- the new IE
+//    shows in the PS bits during the read's own T4."
+// Only WHERE it is applied moves.
+//
+// `row_blocked` IS PART OF THE TAKE, AND IT IS THERE BECAUSE THE FORM WITHOUT
+// IT WAS BUILT AND REFUTED (`sm3_s12b_prereg_2026-08-04.md` §1, seed
+// `mc2/2788`).  Without it the two forms differ on exactly one shape: a SECOND
+// read outstanding while an EARLIER one already sits in the completed-read
+// store (`rd_pending=2`, `rd_done_cnt=1`, `rdq_n=1`), so `nr_have` holds,
+// `nr_wait` is 0, the row is NOT blocked -- and the `OPR -> FLAGS` row RUNS on
+// the same clock this data edge fires, writing `opr_live` (the EARLIER word)
+// where the data edge wants `eu_rd_edge_d` (the CURRENT one).  Different
+// values; the order decides.  The term is REGISTER-ONLY (`st`, `e_f`,
+// `f_wait`), so it costs the cone nothing.
+//
+// WHY THE MOVE IS EXACT, in two cases that partition the clock:
+//  * `row_blocked` HOLDS -- `S_ROW`'s `chain == 0` arm sets `stop` and assigns
+//    nothing and positions 1-11 are skipped, so `psw_n` reaches the commit
+//    equal to its preload `psw`, PROVIDED `poste`/`iend_owed` are not owed
+//    (they run between the old write site and the chain and read-modify-write
+//    `psw_n`).  That proviso is FALSIFIER (A) in the clocked observer.
+//  * `row_blocked` DOES NOT HOLD -- the row is a pure register transfer
+//    (`row_bus` false, `e_s1 == 6` not 7), so `row_acts_ok` holds, the step
+//    performs `dest1 = FLAGS` and OVERWRITES `psw_n` entirely with
+//    `s1_now = opr_live`.  Whatever block (a) put there was DEAD, so deleting
+//    it changes nothing.  That is FALSIFIER (B).
+//
+// Both falsifiers are on the RAW take -- without `row_blocked` -- so they see
+// every clock the old form would have written on, and they STAY in the tree.
+wire        rd_edge_take_raw  = eu_rd_edge && (st == S_ROW) && e_f &&
+                                (e_s1 == 5'd6) && (e_d1 == 5'd15);
+wire        rd_edge_psw_take  = rd_edge_take_raw && row_blocked;
+wire [15:0] rd_edge_psw       = (eu_rd_edge_d & PSW_WRITABLE) | PSW_FORCED;
+
 // The row's own queue demand
 wire q_demand_row = row_need_q && !row_blocked;
 
@@ -2300,9 +2359,12 @@ always @* begin
         // FSM core renders this as `opc == 8'h9D && eu_rd_now` plus a second
         // copy for `iret_pw`; this is that behaviour with the opcode test and
         // the duplication taken out.)
-        if (eu_rd_edge && (st_n == S_ROW) && e_f &&
-            (e_s1 == 5'd6) && (e_d1 == 5'd15))
-            psw_n = (eu_rd_edge_d & PSW_WRITABLE) | PSW_FORCED;
+        // SM3 sitting 12 (R7'): the write that used to stand HERE is now
+        // `rd_edge_psw_take` / `rd_edge_psw` on the `psw` register's own `D`
+        // pin -- see the declaration beside `row_blocked` for the measurement,
+        // the two-case exactness argument and the two falsifiers.  Nothing
+        // about the RULE changed; `ie_now` above still reads the un-overridden
+        // `psw_n`, exactly as it did when the write was here.
 
         //====================================================================
         // (b) the post-E row's work, owed to THIS clock: it overlaps the
@@ -2414,7 +2476,14 @@ always @(posedge clk) begin
         for (ci = 0; ci < 4; ci = ci + 1)
             sreg[ci] <= (srst && !ss_we) ? sreg_r[ci] : sreg_n[ci];
         pc <= (srst && !ss_we) ? pc_r : pc_n;
-        psw <= (srst && !ss_we) ? psw_r : psw_n;
+        // SM3 sitting 12 (R7'): the read's data edge is applied HERE, on the
+        // `D` pin, instead of at the head of the chain.  Priority is unchanged
+        // -- `ss_we` > `srst` > the data edge > the chain -- because the old
+        // write sat inside the `else` of `if (ss_we)` and `srst` took `psw_r`
+        // regardless of it.
+        psw <= (srst && !ss_we)             ? psw_r
+             : (rd_edge_psw_take && !ss_we) ? rd_edge_psw
+             :                                psw_n;
         tmpa <= (srst && !ss_we) ? tmpa_r : tmpa_n;
         tmpb <= (srst && !ss_we) ? tmpb_r : tmpb_n;
         tmpc <= (srst && !ss_we) ? tmpc_r : tmpc_n;
@@ -2552,6 +2621,23 @@ always @(posedge clk) begin
             assert (rd_done_cnt != 2'd3)
                 else $warning("v30u_eu: rd_done_cnt saturated");
         end
+        // SM3 sitting 12 (R7') -- THE TWO FALSIFIERS FOR THE DATA-EDGE PSW
+        // MOVE (`sm3_s12b_prereg_2026-08-04.md` §3).  They are on the RAW take
+        // -- without the `row_blocked` term -- so they see every clock the old
+        // block-(a) write would have fired on.  They STAY: they are the only
+        // thing between this pass and a silent behavioural change if the F
+        // interlock's shape, or the `OPR -> FLAGS` row's own act set, ever
+        // moves.
+        if (rd_edge_take_raw && row_blocked)
+            assert (!poste && !iend_owed)
+                else $error("v30u_eu: R7' falsifier (A): data-edge PSW load with the chain stopped but poste=%0d iend_owed=%0d owed -- they read-modify-write psw_n between the old write site and the commit, so the D-pin form is NOT equivalent here (upc=%0d.%02X.%0d)",
+                            poste, iend_owed, upc_page, upc_opc, upc_loc);
+        if (rd_edge_take_raw && !row_blocked)
+            assert (row_acts_ok && e_have1)
+                else $error("v30u_eu: R7' falsifier (B): data-edge PSW load with the chain RUNNING but the row not performing its own OPR->FLAGS (row_acts_ok=%0d e_have1=%0d) -- the deleted block-(a) write was NOT dead here (f_wait=%0d nr_wait=%0d rd_done_cnt=%0d rd_pending=%0d upc=%0d.%02X.%0d)",
+                            row_acts_ok, e_have1, f_wait, nr_wait,
+                            rd_done_cnt, rd_pending,
+                            upc_page, upc_opc, upc_loc);
         // v30u_eu_poste.svh's two shape assertions.  `poste` is not touched
         // before the post-E block, so the flop IS the value that guarded them.
         if (poste && row_bus)
