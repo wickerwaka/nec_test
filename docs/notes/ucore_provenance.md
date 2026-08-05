@@ -11584,22 +11584,34 @@ Everything else in `standing_gates.md` §B was re-measured, not inherited.
   board carries the same image it did at the open.  **Nothing here has been
   measured in fabric** — the ucore in fabric is still FLASH #6's, which predates
   F53.  A fabric leg is the obvious next confirmation and it is NOT claimed.
-* **G6, THE QUARTUS LEG, IS A DEBT — STARTED, NOT COMPLETED, AND SAID SO.**
-  `standing_gates.md` triggers it on any commit touching `hdl/rtl/ucore/**`, and
-  F53 does.  It was launched (`sw/quartus_gate.py --label "SM3-s16 F53"`);
-  **E1 PASSED** (`gen_ucore_qsf --check`: `nec_test_ucore.qsf` is up to date) and
-  Analysis & Synthesis completed in 2:33 with the report retained; **the FITTER
-  was still running when this sitting closed** — this machine has 8 GB of swap
-  in use and ~1 GB of free RAM, and the fitter was at 9.5 minutes of CPU with
-  20 % iowait.  **E2-E5 ARE THEREFORE UNSCORED.**  They gate RTL PROMOTION and a
-  FLASH; neither happened, and no Fmax, ALM or slack figure from this sitting
-  exists to quote.  The run writes its receipt to
-  `hdl/output_files_ucore/quartus_gate.json` and appends to
-  `sw/testdata/receipts/quartus_bitstream.jsonl` when it finishes; **the next
-  sitting must read that receipt (or re-run the gate) before F53 is promoted or
-  any bitstream carrying it is built.**  Recorded as a debt rather than
-  smoothed, because "the standing set is board-free by design and had no Quartus
-  leg at all" is exactly how §73.1 happened.
+* **G6, THE QUARTUS LEG, RAN AND IS GREEN.**  `standing_gates.md` triggers it on
+  any commit touching `hdl/rtl/ucore/**`, and F53 does.
+  `sw/quartus_gate.py --label "SM3-s16 F53"`, ONE clean CONTROL/DEFAULT build
+  from a deleted `db`/`incremental_db`, **compile rc 0 in 523 s**:
+
+  | | bar | **measured** |
+  |---|---|---|
+  | **E1** `gen_ucore_qsf --check` | green | **PASS** — `nec_test_ucore.qsf` up to date |
+  | **E2** 0 errors, every stage `Successful` | 0 | **PASS** — 0 stage errors, 0 error lines; map, fit and asm all Successful |
+  | **E3** `divclk` Fmax | ≥ 32 MHz | **PASS — 45.57 MHz** (the other three domains 142.98 / 61.72 / 65.94) |
+  | **E4** worst setup slack | > 0 | **PASS — +6.974 ns** |
+  | **E5** TNS, setup AND hold, every domain | 0.000 | **PASS — 0.000 on all four domains, both directions** (worst holds +0.251 / +0.274 / +0.359 / +0.422) |
+
+  RECORDED, NOT BARRED: **ALMs 11,058 / 41,910 (26 %)**, 6,111 fit registers,
+  **0 latches, 0 `lpm_divide`**.  Receipt `02a71f69e4d58df1…`
+  (`hdl/output_files_ucore/quartus_gate.json`, appended to
+  `sw/testdata/receipts/quartus_bitstream.jsonl`), input manifest **88 files
+  sha256 `1a20fd543311a4cb…`**.
+  *Two things must be said plainly about it.*  (a) The receipt records the
+  working tree as **`aa31eb2f0f-dirty`**.  The dirt was this section's own doc
+  edits and the not-yet-committed S16 artifacts; **`hdl/` — which is what the
+  88-file manifest covers — was byte-identical to `aa31eb2f0f` and is
+  byte-identical to HEAD** (`git diff aa31eb2f0f HEAD -- hdl/` is EMPTY), so the
+  figures are this RTL's.  (b) **A bitstream WAS PRODUCED and was NOT FLASHED**:
+  `nec_test_ucore.sof f2c1b471ceb58ded…`, `.rbf 6dbbc687c3c6ca3d…`.  The board
+  still carries FLASH #6, which predates F53.  **§74.4 still governs any single
+  Fmax figure**: one green build establishes repeatability of one draw, not
+  closure.
 * **Family D is BOOKED, not landed** (§77.A.2), with its falsifier written down.
 * **Family B is left to `sim/`** — it is model-shared and the mechanism is the
   model's.

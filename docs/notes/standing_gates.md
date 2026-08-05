@@ -135,6 +135,19 @@ is what makes the comparison below readable at all.
 > and the discovery rule are unchanged at **88**, and nothing consumed the old
 > hash (`ucore_provenance.md` §75.6b).
 
+> **SM3 sitting 16 (2026-08-05) — the leg RAN on F53 and is GREEN.**  One clean
+> CONTROL/DEFAULT build, compile rc 0 in 523 s: **E1 PASS · E2 PASS** (0 errors,
+> map/fit/asm all Successful) **· E3 45.57 MHz** (bar ≥ 32) **· E4 +6.974 ns ·
+> E5 TNS 0.000 on all four domains, setup AND hold.**  RECORDED, not barred:
+> **ALMs 11,058 / 41,910 (26 %)**, 6,111 fit registers, **0 latches, 0
+> `lpm_divide`**.  Receipt **`02a71f69e4d58df1…`**, input manifest 88 files
+> `1a20fd543311a4cb…`.  The receipt records the tree as `aa31eb2f0f-dirty`; the
+> dirt was docs and not-yet-committed test data, and **`hdl/` was byte-identical
+> to `aa31eb2f0f` and is byte-identical to HEAD**.  **A bitstream was produced
+> and NOT flashed** (`nec_test_ucore.sof f2c1b471ceb58ded…`, `.rbf
+> 6dbbc687c3c6ca3d…`); the board still carries FLASH #6, which predates F53.
+> §74.4 still governs: one green build is not closure.
+
 **NON-VACUITY — PROVED, AND *NOT* THE WAY IT WAS REGISTERED.**
 `sm3_s13_prereg_2026-08-05.md` §3 registered **Q2: the gate goes RED on a
 worktree of `144e67416b`, reproducing 19.42 MHz.** ***IT DID NOT.*** That build
