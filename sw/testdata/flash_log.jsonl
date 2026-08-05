@@ -7,3 +7,5 @@
 {"ts":"2026-08-04T15:27:01Z","sof_path":"hdl/output_files_ucore/nec_test_ucore.sof","sha256":"67ddd59413d58934716260966cfc981f4f0d7065e90b8a8e655010e7687e4320","git_describe":"64641a5644","verify":"OK"}
 {"ts":"2026-08-04T22:36:55Z","sof_path":"hdl/output_files_ucore/nec_test_ucore.sof","sha256":"315de4bc9e304596b9c56a6cf36bde9fa2291e222d5548e927306de7d9fce98f","git_describe":"8339740709-dirty","verify":"OK"}
 {"ts":"2026-08-05T06:41:12Z","sof_path":"hdl/output_files_ucore/nec_test_ucore.sof","sha256":"626fb30ebee2ad979bdef5ba6e6c013281c901282cd28defc53501200de1ef46","git_describe":"536e207c76-dirty","verify":"OK"}
+{"ts":"2026-08-05T07:27:52Z","sof_path":"/home/wickerwaka/src/nec_test/hdl/output_files_ucore/nec_test_ucore.sof","sha256":"b29c35df24de0cb5bfa3fb9249997da726884cbf99afe3a685db8369c7e5e142","git_describe":"54c7ee3af4","verify":"OK"}
+{"ts":"2026-08-05T07:29:58Z","sof_path":"/home/wickerwaka/.cache/ucsimt-tmp/sm3s13/flash6_outdir_backup/nec_test_ucore.sof","sha256":"626fb30ebee2ad979bdef5ba6e6c013281c901282cd28defc53501200de1ef46","git_describe":"54c7ee3af4-dirty","verify":"OK"}
