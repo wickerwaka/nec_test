@@ -13787,3 +13787,70 @@ The eleven closers: `mc1/2034`, `mc1/2952` (EVT), `mc1/3090`, `mc2/1107`,
 * B2a is surveyed and NOT landed; §84.6 gives the number that says why.
 * `TAIL_EXTRA` / the last-2 closers, H3-B, and the 8080 work were not opened.
   No memory file was touched.  Codex was not launched.
+
+## §85 SESSION SM3, SITTING 24 — **THE FLOOR, MEASURED: THE ERRATUM, THE DIRECTED CELL, AND THE DISPOSITION**
+
+### §85.0 THE ERRATUM — **§84's LANDING WAS SCORED ON THE POPULATION THAT SELECTED IT, AND THAT SCORE IS STRUCK**
+
+Stated plainly, because a truthful ledger is worth more than a clean one.
+
+§84.1 pre-registered candidate law **A** and a held-out bar.  §84.2 ran it and
+**the registered falsifier FIRED** — V-1's zero-miss clause failed with 3
+misses on the branch the law was most constrained on.  The disposition law A had
+bought, in its own words, was *"the law is booked REFUTED and NOTHING is
+landed"*.
+
+§84.3 then re-read **THE SAME 29 SCORED SEEDS** plus the microcode ROM and
+produced law **B** — one floor, neither opcode named.  Law B is a better law:
+it is simpler, it names no opcode, and the ROM evidence (007A and 01EA are both
+`OPR -> FLAGS  F E` rows with identical geometry) is real.  **But its landing
+was then SCORED on that same 30-seed cell**, `EXACT 1 → 11`.
+
+That is the §64.1 pattern exactly — the H1-re-key precedent, and Codex concern
+1: *a key re-fitted on the population that refuted its predecessor, then graded
+on it.*  A held-out bar consumed by law A does not carry over to law B.
+
+**THE RULING (coordinator, this sitting).**
+
+1. **The `EXACT 1 → 11` figure is STRUCK as evidence for law B.**  It is not
+   deleted and it is not restated: it happened, it is reproducible, and it is a
+   FIT statistic, not a validation.  §84.5's ladder is unaffected — it is a
+   non-regression check, not a confirmation.
+2. **The landing stands PROVISIONALLY**, on two things that are not the struck
+   figure: (a) the full-corpus non-regression, **0 `EXACT` lost over 3,242
+   seeds**, which no re-fit can manufacture; and (b) **this sitting's cell**,
+   which is a population that did not exist when law B was written.
+3. **§85.1's cell is the required disjoint validation.**  Its dispositions —
+   confirm-and-lift, correct-the-constant, or REVERT — were registered before
+   the first board contact, in `docs/notes/sm3_s24_prereg_2026-08-05.md` §6.
+
+**AND THE ERRATUM IS ALSO A FINDING ABOUT THE METHOD, NOT ONLY ABOUT §84.**  The
+reason law B could be scored on its selecting population without anyone noticing
+is that the SCORE CHANGED INSTRUMENT: law A was graded by a RULER (`predict_head`
+against the model's `ilog`) and law B by a LANDING (per-clock rows against
+silicon).  Two different numbers, both honest, and the population underneath
+them never moved.  **A change of instrument is not a change of population**, and
+that sentence is the general lesson.
+
+### §85.1 THE CELL — pre-registered at `sm3_s24_prereg_2026-08-05.md`
+
+**What is undetermined**: §84.3 bounds the floor to **[3, 6]** and says so
+itself; 3 was CHOSEN as `evpipe`'s existing depth, not measured.  Its own
+falsifier is *"any instruction whose TF rise is 3, 4 or 5 clocks before the
+retire that must sample it — this tree has none"*.
+
+**The cell manufactures exactly those.**  `sw/sm3_tf_floor_cell.py`: periodic
+sleds `9D ; <PAD> ; 90 ×5` with a planted `0xF102` (BRK set, **IE clear**), the
+pad's clock length walking `dist(rise → B1)` over **2, 3, 4, 5** at w0 and
+**3, 4, 5, 6** at w3 — the whole undetermined interval from both sides — plus
+13/20/25/26 as saturated controls.  The observable is the vector-1 entry's third
+push, i.e. **the boundary the part chose**, read off the pins with NO ENGINE
+(§72's reader, one vector over).  The handler CLEARS `TF` in the frame it
+returns through, so one capture carries ~40 independent repeats.  Controls:
+three TF-CLEAR sleds that must trap ZERO times, an `iret` sled that differs from
+`popfnone` by the setter alone, and a `storm` sled for the cadence.
+
+**All seven candidate floors have DISTINCT predicted signatures**; the tightest
+pair, 3 vs 4, still separates on three independent cells.  The `V30SIM_BRKFLOOR`
+env knob (default the landed 3, read by no gate) is what lets the engine be
+wrong on purpose so that the prediction table can exist at all.

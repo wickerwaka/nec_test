@@ -255,7 +255,7 @@ private:
         const bool tf = (m_.psw & kFlagBRK) != 0;
         const long rise = biu_.brk_rise();
         const long clk = biu_.clock();
-        const bool seen = tf && (rise < 0 || clk >= rise + kBrkFloor);
+        const bool seen = tf && (rise < 0 || clk >= rise + brk_floor());
         if (std::getenv("V30SIM_BRKTRACE"))
             std::fprintf(stderr, "BRKR clk=%ld tf=%d rise=%ld seen=%d "
                                  "take=%d arm=%d op=%02X\n",
@@ -285,7 +285,21 @@ private:
     // *Falsifier*: any instruction whose TF rise is 3, 4 or 5 clocks before
     // the retire that must sample it -- that case separates [3,6] and this
     // tree has none.  Any third opcode raising TF also falsifies the premise.
-    static constexpr long kBrkFloor = 3;
+    //
+    // §85 (SM3 sitting 24) makes the constant SETTABLE, for the directed cell
+    // that MEASURES it.  `V30SIM_BRKFLOOR` is an INSTRUMENT KNOB and nothing
+    // else: it is read once, it defaults to the landed 3, and no gate, suite
+    // or replay path sets it.  The cell's whole method is "run the identical
+    // stimulus at floor = 1 … 7 and ask which one the silicon is", and that
+    // needs the engine to be able to be wrong on purpose.
+    static long brk_floor() {
+        static const long v = [] {
+            const char* s = std::getenv("V30SIM_BRKFLOOR");
+            return s ? std::strtol(s, nullptr, 10) : 3L;
+        }();
+        return v;
+    }
+    static constexpr long kBrkFloorDefault = 3;
     bool brk_enable_ = false;   // program replay only; a single-instruction
                                 // case has no successor boundary to trap at
     bool brk_arm_ = false;      // the arm bit itself
@@ -861,7 +875,7 @@ bool CpuT<Bus>::step() {
         if (m_.pfxcnt > 0) {
             const long rise = biu_.brk_rise();
             brk_arm_ = (m_.psw & kFlagBRK) != 0 &&
-                       (rise < 0 || biu_.clock() >= rise + kBrkFloor);
+                       (rise < 0 || biu_.clock() >= rise + brk_floor());
         }
         brk_take_ = brk_arm_;
     }
