@@ -1,226 +1,18 @@
 [
  {
-  "path": "/home/wickerwaka/src/nec_test/tests/v30/fuzz_bank/mc1/seeds/raw_1989_b42da32c21e4.json.gz",
+  "path": "/home/wickerwaka/src/nec_test/tests/v30/fuzz_bank/mc1/seeds/soup_2258_d1a92f08ff8b.json.gz",
   "cid": "mc1",
-  "k": 1989,
+  "k": 2258,
   "pin": 1,
   "hold": 2,
-  "delay": 32,
-  "wc": "fix0",
-  "win": 4000,
-  "arm": 145,
-  "A": 179,
-  "Aend": 180,
-  "V": 191,
-  "gap": 12,
-  "bus_A": [
-   "CODE",
-   3,
-   5
-  ],
-  "bus_A1": [
-   "CODE",
-   0,
-   1
-  ],
-  "nvec": 1
- },
- {
-  "path": "/home/wickerwaka/src/nec_test/tests/v30/fuzz_bank/mc1/seeds/raw_3571_5f3d0304516a.json.gz",
-  "cid": "mc1",
-  "k": 3571,
-  "pin": 1,
-  "hold": 2,
-  "delay": 110,
-  "wc": "wrand3",
-  "win": 4000,
-  "arm": 204,
-  "A": 316,
-  "Aend": 317,
-  "V": 328,
-  "gap": 12,
-  "bus_A": [
-   "CODE",
-   2,
-   3
-  ],
-  "bus_A1": [
-   "CODE",
-   3,
-   5
-  ],
-  "nvec": 1
- },
- {
-  "path": "/home/wickerwaka/src/nec_test/tests/v30/fuzz_bank/mc1/seeds/raw_3604_e991ef497985.json.gz",
-  "cid": "mc1",
-  "k": 3604,
-  "pin": 1,
-  "hold": 2,
-  "delay": 243,
-  "wc": "fix0",
-  "win": 4000,
-  "arm": 145,
-  "A": 390,
-  "Aend": 391,
-  "V": 402,
-  "gap": 12,
-  "bus_A": [
-   "CODE",
-   1,
-   2
-  ],
-  "bus_A1": [
-   "CODE",
-   2,
-   3
-  ],
-  "nvec": 1
- },
- {
-  "path": "/home/wickerwaka/src/nec_test/tests/v30/fuzz_bank/mc1/seeds/raw_585_74cd48f6da87.json.gz",
-  "cid": "mc1",
-  "k": 585,
-  "pin": 1,
-  "hold": 2,
-  "delay": 505,
-  "wc": "fix3",
-  "win": 4000,
-  "arm": 273,
-  "A": 780,
-  "Aend": 781,
-  "V": 792,
-  "gap": 12,
-  "bus_A": [
-   "CODE",
-   1,
-   2
-  ],
-  "bus_A1": [
-   "CODE",
-   2,
-   3
-  ],
-  "nvec": 1
- },
- {
-  "path": "/home/wickerwaka/src/nec_test/tests/v30/fuzz_bank/mc1/seeds/soup_1465_62ee2c0de6cf.json.gz",
-  "cid": "mc1",
-  "k": 1465,
-  "pin": 1,
-  "hold": 2,
-  "delay": 444,
-  "wc": "fix1",
-  "win": 1152,
-  "arm": 207,
-  "A": 653,
-  "Aend": 654,
-  "V": 665,
-  "gap": 12,
-  "bus_A": [
-   "CODE",
-   4,
-   5
-  ],
-  "bus_A1": [
-   "CODE",
-   5,
-   0
-  ],
-  "nvec": 1
- },
- {
-  "path": "/home/wickerwaka/src/nec_test/tests/v30/fuzz_bank/mc1/seeds/soup_1644_1261cd49b449.json.gz",
-  "cid": "mc1",
-  "k": 1644,
-  "pin": 1,
-  "hold": 2,
-  "delay": 221,
-  "wc": "wrand3",
-  "win": 1406,
-  "arm": 218,
-  "A": 441,
-  "Aend": 442,
-  "V": 453,
-  "gap": 12,
-  "bus_A": [
-   "MEMW",
-   3,
-   5
-  ],
-  "bus_A1": [
-   "MEMW",
-   4,
-   0
-  ],
-  "nvec": 1
- },
- {
-  "path": "/home/wickerwaka/src/nec_test/tests/v30/fuzz_bank/mc1/seeds/soup_169_95996aed1137.json.gz",
-  "cid": "mc1",
-  "k": 169,
-  "pin": 1,
-  "hold": 2,
-  "delay": 19,
-  "wc": "fix0",
-  "win": 1189,
-  "arm": 145,
-  "A": 166,
-  "Aend": 167,
-  "V": 178,
-  "gap": 12,
-  "bus_A": [
-   "CODE",
-   0,
-   1
-  ],
-  "bus_A1": [
-   "CODE",
-   1,
-   2
-  ],
-  "nvec": 1
- },
- {
-  "path": "/home/wickerwaka/src/nec_test/tests/v30/fuzz_bank/mc1/seeds/soup_180_e944bffa94f8.json.gz",
-  "cid": "mc1",
-  "k": 180,
-  "pin": 1,
-  "hold": 2,
-  "delay": 609,
-  "wc": "fix0",
-  "win": 951,
-  "arm": 145,
-  "A": 756,
-  "Aend": 757,
-  "V": 768,
-  "gap": 12,
-  "bus_A": [
-   "CODE",
-   1,
-   2
-  ],
-  "bus_A1": [
-   "CODE",
-   2,
-   3
-  ],
-  "nvec": 1
- },
- {
-  "path": "/home/wickerwaka/src/nec_test/tests/v30/fuzz_bank/mc1/seeds/soup_1870_c4909c008ecd.json.gz",
-  "cid": "mc1",
-  "k": 1870,
-  "pin": 1,
-  "hold": 2,
-  "delay": 813,
-  "wc": "wrand2",
-  "win": 1386,
-  "arm": 203,
-  "A": 1018,
-  "Aend": 1019,
-  "V": 1030,
-  "gap": 12,
+  "delay": 409,
+  "wc": "fix2",
+  "win": 1357,
+  "arm": 240,
+  "A": 651,
+  "Aend": 652,
+  "V": 664,
+  "gap": 13,
   "bus_A": [
    "CODE",
    3,
@@ -234,123 +26,19 @@
   "nvec": 1
  },
  {
-  "path": "/home/wickerwaka/src/nec_test/tests/v30/fuzz_bank/mc1/seeds/soup_2118_966619e9b720.json.gz",
+  "path": "/home/wickerwaka/src/nec_test/tests/v30/fuzz_bank/mc1/seeds/soup_2468_33163af77a68.json.gz",
   "cid": "mc1",
-  "k": 2118,
+  "k": 2468,
   "pin": 1,
   "hold": 2,
-  "delay": 54,
-  "wc": "wrand15",
-  "win": 2054,
-  "arm": 373,
-  "A": 429,
-  "Aend": 430,
-  "V": 441,
-  "gap": 12,
-  "bus_A": [
-   "CODE",
-   11,
-   4
-  ],
-  "bus_A1": [
-   "CODE",
-   12,
-   5
-  ],
-  "nvec": 1
- },
- {
-  "path": "/home/wickerwaka/src/nec_test/tests/v30/fuzz_bank/mc1/seeds/soup_2336_fec8555075d1.json.gz",
-  "cid": "mc1",
-  "k": 2336,
-  "pin": 1,
-  "hold": 2,
-  "delay": 9,
-  "wc": "fix0",
-  "win": 995,
-  "arm": 145,
-  "A": 156,
-  "Aend": 157,
-  "V": 168,
-  "gap": 12,
-  "bus_A": [
-   "MEMR",
-   1,
-   2
-  ],
-  "bus_A1": [
-   "MEMR",
-   2,
-   3
-  ],
-  "nvec": 1
- },
- {
-  "path": "/home/wickerwaka/src/nec_test/tests/v30/fuzz_bank/mc1/seeds/soup_2389_5e0256438de9.json.gz",
-  "cid": "mc1",
-  "k": 2389,
-  "pin": 1,
-  "hold": 2,
-  "delay": 252,
-  "wc": "fix0",
-  "win": 774,
-  "arm": 145,
-  "A": 399,
-  "Aend": 400,
-  "V": 411,
-  "gap": 12,
-  "bus_A": [
-   "CODE",
-   2,
-   3
-  ],
-  "bus_A1": [
-   "CODE",
-   3,
-   5
-  ],
-  "nvec": 1
- },
- {
-  "path": "/home/wickerwaka/src/nec_test/tests/v30/fuzz_bank/mc1/seeds/soup_2509_94665928dca3.json.gz",
-  "cid": "mc1",
-  "k": 2509,
-  "pin": 1,
-  "hold": 2,
-  "delay": 8,
-  "wc": "fix0",
-  "win": 1181,
-  "arm": 145,
-  "A": 155,
-  "Aend": 156,
-  "V": 167,
-  "gap": 12,
-  "bus_A": [
-   "CODE",
-   2,
-   3
-  ],
-  "bus_A1": [
-   "CODE",
-   3,
-   5
-  ],
-  "nvec": 1
- },
- {
-  "path": "/home/wickerwaka/src/nec_test/tests/v30/fuzz_bank/mc1/seeds/soup_2527_532a87654b71.json.gz",
-  "cid": "mc1",
-  "k": 2527,
-  "pin": 1,
-  "hold": 2,
-  "delay": 10,
-  "wc": "wrand3",
-  "win": 1212,
-  "arm": 239,
-  "A": 251,
-  "Aend": 252,
-  "V": 263,
-  "gap": 12,
+  "delay": 33,
+  "wc": "wrand7",
+  "win": 1140,
+  "arm": 271,
+  "A": 306,
+  "Aend": 307,
+  "V": 319,
+  "gap": 13,
   "bus_A": [
    "CODE",
    6,
@@ -364,19 +52,19 @@
   "nvec": 1
  },
  {
-  "path": "/home/wickerwaka/src/nec_test/tests/v30/fuzz_bank/mc1/seeds/soup_2992_78a29132c703.json.gz",
+  "path": "/home/wickerwaka/src/nec_test/tests/v30/fuzz_bank/mc1/seeds/soup_739_07a803442101.json.gz",
   "cid": "mc1",
-  "k": 2992,
+  "k": 739,
   "pin": 1,
   "hold": 2,
-  "delay": 777,
-  "wc": "fix0",
-  "win": 1203,
-  "arm": 145,
-  "A": 924,
-  "Aend": 925,
-  "V": 936,
-  "gap": 12,
+  "delay": 85,
+  "wc": "wrand15",
+  "win": 2388,
+  "arm": 403,
+  "A": 490,
+  "Aend": 491,
+  "V": 503,
+  "gap": 13,
   "bus_A": [
    "CODE",
    0,
@@ -390,331 +78,123 @@
   "nvec": 1
  },
  {
-  "path": "/home/wickerwaka/src/nec_test/tests/v30/fuzz_bank/mc1/seeds/soup_3177_6e4f1460d438.json.gz",
-  "cid": "mc1",
-  "k": 3177,
+  "path": "/home/wickerwaka/src/nec_test/tests/v30/fuzz_bank/mc2/seeds/raw_2788_2b8d1c9ebc69.json.gz",
+  "cid": "mc2",
+  "k": 2788,
   "pin": 1,
   "hold": 2,
-  "delay": 102,
-  "wc": "fix0",
-  "win": 1243,
-  "arm": 145,
-  "A": 249,
-  "Aend": 250,
-  "V": 261,
-  "gap": 12,
-  "bus_A": [
-   "CODE",
-   3,
-   5
-  ],
-  "bus_A1": [
-   "CODE",
-   0,
-   1
-  ],
-  "nvec": 1
- },
- {
-  "path": "/home/wickerwaka/src/nec_test/tests/v30/fuzz_bank/mc1/seeds/soup_33_e2bcfb480704.json.gz",
-  "cid": "mc1",
-  "k": 33,
-  "pin": 1,
-  "hold": 2,
-  "delay": 155,
-  "wc": "fix3",
-  "win": 1654,
-  "arm": 273,
-  "A": 430,
-  "Aend": 431,
-  "V": 442,
-  "gap": 12,
-  "bus_A": [
-   "CODE",
-   1,
-   2
-  ],
-  "bus_A1": [
-   "CODE",
-   2,
-   3
-  ],
-  "nvec": 1
- },
- {
-  "path": "/home/wickerwaka/src/nec_test/tests/v30/fuzz_bank/mc1/seeds/soup_351_4c765e121000.json.gz",
-  "cid": "mc1",
-  "k": 351,
-  "pin": 1,
-  "hold": 2,
-  "delay": 23,
-  "wc": "wrand7",
-  "win": 1477,
-  "arm": 274,
-  "A": 299,
-  "Aend": 300,
-  "V": 311,
-  "gap": 12,
-  "bus_A": [
-   "CODE",
-   3,
-   4
-  ],
-  "bus_A1": [
-   "CODE",
-   4,
-   4
-  ],
-  "nvec": 1
- },
- {
-  "path": "/home/wickerwaka/src/nec_test/tests/v30/fuzz_bank/mc1/seeds/soup_3594_ea977f7f8f79.json.gz",
-  "cid": "mc1",
-  "k": 3594,
-  "pin": 1,
-  "hold": 2,
-  "delay": 34,
+  "delay": 58,
   "wc": "wrand1",
-  "win": 1455,
-  "arm": 177,
-  "A": 213,
-  "Aend": 214,
-  "V": 225,
-  "gap": 12,
-  "bus_A": [
-   "CODE",
-   2,
-   3
-  ],
-  "bus_A1": [
-   "CODE",
-   3,
-   4
-  ],
-  "nvec": 1
- },
- {
-  "path": "/home/wickerwaka/src/nec_test/tests/v30/fuzz_bank/mc1/seeds/soup_3691_5ab9b7ed7857.json.gz",
-  "cid": "mc1",
-  "k": 3691,
-  "pin": 1,
-  "hold": 2,
-  "delay": 181,
-  "wc": "fix0",
-  "win": 1141,
-  "arm": 145,
-  "A": 328,
-  "Aend": 329,
-  "V": 340,
-  "gap": 12,
-  "bus_A": [
-   "CODE",
-   0,
-   1
-  ],
-  "bus_A1": [
-   "CODE",
-   1,
-   2
-  ],
-  "nvec": 1
- },
- {
-  "path": "/home/wickerwaka/src/nec_test/tests/v30/fuzz_bank/mc1/seeds/soup_547_18d05a892e7b.json.gz",
-  "cid": "mc1",
-  "k": 547,
-  "pin": 1,
-  "hold": 2,
-  "delay": 186,
-  "wc": "fix3",
-  "win": 1371,
-  "arm": 273,
-  "A": 461,
-  "Aend": 462,
-  "V": 473,
-  "gap": 12,
-  "bus_A": [
-   "CODE",
-   4,
-   4
-  ],
-  "bus_A1": [
-   "CODE",
-   5,
-   4
-  ],
-  "nvec": 1
- },
- {
-  "path": "/home/wickerwaka/src/nec_test/tests/v30/fuzz_bank/mc1/seeds/soup_570_2de55daca9f0.json.gz",
-  "cid": "mc1",
-  "k": 570,
-  "pin": 1,
-  "hold": 2,
-  "delay": 10,
-  "wc": "fix0",
-  "win": 839,
-  "arm": 145,
-  "A": 157,
-  "Aend": 158,
-  "V": 169,
-  "gap": 12,
-  "bus_A": [
-   "CODE",
-   0,
-   1
-  ],
-  "bus_A1": [
-   "CODE",
-   1,
-   2
-  ],
-  "nvec": 1
- },
- {
-  "path": "/home/wickerwaka/src/nec_test/tests/v30/fuzz_bank/mc1/seeds/soup_676_e5f1fccdccde.json.gz",
-  "cid": "mc1",
-  "k": 676,
-  "pin": 1,
-  "hold": 2,
-  "delay": 23,
-  "wc": "fix0",
-  "win": 817,
-  "arm": 145,
-  "A": 170,
-  "Aend": 171,
-  "V": 182,
-  "gap": 12,
-  "bus_A": [
-   "CODE",
-   1,
-   2
-  ],
-  "bus_A1": [
-   "CODE",
-   2,
-   3
-  ],
-  "nvec": 1
- },
- {
-  "path": "/home/wickerwaka/src/nec_test/tests/v30/fuzz_bank/mc1/seeds/soup_825_ba10f1b43ec2.json.gz",
-  "cid": "mc1",
-  "k": 825,
-  "pin": 1,
-  "hold": 2,
-  "delay": 509,
-  "wc": "fix0",
-  "win": 1036,
-  "arm": 145,
-  "A": 656,
-  "Aend": 657,
-  "V": 668,
-  "gap": 12,
-  "bus_A": [
-   "CODE",
-   3,
-   5
-  ],
-  "bus_A1": [
-   "CODE",
-   0,
-   1
-  ],
-  "nvec": 1
- },
- {
-  "path": "/home/wickerwaka/src/nec_test/tests/v30/fuzz_bank/mc1/seeds/soup_962_070d8cfe6ed9.json.gz",
-  "cid": "mc1",
-  "k": 962,
-  "pin": 1,
-  "hold": 2,
-  "delay": 330,
-  "wc": "wrand2",
-  "win": 1257,
-  "arm": 181,
-  "A": 513,
-  "Aend": 514,
-  "V": 525,
-  "gap": 12,
-  "bus_A": [
-   "CODE",
-   4,
-   5
-  ],
-  "bus_A1": [
-   "CODE",
-   5,
-   0
-  ],
-  "nvec": 1
- },
- {
-  "path": "/home/wickerwaka/src/nec_test/tests/v30/fuzz_bank/mc1/seeds/soup_982_05d640f595ee.json.gz",
-  "cid": "mc1",
-  "k": 982,
-  "pin": 1,
-  "hold": 2,
-  "delay": 23,
-  "wc": "fix3",
-  "win": 1793,
-  "arm": 273,
-  "A": 298,
-  "Aend": 299,
-  "V": 310,
-  "gap": 12,
-  "bus_A": [
-   "CODE",
-   1,
-   2
-  ],
-  "bus_A1": [
-   "CODE",
-   2,
-   3
-  ],
-  "nvec": 1
- },
- {
-  "path": "/home/wickerwaka/src/nec_test/tests/v30/fuzz_bank/t30-raw/seeds/raw_203_c223c1b0bae7.json.gz",
-  "cid": "t30-raw",
-  "k": 203,
-  "pin": 1,
-  "hold": 2,
-  "delay": 51,
-  "wc": "wrand7",
   "win": 4000,
-  "arm": 277,
-  "A": 330,
-  "Aend": 331,
-  "V": 342,
-  "gap": 12,
+  "arm": 177,
+  "A": 237,
+  "Aend": 238,
+  "V": 250,
+  "gap": 13,
   "bus_A": [
-   "MEMR",
-   8,
-   0
+   "CODE",
+   0,
+   1
   ],
   "bus_A1": [
-   "MEMR",
-   9,
-   0
+   "CODE",
+   1,
+   2
   ],
   "nvec": 1
  },
  {
-  "path": "/home/wickerwaka/src/nec_test/tests/v30/fuzz_bank/t30-raw/seeds/raw_284_8f9a106c7af6.json.gz",
-  "cid": "t30-raw",
-  "k": 284,
+  "path": "/home/wickerwaka/src/nec_test/tests/v30/fuzz_bank/mc2/seeds/raw_44_0ed1d33f903f.json.gz",
+  "cid": "mc2",
+  "k": 44,
   "pin": 1,
   "hold": 2,
   "delay": 12,
-  "wc": "fix1",
-  "win": 3622,
-  "arm": 207,
-  "A": 221,
-  "Aend": 222,
-  "V": 233,
-  "gap": 12,
+  "wc": "wrand2",
+  "win": 4000,
+  "arm": 213,
+  "A": 227,
+  "Aend": 228,
+  "V": 240,
+  "gap": 13,
+  "bus_A": [
+   "CODE",
+   1,
+   2
+  ],
+  "bus_A1": [
+   "CODE",
+   2,
+   3
+  ],
+  "nvec": 1
+ },
+ {
+  "path": "/home/wickerwaka/src/nec_test/tests/v30/fuzz_bank/mc2/seeds/raw_973_13d6ac7a3de8.json.gz",
+  "cid": "mc2",
+  "k": 973,
+  "pin": 1,
+  "hold": 2,
+  "delay": 51,
+  "wc": "wrand2",
+  "win": 4000,
+  "arm": 212,
+  "A": 265,
+  "Aend": 266,
+  "V": 278,
+  "gap": 13,
+  "bus_A": [
+   "MEMW",
+   0,
+   1
+  ],
+  "bus_A1": [
+   "MEMW",
+   1,
+   2
+  ],
+  "nvec": 1
+ },
+ {
+  "path": "/home/wickerwaka/src/nec_test/tests/v30/fuzz_bank/mc2/seeds/soup_1355_8831a23011a4.json.gz",
+  "cid": "mc2",
+  "k": 1355,
+  "pin": 1,
+  "hold": 2,
+  "delay": 15,
+  "wc": "wrand1",
+  "win": 1218,
+  "arm": 191,
+  "A": 208,
+  "Aend": 209,
+  "V": 221,
+  "gap": 13,
+  "bus_A": [
+   "CODE",
+   3,
+   4
+  ],
+  "bus_A1": [
+   "CODE",
+   4,
+   5
+  ],
+  "nvec": 1
+ },
+ {
+  "path": "/home/wickerwaka/src/nec_test/tests/v30/fuzz_bank/mc2/seeds/soup_1653_704f52bdfd4b.json.gz",
+  "cid": "mc2",
+  "k": 1653,
+  "pin": 1,
+  "hold": 2,
+  "delay": 14,
+  "wc": "wrand2",
+  "win": 932,
+  "arm": 213,
+  "A": 229,
+  "Aend": 230,
+  "V": 242,
+  "gap": 13,
   "bus_A": [
    "CODE",
    2,
@@ -728,54 +208,262 @@
   "nvec": 1
  },
  {
-  "path": "/home/wickerwaka/src/nec_test/tests/v30/fuzz_bank/t30-raw/seeds/raw_405_cf6e8abaccd3.json.gz",
-  "cid": "t30-raw",
-  "k": 405,
+  "path": "/home/wickerwaka/src/nec_test/tests/v30/fuzz_bank/mc2/seeds/soup_2462_47a0a13894a8.json.gz",
+  "cid": "mc2",
+  "k": 2462,
   "pin": 1,
   "hold": 2,
-  "delay": 20,
-  "wc": "wrand2",
-  "win": 4000,
-  "arm": 197,
-  "A": 219,
-  "Aend": 220,
-  "V": 231,
-  "gap": 12,
+  "delay": 360,
+  "wc": "wrand3",
+  "win": 1423,
+  "arm": 224,
+  "A": 586,
+  "Aend": 587,
+  "V": 599,
+  "gap": 13,
+  "bus_A": [
+   "CODE",
+   0,
+   1
+  ],
+  "bus_A1": [
+   "CODE",
+   1,
+   2
+  ],
+  "nvec": 1
+ },
+ {
+  "path": "/home/wickerwaka/src/nec_test/tests/v30/fuzz_bank/mc2/seeds/soup_2635_a8e067922211.json.gz",
+  "cid": "mc2",
+  "k": 2635,
+  "pin": 1,
+  "hold": 2,
+  "delay": 310,
+  "wc": "fix1",
+  "win": 1297,
+  "arm": 207,
+  "A": 519,
+  "Aend": 520,
+  "V": 532,
+  "gap": 13,
   "bus_A": [
    "MEMR",
-   2,
-   3
+   3,
+   4
   ],
   "bus_A1": [
    "MEMR",
-   3,
+   4,
    5
   ],
   "nvec": 1
  },
  {
-  "path": "/home/wickerwaka/src/nec_test/tests/v30/fuzz_bank/t30-raw/seeds/raw_502_130afa0736bf.json.gz",
-  "cid": "t30-raw",
-  "k": 502,
+  "path": "/home/wickerwaka/src/nec_test/tests/v30/fuzz_bank/mc2/seeds/soup_2759_cd2167a80d6d.json.gz",
+  "cid": "mc2",
+  "k": 2759,
   "pin": 1,
   "hold": 2,
-  "delay": 181,
-  "wc": "fix0",
-  "win": 4000,
-  "arm": 145,
-  "A": 328,
-  "Aend": 329,
-  "V": 340,
-  "gap": 12,
+  "delay": 86,
+  "wc": "wrand1",
+  "win": 1086,
+  "arm": 177,
+  "A": 265,
+  "Aend": 266,
+  "V": 278,
+  "gap": 13,
   "bus_A": [
-   "MEMR",
-   8,
+   "CODE",
+   6,
    0
   ],
   "bus_A1": [
    "CODE",
    0,
    1
+  ],
+  "nvec": 1
+ },
+ {
+  "path": "/home/wickerwaka/src/nec_test/tests/v30/fuzz_bank/mc2/seeds/soup_2760_6a7bcefb2cb0.json.gz",
+  "cid": "mc2",
+  "k": 2760,
+  "pin": 1,
+  "hold": 2,
+  "delay": 564,
+  "wc": "wrand3",
+  "win": 988,
+  "arm": 224,
+  "A": 790,
+  "Aend": 791,
+  "V": 803,
+  "gap": 13,
+  "bus_A": [
+   "IOW",
+   7,
+   0
+  ],
+  "bus_A1": [
+   "CODE",
+   0,
+   1
+  ],
+  "nvec": 1
+ },
+ {
+  "path": "/home/wickerwaka/src/nec_test/tests/v30/fuzz_bank/mc2/seeds/soup_3449_6a4ebaf27b6a.json.gz",
+  "cid": "mc2",
+  "k": 3449,
+  "pin": 1,
+  "hold": 2,
+  "delay": 145,
+  "wc": "wrand1",
+  "win": 849,
+  "arm": 176,
+  "A": 323,
+  "Aend": 324,
+  "V": 336,
+  "gap": 13,
+  "bus_A": [
+   "CODE",
+   1,
+   2
+  ],
+  "bus_A1": [
+   "CODE",
+   2,
+   3
+  ],
+  "nvec": 1
+ },
+ {
+  "path": "/home/wickerwaka/src/nec_test/tests/v30/fuzz_bank/mc2/seeds/soup_484_b67d2d231e64.json.gz",
+  "cid": "mc2",
+  "k": 484,
+  "pin": 1,
+  "hold": 2,
+  "delay": 50,
+  "wc": "wrand2",
+  "win": 1419,
+  "arm": 196,
+  "A": 248,
+  "Aend": 249,
+  "V": 261,
+  "gap": 13,
+  "bus_A": [
+   "CODE",
+   2,
+   3
+  ],
+  "bus_A1": [
+   "CODE",
+   3,
+   5
+  ],
+  "nvec": 1
+ },
+ {
+  "path": "/home/wickerwaka/src/nec_test/tests/v30/fuzz_bank/t30-raw/seeds/raw_247_93e10bba61d0.json.gz",
+  "cid": "t30-raw",
+  "k": 247,
+  "pin": 1,
+  "hold": 2,
+  "delay": 247,
+  "wc": "fix0",
+  "win": 4000,
+  "arm": 145,
+  "A": 394,
+  "Aend": 395,
+  "V": 407,
+  "gap": 13,
+  "bus_A": [
+   "CODE",
+   0,
+   1
+  ],
+  "bus_A1": [
+   "CODE",
+   1,
+   2
+  ],
+  "nvec": 1
+ },
+ {
+  "path": "/home/wickerwaka/src/nec_test/tests/v30/fuzz_bank/t30-raw/seeds/raw_819_8db54029cc4c.json.gz",
+  "cid": "t30-raw",
+  "k": 819,
+  "pin": 1,
+  "hold": 2,
+  "delay": 134,
+  "wc": "fix0",
+  "win": 4000,
+  "arm": 145,
+  "A": 281,
+  "Aend": 282,
+  "V": 294,
+  "gap": 13,
+  "bus_A": [
+   "MEMW",
+   0,
+   1
+  ],
+  "bus_A1": [
+   "MEMW",
+   1,
+   2
+  ],
+  "nvec": 1
+ },
+ {
+  "path": "/home/wickerwaka/src/nec_test/tests/v30/fuzz_bank/t30-raw/seeds/raw_873_3e230ee0fdea.json.gz",
+  "cid": "t30-raw",
+  "k": 873,
+  "pin": 1,
+  "hold": 2,
+  "delay": 152,
+  "wc": "wrand7",
+  "win": 4000,
+  "arm": 279,
+  "A": 433,
+  "Aend": 434,
+  "V": 446,
+  "gap": 13,
+  "bus_A": [
+   "CODE",
+   0,
+   1
+  ],
+  "bus_A1": [
+   "CODE",
+   1,
+   2
+  ],
+  "nvec": 1
+ },
+ {
+  "path": "/home/wickerwaka/src/nec_test/tests/v30/fuzz_bank/t30-raw/seeds/raw_881_92051c8fa864.json.gz",
+  "cid": "t30-raw",
+  "k": 881,
+  "pin": 1,
+  "hold": 2,
+  "delay": 136,
+  "wc": "wrand2",
+  "win": 4000,
+  "arm": 207,
+  "A": 345,
+  "Aend": 346,
+  "V": 358,
+  "gap": 13,
+  "bus_A": [
+   "MEMR",
+   5,
+   5
+  ],
+  "bus_A1": [
+   "MEMR",
+   6,
+   0
   ],
   "nvec": 1
  }

@@ -12525,3 +12525,330 @@ per wait **346 · 328 · 318 · 302**, census `busstat_other` 10 · `B_late` 16 
   unclaimed.  The model's `qop` 39 S16 class is untouched.
 * Family D, H7, H3-B and the 8080 work were not opened.
 * **No memory file was touched.  Codex was not launched.**
+
+---
+
+## §81 SESSION SM3, SITTING 20 — **F55 IS LANDED AND THE 273-vs-268 INSTRUMENT SPLIT IS CLOSED FROM BOTH ENDS: THE CORE STOPS DRIVING, AND THE COMPOSER STOPS GUESSING.  AND H7's FLOOR DOES NOT REPRODUCE — 0 OF 30, WHILE 162 OF 163 NON-FLOOR SEEDS DO.**
+
+**2026-08-05, branch `ucsim`, from HEAD `6bc0656231`.**  The pre-registration is
+`docs/notes/sm3_s20_prereg_2026-08-05.md`, committed as `222392bfa9` **before
+any `hdl/` file was touched and before the board was contacted**.  This section
+reports against it and does not restate it.
+
+> **Standing principle, applied throughout.**  *"A guiding principal here needs
+> to be simplicity.  This is 80's era hardware, they aren't wasting silicon on
+> anything that isn't necessary.  Complex or confusing behavior that we see is
+> likely to be simple systems interacting in ways you do not fully understand
+> yet."*
+
+---
+
+## §81.A F55 — DRIVE BECOMES RETENTION
+
+### §81.A.1 THE BASELINE, MEASURED BEFORE ANYTHING WAS WRITTEN
+
+`tb_sys` receipts `77ec467566976452…` (base) / `f28decf4a59471d4…` (ret), both
+`up to date` against HEAD — i.e. **byte-identical to the pair §80.B ran**, which
+is the check that `hdl/` had not moved since the milestone.
+
+| leg | measured before |
+|---|---|
+| `x1_retention offline` (`tb_v30_core`) | **273 / 283** |
+| `x1_retention` `base` / `ret` | **146** / **268** / 283 |
+| `x1_retention score` BAR (i) / BAR (ii) | **NOT MET** — 5 survivors, 5 cells differing from offline |
+| `sm3_s16_fabric offline` / `vsys_ret` | **1,321** / **1,291** of 1,371, **30** disagreements, **0** differing coordinates |
+
+The 5 + 30 are §80.B.3(b)'s F55 cells exactly, and the same 35 the model closed
+at §80.A.
+
+### §81.A.2 THE CHANGE — TWO TERMS, AND THE SECOND ONE IS THE POINT
+
+> **F51.**  A HALT pseudo-cycle has NO DATA PHASE.  After its address phase it
+> **drives nothing**, and the pads hold whatever was last put on them.
+
+`v30u_biu.sv` rendered the second clause as a **DRIVE**:
+`halt_hold = r_run && r_cur_halt` held `ad_oe_addr` asserted for the whole
+pseudo-cycle and republished `r_cur_addr` on every clock of it.  A pad that is
+DRIVEN and a pad FLOATING at its last driven value are the same value **by
+construction** — until a multi-clock announcement takes the pads in between and
+is then WITHDRAWN.  That is the whole of family E's address half, and it is the
+same sentence as F53b one pin over: *a pad is loaded by a PHASE and held
+otherwise.*
+
+1. `halt_hold` → `halt_addr = r_run && r_cur_halt && (r_ts == TS_T1)`.  The
+   one-shot ends with the address phase.  Its `ad_oe_addr` contribution is then
+   wholly subsumed by the existing `r_ts == TS_T1` term, and its `ad_o` branch
+   leaves the HALT's own T1 byte-identical.
+2. **`ad_oe_ps` gains `!r_cur_halt`.**  Without it, (1) merely swaps one drive
+   for another — the PS/data drive would take the pads at the HALT's T2.  With
+   it, **all three enables are LOW for the body of a HALT**, `AD` floats, and
+   what the pads show is retention.
+
+No new flop, no new constant, no per-case anything.  `ss_lint` confirms it:
+dropping an enable is combinational.
+
+### §81.A.3 THE COMPOSER — **A3b, PRE-REGISTERED AS CONDITIONAL AND EARNED**
+
+The RTL change alone closed the split (`ret` 268 → 273, `vsys_ret` 1,291 →
+1,321, `tb_v30_core` unmoved), so the two instruments AGREE.  A3b asked the
+second question: **do they agree for the right reason?**
+
+`tb_v30_core.sv`'s composer inferred the core's drive from the bus protocol —
+eight wires, one of which (`cycle_live`'s `lat_type != 3'b011`) floated a
+HALT-typed cycle's body **whatever the core did there**.  That is
+`standing_gates.md`'s meta-finding #5 in the flesh: *a comparator that
+substitutes a value is asserting a mechanism.*  It is why this TB scored the 35
+cells green for eleven sittings on the INSTRUMENT'S authority.
+
+The composer now keys on **`AD_OE`** — the core's own pad output enable (task
+#37), the wire `system_large` already uses and the fabric agrees with on 1,654
+of 1,654 cells.  **Two lines replace eight wires.**  Engine-neutral: `AD_OE` is
+a port of `v30_core`, so the archived `fsm` core publishes it too.  `mem_drive`
+stays, because the TB's MEMORY is the bus's other real driver — that is the
+harness's own truth, not an inference about the core.
+
+**It was landed ONLY on a zero-delta**, as registered: sweeps **273/283 cell for
+cell**, S16 **1,321/1,371 with 0 differing coordinates**, `check_core --opcodes
+all` **169,000/169,000**, and the whole ladder of §81.A.5.  **Not one cell
+moved.**  That is the only form in which an instrument may be rewritten.
+
+### §81.A.4 THE RESULT, REPORTED AS REGISTERED
+
+| | registered bar | **measured** |
+|---|---|---|
+| **P1** | the 35 F55 cells CLOSE | **5 sweeps + 30 S16, all** — **MET** |
+| **P2** | `ret` **268 → 273**, BAR (i) and BAR (ii) MET | **273/283, 127 of 127 closed, 0 survivors, 0 cells differing from offline, VERDICT MET** — **MET** |
+| **P3** | `vsys_ret` **1,291 → 1,321**, 0 disagreements | **1,321/1,371, 0 PASS/FAIL disagreements and 0 differing coordinates over all 1,371** — **MET** |
+| **P4** | `tb_v30_core` does **NOT MOVE** | **273 / 283 and 1,321 / 1,371, the SAME failing cells** — **MET.**  *The term was not cut wider than the law.* |
+| **P5** | `sm3_s16_score --core ucore` **1,294** | **1,294 / 1,371**, per wait **346 · 328 · 318 · 302**, census `busstat_other` 10 · `B_late` 16 · `D_tstate` 24 · `ARCH` 27 — **MET** |
+| **P6** | `ulockstep` **17,350** | **17,350 / 17,350 ALL CASES LOCKSTEP** — **MET** |
+| **P7** | the ladder unmoved | **MET** — §81.A.5 |
+| **P8** | `ss_lint` rc 0, 201 flops | **rc 0, 201 flops, 0 UNMAPPED, SS_COUNT 218** — **MET** |
+| **P9** | **G6** E1-E5 | **PASS.  E1 PASS · E2 0 errors · E3 47.15 MHz · E4 +9.335 ns · E5 TNS 0.000 setup AND hold, every domain.**  ALMs **11,104 / 41,910 (26 %)**, 0 latches, 0 `lpm_divide`.  Receipt **`2f73672c179d278b…`**, inputs 88 files **`c1cae4f64cc35759…`** — **MET** |
+| **P10** | `git diff -- sim` EMPTY | **EMPTY** — **MET** |
+| f1 … f8 | — | **NONE FIRED** |
+
+**Fmax went UP (45.49 → 47.15 MHz) and ALMs went DOWN (11,126 → 11,104).**
+Deleting a drive is a net simplification, in the fitter as well as in the
+sentence.
+
+### §81.A.5 THE LADDER — EVERY CELL RE-RUN, TWICE (F55, THEN THE COMPOSER)
+
+`check_core --opcodes all --cases 0` **169,000 / 169,000** cycles AND arch ·
+`f4a_boundary` **160** · `f0lock_tranche` **400** · the 23 `v0.3` block-I/O
+forms **229,999 / 229,999** · `v0.1-w1` / `-w3` **1,200** each · `EB` at w1
+**200** · the four `evt` cells **200 / 1,200 / 200 / 1,200** · `w1evt-biased`
+**1,200** · `check_boot --core ucore --timed 220` and `--timed 400` **MATCH** ·
+`ulockstep --golden all --cases 50` **17,350** · `timed_wvec_gate --core ucore`
+**88/88, +0.0 %** (16,048 vs 16,048) · `timed_enter_replay --core ucore`
+**154/154 ×5** · `timed_ins_replay --core ucore --raw` rails **1,312/1,312**,
+vs-chip **2,624/2,624**, same-T1 **173,556/173,556** ·
+`timed_fuzz --core ucore --evt-replay` REGISTERED **1,490** / EVT **913** /
+COMBINED **2,403** **TO THE SEED** (every wait-class and per-bank sub-total
+identical), `INVALIDATED` 0, `ENGINE ABORTS` 0, `BOUND WARNINGS` 5 ·
+b2 tranche **172 / 188** · `check_core --ce-div 4 --ce-hold-check`
+`CE_HOLD_VIOL 0` · `check_ab_sim --core ucore` **187 rows MATCH** ·
+`timed_lawcards` **8 GREEN / 0 RED / 3 UNRESOLVED** · `gen_ucore_qsf --check`
+PASS · `check_ucore_tables` **9,988** · `pla3_check` **21** ·
+`simbin --disasm` **1,285** · `test_artifact` **45/45**.
+
+### §81.A.5a **A STALE QUICK-REFERENCE FIGURE, CORRECTED UPWARD — AND IT IS NOT A MOVEMENT**
+
+`standing_gates.md` and `CLAUDE.md` quote the ucore's b2 tranche as
+**171 / 188**, citing §44.2.  It measures **172 / 188**, and §66.3 **RAISED it
+171 → 172 at SM3 sitting 6** (the TB `IOW` fix); every sitting since §69 has
+reported 172.  The quick reference predates that raise.  **F55 did not move it**
+— this is the §26.11 / U3 pattern again: the quick reference disagreeing with
+the ledger's own delta row, corrected against the artifact and not against
+recall.  V5 remains the standing REGISTERED FAILURE.
+
+### §81.A.6 A CONSEQUENCE FOR §56.3a
+
+`x1_retention score`'s own **BAR (i)** and **BAR (ii)** now report **MET** on
+the Verilated leg.  They had been NOT MET with exactly 5 survivors, and the 5
+were these cells.  §73.9a's erratum about the fabric bars is untouched; what
+moved is the offline leg's own verdict.
+
+### §81.A.7 THE FABRIC PREDICTION, REGISTERED AND NOT TESTED
+
+**No board was flashed and no bitstream was put on the board this sitting.**
+Registered for FLASH #10: `x1_fabric baseline` **268 → 273** and
+`sm3_s16_fabric fabric` **1,291 → 1,321**, the same 35 cells closing and no
+others moving.  §80.B.3(c) is the ground: `tb_sys ret` has predicted fabric on
+**1,654 of 1,654** cells, PASS/FAIL and coordinate alike.
+
+### §81.A.8 THE RATCHETS THAT MOVED, ITEMISED
+
+| ratchet | before | **after** | which change |
+|---|---|---|---|
+| `tb_sys ret`, the four HLT sweeps | 268 / 283 | **273 / 283** | F55 |
+| `tb_sys ret`, S16 rows only | 1,291 / 1,371 | **1,321 / 1,371** | F55 |
+| `x1_retention` BAR (i) / BAR (ii) | NOT MET, 5 survivors | **MET / MET, 0 survivors** | F55 |
+| `tb_v30_core`, the four HLT sweeps | 273 / 283 | **273 / 283 — UNMOVED** | P4, the bar |
+| `tb_v30_core`, S16 rows only | 1,321 / 1,371 | **1,321 / 1,371 — UNMOVED** | P4, the bar |
+| **the two offline instruments** | disagreed on 35 cells | **AGREE on all 1,654** | F55 + A3b |
+| G6 Fmax | 45.49 MHz | **47.15 MHz** | F55 (a deleted drive) |
+| G6 ALMs | 11,126 | **11,104** | F55 |
+| the ucore's b2 tranche, AS QUOTED | 171 / 188 (stale) | **172 / 188** | §81.A.5a — a correction, not a move |
+
+---
+
+## §81.B H7 — THE REPETITION RE-CAPTURE.  **THE FLOOR DOES NOT REPRODUCE, AND THE POPULATION THAT DOES NOT REPRODUCE *IS* THE FLOOR.**
+
+### §81.B.0 THE BOARD
+
+`root@mister-nec` reachable, `up 23 days 18:30`.  **Single-writer check: no
+`v30` / serve / python process on the board.**  The board carries **FLASH #9**
+(`01aca4c0b1e7d755…`); **NOTHING WAS FLASHED**, `use_core` **False** explicitly
+on every capture, `div_guard` **PINNED** (`div=8`, 4 MHz, commanded by this
+connection) at both ends of every leg, `board_idle()` at both ends,
+**0 transport errors, 0 wedges** in **1,089 captures**.
+
+### §81.B.1 THE CELL
+
+`sw/sm3_h7_repeat.py`.  The population is **DERIVED, never listed** — every
+banked seed with `evt.pin == 1` whose measured gap is 12, computed through
+`sm3_nmigeom.one` itself.  30 seeds, **mc1 26 / t30-raw 4 / mc2 0**, reproducing
+§68.5's bank association exactly.  Per seed the image is REGENERATED from
+`(cid, k, ov)` and **HASH-CHECKED** against the banked `image_sha256`; **0
+GEN-DRIFT**.  Four legs:
+
+| leg | population | reps | captures |
+|---|---|---|---|
+| **C1**, the pin-0 control | 10 banked INT seeds across all three banks | 3 | 30 |
+| **the floor** | the 30 at banked gap 12 | 10 | 300 |
+| **C2**, ADDED (§81.B.4) | the 18 at banked gap 13 | 10 | 180 |
+| **C3**, ADDED (§81.B.4) | the whole pin-1 population, 193 with a recognition | 3 | 579 |
+
+### §81.B.2 THE RESULT, REPORTED AS REGISTERED
+
+**THE REGISTERED OUTCOME IS (iv), AND IT IS REPORTED AS (iv).**  Outcome (ii)
+was *"every repetition of every seed reads gap 13"*; 14 of the 30 do and **16
+read ABOVE 13** (14, 15, 16, 17, 20, 21, 22, 23, 34, 91).  Per the
+pre-registration that is *"reported AS MEASURED and NOT folded into (i)-(iii)"*,
+and **no invalidation is written on it** — see §81.B.5.
+
+| | |
+|---|---|
+| **C1**, the pin-0 control | **30 of 30 repetitions reproduce the banked INTA1 gap EXACTLY** — banked gaps 7, 8, 9, 11 and 12, *including two seeds banked at 12 which read 12 on every repetition*.  The rig and the `A` derivation are sound in this session |
+| **DETERMINISM** | **193 of 193 seeds are identical across all their repetitions.  ZERO within-seed variance anywhere, in 1,089 captures.**  Outcome (iii) — sub-clock marginality WITHIN a session — is **REFUTED at its point estimate** |
+| **the floor** | **0 of 30 reproduce.**  Not one repetition of any of them reads 12 |
+| **C2 / C3** | **162 of 163 NON-floor seeds reproduce their banked gap exactly.**  The single exception is `mc1/soup_2468`, banked 13 |
+| **the minimum** | over **579** fresh repetitions of the whole pin-1 population the minimum gap is **13**.  **Repetitions reading 12 or less: 0** |
+| **the direction** | **31 movers, all 31 LATER, none earlier** |
+
+**THE COORDINATE IS SOUND, AND THIS IS THE CHECK THAT MAKES THE ABOVE
+READABLE.**  On all 30 floor seeds the fresh capture reproduces `arm` and `A`
+**EXACTLY**.  Only `V` — the chip's recognition — moved.  A moved `arm` can
+never be read here as a moved `gap`.
+
+### §81.B.3 **THE ROW-LEVEL PICTURE, AND IT IS TWO CLEAN CLASSES**
+
+Diffed against the banked `chip_rows` with the project's own `fuzz_classify.
+diff_rows`, the fresh run is **identical to the banked run up to the pin event's
+consequences** on every one of the 30 — never earlier — and the first divergence
+takes exactly two values:
+
+| class | seeds | first divergence | fresh gap |
+|---|---|---|---|
+| **one clock late** | **14** | **`A + 11`** | **13** (and one 14) |
+| **boundary slid** | **16** | **`A + 3`** | 14 … 91 |
+
+* **The 14.** Rows are byte-identical through `A + 10`.  At `A + 11` the banked
+  capture shows the NMI vector read's DISPLAY and the fresh one is still PASV;
+  the fresh display comes one clock later and its T1 at `A + 13`.  **The entire
+  difference is ONE CLOCK at the recognition and nothing else** — the missing
+  clock between the bank's 12 and both engines' 13, isolated.
+* **The 16.** The first divergence is the **queue status `qs` at `A + 3`** —
+  which is §63.2's own *recognition-instant* coordinate, the axis on which the
+  bank split `14 at A+3 / 7 at A+4`.  The trajectories then re-converge and the
+  vector read lands at the next boundary, wherever that is.
+
+### §81.B.4 **THE TWO ADDED CONTROLS, DECLARED AS ADDED**
+
+C2 and C3 were **NOT pre-registered**; they were run **after** the floor result
+was seen, and they are declared as such.  Their purpose was to answer the one
+question that would have made the floor result unreadable: *does the current rig
+reproduce the banked pin-1 population at all?*
+
+| banked gap | seeds | reproduce | rate |
+|---|---|---|---|
+| **12** | **30** | **0** | **0 %** |
+| 13 | 18 | 17 | 94 % |
+| 14 … 409 | 145 | 145 | **100 %** |
+| **total** | **193** | **162** | 84 % |
+
+**The population that fails to reproduce IS the floor population, plus one.**
+
+### §81.B.5 THE READING, AND WHY IT IS A READING
+
+The simplest thing that produces this whole table is **one clock in the `A`
+coordinate**, not a mechanism in the part:
+
+> `A` is **DERIVED** (`arm + delay + 2`), never measured.  If the rig's actual
+> pin-assert instant is one clock later now than in the era those 30 were
+> banked, then every **A-LIMITED** recognition moves one clock later in the gap
+> coordinate — and every **BOUNDARY-LIMITED** one does not move at all, because
+> the boundary has not moved.  A-limited seeds are exactly the ones sitting on
+> the floor.
+
+It predicts, and the measurement shows: only floor seeds move (0/30 vs 162/163);
+every mover moves LATER and none earlier (31/31); a mover that then misses its
+boundary slides to the next one (the 16); and the pin-0 leg, whose INT
+recognition is level-driven and not edge-latched, is untouched (30/30).  It also
+dissolves §68.5's **BANK ASSOCIATION** without a new number, and it is
+consistent with every directed cell ever run — §63.3, §65.1's 160 captures,
+§68.5's 640, §72's 768 — all of which floor at **13** because all of them were
+captured on the current-era rig.
+
+**IT IS NOT ESTABLISHED.**  What would establish it is a DIRECT measurement of
+the assert instant rather than a derivation of it — the pin's own state in the
+capture, or an `inv1_recapture holdproof`-shaped directed pulse — and it is
+**NOT TAKEN HERE**: it is a new hypothesis and it belongs in its own
+pre-registration.  Registered as its falsifier: *if the current rig's assert
+clock is measured to be `arm + delay + 2` after all, this reading is refuted and
+the 30 are back.*
+
+### §81.B.6 THE DISPOSITION — **INV-2 IS NOT WRITTEN, AND THAT IS THE
+PRE-REGISTRATION'S OWN ANSWER**
+
+The pre-registration tied INV-2 to outcomes (ii) and (iii).  The measured
+outcome is **(iv)**, whose disposition is *report, do not fold*.  Re-reading a
+registered bar onto a better statistic after seeing the data is the manoeuvre
+§64.1 booked as an erratum, and it is not done here.
+
+**NOTHING IN THE BANK WAS TOUCHED.**  No file was renamed, no entry edited, no
+label changed.  The 1,089 fresh captures are retained with their `sha256` under
+`sw/testdata/sm3-h7rep/` beside the banked ones.
+
+**WHAT IS ESTABLISHED, AND IT IS NOT NOTHING:**
+
+* **H7's floor of `A + 12` has NO LIVE EVIDENCE.**  The 30 captures that were
+  its entire evidentiary basis do not reproduce, on the rig as it stands, in 300
+  repetitions, while 162 of 163 of their neighbours do.
+* **Both engines' floor of 13 is silicon's number** on every measurement anyone
+  can take today: 579 fresh repetitions of the whole banked population, minimum
+  **13**, plus the four directed cells' thousands of captures.
+* **Outcome (iii) is refuted**: the effect is not sub-clock jitter *within* a
+  session.  Every seed is perfectly deterministic.
+* **H7 remains BLOCKED, not CLOSED** — and the reason it is not closed is now a
+  named, testable, one-measurement question (§81.B.5) instead of an eliminated
+  axis list.
+
+### §81.B.7 THE RESTING STATE
+
+The board carries **FLASH #9**, `use_core` **False**, the divider **PINNED**,
+`board_idle()` clean, no serve process left running.  Nothing was flashed.
+
+---
+
+### §81.C WHAT THIS SITTING DID NOT DO
+
+* Family B stays **PARTITIONED and BOOKED** (§79.G); family D, H3-B and the 8080
+  work were not opened.
+* `sim/` was not touched — `git diff -- sim` is EMPTY for the whole sitting.
+* **No bitstream was flashed.**  F55's fabric leg is registered (§81.A.7) and
+  belongs to the next flash.
+* **INV-2 was not written** (§81.B.6), and the direct assert-instant measurement
+  §81.B.5 names was not taken.
+* **No memory file was touched.  Codex was not launched.**

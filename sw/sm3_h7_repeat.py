@@ -93,13 +93,22 @@ def _paths(pin):
     return [p for p in ps if ng.axis(p) == pin]
 
 
-def population(jobs=8):
-    """The 30, DERIVED.  Never a list."""
+def population(jobs=8, gap=FLOOR, limit=0):
+    """The 30, DERIVED.  Never a list.
+
+    `gap` is parametric ONLY so that the same predicate can select the
+    NON-floor pin-1 seeds as a control (SM3 s20 sec.81.B.4, an ADDED control
+    taken after the floor result was seen and declared as such).  The floor
+    population is `gap=12` and nothing else."""
     paths = _paths(1)
     with Pool(jobs) as pool:
         res = pool.map(ng.one, [(p, "") for p in paths], chunksize=4)
-    return sorted((r for r in res if r.get("gap") == FLOOR),
-                  key=lambda r: r["path"])
+    out = sorted((r for r in res
+                  if (r.get("gap") == gap if gap >= 0
+                      else (r.get("gap") is not None
+                            and (gap == -2 or r["gap"] > FLOOR + 1)))),
+                 key=lambda r: r["path"])
+    return out[:limit] if limit else out
 
 
 def controls(jobs=8, n=10):
@@ -182,9 +191,9 @@ def board_idle():
 
 # --------------------------------------------------------------------------- #
 def cmd_population(a):
-    pop = population(a.jobs)
-    print(f"== the H7 floor population, DERIVED: {len(pop)} seeds at gap "
-          f"{FLOOR}")
+    pop = population(a.jobs, a.gap, a.limit)
+    print(f"== the H7 pin-1 population, DERIVED: {len(pop)} seeds at gap "
+          f"{a.gap if a.gap >= 0 else ('ALL (the whole pin-1 population)' if a.gap == -2 else '>13 (the non-floor CONTROL)')}")
     print("  by bank:", dict(Counter(
         r["path"].split("fuzz_bank/")[1].split("/")[0] for r in pop)))
     print("  by wait class:", dict(Counter(r["wc"] for r in pop)))
@@ -257,12 +266,12 @@ def _capture_one(a, r, reps, tag, guards, log):
 
 
 def cmd_capture(a):
-    pop = population(a.jobs)
+    pop = population(a.jobs, a.gap, a.limit)
     OUT.mkdir(parents=True, exist_ok=True)
     (OUT / "raw").mkdir(exist_ok=True)
     log = {"utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
            "host": HOST, "reps": a.reps, "n_seeds": len(pop),
-           "flash": a.flash, "use_core": False}
+           "flash": a.flash, "use_core": False, "gap_selector": a.gap}
     print(f"capture: {len(pop)} seeds x {a.reps} reps, socket leg "
           f"(use_core=False), FLASH {a.flash}", flush=True)
     board_idle()
@@ -279,10 +288,9 @@ def cmd_capture(a):
     div_guard("last capture", log)
     board_idle()
     log["elapsed_s"] = round(time.time() - t0, 1)
-    (OUT / "capture.json").write_text(json.dumps(
+    (OUT / a.out).write_text(json.dumps(
         {"log": log, "seeds": res}, indent=1) + "\n")
-    print(f"CAPTURE: {len(res)} seeds, {log['elapsed_s']}s -> "
-          f"{OUT/'capture.json'}")
+    print(f"CAPTURE: {len(res)} seeds, {log['elapsed_s']}s -> {OUT/a.out}")
     return 0
 
 
@@ -325,7 +333,7 @@ def cmd_control(a):
 
 
 def cmd_report(a):
-    cap = json.loads((OUT / "capture.json").read_bytes())
+    cap = json.loads((OUT / a.out).read_bytes())
     seeds = cap["seeds"]
     print(f"== H7 REPETITION RE-CAPTURE -- {len(seeds)} seeds, "
           f"{cap['log']['reps']} reps each, FLASH {cap['log'].get('flash')}")
@@ -368,6 +376,11 @@ def main():
         p.add_argument("--reps", type=int, default=10)
         p.add_argument("--n", type=int, default=10)
         p.add_argument("--flash", default="#9")
+        p.add_argument("--gap", type=int, default=FLOOR,
+                       help="the DERIVED population's gap; -1 = the non-floor "
+                            "control (gap > 13)")
+        p.add_argument("--limit", type=int, default=0)
+        p.add_argument("--out", default="capture.json")
         p.set_defaults(fn=fn)
     a = ap.parse_args()
     return a.fn(a)
