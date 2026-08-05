@@ -13431,3 +13431,87 @@ touched.
 * **B2b's 13 seeds are ROUTED OUT of the timing census** as inherited
   architectural residue.  That is a re-attribution, not a fix, and it does not
   change any number.
+
+## §84 SESSION SM3, SITTING 23 — **THE BRK/TF ARM LAW, MEASURED: ONE ARM BIT, SAMPLED AT EVERY INSTRUCTION BOUNDARY, AND A PREFIX IS A BOUNDARY**
+
+### §84.1 THE PRE-REGISTRATION — **WRITTEN AND COMMITTED BEFORE THE HELD-OUT POPULATION WAS TOUCHED**
+
+§83.7 registered a board-free discriminator and named two candidate arms.  It
+was run.  **Both registered candidates are REFUTED and a third shape came out**,
+which §83.7 explicitly allowed for ("or produces a third shape, which is the
+result").  The refuted-key rule applies in full, so the population split is
+stated first and the law second.
+
+**THE SELECTING POPULATION — 30 seeds** (the 29 scored+divergent vector-1 seeds
+of §83.3a, reproduced on this tree seed-for-seed from `chip_v1.json` × the
+sitting-22 `timed_fuzz` reports, plus the software-INT control `mc2/2361`).
+Every clause of the law below was read OFF these 30.  Nothing here is a
+prediction; this is the fit.
+
+**THE LAW.**
+
+> There is ONE arm bit for the single-step trap.  At every instruction
+> boundary the machine first TAKES the trap if the arm bit is set (and the
+> entry clears it), and then SAMPLES `TF` into the arm bit.  **A PREFIX BYTE
+> ENDS AN INSTRUCTION BOUNDARY** for this purpose.  `IRET`'s PSW write lands
+> BEFORE its own boundary's sample; `POPF`'s lands AFTER it.
+
+Nothing in it is per-opcode: the whole POPF/IRET asymmetry is *where in the
+instruction the PSW write falls relative to one fixed sample point*, which is a
+property the microcode ROM already has.  The prefix clause is not an assumption
+either — the ROM carries the REPX withdrawal and the prefix-chain PC rewind
+(0223, 0225-0227) precisely because a request can be taken between a prefix and
+its opcode.  It is the same shape as §72's IE-restore law: a flag written by an
+instruction is not visible to recognition until after a fixed instant.
+
+**WHAT IT PREDICTS**, in `ilog` instruction indices with `S` the setter:
+
+| setter | prefixes on `S+1` | trap taken at | pushed IP |
+|---|---|---|---|
+| `POPF` | 0 | end of `S+2` | `ilog[S+3].pc` |
+| `POPF` | 1 | end of `S+1` | `ilog[S+2].pc` |
+| `POPF` | ≥ 2 | inside `S+1`'s prefix chain | `ilog[S+1].pc` (ROM rewind) — **COROLLARY, UNEXERCISED** |
+| `IRET` | 0 | end of `S+1` | `ilog[S+2].pc` |
+| `IRET` | ≥ 1 | inside `S+1`'s prefix chain | `ilog[S+1].pc` (ROM rewind) — **COROLLARY, UNEXERCISED** |
+
+and, for the storm, **grace 0 on every consecutive trap pair** (the handler is a
+bare `IRET`, measured, on 30 of 30 seeds).
+
+**ON THE SELECTING POPULATION** (`sw/sm3_tf_law.py`, the fit, not a gate):
+`LAW verdict` **HIT 29 / NO_SETTER 1**, the `NO_SETTER` being `mc2/2361` — the
+software `INT 1` control, which has no PSW load that sets TF and must NOT be
+explained by a trap law.  Split by branch: `(POPF, 0 prefixes)` **26 HIT**,
+`(POPF, 1 prefix)` **2 HIT**, `(IRET, 0 prefixes)` **1 HIT**.  Storm cadence
+**0 on 606 of 606** pairs.  Corollary branches exercised: **0**.
+
+**THE PRE-REGISTERED HELD-OUT BAR.**  The remaining **167** of the 197 chip-side
+vector-1 seeds (§83.3a) were NOT looked at while the law was being written.
+They are the validation population.  Registered, before the run:
+
+* **(V-1)** On every held-out seed whose head is readable, `predict_head` HITS —
+  the predicted `(cs, ip)` is the chip's first pushed `(cs, ip)`, exactly.
+  **Bar: ≥ 95 % of scoreable heads HIT, and ZERO MISSES whose setter is `POPF`
+  with an unprefixed `S+1`** (the branch the law is most constrained on).
+* **(V-2)** Storm grace is **0** on every measurable pair.  **Bar: zero pairs
+  with grace ≠ 0.**
+* **(V-3)** Any seed exercising a COROLLARY branch is reported separately and
+  is not counted toward V-1 either way, since the law's prediction there was
+  never tested.
+* **FALSIFIER, whole mechanism**: a `POPF` setter with an unprefixed `S+1` whose
+  chip trap is anywhere but the end of `S+2`; or a `POPF` and an `IRET` setter
+  in the same branch-shape disagreeing about grace; or a storm pair with grace
+  ≠ 0.  Any of those and the law is booked REFUTED and NOTHING is landed.
+
+**THE INSTRUMENT DEFECT §83.4 REPORTED AS A POPULATION PROPERTY.**  §83.4 said
+9 of 30 seeds' pushed values "read back as `0` in the scratch extractor — a dump
+artifact".  It is not a dump artifact and it is not 9 seeds' property: those
+seeds have an **ODD SP**, so each push is two BYTE cycles and the captured
+`ad_data` is the AD pattern rather than the pushed word.  Read through the
+COMMITS — `sw/ucsim_fuzz._commits`, the repo's own lane rule — the frames are
+perfectly legible: `mc2/1698`'s first push reads `0x1d05` through `data` and
+**`0x051d`** through the commits, and `0x51d` is where that seed's code
+actually was.  **All 30 heads are readable; `unreadable` is 0.**  A second
+defect in the same extractor: a bare `4`/`6` read pair plus any three
+descending writes counted as an entry, which gave one seed 22 phantom entries;
+§83.2's signature has a FIFTH part, the TRANSFER to the handler the vector just
+named, and it is load-bearing.
