@@ -269,6 +269,7 @@ void BiuTimed::tick() {
         run_ = true;
         cur_ = cmt_;
         ci_ = 0;
+        rd_stamped_ = false;      // F57: one stamp per cycle
         cur_t1_ = c;              // S9b: this cycle's own T1 clock
         cmt_valid_ = false;
         // M10: the bus has TAKEN the whole request -- the slot is free from
@@ -625,6 +626,42 @@ void BiuTimed::tick() {
             // absent at `-2`, at all four wait levels; without it
             // `D = max(A + 4, H + 3)` is exact at every delay.
             pf_arm_valid_ = !cur_.is_halt;
+            // F57 -- A READ'S COMPLETION CLOCK IS STAMPED AT THE CYCLE'S OWN
+            // EVAL.  The VALUE is unchanged (`e + 2`, and at this clock `c`
+            // IS `e` by definition); what moves is the clock the EU can first
+            // SEE it on.  `wait_next_read()` blocks in two stages -- until a
+            // stamp EXISTS, then until the clock it names -- and pushing at
+            // T4 made the first stage bind whenever the eval and T4 are more
+            // than one clock apart, i.e. whenever the cycle's DISPLAY WAITED
+            // for the bus.  Then the model could not leave before T4 + 1 even
+            // though it had itself computed `e + 2` as the answer.
+            //
+            // MEASURED, `s10-hltsweep-w0 HLT.INT`: silicon's second
+            // acknowledge is `display + 7` at every delay; the model's was
+            // `T1 + 6`, which is the same number for every cycle whose T1
+            // opens the clock after its display and one clock late for the
+            // acknowledge that follows a woken HALT -- the only place in the
+            // corpus where a T1 waits.  It is M22's `cmt_expire_` sentence one
+            // mechanism over.
+            //
+            // W0-NEUTRAL BY CONSTRUCTION for every ordinary cycle: the second
+            // stage (`clk_ < e + 2`) is untouched, so the EU still leaves at
+            // `e + 2`.  Under waits `eval_i == last_i` and the two sites are
+            // the SAME CLOCK.  FALSIFIER: any cell whose EU leaves the wait at
+            // a clock other than `e + 2`.
+            if (!cur_.is_fetch && !cur_.is_halt && cur_.rd_last &&
+                !is_write(cur_.bs) && rd_pending_) {
+                rd_done_q_.push_back(c + 2);
+                last_wval_ = cur_.rd_val;    // the read lands in OPR
+                rd_stamped_ = true;
+                if (int(rd_done_q_.size()) > g_rddone_max) {
+                    g_rddone_max = int(rd_done_q_.size());
+                    if (qdepth_trace())
+                        std::fprintf(stderr,
+                                     "QD rd_done=%d upc=%04X clk=%ld\n",
+                                     g_rddone_max, cur_.upc, clk_);
+                }
+            }
             // M2r: THE COMPLETION EVAL'S DISPLAY CLOCK IS NOT AN EVAL POINT.
             // At w0 that clock is T4, which is inside the cycle and so was
             // never an idle-eval candidate -- "T4 is NOT an eval point" (M1)
@@ -698,7 +735,11 @@ void BiuTimed::tick() {
                 } else if (rd_pending_ && cur_.rd_last) {
                     --rd_pending_;
                 }
-                if (cur_.rd_last && !is_write(cur_.bs)) {
+                // F57: the stamp is made at the EVAL (above).  This arm is
+                // the one that runs when the eval never fired for this cycle;
+                // `rd_stamped_` is what keeps them from both firing when
+                // `eval_i == last_i`, which is every waited cycle.
+                if (cur_.rd_last && !is_write(cur_.bs) && !rd_stamped_) {
                     rd_done_q_.push_back(e + 2);
                     last_wval_ = cur_.rd_val;    // the read lands in OPR
                     // U2 pass-3, C3: the completion deque's PROVEN depth.

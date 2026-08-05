@@ -868,7 +868,12 @@ private:
     // It also closes 80 of the 93 residual flush-`E` events 17.4 named and
     // misread as a post-write bus turnaround: 475 events carry that stated
     // signature and 398 of them were ALREADY exact (18.1).
-    std::deque<long> rd_done_q_;   // completed reads' T4 + 1, in order
+    std::deque<long> rd_done_q_;   // completed reads' completion clock
+                                   // (`e + 2`), in order
+    // F57: this cycle's completion clock is already stamped.  See the eval
+    // block in biu_timed.cpp -- the stamp is made THERE and the T4 arm is the
+    // fallback for a cycle whose eval never fired.
+    bool rd_stamped_ = false;
     uint16_t* flags_latch_ = nullptr;   // I1 / F39, see arm_flags_latch()
     // ...and the WRITE side of the same register: how many stores have been
     // GIVEN their data and not yet handed it to the bus, plus the clock the
