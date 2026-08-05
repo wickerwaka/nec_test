@@ -183,7 +183,8 @@ reg         ss_we_r = 1'b0;
 wire [15:0] ss_rdata;
 wire        ss_err;
 wire        ss_bus_quiet;
-wire [19:0] dut_ad_oe;   // task #37: connected, deliberately unconsumed here
+wire [19:0] dut_ad_oe;   // task #37 / F55: the core's own pad output
+                         // enable -- the composer below KEYS ON IT (sec.81.A.3)
 
 v30_core dut (
     .CLK       (clk),
@@ -195,9 +196,11 @@ v30_core dut (
     .NMI       (pin_nmi),
     .POLL_N    (pin_poll_n),
     .AD        (AD),
-    .AD_OE     (dut_ad_oe),   // published pad enable (task #37); the TB
-                              // models retention in its memory and does not
-                              // consume it -- see hdl/rtl/*/v30_core.sv
+    .AD_OE     (dut_ad_oe),   // published pad enable (task #37).  SM3 s20 /
+                              // F55: the composer CONSUMES it now -- see
+                              // `eff_lo`/`eff_hi` below.  It used to infer the
+                              // drive from the protocol, and that inference is
+                              // what hid F55 for eleven sittings.
     .QS        (QS),
     .BS        (BS),
     .RD_N      (RD_N),
@@ -264,14 +267,15 @@ logic        lat_ube  = 1'b1;
 
 wire lat_read  = lat_type == 3'b100 || lat_type == 3'b101 ||
                  lat_type == 3'b001 || lat_type == 3'b000;
-wire lat_write = lat_type == 3'b110 || lat_type == 3'b010;
 // ...and the MEMORY half of it.  SM3 sitting 6 (ledger sec.66.3): the write
-// COMMIT below used `lat_write`, so an `IOW` to port P stored into `mem[P]`.
-// The read side was never symmetric -- `IOR` is served from `iord_ser` and
-// `INTA` from `INT_VECTOR`, neither from `mem` -- and neither the socket
-// harness nor `sim/` does it, which is why the chip reads the seed's own image
-// where the RTL legs read the I/O datum.  A write cycle still HANDS THE DATA
-// LANES OVER (`core_data_drive` keeps `lat_write`); only the store is memory's.
+// COMMIT below used a plain `lat_write`, so an `IOW` to port P stored into
+// `mem[P]`.  The read side was never symmetric -- `IOR` is served from
+// `iord_ser` and `INTA` from `INT_VECTOR`, neither from `mem` -- and neither
+// the socket harness nor `sim/` does it, which is why the chip reads the
+// seed's own image where the RTL legs read the I/O datum.  A write cycle still
+// HANDS THE DATA LANES OVER (the composer below asks `AD_OE`, which an `IOW`
+// asserts like any other write); only the STORE is memory's, and `lat_memw` is
+// what the store is keyed on.
 wire lat_memw  = lat_type == 3'b110;
 
 // memory read drive during T2/T3/Tw of read cycles (nec_bus-equivalent);
@@ -296,53 +300,65 @@ always @(negedge clk) begin
     end
 end
 
-// composed bus value with float retention (protocol-inferred drive).
-// INTA cycles drive no address on AD15:0 (they drive AD19:16 = 0 during the
-// address phase, which is the "float pattern" the goldens carry).
+// COMPOSED BUS VALUE WITH FLOAT RETENTION.
 //
-// ucore U5 / ledger sec.53.3 -- THE ADDRESS PHASE DRIVES A19-16 ON EVERY CYCLE
-// TYPE, HALT INCLUDED.  This wire used to read
-//     (com_phase && BS != 3'b011) || (tb_t == ST_T1 && lat_type != 3'b011)
-// i.e. it substituted `hold` for A19-16 across a HALT display and its T1
-// whatever the core drove there.  That is not a model of the part: measured
-// over the committed goldens the HALT display's upper nibble is `6` in all 200
-// HLT.INT, `2` in all 200 HLT.RES and {2,6} in HLT.NMI -- it is `data_ps(2)`
-// = {md, ie, CS}, M10's LIVE PS, and never 0.  The mask read correct anyway
-// because the retained nibble is the previous cycle's PS and the previous
-// cycle is a CS fetch with the same IE, so `hold[19:16] == data_ps(2)` by
-// construction.  In FABRIC there is no retention and the ucore's undriven
-// nibble showed up as `0x0AD8A` against the golden's `0x2AD8A` (sec.52.9,
-// F42 REFUTED).  Engine-neutral: this names no core signal, and it exposes
-// the SAME defect in the frozen FSM core (sec.53.4 bar 3).
+// SM3 sitting 20, F55's second half -- **THE COMPOSER ASKS THE CORE NOW.**
+// This block used to INFER, from the bus protocol, which clocks the core was
+// driving on:
+//
+//   wire halt_cyc   = lat_type == 3'b011;
+//   wire com_phase  = bs_active && (tb_t == ST_T4 || tb_t == ST_TI ||
+//                                   (halt_cyc && (tb_t == ST_T2 ||
+//                                                 tb_t == ST_T3 ||
+//                                                 tb_t == ST_TW)));
+//   wire drive_lo_a = (com_phase && BS != 3'b000) ||
+//                     (tb_t == ST_T1 && lat_type != 3'b000);
+//   wire drive_hi_a = com_phase || (tb_t == ST_T1);
+//   wire cycle_live = tb_t != ST_TI && lat_type != BS_PASV &&
+//                     lat_type != 3'b011;   // <-- THIS is what hid F55
+//   wire core_ps_drive   = cycle_live && (T2 || T3 || TW || T4);
+//   wire core_data_drive = core_ps_drive && lat_write;
+//   eff_lo = (drive_lo_a || core_data_drive || mem_drive) ? AD : hold;
+//   eff_hi = (drive_hi_a || core_ps_drive)                ? AD : hold;
+//
+// An inference is an ASSERTION about the mechanism, and `standing_gates.md`'s
+// meta-finding #5 is that an asserting comparator needs its own falsifier.
+// `cycle_live`'s `lat_type != 3'b011` term floated a HALT-typed cycle's body
+// WHATEVER THE CORE DID THERE, so for eleven sittings this TB scored the 35
+// family-E address cells green ON THE INSTRUMENT'S AUTHORITY while the core
+// re-drove the pads -- which is what `system_large` and the fabric saw and
+// this TB could not (F55, sec.80.B.3(b) and sec.81.A).
+//
+// `AD_OE` is the core's OWN pad output enable (task #37, sec.73), the wire
+// `system_large` already keys its retention model on and the one the fabric
+// agrees with on 1,654 of 1,654 cells.  Consuming it here makes the two
+// offline instruments the SAME instrument, structurally, instead of two
+// inferences that happen to agree.  The port was already connected and marked
+// "deliberately unconsumed"; it is consumed now.
+//
+// THE RECEIPT (sec.81.A.3, pre-registered as A3b before it was measured, and
+// landed ONLY on a zero-delta): with F55 in the RTL, the AD_OE-keyed composer
+// reproduces the protocol-inferred one on the four HLT sweeps **273/283 cell
+// for cell**, on the S16 display walk **1,321/1,371 with 0 differing
+// first-divergence coordinates**, and on `check_core --opcodes all`
+// **169,000/169,000** -- plus the whole standing ladder.  It is a rewrite of
+// the instrument that moves NOTHING, which is the only form in which an
+// instrument may be rewritten.
+//
+// Engine-neutral: `AD_OE` is a port of `v30_core`, so the `fsm` core publishes
+// it too and this names no core-internal signal.
+//
+// Falsifier for the layer itself: a capture in which the composed row differs
+// from what a pad with this enable and this retention would show -- i.e. any
+// cell where this TB and `tb_sys` disagree again.  The whole point of F55 is
+// that such a disagreement is a FINDING, not a tolerance.
+//
+// `mem_drive` stays: the TB's MEMORY is the bus's other driver, and it is the
+// harness's own truth, not an inference about the core.
 logic [19:0] hold = '0;
-// ...and the SECOND half of the same mask (ucore U5, F42's other population).
-// A display can land at T4 or Ti of an ordinary cycle -- but M21 says the HALT
-// pseudo-cycle "holds the bus only until its STATUS RELEASE; from the release
-// on, every clock is an ordinary IDLE eval, exactly as when the bus is
-// parked", so a HALT-typed cycle can carry a display at its T2/T3/Tw too and
-// that display drives an address like any other.  The GOLDENS say so directly:
-// `s10-hltsweep-w0 HLT.RES idx 5` golden row 6 is `9ad8c SS ad8c CODE T3`, a
-// full 20-bit address on a row the tracker calls T3.  Without this the
-// composer substituted `hold` there and 24 sweep cells were unscoreable --
-// which is what F42 read as an instrument ceiling.
-wire halt_cyc   = lat_type == 3'b011;
-wire com_phase  = bs_active && (tb_t == ST_T4 || tb_t == ST_TI ||
-                                (halt_cyc && (tb_t == ST_T2 ||
-                                              tb_t == ST_T3 ||
-                                              tb_t == ST_TW)));
-wire drive_lo_a = (com_phase && BS != 3'b000) ||
-                  (tb_t == ST_T1 && lat_type != 3'b000);
-wire drive_hi_a = com_phase || (tb_t == ST_T1);
-wire cycle_live      = tb_t != ST_TI && lat_type != BS_PASV &&
-                       lat_type != 3'b011;
-wire core_ps_drive   = cycle_live && (tb_t == ST_T2 || tb_t == ST_T3 ||
-                                      tb_t == ST_TW || tb_t == ST_T4);
-wire core_data_drive = core_ps_drive && lat_write;
 
-wire [15:0] eff_lo = (drive_lo_a || core_data_drive || mem_drive)
-                     ? AD[15:0] : hold[15:0];
-wire  [3:0] eff_hi = (drive_hi_a || core_ps_drive)
-                     ? AD[19:16] : hold[19:16];
+wire [15:0] eff_lo = (dut_ad_oe[0] || mem_drive) ? AD[15:0] : hold[15:0];
+wire  [3:0] eff_hi =  dut_ad_oe[16]              ? AD[19:16] : hold[19:16];
 
 // mid-cycle (address-phase) sample of the composed bus
 logic [19:0] ad_mid = '0;
