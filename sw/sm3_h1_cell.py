@@ -81,6 +81,28 @@ def set_out(name):
 VARIANTS = ("nop", "ebnext", "farnext", "callret", "iretnext", "clipopf",
             "swintnext")
 
+# --------------------------------------------------------------------------- #
+# SITTING 11 -- the IE-RESTORE cell.  `clipopf` (k = 0 padding) produced NO
+# ACKNOWLEDGE in 24/24 captures and §61.3 booked that as an open question.  It
+# is not a defect in the stimulus: with `CLI ; POPF` back to back the ONLY
+# boundary at which IE is set is the POPF's own, so any law that cannot
+# recognise at the boundary where IE ROSE can never recognise at all.  The fix
+# is PADDING -- put N NOPs between the POPF and the next CLI, so a boundary
+# EXISTS after the rise with IE still up, and read off the pins WHICH boundary
+# the part chose.  The pushed frame's IP is on the bus; no engine is needed.
+#
+# The period is (2 + PAD) bytes and every instruction is 1 byte, so
+#
+#     phase = (pushed_IP - PC0) mod (2 + PAD)
+#
+# names the boundary exactly:
+#     0  the boundary BEFORE the CLI (end of the previous iteration)
+#     1  after the CLI            -- IE is CLEAR here
+#     2  after the POPF/STI       -- THE BOUNDARY AT WHICH IE ROSE
+#     3.. after NOP #1, #2, ...   -- IE up, and the rise is behind us
+S11_PAD = 2
+S11_VARIANTS = ("iepop", "iesti", "iehot")
+
 # H7 sitting 7, the OPCODE axis (§65.1's lead).  Each is a straight-line sled of
 # ONE instruction, chosen so the stream has a dense, uniform boundary set and no
 # cumulative side effect over ~200 iterations.  The two GOLDEN NMI forms' own
@@ -155,6 +177,35 @@ def program(variant, n=40):
         # IRET's restarted prefetch -- exactly the boundary H1a is about.
         for _ in range(n * 2):
             p.emit([0xCD, SWINT_VEC])
+    elif variant == "iepop":
+        # `FA 9D 90 90` CLI ; POPF ; NOP x PAD.  `clipopf` with room after the
+        # rise.  Each POPF restores a PLANTED flags word with IE SET, so IE
+        # RISES at that boundary, and the PAD NOPs keep IE up for PAD further
+        # boundaries before the next CLI takes it down again.
+        for _ in range(n * 2):
+            p.emit([0xFA])
+            p.emit([0x9D])
+            for _ in range(S11_PAD):
+                p.emit([0x90])
+    elif variant == "iesti":
+        # `FA FB 90 90` CLI ; STI ; NOP x PAD.  The SAME geometry with the rise
+        # produced by STI instead of a stack pop -- x86's documented
+        # one-instruction STI shadow is the rival reading, and this leg is what
+        # separates "the EI instruction sets an inhibit" from "IE rose".
+        for _ in range(n * 2):
+            p.emit([0xFA])
+            p.emit([0xFB])
+            for _ in range(S11_PAD):
+                p.emit([0x90])
+    elif variant == "iehot":
+        # `9D 90 90 90` POPF ; NOP x (PAD+1), with IE ALREADY SET and the
+        # planted word popping IE SET: the SAME instruction, the SAME bus
+        # geometry, and NO RISE.  The CONTROL that says the instrument can see
+        # the POPF's own boundary at all.
+        for _ in range(n * 2):
+            p.emit([0x9D])
+            for _ in range(S11_PAD + 1):
+                p.emit([0x90])
     elif variant == "callret":
         for _ in range(n):
             p.emit([0xE8, 0x00, 0x00])     # CALL next  (pushes, redirects)
@@ -178,7 +229,7 @@ def image_of(variant):
             "BP": 0x3456, "IX": 0x2500, "IY": 0x2A00}
     ram = [(a, rng.getrandbits(8)) for a in range(DATA_LO, DATA_HI + 0x100)]
     ram += handler
-    if variant == "clipopf":
+    if variant in ("clipopf", "iepop", "iesti", "iehot"):
         ram = [x for x in ram if not (SP0 <= x[0] < SP0 + 2 * 200)]
         for k in range(200):
             ram.append((SP0 + 2 * k, 0x02))
@@ -241,10 +292,89 @@ def measure(rows, which=0):
 
 
 # --------------------------------------------------------------------------- #
+# SITTING 11 -- the observable, read off the pins with NO ENGINE.
+#
+# An interrupt ENTRY of any kind -- INT pin, NMI pin or a software `INT n` --
+# pushes exactly three words, SP descending: PSW, then CS, then IP.  None of
+# the sitting-11 sleds contains any other memory WRITE, so a run of three MEMW
+# cycles whose addresses step DOWN by two IS an entry, and its third word is
+# the RETURN ADDRESS -- i.e. the BOUNDARY the part chose.  That is the whole
+# measurement, and it works identically for a maskable acknowledge (which has
+# INTA cycles) and for an NMI (which has none).
+# --------------------------------------------------------------------------- #
+MEMW = 6
+
+
+def _cycle_data(rows, c):
+    """The 16-bit value a bus cycle carried.  AD is the ADDRESS at T1 and the
+    DATA from T2 on -- and by the cycle's last retained row the pads may
+    already be driving the NEXT cycle's address, so the sample is T2."""
+    return rows[min(c[1] + 1, c[2])]["ad_data"] & 0xFFFF
+
+
+def entry_frames(rows):
+    """Every interrupt entry's pushed frame, chip side.  -> list of dicts."""
+    cy = ag.cycles(rows, len(rows))
+    out = []
+    i = 0
+    while i + 2 < len(cy):
+        a, b, c = cy[i], cy[i + 1], cy[i + 2]
+        if (a[0] == MEMW and b[0] == MEMW and c[0] == MEMW
+                and (rows[a[1]]["ad_addr"] & 0xFFFFF) - 2
+                == (rows[b[1]]["ad_addr"] & 0xFFFFF)
+                and (rows[b[1]]["ad_addr"] & 0xFFFFF) - 2
+                == (rows[c[1]]["ad_addr"] & 0xFFFFF)):
+            # walk BACK over the entry's announcement: an INTA pair (pin INT)
+            # or the two IVT vector reads below 0x400 (NMI / software INT).
+            j = i
+            while j > 0 and (cy[j - 1][0] == INTA
+                             or (cy[j - 1][0] == 5
+                                 and (rows[cy[j - 1][1]]["ad_addr"] & 0xFFFFF)
+                                 < 0x00400)):
+                j -= 1
+            # ...and the last STACK read before that: the POPF's own pop, i.e.
+            # the clock at which IE was committed.  Read off the pins.
+            pop = None
+            for x in range(j - 1, max(-1, j - 8), -1):
+                if cy[x][0] == 5 and (rows[cy[x][1]]["ad_addr"] & 0xFFFFF) \
+                        >= SP0:
+                    pop = cy[x][1]
+                    break
+            out.append({"push_t1": a[1], "ann_t1": cy[j][1], "pop_t1": pop,
+                        "psw": _cycle_data(rows, a),
+                        "cs": _cycle_data(rows, b),
+                        "ip": _cycle_data(rows, c),
+                        "inta_before": any(x[0] == INTA for x in
+                                           cy[max(0, i - 6):i])})
+            i += 3
+            continue
+        i += 1
+    return out
+
+
+def s11_phase(ip, period):
+    """Which boundary of the sled the pushed IP names.  See S11_VARIANTS."""
+    return ((ip - PC0) % period + period) % period
+
+
+S11_PERIOD = {"iepop": 2 + S11_PAD, "iesti": 2 + S11_PAD,
+              "iehot": 2 + S11_PAD, "clipopf": 2}
+# the phase of the IE-writing instruction's OWN boundary.  In `iepop`/`iesti`/
+# `clipopf` IE ROSE there and the IE-restore reading FORBIDS a maskable
+# recognition at it; in `iehot` the same instruction runs with no rise and the
+# same boundary must be AVAILABLE -- that is what makes `iehot` the control.
+S11_OWN_PHASE = {"iepop": 2, "iesti": 2, "iehot": 1, "clipopf": 0}
+# the phase at which IE is CLEAR (the CLI just ran) -- forbidden to a maskable
+# recognition under EVERY reading that tests IE at the boundary
+S11_DEAD_PHASE = {"iepop": 1, "iesti": 1, "iehot": None, "clipopf": 1}
+
+
+# --------------------------------------------------------------------------- #
 def cmd_run(args):
     OUT.mkdir(parents=True, exist_ok=True)
     waits = [int(x) for x in args.waits.split(",") if x != ""]
     variants = [v for v in args.variants.split(",") if v]
+    pins = [int(x) for x in getattr(args, "pins", "0").split(",") if x != ""]
     delays = list(range(args.d0, args.d0 + args.delays))
     if args.pilot:
         delays = delays[:6]
@@ -253,6 +383,7 @@ def cmd_run(args):
            "spec": "docs/notes/sm3_h1_prereg_2026-08-04.md sec.5",
            "prereg_commit": args.prereg, "use_core": False, "host": HOST,
            "div": DIV_OF_RECORD, "waits": waits, "variants": variants,
+           "pins": pins, "pad": S11_PAD,
            "delays": [delays[0], delays[-1]], "hold": args.hold, "cells": {}}
     man["div_guard"] = div_guard("sm3-h1cell")
     rows_out = []
@@ -262,13 +393,15 @@ def cmd_run(args):
         image, meta = image_of(variant)
         anchor = meta["anchor_linear"] if "anchor_linear" in meta else \
             (0 * 16 + PC0)
-        for w in waits:
+        for pin in pins:
+          for w in waits:
             for d in delays:
-                key = f"{variant}:w{w}:d{d}"
+                key = (f"{variant}:w{w}:d{d}" if len(pins) == 1 and pin == 0
+                       else f"{variant}:p{pin}:w{w}:d{d}")
                 try:
                     rows, raw, sha, fired = capture(
                         image, waits=w, div=DIV_OF_RECORD,
-                        evt=(anchor & 0xFFFFF, d, args.hold, 0),
+                        evt=(anchor & 0xFFFFF, d, args.hold, pin),
                         tag="sm3h1")
                     consec_err = 0
                 except Exception as e:                    # noqa: BLE001
@@ -283,7 +416,9 @@ def cmd_run(args):
                 g = measure(rows)
                 gs = [measure(rows, i) for i in range(6)]
                 rec = {"key": key, "acks": [x for x in gs if x], "variant": variant, "waits": w, "delay": d,
+                       "pin": pin,
                        "sha": sha, "fired": bool(fired), "nrows": len(rows),
+                       "frames": entry_frames(rows),
                        "geom": g}
                 rows_out.append(rec)
                 man["cells"][key] = {"sha": sha, "rows": len(rows),
@@ -446,6 +581,57 @@ def h1a_report(recs=None):
     return 0
 
 
+def s11_report(recs=None):
+    """SITTING 11 -- WHICH BOUNDARY does the part choose when IE RISES?
+
+    Chip side, no engine.  For every capture, the FIRST entry's pushed IP is
+    reduced to a sled PHASE (see S11_VARIANTS), and the statistic is a
+    MINIMUM-style one: a phase either OCCURS over the delay sweep or it does
+    not.  §71.6's IE-restore reading forbids the raising instruction's OWN
+    boundary to a MASKABLE recognition and forbids nothing to an NMI."""
+    if recs is None:
+        recs = json.loads((OUT / "cells.json").read_text())
+    print("\n  --- SM3 sitting 11: the boundary an IE RISE is recognised at ---")
+    print("  (PRE-REGISTERED, sm3_s11_prereg_2026-08-04.md §4)")
+    tab = defaultdict(Counter)
+    noack = Counter()
+    tot = Counter()
+    for r in recs:
+        v = r["variant"]
+        if v not in S11_PERIOD:
+            continue
+        grp = (v, r.get("pin", 0), r["waits"])
+        tot[grp] += 1
+        fr = r.get("frames") or []
+        if not fr:
+            noack[grp] += 1
+            continue
+        tab[grp][s11_phase(fr[0]["ip"], S11_PERIOD[v])] += 1
+    print(f"\n  {'variant':<9}{'pin':>4}{'w':>3}  {'n':>4} {'noENTRY':>8}   "
+          f"first-entry PHASE histogram   [own={'OWN'} dead=IE-clear]")
+    for k in sorted(tab | noack, key=lambda x: (x[0], x[1], x[2])):
+        own = S11_OWN_PHASE[k[0]]
+        dead = S11_DEAD_PHASE[k[0]]
+        h = tab[k]
+        mark = "  ".join(
+            f"p{p}{'*OWN' if p == own else ('*DEAD' if p == dead else '')}:{n}"
+            for p, n in sorted(h.items()))
+        print(f"  {k[0]:<9}{k[1]:>4}{k[2]:>3}  {tot[k]:>4} {noack[k]:>8}   "
+              f"{mark}")
+    print("\n  VERDICT COORDINATES (w0 only -- the discriminating regime):")
+    for v in sorted(S11_PERIOD):
+        for pin in (0, 1):
+            k = (v, pin, 0)
+            if k not in tot:
+                continue
+            own = S11_OWN_PHASE[v]
+            dead = S11_DEAD_PHASE[v]
+            print(f"    {v:<9} pin{pin} w0: n={tot[k]:<4} "
+                  f"noENTRY={noack[k]:<4} OWN(p{own})={tab[k][own]:<4} "
+                  f"DEAD(p{dead})={0 if dead is None else tab[k][dead]}")
+    return 0
+
+
 def cmd_idle(args):
     import v30run
     img0, _ = testimage.compose(regs={}, instr=bytes([0x90]))
@@ -487,7 +673,10 @@ def engine_rows(image, meta, chip_rows, waits, evt, core):
 
 def cmd_score(args):
     recs = json.loads((OUT / "cells.json").read_text())
-    imgs = {v: image_of(v) for v in VARIANTS}
+    imgs = {}
+    for r in recs:
+        imgs.setdefault(r["variant"], None)
+    imgs = {v: image_of(v) for v in imgs}
     agree = Counter()
     tab = defaultdict(Counter)
     for r in recs:
@@ -532,6 +721,7 @@ def main():
     p.add_argument("--hold", type=int, default=6)
     p.add_argument("--pilot", action="store_true")
     p.add_argument("--prereg", default="72fdaca572")
+    p.add_argument("--pins", default="0")
     p.add_argument("--out", default="")
     p.set_defaults(fn=cmd_run)
     p = sub.add_parser("report")
@@ -545,6 +735,9 @@ def main():
     p = sub.add_parser("h1a")
     p.add_argument("--out", default="sm3-h1acell")
     p.set_defaults(fn=lambda a: h1a_report())
+    p = sub.add_parser("s11")
+    p.add_argument("--out", default="sm3-s11cell")
+    p.set_defaults(fn=lambda a: s11_report())
     p = sub.add_parser("idle")
     p.add_argument("--out", default="")
     p.set_defaults(fn=cmd_idle)
