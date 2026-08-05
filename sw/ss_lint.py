@@ -83,11 +83,17 @@ CORES = {
             # the TF pipeline `brk_p[3:0]`, the ARM itself, its sample-instant
             # pulse `brk_smp` and the trap's kind bit `irq_sel_brk`.  Same rule
             # and same reason as every append before it.
-            "SS_VERSION": 0x86,   # ucore map v6 (0x80 family: never an FSM stream)
+            # SM3 SITTING 26 / §87.A -- the ILLEGAL-FORM STALL, v6 -> v7.
+            # APPENDS one EU address, SSA_E_OPR_LOADED at 0x175 -- ONE BIT, the
+            # OPR-valid interlock that decides whether an `F` row sourcing OPR
+            # has anything to wait for.  A parked machine frozen without it
+            # restores as a part that resumes an instruction silicon never
+            # finishes.  Same rule and same reason as every append before it.
+            "SS_VERSION": 0x87,   # ucore map v7 (0x80 family: never an FSM stream)
             "SS_BIU_COUNT": 100,
-            "SS_EU_COUNT": 117,
-            "SS_COUNT": 218,
-            "SS_TAG": 0x86DA,     # (0x86 << 8) | 218
+            "SS_EU_COUNT": 118,
+            "SS_COUNT": 219,
+            "SS_TAG": 0x87DB,     # (0x87 << 8) | 219
         },
     },
 }

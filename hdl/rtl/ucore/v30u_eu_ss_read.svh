@@ -81,6 +81,7 @@
         SSA_E_PEND_BYTE:           ss_rdata <= {15'b0, pend_byte};
         SSA_E_PEND_IO:             ss_rdata <= {15'b0, pend_io};
         SSA_E_OPR_FRESH:           ss_rdata <= {15'b0, opr_fresh};
+        SSA_E_OPR_LOADED:          ss_rdata <= {15'b0, opr_loaded};
         SSA_E_RDQ0:                ss_rdata <= rdq0;
         SSA_E_RDQ1:                ss_rdata <= rdq1;
         SSA_E_RDQ_N:               ss_rdata <= {14'b0, rdq_n};

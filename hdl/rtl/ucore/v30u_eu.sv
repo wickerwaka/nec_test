@@ -343,6 +343,13 @@ reg  [2:0] pend_seg;
 reg        pend_byte;
 reg        pend_io;
 reg        opr_fresh;
+// §87.A -- THE OPR-VALID INTERLOCK.  Has ANYTHING put a value into `opr` since
+// this decode started?  The decoder's operand pre-read (`ld_preread`), a
+// completed micro-row read delivered out of `rdq`, or a `-> OPR` transfer.
+// It is NOT `opr_fresh`, which is the WRITE-PAIRING latch ("OPR carries a word
+// a store has not taken yet") and is cleared by the pairing; conflating the two
+// moves every paired store.  See `opr_starved` beside `f_wait`.
+reg        opr_loaded;
 
 // --- the bus interlock bookkeeping (the EU's half) -------------------------
 reg [15:0] rdq0, rdq1;     // completed reads awaiting OPR delivery
@@ -664,9 +671,39 @@ wire opr_free_now = mode8080 ? retire_ok_n : eu_opr_free;
 wire retire_ok_n = (wr_out == 2'd0) ||
                    ((wr_out == 2'd1) && eu_wr_done_n);
 
+// §87.A -- THE ILLEGAL-FORM STALL.  `nr_wait` waits for the next OUTSTANDING
+// read; when nothing is outstanding it is 0 and the row runs.  But the `F`
+// interlock is a WAIT, and a wait needs something to wait for: a row that
+// SOURCES OPR is waiting for the read that FILLS OPR, and if nothing has filled
+// it since this decode began (`opr_loaded`) AND nothing is outstanding or
+// completed, that wait has no terminator.  The EU parks on the row forever.
+//
+// It is NOT a halt: no `HLT` row ran, `eu_halted` stays clear, the HALT status
+// is never driven and the PREFETCHER IS NOT FROZEN -- the BIU goes on fetching
+// until the queue is full and then sits `PASV` with `qs = 0`, which is exactly
+// the 957-3,906-row idle tail silicon shows (`ucore_provenance.md` §86.F).
+//
+// The rule NAMES NO OPCODE.  Swept over the whole opcode space -- native and
+// `0F`, every ModR/M `reg`, `mod == 3` and memory, 8,192 forms -- it fires on
+// `62` CHKIND, `C4` LES, `C5` LDS and the `FE`/`FF` group at `/3` and `/5`, all
+// at `mod == 3`, and on NOTHING else: those are the forms whose first row takes
+// the pre-read word out of OPR while a second word is still being fetched, and
+// `mod == 3` is exactly the case where the decoder issues no pre-read at all.
+// `FF /7` at `mod == 3` (2,477 `v20suite` goldens) does NOT fire -- its row
+// `M -> OPR` WRITES the register -- and neither does `8D` LEA, which is why the
+// archived FSM core's `S_HALT` wedge was right on `62`/`C4`/`C5` and a BUG on
+// LEA (`tests/v30/mod3_illegal/metadata.json`).
+//
+// *Falsifier*: any golden case, in any suite, that reaches this wire (a golden
+// is a captured chip record, and a stalled chip records no case); or a form
+// outside the seven that stalls on silicon; or one of the seven that does not.
+wire opr_starved = row_reads_opr && !opr_loaded && !nr_have &&
+                   (rd_pending == 2'd0) && (rdq_n == 2'd0);
+
 // ONE view: the `_n` twin is gone with the pulse it read (F31).  `nr_wait` is
 // register-only lookahead (F18/F11a) and is legal in the act decode.
-wire f_wait = row_reads_opr ? (nr_wait || !opr_free_now) : !opr_free_now;
+wire f_wait = row_reads_opr ? (nr_wait || opr_starved || !opr_free_now)
+                            : !opr_free_now;
 
 // BUSY is the 9B POLL_N pin, sampled through the same 3-deep pin pipeline the
 // INT level goes through (biu_timed.h::poll_busy, "AND IT IS THE SAME 3-DEEP
@@ -1801,6 +1838,7 @@ reg      [2:0] pend_seg_r;
 reg            pend_byte_r;
 reg            pend_io_r;
 reg            opr_fresh_r;
+reg            opr_loaded_r;
 reg     [15:0] rdq0_r;
 reg     [15:0] rdq1_r;
 reg      [1:0] rdq_n_r;
@@ -1926,6 +1964,7 @@ always @* begin
     pend_byte_r = pend_byte;
     pend_io_r = pend_io;
     opr_fresh_r = opr_fresh;
+    opr_loaded_r = opr_loaded;
     rdq0_r = rdq0;
     rdq1_r = rdq1;
     rdq_n_r = rdq_n;
@@ -1995,6 +2034,7 @@ always @* begin
         wb_byte_r = 1'b0;
         pend_active_r = 1'b0; pend_off_r = 16'd0; pend_seg_r = 3'd3;
         pend_byte_r = 1'b0; pend_io_r = 1'b0; opr_fresh_r = 1'b0;
+        opr_loaded_r = 1'b0;
         rdq0_r = 16'd0; rdq1_r = 16'd0; rdq_n_r = 2'd0;
         rd_pending_r = 2'd0; rd_done_cnt_r = 2'd0; rd_age0_r = 1'b0;
         iend_owed_r = 1'b0; pe_opc_reg_r = 8'd0; pe_opc8080_r = 1'b0; pe_op8_r = 1'b0;
@@ -2163,6 +2203,7 @@ reg      [2:0] pend_seg_n;
 reg            pend_byte_n;
 reg            pend_io_n;
 reg            opr_fresh_n;
+reg            opr_loaded_n;
 reg     [15:0] rdq0_n;
 reg     [15:0] rdq1_n;
 reg      [1:0] rdq_n_n;
@@ -2388,6 +2429,7 @@ always @* begin
     pend_byte_n = pend_byte;
     pend_io_n = pend_io;
     opr_fresh_n = opr_fresh;
+    opr_loaded_n = opr_loaded;
     rdq0_n = rdq0;
     rdq1_n = rdq1;
     rdq_n_n = rdq_n;
@@ -2755,6 +2797,7 @@ always @(posedge clk) begin
         pend_byte <= (srst && !ss_we) ? pend_byte_r : pend_byte_n;
         pend_io <= (srst && !ss_we) ? pend_io_r : pend_io_n;
         opr_fresh <= (srst && !ss_we) ? opr_fresh_r : opr_fresh_n;
+        opr_loaded <= (srst && !ss_we) ? opr_loaded_r : opr_loaded_n;
         rdq0 <= (srst && !ss_we) ? rdq0_r : rdq0_n;
         rdq1 <= (srst && !ss_we) ? rdq1_r : rdq1_n;
         rdq_n <= (srst && !ss_we) ? rdq_n_r : rdq_n_n;

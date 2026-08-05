@@ -520,6 +520,18 @@ int run_timed_boot(const ucrom::UcRom& rom, const char* image_path, long clocks,
     while (biu.clock() < clocks && ++guard < 100000) {
         arm();
         if (!cpu.step()) {
+            // THE ILLEGAL-FORM STALL is a MODELLED OUTCOME, not an abort.  The
+            // EU is standing on a micro-row whose `F` interlock waits for a
+            // read that will never be posted (state.h::stalled), so it never
+            // makes another bus request -- but the BIU is untouched: it is not
+            // halted, its prefetcher is not frozen, and it goes on fetching
+            // until the queue is full and then sits `PASV` with `qs = 0` for
+            // the rest of the window.  That is the tail silicon shows, and it
+            // is why this loop uses the ORDINARY tick and not the halted one.
+            if (m.stalled) {
+                while (biu.clock() < clocks && ++guard < 100000) biu.tick_idle();
+                break;
+            }
             // The EU gave up on this instruction (exec_detail::kMaxRows, or an
             // undecodable form).  SAY SO: a silently truncated run looks like
             // a cadence result and is not one.  See ucsim_t_provenance.md

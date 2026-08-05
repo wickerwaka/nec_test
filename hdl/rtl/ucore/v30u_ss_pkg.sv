@@ -86,13 +86,19 @@ package v30_ss_pkg;
   // arm, its sample-instant pulse and the trap's kind bit.  Same rule, same
   // reason as every append before it: a v5 stream has no word for them and
   // must not be silently accepted.
-  localparam int          SS_VERSION   = 8'h86;   // ucore map v6 (SM3 s25)
+  // SM3 SITTING 26 / §87.A: 0x86 -> 0x87.  The illegal-form stall APPENDS ONE
+  // address, `SSA_E_OPR_LOADED` at 0x175 -- one bit, the OPR-valid interlock
+  // that decides whether an `F` row sourcing OPR has anything to wait for.
+  // Same rule, same reason as every append before it: a v6 stream has no word
+  // for it and must not be silently accepted.
+  localparam int          SS_VERSION   = 8'h87;   // ucore map v7 (SM3 s26)
   localparam logic [8:0]  SSA_TAG      = 9'h000;
   localparam logic [8:0]  SS_BIU_BASE  = 9'h001;
   localparam int          SS_BIU_COUNT = 100;  // U4 F49 (+5); s11 (-4); s21 (-1)
   localparam logic [8:0]  SS_EU_BASE   = 9'h100;
-  localparam int          SS_EU_COUNT  = 117;  // U2 p5 (+2 recog); U4 F49 (+1);
-                                              // SM3 s25 / §86 (+1, the BRK arm)
+  localparam int          SS_EU_COUNT  = 118;  // U2 p5 (+2 recog); U4 F49 (+1);
+                                              // SM3 s25 / §86 (+1, the BRK arm);
+                                              // SM3 s26 / §87.A (+1, opr_loaded)
   localparam int          SS_COUNT     = 1 + SS_BIU_COUNT + SS_EU_COUNT;
   localparam logic [15:0] SS_TAG       = {8'(SS_VERSION), 8'(SS_COUNT)};
 
@@ -396,6 +402,17 @@ package v30_ss_pkg;
   // which is exactly what U2 pass 5 said about the pin pipelines.
   localparam logic [8:0] SSA_E_BRK                  = 9'h174;
 
+  // §87.A (SM3 sitting 26) -- THE OPR-VALID INTERLOCK, one bit, appended at the
+  // end of the EU's dense region.  `opr_loaded` says whether ANYTHING has put a
+  // value into OPR since the decode started -- the decoder's operand pre-read,
+  // a completed micro-row read, or a `-> OPR` transfer.  It is what makes the
+  // `F` interlock's wait TERMINATING: a row that sources OPR with this clear
+  // and nothing outstanding is waiting for an access that will never be posted,
+  // and the EU parks there forever (the illegal-form stall).  A freeze taken
+  // inside a parked machine that did not carry this bit would restore a part
+  // that resumes an instruction silicon never finishes.
+  localparam logic [8:0] SSA_E_OPR_LOADED           = 9'h175;
+
   function automatic int ss_field_width(input logic [8:0] a);
     case (a)
       SSA_TAG: ss_field_width = 16;
@@ -627,6 +644,7 @@ package v30_ss_pkg;
       SSA_E_PIN_PIPE:            ss_field_width = 13;
       SSA_E_IRQ_LATCH:           ss_field_width = 6;
       SSA_E_BRK:                 ss_field_width = 7;
+      SSA_E_OPR_LOADED:          ss_field_width = 1;   // §87.A
       SSA_E_RST_CTR:             ss_field_width = 3;   // F49
       default: ss_field_width = 0;
     endcase

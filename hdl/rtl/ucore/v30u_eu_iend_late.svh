@@ -57,6 +57,13 @@ m_kind_n = OK_NONE; r_kind_n = OK_NONE; wb_kind_n = OK_NONE;
 // S_EXT_CHG1) never writes it -- so the register still holds the predecessor's
 // value at the discharge and `iend_owed` pays it in the model's order.
 opr_fresh_n = 1'b0;
+// §87.A -- ...and the OPR-VALID interlock, for the SAME reason and at the SAME
+// instant.  `begin_sequence()` clears it, and this file IS the ordinary
+// instruction boundary's transcription of `begin_sequence()` (S_IRQ_D and reset
+// have their own copies).  Leaving it set would carry the predecessor's operand
+// validity into the successor, and the successor is exactly where the
+// illegal-form stall has to be able to fire.
+opr_loaded_n = 1'b0;
 // ...and the `ALU OPC` permutation base, for the same reason (`40`/`48`, whose
 // INC/DEC comes from `opc_base = A_INC`, came out as ADD).
 opc_base_n = 5'd0; opc_from_modrm_n = 1'b0; modrm_reg_n = 3'd0;

@@ -139,6 +139,7 @@ begin
                 if (rd_done_cnt_n != 2'd0) rd_done_cnt_n = rd_done_cnt_n - 2'd1;
                 if (rdq_n_n != 2'd0) begin
                     opr_n = rdq0_n; rdq0_n = rdq1_n; rdq_n_n = rdq_n_n - 2'd1;
+                    opr_loaded_n = 1'b1;                      // §87.A
                 end
             end
             pend_active_n = 1'b0;

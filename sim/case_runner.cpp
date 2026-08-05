@@ -199,7 +199,12 @@ CaseResult run_one(const ucrom::UcRom& rom, Biu& biu, const json::Value& c,
             cpu.set_rep_abort(first ? rp.elements : -1);
             if (!cpu.step()) {
                 res.ok = false;
-                res.detail = "micro-sequence did not terminate";
+                // The ILLEGAL-FORM STALL is a modelled outcome, not a runaway
+                // sequence -- say which one it was.  No golden reaches it (a
+                // golden is a captured chip record and the chip stalls), so
+                // this is a truthfulness fix, not a scoring one.
+                res.detail = m.stalled ? "illegal-form stall"
+                                       : "micro-sequence did not terminate";
                 return res;
             }
             if (first) res.first_bytes = biu.consumed();
@@ -213,7 +218,8 @@ CaseResult run_one(const ucrom::UcRom& rom, Biu& biu, const json::Value& c,
         }
     } else if (!cpu.step()) {
         res.ok = false;
-        res.detail = "micro-sequence did not terminate";
+        res.detail = m.stalled ? "illegal-form stall"
+                               : "micro-sequence did not terminate";
         return res;
     } else {
         res.steps = 1;

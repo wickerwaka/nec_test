@@ -14513,3 +14513,261 @@ Everything else in §86.E is UNMOVED.  **The MODEL's columns are untouched**
 * H3-B, the `8F` mod-3 ghost cell (§84.6), model-architecture work and the
   8080/BRKEM gap were not opened.  No memory file was touched.  Codex was not
   launched.
+
+---
+
+## §87 SESSION SM3, SITTING 26 — **`TAIL_EXTRA` IS LANDED IN BOTH ENGINES AND IT IS ONE PREDICATE ON ONE REGISTER. THE FAMILY GOES TO ZERO, 34 OF 34 AND 33 OF 33, PLUS 32 SEEDS EACH FROM `PF_LOST` THAT NOBODY PREDICTED. AND `mc1/721` IS *NOT* LANDED, BY ITS OWN PRE-REGISTERED RULE: §86.G's FIX NEEDS A SECOND MICRO-ROM READ.**
+
+Pre-registration: `docs/notes/sm3_s26_prereg_2026-08-05.md`, committed
+`dbc30beecf` **before any edit to `sim/` or `hdl/rtl/`**.  Parent `caf95583e0`.
+No board contact, no flashing, `use_core` never set.  No memory file touched.
+Codex not launched.  H3-B, the `8F` ghost cell, model-architecture work and the
+8080/BRKEM gap were not opened.
+
+### §87.A PART A — **THE MECHANISM: `F` IS THE OPR INTERLOCK, AND AT `mod == 3` IT HAS NOTHING TO WAIT FOR**
+
+§86.F surveyed the family and named the FORM SET.  This sitting names the
+**predicate that generates the set**, which is a much smaller object and is the
+whole landing:
+
+> `OPR` is the EU's read-data register and the `F` bit is the interlock that
+> waits for the access that fills it (`biu_timed.h`: *"THE F INTERLOCK IS THE
+> **OPR** INTERLOCK"*).  A micro-row that **SOURCES** `OPR` under an `F` is
+> therefore waiting for a read.  The decoder issues its operand pre-read only
+> for `has_rm && mod != 3 && !MODRM_STORE`, so at `mod == 3` nothing has filled
+> `OPR` — and if the microcode has posted no read of its own yet, **that row is
+> waiting for an access that will never exist.  The EU parks on it.**
+
+It is not a HALT: no `HLT` row runs, no `HALT` status is driven, the prefetcher
+is not frozen.  The BIU goes on fetching until the queue is full and then sits
+`PASV` with `qs = 0` — **which is §86.F's measured invariant, all four columns,
+without naming an opcode.**
+
+**THE PREDICATE IS EXACT, AND IT WAS SWEPT BEFORE THE PRE-REGISTRATION WAS
+WRITTEN.**  Native page AND `0F` page, every opcode × every ModR/M `reg`,
+`mod == 3` and memory — **8,192 forms**, traced through the model's own
+micro-row execution:
+
+| | fires on |
+|---|---|
+| `mod == 3` | **`62` CHKIND (all `reg`), `C4` LES (all), `C5` LDS (all), `FE` `reg`∈{3,5}, `FF` `reg`∈{3,5}** |
+| memory (`mod == 0`, `rm == 6`), native **and** `0F` | **NOTHING** |
+| `mod == 3`, `0F` page | **NOTHING** |
+
+§86.F's family, cell for cell, **including the `FE`/`FF` `/3`,`/5` the survey
+ADDED and the 2026-07-27 `mod3_illegal` metadata does not name** — and they fall
+out of the predicate rather than being put in by hand, because `FE` and `FF`
+share micro-page 3 (the group dispatch puts the ModR/M byte in the opcode slot),
+so the byte form runs the word form's ROM.
+
+**THE TWO CONTROLS ARE THE PROOF THAT THIS IS NOT A TABLE.**  `FF /7` at
+`mod == 3` — an equally undefined group form, and one that carries **2,477
+`v20suite` goldens** — does **not** fire, because its row `0FE0.2` is
+`M -> OPR`, a WRITE.  `8D` LEA does not fire either.  **That is exactly why the
+archived FSM core's `S_HALT` wedge was CORRECT on `62`/`C4`/`C5` and a BUG on
+LEA** (`tests/v30/mod3_illegal/metadata.json`, SOCKET, 2026-07-27) — the old
+core keyed on `mod == 3`, which is half the predicate.
+
+**CONFIRMED AT THE SEEDS' OWN STOP CLOCK.**  `V30SIM_ROWTRACE` against the
+chip's LAST bus-cycle `T1`.  `t30-raw/72`, chip's last `T1` at row 680, a `CODE`
+fetch of `0x00538`:
+
+```
+RT 680 01C8 OPR    -> tmpb    SIGMA  -> tmpa    F    ALU INC2   tmpa
+RT 681 01C9 SIGMA  -> IND                            CTL SUSP   MEMR
+```
+
+Row 680 IS `FF /5` JMP FAR's OPR-source `F` row, on the chip's stop clock to the
+clock; row 681 is the `MEMR` the census calls the first extra cycle.
+
+### §87.A.1 THE LANDING — **ONE SITE PER ENGINE, AND THE ARCH ENGINE INHERITS IT**
+
+**`sim/`**: `Machine::stalled` (`state.h`) plus `CpuT::opr_loaded_`
+(`exec_impl.h`) — set by the loader's `ld.preread`, by `deliver_read`'s
+delivery, by a `-> OPR` transfer and by the memory-operand staging; cleared by
+`begin_sequence()`.  The predicate sits in the `F` block of `run_micro`, which
+is the SHARED interpreter, so `v30sim run` / `image` / `timed-boot` all inherit
+it from ONE site.  `timed_runner` renders the park with the ORDINARY tick (the
+prefetcher is not frozen — that is the difference from the HALT path);
+`image_runner` reports `"stall":1` and ends the transaction log where the chip's
+ends; `case_runner` says `illegal-form stall` instead of `micro-sequence did not
+terminate`, which is a truthfulness fix and not a scoring one.
+
+**`hdl/rtl/ucore/`**: `opr_loaded`, ONE flop, with the same set/clear sites, and
+ONE new wire beside `f_wait`:
+
+```systemverilog
+wire opr_starved = row_reads_opr && !opr_loaded && !nr_have &&
+                   (rd_pending == 2'd0) && (rdq_n == 2'd0);
+wire f_wait = row_reads_opr ? (nr_wait || opr_starved || !opr_free_now)
+                            : !opr_free_now;
+```
+
+`nr_wait` waits for the next OUTSTANDING read; when nothing is outstanding it is
+0 and the row runs.  `opr_starved` is the missing half: **a wait needs something
+to wait for.**  No state machine, no new state, no HALT path — the row simply
+never releases.
+
+**SAVE-STATE MAP, DECLARED (not discovered).**  `SSA_E_OPR_LOADED` at `0x175`,
+one bit, appended at the end of the EU's dense region under the append-only
+rule.  `SS_VERSION` **0x86 → 0x87**, `SS_EU_COUNT` 117 → **118**, `SS_COUNT`
+218 → **219**, `SS_TAG` **0x87DB**; `ss_lint` PASS, census **205 architectural
+flops (was 204), 0 UNMAPPED**.  A freeze taken inside a parked machine that did
+not carry this bit would restore a part that resumes an instruction silicon
+never finishes.
+
+### §87.A.2 THE OUTCOME — **THE REGISTERED PREDICTION IS MET IN FULL AND THE NUMBERS ARE ABOVE IT**
+
+| | `sim` before | after | `ucore` before | after |
+|---|---|---|---|---|
+| REGISTERED | 1,282 / 1,702 | **1,338** | 1,502 / 1,702 | **1,557** |
+| EVT | 789 / 1,008 | **798** | 920 / 1,008 | **931** |
+| COMBINED | 2,071 / 2,710 | **2,136** | 2,422 / 2,710 | **2,488** |
+| `s15_census` `TAIL_EXTRA` | 33 (30 REG + 3 EVT) | **0** | 34 (29 REG + 5 EVT) | **0** |
+| `--seeddir b2-tranche` | 154 / 188 | **159** | 171 / 188 | **177** |
+
+**A-1 / A-2 / A-3 MET, seed by seed: ALL 33 of the model's and ALL 34 of the
+ucore's `TAIL_EXTRA` seeds closed, including the 29 shared REGISTERED seeds
+§86.F named and the three §87.A named IN ADVANCE as the likely misses
+(`t30-brkem/185`, `t30-raw/496`, `t30-raw/638`).  ZERO SEEDS LOST over all
+3,242, checked seed by seed, in BOTH engines.**
+
+**A-4 IS EXCEEDED, AND THE REASON IS ONE MECHANISM, NOT TWO.**  The registered
+figures (1,312 / 792 / 2,104 and 1,531 / 925 / 2,456) assumed only
+`TAIL_EXTRA` would move.  **32 further seeds closed in EACH engine — 26 REG +
+6 EVT, and every one of them was `PF_LOST`.**  Same defect, different
+first-divergence classification: the engine ran on past the chip's stop, and on
+those seeds the first row that parted was a prefetch the chip never made rather
+than a bus cycle count.  `PF_LOST` 315 → 283 (`sim`) and 134 → 102 (`ucore`).
+**The over-shoot is reported as measured; the registered bar was the floor and
+it is not restated.**
+
+**A-7 MET**: `BOUND WARNINGS` **4 → 4** (`ucore`), `ENGINE ABORTS` **0**.  The
+park is not an abort — three `STEP-ABORT` lines the model used to print are
+gone, replaced by nothing, because a stall now terminates the run cleanly and
+still emits rows to the clock budget.  No new stderr class appeared in either
+engine.
+
+**A-6, the arch engine.**  `s15_census`'s "functional stream TRUNCATED" column
+is where the arch leg's inheritance shows; the architectural ladder is UNMOVED
+(below), which is the bar that matters.
+
+### §87.A.3 THE MUST-NOT-MOVE LADDER — **NOT ONE CELL MOVED DOWN**
+
+| gate | measured |
+|---|---|
+| `simbin --disasm` | **1,285 rows** byte-exact |
+| `pla3_check` · `check_ucore_tables` | **21** · **9,988** |
+| `ucsim_check` `v0.1`/`v0.2`/`v0.3`/`v20suite`/`mod3_illegal` | **169,000 · 347,000 · 3,699,998 · 3,125,000 · 128 = 7,341,126** |
+| `check_core --core ucore --opcodes all` | **169,000 / 169,000** |
+| `f4a_boundary` · `f0lock_tranche` | **160 / 160** · **400 / 400** |
+| `check_boot --core ucore --timed 220` / `400` | **MATCH** / **MATCH** |
+| `ulockstep --golden all --cases 50` | **17,350 / 17,350** |
+| `v0.1-w1` / `-w3` · `EB` · the four `evt` cells · `w1evt-biased` | **1,200 / 1,200 · 200 · 200/1,200/200/1,200 · 1,200** |
+| the 23 `v0.3` block-I/O forms | **229,999 / 229,999** cycles AND arch |
+| `timed_gate --suite v0.1 --forms all` (model) | **169,000 / 169,000, row-diffs 0** |
+| the four HLT sweeps, model | 97/97 · 95/95 · 46/46 · 45/45 = **283 / 283** |
+| the four HLT sweeps, `ucore` | 97/97 · 93/95 · 45/46 · 44/45 = **279 / 283** |
+| `timed_wvec_gate --core ucore` | **88 / 88, +0.0 %** |
+| `timed_enter_replay --core ucore` | **154 / 154** ×3 legs |
+| `timed_ins_replay --core ucore --raw` | resolved **800/800**, rails **1,312 / 1,312**, vs-chip **2,624 / 2,624** |
+| `check_ab_sim --core ucore` | **MATCH over 187 rows** |
+| `timed_scenario` · `timed_lawcards` | **18 / 0 / 9** · **8 GREEN / 0 RED / 3 UNRESOLVED** |
+| `sm3_s16_score --core ucore` | **1,320 / 1,371**, census `D_tstate` 24 + `ARCH` 27 |
+| … `--core sim` | census `qop` 39 + `ARCH` 30 — **identical to the booked residue** |
+| `ss_lint` (default leg) | **PASS**, and see the DECLARED map bump above |
+| `test_artifact` · `gen_ucore_qsf --check` | **45 / 45** · up to date |
+
+**The `ucore`'s OWN registered residue is 14, and it was 9.**  Nothing
+regressed — the ucore lost no seed — but the MODEL closed five seeds the ucore
+does not (`mc1/1023`, `mc2/640`, `mc2/887`, `mc2/2808`, `t30-raw/15`), so the
+model-exclusive column grew by five.  Booked here rather than left to be
+rediscovered.  In the other direction the ucore is still exact on **366** seeds
+the model is not.
+
+### §87.B PART B — **`mc1/721` IS NOT LANDED, AND THE REASON IS THE ONE B-5 REGISTERED IN ADVANCE**
+
+**B-4, MEASURED FIRST.**  The MODEL is `EXACT` on `mc1/721` **and** on
+`mc2/584`, before and after A.  `sim/` does not share the defect; no `sim/`
+edit was made for B.
+
+**§86.G's fix, as specified, is: "discharge `poste` inline at the point it is
+raised when the chain continues in the same edge."  IT CANNOT BE DONE ON ONE
+MICRO-ROM READ, and that is a finding.**
+
+The post-`E` row's body (`v30u_eu_poste.svh`) reads the `e_*` wires, and those
+stand on `row` — `v30u_ucrom`'s **combinational read off the REGISTERED `upc`**.
+At the raise site `upc_loc_n` has already advanced to the post-`E` row, but the
+ROM word for it does not exist until the next edge, because the module presents
+**one row per clock, which is what the die does** (`v30u_ucrom.sv`: *"the two
+lookups stand on its output exactly as the die's PLA + ROM stand on the
+micro-address register"*).  And it is not a low-bit re-select of the same
+4-row bank either: the post-`E` row **crosses a bank boundary** in the general
+case — `FF /5`'s `0FAC.3` (`E`) is followed by `0FAD.0` — so it needs a second
+FULL lookup, `ucdecode` 8192×10 **and** `ucrom` 1028×29.  **B-5 named "a second
+micro-ROM read port" as a disqualifier before the run, and it is one: an 80s
+die does not read its microcode ROM twice in a clock.**
+
+**WHAT IS ESTABLISHED BEYOND §86.G.**  The two writes are on DIFFERENT EDGES in
+the `ucore` (the successor's `ONE_BYTE_LOGIC` strobe on the edge ending clock
+303, the post-`E` on the edge ending 304) and on the SAME edge in the model, in
+the order post-`E` → successor.  **Each of the `ucore`'s two placements is
+INDEPENDENTLY MEASURED AGAINST SILICON** — §35.3's 1BL execute strobe on
+`FA idx 4` (*"the golden's status nibble is already 2 on clock 1"*), and the
+post-`E` row's own one-clock cost.  `mc1/721` shows the two cannot both be
+honoured in the current structure.  **That is a collision between two measured
+laws, not a scheduling slip**, and moving either one on the strength of a single
+seed is exactly the fitted-fix this campaign's method exists to prevent.
+
+**WHAT IT NEEDS NEXT** (specified, not taken): §86.G's own falsifier run as a
+DIRECTED CELL — `<a ROM form whose post-`E` row writes register R>` followed by
+`<a 1BL form that writes R>` with a PRE-POPPED successor, swept over the wait
+axis, against silicon.  That population decides which of the two placements is
+the one that moves.  One seed cannot.
+
+**B-2 is MET and it was measured, not assumed**: `check_core --core ucore
+--opcodes all` is 169,000 / 169,000 and `timed_gate v0.1` is 169,000 / 169,000
+— which is what "the golden suite cannot see it" predicts, and it is now a
+measurement rather than a construction argument.
+
+**B-6.**  `mc2/584` is UNCHANGED by A (`ndiff` 404 before and after) and stays
+booked and undiagnosed (§86.H).  `mc1/721` is likewise unchanged (`ndiff` 2).
+**The `ucore`'s two named own-residue seeds are still two.**
+
+### §87.C THE RATCHETS THAT MOVED
+
+| gate | before | after |
+|---|---|---|
+| `timed_fuzz --core sim` REGISTERED | 1,282 / 1,702 | **1,338 / 1,702** |
+| … EVT | 789 / 1,008 | **798 / 1,008** |
+| … COMBINED | 2,071 / 2,710 | **2,136 / 2,710** |
+| `timed_fuzz --core ucore` REGISTERED | 1,502 / 1,702 | **1,557 / 1,702** |
+| … EVT | 920 / 1,008 | **931 / 1,008** |
+| … COMBINED | 2,422 / 2,710 | **2,488 / 2,710** |
+| `timed_fuzz --seeddir b2-tranche`, model | 154 / 188 | **159 / 188** |
+| … `--core ucore` | 171 / 188 | **177 / 188** |
+| `s15_census` `TAIL_EXTRA`, both engines | 33 / 34 | **0 / 0** |
+| `s15_census` `PF_LOST`, model / `ucore` | 315 / 134 | **283 / 102** |
+| `ss_lint` `SS_VERSION` / `SS_COUNT` / flops | 0x86 / 218 / 204 | **0x87 / 219 / 205** |
+| G6 Fmax · ALMs | 47.01 MHz · 11,286 | **47.85 MHz · 11,147 (27 %)** |
+
+**G6 IS GREEN ON THE RTL LANDING** (A-8's requirement, and it was run, not
+assumed): E1 `gen_ucore_qsf --check` PASS, **E2 0 errors, every stage
+Successful**, **E3 `divclk` Fmax 47.85 MHz** against a registered ≥ 32,
+**E4 worst setup +8.602 ns**, **E5 TNS 0.000 setup AND hold on every domain**,
+0 latches, 0 `lpm_divide`, 88 input files `2d259c06167d1fa3…`, receipt
+`78683e26618b9e61…`.  One flop and one wire cost **nothing**: the ALM count
+went DOWN (11,286 → 11,147) and Fmax UP.  **No bitstream was flashed.**
+
+Everything else in §87.A.3 is UNMOVED.  **This is the first sitting since U5 in
+which the MODEL's columns moved**, and they moved for the same one-line reason
+the `ucore`'s did.
+
+### §87.D WHAT THIS SITTING DID NOT DO
+
+* **NO BOARD CONTACT, NO FLASHING, `use_core` NEVER SET.**
+* **`mc1/721` is DIAGNOSED FURTHER and NOT LANDED** (§87.B), by B-5's own rule.
+  `mc2/584` is untouched.
+* H3-B, the `8F` mod-3 ghost cell (§84.6), model-architecture work and the
+  8080/BRKEM gap were not opened.  No memory file was touched.  Codex was not
+  launched.

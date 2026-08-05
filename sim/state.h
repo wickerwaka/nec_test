@@ -166,6 +166,19 @@ struct Machine {
 
     bool halted = false;
 
+    // THE ILLEGAL-FORM STALL (SM3 sitting 26, `ucore_provenance.md` §87.A).
+    // NOT a halt: no `HLT` micro-row ran, no `HALT` status is driven, and the
+    // prefetcher is not frozen.  The EU is standing on a micro-row whose `F`
+    // interlock waits for a bus read that will never be posted, because the
+    // row SOURCES `OPR` and nothing has loaded it -- the decoder issues no
+    // operand pre-read at `mod == 3`.  The queue fills, the prefetcher runs
+    // out of room and the bus sits `PASV` for the rest of the window, which is
+    // exactly what silicon does on `62` / `C4` / `C5` / `FE`,`FF` `/3`,`/5` at
+    // `mod == 3` (`tests/v30/mod3_illegal/metadata.json`, SOCKET, 2026-07-27;
+    // the family and the survey are §86.F).  Set by `run_micro`, never
+    // cleared by anything short of RESET -- there is no exit.
+    bool stalled = false;
+
     // Bus-width override.  Ext `[-03-]` (row 01ED, the first row of the SHARED
     // INT routine) forces every following bus cycle of the sequence to WORD
     // width, whatever operand width the interrupted instruction decoded.  It is

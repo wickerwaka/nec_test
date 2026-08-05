@@ -23,7 +23,7 @@
 //                                    ordered bus stream reaches cycle `e`
 //        "tf":1}                     model the BRK/TF single-step trap
 //
-//   out {"i":N,"ins":N,"ev":N,"done":0|1,"halt":0|1,"fired":N,
+//   out {"i":N,"ins":N,"ev":N,"done":0|1,"halt":0|1,"stall":0|1,"fired":N,
 //        "tx":[[kind,addr,addr2,data,width],...],   kind: see kKindName
 //        "err":"..."}                               (only when something broke)
 //
@@ -66,6 +66,9 @@ struct ImgResult {
     int fired = 0;
     bool done = false;
     bool halt = false;
+    // The illegal-form stall (state.h::stalled).  Reported as its own key so a
+    // parked run cannot be read as a completed one or as an error.
+    bool stalled = false;
     std::string err;
     // Decode census over the bytes the loader actually CONSUMED, so it is a
     // statement about executed code, not about bytes that happen to sit in the
@@ -281,6 +284,17 @@ ImgResult run_one(const ucrom::UcRom& rom, Biu& biu, const json::Value& c,
         long cs0 = m.sreg[kCS], pc0 = m.pc;
         cpu.set_evt_at(evt_n < evt_at.size() ? evt_at[evt_n] : -1);
         if (!cpu.step()) {
+            // THE ILLEGAL-FORM STALL (state.h::stalled) is a MODELLED OUTCOME.
+            // The EU parks on a micro-row whose `F` interlock has nothing to
+            // wait for, so no further instruction retires and no further bus
+            // cycle is made by the EU.  It is NOT a HALT -- no `HALT`
+            // acknowledge status is logged -- and it is NOT an error, so `err`
+            // stays empty and the ordered transaction log ends where the
+            // chip's does.  `res.halt` stays false for the same reason.
+            if (m.stalled) {
+                res.stalled = true;
+                break;
+            }
             res.err = "micro-sequence did not terminate";
             break;
         }
@@ -327,9 +341,10 @@ ImgResult run_one(const ucrom::UcRom& rom, Biu& biu, const json::Value& c,
 void emit(std::FILE* out, long idx, const ImgResult& r, const Biu& biu,
           bool with_code) {
     std::fprintf(out, "{\"i\":%ld,\"ins\":%ld,\"ev\":%ld,\"done\":%d,"
-                      "\"halt\":%d,\"fired\":%d,\"repbad\":%d,"
+                      "\"halt\":%d,\"stall\":%d,\"fired\":%d,\"repbad\":%d,"
                       "\"intem\":%ld,\"mfc\":%ld,\"repok\":%d,\"inta8080\":%d,\"reppfx\":[",
-                 idx, r.ins, r.ev, r.done ? 1 : 0, r.halt ? 1 : 0, r.fired,
+                 idx, r.ins, r.ev, r.done ? 1 : 0, r.halt ? 1 : 0,
+                 r.stalled ? 1 : 0, r.fired,
                  r.rep_withdraw_unmatched, r.intem, r.mfc,
                  r.rep_withdraw_ok, r.inta_in_8080);
     for (int i = 0; i < 8; ++i)

@@ -6,7 +6,7 @@ case (e_d1)
     5'd0, 5'd1, 5'd2, 5'd3: sreg_n[e_d1[1:0]] = v1;
     5'd4:  pc_n = v1;
     5'd5:  ind_n = v1;
-    5'd6:  begin opr_n = v1; opr_fresh_n = 1'b1; end
+    5'd6:  begin opr_n = v1; opr_fresh_n = 1'b1; opr_loaded_n = 1'b1; end
     5'd7:  ;                                        // NULL
     5'd8:  gpr_n[R_AW][7:0] = v1[7:0];                // AL
     5'd12: tmpa_n = v1;
@@ -22,7 +22,7 @@ case (e_d1)
                          else          gpr_n[r_idx_n[1:0]][7:0]  = v1[7:0];
                      end else gpr_n[r_idx_n] = v1;
             OK_SREG: sreg_n[r_idx_n[1:0]] = v1;
-            OK_MEM:  begin opr_n = v1; opr_fresh_n = 1'b1; end
+            OK_MEM:  begin opr_n = v1; opr_fresh_n = 1'b1; opr_loaded_n = 1'b1; end
             default: ;
         endcase
     end
@@ -33,7 +33,7 @@ case (e_d1)
                          else          gpr_n[m_idx_n[1:0]][7:0]  = v1[7:0];
                      end else gpr_n[m_idx_n] = v1;
             OK_SREG: sreg_n[m_idx_n[1:0]] = v1;
-            OK_MEM:  begin opr_n = v1; opr_fresh_n = 1'b1; end
+            OK_MEM:  begin opr_n = v1; opr_fresh_n = 1'b1; opr_loaded_n = 1'b1; end
             default: ;
         endcase
     end

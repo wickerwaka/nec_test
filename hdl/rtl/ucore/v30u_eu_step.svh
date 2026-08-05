@@ -374,7 +374,16 @@ S_BIND: begin
 
     ld_preread_n = 1'b0;
     if (ld_hasrm_n && (rmmod != 2'd3) && !(!ld_ext_n && pla3_modrm_store(pv)))
-        if ((m_kind_n == OK_MEM) || (r_kind_n == OK_MEM)) ld_preread_n = 1'b1;
+        if ((m_kind_n == OK_MEM) || (r_kind_n == OK_MEM)) begin
+            ld_preread_n = 1'b1;
+            // §87.A: the decoder's operand pre-read is the OTHER thing that
+            // fills OPR, and it does not go through `rdq` -- `S_PRERD` writes
+            // `opr` itself.  The model sets its flag straight off `ld.preread`
+            // at the decode, not at the delivery, and so does this.  THIS IS
+            // THE WHOLE `mod == 3` ASYMMETRY: the pre-read runs only for
+            // `has_rm && mod != 3 && !MODRM_STORE`.
+            opr_loaded_n = 1'b1;
+        end
 
     row_posted_n = 1'b0;
     if (ld_preread_n)     st_n = S_PRERD;
@@ -399,6 +408,7 @@ S_PRERD: if (chain == 4'd0) begin
         rd_done_cnt_n = rd_done_cnt_n - 2'd1;
         if (rdq_n_n != 2'd0) begin
             opr_n = rdq0_n; rdq0_n = rdq1_n; rdq_n_n = rdq_n_n - 2'd1;
+            opr_loaded_n = 1'b1;                              // §87.A
         end
         // F27 -- THE PRE-DECODE READ DOES NOT MAKE OPR "FRESH".  The loader
         // assigns `m.opr = biu.mem_read(...)` DIRECTLY (loader_impl.h:495) and
@@ -462,6 +472,7 @@ S_ROW: if (chain == 4'd0) begin
                 if (rd_done_cnt_n != 2'd0) rd_done_cnt_n = rd_done_cnt_n - 2'd1;
                 if (rdq_n_n != 2'd0) begin
                     opr_n = rdq0_n; rdq0_n = rdq1_n; rdq_n_n = rdq_n_n - 2'd1;
+                    opr_loaded_n = 1'b1;                      // §87.A
                 end
             end
             pend_active_n = 1'b0;
@@ -486,6 +497,7 @@ S_ROW: if (chain == 4'd0) begin
             if (rdq_n_n != 2'd0) begin
                 opr_n = rdq0_n; rdq0_n = rdq1_n; rdq_n_n = rdq_n_n - 2'd1;
                 opr_fresh_n = 1'b1;
+                opr_loaded_n = 1'b1;                          // §87.A
             end
         end
         `include "v30u_eu_row.svh"
@@ -571,6 +583,7 @@ S_TAIL_W: if (chain == 4'd0) begin
             if (rd_done_cnt_n != 2'd0) rd_done_cnt_n = rd_done_cnt_n - 2'd1;
             if (rdq_n_n != 2'd0) begin
                 opr_n = rdq0_n; rdq0_n = rdq1_n; rdq_n_n = rdq_n_n - 2'd1;
+                opr_loaded_n = 1'b1;                          // §87.A
             end
         end
         pend_active_n = 1'b0;
@@ -673,6 +686,7 @@ S_IRQ_D: if (chain == 4'd0) begin
     // begin_sequence(): the pairing latch and the completed-read store
     pend_active_n = 1'b0; pend_off_n = 16'd0; pend_seg_n = 3'd3;
     pend_byte_n = 1'b0; pend_io_n = 1'b0; opr_fresh_n = 1'b0;
+    opr_loaded_n = 1'b0;                                      // §87.A
     rdq0_n = 16'd0; rdq1_n = 16'd0; rdq_n_n = 2'd0;
     ld_ext_n = 1'b0; ld_hasrm_n = 1'b0; ld_grpd_n = 1'b0; ld_preread_n = 1'b0;
     ld_rm_n = 8'd0; ld_disp_n = 16'd0;

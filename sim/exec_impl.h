@@ -227,6 +227,16 @@ private:
     Pending pend_;
     std::vector<uint16_t> rdq_;  // completed reads awaiting OPR delivery
     bool opr_fresh_ = false;
+    // THE OPR-VALID INTERLOCK (SM3 sitting 26).  `F` is the OPR interlock and
+    // OPR is the read-data register: a row that SOURCES OPR under an `F` is
+    // waiting for the access that fills it.  This says whether ANYTHING has
+    // filled it since the decode started -- the decoder's operand pre-read, a
+    // micro-row's own completed read, or a row that wrote OPR.  When it is
+    // false and no read is outstanding, the row's wait has no terminator: see
+    // `Machine::stalled`.  It is NOT `opr_fresh_`, which is the WRITE-PAIRING
+    // latch's "OPR carries a value a store has not taken yet" and is cleared
+    // by `emit_pending`; conflating them moves every paired store.
+    bool opr_loaded_ = false;
     std::FILE* trace_ = nullptr;
     int rows_ = 0;
     int rep_abort_at_ = -1;
@@ -419,6 +429,7 @@ void CpuT<Bus>::wr_operand(const OperandRef& r, uint16_t v) {
         case OperandRef::kMem:
             m_.opr = v;  // staged; the [-06-] strobe commits it to memory
             opr_fresh_ = true;
+            opr_loaded_ = true;
             break;
         default: break;
     }
@@ -654,7 +665,7 @@ void CpuT<Bus>::wr_dst1(uint8_t c, uint16_t v, bool byte_src) {
         case 0: case 1: case 2: case 3: m_.sreg[c] = v; break;
         case 4: m_.pc = v; break;
         case 5: m_.ind = v; break;
-        case 6: m_.opr = v; opr_fresh_ = true; break;
+        case 6: m_.opr = v; opr_fresh_ = true; opr_loaded_ = true; break;
         case 7: break;  // NULL
         case 8: m_.wb(0, uint8_t(v)); break;   // AL
         case 12: m_.tmpa = v; break;
@@ -740,6 +751,7 @@ void CpuT<Bus>::deliver_read(bool reads_opr) {
     m_.opr = rdq_.front();
     rdq_.erase(rdq_.begin());
     opr_fresh_ = true;
+    opr_loaded_ = true;
 }
 
 template <class Bus>
@@ -824,6 +836,7 @@ void CpuT<Bus>::begin_sequence() {
     pend_ = Pending{};
     rdq_.clear();
     opr_fresh_ = false;
+    opr_loaded_ = false;
     rep_elems_ = 0;
     for (int i = 0; i < kHwCount; ++i) { hw_owned_[i] = 0; hw_writes_[i] = 0; }
 }
@@ -893,6 +906,12 @@ bool CpuT<Bus>::step() {
     brk_fired_ = false;
     brk_take_ = false;
     LoadResult ld = loader_decode(m_, biu_);
+    // The decoder's operand pre-read is the OTHER thing that fills OPR, and it
+    // does not go through `rdq_` -- the loader writes `m_.opr` itself.  This is
+    // the whole of the `mod == 3` asymmetry: `loader_impl.h` runs the pre-read
+    // only for `has_rm && mod != 3 && !MODRM_STORE`, so at `mod == 3` OPR is
+    // never filled and a row that sources it has nothing to wait for.
+    if (ld.preread) opr_loaded_ = true;
     if (brk_enable_) {
         // §84.  Every PREFIX this sequence just retired was a boundary, and
         // it SAMPLED the arm; TF cannot move across a prefix chain, so one
@@ -1022,6 +1041,38 @@ bool CpuT<Bus>::run_micro(const MicroPc& entry) {
             // *Falsifier*: any `OPR -> FLAGS` row whose flag write is NOT
             // visible at its read's T4, or any third ROM row acquiring that
             // source/destination pair.
+
+            // ---------------------------------------------------------------
+            // §87.A -- THE ILLEGAL-FORM STALL.  The `F` interlock is a WAIT, and a wait
+            // needs something to wait for.  A row that SOURCES OPR waits for
+            // the read that fills OPR; if no read is outstanding AND nothing
+            // has filled OPR since this decode began, the wait has no
+            // terminator and the EU never leaves this row.  The bus does not
+            // stop with it: the prefetcher runs until the queue is full and
+            // then the part sits `PASV` with `qs = 0`, which is exactly the
+            // 957-3,906-row idle tail silicon shows on these forms (§86.F).
+            //
+            // The rule NAMES NO OPCODE.  Swept over the whole opcode space --
+            // native and `0F`, every ModR/M `reg`, `mod == 3` and memory, 8,192
+            // forms -- it fires on `62` CHKIND, `C4` LES, `C5` LDS and the
+            // `FE`/`FF` group at `/3` and `/5`, all at `mod == 3`, and on
+            // NOTHING else.  Those are the multi-word-memory-operand forms:
+            // their first row takes the pre-read word out of OPR while the
+            // second word is still being fetched, so a register operand leaves
+            // the sequence with no operand at all.  `FF /7` at `mod == 3`
+            // (2,477 `v20suite` goldens) does NOT fire -- its `0FE0.2` is
+            // `M -> OPR`, a WRITE -- and neither does `8D` LEA, which is why
+            // the archived FSM core's `S_HALT` wedge was correct on
+            // `62`/`C4`/`C5` and a BUG on LEA.
+            //
+            // *Falsifier*: any golden case, in any suite, that reaches this
+            // predicate (a golden is a captured chip record, and a stalled
+            // chip records no case); or a form outside the seven that stalls
+            // on silicon; or one of the seven that does not.
+            if (op.s1 == exec_detail::kSrcOpr && !opr_loaded_ && rdq_.empty()) {
+                m_.stalled = true;
+                return false;
+            }
             bool latch_flags = (op.s1 == exec_detail::kSrcOpr && op.d1 == 15);
             if (latch_flags) biu_.arm_flags_latch(&m_.psw);
             deliver_read(op.s1 == exec_detail::kSrcOpr);

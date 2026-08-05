@@ -81,6 +81,7 @@
             SSA_E_PEND_BYTE:           pend_byte_n = ss_wdata[0];
             SSA_E_PEND_IO:             pend_io_n = ss_wdata[0];
             SSA_E_OPR_FRESH:           opr_fresh_n = ss_wdata[0];
+            SSA_E_OPR_LOADED:          opr_loaded_n = ss_wdata[0];
             SSA_E_RDQ0:                rdq0_n = ss_wdata;
             SSA_E_RDQ1:                rdq1_n = ss_wdata;
             SSA_E_RDQ_N:               rdq_n_n = ss_wdata[1:0];
