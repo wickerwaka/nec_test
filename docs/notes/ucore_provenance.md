@@ -9643,6 +9643,19 @@ raising instruction's own boundary is taken by the INT pin.
 * No Codex launch, no memory file touched, no R7′, no 8080 / `gaps` §F.1.
 * No comparator, golden or scorer was changed; nothing was re-scored downward.
 
+### §72.8a ERRATUM — A COUNT IN ONE COMMIT MESSAGE
+
+Commit `deeb18bbbf` (the `sim/` landing) says *"THE CELL, 672 captures"*.  **The
+cell took 768.**  672 was the planned figure written into the pre-registration's
+§2.2, which excluded `iehot` on the NMI pin as a maskable-only control; the run
+took that leg anyway (`--pins 0,1` applies to every variant) and the extra 96
+captures are retained and scored like the rest.  `manifest.json` says 768, this
+section says 768, and the leg is reported in §72.3's table (`iehot` p1, OWN 9 —
+identical to `iehot` p0, which is itself a result: the control behaves the same
+on both pins because it contains no rise for either to be gated by).  Recorded
+rather than left standing: a commit message that undercounts its own population
+is still a commit message that does not match the artifact.
+
 ### §72.9 THE ucore's REGISTERED-BANK FAMILY CENSUS, RE-TAKEN
 
 `sw/s15_census.py --core ucore --pop reg` on this sitting's own report (the
