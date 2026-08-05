@@ -318,6 +318,26 @@ engines since 2026-08-04** (`ucore_provenance.md` §61 / §62).  **H2 is RETIRED
 is **§62.9**: H3 `PF_LOST`, H4 `DATA_SEQ`, H7 the `0x0008` NMI-vector class,
 H5, H6.
 
+**SM3 sitting 22 (2026-08-05, `ucore_provenance.md` §83) SPLIT H4's PARTITION B
+AND MOVED NO GATE.**  §67.2's "27 shared REGISTERED seeds with a wrong `MEMR`
+launch address" is **not one class and only 12 of the 28 are a BIU question**:
+**B1 = 3** (`mc2/1718`, `mc2/3061`, `t30-raw/899`) where the chip takes a
+genuine **INT-1 entry** — vector pair at `4`/`6`, three descending word pushes,
+handler fetch at `0x00480` on all three — because **NEITHER TIMED ENGINE
+IMPLEMENTS THE BRK/TF SINGLE-STEP TRAP AT ALL** (`kEvtBrk` has ONE caller in the
+tree, `sim/image_runner.cpp`; `timed_runner.cpp` never tests the flag and the
+ucore's `FBRK` is written and never read); **B2a = 12**, architecture-exact and
+timing-divergent, the genuine BIU target, cheapest instrument `t30-raw/962`
+(`ndiff` 4 of 4,000); **B2b = 13**, where `ucsim_fuzz` shows the ARCHITECTURAL
+model already disagrees — inherited functional residue, routed OUT of the timing
+census.  Bank-wide the TF class is **145 REGISTERED seeds**, of which 115 are
+`OPEN_BUS`-excused, **29 diverge in both engines** and **1 is exact** — and that
+one, `mc2/2361`, is the only seed of the 30 whose vector-1 entry is a *software*
+`INT 1` rather than a trap.  **NOT LANDED**: the arm's instant is measured to be
+one instruction off (`chip == arch[1:]`, 18 of 30 conclusively) but *whose* set
+gets the grace is not, and the uniform reading is refuted by the storm cadence.
+§83.7 registers the board-free discriminator.
+
 **SM3 sitting 4 (2026-08-04, `ucore_provenance.md` §63) moved NO GATE — it
 landed nothing in either engine — but it changed what two of those names mean.**
 **H7** is a measured FLOOR (chip `A + 12`, both engines `A + 13`) whose
@@ -454,6 +474,27 @@ the same five fuzz seeds**.  +14 cells per engine.
 *Falsifier for F56, standing*: any population on which the deleted branch would
 fire AND silicon agrees with it.  *For F57*: any cell whose EU leaves the read
 wait at a clock other than `e + 2`.
+
+**AND THE `tb_sys` LEGS FOLLOWED THEM AT SM3 SITTING 22** (`ucore_provenance.md`
+§83.0).  F55's `tb_sys ret 273` above is a **F55-era** figure and was left
+un-recaptured across F56 and F57, so `x1_retention score` was comparing a
+POST-F57 reference column with a PRE-F56 measurement column and reporting
+"6 SURVIVED, BAR (i) NOT MET" — the six being exactly the six w0 cells F56/F57
+had already closed.  Re-captured on one tree: **`offline` 279/283 (unchanged),
+`ret` 273 → 279/283 = `offline` EXACTLY, 0 survivors, BOTH BARS MET**, and
+`base` 146 → **34/283** (the diagnostic column, never a ratchet — F55 took the
+retention out of the core's DRIVE, so a harness without retention must miss
+more).  **Quote 279, or the era it belongs to, or not at all.**
+
+**THE ERA GUARD, added with it (the vacuous-gate pattern, EIGHTH incarnation).**
+Every `x1_retention` capture now embeds the artifact layer's input manifest hash
+for the binary that produced it, `offline.json` included, and `score` **REFUSES,
+naming both hashes**, when a column's era is not this tree's.  It is
+command-free so it is identical across the `base`/`ret` A/B pair by
+construction.  Demonstrated non-vacuous in three modes — ABSENT, MIXED (it names
+"the column's own files DISAGREE") and MISMATCH — and green on the clean tree.
+`--no-era-guard` is the single documented escape and it is for reading an
+archived column as history.
 
 ### **META-FINDING #5 RETIRED FOR `tb_v30_core` — THE COMPOSER ASKS THE CORE (SM3 sitting 20, §81.A.3)**
 

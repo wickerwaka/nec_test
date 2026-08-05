@@ -13083,3 +13083,300 @@ as a MISS, because a bar that is quietly re-derived after the run is not a bar.
 * **Registered for FLASH #10, unchanged and now larger**: §81.A.7's F55
   prediction still stands, and F56 and F57 join it — the fabric legs have never
   seen any of the three.
+
+---
+
+## §83 SESSION SM3, SITTING 22 — **H4 PARTITION B IS NOT ONE CLASS AND IT IS NOT A TIMING CLASS.  THE THREE SHARP SEEDS ARE A GENUINE INT-1 ENTRY: THE CHIP SINGLE-STEPS AND NEITHER TIMED ENGINE IMPLEMENTS THE BRK/TF TRAP AT ALL.  THE ARCHITECTURAL MODEL DOES, AND ITS SEQUENCE IS THE CHIP'S WITH ONE EXTRA TRAP AT THE HEAD.  NOTHING IS LANDED, AND THAT IS THE REGISTERED OUTCOME.**
+
+**2026-08-05, branch `ucsim`.  Offline only, NO BOARD CONTACT, no flashing,
+`use_core` never set.  No engine file changed; the only code edited is a
+scorer.**
+
+### §83.0 ITEM 0 — THE X1 `tb_sys` LEGS WERE TWO LANDINGS STALE (`2cd8412026`)
+
+The coordinator's review finding, confirmed and closed before any target work.
+`x1_retention score` was reading **`ret 273/283` against `offline 279/283`,
+"6 SURVIVED", "BAR (i) NOT MET"** — and every word of it was TRUE OF THE FILES
+AND FALSE OF THE TREE.  The `base`/`ret` columns were captured in the F55 era;
+`offline.json` had been re-taken after F56 and F57.  **The six "survivors" were
+exactly the six w0 cells F56/F57 had already closed.**
+
+Both legs rebuilt through the receipt layer and all three columns re-taken so
+they are of one era:
+
+| column | before | **this tree** |
+|---|---|---|
+| `offline` `tb_v30_core` (models pad retention) | 279 / 283 | **279 / 283** (unchanged) |
+| `base` `tb_sys`, `X1_AD_RETENTION` **OFF** | 146 / 283 | **34 / 283** |
+| `ret` `tb_sys`, `X1_AD_RETENTION` **ON** | 273 / 283 | **279 / 283 — `offline` EXACTLY** |
+| BAR (i) | 6 SURVIVED, NOT MET | **245 closed, 0 SURVIVED, MET** |
+| BAR (ii) | 6 cells differing, NOT MET | **0 cells differing, MET** |
+| VERDICT (this leg) | NOT MET | **MET** |
+
+**The `base` column moving DOWN by 112 is REGISTERED, not an error.**  It is the
+diagnostic column, never a ratchet, and **F55 is precisely the landing that took
+the pad retention out of the core's DRIVE** (§81.A) — so a harness without
+retention must now miss far more rows.  For the same reason the INTA share of
+base-only failures falls **129 → 21**: the class is no longer INTA-dominated
+because it is no longer INTA-only.  §81's "the two offline instruments agree"
+rule therefore holds again, at **279**, on the pair `tb_v30_core` / `tb_sys ret`.
+Superseded columns ARCHIVED BY COPY as `…-pre-f56` beside the existing
+`…-pre-f53`; nothing moved, nothing deleted.
+
+### §83.0a THE ERA GUARD — **THE VACUOUS-GATE PATTERN, EIGHTH INCARNATION, AND THIS ONE IS STRUCTURAL**
+
+A capture recorded WHAT it measured and never WHICH TREE.  Every capture now
+embeds `_meta.tree` = the artifact layer's **input manifest hash** for the
+binary that produced it.  It is deliberately **command-free**, so it is
+IDENTICAL across the `base`/`ret` A/B pair by construction — the pair differs by
+one `-D`, and a guard that fired on that would be useless.  `offline.json`
+carries the same stamp on `check_core`'s own input set, because it is bar (ii)'s
+REFERENCE column and its staleness is exactly as silent.  `score` **REFUSES,
+naming both hashes**, on any mismatch.
+
+NON-VACUITY, DEMONSTRATED IN THREE MODES, not asserted:
+
+| mode | result |
+|---|---|
+| **ABSENT** — the pre-guard captures | fires, `rc=1` |
+| **MIXED** — one file of a column re-stamped | fires AND names the third failure mode: *the column's own files DISAGREE (half re-captured)* |
+| **MISMATCH** — a whole column re-stamped | fires, naming both hashes |
+| clean tree | `rc=0`, VERDICT **MET** |
+
+The mutated files were restored and `sha256sum -c SHA256SUMS` is clean.
+`--no-era-guard` is the single documented escape and it is for reading an
+ARCHIVED column as history, which is not a statement about this tree.
+
+### §83.1 THE BASELINES, RE-MEASURED ON THIS TREE (not cited)
+
+`timed_fuzz --evt-replay`, 3,242 seeds, 2,710 scored, both engines, fresh:
+
+| column | `ucore` | `sim` |
+|---|---|---|
+| REGISTERED | **1,490 / 1,702** | **1,272 / 1,702** |
+| EVT | **918 / 1,008** | **788 / 1,008** |
+| COMBINED | **2,408 / 2,710** | **2,060 / 2,710** |
+
+`BOUND WARNINGS 5`, `ENGINE ABORTS 0`.  Identical to `standing_gates.md` **to
+the seed**; nothing in this sitting moved a ratchet in either direction.
+
+`s15_census --core <engine> --pop reg`, `--core` matched to the report:
+ucore `PF_LOST 106 · DATA_SEQ 36 · TAIL_EXTRA 29 · PF_GAINED 24 · PF_ADDR 8 ·
+SCHEDULE 5 · PIN 4`, catch-all 0; sim `DATA_SEQ 28`.  §67.8's census reproduces
+cell for cell.  **Partition B is 28 seeds, `DATA_SEQ` in BOTH engines, and on
+28 of 28 the first-divergence coordinate AND detail are byte-identical between
+the two engines** (§66.2 measured 27 of 28, with `mc1/2241` the exception; on
+this tree `mc1/2241` agrees too.  **No cause is attributed** — three landings
+separate the two measurements and nothing here isolates one; the seed's `ndiff`
+still differs sharply between the engines, 2,193 against 120, so the two runs
+part company downstream even where their first divergence does not).  The
+ucore-only column is **0** and the sim-only column is **0**; the
+remaining 8 ucore `DATA_SEQ` seeds are RELABELS (`PF_LOST` 4 · `SCHEDULE` 3 ·
+`TAIL_EXTRA` 1).
+
+### §83.2 THE THREE-SEED ADJUDICATION — **IT IS A GENUINE INT-1 ENTRY.  THE ROW GEOMETRY SETTLES IT WITH NOTHING LEFT OVER.**
+
+§67.2 asked whether the chip's `0x00004` read is an interrupt ENTRY or a data
+artifact, and said the answer is in the rows.  It is.  On all three seeds the
+chip's launches from the divergence are:
+
+```
+mc2/1718   MEMR:00004  MEMR:00006  MEMW:02e0c  MEMW:02e0a  MEMW:02e08  CODE:00480
+mc2/3061   MEMR:00004  MEMR:00006  MEMW:03f00  MEMW:03efe  MEMW:03efc  CODE:00480
+t30-raw/899 MEMR:00004 MEMR:00006  MEMW:03efc  MEMW:03efa  MEMW:03ef8  CODE:00480
+```
+
+**The vector PAIR at `4` and `6`, then three descending word pushes, then a code
+fetch at the SAME handler address `0x00480` on all three.**  That is an
+interrupt entry and nothing else is: an effective-address read is one cycle with
+no push train and no transfer.  **The artifact reading is REFUTED.**  The
+engines at the same instant launch `MEMW 794fc` / `MEMR db129` / `MEMR 9bd32` —
+an ordinary computed EA — and run straight on.
+
+*The chip takes an entry the engines do not*, exactly as §67.2 wrote it.
+
+### §83.3 THE MECHANISM — **NEITHER TIMED ENGINE IMPLEMENTS THE BRK/TF SINGLE-STEP TRAP.  IT IS AN ABSENCE, NOT AN ERROR.**
+
+Vector 1 is the BRK/TF single-step trap.  Read where the trap is raised:
+
+* `sim/image_runner.cpp:279` — **the ARCHITECTURAL model has it**:
+  `bool tf = tf_model && (m.psw & kFlagBRK) != 0;` … `cpu.interrupt(Cpu::kEvtBrk)`.
+* `sim/timed_runner.cpp` — **the TIMED model, which is what `timed_fuzz --core
+  sim` scores, never tests the flag.**  `kEvtBrk` has exactly ONE caller in the
+  whole tree and it is `image_runner.cpp`.
+* the `ucore` — `FBRK` exists as a PSW bit and is CLEARED on entry
+  (`v30u_eu_row.svh` `I_CITF`, `v30u_eu_poste.svh` vector 1), and **nothing
+  anywhere READS it to raise anything.**
+
+So this is not a wrong rule in the timed engines; it is a **missing feature**,
+and it is missing in both.  That is why partition B's two engines agree with
+each other to the byte and disagree with the socket — §49.7's class, and the
+reason a functional fork wears a `DATA_SEQ` label.
+
+**THE CONTROLLED TEST, engine-free on the chip side.**  Detect interrupt entries
+structurally (vector pair at `4V`/`4V+2` followed by three word pushes) in the
+chip's `chip_rows` and in the architectural model's transaction stream, with
+`tf` ON and OFF, and compare the VECTOR SEQUENCES:
+
+| seed | chip vector-1 entries | arch `tf=1` | arch `tf=0` |
+|---|---|---|---|
+| `mc2/1718` | 32 | 544 | **0** |
+| `mc2/3061` | 11 | 366 | **0** |
+| `t30-raw/899` | 37 | 363 | **0** |
+| `mc2/2361` | **1** | 1 | **1** |
+
+and over all **30** scored REGISTERED seeds whose chip stream contains a
+vector-1 entry: with `tf` ON the architectural model produces vector-1 entries
+in **30 of 30**; with `tf` OFF it produces **ZERO in 29 of 30**.
+
+**`mc2/2361` IS THE CONTROL AND IT IS THE SHARPEST FACT IN THE SITTING.**  It is
+the ONE seed of the 30 whose vector-1 entry SURVIVES with `tf` OFF — i.e. a
+software `INT 1`, not a trap — and it is the ONE seed of the 30 that **both
+timed engines already score EXACT**.  The only vector-1 entry the engines
+reproduce is the only one that is not a TF trap.
+
+### §83.3a THE POPULATION — **145 REGISTERED SEEDS CONTAIN A CHIP-SIDE VECTOR-1 ENTRY; 29 OF THEM ARE SCORED AND ALL 29 DIVERGE, IN BOTH ENGINES**
+
+Chip-side, engine-free, over the whole 3,242-seed bank: **197 seeds** (145
+REGISTERED) contain a vector-1 entry.  Of the 145: **115 are EXCUSED
+(`OPEN_BUS`)**, **29 DIVERGE — identically in both engines** — and **1 is
+EXACT**, and the exact one is `mc2/2361`.
+
+On all 29 the first divergence lands **9 to 10 rows BEFORE** the vector read's
+T1, and its kind is **`qs` on 28 of 29** — the trap's own queue FLUSH, which is
+the first thing the trap does that reaches a pin.  The family LABEL is
+`PF_GAINED` on 24 of them and `DATA_SEQ` on only 3: after a fork the label
+records what happened next, not what happened.  **The three seeds §67.2 singled
+out are one tenth of their own class, and the class crosses four families.**
+
+*The ratchet headroom this names, for each engine:* **29 REGISTERED seeds**,
+plus whatever the EVT column holds.  It is NOT claimed here and nothing is
+landed on it.
+
+### §83.3b `has_tf` IS UNINFORMATIVE — MEASURED, AND WORTH RECORDING
+
+`gen_soup.emit_tf` sets `has_tf` when it deliberately emits `PUSH 0x0100; POPF`.
+**`has_tf` is `False` on all 197 seeds.**  TF in this corpus is set
+INCIDENTALLY — a `POPF`/`IRET` restoring a random word with bit 8 — not by the
+generator's deliberate arm.  Any future selection that filters on `has_tf` to
+find single-stepping would find none of it.
+
+### §83.4 THE LAW CANDIDATE — **THE ARCHITECTURAL MODEL'S TRAP SEQUENCE IS THE CHIP'S WITH ONE EXTRA TRAP AT THE HEAD.  ONE INTEGER, NOT A TABLE.**
+
+The third push of an entry carries the return **IP**, so the pushed-IP sequence
+across a step storm is a direct readout of *which instruction boundary the trap
+was taken at*, in silicon, thousands of times, board-free.  Extracted from the
+chip rows and from the architectural model's transactions:
+
+```
+mc2/1718    arch 0x519 0x51b 0x51c 0x520 0x524 0x527 0x529 0x52b …
+            chip       0x51b 0x51c 0x520 0x524 0x527 0x529 0x52b …
+t30-raw/899 arch 0x5c9a 0x5c9b 0x5c9d 0x5c9e 0x2402 0x2403 0x2404 …
+            chip        0x5c9b 0x5c9d 0x5c9e 0x2402 0x2403 0x2404 …
+mc2/3061    arch 0x51b 0x51c 0x51d 0x520 0x523 0x525 0x528 …
+            chip       0x51c 0x51d 0x520 0x523 0x525 0x528 …
+```
+
+**`chip == arch[1:]`, element for element.**  Over the 30 seeds, on the prefix:
+**18 SHIFT-1**, **2 identical**, **1 too short** (`mc2/2361`, the software-INT
+control), and **9 where the chip-side pushed value read back as `0` in the
+scratch extractor** — a dump artifact, not a finding, and they are reported as
+unreadable rather than counted either way.
+
+**What this says**: the RECOGNITION DEPTH is the same in both — after the head
+the two sequences advance by the same number of instructions per trap, so the
+storm cadence is one instruction per trap in silicon as in the model.  What
+differs is the **ARM**: the model takes its first trap **one instruction too
+early**.  Its own comment states the rule it implements — *"TF is sampled at the
+START of the instruction, so the instruction that SETS it does not trap"* — and
+against silicon that grants one instruction of grace too few.
+
+### §83.5 THE PARTITION OF THE 28, WITH ITS INVARIANT
+
+The discriminator is **engine-free and architectural**: run `ucsim_fuzz` (the
+chip against the ARCHITECTURAL model) on each seed and ask whether the
+architecture ALREADY disagrees.
+
+| class | n | invariant | who owns it |
+|---|---|---|---|
+| **B1 — the TF trap** | **3** (`mc2/1718`, `mc2/3061`, `t30-raw/899`) | chip takes an INT-1 entry at the first divergence; arch with `tf` ON reproduces the entry sequence, with `tf` OFF produces none | **both timed engines, as an ABSENT FEATURE**; and the arch model's ARM is one instruction early (§83.4) |
+| **B2a — architecture-exact, timing-divergent** | **12** (`mc1/1543`, `mc1/2241`, `mc1/2512`, `mc2/1104`, `mc2/2438`, `mc2/2648`, `mc2/3569`, `mc2/3805`, `t30-raw/428`, `t30-raw/508`, `t30-raw/563`, `t30-raw/962`) | `ucsim_fuzz` is **1/1 OK**: the architectural transaction stream matches the chip exactly, and only the TIMED replay parts | **the BIU.**  This is the genuine partition-B target and it is 12 seeds, not 27 |
+| **B2b — architecture-divergent for a non-TF reason** | **13** | `ucsim_fuzz` reports `STREAM=1`: the ARCHITECTURAL model already disagrees with the chip, before any timing question is asked | **the architectural ledger**, i.e. inherited functional residue.  It is not a BIU class and no BIU landing can close it |
+
+3 + 12 + 13 = 28.  **`t30-raw/962` is the cheapest B2a member** (`ndiff` 4 of
+4,000, both engines identical, arch-exact) and is the right first instrument for
+B2a: at row 522 the chip launches `MEMR 0ca00` where both engines launch
+`MEMR 0ef1c`, with every surrounding row — code fetches, cycle positions, queue
+status — identical, and the run resynchronises four rows later.
+
+**§67.2's headline figure is therefore corrected, not restated**: partition B is
+not "27 seeds with a wrong `MEMR` launch address" as one class.  It is three
+classes with three owners, and only **12** of the 28 are a BIU question.
+
+### §83.6 WHY NOTHING IS LANDED — THE REGISTERED OUTCOME
+
+The brief authorises "the honest partition + the discriminating cell spec" when
+the evidence under-determines a landing.  It does, and here is exactly where:
+
+1. **The mechanism is established; the LAW is not.**  §83.4 measures that the
+   model's arm is one instruction early.  It does NOT establish *whose* set gets
+   the extra instruction of grace.  The obvious reading — a uniform extra clock
+   of delay on the recognition — is **REFUTED by the storm cadence**: a uniform
+   delay makes the storm two instructions per trap, and silicon's is one.  So
+   the grace attaches to the SETTER (the `POPF` that arms TF) and not to the
+   `IRET` that re-arms it inside the storm, and *that asymmetry is not yet
+   measured*.  Landing a trap on an unmeasured arm is landing a guess.
+2. **Running `ucsim_fuzz` over the 30 confirms the arch model is divergent on 27
+   of 30 even with `tf` ON**, so "port the architectural rule into the timed
+   engines" would port a rule that is itself wrong.
+3. The standing rule stands: the session that measures a class does not also
+   land it.
+
+### §83.7 THE DISCRIMINATOR FOR THE NEXT SITTING — BOARD-FREE, AND THE DATA IS ALREADY BANKED
+
+The asymmetry in §83.6 item 1 is decidable OFFLINE from the 197 banked seeds,
+because every trap entry publishes its own return IP on the pads:
+
+* Re-run `v30sim image` with `ilog=1` on the 29 scored seeds.  The instruction
+  log gives `(CS, PC)` per instruction, so the pushed-IP sequence can be turned
+  into *"how many instructions elapsed between the setter and the first trap"*
+  and *"how many between the handler's `IRET` and the next trap"*, per seed.
+* **The two registered candidates** — (a) the grace is on the SETTER only, so
+  `POPF` gets one instruction and `IRET` gets none; (b) the grace is on any
+  0→1 transition of TF, so both get one and the storm cadence must then be two.
+  **(b) is already refuted by the chip's cadence**, and this measurement either
+  confirms (a) exactly or produces a third shape, which is the result.
+* *Falsifier for the whole mechanism*: any of the 29 seeds where the chip's
+  first divergence is NOT at the trap's flush, or any seed where the chip takes
+  a vector-1 entry the architectural model does not take with `tf` ON.
+
+Only after that instant is fixed does the landing become pre-registerable:
+`sim/timed_runner.cpp` first, the `ucore` second, edge for edge, with
+`ulockstep --golden all --cases 50` **17,350 / 17,350** as the gate that the two
+engines are rendering the same sentence.
+
+### §83.8 THE RATCHETS — **NONE MOVED, IN EITHER DIRECTION**
+
+| gate | before | this sitting |
+|---|---|---|
+| `timed_fuzz --core ucore` REGISTERED / EVT / COMBINED | 1,490 / 918 / 2,408 | **1,490 / 918 / 2,408** |
+| `timed_fuzz --core sim` REGISTERED / EVT / COMBINED | 1,272 / 788 / 2,060 | **1,272 / 788 / 2,060** |
+| `x1_retention` `offline` | 279 / 283 | **279 / 283** |
+| `x1_retention` `ret` | 273 / 283 (**STALE — F55 era**) | **279 / 283**, bars (i) and (ii) both **MET** |
+| `x1_retention` `base` | 146 / 283 (**STALE — F55 era**) | **34 / 283** (diagnostic column, never a ratchet) |
+
+No RTL changed, no `sim/` changed, no golden moved, no bitstream built, no board
+touched.
+
+### §83.9 WHAT THIS SITTING DID NOT DO
+
+* **NO BOARD CONTACT, NO FLASHING, `use_core` NEVER SET.**  The board still
+  carries **FLASH #9**.
+* **Nothing landed.**  §83.6 states why, as a registered outcome.
+* **`TAIL_EXTRA`, the last-2-seeds closers, H3-B and the 8080 work were not
+  opened.  No memory file was touched.  Codex was not launched.**
+* **B2a's 12 seeds are booked, not diagnosed.**  `t30-raw/962` is named as the
+  cheapest instrument and is not run to the bottom here.
+* **B2b's 13 seeds are ROUTED OUT of the timing census** as inherited
+  architectural residue.  That is a re-attribution, not a fix, and it does not
+  change any number.

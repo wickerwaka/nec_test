@@ -399,6 +399,16 @@ ranking is complete and so H1 is not mistaken for the biggest thing overall.
 
 ### §5.4 H4 — `DATA_SEQ`, and the 13 seeds the model-replayed table could not see.
 
+> **SUPERSEDED IN PART, SM3 sitting 22 (`ucore_provenance.md` §83).**  The
+> shared partition this section feeds — §67.2's 27/28 "wrong `MEMR` launch
+> address" — is **three classes with three owners**, and only **12** of the 28
+> are a BIU question.  Three of them are a **genuine INT-1 entry**: the chip
+> single-steps and **neither timed engine implements the BRK/TF trap at all**
+> (bank-wide: 145 REGISTERED seeds contain a chip-side vector-1 entry, 29 scored
+> and diverging in both engines).  Thirteen are inherited **architectural**
+> residue the arch model already fails and are routed out of the timing census.
+> Read §83 before planning any `DATA_SEQ` work.
+
 41 in the ucore's own engine against 28 in the model's, on the registered bank —
 §58.4's finding, reproduced here.  §T.3 read `DATA_SEQ` as one of three families
 *"the ucore closed NOTHING in"*; in its own engine the family is **13 seeds
