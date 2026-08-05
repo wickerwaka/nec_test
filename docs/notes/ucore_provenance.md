@@ -11049,3 +11049,78 @@ INTA→PASV` and on `w2/w3` it is `ube 0→1`, several rows LATER than the ucore
 identical but the first-divergence SIGNATURES are not* — `w0.INT/4,5` is the
 counterexample, and §T.1's "the failing sets are NOT identical between engines"
 is true at w1/w2/w3 and false at w0.
+
+### §76.C **F52 — THE PRE-REGISTRATION.  WRITTEN AND COMMITTED BEFORE THE RTL WAS TOUCHED.**
+
+#### §76.C.1 THE MECHANISM, AND WHY IT IS ONE LINE
+
+The `seg` label is a **decoder artefact and not a segment fact.**  `check_core`
+reads the segment indicator as `SEG_STR[ps & 3]` off the composed A19-16
+nibble.  The wake code fetch's address is `0x57CB4`, so its own A19-16 is
+`0x5`, and `0x5 & 3 == 1 == "SS"`.  The status nibble at the same instant is
+`data_ps(CS) = {md8080, IE, 2'b10} = 0x6`, and `0x6 & 3 == 2 == "CS"`.
+**`seg exp 'CS' got 'SS'` is literally "the golden shows STATUS here and the
+ucore is still showing the ADDRESS".**  Δ`bus` = `+0x10000` is the same
+sentence in arithmetic.
+
+Measured across the wake fetch on the banked rows, the A19-16 = `0x5` run is:
+
+| | golden | ucore |
+|---|---|---|
+| every PASSING cell | **2 rows** (the display + its T1) | 2 rows — identical |
+| every FAMILY-A cell | **1 row** | **2, 3 or 4 rows** |
+
+**AND THE RTL ALREADY SAYS WHY, IN ITS OWN COMMENT, ABOUT THE OTHER HALF OF THE
+SAME MUX.**  `v30u_biu.sv`'s **M23**:
+
+> *"the address one-shot is fired by the DISPLAY and is ONE CLOCK LONG; where
+> the bus made the T1 wait it has already expired and A19-16 is back on the
+> segment status while A15-0 holds the address by pad retention."*
+
+M23 is enforced on the **T1** side (`t1_addr`, gated by `cur_late_t1`) and
+**NOWHERE ON THE DISPLAY SIDE**.  `display = r_cmt_valid && !ann_kill`, and
+`cmt_valid` is cleared only when its T1 opens (M2) — so when the announced
+cycle must wait for a busy bus, **`display` stays asserted for every waiting
+clock** and `ad_o`'s `display ? r_cmt_addr` republishes the full 20-bit address
+on all of them.  The one-shot is one clock long on one side of the mux and
+unbounded on the other.
+
+That is the whole defect, and it explains the band without any extra
+assumption: the family-A delays are exactly those at which the wake fetch's
+display lands INSIDE the HALT pseudo-cycle's tail, which is `waits + 2` clocks
+long — **the observed band width at every wait level.**
+
+*Simplicity, as the standing principle requires*: there is no segment logic
+here, no stack operation, no second HALT display and no per-cell table.  There
+is one multiplexed pin group, an address one-shot that silicon fires for one
+clock, and a term that was written on one side of the mux and not the other.
+
+#### §76.C.2 THE CHANGE
+
+One term in `ad_o`: on a display clock that is **not the first**
+(`r_cdage != 0`), A19-16 carries the ANNOUNCED cycle's own status nibble
+`data_ps(r_cmt_seg)` — the same group as `bs`, which already switches to
+`r_cmt_bs` at the display — while A15-0 continues to hold `r_cmt_addr[15:0]`.
+No flop is added; nothing else in the BIU, and no engine but the ucore, is
+touched.
+
+#### §76.C.3 THE REGISTERED PREDICTIONS
+
+| | bar | point estimate |
+|---|---|---|
+| **P1** | the four HLT sweeps ≥ **273 / 283** (≥ 8 of the 14 family-A cells close) | **279 / 283** = `93/97 · 95/95 · 46/46 · 45/45`, and **the ONLY survivors are the four family-B cells** (`w0.INT/2,3` and `w0.RES/2,3`) |
+| **P2** | `check_core --core ucore --opcodes all --cases 0` | **169,000 / 169,000**, cycles AND arch |
+| **P3** | the ucore ladder, every cell unmoved: `v0.1-w1`/`-w3` 1,200 · `EB` 200 · the four `evt` cells 200/1,200/200/1,200 · `w1evt-biased` 1,200 · `f4a_boundary` 160 · `f0lock_tranche` 400 · `check_boot` 220 and 400 · `ulockstep --golden all` 17,350 · `timed_wvec_gate` 88/88 +0.0 % · `timed_enter_replay` 154×5 · `timed_ins_replay --raw` 1,312/2,624 · `timed_fuzz --core ucore` REGISTERED ≥ 1,490, EVT ≥ 910, b2 ≥ 172 · `ss_lint` rc 0 | identical |
+| **P4** | the MODEL is not touched: `git diff -- sim` EMPTY, and §76.A.3's `--core sim` column stands unre-run except where a shared gate re-runs it anyway | identical |
+
+**THE FALSIFIERS, and they are conditions to REVERT ON, not to explain:**
+
+1. **any currently-PASSING sweep cell fails** → revert.  The change touches
+   every waiting display in the corpus, not only the HALT's, so this is the
+   real risk and it is registered as such.
+2. **`check_core` drops below 169,000** → revert.
+3. **the four FAMILY-B cells CLOSE** → the ATTRIBUTION is wrong even if the
+   score improves, because family B is a different mechanism and is
+   model-shared.  Report and revert.
+4. fewer than 8 of the 14 family-A cells close → the mechanism is not the whole
+   story; revert and book the partition.
