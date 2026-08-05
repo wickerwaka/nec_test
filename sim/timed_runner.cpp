@@ -180,6 +180,12 @@ void run_evt(BiuTimed& biu, CpuTimed& cpu, Machine& m,
             return;
         }
         if (rp.nmi) {
+            // F54, the NMI half: the announcement is cancelled iff A <= H - 6,
+            // so the display-only cancel is taken at A + K with K = 6 -- one
+            // clock BEFORE the entry clock, which does not move.  See
+            // BiuTimed::cancel_halt_disp.
+            biu.charge_to(a + 6);
+            biu.cancel_halt_disp();
             biu.charge_to(a + 7);              // B = a+5, entry at B+2
         } else {
             biu.charge_to(a + 3);

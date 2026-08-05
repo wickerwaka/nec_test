@@ -234,6 +234,32 @@ public:
     // HALT status at all because the wake reached the register first" are this
     // sentence, and this is the line that says it.
     void unhalt() { halted_ = false; halt_pending_ = false; }
+    // F54 -- THE CANCELLATION IS ONE CONSTANT PER PIN, AND ONLY ONE OF THE TWO
+    // WAS IN THE MODEL.  M20 (above) is the INT half and it is EXACT: the INT
+    // arms release at `A + 3` and silicon's INT constant is `K = 3`.  The NMI
+    // wake released at `A + 7` and silicon's NMI constant is `K = 6`, so the
+    // model's announcement survived one clock too long -- the TOP delay of the
+    // NMI band at every wait level, `w0 d0 / w1 d4 / w2 d6 / w3 d8`, and no
+    // banked population but the S16 display walk reaches those delays.
+    //
+    //   F54.  The HALT announcement at clock `H` is cancelled iff the pin
+    //   event's assert clock `A` satisfies `A <= H - K`, with `K = 3` on the
+    //   INT pin and `K = 6` on the NMI pin.
+    //
+    // Invariant over the wait level, the program and IE; 1,512 S16 captures,
+    // no exception (`ucore_provenance.md` §78.B, and §79 for this leg).
+    //
+    // THIS CANCELS THE ANNOUNCEMENT AND NOTHING ELSE.  It is the ucore's
+    // `eu_unhalt_disp` in the model's idiom: the ucore leaves the EU's own
+    // unhalt sequencing (`unhalt_pend`, at `A + 7`) exactly where it was and
+    // puts F54 on the display path alone, so the model leaves `halted_` -- the
+    // prefetch park -- to `unhalt()` at `A + 7` unchanged.  The wake's prefetch
+    // release is a DIFFERENT mechanism (family B) and is not folded in here.
+    //
+    // On every delay >= 8 -- which is every one of the 11,200 standing
+    // `HLT.NMI` goldens -- the display has already been taken long before
+    // `A + 6`, `halt_pending_` is already false, and this is a no-op.
+    void cancel_halt_disp() { halt_pending_ = false; }
     bool halted() const { return halted_; }
     bool suspended() const { return suspended_; }   // diagnostic only
     void charge_to(long c) { while (clk_ < c) tick(); }
