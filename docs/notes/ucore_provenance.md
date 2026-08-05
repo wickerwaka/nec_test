@@ -9632,6 +9632,23 @@ IE-gated recognition UNFLOORED after one; a maskable acknowledge on silicon
 whose **pushed PSW has IE = 0**; or an `iepop`/`iesti`-shaped cell in which the
 raising instruction's own boundary is taken by the INT pin.
 
+### §72.7a ONE STANDING GATE WAS **NOT RE-RUN**, AND IT IS BOOKED AS NOT RUN
+
+`python3 sw/fuzz_campaign.py lint` (standing_gates §A) **did not complete in
+this session** and no result for it is claimed.  Four attempts each sat in
+`State: S / do_wait` at **0 % CPU with an open socket on fd 10** — it is
+blocked waiting on a child, not computing — and §A describes the §A set as
+board-free, so this is a discrepancy worth someone's attention in its own
+right.  Every attempt was killed and `board_idle()` was re-run and OK after the
+last one.
+
+It is listed here rather than quietly omitted.  It lints the SOUP and RAW
+IMAGE GENERATORS (`_lint_soup` / `_lint_raw` — "the generators never emit a
+chip-wedging image"); this sitting changed `sim/biu_timed.{h,cpp}`,
+`sim/exec_impl.h`, `hdl/rtl/ucore/` and `sw/ss_lint.py`, none of which the
+generators read.  **That is a reason to expect it green, not evidence that it
+is.**
+
 ### §72.8 WHAT THIS SITTING DID NOT DO
 
 * **No flashing.**  `flash_log.jsonl` unchanged; the board still carries

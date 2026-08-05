@@ -25,7 +25,7 @@ C++ reference model — that is the spec engine and it did not change.
 | PLA | `python3 sw/pla3_check.py` | 21 PLA checks |
 | check_ucore_tables (G0) | `python3 sw/check_ucore_tables.py` | the generated `hdl/rtl/ucore/` tables byte-match `sim/`: 1028 ROM rows + 8192 micro-addresses + 768 PLA entries = **9,988**, on an INDEPENDENT re-parse and on the emitted artifacts (`ucore_provenance.md` §4) |
 | optable selfcheck | `python3 sw/optable.py --selfcheck` | the opcode table agrees with fuzz_cov + instructions.json |
-| fuzz_campaign lint | `python3 sw/fuzz_campaign.py lint` | the soup/raw generators never emit a chip-wedging image |
+| fuzz_campaign lint | `python3 sw/fuzz_campaign.py lint` | the soup/raw generators never emit a chip-wedging image.  **NOTE (SM3 s11): four attempts blocked in `do_wait` at 0 % CPU with an open socket — despite this section's "board-free" heading it appears to want a child process it did not get.  It was BOOKED AS NOT RUN rather than assumed green (`ucore_provenance.md` §72.7a); needs an instrument, not a re-try.** |
 | test_fuzz_classify / test_fuzz_accept | `python3 sw/test_fuzz_{classify,accept}.py` | the verdict tree + acceptance rules (offline) |
 | gen_ucore_qsf | `python3 sw/gen_ucore_qsf.py --check` | `hdl/nec_test_ucore.qsf` is a faithful derivative of `hdl/nec_test.qsf` — the two A/B bitstreams differ by the CORE and nothing else |
 
