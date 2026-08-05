@@ -129,6 +129,9 @@ public:
     // and no T-states, so there is no edge for the standing row's FLAGS
     // destination to take -- the row's own retire write does the job.
     void arm_flags_latch(uint16_t*) {}
+    // §84: the functional BIU has no clock, so it has no rise to report and
+    // the single-step arm is never enabled on it.
+    long brk_rise() const { return -1; }
     void wait_opr() {}
     void write_request(uint16_t, uint16_t, bool, uint8_t, bool, uint16_t) {}
     void opcode_prefetch(uint16_t) {}

@@ -297,6 +297,8 @@ public:
     // that knows when that edge is.  (The RTL publishes the same edge as
     // `eu_rd_edge`.)  Non-null = armed.
     void arm_flags_latch(uint16_t* psw) { flags_latch_ = psw; }
+    // §84: the clock PSW.BRK last rose, for the single-step arm's sample.
+    long brk_rise() const { return brk_rise_; }
     void wait_opr_free();
     void wait_bus();
     void wait_ie_floor();    // SM3 s11: the rising-IE recognition floor
@@ -715,6 +717,13 @@ private:
     // that read all of the above.
     static constexpr long kIeFloor = 2;   // MEASURED; see above
     long ie_rise_ = -1;         // the clock PSW.IE last went 0 -> 1
+    // §84: the SAME sample, one bit over.  `sample_ie()` already reads the
+    // live architectural PSW at the EU's own commit edge (I1/F39's early load
+    // at the read latch's close included), so the BRK rise costs one more
+    // comparison on a word that is already in hand -- no second opinion about
+    // when a flag moves.
+    long brk_rise_ = -1;        // the clock PSW.BRK last went 0 -> 1
+    bool brk_prev_ = false;
     bool ie_prev_ = false;      // ...the one sample the edge needs
     // M7b -- THE OUTSTANDING-FETCH TERM CLEARS WHEN THE BYTES ARE POPPABLE,
     // NOT WHEN THEY ARE WRITTEN.  The queue counter takes the bytes at the

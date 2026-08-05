@@ -462,6 +462,11 @@ int run_timed_boot(const ucrom::UcRom& rom, const char* image_path, long clocks,
     for (uint32_t a = 0; a < img.size(); ++a) biu.poke(a, img[a]);
 
     CpuTimed cpu(rom, biu);
+    // §84: the single-step arm exists only where there IS a successor boundary
+    // to trap at -- i.e. in a whole-program replay.  A single-instruction gate
+    // case retires once and stops, so the arm can never be read there; the
+    // case runner above leaves it off.
+    cpu.set_brk_enable(true);
     Machine& m = cpu.state();
     biu.bind_psw(&m.psw);
     biu.bind_md(&m.mode8080);
@@ -523,6 +528,22 @@ int run_timed_boot(const ucrom::UcRom& rom, const char* image_path, long clocks,
                          "timed-boot: STEP-ABORT at clk=%ld cs=%04X ip=%04X\n",
                          biu.clock(), unsigned(m.sreg[kCS]), unsigned(m.pc));
             break;
+        }
+        // --- §84: THE BRK/TF SINGLE-STEP TRAP ------------------------------
+        // An INTERNAL recognition at the ordinary retire boundary: no pin, no
+        // pin pipeline, no replay directive -- so nothing here consumes an
+        // `evt` and nothing waits for `assert_clk`.  The boundary itself has
+        // already run (`boundary_no_pop`: the successor's opcode pop is
+        // suppressed), and the entry costs the SAME M14 two clocks past it
+        // that every other recognised boundary costs.
+        if (cpu.brk_fired()) {
+            biu.charge_to(cpu.boundary_clk() + 2);
+            if (!cpu.interrupt(CpuTimed::kEvtBrk)) {
+                std::fprintf(stderr, "timed-boot: BRK entry did not terminate"
+                                     " at clk=%ld\n", biu.clock());
+                break;
+            }
+            continue;
         }
         // --- the replayed firing boundary, and M14's decision clock --------
         // `fired_boundary()` is the ordinary retire boundary; `intr_pending`

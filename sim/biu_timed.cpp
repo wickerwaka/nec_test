@@ -102,6 +102,8 @@ void BiuTimed::begin_case() {
     pf_infl_n_ = 0;
     pf_owed_ = false;           // M19
     ie_rise_ = -1;              // SM3 s11: no IE rise has happened yet
+    brk_rise_ = -1;             // §84: nor a BRK rise
+    brk_prev_ = false;
     ie_prev_ = false;
     cmt_expire_ = -1;           // M22
     cmt_was_owed_ = false;
@@ -244,6 +246,9 @@ void BiuTimed::expire_cmt() {
 void BiuTimed::sample_ie() {
     const bool ie = psw_ && (*psw_ & kFlagIE);
     if (ie && !ie_prev_) ie_rise_ = clk_;
+    const bool brk = psw_ && (*psw_ & kFlagBRK);
+    if (brk && !brk_prev_) brk_rise_ = clk_;
+    brk_prev_ = brk;
     static const bool kIeTrace = std::getenv("V30SIM_IETRACE") != nullptr;
     if (kIeTrace && ie != ie_prev_)
         std::fprintf(stderr, "IE clk=%ld -> %d\n", clk_, int(ie));

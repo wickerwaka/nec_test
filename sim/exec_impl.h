@@ -128,6 +128,30 @@ public:
     bool fired_boundary() const { return fired_boundary_; }
     long boundary_clk() const { return boundary_clk_; }
 
+    // --- §84: THE BRK/TF SINGLE-STEP ARM ------------------------------------
+    // ONE bit.  It is SAMPLED from TF at every boundary the fetcher retires --
+    // and a PREFIX retires as its own instruction (loader_impl.h,
+    // `prefix_retire`), so a prefix byte is such a boundary.  The trap is
+    // TAKEN at an instruction RETIRE boundary when the bit stands, and the
+    // entry clears both TF and the bit.  The sample reads TF as it stands when
+    // the sequence's `E` ROW OPENS, which is what makes `IRET` arm its own
+    // boundary and `POPF` not: 007A (POP PSW) IS `9D`'s `E` row, so at its
+    // open the popped word has not landed, while 01EA (RETI) is followed by
+    // the far-jump chain, so by `CF`'s `E` row it has.  No opcode is named.
+    //
+    // MEASURED, sw/sm3_tf_law.py: 38/38 exact on the ruler-valid stratum of
+    // the 197 chip-side vector-1 seeds, storm cadence 0 on 1,742/1,742 pairs,
+    // and 44 storm traps landing on PREFIXED instructions all at retire (which
+    // is what says the TAKE is at retire and not at the prefix boundary --
+    // otherwise those 44 would have re-trapped the same byte forever).
+    //
+    // *Falsifier*: any trap taken at a prefix boundary; any `POPF` whose
+    // trap does not fall two retire boundaries later; any `IRET` whose trap
+    // does not fall one; any third ROM row that loads FLAGS from OPR.
+    bool brk_fired() const { return brk_fired_; }
+    void set_brk_enable(bool on) { brk_enable_ = on; }
+    void clear_brk() { brk_arm_ = false; brk_take_ = false; brk_fired_ = false; }
+
     // --- S9b: the SAME boundary, in the MULTI-INSTRUCTION domain -------------
     // A single-instruction case has exactly one boundary, so `fire_pc` alone
     // names it.  A whole-program replay does not: the recorded resume CS:IP can
@@ -213,12 +237,60 @@ private:
     long fire_cs_ = -1;
     // The replayed firing boundary, evaluated at the `E` row.  Same predicate
     // as the functional driver's, in the same two coordinates.
-    bool at_fire_boundary() const {
+    bool ext_fire() const {
         if (fire_pc_ < 0 || m_.pc != uint16_t(fire_pc_)) return false;
         if (fire_cs_ >= 0 && m_.sreg[kCS] != uint16_t(fire_cs_)) return false;
         if (fire_ev_ >= 0 && biu_.ev_count() < fire_ev_) return false;
         return true;
     }
+    // §84: the BRK/TF trap is recognised at the SAME boundary, by the same
+    // machinery -- it is the existing entry with one more term on the arm,
+    // not a second recognition path.  A REPLAYED external boundary wins the
+    // tie, because that one is a directive from the capture and this one is a
+    // prediction.
+    bool at_fire_boundary() const { return ext_fire() || brk_take_; }
+    void note_boundary_reason() { brk_fired_ = brk_take_ && !ext_fire(); }
+    void brk_retire(uint8_t op_dbg = 0) {
+        if (!brk_enable_) return;
+        const bool tf = (m_.psw & kFlagBRK) != 0;
+        const long rise = biu_.brk_rise();
+        const long clk = biu_.clock();
+        const bool seen = tf && (rise < 0 || clk >= rise + kBrkFloor);
+        if (std::getenv("V30SIM_BRKTRACE"))
+            std::fprintf(stderr, "BRKR clk=%ld tf=%d rise=%ld seen=%d "
+                                 "take=%d arm=%d op=%02X\n",
+                         clk, int(tf), rise, int(seen), int(brk_take_),
+                         int(brk_arm_), unsigned(op_dbg));
+        if (brk_take_) { brk_arm_ = false; brk_take_ = false; }
+        else { brk_arm_ = seen; }
+    }
+    // §84 / §72's SHAPE, AND §84's ONE NUMBER.  The arm does not see a TF that
+    // rose too recently -- the same shape as the IE-restore floor (§72, 2
+    // clocks), one bit over, and for the same reason: a flag written into the
+    // PSW reaches the recognition decision through a pipeline.
+    //
+    // MEASURED, over the 29 scored vector-1 seeds (`gapdist`, ledger §84.3):
+    // the ONLY two opcodes that ever raise TF are `9D` and `CF`, and the
+    // clocks between the rise and the retire that samples it are
+    //     `9D`  1 (x16) or 2 (x12)      -- 007A IS `9D`'s `E` row, so it
+    //                                      retires AT its own flag write
+    //     `CF`  6 .. 26 (x813)          -- 01E8 FLUSHED the queue, so `CF`
+    //                                      cannot retire until a refill lands
+    // with NOTHING in between.  So the floor is bounded by the data to
+    // [3, 6] and no value in that interval is distinguishable on this
+    // population.  **3 is taken because it is not a new constant**: it is the
+    // depth the INT LEVEL already pays to reach this same decision
+    // (`timed_runner.cpp`'s `evpipe`, `docs/facts/interrupt_model.md`).
+    //
+    // *Falsifier*: any instruction whose TF rise is 3, 4 or 5 clocks before
+    // the retire that must sample it -- that case separates [3,6] and this
+    // tree has none.  Any third opcode raising TF also falsifies the premise.
+    static constexpr long kBrkFloor = 3;
+    bool brk_enable_ = false;   // program replay only; a single-instruction
+                                // case has no successor boundary to trap at
+    bool brk_arm_ = false;      // the arm bit itself
+    bool brk_take_ = false;     // this sequence retires into the trap
+    bool brk_fired_ = false;    // ...and it did
     bool fired_boundary_ = false;
     long boundary_clk_ = -1;
     uint16_t hw_owned_[kHwCount] = {};
@@ -777,7 +849,18 @@ bool CpuT<Bus>::step() {
     begin_sequence();
     fired_boundary_ = false;
     biu_.clear_consumed();
+    brk_fired_ = false;
+    brk_take_ = false;
     LoadResult ld = loader_decode(m_, biu_);
+    if (brk_enable_) {
+        // §84.  Every PREFIX this sequence just retired was a boundary, and
+        // it SAMPLED the arm; TF cannot move across a prefix chain, so one
+        // assignment covers the whole chain.  The TAKE is then decided here,
+        // before the opcode runs, which is what lets the ordinary recognised-
+        // boundary machinery carry the trap without a second path.
+        if (m_.pfxcnt > 0) brk_arm_ = (m_.psw & kFlagBRK) != 0;
+        brk_take_ = brk_arm_;
+    }
     if (trace_) {
         std::fprintf(trace_,
                      "  loader: opc=%02X pla=%04X modrm=%s%02X ea=%s%04X "
@@ -800,12 +883,15 @@ bool CpuT<Bus>::step() {
         if (!ld.halt && at_fire_boundary()) {
             boundary_clk_ = biu_.boundary_no_pop(!m_.intr_pending);
             fired_boundary_ = true;
+            note_boundary_reason();
         }
+        brk_retire(ld.opcode);
         return true;
     }
 
     bool ok = run_micro(ld.entry);
     rep_abort_at_ = -1;
+    brk_retire(ld.opcode);
     return ok;
 }
 
@@ -834,6 +920,13 @@ bool CpuT<Bus>::run_micro(const MicroPc& entry) {
         else
             rowp = &nop;
         const ucrom::MicroOp& op = *rowp;
+        // §84: the arm's SAMPLE INSTANT.  TF as it stands when the `E` row
+        // OPENS -- before that row's `F` interlock delivers anything.  007A
+        // (POP PSW) IS `9D`'s `E` row, so `POPF` samples the OLD TF; 01EA
+        // (RETI) is followed by the far-jump chain, so `IRET` samples the NEW
+        // one.  The asymmetry is ROM geometry read at one instant, not a rule
+        // about two opcodes.
+
         ++rows_;
         if (bank >= 0) ++g_row_cover[bank * 4 + m_.upc.row()];
 
@@ -1187,6 +1280,7 @@ bool CpuT<Bus>::run_micro(const MicroPc& entry) {
                 // retire, so it does not carry the post-redirect floor.
                 boundary_clk_ = biu_.boundary_no_pop(!m_.intr_pending);
                 fired_boundary_ = true;
+                note_boundary_reason();
                 row_clocks = 0;
             } else {
                 biu_.opcode_prefetch(m_.sreg[kCS]);
@@ -1218,6 +1312,7 @@ bool CpuT<Bus>::run_micro(const MicroPc& entry) {
     if (at_fire_boundary()) {
         boundary_clk_ = biu_.boundary_no_pop(!m_.intr_pending);  // S9a deferred
         fired_boundary_ = true;
+        note_boundary_reason();
         return true;
     }
     biu_.opcode_prefetch(m_.sreg[kCS]);

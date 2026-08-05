@@ -13515,3 +13515,108 @@ defect in the same extractor: a bare `4`/`6` read pair plus any three
 descending writes counted as an entry, which gave one seed 22 phantom entries;
 §83.2's signature has a FIFTH part, the TRANSFER to the handler the vector just
 named, and it is load-bearing.
+
+### §84.2 THE HELD-OUT RUN — **THE REGISTERED BAR V-1 WAS NOT MET, AND THAT IS THE RESULT AS REGISTERED**
+
+167 seeds, none of them looked at while §84.1 was being written.
+
+| registered bar | outcome |
+|---|---|
+| **V-1** rate ≥ 95 % of scoreable heads | **139 HIT / 148 scoreable = 93.9 %** — **NOT MET** as written; **96.5 %** (139/144) once V-3's 4 corollary seeds are set aside as V-3 itself directs |
+| **V-1** ZERO misses on `(POPF, unprefixed S+1)` | **NOT MET — 3 misses** (`mc1/323`, `t30-raw/714`, `t30-raw/920`) |
+| **V-2** storm grace 0 on every pair | **MET — 1,136 / 1,136** held-out, **1,742 / 1,742** with the selecting set |
+| **V-3** corollary branches reported apart | **4 seeds**, all reported, none counted |
+
+**The falsifier fired.**  It is recorded here as it was registered and it is not
+restated.  What the misses then turned out to be is a separate statement:
+
+**ALL NINE MISSES ARE `OPEN_BUS`-EXCUSED SEEDS.**  Stratified by the repo's own
+pre-existing scoring class (`fuzz_accept.open_bus_escape_metrics`), over all 177
+scoreable heads of both populations:
+
+| stratum | conform | not |
+|---|---|---|
+| `DIVERGE` / REGISTERED (the 29) | **29** | 0 |
+| `DIVERGE` / EVT (**held out, never used in the fit**) | **9** | 0 |
+| `OPEN_BUS` | 131 | **8** |
+
+**On every seed where the ruler is VALID the law is exact, 38 of 38**, and 9 of
+those 38 are held-out EVT seeds.  `OPEN_BUS` means the chip LEFT THE IMAGE and
+read bus feedthrough while the model did not, so the model's instruction log is
+not the chip's instruction stream there — the ruler is invalid by construction,
+not by excuse.  **THIS STRATIFICATION IS POST-HOC**: it was chosen after seeing
+which seeds missed, and it is a mitigation of a failed bar, not a rescue of it.
+It is written down as such, and the landing below does not rest on it: a landing
+is scored against silicon per clock, with no ruler in the loop, so **the landing
+is its own falsifier**.
+
+One more thing the held-out run found and one seed decides it, so it is an
+OBSERVATION and NOT a clause of the law: on `t30-raw/920` the `0F`
+two-byte-opcode ESCAPE behaves as a boundary exactly as a prefix does.
+
+### §84.3 WHAT THE LAW ACTUALLY IS — **ONE FLOOR, NOT TWO OPCODES**
+
+§84.1 wrote the POPF/IRET asymmetry as *"`IRET`'s PSW write lands before its own
+boundary's sample; `POPF`'s lands after it."*  Landing it exposed that as a
+DESCRIPTION, not a mechanism — and the ROM refutes the obvious reading of it:
+**007A and 01EA are BOTH `OPR -> FLAGS  F E` rows, both the `E` row of their
+sequence, both followed by exactly one post-`E` row.**  The geometry is
+identical.  The difference is CLOCKS, and it is §72's shape:
+
+> **The arm does not see a `TF` that rose too recently.**  Sampled at the
+> instruction's retire, a rise fewer than **3 clocks** earlier is not there yet.
+
+and that single floor produces the asymmetry with neither opcode named, because
+
+* `9D` retires **AT** its own flag write — 007A is its `E` row and nothing
+  follows but `SIGMA -> SP`;
+* `CF` **FLUSHED THE QUEUE** at 01E8, so it cannot retire until a refill lands.
+
+MEASURED, over the 29 scored seeds, as *clocks from the rise to the retire that
+samples it* — and **the only two opcodes that ever raise TF in the whole
+population are `9D` and `CF`**, which is the law's premise verified rather than
+assumed:
+
+| opcode | clocks rise → retire | n |
+|---|---|---|
+| `9D` `POPF` | **1** (×16), **2** (×12) | 28 |
+| `CF` `IRET` | **6 … 26** | 813 |
+
+**Nothing in between.**  The floor is bounded by the data to **[3, 6]** and no
+value in that interval is separable on this population.  **3 is taken because it
+is not a new constant**: it is the depth the INT LEVEL already pays to reach
+this same decision (`timed_runner.cpp`'s `evpipe`, `docs/facts/interrupt_model.md`).
+
+*Falsifier*: any instruction whose TF rise is 3, 4 or 5 clocks before the retire
+that must sample it — that case separates [3, 6] and this tree has none.  Any
+third opcode raising TF falsifies the premise.
+
+### §84.4 THE LANDING IN THE C++ TIMED ENGINE, AND ITS PRE-REGISTERED BAR
+
+`sim/exec_impl.h` (the arm, the floor, the take at retire), `sim/biu_timed.{h,cpp}`
+(`brk_rise_`, sampled by the SAME `sample_ie()` call that already reads the live
+PSW — one more comparison on a word in hand), `sim/timed_runner.cpp` (the entry;
+program replay only).  It is **the existing recognition**: `at_fire_boundary()`
+gains one term, so the trap rides `boundary_no_pop` and the M14 entry like every
+other recognised boundary.  Nothing names an opcode anywhere.
+
+**MEASURED ON THE 30-SEED CELL** (`--seeddir`, the 29 + the control):
+`EXACT` **1 → 11**.  **Ten of the 29 close cycle-exact**; `mc2/2361`, the
+software-INT control, is **unmoved and still EXACT**; **no seed regressed** and
+every seed's first divergence moved LATER or stayed.
+
+**PRE-REGISTERED, before the full ladder is run:**
+
+* `timed_fuzz --core sim --evt-replay`: REGISTERED **≥ 1,282** (1,272 + the ten),
+  EVT **≥ 788**, COMBINED **≥ 2,070**; and **no seed that was EXACT may become
+  non-EXACT** — that is the real bar, and it is checked seed-by-seed, not by the
+  totals.
+* MUST NOT MOVE, `--core sim` / model legs: `make -C sim test`, `pla3_check`
+  (21), the `ucsim_check` suites, `timed_gate v0.1 --forms all` 169,000,
+  `v0.1-w1`/`-w3` 1,200, `EB` 200, the four `evt` cells 200/1,200/200/1,200,
+  `w1evt-biased` 1,200, `check_boot --timed 220`, `timed_scenario` 18/0/9,
+  `timed_enter_replay` 154×5, `timed_ins_replay` 1,312 / 2,624, `timed_wvec_gate`
+  88/88, `timed_lawcards` 8/0/3, the four HLT sweeps 91/95/44/42, and
+  `--seeddir b2-tranche` 154/188.
+* **FALSIFIER**: any of those moving DOWN by one cell is a REGRESSION and the
+  landing is reverted, not renegotiated.
