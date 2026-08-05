@@ -10947,10 +10947,15 @@ the per-cell `*.ret.json.gz` rows) and re-measured on THIS tree with
 | `s13-hltsweep-w3` | **40 / 45** | `HLT.INT` 15/20 · `HLT.RES` 25/25 |
 | **total** | **265 / 283** | 18 survivors |
 
-> ⚠ **`CLAUDE.md` QUOTED 91/90/40/38 = 259/283 FOR THE ucore.**  That is the
-> **pre-F43** set (§43.2-era), stale since sitting 6.  §67.3 measured
-> 91/92/42/40 = **265** and `offline.json` carries it; this sitting re-measured
-> it a third time and gets 265 with the same coordinates.  Corrected UPWARD.
+> ⚠ **ERRATUM, SAME SITTING, AGAINST MYSELF.**  This box first said
+> *"`CLAUDE.md` quotes 91/90/40/38 = 259/283 and is stale"*.  **THAT WAS FALSE
+> AND IS RETRACTED.**  `CLAUDE.md` on disk carries **91/97, 92/95, 42/46,
+> 40/45 = 265/283** and has since sitting 6; the 259 figure came from a stale
+> in-context snapshot of the file, not from the file.  The rule this breaks is
+> the standing one — *verify against the artifact, not against recall* — and it
+> is left in place rather than deleted for exactly the reason that rule gives.
+> What stands is the measurement: **265/283, re-measured on this tree, with
+> §67.3's coordinates cell for cell.**
 
 | # | cell | w | delay | first div | signature | golden busstat/tstate | family |
 |---|---|---|---|---|---|---|---|
@@ -11298,3 +11303,19 @@ the pad — `core_ad_eff = core_ad_oe ? core_ad : {4'b0, c_rdata_q}` — must
 reproduce the fabric base leg EXACTLY: **146/283, the same 137 failing cells,
 first divergence at `r+1` on all 119, and 0 rows differing from `fab_f7` over
 all 283 cells.**  A build and a re-score, no board.  **Not run here.**
+
+### §76.F WHAT THIS SITTING DID NOT DO, AND THE STATE IT LEAVES
+
+* **NO BOARD CONTACT.**  No capture, no flash, no `use_core` flip, no
+  transport opened.  Nothing in this section was measured on silicon; every
+  fabric number quoted in §76.E is read off BANKED captures.
+* **NO ENGINE CHANGED, NET.**  `git diff <the F52 pre-registration commit> --
+  hdl/rtl sim` is **EMPTY** at the close.  F52 was built, scored and reverted
+  inside the sitting; the RTL is byte-identical to what it was before it.
+* **The ucore is re-proved on the reverted tree**: `check_core --core ucore
+  --opcodes all --cases 0` **169,000 / 169,000**, the four sweeps **265 / 283**
+  at §67.3's coordinates.
+* **Not opened**, as scoped: the 8080 work, H3-B, H7.  **No memory file
+  touched.  Codex not launched.**
+* **Not run**: the ucore's full ladder (it was not needed — nothing landed).
+  §76.D.3 states what a re-land owes.
