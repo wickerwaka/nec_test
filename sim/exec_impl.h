@@ -250,11 +250,38 @@ private:
     // prediction.
     bool at_fire_boundary() const { return ext_fire() || brk_take_; }
     void note_boundary_reason() { brk_fired_ = brk_take_ && !ext_fire(); }
-    void brk_retire(uint8_t op_dbg = 0) {
+    // §85.2 — **THE BOUNDARY INSTANT IS ONE CLOCK PAST THE SUCCESSOR'S OPCODE
+    // POP, AND THE TWO RETIRE PATHS DID NOT AGREE ABOUT THAT.**
+    //
+    // MEASURED on the s24 cell's OWN TF-CLEAR CONTROLS — no trap anywhere in
+    // them, no law in the loop — by pairing every `brk_retire` clock with the
+    // chip's `QS = 1` opcode pops in the same capture:
+    //
+    //     90 · 9D · 8B · 8E · B8 · E7 · CF   retire at pop + 1   (459 of 459)
+    //     F8                                 retire at pop + 0   ( 70 of  70,
+    //                                                              both waits)
+    //
+    // `F8` is `ONE_BYTE_LOGIC` (`loader_impl.h`): its accounting is
+    // `wait_retire_lead()` — which lands on the clock BEFORE the successor's
+    // pop, where the flag write commits — plus `charge(1)`, so it stops AT the
+    // pop.  A ROM form's stops one clock past it.  **That one clock never
+    // reaches a bus column**: the six control captures are 0 row-diffs over
+    // 4,063 rows each and their `QS` pop indices are chip-identical, so no gate
+    // in the tree could see it.  The single-step arm reads that instant
+    // directly, and it is the only thing in the tree that does.
+    //
+    // The correction is to the INSTRUMENT'S COORDINATE, not to the law: the
+    // arm asks for the boundary, and on this path the BIU's clock is one short
+    // of it.  Nothing is charged — charging would move the bus, which is
+    // already exact.
+    //
+    // *Falsifier*: any opcode whose `brk_retire` clock is not exactly one past
+    // the chip's next `QS = 1` pop, on a capture with `TF` clear.
+    void brk_retire(uint8_t op_dbg = 0, bool predecode = false) {
         if (!brk_enable_) return;
         const bool tf = (m_.psw & kFlagBRK) != 0;
         const long rise = biu_.brk_rise();
-        const long clk = biu_.clock();
+        const long clk = biu_.clock() + (predecode ? 1 : 0);
         const bool seen = tf && (rise < 0 || clk >= rise + brk_floor());
         if (std::getenv("V30SIM_BRKTRACE"))
             std::fprintf(stderr, "BRKR clk=%ld tf=%d rise=%ld seen=%d "
@@ -903,7 +930,7 @@ bool CpuT<Bus>::step() {
             fired_boundary_ = true;
             note_boundary_reason();
         }
-        brk_retire(ld.opcode);
+        brk_retire(ld.opcode, /*predecode=*/true);
         return true;
     }
 

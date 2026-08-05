@@ -1,0 +1,436 @@
+{
+ "bars": {
+  "W-0a": {
+   "captures": 18,
+   "entries": 0,
+   "bar": 0,
+   "met": true
+  },
+  "W-1": {
+   "disagreeing_cells": [],
+   "met": true
+  },
+  "W-0b": {
+   "rows": 24378,
+   "ndiff": 0,
+   "bar": 0,
+   "met": true
+  },
+  "W-2": {
+   "predictions.json": {
+    "per_cell": {
+     "popfnone:w0": [
+      2,
+      3,
+      4
+     ],
+     "popfnone:w3": [
+      3,
+      4,
+      5
+     ],
+     "popfclc:w0": [
+      2
+     ],
+     "popfclc:w3": [
+      3
+     ],
+     "popfinc:w0": [
+      2,
+      3
+     ],
+     "popfinc:w3": [
+      3,
+      4
+     ],
+     "popftest:w0": [
+      2,
+      3
+     ],
+     "popftest:w3": [
+      3,
+      4
+     ],
+     "popfxchg:w0": [
+      2,
+      3,
+      4
+     ],
+     "popfxchg:w3": [
+      3,
+      4,
+      5
+     ],
+     "popfadd:w0": [
+      2,
+      3,
+      4
+     ],
+     "popfadd:w3": [
+      3,
+      4,
+      5
+     ],
+     "popfmovi:w0": [
+      2,
+      3,
+      4,
+      5
+     ],
+     "popfmovi:w3": [
+      3,
+      4,
+      5,
+      6
+     ],
+     "popfpfx:w0": [
+      1,
+      2,
+      3,
+      4
+     ],
+     "popfpfx:w3": [
+      1,
+      2,
+      3,
+      4,
+      5
+     ],
+     "popfmemr:w0": [
+      2,
+      3,
+      4,
+      5,
+      6,
+      7
+     ],
+     "popfmemr:w3": [
+      3,
+      4,
+      5,
+      6,
+      7
+     ],
+     "popfmul:w0": [
+      2,
+      3,
+      4,
+      5,
+      6,
+      7
+     ],
+     "popfmul:w3": [
+      3,
+      4,
+      5,
+      6,
+      7
+     ],
+     "iret:w0": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      6
+     ],
+     "iret:w3": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7
+     ]
+    },
+    "survivors": [],
+    "cells": 22,
+    "cells_matching_3": 21,
+    "misses_at_3": [
+     "popfclc:w0"
+    ]
+   },
+   "predictions_corrected.json": {
+    "per_cell": {
+     "popfnone:w0": [
+      2,
+      3,
+      4
+     ],
+     "popfnone:w3": [
+      3,
+      4,
+      5
+     ],
+     "popfclc:w0": [
+      2,
+      3
+     ],
+     "popfclc:w3": [
+      3,
+      4
+     ],
+     "popfinc:w0": [
+      2,
+      3
+     ],
+     "popfinc:w3": [
+      3,
+      4
+     ],
+     "popftest:w0": [
+      2,
+      3
+     ],
+     "popftest:w3": [
+      3,
+      4
+     ],
+     "popfxchg:w0": [
+      2,
+      3,
+      4
+     ],
+     "popfxchg:w3": [
+      3,
+      4,
+      5
+     ],
+     "popfadd:w0": [
+      2,
+      3,
+      4
+     ],
+     "popfadd:w3": [
+      3,
+      4,
+      5
+     ],
+     "popfmovi:w0": [
+      2,
+      3,
+      4,
+      5
+     ],
+     "popfmovi:w3": [
+      3,
+      4,
+      5,
+      6
+     ],
+     "popfpfx:w0": [
+      1,
+      2,
+      3,
+      4
+     ],
+     "popfpfx:w3": [
+      1,
+      2,
+      3,
+      4,
+      5
+     ],
+     "popfmemr:w0": [
+      2,
+      3,
+      4,
+      5,
+      6,
+      7
+     ],
+     "popfmemr:w3": [
+      3,
+      4,
+      5,
+      6,
+      7
+     ],
+     "popfmul:w0": [
+      2,
+      3,
+      4,
+      5,
+      6,
+      7
+     ],
+     "popfmul:w3": [
+      3,
+      4,
+      5,
+      6,
+      7
+     ],
+     "iret:w0": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      6
+     ],
+     "iret:w3": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7
+     ]
+    },
+    "survivors": [
+     3
+    ],
+    "cells": 22,
+    "cells_matching_3": 22,
+    "misses_at_3": []
+   }
+  },
+  "W-3": {
+   "met": true,
+   "iret": {
+    "w0": 2,
+    "w3": 2
+   },
+   "popfnone": {
+    "w0": 3,
+    "w3": 3
+   }
+  },
+  "W-4": {
+   "phase2": 0,
+   "not_a_start": 0,
+   "met": true
+  },
+  "W-5": {
+   "pairs": 90,
+   "bad": [],
+   "met": true
+  },
+  "W-6": {
+   "1": {
+    "rows": 121890,
+    "ndiff": 71324,
+    "cells_with_diffs": [
+     "popfadd:w0=3732",
+     "popfadd:w3=3236",
+     "popfclc:w0=3820",
+     "popfclc:w3=3333",
+     "popfinc:w0=3821",
+     "popfinc:w3=3333",
+     "popfmemr:w0=3673",
+     "popfmemr:w3=3518",
+     "popfmovi:w0=3723",
+     "popfmovi:w3=3536",
+     "popfmul:w0=3411",
+     "popfmul:w3=3528",
+     "popfnone:w0=3809",
+     "popfnone:w3=3328",
+     "popftest:w0=3744",
+     "popftest:w3=3542",
+     "popfxchg:w0=3802",
+     "popfxchg:w3=2920",
+     "storm:w0=3838",
+     "storm:w3=3677"
+    ]
+   },
+   "2": {
+    "rows": 121890,
+    "ndiff": 33951,
+    "cells_with_diffs": [
+     "popfadd:w3=3236",
+     "popfclc:w3=3333",
+     "popfinc:w3=3333",
+     "popfmemr:w3=3518",
+     "popfmovi:w3=3536",
+     "popfmul:w3=3528",
+     "popfnone:w3=3328",
+     "popftest:w3=3542",
+     "popfxchg:w3=2920",
+     "storm:w3=3677"
+    ]
+   },
+   "3": {
+    "rows": 121890,
+    "ndiff": 0,
+    "cells_with_diffs": []
+   },
+   "4": {
+    "rows": 121890,
+    "ndiff": 11032,
+    "cells_with_diffs": [
+     "popfclc:w0=3602",
+     "popfinc:w0=3602",
+     "popftest:w0=3828"
+    ]
+   },
+   "5": {
+    "rows": 121890,
+    "ndiff": 40226,
+    "cells_with_diffs": [
+     "popfadd:w0=3816",
+     "popfclc:w0=3602",
+     "popfclc:w3=3548",
+     "popfinc:w0=3602",
+     "popfinc:w3=3548",
+     "popfnone:w0=3702",
+     "popfpfx:w0=3602",
+     "popftest:w0=3828",
+     "popftest:w3=3571",
+     "popfxchg:w0=3567",
+     "storm:w0=3840"
+    ]
+   },
+   "6": {
+    "rows": 121890,
+    "ndiff": 61049,
+    "cells_with_diffs": [
+     "popfadd:w0=3816",
+     "popfadd:w3=3535",
+     "popfclc:w0=3602",
+     "popfclc:w3=3548",
+     "popfinc:w0=3602",
+     "popfinc:w3=3548",
+     "popfmovi:w0=3807",
+     "popfnone:w0=3702",
+     "popfnone:w3=3451",
+     "popfpfx:w0=3602",
+     "popfpfx:w3=3548",
+     "popftest:w0=3828",
+     "popftest:w3=3571",
+     "popfxchg:w0=3567",
+     "popfxchg:w3=3251",
+     "storm:w0=3840",
+     "storm:w3=3231"
+    ]
+   },
+   "7": {
+    "rows": 121890,
+    "ndiff": 68011,
+    "cells_with_diffs": [
+     "iret:w0=3826",
+     "popfadd:w0=3816",
+     "popfadd:w3=3535",
+     "popfclc:w0=3618",
+     "popfclc:w3=3548",
+     "popfinc:w0=3619",
+     "popfinc:w3=3548",
+     "popfmovi:w0=3807",
+     "popfmovi:w3=3533",
+     "popfnone:w0=3702",
+     "popfnone:w3=3451",
+     "popfpfx:w0=3618",
+     "popfpfx:w3=3548",
+     "popftest:w0=3477",
+     "popftest:w3=3571",
+     "popfxchg:w0=3567",
+     "popfxchg:w3=3251",
+     "storm:w0=3745",
+     "storm:w3=3231"
+    ]
+   }
+  }
+ }
+}

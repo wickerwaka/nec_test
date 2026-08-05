@@ -13854,3 +13854,244 @@ three TF-CLEAR sleds that must trap ZERO times, an `iret` sled that differs from
 pair, 3 vs 4, still separates on three independent cells.  The `V30SIM_BRKFLOOR`
 env knob (default the landed 3, read by no gate) is what lets the engine be
 wrong on purpose so that the prediction table can exist at all.
+
+### §85.2 THE RUN — **THE BARS AS REGISTERED, AND THE ONE THAT FAILED IS AN INSTRUMENT DEFECT THE CELL'S OWN CONTROLS FOUND**
+
+**BOARD SESSION.**  `sw/sm3_tf_floor_cell.py run`, socket only
+(`EMIT_USE_CORE` False), `div_guard` **PINNED** (`div=8 (4 MHz), commanded by
+this connection`), **90 captures** (15 sleds × 2 waits × 3 repeats), 4,063 rows
+each, 0 transport errors, ~10 s of board time, full per-clock rows + raw 64-bit
+words, **184 files under `SHA256SUMS`**, `board_idle()` run and OK.  **NO
+FLASHING** — the board carries FLASH #9.  **NO PIN WAS DRIVEN AT ALL**: the trap
+is internal, so `evt` is `None`, there is no hold and no `fired`, and INV-1's
+directive-truncation exposure does not exist here.
+
+| bar | registered | measured |
+|---|---|---|
+| **W-0a** the TF-clear null | 0 vector-1 entries | **0**, over 18 captures — **MET** |
+| **W-0b** the clock ruler | 0 row-diffs chip vs engine on the law-free controls | **0 / 24,378 rows** — **MET** |
+| **W-1** determinism | 3 repeats identical | **every one of the 30 cells identical** — **MET** |
+| **W-2** the floor | \|S\| == 1 | **S = ∅.  NOT MET.** |
+| **W-3** the asymmetry | `iret` phase 2, `popfnone` phase 3, both waits | **iret [2, 2], popfnone [3, 3]** — **MET** |
+| **W-4** no take at a prefix boundary | 0 | **0**, and **0** pushed IPs that are not an instruction start — **MET** |
+| **W-5** storm grace 0 | every consecutive pair | **90 / 90 pairs** — **MET** |
+
+**W-2 IS REPORTED AS REGISTERED AND IT IS NOT RESTATED.**  What its failure
+LOOKS like is a separate statement: **floor 3 matches 21 of the 22 scored cells
+and the single miss is `popfclc` at w0** — the same sled at w3 HITS.  Scored the
+sharper way the cell also registered (W-6, per clock, chip vs engine, every
+capture) — **these are the AS-REGISTERED figures, on the instrument as it stood
+before §85.2a; the corrected column is in §85.2b**:
+
+| floor | rows | row-diffs (as registered) |
+|---|---|---|
+| 1 | 121,890 | 71,324 |
+| 2 | 121,890 | 33,951 |
+| **3** | **121,890** | **3,602 — and ALL 3,602 are `popfclc` w0; the other 29 captures are 0** |
+| 4 | 121,890 | 14,580 |
+| 5 | 121,890 | 40,226 |
+| 6 | 121,890 | 61,049 |
+| 7 | 121,890 | 68,011 |
+
+### §85.2a THE DEFECT — **ONE CLOCK, ONE OPCODE, AND THE CELL'S OWN REGISTERED CONTROLS ARE WHERE IT IS VISIBLE**
+
+**W-0b had the RIGHT POPULATION AND THE WRONG STATISTIC, and the run is what
+says so.**  Its control sleds carry `TF` clear, so they contain no law at all —
+that is why they are the ruler check.  But the statistic registered for them was
+BUS row-diffs, and `F8` (`CLC`) makes no bus cycle: a one-clock error in a
+bus-free instruction's *retire instant* cannot reach any column of any row.  It
+is invisible to every gate in the tree.
+
+The right statistic on the SAME registered population is the one the chip
+publishes: **`QS = 1`, the opcode pop.**  Pairing every `brk_retire` clock with
+the chip's own next pop in the same capture:
+
+| opcode | retire − successor's pop | n |
+|---|---|---|
+| `90` `9D` `8B` `8E` `B8` `E7` `CF` | **+1** | **459 of 459** |
+| **`F8`** | **+0** | **70 of 70, at BOTH wait levels** |
+
+**Unanimous, and it is one opcode.**  `F8` is `ONE_BYTE_LOGIC` in
+`loader_impl.h`: its accounting is `wait_retire_lead()` — which lands on the
+clock BEFORE the successor's pop, where the flag write commits, exactly as that
+file's own MEASURED comment says — plus `charge(1)`, so it stops **at** the pop.
+A ROM form's stops **one past** it.  The two retire paths did not agree about
+where a boundary is, and the single-step arm is the only thing in the tree that
+reads that instant.
+
+**THE CORRECTION** (`sim/exec_impl.h`, `brk_retire(op, predecode)`): on the
+pre-decode-executed path the arm's sample instant is `biu_.clock() + 1`.
+Nothing is charged — charging would move the bus, and the bus is already exact.
+
+**ITS ACCEPTANCE TEST IS NOT THE FLOOR VERDICT**, which is the whole point:
+it is *"every opcode's `brk_retire` clock is exactly one past the chip's next
+`QS = 1` pop, on a capture with `TF` clear"*.  Measured after the fix over
+**2,900 boundaries** on the six control captures: **0 violators** (one retire
+falls past the capture window's last pop and is excluded as a window edge).
+The pre-registered prediction table regenerated on the corrected instrument
+differs in **`popfclc` and nothing else** — 2 cells of 30 move, and they are the
+only two containing an `F8`.
+
+### §85.2b THE VERDICT — **THE FLOOR IS 3, AND IT IS NOW MEASURED RATHER THAN CHOSEN**
+
+Re-scored on the corrected instrument, and **both scores are reported; the
+registered one is not replaced**:
+
+| W-2, scored against | surviving floors | floor 3 |
+|---|---|---|
+| `predictions.json` — **THE PRE-REGISTERED TABLE** | **∅ — the registered bar, NOT MET** | 21 / 22 cells |
+| `predictions_corrected.json` — the same table, §85.2a's instrument | **{3}** | **22 / 22 cells** |
+
+and per clock, chip vs engine, **every capture in the cell**:
+
+> **floor 3: 121,890 rows, 0 row-diffs.  EXACT on all 30 captures.**
+> Floors 1, 2, 4, 5, 6, 7 are 71,324 / 33,951 / 11,032 / 40,226 / 61,049 /
+> 68,011.  **No other value in [1, 7] is within four orders of magnitude.**
+
+**§84.3's own falsifier is EXERCISED AND DOES NOT FIRE.**  It asked for *"any
+instruction whose TF rise is 3, 4 or 5 clocks before the retire that must sample
+it"*; this cell supplies rises at **2, 3, 4, 5** clocks at w0 and **3, 4, 5, 6**
+at w3, forty times per capture, and every one of them behaves as a floor of 3
+says it must.  The bound §84.3 could only write as **[3, 6]** is now **{3}**.
+
+**AND THE `evpipe` JUSTIFICATION IS RETIRED AS A JUSTIFICATION.**  §84.3 took 3
+*"because it is not a new constant"*.  That was a reason to prefer it, never
+evidence for it.  It is now measured, and the fact that it coincides with the
+INT level's depth is a RESULT — two recognitions reaching the same decision
+through the same three clocks — not an argument.
+
+**WHAT THE OTHER BARS ADD, and they are not decorations:**
+
+* **W-3 refutes the boundary-count reading outright.**  `iret` and `popfnone`
+  have the SAME 6-byte period, the same NOP run, and differ only in the setter.
+  A rule of the form *"the setter's own boundary never samples"* — which fits
+  all twenty `popf*` cells perfectly — predicts `iret` at phase 3.  **The chip
+  says 2, at both waits.**  Only a CLOCK floor gets both, because `CF` flushed
+  the queue and its own retire is 6 (w0) / 11 (w3) clocks past its rise.  §84.1
+  wrote this asymmetry as an opcode rule; here it is a consequence, measured on
+  a population built for it.
+* **W-4** puts a number on the take-at-retire clause: `popfpfx`'s period offset
+  2 is the prefixed opcode and is NOT an instruction start, so a trap taken AT
+  the prefix boundary would push exactly that address.  **Zero did**, and zero
+  pushed IPs anywhere in the cell failed to be an instruction start.
+* **W-5** re-runs §84's V-2 on a directed storm: **90 / 90 consecutive pairs at
+  grace 0.**
+
+### §85.2c WHAT IS STILL OWED, STATED PLAINLY
+
+The registered bar W-2 **FAILED** and was re-scored only after an instrument
+fix.  The fix is small, it is mechanism-level, its acceptance test is
+engine-free and independent of the floor, and it was found in the cell's OWN
+REGISTERED CONTROL POPULATION rather than in the failing cell — but it was
+applied **after** the failure was seen, and that is written here rather than
+smoothed.  Two things stop it being §84.2's pattern repeated:
+
+1. **The fix cannot manufacture the verdict.**  It moves exactly two of the
+   thirty cells, both `popfclc`, and floor 3 was already 0 row-diffs on the
+   other twenty-eight *before* it.  The 4-vs-3 decision is carried by
+   `popfinc` w0 and `popftest` w0, which contain no `F8` and did not move.
+2. **The correction is falsifiable on its own terms**, by a test that never
+   looks at a trap: `sim/exec_impl.h`'s falsifier beside it.
+
+The **§85.0 provisional status** is therefore recommended LIFTED on this
+evidence, and the recommendation is flagged for review rather than asserted.
+
+### §85.3 THE `ucore` LEG — **NOT LANDED, AND THE CELL REFUTED THE SPEC IT WAS GOING TO BE LANDED FROM**
+
+§84.7 wrote the RTL leg as small and already named by the core's own structure:
+
+> `v30u_eu.sv` already pipelines `psw[FIE]` through **`ie_p[3:0]`** and demands
+> "IE up NOW **and** up three clocks ago" at `at_bnd`.  §84.3's floor is the same
+> three clocks on the same kind of pipeline, so the arm is `brk_p[3:0]` built the
+> same way from `psw[FBRK]`, and **the take is `at_bnd && brk_p[3]`**.
+
+**THE TAKE IS NOT `at_bnd && brk_p[3]`, AND THIS CELL IS WHAT SAYS SO.**  That
+form is a PURE COMBINATIONAL GATE at the boundary — which is exactly right for
+the IE recognition, because a level-sensitive request is still there at the next
+boundary if it was not taken at this one.  **A trap is not a request.**  The
+single-step arm is a bit that is SAMPLED at one boundary and TAKEN at the NEXT,
+and the difference is one whole boundary on every sled in the cell.
+
+Under any pure gate — *take at the first boundary at which `TF` has been up for
+at least `N` clocks*, for **any** `N` — the fitting values of `N` are, per cell:
+
+| sled (w0) | walk `B0..B4` | chip phase | `N` that fit a pure gate |
+|---|---|---|---|
+| `popfnone` | 1, 4, 7, 10, 13 | 3 | 5, 6, 7 |
+| `popfclc` | 1, 3, 6, 9, 12 | 3 | 4, 5, 6 |
+| `popfmemr` | 1, **13**, 16, 19, 22 | 4 | 14, 15, 16 |
+| `popfmul` | 1, **25**, 28, 31, 34 | 4 | 26, 27, 28 |
+| `iret` | 6, 10, 13, 16, 19 | 2 | 7, 8, 9, 10 |
+
+**The sets are DISJOINT — `{5,6,7}` against `{26,27,28}` — so no `N` exists.**
+The two sleds that kill it are the SATURATED CONTROLS, `popfmemr` and `popfmul`,
+whose `B1` sits 13 and 25 clocks after the rise: any floor worth the name is
+long since satisfied there, and the chip STILL waits one more boundary.  That is
+an arm bit, not a gate, and it is measured.  (The landed C++ shape — sample at
+`B_j`, take at `B_{j+1}` — fits every cell at `N = 3`: W-6, 0 row-diffs on
+121,890 rows.)
+
+**SO THE `ucore` LEG NEEDS, and this is the corrected spec:**
+
+* `brk_p[3:0]`, `psw[FBRK]` through the same three flops as `ie_p` — **this part
+  of §84.7 stands**, and it supplies the FLOOR term `brk_seen = psw[FBRK] &&
+  brk_p[2]`;
+* **plus a real ARM FLOP** that crosses boundaries: at every sampling boundary,
+  `if (take) arm <= 0; else arm <= brk_seen;` and `take = at_bnd && arm`.  It is
+  ONE flop and it is the thing §84.7 did not have;
+* the SAMPLING boundaries are the retire boundaries **and** the prefix
+  hand-over, which the RTL currently and deliberately excludes: `bnd_armed` is
+  what separates the `S_OPC_POP` a prefix hands over from a real boundary,
+  "which is the measured *no sample between 26 and 8B*".  §84.7 already flagged
+  this as the one place the two engines do not agree, and **W-4 confirms the
+  half of it that constrains the RTL**: 0 traps taken at a prefix boundary,
+  0 pushed IPs that are not an instruction start, over 108 entries.
+  Sample and take are different events at the same boundary and the RTL must
+  say so explicitly rather than inherit `bnd_armed`.
+* the entry is the existing vector-1 door §71 routes; `FBRK` is already cleared
+  on entry by `I_CITF` (`v30u_eu_poste.svh` vector 1).
+
+**GATES OWED WITH IT** (unchanged from §84.7, plus one): `ulockstep --golden all
+--cases 50` 17,350/17,350 — and it is worth saying that **lockstep on the golden
+set is VACUOUS for this trap**, because a single-instruction case has no
+successor boundary to trap at and the case runner leaves the arm off, exactly as
+in the C++; the cross-engine proof is this cell's 30 captures scored against
+BOTH engines.  Plus the whole ucore ladder, an `SS_VERSION` bump (`brk_p` and
+the arm are 5 architecture-adjacent flops and the census is a gate), a G6
+receipt — **and `sw/sm3_tf_floor_cell.py` re-scored with the ucore as the
+engine, which is now the sharpest gate the trap has: 121,890 rows, and the model
+is at 0.**
+
+**NOTHING WAS LANDED IN `hdl/rtl/` THIS SITTING.**  `git diff` against it is
+empty.  Landing the corrected spec, with its own ladder and receipt, is the next
+sitting's first item — and it is now a landing against a MEASURED spec instead
+of an inferred one.
+
+### §85.4 THE RATCHETS
+
+**NOTHING MOVED.**  §85.2a's correction is read by the single-step arm and by
+nothing else, and the arm exists only in whole-program replay.  Re-run on the
+final binary:
+
+| gate | registered | this sitting |
+|---|---|---|
+| `timed_fuzz --core sim --evt-replay` REGISTERED | 1,282 | **1,282 / 1,702** |
+| … EVT | 789 | **789 / 1,008** |
+| … COMBINED | 2,071 | **2,071 / 2,710** |
+| `--seeddir b2-tranche` | 154 / 188 | **154 / 188** |
+| `make -C sim test` | PASS | **PASS** |
+| `pla3_check` | 21 | **21** |
+| `ucsim_check v0.1` | 169,000 | **169,000 / 169,000** |
+| `ucsim_check mod3_illegal --residue stale-ea` | 128 | **128 / 128** |
+
+**NEW, and it is this sitting's own:**
+
+| gate | value |
+|---|---|
+| `sm3_tf_floor_cell score` W-6, **floor 3** | **121,890 rows, 0 row-diffs, all 30 captures** |
+| … the same at floors 1, 2, 4, 5, 6, 7 | 71,324 / 33,951 / 11,032 / 40,226 / 61,049 / 68,011 |
+| W-0a the TF-clear null | **0 entries, 18 captures** |
+| W-1 determinism | **30 / 30 cells identical across 3 repeats** |
+| W-3 the `iret`/`popfnone` asymmetry | **phase 2 vs 3, both waits** |
+| W-4 traps taken at a prefix boundary | **0 of 108 entries** |
+| W-5 storm grace | **0 on 90 / 90 pairs** |

@@ -386,6 +386,14 @@ def cmd_run(args):
            "div": DIV_OF_RECORD, "waits": waits, "variants": variants,
            "reps": args.reps, "evt": None, "cells": {}}
     man["div_guard"] = div_guard("sm3-s24tfcell")
+    # MERGE, never clobber: a cell run in two passes (controls first, then the
+    # TF sleds) must not lose the first pass's record to the second's write.
+    old = OUT / "manifest.json"
+    if old.exists():
+        prev = json.loads(old.read_text())
+        man["cells"] = dict(prev.get("cells", {}))
+        man["variants"] = sorted(set(prev.get("variants", [])) | set(variants))
+        man["div_guard_prev"] = prev.get("div_guard")
     t0, consec = time.time(), 0
     for v in variants:
         image, _meta = image_of(v)
@@ -434,79 +442,159 @@ def _sha256sums():
 
 
 def cmd_idle(args):
-    from s13_board import board_idle
-    print(board_idle())
+    from b1_recapture import board_idle
+    board_idle()
+    print("board_idle: OK")
 
 
 # --------------------------------------------------------------------------- #
 def cmd_score(args):
+    """Score every registered bar of `sm3_s24_prereg_2026-08-05.md` §6.
+
+    `--table` selects WHICH prediction table the floor is scored against:
+    `predictions.json` is the PRE-REGISTERED one, committed before contact;
+    `predictions_corrected.json` is the same table regenerated after §85.2's
+    instrument fix.  Both are scored and both are reported -- the registered
+    outcome is never replaced by the corrected one.
+    """
     import fuzz_classify as fc
-    pred = json.loads((OUT / "predictions.json").read_text())
     man = json.loads((OUT / "manifest.json").read_text())
-    floors = pred["floors"]
-    chip = defaultdict(list)
-    for key, rec in man["cells"].items():
-        v, w, _r = key.split(":")
-        chip[(v, w)].append(rec["hist"])
+    waits = man["waits"]
+    ph_of = {}
+    for key in man["cells"]:
+        v, w, r = key.split(":")
+        with gzip.open(OUT / f"{v}_{w}_{r}.rows.json.gz", "rt") as fh:
+            ph_of[(v, w, r)] = phases(json.load(fh), v)
+    rep = {"bars": {}}
 
-    print("=== A. THE CLOCK RULER -- chip vs engine PER CLOCK on the "
-          "TF-CLEAR controls (no law in them) ===")
-    ruler = {}
+    # --- W-0a  the null -----------------------------------------------------
+    nulls = [(k, len(p)) for k, p in ph_of.items()
+             if k[0] in NOTF_VARIANTS + ("iretnotf",)]
+    w0a = sum(n for _, n in nulls)
+    rep["bars"]["W-0a"] = {"captures": len(nulls), "entries": w0a,
+                           "bar": 0, "met": w0a == 0}
+    print(f"W-0a  TF-clear null: {len(nulls)} captures, {w0a} vector-1 "
+          f"entries (bar 0)  -> {'MET' if w0a == 0 else 'NOT MET'}")
+
+    # --- W-1  determinism ---------------------------------------------------
+    bad = []
+    for v in sorted({k[0] for k in ph_of}):
+        for w in waits:
+            got = [ph_of[(v, f"w{w}", f"r{r}")] for r in range(man["reps"])
+                   if (v, f"w{w}", f"r{r}") in ph_of]
+            if got and any(g != got[0] for g in got):
+                bad.append(f"{v}:w{w}")
+    rep["bars"]["W-1"] = {"disagreeing_cells": bad, "met": not bad}
+    print(f"W-1   determinism across {man['reps']} repeats: "
+          f"{'MET -- every cell identical' if not bad else 'NOT MET ' + str(bad)}")
+
+    # --- W-0b  the clock ruler ---------------------------------------------
+    tot = nd = 0
     for v in NOTF_VARIANTS + ("iretnotf",):
-        image, _m = image_of(v)
-        for w in [int(x) for x in str(man["waits"]).strip("[]").split(",")]:
-            f = OUT / f"{v}_w{w}_r0.rows.json.gz"
-            if not f.exists():
-                continue
-            with gzip.open(f, "rt") as fh:
+        for w in waits:
+            with gzip.open(OUT / f"{v}_w{w}_r0.rows.json.gz", "rt") as fh:
                 rows = json.load(fh)
-            srows, _ = run_sim(image, w, 3, clocks=len(rows))
-            d = fc.diff_rows(rows, srows, limit=len(rows), window=len(rows))
-            ruler[f"{v}:w{w}"] = {"n": min(len(rows), len(srows)),
-                                  "ndiff": len(d.rows)}
-            print(f"{v:10s} w{w}: rows={min(len(rows), len(srows))} "
-                  f"row-diffs={len(d.rows)}")
-
-    print("\n=== B. THE CHIP, per cell ===")
-    survivors = set(floors)
-    detail = {}
-    for (v, w), hists in sorted(chip.items()):
-        same = all(h == hists[0] for h in hists)
-        walk = pred["rows"][v][w]["walk"]
-        row = {"chip": hists[0], "reps_identical": same, "walk": walk,
-               "floor_hits": []}
-        for f in floors:
-            if pred["rows"][v][w]["floor"][str(f)]["hist"] == hists[0]:
-                row["floor_hits"].append(f)
-        detail[f"{v}:{w}"] = row
-        print(f"{v:10s} {w} walk={walk} chip={hists[0]} "
-              f"reps_identical={same} floors_matching={row['floor_hits']}")
-        if v != "storm":
-            survivors &= set(row["floor_hits"])
-    print(f"\n=== SURVIVING FLOORS across every scored cell: "
-          f"{sorted(survivors)} ===")
-
-    print("\n=== C. PER-CLOCK, chip vs engine, at each surviving floor ===")
-    perclk = {}
-    for f in (sorted(survivors) or floors):
-        tot = nd = 0
-        for (v, w) in sorted(chip):
             image, _m = image_of(v)
-            fp = OUT / f"{v}_{w}_r0.rows.json.gz"
-            if not fp.exists():
-                continue
-            with gzip.open(fp, "rt") as fh:
-                rows = json.load(fh)
-            srows, _ = run_sim(image, int(w[1:]), f, clocks=len(rows))
+            srows, _ = run_sim(image, w, 3, clocks=len(rows))
             d = fc.diff_rows(rows, srows, limit=len(rows), window=len(rows))
             tot += min(len(rows), len(srows))
             nd += len(d.rows)
-        perclk[f] = {"rows": tot, "ndiff": nd}
-        print(f"floor {f}: {tot} rows, {nd} row-diffs")
+    rep["bars"]["W-0b"] = {"rows": tot, "ndiff": nd, "bar": 0, "met": nd == 0}
+    print(f"W-0b  clock ruler, chip vs engine per clock on the LAW-FREE "
+          f"controls: {tot} rows, {nd} row-diffs (bar 0)  -> "
+          f"{'MET' if nd == 0 else 'NOT MET'}")
 
-    (OUT / "score.json").write_text(json.dumps(
-        {"ruler": ruler, "detail": detail, "survivors": sorted(survivors),
-         "perclock": perclk}, indent=1))
+    # --- W-2  the floor, on BOTH tables ------------------------------------
+    scored = [v for v in POPF_VARIANTS + ("iret",)]
+    for tab in ("predictions.json", "predictions_corrected.json"):
+        fp = OUT / tab
+        if not fp.exists():
+            continue
+        pred = json.loads(fp.read_text())
+        surv, per = set(pred["floors"]), {}
+        for v in scored:
+            for w in waits:
+                cp = ph_of[(v, f"w{w}", "r0")]
+                hits = [f for f in pred["floors"]
+                        if pred["rows"][v][f"w{w}"]["floor"][str(f)]["phases"]
+                        == cp[:len(pred["rows"][v][f"w{w}"]["floor"]
+                                   [str(f)]["phases"])]]
+                per[f"{v}:w{w}"] = hits
+                surv &= set(hits)
+        n3 = sum(1 for h in per.values() if 3 in h)
+        rep["bars"].setdefault("W-2", {})[tab] = {
+            "per_cell": per, "survivors": sorted(surv),
+            "cells": len(per), "cells_matching_3": n3,
+            "misses_at_3": [k for k, h in per.items() if 3 not in h]}
+        print(f"W-2   [{tab}] surviving floors over {len(per)} cells: "
+              f"{sorted(surv)}   (floor 3 matches {n3}/{len(per)}; "
+              f"misses {[k for k, h in per.items() if 3 not in h] or 'none'})")
+
+    # --- W-3  the asymmetry -------------------------------------------------
+    w3ok = all(ph_of[("iret", f"w{w}", "r0")][0] == 2
+               and ph_of[("popfnone", f"w{w}", "r0")][0] == 3 for w in waits)
+    rep["bars"]["W-3"] = {"met": w3ok,
+                          "iret": {f"w{w}": ph_of[("iret", f"w{w}", "r0")][0]
+                                   for w in waits},
+                          "popfnone": {f"w{w}":
+                                       ph_of[("popfnone", f"w{w}", "r0")][0]
+                                       for w in waits}}
+    print(f"W-3   iret vs popfnone, same period, setter the only difference: "
+          f"iret={[ph_of[('iret', f'w{w}', 'r0')][0] for w in waits]} "
+          f"popfnone={[ph_of[('popfnone', f'w{w}', 'r0')][0] for w in waits]}"
+          f"  -> {'MET' if w3ok else 'NOT MET'}")
+
+    # --- W-4  no trap TAKEN at a prefix boundary ---------------------------
+    at_pfx = sum(1 for w in waits for r in range(man["reps"])
+                 for x in ph_of.get(("popfpfx", f"w{w}", f"r{r}"), []) if x == 2)
+    nonstart = sum(1 for w in waits for r in range(man["reps"])
+                   for x in ph_of.get(("popfpfx", f"w{w}", f"r{r}"), [])
+                   if x is None)
+    rep["bars"]["W-4"] = {"phase2": at_pfx, "not_a_start": nonstart,
+                          "met": at_pfx == 0 and nonstart == 0}
+    print(f"W-4   traps taken AT the prefix boundary (popfpfx phase 2): "
+          f"{at_pfx}; pushed IPs that are not an instruction start: "
+          f"{nonstart}  -> {'MET' if at_pfx == 0 and nonstart == 0 else 'NOT MET'}")
+
+    # --- W-5  the storm cadence --------------------------------------------
+    starts, period = starts_of("storm")
+    bad5 = []
+    for w in waits:
+        seq = ph_of[("storm", f"w{w}", "r0")]
+        for a, b in zip(seq, seq[1:]):
+            if a is None or b is None or \
+                    (starts.index(b) - starts.index(a)) % len(starts) != 1:
+                bad5.append((w, a, b))
+    rep["bars"]["W-5"] = {"pairs": sum(len(ph_of[("storm", f"w{w}", "r0")]) - 1
+                                       for w in waits),
+                          "bad": bad5[:10], "met": not bad5}
+    print(f"W-5   storm cadence, grace 0 on every consecutive pair: "
+          f"{sum(len(ph_of[('storm', f'w{w}', 'r0')]) - 1 for w in waits)} "
+          f"pairs, {len(bad5)} bad  -> {'MET' if not bad5 else 'NOT MET'}")
+
+    # --- W-6  per clock, at every floor ------------------------------------
+    print("W-6   per clock, chip vs engine, EVERY capture:")
+    pc = {}
+    for f in [int(x) for x in args.floors.split(",")]:
+        tot = nd = 0
+        worst = []
+        for v in sorted({k[0] for k in ph_of}):
+            for w in waits:
+                with gzip.open(OUT / f"{v}_w{w}_r0.rows.json.gz", "rt") as fh:
+                    rows = json.load(fh)
+                image, _m = image_of(v)
+                srows, _ = run_sim(image, w, f, clocks=len(rows))
+                d = fc.diff_rows(rows, srows, limit=len(rows), window=len(rows))
+                tot += min(len(rows), len(srows))
+                nd += len(d.rows)
+                if d.rows:
+                    worst.append(f"{v}:w{w}={len(d.rows)}")
+        pc[f] = {"rows": tot, "ndiff": nd, "cells_with_diffs": worst}
+        print(f"        floor {f}: {tot} rows, {nd} row-diffs"
+              + (f"   [{', '.join(worst)}]" if worst else "   EXACT"))
+    rep["bars"]["W-6"] = pc
+    (OUT / "score.json").write_text(json.dumps(rep, indent=1))
+    print(f"\nwrote {OUT/'score.json'}")
 
 
 def main():
@@ -523,6 +611,7 @@ def main():
     p.add_argument("--prereg", default="")
     p.set_defaults(fn=cmd_run)
     p = sub.add_parser("score")
+    p.add_argument("--floors", default="1,2,3,4,5,6,7")
     p.set_defaults(fn=cmd_score)
     p = sub.add_parser("idle")
     p.set_defaults(fn=cmd_idle)
