@@ -11319,3 +11319,275 @@ all 283 cells.**  A build and a re-score, no board.  **Not run here.**
   touched.  Codex not launched.**
 * **Not run**: the ucore's full ladder (it was not needed — nothing landed).
   §76.D.3 states what a re-land owes.
+
+## §77 SESSION SM3, SITTING 16 — **F52's RE-LAND IS F53, AND IT IS ONE LAW, NOT THREE: FAMILIES A, C AND E ARE THE SAME SENTENCE ON THREE PINS.  AUTHORISED ON A NEW BOARD POPULATION THAT DID NOT EXIST WHEN ANYTHING WAS SCORED, ON WHICH IT CLOSES 72 + 5 SIGNATURE CELLS AND BREAKS NOTHING.**
+
+**2026-08-05, branch `ucsim`, from HEAD `dc820e8569`.  BOARD CONTACT: yes —
+socket only, `use_core=False`, divider PINNED at both ends of the session, NO
+FLASHING, `board_idle()` at the close.**
+
+> **Standing principle, applied throughout.**  *"A guiding principal here needs
+> to be simplicity.  This is 80's era hardware, they aren't wasting silicon on
+> anything that isn't necessary.  Complex or confusing behavior that we see is
+> likely to be simple systems interacting in ways you do not fully understand
+> yet."*
+
+The pre-registration is `docs/notes/sm3_s16_prereg_2026-08-05.md`, committed as
+`aa31eb2f0f` **before the board was touched**, and this section reports against
+it and does not restate it.
+
+### §77.A THE DIAGNOSIS — §76.D.2's FOUR FAMILIES ARE **TWO MECHANISMS AND ONE INSTRUMENT CLASS**
+
+§76.D.2 partitioned the 15-cell residue into **B**(4) · **C**(2) · **D**(4) ·
+**E**(5) and called family C *"the same law as F52 one step further on"*.  That
+reading is CONFIRMED and it goes further than one step: **A, C and E are one
+law.**
+
+`check_core`'s `bus` column is `ad_addr` on a T1 row and `{ps, ad_data}`
+everywhere else, so the A19-16 sample is directly readable on every other row.
+Read that way, `s10-hltsweep-w0 HLT.INT idx 4` states the whole thing:
+
+| row | T | status | GOLDEN A19-16 | ucore | |
+|---|---|---|---|---|---|
+| 6 | T3 | CODE | **5** — the ADDRESS | 5 | the wake fetch's DISPLAY clock |
+| 7 | T4 | CODE | **6** = `data_ps(CS)` | **5** | **family A** |
+| 8 | T1 | CODE | 6 (a LATE T1) | 6 | M23's `t1_addr`, already correct |
+| 10 | T3 | INTA | **0** — the "address" | 0 | the acknowledge's DISPLAY clock |
+| 11 | T4 | INTA | **6** | **0** | **family C** |
+| 12 | T1 | INTA | 6 (a LATE T1) | **0** | **family C** |
+
+M23 already wrote the law down — *"the address one-shot is fired by the DISPLAY
+and is ONE CLOCK LONG; where the bus made the T1 wait it has already expired and
+A19-16 is back on the segment status"* — and `v30u_biu.sv` enforced it on the
+**T1** side alone.  `display ? r_cmt_addr` republished the whole 20-bit address
+on every waiting clock (family A, F52's diagnosis, correct); and
+`(disp_inta || cur_inta) ? 20'h0` did the IDENTICAL thing one cycle-type over
+(family C).  **An INTA has an address phase too; its value is simply zero,
+because it announces no address.**
+
+**And UBE is the same one-shot's third pin.**  `ube_n`'s middle term was
+`r_run ? r_cur_ube_n` — a *running* cycle re-drives its UBE on every clock of
+its body.  That is invisible for an ordinary cycle (it re-drives the value its
+own T1 latched) and wrong the instant an announcement that has already put its
+UBE on the pin is **WITHDRAWN**: the chip keeps the withdrawn announcement's
+UBE by pad retention and the running HALT pseudo-cycle painted its own `1` over
+it.  Family E — and it is **ucsim-t §26.7.7's open item** (*"after a WITHDRAWN
+multi-clock announcement the pads retain the WITHDRAWN cycle's address and
+UBE"*), seen from the RTL side and now **CLOSED**.
+
+#### §77.A.1 THE LAW — F53
+
+> **The address phase is ONE CLOCK, on both sides of the pin mux and for both
+> kinds of address.**  A19-16 carries the announced cycle's address-phase value
+> for exactly the display clock (`r_cdage == 0`) — the address's own A19-16 for a
+> cycle that has one, `0` for an INTA, which does not — and `data_ps(seg)` on
+> every clock after it, up to and including a LATE T1.  **UBE is loaded by the
+> address phase and then HELD**; it is not re-driven by a cycle that is merely
+> running, so a withdrawn announcement's UBE stands on the pads.
+
+Two `wire [3:0]` selectors, one changed term in `ube_n`, one re-spelled mux in
+`ad_o` — **no flop added, mux PRIORITY unchanged, nothing outside the pin group
+touched, and no engine but the ucore.**  There is no segment logic here, no
+per-cell table and no second HALT display.
+
+#### §77.A.2 FAMILY D IS NOT THIS LAW — IT IS **THE ANALYSER'S SECOND SAMPLE**, AND THE MEASUREMENT IS 217 MILLION ROWS WIDE
+
+`nec_bus.sv` samples `BS` **twice** per CPU clock: `bs_early` at the FALLING
+edge (line 188-197), which is the value that lands in the row's status column,
+and `bs_q`, registered every system clock, so at `tick_rise` it is the
+END-of-clock value and it is what `next_t_state` reads (lines 297, 339-345).  On
+family D's four cells the golden carries `bs_early != PASV` on the last clock of
+a withdrawn window **and** `t == Ti` on the row after: **silicon's announcement
+status is present at mid-clock and gone by the end of the same clock.**
+
+The ucore's `bs` is a whole-clock level, so the analyser's two samples see the
+same value and the pattern is unreachable.  Counted over **every committed
+golden suite — 217,530,000 rows** (`v0.1` 4,547,843 · `v0.2` 9,990,517 · `v0.3`
+108,053,378 · `v20suite` 94,438,658 · the four sweeps · the evt tranches ·
+`f4a_boundary` · `f0lock_tranche` · `mod3_illegal`) — the pattern
+`bs(r) != PASV ∧ t(r) ∈ {T4,Ti} ∧ t(r+1) == Ti` occurs **4 times**, and they are
+**exactly the four family-D cells**: `w1.INT/8` row 10, `w1.INT/9` row 10,
+`w2.INT/12` row 12, `w3.INT/15` row 14.  Nowhere else, in any suite.
+
+**And `tb_v30_core.sv` has only ONE sample**, used both as the recorded column
+and as its own tracker's `bs_active` — so on the default TB these four cells are
+unfixable **by construction**: any half-clock status release that produced the
+golden's `t == Ti` would also flip the recorded status column and break the row
+it was fixing.  On `tb_sys` and in fabric, where the analyser IS `nec_bus`, a
+half-clock release WOULD be scoreable.  **BOOKED, NOT LANDED** — it is a
+different mechanism (*when within the clock the status register releases on a
+withdrawal*, the F43/H1 shape), it owes its own authorising evidence, and folding
+it into F53 would be fitting.
+**Its falsifier, registered here**: land a negedge status release and `tb_sys` /
+fabric must close all four while `tb_v30_core` must NOT.
+
+#### §77.A.3 FAMILY B STAYS BOOKED, AND IT GREW BY TWO CELLS' WORTH OF MEANING
+
+4 cells, `w0.INT/2,3` · `w0.RES/2,3`, `(4, busstat) CODE→PASV` — the whole
+capture one row late.  **Model-shared** (§76.B.2), so `sim/` owns it and this
+sitting did not open it.  What F53 added is that `w0.INT/4,5`, which §76.D.2
+called family C, are **family B underneath**: with the nibble signature gone
+their first divergence is `(17, busstat) INTA→PASV` — the SECOND acknowledge one
+capture row late, the same "an announcement fires one row later than silicon"
+sentence at a different announcement.  So the sweeps' post-F53 residue is
+**6 family-B cells and 4 family-D cells, and the catch-all is empty.**
+
+### §77.B THE DIRECTED CELL — S16, THE DISPLAY WALK
+
+`sw/sm3_s16_cell.py`.  **It did not exist when anything was scored**, which is
+what §76.D.3 requires of a re-land's authorising population.
+
+* **3 forms** — `HLT.INT` (ie=1, status nibble `0x6`), `HLT.RES` (ie=0, `0x2`),
+  `HLT.NMI` (ie drawn per program).  `HLT.NMI` is in **no** HLT delay sweep.
+* **6 programs per form**, each ONE frozen RNG draw, printed by `plan` and
+  written into the pre-registration.  **The s10/s13 sweeps run ONE program per
+  form and its wake-fetch linear address is `0x57CB4`**, whose top nibble `5` is
+  a legal segment-status code — ucsim-t §26.7's confound.  The 18 S16 programs
+  split **7 IMPOSSIBLE** (wake nibble ≥ 8: it sets the 8080 emulation-mode bit,
+  which no segment status can carry in a capture that is not in emulation mode,
+  so the nibble NAMES ITSELF as the address), **9 legal-diff**, **2 SAME** (the
+  confounded control the sweeps are).
+* **4 wait levels × 21 delays** (0..20), containing `H … H+waits+1` at every
+  level with margin on both sides.
+* **1,512 planned cells; 1,371 emitted; 141 not composable** — every one of
+  them at a LOW delay where the pin event fires before the HALT is reached
+  (`no F pop from close addr` / `recognition off-window`), i.e. the case does
+  not exist, not a capture that failed.
+* **303 s of board time, 2 capture runs, `div_guard` PINNED on all four
+  probes (open and close of each run), 0 transport errors, no wedge.**  Raw
+  64-bit words + full per-clock rows retained for all 1,512, `SHA256SUMS` over
+  **3,025 files** in `sw/testdata/sm3-s16cell/`.
+* Emitted through the STANDARD path (`es.emit_evt_case`), so the goldens are
+  `tests/v30/s16-dispwalk-w<w>-p<p>/<form>.json.gz` and `check_core` scores them
+  with no new machinery.
+
+**AND IT ENLARGES THE POPULATION THE LAW CAN BE TESTED ON BY 26×.**  ucsim-t
+§26.7.2 found **42 multi-clock display windows in the entire banked corpus**.
+This one cell contains **1,095**, out of 10,693 windows.
+
+### §77.C THE FIVE REGISTERED PREDICTIONS ABOUT SILICON — **ALL MET, ALL AT 100 %**
+
+Read off the captured GOLDEN rows alone: no model, no core.
+(`sm3_s16_cell.py measure`, `sw/testdata/sm3-s16cell/measure.json`.)
+
+| | registered | **measured** |
+|---|---|---|
+| **S1** A19-16 on the display clock is the announced cycle's own address nibble | 100 % | **84 / 84** — and **42 / 42** of them are IMPOSSIBLE-class, i.e. a nibble ≥ 8 that no segment status can carry |
+| **S2** every clock of the window AFTER the display clock carries `data_ps(seg)` | 100 % | **3,079 / 3,079** |
+| **S3** a LATE INTA T1 carries `data_ps(seg)`; the INTA display clock carries `0` | 100 % | **12 / 12** and **12 / 12** |
+| **S4** every UBE transition sits on an address phase | 100 % | **2,937 / 2,937** |
+| **S5** the §77.A.2 two-sample signature exists in this population too | ≥ 1 | **24** |
+
+**No exception anywhere.**  S1's IMPOSSIBLE half is the load-bearing one: it is
+the first time the address/status separation has been made on a population
+chosen for it rather than on the single `HLT.RES` program §26.7 happened to have
+banked.
+
+### §77.D THE LANDING, REPORTED AS REGISTERED
+
+| | registered bar | **measured** |
+|---|---|---|
+| **L1** ZERO family-A/C nibble signatures on S16 | 0 | **0** — **MET** (it was **72** before the change) |
+| **L2** ZERO family-E `ube` signatures on S16 | 0 | **0** — **MET** (it was **5**) |
+| **L3** every cell carrying neither booked shape PASSES | 0 exceptions | **52** — **MISSED.  A REGISTERED FAILURE** (§77.E) |
+| **L4** the four HLT sweeps move UP or stay level | ≥ 265/283 | **273 / 283** = `91/97 · 93/95 · 45/46 · 44/45` — **MET.**  Validation only; it authorises nothing |
+| **L5** the standing ladder unmoved | — | **MET**, itemised in §77.F |
+| falsifier 1 | any currently-PASSING cell fails | **DID NOT FIRE** — on S16, cell for cell, **GAINED 45, LOST 0** |
+| falsifier 2 | `check_core` below 169,000 | **DID NOT FIRE** — 169,000 / 169,000 |
+| falsifier 3 | L1 or L2 non-zero | **DID NOT FIRE** |
+| falsifier 4 | the four family-B cells CLOSE | **DID NOT FIRE** — all four still fail at `(4, busstat)`, unmoved |
+| falsifier 5 | `ulockstep` below 17,350 | **DID NOT FIRE** — 17,350 / 17,350 |
+
+**No falsifier fired, so the change STANDS.**  L3 is a bar and not a falsifier;
+it is missed, and §77.E says what it is made of rather than explaining it away.
+
+#### §77.D.1 THE CONTROL — THE SAME POPULATION, THE PRE-F53 BINARY
+
+The RTL was reverted to `dc820e8569`, rebuilt, and the whole cell re-scored;
+then restored and re-scored again.  **This is the attribution, and it is the
+number the landing rests on:**
+
+| | pre-F53 | **F53** |
+|---|---|---|
+| S16 total | 1,207 / 1,371 | **1,252 / 1,371** |
+| w0 · w1 · w2 · w3 | 340 · 311 · 289 · 267 | 340 · **316** · **306** · **290** |
+| family-A/C nibble signatures | **72** | **0** |
+| family-E `ube` signatures | **5** | **0** |
+| architectural failures | 33 | **33 — IDENTICAL** |
+| cells gained / lost, cell for cell | — | **+45 / −0** |
+
+The 33 architectural failures being bit-identical on both legs is the control
+that says a PIN change changed pins: F53 cannot reach architecture and did not.
+All 45 gained cells are `HLT.INT`, at w1/w2/w3, which is where a waiting display
+window can be multi-clock.
+
+### §77.E **L3 IS A REGISTERED FAILURE, AND ITS 52 CELLS ARE TWO MECHANISMS THE SWEEPS COULD NOT SHOW**
+
+`busstat_other` **52**, IDENTICAL on both legs — F53 neither caused nor touched
+one of them.  They are not one family:
+
+| n | cells | what the golden says |
+|---|---|---|
+| **42** | `HLT.NMI` — **w0 d0 · w1 d3,4 · w2 d5,6 · w3 d7,8**, every one of them on all six programs | **the chip does not HALT at all** — the ucore drives the HALT status and the chip goes straight to the NMI vector read at `0x00008`.  This is the recognition-floor / `0x0008` NMI-vector class (**H7**), which this sitting was scoped OUT of.  *And the band SCALES WITH THE WAIT LEVEL* — `0`, `3-4`, `5-6`, `7-8` — which is a new, free observation: it is a fixed number of CLOCKS, not of delays, and no banked population could show it because **`HLT.NMI` is in no HLT delay sweep** |
+| **6** | `HLT.RES` d2/d3 at w0 | the family-B shape itself, reproduced in the new programs |
+| **4** | `HLT.INT` d2 at w0 | the chip runs a wake CODE fetch (`0x6DE0A` on p0) that the ucore **never runs at all** — it goes straight to the acknowledge.  Same regime as family B (the w0 wake-race at d2/d3), opposite outcome: the ucore SKIPS the fetch instead of running it one row late |
+
+**`HLT.NMI` is in no HLT delay sweep**, so **42 of the 52** are residue no
+banked population had ever exposed.  That is what a new population is for, and
+booking them is the honest result: the bar was written to be missable and it was
+missed.
+
+### §77.F THE LADDER — EVERY CELL RE-RUN ON THE FINAL BINARY
+
+`Vtb_v30_core` receipt `94c6b83edaed9bee…`.
+
+| gate | standing | **measured** |
+|---|---|---|
+| `check_core --core ucore --opcodes all --cases 0` | 169,000 | **169,000 / 169,000** |
+| `v0.1-w1` / `-w3` | 1,200 each | **1,200 / 1,200** |
+| `EB` at w1 | 200 | **200 / 200** |
+| the four `evt` cells | 200 / 1,200 / 200 / 1,200 | **identical** |
+| `w1evt-biased` | 1,200 | **1,200 / 1,200** |
+| `f4a_boundary` / `f0lock_tranche` | 160 / 400 | **160 / 160** and **400 / 400** |
+| the 23 `v0.3` block-I/O forms | 229,999 | **229,999 / 229,999** cycles AND arch |
+| `check_boot --timed 220` / `--timed 400` | MATCH | **MATCH over 220 rows** / **over 400 rows** |
+| `ulockstep --golden all --cases 50` | 17,350 | **17,350 / 17,350 ALL CASES LOCKSTEP** |
+| `timed_wvec_gate --core ucore` | 88/88, +0.0 % | **88/88, 16,048 vs 16,048, +0.0 %** |
+| `timed_enter_replay --core ucore` | 154 ×5 | **154/154 ×5** |
+| `timed_ins_replay --core ucore --raw` | 1,312 / 2,624 | **rails 1,312/1,312 · vs-chip 2,624/2,624**, 173,556/173,556 same-T1 |
+| `timed_fuzz --core ucore --evt-replay` | REGISTERED 1,490 · EVT 912 · COMBINED 2,402 | **1,490** · **913** · **2,403** — EVT/COMBINED **RAISED by one seed** |
+| `timed_fuzz … b2-tranche` | 172/188 | **172 / 188** (V5 still the standing REGISTERED FAILURE) |
+| `timed_lawcards` | 8 GREEN / 0 RED / 3 UNRESOLVED | **GREEN 8 / 11 scored, 3 UNRESOLVED, 0 RED** |
+| `ss_lint` | rc 0, 201 flops, 0 UNMAPPED | **PASS — 201 architectural flops, 0 UNMAPPED, 2 whitelisted** |
+| `check_core --ce-div 4 --ce-hold-check` | `CE_HOLD_VIOL 0` | **`CE_HOLD_VIOL 0` on all 347 forms, 169,000/169,000** |
+| `check_ab_sim` | 187 rows MATCH | **MATCH over 187 rows**, loop `CODE T1 @00100` `[26,90,154]` both sides |
+| `check_ucore_tables` (G0) | 9,988 | **PASS, 9,988 byte-identical on both legs** |
+| `pla3_check` · `simbin --disasm` · `test_artifact` | 21 · 1,285 · 45/45 | **OK (21)** · **PASS (1,285 rows)** · **45/45** |
+| the four HLT sweeps | 265/283 | **273 / 283** — RAISED by 8 |
+| **the MODEL** | — | **NOT TOUCHED.  `git diff -- sim` EMPTY.** |
+
+### §77.G THE RATCHETS THAT MOVED, ITEMISED
+
+| ratchet | before | **after** | which change |
+|---|---|---|---|
+| the four HLT delay sweeps | 259 → **265** (§67.4) | **273 / 283** | F53 |
+| `timed_fuzz --core ucore` EVT | 912 / 1,008 | **913 / 1,008** | F53 |
+| `timed_fuzz --core ucore` COMBINED | 2,402 / 2,710 | **2,403 / 2,710** | F53 |
+| **NEW** — the S16 display walk | did not exist | **1,252 / 1,371** (pre-F53 1,207) | the cell |
+| ucsim-t §26.7.7's open item (withdrawn-announcement UBE retention) | MEASURED, MECHANISM OPEN | **CLOSED — F53's UBE half** | F53 |
+
+Everything else in `standing_gates.md` §B was re-measured, not inherited.
+
+### §77.H WHAT THIS SITTING DID NOT DO, AND THE STATE IT LEAVES
+
+* **NO FLASHING.**  No bitstream was built or loaded; `use_core` was never set;
+  the board carries the same image it did at the open.  **Nothing here has been
+  measured in fabric** — the ucore in fabric is still FLASH #6's, which predates
+  F53.  A fabric leg is the obvious next confirmation and it is NOT claimed.
+* **Family D is BOOKED, not landed** (§77.A.2), with its falsifier written down.
+* **Family B is left to `sim/`** — it is model-shared and the mechanism is the
+  model's.
+* **H7 was not opened**, as scoped, although §77.E's `HLT.NMI` cells are H7's
+  and are now visible in a golden suite for the first time.
+* **The 8080 work and H3-B were not opened.  No memory file was touched.
+  Codex was not launched.**

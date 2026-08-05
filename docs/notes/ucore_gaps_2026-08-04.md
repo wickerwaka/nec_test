@@ -1043,3 +1043,19 @@ Consequences for the gap list above:
   **0** over all 3,242.  The registered-bank family census is unchanged.
 * **§X (fabric) is untouched** — this change is in no bitstream.  The board
   still carries FLASH #5 and no synthesis was run.
+
+
+---
+
+## FOURTH UPDATE — SM3 SITTING 16 (2026-08-05), `ucore_provenance.md` §77
+
+**T1 IS NOW A TWO-MECHANISM RESIDUE OF TEN CELLS, AND THE `seg`/`bus` HALF IS
+CLOSED.**  Read this before treating any HLT-sweep cell as undiagnosed.
+
+| item | now |
+|---|---|
+| **T1** — "the four HLT delay sweeps … the `seg`/`bus` half is NOT diagnosed" | **DIAGNOSED AND CLOSED — F53.**  §76.D.2's families **A** (14 cells), **C** (2) and **E** (5) are ONE law: *the address phase is ONE CLOCK, on both sides of the pin mux and for both kinds of address; A19-16 carries the announced cycle's address-phase value on the display clock (`r_cdage == 0`) — the address's own nibble, or `0` for an INTA, which announces none — and `data_ps(seg)` on every clock after it up to and including a LATE T1; and UBE is loaded by the address phase and then HELD, not re-driven by a running cycle.*  M23 had written the law and `v30u_biu.sv` enforced it on the T1 side only.  Two `wire [3:0]` selectors, one changed term in `ube_n`, one re-spelled mux, **no flop added**.  Sweeps **265 → 273 / 283**; every family-A/C/E signature cell closed on a NEW board population (§77.D.1: **72 → 0** and **5 → 0**, **+45 / −0** cell for cell). |
+| **T1 residue** | **10 cells, two mechanisms, catch-all empty.**  **6 family-B** — `w0.INT/2,3` · `w0.RES/2,3` at `(4,busstat)` and `w0.INT/4,5` at `(17,busstat)`: an announcement fires one capture row later than silicon, **MODEL-SHARED**, `sim/` owns the mechanism.  **4 family-D** — `w1.INT/8,9` · `w2.INT/12` · `w3.INT/15`: see below. |
+| **NEW — family D is the ANALYSER'S SECOND BS SAMPLE** | `nec_bus.sv` samples `BS` TWICE per CPU clock (`bs_early` at the falling edge, which is the recorded status column; `bs_q` at the end of the clock, which is what `next_t_state` reads).  On these four cells silicon's announcement status is present at mid-clock and gone by the end of the SAME clock.  The ucore's `BS` is a whole-clock level, so both samples agree and the pattern is unreachable.  **Counted over every committed golden suite — 217.5 M rows — the pattern occurs FOUR times and they ARE these four cells.**  `tb_v30_core.sv` has only ONE sample, used for both the recorded column and its own tracker, so on the default TB the cells are **unfixable by construction**; on `tb_sys` / fabric they would be scoreable.  **BOOKED, NOT LANDED**, with its falsifier: land a negedge status release and `tb_sys`/fabric must close all four while `tb_v30_core` must NOT. |
+| **NEW — an `HLT.NMI` band no banked population contained** | The S16 cell (`tests/v30/s16-dispwalk-*`) carries `HLT.NMI`, which **no HLT delay sweep does**.  42 of its 119 residual cells are `HLT.NMI` at **w0 d0 · w1 d3,4 · w2 d5,6 · w3 d7,8** — the chip does not HALT at all and goes straight to the `0x00008` vector read while the ucore drives the HALT status.  This is **H7**, and the band SCALES WITH THE WAIT LEVEL, i.e. it is a fixed number of CLOCKS.  Not opened here (H7 was out of scope); recorded because it is now visible in a golden suite for the first time. |
+| **NOT IN FABRIC** | F53 has **not** been synthesised or flashed.  The board still carries FLASH #6, which predates it, so **no fabric figure may be quoted against this tree** until a re-flash — the same caveat §53 of this document raised after F43. |

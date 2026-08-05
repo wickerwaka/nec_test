@@ -1,0 +1,38 @@
+{
+ "stats": {
+  "cells": 1371,
+  "windows": 10693,
+  "multi": 1095,
+  "P1_disp_addr": [
+   84,
+   84
+  ],
+  "P1_impossible": [
+   42,
+   42
+  ],
+  "P1_after_status": [
+   3079,
+   3079
+  ],
+  "P2_inta_disp_zero": [
+   12,
+   12
+  ],
+  "P2_inta_late_t1": [
+   12,
+   12
+  ],
+  "P3_ube_hold": [
+   2937,
+   2937
+  ],
+  "P4_two_sample": 24,
+  "classes": {
+   "SAME": 8,
+   "legal-diff": 36,
+   "IMPOSSIBLE": 28
+  }
+ },
+ "detail": []
+}

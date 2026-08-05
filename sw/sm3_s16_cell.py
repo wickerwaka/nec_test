@@ -231,31 +231,59 @@ BS_C, T_C, UBE_C, BUS_C, ALE_C = 7, 8, 5, 1, 0
 
 
 def _windows(cy):
-    """Display windows: maximal runs of a non-PASV status standing on rows
-    that are NOT that cycle's own body.  A row is a body row if its T-state is
-    T1..Tw of a cycle already open.  Returns [(first, last, status, t1_row)].
-    `t1_row` is the row that opens the cycle (ALE), or None if WITHDRAWN."""
+    """Display windows, split at the ALE row.
+
+    A run of rows carrying one non-PASV status covers the announcement's
+    DISPLAY clocks and then that cycle's own body.  The two are separated by
+    the ALE row, which IS the cycle's T1 -- so the window is the part of the
+    run BEFORE the ALE, and the body is the rest.  A run with no ALE in it is a
+    WITHDRAWN announcement, and the whole run is the window.
+
+    NOTE the T-state column is NOT usable to make this split: a display that
+    lands inside a HALT pseudo-cycle sits on rows the analyser labels T3/Tw/T4,
+    because those T-states belong to the HALT and not to the announcement.
+
+    -> [(first, last, status, t1_row_or_None)]"""
     out = []
     i = 0
     n = len(cy)
     while i < n:
         bs = cy[i][BS_C]
-        if bs == "PASV" or cy[i][T_C] in ("T1", "T2", "T3", "Tw"):
+        if bs == "PASV":
             i += 1
             continue
         j = i
-        while j + 1 < n and cy[j + 1][BS_C] == bs and cy[j + 1][T_C] not in (
-                "T1", "T2", "T3", "Tw"):
+        while j + 1 < n and cy[j + 1][BS_C] == bs:
             j += 1
-        t1 = j + 1 if (j + 1 < n and cy[j + 1][T_C] == "T1") else None
-        out.append((i, j, bs, t1))
+        ale = next((r for r in range(i, j + 1) if cy[r][ALE_C] == 1), None)
+        if ale is None:
+            out.append((i, j, bs, None))
+        elif ale > i:
+            out.append((i, ale - 1, bs, ale))
         i = j + 1
     return out
 
 
+def _addr_nibble(case, data16):
+    """The A19-16 the announced CODE fetch's own address must carry, derived
+    from the program's anchor and the window's held low 16 bits alone.  The
+    fetch stream around a HALT is within a few bytes of the anchor, so the low
+    16 bits pick the linear address out uniquely.  None if this window's low
+    lanes name no address near the anchor (an acknowledge, a handler fetch, a
+    stack access)."""
+    r = case["regs"]
+    anchor = ((r["cs"] << 4) + r["ip"]) & 0xFFFFF
+    for k in range(-64, 65):
+        a = (anchor + k) & 0xFFFFF
+        if (a & 0xFFFF) == (data16 & 0xFFFF):
+            return (a >> 16) & 0xF
+    return None
+
+
 def cmd_measure(a):
     stats = {"cells": 0, "windows": 0, "multi": 0,
-             "P1_disp_addr": [0, 0], "P1_after_status": [0, 0],
+             "P1_disp_addr": [0, 0], "P1_impossible": [0, 0],
+             "P1_after_status": [0, 0],
              "P2_inta_disp_zero": [0, 0], "P2_inta_late_t1": [0, 0],
              "P3_ube_hold": [0, 0], "P4_two_sample": 0,
              "classes": {}}
@@ -285,13 +313,26 @@ def cmd_measure(a):
                         # value; every later clock of the window carries the
                         # segment status.
                         hi0 = (cy[i][BUS_C] >> 16) & 0xF
-                        key = "P2_inta_disp_zero" if bs == "INTA" \
-                            else "P1_disp_addr"
-                        want0 = 0 if bs == "INTA" else None
-                        ok0 = (hi0 == want0) if want0 is not None else \
-                            (hi0 != stat or cls == "SAME")
-                        stats[key][0] += ok0
-                        stats[key][1] += 1
+                        if bs == "INTA":
+                            stats["P2_inta_disp_zero"][0] += (hi0 == 0)
+                            stats["P2_inta_disp_zero"][1] += 1
+                            if hi0 != 0:
+                                detail.append(
+                                    f"P2 {form} p{p} w{waits} idx{t['idx']} "
+                                    f"row {i}: INTA display hi={hi0:x} want 0")
+                        else:
+                            want = _addr_nibble(case, cy[i][BUS_C] & 0xFFFF)
+                            if want is not None:
+                                stats["P1_disp_addr"][0] += (hi0 == want)
+                                stats["P1_disp_addr"][1] += 1
+                                if want >= 8:
+                                    stats["P1_impossible"][0] += (hi0 == want)
+                                    stats["P1_impossible"][1] += 1
+                                if hi0 != want:
+                                    detail.append(
+                                        f"P1 {form} p{p} w{waits} "
+                                        f"idx{t['idx']} row {i}: hi={hi0:x} "
+                                        f"want addr nibble {want:x}")
                         for r in range(i + 1, j + 1):
                             hi = (cy[r][BUS_C] >> 16) & 0xF
                             stats["P1_after_status"][0] += (hi == stat)
@@ -348,7 +389,9 @@ def cmd_sha(a):
 
 
 def cmd_idle(a):
-    r = v30run.board_idle(HOST)
+    """s13_board.cmd_idle verbatim -- the session-closing idle."""
+    import b1_recapture
+    r = b1_recapture.board_idle()
     print(f"board_idle -> {r}")
     return 0
 
