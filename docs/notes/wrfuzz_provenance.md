@@ -692,3 +692,298 @@ DERIVATION of `sw/testdata/campaigns/wr1/` (results line + `captures/`'s
 `real` and `sim` rows + the stratum's own `ov`) and are rebuilt on demand by
 `sw/wrfuzz_w2.py seeds`; they are not committed, for the same reason the loose
 captures are not.
+
+---
+
+## §4 W3.1 — **THE SINGLE-STEP TRAP'S ENTRY.  IT IS TWO THINGS, NOT ONE, AND ONE OF THEM IS A SHADOW THE TREE ALREADY DECODES FOR THE OTHER RECOGNITION.**
+
+**2026-08-05, branch `ucsim`, from HEAD `f22f888feb`.  OFFLINE, NO BOARD
+CONTACT, NO FLASHING, `use_core` never set.**  Pre-registration:
+`docs/notes/wrfuzz_w31_prereg_2026-08-05.md`, committed at **`a78a3de16f`
+before any engine file was edited**.  New instrument: `sw/w31_shadow.py`.
+
+> **Standing principle.**  *"A guiding principal here needs to be simplicity.
+> This is 80's era hardware, they aren't wasting silicon on anything that isn't
+> necessary.  Complex or confusing behavior that we see is likely to be simple
+> systems interacting in ways you do not fully understand yet."*
+
+### §4.1 THE HEADLINE
+
+> **The survey's 75-seed trap family is TWO mechanisms.**  Partitioned by entry
+> geometry: **50 seeds where the two sides trap at DIFFERENT instruction
+> boundaries**, **32 where they trap at the SAME boundary and the engine's
+> vector read is 2-6 clocks LATE**, and 53 with no entry difference at all.
+>
+> **The first is the RECOGNITION SHADOW, and the trap was not riding it.**
+> §86.A booked that as a divergence with a falsifier written down; the
+> falsifier fired.  **LANDED IN BOTH ENGINES**, one term each.
+>
+> **The second is booked, not landed** — the prefetcher SUSPEND, gated on
+> `irq_take` in the RTL and on `maskable()` in the model, which the trap never
+> satisfies.
+
+### §4.2 ⚠ THE SURVEY'S §4.1 READING IS CORRECTED
+
+`wrfuzz_survey_2026-08-05.md` §4.1 read `PF_LOST`'s 30 `MEMR 00004` seeds as
+*"the SAME event with the owners swapped"* as `PF_GAINED`'s 18.  **They are not
+the same event.**  `PF_GAINED` 18/18 are SAME_BOUNDARY (a bus-launch question)
+and the `PF_LOST` 30 are DIFF_BOUNDARY (a recognition-class question).  Same
+family label, same contested address, two causes.  The survey's candidate-1 row
+is superseded by this section.
+
+### §4.3 THE LAW, MEASURED ON SILICON ALONE
+
+`sw/w31_shadow.py` is engine-free on the chip side: consecutive vector-1
+entries publish their return IPs on the pads (§83.4's readout) and the
+GENERATOR'S OWN instruction layout — `fuzz_campaign.build(cfg)['ins']` plus
+`testimage.compose`'s store stub — says where instructions start.  `grace` is
+the number of instruction boundaries the part ran PAST between one trap and the
+next; §84/§85 measured the storm cadence at **0** on 1,742 + 90 pairs.
+
+**380 retained `wr1` captures · 3,411 chip vector-1 entries · 1,363 ruled
+consecutive pairs:**
+
+| class | opcodes | grace 0 | grace ≥ 1 |
+|---|---|---|---|
+| **`MOV` sreg** | `8C` `8E` | **0** | **69** (68 × g1, 1 × g2) |
+| **`POP` sreg** | `07` `17` | **0** | **6** |
+| `PUSH` sreg | `06` `16` | **5** | 0 |
+| `LES` / `LDS` | `C4` `C5` | **11** | 0 |
+| everything else | **195 distinct opcodes** | **1,277** | **0** |
+
+**75 of 75 grace-≥1 pairs are inside the class; 1,288 of 1,288 grace-0 pairs
+are outside it.  Not one exception in either direction.**  The single grace-2
+pair is two consecutive `8E`s — the shadow COMPOSING, a consequence of gating
+the take and not the arm.
+
+> **THE LAW.**  An instruction of the shadow class does not permit a
+> single-step trap to be TAKEN at its own retire boundary.  The arm is
+> untouched — the boundary still SAMPLES — and the take moves to the next
+> boundary.
+>
+> **THE CLASS IS TWO MICROCODE ENTRIES, NOT A LIST OF OPCODES:**
+> `00?.100011?0.00` (`8C`, `8E` — `R -> M`) and `00?.000??111.00`
+> (`07`, `0F`, `17`, `1F` — `OPR -> R`).  `PUSH` sreg is the ADJACENT entry
+> `00?.000??110.00` (`R -> OPR`) and does NOT shadow; `LES`/`LDS` are their own
+> entries and do NOT shadow.
+
+That framing is what earns `8C` — a segment-register **READ** — its membership:
+it shares an entry with `8E`.  §84.7's write-derived rendering was already
+refuted in the RTL for the same reason, and the two negatives above are the
+class boundary measured rather than assumed.
+
+**WHAT WAS ALREADY IN THE TREE, AND WHAT WAS NOT.**  `v30u_eu.sv:270`'s
+`irq_shadow` — *"a segment-register write skips ONE boundary"* — has gated the
+maskable/NMI recognition since the ucore existed, from `pla3_sreg_mov`, which
+the generated table confirms is exactly `8C`/`8E`.  **It did not gate the
+trap** (`wire bnd_take = irq_take || brk_arm;`), and **the `POP`-sreg entry was
+in no class in either engine.**
+
+### §4.4 THE LANDINGS — one term each, no flop added
+
+* **`sim/exec_impl.h`**: `brk_take_ = brk_arm_ && !sreg_shadow(m_, ld)`.
+  Plus `LoadResult::ext` (`sim/loader.h`, `loader_impl.h`) — **load-bearing,
+  and found by this landing's own A-1 bar**: on the `0F` page `out.opcode` is
+  the SECOND byte, so an unguarded `opcode == 0x1F` shadows `0F 1F`, a
+  different entry entirely.  It moved `wr1/207098`'s first divergence EARLIER,
+  the bar caught it, and the RTL already guards its own copy with `!ld_ext_n`.
+* **`hdl/rtl/ucore/v30u_eu.sv`**: `wire brk_take = brk_arm && !irq_shadow;`
+  `wire bnd_take = irq_take || brk_take;` — a WIRE, no flop, no `SS_VERSION`
+  bump (`ss_lint` exits 0, 0 UNMAPPED, census unchanged).
+* **`hdl/rtl/ucore/v30u_eu_step.svh`**: the `POP`-sreg entry joins the shadow
+  class, three opcodes named in ONE place because no PLA column carries them.
+  ⚠ **It reaches the maskable recognition too**, which is deliberate — silicon
+  has one class — and prereg §3.3's falsifier #3 says an INT/EVT regression
+  reverts that half.  **It did not fire: the EVT column went UP.**
+
+### §4.5 THE NUMBERS — measured, seed by seed, both engines
+
+| leg | before (this tree) | **after** |
+|---|---|---|
+| `wr1` retained-and-scored 184, **model** | 48 | **73** |
+| `wr1` retained-and-scored 184, **`ucore` TB** | 49 | **77** |
+| `timed_fuzz --core sim` REGISTERED | 1,338 | **1,339** |
+| … EVT | 798 | **799** |
+| … COMBINED | 2,136 | **2,138** |
+| `--core sim --seeddir b2-tranche` | 159 | **161** |
+| `timed_fuzz --core ucore` REGISTERED | 1,557 | **1,559** |
+| … EVT | 931 | **934** |
+| … COMBINED | 2,488 | **2,493** |
+| `--core ucore --seeddir b2-tranche` | 177 | **181** |
+
+**A-2 (no loss) is MET on every population and both engines: ZERO seeds lost,
+ZERO first divergences moved earlier**, over `wr1`'s 380 and the bank's 3,242,
+checked seed by seed against a baseline re-measured on this tree with the
+change stashed.
+
+⚠ **THE `wr1` MOVEMENT IS 25× THE BANK'S, AND THAT IS THE SURVEY'S OWN POINT.**
+The standing bank's 197 vector-1 seeds carry `has_tf = False` on all of them
+(§83.3b: TF there is INCIDENTAL), while `wr1` has a deliberate `tf` generator
+form.  The family lives in `wr1` and barely exists in the promoted corpus —
+which is why an unbiased whole-stratum capture found it.
+
+**ALL 28 `ucore` GAINS ARE DIFF_BOUNDARY SEEDS** — the shadow's own class, 50
+→ 22 remaining.  The 32 SAME_BOUNDARY seeds are untouched, exactly as §4.7
+says they must be.
+
+### §4.6 THE BARS AS REGISTERED
+
+| bar | outcome |
+|---|---|
+| **A-1** mechanism: each of the 39 predicted seeds' first divergence moves later or the seed becomes EXACT, zero exceptions | **NOT MET.  6 exceptions on the model, 3 on the `ucore`** |
+| **A-2** no EXACT lost, any population, either engine | **MET — 0 lost, 0 moved earlier** |
+| **A-3** ratchets may only go up | **MET — every column up, none down** |
+| **A-4** the SM trap cells must not move at all | **MET** |
+| **A-5** the must-not-move ladder | **MET** |
+| **A-6** `ulockstep`, `ss_lint`, G6 | **MET** — `ss_lint` rc 0, `ulockstep` **17,350 / 17,350**, **G6 PASS** |
+
+**G6, the CONTROL/DEFAULT Quartus build** (`sw/quartus_gate.py`, 88 input files
+`d58b8c588655c928…`, receipt **`b5badb7ed3cc68e0…`**): E1 `gen_ucore_qsf
+--check` PASS · **E2** 0 compile errors, every stage `Successful` · **E3**
+`divclk` Fmax **45.51 MHz** against a registered ≥ 32 · **E4** worst setup
+**+6.541 ns** · **E5** TNS **0.000, setup AND hold, every domain**.  Recorded,
+not gated: **ALMs 11,209 / 41,910 (27 %)**, 0 latches, 0 `lpm_divide`.
+**NO BITSTREAM WAS FLASHED.**  The board still carries FLASH #10, so every
+fabric figure in this ledger is a FLASH #10 figure and none of this sitting's
+`ucore` numbers is one.
+
+**A-1 IS REPORTED AS REGISTERED AND IS NOT RESTATED.**  What the misses are is
+a separate statement, and it is **POST-HOC**: on all six the engine's first
+divergence is **UPSTREAM of the contested trap entry** (e.g. `wr1/200024` fb
+1203 against an entry at row 1774; `wr1/210132` fb 505 against 1222).  The
+predicted SET was selected on *the first divergent trap ENTRY* while the BAR
+was written on *the engine's first divergence*, and on those seeds a different,
+earlier divergence owns that coordinate.  The selection was mine and the
+mismatch is mine; it is written down rather than smoothed.
+
+⚠ **AND ONE ERRATUM IN THE PRE-REGISTRATION ITSELF.**  A-3's numbers were
+quoted from `CLAUDE.md`'s quick reference (1,282 / 789 / 2,071 sim,
+1,502 / 920 / 2,422 ucore), which is **STALE**: `standing_gates.md` has carried
+**1,338 / 798 / 2,136** and **1,557 / 931 / 2,488** since SM3 sitting 26's
+illegal-form stall.  The measured results clear the CURRENT registered figures,
+which is the bar that counts; the pre-registered numbers were a floor set too
+low and they are named here rather than quietly met.
+
+#### §4.6a THE MUST-NOT-MOVE LADDER, both engines
+
+**Model**: `make -C sim test` PASS · `pla3_check` 21 · `ucsim_check v0.1`
+169,000 · `mod3_illegal --residue stale-ea` 128 · `timed_gate v0.1 --forms all`
+169,000, row-diffs 0 · `v0.1-w1` / `-w3` 1,200 each · the four HLT sweeps
+**97 + 95 + 46 + 45 = 283 / 283** · `check_boot --timed 220` MATCH ·
+`timed_scenario` 18 / 0 / 9 · `timed_enter_replay` 154 ×5 ·
+`timed_ins_replay --raw` 1,312 and 2,624 · `timed_wvec_gate` 88 / 88, +0.0 % ·
+`timed_lawcards` 8 GREEN / 0 RED / 3 UNRESOLVED ·
+**`sm3_tf_floor_cell score --core sim`: floor 3, 121,890 rows, 0 row-diffs,
+EXACT on all 30, W-0a 0/18, W-1 30/30, W-2 {3} 22/22, W-3 [2,2]/[3,3], W-4 0·0,
+W-5 90/90.**
+
+**`ucore`**: **`sm3_tf_floor_cell score --core ucore`: floor 4, 121,860 rows,
+0 row-diffs, EXACT on all 30, W-1/W-2 {4} 22/22, W-3, W-4, W-5 all as
+registered** · `ss_lint` exit 0, 0 UNMAPPED, no `SS_VERSION` bump (the landing
+is a WIRE) · `ulockstep --golden all --cases 50` **17,350 / 17,350** ·
+`check_core --opcodes all --cases 0` **169,000 / 169,000** ·
+`--suite-dir v0.1-w1 --waits 1` / `-w3 --waits 3` **1,200 / 1,200** each ·
+`EB --waits 1` **200 / 200** · the four `evt` cells
+**200 / 1,200 / 200 / 1,200** · `w1evt-biased --waits 1` **1,200 / 1,200** ·
+`f4a_boundary` **160 / 160** · `f0lock_tranche` **400 / 400** ·
+the four HLT sweeps **97 + 93 + 45 + 44 = 279 / 283** (the four family-D cells,
+unchanged) · `check_boot --timed 220` MATCH · `timed_wvec_gate --core ucore`
+**88 / 88, +0.0 %** · `timed_enter_replay --core ucore` **154 / 154 ×5** ·
+`timed_ins_replay --core ucore --raw` **1,312** and **2,624** ·
+`check_ab_sim --core ucore` MATCH over 187 rows.
+
+⚠ **THE `evt` CELLS ARE THE ONE THAT MATTERS FOR FALSIFIER #3** — the
+`POP`-sreg half widens the SHARED `irq_shadow`, so it reaches the maskable
+recognition.  `w0evt` / `w1evt` / `w2evt` / `w3evt` / `w1evt-biased` are
+**200 / 1,200 / 200 / 1,200 / 1,200, unmoved**, and the bank's EVT column went
+**UP** (931 → 934).  **The falsifier did not fire and the `POP` half stands.**
+
+**⚠ TWO INSTRUMENT-INVOCATION ERRORS OF THIS SITTING'S OWN, BOTH CAUGHT BY THE
+LADDER AND BOTH WORTH RECORDING** — this is `CLAUDE.md`'s *"verify a flag
+exists before trusting a run that used it"* earning its place twice in one
+sitting:
+
+1. `check_boot.py` **DOES NOT TAKE `--core`**: `check_boot.py --core sim
+   --timed 220` raises `ValueError` on the positional parse.  The correct
+   invocation is `check_boot.py --timed 220` and it MATCHES over 220 rows.
+2. `check_core.py --suite-dir tests/v30/v0.1-w1` **without `--waits 1`** runs
+   the w1 suite at w0 and reports **94 / 1,200**.  The same shape made the four
+   HLT sweeps read **0 / 95, 0 / 46, 0 / 45**.  With the registered `--waits`
+   they are 1,200 / 1,200 and 93 / 45 / 44.  **A silent wrong-argument run of a
+   ratchet gate reads exactly like a catastrophic regression, and neither
+   reading was true.**
+
+### §4.7 THE SECOND HALF — **BOOKED, NOT LANDED: THE ENTRY'S LAUNCH**
+
+32 seeds; the two sides trap at the SAME boundary and the engine's vector read
+is late by **+2 (×12), +4 (×11), +5 (×3), +6 (×5)** with one outlier at −6.  On
+**19 of the 32** the engine runs one extra `CODE` prefetch the chip does not;
+on the rest it runs the same fetches and is still 2 clocks late.  `PF_GAINED`
+18/18 live here, and all 18 have an ODD return address, so the chip's refill is
+3 bytes and the queue has room — the chip declines a fetch it could make.
+
+*The mechanism candidate is the OTHER half of the same wire*, and both engines
+say it in as many words: `v30u_eu.sv`'s `assign eu_bnd_post = irq_take && …`
+(the prefetcher SUSPEND, §86.A: *"the suspend belongs to the recognition that
+PAYS the IE floor, which the trap never does"*), and the model's, inside
+`live = maskable() && …` with `maskable()` = `ev_pin_ == 0`, which is every
+seed a trap fires in.
+
+**NOT LANDED.  No figure is claimed for it.**  Its own cell and
+pre-registration are owed, and the standing rule holds: the sitting that
+measures a class does not also land it.
+
+### §4.8 THE RIDERS
+
+#### §4.8a THE 12 ZERO-`0F FF` 8080 LANDINGS — **ANSWERED, AND IT IS A CORE BEHAVIOUR**
+
+Chip-side and engine-free.  On each of the 12 the row where `PS3` first goes
+high is inside an interrupt entry, and the instruction that entry returns to is
+three bytes long and begins with `0F`.  **On 10 of the 12 the THIRD byte IS the
+vector the entry read** — `BRKEM`'s `imm8` semantics exactly.  The other two
+have byte-split (odd-SP) frames whose pushed CS reads back as garbage; they are
+reported unreadable, not as counterexamples.
+
+The ten second bytes are `90 90 90 4A 77 F5 73 CA 7E 53`.  **Not one is `FF`
+and none is a documented `0F` form.**
+
+> **The `0F` extension page's PLA does not fully decode its second byte; the
+> undecoded rows fall through to `BRKEM`.**  A `0F FF`-free image is therefore
+> not an 8080-free image, which answers survey §7.1's open question — *"by what
+> path does a BRKEM-free image enter 8080 mode"*.  **It is ROUTED TO THE CORE
+> (the `0F` page's don't-care), NOT to the generator**, which corrects the
+> survey's routing.  It joins the 8080 / BRKEM family, **DEFERRED BY USER
+> DECISION**: counted and reported, not worked.
+
+#### §4.8b `wvec-edge` 5/5 — **THE REGISTERED FALSIFIER'S PREMISE FAILS, AND THE DIRECTED CELL IS NOT RUN**
+
+Survey §4.5 rested on a matched control inside the corpus: `soup/wrand15` with
+"the same median `n_ins` (24), the same `nmax_eff` (24) and the same median
+bus-cycle count (146 vs 145)".  **Those are STRATUM medians.  Restricted to the
+TF seeds — the population the 5/5 is about — the two do not overlap:**
+
+| stratum | TF seeds | `n_ins` | **bus cycles** |
+|---|---|---|---|
+| `soup/wvec-edge` | 5, all EXACT | 24 – 26 | **144 – 204** |
+| `soup/wrand15` | 6, all MISS | 24 – 25 | **291 – 326** |
+
+The control is not matched on the quantity that decides exposure, and
+`p = 0.0022` is confounded by exactly the length coupling the survey named and
+believed it had controlled.  **The mechanism this sitting establishes has no
+wait term at all** — it is a microcode-entry class — which is what survey §4.4
+already measured from the other side (at `fix0`, no waits, the TF seeds fail 6
+of 7).  **The intermediate-wait hypothesis is UNNECESSARY and its directed cell
+is NOT RUN.**  Recorded as a negative with its numbers.
+
+### §4.9 WHAT THIS SITTING DID NOT DO
+
+* **NO BOARD CONTACT, NO FLASHING, `use_core` NEVER SET.**  No `div_guard`, no
+  `board_idle` — nothing was opened.  The board still carries FLASH #10.
+* **The victory reserve (`k >= 300000`) was NOT touched**, and no directed cell
+  was run: the bank determined the law and no board time was needed.
+* **§4.7's entry-launch half is NOT landed** and no figure is claimed for it.
+* **Queue items #2 (the raw tier's `SCHEDULE` residue) and #3 (the `ucore`-only
+  `PIN` five) were not opened.**
+* **No memory file was touched and Codex was not launched.**
+* **The `wr1` columns are the SURVEY BASELINE MOVING, not ratchets** — they are
+  not registered as ratchets until W-victory registers them.

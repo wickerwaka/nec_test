@@ -363,6 +363,16 @@ cost: `wrand15` draws i.i.d. over 0…15, so most accesses take an
 **intermediate** number of waits; `edge` draws i.i.d. over **{0, 1, 30, 31}**
 and takes an intermediate number **never**.
 
+> ⚠ **REPORTED AT W3.1 AS A NEGATIVE — `wrfuzz_provenance.md` §4.8b.  THE
+> MATCHED CONTROL DOES NOT MATCH.**  The `n_ins` / `nmax_eff` / bus-cycle
+> medians below are STRATUM medians; restricted to the **TF seeds**, which is
+> the population the 5/5 is about, `wvec-edge` runs **144-204** bus cycles and
+> `wrand15` runs **291-326** — no overlap.  `p = 0.0022` is confounded by the
+> length coupling this section names and then treats as controlled.  The
+> mechanism W3.1 established has **no wait term at all** (it is a
+> microcode-entry class), which is what §4.4 measures from the other side.
+> **The directed cell below is NOT RUN and is NOT owed.**
+>
 > **HYPOTHESIS, NOT A LAW, and it is W3's first directed cell.**  The trap's
 > entry contends with a prefetch, and the contention window is at
 > *intermediate* access lengths: at ≤ 1 wait the fetch has already completed
@@ -509,6 +519,16 @@ As a share of the **residue** the class has shrunk hard — **8.8 %** here
 against **41 %** (92 of 222) in the banked corpus — which is the BRKEM-free
 mechanism working.  As an **absolute** it is 12 seeds that should not exist.
 
+> ⚠ **ANSWERED AT W3.1 — `wrfuzz_provenance.md` §4.8a.**  On 10 of the 12 the
+> instruction the 8080 entry returns to is `0F xx imm8` with **`imm8` equal to
+> the vector the entry read**, which is `BRKEM`'s own semantics; the other two
+> have unreadable byte-split frames.  The ten second bytes are
+> `90 90 90 4A 77 F5 73 CA 7E 53` — **not one of them `FF`, and none a
+> documented `0F` form.**  **The `0F` page's PLA does not fully decode its
+> second byte; the undecoded rows fall through to `BRKEM`.**  So the routing
+> below is CORRECTED: it is a **CORE** question (the `0F` page's don't-care),
+> **not a generator question.**
+
 **DISPOSITION, CARRIED AND NOT RE-LITIGATED**: 8080 / BRKEM is **DEFERRED BY
 USER DECISION** (2026-08-05).  The 12 are **counted, reported, and left in the
 denominator** — they are not filtered, and `S` is computed with them in.
@@ -535,6 +555,19 @@ Each item is a family, its invariant, whether a settled law fits, and the cell
 that decides it.
 
 ### **#1 — THE SINGLE-STEP TRAP'S ENTRY AGAINST A RUNNING PREFETCHER.  75 seeds, 55 % of the residue.**
+
+> ⚠ **WORKED AT W3.1 (2026-08-05).  `wrfuzz_provenance.md` §4 SUPERSEDES THIS
+> ROW.**  It is **TWO** mechanisms, not one, and §4.1's *"`PF_LOST` carries the
+> SAME event with the owners swapped"* is **REFUTED**: `PF_GAINED`'s 18 trap at
+> the SAME instruction boundary as the engine (a bus-launch question) and
+> `PF_LOST`'s 30 trap at a DIFFERENT one (a recognition-class question).
+> The recognition half is the **segment-register RECOGNITION SHADOW**, which
+> the tree already decodes for the maskable recognition and which the trap was
+> not riding — §86.A's own booked falsifier, fired.  **LANDED IN BOTH ENGINES**:
+> `wr1` 48 → **73** (model) and 49 → **77** (`ucore`), 0 lost.  The bus-launch
+> half (32 seeds) is **BOOKED, NOT LANDED**.
+> **The cell this row calls for was NOT needed** — the banked corpus determined
+> the law and no board was contacted.
 
 *Invariant*: `MEMR 00004` at the contested slot on **64 of 135** classified
 seeds; `PF_GAINED` **18/18** identical (signature, cell, enclosing cycle,

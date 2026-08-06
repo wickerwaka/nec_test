@@ -170,7 +170,24 @@ S_DECODE2: begin
         xop_n  = pla3_xop(pv);
         // ...and the sreg-MOV class arms the recognition shadow (`8C` / `8E`,
         // load AND store -- both measured).  One boundary, spent by it.
-        if (!ld_ext_n && pla3_sreg_mov(pv)) irq_shadow_n = 1'b1;
+        //
+        // W3.1 -- AND THE `POP` sreg ENTRY IS IN THE SAME CLASS.  The shadow
+        // is a property of the MICROCODE ENTRY, not of a PLA column: `8C`/`8E`
+        // are `00?.100011?0.00` and `07`/`0F`/`17`/`1F` are `00?.000??111.00`,
+        // and the ROM has no third entry between them.  There is no PLA bit
+        // for the second one -- `pla3_sreg_mov` is exactly `8C`/`8E`, checked
+        // against the generated table -- so it is three opcodes named in ONE
+        // place.  `0F` is the extension escape on this part and is excluded by
+        // `!ld_ext_n`, which is also what stops `0F 1F` reading as `POP DS`.
+        //
+        // MEASURED chip-side, `sw/w31_shadow.py`: `07` and `17` are grace 1 on
+        // 6 of 6 pairs and grace 0 on none, while `PUSH` sreg (`06`/`16`, the
+        // ADJACENT entry `00?.000??110.00`) is grace 0 on 5 of 5 and `LES` /
+        // `LDS` grace 0 on 11 of 11.
+        if (!ld_ext_n && (pla3_sreg_mov(pv) ||
+                          ld_b_n == 8'h07 || ld_b_n == 8'h17 ||
+                          ld_b_n == 8'h1F))
+            irq_shadow_n = 1'b1;
         ld_page_n = ld_ext_n ? 3'd4 : ((rep_kind_n != REP_NONE) ? 3'd1 : 3'd0);
         opc_reg_n = ld_b_n;
         ld_hasrm_n = pla3_has_modrm(pv);

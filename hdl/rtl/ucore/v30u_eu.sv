@@ -1509,7 +1509,37 @@ wire irq_take = irq_any && !irq_shadow;
 // "TF up NOW **and** up three clocks ago" -- and the take is the ARM, which
 // was sampled at the PREVIOUS boundary (see `brk_smp` below).
 wire brk_seen = psw[FBRK] && brk_p[BRK_FLOOR-1];
-wire bnd_take = irq_take || brk_arm;
+// W3.1 -- **...AND THE TRAP RIDES THE SHADOW TOO.**  §86.A booked its absence
+// as a divergence with a falsifier written down (*"the trap is not shadowed
+// behind a segment-register load ... silicon is documented to, this tree has
+// no cell"*).  The cell is the `wr1` corpus and the falsifier FIRED.
+//
+// MEASURED, chip-side and engine-free (`sw/w31_shadow.py`), over 380 captures
+// / 3,411 chip vector-1 entries / 1,363 consecutive trap pairs, where `grace`
+// is instruction boundaries the part ran PAST between two traps and §84/§85
+// measured the storm cadence at 0 on 1,742 + 90 pairs:
+//
+//     MOV sreg  8C 8E    g>=1 on 69, g0 on     0      the class already here
+//     POP sreg  07 17    g>=1 on  6, g0 on     0      NEW -- no PLA column
+//     PUSH sreg 06 16    g>=1 on  0, g0 on     5      NOT the class
+//     LES/LDS   C4 C5    g>=1 on  0, g0 on    11      NOT the class
+//     all other opcodes  g>=1 on  0, g0 on 1,277      195 distinct opcodes
+//
+// Not one exception in either direction.  The single grace-2 pair is two
+// consecutive `8E`s -- the shadow COMPOSING, which this shape gives for free
+// because the arm is untouched and only the TAKE is gated.
+//
+// THE CLASS IS TWO MICROCODE ENTRIES, which is why `8C` -- a segment-register
+// READ -- is in it and `PUSH` sreg is not:
+//     00?.100011?0.00   8C 8E          `R -> M`     the MOV-sreg entry
+//     00?.000??111.00   07 0F 17 1F    `OPR -> R`   the POP-sreg entry
+//     00?.000??110.00   06 0E 16 1E    `R -> OPR`   PUSH sreg -- a DIFFERENT
+//                                                   entry, and it does not
+//                                                   shadow
+// *Falsifier*: any capture in which `PUSH` sreg or `LES`/`LDS` shows a grace
+// >= 1, or a member of the two entries shows a grace of 0.
+wire brk_take = brk_arm && !irq_shadow;
+wire bnd_take = irq_take || brk_take;
 wire bnd_fire = at_bnd && bnd_take;
 // ...and the boundary that fires is the one that CLEARS the arm and suspends
 // the prefetcher.  `at_bnd` implies `!opc_valid` on all three of its arms,
