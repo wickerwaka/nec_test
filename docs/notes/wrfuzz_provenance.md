@@ -1635,3 +1635,200 @@ Cell 1 returned **C1-A**, so the pre-registration §5's first branch applies:
   left on the board.
 * **The cell drives NO PIN** — every arm is internal, `evt=None` throughout, so
   there is no INV-1 directive-truncation exposure.
+
+---
+
+## §7 W3.4 — **P1 IS NOT A GRANT QUESTION.  IT IS THE TAKE CLOCK, AND THE RETIRE LEAD LEADS THE SUCCESSOR'S *POP*.  LANDED IN THE MODEL; THE `ucore` LEG IS BOOKED WITH ITS SECOND, STRUCTURAL HALF NAMED.**
+
+**2026-08-06, branch `ucsim`, from HEAD `40800bf6f0`.  OFFLINE, NO BOARD
+CONTACT, NO FLASHING, `use_core` never set.**  Pre-registration:
+`docs/notes/wrfuzz_w34_prereg_2026-08-06.md`, committed at **`b84277a414`
+BEFORE the first line of the sitting's instrument existed** — W3.3 §6.6's own
+erratum, applied: an offline leg over RETAINED silicon is a measurement in the
+full sense and is registered before it is run.  New instrument:
+`sw/w34_grant.py`.
+
+> **Standing principle.**  *"A guiding principal here needs to be simplicity.
+> This is 80's era hardware, they aren't wasting silicon on anything that isn't
+> necessary.  Complex or confusing behavior that we see is likely to be simple
+> systems interacting in ways you do not fully understand yet."*
+
+### §7.1 THE HEADLINE
+
+> **§6.6's closing sentence — *"P1 is a GRANT question at the contested slot,
+> not a recognition question"* — is RETIRED BY MEASUREMENT.**  On all 23 seeds
+> the engine's TAKE is late by exactly `delta`, and **both engines' `vec − take`
+> is 9 — the same constant as the 500 directed entries.**  The entry's cost is
+> right and the grant machinery is right; the extra `CODE` fetch W3.2 chased
+> through three refused landings is a **CONSEQUENCE of a late take**.
+>
+> **THE CLASS IS STRUCTURALLY IDENTIFIED, CHIP-SIDE, WITH NO ENGINE IN THE
+> LOOP AND ZERO EXCEPTIONS**: the trapping instruction is `FC` ×18 / `FD` ×4 /
+> `F8` ×1 — **ONE-BYTE-LOGIC, 23/23**; its fetch address is **ODD, 23/23**, so
+> the redirect's refill delivered a single byte and **the queue is DRY (`occ`
+> 0) at the retire, 23/23**; and **the chip's take is its own opcode pop + 2 on
+> 23/23, WAIT-INDEPENDENT** across cycle lengths 5, 6 and 7.
+>
+> **THE LAW IS ONE PREDICATE AND IT IS ALREADY LANDED — ON ANOTHER PATH.**
+> `boundary_no_pop()` and `v30u_eu.sv`'s own boundary block both say *"the
+> recognition decision does not need the byte (it is the decision NOT to take
+> one), so a recognised boundary does not slide when the queue is dry"* —
+> measured there as `INT.90` **200/200** with the retire deadline against
+> **177** with the pop deadline.  **The ROM path got that treatment; the
+> ONE-BYTE-LOGIC path never did**, because on it the flag write's lead and the
+> recognition boundary ride ONE call.  `wait_retire_lead()` now returns
+> immediately when the BRK/TF arm is set: **the lead leads the successor's POP,
+> and a boundary that fires cancels that pop.**
+>
+> **LANDED IN `sim/` ONLY.  Every registered bar met, `ucore` UNTOUCHED**
+> (`git diff` empty over `hdl/`, and the `ucore`'s `wr1` leg re-measures at its
+> registered **77 / 184** on a TB rebuilt from HEAD).
+
+### §7.2 THE POPULATIONS, AND THE INTEGRITY BARS
+
+| # | population | n | role |
+|---|---|---|---|
+| **P** | the P1 seeds — chip DECLINES, engine GRANTS | **23** | the class |
+| **G** | directed entries with a `CODE` granted in the window | **121** | positive control |
+| **N** | directed entries with none | **442** | split into no-room / declined |
+| disjoint | the `iret` / `iretnotf` / `notf*` / `storm` cells | **144** entries | registered in the pre-registration §4 as the population NOT used to select |
+
+* **I-1 MET** — every directed cell re-reported `exact = YES`; nothing excluded.
+* **I-2 MET** — the `sim` and `ucore` legs agree cell for cell on every
+  chip-side quantity.
+* **I-3 MET** — the totals reproduce §6.6 **exactly**: `vec − take` 9 ×500 /
+  10 ×63, `code_in_window` 0 ×442 / 1 ×121.
+* **I-4 MET** — every distribution below is reported, including the two that
+  refute candidates of mine.
+
+### §7.3 THE CANDIDATES, SCORED AS REGISTERED
+
+| id | prediction | outcome |
+|---|---|---|
+| **G-A ROOM (M4 at the take)** | granted ⟺ `occ + inflight ≤ 4` | **REFUTED.**  The chip declines at `occ + inflight` = **2** on 23/23, and **144 of the 442** directed no-grant entries have `occ ≤ 4` at the free clock.  §63.6's negative result about M4's bound is re-confirmed on a second population |
+| **G-B ARM-BEFORE-TAKE** | grant ⟺ decision clock < take | **NOT SEPARATING.**  Grants launch at `take + 1` (57) and `take + 2` (64); no onset relative to the take both permits those and forbids P1's |
+| **G-C PHASE** | disjoint phase bands | **NOT SEPARATING** — `take − prev T1` = 3 occurs in G (36), N (51) **and** P (23) |
+| **G-D THE TAKE IS MISPLACED ON P** | `take_eng − take_vec9 = delta` | **FIRES, 23 / 23, exactly** |
+| **G-E ENGINE MIS-EVALUATION of M4** | the engine's occupancy differs | **REFUTED** — the engine's occupancy is correct **for its own, late, take** |
+
+### §7.4 THE MEASUREMENT, SEED BY SEED
+
+Chip-side, from the banked captures alone (`sw/w34_grant.py p1`):
+
+| measured | result |
+|---|---|
+| trapping instruction | **`FC` ×18, `FD` ×4, `F8` ×1 — ONE-BYTE-LOGIC 23/23** |
+| its fetch address | **ODD, 23/23** |
+| `occ` at the take | **0, 23/23** (with a fetch in flight, `inflight` 2) |
+| chip take − own opcode pop | **+2, 23/23**, at cycle lengths 5, 6 and 7 |
+| chip take − the in-flight fetch's T1 | **+3, 23/23** |
+| `take_eng − take_vec9` | **= `delta`, 23/23** |
+| both engines' `vec − take` | **9** |
+
+⚠ **THE ODD ADDRESS IS §4.7's OWN OBSERVATION, NOW MECHANISED.**  §4.7 read
+*"all 18 have an ODD return address, so the chip's refill is 3 bytes and the
+queue has room — the chip declines a fetch it could make."*  The room was
+never the point: the odd address is what makes the refill **one byte**, so the
+one-byte-logic form pops the whole queue and the engine's lead has nothing to
+wait for but a byte that has not arrived.
+
+### §7.5 THE LANDING — **AND THE FIRST CANDIDATE WAS FALSIFIED BY THE LADDER, WHICH IS WHY THE WAIT IS KEPT**
+
+Two forms were built and both are reported with their numbers.
+
+| form | what it does | `wr1` (`sim`) | `v0.1` row-diffs | disposition |
+|---|---|---|---|---|
+| **FORM 3** | delete the `q_.empty()` disjunct — *"a lead waits for a byte the queue HOLDS to mature"* | **84 / 184** | **181** (`FA` 74, `FB` 68, `INT.FB` 39) | **NOT TAKEN** |
+| **FORM 7** | `wait_retire_lead()` returns at once when the BRK/TF arm is set | **84 / 184** | **0** | **TAKEN** |
+
+> **FORM 3's 181 row-diffs are the tree's own 250/250 golden defending itself.**
+> `loader_impl.h`'s comment above the call carries it: *"odd `ip` — a single
+> upper-lane byte, so the successor's pop waits for the next fetch's T4+2, and
+> the golden still shows the OLD IE at pop+1, 250/250."*  **The FLAG WRITE
+> really does wait for the byte to ARRIVE.**  Two laws rode one call; the
+> sitting's first candidate deleted the wrong one, the registered ladder caught
+> it, and the number is written here rather than smoothed.
+>
+> FORM 7 separates them by the single condition that distinguishes them: when
+> the arm is set, this instruction retires INTO the trap and **its successor is
+> never popped — there is no pop to lead.**  `FA` / `FB` / `INT.FB` are
+> untouched by construction; their goldens fire no trap.
+>
+> *Falsifier*: any capture in which a `ONE_BYTE_LOGIC` form retiring into a
+> BRK/TF take has its boundary later than its own opcode pop + 2 with a dry
+> queue; or any `FA` / `FB` golden that moves when this gate is armed.
+
+### §7.6 THE BARS AS REGISTERED
+
+| bar | outcome |
+|---|---|
+| **B-1** P's 23 lose the inserted fetch | **MET** — `w32_launch --core sim`: the `n_ins = +1` class is **21 → 0** |
+| **B-2** no loss, any population, either engine | **MET — ZERO LOST, seed by seed, and 0 first divergences moved earlier.**  Bank 3,242: **17 gained, 0 lost**.  `wr1`: **15 gained, 0 lost, 13 first divergences moved LATER** |
+| **B-3** ratchets monotone | **RAISED.**  `sim` REGISTERED **1,339 → 1,343**, EVT **799 → 802**, COMBINED **2,138 → 2,145**.  Every column up, none down.  Baselines re-measured on THIS tree with the change reverted, not quoted |
+| **B-4** the shadow law's populations | **MET on the law** — 75 grace-≥1, 1,288 grace-0, 1,363 ruled, unchanged.  ⚠ **ITS `DIFF_BOUNDARY` CLAUSE MOVED, 7 → 17, AND IS REPORTED AS REGISTERED** (§7.7) |
+| **B-5** the SM trap cells | **MET** — `sm3_tf_floor_cell score --core sim`: floor **3**, **121,890 rows, 0 row-diffs**, EXACT on all 30; W-0a 0/18, W-1, W-2 `{3}` 22/22, W-3 `[2,2]`/`[3,3]`, W-4 0·0, W-5 90/90 |
+| **B-6** the §4.6a model ladder | **MET, every figure at its registered value** — `make -C sim test` PASS · `pla3_check` 21 · `ucsim_check v0.1` 169,000 · `mod3_illegal` 128 · `timed_gate v0.1 --forms all` **169,000, row-diffs 0** · `-w1` / `-w3` 1,200 each · the four HLT sweeps **97 + 95 + 46 + 45 = 283 / 283** · `check_boot --timed 220` MATCH · `timed_scenario` 18/0/9 · `timed_enter_replay` 154 ×5 · `timed_ins_replay --raw` 1,312 and 2,624 · `timed_wvec_gate` 88/88 **+0.0 %** · `timed_lawcards` **8 GREEN / 0 RED / 3 UNRESOLVED** |
+| **B-7 / B-8** `ss_lint`, `ulockstep`, G6 | **VACUOUS — no RTL file changed.  Not run, and NOT claimed** |
+
+### §7.7 ⚠ THE ONE CLAUSE THAT MOVED, REPORTED AS REGISTERED
+
+`w32_launch --core sim`'s entry partition goes
+`DIFF_BOUNDARY 7 → 17`, `SAME_BOUNDARY 50 → 26`, `NO_ENTRY_DIFF 126 → 140`.
+
+**It is not a loss and it is not restated as one.**  Zero seeds left EXACT,
+zero first divergences moved earlier, and the `wr1` and bank columns both went
+up.  What happened is that seeds whose FIRST divergent entry was P1's now run
+past it and are classified at a LATER entry, where the boundary differs.
+`DIFF_BOUNDARY` is an **attribution** counter over a divergent-by-construction
+subset, not a ratchet (`standing_gates.md` says so of the whole 184).  I
+registered it in B-4 anyway, so it is reported as **NOT MET** and the law it
+was standing in for — the shadow's own 75 / 1,288 / 1,363 — is reported
+separately and is **unmoved**.
+
+### §7.8 THE `ucore` LEG — **BUILT, MEASURED, AND DELIBERATELY REVERTED.  ITS SECOND HALF IS NAMED.**
+
+The mirror change was made (`v30u_eu_step.svh`: `q_ripe_lead_n` becomes
+`q_ripe_lead_n || brk_arm` at the `S_DECODE2` hand-over and at `S_1BL_LEAD`),
+the TB was rebuilt, and it was measured rather than assumed:
+
+* `wr1 --core ucore` **77 → 78**.  `check_core --opcodes all --cases 0`
+  **169,000 / 169,000**, unmoved.
+* On `wr1/201055` the `ucore`'s `BRKT` moved **2733 → 2731**.  **The model's
+  lands at 2729.**  The prefetch at 2731 is therefore still not blocked, and
+  the seed is still not exact.
+
+> **THE `ucore` NEEDS A SECOND, STRUCTURAL CHANGE AND THIS SITTING DOES NOT
+> INVENT IT.**  Its one-byte-logic boundary is `bnd_opc = (st == S_OPC_POP) &&
+> bnd_armed` — the SUCCESSOR'S POP STATE — while the model's is
+> `boundary_no_pop()` at the retire deadline.  With the lead gated, `S_1BL_CHG`
+> and `S_OPC_POP` still stand between the retire and the boundary, which is the
+> remaining 2 clocks exactly.  The fix is to give the 1BL path its own boundary
+> arm at the retire deadline, beside `bnd_row` / `bnd_epop` / `bnd_opc`, and
+> that is a structure question with its own bars — `ss_lint`, `ulockstep` and
+> **G6** among them.
+>
+> **The RTL is REVERTED.**  `git diff` is empty over `hdl/`, the TB is rebuilt
+> from HEAD, and the `ucore`'s `wr1` leg re-measures at **77 / 184** — a +1
+> partial landing that misdescribes the defect is not worth a synthesis gate.
+> ⚠ One question the next sitting must answer before re-taking it: the model's
+> gate is `brk_arm_` and a `ONE_BYTE_LOGIC` form is never in the shadow class,
+> so there `brk_arm_ == brk_take_`; in the RTL `irq_shadow` is a FLOP that may
+> carry the PREVIOUS instruction's set, so `brk_arm` and `brk_take` are not
+> interchangeable there.  **Measure it; do not assume it.**
+
+### §7.9 WHAT THIS SITTING DID NOT DO
+
+* **NO BOARD CONTACT, NO FLASHING, `use_core` NEVER SET.**  No `div_guard`, no
+  `board_idle` — nothing was opened.  The board still carries FLASH #10, so
+  every figure here is offline and none is a fabric figure.
+* **The victory reserve (`k ≥ 300000`) was NOT touched.**
+* **NOTHING WAS LANDED IN THE `ucore`.**  `git diff` over `hdl/` is empty.
+* **The 12 P1 seeds that are still not EXACT are reported, not excused**: 8 of
+  them have their first divergence LATER than before (the P1 defect closed and
+  a downstream one remains), and 4 (`203018`, `203121`, `204143`, `205000`)
+  have an UPSTREAM divergence that predates the contested entry — §4.6a's A-1
+  shape, and it is named here rather than counted as a miss of this law.
+* `mc1/721`, `mc2/584`, the `MEMW`→4-idle→`MEMW` mode (§5.6a), the
+  `CODE`→gap+2 mode (§5.6b), H3-B and the 8080/BRKEM family were NOT opened.
+* **No memory file was touched and Codex was not launched.**
+* B-7 and B-8 are VACUOUS and are reported as vacuous, not as green.
