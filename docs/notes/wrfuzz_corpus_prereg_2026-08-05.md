@@ -40,9 +40,14 @@ the limit is measured rather than assumed.**
 
 * **THE LIMIT IS 4,096 BUS CYCLES.**  `wvec_buf` holds 4,096 entries and
   `nec_bus`'s `bus_idx` is 12 bits.  Past that the three legs do **three
-  different things**: the board WRAPS to entry 0 of whatever is in the RAM, the
-  TB reads its zero-filled array (0), and the model falls back to the uniform
-  `--waits` level.  §68.6's own vectors were 4,096 entries for this reason.
+  different things**: the board **WRAPS** to entry 0 of whatever is in the RAM;
+  the model falls back to the **uniform `--waits`** level; and the TB's
+  `wbus_idx` is an unbounded `integer` indexing `wvec_arr[0:4095]`, so the read
+  is **OUT OF RANGE and its value is not defined by the language** — the
+  zero-fill at `tb_v30_core.sv:128` covers 0…4095 and says nothing about 4096.
+  (A **SHORT** vector is a separate and equally three-way case: model → uniform,
+  TB → 0 from the zero-fill, board → the previous run's bytes.)  §68.6's own
+  vectors were 4,096 entries for this reason.
 * **Fuzz-length programs sit inside it with ~4× headroom.**  A capture is
   `TB_ROWS = 4,200` clocks / `LIMIT_ROWS = 4,000` scored rows, and a bus cycle
   is at least 4 clocks, so a run cannot exceed ~1,050 bus cycles even at zero

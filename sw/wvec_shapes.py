@@ -33,14 +33,22 @@ place where the three implementations do something DIFFERENT.
       writes `write_tb()` or `write_sim()`, and `check_encodings()` proves on
       every lint that the two round-trip to the same list.
 
-  (2) THE OUT-OF-RANGE BEHAVIOURS ARE THREE DIFFERENT THINGS.
-      Past the end of the loaded vector the model falls back to the UNIFORM
-      `--waits` level (`biu_timed.cpp:156`); the TB reads its zero-filled
-      array and gets 0 (`tb_v30_core.sv:128`); the board's `bus_idx` is 12
-      bits and WRAPS to entry 0 of whatever is still in the RAM.  The rule
-      that makes all three agree is: ALWAYS EMIT EXACTLY `NWVEC` ENTRIES and
-      never let a run exceed `NWVEC` bus cycles.  `bus_cycle_bound()` is the
-      measurement that says a capture stayed inside it.
+  (2) THE OUT-OF-RANGE BEHAVIOURS ARE THREE DIFFERENT THINGS, AND THE TB'S
+      IS TWO.
+      * a SHORT vector (fewer than NWVEC entries loaded): the model falls back
+        to the UNIFORM `--waits` level (`biu_timed.cpp:156`); the TB reads its
+        array, which `tb_v30_core.sv:128` zero-fills before `$readmemh`, and
+        gets 0; the board reads whatever the last load left in the RAM -- see
+        (3).  Three different answers to the same question.
+      * an index AT OR BEYOND NWVEC: the board's `bus_idx` is 12 bits and
+        WRAPS to entry 0; the model still falls back to uniform; and the TB's
+        `wbus_idx` is an unbounded `integer` indexing `wvec_arr[0:4095]`, so
+        the read is OUT OF RANGE and its value is NOT DEFINED by the language
+        -- the zero-fill covers 0..4095 and says nothing about 4096.
+      The rule that makes all of it moot is: ALWAYS EMIT EXACTLY `NWVEC`
+      ENTRIES and never let a run exceed `NWVEC` bus cycles.
+      `bus_cycle_bound()` is the measurement that says a capture stayed inside
+      it -- it is a BAR, not an assumption.
 
   (3) THE BOARD'S REPLAY RAM IS NOT CLEARED BETWEEN RUNS.
       `v30ctl.Harness.load_wvec` writes only `len(tw_list)` bytes.  A short

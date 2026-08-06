@@ -64,8 +64,10 @@ needs, and the limit is ONE NUMBER: 4,096 bus cycles.**
 measured, not argued.**  A capture is 4,200 clocks and a bus cycle is ≥ 4
 clocks, so a run cannot exceed ~1,050 bus cycles; the W0 smoke's largest was
 **728**.  It is still a BAR (**B-5**) because past 4,096 the three legs do
-three different things: the board WRAPS, the TB reads 0 from its zero-filled
-array, and the model falls back to the uniform level.
+three different things: the board WRAPS, the model falls back to the uniform
+level, and the TB performs an **out-of-range read** of `wvec_arr[0:4095]` whose
+value the language does not define (the zero-fill covers 0…4095 and is the
+answer to a SHORT vector, which is a different question).
 
 **THREE RIG PROPERTIES BOOKED AS DESIGN RULES** (prereg §1.1): always exactly
 4,096 entries (the board's replay RAM is **not cleared between runs**, so a

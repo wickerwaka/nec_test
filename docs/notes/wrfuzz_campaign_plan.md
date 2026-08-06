@@ -281,11 +281,13 @@ legs do something DIFFERENT:
    reads its vector with `$readmemh` (HEX); the model reads its vector with
    `fscanf("%d")` (DECIMAL).  A TB-format file handed to the model parses `1f`
    as `1`, fails on `f`, **stops**, and silently runs a truncated vector.
-2. **Three different out-of-range behaviours.**  Past the vector's end the
-   model falls back to the uniform level, the TB reads 0 from its zero-filled
-   array, and the board's 12-bit `bus_idx` WRAPS.  The rule that makes all
-   three agree: always exactly 4,096 entries, and never let a run exceed 4,096
-   bus cycles (bar **B-5** measures it).
+2. **Three different out-of-range behaviours, and the TB's is two.**  Past the
+   vector's end the model falls back to the uniform level and the board's
+   12-bit `bus_idx` WRAPS; the TB reads 0 from its zero-fill for a SHORT
+   vector, but an index at or beyond 4,096 is an **out-of-range read of
+   `wvec_arr[0:4095]` whose value the language does not define**.  The rule
+   that makes all of it moot: always exactly 4,096 entries, and never let a
+   run exceed 4,096 bus cycles (bar **B-5** measures it).
 3. **The board's replay RAM is not cleared between runs** — a short load leaves
    the previous run's tail in place and the chip reads it.  Same rule.
 4. **The field is five bits, not eight**, in all three legs.  A value above 31
