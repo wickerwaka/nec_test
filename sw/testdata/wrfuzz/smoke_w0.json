@@ -72,7 +72,7 @@
     "applied_of": 667,
     "first_bad": null,
     "err": "",
-    "secs": 0.02
+    "secs": 0.03
    },
    "ucore": {
     "rows": 4199,
@@ -222,7 +222,7 @@
     "applied_of": 138,
     "first_bad": null,
     "err": "",
-    "secs": 0.02
+    "secs": 0.04
    },
    "ucore": {
     "rows": 4199,
@@ -231,7 +231,7 @@
     "applied_of": 138,
     "first_bad": null,
     "err": "",
-    "secs": 0.05
+    "secs": 0.07
    },
    "obs_engine_rows": [
     4200,
@@ -267,7 +267,7 @@
     "applied_of": 168,
     "first_bad": null,
     "err": "",
-    "secs": 0.05
+    "secs": 0.06
    },
    "obs_engine_rows": [
     4200,
@@ -293,7 +293,7 @@
     "applied_of": 170,
     "first_bad": null,
     "err": "",
-    "secs": 0.02
+    "secs": 0.03
    },
    "ucore": {
     "rows": 4199,
@@ -340,7 +340,7 @@
     "applied_of": 167,
     "first_bad": null,
     "err": "",
-    "secs": 0.06
+    "secs": 0.05
    },
    "obs_engine_rows": [
     4200,
@@ -710,7 +710,7 @@
     "applied_of": 250,
     "first_bad": null,
     "err": "",
-    "secs": 0.05
+    "secs": 0.06
    },
    "obs_engine_rows": [
     4200,
@@ -748,7 +748,7 @@
     "applied_of": 554,
     "first_bad": null,
     "err": "",
-    "secs": 0.06
+    "secs": 0.05
    },
    "obs_engine_rows": [
     4232,

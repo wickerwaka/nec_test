@@ -39,9 +39,7 @@ SW = Path(__file__).resolve().parent
 ROOT = SW.parent
 sys.path.insert(0, str(SW))
 
-import check_seq                                          # noqa: E402
 import fuzz_campaign as fzc                               # noqa: E402
-import fuzz_classify as fc                                # noqa: E402
 import simbin                                             # noqa: E402
 import timed_fuzz as tf                                   # noqa: E402
 import wvec_shapes as wv                                  # noqa: E402
