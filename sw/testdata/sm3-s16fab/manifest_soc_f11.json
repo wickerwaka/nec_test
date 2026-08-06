@@ -1,0 +1,19 @@
+{
+ "leg": "soc_f11",
+ "use_core": false,
+ "board": true,
+ "host": "root@mister-nec",
+ "div_guard": {
+  "open": {
+   "readback": "div=8 (4 MHz), commanded by this connection",
+   "state": "PINNED"
+  },
+  "close": {
+   "readback": "div=8 (4 MHz), commanded by this connection",
+   "state": "PINNED"
+  }
+ },
+ "cells": 41,
+ "errors": 0,
+ "seconds": 1.1
+}

@@ -3,17 +3,47 @@
  "cid": "wr2",
  "host": "root@mister-nec",
  "pop_sha256": "dcaa48fa991fa3cc78588bc95e4881a17a563b875624ac58138882056f39066d",
- "ts": "2026-08-06T09:40:17Z",
- "div_guards": [],
- "uptime": "09:40:18  up 24 days 14:06,  0 users,  load average: 0.03, 0.00, 0.01",
+ "ts": "2026-08-06T09:48:51Z",
+ "div_guards": [
+  {
+   "tag": "w4-preflight",
+   "readback": "div=8 (4 MHz), commanded by this connection",
+   "state": "PINNED",
+   "rig": "WRAND=0 replay=0 (commanded clean at connect, OK/OK)",
+   "ts": "2026-08-06T09:48:58Z"
+  },
+  {
+   "tag": "w4-preflight-end",
+   "readback": "div=8 (4 MHz), commanded by this connection",
+   "state": "PINNED",
+   "rig": "WRAND=0 replay=0 (commanded clean at connect, OK/OK)",
+   "ts": "2026-08-06T09:48:59Z"
+  }
+ ],
+ "uptime": "09:48:52  up 24 days 14:15,  0 users,  load average: 0.00, 0.00, 0.00",
  "board_procs": [],
  "single_writer": "OK",
  "flash_log_tail": {
-  "ts": "2026-08-05T23:01:06Z",
+  "ts": "2026-08-06T09:47:53Z",
   "sof_path": "hdl/output_files_ucore/nec_test_ucore.sof",
-  "sha256": "1a01a6975e4aca6fe9cefe83002034789dfee5c728cd72c59ea2acbc7f7a9498",
-  "git_describe": "f3f7b6b20d-dirty",
+  "sha256": "82b4935092d6fb99644227ee2c1f08b4eaaeb4f0661351e00a07902f121e23b0",
+  "git_describe": "6f58a9b157-dirty",
   "verify": "OK"
+ },
+ "era": {
+  "sof_sha256": "82b4935092d6fb99644227ee2c1f08b4eaaeb4f0661351e00a07902f121e23b0",
+  "flash_ts": "2026-08-06T09:47:53Z",
+  "flash_git": "6f58a9b157-dirty",
+  "flash_verify": "OK",
+  "rtl": {
+   "receipt_id": "7aef327c763f0d65922b90d62a3187df9bc17bc61b4523dab9cc57d686656749",
+   "inputs_sha256": "1ee7778b027a6920fe98500f2473d8b7ea18b013a4a10d56f89e7726a67b4948",
+   "n_files": 88,
+   "label": "wrfuzz W4 -- FLASH #11 RETENTION build (X1_AD_RETENTION=1), RECORDED not barred"
+  },
+  "gen_git": "cd6f457775",
+  "rig_evt_hold_bits": 12,
+  "rules_version": "1.0"
  },
  "regen": {
   "cells": [
@@ -213,5 +243,16 @@
   "hits": 0,
   "seeds": 296
  },
- "verdict": "BLOCKED"
+ "check_ab_hw": {
+  "rc": 0,
+  "tail": [
+   "== chip position (use_core=0): boot vs golden ==",
+   "chip-vs-golden: MATCH over 800 rows",
+   "",
+   "== core position (use_core=1): boot ==",
+   "core-vs-chip:   MATCH over 800 rows",
+   "core-vs-golden: MATCH over 800 rows"
+  ]
+ },
+ "verdict": "OK"
 }

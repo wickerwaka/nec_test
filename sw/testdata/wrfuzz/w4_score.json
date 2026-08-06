@@ -1,0 +1,456 @@
+{
+ "pop_sha256": "dcaa48fa991fa3cc78588bc95e4881a17a563b875624ac58138882056f39066d",
+ "S_frozen": 91.6681,
+ "B_frozen": 86.6681,
+ "T": 90.01700680272108,
+ "verdict": "MET",
+ "condition_T": true,
+ "condition_families": true,
+ "empty_strata": [],
+ "n_rates_averaged": 28,
+ "pooled_exact": 129,
+ "pooled_scored": 141,
+ "pooled_rate": 91.48936170212765,
+ "bar_seed_count": 122,
+ "strata": [
+  {
+   "i": 0,
+   "stratum": "soup/fix0",
+   "n": 7,
+   "open_bus": 0,
+   "b5": 0,
+   "unstable": 0,
+   "scored": 7,
+   "exact": 7,
+   "rate": 100.0
+  },
+  {
+   "i": 1,
+   "stratum": "soup/fix1",
+   "n": 7,
+   "open_bus": 0,
+   "b5": 0,
+   "unstable": 0,
+   "scored": 7,
+   "exact": 7,
+   "rate": 100.0
+  },
+  {
+   "i": 2,
+   "stratum": "soup/fix2",
+   "n": 7,
+   "open_bus": 0,
+   "b5": 0,
+   "unstable": 0,
+   "scored": 7,
+   "exact": 7,
+   "rate": 100.0
+  },
+  {
+   "i": 3,
+   "stratum": "soup/fix3",
+   "n": 7,
+   "open_bus": 0,
+   "b5": 0,
+   "unstable": 0,
+   "scored": 7,
+   "exact": 6,
+   "rate": 85.71428571428571
+  },
+  {
+   "i": 4,
+   "stratum": "soup/wrand1",
+   "n": 7,
+   "open_bus": 0,
+   "b5": 0,
+   "unstable": 0,
+   "scored": 7,
+   "exact": 7,
+   "rate": 100.0
+  },
+  {
+   "i": 5,
+   "stratum": "soup/wrand2",
+   "n": 7,
+   "open_bus": 0,
+   "b5": 0,
+   "unstable": 0,
+   "scored": 7,
+   "exact": 7,
+   "rate": 100.0
+  },
+  {
+   "i": 6,
+   "stratum": "soup/wrand3",
+   "n": 7,
+   "open_bus": 0,
+   "b5": 0,
+   "unstable": 0,
+   "scored": 7,
+   "exact": 7,
+   "rate": 100.0
+  },
+  {
+   "i": 7,
+   "stratum": "soup/wrand7",
+   "n": 7,
+   "open_bus": 0,
+   "b5": 0,
+   "unstable": 0,
+   "scored": 7,
+   "exact": 6,
+   "rate": 85.71428571428571
+  },
+  {
+   "i": 8,
+   "stratum": "soup/wrand15",
+   "n": 7,
+   "open_bus": 0,
+   "b5": 0,
+   "unstable": 0,
+   "scored": 7,
+   "exact": 7,
+   "rate": 100.0
+  },
+  {
+   "i": 9,
+   "stratum": "soup/wvec-uni",
+   "n": 7,
+   "open_bus": 0,
+   "b5": 0,
+   "unstable": 0,
+   "scored": 7,
+   "exact": 7,
+   "rate": 100.0
+  },
+  {
+   "i": 10,
+   "stratum": "soup/wvec-walk",
+   "n": 7,
+   "open_bus": 0,
+   "b5": 0,
+   "unstable": 0,
+   "scored": 7,
+   "exact": 7,
+   "rate": 100.0
+  },
+  {
+   "i": 11,
+   "stratum": "soup/wvec-skew",
+   "n": 7,
+   "open_bus": 0,
+   "b5": 0,
+   "unstable": 0,
+   "scored": 7,
+   "exact": 6,
+   "rate": 85.71428571428571
+  },
+  {
+   "i": 12,
+   "stratum": "soup/wvec-burst",
+   "n": 7,
+   "open_bus": 0,
+   "b5": 0,
+   "unstable": 0,
+   "scored": 7,
+   "exact": 7,
+   "rate": 100.0
+  },
+  {
+   "i": 13,
+   "stratum": "soup/wvec-edge",
+   "n": 7,
+   "open_bus": 0,
+   "b5": 0,
+   "unstable": 0,
+   "scored": 7,
+   "exact": 7,
+   "rate": 100.0
+  },
+  {
+   "i": 14,
+   "stratum": "raw/fix0",
+   "n": 7,
+   "open_bus": 4,
+   "b5": 0,
+   "unstable": 0,
+   "scored": 3,
+   "exact": 3,
+   "rate": 100.0
+  },
+  {
+   "i": 15,
+   "stratum": "raw/fix1",
+   "n": 7,
+   "open_bus": 3,
+   "b5": 0,
+   "unstable": 0,
+   "scored": 4,
+   "exact": 3,
+   "rate": 75.0
+  },
+  {
+   "i": 16,
+   "stratum": "raw/fix2",
+   "n": 7,
+   "open_bus": 6,
+   "b5": 0,
+   "unstable": 0,
+   "scored": 1,
+   "exact": 1,
+   "rate": 100.0
+  },
+  {
+   "i": 17,
+   "stratum": "raw/fix3",
+   "n": 7,
+   "open_bus": 3,
+   "b5": 0,
+   "unstable": 0,
+   "scored": 4,
+   "exact": 2,
+   "rate": 50.0
+  },
+  {
+   "i": 18,
+   "stratum": "raw/wrand1",
+   "n": 7,
+   "open_bus": 4,
+   "b5": 0,
+   "unstable": 0,
+   "scored": 3,
+   "exact": 2,
+   "rate": 66.66666666666667
+  },
+  {
+   "i": 19,
+   "stratum": "raw/wrand2",
+   "n": 7,
+   "open_bus": 5,
+   "b5": 0,
+   "unstable": 0,
+   "scored": 2,
+   "exact": 2,
+   "rate": 100.0
+  },
+  {
+   "i": 20,
+   "stratum": "raw/wrand3",
+   "n": 7,
+   "open_bus": 6,
+   "b5": 0,
+   "unstable": 0,
+   "scored": 1,
+   "exact": 1,
+   "rate": 100.0
+  },
+  {
+   "i": 21,
+   "stratum": "raw/wrand7",
+   "n": 7,
+   "open_bus": 3,
+   "b5": 0,
+   "unstable": 0,
+   "scored": 4,
+   "exact": 3,
+   "rate": 75.0
+  },
+  {
+   "i": 22,
+   "stratum": "raw/wrand15",
+   "n": 7,
+   "open_bus": 4,
+   "b5": 0,
+   "unstable": 0,
+   "scored": 3,
+   "exact": 3,
+   "rate": 100.0
+  },
+  {
+   "i": 23,
+   "stratum": "raw/wvec-uni",
+   "n": 7,
+   "open_bus": 6,
+   "b5": 0,
+   "unstable": 0,
+   "scored": 1,
+   "exact": 1,
+   "rate": 100.0
+  },
+  {
+   "i": 24,
+   "stratum": "raw/wvec-walk",
+   "n": 7,
+   "open_bus": 4,
+   "b5": 0,
+   "unstable": 0,
+   "scored": 3,
+   "exact": 2,
+   "rate": 66.66666666666667
+  },
+  {
+   "i": 25,
+   "stratum": "raw/wvec-skew",
+   "n": 7,
+   "open_bus": 4,
+   "b5": 0,
+   "unstable": 0,
+   "scored": 3,
+   "exact": 2,
+   "rate": 66.66666666666667
+  },
+  {
+   "i": 26,
+   "stratum": "raw/wvec-burst",
+   "n": 7,
+   "open_bus": 2,
+   "b5": 0,
+   "unstable": 0,
+   "scored": 5,
+   "exact": 4,
+   "rate": 80.0
+  },
+  {
+   "i": 27,
+   "stratum": "raw/wvec-edge",
+   "n": 7,
+   "open_bus": 1,
+   "b5": 0,
+   "unstable": 0,
+   "scored": 6,
+   "exact": 5,
+   "rate": 83.33333333333333
+  }
+ ],
+ "families": {
+  "PF_LOST": 2,
+  "PIN": 1,
+  "SCHEDULE": 7,
+  "DATA_SEQ": 2
+ },
+ "unnamed": [],
+ "directed": [
+  {
+   "cell": "D1",
+   "tier": "soup",
+   "wlo": 0,
+   "whi": 7,
+   "n": 25,
+   "exact_seeds": 25,
+   "exact_pop": {
+    "paired": 1305,
+    "same_owner": 1305,
+    "class_b": 0
+   },
+   "all_pop": {
+    "paired": 1305,
+    "same_owner": 1305,
+    "class_b": 0
+   },
+   "swaps": []
+  },
+  {
+   "cell": "D2",
+   "tier": "soup",
+   "wlo": 1,
+   "whi": 15,
+   "n": 25,
+   "exact_seeds": 24,
+   "exact_pop": {
+    "paired": 1021,
+    "same_owner": 1021,
+    "class_b": 0
+   },
+   "all_pop": {
+    "paired": 1182,
+    "same_owner": 1039,
+    "class_b": 0
+   },
+   "swaps": []
+  },
+  {
+   "cell": "D3",
+   "tier": "raw",
+   "wlo": 0,
+   "whi": 7,
+   "n": 25,
+   "exact_seeds": 20,
+   "exact_pop": {
+    "paired": 3228,
+    "same_owner": 3228,
+    "class_b": 0
+   },
+   "all_pop": {
+    "paired": 4173,
+    "same_owner": 3450,
+    "class_b": 1
+   },
+   "swaps": [
+    [
+     330039,
+     89,
+     "MEMW",
+     "MEMR",
+     6,
+     false
+    ]
+   ]
+  },
+  {
+   "cell": "D4",
+   "tier": "raw",
+   "wlo": 1,
+   "whi": 15,
+   "n": 25,
+   "exact_seeds": 18,
+   "exact_pop": {
+    "paired": 1741,
+    "same_owner": 1741,
+    "class_b": 0
+   },
+   "all_pop": {
+    "paired": 2110,
+    "same_owner": 2004,
+    "class_b": 0
+   },
+   "swaps": []
+  }
+ ],
+ "bars": {
+  "B-2_era": {
+   "absent": 0,
+   "distinct_sof": [
+    "82b4935092d6fb99644227ee2c1f08b4eaaeb4f0661351e00a07902f121e23b0"
+   ]
+  },
+  "B-3_vector": {
+   "spec_without_hex": 0,
+   "wrong_len": 0
+  },
+  "B-5_bus_bound": {
+   "at_or_beyond": []
+  },
+  "B-1_vector_applied": {
+   "matched": 43266,
+   "total": 43266,
+   "rate": 100.0,
+   "seeds_with_a_mismatch": 0,
+   "first": []
+  },
+  "B-4_B-6_generation": {
+   "seeds": 296,
+   "hits": 0,
+   "brkem_pairs": 0
+  },
+  "B-9_stability": {
+   "unstable": [],
+   "stable": 296,
+   "flicker_rows": 0
+  },
+  "captured": {
+   "expected": 296,
+   "present": 296,
+   "missing": []
+  }
+ }
+}

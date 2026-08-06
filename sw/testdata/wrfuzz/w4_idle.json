@@ -1,0 +1,9 @@
+[
+ {
+  "tag": "w4-close",
+  "readback": "div=8 (4 MHz), commanded by this connection",
+  "state": "PINNED",
+  "rig": "WRAND=0 replay=0 (commanded clean at connect, OK/OK)",
+  "ts": "2026-08-06T09:54:39Z"
+ }
+]

@@ -2084,3 +2084,291 @@ particular build would have shown here.
   unbounded sweep over every case.  It was killed and the REGISTERED forms
   (`--ss-mode 1` / `2` / `5`) were run instead.  Nothing was scored off the
   wrong invocation.
+
+---
+
+## §9 W4 — **THE VICTORY SITTING.  THE BAR IS MET.  `T` = 90.0170 % AGAINST A BAR OF 86.6681 % FROZEN AT W2, ON A FRESH DISJOINT TRANCHE NO ENGINE HAS EVER SEEN, IN FABRIC, AGAINST SILICON.**
+
+**2026-08-06, branch `ucsim`, from HEAD `51139e5cde`.  BOARD SESSION, FLASH #11
+TAKEN.**  Pre-registration: `docs/notes/wrfuzz_w4_prereg_2026-08-06.md`,
+committed at **`b66c4702c4` before any board contact and before the flash**,
+with two addenda (`f99660b9c9` §3.4a, `6f58a9b157` §2.0a) **also before the
+board was touched and before any tranche number existed**.  Driver:
+`sw/wrfuzz_w4.py`.  Prediction instrument: `sw/wrfuzz_w4_predict.py`.
+
+> **Standing principle.**  *"A guiding principal here needs to be simplicity.
+> This is 80's era hardware, they aren't wasting silicon on anything that isn't
+> necessary.  Complex or confusing behavior that we see is likely to be simple
+> systems interacting in ways you do not fully understand yet."*
+
+### §9.1 THE HEADLINE
+
+> **VICTORY: MET.**  The 196-seed stratified body, drawn from `k ≥ 300000` and
+> **disjoint from every survey seed by construction**, scores
+> **`T` = 90.0170 %** — the unweighted mean of the 28 per-stratum
+> hardware-versus-silicon cycle-exact rates, the identical construction that
+> produced `S` — against the **FROZEN `B` = 86.6681 %**.  **+3.3489 points.**
+> Both `MET` conditions hold: `T ≥ B`, **and** every one of the 12 scored
+> non-exact seeds' first divergence falls in a family named in the W2 census's
+> taxonomy (`SCHEDULE` 7 · `PF_LOST` 2 · `DATA_SEQ` 2 · `PIN` 1, **catch-all
+> EMPTY**).
+>
+> **The plan's other reading agrees and is reported beside it**, as registered:
+> the pooled conversion is `floor(86.6681 % × 141) = 122` seeds and the measured
+> exact count is **129**.  The two readings do not disagree, so nothing had to
+> decide between them.
+>
+> **NINE CAPTURE-INTEGRITY BARS, NINE MET, NOTHING VOID.**  296 seeds, **912
+> seed-loops in 2.6 minutes**, **0 quarantines, 0 transport errors, 0 unstable
+> cells over 296 × (3 or 5) repetitions on both A/B legs**, `div_guard`
+> **PINNED on 33 of 33 probes**, and **B-1 = 100.00 % over 43,266 bus cycles**
+> — the vector the rig applied was the vector it was handed, on every capture,
+> every cycle.
+>
+> **AND THE FABRIC RE-BASE REPRODUCED EVERY REGISTERED PREDICTION CELL FOR
+> CELL**: the HLT sweeps **279 / 283** with **0 PASS/FAIL disagreements and 0
+> differing first-divergence coordinates against the fresh `ret` column over all
+> 283**, the four failures being the four cells NAMED IN ADVANCE at the
+> coordinates named in advance; the S16 walk **1,347 / 1,371** with **0
+> disagreements and 0 differing coordinates over all 1,371**, its 24 failures
+> being the four family-D coordinates × the six frozen programs and **nothing
+> else**.  Socket controls **49 / 49** and **41 / 41**.
+
+### §9.2 FLASH #11 — THE BITSTREAM, AND WHAT WAS GREEN BEFORE IT
+
+**G6 at HEAD on a CLEAN tree is the promotion receipt**, run and green before
+the pre-registration was committed.  W3.5's receipt was NOT reused: it records
+the tree as `734e11c010-dirty`, and a promotion receipt for a flash must name a
+committed tree.
+
+| | CONTROL/DEFAULT (the GATE) | RETENTION (the FLASHED build) |
+|---|---|---|
+| E1 `gen_ucore_qsf --check` | **PASS** | (control's) |
+| E2 errors / stages | **0 / 0**, map·fit·asm Successful | **0**, all four stages Successful |
+| E3 Fmax (bar ≥ 32) | **47.31 MHz** | **46.74 MHz** |
+| E4 worst setup | **+9.226 ns** | **+6.724 ns** |
+| E5 TNS, setup AND hold, every domain | **0.000** | **0.000** |
+| ALMs / latches / `lpm_divide` | **11,232 / 41,910 (27 %)** · 0 · 0 | **11,332 (27 %)** · 0 · 0 |
+| receipt | **`b9a27bcf5c6427d4…`** | **`7aef327c763f0d65…`** |
+| tree | **`51139e5cde`, `dirty_tracked: false`** | same `hdl/` |
+| input manifest | **88 files `fc508a1c4c17228e…` — BYTE-IDENTICAL to W3.5's**, the check that says `hdl/` has not moved since the take-clock term landed | `1ee7778b027a6920…`, the §80.B.1 artefact (Quartus appends pin assignments to the revision `.qsf` before it is parsed); **RECORDED, not barred** |
+
+**⚠ THE MACRO'S EFFECT IS CHECKED, NOT ASSERTED.**  The retention `.sof`
+**`82b4935092d6fb99…`** is DIFFERENT from the control build's
+**`d2dc04fe8d2186ff…`** produced from the same tree minutes earlier.  A
+`--verilog_macro` that never reached the compiler would have produced the same
+bitstream.  The `.qsf` was restored from the generator afterwards and
+`gen_ucore_qsf --check` is green.
+
+**WHY THE RETENTION BUILD IS THE ONE FLASHED**, stated in the pre-registration
+before the number existed: it is the **resting configuration** (FLASH #6, #9 and
+#10 were all retention builds), and **the whole W1 corpus — and therefore `S`
+itself — was captured on one.**  A control-build FLASH #11 would have silently
+changed the comparator that produced the frozen bar.  The retention is on the
+OBSERVATION path (`hb_ad_sample`) only, so the `use_core=0` socket position is
+unaffected by construction and is MEASURED unaffected below.
+
+**FLASH #11** through `sw/safe_flash.sh` with its VERIFY leg:
+`nec_test_ucore.sof`
+**`82b4935092d6fb99644227ee2c1f08b4eaaeb4f0661351e00a07902f121e23b0`**,
+`.rbf` **`9363a7c72c9f9dca00b32e26b7b4a7bb6a7c66bebd6b22cc05b9c00dc49f23fc`**,
+VERIFY **OK** (`pwr_good True`, `cpu_running True`, `cfg 0x1ff0008`, `use_core
+False`), `flash_log.jsonl` 13 → **14 entries**.  **It is the first bitstream to
+carry the `ucore`'s take-clock term** (W3.5's `q_ripe_lead_n || brk_seen`).
+First light immediately after the flash: **`check_ab_hw all 800` MATCH on all
+three legs.**
+
+### §9.3 THE TRANCHE, AS REGISTERED
+
+`sw/testdata/wrfuzz/victory_population.json`, sha256 **verified
+`dcaa48fa991f…`** before it was read.  `cid = wr2`, **196 body seeds** over the
+same 28 strata + **four directed cells × 25**, **3 repetitions** and **5 on the
+12 promotion cells** = **912 seed-loops**, the frozen count exactly.
+
+| i | stratum | n | OPEN_BUS | scored | exact | **rate %** | predicted % | W2 % |
+|---|---|---|---|---|---|---|---|---|
+| 0 | soup/fix0 | 7 | 0 | 7 | 7 | **100.00** | 96.00 | 95.33 |
+| 1 | soup/fix1 | 7 | 0 | 7 | 7 | **100.00** | 98.67 | 96.67 |
+| 2 | soup/fix2 | 7 | 0 | 7 | 7 | **100.00** | 96.67 | 95.33 |
+| 3 | soup/fix3 | 7 | 0 | 7 | 6 | **85.71** | 98.00 | 95.33 |
+| 4 | soup/wrand1 | 7 | 0 | 7 | 7 | **100.00** | 97.33 | 97.33 |
+| 5 | soup/wrand2 | 7 | 0 | 7 | 7 | **100.00** | 98.00 | 94.00 |
+| 6 | soup/wrand3 | 7 | 0 | 7 | 7 | **100.00** | 98.67 | 96.00 |
+| 7 | soup/wrand7 | 7 | 0 | 7 | 6 | **85.71** | 96.00 | 95.33 |
+| 8 | soup/wrand15 | 7 | 0 | 7 | 7 | **100.00** | 100.00 | 96.00 |
+| 9 | soup/wvec-uni | 7 | 0 | 7 | 7 | **100.00** | 98.67 | 98.00 |
+| 10 | soup/wvec-walk | 7 | 0 | 7 | 7 | **100.00** | 96.67 | 92.00 |
+| 11 | soup/wvec-skew | 7 | 0 | 7 | 6 | **85.71** | 100.00 | 98.67 |
+| 12 | soup/wvec-burst | 7 | 0 | 7 | 7 | **100.00** | 97.33 | 95.33 |
+| 13 | soup/wvec-edge | 7 | 0 | 7 | 7 | **100.00** | 100.00 | 100.00 |
+| 14 | raw/fix0 | 7 | 4 | 3 | 3 | **100.00** | 81.25 | 81.25 |
+| 15 | raw/fix1 | 7 | 3 | 4 | 3 | **75.00** | 80.56 | 80.56 |
+| 16 | raw/fix2 | 7 | 6 | 1 | 1 | **100.00** | 92.31 | 92.31 |
+| 17 | raw/fix3 | 7 | 3 | 4 | 2 | **50.00** | 89.66 | 86.21 |
+| 18 | raw/wrand1 | 7 | 4 | 3 | 2 | **66.67** | 72.00 | 68.00 |
+| 19 | raw/wrand2 | 7 | 5 | 2 | 2 | **100.00** | 87.50 | 87.50 |
+| 20 | raw/wrand3 | 7 | 6 | 1 | 1 | **100.00** | 78.38 | 78.38 |
+| 21 | raw/wrand7 | 7 | 3 | 4 | 3 | **75.00** | 93.33 | 93.33 |
+| 22 | raw/wrand15 | 7 | 4 | 3 | 3 | **100.00** | 93.33 | 93.33 |
+| 23 | raw/wvec-uni | 7 | 6 | 1 | 1 | **100.00** | 96.15 | 96.15 |
+| 24 | raw/wvec-walk | 7 | 4 | 3 | 2 | **66.67** | 89.29 | 89.29 |
+| 25 | raw/wvec-skew | 7 | 4 | 3 | 2 | **66.67** | 90.32 | 87.10 |
+| 26 | raw/wvec-burst | 7 | 2 | 5 | 4 | **80.00** | 91.30 | 91.30 |
+| 27 | raw/wvec-edge | 7 | 1 | 6 | 5 | **83.33** | 96.67 | 96.67 |
+
+**scored 141 of 196** (55 OPEN_BUS, all raw tier, 0 soup), **exact 129**,
+pooled **91.49 %**.  **`T` = 90.0170 %.**  **No stratum came back with an empty
+scored denominator**, so §2.1's rule was armed and never needed: the mean is
+over all **28**.  **B-5 fired on 0 seeds and instability on 0**, so OPEN_BUS
+was the only exclusion that had any members — exactly the survey's shape.
+
+### §9.4 THE PREDICTION, AND IT IS REPORTED AGAINST — NOT IN PLACE OF — THE BAR
+
+The registered point prediction was **`T` = 93.0017 %** with a registered 95 %
+band of **[87.82 %, 98.18 %]**.
+
+> **MEASURED 90.0170 % — INSIDE the registered band, and 2.985 points BELOW the
+> point prediction, i.e. 1.13 standard errors low.**  Reported as registered,
+> not restated.
+
+**WHERE THE PREDICTION WAS WRONG, ITEMISED.**  The shortfall is **not** noise
+spread evenly; it has a shape, and the shape contradicts the reading §3.2
+registered:
+
+* **SOUP BEAT THE PREDICTION AND THE MISS IS ELSEWHERE.**  Soup measured
+  **95 / 98** pooled, mean **96.94 %**, against a predicted soup mean of
+  **97.71 %** — within noise, and **eleven of the fourteen soup strata are
+  100.00 %**.  The three that are not (`fix3`, `wrand7`, `wvec-skew`) are one
+  seed each.
+* **RAW CARRIED THE WHOLE SHORTFALL**: **34 / 43** pooled, mean **83.10 %**,
+  against a predicted raw mean of **88.29 %**.  ⚠ **AND §3.2's REGISTERED
+  READING SAID THE OPPOSITE** — it predicted the four W3 landings would close
+  soup seeds (41 of the 43 predicted closures were soup) and leave raw
+  untouched, so raw was predicted to reproduce W2 *unchanged*.  It did not
+  reproduce W2; it came in **5.2 points below its own W2 column**.
+* **THE HONEST ARITHMETIC**: the raw strata carry **1 to 6 scored seeds each**
+  after the OPEN_BUS exclusion, so one seed is worth 16-100 points of a
+  stratum's rate and the 28-stratum mean inherits that.  `raw/fix3` at
+  **50.00 %** is *two seeds of four*.  This is the design property registered
+  in §3.1 as *"not a comfortable bar, a bar that a bad draw on the raw side can
+  reach"*, arriving as a measurement.  **It is BOOKED, not explained away** —
+  see §9.8.
+
+### §9.5 THE RESIDUE — 12 SEEDS, FOUR FAMILIES, CATCH-ALL EMPTY
+
+| family | n | at W2 (3,150 seeds) |
+|---|---|---|
+| `SCHEDULE` | **7** | 42 |
+| `PF_LOST` | **2** | 43 |
+| `DATA_SEQ` | **2** | 23 |
+| `PIN` | **1** | 7 |
+| `PF_GAINED` | **0** | 18 |
+| `PF_ADDR` | **0** | 2 |
+| `NOW_EXACT` | **0** | 1 |
+| catch-all / classify error | **0** | **0** |
+
+**Condition 2 of `MET` is satisfied at 100 %** — the V3 precedent's own bar.
+⚠ **`PF_GAINED` IS EMPTY.**  At W2 it was 18 seeds with ONE geometry, `has_tf`
+true on 18 of 18, and §3.5 named it as the invariant that shapes W3.  W3.1-W3.5
+landed on exactly that axis; the tranche's `PF_GAINED` column is **0**.  On 141
+scored seeds that is **not proof of closure** — W2's rate would predict about
+one — and it is recorded as consistent, not as established.
+
+### §9.6 THE FOUR DIRECTED H3-B CELLS — **THE REGISTERED NEGATIVE FIRES, AT §68.6's OWN SCALE**
+
+`skew`, `blk = 32`, the deepest block interior — §65.2's *"steady state, never
+flushed"*, the one of its three stimuli never tried.  Class-B observable:
+**same clock, different owner**, chip against the fabric core, paired by
+ordinal, `sm3_h3_cell.measure` imported.
+
+| cell | tier | `wlo`/`whi` | seeds | exact | **(a) paired accesses, EXACT seeds** | **class-B** | (b) all seeds | class-B |
+|---|---|---|---|---|---|---|---|---|
+| **D1** | soup | 0 / 7 | 25 | **25** | 1,305 | **0** | 1,305 | 0 |
+| **D2** | soup | 1 / 15 | 25 | 24 | 1,021 | **0** | 1,182 | 0 |
+| **D3** | raw | 0 / 7 | 25 | 20 | 3,228 | **0** | 4,173 | 1 |
+| **D4** | raw | 1 / 15 | 25 | 18 | 1,741 | **0** | 2,110 | 0 |
+| | | | **100** | **87** | **7,295** | **0** | **8,770** | **1** |
+
+> **ZERO class-B pairs over 7,295 paired accesses in the block interior** —
+> and 7,295 is **§68.6's own 7,254 to within half a percent**, which was not
+> arranged and is reported because it makes the two numbers directly readable
+> against each other.  **§68.6's negative REPRODUCES under a stimulus it was
+> explicitly not able to reach.**  Class B is now not at a queue-occupancy
+> threshold (§63.6), not in a byte-step sweep (§65.2), not in a clock-step
+> sweep of the eligibility instant (§68.6), **and not in steady state inside a
+> 32-access wait block.**  All four of the stimuli anyone has named have now
+> missed.
+>
+> **D1 IS 25 / 25 CYCLE-EXACT** — a whole directed cell of `skew` soup seeds
+> reproduced clock for clock from RESET to the done marker.
+
+**⚠ AND §3.4a's REGISTERED TRAP FIRED EXACTLY WHERE IT WAS PREDICTED TO.**  The
+(b) population — every seed, pairing ambiguous past a divergence — reports
+**one** class-B pair, in **D3**, on `wr2/330039` at access #89 (`chip MEMW` vs
+`fabric MEMR`, occupancy 6), a seed that is **not cycle-exact**.  That is the
+pairing artefact §3.4a described in advance, in the population §3.4a labelled
+in advance, and it is **NOT a class-B event**.  Had the split been made after
+the numbers were seen it would have been indistinguishable from choosing a
+statistic to get a zero.
+
+### §9.7 THE BARS — **9 / 9 MET, NOTHING VOID**
+
+| bar | registered | **measured** |
+|---|---|---|
+| **B-1** the vector was APPLIED | ≥ 99.9 %, expected 100.0 % | **100.00 % — 43,266 / 43,266 bus cycles, 0 seeds with a mismatch.**  Evaluated on the WHOLE tranche, not a sub-sample, because §5.1 retained every capture's rows |
+| **B-2** era on every capture | 0 absent or mixed | **0 absent; exactly ONE distinct `sof_sha256` over all 296** = FLASH #11, with `rtl.receipt_id` `7aef327c763f0d65…`, `gen_git cd6f457775`, `rig_evt_hold_bits 12` |
+| **B-3** the vector is banked in full | 0 mismatches | **0 specs without `wvec_hex`, 0 wrong lengths** |
+| **B-4** no gen-drift | 0 | **0 GEN_DRIFT over all 296**, evaluated before board time was spent |
+| **B-5** the bus-cycle bound | 0 at or beyond 4,096 | **0** |
+| **B-6** BRKEM-free | 0 pairs | **0 `0F FF` pairs over 296 composed images** |
+| **B-7** board discipline | `div_guard` PINNED on 100 % of probes | **PINNED on 33 / 33**; socket-vs-fabric A/B differing only in `use_core`; every capture's rows retained with sha256 and a `SHA256SUMS`; `board_idle()` at the close with `use_core=0` |
+| **B-8** transport | breaker not tripped | **0 quarantines, 0 transport errors in 912 seed-loops** |
+| **B-9** the capture is stable | 158 / 158 at W1's sub-sample; here 296 / 296 | **296 / 296 STABLE**, rep 1 against every later rep on BOTH A/B legs, **0 bad rows and 0 flicker rows** across 912 captures |
+
+### §9.8 THE FABRIC RE-BASE — EVERY PREDICTION MET CELL FOR CELL
+
+The offline references were **RE-TAKEN ON THIS TREE BEFORE THE BOARD WAS
+TOUCHED** (§83.0/§83.0b's lesson applied, not re-learned), and both reproduced
+FLASH #10's era exactly — which was itself the registered prediction that the
+four W3 landings touch neither population.
+
+| leg | offline reference (re-taken) | **IN FABRIC on FLASH #11** |
+|---|---|---|
+| the four HLT sweeps | `x1_retention` `offline` **279/283**, `ret` **279/283**; BAR (i) 245 closed / **0 SURVIVED**, BAR (ii) **0 cells differing** | `x1_fabric fab_f11` **279 / 283** — **0 PASS/FAIL disagreements and 0 differing first-divergence coordinates against `ret` over all 283**.  Per suite **48/48 · 49/49 · 44/46 · 49/49 · 20/21 · 25/25 · 19/20 · 25/25**.  The four failures are the four NAMED IN ADVANCE, at the coordinates named in advance: `s10-w1/HLT.INT/8` and `/9` at (11, `pins`), `s13-w2/HLT.INT/12` at (13, `pins`), `s13-w3/HLT.INT/15` at (15, `pins`) — family D, and nothing else |
+| the S16 directed display walk | `sm3_s16_fabric offline` **1,347/1,371**, `vsys_ret` **1,347/1,371**, 0 disagreements | `fab_f11` **1,347 / 1,371** — **0 PASS/FAIL disagreements and 0 differing coordinates over all 1,371**.  Its **24** failures are the four family-D coordinates (`HLT.INT` 8, 9, 12, 15) × the six frozen programs, **catch-all EMPTY** |
+| socket controls | — | `x1_fabric soc_f11` **49 / 49**; `sm3_s16_fabric soc_f11` **41 / 41**, 0 disagreements vs `offline` |
+| first light / close | — | `check_ab_hw all 800` **MATCH ×3** after the flash; **`use_core=0` chip proof MATCH over 800 rows after everything**, which is the measurement that the retention build leaves the socket position untouched |
+
+### §9.9 WHAT THIS SITTING BOOKS FOR THE SUCCESSOR QUEUE — **BOOKED, NOT FIXED**
+
+Nothing below was touched.  No mechanism work was done in a sitting that was
+also scoring a bar.
+
+| # | item | evidence |
+|---|---|---|
+| **W4-1** | **THE RAW TIER IS THE CAMPAIGN'S REMAINING AXIS, AND IT IS NOT THE TF AXIS.**  Raw scored 34/43 (mean 83.10 %) against soup's 95/98 (96.94 %), and §3.2's registered reading — that the W3 landings are a soup/TF phenomenon and raw would reproduce W2 unchanged — is CONTRADICTED: raw came in 5.2 points below its own W2 column | §9.4 |
+| **W4-2** | **THE OPEN_BUS EXCLUSION COSTS THE RAW TIER ITS RESOLUTION.**  55 of 98 raw body seeds excluded; strata left with 1-6 scored seeds each, so one seed moves a stratum 16-100 points and the 28-stratum mean inherits it.  A future tranche wanting per-stratum raw resolution must oversample raw, not draw it 7-per-stratum | §9.3, §9.4 |
+| **W4-3** | `SCHEDULE` is **7 of 12** of the residue — the largest family, and larger in share than at W2 (42 of 136).  Not diagnosed here | §9.5 |
+| **W4-4** | `PF_GAINED` is **0 of 141**, consistent with W3.1-W3.5 having closed §3.5's invariant, **NOT established** at this population size | §9.5 |
+| **W4-5** | The directed cells' vectors are **not all distinct** — D1 draws 22 distinct vectors for 25 seeds, D2 19, D3 23, D4 20 — because the cells SELECT seeds whose `skew` spec matches `(blk 32, wlo, whi)` and the spec does not determine the whole vector's identity. A `force_wvec_spec` knob (W2's own booked gap) would remove the coincidence | `w4_preflight.json` |
+| **W4-6** | **Class B has now missed under all four named stimuli.**  Either it does not exist as an observable of this design, or nobody has yet named the stimulus.  A campaign should say which it believes before designing a fifth cell | §9.6 |
+
+### §9.10 WHAT THIS SITTING DID NOT DO
+
+* **NO MECHANISM WORK.**  `git diff` over `hdl/rtl`, `hdl/tb` and `sim/` across
+  the whole sitting is **EMPTY** — nothing landed in either engine after the
+  bitstream was built, and nothing landed at all in `sim/`.
+* **`S` and `B` were NOT re-derived.**  `B = 86.6681` is a literal constant in
+  `sw/wrfuzz_w4.py`; `S` was re-computed only as a REPRODUCTION CHECK on the
+  W2 artifact (91.6681 %, to four decimals) and never as a new value.
+* **The comparator was not swapped.**  The scorer is `capture_board`'s own
+  inline chip-vs-fabric verdict, chosen at W0 and untouched.
+* **No stratum was dropped, the tranche was not re-drawn**, and the empty-
+  stratum rule registered in §2.1 was armed and never needed.
+* **No memory file was touched and Codex was NOT launched** — the coordinator
+  runs the campaign-close review.
+* **No new gate was invented.**  `standing_gates.md`'s fabric rows are RE-BASED
+  to FLASH #11 and the tranche figure is registered as a FIRST REGISTRATION,
+  not as a ratchet.
+* The board is left carrying **FLASH #11**, `use_core` **False**, `div_guard`
+  PINNED, `board_idle()` clean.
