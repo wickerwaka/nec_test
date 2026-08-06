@@ -245,18 +245,30 @@ W1's comparator is the BOARD (chip vs fabric), so the campaign does not depend
 on it — but no wrfuzz number may be taken from a `--tb-only` run and called an
 `ucore` number.
 
-### §1.5 THE FULL-SCALE LINT
+### §1.5 THE FULL-SCALE LINT — **PASS**
 
 `python3 sw/fuzz_campaign.py lint --cid wrlint --n 10000 --raw-n 100000
---wvec-n 400 --no8080 --report-every 20000`
+--wvec-n 400 --no8080 --report-every 25000`
+
+**Run against the FINAL code state.**  An earlier run of the same command was
+in flight when one module-level constant was moved; it was RESTARTED rather
+than quoted, so this result describes the committed bytes and not a state one
+edit behind them.  (The abandoned run was clean through 40,000 raw seeds.)
 
 | leg | result |
 |---|---|
-| soup, 10,000 seeds | **hits 0, compose_err 0** (`wild` 1486, `brkem` **0**, `halt` 1806, `tf` 570), 22.3 s |
-| raw, 100,000 seeds | *(recorded at the sitting's close — see the RESULT line below)* |
-| wvec, 400 seeds × 2 tiers × 5 shapes | *(same)* |
+| soup, 10,000 seeds | **hits 0, compose_err 0** — `wild` 1,486, **`brkem` 0**, `halt` 1,806, `tf` 570; 21.0 s |
+| raw, 100,000 seeds | **hits 0, compose_err 0** — `whole` 70,188 / `payload` 29,812; `scrub_totals` `pair0f` 984,539 · `halt` 17,970,307 · `poll` 17,973,935 · **`brkem` 70,578**; 1,405.3 s at 71 seeds/s |
+| wvec, 400 seeds × 2 tiers × 5 shapes | **hits 0**; 56.0 s |
 
-> **RESULT** — see `§1.5 CLOSE` appended below when the run completed.
+> **`LINT PASS: soup hits=0 compose_err=0; raw hits=0 compose_err=0;
+> wvec hits=0`**
+
+**`brkem = 70,578`** is the new axis doing visible work: across 100,000 raw
+images the scrub removed seventy thousand `0F FF` pairs that the previous
+default deliberately left in (`gen_raw`'s docstring: *"other 0F >= 0x40 — LEFT
+IN: they alias BRKEM"*).  That is the raw-tier counterpart to §1.4 F-2's 7.6 %
+on soup, and between them they are why the mechanism is three places.
 
 ### §1.6 WHAT THIS SITTING DID NOT DO
 
