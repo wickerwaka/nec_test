@@ -987,3 +987,282 @@ is NOT RUN.**  Recorded as a negative with its numbers.
 * **No memory file was touched and Codex was not launched.**
 * **The `wr1` columns are the SURVEY BASELINE MOVING, not ratchets** — they are
   not registered as ratchets until W-victory registers them.
+
+---
+
+## §5 W3.2 — **THE ENTRY'S LAUNCH IS NOT ONE THING EITHER, AND HALF OF IT WAS NEVER THE TRAP.  NOTHING IS LANDED.**
+
+**2026-08-05, branch `ucsim`, from HEAD `4bd041117e`.  OFFLINE, NO BOARD
+CONTACT, NO FLASHING, `use_core` never set.**  Pre-registration:
+`docs/notes/wrfuzz_w32_prereg_2026-08-05.md`, committed at **`4711069152`
+before any engine file was edited**.  New instrument: `sw/w32_launch.py`.
+
+> **Standing principle.**  *"A guiding principal here needs to be simplicity.
+> This is 80's era hardware, they aren't wasting silicon on anything that isn't
+> necessary.  Complex or confusing behavior that we see is likely to be simple
+> systems interacting in ways you do not fully understand yet."*
+
+### §5.1 THE HEADLINE
+
+> **§4.7's 32-seed "entry launch" family is TWO families and only one of them
+> is the trap.**
+>
+> * **P1, 23 seeds** — the engine runs ONE extra `CODE` fetch the part
+>   declines.  Its invariant is three exact numbers on both engines and it is
+>   wait-independent.  **The registered landing was attempted in three forms
+>   and NOT TAKEN: all three cost `wr1` seeds and gained none**, and the
+>   sitting's own bound test refutes *"a hold beginning at the recognition
+>   boundary"* as a sufficient account.  **B-1 is NOT MET.**
+> * **P2, 20 seeds — IS NOT A TRAP FAMILY AT ALL.  It is `SCHEDULE`'s `+2`
+>   mode**, half B's own queue item, arriving from the other side: all 20 are
+>   classified `SCHEDULE` by `s15_census` and all 20 are a strict subset of
+>   half B's 26.  §4.7's "13 with no extra prefetch and still 2 clocks late"
+>   was this, mis-filed.
+>
+> **And half B's `SCHEDULE` trimodal is BIMODAL: `-3` and `-1` are ONE mode**,
+> and this sitting **ANSWERS the discriminator `ucsim_t_provenance` §26.10 D
+> item 4 registered for it** — the offset is **INVARIANT**, a fixed index, not
+> bus-keyed.  **Not landed: implementing a measured constant as a constant is
+> the fitted table the standing principle forbids**, and §26.10's mechanism is
+> still open.
+>
+> **NOTHING WAS LANDED THIS SITTING.**  `sim/` and `hdl/rtl/` are byte-identical
+> to `4bd041117e` (the build receipt's `build_key` `8a3b54aa…` is W3.1's own),
+> and both `wr1` legs re-measure at their registered baselines: **`sim` 73/184,
+> `ucore` 77/184.**
+
+### §5.2 THE POPULATION, RE-PARTITIONED — AND IT GREW
+
+W3.1's partition was taken on the PRE-shadow tree.  Re-measured on
+`4bd041117e` over the 380 retained captures (184 scored, 196 `OPEN_BUS`):
+
+| class | `sim` | `ucore` |
+|---|---|---|
+| **SAME_BOUNDARY** | **50** | **45** |
+| DIFF_BOUNDARY | 7 | 7 |
+| NO_ENTRY_DIFF | 126 | 118 |
+| COUNT_DIFF | 0 | 12 |
+| UNREADABLE | 1 | 2 |
+
+The shadow landing moved 28 `ucore` seeds out of DIFF_BOUNDARY and **what was
+underneath some of them is this class**, so it is bigger than §4.7's 32.
+
+⚠ **ONE INSTRUMENT CHANGE, declared in the pre-registration before it was
+used**: an odd-SP (byte-split) frame publishes no readable IP, and W3.1's
+classifier declared a whole capture UNREADABLE the moment *any* paired entry
+was one.  `w32_launch` does so only if that pair actually DIFFERS.
+`UNREADABLE` falls, `NO_ENTRY_DIFF` / `COUNT_DIFF` rise.  **`COUNT_DIFF` is not
+a mechanism claim** — it is "every paired entry agrees and one side has more",
+a window-edge property.
+
+**AND THE INSTRUMENT DOES NOT OPEN A WINDOW.**  `w32_launch` aligns the two
+sides' BUS-CYCLE STREAMS index by index from row 0 and reports the first index
+at which they part as either a cycle one side ran and the other did not
+(`CYCLE`) or the same cycle at a different row (`SHIFT`).  W3.1's window was
+anchored at the first divergent ROW, which cannot tell those apart — and the
+whole P1/P2 split is exactly that distinction.
+
+### §5.3 P1's INVARIANT — three numbers, exact, on both engines
+
+| measured | `sim` | `ucore` |
+|---|---|---|
+| the engine's extra cycle is a `CODE` fetch of the **next word** (chip's last `CODE` address **+ 2**) | **21 / 21** | **23 / 23** |
+| **the CHIP's vector-read T1 is exactly 12 clocks after the T1 of the last bus cycle before it** | **21 / 21** | **23 / 23** |
+| the ENGINE's vector-read T1 is exactly **10** clocks after the T1 of its own extra fetch | **21 / 21** | **23 / 23** |
+
+**The 12 is wait-independent** — `fix1`, `fix2`, `fix3`, `wrand1/2/3/7` and all
+four `wvec` shapes — so on the part the entry's first read is not waiting for a
+bus: it goes out the clock the microcode asks for it and the prefetcher is not
+in its way.  `delta` follows as `(previous cycle length) − 2` = `+4` / `+5` /
+`+6`.  The `+ 2` address says the declined fetch was a LEGAL one: **the chip
+declines a fetch it could make.**
+
+`sim`'s 21 are a strict subset of the `ucore`'s 23 (the `ucore` adds `203018`
+and `203121`), so the family is model-shared, as `CLAUDE.md` §64.1 requires
+before a `sim`-first landing.
+
+### §5.4 THE LANDING — **ATTEMPTED IN THREE FORMS, TAKEN IN NONE.  EVERY FIGURE IS MEASURED.**
+
+The registered mechanism was *the suspend belongs to the recognition, not to
+the floor it paid*: `boundary_no_pop`'s `if (post_redirect && live)` becomes
+`(live || brk)`, with `brk_take_` handed down from `exec_impl.h`'s three
+boundary call sites.  `wr1`, `--core sim`, baseline **73 / 184**:
+
+| form | what it does at the take | **`wr1`** | lost | gained |
+|---|---|---|---|---|
+| **v1** | `susp()` — set `suspended_` AND take back an un-displayed grant (F2) | **52 / 184** | **28** | 0 |
+| **v2** | `susp(withdraw=false)` — set `suspended_` only | **55 / 184** | **18** | 0 |
+| **v3** | hold from display clock `B + 2`, no withdraw | **73 / 184** | 0 | **0 — INERT, not one seed's first divergence moved** |
+
+**Registered falsifier #2 fired on v1 and v2 exactly as written**: every one of
+the 18 v2 losses has first-divergence signature **`bs CODE!=PASV`** — the chip
+prefetches and the engine has gone quiet.  Read on the rows: on `wr1/200078`
+the part runs FOUR `CODE` fetches before the vector read and the suspended
+engine runs three; on `wr1/201099` the part runs `C00570` and the engine does
+not.  **The part's hold begins LATER than the model's boundary clock.**
+
+#### §5.4a THE BOUND TEST, and what it refutes
+
+`V30SIM_BNDTRACE` publishes the model's own boundary clock `B`.  Over the
+**600** chip vector-1 entries that lie BEFORE the model's first divergence (so
+`B` is a clock both sides agree on):
+
+* **the chip's vector-read T1 is `B + 9` on 482 of 600**, and the whole tail is
+  wait pressure (`fix3`, `wrand15`, `wvec`).  **The engines already get this
+  right**; the entry's launch time is not in question.
+* Restricted to those 482, a prefetch the part GRANTED has its display clock at
+  `B + 1` or earlier on **433 of 434** (the single exception has a zero idle
+  gap).  P1's contested grant sits at `B + 2`.
+
+So an onset "block grants from display `B + 2`" fits 433/434 grants and forbids
+P1's — **but v3 implements exactly that and moves nothing**, because on P1's own
+seeds `B` is not where that arithmetic needs it: `wr1/201055`'s contested grant
+displays at `B + 0`.  **There is no onset clock relative to the model's boundary
+clock that both permits the 552 observed grants and forbids P1's.**  The
+candidate as booked — *a hold beginning at the recognition boundary* — is
+REFUTED at that resolution, and what replaces it is a sharper question, not a
+weaker claim:
+
+> **The open quantity is the TAKE CLOCK at the contested entry**, and it cannot
+> be measured from this corpus: the only instrument for it is an engine's own
+> boundary clock, and every contested entry lies AFTER that engine's first
+> divergence.  **The measurement is circular on banked data.  That is what the
+> directed cell is for**, and §5.7 rewrites the cell around it.
+
+⚠ **A candidate this sitting did NOT chase and is naming rather than losing**:
+if the part's take were **2 clocks EARLIER** than the model's boundary on these
+seeds, ONE number would explain P1 (the prefetcher wins an eval it should not)
+**and** P2's `+2` — but P2 is now known to be `SCHEDULE` and TF-free, so the
+unification would have to be a bus law, not a recognition law.
+
+### §5.5 THE BARS AS REGISTERED
+
+| bar | outcome |
+|---|---|
+| **B-1** P1's 23 lose the insert, zero exceptions | **NOT MET — 0 of 23 on every form tried.  The landing is not taken.** |
+| **B-2** ≥ 15 of P2's 20 lose the `+2` | **NOT MET, and the prediction was mis-aimed**: P2 is not a trap family (§5.6b) |
+| **B-3** no loss, any population, either engine | **MET as the tree stands (nothing landed).  It is what REFUSED v1 and v2**, at 28 and 18 losses on `wr1` |
+| **B-4** ratchets may only go up | **MET — unmoved.**  `sim` 1,339 / 799 / 2,138, b2 161; `ucore` 1,559 / 934 / 2,493, b2 181, all re-measured on this tree BEFORE the first edit |
+| **B-5** the SM trap cells must not move | **VACUOUS — no engine file changed.**  Not re-run, and not claimed |
+| **B-6** the shadow law's populations | **MET — re-run GREEN before the first edit: 75 / 75 grace-≥1 inside the class, 1,288 / 1,288 grace-0 outside it, 1,363 ruled pairs.**  DIFF_BOUNDARY did not rise: 7 on both engines |
+| **B-7** the must-not-move ladder | **VACUOUS — no engine file changed.**  Not re-run, and not claimed |
+| **B-8** G6 | **VACUOUS — no RTL leg landed.**  Not run |
+
+**The tree is proved unchanged, not asserted**: `git status` is clean over
+`sim/` and `hdl/rtl/`, the final build receipt's `build_key` is `8a3b54aa…`
+(byte-identical to W3.1's own row), and both `wr1` legs re-measure at
+**73 / 184** and **77 / 184**.
+
+### §5.6 HALF B — **THE RAW-TIER `SCHEDULE` RESIDUE, SPLIT**
+
+`s15_census --core` matched to the report, on this tree:
+**`sim` 56 `SCHEDULE` (raw 26 / soup 30), `ucore` 48 (raw 25 / soup 23).**
+
+⚠ **AN ERRATUM IN THE SURVEY'S QUEUE ITEM #2.**  It reads *"25 seeds of the raw
+tier's 54 … delta trimodal `+2` ×18, `−3` ×11, `−1` ×10"*.  Those delta counts
+are the FAMILY-WIDE 42-seed statistics, not the raw tier's 25: measured now the
+raw tier is `−3` ×10, `−1` ×10, `+2` ×5 and **the `+2` mode lives in the SOUP
+tier** (21 of its 26).  The item's own headline count (25) is right; its delta
+histogram belongs to a different denominator.
+
+#### §5.6a `−3` AND `−1` ARE **ONE MODE**, and the registered discriminator is ANSWERED
+
+`ucore`, 21 seeds (raw 20 + soup 1), every figure exact:
+
+| measured | `−3` (11) | `−1` (10) |
+|---|---|---|
+| the contested cycle is a `MEMW` | 11 / 11 | 10 / 10 |
+| the previous cycle is a `MEMW`, ALIGNED on both sides | 11 / 11 | 10 / 10 |
+| the three cycles before are `MEMR MEMR MEMW` | 10 / 11 | 8 / 10 |
+| **the CHIP's idle gap between the two writes** | **4 / 4 / 4 …  11 of 11** | **4 …  10 of 10** |
+| the ENGINE's idle gap | **1**, 11 of 11 | **3**, 10 of 10 |
+| the previous cycle's active length | 6, 7, 9, 11, **19** | **5**, 10 of 10 |
+
+> **THE PART LEAVES EXACTLY 4 IDLE CLOCKS BETWEEN THE TWO WRITES — 21 of 21, at
+> every wait level and for every completing-cycle length from 5 to 19 clocks.**
+> The engine's gap is not a constant: it is 1 when the completing write is 6 or
+> more clocks long and 3 when it is 5, i.e. **it moves with the completing
+> cycle**, and the `−3` / `−1` split is that movement and nothing else.
+
+`ucsim_t_provenance.md` §26.10 D item 4 registered the discriminator as
+*"a directed cell at a `MEMR`→next-cycle boundary at four wait levels: if the
+offset is invariant it is a fixed index (the campaign's seventh such), if it
+moves with `N` it is bus-keyed"*.  **ANSWERED, and from the corpus rather than
+from a cell: the CHIP's number is INVARIANT and the ENGINE's is bus-keyed.**
+§26.4.2's "mode `−3`" is retired as a description; there is one geometry and
+one constant.
+
+**AND THE CONTROL SAYS THE GEOMETRY IS THE WHOLE SELECTOR.**  Over the 99 `wr1`
+seeds the `ucore` reproduces CYCLE-EXACT, the chip's gap between two
+consecutive `MEMW` cycles is 1 (×1,567), 3 (×635), 2 (×403), 0 (×207), 5, 6,
+10 — and **4 does not occur once in 2,819 opportunities.**  Every occurrence of
+"gap 4 between two writes" in the corpus is one of these 21 seeds.
+
+**NOT LANDED, deliberately.**  A `MEMW`→`MEMW` gap written as the constant 4 is
+the fitted table the standing principle names, and §26.10's mechanism is open.
+What this sitting adds is the measurement that mechanism has to reproduce.
+
+#### §5.6b `+2` IS 26 SEEDS, AND **HALF A's P2 IS A STRICT SUBSET OF IT**
+
+`ucore`, 26 seeds (raw 5 + soup 21), measured at the first parting of the two
+bus-cycle streams:
+
+| measured | |
+|---|---|
+| the previous cycle is a `CODE` fetch | **26 / 26** |
+| the contested cycle is `CODE` (17) or `MEMR` (9) | 26 / 26 |
+| the previous cycle is ALIGNED on both sides | 26 / 26 |
+| **the ENGINE's idle gap is the CHIP's + 2** | **26 / 26** — chip 0→engine 2, 1→3, 3→5, 4→6 |
+| the three cycles before are `CODE CODE CODE` | 25 / 26 |
+
+**And half A's P2, measured the same way, is the same statement**: previous
+cycle `CODE` 20/20, contested `CODE` 11 / `MEMR` 9, engine gap = chip gap + 2
+on **20 / 20** — and `s15_census` classifies all 20 as `SCHEDULE`, all 20 with
+`delta +2`.  **P2 ⊂ the `+2` mode; the union is 26, not 46.**  The trap entry is
+where the `+2` first becomes VISIBLE on those seeds, not where it is caused.
+
+⚠ **THE CONTROL REFUSES THE OBVIOUS LAW.**  Over the same 99 cycle-exact seeds
+the chip's idle gap after a `CODE` fetch is 0 on **3,847** occasions and 1 on
+**12,860**, out of **18,990** — and the engine reproduces every one.  So *"the
+engine cannot launch back-to-back after a fetch"* is false, by 18,990 counts.
+**The `+2` mode's discriminator is NOT the surface geometry and this sitting
+does not have it.**  The survey's *"the `+2` mode with `CODE` status is NOT
+named by any settled law"* stands, and it is **NOT forced into one** — the brief
+for this sitting says so and the evidence agrees.
+
+#### §5.6c THE PARTITION, FOR THE QUEUE
+
+| mode | n (`ucore`) | status |
+|---|---|---|
+| **`MEMW`→ 4 idle →`MEMW`** (`−3` + `−1`) | **21** | invariant MEASURED, mechanism OPEN (`ucsim_t_provenance` §26.10 D item 4), discriminator ANSWERED, **not landed** |
+| **`CODE`→ gap + 2** (`+2`, absorbs half A's P2) | **26** | invariant MEASURED, discriminator NOT FOUND, **not landed** |
+| the remainder (`+3` ×1, and `sim`-only `−2` ×3) | 1 | counted, not worked |
+
+### §5.7 THE DIRECTED CELL — **RE-SPECIFIED AROUND THE QUESTION THAT IS ACTUALLY OPEN, AND NOT RUN**
+
+The pre-registration's §6 arms (C-1 room / C-2 full / C-3 in flight) are kept,
+and the OBSERVABLE changes: it is no longer *"does the part suspend"* but
+**"where is the take, and what does the prefetcher do in the nine clocks after
+it"**.  `sm3_tf_floor_cell.py`'s sled makes that measurable with NO engine —
+the sled is periodic, every instruction start is known, and the pushed IP names
+the boundary the part chose, so the take clock is a chip-side quantity there
+and a banked-corpus quantity nowhere.  The cell must therefore report, per
+(sled, wait) cell: the take clock from the pushed IP, the vector-read T1, every
+`CODE` T1 between them, and the idle gaps either side.  **C-2 remains the
+control on which the candidate predicts NO difference.**
+
+**IT WAS NOT RUN.  NO BOARD WAS CONTACTED THIS SITTING** — building the arm is
+a sitting of its own and running a cell whose observable was wrong until §5.4a
+would have bought nothing.  Recorded as owed, with its question sharpened.
+
+### §5.8 WHAT THIS SITTING DID NOT DO
+
+* **NO BOARD CONTACT, NO FLASHING, `use_core` NEVER SET.**  No `div_guard`, no
+  `board_idle` — nothing was opened.  The board still carries FLASH #10.
+* **The victory reserve (`k >= 300000`) was NOT touched.**
+* **NOTHING WAS LANDED IN EITHER ENGINE**, and no ratchet figure is claimed to
+  have moved.  The three attempted forms are recorded with their numbers and
+  reverted; the sim binary is byte-identical to W3.1's.
+* **The `PIN` five (queue item #3 / W3.3) was NOT opened.**
+* **No memory file was touched and Codex was not launched.**
+* B-5, B-7 and B-8 are VACUOUS and are reported as vacuous, not as green.

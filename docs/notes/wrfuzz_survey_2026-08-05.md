@@ -584,6 +584,21 @@ that requires a wait state is already refuted.
 
 ### **#2 — THE RAW TIER's `SCHEDULE` RESIDUE.  25 seeds of the raw tier's 54, TF-free.**
 
+> ⚠ **WORKED AT W3.2 (2026-08-05).  `wrfuzz_provenance.md` §5.6 SUPERSEDES THIS
+> ROW.**  It is **BIMODAL**, not trimodal: `−3` and `−1` are ONE geometry
+> (`MEMW` → **4 idle clocks** → `MEMW`, the part's gap invariant on **21 of 21**
+> at every wait level and for completing-cycle lengths 5 – 19, against an engine
+> gap that MOVES with that length) — which **ANSWERS the discriminator
+> `ucsim_t_provenance` §26.10 D item 4 registered**: the offset is a **fixed
+> index**, not bus-keyed.  ⚠ **And this row's delta histogram is a FAMILY-WIDE
+> 42-seed statistic, not the raw tier's 25**: the raw tier is `−3` ×10 / `−1`
+> ×10 / `+2` ×5, and the `+2` mode lives in the SOUP tier (21 of its 26).
+> The `+2` mode **absorbs queue item #1's other half** — §4.7's 13 "no extra
+> prefetch, still 2 clocks late" seeds are `SCHEDULE +2`, not a trap family.
+> **NOTHING IS LANDED**: the `−3` constant would be a fitted table and the `+2`
+> mode's discriminator is not found (the engine reproduces 18,990 `CODE`→gap
+> transitions exactly, so the surface geometry does not select it).
+
 *Invariant*: `delta` is **trimodal and small** — `+2` ×18, `−3` ×11, `−1` ×10,
 and nothing else outside `{−4,−2,+3}`; the first offending cycle **follows an
 `IDLE`** on 33 of 42 at offset +1 or +3; **21 of 42** carry the single
