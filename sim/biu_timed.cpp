@@ -130,6 +130,7 @@ void BiuTimed::begin_case() {
     rd_done_q_.clear();
     opr_held_ = 0;
     opr_free_clk_ = -1;
+    opr_eval_ = false;
     last_wval_ = 0;
     bus_idx_ = 0;
     last_wr_waits_ = 0;
@@ -1324,6 +1325,15 @@ void BiuTimed::wait_next_read(int extra) {
 // eval like every other eval-keyed quantity.  See biu_timed.h.
 void BiuTimed::wait_opr_free() {
     int guard = 0;
+    if (opr_eval_) {
+        while (wr_pending_ > 0 && ++guard < 4096) {
+            if (run_ && is_write(cur_.bs) && cur_.rd_last &&
+                ci_ == cur_.eval_i) break;
+            tick();
+        }
+        opr_eval_ = false;
+        return;
+    }
     if (md8080_ && *md8080_) { wait_bus(); return; }
     while (opr_held_ > 0 && ++guard < 4096) tick();
     while (clk_ < opr_free_clk_ && ++guard < 4096) tick();
@@ -1428,7 +1438,8 @@ BiuTimed::Access* BiuTimed::find_reserved() {
 }
 
 void BiuTimed::mem_write(uint16_t seg_val, uint16_t off, uint16_t data,
-                         bool word, uint8_t seg_idx, uint16_t upc) {
+                         bool word, uint8_t seg_idx, uint16_t upc,
+                         bool opr_eval) {
     core_.mem_write(seg_val, off, data, word, seg_idx, upc);
     uint32_t a = phys(seg_val, off);
     int n = (word && (a & 1)) ? 2 : 1;
@@ -1450,6 +1461,7 @@ void BiuTimed::mem_write(uint16_t seg_val, uint16_t off, uint16_t data,
         // next `-> OPR` row burns wait_opr_free's whole 4096-tick guard --
         // R-STALL, ucsim_t_provenance.md 13.
         if (!(r == &cur_ && run_ && ci_ > 1)) ++opr_held_;
+        if (opr_eval) opr_eval_ = true;
         if (wres_) --wres_;
     }
 }

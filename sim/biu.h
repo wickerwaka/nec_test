@@ -44,7 +44,7 @@ public:
     uint16_t mem_read(uint16_t seg_val, uint16_t off, bool word, uint8_t seg_idx,
                       uint16_t upc);
     void mem_write(uint16_t seg_val, uint16_t off, uint16_t data, bool word,
-                   uint8_t seg_idx, uint16_t upc);
+                   uint8_t seg_idx, uint16_t upc, bool opr_eval = false);
     uint16_t io_read(uint16_t port, bool word, uint16_t upc);
     // The suite records the value the port presented (case name `iord=XXXX`);
     // there is no I/O model, so it is replayed verbatim.  `set_io_seq` is the

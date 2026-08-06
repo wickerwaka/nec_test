@@ -72,7 +72,7 @@ uint16_t Biu::mem_read(uint16_t seg_val, uint16_t off, bool word,
 }
 
 void Biu::mem_write(uint16_t seg_val, uint16_t off, uint16_t data, bool word,
-                    uint8_t seg_idx, uint16_t upc) {
+                    uint8_t seg_idx, uint16_t upc, bool) {
     uint32_t a = phys(seg_val, off);
     uint32_t a1 = phys(seg_val, uint16_t(off + 1));
     note_access(off, word);

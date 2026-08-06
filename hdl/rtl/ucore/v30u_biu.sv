@@ -149,6 +149,7 @@ module v30u_biu (
     output            eu_rd_edge,  // ...and the READ'S DATA EDGE itself (T3->T4)
     output     [15:0] eu_rd_edge_d,// the word the data latch closes on
     output            eu_wr_done_n,// pulse at a completed write's e+2
+    output            eu_wr_eval,  // final write cycle's completion eval
     output            eu_opr_free, // 11.4 / M13: the store lets go of OPR
                                  // (a LEVEL off the register: `opr_held == 0`)
 
@@ -547,6 +548,7 @@ assign qs = qs_e_now ? QS_EMPTY
 assign eu_slot_busy   = r_slot_busy;
 assign eu_slot_busy_n = slot_busy;
 assign eu_wr_done_n   = wr_done_nxt;
+assign eu_wr_eval     = eval_inst && r_cur_wr && r_cur_rd_last;
 // F31 -- OPR-OWNERSHIP IS ONE COUNTER, AND IT IS THE BIU'S.  `opr_held` IS the
 // model's `BiuTimed::opr_held_`, condition for condition; the EU used to keep a
 // SECOND count of the same event and test it against a release PULSE.  The

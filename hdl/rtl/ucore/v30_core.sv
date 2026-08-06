@@ -93,7 +93,7 @@ wire  [2:0] eu_bs;
 wire [19:0] eu_addr, eu_addr2;
 wire  [1:0] eu_seg;
 wire [15:0] eu_wdata, eu_rdata_n;
-wire        eu_rd_done_n, eu_wr_done_n;
+wire        eu_rd_done_n, eu_wr_done_n, eu_wr_eval;
 wire        eu_rd_edge;
 wire [15:0] eu_rd_edge_d;
 wire        eu_opr_free;
@@ -194,6 +194,7 @@ v30u_biu u_biu (
     .eu_rd_edge (eu_rd_edge),
     .eu_rd_edge_d (eu_rd_edge_d),
     .eu_wr_done_n (eu_wr_done_n),
+    .eu_wr_eval   (eu_wr_eval),
     .eu_opr_free(eu_opr_free),
     .eu_susp    (scr_en ? 1'b0 : eu_susp),
     .eu_resume  (scr_en ? 1'b0 : eu_resume),
@@ -245,6 +246,7 @@ v30u_eu u_eu (
     .eu_rd_edge (eu_rd_edge),
     .eu_rd_edge_d (eu_rd_edge_d),
     .eu_wr_done_n (eu_wr_done_n),
+    .eu_wr_eval   (eu_wr_eval),
     .eu_opr_free(eu_opr_free),
     .eu_susp    (eu_susp),
     .eu_resume  (eu_resume),

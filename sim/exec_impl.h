@@ -199,6 +199,7 @@ private:
         bool byte = false;
         bool io = false;
         uint16_t upc = 0;
+        bool opr_eval = false;
     };
 
     uint16_t rd_src1(uint8_t c, const RowCtx& ctx, const ucrom::MicroOp& op,
@@ -216,7 +217,8 @@ private:
     void deliver_read(bool reads_opr = true);
     void emit_pending();
     void bus_read(uint8_t seg, uint16_t off, bool byte, bool io, uint16_t upc);
-    void bus_write(uint8_t seg, uint16_t off, bool byte, bool io, uint16_t upc);
+    void bus_write(uint8_t seg, uint16_t off, bool byte, bool io, uint16_t upc,
+                   bool opr_eval = false);
     void bus_inta(uint16_t upc);
     void begin_sequence();
     bool run_micro(const MicroPc& entry);
@@ -811,7 +813,8 @@ void CpuT<Bus>::emit_pending() {
         biu_.io_write(pend_.off, m_.opr, !pend_.byte, pend_.upc);
     else
         biu_.mem_write(pend_.seg == kSegZero ? 0 : m_.sreg[pend_.seg], pend_.off,
-                       m_.opr, !pend_.byte, pend_.seg, pend_.upc);
+                       m_.opr, !pend_.byte, pend_.seg, pend_.upc,
+                       pend_.opr_eval);
     pend_.active = false;
     opr_fresh_ = false;
 }
@@ -839,7 +842,7 @@ void CpuT<Bus>::bus_read(uint8_t seg, uint16_t off, bool byte, bool io, uint16_t
 
 template <class Bus>
 void CpuT<Bus>::bus_write(uint8_t seg, uint16_t off, bool byte, bool io,
-                    uint16_t upc) {
+                    uint16_t upc, bool opr_eval) {
     if (pend_.active) {
         if (!opr_fresh_) deliver_read();
         emit_pending();
@@ -850,6 +853,7 @@ void CpuT<Bus>::bus_write(uint8_t seg, uint16_t off, bool byte, bool io,
     pend_.byte = byte;
     pend_.io = io;
     pend_.upc = upc;
+    pend_.opr_eval = opr_eval;
     // S5: the BIU reserves the cycle NOW, on the row that issues the store.
     // The data-pairing latch below fills it in when OPR carries a fresh value.
     biu_.write_request(seg == kSegZero ? 0 : m_.sreg[seg], off, !byte, seg, io,
@@ -1388,7 +1392,10 @@ bool CpuT<Bus>::run_micro(const MicroPc& entry) {
             bool byte = m_.op8 && !m_.bus_word;
             switch (ect) {
                 case exec_detail::kEctlMemR: bus_read(seg, m_.ind, byte, io, op.rom_addr); break;
-                case exec_detail::kEctlMemW: bus_write(seg, m_.ind, byte, io, op.rom_addr); break;
+                case exec_detail::kEctlMemW:
+                    bus_write(seg, m_.ind, byte, io, op.rom_addr,
+                              op.ictl == exec_detail::kIctlMfs);
+                    break;
                 case exec_detail::kEctlWriteBack:
                     // [-06-]: the operand write-back strobe.  It commits OPR
                     // to the r/m operand ONLY when that operand is memory; a

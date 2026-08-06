@@ -12,20 +12,20 @@
    "value": {
     "asm": true,
     "error_lines": 0,
-    "fit": "Successful - Thu Aug  6 02:03:32 2026",
-    "map": "Successful - Thu Aug  6 01:57:14 2026",
+    "fit": "Successful - Thu Aug  6 13:26:15 2026",
+    "map": "Successful - Thu Aug  6 13:15:35 2026",
     "stage_errors": 0
    }
   },
   "E3_fmax": {
    "bar": "divclk Fmax >= 32.0 MHz",
    "pass": true,
-   "value": 47.31
+   "value": 46.33
   },
   "E4_worst_setup": {
    "bar": "worst setup slack > 0 on every domain",
    "pass": true,
-   "value": 9.226
+   "value": 9.211
   },
   "E5_tns": {
    "bar": "TNS == 0.000, setup AND hold, every domain",
@@ -44,7 +44,7 @@
   ],
   "log": "/home/wickerwaka/src/nec_test/hdl/quartus_gate_build.log",
   "rc": 0,
-  "seconds": 578.6
+  "seconds": 904.6
  },
  "command": [
   "/home/wickerwaka/intelFPGA_lite/17.1/quartus/bin/quartus_sh",
@@ -54,63 +54,63 @@
   "-c",
   "nec_test_ucore"
  ],
- "completed": "2026-08-06T09:04:09Z",
+ "completed": "2026-08-06T20:27:03Z",
  "configuration": "CONTROL/DEFAULT (no X1_AD_RETENTION) -- the configuration every bitstream is derived from",
  "env": {},
  "figures": {
   "error_lines": [],
   "fmax": {
-   "FPGA_CLK2_50": 141.68,
-   "altera_reserved_tck": 67.2,
-   "emu|pll|pll_inst|altera_pll_i|general[0].gpll~PLL_OUTPUT_COUNTER|divclk": 47.31,
-   "pll_audio|pll_audio_inst|altera_pll_i|general[0].gpll~PLL_OUTPUT_COUNTER|divclk": 58.76
+   "FPGA_CLK2_50": 135.23,
+   "altera_reserved_tck": 70.32,
+   "emu|pll|pll_inst|altera_pll_i|general[0].gpll~PLL_OUTPUT_COUNTER|divclk": 46.33,
+   "pll_audio|pll_audio_inst|altera_pll_i|general[0].gpll~PLL_OUTPUT_COUNTER|divclk": 57.97
   },
   "hold": [
    {
     "clock": "emu|pll|pll_inst|altera_pll_i|general[0].gpll~PLL_OUTPUT_COUNTER|divclk",
-    "slack": 0.253,
+    "slack": 0.252,
     "tns": 0.0
    },
    {
     "clock": "pll_audio|pll_audio_inst|altera_pll_i|general[0].gpll~PLL_OUTPUT_COUNTER|divclk",
-    "slack": 0.297,
-    "tns": 0.0
-   },
-   {
-    "clock": "altera_reserved_tck",
-    "slack": 0.359,
+    "slack": 0.271,
     "tns": 0.0
    },
    {
     "clock": "FPGA_CLK2_50",
-    "slack": 0.404,
+    "slack": 0.425,
+    "tns": 0.0
+   },
+   {
+    "clock": "altera_reserved_tck",
+    "slack": 0.558,
     "tns": 0.0
    }
   ],
   "resources": {
-   "fit_registers": "6070",
+   "fit_registers": "6141",
    "latches": 0,
    "lpm_divide": 0
   },
   "setup": [
    {
-    "clock": "altera_reserved_tck",
-    "slack": 9.226,
+    "clock": "emu|pll|pll_inst|altera_pll_i|general[0].gpll~PLL_OUTPUT_COUNTER|divclk",
+    "slack": 9.211,
     "tns": 0.0
    },
    {
-    "clock": "emu|pll|pll_inst|altera_pll_i|general[0].gpll~PLL_OUTPUT_COUNTER|divclk",
-    "slack": 9.307,
+    "clock": "altera_reserved_tck",
+    "slack": 9.556,
     "tns": 0.0
    },
    {
     "clock": "FPGA_CLK2_50",
-    "slack": 12.942,
+    "slack": 12.605,
     "tns": 0.0
    },
    {
     "clock": "pll_audio|pll_audio_inst|altera_pll_i|general[0].gpll~PLL_OUTPUT_COUNTER|divclk",
-    "slack": 23.664,
+    "slack": 23.433,
     "tns": 0.0
    }
   ],
@@ -152,22 +152,22 @@
    }
   ],
   "status": {
-   "alms": "11,232 / 41,910 ( 27 % )",
+   "alms": "11,210 / 41,910 ( 27 % )",
    "asm_successful": true,
-   "fit_registers": "6070",
-   "fit_status": "Successful - Thu Aug  6 02:03:32 2026",
-   "map_registers": "4799",
-   "map_status": "Successful - Thu Aug  6 01:57:14 2026"
+   "fit_registers": "6141",
+   "fit_status": "Successful - Thu Aug  6 13:26:15 2026",
+   "map_registers": "4800",
+   "map_status": "Successful - Thu Aug  6 13:15:35 2026"
   }
  },
  "gate": "quartus_gate",
  "gate_version": 1,
  "git": {
-  "describe": "734e11c010-dirty",
+  "describe": "66e3fddec2-dirty",
   "dirty_tracked": true,
-  "head": "734e11c01037b10157a19776d8429b98c8dbcfda"
+  "head": "66e3fddec270298f1ba636d6b2a0636145b6eeb9"
  },
- "id": "a658942cff4cceeb40e7b0f5233de4cd42a418876742939fde2fea4b0925abe3",
+ "id": "67e1669544071b6b32eeae428075870f226e4b437e3f197af936ba2700f084ad",
  "input_manifest": {
   "files": {
    "hdl/files_ucore.qip": "88de032b628152698981594826b9cf53b09d53dbb1940093fa9c91ca1002b88e",
@@ -186,9 +186,9 @@
    "hdl/rtl/ucore/ucdecode.hex": "f5cf6e2bef1d3bec371d0b0227fb7cbcaaf62fd68f2ba3e505d345f492e08bda",
    "hdl/rtl/ucore/ucrom.hex": "d9cfcddd4cb473f0c21f112bd64419e91d9395a256158e0205137e12ba3e531d",
    "hdl/rtl/ucore/ucrom_census.json": "c97ad035e2a8e3e7209804321dc158e9129b9c83af1ce8229052447f65bfd7c9",
-   "hdl/rtl/ucore/v30_core.sv": "a6cf38f7094a76b97b1fd9a552b81f1402a69a552c797db28839c668051c3b26",
-   "hdl/rtl/ucore/v30u_biu.sv": "7428009b3daf2b565c97ad6ddbb52b8063e398ed651fc99c101a2c242d024de2",
-   "hdl/rtl/ucore/v30u_eu.sv": "db63cc5065dd80113162df6f8d7e1faa32f1ba5103593966d029845aaad62613",
+   "hdl/rtl/ucore/v30_core.sv": "dcdfc7b8db87931b8d3efa0b4bfa5cdbe07b3796a9736e1a1b5eece2a6c82d36",
+   "hdl/rtl/ucore/v30u_biu.sv": "266a6f20d6d7d32c8c37de36b4c2e0c39142905f55f446992d01e68b19a08ad3",
+   "hdl/rtl/ucore/v30u_eu.sv": "acd564585228b40989ce51db2cc6f6b1fa31055247518c03255289d06462cdc9",
    "hdl/rtl/ucore/v30u_eu_1bl.svh": "2ecd218f53d4fa8293d11cb2e471928463ab0a5a494c3102408dea46fb19f40e",
    "hdl/rtl/ucore/v30u_eu_cond.svh": "bfadaaf261c41b5e4a701e16b87befdf52346b7ecfa704f5cfe10c4a217abf6f",
    "hdl/rtl/ucore/v30u_eu_iend_late.svh": "e7ecc8f7fb62ec279d331389d37421bbf23b1675dc37eb049aa78a825559ba33",
@@ -260,7 +260,7 @@
    "hdl/sys/yc_out.sv": "c52d7bfcc8dbc5a0cda2b3117172cbba790fb97b7de61722ddac205f6ec8bc20"
   },
   "n_files": 88,
-  "sha256": "fc508a1c4c17228eda33de61cca3fe30871a7bd7c78ebc7794fcdbcc166d7ce3"
+  "sha256": "92b4ad1205e0db774ca51f221cab228f806c2d92403169b792d8f2b91418750f"
  },
  "inputs": {
   "files": {
@@ -280,9 +280,9 @@
    "hdl/rtl/ucore/ucdecode.hex": "f5cf6e2bef1d3bec371d0b0227fb7cbcaaf62fd68f2ba3e505d345f492e08bda",
    "hdl/rtl/ucore/ucrom.hex": "d9cfcddd4cb473f0c21f112bd64419e91d9395a256158e0205137e12ba3e531d",
    "hdl/rtl/ucore/ucrom_census.json": "c97ad035e2a8e3e7209804321dc158e9129b9c83af1ce8229052447f65bfd7c9",
-   "hdl/rtl/ucore/v30_core.sv": "a6cf38f7094a76b97b1fd9a552b81f1402a69a552c797db28839c668051c3b26",
-   "hdl/rtl/ucore/v30u_biu.sv": "7428009b3daf2b565c97ad6ddbb52b8063e398ed651fc99c101a2c242d024de2",
-   "hdl/rtl/ucore/v30u_eu.sv": "db63cc5065dd80113162df6f8d7e1faa32f1ba5103593966d029845aaad62613",
+   "hdl/rtl/ucore/v30_core.sv": "dcdfc7b8db87931b8d3efa0b4bfa5cdbe07b3796a9736e1a1b5eece2a6c82d36",
+   "hdl/rtl/ucore/v30u_biu.sv": "266a6f20d6d7d32c8c37de36b4c2e0c39142905f55f446992d01e68b19a08ad3",
+   "hdl/rtl/ucore/v30u_eu.sv": "acd564585228b40989ce51db2cc6f6b1fa31055247518c03255289d06462cdc9",
    "hdl/rtl/ucore/v30u_eu_1bl.svh": "2ecd218f53d4fa8293d11cb2e471928463ab0a5a494c3102408dea46fb19f40e",
    "hdl/rtl/ucore/v30u_eu_cond.svh": "bfadaaf261c41b5e4a701e16b87befdf52346b7ecfa704f5cfe10c4a217abf6f",
    "hdl/rtl/ucore/v30u_eu_iend_late.svh": "e7ecc8f7fb62ec279d331389d37421bbf23b1675dc37eb049aa78a825559ba33",
@@ -354,29 +354,29 @@
    "hdl/sys/yc_out.sv": "c52d7bfcc8dbc5a0cda2b3117172cbba790fb97b7de61722ddac205f6ec8bc20"
   },
   "n_files": 88,
-  "sha256": "fc508a1c4c17228eda33de61cca3fe30871a7bd7c78ebc7794fcdbcc166d7ce3"
+  "sha256": "92b4ad1205e0db774ca51f221cab228f806c2d92403169b792d8f2b91418750f"
  },
  "kind": "quartus_bitstream",
- "label": "wrfuzz W3.5 U-B: the 1BL retire lead's trap gate (brk_seen)",
+ "label": "",
  "name": "hdl/output_files_ucore/nec_test_ucore.sof",
  "outputs": {
-  "hdl/output_files_ucore/nec_test_ucore.fit.summary": "b475ee40cdd38606be5b8f1225ce35177d5ee6893e096ada94dc22317db5e63b",
-  "hdl/output_files_ucore/nec_test_ucore.rbf": "2dab8036654adc82c5c717d47b9aafd0569e64bf10681e5471b5dcba12e2c96c",
-  "hdl/output_files_ucore/nec_test_ucore.sof": "3a47a223be3f9fd78020da457ffc2db478bcb72558f892cf81b6889010ad2b92",
-  "hdl/output_files_ucore/nec_test_ucore.sta.summary": "ff5b718d13a6f04877dc0412761d6054f09cad4983e72a6d46ba7f6ebb8f2759"
+  "hdl/output_files_ucore/nec_test_ucore.fit.summary": "97eca1e49a069d0dd3bc18dc2302e5edd2c35b0468abf17531f9db5e1e2e8296",
+  "hdl/output_files_ucore/nec_test_ucore.rbf": "6b33dd6eb2ad016e36c7f3e5b1ab77694f53df441cd918842d45f41d4f9273cd",
+  "hdl/output_files_ucore/nec_test_ucore.sof": "ed51744619934add99b0b18bfc0c08b5c9413010d85c9405409f8b5a3fb454ab",
+  "hdl/output_files_ucore/nec_test_ucore.sta.summary": "e42a9cf07320e4444de5eed3f3093a87b43db42d19f775e18cd56a8b98e144b2"
  },
  "qsf_regenerated_post_build": true,
  "rc": 0,
  "schema": "nec_test/receipt",
  "schema_version": 1,
- "seconds": 578.6,
- "started": "2026-08-06T08:54:23Z",
+ "seconds": 904.6,
+ "started": "2026-08-06T20:11:48Z",
  "tool": "Version 17.1.0 Build 590 10/25/2017 SJ Lite Edition",
  "tool_name": "quartus_sh",
  "tool_probe": null,
  "tool_sha256": null,
  "tool_version": "Version 17.1.0 Build 590 10/25/2017 SJ Lite Edition",
  "tree": "/home/wickerwaka/src/nec_test/hdl/output_files_ucore",
- "ts": "2026-08-06T08:54:23Z",
+ "ts": "2026-08-06T20:11:48Z",
  "verdict": "PASS"
 }

@@ -140,7 +140,7 @@ public:
     uint16_t mem_read(uint16_t seg_val, uint16_t off, bool word,
                       uint8_t seg_idx, uint16_t upc);
     void mem_write(uint16_t seg_val, uint16_t off, uint16_t data, bool word,
-                   uint8_t seg_idx, uint16_t upc);
+                   uint8_t seg_idx, uint16_t upc, bool opr_eval = false);
     // S5 RETIRED.  The write CYCLE is scheduled by the BIU at the eval that
     // follows the ROM row which ISSUES it -- not at the moment the EU pairs
     // the data.  `write_request` posts the (possibly split) cycle with its
@@ -896,6 +896,7 @@ private:
     // load it (ENTER's 0262 MEMW / 0263 `BP -> OPR F`).
     int opr_held_ = 0;
     long opr_free_clk_ = -1;
+    bool opr_eval_ = false;
     // OPR, SHADOWED.  Every completed READ loads it (at that read's T4 + 1)
     // and every paired store's value passes through it; a store that reaches
     // T1 without having been given data drives whatever is STILL STANDING

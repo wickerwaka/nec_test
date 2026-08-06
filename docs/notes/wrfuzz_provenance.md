@@ -2408,3 +2408,105 @@ also scoring a bar.
   not as a ratchet.
 * The board is left carrying **FLASH #11**, `use_core` **False**, `div_guard`
   PINNED, `board_idle()` clean.
+
+---
+
+## §10 W7 — POST-VERDICT SUCCESSOR-QUEUE WORK: THE NATIVE BRKEM PAIRED-WRITE GAP
+
+**2026-08-06, offline only, from HEAD `66e3fddec2`.  RESOLVED in both
+engines; no board contact and no flash.**  This is task #42 / §9.9 successor
+item 1, resumed from `wrfuzz_w7_handoff_2026-08-06.md`.
+
+### §10.1 THE SCOPE LINE — 8080 EXECUTION IS NOT A W7 FAILURE
+
+The 21 retained captures do not end at the native frame-write mechanism under
+test: they continue into 8080 execution.  After the native write chain was
+made exact, every one of the 21 had the same first residual on both engines:
+the chip reports `QS = E` and the engine reports empty at the third frame
+write's T1 (`bs_early = 6`, `t = 1`), with **no other differing field and no
+flicker**.  The hundreds or thousands of later differences are downstream of
+that 8080 handoff.
+
+The user-directed decision is explicit: **those 8080 rows are outside W7 and
+do not count against this mechanism.**  This does not claim the later rows are
+correct, nor does it erase their evidence; it leaves them in the legacy
+whole-stream reports and excludes them only from W7's native-entry verdict.
+`sw/wrfuzz_w7_gap_guard.py` therefore requires the entire prefix through that
+third-write T1 to be exact and requires the first residual to be exactly the
+uniform `QS E!=-` handoff.  Any earlier difference, any other field, or any
+different residual is RED.
+
+### §10.2 THE MECHANISM — RELEASE AT THE FIRST FRAME WRITE'S COMPLETION EVAL
+
+All 21 captures take the same ROM geometry:
+
+`0091 MFS + MEMW` → `0092 CS -> OPR, F, JMP CNTZ` → `0093 MFC` →
+`01F8` → `01F9 MEMW` → `01FA PC -> OPR, F` → `01FB MEMW`.
+
+The fixed gap is not a fitted four-clock delay.  `0092` is the consumer of the
+first frame store's OPR ownership.  On silicon it can proceed on that write
+cycle's **completion evaluation**; the following real ROM rows then produce
+the fixed four-idle-clock first logical-write boundary.  The old model waited
+on a fixed early OPR release and the old ucore waited through write retirement,
+so their gap inherited the completing cycle's length.  That is the moving-gap
+shape measured in §5.
+
+The landing renders that same event in each engine:
+
+* The model marks only an `MFS + MEMW` store as completion-eval releasable.
+  `BiuTimed::wait_opr_free()` then waits for the final physical write cycle's
+  own completion eval, including an odd-addressed word store's split cycles.
+* The ucore exports the BIU's final-write completion-eval instant as
+  `eu_wr_eval`.  The EU uses it only on the semantic consumer row
+  `CS -> OPR, F, JMP CNTZ`; neither a ROM address nor an opcode is decoded.
+* No constant gap, lookup table, new flop, or save-state field was added.
+  Ordinary stores keep the existing M13/OPR-release law.  This narrow semantic
+  predicate is not a generic `MEMW` rule.  The legacy exact control had zero
+  gap-four events in 2,819 opportunities, and no previously-exact seed was
+  lost, so the landing did not manufacture that geometry in the control.
+
+### §10.3 THE REGISTERED NUMBER — RAISED IN THE SCOPE THAT WAS ACTUALLY ASKED
+
+`python3 sw/wrfuzz_w7_gap_guard.py` is green on **21 / 21** for the model and
+**21 / 21** for the ucore.  It compares every prefix row, compares the complete
+write-cycle stream, collapses the two physical cycles of odd-addressed word
+writes, and requires the first logical-write boundary to be exactly four idle
+clocks on chip and engine.
+
+The 21 entries are disjoint from each leg's legacy whole-stream exact set: the
+guard requires the uniform post-prefix residual, so none can be whole-stream
+exact.  Under §10.1's native scope, the registered attribution floors therefore
+**RAISE** as pre-registered:
+
+| leg | legacy whole-stream floor | W7 native-prefix closures | **native-scope floor** |
+|---|---:|---:|---:|
+| model | 84 / 184 | +21 | **105 / 184** |
+| ucore | 91 / 184 | +21 | **112 / 184** |
+
+These are still implementation-attribution figures over `wr1`, a subset that
+is divergent by construction.  They are **not silicon-match rates, not a
+head-to-head engine ranking, and not a new sample**.  The legacy
+`wrfuzz_wr1_guard.py` remains separate and green at **84 / 184** and
+**91 / 184**, with zero previously-exact seeds lost, zero first divergences
+moved earlier, and denominator 184.  Its whole-stream figures are deliberately
+unchanged because it still records the excluded 8080 continuation.
+
+### §10.4 THE LANDING GATES — ALL GREEN
+
+| gate | result on the landed tree |
+|---|---|
+| W7 native guard | model **21 / 21**, ucore **21 / 21**; native-scope floors **105 / 184** and **112 / 184** |
+| legacy `wr1` no-regression guard | **84 / 184** and **91 / 184**; 0 lost, 0 earlier, denominator 184 |
+| ENTER / INS / block I/O | **154 / 154 ×5**; **1,312 / 1,312** and **2,624 / 2,624**; **229,999 / 229,999** |
+| full model and ucore ladders | **169,000 / 169,000** each; model row-diffs 0 |
+| model-to-ucore lockstep | **17,350 / 17,350** |
+| wait axes / EVT / directed tranches | w1 **1,200 / 1,200**, w3 **1,200 / 1,200**; EVT **200 / 1,200 / 200 / 1,200**; biased **1,200 / 1,200**; F4a **160 / 160**; F0LOCK **400 / 400** |
+| registered fuzz bank | model **1,343 / 1,702**, **802 / 1,008**, **2,145 / 2,710**; ucore **1,564 / 1,702**, **937 / 1,008**, **2,501 / 2,710**; all standing figures reproduced |
+| wvec / boot / integration | **88 / 88, +0.0 %**; 220 and 400 rows MATCH; A/B integration **187 rows MATCH** |
+| save state / CE hold | `ss_lint` rc 0, 0 unmapped; modes 1/2/5 **80 / 80**, **24 / 24**, **4 / 4**; full CE-div-4 ladder **169,000 / 169,000**, `CE_HOLD_VIOL 0` |
+| ROM / PLA / generated tables | disassembly **1,285**, PLA **21**, G0 **9,988**, QSF check — all PASS |
+| G6 Quartus CONTROL/DEFAULT | **PASS**, receipt `67e1669544071b6b…`: 0 errors, Fmax **46.33 MHz**, worst setup **+9.211 ns**, TNS **0**, ALMs 11,210 / 41,910, latches 0, `lpm_divide` 0 |
+
+The receipted engine binaries used by the directed and offline gates are model
+`1073207e80945168…` and ucore `249d788878acb714…`.  No candidate constant was
+landed, no 8080 correction was attempted, and no board state changed.

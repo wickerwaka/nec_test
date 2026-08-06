@@ -94,6 +94,7 @@ module v30u_eu (
     input             eu_rd_edge,   // the read's DATA EDGE (T3/Tw -> T4)
     input      [15:0] eu_rd_edge_d,
     input             eu_wr_done_n,
+    input             eu_wr_eval,
     input             eu_opr_free,   // F31: the LEVEL `opr_held == 0`
 
     // prefetch control
@@ -662,14 +663,28 @@ wire nr_extra_block = nr_have && rd_age0;
 // moved), which is D1's shape -- a latent correctness fix whose score does not
 // move.  *Falsifier*: the first 8080-mode store the ucore executes, which is
 // R4's own gate; that is where this arm gets its verification, not here.
-wire opr_free_now = mode8080 ? retire_ok_n : eu_opr_free;
-
 // wait_bus (the retire deadline): every posted store, then its e+2.  ONE view
 // only -- `eu_wr_done_n` is registered logic (see the BIU's `done_fire`), so
 // the act decode may read it, and act and step MUST read the same thing: they
 // are the same event seen from two sides (F11).
 wire retire_ok_n = (wr_out == 2'd0) ||
                    ((wr_out == 2'd1) && eu_wr_done_n);
+
+// W7 -- THE MFS FRAME STORE RELEASES AT ITS COMPLETION EVAL.  The consumer is
+// the semantic row `CS -> OPR, SIGMA -> IND, F, JMP CNTZ`: it immediately
+// follows the `MFS + MEMW SS` row, then the ROM runs MFC, 01F8 and the next
+// MEMW issue.  Letting the fixed T3 release win erased those ROM clocks when
+// the write stretched; waiting through retire added two invented clocks.  The
+// completion pulse leaves the three real intervening rows to set the gap.
+// This names the row's controls, not its ROM address or an opcode.
+wire mfs_frame_release = (st == S_ROW) && e_f &&
+                         (e_type == TY_JMP) && (r_cond == C_CNTZ) &&
+                         e_have1 && (e_s1 == 5'd1) && (e_d1 == 5'd6);
+wire eval_ok_n = (wr_out == 2'd0) ||
+                 ((wr_out == 2'd1) && eu_wr_eval);
+wire opr_free_now = mode8080          ? retire_ok_n
+                  : mfs_frame_release ? eval_ok_n
+                                      : eu_opr_free;
 
 // §87.A -- THE ILLEGAL-FORM STALL.  `nr_wait` waits for the next OUTSTANDING
 // read; when nothing is outstanding it is 0 and the row runs.  But the `F`
