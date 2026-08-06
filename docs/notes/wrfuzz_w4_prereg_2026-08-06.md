@@ -210,6 +210,23 @@ three that has never been tried.
 IMPORTED so the statistic itself is §68.6's.  The directed cells are **scored as
 their own cells and are NOT folded into `T`**, per prereg §5.2.
 
+### 3.4a THE PAIRING'S OWN LIMIT — declared before any capture
+
+Pairing by ordinal is only unambiguous where the two access streams ARE the
+same stream.  Past a first divergence the ordinals no longer name the same
+access, and a coincidental `t1` match with a different owner would be a
+**pairing artefact reported as a class-B event** — the vacuous-instrument
+pattern (F-12) arriving in a new place.  §68.6's own population had no such
+problem: it agreed on **7,254 of 7,254**, i.e. it was effectively the exact
+population.
+
+> **BOTH POPULATIONS ARE COMPUTED AND BOTH ARE REPORTED, and which is which is
+> fixed now:** **(a) the cycle-exact D-cell seeds only** — the strict statistic,
+> the one comparable to §68.6's 0-of-7,254, and the one the prediction in §3.4
+> is about; and **(b) every D-cell seed**, printed beside it and labelled
+> *"pairing is ambiguous past a divergence"*.  Neither is dropped, and neither
+> is selected after the numbers are seen.
+
 ### 3.5 The fabric re-base — the standing instrument-agreement rule
 
 FLASH #11 re-bases every fabric column.  **The offline references were

@@ -609,7 +609,14 @@ def cmd_score(a):
           f"class-B: same clock, different owner")
     dcells = []
     for d in pop["directed"]:
-        n_acc = n_same = n_swap = 0
+        # TWO POPULATIONS, both reported -- prereg §3.4a, declared before any
+        # capture.  Ordinal pairing is only unambiguous where the two streams
+        # are the same stream; on a divergent seed a coincidental `t1` match
+        # with a different owner is a pairing artefact, not a class-B event.
+        # §68.6's own population agreed 7,254/7,254, i.e. it was the EXACT
+        # population.  So (a) is the strict, comparable statistic and (b) is
+        # the whole cell; NEITHER is dropped and neither is chosen afterwards.
+        agg = {"exact": [0, 0, 0], "all": [0, 0, 0]}     # acc, same, swap
         n_ex = n_seen = 0
         swaps = []
         for k in d["k"]:
@@ -617,32 +624,45 @@ def cmd_score(a):
             if r is None:
                 continue
             n_seen += 1
-            if r["verdict"] == "SUCCESS":
-                n_ex += 1
+            is_ex = r["verdict"] == "SUCCESS"
+            n_ex += is_ex
             chip, fab = _rows_of(r)
             ca, fa = h3.measure(chip), h3.measure(fab)
             for j in range(min(len(ca), len(fa))):
-                n_acc += 1
+                pops = ["all"] + (["exact"] if is_ex else [])
+                for p in pops:
+                    agg[p][0] += 1
                 if ca[j]["t1"] == fa[j]["t1"]:
-                    if ca[j]["prev_kind"] == fa[j]["prev_kind"]:
-                        n_same += 1
-                    else:
-                        n_swap += 1
+                    hit = 1 if ca[j]["prev_kind"] == fa[j]["prev_kind"] else 2
+                    for p in pops:
+                        agg[p][hit] += 1
+                    if hit == 2:
                         swaps.append((k, j, ca[j]["prev_kind"],
-                                      fa[j]["prev_kind"], ca[j]["occ"]))
+                                      fa[j]["prev_kind"], ca[j]["occ"], is_ex))
         dcells.append({"cell": d["cell"], "tier": d["tier"],
                        "wlo": d["wlo"], "whi": d["whi"], "n": n_seen,
-                       "exact": n_ex, "paired_accesses": n_acc,
-                       "same_clock_same_owner": n_same,
-                       "class_b_pairs": n_swap,
+                       "exact_seeds": n_ex,
+                       "exact_pop": {"paired": agg["exact"][0],
+                                     "same_owner": agg["exact"][1],
+                                     "class_b": agg["exact"][2]},
+                       "all_pop": {"paired": agg["all"][0],
+                                   "same_owner": agg["all"][1],
+                                   "class_b": agg["all"][2]},
                        "swaps": swaps[:20]})
         print(f"    {d['cell']}  {d['tier']:<5} wlo={d['wlo']} whi={d['whi']}"
-              f"   seeds {n_seen}  exact {n_ex}   paired accesses {n_acc}"
-              f"   **class-B pairs {n_swap}**")
-    tot_acc = sum(c["paired_accesses"] for c in dcells)
-    tot_b = sum(c["class_b_pairs"] for c in dcells)
-    print(f"    TOTAL: {tot_b} class-B pairs over {tot_acc} paired accesses "
-          f"(§68.6 measured 0 over 7,254)")
+              f"   seeds {n_seen} (exact {n_ex})")
+        print(f"        (a) EXACT seeds only : {agg['exact'][0]:>6} paired "
+              f"accesses   **class-B {agg['exact'][2]}**")
+        print(f"        (b) all seeds        : {agg['all'][0]:>6} paired "
+              f"accesses   class-B {agg['all'][2]}  [pairing is ambiguous "
+              f"past a divergence]")
+    ta = sum(c["exact_pop"]["paired"] for c in dcells)
+    tb = sum(c["exact_pop"]["class_b"] for c in dcells)
+    aa = sum(c["all_pop"]["paired"] for c in dcells)
+    ab = sum(c["all_pop"]["class_b"] for c in dcells)
+    print(f"    TOTAL (a) EXACT: **{tb} class-B pairs over {ta} paired "
+          f"accesses**   (§68.6 measured 0 over 7,254)")
+    print(f"    TOTAL (b) all  : {ab} class-B pairs over {aa} paired accesses")
 
     print(f"\n  the bars:")
     for k, v in bars.items():
