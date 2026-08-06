@@ -547,7 +547,8 @@ per-wait-class column is a SELECTION artefact — re-measured this sitting it is
 **100.0 % on six of nine soup classes** beside `fix0` at 65.8 %, which is what
 `fuzz_bank.promote`'s caps left behind and not a population rate.  (b) The
 mc1 / mc2 / t30 campaigns' full populations carry **no era stamp at all**
-(0 of 20,203 lines; `wr1` is the first campaign with one, B-2's own gate), so
+(0 of 21,203 lines -- mc1 10,003 + mc2 10,000 + t30-raw 1,000 + t30-brkem 200;
+`wr1` is the first campaign with one, B-2's own gate), so
 their fabric leg is a core and a bitstream nothing records.  **`wr1`'s nine
 control strata are therefore the FIRST unbiased, era-stamped, per-wait-class
 population measurement of the resident era**, and the reproduction check the

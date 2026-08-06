@@ -93,7 +93,7 @@ scored misses by verdict class.
 | 25 | raw | **`wvec-skew`** | 75 | 44 | 31 | 27 | **87.10** | 3 | 0 | 1 |
 | 26 | raw | **`wvec-burst`** | 75 | 52 | 23 | 21 | **91.30** | 2 | 0 | 0 |
 | 27 | raw | **`wvec-edge`** | 75 | 45 | 30 | 29 | **96.67** | 1 | 0 | 0 |
-| | | | **3,150** | **635** | **2,515** | **2,379** | **94.59 pooled** | 116 | 4 | 6 |
+| | | | **3,150** | **635** | **2,515** | **2,379** | **94.59 pooled** | 126 | 4 | 6 |
 
 ### §1.1 ⚠ THE EXCLUSION, AND WHY IT IS NOT THE BANK'S OWN LABEL
 
@@ -459,9 +459,10 @@ comparable column exists.**  Both candidates fail as controls, by measurement:
    soup `fix0` at 65.8 %.  Those are not population rates; they are what
    `fuzz_bank.promote`'s caps left behind.
 2. **The mc1 / mc2 campaigns' full populations are ERA-UNATTRIBUTABLE.**
-   Their 20,003 lines carry **no era stamp at all** (`era` is absent on
-   10,003 + 10,000 + 1,000 + 200 lines; `wr1` is the first campaign with one,
-   B-2's own gate).  Their fabric leg was a different core on a bitstream
+   Their lines carry **no era stamp at all** -- `era` is absent on
+   **21,203** lines (mc1 10,003 + mc2 10,000 + t30-raw 1,000 +
+   t30-brkem 200); `wr1` is the first campaign with one, B-2's own gate.
+   Their fabric leg was a different core on a bitstream
    nothing records.  For reference and not as a control, their soup w > 0
    inline rates run **16.7 – 42.3 %**; nothing is concluded from that
    comparison and no delta is computed from it.
