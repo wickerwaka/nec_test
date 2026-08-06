@@ -828,7 +828,7 @@ measure.**
 | **APPLIED** | **all seven**, itemised below |
 | **GUARD REGISTERED** | concern 6's standing guard — `sw/wrfuzz_wr1_guard.py` over the receipted `wr1` offline columns — **registered in `standing_gates.md` BEFORE finalization and PROVEN GREEN at registration**, both legs, rc = 0: model **84 / 184**, `ucore` **91 / 184**, **0 previously-exact seeds lost, 0 first divergences moved earlier**, denominator 184.  §(f.3) |
 | **DISCHARGED** | the **five record discrepancies**, in their home documents — `standing_gates.md` in place, `wrfuzz_provenance.md` by erratum box because it is append-only.  **APPENDIX A is now the correction ledger** and names each corrected location |
-| **FINALIZED** | commit **`<pending — filled by the immediately following commit>`**, 2026-08-06 — the commit that applied the seven concerns and removed the DRAFT marking.  (This row is written by the immediately following commit, because a commit cannot name its own hash — the SM3 precedent.) |
+| **FINALIZED** | commit **`b2b39aecb5`**, 2026-08-06 — the commit that applied the seven concerns, registered and proved the guard, discharged the five discrepancies and removed the DRAFT marking.  (This row was written by the immediately following commit, because a commit cannot name its own hash — the SM3 precedent.) |
 | **ACCEPTED** | ⚠ ***pending — the user.***  **Not recorded as given.**  Applying the concerns does not upgrade GO-WITH-CONCERNS to GO; the verdict's standing is the user's to set |
 
 **THE SEVEN CONCERNS, AND WHERE EACH ONE LANDED.**
