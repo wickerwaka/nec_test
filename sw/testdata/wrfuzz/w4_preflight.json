@@ -1,0 +1,217 @@
+{
+ "stage": "W4 preflight",
+ "cid": "wr2",
+ "host": "root@mister-nec",
+ "pop_sha256": "dcaa48fa991fa3cc78588bc95e4881a17a563b875624ac58138882056f39066d",
+ "ts": "2026-08-06T09:40:17Z",
+ "div_guards": [],
+ "uptime": "09:40:18  up 24 days 14:06,  0 users,  load average: 0.03, 0.00, 0.01",
+ "board_procs": [],
+ "single_writer": "OK",
+ "flash_log_tail": {
+  "ts": "2026-08-05T23:01:06Z",
+  "sof_path": "hdl/output_files_ucore/nec_test_ucore.sof",
+  "sha256": "1a01a6975e4aca6fe9cefe83002034789dfee5c728cd72c59ea2acbc7f7a9498",
+  "git_describe": "f3f7b6b20d-dirty",
+  "verify": "OK"
+ },
+ "regen": {
+  "cells": [
+   {
+    "cell": "soup/fix0",
+    "n": 7,
+    "brkem_pairs": 0,
+    "distinct_vectors": 0
+   },
+   {
+    "cell": "soup/fix1",
+    "n": 7,
+    "brkem_pairs": 0,
+    "distinct_vectors": 0
+   },
+   {
+    "cell": "soup/fix2",
+    "n": 7,
+    "brkem_pairs": 0,
+    "distinct_vectors": 0
+   },
+   {
+    "cell": "soup/fix3",
+    "n": 7,
+    "brkem_pairs": 0,
+    "distinct_vectors": 0
+   },
+   {
+    "cell": "soup/wrand1",
+    "n": 7,
+    "brkem_pairs": 0,
+    "distinct_vectors": 0
+   },
+   {
+    "cell": "soup/wrand2",
+    "n": 7,
+    "brkem_pairs": 0,
+    "distinct_vectors": 0
+   },
+   {
+    "cell": "soup/wrand3",
+    "n": 7,
+    "brkem_pairs": 0,
+    "distinct_vectors": 0
+   },
+   {
+    "cell": "soup/wrand7",
+    "n": 7,
+    "brkem_pairs": 0,
+    "distinct_vectors": 0
+   },
+   {
+    "cell": "soup/wrand15",
+    "n": 7,
+    "brkem_pairs": 0,
+    "distinct_vectors": 0
+   },
+   {
+    "cell": "soup/wvec-uni",
+    "n": 7,
+    "brkem_pairs": 0,
+    "distinct_vectors": 7
+   },
+   {
+    "cell": "soup/wvec-walk",
+    "n": 7,
+    "brkem_pairs": 0,
+    "distinct_vectors": 7
+   },
+   {
+    "cell": "soup/wvec-skew",
+    "n": 7,
+    "brkem_pairs": 0,
+    "distinct_vectors": 7
+   },
+   {
+    "cell": "soup/wvec-burst",
+    "n": 7,
+    "brkem_pairs": 0,
+    "distinct_vectors": 7
+   },
+   {
+    "cell": "soup/wvec-edge",
+    "n": 7,
+    "brkem_pairs": 0,
+    "distinct_vectors": 7
+   },
+   {
+    "cell": "raw/fix0",
+    "n": 7,
+    "brkem_pairs": 0,
+    "distinct_vectors": 0
+   },
+   {
+    "cell": "raw/fix1",
+    "n": 7,
+    "brkem_pairs": 0,
+    "distinct_vectors": 0
+   },
+   {
+    "cell": "raw/fix2",
+    "n": 7,
+    "brkem_pairs": 0,
+    "distinct_vectors": 0
+   },
+   {
+    "cell": "raw/fix3",
+    "n": 7,
+    "brkem_pairs": 0,
+    "distinct_vectors": 0
+   },
+   {
+    "cell": "raw/wrand1",
+    "n": 7,
+    "brkem_pairs": 0,
+    "distinct_vectors": 0
+   },
+   {
+    "cell": "raw/wrand2",
+    "n": 7,
+    "brkem_pairs": 0,
+    "distinct_vectors": 0
+   },
+   {
+    "cell": "raw/wrand3",
+    "n": 7,
+    "brkem_pairs": 0,
+    "distinct_vectors": 0
+   },
+   {
+    "cell": "raw/wrand7",
+    "n": 7,
+    "brkem_pairs": 0,
+    "distinct_vectors": 0
+   },
+   {
+    "cell": "raw/wrand15",
+    "n": 7,
+    "brkem_pairs": 0,
+    "distinct_vectors": 0
+   },
+   {
+    "cell": "raw/wvec-uni",
+    "n": 7,
+    "brkem_pairs": 0,
+    "distinct_vectors": 7
+   },
+   {
+    "cell": "raw/wvec-walk",
+    "n": 7,
+    "brkem_pairs": 0,
+    "distinct_vectors": 7
+   },
+   {
+    "cell": "raw/wvec-skew",
+    "n": 7,
+    "brkem_pairs": 0,
+    "distinct_vectors": 7
+   },
+   {
+    "cell": "raw/wvec-burst",
+    "n": 7,
+    "brkem_pairs": 0,
+    "distinct_vectors": 7
+   },
+   {
+    "cell": "raw/wvec-edge",
+    "n": 7,
+    "brkem_pairs": 0,
+    "distinct_vectors": 7
+   },
+   {
+    "cell": "D1",
+    "n": 25,
+    "brkem_pairs": 0,
+    "distinct_vectors": 22
+   },
+   {
+    "cell": "D2",
+    "n": 25,
+    "brkem_pairs": 0,
+    "distinct_vectors": 19
+   },
+   {
+    "cell": "D3",
+    "n": 25,
+    "brkem_pairs": 0,
+    "distinct_vectors": 23
+   },
+   {
+    "cell": "D4",
+    "n": 25,
+    "brkem_pairs": 0,
+    "distinct_vectors": 20
+   }
+  ],
+  "hits": 0,
+  "seeds": 296
+ },
+ "verdict": "BLOCKED"
+}
