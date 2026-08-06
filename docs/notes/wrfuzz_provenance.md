@@ -843,7 +843,10 @@ says they must be.
 `divclk` Fmax **45.51 MHz** against a registered ≥ 32 · **E4** worst setup
 **+6.541 ns** · **E5** TNS **0.000, setup AND hold, every domain**.  Recorded,
 not gated: **ALMs 11,209 / 41,910 (27 %)**, 0 latches, 0 `lpm_divide`.
-**NO BITSTREAM WAS FLASHED.**  The board still carries FLASH #10, so every
+**NO BITSTREAM WAS FLASHED.**  *(Coordinator erratum, post-W4: TRUE AT THIS
+ENTRY'S TIMESTAMP, 02:14 2026-08-06 — superseded at 02:48 by W4's FLASH #11,
+whose bitstream CONTAINS this sitting's landing.  §9 is the fabric record;
+this sitting claims nothing about it.)*  The board still carries FLASH #10, so every
 fabric figure in this ledger is a FLASH #10 figure and none of this sitting's
 `ucore` numbers is one.
 
