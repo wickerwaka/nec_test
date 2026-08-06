@@ -1266,3 +1266,347 @@ would have bought nothing.  Recorded as owed, with its question sharpened.
 * **The `PIN` five (queue item #3 / W3.3) was NOT opened.**
 * **No memory file was touched and Codex was not launched.**
 * B-5, B-7 and B-8 are VACUOUS and are reported as vacuous, not as green.
+
+---
+
+## §6 W3.3 — **THE `mc1/721` COLLISION IS DECIDED ON SILICON AND IT IS THE MODEL'S ORDER; THE `PIN` FIVE ARE ONE FAMILY, FIVE OF FIVE; AND THE TRAP'S TAKE DOES NOT SUSPEND THE PREFETCHER — MEASURED, NOT INFERRED. NOTHING IS LANDED, BY THE PRE-REGISTERED RULE.**
+
+**2026-08-06, branch `ucsim`, from HEAD `32b2d6accb`.  ONE BOARD SESSION,
+SOCKET ONLY, NO FLASHING, `use_core` never set.**  Pre-registration:
+`docs/notes/wrfuzz_w33_prereg_2026-08-06.md`, committed at **`f883c2b6e2`
+before the first board contact and before any engine file was touched**.  New
+instruments: `sw/w33_pin5.py`, `sw/w33_poste_cell.py`, `sw/w33_take_cell.py`.
+
+> **Standing principle.**  *"A guiding principal here needs to be simplicity.
+> This is 80's era hardware, they aren't wasting silicon on anything that isn't
+> necessary.  Complex or confusing behavior that we see is likely to be simple
+> systems interacting in ways you do not fully understand yet."*
+
+### §6.1 THE HEADLINE
+
+> * **CELL 1 — `mc1/721` IS DECIDED.  The die commits the POST-`E` write FIRST
+>   and the successor's one-byte-logic write lands ON TOP of it** — the C++
+>   model's order, `ucore_provenance.md` §86.G's candidate **C1-A**.  Measured
+>   on **two register bits through two pin paths**, unanimous over 40 periods ×
+>   3 reps in every measurement cell, with **four nulls green and one of them
+>   producing C1-C's "a write is LOST" value on the same rig with the same
+>   reader**.  §49.8's *"which of the two fails to land"* is answered:
+>   **NEITHER**.
+> * **AND THE DECIDER SAYS THE BLOCK STANDS.**  Bar **W-5** — the ISOLATED 1BL
+>   with no post-`E` anywhere near it — is **MET on 13 cells × 2 waits × 3 reps,
+>   chip identical to BOTH engines**.  The 1BL commit clock is exactly where
+>   both engines put it; §1's banked evidence forbids discharging the post-`E`
+>   inline; so the two independently measured placements really do collide and
+>   §87.B's honest block is CONFIRMED, not dissolved.  **NOTHING IS LANDED, and
+>   no second micro-ROM read is taken** — decision-rule branch 2, written before
+>   the run.
+> * **CELL 2 — THE TAKE DOES NOT SUSPEND THE PREFETCHER, AND `vec − take` IS
+>   INVARIANT.**  On 563 directed vector-1 entries over 20 (sled, wait) cells,
+>   **`vec − take` is 9 on 500 and 10 on 63**, and the chip runs a `CODE`
+>   prefetch INSIDE the window on **121 of 563**.  §4.7's booked candidate —
+>   *the take suspends the prefetcher* — is **REFUTED on silicon**, which is
+>   what §5.4's v1/v2 losses predicted and could not prove.  **No board contact
+>   was needed**: the circularity §5.4a named is broken by the POPULATION.
+> * **CELL 3 — the TF floor cell composes EXACTLY**, both engines, every
+>   registered bar.
+> * **THE `PIN` FIVE ARE ONE FAMILY AND IT IS `mc1/721`.**  The survey said
+>   *"three of the five carry the signature"*; measured, it is **five of five**,
+>   and the two `ps 2!=6` seeds are the same collision one flag bit over.
+>
+> **NOTHING WAS LANDED.**  `sim/` and `hdl/rtl/` are byte-identical to
+> `32b2d6accb` (`git diff` empty over both trees), so every ratchet is UNMOVED
+> and none is claimed.
+
+### §6.2 THE BANKED-EVIDENCE LEG — **THE `PIN` FIVE ARE `mc1/721`, FIVE OF FIVE**
+
+`sw/w33_pin5.py` plus the RTL's own §86.G probes (`+brktrace`'s `1BL` and `PE`
+lines).  Measured on the frozen tree BEFORE the cell was designed, and written
+into the pre-registration §1 so the cell's design cannot be mistaken for having
+been chosen after seeing its result.
+
+| seed | stratum | first parting | adjacency | 1BL bits | post-`E` writes | model-order final | silicon |
+|---|---|---|---|---|---|---|---|
+| `wr1/200127` | soup/`fix0` | row 262 `data` | clk 193→194 | `0001` CY | `fa83` | `fa82` | word `a9d8`, `ucore` `a9d7` (Δ 1) |
+| `wr1/203092` | soup/`fix3` | row 802 `data` | clk 638→639 | `0001` CY | `f217` | **`f216`** | **`f216`**, `ucore` `f217` |
+| `wr1/205145` | soup/`wrand2` | row 439 `data` | clk 416→417 | `0001` CY | `f017` | **`f016`** | `ab02` (CY 0), `ucore` `ab03` |
+| `wr1/207147` | soup/`wrand7` | row 1591 `data` | clk 1221→1222 | `0001` CY | `f246` | `f247` | `b3be`, `ucore` `b3bd` (Δ 1) |
+| `wr1/209095` | soup/`wvec-uni` | row 404 `ps` | clk 393→394 | **`0200` IE** | `f246` | **`f046`** | **`ps.ie = 0`**, `ucore` `ps.ie = 1`, 113 rows |
+
+**FIVE OF FIVE carry an EFFECTIVE `1BL`→`PE` adjacency upstream of the first
+parting, and on every one the MODEL-ORDER final value is what silicon shows.**
+Two are DIRECT (`203092`'s flag word on the lanes; `209095`'s IE bit on the
+`ps` nibble), one is near-direct (`205145`'s low bit), and two are a Δ-1
+downstream consumer of CY, which is §86.G's own *"the `sigma` that differs by 1
+two instructions later"*.
+
+⚠ **THE TWO `ps 2!=6` SEEDS ARE THE SAME MECHANISM ONE FLAG BIT OVER.**  `ps`
+bit 2 is `IE` (`sim/biu_timed.cpp:data_ps`), the 1BL is a `DI`, and **`9E`
+SAHF's post-`E` row writes the WHOLE flag word** — its `007D` row snapshots
+`FLAGS -> tmpaH`, so the post-`E` puts IE back on top of the `DI`.  The survey's
+§5 reading ("four part on `data`, the fifth parts on `ps`", three carrying the
+signature) is superseded: **there is one family, not two shapes.**
+
+⚠ **AND THE SCHEDULE IS A MEASUREMENT AGAINST §86.G's SPECIFIED FIX.**  All
+five have `schedule_identical = YES` against silicon — 253 / 172 / 190 / 192 /
+175 bus cycles, through 4, 2, 1, 2 and 3 adjacencies.  A post-`E` discharged
+INLINE on the `E` row's own edge is one clock CHEAPER than the `ucore` is, so
+the schedule would move.  **It does not.**  §86.G's fix as specified is
+therefore refuted by the `ucore`'s own cycle-exactness before it is refuted by
+§87.B's ROM-law argument, and this sitting does not re-propose it.
+
+**NOT IN THE FAMILY.**  `wr1/225009` (raw/`wvec-skew`, `ps 2!=6`, `ndiff` 1)
+has NO effective adjacency before its parting at row 1855 — its nearest is at
+clk 2483, after it.  `wr1/215017` (raw/`fix1`) has one at clk 233 but is
+model-SHARED.  Both stay routed `sim`-first and out of the `ucore`-only column,
+in every branch, as the pre-registration §5 requires.
+
+### §6.3 CELL 1 — THE INSTRUMENT
+
+`sw/w33_poste_cell.py`.  §86.G's falsifier — *any ROM form whose post-`E` row
+writes register R, followed by a 1BL form writing R, with a PRE-POPPED
+successor* — manufactured in **two independent readouts on two different
+register bits through two different pin paths**, plus the decider, plus four
+nulls.  17 sled variants × 2 waits × 3 reps = **102 socket captures**, 4,063
+rows each, ~40 independent periods per capture.
+
+* **ARM A — IE on the `ps` pins.**  `FB` EI · `9E` SAHF · `FA` DI · 8 × `NOP`.
+  The observable is the `ie` bit of the status nibble on the `CODE` fetches of
+  the NOP run — **no memory write and no frame reader at all**.
+* **ARM B — the flag WORD through a `PUSHF` `MEMW`.**  `33 C0` XOR AW,AW plants
+  a flag byte of `0x46` that NEITHER candidate can produce, so *"one write is
+  LOST"* is a distinguishable THIRD outcome and not a tie.  Then `B4 xx` ·
+  `9E` · a CY 1BL (`F5`/`F9`/`F8`) · `9C` PUSHF · `5A` POP DX.
+* **ARM D — the ISOLATED 1BL, the DECIDER.**  `FB` · `8A 07` (bus anchor) ·
+  pad · `FA` · `8A 07` · 4 × `NOP`, the pad walked over six lengths so the
+  prefetch phase sweeps the commit clock.  No `9E` anywhere.
+* **NULLS.**  `a_noDI`, `a_no9E`, `b_nobl`, `b_no9E`.
+
+### §6.4 CELL 1 — THE RESULT, SCORED AS REGISTERED
+
+**Every measurement cell selects C1-A — POST-`E` FIRST — and every null and
+every matched control is green.**
+
+| cell | **chip (silicon)** | model | `ucore` | verdict |
+|---|---|---|---|---|
+| `b_cmc:w0` PUSHF word ×40 ×3 | **`f0d6`** | `f0d6` | `f0d7` | **C1-A** |
+| `b_stc:w0` ×40 ×3 | **`f0d7`** | `f0d7` | `f0d6` | **C1-A** |
+| `b_clc:w0` ×40 ×3 | **`f0d6`** | `f0d6` | `f0d7` | **C1-A** |
+| `a_none:w0` `CODE` with `ie=0` | **192 of 249** | 192 | **0** | **C1-A** |
+| `a_none:w3` `CODE` with `ie=0` | **228 of 268** | 228 | 148 | **C1-A** |
+
+| bar | outcome |
+|---|---|
+| **W-1** all four nulls match BOTH engines, both waits, every rep | **MET** — `a_noDI` 0/249 and 11/268, `a_no9E` 192/249 and 228/268, `b_nobl` `f0d7`, `b_no9E` **`f047`** |
+| **W-2** each `b_*:w0` cell unanimous over 40 periods × 3 reps | **MET — one word, no mixture, in all three** |
+| **W-3** `b_cmc` and `b_stc` select the SAME candidate | **MET** — they carry OPPOSITE words (`f0d6` / `f0d7`) and both say C1-A |
+| **W-4** `a_none:w0`, a different bit and a different pin path, agrees with arm B | **MET** |
+| **W-5** the twelve `d_*` cells and `a_no9E`, both waits, match BOTH engines | **MET — chip identical to both, every cell, every rep** |
+| **W-6** the 3 reps of every cell identical | **MET — 102 of 102** |
+| **W-7** the matched controls (`b_*:w3`, `a_clc`/`a_inc`/`a_movi`) | **MET** |
+
+Scored whole: **chip == model on 102 of 102 cells; chip == `ucore` on 87 of
+102**, and the 15 are EXACTLY the measurement cells (`a_none` ×6, `b_cmc:w0`
+×3, `b_stc:w0` ×3, `b_clc:w0` ×3).  **Not one control is among them.**
+
+> **THE LAW, MEASURED.**  A post-`E` microcode row's register write commits
+> BEFORE the successor instruction's one-byte-logic write.  Both writes land;
+> the order is post-`E` → successor.  **`9E` SAHF's post-`E` writes the whole
+> flag word, IE included.**
+>
+> *Falsifier*: any (post-`E` writer, 1BL writer of the same register) pair with
+> a pre-popped successor whose final value on silicon is the post-`E`'s rather
+> than the successor's.
+
+⚠ **`b_no9E` IS WHY C1-C IS REFUTED RATHER THAN ARGUED AWAY.**  It produces
+**`f047`** on silicon — the exact value the "post-`E` was LOST" branch predicts
+for the measurement cells — on the same rig, in the same capture set, with the
+same reader.  The third outcome was reachable and was not reached.
+
+⚠ **THE CELL IS *NOT* REGISTERED AS A STANDING GATE, DELIBERATELY.**  Its
+`ucore` column is the open `mc1/721` block (87 of 102), and a gate whose
+registered value is a known-unclosed defect is a ratchet pointed at the wrong
+thing.  The 102 captures, their raw words and their `SHA256SUMS` are RETAINED
+in `sw/testdata/w33-postecell/` and the cell re-scores offline with no board
+contact — it is a directed cell with retained silicon, available to whatever
+sitting takes the structure on, and it is what that sitting's landing must be
+scored against.
+
+### §6.5 CELL 1 — **THE BLOCK STANDS, AND WHY.  NOTHING IS LANDED.**
+
+The pre-registration's decision rule, branch 2, applies verbatim:
+
+> **W-1…W-4 select C1-A and W-5 PASSES**: silicon commits post-`E` first, the
+> 1BL commit is exactly where both engines put it, and the schedule forbids
+> discharging the post-`E` inline.  Then the two measured placements really do
+> collide, §87.B's block STANDS, and **NOTHING IS LANDED**.
+
+The three legs, each measured rather than argued:
+
+1. **The ORDER is the model's** — §6.4, 15 measurement cells, two register
+   bits, two pin paths.
+2. **The 1BL commit clock is RIGHT WHERE IT IS** — W-5, the isolated 1BL, chip
+   identical to both engines on 13 cells × 2 waits × 3 reps.  §35.3's *"the
+   golden's status nibble is already 2 on clock 1"* is re-confirmed on a
+   directed population, so the 1BL placement is not the one that moves.
+3. **The post-`E` row's OWN CLOCK is right too** — §6.2's `schedule_identical`
+   over five seeds and eleven adjacencies.  So the post-`E` placement is not the
+   one that moves either.
+
+All three placements are individually correct against silicon and they cannot
+all be honoured in the `ucore`'s current structure, because on the `E`-row
+PRE-POP path the successor's zero-cost loader chain rides the `E` row's own
+edge (`v30u_eu_step.svh` `S_DECODE2` → `v30u_eu_1bl.svh`) while block (b)
+discharges `poste` at the TOP of the NEXT edge.  **That is a structural
+collision between three measurements, not a scheduling slip**, and §87.B's
+disqualifier holds: closing it by discharging `poste` inline needs a SECOND
+FULL micro-ROM lookup in one clock (`ucdecode` 8192×10 **and** `ucrom` 1028×29,
+because the post-`E` row crosses a bank boundary in the general case), **and an
+80s die does not read its microcode ROM twice in a clock.**
+
+**IT IS BOOKED, NOT GUESSED.**  What is now known that §87.B did not know: the
+ORDER is settled on silicon, C1-C is refuted, the family is five seeds rather
+than one, and **both** of the colliding placements have been re-measured
+independently against silicon this sitting.  What is still not known is a
+structure that honours all three without a second ROM read, and this sitting
+does not invent one.  `mc1/721` stays **L3 — spec'd, awaiting a structure**.
+
+### §6.6 CELL 2 — P1's TAKE CLOCK.  **THE CIRCULARITY IS BROKEN BY THE POPULATION, AND THE SUSPEND IS REFUTED.**
+
+§5.4a closed W3.2 with *"the measurement is circular on banked data"*: the only
+instrument for the take clock is an engine's own boundary clock, and every
+contested `wr1` entry lies AFTER that engine's first divergence.
+
+**The 30 retained `sm3-s24tfcell` captures are silicon on which BOTH ENGINES
+ARE EXACT** — 121,890 / 121,860 rows, 0 row-diffs (`standing_gates.md`).  On a
+capture where every bus event agrees clock for clock, the engine's take clock
+IS a coordinate both sides share.  `sw/w33_take_cell.py geom` reads it out of
+the engine's own trace (`+brktrace`'s `BRKT`; `V30SIM_BRKTRACE`'s
+`BRKR … take=1`) and measures the §5.7 observables per entry.
+
+**20 (sled, wait) cells, `exact = YES` on all 20, 563 chip vector-1 entries,
+and the two engine legs agree CELL FOR CELL:**
+
+| measured | result |
+|---|---|
+| `vec − take` | **9 on 500 of 563, 10 on 63** |
+| `CODE` T1s strictly between the take and the vector read | **0 on 442, 1 on 121** |
+
+| candidate | prediction | outcome |
+|---|---|---|
+| **T-A** the take is where the engines put it and does NOT suspend | `vec − take` invariant; `CODE` present where there is room | **SELECTED** |
+| **T-B** the take is EARLIER than the engines' boundary | `vec − take` larger by a constant | **REFUTED** — it is the engines' own 9 |
+| **T-C** the take SUSPENDS the prefetcher (§4.7's booked candidate) | **ZERO** `CODE` T1s in the window, every cell | **REFUTED — 121 of 563 entries carry one** |
+
+**63 of the 121 entries that carry a prefetch also carry the extra clock** —
+the granted fetch pushes the vector read out by one — and the other 58 do not,
+so the grant is not automatically in the entry's way.  ⚠ That asymmetry is
+REPORTED, not explained; `popfmovi:w3` grants 21 fetches at `vec − take = 9`
+while `popfnone:w3` grants 21 at 10.  The 121 grants are concentrated in five
+cells (`popftest:w0` 35; `popfnone`/`popfxchg`/`popfadd`/`popfmovi` at `w3`,
+21 each; plus 2 singletons at `w0`), which is the C-1 room / C-2 full contrast
+arising inside the retained population rather than being manufactured.
+
+> **THE LAW, MEASURED, AND IT IS A NEGATIVE.**  The BRK/TF take does NOT
+> suspend the prefetcher.  The chip grants `CODE` fetches inside the nine
+> clocks between the take and the entry's vector read, at both wait levels and
+> on five different sleds.  The entry's launch cost is a CONSTANT 9 clocks
+> from the take, plus whatever a granted fetch in the window costs.
+>
+> *Falsifier*: any directed cell in which the chip runs ZERO `CODE` fetches
+> between take and vector read on a sled where the queue demonstrably has room.
+
+**AND THAT CLOSES §4.7's BOOKED CANDIDATE FROM THE OTHER END.**  §5.4's v1 and
+v2 landings lost 28 and 18 `wr1` seeds with first-divergence signature
+`bs CODE!=PASV` — *"the chip prefetches and the engine has gone quiet"*.  This
+is the same statement measured chip-side on a directed population instead of
+inferred from losses.  **The suspend was never the mechanism, and it is now a
+measurement rather than a failed landing.**
+
+⚠ **NO BOARD CONTACT WAS TAKEN FOR CELL 2, AND THAT IS A REGISTERED DECISION**
+(pre-registration §3.3): fresh captures were to be taken only if the
+precondition failed on some cell.  It failed on none.  Re-capturing sleds whose
+retained rows already answer the question buys nothing and spends board time.
+
+⚠ **WHAT CELL 2 DOES *NOT* SETTLE, STATED PLAINLY.**  P1's own contested case —
+the engine runs one extra `CODE` fetch the chip declines — **does not occur in
+this population**, because both engines are exact on all 30 captures.  What is
+established is that the take is where the engines put it and that it does not
+suspend; therefore **P1 is a GRANT question at the contested slot, not a
+recognition question**, and the two candidates still standing are bus-side.
+That is a narrowing, not a closure, and it is recorded as one.
+
+### §6.7 CELL 3 — THE TF FLOOR-CELL COMPOSITION CHECK.  **EXACT, BOTH ENGINES.**
+
+The rider bar, run on the final tree:
+
+* `sm3_tf_floor_cell.py score --core sim` — floor **3**, **121,890 rows,
+  0 row-diffs**, EXACT on all 30 captures; W-0a 0 vector-1 entries over 18
+  captures; W-0b 24,378 rows 0 row-diffs; W-1 determinism MET; W-2 surviving
+  floors **{3}**, 22/22; W-3 `iret` [2,2] vs `popfnone` [3,3]; W-4 0 · 0;
+  W-5 90 pairs 0 bad.  Nearest non-exact floor 11,032 (floor 4).
+* `sm3_tf_floor_cell.py score --core ucore` — depth **4**, **121,860 rows,
+  0 row-diffs**, EXACT on all 30; W-0b 24,372 rows 0 row-diffs; W-2 surviving
+  depths **{4}**, 22/22; W-3/W-4/W-5 as registered.  Nearest non-exact depth
+  14,630 (depth 5).
+
+**Every figure is its registered value.  Nothing moved.**
+
+### §6.8 THE BARS AND THE RATCHETS
+
+| bar | outcome |
+|---|---|
+| **W-1 … W-7** (cell 1) | **ALL SEVEN MET**, §6.4 |
+| **T-1 … T-3** (cell 2) | **ALL THREE MET**, §6.6 — precondition reported per cell, both engine legs agree cell for cell |
+| the TF floor composition | **MET, both engines**, §6.7 |
+| ratchets may only go up | **VACUOUSLY MET — NOTHING WAS LANDED.**  `git diff 32b2d6accb -- sim/ hdl/rtl/` is EMPTY; the sim binary and the `ucore` TB are the ones W3.2 closed on |
+| the must-not-move ladder | **VACUOUS — no engine file changed.**  Not re-run, and **not claimed** |
+| G6 | **VACUOUS — no RTL leg landed.**  Not run |
+
+**No ratchet figure moved and none is claimed to have moved.**
+
+### §6.9 THE `PIN` FIVE — FINAL STATE
+
+Cell 1 returned **C1-A**, so the pre-registration §5's first branch applies:
+
+* **The five are ONE family and it is `mc1/721`** — re-labelled in this ledger
+  from the survey's *"three of the five carry the signature"* to **five of
+  five**.  That is a CLASSIFICATION finding of this sitting; **no gate is
+  re-scored and no ratchet is claimed.**
+* Their disposition is `mc1/721`'s: **L3 — spec'd, awaiting a structure that
+  honours three measured placements without a second micro-ROM read.**  §88.B's
+  L3 row (`mc1/721`, `mc2/584`) is unchanged in count and better characterised
+  in content.
+* `wr1/225009` and `wr1/215017` are **OUT** of the family and stay routed
+  `sim`-first (§6.2).
+* Survey queue item **#3 is CLOSED as an investigation** — the five needed a
+  diagnosis, they have one, and it is a settled item's, not a new one's.
+
+### §6.10 WHAT THIS SITTING DID NOT DO
+
+* **NO FLASHING.**  The board still carries FLASH #10; every `ucore` figure
+  here is a Verilator figure and none is a fabric figure.
+* **The victory reserve (`k >= 300000`) was NOT touched.**
+* **NOTHING WAS LANDED IN EITHER ENGINE.**  `sim/` and `hdl/rtl/` are
+  byte-identical to `32b2d6accb`.
+* **`mc2/584` was not opened** (§86.H); H3-B, the raw-tier `SCHEDULE` residue
+  (§5.6) and the 8080/BRKEM family were not opened.
+* **No memory file was touched and Codex was not launched.**
+* The must-not-move ladder, G6 and `ss_lint` are VACUOUS and are reported as
+  vacuous, not as green.
+
+### §6.11 THE BOARD SESSION — DISCIPLINE, RECORDED
+
+* **Single-writer PROBED** before first contact (`ps w | grep v30ctl|serve` on
+  `root@mister-nec`: none; no local `v30ctl.py serve`).
+* **SOCKET ONLY** — `emit_suite.EMIT_USE_CORE is False` asserted by the cell
+  itself, `use_core=False` passed explicitly on every capture.
+* **`div_guard` PINNED and RECORDED** — `div=8 (4 MHz), commanded by this
+  connection -> PINNED`, in `manifest.json` and again per run.
+* **Full per-clock rows retained** beside the raw 64-bit words, with
+  `SHA256SUMS` over every artefact
+  (`sw/testdata/w33-postecell/`, 102 captures × 2 files).
+* **ZERO transport errors**; the 5-consecutive-error STOP never armed.
+* **`board_idle()` run at the end and VERIFIED** — no `v30ctl`/`serve` process
+  left on the board.
+* **The cell drives NO PIN** — every arm is internal, `evt=None` throughout, so
+  there is no INV-1 directive-truncation exposure.
