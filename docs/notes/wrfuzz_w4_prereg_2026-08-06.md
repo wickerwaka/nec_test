@@ -70,6 +70,23 @@ of one is a result, not a failure of the clause.  What is **NOT** named is the
 catch-all, or a classify error.  Stated now so the reading cannot be chosen
 after the count.
 
+### 2.0a `NOW_EXACT` — settled by MEASURING the W2 census, before any capture
+
+`s15_census.classify` returns `cat = NOW_EXACT` when the two row streams have
+no difference at all: the seed's non-SUCCESS verdict came off the
+FUNCTIONAL / architectural axis, not off the rows.  Such a seed **has no first
+divergence**, so condition 2 — *"every non-exact seed's **first divergence**
+falls in a family named at W2"* — is **VACUOUS for it, not violated**.
+
+And it is not a new category.  The banked
+`sw/testdata/wrfuzz/w2_fabric_census.json.gz`, re-counted this sitting, is
+`PF_LOST` 43 · `SCHEDULE` 42 · `DATA_SEQ` 23 · `PF_GAINED` 18 · `PIN` 7 ·
+`PF_ADDR` 2 · **`NOW_EXACT` 1** = **136** — which is precisely §3.3's
+*"136 scored misses / 135 classified"*.  **The unclassified one is this.**
+So `NOW_EXACT` is **in the W2 census with one member**, is carried here as
+NAMED, and is **counted and reported on its own line**.  Registered from the
+artifact, before the tranche exists.
+
 ### 2.1 The empty-stratum rule — arithmetic, declared before it can bite
 
 A raw stratum draws 7 seeds and W1 measured its OPEN_BUS keep-rate at
@@ -287,6 +304,19 @@ A movement in either would be a finding against that reading.
    barred, and its input-manifest hash differs from the control's for the
    §80.B.1 reason (Quartus appends pin assignments to the revision `.qsf`).
    `gen_ucore_qsf --check` is re-run green afterwards.
+   **BUILT, BEFORE THE FLASH:** map / fit / asm / sta all **Successful, 0
+   errors** (`quartus_map --verilog_macro=X1_AD_RETENTION=1` is the recorded
+   command line).  **Fmax 46.74 MHz** (against the control's 47.31), worst
+   setup **+6.724 ns**, **TNS 0.000 on every domain**, ALMs **11,332 / 41,910
+   (27 %)**, latches **0**, `lpm_divide` **0**.  Receipt
+   **`7aef327c763f0d65…`**.  `.sof` **`82b4935092d6fb99…`**, `.rbf`
+   **`9363a7c72c9f9dca…`**.
+   ⚠ **THE MACRO'S EFFECT IS CHECKED, NOT ASSERTED**: the retention `.sof`
+   `82b4935092d6fb99…` is **DIFFERENT from the control build's
+   `d2dc04fe8d2186ff…`** produced from the same tree minutes earlier.  A macro
+   that had not reached the compiler would have produced the same bitstream.
+   The `.qsf` was restored from the generator afterwards and
+   `gen_ucore_qsf --check` is **green**; `hdl/` is clean again.
 3. **`sw/safe_flash.sh` with its VERIFY leg**, `flash_log.jsonl` 13 → **14
    entries**.  Then first light, then `fuzz_campaign.py new wr2` so the
    campaign manifest pins **FLASH #11** and every capture's era stamp names it.

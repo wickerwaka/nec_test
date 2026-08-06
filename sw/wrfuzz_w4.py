@@ -456,6 +456,36 @@ def cmd_score(a):
     bars["B-5_bus_bound"] = {
         "at_or_beyond": sorted(r["k"] for r in rows
                                if (r.get("bus_cycles") or 0) >= wv.NWVEC)}
+    # B-1 -- THE VECTOR WAS APPLIED.  W1 could only read this off the ~12 % of
+    # captures whose rows survived; here every capture's socket rows are on
+    # disk, so the bar is evaluated on the WHOLE tranche.  Registered ≥ 99.9 %,
+    # expected 100.0 %, and anything below 100.0 % is a FINDING (prereg §6).
+    b1_m = b1_n = 0
+    b1_bad = []
+    for r in rows:
+        if not r.get("wvec_hex"):
+            continue
+        chip, _ = _rows_of(r)
+        m, n, fb = wv.applied_score(chip, wv.from_hex(r["wvec_hex"]))
+        b1_m += m
+        b1_n += n
+        if fb is not None:
+            b1_bad.append((r["k"], fb))
+    bars["B-1_vector_applied"] = {
+        "matched": b1_m, "total": b1_n,
+        "rate": (100.0 * b1_m / b1_n) if b1_n else None,
+        "seeds_with_a_mismatch": len(b1_bad), "first": b1_bad[:10]}
+    # B-4 / B-6 are GENERATION bars and were evaluated over the whole
+    # population at preflight, before board time was spent; carried in rather
+    # than re-derived, so the two cannot report different things.
+    pf = OUT / "w4_preflight.json"
+    if pf.exists():
+        p = json.loads(pf.read_text())
+        bars["B-4_B-6_generation"] = {
+            "seeds": (p.get("regen") or {}).get("seeds"),
+            "hits": (p.get("regen") or {}).get("hits"),
+            "brkem_pairs": sum(c.get("brkem_pairs", 0)
+                               for c in (p.get("regen") or {}).get("cells", []))}
     bars["B-9_stability"] = {
         "unstable": sorted(r["k"] for r in rows if not r.get("stable", True)),
         "stable": sum(1 for r in rows if r.get("stable", True)),
@@ -553,10 +583,23 @@ def cmd_score(a):
     # and a member of either is a result, not a failure of the clause; what is
     # NOT named is the catch-all, a classify error, or anything else.  Stated
     # here, in advance, so the reading cannot be chosen after the count.
+    #
+    # ⚠ `NOW_EXACT` IS NOT A FAMILY AND IS NOT A CONDITION-2 FAILURE, and the
+    # reason is a MEASUREMENT on the banked W2 census, not an accommodation.
+    # `s15_census.classify` returns `cat = NOW_EXACT` when the two row streams
+    # have NO difference at all -- the seed's non-SUCCESS verdict came off the
+    # FUNCTIONAL/architectural axis and not off the rows.  Such a seed HAS NO
+    # FIRST DIVERGENCE, so the clause "every non-exact seed's FIRST DIVERGENCE
+    # falls in a family named at W2" is VACUOUS for it rather than violated.
+    # It is also not new: `sw/testdata/wrfuzz/w2_fabric_census.json.gz` is
+    # `PF_LOST` 43 · `SCHEDULE` 42 · `DATA_SEQ` 23 · `PF_GAINED` 18 · `PIN` 7 ·
+    # `PF_ADDR` 2 · **`NOW_EXACT` 1** = 136, which is exactly §3.3's
+    # "136 scored misses / 135 classified".  So the category is IN the W2
+    # census, with one member, and is carried here COUNTED and REPORTED.
     W2_FAMILIES = {"PF_LOST", "SCHEDULE", "DATA_SEQ", "PF_GAINED", "PIN",
-                   "PF_ADDR", "TAIL_EXTRA", "TAIL_MISS"}
+                   "PF_ADDR", "TAIL_EXTRA", "TAIL_MISS", "NOW_EXACT"}
     W2_NONZERO = {"PF_LOST", "SCHEDULE", "DATA_SEQ", "PF_GAINED", "PIN",
-                  "PF_ADDR"}
+                  "PF_ADDR", "NOW_EXACT"}
     resid = [r for r in rows if r["k"] in set(body_ks)
              and not excluded(r) and r["verdict"] != "SUCCESS"]
     fam = Counter()
