@@ -1527,6 +1527,31 @@ measurement rather than a failed landing.**
 precondition failed on some cell.  It failed on none.  Re-capturing sleds whose
 retained rows already answer the question buys nothing and spends board time.
 
+⚠⚠ **AN ERRATUM IN THIS SITTING'S OWN PRE-REGISTRATION, AND IT IS CELL 2's.**
+Cell 2's offline geometry runs against RETAINED captures, so it needed no board
+and it was **RUN BEFORE the pre-registration was written** — both legs'
+`geom_*.json` are in the pre-registration's own commit `f883c2b6e2`, which is
+how this is checkable rather than merely confessed.  **The pre-registration's
+§3.1 therefore states T-A / T-B / T-C as candidates when the result was already
+in hand, and that is NOT a pre-registration.**  It is written down instead of
+smoothed, and the disposition is stated rather than argued:
+
+* **Cell 2's verdict is reported as a MEASUREMENT, not as a met prediction.**
+  Its bars T-1…T-3 are integrity conditions (report the precondition per cell;
+  the two engine legs must agree; report every distribution whatever it is),
+  and those are still worth what they say — but *"T-C was refuted"* carries the
+  weight of a measurement, not of a falsifier that could have fired against a
+  committed prediction.
+* **Cell 1 is NOT affected and the distinction matters.**  Its ENGINE
+  predictions were measured on the frozen tree before the pre-registration, as
+  §2.3 says in as many words; its CHIP result was not in existence until after
+  `f883c2b6e2`, because the board had not been contacted.  W-1…W-7 are
+  pre-registered bars in the full sense.
+* **The lesson, for the next sitting**: an offline leg that reads RETAINED
+  silicon is a board-free measurement and must be pre-registered *before it is
+  run*, on the same terms as a board leg.  "No board contact" is not the same
+  property as "no result yet".
+
 ⚠ **WHAT CELL 2 DOES *NOT* SETTLE, STATED PLAINLY.**  P1's own contested case —
 the engine runs one extra `CODE` fetch the chip declines — **does not occur in
 this population**, because both engines are exact on all 30 captures.  What is
