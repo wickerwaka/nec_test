@@ -38,13 +38,19 @@ IMG_HI = 0xFF00           # whole-image random band is 0x0000 .. IMG_HI-1
 NOP = 0x90
 
 
-def scrub(buf):
+def scrub(buf, no8080=False):
     """In-place scrub of a mutable byte buffer. Returns a dict of counts:
       pair0f  - banned 0F second-bytes rewritten to NOP (lockup + BRKXA band)
+      brkem   - 0F FF pairs rewritten to NOP NOP (task #38, opt-in)
       halt    - F4 bytes rewritten to NOP
       poll    - 9B bytes rewritten to NOP
-    ED is deliberately untouched; 0F >= 0x40 (BRKEM aliases) are left in."""
-    counts = {"pair0f": 0, "halt": 0, "poll": 0}
+    ED is deliberately untouched; 0F >= 0x40 (BRKEM aliases) are left in
+    UNLESS `no8080`, which is task #38's 8080 deferral at the generator: it
+    adds the BRKEM pair `0F FF` to the banned set and rewrites BOTH bytes,
+    because a bare `FF` left behind is a group-5 ModR/M whose /3 and /5 are a
+    far CALL / far JMP through a random word.  DEFAULT OFF, so every image
+    generated before task #38 regenerates byte for byte."""
+    counts = {"pair0f": 0, "brkem": 0, "halt": 0, "poll": 0}
     n = len(buf)
     # 0F pairs: walk only the 0F positions (find is C-fast), not every byte
     pos = 0
@@ -52,7 +58,11 @@ def scrub(buf):
         i = buf.find(0x0F, pos)
         if i < 0 or i >= n - 1:
             break
-        if buf[i + 1] in optable.HARD_BANNED_0F:
+        if no8080 and buf[i + 1] == 0xFF:
+            buf[i] = NOP
+            buf[i + 1] = NOP
+            counts["brkem"] += 1
+        elif buf[i + 1] in optable.HARD_BANNED_0F:
             buf[i + 1] = NOP
             counts["pair0f"] += 1
         pos = i + 1
@@ -67,7 +77,7 @@ def scrub(buf):
 _HALT_POLL_TABLE = bytes(NOP if x in (0xF4, 0x9B) else x for x in range(256))
 
 
-def gen_raw(seed, whole_frac=0.70, ivt_overlay_frac=0.50):
+def gen_raw(seed, whole_frac=0.70, ivt_overlay_frac=0.50, no8080=False):
     """-> g-dict (compose-ready) + raw provenance extras.
 
     raw_mode = 'whole' (0x0000-0xFEFF random) or 'payload' (random chunk at the
@@ -93,7 +103,7 @@ def gen_raw(seed, whole_frac=0.70, ivt_overlay_frac=0.50):
         # a real chip-lockup hazard). instr is then the in-image scrubbed slice.
         img = bytearray(rng.randbytes(IMG_HI))
         img[PC0:PC0 + plen] = payload
-        sc = scrub(img)
+        sc = scrub(img, no8080)
         instr = bytes(img[PC0:PC0 + plen])
         ram = list(enumerate(img))
         ivt_iret = rng.random() < ivt_overlay_frac
@@ -108,7 +118,7 @@ def gen_raw(seed, whole_frac=0.70, ivt_overlay_frac=0.50):
     else:
         # payload-only: the surrounding map is compose's 0x90 NOP fill, so the
         # PC0-1 seam byte is 0x90 (no cross-boundary pair possible).
-        sc = scrub(payload)
+        sc = scrub(payload, no8080)
         instr = bytes(payload)
         ram = list(HANDLER_BYTES)
         ivt = full_ivt()

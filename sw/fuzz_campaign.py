@@ -26,6 +26,7 @@ frozen from the TB pilot done_idx distribution (see NMAX_SCALE_C below).
 """
 import argparse
 import copy
+import dataclasses
 import gzip
 import hashlib
 import json
@@ -52,6 +53,7 @@ from gen_soup import gen_soup, SoupKnobs                 # noqa: E402
 from gen_raw import gen_raw                              # noqa: E402
 from v30run import run_image, RunError                  # noqa: E402
 import v30ctl                                           # noqa: E402
+import wvec_shapes as wv                                # noqa: E402
 
 RESERVED_LO = 0xFF00
 NMIN, NMAX = 24, 80
@@ -99,9 +101,27 @@ def derive_axes(cid, k):
             "wild": None, "nmin": NMIN, "nmax_eff": nmax_eff}
 
 
+NWVEC_BUDGET_HEAD = 1024
+
+
+def _wvec_weff(v):
+    """The capture-budget wait level a VECTOR represents.
+
+    `nmax_eff`'s coupling constant is about CLOCKS (C=4 == a bus cycle is
+    ~4 clocks), so the level that belongs in it is the vector's MEAN cost per
+    access, not its maximum: a `burst` vector that is 0 everywhere except one
+    access in 53 costs almost nothing, and budgeting it at 31 would shrink its
+    programs to `NMIN` for no reason.  Rounded UP, over the first quarter of
+    the vector (no run in this campaign reaches further -- see the bus-cycle
+    bound B-5)."""
+    head = v[:NWVEC_BUDGET_HEAD]
+    return -(-sum(head) // max(1, len(head)))            # ceil(mean)
+
+
 def derive_case(cid, k, ov=None):
     """derive_axes + optional pilot overrides + nmax_eff recompute + cfg_hash.
-    ov keys: force_tier, force_contained, w0, no_evt, force_evt, force_wrand."""
+    ov keys: force_tier, force_contained, w0, no_evt, force_evt, force_wrand,
+    wvec_shapes, no8080."""
     ov = ov or {}
     ax = derive_axes(cid, k)
     if ov.get("force_tier"):
@@ -110,6 +130,13 @@ def derive_case(cid, k, ov=None):
         ax["wild"] = False
     if ov.get("w0"):
         ax["waits"] = {"wrand": False, "wmax": None, "wseed": None, "fixed": 0}
+    if ov.get("force_fixed") is not None:
+        # task #38: `w0` generalised.  A stratified corpus needs fix1/fix2/fix3
+        # as CONTROL strata against the vector shapes, and `w0` could only
+        # express one of the four.  `w0` is left exactly as it is so every
+        # existing invocation still means what it meant.
+        ax["waits"] = {"wrand": False, "wmax": None, "wseed": None,
+                       "fixed": int(ov["force_fixed"])}
     if ov.get("no_evt"):
         ax["evt"] = None
     if ov.get("force_evt"):
@@ -134,12 +161,58 @@ def derive_case(cid, k, ov=None):
     # the open_bus rule; raw payload-mode relies on 0x90 surround). Opt-in axis so
     # existing banked/composed images stay byte-identical when it is off.
     ax["fence"] = bool(ov.get("fence"))
+    # task #38 (wrfuzz) -- THE 8080 EXCLUSION, BY CONSTRUCTION.
+    # The user deferred 8080/BRKEM on 2026-08-05, so this campaign's corpora
+    # carry no BRKEM.  It is a GENERATION axis, not a post-filter: `build()`
+    # sets `p_brkem = 0` for soup, hands `no8080` to `gen_raw`'s own scrub, and
+    # `compose_case()` rewrites any residual `0F FF` byte PAIR in the composed
+    # image to `90 90`.  The pair matters because §63.5 found 42 class-A seeds
+    # that reach 8080 mode with the generator's BRKEM knob OFF, 18 of them
+    # carrying a `0F FF` pair the generator never emitted -- an immediate byte
+    # meeting the next opcode.  ⚠ WHAT IT DOES NOT DO: §63.5's other 24 have no
+    # `0F FF` in the image at all and how they enter 8080 mode is STILL NOT
+    # ESTABLISHED, so this axis makes a corpus BRKEM-free, NOT 8080-free.  The
+    # survey COUNTS class-A landings from the captures with §63.5's mechanical
+    # criterion; it does not assume there are none.
+    ax["no8080"] = bool(ov.get("no8080"))
+    # task #38 -- THE PER-ACCESS WAIT VECTOR AXIS.
+    # Drawn from this axis's OWN rng namespace, exactly as `force_wrand` and
+    # `force_evt` do, so `derive_axes`'s frozen stream is untouched and every
+    # banked seed in the tree still re-derives to its own program.
+    ax["wvec"] = None
+    if ov.get("wvec_shapes"):
+        shapes = list(ov["wvec_shapes"])
+        r = random.Random(f"wrfuzz/{cid}/{k}")
+        ax["wvec"] = wv.draw_spec(cid, k, r.choice(shapes))
+        # The vector SUPERSEDES both other wait sources in all three legs
+        # (nec_bus.sv / tb_v30_core.sv / biu_timed.cpp all order replay >
+        # random > uniform), so the record says so instead of carrying a
+        # `waits` field that describes nothing.
+        ax["waits"] = {"wrand": False, "wmax": None, "wseed": None, "fixed": 0}
     w = ax["waits"]
-    weff = w["wmax"] if w["wrand"] else w["fixed"]
+    if ax["wvec"]:
+        weff = _wvec_weff(wv.build(ax["wvec"]))
+    else:
+        weff = w["wmax"] if w["wrand"] else w["fixed"]
     ax["nmax_eff"] = max(NMIN, int(NMAX * NMAX_SCALE_C / (NMAX_SCALE_C + weff)))
     core = {kk: ax[kk] for kk in ("tier", "evt", "waits", "wild", "nmax_eff",
                                   "strict", "no_brkem", "brkem_high", "mainline",
                                   "fence")}
+    # task #38: the two new axes are in the hash, and they are added ONLY WHEN
+    # SET.  Two configs differing in a vector spec MUST hash differently (the
+    # lint proves it); a config with the axis OFF must hash exactly as it did
+    # before task #38 existed, so a seed banked earlier still re-derives to its
+    # own `cfg_hash` and its own banked FILENAME.  For these two axes
+    # "off" and "the axis did not exist" are the same configuration, which is
+    # what makes the omission true rather than convenient.
+    # ⚠ FALSIFIER FOR THE RULE ITSELF: an axis whose default is a CHOICE
+    # rather than an absence must be added UNCONDITIONALLY, or two genuinely
+    # different configurations collide.  Do not copy this pattern without
+    # checking that.
+    if ax["wvec"]:
+        core["wvec"] = ax["wvec"]
+    if ax["no8080"]:
+        core["no8080"] = True
     ax["cfg_hash"] = hashlib.sha1(
         json.dumps(core, sort_keys=True).encode()).hexdigest()[:12]
     return ax
@@ -149,7 +222,7 @@ def build(cfg):
     """Materialise the g-dict for a derived config."""
     seed = f"{cfg['cid']}/{cfg['k']}"
     if cfg["tier"] == "raw":
-        g = gen_raw(seed)
+        g = gen_raw(seed, no8080=bool(cfg.get("no8080")))
     else:
         pin = cfg["evt"]["pin"] if cfg["evt"] else None
         # strict = contained fall-through generation: suppress the deliberate
@@ -173,6 +246,12 @@ def build(cfg):
             knobs = SoupKnobs(p_brkem=0.0)     # keep tf/undoc/sreg breadth (cheap)
         else:
             knobs = SoupKnobs()
+        if cfg.get("no8080"):
+            # task #38: the 8080 deferral, AT THE KNOB and as a MODIFIER, so
+            # it composes with every existing knob set instead of replacing
+            # one.  Only BRKEM is out of scope; undoc / tf / sreg breadth is
+            # this campaign's own breadth and is left alone.
+            knobs = dataclasses.replace(knobs, p_brkem=0.0)
         g = gen_soup(seed, nmin=cfg["nmin"], nmax=cfg["nmax_eff"],
                      evt_pin=pin, wild=cfg["wild"], knobs=knobs)
     if cfg["evt"] and g.get("has_halt"):
@@ -193,12 +272,71 @@ def build(cfg):
     return g
 
 
+BRKEM_PAIR = b"\x0f\xff"
+
+
+def scrub_brkem_image(image):
+    """task #38.  Rewrite every `0F FF` byte PAIR in a composed image to
+    `90 90`.  Returns (image, n_pairs).
+
+    ONE RULE, and it is the whole mechanism: BRKEM is `0F FF ib` and nothing
+    else in the ISA is that pair, so removing the pair removes the entry.
+    Both bytes go to NOP rather than only the second (which is `gen_raw`'s
+    rule for its own banned set) because a bare `FF` left behind is a group-5
+    ModR/M whose `/3` and `/5` are far CALL / far JMP through a random word --
+    trading a deferred-scope entry for an escape.
+
+    It cannot create a new pair (0x90 is neither 0x0F nor 0xFF), so ONE
+    left-to-right pass reaches a fixed point; `no_brkem_pairs()` is the
+    independent check that says so on the artifact rather than in the
+    argument."""
+    buf = bytearray(image)
+    n = 0
+    i = buf.find(BRKEM_PAIR)
+    while i >= 0:
+        buf[i] = 0x90
+        buf[i + 1] = 0x90
+        n += 1
+        i = buf.find(BRKEM_PAIR, i + 1)
+    return bytes(buf), n
+
+
+def no_brkem_pairs(image):
+    """The check, not the argument: how many `0F FF` pairs remain."""
+    b, n = bytes(image), 0
+    i = b.find(BRKEM_PAIR)
+    while i >= 0:
+        n += 1
+        i = b.find(BRKEM_PAIR, i + 1)
+    return n
+
+
+def compose_case(g, cfg):
+    """`check_seq.compose` plus this campaign's image-level axes.
+
+    THE ONE PLACE the composed image is built for a fuzz case, so that
+    `eval_case`, `show`, `lint` and `ucsim_fuzz.regen` cannot drift apart --
+    a regeneration path that composes differently from the capture path is the
+    GEN-DRIFT failure the bank's sha gate exists to catch, and the cheapest way
+    to never have it is to have one function.
+
+    With every new axis OFF this returns `check_seq.compose(g)` unchanged, so
+    every seed banked before task #38 regenerates byte for byte."""
+    image, meta = check_seq.compose(g)
+    if cfg.get("no8080"):
+        image, _ = scrub_brkem_image(image)
+    return image, meta
+
+
 def _weff(cfg):
     w = cfg["waits"]
     return w["wmax"] if w["wrand"] else w["fixed"]
 
 
 def _waits_class_line(line):
+    v = line.get("wvec")
+    if v:
+        return f"wvec-{v['shape']}"
     w = line.get("waits") or {}
     return "wrand" if w.get("wrand") else f"w{w.get('fixed', 0)}"
 
@@ -213,13 +351,27 @@ def _evt_tuple(cfg, meta):
     return (meta["anchor_linear"] & 0xFFFFF, e["delay"], e["hold"], e["pin"])
 
 
+def wvec_of(cfg):
+    """The seed's per-access wait vector, or None.  ALWAYS exactly
+    `wv.NWVEC` entries: a short load leaves the board's replay RAM holding the
+    PREVIOUS run's tail (`v30ctl.load_wvec` writes only what it is given) and
+    sends the three legs three different ways past the end.  See
+    `wvec_shapes` properties (2) and (3)."""
+    if not cfg.get("wvec"):
+        return None
+    v = wv.build(cfg["wvec"])
+    assert len(v) == wv.NWVEC, f"wvec length {len(v)} != {wv.NWVEC}"
+    return v
+
+
 def capture_tb(image, meta, cfg):
     """Single Verilator TB leg (temp hygiene handled inside run_tb)."""
     w = cfg["waits"]
     wrand = (w["wmax"], w["wseed"]) if w["wrand"] else None
     fixed = 0 if w["wrand"] else w["fixed"]
     return check_seq.run_tb(image, TB_ROWS, waits=fixed,
-                            evt=_evt_tuple(cfg, meta), wrand=wrand)
+                            evt=_evt_tuple(cfg, meta), wrand=wrand,
+                            wvec=wvec_of(cfg))
 
 
 def capture_board(image, meta, cfg, host):
@@ -230,12 +382,13 @@ def capture_board(image, meta, cfg, host):
     wrand = (w["wmax"], w["wseed"]) if w["wrand"] else None
     fixed = 0 if w["wrand"] else w["fixed"]
     evt = _evt_tuple(cfg, meta)
+    vec = wvec_of(cfg)
     for attempt in (1, 2):
         try:
             real = check_seq.run_chip(image, host, use_core=False, waits=fixed,
-                                      evt=evt, wrand=wrand)
+                                      evt=evt, wrand=wrand, wvec=vec)
             sim = check_seq.run_chip(image, host, use_core=True, waits=fixed,
-                                     evt=evt, wrand=wrand)
+                                     evt=evt, wrand=wrand, wvec=vec)
             return real, sim, None
         except RunError as e:
             if attempt == 2:
@@ -285,8 +438,15 @@ def _raw_lea_mod3_pos(image, real):
 
 def _ctx_for(cfg, g, tb_only):
     w = cfg["waits"]
+    # A wvec seed is a VARYING-wait run, so the classifier is told `wrand`:
+    # the flag's meaning in `fuzz_classify` is "the wait level is not constant
+    # across accesses", which is exactly what a vector makes true.  It is NOT
+    # told the vector -- no accept rule is keyed on the new axis, because a
+    # rule written for an axis before that axis has ever been surveyed is a
+    # fitted rule.
+    varying = w["wrand"] or bool(cfg.get("wvec"))
     return Ctx(tier="A" if cfg["tier"] == "soup" else "B",
-               waits=0 if w["wrand"] else w["fixed"], wrand=w["wrand"],
+               waits=0 if varying else w["fixed"], wrand=varying,
                real_is_chip=not tb_only,
                brkem_pos=g.get("brkem_pos", []),
                lea_mod3_pos=g.get("lea_mod3_pos", []),
@@ -300,9 +460,18 @@ def _ctx_for(cfg, g, tb_only):
 # Result line (harmonised schema).
 # ===========================================================================
 def result_line(cfg, g, sha, v, di, gen_git, build_stale, ts):
+    # task #38: the vector is banked IN FULL (`wvec_hex`, 2 chars per entry,
+    # NWVEC entries) beside its spec and its sha256.  A vector that exists
+    # only as a derivation is one nobody can check the rig's readback against,
+    # and the whole point of the axis is that the rig applied THIS sequence.
+    vec = wvec_of(cfg)
     return {
         "k": cfg["k"], "seed": f"{cfg['cid']}/{cfg['k']}", "cid": cfg["cid"],
         "tier": cfg["tier"], "cfg_hash": cfg["cfg_hash"],
+        "wvec": cfg.get("wvec"), "no8080": bool(cfg.get("no8080")),
+        "wvec_hex": wv.to_hex(vec) if vec else None,
+        "wvec_sha256": wv.sha256_of(vec) if vec else None,
+        "wvec_n": len(vec) if vec else 0,
         "wild": g.get("wild"), "has_brkem": g.get("has_brkem", False),
         "brkem_pos": g.get("brkem_pos", []), "has_halt": g.get("has_halt", False),
         "has_tf": g.get("has_tf", False), "raw_mode": g.get("raw_mode"),
@@ -359,7 +528,7 @@ def eval_case(cid, k, ov, tb_only, host, build_stale, keep_rows=False):
     g = build(cfg)
     t["build"] = time.time() - t0
     t0 = time.time()
-    image, meta = check_seq.compose(g)
+    image, meta = compose_case(g, cfg)
     sha = hashlib.sha256(bytes(image)).hexdigest()
     t["compose"] = time.time() - t0
 
@@ -474,6 +643,8 @@ def cmd_run(a):
         ov["force_contained"] = True
     if a.w0:
         ov["w0"] = True
+    if getattr(a, "force_fixed", None) is not None:
+        ov["force_fixed"] = a.force_fixed
     if a.no_evt:
         ov["no_evt"] = True
     if a.strict:
@@ -490,6 +661,15 @@ def cmd_run(a):
         ov["force_evt"] = True
     if a.force_wrand:
         ov["force_wrand"] = [int(x) for x in a.force_wrand.split(",")]
+    if getattr(a, "wvec_shapes", None):
+        shapes = [s for s in a.wvec_shapes.split(",") if s]
+        bad = [s for s in shapes if s not in wv.SHAPES]
+        if bad:
+            print(f"run: unknown wvec shape(s) {bad}; known: {list(wv.SHAPES)}")
+            return 2
+        ov["wvec_shapes"] = shapes
+    if getattr(a, "no8080", False):
+        ov["no8080"] = True
 
     start = a.start if a.start is not None else _resume_k(results_path)
     end = start + a.session_seeds
@@ -745,13 +925,21 @@ def cmd_show(a):
         ov["force_contained"] = True
     if a.force_tier:
         ov["force_tier"] = a.force_tier
+    if getattr(a, "wvec_shapes", None):
+        ov["wvec_shapes"] = [s for s in a.wvec_shapes.split(",") if s]
+    if getattr(a, "no8080", False):
+        ov["no8080"] = True
     cfg = derive_case(a.cid, a.k, ov)
     g = build(cfg)
-    image, meta = check_seq.compose(g)
+    image, meta = compose_case(g, cfg)
     sha = hashlib.sha256(bytes(image)).hexdigest()
+    vec = wvec_of(cfg)
     print(json.dumps({"cfg": {kk: cfg[kk] for kk in
                               ("tier", "evt", "waits", "wild", "nmin",
-                               "nmax_eff", "cfg_hash")},
+                               "nmax_eff", "cfg_hash", "wvec", "no8080")},
+                      "wvec_sha256": wv.sha256_of(vec) if vec else None,
+                      "wvec_head": vec[:32] if vec else None,
+                      "brkem_pairs": no_brkem_pairs(image),
                       "n_ins": g["n_ins"], "wild": g.get("wild"),
                       "has_brkem": g.get("has_brkem"), "brkem_pos": g.get("brkem_pos"),
                       "has_halt": g.get("has_halt"), "raw_mode": g.get("raw_mode"),
@@ -784,11 +972,90 @@ def cmd_replay(a):
 # ===========================================================================
 # lint (Phase 1 gate, retained).
 # ===========================================================================
-def _lint_soup(cid, n, report_every):
+def _lint_wvec(cid, n, ov):
+    """task #38 -- the PER-ACCESS WAIT VECTOR axis, generation only.
+
+    Six checks, each of which is a place a defect of this axis would be
+    SILENT if nobody looked:
+
+      1. every vector is exactly NWVEC entries and every entry is in [0,31]
+         (`wvec_shapes.lint`, run first -- properties (2)(3)(4));
+      2. the TB and model FILE encodings round-trip to the same list, and are
+         different text whenever a value is >= 10 (property (1));
+      3. two configs differing ONLY in the vector spec get DIFFERENT
+         `cfg_hash`es -- the new axis is IN the hash;
+      4. the axis OFF regenerates the image byte for byte, so nothing banked
+         before task #38 drifts;
+      5. `no8080` leaves ZERO `0F FF` pairs in the composed image, on BOTH
+         tiers, measured on the artifact;
+      6. the axis never makes the image a function of the wait vector: two
+         seeds identical except for the vector produce the SAME image if and
+         only if their `nmax_eff` agrees, and `nmax_eff` is a stated function
+         of the vector's mean (`_wvec_weff`), never of anything else."""
+    import tempfile
+    hits = 0
+    errs = wv.lint(max(20, min(n, 200)), quiet=True)
+    for e in errs[:10]:
+        hits += 1
+        print(f"  WVEC HIT (shapes): {e}")
+    t0 = time.time()
+    off = dict(ov)
+    off.pop("wvec_shapes", None)
+    off.pop("no8080", None)
+    with tempfile.TemporaryDirectory() as td:
+        for k in range(n):
+            for tier in ("soup", "raw"):
+                base = dict(off, force_tier=tier)
+                cfg0 = derive_case(cid, k, base)
+                img0, _ = compose_case(build(cfg0), cfg0)
+                # (4) the axis OFF is byte-identical to a plain compose
+                g0 = build(cfg0)
+                if bytes(img0) != bytes(check_seq.compose(g0)[0]):
+                    hits += 1
+                    print(f"  WVEC HIT: {tier}/{k} axis-off image moved")
+                # (3)(6) with the axis ON
+                cfgs = []
+                for shape in wv.SHAPES:
+                    c = derive_case(cid, k, dict(base, wvec_shapes=[shape],
+                                                 no8080=True))
+                    if not c["wvec"] or c["wvec"]["shape"] != shape:
+                        hits += 1
+                        print(f"  WVEC HIT: {tier}/{k}/{shape} spec not set")
+                        continue
+                    cfgs.append(c)
+                    v = wvec_of(c)
+                    if len(v) != wv.NWVEC or not all(0 <= x <= 31 for x in v):
+                        hits += 1
+                        print(f"  WVEC HIT: {tier}/{k}/{shape} vector invalid")
+                    if k < 3:
+                        for e in wv.check_encodings(v, td):
+                            hits += 1
+                            print(f"  WVEC HIT (enc): {tier}/{k}/{shape} {e}")
+                    # (5) BRKEM-free by construction, on the ARTIFACT
+                    img, _m = compose_case(build(c), c)
+                    npair = no_brkem_pairs(img)
+                    if npair:
+                        hits += 1
+                        print(f"  WVEC HIT: {tier}/{k}/{shape} {npair} 0F FF "
+                              f"pairs survive no8080")
+                hashes = {c["cfg_hash"] for c in cfgs}
+                if len(hashes) != len(cfgs):
+                    hits += 1
+                    print(f"  WVEC HIT: {tier}/{k} cfg_hash collides across "
+                          f"{len(cfgs)} distinct vector specs")
+                if cfgs and cfg0["cfg_hash"] in hashes:
+                    hits += 1
+                    print(f"  WVEC HIT: {tier}/{k} axis-on hash == axis-off hash")
+    print(f"wvec: {n} seeds x 2 tiers x {len(wv.SHAPES)} shapes in "
+          f"{time.time()-t0:.1f}s | hits={hits}")
+    return hits
+
+
+def _lint_soup(cid, n, report_every, ov=None):
     hits = comp_err = wild = brkem = halt = tf = 0
     t0 = time.time()
     for k in range(n):
-        cfg = derive_case(cid, k, {"force_tier": "soup"})
+        cfg = derive_case(cid, k, dict(ov or {}, force_tier="soup"))
         g = build(cfg)
         wild += bool(g["wild"])
         brkem += bool(g["brkem_pos"])
@@ -819,19 +1086,19 @@ def _lint_soup(cid, n, report_every):
     return hits, comp_err
 
 
-def _lint_raw(cid, n, report_every):
+def _lint_raw(cid, n, report_every, ov=None):
     hits = comp_err = whole = payload = 0
-    scrub_tot = {"pair0f": 0, "halt": 0, "poll": 0}
+    scrub_tot = {"pair0f": 0, "halt": 0, "poll": 0, "brkem": 0}
     t0 = time.time()
     for k in range(n):
-        cfg = derive_case(cid, k, {"force_tier": "raw"})
+        cfg = derive_case(cid, k, dict(ov or {}, force_tier="raw"))
         g = build(cfg)
         whole += g["raw_mode"] == "whole"
         payload += g["raw_mode"] == "payload"
         for key in scrub_tot:
-            scrub_tot[key] += g["scrubbed"][key]
+            scrub_tot[key] += g["scrubbed"].get(key, 0)
         try:
-            img, _m = check_seq.compose(g)
+            img, _m = compose_case(g, cfg)
         except Exception as e:                          # noqa: BLE001
             comp_err += 1
             if comp_err <= 5:
@@ -851,12 +1118,22 @@ def _lint_raw(cid, n, report_every):
 
 
 def cmd_lint(a):
-    print(f"fuzz lint: cid={a.cid} soup_n={a.n} raw_n={a.raw_n}")
-    sh, sc = _lint_soup(a.cid, a.n, a.report_every)
-    rh, rc = _lint_raw(a.cid, a.raw_n, a.report_every)
-    total = sh + sc + rh + rc
+    # NOTE (§72.7a -> §73.10): there was never a hang here.  `--report-every`
+    # defaults to 0 and the RAW phase is 100,000 seeds ~= 25 minutes with the
+    # worker at ~100 % CPU and nothing on stdout.  Pass `--report-every 5000`
+    # if you want to watch it.
+    ov = {}
+    if getattr(a, "no8080", False):
+        ov["no8080"] = True
+    print(f"fuzz lint: cid={a.cid} soup_n={a.n} raw_n={a.raw_n} "
+          f"wvec_n={a.wvec_n} ov={ov}")
+    sh, sc = _lint_soup(a.cid, a.n, a.report_every, ov)
+    rh, rc = _lint_raw(a.cid, a.raw_n, a.report_every, ov)
+    wh = _lint_wvec(a.cid, a.wvec_n, ov) if a.wvec_n else 0
+    total = sh + sc + rh + rc + wh
     print(f"\nLINT {'PASS' if total == 0 else 'FAIL'}: "
-          f"soup hits={sh} compose_err={sc}; raw hits={rh} compose_err={rc}")
+          f"soup hits={sh} compose_err={sc}; raw hits={rh} compose_err={rc}; "
+          f"wvec hits={wh}")
     return 0 if total == 0 else 1
 
 
@@ -881,6 +1158,9 @@ def main():
     p.add_argument("--force-tier", choices=["soup", "raw"])
     p.add_argument("--contained", action="store_true")
     p.add_argument("--w0", action="store_true")
+    p.add_argument("--force-fixed", type=int, default=None,
+                   help="task #38: force a FIXED wait level N (the general "
+                        "form of --w0; the fix1/fix2/fix3 control strata)")
     p.add_argument("--no-evt", action="store_true")
     p.add_argument("--strict", action="store_true",
                    help="strict contained fall-through generation (pilot)")
@@ -899,6 +1179,16 @@ def main():
                         "functional/provenance stops + circuit breaker)")
     p.add_argument("--force-evt", action="store_true")
     p.add_argument("--force-wrand", default=None, help="comma wmax list, e.g. 1,3,7")
+    p.add_argument("--wvec-shapes", default=None,
+                   help="task #38: per-access WAIT VECTOR axis; comma shape "
+                        f"list from {','.join(wv.SHAPES)}.  Supersedes the "
+                        "fixed/wrand wait sources (replay > rand > uniform in "
+                        "all three legs)")
+    p.add_argument("--no8080", action="store_true",
+                   help="task #38: BRKEM-free by construction (p_brkem=0 + "
+                        "the raw scrub + the composed-image 0F FF rewrite).  "
+                        "Makes a corpus BRKEM-free, NOT 8080-free -- see "
+                        "ucore_provenance.md §63.5")
     p.add_argument("--done-dist", default=None)
     p.set_defaults(func=cmd_run)
 
@@ -911,6 +1201,8 @@ def main():
     p.add_argument("k", type=int)
     p.add_argument("--contained", action="store_true")
     p.add_argument("--force-tier", choices=["soup", "raw"])
+    p.add_argument("--wvec-shapes", default=None)
+    p.add_argument("--no8080", action="store_true")
     p.set_defaults(func=cmd_show)
 
     p = sub.add_parser("replay")
@@ -926,6 +1218,11 @@ def main():
     p.add_argument("--cid", default="lint")
     p.add_argument("--n", type=int, default=10000)
     p.add_argument("--raw-n", type=int, default=100000)
+    p.add_argument("--wvec-n", type=int, default=200,
+                   help="task #38: seeds for the wait-vector axis leg "
+                        "(0 disables it)")
+    p.add_argument("--no8080", action="store_true",
+                   help="task #38: lint the BRKEM-free generation axis")
     p.add_argument("--report-every", type=int, default=0)
     p.set_defaults(func=cmd_lint)
 

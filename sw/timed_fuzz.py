@@ -129,7 +129,44 @@ def excuse(entry, recs, win, evt_replay=False):
     return None
 
 
+def banked_wvec(entry):
+    """task #38 -- the seed's PER-ACCESS WAIT VECTOR, from the bank's own
+    literal record, or None.
+
+    THE INTEGRITY CHECK IS HERE AND NOT IN A SEPARATE TOOL, because this is
+    the function every scoring leg goes through: `wvec_hex` is the vector the
+    rig was handed and `wvec_sha256` is what it hashed to when it was handed
+    over.  If the two disagree the record has been edited or truncated since
+    the capture, and an engine scored against it would be answering a question
+    nobody asked.  That is INV-1's shape exactly (a capture taken under a
+    directive other than the one the bank records), so it RAISES rather than
+    warning."""
+    import wvec_shapes as wv                              # noqa: PLC0415
+    hx = entry.get("wvec_hex")
+    if not hx:
+        return None
+    v = wv.from_hex(hx)
+    want = entry.get("wvec_sha256")
+    got = wv.sha256_of(v)
+    if want and want != got:
+        raise ValueError(f"wvec_sha256 mismatch: banked {want[:16]}… "
+                         f"recomputed {got[:16]}…")
+    if entry.get("wvec_n") and len(v) != int(entry["wvec_n"]):
+        raise ValueError(f"wvec length {len(v)} != banked wvec_n "
+                         f"{entry['wvec_n']}")
+    return v
+
+
 def wait_args(entry, td):
+    # replay > random > uniform, the rig's own priority order
+    # (nec_bus.sv / tb_v30_core.sv / biu_timed.cpp all three).
+    v = banked_wvec(entry)
+    if v is not None:
+        import wvec_shapes as wv                          # noqa: PLC0415
+        # DECIMAL: `sim/timed_runner.cpp` reads this file with fscanf("%d").
+        # The TB's file is HEX.  They are not interchangeable and the failure
+        # is silent -- see wvec_shapes' property (1).
+        return [f"--wvec={wv.write_sim(Path(td) / 'wvec_sim.txt', v)}"]
     w = entry.get("waits") or {}
     if w.get("wrand"):
         return [f"--wmax={int(w.get('wmax', 0))}",
@@ -144,9 +181,14 @@ def tb_bin(core):
     return ROOT / "hdl" / "tb" / d / "Vtb_v30_core"
 
 
-def tb_wait_args(entry):
+def tb_wait_args(entry, td):
     """`wait_args` for the TB: the SAME bank record, the same LFSR, the TB's
     spelling.  +wseed is read with %h (check_seq.run_tb's convention)."""
+    v = banked_wvec(entry)
+    if v is not None:
+        import wvec_shapes as wv                          # noqa: PLC0415
+        # HEX: the TB reads this file with $readmemh.  See wait_args above.
+        return [f"+wvec={wv.write_tb(Path(td) / 'wvec_tb.hex', v)}"]
     w = entry.get("waits") or {}
     if w.get("wrand"):
         return ["+wrand=1", f"+wmax={int(w.get('wmax', 0))}",
@@ -323,7 +365,7 @@ def run_tb(image, entry, nrows, td, core, evt=None):
     outp = Path(td) / "out.txt"
     img.write_text("\n".join(f"{b:02x}" for b in bytes(image)) + "\n")
     argv = [str(tb_bin(core)), f"+bootimg={img}", f"+bootn={nrows}",
-            "+mirror=1", f"+out={outp}"] + tb_wait_args(entry)
+            "+mirror=1", f"+out={outp}"] + tb_wait_args(entry, td)
     if evt is not None:
         a, d, h, pin = evt
         argv += [f"+evaddr={a:05x}", f"+evdelay={d}", f"+evhold={h}",
@@ -368,7 +410,8 @@ def one(path, evt_replay=False, core="sim", hold_mode="banked"):
     entry = json.loads(gzip.decompress(Path(path).read_bytes()))
     out = {"path": str(path), "cid": entry.get("cid"), "k": entry.get("k"),
            "verdict": entry.get("verdict"), "reason": entry.get("promoted_reason"),
-           "waits": entry.get("waits"), "evt": entry.get("evt")}
+           "waits": entry.get("waits"), "evt": entry.get("evt"),
+           "wvec": entry.get("wvec")}
     try:
         image, meta, g, sha = uf.regen(entry)
     except Exception as e:                                    # noqa: BLE001
@@ -463,9 +506,20 @@ def axes_of(path):
     """(pop, pin, wait-class) for a banked seed, read from the record itself.
     Used only to SELECT a population / a stratified pilot -- never to score."""
     e = json.loads(gzip.decompress(Path(path).read_bytes()))
-    ev, w = e.get("evt"), (e.get("waits") or {})
-    wc = f"wrand{w.get('wmax')}" if w.get("wrand") else f"fix{w.get('fixed') or 0}"
-    return ("EVT" if ev else "REG", int(ev["pin"]) if ev else -1, wc)
+    ev = e.get("evt")
+    return ("EVT" if ev else "REG", int(ev["pin"]) if ev else -1,
+            wait_class(e))
+
+
+def wait_class(entry):
+    """The seed's wait-source stratum label.  ONE definition, used by the
+    stratifier and by the report, so a stratum cannot be named two things."""
+    v = entry.get("wvec")
+    if v:
+        return f"wvec-{v.get('shape', '?')}"
+    w = entry.get("waits") or {}
+    return f"wrand{w.get('wmax')}" if w.get("wrand") else \
+        f"fix{w.get('fixed') or 0}"
 
 
 def stratify(paths, n, seed=20260802, keys=None):
@@ -677,9 +731,7 @@ def main():
                                 if not r["exact"]).most_common()))
         wc = defaultdict(lambda: [0, 0])
         for r in scored:
-            w = r["waits"] or {}
-            key = f"wrand{w.get('wmax')}" if w.get("wrand") else \
-                  f"fix{w.get('fixed') or 0}"
+            key = wait_class(r)
             wc[key][0] += 1
             wc[key][1] += 1 if r["exact"] else 0
         print("  by wait class:  " + "  ".join(

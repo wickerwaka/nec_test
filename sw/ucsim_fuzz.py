@@ -244,10 +244,17 @@ def frame_of(stream, i):
 # per-seed work
 # --------------------------------------------------------------------------- #
 def regen(entry):
-    """(image, meta, g, sha) -- the bit-reproducible regeneration path."""
+    """(image, meta, g, sha) -- the bit-reproducible regeneration path.
+
+    Composes through `fuzz_campaign.compose_case`, which is THE ONE PLACE a
+    fuzz case's image is built (task #38): a regeneration path that composes
+    differently from the capture path is exactly the GEN-DRIFT the sha gate
+    below exists to catch, and one function is the cheapest way never to have
+    it.  With every task-#38 axis off (`ov` carries none of them for any seed
+    banked before it) `compose_case` IS `check_seq.compose`, byte for byte."""
     cfg = fzc.derive_case(entry["cid"], entry["k"], entry.get("ov") or {})
     g = fzc.build(cfg)
-    image, meta = check_seq.compose(g)
+    image, meta = fzc.compose_case(g, cfg)
     return image, meta, g, hashlib.sha256(bytes(image)).hexdigest()
 
 

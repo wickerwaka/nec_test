@@ -152,6 +152,14 @@ def _write_bank(cid, ov, all_rows, promoted):
             "brkem_pos": r.get("brkem_pos", []),
             "lea_mod3_pos": r.get("lea_mod3_pos", []),
             "evt": r.get("evt"), "waits": r.get("waits"),
+            # task #38: the PER-ACCESS WAIT VECTOR, banked IN FULL beside its
+            # spec and its sha256.  `wvec_hex` is the literal 4,096-entry
+            # sequence the rig was handed -- not a digest and not a
+            # derivation, so a replay can be checked against what the socket
+            # actually applied rather than against a re-computation of it.
+            "wvec": r.get("wvec"), "wvec_hex": r.get("wvec_hex"),
+            "wvec_sha256": r.get("wvec_sha256"), "wvec_n": r.get("wvec_n", 0),
+            "no8080": r.get("no8080", False),
             "nmin": r.get("nmin"), "nmax_eff": r.get("nmax_eff"),
             "has_brkem": r.get("has_brkem"), "has_tf": r.get("has_tf"),
             "raw_mode": r.get("raw_mode"),
