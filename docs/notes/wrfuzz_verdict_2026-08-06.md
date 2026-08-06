@@ -1,10 +1,11 @@
 # THE RANDOM-WAIT FUZZ CAMPAIGN (wrfuzz, task #38) — VERDICT
 
-**DRAFT — pending Codex closing review and the user.**  Nothing in this
-document is accepted until both are recorded in the REVIEW TRAIL at its foot.
+**FINALIZED at W6 after the Codex closing review (GO-WITH-CONCERNS, seven
+concerns, all applied).  ⚠ It is NOT ACCEPTED: acceptance is the user's and is
+not recorded as given.**  See the REVIEW TRAIL at the foot.
 
 **Phase**: 2026-08-05 → 2026-08-06, branch `ucsim`, sittings **W0**, **W1**,
-**W2**, **W3.1 – W3.5** and **W4**.  Ledger: `docs/notes/wrfuzz_provenance.md`
+**W2**, **W3.1 – W3.5**, **W4** and the finalization sitting **W6**.  Ledger: `docs/notes/wrfuzz_provenance.md`
 **§1 – §9**.  Plan: `docs/notes/wrfuzz_campaign_plan.md`.  Corpus
 pre-registration: `docs/notes/wrfuzz_corpus_prereg_2026-08-05.md`.  Survey /
 census: `docs/notes/wrfuzz_survey_2026-08-05.md`.  Gate authority:
@@ -32,8 +33,14 @@ document** and are marked ⓥ where they appear:
 | `sw/testdata/wrfuzz/w4_score.json` fields | `T` 90.01700680272108 · `B_frozen` 86.6681 · `pooled` 129/141 · `n_rates_averaged` **28** · `unnamed` **[]** · B-1 **43,266 / 43,266** · B-9 **296 stable, 0 flicker** |
 | `sw/testdata/wrfuzz/w2_strata.json` | `S` 91.6680668… · `B` 86.6680668… · pooled 2,379 / 2,515; both alternative exclusions present and unused |
 
-**No gate was re-run for this document, no engine was touched, no board was
-contacted, and no figure in this document is new.**
+**No engine was touched, no board was contacted, and no figure in this document
+is new.**  ⚠ **One thing changed at W6 and it is stated rather than left to be
+noticed**: finalization REGISTERED a standing gate — `sw/wrfuzz_wr1_guard.py`,
+the `wr1` offline guard — and **ran its two legs once to prove it green**.  They
+reproduced the receipted columns exactly (model **84 / 184**, `ucore`
+**91 / 184**, 0 lost, 0 moved earlier), so **no figure here moved**; but *"no
+gate was re-run"* is no longer true of this document and the earlier wording has
+been withdrawn rather than kept.  §(f.3).
 
 ---
 
@@ -73,7 +80,7 @@ guards on every artifact a number is computed from; Codex at phase boundaries;
 | **W1** — socket capture | generate and capture the pre-registered corpus, one `capture_board` per seed (socket then fabric, differing only in `use_core`).  **Measure and report; do not diagnose.**  Bars B-1…B-9 and nothing else | **CLOSED, 9 / 9 BARS MET** (§2).  **3,150 / 3,150 seeds, all 28 strata at their registered size**, 6.4 min of capture and **7.6 min total board time against a registered ≤ 30**; 0 transport errors, 0 quarantines, 0 provenance alarms, `div_guard` PINNED **33 / 33**, `board_idle()` clean, `use_core=0` left selected.  Deviations committed **before** board contact (`wrfuzz_w1_execution_note_2026-08-05.md`).  **Two findings (F-5, F-6) and one positive (F-7)** |
 | **W2** — the survey | run the full batch, categorise **all** failures, plan nothing.  One census over one tree; **`S` computed by §5's registered formula and FROZEN** | **CLOSED** (§3, `wrfuzz_survey_2026-08-05.md`).  3,150 scored hardware-versus-silicon, 635 OPEN_BUS-excluded, **2,515 scored / 2,379 exact (94.59 % pooled)**; **`S` = 91.6681 %** and **`B` = 86.6681 %** FROZEN ⓥ; victory tranche drawn and frozen at sha256 `dcaa48fa991f…` ⓥ.  **Nothing landed** — `git diff` over `hdl/` and `sim/` EMPTY.  **Five findings (F-8 … F-12)**, one of them a vacuous-instrument catch in the sitting's own counter |
 | **W3+** — mechanism sittings | one mechanism per sitting, each with its own pre-registration, its own directed cell where the bank cannot discriminate, its own falsifier; shared mechanisms land `sim/` first; the full ladder re-scored between sittings | **FIVE SITTINGS RUN, W3.1 – W3.5.**  **Three landings** (W3.1 both engines, W3.4 `sim/`, W3.5 `ucore`), **two sittings that landed nothing by their own pre-registered rules** (W3.2, W3.3).  Every landing scored **ZERO LOST, ZERO first divergences moved earlier**, seed by seed, against a baseline measured on the sitting's own tree.  §(c) |
-| **VICTORY** | a pre-registered numeric bar on a **fresh stratified tranche**, **scored IN FABRIC, hardware-versus-silicon**, the number registered from the survey and **never after** | **MET** (§9).  **`T` = 90.0170 % against the frozen `B` = 86.6681 %, +3.3489 points**, condition 2 at 100 %, nine capture-integrity bars met, nothing VOID.  §(e) |
+| **VICTORY** | a pre-registered numeric bar on a **fresh stratified tranche**, **scored IN FABRIC, hardware-versus-silicon**, the number registered from the survey and **never after** | **MET** (§9).  **`T` = 90.0170 % against the frozen `B` = 86.6681 %, +3.3489 points**, condition 2 satisfied on **12/12 scored non-exact seeds** (the denominator was **141 scored = 129 exact + 12 non-exact**), nine capture-integrity bars met, nothing VOID.  §(e) |
 
 ### (a.3) The scope decisions the campaign inherited or took, and who took them
 
@@ -88,8 +95,13 @@ guards on every artifact a number is computed from; Codex at phase boundaries;
 
 **One reading of the bar was resolved in advance rather than after the count**
 (`wrfuzz_w4_prereg_2026-08-06.md` §2, §2.0a): the deciding statistic is `T`, the
-unweighted mean of the 28 per-stratum rates — *the identical construction that
-produced `S`, by the identical imported code path* — with the plan's pooled
+unweighted mean of the 28 per-stratum rates — *the same registered construction,
+independently implemented for W4; the strata definitions and OPEN_BUS detector
+are imported from W1/W2, while the aggregation is repeated and its result was
+artifact-cross-checked* (`w1.STRATA` and `w2.open_bus` are imported by
+`sw/wrfuzz_w4.py`; the per-stratum tally and the mean are its own loop, and the
+cross-check is this document's ⓥ recomputation of `T` from §9.3's own 28
+exact/scored counts) — with the plan's pooled
 seed-count conversion **computed and reported beside it**; condition 2's
 "family named in the W2 census's taxonomy" is `s15_census`'s **eight**-family
 set, so `TAIL_EXTRA` / `TAIL_MISS` (zero at W2) **count as named**, and
@@ -232,14 +244,25 @@ law without one is not a law in this project.**
 | **THE RETIRE LEAD** (W3.4, §7) | **`wait_retire_lead()` leads the SUCCESSOR'S POP, and a BRK/TF boundary that fires cancels that pop — so it returns at once when the arm is set.**  The predicate *"a recognised boundary does not slide when the queue is dry"* was **ALREADY LANDED on the ROM path** (`boundary_no_pop()`, `INT.90` 200/200 with the retire deadline against 177 with the pop deadline); the ONE-BYTE-LOGIC path never had it | **`sim/` ONLY** | **bank, chip-side, zero exceptions** — the class is structurally identified with no engine in the loop: trapping instruction ONE-BYTE-LOGIC **23/23**, fetch address ODD **23/23**, queue DRY at the retire **23/23**, chip take = its own opcode pop **+2 on 23/23, WAIT-INDEPENDENT** at cycle lengths 5, 6 and 7 | §7.5, written at the gate: *any capture in which a `ONE_BYTE_LOGIC` form retiring into a BRK/TF take has its boundary later than its own opcode pop + 2 with a dry queue; or any `FA`/`FB` golden that moves when this gate is armed* |
 | **THE TAKE CLOCK** (W3.5, §8) | **`q_ripe_lead_n` becomes `q_ripe_lead_n \|\| brk_seen` at `S_DECODE2`'s ONE_BYTE_LOGIC arm.**  §7.8's booked *"second, structural change"* is **RETIRED BY MEASUREMENT**: `bnd_opc` was always in the right place — decode + 2 **IS** the chip's take on 23/23 — and the whole defect was **one clock of arm latency at one decode** | **`ucore` ONLY** (the model's is the semantic reference) | **bank** + the `ucore`'s own trace: at the contested decode `brk_arm` = **0 on 23/23** (so W3.4's mirror gate could not fire), `brk_seen` = 1 on 23/23, `brk_smp_n` = 1 on 23/23, decode + 2 == the chip's take **23/23** | §8.7, and the registered **ANTI-BAR**: candidate U-A's `BRKT` = 2731 on `wr1/201055`, named in advance and **not reproduced** (U-B gives 2729, the model's own landed clock) |
 
-**WHAT THE ENGINES GAINED IN STATE: NOTHING PERSISTENT.**  All three landings
-are a term or a wire.  Across the whole campaign `ss_lint` exits 0 with
-**`SS_VERSION` 0x87 and 205 architectural flops, 0 UNMAPPED — unchanged**
-(W3.1 §4.4, W3.5 Y-9); the model gained **one decode-result field**
-(`LoadResult::ext`) and no persistent state, and that field was **found by the
-landing's own A-1 bar** because on the `0F` page `out.opcode` is the SECOND
-byte.  **No fitted table, no per-opcode case and no per-delay rule was landed
-anywhere in this campaign.**
+**WHAT THE ENGINES GAINED IN STATE — ITEMISED, NOT SUMMARISED.**  *No
+architectural or save-state-visible state was added.  W3.1 added the transient
+decode field `LoadResult::ext` and renders the entry class with native opcode
+literals where no PLA class bit exists; W3.4 added the transient BIU member
+`brk_pending_`; W3.5 is one RTL term with no state.  `SS_VERSION` and the
+`ucore`'s 205 architectural flops remained unchanged.*  (`ss_lint` exits 0 at
+**`SS_VERSION` 0x87, 205 flops, 0 UNMAPPED** throughout — W3.1 §4.4, W3.5 Y-9.)
+`LoadResult::ext` was **found by the landing's own A-1 bar**, because on the
+`0F` page `out.opcode` is the SECOND byte and an unguarded literal would have
+shadowed a different microcode entry entirely.
+
+**AND THE NARROWER CLAIM, WHICH IS THE ONE THE STANDING PRINCIPLE ASKS FOR**:
+*no per-delay fitted table or opcode-specific behavioural exception; the shadow
+class is one measured microcode-entry class, rendered by three native opcode
+literals in RTL/model.*  Those three are `07` / `17` / `1F`, the POP-sreg
+entry's members that no PLA class bit names (`8C` / `8E` come from
+`pla3::sreg_mov`, and `0F` is the extension page, taken by `ext`); the same
+three appear in `v30u_eu_step.svh` and in `exec_impl.h`, and the class boundary
+they render is the one §4.3 MEASURED — **not a list chosen to fit.**
 
 **AND TWO LANDINGS WERE BUILT AND NOT TAKEN, each with its numbers.**  W3.2
 attempted the suspend in **three forms** — `52 / 184` (28 lost), `55 / 184`
@@ -253,7 +276,15 @@ written down rather than smoothed.  W3.4's `ucore` mirror was **built, measured
 at +1, and DELIBERATELY REVERTED** — *a +1 partial landing that misdescribes the
 defect is not worth a synthesis gate.*
 
-### (c.2) The questions decided WITHOUT landing
+### (c.2) Questions decided or materially narrowed without landing
+
+⚠ **The heading is "or materially narrowed" deliberately.**  Two of the six rows
+below are NARROWED, not decided, and each says so in its own cell: the
+`SCHEDULE` **`+2` mode's discriminator is NOT FOUND** (its invariant is measured
+and its obvious reading is refuted by 18,990 counts), and **`mc1/721` has its
+write order decided on silicon but no viable STRUCTURE** that honours the three
+independently-measured placements.  Those two remain open at the campaign's
+close.
 
 | question | **what was decided** | evidence class | falsifier / where the block is written |
 |---|---|---|---|
@@ -390,9 +421,12 @@ from the control build's produced from the same tree minutes earlier.
 
 **Both `MET` conditions hold.**  Condition 1 is `T ≥ B`.  Condition 2 —
 *every non-exact seed's first divergence falls in a family named in the W2
-census's taxonomy* — is satisfied **at 100 % over the twelve scored non-exact
-seeds**: `SCHEDULE` 7 · `PF_LOST` 2 · `DATA_SEQ` 2 · `PIN` 1, **catch-all
-EMPTY** and `w4_score.json`'s `unnamed` the empty list ⓥ.
+census's taxonomy* — is **satisfied on 12/12 scored non-exact seeds; the tranche
+denominator was 141 scored, comprising 129 exact and 12 non-exact**:
+`SCHEDULE` 7 · `PF_LOST` 2 · `DATA_SEQ` 2 · `PIN` 1, **catch-all
+EMPTY** and `w4_score.json`'s `unnamed` the empty list ⓥ.  *The "100 %" is over
+the twelve seeds condition 2 can apply to, not over the 141 — a seed that is
+cycle-exact has no first divergence to classify.*
 
 **The denominators, stated so the population total is never read as a test
 count**: 196 body seeds were **drawn**; **141 were SCORED** (55 excluded
@@ -542,6 +576,45 @@ prediction was that **the four W3 landings** (three laws, four engine legs)
   pin axis**; **H7** needs a pin event and this corpus is evt-free; the 27 S16
   `ARCH` cells and family D are not fuzz populations.
 
+### (f.3) THE ONE GATE THIS CAMPAIGN LEAVES BEHIND — and what it is NOT
+
+The campaign closed with three landings in the tree and **nothing in the tree
+guarding them at seed level**.  The Codex closing review named that gap, and
+finalization registered the guard for it — **before this document was
+finalized, not after** (`standing_gates.md`, wrfuzz section; runner
+`sw/wrfuzz_wr1_guard.py`; baseline
+`sw/testdata/wrfuzz/w6_wr1_guard_baseline.json`, sha256 `bf6ea3a60d41…`).
+
+| clause | bar | **at registration** |
+|---|---|---|
+| 1 | model **≥ 84 / 184** | **84 / 184** |
+| 2 | `ucore` **≥ 91 / 184** | **91 / 184** |
+| 3 | **zero previously-exact `wr1` seeds lost** | **0** |
+| 4 | **zero first divergences moved earlier** | **0** |
+| (integrity) | the scored denominator is still 184 | **184** |
+
+**Both legs ran once at registration and the guard is GREEN, rc = 0.**  The
+`ucore` leg additionally reproduces W3.5 §8.7a's own dump seed for seed.
+
+⚠ **AND THE DISTINCTION THAT IS THE REASON IT IS WORDED THIS WAY.  THIS GUARD IS
+AN *IMPLEMENTATION* GUARD AND IT IS NOT THE VICTORY MEASUREMENT.**
+
+* It is **not a silicon-match rate**.  The 184 is the retained-and-scored subset
+  of the 380 captures and that subset is **DIVERGENT BY CONSTRUCTION**; 84 and
+  91 are ATTRIBUTION figures, exactly as §(d.1) and §(d.2) label them every time
+  they appear.
+* It is **not a ranking of the two engines** — no delta between the legs is
+  computed by the guard or anywhere in this document.
+* It is **not a new sample and it does not re-claim `T`.**  **`T` = 90.0170 % is
+  a FIRST REGISTRATION on a population that is now spent** — the tranche was
+  frozen, drawn and scored ONCE, and a second run of the same seeds is not a
+  second sample.  **Nothing is ratcheted to 90.0170 %, and a green run of this
+  guard is not evidence about it.**  The guard runs OFFLINE and touches no
+  board; the 90.0170 % is a FABRIC measurement against silicon.  They are
+  different instruments on different populations answering different questions,
+  and the guard exists so that the campaign's *code* cannot silently regress —
+  **not so that its *victory* can be re-claimed.**
+
 ---
 
 ## (g) THE VERDICT
@@ -556,12 +629,18 @@ prediction was that **the four W3 landings** (three laws, four engine legs)
 > of `S`), from which **`S` = 91.6681 % and `B` = S − 5.0 = 86.6681 % were
 > computed once and FROZEN before any tranche existed.**  Five mechanism
 > sittings followed: **three laws landed — the recognition shadow (both
-> engines), the retire lead (`sim/`), the take clock (`ucore`) — one term or one
-> wire each, NO PERSISTENT STATE added in either engine (the `ucore`'s
-> `SS_VERSION` 0x87 and 205 architectural flops unchanged throughout; the model
-> gained one decode-result field and no persistent state), no opcode named and
-> no fitted table anywhere** — and six further questions were **decided without
-> landing**,
+> engines), the retire lead (`sim/`), the take clock (`ucore`)** — and the state
+> accounting is itemised rather than summarised: *no architectural or
+> save-state-visible state was added.  W3.1 added the transient decode field
+> `LoadResult::ext` and renders the entry class with native opcode literals
+> where no PLA class bit exists; W3.4 added the transient BIU member
+> `brk_pending_`; W3.5 is one RTL term with no state.  `SS_VERSION` and the
+> `ucore`'s 205 architectural flops remained unchanged.*  The narrower claim is
+> the one that carries the standing principle: *no per-delay fitted table or
+> opcode-specific behavioural exception; the shadow class is one measured
+> microcode-entry class, rendered by three native opcode literals in RTL/model.*
+> **Six questions were decided or narrowed; the `+2` discriminator and a viable
+> `mc1/721` structure remain open** —
 > including `mc1/721`'s write order **settled on silicon by a directed cell
 > whose refuting third outcome was reachable and was not reached**, and a
 > `MEMW`→`MEMW` gap whose registered discriminator is ANSWERED as a fixed index
@@ -569,8 +648,13 @@ prediction was that **the four W3 landings** (three laws, four engine legs)
 > tranche drawn from a k-block disjoint from the survey by construction, scored
 > IN FABRIC against the socketed chip on FLASH #11 with the A/B pair differing
 > in `use_core` and nothing else**, **`T` = 90.0170 % against the frozen
-> `B` = 86.6681 % — MET by +3.3489 points** — with condition 2 satisfied at
-> 100 % over the **141 SCORED seeds** (not the 196 drawn), the catch-all EMPTY,
+> `B` = 86.6681 % — MET by +3.3489 points**.  **This is a valid MET under the
+> pre-registered post-mechanism protocol, but not an apples-to-apples
+> FLASH-#10/FLASH-#11 delta: the +3.3489 points combine a fresh population draw
+> with two intervening `ucore` landings, and the record does not decompose those
+> effects.**  **Condition 2 is satisfied on 12/12 scored non-exact seeds; the
+> tranche denominator was 141 scored** (not the 196 drawn), **comprising 129
+> exact and 12 non-exact** — the catch-all EMPTY,
 > nine capture-integrity bars met and nothing VOID, and the four directed H3-B
 > cells returning **their registered NEGATIVE — 0 class-B pairs over 7,295
 > paired accesses — under the one stimulus §68.6 could not reach.**  **The
@@ -596,6 +680,13 @@ prediction was that **the four W3 landings** (three laws, four engine legs)
   **The tranche's registered SE is 2.64 points and the +3.3489-point margin is
   about 1.27 of it.  A single draw met a bar; it did not measure a population to
   that precision.**
+* **Not "+3.3489 points is what the campaign's mechanism work bought."**  **This
+  is a valid MET under the pre-registered post-mechanism protocol, but not an
+  apples-to-apples FLASH-#10/FLASH-#11 delta: the +3.3489 points combine a fresh
+  population draw with two intervening `ucore` landings, and the record does not
+  decompose those effects.**  Appendix B says the same thing from the artifact
+  side; it is repeated here because the margin is the number a reader carries
+  away.
 * **Not "the campaign's landings are confirmed in fabric."**  FLASH #11 carries
   the `ucore`'s shadow and take-clock terms and **the tranche is the only fabric
   population that could exercise them** — and the tranche was never captured on
@@ -639,47 +730,36 @@ prediction was that **the four W3 landings** (three laws, four engine legs)
 
 ---
 
-## APPENDIX A — FIGURE DISCREPANCIES FOUND WHILE CROSS-CHECKING
+## APPENDIX A — THE CORRECTION LEDGER
 
-**Reported as findings, NOT silently corrected.**  None of them moves a number
-this verdict quotes; each is listed with what the artifact says.
+**Five figure discrepancies were found while cross-checking this document at
+draft.  ALL FIVE ARE DISCHARGED IN THEIR HOME DOCUMENTS at W6** — the drafting
+sitting reported them and deliberately did not touch them (*"reported as
+findings, NOT silently corrected"*), and finalization corrected them **where
+they live**, which is the only place a correction stops being a footnote.  **Not
+one of them moved a number this verdict quotes**, then or now.
 
-1. **`standing_gates.md` carries the SUPERSEDED era-stamp line count.**  Its
-   wrfuzz section reads *"the mc1/mc2/t30 campaigns carry no era stamp on any of
-   **20,203** lines"* (line 754).  The survey §6.2 and ledger §3.4 F-10 both say
-   **21,203** — mc1 10,003 + mc2 10,000 + t30-raw 1,000 + t30-brkem 200 — and
-   there is a dedicated erratum commit for exactly this (`f22f888feb`, *"the
-   era-stamp line count is 21,203 (four campaigns, not two)"*).  **The erratum
-   reached the survey and the ledger and did not reach `standing_gates.md`.**
-   The arithmetic in the survey checks out; `standing_gates.md` is the stale
-   copy.
-2. **The ledger's W1 sitting is dated 2026-08-06 and its own commits are
-   2026-08-05.**  §2's header reads *"2026-08-06, branch `ucsim`, from HEAD
-   `4665a04e64`"*, while `4665a04e64` (the execution note, committed **before**
-   board contact) is 2026-08-05 20:58 and the W1 capture commit `b8020d0229` is
-   2026-08-05 21:10.  **As written, §2 (W1) is dated a day AFTER §3 (W2), which
-   surveys W1's captures** — §3's header is 2026-08-05 and is the one the commit
-   dates support.  The W1 execution note's own filename and dateline are
-   2026-08-05.  Nothing about the ordering of the work is in doubt; the header
-   date is.
-3. **Ledger §2.6 F-7's multiplication does not produce its own number.**  It
-   reads *"Over 158 seeds × 3 repetitions × 2 legs = **632 row comparisons**"*;
-   158 × 3 × 2 = 948.  **632 is 158 × 4**, and 4 comparisons per seed is exactly
-   what §2.4's B-9 row states (*"3 fresh reps × both A/B legs = 4 comparisons per
-   seed"*: rep 1 vs rep 2 and rep 1 vs rep 3, on each of two legs).  The bar's
-   result (158 / 158 stable, 0 flicker) is unaffected; the expression is.
-4. **Seed-loops and captures are used interchangeably in one W4 row.**  §9.7's
-   B-9 row says *"296 / 296 STABLE … across **912 captures**"* where 912 is the
-   **seed-loop** count (§9.1, §9.3, and the prereg's own budget); a seed-loop is
-   two captures, so the capture count is 1,824.  `w4_score.json` reports
-   `stable = 296` and does not carry a capture total ⓥ.
-5. **`standing_gates.md`'s `wr1` residue row sums to 135 and is labelled 136.**
-   Its cell reads *"**136 seeds**, `PF_LOST` 43 · `SCHEDULE` 42 · `DATA_SEQ` 23 ·
-   `PF_GAINED` 18 · `PIN` 7 · `PF_ADDR` 2"*.  The missing member is the single
-   `NOW_EXACT` seed, which the survey §3.1 names in prose (*"136 scored misses,
-   135 classified"*) and which the W4 pre-registration §2.0a located in the
-   banked census by measurement.  **The arithmetic is right in the census and
-   incomplete in the quick-reference row.**
+**The disposition rule, and it differs by document.**  `standing_gates.md` is a
+quick-reference and is corrected IN PLACE, with the correction and its date
+written into the cell.  `wrfuzz_provenance.md` is **APPEND-ONLY by its own head
+matter** (*"a correction is an ERRATUM box beside the original, never a
+replacement"*), so its three are **ERRATUM BOXES beside the originals and the
+original text is left standing**.
+
+| # | what was wrong | **home document, corrected location** | how |
+|---|---|---|---|
+| **A-1** | the era-stamp line count read **20,203**; it is **21,203** (mc1 10,003 + mc2 10,000 + t30-raw 1,000 + t30-brkem 200 — **four campaigns, not two**).  Erratum commit `f22f888feb` had reached the survey §6.2 and ledger §3.4 F-10 and **not** this file | **`docs/notes/standing_gates.md`**, § THE wrfuzz CAMPAIGN → *"AND THE NINE CONTROL STRATA DO NOT REPRODUCE ANY REMEMBERED COLUMN"* | **corrected in place to 21,203**, with the four-campaign breakdown and a note that it read 20,203 until W6 |
+| **A-2** | ledger §2's header dates the **W1** sitting 2026-08-06; its own commits are 2026-08-05 (`4665a04e64` at 20:58, `b8020d0229` at 21:10), which dated W1 a day AFTER the W2 survey of W1's own captures | **`docs/notes/wrfuzz_provenance.md` §2**, header | **ERRATUM BOX** beside the header.  Original left standing; the box names both commits, the note's own dateline, and that **the ordering of the work is not in doubt — the header date is** |
+| **A-3** | ledger §2.6 F-7 reads *"158 seeds × 3 repetitions × 2 legs = 632"*; 158 × 3 × 2 = 948.  **632 = 158 × 4**, and 4 comparisons per seed is exactly §2.4's B-9 row | **`docs/notes/wrfuzz_provenance.md` §2.6**, F-7 | **ERRATUM BOX** beside F-7.  **The count 632 is right and the expression is wrong**; the bar's 158 / 158 with 0 flicker is unaffected and no figure is computed from the expression |
+| **A-4** | ledger §9.7's B-9 row says *"across **912 captures**"*; 912 is the **seed-loop** count and a seed-loop is two captures, so the captures are **1,824**.  B-8 immediately above uses the same 912 and names it correctly | **`docs/notes/wrfuzz_provenance.md` §9.7**, B-9 row | **ERRATUM BOX** beside the table.  Nothing is re-scored: the bar is over the 296 seeds either way and `w4_score.json` carries no capture total ⓥ |
+| **A-5** | the `wr1` residue quick-reference row sums to **135** and is labelled **136**; the missing member is the single **`NOW_EXACT`** seed, which the survey §3.1 names in prose and W4 prereg §2.0a located in the banked census by measurement | **`docs/notes/standing_gates.md`**, the W2 `wr1` baseline table, *"the `ucore`'s `wr1` residue"* row | **`· NOW_EXACT 1` added**, so the row sums to its own label, with a note that the census arithmetic was always right and the quick-reference row was incomplete |
+
+⚠ **What discharging them did NOT do.**  No census was re-run, no capture was
+re-scored, no engine or board was touched, and **no figure in this verdict, in
+the survey or in the ledger changed value.**  A-2, A-3 and A-4 are corrections
+to *expressions and a header*, not to results; A-1 and A-5 propagate a figure
+that was already right in its source document into a quick-reference that had
+fallen behind it.
 
 ## APPENDIX B — WHAT THIS CAMPAIGN LEFT AMBIGUOUS
 
@@ -727,10 +807,15 @@ measure.**
   excluded seed moves no column — **but that is a reading, not a statement any
   document makes**, and W3.1's figures (*"5 seeds gained"* against a combined
   +5) happen to coincide, which makes the divergence easy to miss.
-* **The victory tranche is spent.**  `standing_gates.md` states in terms that
-  this is *not* a ratchet — *"a second run of the same seeds is not a second
-  sample"* — so **nothing in the tree now guards the 90.0170 %**, and the
-  campaign's forward-facing artifact is §9.9's booked queue rather than a gate.
+* **The victory tranche is spent, and W6's guard does not un-spend it.**
+  `standing_gates.md` states in terms that this is *not* a ratchet — *"a second
+  run of the same seeds is not a second sample"* — so **nothing in the tree
+  guards the 90.0170 %, and nothing can**: it is a first registration on a
+  population that has been drawn.  Finalization registered the `wr1` offline
+  guard (§(f.3)) over a **different** population by a **different** instrument,
+  and that guard is deliberately worded so it cannot be read as covering `T`.
+  What remains forward-facing about the victory itself is §9.9's booked queue,
+  not a gate.
 
 ---
 
@@ -738,11 +823,70 @@ measure.**
 
 | | |
 |---|---|
-| **DRAFTED** | this commit, 2026-08-06 — "wrfuzz: the random-wait fuzz campaign VERDICT (DRAFT, pending Codex + user)" |
-| **REVIEWED** | *pending — Codex closing review, routed by the coordinator* |
-| **ACCEPTED** | *pending — the user* |
+| **DRAFTED** | commit **`7607d5f7fb`**, 2026-08-06 — "wrfuzz: the random-wait fuzz campaign VERDICT (DRAFT, pending Codex + user)" |
+| **REVIEWED** | **Codex closing review — GO-WITH-CONCERNS**, **seven** concerns raised |
+| **APPLIED** | **all seven**, itemised below |
+| **GUARD REGISTERED** | concern 6's standing guard — `sw/wrfuzz_wr1_guard.py` over the receipted `wr1` offline columns — **registered in `standing_gates.md` BEFORE finalization and PROVEN GREEN at registration**, both legs, rc = 0: model **84 / 184**, `ucore` **91 / 184**, **0 previously-exact seeds lost, 0 first divergences moved earlier**, denominator 184.  §(f.3) |
+| **DISCHARGED** | the **five record discrepancies**, in their home documents — `standing_gates.md` in place, `wrfuzz_provenance.md` by erratum box because it is append-only.  **APPENDIX A is now the correction ledger** and names each corrected location |
+| **FINALIZED** | commit **`<pending — filled by the immediately following commit>`**, 2026-08-06 — the commit that applied the seven concerns and removed the DRAFT marking.  (This row is written by the immediately following commit, because a commit cannot name its own hash — the SM3 precedent.) |
+| **ACCEPTED** | ⚠ ***pending — the user.***  **Not recorded as given.**  Applying the concerns does not upgrade GO-WITH-CONCERNS to GO; the verdict's standing is the user's to set |
 
-**What drafting did NOT do.**  No gate was re-run, no engine was touched, no
-board was contacted, no memory file was written and Codex was not launched.
-The only computation performed for this document is the six-item spot
-verification listed at its head, all of it read off artifacts already banked.
+**THE SEVEN CONCERNS, AND WHERE EACH ONE LANDED.**
+
+1. **(HIGH) The simplicity accounting was a blanket claim.**  *"One term, no
+   persistent state, no opcode named"* is replaced, at **§(c.1)** and **§(g)**,
+   by the review's own itemisation: *no architectural or save-state-visible
+   state was added; W3.1 added the transient decode field `LoadResult::ext` and
+   renders the entry class with native opcode literals where no PLA class bit
+   exists; W3.4 added the transient BIU member `brk_pending_`; W3.5 is one RTL
+   term with no state; `SS_VERSION` and the `ucore`'s 205 architectural flops
+   remained unchanged.*  And the narrower claim: *no per-delay fitted table or
+   opcode-specific behavioural exception; the shadow class is one measured
+   microcode-entry class, rendered by three native opcode literals in RTL/model.*
+   The three (`07` / `17` / `1F`) were verified in both engines' source for this
+   row, not quoted from the ledger.
+2. **(HIGH) The victory margin was not qualified as a cross-bitstream delta.**
+   Immediately after **§(g)**'s MET clause, and again in the **does-NOT-claim
+   block**: *this is a valid MET under the pre-registered post-mechanism
+   protocol, but not an apples-to-apples FLASH-#10/FLASH-#11 delta: the +3.3489
+   points combine a fresh population draw with two intervening `ucore` landings,
+   and the record does not decompose those effects.*
+3. **(MEDIUM) Condition 2's denominator read as 141.**  **§(a.2)**, **§(e.2)**
+   and **§(g)** now read: *condition 2 satisfied on 12/12 scored non-exact seeds;
+   the tranche denominator was 141 scored, comprising 129 exact and 12
+   non-exact* — with the reason the two denominators differ stated, because a
+   cycle-exact seed has no first divergence to classify.
+4. **(MEDIUM) The freeze was described as "the identical imported code path."**
+   **§(a.3)** now reads: *the same registered construction, independently
+   implemented for W4; the strata definitions and OPEN_BUS detector are imported
+   from W1/W2, while the aggregation is repeated and its result was
+   artifact-cross-checked.*  Checked against `sw/wrfuzz_w4.py` for this row —
+   `w1.STRATA` and `w2.open_bus` are imported; the per-stratum tally and the mean
+   are its own loop.
+5. **(MEDIUM) "Decided without landing" overstated two rows.**  **§(c.2)** is
+   retitled *"Questions decided or materially narrowed without landing"* and
+   names the two that are narrowed rather than decided; **§(g)**'s clause becomes
+   *six questions were decided or narrowed; the `+2` discriminator and a viable
+   `mc1/721` structure remain open.*
+6. **(MEDIUM) Nothing in the tree guarded the campaign's landings.**  A standing
+   guard was **registered before finalization and proven green** — see the GUARD
+   REGISTERED row above and **§(f.3)**, which states in terms that it is an
+   **IMPLEMENTATION guard**: not a silicon-match rate, not a ranking, **not a new
+   sample and not a re-claim of the spent 90.0170 % fabric measurement**, which
+   is a first registration on a population that has been drawn and can never be
+   re-claimed.  Appendix B's spent-tranche bullet was corrected to say the guard
+   does not un-spend the tranche.
+7. **(LOW) The five record discrepancies were reported, not discharged.**  All
+   five are now fixed **in their home documents**, and **Appendix A is converted
+   from a discrepancy list into a CORRECTION LEDGER** naming each corrected
+   location and its disposition (in-place for `standing_gates.md`, erratum box
+   for the append-only ledger).
+
+**WHAT FINALIZATION DID NOT DO.**  No engine was touched, no board was
+contacted, no memory file was written and Codex was not launched.  **No figure
+in this document, in the survey or in the ledger moved.**  ⚠ **One departure
+from the SM3 precedent's "no gate was re-run", stated plainly**: concern 6
+required a gate to exist, so finalization **registered one and ran its two legs
+once to prove it green**.  They reproduced the receipted columns exactly and the
+`ucore` leg reproduces W3.5 §8.7a's own dump seed for seed, so nothing moved —
+but a gate WAS run for this document, and that is recorded rather than elided.

@@ -295,6 +295,17 @@ FLASHING.**  Execution note (the deviations, committed before board contact):
 `docs/notes/wrfuzz_w1_execution_note_2026-08-05.md`.
 Driver: `sw/wrfuzz_w1.py`.  Campaign `cid = wr1`.
 
+> ⚠ **ERRATUM (wrfuzz W6, 2026-08-06) — THIS HEADER'S DATE IS WRONG.  THE
+> SITTING RAN ON 2026-08-05.**  The header above reads *2026-08-06* and the
+> sitting's own commits do not support it: `4665a04e64`, the execution note it
+> names — committed **before** board contact — is **2026-08-05 20:58**, and the
+> W1 capture commit `b8020d0229` is **2026-08-05 21:10**.  The execution note's
+> filename and its dateline are both 2026-08-05.  **As written, §2 (W1) is dated
+> a day AFTER §3 (W2), which surveys W1's own captures** — and §3's header, which
+> reads 2026-08-05, is the one the commit dates support.  **Nothing about the
+> ordering of the WORK is in doubt; the header date is.**  The original line is
+> left standing because this file is append-only.
+
 W1 **measures and reports; it does not diagnose.**  Its bars are the
 pre-registration's B-1 … B-9 and nothing else.  **No engine-versus-silicon rate
 is computed or quoted here, and no family census was run** — the survey is W2's
@@ -445,6 +456,16 @@ comparisons**, the flicker count is **0**.  Under a brand-new wait axis, with
 `skew` holding a level for blocks of 16-32 accesses, the socket repeats itself
 **exactly**.  §81.B's 193/193 deterministic over 1,089 captures now has a
 random-wait-vector counterpart, measured rather than inherited.
+
+> ⚠ **ERRATUM (wrfuzz W6, 2026-08-06) — F-7's MULTIPLICATION DOES NOT PRODUCE
+> ITS OWN NUMBER.**  It reads *"158 seeds × 3 repetitions × 2 legs = **632** row
+> comparisons"*, and 158 × 3 × 2 is **948**.  **632 is 158 × 4**, and four
+> comparisons per seed is exactly what §2.4's B-9 row states — *"3 fresh reps ×
+> both A/B legs = 4 comparisons per seed"*, i.e. rep 1 vs rep 2 and rep 1 vs
+> rep 3, on each of two legs.  **The count 632 is right and the expression is
+> wrong**; it should read *158 seeds × 4 comparisons per seed*.  The bar's own
+> result — **158 / 158 stable, 0 flicker rows** — is unaffected, and no figure
+> anywhere is computed from the wrong expression.
 
 ### §2.7 WHAT THIS SITTING DID NOT DO
 
@@ -2327,6 +2348,18 @@ statistic to get a zero.
 | **B-7** board discipline | `div_guard` PINNED on 100 % of probes | **PINNED on 33 / 33**; socket-vs-fabric A/B differing only in `use_core`; every capture's rows retained with sha256 and a `SHA256SUMS`; `board_idle()` at the close with `use_core=0` |
 | **B-8** transport | breaker not tripped | **0 quarantines, 0 transport errors in 912 seed-loops** |
 | **B-9** the capture is stable | 158 / 158 at W1's sub-sample; here 296 / 296 | **296 / 296 STABLE**, rep 1 against every later rep on BOTH A/B legs, **0 bad rows and 0 flicker rows** across 912 captures |
+
+> ⚠ **ERRATUM (wrfuzz W6, 2026-08-06) — B-9's ROW USES "CAPTURES" WHERE IT MEANS
+> "SEED-LOOPS".**  It reads *"across **912 captures**"*, but **912 is the
+> SEED-LOOP count** — the figure §9.1 and §9.3 report and the one the
+> pre-registration budgeted — and **a seed-loop is two captures** (the A and B
+> positions, differing only in `use_core`), so the capture count is **1,824**.
+> B-8's row immediately above uses the same 912 and names it correctly
+> (*"in 912 seed-loops"*).  **Nothing is re-scored**: `w4_score.json` reports
+> `stable = 296` and carries no capture total at all, the bar is over the 296
+> seeds either way, and no figure in this ledger or in the verdict is computed
+> from a capture count.  The original row is left standing because this file is
+> append-only.
 
 ### §9.8 THE FABRIC RE-BASE — EVERY PREDICTION MET CELL FOR CELL
 

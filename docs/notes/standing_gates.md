@@ -228,6 +228,7 @@ entry. Figures are `ucore_provenance.md` §54.4's, re-run 2026-08-04.
 | the core inside the real integration ⧉ | `python3 sw/check_ab_sim.py` | 187 rows MATCH |
 | the MODEL, unmoved | `python3 sw/timed_gate.py --suite tests/v30/v0.1 --forms all` | 169,000 / 169,000, row-diffs 0 |
 | the MODEL's fuzz bank | `python3 sw/timed_fuzz.py --core sim --evt-replay` | REGISTERED **1,343 / 1,702**; EVT **802 / 1,008**; COMBINED **2,145 / 2,710** (**RAISED at wrfuzz W3.4 by THE RETIRE LEAD** -- `wrfuzz_provenance.md` **§7**: `wait_retire_lead()` leads the SUCCESSOR'S POP, and a BRK/TF boundary that fires cancels that pop, so it returns at once when the arm is set.  It was 1,339 / 799 / 2,138.  **17 seeds gained, ZERO lost over all 3,242, checked seed by seed against a baseline re-measured on this tree with the change reverted**; 0 first divergences moved earlier.  On `wr1` the same landing is 73 -> 84.  ⚠ The WAIT ITSELF IS KEPT: the sitting's first candidate deleted the `q_.empty()` disjunct outright, scored the same 84 on `wr1`, and moved `FA` (74), `FB` (68) and `INT.FB` (39) -- **181 row-diffs on `v0.1` where this ladder is 0** -- because the odd-`ip` half of `loader_impl.h`'s 250/250 golden says the FLAG WRITE does wait for the byte to arrive.  Two laws, one call.  The `ucore` leg is NOT taken: its 1BL boundary is `bnd_opc`, the successor's POP STATE, so the gate alone leaves it 2 clocks late -- §7.8.  Before that: **RAISED at wrfuzz W3.1 by the RECOGNITION SHADOW** -- `wrfuzz_provenance.md` **§4**, the same law as the ucore's leg, one term in `exec_impl.h`.  It was 1,338 / 798 / 2,136.  **2 seeds gained, ZERO lost over all 3,242**; on `wr1` the same landing is 48 -> 73.  Before that: **RAISED at SM3 SITTING 26 by the ILLEGAL-FORM STALL** -- `ucore_provenance.md` **§87.A**: `F` is the OPR interlock and at `mod == 3` it has nothing to wait for, so the EU parks; ONE predicate, no opcode named, swept exact over 8,192 forms.  It was 1,282 / 789 / 2,071.  **65 seeds gained, ZERO lost over all 3,242, checked seed by seed**: the whole `TAIL_EXTRA` family (30 REG + 3 EVT, the 29 shared seats §86.F named plus `mc2/640`) AND 32 unpredicted `PF_LOST` seeds, which is the same defect classified by a different first divergence.  The registered bar was 1,312 / 792 / 2,104 and is the FLOOR, not the claim.  Before that: **RAISED at SM3 SITTING 23 by the BRK/TF SINGLE-STEP TRAP** -- `ucore_provenance.md` **§84**: the arm is one bit sampled at every retire boundary through the SAME three-clock pipeline the IE gate already uses, and neither `POPF` nor `IRET` is named anywhere in it.  ELEVEN seeds gained, **ZERO lost, checked seed-by-seed**, and one of them is `mc2/1718`, one of §83.2's three sharp seeds.  It was 1,272 / 788 / 2,060; EVT/COMBINED had been RAISED by FIVE seeds at **SM3 sitting 21** by **F57** — the same five the ucore gained, §82.3; it was 783 / 2,055 (EVT/COMBINED RAISED by ONE seed at **SM3 sitting 19** by the model's F53 leg — `mc2/672`, whose first-divergence `kind` was `ube`, `ucore_provenance.md` §80.A.4); `INVALIDATED` **0**.  Same INV-1 closure; it was `EVT 709/1,008` as banked (STRUCK), then `144/248` interim.  **RAISED 2026-08-04 by SM3 sitting 2's H1 landing: EVT 363 -> 780, COMBINED 1,635 -> 2,052, +417 seeds, REGISTERED unchanged to the seed (`ucore_provenance.md` §61), and again by SM3 sitting 11's re-arm onto the IE rise: EVT 780 -> 782, COMBINED 2,052 -> 2,054, REGISTERED still 1,272 to the seed (§72).  The ucore leg WAS TAKEN at sitting 3 (§62) and the ucore now LEADS this column: EVT 906 vs 780, COMBINED 2,389 vs 2,052 — on a bank where the ucore PREDICTS and the model REPLAYS.**  Before H1 the rebuilt column read 363 and the ucore led by 105; as banked it appeared to trail by 517.  The 248 never-poisoned seeds are unchanged at 170 / 144, which is the control that says the re-capture moved nothing it did not touch |
+| **the `wr1` offline guard** ⧉ **(NEW — wrfuzz W6, 2026-08-06)** | `python3 sw/wrfuzz_wr1_guard.py` | rc=0.  **model ≥ 84 / 184, `ucore` ≥ 91 / 184, ZERO previously-exact seeds lost, ZERO first divergences moved earlier**, denominator still 184.  ⚠ **AN IMPLEMENTATION GUARD, AND EVERY WORD OF THAT MATTERS** — see the wrfuzz section below.  It is **not a silicon-match rate, not a new sample, not a ranking of the two engines, and not a re-claim of W4's 90.0170 %** |
 
 ### HOW THE EVT COLUMN MAY AND MAY NOT BE QUOTED (SM3 sitting 5, 2026-08-04)
 
@@ -666,11 +667,12 @@ sitting-11 IE-restore law and the sitting-12 R7′ structural pass.  First light
 and is superseded; the FSM A/B bitstream is still `nec_test.sof a4533dfef0…`.
 **A fabric figure taken on FLASH #5 may not be quoted against this tree.**
 
-### THE wrfuzz CAMPAIGN (task #38) — **NO GATE OF ITS OWN YET, AND ONE TOOL THAT MUST NOT BECOME ONE**
+### THE wrfuzz CAMPAIGN (task #38) — **ONE GATE OF ITS OWN (W6), AND ONE TOOL THAT MUST NOT BECOME ONE**
 
 Opened 2026-08-05 (`docs/notes/wrfuzz_campaign_plan.md`; ledger
 `docs/notes/wrfuzz_provenance.md`; corpus pre-registration
-`docs/notes/wrfuzz_corpus_prereg_2026-08-05.md`).  **W0 registered NO new gate
+`docs/notes/wrfuzz_corpus_prereg_2026-08-05.md`; verdict
+`docs/notes/wrfuzz_verdict_2026-08-06.md`).  **W0 registered NO new gate
 and moved NO ratchet.**  Its two non-regression legs are the existing
 `timed_fuzz` columns and both measured their registered values exactly
 (**1,338 / 1,702** model, **1,557 / 1,702** `ucore`).
@@ -720,6 +722,48 @@ remaining axis and it is NOT the TF axis** (raw 34/43 = 83.10 % against soup's
 95/98 = 96.94 %, and 5.2 points below raw's own W2 column, which CONTRADICTS
 the sitting's own registered reading).
 
+#### ⚠ **THE `wr1` OFFLINE GUARD — REGISTERED AT W6 (2026-08-06), AND IT IS AN *IMPLEMENTATION* GUARD**
+
+`python3 sw/wrfuzz_wr1_guard.py` · baseline
+`sw/testdata/wrfuzz/w6_wr1_guard_baseline.json` (sha256
+`bf6ea3a60d415a1262b7a6c782c941570f07e5e048cfedd47aadc3c2681275f8`) ·
+instrument `sw/w32_launch.py` · population the **380 retained `wr1` captures**,
+a DERIVATION of the committed `sw/testdata/campaigns/wr1/` rebuilt on demand by
+`python3 sw/wrfuzz_w2.py seeds` (ledger §3.4a / §3.10).
+
+**Registered at the campaign's close because the campaign closed with three
+landings in the tree and nothing in the tree guarding them at seed level.**
+Codex's closing review named the gap; this is what was built for it.
+
+| clause | bar |
+|---|---|
+| 1 | **model ≥ 84 / 184** |
+| 2 | **`ucore` ≥ 91 / 184** |
+| 3 | **ZERO previously-exact `wr1` seeds lost** — no seed exact in the baseline may be non-exact |
+| 4 | **ZERO first divergences moved earlier** — no scored seed's `first_bad` may decrease |
+| (integrity) | the scored denominator is still **184**; an exclusion that moved would make 1-3 unreadable |
+
+**PROVEN GREEN AT REGISTRATION, both legs, all four clauses, rc=0** — model
+**84 / 184**, `ucore` **91 / 184**, 0 lost, 0 moved earlier, denominator 184.
+The `ucore` leg additionally reproduces W3.5's own §8.7a dump seed for seed.
+
+⚠ **WHAT THIS GUARD IS NOT, AND THE DISTINCTION IS THE WHOLE REASON IT IS
+WORDED THIS WAY.**
+
+* **It is not a silicon-match rate.**  The 184 is the retained-and-scored
+  subset of the 380 captures and that subset is **DIVERGENT BY CONSTRUCTION**;
+  84 and 91 are **ATTRIBUTION** figures, exactly as the `wr1` baseline table
+  below says every time it quotes them.
+* **It is not a ranking of the two engines.**  No delta between the legs is
+  computed here or anywhere.
+* **It is not a new sample, and it does not re-claim the 90.0170 %.**  W4's
+  `T` = 90.0170 % is a **FIRST REGISTRATION on a population that is now spent**
+  — the tranche was frozen, drawn and scored ONCE, a second run of the same
+  seeds is not a second sample, and **nothing is ratcheted to 90.0170 %**.  This
+  guard runs OFFLINE, touches no board, and says nothing whatever about that
+  number.  **Quoting a green run of this guard as evidence about the silicon
+  match rate is exactly the laundering it is written to prevent.**
+
 #### **W2 REGISTERED THE wr1 COLUMNS.  THEY ARE THE SURVEY BASELINE, NOT RATCHETS (2026-08-05).**
 
 `docs/notes/wrfuzz_survey_2026-08-05.md`; ledger `wrfuzz_provenance.md` §3.
@@ -733,9 +777,9 @@ here so the next sitting quotes a number that exists rather than a memory.
 | `wr1` hardware-vs-silicon, **pooled** | **2,379 / 2,515 = 94.59 %** | the `ucore` IN FABRIC (FLASH #10 `1a01a6975e4a…`) against the socketed chip, 3,150-seed corpus, **635 excluded by the pre-registered OPEN_BUS detector**.  Name the bitstream and the exclusion or do not quote it |
 | **`S`** — the unweighted mean of the 28 per-stratum rates | **91.6681 % — FROZEN** | the victory bar's input.  **May not be re-derived after the tranche is scored** (plan §5) |
 | **`B = S − 5.0`** | **86.6681 % — FROZEN** | the bar.  Converted to a whole seed count on the tranche's own scored denominator, rounded DOWN, at the victory sitting |
-| the `ucore`'s `wr1` residue | **136 seeds**, `PF_LOST` 43 · `SCHEDULE` 42 · `DATA_SEQ` 23 · `PF_GAINED` 18 · `PIN` 7 · `PF_ADDR` 2, **catch-all EMPTY** | the FABRIC census (`wrfuzz_w2.py fabric`); the TB census is identical cell for cell |
+| the `ucore`'s `wr1` residue | **136 seeds**, `PF_LOST` 43 · `SCHEDULE` 42 · `DATA_SEQ` 23 · `PF_GAINED` 18 · `PIN` 7 · `PF_ADDR` 2 · `NOW_EXACT` 1, **catch-all EMPTY** | the FABRIC census (`wrfuzz_w2.py fabric`); the TB census is identical cell for cell.  ⚠ **The `NOW_EXACT` member was missing from this row until the wrfuzz W6 finalization discharged it** — the six families summed to 135 against a labelled 136.  The census arithmetic was always right (survey §3.1: *"136 scored misses, 135 classified"*); the quick-reference row was incomplete |
 | the `ucore`-**only** `wr1` residue | **5 seeds**, all family `PIN` | complete (every fabric miss has rows retained).  The model-only column is a **floor of 6** and is not |
-| the two OFFLINE legs | **model 84 / 184 SINCE wrfuzz W3.4, `ucore` TB 91 / 184 SINCE wrfuzz W3.5** (they were 48 and 49) | ⚠ **ATTRIBUTION ONLY, AND STILL THE SURVEY BASELINE MOVING -- NOT A RATCHET.**  The `ucore` move is `wrfuzz_provenance.md` §8's take-clock leg: **77 -> 91, 14 gained, 0 lost, 0 first divergences moved earlier, 31 moved LATER**, and **13 of the 14 are P1 seeds** (the 23-seed `n_ins = +1` class goes to **0**).  ⚠ Its entry PARTITION moved with it -- `SAME_BOUNDARY` 45 -> 15, `DIFF_BOUNDARY` 7 -> 20, `NO_ENTRY_DIFF` 118 -> 135 -- and that is §7.7's shape: an ATTRIBUTION counter over a divergent-by-construction subset, deliberately NOT registered as a bar this time.  Before that, the move was `wrfuzz_provenance.md` §4's recognition-shadow landing: +25 model, +28 `ucore`, **0 lost, 0 first divergences moved earlier**, and all 28 `ucore` gains are in the shadow's own DIFF_BOUNDARY class (50 -> 22 remaining).  The hardware-vs-silicon columns above are UNCHANGED -- they are FLASH #10 figures and no board was touched.  ⚠ **ATTRIBUTION ONLY.**  The 184 is a divergent-by-construction subset of the 380 retained captures.  **Never a silicon-match rate and never a ranking** |
+| the two OFFLINE legs | **model 84 / 184 SINCE wrfuzz W3.4, `ucore` TB 91 / 184 SINCE wrfuzz W3.5** (they were 48 and 49) | ⚠ **ATTRIBUTION ONLY, AND STILL THE SURVEY BASELINE MOVING -- NOT A RATCHET.**  The `ucore` move is `wrfuzz_provenance.md` §8's take-clock leg: **77 -> 91, 14 gained, 0 lost, 0 first divergences moved earlier, 31 moved LATER**, and **13 of the 14 are P1 seeds** (the 23-seed `n_ins = +1` class goes to **0**).  ⚠ Its entry PARTITION moved with it -- `SAME_BOUNDARY` 45 -> 15, `DIFF_BOUNDARY` 7 -> 20, `NO_ENTRY_DIFF` 118 -> 135 -- and that is §7.7's shape: an ATTRIBUTION counter over a divergent-by-construction subset, deliberately NOT registered as a bar this time.  Before that, the move was `wrfuzz_provenance.md` §4's recognition-shadow landing: +25 model, +28 `ucore`, **0 lost, 0 first divergences moved earlier**, and all 28 `ucore` gains are in the shadow's own DIFF_BOUNDARY class (50 -> 22 remaining).  The hardware-vs-silicon columns above are UNCHANGED -- they are FLASH #10 figures and no board was touched.  ⚠ **ATTRIBUTION ONLY.**  The 184 is a divergent-by-construction subset of the 380 retained captures.  **Never a silicon-match rate and never a ranking**.  ⚠ **SINCE W6 THESE TWO COLUMNS ARE GUARDED** — `sw/wrfuzz_wr1_guard.py`, above — **as an IMPLEMENTATION guard and under exactly the labels in this cell** |
 | INTA rows in `wr1` | **0 over 380 retained captures** | plan §4's registered **risk #4**, answered by measurement: §56's fabric-float class has no members in an evt-free corpus |
 | 8080 class-A in `wr1` | **12 of 136 scored misses**, all raw — **ENTRY PATH ESTABLISHED at wrfuzz W3.1** (`wrfuzz_provenance.md` §4.8a): the `0F` page's PLA falls through to `BRKEM` on its undecoded second bytes, so 10 of the 12 return from a `0F xx imm8` whose `imm8` IS the vector read, and none of the ten second bytes is `FF`.  **A CORE question, not a generator one** | on a corpus with **0 `0F FF` pairs in 3,150 images**.  COUNTED, never filtered; DEFERRED BY USER DECISION; left in the denominator |
 
@@ -751,7 +795,10 @@ one used.  Ledger §3.4 **F-8**.
 ⚠ **AND THE NINE CONTROL STRATA DO NOT REPRODUCE ANY REMEMBERED COLUMN, BY
 MEASUREMENT.**  The promoted bank's per-wait-class figures are a SELECTION
 artefact (**100.0 % on six of nine soup classes**), and the mc1/mc2/t30
-campaigns carry **no era stamp on any of 20,203 lines**.  `wr1` is the first
+campaigns carry **no era stamp on any of 21,203 lines** (mc1 10,003 + mc2
+10,000 + t30-raw 1,000 + t30-brkem 200 — **four campaigns, not two**; this line
+read `20,203` until the wrfuzz W6 finalization discharged it, the erratum commit
+`f22f888feb` having reached the survey and the ledger and not this file).  `wr1` is the first
 unbiased, era-stamped, per-wait-class population measurement of the resident
 era.  **Do not compute a delta against either.**  Ledger §3.4 **F-10**.
 
