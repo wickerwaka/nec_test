@@ -627,6 +627,44 @@ sitting-11 IE-restore law and the sitting-12 R7′ structural pass.  First light
 and is superseded; the FSM A/B bitstream is still `nec_test.sof a4533dfef0…`.
 **A fabric figure taken on FLASH #5 may not be quoted against this tree.**
 
+### THE wrfuzz CAMPAIGN (task #38) — **NO GATE OF ITS OWN YET, AND ONE TOOL THAT MUST NOT BECOME ONE**
+
+Opened 2026-08-05 (`docs/notes/wrfuzz_campaign_plan.md`; ledger
+`docs/notes/wrfuzz_provenance.md`; corpus pre-registration
+`docs/notes/wrfuzz_corpus_prereg_2026-08-05.md`).  **W0 registered NO new gate
+and moved NO ratchet.**  Its two non-regression legs are the existing
+`timed_fuzz` columns and both measured their registered values exactly
+(**1,338 / 1,702** model, **1,557 / 1,702** `ucore`).
+
+⚠ **`sw/wrfuzz_smoke.py` IS NOT A GATE AND MAY NOT BE QUOTED AS ONE.**  It is
+the offline plumbing proof for the per-access wait-vector axis — *the waits the
+engine took, read off its own pin rows, are the waits the vector asked for* —
+and its 100.00 % says nothing whatever about silicon.  It caps its own
+population at 20 seeds and stamps `"nongate": true` into its report so the
+claim cannot be laundered.  Also not gates: `sw/wvec_shapes.py lint` and
+`fuzz_campaign lint --wvec-n N` are generation-only safety scans (the Phase-1
+lint's own class), and the smoke's engine-vs-engine row counts are
+OBSERVATIONS with their denominators printed.
+
+The campaign's victory bar is a **fresh stratified random-wait tranche scored
+IN FABRIC, hardware-versus-silicon**, with the number registered **from the
+W2 survey and never after** — the protocol is `wrfuzz_campaign_plan.md` §5.
+
+⚠ **A LIVE TRAP BOOKED BY W0 (F-4), because it will catch the next agent too.**
+`check_seq.CORE` is pinned to **`"fsm"`**, so **anything that reaches the TB
+through `check_seq.run_tb` runs the ARCHIVED FSM CORE** whatever `--core` the
+calling tool advertises — including **`fuzz_campaign run <cid> --tb-only`**.
+The pin is DELIBERATE (§60-63 of `check_seq.py`: the gates that go through it
+are the archived on-demand gates in §C, whose registered figures are FSM
+figures) and is **not changed**.  W0's own smoke tool asserted and printed the
+`ucore`'s receipt and then ran the FSM binary; it was caught by an unexpected
+`tb_v30_core/fsm` line appearing in `sw/testdata/receipts/verilator_binary.jsonl`,
+and **both legs read 100.00 %, so the bar would have passed either way.**  Ask
+`timed_fuzz.tb_bin(core)` for a binary you intend to run, and assert the path.
+Full account: `wrfuzz_provenance.md` §1.4 F-4.  ⚠ Deliberately **NOT** numbered
+in the incarnation count below — the count enumerates GATES, and this was a
+non-gate corrected in the sitting that wrote it.
+
 ---
 
 ## C. ARCHIVED — ON DEMAND (the FSM core)

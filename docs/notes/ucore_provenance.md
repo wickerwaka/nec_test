@@ -15133,3 +15133,17 @@ seeds plus 27 S16 `ARCH` cells, and nothing else.**
   residue were **not opened** — each is carried as its owner's named exclusion.
 * **No memory file was touched.  Codex was not launched** — the closing review
   is the coordinator's, against this census.
+
+---
+
+## SUCCESSOR — THIS LEDGER IS CLOSED AT §88
+
+The silicon-match phase closed with the user's acceptance of
+`docs/notes/sm3_verdict_2026-08-05.md` on 2026-08-05, and the user directed a
+successor campaign focused on **fuzz testing with random waits**.
+
+**That campaign's ledger is `docs/notes/wrfuzz_provenance.md`** (task #38); its
+plan is `docs/notes/wrfuzz_campaign_plan.md` and its corpus pre-registration is
+`docs/notes/wrfuzz_corpus_prereg_2026-08-05.md`.  Nothing above this line is
+modified by it: this file is CITED by the successor and is not appended to
+beyond this pointer.
