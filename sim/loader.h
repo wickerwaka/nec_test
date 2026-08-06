@@ -25,6 +25,12 @@ struct LoadResult {
     uint8_t ea_seg = kDS;
     bool preread = false;
     uint16_t pla = 0;
+    // W3.1: was this opcode byte read from the `0F` EXTENSION page?  The RTL
+    // carries the same bit as `ld_ext_n` and guards its own decode classes
+    // with it (`v30u_eu_step.svh`: `if (!ld_ext_n && pla3_sreg_mov(pv))`),
+    // because `out.opcode` on that page is the SECOND byte and collides with
+    // the native map.  Without it `0F 1F` reads as `POP DS`.
+    bool ext = false;
 };
 
 // Runs the prefix loop, fetches the opcode (and ModR/M + displacement),

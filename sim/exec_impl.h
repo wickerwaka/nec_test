@@ -260,6 +260,56 @@ private:
     // prediction.
     bool at_fire_boundary() const { return ext_fire() || brk_take_; }
     void note_boundary_reason() { brk_fired_ = brk_take_ && !ext_fire(); }
+    // W3.1 -- **THE RECOGNITION SHADOW, AND THE TRAP RIDES IT.**
+    //
+    // `hdl/rtl/ucore/v30u_eu.sv`'s `irq_shadow` -- "a segment-register write
+    // skips ONE boundary" -- has gated the MASKABLE/NMI recognition since the
+    // ucore existed, and §86.A booked its absence on the trap as a divergence
+    // with a falsifier written down: *"the trap is not shadowed behind a
+    // segment-register load ... silicon is documented to, this tree has no
+    // cell"*.  The cell is now the `wr1` corpus, and the falsifier FIRED.
+    //
+    // MEASURED, chip-side and engine-free (`sw/w31_shadow.py`), over 380
+    // captures / 3,411 chip vector-1 entries / 1,363 consecutive trap pairs.
+    // `grace` is instruction boundaries the part ran PAST between two traps;
+    // §84/§85 measured the storm cadence at 0 on 1,742 + 90 pairs:
+    //
+    //     MOV sreg   8C 8E      grace >= 1 on  69,  grace 0 on     0
+    //     POP sreg   07 17      grace >= 1 on   6,  grace 0 on     0
+    //     PUSH sreg  06 16      grace >= 1 on   0,  grace 0 on     5
+    //     LES/LDS    C4 C5      grace >= 1 on   0,  grace 0 on    11
+    //     everything else       grace >= 1 on   0,  grace 0 on 1,277
+    //
+    // NOT ONE EXCEPTION IN EITHER DIRECTION, over 195 other opcodes.  The one
+    // grace-2 pair is two consecutive `8E`s -- the shadow COMPOSING.
+    //
+    // **THE CLASS IS TWO MICROCODE ENTRIES, NOT A LIST OF OPCODES**, which is
+    // what makes it a mechanism and what makes the two negatives fall out:
+    //     00?.100011?0.00   8C 8E          `R -> M`     the MOV-sreg entry
+    //     00?.000??111.00   07 0F 17 1F    `OPR -> R`   the POP-sreg entry
+    //     00?.000??110.00   06 0E 16 1E    `R -> OPR`   PUSH sreg -- NOT it
+    //     C4 / C5 are their own entries                 LES/LDS  -- NOT it
+    // It is also why `8C`, a segment-register READ, shadows: it shares an
+    // entry with `8E`.  §84.7's write-derived rendering was already refuted in
+    // the RTL for exactly this reason; a per-ENTRY shadow gets it for free.
+    //
+    // The shadow gates the TAKE and nothing else -- the boundary still SAMPLES
+    // (`brk_retire` below is unchanged), which is `irq_shadow`'s own shape:
+    // it gates `irq_take`, never `irq_any`.
+    //
+    // *Falsifier*: any capture in which `PUSH` sreg or `LES`/`LDS` shows a
+    // grace >= 1, or in which a member of the two entries shows a grace of 0.
+    // ⚠ `ld.ext` is LOAD-BEARING and it was found by this landing's own A-1
+    // bar: on the `0F` page `ld.opcode` is the SECOND byte, so an unguarded
+    // `opcode == 0x1F` shadows `0F 1F` -- a different microcode entry
+    // entirely.  It made `wr1/207098`'s first divergence move EARLIER, which
+    // is what A-1 is for.  The RTL already guards its own copy the same way
+    // (`v30u_eu_step.svh`: `if (!ld_ext_n && pla3_sreg_mov(pv))`).
+    static bool sreg_shadow(const Machine& m, const LoadResult& ld) {
+        if (m.mode8080 || ld.ext) return false;   // other decode tables
+        return pla3::sreg_mov(ld.pla) ||
+               ld.opcode == 0x07 || ld.opcode == 0x17 || ld.opcode == 0x1F;
+    }
     // §85.2 — **THE BOUNDARY INSTANT IS ONE CLOCK PAST THE SUCCESSOR'S OPCODE
     // POP, AND THE TWO RETIRE PATHS DID NOT AGREE ABOUT THAT.**
     //
@@ -923,7 +973,11 @@ bool CpuT<Bus>::step() {
             brk_arm_ = (m_.psw & kFlagBRK) != 0 &&
                        (rise < 0 || biu_.clock() >= rise + brk_floor());
         }
-        brk_take_ = brk_arm_;
+        // W3.1: ...and an instruction of the shadow class does not let the
+        // trap be TAKEN at its own boundary.  The arm is untouched, so the
+        // take lands on the next one -- and two shadowing forms in a row
+        // defer it twice, which is the measured grace-2 pair.
+        brk_take_ = brk_arm_ && !sreg_shadow(m_, ld);
     }
     if (trace_) {
         std::fprintf(trace_,

@@ -283,6 +283,7 @@ LoadResult loader_decode(Machine& m, Bus& biu) {
     uint16_t v = ext ? pla3::kExt[b] : pla3::kNative[b];
     out.opcode = b;
     out.pla = v;
+    out.ext = ext;
 
     // --- ONE_BYTE_LOGIC: executed by the pre-decode logic, no microcode ----
     if (!ext && pla3::one_byte_logic(v)) {
