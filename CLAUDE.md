@@ -164,8 +164,9 @@ Values are monotone: never re-scored downward without a loud, itemized entry.)
   `sw/timed_ins_replay.py --raw` (rails 1312/1312, vs-chip 2624/2624),
   `sw/timed_wvec_gate.py` (88/88, +0.0 %), `sw/timed_lawcards.py`
   (**8 GREEN / 0 RED / 3 UNRESOLVED** — C6, C7, C11),
-  `sw/timed_fuzz.py --evt-replay` (REGISTERED **1,338/1,702**, EVT
-  **798/1,008**, COMBINED **2,136/2,710**, `INVALIDATED` **0** — RAISED at SM3
+  `sw/timed_fuzz.py --evt-replay` (REGISTERED **1,339/1,702**, EVT
+  **799/1,008**, COMBINED **2,138/2,710**, `INVALIDATED` **0** — RAISED again at
+  wrfuzz W3.1 (the trap rides the recognition shadow) after the SM3
   sitting 26 by the **ILLEGAL-FORM STALL** (`ucore_provenance.md` §87.A: `F` is
   the OPR interlock and at `mod == 3` it has nothing to wait for, so the EU
   parks; ONE predicate, no opcode named, swept exact over 8,192 forms), 65 seeds
@@ -178,7 +179,7 @@ Values are monotone: never re-scored downward without a loud, itemized entry.)
   **+417 when H1 landed** (SM3 sitting 2, the re-entry recognition floor) and
   **+2 when the IE-restore law replaced it** (sitting 11); see below),
   `sw/timed_fuzz.py --seeddir sw/testdata/t4/b2-tranche/seeds`
-  (**159/188** — RAISED from 154 at SM3 sitting 26 by the same landing; V5 is a
+  (**161/188** — RAISED to 161 at wrfuzz W3.1, from 159 at SM3 sitting 26; V5 is a
   standing REGISTERED FAILURE, not to be re-opened).
 - **The `ucore`** (now the DEFAULT `--core`; these are the ucore's OWN ratchets,
   not the model's — see `ucore_provenance.md` §44 and §54.4):
@@ -196,8 +197,9 @@ Values are monotone: never re-scored downward without a loud, itemized entry.)
   `timed_wvec_gate.py --core ucore` **88/88, +0.0 %** (the FSM core is 71/88);
   `timed_enter_replay.py --core ucore` **154/154 x5**;
   `timed_ins_replay.py --core ucore --raw` **1,312/1,312** and **2,624/2,624**;
-  `timed_fuzz.py --core ucore --evt-replay` REGISTERED **1,557/1,702**, EVT
-  **931/1,008**, COMBINED **2,488/2,710** — **RAISED at SM3 SITTING 26 by the
+  `timed_fuzz.py --core ucore --evt-replay` REGISTERED **1,559/1,702**, EVT
+  **934/1,008**, COMBINED **2,493/2,710** — **RAISED at wrfuzz W3.1 (the
+  recognition-shadow law, +28 wr1 DIFF_BOUNDARY seeds) after SM3 SITTING 26's
   ILLEGAL-FORM STALL** (`ucore_provenance.md` **§87.A**, the SAME predicate as
   the model's leg: ONE new wire beside `f_wait` plus ONE flop, `opr_loaded`,
   SS-mapped at `0x175`; **66 seeds gained, ZERO lost over all 3,242** — all 34
@@ -220,7 +222,7 @@ Values are monotone: never re-scored downward without a loud, itemized entry.)
   below**; as banked it appeared to lose by 517, which was INV-1, now CLOSED by
   the SM2 re-capture; 910→913 = the IE law's +2 at sitting 11 + F53's +1 at
   sitting 16), COMBINED **2,403/2,710**,
-  and `--seeddir …/b2-tranche/seeds` **177/188** (the sim is 159) — RAISED from
+  and `--seeddir …/b2-tranche/seeds` **181/188** (the sim is 161) — RAISED at wrfuzz W3.1, previously from
   172 at SM3 sitting 26 by the illegal-form stall.
   REGISTERED / EVT / COMBINED / b2 were **1,483 / 906 / 2,389 / 171** until
   **SM3 sitting 6** (`ucore_provenance.md` §66-§67) raised them by fixing a
