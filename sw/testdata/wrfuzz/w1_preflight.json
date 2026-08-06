@@ -2,9 +2,24 @@
  "stage": "W1 preflight",
  "cid": "wr1",
  "host": "root@mister-nec",
- "ts": "2026-08-06T03:57:26Z",
- "div_guards": [],
- "uptime": "03:57:26  up 24 days  8:23,  0 users,  load average: 0.01, 0.00, 0.01",
+ "ts": "2026-08-06T03:58:44Z",
+ "div_guards": [
+  {
+   "tag": "preflight",
+   "readback": "div=8 (4 MHz), commanded by this connection",
+   "state": "PINNED",
+   "rig": "WRAND=0 replay=0 (commanded clean at connect, OK/OK)",
+   "ts": "2026-08-06T03:58:49Z"
+  },
+  {
+   "tag": "preflight-end",
+   "readback": "div=8 (4 MHz), commanded by this connection",
+   "state": "PINNED",
+   "rig": "WRAND=0 replay=0 (commanded clean at connect, OK/OK)",
+   "ts": "2026-08-06T03:58:49Z"
+  }
+ ],
+ "uptime": "03:58:44  up 24 days  8:24,  0 users,  load average: 0.00, 0.00, 0.00",
  "board_procs": [],
  "single_writer": "OK",
  "local_serve_procs": [],
@@ -33,7 +48,7 @@
    "n_files": 88,
    "label": "SM3 s27 FLASH#10 RETENTION build (recorded, not the gate)"
   },
-  "gen_git": "622c3f15d2",
+  "gen_git": "4665a04e64",
   "rig_evt_hold_bits": 12,
   "rules_version": "1.0"
  },
@@ -238,6 +253,17 @@
   ],
   "hits": 0,
   "seeds": 168
+ },
+ "check_ab_hw": {
+  "rc": 0,
+  "tail": [
+   "== chip position (use_core=0): boot vs golden ==",
+   "chip-vs-golden: MATCH over 187 rows",
+   "",
+   "== core position (use_core=1): boot ==",
+   "core-vs-chip:   MATCH over 187 rows",
+   "core-vs-golden: MATCH over 187 rows"
+  ]
  },
  "verdict": "OK"
 }

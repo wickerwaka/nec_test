@@ -1,0 +1,489 @@
+{
+ "stage": "W1 capture",
+ "cid": "wr1",
+ "host": "root@mister-nec",
+ "started": "2026-08-06T03:59:02Z",
+ "strata": [
+  {
+   "i": 0,
+   "stratum": "soup/fix0",
+   "k_lo": 200000,
+   "n": 150,
+   "written": 150,
+   "rc": 0,
+   "seconds": 13.9,
+   "rate": 10.79
+  },
+  {
+   "i": 1,
+   "stratum": "soup/fix1",
+   "k_lo": 201000,
+   "n": 150,
+   "written": 150,
+   "rc": 0,
+   "seconds": 13.9,
+   "rate": 10.79
+  },
+  {
+   "i": 2,
+   "stratum": "soup/fix2",
+   "k_lo": 202000,
+   "n": 150,
+   "written": 150,
+   "rc": 0,
+   "seconds": 13.8,
+   "rate": 10.88
+  },
+  {
+   "i": 3,
+   "stratum": "soup/fix3",
+   "k_lo": 203000,
+   "n": 150,
+   "written": 150,
+   "rc": 0,
+   "seconds": 13.8,
+   "rate": 10.83
+  },
+  {
+   "i": 4,
+   "stratum": "soup/wrand1",
+   "k_lo": 204000,
+   "n": 150,
+   "written": 150,
+   "rc": 0,
+   "seconds": 13.7,
+   "rate": 10.94
+  },
+  {
+   "i": 5,
+   "stratum": "soup/wrand2",
+   "k_lo": 205000,
+   "n": 150,
+   "written": 150,
+   "rc": 0,
+   "seconds": 14.3,
+   "rate": 10.48
+  },
+  {
+   "i": 6,
+   "stratum": "soup/wrand3",
+   "k_lo": 206000,
+   "n": 150,
+   "written": 150,
+   "rc": 0,
+   "seconds": 14.3,
+   "rate": 10.53
+  },
+  {
+   "i": 7,
+   "stratum": "soup/wrand7",
+   "k_lo": 207000,
+   "n": 150,
+   "written": 150,
+   "rc": 0,
+   "seconds": 14.0,
+   "rate": 10.75
+  },
+  {
+   "i": 8,
+   "stratum": "soup/wrand15",
+   "k_lo": 208000,
+   "n": 150,
+   "written": 150,
+   "rc": 0,
+   "seconds": 14.1,
+   "rate": 10.63
+  },
+  {
+   "i": 9,
+   "stratum": "soup/wvec-uni",
+   "k_lo": 209000,
+   "n": 150,
+   "written": 150,
+   "rc": 0,
+   "seconds": 18.6,
+   "rate": 8.06
+  },
+  {
+   "i": 10,
+   "stratum": "soup/wvec-walk",
+   "k_lo": 210000,
+   "n": 150,
+   "written": 150,
+   "rc": 0,
+   "seconds": 19.7,
+   "rate": 7.63
+  },
+  {
+   "i": 11,
+   "stratum": "soup/wvec-skew",
+   "k_lo": 211000,
+   "n": 150,
+   "written": 150,
+   "rc": 0,
+   "seconds": 17.8,
+   "rate": 8.44
+  },
+  {
+   "i": 12,
+   "stratum": "soup/wvec-burst",
+   "k_lo": 212000,
+   "n": 150,
+   "written": 150,
+   "rc": 0,
+   "seconds": 18.2,
+   "rate": 8.24
+  },
+  {
+   "i": 13,
+   "stratum": "soup/wvec-edge",
+   "k_lo": 213000,
+   "n": 150,
+   "written": 150,
+   "rc": 0,
+   "seconds": 18.0,
+   "rate": 8.31
+  },
+  {
+   "i": 14,
+   "stratum": "raw/fix0",
+   "k_lo": 214000,
+   "n": 75,
+   "written": 75,
+   "rc": 0,
+   "seconds": 11.4,
+   "rate": 6.58
+  },
+  {
+   "i": 15,
+   "stratum": "raw/fix1",
+   "k_lo": 215000,
+   "n": 75,
+   "written": 75,
+   "rc": 0,
+   "seconds": 10.9,
+   "rate": 6.91
+  },
+  {
+   "i": 16,
+   "stratum": "raw/fix2",
+   "k_lo": 216000,
+   "n": 75,
+   "written": 75,
+   "rc": 0,
+   "seconds": 10.1,
+   "rate": 7.39
+  },
+  {
+   "i": 17,
+   "stratum": "raw/fix3",
+   "k_lo": 217000,
+   "n": 75,
+   "written": 75,
+   "rc": 0,
+   "seconds": 10.8,
+   "rate": 6.95
+  },
+  {
+   "i": 18,
+   "stratum": "raw/wrand1",
+   "k_lo": 218000,
+   "n": 75,
+   "written": 75,
+   "rc": 0,
+   "seconds": 11.7,
+   "rate": 6.4
+  },
+  {
+   "i": 19,
+   "stratum": "raw/wrand2",
+   "k_lo": 219000,
+   "n": 75,
+   "written": 75,
+   "rc": 0,
+   "seconds": 11.7,
+   "rate": 6.43
+  },
+  {
+   "i": 20,
+   "stratum": "raw/wrand3",
+   "k_lo": 220000,
+   "n": 75,
+   "written": 75,
+   "rc": 0,
+   "seconds": 12.1,
+   "rate": 6.19
+  },
+  {
+   "i": 21,
+   "stratum": "raw/wrand7",
+   "k_lo": 221000,
+   "n": 75,
+   "written": 75,
+   "rc": 0,
+   "seconds": 10.0,
+   "rate": 7.47
+  },
+  {
+   "i": 22,
+   "stratum": "raw/wrand15",
+   "k_lo": 222000,
+   "n": 75,
+   "written": 75,
+   "rc": 0,
+   "seconds": 10.1,
+   "rate": 7.44
+  },
+  {
+   "i": 23,
+   "stratum": "raw/wvec-uni",
+   "k_lo": 223000,
+   "n": 75,
+   "written": 75,
+   "rc": 0,
+   "seconds": 12.7,
+   "rate": 5.89
+  },
+  {
+   "i": 24,
+   "stratum": "raw/wvec-walk",
+   "k_lo": 224000,
+   "n": 75,
+   "written": 75,
+   "rc": 0,
+   "seconds": 14.0,
+   "rate": 5.35
+  },
+  {
+   "i": 25,
+   "stratum": "raw/wvec-skew",
+   "k_lo": 225000,
+   "n": 75,
+   "written": 75,
+   "rc": 0,
+   "seconds": 13.6,
+   "rate": 5.51
+  },
+  {
+   "i": 26,
+   "stratum": "raw/wvec-burst",
+   "k_lo": 226000,
+   "n": 75,
+   "written": 75,
+   "rc": 0,
+   "seconds": 14.4,
+   "rate": 5.22
+  },
+  {
+   "i": 27,
+   "stratum": "raw/wvec-edge",
+   "k_lo": 227000,
+   "n": 75,
+   "written": 75,
+   "rc": 0,
+   "seconds": 12.5,
+   "rate": 6.02
+  }
+ ],
+ "div_guards": [
+  {
+   "tag": "stratum00-soup/fix0",
+   "readback": "div=8 (4 MHz), commanded by this connection",
+   "state": "PINNED",
+   "rig": "WRAND=0 replay=0 (commanded clean at connect, OK/OK)",
+   "ts": "2026-08-06T03:59:02Z"
+  },
+  {
+   "tag": "stratum01-soup/fix1",
+   "readback": "div=8 (4 MHz), commanded by this connection",
+   "state": "PINNED",
+   "rig": "WRAND=0 replay=0 (commanded clean at connect, OK/OK)",
+   "ts": "2026-08-06T03:59:16Z"
+  },
+  {
+   "tag": "stratum02-soup/fix2",
+   "readback": "div=8 (4 MHz), commanded by this connection",
+   "state": "PINNED",
+   "rig": "WRAND=0 replay=0 (commanded clean at connect, OK/OK)",
+   "ts": "2026-08-06T03:59:30Z"
+  },
+  {
+   "tag": "stratum03-soup/fix3",
+   "readback": "div=8 (4 MHz), commanded by this connection",
+   "state": "PINNED",
+   "rig": "WRAND=0 replay=0 (commanded clean at connect, OK/OK)",
+   "ts": "2026-08-06T03:59:44Z"
+  },
+  {
+   "tag": "stratum04-soup/wrand1",
+   "readback": "div=8 (4 MHz), commanded by this connection",
+   "state": "PINNED",
+   "rig": "WRAND=0 replay=0 (commanded clean at connect, OK/OK)",
+   "ts": "2026-08-06T03:59:58Z"
+  },
+  {
+   "tag": "stratum05-soup/wrand2",
+   "readback": "div=8 (4 MHz), commanded by this connection",
+   "state": "PINNED",
+   "rig": "WRAND=0 replay=0 (commanded clean at connect, OK/OK)",
+   "ts": "2026-08-06T04:00:12Z"
+  },
+  {
+   "tag": "stratum06-soup/wrand3",
+   "readback": "div=8 (4 MHz), commanded by this connection",
+   "state": "PINNED",
+   "rig": "WRAND=0 replay=0 (commanded clean at connect, OK/OK)",
+   "ts": "2026-08-06T04:00:26Z"
+  },
+  {
+   "tag": "stratum07-soup/wrand7",
+   "readback": "div=8 (4 MHz), commanded by this connection",
+   "state": "PINNED",
+   "rig": "WRAND=0 replay=0 (commanded clean at connect, OK/OK)",
+   "ts": "2026-08-06T04:00:40Z"
+  },
+  {
+   "tag": "stratum08-soup/wrand15",
+   "readback": "div=8 (4 MHz), commanded by this connection",
+   "state": "PINNED",
+   "rig": "WRAND=0 replay=0 (commanded clean at connect, OK/OK)",
+   "ts": "2026-08-06T04:00:54Z"
+  },
+  {
+   "tag": "stratum09-soup/wvec-uni",
+   "readback": "div=8 (4 MHz), commanded by this connection",
+   "state": "PINNED",
+   "rig": "WRAND=0 replay=0 (commanded clean at connect, OK/OK)",
+   "ts": "2026-08-06T04:01:09Z"
+  },
+  {
+   "tag": "stratum10-soup/wvec-walk",
+   "readback": "div=8 (4 MHz), commanded by this connection",
+   "state": "PINNED",
+   "rig": "WRAND=0 replay=0 (commanded clean at connect, OK/OK)",
+   "ts": "2026-08-06T04:01:27Z"
+  },
+  {
+   "tag": "stratum11-soup/wvec-skew",
+   "readback": "div=8 (4 MHz), commanded by this connection",
+   "state": "PINNED",
+   "rig": "WRAND=0 replay=0 (commanded clean at connect, OK/OK)",
+   "ts": "2026-08-06T04:01:47Z"
+  },
+  {
+   "tag": "stratum12-soup/wvec-burst",
+   "readback": "div=8 (4 MHz), commanded by this connection",
+   "state": "PINNED",
+   "rig": "WRAND=0 replay=0 (commanded clean at connect, OK/OK)",
+   "ts": "2026-08-06T04:02:05Z"
+  },
+  {
+   "tag": "stratum13-soup/wvec-edge",
+   "readback": "div=8 (4 MHz), commanded by this connection",
+   "state": "PINNED",
+   "rig": "WRAND=0 replay=0 (commanded clean at connect, OK/OK)",
+   "ts": "2026-08-06T04:02:23Z"
+  },
+  {
+   "tag": "stratum14-raw/fix0",
+   "readback": "div=8 (4 MHz), commanded by this connection",
+   "state": "PINNED",
+   "rig": "WRAND=0 replay=0 (commanded clean at connect, OK/OK)",
+   "ts": "2026-08-06T04:02:41Z"
+  },
+  {
+   "tag": "stratum15-raw/fix1",
+   "readback": "div=8 (4 MHz), commanded by this connection",
+   "state": "PINNED",
+   "rig": "WRAND=0 replay=0 (commanded clean at connect, OK/OK)",
+   "ts": "2026-08-06T04:02:53Z"
+  },
+  {
+   "tag": "stratum16-raw/fix2",
+   "readback": "div=8 (4 MHz), commanded by this connection",
+   "state": "PINNED",
+   "rig": "WRAND=0 replay=0 (commanded clean at connect, OK/OK)",
+   "ts": "2026-08-06T04:03:04Z"
+  },
+  {
+   "tag": "stratum17-raw/fix3",
+   "readback": "div=8 (4 MHz), commanded by this connection",
+   "state": "PINNED",
+   "rig": "WRAND=0 replay=0 (commanded clean at connect, OK/OK)",
+   "ts": "2026-08-06T04:03:14Z"
+  },
+  {
+   "tag": "stratum18-raw/wrand1",
+   "readback": "div=8 (4 MHz), commanded by this connection",
+   "state": "PINNED",
+   "rig": "WRAND=0 replay=0 (commanded clean at connect, OK/OK)",
+   "ts": "2026-08-06T04:03:25Z"
+  },
+  {
+   "tag": "stratum19-raw/wrand2",
+   "readback": "div=8 (4 MHz), commanded by this connection",
+   "state": "PINNED",
+   "rig": "WRAND=0 replay=0 (commanded clean at connect, OK/OK)",
+   "ts": "2026-08-06T04:03:36Z"
+  },
+  {
+   "tag": "stratum20-raw/wrand3",
+   "readback": "div=8 (4 MHz), commanded by this connection",
+   "state": "PINNED",
+   "rig": "WRAND=0 replay=0 (commanded clean at connect, OK/OK)",
+   "ts": "2026-08-06T04:03:48Z"
+  },
+  {
+   "tag": "stratum21-raw/wrand7",
+   "readback": "div=8 (4 MHz), commanded by this connection",
+   "state": "PINNED",
+   "rig": "WRAND=0 replay=0 (commanded clean at connect, OK/OK)",
+   "ts": "2026-08-06T04:04:00Z"
+  },
+  {
+   "tag": "stratum22-raw/wrand15",
+   "readback": "div=8 (4 MHz), commanded by this connection",
+   "state": "PINNED",
+   "rig": "WRAND=0 replay=0 (commanded clean at connect, OK/OK)",
+   "ts": "2026-08-06T04:04:11Z"
+  },
+  {
+   "tag": "stratum23-raw/wvec-uni",
+   "readback": "div=8 (4 MHz), commanded by this connection",
+   "state": "PINNED",
+   "rig": "WRAND=0 replay=0 (commanded clean at connect, OK/OK)",
+   "ts": "2026-08-06T04:04:21Z"
+  },
+  {
+   "tag": "stratum24-raw/wvec-walk",
+   "readback": "div=8 (4 MHz), commanded by this connection",
+   "state": "PINNED",
+   "rig": "WRAND=0 replay=0 (commanded clean at connect, OK/OK)",
+   "ts": "2026-08-06T04:04:33Z"
+  },
+  {
+   "tag": "stratum25-raw/wvec-skew",
+   "readback": "div=8 (4 MHz), commanded by this connection",
+   "state": "PINNED",
+   "rig": "WRAND=0 replay=0 (commanded clean at connect, OK/OK)",
+   "ts": "2026-08-06T04:04:48Z"
+  },
+  {
+   "tag": "stratum26-raw/wvec-burst",
+   "readback": "div=8 (4 MHz), commanded by this connection",
+   "state": "PINNED",
+   "rig": "WRAND=0 replay=0 (commanded clean at connect, OK/OK)",
+   "ts": "2026-08-06T04:05:01Z"
+  },
+  {
+   "tag": "stratum27-raw/wvec-edge",
+   "readback": "div=8 (4 MHz), commanded by this connection",
+   "state": "PINNED",
+   "rig": "WRAND=0 replay=0 (commanded clean at connect, OK/OK)",
+   "ts": "2026-08-06T04:05:16Z"
+  }
+ ],
+ "board_seconds": 386.4,
+ "halted": null,
+ "finished": "2026-08-06T04:05:28Z"
+}

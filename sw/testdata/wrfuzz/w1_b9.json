@@ -1,0 +1,9382 @@
+{
+ "stage": "W1 B-9 stability",
+ "cid": "wr1",
+ "reps": 3,
+ "n_seeds": 158,
+ "alloc": {
+  "0": 8,
+  "1": 8,
+  "2": 8,
+  "3": 8,
+  "4": 7,
+  "5": 7,
+  "6": 7,
+  "7": 7,
+  "8": 7,
+  "9": 7,
+  "10": 7,
+  "11": 7,
+  "12": 7,
+  "13": 7,
+  "14": 4,
+  "15": 4,
+  "16": 4,
+  "17": 4,
+  "18": 4,
+  "19": 4,
+  "20": 4,
+  "21": 4,
+  "22": 4,
+  "23": 4,
+  "24": 4,
+  "25": 4,
+  "26": 4,
+  "27": 4
+ },
+ "started": "2026-08-06T04:05:41Z",
+ "div_guards": [
+  {
+   "tag": "b9-start",
+   "readback": "div=8 (4 MHz), commanded by this connection",
+   "state": "PINNED",
+   "rig": "WRAND=0 replay=0 (commanded clean at connect, OK/OK)",
+   "ts": "2026-08-06T04:05:41Z"
+  },
+  {
+   "tag": "b9-end",
+   "readback": "div=8 (4 MHz), commanded by this connection",
+   "state": "PINNED",
+   "rig": "WRAND=0 replay=0 (commanded clean at connect, OK/OK)",
+   "ts": "2026-08-06T04:06:50Z"
+  }
+ ],
+ "seeds": [
+  {
+   "i": 0,
+   "stratum": "soup/fix0",
+   "k": 200000,
+   "bad": 0,
+   "flick": 0,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 1088,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 1088,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 1088,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 1088,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    }
+   ],
+   "rows": "soup_200000_faa7d8a3f5e4.json.gz",
+   "sha256": "e68b8acf60ebb4658d8b14461cb3767c1015a15d6aa33551cacd06ba85129fb0"
+  },
+  {
+   "i": 0,
+   "stratum": "soup/fix0",
+   "k": 200018,
+   "bad": 0,
+   "flick": 0,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 716,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 716,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 716,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 716,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    }
+   ],
+   "rows": "soup_200018_faa7d8a3f5e4.json.gz",
+   "sha256": "125e9b8ac3232e46671c0c38cb779583e06a882614a14f57d420123650401b3c"
+  },
+  {
+   "i": 0,
+   "stratum": "soup/fix0",
+   "k": 200037,
+   "bad": 0,
+   "flick": 0,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 1208,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 1208,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 1208,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 1208,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    }
+   ],
+   "rows": "soup_200037_faa7d8a3f5e4.json.gz",
+   "sha256": "f0b8038395552ba53c5ed9182784c3a430df648cae6fe01790b044393d48067f"
+  },
+  {
+   "i": 0,
+   "stratum": "soup/fix0",
+   "k": 200056,
+   "bad": 0,
+   "flick": 0,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 1093,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 1093,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 1093,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 1093,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    }
+   ],
+   "rows": "soup_200056_faa7d8a3f5e4.json.gz",
+   "sha256": "68f164f737c049f9708f688f7bcc5903006f952471f6a24448ff991e951fd3b0"
+  },
+  {
+   "i": 0,
+   "stratum": "soup/fix0",
+   "k": 200075,
+   "bad": 0,
+   "flick": 0,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 947,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 947,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 947,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 947,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    }
+   ],
+   "rows": "soup_200075_faa7d8a3f5e4.json.gz",
+   "sha256": "d17ad65fe59e1699a83aecb869585fdac964dcf5b00f128a51ce153a60f584d2"
+  },
+  {
+   "i": 0,
+   "stratum": "soup/fix0",
+   "k": 200093,
+   "bad": 0,
+   "flick": 0,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 995,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 995,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 995,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 995,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    }
+   ],
+   "rows": "soup_200093_faa7d8a3f5e4.json.gz",
+   "sha256": "837a40a0c3723f2bd44f53cc65b956ccb3dd7f7b4a8fd65262d282a9b5240973"
+  },
+  {
+   "i": 0,
+   "stratum": "soup/fix0",
+   "k": 200112,
+   "bad": 0,
+   "flick": 0,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 812,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 812,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 812,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 812,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    }
+   ],
+   "rows": "soup_200112_faa7d8a3f5e4.json.gz",
+   "sha256": "5e29829b71df1300dc21d8c73b633890ae2e3b52ec759f31f9dc1c9dd786233c"
+  },
+  {
+   "i": 0,
+   "stratum": "soup/fix0",
+   "k": 200131,
+   "bad": 0,
+   "flick": 0,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 787,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 787,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 787,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 787,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    }
+   ],
+   "rows": "soup_200131_faa7d8a3f5e4.json.gz",
+   "sha256": "82fa3f0400cf42ae5da35c8563b38ac23aeefbc32e7686a6433d93b1700339a1"
+  },
+  {
+   "i": 1,
+   "stratum": "soup/fix1",
+   "k": 201000,
+   "bad": 0,
+   "flick": 0,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 1521,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 1521,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 1521,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 1521,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    }
+   ],
+   "rows": "soup_201000_78884439b985.json.gz",
+   "sha256": "ed784c7a7a2e31afbf75f49f73cf1d770ae20c37215de17baa9c1fd31d5dcb16"
+  },
+  {
+   "i": 1,
+   "stratum": "soup/fix1",
+   "k": 201018,
+   "bad": 0,
+   "flick": 0,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 1835,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 1835,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 1835,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 1835,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    }
+   ],
+   "rows": "soup_201018_78884439b985.json.gz",
+   "sha256": "d754ecfc7feb4ff53541c0afc3e9eddb19d9efdb8c32143405d8795ac9788cc5"
+  },
+  {
+   "i": 1,
+   "stratum": "soup/fix1",
+   "k": 201037,
+   "bad": 0,
+   "flick": 0,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 1287,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 1287,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 1287,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 1287,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    }
+   ],
+   "rows": "soup_201037_78884439b985.json.gz",
+   "sha256": "515f2524f453274480ab57552b3e1cb8aac0b97bbb5a670b60934ab91a4c1bd5"
+  },
+  {
+   "i": 1,
+   "stratum": "soup/fix1",
+   "k": 201056,
+   "bad": 0,
+   "flick": 0,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 846,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 846,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 846,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 846,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    }
+   ],
+   "rows": "soup_201056_78884439b985.json.gz",
+   "sha256": "49eef6fc955c13bb118dde1d0e2eb3efc4e260744b006aaaa498783cd2d31c9d"
+  },
+  {
+   "i": 1,
+   "stratum": "soup/fix1",
+   "k": 201075,
+   "bad": 0,
+   "flick": 0,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    }
+   ],
+   "rows": "soup_201075_78884439b985.json.gz",
+   "sha256": "8dfa4199d4f2b0b9bd8da766654af9b2c677851536fb6cd6272893a5fb8d0a56"
+  },
+  {
+   "i": 1,
+   "stratum": "soup/fix1",
+   "k": 201093,
+   "bad": 0,
+   "flick": 0,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 1208,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 1208,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 1208,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 1208,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    }
+   ],
+   "rows": "soup_201093_78884439b985.json.gz",
+   "sha256": "1441be30a2277d0516af3bfaa49d4f47db89d92fba058ac7bd51e48ab0213c04"
+  },
+  {
+   "i": 1,
+   "stratum": "soup/fix1",
+   "k": 201112,
+   "bad": 0,
+   "flick": 0,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 1766,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 1766,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 1766,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 1766,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    }
+   ],
+   "rows": "soup_201112_78884439b985.json.gz",
+   "sha256": "cf0fd1be94128798502f21f9b7373a9a9d1c022028f6c563e66e680b9ac465af"
+  },
+  {
+   "i": 1,
+   "stratum": "soup/fix1",
+   "k": 201131,
+   "bad": 0,
+   "flick": 0,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 1076,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 1076,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 1076,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 1076,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    }
+   ],
+   "rows": "soup_201131_78884439b985.json.gz",
+   "sha256": "5b1c9f33a28d91ddf7e408156dda9663d514eb9503185aa961d57a2372974ab4"
+  },
+  {
+   "i": 2,
+   "stratum": "soup/fix2",
+   "k": 202000,
+   "bad": 0,
+   "flick": 0,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    }
+   ],
+   "rows": "soup_202000_eb781f777d4d.json.gz",
+   "sha256": "c3eb6ae823dd01a96bce0488d50f2a72112683276665a1b9fce4f3c95f616e96"
+  },
+  {
+   "i": 2,
+   "stratum": "soup/fix2",
+   "k": 202018,
+   "bad": 0,
+   "flick": 0,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 1151,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 1151,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 1151,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 1151,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    }
+   ],
+   "rows": "soup_202018_eb781f777d4d.json.gz",
+   "sha256": "a7ef83d5640f878277811dc8f0033a81ebf12553bb5704bda8cf2e1363029197"
+  },
+  {
+   "i": 2,
+   "stratum": "soup/fix2",
+   "k": 202037,
+   "bad": 0,
+   "flick": 0,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 1586,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 1586,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 1586,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 1586,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    }
+   ],
+   "rows": "soup_202037_eb781f777d4d.json.gz",
+   "sha256": "3a408034dcb7ceb94497cb4138a31a4e75aa5fa73e31e680fbdecc62c2432438"
+  },
+  {
+   "i": 2,
+   "stratum": "soup/fix2",
+   "k": 202056,
+   "bad": 0,
+   "flick": 0,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 1167,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 1167,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 1167,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 1167,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    }
+   ],
+   "rows": "soup_202056_eb781f777d4d.json.gz",
+   "sha256": "a57fcc4afd81742352e2cc679a06632c8b5d54dec64730b15b36e8d663b95701"
+  },
+  {
+   "i": 2,
+   "stratum": "soup/fix2",
+   "k": 202075,
+   "bad": 0,
+   "flick": 0,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 1161,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 1161,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 1161,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 1161,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    }
+   ],
+   "rows": "soup_202075_eb781f777d4d.json.gz",
+   "sha256": "e7dd2fed85a567478507d764f35fed8fd5a54c2cd5f703a2275acadf44d41c32"
+  },
+  {
+   "i": 2,
+   "stratum": "soup/fix2",
+   "k": 202093,
+   "bad": 0,
+   "flick": 0,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 1286,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 1286,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 1286,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 1286,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    }
+   ],
+   "rows": "soup_202093_eb781f777d4d.json.gz",
+   "sha256": "157a617b7d0624d9f05a416487b5fc4fc137a27ec3190c659f6fc43673158c76"
+  },
+  {
+   "i": 2,
+   "stratum": "soup/fix2",
+   "k": 202112,
+   "bad": 0,
+   "flick": 0,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 1440,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 1440,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 1440,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 1440,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    }
+   ],
+   "rows": "soup_202112_eb781f777d4d.json.gz",
+   "sha256": "b6fdbd45e7b8085895300faf580f39bc1cca7c4916cd61bd4fbb98a4336d6351"
+  },
+  {
+   "i": 2,
+   "stratum": "soup/fix2",
+   "k": 202131,
+   "bad": 0,
+   "flick": 0,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 1138,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 1138,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 1138,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 1138,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    }
+   ],
+   "rows": "soup_202131_eb781f777d4d.json.gz",
+   "sha256": "538bf5abdeefb72a1e7a5c05bec929f0a4077080bc73028d38a5361a0f99d1a9"
+  },
+  {
+   "i": 3,
+   "stratum": "soup/fix3",
+   "k": 203000,
+   "bad": 0,
+   "flick": 0,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 1386,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 1386,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 1386,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 1386,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    }
+   ],
+   "rows": "soup_203000_548af91a4e22.json.gz",
+   "sha256": "47698bd553f905d802c7d26c41b3f49b5727a12a19dd42f65c6e3f9b8ec35df7"
+  },
+  {
+   "i": 3,
+   "stratum": "soup/fix3",
+   "k": 203018,
+   "bad": 0,
+   "flick": 0,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    }
+   ],
+   "rows": "soup_203018_548af91a4e22.json.gz",
+   "sha256": "c2cf03abd15992e25c628df2de4288a31183978f96b3e6f0c4b3f23d351114d2"
+  },
+  {
+   "i": 3,
+   "stratum": "soup/fix3",
+   "k": 203037,
+   "bad": 0,
+   "flick": 0,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 1610,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 1610,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 1610,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 1610,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    }
+   ],
+   "rows": "soup_203037_548af91a4e22.json.gz",
+   "sha256": "4e4ae11f40336072715d2396abb378a22ad9e402590c70a9e54cf67d4d78b022"
+  },
+  {
+   "i": 3,
+   "stratum": "soup/fix3",
+   "k": 203056,
+   "bad": 0,
+   "flick": 0,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 1499,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 1499,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 1499,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 1499,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    }
+   ],
+   "rows": "soup_203056_548af91a4e22.json.gz",
+   "sha256": "765985449e1c67c3c9f66ac20ec476e519f6ddc5b7c9c1cd45a138dc532f4cf9"
+  },
+  {
+   "i": 3,
+   "stratum": "soup/fix3",
+   "k": 203075,
+   "bad": 0,
+   "flick": 0,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 1062,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 1062,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 1062,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 1062,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    }
+   ],
+   "rows": "soup_203075_548af91a4e22.json.gz",
+   "sha256": "0397dbe311dc0621f070aa61bd2e5332809e71ee4e09a11dca48383143534cab"
+  },
+  {
+   "i": 3,
+   "stratum": "soup/fix3",
+   "k": 203093,
+   "bad": 0,
+   "flick": 0,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 1813,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 1813,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 1813,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 1813,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    }
+   ],
+   "rows": "soup_203093_548af91a4e22.json.gz",
+   "sha256": "3d8acc874b914f93c90fb3b75244460edc2ad5a3ffbea160d37a2ea5cfe6d30d"
+  },
+  {
+   "i": 3,
+   "stratum": "soup/fix3",
+   "k": 203112,
+   "bad": 0,
+   "flick": 0,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 1209,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 1209,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 1209,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 1209,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    }
+   ],
+   "rows": "soup_203112_548af91a4e22.json.gz",
+   "sha256": "781bc1f73e331ca465e24074bdfa3a8f4a6f85138cb84f411f50fa483ff6252d"
+  },
+  {
+   "i": 3,
+   "stratum": "soup/fix3",
+   "k": 203131,
+   "bad": 0,
+   "flick": 0,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 1453,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 1453,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 1453,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 1453,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    }
+   ],
+   "rows": "soup_203131_548af91a4e22.json.gz",
+   "sha256": "61495e8b8ea44d19ef524108a66b367985091f78f4579fc1231cef9ae8400a43"
+  },
+  {
+   "i": 4,
+   "stratum": "soup/wrand1",
+   "k": 204000,
+   "bad": 0,
+   "flick": 0,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 1196,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 1196,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 1196,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 1196,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    }
+   ],
+   "rows": "soup_204000_c36a598d4262.json.gz",
+   "sha256": "718ad05dedcf1dac4c5589ec5475ed39e8f57839ea322eebc6e739053815d4d2"
+  },
+  {
+   "i": 4,
+   "stratum": "soup/wrand1",
+   "k": 204021,
+   "bad": 0,
+   "flick": 0,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 936,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 936,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 936,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 936,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    }
+   ],
+   "rows": "soup_204021_e295682c6c78.json.gz",
+   "sha256": "7f65763bf21e11e0bc25cfa4f4af26a9cd1ac68244d2de4d08f26c1999c5b58a"
+  },
+  {
+   "i": 4,
+   "stratum": "soup/wrand1",
+   "k": 204042,
+   "bad": 0,
+   "flick": 0,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 892,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 892,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 892,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 892,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    }
+   ],
+   "rows": "soup_204042_29207ed0a4ba.json.gz",
+   "sha256": "9b0b43392e02bc24c009026db60619ad771e4a8b3635cc3fde89c583d0f4c443"
+  },
+  {
+   "i": 4,
+   "stratum": "soup/wrand1",
+   "k": 204064,
+   "bad": 0,
+   "flick": 0,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 1007,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 1007,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 1007,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 1007,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    }
+   ],
+   "rows": "soup_204064_d818748a49eb.json.gz",
+   "sha256": "b2fbfedefc530deaadfc193f3ceb2c2157a85151c4b0c34adb9a7017f2a26fb0"
+  },
+  {
+   "i": 4,
+   "stratum": "soup/wrand1",
+   "k": 204085,
+   "bad": 0,
+   "flick": 0,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 1366,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 1366,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 1366,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 1366,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    }
+   ],
+   "rows": "soup_204085_effed2f3c73e.json.gz",
+   "sha256": "48695f0d32ea73b0660133f9b4b315e72703e36b22021e91bcb3c151cb60bc64"
+  },
+  {
+   "i": 4,
+   "stratum": "soup/wrand1",
+   "k": 204107,
+   "bad": 0,
+   "flick": 0,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 1121,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 1121,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 1121,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 1121,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    }
+   ],
+   "rows": "soup_204107_cede056bd8de.json.gz",
+   "sha256": "2cd304db4476598757c7b5dd6bc3cb05a4fab9c9b79f43a222900326d3683cfe"
+  },
+  {
+   "i": 4,
+   "stratum": "soup/wrand1",
+   "k": 204128,
+   "bad": 0,
+   "flick": 0,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 836,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 836,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 836,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 836,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    }
+   ],
+   "rows": "soup_204128_9b473c27501f.json.gz",
+   "sha256": "650c9015fa3af81055f7fe4beb52dddd8105e6a60f35de58e8614fd25a52f2a5"
+  },
+  {
+   "i": 5,
+   "stratum": "soup/wrand2",
+   "k": 205000,
+   "bad": 0,
+   "flick": 0,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    }
+   ],
+   "rows": "soup_205000_8b3d917607b9.json.gz",
+   "sha256": "dfb2e006daf8e8f37a9050a6012c68f61d47d1b1b1114d4e8eda963afe078c9d"
+  },
+  {
+   "i": 5,
+   "stratum": "soup/wrand2",
+   "k": 205021,
+   "bad": 0,
+   "flick": 0,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 1259,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 1259,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 1259,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 1259,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    }
+   ],
+   "rows": "soup_205021_cbfa5a7cf10e.json.gz",
+   "sha256": "780a8212360a25b4b37b148ad3dc34328f2446057992b361e99b9f09dcace9d2"
+  },
+  {
+   "i": 5,
+   "stratum": "soup/wrand2",
+   "k": 205042,
+   "bad": 0,
+   "flick": 0,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 1476,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 1476,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 1476,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 1476,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    }
+   ],
+   "rows": "soup_205042_b40e6fd1daac.json.gz",
+   "sha256": "4ad95f1b38a88f33cfefa8bc163603db9b8561dcd266d9d6c69a37998af8be08"
+  },
+  {
+   "i": 5,
+   "stratum": "soup/wrand2",
+   "k": 205064,
+   "bad": 0,
+   "flick": 0,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 1696,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 1696,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 1696,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 1696,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    }
+   ],
+   "rows": "soup_205064_018007935093.json.gz",
+   "sha256": "e5e4be3c1bb3a2f8dea0c3868007c3e81e7c41bfc7b65a72d59c217fa3cf9018"
+  },
+  {
+   "i": 5,
+   "stratum": "soup/wrand2",
+   "k": 205085,
+   "bad": 0,
+   "flick": 0,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 1041,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 1041,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 1041,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 1041,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    }
+   ],
+   "rows": "soup_205085_b1966becf874.json.gz",
+   "sha256": "5963cc2357c8245390b4359f3698894b6e2f83e7f7692ab0167e62c974a5ec64"
+  },
+  {
+   "i": 5,
+   "stratum": "soup/wrand2",
+   "k": 205107,
+   "bad": 0,
+   "flick": 0,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 840,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 840,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 840,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 840,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    }
+   ],
+   "rows": "soup_205107_057970a100ee.json.gz",
+   "sha256": "66a436828921946e6adaac3fbd2ca7f7689fbd9078790df0b7ba4727cef1b27a"
+  },
+  {
+   "i": 5,
+   "stratum": "soup/wrand2",
+   "k": 205128,
+   "bad": 0,
+   "flick": 0,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 1321,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 1321,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 1321,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 1321,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    }
+   ],
+   "rows": "soup_205128_4451f5e1a2a4.json.gz",
+   "sha256": "ab94888cd2ad1cf9f9e99a794dbc0d00ea8e8b58a0687632a4ee5af22b0c2bd9"
+  },
+  {
+   "i": 6,
+   "stratum": "soup/wrand3",
+   "k": 206000,
+   "bad": 0,
+   "flick": 0,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 1435,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 1435,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 1435,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 1435,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    }
+   ],
+   "rows": "soup_206000_755b2ce5530b.json.gz",
+   "sha256": "0f3583b31d87aacc1c2a2de5b7cb30e53db7fe447d134a3b5bb47e019fee0028"
+  },
+  {
+   "i": 6,
+   "stratum": "soup/wrand3",
+   "k": 206021,
+   "bad": 0,
+   "flick": 0,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 1318,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 1318,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 1318,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 1318,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    }
+   ],
+   "rows": "soup_206021_29b66b0c83d7.json.gz",
+   "sha256": "54654005bd38d0faa25b89aca1ef9f231b9867418328a5e1d9e54f82cef0942d"
+  },
+  {
+   "i": 6,
+   "stratum": "soup/wrand3",
+   "k": 206042,
+   "bad": 0,
+   "flick": 0,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 1138,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 1138,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 1138,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 1138,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    }
+   ],
+   "rows": "soup_206042_f32987e62b33.json.gz",
+   "sha256": "de6fa9b7c1eab655412021ad43d5d9369b3c58fcafdcb019ce37c73b16871026"
+  },
+  {
+   "i": 6,
+   "stratum": "soup/wrand3",
+   "k": 206064,
+   "bad": 0,
+   "flick": 0,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 1309,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 1309,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 1309,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 1309,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    }
+   ],
+   "rows": "soup_206064_0a591055a8f2.json.gz",
+   "sha256": "decd63ed230ca688bd2e3963e0e7b500ff1e3180e2f538061a811d85bf16e9ed"
+  },
+  {
+   "i": 6,
+   "stratum": "soup/wrand3",
+   "k": 206085,
+   "bad": 0,
+   "flick": 0,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 1421,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 1421,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 1421,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 1421,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    }
+   ],
+   "rows": "soup_206085_4761ac562d61.json.gz",
+   "sha256": "a6b1658695728d811c54797b8cbdac5f7c66d55b4d48bc9a3b07f453fbcda236"
+  },
+  {
+   "i": 6,
+   "stratum": "soup/wrand3",
+   "k": 206107,
+   "bad": 0,
+   "flick": 0,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 1433,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 1433,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 1433,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 1433,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    }
+   ],
+   "rows": "soup_206107_9d80cf9a65e1.json.gz",
+   "sha256": "8aa3c5151aade5557b9c1d36baaee30efc6f5debcaecaf6b1e9902761defea3c"
+  },
+  {
+   "i": 6,
+   "stratum": "soup/wrand3",
+   "k": 206128,
+   "bad": 0,
+   "flick": 0,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 1317,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 1317,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 1317,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 1317,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    }
+   ],
+   "rows": "soup_206128_2746c53d139a.json.gz",
+   "sha256": "d5114537eeca9be463ba9b351e8b0069e2fc8837de6f4a15e667f5e3e0f70ce0"
+  },
+  {
+   "i": 7,
+   "stratum": "soup/wrand7",
+   "k": 207000,
+   "bad": 0,
+   "flick": 0,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 1479,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 1479,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 1479,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 1479,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    }
+   ],
+   "rows": "soup_207000_8ce89ba17ff9.json.gz",
+   "sha256": "f4c94baf7009afaaeef9a81a892ad7c78c9c3d32f1f03ed1af46d629e70428e3"
+  },
+  {
+   "i": 7,
+   "stratum": "soup/wrand7",
+   "k": 207021,
+   "bad": 0,
+   "flick": 0,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 1336,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 1336,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 1336,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 1336,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    }
+   ],
+   "rows": "soup_207021_8072798023cc.json.gz",
+   "sha256": "0729a3bf5d0632c2ea956b1ee26430d14c201e3cb2929f14f6088e0063af6516"
+  },
+  {
+   "i": 7,
+   "stratum": "soup/wrand7",
+   "k": 207042,
+   "bad": 0,
+   "flick": 0,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 1106,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 1106,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 1106,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 1106,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    }
+   ],
+   "rows": "soup_207042_50b4cb8a1cae.json.gz",
+   "sha256": "9aeebf2f8dfd13e116ea3d1fa98b00eca7b3fd493a78bebd8c10cc9f2c412a8e"
+  },
+  {
+   "i": 7,
+   "stratum": "soup/wrand7",
+   "k": 207064,
+   "bad": 0,
+   "flick": 0,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 1174,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 1174,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 1174,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 1174,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    }
+   ],
+   "rows": "soup_207064_5756f07a1438.json.gz",
+   "sha256": "14ad9f0699b3bd768d05881342fe13baecad55b3251ed1b9c3f37daa2c5304b3"
+  },
+  {
+   "i": 7,
+   "stratum": "soup/wrand7",
+   "k": 207085,
+   "bad": 0,
+   "flick": 0,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 1470,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 1470,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 1470,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 1470,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    }
+   ],
+   "rows": "soup_207085_a829d94ca393.json.gz",
+   "sha256": "0b53fd7152fa818fbf2f97313e6ec8278192d76b6a83eabc3dd919984b5527fa"
+  },
+  {
+   "i": 7,
+   "stratum": "soup/wrand7",
+   "k": 207107,
+   "bad": 0,
+   "flick": 0,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 1315,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 1315,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 1315,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 1315,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    }
+   ],
+   "rows": "soup_207107_2b5612536abd.json.gz",
+   "sha256": "f05dc984d912279f03aa275c9e742e735fc80e7dea5a3ece1197ab54bd52b080"
+  },
+  {
+   "i": 7,
+   "stratum": "soup/wrand7",
+   "k": 207128,
+   "bad": 0,
+   "flick": 0,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 1362,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 1362,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 1362,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 1362,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    }
+   ],
+   "rows": "soup_207128_700aff911635.json.gz",
+   "sha256": "02b8917a20e9b34c3cfbdf55e477c56f2f818c2605ea131eeed99edd87587434"
+  },
+  {
+   "i": 8,
+   "stratum": "soup/wrand15",
+   "k": 208000,
+   "bad": 0,
+   "flick": 0,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 1956,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 1956,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 1956,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 1956,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    }
+   ],
+   "rows": "soup_208000_9b5ecc729052.json.gz",
+   "sha256": "c1e8770215ebd8e7e905852e9e61a22de4b1a759a94593e2af595ca91ffb4b66"
+  },
+  {
+   "i": 8,
+   "stratum": "soup/wrand15",
+   "k": 208021,
+   "bad": 0,
+   "flick": 0,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 1945,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 1945,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 1945,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 1945,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    }
+   ],
+   "rows": "soup_208021_688f5926bd00.json.gz",
+   "sha256": "32d221e367fb90da5474d6d1cfe4b45c941d547b0f49b63c0accf406656d56bf"
+  },
+  {
+   "i": 8,
+   "stratum": "soup/wrand15",
+   "k": 208042,
+   "bad": 0,
+   "flick": 0,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 1810,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 1810,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 1810,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 1810,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    }
+   ],
+   "rows": "soup_208042_bbbf9623f70b.json.gz",
+   "sha256": "30af469c5e78539dc7ebebc552ebb5098e65dca35c7c32428e7e2fb2224c3cfc"
+  },
+  {
+   "i": 8,
+   "stratum": "soup/wrand15",
+   "k": 208064,
+   "bad": 0,
+   "flick": 0,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 2157,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 2157,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 2157,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 2157,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    }
+   ],
+   "rows": "soup_208064_4a401f13c69b.json.gz",
+   "sha256": "136f2ea68f716fe11bd7982127d3c2ceebd450fecc404d5c39f18440ec971d0b"
+  },
+  {
+   "i": 8,
+   "stratum": "soup/wrand15",
+   "k": 208085,
+   "bad": 0,
+   "flick": 0,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 1785,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 1785,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 1785,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 1785,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    }
+   ],
+   "rows": "soup_208085_80e07ca349f3.json.gz",
+   "sha256": "611779f25f0ceea6971fd57d8e4dab91fe4bd98c852ef976101313f946c75f5b"
+  },
+  {
+   "i": 8,
+   "stratum": "soup/wrand15",
+   "k": 208107,
+   "bad": 0,
+   "flick": 0,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 2119,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 2119,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 2119,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 2119,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    }
+   ],
+   "rows": "soup_208107_fdd03c38fece.json.gz",
+   "sha256": "5cc95a9d949d38c576f9b041bbe52bbf953f55d6ff6b63d319913e00a651e978"
+  },
+  {
+   "i": 8,
+   "stratum": "soup/wrand15",
+   "k": 208128,
+   "bad": 0,
+   "flick": 0,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 2256,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 2256,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 2256,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 2256,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    }
+   ],
+   "rows": "soup_208128_94c01c1c3d44.json.gz",
+   "sha256": "9169fedbafd3bae9766e01342e26286ba61a4b881012a5fb8b3cb9611c8730ca"
+  },
+  {
+   "i": 9,
+   "stratum": "soup/wvec-uni",
+   "k": 209000,
+   "bad": 0,
+   "flick": 0,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 1432,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 1432,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 1432,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 1432,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    }
+   ],
+   "rows": "soup_209000_c158ff02ab9c.json.gz",
+   "sha256": "6cc7b95bdb906a31a990cfb555159bd5238d6b958473a3c261a7f378f335a8f4"
+  },
+  {
+   "i": 9,
+   "stratum": "soup/wvec-uni",
+   "k": 209021,
+   "bad": 0,
+   "flick": 0,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 1418,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 1418,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 1418,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 1418,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    }
+   ],
+   "rows": "soup_209021_367f2abfc939.json.gz",
+   "sha256": "8798c8822b3f239476c925f16f367ce211357cfec7f3031bf8c6fa741e38fbae"
+  },
+  {
+   "i": 9,
+   "stratum": "soup/wvec-uni",
+   "k": 209042,
+   "bad": 0,
+   "flick": 0,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 1445,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 1445,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 1445,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 1445,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    }
+   ],
+   "rows": "soup_209042_fd8be64183ea.json.gz",
+   "sha256": "c13eddaafb0fc953a5efa84a7d0eb84a71c422faa2da98736125407b58282481"
+  },
+  {
+   "i": 9,
+   "stratum": "soup/wvec-uni",
+   "k": 209064,
+   "bad": 0,
+   "flick": 0,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 1249,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 1249,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 1249,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 1249,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    }
+   ],
+   "rows": "soup_209064_798ce0f24c36.json.gz",
+   "sha256": "03c79daab9ac0642e1141c42ec149d4a601ed5da27e08372caefdc3f7c7aa89c"
+  },
+  {
+   "i": 9,
+   "stratum": "soup/wvec-uni",
+   "k": 209085,
+   "bad": 0,
+   "flick": 0,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 1117,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 1117,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 1117,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 1117,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    }
+   ],
+   "rows": "soup_209085_39ca134fcefa.json.gz",
+   "sha256": "b13404d71e3b3cd44927685f23052489b0e92ad81c1037237c39a03703bde574"
+  },
+  {
+   "i": 9,
+   "stratum": "soup/wvec-uni",
+   "k": 209107,
+   "bad": 0,
+   "flick": 0,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 2311,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 2311,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 2311,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 2311,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    }
+   ],
+   "rows": "soup_209107_c4638b5ed36b.json.gz",
+   "sha256": "22f14dc5a6f17483fcb9b40c1da2b71aabdb0d9d99c4e9300a565ba97df877e0"
+  },
+  {
+   "i": 9,
+   "stratum": "soup/wvec-uni",
+   "k": 209128,
+   "bad": 0,
+   "flick": 0,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 1752,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 1752,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 1752,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 1752,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    }
+   ],
+   "rows": "soup_209128_0817fa39aa8a.json.gz",
+   "sha256": "c0feb6a6aa4bdbbe1aec723d6d2470ed9619b7b96092f322465498b70e8d9a56"
+  },
+  {
+   "i": 10,
+   "stratum": "soup/wvec-walk",
+   "k": 210000,
+   "bad": 0,
+   "flick": 0,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 1080,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 1080,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 1080,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 1080,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    }
+   ],
+   "rows": "soup_210000_5cbac4dd5eb9.json.gz",
+   "sha256": "c140346142de80125a3369ed58ef2837e50aa60d9fa625181087a17cc4b44696"
+  },
+  {
+   "i": 10,
+   "stratum": "soup/wvec-walk",
+   "k": 210021,
+   "bad": 0,
+   "flick": 0,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 1300,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 1300,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 1300,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 1300,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    }
+   ],
+   "rows": "soup_210021_e86cd34699db.json.gz",
+   "sha256": "9a9f6ad49c75707ae27cf47afcfeb4b4be9d4ea1a160bb4392d73e2178bf46dc"
+  },
+  {
+   "i": 10,
+   "stratum": "soup/wvec-walk",
+   "k": 210042,
+   "bad": 0,
+   "flick": 0,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 1337,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 1337,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 1337,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 1337,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    }
+   ],
+   "rows": "soup_210042_7f49f00a2329.json.gz",
+   "sha256": "5e68663121bc497e962f8ca900a7d525fe8032e5010c974593a0b2a2bee8d410"
+  },
+  {
+   "i": 10,
+   "stratum": "soup/wvec-walk",
+   "k": 210064,
+   "bad": 0,
+   "flick": 0,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 1969,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 1969,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 1969,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 1969,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    }
+   ],
+   "rows": "soup_210064_d756cd9819a1.json.gz",
+   "sha256": "fa628237d793f1bb1d6d6eb488b8a715ca6f96642a89ac98d94f4eb36d93cc41"
+  },
+  {
+   "i": 10,
+   "stratum": "soup/wvec-walk",
+   "k": 210085,
+   "bad": 0,
+   "flick": 0,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 1570,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 1570,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 1570,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 1570,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    }
+   ],
+   "rows": "soup_210085_955d215ae7bb.json.gz",
+   "sha256": "2da8d425a1f3e493754783af802bb3cf17d876d52a637847a7aace09ef9bd141"
+  },
+  {
+   "i": 10,
+   "stratum": "soup/wvec-walk",
+   "k": 210107,
+   "bad": 0,
+   "flick": 0,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 1375,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 1375,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 1375,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 1375,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    }
+   ],
+   "rows": "soup_210107_0f8643854a7b.json.gz",
+   "sha256": "507c28cd294e8c417339387f0356612b7a9d2ea7f56d942d3d59755559ece823"
+  },
+  {
+   "i": 10,
+   "stratum": "soup/wvec-walk",
+   "k": 210128,
+   "bad": 0,
+   "flick": 0,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    }
+   ],
+   "rows": "soup_210128_2ca75f69946d.json.gz",
+   "sha256": "d8868c018a48feaedaa1ad786a3ad6315be667221da24d4660dec50655147885"
+  },
+  {
+   "i": 11,
+   "stratum": "soup/wvec-skew",
+   "k": 211000,
+   "bad": 0,
+   "flick": 0,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 2229,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 2229,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 2229,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 2229,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    }
+   ],
+   "rows": "soup_211000_4a0b23111d67.json.gz",
+   "sha256": "73b5d6e4f54157265e9ae5ad03b03270ba3859122ecad6b80aa09f34c3ffa444"
+  },
+  {
+   "i": 11,
+   "stratum": "soup/wvec-skew",
+   "k": 211021,
+   "bad": 0,
+   "flick": 0,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 1155,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 1155,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 1155,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 1155,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    }
+   ],
+   "rows": "soup_211021_fd7febc5d50f.json.gz",
+   "sha256": "77ed870e5d0cd3e93632457ec9abc8d7c774f58422ff457e05c427d288b00af5"
+  },
+  {
+   "i": 11,
+   "stratum": "soup/wvec-skew",
+   "k": 211042,
+   "bad": 0,
+   "flick": 0,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 1774,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 1774,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 1774,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 1774,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    }
+   ],
+   "rows": "soup_211042_5e247b45a6ce.json.gz",
+   "sha256": "bacfbe2fccacf9272c5ee0f030ac46fc366e9dfc3e96088f88100387f682b54b"
+  },
+  {
+   "i": 11,
+   "stratum": "soup/wvec-skew",
+   "k": 211064,
+   "bad": 0,
+   "flick": 0,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    }
+   ],
+   "rows": "soup_211064_d2e832989875.json.gz",
+   "sha256": "7855c175cfeb26fd5db6177a71f5958ec12fefc39c34aa555bd101d5b675277e"
+  },
+  {
+   "i": 11,
+   "stratum": "soup/wvec-skew",
+   "k": 211085,
+   "bad": 0,
+   "flick": 0,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 2283,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 2283,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 2283,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 2283,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    }
+   ],
+   "rows": "soup_211085_38e154277df0.json.gz",
+   "sha256": "fd6b25d5d80cbc2cf7a58d8ca3b3f6ace8ffd4de3ebd3ce253efb76966e1ec8c"
+  },
+  {
+   "i": 11,
+   "stratum": "soup/wvec-skew",
+   "k": 211107,
+   "bad": 0,
+   "flick": 0,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 1646,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 1646,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 1646,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 1646,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    }
+   ],
+   "rows": "soup_211107_9cd31d378051.json.gz",
+   "sha256": "47005b58f9e6645368881f5c66aec10ee5eec21b4396ced6eb50d20abdbfd153"
+  },
+  {
+   "i": 11,
+   "stratum": "soup/wvec-skew",
+   "k": 211128,
+   "bad": 0,
+   "flick": 0,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 1709,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 1709,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 1709,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 1709,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    }
+   ],
+   "rows": "soup_211128_0b0d93f86855.json.gz",
+   "sha256": "63185f5f6bc7a3d24577698e667a965238d63e5b4c07ac51496e4ccd48d6a49a"
+  },
+  {
+   "i": 12,
+   "stratum": "soup/wvec-burst",
+   "k": 212000,
+   "bad": 0,
+   "flick": 0,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 785,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 785,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 785,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 785,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    }
+   ],
+   "rows": "soup_212000_4eb8c9ac3769.json.gz",
+   "sha256": "84a091f5f90dfe5a465ac79d4678515e7495a2ccebe55dc03713099048fbbb5e"
+  },
+  {
+   "i": 12,
+   "stratum": "soup/wvec-burst",
+   "k": 212021,
+   "bad": 0,
+   "flick": 0,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 1083,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 1083,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 1083,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 1083,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    }
+   ],
+   "rows": "soup_212021_2ed4d082c5e7.json.gz",
+   "sha256": "ec00f3320997a8eb5ba989994729502a551d015b77294d0065bc11a677794232"
+  },
+  {
+   "i": 12,
+   "stratum": "soup/wvec-burst",
+   "k": 212042,
+   "bad": 0,
+   "flick": 0,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 1569,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 1569,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 1569,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 1569,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    }
+   ],
+   "rows": "soup_212042_a50312cee5d7.json.gz",
+   "sha256": "0c5422202b90a7d19b6c9f1d5c07d12a515cab8b56d8f4eef16fcf6a7f90815e"
+  },
+  {
+   "i": 12,
+   "stratum": "soup/wvec-burst",
+   "k": 212064,
+   "bad": 0,
+   "flick": 0,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 1430,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 1430,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 1430,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 1430,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    }
+   ],
+   "rows": "soup_212064_4665aad416ef.json.gz",
+   "sha256": "c2e13364b7eda2e0c4f49fb4fe16dcbdd75343b6a05f5d2f9ac56284521f46f1"
+  },
+  {
+   "i": 12,
+   "stratum": "soup/wvec-burst",
+   "k": 212085,
+   "bad": 0,
+   "flick": 0,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 3153,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 3153,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 3529,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 3529,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    }
+   ],
+   "rows": "soup_212085_74b023376c08.json.gz",
+   "sha256": "5d4487e503e55f00eaf7484f1c8bc28160430ba0cfe564786d2f1faa4343a2cd"
+  },
+  {
+   "i": 12,
+   "stratum": "soup/wvec-burst",
+   "k": 212107,
+   "bad": 0,
+   "flick": 0,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 1434,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 1434,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 1434,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 1434,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    }
+   ],
+   "rows": "soup_212107_dc2ec12fc3bd.json.gz",
+   "sha256": "c2cd6a901a1f5c1949af9f551d673d4185b1a471c75af55e7b6314f9e0b92bae"
+  },
+  {
+   "i": 12,
+   "stratum": "soup/wvec-burst",
+   "k": 212128,
+   "bad": 0,
+   "flick": 0,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 1295,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 1295,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 1295,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 1295,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    }
+   ],
+   "rows": "soup_212128_086c745167bb.json.gz",
+   "sha256": "43a487bd3be8b92aad733388f6cf7d522473304a10c438d6f31f851cf1d88518"
+  },
+  {
+   "i": 13,
+   "stratum": "soup/wvec-edge",
+   "k": 213000,
+   "bad": 0,
+   "flick": 0,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 3332,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 3332,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 3332,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 3332,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    }
+   ],
+   "rows": "soup_213000_33067eb42e83.json.gz",
+   "sha256": "ceadc48e63ca97cc1461217f2f563d2f7bf7c52ea6ff9873685f149d8f9951b8"
+  },
+  {
+   "i": 13,
+   "stratum": "soup/wvec-edge",
+   "k": 213021,
+   "bad": 0,
+   "flick": 0,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 2635,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 2635,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 2635,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 2635,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    }
+   ],
+   "rows": "soup_213021_dc8774645186.json.gz",
+   "sha256": "568aed8006dc79718394b4b8c81b0aef252ce72fa128c9548e81ac415da6edf0"
+  },
+  {
+   "i": 13,
+   "stratum": "soup/wvec-edge",
+   "k": 213042,
+   "bad": 0,
+   "flick": 0,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 2932,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 2932,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 2932,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 2932,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    }
+   ],
+   "rows": "soup_213042_8407b46501a4.json.gz",
+   "sha256": "d1a5e4813d84116e03b8bae5ff7f1ec17ae9210abf41a1a6bce7486f715645ff"
+  },
+  {
+   "i": 13,
+   "stratum": "soup/wvec-edge",
+   "k": 213064,
+   "bad": 0,
+   "flick": 0,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 2983,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 2983,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 2983,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 2983,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    }
+   ],
+   "rows": "soup_213064_26a2fbd34565.json.gz",
+   "sha256": "09de6c92b441ae34fb298cea6e35b120b7b5614b4a7dd51245989b9e6046a6a5"
+  },
+  {
+   "i": 13,
+   "stratum": "soup/wvec-edge",
+   "k": 213085,
+   "bad": 0,
+   "flick": 0,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 3340,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 3340,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 3340,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 3340,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    }
+   ],
+   "rows": "soup_213085_9409418fae32.json.gz",
+   "sha256": "c736d144a7072a0879c3934fc3c88806be57a8d23cb3b5e8056484fe8de899c1"
+  },
+  {
+   "i": 13,
+   "stratum": "soup/wvec-edge",
+   "k": 213107,
+   "bad": 0,
+   "flick": 0,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 2615,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 2615,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 2615,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 2615,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    }
+   ],
+   "rows": "soup_213107_f0fa70009e56.json.gz",
+   "sha256": "790e9cc4ee24629f54de4872c51f81bb6e90a9bbecd6ee6e80e7b3bb707ffd2d"
+  },
+  {
+   "i": 13,
+   "stratum": "soup/wvec-edge",
+   "k": 213128,
+   "bad": 0,
+   "flick": 0,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    }
+   ],
+   "rows": "soup_213128_f89c6c1b91df.json.gz",
+   "sha256": "5235945c8dd22e6eed2b7a67ec80a6c09d21073ffae5ead68565ec7dfef59670"
+  },
+  {
+   "i": 14,
+   "stratum": "raw/fix0",
+   "k": 214000,
+   "bad": 0,
+   "flick": 0,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    }
+   ],
+   "rows": "raw_214000_ed7163c508f7.json.gz",
+   "sha256": "792d5fafcea9e3c3da8b94b6df1454f7ff70ff6f06edd3a6251f6227a5d25b59"
+  },
+  {
+   "i": 14,
+   "stratum": "raw/fix0",
+   "k": 214018,
+   "bad": 0,
+   "flick": 0,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    }
+   ],
+   "rows": "raw_214018_ed7163c508f7.json.gz",
+   "sha256": "9d6cf30c799535b0de3844200682a1918ac72c21c633f650555b3fafabd7c24d"
+  },
+  {
+   "i": 14,
+   "stratum": "raw/fix0",
+   "k": 214037,
+   "bad": 0,
+   "flick": 0,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    }
+   ],
+   "rows": "raw_214037_ed7163c508f7.json.gz",
+   "sha256": "304a4f777e46c44fe2b33f2884581faa8a9811e8d067ddf0a9fb207271d62c02"
+  },
+  {
+   "i": 14,
+   "stratum": "raw/fix0",
+   "k": 214056,
+   "bad": 0,
+   "flick": 0,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    }
+   ],
+   "rows": "raw_214056_ed7163c508f7.json.gz",
+   "sha256": "d8362826f854c84a2e39825e8f751d2691efbaa6ee560f987d2a7ff148e57015"
+  },
+  {
+   "i": 15,
+   "stratum": "raw/fix1",
+   "k": 215000,
+   "bad": 0,
+   "flick": 0,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    }
+   ],
+   "rows": "raw_215000_716146190ef9.json.gz",
+   "sha256": "0dea472a3eb503020608329c8f832dc3dbdb39a154eca21f68efbc687c135baf"
+  },
+  {
+   "i": 15,
+   "stratum": "raw/fix1",
+   "k": 215018,
+   "bad": 0,
+   "flick": 0,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    }
+   ],
+   "rows": "raw_215018_716146190ef9.json.gz",
+   "sha256": "b52e702035275bf42ddb5e740b0019cdd9c5e51478c423a1c7fecd2376b529e4"
+  },
+  {
+   "i": 15,
+   "stratum": "raw/fix1",
+   "k": 215037,
+   "bad": 0,
+   "flick": 0,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    }
+   ],
+   "rows": "raw_215037_716146190ef9.json.gz",
+   "sha256": "ec20c66ed5ef1bbb1faf132bb1f40ec88c6332f0995e266f06bcc1128a4b3b57"
+  },
+  {
+   "i": 15,
+   "stratum": "raw/fix1",
+   "k": 215056,
+   "bad": 0,
+   "flick": 0,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    }
+   ],
+   "rows": "raw_215056_716146190ef9.json.gz",
+   "sha256": "2839c0c1ab7e2668d9387038665d3d4dd809cc7ada7387e232599b969817d106"
+  },
+  {
+   "i": 16,
+   "stratum": "raw/fix2",
+   "k": 216000,
+   "bad": 0,
+   "flick": 0,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    }
+   ],
+   "rows": "raw_216000_1aafb9b85b52.json.gz",
+   "sha256": "80bca1c94f9c51f44d38c4859b580717a56de4ce724e6b083695fbd5adf80ff1"
+  },
+  {
+   "i": 16,
+   "stratum": "raw/fix2",
+   "k": 216018,
+   "bad": 0,
+   "flick": 0,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    }
+   ],
+   "rows": "raw_216018_1aafb9b85b52.json.gz",
+   "sha256": "5bce03176f1074c6ccea5808b45b5dfb569181341376cc48ca75d38c550f812f"
+  },
+  {
+   "i": 16,
+   "stratum": "raw/fix2",
+   "k": 216037,
+   "bad": 0,
+   "flick": 0,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    }
+   ],
+   "rows": "raw_216037_1aafb9b85b52.json.gz",
+   "sha256": "19c72825cf246fb69302b55294f7d4243632d0be23ece454d14cf5a1a60720be"
+  },
+  {
+   "i": 16,
+   "stratum": "raw/fix2",
+   "k": 216056,
+   "bad": 0,
+   "flick": 0,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    }
+   ],
+   "rows": "raw_216056_1aafb9b85b52.json.gz",
+   "sha256": "b3889aa081fdcb6bebf49c50151d6c8109e228e44f854eb09bb84be64eb92cca"
+  },
+  {
+   "i": 17,
+   "stratum": "raw/fix3",
+   "k": 217000,
+   "bad": 0,
+   "flick": 0,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    }
+   ],
+   "rows": "raw_217000_0946e397935d.json.gz",
+   "sha256": "56cfa2d26e3b373f229d7b9398e15755ba4f78516f46a86b8f315655df28c87e"
+  },
+  {
+   "i": 17,
+   "stratum": "raw/fix3",
+   "k": 217018,
+   "bad": 0,
+   "flick": 0,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    }
+   ],
+   "rows": "raw_217018_0946e397935d.json.gz",
+   "sha256": "7369ccc636d6a5229822515d07dc66621edd35c48a570ec44fa4253a73b8d0e2"
+  },
+  {
+   "i": 17,
+   "stratum": "raw/fix3",
+   "k": 217037,
+   "bad": 0,
+   "flick": 0,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    }
+   ],
+   "rows": "raw_217037_0946e397935d.json.gz",
+   "sha256": "2ef0f25d9ffa609e7b3386d481d2a4dd6d4a852bf12caab52674b3efe7abe2ad"
+  },
+  {
+   "i": 17,
+   "stratum": "raw/fix3",
+   "k": 217056,
+   "bad": 0,
+   "flick": 0,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    }
+   ],
+   "rows": "raw_217056_0946e397935d.json.gz",
+   "sha256": "aa5c43cf60e2b2491b3c05a688eafac15ee02468ea34e46d6278bf6f47ad46b7"
+  },
+  {
+   "i": 18,
+   "stratum": "raw/wrand1",
+   "k": 218000,
+   "bad": 0,
+   "flick": 0,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    }
+   ],
+   "rows": "raw_218000_84d8bd3379e6.json.gz",
+   "sha256": "c2abe5cb50ad1e46550919fec8536399f16f2299eaca2d9c8dab808960820924"
+  },
+  {
+   "i": 18,
+   "stratum": "raw/wrand1",
+   "k": 218018,
+   "bad": 0,
+   "flick": 0,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    }
+   ],
+   "rows": "raw_218018_d4b21ba35b0c.json.gz",
+   "sha256": "6c75ab7848366d117e5471907e0744c2eebcfc43d5360429dcc88bf064705991"
+  },
+  {
+   "i": 18,
+   "stratum": "raw/wrand1",
+   "k": 218037,
+   "bad": 0,
+   "flick": 0,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    }
+   ],
+   "rows": "raw_218037_b11b1bb49b85.json.gz",
+   "sha256": "9c12f44896369b7c197f4a354c01d702417730ac2237dd3de2d2c49573a84556"
+  },
+  {
+   "i": 18,
+   "stratum": "raw/wrand1",
+   "k": 218056,
+   "bad": 0,
+   "flick": 0,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    }
+   ],
+   "rows": "raw_218056_2814dbeaa92e.json.gz",
+   "sha256": "9c46e509dfeca9b441112e9bd44fc9da92a4428584cbeb51a71f3a959242a6e3"
+  },
+  {
+   "i": 19,
+   "stratum": "raw/wrand2",
+   "k": 219000,
+   "bad": 0,
+   "flick": 0,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    }
+   ],
+   "rows": "raw_219000_37c925172ff6.json.gz",
+   "sha256": "b01a9c4f4cc8ae4ee10134458d15bcf83e8d591bad6f58eff5654ad56ef4705b"
+  },
+  {
+   "i": 19,
+   "stratum": "raw/wrand2",
+   "k": 219018,
+   "bad": 0,
+   "flick": 0,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    }
+   ],
+   "rows": "raw_219018_b433ae4bb873.json.gz",
+   "sha256": "8b542418f614b044b0782c6eda457ed1b76cef6bf9ea5f7b9493d47377a0f1ca"
+  },
+  {
+   "i": 19,
+   "stratum": "raw/wrand2",
+   "k": 219037,
+   "bad": 0,
+   "flick": 0,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    }
+   ],
+   "rows": "raw_219037_b56125af0277.json.gz",
+   "sha256": "eb1624bc7da11185650b0dbf582701c3380d98b3422c85fd6bd3af5903b15b15"
+  },
+  {
+   "i": 19,
+   "stratum": "raw/wrand2",
+   "k": 219056,
+   "bad": 0,
+   "flick": 0,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    }
+   ],
+   "rows": "raw_219056_3470e8042f1c.json.gz",
+   "sha256": "6d6014878d4cabecb08bea9488ed7e66af0000558fb3455289e1babc8fc8d511"
+  },
+  {
+   "i": 20,
+   "stratum": "raw/wrand3",
+   "k": 220000,
+   "bad": 0,
+   "flick": 0,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    }
+   ],
+   "rows": "raw_220000_77818b59c2ac.json.gz",
+   "sha256": "92fbe8cd7a16ca32409bf76f6497b55056e9bbfafcac3df964c3c514d4865e23"
+  },
+  {
+   "i": 20,
+   "stratum": "raw/wrand3",
+   "k": 220018,
+   "bad": 0,
+   "flick": 0,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 971,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 971,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 971,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 971,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    }
+   ],
+   "rows": "raw_220018_550bebd53a56.json.gz",
+   "sha256": "abf4df51157973991bff99cd2132481e67c2fee51108586f8bf0aa916d03f2eb"
+  },
+  {
+   "i": 20,
+   "stratum": "raw/wrand3",
+   "k": 220037,
+   "bad": 0,
+   "flick": 0,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    }
+   ],
+   "rows": "raw_220037_377a1c7fd5ab.json.gz",
+   "sha256": "8149fef0f327ac2418dd2b958f9e19e956641f8b9f666d5dc515927b043425e3"
+  },
+  {
+   "i": 20,
+   "stratum": "raw/wrand3",
+   "k": 220056,
+   "bad": 0,
+   "flick": 0,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    }
+   ],
+   "rows": "raw_220056_25514aead943.json.gz",
+   "sha256": "3e3ee691a4647e0ce7b8e026f1d0bed2cb3421841e5a78440dd5da653c1e09d5"
+  },
+  {
+   "i": 21,
+   "stratum": "raw/wrand7",
+   "k": 221000,
+   "bad": 0,
+   "flick": 0,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    }
+   ],
+   "rows": "raw_221000_28ea2bc5cf89.json.gz",
+   "sha256": "606d1e9eadb230b9bfcecfce740e536d8c3636555e7a2c7c283ead1ef4d1da0c"
+  },
+  {
+   "i": 21,
+   "stratum": "raw/wrand7",
+   "k": 221018,
+   "bad": 0,
+   "flick": 0,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    }
+   ],
+   "rows": "raw_221018_631a9957465f.json.gz",
+   "sha256": "3a23812d8232596bb332b10d6e742ac22e8f029819680783af2b3817686fee67"
+  },
+  {
+   "i": 21,
+   "stratum": "raw/wrand7",
+   "k": 221037,
+   "bad": 0,
+   "flick": 0,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    }
+   ],
+   "rows": "raw_221037_950b9609c72b.json.gz",
+   "sha256": "a3963fe3c08b0fa5407d278706162d627a247cd6fcfcbb04cdac2b4676fbfbac"
+  },
+  {
+   "i": 21,
+   "stratum": "raw/wrand7",
+   "k": 221056,
+   "bad": 0,
+   "flick": 0,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    }
+   ],
+   "rows": "raw_221056_5460707b7dc1.json.gz",
+   "sha256": "e41dc9cd8d446c0c75b690908bc4f4167e91e2f3e07022bdaab131ec889f0645"
+  },
+  {
+   "i": 22,
+   "stratum": "raw/wrand15",
+   "k": 222000,
+   "bad": 0,
+   "flick": 0,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    }
+   ],
+   "rows": "raw_222000_46473ea5b314.json.gz",
+   "sha256": "5c796597311f7026ff8842ad68a149aa52a37aefb6458732242782a368aeb631"
+  },
+  {
+   "i": 22,
+   "stratum": "raw/wrand15",
+   "k": 222018,
+   "bad": 0,
+   "flick": 0,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    }
+   ],
+   "rows": "raw_222018_7c183f776b8f.json.gz",
+   "sha256": "3a101736ef2d6deaab0a2301eaada742114ccc4163ffd4b9ccef33d145094b49"
+  },
+  {
+   "i": 22,
+   "stratum": "raw/wrand15",
+   "k": 222037,
+   "bad": 0,
+   "flick": 0,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    }
+   ],
+   "rows": "raw_222037_67370de9a8d2.json.gz",
+   "sha256": "8b985ff889adae74b1d1cbc33c416b47b74df96b8429130c32719bfd54e5d8ef"
+  },
+  {
+   "i": 22,
+   "stratum": "raw/wrand15",
+   "k": 222056,
+   "bad": 0,
+   "flick": 0,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    }
+   ],
+   "rows": "raw_222056_a45956e9a383.json.gz",
+   "sha256": "25cdd475f37a31713232374fb20a156d3c2bdf485db8e670f9704189d8c17f17"
+  },
+  {
+   "i": 23,
+   "stratum": "raw/wvec-uni",
+   "k": 223000,
+   "bad": 0,
+   "flick": 0,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    }
+   ],
+   "rows": "raw_223000_922faa43bf80.json.gz",
+   "sha256": "ddc002db1d85db28c2c5b0d6b008bf82421e4f062238f5538de9451eb56285d9"
+  },
+  {
+   "i": 23,
+   "stratum": "raw/wvec-uni",
+   "k": 223018,
+   "bad": 0,
+   "flick": 0,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    }
+   ],
+   "rows": "raw_223018_e622f8ec71c6.json.gz",
+   "sha256": "0b8275856b2823ea2022c2c0fe47300006e1ceda96ca7339e68b59feec81eb70"
+  },
+  {
+   "i": 23,
+   "stratum": "raw/wvec-uni",
+   "k": 223037,
+   "bad": 0,
+   "flick": 0,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    }
+   ],
+   "rows": "raw_223037_254efce57511.json.gz",
+   "sha256": "064abeb97282fba4e745da0e2747f2dd5dab274a6bb8b5a2963c2477e2cf62cf"
+  },
+  {
+   "i": 23,
+   "stratum": "raw/wvec-uni",
+   "k": 223056,
+   "bad": 0,
+   "flick": 0,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    }
+   ],
+   "rows": "raw_223056_015f355b43cd.json.gz",
+   "sha256": "278c7273fcb11e951d23301bec556d9f447464a763d4499a4be506c419a75855"
+  },
+  {
+   "i": 24,
+   "stratum": "raw/wvec-walk",
+   "k": 224000,
+   "bad": 0,
+   "flick": 0,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    }
+   ],
+   "rows": "raw_224000_1536dd876672.json.gz",
+   "sha256": "8209fe6aabd23aa52a862c1e9f80a26274e83a2ec2420b90f9d20955cc3a32b5"
+  },
+  {
+   "i": 24,
+   "stratum": "raw/wvec-walk",
+   "k": 224018,
+   "bad": 0,
+   "flick": 0,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    }
+   ],
+   "rows": "raw_224018_6b4c9c688d73.json.gz",
+   "sha256": "406ee08a30150d70e2c6657959bdd01a0f880539d3f9a48c7a7fd689b44f8761"
+  },
+  {
+   "i": 24,
+   "stratum": "raw/wvec-walk",
+   "k": 224037,
+   "bad": 0,
+   "flick": 0,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    }
+   ],
+   "rows": "raw_224037_13a3502177f0.json.gz",
+   "sha256": "2a9e6cc1ff8b5e8c11c00ba240cd1c6f4eafbc1859912f9851dc28daac8dacf7"
+  },
+  {
+   "i": 24,
+   "stratum": "raw/wvec-walk",
+   "k": 224056,
+   "bad": 0,
+   "flick": 0,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    }
+   ],
+   "rows": "raw_224056_743da10e1cc1.json.gz",
+   "sha256": "96ea7881fea69c44f71aa5cb4f1331d02272550d25ad5f23116c0e65509a0481"
+  },
+  {
+   "i": 25,
+   "stratum": "raw/wvec-skew",
+   "k": 225000,
+   "bad": 0,
+   "flick": 0,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 2650,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 2650,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    }
+   ],
+   "rows": "raw_225000_0d09b295baa6.json.gz",
+   "sha256": "34bdd74f0fe0ceaf35e64cfe4987f64bd934d231b752467713d1d3b5b2695a7f"
+  },
+  {
+   "i": 25,
+   "stratum": "raw/wvec-skew",
+   "k": 225018,
+   "bad": 0,
+   "flick": 0,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    }
+   ],
+   "rows": "raw_225018_63aaf640a716.json.gz",
+   "sha256": "476f72f352faafe3ce0bf0b8e7b1a2c36fb0a41cadf46853db0e9fdcbbbc4320"
+  },
+  {
+   "i": 25,
+   "stratum": "raw/wvec-skew",
+   "k": 225037,
+   "bad": 0,
+   "flick": 0,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    }
+   ],
+   "rows": "raw_225037_56bea2e02380.json.gz",
+   "sha256": "62a952e9c31548367b5f4778c7090210825dcf9d1d09537648cda3b906874fde"
+  },
+  {
+   "i": 25,
+   "stratum": "raw/wvec-skew",
+   "k": 225056,
+   "bad": 0,
+   "flick": 0,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    }
+   ],
+   "rows": "raw_225056_d825582665e4.json.gz",
+   "sha256": "98836d9d239bde59a50f51e37a41449ac4cd713e8fffd31ccf2378e396b13959"
+  },
+  {
+   "i": 26,
+   "stratum": "raw/wvec-burst",
+   "k": 226000,
+   "bad": 0,
+   "flick": 0,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    }
+   ],
+   "rows": "raw_226000_7f55920b9446.json.gz",
+   "sha256": "12d099e6985ad93b434f69d68ecc74dc69f8963a1b65aebc6ca9989542923fb6"
+  },
+  {
+   "i": 26,
+   "stratum": "raw/wvec-burst",
+   "k": 226018,
+   "bad": 0,
+   "flick": 0,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    }
+   ],
+   "rows": "raw_226018_41c185e66fad.json.gz",
+   "sha256": "86d35cd39eccbef40957da55de74826050b6078a2cd25196e3426ca1a449f79e"
+  },
+  {
+   "i": 26,
+   "stratum": "raw/wvec-burst",
+   "k": 226037,
+   "bad": 0,
+   "flick": 0,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    }
+   ],
+   "rows": "raw_226037_cc5220ebef6f.json.gz",
+   "sha256": "c2d530707018cabc6853ec082da5c53dffc270e0c70f514ce22e0c6b90612ba8"
+  },
+  {
+   "i": 26,
+   "stratum": "raw/wvec-burst",
+   "k": 226056,
+   "bad": 0,
+   "flick": 0,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    }
+   ],
+   "rows": "raw_226056_4b366d2d548b.json.gz",
+   "sha256": "fa2d1a187bda88c9f74bac919fb4e325140e1b48ff59051986576dbf2fdf2bbf"
+  },
+  {
+   "i": 27,
+   "stratum": "raw/wvec-edge",
+   "k": 227000,
+   "bad": 0,
+   "flick": 0,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    }
+   ],
+   "rows": "raw_227000_3ee8009ea983.json.gz",
+   "sha256": "b014dc593d38e593b923d29ffedb89ba8d2d005cc90fd2bdd7f0952e4859072d"
+  },
+  {
+   "i": 27,
+   "stratum": "raw/wvec-edge",
+   "k": 227018,
+   "bad": 0,
+   "flick": 0,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    }
+   ],
+   "rows": "raw_227018_64aa51ac5339.json.gz",
+   "sha256": "9c8c5fad719669934a814bba3fa1a3daae61c778cb2a2fc807437f74a0bed6dc"
+  },
+  {
+   "i": 27,
+   "stratum": "raw/wvec-edge",
+   "k": 227037,
+   "bad": 0,
+   "flick": 0,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    }
+   ],
+   "rows": "raw_227037_c9414b6a7139.json.gz",
+   "sha256": "3ef3a6075d8ae88f7dd34c0a252261e792a9d9fe9a8e06c130e95fbc2c8e9d8d"
+  },
+  {
+   "i": 27,
+   "stratum": "raw/wvec-edge",
+   "k": 227056,
+   "bad": 0,
+   "flick": 0,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null,
+     "len": [
+      4063,
+      4063
+     ]
+    }
+   ],
+   "rows": "raw_227056_e6efa07cd2f3.json.gz",
+   "sha256": "c2fc2e6f01db1970801c49a0222e386b6ac53333f7e377b10cc3aec475b83cad"
+  }
+ ],
+ "seconds": 68.8,
+ "stable": 158,
+ "unstable": 0,
+ "errors": 0,
+ "finished": "2026-08-06T04:06:50Z"
+}

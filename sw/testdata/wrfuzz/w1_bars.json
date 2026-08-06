@@ -1,0 +1,470 @@
+{
+ "stage": "W1 bars",
+ "cid": "wr1",
+ "n_lines": 3150,
+ "ts": "2026-08-06T04:07:06Z",
+ "bars": {
+  "B-4": {
+   "statement": "no gen-drift",
+   "registered": "0 GEN_DRIFT, 0 REGEN_ERROR",
+   "measured": {
+    "gen_drift": 0,
+    "regen_error": 0,
+    "seeds": 3150
+   },
+   "verdict": "MET"
+  },
+  "B-6": {
+   "statement": "BRKEM-free by construction",
+   "registered": "0 `0F FF` pairs over the whole corpus",
+   "measured": {
+    "pairs": 0,
+    "seeds": 3150
+   },
+   "verdict": "MET"
+  },
+  "B-3": {
+   "statement": "the vector is banked in full",
+   "registered": "0 mismatches; 0 records with a vector spec and no wvec_hex",
+   "measured": {
+    "vector_seeds": 1125,
+    "no_hex": 0,
+    "bad_length": 0,
+    "bad_sha256": 0,
+    "re_derive_mismatch": 0
+   },
+   "verdict": "MET"
+  },
+  "B-5": {
+   "statement": "no capture reaches 4,096 bus cycles",
+   "registered": "0 seeds at or beyond 4,096",
+   "measured": {
+    "scored": 3150,
+    "no_bus_cycle_field": 0,
+    "max": 1010,
+    "p95": 673,
+    "at_or_over": 0,
+    "ks": []
+   },
+   "verdict": "MET"
+  },
+  "B-2": {
+   "statement": "era",
+   "registered": "0 captures with an absent or mixed era stamp",
+   "measured": {
+    "distinct_eras": 1,
+    "absent": 0,
+    "incomplete": 0,
+    "build_stale": 0,
+    "gen_git": {
+     "4665a04e64": 3150
+    },
+    "era": {
+     "flash_git": "f3f7b6b20d-dirty",
+     "flash_ts": "2026-08-05T23:01:06Z",
+     "flash_verify": "OK",
+     "gen_git": "4665a04e64",
+     "rig_evt_hold_bits": 12,
+     "rtl": {
+      "inputs_sha256": "42752f3a5748300247d9db36b7d8433539bf6f89b163f2dd0a9132186502bd05",
+      "label": "SM3 s27 FLASH#10 RETENTION build (recorded, not the gate)",
+      "n_files": 88,
+      "receipt_id": "a2d605a47f61af3718eeca446d6f322b43bb3e7a12f09bc957819203f1b6e5fd"
+     },
+     "rules_version": "1.0",
+     "sof_sha256": "1a01a6975e4aca6fe9cefe83002034789dfee5c728cd72c59ea2acbc7f7a9498"
+    }
+   },
+   "verdict": "MET"
+  },
+  "B-1": {
+   "statement": "the vector was applied (socket leg)",
+   "registered": ">= 99.9 % (expectation 100.0 %; anything below 100.0 % is a FINDING)",
+   "measured": {
+    "matched": 48042,
+    "cycles": 48042,
+    "pct": 100.0,
+    "captures": 127,
+    "sha_mismatch": 0,
+    "captures_with_a_miss": 0,
+    "examples": []
+   },
+   "verdict": "MET",
+   "finding": null
+  },
+  "B-7": {
+   "statement": "board discipline",
+   "registered": "div_guard PINNED on 100 % of probes; 0 unpinned readbacks",
+   "measured": {
+    "div_guards": 33,
+    "unpinned": 0,
+    "unpinned_detail": [],
+    "use_core_left": "0 (fuzz_campaign post-session leg + board_idle)"
+   },
+   "verdict": "MET"
+  },
+  "B-8": {
+   "statement": "transport",
+   "registered": "circuit breaker not tripped; error count REPORTED, not barred",
+   "measured": {
+    "quarantines": 0,
+    "run_error_lines": 0,
+    "provenance_alarms": 0,
+    "b9_errors": 0,
+    "consecutive_quarantine_break_at": null,
+    "halted": null
+   },
+   "verdict": "MET"
+  },
+  "B-9": {
+   "statement": "the capture is stable",
+   "registered": "158 / 158 stable",
+   "measured": {
+    "seeds": 158,
+    "reps": 3,
+    "stable": 158,
+    "unstable": 0,
+    "errors": 0,
+    "flicker_rows": 0
+   },
+   "verdict": "MET"
+  }
+ },
+ "per_stratum": [
+  {
+   "i": 0,
+   "stratum": "soup/fix0",
+   "k_lo": 200000,
+   "n": 150,
+   "captured": 150,
+   "verdicts": {
+    "SUCCESS": 143,
+    "FUNCTIONAL": 7
+   }
+  },
+  {
+   "i": 1,
+   "stratum": "soup/fix1",
+   "k_lo": 201000,
+   "n": 150,
+   "captured": 150,
+   "verdicts": {
+    "SUCCESS": 145,
+    "FUNCTIONAL": 5
+   }
+  },
+  {
+   "i": 2,
+   "stratum": "soup/fix2",
+   "k_lo": 202000,
+   "n": 150,
+   "captured": 150,
+   "verdicts": {
+    "FUNCTIONAL": 7,
+    "SUCCESS": 143
+   }
+  },
+  {
+   "i": 3,
+   "stratum": "soup/fix3",
+   "k_lo": 203000,
+   "n": 150,
+   "captured": 150,
+   "verdicts": {
+    "SUCCESS": 143,
+    "KNOWN_ACCEPTED": 1,
+    "FUNCTIONAL": 6
+   }
+  },
+  {
+   "i": 4,
+   "stratum": "soup/wrand1",
+   "k_lo": 204000,
+   "n": 150,
+   "captured": 150,
+   "verdicts": {
+    "SUCCESS": 146,
+    "FUNCTIONAL": 3,
+    "TIMING": 1
+   }
+  },
+  {
+   "i": 5,
+   "stratum": "soup/wrand2",
+   "k_lo": 205000,
+   "n": 150,
+   "captured": 150,
+   "verdicts": {
+    "FUNCTIONAL": 9,
+    "SUCCESS": 141
+   }
+  },
+  {
+   "i": 6,
+   "stratum": "soup/wrand3",
+   "k_lo": 206000,
+   "n": 150,
+   "captured": 150,
+   "verdicts": {
+    "SUCCESS": 144,
+    "FUNCTIONAL": 6
+   }
+  },
+  {
+   "i": 7,
+   "stratum": "soup/wrand7",
+   "k_lo": 207000,
+   "n": 150,
+   "captured": 150,
+   "verdicts": {
+    "SUCCESS": 143,
+    "FUNCTIONAL": 7
+   }
+  },
+  {
+   "i": 8,
+   "stratum": "soup/wrand15",
+   "k_lo": 208000,
+   "n": 150,
+   "captured": 150,
+   "verdicts": {
+    "SUCCESS": 144,
+    "FUNCTIONAL": 6
+   }
+  },
+  {
+   "i": 9,
+   "stratum": "soup/wvec-uni",
+   "k_lo": 209000,
+   "n": 150,
+   "captured": 150,
+   "verdicts": {
+    "SUCCESS": 147,
+    "FUNCTIONAL": 3
+   }
+  },
+  {
+   "i": 10,
+   "stratum": "soup/wvec-walk",
+   "k_lo": 210000,
+   "n": 150,
+   "captured": 150,
+   "verdicts": {
+    "SUCCESS": 138,
+    "FUNCTIONAL": 12
+   }
+  },
+  {
+   "i": 11,
+   "stratum": "soup/wvec-skew",
+   "k_lo": 211000,
+   "n": 150,
+   "captured": 150,
+   "verdicts": {
+    "SUCCESS": 148,
+    "FUNCTIONAL": 1,
+    "TIMING": 1
+   }
+  },
+  {
+   "i": 12,
+   "stratum": "soup/wvec-burst",
+   "k_lo": 212000,
+   "n": 150,
+   "captured": 150,
+   "verdicts": {
+    "SUCCESS": 143,
+    "KNOWN_ACCEPTED": 1,
+    "FUNCTIONAL": 6
+   }
+  },
+  {
+   "i": 13,
+   "stratum": "soup/wvec-edge",
+   "k_lo": 213000,
+   "n": 150,
+   "captured": 150,
+   "verdicts": {
+    "SUCCESS": 150
+   }
+  },
+  {
+   "i": 14,
+   "stratum": "raw/fix0",
+   "k_lo": 214000,
+   "n": 75,
+   "captured": 75,
+   "verdicts": {
+    "SUCCESS": 54,
+    "KNOWN_ACCEPTED": 15,
+    "FUNCTIONAL": 6
+   }
+  },
+  {
+   "i": 15,
+   "stratum": "raw/fix1",
+   "k_lo": 215000,
+   "n": 75,
+   "captured": 75,
+   "verdicts": {
+    "SUCCESS": 59,
+    "FUNCTIONAL": 6,
+    "KNOWN_ACCEPTED": 9,
+    "TIMING": 1
+   }
+  },
+  {
+   "i": 16,
+   "stratum": "raw/fix2",
+   "k_lo": 216000,
+   "n": 75,
+   "captured": 75,
+   "verdicts": {
+    "SUCCESS": 61,
+    "FUNCTIONAL": 2,
+    "KNOWN_ACCEPTED": 12
+   }
+  },
+  {
+   "i": 17,
+   "stratum": "raw/fix3",
+   "k_lo": 217000,
+   "n": 75,
+   "captured": 75,
+   "verdicts": {
+    "SUCCESS": 59,
+    "KNOWN_ACCEPTED": 13,
+    "FUNCTIONAL": 3
+   }
+  },
+  {
+   "i": 18,
+   "stratum": "raw/wrand1",
+   "k_lo": 218000,
+   "n": 75,
+   "captured": 75,
+   "verdicts": {
+    "SUCCESS": 54,
+    "KNOWN_ACCEPTED": 14,
+    "FUNCTIONAL": 7
+   }
+  },
+  {
+   "i": 19,
+   "stratum": "raw/wrand2",
+   "k_lo": 219000,
+   "n": 75,
+   "captured": 75,
+   "verdicts": {
+    "KNOWN_ACCEPTED": 18,
+    "FUNCTIONAL": 4,
+    "SUCCESS": 53
+   }
+  },
+  {
+   "i": 20,
+   "stratum": "raw/wrand3",
+   "k_lo": 220000,
+   "n": 75,
+   "captured": 75,
+   "verdicts": {
+    "SUCCESS": 53,
+    "FUNCTIONAL": 7,
+    "KNOWN_ACCEPTED": 15
+   }
+  },
+  {
+   "i": 21,
+   "stratum": "raw/wrand7",
+   "k_lo": 221000,
+   "n": 75,
+   "captured": 75,
+   "verdicts": {
+    "FUNCTIONAL": 2,
+    "SUCCESS": 62,
+    "KNOWN_ACCEPTED": 11
+   }
+  },
+  {
+   "i": 22,
+   "stratum": "raw/wrand15",
+   "k_lo": 222000,
+   "n": 75,
+   "captured": 75,
+   "verdicts": {
+    "SUCCESS": 62,
+    "KNOWN_ACCEPTED": 11,
+    "FUNCTIONAL": 2
+   }
+  },
+  {
+   "i": 23,
+   "stratum": "raw/wvec-uni",
+   "k_lo": 223000,
+   "n": 75,
+   "captured": 75,
+   "verdicts": {
+    "SUCCESS": 64,
+    "KNOWN_ACCEPTED": 10,
+    "FUNCTIONAL": 1
+   }
+  },
+  {
+   "i": 24,
+   "stratum": "raw/wvec-walk",
+   "k_lo": 224000,
+   "n": 75,
+   "captured": 75,
+   "verdicts": {
+    "SUCCESS": 56,
+    "KNOWN_ACCEPTED": 16,
+    "FUNCTIONAL": 2,
+    "TIMING": 1
+   }
+  },
+  {
+   "i": 25,
+   "stratum": "raw/wvec-skew",
+   "k_lo": 225000,
+   "n": 75,
+   "captured": 75,
+   "verdicts": {
+    "KNOWN_ACCEPTED": 16,
+    "SUCCESS": 56,
+    "FUNCTIONAL": 3
+   }
+  },
+  {
+   "i": 26,
+   "stratum": "raw/wvec-burst",
+   "k_lo": 226000,
+   "n": 75,
+   "captured": 75,
+   "verdicts": {
+    "KNOWN_ACCEPTED": 20,
+    "SUCCESS": 53,
+    "FUNCTIONAL": 2
+   }
+  },
+  {
+   "i": 27,
+   "stratum": "raw/wvec-edge",
+   "k_lo": 227000,
+   "n": 75,
+   "captured": 75,
+   "verdicts": {
+    "SUCCESS": 66,
+    "KNOWN_ACCEPTED": 8,
+    "FUNCTIONAL": 1
+   }
+  }
+ ],
+ "captured": 3150,
+ "verdicts": {
+  "SUCCESS": 2830,
+  "FUNCTIONAL": 126,
+  "KNOWN_ACCEPTED": 190,
+  "TIMING": 4
+ },
+ "board_minutes": 7.59
+}

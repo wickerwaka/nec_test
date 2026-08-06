@@ -1,0 +1,18 @@
+{
+ "stage": "W1 close",
+ "div_guards": [
+  {
+   "tag": "idle",
+   "readback": "div=8 (4 MHz), commanded by this connection",
+   "state": "PINNED",
+   "rig": "WRAND=0 replay=0 (commanded clean at connect, OK/OK)",
+   "ts": "2026-08-06T04:07:00Z"
+  }
+ ],
+ "ts": "2026-08-06T04:06:59Z",
+ "board_procs_after": [
+  "27746 root     python3 v30ctl.py serve"
+ ],
+ "use_core": 0,
+ "board_idle": "OK"
+}

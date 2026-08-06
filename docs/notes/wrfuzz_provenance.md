@@ -285,3 +285,181 @@ on soup, and between them they are why the mechanism is three places.
   routes this package.
 * **No standing gate was re-registered.**  The two legs re-run are reported at
   their existing registered values and no ratchet moved.
+
+---
+
+## §2 W1 — THE SOCKET CAPTURE
+
+**2026-08-06, branch `ucsim`, from HEAD `4665a04e64`.  ONE BOARD SITTING, NO
+FLASHING.**  Execution note (the deviations, committed before board contact):
+`docs/notes/wrfuzz_w1_execution_note_2026-08-05.md`.
+Driver: `sw/wrfuzz_w1.py`.  Campaign `cid = wr1`.
+
+W1 **measures and reports; it does not diagnose.**  Its bars are the
+pre-registration's B-1 … B-9 and nothing else.  **No engine-versus-silicon rate
+is computed or quoted here, and no family census was run** — the survey is W2's
+and this sitting does not pre-empt it.
+
+### §2.1 THE HEADLINE
+
+> **3,150 / 3,150 seeds captured, all 28 strata at their registered size, in
+> 6.4 minutes of board time.  B-1 … B-9 are 9 / 9 MET.  Total board time
+> 7.6 minutes against a registered bound of ≤ 30.  0 transport errors,
+> 0 quarantines, 0 provenance alarms, no wedge, `div_guard` PINNED on 33 / 33
+> probes, `board_idle()` clean and `use_core=0` left selected.**
+
+### §2.2 THE PRE-FLIGHT
+
+**Offline first, and committed before the board was touched** (commit
+`4665a04e64`).
+
+| check | result |
+|---|---|
+| **single writer** | board reachable, `up 24 days`; **no `v30`/serve process on the board**, no local serve client.  ⚠ The FIRST pass reported a violation and it was the probe **matching its own command line** — `pgrep -af 'v30ctl.py serve'` inside `bash -lc`.  `[v]30ctl` now.  That is the self-matching-`pgrep` lesson (task #29 P7) arriving in a LIVENESS check rather than in a watcher, and it is recorded because a single-writer probe that can report a false positive can also report a false negative |
+| **era** | complete and NAMED, not asserted — FLASH #10 `1a01a6975e4aca6f…` `verify OK`, the quartus receipt whose OUTPUT is that `.sof` (`a2d605a47f61af37…`, *"SM3 s27 FLASH#10 RETENTION build"*), RTL input manifest **88 files `42752f3a57483002…`**, `gen_git 4665a04e64`, `RIG_EVT_HOLD_BITS 12` |
+| **generation + REGENERATION** | 168 seeds (6 per stratum, all 28): **hits = 0**.  0 gen-drift, **0 `0F FF` pairs**, 0 evt, tier and wait source correct in every stratum, every vector exactly 4,096 entries in [0,31] and distinct per seed |
+| **board health** | `check_ab_hw all 187`: **chip-vs-golden MATCH over 187 rows, core-vs-chip MATCH, core-vs-golden MATCH**.  `div_guard` PINNED both ends |
+
+### §2.3 THE CAPTURE — PER STRATUM, AS REGISTERED
+
+Each seed is one `capture_board` call: the socketed chip (`use_core=0`) then
+the fabric core (`use_core=1`), same image, same vector, same bitstream,
+differing in the A/B select and in nothing else.
+
+| i | tier | source | k range | n | **captured** |
+|---|---|---|---|---|---|
+| 0 | soup | `fix0` | 200000-200149 | 150 | **150** |
+| 1 | soup | `fix1` | 201000-201149 | 150 | **150** |
+| 2 | soup | `fix2` | 202000-202149 | 150 | **150** |
+| 3 | soup | `fix3` | 203000-203149 | 150 | **150** |
+| 4 | soup | `wrand1` | 204000-204149 | 150 | **150** |
+| 5 | soup | `wrand2` | 205000-205149 | 150 | **150** |
+| 6 | soup | `wrand3` | 206000-206149 | 150 | **150** |
+| 7 | soup | `wrand7` | 207000-207149 | 150 | **150** |
+| 8 | soup | `wrand15` | 208000-208149 | 150 | **150** |
+| 9 | soup | `wvec-uni` | 209000-209149 | 150 | **150** |
+| 10 | soup | `wvec-walk` | 210000-210149 | 150 | **150** |
+| 11 | soup | `wvec-skew` | 211000-211149 | 150 | **150** |
+| 12 | soup | `wvec-burst` | 212000-212149 | 150 | **150** |
+| 13 | soup | `wvec-edge` | 213000-213149 | 150 | **150** |
+| 14 | raw | `fix0` | 214000-214074 | 75 | **75** |
+| 15 | raw | `fix1` | 215000-215074 | 75 | **75** |
+| 16 | raw | `fix2` | 216000-216074 | 75 | **75** |
+| 17 | raw | `fix3` | 217000-217074 | 75 | **75** |
+| 18 | raw | `wrand1` | 218000-218074 | 75 | **75** |
+| 19 | raw | `wrand2` | 219000-219074 | 75 | **75** |
+| 20 | raw | `wrand3` | 220000-220074 | 75 | **75** |
+| 21 | raw | `wrand7` | 221000-221074 | 75 | **75** |
+| 22 | raw | `wrand15` | 222000-222074 | 75 | **75** |
+| 23 | raw | `wvec-uni` | 223000-223074 | 75 | **75** |
+| 24 | raw | `wvec-walk` | 224000-224074 | 75 | **75** |
+| 25 | raw | `wvec-skew` | 225000-225074 | 75 | **75** |
+| 26 | raw | `wvec-burst` | 226000-226074 | 75 | **75** |
+| 27 | raw | `wvec-edge` | 227000-227074 | 75 | **75** |
+| | | | | **3,150** | **3,150** |
+
+**MEASURED RATES, by stratum class** (`sw/testdata/wrfuzz/w1_capture.json`):
+soup control **10.5-10.9 seeds/s**, soup `wvec` **7.6-8.4**, raw control
+**6.2-7.5**, raw `wvec` **5.2-6.0**.  **The vector costs about 30 %**, and it
+is the 4,096-byte `WVEC` load the transport sends twice per seed (once per A/B
+position) — the rig is not asked to do anything else new.  The budget assumed a
+1.5×-derated **4.0 seeds/s**; the slowest stratum in the corpus beat it by 30 %.
+
+### §2.4 THE BARS — **9 / 9 MET**
+
+`sw/testdata/wrfuzz/w1_bars.json`.  Each is a STOP, not a tolerance; none fired.
+
+| bar | registered | **measured** | verdict |
+|---|---|---|---|
+| **B-1** THE VECTOR WAS APPLIED | ≥ 99.9 %, expectation **100.0 %** | **48,042 / 48,042 = 100.0000 %** over **127 retained socket captures**; 0 captures with a miss, 0 sha mismatches | **MET**, *and at the expectation* — **no finding** |
+| **B-2** ERA | 0 absent or mixed | **1 distinct era over 3,150 lines**, 0 absent, 0 incomplete, 0 `build_stale`, one `gen_git` | **MET** |
+| **B-3** VECTOR BANKED IN FULL | 0 mismatches | **1,125 vector seeds**; 0 without `wvec_hex`, 0 bad length, 0 bad sha256, **0 re-derive mismatches** | **MET** |
+| **B-4** NO GEN-DRIFT | 0 / 0 | **3,150 images regenerated from `(cid, k, ov)`: 0 GEN_DRIFT, 0 REGEN_ERROR** | **MET** |
+| **B-5** BUS-CYCLE BOUND | 0 at or beyond 4,096 | **3,150 / 3,150 captures scored**, max **1,010**, p95 **673**, **0 at or over** | **MET** |
+| **B-6** BRKEM-FREE | 0 pairs | **0 `0F FF` pairs over 3,150 composed images** | **MET** |
+| **B-7** BOARD DISCIPLINE | PINNED on 100 % of probes | **33 / 33 `div_guard` readbacks PINNED** (`div=8`, 4 MHz, commanded by the connection), 0 UNPINNED; `use_core=0` left selected | **MET** |
+| **B-8** TRANSPORT | breaker not tripped; errors REPORTED | **0 quarantines, 0 run-errors, 0 provenance alarms, 0 B-9 errors**; no consecutive-quarantine run; no halt | **MET** |
+| **B-9** CAPTURE IS STABLE | **158 / 158** stable | **158 / 158 stable**, 0 unstable, 0 errors, **0 QS-flicker rows**, over 474 seed-loops (3 fresh reps × both A/B legs = 4 comparisons per seed) | **MET** |
+
+**B-5, read rather than merely passed.**  The registered concern is that past
+4,096 bus cycles the three legs do three different things.  The board cannot
+get there: `v30ctl.CAP_RECORDS` is 4,096 **clock** records and a bus cycle is
+at least 4 clocks, so a socket capture is structurally capped near ~1,024 — the
+measured max is **1,010**, which is that cap and not a property of the corpus.
+This was written into the execution note **before** the run so the number could
+not be read as a discovery.  **⚠ It does NOT generalise to the offline
+engines**, which have no such buffer: W0's smoke reached 728 cycles and W2's
+replays are not bounded by the rig.
+
+**B-1, and why 127 captures is the registered sample and not a shortfall.**
+The bar is scored over *"every capture whose rows are retained"* — every
+divergent seed plus the SUCCESS ballast — and it costs no board time because it
+is read off rows already banked.  380 corpus captures were retained, **127** of
+them carry a vector; the registered expectation was ≥ 20,000 bus cycles and the
+measurement is **48,042**.  The sample is unbiased with respect to what it
+measures: the rig applies the vector before any engine has an answer.
+
+### §2.5 WHAT WAS BANKED
+
+| artifact | content |
+|---|---|
+| `sw/testdata/campaigns/wr1/results.jsonl` | **3,150 lines**, one per seed, each carrying the vector **in full** (`wvec_hex`, 8,192 chars), its sha256, the era stamp, and the capture's own `bus_cycles` |
+| `sw/testdata/campaigns/wr1/captures/` | **380 retained full per-clock row pairs** (divergent + the stratified SUCCESS ballast), 17.7 MB |
+| `sw/testdata/campaigns/wr1/captures/b9/` | **158 B-9 row files**, each holding **all three repetitions of both legs**, 18.6 MB, with `SHA256SUMS` |
+| `sw/testdata/wrfuzz/w1_{preflight,capture,b9,bars,idle}.json` | the session records: div_guard readbacks, per-stratum timings, the B-9 per-seed cells, the scored bars |
+| `sw/testdata/wrfuzz/w1_sha256_manifest.txt` | **545 files**, sha256 each — the retention rule (full rows + sha256, never digests alone) made checkable |
+
+The loose captures are `.gitignore`d exactly as `mc1`/`mc2`'s are; the sha256
+manifest, the results and the session records are committed.
+
+### §2.6 W1's OWN FINDINGS
+
+**F-5 — THE SINGLE-WRITER PROBE MATCHED ITSELF, AND IT WAS CAUGHT BY ITS OWN
+FALSE POSITIVE.**  `pgrep -af 'v30ctl.py serve'` run through `bash -lc` matches
+the `bash -lc` process carrying the pattern, so the very first pre-flight
+declared a single-writer VIOLATION that did not exist.  Fixed to `[v]30ctl`.
+Recorded at length for the same reason §1.4's F-4 was: **the probe reported a
+violation that was not there, which means the same construction could have
+reported an all-clear that was not there either** — the direction of a false
+result is an accident of what was running, not a property of the check.  It is
+the task #29 P7 self-matching-`pgrep` lesson, arriving in a liveness check.
+
+**F-6 — THE VECTOR AXIS COSTS ABOUT 30 % OF CAPTURE THROUGHPUT, AND IT IS THE
+TRANSPORT, NOT THE PART.**  Measured, not inferred: the control strata run at
+10.5-10.9 seeds/s on soup and the `wvec` strata at 7.6-8.4 with everything else
+held equal; on raw, 6.2-7.5 against 5.2-6.0.  The difference is the 4,096-byte
+`WVEC` base64 load, sent **twice per seed** because `run_image` re-arms replay
+for each A/B position and `v30ctl.load_wvec` writes what it is given.  Booked
+as a fact about the RIG's cost model, **not fixed** — the obvious "optimisation"
+(skip the load when the vector has not changed) would make the board's
+NOT-CLEARED replay RAM (`wvec_shapes` property 3) load-bearing, which is
+exactly the hazard that rule exists to keep out of the capture path.
+
+**F-7 — B-9 FOUND ZERO INSTABILITY *AND* ZERO QS FLICKER, WHICH IS STRONGER
+THAN THE BAR ASKED FOR.**  The registered comparator is
+`fuzz_classify.diff_rows`' own policy, which TOLERATES the 1-cycle F↔S
+queue-status flicker as cosmetic; the bar would have been met with any number
+of flicker rows.  Over 158 seeds × 3 repetitions × 2 legs = **632 row
+comparisons**, the flicker count is **0**.  Under a brand-new wait axis, with
+`burst` putting single waits of 16/24/31 clocks on one access in 29-53 and
+`skew` holding a level for blocks of 16-32 accesses, the socket repeats itself
+**exactly**.  §81.B's 193/193 deterministic over 1,089 captures now has a
+random-wait-vector counterpart, measured rather than inherited.
+
+### §2.7 WHAT THIS SITTING DID NOT DO
+
+* **NO FLASHING.**  FLASH #10 is resident and is what every capture is stamped
+  with.  `--allow-stale` was never passed.
+* **No survey.**  No family census, **no engine-vs-silicon rate computed or
+  quoted**, no `S`, no residue partition, no class-A count, no H3-B statistic.
+  All of that is W2's and this sitting deliberately leaves it untouched — the
+  classifier's inline verdict counter is banked in `results.jsonl` because the
+  capture path produces it, and **its interpretation is W2's, not W1's**.
+* **No `--tb-only` run**, anywhere.  F-4's trap (`check_seq.CORE` pinned to
+  `fsm`) is live and W1's comparator is the board.
+* **No standing gate moved and no ratchet was re-registered.**
+  `standing_gates.md` is untouched at W1 by design.
+* **Nothing landed in either engine.**  `git diff` over `hdl/` and `sim/` is
+  EMPTY.
+* **No memory file was touched and Codex was not launched** — the coordinator
+  routes this package.

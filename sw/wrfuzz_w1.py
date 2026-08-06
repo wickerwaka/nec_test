@@ -701,9 +701,13 @@ def cmd_bars(a):
             guards += json.loads(p.read_text()).get("div_guards", [])
     unpinned = [g for g in guards if g["state"] != "PINNED"]
     quar = sum(1 for r in lines if r["verdict"] == fc.QUARANTINE)
+    # `_quarantine("run_error", ...)` puts the reason in `sub`, NOT in
+    # `alarms` -- only `provenance_alarm` reaches `alarms`.  Counting alarms
+    # would report 0 transport errors however many there were.
     runerr = sum(1 for r in lines
-                 if any(str(x).startswith("run_error")
-                        for x in (r.get("alarms") or [])))
+                 if str(r.get("sub") or "").startswith("run_error"))
+    prov = sum(1 for r in lines
+               if "provenance_alarm" in (r.get("alarms") or []))
     b9 = json.loads((OUT / "w1_b9.json").read_text()) \
         if (OUT / "w1_b9.json").exists() else {}
     cap = json.loads((OUT / "w1_capture.json").read_text()) \
@@ -721,7 +725,8 @@ def cmd_bars(a):
         "registered": "circuit breaker not tripped; error count REPORTED, "
                       "not barred",
         "measured": {"quarantines": quar, "run_error_lines": runerr,
-                     "b9_errors": b9.get("errors"),
+                     "provenance_alarms": prov, "b9_errors": b9.get("errors"),
+                     "consecutive_quarantine_break_at": quar_break(lines),
                      "halted": cap.get("halted")},
         "verdict": "MET" if (not cap.get("halted") and quar_break(lines) is None)
         else "MISSED"}
