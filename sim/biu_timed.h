@@ -313,6 +313,10 @@ public:
     // executed form's execute strobe sits there -- see loader_impl.h,
     // ONE_BYTE_LOGIC.
     void wait_retire_lead();
+    // W3.4: set by `CpuT::step()` before `loader_decode`.  The BRK/TF arm
+    // is known BEFORE the decode (the previous retire set it) and a
+    // ONE_BYTE_LOGIC form is not in the shadow class, so this is the take.
+    void set_brk_pending(bool v) { brk_pending_ = v; }
     // The PRE-DECODE operand read.  Its data is not consumed by an F-flagged
     // micro-row -- it is consumed by micro-row 0 itself -- and the decoder
     // spends one clock handing the sequencer over, exactly as it does on the
@@ -503,6 +507,7 @@ private:
     uint16_t fetch_ptr_ = 0;
     uint16_t cs_ = 0;
     bool suspended_ = false;
+    bool brk_pending_ = false;   // W3.4: this sequence retires into a BRK/TF take
     bool pop_is_first_ = true;
     std::vector<uint8_t> consumed_;
     // F1 (flush display).  The queue-clear event QS=E is a POINT SAMPLE on the

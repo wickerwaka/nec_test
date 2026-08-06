@@ -1244,7 +1244,46 @@ uint8_t BiuTimed::pop(uint16_t cs, uint16_t upc, bool disp_last) {
     return b;
 }
 
+// wrfuzz W3.4 -- THE RETIRE LEAD LEADS THE SUCCESSOR'S *POP*, AND A BOUNDARY
+// THAT FIRES CANCELS THAT POP.
+//
+// The wait itself is a MEASURED law and it is NOT removed: `loader_impl.h`'s
+// own comment above the call carries the golden, 250/250 on each half --
+//     even `ip`  the successor's byte is already in the queue, its pop is at
+//                pop+2, and the golden shows the new IE at pop+1
+//     odd  `ip`  a single upper-lane byte, so the successor's pop waits for
+//                the next fetch's T4+2, and the golden still shows the OLD IE
+// -- and W3.4 CONFIRMED that by falsifying its own first candidate: deleting
+// the `q_.empty()` disjunct moved `FA` (74), `FB` (68) and `INT.FB` (39),
+// 181 row-diffs on `v0.1` where the registered ladder is 0.  The flag write's
+// commit clock really does wait for the byte to ARRIVE.
+//
+// What does NOT wait is the RECOGNITION BOUNDARY.  That is the law
+// `boundary_no_pop()` already states and `v30u_eu.sv`'s boundary block already
+// quotes -- *"the recognition decision does not need the byte (it is the
+// decision NOT to take one), so a recognised boundary does not slide when the
+// queue is dry"*, measured there as `INT.90` 200/200 with the retire deadline
+// against 177 with the pop deadline.  The ROM path got that treatment; the
+// ONE_BYTE_LOGIC path never did, because on it the two rode one call.
+//
+// So the two are separated by the one condition that distinguishes them: when
+// the BRK/TF arm is set, this instruction retires INTO the trap and its
+// successor is never popped.  There is no pop to lead.
+//
+// MEASURED, `wrfuzz_provenance.md` §7 -- 23 `wr1` seeds, chip-side, no engine
+// in the loop: the trapping instruction is `FC` x18 / `FD` x4 / `F8` x1, ONE
+// BYTE LOGIC 23/23; its fetch address is ODD 23/23, so the redirect's refill
+// delivered a single byte and the queue is DRY at the retire; the chip's take
+// is its own opcode pop + 2 on 23/23, WAIT-INDEPENDENT (cycle lengths 5, 6, 7);
+// and the engine's take was late by exactly `delta` on 23/23, which is the
+// whole of the class.  The extra `CODE` fetch W3.2 chased is a CONSEQUENCE of
+// the late take, not a grant defect.
+//
+// *Falsifier*: any capture in which a ONE_BYTE_LOGIC form retiring into a
+// BRK/TF take has its boundary later than its own opcode pop + 2 with a dry
+// queue; or any `FA`/`FB` golden that moves when this gate is armed.
 void BiuTimed::wait_retire_lead() {
+    if (brk_pending_) return;
     int guard = 0;
     while ((q_.empty() || q_.front().ready > clk_ + 1) && ++guard < 4096) tick();
 }

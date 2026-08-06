@@ -138,6 +138,7 @@ public:
     bool opcode_pending() const { return false; }
     void prefix_retire() {}
     void wait_retire_lead() {}
+    void set_brk_pending(bool) {}
 
     const std::vector<Txn>& txns() const { return txns_; }
     void clear_txns() { txns_.clear(); seq_ = 0; }

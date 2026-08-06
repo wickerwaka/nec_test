@@ -955,6 +955,12 @@ bool CpuT<Bus>::step() {
     biu_.clear_consumed();
     brk_fired_ = false;
     brk_take_ = false;
+    // W3.4 -- the retire lead leads the SUCCESSOR'S POP, and a boundary that
+    // fires cancels that pop.  The arm is known here (the previous retire set
+    // it) and a ONE_BYTE_LOGIC form is never in the shadow class, so for the
+    // only caller of `wait_retire_lead()` this bit IS the take.  See
+    // `biu_timed.cpp:wait_retire_lead`.
+    biu_.set_brk_pending(brk_enable_ && brk_arm_);
     LoadResult ld = loader_decode(m_, biu_);
     // The decoder's operand pre-read is the OTHER thing that fills OPR, and it
     // does not go through `rdq_` -- the loader writes `m_.opr` itself.  This is
