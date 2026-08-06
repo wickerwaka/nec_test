@@ -364,7 +364,7 @@ Each is a **STOP**, not a tolerance.  A bar that fires means fix the rig and
 
 | bar | statement | how it is measured | registered value |
 |---|---|---|---|
-| **B-1** | **THE VECTOR WAS APPLIED.**  The chip's ACHIEVED per-cycle waits equal the vector it was handed | `wvec_shapes.applied_score()` over a declared **5 % sub-sample**, on the SOCKET leg (`use_core=0`) | **≥ 99.9 %.**  ⚠ The expectation is **100.0 %** — §68.6 measured 45,699/45,699 on the same mechanism, and the W0 smoke measured **100.00 %** on both offline engines (5,223/5,223 model, 4,809/4,809 `ucore`).  **Anything below 100.0 % is reported as a FINDING**, not absorbed by the 0.1 % |
+| **B-1** | **THE VECTOR WAS APPLIED.**  The chip's ACHIEVED per-cycle waits equal the vector it was handed | `wvec_shapes.applied_score()` on the SOCKET leg (`use_core=0`), over **every capture whose rows are retained** — every divergent seed plus the 100-seed stratified SUCCESS ballast.  **It is read off the banked rows and costs NO board time.**  The sample is unbiased with respect to the thing it measures: the rig applies the vector before any engine has an answer, so "was the vector applied" cannot depend on whether the seed diverged.  Expected ≥ 20,000 bus cycles, against §68.6's 45,699 | **≥ 99.9 %.**  ⚠ The expectation is **100.0 %** — §68.6 measured 45,699/45,699 on the same mechanism, and the W0 smoke measured **100.00 %** on both offline engines (5,223/5,223 model, 4,809/4,809 `ucore`).  **Anything below 100.0 % is reported as a FINDING**, not absorbed by the 0.1 % |
 | **B-2** | **ERA.**  Every capture embeds the artifact layer's input-manifest hash for the bitstream/RTL layer, the generator git SHA, `RIG_EVT_HOLD_BITS`, and the pinned `flash_log` entry | `sw/artifact.py`'s receipt schema + `fuzz_campaign new`'s `flash_pin`; the era guard REFUSES on ABSENT / MIXED / MISMATCH | **0 captures with an absent or mixed era stamp** |
 | **B-3** | **THE VECTOR IS BANKED IN FULL.**  `wvec_hex` is exactly 4,096 entries, `sha256(bytes) == wvec_sha256`, and the vector handed to the board equals the banked one | `timed_fuzz.banked_wvec()` RAISES on either mismatch; `fuzz_campaign.wvec_of()` asserts the length before every capture | **0 mismatches; 0 records with a vector spec and no `wvec_hex`** |
 | **B-4** | **NO GEN-DRIFT.**  Every seed's image regenerates byte-identically from `(cid, k, ov)` | `ucsim_fuzz.regen`'s sha gate, through `compose_case` | **0** GEN_DRIFT, **0** REGEN_ERROR |
@@ -372,6 +372,7 @@ Each is a **STOP**, not a tolerance.  A bar that fires means fix the rig and
 | **B-6** | **BRKEM-FREE.**  Zero `0F FF` byte pairs in every composed image | `fuzz_campaign.no_brkem_pairs()`, on the artifact, at generation | **0 pairs over the whole corpus** |
 | **B-7** | **BOARD DISCIPLINE.**  `div_guard()` PINNED with its readback recorded on every probe; socket-vs-fabric A/B differing only in `use_core`; full per-clock rows retained with sha256; `board_idle()` after the session; `use_core=0` left selected | `s13_board.div_guard`, `fuzz_campaign.capture_board`'s post-session leg | **`div_guard` PINNED on 100 % of probes**; **0** unpinned readbacks (an unpinned readback is a rig-integrity FINDING and a hard stop) |
 | **B-8** | **TRANSPORT.**  RunError → one reconnect + one retry, else QUARANTINE; ≥ 5 consecutive quarantines trips the circuit breaker | `fuzz_campaign.cmd_run` | **circuit breaker not tripped**; the transport-error count is REPORTED, not barred (the SM3 sitting-27 comparison is 0 errors in 2,394 captures) |
+| **B-9** | **THE CAPTURE IS STABLE.**  The same seed, the same vector, three repetitions, gives the same rows | a declared **5 % stratified sub-sample = 158 seeds × 3 reps**, compared inside `fuzz_classify.diff_rows`' own window (rows 9+ — the b2 protocol's own correction, `ucsim_t_provenance.md` §14.4, applied here IN ADVANCE rather than after a number was seen) | **158 / 158 stable.**  ⚠ This is the ONLY bar that costs board time, and it is what §6's 316 extra seed-loops buy.  The precedent is §81.B's **193 / 193 seeds deterministic across 1,089 captures**; an unstable cell under a NEW wait axis would be the single most important thing this campaign could find, so it is measured rather than inherited |
 
 **Board-time budget, registered.**  The measured hw-ab rate is **6.0 seeds/s**
 (`heartbeat.json`: mc1 `rate 6.01` over 810 seeds, mc2 `rate 6.04` over 5,000 —
@@ -381,7 +382,7 @@ chip capture + fabric capture + inline classify per seed).  Budgeted at a
 | pass | seed-loops | at 4.0/s |
 |---|---|---|
 | the corpus | 3,150 | **13.1 min** |
-| the B-1 sub-sample re-runs (5 %, 3 reps) | 316 | 1.3 min |
+| the **B-9** stability sub-sample (5 %, 2 extra reps) | 316 | 1.3 min |
 | slack for reconnects and the post-session `use_core=0` leg | — | ~5 min |
 | **registered W1 session bound** | | **≤ 30 minutes of board time** |
 

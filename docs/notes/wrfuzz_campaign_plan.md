@@ -115,7 +115,7 @@ Generate the pre-registered corpus and capture it.  Each seed is one
 differing in the A/B select and in nothing else.
 
 W1 **measures and reports; it does not diagnose.**  Its bars are the
-capture-integrity bars of the pre-registration (B-1 … B-8) and nothing else.
+capture-integrity bars of the pre-registration (B-1 … B-9) and nothing else.
 A bar that fires is a STOP and a finding, not a tolerance.
 
 ### W2 — THE SURVEY (survey-then-fix)
@@ -206,7 +206,7 @@ error of a 196-seed mean is 2.1 points, and 5.0 ≈ 2.4 standard errors.
 |---|---|
 | **MET** | the tranche's fabric hardware-vs-silicon rate ≥ **B**, **and** every non-exact seed's first divergence falls in a family NAMED in the W2 census's taxonomy (the V3 precedent, which was met at 100 %) |
 | **MISSED** | anything else.  **Reported as registered, never restated**; the tranche is not re-drawn, `B` is not re-derived, and no stratum is dropped |
-| **VOID** | a capture-integrity bar (B-1 … B-8) fires on the tranche.  Fix the rig and RE-CAPTURE — the correctness directive's own clause |
+| **VOID** | a capture-integrity bar (B-1 … B-9) fires on the tranche.  Fix the rig and RE-CAPTURE — the correctness directive's own clause |
 
 **THE FALSIFIER FOR THE AXIS ITSELF, registered with the bar.**  If at W2 the
 five `wvec` strata's hardware-vs-silicon rates are **not distinguishable** from
