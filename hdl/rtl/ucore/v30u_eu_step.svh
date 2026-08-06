@@ -159,7 +159,53 @@ S_DECODE2: begin
             trc_1bld_seen = brk_seen; trc_1bld_arm = brk_arm;
             trc_1bld_smp = brk_smp_n; trc_1bld_shd = irq_shadow_n;
 `endif
-            if (q_ripe_lead_n) begin
+            // wrfuzz W3.5 -- ...AND THE LEAD LEADS THE SUCCESSOR'S POP, SO A
+            // FORM THAT RETIRES INTO THE TRAP HAS NO POP TO LEAD.
+            //
+            // `wrfuzz_provenance.md` §7's law, the `ucore`'s rendering of it:
+            // `wait_retire_lead()` returns AT ONCE when the BRK/TF arm is set,
+            // because when the arm is set this instruction retires INTO the
+            // trap and its successor is never popped.  The WAIT ITSELF IS
+            // KEPT -- §7.5 falsified deleting it (the odd-`ip` half of
+            // `loader_impl.h`'s 250/250 golden says the FLAG WRITE does wait
+            // for its byte to arrive; deleting the queue test moved `FA`,
+            // `FB` and `INT.FB`, 181 row-diffs).  Two laws, one call.
+            //
+            // ⚠ THE GATE IS `brk_seen`, NOT `brk_arm`, AND THAT IS MEASURED,
+            // NOT CHOSEN.  This arm rides the OPCODE POP'S OWN CLOCK (the
+            // chain `S_OPC_POP -> S_DECODE -> S_DECODE2`, and equally
+            // `S_EPOP -> S_TAIL -> S_INSTR_END -> S_TAKE_OPC -> ...`), so
+            // `brk_smp` -- the sample instant §85.2a fixed at pop + 1 -- has
+            // NOT HAPPENED YET and the arm flop still carries the value the
+            // previous boundary spent.  MEASURED (`sw/w35_take.py arm`, the 23
+            // P1 seeds, ZERO exceptions): `brk_arm` = 0 on 23/23 at this
+            // decode, `brk_seen` = 1 on 23/23, `brk_smp_n` = 1 on 23/23, and
+            // the sample lands exactly ONE clock later.  W3.4's mirror gate
+            // read `brk_arm` here, could not fire, fell through to
+            // `S_1BL_LEAD` and fired at decode + 2 -- which is `wr1/201055`'s
+            // 2731 against the model's 2729, §7.8's reported miss, explained.
+            //
+            // AND THE BOUNDARY NEEDS NOTHING: `S_1BL_CHG` plus the zero-cost
+            // `S_INSTR_END` put the successor's `S_OPC_POP` -- `bnd_opc` -- at
+            // decode + 2, and decode + 2 IS the chip's take on 23/23 (§7.4's
+            // "its own opcode pop + 2, WAIT-INDEPENDENT").  §7.8's proposed
+            // second boundary arm for this path is NOT needed and is not taken.
+            //
+            // `irq_shadow` is NOT a term, for the model's own reason and now
+            // by measurement: every pop state clears it and every opcode is
+            // popped by one, so it is 0 at this decode on 23/23.  §7.8's named
+            // trap is ANSWERED and INERT -- the difference that mattered was
+            // never the shadow, it was the ARM'S AVAILABILITY.
+            //
+            // `S_1BL_LEAD` is deliberately NOT gated: the model tests
+            // `brk_pending_` ONCE, at entry, and then loops.
+            //
+            // *Falsifier*: any capture in which a `ONE_BYTE_LOGIC` form
+            // retiring into a BRK/TF take has its boundary later than its own
+            // opcode pop + 2 with a dry queue; or any `FA` / `FB` golden that
+            // moves when this gate is armed (they fire no trap, so `brk_seen`
+            // is 0 in their goldens and they are untouched by construction).
+            if (q_ripe_lead_n || brk_seen) begin
                 `include "v30u_eu_1bl.svh"
                 st_n = S_1BL_CHG;
             end else begin

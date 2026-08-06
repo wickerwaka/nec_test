@@ -1832,3 +1832,255 @@ the TB was rebuilt, and it was measured rather than assumed:
   `CODE`→gap+2 mode (§5.6b), H3-B and the 8080/BRKEM family were NOT opened.
 * **No memory file was touched and Codex was not launched.**
 * B-7 and B-8 are VACUOUS and are reported as vacuous, not as green.
+
+---
+
+## §8 W3.5 — **THE `ucore`'s TAKE-CLOCK LEG IS LANDED, AND IT IS ONE TERM.  §7.8's "SECOND, STRUCTURAL CHANGE" IS RETIRED BY MEASUREMENT: THE BOUNDARY WAS ALWAYS IN THE RIGHT PLACE, THE ARM WAS ONE CLOCK LATE.**
+
+**2026-08-06, branch `ucsim`, from HEAD `cb4fad5e38`.  OFFLINE, NO BOARD
+CONTACT, NO FLASHING, `use_core` never set.**  Pre-registration:
+`docs/notes/wrfuzz_w35_prereg_2026-08-06.md`, committed at **`734e11c010`
+BEFORE any candidate was landed and BEFORE any candidate was scored.**  New
+instrument: `sw/w35_take.py`, plus the `1BLD` probe in the RTL's `+brktrace`
+stream.
+
+> **Standing principle.**  *"A guiding principal here needs to be simplicity.
+> This is 80's era hardware, they aren't wasting silicon on anything that isn't
+> necessary.  Complex or confusing behavior that we see is likely to be simple
+> systems interacting in ways you do not fully understand yet."*
+
+### §8.0 ⚠ THE SITTING WAS INTERRUPTED MID-FLIGHT, AND THE RECORD SAYS SO
+
+A connection error terminated this sitting while the pre-registration was being
+written.  On disk at that moment were the two RTL files carrying the **`1BLD`
+MEASUREMENT PROBE** — a `+brktrace` `$display` inside `\`ifndef SYNTHESIS`, five
+trace registers and one assignment — and **nothing else**.  No candidate had
+been landed; no candidate had been scored.  The coordinator's path **(a)** was
+taken: the pre-registration was committed first, with the probe, and only then
+was the candidate landed and scored.  The extra `verilator_binary.jsonl`
+receipts (`a7e4335f62d1…`, `2ee02b6f5fd5…`) are the probe builds and are the
+interruption's only visible residue.
+
+**THE PROBE'S INERTNESS IS MEASURED, THREE WAYS, BEFORE ANYTHING IS READ OFF
+IT** — `w32_launch --core ucore` **77 / 184 with a byte-identical entry
+partition** on the pre-probe tree and on both probe builds, and
+`timed_fuzz --core ucore --evt-replay` **1,559 / 934 / 2,493**, the registered
+values to the seed.  A ruler that moved the numbers would have made §8.1 a
+measurement of the ruler.
+
+### §8.1 THE HEADLINE
+
+> **§7.8's structural reading is RETIRED BY MEASUREMENT.**  It booked the
+> `ucore` leg as needing *"a second, structural change … give the 1BL path its
+> own boundary arm at the retire deadline, beside `bnd_row` / `bnd_epop` /
+> `bnd_opc`"*.  **It does not.**  `bnd_opc` was always in the right place:
+> `S_1BL_CHG` plus the zero-cost `S_INSTR_END` put the successor's `S_OPC_POP`
+> at **decode + 2**, and **decode + 2 IS the chip's take on 23 of 23** — §7.4's
+> *"its own opcode pop + 2, WAIT-INDEPENDENT"*, read straight off the `ucore`'s
+> own state machine.
+>
+> **THE WHOLE DEFECT WAS ONE CLOCK OF ARM LATENCY AT ONE DECODE.**
+> `S_DECODE2`'s ONE_BYTE_LOGIC arm runs INSIDE the chain the opcode pop rode,
+> so `brk_smp` — the sample instant §85.2a fixed at pop + 1 — has not happened
+> yet, and the arm flop still carries the value the previous boundary spent.
+> **MEASURED: `brk_arm` = 0 at that decode on 23 of 23.**  W3.4's mirror gate
+> read `brk_arm` there, could not fire, fell through to `S_1BL_LEAD` and fired
+> at decode + 2 — putting the take at decode + 4, which is `wr1/201055`'s
+> **2731 against the model's 2729, §7.8's reported miss, explained to the
+> clock.**
+>
+> **§7.8's NAMED TRAP IS ANSWERED AND IT IS INERT.**  `irq_shadow_n` is **0** at
+> every one of the 23 decodes — every pop state clears it and every opcode is
+> popped by one — so on this path `brk_arm` and `brk_take` **are**
+> interchangeable.  The difference that mattered was never the shadow.
+>
+> **LANDED: ONE TERM, `q_ripe_lead_n` → `q_ripe_lead_n || brk_seen`, in
+> `v30u_eu_step.svh`.  No flop, no new state, no second boundary, no opcode
+> named, `sim/` untouched.**  Every registered bar met; `wr1--core ucore`
+> **77 → 91**, the bank **1,559 / 934 / 2,493 → 1,564 / 937 / 2,501**, b2
+> **181 → 182**, **ZERO LOST anywhere and ZERO first divergences moved
+> earlier**, `ss_lint` rc 0 with **no `SS_VERSION` bump**, `ulockstep`
+> 17,350 / 17,350, **G6 PASS**.
+
+### §8.2 THE MEASUREMENT §7.8 ASKED FOR — 23 SEEDS, ZERO EXCEPTIONS
+
+`sw/w35_take.py arm`, reading the `ucore`'s own `+brktrace` stream against the
+chip's take (the capture's vector-read row **− 9**, §6.6/§7.4's constant):
+
+| measured at the 1BL decode that owns the contested take | value | n |
+|---|---|---|
+| `q_ripe_lead_n` — the queue is dry, which is the class | **0** | 23/23 |
+| **`brk_arm`** | **0** | **23/23** |
+| **`brk_seen`** | **1** | **23/23** |
+| `irq_shadow_n` | **0** | 23/23 |
+| `brk_smp_n` — the opcode pop rode THIS clock | **1** | 23/23 |
+| sample clock − decode clock | **+1** | 23/23 |
+| **decode + 2 == the CHIP's take** | **MATCH** | **23/23** |
+
+**`brk_smp_n` = 1 at the decode IS the proof that the pop rode the decode's own
+clock**, on every one of the 23 — that wire is `q_pop && q_ripe && q_first`
+evaluated on that clock, and it is what schedules the sample for the NEXT one.
+Traced state by state on `wr1/201055` (`+eutrace`), the chain is
+`S_EPOP → S_TAIL → S_INSTR_END → S_TAKE_OPC → S_DECODE → S_DECODE2`, every step
+of it zero-cost, and the `QS = F` pin rides clock 2727 with `BRKS` at 2728,
+`1BL` at 2731 and `BRKT` at 2733 = decode + 6 = the chip's 2729 plus this
+seed's `delta` of 4.  **The arm's absence is a property of the CHAIN, not of
+these seeds.**
+
+### §8.3 THE CANDIDATES, SCORED AS REGISTERED
+
+| id | the term added to `q_ripe_lead_n` | outcome |
+|---|---|---|
+| **U-A** | `brk_arm` — W3.4's mirror | **REFUTED IN ADVANCE BY §8.2 and NOT BUILT.**  The arm is 0 at the decode on 23/23, so the gate cannot fire there; it is the sitting's registered ANTI-BAR (`BRKT` 2731) |
+| **U-B** | **`brk_seen`** | **TAKEN.**  Take = decode + 2 = the chip's take on **23 / 23, gap +0 on every one**; `BRKT` on `wr1/201055` = **2729**, the model's own landed clock |
+| **U-C** | `brk_smp_n ? brk_seen : brk_arm` | **NOT NEEDED AND NOT BUILT.**  The selection rule fixed in the pre-registration says U-C only if U-B loses a seed or moves a first divergence earlier; **it did neither, on any population.**  U-C would also drag `q_ripe`/`q_pop` into the `st_n` cone, which is §52's timing-critical path |
+
+### §8.4 THE BARS AS REGISTERED
+
+| bar | outcome |
+|---|---|
+| **Y-1** the P1 take clock closes, 23/23 | **MET — 23 / 23, `take − chip_take` = 0 on every seed** |
+| **Y-2** `SAME_BOUNDARY ∧ n_ins = +1` goes 23 → 0 | **MET — 0** |
+| **Y-3** ⚠ NO LOSS on `wr1`; ≥ 77 | **MET AND BEATEN — 77 → 91.  14 gained, 0 LOST, 0 first divergences moved earlier, 31 moved LATER.**  The registered POINT PREDICTION was **88** (77 + the model's 11); the outcome is **91**, and it is reported against the prediction, not in place of it |
+| **Y-4** `BRKT` on `wr1/201055` = 2729 | **MET — 2729.**  The anti-bar 2731 was named in advance and is not reproduced |
+| **Y-5** the `ucore` ladder at its registered values | **MET, every figure**: `check_core --opcodes all` **169,000 / 169,000** · `v0.1-w1` / `-w3` **1,200** each · `EB` w1 **200** · the four `evt` cells **200 / 1,200 / 200 / 1,200** · `w1evt-biased` **1,200** · block I/O **229,999 / 229,999** · `f4a_boundary` **160 / 160** · `f0lock_tranche` **400 / 400** · `check_boot --timed 220` and `--timed 400` **MATCH** · `timed_wvec_gate --core ucore` **88 / 88, +0.0 %** · `timed_enter_replay --core ucore` **154 / 154 ×5** · `timed_ins_replay --core ucore --raw` **1,312 / 1,312** and **2,624 / 2,624** · `check_ab_sim` **187 rows MATCH** |
+| **Y-6** the registered fuzz bank, monotone, 0 lost seed by seed | **MET AND RAISED — REGISTERED 1,559 → 1,564, EVT 934 → 937, COMBINED 2,493 → 2,501; b2 tranche 181 → 182.  21 seeds gained, ZERO LOST over all 3,242, 0 first divergences moved earlier**, checked seed by seed against a baseline measured on this tree.  `BOUND WARNINGS` **4 → 4**, `ENGINE ABORTS` **0** |
+| **Y-7** the SM trap cells, ucore depth-4 cell exact | **MET EXACTLY — 121,860 rows, 0 row-diffs, EXACT on all 30** at depth **4**, and **0 at no other depth in [1,7]** (nearest **14,630**, at 5); surviving depths **{4}**, W-2 **22 / 22**; W-0a 0/18, W-0b 24,372 rows 0 diffs, W-1, W-3 `[2,2]`/`[3,3]`, W-4 0 · 0, W-5 90/90.  ⚠ **The strongest control in the sitting: the regenerated `sw/testdata/sm3-s24tfcell/score-ucore.json` is BYTE-IDENTICAL to the committed one** — every floor, every cell, every diff count.  The trap's own sharpest gate did not move by one row |
+| **Y-8** the shadow law's populations | **MET, UNMOVED — 75 grace-≥1, 1,288 grace-0, 1,363 ruled**; `MOV`sreg 68 g1 + 1 g2 / 0 g0, `POP`sreg 6 / 0, `LES`/`LDS` 0 / 11, all other 0 / 1,277 |
+| **Y-9** `ss_lint` rc 0, no SS bump expected | **MET — rc 0, 205 architectural flops, 0 UNMAPPED, `SS_VERSION` 0x87 unchanged.  NO flop landed**, exactly as registered: the change is a TERM in an existing next-state expression |
+| **Y-10** `ulockstep --golden all --cases 50` | **MET — 17,350 / 17,350, ALL CASES LOCKSTEP** |
+| **Y-11** G6 | **MET — PASS.**  E1 `gen_ucore_qsf --check` PASS · **0 stage errors, 0 error lines** · **Fmax 47.31 MHz** against the registered ≥ 32 · worst setup **+9.226 ns** · **TNS 0.000 on EVERY clock domain** · **ALMs 11,232 / 41,910 (27 %)** · **latches 0** · **`lpm_divide` 0**.  Receipt `a658942cff4cceeb…`, 88 input files `fc508a1c4c17228e…`, compile 579 s.  ⚠ The receipt records the tree as `734e11c010-dirty` — the gate ran on the LANDING before its commit, which is the only order in which an RTL change can be gated before it is committed |
+| **Y-12** HLT sweeps 279/283, S16 walk 1,320/1,371 | **MET — 97 + 93 + 45 + 44 = 279 / 283** and **1,320 / 1,371** with `w0` **372 / 372**; the S16 residue is still exactly `D_tstate` **24** + `ARCH` **27** and no third class |
+
+### §8.5 THE 10 P1 SEEDS THAT ARE STILL NOT EXACT — REPORTED, NOT EXCUSED
+
+13 of the 23 became EXACT.  The other 10 are itemised rather than counted as a
+miss of this law, and **9 of them have their first divergence LATER**, which is
+the P1 defect closing with a downstream one remaining:
+
+| seed | first divergence before → after | class |
+|---|---|---|
+| `wr1/202058` | 1553 → 1779 (**+226**) | DIFF_BOUNDARY |
+| `wr1/203121` | 1328 → 3100 (**+1772**) | DIFF_BOUNDARY |
+| `wr1/204007` | 984 → 1787 (**+803**) | NO_ENTRY_DIFF |
+| `wr1/204092` | 342 → 3469 (**+3127**) | DIFF_BOUNDARY |
+| **`wr1/204143`** | **1113 → 1113 (+0)** | NO_ENTRY_DIFF |
+| `wr1/206034` | 1314 → 1517 (**+203**) | DIFF_BOUNDARY |
+| `wr1/206097` | 634 → 850 (**+216**) | DIFF_BOUNDARY |
+| `wr1/210130` | 1468 → 2390 (**+922**) | SAME_BOUNDARY |
+| `wr1/212046` | 1888 → 2100 (**+212**) | DIFF_BOUNDARY |
+| `wr1/212122` | 2497 → 2722 (**+225**) | DIFF_BOUNDARY |
+
+**`wr1/204143` is the ONE that did not move**, and its divergence at row 1113 is
+far UPSTREAM of its contested take at clock 2341 — §4.6a's A-1 shape and §7.9's
+own reading, named here rather than absorbed.  Its take clock DID close
+(§8.2 scores it MATCH); the seed is not exact for a reason that predates the
+entry.
+
+⚠ **ONE GAIN WAS NOT PREDICTED**: `wr1/206062` is not one of the 23 and became
+EXACT.  It is reported, not claimed.
+
+### §8.6 THE ENTRY PARTITION MOVED AGAIN, AND IT IS AGAIN NOT A BAR
+
+`w32_launch --core ucore` goes `SAME_BOUNDARY 45 → 15`, `DIFF_BOUNDARY 7 → 20`,
+`NO_ENTRY_DIFF 118 → 135`, `COUNT_DIFF 12 → 12`, `UNREADABLE 2 → 2`,
+`OPEN_BUS 196 → 196`.
+
+**This is §7.7's shape and the pre-registration DECLINED to register it**,
+precisely because W3.4 had to report a bar NOT MET for a landing that lost
+nothing.  It is an **ATTRIBUTION counter over a divergent-by-construction
+subset**, not a ratchet (`standing_gates.md` says so of the whole 184).  Seeds
+whose FIRST divergent entry was P1's now run past it and are classified at a
+LATER entry.  Zero seeds left EXACT and zero first divergences moved earlier,
+which is what the actual bar (Y-3) measures.
+
+### §8.6a G6, AND THE BITSTREAM THAT WAS NOT FLASHED
+
+`sw/quartus_gate.py`, the CONTROL/DEFAULT build, Quartus 17.1.0 Build 590:
+
+| | |
+|---|---|
+| E1 `gen_ucore_qsf --check` | **PASS** — the two A/B bitstreams still differ by the CORE and nothing else |
+| E2 zero errors | **PASS** — 0 stage errors, 0 error lines; map, fit and asm all Successful |
+| E3 Fmax | **PASS — 47.31 MHz** (registered bar **≥ 32**) |
+| E4 worst setup | **PASS — +9.226 ns** |
+| E5 TNS | **PASS — 0.000 on every clock domain** |
+| resources | **ALMs 11,232 / 41,910 (27 %)**, **latches 0**, **`lpm_divide` 0** |
+
+The previous registered figures were 26 % ALMs and 45.56 MHz (U4 pass 3, §52);
+this build is **27 % / 47.31 MHz** — one term of combinational logic, and the
+fitter's own run-to-run spread is larger than its cost.  **`nec_test.sdc` was
+NOT edited.**
+
+⚠ **A BITSTREAM WAS PRODUCED AND NOT FLASHED.**  `nec_test_ucore.sof` and
+`.rbf` exist in `hdl/output_files_ucore/`; **the board still carries FLASH
+#10** and nothing was opened.  Every fabric column in `standing_gates.md` is a
+FLASH #10 figure and is unchanged, because **this landing is not in any
+bitstream on the board.**
+
+### §8.7 THE LANDING — **ONE TERM, AND EVERY REASON FOR IT IS A MEASUREMENT**
+
+`hdl/rtl/ucore/v30u_eu_step.svh`, `S_DECODE2`'s ONE_BYTE_LOGIC arm:
+
+```
+-  if (q_ripe_lead_n) begin
++  if (q_ripe_lead_n || brk_seen) begin
+```
+
+**No flop.  No new state.  No second boundary.  No opcode named.  `sim/`
+byte-identical.**  `ss_lint` exits 0 with `SS_VERSION` **0x87** and **205
+architectural flops** unchanged, which is what "no flop" means when it is
+checked rather than asserted.
+
+Three things it deliberately does NOT do, each for a measured reason:
+
+* **It does not gate `S_1BL_LEAD`.**  The model tests `brk_pending_` **once**,
+  at `wait_retire_lead()`'s entry, and then loops.  Gating the wait's body would
+  be a second law, and it is the shape W3.4's mirror accidentally had.
+* **It does not delete the wait.**  §7.5 falsified that: the odd-`ip` half of
+  `loader_impl.h`'s 250/250 golden says the FLAG WRITE does wait for its byte,
+  and deleting the queue test moved `FA` (74), `FB` (68) and `INT.FB` (39) —
+  181 row-diffs where the ladder is 0.  **Two laws, one call**, and this leg
+  separates them by the same single condition the model does.
+* **It does not add `irq_shadow`.**  Measured 0 at all 23 decodes (§8.2), for a
+  structural reason: every pop state clears it and every opcode is popped by
+  one.  Adding an inert term would be machinery the die does not need.
+
+*Falsifier*: any capture in which a `ONE_BYTE_LOGIC` form retiring into a
+BRK/TF take has its boundary later than its own opcode pop + 2 with a dry
+queue; or any `FA` / `FB` / `INT.FB` golden that moves when this gate is armed
+(they fire no trap, so `brk_seen` is 0 in their goldens — checked, not asserted:
+`check_core --opcodes all` is 169,000 / 169,000 and `INT.FB` is inside it).
+
+### §8.7a THE DETERMINISM CONTROL
+
+The `ucore` TB was rebuilt from the SAME sources after the ladder was scored
+(the content key `dfeb32ead17646f1…` is identical either side; only the receipt
+hash moves, because two builds of one tree are two different binaries).  On the
+fresh binary `w32_launch --core ucore` re-reads **91 / 184 with a
+byte-identical entry partition**.  A landing whose number depended on a
+particular build would have shown here.
+
+### §8.8 WHAT THIS SITTING DID NOT DO
+
+* **NO BOARD CONTACT, NO FLASHING, `use_core` NEVER SET.**  No `div_guard`, no
+  `board_idle` — nothing was opened.  The board still carries FLASH #10, so
+  every figure here is OFFLINE and **none is a fabric figure**.  ⚠ The landing
+  is in RTL and **not in any bitstream**; the fabric columns are unchanged
+  because nothing was flashed.
+* **The victory reserve (`k ≥ 300000`) was NOT touched.**
+* **The MODEL (`sim/`) was NOT touched.**  W3.4's landing is the semantic
+  reference; this is the `ucore`'s rendering of it, edge-for-edge on OBSERVABLE
+  behaviour and not line-for-line on structure.  The model's own columns
+  (1,343 / 802 / 2,145, `wr1` 84 / 184) are unchanged and were not re-run.
+* **Candidates U-A and U-C were NOT BUILT** — U-A because §8.2 refutes it before
+  a build, U-C because the pre-registered selection rule only reaches it if U-B
+  loses something, and U-B lost nothing.
+* `mc1/721`, `mc2/584`, the §5.6a / §5.6b modes, H3-B and the 8080/BRKEM family
+  were NOT opened.
+* **No memory file was touched and Codex was not launched.**
+* ⚠ **One mis-invocation is recorded rather than hidden**: `--ss-sweep 1` was
+  first run as if `1` were a MODE; it is a STRIDE, and the run was an
+  unbounded sweep over every case.  It was killed and the REGISTERED forms
+  (`--ss-mode 1` / `2` / `5`) were run instead.  Nothing was scored off the
+  wrong invocation.
