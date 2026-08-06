@@ -463,3 +463,231 @@ random-wait-vector counterpart, measured rather than inherited.
   EMPTY.
 * **No memory file was touched and Codex was not launched** — the coordinator
   routes this package.
+
+---
+
+## §3 W2 — THE SURVEY
+
+**2026-08-05, branch `ucsim`, from HEAD `b8020d0229`.  OFFLINE, NO BOARD
+CONTACT, NOTHING LANDED.**  Census document:
+`docs/notes/wrfuzz_survey_2026-08-05.md`.  Driver: `sw/wrfuzz_w2.py`.
+
+W2 **scores, counts, partitions and freezes.**  It plans no fix, proposes no
+mechanism as settled and moves no ratchet.  Its deliverable shape is the
+pre-registration's §7, item for item.
+
+### §3.1 THE HEADLINE
+
+> **3,150 seeds scored hardware-versus-silicon.  635 excluded by the
+> pre-registered OPEN_BUS detector, 2,515 SCORED, 2,379 cycle-exact
+> (94.59 % pooled).  `S` = the unweighted mean of the 28 per-stratum rates =
+> 91.6681 %, and `B = S − 5.0 = 86.6681 %` — BOTH FROZEN.  The victory tranche
+> is drawn and frozen at sha256 `dcaa48fa991f…`.**
+>
+> **The residue is 136 seeds and 75 of them — 55 % — carry the single-step
+> (TF) trap axis, which is 3.5 % of the scored corpus.**  Seeds with it fail at
+> **84.3 %**; seeds without it at **2.51 %**.  With the axis removed thirteen of
+> the fourteen soup strata are 98.6-100.0 % and the soup residue is **seven
+> seeds**.
+
+### §3.2 THE THREE COMPARATORS AND WHAT EACH WAS TOLD
+
+| leg | told | population | result |
+|---|---|---|---|
+| **HW-vs-SILICON** — `ucore` in fabric vs the socketed chip, A/B differing only in `use_core` | nothing; it runs the image under the vector | **3,150** | **2,379 / 2,515 scored** |
+| chip-vs-model, offline | the same image and the same 4,096-entry vector (decimal) | the **380 retained captures**, 184 offline-scored | 48 / 184 |
+| chip-vs-`ucore`-TB, offline | the same, hex encoding | the same 184 | 49 / 184 |
+
+⚠ **The 380 is DIVERGENT BY CONSTRUCTION** (every miss plus a SUCCESS ballast),
+so the two offline figures are **attribution only** — the pre-registration's own
+words — and are never quoted as a silicon-match rate or used to rank the two
+engines.  Cross-engine partition over the 184: **model-shared 130,
+`ucore`-only 5, model-only ≥ 6** (the `ucore`-only column is COMPLETE because
+every fabric miss has its rows retained; the model-only column is a FLOOR).
+
+### §3.3 THE FAMILY CENSUS
+
+`ucore` **in fabric**, 136 scored misses / 135 classified: `PF_LOST` **43** ·
+`SCHEDULE` **42** · `DATA_SEQ` **23** · `PF_GAINED` **18** · `PIN` **7** ·
+`PF_ADDR` **2**; `TAIL_EXTRA` / `TAIL_MISS` **0**; **catch-all EMPTY**.
+The `ucore` in the Verilator TB gives the **identical** table, cell for cell.
+The model's own divergence set is 136: `SCHEDULE` 50 · `PF_LOST` 49 ·
+`DATA_SEQ` 17 · `PF_GAINED` 15 · `PIN` 3 · `PF_ADDR` 2.
+
+**Instrument agreement, measured: fabric and `tb_v30_core` reach the same
+verdict on 182 / 184** — and **INTA rows are 0 over 380 retained captures**, so
+§56's fabric-float class has no members in an evt-free corpus.  **Plan §4's
+registered risk #4 is answered by measurement and the answer is a negative.**
+
+### §3.4 THE SURVEY'S OWN FINDINGS
+
+**F-8 — THE PRE-REGISTERED OPEN_BUS EXCLUSION IS NOT THE ONE THE BANK LABELS
+WITH, AND THE DIFFERENCE IS 1.7 POINTS OF `S`.**  `fuzz_classify.classify`
+consults the accept engine only inside the branches a divergence reaches, so
+**a SUCCESS seed can never carry `KNOWN_ACCEPTED/open_bus`** — excluding on that
+label removes open-bus MISSES and keeps open-bus EXACTS, an exclusion whose
+membership depends on the answer.  The registered detector
+(`_open_bus_escaped_before`) was evaluated on all 3,150 through the capture
+path's own banked `ob_escape.feed` counter, validated against the row-level
+detector at **259 / 260** on the retained raw captures and **0 / 120** false
+fires on soup.  `S` is computed under the registered detector — **91.6681 %**,
+against 94.9107 % under the label.  **The costlier one is the one used.**
+
+**F-9 — W1's RETENTION POLICY CANNOT SUPPORT A ROW PREDICATE OVER THE
+POPULATION.**  Rows exist for 380 of 3,150.  That is exactly enough for the
+family census (**every non-exact seed's rows are on disk, 320 of 320**) and not
+enough for any predicate that must be evaluated on a SUCCESS seed.  F-8's
+exclusion survived only because the capture path happened to bank the counters
+it needed.  **BOOKED, not fixed**: retain all rows, or bank the predicates the
+survey will need, at capture time.
+
+**F-10 — THE CONTROL STRATA CANNOT BE CHECKED AGAINST A REMEMBERED NUMBER, AND
+BOTH CANDIDATE CONTROLS FAIL BY MEASUREMENT.**  (a) The promoted bank's
+per-wait-class column is a SELECTION artefact — re-measured this sitting it is
+**100.0 % on six of nine soup classes** beside `fix0` at 65.8 %, which is what
+`fuzz_bank.promote`'s caps left behind and not a population rate.  (b) The
+mc1 / mc2 / t30 campaigns' full populations carry **no era stamp at all**
+(0 of 20,203 lines; `wr1` is the first campaign with one, B-2's own gate), so
+their fabric leg is a core and a bitstream nothing records.  **`wr1`'s nine
+control strata are therefore the FIRST unbiased, era-stamped, per-wait-class
+population measurement of the resident era**, and the reproduction check the
+work order asked for returns a NEGATIVE.  No delta against either candidate is
+computed anywhere.
+
+**F-11 — A BRKEM-FREE CORPUS LANDED IN 8080 MODE 12 TIMES.**  B-6 measured
+**0 `0F FF` pairs over 3,150 composed images** and §63.5's class-A criterion
+still fires on **12 of 136 scored misses**, all raw tier.  This is W0's F-2 and
+prereg §3.3 arriving as a measurement: *a BRKEM-free corpus is not an 8080-free
+corpus*, and §63.5's other 24 class-A seeds' entry path is still not
+established.  As a share of the residue the class has fallen from **41 %**
+(92 of 222, banked corpus) to **8.8 %**.  **COUNTED, REPORTED, LEFT IN THE
+DENOMINATOR** — 8080 is DEFERRED BY USER DECISION and is not filtered.
+**ROUTED to W3 as a GENERATOR question**, not a core question.
+
+**F-12 — THE VACUOUS-INSTRUMENT PATTERN, AGAIN, IN THIS SITTING's OWN `8F`
+MOD-3 COUNTER.**  The first criterion scanned the composed image for the byte
+pair `8F`, `mod == 3` and reported **2,951 of 3,150 seeds** — a 64 KB image
+with random fill contains the pair by chance almost always.  The number is
+recorded and **labelled VACUOUS in the tool's own output**; the count that is
+quoted is the execution-based one (the form in flight at the first divergence),
+which is **0** — two seeds carry an `8F` form and both are the memory form.
+⚠ Not numbered in `standing_gates.md`'s incarnation count: it is a survey
+counter, never a gate, and it was labelled in the sitting that wrote it.
+
+### §3.5 THE INVARIANT THAT SHAPES W3, AND ITS OWN CONTROL
+
+`PF_GAINED` is **18 seeds with one geometry**: signature `bs PASV!=CODE`
+18/18; the chip's cell at the contested slot **`MEMR 00004`** — interrupt
+vector 1, the single-step vector — 18/18; the engine's cell `CODE 005xx` 18/18;
+enclosing chip cycle `IDLE` at offset **+1** 18/18; `delta ∈ {−6,−5,−4}`;
+recovery a single extra `CODE` on 16/18; `has_tf` **True on 18 of 18**.
+**30 of `PF_LOST`'s 43 are the same event with the owners swapped.**  Across
+the classified residue **64 of 135** have `MEMR 00004` at the contested slot.
+
+**KNOWN SIGNATURE, NEW EXPOSURE.**  Re-censused this sitting, **8 of the old
+bank's 145** registered `ucore` residue seeds carry the same cell and **both**
+of that bank's two `PF_GAINED` members are this exact shape.  What is new is
+the population: the banked corpus is promotion-selected and `wr1` is the first
+whole-stratum capture.  The settled law nearest it — **partition B1, the BRK/TF
+trap — is LANDED and its floor cell is EXACT at depth 4**; this survey does not
+contradict it, because the floor cell walks the recognition depth and never
+interleaves the entry with a live prefetch.
+
+⚠ **AND IT IS NOT A WAIT-AXIS EFFECT**: at `fix0` the TF seeds already fail
+**6 of 7**.  ⚠ **`soup/wvec-edge` is 5/5 exact on its TF seeds** where every
+other soup stratum is 9 of 84 — and its length confound has a **matched control
+inside the corpus**: `soup/wrand15` has the same median `n_ins` (24), the same
+`nmax_eff` (24) and the same median bus-cycle count (146 vs 145), and is
+**0 / 6** (Fisher p = 0.0022).  The one thing separating them is that
+`wrand15` takes intermediate wait lengths and `edge` (`{0,1,30,31}`) never
+does.  **Registered as a HYPOTHESIS with its falsifier**, not as a law — see
+the census §4.5.
+
+### §3.6 THE AXIS's OWN VERDICT — REPORTED AS A NEGATIVE
+
+The plan §5 falsifier is **NOT triggered**: six of fifty `wvec`-vs-`wrand`
+stratum pairs are distinguishable at their combined 95 % intervals
+(`soup/wvec-edge` against all five soup `wrand` strata; `raw/wvec-uni` and
+`raw/wvec-edge` against `raw/wrand1`).  **⚠ In every one of the six the vector
+stratum scores HIGHER.**  Pooled: soup `wvec` 96.80 % vs control 95.70 %
+(p = 0.24); raw `wvec` 92.03 % vs control 84.48 % (p = 0.031).
+
+> **After 3,150 seeds, no vector shape has produced a divergence rate above the
+> controls'.  The axis DISCRIMINATES — and so far it discriminates towards
+> agreement.**  The shapes are not interchangeable with each other
+> (`soup/wvec-walk` 92.00 % is the worst soup stratum, `soup/wvec-edge`
+> 100.00 % the only perfect one), and §3.5's clue is entirely a `wvec-edge`
+> result.  ⚠ **`wvec-skew`, the shape built FOR H3-B, contributes exactly one
+> of the eleven H3-B-signature seeds** and its soup stratum is the second best
+> in the corpus; the shape has not yet earned its place.
+
+### §3.7 WHAT CHANGED IN THE TREE, AND ITS CONTROL
+
+Two files, both instruments, neither an engine.
+
+* **`sw/wrfuzz_w2.py`** — NEW.  The survey driver: `seeds` (the retained
+  captures as banked-entry records, `fuzz_bank`'s own shape, so `timed_fuzz`
+  and `s15_census` read them with no flag), `strata`, `fabric`, `counts`,
+  `mod3`, `tranche`.
+* **`sw/s15_census.py`** — `one()` SPLIT into `classify(entry, chip, sim)` plus
+  a wrapper, so the campaign's **fabric** rows (which no replay can regenerate,
+  and which §56 says are not the TB's) can be classified by the tool's own
+  taxonomy instead of a fork of it.  The same change gave `classify`
+  `timed_fuzz.wait_class` for its stratum label, because the inline expression
+  reported every `wvec` seed as `fix0`.
+
+**THE CONTROL THAT SAYS NEITHER MOVED A NUMBER**: `s15_census --core ucore
+--pop reg` over the banked corpus reproduces SM3 §2.1's own column **to the
+seed** — `PF_LOST` 85 · `DATA_SEQ` 33 · `SCHEDULE` 13 · `PF_ADDR` 8 · `PIN` 4 ·
+`PF_GAINED` 2 · `TAIL_EXTRA` 0 = **145** — and `timed_fuzz --core ucore --pop
+reg` reproduces **1,557 / 1,702** exactly, TB receipt `cede73e73a318753…`.
+`git diff` over `hdl/` and `sim/` is EMPTY.
+
+### §3.8 THE VICTORY TRANCHE — FROZEN
+
+`sw/testdata/wrfuzz/victory_population.json`, sha256
+**`dcaa48fa991fa3cc78588bc95e4881a17a563b875624ac58138882056f39066d`**.
+**196 body seeds** (7 per stratum, `k ∈ [300000 + 1000·i, +7)`, disjoint from
+`wr1` by construction) plus **four directed H3-B cells at 25 seeds each**
+(`skew`, `blk = 32`; D1 soup 0/7, D2 soup 1/15, D3 raw 0/7, D4 raw 1/15),
+**3 repetitions** and **5 on the 12 declared promotion cells**.  296 seeds,
+**912 seed-loops**, ≈ 3.8 minutes of board time at the budgeted rate.
+⚠ The directed cells are **SELECTED by searching each k-block for the seeds
+whose deterministic draw already is `(skew, 32, wlo, whi)`**, because
+`derive_case` has no override that pins a vector shape's parameters; a
+`force_wvec_spec` knob is **BOOKED for W3** rather than added in a survey
+sitting.
+
+### §3.9 WHAT THIS SITTING DID NOT DO
+
+* **NO BOARD CONTACT.**  No `v30ctl`, no `s10_board`/`s13_board`, no serve
+  session, no `div_guard`, no `board_idle`, no flashing — nothing was opened.
+* **Nothing landed in either engine.**  `git diff` over `hdl/` and `sim/` is
+  EMPTY; no save-state address moved, no `SS_VERSION` bump, no Quartus run.
+* **No mechanism was proposed as settled, diagnosed or refuted.**  §3.5 is a
+  ranked candidate with an invariant table and a falsifier, and it says so.
+* **No fix of any kind**, including the two things the survey found and booked
+  (F-9's retention policy, the missing `force_wvec_spec` override).
+* **No ratchet moved.**  The two non-regression legs are reported at their
+  registered values.  The wr1 columns registered in `standing_gates.md` are a
+  **first registration, the survey baseline — NOT ratchets.**
+* **No memory file was touched and Codex was not launched** — the coordinator
+  routes this package.
+
+### §3.10 WHAT WAS BANKED
+
+| artifact | sha256 |
+|---|---|
+| `sw/testdata/wrfuzz/victory_population.json` | `dcaa48fa991fa3cc78588bc95e4881a17a563b875624ac58138882056f39066d` |
+| `sw/testdata/wrfuzz/w2_strata.json` (the 28-stratum table under all three exclusions, `S`, `B`) | `190a3d652978507fdc4a2b119265f7af0996a581f94be47134a0d957377690c5` |
+| `sw/testdata/wrfuzz/w2_fabric_census.json.gz` (the FABRIC family census) | `5a856a69a3eb6792930ddc832eeaa20a8060a30861d12e8938bc3807aa46a0d6` |
+| `sw/testdata/wrfuzz/w2_ucore_census.json.gz` (`s15_census --core ucore`) | `72432869abf24c14f3a22fc5422f88e82fcd37233ba145dccf63026c34931abf` |
+| `sw/testdata/wrfuzz/w2_sim_census.json.gz` (`s15_census --core sim`) | `23f4ca7cdfd8d6f843af3a49ab01c8804b0c54e6728cf99a0c131a3069c7f7ee` |
+| `sw/testdata/wrfuzz/w2_counts.json` (per-seed INTA / class-A / opsig / `mc1/721`) | `d1e1f4d530711c28b5b3e69e9ce1057b96a0afc391abe73fdc36fe4fa7aba713` |
+| `sw/testdata/wrfuzz/w2_mod3.json` (the B-4 re-run over 3,150, and the VACUOUS byte scan) | `0b47fd0d53bef0de2413a4468e3a25434a4e12b78289a1649800ababc509b1be` |
+
+The 380 banked-entry records the offline legs were scored from are a
+DERIVATION of `sw/testdata/campaigns/wr1/` (results line + `captures/`'s
+`real` and `sim` rows + the stratum's own `ov`) and are rebuilt on demand by
+`sw/wrfuzz_w2.py seeds`; they are not committed, for the same reason the loose
+captures are not.

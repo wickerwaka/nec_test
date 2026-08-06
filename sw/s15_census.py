@@ -198,21 +198,28 @@ def replay(entry, image, meta, chip, win, core, hold_mode):
     return rows
 
 
-def one(rec):
-    path = rec["path"]
-    core = rec.get("_core", "sim")
-    entry = json.loads(gzip.decompress(Path(path).read_bytes()))
-    image, meta, _g, _sha = uf.regen(entry)
-    chip = entry["chip_rows"]
+def classify(entry, chip, sim):
+    """THE TAXONOMY, over two row streams that are already in hand.
+
+    Split out of `one()` (task #38 W2) with NOTHING moved: `one()` still
+    regenerates, replays and calls this, so every historical invocation of this
+    tool computes the same bytes.  It is a separate function because the
+    wrfuzz campaign's comparator is chip-vs-FABRIC -- rows the BOARD produced,
+    which no replay can regenerate -- and §56 measured that the fabric scorer
+    is stricter than the TB by one class (the INTA float), so a fabric residue
+    classified by replaying the TB would be a census of a different set."""
     win = uf.window_of(chip)
-    sim = replay(entry, image, meta, chip, win, core,
-                 rec.get("_rig_hold", "banked"))
     dr = fc.diff_rows(chip, sim)
     w = entry.get("waits") or {}
-    out = {"path": path, "cid": rec["cid"], "k": rec["k"], "pop": rec["pop"],
-           "waitclass": (f"wrand{w.get('wmax')}" if w.get("wrand")
-                         else f"fix{w.get('fixed') or 0}"),
-           "waited": bool(w.get("wrand") or (w.get("fixed") or 0)),
+    out = {"path": None, "cid": entry.get("cid"), "k": entry.get("k"),
+           "pop": "EVT" if entry.get("evt") else "REG",
+           # task #38: ONE definition of a stratum label (`timed_fuzz.
+           # wait_class`), so a `wvec` seed is not reported as `fix0`.  For
+           # every seed banked before task #38 this returns the identical
+           # string the inline expression did -- no historical label moves.
+           "waitclass": tf.wait_class(entry),
+           "waited": bool(w.get("wrand") or (w.get("fixed") or 0)
+                          or entry.get("wvec")),
            "pin": (entry.get("evt") or {}).get("pin")}
     if not dr.rows:
         out["cat"] = "NOW_EXACT"
@@ -336,6 +343,23 @@ def one(rec):
         "d_flush": nearest(flush, fb),
         "n_inta": len(inta), "n_halt": len(halt),
     })
+    return out
+
+
+def one(rec):
+    path = rec["path"]
+    core = rec.get("_core", "sim")
+    entry = json.loads(gzip.decompress(Path(path).read_bytes()))
+    image, meta, _g, _sha = uf.regen(entry)
+    chip = entry["chip_rows"]
+    win = uf.window_of(chip)
+    sim = replay(entry, image, meta, chip, win, core,
+                 rec.get("_rig_hold", "banked"))
+    out = classify(entry, chip, sim)
+    # the REPORT's own identity wins, exactly as it did before the split: the
+    # work item carries cid/k/pop and the record is only the rows.
+    out.update({"path": path, "cid": rec["cid"], "k": rec["k"],
+                "pop": rec["pop"]})
     return out
 
 

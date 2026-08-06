@@ -650,6 +650,45 @@ The campaign's victory bar is a **fresh stratified random-wait tranche scored
 IN FABRIC, hardware-versus-silicon**, with the number registered **from the
 W2 survey and never after** — the protocol is `wrfuzz_campaign_plan.md` §5.
 
+#### **W2 REGISTERED THE wr1 COLUMNS.  THEY ARE THE SURVEY BASELINE, NOT RATCHETS (2026-08-05).**
+
+`docs/notes/wrfuzz_survey_2026-08-05.md`; ledger `wrfuzz_provenance.md` §3.
+**First registration.**  These figures have never been measured before, nothing
+has been ratcheted to them, and **a later measurement that moves them is not a
+regression until a sitting says in writing that it is.**  They are recorded
+here so the next sitting quotes a number that exists rather than a memory.
+
+| column | **W2 baseline** | how to quote it |
+|---|---|---|
+| `wr1` hardware-vs-silicon, **pooled** | **2,379 / 2,515 = 94.59 %** | the `ucore` IN FABRIC (FLASH #10 `1a01a6975e4a…`) against the socketed chip, 3,150-seed corpus, **635 excluded by the pre-registered OPEN_BUS detector**.  Name the bitstream and the exclusion or do not quote it |
+| **`S`** — the unweighted mean of the 28 per-stratum rates | **91.6681 % — FROZEN** | the victory bar's input.  **May not be re-derived after the tranche is scored** (plan §5) |
+| **`B = S − 5.0`** | **86.6681 % — FROZEN** | the bar.  Converted to a whole seed count on the tranche's own scored denominator, rounded DOWN, at the victory sitting |
+| the `ucore`'s `wr1` residue | **136 seeds**, `PF_LOST` 43 · `SCHEDULE` 42 · `DATA_SEQ` 23 · `PF_GAINED` 18 · `PIN` 7 · `PF_ADDR` 2, **catch-all EMPTY** | the FABRIC census (`wrfuzz_w2.py fabric`); the TB census is identical cell for cell |
+| the `ucore`-**only** `wr1` residue | **5 seeds**, all family `PIN` | complete (every fabric miss has rows retained).  The model-only column is a **floor of 6** and is not |
+| the two OFFLINE legs | model **48 / 184**, `ucore` TB **49 / 184** | ⚠ **ATTRIBUTION ONLY.**  The 184 is a divergent-by-construction subset of the 380 retained captures.  **Never a silicon-match rate and never a ranking** |
+| INTA rows in `wr1` | **0 over 380 retained captures** | plan §4's registered **risk #4**, answered by measurement: §56's fabric-float class has no members in an evt-free corpus |
+| 8080 class-A in `wr1` | **12 of 136 scored misses**, all raw | on a corpus with **0 `0F FF` pairs in 3,150 images**.  COUNTED, never filtered; DEFERRED BY USER DECISION; left in the denominator |
+
+⚠ **THE EXCLUSION IS THE PRE-REGISTERED DETECTOR AND NOT THE BANK's LABEL.**
+`fuzz_classify.classify` consults the accept engine only inside the branches a
+divergence reaches, so **a SUCCESS seed can never carry
+`KNOWN_ACCEPTED/open_bus`**; excluding on that label removes open-bus MISSES
+and keeps open-bus EXACTS.  The registered detector was evaluated on all 3,150
+through the capture path's own `ob_escape.feed` counter (validated 259/260
+against the row-level function).  It costs **1.7 points of `S`** and it is the
+one used.  Ledger §3.4 **F-8**.
+
+⚠ **AND THE NINE CONTROL STRATA DO NOT REPRODUCE ANY REMEMBERED COLUMN, BY
+MEASUREMENT.**  The promoted bank's per-wait-class figures are a SELECTION
+artefact (**100.0 % on six of nine soup classes**), and the mc1/mc2/t30
+campaigns carry **no era stamp on any of 20,203 lines**.  `wr1` is the first
+unbiased, era-stamped, per-wait-class population measurement of the resident
+era.  **Do not compute a delta against either.**  Ledger §3.4 **F-10**.
+
+`sw/wrfuzz_w2.py` is a **measurement tool, not a gate**, exactly as
+`s15_census` is — and its `mod3` byte-scan leg is labelled VACUOUS in its own
+output (ledger §3.4 **F-12**).
+
 ⚠ **A LIVE TRAP BOOKED BY W0 (F-4), because it will catch the next agent too.**
 `check_seq.CORE` is pinned to **`"fsm"`**, so **anything that reaches the TB
 through `check_seq.run_tb` runs the ARCHIVED FSM CORE** whatever `--core` the
