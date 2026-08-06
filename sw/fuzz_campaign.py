@@ -459,7 +459,56 @@ def _ctx_for(cfg, g, tb_only):
 # ===========================================================================
 # Result line (harmonised schema).
 # ===========================================================================
-def result_line(cfg, g, sha, v, di, gen_git, build_stale, ts):
+# task #38 (wrfuzz W1) -- THE ERA STAMP, ON EVERY CAPTURE AND NOT ONLY ON THE
+# MANIFEST.  Bar B-2 of the corpus pre-registration asks that *every capture*
+# carry the artifact layer's input-manifest hash for the bitstream/RTL layer,
+# the generator git SHA, `RIG_EVT_HOLD_BITS` and the pinned `flash_log` entry.
+# The manifest already carried the flash pin, but a manifest is one file that
+# can be rewritten after the fact; a per-line stamp is what makes ABSENT /
+# MIXED / MISMATCH READABLE OFF THE RESULTS THEMSELVES.  `None` when nothing
+# set it (every pre-task-#38 invocation, and `--tb-only`), so no existing
+# reader changes meaning and no image byte moves -- the stamp is provenance
+# and is NOT in `cfg_hash`.
+_ERA = None
+
+
+def set_era(era):
+    global _ERA
+    _ERA = era
+
+
+def era_of(manifest):
+    """The era block for a campaign manifest: the flash pin, the artifact
+    receipt whose OUTPUT is that same `.sof` (so the RTL input manifest is
+    named, not assumed), the generator SHA and the rig's evt-hold width."""
+    pin = (manifest or {}).get("flash_pin") or {}
+    sof = pin.get("sha256")
+    rtl = {"receipt_id": None, "inputs_sha256": None, "n_files": None,
+           "label": None}
+    rp = SW / "testdata" / "receipts" / "quartus_bitstream.jsonl"
+    if sof and rp.exists():
+        for ln in rp.read_text().splitlines():
+            ln = ln.strip()
+            if not ln:
+                continue
+            try:
+                r = json.loads(ln)
+            except Exception:                           # noqa: BLE001
+                continue
+            if sof in json.dumps(r.get("outputs", {})):
+                rtl = {"receipt_id": r.get("id"),
+                       "inputs_sha256": r.get("inputs", {}).get("sha256"),
+                       "n_files": r.get("inputs", {}).get("n_files"),
+                       "label": r.get("label")}
+    return {"sof_sha256": sof, "flash_ts": pin.get("ts"),
+            "flash_git": pin.get("git_describe"),
+            "flash_verify": pin.get("verify"),
+            "rtl": rtl, "gen_git": _gen_git(),
+            "rig_evt_hold_bits": v30ctl.RIG_EVT_HOLD_BITS,
+            "rules_version": (manifest or {}).get("rules_version")}
+
+
+def result_line(cfg, g, sha, v, di, gen_git, build_stale, ts, bus_cycles=None):
     # task #38: the vector is banked IN FULL (`wvec_hex`, 2 chars per entry,
     # NWVEC entries) beside its spec and its sha256.  A vector that exists
     # only as a derivation is one nobody can check the rig's readback against,
@@ -472,6 +521,13 @@ def result_line(cfg, g, sha, v, di, gen_git, build_stale, ts):
         "wvec_hex": wv.to_hex(vec) if vec else None,
         "wvec_sha256": wv.sha256_of(vec) if vec else None,
         "wvec_n": len(vec) if vec else 0,
+        # task #38 bar B-5: the capture's own bus-cycle count, recorded PER
+        # CAPTURE.  Past `wv.NWVEC` the three legs do three different things
+        # (the board WRAPS, the model falls back to uniform, the TB reads out
+        # of range), so a capture at or beyond it is outside the regime the
+        # vector means anything in and must be quarantined rather than scored.
+        "bus_cycles": bus_cycles,
+        "era": _ERA,
         "wild": g.get("wild"), "has_brkem": g.get("has_brkem", False),
         "brkem_pos": g.get("brkem_pos", []), "has_halt": g.get("has_halt", False),
         "has_tf": g.get("has_tf", False), "raw_mode": g.get("raw_mode"),
@@ -557,8 +613,16 @@ def eval_case(cid, k, ov, tb_only, host, build_stale, keep_rows=False):
     t["classify"] = time.time() - t0
 
     di = fc._done_idx(real) if real else None
+    # B-5, measured on the SOCKET leg's own rows -- no engine in the loop.
+    bus_cycles = None
+    if real:
+        try:
+            bus_cycles = wv.bus_cycle_bound(real)
+        except Exception:                               # noqa: BLE001
+            bus_cycles = None
     line = result_line(cfg, g, sha, v, di, _gen_git(), build_stale,
-                        time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()))
+                        time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+                        bus_cycles=bus_cycles)
     # raw-tier open-bus escape metric: how much of the run left the 64K image
     # into open-bus feedthrough space (task #29 P7; drives the rollup escape
     # fraction and the open_bus_escape accept rule).
@@ -632,6 +696,8 @@ def cmd_run(a):
                       "new RTL => new campaign, or pass --allow-stale")
                 return 2
             build_stale = True
+        # task #38 B-2: stamp the era onto every line this session writes.
+        set_era(era_of(manifest))
     cdir.mkdir(parents=True, exist_ok=True)
     (cdir / "captures").mkdir(exist_ok=True)
     results_path = cdir / "results.jsonl"
