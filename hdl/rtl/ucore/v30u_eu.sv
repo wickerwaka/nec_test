@@ -2302,6 +2302,19 @@ int unsigned ce_clk = 0;
 // orders can end on the same value.  Simulation only, `+brktrace`, and they read registers.
 reg [15:0] trc_1bl_pre, trc_1bl_post; reg trc_1bl_hit;
 reg [15:0] trc_pe_pre, trc_pe_post; reg trc_pe_hit; reg [11:0] trc_pe_upc;
+// wrfuzz W3.5 -- THE 1BL DECODE PROBE, and it exists to answer ONE question
+// with a measurement instead of an assumption: `wrfuzz_provenance.md` §7.8
+// booked "`irq_shadow` is a FLOP, so `brk_arm` and `brk_take` are not
+// interchangeable in the RTL -- MEASURE it, do not assume it."  The thing that
+// actually has to be measured is narrower and it is the ARM'S AVAILABILITY:
+// `S_DECODE2`'s 1BL arm runs INSIDE the chain that the opcode pop rode, and
+// `brk_smp` -- the sample instant §85.2a fixed at pop + 1 -- has not happened
+// yet.  This line reports, at every 1BL decode, the four bits the gate could
+// be written on (`q_ripe_lead_n`, `brk_seen`, `brk_arm`, `brk_smp_n`) so the
+// difference between them is a number in a log and not a claim.
+// Simulation only, `+brktrace`; reads registers and settled comb.
+reg trc_1bld_hit, trc_1bld_ripe, trc_1bld_seen, trc_1bld_arm, trc_1bld_smp;
+reg trc_1bld_shd;   // ...and `irq_shadow_n`, which §7.8 names by hand
 reg chain_report = 0;
 initial if ($test$plusargs("chaindepth")) chain_report = 1;
 reg [3:0] chain_hi = 4'd0;
@@ -2511,7 +2524,7 @@ always @* begin
         // (a) the BIU's completion pulses, sampled on the clock they ride
         //====================================================================
 `ifndef SYNTHESIS
-        trc_1bl_hit = 1'b0; trc_pe_hit = 1'b0;
+        trc_1bl_hit = 1'b0; trc_pe_hit = 1'b0; trc_1bld_hit = 1'b0;
 `endif
         poll_pipe_n = {poll_pipe_n[1:0], pin_poll_n};
         // ...and the IE the gate's own pipeline is about to take, frozen HERE
@@ -2926,6 +2939,13 @@ always @(posedge clk) begin
         if (brktrace && trc_1bl_hit)
             $display("1BL clk=%0d pre=%04x post=%04x psw=%04x pswn=%04x",
                      ce_clk, trc_1bl_pre, trc_1bl_post, psw, psw_n);
+        // wrfuzz W3.5: the 1BL DECODE, with the four bits a lead gate could
+        // read.  `smp` is `brk_smp_n` -- "the opcode pop rode THIS clock, so
+        // the arm is sampled at the END of the next one".
+        if (brktrace && trc_1bld_hit)
+            $display("1BLD clk=%0d ripe_lead=%0d seen=%0d arm=%0d smp=%0d shd=%0d",
+                     ce_clk, trc_1bld_ripe, trc_1bld_seen, trc_1bld_arm,
+                     trc_1bld_smp, trc_1bld_shd);
         if (brktrace) begin
             // the RISE stamp, in the same sense the model's `sample_ie()`
             // means it: at THIS clock the PSW carries TF and at the previous
