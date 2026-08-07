@@ -1,0 +1,124 @@
+{
+  "controls": {
+    "clock_mhz": [
+      4,
+      8
+    ],
+    "histories": [
+      "A",
+      "B"
+    ],
+    "opcodes": [
+      160,
+      161,
+      162,
+      163
+    ],
+    "repetitions": 5,
+    "waits": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      15
+    ]
+  },
+  "forbidden_variables": [
+    "program seed",
+    "absolute ordinal",
+    "preparation-history fingerprint"
+  ],
+  "schema": "v30-biu-case9-moffs-order-oracle-v1",
+  "scope": "A0-A3 moffs request versus CODE refill at qlen one",
+  "source": "sw/testdata/biu_blackbox/case9-moffs-order-chip-v1/summary.json",
+  "source_sha256": "f66ee455f8e037486be77a67ba4f5c39cdcb455838258a75c6106d2ec9eaa18b",
+  "state_rule": "at this one-byte queue boundary CODE precedes the moffs EU request for byte/word reads and writes at every selected wait",
+  "status": "FROZEN_BEFORE_RTL",
+  "table": {
+    "w0": {
+      "code_before_eu": true,
+      "code_t1_from_anchor_t4": 1,
+      "eu_t1_from_anchor_t4": 7,
+      "first_action": 4,
+      "selected_address": 1404,
+      "selected_status": 4,
+      "selected_tw": 0
+    },
+    "w1": {
+      "code_before_eu": true,
+      "code_t1_from_anchor_t4": 2,
+      "eu_t1_from_anchor_t4": 8,
+      "first_action": 4,
+      "selected_address": 1404,
+      "selected_status": 4,
+      "selected_tw": 1
+    },
+    "w15": {
+      "code_before_eu": true,
+      "code_t1_from_anchor_t4": 2,
+      "eu_t1_from_anchor_t4": 8,
+      "first_action": 4,
+      "selected_address": 1404,
+      "selected_status": 4,
+      "selected_tw": 15
+    },
+    "w2": {
+      "code_before_eu": true,
+      "code_t1_from_anchor_t4": 2,
+      "eu_t1_from_anchor_t4": 8,
+      "first_action": 4,
+      "selected_address": 1404,
+      "selected_status": 4,
+      "selected_tw": 2
+    },
+    "w3": {
+      "code_before_eu": true,
+      "code_t1_from_anchor_t4": 2,
+      "eu_t1_from_anchor_t4": 8,
+      "first_action": 4,
+      "selected_address": 1404,
+      "selected_status": 4,
+      "selected_tw": 3
+    },
+    "w4": {
+      "code_before_eu": true,
+      "code_t1_from_anchor_t4": 2,
+      "eu_t1_from_anchor_t4": 8,
+      "first_action": 4,
+      "selected_address": 1404,
+      "selected_status": 4,
+      "selected_tw": 4
+    },
+    "w5": {
+      "code_before_eu": true,
+      "code_t1_from_anchor_t4": 2,
+      "eu_t1_from_anchor_t4": 8,
+      "first_action": 4,
+      "selected_address": 1404,
+      "selected_status": 4,
+      "selected_tw": 5
+    },
+    "w6": {
+      "code_before_eu": true,
+      "code_t1_from_anchor_t4": 2,
+      "eu_t1_from_anchor_t4": 8,
+      "first_action": 4,
+      "selected_address": 1404,
+      "selected_status": 4,
+      "selected_tw": 6
+    },
+    "w7": {
+      "code_before_eu": true,
+      "code_t1_from_anchor_t4": 2,
+      "eu_t1_from_anchor_t4": 8,
+      "first_action": 4,
+      "selected_address": 1404,
+      "selected_status": 4,
+      "selected_tw": 7
+    }
+  }
+}

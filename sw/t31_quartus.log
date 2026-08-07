@@ -1,0 +1,64 @@
+=== forced full compile start 2026-07-28T14:53:55Z ===
+Info (332146): Worst-case setup slack is 4.647
+    Info (332119):     Slack       End Point TNS Clock 
+    Info (332119): ========= =================== =====================
+    Info (332119):     4.647               0.000 emu|pll|pll_inst|altera_pll_i|general[0].gpll~PLL_OUTPUT_COUNTER|divclk 
+    Info (332119):     8.270               0.000 altera_reserved_tck 
+    Info (332119):    13.346               0.000 FPGA_CLK2_50 
+    Info (332119):    22.691               0.000 pll_audio|pll_audio_inst|altera_pll_i|general[0].gpll~PLL_OUTPUT_COUNTER|divclk 
+Info (332146): Worst-case hold slack is 0.253
+    Info (332119):     Slack       End Point TNS Clock 
+    Info (332119): ========= =================== =====================
+    Info (332119):     0.253               0.000 emu|pll|pll_inst|altera_pll_i|general[0].gpll~PLL_OUTPUT_COUNTER|divclk 
+    Info (332119):     0.276               0.000 pll_audio|pll_audio_inst|altera_pll_i|general[0].gpll~PLL_OUTPUT_COUNTER|divclk 
+    Info (332119):     0.348               0.000 FPGA_CLK2_50 
+    Info (332119):     0.362               0.000 altera_reserved_tck 
+Info (332146): Worst-case recovery slack is 29.157
+    Info (332119):     Slack       End Point TNS Clock 
+    Info (332119): ========= =================== =====================
+    Info (332119):    29.157               0.000 altera_reserved_tck 
+Info (332146): Worst-case removal slack is 1.120
+    Info (332119):     Slack       End Point TNS Clock 
+    Info (332119): ========= =================== =====================
+    Info (332119):     1.120               0.000 altera_reserved_tck 
+Info (332146): Worst-case minimum pulse width slack is 1.196
+    Info (332119):     Slack       End Point TNS Clock 
+    Info (332119): ========= =================== =====================
+    Info (332119):     1.196               0.000 pll_audio|pll_audio_inst|altera_pll_i|general[0].gpll~FRACTIONAL_PLL|vcoph[0] 
+    Info (332119):     1.562               0.000 emu|pll|pll_inst|altera_pll_i|general[0].gpll~FRACTIONAL_PLL|vcoph[0] 
+    Info (332119):     4.265               0.000 sysmem|fpga_interfaces|clocks_resets|h2f_user0_clk 
+    Info (332119):     9.192               0.000 FPGA_CLK2_50 
+    Info (332119):     9.730               0.000 FPGA_CLK3_50 
+    Info (332119):    14.179               0.000 emu|pll|pll_inst|altera_pll_i|general[0].gpll~PLL_OUTPUT_COUNTER|divclk 
+    Info (332119):    14.838               0.000 altera_reserved_tck 
+    Info (332119):    18.941               0.000 pll_audio|pll_audio_inst|altera_pll_i|general[0].gpll~PLL_OUTPUT_COUNTER|divclk 
+Info (332114): Report Metastability: Found 84 synchronizer chains.
+    Info (332114): Worst-Case MTBF of Design is 1e+09 years or 3.15e+16 seconds.
+    Info (332114): Typical MTBF of Design is 1e+09 years or 3.15e+16 seconds.
+
+    Info (332114): Number of Synchronizer Chains Found: 84
+    Info (332114): Shortest Synchronizer Chain: 2 Registers
+    Info (332114): Fraction of Chains for which MTBFs Could Not be Calculated: 0.988
+    Info (332114): Worst Case Available Settling Time: 29.270 ns
+    Info (332114): Worst-Case MTBF values are calculated based on the worst-case silicon characteristics, with worst-case operating conditions.
+    Info (332114):   - Under worst-case conditions, an increase of 100ps in available settling time will increase MTBF values by a factor of 8.0
+    Info (332114): Typical MTBF values are calculated based on the nominal silicon characteristics, at nominal operating conditions.
+    Info (332114):   - Under typical conditions, an increase of 100ps in available settling time will increase MTBF values by a factor of 17.8
+Info (332102): Design is not fully constrained for setup requirements
+Info (332102): Design is not fully constrained for hold requirements
+Info: Quartus Prime TimeQuest Timing Analyzer was successful. 0 errors, 93 warnings
+    Info: Peak virtual memory: 1225 megabytes
+    Info: Processing ended: Tue Jul 28 08:01:18 2026
+    Info: Elapsed time: 00:00:06
+    Info: Total CPU time (on all processors): 00:00:08
+Info (293000): Quartus Prime Full Compilation was successful. 0 errors, 303 warnings
+Info (23030): Evaluation of Tcl script /home/wickerwaka/intelFPGA_lite/17.1/quartus/common/tcl/internal/qsh_flow.tcl was successful
+Info: Quartus Prime Shell was successful. 0 errors, 303 warnings
+    Info: Peak virtual memory: 766 megabytes
+    Info: Processing ended: Tue Jul 28 08:01:19 2026
+    Info: Elapsed time: 00:07:23
+    Info: Total CPU time (on all processors): 00:13:32
+make: Leaving directory '/home/wickerwaka/src/nec_test/hdl'
+=== compile end 2026-07-28T15:01:19Z exit sofcheck ===
+-rw-rw-r-- 1 wickerwaka wickerwaka 6698465 Jul 28 08:01 output_files/nec_test.sof
+QUARTUS_DONE_MARKER

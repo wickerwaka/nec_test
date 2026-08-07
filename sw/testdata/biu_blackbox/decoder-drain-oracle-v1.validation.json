@@ -1,0 +1,7 @@
+{
+  "conditions_checked": 36,
+  "gate": "PASS",
+  "mismatches": [],
+  "records_checked": 1260,
+  "schema": "v30-eu-decoder-drain-validation-v1"
+}

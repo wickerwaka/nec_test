@@ -1,0 +1,105 @@
+{
+  "decision_table": {
+    "A_read_w0/w0": {
+      "action": "CODE",
+      "address": 1454,
+      "t1_from_selected_t4": 4
+    },
+    "A_read_w0/w1": {
+      "action": "CODE",
+      "address": 1454,
+      "t1_from_selected_t4": 4
+    },
+    "A_read_w0/w2": {
+      "action": "CODE",
+      "address": 1454,
+      "t1_from_selected_t4": 4
+    },
+    "A_read_w0/w3": {
+      "action": "CODE",
+      "address": 1454,
+      "t1_from_selected_t4": 4
+    },
+    "A_read_w0/w4": {
+      "action": "CODE",
+      "address": 1454,
+      "t1_from_selected_t4": 4
+    },
+    "A_read_w0/w5": {
+      "action": "CODE",
+      "address": 1454,
+      "t1_from_selected_t4": 4
+    },
+    "A_read_w0/w6": {
+      "action": "CODE",
+      "address": 1454,
+      "t1_from_selected_t4": 4
+    },
+    "A_read_w0/w7": {
+      "action": "CODE",
+      "address": 1454,
+      "t1_from_selected_t4": 4
+    },
+    "B_read_w1/w0": {
+      "action": "CODE",
+      "address": 1454,
+      "t1_from_selected_t4": 1
+    },
+    "B_read_w1/w1": {
+      "action": "CODE",
+      "address": 1454,
+      "t1_from_selected_t4": 2
+    },
+    "B_read_w1/w2": {
+      "action": "CODE",
+      "address": 1454,
+      "t1_from_selected_t4": 2
+    },
+    "B_read_w1/w3": {
+      "action": "CODE",
+      "address": 1454,
+      "t1_from_selected_t4": 2
+    },
+    "B_read_w1/w4": {
+      "action": "CODE",
+      "address": 1454,
+      "t1_from_selected_t4": 2
+    },
+    "B_read_w1/w5": {
+      "action": "CODE",
+      "address": 1454,
+      "t1_from_selected_t4": 2
+    },
+    "B_read_w1/w6": {
+      "action": "CODE",
+      "address": 1454,
+      "t1_from_selected_t4": 2
+    },
+    "B_read_w1/w7": {
+      "action": "CODE",
+      "address": 1454,
+      "t1_from_selected_t4": 2
+    }
+  },
+  "factorial_controls": {
+    "A_read_w0": "preceding MEMW Tw=3, final MEMR Tw=0",
+    "B_read_w1": "preceding MEMW Tw=1, final MEMR Tw=1",
+    "clock_mhz": [
+      8,
+      4
+    ],
+    "repetitions": 5,
+    "same_boundary_clock_at_selected_w2": true
+  },
+  "forbidden_variables": [
+    "program seed",
+    "absolute bus ordinal",
+    "opcode exception",
+    "complete preparation-history fingerprint"
+  ],
+  "schema": "v30-biu-case15-rep-read-history-oracle-v1",
+  "source": "sw/testdata/biu_blackbox/case15-rep-read-history-chip-v1/summary.json",
+  "source_sha256": "96965291c3d1666426dcd7874f294c20bdabd701054d33664da4a39df15509e2",
+  "state_rule": "after the final REP MOVSB read/write pair, a zero-wait final read retains a delayed-producer state through the following zero-wait write and CODE fetch; the next CODE T1 is selected-fetch T4+4. If that final read has at least one Tw, the retained state is clear and the next CODE T1 is T4+1 for a zero-wait selected fetch or T4+2 for a waited selected fetch",
+  "status": "FROZEN_BEFORE_RTL_VALIDATION"
+}

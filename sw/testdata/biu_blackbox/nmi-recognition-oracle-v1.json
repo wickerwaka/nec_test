@@ -1,0 +1,49 @@
+{
+  "details": [],
+  "fit": {
+    "matches": 648,
+    "mismatches": 0,
+    "records": 648,
+    "unsupported": 0
+  },
+  "law": {
+    "divu_execute": {
+      "IVT-low T1": "36 - age",
+      "condition": "last QS S and age 0..23",
+      "pushed PC": "queue head address"
+    },
+    "first_nop_after_divu_modrm": {
+      "IVT-low T1": "15 - (age - 24)",
+      "condition": "last QS S and age 24..26",
+      "pushed PC": "queue head address + 1"
+    },
+    "nop_after_opcode_pop": {
+      "IVT-low T1": "15 - age",
+      "condition": "last QS F and age 0..2",
+      "pushed PC": "queue head address + 1"
+    }
+  },
+  "phase_counts": {
+    "divu_execute": 180,
+    "first_nop_after_divu_modrm": 24,
+    "nop_after_opcode_pop": 444
+  },
+  "schema": "v30-biu-nmi-recognition-oracle-v1",
+  "scope": "NMI asserted during DIVU completion and one-byte NOP stream",
+  "source": "sw/testdata/biu_blackbox/nmi-sequence-extended-20260729/summary.json",
+  "source_sha256": "2db7a6aa593f37dc59334a6631ce231d3908791341550076566fb8bf5dc9a321",
+  "state": {
+    "excluded": [
+      "event delay",
+      "history",
+      "clock frequency"
+    ],
+    "required": [
+      "externally reconstructed queue head address",
+      "last QS role",
+      "clocks since last QS",
+      "controlled current instruction class"
+    ]
+  },
+  "status": "FROZEN_BEFORE_FRESH_PAD_HANDLER_STACK_VALIDATION"
+}

@@ -1,0 +1,45 @@
+{
+  "counts": {
+    "matches": 96,
+    "mismatches": 0,
+    "records": 96
+  },
+  "details": [],
+  "gate": "PASS",
+  "heldout_sources": [
+    {
+      "counts": {
+        "matches": 32,
+        "mismatches": 0,
+        "records": 32
+      },
+      "instruction_class": "mov_aw_mbw",
+      "path": "sw/testdata/biu_blackbox/nmi-data-wait-mov-read-heldout-20260729/summary.json",
+      "sha256": "6cacd18f30cbea8987fda5735ed7fbfcf03ea4d1218c16e2a31482371e9fa6f6"
+    },
+    {
+      "counts": {
+        "matches": 32,
+        "mismatches": 0,
+        "records": 32
+      },
+      "instruction_class": "mov_mbw_aw",
+      "path": "sw/testdata/biu_blackbox/nmi-data-wait-mov-write-heldout-20260729/summary.json",
+      "sha256": "74fc560346b6d81b28e75e4c46c19f3d373ed03da3259dcd39cc34fa182110d5"
+    },
+    {
+      "counts": {
+        "matches": 32,
+        "mismatches": 0,
+        "records": 32
+      },
+      "instruction_class": "inc_mbw",
+      "path": "sw/testdata/biu_blackbox/nmi-data-wait-rmw-heldout-20260729/summary.json",
+      "sha256": "2594b95c4259665bca5a81bad3be429a6b7ab14e0e49ef6edcdd3618288827b1"
+    }
+  ],
+  "oracle": "sw/testdata/biu_blackbox/nmi-data-wait-oracle-v1.json",
+  "oracle_sha256": "53dfa292d17c3f1df7e7e9bd16aa973c63f8a7c26acfdc1c288efb6fe8e89a27",
+  "schema": "v30-biu-nmi-data-wait-oracle-v1-validation",
+  "status": "PROSPECTIVE_ALTERNATE_STREAM_PREPARATION_LENGTH"
+}

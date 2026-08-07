@@ -1,0 +1,14 @@
+{
+  "counts": {
+    "matches": 3240,
+    "records": 3240
+  },
+  "details": [],
+  "gate": "PASS",
+  "heldout": "sw/testdata/biu_blackbox/swint-oracle-v2-heldout-20260729/summary.json",
+  "heldout_sha256": "e6db56156c06fc5c2ab072562094240eb15169bcaa1a3fc6976dda679ca58f01",
+  "oracle": "sw/testdata/biu_blackbox/swint-oracle-v2.json",
+  "oracle_sha256": "f4fe99699f529ff710907df63524788ed5bfdecc58f87c3f4a3606f36925cb8c",
+  "schema": "v30-biu-swint-oracle-v2-validation",
+  "status": "SECOND_PROSPECTIVE_FRESH_PAD_VECTOR_STACK_HANDLER"
+}

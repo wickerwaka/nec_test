@@ -1,0 +1,25 @@
+{
+  "frozen_from": [
+    "case26-single-outs-completion-chip-v1",
+    "case27-single-ins-completion-pilot"
+  ],
+  "rules": {
+    "single INSB": {
+      "next_action": "CODE",
+      "next_address": 1324,
+      "positive_wait_gap": 5,
+      "zero_wait_gap": 4
+    },
+    "single OUTSB": {
+      "next_action": "CODE",
+      "next_address": 1450,
+      "positive_wait_gap": 2,
+      "zero_wait_gap": 1
+    }
+  },
+  "schema": "v30-biu-strio-completion-oracle-v1",
+  "state_inputs": [
+    "instruction completion class",
+    "selected wait is zero"
+  ]
+}

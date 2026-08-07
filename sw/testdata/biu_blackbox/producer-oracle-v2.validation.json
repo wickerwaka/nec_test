@@ -1,0 +1,19 @@
+{
+  "counts": {
+    "censored": 60,
+    "matches": 620,
+    "mismatches": 0,
+    "predictions": 620,
+    "records": 232,
+    "unseen": 0
+  },
+  "details": [],
+  "gate": "PASS",
+  "heldout": "sw/testdata/biu_blackbox/producer-oracle-v2-heldout-20260729/summary.json",
+  "heldout_sha256": "912b6b67b66287cf92a15e14b20fa295ccc2ea057eeaaf2181dd4589e18f6029",
+  "oracle": "sw/testdata/biu_blackbox/producer-oracle-v2.json",
+  "oracle_sha256": "89b7cb3f7d013c53321c59e9d9180637a9f9f1c08d55e22eacd140cc76f62ab8",
+  "prediction_count": 3,
+  "schema": "v30-biu-producer-oracle-v2-validation",
+  "status": "PROSPECTIVE_THREE_FETCH_FRESH_PAD"
+}

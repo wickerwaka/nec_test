@@ -1,0 +1,2708 @@
+{
+  "conditions_checked": 36,
+  "gate": "FAIL",
+  "mismatches": [
+    {
+      "clock_mhz": 8,
+      "expected": {
+        "action": "CODE",
+        "t1_from_selected_t4": 4
+      },
+      "history": "A",
+      "instruction": "SS-prefixed REP OUTSB; successor POP AW",
+      "observed": {
+        "action": "MEMR",
+        "t1_from_selected_t4": 5
+      },
+      "pops": 1,
+      "wait": 0
+    },
+    {
+      "clock_mhz": 8,
+      "expected": {
+        "action": "CODE",
+        "t1_from_selected_t4": 4
+      },
+      "history": "A",
+      "instruction": "SS-prefixed REP OUTSB; successor POP AW",
+      "observed": {
+        "action": "MEMR",
+        "t1_from_selected_t4": 5
+      },
+      "pops": 1,
+      "wait": 0
+    },
+    {
+      "clock_mhz": 8,
+      "expected": {
+        "action": "CODE",
+        "t1_from_selected_t4": 4
+      },
+      "history": "A",
+      "instruction": "SS-prefixed REP OUTSB; successor POP AW",
+      "observed": {
+        "action": "MEMR",
+        "t1_from_selected_t4": 5
+      },
+      "pops": 1,
+      "wait": 0
+    },
+    {
+      "clock_mhz": 8,
+      "expected": {
+        "action": "CODE",
+        "t1_from_selected_t4": 4
+      },
+      "history": "A",
+      "instruction": "SS-prefixed REP OUTSB; successor POP AW",
+      "observed": {
+        "action": "MEMR",
+        "t1_from_selected_t4": 5
+      },
+      "pops": 1,
+      "wait": 0
+    },
+    {
+      "clock_mhz": 8,
+      "expected": {
+        "action": "CODE",
+        "t1_from_selected_t4": 4
+      },
+      "history": "A",
+      "instruction": "SS-prefixed REP OUTSB; successor POP AW",
+      "observed": {
+        "action": "MEMR",
+        "t1_from_selected_t4": 5
+      },
+      "pops": 1,
+      "wait": 0
+    },
+    {
+      "clock_mhz": 4,
+      "expected": {
+        "action": "CODE",
+        "t1_from_selected_t4": 4
+      },
+      "history": "A",
+      "instruction": "SS-prefixed REP OUTSB; successor POP AW",
+      "observed": {
+        "action": "MEMR",
+        "t1_from_selected_t4": 5
+      },
+      "pops": 1,
+      "wait": 0
+    },
+    {
+      "clock_mhz": 4,
+      "expected": {
+        "action": "CODE",
+        "t1_from_selected_t4": 4
+      },
+      "history": "A",
+      "instruction": "SS-prefixed REP OUTSB; successor POP AW",
+      "observed": {
+        "action": "MEMR",
+        "t1_from_selected_t4": 5
+      },
+      "pops": 1,
+      "wait": 0
+    },
+    {
+      "clock_mhz": 4,
+      "expected": {
+        "action": "CODE",
+        "t1_from_selected_t4": 4
+      },
+      "history": "A",
+      "instruction": "SS-prefixed REP OUTSB; successor POP AW",
+      "observed": {
+        "action": "MEMR",
+        "t1_from_selected_t4": 5
+      },
+      "pops": 1,
+      "wait": 0
+    },
+    {
+      "clock_mhz": 4,
+      "expected": {
+        "action": "CODE",
+        "t1_from_selected_t4": 4
+      },
+      "history": "A",
+      "instruction": "SS-prefixed REP OUTSB; successor POP AW",
+      "observed": {
+        "action": "MEMR",
+        "t1_from_selected_t4": 5
+      },
+      "pops": 1,
+      "wait": 0
+    },
+    {
+      "clock_mhz": 4,
+      "expected": {
+        "action": "CODE",
+        "t1_from_selected_t4": 4
+      },
+      "history": "A",
+      "instruction": "SS-prefixed REP OUTSB; successor POP AW",
+      "observed": {
+        "action": "MEMR",
+        "t1_from_selected_t4": 5
+      },
+      "pops": 1,
+      "wait": 0
+    },
+    {
+      "clock_mhz": 8,
+      "expected": {
+        "action": "CODE",
+        "t1_from_selected_t4": 4
+      },
+      "history": "B",
+      "instruction": "SS-prefixed REP OUTSB; successor POP AW",
+      "observed": {
+        "action": "MEMR",
+        "t1_from_selected_t4": 5
+      },
+      "pops": 1,
+      "wait": 0
+    },
+    {
+      "clock_mhz": 8,
+      "expected": {
+        "action": "CODE",
+        "t1_from_selected_t4": 4
+      },
+      "history": "B",
+      "instruction": "SS-prefixed REP OUTSB; successor POP AW",
+      "observed": {
+        "action": "MEMR",
+        "t1_from_selected_t4": 5
+      },
+      "pops": 1,
+      "wait": 0
+    },
+    {
+      "clock_mhz": 8,
+      "expected": {
+        "action": "CODE",
+        "t1_from_selected_t4": 4
+      },
+      "history": "B",
+      "instruction": "SS-prefixed REP OUTSB; successor POP AW",
+      "observed": {
+        "action": "MEMR",
+        "t1_from_selected_t4": 5
+      },
+      "pops": 1,
+      "wait": 0
+    },
+    {
+      "clock_mhz": 8,
+      "expected": {
+        "action": "CODE",
+        "t1_from_selected_t4": 4
+      },
+      "history": "B",
+      "instruction": "SS-prefixed REP OUTSB; successor POP AW",
+      "observed": {
+        "action": "MEMR",
+        "t1_from_selected_t4": 5
+      },
+      "pops": 1,
+      "wait": 0
+    },
+    {
+      "clock_mhz": 8,
+      "expected": {
+        "action": "CODE",
+        "t1_from_selected_t4": 4
+      },
+      "history": "B",
+      "instruction": "SS-prefixed REP OUTSB; successor POP AW",
+      "observed": {
+        "action": "MEMR",
+        "t1_from_selected_t4": 5
+      },
+      "pops": 1,
+      "wait": 0
+    },
+    {
+      "clock_mhz": 4,
+      "expected": {
+        "action": "CODE",
+        "t1_from_selected_t4": 4
+      },
+      "history": "B",
+      "instruction": "SS-prefixed REP OUTSB; successor POP AW",
+      "observed": {
+        "action": "MEMR",
+        "t1_from_selected_t4": 5
+      },
+      "pops": 1,
+      "wait": 0
+    },
+    {
+      "clock_mhz": 4,
+      "expected": {
+        "action": "CODE",
+        "t1_from_selected_t4": 4
+      },
+      "history": "B",
+      "instruction": "SS-prefixed REP OUTSB; successor POP AW",
+      "observed": {
+        "action": "MEMR",
+        "t1_from_selected_t4": 5
+      },
+      "pops": 1,
+      "wait": 0
+    },
+    {
+      "clock_mhz": 4,
+      "expected": {
+        "action": "CODE",
+        "t1_from_selected_t4": 4
+      },
+      "history": "B",
+      "instruction": "SS-prefixed REP OUTSB; successor POP AW",
+      "observed": {
+        "action": "MEMR",
+        "t1_from_selected_t4": 5
+      },
+      "pops": 1,
+      "wait": 0
+    },
+    {
+      "clock_mhz": 4,
+      "expected": {
+        "action": "CODE",
+        "t1_from_selected_t4": 4
+      },
+      "history": "B",
+      "instruction": "SS-prefixed REP OUTSB; successor POP AW",
+      "observed": {
+        "action": "MEMR",
+        "t1_from_selected_t4": 5
+      },
+      "pops": 1,
+      "wait": 0
+    },
+    {
+      "clock_mhz": 4,
+      "expected": {
+        "action": "CODE",
+        "t1_from_selected_t4": 4
+      },
+      "history": "B",
+      "instruction": "SS-prefixed REP OUTSB; successor POP AW",
+      "observed": {
+        "action": "MEMR",
+        "t1_from_selected_t4": 5
+      },
+      "pops": 1,
+      "wait": 0
+    },
+    {
+      "clock_mhz": 8,
+      "expected": {
+        "action": "CODE",
+        "t1_from_selected_t4": 5
+      },
+      "history": "A",
+      "instruction": "SS-prefixed REP OUTSB; successor POP AW",
+      "observed": {
+        "action": "MEMR",
+        "t1_from_selected_t4": 6
+      },
+      "pops": 1,
+      "wait": 1
+    },
+    {
+      "clock_mhz": 8,
+      "expected": {
+        "action": "CODE",
+        "t1_from_selected_t4": 5
+      },
+      "history": "A",
+      "instruction": "SS-prefixed REP OUTSB; successor POP AW",
+      "observed": {
+        "action": "MEMR",
+        "t1_from_selected_t4": 6
+      },
+      "pops": 1,
+      "wait": 1
+    },
+    {
+      "clock_mhz": 8,
+      "expected": {
+        "action": "CODE",
+        "t1_from_selected_t4": 5
+      },
+      "history": "A",
+      "instruction": "SS-prefixed REP OUTSB; successor POP AW",
+      "observed": {
+        "action": "MEMR",
+        "t1_from_selected_t4": 6
+      },
+      "pops": 1,
+      "wait": 1
+    },
+    {
+      "clock_mhz": 8,
+      "expected": {
+        "action": "CODE",
+        "t1_from_selected_t4": 5
+      },
+      "history": "A",
+      "instruction": "SS-prefixed REP OUTSB; successor POP AW",
+      "observed": {
+        "action": "MEMR",
+        "t1_from_selected_t4": 6
+      },
+      "pops": 1,
+      "wait": 1
+    },
+    {
+      "clock_mhz": 8,
+      "expected": {
+        "action": "CODE",
+        "t1_from_selected_t4": 5
+      },
+      "history": "A",
+      "instruction": "SS-prefixed REP OUTSB; successor POP AW",
+      "observed": {
+        "action": "MEMR",
+        "t1_from_selected_t4": 6
+      },
+      "pops": 1,
+      "wait": 1
+    },
+    {
+      "clock_mhz": 4,
+      "expected": {
+        "action": "CODE",
+        "t1_from_selected_t4": 5
+      },
+      "history": "A",
+      "instruction": "SS-prefixed REP OUTSB; successor POP AW",
+      "observed": {
+        "action": "MEMR",
+        "t1_from_selected_t4": 6
+      },
+      "pops": 1,
+      "wait": 1
+    },
+    {
+      "clock_mhz": 4,
+      "expected": {
+        "action": "CODE",
+        "t1_from_selected_t4": 5
+      },
+      "history": "A",
+      "instruction": "SS-prefixed REP OUTSB; successor POP AW",
+      "observed": {
+        "action": "MEMR",
+        "t1_from_selected_t4": 6
+      },
+      "pops": 1,
+      "wait": 1
+    },
+    {
+      "clock_mhz": 4,
+      "expected": {
+        "action": "CODE",
+        "t1_from_selected_t4": 5
+      },
+      "history": "A",
+      "instruction": "SS-prefixed REP OUTSB; successor POP AW",
+      "observed": {
+        "action": "MEMR",
+        "t1_from_selected_t4": 6
+      },
+      "pops": 1,
+      "wait": 1
+    },
+    {
+      "clock_mhz": 4,
+      "expected": {
+        "action": "CODE",
+        "t1_from_selected_t4": 5
+      },
+      "history": "A",
+      "instruction": "SS-prefixed REP OUTSB; successor POP AW",
+      "observed": {
+        "action": "MEMR",
+        "t1_from_selected_t4": 6
+      },
+      "pops": 1,
+      "wait": 1
+    },
+    {
+      "clock_mhz": 4,
+      "expected": {
+        "action": "CODE",
+        "t1_from_selected_t4": 5
+      },
+      "history": "A",
+      "instruction": "SS-prefixed REP OUTSB; successor POP AW",
+      "observed": {
+        "action": "MEMR",
+        "t1_from_selected_t4": 6
+      },
+      "pops": 1,
+      "wait": 1
+    },
+    {
+      "clock_mhz": 8,
+      "expected": {
+        "action": "CODE",
+        "t1_from_selected_t4": 5
+      },
+      "history": "B",
+      "instruction": "SS-prefixed REP OUTSB; successor POP AW",
+      "observed": {
+        "action": "MEMR",
+        "t1_from_selected_t4": 6
+      },
+      "pops": 1,
+      "wait": 1
+    },
+    {
+      "clock_mhz": 8,
+      "expected": {
+        "action": "CODE",
+        "t1_from_selected_t4": 5
+      },
+      "history": "B",
+      "instruction": "SS-prefixed REP OUTSB; successor POP AW",
+      "observed": {
+        "action": "MEMR",
+        "t1_from_selected_t4": 6
+      },
+      "pops": 1,
+      "wait": 1
+    },
+    {
+      "clock_mhz": 8,
+      "expected": {
+        "action": "CODE",
+        "t1_from_selected_t4": 5
+      },
+      "history": "B",
+      "instruction": "SS-prefixed REP OUTSB; successor POP AW",
+      "observed": {
+        "action": "MEMR",
+        "t1_from_selected_t4": 6
+      },
+      "pops": 1,
+      "wait": 1
+    },
+    {
+      "clock_mhz": 8,
+      "expected": {
+        "action": "CODE",
+        "t1_from_selected_t4": 5
+      },
+      "history": "B",
+      "instruction": "SS-prefixed REP OUTSB; successor POP AW",
+      "observed": {
+        "action": "MEMR",
+        "t1_from_selected_t4": 6
+      },
+      "pops": 1,
+      "wait": 1
+    },
+    {
+      "clock_mhz": 8,
+      "expected": {
+        "action": "CODE",
+        "t1_from_selected_t4": 5
+      },
+      "history": "B",
+      "instruction": "SS-prefixed REP OUTSB; successor POP AW",
+      "observed": {
+        "action": "MEMR",
+        "t1_from_selected_t4": 6
+      },
+      "pops": 1,
+      "wait": 1
+    },
+    {
+      "clock_mhz": 4,
+      "expected": {
+        "action": "CODE",
+        "t1_from_selected_t4": 5
+      },
+      "history": "B",
+      "instruction": "SS-prefixed REP OUTSB; successor POP AW",
+      "observed": {
+        "action": "MEMR",
+        "t1_from_selected_t4": 6
+      },
+      "pops": 1,
+      "wait": 1
+    },
+    {
+      "clock_mhz": 4,
+      "expected": {
+        "action": "CODE",
+        "t1_from_selected_t4": 5
+      },
+      "history": "B",
+      "instruction": "SS-prefixed REP OUTSB; successor POP AW",
+      "observed": {
+        "action": "MEMR",
+        "t1_from_selected_t4": 6
+      },
+      "pops": 1,
+      "wait": 1
+    },
+    {
+      "clock_mhz": 4,
+      "expected": {
+        "action": "CODE",
+        "t1_from_selected_t4": 5
+      },
+      "history": "B",
+      "instruction": "SS-prefixed REP OUTSB; successor POP AW",
+      "observed": {
+        "action": "MEMR",
+        "t1_from_selected_t4": 6
+      },
+      "pops": 1,
+      "wait": 1
+    },
+    {
+      "clock_mhz": 4,
+      "expected": {
+        "action": "CODE",
+        "t1_from_selected_t4": 5
+      },
+      "history": "B",
+      "instruction": "SS-prefixed REP OUTSB; successor POP AW",
+      "observed": {
+        "action": "MEMR",
+        "t1_from_selected_t4": 6
+      },
+      "pops": 1,
+      "wait": 1
+    },
+    {
+      "clock_mhz": 4,
+      "expected": {
+        "action": "CODE",
+        "t1_from_selected_t4": 5
+      },
+      "history": "B",
+      "instruction": "SS-prefixed REP OUTSB; successor POP AW",
+      "observed": {
+        "action": "MEMR",
+        "t1_from_selected_t4": 6
+      },
+      "pops": 1,
+      "wait": 1
+    },
+    {
+      "clock_mhz": 8,
+      "expected": {
+        "action": "CODE",
+        "t1_from_selected_t4": 5
+      },
+      "history": "A",
+      "instruction": "SS-prefixed REP OUTSB; successor POP AW",
+      "observed": {
+        "action": "MEMR",
+        "t1_from_selected_t4": 6
+      },
+      "pops": 1,
+      "wait": 2
+    },
+    {
+      "clock_mhz": 8,
+      "expected": {
+        "action": "CODE",
+        "t1_from_selected_t4": 5
+      },
+      "history": "A",
+      "instruction": "SS-prefixed REP OUTSB; successor POP AW",
+      "observed": {
+        "action": "MEMR",
+        "t1_from_selected_t4": 6
+      },
+      "pops": 1,
+      "wait": 2
+    },
+    {
+      "clock_mhz": 8,
+      "expected": {
+        "action": "CODE",
+        "t1_from_selected_t4": 5
+      },
+      "history": "A",
+      "instruction": "SS-prefixed REP OUTSB; successor POP AW",
+      "observed": {
+        "action": "MEMR",
+        "t1_from_selected_t4": 6
+      },
+      "pops": 1,
+      "wait": 2
+    },
+    {
+      "clock_mhz": 8,
+      "expected": {
+        "action": "CODE",
+        "t1_from_selected_t4": 5
+      },
+      "history": "A",
+      "instruction": "SS-prefixed REP OUTSB; successor POP AW",
+      "observed": {
+        "action": "MEMR",
+        "t1_from_selected_t4": 6
+      },
+      "pops": 1,
+      "wait": 2
+    },
+    {
+      "clock_mhz": 8,
+      "expected": {
+        "action": "CODE",
+        "t1_from_selected_t4": 5
+      },
+      "history": "A",
+      "instruction": "SS-prefixed REP OUTSB; successor POP AW",
+      "observed": {
+        "action": "MEMR",
+        "t1_from_selected_t4": 6
+      },
+      "pops": 1,
+      "wait": 2
+    },
+    {
+      "clock_mhz": 4,
+      "expected": {
+        "action": "CODE",
+        "t1_from_selected_t4": 5
+      },
+      "history": "A",
+      "instruction": "SS-prefixed REP OUTSB; successor POP AW",
+      "observed": {
+        "action": "MEMR",
+        "t1_from_selected_t4": 6
+      },
+      "pops": 1,
+      "wait": 2
+    },
+    {
+      "clock_mhz": 4,
+      "expected": {
+        "action": "CODE",
+        "t1_from_selected_t4": 5
+      },
+      "history": "A",
+      "instruction": "SS-prefixed REP OUTSB; successor POP AW",
+      "observed": {
+        "action": "MEMR",
+        "t1_from_selected_t4": 6
+      },
+      "pops": 1,
+      "wait": 2
+    },
+    {
+      "clock_mhz": 4,
+      "expected": {
+        "action": "CODE",
+        "t1_from_selected_t4": 5
+      },
+      "history": "A",
+      "instruction": "SS-prefixed REP OUTSB; successor POP AW",
+      "observed": {
+        "action": "MEMR",
+        "t1_from_selected_t4": 6
+      },
+      "pops": 1,
+      "wait": 2
+    },
+    {
+      "clock_mhz": 4,
+      "expected": {
+        "action": "CODE",
+        "t1_from_selected_t4": 5
+      },
+      "history": "A",
+      "instruction": "SS-prefixed REP OUTSB; successor POP AW",
+      "observed": {
+        "action": "MEMR",
+        "t1_from_selected_t4": 6
+      },
+      "pops": 1,
+      "wait": 2
+    },
+    {
+      "clock_mhz": 4,
+      "expected": {
+        "action": "CODE",
+        "t1_from_selected_t4": 5
+      },
+      "history": "A",
+      "instruction": "SS-prefixed REP OUTSB; successor POP AW",
+      "observed": {
+        "action": "MEMR",
+        "t1_from_selected_t4": 6
+      },
+      "pops": 1,
+      "wait": 2
+    },
+    {
+      "clock_mhz": 8,
+      "expected": {
+        "action": "CODE",
+        "t1_from_selected_t4": 5
+      },
+      "history": "B",
+      "instruction": "SS-prefixed REP OUTSB; successor POP AW",
+      "observed": {
+        "action": "MEMR",
+        "t1_from_selected_t4": 6
+      },
+      "pops": 1,
+      "wait": 2
+    },
+    {
+      "clock_mhz": 8,
+      "expected": {
+        "action": "CODE",
+        "t1_from_selected_t4": 5
+      },
+      "history": "B",
+      "instruction": "SS-prefixed REP OUTSB; successor POP AW",
+      "observed": {
+        "action": "MEMR",
+        "t1_from_selected_t4": 6
+      },
+      "pops": 1,
+      "wait": 2
+    },
+    {
+      "clock_mhz": 8,
+      "expected": {
+        "action": "CODE",
+        "t1_from_selected_t4": 5
+      },
+      "history": "B",
+      "instruction": "SS-prefixed REP OUTSB; successor POP AW",
+      "observed": {
+        "action": "MEMR",
+        "t1_from_selected_t4": 6
+      },
+      "pops": 1,
+      "wait": 2
+    },
+    {
+      "clock_mhz": 8,
+      "expected": {
+        "action": "CODE",
+        "t1_from_selected_t4": 5
+      },
+      "history": "B",
+      "instruction": "SS-prefixed REP OUTSB; successor POP AW",
+      "observed": {
+        "action": "MEMR",
+        "t1_from_selected_t4": 6
+      },
+      "pops": 1,
+      "wait": 2
+    },
+    {
+      "clock_mhz": 8,
+      "expected": {
+        "action": "CODE",
+        "t1_from_selected_t4": 5
+      },
+      "history": "B",
+      "instruction": "SS-prefixed REP OUTSB; successor POP AW",
+      "observed": {
+        "action": "MEMR",
+        "t1_from_selected_t4": 6
+      },
+      "pops": 1,
+      "wait": 2
+    },
+    {
+      "clock_mhz": 4,
+      "expected": {
+        "action": "CODE",
+        "t1_from_selected_t4": 5
+      },
+      "history": "B",
+      "instruction": "SS-prefixed REP OUTSB; successor POP AW",
+      "observed": {
+        "action": "MEMR",
+        "t1_from_selected_t4": 6
+      },
+      "pops": 1,
+      "wait": 2
+    },
+    {
+      "clock_mhz": 4,
+      "expected": {
+        "action": "CODE",
+        "t1_from_selected_t4": 5
+      },
+      "history": "B",
+      "instruction": "SS-prefixed REP OUTSB; successor POP AW",
+      "observed": {
+        "action": "MEMR",
+        "t1_from_selected_t4": 6
+      },
+      "pops": 1,
+      "wait": 2
+    },
+    {
+      "clock_mhz": 4,
+      "expected": {
+        "action": "CODE",
+        "t1_from_selected_t4": 5
+      },
+      "history": "B",
+      "instruction": "SS-prefixed REP OUTSB; successor POP AW",
+      "observed": {
+        "action": "MEMR",
+        "t1_from_selected_t4": 6
+      },
+      "pops": 1,
+      "wait": 2
+    },
+    {
+      "clock_mhz": 4,
+      "expected": {
+        "action": "CODE",
+        "t1_from_selected_t4": 5
+      },
+      "history": "B",
+      "instruction": "SS-prefixed REP OUTSB; successor POP AW",
+      "observed": {
+        "action": "MEMR",
+        "t1_from_selected_t4": 6
+      },
+      "pops": 1,
+      "wait": 2
+    },
+    {
+      "clock_mhz": 4,
+      "expected": {
+        "action": "CODE",
+        "t1_from_selected_t4": 5
+      },
+      "history": "B",
+      "instruction": "SS-prefixed REP OUTSB; successor POP AW",
+      "observed": {
+        "action": "MEMR",
+        "t1_from_selected_t4": 6
+      },
+      "pops": 1,
+      "wait": 2
+    },
+    {
+      "clock_mhz": 8,
+      "expected": {
+        "action": "CODE",
+        "t1_from_selected_t4": 5
+      },
+      "history": "A",
+      "instruction": "SS-prefixed REP OUTSB; successor POP AW",
+      "observed": {
+        "action": "MEMR",
+        "t1_from_selected_t4": 6
+      },
+      "pops": 1,
+      "wait": 3
+    },
+    {
+      "clock_mhz": 8,
+      "expected": {
+        "action": "CODE",
+        "t1_from_selected_t4": 5
+      },
+      "history": "A",
+      "instruction": "SS-prefixed REP OUTSB; successor POP AW",
+      "observed": {
+        "action": "MEMR",
+        "t1_from_selected_t4": 6
+      },
+      "pops": 1,
+      "wait": 3
+    },
+    {
+      "clock_mhz": 8,
+      "expected": {
+        "action": "CODE",
+        "t1_from_selected_t4": 5
+      },
+      "history": "A",
+      "instruction": "SS-prefixed REP OUTSB; successor POP AW",
+      "observed": {
+        "action": "MEMR",
+        "t1_from_selected_t4": 6
+      },
+      "pops": 1,
+      "wait": 3
+    },
+    {
+      "clock_mhz": 8,
+      "expected": {
+        "action": "CODE",
+        "t1_from_selected_t4": 5
+      },
+      "history": "A",
+      "instruction": "SS-prefixed REP OUTSB; successor POP AW",
+      "observed": {
+        "action": "MEMR",
+        "t1_from_selected_t4": 6
+      },
+      "pops": 1,
+      "wait": 3
+    },
+    {
+      "clock_mhz": 8,
+      "expected": {
+        "action": "CODE",
+        "t1_from_selected_t4": 5
+      },
+      "history": "A",
+      "instruction": "SS-prefixed REP OUTSB; successor POP AW",
+      "observed": {
+        "action": "MEMR",
+        "t1_from_selected_t4": 6
+      },
+      "pops": 1,
+      "wait": 3
+    },
+    {
+      "clock_mhz": 4,
+      "expected": {
+        "action": "CODE",
+        "t1_from_selected_t4": 5
+      },
+      "history": "A",
+      "instruction": "SS-prefixed REP OUTSB; successor POP AW",
+      "observed": {
+        "action": "MEMR",
+        "t1_from_selected_t4": 6
+      },
+      "pops": 1,
+      "wait": 3
+    },
+    {
+      "clock_mhz": 4,
+      "expected": {
+        "action": "CODE",
+        "t1_from_selected_t4": 5
+      },
+      "history": "A",
+      "instruction": "SS-prefixed REP OUTSB; successor POP AW",
+      "observed": {
+        "action": "MEMR",
+        "t1_from_selected_t4": 6
+      },
+      "pops": 1,
+      "wait": 3
+    },
+    {
+      "clock_mhz": 4,
+      "expected": {
+        "action": "CODE",
+        "t1_from_selected_t4": 5
+      },
+      "history": "A",
+      "instruction": "SS-prefixed REP OUTSB; successor POP AW",
+      "observed": {
+        "action": "MEMR",
+        "t1_from_selected_t4": 6
+      },
+      "pops": 1,
+      "wait": 3
+    },
+    {
+      "clock_mhz": 4,
+      "expected": {
+        "action": "CODE",
+        "t1_from_selected_t4": 5
+      },
+      "history": "A",
+      "instruction": "SS-prefixed REP OUTSB; successor POP AW",
+      "observed": {
+        "action": "MEMR",
+        "t1_from_selected_t4": 6
+      },
+      "pops": 1,
+      "wait": 3
+    },
+    {
+      "clock_mhz": 4,
+      "expected": {
+        "action": "CODE",
+        "t1_from_selected_t4": 5
+      },
+      "history": "A",
+      "instruction": "SS-prefixed REP OUTSB; successor POP AW",
+      "observed": {
+        "action": "MEMR",
+        "t1_from_selected_t4": 6
+      },
+      "pops": 1,
+      "wait": 3
+    },
+    {
+      "clock_mhz": 8,
+      "expected": {
+        "action": "CODE",
+        "t1_from_selected_t4": 5
+      },
+      "history": "B",
+      "instruction": "SS-prefixed REP OUTSB; successor POP AW",
+      "observed": {
+        "action": "MEMR",
+        "t1_from_selected_t4": 6
+      },
+      "pops": 1,
+      "wait": 3
+    },
+    {
+      "clock_mhz": 8,
+      "expected": {
+        "action": "CODE",
+        "t1_from_selected_t4": 5
+      },
+      "history": "B",
+      "instruction": "SS-prefixed REP OUTSB; successor POP AW",
+      "observed": {
+        "action": "MEMR",
+        "t1_from_selected_t4": 6
+      },
+      "pops": 1,
+      "wait": 3
+    },
+    {
+      "clock_mhz": 8,
+      "expected": {
+        "action": "CODE",
+        "t1_from_selected_t4": 5
+      },
+      "history": "B",
+      "instruction": "SS-prefixed REP OUTSB; successor POP AW",
+      "observed": {
+        "action": "MEMR",
+        "t1_from_selected_t4": 6
+      },
+      "pops": 1,
+      "wait": 3
+    },
+    {
+      "clock_mhz": 8,
+      "expected": {
+        "action": "CODE",
+        "t1_from_selected_t4": 5
+      },
+      "history": "B",
+      "instruction": "SS-prefixed REP OUTSB; successor POP AW",
+      "observed": {
+        "action": "MEMR",
+        "t1_from_selected_t4": 6
+      },
+      "pops": 1,
+      "wait": 3
+    },
+    {
+      "clock_mhz": 8,
+      "expected": {
+        "action": "CODE",
+        "t1_from_selected_t4": 5
+      },
+      "history": "B",
+      "instruction": "SS-prefixed REP OUTSB; successor POP AW",
+      "observed": {
+        "action": "MEMR",
+        "t1_from_selected_t4": 6
+      },
+      "pops": 1,
+      "wait": 3
+    },
+    {
+      "clock_mhz": 4,
+      "expected": {
+        "action": "CODE",
+        "t1_from_selected_t4": 5
+      },
+      "history": "B",
+      "instruction": "SS-prefixed REP OUTSB; successor POP AW",
+      "observed": {
+        "action": "MEMR",
+        "t1_from_selected_t4": 6
+      },
+      "pops": 1,
+      "wait": 3
+    },
+    {
+      "clock_mhz": 4,
+      "expected": {
+        "action": "CODE",
+        "t1_from_selected_t4": 5
+      },
+      "history": "B",
+      "instruction": "SS-prefixed REP OUTSB; successor POP AW",
+      "observed": {
+        "action": "MEMR",
+        "t1_from_selected_t4": 6
+      },
+      "pops": 1,
+      "wait": 3
+    },
+    {
+      "clock_mhz": 4,
+      "expected": {
+        "action": "CODE",
+        "t1_from_selected_t4": 5
+      },
+      "history": "B",
+      "instruction": "SS-prefixed REP OUTSB; successor POP AW",
+      "observed": {
+        "action": "MEMR",
+        "t1_from_selected_t4": 6
+      },
+      "pops": 1,
+      "wait": 3
+    },
+    {
+      "clock_mhz": 4,
+      "expected": {
+        "action": "CODE",
+        "t1_from_selected_t4": 5
+      },
+      "history": "B",
+      "instruction": "SS-prefixed REP OUTSB; successor POP AW",
+      "observed": {
+        "action": "MEMR",
+        "t1_from_selected_t4": 6
+      },
+      "pops": 1,
+      "wait": 3
+    },
+    {
+      "clock_mhz": 4,
+      "expected": {
+        "action": "CODE",
+        "t1_from_selected_t4": 5
+      },
+      "history": "B",
+      "instruction": "SS-prefixed REP OUTSB; successor POP AW",
+      "observed": {
+        "action": "MEMR",
+        "t1_from_selected_t4": 6
+      },
+      "pops": 1,
+      "wait": 3
+    },
+    {
+      "clock_mhz": 8,
+      "expected": {
+        "action": "CODE",
+        "t1_from_selected_t4": 5
+      },
+      "history": "A",
+      "instruction": "SS-prefixed REP OUTSB; successor POP AW",
+      "observed": {
+        "action": "MEMR",
+        "t1_from_selected_t4": 6
+      },
+      "pops": 1,
+      "wait": 4
+    },
+    {
+      "clock_mhz": 8,
+      "expected": {
+        "action": "CODE",
+        "t1_from_selected_t4": 5
+      },
+      "history": "A",
+      "instruction": "SS-prefixed REP OUTSB; successor POP AW",
+      "observed": {
+        "action": "MEMR",
+        "t1_from_selected_t4": 6
+      },
+      "pops": 1,
+      "wait": 4
+    },
+    {
+      "clock_mhz": 8,
+      "expected": {
+        "action": "CODE",
+        "t1_from_selected_t4": 5
+      },
+      "history": "A",
+      "instruction": "SS-prefixed REP OUTSB; successor POP AW",
+      "observed": {
+        "action": "MEMR",
+        "t1_from_selected_t4": 6
+      },
+      "pops": 1,
+      "wait": 4
+    },
+    {
+      "clock_mhz": 8,
+      "expected": {
+        "action": "CODE",
+        "t1_from_selected_t4": 5
+      },
+      "history": "A",
+      "instruction": "SS-prefixed REP OUTSB; successor POP AW",
+      "observed": {
+        "action": "MEMR",
+        "t1_from_selected_t4": 6
+      },
+      "pops": 1,
+      "wait": 4
+    },
+    {
+      "clock_mhz": 8,
+      "expected": {
+        "action": "CODE",
+        "t1_from_selected_t4": 5
+      },
+      "history": "A",
+      "instruction": "SS-prefixed REP OUTSB; successor POP AW",
+      "observed": {
+        "action": "MEMR",
+        "t1_from_selected_t4": 6
+      },
+      "pops": 1,
+      "wait": 4
+    },
+    {
+      "clock_mhz": 4,
+      "expected": {
+        "action": "CODE",
+        "t1_from_selected_t4": 5
+      },
+      "history": "A",
+      "instruction": "SS-prefixed REP OUTSB; successor POP AW",
+      "observed": {
+        "action": "MEMR",
+        "t1_from_selected_t4": 6
+      },
+      "pops": 1,
+      "wait": 4
+    },
+    {
+      "clock_mhz": 4,
+      "expected": {
+        "action": "CODE",
+        "t1_from_selected_t4": 5
+      },
+      "history": "A",
+      "instruction": "SS-prefixed REP OUTSB; successor POP AW",
+      "observed": {
+        "action": "MEMR",
+        "t1_from_selected_t4": 6
+      },
+      "pops": 1,
+      "wait": 4
+    },
+    {
+      "clock_mhz": 4,
+      "expected": {
+        "action": "CODE",
+        "t1_from_selected_t4": 5
+      },
+      "history": "A",
+      "instruction": "SS-prefixed REP OUTSB; successor POP AW",
+      "observed": {
+        "action": "MEMR",
+        "t1_from_selected_t4": 6
+      },
+      "pops": 1,
+      "wait": 4
+    },
+    {
+      "clock_mhz": 4,
+      "expected": {
+        "action": "CODE",
+        "t1_from_selected_t4": 5
+      },
+      "history": "A",
+      "instruction": "SS-prefixed REP OUTSB; successor POP AW",
+      "observed": {
+        "action": "MEMR",
+        "t1_from_selected_t4": 6
+      },
+      "pops": 1,
+      "wait": 4
+    },
+    {
+      "clock_mhz": 4,
+      "expected": {
+        "action": "CODE",
+        "t1_from_selected_t4": 5
+      },
+      "history": "A",
+      "instruction": "SS-prefixed REP OUTSB; successor POP AW",
+      "observed": {
+        "action": "MEMR",
+        "t1_from_selected_t4": 6
+      },
+      "pops": 1,
+      "wait": 4
+    },
+    {
+      "clock_mhz": 8,
+      "expected": {
+        "action": "CODE",
+        "t1_from_selected_t4": 5
+      },
+      "history": "B",
+      "instruction": "SS-prefixed REP OUTSB; successor POP AW",
+      "observed": {
+        "action": "MEMR",
+        "t1_from_selected_t4": 6
+      },
+      "pops": 1,
+      "wait": 4
+    },
+    {
+      "clock_mhz": 8,
+      "expected": {
+        "action": "CODE",
+        "t1_from_selected_t4": 5
+      },
+      "history": "B",
+      "instruction": "SS-prefixed REP OUTSB; successor POP AW",
+      "observed": {
+        "action": "MEMR",
+        "t1_from_selected_t4": 6
+      },
+      "pops": 1,
+      "wait": 4
+    },
+    {
+      "clock_mhz": 8,
+      "expected": {
+        "action": "CODE",
+        "t1_from_selected_t4": 5
+      },
+      "history": "B",
+      "instruction": "SS-prefixed REP OUTSB; successor POP AW",
+      "observed": {
+        "action": "MEMR",
+        "t1_from_selected_t4": 6
+      },
+      "pops": 1,
+      "wait": 4
+    },
+    {
+      "clock_mhz": 8,
+      "expected": {
+        "action": "CODE",
+        "t1_from_selected_t4": 5
+      },
+      "history": "B",
+      "instruction": "SS-prefixed REP OUTSB; successor POP AW",
+      "observed": {
+        "action": "MEMR",
+        "t1_from_selected_t4": 6
+      },
+      "pops": 1,
+      "wait": 4
+    },
+    {
+      "clock_mhz": 8,
+      "expected": {
+        "action": "CODE",
+        "t1_from_selected_t4": 5
+      },
+      "history": "B",
+      "instruction": "SS-prefixed REP OUTSB; successor POP AW",
+      "observed": {
+        "action": "MEMR",
+        "t1_from_selected_t4": 6
+      },
+      "pops": 1,
+      "wait": 4
+    },
+    {
+      "clock_mhz": 4,
+      "expected": {
+        "action": "CODE",
+        "t1_from_selected_t4": 5
+      },
+      "history": "B",
+      "instruction": "SS-prefixed REP OUTSB; successor POP AW",
+      "observed": {
+        "action": "MEMR",
+        "t1_from_selected_t4": 6
+      },
+      "pops": 1,
+      "wait": 4
+    },
+    {
+      "clock_mhz": 4,
+      "expected": {
+        "action": "CODE",
+        "t1_from_selected_t4": 5
+      },
+      "history": "B",
+      "instruction": "SS-prefixed REP OUTSB; successor POP AW",
+      "observed": {
+        "action": "MEMR",
+        "t1_from_selected_t4": 6
+      },
+      "pops": 1,
+      "wait": 4
+    },
+    {
+      "clock_mhz": 4,
+      "expected": {
+        "action": "CODE",
+        "t1_from_selected_t4": 5
+      },
+      "history": "B",
+      "instruction": "SS-prefixed REP OUTSB; successor POP AW",
+      "observed": {
+        "action": "MEMR",
+        "t1_from_selected_t4": 6
+      },
+      "pops": 1,
+      "wait": 4
+    },
+    {
+      "clock_mhz": 4,
+      "expected": {
+        "action": "CODE",
+        "t1_from_selected_t4": 5
+      },
+      "history": "B",
+      "instruction": "SS-prefixed REP OUTSB; successor POP AW",
+      "observed": {
+        "action": "MEMR",
+        "t1_from_selected_t4": 6
+      },
+      "pops": 1,
+      "wait": 4
+    },
+    {
+      "clock_mhz": 4,
+      "expected": {
+        "action": "CODE",
+        "t1_from_selected_t4": 5
+      },
+      "history": "B",
+      "instruction": "SS-prefixed REP OUTSB; successor POP AW",
+      "observed": {
+        "action": "MEMR",
+        "t1_from_selected_t4": 6
+      },
+      "pops": 1,
+      "wait": 4
+    },
+    {
+      "clock_mhz": 8,
+      "expected": {
+        "action": "CODE",
+        "t1_from_selected_t4": 5
+      },
+      "history": "A",
+      "instruction": "SS-prefixed REP OUTSB; successor POP AW",
+      "observed": {
+        "action": "MEMR",
+        "t1_from_selected_t4": 6
+      },
+      "pops": 1,
+      "wait": 5
+    },
+    {
+      "clock_mhz": 8,
+      "expected": {
+        "action": "CODE",
+        "t1_from_selected_t4": 5
+      },
+      "history": "A",
+      "instruction": "SS-prefixed REP OUTSB; successor POP AW",
+      "observed": {
+        "action": "MEMR",
+        "t1_from_selected_t4": 6
+      },
+      "pops": 1,
+      "wait": 5
+    },
+    {
+      "clock_mhz": 8,
+      "expected": {
+        "action": "CODE",
+        "t1_from_selected_t4": 5
+      },
+      "history": "A",
+      "instruction": "SS-prefixed REP OUTSB; successor POP AW",
+      "observed": {
+        "action": "MEMR",
+        "t1_from_selected_t4": 6
+      },
+      "pops": 1,
+      "wait": 5
+    },
+    {
+      "clock_mhz": 8,
+      "expected": {
+        "action": "CODE",
+        "t1_from_selected_t4": 5
+      },
+      "history": "A",
+      "instruction": "SS-prefixed REP OUTSB; successor POP AW",
+      "observed": {
+        "action": "MEMR",
+        "t1_from_selected_t4": 6
+      },
+      "pops": 1,
+      "wait": 5
+    },
+    {
+      "clock_mhz": 8,
+      "expected": {
+        "action": "CODE",
+        "t1_from_selected_t4": 5
+      },
+      "history": "A",
+      "instruction": "SS-prefixed REP OUTSB; successor POP AW",
+      "observed": {
+        "action": "MEMR",
+        "t1_from_selected_t4": 6
+      },
+      "pops": 1,
+      "wait": 5
+    },
+    {
+      "clock_mhz": 4,
+      "expected": {
+        "action": "CODE",
+        "t1_from_selected_t4": 5
+      },
+      "history": "A",
+      "instruction": "SS-prefixed REP OUTSB; successor POP AW",
+      "observed": {
+        "action": "MEMR",
+        "t1_from_selected_t4": 6
+      },
+      "pops": 1,
+      "wait": 5
+    },
+    {
+      "clock_mhz": 4,
+      "expected": {
+        "action": "CODE",
+        "t1_from_selected_t4": 5
+      },
+      "history": "A",
+      "instruction": "SS-prefixed REP OUTSB; successor POP AW",
+      "observed": {
+        "action": "MEMR",
+        "t1_from_selected_t4": 6
+      },
+      "pops": 1,
+      "wait": 5
+    },
+    {
+      "clock_mhz": 4,
+      "expected": {
+        "action": "CODE",
+        "t1_from_selected_t4": 5
+      },
+      "history": "A",
+      "instruction": "SS-prefixed REP OUTSB; successor POP AW",
+      "observed": {
+        "action": "MEMR",
+        "t1_from_selected_t4": 6
+      },
+      "pops": 1,
+      "wait": 5
+    },
+    {
+      "clock_mhz": 4,
+      "expected": {
+        "action": "CODE",
+        "t1_from_selected_t4": 5
+      },
+      "history": "A",
+      "instruction": "SS-prefixed REP OUTSB; successor POP AW",
+      "observed": {
+        "action": "MEMR",
+        "t1_from_selected_t4": 6
+      },
+      "pops": 1,
+      "wait": 5
+    },
+    {
+      "clock_mhz": 4,
+      "expected": {
+        "action": "CODE",
+        "t1_from_selected_t4": 5
+      },
+      "history": "A",
+      "instruction": "SS-prefixed REP OUTSB; successor POP AW",
+      "observed": {
+        "action": "MEMR",
+        "t1_from_selected_t4": 6
+      },
+      "pops": 1,
+      "wait": 5
+    },
+    {
+      "clock_mhz": 8,
+      "expected": {
+        "action": "CODE",
+        "t1_from_selected_t4": 5
+      },
+      "history": "B",
+      "instruction": "SS-prefixed REP OUTSB; successor POP AW",
+      "observed": {
+        "action": "MEMR",
+        "t1_from_selected_t4": 6
+      },
+      "pops": 1,
+      "wait": 5
+    },
+    {
+      "clock_mhz": 8,
+      "expected": {
+        "action": "CODE",
+        "t1_from_selected_t4": 5
+      },
+      "history": "B",
+      "instruction": "SS-prefixed REP OUTSB; successor POP AW",
+      "observed": {
+        "action": "MEMR",
+        "t1_from_selected_t4": 6
+      },
+      "pops": 1,
+      "wait": 5
+    },
+    {
+      "clock_mhz": 8,
+      "expected": {
+        "action": "CODE",
+        "t1_from_selected_t4": 5
+      },
+      "history": "B",
+      "instruction": "SS-prefixed REP OUTSB; successor POP AW",
+      "observed": {
+        "action": "MEMR",
+        "t1_from_selected_t4": 6
+      },
+      "pops": 1,
+      "wait": 5
+    },
+    {
+      "clock_mhz": 8,
+      "expected": {
+        "action": "CODE",
+        "t1_from_selected_t4": 5
+      },
+      "history": "B",
+      "instruction": "SS-prefixed REP OUTSB; successor POP AW",
+      "observed": {
+        "action": "MEMR",
+        "t1_from_selected_t4": 6
+      },
+      "pops": 1,
+      "wait": 5
+    },
+    {
+      "clock_mhz": 8,
+      "expected": {
+        "action": "CODE",
+        "t1_from_selected_t4": 5
+      },
+      "history": "B",
+      "instruction": "SS-prefixed REP OUTSB; successor POP AW",
+      "observed": {
+        "action": "MEMR",
+        "t1_from_selected_t4": 6
+      },
+      "pops": 1,
+      "wait": 5
+    },
+    {
+      "clock_mhz": 4,
+      "expected": {
+        "action": "CODE",
+        "t1_from_selected_t4": 5
+      },
+      "history": "B",
+      "instruction": "SS-prefixed REP OUTSB; successor POP AW",
+      "observed": {
+        "action": "MEMR",
+        "t1_from_selected_t4": 6
+      },
+      "pops": 1,
+      "wait": 5
+    },
+    {
+      "clock_mhz": 4,
+      "expected": {
+        "action": "CODE",
+        "t1_from_selected_t4": 5
+      },
+      "history": "B",
+      "instruction": "SS-prefixed REP OUTSB; successor POP AW",
+      "observed": {
+        "action": "MEMR",
+        "t1_from_selected_t4": 6
+      },
+      "pops": 1,
+      "wait": 5
+    },
+    {
+      "clock_mhz": 4,
+      "expected": {
+        "action": "CODE",
+        "t1_from_selected_t4": 5
+      },
+      "history": "B",
+      "instruction": "SS-prefixed REP OUTSB; successor POP AW",
+      "observed": {
+        "action": "MEMR",
+        "t1_from_selected_t4": 6
+      },
+      "pops": 1,
+      "wait": 5
+    },
+    {
+      "clock_mhz": 4,
+      "expected": {
+        "action": "CODE",
+        "t1_from_selected_t4": 5
+      },
+      "history": "B",
+      "instruction": "SS-prefixed REP OUTSB; successor POP AW",
+      "observed": {
+        "action": "MEMR",
+        "t1_from_selected_t4": 6
+      },
+      "pops": 1,
+      "wait": 5
+    },
+    {
+      "clock_mhz": 4,
+      "expected": {
+        "action": "CODE",
+        "t1_from_selected_t4": 5
+      },
+      "history": "B",
+      "instruction": "SS-prefixed REP OUTSB; successor POP AW",
+      "observed": {
+        "action": "MEMR",
+        "t1_from_selected_t4": 6
+      },
+      "pops": 1,
+      "wait": 5
+    },
+    {
+      "clock_mhz": 8,
+      "expected": {
+        "action": "CODE",
+        "t1_from_selected_t4": 5
+      },
+      "history": "A",
+      "instruction": "SS-prefixed REP OUTSB; successor POP AW",
+      "observed": {
+        "action": "MEMR",
+        "t1_from_selected_t4": 6
+      },
+      "pops": 1,
+      "wait": 6
+    },
+    {
+      "clock_mhz": 8,
+      "expected": {
+        "action": "CODE",
+        "t1_from_selected_t4": 5
+      },
+      "history": "A",
+      "instruction": "SS-prefixed REP OUTSB; successor POP AW",
+      "observed": {
+        "action": "MEMR",
+        "t1_from_selected_t4": 6
+      },
+      "pops": 1,
+      "wait": 6
+    },
+    {
+      "clock_mhz": 8,
+      "expected": {
+        "action": "CODE",
+        "t1_from_selected_t4": 5
+      },
+      "history": "A",
+      "instruction": "SS-prefixed REP OUTSB; successor POP AW",
+      "observed": {
+        "action": "MEMR",
+        "t1_from_selected_t4": 6
+      },
+      "pops": 1,
+      "wait": 6
+    },
+    {
+      "clock_mhz": 8,
+      "expected": {
+        "action": "CODE",
+        "t1_from_selected_t4": 5
+      },
+      "history": "A",
+      "instruction": "SS-prefixed REP OUTSB; successor POP AW",
+      "observed": {
+        "action": "MEMR",
+        "t1_from_selected_t4": 6
+      },
+      "pops": 1,
+      "wait": 6
+    },
+    {
+      "clock_mhz": 8,
+      "expected": {
+        "action": "CODE",
+        "t1_from_selected_t4": 5
+      },
+      "history": "A",
+      "instruction": "SS-prefixed REP OUTSB; successor POP AW",
+      "observed": {
+        "action": "MEMR",
+        "t1_from_selected_t4": 6
+      },
+      "pops": 1,
+      "wait": 6
+    },
+    {
+      "clock_mhz": 4,
+      "expected": {
+        "action": "CODE",
+        "t1_from_selected_t4": 5
+      },
+      "history": "A",
+      "instruction": "SS-prefixed REP OUTSB; successor POP AW",
+      "observed": {
+        "action": "MEMR",
+        "t1_from_selected_t4": 6
+      },
+      "pops": 1,
+      "wait": 6
+    },
+    {
+      "clock_mhz": 4,
+      "expected": {
+        "action": "CODE",
+        "t1_from_selected_t4": 5
+      },
+      "history": "A",
+      "instruction": "SS-prefixed REP OUTSB; successor POP AW",
+      "observed": {
+        "action": "MEMR",
+        "t1_from_selected_t4": 6
+      },
+      "pops": 1,
+      "wait": 6
+    },
+    {
+      "clock_mhz": 4,
+      "expected": {
+        "action": "CODE",
+        "t1_from_selected_t4": 5
+      },
+      "history": "A",
+      "instruction": "SS-prefixed REP OUTSB; successor POP AW",
+      "observed": {
+        "action": "MEMR",
+        "t1_from_selected_t4": 6
+      },
+      "pops": 1,
+      "wait": 6
+    },
+    {
+      "clock_mhz": 4,
+      "expected": {
+        "action": "CODE",
+        "t1_from_selected_t4": 5
+      },
+      "history": "A",
+      "instruction": "SS-prefixed REP OUTSB; successor POP AW",
+      "observed": {
+        "action": "MEMR",
+        "t1_from_selected_t4": 6
+      },
+      "pops": 1,
+      "wait": 6
+    },
+    {
+      "clock_mhz": 4,
+      "expected": {
+        "action": "CODE",
+        "t1_from_selected_t4": 5
+      },
+      "history": "A",
+      "instruction": "SS-prefixed REP OUTSB; successor POP AW",
+      "observed": {
+        "action": "MEMR",
+        "t1_from_selected_t4": 6
+      },
+      "pops": 1,
+      "wait": 6
+    },
+    {
+      "clock_mhz": 8,
+      "expected": {
+        "action": "CODE",
+        "t1_from_selected_t4": 5
+      },
+      "history": "B",
+      "instruction": "SS-prefixed REP OUTSB; successor POP AW",
+      "observed": {
+        "action": "MEMR",
+        "t1_from_selected_t4": 6
+      },
+      "pops": 1,
+      "wait": 6
+    },
+    {
+      "clock_mhz": 8,
+      "expected": {
+        "action": "CODE",
+        "t1_from_selected_t4": 5
+      },
+      "history": "B",
+      "instruction": "SS-prefixed REP OUTSB; successor POP AW",
+      "observed": {
+        "action": "MEMR",
+        "t1_from_selected_t4": 6
+      },
+      "pops": 1,
+      "wait": 6
+    },
+    {
+      "clock_mhz": 8,
+      "expected": {
+        "action": "CODE",
+        "t1_from_selected_t4": 5
+      },
+      "history": "B",
+      "instruction": "SS-prefixed REP OUTSB; successor POP AW",
+      "observed": {
+        "action": "MEMR",
+        "t1_from_selected_t4": 6
+      },
+      "pops": 1,
+      "wait": 6
+    },
+    {
+      "clock_mhz": 8,
+      "expected": {
+        "action": "CODE",
+        "t1_from_selected_t4": 5
+      },
+      "history": "B",
+      "instruction": "SS-prefixed REP OUTSB; successor POP AW",
+      "observed": {
+        "action": "MEMR",
+        "t1_from_selected_t4": 6
+      },
+      "pops": 1,
+      "wait": 6
+    },
+    {
+      "clock_mhz": 8,
+      "expected": {
+        "action": "CODE",
+        "t1_from_selected_t4": 5
+      },
+      "history": "B",
+      "instruction": "SS-prefixed REP OUTSB; successor POP AW",
+      "observed": {
+        "action": "MEMR",
+        "t1_from_selected_t4": 6
+      },
+      "pops": 1,
+      "wait": 6
+    },
+    {
+      "clock_mhz": 4,
+      "expected": {
+        "action": "CODE",
+        "t1_from_selected_t4": 5
+      },
+      "history": "B",
+      "instruction": "SS-prefixed REP OUTSB; successor POP AW",
+      "observed": {
+        "action": "MEMR",
+        "t1_from_selected_t4": 6
+      },
+      "pops": 1,
+      "wait": 6
+    },
+    {
+      "clock_mhz": 4,
+      "expected": {
+        "action": "CODE",
+        "t1_from_selected_t4": 5
+      },
+      "history": "B",
+      "instruction": "SS-prefixed REP OUTSB; successor POP AW",
+      "observed": {
+        "action": "MEMR",
+        "t1_from_selected_t4": 6
+      },
+      "pops": 1,
+      "wait": 6
+    },
+    {
+      "clock_mhz": 4,
+      "expected": {
+        "action": "CODE",
+        "t1_from_selected_t4": 5
+      },
+      "history": "B",
+      "instruction": "SS-prefixed REP OUTSB; successor POP AW",
+      "observed": {
+        "action": "MEMR",
+        "t1_from_selected_t4": 6
+      },
+      "pops": 1,
+      "wait": 6
+    },
+    {
+      "clock_mhz": 4,
+      "expected": {
+        "action": "CODE",
+        "t1_from_selected_t4": 5
+      },
+      "history": "B",
+      "instruction": "SS-prefixed REP OUTSB; successor POP AW",
+      "observed": {
+        "action": "MEMR",
+        "t1_from_selected_t4": 6
+      },
+      "pops": 1,
+      "wait": 6
+    },
+    {
+      "clock_mhz": 4,
+      "expected": {
+        "action": "CODE",
+        "t1_from_selected_t4": 5
+      },
+      "history": "B",
+      "instruction": "SS-prefixed REP OUTSB; successor POP AW",
+      "observed": {
+        "action": "MEMR",
+        "t1_from_selected_t4": 6
+      },
+      "pops": 1,
+      "wait": 6
+    },
+    {
+      "clock_mhz": 8,
+      "expected": {
+        "action": "CODE",
+        "t1_from_selected_t4": 5
+      },
+      "history": "A",
+      "instruction": "SS-prefixed REP OUTSB; successor POP AW",
+      "observed": {
+        "action": "MEMR",
+        "t1_from_selected_t4": 6
+      },
+      "pops": 1,
+      "wait": 7
+    },
+    {
+      "clock_mhz": 8,
+      "expected": {
+        "action": "CODE",
+        "t1_from_selected_t4": 5
+      },
+      "history": "A",
+      "instruction": "SS-prefixed REP OUTSB; successor POP AW",
+      "observed": {
+        "action": "MEMR",
+        "t1_from_selected_t4": 6
+      },
+      "pops": 1,
+      "wait": 7
+    },
+    {
+      "clock_mhz": 8,
+      "expected": {
+        "action": "CODE",
+        "t1_from_selected_t4": 5
+      },
+      "history": "A",
+      "instruction": "SS-prefixed REP OUTSB; successor POP AW",
+      "observed": {
+        "action": "MEMR",
+        "t1_from_selected_t4": 6
+      },
+      "pops": 1,
+      "wait": 7
+    },
+    {
+      "clock_mhz": 8,
+      "expected": {
+        "action": "CODE",
+        "t1_from_selected_t4": 5
+      },
+      "history": "A",
+      "instruction": "SS-prefixed REP OUTSB; successor POP AW",
+      "observed": {
+        "action": "MEMR",
+        "t1_from_selected_t4": 6
+      },
+      "pops": 1,
+      "wait": 7
+    },
+    {
+      "clock_mhz": 8,
+      "expected": {
+        "action": "CODE",
+        "t1_from_selected_t4": 5
+      },
+      "history": "A",
+      "instruction": "SS-prefixed REP OUTSB; successor POP AW",
+      "observed": {
+        "action": "MEMR",
+        "t1_from_selected_t4": 6
+      },
+      "pops": 1,
+      "wait": 7
+    },
+    {
+      "clock_mhz": 4,
+      "expected": {
+        "action": "CODE",
+        "t1_from_selected_t4": 5
+      },
+      "history": "A",
+      "instruction": "SS-prefixed REP OUTSB; successor POP AW",
+      "observed": {
+        "action": "MEMR",
+        "t1_from_selected_t4": 6
+      },
+      "pops": 1,
+      "wait": 7
+    },
+    {
+      "clock_mhz": 4,
+      "expected": {
+        "action": "CODE",
+        "t1_from_selected_t4": 5
+      },
+      "history": "A",
+      "instruction": "SS-prefixed REP OUTSB; successor POP AW",
+      "observed": {
+        "action": "MEMR",
+        "t1_from_selected_t4": 6
+      },
+      "pops": 1,
+      "wait": 7
+    },
+    {
+      "clock_mhz": 4,
+      "expected": {
+        "action": "CODE",
+        "t1_from_selected_t4": 5
+      },
+      "history": "A",
+      "instruction": "SS-prefixed REP OUTSB; successor POP AW",
+      "observed": {
+        "action": "MEMR",
+        "t1_from_selected_t4": 6
+      },
+      "pops": 1,
+      "wait": 7
+    },
+    {
+      "clock_mhz": 4,
+      "expected": {
+        "action": "CODE",
+        "t1_from_selected_t4": 5
+      },
+      "history": "A",
+      "instruction": "SS-prefixed REP OUTSB; successor POP AW",
+      "observed": {
+        "action": "MEMR",
+        "t1_from_selected_t4": 6
+      },
+      "pops": 1,
+      "wait": 7
+    },
+    {
+      "clock_mhz": 4,
+      "expected": {
+        "action": "CODE",
+        "t1_from_selected_t4": 5
+      },
+      "history": "A",
+      "instruction": "SS-prefixed REP OUTSB; successor POP AW",
+      "observed": {
+        "action": "MEMR",
+        "t1_from_selected_t4": 6
+      },
+      "pops": 1,
+      "wait": 7
+    },
+    {
+      "clock_mhz": 8,
+      "expected": {
+        "action": "CODE",
+        "t1_from_selected_t4": 5
+      },
+      "history": "B",
+      "instruction": "SS-prefixed REP OUTSB; successor POP AW",
+      "observed": {
+        "action": "MEMR",
+        "t1_from_selected_t4": 6
+      },
+      "pops": 1,
+      "wait": 7
+    },
+    {
+      "clock_mhz": 8,
+      "expected": {
+        "action": "CODE",
+        "t1_from_selected_t4": 5
+      },
+      "history": "B",
+      "instruction": "SS-prefixed REP OUTSB; successor POP AW",
+      "observed": {
+        "action": "MEMR",
+        "t1_from_selected_t4": 6
+      },
+      "pops": 1,
+      "wait": 7
+    },
+    {
+      "clock_mhz": 8,
+      "expected": {
+        "action": "CODE",
+        "t1_from_selected_t4": 5
+      },
+      "history": "B",
+      "instruction": "SS-prefixed REP OUTSB; successor POP AW",
+      "observed": {
+        "action": "MEMR",
+        "t1_from_selected_t4": 6
+      },
+      "pops": 1,
+      "wait": 7
+    },
+    {
+      "clock_mhz": 8,
+      "expected": {
+        "action": "CODE",
+        "t1_from_selected_t4": 5
+      },
+      "history": "B",
+      "instruction": "SS-prefixed REP OUTSB; successor POP AW",
+      "observed": {
+        "action": "MEMR",
+        "t1_from_selected_t4": 6
+      },
+      "pops": 1,
+      "wait": 7
+    },
+    {
+      "clock_mhz": 8,
+      "expected": {
+        "action": "CODE",
+        "t1_from_selected_t4": 5
+      },
+      "history": "B",
+      "instruction": "SS-prefixed REP OUTSB; successor POP AW",
+      "observed": {
+        "action": "MEMR",
+        "t1_from_selected_t4": 6
+      },
+      "pops": 1,
+      "wait": 7
+    },
+    {
+      "clock_mhz": 4,
+      "expected": {
+        "action": "CODE",
+        "t1_from_selected_t4": 5
+      },
+      "history": "B",
+      "instruction": "SS-prefixed REP OUTSB; successor POP AW",
+      "observed": {
+        "action": "MEMR",
+        "t1_from_selected_t4": 6
+      },
+      "pops": 1,
+      "wait": 7
+    },
+    {
+      "clock_mhz": 4,
+      "expected": {
+        "action": "CODE",
+        "t1_from_selected_t4": 5
+      },
+      "history": "B",
+      "instruction": "SS-prefixed REP OUTSB; successor POP AW",
+      "observed": {
+        "action": "MEMR",
+        "t1_from_selected_t4": 6
+      },
+      "pops": 1,
+      "wait": 7
+    },
+    {
+      "clock_mhz": 4,
+      "expected": {
+        "action": "CODE",
+        "t1_from_selected_t4": 5
+      },
+      "history": "B",
+      "instruction": "SS-prefixed REP OUTSB; successor POP AW",
+      "observed": {
+        "action": "MEMR",
+        "t1_from_selected_t4": 6
+      },
+      "pops": 1,
+      "wait": 7
+    },
+    {
+      "clock_mhz": 4,
+      "expected": {
+        "action": "CODE",
+        "t1_from_selected_t4": 5
+      },
+      "history": "B",
+      "instruction": "SS-prefixed REP OUTSB; successor POP AW",
+      "observed": {
+        "action": "MEMR",
+        "t1_from_selected_t4": 6
+      },
+      "pops": 1,
+      "wait": 7
+    },
+    {
+      "clock_mhz": 4,
+      "expected": {
+        "action": "CODE",
+        "t1_from_selected_t4": 5
+      },
+      "history": "B",
+      "instruction": "SS-prefixed REP OUTSB; successor POP AW",
+      "observed": {
+        "action": "MEMR",
+        "t1_from_selected_t4": 6
+      },
+      "pops": 1,
+      "wait": 7
+    },
+    {
+      "clock_mhz": 8,
+      "expected": {
+        "action": "CODE",
+        "t1_from_selected_t4": 5
+      },
+      "history": "A",
+      "instruction": "SS-prefixed REP OUTSB; successor POP AW",
+      "observed": {
+        "action": "MEMR",
+        "t1_from_selected_t4": 6
+      },
+      "pops": 1,
+      "wait": 15
+    },
+    {
+      "clock_mhz": 8,
+      "expected": {
+        "action": "CODE",
+        "t1_from_selected_t4": 5
+      },
+      "history": "A",
+      "instruction": "SS-prefixed REP OUTSB; successor POP AW",
+      "observed": {
+        "action": "MEMR",
+        "t1_from_selected_t4": 6
+      },
+      "pops": 1,
+      "wait": 15
+    },
+    {
+      "clock_mhz": 8,
+      "expected": {
+        "action": "CODE",
+        "t1_from_selected_t4": 5
+      },
+      "history": "A",
+      "instruction": "SS-prefixed REP OUTSB; successor POP AW",
+      "observed": {
+        "action": "MEMR",
+        "t1_from_selected_t4": 6
+      },
+      "pops": 1,
+      "wait": 15
+    },
+    {
+      "clock_mhz": 8,
+      "expected": {
+        "action": "CODE",
+        "t1_from_selected_t4": 5
+      },
+      "history": "A",
+      "instruction": "SS-prefixed REP OUTSB; successor POP AW",
+      "observed": {
+        "action": "MEMR",
+        "t1_from_selected_t4": 6
+      },
+      "pops": 1,
+      "wait": 15
+    },
+    {
+      "clock_mhz": 8,
+      "expected": {
+        "action": "CODE",
+        "t1_from_selected_t4": 5
+      },
+      "history": "A",
+      "instruction": "SS-prefixed REP OUTSB; successor POP AW",
+      "observed": {
+        "action": "MEMR",
+        "t1_from_selected_t4": 6
+      },
+      "pops": 1,
+      "wait": 15
+    },
+    {
+      "clock_mhz": 4,
+      "expected": {
+        "action": "CODE",
+        "t1_from_selected_t4": 5
+      },
+      "history": "A",
+      "instruction": "SS-prefixed REP OUTSB; successor POP AW",
+      "observed": {
+        "action": "MEMR",
+        "t1_from_selected_t4": 6
+      },
+      "pops": 1,
+      "wait": 15
+    },
+    {
+      "clock_mhz": 4,
+      "expected": {
+        "action": "CODE",
+        "t1_from_selected_t4": 5
+      },
+      "history": "A",
+      "instruction": "SS-prefixed REP OUTSB; successor POP AW",
+      "observed": {
+        "action": "MEMR",
+        "t1_from_selected_t4": 6
+      },
+      "pops": 1,
+      "wait": 15
+    },
+    {
+      "clock_mhz": 4,
+      "expected": {
+        "action": "CODE",
+        "t1_from_selected_t4": 5
+      },
+      "history": "A",
+      "instruction": "SS-prefixed REP OUTSB; successor POP AW",
+      "observed": {
+        "action": "MEMR",
+        "t1_from_selected_t4": 6
+      },
+      "pops": 1,
+      "wait": 15
+    },
+    {
+      "clock_mhz": 4,
+      "expected": {
+        "action": "CODE",
+        "t1_from_selected_t4": 5
+      },
+      "history": "A",
+      "instruction": "SS-prefixed REP OUTSB; successor POP AW",
+      "observed": {
+        "action": "MEMR",
+        "t1_from_selected_t4": 6
+      },
+      "pops": 1,
+      "wait": 15
+    },
+    {
+      "clock_mhz": 4,
+      "expected": {
+        "action": "CODE",
+        "t1_from_selected_t4": 5
+      },
+      "history": "A",
+      "instruction": "SS-prefixed REP OUTSB; successor POP AW",
+      "observed": {
+        "action": "MEMR",
+        "t1_from_selected_t4": 6
+      },
+      "pops": 1,
+      "wait": 15
+    },
+    {
+      "clock_mhz": 8,
+      "expected": {
+        "action": "CODE",
+        "t1_from_selected_t4": 5
+      },
+      "history": "B",
+      "instruction": "SS-prefixed REP OUTSB; successor POP AW",
+      "observed": {
+        "action": "MEMR",
+        "t1_from_selected_t4": 6
+      },
+      "pops": 1,
+      "wait": 15
+    },
+    {
+      "clock_mhz": 8,
+      "expected": {
+        "action": "CODE",
+        "t1_from_selected_t4": 5
+      },
+      "history": "B",
+      "instruction": "SS-prefixed REP OUTSB; successor POP AW",
+      "observed": {
+        "action": "MEMR",
+        "t1_from_selected_t4": 6
+      },
+      "pops": 1,
+      "wait": 15
+    },
+    {
+      "clock_mhz": 8,
+      "expected": {
+        "action": "CODE",
+        "t1_from_selected_t4": 5
+      },
+      "history": "B",
+      "instruction": "SS-prefixed REP OUTSB; successor POP AW",
+      "observed": {
+        "action": "MEMR",
+        "t1_from_selected_t4": 6
+      },
+      "pops": 1,
+      "wait": 15
+    },
+    {
+      "clock_mhz": 8,
+      "expected": {
+        "action": "CODE",
+        "t1_from_selected_t4": 5
+      },
+      "history": "B",
+      "instruction": "SS-prefixed REP OUTSB; successor POP AW",
+      "observed": {
+        "action": "MEMR",
+        "t1_from_selected_t4": 6
+      },
+      "pops": 1,
+      "wait": 15
+    },
+    {
+      "clock_mhz": 8,
+      "expected": {
+        "action": "CODE",
+        "t1_from_selected_t4": 5
+      },
+      "history": "B",
+      "instruction": "SS-prefixed REP OUTSB; successor POP AW",
+      "observed": {
+        "action": "MEMR",
+        "t1_from_selected_t4": 6
+      },
+      "pops": 1,
+      "wait": 15
+    },
+    {
+      "clock_mhz": 4,
+      "expected": {
+        "action": "CODE",
+        "t1_from_selected_t4": 5
+      },
+      "history": "B",
+      "instruction": "SS-prefixed REP OUTSB; successor POP AW",
+      "observed": {
+        "action": "MEMR",
+        "t1_from_selected_t4": 6
+      },
+      "pops": 1,
+      "wait": 15
+    },
+    {
+      "clock_mhz": 4,
+      "expected": {
+        "action": "CODE",
+        "t1_from_selected_t4": 5
+      },
+      "history": "B",
+      "instruction": "SS-prefixed REP OUTSB; successor POP AW",
+      "observed": {
+        "action": "MEMR",
+        "t1_from_selected_t4": 6
+      },
+      "pops": 1,
+      "wait": 15
+    },
+    {
+      "clock_mhz": 4,
+      "expected": {
+        "action": "CODE",
+        "t1_from_selected_t4": 5
+      },
+      "history": "B",
+      "instruction": "SS-prefixed REP OUTSB; successor POP AW",
+      "observed": {
+        "action": "MEMR",
+        "t1_from_selected_t4": 6
+      },
+      "pops": 1,
+      "wait": 15
+    },
+    {
+      "clock_mhz": 4,
+      "expected": {
+        "action": "CODE",
+        "t1_from_selected_t4": 5
+      },
+      "history": "B",
+      "instruction": "SS-prefixed REP OUTSB; successor POP AW",
+      "observed": {
+        "action": "MEMR",
+        "t1_from_selected_t4": 6
+      },
+      "pops": 1,
+      "wait": 15
+    },
+    {
+      "clock_mhz": 4,
+      "expected": {
+        "action": "CODE",
+        "t1_from_selected_t4": 5
+      },
+      "history": "B",
+      "instruction": "SS-prefixed REP OUTSB; successor POP AW",
+      "observed": {
+        "action": "MEMR",
+        "t1_from_selected_t4": 6
+      },
+      "pops": 1,
+      "wait": 15
+    }
+  ],
+  "records_checked": 180,
+  "schema": "v30-biu-strio-completion-validation-v2"
+}

@@ -1,0 +1,9 @@
+strict-soup w0 N=300 (1 assert-park skipped):
+  done: OFF 213 ON 213  (done-changed 0 MUST~0)
+  halt: OFF 246 ON 246
+  out-of-image escape FETCHES: OFF 6067 ON 6067 ; SEEDS-with-escape OFF 24 ON 24
+strict-soup wrand-w2 N=150 (1 assert-park skipped):
+  done: OFF 103 ON 103  (done-changed 0 MUST~0)
+  halt: OFF 121 ON 121
+  out-of-image escape FETCHES: OFF 3854 ON 3854 ; SEEDS-with-escape OFF 13 ON 13
+PILOT32_DONE_MARKER

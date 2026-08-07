@@ -1,0 +1,63 @@
+{
+  "acceptance": {
+    "action_mismatches": 0,
+    "address_width_mismatches": 0,
+    "qs_mismatches": 0,
+    "t1_mismatches": 0,
+    "unseen_keys": 0
+  },
+  "allowed_roles": [
+    "disp8",
+    "modrm"
+  ],
+  "causal_variable": "consumer_byte_role",
+  "common_key": [
+    2,
+    0,
+    "IDLE",
+    0,
+    "read",
+    "CODE",
+    -3,
+    "S",
+    0,
+    3
+  ],
+  "forbidden_variables": [
+    "form",
+    "padding",
+    "seed",
+    "structural_ordinal",
+    "preparation_history",
+    "exact_history_fingerprint"
+  ],
+  "frozen_v1_sha256": {
+    "sw/testdata/biu_blackbox/chip-oracle-v1.json": "23c0313ddf67510b12b0de1b513ef6e9f6a3fec9482b61b90110a98c0f3fc9be",
+    "sw/testdata/biu_blackbox/chip-oracle-v1.validation.json": "cdc551359d4aa4ad0222be754aa7bd883e9420409d86c66b2dde92a9ad70449d"
+  },
+  "predictions": {
+    "disp8": [
+      "MEMR",
+      3,
+      [
+        "absolute",
+        8192
+      ],
+      16,
+      []
+    ],
+    "modrm": [
+      "CODE",
+      2,
+      [
+        "selected_delta",
+        2
+      ],
+      16,
+      []
+    ]
+  },
+  "schema": "v30-biu-case2-micro-oracle-v1",
+  "status": "FROZEN_BEFORE_FRESH_FACTORIAL_CAPTURE",
+  "target": "oracle mismatch ledger cell 2"
+}

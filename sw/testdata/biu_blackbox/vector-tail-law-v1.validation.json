@@ -1,0 +1,16 @@
+{
+  "counts": {
+    "matches": 2240,
+    "mismatches": 0,
+    "records": 2240,
+    "skipped_non_vector_tail": 576
+  },
+  "details": [],
+  "gate": "PASS",
+  "oracle": "sw/testdata/biu_blackbox/vector-tail-law-v1.json",
+  "oracle_sha256": "22636919c42c8a88a30cf042cd6b6de7489e54a97e6e5ca22fb39c152d1c1e46",
+  "schema": "v30-biu-vector-tail-law-v1-validation",
+  "source": "sw/testdata/biu_blackbox/nmi-wait-discovery-20260729/summary.json",
+  "source_sha256": "cc6408b3040161c7f2d2b36c4c1048cd71242d4af6c06cc6edb86aaf18f77d3f",
+  "status": "PROSPECTIVE_CROSS_FAMILY_NMI_VALIDATION"
+}

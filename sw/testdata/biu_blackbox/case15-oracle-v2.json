@@ -1,0 +1,202 @@
+{
+  "case15_table": {
+    "A_read_w0/w0": {
+      "action": "CODE",
+      "address": 1454,
+      "t1_from_selected_t4": 4
+    },
+    "A_read_w0/w1": {
+      "action": "CODE",
+      "address": 1454,
+      "t1_from_selected_t4": 4
+    },
+    "A_read_w0/w2": {
+      "action": "CODE",
+      "address": 1454,
+      "t1_from_selected_t4": 4
+    },
+    "A_read_w0/w3": {
+      "action": "CODE",
+      "address": 1454,
+      "t1_from_selected_t4": 4
+    },
+    "A_read_w0/w4": {
+      "action": "CODE",
+      "address": 1454,
+      "t1_from_selected_t4": 4
+    },
+    "A_read_w0/w5": {
+      "action": "CODE",
+      "address": 1454,
+      "t1_from_selected_t4": 4
+    },
+    "A_read_w0/w6": {
+      "action": "CODE",
+      "address": 1454,
+      "t1_from_selected_t4": 4
+    },
+    "A_read_w0/w7": {
+      "action": "CODE",
+      "address": 1454,
+      "t1_from_selected_t4": 4
+    },
+    "B_read_w1/w0": {
+      "action": "CODE",
+      "address": 1454,
+      "t1_from_selected_t4": 1
+    },
+    "B_read_w1/w1": {
+      "action": "CODE",
+      "address": 1454,
+      "t1_from_selected_t4": 2
+    },
+    "B_read_w1/w2": {
+      "action": "CODE",
+      "address": 1454,
+      "t1_from_selected_t4": 2
+    },
+    "B_read_w1/w3": {
+      "action": "CODE",
+      "address": 1454,
+      "t1_from_selected_t4": 2
+    },
+    "B_read_w1/w4": {
+      "action": "CODE",
+      "address": 1454,
+      "t1_from_selected_t4": 2
+    },
+    "B_read_w1/w5": {
+      "action": "CODE",
+      "address": 1454,
+      "t1_from_selected_t4": 2
+    },
+    "B_read_w1/w6": {
+      "action": "CODE",
+      "address": 1454,
+      "t1_from_selected_t4": 2
+    },
+    "B_read_w1/w7": {
+      "action": "CODE",
+      "address": 1454,
+      "t1_from_selected_t4": 2
+    }
+  },
+  "consumer_control_table": {
+    "A/w0": {
+      "action": "CODE",
+      "address": 1436,
+      "t1_from_selected_t4": 4
+    },
+    "A/w1": {
+      "action": "CODE",
+      "address": 1436,
+      "t1_from_selected_t4": 5
+    },
+    "A/w2": {
+      "action": "CODE",
+      "address": 1436,
+      "t1_from_selected_t4": 5
+    },
+    "A/w3": {
+      "action": "CODE",
+      "address": 1436,
+      "t1_from_selected_t4": 5
+    },
+    "A/w4": {
+      "action": "CODE",
+      "address": 1436,
+      "t1_from_selected_t4": 4
+    },
+    "A/w5": {
+      "action": "CODE",
+      "address": 1436,
+      "t1_from_selected_t4": 4
+    },
+    "A/w6": {
+      "action": "CODE",
+      "address": 1436,
+      "t1_from_selected_t4": 4
+    },
+    "A/w7": {
+      "action": "CODE",
+      "address": 1436,
+      "t1_from_selected_t4": 4
+    },
+    "B/w0": {
+      "action": "CODE",
+      "address": 1436,
+      "t1_from_selected_t4": 4
+    },
+    "B/w1": {
+      "action": "CODE",
+      "address": 1436,
+      "t1_from_selected_t4": 5
+    },
+    "B/w2": {
+      "action": "CODE",
+      "address": 1436,
+      "t1_from_selected_t4": 5
+    },
+    "B/w3": {
+      "action": "CODE",
+      "address": 1436,
+      "t1_from_selected_t4": 5
+    },
+    "B/w4": {
+      "action": "CODE",
+      "address": 1436,
+      "t1_from_selected_t4": 4
+    },
+    "B/w5": {
+      "action": "CODE",
+      "address": 1436,
+      "t1_from_selected_t4": 4
+    },
+    "B/w6": {
+      "action": "CODE",
+      "address": 1436,
+      "t1_from_selected_t4": 4
+    },
+    "B/w7": {
+      "action": "CODE",
+      "address": 1436,
+      "t1_from_selected_t4": 4
+    }
+  },
+  "controls": {
+    "case15_repetitions": 5,
+    "clock_mhz": [
+      8,
+      4
+    ],
+    "consumer_control_repetitions": 5,
+    "histories_per_family": 2
+  },
+  "externally_reconstructable_qualifiers": [
+    "final REP MOVS MEMR Tw class",
+    "final REP MOVS MEMW completion",
+    "first post-store CODE launch",
+    "ordered QS consumption position",
+    "queue depth"
+  ],
+  "forbidden_variables": [
+    "program seed",
+    "absolute bus ordinal",
+    "opcode exception",
+    "complete preparation-history fingerprint"
+  ],
+  "held_out_prediction": "fz47 has the same waited final MOVS-read history but its first CODE launch occurs after the consumer has advanced; it retains the ordinary gap table and must not take the boost",
+  "schema": "v30-biu-case15-oracle-v2",
+  "sources": [
+    {
+      "path": "sw/testdata/biu_blackbox/case15-rep-read-history-chip-v2/summary.json",
+      "sha256": "b125d88625f2be43438341379a844f22701b9d4edcade2a82f44bfa889978377"
+    },
+    {
+      "path": "sw/testdata/biu_blackbox/case15-consumer-control-chip-v2/summary.json",
+      "sha256": "230cc0d104185dbd61ef91ad0399433da152da3630f8b9926e0be02e8e894c0e"
+    }
+  ],
+  "state_rule": "retain whether the most recent read of a classic REP MOVS was waited through its final store. The retained bit raises the first post-store CODE fetch refill threshold only when that CODE launch still coincides with the string execution/retirement consumer position. Once the EU has advanced to the following instruction, the retained read history does not grant the boost",
+  "status": "FROZEN_BEFORE_FINAL_RTL_VALIDATION"
+}

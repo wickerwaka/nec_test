@@ -1,0 +1,9 @@
+H=B w= 0 chip(T4=318 next=323 cidle=4 q=4/3 pops=1) rtl(T4=318 next=323 cidle=4 q=4/3 pops=1) delta=+0
+H=B w= 1 chip(T4=319 next=324 cidle=4 q=4/3 pops=1) rtl(T4=319 next=324 cidle=4 q=4/3 pops=1) delta=+0
+H=B w= 2 chip(T4=320 next=325 cidle=4 q=4/2 pops=1) rtl(T4=320 next=325 cidle=4 q=4/2 pops=1) delta=+0
+H=B w= 3 chip(T4=321 next=326 cidle=4 q=4/1 pops=2) rtl(T4=321 next=326 cidle=4 q=4/1 pops=2) delta=+0
+H=B w= 4 chip(T4=322 next=326 cidle=3 q=4/1 pops=2) rtl(T4=322 next=326 cidle=3 q=4/1 pops=2) delta=+0
+H=B w= 5 chip(T4=323 next=327 cidle=3 q=4/1 pops=2) rtl(T4=323 next=327 cidle=3 q=4/1 pops=2) delta=+0
+H=B w= 6 chip(T4=324 next=328 cidle=3 q=4/1 pops=2) rtl(T4=324 next=328 cidle=3 q=4/1 pops=2) delta=+0
+H=B w= 7 chip(T4=325 next=329 cidle=3 q=4/1 pops=2) rtl(T4=325 next=329 cidle=3 q=4/1 pops=2) delta=+0
+H=B w=15 chip(T4=333 next=337 cidle=3 q=4/1 pops=2) rtl(T4=333 next=337 cidle=3 q=4/1 pops=2) delta=+0

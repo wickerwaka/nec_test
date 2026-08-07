@@ -1,0 +1,14 @@
+{
+  "counts": {
+    "matches": 1224,
+    "records": 1224
+  },
+  "details": [],
+  "gate": "PASS",
+  "heldout": "sw/testdata/biu_blackbox/stack-flush-oracle-v1-heldout-20260729/summary.json",
+  "heldout_sha256": "0a7fe95252c8a7dd9c980b00b8be756bac1dc47342eb8f5535c909af415fbad4",
+  "oracle": "sw/testdata/biu_blackbox/stack-flush-oracle-v1.json",
+  "oracle_sha256": "4b4d0b9e43c35ec7ee436ce38df1b0cd1c833b3ae438ba8a3bf171ae09ed067a",
+  "schema": "v30-biu-stack-flush-oracle-v1-validation",
+  "status": "PROSPECTIVE_FRESH_TARGET_STACK_AND_IMMEDIATE_HELDOUT"
+}

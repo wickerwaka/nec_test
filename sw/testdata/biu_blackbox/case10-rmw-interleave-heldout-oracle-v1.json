@@ -1,0 +1,476 @@
+{
+  "prediction": "Immediate-shift RMW forms share the post-read-immediate DHI yield rule fitted on held-in ALU-immediate forms.",
+  "schema": "v30-biu-case10-rmw-heldout-oracle-v1",
+  "source_summary_sha256": "0dd12a4336e8bee5c0d9902a498371c649081b0e7b23dde9d24865b22a2722db",
+  "status": "FROZEN_FROM_PRE_RTL_PILOT",
+  "table": {
+    "rol_b.w0": {
+      "actions": [
+        4,
+        5,
+        4,
+        6
+      ],
+      "events": {
+        "code_51e": {
+          "order": 0,
+          "t1_from_anchor_t4": 1
+        },
+        "code_520": {
+          "order": 2,
+          "t1_from_anchor_t4": 13
+        },
+        "memr": {
+          "order": 1,
+          "t1_from_anchor_t4": 7
+        },
+        "memw": {
+          "order": 3,
+          "t1_from_anchor_t4": 24
+        }
+      }
+    },
+    "rol_b.w1": {
+      "actions": [
+        4,
+        5,
+        4,
+        6
+      ],
+      "events": {
+        "code_51e": {
+          "order": 0,
+          "t1_from_anchor_t4": 2
+        },
+        "code_520": {
+          "order": 2,
+          "t1_from_anchor_t4": 14
+        },
+        "memr": {
+          "order": 1,
+          "t1_from_anchor_t4": 8
+        },
+        "memw": {
+          "order": 3,
+          "t1_from_anchor_t4": 25
+        }
+      }
+    },
+    "rol_b.w15": {
+      "actions": [
+        5,
+        4,
+        4,
+        6
+      ],
+      "events": {
+        "code_51e": {
+          "order": 1,
+          "t1_from_anchor_t4": 8
+        },
+        "code_520": {
+          "order": 2,
+          "t1_from_anchor_t4": 14
+        },
+        "memr": {
+          "order": 0,
+          "t1_from_anchor_t4": 2
+        },
+        "memw": {
+          "order": 3,
+          "t1_from_anchor_t4": 20
+        }
+      }
+    },
+    "rol_b.w2": {
+      "actions": [
+        5,
+        4,
+        4,
+        6
+      ],
+      "events": {
+        "code_51e": {
+          "order": 1,
+          "t1_from_anchor_t4": 10
+        },
+        "code_520": {
+          "order": 2,
+          "t1_from_anchor_t4": 16
+        },
+        "memr": {
+          "order": 0,
+          "t1_from_anchor_t4": 4
+        },
+        "memw": {
+          "order": 3,
+          "t1_from_anchor_t4": 22
+        }
+      }
+    },
+    "rol_b.w3": {
+      "actions": [
+        5,
+        4,
+        4,
+        6
+      ],
+      "events": {
+        "code_51e": {
+          "order": 1,
+          "t1_from_anchor_t4": 8
+        },
+        "code_520": {
+          "order": 2,
+          "t1_from_anchor_t4": 14
+        },
+        "memr": {
+          "order": 0,
+          "t1_from_anchor_t4": 2
+        },
+        "memw": {
+          "order": 3,
+          "t1_from_anchor_t4": 20
+        }
+      }
+    },
+    "rol_b.w4": {
+      "actions": [
+        5,
+        4,
+        4,
+        6
+      ],
+      "events": {
+        "code_51e": {
+          "order": 1,
+          "t1_from_anchor_t4": 8
+        },
+        "code_520": {
+          "order": 2,
+          "t1_from_anchor_t4": 14
+        },
+        "memr": {
+          "order": 0,
+          "t1_from_anchor_t4": 2
+        },
+        "memw": {
+          "order": 3,
+          "t1_from_anchor_t4": 20
+        }
+      }
+    },
+    "rol_b.w5": {
+      "actions": [
+        5,
+        4,
+        4,
+        6
+      ],
+      "events": {
+        "code_51e": {
+          "order": 1,
+          "t1_from_anchor_t4": 8
+        },
+        "code_520": {
+          "order": 2,
+          "t1_from_anchor_t4": 14
+        },
+        "memr": {
+          "order": 0,
+          "t1_from_anchor_t4": 2
+        },
+        "memw": {
+          "order": 3,
+          "t1_from_anchor_t4": 20
+        }
+      }
+    },
+    "rol_b.w6": {
+      "actions": [
+        5,
+        4,
+        4,
+        6
+      ],
+      "events": {
+        "code_51e": {
+          "order": 1,
+          "t1_from_anchor_t4": 8
+        },
+        "code_520": {
+          "order": 2,
+          "t1_from_anchor_t4": 14
+        },
+        "memr": {
+          "order": 0,
+          "t1_from_anchor_t4": 2
+        },
+        "memw": {
+          "order": 3,
+          "t1_from_anchor_t4": 20
+        }
+      }
+    },
+    "rol_b.w7": {
+      "actions": [
+        5,
+        4,
+        4,
+        6
+      ],
+      "events": {
+        "code_51e": {
+          "order": 1,
+          "t1_from_anchor_t4": 8
+        },
+        "code_520": {
+          "order": 2,
+          "t1_from_anchor_t4": 14
+        },
+        "memr": {
+          "order": 0,
+          "t1_from_anchor_t4": 2
+        },
+        "memw": {
+          "order": 3,
+          "t1_from_anchor_t4": 20
+        }
+      }
+    },
+    "shl_b.w0": {
+      "actions": [
+        4,
+        5,
+        4,
+        6
+      ],
+      "events": {
+        "code_51e": {
+          "order": 0,
+          "t1_from_anchor_t4": 1
+        },
+        "code_520": {
+          "order": 2,
+          "t1_from_anchor_t4": 13
+        },
+        "memr": {
+          "order": 1,
+          "t1_from_anchor_t4": 7
+        },
+        "memw": {
+          "order": 3,
+          "t1_from_anchor_t4": 24
+        }
+      }
+    },
+    "shl_b.w1": {
+      "actions": [
+        4,
+        5,
+        4,
+        6
+      ],
+      "events": {
+        "code_51e": {
+          "order": 0,
+          "t1_from_anchor_t4": 2
+        },
+        "code_520": {
+          "order": 2,
+          "t1_from_anchor_t4": 14
+        },
+        "memr": {
+          "order": 1,
+          "t1_from_anchor_t4": 8
+        },
+        "memw": {
+          "order": 3,
+          "t1_from_anchor_t4": 25
+        }
+      }
+    },
+    "shl_b.w15": {
+      "actions": [
+        5,
+        4,
+        4,
+        6
+      ],
+      "events": {
+        "code_51e": {
+          "order": 1,
+          "t1_from_anchor_t4": 8
+        },
+        "code_520": {
+          "order": 2,
+          "t1_from_anchor_t4": 14
+        },
+        "memr": {
+          "order": 0,
+          "t1_from_anchor_t4": 2
+        },
+        "memw": {
+          "order": 3,
+          "t1_from_anchor_t4": 20
+        }
+      }
+    },
+    "shl_b.w2": {
+      "actions": [
+        5,
+        4,
+        4,
+        6
+      ],
+      "events": {
+        "code_51e": {
+          "order": 1,
+          "t1_from_anchor_t4": 10
+        },
+        "code_520": {
+          "order": 2,
+          "t1_from_anchor_t4": 16
+        },
+        "memr": {
+          "order": 0,
+          "t1_from_anchor_t4": 4
+        },
+        "memw": {
+          "order": 3,
+          "t1_from_anchor_t4": 22
+        }
+      }
+    },
+    "shl_b.w3": {
+      "actions": [
+        5,
+        4,
+        4,
+        6
+      ],
+      "events": {
+        "code_51e": {
+          "order": 1,
+          "t1_from_anchor_t4": 8
+        },
+        "code_520": {
+          "order": 2,
+          "t1_from_anchor_t4": 14
+        },
+        "memr": {
+          "order": 0,
+          "t1_from_anchor_t4": 2
+        },
+        "memw": {
+          "order": 3,
+          "t1_from_anchor_t4": 20
+        }
+      }
+    },
+    "shl_b.w4": {
+      "actions": [
+        5,
+        4,
+        4,
+        6
+      ],
+      "events": {
+        "code_51e": {
+          "order": 1,
+          "t1_from_anchor_t4": 8
+        },
+        "code_520": {
+          "order": 2,
+          "t1_from_anchor_t4": 14
+        },
+        "memr": {
+          "order": 0,
+          "t1_from_anchor_t4": 2
+        },
+        "memw": {
+          "order": 3,
+          "t1_from_anchor_t4": 20
+        }
+      }
+    },
+    "shl_b.w5": {
+      "actions": [
+        5,
+        4,
+        4,
+        6
+      ],
+      "events": {
+        "code_51e": {
+          "order": 1,
+          "t1_from_anchor_t4": 8
+        },
+        "code_520": {
+          "order": 2,
+          "t1_from_anchor_t4": 14
+        },
+        "memr": {
+          "order": 0,
+          "t1_from_anchor_t4": 2
+        },
+        "memw": {
+          "order": 3,
+          "t1_from_anchor_t4": 20
+        }
+      }
+    },
+    "shl_b.w6": {
+      "actions": [
+        5,
+        4,
+        4,
+        6
+      ],
+      "events": {
+        "code_51e": {
+          "order": 1,
+          "t1_from_anchor_t4": 8
+        },
+        "code_520": {
+          "order": 2,
+          "t1_from_anchor_t4": 14
+        },
+        "memr": {
+          "order": 0,
+          "t1_from_anchor_t4": 2
+        },
+        "memw": {
+          "order": 3,
+          "t1_from_anchor_t4": 20
+        }
+      }
+    },
+    "shl_b.w7": {
+      "actions": [
+        5,
+        4,
+        4,
+        6
+      ],
+      "events": {
+        "code_51e": {
+          "order": 1,
+          "t1_from_anchor_t4": 8
+        },
+        "code_520": {
+          "order": 2,
+          "t1_from_anchor_t4": 14
+        },
+        "memr": {
+          "order": 0,
+          "t1_from_anchor_t4": 2
+        },
+        "memw": {
+          "order": 3,
+          "t1_from_anchor_t4": 20
+        }
+      }
+    }
+  }
+}

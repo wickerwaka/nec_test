@@ -1,0 +1,11 @@
+    row 492: ps 2!=6
+    row 757: bs CODE!=PASV, nxta 0558!=8e62
+    row 758: bs CODE!=PASV, t T1!=Ti, ube 0!=1, addr 00558!=38e62
+    row 759: bs CODE!=PASV, t T2!=Ti, ube 0!=1, data 068f!=8e62, ps 2!=3
+    row 760: bs PASV!=MEMR, t T3!=Ti, ube 0!=1, data 068f!=2ac5
+    row 761: t T4!=T1
+    row 762: t T1!=T2, addr 02ac5!=0d91d
+    row 763: bs MEMR!=PASV, t T2!=T3
+    row 764: t T3!=T4
+    row 765: t T4!=Ti
+seed fz1068: 60 ins, 1401 rows compared -> DIVERGE@492 (619 rows)

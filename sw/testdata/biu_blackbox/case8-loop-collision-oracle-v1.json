@@ -1,0 +1,122 @@
+{
+  "controls": {
+    "clock_mhz": [
+      4,
+      8
+    ],
+    "histories": [
+      "A",
+      "B"
+    ],
+    "opcodes": [
+      226,
+      227
+    ],
+    "repetitions": 5,
+    "waits": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      15
+    ]
+  },
+  "forbidden_variables": [
+    "program seed",
+    "absolute ordinal",
+    "preparation-history fingerprint"
+  ],
+  "schema": "v30-biu-case8-loop-collision-oracle-v1",
+  "scope": "taken E2/E3 resolution versus one selected CODE wait",
+  "source": "sw/testdata/biu_blackbox/case8-loop-collision-chip-v1/summary.json",
+  "source_sha256": "26e146cb26f3c27a46a55e46185d952d7c3a513a0eeed9fcdc0a1991025353d3",
+  "state_rule": "taken E2 and E3 share one externally visible resolution schedule; the selected wait moves a single doomed CODE opportunity across the final three-clock hard-reservation boundary",
+  "status": "FROZEN_BEFORE_RTL",
+  "table": {
+    "w0": {
+      "doomed_532_before_e": 1,
+      "preflush_address": 1330,
+      "preflush_status": 4,
+      "preflush_t4_to_e": 1,
+      "redirect_t1_from_e": 1,
+      "selected_tw": 0,
+      "taken": true
+    },
+    "w1": {
+      "doomed_532_before_e": 1,
+      "preflush_address": 1330,
+      "preflush_status": 4,
+      "preflush_t4_to_e": 1,
+      "redirect_t1_from_e": 1,
+      "selected_tw": 1,
+      "taken": true
+    },
+    "w15": {
+      "doomed_532_before_e": 0,
+      "preflush_address": 1328,
+      "preflush_status": 4,
+      "preflush_t4_to_e": 1,
+      "redirect_t1_from_e": 1,
+      "selected_tw": 15,
+      "taken": true
+    },
+    "w2": {
+      "doomed_532_before_e": 0,
+      "preflush_address": 1328,
+      "preflush_status": 4,
+      "preflush_t4_to_e": 3,
+      "redirect_t1_from_e": 2,
+      "selected_tw": 2,
+      "taken": true
+    },
+    "w3": {
+      "doomed_532_before_e": 0,
+      "preflush_address": 1328,
+      "preflush_status": 4,
+      "preflush_t4_to_e": 3,
+      "redirect_t1_from_e": 1,
+      "selected_tw": 3,
+      "taken": true
+    },
+    "w4": {
+      "doomed_532_before_e": 0,
+      "preflush_address": 1328,
+      "preflush_status": 4,
+      "preflush_t4_to_e": 2,
+      "redirect_t1_from_e": 1,
+      "selected_tw": 4,
+      "taken": true
+    },
+    "w5": {
+      "doomed_532_before_e": 0,
+      "preflush_address": 1328,
+      "preflush_status": 4,
+      "preflush_t4_to_e": 1,
+      "redirect_t1_from_e": 1,
+      "selected_tw": 5,
+      "taken": true
+    },
+    "w6": {
+      "doomed_532_before_e": 0,
+      "preflush_address": 1328,
+      "preflush_status": 4,
+      "preflush_t4_to_e": 1,
+      "redirect_t1_from_e": 1,
+      "selected_tw": 6,
+      "taken": true
+    },
+    "w7": {
+      "doomed_532_before_e": 0,
+      "preflush_address": 1328,
+      "preflush_status": 4,
+      "preflush_t4_to_e": 1,
+      "redirect_t1_from_e": 1,
+      "selected_tw": 7,
+      "taken": true
+    }
+  }
+}

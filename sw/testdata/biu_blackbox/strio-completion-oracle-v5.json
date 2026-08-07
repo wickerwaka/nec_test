@@ -1,0 +1,50 @@
+{
+  "frozen_from": [
+    "strio-completion-oracle-v4",
+    "case35-rep-successor-rmw-factorial-pilot"
+  ],
+  "rules": {
+    "0:none:none": {
+      "next_action": "CODE",
+      "positive_wait_gap": 2,
+      "zero_wait_gap": 1
+    },
+    "1:none:none": {
+      "next_action": "CODE",
+      "positive_wait_gap": 5,
+      "zero_wait_gap": 4
+    },
+    "1:read:immature": {
+      "next_action": "CODE",
+      "positive_wait_gap": 5,
+      "zero_wait_gap": 4
+    },
+    "1:read:mature": {
+      "next_action": "MEMR",
+      "positive_wait_gap": 6,
+      "zero_wait_gap": 5
+    },
+    "1:write:immature": {
+      "next_action": "CODE",
+      "positive_wait_gap": 5,
+      "zero_wait_gap": 4
+    },
+    "1:write:mature": {
+      "next_action": "MEMW",
+      "positive_wait_gap": 7,
+      "zero_wait_gap": 6
+    },
+    "1:rmw:immature": {
+      "next_action": "CODE",
+      "positive_wait_gap": 5,
+      "zero_wait_gap": 4
+    }
+  },
+  "schema": "v30-biu-strio-completion-oracle-v5",
+  "state_inputs": [
+    "QS pop count during completing transfer",
+    "successor request class",
+    "successor request maturity",
+    "selected wait is zero"
+  ]
+}

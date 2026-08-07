@@ -1,0 +1,18 @@
+effective 0xbcf9
+484 C t=0 bs_early=4 qs=0 ube_n=0 ad_addr=457441 ad_data=1332 ps=0 | R t=0 bs_early=4 qs=0 ube_n=0 ad_addr=1332 ad_data=1332 ps=0
+485 C t=1 bs_early=4 qs=0 ube_n=0 ad_addr=1332 ad_data=1332 ps=6 | R t=1 bs_early=4 qs=0 ube_n=0 ad_addr=1332 ad_data=1332 ps=0
+486 C t=2 bs_early=4 qs=3 ube_n=0 ad_addr=405238 ad_data=12022 ps=6 | R t=2 bs_early=4 qs=3 ube_n=0 ad_addr=405238 ad_data=12022 ps=6
+487 C t=3 bs_early=4 qs=0 ube_n=0 ad_addr=405238 ad_data=12022 ps=6 | R t=3 bs_early=4 qs=0 ube_n=0 ad_addr=405238 ad_data=12022 ps=6
+488 C t=4 bs_early=4 qs=0 ube_n=0 ad_addr=405238 ad_data=12022 ps=6 | R t=4 bs_early=4 qs=0 ube_n=0 ad_addr=405238 ad_data=12022 ps=6
+489 C t=5 bs_early=7 qs=0 ube_n=0 ad_addr=405238 ad_data=12022 ps=6 | R t=5 bs_early=7 qs=0 ube_n=0 ad_addr=405238 ad_data=12022 ps=6
+490 C t=0 bs_early=4 qs=0 ube_n=0 ad_addr=405238 ad_data=1334 ps=0 | R t=0 bs_early=4 qs=0 ube_n=0 ad_addr=1334 ad_data=1334 ps=0
+491 C t=1 bs_early=4 qs=1 ube_n=0 ad_addr=1334 ad_data=1334 ps=6 | R t=1 bs_early=4 qs=1 ube_n=0 ad_addr=1334 ad_data=1334 ps=0
+492 C t=2 bs_early=4 qs=0 ube_n=0 ad_addr=403391 ad_data=10175 ps=2 | R t=2 bs_early=4 qs=0 ube_n=0 ad_addr=403391 ad_data=10175 ps=6
+493 C t=3 bs_early=4 qs=1 ube_n=0 ad_addr=141247 ad_data=10175 ps=2 | R t=3 bs_early=4 qs=1 ube_n=0 ad_addr=141247 ad_data=10175 ps=2
+494 C t=4 bs_early=4 qs=3 ube_n=0 ad_addr=141247 ad_data=10175 ps=2 | R t=4 bs_early=4 qs=3 ube_n=0 ad_addr=141247 ad_data=10175 ps=2
+495 C t=4 bs_early=4 qs=0 ube_n=0 ad_addr=141247 ad_data=10175 ps=2 | R t=4 bs_early=4 qs=0 ube_n=0 ad_addr=141247 ad_data=10175 ps=2
+496 C t=5 bs_early=7 qs=0 ube_n=0 ad_addr=141247 ad_data=10175 ps=2 | R t=5 bs_early=7 qs=0 ube_n=0 ad_addr=141247 ad_data=10175 ps=2
+497 C t=0 bs_early=4 qs=0 ube_n=0 ad_addr=141247 ad_data=1336 ps=0 | R t=0 bs_early=4 qs=0 ube_n=0 ad_addr=1336 ad_data=1336 ps=0
+498 C t=1 bs_early=4 qs=0 ube_n=0 ad_addr=1336 ad_data=1336 ps=2 | R t=1 bs_early=4 qs=0 ube_n=0 ad_addr=1336 ad_data=1336 ps=0
+499 C t=2 bs_early=4 qs=3 ube_n=0 ad_addr=186392 ad_data=55320 ps=2 | R t=2 bs_early=4 qs=3 ube_n=0 ad_addr=186392 ad_data=55320 ps=2
+500 C t=3 bs_early=4 qs=0 ube_n=0 ad_addr=186392 ad_data=55320 ps=2 | R t=3 bs_early=4 qs=0 ube_n=0 ad_addr=186392 ad_data=55320 ps=2

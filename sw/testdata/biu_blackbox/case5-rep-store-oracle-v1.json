@@ -1,0 +1,60 @@
+{
+  "controlled_variable": "final write belongs to a REP classic string",
+  "factorial_controls": {
+    "clock_mhz": [
+      4,
+      8
+    ],
+    "histories": [
+      "A",
+      "B"
+    ],
+    "operations": [
+      "MOVS",
+      "STOS"
+    ],
+    "rep_counts": [
+      1,
+      2,
+      3
+    ],
+    "repetitions": 5,
+    "single_controls": [
+      "MOVSB",
+      "STOSB"
+    ],
+    "widths": [
+      8,
+      16
+    ]
+  },
+  "forbidden_variables": [
+    "program seed",
+    "absolute instruction ordinal",
+    "preparation-history fingerprint",
+    "RTL internal signal"
+  ],
+  "schema": "v30-biu-case5-rep-store-oracle-v1",
+  "scope": "first CODE decision after the final classic MOVS/STOS memory write in the certified all-w1 suffix state",
+  "source": "sw/testdata/biu_blackbox/case5-rep-store-chip-v1/summary.json",
+  "source_sha256": "759ccc9d1b7d5817f24fe73478a7ea660866f96071f25bfddaab883948a59d3e",
+  "status": "FROZEN_BEFORE_RTL",
+  "table": {
+    "rep": {
+      "gap_t4_to_t1": 4,
+      "intervening_qs": [
+        0,
+        1,
+        3,
+        3
+      ]
+    },
+    "single": {
+      "gap_t4_to_t1": 2,
+      "intervening_qs": [
+        0,
+        1
+      ]
+    }
+  }
+}

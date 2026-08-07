@@ -1,0 +1,17 @@
+{
+  "counts": {
+    "matches": 184,
+    "mismatches": 0,
+    "records": 184,
+    "unseen": 0
+  },
+  "details": [],
+  "gate": "PASS",
+  "heldout": "sw/testdata/biu_blackbox/producer-oracle-v1-heldout-20260729/summary.json",
+  "heldout_sha256": "941ad750cfd757acb1d55123af537c4aed55011e87ba8cbb653063e617a887de",
+  "oracle": "sw/testdata/biu_blackbox/producer-oracle-v1.json",
+  "oracle_sha256": "c6e85e4de50e142e0b05851c5116dd9f4fef7ce486b5ab15bd904f62534487bd",
+  "schema": "v30-biu-producer-oracle-v1-validation",
+  "status": "PROSPECTIVE_FRESH_PAD_HISTORY_FREQUENCY",
+  "validation_tail_margin": 8
+}

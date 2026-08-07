@@ -1,0 +1,14 @@
+{
+  "extra_cells": [],
+  "gate": "PASS",
+  "missing_cells": [],
+  "oracle_sha256": "80ed1f5544f2a5ad032d7e713c5940a6434a95aa36a6d1b8143cdff76ceb7bec",
+  "outcome_errors": [],
+  "owner_cells_expected": 12,
+  "owner_cells_observed": 12,
+  "pad_shift": 6,
+  "records": 216,
+  "schema": "v30-biu-case2-ea1-oracle-v1-validation",
+  "unexpected_control_errors": [],
+  "validation_sha256": "c28a467643da04684c128aa8c2c4151d6e06c794796bad4d97df6e8f1f26f5ea"
+}

@@ -1,0 +1,15 @@
+{
+  "bad": [],
+  "delta_counts": {
+    "0": 82
+  },
+  "gate": "PASS",
+  "matches": 50,
+  "mismatches": 0,
+  "records": 50,
+  "schema": "v30-case253-rtl-ins-deadline-v1",
+  "source_files": [
+    "sw/case249_smoke.json"
+  ],
+  "write_checks": 82
+}

@@ -1,0 +1,63 @@
+{
+  "rule": "At the waited S_MLO low-address-pop collision, q_cnt=1 yields to CODE and q_cnt=2 reserves MEMR. Width and address parity do not change the first decision.",
+  "schema": "v30-biu-case9-moffs-geometry-oracle-v1",
+  "source_summary_sha256": {
+    "1": "bb4190ab693be9ee67a2803718405067b5b6c5818b4e43413e83ab407bd480db",
+    "2": "6850ab13fe1146c63848708afd51d338406f7c93dc2cf821bd5ada4d7a03f5f0"
+  },
+  "status": "FROZEN_BEFORE_RTL",
+  "table": {
+    "q1": {
+      "opa0.par0": {
+        "code_before_eu": true,
+        "code_t1_from_anchor_t4": 2,
+        "eu_t1_from_anchor_t4": 8,
+        "first_action": 4
+      },
+      "opa0.par1": {
+        "code_before_eu": true,
+        "code_t1_from_anchor_t4": 2,
+        "eu_t1_from_anchor_t4": 8,
+        "first_action": 4
+      },
+      "opa1.par0": {
+        "code_before_eu": true,
+        "code_t1_from_anchor_t4": 2,
+        "eu_t1_from_anchor_t4": 8,
+        "first_action": 4
+      },
+      "opa1.par1": {
+        "code_before_eu": true,
+        "code_t1_from_anchor_t4": 2,
+        "eu_t1_from_anchor_t4": 8,
+        "first_action": 4
+      }
+    },
+    "q2": {
+      "opa0.par0": {
+        "code_before_eu": false,
+        "code_t1_from_anchor_t4": 11,
+        "eu_t1_from_anchor_t4": 5,
+        "first_action": 5
+      },
+      "opa0.par1": {
+        "code_before_eu": false,
+        "code_t1_from_anchor_t4": 11,
+        "eu_t1_from_anchor_t4": 5,
+        "first_action": 5
+      },
+      "opa1.par0": {
+        "code_before_eu": false,
+        "code_t1_from_anchor_t4": 11,
+        "eu_t1_from_anchor_t4": 5,
+        "first_action": 5
+      },
+      "opa1.par1": {
+        "code_before_eu": false,
+        "code_t1_from_anchor_t4": 17,
+        "eu_t1_from_anchor_t4": 5,
+        "first_action": 5
+      }
+    }
+  }
+}

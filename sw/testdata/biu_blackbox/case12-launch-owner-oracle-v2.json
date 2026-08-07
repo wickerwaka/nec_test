@@ -1,0 +1,61 @@
+{
+  "schema": "v30-biu-case12-launch-owner-oracle-v2",
+  "frozen": true,
+  "supersedes": "v30-biu-case12-launch-class-oracle-v1",
+  "source_summary_sha256": {
+    "case12-launch-class-chip-v1": "09aa22263993067aa6fa89d28c932f411c25ebfac545c8a1f3ce4edbedee11b9",
+    "case12-preex-wait-chip-v1": "6a4c886fb9275ff9727d48b7cecd5361f3e16b476d54316953395154da577d48"
+  },
+  "challenge": {
+    "instruction_class": "no-immediate direct-address RMW",
+    "event": "S_DHI final displacement pop at q1 coincident with selected CODE completion",
+    "selected_fetch_width": 2
+  },
+  "state": {
+    "name": "selected_fetch_dhi_owner",
+    "reset_at": "each bus T1",
+    "set_if": [
+      "selected CODE fetch launches while EU is in execution completion",
+      "selected CODE fetch spends a Tw while EU is still in the pre-execution wait state"
+    ],
+    "chip_reconstruction": "instruction/QS schedule and Tw position within the selected transaction"
+  },
+  "rule": [
+    {
+      "when": {
+        "selected_fetch_dhi_owner": true
+      },
+      "predict": {
+        "next_action": "MEMR"
+      }
+    },
+    {
+      "when": {
+        "selected_fetch_dhi_owner": false
+      },
+      "predict": {
+        "next_action": "CODE"
+      }
+    }
+  ],
+  "discovery_evidence": {
+    "owner_true": [
+      "REP MOVSB count 2",
+      "MOVSB then MOVSB",
+      "NOP then MOVSB",
+      "OR word natural pre-execution-Tw anchor",
+      "CMP byte natural pre-execution-Tw anchor"
+    ],
+    "owner_false": [
+      "LAHF then SAHF",
+      "AAM without a pre-execution Tw"
+    ],
+    "histories_per_preparation": 2,
+    "clock_mhz": [
+      8,
+      4
+    ],
+    "repetitions_per_cell": 5,
+    "records": 160
+  }
+}

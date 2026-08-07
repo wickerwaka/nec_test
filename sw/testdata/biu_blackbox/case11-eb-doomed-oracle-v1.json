@@ -1,0 +1,1918 @@
+{
+  "rule": "When the waited CODE 0x586 completion supplies the EB displacement-pop boundary, Tw 0 or 1 launches and completes one fall-through CODE 0x588 cycle before redirect; Tw 2+ does not. The boundary is invariant over two preparation histories and five register-only predecessor forms.",
+  "schema": "v30-biu-case11-eb-doomed-oracle-v1",
+  "source_summary_sha256": "e899672049d8aa5d4fe8df10f204c8063199b44ffd993ad595c690cfadcffb54",
+  "status": "FROZEN_BEFORE_RTL",
+  "table": {
+    "mov_ax.w0": {
+      "code_588_count": 2,
+      "code_588_t1_offsets": [
+        1,
+        7
+      ],
+      "post_actions": [
+        {
+          "address": 1416,
+          "status": 4,
+          "t1_from_selected_t4": 1,
+          "tw": 1
+        },
+        {
+          "address": 1416,
+          "status": 4,
+          "t1_from_selected_t4": 7,
+          "tw": 1
+        },
+        {
+          "address": 1418,
+          "status": 4,
+          "t1_from_selected_t4": 13,
+          "tw": 1
+        },
+        {
+          "address": 1420,
+          "status": 4,
+          "t1_from_selected_t4": 19,
+          "tw": 1
+        },
+        {
+          "address": 1422,
+          "status": 4,
+          "t1_from_selected_t4": 25,
+          "tw": 1
+        }
+      ],
+      "qs_e_offsets": [
+        2
+      ],
+      "selected_tw": 0
+    },
+    "mov_ax.w1": {
+      "code_588_count": 2,
+      "code_588_t1_offsets": [
+        2,
+        8
+      ],
+      "post_actions": [
+        {
+          "address": 1416,
+          "status": 4,
+          "t1_from_selected_t4": 2,
+          "tw": 1
+        },
+        {
+          "address": 1416,
+          "status": 4,
+          "t1_from_selected_t4": 8,
+          "tw": 1
+        },
+        {
+          "address": 1418,
+          "status": 4,
+          "t1_from_selected_t4": 14,
+          "tw": 1
+        },
+        {
+          "address": 1420,
+          "status": 4,
+          "t1_from_selected_t4": 20,
+          "tw": 1
+        },
+        {
+          "address": 1422,
+          "status": 4,
+          "t1_from_selected_t4": 26,
+          "tw": 1
+        }
+      ],
+      "qs_e_offsets": [
+        1
+      ],
+      "selected_tw": 1
+    },
+    "mov_ax.w15": {
+      "code_588_count": 1,
+      "code_588_t1_offsets": [
+        2
+      ],
+      "post_actions": [
+        {
+          "address": 1416,
+          "status": 4,
+          "t1_from_selected_t4": 2,
+          "tw": 1
+        },
+        {
+          "address": 1418,
+          "status": 4,
+          "t1_from_selected_t4": 8,
+          "tw": 1
+        },
+        {
+          "address": 1420,
+          "status": 4,
+          "t1_from_selected_t4": 14,
+          "tw": 1
+        },
+        {
+          "address": 1422,
+          "status": 4,
+          "t1_from_selected_t4": 20,
+          "tw": 1
+        },
+        {
+          "address": 1424,
+          "status": 4,
+          "t1_from_selected_t4": 26,
+          "tw": 1
+        }
+      ],
+      "qs_e_offsets": [
+        10
+      ],
+      "selected_tw": 15
+    },
+    "mov_ax.w2": {
+      "code_588_count": 1,
+      "code_588_t1_offsets": [
+        5
+      ],
+      "post_actions": [
+        {
+          "address": 1416,
+          "status": 4,
+          "t1_from_selected_t4": 5,
+          "tw": 1
+        },
+        {
+          "address": 1418,
+          "status": 4,
+          "t1_from_selected_t4": 11,
+          "tw": 1
+        },
+        {
+          "address": 1420,
+          "status": 4,
+          "t1_from_selected_t4": 17,
+          "tw": 1
+        },
+        {
+          "address": 1422,
+          "status": 4,
+          "t1_from_selected_t4": 23,
+          "tw": 1
+        },
+        {
+          "address": 1424,
+          "status": 4,
+          "t1_from_selected_t4": 29,
+          "tw": 1
+        }
+      ],
+      "qs_e_offsets": [
+        0
+      ],
+      "selected_tw": 2
+    },
+    "mov_ax.w3": {
+      "code_588_count": 1,
+      "code_588_t1_offsets": [
+        4
+      ],
+      "post_actions": [
+        {
+          "address": 1416,
+          "status": 4,
+          "t1_from_selected_t4": 4,
+          "tw": 1
+        },
+        {
+          "address": 1418,
+          "status": 4,
+          "t1_from_selected_t4": 10,
+          "tw": 1
+        },
+        {
+          "address": 1420,
+          "status": 4,
+          "t1_from_selected_t4": 16,
+          "tw": 1
+        },
+        {
+          "address": 1422,
+          "status": 4,
+          "t1_from_selected_t4": 22,
+          "tw": 1
+        },
+        {
+          "address": 1424,
+          "status": 4,
+          "t1_from_selected_t4": 28,
+          "tw": 1
+        }
+      ],
+      "qs_e_offsets": [
+        -1,
+        12
+      ],
+      "selected_tw": 3
+    },
+    "mov_ax.w4": {
+      "code_588_count": 1,
+      "code_588_t1_offsets": [
+        3
+      ],
+      "post_actions": [
+        {
+          "address": 1416,
+          "status": 4,
+          "t1_from_selected_t4": 3,
+          "tw": 1
+        },
+        {
+          "address": 1418,
+          "status": 4,
+          "t1_from_selected_t4": 9,
+          "tw": 1
+        },
+        {
+          "address": 1420,
+          "status": 4,
+          "t1_from_selected_t4": 15,
+          "tw": 1
+        },
+        {
+          "address": 1422,
+          "status": 4,
+          "t1_from_selected_t4": 21,
+          "tw": 1
+        },
+        {
+          "address": 1424,
+          "status": 4,
+          "t1_from_selected_t4": 27,
+          "tw": 1
+        }
+      ],
+      "qs_e_offsets": [
+        -2,
+        11
+      ],
+      "selected_tw": 4
+    },
+    "mov_ax.w5": {
+      "code_588_count": 1,
+      "code_588_t1_offsets": [
+        2
+      ],
+      "post_actions": [
+        {
+          "address": 1416,
+          "status": 4,
+          "t1_from_selected_t4": 2,
+          "tw": 1
+        },
+        {
+          "address": 1418,
+          "status": 4,
+          "t1_from_selected_t4": 8,
+          "tw": 1
+        },
+        {
+          "address": 1420,
+          "status": 4,
+          "t1_from_selected_t4": 14,
+          "tw": 1
+        },
+        {
+          "address": 1422,
+          "status": 4,
+          "t1_from_selected_t4": 20,
+          "tw": 1
+        },
+        {
+          "address": 1424,
+          "status": 4,
+          "t1_from_selected_t4": 26,
+          "tw": 1
+        }
+      ],
+      "qs_e_offsets": [
+        10
+      ],
+      "selected_tw": 5
+    },
+    "mov_ax.w6": {
+      "code_588_count": 1,
+      "code_588_t1_offsets": [
+        2
+      ],
+      "post_actions": [
+        {
+          "address": 1416,
+          "status": 4,
+          "t1_from_selected_t4": 2,
+          "tw": 1
+        },
+        {
+          "address": 1418,
+          "status": 4,
+          "t1_from_selected_t4": 8,
+          "tw": 1
+        },
+        {
+          "address": 1420,
+          "status": 4,
+          "t1_from_selected_t4": 14,
+          "tw": 1
+        },
+        {
+          "address": 1422,
+          "status": 4,
+          "t1_from_selected_t4": 20,
+          "tw": 1
+        },
+        {
+          "address": 1424,
+          "status": 4,
+          "t1_from_selected_t4": 26,
+          "tw": 1
+        }
+      ],
+      "qs_e_offsets": [
+        10
+      ],
+      "selected_tw": 6
+    },
+    "mov_ax.w7": {
+      "code_588_count": 1,
+      "code_588_t1_offsets": [
+        2
+      ],
+      "post_actions": [
+        {
+          "address": 1416,
+          "status": 4,
+          "t1_from_selected_t4": 2,
+          "tw": 1
+        },
+        {
+          "address": 1418,
+          "status": 4,
+          "t1_from_selected_t4": 8,
+          "tw": 1
+        },
+        {
+          "address": 1420,
+          "status": 4,
+          "t1_from_selected_t4": 14,
+          "tw": 1
+        },
+        {
+          "address": 1422,
+          "status": 4,
+          "t1_from_selected_t4": 20,
+          "tw": 1
+        },
+        {
+          "address": 1424,
+          "status": 4,
+          "t1_from_selected_t4": 26,
+          "tw": 1
+        }
+      ],
+      "qs_e_offsets": [
+        10
+      ],
+      "selected_tw": 7
+    },
+    "mov_bx.w0": {
+      "code_588_count": 2,
+      "code_588_t1_offsets": [
+        1,
+        7
+      ],
+      "post_actions": [
+        {
+          "address": 1416,
+          "status": 4,
+          "t1_from_selected_t4": 1,
+          "tw": 1
+        },
+        {
+          "address": 1416,
+          "status": 4,
+          "t1_from_selected_t4": 7,
+          "tw": 1
+        },
+        {
+          "address": 1418,
+          "status": 4,
+          "t1_from_selected_t4": 13,
+          "tw": 1
+        },
+        {
+          "address": 1420,
+          "status": 4,
+          "t1_from_selected_t4": 19,
+          "tw": 1
+        },
+        {
+          "address": 1422,
+          "status": 4,
+          "t1_from_selected_t4": 25,
+          "tw": 1
+        }
+      ],
+      "qs_e_offsets": [
+        2
+      ],
+      "selected_tw": 0
+    },
+    "mov_bx.w1": {
+      "code_588_count": 2,
+      "code_588_t1_offsets": [
+        2,
+        8
+      ],
+      "post_actions": [
+        {
+          "address": 1416,
+          "status": 4,
+          "t1_from_selected_t4": 2,
+          "tw": 1
+        },
+        {
+          "address": 1416,
+          "status": 4,
+          "t1_from_selected_t4": 8,
+          "tw": 1
+        },
+        {
+          "address": 1418,
+          "status": 4,
+          "t1_from_selected_t4": 14,
+          "tw": 1
+        },
+        {
+          "address": 1420,
+          "status": 4,
+          "t1_from_selected_t4": 20,
+          "tw": 1
+        },
+        {
+          "address": 1422,
+          "status": 4,
+          "t1_from_selected_t4": 26,
+          "tw": 1
+        }
+      ],
+      "qs_e_offsets": [
+        1
+      ],
+      "selected_tw": 1
+    },
+    "mov_bx.w15": {
+      "code_588_count": 1,
+      "code_588_t1_offsets": [
+        2
+      ],
+      "post_actions": [
+        {
+          "address": 1416,
+          "status": 4,
+          "t1_from_selected_t4": 2,
+          "tw": 1
+        },
+        {
+          "address": 1418,
+          "status": 4,
+          "t1_from_selected_t4": 8,
+          "tw": 1
+        },
+        {
+          "address": 1420,
+          "status": 4,
+          "t1_from_selected_t4": 14,
+          "tw": 1
+        },
+        {
+          "address": 1422,
+          "status": 4,
+          "t1_from_selected_t4": 20,
+          "tw": 1
+        },
+        {
+          "address": 1424,
+          "status": 4,
+          "t1_from_selected_t4": 26,
+          "tw": 1
+        }
+      ],
+      "qs_e_offsets": [
+        10
+      ],
+      "selected_tw": 15
+    },
+    "mov_bx.w2": {
+      "code_588_count": 1,
+      "code_588_t1_offsets": [
+        5
+      ],
+      "post_actions": [
+        {
+          "address": 1416,
+          "status": 4,
+          "t1_from_selected_t4": 5,
+          "tw": 1
+        },
+        {
+          "address": 1418,
+          "status": 4,
+          "t1_from_selected_t4": 11,
+          "tw": 1
+        },
+        {
+          "address": 1420,
+          "status": 4,
+          "t1_from_selected_t4": 17,
+          "tw": 1
+        },
+        {
+          "address": 1422,
+          "status": 4,
+          "t1_from_selected_t4": 23,
+          "tw": 1
+        },
+        {
+          "address": 1424,
+          "status": 4,
+          "t1_from_selected_t4": 29,
+          "tw": 1
+        }
+      ],
+      "qs_e_offsets": [
+        0
+      ],
+      "selected_tw": 2
+    },
+    "mov_bx.w3": {
+      "code_588_count": 1,
+      "code_588_t1_offsets": [
+        4
+      ],
+      "post_actions": [
+        {
+          "address": 1416,
+          "status": 4,
+          "t1_from_selected_t4": 4,
+          "tw": 1
+        },
+        {
+          "address": 1418,
+          "status": 4,
+          "t1_from_selected_t4": 10,
+          "tw": 1
+        },
+        {
+          "address": 1420,
+          "status": 4,
+          "t1_from_selected_t4": 16,
+          "tw": 1
+        },
+        {
+          "address": 1422,
+          "status": 4,
+          "t1_from_selected_t4": 22,
+          "tw": 1
+        },
+        {
+          "address": 1424,
+          "status": 4,
+          "t1_from_selected_t4": 28,
+          "tw": 1
+        }
+      ],
+      "qs_e_offsets": [
+        -1,
+        12
+      ],
+      "selected_tw": 3
+    },
+    "mov_bx.w4": {
+      "code_588_count": 1,
+      "code_588_t1_offsets": [
+        3
+      ],
+      "post_actions": [
+        {
+          "address": 1416,
+          "status": 4,
+          "t1_from_selected_t4": 3,
+          "tw": 1
+        },
+        {
+          "address": 1418,
+          "status": 4,
+          "t1_from_selected_t4": 9,
+          "tw": 1
+        },
+        {
+          "address": 1420,
+          "status": 4,
+          "t1_from_selected_t4": 15,
+          "tw": 1
+        },
+        {
+          "address": 1422,
+          "status": 4,
+          "t1_from_selected_t4": 21,
+          "tw": 1
+        },
+        {
+          "address": 1424,
+          "status": 4,
+          "t1_from_selected_t4": 27,
+          "tw": 1
+        }
+      ],
+      "qs_e_offsets": [
+        -2,
+        11
+      ],
+      "selected_tw": 4
+    },
+    "mov_bx.w5": {
+      "code_588_count": 1,
+      "code_588_t1_offsets": [
+        2
+      ],
+      "post_actions": [
+        {
+          "address": 1416,
+          "status": 4,
+          "t1_from_selected_t4": 2,
+          "tw": 1
+        },
+        {
+          "address": 1418,
+          "status": 4,
+          "t1_from_selected_t4": 8,
+          "tw": 1
+        },
+        {
+          "address": 1420,
+          "status": 4,
+          "t1_from_selected_t4": 14,
+          "tw": 1
+        },
+        {
+          "address": 1422,
+          "status": 4,
+          "t1_from_selected_t4": 20,
+          "tw": 1
+        },
+        {
+          "address": 1424,
+          "status": 4,
+          "t1_from_selected_t4": 26,
+          "tw": 1
+        }
+      ],
+      "qs_e_offsets": [
+        10
+      ],
+      "selected_tw": 5
+    },
+    "mov_bx.w6": {
+      "code_588_count": 1,
+      "code_588_t1_offsets": [
+        2
+      ],
+      "post_actions": [
+        {
+          "address": 1416,
+          "status": 4,
+          "t1_from_selected_t4": 2,
+          "tw": 1
+        },
+        {
+          "address": 1418,
+          "status": 4,
+          "t1_from_selected_t4": 8,
+          "tw": 1
+        },
+        {
+          "address": 1420,
+          "status": 4,
+          "t1_from_selected_t4": 14,
+          "tw": 1
+        },
+        {
+          "address": 1422,
+          "status": 4,
+          "t1_from_selected_t4": 20,
+          "tw": 1
+        },
+        {
+          "address": 1424,
+          "status": 4,
+          "t1_from_selected_t4": 26,
+          "tw": 1
+        }
+      ],
+      "qs_e_offsets": [
+        10
+      ],
+      "selected_tw": 6
+    },
+    "mov_bx.w7": {
+      "code_588_count": 1,
+      "code_588_t1_offsets": [
+        2
+      ],
+      "post_actions": [
+        {
+          "address": 1416,
+          "status": 4,
+          "t1_from_selected_t4": 2,
+          "tw": 1
+        },
+        {
+          "address": 1418,
+          "status": 4,
+          "t1_from_selected_t4": 8,
+          "tw": 1
+        },
+        {
+          "address": 1420,
+          "status": 4,
+          "t1_from_selected_t4": 14,
+          "tw": 1
+        },
+        {
+          "address": 1422,
+          "status": 4,
+          "t1_from_selected_t4": 20,
+          "tw": 1
+        },
+        {
+          "address": 1424,
+          "status": 4,
+          "t1_from_selected_t4": 26,
+          "tw": 1
+        }
+      ],
+      "qs_e_offsets": [
+        10
+      ],
+      "selected_tw": 7
+    },
+    "mov_cx.w0": {
+      "code_588_count": 2,
+      "code_588_t1_offsets": [
+        1,
+        7
+      ],
+      "post_actions": [
+        {
+          "address": 1416,
+          "status": 4,
+          "t1_from_selected_t4": 1,
+          "tw": 1
+        },
+        {
+          "address": 1416,
+          "status": 4,
+          "t1_from_selected_t4": 7,
+          "tw": 1
+        },
+        {
+          "address": 1418,
+          "status": 4,
+          "t1_from_selected_t4": 13,
+          "tw": 1
+        },
+        {
+          "address": 1420,
+          "status": 4,
+          "t1_from_selected_t4": 19,
+          "tw": 1
+        },
+        {
+          "address": 1422,
+          "status": 4,
+          "t1_from_selected_t4": 25,
+          "tw": 1
+        }
+      ],
+      "qs_e_offsets": [
+        2
+      ],
+      "selected_tw": 0
+    },
+    "mov_cx.w1": {
+      "code_588_count": 2,
+      "code_588_t1_offsets": [
+        2,
+        8
+      ],
+      "post_actions": [
+        {
+          "address": 1416,
+          "status": 4,
+          "t1_from_selected_t4": 2,
+          "tw": 1
+        },
+        {
+          "address": 1416,
+          "status": 4,
+          "t1_from_selected_t4": 8,
+          "tw": 1
+        },
+        {
+          "address": 1418,
+          "status": 4,
+          "t1_from_selected_t4": 14,
+          "tw": 1
+        },
+        {
+          "address": 1420,
+          "status": 4,
+          "t1_from_selected_t4": 20,
+          "tw": 1
+        },
+        {
+          "address": 1422,
+          "status": 4,
+          "t1_from_selected_t4": 26,
+          "tw": 1
+        }
+      ],
+      "qs_e_offsets": [
+        1
+      ],
+      "selected_tw": 1
+    },
+    "mov_cx.w15": {
+      "code_588_count": 1,
+      "code_588_t1_offsets": [
+        2
+      ],
+      "post_actions": [
+        {
+          "address": 1416,
+          "status": 4,
+          "t1_from_selected_t4": 2,
+          "tw": 1
+        },
+        {
+          "address": 1418,
+          "status": 4,
+          "t1_from_selected_t4": 8,
+          "tw": 1
+        },
+        {
+          "address": 1420,
+          "status": 4,
+          "t1_from_selected_t4": 14,
+          "tw": 1
+        },
+        {
+          "address": 1422,
+          "status": 4,
+          "t1_from_selected_t4": 20,
+          "tw": 1
+        },
+        {
+          "address": 1424,
+          "status": 4,
+          "t1_from_selected_t4": 26,
+          "tw": 1
+        }
+      ],
+      "qs_e_offsets": [
+        10
+      ],
+      "selected_tw": 15
+    },
+    "mov_cx.w2": {
+      "code_588_count": 1,
+      "code_588_t1_offsets": [
+        5
+      ],
+      "post_actions": [
+        {
+          "address": 1416,
+          "status": 4,
+          "t1_from_selected_t4": 5,
+          "tw": 1
+        },
+        {
+          "address": 1418,
+          "status": 4,
+          "t1_from_selected_t4": 11,
+          "tw": 1
+        },
+        {
+          "address": 1420,
+          "status": 4,
+          "t1_from_selected_t4": 17,
+          "tw": 1
+        },
+        {
+          "address": 1422,
+          "status": 4,
+          "t1_from_selected_t4": 23,
+          "tw": 1
+        },
+        {
+          "address": 1424,
+          "status": 4,
+          "t1_from_selected_t4": 29,
+          "tw": 1
+        }
+      ],
+      "qs_e_offsets": [
+        0
+      ],
+      "selected_tw": 2
+    },
+    "mov_cx.w3": {
+      "code_588_count": 1,
+      "code_588_t1_offsets": [
+        4
+      ],
+      "post_actions": [
+        {
+          "address": 1416,
+          "status": 4,
+          "t1_from_selected_t4": 4,
+          "tw": 1
+        },
+        {
+          "address": 1418,
+          "status": 4,
+          "t1_from_selected_t4": 10,
+          "tw": 1
+        },
+        {
+          "address": 1420,
+          "status": 4,
+          "t1_from_selected_t4": 16,
+          "tw": 1
+        },
+        {
+          "address": 1422,
+          "status": 4,
+          "t1_from_selected_t4": 22,
+          "tw": 1
+        },
+        {
+          "address": 1424,
+          "status": 4,
+          "t1_from_selected_t4": 28,
+          "tw": 1
+        }
+      ],
+      "qs_e_offsets": [
+        -1,
+        12
+      ],
+      "selected_tw": 3
+    },
+    "mov_cx.w4": {
+      "code_588_count": 1,
+      "code_588_t1_offsets": [
+        3
+      ],
+      "post_actions": [
+        {
+          "address": 1416,
+          "status": 4,
+          "t1_from_selected_t4": 3,
+          "tw": 1
+        },
+        {
+          "address": 1418,
+          "status": 4,
+          "t1_from_selected_t4": 9,
+          "tw": 1
+        },
+        {
+          "address": 1420,
+          "status": 4,
+          "t1_from_selected_t4": 15,
+          "tw": 1
+        },
+        {
+          "address": 1422,
+          "status": 4,
+          "t1_from_selected_t4": 21,
+          "tw": 1
+        },
+        {
+          "address": 1424,
+          "status": 4,
+          "t1_from_selected_t4": 27,
+          "tw": 1
+        }
+      ],
+      "qs_e_offsets": [
+        -2,
+        11
+      ],
+      "selected_tw": 4
+    },
+    "mov_cx.w5": {
+      "code_588_count": 1,
+      "code_588_t1_offsets": [
+        2
+      ],
+      "post_actions": [
+        {
+          "address": 1416,
+          "status": 4,
+          "t1_from_selected_t4": 2,
+          "tw": 1
+        },
+        {
+          "address": 1418,
+          "status": 4,
+          "t1_from_selected_t4": 8,
+          "tw": 1
+        },
+        {
+          "address": 1420,
+          "status": 4,
+          "t1_from_selected_t4": 14,
+          "tw": 1
+        },
+        {
+          "address": 1422,
+          "status": 4,
+          "t1_from_selected_t4": 20,
+          "tw": 1
+        },
+        {
+          "address": 1424,
+          "status": 4,
+          "t1_from_selected_t4": 26,
+          "tw": 1
+        }
+      ],
+      "qs_e_offsets": [
+        10
+      ],
+      "selected_tw": 5
+    },
+    "mov_cx.w6": {
+      "code_588_count": 1,
+      "code_588_t1_offsets": [
+        2
+      ],
+      "post_actions": [
+        {
+          "address": 1416,
+          "status": 4,
+          "t1_from_selected_t4": 2,
+          "tw": 1
+        },
+        {
+          "address": 1418,
+          "status": 4,
+          "t1_from_selected_t4": 8,
+          "tw": 1
+        },
+        {
+          "address": 1420,
+          "status": 4,
+          "t1_from_selected_t4": 14,
+          "tw": 1
+        },
+        {
+          "address": 1422,
+          "status": 4,
+          "t1_from_selected_t4": 20,
+          "tw": 1
+        },
+        {
+          "address": 1424,
+          "status": 4,
+          "t1_from_selected_t4": 26,
+          "tw": 1
+        }
+      ],
+      "qs_e_offsets": [
+        10
+      ],
+      "selected_tw": 6
+    },
+    "mov_cx.w7": {
+      "code_588_count": 1,
+      "code_588_t1_offsets": [
+        2
+      ],
+      "post_actions": [
+        {
+          "address": 1416,
+          "status": 4,
+          "t1_from_selected_t4": 2,
+          "tw": 1
+        },
+        {
+          "address": 1418,
+          "status": 4,
+          "t1_from_selected_t4": 8,
+          "tw": 1
+        },
+        {
+          "address": 1420,
+          "status": 4,
+          "t1_from_selected_t4": 14,
+          "tw": 1
+        },
+        {
+          "address": 1422,
+          "status": 4,
+          "t1_from_selected_t4": 20,
+          "tw": 1
+        },
+        {
+          "address": 1424,
+          "status": 4,
+          "t1_from_selected_t4": 26,
+          "tw": 1
+        }
+      ],
+      "qs_e_offsets": [
+        10
+      ],
+      "selected_tw": 7
+    },
+    "mov_dx.w0": {
+      "code_588_count": 2,
+      "code_588_t1_offsets": [
+        1,
+        7
+      ],
+      "post_actions": [
+        {
+          "address": 1416,
+          "status": 4,
+          "t1_from_selected_t4": 1,
+          "tw": 1
+        },
+        {
+          "address": 1416,
+          "status": 4,
+          "t1_from_selected_t4": 7,
+          "tw": 1
+        },
+        {
+          "address": 1418,
+          "status": 4,
+          "t1_from_selected_t4": 13,
+          "tw": 1
+        },
+        {
+          "address": 1420,
+          "status": 4,
+          "t1_from_selected_t4": 19,
+          "tw": 1
+        },
+        {
+          "address": 1422,
+          "status": 4,
+          "t1_from_selected_t4": 25,
+          "tw": 1
+        }
+      ],
+      "qs_e_offsets": [
+        2
+      ],
+      "selected_tw": 0
+    },
+    "mov_dx.w1": {
+      "code_588_count": 2,
+      "code_588_t1_offsets": [
+        2,
+        8
+      ],
+      "post_actions": [
+        {
+          "address": 1416,
+          "status": 4,
+          "t1_from_selected_t4": 2,
+          "tw": 1
+        },
+        {
+          "address": 1416,
+          "status": 4,
+          "t1_from_selected_t4": 8,
+          "tw": 1
+        },
+        {
+          "address": 1418,
+          "status": 4,
+          "t1_from_selected_t4": 14,
+          "tw": 1
+        },
+        {
+          "address": 1420,
+          "status": 4,
+          "t1_from_selected_t4": 20,
+          "tw": 1
+        },
+        {
+          "address": 1422,
+          "status": 4,
+          "t1_from_selected_t4": 26,
+          "tw": 1
+        }
+      ],
+      "qs_e_offsets": [
+        1
+      ],
+      "selected_tw": 1
+    },
+    "mov_dx.w15": {
+      "code_588_count": 1,
+      "code_588_t1_offsets": [
+        2
+      ],
+      "post_actions": [
+        {
+          "address": 1416,
+          "status": 4,
+          "t1_from_selected_t4": 2,
+          "tw": 1
+        },
+        {
+          "address": 1418,
+          "status": 4,
+          "t1_from_selected_t4": 8,
+          "tw": 1
+        },
+        {
+          "address": 1420,
+          "status": 4,
+          "t1_from_selected_t4": 14,
+          "tw": 1
+        },
+        {
+          "address": 1422,
+          "status": 4,
+          "t1_from_selected_t4": 20,
+          "tw": 1
+        },
+        {
+          "address": 1424,
+          "status": 4,
+          "t1_from_selected_t4": 26,
+          "tw": 1
+        }
+      ],
+      "qs_e_offsets": [
+        10
+      ],
+      "selected_tw": 15
+    },
+    "mov_dx.w2": {
+      "code_588_count": 1,
+      "code_588_t1_offsets": [
+        5
+      ],
+      "post_actions": [
+        {
+          "address": 1416,
+          "status": 4,
+          "t1_from_selected_t4": 5,
+          "tw": 1
+        },
+        {
+          "address": 1418,
+          "status": 4,
+          "t1_from_selected_t4": 11,
+          "tw": 1
+        },
+        {
+          "address": 1420,
+          "status": 4,
+          "t1_from_selected_t4": 17,
+          "tw": 1
+        },
+        {
+          "address": 1422,
+          "status": 4,
+          "t1_from_selected_t4": 23,
+          "tw": 1
+        },
+        {
+          "address": 1424,
+          "status": 4,
+          "t1_from_selected_t4": 29,
+          "tw": 1
+        }
+      ],
+      "qs_e_offsets": [
+        0
+      ],
+      "selected_tw": 2
+    },
+    "mov_dx.w3": {
+      "code_588_count": 1,
+      "code_588_t1_offsets": [
+        4
+      ],
+      "post_actions": [
+        {
+          "address": 1416,
+          "status": 4,
+          "t1_from_selected_t4": 4,
+          "tw": 1
+        },
+        {
+          "address": 1418,
+          "status": 4,
+          "t1_from_selected_t4": 10,
+          "tw": 1
+        },
+        {
+          "address": 1420,
+          "status": 4,
+          "t1_from_selected_t4": 16,
+          "tw": 1
+        },
+        {
+          "address": 1422,
+          "status": 4,
+          "t1_from_selected_t4": 22,
+          "tw": 1
+        },
+        {
+          "address": 1424,
+          "status": 4,
+          "t1_from_selected_t4": 28,
+          "tw": 1
+        }
+      ],
+      "qs_e_offsets": [
+        -1,
+        12
+      ],
+      "selected_tw": 3
+    },
+    "mov_dx.w4": {
+      "code_588_count": 1,
+      "code_588_t1_offsets": [
+        3
+      ],
+      "post_actions": [
+        {
+          "address": 1416,
+          "status": 4,
+          "t1_from_selected_t4": 3,
+          "tw": 1
+        },
+        {
+          "address": 1418,
+          "status": 4,
+          "t1_from_selected_t4": 9,
+          "tw": 1
+        },
+        {
+          "address": 1420,
+          "status": 4,
+          "t1_from_selected_t4": 15,
+          "tw": 1
+        },
+        {
+          "address": 1422,
+          "status": 4,
+          "t1_from_selected_t4": 21,
+          "tw": 1
+        },
+        {
+          "address": 1424,
+          "status": 4,
+          "t1_from_selected_t4": 27,
+          "tw": 1
+        }
+      ],
+      "qs_e_offsets": [
+        -2,
+        11
+      ],
+      "selected_tw": 4
+    },
+    "mov_dx.w5": {
+      "code_588_count": 1,
+      "code_588_t1_offsets": [
+        2
+      ],
+      "post_actions": [
+        {
+          "address": 1416,
+          "status": 4,
+          "t1_from_selected_t4": 2,
+          "tw": 1
+        },
+        {
+          "address": 1418,
+          "status": 4,
+          "t1_from_selected_t4": 8,
+          "tw": 1
+        },
+        {
+          "address": 1420,
+          "status": 4,
+          "t1_from_selected_t4": 14,
+          "tw": 1
+        },
+        {
+          "address": 1422,
+          "status": 4,
+          "t1_from_selected_t4": 20,
+          "tw": 1
+        },
+        {
+          "address": 1424,
+          "status": 4,
+          "t1_from_selected_t4": 26,
+          "tw": 1
+        }
+      ],
+      "qs_e_offsets": [
+        10
+      ],
+      "selected_tw": 5
+    },
+    "mov_dx.w6": {
+      "code_588_count": 1,
+      "code_588_t1_offsets": [
+        2
+      ],
+      "post_actions": [
+        {
+          "address": 1416,
+          "status": 4,
+          "t1_from_selected_t4": 2,
+          "tw": 1
+        },
+        {
+          "address": 1418,
+          "status": 4,
+          "t1_from_selected_t4": 8,
+          "tw": 1
+        },
+        {
+          "address": 1420,
+          "status": 4,
+          "t1_from_selected_t4": 14,
+          "tw": 1
+        },
+        {
+          "address": 1422,
+          "status": 4,
+          "t1_from_selected_t4": 20,
+          "tw": 1
+        },
+        {
+          "address": 1424,
+          "status": 4,
+          "t1_from_selected_t4": 26,
+          "tw": 1
+        }
+      ],
+      "qs_e_offsets": [
+        10
+      ],
+      "selected_tw": 6
+    },
+    "mov_dx.w7": {
+      "code_588_count": 1,
+      "code_588_t1_offsets": [
+        2
+      ],
+      "post_actions": [
+        {
+          "address": 1416,
+          "status": 4,
+          "t1_from_selected_t4": 2,
+          "tw": 1
+        },
+        {
+          "address": 1418,
+          "status": 4,
+          "t1_from_selected_t4": 8,
+          "tw": 1
+        },
+        {
+          "address": 1420,
+          "status": 4,
+          "t1_from_selected_t4": 14,
+          "tw": 1
+        },
+        {
+          "address": 1422,
+          "status": 4,
+          "t1_from_selected_t4": 20,
+          "tw": 1
+        },
+        {
+          "address": 1424,
+          "status": 4,
+          "t1_from_selected_t4": 26,
+          "tw": 1
+        }
+      ],
+      "qs_e_offsets": [
+        10
+      ],
+      "selected_tw": 7
+    },
+    "nop4.w0": {
+      "code_588_count": 2,
+      "code_588_t1_offsets": [
+        1,
+        7
+      ],
+      "post_actions": [
+        {
+          "address": 1416,
+          "status": 4,
+          "t1_from_selected_t4": 1,
+          "tw": 1
+        },
+        {
+          "address": 1416,
+          "status": 4,
+          "t1_from_selected_t4": 7,
+          "tw": 1
+        },
+        {
+          "address": 1418,
+          "status": 4,
+          "t1_from_selected_t4": 13,
+          "tw": 1
+        },
+        {
+          "address": 1420,
+          "status": 4,
+          "t1_from_selected_t4": 19,
+          "tw": 1
+        },
+        {
+          "address": 1422,
+          "status": 4,
+          "t1_from_selected_t4": 25,
+          "tw": 1
+        }
+      ],
+      "qs_e_offsets": [
+        2
+      ],
+      "selected_tw": 0
+    },
+    "nop4.w1": {
+      "code_588_count": 2,
+      "code_588_t1_offsets": [
+        2,
+        8
+      ],
+      "post_actions": [
+        {
+          "address": 1416,
+          "status": 4,
+          "t1_from_selected_t4": 2,
+          "tw": 1
+        },
+        {
+          "address": 1416,
+          "status": 4,
+          "t1_from_selected_t4": 8,
+          "tw": 1
+        },
+        {
+          "address": 1418,
+          "status": 4,
+          "t1_from_selected_t4": 14,
+          "tw": 1
+        },
+        {
+          "address": 1420,
+          "status": 4,
+          "t1_from_selected_t4": 20,
+          "tw": 1
+        },
+        {
+          "address": 1422,
+          "status": 4,
+          "t1_from_selected_t4": 26,
+          "tw": 1
+        }
+      ],
+      "qs_e_offsets": [
+        1
+      ],
+      "selected_tw": 1
+    },
+    "nop4.w15": {
+      "code_588_count": 1,
+      "code_588_t1_offsets": [
+        2
+      ],
+      "post_actions": [
+        {
+          "address": 1416,
+          "status": 4,
+          "t1_from_selected_t4": 2,
+          "tw": 1
+        },
+        {
+          "address": 1418,
+          "status": 4,
+          "t1_from_selected_t4": 8,
+          "tw": 1
+        },
+        {
+          "address": 1420,
+          "status": 4,
+          "t1_from_selected_t4": 14,
+          "tw": 1
+        },
+        {
+          "address": 1422,
+          "status": 4,
+          "t1_from_selected_t4": 20,
+          "tw": 1
+        },
+        {
+          "address": 1424,
+          "status": 4,
+          "t1_from_selected_t4": 26,
+          "tw": 1
+        }
+      ],
+      "qs_e_offsets": [
+        10
+      ],
+      "selected_tw": 15
+    },
+    "nop4.w2": {
+      "code_588_count": 1,
+      "code_588_t1_offsets": [
+        5
+      ],
+      "post_actions": [
+        {
+          "address": 1416,
+          "status": 4,
+          "t1_from_selected_t4": 5,
+          "tw": 1
+        },
+        {
+          "address": 1418,
+          "status": 4,
+          "t1_from_selected_t4": 11,
+          "tw": 1
+        },
+        {
+          "address": 1420,
+          "status": 4,
+          "t1_from_selected_t4": 17,
+          "tw": 1
+        },
+        {
+          "address": 1422,
+          "status": 4,
+          "t1_from_selected_t4": 23,
+          "tw": 1
+        },
+        {
+          "address": 1424,
+          "status": 4,
+          "t1_from_selected_t4": 29,
+          "tw": 1
+        }
+      ],
+      "qs_e_offsets": [
+        0
+      ],
+      "selected_tw": 2
+    },
+    "nop4.w3": {
+      "code_588_count": 1,
+      "code_588_t1_offsets": [
+        4
+      ],
+      "post_actions": [
+        {
+          "address": 1416,
+          "status": 4,
+          "t1_from_selected_t4": 4,
+          "tw": 1
+        },
+        {
+          "address": 1418,
+          "status": 4,
+          "t1_from_selected_t4": 10,
+          "tw": 1
+        },
+        {
+          "address": 1420,
+          "status": 4,
+          "t1_from_selected_t4": 16,
+          "tw": 1
+        },
+        {
+          "address": 1422,
+          "status": 4,
+          "t1_from_selected_t4": 22,
+          "tw": 1
+        },
+        {
+          "address": 1424,
+          "status": 4,
+          "t1_from_selected_t4": 28,
+          "tw": 1
+        }
+      ],
+      "qs_e_offsets": [
+        -1,
+        12
+      ],
+      "selected_tw": 3
+    },
+    "nop4.w4": {
+      "code_588_count": 1,
+      "code_588_t1_offsets": [
+        3
+      ],
+      "post_actions": [
+        {
+          "address": 1416,
+          "status": 4,
+          "t1_from_selected_t4": 3,
+          "tw": 1
+        },
+        {
+          "address": 1418,
+          "status": 4,
+          "t1_from_selected_t4": 9,
+          "tw": 1
+        },
+        {
+          "address": 1420,
+          "status": 4,
+          "t1_from_selected_t4": 15,
+          "tw": 1
+        },
+        {
+          "address": 1422,
+          "status": 4,
+          "t1_from_selected_t4": 21,
+          "tw": 1
+        },
+        {
+          "address": 1424,
+          "status": 4,
+          "t1_from_selected_t4": 27,
+          "tw": 1
+        }
+      ],
+      "qs_e_offsets": [
+        -2,
+        11
+      ],
+      "selected_tw": 4
+    },
+    "nop4.w5": {
+      "code_588_count": 1,
+      "code_588_t1_offsets": [
+        2
+      ],
+      "post_actions": [
+        {
+          "address": 1416,
+          "status": 4,
+          "t1_from_selected_t4": 2,
+          "tw": 1
+        },
+        {
+          "address": 1418,
+          "status": 4,
+          "t1_from_selected_t4": 8,
+          "tw": 1
+        },
+        {
+          "address": 1420,
+          "status": 4,
+          "t1_from_selected_t4": 14,
+          "tw": 1
+        },
+        {
+          "address": 1422,
+          "status": 4,
+          "t1_from_selected_t4": 20,
+          "tw": 1
+        },
+        {
+          "address": 1424,
+          "status": 4,
+          "t1_from_selected_t4": 26,
+          "tw": 1
+        }
+      ],
+      "qs_e_offsets": [
+        10
+      ],
+      "selected_tw": 5
+    },
+    "nop4.w6": {
+      "code_588_count": 1,
+      "code_588_t1_offsets": [
+        2
+      ],
+      "post_actions": [
+        {
+          "address": 1416,
+          "status": 4,
+          "t1_from_selected_t4": 2,
+          "tw": 1
+        },
+        {
+          "address": 1418,
+          "status": 4,
+          "t1_from_selected_t4": 8,
+          "tw": 1
+        },
+        {
+          "address": 1420,
+          "status": 4,
+          "t1_from_selected_t4": 14,
+          "tw": 1
+        },
+        {
+          "address": 1422,
+          "status": 4,
+          "t1_from_selected_t4": 20,
+          "tw": 1
+        },
+        {
+          "address": 1424,
+          "status": 4,
+          "t1_from_selected_t4": 26,
+          "tw": 1
+        }
+      ],
+      "qs_e_offsets": [
+        10
+      ],
+      "selected_tw": 6
+    },
+    "nop4.w7": {
+      "code_588_count": 1,
+      "code_588_t1_offsets": [
+        2
+      ],
+      "post_actions": [
+        {
+          "address": 1416,
+          "status": 4,
+          "t1_from_selected_t4": 2,
+          "tw": 1
+        },
+        {
+          "address": 1418,
+          "status": 4,
+          "t1_from_selected_t4": 8,
+          "tw": 1
+        },
+        {
+          "address": 1420,
+          "status": 4,
+          "t1_from_selected_t4": 14,
+          "tw": 1
+        },
+        {
+          "address": 1422,
+          "status": 4,
+          "t1_from_selected_t4": 20,
+          "tw": 1
+        },
+        {
+          "address": 1424,
+          "status": 4,
+          "t1_from_selected_t4": 26,
+          "tw": 1
+        }
+      ],
+      "qs_e_offsets": [
+        10
+      ],
+      "selected_tw": 7
+    }
+  }
+}

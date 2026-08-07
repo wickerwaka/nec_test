@@ -1,0 +1,36 @@
+{
+  "control_corpus": "sw/class5_bandage.jsonl.gz",
+  "control_corpus_sha256": "8319a133ddc3bccfc1c3a863c391c930237497225a69f11e9199a58257006c7a",
+  "controls": {
+    "clock_mhz": [
+      8,
+      4
+    ],
+    "forms": [
+      "aam",
+      "aad"
+    ],
+    "histories": [
+      "A",
+      "B"
+    ],
+    "repetitions": 5
+  },
+  "forbidden_variables": [
+    "opcode identity",
+    "program seed",
+    "absolute bus ordinal",
+    "preparation-history fingerprint"
+  ],
+  "outcome": {
+    "action": "CODE",
+    "address": 1296,
+    "t1_from_selected_t4": 2
+  },
+  "schema": "v30-biu-case13-waitx-lowband-oracle-v1",
+  "scope": "CODE completion in the q_cnt=2/occupied=4 low-band cell while the EU is in an internal-only S_WAITX interval",
+  "source": "sw/testdata/biu_blackbox/case13-waitx-lowband-chip-v1/summary.json",
+  "source_sha256": "74b7e67fa37440f1f5db6b0be2885b62cb387f91e1b93f892fcf066ceefa4dae",
+  "state_rule": "S_WAITX does not assert the low-band pause; the successor CODE starts at selected T4+2",
+  "status": "FROZEN_BEFORE_RTL"
+}

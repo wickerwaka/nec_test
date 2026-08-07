@@ -1,0 +1,1231 @@
+{
+  "counts": {
+    "matches": 132,
+    "mismatches": 80,
+    "records": 496,
+    "unseen": 284
+  },
+  "details": [
+    {
+      "expected": [
+        14,
+        1,
+        [
+          [
+            "F",
+            3
+          ],
+          [
+            "E",
+            37
+          ]
+        ]
+      ],
+      "instruction_class": "inc_aw",
+      "key": [
+        "inc_aw",
+        3,
+        "F",
+        0,
+        4,
+        1
+      ],
+      "kind": "mismatch",
+      "observed": [
+        15,
+        1,
+        [
+          [
+            "F",
+            3
+          ],
+          [
+            "E",
+            38
+          ]
+        ]
+      ]
+    },
+    {
+      "expected": [
+        14,
+        1,
+        [
+          [
+            "F",
+            3
+          ],
+          [
+            "E",
+            37
+          ]
+        ]
+      ],
+      "instruction_class": "inc_aw",
+      "key": [
+        "inc_aw",
+        3,
+        "F",
+        0,
+        4,
+        1
+      ],
+      "kind": "mismatch",
+      "observed": [
+        15,
+        1,
+        [
+          [
+            "F",
+            3
+          ],
+          [
+            "E",
+            38
+          ]
+        ]
+      ]
+    },
+    {
+      "expected": [
+        14,
+        1,
+        [
+          [
+            "F",
+            3
+          ],
+          [
+            "E",
+            37
+          ]
+        ]
+      ],
+      "instruction_class": "inc_aw",
+      "key": [
+        "inc_aw",
+        3,
+        "F",
+        0,
+        4,
+        1
+      ],
+      "kind": "mismatch",
+      "observed": [
+        15,
+        1,
+        [
+          [
+            "F",
+            3
+          ],
+          [
+            "E",
+            38
+          ]
+        ]
+      ]
+    },
+    {
+      "expected": [
+        14,
+        1,
+        [
+          [
+            "F",
+            3
+          ],
+          [
+            "E",
+            37
+          ]
+        ]
+      ],
+      "instruction_class": "inc_aw",
+      "key": [
+        "inc_aw",
+        3,
+        "F",
+        0,
+        4,
+        1
+      ],
+      "kind": "mismatch",
+      "observed": [
+        15,
+        1,
+        [
+          [
+            "F",
+            3
+          ],
+          [
+            "E",
+            38
+          ]
+        ]
+      ]
+    },
+    {
+      "expected": [
+        13,
+        1,
+        [
+          [
+            "F",
+            2
+          ],
+          [
+            "E",
+            36
+          ]
+        ]
+      ],
+      "instruction_class": "inc_aw",
+      "key": [
+        "inc_aw",
+        3,
+        "F",
+        1,
+        5,
+        1
+      ],
+      "kind": "mismatch",
+      "observed": [
+        14,
+        1,
+        [
+          [
+            "F",
+            2
+          ],
+          [
+            "E",
+            37
+          ]
+        ]
+      ]
+    },
+    {
+      "expected": [
+        13,
+        1,
+        [
+          [
+            "F",
+            2
+          ],
+          [
+            "E",
+            36
+          ]
+        ]
+      ],
+      "instruction_class": "inc_aw",
+      "key": [
+        "inc_aw",
+        3,
+        "F",
+        1,
+        5,
+        1
+      ],
+      "kind": "mismatch",
+      "observed": [
+        14,
+        1,
+        [
+          [
+            "F",
+            2
+          ],
+          [
+            "E",
+            37
+          ]
+        ]
+      ]
+    },
+    {
+      "expected": [
+        13,
+        1,
+        [
+          [
+            "F",
+            2
+          ],
+          [
+            "E",
+            36
+          ]
+        ]
+      ],
+      "instruction_class": "inc_aw",
+      "key": [
+        "inc_aw",
+        3,
+        "F",
+        1,
+        5,
+        1
+      ],
+      "kind": "mismatch",
+      "observed": [
+        14,
+        1,
+        [
+          [
+            "F",
+            2
+          ],
+          [
+            "E",
+            37
+          ]
+        ]
+      ]
+    },
+    {
+      "expected": [
+        13,
+        1,
+        [
+          [
+            "F",
+            2
+          ],
+          [
+            "E",
+            36
+          ]
+        ]
+      ],
+      "instruction_class": "inc_aw",
+      "key": [
+        "inc_aw",
+        3,
+        "F",
+        1,
+        5,
+        1
+      ],
+      "kind": "mismatch",
+      "observed": [
+        14,
+        1,
+        [
+          [
+            "F",
+            2
+          ],
+          [
+            "E",
+            37
+          ]
+        ]
+      ]
+    },
+    {
+      "expected": [
+        14,
+        2,
+        [
+          [
+            "F",
+            1
+          ],
+          [
+            "F",
+            3
+          ],
+          [
+            "E",
+            37
+          ]
+        ]
+      ],
+      "instruction_class": "inc_aw",
+      "key": [
+        "inc_aw",
+        3,
+        "F",
+        2,
+        6,
+        1
+      ],
+      "kind": "mismatch",
+      "observed": [
+        13,
+        1,
+        [
+          [
+            "F",
+            1
+          ],
+          [
+            "E",
+            36
+          ]
+        ]
+      ]
+    },
+    {
+      "expected": [
+        14,
+        2,
+        [
+          [
+            "F",
+            1
+          ],
+          [
+            "F",
+            3
+          ],
+          [
+            "E",
+            37
+          ]
+        ]
+      ],
+      "instruction_class": "inc_aw",
+      "key": [
+        "inc_aw",
+        3,
+        "F",
+        2,
+        6,
+        1
+      ],
+      "kind": "mismatch",
+      "observed": [
+        13,
+        1,
+        [
+          [
+            "F",
+            1
+          ],
+          [
+            "E",
+            36
+          ]
+        ]
+      ]
+    },
+    {
+      "expected": [
+        14,
+        2,
+        [
+          [
+            "F",
+            1
+          ],
+          [
+            "F",
+            3
+          ],
+          [
+            "E",
+            37
+          ]
+        ]
+      ],
+      "instruction_class": "inc_aw",
+      "key": [
+        "inc_aw",
+        3,
+        "F",
+        2,
+        6,
+        1
+      ],
+      "kind": "mismatch",
+      "observed": [
+        13,
+        1,
+        [
+          [
+            "F",
+            1
+          ],
+          [
+            "E",
+            36
+          ]
+        ]
+      ]
+    },
+    {
+      "expected": [
+        14,
+        2,
+        [
+          [
+            "F",
+            1
+          ],
+          [
+            "F",
+            3
+          ],
+          [
+            "E",
+            37
+          ]
+        ]
+      ],
+      "instruction_class": "inc_aw",
+      "key": [
+        "inc_aw",
+        3,
+        "F",
+        2,
+        6,
+        1
+      ],
+      "kind": "mismatch",
+      "observed": [
+        13,
+        1,
+        [
+          [
+            "F",
+            1
+          ],
+          [
+            "E",
+            36
+          ]
+        ]
+      ]
+    },
+    {
+      "expected": [
+        13,
+        1,
+        [
+          [
+            "F",
+            2
+          ],
+          [
+            "E",
+            36
+          ]
+        ]
+      ],
+      "instruction_class": "inc_aw",
+      "key": [
+        "inc_aw",
+        4,
+        "F",
+        0,
+        0,
+        0
+      ],
+      "kind": "mismatch",
+      "observed": [
+        15,
+        1,
+        [
+          [
+            "F",
+            3
+          ],
+          [
+            "E",
+            38
+          ]
+        ]
+      ]
+    },
+    {
+      "expected": [
+        13,
+        1,
+        [
+          [
+            "F",
+            2
+          ],
+          [
+            "E",
+            36
+          ]
+        ]
+      ],
+      "instruction_class": "inc_aw",
+      "key": [
+        "inc_aw",
+        4,
+        "F",
+        0,
+        0,
+        0
+      ],
+      "kind": "mismatch",
+      "observed": [
+        15,
+        1,
+        [
+          [
+            "F",
+            3
+          ],
+          [
+            "E",
+            38
+          ]
+        ]
+      ]
+    },
+    {
+      "expected": [
+        13,
+        1,
+        [
+          [
+            "F",
+            2
+          ],
+          [
+            "E",
+            36
+          ]
+        ]
+      ],
+      "instruction_class": "inc_aw",
+      "key": [
+        "inc_aw",
+        4,
+        "F",
+        0,
+        0,
+        0
+      ],
+      "kind": "mismatch",
+      "observed": [
+        15,
+        1,
+        [
+          [
+            "F",
+            3
+          ],
+          [
+            "E",
+            38
+          ]
+        ]
+      ]
+    },
+    {
+      "expected": [
+        13,
+        1,
+        [
+          [
+            "F",
+            2
+          ],
+          [
+            "E",
+            36
+          ]
+        ]
+      ],
+      "instruction_class": "inc_aw",
+      "key": [
+        "inc_aw",
+        4,
+        "F",
+        0,
+        0,
+        0
+      ],
+      "kind": "mismatch",
+      "observed": [
+        15,
+        1,
+        [
+          [
+            "F",
+            3
+          ],
+          [
+            "E",
+            38
+          ]
+        ]
+      ]
+    },
+    {
+      "expected": [
+        14,
+        2,
+        [
+          [
+            "F",
+            1
+          ],
+          [
+            "F",
+            3
+          ],
+          [
+            "E",
+            37
+          ]
+        ]
+      ],
+      "instruction_class": "inc_aw",
+      "key": [
+        "inc_aw",
+        4,
+        "F",
+        1,
+        1,
+        0
+      ],
+      "kind": "mismatch",
+      "observed": [
+        14,
+        1,
+        [
+          [
+            "F",
+            2
+          ],
+          [
+            "E",
+            37
+          ]
+        ]
+      ]
+    },
+    {
+      "expected": [
+        14,
+        2,
+        [
+          [
+            "F",
+            1
+          ],
+          [
+            "F",
+            3
+          ],
+          [
+            "E",
+            37
+          ]
+        ]
+      ],
+      "instruction_class": "inc_aw",
+      "key": [
+        "inc_aw",
+        4,
+        "F",
+        1,
+        1,
+        0
+      ],
+      "kind": "mismatch",
+      "observed": [
+        14,
+        1,
+        [
+          [
+            "F",
+            2
+          ],
+          [
+            "E",
+            37
+          ]
+        ]
+      ]
+    },
+    {
+      "expected": [
+        14,
+        2,
+        [
+          [
+            "F",
+            1
+          ],
+          [
+            "F",
+            3
+          ],
+          [
+            "E",
+            37
+          ]
+        ]
+      ],
+      "instruction_class": "inc_aw",
+      "key": [
+        "inc_aw",
+        4,
+        "F",
+        1,
+        1,
+        0
+      ],
+      "kind": "mismatch",
+      "observed": [
+        14,
+        1,
+        [
+          [
+            "F",
+            2
+          ],
+          [
+            "E",
+            37
+          ]
+        ]
+      ]
+    },
+    {
+      "expected": [
+        14,
+        2,
+        [
+          [
+            "F",
+            1
+          ],
+          [
+            "F",
+            3
+          ],
+          [
+            "E",
+            37
+          ]
+        ]
+      ],
+      "instruction_class": "inc_aw",
+      "key": [
+        "inc_aw",
+        4,
+        "F",
+        1,
+        1,
+        0
+      ],
+      "kind": "mismatch",
+      "observed": [
+        14,
+        1,
+        [
+          [
+            "F",
+            2
+          ],
+          [
+            "E",
+            37
+          ]
+        ]
+      ]
+    },
+    {
+      "instruction_class": "inc_aw",
+      "key": [
+        "inc_aw",
+        4,
+        "F",
+        2,
+        2,
+        0
+      ],
+      "kind": "unseen"
+    },
+    {
+      "instruction_class": "inc_aw",
+      "key": [
+        "inc_aw",
+        4,
+        "F",
+        2,
+        2,
+        0
+      ],
+      "kind": "unseen"
+    },
+    {
+      "instruction_class": "inc_aw",
+      "key": [
+        "inc_aw",
+        4,
+        "F",
+        2,
+        2,
+        0
+      ],
+      "kind": "unseen"
+    },
+    {
+      "instruction_class": "inc_aw",
+      "key": [
+        "inc_aw",
+        4,
+        "F",
+        2,
+        2,
+        0
+      ],
+      "kind": "unseen"
+    },
+    {
+      "instruction_class": "inc_aw",
+      "key": [
+        "inc_aw",
+        3,
+        "F",
+        0,
+        3,
+        1
+      ],
+      "kind": "unseen"
+    },
+    {
+      "instruction_class": "inc_aw",
+      "key": [
+        "inc_aw",
+        3,
+        "F",
+        0,
+        3,
+        1
+      ],
+      "kind": "unseen"
+    },
+    {
+      "instruction_class": "inc_aw",
+      "key": [
+        "inc_aw",
+        3,
+        "F",
+        0,
+        3,
+        1
+      ],
+      "kind": "unseen"
+    },
+    {
+      "instruction_class": "inc_aw",
+      "key": [
+        "inc_aw",
+        3,
+        "F",
+        0,
+        3,
+        1
+      ],
+      "kind": "unseen"
+    },
+    {
+      "instruction_class": "inc_aw",
+      "key": [
+        "inc_aw",
+        3,
+        "F",
+        1,
+        4,
+        1
+      ],
+      "kind": "unseen"
+    },
+    {
+      "instruction_class": "inc_aw",
+      "key": [
+        "inc_aw",
+        3,
+        "F",
+        1,
+        4,
+        1
+      ],
+      "kind": "unseen"
+    },
+    {
+      "instruction_class": "inc_aw",
+      "key": [
+        "inc_aw",
+        3,
+        "F",
+        1,
+        4,
+        1
+      ],
+      "kind": "unseen"
+    },
+    {
+      "instruction_class": "inc_aw",
+      "key": [
+        "inc_aw",
+        3,
+        "F",
+        1,
+        4,
+        1
+      ],
+      "kind": "unseen"
+    },
+    {
+      "instruction_class": "inc_aw",
+      "key": [
+        "inc_aw",
+        3,
+        "F",
+        2,
+        5,
+        1
+      ],
+      "kind": "unseen"
+    },
+    {
+      "instruction_class": "inc_aw",
+      "key": [
+        "inc_aw",
+        3,
+        "F",
+        2,
+        5,
+        1
+      ],
+      "kind": "unseen"
+    },
+    {
+      "instruction_class": "inc_aw",
+      "key": [
+        "inc_aw",
+        3,
+        "F",
+        2,
+        5,
+        1
+      ],
+      "kind": "unseen"
+    },
+    {
+      "instruction_class": "inc_aw",
+      "key": [
+        "inc_aw",
+        3,
+        "F",
+        2,
+        5,
+        1
+      ],
+      "kind": "unseen"
+    },
+    {
+      "instruction_class": "inc_aw",
+      "key": [
+        "inc_aw",
+        2,
+        "F",
+        0,
+        6,
+        0
+      ],
+      "kind": "unseen"
+    },
+    {
+      "instruction_class": "inc_aw",
+      "key": [
+        "inc_aw",
+        2,
+        "F",
+        0,
+        6,
+        0
+      ],
+      "kind": "unseen"
+    },
+    {
+      "instruction_class": "inc_aw",
+      "key": [
+        "inc_aw",
+        2,
+        "F",
+        0,
+        6,
+        0
+      ],
+      "kind": "unseen"
+    },
+    {
+      "instruction_class": "inc_aw",
+      "key": [
+        "inc_aw",
+        2,
+        "F",
+        0,
+        6,
+        0
+      ],
+      "kind": "unseen"
+    },
+    {
+      "instruction_class": "inc_aw",
+      "key": [
+        "inc_aw",
+        4,
+        "F",
+        1,
+        0,
+        0
+      ],
+      "kind": "unseen"
+    },
+    {
+      "instruction_class": "inc_aw",
+      "key": [
+        "inc_aw",
+        4,
+        "F",
+        1,
+        0,
+        0
+      ],
+      "kind": "unseen"
+    },
+    {
+      "instruction_class": "inc_aw",
+      "key": [
+        "inc_aw",
+        4,
+        "F",
+        1,
+        0,
+        0
+      ],
+      "kind": "unseen"
+    },
+    {
+      "instruction_class": "inc_aw",
+      "key": [
+        "inc_aw",
+        4,
+        "F",
+        1,
+        0,
+        0
+      ],
+      "kind": "unseen"
+    },
+    {
+      "instruction_class": "inc_aw",
+      "key": [
+        "inc_aw",
+        3,
+        "F",
+        0,
+        1,
+        1
+      ],
+      "kind": "unseen"
+    },
+    {
+      "instruction_class": "inc_aw",
+      "key": [
+        "inc_aw",
+        3,
+        "F",
+        0,
+        1,
+        1
+      ],
+      "kind": "unseen"
+    },
+    {
+      "instruction_class": "inc_aw",
+      "key": [
+        "inc_aw",
+        3,
+        "F",
+        0,
+        1,
+        1
+      ],
+      "kind": "unseen"
+    },
+    {
+      "instruction_class": "inc_aw",
+      "key": [
+        "inc_aw",
+        3,
+        "F",
+        0,
+        1,
+        1
+      ],
+      "kind": "unseen"
+    },
+    {
+      "instruction_class": "inc_aw",
+      "key": [
+        "inc_aw",
+        3,
+        "F",
+        1,
+        2,
+        1
+      ],
+      "kind": "unseen"
+    },
+    {
+      "instruction_class": "inc_aw",
+      "key": [
+        "inc_aw",
+        3,
+        "F",
+        1,
+        2,
+        1
+      ],
+      "kind": "unseen"
+    }
+  ],
+  "gate": "FAIL",
+  "heldout_sources": [
+    {
+      "counts": {
+        "matches": 24,
+        "mismatches": 48,
+        "records": 248,
+        "unseen": 176
+      },
+      "instruction_class": "inc_aw",
+      "path": "sw/testdata/biu_blackbox/nmi-family-inc-heldout-20260729/summary.json",
+      "sha256": "bf627577f54664210aa0b7079b6eb03ebefaf446137445a96e075adb155b5ce8"
+    },
+    {
+      "counts": {
+        "matches": 108,
+        "mismatches": 32,
+        "records": 248,
+        "unseen": 108
+      },
+      "instruction_class": "lea_aw_bw",
+      "path": "sw/testdata/biu_blackbox/nmi-family-lea-heldout-20260729/summary.json",
+      "sha256": "ac8f1b5be122fb66b3a41d4577cd0a75dbfcb296630d40a6c8847440102eaa0a"
+    }
+  ],
+  "oracle": "sw/testdata/biu_blackbox/nmi-family-oracle-v1.json",
+  "oracle_sha256": "acf51f1eb5d4dee4b8319dbe53fcdd6f6577edc6c412e11f768eb36d4c243162",
+  "schema": "v30-biu-nmi-family-oracle-v1-validation",
+  "status": "PROSPECTIVE_FRESH_INC_AND_LEA_PREPARATIONS"
+}

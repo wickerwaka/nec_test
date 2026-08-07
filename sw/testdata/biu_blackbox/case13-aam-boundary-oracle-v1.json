@@ -1,0 +1,75 @@
+{
+  "controls": {
+    "clock_mhz": [
+      8,
+      4
+    ],
+    "histories": [
+      "A",
+      "B"
+    ],
+    "repetitions": 5
+  },
+  "forbidden_variables": [
+    "program seed",
+    "absolute bus ordinal",
+    "preparation-history fingerprint"
+  ],
+  "schema": "v30-biu-case13-aam-boundary-oracle-v1",
+  "scope": "selected CODE completion swept one clock at a time across a scheduled CODE grant and a no-immediate S_DHI RMW reservation",
+  "source": "sw/testdata/biu_blackbox/case13-aam-boundary-chip-v1/summary.json",
+  "source_sha256": "3e1da7050c0572c2ddc9cffdaa5316796f4a14a7ad11a66bc1eb148d9ba859eb",
+  "state_rule": [
+    "S_WAITX q_avl=2/q_cnt=4 at selected CODE T1 tags the fetch as the owning launch frame",
+    "a cidle-3 CODE grant first due in S_DGAP is retained for one clock and wins on the following S_DHI clock",
+    "a cidle-3 CODE grant first due on the owning S_DHI clock yields to the memory reservation"
+  ],
+  "status": "FROZEN_BEFORE_FINAL_RTL_VALIDATION",
+  "table": {
+    "w0": {
+      "action": "CODE",
+      "address": 1298,
+      "t1_from_selected_t4": 9
+    },
+    "w1": {
+      "action": "CODE",
+      "address": 1298,
+      "t1_from_selected_t4": 8
+    },
+    "w2": {
+      "action": "CODE",
+      "address": 1298,
+      "t1_from_selected_t4": 7
+    },
+    "w3": {
+      "action": "CODE",
+      "address": 1298,
+      "t1_from_selected_t4": 6
+    },
+    "w4": {
+      "action": "CODE",
+      "address": 1298,
+      "t1_from_selected_t4": 5
+    },
+    "w5": {
+      "action": "CODE",
+      "address": 1298,
+      "t1_from_selected_t4": 5
+    },
+    "w6": {
+      "action": "CODE",
+      "address": 1298,
+      "t1_from_selected_t4": 5
+    },
+    "w7": {
+      "action": "MEMR",
+      "address": 9212,
+      "t1_from_selected_t4": 6
+    },
+    "w8": {
+      "action": "MEMR",
+      "address": 9212,
+      "t1_from_selected_t4": 5
+    }
+  }
+}

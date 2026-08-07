@@ -1,0 +1,120 @@
+{
+  "bad": [
+    {
+      "deltas": [
+        -1
+      ],
+      "expected": [
+        1517
+      ],
+      "history": "A",
+      "match": false,
+      "observed": [
+        1516
+      ],
+      "resolved": {
+        "reads": [
+          107,
+          109
+        ],
+        "writes": [
+          110
+        ]
+      },
+      "role": "C1",
+      "seed": 12569,
+      "wait": 12
+    },
+    {
+      "deltas": [
+        -1
+      ],
+      "expected": [
+        1517
+      ],
+      "history": "A",
+      "match": false,
+      "observed": [
+        1516
+      ],
+      "resolved": {
+        "reads": [
+          107,
+          109
+        ],
+        "writes": [
+          110
+        ]
+      },
+      "role": "C1",
+      "seed": 12569,
+      "wait": 14
+    },
+    {
+      "deltas": [
+        -1
+      ],
+      "expected": [
+        1517
+      ],
+      "history": "B",
+      "match": false,
+      "observed": [
+        1516
+      ],
+      "resolved": {
+        "reads": [
+          107,
+          109
+        ],
+        "writes": [
+          110
+        ]
+      },
+      "role": "C1",
+      "seed": 12569,
+      "wait": 12
+    },
+    {
+      "deltas": [
+        -1
+      ],
+      "expected": [
+        1517
+      ],
+      "history": "B",
+      "match": false,
+      "observed": [
+        1516
+      ],
+      "resolved": {
+        "reads": [
+          107,
+          109
+        ],
+        "writes": [
+          110
+        ]
+      },
+      "role": "C1",
+      "seed": 12569,
+      "wait": 14
+    }
+  ],
+  "delta_counts": {
+    "-1": 4,
+    "0": 1148
+  },
+  "gate": "FAIL",
+  "matches": 636,
+  "mismatches": 4,
+  "records": 640,
+  "schema": "v30-case253-rtl-ins-deadline-v1",
+  "source_files": [
+    "sw/case250_fz12302_factorial.json",
+    "sw/case250_fz12466_factorial.json",
+    "sw/case250_fz12547_factorial.json",
+    "sw/case250_fz12569_factorial.json"
+  ],
+  "write_checks": 1152
+}
