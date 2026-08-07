@@ -47,7 +47,7 @@ begin
         end
     end
     // --- flag write ----------------------------------------------------
-    if (!e_is_rloop && e_w && (sig_mask != 16'd0))
+    if (!e_is_rloop && e_w && !ext4s_early_wblock && (sig_mask != 16'd0))
         commit_flags(sig_mask, sig_flags);
 
     // --- row type ------------------------------------------------------
@@ -164,6 +164,14 @@ begin
                 else if (wr_out_n != 2'd3) wr_out_n = wr_out_n + 2'd1;
             end else begin
                 if (rd_pending_n != 2'd3) rd_pending_n = rd_pending_n + 2'd1;
+                // Every scored ghost starts with an empty read pipeline.  If
+                // an excluded/open-bus stream reaches it behind an older read,
+                // retain baseline delivery rather than invent a tag queue.
+                if (ghost_read_stale_alu && (rd_pending_n == 2'd1)) begin
+                    ghost_rd_discard_n = 1'b1;
+                    ghost_rd_feed_n = eu_ghost_idle;
+                    ghost_rd_ready_n = 1'b0;
+                end
             end
         end
     end
@@ -199,7 +207,7 @@ begin
             st_n = S_RLOOP;
         end
         stop = 1'b1;
-    end else if (e_e) begin
+    end else if (e_e || ext4s_early_e) begin
         // the successor's opcode pop rides the E row's own clock; a store the
         // pairing latch still owes data defers it to the sequence tail.
         // F11, stated the only way that cannot drift: the demand and the take

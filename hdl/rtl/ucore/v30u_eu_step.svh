@@ -50,6 +50,7 @@ S_OPC_POP: if (chain == 4'd0) begin
     if (bnd_armed_n && bnd_take) begin
         bnd_armed_n   = 1'b0;
         irq_shadow_n  = 1'b0;
+        irq_fast_inta_n = 1'b1;
         irq_sel_nmi_n = irq_nmi_lvl;
         irq_sel_brk_n = !irq_take;      // §86: an EXTERNAL recognition wins
         brk_arm_n     = 1'b0;           //      ...and the arm is spent either way
@@ -271,18 +272,23 @@ end
 // loader_impl.h -- ModR/M, displacement, effective address
 //----------------------------------------------------------------------------
 S_MODRM: if (chain == 4'd0) begin
-    if (!q_ripe) stop = 1'b1;
+    if (!opc_rm_valid_n && !q_ripe) stop = 1'b1;
     else begin
-        ld_rm_n = q_byte;
+        // PF_LOST has one decoder-side ModR/M latch beside the existing
+        // opcode latch.  It changes only when this byte was observed; the
+        // rest of the loader continues to consume the BIU queue normally.
+        v1 = opc_rm_valid_n ? {8'd0, opc_rm_byte_n} : {8'd0, q_byte};
+        opc_rm_valid_n = 1'b0;
+        ld_rm_n = v1[7:0];
         pc_n = pc_n + 16'd1;
         ld_disp_n = 16'd0;
         ld_ripe_prev_n = 1'b0;
         chg_n = 2'd0;
-        if (q_byte[7:6] == 2'd1)                        st_n = S_D8_A;
-        else if (q_byte[7:6] == 2'd2)                   st_n = S_D16_LO;
-        else if ((q_byte[7:6] == 2'd0) && (q_byte[2:0] == 3'd6))
+        if (v1[7:6] == 2'd1)                            st_n = S_D8_A;
+        else if (v1[7:6] == 2'd2)                       st_n = S_D16_LO;
+        else if ((v1[7:6] == 2'd0) && (v1[2:0] == 3'd6))
                                                         st_n = S_D16_LO;
-        else if (q_byte[7:6] != 2'd3)                   st_n = S_EA_CHG;
+        else if (v1[7:6] != 2'd3)                       st_n = S_EA_CHG;
         else                                            st_n = S_BIND;
         if (st_n != S_BIND) stop = 1'b1;
     end
@@ -355,6 +361,18 @@ S_EA_CALC: begin
         3'd6: ea = (rmmod == 2'd0) ? 16'd0 : gpr_n[R_BP];
         default: ea = gpr_n[R_BW];
     endcase
+    // Retain the EA adder's pre-displacement half without overwriting the
+    // microcode tmpa register.  The distinction is normally invisible, but
+    // register-form LEA exposes it through the still-armed ADD datapath.
+    ea_residue_n = ea;
+    // Only the four two-register address forms select a distinct RHS rail.
+    // Remember both that select and the index value; a later unary EA clears
+    // the select but leaves tmpb itself to evolve exactly as before.
+    ea_pair_valid_n = (rmrm <= 3'd3);
+    if ((rmrm == 3'd0) || (rmrm == 3'd2))
+        ea_pair_rhs_n = gpr_n[R_IX];
+    else if ((rmrm == 3'd1) || (rmrm == 3'd3))
+        ea_pair_rhs_n = gpr_n[R_IY];
     ea = ea + ld_disp_n;
     rseg = seg_override_n ? {1'b0, seg_ovr_n}
          : ((rmrm == 3'd2) || (rmrm == 3'd3) ||
@@ -380,6 +398,11 @@ S_BIND: begin
     rmreg = ld_rm_n[5:3];
     rmrm  = ld_rm_n[2:0];
     ld_grpd_n = 1'b0;
+    // LEA exposes the address adder's full (post-displacement) result rather
+    // than consuming it as a memory address.  That full result is therefore
+    // what remains on the stale EA rail for a following register-form POP.
+    if (!ld_ext_n && (ld_b_n == 8'h8D) && (rmmod != 2'd3))
+        ea_residue_n = ind_n;
     if (ld_hasrm_n && (pla3_xop(pv) == 4'hB)) begin
         ld_page_n = ld_b_n[3] ? 3'd3 : 3'd2;
         opc_reg_n = ld_rm_n;
@@ -402,7 +425,19 @@ S_BIND: begin
     rep_pol_n  = 1'b0;
     if (pla3_xop(pv) == 4'hE) begin
         if (!ld_ext_n && (ld_b_n[7:1] == 7'b1110000)) begin
-            rep_test_n = TEST_Z; rep_pol_n = ld_b_n[0];
+            // A carry-repeat prefix on E0/E1 selects the CARRY rail, while
+            // the LOOP opcode bit -- not the 64/65 prefix bit -- remains the
+            // polarity input.  Socketed V30 controls over both prefixes,
+            // E0/E1 and the three reachable CMP flag combinations measured:
+            //   E0 + {64,65}: take iff CY=0
+            //   E1 + {64,65}: take iff CY=1
+            // This is one PLA-class mux plus the opcode polarity wire; it is
+            // also the shared cause of fuzz mc1/1112 and mc1/2523.
+            if ((rep_kind_n == REP_C) || (rep_kind_n == REP_NC))
+                rep_test_n = TEST_CY;
+            else
+                rep_test_n = TEST_Z;
+            rep_pol_n = ld_b_n[0];
         end else if ((rep_kind_n == REP_E) || (rep_kind_n == REP_NE)) begin
             rep_test_n = TEST_Z; rep_pol_n = (rep_kind_n == REP_E);
         end else if ((rep_kind_n == REP_C) || (rep_kind_n == REP_NC)) begin
@@ -413,13 +448,30 @@ S_BIND: begin
     bsw = ld_byte_n || (ld_ext_n && (pla3_xop(pv) == 4'h3));
     m_kind_n = OK_NONE; m_idx_n = 3'd0; m_byte_n = 1'b0;
     r_kind_n = OK_NONE; r_idx_n = 3'd0; r_byte_n = 1'b0; r_ea_n = 16'd0; r_seg_n = 3'd3;
+    // 8D / mod=3 performs no EA calculation.  Silicon nevertheless executes
+    // it and the row-1 SIGMA -> R transfer observes the retained EA-adder A
+    // lane.  If the preceding EA had two register inputs, its index rail is
+    // still selected on B; unary forms instead expose the ordinary tmpb rail.
+    // mc2/491 is the two-input witness (2594+retained SI 0fa3=3537), while
+    // mc1/1929 and t30-raw/624 are the unary counterexamples.
+    if (!ld_ext_n && (ld_b_n == 8'h8D) && (rmmod == 2'd3)) begin
+        tmpa_n = ea_residue_n;
+        if (ea_pair_valid_n) tmpb_n = ea_pair_rhs_n;
+    end
     if (ld_hasrm_n) begin
         if (pla3_sreg_mov(pv)) begin
             r_kind_n = OK_SREG; r_idx_n = {1'b0, rmreg[1:0]}; r_byte_n = 1'b0;
         end else begin
             r_kind_n = OK_REG;  r_idx_n = rmreg; r_byte_n = bsw;
         end
-        if (rmmod == 2'd3) begin
+        // INS/EXT always use the ModR/M fields as the two byte-register
+        // selectors.  The mod bits still determine how many displacement
+        // bytes the loader consumes, but they do not turn either selector
+        // into a memory operand: the bit-field stream itself is addressed by
+        // DS:IX in microcode.  On 0F 33 A8 disp16 silicon therefore reads
+        // DS:IX, with no speculative read of the decoded ModR/M EA.
+        if ((rmmod == 2'd3) ||
+            (ld_ext_n && (pla3_xop(pv) == 4'h3))) begin
             m_kind_n = OK_REG; m_idx_n = rmrm; m_byte_n = bsw;
         end else begin
             m_kind_n = OK_MEM; m_byte_n = ld_byte_n;
@@ -463,7 +515,32 @@ end
 
 S_PRERD: if (chain == 4'd0) begin
     // the pre-decode operand read; `wait_opr` opens micro-row 0 at its T4 + 2
-    if (!row_posted_n) begin
+    if (ghost_preread_epop) begin
+        irq_shadow_n = 1'b0;
+        opc_byte_n = q_byte;
+        opc_valid_n = 1'b1;
+        pop_is_first_n = 1'b0;
+        // If the ghost fed this successor, keep one discard token for the
+        // successor's now-unmatched physical completion.  A full-phase ghost
+        // did not feed it and is finished at this pop.
+        ghost_rd_discard_n = ghost_rd_feed_n || ghost_preread_tail;
+        ghost_rd_feed_n = 1'b0;
+        // Reuse the completion-maturity latch as the one-byte ModR/M arm.
+        // Non-ModR/M opcodes clear it here and cannot take a second byte.
+        ghost_rd_ready_n = pla3_has_modrm(pla3_native(q_byte));
+    end
+    if (ghost_preread_late) begin
+        // The successor T1 preceded the ghost completion, so silicon pops at
+        // the successor data edge and hands that edge's word directly to OPR.
+        // Keep one discard token for the later BIU done pulse; the word has
+        // already been consumed here and must not enter rdq a second time.
+        opr_n = eu_rd_edge_d;
+        opr_loaded_n = 1'b1;
+        row_posted_n = 1'b0;
+        ghost_rd_discard_n = 1'b1;
+        st_n = ld_grpd_n ? S_GRPD_CHG : S_ENTER;
+        if (ld_grpd_n) stop = 1'b1;
+    end else if (!row_posted_n) begin
         if (eu_slot_busy_n) stop = 1'b1;
         else begin
             row_posted_n = 1'b1;
@@ -523,7 +600,7 @@ S_ROW: if (chain == 4'd0) begin
         if ({1'b0, rowq_n} < row_qn) stop = 1'b1;         // a second byte
     end else if (row_pre_wait) begin
         stop = 1'b1;                                    // deliver_read
-    end else if (row_bus && !row_posted_n && eu_slot_busy) begin
+    end else if (row_slot_wait) begin
         // F11 AGAIN, AND THIS TIME IN THE PAIRING DIMENSION.  `bus_write` is
         //     if (pend_.active) { if (!opr_fresh_) deliver_read();
         //                         emit_pending(); }
@@ -561,8 +638,17 @@ S_ROW: if (chain == 4'd0) begin
     if (!stop) begin
         // the F interlock's own delivery, taken once
         if (e_f) begin
-            if (row_reads_opr && (rd_done_cnt_n != 2'd0))
+            if (row_reads_opr && (rd_done_cnt_n != 2'd0)) begin
                 rd_done_cnt_n = rd_done_cnt_n - 2'd1;
+                // An idle PF_LOST ghost can be the untagged head consumed by
+                // this ordinary micro-row read.  Its younger physical result
+                // is now the unmatched completion represented by the discard
+                // bit; the feed/ready rails have done their job.
+                if (ghost_rd_feed_n) begin
+                    ghost_rd_feed_n = 1'b0;
+                    ghost_rd_ready_n = 1'b0;
+                end
+            end
             if (rdq_n_n != 2'd0) begin
                 opr_n = rdq0_n; rdq0_n = rdq1_n; rdq_n_n = rdq_n_n - 2'd1;
                 opr_fresh_n = 1'b1;
@@ -570,6 +656,21 @@ S_ROW: if (chain == 4'd0) begin
             end
         end
         `include "v30u_eu_row.svh"
+        if (tmpa_n != tmpa) begin
+            // 8F row 0058 copies the standing SIGMA into tmpa.  If a distinct
+            // ModR/M EA rail was already selected, the absent register-form
+            // operand does not overwrite it; otherwise SIGMA becomes the
+            // residue.  The next row observes the result directly, so no
+            // extra address-history register is needed.
+            if (!((upc_page == 3'd0) && (upc_opc == 8'h8f) &&
+                  (upc_loc == 4'd0) && (m_kind_n == OK_REG) &&
+                  (wb_kind_n == OK_REG) && (ea_residue_n != tmpa)))
+                ea_residue_n = tmpa_n;
+        end
+        // Any real B-input micro-operation replaces the retained two-register
+        // EA selection.  This is why an intervening INC or LDS exposes tmpb,
+        // while mc2/491's byte load leaves the earlier SI rail standing.
+        if (tmpb_n != tmpb) ea_pair_valid_n = 1'b0;
     end
 end
 
@@ -592,6 +693,8 @@ S_RLOOP: if (chain == 4'd0) begin
         `include "v30u_eu_wd1.svh"
     end
     if (it_writes_tmpa) tmpa_n = it_tmpa;
+    if (tmpa_n != tmpa) ea_residue_n = tmpa_n;
+    if (tmpb_n != tmpb) ea_pair_valid_n = 1'b0;
     if (e_w && (it_fmask != 16'd0)) commit_flags(it_fmask, it_flags);
     // `while (count != 0)`: the model runs the operation COUNT times, so the
     // terminator is read AFTER this clock's decrement -- reading it before
@@ -716,12 +819,16 @@ S_HALTED: if (chain == 4'd0) begin
     end else if (irq_pin_int) begin
         eu_halted_n = 1'b0;              // `eu_unhalt` rides THIS clock
         bnd_armed_n = 1'b1;
+        irq_halt_entry_n = 1'b1;
         st_n = S_OPC_POP;
     end
     stop = 1'b1;
 end
 
 S_IRQ_D: if (chain == 4'd0) begin
+    // The HALT provenance remains visible through the first INTA post.  That
+    // single event both withdraws the wake fetch and defers INTA arbitration;
+    // the post itself spends the bit.
     // `CpuT::interrupt()`.  ONE internal decision clock (the boundary was the
     // clock before), then the entry's first row.  The loader is BYPASSED, so
     // every latch it would have written is presented explicitly -- in
@@ -739,6 +846,10 @@ S_IRQ_D: if (chain == 4'd0) begin
     upc_opc_n  = (irq_sel_nmi_n || irq_sel_brk_n) ? 8'h00 : 8'h02;
     upc_loc_n  = irq_sel_nmi_n ? 4'd2  : 4'd0;
     if (irq_sel_nmi_n) nmi_latch_n = 1'b0;
+    // NMI may still need the boundary-origin bit during row 7.10.0's fixed-
+    // vector overlap decision.  BRK has no waited cold-pop overlap; the bit is
+    // cleared for both paths no later than the first vector-read row.
+    if (irq_sel_brk_n) irq_fast_inta_n = 1'b0;
     seg_override_n = 1'b0; seg_ovr_n = 2'd3; rep_kind_n = REP_NONE; lock_pfx_n = 1'b0;
     pfxcnt_n = 8'd0;
     m_kind_n = OK_NONE; m_idx_n = 3'd0; m_ea_n = 16'd0; m_seg_n = 3'd3; m_byte_n = 1'b0;

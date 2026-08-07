@@ -63,7 +63,7 @@ wrand slices).
 Usage:
   timed_fuzz.py [--bank mc1,mc2,t30-raw,t30-brkem] [--limit N] [--jobs N]
                 [--pilot N] [--report out.json] [--details N] [--all]
-                [--core sim|ucore|fsm]
+                [--core sim|ucore|fsm] [--native-only] [--current-silicon]
 """
 
 import argparse
@@ -92,6 +92,8 @@ import simbin                                          # noqa: E402
 SIM = simbin.SIM
 ROM = ROOT / "docs" / "V20BITS.TXT"
 BANK = ROOT / "tests" / "v30" / "fuzz_bank"
+H7_RECAP = ROOT / "sw" / "testdata" / "sm3-h7rep" / "capture.json"
+H7_RECAP_ALL = ROOT / "sw" / "testdata" / "sm3-h7rep" / "control_all.json"
 
 import fuzz_classify as fc                            # noqa: E402
 import ucsim_fuzz as uf                               # noqa: E402
@@ -127,6 +129,74 @@ def excuse(entry, recs, win, evt_replay=False):
         # Detected with the bank's OWN detector.
         return "OPEN_BUS"
     return None
+
+
+def native_exclusion(entry, recs, win):
+    """Why this capture is outside a NATIVE-only score, or ``None``.
+
+    The dedicated ``t30-brkem`` bank is an emulation-mode population by
+    construction.  Outside it, use the part's own mode-status pin: PS3 is 1
+    on a CODE T1 exactly while the chip is executing 8080-mode instructions
+    (M9; ``ucsim_t_provenance.md``).  Requiring CODE+T1 avoids treating the
+    separately-booked retained PS3 value on a few stack writes as mode entry.
+
+    This predicate reads only the capture.  It never consults the engine's
+    answer, and a native seed that merely contains BRKEM bytes remains in the
+    score unless the chip actually enters emulation mode inside the window.
+    """
+    if entry.get("cid") == "t30-brkem":
+        return "8080_BANK"
+    for r in recs[:min(win, len(recs))]:
+        if r.get("t_state", r.get("t")) == 1 and \
+                r.get("bs_early") == 4 and (int(r.get("ps", 0)) & 8):
+            return "8080_EXECUTED"
+    return None
+
+
+_stale_h7_keys = None
+
+
+def stale_current_silicon(entry):
+    """Whether the checked-in silicon recapture contradicts this NMI trace.
+
+    ``sm3-h7rep/capture.json`` is the retained 10-repeat socket recapture of
+    the complete banked NMI gap-12 population.  ``control_all.json`` is the
+    three-repeat recapture of all 193 NMI seeds.  A member is stale only when
+    its identity matches (cid, k, image hash) and every fresh repetition moved
+    later than its banked gap.  This selects exactly the 30 floor captures
+    (0/300 reproduced) plus the sole contradicted neighbour, ``mc1/2468``
+    (0/3 reproduced); the other 162 non-floor seeds reproduced exactly
+    (``ucore_provenance.md`` sec.81.B).
+
+    This is deliberately an annotation unless ``--current-silicon`` is
+    requested.  Thus the historical registered gate and report remain
+    reproducible, while a score whose stated target is current silicon cannot
+    silently count captures current silicon refuted.
+    """
+    global _stale_h7_keys                                  # noqa: PLW0603
+    if _stale_h7_keys is None:
+        floor = json.loads(H7_RECAP.read_text())
+        controls = json.loads(H7_RECAP_ALL.read_text())
+        floor_keys = {
+            (s.get("cid"), int(s.get("k")), s.get("image_sha256"))
+            for s in floor.get("seeds", [])
+            if s.get("banked", {}).get("gap") == 12
+            and len(s.get("reps", [])) == 10
+            and all(r.get("gap") is not None and r["gap"] > 12
+                    for r in s.get("reps", []))
+        }
+        control_keys = {
+            (s.get("cid"), int(s.get("k")), s.get("image_sha256"))
+            for s in controls.get("seeds", [])
+            if len(s.get("reps", [])) == 3
+            and s.get("banked", {}).get("gap") is not None
+            and all(r.get("gap") is not None
+                    and r["gap"] > s["banked"]["gap"]
+                    for r in s.get("reps", []))
+        }
+        _stale_h7_keys = floor_keys | control_keys
+    return (entry.get("cid"), int(entry.get("k", -1)),
+            entry.get("image_sha256")) in _stale_h7_keys
 
 
 def banked_wvec(entry):
@@ -406,7 +476,8 @@ def first_kind(d):
     return "qsflicker" if d.flicker else "qs"
 
 
-def one(path, evt_replay=False, core="sim", hold_mode="banked"):
+def one(path, evt_replay=False, core="sim", hold_mode="banked",
+        native_only=False, current_silicon=False):
     entry = json.loads(gzip.decompress(Path(path).read_bytes()))
     out = {"path": str(path), "cid": entry.get("cid"), "k": entry.get("k"),
            "verdict": entry.get("verdict"), "reason": entry.get("promoted_reason"),
@@ -425,6 +496,10 @@ def one(path, evt_replay=False, core="sim", hold_mode="banked"):
 
     recs = entry["chip_rows"]
     win = uf.window_of(recs)
+    if native_only:
+        out["native_exclusion"] = native_exclusion(entry, recs, win)
+    if current_silicon:
+        out["stale_current_silicon"] = stale_current_silicon(entry)
     ex = excuse(entry, recs, win, evt_replay)
     armed = evt_replay and not ex
     with tempfile.TemporaryDirectory() as td:
@@ -610,6 +685,16 @@ def main():
     ap.add_argument("--pop", default="all", choices=("all", "reg", "evt"),
                     help="restrict to the registered (no-evt) or the EVT "
                          "population; selection only, scoring is unchanged")
+    ap.add_argument("--native-only", action="store_true",
+                    help="exclude the dedicated BRKEM bank and captures in "
+                         "which the chip actually executes CODE with PS3=1 "
+                         "(8080 emulation mode); capture-derived, never "
+                         "engine-answer-derived")
+    ap.add_argument("--current-silicon", action="store_true",
+                    help="exclude the 31 banked NMI captures contradicted by "
+                         "the checked-in socket recaptures (30 floor-12 seeds "
+                         "at 0/300 plus mc1/2468 at 0/3); historical default "
+                         "remains unchanged")
     args = ap.parse_args()
     if args.core != "sim" and not tb_bin(args.core).exists():
         sys.exit(f"timed_fuzz: no TB binary at {tb_bin(args.core)}")
@@ -644,7 +729,9 @@ def main():
     t0 = time.time()
     with Pool(args.jobs) as pool:
         res = pool.starmap(one, [(p, args.evt_replay, args.core,
-                                  args.rig_hold) for p in paths], chunksize=4)
+                                  args.rig_hold, args.native_only,
+                                  args.current_silicon) for p in paths],
+                           chunksize=4)
 
     cat = Counter(r["cat"] for r in res)
     # INV-1: a capture taken under a directive the rig could not apply leaves
@@ -652,8 +739,18 @@ def main():
     # reported on its own line below -- but nothing gates on it.
     inval = [r for r in res
              if r["cat"] in ("EXACT", "DIVERGE") and r.get("invalidated")]
+    nonnative = [r for r in res
+                 if r.get("native_exclusion") and
+                 r["cat"] in ("EXACT", "DIVERGE")]
+    stale = [r for r in res
+             if r.get("stale_current_silicon") and
+             r["cat"] in ("EXACT", "DIVERGE")]
     all_scored = [r for r in res
-                  if r["cat"] in ("EXACT", "DIVERGE") and not r.get("invalidated")]
+                  if r["cat"] in ("EXACT", "DIVERGE")
+                  and not r.get("invalidated")
+                  and not (args.native_only and r.get("native_exclusion"))
+                  and not (args.current_silicon and
+                           r.get("stale_current_silicon"))]
     reg = [r for r in all_scored if r.get("pop") != "EVT"]
     evtp = [r for r in all_scored if r.get("pop") == "EVT"]
     eng = {"sim": "the TIMED sim"}.get(args.core, f"the {args.core} RTL core")
@@ -696,6 +793,16 @@ def main():
               f"their chip_rows are retained and are true captures of the hold "
               f"the rig DID apply.  For reference only, cycle-exact "
               f"{ex}/{len(inval)}.  docs/notes/invalidation_ledger.md)")
+    if args.native_only:
+        why = Counter(r["native_exclusion"] for r in nonnative)
+        print(f"  NON-NATIVE     {len(nonnative)}  (NOT SCORED: "
+              + "  ".join(f"{k}={v}" for k, v in sorted(why.items())) + ")")
+    if args.current_silicon:
+        ex = sum(1 for r in stale if r["exact"])
+        print(f"  STALE NMI      {len(stale)}  (NOT SCORED: 31 banked NMI "
+              f"captures contradicted by current silicon: floor-12 0/300 "
+              f"plus mc1/2468 0/3; historical rows retained; reference "
+              f"cycle-exact {ex}/{len(stale)})")
     if args.evt_replay:
         for lbl, grp in (("REGISTERED", reg), ("EVT-unlocked", evtp),
                          ("COMBINED", all_scored)):

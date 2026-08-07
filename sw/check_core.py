@@ -65,7 +65,7 @@ CORE_RTL = {
 # tb_v30_core.sv's in-DUT probes (the `d`/`g`/`p` dumps and the coverage
 # readout) are bound to the FSM core's internal signal names; the TB is
 # otherwise engine-neutral.  See its "ENGINE-SPECIFIC PROBES" block.
-CORE_DEFS = {"fsm": ["-DV30_FSM_PROBES"], "ucore": []}
+CORE_DEFS = {"fsm": ["-DV30_FSM_PROBES"], "ucore": ["-DV30_UCORE"]}
 
 
 def core_paths(core):

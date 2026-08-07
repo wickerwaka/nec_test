@@ -85,13 +85,19 @@ logic   [1:0] scr_qop = '0;
 wire  [7:0] q_byte;
 wire        q_ripe, q_ripe_lead_n;
 wire  [3:0] q_cnt;
+wire        eu_ghost_full, eu_ghost_idle, eu_ghost_stack_first, eu_rd_wait;
 wire        eu_pop, eu_first, eu_flush;
-wire [15:0] eu_flush_cs, eu_flush_ip;
-wire        eu_post, eu_word, eu_pair, eu_pair2, eu_split;
-wire        eu_slot_busy, eu_slot_busy_n;
+wire        eu_flush_pre, eu_flush_rep, eu_flush_stage, eu_flush_pend;
+wire        eu_flush_nmi, eu_flush_int_live;
+wire [15:0] eu_flush_cs, eu_flush_cs_old, eu_flush_ip;
+wire        eu_flush_cs_we;
+wire        eu_post, eu_post_hold, eu_ghost_preview, eu_halt_irq, eu_vector_post;
+wire        eu_word, eu_pair, eu_pair2, eu_split;
+wire        eu_slot_busy, eu_slot_busy_n, eu_access_active;
+wire        eu_direct_fetch, eu_fetch_tail;
 wire  [2:0] eu_bs;
 wire [19:0] eu_addr, eu_addr2;
-wire  [1:0] eu_seg;
+wire  [1:0] eu_seg, eu_seg2;
 wire [15:0] eu_wdata, eu_rdata_n;
 wire        eu_rd_done_n, eu_wr_done_n, eu_wr_eval;
 wire        eu_rd_edge;
@@ -175,17 +181,37 @@ v30u_biu u_biu (
     .q_pop      (q_pop),
     .q_first    (q_first),
     .q_flush    (q_flush),
+    .flush_pre  (scr_en ? 1'b0 : eu_flush_pre),
+    .flush_rep  (scr_en ? 1'b0 : eu_flush_rep),
+    .flush_stage(scr_en ? 1'b0 : eu_flush_stage),
+    .flush_pend (scr_en ? 1'b0 : eu_flush_pend),
+    .flush_nmi  (scr_en ? 1'b0 : eu_flush_nmi),
+    .flush_int_live(scr_en ? 1'b0 : eu_flush_int_live),
     .flush_cs   (flush_cs),
+    .flush_cs_old(eu_flush_cs_old),
+    .flush_cs_we(scr_en ? 1'b0 : eu_flush_cs_we),
     .flush_ip   (flush_ip),
     .eu_post    (scr_en ? 1'b0 : eu_post),
+    .eu_post_hold(scr_en ? 1'b0 : eu_post_hold),
+    .eu_ghost_preview(scr_en ? 1'b0 : eu_ghost_preview),
+    .eu_halt_irq(scr_en ? 1'b0 : eu_halt_irq),
+    .eu_vector_post(scr_en ? 1'b0 : eu_vector_post),
     .eu_bs      (eu_bs),
     .eu_addr    (eu_addr),
     .eu_addr2   (eu_addr2),
     .eu_split   (eu_split),
     .eu_seg     (eu_seg),
+    .eu_seg2    (eu_seg2),
     .eu_word    (eu_word),
     .eu_slot_busy (eu_slot_busy),
     .eu_slot_busy_n (eu_slot_busy_n),
+    .eu_access_active(eu_access_active),
+    .eu_direct_fetch(eu_direct_fetch),
+    .eu_fetch_tail(eu_fetch_tail),
+    .eu_ghost_full(eu_ghost_full),
+    .eu_ghost_idle(eu_ghost_idle),
+    .eu_ghost_stack_first(eu_ghost_stack_first),
+    .eu_rd_wait(eu_rd_wait),
     .eu_pair    (scr_en ? 1'b0 : eu_pair),
     .eu_pair2   (eu_pair2),
     .eu_wdata   (eu_wdata),
@@ -227,17 +253,37 @@ v30u_eu u_eu (
     .q_pop      (eu_pop),
     .q_first    (eu_first),
     .q_flush    (eu_flush),
+    .flush_pre  (eu_flush_pre),
+    .flush_rep  (eu_flush_rep),
+    .flush_stage(eu_flush_stage),
+    .flush_pend (eu_flush_pend),
+    .flush_nmi  (eu_flush_nmi),
+    .flush_int_live(eu_flush_int_live),
     .flush_cs   (eu_flush_cs),
+    .flush_cs_old(eu_flush_cs_old),
+    .flush_cs_we(eu_flush_cs_we),
     .flush_ip   (eu_flush_ip),
     .eu_post    (eu_post),
+    .eu_post_hold(eu_post_hold),
+    .eu_ghost_preview(eu_ghost_preview),
+    .eu_halt_irq(eu_halt_irq),
+    .eu_vector_post(eu_vector_post),
     .eu_bs      (eu_bs),
     .eu_addr    (eu_addr),
     .eu_addr2   (eu_addr2),
     .eu_split   (eu_split),
     .eu_seg     (eu_seg),
+    .eu_seg2    (eu_seg2),
     .eu_word    (eu_word),
     .eu_slot_busy (eu_slot_busy),
     .eu_slot_busy_n (eu_slot_busy_n),
+    .eu_access_active(eu_access_active),
+    .eu_direct_fetch(eu_direct_fetch),
+    .eu_fetch_tail(eu_fetch_tail),
+    .eu_ghost_full(eu_ghost_full),
+    .eu_ghost_idle(eu_ghost_idle),
+    .eu_ghost_stack_first(eu_ghost_stack_first),
+    .eu_rd_wait(eu_rd_wait),
     .eu_pair    (eu_pair),
     .eu_pair2   (eu_pair2),
     .eu_wdata   (eu_wdata),

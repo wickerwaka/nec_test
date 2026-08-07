@@ -91,19 +91,38 @@ package v30_ss_pkg;
   // that decides whether an `F` row sourcing OPR has anything to wait for.
   // Same rule, same reason as every append before it: a v6 stream has no word
   // for it and must not be silently accepted.
-  localparam int          SS_VERSION   = 8'h87;   // ucore map v7 (SM3 s26)
+  // WRFUZZ H3: 0x87 -> 0x88.  The two request-phase bits packed in
+  // `SSA_B_RQ_LATE` are appended at 0x06A; 0x066-0x069 remain retired.
+  // WRFUZZ 8F ghost: 0x88 -> 0x89.  `ghost_rd_discard` is appended at 0x176;
+  // it follows the discarded read across the instruction boundary until the
+  // BIU returns it, so a stream frozen in that interval must carry the bit.
+  // WRFUZZ LEA residue: 0x89 -> 0x8A.  `ea_residue` is appended at 0x177;
+  // it is the retained EA-adder lane exposed by undocumented 8D / mod=3.
+  // WRFUZZ LEA pair rail: 0x8A -> 0x8B.  The retained RHS and its two-register
+  // select are appended at 0x178-0x179.
+  // WRFUZZ 8F ghost feed: 0x8B -> 0x8D.  `ghost_rd_feed` and
+  // `ghost_rd_ready` are appended at 0x17A-0x17B: the first distinguishes an
+  // idle-phase ghost that feeds the overlapping pre-read, and the second says
+  // the ghost completion matured before successor T1 and permits its early F.
+  // WRFUZZ PF_LOST decoder hold: 0x8D -> 0x8E.  One valid bit and one byte
+  // append the observed successor ModR/M latch at 0x17C-0x17D.
+  localparam int          SS_VERSION   = 8'h8E;   // ucore map v14 (PF_LOST ModR/M hold)
   localparam logic [8:0]  SSA_TAG      = 9'h000;
   localparam logic [8:0]  SS_BIU_BASE  = 9'h001;
-  localparam int          SS_BIU_COUNT = 100;  // U4 F49 (+5); s11 (-4); s21 (-1)
+  localparam int          SS_BIU_COUNT = 101;  // U4 F49 (+5); s11 (-4); s21 (-1); H3 (+1)
   localparam logic [8:0]  SS_EU_BASE   = 9'h100;
-  localparam int          SS_EU_COUNT  = 118;  // U2 p5 (+2 recog); U4 F49 (+1);
+  localparam int          SS_EU_COUNT  = 126;  // U2 p5 (+2 recog); U4 F49 (+1);
                                               // SM3 s25 / §86 (+1, the BRK arm);
-                                              // SM3 s26 / §87.A (+1, opr_loaded)
+                                              // SM3 s26 / §87.A (+1, opr_loaded);
+                                              // WRFUZZ 8F (+1, discarded read);
+                                              // WRFUZZ LEA (+1, EA residue);
+                                              // WRFUZZ 8F (+2, feed + maturity);
+                                              // WRFUZZ PF_LOST (+2, ModR/M hold)
   localparam int          SS_COUNT     = 1 + SS_BIU_COUNT + SS_EU_COUNT;
   localparam logic [15:0] SS_TAG       = {8'(SS_VERSION), 8'(SS_COUNT)};
 
   //--------------------------------------------------------------------------
-  // BIU region (module v30u_biu): 0x001-0x065
+  // BIU region (module v30u_biu): 0x001-0x06A, with retired holes
   //--------------------------------------------------------------------------
   localparam logic [8:0] SSA_B_T1_HALF2         = 9'h001;
   localparam logic [8:0] SSA_B_RUN              = 9'h002;
@@ -215,7 +234,9 @@ package v30_ss_pkg;
     if (i == 0)                 ss_addr_of = SSA_TAG;
     else if (i <= SS_BIU_COUNT) begin
       a = SS_BIU_BASE + 9'(i - 1);
-      ss_addr_of = (a >= 9'h038) ? (a + 9'd1) : a;
+      if (a >= 9'h038) a = a + 9'd1;
+      if (a >= 9'h066) a = a + 9'd4;
+      ss_addr_of = a;
     end
     else                        ss_addr_of = SS_EU_BASE  + 9'(i - 1 - SS_BIU_COUNT);
   endfunction
@@ -253,8 +274,13 @@ package v30_ss_pkg;
   // v4 one by accident.
   // ---------------------------------------------------------------------------
 
+  // WRFUZZ H3 -- request arrival phase.  Bits [1:0] correspond to the two
+  // backing-store entries and say that a write reservation arrived no earlier
+  // than the preceding read's T3.  Packed into one appended stream word.
+  localparam logic [8:0] SSA_B_RQ_LATE          = 9'h06A;
+
   //--------------------------------------------------------------------------
-  // EU region (module v30u_eu): 0x100-0x173
+  // EU region (module v30u_eu): 0x100-0x177
   //--------------------------------------------------------------------------
   localparam logic [8:0] SSA_E_AX                   = 9'h100;
   localparam logic [8:0] SSA_E_CX                   = 9'h101;
@@ -379,11 +405,12 @@ package v30_ss_pkg;
   // three pipelines packed (INT 4, NMI 5, IE 4 = 13 bits) and the latches.
   localparam logic [8:0] SSA_E_PIN_PIPE             = 9'h171;
   // ...and `SSA_E_IRQ_LATCH` is the recognition's LATCH word: nmi_latch,
-  // irq_shadow, bnd_armed, irq_sel_nmi, unhalt_pend and (U2 pass 6) the REP
-  // boundary's anchor selector `rep_chain`.  Bit 5 of a word that was already
-  // in the map -- NO address is added and NO count changes, so SS_VERSION does
-  // NOT move; a v1 stream restores bit 5 as 0, which is the sequence-start
-  // value `begin_sequence()` writes anyway.
+  // irq_shadow, bnd_armed, irq_sel_nmi, unhalt_pend, (U2 pass 6) the REP
+  // boundary's anchor selector `rep_chain`, and first-INTA collision
+  // provenance, and bit 7 records that the selected interrupt woke HALT.
+  // Bits 5:7 of a word that was already in the map -- NO address
+  // is added and NO count changes, so SS_VERSION does NOT move; a v1 stream
+  // restores them as 0, their sequence-start values.
 
   localparam logic [8:0] SSA_E_IRQ_LATCH            = 9'h172;
 
@@ -412,6 +439,28 @@ package v30_ss_pkg;
   // inside a parked machine that did not carry this bit would restore a part
   // that resumes an instruction silicon never finishes.
   localparam logic [8:0] SSA_E_OPR_LOADED           = 9'h175;
+
+  // The undocumented 8F mod3 stack read completes after the instruction has
+  // retired.  This bit follows the resulting one-place displacement through
+  // an overlapping read chain, so the unmatched tail completion is dropped.
+  localparam logic [8:0] SSA_E_GHOST_DISCARD        = 9'h176;
+
+  // The retained EA-adder lane normally follows tmpa.  A ModR/M address
+  // calculation writes its pre-displacement base here without disturbing the
+  // live microcode temp; undocumented 8D / mod=3 is its only consumer.
+  localparam logic [8:0] SSA_E_EA_RESIDUE           = 9'h177;
+
+  // Retained RHS selection from the last two-register ModR/M EA.  The valid
+  // bit is cleared by every unary EA, whose undocumented LEA path uses tmpb.
+  localparam logic [8:0] SSA_E_EA_PAIR_RHS          = 9'h178;
+  localparam logic [8:0] SSA_E_EA_PAIR_VALID        = 9'h179;
+
+  // Only an idle-phase ghost can become the untagged head consumed by a
+  // younger pre-read.  Full-phase ghosts retain ordinary discard semantics.
+  localparam logic [8:0] SSA_E_GHOST_FEED           = 9'h17A;
+  localparam logic [8:0] SSA_E_GHOST_READY          = 9'h17B;
+  localparam logic [8:0] SSA_E_OPC_RM_VALID         = 9'h17C;
+  localparam logic [8:0] SSA_E_OPC_RM_BYTE          = 9'h17D;
 
   function automatic int ss_field_width(input logic [8:0] a);
     case (a)
@@ -517,6 +566,7 @@ package v30_ss_pkg;
       // at the END of the package, so every symbol is in scope.
       SSA_B_RD_FIRST_HI:     ss_field_width = 8;
       SSA_B_RD_WAS_SPLIT:    ss_field_width = 1;
+      SSA_B_RQ_LATE:         ss_field_width = 2;
       SSA_B_CUR_ODD:         ss_field_width = 1;   // F49
       SSA_B_CMT_ODD:         ss_field_width = 1;   // F49
       SSA_B_RQ0_ODD:         ss_field_width = 1;   // F49
@@ -642,9 +692,17 @@ package v30_ss_pkg;
       SSA_E_PE_PFXCNT:           ss_field_width = 8;
       SSA_E_PE_FLAGS:            ss_field_width = 3;
       SSA_E_PIN_PIPE:            ss_field_width = 13;
-      SSA_E_IRQ_LATCH:           ss_field_width = 6;
+      SSA_E_IRQ_LATCH:           ss_field_width = 8;
       SSA_E_BRK:                 ss_field_width = 7;
       SSA_E_OPR_LOADED:          ss_field_width = 1;   // §87.A
+      SSA_E_GHOST_DISCARD:       ss_field_width = 1;
+      SSA_E_EA_RESIDUE:          ss_field_width = 16;
+      SSA_E_EA_PAIR_RHS:         ss_field_width = 16;
+      SSA_E_EA_PAIR_VALID:       ss_field_width = 1;
+      SSA_E_GHOST_FEED:          ss_field_width = 1;
+      SSA_E_GHOST_READY:         ss_field_width = 1;
+      SSA_E_OPC_RM_VALID:        ss_field_width = 1;
+      SSA_E_OPC_RM_BYTE:         ss_field_width = 8;
       SSA_E_RST_CTR:             ss_field_width = 3;   // F49
       default: ss_field_width = 0;
     endcase

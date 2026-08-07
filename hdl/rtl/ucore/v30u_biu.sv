@@ -128,19 +128,39 @@ module v30u_biu (
     input             q_pop,       // consumer takes it (qualify with q_ripe)
     input             q_first,     // this pop is an F (instruction first byte)
     input             q_flush,     // flush + redirect, acts on THIS clock
+    input             flush_pre,   // empty-tail REP withdrawal, one row before FLUSH
+    input             flush_rep,   // ...from the REP-withdrawal control path
+    input             flush_stage, // ...with a staged element tail of either kind
+    input             flush_pend,  // ...with an accepted EU element still draining
+    input             flush_nmi,   // ...recognized from the NMI latch
+    input             flush_int_live, // ...with the maskable pin still asserted
     input      [15:0] flush_cs,
+    input      [15:0] flush_cs_old,
+    input             flush_cs_we,
     input      [15:0] flush_ip,
 
     // --- EU bus requests (M10: ONE request slot) ---
     input             eu_post,     // post an access this clock
+    input             eu_post_hold,// reserve now, arbitrate on next idle clock
+    input             eu_ghost_preview, // PF_LOST status preview, then direct T1
+    input             eu_halt_irq, // first INTA belongs to a HALT wake
+    input             eu_vector_post,
     input       [2:0] eu_bs,       // 0 INTA 1 IOR 2 IOW 5 MEMR 6 MEMW
     input      [19:0] eu_addr,
     input      [19:0] eu_addr2,    // the SECOND cycle of a split word access
     input             eu_split,    // ...which the BIU manufactures (M10)
     input       [1:0] eu_seg,      // S4:S3 -- 0 ES 1 SS 2 CS/none 3 DS
+    input       [1:0] eu_seg2,     // second half may retain a different rail
     input             eu_word,
     output            eu_slot_busy,
     output            eu_slot_busy_n,
+    output            eu_access_active,
+    output            eu_direct_fetch,
+    output            eu_fetch_tail,
+    output            eu_ghost_full,
+    output            eu_ghost_idle,
+    output            eu_ghost_stack_first,
+    output            eu_rd_wait,
     input             eu_pair,     // pair write data into the reserved cycle
     input             eu_pair2,    // ...and it fills TWO of them (a split)
     input      [15:0] eu_wdata,
@@ -308,6 +328,7 @@ reg        rq_noaddr [0:1];
 reg        rq_wr   [0:1];
 reg        rq_need [0:1];
 reg        rq_last [0:1];
+reg        rq_late [0:1];
 reg        slot_busy;
 reg        slot_accept;
 reg  [1:0] opr_held;
@@ -319,6 +340,7 @@ integer    pk;
 // one per CYCLE.  (`sim/biu_timed.cpp::mem_write` computes `d` once, outside
 // its own two-cycle loop.)  Combinational scratch, not state.
 reg        pair_odd;
+reg        inta_halt_l;    // combinational HALT-announcement withdrawal edge
 reg  [1:0] done_ctr;      // eu_done lands at e+2 -- see the T4 block
 reg        done_wr;
 reg        rd_done_p;
@@ -423,6 +445,7 @@ reg r_rq_noaddr [0:1];
 reg r_rq_wr [0:1];
 reg r_rq_need [0:1];
 reg r_rq_last [0:1];
+reg r_rq_late [0:1];
 
 integer ri;   // the always_comb's array copy-in
 integer rj;   // the always_ff's array commit
@@ -440,18 +463,109 @@ endfunction
 // F2 (generalised): SUSP -- and an EU bus request, which reaches the BIU
 // through the same one-row-early control decode -- takes back a fetch the
 // eval has just chosen, before its status reaches the pins.
-wire ann_kill  = (eu_susp || eu_post || q_flush) && r_cmt_valid && r_cmt_fetch &&
-                 (r_cdage == 3'd0);
+// H3: a flush-raised prefetch whose EMPTY indication reaches the queue port is
+// no longer withdrawn by the following vector request.  Merely having no E
+// pending is not enough: ordinary owed announcements can share that state and
+// must still be killed.  This is the pin-visible distinction between the two
+// opposite trap-entry orderings in wr1/207019; no interrupt-source identity is
+// involved.
+wire ann_kill  = (q_flush ||
+                  ((eu_susp || eu_post) &&
+                   !(r_cmt_was_owed && qs_e_now))) &&
+                 r_cmt_valid && r_cmt_fetch && (r_cdage == 3'd0);
 // M2: `cmt_valid` is cleared when its T1 opens, so "an announcement stands"
 // IS "this clock is a display clock".
 wire display   = r_cmt_valid && !ann_kill;
+
+// The REP-withdrawal FLUSH can use the redirect edge as an idle arbitration
+// point.  Empty tails normally open T1 directly.  An NMI that meets the
+// younger decoder landing (dage <= 4) withdraws that point; the older landing
+// has already crossed it.  A staged read tail normally owns the edge, except
+// when a still-asserted maskable INT meets it after no write completion on the
+// preceding clock: that case takes an ordinary eval on the flush edge (and
+// therefore still has a separate announcement clock), not the direct-T1 path.
+// A staged completion delays EMPTY except while a running non-fetch access is
+// still before T3.  In that early address phase the access owns the bus but
+// not the queue status port, so the redirect exposes EMPTY on its own clock;
+// from T3 onward the data/READY tail owns the hand-over.  These are all
+// existing phase/ownership rails: there is no interrupt counter, queue, or
+// identity table.
+//
+// SOCKET, 2026-08-06, row 7.40.7 -> redirected CODE T1:
+//   empty/direct: mc1/874, mc2/700,2408,3758; NMI-age boundary: mc1/410,607
+//   staged/slow:  mc2/633,1616, t30-raw/235; live-INT exception: mc2/573
+wire flush_idle = !r_run && !r_cmt_valid && (r_rq_n == 2'd0) && !eu_post;
+wire flush_nmi_young = flush_nmi && (r_dage <= 3'd4);
+wire flush_staged_eval = flush_stage && flush_pend && flush_int_live &&
+                         !r_wr_done_p && flush_idle;
+wire flush_fast = flush_rep && flush_idle && !flush_stage &&
+                  !flush_nmi_young;
+// A hardware acknowledge posted on a CODE T4 replaces a speculative CODE
+// announcement already waiting behind that fetch.  The status decoder sees
+// the replacement on the collision clock; the ordinary committed-request
+// path below still separates that display from its T1.  `eu_post_hold` blocks
+// this fast replacement when the EU identifies the slow first-INTA collision.
+wire inta_tail_replace = eu_post && (eu_bs == BS_INTA) &&
+                         !eu_post_hold &&
+                         r_run && r_cur_fetch && (r_ts == TS_T4) &&
+                         r_cmt_valid && r_cmt_fetch;
+// A HALT wake can leave a speculative CODE announcement standing through the
+// pseudo-cycle's T4.  When the dispatcher arrives, silicon withdraws that
+// announcement before it opens T1; mc2/327 is the retained socket instance.
+// `eu_halt_irq` carries the HALT provenance one clock before the INTA row.
+wire inta_follow_preview = eu_post && (eu_bs == BS_INTA) &&
+                           r_rd_was_split;
+wire inta_preview = inta_tail_replace || inta_follow_preview;
+wire vector_follow_preview = eu_vector_post && r_rd_was_split;
+// The withdrawn wake fetch loaded the status latch before HALT's final phase.
+// Keep CODE visible on that T4 even though the request has been rewound; the
+// following clock is the measured PASV arbitration gap.
+wire halt_withdraw_preview = eu_halt_irq && r_run && r_cur_halt &&
+                             (r_ts == TS_T4) && !r_cmt_valid &&
+                             (r_cdage == 3'd2);
+// A direct REP redirect is the one fetch whose T1 opened without a registered
+// announcement.  Its announcement age therefore remains zero for the whole
+// cycle; an ordinary fetch necessarily starts with cdage >= 1.  The other
+// eligible overlap is the final landing phase of a fetch.  `absorb=1`
+// identifies that landing.  A no-wait landing still has an unripe queue and
+// age <= 4; the first waited landing has made the queue ripe and reached age
+// 5.  Older landings are the measured stale-tail counterexamples.  Publish
+// only this existing phase state so the vector sequencer needs no new history
+// latch on either side.
+assign eu_direct_fetch = r_run && r_cur_fetch && (r_cdage == 3'd0);
+assign eu_fetch_tail = (r_absorb_ttl == 2'd1) &&
+                       ((!q_ripe && (r_dage <= 3'd4)) ||
+                        (q_ripe && (r_dage == 3'd5)));
+// During fetch T2/Tw the internal AD rail is fully precharged; later phases
+// leave the undocumented 8F register-POP address fighting the stack rail.
+assign eu_ghost_full = r_run && r_cur_fetch &&
+                       ((r_ts == TS_T1) ||
+                        ((r_ts == TS_T2) && !ready) ||
+                        (((r_ts == TS_T3) || (r_ts == TS_TW)) && !ready));
+// The two other observable points are existing ownership states, not ghost
+// history.  At idle the internal address rail has discharged only to its
+// byte-slice boundaries.  On a fetch T4 with two ripe bytes, an odd stack
+// access has already launched its first byte before the stale rail arrives.
+// These are sampled on the request edge, one state before the observer trace
+// prints the resulting idle/T4 state.
+assign eu_ghost_idle = r_run && r_cur_fetch && (r_ts == TS_T4);
+assign eu_ghost_stack_first = r_run && r_cur_fetch &&
+                              (r_ts == TS_T3) && ready &&
+                              (r_q_cnt >= 4'd2);
+// A younger read which is still held off by READY cannot put its own word on
+// the untagged data rail before an older PF_LOST completion.  Publish that
+// existing pin/ownership decision; no wait counter or new history is needed.
+assign eu_rd_wait = r_run && !r_cur_fetch && !r_cur_wr && !r_cur_halt &&
+                    !ready;
 
 // M1/M2r: the eval instant.  See the header.
 wire eval_inst = r_run && !r_evald &&
                  (r_cur_halt ? (r_dage >= 3'd2)
                            : ((r_dage >= 3'd3) && r_ready_prev));
 // M2: ...and the status register is RELEASED at that instant (inclusive).
-wire st_rel    = r_evald || eval_inst;
+wire st_rel    = r_evald || eval_inst ||
+                 (r_run && r_cur_noaddr && r_cur_odd &&
+                  (r_ts >= TS_T2));
 // M21: from the HALT's status release on there is no bus cycle left to
 // arbitrate, so EVERY clock is an ordinary idle eval.
 wire halt_free = r_run && r_cur_halt && r_evald;
@@ -507,7 +621,14 @@ wire pop_now       = q_pop && q_ripe;
 // clock on the term is vacuous (`c >= e_from` always holds), which is why it
 // is a term of the flush clock and not a flop.
 wire e_from_block = q_flush && r_run && r_cur_fetch;
-wire qs_e_now = (r_e_pend || q_flush) && !pop_now && !e_from_block &&
+wire qs_e_now = (r_e_pend || q_flush ||
+                (flush_pre && !flush_nmi_young)) &&
+                !(q_flush && flush_rep &&
+                  ((!flush_stage && !flush_nmi_young) ||
+                   (flush_pend &&
+                    !(r_run && !r_cur_fetch && (r_ts < TS_T3)) &&
+                    !flush_staged_eval))) &&
+                !pop_now && !e_from_block &&
                 (r_absorb_ttl == 2'd0) && !qs_port_fetch &&
                 // (c) a ready-but-not-started EU request owns the next slot
                 // and the flush display waits for that request's STATUS
@@ -523,6 +644,7 @@ wire qs_e_now = (r_e_pend || q_flush) && !pop_now && !e_from_block &&
                 // MEASURED: `E8 idx 1` shows E on the push's ANNOUNCEMENT
                 // clock (row 8), not on the flush row's own clock (row 7).
                 (((r_rq_n == 2'd0) && !eu_post) || q_flush ||
+                 (flush_pre && !flush_nmi_young) ||
                  (r_cmt_valid && !r_cmt_fetch) || (r_run && !r_cur_fetch));
 
 assign qs = qs_e_now ? QS_EMPTY
@@ -547,6 +669,7 @@ assign qs = qs_e_now ? QS_EMPTY
 //----------------------------------------------------------------------------
 assign eu_slot_busy   = r_slot_busy;
 assign eu_slot_busy_n = slot_busy;
+assign eu_access_active = r_run && !r_cur_fetch && !r_cur_halt;
 assign eu_wr_done_n   = wr_done_nxt;
 assign eu_wr_eval     = eval_inst && r_cur_wr && r_cur_rd_last;
 // F31 -- OPR-OWNERSHIP IS ONE COUNTER, AND IT IS THE BIU'S.  `opr_held` IS the
@@ -628,7 +751,14 @@ wire cur_inta  = r_run && (r_ts == TS_T1) && r_cur_noaddr;
 // after the announcement.
 wire halt_addr = r_run && r_cur_halt && (r_ts == TS_T1);
 
-assign bs = display        ? r_cmt_bs
+wire [19:0] flush_fast_addr = {flush_cs, 4'd0} + {4'd0, flush_ip};
+
+assign bs = halt_withdraw_preview ? BS_CODE
+          : inta_preview ? BS_INTA
+          : vector_follow_preview ? BS_MEMR
+          : eu_ghost_preview ? eu_bs
+          : flush_fast     ? BS_CODE
+          : display        ? r_cmt_bs
           : (r_run && !st_rel) ? r_cur_bs
                              : BS_PASV;
 
@@ -658,6 +788,26 @@ assign ube_n = (display && (r_cdage != 3'd0)) ? r_cmt_ube_n
 wire [19:0] t1_addr = r_cur_late_t1 ? {data_ps(r_cur_seg), r_cur_addr[15:0]}
                                   : r_cur_addr;
 
+// A segment-register write and the display of an already-committed prefetch
+// share one physical address path.  The pending fetch is retargeted from the
+// new CS on that clock; a fetch whose T1 is already running is not.  The one
+// asymmetric rail is CS[8] -> A12: a rising bit arrives one fetch later while
+// a falling bit and every other measured CS bit arrive immediately.
+//
+// SOCKET, 2026-08-06, identical 8E /1 timing and source:
+//   old CS[8]=0, new CS=0500 -> first 04518, then 0551a
+//   old CS[8]=0, new CS=0700 -> first 06518, then 0751a
+//   old CS[8]=0, new CS=0400 -> first 04518, then 0451a
+//   old CS[8]=1, new CS=0400 -> first 13518, then 1351a
+// The last case is the falsifier: this is a delayed SET path, not retention.
+wire [15:0] cmt_cs_live = {flush_cs[15:9],
+                           flush_cs[8] & flush_cs_old[8],
+                           flush_cs[7:0]};
+wire [19:0] cmt_addr_live = {cmt_cs_live, 4'd0} +
+                            {4'd0, r_cmt_prev_fp};
+wire cmt_cs_retarget = flush_cs_we && r_cmt_valid && r_cmt_fetch;
+wire [19:0] display_addr = cmt_cs_retarget ? cmt_addr_live : r_cmt_addr;
+
 // F53 -- M23 ENFORCED ON THE **DISPLAY** SIDE OF THE SAME MUX, AND ON BOTH
 // KINDS OF ADDRESS PHASE.
 //
@@ -681,7 +831,7 @@ wire [19:0] t1_addr = r_cur_late_t1 ? {data_ps(r_cur_seg), r_cur_addr[15:0]}
 // No flop is added and nothing outside the pin mux is touched.
 // Falsifier: any capture whose A19-16 carries an address on two consecutive
 // clocks of one announcement, or a segment status on the display clock itself.
-wire [3:0] disp_hi  = (r_cdage == 3'd0) ? r_cmt_addr[19:16]
+wire [3:0] disp_hi  = (r_cdage == 3'd0) ? display_addr[19:16]
                                         : data_ps(r_cmt_seg);
 wire [3:0] dinta_hi = (r_cdage == 3'd0) ? 4'h0
                                         : data_ps(r_cmt_seg);
@@ -705,9 +855,12 @@ wire [15:0] cur_data_o = pair_now
                                         : eu_wdata)
                        : r_cur_data;
 
-assign ad_o = disp_inta                ? {dinta_hi, 16'h0}
+assign ad_o = (vector_follow_preview && t1_half2) ? eu_addr
+            : flush_fast               ? flush_fast_addr
+            : disp_inta                ? {dinta_hi, 16'h0}
             : cur_inta                 ? {cinta_hi, 16'h0}
-            : display                 ? {disp_hi, r_cmt_addr[15:0]}
+            : eu_ghost_preview         ? {data_ps(r_cur_seg), eu_addr[15:0]}
+            : display                 ? {disp_hi, display_addr[15:0]}
             : halt_addr               ? r_cur_addr
             : (r_run && (r_ts == TS_T1))  ? (r_cur_wr && t1_half2
                                          ? {r_cur_addr[19:16], cur_data_o}
@@ -717,7 +870,8 @@ assign ad_o = disp_inta                ? {dinta_hi, 16'h0}
 // F55: `halt_addr` is now wholly subsumed by the `r_ts == TS_T1` term here and
 // is left named for what it selects in `ad_o` above -- the HALT's T1 publishes
 // `r_cur_addr` and not `t1_addr`, which is unchanged.
-assign ad_oe_addr = (display || (r_run && (r_ts == TS_T1)) || halt_addr) &&
+assign ad_oe_addr = (flush_fast || display ||
+                     (r_run && (r_ts == TS_T1)) || halt_addr) &&
                     !disp_inta && !cur_inta;
 // F55 / F51: a HALT pseudo-cycle has no data phase, so the PS/data drive does
 // not take the pads over when the address one-shot expires.  All three enables
@@ -726,7 +880,9 @@ assign ad_oe_addr = (display || (r_run && (r_ts == TS_T1)) || halt_addr) &&
 assign ad_oe_ps   = (!ad_oe_addr && r_run && !r_cur_halt &&
                      (r_ts != TS_T1) && (r_ts != TS_TI)) ||
                     disp_inta || cur_inta;
-assign ad_oe_data = (r_run && r_cur_wr && !r_cur_halt && !r_cur_noaddr &&
+assign ad_oe_data = (vector_follow_preview && t1_half2) ||
+                    eu_ghost_preview ||
+                    (r_run && r_cur_wr && !r_cur_halt && !r_cur_noaddr &&
                      (r_ts != TS_TI) && !display);
 
 assign rd_n = !(r_run && ((r_ts == TS_T2) || (r_ts == TS_T3) || (r_ts == TS_TW)) &&
@@ -734,7 +890,8 @@ assign rd_n = !(r_run && ((r_ts == TS_T2) || (r_ts == TS_T3) || (r_ts == TS_TW))
 
 always @(negedge clk)
     if (ss_we && ss_addr == SSA_B_T1_HALF2) t1_half2 <= ss_wdata[0];
-    else if (ce_half) t1_half2 <= r_run && (r_ts == TS_T1);
+    else if (ce_half) t1_half2 <= (r_run && (r_ts == TS_T1)) ||
+                                  vector_follow_preview;
 
 //============================================================================
 // THE CLOCK
@@ -751,7 +908,7 @@ reg        infl_now;
 reg  [1:0] infl_n_now;
 reg        set_oprfree;
 // working
-reg        ev_here, ev_latch, did_grant, gr_ok;
+reg        ev_here, ev_latch, did_grant, gr_ok, rmw_yield;
 reg  [4:0] occ;
 reg  [1:0] land_ttl;
 reg  [3:0] qi;
@@ -853,6 +1010,7 @@ reg            rq_noaddr_rst [0:1];
 reg            rq_wr_rst [0:1];
 reg            rq_need_rst [0:1];
 reg            rq_last_rst [0:1];
+reg            rq_late_rst [0:1];
 
 integer i_rst;        // the reset function's own working values --
 reg [15:0] lfa_p_rst;  // block-local, so the run function keeps its own
@@ -940,6 +1098,7 @@ always_comb begin
     for (i_rst = 0; i_rst < $size(r_rq_wr); i_rst = i_rst + 1) rq_wr_rst[i_rst] = r_rq_wr[i_rst];
     for (i_rst = 0; i_rst < $size(r_rq_need); i_rst = i_rst + 1) rq_need_rst[i_rst] = r_rq_need[i_rst];
     for (i_rst = 0; i_rst < $size(r_rq_last); i_rst = i_rst + 1) rq_last_rst[i_rst] = r_rq_last[i_rst];
+    for (i_rst = 0; i_rst < $size(r_rq_late); i_rst = i_rst + 1) rq_late_rst[i_rst] = r_rq_late[i_rst];
 
         //--------------------------------------------------------------------
         // RESET == the model's begin_case(), plus the backdoor injection.
@@ -967,6 +1126,7 @@ always_comb begin
             rq_ube_rst[i_rst]  = 1'b1; rq_seg_rst[i_rst]  = 2'd2; rq_noaddr_rst[i_rst]  = 1'b0;
             rq_odd_rst[i_rst]  = 1'b0;
             rq_wr_rst[i_rst]  = 1'b0; rq_need_rst[i_rst]  = 1'b0; rq_last_rst[i_rst]  = 1'b1;
+            rq_late_rst[i_rst] = 1'b0;
         end
         slot_busy_rst  = 1'b0; slot_accept_rst  = 1'b0;
         opr_held_rst  = 2'd0; done_ctr_rst  = 2'd0; done_wr_rst  = 1'b0;
@@ -1088,6 +1248,7 @@ always_comb begin
     rd_land = r_rd_land;
     ready_prev = r_ready_prev;
     pair_odd = 1'b0;              // combinational scratch (M5b); no latch
+    inta_halt_l = 1'b0;
     for (ri = 0; ri < 6; ri = ri + 1) q_mem[ri] = r_q_mem[ri];
     for (ri = 0; ri < 2; ri = ri + 1) begin
         rq_bs[ri] = r_rq_bs[ri];
@@ -1100,12 +1261,14 @@ always_comb begin
         rq_wr[ri] = r_rq_wr[ri];
         rq_need[ri] = r_rq_need[ri];
         rq_last[ri] = r_rq_last[ri];
+        rq_late[ri] = r_rq_late[ri];
     end
     // the per-edge working temporaries (no latches in always_comb)
     ne_now = 1'b0; kill_l = 1'b0; evi_l = 1'b0;
     hfree_l = 1'b0; pop_l = 1'b0; qse_l = 1'b0; sev_now = 2'd0;
     infl_now = 1'b0; infl_n_now = 2'd0; set_oprfree = 1'b0;
     ev_here = 1'b0; ev_latch = 1'b0; did_grant = 1'b0;
+    rmw_yield = 1'b0;
     gr_ok = 1'b0; occ = 5'd0; land_ttl = 2'd0; qi = 4'd0;
     fetch_lin = 20'd0; rq_n_pre = 2'd0;
     set_grn = 1'b0; set_infl = 1'b0; set_absorb = 1'b0;
@@ -1198,6 +1361,10 @@ always_comb begin
             SSA_B_RQ1_WR:       rq_wr[1]      = ss_wdata[0];
             SSA_B_RQ1_NEED:     rq_need[1]    = ss_wdata[0];
             SSA_B_RQ1_LAST:     rq_last[1]    = ss_wdata[0];
+            SSA_B_RQ_LATE: begin
+                rq_late[0] = ss_wdata[0];
+                rq_late[1] = ss_wdata[1];
+            end
             SSA_B_SLOT_BUSY:    slot_busy     = ss_wdata[0];
             SSA_B_SLOT_ACC:     slot_accept   = ss_wdata[0];
             SSA_B_OPR_HELD:     opr_held      = ss_wdata[1:0];
@@ -1265,6 +1432,14 @@ always_comb begin
             fetch_ptr = cmt_prev_fp;
             pf_owed   = cmt_was_owed;   // un-granting un-consumes the request
         end
+        // The display mux above exposes the retarget in THIS clock.  Carry
+        // the same address into the committed cycle so its following T1 sees
+        // the identical value.  Segment shifts cannot change byte parity, so
+        // cmt_pn/fetch_ptr need no repair.
+        if (flush_cs_we && cmt_valid && cmt_fetch) begin
+            cmt_addr = {cmt_cs_live, 4'd0} + {4'd0, cmt_prev_fp};
+            last_fetch_addr = cmt_addr[15:0];
+        end
         if (eu_susp)   suspended = 1'b1;
         if (eu_resume) suspended = 1'b0;
         // SM3 s11 -- `boundary_no_pop()`'s `susp()`, and it is all that is
@@ -1310,6 +1485,11 @@ always_comb begin
             rq_wr[rq_n[0]]     = (eu_bs == BS_MEMW) || (eu_bs == BS_IOW);
             rq_need[rq_n[0]]   = (eu_bs == BS_MEMW) || (eu_bs == BS_IOW);
             rq_last[rq_n[0]]   = !eu_split;
+            // H3: retain the request's arrival class across the remainder of
+            // the running cycle.  A T3-or-later RMW write has not reserved the
+            // next arbitration point as early as the BCD/string controls do.
+            rq_late[rq_n[0]]   = run && !cur_fetch && !cur_wr &&
+                                  (ts >= TS_T3);
             rq_n            = rq_n + 2'd1;
             if (eu_split) begin
                 rq_bs[1]     = eu_bs;
@@ -1317,11 +1497,13 @@ always_comb begin
                 rq_data[1]   = 16'd0;
                 rq_ube[1]    = eu_addr2[0] ? 1'b0 : 1'b1;
                 rq_odd[1]    = eu_addr[0];   // the ACCESS's base, not this cycle's
-                rq_seg[1]    = eu_seg;
+                rq_seg[1]    = eu_seg2;
                 rq_noaddr[1] = 1'b0;
                 rq_wr[1]     = (eu_bs == BS_MEMW) || (eu_bs == BS_IOW);
                 rq_need[1]   = (eu_bs == BS_MEMW) || (eu_bs == BS_IOW);
                 rq_last[1]   = 1'b1;
+                rq_late[1]   = run && !cur_fetch && !cur_wr &&
+                               (ts >= TS_T3);
                 rq_n         = 2'd2;
             end
             slot_busy       = 1'b1;
@@ -1400,9 +1582,8 @@ always_comb begin
             if (run && cur_fetch)       cur_pn = 2'd0;
             if (cmt_valid && cmt_fetch) cmt_pn = 2'd0;
             flush_eval = 1'b1;
-            if (!qse_l) e_pend = 1'b1;
+            if (!qse_l && !(flush_rep && !flush_pend)) e_pend = 1'b1;
         end
-
         //====================================================================
         // (c) END OF CLOCK: advance the running cycle
         //====================================================================
@@ -1506,6 +1687,13 @@ always_comb begin
                     default: ts = TS_T4;
                 endcase
             end
+            // The waited Tw -> T4 advance and the HALT dispatcher meet inside
+            // this edge.  The registered pre-edge still says Tw, so capture
+            // the WORKING phase after the advance.
+            inta_halt_l = eu_halt_irq && run && cur_halt &&
+                          (r_ts == TS_TW) && (ts == TS_T4) &&
+                          (r_cdage == 3'd1) && cmt_valid && cmt_fetch;
+            if (inta_halt_l) ev_here = 1'b0;
             //--------------------------------------------------------------
             // F57 -- A READ'S COMPLETION IS STAMPED AT THE CYCLE'S OWN EVAL.
             //
@@ -1549,16 +1737,26 @@ always_comb begin
                     rd_land = rd_val;
                 end
             end
+            // A T4-replaced first INTA owes its second acknowledge's display
+            // seven clocks from that preview.  Between two non-split INTA
+            // cycles the split-valid bit is otherwise unused; carry and spend
+            // that one-bit debt here rather than adding state.
+            if (evi_l && cur_noaddr && cur_odd)
+                rd_was_split = 1'b1;
             // F3: the flush-only point commits the REDIRECT PREFETCH only.  A
             // pending EU request still owns the first slot and an EU access is
             // never granted at a T4, so with a request outstanding it does not
             // fire and both wait for the next normal eval.
             if (!run && cur_fetch && flush_eval && (rq_n == 2'd0))
                 ev_here = 1'b1;
-        end else if (!cmt_valid && !ne_now) begin
+        end else if (!cmt_valid && !ne_now &&
+                     !(flush_rep && flush_pend && !flush_staged_eval) &&
+                     !eu_post_hold) begin
             ev_here = 1'b1;                       // end of an idle clock
         end
-
+        if (inta_follow_preview) rd_was_split = 1'b0;
+        if (vector_follow_preview) rd_was_split = 1'b0;
+        if (inta_tail_replace) ev_here = 1'b1;
         //====================================================================
         // (d) THE EVAL: pick the next bus cycle
         //====================================================================
@@ -1566,7 +1764,22 @@ always_comb begin
         if (ev_here && !cmt_valid) begin
             flush_eval = 1'b0;    // F3's point is spent by any commit
             gr_ok = 1'b0;
-            if (rq_n != 2'd0) begin
+            occ = {1'b0, q_cnt}
+                + ((run && cur_fetch) ? {3'b0, cur_pn} : 5'd0)
+                + (infl_now ? {3'b0, infl_n_now} : 5'd0);
+            // H3: the ordinary short RMW read has one real collision class.
+            // A write posted no earlier than T3 has not reserved this eval;
+            // when the index-2 prefetch sample also says GO, the fetch takes
+            // one slot between the same-address read and write. Requests that
+            // arrived by T2 (the exact BCD controls) retain EU priority, and a
+            // read stretched past one Tw retains it too.
+            rmw_yield = (rq_n != 2'd0) && rq_late[0] && rq_wr[0] &&
+                        (rq_bs[0] == BS_MEMW) && !cur_fetch && !cur_wr &&
+                        (cur_bs == BS_MEMR) && cur_rd_last &&
+                        (rq_addr[0] == cur_addr) && (dage <= 3'd6) &&
+                        !(suspended && !pf_owed) &&
+                        (ev_latch ? pf_arm : ((occ <= 5'd4) && !halted));
+            if ((rq_n != 2'd0) && !rmw_yield) begin
                 // M4: an EU access never preempts an in-flight cycle; it wins
                 // the next eval.
                 cmt_bs = rq_bs[0]; cmt_addr = rq_addr[0];
@@ -1582,6 +1795,7 @@ always_comb begin
                 rq_seg[0] = rq_seg[1]; rq_noaddr[0] = rq_noaddr[1];
                 rq_wr[0] = rq_wr[1]; rq_need[0] = rq_need[1];
                 rq_last[0] = rq_last[1];
+                rq_late[0] = rq_late[1];
                 rq_n = rq_n - 2'd1;
                 // M10: the slot's occupant now has the T1 that frees it -- the
                 // LAST cycle of the access, so a split holds it across both.
@@ -1592,16 +1806,18 @@ always_comb begin
                 // of a request, not one the flush already raised.
                 gr_ok = 1'b0;
             end else begin
-                occ = {1'b0, q_cnt}
-                    + ((run && cur_fetch) ? {3'b0, cur_pn} : 5'd0)
-                    + (infl_now ? {3'b0, infl_n_now} : 5'd0);
                 // F56: the ONLY prefetch predicates are M7's index-2 arm,
                 // M19's SUSP gate (above) and the request queue.  M6's
                 // queue-landing block used to sit here and is DELETED.
-                if (ev_latch ? !pf_arm : ((occ > 5'd4) || halted))
+                if ((eu_post_hold && !eu_post) ||
+                    (ev_latch ? !pf_arm : ((occ > 5'd4) || halted)))
                     gr_ok = 1'b0;
                 else begin
-                    fetch_lin = {cs_r, 4'd0} + {4'd0, fetch_ptr};
+                    // The die has one segment-register source.  Fetches see
+                    // the EU's live CS even when an undocumented/stalled
+                    // sequence changes CS without reaching a flush; keeping
+                    // a second BIU-only copy instead leaked the old segment.
+                    fetch_lin = {flush_cs, 4'd0} + {4'd0, fetch_ptr};
                     cmt_bs = BS_CODE; cmt_addr = fetch_lin; cmt_data = 16'd0;
                     cmt_ube_n = 1'b0; cmt_seg = 2'd2; cmt_noaddr = 1'b0;
                     cmt_odd = 1'b0;
@@ -1625,6 +1841,34 @@ always_comb begin
                 did_grant = 1'b1;
             end
         end
+        // A completion eval may select the just-posted first INTA in the same
+        // edge that withdraws HALT's wake fetch.  The hold means RESERVE, not
+        // RUN: put that commit back at the front of the existing request store.
+        // The first free clock is the measured PASV gap; the saved INTA is
+        // announced by the following ordinary idle arbitration.
+        if (eu_halt_irq && cur_halt && (r_cdage == 3'd2) &&
+            cmt_valid && cmt_noaddr &&
+            !run && (rq_n != 2'd2)) begin
+            rq_bs[1] = rq_bs[0]; rq_addr[1] = rq_addr[0];
+            rq_data[1] = rq_data[0]; rq_ube[1] = rq_ube[0];
+            rq_odd[1] = rq_odd[0]; rq_seg[1] = rq_seg[0];
+            rq_noaddr[1] = rq_noaddr[0]; rq_wr[1] = rq_wr[0];
+            rq_need[1] = rq_need[0]; rq_last[1] = rq_last[0];
+            rq_late[1] = rq_late[0];
+            rq_bs[0] = cmt_bs; rq_addr[0] = cmt_addr;
+            rq_data[0] = cmt_data; rq_ube[0] = cmt_ube_n;
+            rq_odd[0] = cmt_odd; rq_seg[0] = cmt_seg;
+            rq_noaddr[0] = cmt_noaddr; rq_wr[0] = cmt_wr;
+            rq_need[0] = cmt_need; rq_last[0] = cmt_rd_last;
+            rq_late[0] = 1'b0;
+            rq_n = rq_n + 2'd1;
+            slot_accept = 1'b0;
+            cmt_valid = 1'b0;
+        end
+        // INTA has no address parity, so its mapped odd latch carries the
+        // otherwise stateless T4-replacement provenance through display/T1.
+        if (inta_preview && cmt_valid && cmt_noaddr)
+            cmt_odd = 1'b1;
 
         //====================================================================
         // (e) tick(c+1)'s PRE-ROW BLOCK
@@ -1654,29 +1898,58 @@ always_comb begin
                 rq_seg[1] = rq_seg[0]; rq_noaddr[1] = rq_noaddr[0];
                 rq_wr[1] = rq_wr[0]; rq_need[1] = rq_need[0];
                 rq_last[1] = rq_last[0];
+                rq_late[1] = rq_late[0];
                 rq_bs[0] = cmt_bs; rq_addr[0] = cmt_addr;
                 rq_data[0] = cmt_data; rq_ube[0] = cmt_ube_n;
                 rq_odd[0] = cmt_odd;
                 rq_seg[0] = cmt_seg; rq_noaddr[0] = cmt_noaddr;
                 rq_wr[0] = cmt_wr; rq_need[0] = cmt_need;
                 rq_last[0] = cmt_rd_last;
+                // This request has already passed an arbitration point; a
+                // later announcement expiry must not manufacture a second H3
+                // yield from the original post phase.
+                rq_late[0] = 1'b0;
                 rq_n = rq_n + 2'd1;
                 slot_accept = 1'b0;
             end
         end
 
+        // HALT-to-INTA ownership beats the speculative wake fetch at the same
+        // boundary where ordinary announcement expiry would rewind it.  The
+        // request was never a bus cycle, so restore the prefetch pointer and
+        // owed token exactly as the expiry path does.
+        if (inta_halt_l && cmt_valid && cmt_fetch) begin
+            cmt_valid = 1'b0;
+            fetch_ptr = cmt_prev_fp;
+            pf_owed   = cmt_was_owed;
+            // The withdrawal clock is not a second arbitration point.  Reuse
+            // the BIU's existing one-clock no-eval latch; the following idle
+            // clock commits the already-posted INTA normally.
+            set_noeval = 1'b1;
+        end
+
         // S9b: the DISPLAY CLOCK AND THE T1 ARE TWO DIFFERENT THINGS, and the
         // only thing between them is whether the bus is free.
         //     display = eval + 1     T1 = max(display + 1, first free clock)
-        if (!run && cmt_valid && (cdage != 3'd0)) begin
+        if (!run && cmt_valid &&
+            ((cdage != 3'd0) ||
+             (flush_fast && did_grant && cmt_fetch) ||
+             (vector_follow_preview && did_grant && !cmt_fetch) ||
+             (eu_ghost_preview && did_grant && !cmt_fetch))) begin
             run = 1'b1; ts = TS_T1;
             cur_bs = cmt_bs; cur_addr = cmt_addr; cur_data = cmt_data;
             cur_ube_n = cmt_ube_n; cur_seg = cmt_seg; cur_odd = cmt_odd;
             cur_fetch = cmt_fetch; cur_halt = cmt_halt;
             cur_noaddr = cmt_noaddr; cur_wr = cmt_wr; cur_need = cmt_need;
             cur_rd_last = cmt_rd_last; cur_pn = cmt_pn;
-            cur_late_t1 = (cdage != 3'd1);   // M23: was this T1 at disp+1?
-            dage  = cdage;
+            cur_late_t1 = (flush_fast || vector_follow_preview ||
+                           eu_ghost_preview) ? 1'b0
+                        : (cdage != 3'd1) || (cmt_noaddr && cmt_odd);
+            // The direct redirect has no displayed announcement, but its T1
+            // is otherwise an ordinary on-time T1.  Seed the cycle age at the
+            // same value so READY/eval/landing cadence remains unchanged.
+            dage  = (flush_fast || vector_follow_preview ||
+                     eu_ghost_preview) ? 3'd1 : cdage;
             evald = 1'b0; sev = 2'd0;
             cmt_valid = 1'b0;
             // M10: the bus has TAKEN the whole request -- the slot is free
@@ -1839,6 +2112,7 @@ always_ff @(posedge clk) if (ss_we || srst || ce) begin
         r_rq_wr[rj] <= (srst && !ss_we) ? rq_wr_rst[rj] : rq_wr[rj];
         r_rq_need[rj] <= (srst && !ss_we) ? rq_need_rst[rj] : rq_need[rj];
         r_rq_last[rj] <= (srst && !ss_we) ? rq_last_rst[rj] : rq_last[rj];
+        r_rq_late[rj] <= (srst && !ss_we) ? rq_late_rst[rj] : rq_late[rj];
     end
 end
 
@@ -1968,6 +2242,7 @@ always @(posedge clk) begin
         SSA_B_RQ1_WR:       ss_rdata <= {15'b0, r_rq_wr[1]};
         SSA_B_RQ1_NEED:     ss_rdata <= {15'b0, r_rq_need[1]};
         SSA_B_RQ1_LAST:     ss_rdata <= {15'b0, r_rq_last[1]};
+        SSA_B_RQ_LATE:      ss_rdata <= {14'b0, r_rq_late[1], r_rq_late[0]};
         SSA_B_SLOT_BUSY:    ss_rdata <= {15'b0, r_slot_busy};
         SSA_B_SLOT_ACC:     ss_rdata <= {15'b0, r_slot_accept};
         SSA_B_OPR_HELD:     ss_rdata <= {14'b0, r_opr_held};
@@ -2024,16 +2299,17 @@ always @(posedge clk) begin
         if (utrace_en)
             // clk | eval/QS strobes | the terms that gate them
             /* verilator lint_off WIDTHEXPAND */
-            $display("u %0d ts=%0d run=%0d dage=%0d rdyp=%0d ev=%0d evald=%0d sev=%0d cmt=%0d cdage=%0d fetch=%0d pn=%0d occ=%0d arm=%0d infl=%0d absorb=%0d grn=%0d,%0d q=%0d owed=%0d susp=%0d halt=%0d ne=%0d fe=%0d epend=%0d qse=%0d pop=%0d rq=%0d",
+            $display("u %0d ts=%0d run=%0d dage=%0d rdyp=%0d ev=%0d evald=%0d sev=%0d cmt=%0d cdage=%0d fetch=%0d ca=%05x cd=%04x pn=%0d occ=%0d arm=%0d infl=%0d absorb=%0d grn=%0d,%0d q=%0d owed=%0d susp=%0d halt=%0d ne=%0d fe=%0d epend=%0d qse=%0d pop=%0d rq=%0d lfa=%04x",
                      utrace_clk, ts, run, dage, ready_prev, eval_inst,
-                     evald, sev, cmt_valid, cdage, cur_fetch, cur_pn,
+                     evald, sev, cmt_valid, cdage, cur_fetch, cur_addr, cur_data,
+                     cur_pn,
                      q_cnt + ((run && cur_fetch) ? {2'b0, cur_pn} : 4'd0)
                            + ((cmt_valid && cmt_fetch) ? {2'b0, cmt_pn} : 4'd0)
                            + ((infl_ttl != 2'd0) ? {2'b0, infl_n} : 4'd0),
                      pf_arm, infl_ttl, absorb_ttl, grn_n,
                      grn_ttl, q_cnt, pf_owed, suspended, halted,
-                     no_eval, flush_eval, e_pend, qs_e_now, pop_now,
-                     rq_n);
+                     no_eval, flush_eval, e_pend, qs_e_now, pop_now, rq_n,
+                     last_fetch_addr);
             /* verilator lint_on WIDTHEXPAND */
         utrace_clk <= utrace_clk + 1;
     end

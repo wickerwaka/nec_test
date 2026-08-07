@@ -5,6 +5,14 @@
 //  satisfied, S_1BL_LEAD when it was not) -- one expression, both paths.
 //============================================================================
 begin
+// Carry 1BLs that chain directly out of an E row are applied after that row's
+// deferred post-E PSW write (v30u_eu_poste.svh).  Unlike IE/DIR, CY has no
+// direct pin timing here; deferring it preserves the measured instruction
+// order without moving any observable execute clock.
+if (!(poste_n &&
+      ((pla3_xop(ld_pla_n) == PLA3_BL1_SET_CY) ||
+       (pla3_xop(ld_pla_n) == PLA3_BL1_CLR_CY) ||
+       (pla3_xop(ld_pla_n) == PLA3_BL1_NOT_CY)))) begin
 `ifndef SYNTHESIS
     trc_1bl_pre = psw_n; trc_1bl_hit = 1'b1;
 `endif
@@ -22,4 +30,5 @@ begin
 `ifndef SYNTHESIS
     trc_1bl_post = psw_n;
 `endif
+end
 end

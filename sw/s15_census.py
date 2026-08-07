@@ -649,7 +649,18 @@ def main():
         return cmd_rmw(a)
 
     res = json.load(open(a.report))
-    div = [r for r in res if r["cat"] == "DIVERGE"]
+    # timed_fuzz retains every historical row for audit, but annotates rows
+    # outside its stated score.  Replaying those rows here would quietly put
+    # invalidated captures -- or, in a filtered report, 8080-mode and
+    # current-silicon-refuted captures -- back into the census.  The two new
+    # filters are absent from historical reports; the long-standing
+    # `invalidated` annotation now follows timed_fuzz's own score definition.
+    div_all = [r for r in res if r["cat"] == "DIVERGE"]
+    div = [r for r in div_all
+           if not r.get("invalidated")
+           and not r.get("native_exclusion")
+           and not r.get("stale_current_silicon")]
+    excluded = len(div_all) - len(div)
     if a.pop != "all":
         want = "EVT" if a.pop == "evt" else "REG"
         div = [r for r in div if r.get("pop") == want]
@@ -662,6 +673,9 @@ def main():
           f"engine={a.core}"
           f"{'' if a.core == 'sim' else f', rig-hold={a.rig_hold}'})",
           flush=True)
+    if excluded:
+        print(f"  report exclusions  {excluded}  (invalidated, non-native, "
+              "or contradicted by current silicon)", flush=True)
     with Pool(a.jobs) as pool:
         rows = pool.map(one, div, chunksize=4)
     report(rows, a.show)

@@ -89,11 +89,23 @@ CORES = {
             # has anything to wait for.  A parked machine frozen without it
             # restores as a part that resumes an instruction silicon never
             # finishes.  Same rule and same reason as every append before it.
-            "SS_VERSION": 0x87,   # ucore map v7 (0x80 family: never an FSM stream)
-            "SS_BIU_COUNT": 100,
-            "SS_EU_COUNT": 118,
-            "SS_COUNT": 219,
-            "SS_TAG": 0x87DB,     # (0x87 << 8) | 219
+            # WRFUZZ H3: v7 -> v8.  One BIU word packs the two request-phase
+            # bits appended at 0x06A; retired 0x066-0x069 remain holes.
+            # WRFUZZ 8F ghost: v8 -> v9.  One EU bit records whether the
+            # outstanding mod3 read must be discarded instead of filling OPR.
+            # WRFUZZ LEA residue: v9 -> v10.  One EU word carries the retained
+            # EA-adder lane exposed by undocumented 8D / mod=3.
+            # WRFUZZ LEA pair rail: v10 -> v11.  Two EU words carry the retained
+            # two-register RHS rail and its select bit.
+            # WRFUZZ 8F overlap: v11 -> v13.  Two EU bits distinguish idle
+            # ghost data ownership and completion maturity before successor T1.
+            # WRFUZZ PF_LOST decoder hold: v13 -> v14.  One valid bit and one
+            # byte preserve the successor ModR/M latch.
+            "SS_VERSION": 0x8E,   # ucore map v14 (0x80 family: never an FSM stream)
+            "SS_BIU_COUNT": 101,
+            "SS_EU_COUNT": 126,
+            "SS_COUNT": 228,
+            "SS_TAG": 0x8EE4,     # (0x8E << 8) | 228
         },
     },
 }

@@ -251,7 +251,17 @@ logic        case_active = 0;
 // pin observer: T-state tracking from BS, like nec_bus
 //----------------------------------------------------------------------------
 logic [2:0] tb_t = ST_TI;
-wire        bs_active = BS != BS_PASV;
+// A HALT wake may withdraw a speculative fetch after its CODE status has
+// reached the status latch.  Silicon retains that status through the old
+// cycle's T4, but it does not open a new T1.  BS alone cannot represent both
+// facts, so the ucore replay observer consumes the BIU's exact withdrawal
+// event; the archived FSM observer remains unchanged.
+`ifdef V30_UCORE
+wire        status_withdrawn = dut.u_biu.halt_withdraw_preview;
+`else
+wire        status_withdrawn = 1'b0;
+`endif
+wire        bs_active = (BS != BS_PASV) && !status_withdrawn;
 
 wire [2:0] tb_t_next =
     (tb_t == ST_TI) ? (bs_active ? ST_T1 : ST_TI) :
