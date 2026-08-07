@@ -1,0 +1,47 @@
+{
+  "details": [],
+  "fit": {
+    "matches": 448,
+    "mismatches": 0,
+    "records": 448
+  },
+  "law": {
+    "QS_E_shift": {
+      "inta0": "downstream",
+      "inta1": "downstream",
+      "ivt_high": "downstream",
+      "ivt_low": "downstream",
+      "push0": "downstream",
+      "push1": 0,
+      "push2": 0
+    },
+    "downstream_shift": {
+      "inta0": "Tw + 1",
+      "inta1": "Tw + 1",
+      "ivt_high": "Tw + 1",
+      "ivt_low": "Tw + 1",
+      "push0": "1 if Tw == 1 else Tw - 2",
+      "push1": "Tw - 1",
+      "push2": "Tw + 1"
+    },
+    "other_preexisting_QS_events": "unchanged",
+    "waited_transaction": {
+      "T1_shift": 0,
+      "T4_shift": "Tw"
+    }
+  },
+  "role_counts": {
+    "inta0": 64,
+    "inta1": 64,
+    "ivt_high": 64,
+    "ivt_low": 64,
+    "push0": 64,
+    "push1": 64,
+    "push2": 64
+  },
+  "schema": "v30-biu-hwint-wait-oracle-v1",
+  "scope": "READY propagation from INTA0 through final stack push",
+  "source": "sw/testdata/biu_blackbox/hwint-wait-discovery-20260729/summary.json",
+  "source_sha256": "33e4beebd9c72336f238121898512e5f2e32d291ad7879d1f11bdc15e4b3aa51",
+  "status": "FROZEN_BEFORE_FRESH_PREPARATION_VALIDATION"
+}

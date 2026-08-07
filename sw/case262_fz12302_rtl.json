@@ -1,0 +1,18 @@
+{
+  "bad": [],
+  "delta_counts": {
+    "0": 160
+  },
+  "gate": "PASS",
+  "matches": 160,
+  "mismatches": 0,
+  "records": 160,
+  "schema": "v30-case253-rtl-ins-deadline-v1",
+  "source_files": [
+    "sw/case250_fz12302_factorial.json",
+    "sw/case250_fz12466_factorial.json",
+    "sw/case250_fz12547_factorial.json",
+    "sw/case250_fz12569_factorial.json"
+  ],
+  "write_checks": 160
+}

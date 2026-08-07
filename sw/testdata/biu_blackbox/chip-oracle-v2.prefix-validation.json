@@ -1,0 +1,10769 @@
+{
+  "counts": {
+    "action_mismatches": 48,
+    "address_mismatches": 48,
+    "matches": 856,
+    "mismatches": 72,
+    "records": 1264,
+    "t1_mismatches": 72,
+    "unseen": 336
+  },
+  "exact_command": "python3 sw/biu_blackbox_oracle_v2_validate.py sw/testdata/biu_blackbox/chip-oracle-v2.json sw/testdata/biu_blackbox/oracle-v2-prefix-heldout-20260729/summary.json sw/testdata/biu_blackbox/chip-oracle-v2.prefix-validation.json",
+  "forms": {
+    "v2_pfx_lock_rmw_dec": {
+      "matches": 288,
+      "mismatches": 16,
+      "records": 416,
+      "unseen": 112
+    },
+    "v2_pfx_seg_read_dw": {
+      "matches": 288,
+      "mismatches": 16,
+      "records": 416,
+      "unseen": 112
+    },
+    "v2_pfx_seg_write_dw": {
+      "matches": 280,
+      "mismatches": 40,
+      "records": 432,
+      "unseen": 112
+    }
+  },
+  "gate": "FAIL",
+  "heldout": "sw/testdata/biu_blackbox/oracle-v2-prefix-heldout-20260729/summary.json",
+  "heldout_sha256": "4e72d1a01b3550f70c801e8fafb1211b6c9130884128c65dcef8c5a438dc2802",
+  "mismatch_details": [
+    {
+      "clock_mhz": 4,
+      "form": "v2_pfx_lock_rmw_dec",
+      "history": "A",
+      "key": [
+        1,
+        0,
+        "CODE",
+        4,
+        "rmw",
+        "CODE",
+        6,
+        "S",
+        0,
+        3,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 2,
+      "parity": "even",
+      "wait": 7
+    },
+    {
+      "clock_mhz": 8,
+      "form": "v2_pfx_lock_rmw_dec",
+      "history": "A",
+      "key": [
+        1,
+        0,
+        "CODE",
+        4,
+        "rmw",
+        "CODE",
+        6,
+        "S",
+        0,
+        3,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 2,
+      "parity": "even",
+      "wait": 7
+    },
+    {
+      "clock_mhz": 4,
+      "form": "v2_pfx_lock_rmw_dec",
+      "history": "B",
+      "key": [
+        1,
+        0,
+        "CODE",
+        4,
+        "rmw",
+        "CODE",
+        6,
+        "S",
+        0,
+        3,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 2,
+      "parity": "even",
+      "wait": 7
+    },
+    {
+      "clock_mhz": 8,
+      "form": "v2_pfx_lock_rmw_dec",
+      "history": "B",
+      "key": [
+        1,
+        0,
+        "CODE",
+        4,
+        "rmw",
+        "CODE",
+        6,
+        "S",
+        0,
+        3,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 2,
+      "parity": "even",
+      "wait": 7
+    },
+    {
+      "clock_mhz": 4,
+      "form": "v2_pfx_lock_rmw_dec",
+      "history": "A",
+      "key": [
+        1,
+        0,
+        "CODE",
+        4,
+        "rmw",
+        "CODE",
+        14,
+        "S",
+        0,
+        3,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 2,
+      "parity": "even",
+      "wait": 15
+    },
+    {
+      "clock_mhz": 8,
+      "form": "v2_pfx_lock_rmw_dec",
+      "history": "A",
+      "key": [
+        1,
+        0,
+        "CODE",
+        4,
+        "rmw",
+        "CODE",
+        14,
+        "S",
+        0,
+        3,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 2,
+      "parity": "even",
+      "wait": 15
+    },
+    {
+      "clock_mhz": 4,
+      "form": "v2_pfx_lock_rmw_dec",
+      "history": "B",
+      "key": [
+        1,
+        0,
+        "CODE",
+        4,
+        "rmw",
+        "CODE",
+        14,
+        "S",
+        0,
+        3,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 2,
+      "parity": "even",
+      "wait": 15
+    },
+    {
+      "clock_mhz": 8,
+      "form": "v2_pfx_lock_rmw_dec",
+      "history": "B",
+      "key": [
+        1,
+        0,
+        "CODE",
+        4,
+        "rmw",
+        "CODE",
+        14,
+        "S",
+        0,
+        3,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 2,
+      "parity": "even",
+      "wait": 15
+    },
+    {
+      "clock_mhz": 4,
+      "form": "v2_pfx_lock_rmw_dec",
+      "history": "A",
+      "key": [
+        2,
+        0,
+        "CODE",
+        1,
+        "rmw",
+        "CODE",
+        -4,
+        "S",
+        0,
+        4,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 3,
+      "parity": "even",
+      "wait": 0
+    },
+    {
+      "clock_mhz": 8,
+      "form": "v2_pfx_lock_rmw_dec",
+      "history": "A",
+      "key": [
+        2,
+        0,
+        "CODE",
+        1,
+        "rmw",
+        "CODE",
+        -4,
+        "S",
+        0,
+        4,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 3,
+      "parity": "even",
+      "wait": 0
+    },
+    {
+      "clock_mhz": 4,
+      "form": "v2_pfx_lock_rmw_dec",
+      "history": "B",
+      "key": [
+        2,
+        0,
+        "CODE",
+        1,
+        "rmw",
+        "CODE",
+        -4,
+        "S",
+        0,
+        4,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 3,
+      "parity": "even",
+      "wait": 0
+    },
+    {
+      "clock_mhz": 8,
+      "form": "v2_pfx_lock_rmw_dec",
+      "history": "B",
+      "key": [
+        2,
+        0,
+        "CODE",
+        1,
+        "rmw",
+        "CODE",
+        -4,
+        "S",
+        0,
+        4,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 3,
+      "parity": "even",
+      "wait": 0
+    },
+    {
+      "clock_mhz": 4,
+      "form": "v2_pfx_lock_rmw_dec",
+      "history": "A",
+      "key": [
+        0,
+        0,
+        "CODE",
+        4,
+        "rmw",
+        "CODE",
+        3,
+        "S",
+        0,
+        4,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 3,
+      "parity": "even",
+      "wait": 7
+    },
+    {
+      "clock_mhz": 8,
+      "form": "v2_pfx_lock_rmw_dec",
+      "history": "A",
+      "key": [
+        0,
+        0,
+        "CODE",
+        4,
+        "rmw",
+        "CODE",
+        3,
+        "S",
+        0,
+        4,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 3,
+      "parity": "even",
+      "wait": 7
+    },
+    {
+      "clock_mhz": 4,
+      "form": "v2_pfx_lock_rmw_dec",
+      "history": "B",
+      "key": [
+        0,
+        0,
+        "CODE",
+        4,
+        "rmw",
+        "CODE",
+        3,
+        "S",
+        0,
+        4,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 3,
+      "parity": "even",
+      "wait": 7
+    },
+    {
+      "clock_mhz": 8,
+      "form": "v2_pfx_lock_rmw_dec",
+      "history": "B",
+      "key": [
+        0,
+        0,
+        "CODE",
+        4,
+        "rmw",
+        "CODE",
+        3,
+        "S",
+        0,
+        4,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 3,
+      "parity": "even",
+      "wait": 7
+    },
+    {
+      "clock_mhz": 4,
+      "form": "v2_pfx_lock_rmw_dec",
+      "history": "A",
+      "key": [
+        0,
+        0,
+        "CODE",
+        4,
+        "rmw",
+        "CODE",
+        11,
+        "S",
+        0,
+        4,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 3,
+      "parity": "even",
+      "wait": 15
+    },
+    {
+      "clock_mhz": 8,
+      "form": "v2_pfx_lock_rmw_dec",
+      "history": "A",
+      "key": [
+        0,
+        0,
+        "CODE",
+        4,
+        "rmw",
+        "CODE",
+        11,
+        "S",
+        0,
+        4,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 3,
+      "parity": "even",
+      "wait": 15
+    },
+    {
+      "clock_mhz": 4,
+      "form": "v2_pfx_lock_rmw_dec",
+      "history": "B",
+      "key": [
+        0,
+        0,
+        "CODE",
+        4,
+        "rmw",
+        "CODE",
+        11,
+        "S",
+        0,
+        4,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 3,
+      "parity": "even",
+      "wait": 15
+    },
+    {
+      "clock_mhz": 8,
+      "form": "v2_pfx_lock_rmw_dec",
+      "history": "B",
+      "key": [
+        0,
+        0,
+        "CODE",
+        4,
+        "rmw",
+        "CODE",
+        11,
+        "S",
+        0,
+        4,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 3,
+      "parity": "even",
+      "wait": 15
+    },
+    {
+      "clock_mhz": 4,
+      "fields": [
+        "action",
+        "t1",
+        "address"
+      ],
+      "form": "v2_pfx_lock_rmw_dec",
+      "got": [
+        "CODE",
+        1,
+        [
+          "selected_delta",
+          2
+        ],
+        16,
+        []
+      ],
+      "history": "A",
+      "key": [
+        3,
+        0,
+        "CODE",
+        5,
+        "rmw",
+        "CODE",
+        0,
+        "S",
+        0,
+        5,
+        "modrm"
+      ],
+      "kind": "mismatch",
+      "pad": 4,
+      "parity": "even",
+      "wait": 0,
+      "want": [
+        "MEMR",
+        4,
+        [
+          "absolute",
+          8192
+        ],
+        16,
+        []
+      ]
+    },
+    {
+      "clock_mhz": 8,
+      "fields": [
+        "action",
+        "t1",
+        "address"
+      ],
+      "form": "v2_pfx_lock_rmw_dec",
+      "got": [
+        "CODE",
+        1,
+        [
+          "selected_delta",
+          2
+        ],
+        16,
+        []
+      ],
+      "history": "A",
+      "key": [
+        3,
+        0,
+        "CODE",
+        5,
+        "rmw",
+        "CODE",
+        0,
+        "S",
+        0,
+        5,
+        "modrm"
+      ],
+      "kind": "mismatch",
+      "pad": 4,
+      "parity": "even",
+      "wait": 0,
+      "want": [
+        "MEMR",
+        4,
+        [
+          "absolute",
+          8192
+        ],
+        16,
+        []
+      ]
+    },
+    {
+      "clock_mhz": 4,
+      "fields": [
+        "action",
+        "t1",
+        "address"
+      ],
+      "form": "v2_pfx_lock_rmw_dec",
+      "got": [
+        "CODE",
+        1,
+        [
+          "selected_delta",
+          2
+        ],
+        16,
+        []
+      ],
+      "history": "B",
+      "key": [
+        3,
+        0,
+        "CODE",
+        5,
+        "rmw",
+        "CODE",
+        0,
+        "S",
+        0,
+        5,
+        "modrm"
+      ],
+      "kind": "mismatch",
+      "pad": 4,
+      "parity": "even",
+      "wait": 0,
+      "want": [
+        "MEMR",
+        4,
+        [
+          "absolute",
+          8192
+        ],
+        16,
+        []
+      ]
+    },
+    {
+      "clock_mhz": 8,
+      "fields": [
+        "action",
+        "t1",
+        "address"
+      ],
+      "form": "v2_pfx_lock_rmw_dec",
+      "got": [
+        "CODE",
+        1,
+        [
+          "selected_delta",
+          2
+        ],
+        16,
+        []
+      ],
+      "history": "B",
+      "key": [
+        3,
+        0,
+        "CODE",
+        5,
+        "rmw",
+        "CODE",
+        0,
+        "S",
+        0,
+        5,
+        "modrm"
+      ],
+      "kind": "mismatch",
+      "pad": 4,
+      "parity": "even",
+      "wait": 0,
+      "want": [
+        "MEMR",
+        4,
+        [
+          "absolute",
+          8192
+        ],
+        16,
+        []
+      ]
+    },
+    {
+      "clock_mhz": 4,
+      "form": "v2_pfx_lock_rmw_dec",
+      "history": "A",
+      "key": [
+        1,
+        0,
+        "CODE",
+        4,
+        "rmw",
+        "CODE",
+        7,
+        "S",
+        0,
+        5,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 4,
+      "parity": "even",
+      "wait": 7
+    },
+    {
+      "clock_mhz": 8,
+      "form": "v2_pfx_lock_rmw_dec",
+      "history": "A",
+      "key": [
+        1,
+        0,
+        "CODE",
+        4,
+        "rmw",
+        "CODE",
+        7,
+        "S",
+        0,
+        5,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 4,
+      "parity": "even",
+      "wait": 7
+    },
+    {
+      "clock_mhz": 4,
+      "form": "v2_pfx_lock_rmw_dec",
+      "history": "B",
+      "key": [
+        1,
+        0,
+        "CODE",
+        4,
+        "rmw",
+        "CODE",
+        7,
+        "S",
+        0,
+        5,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 4,
+      "parity": "even",
+      "wait": 7
+    },
+    {
+      "clock_mhz": 8,
+      "form": "v2_pfx_lock_rmw_dec",
+      "history": "B",
+      "key": [
+        1,
+        0,
+        "CODE",
+        4,
+        "rmw",
+        "CODE",
+        7,
+        "S",
+        0,
+        5,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 4,
+      "parity": "even",
+      "wait": 7
+    },
+    {
+      "clock_mhz": 4,
+      "form": "v2_pfx_lock_rmw_dec",
+      "history": "A",
+      "key": [
+        1,
+        0,
+        "CODE",
+        4,
+        "rmw",
+        "CODE",
+        15,
+        "S",
+        0,
+        5,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 4,
+      "parity": "even",
+      "wait": 15
+    },
+    {
+      "clock_mhz": 8,
+      "form": "v2_pfx_lock_rmw_dec",
+      "history": "A",
+      "key": [
+        1,
+        0,
+        "CODE",
+        4,
+        "rmw",
+        "CODE",
+        15,
+        "S",
+        0,
+        5,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 4,
+      "parity": "even",
+      "wait": 15
+    },
+    {
+      "clock_mhz": 4,
+      "form": "v2_pfx_lock_rmw_dec",
+      "history": "B",
+      "key": [
+        1,
+        0,
+        "CODE",
+        4,
+        "rmw",
+        "CODE",
+        15,
+        "S",
+        0,
+        5,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 4,
+      "parity": "even",
+      "wait": 15
+    },
+    {
+      "clock_mhz": 8,
+      "form": "v2_pfx_lock_rmw_dec",
+      "history": "B",
+      "key": [
+        1,
+        0,
+        "CODE",
+        4,
+        "rmw",
+        "CODE",
+        15,
+        "S",
+        0,
+        5,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 4,
+      "parity": "even",
+      "wait": 15
+    },
+    {
+      "clock_mhz": 4,
+      "fields": [
+        "t1"
+      ],
+      "form": "v2_pfx_lock_rmw_dec",
+      "got": [
+        "CODE",
+        1,
+        [
+          "selected_delta",
+          2
+        ],
+        16,
+        []
+      ],
+      "history": "A",
+      "key": [
+        2,
+        0,
+        "IDLE",
+        0,
+        "rmw",
+        "CODE",
+        -3,
+        "S",
+        0,
+        0,
+        "modrm"
+      ],
+      "kind": "mismatch",
+      "pad": 5,
+      "parity": "even",
+      "wait": 0,
+      "want": [
+        "CODE",
+        2,
+        [
+          "selected_delta",
+          2
+        ],
+        16,
+        []
+      ]
+    },
+    {
+      "clock_mhz": 8,
+      "fields": [
+        "t1"
+      ],
+      "form": "v2_pfx_lock_rmw_dec",
+      "got": [
+        "CODE",
+        1,
+        [
+          "selected_delta",
+          2
+        ],
+        16,
+        []
+      ],
+      "history": "A",
+      "key": [
+        2,
+        0,
+        "IDLE",
+        0,
+        "rmw",
+        "CODE",
+        -3,
+        "S",
+        0,
+        0,
+        "modrm"
+      ],
+      "kind": "mismatch",
+      "pad": 5,
+      "parity": "even",
+      "wait": 0,
+      "want": [
+        "CODE",
+        2,
+        [
+          "selected_delta",
+          2
+        ],
+        16,
+        []
+      ]
+    },
+    {
+      "clock_mhz": 4,
+      "fields": [
+        "t1"
+      ],
+      "form": "v2_pfx_lock_rmw_dec",
+      "got": [
+        "CODE",
+        1,
+        [
+          "selected_delta",
+          2
+        ],
+        16,
+        []
+      ],
+      "history": "B",
+      "key": [
+        2,
+        0,
+        "IDLE",
+        0,
+        "rmw",
+        "CODE",
+        -3,
+        "S",
+        0,
+        0,
+        "modrm"
+      ],
+      "kind": "mismatch",
+      "pad": 5,
+      "parity": "even",
+      "wait": 0,
+      "want": [
+        "CODE",
+        2,
+        [
+          "selected_delta",
+          2
+        ],
+        16,
+        []
+      ]
+    },
+    {
+      "clock_mhz": 8,
+      "fields": [
+        "t1"
+      ],
+      "form": "v2_pfx_lock_rmw_dec",
+      "got": [
+        "CODE",
+        1,
+        [
+          "selected_delta",
+          2
+        ],
+        16,
+        []
+      ],
+      "history": "B",
+      "key": [
+        2,
+        0,
+        "IDLE",
+        0,
+        "rmw",
+        "CODE",
+        -3,
+        "S",
+        0,
+        0,
+        "modrm"
+      ],
+      "kind": "mismatch",
+      "pad": 5,
+      "parity": "even",
+      "wait": 0,
+      "want": [
+        "CODE",
+        2,
+        [
+          "selected_delta",
+          2
+        ],
+        16,
+        []
+      ]
+    },
+    {
+      "clock_mhz": 4,
+      "form": "v2_pfx_lock_rmw_dec",
+      "history": "A",
+      "key": [
+        0,
+        0,
+        "CODE",
+        4,
+        "rmw",
+        "CODE",
+        4,
+        "S",
+        0,
+        0,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 5,
+      "parity": "even",
+      "wait": 7
+    },
+    {
+      "clock_mhz": 8,
+      "form": "v2_pfx_lock_rmw_dec",
+      "history": "A",
+      "key": [
+        0,
+        0,
+        "CODE",
+        4,
+        "rmw",
+        "CODE",
+        4,
+        "S",
+        0,
+        0,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 5,
+      "parity": "even",
+      "wait": 7
+    },
+    {
+      "clock_mhz": 4,
+      "form": "v2_pfx_lock_rmw_dec",
+      "history": "B",
+      "key": [
+        0,
+        0,
+        "CODE",
+        4,
+        "rmw",
+        "CODE",
+        4,
+        "S",
+        0,
+        0,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 5,
+      "parity": "even",
+      "wait": 7
+    },
+    {
+      "clock_mhz": 8,
+      "form": "v2_pfx_lock_rmw_dec",
+      "history": "B",
+      "key": [
+        0,
+        0,
+        "CODE",
+        4,
+        "rmw",
+        "CODE",
+        4,
+        "S",
+        0,
+        0,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 5,
+      "parity": "even",
+      "wait": 7
+    },
+    {
+      "clock_mhz": 4,
+      "form": "v2_pfx_lock_rmw_dec",
+      "history": "A",
+      "key": [
+        0,
+        0,
+        "CODE",
+        4,
+        "rmw",
+        "CODE",
+        12,
+        "S",
+        0,
+        0,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 5,
+      "parity": "even",
+      "wait": 15
+    },
+    {
+      "clock_mhz": 8,
+      "form": "v2_pfx_lock_rmw_dec",
+      "history": "A",
+      "key": [
+        0,
+        0,
+        "CODE",
+        4,
+        "rmw",
+        "CODE",
+        12,
+        "S",
+        0,
+        0,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 5,
+      "parity": "even",
+      "wait": 15
+    },
+    {
+      "clock_mhz": 4,
+      "form": "v2_pfx_lock_rmw_dec",
+      "history": "B",
+      "key": [
+        0,
+        0,
+        "CODE",
+        4,
+        "rmw",
+        "CODE",
+        12,
+        "S",
+        0,
+        0,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 5,
+      "parity": "even",
+      "wait": 15
+    },
+    {
+      "clock_mhz": 8,
+      "form": "v2_pfx_lock_rmw_dec",
+      "history": "B",
+      "key": [
+        0,
+        0,
+        "CODE",
+        4,
+        "rmw",
+        "CODE",
+        12,
+        "S",
+        0,
+        0,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 5,
+      "parity": "even",
+      "wait": 15
+    },
+    {
+      "clock_mhz": 4,
+      "form": "v2_pfx_lock_rmw_dec",
+      "history": "A",
+      "key": [
+        2,
+        0,
+        "CODE",
+        2,
+        "rmw",
+        "CODE",
+        -2,
+        "S",
+        0,
+        2,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 7,
+      "parity": "even",
+      "wait": 0
+    },
+    {
+      "clock_mhz": 8,
+      "form": "v2_pfx_lock_rmw_dec",
+      "history": "A",
+      "key": [
+        2,
+        0,
+        "CODE",
+        2,
+        "rmw",
+        "CODE",
+        -2,
+        "S",
+        0,
+        2,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 7,
+      "parity": "even",
+      "wait": 0
+    },
+    {
+      "clock_mhz": 4,
+      "form": "v2_pfx_lock_rmw_dec",
+      "history": "B",
+      "key": [
+        2,
+        0,
+        "CODE",
+        2,
+        "rmw",
+        "CODE",
+        -2,
+        "S",
+        0,
+        2,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 7,
+      "parity": "even",
+      "wait": 0
+    },
+    {
+      "clock_mhz": 8,
+      "form": "v2_pfx_lock_rmw_dec",
+      "history": "B",
+      "key": [
+        2,
+        0,
+        "CODE",
+        2,
+        "rmw",
+        "CODE",
+        -2,
+        "S",
+        0,
+        2,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 7,
+      "parity": "even",
+      "wait": 0
+    },
+    {
+      "clock_mhz": 4,
+      "form": "v2_pfx_lock_rmw_dec",
+      "history": "A",
+      "key": [
+        0,
+        0,
+        "CODE",
+        4,
+        "rmw",
+        "CODE",
+        5,
+        "S",
+        0,
+        2,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 7,
+      "parity": "even",
+      "wait": 7
+    },
+    {
+      "clock_mhz": 8,
+      "form": "v2_pfx_lock_rmw_dec",
+      "history": "A",
+      "key": [
+        0,
+        0,
+        "CODE",
+        4,
+        "rmw",
+        "CODE",
+        5,
+        "S",
+        0,
+        2,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 7,
+      "parity": "even",
+      "wait": 7
+    },
+    {
+      "clock_mhz": 4,
+      "form": "v2_pfx_lock_rmw_dec",
+      "history": "B",
+      "key": [
+        0,
+        0,
+        "CODE",
+        4,
+        "rmw",
+        "CODE",
+        5,
+        "S",
+        0,
+        2,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 7,
+      "parity": "even",
+      "wait": 7
+    },
+    {
+      "clock_mhz": 8,
+      "form": "v2_pfx_lock_rmw_dec",
+      "history": "B",
+      "key": [
+        0,
+        0,
+        "CODE",
+        4,
+        "rmw",
+        "CODE",
+        5,
+        "S",
+        0,
+        2,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 7,
+      "parity": "even",
+      "wait": 7
+    },
+    {
+      "clock_mhz": 4,
+      "form": "v2_pfx_lock_rmw_dec",
+      "history": "A",
+      "key": [
+        0,
+        0,
+        "CODE",
+        4,
+        "rmw",
+        "CODE",
+        13,
+        "S",
+        0,
+        2,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 7,
+      "parity": "even",
+      "wait": 15
+    },
+    {
+      "clock_mhz": 8,
+      "form": "v2_pfx_lock_rmw_dec",
+      "history": "A",
+      "key": [
+        0,
+        0,
+        "CODE",
+        4,
+        "rmw",
+        "CODE",
+        13,
+        "S",
+        0,
+        2,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 7,
+      "parity": "even",
+      "wait": 15
+    },
+    {
+      "clock_mhz": 4,
+      "form": "v2_pfx_lock_rmw_dec",
+      "history": "B",
+      "key": [
+        0,
+        0,
+        "CODE",
+        4,
+        "rmw",
+        "CODE",
+        13,
+        "S",
+        0,
+        2,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 7,
+      "parity": "even",
+      "wait": 15
+    },
+    {
+      "clock_mhz": 8,
+      "form": "v2_pfx_lock_rmw_dec",
+      "history": "B",
+      "key": [
+        0,
+        0,
+        "CODE",
+        4,
+        "rmw",
+        "CODE",
+        13,
+        "S",
+        0,
+        2,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 7,
+      "parity": "even",
+      "wait": 15
+    },
+    {
+      "clock_mhz": 4,
+      "form": "v2_pfx_lock_rmw_dec",
+      "history": "A",
+      "key": [
+        1,
+        0,
+        "CODE",
+        4,
+        "rmw",
+        "CODE",
+        6,
+        "S",
+        0,
+        3,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 8,
+      "parity": "even",
+      "wait": 7
+    },
+    {
+      "clock_mhz": 8,
+      "form": "v2_pfx_lock_rmw_dec",
+      "history": "A",
+      "key": [
+        1,
+        0,
+        "CODE",
+        4,
+        "rmw",
+        "CODE",
+        6,
+        "S",
+        0,
+        3,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 8,
+      "parity": "even",
+      "wait": 7
+    },
+    {
+      "clock_mhz": 4,
+      "form": "v2_pfx_lock_rmw_dec",
+      "history": "B",
+      "key": [
+        1,
+        0,
+        "CODE",
+        4,
+        "rmw",
+        "CODE",
+        6,
+        "S",
+        0,
+        3,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 8,
+      "parity": "even",
+      "wait": 7
+    },
+    {
+      "clock_mhz": 8,
+      "form": "v2_pfx_lock_rmw_dec",
+      "history": "B",
+      "key": [
+        1,
+        0,
+        "CODE",
+        4,
+        "rmw",
+        "CODE",
+        6,
+        "S",
+        0,
+        3,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 8,
+      "parity": "even",
+      "wait": 7
+    },
+    {
+      "clock_mhz": 4,
+      "form": "v2_pfx_lock_rmw_dec",
+      "history": "A",
+      "key": [
+        1,
+        0,
+        "CODE",
+        4,
+        "rmw",
+        "CODE",
+        14,
+        "S",
+        0,
+        3,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 8,
+      "parity": "even",
+      "wait": 15
+    },
+    {
+      "clock_mhz": 8,
+      "form": "v2_pfx_lock_rmw_dec",
+      "history": "A",
+      "key": [
+        1,
+        0,
+        "CODE",
+        4,
+        "rmw",
+        "CODE",
+        14,
+        "S",
+        0,
+        3,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 8,
+      "parity": "even",
+      "wait": 15
+    },
+    {
+      "clock_mhz": 4,
+      "form": "v2_pfx_lock_rmw_dec",
+      "history": "B",
+      "key": [
+        1,
+        0,
+        "CODE",
+        4,
+        "rmw",
+        "CODE",
+        14,
+        "S",
+        0,
+        3,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 8,
+      "parity": "even",
+      "wait": 15
+    },
+    {
+      "clock_mhz": 8,
+      "form": "v2_pfx_lock_rmw_dec",
+      "history": "B",
+      "key": [
+        1,
+        0,
+        "CODE",
+        4,
+        "rmw",
+        "CODE",
+        14,
+        "S",
+        0,
+        3,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 8,
+      "parity": "even",
+      "wait": 15
+    },
+    {
+      "clock_mhz": 4,
+      "form": "v2_pfx_lock_rmw_dec",
+      "history": "A",
+      "key": [
+        1,
+        0,
+        "CODE",
+        4,
+        "rmw",
+        "CODE",
+        6,
+        "S",
+        0,
+        2,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 1,
+      "parity": "odd",
+      "wait": 7
+    },
+    {
+      "clock_mhz": 8,
+      "form": "v2_pfx_lock_rmw_dec",
+      "history": "A",
+      "key": [
+        1,
+        0,
+        "CODE",
+        4,
+        "rmw",
+        "CODE",
+        6,
+        "S",
+        0,
+        2,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 1,
+      "parity": "odd",
+      "wait": 7
+    },
+    {
+      "clock_mhz": 4,
+      "form": "v2_pfx_lock_rmw_dec",
+      "history": "B",
+      "key": [
+        1,
+        0,
+        "CODE",
+        4,
+        "rmw",
+        "CODE",
+        6,
+        "S",
+        0,
+        2,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 1,
+      "parity": "odd",
+      "wait": 7
+    },
+    {
+      "clock_mhz": 8,
+      "form": "v2_pfx_lock_rmw_dec",
+      "history": "B",
+      "key": [
+        1,
+        0,
+        "CODE",
+        4,
+        "rmw",
+        "CODE",
+        6,
+        "S",
+        0,
+        2,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 1,
+      "parity": "odd",
+      "wait": 7
+    },
+    {
+      "clock_mhz": 4,
+      "form": "v2_pfx_lock_rmw_dec",
+      "history": "A",
+      "key": [
+        1,
+        0,
+        "CODE",
+        4,
+        "rmw",
+        "CODE",
+        14,
+        "S",
+        0,
+        2,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 1,
+      "parity": "odd",
+      "wait": 15
+    },
+    {
+      "clock_mhz": 8,
+      "form": "v2_pfx_lock_rmw_dec",
+      "history": "A",
+      "key": [
+        1,
+        0,
+        "CODE",
+        4,
+        "rmw",
+        "CODE",
+        14,
+        "S",
+        0,
+        2,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 1,
+      "parity": "odd",
+      "wait": 15
+    },
+    {
+      "clock_mhz": 4,
+      "form": "v2_pfx_lock_rmw_dec",
+      "history": "B",
+      "key": [
+        1,
+        0,
+        "CODE",
+        4,
+        "rmw",
+        "CODE",
+        14,
+        "S",
+        0,
+        2,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 1,
+      "parity": "odd",
+      "wait": 15
+    },
+    {
+      "clock_mhz": 8,
+      "form": "v2_pfx_lock_rmw_dec",
+      "history": "B",
+      "key": [
+        1,
+        0,
+        "CODE",
+        4,
+        "rmw",
+        "CODE",
+        14,
+        "S",
+        0,
+        2,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 1,
+      "parity": "odd",
+      "wait": 15
+    },
+    {
+      "clock_mhz": 4,
+      "form": "v2_pfx_lock_rmw_dec",
+      "history": "A",
+      "key": [
+        2,
+        0,
+        "CODE",
+        1,
+        "rmw",
+        "CODE",
+        -4,
+        "S",
+        0,
+        3,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 2,
+      "parity": "odd",
+      "wait": 0
+    },
+    {
+      "clock_mhz": 8,
+      "form": "v2_pfx_lock_rmw_dec",
+      "history": "A",
+      "key": [
+        2,
+        0,
+        "CODE",
+        1,
+        "rmw",
+        "CODE",
+        -4,
+        "S",
+        0,
+        3,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 2,
+      "parity": "odd",
+      "wait": 0
+    },
+    {
+      "clock_mhz": 4,
+      "form": "v2_pfx_lock_rmw_dec",
+      "history": "B",
+      "key": [
+        2,
+        0,
+        "CODE",
+        1,
+        "rmw",
+        "CODE",
+        -4,
+        "S",
+        0,
+        3,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 2,
+      "parity": "odd",
+      "wait": 0
+    },
+    {
+      "clock_mhz": 8,
+      "form": "v2_pfx_lock_rmw_dec",
+      "history": "B",
+      "key": [
+        2,
+        0,
+        "CODE",
+        1,
+        "rmw",
+        "CODE",
+        -4,
+        "S",
+        0,
+        3,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 2,
+      "parity": "odd",
+      "wait": 0
+    },
+    {
+      "clock_mhz": 4,
+      "form": "v2_pfx_lock_rmw_dec",
+      "history": "A",
+      "key": [
+        0,
+        0,
+        "CODE",
+        4,
+        "rmw",
+        "CODE",
+        3,
+        "S",
+        0,
+        3,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 2,
+      "parity": "odd",
+      "wait": 7
+    },
+    {
+      "clock_mhz": 8,
+      "form": "v2_pfx_lock_rmw_dec",
+      "history": "A",
+      "key": [
+        0,
+        0,
+        "CODE",
+        4,
+        "rmw",
+        "CODE",
+        3,
+        "S",
+        0,
+        3,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 2,
+      "parity": "odd",
+      "wait": 7
+    },
+    {
+      "clock_mhz": 4,
+      "form": "v2_pfx_lock_rmw_dec",
+      "history": "B",
+      "key": [
+        0,
+        0,
+        "CODE",
+        4,
+        "rmw",
+        "CODE",
+        3,
+        "S",
+        0,
+        3,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 2,
+      "parity": "odd",
+      "wait": 7
+    },
+    {
+      "clock_mhz": 8,
+      "form": "v2_pfx_lock_rmw_dec",
+      "history": "B",
+      "key": [
+        0,
+        0,
+        "CODE",
+        4,
+        "rmw",
+        "CODE",
+        3,
+        "S",
+        0,
+        3,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 2,
+      "parity": "odd",
+      "wait": 7
+    },
+    {
+      "clock_mhz": 4,
+      "form": "v2_pfx_lock_rmw_dec",
+      "history": "A",
+      "key": [
+        0,
+        0,
+        "CODE",
+        4,
+        "rmw",
+        "CODE",
+        11,
+        "S",
+        0,
+        3,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 2,
+      "parity": "odd",
+      "wait": 15
+    },
+    {
+      "clock_mhz": 8,
+      "form": "v2_pfx_lock_rmw_dec",
+      "history": "A",
+      "key": [
+        0,
+        0,
+        "CODE",
+        4,
+        "rmw",
+        "CODE",
+        11,
+        "S",
+        0,
+        3,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 2,
+      "parity": "odd",
+      "wait": 15
+    },
+    {
+      "clock_mhz": 4,
+      "form": "v2_pfx_lock_rmw_dec",
+      "history": "B",
+      "key": [
+        0,
+        0,
+        "CODE",
+        4,
+        "rmw",
+        "CODE",
+        11,
+        "S",
+        0,
+        3,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 2,
+      "parity": "odd",
+      "wait": 15
+    },
+    {
+      "clock_mhz": 8,
+      "form": "v2_pfx_lock_rmw_dec",
+      "history": "B",
+      "key": [
+        0,
+        0,
+        "CODE",
+        4,
+        "rmw",
+        "CODE",
+        11,
+        "S",
+        0,
+        3,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 2,
+      "parity": "odd",
+      "wait": 15
+    },
+    {
+      "clock_mhz": 4,
+      "fields": [
+        "action",
+        "t1",
+        "address"
+      ],
+      "form": "v2_pfx_lock_rmw_dec",
+      "got": [
+        "CODE",
+        1,
+        [
+          "selected_delta",
+          2
+        ],
+        16,
+        []
+      ],
+      "history": "A",
+      "key": [
+        3,
+        0,
+        "CODE",
+        5,
+        "rmw",
+        "CODE",
+        0,
+        "S",
+        0,
+        4,
+        "modrm"
+      ],
+      "kind": "mismatch",
+      "pad": 3,
+      "parity": "odd",
+      "wait": 0,
+      "want": [
+        "MEMR",
+        4,
+        [
+          "absolute",
+          8192
+        ],
+        16,
+        []
+      ]
+    },
+    {
+      "clock_mhz": 8,
+      "fields": [
+        "action",
+        "t1",
+        "address"
+      ],
+      "form": "v2_pfx_lock_rmw_dec",
+      "got": [
+        "CODE",
+        1,
+        [
+          "selected_delta",
+          2
+        ],
+        16,
+        []
+      ],
+      "history": "A",
+      "key": [
+        3,
+        0,
+        "CODE",
+        5,
+        "rmw",
+        "CODE",
+        0,
+        "S",
+        0,
+        4,
+        "modrm"
+      ],
+      "kind": "mismatch",
+      "pad": 3,
+      "parity": "odd",
+      "wait": 0,
+      "want": [
+        "MEMR",
+        4,
+        [
+          "absolute",
+          8192
+        ],
+        16,
+        []
+      ]
+    },
+    {
+      "clock_mhz": 4,
+      "fields": [
+        "action",
+        "t1",
+        "address"
+      ],
+      "form": "v2_pfx_lock_rmw_dec",
+      "got": [
+        "CODE",
+        1,
+        [
+          "selected_delta",
+          2
+        ],
+        16,
+        []
+      ],
+      "history": "B",
+      "key": [
+        3,
+        0,
+        "CODE",
+        5,
+        "rmw",
+        "CODE",
+        0,
+        "S",
+        0,
+        4,
+        "modrm"
+      ],
+      "kind": "mismatch",
+      "pad": 3,
+      "parity": "odd",
+      "wait": 0,
+      "want": [
+        "MEMR",
+        4,
+        [
+          "absolute",
+          8192
+        ],
+        16,
+        []
+      ]
+    },
+    {
+      "clock_mhz": 8,
+      "fields": [
+        "action",
+        "t1",
+        "address"
+      ],
+      "form": "v2_pfx_lock_rmw_dec",
+      "got": [
+        "CODE",
+        1,
+        [
+          "selected_delta",
+          2
+        ],
+        16,
+        []
+      ],
+      "history": "B",
+      "key": [
+        3,
+        0,
+        "CODE",
+        5,
+        "rmw",
+        "CODE",
+        0,
+        "S",
+        0,
+        4,
+        "modrm"
+      ],
+      "kind": "mismatch",
+      "pad": 3,
+      "parity": "odd",
+      "wait": 0,
+      "want": [
+        "MEMR",
+        4,
+        [
+          "absolute",
+          8192
+        ],
+        16,
+        []
+      ]
+    },
+    {
+      "clock_mhz": 4,
+      "form": "v2_pfx_lock_rmw_dec",
+      "history": "A",
+      "key": [
+        1,
+        0,
+        "CODE",
+        4,
+        "rmw",
+        "CODE",
+        7,
+        "S",
+        0,
+        4,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 3,
+      "parity": "odd",
+      "wait": 7
+    },
+    {
+      "clock_mhz": 8,
+      "form": "v2_pfx_lock_rmw_dec",
+      "history": "A",
+      "key": [
+        1,
+        0,
+        "CODE",
+        4,
+        "rmw",
+        "CODE",
+        7,
+        "S",
+        0,
+        4,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 3,
+      "parity": "odd",
+      "wait": 7
+    },
+    {
+      "clock_mhz": 4,
+      "form": "v2_pfx_lock_rmw_dec",
+      "history": "B",
+      "key": [
+        1,
+        0,
+        "CODE",
+        4,
+        "rmw",
+        "CODE",
+        7,
+        "S",
+        0,
+        4,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 3,
+      "parity": "odd",
+      "wait": 7
+    },
+    {
+      "clock_mhz": 8,
+      "form": "v2_pfx_lock_rmw_dec",
+      "history": "B",
+      "key": [
+        1,
+        0,
+        "CODE",
+        4,
+        "rmw",
+        "CODE",
+        7,
+        "S",
+        0,
+        4,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 3,
+      "parity": "odd",
+      "wait": 7
+    },
+    {
+      "clock_mhz": 4,
+      "form": "v2_pfx_lock_rmw_dec",
+      "history": "A",
+      "key": [
+        1,
+        0,
+        "CODE",
+        4,
+        "rmw",
+        "CODE",
+        15,
+        "S",
+        0,
+        4,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 3,
+      "parity": "odd",
+      "wait": 15
+    },
+    {
+      "clock_mhz": 8,
+      "form": "v2_pfx_lock_rmw_dec",
+      "history": "A",
+      "key": [
+        1,
+        0,
+        "CODE",
+        4,
+        "rmw",
+        "CODE",
+        15,
+        "S",
+        0,
+        4,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 3,
+      "parity": "odd",
+      "wait": 15
+    },
+    {
+      "clock_mhz": 4,
+      "form": "v2_pfx_lock_rmw_dec",
+      "history": "B",
+      "key": [
+        1,
+        0,
+        "CODE",
+        4,
+        "rmw",
+        "CODE",
+        15,
+        "S",
+        0,
+        4,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 3,
+      "parity": "odd",
+      "wait": 15
+    },
+    {
+      "clock_mhz": 8,
+      "form": "v2_pfx_lock_rmw_dec",
+      "history": "B",
+      "key": [
+        1,
+        0,
+        "CODE",
+        4,
+        "rmw",
+        "CODE",
+        15,
+        "S",
+        0,
+        4,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 3,
+      "parity": "odd",
+      "wait": 15
+    },
+    {
+      "clock_mhz": 4,
+      "fields": [
+        "t1"
+      ],
+      "form": "v2_pfx_lock_rmw_dec",
+      "got": [
+        "CODE",
+        1,
+        [
+          "selected_delta",
+          2
+        ],
+        16,
+        []
+      ],
+      "history": "A",
+      "key": [
+        2,
+        0,
+        "IDLE",
+        0,
+        "rmw",
+        "CODE",
+        -3,
+        "S",
+        0,
+        5,
+        "modrm"
+      ],
+      "kind": "mismatch",
+      "pad": 4,
+      "parity": "odd",
+      "wait": 0,
+      "want": [
+        "CODE",
+        2,
+        [
+          "selected_delta",
+          2
+        ],
+        16,
+        []
+      ]
+    },
+    {
+      "clock_mhz": 8,
+      "fields": [
+        "t1"
+      ],
+      "form": "v2_pfx_lock_rmw_dec",
+      "got": [
+        "CODE",
+        1,
+        [
+          "selected_delta",
+          2
+        ],
+        16,
+        []
+      ],
+      "history": "A",
+      "key": [
+        2,
+        0,
+        "IDLE",
+        0,
+        "rmw",
+        "CODE",
+        -3,
+        "S",
+        0,
+        5,
+        "modrm"
+      ],
+      "kind": "mismatch",
+      "pad": 4,
+      "parity": "odd",
+      "wait": 0,
+      "want": [
+        "CODE",
+        2,
+        [
+          "selected_delta",
+          2
+        ],
+        16,
+        []
+      ]
+    },
+    {
+      "clock_mhz": 4,
+      "fields": [
+        "t1"
+      ],
+      "form": "v2_pfx_lock_rmw_dec",
+      "got": [
+        "CODE",
+        1,
+        [
+          "selected_delta",
+          2
+        ],
+        16,
+        []
+      ],
+      "history": "B",
+      "key": [
+        2,
+        0,
+        "IDLE",
+        0,
+        "rmw",
+        "CODE",
+        -3,
+        "S",
+        0,
+        5,
+        "modrm"
+      ],
+      "kind": "mismatch",
+      "pad": 4,
+      "parity": "odd",
+      "wait": 0,
+      "want": [
+        "CODE",
+        2,
+        [
+          "selected_delta",
+          2
+        ],
+        16,
+        []
+      ]
+    },
+    {
+      "clock_mhz": 8,
+      "fields": [
+        "t1"
+      ],
+      "form": "v2_pfx_lock_rmw_dec",
+      "got": [
+        "CODE",
+        1,
+        [
+          "selected_delta",
+          2
+        ],
+        16,
+        []
+      ],
+      "history": "B",
+      "key": [
+        2,
+        0,
+        "IDLE",
+        0,
+        "rmw",
+        "CODE",
+        -3,
+        "S",
+        0,
+        5,
+        "modrm"
+      ],
+      "kind": "mismatch",
+      "pad": 4,
+      "parity": "odd",
+      "wait": 0,
+      "want": [
+        "CODE",
+        2,
+        [
+          "selected_delta",
+          2
+        ],
+        16,
+        []
+      ]
+    },
+    {
+      "clock_mhz": 4,
+      "form": "v2_pfx_lock_rmw_dec",
+      "history": "A",
+      "key": [
+        0,
+        0,
+        "CODE",
+        4,
+        "rmw",
+        "CODE",
+        4,
+        "S",
+        0,
+        5,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 4,
+      "parity": "odd",
+      "wait": 7
+    },
+    {
+      "clock_mhz": 8,
+      "form": "v2_pfx_lock_rmw_dec",
+      "history": "A",
+      "key": [
+        0,
+        0,
+        "CODE",
+        4,
+        "rmw",
+        "CODE",
+        4,
+        "S",
+        0,
+        5,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 4,
+      "parity": "odd",
+      "wait": 7
+    },
+    {
+      "clock_mhz": 4,
+      "form": "v2_pfx_lock_rmw_dec",
+      "history": "B",
+      "key": [
+        0,
+        0,
+        "CODE",
+        4,
+        "rmw",
+        "CODE",
+        4,
+        "S",
+        0,
+        5,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 4,
+      "parity": "odd",
+      "wait": 7
+    },
+    {
+      "clock_mhz": 8,
+      "form": "v2_pfx_lock_rmw_dec",
+      "history": "B",
+      "key": [
+        0,
+        0,
+        "CODE",
+        4,
+        "rmw",
+        "CODE",
+        4,
+        "S",
+        0,
+        5,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 4,
+      "parity": "odd",
+      "wait": 7
+    },
+    {
+      "clock_mhz": 4,
+      "form": "v2_pfx_lock_rmw_dec",
+      "history": "A",
+      "key": [
+        0,
+        0,
+        "CODE",
+        4,
+        "rmw",
+        "CODE",
+        12,
+        "S",
+        0,
+        5,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 4,
+      "parity": "odd",
+      "wait": 15
+    },
+    {
+      "clock_mhz": 8,
+      "form": "v2_pfx_lock_rmw_dec",
+      "history": "A",
+      "key": [
+        0,
+        0,
+        "CODE",
+        4,
+        "rmw",
+        "CODE",
+        12,
+        "S",
+        0,
+        5,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 4,
+      "parity": "odd",
+      "wait": 15
+    },
+    {
+      "clock_mhz": 4,
+      "form": "v2_pfx_lock_rmw_dec",
+      "history": "B",
+      "key": [
+        0,
+        0,
+        "CODE",
+        4,
+        "rmw",
+        "CODE",
+        12,
+        "S",
+        0,
+        5,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 4,
+      "parity": "odd",
+      "wait": 15
+    },
+    {
+      "clock_mhz": 8,
+      "form": "v2_pfx_lock_rmw_dec",
+      "history": "B",
+      "key": [
+        0,
+        0,
+        "CODE",
+        4,
+        "rmw",
+        "CODE",
+        12,
+        "S",
+        0,
+        5,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 4,
+      "parity": "odd",
+      "wait": 15
+    },
+    {
+      "clock_mhz": 4,
+      "form": "v2_pfx_lock_rmw_dec",
+      "history": "A",
+      "key": [
+        2,
+        0,
+        "CODE",
+        2,
+        "rmw",
+        "CODE",
+        -2,
+        "S",
+        0,
+        1,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 6,
+      "parity": "odd",
+      "wait": 0
+    },
+    {
+      "clock_mhz": 8,
+      "form": "v2_pfx_lock_rmw_dec",
+      "history": "A",
+      "key": [
+        2,
+        0,
+        "CODE",
+        2,
+        "rmw",
+        "CODE",
+        -2,
+        "S",
+        0,
+        1,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 6,
+      "parity": "odd",
+      "wait": 0
+    },
+    {
+      "clock_mhz": 4,
+      "form": "v2_pfx_lock_rmw_dec",
+      "history": "B",
+      "key": [
+        2,
+        0,
+        "CODE",
+        2,
+        "rmw",
+        "CODE",
+        -2,
+        "S",
+        0,
+        1,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 6,
+      "parity": "odd",
+      "wait": 0
+    },
+    {
+      "clock_mhz": 8,
+      "form": "v2_pfx_lock_rmw_dec",
+      "history": "B",
+      "key": [
+        2,
+        0,
+        "CODE",
+        2,
+        "rmw",
+        "CODE",
+        -2,
+        "S",
+        0,
+        1,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 6,
+      "parity": "odd",
+      "wait": 0
+    },
+    {
+      "clock_mhz": 4,
+      "form": "v2_pfx_lock_rmw_dec",
+      "history": "A",
+      "key": [
+        0,
+        0,
+        "CODE",
+        4,
+        "rmw",
+        "CODE",
+        5,
+        "S",
+        0,
+        1,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 6,
+      "parity": "odd",
+      "wait": 7
+    },
+    {
+      "clock_mhz": 8,
+      "form": "v2_pfx_lock_rmw_dec",
+      "history": "A",
+      "key": [
+        0,
+        0,
+        "CODE",
+        4,
+        "rmw",
+        "CODE",
+        5,
+        "S",
+        0,
+        1,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 6,
+      "parity": "odd",
+      "wait": 7
+    },
+    {
+      "clock_mhz": 4,
+      "form": "v2_pfx_lock_rmw_dec",
+      "history": "B",
+      "key": [
+        0,
+        0,
+        "CODE",
+        4,
+        "rmw",
+        "CODE",
+        5,
+        "S",
+        0,
+        1,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 6,
+      "parity": "odd",
+      "wait": 7
+    },
+    {
+      "clock_mhz": 8,
+      "form": "v2_pfx_lock_rmw_dec",
+      "history": "B",
+      "key": [
+        0,
+        0,
+        "CODE",
+        4,
+        "rmw",
+        "CODE",
+        5,
+        "S",
+        0,
+        1,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 6,
+      "parity": "odd",
+      "wait": 7
+    },
+    {
+      "clock_mhz": 4,
+      "form": "v2_pfx_lock_rmw_dec",
+      "history": "A",
+      "key": [
+        0,
+        0,
+        "CODE",
+        4,
+        "rmw",
+        "CODE",
+        13,
+        "S",
+        0,
+        1,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 6,
+      "parity": "odd",
+      "wait": 15
+    },
+    {
+      "clock_mhz": 8,
+      "form": "v2_pfx_lock_rmw_dec",
+      "history": "A",
+      "key": [
+        0,
+        0,
+        "CODE",
+        4,
+        "rmw",
+        "CODE",
+        13,
+        "S",
+        0,
+        1,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 6,
+      "parity": "odd",
+      "wait": 15
+    },
+    {
+      "clock_mhz": 4,
+      "form": "v2_pfx_lock_rmw_dec",
+      "history": "B",
+      "key": [
+        0,
+        0,
+        "CODE",
+        4,
+        "rmw",
+        "CODE",
+        13,
+        "S",
+        0,
+        1,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 6,
+      "parity": "odd",
+      "wait": 15
+    },
+    {
+      "clock_mhz": 8,
+      "form": "v2_pfx_lock_rmw_dec",
+      "history": "B",
+      "key": [
+        0,
+        0,
+        "CODE",
+        4,
+        "rmw",
+        "CODE",
+        13,
+        "S",
+        0,
+        1,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 6,
+      "parity": "odd",
+      "wait": 15
+    },
+    {
+      "clock_mhz": 4,
+      "form": "v2_pfx_lock_rmw_dec",
+      "history": "A",
+      "key": [
+        1,
+        0,
+        "CODE",
+        4,
+        "rmw",
+        "CODE",
+        6,
+        "S",
+        0,
+        2,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 7,
+      "parity": "odd",
+      "wait": 7
+    },
+    {
+      "clock_mhz": 8,
+      "form": "v2_pfx_lock_rmw_dec",
+      "history": "A",
+      "key": [
+        1,
+        0,
+        "CODE",
+        4,
+        "rmw",
+        "CODE",
+        6,
+        "S",
+        0,
+        2,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 7,
+      "parity": "odd",
+      "wait": 7
+    },
+    {
+      "clock_mhz": 4,
+      "form": "v2_pfx_lock_rmw_dec",
+      "history": "B",
+      "key": [
+        1,
+        0,
+        "CODE",
+        4,
+        "rmw",
+        "CODE",
+        6,
+        "S",
+        0,
+        2,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 7,
+      "parity": "odd",
+      "wait": 7
+    },
+    {
+      "clock_mhz": 8,
+      "form": "v2_pfx_lock_rmw_dec",
+      "history": "B",
+      "key": [
+        1,
+        0,
+        "CODE",
+        4,
+        "rmw",
+        "CODE",
+        6,
+        "S",
+        0,
+        2,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 7,
+      "parity": "odd",
+      "wait": 7
+    },
+    {
+      "clock_mhz": 4,
+      "form": "v2_pfx_lock_rmw_dec",
+      "history": "A",
+      "key": [
+        1,
+        0,
+        "CODE",
+        4,
+        "rmw",
+        "CODE",
+        14,
+        "S",
+        0,
+        2,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 7,
+      "parity": "odd",
+      "wait": 15
+    },
+    {
+      "clock_mhz": 8,
+      "form": "v2_pfx_lock_rmw_dec",
+      "history": "A",
+      "key": [
+        1,
+        0,
+        "CODE",
+        4,
+        "rmw",
+        "CODE",
+        14,
+        "S",
+        0,
+        2,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 7,
+      "parity": "odd",
+      "wait": 15
+    },
+    {
+      "clock_mhz": 4,
+      "form": "v2_pfx_lock_rmw_dec",
+      "history": "B",
+      "key": [
+        1,
+        0,
+        "CODE",
+        4,
+        "rmw",
+        "CODE",
+        14,
+        "S",
+        0,
+        2,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 7,
+      "parity": "odd",
+      "wait": 15
+    },
+    {
+      "clock_mhz": 8,
+      "form": "v2_pfx_lock_rmw_dec",
+      "history": "B",
+      "key": [
+        1,
+        0,
+        "CODE",
+        4,
+        "rmw",
+        "CODE",
+        14,
+        "S",
+        0,
+        2,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 7,
+      "parity": "odd",
+      "wait": 15
+    },
+    {
+      "clock_mhz": 4,
+      "form": "v2_pfx_seg_read_dw",
+      "history": "A",
+      "key": [
+        1,
+        0,
+        "CODE",
+        4,
+        "read",
+        "CODE",
+        6,
+        "S",
+        0,
+        3,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 2,
+      "parity": "even",
+      "wait": 7
+    },
+    {
+      "clock_mhz": 8,
+      "form": "v2_pfx_seg_read_dw",
+      "history": "A",
+      "key": [
+        1,
+        0,
+        "CODE",
+        4,
+        "read",
+        "CODE",
+        6,
+        "S",
+        0,
+        3,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 2,
+      "parity": "even",
+      "wait": 7
+    },
+    {
+      "clock_mhz": 4,
+      "form": "v2_pfx_seg_read_dw",
+      "history": "B",
+      "key": [
+        1,
+        0,
+        "CODE",
+        4,
+        "read",
+        "CODE",
+        6,
+        "S",
+        0,
+        3,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 2,
+      "parity": "even",
+      "wait": 7
+    },
+    {
+      "clock_mhz": 8,
+      "form": "v2_pfx_seg_read_dw",
+      "history": "B",
+      "key": [
+        1,
+        0,
+        "CODE",
+        4,
+        "read",
+        "CODE",
+        6,
+        "S",
+        0,
+        3,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 2,
+      "parity": "even",
+      "wait": 7
+    },
+    {
+      "clock_mhz": 4,
+      "form": "v2_pfx_seg_read_dw",
+      "history": "A",
+      "key": [
+        1,
+        0,
+        "CODE",
+        4,
+        "read",
+        "CODE",
+        14,
+        "S",
+        0,
+        3,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 2,
+      "parity": "even",
+      "wait": 15
+    },
+    {
+      "clock_mhz": 8,
+      "form": "v2_pfx_seg_read_dw",
+      "history": "A",
+      "key": [
+        1,
+        0,
+        "CODE",
+        4,
+        "read",
+        "CODE",
+        14,
+        "S",
+        0,
+        3,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 2,
+      "parity": "even",
+      "wait": 15
+    },
+    {
+      "clock_mhz": 4,
+      "form": "v2_pfx_seg_read_dw",
+      "history": "B",
+      "key": [
+        1,
+        0,
+        "CODE",
+        4,
+        "read",
+        "CODE",
+        14,
+        "S",
+        0,
+        3,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 2,
+      "parity": "even",
+      "wait": 15
+    },
+    {
+      "clock_mhz": 8,
+      "form": "v2_pfx_seg_read_dw",
+      "history": "B",
+      "key": [
+        1,
+        0,
+        "CODE",
+        4,
+        "read",
+        "CODE",
+        14,
+        "S",
+        0,
+        3,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 2,
+      "parity": "even",
+      "wait": 15
+    },
+    {
+      "clock_mhz": 4,
+      "form": "v2_pfx_seg_read_dw",
+      "history": "A",
+      "key": [
+        2,
+        0,
+        "CODE",
+        1,
+        "read",
+        "CODE",
+        -4,
+        "S",
+        0,
+        4,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 3,
+      "parity": "even",
+      "wait": 0
+    },
+    {
+      "clock_mhz": 8,
+      "form": "v2_pfx_seg_read_dw",
+      "history": "A",
+      "key": [
+        2,
+        0,
+        "CODE",
+        1,
+        "read",
+        "CODE",
+        -4,
+        "S",
+        0,
+        4,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 3,
+      "parity": "even",
+      "wait": 0
+    },
+    {
+      "clock_mhz": 4,
+      "form": "v2_pfx_seg_read_dw",
+      "history": "B",
+      "key": [
+        2,
+        0,
+        "CODE",
+        1,
+        "read",
+        "CODE",
+        -4,
+        "S",
+        0,
+        4,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 3,
+      "parity": "even",
+      "wait": 0
+    },
+    {
+      "clock_mhz": 8,
+      "form": "v2_pfx_seg_read_dw",
+      "history": "B",
+      "key": [
+        2,
+        0,
+        "CODE",
+        1,
+        "read",
+        "CODE",
+        -4,
+        "S",
+        0,
+        4,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 3,
+      "parity": "even",
+      "wait": 0
+    },
+    {
+      "clock_mhz": 4,
+      "form": "v2_pfx_seg_read_dw",
+      "history": "A",
+      "key": [
+        0,
+        0,
+        "CODE",
+        4,
+        "read",
+        "CODE",
+        3,
+        "S",
+        0,
+        4,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 3,
+      "parity": "even",
+      "wait": 7
+    },
+    {
+      "clock_mhz": 8,
+      "form": "v2_pfx_seg_read_dw",
+      "history": "A",
+      "key": [
+        0,
+        0,
+        "CODE",
+        4,
+        "read",
+        "CODE",
+        3,
+        "S",
+        0,
+        4,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 3,
+      "parity": "even",
+      "wait": 7
+    },
+    {
+      "clock_mhz": 4,
+      "form": "v2_pfx_seg_read_dw",
+      "history": "B",
+      "key": [
+        0,
+        0,
+        "CODE",
+        4,
+        "read",
+        "CODE",
+        3,
+        "S",
+        0,
+        4,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 3,
+      "parity": "even",
+      "wait": 7
+    },
+    {
+      "clock_mhz": 8,
+      "form": "v2_pfx_seg_read_dw",
+      "history": "B",
+      "key": [
+        0,
+        0,
+        "CODE",
+        4,
+        "read",
+        "CODE",
+        3,
+        "S",
+        0,
+        4,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 3,
+      "parity": "even",
+      "wait": 7
+    },
+    {
+      "clock_mhz": 4,
+      "form": "v2_pfx_seg_read_dw",
+      "history": "A",
+      "key": [
+        0,
+        0,
+        "CODE",
+        4,
+        "read",
+        "CODE",
+        11,
+        "S",
+        0,
+        4,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 3,
+      "parity": "even",
+      "wait": 15
+    },
+    {
+      "clock_mhz": 8,
+      "form": "v2_pfx_seg_read_dw",
+      "history": "A",
+      "key": [
+        0,
+        0,
+        "CODE",
+        4,
+        "read",
+        "CODE",
+        11,
+        "S",
+        0,
+        4,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 3,
+      "parity": "even",
+      "wait": 15
+    },
+    {
+      "clock_mhz": 4,
+      "form": "v2_pfx_seg_read_dw",
+      "history": "B",
+      "key": [
+        0,
+        0,
+        "CODE",
+        4,
+        "read",
+        "CODE",
+        11,
+        "S",
+        0,
+        4,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 3,
+      "parity": "even",
+      "wait": 15
+    },
+    {
+      "clock_mhz": 8,
+      "form": "v2_pfx_seg_read_dw",
+      "history": "B",
+      "key": [
+        0,
+        0,
+        "CODE",
+        4,
+        "read",
+        "CODE",
+        11,
+        "S",
+        0,
+        4,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 3,
+      "parity": "even",
+      "wait": 15
+    },
+    {
+      "clock_mhz": 4,
+      "fields": [
+        "action",
+        "t1",
+        "address"
+      ],
+      "form": "v2_pfx_seg_read_dw",
+      "got": [
+        "CODE",
+        1,
+        [
+          "selected_delta",
+          2
+        ],
+        16,
+        []
+      ],
+      "history": "A",
+      "key": [
+        3,
+        0,
+        "CODE",
+        5,
+        "read",
+        "CODE",
+        0,
+        "S",
+        0,
+        5,
+        "modrm"
+      ],
+      "kind": "mismatch",
+      "pad": 4,
+      "parity": "even",
+      "wait": 0,
+      "want": [
+        "MEMR",
+        4,
+        [
+          "absolute",
+          8192
+        ],
+        16,
+        []
+      ]
+    },
+    {
+      "clock_mhz": 8,
+      "fields": [
+        "action",
+        "t1",
+        "address"
+      ],
+      "form": "v2_pfx_seg_read_dw",
+      "got": [
+        "CODE",
+        1,
+        [
+          "selected_delta",
+          2
+        ],
+        16,
+        []
+      ],
+      "history": "A",
+      "key": [
+        3,
+        0,
+        "CODE",
+        5,
+        "read",
+        "CODE",
+        0,
+        "S",
+        0,
+        5,
+        "modrm"
+      ],
+      "kind": "mismatch",
+      "pad": 4,
+      "parity": "even",
+      "wait": 0,
+      "want": [
+        "MEMR",
+        4,
+        [
+          "absolute",
+          8192
+        ],
+        16,
+        []
+      ]
+    },
+    {
+      "clock_mhz": 4,
+      "fields": [
+        "action",
+        "t1",
+        "address"
+      ],
+      "form": "v2_pfx_seg_read_dw",
+      "got": [
+        "CODE",
+        1,
+        [
+          "selected_delta",
+          2
+        ],
+        16,
+        []
+      ],
+      "history": "B",
+      "key": [
+        3,
+        0,
+        "CODE",
+        5,
+        "read",
+        "CODE",
+        0,
+        "S",
+        0,
+        5,
+        "modrm"
+      ],
+      "kind": "mismatch",
+      "pad": 4,
+      "parity": "even",
+      "wait": 0,
+      "want": [
+        "MEMR",
+        4,
+        [
+          "absolute",
+          8192
+        ],
+        16,
+        []
+      ]
+    },
+    {
+      "clock_mhz": 8,
+      "fields": [
+        "action",
+        "t1",
+        "address"
+      ],
+      "form": "v2_pfx_seg_read_dw",
+      "got": [
+        "CODE",
+        1,
+        [
+          "selected_delta",
+          2
+        ],
+        16,
+        []
+      ],
+      "history": "B",
+      "key": [
+        3,
+        0,
+        "CODE",
+        5,
+        "read",
+        "CODE",
+        0,
+        "S",
+        0,
+        5,
+        "modrm"
+      ],
+      "kind": "mismatch",
+      "pad": 4,
+      "parity": "even",
+      "wait": 0,
+      "want": [
+        "MEMR",
+        4,
+        [
+          "absolute",
+          8192
+        ],
+        16,
+        []
+      ]
+    },
+    {
+      "clock_mhz": 4,
+      "form": "v2_pfx_seg_read_dw",
+      "history": "A",
+      "key": [
+        1,
+        0,
+        "CODE",
+        4,
+        "read",
+        "CODE",
+        7,
+        "S",
+        0,
+        5,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 4,
+      "parity": "even",
+      "wait": 7
+    },
+    {
+      "clock_mhz": 8,
+      "form": "v2_pfx_seg_read_dw",
+      "history": "A",
+      "key": [
+        1,
+        0,
+        "CODE",
+        4,
+        "read",
+        "CODE",
+        7,
+        "S",
+        0,
+        5,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 4,
+      "parity": "even",
+      "wait": 7
+    },
+    {
+      "clock_mhz": 4,
+      "form": "v2_pfx_seg_read_dw",
+      "history": "B",
+      "key": [
+        1,
+        0,
+        "CODE",
+        4,
+        "read",
+        "CODE",
+        7,
+        "S",
+        0,
+        5,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 4,
+      "parity": "even",
+      "wait": 7
+    },
+    {
+      "clock_mhz": 8,
+      "form": "v2_pfx_seg_read_dw",
+      "history": "B",
+      "key": [
+        1,
+        0,
+        "CODE",
+        4,
+        "read",
+        "CODE",
+        7,
+        "S",
+        0,
+        5,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 4,
+      "parity": "even",
+      "wait": 7
+    },
+    {
+      "clock_mhz": 4,
+      "form": "v2_pfx_seg_read_dw",
+      "history": "A",
+      "key": [
+        1,
+        0,
+        "CODE",
+        4,
+        "read",
+        "CODE",
+        15,
+        "S",
+        0,
+        5,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 4,
+      "parity": "even",
+      "wait": 15
+    },
+    {
+      "clock_mhz": 8,
+      "form": "v2_pfx_seg_read_dw",
+      "history": "A",
+      "key": [
+        1,
+        0,
+        "CODE",
+        4,
+        "read",
+        "CODE",
+        15,
+        "S",
+        0,
+        5,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 4,
+      "parity": "even",
+      "wait": 15
+    },
+    {
+      "clock_mhz": 4,
+      "form": "v2_pfx_seg_read_dw",
+      "history": "B",
+      "key": [
+        1,
+        0,
+        "CODE",
+        4,
+        "read",
+        "CODE",
+        15,
+        "S",
+        0,
+        5,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 4,
+      "parity": "even",
+      "wait": 15
+    },
+    {
+      "clock_mhz": 8,
+      "form": "v2_pfx_seg_read_dw",
+      "history": "B",
+      "key": [
+        1,
+        0,
+        "CODE",
+        4,
+        "read",
+        "CODE",
+        15,
+        "S",
+        0,
+        5,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 4,
+      "parity": "even",
+      "wait": 15
+    },
+    {
+      "clock_mhz": 4,
+      "fields": [
+        "t1"
+      ],
+      "form": "v2_pfx_seg_read_dw",
+      "got": [
+        "CODE",
+        1,
+        [
+          "selected_delta",
+          2
+        ],
+        16,
+        []
+      ],
+      "history": "A",
+      "key": [
+        2,
+        0,
+        "IDLE",
+        0,
+        "read",
+        "CODE",
+        -3,
+        "S",
+        0,
+        0,
+        "modrm"
+      ],
+      "kind": "mismatch",
+      "pad": 5,
+      "parity": "even",
+      "wait": 0,
+      "want": [
+        "CODE",
+        2,
+        [
+          "selected_delta",
+          2
+        ],
+        16,
+        []
+      ]
+    },
+    {
+      "clock_mhz": 8,
+      "fields": [
+        "t1"
+      ],
+      "form": "v2_pfx_seg_read_dw",
+      "got": [
+        "CODE",
+        1,
+        [
+          "selected_delta",
+          2
+        ],
+        16,
+        []
+      ],
+      "history": "A",
+      "key": [
+        2,
+        0,
+        "IDLE",
+        0,
+        "read",
+        "CODE",
+        -3,
+        "S",
+        0,
+        0,
+        "modrm"
+      ],
+      "kind": "mismatch",
+      "pad": 5,
+      "parity": "even",
+      "wait": 0,
+      "want": [
+        "CODE",
+        2,
+        [
+          "selected_delta",
+          2
+        ],
+        16,
+        []
+      ]
+    },
+    {
+      "clock_mhz": 4,
+      "fields": [
+        "t1"
+      ],
+      "form": "v2_pfx_seg_read_dw",
+      "got": [
+        "CODE",
+        1,
+        [
+          "selected_delta",
+          2
+        ],
+        16,
+        []
+      ],
+      "history": "B",
+      "key": [
+        2,
+        0,
+        "IDLE",
+        0,
+        "read",
+        "CODE",
+        -3,
+        "S",
+        0,
+        0,
+        "modrm"
+      ],
+      "kind": "mismatch",
+      "pad": 5,
+      "parity": "even",
+      "wait": 0,
+      "want": [
+        "CODE",
+        2,
+        [
+          "selected_delta",
+          2
+        ],
+        16,
+        []
+      ]
+    },
+    {
+      "clock_mhz": 8,
+      "fields": [
+        "t1"
+      ],
+      "form": "v2_pfx_seg_read_dw",
+      "got": [
+        "CODE",
+        1,
+        [
+          "selected_delta",
+          2
+        ],
+        16,
+        []
+      ],
+      "history": "B",
+      "key": [
+        2,
+        0,
+        "IDLE",
+        0,
+        "read",
+        "CODE",
+        -3,
+        "S",
+        0,
+        0,
+        "modrm"
+      ],
+      "kind": "mismatch",
+      "pad": 5,
+      "parity": "even",
+      "wait": 0,
+      "want": [
+        "CODE",
+        2,
+        [
+          "selected_delta",
+          2
+        ],
+        16,
+        []
+      ]
+    },
+    {
+      "clock_mhz": 4,
+      "form": "v2_pfx_seg_read_dw",
+      "history": "A",
+      "key": [
+        0,
+        0,
+        "CODE",
+        4,
+        "read",
+        "CODE",
+        4,
+        "S",
+        0,
+        0,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 5,
+      "parity": "even",
+      "wait": 7
+    },
+    {
+      "clock_mhz": 8,
+      "form": "v2_pfx_seg_read_dw",
+      "history": "A",
+      "key": [
+        0,
+        0,
+        "CODE",
+        4,
+        "read",
+        "CODE",
+        4,
+        "S",
+        0,
+        0,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 5,
+      "parity": "even",
+      "wait": 7
+    },
+    {
+      "clock_mhz": 4,
+      "form": "v2_pfx_seg_read_dw",
+      "history": "B",
+      "key": [
+        0,
+        0,
+        "CODE",
+        4,
+        "read",
+        "CODE",
+        4,
+        "S",
+        0,
+        0,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 5,
+      "parity": "even",
+      "wait": 7
+    },
+    {
+      "clock_mhz": 8,
+      "form": "v2_pfx_seg_read_dw",
+      "history": "B",
+      "key": [
+        0,
+        0,
+        "CODE",
+        4,
+        "read",
+        "CODE",
+        4,
+        "S",
+        0,
+        0,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 5,
+      "parity": "even",
+      "wait": 7
+    },
+    {
+      "clock_mhz": 4,
+      "form": "v2_pfx_seg_read_dw",
+      "history": "A",
+      "key": [
+        0,
+        0,
+        "CODE",
+        4,
+        "read",
+        "CODE",
+        12,
+        "S",
+        0,
+        0,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 5,
+      "parity": "even",
+      "wait": 15
+    },
+    {
+      "clock_mhz": 8,
+      "form": "v2_pfx_seg_read_dw",
+      "history": "A",
+      "key": [
+        0,
+        0,
+        "CODE",
+        4,
+        "read",
+        "CODE",
+        12,
+        "S",
+        0,
+        0,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 5,
+      "parity": "even",
+      "wait": 15
+    },
+    {
+      "clock_mhz": 4,
+      "form": "v2_pfx_seg_read_dw",
+      "history": "B",
+      "key": [
+        0,
+        0,
+        "CODE",
+        4,
+        "read",
+        "CODE",
+        12,
+        "S",
+        0,
+        0,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 5,
+      "parity": "even",
+      "wait": 15
+    },
+    {
+      "clock_mhz": 8,
+      "form": "v2_pfx_seg_read_dw",
+      "history": "B",
+      "key": [
+        0,
+        0,
+        "CODE",
+        4,
+        "read",
+        "CODE",
+        12,
+        "S",
+        0,
+        0,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 5,
+      "parity": "even",
+      "wait": 15
+    },
+    {
+      "clock_mhz": 4,
+      "form": "v2_pfx_seg_read_dw",
+      "history": "A",
+      "key": [
+        2,
+        0,
+        "CODE",
+        2,
+        "read",
+        "CODE",
+        -2,
+        "S",
+        0,
+        2,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 7,
+      "parity": "even",
+      "wait": 0
+    },
+    {
+      "clock_mhz": 8,
+      "form": "v2_pfx_seg_read_dw",
+      "history": "A",
+      "key": [
+        2,
+        0,
+        "CODE",
+        2,
+        "read",
+        "CODE",
+        -2,
+        "S",
+        0,
+        2,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 7,
+      "parity": "even",
+      "wait": 0
+    },
+    {
+      "clock_mhz": 4,
+      "form": "v2_pfx_seg_read_dw",
+      "history": "B",
+      "key": [
+        2,
+        0,
+        "CODE",
+        2,
+        "read",
+        "CODE",
+        -2,
+        "S",
+        0,
+        2,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 7,
+      "parity": "even",
+      "wait": 0
+    },
+    {
+      "clock_mhz": 8,
+      "form": "v2_pfx_seg_read_dw",
+      "history": "B",
+      "key": [
+        2,
+        0,
+        "CODE",
+        2,
+        "read",
+        "CODE",
+        -2,
+        "S",
+        0,
+        2,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 7,
+      "parity": "even",
+      "wait": 0
+    },
+    {
+      "clock_mhz": 4,
+      "form": "v2_pfx_seg_read_dw",
+      "history": "A",
+      "key": [
+        0,
+        0,
+        "CODE",
+        4,
+        "read",
+        "CODE",
+        5,
+        "S",
+        0,
+        2,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 7,
+      "parity": "even",
+      "wait": 7
+    },
+    {
+      "clock_mhz": 8,
+      "form": "v2_pfx_seg_read_dw",
+      "history": "A",
+      "key": [
+        0,
+        0,
+        "CODE",
+        4,
+        "read",
+        "CODE",
+        5,
+        "S",
+        0,
+        2,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 7,
+      "parity": "even",
+      "wait": 7
+    },
+    {
+      "clock_mhz": 4,
+      "form": "v2_pfx_seg_read_dw",
+      "history": "B",
+      "key": [
+        0,
+        0,
+        "CODE",
+        4,
+        "read",
+        "CODE",
+        5,
+        "S",
+        0,
+        2,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 7,
+      "parity": "even",
+      "wait": 7
+    },
+    {
+      "clock_mhz": 8,
+      "form": "v2_pfx_seg_read_dw",
+      "history": "B",
+      "key": [
+        0,
+        0,
+        "CODE",
+        4,
+        "read",
+        "CODE",
+        5,
+        "S",
+        0,
+        2,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 7,
+      "parity": "even",
+      "wait": 7
+    },
+    {
+      "clock_mhz": 4,
+      "form": "v2_pfx_seg_read_dw",
+      "history": "A",
+      "key": [
+        0,
+        0,
+        "CODE",
+        4,
+        "read",
+        "CODE",
+        13,
+        "S",
+        0,
+        2,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 7,
+      "parity": "even",
+      "wait": 15
+    },
+    {
+      "clock_mhz": 8,
+      "form": "v2_pfx_seg_read_dw",
+      "history": "A",
+      "key": [
+        0,
+        0,
+        "CODE",
+        4,
+        "read",
+        "CODE",
+        13,
+        "S",
+        0,
+        2,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 7,
+      "parity": "even",
+      "wait": 15
+    },
+    {
+      "clock_mhz": 4,
+      "form": "v2_pfx_seg_read_dw",
+      "history": "B",
+      "key": [
+        0,
+        0,
+        "CODE",
+        4,
+        "read",
+        "CODE",
+        13,
+        "S",
+        0,
+        2,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 7,
+      "parity": "even",
+      "wait": 15
+    },
+    {
+      "clock_mhz": 8,
+      "form": "v2_pfx_seg_read_dw",
+      "history": "B",
+      "key": [
+        0,
+        0,
+        "CODE",
+        4,
+        "read",
+        "CODE",
+        13,
+        "S",
+        0,
+        2,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 7,
+      "parity": "even",
+      "wait": 15
+    },
+    {
+      "clock_mhz": 4,
+      "form": "v2_pfx_seg_read_dw",
+      "history": "A",
+      "key": [
+        1,
+        0,
+        "CODE",
+        4,
+        "read",
+        "CODE",
+        6,
+        "S",
+        0,
+        3,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 8,
+      "parity": "even",
+      "wait": 7
+    },
+    {
+      "clock_mhz": 8,
+      "form": "v2_pfx_seg_read_dw",
+      "history": "A",
+      "key": [
+        1,
+        0,
+        "CODE",
+        4,
+        "read",
+        "CODE",
+        6,
+        "S",
+        0,
+        3,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 8,
+      "parity": "even",
+      "wait": 7
+    },
+    {
+      "clock_mhz": 4,
+      "form": "v2_pfx_seg_read_dw",
+      "history": "B",
+      "key": [
+        1,
+        0,
+        "CODE",
+        4,
+        "read",
+        "CODE",
+        6,
+        "S",
+        0,
+        3,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 8,
+      "parity": "even",
+      "wait": 7
+    },
+    {
+      "clock_mhz": 8,
+      "form": "v2_pfx_seg_read_dw",
+      "history": "B",
+      "key": [
+        1,
+        0,
+        "CODE",
+        4,
+        "read",
+        "CODE",
+        6,
+        "S",
+        0,
+        3,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 8,
+      "parity": "even",
+      "wait": 7
+    },
+    {
+      "clock_mhz": 4,
+      "form": "v2_pfx_seg_read_dw",
+      "history": "A",
+      "key": [
+        1,
+        0,
+        "CODE",
+        4,
+        "read",
+        "CODE",
+        14,
+        "S",
+        0,
+        3,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 8,
+      "parity": "even",
+      "wait": 15
+    },
+    {
+      "clock_mhz": 8,
+      "form": "v2_pfx_seg_read_dw",
+      "history": "A",
+      "key": [
+        1,
+        0,
+        "CODE",
+        4,
+        "read",
+        "CODE",
+        14,
+        "S",
+        0,
+        3,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 8,
+      "parity": "even",
+      "wait": 15
+    },
+    {
+      "clock_mhz": 4,
+      "form": "v2_pfx_seg_read_dw",
+      "history": "B",
+      "key": [
+        1,
+        0,
+        "CODE",
+        4,
+        "read",
+        "CODE",
+        14,
+        "S",
+        0,
+        3,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 8,
+      "parity": "even",
+      "wait": 15
+    },
+    {
+      "clock_mhz": 8,
+      "form": "v2_pfx_seg_read_dw",
+      "history": "B",
+      "key": [
+        1,
+        0,
+        "CODE",
+        4,
+        "read",
+        "CODE",
+        14,
+        "S",
+        0,
+        3,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 8,
+      "parity": "even",
+      "wait": 15
+    },
+    {
+      "clock_mhz": 4,
+      "form": "v2_pfx_seg_read_dw",
+      "history": "A",
+      "key": [
+        1,
+        0,
+        "CODE",
+        4,
+        "read",
+        "CODE",
+        6,
+        "S",
+        0,
+        2,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 1,
+      "parity": "odd",
+      "wait": 7
+    },
+    {
+      "clock_mhz": 8,
+      "form": "v2_pfx_seg_read_dw",
+      "history": "A",
+      "key": [
+        1,
+        0,
+        "CODE",
+        4,
+        "read",
+        "CODE",
+        6,
+        "S",
+        0,
+        2,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 1,
+      "parity": "odd",
+      "wait": 7
+    },
+    {
+      "clock_mhz": 4,
+      "form": "v2_pfx_seg_read_dw",
+      "history": "B",
+      "key": [
+        1,
+        0,
+        "CODE",
+        4,
+        "read",
+        "CODE",
+        6,
+        "S",
+        0,
+        2,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 1,
+      "parity": "odd",
+      "wait": 7
+    },
+    {
+      "clock_mhz": 8,
+      "form": "v2_pfx_seg_read_dw",
+      "history": "B",
+      "key": [
+        1,
+        0,
+        "CODE",
+        4,
+        "read",
+        "CODE",
+        6,
+        "S",
+        0,
+        2,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 1,
+      "parity": "odd",
+      "wait": 7
+    },
+    {
+      "clock_mhz": 4,
+      "form": "v2_pfx_seg_read_dw",
+      "history": "A",
+      "key": [
+        1,
+        0,
+        "CODE",
+        4,
+        "read",
+        "CODE",
+        14,
+        "S",
+        0,
+        2,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 1,
+      "parity": "odd",
+      "wait": 15
+    },
+    {
+      "clock_mhz": 8,
+      "form": "v2_pfx_seg_read_dw",
+      "history": "A",
+      "key": [
+        1,
+        0,
+        "CODE",
+        4,
+        "read",
+        "CODE",
+        14,
+        "S",
+        0,
+        2,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 1,
+      "parity": "odd",
+      "wait": 15
+    },
+    {
+      "clock_mhz": 4,
+      "form": "v2_pfx_seg_read_dw",
+      "history": "B",
+      "key": [
+        1,
+        0,
+        "CODE",
+        4,
+        "read",
+        "CODE",
+        14,
+        "S",
+        0,
+        2,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 1,
+      "parity": "odd",
+      "wait": 15
+    },
+    {
+      "clock_mhz": 8,
+      "form": "v2_pfx_seg_read_dw",
+      "history": "B",
+      "key": [
+        1,
+        0,
+        "CODE",
+        4,
+        "read",
+        "CODE",
+        14,
+        "S",
+        0,
+        2,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 1,
+      "parity": "odd",
+      "wait": 15
+    },
+    {
+      "clock_mhz": 4,
+      "form": "v2_pfx_seg_read_dw",
+      "history": "A",
+      "key": [
+        2,
+        0,
+        "CODE",
+        1,
+        "read",
+        "CODE",
+        -4,
+        "S",
+        0,
+        3,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 2,
+      "parity": "odd",
+      "wait": 0
+    },
+    {
+      "clock_mhz": 8,
+      "form": "v2_pfx_seg_read_dw",
+      "history": "A",
+      "key": [
+        2,
+        0,
+        "CODE",
+        1,
+        "read",
+        "CODE",
+        -4,
+        "S",
+        0,
+        3,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 2,
+      "parity": "odd",
+      "wait": 0
+    },
+    {
+      "clock_mhz": 4,
+      "form": "v2_pfx_seg_read_dw",
+      "history": "B",
+      "key": [
+        2,
+        0,
+        "CODE",
+        1,
+        "read",
+        "CODE",
+        -4,
+        "S",
+        0,
+        3,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 2,
+      "parity": "odd",
+      "wait": 0
+    },
+    {
+      "clock_mhz": 8,
+      "form": "v2_pfx_seg_read_dw",
+      "history": "B",
+      "key": [
+        2,
+        0,
+        "CODE",
+        1,
+        "read",
+        "CODE",
+        -4,
+        "S",
+        0,
+        3,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 2,
+      "parity": "odd",
+      "wait": 0
+    },
+    {
+      "clock_mhz": 4,
+      "form": "v2_pfx_seg_read_dw",
+      "history": "A",
+      "key": [
+        0,
+        0,
+        "CODE",
+        4,
+        "read",
+        "CODE",
+        3,
+        "S",
+        0,
+        3,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 2,
+      "parity": "odd",
+      "wait": 7
+    },
+    {
+      "clock_mhz": 8,
+      "form": "v2_pfx_seg_read_dw",
+      "history": "A",
+      "key": [
+        0,
+        0,
+        "CODE",
+        4,
+        "read",
+        "CODE",
+        3,
+        "S",
+        0,
+        3,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 2,
+      "parity": "odd",
+      "wait": 7
+    },
+    {
+      "clock_mhz": 4,
+      "form": "v2_pfx_seg_read_dw",
+      "history": "B",
+      "key": [
+        0,
+        0,
+        "CODE",
+        4,
+        "read",
+        "CODE",
+        3,
+        "S",
+        0,
+        3,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 2,
+      "parity": "odd",
+      "wait": 7
+    },
+    {
+      "clock_mhz": 8,
+      "form": "v2_pfx_seg_read_dw",
+      "history": "B",
+      "key": [
+        0,
+        0,
+        "CODE",
+        4,
+        "read",
+        "CODE",
+        3,
+        "S",
+        0,
+        3,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 2,
+      "parity": "odd",
+      "wait": 7
+    },
+    {
+      "clock_mhz": 4,
+      "form": "v2_pfx_seg_read_dw",
+      "history": "A",
+      "key": [
+        0,
+        0,
+        "CODE",
+        4,
+        "read",
+        "CODE",
+        11,
+        "S",
+        0,
+        3,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 2,
+      "parity": "odd",
+      "wait": 15
+    },
+    {
+      "clock_mhz": 8,
+      "form": "v2_pfx_seg_read_dw",
+      "history": "A",
+      "key": [
+        0,
+        0,
+        "CODE",
+        4,
+        "read",
+        "CODE",
+        11,
+        "S",
+        0,
+        3,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 2,
+      "parity": "odd",
+      "wait": 15
+    },
+    {
+      "clock_mhz": 4,
+      "form": "v2_pfx_seg_read_dw",
+      "history": "B",
+      "key": [
+        0,
+        0,
+        "CODE",
+        4,
+        "read",
+        "CODE",
+        11,
+        "S",
+        0,
+        3,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 2,
+      "parity": "odd",
+      "wait": 15
+    },
+    {
+      "clock_mhz": 8,
+      "form": "v2_pfx_seg_read_dw",
+      "history": "B",
+      "key": [
+        0,
+        0,
+        "CODE",
+        4,
+        "read",
+        "CODE",
+        11,
+        "S",
+        0,
+        3,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 2,
+      "parity": "odd",
+      "wait": 15
+    },
+    {
+      "clock_mhz": 4,
+      "fields": [
+        "action",
+        "t1",
+        "address"
+      ],
+      "form": "v2_pfx_seg_read_dw",
+      "got": [
+        "CODE",
+        1,
+        [
+          "selected_delta",
+          2
+        ],
+        16,
+        []
+      ],
+      "history": "A",
+      "key": [
+        3,
+        0,
+        "CODE",
+        5,
+        "read",
+        "CODE",
+        0,
+        "S",
+        0,
+        4,
+        "modrm"
+      ],
+      "kind": "mismatch",
+      "pad": 3,
+      "parity": "odd",
+      "wait": 0,
+      "want": [
+        "MEMR",
+        4,
+        [
+          "absolute",
+          8192
+        ],
+        16,
+        []
+      ]
+    },
+    {
+      "clock_mhz": 8,
+      "fields": [
+        "action",
+        "t1",
+        "address"
+      ],
+      "form": "v2_pfx_seg_read_dw",
+      "got": [
+        "CODE",
+        1,
+        [
+          "selected_delta",
+          2
+        ],
+        16,
+        []
+      ],
+      "history": "A",
+      "key": [
+        3,
+        0,
+        "CODE",
+        5,
+        "read",
+        "CODE",
+        0,
+        "S",
+        0,
+        4,
+        "modrm"
+      ],
+      "kind": "mismatch",
+      "pad": 3,
+      "parity": "odd",
+      "wait": 0,
+      "want": [
+        "MEMR",
+        4,
+        [
+          "absolute",
+          8192
+        ],
+        16,
+        []
+      ]
+    },
+    {
+      "clock_mhz": 4,
+      "fields": [
+        "action",
+        "t1",
+        "address"
+      ],
+      "form": "v2_pfx_seg_read_dw",
+      "got": [
+        "CODE",
+        1,
+        [
+          "selected_delta",
+          2
+        ],
+        16,
+        []
+      ],
+      "history": "B",
+      "key": [
+        3,
+        0,
+        "CODE",
+        5,
+        "read",
+        "CODE",
+        0,
+        "S",
+        0,
+        4,
+        "modrm"
+      ],
+      "kind": "mismatch",
+      "pad": 3,
+      "parity": "odd",
+      "wait": 0,
+      "want": [
+        "MEMR",
+        4,
+        [
+          "absolute",
+          8192
+        ],
+        16,
+        []
+      ]
+    },
+    {
+      "clock_mhz": 8,
+      "fields": [
+        "action",
+        "t1",
+        "address"
+      ],
+      "form": "v2_pfx_seg_read_dw",
+      "got": [
+        "CODE",
+        1,
+        [
+          "selected_delta",
+          2
+        ],
+        16,
+        []
+      ],
+      "history": "B",
+      "key": [
+        3,
+        0,
+        "CODE",
+        5,
+        "read",
+        "CODE",
+        0,
+        "S",
+        0,
+        4,
+        "modrm"
+      ],
+      "kind": "mismatch",
+      "pad": 3,
+      "parity": "odd",
+      "wait": 0,
+      "want": [
+        "MEMR",
+        4,
+        [
+          "absolute",
+          8192
+        ],
+        16,
+        []
+      ]
+    },
+    {
+      "clock_mhz": 4,
+      "form": "v2_pfx_seg_read_dw",
+      "history": "A",
+      "key": [
+        1,
+        0,
+        "CODE",
+        4,
+        "read",
+        "CODE",
+        7,
+        "S",
+        0,
+        4,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 3,
+      "parity": "odd",
+      "wait": 7
+    },
+    {
+      "clock_mhz": 8,
+      "form": "v2_pfx_seg_read_dw",
+      "history": "A",
+      "key": [
+        1,
+        0,
+        "CODE",
+        4,
+        "read",
+        "CODE",
+        7,
+        "S",
+        0,
+        4,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 3,
+      "parity": "odd",
+      "wait": 7
+    },
+    {
+      "clock_mhz": 4,
+      "form": "v2_pfx_seg_read_dw",
+      "history": "B",
+      "key": [
+        1,
+        0,
+        "CODE",
+        4,
+        "read",
+        "CODE",
+        7,
+        "S",
+        0,
+        4,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 3,
+      "parity": "odd",
+      "wait": 7
+    },
+    {
+      "clock_mhz": 8,
+      "form": "v2_pfx_seg_read_dw",
+      "history": "B",
+      "key": [
+        1,
+        0,
+        "CODE",
+        4,
+        "read",
+        "CODE",
+        7,
+        "S",
+        0,
+        4,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 3,
+      "parity": "odd",
+      "wait": 7
+    },
+    {
+      "clock_mhz": 4,
+      "form": "v2_pfx_seg_read_dw",
+      "history": "A",
+      "key": [
+        1,
+        0,
+        "CODE",
+        4,
+        "read",
+        "CODE",
+        15,
+        "S",
+        0,
+        4,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 3,
+      "parity": "odd",
+      "wait": 15
+    },
+    {
+      "clock_mhz": 8,
+      "form": "v2_pfx_seg_read_dw",
+      "history": "A",
+      "key": [
+        1,
+        0,
+        "CODE",
+        4,
+        "read",
+        "CODE",
+        15,
+        "S",
+        0,
+        4,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 3,
+      "parity": "odd",
+      "wait": 15
+    },
+    {
+      "clock_mhz": 4,
+      "form": "v2_pfx_seg_read_dw",
+      "history": "B",
+      "key": [
+        1,
+        0,
+        "CODE",
+        4,
+        "read",
+        "CODE",
+        15,
+        "S",
+        0,
+        4,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 3,
+      "parity": "odd",
+      "wait": 15
+    },
+    {
+      "clock_mhz": 8,
+      "form": "v2_pfx_seg_read_dw",
+      "history": "B",
+      "key": [
+        1,
+        0,
+        "CODE",
+        4,
+        "read",
+        "CODE",
+        15,
+        "S",
+        0,
+        4,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 3,
+      "parity": "odd",
+      "wait": 15
+    },
+    {
+      "clock_mhz": 4,
+      "fields": [
+        "t1"
+      ],
+      "form": "v2_pfx_seg_read_dw",
+      "got": [
+        "CODE",
+        1,
+        [
+          "selected_delta",
+          2
+        ],
+        16,
+        []
+      ],
+      "history": "A",
+      "key": [
+        2,
+        0,
+        "IDLE",
+        0,
+        "read",
+        "CODE",
+        -3,
+        "S",
+        0,
+        5,
+        "modrm"
+      ],
+      "kind": "mismatch",
+      "pad": 4,
+      "parity": "odd",
+      "wait": 0,
+      "want": [
+        "CODE",
+        2,
+        [
+          "selected_delta",
+          2
+        ],
+        16,
+        []
+      ]
+    },
+    {
+      "clock_mhz": 8,
+      "fields": [
+        "t1"
+      ],
+      "form": "v2_pfx_seg_read_dw",
+      "got": [
+        "CODE",
+        1,
+        [
+          "selected_delta",
+          2
+        ],
+        16,
+        []
+      ],
+      "history": "A",
+      "key": [
+        2,
+        0,
+        "IDLE",
+        0,
+        "read",
+        "CODE",
+        -3,
+        "S",
+        0,
+        5,
+        "modrm"
+      ],
+      "kind": "mismatch",
+      "pad": 4,
+      "parity": "odd",
+      "wait": 0,
+      "want": [
+        "CODE",
+        2,
+        [
+          "selected_delta",
+          2
+        ],
+        16,
+        []
+      ]
+    },
+    {
+      "clock_mhz": 4,
+      "fields": [
+        "t1"
+      ],
+      "form": "v2_pfx_seg_read_dw",
+      "got": [
+        "CODE",
+        1,
+        [
+          "selected_delta",
+          2
+        ],
+        16,
+        []
+      ],
+      "history": "B",
+      "key": [
+        2,
+        0,
+        "IDLE",
+        0,
+        "read",
+        "CODE",
+        -3,
+        "S",
+        0,
+        5,
+        "modrm"
+      ],
+      "kind": "mismatch",
+      "pad": 4,
+      "parity": "odd",
+      "wait": 0,
+      "want": [
+        "CODE",
+        2,
+        [
+          "selected_delta",
+          2
+        ],
+        16,
+        []
+      ]
+    },
+    {
+      "clock_mhz": 8,
+      "fields": [
+        "t1"
+      ],
+      "form": "v2_pfx_seg_read_dw",
+      "got": [
+        "CODE",
+        1,
+        [
+          "selected_delta",
+          2
+        ],
+        16,
+        []
+      ],
+      "history": "B",
+      "key": [
+        2,
+        0,
+        "IDLE",
+        0,
+        "read",
+        "CODE",
+        -3,
+        "S",
+        0,
+        5,
+        "modrm"
+      ],
+      "kind": "mismatch",
+      "pad": 4,
+      "parity": "odd",
+      "wait": 0,
+      "want": [
+        "CODE",
+        2,
+        [
+          "selected_delta",
+          2
+        ],
+        16,
+        []
+      ]
+    },
+    {
+      "clock_mhz": 4,
+      "form": "v2_pfx_seg_read_dw",
+      "history": "A",
+      "key": [
+        0,
+        0,
+        "CODE",
+        4,
+        "read",
+        "CODE",
+        4,
+        "S",
+        0,
+        5,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 4,
+      "parity": "odd",
+      "wait": 7
+    },
+    {
+      "clock_mhz": 8,
+      "form": "v2_pfx_seg_read_dw",
+      "history": "A",
+      "key": [
+        0,
+        0,
+        "CODE",
+        4,
+        "read",
+        "CODE",
+        4,
+        "S",
+        0,
+        5,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 4,
+      "parity": "odd",
+      "wait": 7
+    },
+    {
+      "clock_mhz": 4,
+      "form": "v2_pfx_seg_read_dw",
+      "history": "B",
+      "key": [
+        0,
+        0,
+        "CODE",
+        4,
+        "read",
+        "CODE",
+        4,
+        "S",
+        0,
+        5,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 4,
+      "parity": "odd",
+      "wait": 7
+    },
+    {
+      "clock_mhz": 8,
+      "form": "v2_pfx_seg_read_dw",
+      "history": "B",
+      "key": [
+        0,
+        0,
+        "CODE",
+        4,
+        "read",
+        "CODE",
+        4,
+        "S",
+        0,
+        5,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 4,
+      "parity": "odd",
+      "wait": 7
+    },
+    {
+      "clock_mhz": 4,
+      "form": "v2_pfx_seg_read_dw",
+      "history": "A",
+      "key": [
+        0,
+        0,
+        "CODE",
+        4,
+        "read",
+        "CODE",
+        12,
+        "S",
+        0,
+        5,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 4,
+      "parity": "odd",
+      "wait": 15
+    },
+    {
+      "clock_mhz": 8,
+      "form": "v2_pfx_seg_read_dw",
+      "history": "A",
+      "key": [
+        0,
+        0,
+        "CODE",
+        4,
+        "read",
+        "CODE",
+        12,
+        "S",
+        0,
+        5,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 4,
+      "parity": "odd",
+      "wait": 15
+    },
+    {
+      "clock_mhz": 4,
+      "form": "v2_pfx_seg_read_dw",
+      "history": "B",
+      "key": [
+        0,
+        0,
+        "CODE",
+        4,
+        "read",
+        "CODE",
+        12,
+        "S",
+        0,
+        5,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 4,
+      "parity": "odd",
+      "wait": 15
+    },
+    {
+      "clock_mhz": 8,
+      "form": "v2_pfx_seg_read_dw",
+      "history": "B",
+      "key": [
+        0,
+        0,
+        "CODE",
+        4,
+        "read",
+        "CODE",
+        12,
+        "S",
+        0,
+        5,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 4,
+      "parity": "odd",
+      "wait": 15
+    },
+    {
+      "clock_mhz": 4,
+      "form": "v2_pfx_seg_read_dw",
+      "history": "A",
+      "key": [
+        2,
+        0,
+        "CODE",
+        2,
+        "read",
+        "CODE",
+        -2,
+        "S",
+        0,
+        1,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 6,
+      "parity": "odd",
+      "wait": 0
+    },
+    {
+      "clock_mhz": 8,
+      "form": "v2_pfx_seg_read_dw",
+      "history": "A",
+      "key": [
+        2,
+        0,
+        "CODE",
+        2,
+        "read",
+        "CODE",
+        -2,
+        "S",
+        0,
+        1,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 6,
+      "parity": "odd",
+      "wait": 0
+    },
+    {
+      "clock_mhz": 4,
+      "form": "v2_pfx_seg_read_dw",
+      "history": "B",
+      "key": [
+        2,
+        0,
+        "CODE",
+        2,
+        "read",
+        "CODE",
+        -2,
+        "S",
+        0,
+        1,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 6,
+      "parity": "odd",
+      "wait": 0
+    },
+    {
+      "clock_mhz": 8,
+      "form": "v2_pfx_seg_read_dw",
+      "history": "B",
+      "key": [
+        2,
+        0,
+        "CODE",
+        2,
+        "read",
+        "CODE",
+        -2,
+        "S",
+        0,
+        1,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 6,
+      "parity": "odd",
+      "wait": 0
+    },
+    {
+      "clock_mhz": 4,
+      "form": "v2_pfx_seg_read_dw",
+      "history": "A",
+      "key": [
+        0,
+        0,
+        "CODE",
+        4,
+        "read",
+        "CODE",
+        5,
+        "S",
+        0,
+        1,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 6,
+      "parity": "odd",
+      "wait": 7
+    },
+    {
+      "clock_mhz": 8,
+      "form": "v2_pfx_seg_read_dw",
+      "history": "A",
+      "key": [
+        0,
+        0,
+        "CODE",
+        4,
+        "read",
+        "CODE",
+        5,
+        "S",
+        0,
+        1,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 6,
+      "parity": "odd",
+      "wait": 7
+    },
+    {
+      "clock_mhz": 4,
+      "form": "v2_pfx_seg_read_dw",
+      "history": "B",
+      "key": [
+        0,
+        0,
+        "CODE",
+        4,
+        "read",
+        "CODE",
+        5,
+        "S",
+        0,
+        1,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 6,
+      "parity": "odd",
+      "wait": 7
+    },
+    {
+      "clock_mhz": 8,
+      "form": "v2_pfx_seg_read_dw",
+      "history": "B",
+      "key": [
+        0,
+        0,
+        "CODE",
+        4,
+        "read",
+        "CODE",
+        5,
+        "S",
+        0,
+        1,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 6,
+      "parity": "odd",
+      "wait": 7
+    },
+    {
+      "clock_mhz": 4,
+      "form": "v2_pfx_seg_read_dw",
+      "history": "A",
+      "key": [
+        0,
+        0,
+        "CODE",
+        4,
+        "read",
+        "CODE",
+        13,
+        "S",
+        0,
+        1,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 6,
+      "parity": "odd",
+      "wait": 15
+    },
+    {
+      "clock_mhz": 8,
+      "form": "v2_pfx_seg_read_dw",
+      "history": "A",
+      "key": [
+        0,
+        0,
+        "CODE",
+        4,
+        "read",
+        "CODE",
+        13,
+        "S",
+        0,
+        1,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 6,
+      "parity": "odd",
+      "wait": 15
+    },
+    {
+      "clock_mhz": 4,
+      "form": "v2_pfx_seg_read_dw",
+      "history": "B",
+      "key": [
+        0,
+        0,
+        "CODE",
+        4,
+        "read",
+        "CODE",
+        13,
+        "S",
+        0,
+        1,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 6,
+      "parity": "odd",
+      "wait": 15
+    },
+    {
+      "clock_mhz": 8,
+      "form": "v2_pfx_seg_read_dw",
+      "history": "B",
+      "key": [
+        0,
+        0,
+        "CODE",
+        4,
+        "read",
+        "CODE",
+        13,
+        "S",
+        0,
+        1,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 6,
+      "parity": "odd",
+      "wait": 15
+    },
+    {
+      "clock_mhz": 4,
+      "form": "v2_pfx_seg_read_dw",
+      "history": "A",
+      "key": [
+        1,
+        0,
+        "CODE",
+        4,
+        "read",
+        "CODE",
+        6,
+        "S",
+        0,
+        2,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 7,
+      "parity": "odd",
+      "wait": 7
+    },
+    {
+      "clock_mhz": 8,
+      "form": "v2_pfx_seg_read_dw",
+      "history": "A",
+      "key": [
+        1,
+        0,
+        "CODE",
+        4,
+        "read",
+        "CODE",
+        6,
+        "S",
+        0,
+        2,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 7,
+      "parity": "odd",
+      "wait": 7
+    },
+    {
+      "clock_mhz": 4,
+      "form": "v2_pfx_seg_read_dw",
+      "history": "B",
+      "key": [
+        1,
+        0,
+        "CODE",
+        4,
+        "read",
+        "CODE",
+        6,
+        "S",
+        0,
+        2,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 7,
+      "parity": "odd",
+      "wait": 7
+    },
+    {
+      "clock_mhz": 8,
+      "form": "v2_pfx_seg_read_dw",
+      "history": "B",
+      "key": [
+        1,
+        0,
+        "CODE",
+        4,
+        "read",
+        "CODE",
+        6,
+        "S",
+        0,
+        2,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 7,
+      "parity": "odd",
+      "wait": 7
+    },
+    {
+      "clock_mhz": 4,
+      "form": "v2_pfx_seg_read_dw",
+      "history": "A",
+      "key": [
+        1,
+        0,
+        "CODE",
+        4,
+        "read",
+        "CODE",
+        14,
+        "S",
+        0,
+        2,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 7,
+      "parity": "odd",
+      "wait": 15
+    },
+    {
+      "clock_mhz": 8,
+      "form": "v2_pfx_seg_read_dw",
+      "history": "A",
+      "key": [
+        1,
+        0,
+        "CODE",
+        4,
+        "read",
+        "CODE",
+        14,
+        "S",
+        0,
+        2,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 7,
+      "parity": "odd",
+      "wait": 15
+    },
+    {
+      "clock_mhz": 4,
+      "form": "v2_pfx_seg_read_dw",
+      "history": "B",
+      "key": [
+        1,
+        0,
+        "CODE",
+        4,
+        "read",
+        "CODE",
+        14,
+        "S",
+        0,
+        2,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 7,
+      "parity": "odd",
+      "wait": 15
+    },
+    {
+      "clock_mhz": 8,
+      "form": "v2_pfx_seg_read_dw",
+      "history": "B",
+      "key": [
+        1,
+        0,
+        "CODE",
+        4,
+        "read",
+        "CODE",
+        14,
+        "S",
+        0,
+        2,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 7,
+      "parity": "odd",
+      "wait": 15
+    },
+    {
+      "clock_mhz": 4,
+      "fields": [
+        "action",
+        "t1",
+        "address"
+      ],
+      "form": "v2_pfx_seg_write_dw",
+      "got": [
+        "CODE",
+        3,
+        [
+          "selected_delta",
+          2
+        ],
+        16,
+        []
+      ],
+      "history": "A",
+      "key": [
+        3,
+        0,
+        "IDLE",
+        0,
+        "write",
+        "CODE",
+        -1,
+        "S",
+        0,
+        3,
+        "modrm"
+      ],
+      "kind": "mismatch",
+      "pad": 2,
+      "parity": "even",
+      "wait": 0,
+      "want": [
+        "MEMW",
+        5,
+        [
+          "absolute",
+          8192
+        ],
+        16,
+        []
+      ]
+    },
+    {
+      "clock_mhz": 8,
+      "fields": [
+        "action",
+        "t1",
+        "address"
+      ],
+      "form": "v2_pfx_seg_write_dw",
+      "got": [
+        "CODE",
+        3,
+        [
+          "selected_delta",
+          2
+        ],
+        16,
+        []
+      ],
+      "history": "A",
+      "key": [
+        3,
+        0,
+        "IDLE",
+        0,
+        "write",
+        "CODE",
+        -1,
+        "S",
+        0,
+        3,
+        "modrm"
+      ],
+      "kind": "mismatch",
+      "pad": 2,
+      "parity": "even",
+      "wait": 0,
+      "want": [
+        "MEMW",
+        5,
+        [
+          "absolute",
+          8192
+        ],
+        16,
+        []
+      ]
+    },
+    {
+      "clock_mhz": 4,
+      "fields": [
+        "action",
+        "t1",
+        "address"
+      ],
+      "form": "v2_pfx_seg_write_dw",
+      "got": [
+        "CODE",
+        3,
+        [
+          "selected_delta",
+          2
+        ],
+        16,
+        []
+      ],
+      "history": "B",
+      "key": [
+        3,
+        0,
+        "IDLE",
+        0,
+        "write",
+        "CODE",
+        -1,
+        "S",
+        0,
+        3,
+        "modrm"
+      ],
+      "kind": "mismatch",
+      "pad": 2,
+      "parity": "even",
+      "wait": 0,
+      "want": [
+        "MEMW",
+        5,
+        [
+          "absolute",
+          8192
+        ],
+        16,
+        []
+      ]
+    },
+    {
+      "clock_mhz": 8,
+      "fields": [
+        "action",
+        "t1",
+        "address"
+      ],
+      "form": "v2_pfx_seg_write_dw",
+      "got": [
+        "CODE",
+        3,
+        [
+          "selected_delta",
+          2
+        ],
+        16,
+        []
+      ],
+      "history": "B",
+      "key": [
+        3,
+        0,
+        "IDLE",
+        0,
+        "write",
+        "CODE",
+        -1,
+        "S",
+        0,
+        3,
+        "modrm"
+      ],
+      "kind": "mismatch",
+      "pad": 2,
+      "parity": "even",
+      "wait": 0,
+      "want": [
+        "MEMW",
+        5,
+        [
+          "absolute",
+          8192
+        ],
+        16,
+        []
+      ]
+    },
+    {
+      "clock_mhz": 4,
+      "form": "v2_pfx_seg_write_dw",
+      "history": "A",
+      "key": [
+        1,
+        0,
+        "CODE",
+        4,
+        "write",
+        "CODE",
+        6,
+        "S",
+        0,
+        3,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 2,
+      "parity": "even",
+      "wait": 7
+    },
+    {
+      "clock_mhz": 8,
+      "form": "v2_pfx_seg_write_dw",
+      "history": "A",
+      "key": [
+        1,
+        0,
+        "CODE",
+        4,
+        "write",
+        "CODE",
+        6,
+        "S",
+        0,
+        3,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 2,
+      "parity": "even",
+      "wait": 7
+    },
+    {
+      "clock_mhz": 4,
+      "form": "v2_pfx_seg_write_dw",
+      "history": "B",
+      "key": [
+        1,
+        0,
+        "CODE",
+        4,
+        "write",
+        "CODE",
+        6,
+        "S",
+        0,
+        3,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 2,
+      "parity": "even",
+      "wait": 7
+    },
+    {
+      "clock_mhz": 8,
+      "form": "v2_pfx_seg_write_dw",
+      "history": "B",
+      "key": [
+        1,
+        0,
+        "CODE",
+        4,
+        "write",
+        "CODE",
+        6,
+        "S",
+        0,
+        3,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 2,
+      "parity": "even",
+      "wait": 7
+    },
+    {
+      "clock_mhz": 4,
+      "form": "v2_pfx_seg_write_dw",
+      "history": "A",
+      "key": [
+        1,
+        0,
+        "CODE",
+        4,
+        "write",
+        "CODE",
+        14,
+        "S",
+        0,
+        3,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 2,
+      "parity": "even",
+      "wait": 15
+    },
+    {
+      "clock_mhz": 8,
+      "form": "v2_pfx_seg_write_dw",
+      "history": "A",
+      "key": [
+        1,
+        0,
+        "CODE",
+        4,
+        "write",
+        "CODE",
+        14,
+        "S",
+        0,
+        3,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 2,
+      "parity": "even",
+      "wait": 15
+    },
+    {
+      "clock_mhz": 4,
+      "form": "v2_pfx_seg_write_dw",
+      "history": "B",
+      "key": [
+        1,
+        0,
+        "CODE",
+        4,
+        "write",
+        "CODE",
+        14,
+        "S",
+        0,
+        3,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 2,
+      "parity": "even",
+      "wait": 15
+    },
+    {
+      "clock_mhz": 8,
+      "form": "v2_pfx_seg_write_dw",
+      "history": "B",
+      "key": [
+        1,
+        0,
+        "CODE",
+        4,
+        "write",
+        "CODE",
+        14,
+        "S",
+        0,
+        3,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 2,
+      "parity": "even",
+      "wait": 15
+    },
+    {
+      "clock_mhz": 4,
+      "form": "v2_pfx_seg_write_dw",
+      "history": "A",
+      "key": [
+        2,
+        0,
+        "CODE",
+        1,
+        "write",
+        "CODE",
+        -4,
+        "S",
+        0,
+        4,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 3,
+      "parity": "even",
+      "wait": 0
+    },
+    {
+      "clock_mhz": 8,
+      "form": "v2_pfx_seg_write_dw",
+      "history": "A",
+      "key": [
+        2,
+        0,
+        "CODE",
+        1,
+        "write",
+        "CODE",
+        -4,
+        "S",
+        0,
+        4,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 3,
+      "parity": "even",
+      "wait": 0
+    },
+    {
+      "clock_mhz": 4,
+      "form": "v2_pfx_seg_write_dw",
+      "history": "B",
+      "key": [
+        2,
+        0,
+        "CODE",
+        1,
+        "write",
+        "CODE",
+        -4,
+        "S",
+        0,
+        4,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 3,
+      "parity": "even",
+      "wait": 0
+    },
+    {
+      "clock_mhz": 8,
+      "form": "v2_pfx_seg_write_dw",
+      "history": "B",
+      "key": [
+        2,
+        0,
+        "CODE",
+        1,
+        "write",
+        "CODE",
+        -4,
+        "S",
+        0,
+        4,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 3,
+      "parity": "even",
+      "wait": 0
+    },
+    {
+      "clock_mhz": 4,
+      "form": "v2_pfx_seg_write_dw",
+      "history": "A",
+      "key": [
+        0,
+        0,
+        "CODE",
+        4,
+        "write",
+        "CODE",
+        3,
+        "S",
+        0,
+        4,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 3,
+      "parity": "even",
+      "wait": 7
+    },
+    {
+      "clock_mhz": 8,
+      "form": "v2_pfx_seg_write_dw",
+      "history": "A",
+      "key": [
+        0,
+        0,
+        "CODE",
+        4,
+        "write",
+        "CODE",
+        3,
+        "S",
+        0,
+        4,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 3,
+      "parity": "even",
+      "wait": 7
+    },
+    {
+      "clock_mhz": 4,
+      "form": "v2_pfx_seg_write_dw",
+      "history": "B",
+      "key": [
+        0,
+        0,
+        "CODE",
+        4,
+        "write",
+        "CODE",
+        3,
+        "S",
+        0,
+        4,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 3,
+      "parity": "even",
+      "wait": 7
+    },
+    {
+      "clock_mhz": 8,
+      "form": "v2_pfx_seg_write_dw",
+      "history": "B",
+      "key": [
+        0,
+        0,
+        "CODE",
+        4,
+        "write",
+        "CODE",
+        3,
+        "S",
+        0,
+        4,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 3,
+      "parity": "even",
+      "wait": 7
+    },
+    {
+      "clock_mhz": 4,
+      "form": "v2_pfx_seg_write_dw",
+      "history": "A",
+      "key": [
+        0,
+        0,
+        "CODE",
+        4,
+        "write",
+        "CODE",
+        11,
+        "S",
+        0,
+        4,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 3,
+      "parity": "even",
+      "wait": 15
+    },
+    {
+      "clock_mhz": 8,
+      "form": "v2_pfx_seg_write_dw",
+      "history": "A",
+      "key": [
+        0,
+        0,
+        "CODE",
+        4,
+        "write",
+        "CODE",
+        11,
+        "S",
+        0,
+        4,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 3,
+      "parity": "even",
+      "wait": 15
+    },
+    {
+      "clock_mhz": 4,
+      "form": "v2_pfx_seg_write_dw",
+      "history": "B",
+      "key": [
+        0,
+        0,
+        "CODE",
+        4,
+        "write",
+        "CODE",
+        11,
+        "S",
+        0,
+        4,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 3,
+      "parity": "even",
+      "wait": 15
+    },
+    {
+      "clock_mhz": 8,
+      "form": "v2_pfx_seg_write_dw",
+      "history": "B",
+      "key": [
+        0,
+        0,
+        "CODE",
+        4,
+        "write",
+        "CODE",
+        11,
+        "S",
+        0,
+        4,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 3,
+      "parity": "even",
+      "wait": 15
+    },
+    {
+      "clock_mhz": 4,
+      "fields": [
+        "action",
+        "t1",
+        "address"
+      ],
+      "form": "v2_pfx_seg_write_dw",
+      "got": [
+        "CODE",
+        1,
+        [
+          "selected_delta",
+          2
+        ],
+        16,
+        []
+      ],
+      "history": "A",
+      "key": [
+        3,
+        0,
+        "CODE",
+        5,
+        "write",
+        "CODE",
+        0,
+        "S",
+        0,
+        5,
+        "modrm"
+      ],
+      "kind": "mismatch",
+      "pad": 4,
+      "parity": "even",
+      "wait": 0,
+      "want": [
+        "MEMW",
+        5,
+        [
+          "absolute",
+          8192
+        ],
+        16,
+        []
+      ]
+    },
+    {
+      "clock_mhz": 8,
+      "fields": [
+        "action",
+        "t1",
+        "address"
+      ],
+      "form": "v2_pfx_seg_write_dw",
+      "got": [
+        "CODE",
+        1,
+        [
+          "selected_delta",
+          2
+        ],
+        16,
+        []
+      ],
+      "history": "A",
+      "key": [
+        3,
+        0,
+        "CODE",
+        5,
+        "write",
+        "CODE",
+        0,
+        "S",
+        0,
+        5,
+        "modrm"
+      ],
+      "kind": "mismatch",
+      "pad": 4,
+      "parity": "even",
+      "wait": 0,
+      "want": [
+        "MEMW",
+        5,
+        [
+          "absolute",
+          8192
+        ],
+        16,
+        []
+      ]
+    },
+    {
+      "clock_mhz": 4,
+      "fields": [
+        "action",
+        "t1",
+        "address"
+      ],
+      "form": "v2_pfx_seg_write_dw",
+      "got": [
+        "CODE",
+        1,
+        [
+          "selected_delta",
+          2
+        ],
+        16,
+        []
+      ],
+      "history": "B",
+      "key": [
+        3,
+        0,
+        "CODE",
+        5,
+        "write",
+        "CODE",
+        0,
+        "S",
+        0,
+        5,
+        "modrm"
+      ],
+      "kind": "mismatch",
+      "pad": 4,
+      "parity": "even",
+      "wait": 0,
+      "want": [
+        "MEMW",
+        5,
+        [
+          "absolute",
+          8192
+        ],
+        16,
+        []
+      ]
+    },
+    {
+      "clock_mhz": 8,
+      "fields": [
+        "action",
+        "t1",
+        "address"
+      ],
+      "form": "v2_pfx_seg_write_dw",
+      "got": [
+        "CODE",
+        1,
+        [
+          "selected_delta",
+          2
+        ],
+        16,
+        []
+      ],
+      "history": "B",
+      "key": [
+        3,
+        0,
+        "CODE",
+        5,
+        "write",
+        "CODE",
+        0,
+        "S",
+        0,
+        5,
+        "modrm"
+      ],
+      "kind": "mismatch",
+      "pad": 4,
+      "parity": "even",
+      "wait": 0,
+      "want": [
+        "MEMW",
+        5,
+        [
+          "absolute",
+          8192
+        ],
+        16,
+        []
+      ]
+    },
+    {
+      "clock_mhz": 4,
+      "fields": [
+        "action",
+        "t1",
+        "address"
+      ],
+      "form": "v2_pfx_seg_write_dw",
+      "got": [
+        "CODE",
+        3,
+        [
+          "selected_delta",
+          2
+        ],
+        16,
+        []
+      ],
+      "history": "A",
+      "key": [
+        1,
+        0,
+        "CODE",
+        4,
+        "write",
+        "CODE",
+        1,
+        "S",
+        0,
+        5,
+        "modrm"
+      ],
+      "kind": "mismatch",
+      "pad": 4,
+      "parity": "even",
+      "wait": 1,
+      "want": [
+        "MEMW",
+        5,
+        [
+          "absolute",
+          8192
+        ],
+        16,
+        []
+      ]
+    },
+    {
+      "clock_mhz": 8,
+      "fields": [
+        "action",
+        "t1",
+        "address"
+      ],
+      "form": "v2_pfx_seg_write_dw",
+      "got": [
+        "CODE",
+        3,
+        [
+          "selected_delta",
+          2
+        ],
+        16,
+        []
+      ],
+      "history": "A",
+      "key": [
+        1,
+        0,
+        "CODE",
+        4,
+        "write",
+        "CODE",
+        1,
+        "S",
+        0,
+        5,
+        "modrm"
+      ],
+      "kind": "mismatch",
+      "pad": 4,
+      "parity": "even",
+      "wait": 1,
+      "want": [
+        "MEMW",
+        5,
+        [
+          "absolute",
+          8192
+        ],
+        16,
+        []
+      ]
+    },
+    {
+      "clock_mhz": 4,
+      "fields": [
+        "action",
+        "t1",
+        "address"
+      ],
+      "form": "v2_pfx_seg_write_dw",
+      "got": [
+        "CODE",
+        3,
+        [
+          "selected_delta",
+          2
+        ],
+        16,
+        []
+      ],
+      "history": "B",
+      "key": [
+        1,
+        0,
+        "CODE",
+        4,
+        "write",
+        "CODE",
+        1,
+        "S",
+        0,
+        5,
+        "modrm"
+      ],
+      "kind": "mismatch",
+      "pad": 4,
+      "parity": "even",
+      "wait": 1,
+      "want": [
+        "MEMW",
+        5,
+        [
+          "absolute",
+          8192
+        ],
+        16,
+        []
+      ]
+    },
+    {
+      "clock_mhz": 8,
+      "fields": [
+        "action",
+        "t1",
+        "address"
+      ],
+      "form": "v2_pfx_seg_write_dw",
+      "got": [
+        "CODE",
+        3,
+        [
+          "selected_delta",
+          2
+        ],
+        16,
+        []
+      ],
+      "history": "B",
+      "key": [
+        1,
+        0,
+        "CODE",
+        4,
+        "write",
+        "CODE",
+        1,
+        "S",
+        0,
+        5,
+        "modrm"
+      ],
+      "kind": "mismatch",
+      "pad": 4,
+      "parity": "even",
+      "wait": 1,
+      "want": [
+        "MEMW",
+        5,
+        [
+          "absolute",
+          8192
+        ],
+        16,
+        []
+      ]
+    },
+    {
+      "clock_mhz": 4,
+      "form": "v2_pfx_seg_write_dw",
+      "history": "A",
+      "key": [
+        1,
+        0,
+        "CODE",
+        4,
+        "write",
+        "CODE",
+        7,
+        "S",
+        0,
+        5,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 4,
+      "parity": "even",
+      "wait": 7
+    },
+    {
+      "clock_mhz": 8,
+      "form": "v2_pfx_seg_write_dw",
+      "history": "A",
+      "key": [
+        1,
+        0,
+        "CODE",
+        4,
+        "write",
+        "CODE",
+        7,
+        "S",
+        0,
+        5,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 4,
+      "parity": "even",
+      "wait": 7
+    },
+    {
+      "clock_mhz": 4,
+      "form": "v2_pfx_seg_write_dw",
+      "history": "B",
+      "key": [
+        1,
+        0,
+        "CODE",
+        4,
+        "write",
+        "CODE",
+        7,
+        "S",
+        0,
+        5,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 4,
+      "parity": "even",
+      "wait": 7
+    },
+    {
+      "clock_mhz": 8,
+      "form": "v2_pfx_seg_write_dw",
+      "history": "B",
+      "key": [
+        1,
+        0,
+        "CODE",
+        4,
+        "write",
+        "CODE",
+        7,
+        "S",
+        0,
+        5,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 4,
+      "parity": "even",
+      "wait": 7
+    },
+    {
+      "clock_mhz": 4,
+      "form": "v2_pfx_seg_write_dw",
+      "history": "A",
+      "key": [
+        1,
+        0,
+        "CODE",
+        4,
+        "write",
+        "CODE",
+        15,
+        "S",
+        0,
+        5,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 4,
+      "parity": "even",
+      "wait": 15
+    },
+    {
+      "clock_mhz": 8,
+      "form": "v2_pfx_seg_write_dw",
+      "history": "A",
+      "key": [
+        1,
+        0,
+        "CODE",
+        4,
+        "write",
+        "CODE",
+        15,
+        "S",
+        0,
+        5,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 4,
+      "parity": "even",
+      "wait": 15
+    },
+    {
+      "clock_mhz": 4,
+      "form": "v2_pfx_seg_write_dw",
+      "history": "B",
+      "key": [
+        1,
+        0,
+        "CODE",
+        4,
+        "write",
+        "CODE",
+        15,
+        "S",
+        0,
+        5,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 4,
+      "parity": "even",
+      "wait": 15
+    },
+    {
+      "clock_mhz": 8,
+      "form": "v2_pfx_seg_write_dw",
+      "history": "B",
+      "key": [
+        1,
+        0,
+        "CODE",
+        4,
+        "write",
+        "CODE",
+        15,
+        "S",
+        0,
+        5,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 4,
+      "parity": "even",
+      "wait": 15
+    },
+    {
+      "clock_mhz": 4,
+      "fields": [
+        "t1"
+      ],
+      "form": "v2_pfx_seg_write_dw",
+      "got": [
+        "CODE",
+        1,
+        [
+          "selected_delta",
+          2
+        ],
+        16,
+        []
+      ],
+      "history": "A",
+      "key": [
+        2,
+        0,
+        "IDLE",
+        0,
+        "write",
+        "CODE",
+        -3,
+        "S",
+        0,
+        0,
+        "modrm"
+      ],
+      "kind": "mismatch",
+      "pad": 5,
+      "parity": "even",
+      "wait": 0,
+      "want": [
+        "CODE",
+        2,
+        [
+          "selected_delta",
+          2
+        ],
+        16,
+        []
+      ]
+    },
+    {
+      "clock_mhz": 8,
+      "fields": [
+        "t1"
+      ],
+      "form": "v2_pfx_seg_write_dw",
+      "got": [
+        "CODE",
+        1,
+        [
+          "selected_delta",
+          2
+        ],
+        16,
+        []
+      ],
+      "history": "A",
+      "key": [
+        2,
+        0,
+        "IDLE",
+        0,
+        "write",
+        "CODE",
+        -3,
+        "S",
+        0,
+        0,
+        "modrm"
+      ],
+      "kind": "mismatch",
+      "pad": 5,
+      "parity": "even",
+      "wait": 0,
+      "want": [
+        "CODE",
+        2,
+        [
+          "selected_delta",
+          2
+        ],
+        16,
+        []
+      ]
+    },
+    {
+      "clock_mhz": 4,
+      "fields": [
+        "t1"
+      ],
+      "form": "v2_pfx_seg_write_dw",
+      "got": [
+        "CODE",
+        1,
+        [
+          "selected_delta",
+          2
+        ],
+        16,
+        []
+      ],
+      "history": "B",
+      "key": [
+        2,
+        0,
+        "IDLE",
+        0,
+        "write",
+        "CODE",
+        -3,
+        "S",
+        0,
+        0,
+        "modrm"
+      ],
+      "kind": "mismatch",
+      "pad": 5,
+      "parity": "even",
+      "wait": 0,
+      "want": [
+        "CODE",
+        2,
+        [
+          "selected_delta",
+          2
+        ],
+        16,
+        []
+      ]
+    },
+    {
+      "clock_mhz": 8,
+      "fields": [
+        "t1"
+      ],
+      "form": "v2_pfx_seg_write_dw",
+      "got": [
+        "CODE",
+        1,
+        [
+          "selected_delta",
+          2
+        ],
+        16,
+        []
+      ],
+      "history": "B",
+      "key": [
+        2,
+        0,
+        "IDLE",
+        0,
+        "write",
+        "CODE",
+        -3,
+        "S",
+        0,
+        0,
+        "modrm"
+      ],
+      "kind": "mismatch",
+      "pad": 5,
+      "parity": "even",
+      "wait": 0,
+      "want": [
+        "CODE",
+        2,
+        [
+          "selected_delta",
+          2
+        ],
+        16,
+        []
+      ]
+    },
+    {
+      "clock_mhz": 4,
+      "form": "v2_pfx_seg_write_dw",
+      "history": "A",
+      "key": [
+        0,
+        0,
+        "CODE",
+        4,
+        "write",
+        "CODE",
+        4,
+        "S",
+        0,
+        0,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 5,
+      "parity": "even",
+      "wait": 7
+    },
+    {
+      "clock_mhz": 8,
+      "form": "v2_pfx_seg_write_dw",
+      "history": "A",
+      "key": [
+        0,
+        0,
+        "CODE",
+        4,
+        "write",
+        "CODE",
+        4,
+        "S",
+        0,
+        0,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 5,
+      "parity": "even",
+      "wait": 7
+    },
+    {
+      "clock_mhz": 4,
+      "form": "v2_pfx_seg_write_dw",
+      "history": "B",
+      "key": [
+        0,
+        0,
+        "CODE",
+        4,
+        "write",
+        "CODE",
+        4,
+        "S",
+        0,
+        0,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 5,
+      "parity": "even",
+      "wait": 7
+    },
+    {
+      "clock_mhz": 8,
+      "form": "v2_pfx_seg_write_dw",
+      "history": "B",
+      "key": [
+        0,
+        0,
+        "CODE",
+        4,
+        "write",
+        "CODE",
+        4,
+        "S",
+        0,
+        0,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 5,
+      "parity": "even",
+      "wait": 7
+    },
+    {
+      "clock_mhz": 4,
+      "form": "v2_pfx_seg_write_dw",
+      "history": "A",
+      "key": [
+        0,
+        0,
+        "CODE",
+        4,
+        "write",
+        "CODE",
+        12,
+        "S",
+        0,
+        0,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 5,
+      "parity": "even",
+      "wait": 15
+    },
+    {
+      "clock_mhz": 8,
+      "form": "v2_pfx_seg_write_dw",
+      "history": "A",
+      "key": [
+        0,
+        0,
+        "CODE",
+        4,
+        "write",
+        "CODE",
+        12,
+        "S",
+        0,
+        0,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 5,
+      "parity": "even",
+      "wait": 15
+    },
+    {
+      "clock_mhz": 4,
+      "form": "v2_pfx_seg_write_dw",
+      "history": "B",
+      "key": [
+        0,
+        0,
+        "CODE",
+        4,
+        "write",
+        "CODE",
+        12,
+        "S",
+        0,
+        0,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 5,
+      "parity": "even",
+      "wait": 15
+    },
+    {
+      "clock_mhz": 8,
+      "form": "v2_pfx_seg_write_dw",
+      "history": "B",
+      "key": [
+        0,
+        0,
+        "CODE",
+        4,
+        "write",
+        "CODE",
+        12,
+        "S",
+        0,
+        0,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 5,
+      "parity": "even",
+      "wait": 15
+    },
+    {
+      "clock_mhz": 4,
+      "form": "v2_pfx_seg_write_dw",
+      "history": "A",
+      "key": [
+        2,
+        0,
+        "CODE",
+        2,
+        "write",
+        "CODE",
+        -2,
+        "S",
+        0,
+        2,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 7,
+      "parity": "even",
+      "wait": 0
+    },
+    {
+      "clock_mhz": 8,
+      "form": "v2_pfx_seg_write_dw",
+      "history": "A",
+      "key": [
+        2,
+        0,
+        "CODE",
+        2,
+        "write",
+        "CODE",
+        -2,
+        "S",
+        0,
+        2,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 7,
+      "parity": "even",
+      "wait": 0
+    },
+    {
+      "clock_mhz": 4,
+      "form": "v2_pfx_seg_write_dw",
+      "history": "B",
+      "key": [
+        2,
+        0,
+        "CODE",
+        2,
+        "write",
+        "CODE",
+        -2,
+        "S",
+        0,
+        2,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 7,
+      "parity": "even",
+      "wait": 0
+    },
+    {
+      "clock_mhz": 8,
+      "form": "v2_pfx_seg_write_dw",
+      "history": "B",
+      "key": [
+        2,
+        0,
+        "CODE",
+        2,
+        "write",
+        "CODE",
+        -2,
+        "S",
+        0,
+        2,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 7,
+      "parity": "even",
+      "wait": 0
+    },
+    {
+      "clock_mhz": 4,
+      "form": "v2_pfx_seg_write_dw",
+      "history": "A",
+      "key": [
+        0,
+        0,
+        "CODE",
+        4,
+        "write",
+        "CODE",
+        5,
+        "S",
+        0,
+        2,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 7,
+      "parity": "even",
+      "wait": 7
+    },
+    {
+      "clock_mhz": 8,
+      "form": "v2_pfx_seg_write_dw",
+      "history": "A",
+      "key": [
+        0,
+        0,
+        "CODE",
+        4,
+        "write",
+        "CODE",
+        5,
+        "S",
+        0,
+        2,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 7,
+      "parity": "even",
+      "wait": 7
+    },
+    {
+      "clock_mhz": 4,
+      "form": "v2_pfx_seg_write_dw",
+      "history": "B",
+      "key": [
+        0,
+        0,
+        "CODE",
+        4,
+        "write",
+        "CODE",
+        5,
+        "S",
+        0,
+        2,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 7,
+      "parity": "even",
+      "wait": 7
+    },
+    {
+      "clock_mhz": 8,
+      "form": "v2_pfx_seg_write_dw",
+      "history": "B",
+      "key": [
+        0,
+        0,
+        "CODE",
+        4,
+        "write",
+        "CODE",
+        5,
+        "S",
+        0,
+        2,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 7,
+      "parity": "even",
+      "wait": 7
+    },
+    {
+      "clock_mhz": 4,
+      "form": "v2_pfx_seg_write_dw",
+      "history": "A",
+      "key": [
+        0,
+        0,
+        "CODE",
+        4,
+        "write",
+        "CODE",
+        13,
+        "S",
+        0,
+        2,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 7,
+      "parity": "even",
+      "wait": 15
+    },
+    {
+      "clock_mhz": 8,
+      "form": "v2_pfx_seg_write_dw",
+      "history": "A",
+      "key": [
+        0,
+        0,
+        "CODE",
+        4,
+        "write",
+        "CODE",
+        13,
+        "S",
+        0,
+        2,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 7,
+      "parity": "even",
+      "wait": 15
+    },
+    {
+      "clock_mhz": 4,
+      "form": "v2_pfx_seg_write_dw",
+      "history": "B",
+      "key": [
+        0,
+        0,
+        "CODE",
+        4,
+        "write",
+        "CODE",
+        13,
+        "S",
+        0,
+        2,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 7,
+      "parity": "even",
+      "wait": 15
+    },
+    {
+      "clock_mhz": 8,
+      "form": "v2_pfx_seg_write_dw",
+      "history": "B",
+      "key": [
+        0,
+        0,
+        "CODE",
+        4,
+        "write",
+        "CODE",
+        13,
+        "S",
+        0,
+        2,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 7,
+      "parity": "even",
+      "wait": 15
+    },
+    {
+      "clock_mhz": 4,
+      "fields": [
+        "action",
+        "t1",
+        "address"
+      ],
+      "form": "v2_pfx_seg_write_dw",
+      "got": [
+        "CODE",
+        3,
+        [
+          "selected_delta",
+          2
+        ],
+        16,
+        []
+      ],
+      "history": "A",
+      "key": [
+        3,
+        0,
+        "IDLE",
+        0,
+        "write",
+        "CODE",
+        -1,
+        "S",
+        0,
+        3,
+        "modrm"
+      ],
+      "kind": "mismatch",
+      "pad": 8,
+      "parity": "even",
+      "wait": 0,
+      "want": [
+        "MEMW",
+        5,
+        [
+          "absolute",
+          8192
+        ],
+        16,
+        []
+      ]
+    },
+    {
+      "clock_mhz": 8,
+      "fields": [
+        "action",
+        "t1",
+        "address"
+      ],
+      "form": "v2_pfx_seg_write_dw",
+      "got": [
+        "CODE",
+        3,
+        [
+          "selected_delta",
+          2
+        ],
+        16,
+        []
+      ],
+      "history": "A",
+      "key": [
+        3,
+        0,
+        "IDLE",
+        0,
+        "write",
+        "CODE",
+        -1,
+        "S",
+        0,
+        3,
+        "modrm"
+      ],
+      "kind": "mismatch",
+      "pad": 8,
+      "parity": "even",
+      "wait": 0,
+      "want": [
+        "MEMW",
+        5,
+        [
+          "absolute",
+          8192
+        ],
+        16,
+        []
+      ]
+    },
+    {
+      "clock_mhz": 4,
+      "fields": [
+        "action",
+        "t1",
+        "address"
+      ],
+      "form": "v2_pfx_seg_write_dw",
+      "got": [
+        "CODE",
+        3,
+        [
+          "selected_delta",
+          2
+        ],
+        16,
+        []
+      ],
+      "history": "B",
+      "key": [
+        3,
+        0,
+        "IDLE",
+        0,
+        "write",
+        "CODE",
+        -1,
+        "S",
+        0,
+        3,
+        "modrm"
+      ],
+      "kind": "mismatch",
+      "pad": 8,
+      "parity": "even",
+      "wait": 0,
+      "want": [
+        "MEMW",
+        5,
+        [
+          "absolute",
+          8192
+        ],
+        16,
+        []
+      ]
+    },
+    {
+      "clock_mhz": 8,
+      "fields": [
+        "action",
+        "t1",
+        "address"
+      ],
+      "form": "v2_pfx_seg_write_dw",
+      "got": [
+        "CODE",
+        3,
+        [
+          "selected_delta",
+          2
+        ],
+        16,
+        []
+      ],
+      "history": "B",
+      "key": [
+        3,
+        0,
+        "IDLE",
+        0,
+        "write",
+        "CODE",
+        -1,
+        "S",
+        0,
+        3,
+        "modrm"
+      ],
+      "kind": "mismatch",
+      "pad": 8,
+      "parity": "even",
+      "wait": 0,
+      "want": [
+        "MEMW",
+        5,
+        [
+          "absolute",
+          8192
+        ],
+        16,
+        []
+      ]
+    },
+    {
+      "clock_mhz": 4,
+      "form": "v2_pfx_seg_write_dw",
+      "history": "A",
+      "key": [
+        1,
+        0,
+        "CODE",
+        4,
+        "write",
+        "CODE",
+        6,
+        "S",
+        0,
+        3,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 8,
+      "parity": "even",
+      "wait": 7
+    },
+    {
+      "clock_mhz": 8,
+      "form": "v2_pfx_seg_write_dw",
+      "history": "A",
+      "key": [
+        1,
+        0,
+        "CODE",
+        4,
+        "write",
+        "CODE",
+        6,
+        "S",
+        0,
+        3,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 8,
+      "parity": "even",
+      "wait": 7
+    },
+    {
+      "clock_mhz": 4,
+      "form": "v2_pfx_seg_write_dw",
+      "history": "B",
+      "key": [
+        1,
+        0,
+        "CODE",
+        4,
+        "write",
+        "CODE",
+        6,
+        "S",
+        0,
+        3,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 8,
+      "parity": "even",
+      "wait": 7
+    },
+    {
+      "clock_mhz": 8,
+      "form": "v2_pfx_seg_write_dw",
+      "history": "B",
+      "key": [
+        1,
+        0,
+        "CODE",
+        4,
+        "write",
+        "CODE",
+        6,
+        "S",
+        0,
+        3,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 8,
+      "parity": "even",
+      "wait": 7
+    },
+    {
+      "clock_mhz": 4,
+      "form": "v2_pfx_seg_write_dw",
+      "history": "A",
+      "key": [
+        1,
+        0,
+        "CODE",
+        4,
+        "write",
+        "CODE",
+        14,
+        "S",
+        0,
+        3,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 8,
+      "parity": "even",
+      "wait": 15
+    },
+    {
+      "clock_mhz": 8,
+      "form": "v2_pfx_seg_write_dw",
+      "history": "A",
+      "key": [
+        1,
+        0,
+        "CODE",
+        4,
+        "write",
+        "CODE",
+        14,
+        "S",
+        0,
+        3,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 8,
+      "parity": "even",
+      "wait": 15
+    },
+    {
+      "clock_mhz": 4,
+      "form": "v2_pfx_seg_write_dw",
+      "history": "B",
+      "key": [
+        1,
+        0,
+        "CODE",
+        4,
+        "write",
+        "CODE",
+        14,
+        "S",
+        0,
+        3,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 8,
+      "parity": "even",
+      "wait": 15
+    },
+    {
+      "clock_mhz": 8,
+      "form": "v2_pfx_seg_write_dw",
+      "history": "B",
+      "key": [
+        1,
+        0,
+        "CODE",
+        4,
+        "write",
+        "CODE",
+        14,
+        "S",
+        0,
+        3,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 8,
+      "parity": "even",
+      "wait": 15
+    },
+    {
+      "clock_mhz": 4,
+      "fields": [
+        "action",
+        "t1",
+        "address"
+      ],
+      "form": "v2_pfx_seg_write_dw",
+      "got": [
+        "CODE",
+        3,
+        [
+          "selected_delta",
+          2
+        ],
+        16,
+        []
+      ],
+      "history": "A",
+      "key": [
+        3,
+        0,
+        "IDLE",
+        0,
+        "write",
+        "CODE",
+        -1,
+        "S",
+        0,
+        2,
+        "modrm"
+      ],
+      "kind": "mismatch",
+      "pad": 1,
+      "parity": "odd",
+      "wait": 0,
+      "want": [
+        "MEMW",
+        5,
+        [
+          "absolute",
+          8192
+        ],
+        16,
+        []
+      ]
+    },
+    {
+      "clock_mhz": 8,
+      "fields": [
+        "action",
+        "t1",
+        "address"
+      ],
+      "form": "v2_pfx_seg_write_dw",
+      "got": [
+        "CODE",
+        3,
+        [
+          "selected_delta",
+          2
+        ],
+        16,
+        []
+      ],
+      "history": "A",
+      "key": [
+        3,
+        0,
+        "IDLE",
+        0,
+        "write",
+        "CODE",
+        -1,
+        "S",
+        0,
+        2,
+        "modrm"
+      ],
+      "kind": "mismatch",
+      "pad": 1,
+      "parity": "odd",
+      "wait": 0,
+      "want": [
+        "MEMW",
+        5,
+        [
+          "absolute",
+          8192
+        ],
+        16,
+        []
+      ]
+    },
+    {
+      "clock_mhz": 4,
+      "fields": [
+        "action",
+        "t1",
+        "address"
+      ],
+      "form": "v2_pfx_seg_write_dw",
+      "got": [
+        "CODE",
+        3,
+        [
+          "selected_delta",
+          2
+        ],
+        16,
+        []
+      ],
+      "history": "B",
+      "key": [
+        3,
+        0,
+        "IDLE",
+        0,
+        "write",
+        "CODE",
+        -1,
+        "S",
+        0,
+        2,
+        "modrm"
+      ],
+      "kind": "mismatch",
+      "pad": 1,
+      "parity": "odd",
+      "wait": 0,
+      "want": [
+        "MEMW",
+        5,
+        [
+          "absolute",
+          8192
+        ],
+        16,
+        []
+      ]
+    },
+    {
+      "clock_mhz": 8,
+      "fields": [
+        "action",
+        "t1",
+        "address"
+      ],
+      "form": "v2_pfx_seg_write_dw",
+      "got": [
+        "CODE",
+        3,
+        [
+          "selected_delta",
+          2
+        ],
+        16,
+        []
+      ],
+      "history": "B",
+      "key": [
+        3,
+        0,
+        "IDLE",
+        0,
+        "write",
+        "CODE",
+        -1,
+        "S",
+        0,
+        2,
+        "modrm"
+      ],
+      "kind": "mismatch",
+      "pad": 1,
+      "parity": "odd",
+      "wait": 0,
+      "want": [
+        "MEMW",
+        5,
+        [
+          "absolute",
+          8192
+        ],
+        16,
+        []
+      ]
+    },
+    {
+      "clock_mhz": 4,
+      "form": "v2_pfx_seg_write_dw",
+      "history": "A",
+      "key": [
+        1,
+        0,
+        "CODE",
+        4,
+        "write",
+        "CODE",
+        6,
+        "S",
+        0,
+        2,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 1,
+      "parity": "odd",
+      "wait": 7
+    },
+    {
+      "clock_mhz": 8,
+      "form": "v2_pfx_seg_write_dw",
+      "history": "A",
+      "key": [
+        1,
+        0,
+        "CODE",
+        4,
+        "write",
+        "CODE",
+        6,
+        "S",
+        0,
+        2,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 1,
+      "parity": "odd",
+      "wait": 7
+    },
+    {
+      "clock_mhz": 4,
+      "form": "v2_pfx_seg_write_dw",
+      "history": "B",
+      "key": [
+        1,
+        0,
+        "CODE",
+        4,
+        "write",
+        "CODE",
+        6,
+        "S",
+        0,
+        2,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 1,
+      "parity": "odd",
+      "wait": 7
+    },
+    {
+      "clock_mhz": 8,
+      "form": "v2_pfx_seg_write_dw",
+      "history": "B",
+      "key": [
+        1,
+        0,
+        "CODE",
+        4,
+        "write",
+        "CODE",
+        6,
+        "S",
+        0,
+        2,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 1,
+      "parity": "odd",
+      "wait": 7
+    },
+    {
+      "clock_mhz": 4,
+      "form": "v2_pfx_seg_write_dw",
+      "history": "A",
+      "key": [
+        1,
+        0,
+        "CODE",
+        4,
+        "write",
+        "CODE",
+        14,
+        "S",
+        0,
+        2,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 1,
+      "parity": "odd",
+      "wait": 15
+    },
+    {
+      "clock_mhz": 8,
+      "form": "v2_pfx_seg_write_dw",
+      "history": "A",
+      "key": [
+        1,
+        0,
+        "CODE",
+        4,
+        "write",
+        "CODE",
+        14,
+        "S",
+        0,
+        2,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 1,
+      "parity": "odd",
+      "wait": 15
+    },
+    {
+      "clock_mhz": 4,
+      "form": "v2_pfx_seg_write_dw",
+      "history": "B",
+      "key": [
+        1,
+        0,
+        "CODE",
+        4,
+        "write",
+        "CODE",
+        14,
+        "S",
+        0,
+        2,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 1,
+      "parity": "odd",
+      "wait": 15
+    },
+    {
+      "clock_mhz": 8,
+      "form": "v2_pfx_seg_write_dw",
+      "history": "B",
+      "key": [
+        1,
+        0,
+        "CODE",
+        4,
+        "write",
+        "CODE",
+        14,
+        "S",
+        0,
+        2,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 1,
+      "parity": "odd",
+      "wait": 15
+    },
+    {
+      "clock_mhz": 4,
+      "form": "v2_pfx_seg_write_dw",
+      "history": "A",
+      "key": [
+        2,
+        0,
+        "CODE",
+        1,
+        "write",
+        "CODE",
+        -4,
+        "S",
+        0,
+        3,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 2,
+      "parity": "odd",
+      "wait": 0
+    },
+    {
+      "clock_mhz": 8,
+      "form": "v2_pfx_seg_write_dw",
+      "history": "A",
+      "key": [
+        2,
+        0,
+        "CODE",
+        1,
+        "write",
+        "CODE",
+        -4,
+        "S",
+        0,
+        3,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 2,
+      "parity": "odd",
+      "wait": 0
+    },
+    {
+      "clock_mhz": 4,
+      "form": "v2_pfx_seg_write_dw",
+      "history": "B",
+      "key": [
+        2,
+        0,
+        "CODE",
+        1,
+        "write",
+        "CODE",
+        -4,
+        "S",
+        0,
+        3,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 2,
+      "parity": "odd",
+      "wait": 0
+    },
+    {
+      "clock_mhz": 8,
+      "form": "v2_pfx_seg_write_dw",
+      "history": "B",
+      "key": [
+        2,
+        0,
+        "CODE",
+        1,
+        "write",
+        "CODE",
+        -4,
+        "S",
+        0,
+        3,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 2,
+      "parity": "odd",
+      "wait": 0
+    },
+    {
+      "clock_mhz": 4,
+      "form": "v2_pfx_seg_write_dw",
+      "history": "A",
+      "key": [
+        0,
+        0,
+        "CODE",
+        4,
+        "write",
+        "CODE",
+        3,
+        "S",
+        0,
+        3,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 2,
+      "parity": "odd",
+      "wait": 7
+    },
+    {
+      "clock_mhz": 8,
+      "form": "v2_pfx_seg_write_dw",
+      "history": "A",
+      "key": [
+        0,
+        0,
+        "CODE",
+        4,
+        "write",
+        "CODE",
+        3,
+        "S",
+        0,
+        3,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 2,
+      "parity": "odd",
+      "wait": 7
+    },
+    {
+      "clock_mhz": 4,
+      "form": "v2_pfx_seg_write_dw",
+      "history": "B",
+      "key": [
+        0,
+        0,
+        "CODE",
+        4,
+        "write",
+        "CODE",
+        3,
+        "S",
+        0,
+        3,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 2,
+      "parity": "odd",
+      "wait": 7
+    },
+    {
+      "clock_mhz": 8,
+      "form": "v2_pfx_seg_write_dw",
+      "history": "B",
+      "key": [
+        0,
+        0,
+        "CODE",
+        4,
+        "write",
+        "CODE",
+        3,
+        "S",
+        0,
+        3,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 2,
+      "parity": "odd",
+      "wait": 7
+    },
+    {
+      "clock_mhz": 4,
+      "form": "v2_pfx_seg_write_dw",
+      "history": "A",
+      "key": [
+        0,
+        0,
+        "CODE",
+        4,
+        "write",
+        "CODE",
+        11,
+        "S",
+        0,
+        3,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 2,
+      "parity": "odd",
+      "wait": 15
+    },
+    {
+      "clock_mhz": 8,
+      "form": "v2_pfx_seg_write_dw",
+      "history": "A",
+      "key": [
+        0,
+        0,
+        "CODE",
+        4,
+        "write",
+        "CODE",
+        11,
+        "S",
+        0,
+        3,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 2,
+      "parity": "odd",
+      "wait": 15
+    },
+    {
+      "clock_mhz": 4,
+      "form": "v2_pfx_seg_write_dw",
+      "history": "B",
+      "key": [
+        0,
+        0,
+        "CODE",
+        4,
+        "write",
+        "CODE",
+        11,
+        "S",
+        0,
+        3,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 2,
+      "parity": "odd",
+      "wait": 15
+    },
+    {
+      "clock_mhz": 8,
+      "form": "v2_pfx_seg_write_dw",
+      "history": "B",
+      "key": [
+        0,
+        0,
+        "CODE",
+        4,
+        "write",
+        "CODE",
+        11,
+        "S",
+        0,
+        3,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 2,
+      "parity": "odd",
+      "wait": 15
+    },
+    {
+      "clock_mhz": 4,
+      "fields": [
+        "action",
+        "t1",
+        "address"
+      ],
+      "form": "v2_pfx_seg_write_dw",
+      "got": [
+        "CODE",
+        1,
+        [
+          "selected_delta",
+          2
+        ],
+        16,
+        []
+      ],
+      "history": "A",
+      "key": [
+        3,
+        0,
+        "CODE",
+        5,
+        "write",
+        "CODE",
+        0,
+        "S",
+        0,
+        4,
+        "modrm"
+      ],
+      "kind": "mismatch",
+      "pad": 3,
+      "parity": "odd",
+      "wait": 0,
+      "want": [
+        "MEMW",
+        5,
+        [
+          "absolute",
+          8192
+        ],
+        16,
+        []
+      ]
+    },
+    {
+      "clock_mhz": 8,
+      "fields": [
+        "action",
+        "t1",
+        "address"
+      ],
+      "form": "v2_pfx_seg_write_dw",
+      "got": [
+        "CODE",
+        1,
+        [
+          "selected_delta",
+          2
+        ],
+        16,
+        []
+      ],
+      "history": "A",
+      "key": [
+        3,
+        0,
+        "CODE",
+        5,
+        "write",
+        "CODE",
+        0,
+        "S",
+        0,
+        4,
+        "modrm"
+      ],
+      "kind": "mismatch",
+      "pad": 3,
+      "parity": "odd",
+      "wait": 0,
+      "want": [
+        "MEMW",
+        5,
+        [
+          "absolute",
+          8192
+        ],
+        16,
+        []
+      ]
+    },
+    {
+      "clock_mhz": 4,
+      "fields": [
+        "action",
+        "t1",
+        "address"
+      ],
+      "form": "v2_pfx_seg_write_dw",
+      "got": [
+        "CODE",
+        1,
+        [
+          "selected_delta",
+          2
+        ],
+        16,
+        []
+      ],
+      "history": "B",
+      "key": [
+        3,
+        0,
+        "CODE",
+        5,
+        "write",
+        "CODE",
+        0,
+        "S",
+        0,
+        4,
+        "modrm"
+      ],
+      "kind": "mismatch",
+      "pad": 3,
+      "parity": "odd",
+      "wait": 0,
+      "want": [
+        "MEMW",
+        5,
+        [
+          "absolute",
+          8192
+        ],
+        16,
+        []
+      ]
+    },
+    {
+      "clock_mhz": 8,
+      "fields": [
+        "action",
+        "t1",
+        "address"
+      ],
+      "form": "v2_pfx_seg_write_dw",
+      "got": [
+        "CODE",
+        1,
+        [
+          "selected_delta",
+          2
+        ],
+        16,
+        []
+      ],
+      "history": "B",
+      "key": [
+        3,
+        0,
+        "CODE",
+        5,
+        "write",
+        "CODE",
+        0,
+        "S",
+        0,
+        4,
+        "modrm"
+      ],
+      "kind": "mismatch",
+      "pad": 3,
+      "parity": "odd",
+      "wait": 0,
+      "want": [
+        "MEMW",
+        5,
+        [
+          "absolute",
+          8192
+        ],
+        16,
+        []
+      ]
+    },
+    {
+      "clock_mhz": 4,
+      "fields": [
+        "action",
+        "t1",
+        "address"
+      ],
+      "form": "v2_pfx_seg_write_dw",
+      "got": [
+        "CODE",
+        3,
+        [
+          "selected_delta",
+          2
+        ],
+        16,
+        []
+      ],
+      "history": "A",
+      "key": [
+        1,
+        0,
+        "CODE",
+        4,
+        "write",
+        "CODE",
+        1,
+        "S",
+        0,
+        4,
+        "modrm"
+      ],
+      "kind": "mismatch",
+      "pad": 3,
+      "parity": "odd",
+      "wait": 1,
+      "want": [
+        "MEMW",
+        5,
+        [
+          "absolute",
+          8192
+        ],
+        16,
+        []
+      ]
+    },
+    {
+      "clock_mhz": 8,
+      "fields": [
+        "action",
+        "t1",
+        "address"
+      ],
+      "form": "v2_pfx_seg_write_dw",
+      "got": [
+        "CODE",
+        3,
+        [
+          "selected_delta",
+          2
+        ],
+        16,
+        []
+      ],
+      "history": "A",
+      "key": [
+        1,
+        0,
+        "CODE",
+        4,
+        "write",
+        "CODE",
+        1,
+        "S",
+        0,
+        4,
+        "modrm"
+      ],
+      "kind": "mismatch",
+      "pad": 3,
+      "parity": "odd",
+      "wait": 1,
+      "want": [
+        "MEMW",
+        5,
+        [
+          "absolute",
+          8192
+        ],
+        16,
+        []
+      ]
+    },
+    {
+      "clock_mhz": 4,
+      "fields": [
+        "action",
+        "t1",
+        "address"
+      ],
+      "form": "v2_pfx_seg_write_dw",
+      "got": [
+        "CODE",
+        3,
+        [
+          "selected_delta",
+          2
+        ],
+        16,
+        []
+      ],
+      "history": "B",
+      "key": [
+        1,
+        0,
+        "CODE",
+        4,
+        "write",
+        "CODE",
+        1,
+        "S",
+        0,
+        4,
+        "modrm"
+      ],
+      "kind": "mismatch",
+      "pad": 3,
+      "parity": "odd",
+      "wait": 1,
+      "want": [
+        "MEMW",
+        5,
+        [
+          "absolute",
+          8192
+        ],
+        16,
+        []
+      ]
+    },
+    {
+      "clock_mhz": 8,
+      "fields": [
+        "action",
+        "t1",
+        "address"
+      ],
+      "form": "v2_pfx_seg_write_dw",
+      "got": [
+        "CODE",
+        3,
+        [
+          "selected_delta",
+          2
+        ],
+        16,
+        []
+      ],
+      "history": "B",
+      "key": [
+        1,
+        0,
+        "CODE",
+        4,
+        "write",
+        "CODE",
+        1,
+        "S",
+        0,
+        4,
+        "modrm"
+      ],
+      "kind": "mismatch",
+      "pad": 3,
+      "parity": "odd",
+      "wait": 1,
+      "want": [
+        "MEMW",
+        5,
+        [
+          "absolute",
+          8192
+        ],
+        16,
+        []
+      ]
+    },
+    {
+      "clock_mhz": 4,
+      "form": "v2_pfx_seg_write_dw",
+      "history": "A",
+      "key": [
+        1,
+        0,
+        "CODE",
+        4,
+        "write",
+        "CODE",
+        7,
+        "S",
+        0,
+        4,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 3,
+      "parity": "odd",
+      "wait": 7
+    },
+    {
+      "clock_mhz": 8,
+      "form": "v2_pfx_seg_write_dw",
+      "history": "A",
+      "key": [
+        1,
+        0,
+        "CODE",
+        4,
+        "write",
+        "CODE",
+        7,
+        "S",
+        0,
+        4,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 3,
+      "parity": "odd",
+      "wait": 7
+    },
+    {
+      "clock_mhz": 4,
+      "form": "v2_pfx_seg_write_dw",
+      "history": "B",
+      "key": [
+        1,
+        0,
+        "CODE",
+        4,
+        "write",
+        "CODE",
+        7,
+        "S",
+        0,
+        4,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 3,
+      "parity": "odd",
+      "wait": 7
+    },
+    {
+      "clock_mhz": 8,
+      "form": "v2_pfx_seg_write_dw",
+      "history": "B",
+      "key": [
+        1,
+        0,
+        "CODE",
+        4,
+        "write",
+        "CODE",
+        7,
+        "S",
+        0,
+        4,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 3,
+      "parity": "odd",
+      "wait": 7
+    },
+    {
+      "clock_mhz": 4,
+      "form": "v2_pfx_seg_write_dw",
+      "history": "A",
+      "key": [
+        1,
+        0,
+        "CODE",
+        4,
+        "write",
+        "CODE",
+        15,
+        "S",
+        0,
+        4,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 3,
+      "parity": "odd",
+      "wait": 15
+    },
+    {
+      "clock_mhz": 8,
+      "form": "v2_pfx_seg_write_dw",
+      "history": "A",
+      "key": [
+        1,
+        0,
+        "CODE",
+        4,
+        "write",
+        "CODE",
+        15,
+        "S",
+        0,
+        4,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 3,
+      "parity": "odd",
+      "wait": 15
+    },
+    {
+      "clock_mhz": 4,
+      "form": "v2_pfx_seg_write_dw",
+      "history": "B",
+      "key": [
+        1,
+        0,
+        "CODE",
+        4,
+        "write",
+        "CODE",
+        15,
+        "S",
+        0,
+        4,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 3,
+      "parity": "odd",
+      "wait": 15
+    },
+    {
+      "clock_mhz": 8,
+      "form": "v2_pfx_seg_write_dw",
+      "history": "B",
+      "key": [
+        1,
+        0,
+        "CODE",
+        4,
+        "write",
+        "CODE",
+        15,
+        "S",
+        0,
+        4,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 3,
+      "parity": "odd",
+      "wait": 15
+    },
+    {
+      "clock_mhz": 4,
+      "fields": [
+        "t1"
+      ],
+      "form": "v2_pfx_seg_write_dw",
+      "got": [
+        "CODE",
+        1,
+        [
+          "selected_delta",
+          2
+        ],
+        16,
+        []
+      ],
+      "history": "A",
+      "key": [
+        2,
+        0,
+        "IDLE",
+        0,
+        "write",
+        "CODE",
+        -3,
+        "S",
+        0,
+        5,
+        "modrm"
+      ],
+      "kind": "mismatch",
+      "pad": 4,
+      "parity": "odd",
+      "wait": 0,
+      "want": [
+        "CODE",
+        2,
+        [
+          "selected_delta",
+          2
+        ],
+        16,
+        []
+      ]
+    },
+    {
+      "clock_mhz": 8,
+      "fields": [
+        "t1"
+      ],
+      "form": "v2_pfx_seg_write_dw",
+      "got": [
+        "CODE",
+        1,
+        [
+          "selected_delta",
+          2
+        ],
+        16,
+        []
+      ],
+      "history": "A",
+      "key": [
+        2,
+        0,
+        "IDLE",
+        0,
+        "write",
+        "CODE",
+        -3,
+        "S",
+        0,
+        5,
+        "modrm"
+      ],
+      "kind": "mismatch",
+      "pad": 4,
+      "parity": "odd",
+      "wait": 0,
+      "want": [
+        "CODE",
+        2,
+        [
+          "selected_delta",
+          2
+        ],
+        16,
+        []
+      ]
+    },
+    {
+      "clock_mhz": 4,
+      "fields": [
+        "t1"
+      ],
+      "form": "v2_pfx_seg_write_dw",
+      "got": [
+        "CODE",
+        1,
+        [
+          "selected_delta",
+          2
+        ],
+        16,
+        []
+      ],
+      "history": "B",
+      "key": [
+        2,
+        0,
+        "IDLE",
+        0,
+        "write",
+        "CODE",
+        -3,
+        "S",
+        0,
+        5,
+        "modrm"
+      ],
+      "kind": "mismatch",
+      "pad": 4,
+      "parity": "odd",
+      "wait": 0,
+      "want": [
+        "CODE",
+        2,
+        [
+          "selected_delta",
+          2
+        ],
+        16,
+        []
+      ]
+    },
+    {
+      "clock_mhz": 8,
+      "fields": [
+        "t1"
+      ],
+      "form": "v2_pfx_seg_write_dw",
+      "got": [
+        "CODE",
+        1,
+        [
+          "selected_delta",
+          2
+        ],
+        16,
+        []
+      ],
+      "history": "B",
+      "key": [
+        2,
+        0,
+        "IDLE",
+        0,
+        "write",
+        "CODE",
+        -3,
+        "S",
+        0,
+        5,
+        "modrm"
+      ],
+      "kind": "mismatch",
+      "pad": 4,
+      "parity": "odd",
+      "wait": 0,
+      "want": [
+        "CODE",
+        2,
+        [
+          "selected_delta",
+          2
+        ],
+        16,
+        []
+      ]
+    },
+    {
+      "clock_mhz": 4,
+      "form": "v2_pfx_seg_write_dw",
+      "history": "A",
+      "key": [
+        0,
+        0,
+        "CODE",
+        4,
+        "write",
+        "CODE",
+        4,
+        "S",
+        0,
+        5,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 4,
+      "parity": "odd",
+      "wait": 7
+    },
+    {
+      "clock_mhz": 8,
+      "form": "v2_pfx_seg_write_dw",
+      "history": "A",
+      "key": [
+        0,
+        0,
+        "CODE",
+        4,
+        "write",
+        "CODE",
+        4,
+        "S",
+        0,
+        5,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 4,
+      "parity": "odd",
+      "wait": 7
+    },
+    {
+      "clock_mhz": 4,
+      "form": "v2_pfx_seg_write_dw",
+      "history": "B",
+      "key": [
+        0,
+        0,
+        "CODE",
+        4,
+        "write",
+        "CODE",
+        4,
+        "S",
+        0,
+        5,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 4,
+      "parity": "odd",
+      "wait": 7
+    },
+    {
+      "clock_mhz": 8,
+      "form": "v2_pfx_seg_write_dw",
+      "history": "B",
+      "key": [
+        0,
+        0,
+        "CODE",
+        4,
+        "write",
+        "CODE",
+        4,
+        "S",
+        0,
+        5,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 4,
+      "parity": "odd",
+      "wait": 7
+    },
+    {
+      "clock_mhz": 4,
+      "form": "v2_pfx_seg_write_dw",
+      "history": "A",
+      "key": [
+        0,
+        0,
+        "CODE",
+        4,
+        "write",
+        "CODE",
+        12,
+        "S",
+        0,
+        5,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 4,
+      "parity": "odd",
+      "wait": 15
+    },
+    {
+      "clock_mhz": 8,
+      "form": "v2_pfx_seg_write_dw",
+      "history": "A",
+      "key": [
+        0,
+        0,
+        "CODE",
+        4,
+        "write",
+        "CODE",
+        12,
+        "S",
+        0,
+        5,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 4,
+      "parity": "odd",
+      "wait": 15
+    },
+    {
+      "clock_mhz": 4,
+      "form": "v2_pfx_seg_write_dw",
+      "history": "B",
+      "key": [
+        0,
+        0,
+        "CODE",
+        4,
+        "write",
+        "CODE",
+        12,
+        "S",
+        0,
+        5,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 4,
+      "parity": "odd",
+      "wait": 15
+    },
+    {
+      "clock_mhz": 8,
+      "form": "v2_pfx_seg_write_dw",
+      "history": "B",
+      "key": [
+        0,
+        0,
+        "CODE",
+        4,
+        "write",
+        "CODE",
+        12,
+        "S",
+        0,
+        5,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 4,
+      "parity": "odd",
+      "wait": 15
+    },
+    {
+      "clock_mhz": 4,
+      "form": "v2_pfx_seg_write_dw",
+      "history": "A",
+      "key": [
+        2,
+        0,
+        "CODE",
+        2,
+        "write",
+        "CODE",
+        -2,
+        "S",
+        0,
+        1,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 6,
+      "parity": "odd",
+      "wait": 0
+    },
+    {
+      "clock_mhz": 8,
+      "form": "v2_pfx_seg_write_dw",
+      "history": "A",
+      "key": [
+        2,
+        0,
+        "CODE",
+        2,
+        "write",
+        "CODE",
+        -2,
+        "S",
+        0,
+        1,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 6,
+      "parity": "odd",
+      "wait": 0
+    },
+    {
+      "clock_mhz": 4,
+      "form": "v2_pfx_seg_write_dw",
+      "history": "B",
+      "key": [
+        2,
+        0,
+        "CODE",
+        2,
+        "write",
+        "CODE",
+        -2,
+        "S",
+        0,
+        1,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 6,
+      "parity": "odd",
+      "wait": 0
+    },
+    {
+      "clock_mhz": 8,
+      "form": "v2_pfx_seg_write_dw",
+      "history": "B",
+      "key": [
+        2,
+        0,
+        "CODE",
+        2,
+        "write",
+        "CODE",
+        -2,
+        "S",
+        0,
+        1,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 6,
+      "parity": "odd",
+      "wait": 0
+    },
+    {
+      "clock_mhz": 4,
+      "form": "v2_pfx_seg_write_dw",
+      "history": "A",
+      "key": [
+        0,
+        0,
+        "CODE",
+        4,
+        "write",
+        "CODE",
+        5,
+        "S",
+        0,
+        1,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 6,
+      "parity": "odd",
+      "wait": 7
+    },
+    {
+      "clock_mhz": 8,
+      "form": "v2_pfx_seg_write_dw",
+      "history": "A",
+      "key": [
+        0,
+        0,
+        "CODE",
+        4,
+        "write",
+        "CODE",
+        5,
+        "S",
+        0,
+        1,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 6,
+      "parity": "odd",
+      "wait": 7
+    },
+    {
+      "clock_mhz": 4,
+      "form": "v2_pfx_seg_write_dw",
+      "history": "B",
+      "key": [
+        0,
+        0,
+        "CODE",
+        4,
+        "write",
+        "CODE",
+        5,
+        "S",
+        0,
+        1,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 6,
+      "parity": "odd",
+      "wait": 7
+    },
+    {
+      "clock_mhz": 8,
+      "form": "v2_pfx_seg_write_dw",
+      "history": "B",
+      "key": [
+        0,
+        0,
+        "CODE",
+        4,
+        "write",
+        "CODE",
+        5,
+        "S",
+        0,
+        1,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 6,
+      "parity": "odd",
+      "wait": 7
+    },
+    {
+      "clock_mhz": 4,
+      "form": "v2_pfx_seg_write_dw",
+      "history": "A",
+      "key": [
+        0,
+        0,
+        "CODE",
+        4,
+        "write",
+        "CODE",
+        13,
+        "S",
+        0,
+        1,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 6,
+      "parity": "odd",
+      "wait": 15
+    },
+    {
+      "clock_mhz": 8,
+      "form": "v2_pfx_seg_write_dw",
+      "history": "A",
+      "key": [
+        0,
+        0,
+        "CODE",
+        4,
+        "write",
+        "CODE",
+        13,
+        "S",
+        0,
+        1,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 6,
+      "parity": "odd",
+      "wait": 15
+    },
+    {
+      "clock_mhz": 4,
+      "form": "v2_pfx_seg_write_dw",
+      "history": "B",
+      "key": [
+        0,
+        0,
+        "CODE",
+        4,
+        "write",
+        "CODE",
+        13,
+        "S",
+        0,
+        1,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 6,
+      "parity": "odd",
+      "wait": 15
+    },
+    {
+      "clock_mhz": 8,
+      "form": "v2_pfx_seg_write_dw",
+      "history": "B",
+      "key": [
+        0,
+        0,
+        "CODE",
+        4,
+        "write",
+        "CODE",
+        13,
+        "S",
+        0,
+        1,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 6,
+      "parity": "odd",
+      "wait": 15
+    },
+    {
+      "clock_mhz": 4,
+      "fields": [
+        "action",
+        "t1",
+        "address"
+      ],
+      "form": "v2_pfx_seg_write_dw",
+      "got": [
+        "CODE",
+        3,
+        [
+          "selected_delta",
+          2
+        ],
+        16,
+        []
+      ],
+      "history": "A",
+      "key": [
+        3,
+        0,
+        "IDLE",
+        0,
+        "write",
+        "CODE",
+        -1,
+        "S",
+        0,
+        2,
+        "modrm"
+      ],
+      "kind": "mismatch",
+      "pad": 7,
+      "parity": "odd",
+      "wait": 0,
+      "want": [
+        "MEMW",
+        5,
+        [
+          "absolute",
+          8192
+        ],
+        16,
+        []
+      ]
+    },
+    {
+      "clock_mhz": 8,
+      "fields": [
+        "action",
+        "t1",
+        "address"
+      ],
+      "form": "v2_pfx_seg_write_dw",
+      "got": [
+        "CODE",
+        3,
+        [
+          "selected_delta",
+          2
+        ],
+        16,
+        []
+      ],
+      "history": "A",
+      "key": [
+        3,
+        0,
+        "IDLE",
+        0,
+        "write",
+        "CODE",
+        -1,
+        "S",
+        0,
+        2,
+        "modrm"
+      ],
+      "kind": "mismatch",
+      "pad": 7,
+      "parity": "odd",
+      "wait": 0,
+      "want": [
+        "MEMW",
+        5,
+        [
+          "absolute",
+          8192
+        ],
+        16,
+        []
+      ]
+    },
+    {
+      "clock_mhz": 4,
+      "fields": [
+        "action",
+        "t1",
+        "address"
+      ],
+      "form": "v2_pfx_seg_write_dw",
+      "got": [
+        "CODE",
+        3,
+        [
+          "selected_delta",
+          2
+        ],
+        16,
+        []
+      ],
+      "history": "B",
+      "key": [
+        3,
+        0,
+        "IDLE",
+        0,
+        "write",
+        "CODE",
+        -1,
+        "S",
+        0,
+        2,
+        "modrm"
+      ],
+      "kind": "mismatch",
+      "pad": 7,
+      "parity": "odd",
+      "wait": 0,
+      "want": [
+        "MEMW",
+        5,
+        [
+          "absolute",
+          8192
+        ],
+        16,
+        []
+      ]
+    },
+    {
+      "clock_mhz": 8,
+      "fields": [
+        "action",
+        "t1",
+        "address"
+      ],
+      "form": "v2_pfx_seg_write_dw",
+      "got": [
+        "CODE",
+        3,
+        [
+          "selected_delta",
+          2
+        ],
+        16,
+        []
+      ],
+      "history": "B",
+      "key": [
+        3,
+        0,
+        "IDLE",
+        0,
+        "write",
+        "CODE",
+        -1,
+        "S",
+        0,
+        2,
+        "modrm"
+      ],
+      "kind": "mismatch",
+      "pad": 7,
+      "parity": "odd",
+      "wait": 0,
+      "want": [
+        "MEMW",
+        5,
+        [
+          "absolute",
+          8192
+        ],
+        16,
+        []
+      ]
+    },
+    {
+      "clock_mhz": 4,
+      "form": "v2_pfx_seg_write_dw",
+      "history": "A",
+      "key": [
+        1,
+        0,
+        "CODE",
+        4,
+        "write",
+        "CODE",
+        6,
+        "S",
+        0,
+        2,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 7,
+      "parity": "odd",
+      "wait": 7
+    },
+    {
+      "clock_mhz": 8,
+      "form": "v2_pfx_seg_write_dw",
+      "history": "A",
+      "key": [
+        1,
+        0,
+        "CODE",
+        4,
+        "write",
+        "CODE",
+        6,
+        "S",
+        0,
+        2,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 7,
+      "parity": "odd",
+      "wait": 7
+    },
+    {
+      "clock_mhz": 4,
+      "form": "v2_pfx_seg_write_dw",
+      "history": "B",
+      "key": [
+        1,
+        0,
+        "CODE",
+        4,
+        "write",
+        "CODE",
+        6,
+        "S",
+        0,
+        2,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 7,
+      "parity": "odd",
+      "wait": 7
+    },
+    {
+      "clock_mhz": 8,
+      "form": "v2_pfx_seg_write_dw",
+      "history": "B",
+      "key": [
+        1,
+        0,
+        "CODE",
+        4,
+        "write",
+        "CODE",
+        6,
+        "S",
+        0,
+        2,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 7,
+      "parity": "odd",
+      "wait": 7
+    },
+    {
+      "clock_mhz": 4,
+      "form": "v2_pfx_seg_write_dw",
+      "history": "A",
+      "key": [
+        1,
+        0,
+        "CODE",
+        4,
+        "write",
+        "CODE",
+        14,
+        "S",
+        0,
+        2,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 7,
+      "parity": "odd",
+      "wait": 15
+    },
+    {
+      "clock_mhz": 8,
+      "form": "v2_pfx_seg_write_dw",
+      "history": "A",
+      "key": [
+        1,
+        0,
+        "CODE",
+        4,
+        "write",
+        "CODE",
+        14,
+        "S",
+        0,
+        2,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 7,
+      "parity": "odd",
+      "wait": 15
+    },
+    {
+      "clock_mhz": 4,
+      "form": "v2_pfx_seg_write_dw",
+      "history": "B",
+      "key": [
+        1,
+        0,
+        "CODE",
+        4,
+        "write",
+        "CODE",
+        14,
+        "S",
+        0,
+        2,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 7,
+      "parity": "odd",
+      "wait": 15
+    },
+    {
+      "clock_mhz": 8,
+      "form": "v2_pfx_seg_write_dw",
+      "history": "B",
+      "key": [
+        1,
+        0,
+        "CODE",
+        4,
+        "write",
+        "CODE",
+        14,
+        "S",
+        0,
+        2,
+        "modrm"
+      ],
+      "kind": "unseen",
+      "pad": 7,
+      "parity": "odd",
+      "wait": 15
+    }
+  ],
+  "oracle": "sw/testdata/biu_blackbox/chip-oracle-v2.json",
+  "oracle_sha256": "0d923578af0ece61864af3fb3156d2038e3049704f48cedf770d855c4e3a80f5",
+  "schema": "v30-biu-chip-oracle-v2-validation",
+  "status": "PROSPECTIVE_FRESH_ORDINARY_HELDOUT"
+}

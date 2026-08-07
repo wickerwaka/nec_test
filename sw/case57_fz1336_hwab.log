@@ -1,0 +1,13 @@
+    row 869: bs PASV!=MEMW
+    row 870: bs PASV!=MEMW, t Ti!=T1
+    row 871: t Ti!=T2, nxta 3efe!=0000
+    row 872: t T1!=T3, addr 03efe!=50000
+    row 873: t T2!=Tw
+    row 874: qs -!=E, bs MEMW!=PASV, t T3!=T4
+    row 875: t Tw!=Ti
+    row 876: qs E!=-, bs PASV!=MEMW, t T4!=T1
+    row 877: t Ti!=T2, nxta 3efc!=0568
+    row 878: t T1!=T3, addr 03efc!=50568
+    row 1231: qs F!=S  [QS flicker - tolerated]
+    row 1413: qs F!=S  [QS flicker - tolerated]
+seed fz1336: 83 ins, 2011 rows compared -> DIVERGE@869 (1060 rows) [+2 qs-flicker]

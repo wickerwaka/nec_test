@@ -1,0 +1,8 @@
+BIU: 88 symbols, each x2 in v30_biu.sv -> OK
+EU: 127 symbols, each x2 in v30_eu.sv -> OK
+ss_lint: PASS (88x2 BIU + 127x2 EU + tag = 216; constants OK)
+
+BIU (v30_biu.sv): 82 architectural flops -> 82 SSA-mapped, 0 whitelisted, 0 UNMAPPED; 9 sim-only exempt (0 comb output-regs skipped)
+EU (v30_eu.sv): 112 architectural flops -> 112 SSA-mapped, 0 whitelisted, 0 UNMAPPED; 2 sim-only exempt (3 comb output-regs skipped)
+
+ss_flopcensus: PASS (194 architectural flops, all SSA-mapped or whitelisted; 0 whitelist entries)

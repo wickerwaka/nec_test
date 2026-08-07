@@ -1,0 +1,73 @@
+{
+  "schema": "v30-biu-case12-launch-class-oracle-v1",
+  "frozen": true,
+  "source_capture_schema": "v30-biu-case12-launch-class-chip-v1",
+  "source_summary_sha256": "09aa22263993067aa6fa89d28c932f411c25ebfac545c8a1f3ce4edbedee11b9",
+  "challenge": {
+    "instruction_class": "no-immediate direct-address RMW",
+    "event": "final displacement pop coincident with completion of a selected CODE fetch",
+    "queue_depth_before_pop": 1,
+    "selected_fetch_address_parity": "even",
+    "selected_fetch_width": 2
+  },
+  "state_variable": {
+    "name": "selected_fetch_launch_eu_class",
+    "chip_reconstruction": "instruction/QS schedule at the selected fetch T1",
+    "rtl_mapping_deferred_until_after_freeze": {
+      "string_tail_preparations": "S_EX",
+      "ordinary_lahf_sahf_preparation": "S_NOP",
+      "ordinary_aam_preparation": "S_WAITX"
+    }
+  },
+  "rules": [
+    {
+      "when": {
+        "selected_fetch_launch_eu_class": "S_EX",
+        "selected_tw": 1
+      },
+      "predict": {
+        "next_action": "MEMR",
+        "t1_from_selected_t4": 4,
+        "address": 9212
+      }
+    },
+    {
+      "when": {
+        "selected_fetch_launch_eu_class": "not S_EX",
+        "selected_tw": 1
+      },
+      "predict": {
+        "next_action": "CODE",
+        "t1_from_selected_t4": 2,
+        "address": 1298
+      }
+    },
+    {
+      "when": {
+        "selected_fetch_launch_eu_class": "not S_EX",
+        "selected_tw": 4
+      },
+      "predict": {
+        "next_action": "CODE",
+        "t1_from_selected_t4": 5,
+        "address": 1298
+      }
+    }
+  ],
+  "discovery_coverage": {
+    "preparations": [
+      "REP MOVSB count 2",
+      "MOVSB then MOVSB",
+      "NOP then MOVSB",
+      "LAHF then SAHF",
+      "AAM"
+    ],
+    "wait_histories_per_preparation": 2,
+    "clock_mhz": [
+      8,
+      4
+    ],
+    "repetitions_per_cell": 5,
+    "records": 100
+  }
+}

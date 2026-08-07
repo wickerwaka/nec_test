@@ -1,0 +1,114 @@
+{
+  "controlled_rule": {
+    "current_false_owner_encoding": "mod=00 and reader_or_rmw",
+    "exception": "mod=00,r/m=110 has disp16 bytes pending and does not reserve",
+    "nonowner_controls": [
+      "direct_write_aw",
+      "direct_lea_aw",
+      "nodisp_read_aw",
+      "disp8_read_aw"
+    ],
+    "owner_classes": [
+      "direct_read_aw",
+      "direct_read_dw",
+      "direct_rmw_inc"
+    ],
+    "prediction": {
+      "action": "CODE",
+      "address": 1306,
+      "clocks_to_t1": 3,
+      "intervening_qs": [
+        {
+          "clock_delta": 1,
+          "event": "S"
+        },
+        {
+          "clock_delta": 3,
+          "event": "S"
+        }
+      ],
+      "width": 16
+    },
+    "required_owner_encoding": "mod=00 and r/m!=110 and reader_or_rmw",
+    "selected_code_tw": 1,
+    "source_event": "S_DEC ModRM pop"
+  },
+  "discovery_owner_cells": [
+    [
+      "direct_read_aw",
+      1,
+      "A",
+      4
+    ],
+    [
+      "direct_read_aw",
+      1,
+      "A",
+      8
+    ],
+    [
+      "direct_read_aw",
+      1,
+      "B",
+      4
+    ],
+    [
+      "direct_read_aw",
+      1,
+      "B",
+      8
+    ],
+    [
+      "direct_read_dw",
+      1,
+      "A",
+      4
+    ],
+    [
+      "direct_read_dw",
+      1,
+      "A",
+      8
+    ],
+    [
+      "direct_read_dw",
+      1,
+      "B",
+      4
+    ],
+    [
+      "direct_read_dw",
+      1,
+      "B",
+      8
+    ],
+    [
+      "direct_rmw_inc",
+      1,
+      "A",
+      4
+    ],
+    [
+      "direct_rmw_inc",
+      1,
+      "A",
+      8
+    ],
+    [
+      "direct_rmw_inc",
+      1,
+      "B",
+      4
+    ],
+    [
+      "direct_rmw_inc",
+      1,
+      "B",
+      8
+    ]
+  ],
+  "discovery_path": "sw/testdata/biu_blackbox/case3-direct-discovery/summary.json",
+  "discovery_sha256": "ce582ac89fa47b7804b95bdb65da1e62a38773757dc2b5cc8dd9daf86a225d2e",
+  "schema": "v30-biu-case3-direct-oracle-v1",
+  "status": "FROZEN_BEFORE_RTL_CHANGE_AND_ALTERNATE_PADDING"
+}

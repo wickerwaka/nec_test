@@ -1,0 +1,363 @@
+{
+  "examples": [
+    {
+      "key": [
+        3,
+        0,
+        "CODE",
+        1,
+        "none",
+        "CODE",
+        -1,
+        "S",
+        0,
+        3
+      ],
+      "kind": "unseen"
+    },
+    {
+      "got": [
+        "CODE",
+        2,
+        [
+          "selected_delta",
+          2
+        ],
+        16,
+        [
+          [
+            1,
+            "F"
+          ]
+        ]
+      ],
+      "key": [
+        3,
+        0,
+        "CODE",
+        5,
+        "none",
+        "CODE",
+        0,
+        "S",
+        0,
+        3
+      ],
+      "kind": "mismatch",
+      "want": [
+        "CODE",
+        4,
+        [
+          "selected_delta",
+          2
+        ],
+        16,
+        [
+          [
+            2,
+            "F"
+          ]
+        ]
+      ]
+    },
+    {
+      "got": [
+        "CODE",
+        3,
+        [
+          "selected_delta",
+          2
+        ],
+        16,
+        [
+          [
+            1,
+            "F"
+          ]
+        ]
+      ],
+      "key": [
+        1,
+        0,
+        "CODE",
+        4,
+        "none",
+        "CODE",
+        1,
+        "S",
+        0,
+        3
+      ],
+      "kind": "mismatch",
+      "want": [
+        "CODE",
+        5,
+        [
+          "selected_delta",
+          2
+        ],
+        16,
+        [
+          [
+            2,
+            "F"
+          ],
+          [
+            5,
+            "F"
+          ]
+        ]
+      ]
+    },
+    {
+      "got": [
+        "CODE",
+        4,
+        [
+          "selected_delta",
+          2
+        ],
+        16,
+        [
+          [
+            1,
+            "F"
+          ]
+        ]
+      ],
+      "key": [
+        1,
+        0,
+        "CODE",
+        4,
+        "none",
+        "CODE",
+        2,
+        "S",
+        0,
+        3
+      ],
+      "kind": "mismatch",
+      "want": [
+        "CODE",
+        6,
+        [
+          "selected_delta",
+          2
+        ],
+        16,
+        [
+          [
+            2,
+            "F"
+          ],
+          [
+            5,
+            "F"
+          ]
+        ]
+      ]
+    },
+    {
+      "got": [
+        "CODE",
+        5,
+        [
+          "selected_delta",
+          2
+        ],
+        16,
+        [
+          [
+            1,
+            "F"
+          ]
+        ]
+      ],
+      "key": [
+        1,
+        0,
+        "CODE",
+        4,
+        "none",
+        "CODE",
+        3,
+        "S",
+        0,
+        3
+      ],
+      "kind": "mismatch",
+      "want": [
+        "CODE",
+        7,
+        [
+          "selected_delta",
+          2
+        ],
+        16,
+        [
+          [
+            2,
+            "F"
+          ],
+          [
+            6,
+            "F"
+          ]
+        ]
+      ]
+    },
+    {
+      "got": [
+        "CODE",
+        6,
+        [
+          "selected_delta",
+          2
+        ],
+        16,
+        [
+          [
+            1,
+            "F"
+          ]
+        ]
+      ],
+      "key": [
+        1,
+        0,
+        "CODE",
+        4,
+        "none",
+        "CODE",
+        4,
+        "S",
+        0,
+        3
+      ],
+      "kind": "mismatch",
+      "want": [
+        "CODE",
+        8,
+        [
+          "selected_delta",
+          2
+        ],
+        16,
+        [
+          [
+            2,
+            "F"
+          ],
+          [
+            7,
+            "F"
+          ]
+        ]
+      ]
+    },
+    {
+      "got": [
+        "CODE",
+        7,
+        [
+          "selected_delta",
+          2
+        ],
+        16,
+        [
+          [
+            1,
+            "F"
+          ]
+        ]
+      ],
+      "key": [
+        1,
+        0,
+        "CODE",
+        4,
+        "none",
+        "CODE",
+        5,
+        "S",
+        0,
+        3
+      ],
+      "kind": "mismatch",
+      "want": [
+        "CODE",
+        9,
+        [
+          "selected_delta",
+          2
+        ],
+        16,
+        [
+          [
+            2,
+            "F"
+          ],
+          [
+            8,
+            "F"
+          ]
+        ]
+      ]
+    },
+    {
+      "key": [
+        1,
+        0,
+        "CODE",
+        4,
+        "none",
+        "CODE",
+        6,
+        "S",
+        0,
+        3
+      ],
+      "kind": "unseen"
+    },
+    {
+      "key": [
+        1,
+        0,
+        "CODE",
+        4,
+        "none",
+        "CODE",
+        14,
+        "S",
+        0,
+        3
+      ],
+      "kind": "unseen"
+    },
+    {
+      "key": [
+        2,
+        0,
+        "CODE",
+        1,
+        "none",
+        "CODE",
+        -4,
+        "S",
+        0,
+        4
+      ],
+      "kind": "unseen"
+    }
+  ],
+  "gate": "FAIL",
+  "heldout_sources": [
+    "sw/testdata/biu_blackbox/oracle-heldout-20260728/summary.json"
+  ],
+  "mismatches": 184,
+  "oracle": "sw/testdata/biu_blackbox/chip-oracle-v1.json",
+  "records": 756,
+  "schema": "v30-biu-chip-oracle-validation-v1",
+  "unseen_keys": 348
+}

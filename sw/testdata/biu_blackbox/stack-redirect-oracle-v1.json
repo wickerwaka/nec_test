@@ -1,0 +1,46 @@
+{
+  "fit": {
+    "matches": 648,
+    "mismatches": 0,
+    "records": 648
+  },
+  "forbidden_variables": [
+    "opcode",
+    "displacement_value",
+    "ret_adjust_value",
+    "absolute_stack_address",
+    "padding",
+    "clock_frequency",
+    "preparation_history",
+    "producer_wait_magnitude",
+    "stack_wait_magnitude_above_zero",
+    "seed",
+    "structural_ordinal"
+  ],
+  "law": {
+    "CALL": {
+      "QS_before_T1": [],
+      "action": "CODE",
+      "t1_after_stack_t4": "1 + (stack_Tw > 0)"
+    },
+    "RET_or_RET_imm": {
+      "QS_E_after_stack_t4": "1 + (stack_Tw > 0)",
+      "action": "CODE",
+      "t1_after_stack_t4": "3 + (stack_Tw > 0)"
+    },
+    "address": "controlled_redirect_target",
+    "width": "8 if redirect target odd else 16"
+  },
+  "schema": "v30-biu-stack-redirect-oracle-v1",
+  "scope": "near CALL/RET/RET-imm first transaction after stack T4",
+  "source": "sw/testdata/biu_blackbox/stack-redirect-discovery-20260729/summary.json",
+  "source_cells": 162,
+  "source_records": 648,
+  "source_sha256": "19907012b7ad47b19c2dd2943b5e8778a6722d4260ee40aa9f12a8611e2e7465",
+  "state_inputs": [
+    "state_certificate.controlled_eu_request",
+    "controlled_stack_transaction_observed_Tw_presence",
+    "controlled_redirect_target"
+  ],
+  "status": "FROZEN_BEFORE_FRESH_TARGET_PARITY_HELDOUT"
+}

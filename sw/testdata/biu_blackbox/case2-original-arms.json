@@ -1,0 +1,771 @@
+{
+  "heldout": {
+    "certificate": {
+      "bus": null,
+      "controlled_eu_request": "read",
+      "current_qs": "S",
+      "instruction_bytes_consumed": 81,
+      "next_fetch_address": 1306,
+      "next_fetch_parity": 0,
+      "qs_through_boundary": [
+        {
+          "clock": 40,
+          "event": "E"
+        },
+        {
+          "clock": 47,
+          "event": "F"
+        },
+        {
+          "clock": 49,
+          "event": "S"
+        },
+        {
+          "clock": 51,
+          "event": "S"
+        },
+        {
+          "clock": 52,
+          "event": "S"
+        },
+        {
+          "clock": 55,
+          "event": "S"
+        },
+        {
+          "clock": 58,
+          "event": "E"
+        },
+        {
+          "clock": 64,
+          "event": "F"
+        },
+        {
+          "clock": 66,
+          "event": "S"
+        },
+        {
+          "clock": 68,
+          "event": "S"
+        },
+        {
+          "clock": 69,
+          "event": "F"
+        },
+        {
+          "clock": 72,
+          "event": "S"
+        },
+        {
+          "clock": 73,
+          "event": "F"
+        },
+        {
+          "clock": 76,
+          "event": "S"
+        },
+        {
+          "clock": 77,
+          "event": "S"
+        },
+        {
+          "clock": 80,
+          "event": "F"
+        },
+        {
+          "clock": 89,
+          "event": "F"
+        },
+        {
+          "clock": 91,
+          "event": "S"
+        },
+        {
+          "clock": 92,
+          "event": "S"
+        },
+        {
+          "clock": 94,
+          "event": "F"
+        },
+        {
+          "clock": 95,
+          "event": "S"
+        },
+        {
+          "clock": 98,
+          "event": "F"
+        },
+        {
+          "clock": 100,
+          "event": "S"
+        },
+        {
+          "clock": 102,
+          "event": "S"
+        },
+        {
+          "clock": 103,
+          "event": "F"
+        },
+        {
+          "clock": 106,
+          "event": "S"
+        },
+        {
+          "clock": 107,
+          "event": "S"
+        },
+        {
+          "clock": 110,
+          "event": "F"
+        },
+        {
+          "clock": 111,
+          "event": "S"
+        },
+        {
+          "clock": 114,
+          "event": "F"
+        },
+        {
+          "clock": 116,
+          "event": "S"
+        },
+        {
+          "clock": 118,
+          "event": "S"
+        },
+        {
+          "clock": 119,
+          "event": "F"
+        },
+        {
+          "clock": 122,
+          "event": "S"
+        },
+        {
+          "clock": 123,
+          "event": "F"
+        },
+        {
+          "clock": 126,
+          "event": "S"
+        },
+        {
+          "clock": 127,
+          "event": "S"
+        },
+        {
+          "clock": 130,
+          "event": "F"
+        },
+        {
+          "clock": 132,
+          "event": "S"
+        },
+        {
+          "clock": 134,
+          "event": "S"
+        },
+        {
+          "clock": 135,
+          "event": "F"
+        },
+        {
+          "clock": 138,
+          "event": "S"
+        },
+        {
+          "clock": 139,
+          "event": "S"
+        },
+        {
+          "clock": 142,
+          "event": "F"
+        },
+        {
+          "clock": 144,
+          "event": "S"
+        },
+        {
+          "clock": 146,
+          "event": "S"
+        },
+        {
+          "clock": 147,
+          "event": "F"
+        },
+        {
+          "clock": 150,
+          "event": "S"
+        },
+        {
+          "clock": 151,
+          "event": "S"
+        },
+        {
+          "clock": 154,
+          "event": "F"
+        },
+        {
+          "clock": 156,
+          "event": "S"
+        },
+        {
+          "clock": 158,
+          "event": "S"
+        },
+        {
+          "clock": 159,
+          "event": "F"
+        },
+        {
+          "clock": 162,
+          "event": "S"
+        },
+        {
+          "clock": 163,
+          "event": "S"
+        },
+        {
+          "clock": 166,
+          "event": "F"
+        },
+        {
+          "clock": 168,
+          "event": "S"
+        },
+        {
+          "clock": 170,
+          "event": "S"
+        },
+        {
+          "clock": 171,
+          "event": "S"
+        },
+        {
+          "clock": 174,
+          "event": "S"
+        },
+        {
+          "clock": 177,
+          "event": "E"
+        },
+        {
+          "clock": 183,
+          "event": "F"
+        },
+        {
+          "clock": 187,
+          "event": "F"
+        },
+        {
+          "clock": 190,
+          "event": "F"
+        },
+        {
+          "clock": 193,
+          "event": "F"
+        },
+        {
+          "clock": 196,
+          "event": "F"
+        },
+        {
+          "clock": 199,
+          "event": "F"
+        },
+        {
+          "clock": 202,
+          "event": "F"
+        },
+        {
+          "clock": 205,
+          "event": "F"
+        },
+        {
+          "clock": 208,
+          "event": "F"
+        },
+        {
+          "clock": 211,
+          "event": "F"
+        },
+        {
+          "clock": 214,
+          "event": "F"
+        },
+        {
+          "clock": 217,
+          "event": "F"
+        },
+        {
+          "clock": 220,
+          "event": "F"
+        },
+        {
+          "clock": 223,
+          "event": "F"
+        },
+        {
+          "clock": 226,
+          "event": "F"
+        },
+        {
+          "clock": 229,
+          "event": "F"
+        },
+        {
+          "clock": 232,
+          "event": "F"
+        },
+        {
+          "clock": 233,
+          "event": "S"
+        },
+        {
+          "clock": 260,
+          "event": "F"
+        },
+        {
+          "clock": 263,
+          "event": "F"
+        },
+        {
+          "clock": 266,
+          "event": "F"
+        },
+        {
+          "clock": 267,
+          "event": "S"
+        },
+        {
+          "clock": 269,
+          "event": "S"
+        }
+      ],
+      "queue": [
+        {
+          "addr": 1304,
+          "byte": 144,
+          "image_byte": 144
+        },
+        {
+          "addr": 1305,
+          "byte": 144,
+          "image_byte": 144
+        }
+      ],
+      "queue_depth": 2
+    },
+    "key": [
+      2,
+      0,
+      "IDLE",
+      0,
+      "read",
+      "CODE",
+      -3,
+      "S",
+      0,
+      3
+    ],
+    "outcome": [
+      "MEMR",
+      3,
+      [
+        "absolute",
+        8192
+      ],
+      16,
+      []
+    ],
+    "path": "sw/testdata/biu_blackbox/oracle-heldout-20260728/discovery/held_read_disp8/odd/p2/w1",
+    "raw_observable_sha256": "2e009ffe5604789d2637b43d2c4612b49b7f4e9b53da6b59c2b999154f9b8f43"
+  },
+  "training": {
+    "certificate": {
+      "bus": null,
+      "controlled_eu_request": "read",
+      "instruction_bytes_consumed": 81,
+      "next_fetch_address": 1306,
+      "next_fetch_parity": 0,
+      "qs_through_boundary": [
+        {
+          "clock": 40,
+          "event": "E"
+        },
+        {
+          "clock": 47,
+          "event": "F"
+        },
+        {
+          "clock": 49,
+          "event": "S"
+        },
+        {
+          "clock": 51,
+          "event": "S"
+        },
+        {
+          "clock": 52,
+          "event": "S"
+        },
+        {
+          "clock": 55,
+          "event": "S"
+        },
+        {
+          "clock": 58,
+          "event": "E"
+        },
+        {
+          "clock": 64,
+          "event": "F"
+        },
+        {
+          "clock": 66,
+          "event": "S"
+        },
+        {
+          "clock": 68,
+          "event": "S"
+        },
+        {
+          "clock": 69,
+          "event": "F"
+        },
+        {
+          "clock": 72,
+          "event": "S"
+        },
+        {
+          "clock": 73,
+          "event": "F"
+        },
+        {
+          "clock": 76,
+          "event": "S"
+        },
+        {
+          "clock": 77,
+          "event": "S"
+        },
+        {
+          "clock": 80,
+          "event": "F"
+        },
+        {
+          "clock": 89,
+          "event": "F"
+        },
+        {
+          "clock": 91,
+          "event": "S"
+        },
+        {
+          "clock": 92,
+          "event": "S"
+        },
+        {
+          "clock": 94,
+          "event": "F"
+        },
+        {
+          "clock": 95,
+          "event": "S"
+        },
+        {
+          "clock": 98,
+          "event": "F"
+        },
+        {
+          "clock": 100,
+          "event": "S"
+        },
+        {
+          "clock": 102,
+          "event": "S"
+        },
+        {
+          "clock": 103,
+          "event": "F"
+        },
+        {
+          "clock": 106,
+          "event": "S"
+        },
+        {
+          "clock": 107,
+          "event": "S"
+        },
+        {
+          "clock": 110,
+          "event": "F"
+        },
+        {
+          "clock": 111,
+          "event": "S"
+        },
+        {
+          "clock": 114,
+          "event": "F"
+        },
+        {
+          "clock": 116,
+          "event": "S"
+        },
+        {
+          "clock": 118,
+          "event": "S"
+        },
+        {
+          "clock": 119,
+          "event": "F"
+        },
+        {
+          "clock": 122,
+          "event": "S"
+        },
+        {
+          "clock": 123,
+          "event": "F"
+        },
+        {
+          "clock": 126,
+          "event": "S"
+        },
+        {
+          "clock": 127,
+          "event": "S"
+        },
+        {
+          "clock": 130,
+          "event": "F"
+        },
+        {
+          "clock": 132,
+          "event": "S"
+        },
+        {
+          "clock": 134,
+          "event": "S"
+        },
+        {
+          "clock": 135,
+          "event": "F"
+        },
+        {
+          "clock": 138,
+          "event": "S"
+        },
+        {
+          "clock": 139,
+          "event": "S"
+        },
+        {
+          "clock": 142,
+          "event": "F"
+        },
+        {
+          "clock": 144,
+          "event": "S"
+        },
+        {
+          "clock": 146,
+          "event": "S"
+        },
+        {
+          "clock": 147,
+          "event": "F"
+        },
+        {
+          "clock": 150,
+          "event": "S"
+        },
+        {
+          "clock": 151,
+          "event": "S"
+        },
+        {
+          "clock": 154,
+          "event": "F"
+        },
+        {
+          "clock": 156,
+          "event": "S"
+        },
+        {
+          "clock": 158,
+          "event": "S"
+        },
+        {
+          "clock": 159,
+          "event": "F"
+        },
+        {
+          "clock": 162,
+          "event": "S"
+        },
+        {
+          "clock": 163,
+          "event": "S"
+        },
+        {
+          "clock": 166,
+          "event": "F"
+        },
+        {
+          "clock": 168,
+          "event": "S"
+        },
+        {
+          "clock": 170,
+          "event": "S"
+        },
+        {
+          "clock": 171,
+          "event": "S"
+        },
+        {
+          "clock": 174,
+          "event": "S"
+        },
+        {
+          "clock": 177,
+          "event": "E"
+        },
+        {
+          "clock": 183,
+          "event": "F"
+        },
+        {
+          "clock": 187,
+          "event": "F"
+        },
+        {
+          "clock": 190,
+          "event": "F"
+        },
+        {
+          "clock": 193,
+          "event": "F"
+        },
+        {
+          "clock": 196,
+          "event": "F"
+        },
+        {
+          "clock": 199,
+          "event": "F"
+        },
+        {
+          "clock": 202,
+          "event": "F"
+        },
+        {
+          "clock": 205,
+          "event": "F"
+        },
+        {
+          "clock": 208,
+          "event": "F"
+        },
+        {
+          "clock": 211,
+          "event": "F"
+        },
+        {
+          "clock": 214,
+          "event": "F"
+        },
+        {
+          "clock": 217,
+          "event": "F"
+        },
+        {
+          "clock": 220,
+          "event": "F"
+        },
+        {
+          "clock": 223,
+          "event": "F"
+        },
+        {
+          "clock": 226,
+          "event": "F"
+        },
+        {
+          "clock": 229,
+          "event": "F"
+        },
+        {
+          "clock": 232,
+          "event": "F"
+        },
+        {
+          "clock": 233,
+          "event": "S"
+        },
+        {
+          "clock": 260,
+          "event": "F"
+        },
+        {
+          "clock": 263,
+          "event": "F"
+        },
+        {
+          "clock": 266,
+          "event": "F"
+        },
+        {
+          "clock": 269,
+          "event": "F"
+        },
+        {
+          "clock": 270,
+          "event": "S"
+        }
+      ],
+      "queue": [
+        {
+          "addr": 1304,
+          "byte": 144,
+          "image_byte": 144
+        },
+        {
+          "addr": 1305,
+          "byte": 144,
+          "image_byte": 144
+        }
+      ],
+      "queue_depth": 2
+    },
+    "key": [
+      2,
+      0,
+      "IDLE",
+      0,
+      "read",
+      "CODE",
+      -3,
+      "S",
+      0,
+      3
+    ],
+    "outcome": [
+      "CODE",
+      2,
+      [
+        "selected_delta",
+        2
+      ],
+      16,
+      []
+    ],
+    "path": "sw/testdata/biu_blackbox/reservation-collision-20260728/discovery/read_mov/odd/p3/w2",
+    "raw_observable_sha256": "f689658fdaccd8af70756c233fea663ed07f656e259fbda58c443131ea188403"
+  }
+}

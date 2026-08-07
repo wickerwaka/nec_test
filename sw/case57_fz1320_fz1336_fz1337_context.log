@@ -1,0 +1,84 @@
+
+SEED 1320 forms ['push_imm', 'ea_rich', 'unary', 'push_imm', 'divbound', 'callret_near', 'mov_rm', 'push_imm', 'mul', 'sreg_rw', 'ldsles', 'indirect', 'pop_r16', 'adjust', 'mulu8_r', 'unary', 'insext', 'mulu8_r', 'mul', 'alu_grp_imm_m', 'shift_by1', 'push_imm', 'pushf_popf', 'alu_acc_imm', 'mov_ri_m', 'far_call', 'flagops', 'mov_moffs', 'nops', 'intn', 'adjust', 'int3', 'shift_by1', 'incdec_ext', 'alu_rr', 'adjust', 'bcd4s', 'sregmem', 'flagops', 'bitop', 'far_call', 'pushpop_sreg', 'alu_mem', 'alu_rr', 'alu_rr', 'ea_rich', 'ea_rich', 'callret_near', 'test_imm', 'incdec_ext', 'ea_rich', 'alu_rr', 'sregmem', 'push_r16', 'mov_moffs', 'jcc', 'ea_rich', 'indirect'] first_bus_diff 149
+chip
+145 {'bs': 5, 't1': 1110, 't4': 1114, 'tw': 1, 'addr': 16120, 'data': 61958, 'npops': 0} occ 3
+146 {'bs': 4, 't1': 1116, 't4': 1119, 'tw': 0, 'addr': 1400, 'data': 52376, 'npops': 0} occ 0
+147 {'bs': 4, 't1': 1120, 't4': 1123, 'tw': 0, 'addr': 1402, 'data': 58833, 'npops': 2} occ 2
+148 {'bs': 4, 't1': 1124, 't4': 1129, 'tw': 2, 'addr': 1404, 'data': 3003, 'npops': 0} occ 2
+149 {'bs': 5, 't1': 1133, 't4': 1137, 'tw': 1, 'addr': 12, 'data': 1152, 'npops': 0} occ 4
+150 {'bs': 5, 't1': 1139, 't4': 1144, 'tw': 2, 'addr': 14, 'data': 0, 'npops': 0} occ 4
+151 {'bs': 6, 't1': 1150, 't4': 1154, 'tw': 1, 'addr': 16120, 'data': 61958, 'npops': 0} occ 4
+152 {'bs': 6, 't1': 1158, 't4': 1163, 'tw': 2, 'addr': 16118, 'data': 0, 'npops': 0} occ 4
+153 {'bs': 6, 't1': 1165, 't4': 1171, 'tw': 3, 'addr': 16116, 'data': 1402, 'npops': 0} occ 0
+154 {'bs': 4, 't1': 1173, 't4': 1177, 'tw': 1, 'addr': 1152, 'data': 52175, 'npops': 0} occ 0
+155 {'bs': 4, 't1': 1179, 't4': 1182, 'tw': 0, 'addr': 1154, 'data': 37008, 'npops': 1} occ 2
+156 {'bs': 5, 't1': 1185, 't4': 1190, 'tw': 2, 'addr': 16116, 'data': 1402, 'npops': 0} occ 3
+rtl
+145 {'bs': 5, 't1': 1110, 't4': 1114, 'tw': 1, 'addr': 16120, 'data': 61958, 'npops': 0} occ 3
+146 {'bs': 4, 't1': 1116, 't4': 1119, 'tw': 0, 'addr': 1400, 'data': 52376, 'npops': 0} occ 0
+147 {'bs': 4, 't1': 1120, 't4': 1123, 'tw': 0, 'addr': 1402, 'data': 58833, 'npops': 2} occ 2
+148 {'bs': 4, 't1': 1124, 't4': 1129, 'tw': 2, 'addr': 1404, 'data': 3003, 'npops': 0} occ 2
+149 {'bs': 5, 't1': 1131, 't4': 1135, 'tw': 1, 'addr': 12, 'data': 1152, 'npops': 0} occ 4
+150 {'bs': 5, 't1': 1137, 't4': 1142, 'tw': 2, 'addr': 14, 'data': 0, 'npops': 0} occ 4
+151 {'bs': 6, 't1': 1148, 't4': 1152, 'tw': 1, 'addr': 16120, 'data': 61958, 'npops': 0} occ 4
+152 {'bs': 6, 't1': 1156, 't4': 1161, 'tw': 2, 'addr': 16118, 'data': 0, 'npops': 0} occ 4
+153 {'bs': 6, 't1': 1163, 't4': 1169, 'tw': 3, 'addr': 16116, 'data': 1402, 'npops': 0} occ 0
+154 {'bs': 4, 't1': 1171, 't4': 1175, 'tw': 1, 'addr': 1152, 'data': 52175, 'npops': 0} occ 0
+155 {'bs': 4, 't1': 1177, 't4': 1180, 'tw': 0, 'addr': 1154, 'data': 37008, 'npops': 1} occ 2
+156 {'bs': 5, 't1': 1183, 't4': 1188, 'tw': 2, 'addr': 16116, 'data': 1402, 'npops': 0} occ 3
+
+SEED 1336 forms ['callret_near', 'bitop', 'ea_rich', 'inout', 'test_rr', 'jcc', 'br_near', 'callret_near', 'incdec_r16', 'adjust', 'inout', 'incdec_r16', 'alu_rr', 'divbound', 'string_single', 'ea_rich', 'pushapopa', 'incdec_ext', 'shift_by1', 'pushf_popf', 'alu_rr', 'alu_grp_imm_m', 'xchg_rr', 'loop', 'mul', 'far_call', 'alu_grp_imm_r', 'mov_moffs', 'jcc', 'alu_grp_imm_r', 'int3', 'indirect', 'alu_rr', 'rol4', 'pushapopa', 'ea_rich', 'mul', 'pushapopa', 'callret_near', 'mov_rr', 'bitop', 'prepare', 'divbound', 'alu_rr', 'bound', 'nops', 'far_jmp', 'nops'] first_bus_diff 145
+chip
+141 {'bs': 5, 't1': 944, 't4': 947, 'tw': 0, 'addr': 14, 'data': 0, 'npops': 0} occ 4
+142 {'bs': 6, 't1': 952, 't4': 957, 'tw': 2, 'addr': 16126, 'data': 64150, 'npops': 0} occ 4
+143 {'bs': 6, 't1': 959, 't4': 965, 'tw': 3, 'addr': 16124, 'data': 0, 'npops': 0} occ 4
+144 {'bs': 6, 't1': 967, 't4': 973, 'tw': 3, 'addr': 16122, 'data': 1396, 'npops': 0} occ 0
+145 {'bs': 4, 't1': 975, 't4': 979, 'tw': 1, 'addr': 1152, 'data': 52175, 'npops': 0} occ 0
+146 {'bs': 4, 't1': 981, 't4': 984, 'tw': 0, 'addr': 1154, 'data': 37008, 'npops': 1} occ 2
+147 {'bs': 5, 't1': 987, 't4': 992, 'tw': 2, 'addr': 16122, 'data': 1396, 'npops': 0} occ 3
+148 {'bs': 5, 't1': 994, 't4': 998, 'tw': 1, 'addr': 16124, 'data': 0, 'npops': 0} occ 3
+149 {'bs': 5, 't1': 1000, 't4': 1005, 'tw': 2, 'addr': 16126, 'data': 64150, 'npops': 0} occ 3
+150 {'bs': 4, 't1': 1007, 't4': 1013, 'tw': 3, 'addr': 1396, 'data': 31161, 'npops': 0} occ 0
+151 {'bs': 4, 't1': 1015, 't4': 1021, 'tw': 3, 'addr': 1398, 'data': 65285, 'npops': 1} occ 2
+152 {'bs': 4, 't1': 1023, 't4': 1029, 'tw': 3, 'addr': 1400, 'data': 2273, 'npops': 1} occ 2
+rtl
+141 {'bs': 5, 't1': 944, 't4': 947, 'tw': 0, 'addr': 14, 'data': 0, 'npops': 0} occ 4
+142 {'bs': 6, 't1': 952, 't4': 957, 'tw': 2, 'addr': 16126, 'data': 64150, 'npops': 0} occ 4
+143 {'bs': 6, 't1': 959, 't4': 965, 'tw': 3, 'addr': 16124, 'data': 0, 'npops': 0} occ 4
+144 {'bs': 6, 't1': 967, 't4': 973, 'tw': 3, 'addr': 16122, 'data': 1396, 'npops': 0} occ 0
+145 {'bs': 4, 't1': 975, 't4': 979, 'tw': 1, 'addr': 1118, 'data': 37008, 'npops': 0} occ 0
+146 {'bs': 4, 't1': 981, 't4': 984, 'tw': 0, 'addr': 1120, 'data': 37008, 'npops': 1} occ 2
+147 {'bs': 4, 't1': 985, 't4': 990, 'tw': 2, 'addr': 1122, 'data': 37008, 'npops': 3} occ 3
+148 {'bs': 4, 't1': 992, 't4': 996, 'tw': 1, 'addr': 1124, 'data': 37008, 'npops': 2} occ 2
+149 {'bs': 4, 't1': 998, 't4': 1003, 'tw': 2, 'addr': 1126, 'data': 37008, 'npops': 2} occ 2
+150 {'bs': 4, 't1': 1005, 't4': 1011, 'tw': 3, 'addr': 1128, 'data': 37008, 'npops': 2} occ 2
+151 {'bs': 4, 't1': 1013, 't4': 1019, 'tw': 3, 'addr': 1130, 'data': 37008, 'npops': 2} occ 2
+152 {'bs': 4, 't1': 1021, 't4': 1027, 'tw': 3, 'addr': 1132, 'data': 37008, 'npops': 2} occ 2
+
+SEED 1337 forms ['xchg_acc', 'ea_rich', 'pushf_popf', 'strio_single', 'shift_by1', 'far_call', 'pushf_popf', 'rol4', 'unary', 'unary', 'callret_near', 'br_near', 'alu_mem', 'incdec_ext', 'alu_mem', 'ea_rich', 'alu_grp_imm_m', 'alu_acc_imm', 'int3', 'nops', 'string_single', 'indirect', 'string_single', 'alu_rr', 'bound', 'incdec_r16', 'ea_rich', 'indirect', 'alu_rr', 'br_near', 'insext', 'rol4', 'alu_mem', 'rol4'] first_bus_diff 161
+chip
+157 {'bs': 4, 't1': 1045, 't4': 1048, 'tw': 0, 'addr': 1430, 'data': 49192, 'npops': 1} occ 1
+158 {'bs': 4, 't1': 1049, 't4': 1052, 'tw': 0, 'addr': 1432, 'data': 5682, 'npops': 0} occ 2
+159 {'bs': 4, 't1': 1053, 't4': 1058, 'tw': 2, 'addr': 1434, 'data': 8967, 'npops': 0} occ 2
+160 {'bs': 4, 't1': 1060, 't4': 1064, 'tw': 1, 'addr': 1436, 'data': 10255, 'npops': 1} occ 4
+161 {'bs': 4, 't1': 1069, 't4': 1072, 'tw': 0, 'addr': 1438, 'data': 12294, 'npops': 0} occ 2
+162 {'bs': 5, 't1': 1073, 't4': 1076, 'tw': 0, 'addr': 8967, 'data': 7247, 'npops': 0} occ 4
+163 {'bs': 4, 't1': 1077, 't4': 1082, 'tw': 2, 'addr': 1440, 'data': 36899, 'npops': 1} occ 4
+164 {'bs': 4, 't1': 1086, 't4': 1090, 'tw': 1, 'addr': 1442, 'data': 37008, 'npops': 0} occ 2
+165 {'bs': 5, 't1': 1092, 't4': 1095, 'tw': 0, 'addr': 9008, 'data': 34299, 'npops': 0} occ 3
+166 {'bs': 4, 't1': 1096, 't4': 1101, 'tw': 2, 'addr': 1444, 'data': 37008, 'npops': 0} occ 3
+167 {'bs': 6, 't1': 1108, 't4': 1114, 'tw': 3, 'addr': 9008, 'data': 16307, 'npops': 1} occ 5
+168 {'bs': 4, 't1': 1118, 't4': 1124, 'tw': 3, 'addr': 1446, 'data': 59280, 'npops': 4} occ 4
+rtl
+157 {'bs': 4, 't1': 1045, 't4': 1048, 'tw': 0, 'addr': 1430, 'data': 49192, 'npops': 1} occ 1
+158 {'bs': 4, 't1': 1049, 't4': 1052, 'tw': 0, 'addr': 1432, 'data': 5682, 'npops': 0} occ 2
+159 {'bs': 4, 't1': 1053, 't4': 1058, 'tw': 2, 'addr': 1434, 'data': 8967, 'npops': 0} occ 2
+160 {'bs': 4, 't1': 1060, 't4': 1064, 'tw': 1, 'addr': 1436, 'data': 10255, 'npops': 1} occ 4
+161 {'bs': 5, 't1': 1071, 't4': 1074, 'tw': 0, 'addr': 8967, 'data': 7247, 'npops': 0} occ 2
+162 {'bs': 4, 't1': 1075, 't4': 1078, 'tw': 0, 'addr': 1438, 'data': 12294, 'npops': 1} occ 2
+163 {'bs': 4, 't1': 1079, 't4': 1084, 'tw': 2, 'addr': 1440, 'data': 36899, 'npops': 0} occ 3
+164 {'bs': 4, 't1': 1086, 't4': 1090, 'tw': 1, 'addr': 1442, 'data': 37008, 'npops': 0} occ 2
+165 {'bs': 5, 't1': 1092, 't4': 1095, 'tw': 0, 'addr': 9008, 'data': 34299, 'npops': 0} occ 3
+166 {'bs': 4, 't1': 1096, 't4': 1101, 'tw': 2, 'addr': 1444, 'data': 37008, 'npops': 0} occ 3
+167 {'bs': 6, 't1': 1108, 't4': 1114, 'tw': 3, 'addr': 9008, 'data': 16307, 'npops': 1} occ 5
+168 {'bs': 4, 't1': 1118, 't4': 1124, 'tw': 3, 'addr': 1446, 'data': 59280, 'npops': 4} occ 4

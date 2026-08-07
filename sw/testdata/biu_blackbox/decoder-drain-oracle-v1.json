@@ -1,0 +1,36 @@
+{
+  "frozen_from": [
+    "case36-rep-successor-drain-discovery-chip-v1"
+  ],
+  "rules": {
+    "alu_reg": {
+      "positive_wait_code_gap": 6,
+      "positive_wait_qs_f": [
+        2,
+        4
+      ],
+      "zero_wait_code_gap": 5,
+      "zero_wait_qs_f": [
+        1,
+        3
+      ]
+    },
+    "nop": {
+      "positive_wait_code_gap": 7,
+      "positive_wait_qs_f": [
+        2,
+        5
+      ],
+      "zero_wait_code_gap": 6,
+      "zero_wait_qs_f": [
+        1,
+        4
+      ]
+    }
+  },
+  "schema": "v30-eu-decoder-drain-oracle-v1",
+  "state_inputs": [
+    "one-byte successor execution class",
+    "selected wait is zero"
+  ]
+}

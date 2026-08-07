@@ -1,0 +1,36 @@
+event=56 H=A w= 0 chip=(363, 367, 4, 6) rtl=(363, 367, 4, 6) delta=+0
+event=56 H=A w= 1 chip=(364, 368, 4, 6) rtl=(364, 368, 4, 6) delta=+0
+event=56 H=A w= 2 chip=(365, 367, 4, 6) rtl=(365, 367, 4, 6) delta=+0
+event=56 H=A w= 3 chip=(366, 368, 4, 6) rtl=(366, 368, 4, 6) delta=+0
+event=56 H=A w= 4 chip=(367, 369, 4, 6) rtl=(367, 369, 4, 6) delta=+0
+event=56 H=A w= 5 chip=(368, 370, 4, 6) rtl=(368, 370, 4, 6) delta=+0
+event=56 H=A w= 6 chip=(369, 371, 4, 6) rtl=(369, 371, 4, 6) delta=+0
+event=56 H=A w= 7 chip=(370, 372, 4, 6) rtl=(370, 372, 4, 6) delta=+0
+event=56 H=A w=15 chip=(378, 380, 4, 6) rtl=(378, 380, 4, 6) delta=+0
+event=56 H=B w= 0 chip=(363, 367, 4, 6) rtl=(363, 367, 4, 6) delta=+0
+event=56 H=B w= 1 chip=(364, 368, 4, 6) rtl=(364, 368, 4, 6) delta=+0
+event=56 H=B w= 2 chip=(365, 367, 4, 6) rtl=(365, 367, 4, 6) delta=+0
+event=56 H=B w= 3 chip=(366, 368, 4, 6) rtl=(366, 368, 4, 6) delta=+0
+event=56 H=B w= 4 chip=(367, 369, 4, 6) rtl=(367, 369, 4, 6) delta=+0
+event=56 H=B w= 5 chip=(368, 370, 4, 6) rtl=(368, 370, 4, 6) delta=+0
+event=56 H=B w= 6 chip=(369, 371, 4, 6) rtl=(369, 371, 4, 6) delta=+0
+event=56 H=B w= 7 chip=(370, 372, 4, 6) rtl=(370, 372, 4, 6) delta=+0
+event=56 H=B w=15 chip=(378, 380, 4, 6) rtl=(378, 380, 4, 6) delta=+0
+event=126 H=A w= 0 chip=(805, 811, 4, 5) rtl=(805, 811, 4, 5) delta=+0
+event=126 H=A w= 1 chip=(806, 811, 4, 5) rtl=(806, 811, 4, 5) delta=+0
+event=126 H=A w= 2 chip=(807, 811, 4, 5) rtl=(807, 811, 4, 5) delta=+0
+event=126 H=A w= 3 chip=(808, 812, 4, 5) rtl=(808, 812, 4, 5) delta=+0
+event=126 H=A w= 4 chip=(809, 811, 4, 5) rtl=(809, 811, 4, 5) delta=+0
+event=126 H=A w= 5 chip=(810, 812, 4, 5) rtl=(810, 812, 4, 5) delta=+0
+event=126 H=A w= 6 chip=(811, 813, 4, 5) rtl=(811, 813, 4, 5) delta=+0
+event=126 H=A w= 7 chip=(812, 814, 4, 5) rtl=(812, 814, 4, 5) delta=+0
+event=126 H=A w=15 chip=(820, 822, 4, 5) rtl=(820, 822, 4, 5) delta=+0
+event=126 H=B w= 0 chip=(805, 811, 4, 5) rtl=(805, 811, 4, 5) delta=+0
+event=126 H=B w= 1 chip=(806, 811, 4, 5) rtl=(806, 811, 4, 5) delta=+0
+event=126 H=B w= 2 chip=(807, 811, 4, 5) rtl=(807, 811, 4, 5) delta=+0
+event=126 H=B w= 3 chip=(808, 812, 4, 5) rtl=(808, 812, 4, 5) delta=+0
+event=126 H=B w= 4 chip=(809, 811, 4, 5) rtl=(809, 811, 4, 5) delta=+0
+event=126 H=B w= 5 chip=(810, 812, 4, 5) rtl=(810, 812, 4, 5) delta=+0
+event=126 H=B w= 6 chip=(811, 813, 4, 5) rtl=(811, 813, 4, 5) delta=+0
+event=126 H=B w= 7 chip=(812, 814, 4, 5) rtl=(812, 814, 4, 5) delta=+0
+event=126 H=B w=15 chip=(820, 822, 4, 5) rtl=(820, 822, 4, 5) delta=+0

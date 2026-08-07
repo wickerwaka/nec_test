@@ -1,0 +1,58 @@
+{
+  "schema": "v30-biu-case12-launch-frame-oracle-v3",
+  "frozen": true,
+  "supersedes": "v30-biu-case12-launch-owner-oracle-v2",
+  "source_summary_sha256": {
+    "case12-launch-class-chip-v1": "09aa22263993067aa6fa89d28c932f411c25ebfac545c8a1f3ce4edbedee11b9",
+    "case12-preex-wait-chip-v1": "6a4c886fb9275ff9727d48b7cecd5361f3e16b476d54316953395154da577d48",
+    "case12-aam-launch-frame-chip-v1": "bb55b923000f12a96b7a261bcd129475bb324d310feefda6919d123ff0e02996"
+  },
+  "challenge": {
+    "instruction_class": "no-immediate direct-address RMW",
+    "event": "S_DHI final displacement pop at q1 coincident with selected CODE completion"
+  },
+  "state": {
+    "name": "selected_fetch_dhi_owner",
+    "sample_at": "selected CODE T1",
+    "set_if": [
+      "EU launch frame is classic string S_EX",
+      "EU launch frame is S_WAITX and the existing queue contains fresh bytes"
+    ],
+    "clear_otherwise": true,
+    "chip_reconstruction": "instruction class plus ordered CODE completions and QS-derived aged/fresh queue composition"
+  },
+  "rule": [
+    {
+      "when": {
+        "selected_fetch_dhi_owner": true
+      },
+      "predict": {
+        "next_action": "MEMR"
+      }
+    },
+    {
+      "when": {
+        "selected_fetch_dhi_owner": false
+      },
+      "predict": {
+        "next_action": "CODE"
+      }
+    }
+  ],
+  "factorial_cells": {
+    "string_S_EX_aged": "MEMR",
+    "S_WAITX_aged": "CODE",
+    "S_WAITX_fresh": "MEMR",
+    "non_string_S_EX_fresh": "CODE",
+    "S_NOP_aged_or_fresh": "CODE"
+  },
+  "coverage": {
+    "records": 220,
+    "histories_per_cell": 2,
+    "clock_mhz": [
+      8,
+      4
+    ],
+    "repetitions_per_cell": 5
+  }
+}

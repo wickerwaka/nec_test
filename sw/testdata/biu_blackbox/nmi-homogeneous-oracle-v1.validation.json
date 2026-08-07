@@ -1,0 +1,40 @@
+{
+  "counts": {
+    "matches": 496,
+    "mismatches": 0,
+    "records": 496,
+    "unseen": 0
+  },
+  "details": [],
+  "gate": "PASS",
+  "heldout_sources": [
+    {
+      "counts": {
+        "matches": 248,
+        "mismatches": 0,
+        "records": 248,
+        "unseen": 0
+      },
+      "instruction_class": "inc_aw",
+      "instruction_length": 1,
+      "path": "sw/testdata/biu_blackbox/nmi-homogeneous-inc-heldout-20260729/summary.json",
+      "sha256": "82f157f454bebb32f77e859af62da1f55db4150751740b063cf4a31c451dcc4a"
+    },
+    {
+      "counts": {
+        "matches": 248,
+        "mismatches": 0,
+        "records": 248,
+        "unseen": 0
+      },
+      "instruction_class": "lea_aw_bw",
+      "instruction_length": 2,
+      "path": "sw/testdata/biu_blackbox/nmi-homogeneous-lea-heldout-20260729/summary.json",
+      "sha256": "0738bb2aad00bd7e9c841dc2f9cdb3becb6b8d6e4f5026d0de30065996ebd3c6"
+    }
+  ],
+  "oracle": "sw/testdata/biu_blackbox/nmi-homogeneous-oracle-v1.json",
+  "oracle_sha256": "b4861df5e62807d5cf5efad8cabe745f39abb6246b5fbe506f1d28df275ae70e",
+  "schema": "v30-biu-nmi-homogeneous-oracle-v1-validation",
+  "status": "PROSPECTIVE_ALTERNATE_STREAM_PREPARATION_LENGTH"
+}

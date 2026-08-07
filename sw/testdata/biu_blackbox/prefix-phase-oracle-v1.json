@@ -1,0 +1,69 @@
+{
+  "causal_variable": "prefix_chain_phase",
+  "common_key": [
+    2,
+    0,
+    "CODE",
+    5,
+    "read",
+    "CODE",
+    0,
+    "S",
+    0,
+    1
+  ],
+  "discovery_source": "sw/testdata/biu_blackbox/prefix-depth-factorial-20260729-r2/summary.json",
+  "discovery_source_sha256": "eac15d911ad5ae59b01893abb8cd5ed6c58a60d89e4bed10d4ddc6950fab485e",
+  "forbidden_variables": [
+    "form",
+    "padding",
+    "prefix_kind",
+    "exact_prefix_count",
+    "preparation_history"
+  ],
+  "phase_law": "0 if count==0 else 1+((count-1)%3)",
+  "predictions": {
+    "0": [
+      "CODE",
+      2,
+      [
+        "selected_delta",
+        2
+      ],
+      16,
+      []
+    ],
+    "1": [
+      "CODE",
+      2,
+      [
+        "selected_delta",
+        2
+      ],
+      16,
+      []
+    ],
+    "2": [
+      "CODE",
+      2,
+      [
+        "selected_delta",
+        2
+      ],
+      16,
+      []
+    ],
+    "3": [
+      "CODE",
+      1,
+      [
+        "selected_delta",
+        2
+      ],
+      16,
+      []
+    ]
+  },
+  "schema": "v30-biu-prefix-phase-oracle-v1",
+  "status": "FROZEN_BEFORE_COUNTS_9_TO_14"
+}

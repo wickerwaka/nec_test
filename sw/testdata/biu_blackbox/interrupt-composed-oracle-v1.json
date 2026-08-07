@@ -1,0 +1,50 @@
+{
+  "components": {
+    "hwint": {
+      "path": "sw/testdata/biu_blackbox/hwint-recognition-oracle-v1.json",
+      "sha256": "c1746ab6e78d982dee0c2993d87e951ce3d1a017b0ad9aa336f09207fc1ee1e2"
+    },
+    "nmi": {
+      "path": "sw/testdata/biu_blackbox/nmi-recognition-oracle-v1.json",
+      "sha256": "d24d0dbe93f4c9634e57334581179e4d9d82ea954d88e5caaa6ef2230fdac3e9"
+    },
+    "producer": {
+      "path": "sw/testdata/biu_blackbox/producer-oracle-v2.json",
+      "sha256": "89b7cb3f7d013c53321c59e9d9180637a9f9f1c08d55e22eacd140cc76f62ab8"
+    }
+  },
+  "details": [],
+  "fit": {
+    "matches": 976,
+    "mismatches": 0,
+    "records": 976,
+    "unseen": 0
+  },
+  "schema": "v30-biu-interrupt-composed-oracle-v1",
+  "scope": "producer-versus-NMI/INTR first decision, first interrupt bus T1, and pushed PC for DIVU followed by one-byte NOPs",
+  "status": "FROZEN_BEFORE_FRESH_NMI_AND_INTR_VALIDATION",
+  "training_sources": [
+    {
+      "counts": {
+        "matches": 648,
+        "mismatches": 0,
+        "records": 648,
+        "unseen": 0
+      },
+      "event_class": "NMI",
+      "path": "sw/testdata/biu_blackbox/nmi-sequence-extended-20260729/summary.json",
+      "sha256": "2db7a6aa593f37dc59334a6631ce231d3908791341550076566fb8bf5dc9a321"
+    },
+    {
+      "counts": {
+        "matches": 328,
+        "mismatches": 0,
+        "records": 328,
+        "unseen": 0
+      },
+      "event_class": "INTR",
+      "path": "sw/testdata/biu_blackbox/hwint-sequence-discovery-v2-20260729/summary.json",
+      "sha256": "6212636c4be4330a073340f12a4d3e81a0d6e1181144ee215655b9fff1d2402e"
+    }
+  ]
+}

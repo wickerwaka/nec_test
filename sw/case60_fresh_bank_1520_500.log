@@ -1,0 +1,657 @@
+seed fz1520: 58 ins, 1295 rows compared -> MATCH
+    row 578: bs MEMW!=PASV, nxta 29c4!=6840
+    row 579: bs MEMW!=PASV, t T1!=Ti, addr 029c4!=46840
+    row 580: t T2!=Ti, data 6844!=29c4, ps 4!=0
+    row 581: t T3!=T1
+    row 582: t Tw!=T2
+    row 583: t Tw!=T3
+    row 585: bs PASV!=MEMW, t T4!=Tw
+    row 586: bs PASV!=MEMW, t Ti!=Tw
+    row 587: qs F!=-, t Ti!=T4
+    row 588: qs S!=-, bs CODE!=PASV, nxta 0528!=6844
+seed fz1521: 53 ins, 1226 rows compared -> DIVERGE@578 (622 rows)
+seed fz1522: 53 ins, 1854 rows compared -> MATCH
+seed fz1523: 23 ins, 759 rows compared -> MATCH
+seed fz1524: 31 ins, 852 rows compared -> MATCH
+seed fz1525: 48 ins, 1307 rows compared -> MATCH
+seed fz1526: 92 ins, 1892 rows compared -> MATCH
+seed fz1527: 73 ins, 1459 rows compared -> MATCH
+seed fz1528: 92 ins, 2051 rows compared -> MATCH
+seed fz1529: 28 ins, 853 rows compared -> MATCH
+seed fz1530: 69 ins, 1586 rows compared -> MATCH
+seed fz1531: 40 ins, 1366 rows compared -> MATCH
+seed fz1532: 81 ins, 1910 rows compared -> MATCH
+seed fz1533: 29 ins, 1336 rows compared -> MATCH
+seed fz1534: 54 ins, 1317 rows compared -> MATCH
+seed fz1535: 80 ins, 1760 rows compared -> MATCH
+seed fz1536: 47 ins, 1280 rows compared -> MATCH
+seed fz1537: 97 ins, 2032 rows compared -> MATCH
+seed fz1538: 85 ins, 2038 rows compared -> MATCH
+seed fz1539: 48 ins, 1179 rows compared -> MATCH
+seed fz1540: 77 ins, 1562 rows compared -> MATCH
+seed fz1541: 44 ins, 1201 rows compared -> MATCH
+seed fz1542: 90 ins, 1675 rows compared -> MATCH
+seed fz1543: 37 ins, 1117 rows compared -> MATCH
+seed fz1544: 66 ins, 1415 rows compared -> MATCH
+seed fz1545: 26 ins, 1001 rows compared -> MATCH
+seed fz1546: 65 ins, 1502 rows compared -> MATCH
+    row 992: bs PASV!=MEMR
+    row 993: t Ti!=T1
+    row 994: t T1!=T2, addr 00080!=60480
+    row 995: t T2!=T3
+    row 996: t T3!=Tw
+    row 999: bs MEMR!=PASV, t Tw!=T4
+    row 1000: bs PASV!=MEMR, t T4!=Ti
+    row 1001: t Ti!=T1
+    row 1002: t T1!=T2, addr 00082!=60000
+    row 1003: t T2!=T3
+seed fz1547: 53 ins, 1405 rows compared -> DIVERGE@992 (363 rows)
+seed fz1548: 69 ins, 1257 rows compared -> MATCH
+seed fz1549: 65 ins, 1439 rows compared -> MATCH
+seed fz1550: 37 ins, 1279 rows compared -> MATCH
+seed fz1551: 44 ins, 1216 rows compared -> MATCH
+seed fz1552: 42 ins, 1153 rows compared -> MATCH
+seed fz1553: 27 ins, 894 rows compared -> MATCH
+seed fz1554: 52 ins, 1266 rows compared -> MATCH
+seed fz1555: 60 ins, 1365 rows compared -> MATCH
+seed fz1556: 95 ins, 1961 rows compared -> MATCH
+seed fz1557: 91 ins, 1743 rows compared -> MATCH
+seed fz1558: 21 ins, 988 rows compared -> MATCH
+seed fz1559: 83 ins, 1647 rows compared -> MATCH
+seed fz1560: 29 ins, 1042 rows compared -> MATCH
+seed fz1561: 53 ins, 1052 rows compared -> MATCH
+seed fz1562: 94 ins, 2104 rows compared -> MATCH
+seed fz1563: 63 ins, 1552 rows compared -> MATCH
+seed fz1564: 81 ins, 1679 rows compared -> MATCH
+seed fz1565: 87 ins, 1713 rows compared -> MATCH
+seed fz1566: 94 ins, 1675 rows compared -> MATCH
+seed fz1567: 61 ins, 1336 rows compared -> MATCH
+seed fz1568: 69 ins, 1898 rows compared -> MATCH
+seed fz1569: 35 ins, 969 rows compared -> MATCH
+seed fz1570: 99 ins, 1993 rows compared -> MATCH
+seed fz1571: 37 ins, 1001 rows compared -> MATCH
+seed fz1572: 84 ins, 1812 rows compared -> MATCH
+seed fz1573: 27 ins, 778 rows compared -> MATCH
+seed fz1574: 59 ins, 1090 rows compared -> MATCH
+seed fz1575: 93 ins, 2501 rows compared -> MATCH
+seed fz1576: 37 ins, 1133 rows compared -> MATCH
+seed fz1577: 46 ins, 972 rows compared -> MATCH
+seed fz1578: 103 ins, 1995 rows compared -> MATCH
+seed fz1579: 83 ins, 1870 rows compared -> MATCH
+seed fz1580: 42 ins, 1162 rows compared -> MATCH
+seed fz1581: 77 ins, 1788 rows compared -> MATCH
+seed fz1582: 86 ins, 1935 rows compared -> MATCH
+seed fz1583: 88 ins, 1819 rows compared -> MATCH
+seed fz1584: 46 ins, 1140 rows compared -> MATCH
+seed fz1585: 59 ins, 1342 rows compared -> MATCH
+seed fz1586: 81 ins, 1823 rows compared -> MATCH
+seed fz1587: 105 ins, 1806 rows compared -> MATCH
+seed fz1588: 81 ins, 1508 rows compared -> MATCH
+seed fz1589: 92 ins, 1955 rows compared -> MATCH
+seed fz1590: 100 ins, 2179 rows compared -> MATCH
+seed fz1591: 101 ins, 1867 rows compared -> MATCH
+seed fz1592: 50 ins, 1209 rows compared -> MATCH
+seed fz1593: 72 ins, 1497 rows compared -> MATCH
+seed fz1594: 24 ins, 818 rows compared -> MATCH
+seed fz1595: 89 ins, 2077 rows compared -> MATCH
+seed fz1596: 81 ins, 1548 rows compared -> MATCH
+seed fz1597: 55 ins, 1220 rows compared -> MATCH
+seed fz1598: 25 ins, 877 rows compared -> MATCH
+seed fz1599: 52 ins, 1273 rows compared -> MATCH
+seed fz1600: 98 ins, 2131 rows compared -> MATCH
+seed fz1601: 78 ins, 1651 rows compared -> MATCH
+seed fz1602: 24 ins, 777 rows compared -> MATCH
+seed fz1603: 74 ins, 1329 rows compared -> MATCH
+seed fz1604: 56 ins, 1433 rows compared -> MATCH
+seed fz1605: 24 ins, 828 rows compared -> MATCH
+seed fz1606: 31 ins, 1051 rows compared -> MATCH
+seed fz1607: 43 ins, 1186 rows compared -> MATCH
+seed fz1608: 70 ins, 1559 rows compared -> MATCH
+seed fz1609: 64 ins, 1334 rows compared -> MATCH
+seed fz1610: 24 ins, 755 rows compared -> MATCH
+seed fz1611: 38 ins, 944 rows compared -> MATCH
+seed fz1612: 95 ins, 1604 rows compared -> MATCH
+seed fz1613: 46 ins, 1285 rows compared -> MATCH
+seed fz1614: 56 ins, 1300 rows compared -> MATCH
+seed fz1615: 53 ins, 1512 rows compared -> MATCH
+seed fz1616: 56 ins, 1292 rows compared -> MATCH
+seed fz1617: 42 ins, 939 rows compared -> MATCH
+seed fz1618: 80 ins, 1683 rows compared -> MATCH
+seed fz1619: 98 ins, 2209 rows compared -> MATCH
+seed fz1620: 53 ins, 1411 rows compared -> MATCH
+seed fz1621: 42 ins, 1114 rows compared -> MATCH
+seed fz1622: 42 ins, 1152 rows compared -> MATCH
+seed fz1623: 90 ins, 1930 rows compared -> MATCH
+seed fz1624: 23 ins, 808 rows compared -> MATCH
+    row 377: bs PASV!=CODE
+    row 378: bs PASV!=CODE, t Ti!=T1, ube 1!=0
+    row 379: t Ti!=T2, ube 1!=0, nxta 051e!=27f0
+    row 380: t T1!=T3, addr 0051e!=627f0
+    row 381: t T2!=Tw
+    row 382: t T3!=Tw
+    row 383: bs CODE!=PASV, t Tw!=T4
+    row 384: t Tw!=Ti
+    row 385: bs PASV!=CODE, t T4!=T1
+    row 386: t Ti!=T2, nxta 0520!=d0bf
+seed fz1625: 43 ins, 1033 rows compared -> DIVERGE@377 (15 rows)
+seed fz1626: 43 ins, 1220 rows compared -> MATCH
+seed fz1627: 27 ins, 963 rows compared -> MATCH
+seed fz1628: 29 ins, 915 rows compared -> MATCH
+seed fz1629: 67 ins, 1617 rows compared -> MATCH
+seed fz1630: 68 ins, 1447 rows compared -> MATCH
+seed fz1631: 58 ins, 1389 rows compared -> MATCH
+seed fz1632: 92 ins, 1994 rows compared -> MATCH
+seed fz1633: 72 ins, 1425 rows compared -> MATCH
+seed fz1634: 29 ins, 876 rows compared -> MATCH
+seed fz1635: 82 ins, 1894 rows compared -> MATCH
+seed fz1636: 97 ins, 2011 rows compared -> MATCH
+seed fz1637: 56 ins, 1348 rows compared -> MATCH
+seed fz1638: 88 ins, 1665 rows compared -> MATCH
+seed fz1639: 79 ins, 1672 rows compared -> MATCH
+seed fz1640: 26 ins, 899 rows compared -> MATCH
+seed fz1641: 56 ins, 1332 rows compared -> MATCH
+seed fz1642: 93 ins, 1656 rows compared -> MATCH
+seed fz1643: 68 ins, 1367 rows compared -> MATCH
+seed fz1644: 58 ins, 1227 rows compared -> MATCH
+seed fz1645: 68 ins, 1565 rows compared -> MATCH
+seed fz1646: 45 ins, 1167 rows compared -> MATCH
+    row 413: bs PASV!=MEMW
+    row 414: t Ti!=T1, nxta 2a60!=9d08
+    row 415: t T1!=T2, addr 02a60!=49d08
+    row 416: bs MEMW!=PASV, t T2!=T3
+    row 417: t T3!=T4
+    row 418: qs -!=F, t T4!=Ti
+    row 419: qs F!=-
+    row 420: qs -!=S
+    row 421: bs PASV!=CODE
+    row 422: qs S!=F, t Ti!=T1
+    row 836: qs S!=F  [QS flicker - tolerated]
+seed fz1647: 81 ins, 1740 rows compared -> DIVERGE@413 (1178 rows) [+1 qs-flicker]
+seed fz1648: 36 ins, 892 rows compared -> MATCH
+seed fz1649: 65 ins, 1492 rows compared -> MATCH
+seed fz1650: 92 ins, 1838 rows compared -> MATCH
+seed fz1651: 51 ins, 1392 rows compared -> MATCH
+seed fz1652: 45 ins, 1131 rows compared -> MATCH
+seed fz1653: 59 ins, 1551 rows compared -> MATCH
+seed fz1654: 80 ins, 1664 rows compared -> MATCH
+seed fz1655: 79 ins, 1676 rows compared -> MATCH
+seed fz1656: 97 ins, 1667 rows compared -> MATCH
+seed fz1657: 23 ins, 867 rows compared -> MATCH
+seed fz1658: 44 ins, 1038 rows compared -> MATCH
+seed fz1659: 72 ins, 1577 rows compared -> MATCH
+seed fz1660: 55 ins, 1387 rows compared -> MATCH
+seed fz1661: 31 ins, 969 rows compared -> MATCH
+seed fz1662: 62 ins, 1186 rows compared -> MATCH
+seed fz1663: 60 ins, 1442 rows compared -> MATCH
+seed fz1664: 85 ins, 1778 rows compared -> MATCH
+seed fz1665: 63 ins, 1684 rows compared -> MATCH
+seed fz1666: 49 ins, 1279 rows compared -> MATCH
+seed fz1667: 41 ins, 1056 rows compared -> MATCH
+seed fz1668: 84 ins, 1716 rows compared -> MATCH
+seed fz1669: 68 ins, 1320 rows compared -> MATCH
+    row 618: bs MEMW!=PASV, nxta 2b9f!=cac5
+    row 619: t T1!=Ti, ube 0!=1
+    row 620: t T2!=T1, ps 4!=0
+    row 621: bs PASV!=MEMW, t T3!=T2
+    row 622: bs MEMW!=PASV, t T4!=T3, nxta 2ba0!=07c5
+    row 623: t T1!=T4, ube 1!=0
+    row 624: t T2!=T1, ps 4!=0
+    row 625: bs PASV!=MEMW, t T3!=T2
+    row 626: t T4!=T3
+    row 627: qs F!=-, t Ti!=T4
+    row 628: qs S!=F  [QS flicker - tolerated]
+seed fz1670: 47 ins, 1453 rows compared -> DIVERGE@618 (675 rows) [+1 qs-flicker]
+seed fz1671: 83 ins, 1695 rows compared -> MATCH
+seed fz1672: 21 ins, 912 rows compared -> MATCH
+seed fz1673: 51 ins, 1319 rows compared -> MATCH
+seed fz1674: 62 ins, 1433 rows compared -> MATCH
+seed fz1675: 36 ins, 796 rows compared -> MATCH
+seed fz1676: 86 ins, 2001 rows compared -> MATCH
+seed fz1677: 91 ins, 1688 rows compared -> MATCH
+seed fz1678: 41 ins, 1218 rows compared -> MATCH
+seed fz1679: 37 ins, 1020 rows compared -> MATCH
+seed fz1680: 43 ins, 1076 rows compared -> MATCH
+seed fz1681: 47 ins, 1335 rows compared -> MATCH
+seed fz1682: 55 ins, 1456 rows compared -> MATCH
+seed fz1683: 21 ins, 934 rows compared -> MATCH
+seed fz1684: 78 ins, 1720 rows compared -> MATCH
+seed fz1685: 64 ins, 1378 rows compared -> MATCH
+seed fz1686: 87 ins, 1625 rows compared -> MATCH
+seed fz1687: 82 ins, 1717 rows compared -> MATCH
+seed fz1688: 24 ins, 838 rows compared -> MATCH
+seed fz1689: 48 ins, 1276 rows compared -> MATCH
+seed fz1690: 79 ins, 1687 rows compared -> MATCH
+seed fz1691: 43 ins, 1310 rows compared -> MATCH
+seed fz1692: 93 ins, 1863 rows compared -> MATCH
+seed fz1693: 91 ins, 1630 rows compared -> MATCH
+seed fz1694: 100 ins, 2040 rows compared -> MATCH
+seed fz1695: 45 ins, 1204 rows compared -> MATCH
+seed fz1696: 95 ins, 1544 rows compared -> MATCH
+seed fz1697: 80 ins, 1656 rows compared -> MATCH
+seed fz1698: 50 ins, 1042 rows compared -> MATCH
+seed fz1699: 35 ins, 953 rows compared -> MATCH
+seed fz1700: 33 ins, 1053 rows compared -> MATCH
+seed fz1701: 85 ins, 1786 rows compared -> MATCH
+seed fz1702: 85 ins, 1689 rows compared -> MATCH
+seed fz1703: 42 ins, 1175 rows compared -> MATCH
+seed fz1704: 67 ins, 1299 rows compared -> MATCH
+seed fz1705: 60 ins, 1217 rows compared -> MATCH
+seed fz1706: 55 ins, 1156 rows compared -> MATCH
+seed fz1707: 49 ins, 1144 rows compared -> MATCH
+seed fz1708: 53 ins, 1351 rows compared -> MATCH
+    row 648: bs MEMR!=PASV, nxta 3efe!=ed84
+    row 649: t T1!=Ti
+    row 650: t T2!=T1, data 7d0e!=3efe, ps 5!=0
+    row 651: t T3!=T2
+    row 652: t Tw!=T3
+    row 655: bs PASV!=MEMR, t T4!=Tw
+    row 656: bs MEMW!=PASV, t Ti!=T4, nxta 2e96!=7d0e
+    row 657: t T1!=Ti
+    row 658: t T2!=T1, ps 7!=0
+    row 659: t T3!=T2
+seed fz1709: 89 ins, 1434 rows compared -> DIVERGE@648 (711 rows)
+seed fz1710: 63 ins, 1379 rows compared -> MATCH
+seed fz1711: 97 ins, 1918 rows compared -> MATCH
+seed fz1712: 53 ins, 1327 rows compared -> MATCH
+seed fz1713: 102 ins, 1743 rows compared -> MATCH
+seed fz1714: 33 ins, 953 rows compared -> MATCH
+seed fz1715: 30 ins, 889 rows compared -> MATCH
+seed fz1716: 37 ins, 1058 rows compared -> MATCH
+seed fz1717: 61 ins, 1767 rows compared -> MATCH
+seed fz1718: 42 ins, 1423 rows compared -> MATCH
+seed fz1719: 30 ins, 963 rows compared -> MATCH
+seed fz1720: 79 ins, 1901 rows compared -> MATCH
+seed fz1721: 33 ins, 1148 rows compared -> MATCH
+seed fz1722: 65 ins, 1530 rows compared -> MATCH
+seed fz1723: 51 ins, 1143 rows compared -> MATCH
+seed fz1724: 38 ins, 1121 rows compared -> MATCH
+seed fz1725: 34 ins, 963 rows compared -> MATCH
+seed fz1726: 67 ins, 1637 rows compared -> MATCH
+seed fz1727: 86 ins, 1872 rows compared -> MATCH
+    row 1028: bs PASV!=CODE
+    row 1029: bs PASV!=CODE, t Ti!=T1, ube 1!=0
+    row 1030: t Ti!=T2, ube 1!=0, nxta 05a0!=000e
+    row 1031: bs CODE!=PASV, t T1!=T3, addr 005a0!=6000e
+    row 1032: t T2!=T4, data 000e!=05a2, ps 6!=0
+    row 1033: bs PASV!=CODE, t T3!=T1, data 000e!=05a2
+    row 1034: bs PASV!=CODE, t T4!=T2
+    row 1035: bs PASV!=CODE, t Ti!=T3
+    row 1036: bs PASV!=CODE, t Ti!=Tw
+    row 1037: bs MEMW!=CODE, t Ti!=Tw, nxta 3efe!=1688
+seed fz1728: 93 ins, 1637 rows compared -> DIVERGE@1028 (465 rows)
+seed fz1729: 45 ins, 1152 rows compared -> MATCH
+seed fz1730: 82 ins, 1497 rows compared -> MATCH
+seed fz1731: 38 ins, 965 rows compared -> MATCH
+seed fz1732: 65 ins, 1520 rows compared -> MATCH
+seed fz1733: 96 ins, 1686 rows compared -> MATCH
+seed fz1734: 77 ins, 1703 rows compared -> MATCH
+seed fz1735: 33 ins, 881 rows compared -> MATCH
+seed fz1736: 24 ins, 771 rows compared -> MATCH
+seed fz1737: 91 ins, 1820 rows compared -> MATCH
+seed fz1738: 37 ins, 1141 rows compared -> MATCH
+seed fz1739: 94 ins, 1711 rows compared -> MATCH
+seed fz1740: 53 ins, 1140 rows compared -> MATCH
+seed fz1741: 94 ins, 1706 rows compared -> MATCH
+seed fz1742: 100 ins, 1855 rows compared -> MATCH
+seed fz1743: 52 ins, 1271 rows compared -> MATCH
+seed fz1744: 91 ins, 2059 rows compared -> MATCH
+seed fz1745: 29 ins, 984 rows compared -> MATCH
+seed fz1746: 29 ins, 939 rows compared -> MATCH
+seed fz1747: 83 ins, 1912 rows compared -> MATCH
+seed fz1748: 24 ins, 970 rows compared -> MATCH
+seed fz1749: 42 ins, 1077 rows compared -> MATCH
+seed fz1750: 78 ins, 1741 rows compared -> MATCH
+seed fz1751: 26 ins, 962 rows compared -> MATCH
+seed fz1752: 43 ins, 961 rows compared -> MATCH
+seed fz1753: 52 ins, 1400 rows compared -> MATCH
+seed fz1754: 61 ins, 1272 rows compared -> MATCH
+seed fz1755: 34 ins, 853 rows compared -> MATCH
+seed fz1756: 41 ins, 1073 rows compared -> MATCH
+seed fz1757: 65 ins, 1511 rows compared -> MATCH
+seed fz1758: 55 ins, 1323 rows compared -> MATCH
+seed fz1759: 60 ins, 1528 rows compared -> MATCH
+seed fz1760: 54 ins, 1259 rows compared -> MATCH
+seed fz1761: 32 ins, 1081 rows compared -> MATCH
+seed fz1762: 91 ins, 1804 rows compared -> MATCH
+seed fz1763: 55 ins, 1424 rows compared -> MATCH
+seed fz1764: 48 ins, 1367 rows compared -> MATCH
+seed fz1765: 52 ins, 1259 rows compared -> MATCH
+seed fz1766: 80 ins, 1688 rows compared -> MATCH
+    row 592: bs PASV!=MEMW
+    row 593: t Ti!=T1, nxta 2c50!=fc06
+    row 594: t T1!=T2, addr 02c50!=4fc06
+    row 595: t T2!=T3
+    row 596: t T3!=Tw
+    row 599: bs MEMW!=PASV, t Tw!=T4
+    row 600: t T4!=Ti
+    row 601: qs -!=F
+    row 602: qs F!=S  [QS flicker - tolerated]
+    row 603: qs S!=-, bs PASV!=CODE
+    row 604: t Ti!=T1
+seed fz1767: 85 ins, 1805 rows compared -> DIVERGE@592 (1032 rows) [+1 qs-flicker]
+seed fz1768: 71 ins, 1485 rows compared -> MATCH
+seed fz1769: 96 ins, 1945 rows compared -> MATCH
+seed fz1770: 25 ins, 888 rows compared -> MATCH
+seed fz1771: 94 ins, 1614 rows compared -> MATCH
+seed fz1772: 22 ins, 817 rows compared -> MATCH
+seed fz1773: 35 ins, 1205 rows compared -> MATCH
+seed fz1774: 63 ins, 1404 rows compared -> MATCH
+seed fz1775: 24 ins, 913 rows compared -> MATCH
+seed fz1776: 61 ins, 1170 rows compared -> MATCH
+seed fz1777: 83 ins, 1748 rows compared -> MATCH
+seed fz1778: 93 ins, 1844 rows compared -> MATCH
+seed fz1779: 59 ins, 1290 rows compared -> MATCH
+seed fz1780: 50 ins, 1128 rows compared -> MATCH
+seed fz1781: 82 ins, 1862 rows compared -> MATCH
+seed fz1782: 97 ins, 1840 rows compared -> MATCH
+seed fz1783: 71 ins, 1406 rows compared -> MATCH
+seed fz1784: 69 ins, 1769 rows compared -> MATCH
+seed fz1785: 75 ins, 1749 rows compared -> MATCH
+seed fz1786: 46 ins, 1312 rows compared -> MATCH
+seed fz1787: 46 ins, 1186 rows compared -> MATCH
+seed fz1788: 91 ins, 1729 rows compared -> MATCH
+seed fz1789: 57 ins, 1684 rows compared -> MATCH
+seed fz1790: 30 ins, 1163 rows compared -> MATCH
+seed fz1791: 40 ins, 1108 rows compared -> MATCH
+seed fz1792: 74 ins, 1683 rows compared -> MATCH
+seed fz1793: 34 ins, 1135 rows compared -> MATCH
+seed fz1794: 33 ins, 1045 rows compared -> MATCH
+seed fz1795: 67 ins, 1612 rows compared -> MATCH
+seed fz1796: 67 ins, 1326 rows compared -> MATCH
+seed fz1797: 58 ins, 1143 rows compared -> MATCH
+seed fz1798: 98 ins, 2032 rows compared -> MATCH
+seed fz1799: 82 ins, 1732 rows compared -> MATCH
+seed fz1800: 53 ins, 1296 rows compared -> MATCH
+    row 1220: bs MEMW!=PASV, nxta 2ad1!=282c
+    row 1221: t T1!=Ti, ube 0!=1
+    row 1222: t T2!=T1, ps 4!=0
+    row 1223: bs PASV!=MEMW, t T3!=T2
+    row 1224: bs MEMW!=PASV, t T4!=T3, nxta 2ad2!=462c
+    row 1225: t T1!=T4, ube 1!=0
+    row 1226: t T2!=T1, ps 4!=0
+    row 1227: bs PASV!=MEMW, t T3!=T2
+    row 1228: t T4!=T3
+    row 1229: qs F!=-, t Ti!=T4
+    row 1331: qs S!=F  [QS flicker - tolerated]
+seed fz1801: 84 ins, 1800 rows compared -> DIVERGE@1220 (514 rows) [+1 qs-flicker]
+seed fz1802: 36 ins, 1001 rows compared -> MATCH
+seed fz1803: 81 ins, 1565 rows compared -> MATCH
+seed fz1804: 64 ins, 1356 rows compared -> MATCH
+seed fz1805: 57 ins, 1591 rows compared -> MATCH
+seed fz1806: 69 ins, 1578 rows compared -> MATCH
+    row 358: bs PASV!=MEMR
+    row 359: bs PASV!=MEMR, t Ti!=T1
+    row 360: t Ti!=T2, nxta 0080!=0480
+    row 361: t T1!=T3, addr 00080!=60480
+    row 362: t T2!=Tw
+    row 363: t T3!=Tw
+    row 364: bs MEMR!=PASV, t Tw!=T4
+    row 365: t Tw!=Ti
+    row 366: bs PASV!=MEMR, t T4!=T1
+    row 367: t Ti!=T2, nxta 0082!=0000
+    row 758: qs F!=S  [QS flicker - tolerated]
+seed fz1807: 91 ins, 1749 rows compared -> DIVERGE@358 (1318 rows) [+1 qs-flicker]
+seed fz1808: 44 ins, 1190 rows compared -> MATCH
+seed fz1809: 39 ins, 1116 rows compared -> MATCH
+seed fz1810: 84 ins, 2015 rows compared -> MATCH
+seed fz1811: 58 ins, 1389 rows compared -> MATCH
+seed fz1812: 84 ins, 1906 rows compared -> MATCH
+seed fz1813: 76 ins, 1496 rows compared -> MATCH
+seed fz1814: 96 ins, 4000 rows compared -> MATCH
+seed fz1815: 44 ins, 1181 rows compared -> MATCH
+seed fz1816: 84 ins, 1504 rows compared -> MATCH
+seed fz1817: 78 ins, 1488 rows compared -> MATCH
+seed fz1818: 50 ins, 1256 rows compared -> MATCH
+seed fz1819: 95 ins, 1968 rows compared -> MATCH
+seed fz1820: 21 ins, 935 rows compared -> MATCH
+seed fz1821: 49 ins, 1076 rows compared -> MATCH
+seed fz1822: 40 ins, 1154 rows compared -> MATCH
+seed fz1823: 99 ins, 2110 rows compared -> MATCH
+seed fz1824: 36 ins, 942 rows compared -> MATCH
+seed fz1825: 35 ins, 1137 rows compared -> MATCH
+seed fz1826: 57 ins, 1399 rows compared -> MATCH
+seed fz1827: 63 ins, 1483 rows compared -> MATCH
+seed fz1828: 73 ins, 1449 rows compared -> MATCH
+seed fz1829: 84 ins, 2146 rows compared -> MATCH
+seed fz1830: 34 ins, 895 rows compared -> MATCH
+seed fz1831: 92 ins, 1580 rows compared -> MATCH
+seed fz1832: 39 ins, 1064 rows compared -> MATCH
+    row 335: bs PASV!=CODE
+    row 336: bs PASV!=CODE, t Ti!=T1, ube 1!=0
+    row 337: t Ti!=T2, ube 1!=0, nxta 0512!=7d81
+    row 338: t T1!=T3, addr 00512!=67d81
+    row 339: t T2!=Tw
+    row 340: t T3!=Tw
+    row 341: bs CODE!=PASV, t Tw!=T4
+    row 342: bs CODE!=PASV, t Tw!=Ti
+    row 343: t T4!=Ti
+seed fz1833: 51 ins, 1349 rows compared -> DIVERGE@335 (9 rows)
+seed fz1834: 99 ins, 2200 rows compared -> MATCH
+seed fz1835: 98 ins, 2323 rows compared -> MATCH
+seed fz1836: 66 ins, 1602 rows compared -> MATCH
+seed fz1837: 87 ins, 1924 rows compared -> MATCH
+seed fz1838: 74 ins, 1480 rows compared -> MATCH
+seed fz1839: 82 ins, 1866 rows compared -> MATCH
+seed fz1840: 41 ins, 918 rows compared -> MATCH
+seed fz1841: 80 ins, 1873 rows compared -> MATCH
+seed fz1842: 91 ins, 1928 rows compared -> MATCH
+seed fz1843: 63 ins, 1283 rows compared -> MATCH
+seed fz1844: 33 ins, 890 rows compared -> MATCH
+seed fz1845: 21 ins, 841 rows compared -> MATCH
+seed fz1846: 58 ins, 1622 rows compared -> MATCH
+seed fz1847: 56 ins, 1330 rows compared -> MATCH
+seed fz1848: 28 ins, 1041 rows compared -> MATCH
+seed fz1849: 79 ins, 1502 rows compared -> MATCH
+seed fz1850: 89 ins, 1909 rows compared -> MATCH
+seed fz1851: 36 ins, 991 rows compared -> MATCH
+seed fz1852: 89 ins, 1765 rows compared -> MATCH
+seed fz1853: 82 ins, 1436 rows compared -> MATCH
+seed fz1854: 68 ins, 1446 rows compared -> MATCH
+seed fz1855: 42 ins, 1287 rows compared -> MATCH
+seed fz1856: 74 ins, 1606 rows compared -> MATCH
+seed fz1857: 38 ins, 1041 rows compared -> MATCH
+seed fz1858: 22 ins, 833 rows compared -> MATCH
+seed fz1859: 63 ins, 1299 rows compared -> MATCH
+seed fz1860: 62 ins, 1315 rows compared -> MATCH
+seed fz1861: 31 ins, 1103 rows compared -> MATCH
+seed fz1862: 37 ins, 1191 rows compared -> MATCH
+seed fz1863: 55 ins, 1385 rows compared -> MATCH
+seed fz1864: 91 ins, 1819 rows compared -> MATCH
+seed fz1865: 42 ins, 1199 rows compared -> MATCH
+seed fz1866: 21 ins, 719 rows compared -> MATCH
+seed fz1867: 91 ins, 1902 rows compared -> MATCH
+seed fz1868: 92 ins, 1721 rows compared -> MATCH
+seed fz1869: 86 ins, 2038 rows compared -> MATCH
+seed fz1870: 56 ins, 1447 rows compared -> MATCH
+seed fz1871: 80 ins, 1521 rows compared -> MATCH
+seed fz1872: 24 ins, 750 rows compared -> MATCH
+seed fz1873: 27 ins, 848 rows compared -> MATCH
+seed fz1874: 34 ins, 1251 rows compared -> MATCH
+seed fz1875: 28 ins, 988 rows compared -> MATCH
+seed fz1876: 70 ins, 1793 rows compared -> MATCH
+seed fz1877: 92 ins, 1803 rows compared -> MATCH
+seed fz1878: 28 ins, 974 rows compared -> MATCH
+seed fz1879: 27 ins, 1006 rows compared -> MATCH
+seed fz1880: 23 ins, 938 rows compared -> MATCH
+seed fz1881: 74 ins, 1607 rows compared -> MATCH
+seed fz1882: 42 ins, 965 rows compared -> MATCH
+seed fz1883: 83 ins, 1720 rows compared -> MATCH
+    row 956: bs MEMW!=PASV, nxta 2ce4!=ebad
+    row 957: t T1!=Ti
+    row 958: t T2!=T1, ps 4!=0
+    row 959: t T3!=T2
+    row 960: t Tw!=T3
+    row 962: bs PASV!=MEMW, t T4!=Tw
+    row 963: t Ti!=T4
+    row 964: qs F!=-
+    row 965: qs -!=F
+    row 968: bs MEMR!=PASV, nxta 754b!=eba5
+seed fz1884: 71 ins, 1374 rows compared -> DIVERGE@956 (375 rows)
+seed fz1885: 33 ins, 1103 rows compared -> MATCH
+seed fz1886: 57 ins, 1495 rows compared -> MATCH
+seed fz1887: 74 ins, 1490 rows compared -> MATCH
+seed fz1888: 95 ins, 1964 rows compared -> MATCH
+seed fz1889: 94 ins, 1861 rows compared -> MATCH
+seed fz1890: 41 ins, 1199 rows compared -> MATCH
+seed fz1891: 98 ins, 1961 rows compared -> MATCH
+seed fz1892: 29 ins, 965 rows compared -> MATCH
+seed fz1893: 73 ins, 1493 rows compared -> MATCH
+seed fz1894: 72 ins, 1786 rows compared -> MATCH
+seed fz1895: 60 ins, 1545 rows compared -> MATCH
+seed fz1896: 80 ins, 1598 rows compared -> MATCH
+seed fz1897: 57 ins, 1329 rows compared -> MATCH
+seed fz1898: 99 ins, 1922 rows compared -> MATCH
+seed fz1899: 45 ins, 1084 rows compared -> MATCH
+seed fz1900: 50 ins, 1068 rows compared -> MATCH
+seed fz1901: 76 ins, 1760 rows compared -> MATCH
+seed fz1902: 65 ins, 1589 rows compared -> MATCH
+seed fz1903: 89 ins, 1780 rows compared -> MATCH
+    row 946: bs CODE!=PASV, nxta 059b!=b800
+    row 947: t T1!=Ti
+    row 948: t T2!=T1, data bef1!=059b, ps 6!=0
+    row 949: t T3!=T2
+    row 950: t Tw!=T3
+    row 953: bs PASV!=CODE, t T4!=Tw
+    row 954: bs CODE!=PASV, t Ti!=T4, nxta 059c!=bef1
+    row 955: t T1!=Ti
+    row 956: qs F!=-, t T2!=T1, data 2730!=059c, ps 6!=0
+    row 957: qs -!=F, t T3!=T2
+    row 1285: qs S!=F  [QS flicker - tolerated]
+seed fz1904: 74 ins, 1720 rows compared -> DIVERGE@946 (646 rows) [+1 qs-flicker]
+seed fz1905: 26 ins, 757 rows compared -> MATCH
+seed fz1906: 36 ins, 1121 rows compared -> MATCH
+seed fz1907: 76 ins, 1443 rows compared -> MATCH
+seed fz1908: 38 ins, 1500 rows compared -> MATCH
+seed fz1909: 57 ins, 1465 rows compared -> MATCH
+seed fz1910: 69 ins, 1717 rows compared -> MATCH
+seed fz1911: 76 ins, 1711 rows compared -> MATCH
+seed fz1912: 57 ins, 1716 rows compared -> MATCH
+seed fz1913: 74 ins, 1718 rows compared -> MATCH
+seed fz1914: 91 ins, 1783 rows compared -> MATCH
+seed fz1915: 87 ins, 1631 rows compared -> MATCH
+seed fz1916: 71 ins, 1719 rows compared -> MATCH
+seed fz1917: 59 ins, 1355 rows compared -> MATCH
+seed fz1918: 49 ins, 1369 rows compared -> MATCH
+seed fz1919: 57 ins, 1173 rows compared -> MATCH
+seed fz1920: 90 ins, 1694 rows compared -> MATCH
+seed fz1921: 48 ins, 1262 rows compared -> MATCH
+seed fz1922: 100 ins, 2015 rows compared -> MATCH
+seed fz1923: 90 ins, 1795 rows compared -> MATCH
+seed fz1924: 84 ins, 1775 rows compared -> MATCH
+seed fz1925: 69 ins, 1490 rows compared -> MATCH
+seed fz1926: 81 ins, 1569 rows compared -> MATCH
+seed fz1927: 59 ins, 1333 rows compared -> MATCH
+seed fz1928: 78 ins, 1610 rows compared -> MATCH
+seed fz1929: 37 ins, 1061 rows compared -> MATCH
+seed fz1930: 39 ins, 1000 rows compared -> MATCH
+seed fz1931: 32 ins, 984 rows compared -> MATCH
+seed fz1932: 64 ins, 1403 rows compared -> MATCH
+seed fz1933: 86 ins, 1797 rows compared -> MATCH
+seed fz1934: 78 ins, 1808 rows compared -> MATCH
+seed fz1935: 85 ins, 1881 rows compared -> MATCH
+seed fz1936: 48 ins, 1284 rows compared -> MATCH
+seed fz1937: 42 ins, 1280 rows compared -> MATCH
+seed fz1938: 93 ins, 1827 rows compared -> MATCH
+seed fz1939: 34 ins, 943 rows compared -> MATCH
+seed fz1940: 78 ins, 1827 rows compared -> MATCH
+seed fz1941: 77 ins, 1674 rows compared -> MATCH
+seed fz1942: 71 ins, 1561 rows compared -> MATCH
+seed fz1943: 25 ins, 982 rows compared -> MATCH
+seed fz1944: 45 ins, 1216 rows compared -> MATCH
+seed fz1945: 49 ins, 1136 rows compared -> MATCH
+seed fz1946: 42 ins, 1171 rows compared -> MATCH
+seed fz1947: 48 ins, 1249 rows compared -> MATCH
+seed fz1948: 48 ins, 1377 rows compared -> MATCH
+seed fz1949: 97 ins, 1947 rows compared -> MATCH
+    row 1255: bs PASV!=MEMW
+    row 1256: t Ti!=T1, nxta 2bea!=2013
+    row 1257: t T1!=T2, addr 02bea!=42013
+    row 1258: bs MEMW!=PASV, t T2!=T3
+    row 1259: t T3!=T4
+    row 1260: qs -!=F, t T4!=Ti
+    row 1261: qs F!=S, bs PASV!=CODE
+    row 1262: t Ti!=T1
+    row 1263: qs S!=-, t T1!=T2, addr 00594!=62d52
+    row 1264: qs -!=S, bs CODE!=PASV, t T2!=T3
+seed fz1950: 62 ins, 1663 rows compared -> DIVERGE@1255 (363 rows)
+seed fz1951: 50 ins, 1378 rows compared -> MATCH
+seed fz1952: 43 ins, 960 rows compared -> MATCH
+seed fz1953: 45 ins, 1306 rows compared -> MATCH
+seed fz1954: 62 ins, 1468 rows compared -> MATCH
+seed fz1955: 49 ins, 1333 rows compared -> MATCH
+seed fz1956: 82 ins, 1767 rows compared -> MATCH
+seed fz1957: 27 ins, 836 rows compared -> MATCH
+seed fz1958: 59 ins, 1133 rows compared -> MATCH
+seed fz1959: 57 ins, 1462 rows compared -> MATCH
+seed fz1960: 81 ins, 1801 rows compared -> MATCH
+seed fz1961: 96 ins, 1963 rows compared -> MATCH
+seed fz1962: 83 ins, 1741 rows compared -> MATCH
+seed fz1963: 34 ins, 940 rows compared -> MATCH
+seed fz1964: 20 ins, 833 rows compared -> MATCH
+seed fz1965: 100 ins, 2138 rows compared -> MATCH
+seed fz1966: 82 ins, 1872 rows compared -> MATCH
+seed fz1967: 33 ins, 915 rows compared -> MATCH
+seed fz1968: 61 ins, 1790 rows compared -> MATCH
+seed fz1969: 88 ins, 1954 rows compared -> MATCH
+seed fz1970: 47 ins, 960 rows compared -> MATCH
+seed fz1971: 73 ins, 1728 rows compared -> MATCH
+    row 956: bs PASV!=MEMR
+    row 957: t Ti!=T1
+    row 958: t T1!=T2, addr 00080!=60480
+    row 959: t T2!=T3
+    row 960: t T3!=Tw
+    row 963: bs MEMR!=PASV, t Tw!=T4
+    row 964: bs PASV!=MEMR, t T4!=Ti
+    row 965: t Ti!=T1
+    row 966: t T1!=T2, addr 00082!=60000
+    row 967: t T2!=T3
+seed fz1972: 52 ins, 1376 rows compared -> DIVERGE@956 (377 rows)
+seed fz1973: 51 ins, 1496 rows compared -> MATCH
+seed fz1974: 27 ins, 745 rows compared -> MATCH
+seed fz1975: 53 ins, 1296 rows compared -> MATCH
+seed fz1976: 100 ins, 1993 rows compared -> MATCH
+seed fz1977: 41 ins, 853 rows compared -> MATCH
+seed fz1978: 68 ins, 1312 rows compared -> MATCH
+seed fz1979: 76 ins, 1879 rows compared -> MATCH
+seed fz1980: 42 ins, 1386 rows compared -> MATCH
+seed fz1981: 44 ins, 1246 rows compared -> MATCH
+seed fz1982: 41 ins, 1034 rows compared -> MATCH
+seed fz1983: 54 ins, 1419 rows compared -> MATCH
+seed fz1984: 39 ins, 1322 rows compared -> MATCH
+seed fz1985: 55 ins, 1281 rows compared -> MATCH
+seed fz1986: 47 ins, 1238 rows compared -> MATCH
+seed fz1987: 78 ins, 1669 rows compared -> MATCH
+seed fz1988: 39 ins, 1309 rows compared -> MATCH
+seed fz1989: 89 ins, 1303 rows compared -> MATCH
+seed fz1990: 101 ins, 1696 rows compared -> MATCH
+seed fz1991: 77 ins, 1691 rows compared -> MATCH
+seed fz1992: 45 ins, 1358 rows compared -> MATCH
+seed fz1993: 63 ins, 1422 rows compared -> MATCH
+seed fz1994: 92 ins, 1849 rows compared -> MATCH
+seed fz1995: 97 ins, 1910 rows compared -> MATCH
+seed fz1996: 79 ins, 1561 rows compared -> MATCH
+seed fz1997: 77 ins, 1625 rows compared -> MATCH
+seed fz1998: 93 ins, 2009 rows compared -> MATCH
+seed fz1999: 99 ins, 1992 rows compared -> MATCH
+seed fz2000: 87 ins, 2125 rows compared -> MATCH
+seed fz2001: 46 ins, 1054 rows compared -> MATCH
+seed fz2002: 71 ins, 1593 rows compared -> MATCH
+seed fz2003: 61 ins, 1117 rows compared -> MATCH
+seed fz2004: 75 ins, 1691 rows compared -> MATCH
+seed fz2005: 65 ins, 1365 rows compared -> MATCH
+seed fz2006: 52 ins, 1237 rows compared -> MATCH
+seed fz2007: 26 ins, 1180 rows compared -> MATCH
+seed fz2008: 69 ins, 1499 rows compared -> MATCH
+seed fz2009: 33 ins, 1058 rows compared -> MATCH
+seed fz2010: 79 ins, 1555 rows compared -> MATCH
+seed fz2011: 62 ins, 1620 rows compared -> MATCH
+seed fz2012: 27 ins, 936 rows compared -> MATCH
+seed fz2013: 43 ins, 1283 rows compared -> MATCH
+seed fz2014: 87 ins, 1902 rows compared -> MATCH
+seed fz2015: 63 ins, 1314 rows compared -> MATCH
+seed fz2016: 84 ins, 2113 rows compared -> MATCH
+seed fz2017: 74 ins, 1484 rows compared -> MATCH
+seed fz2018: 88 ins, 1716 rows compared -> MATCH
+seed fz2019: 64 ins, 1475 rows compared -> MATCH
+
+fuzz: 485/500 clean; divergent seeds: ['fz1521', 'fz1547', 'fz1625', 'fz1647', 'fz1670', 'fz1709', 'fz1728', 'fz1767', 'fz1801', 'fz1807', 'fz1833', 'fz1884', 'fz1904', 'fz1950', 'fz1972']

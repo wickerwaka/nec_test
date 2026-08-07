@@ -1,0 +1,39 @@
+{
+  "controlled_rule": {
+    "collision": {
+      "selected_code_t4_from_final_modrm_pop": -1,
+      "selected_code_tw": 4
+    },
+    "nonowner_controls": [
+      "write",
+      "none",
+      "disp8_read"
+    ],
+    "owner_request_classes": [
+      "read",
+      "rmw_read"
+    ],
+    "prediction": {
+      "action": "MEMR",
+      "address": 8192,
+      "clocks_to_t1": 4,
+      "intervening_qs": [],
+      "width": 16
+    },
+    "reservation_source": "no_displacement_ea1"
+  },
+  "discovery_control_roles": [
+    "disp8",
+    "modrm_write_aw",
+    "modrm_lea_aw"
+  ],
+  "discovery_owner_roles": [
+    "modrm",
+    "modrm_read_dw",
+    "modrm_rmw_inc"
+  ],
+  "discovery_path": "sw/testdata/biu_blackbox/case2-hwab-factorial-20260729/summary.json",
+  "discovery_sha256": "846d829185294d73893e5987dde7aacea4fe45cbe69fdd4de696898668bc3cff",
+  "schema": "v30-biu-case2-ea1-oracle-v1",
+  "status": "FROZEN_BEFORE_ALTERNATE_PADDING_VALIDATION"
+}

@@ -1,0 +1,24 @@
+{
+  "frozen_from": [
+    "case26-single-outs-completion-chip-v1",
+    "case27-single-ins-completion-chip-v1",
+    "case28-single-strio-word-completion-pilot"
+  ],
+  "rules": {
+    "0": {
+      "next_action": "CODE",
+      "positive_wait_gap": 2,
+      "zero_wait_gap": 1
+    },
+    "1": {
+      "next_action": "CODE",
+      "positive_wait_gap": 5,
+      "zero_wait_gap": 4
+    }
+  },
+  "schema": "v30-biu-strio-completion-oracle-v2",
+  "state_inputs": [
+    "QS pop count during completing transfer",
+    "selected wait is zero"
+  ]
+}

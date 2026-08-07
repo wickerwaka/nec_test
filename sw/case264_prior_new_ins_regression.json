@@ -1,0 +1,24 @@
+{
+  "bad": [],
+  "delta_counts": {
+    "0": 352
+  },
+  "gate": "PASS",
+  "matches": 352,
+  "mismatches": 0,
+  "records": 352,
+  "schema": "v30-case233-rtl-new-ins-validation-v1",
+  "source_files": [
+    "sw/case230_fz11128_R1.json",
+    "sw/case230_fz11128_C1.json",
+    "sw/case230_fz11128_C2.json",
+    "sw/case230_fz11128_R2.json",
+    "sw/case230_fz11431_PCODE.json",
+    "sw/case230_fz11431_R1.json",
+    "sw/case230_fz11431_R2.json",
+    "sw/case240_fz11830_R1.json",
+    "sw/case240_fz11830_C1.json",
+    "sw/case240_fz11830_C2.json",
+    "sw/case240_fz11830_R2.json"
+  ]
+}

@@ -1,0 +1,49 @@
+{
+  "counts": {
+    "matches": 744,
+    "mismatches": 0,
+    "records": 744,
+    "unseen": 0
+  },
+  "details": [],
+  "gate": "PASS",
+  "heldout_sources": [
+    {
+      "counts": {
+        "matches": 248,
+        "mismatches": 0,
+        "records": 248,
+        "unseen": 0
+      },
+      "instruction_class": "mov_aw_mbw",
+      "path": "sw/testdata/biu_blackbox/nmi-homogeneous-mov-read-heldout-20260729/summary.json",
+      "sha256": "6c7c28a6185e6413b44600ab9506839dc81afe1b857449a215b5205eb672155c"
+    },
+    {
+      "counts": {
+        "matches": 248,
+        "mismatches": 0,
+        "records": 248,
+        "unseen": 0
+      },
+      "instruction_class": "mov_mbw_aw",
+      "path": "sw/testdata/biu_blackbox/nmi-homogeneous-mov-write-heldout-20260729/summary.json",
+      "sha256": "4351ae0fefbee83096b4e51799287a78f3a3faa86d6a4e5d184360ba3a8ff4f9"
+    },
+    {
+      "counts": {
+        "matches": 248,
+        "mismatches": 0,
+        "records": 248,
+        "unseen": 0
+      },
+      "instruction_class": "inc_mbw",
+      "path": "sw/testdata/biu_blackbox/nmi-homogeneous-rmw-heldout-20260729/summary.json",
+      "sha256": "7ce58d789ea1f510d67389e1bccd616afe9519d2618e5db5595023aa2092c95c"
+    }
+  ],
+  "oracle": "sw/testdata/biu_blackbox/nmi-memory-oracle-v1.json",
+  "oracle_sha256": "129873db6bea0d417a037123bfb5af0e708af5cc2b6073a66325603552b6648c",
+  "schema": "v30-biu-nmi-memory-oracle-v1-validation",
+  "status": "PROSPECTIVE_ALTERNATE_STREAM_PREPARATION_LENGTH"
+}

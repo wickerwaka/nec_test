@@ -1,0 +1,722 @@
+{
+  "counts": {
+    "matches": 172,
+    "mismatches": 156,
+    "records": 328,
+    "unsupported": 0
+  },
+  "details": [
+    {
+      "clock_mhz": 4,
+      "delay": 35,
+      "expected": {
+        "ivt_low_t1_from_assert": 15,
+        "pushed_pc": 1304
+      },
+      "history": "A",
+      "observed": {
+        "ivt_low_t1_from_assert": 14,
+        "pushed_pc": 1304
+      },
+      "parity": "even"
+    },
+    {
+      "clock_mhz": 8,
+      "delay": 35,
+      "expected": {
+        "ivt_low_t1_from_assert": 15,
+        "pushed_pc": 1304
+      },
+      "history": "A",
+      "observed": {
+        "ivt_low_t1_from_assert": 14,
+        "pushed_pc": 1304
+      },
+      "parity": "even"
+    },
+    {
+      "clock_mhz": 4,
+      "delay": 35,
+      "expected": {
+        "ivt_low_t1_from_assert": 15,
+        "pushed_pc": 1304
+      },
+      "history": "B",
+      "observed": {
+        "ivt_low_t1_from_assert": 14,
+        "pushed_pc": 1304
+      },
+      "parity": "even"
+    },
+    {
+      "clock_mhz": 8,
+      "delay": 35,
+      "expected": {
+        "ivt_low_t1_from_assert": 15,
+        "pushed_pc": 1304
+      },
+      "history": "B",
+      "observed": {
+        "ivt_low_t1_from_assert": 14,
+        "pushed_pc": 1304
+      },
+      "parity": "even"
+    },
+    {
+      "clock_mhz": 4,
+      "delay": 36,
+      "expected": {
+        "ivt_low_t1_from_assert": 14,
+        "pushed_pc": 1304
+      },
+      "history": "A",
+      "observed": {
+        "ivt_low_t1_from_assert": 13,
+        "pushed_pc": 1304
+      },
+      "parity": "even"
+    },
+    {
+      "clock_mhz": 8,
+      "delay": 36,
+      "expected": {
+        "ivt_low_t1_from_assert": 14,
+        "pushed_pc": 1304
+      },
+      "history": "A",
+      "observed": {
+        "ivt_low_t1_from_assert": 13,
+        "pushed_pc": 1304
+      },
+      "parity": "even"
+    },
+    {
+      "clock_mhz": 4,
+      "delay": 36,
+      "expected": {
+        "ivt_low_t1_from_assert": 14,
+        "pushed_pc": 1304
+      },
+      "history": "B",
+      "observed": {
+        "ivt_low_t1_from_assert": 13,
+        "pushed_pc": 1304
+      },
+      "parity": "even"
+    },
+    {
+      "clock_mhz": 8,
+      "delay": 36,
+      "expected": {
+        "ivt_low_t1_from_assert": 14,
+        "pushed_pc": 1304
+      },
+      "history": "B",
+      "observed": {
+        "ivt_low_t1_from_assert": 13,
+        "pushed_pc": 1304
+      },
+      "parity": "even"
+    },
+    {
+      "clock_mhz": 4,
+      "delay": 37,
+      "expected": {
+        "ivt_low_t1_from_assert": 13,
+        "pushed_pc": 1304
+      },
+      "history": "A",
+      "observed": {
+        "ivt_low_t1_from_assert": 14,
+        "pushed_pc": 1305
+      },
+      "parity": "even"
+    },
+    {
+      "clock_mhz": 8,
+      "delay": 37,
+      "expected": {
+        "ivt_low_t1_from_assert": 13,
+        "pushed_pc": 1304
+      },
+      "history": "A",
+      "observed": {
+        "ivt_low_t1_from_assert": 14,
+        "pushed_pc": 1305
+      },
+      "parity": "even"
+    },
+    {
+      "clock_mhz": 4,
+      "delay": 37,
+      "expected": {
+        "ivt_low_t1_from_assert": 13,
+        "pushed_pc": 1304
+      },
+      "history": "B",
+      "observed": {
+        "ivt_low_t1_from_assert": 14,
+        "pushed_pc": 1305
+      },
+      "parity": "even"
+    },
+    {
+      "clock_mhz": 8,
+      "delay": 37,
+      "expected": {
+        "ivt_low_t1_from_assert": 13,
+        "pushed_pc": 1304
+      },
+      "history": "B",
+      "observed": {
+        "ivt_low_t1_from_assert": 14,
+        "pushed_pc": 1305
+      },
+      "parity": "even"
+    },
+    {
+      "clock_mhz": 4,
+      "delay": 38,
+      "expected": {
+        "ivt_low_t1_from_assert": 15,
+        "pushed_pc": 1305
+      },
+      "history": "A",
+      "observed": {
+        "ivt_low_t1_from_assert": 13,
+        "pushed_pc": 1305
+      },
+      "parity": "even"
+    },
+    {
+      "clock_mhz": 8,
+      "delay": 38,
+      "expected": {
+        "ivt_low_t1_from_assert": 15,
+        "pushed_pc": 1305
+      },
+      "history": "A",
+      "observed": {
+        "ivt_low_t1_from_assert": 13,
+        "pushed_pc": 1305
+      },
+      "parity": "even"
+    },
+    {
+      "clock_mhz": 4,
+      "delay": 38,
+      "expected": {
+        "ivt_low_t1_from_assert": 15,
+        "pushed_pc": 1305
+      },
+      "history": "B",
+      "observed": {
+        "ivt_low_t1_from_assert": 13,
+        "pushed_pc": 1305
+      },
+      "parity": "even"
+    },
+    {
+      "clock_mhz": 8,
+      "delay": 38,
+      "expected": {
+        "ivt_low_t1_from_assert": 15,
+        "pushed_pc": 1305
+      },
+      "history": "B",
+      "observed": {
+        "ivt_low_t1_from_assert": 13,
+        "pushed_pc": 1305
+      },
+      "parity": "even"
+    },
+    {
+      "clock_mhz": 4,
+      "delay": 39,
+      "expected": {
+        "ivt_low_t1_from_assert": 14,
+        "pushed_pc": 1305
+      },
+      "history": "A",
+      "observed": {
+        "ivt_low_t1_from_assert": 14,
+        "pushed_pc": 1306
+      },
+      "parity": "even"
+    },
+    {
+      "clock_mhz": 8,
+      "delay": 39,
+      "expected": {
+        "ivt_low_t1_from_assert": 14,
+        "pushed_pc": 1305
+      },
+      "history": "A",
+      "observed": {
+        "ivt_low_t1_from_assert": 14,
+        "pushed_pc": 1306
+      },
+      "parity": "even"
+    },
+    {
+      "clock_mhz": 4,
+      "delay": 39,
+      "expected": {
+        "ivt_low_t1_from_assert": 14,
+        "pushed_pc": 1305
+      },
+      "history": "B",
+      "observed": {
+        "ivt_low_t1_from_assert": 14,
+        "pushed_pc": 1306
+      },
+      "parity": "even"
+    },
+    {
+      "clock_mhz": 8,
+      "delay": 39,
+      "expected": {
+        "ivt_low_t1_from_assert": 14,
+        "pushed_pc": 1305
+      },
+      "history": "B",
+      "observed": {
+        "ivt_low_t1_from_assert": 14,
+        "pushed_pc": 1306
+      },
+      "parity": "even"
+    },
+    {
+      "clock_mhz": 4,
+      "delay": 40,
+      "expected": {
+        "ivt_low_t1_from_assert": 15,
+        "pushed_pc": 1306
+      },
+      "history": "A",
+      "observed": {
+        "ivt_low_t1_from_assert": 13,
+        "pushed_pc": 1306
+      },
+      "parity": "even"
+    },
+    {
+      "clock_mhz": 8,
+      "delay": 40,
+      "expected": {
+        "ivt_low_t1_from_assert": 15,
+        "pushed_pc": 1306
+      },
+      "history": "A",
+      "observed": {
+        "ivt_low_t1_from_assert": 13,
+        "pushed_pc": 1306
+      },
+      "parity": "even"
+    },
+    {
+      "clock_mhz": 4,
+      "delay": 40,
+      "expected": {
+        "ivt_low_t1_from_assert": 15,
+        "pushed_pc": 1306
+      },
+      "history": "B",
+      "observed": {
+        "ivt_low_t1_from_assert": 13,
+        "pushed_pc": 1306
+      },
+      "parity": "even"
+    },
+    {
+      "clock_mhz": 8,
+      "delay": 40,
+      "expected": {
+        "ivt_low_t1_from_assert": 15,
+        "pushed_pc": 1306
+      },
+      "history": "B",
+      "observed": {
+        "ivt_low_t1_from_assert": 13,
+        "pushed_pc": 1306
+      },
+      "parity": "even"
+    },
+    {
+      "clock_mhz": 4,
+      "delay": 8,
+      "expected": {
+        "ivt_low_t1_from_assert": 15,
+        "pushed_pc": 1305
+      },
+      "history": "A",
+      "observed": {
+        "ivt_low_t1_from_assert": 14,
+        "pushed_pc": 1305
+      },
+      "parity": "odd"
+    },
+    {
+      "clock_mhz": 8,
+      "delay": 8,
+      "expected": {
+        "ivt_low_t1_from_assert": 15,
+        "pushed_pc": 1305
+      },
+      "history": "A",
+      "observed": {
+        "ivt_low_t1_from_assert": 14,
+        "pushed_pc": 1305
+      },
+      "parity": "odd"
+    },
+    {
+      "clock_mhz": 4,
+      "delay": 8,
+      "expected": {
+        "ivt_low_t1_from_assert": 15,
+        "pushed_pc": 1305
+      },
+      "history": "B",
+      "observed": {
+        "ivt_low_t1_from_assert": 14,
+        "pushed_pc": 1305
+      },
+      "parity": "odd"
+    },
+    {
+      "clock_mhz": 8,
+      "delay": 8,
+      "expected": {
+        "ivt_low_t1_from_assert": 15,
+        "pushed_pc": 1305
+      },
+      "history": "B",
+      "observed": {
+        "ivt_low_t1_from_assert": 14,
+        "pushed_pc": 1305
+      },
+      "parity": "odd"
+    },
+    {
+      "clock_mhz": 4,
+      "delay": 9,
+      "expected": {
+        "ivt_low_t1_from_assert": 14,
+        "pushed_pc": 1305
+      },
+      "history": "A",
+      "observed": {
+        "ivt_low_t1_from_assert": 13,
+        "pushed_pc": 1305
+      },
+      "parity": "odd"
+    },
+    {
+      "clock_mhz": 8,
+      "delay": 9,
+      "expected": {
+        "ivt_low_t1_from_assert": 14,
+        "pushed_pc": 1305
+      },
+      "history": "A",
+      "observed": {
+        "ivt_low_t1_from_assert": 13,
+        "pushed_pc": 1305
+      },
+      "parity": "odd"
+    },
+    {
+      "clock_mhz": 4,
+      "delay": 9,
+      "expected": {
+        "ivt_low_t1_from_assert": 14,
+        "pushed_pc": 1305
+      },
+      "history": "B",
+      "observed": {
+        "ivt_low_t1_from_assert": 13,
+        "pushed_pc": 1305
+      },
+      "parity": "odd"
+    },
+    {
+      "clock_mhz": 8,
+      "delay": 9,
+      "expected": {
+        "ivt_low_t1_from_assert": 14,
+        "pushed_pc": 1305
+      },
+      "history": "B",
+      "observed": {
+        "ivt_low_t1_from_assert": 13,
+        "pushed_pc": 1305
+      },
+      "parity": "odd"
+    },
+    {
+      "clock_mhz": 4,
+      "delay": 10,
+      "expected": {
+        "ivt_low_t1_from_assert": 13,
+        "pushed_pc": 1305
+      },
+      "history": "A",
+      "observed": {
+        "ivt_low_t1_from_assert": 14,
+        "pushed_pc": 1306
+      },
+      "parity": "odd"
+    },
+    {
+      "clock_mhz": 8,
+      "delay": 10,
+      "expected": {
+        "ivt_low_t1_from_assert": 13,
+        "pushed_pc": 1305
+      },
+      "history": "A",
+      "observed": {
+        "ivt_low_t1_from_assert": 14,
+        "pushed_pc": 1306
+      },
+      "parity": "odd"
+    },
+    {
+      "clock_mhz": 4,
+      "delay": 10,
+      "expected": {
+        "ivt_low_t1_from_assert": 13,
+        "pushed_pc": 1305
+      },
+      "history": "B",
+      "observed": {
+        "ivt_low_t1_from_assert": 14,
+        "pushed_pc": 1306
+      },
+      "parity": "odd"
+    },
+    {
+      "clock_mhz": 8,
+      "delay": 10,
+      "expected": {
+        "ivt_low_t1_from_assert": 13,
+        "pushed_pc": 1305
+      },
+      "history": "B",
+      "observed": {
+        "ivt_low_t1_from_assert": 14,
+        "pushed_pc": 1306
+      },
+      "parity": "odd"
+    },
+    {
+      "clock_mhz": 4,
+      "delay": 11,
+      "expected": {
+        "ivt_low_t1_from_assert": 15,
+        "pushed_pc": 1306
+      },
+      "history": "A",
+      "observed": {
+        "ivt_low_t1_from_assert": 13,
+        "pushed_pc": 1306
+      },
+      "parity": "odd"
+    },
+    {
+      "clock_mhz": 8,
+      "delay": 11,
+      "expected": {
+        "ivt_low_t1_from_assert": 15,
+        "pushed_pc": 1306
+      },
+      "history": "A",
+      "observed": {
+        "ivt_low_t1_from_assert": 13,
+        "pushed_pc": 1306
+      },
+      "parity": "odd"
+    },
+    {
+      "clock_mhz": 4,
+      "delay": 11,
+      "expected": {
+        "ivt_low_t1_from_assert": 15,
+        "pushed_pc": 1306
+      },
+      "history": "B",
+      "observed": {
+        "ivt_low_t1_from_assert": 13,
+        "pushed_pc": 1306
+      },
+      "parity": "odd"
+    },
+    {
+      "clock_mhz": 8,
+      "delay": 11,
+      "expected": {
+        "ivt_low_t1_from_assert": 15,
+        "pushed_pc": 1306
+      },
+      "history": "B",
+      "observed": {
+        "ivt_low_t1_from_assert": 13,
+        "pushed_pc": 1306
+      },
+      "parity": "odd"
+    },
+    {
+      "clock_mhz": 4,
+      "delay": 12,
+      "expected": {
+        "ivt_low_t1_from_assert": 14,
+        "pushed_pc": 1306
+      },
+      "history": "A",
+      "observed": {
+        "ivt_low_t1_from_assert": 14,
+        "pushed_pc": 1307
+      },
+      "parity": "odd"
+    },
+    {
+      "clock_mhz": 8,
+      "delay": 12,
+      "expected": {
+        "ivt_low_t1_from_assert": 14,
+        "pushed_pc": 1306
+      },
+      "history": "A",
+      "observed": {
+        "ivt_low_t1_from_assert": 14,
+        "pushed_pc": 1307
+      },
+      "parity": "odd"
+    },
+    {
+      "clock_mhz": 4,
+      "delay": 12,
+      "expected": {
+        "ivt_low_t1_from_assert": 14,
+        "pushed_pc": 1306
+      },
+      "history": "B",
+      "observed": {
+        "ivt_low_t1_from_assert": 14,
+        "pushed_pc": 1307
+      },
+      "parity": "odd"
+    },
+    {
+      "clock_mhz": 8,
+      "delay": 12,
+      "expected": {
+        "ivt_low_t1_from_assert": 14,
+        "pushed_pc": 1306
+      },
+      "history": "B",
+      "observed": {
+        "ivt_low_t1_from_assert": 14,
+        "pushed_pc": 1307
+      },
+      "parity": "odd"
+    },
+    {
+      "clock_mhz": 4,
+      "delay": 13,
+      "expected": {
+        "ivt_low_t1_from_assert": 15,
+        "pushed_pc": 1307
+      },
+      "history": "A",
+      "observed": {
+        "ivt_low_t1_from_assert": 13,
+        "pushed_pc": 1307
+      },
+      "parity": "odd"
+    },
+    {
+      "clock_mhz": 8,
+      "delay": 13,
+      "expected": {
+        "ivt_low_t1_from_assert": 15,
+        "pushed_pc": 1307
+      },
+      "history": "A",
+      "observed": {
+        "ivt_low_t1_from_assert": 13,
+        "pushed_pc": 1307
+      },
+      "parity": "odd"
+    },
+    {
+      "clock_mhz": 4,
+      "delay": 13,
+      "expected": {
+        "ivt_low_t1_from_assert": 15,
+        "pushed_pc": 1307
+      },
+      "history": "B",
+      "observed": {
+        "ivt_low_t1_from_assert": 13,
+        "pushed_pc": 1307
+      },
+      "parity": "odd"
+    },
+    {
+      "clock_mhz": 8,
+      "delay": 13,
+      "expected": {
+        "ivt_low_t1_from_assert": 15,
+        "pushed_pc": 1307
+      },
+      "history": "B",
+      "observed": {
+        "ivt_low_t1_from_assert": 13,
+        "pushed_pc": 1307
+      },
+      "parity": "odd"
+    },
+    {
+      "clock_mhz": 4,
+      "delay": 14,
+      "expected": {
+        "ivt_low_t1_from_assert": 14,
+        "pushed_pc": 1307
+      },
+      "history": "A",
+      "observed": {
+        "ivt_low_t1_from_assert": 14,
+        "pushed_pc": 1308
+      },
+      "parity": "odd"
+    },
+    {
+      "clock_mhz": 8,
+      "delay": 14,
+      "expected": {
+        "ivt_low_t1_from_assert": 14,
+        "pushed_pc": 1307
+      },
+      "history": "A",
+      "observed": {
+        "ivt_low_t1_from_assert": 14,
+        "pushed_pc": 1308
+      },
+      "parity": "odd"
+    }
+  ],
+  "gate": "FAIL",
+  "heldout": "sw/testdata/biu_blackbox/nmi-family-inc-discovery-20260729/summary.json",
+  "heldout_sha256": "ea1a5d7a64d6cc2e6f5617f05557e407f9418418851a966be43e880d1d7909cb",
+  "oracle": "sw/testdata/biu_blackbox/nmi-recognition-oracle-v1.json",
+  "oracle_sha256": "d24d0dbe93f4c9634e57334581179e4d9d82ea954d88e5caaa6ef2230fdac3e9",
+  "phase_counts": {
+    "divu_execute": 80,
+    "first_nop_after_divu_modrm": 12,
+    "nop_after_opcode_pop": 236
+  },
+  "schema": "v30-biu-nmi-recognition-oracle-v1-validation",
+  "status": "PROSPECTIVE_FRESH_PAD_HANDLER_STACK"
+}

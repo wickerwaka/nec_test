@@ -1,0 +1,38 @@
+{
+  "counts": {
+    "matches": 336,
+    "mismatches": 0,
+    "records": 336,
+    "unseen": 0
+  },
+  "details": [],
+  "gate": "PASS",
+  "heldout_sources": [
+    {
+      "counts": {
+        "matches": 168,
+        "mismatches": 0,
+        "records": 168,
+        "unseen": 0
+      },
+      "event_class": "NMI",
+      "path": "sw/testdata/biu_blackbox/interrupt-composed-nmi-heldout-20260729/summary.json",
+      "sha256": "65c22f5e7caf78690bb55fa431bf9f4206bfbb7646a13cd26dde7d73a8386192"
+    },
+    {
+      "counts": {
+        "matches": 168,
+        "mismatches": 0,
+        "records": 168,
+        "unseen": 0
+      },
+      "event_class": "INTR",
+      "path": "sw/testdata/biu_blackbox/interrupt-composed-hwint-heldout-20260729/summary.json",
+      "sha256": "87be6143f0d392032b2be7d7731cd86372e91148c8c417f27490261abe762a42"
+    }
+  ],
+  "oracle": "sw/testdata/biu_blackbox/interrupt-composed-oracle-v1.json",
+  "oracle_sha256": "4b27d02fd779c9058288a671fb3bd0c61057391b0166efeb4de0fe0d0437aa43",
+  "schema": "v30-biu-interrupt-composed-oracle-v1-validation",
+  "status": "PROSPECTIVE_FRESH_NMI_AND_INTR_PAD_HANDLER_STACK"
+}

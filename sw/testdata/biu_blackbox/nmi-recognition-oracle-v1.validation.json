@@ -1,0 +1,21 @@
+{
+  "counts": {
+    "matches": 248,
+    "mismatches": 0,
+    "records": 248,
+    "unsupported": 0
+  },
+  "details": [],
+  "gate": "PASS",
+  "heldout": "sw/testdata/biu_blackbox/nmi-recognition-heldout-20260729/summary.json",
+  "heldout_sha256": "5e3f7e171b73a833933fcdb48215074654d34911dc6cccc63716d847fbd2316f",
+  "oracle": "sw/testdata/biu_blackbox/nmi-recognition-oracle-v1.json",
+  "oracle_sha256": "d24d0dbe93f4c9634e57334581179e4d9d82ea954d88e5caaa6ef2230fdac3e9",
+  "phase_counts": {
+    "divu_execute": 80,
+    "first_nop_after_divu_modrm": 12,
+    "nop_after_opcode_pop": 156
+  },
+  "schema": "v30-biu-nmi-recognition-oracle-v1-validation",
+  "status": "PROSPECTIVE_FRESH_PAD_HANDLER_STACK"
+}

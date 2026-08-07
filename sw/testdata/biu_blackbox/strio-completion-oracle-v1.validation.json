@@ -1,0 +1,8 @@
+{
+  "conditions_checked": 72,
+  "gate": "PASS",
+  "mismatches": [],
+  "oracle": "sw/testdata/biu_blackbox/strio-completion-oracle-v1.json",
+  "records_checked": 360,
+  "schema": "v30-biu-strio-completion-validation-v1"
+}

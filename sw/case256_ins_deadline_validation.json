@@ -1,0 +1,14 @@
+{
+  "bad": [],
+  "checks": 800,
+  "gate": "PASS",
+  "matches": 800,
+  "mismatches": 0,
+  "schema": "v30-case251-ins-deadline-validation-v1",
+  "source_files": [
+    "sw/case250_fz12302_factorial.json",
+    "sw/case250_fz12466_factorial.json",
+    "sw/case250_fz12547_factorial.json",
+    "sw/case250_fz12569_factorial.json"
+  ]
+}

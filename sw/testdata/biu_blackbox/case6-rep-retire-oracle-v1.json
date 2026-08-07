@@ -1,0 +1,398 @@
+{
+  "controls": {
+    "clock_mhz": [
+      4,
+      8
+    ],
+    "histories": [
+      "A",
+      "B"
+    ],
+    "repetitions": 5,
+    "waits": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      15
+    ]
+  },
+  "forbidden_variables": [
+    "program seed",
+    "absolute instruction ordinal",
+    "preparation-history fingerprint",
+    "RTL internal signal"
+  ],
+  "schema": "v30-biu-case6-rep-retire-oracle-v1",
+  "scope": "first instruction-byte consumption after classic MOVS/STOS, relative to the final store T4",
+  "source": "sw/testdata/biu_blackbox/case6-rep-retire-chip-v1/summary.json",
+  "source_sha256": "09bc967f9e23794e70131a70cffce0f5ad5910ef81acb687c5eb8f3b8c2455a4",
+  "state_rule": "classic REP MOVS/STOS has no extra S_EX retirement clock after a waited final write; w0 and non-REP retain their prior close",
+  "status": "FROZEN_BEFORE_RTL",
+  "table": {
+    "rep_movsb_c1/w0": {
+      "post_byte_address": 1347,
+      "post_event": "F",
+      "post_pop_from_store_t4": 2
+    },
+    "rep_movsb_c1/w1": {
+      "post_byte_address": 1347,
+      "post_event": "F",
+      "post_pop_from_store_t4": 2
+    },
+    "rep_movsb_c1/w15": {
+      "post_byte_address": 1347,
+      "post_event": "F",
+      "post_pop_from_store_t4": 2
+    },
+    "rep_movsb_c1/w2": {
+      "post_byte_address": 1347,
+      "post_event": "F",
+      "post_pop_from_store_t4": 2
+    },
+    "rep_movsb_c1/w3": {
+      "post_byte_address": 1347,
+      "post_event": "F",
+      "post_pop_from_store_t4": 2
+    },
+    "rep_movsb_c1/w4": {
+      "post_byte_address": 1347,
+      "post_event": "F",
+      "post_pop_from_store_t4": 2
+    },
+    "rep_movsb_c1/w5": {
+      "post_byte_address": 1347,
+      "post_event": "F",
+      "post_pop_from_store_t4": 2
+    },
+    "rep_movsb_c1/w6": {
+      "post_byte_address": 1347,
+      "post_event": "F",
+      "post_pop_from_store_t4": 2
+    },
+    "rep_movsb_c1/w7": {
+      "post_byte_address": 1347,
+      "post_event": "F",
+      "post_pop_from_store_t4": 2
+    },
+    "rep_movsb_c2/w0": {
+      "post_byte_address": 1347,
+      "post_event": "F",
+      "post_pop_from_store_t4": 2
+    },
+    "rep_movsb_c2/w1": {
+      "post_byte_address": 1347,
+      "post_event": "F",
+      "post_pop_from_store_t4": 2
+    },
+    "rep_movsb_c2/w15": {
+      "post_byte_address": 1347,
+      "post_event": "F",
+      "post_pop_from_store_t4": 2
+    },
+    "rep_movsb_c2/w2": {
+      "post_byte_address": 1347,
+      "post_event": "F",
+      "post_pop_from_store_t4": 2
+    },
+    "rep_movsb_c2/w3": {
+      "post_byte_address": 1347,
+      "post_event": "F",
+      "post_pop_from_store_t4": 2
+    },
+    "rep_movsb_c2/w4": {
+      "post_byte_address": 1347,
+      "post_event": "F",
+      "post_pop_from_store_t4": 2
+    },
+    "rep_movsb_c2/w5": {
+      "post_byte_address": 1347,
+      "post_event": "F",
+      "post_pop_from_store_t4": 2
+    },
+    "rep_movsb_c2/w6": {
+      "post_byte_address": 1347,
+      "post_event": "F",
+      "post_pop_from_store_t4": 2
+    },
+    "rep_movsb_c2/w7": {
+      "post_byte_address": 1347,
+      "post_event": "F",
+      "post_pop_from_store_t4": 2
+    },
+    "rep_movsb_c3/w0": {
+      "post_byte_address": 1347,
+      "post_event": "F",
+      "post_pop_from_store_t4": 2
+    },
+    "rep_movsb_c3/w1": {
+      "post_byte_address": 1347,
+      "post_event": "F",
+      "post_pop_from_store_t4": 2
+    },
+    "rep_movsb_c3/w15": {
+      "post_byte_address": 1347,
+      "post_event": "F",
+      "post_pop_from_store_t4": 2
+    },
+    "rep_movsb_c3/w2": {
+      "post_byte_address": 1347,
+      "post_event": "F",
+      "post_pop_from_store_t4": 2
+    },
+    "rep_movsb_c3/w3": {
+      "post_byte_address": 1347,
+      "post_event": "F",
+      "post_pop_from_store_t4": 2
+    },
+    "rep_movsb_c3/w4": {
+      "post_byte_address": 1347,
+      "post_event": "F",
+      "post_pop_from_store_t4": 2
+    },
+    "rep_movsb_c3/w5": {
+      "post_byte_address": 1347,
+      "post_event": "F",
+      "post_pop_from_store_t4": 2
+    },
+    "rep_movsb_c3/w6": {
+      "post_byte_address": 1347,
+      "post_event": "F",
+      "post_pop_from_store_t4": 2
+    },
+    "rep_movsb_c3/w7": {
+      "post_byte_address": 1347,
+      "post_event": "F",
+      "post_pop_from_store_t4": 2
+    },
+    "rep_movsw_c2/w0": {
+      "post_byte_address": 1347,
+      "post_event": "F",
+      "post_pop_from_store_t4": 2
+    },
+    "rep_movsw_c2/w1": {
+      "post_byte_address": 1347,
+      "post_event": "F",
+      "post_pop_from_store_t4": 2
+    },
+    "rep_movsw_c2/w15": {
+      "post_byte_address": 1347,
+      "post_event": "F",
+      "post_pop_from_store_t4": 2
+    },
+    "rep_movsw_c2/w2": {
+      "post_byte_address": 1347,
+      "post_event": "F",
+      "post_pop_from_store_t4": 2
+    },
+    "rep_movsw_c2/w3": {
+      "post_byte_address": 1347,
+      "post_event": "F",
+      "post_pop_from_store_t4": 2
+    },
+    "rep_movsw_c2/w4": {
+      "post_byte_address": 1347,
+      "post_event": "F",
+      "post_pop_from_store_t4": 2
+    },
+    "rep_movsw_c2/w5": {
+      "post_byte_address": 1347,
+      "post_event": "F",
+      "post_pop_from_store_t4": 2
+    },
+    "rep_movsw_c2/w6": {
+      "post_byte_address": 1347,
+      "post_event": "F",
+      "post_pop_from_store_t4": 2
+    },
+    "rep_movsw_c2/w7": {
+      "post_byte_address": 1347,
+      "post_event": "F",
+      "post_pop_from_store_t4": 2
+    },
+    "rep_stosb_c2/w0": {
+      "post_byte_address": 1347,
+      "post_event": "F",
+      "post_pop_from_store_t4": 2
+    },
+    "rep_stosb_c2/w1": {
+      "post_byte_address": 1347,
+      "post_event": "F",
+      "post_pop_from_store_t4": 2
+    },
+    "rep_stosb_c2/w15": {
+      "post_byte_address": 1347,
+      "post_event": "F",
+      "post_pop_from_store_t4": 2
+    },
+    "rep_stosb_c2/w2": {
+      "post_byte_address": 1347,
+      "post_event": "F",
+      "post_pop_from_store_t4": 2
+    },
+    "rep_stosb_c2/w3": {
+      "post_byte_address": 1347,
+      "post_event": "F",
+      "post_pop_from_store_t4": 2
+    },
+    "rep_stosb_c2/w4": {
+      "post_byte_address": 1347,
+      "post_event": "F",
+      "post_pop_from_store_t4": 2
+    },
+    "rep_stosb_c2/w5": {
+      "post_byte_address": 1347,
+      "post_event": "F",
+      "post_pop_from_store_t4": 2
+    },
+    "rep_stosb_c2/w6": {
+      "post_byte_address": 1347,
+      "post_event": "F",
+      "post_pop_from_store_t4": 2
+    },
+    "rep_stosb_c2/w7": {
+      "post_byte_address": 1347,
+      "post_event": "F",
+      "post_pop_from_store_t4": 2
+    },
+    "rep_stosw_c2/w0": {
+      "post_byte_address": 1347,
+      "post_event": "F",
+      "post_pop_from_store_t4": 2
+    },
+    "rep_stosw_c2/w1": {
+      "post_byte_address": 1347,
+      "post_event": "F",
+      "post_pop_from_store_t4": 2
+    },
+    "rep_stosw_c2/w15": {
+      "post_byte_address": 1347,
+      "post_event": "F",
+      "post_pop_from_store_t4": 2
+    },
+    "rep_stosw_c2/w2": {
+      "post_byte_address": 1347,
+      "post_event": "F",
+      "post_pop_from_store_t4": 2
+    },
+    "rep_stosw_c2/w3": {
+      "post_byte_address": 1347,
+      "post_event": "F",
+      "post_pop_from_store_t4": 2
+    },
+    "rep_stosw_c2/w4": {
+      "post_byte_address": 1347,
+      "post_event": "F",
+      "post_pop_from_store_t4": 2
+    },
+    "rep_stosw_c2/w5": {
+      "post_byte_address": 1347,
+      "post_event": "F",
+      "post_pop_from_store_t4": 2
+    },
+    "rep_stosw_c2/w6": {
+      "post_byte_address": 1347,
+      "post_event": "F",
+      "post_pop_from_store_t4": 2
+    },
+    "rep_stosw_c2/w7": {
+      "post_byte_address": 1347,
+      "post_event": "F",
+      "post_pop_from_store_t4": 2
+    },
+    "single_movsb/w0": {
+      "post_byte_address": 1347,
+      "post_event": "F",
+      "post_pop_from_store_t4": 1
+    },
+    "single_movsb/w1": {
+      "post_byte_address": 1347,
+      "post_event": "F",
+      "post_pop_from_store_t4": 2
+    },
+    "single_movsb/w15": {
+      "post_byte_address": 1347,
+      "post_event": "F",
+      "post_pop_from_store_t4": 2
+    },
+    "single_movsb/w2": {
+      "post_byte_address": 1347,
+      "post_event": "F",
+      "post_pop_from_store_t4": 2
+    },
+    "single_movsb/w3": {
+      "post_byte_address": 1347,
+      "post_event": "F",
+      "post_pop_from_store_t4": 2
+    },
+    "single_movsb/w4": {
+      "post_byte_address": 1347,
+      "post_event": "F",
+      "post_pop_from_store_t4": 2
+    },
+    "single_movsb/w5": {
+      "post_byte_address": 1347,
+      "post_event": "F",
+      "post_pop_from_store_t4": 2
+    },
+    "single_movsb/w6": {
+      "post_byte_address": 1347,
+      "post_event": "F",
+      "post_pop_from_store_t4": 2
+    },
+    "single_movsb/w7": {
+      "post_byte_address": 1347,
+      "post_event": "F",
+      "post_pop_from_store_t4": 2
+    },
+    "single_stosb/w0": {
+      "post_byte_address": 1347,
+      "post_event": "F",
+      "post_pop_from_store_t4": 1
+    },
+    "single_stosb/w1": {
+      "post_byte_address": 1347,
+      "post_event": "F",
+      "post_pop_from_store_t4": 2
+    },
+    "single_stosb/w15": {
+      "post_byte_address": 1347,
+      "post_event": "F",
+      "post_pop_from_store_t4": 2
+    },
+    "single_stosb/w2": {
+      "post_byte_address": 1347,
+      "post_event": "F",
+      "post_pop_from_store_t4": 2
+    },
+    "single_stosb/w3": {
+      "post_byte_address": 1347,
+      "post_event": "F",
+      "post_pop_from_store_t4": 2
+    },
+    "single_stosb/w4": {
+      "post_byte_address": 1347,
+      "post_event": "F",
+      "post_pop_from_store_t4": 2
+    },
+    "single_stosb/w5": {
+      "post_byte_address": 1347,
+      "post_event": "F",
+      "post_pop_from_store_t4": 2
+    },
+    "single_stosb/w6": {
+      "post_byte_address": 1347,
+      "post_event": "F",
+      "post_pop_from_store_t4": 2
+    },
+    "single_stosb/w7": {
+      "post_byte_address": 1347,
+      "post_event": "F",
+      "post_pop_from_store_t4": 2
+    }
+  }
+}

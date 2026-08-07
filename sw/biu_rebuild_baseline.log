@@ -1,0 +1,53 @@
+=== BIU-REBUILD gate battery  2026-07-28T22:56:40Z  HEAD=8598887 branch=biu-rebuild ===
+
+### build fresh Verilator binary
+- Verilator: Walltime 17.836 s (elab=0.044, cvt=0.530, bld=17.171); cpu 0.656 s on 1 threads; alloced 51.566 MB
+building: verilator --binary --timing -DV30_BACKDOOR -DV30_PFX_ASSERT --assert -Wall -Wno-UNUSEDSIGNAL -Wno-VARHIDDEN -Wno-TIMESCALEMOD -Wno-WIDTHEXPAND -Wno-BLKSEQ --top-module tb_v30_core -I/home/wickerwaka/src/nec_test/hdl/rtl/core -Mdir /home/wickerwaka/src/nec_test/hdl/tb/obj_dir /home/wickerwaka/src/nec_test/hdl/rtl/core/v30_ss_pkg.sv /home/wickerwaka/src/nec_test/hdl/tb/tb_v30_core.sv /home/wickerwaka/src/nec_test/hdl/rtl/core/v30_core.sv /home/wickerwaka/src/nec_test/hdl/rtl/core/v30_biu.sv /home/wickerwaka/src/nec_test/hdl/rtl/core/v30_eu.sv
+
+### lints (ss_lint now includes ss_flopcensus)
+BIU (v30_biu.sv): 76 architectural flops -> 76 SSA-mapped, 0 whitelisted, 0 UNMAPPED; 9 sim-only exempt (0 comb output-regs skipped)
+EU (v30_eu.sv): 105 architectural flops -> 105 SSA-mapped, 0 whitelisted, 0 UNMAPPED; 2 sim-only exempt (3 comb output-regs skipped)
+
+ss_flopcensus: PASS (181 architectural flops, all SSA-mapped or whitelisted; 0 whitelist entries)
+prefix_clear_lint: PASS (20 S_FIRST sites; 4 PFX-KEEP; clear_prefixes single source; no drift)
+ea_step_lint: PASS (all eu_addr operand steps wrap via ea_step2; only the IVT high-word read is linear, by design)
+check_race_law.py: PASS (2/2 sub-checks)
+optable selfcheck: 0 errors
+LINT PASS: soup hits=0 compose_err=0; raw hits=0 compose_err=0
+
+### offline verdict/accept unit gates
+PASS: 0 failure(s)
+PASS: 0 failure(s)
+
+### standing gates
+check_ff_t4: PASS (9/9 seeds complete, 9 SLOT_FF_T4 fires, invariant assert armed)
+check_mod3_illegal: PASS | 128 goldens: cycle-exact 128/128, arch-confined 128/128 (value exact 0, residue 128); moffs-exact 2/2
+    walk-stream (value-bug invariant, ALL waits): PASS
+    cycle-exact: 0 UNEXPECTED divergence(s); 0 booked #33-interleave cell(s) hit; 0 stale exclusion(s)
+check_enter_nesting: PASS
+
+check_fuzz_bank: PASS | 3242 banked seeds | stable 3242 improved 0 worse 0 | gen_drift 0 regen_err 0 | float-floor 0 | new-sig TIMING 0
+
+### v0.1 w0 (169k, all forms)
+TOTAL: 169000/169000 full (cycles 169000, arch 169000)
+
+### v0.1-w1 (1200)
+TOTAL: 1200/1200 full (cycles 1200, arch 1200)
+
+### v0.1-w3 (1200)
+TOTAL: 1200/1200 full (cycles 1200, arch 1200)
+
+### f0lock_tranche
+TOTAL: 400/400 full (cycles 400, arch 400)
+
+### f4a_boundary
+TOTAL: 160/160 full (cycles 160, arch 160)
+
+### savestate sweep (mode 5 round-trip width, bounded cases)
+
+TOTAL: 2776/2776 full (cycles 2776, arch 2776)
+
+### v0.3 w0 (3.7M, all forms)
+TOTAL: 3699997/3699997 full (cycles 3699997, arch 3699997)  [3 documented pre-existing excluded]
+
+=== BASELINE_BATTERY_DONE  2026-07-29T00:21:12Z ===

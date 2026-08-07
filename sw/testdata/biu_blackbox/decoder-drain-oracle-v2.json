@@ -1,0 +1,49 @@
+{
+  "frozen_from": [
+    "decoder-drain-oracle-v1",
+    "case38-rep-successor-onebyte-census-pilot"
+  ],
+  "rules": {
+    "fast": {
+      "positive_wait_code_gap": 6,
+      "positive_wait_qs_f": [
+        2,
+        4
+      ],
+      "zero_wait_code_gap": 5,
+      "zero_wait_qs_f": [
+        1,
+        3
+      ]
+    },
+    "long": {
+      "positive_wait_code_gap": 9,
+      "positive_wait_qs_f": [
+        2,
+        7
+      ],
+      "zero_wait_code_gap": 8,
+      "zero_wait_qs_f": [
+        1,
+        6
+      ]
+    },
+    "standard": {
+      "positive_wait_code_gap": 7,
+      "positive_wait_qs_f": [
+        2,
+        5
+      ],
+      "zero_wait_code_gap": 6,
+      "zero_wait_qs_f": [
+        1,
+        4
+      ]
+    }
+  },
+  "schema": "v30-eu-decoder-drain-oracle-v2",
+  "state_inputs": [
+    "one-byte successor execution class",
+    "selected wait is zero"
+  ]
+}

@@ -1,0 +1,24 @@
+{
+  "counts": {
+    "matches": 448,
+    "mismatches": 0,
+    "records": 448
+  },
+  "details": [],
+  "gate": "PASS",
+  "heldout": "sw/testdata/biu_blackbox/hwint-wait-heldout-20260729/summary.json",
+  "heldout_sha256": "8ebd21226168777e8ee03e47948638f0b6e69db0ffd146cb7154e6a0fb2d23c8",
+  "oracle": "sw/testdata/biu_blackbox/hwint-wait-oracle-v1.json",
+  "oracle_sha256": "82e649322438c3f61af207a53a8af3c475c3a644be23598d196ace9bd36766b0",
+  "role_counts": {
+    "inta0": 64,
+    "inta1": 64,
+    "ivt_high": 64,
+    "ivt_low": 64,
+    "push0": 64,
+    "push1": 64,
+    "push2": 64
+  },
+  "schema": "v30-biu-hwint-wait-oracle-v1-validation",
+  "status": "PROSPECTIVE_FRESH_PAD_HANDLER_STACK"
+}

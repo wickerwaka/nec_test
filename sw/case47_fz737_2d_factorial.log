@@ -1,0 +1,42 @@
+original vector: access60=3 access61=1 access62=2
+C= 0 R= 0 | chip: Cw= 0 Rw= 0 q(C/R/W)=4/6/6 R.T1= 411 R.T4= 414 W.T1= 438 W-R1=27 W-R4=24 | rtl: Cw= 0 Rw= 0 q(C/R/W)=4/6/6 R.T1= 411 R.T4= 414 W.T1= 438 W-R1=27 W-R4=24 | delta=+0
+C= 0 R= 1 | chip: Cw= 0 Rw= 1 q(C/R/W)=4/6/6 R.T1= 411 R.T4= 415 W.T1= 438 W-R1=27 W-R4=23 | rtl: Cw= 0 Rw= 1 q(C/R/W)=4/6/6 R.T1= 411 R.T4= 415 W.T1= 438 W-R1=27 W-R4=23 | delta=+0
+C= 0 R= 2 | chip: Cw= 0 Rw= 2 q(C/R/W)=4/6/6 R.T1= 411 R.T4= 416 W.T1= 438 W-R1=27 W-R4=22 | rtl: Cw= 0 Rw= 2 q(C/R/W)=4/6/6 R.T1= 411 R.T4= 416 W.T1= 438 W-R1=27 W-R4=22 | delta=+0
+C= 0 R= 3 | chip: Cw= 0 Rw= 3 q(C/R/W)=4/6/6 R.T1= 411 R.T4= 417 W.T1= 438 W-R1=27 W-R4=21 | rtl: Cw= 0 Rw= 3 q(C/R/W)=4/6/6 R.T1= 411 R.T4= 417 W.T1= 438 W-R1=27 W-R4=21 | delta=+0
+C= 1 R= 0 | chip: Cw= 1 Rw= 0 q(C/R/W)=4/6/6 R.T1= 411 R.T4= 414 W.T1= 438 W-R1=27 W-R4=24 | rtl: Cw= 1 Rw= 0 q(C/R/W)=4/6/6 R.T1= 411 R.T4= 414 W.T1= 438 W-R1=27 W-R4=24 | delta=+0
+C= 1 R= 1 | chip: Cw= 1 Rw= 1 q(C/R/W)=4/6/6 R.T1= 411 R.T4= 415 W.T1= 438 W-R1=27 W-R4=23 | rtl: Cw= 1 Rw= 1 q(C/R/W)=4/6/6 R.T1= 411 R.T4= 415 W.T1= 438 W-R1=27 W-R4=23 | delta=+0
+C= 1 R= 2 | chip: Cw= 1 Rw= 2 q(C/R/W)=4/6/6 R.T1= 411 R.T4= 416 W.T1= 438 W-R1=27 W-R4=22 | rtl: Cw= 1 Rw= 2 q(C/R/W)=4/6/6 R.T1= 411 R.T4= 416 W.T1= 438 W-R1=27 W-R4=22 | delta=+0
+C= 1 R= 3 | chip: Cw= 1 Rw= 3 q(C/R/W)=4/6/6 R.T1= 411 R.T4= 417 W.T1= 438 W-R1=27 W-R4=21 | rtl: Cw= 1 Rw= 3 q(C/R/W)=4/6/6 R.T1= 411 R.T4= 417 W.T1= 438 W-R1=27 W-R4=21 | delta=+0
+C= 2 R= 0 | chip: Cw= 2 Rw= 0 q(C/R/W)=4/6/6 R.T1= 412 R.T4= 415 W.T1= 438 W-R1=26 W-R4=23 | rtl: Cw= 2 Rw= 0 q(C/R/W)=4/6/6 R.T1= 412 R.T4= 415 W.T1= 438 W-R1=26 W-R4=23 | delta=+0
+C= 2 R= 1 | chip: Cw= 2 Rw= 1 q(C/R/W)=4/6/6 R.T1= 412 R.T4= 416 W.T1= 438 W-R1=26 W-R4=22 | rtl: Cw= 2 Rw= 1 q(C/R/W)=4/6/6 R.T1= 412 R.T4= 416 W.T1= 438 W-R1=26 W-R4=22 | delta=+0
+C= 2 R= 2 | chip: Cw= 2 Rw= 2 q(C/R/W)=4/6/6 R.T1= 412 R.T4= 417 W.T1= 438 W-R1=26 W-R4=21 | rtl: Cw= 2 Rw= 2 q(C/R/W)=4/6/6 R.T1= 412 R.T4= 417 W.T1= 438 W-R1=26 W-R4=21 | delta=+0
+C= 2 R= 3 | chip: Cw= 2 Rw= 3 q(C/R/W)=4/6/6 R.T1= 412 R.T4= 418 W.T1= 438 W-R1=26 W-R4=20 | rtl: Cw= 2 Rw= 3 q(C/R/W)=4/6/6 R.T1= 412 R.T4= 418 W.T1= 438 W-R1=26 W-R4=20 | delta=+0
+C= 3 R= 0 | chip: Cw= 3 Rw= 0 q(C/R/W)=4/6/6 R.T1= 413 R.T4= 416 W.T1= 438 W-R1=25 W-R4=22 | rtl: Cw= 3 Rw= 0 q(C/R/W)=4/6/6 R.T1= 413 R.T4= 416 W.T1= 439 W-R1=26 W-R4=23 | delta=+1
+C= 3 R= 1 | chip: Cw= 3 Rw= 1 q(C/R/W)=4/6/6 R.T1= 413 R.T4= 417 W.T1= 438 W-R1=25 W-R4=21 | rtl: Cw= 3 Rw= 1 q(C/R/W)=4/6/6 R.T1= 413 R.T4= 417 W.T1= 439 W-R1=26 W-R4=22 | delta=+1
+C= 3 R= 2 | chip: Cw= 3 Rw= 2 q(C/R/W)=4/6/6 R.T1= 413 R.T4= 418 W.T1= 438 W-R1=25 W-R4=20 | rtl: Cw= 3 Rw= 2 q(C/R/W)=4/6/6 R.T1= 413 R.T4= 418 W.T1= 439 W-R1=26 W-R4=21 | delta=+1
+C= 3 R= 3 | chip: Cw= 3 Rw= 3 q(C/R/W)=4/6/6 R.T1= 413 R.T4= 419 W.T1= 439 W-R1=26 W-R4=20 | rtl: Cw= 3 Rw= 3 q(C/R/W)=4/6/6 R.T1= 413 R.T4= 419 W.T1= 439 W-R1=26 W-R4=20 | delta=+0
+C= 4 R= 0 | chip: Cw= 4 Rw= 0 q(C/R/W)=4/6/6 R.T1= 414 R.T4= 417 W.T1= 438 W-R1=24 W-R4=21 | rtl: Cw= 4 Rw= 0 q(C/R/W)=4/6/6 R.T1= 414 R.T4= 417 W.T1= 440 W-R1=26 W-R4=23 | delta=+2
+C= 4 R= 1 | chip: Cw= 4 Rw= 1 q(C/R/W)=4/6/6 R.T1= 414 R.T4= 418 W.T1= 438 W-R1=24 W-R4=20 | rtl: Cw= 4 Rw= 1 q(C/R/W)=4/6/6 R.T1= 414 R.T4= 418 W.T1= 440 W-R1=26 W-R4=22 | delta=+2
+C= 4 R= 2 | chip: Cw= 4 Rw= 2 q(C/R/W)=4/6/6 R.T1= 414 R.T4= 419 W.T1= 439 W-R1=25 W-R4=20 | rtl: Cw= 4 Rw= 2 q(C/R/W)=4/6/6 R.T1= 414 R.T4= 419 W.T1= 440 W-R1=26 W-R4=21 | delta=+1
+C= 4 R= 3 | chip: Cw= 4 Rw= 3 q(C/R/W)=4/6/6 R.T1= 414 R.T4= 420 W.T1= 440 W-R1=26 W-R4=20 | rtl: Cw= 4 Rw= 3 q(C/R/W)=4/6/6 R.T1= 414 R.T4= 420 W.T1= 440 W-R1=26 W-R4=20 | delta=+0
+original vector: access60=3 access61=1 access62=2
+C= 5 R= 0 | chip: Cw= 5 Rw= 0 q(C/R/W)=4/6/6 R.T1= 415 R.T4= 418 W.T1= 438 W-R1=23 W-R4=20 | rtl: Cw= 5 Rw= 0 q(C/R/W)=4/6/6 R.T1= 415 R.T4= 418 W.T1= 441 W-R1=26 W-R4=23 | delta=+3
+C= 5 R= 1 | chip: Cw= 5 Rw= 1 q(C/R/W)=4/6/6 R.T1= 415 R.T4= 419 W.T1= 439 W-R1=24 W-R4=20 | rtl: Cw= 5 Rw= 1 q(C/R/W)=4/6/6 R.T1= 415 R.T4= 419 W.T1= 441 W-R1=26 W-R4=22 | delta=+2
+C= 5 R= 2 | chip: Cw= 5 Rw= 2 q(C/R/W)=4/6/6 R.T1= 415 R.T4= 420 W.T1= 440 W-R1=25 W-R4=20 | rtl: Cw= 5 Rw= 2 q(C/R/W)=4/6/6 R.T1= 415 R.T4= 420 W.T1= 441 W-R1=26 W-R4=21 | delta=+1
+C= 5 R= 3 | chip: Cw= 5 Rw= 3 q(C/R/W)=4/6/6 R.T1= 415 R.T4= 421 W.T1= 441 W-R1=26 W-R4=20 | rtl: Cw= 5 Rw= 3 q(C/R/W)=4/6/6 R.T1= 415 R.T4= 421 W.T1= 441 W-R1=26 W-R4=20 | delta=+0
+C= 5 R= 7 | chip: Cw= 5 Rw= 7 q(C/R/W)=4/6/6 R.T1= 415 R.T4= 425 W.T1= 445 W-R1=30 W-R4=20 | rtl: Cw= 5 Rw= 7 q(C/R/W)=4/6/6 R.T1= 415 R.T4= 425 W.T1= 445 W-R1=30 W-R4=20 | delta=+0
+C= 6 R= 0 | chip: Cw= 6 Rw= 0 q(C/R/W)=4/6/6 R.T1= 416 R.T4= 419 W.T1= 438 W-R1=22 W-R4=19 | rtl: Cw= 6 Rw= 0 q(C/R/W)=4/6/6 R.T1= 416 R.T4= 419 W.T1= 442 W-R1=26 W-R4=23 | delta=+4
+C= 6 R= 1 | chip: Cw= 6 Rw= 1 q(C/R/W)=4/6/6 R.T1= 416 R.T4= 420 W.T1= 440 W-R1=24 W-R4=20 | rtl: Cw= 6 Rw= 1 q(C/R/W)=4/6/6 R.T1= 416 R.T4= 420 W.T1= 442 W-R1=26 W-R4=22 | delta=+2
+C= 6 R= 2 | chip: Cw= 6 Rw= 2 q(C/R/W)=4/6/6 R.T1= 416 R.T4= 421 W.T1= 441 W-R1=25 W-R4=20 | rtl: Cw= 6 Rw= 2 q(C/R/W)=4/6/6 R.T1= 416 R.T4= 421 W.T1= 442 W-R1=26 W-R4=21 | delta=+1
+C= 6 R= 3 | chip: Cw= 6 Rw= 3 q(C/R/W)=4/6/6 R.T1= 416 R.T4= 422 W.T1= 442 W-R1=26 W-R4=20 | rtl: Cw= 6 Rw= 3 q(C/R/W)=4/6/6 R.T1= 416 R.T4= 422 W.T1= 442 W-R1=26 W-R4=20 | delta=+0
+C= 6 R= 7 | chip: Cw= 6 Rw= 7 q(C/R/W)=4/6/6 R.T1= 416 R.T4= 426 W.T1= 446 W-R1=30 W-R4=20 | rtl: Cw= 6 Rw= 7 q(C/R/W)=4/6/6 R.T1= 416 R.T4= 426 W.T1= 446 W-R1=30 W-R4=20 | delta=+0
+C= 7 R= 0 | chip: Cw= 7 Rw= 0 q(C/R/W)=4/6/6 R.T1= 417 R.T4= 420 W.T1= 439 W-R1=22 W-R4=19 | rtl: Cw= 7 Rw= 0 q(C/R/W)=4/6/6 R.T1= 417 R.T4= 420 W.T1= 443 W-R1=26 W-R4=23 | delta=+4
+C= 7 R= 1 | chip: Cw= 7 Rw= 1 q(C/R/W)=4/6/6 R.T1= 417 R.T4= 421 W.T1= 441 W-R1=24 W-R4=20 | rtl: Cw= 7 Rw= 1 q(C/R/W)=4/6/6 R.T1= 417 R.T4= 421 W.T1= 443 W-R1=26 W-R4=22 | delta=+2
+C= 7 R= 2 | chip: Cw= 7 Rw= 2 q(C/R/W)=4/6/6 R.T1= 417 R.T4= 422 W.T1= 442 W-R1=25 W-R4=20 | rtl: Cw= 7 Rw= 2 q(C/R/W)=4/6/6 R.T1= 417 R.T4= 422 W.T1= 443 W-R1=26 W-R4=21 | delta=+1
+C= 7 R= 3 | chip: Cw= 7 Rw= 3 q(C/R/W)=4/6/6 R.T1= 417 R.T4= 423 W.T1= 443 W-R1=26 W-R4=20 | rtl: Cw= 7 Rw= 3 q(C/R/W)=4/6/6 R.T1= 417 R.T4= 423 W.T1= 443 W-R1=26 W-R4=20 | delta=+0
+C= 7 R= 7 | chip: Cw= 7 Rw= 7 q(C/R/W)=4/6/6 R.T1= 417 R.T4= 427 W.T1= 447 W-R1=30 W-R4=20 | rtl: Cw= 7 Rw= 7 q(C/R/W)=4/6/6 R.T1= 417 R.T4= 427 W.T1= 447 W-R1=30 W-R4=20 | delta=+0
+C=15 R= 0 | chip: Cw=15 Rw= 0 q(C/R/W)=4/6/6 R.T1= 425 R.T4= 428 W.T1= 447 W-R1=22 W-R4=19 | rtl: Cw=15 Rw= 0 q(C/R/W)=4/6/6 R.T1= 425 R.T4= 428 W.T1= 451 W-R1=26 W-R4=23 | delta=+4
+C=15 R= 1 | chip: Cw=15 Rw= 1 q(C/R/W)=4/6/6 R.T1= 425 R.T4= 429 W.T1= 449 W-R1=24 W-R4=20 | rtl: Cw=15 Rw= 1 q(C/R/W)=4/6/6 R.T1= 425 R.T4= 429 W.T1= 451 W-R1=26 W-R4=22 | delta=+2
+C=15 R= 2 | chip: Cw=15 Rw= 2 q(C/R/W)=4/6/6 R.T1= 425 R.T4= 430 W.T1= 450 W-R1=25 W-R4=20 | rtl: Cw=15 Rw= 2 q(C/R/W)=4/6/6 R.T1= 425 R.T4= 430 W.T1= 451 W-R1=26 W-R4=21 | delta=+1
+C=15 R= 3 | chip: Cw=15 Rw= 3 q(C/R/W)=4/6/6 R.T1= 425 R.T4= 431 W.T1= 451 W-R1=26 W-R4=20 | rtl: Cw=15 Rw= 3 q(C/R/W)=4/6/6 R.T1= 425 R.T4= 431 W.T1= 451 W-R1=26 W-R4=20 | delta=+0
+C=15 R= 7 | chip: Cw=15 Rw= 7 q(C/R/W)=4/6/6 R.T1= 425 R.T4= 435 W.T1= 455 W-R1=30 W-R4=20 | rtl: Cw=15 Rw= 7 q(C/R/W)=4/6/6 R.T1= 425 R.T4= 435 W.T1= 455 W-R1=30 W-R4=20 | delta=+0

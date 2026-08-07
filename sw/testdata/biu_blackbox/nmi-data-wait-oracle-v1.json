@@ -1,0 +1,51 @@
+{
+  "details": [],
+  "fit": {
+    "matches": 96,
+    "mismatches": 0,
+    "records": 96
+  },
+  "law": {
+    "IVT_low_and_downstream_shift": "Tw + 1",
+    "QS_E_shift": "Tw + 1",
+    "data_T1_shift": 0,
+    "data_T4_shift": "Tw",
+    "other_preexisting_QS_shift": 0,
+    "pushed_PC_shift": 0
+  },
+  "schema": "v30-biu-nmi-data-wait-oracle-v1",
+  "scope": "final EU data transaction through NMI IVT-low T1",
+  "sources": [
+    {
+      "counts": {
+        "matches": 32,
+        "mismatches": 0,
+        "records": 32
+      },
+      "instruction_class": "mov_aw_mbw",
+      "path": "sw/testdata/biu_blackbox/nmi-data-wait-mov-read-20260729/summary.json",
+      "sha256": "8143fb74550490282df1cc84efa51795530418eeb14e48c28397c956ae66e4b2"
+    },
+    {
+      "counts": {
+        "matches": 32,
+        "mismatches": 0,
+        "records": 32
+      },
+      "instruction_class": "mov_mbw_aw",
+      "path": "sw/testdata/biu_blackbox/nmi-data-wait-mov-write-20260729/summary.json",
+      "sha256": "de9e41164d9ea6a1af5ea3abeae696dda1b640580b7f8377b6994203cd5e783a"
+    },
+    {
+      "counts": {
+        "matches": 32,
+        "mismatches": 0,
+        "records": 32
+      },
+      "instruction_class": "inc_mbw",
+      "path": "sw/testdata/biu_blackbox/nmi-data-wait-rmw-20260729/summary.json",
+      "sha256": "8f7617a5b18faa4db3c89bfaa849aa2d01bdd2f4190b17c72c68303f98bbdbca"
+    }
+  ],
+  "status": "FROZEN_BEFORE_ALTERNATE_PREPARATION_VALIDATION"
+}

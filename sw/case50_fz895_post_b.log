@@ -1,0 +1,9 @@
+H=B w= 0 q=4 chip=4/0058a@899 gap=4 rtl=4/0058a@899 gap=4
+H=B w= 1 q=4 chip=4/0058a@901 gap=5 rtl=4/0058a@901 gap=5
+H=B w= 2 q=4 chip=1/00042@903 gap=6 rtl=1/00042@903 gap=6
+H=B w= 3 q=4 chip=1/00042@903 gap=5 rtl=1/00042@903 gap=5
+H=B w= 4 q=4 chip=1/00042@903 gap=4 rtl=1/00042@903 gap=4
+H=B w= 5 q=4 chip=1/00042@904 gap=4 rtl=1/00042@904 gap=4
+H=B w= 6 q=4 chip=1/00042@903 gap=2 rtl=1/00042@903 gap=2
+H=B w= 7 q=4 chip=1/00042@904 gap=2 rtl=1/00042@904 gap=2
+H=B w=15 q=4 chip=1/00042@912 gap=2 rtl=1/00042@912 gap=2

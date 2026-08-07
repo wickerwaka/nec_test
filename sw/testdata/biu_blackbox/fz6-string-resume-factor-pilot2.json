@@ -1,0 +1,485 @@
+{
+  "records": [
+    {
+      "chip": {
+        "bus": 81,
+        "code_addr": 1352,
+        "gap": 4,
+        "store_addr": 10630,
+        "store_tw": 0
+      },
+      "core": {
+        "bus": 81,
+        "code_addr": 1352,
+        "gap": 4,
+        "store_addr": 10630,
+        "store_tw": 0
+      },
+      "delta": 0,
+      "form": "rep_movsb_c1",
+      "rep": 0,
+      "wait": 0
+    },
+    {
+      "chip": {
+        "bus": 81,
+        "code_addr": 1352,
+        "gap": 4,
+        "store_addr": 10630,
+        "store_tw": 1
+      },
+      "core": {
+        "bus": 81,
+        "code_addr": 1352,
+        "gap": 5,
+        "store_addr": 10630,
+        "store_tw": 1
+      },
+      "delta": -1,
+      "form": "rep_movsb_c1",
+      "rep": 0,
+      "wait": 1
+    },
+    {
+      "chip": {
+        "bus": 80,
+        "code_addr": 1350,
+        "gap": 2,
+        "store_addr": 10630,
+        "store_tw": 2
+      },
+      "core": {
+        "bus": 80,
+        "code_addr": 1350,
+        "gap": 2,
+        "store_addr": 10630,
+        "store_tw": 2
+      },
+      "delta": 0,
+      "form": "rep_movsb_c1",
+      "rep": 0,
+      "wait": 2
+    },
+    {
+      "chip": {
+        "bus": 83,
+        "code_addr": 1352,
+        "gap": 4,
+        "store_addr": 10631,
+        "store_tw": 0
+      },
+      "core": {
+        "bus": 83,
+        "code_addr": 1352,
+        "gap": 4,
+        "store_addr": 10631,
+        "store_tw": 0
+      },
+      "delta": 0,
+      "form": "rep_movsb_c2",
+      "rep": 0,
+      "wait": 0
+    },
+    {
+      "chip": {
+        "bus": 83,
+        "code_addr": 1352,
+        "gap": 4,
+        "store_addr": 10631,
+        "store_tw": 1
+      },
+      "core": {
+        "bus": 83,
+        "code_addr": 1352,
+        "gap": 5,
+        "store_addr": 10631,
+        "store_tw": 1
+      },
+      "delta": -1,
+      "form": "rep_movsb_c2",
+      "rep": 0,
+      "wait": 1
+    },
+    {
+      "chip": {
+        "bus": 82,
+        "code_addr": 1350,
+        "gap": 2,
+        "store_addr": 10631,
+        "store_tw": 2
+      },
+      "core": {
+        "bus": 82,
+        "code_addr": 1350,
+        "gap": 2,
+        "store_addr": 10631,
+        "store_tw": 2
+      },
+      "delta": 0,
+      "form": "rep_movsb_c2",
+      "rep": 0,
+      "wait": 2
+    },
+    {
+      "chip": {
+        "bus": 85,
+        "code_addr": 1352,
+        "gap": 4,
+        "store_addr": 10632,
+        "store_tw": 0
+      },
+      "core": {
+        "bus": 85,
+        "code_addr": 1352,
+        "gap": 4,
+        "store_addr": 10632,
+        "store_tw": 0
+      },
+      "delta": 0,
+      "form": "rep_movsb_c3",
+      "rep": 0,
+      "wait": 0
+    },
+    {
+      "chip": {
+        "bus": 85,
+        "code_addr": 1352,
+        "gap": 4,
+        "store_addr": 10632,
+        "store_tw": 1
+      },
+      "core": {
+        "bus": 85,
+        "code_addr": 1352,
+        "gap": 5,
+        "store_addr": 10632,
+        "store_tw": 1
+      },
+      "delta": -1,
+      "form": "rep_movsb_c3",
+      "rep": 0,
+      "wait": 1
+    },
+    {
+      "chip": {
+        "bus": 84,
+        "code_addr": 1350,
+        "gap": 2,
+        "store_addr": 10632,
+        "store_tw": 2
+      },
+      "core": {
+        "bus": 84,
+        "code_addr": 1350,
+        "gap": 2,
+        "store_addr": 10632,
+        "store_tw": 2
+      },
+      "delta": 0,
+      "form": "rep_movsb_c3",
+      "rep": 0,
+      "wait": 2
+    },
+    {
+      "chip": {
+        "bus": 85,
+        "code_addr": 1352,
+        "gap": 4,
+        "store_addr": 10632,
+        "store_tw": 0
+      },
+      "core": {
+        "bus": 85,
+        "code_addr": 1352,
+        "gap": 4,
+        "store_addr": 10632,
+        "store_tw": 0
+      },
+      "delta": 0,
+      "form": "rep_movsw_c2",
+      "rep": 0,
+      "wait": 0
+    },
+    {
+      "chip": {
+        "bus": 85,
+        "code_addr": 1352,
+        "gap": 4,
+        "store_addr": 10632,
+        "store_tw": 1
+      },
+      "core": {
+        "bus": 85,
+        "code_addr": 1352,
+        "gap": 5,
+        "store_addr": 10632,
+        "store_tw": 1
+      },
+      "delta": -1,
+      "form": "rep_movsw_c2",
+      "rep": 0,
+      "wait": 1
+    },
+    {
+      "chip": {
+        "bus": 84,
+        "code_addr": 1350,
+        "gap": 2,
+        "store_addr": 10632,
+        "store_tw": 2
+      },
+      "core": {
+        "bus": 84,
+        "code_addr": 1350,
+        "gap": 2,
+        "store_addr": 10632,
+        "store_tw": 2
+      },
+      "delta": 0,
+      "form": "rep_movsw_c2",
+      "rep": 0,
+      "wait": 2
+    },
+    {
+      "chip": {
+        "bus": 81,
+        "code_addr": 1352,
+        "gap": 4,
+        "store_addr": 10631,
+        "store_tw": 0
+      },
+      "core": {
+        "bus": 81,
+        "code_addr": 1352,
+        "gap": 4,
+        "store_addr": 10631,
+        "store_tw": 0
+      },
+      "delta": 0,
+      "form": "rep_stosb_c2",
+      "rep": 0,
+      "wait": 0
+    },
+    {
+      "chip": {
+        "bus": 81,
+        "code_addr": 1352,
+        "gap": 4,
+        "store_addr": 10631,
+        "store_tw": 1
+      },
+      "core": {
+        "bus": 81,
+        "code_addr": 1352,
+        "gap": 5,
+        "store_addr": 10631,
+        "store_tw": 1
+      },
+      "delta": -1,
+      "form": "rep_stosb_c2",
+      "rep": 0,
+      "wait": 1
+    },
+    {
+      "chip": {
+        "bus": 80,
+        "code_addr": 1350,
+        "gap": 2,
+        "store_addr": 10631,
+        "store_tw": 2
+      },
+      "core": {
+        "bus": 80,
+        "code_addr": 1350,
+        "gap": 2,
+        "store_addr": 10631,
+        "store_tw": 2
+      },
+      "delta": 0,
+      "form": "rep_stosb_c2",
+      "rep": 0,
+      "wait": 2
+    },
+    {
+      "chip": {
+        "bus": 81,
+        "code_addr": 1352,
+        "gap": 4,
+        "store_addr": 10632,
+        "store_tw": 0
+      },
+      "core": {
+        "bus": 81,
+        "code_addr": 1352,
+        "gap": 4,
+        "store_addr": 10632,
+        "store_tw": 0
+      },
+      "delta": 0,
+      "form": "rep_stosw_c2",
+      "rep": 0,
+      "wait": 0
+    },
+    {
+      "chip": {
+        "bus": 81,
+        "code_addr": 1352,
+        "gap": 4,
+        "store_addr": 10632,
+        "store_tw": 1
+      },
+      "core": {
+        "bus": 81,
+        "code_addr": 1352,
+        "gap": 5,
+        "store_addr": 10632,
+        "store_tw": 1
+      },
+      "delta": -1,
+      "form": "rep_stosw_c2",
+      "rep": 0,
+      "wait": 1
+    },
+    {
+      "chip": {
+        "bus": 80,
+        "code_addr": 1350,
+        "gap": 2,
+        "store_addr": 10632,
+        "store_tw": 2
+      },
+      "core": {
+        "bus": 80,
+        "code_addr": 1350,
+        "gap": 2,
+        "store_addr": 10632,
+        "store_tw": 2
+      },
+      "delta": 0,
+      "form": "rep_stosw_c2",
+      "rep": 0,
+      "wait": 2
+    },
+    {
+      "chip": {
+        "bus": 81,
+        "code_addr": 1352,
+        "gap": 3,
+        "store_addr": 10630,
+        "store_tw": 0
+      },
+      "core": {
+        "bus": 81,
+        "code_addr": 1352,
+        "gap": 3,
+        "store_addr": 10630,
+        "store_tw": 0
+      },
+      "delta": 0,
+      "form": "single_movsb",
+      "rep": 0,
+      "wait": 0
+    },
+    {
+      "chip": {
+        "bus": 80,
+        "code_addr": 1350,
+        "gap": 2,
+        "store_addr": 10630,
+        "store_tw": 1
+      },
+      "core": {
+        "bus": 80,
+        "code_addr": 1350,
+        "gap": 2,
+        "store_addr": 10630,
+        "store_tw": 1
+      },
+      "delta": 0,
+      "form": "single_movsb",
+      "rep": 0,
+      "wait": 1
+    },
+    {
+      "chip": {
+        "bus": 80,
+        "code_addr": 1350,
+        "gap": 2,
+        "store_addr": 10630,
+        "store_tw": 2
+      },
+      "core": {
+        "bus": 80,
+        "code_addr": 1350,
+        "gap": 2,
+        "store_addr": 10630,
+        "store_tw": 2
+      },
+      "delta": 0,
+      "form": "single_movsb",
+      "rep": 0,
+      "wait": 2
+    },
+    {
+      "chip": {
+        "bus": 80,
+        "code_addr": 1352,
+        "gap": 3,
+        "store_addr": 10630,
+        "store_tw": 0
+      },
+      "core": {
+        "bus": 80,
+        "code_addr": 1352,
+        "gap": 3,
+        "store_addr": 10630,
+        "store_tw": 0
+      },
+      "delta": 0,
+      "form": "single_stosb",
+      "rep": 0,
+      "wait": 0
+    },
+    {
+      "chip": {
+        "bus": 79,
+        "code_addr": 1350,
+        "gap": 2,
+        "store_addr": 10630,
+        "store_tw": 1
+      },
+      "core": {
+        "bus": 79,
+        "code_addr": 1350,
+        "gap": 2,
+        "store_addr": 10630,
+        "store_tw": 1
+      },
+      "delta": 0,
+      "form": "single_stosb",
+      "rep": 0,
+      "wait": 1
+    },
+    {
+      "chip": {
+        "bus": 79,
+        "code_addr": 1350,
+        "gap": 2,
+        "store_addr": 10630,
+        "store_tw": 2
+      },
+      "core": {
+        "bus": 79,
+        "code_addr": 1350,
+        "gap": 2,
+        "store_addr": 10630,
+        "store_tw": 2
+      },
+      "delta": 0,
+      "form": "single_stosb",
+      "rep": 0,
+      "wait": 2
+    }
+  ],
+  "schema": "fz6-string-resume-factor-v1"
+}

@@ -1,0 +1,57 @@
+{
+  "counts": {
+    "matches": 4240,
+    "records": 4240
+  },
+  "exact_command": "python3 sw/biu_blackbox_oracle_v2_validate.py sw/testdata/biu_blackbox/chip-oracle-v2.json sw/testdata/biu_blackbox/oracle-v2-heldout-20260729/summary.json sw/testdata/biu_blackbox/chip-oracle-v2.validation.json",
+  "forms": {
+    "v2_lea_dw": {
+      "matches": 432,
+      "records": 432
+    },
+    "v2_lea_dw_disp8": {
+      "matches": 432,
+      "records": 432
+    },
+    "v2_read_dw": {
+      "matches": 424,
+      "records": 424
+    },
+    "v2_read_dw_disp16": {
+      "matches": 416,
+      "records": 416
+    },
+    "v2_read_dw_disp8": {
+      "matches": 408,
+      "records": 408
+    },
+    "v2_rmw_dec": {
+      "matches": 424,
+      "records": 424
+    },
+    "v2_rmw_dec_disp8": {
+      "matches": 408,
+      "records": 408
+    },
+    "v2_write_dw": {
+      "matches": 432,
+      "records": 432
+    },
+    "v2_write_dw_disp16": {
+      "matches": 432,
+      "records": 432
+    },
+    "v2_write_dw_disp8": {
+      "matches": 432,
+      "records": 432
+    }
+  },
+  "gate": "PASS",
+  "heldout": "sw/testdata/biu_blackbox/oracle-v2-heldout-20260729/summary.json",
+  "heldout_sha256": "6c474921d01a01685cb70ae5a948abe2a83e6d8b51ec3a2dd16576b5938bd6c2",
+  "mismatch_details": [],
+  "oracle": "sw/testdata/biu_blackbox/chip-oracle-v2.json",
+  "oracle_sha256": "0d923578af0ece61864af3fb3156d2038e3049704f48cedf770d855c4e3a80f5",
+  "schema": "v30-biu-chip-oracle-v2-validation",
+  "status": "PROSPECTIVE_FRESH_ORDINARY_HELDOUT"
+}

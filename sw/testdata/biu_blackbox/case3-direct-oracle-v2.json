@@ -1,0 +1,750 @@
+{
+  "dimensions": {
+    "clock_mhz_collapsed_after_chip_identity": [
+      4,
+      8
+    ],
+    "histories_collapsed_after_chip_identity": [
+      "A",
+      "B"
+    ],
+    "waits": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      15
+    ]
+  },
+  "normalization": "address_from_target = outcome address - instruction target",
+  "prediction_table": {
+    "direct_lea_aw": {
+      "0": {
+        "action": "CODE",
+        "address_from_target": 5,
+        "clocks_to_t1": 1,
+        "intervening_qs": [
+          {
+            "clock_delta": 1,
+            "event": "S"
+          }
+        ],
+        "width": 16
+      },
+      "1": {
+        "action": "CODE",
+        "address_from_target": 5,
+        "clocks_to_t1": 3,
+        "intervening_qs": [
+          {
+            "clock_delta": 1,
+            "event": "S"
+          }
+        ],
+        "width": 16
+      },
+      "15": {
+        "action": "CODE",
+        "address_from_target": 5,
+        "clocks_to_t1": 17,
+        "intervening_qs": [
+          {
+            "clock_delta": 1,
+            "event": "S"
+          }
+        ],
+        "width": 16
+      },
+      "2": {
+        "action": "CODE",
+        "address_from_target": 5,
+        "clocks_to_t1": 4,
+        "intervening_qs": [
+          {
+            "clock_delta": 1,
+            "event": "S"
+          }
+        ],
+        "width": 16
+      },
+      "3": {
+        "action": "CODE",
+        "address_from_target": 5,
+        "clocks_to_t1": 5,
+        "intervening_qs": [
+          {
+            "clock_delta": 1,
+            "event": "S"
+          }
+        ],
+        "width": 16
+      },
+      "4": {
+        "action": "CODE",
+        "address_from_target": 5,
+        "clocks_to_t1": 6,
+        "intervening_qs": [
+          {
+            "clock_delta": 1,
+            "event": "S"
+          }
+        ],
+        "width": 16
+      },
+      "5": {
+        "action": "CODE",
+        "address_from_target": 5,
+        "clocks_to_t1": 7,
+        "intervening_qs": [
+          {
+            "clock_delta": 1,
+            "event": "S"
+          }
+        ],
+        "width": 16
+      },
+      "6": {
+        "action": "CODE",
+        "address_from_target": 5,
+        "clocks_to_t1": 8,
+        "intervening_qs": [
+          {
+            "clock_delta": 1,
+            "event": "S"
+          }
+        ],
+        "width": 16
+      },
+      "7": {
+        "action": "CODE",
+        "address_from_target": 5,
+        "clocks_to_t1": 9,
+        "intervening_qs": [
+          {
+            "clock_delta": 1,
+            "event": "S"
+          }
+        ],
+        "width": 16
+      }
+    },
+    "direct_read_aw": {
+      "0": {
+        "action": "CODE",
+        "address_from_target": 5,
+        "clocks_to_t1": 1,
+        "intervening_qs": [
+          {
+            "clock_delta": 1,
+            "event": "S"
+          }
+        ],
+        "width": 16
+      },
+      "1": {
+        "action": "CODE",
+        "address_from_target": 5,
+        "clocks_to_t1": 3,
+        "intervening_qs": [
+          {
+            "clock_delta": 1,
+            "event": "S"
+          }
+        ],
+        "width": 16
+      },
+      "15": {
+        "action": "CODE",
+        "address_from_target": 5,
+        "clocks_to_t1": 17,
+        "intervening_qs": [
+          {
+            "clock_delta": 1,
+            "event": "S"
+          }
+        ],
+        "width": 16
+      },
+      "2": {
+        "action": "CODE",
+        "address_from_target": 5,
+        "clocks_to_t1": 4,
+        "intervening_qs": [
+          {
+            "clock_delta": 1,
+            "event": "S"
+          }
+        ],
+        "width": 16
+      },
+      "3": {
+        "action": "CODE",
+        "address_from_target": 5,
+        "clocks_to_t1": 5,
+        "intervening_qs": [
+          {
+            "clock_delta": 1,
+            "event": "S"
+          }
+        ],
+        "width": 16
+      },
+      "4": {
+        "action": "CODE",
+        "address_from_target": 5,
+        "clocks_to_t1": 6,
+        "intervening_qs": [
+          {
+            "clock_delta": 1,
+            "event": "S"
+          }
+        ],
+        "width": 16
+      },
+      "5": {
+        "action": "CODE",
+        "address_from_target": 5,
+        "clocks_to_t1": 7,
+        "intervening_qs": [
+          {
+            "clock_delta": 1,
+            "event": "S"
+          }
+        ],
+        "width": 16
+      },
+      "6": {
+        "action": "CODE",
+        "address_from_target": 5,
+        "clocks_to_t1": 8,
+        "intervening_qs": [
+          {
+            "clock_delta": 1,
+            "event": "S"
+          }
+        ],
+        "width": 16
+      },
+      "7": {
+        "action": "CODE",
+        "address_from_target": 5,
+        "clocks_to_t1": 9,
+        "intervening_qs": [
+          {
+            "clock_delta": 1,
+            "event": "S"
+          }
+        ],
+        "width": 16
+      }
+    },
+    "direct_read_dw": {
+      "0": {
+        "action": "CODE",
+        "address_from_target": 5,
+        "clocks_to_t1": 1,
+        "intervening_qs": [
+          {
+            "clock_delta": 1,
+            "event": "S"
+          }
+        ],
+        "width": 16
+      },
+      "1": {
+        "action": "CODE",
+        "address_from_target": 5,
+        "clocks_to_t1": 3,
+        "intervening_qs": [
+          {
+            "clock_delta": 1,
+            "event": "S"
+          }
+        ],
+        "width": 16
+      },
+      "15": {
+        "action": "CODE",
+        "address_from_target": 5,
+        "clocks_to_t1": 17,
+        "intervening_qs": [
+          {
+            "clock_delta": 1,
+            "event": "S"
+          }
+        ],
+        "width": 16
+      },
+      "2": {
+        "action": "CODE",
+        "address_from_target": 5,
+        "clocks_to_t1": 4,
+        "intervening_qs": [
+          {
+            "clock_delta": 1,
+            "event": "S"
+          }
+        ],
+        "width": 16
+      },
+      "3": {
+        "action": "CODE",
+        "address_from_target": 5,
+        "clocks_to_t1": 5,
+        "intervening_qs": [
+          {
+            "clock_delta": 1,
+            "event": "S"
+          }
+        ],
+        "width": 16
+      },
+      "4": {
+        "action": "CODE",
+        "address_from_target": 5,
+        "clocks_to_t1": 6,
+        "intervening_qs": [
+          {
+            "clock_delta": 1,
+            "event": "S"
+          }
+        ],
+        "width": 16
+      },
+      "5": {
+        "action": "CODE",
+        "address_from_target": 5,
+        "clocks_to_t1": 7,
+        "intervening_qs": [
+          {
+            "clock_delta": 1,
+            "event": "S"
+          }
+        ],
+        "width": 16
+      },
+      "6": {
+        "action": "CODE",
+        "address_from_target": 5,
+        "clocks_to_t1": 8,
+        "intervening_qs": [
+          {
+            "clock_delta": 1,
+            "event": "S"
+          }
+        ],
+        "width": 16
+      },
+      "7": {
+        "action": "CODE",
+        "address_from_target": 5,
+        "clocks_to_t1": 9,
+        "intervening_qs": [
+          {
+            "clock_delta": 1,
+            "event": "S"
+          }
+        ],
+        "width": 16
+      }
+    },
+    "direct_rmw_inc": {
+      "0": {
+        "action": "CODE",
+        "address_from_target": 5,
+        "clocks_to_t1": 1,
+        "intervening_qs": [
+          {
+            "clock_delta": 1,
+            "event": "S"
+          }
+        ],
+        "width": 16
+      },
+      "1": {
+        "action": "CODE",
+        "address_from_target": 5,
+        "clocks_to_t1": 3,
+        "intervening_qs": [
+          {
+            "clock_delta": 1,
+            "event": "S"
+          }
+        ],
+        "width": 16
+      },
+      "15": {
+        "action": "CODE",
+        "address_from_target": 5,
+        "clocks_to_t1": 17,
+        "intervening_qs": [
+          {
+            "clock_delta": 1,
+            "event": "S"
+          }
+        ],
+        "width": 16
+      },
+      "2": {
+        "action": "CODE",
+        "address_from_target": 5,
+        "clocks_to_t1": 4,
+        "intervening_qs": [
+          {
+            "clock_delta": 1,
+            "event": "S"
+          }
+        ],
+        "width": 16
+      },
+      "3": {
+        "action": "CODE",
+        "address_from_target": 5,
+        "clocks_to_t1": 5,
+        "intervening_qs": [
+          {
+            "clock_delta": 1,
+            "event": "S"
+          }
+        ],
+        "width": 16
+      },
+      "4": {
+        "action": "CODE",
+        "address_from_target": 5,
+        "clocks_to_t1": 6,
+        "intervening_qs": [
+          {
+            "clock_delta": 1,
+            "event": "S"
+          }
+        ],
+        "width": 16
+      },
+      "5": {
+        "action": "CODE",
+        "address_from_target": 5,
+        "clocks_to_t1": 7,
+        "intervening_qs": [
+          {
+            "clock_delta": 1,
+            "event": "S"
+          }
+        ],
+        "width": 16
+      },
+      "6": {
+        "action": "CODE",
+        "address_from_target": 5,
+        "clocks_to_t1": 8,
+        "intervening_qs": [
+          {
+            "clock_delta": 1,
+            "event": "S"
+          }
+        ],
+        "width": 16
+      },
+      "7": {
+        "action": "CODE",
+        "address_from_target": 5,
+        "clocks_to_t1": 9,
+        "intervening_qs": [
+          {
+            "clock_delta": 1,
+            "event": "S"
+          }
+        ],
+        "width": 16
+      }
+    },
+    "direct_write_aw": {
+      "0": {
+        "action": "CODE",
+        "address_from_target": 5,
+        "clocks_to_t1": 1,
+        "intervening_qs": [
+          {
+            "clock_delta": 1,
+            "event": "S"
+          }
+        ],
+        "width": 16
+      },
+      "1": {
+        "action": "CODE",
+        "address_from_target": 5,
+        "clocks_to_t1": 3,
+        "intervening_qs": [
+          {
+            "clock_delta": 1,
+            "event": "S"
+          }
+        ],
+        "width": 16
+      },
+      "15": {
+        "action": "CODE",
+        "address_from_target": 5,
+        "clocks_to_t1": 17,
+        "intervening_qs": [
+          {
+            "clock_delta": 1,
+            "event": "S"
+          }
+        ],
+        "width": 16
+      },
+      "2": {
+        "action": "CODE",
+        "address_from_target": 5,
+        "clocks_to_t1": 4,
+        "intervening_qs": [
+          {
+            "clock_delta": 1,
+            "event": "S"
+          }
+        ],
+        "width": 16
+      },
+      "3": {
+        "action": "CODE",
+        "address_from_target": 5,
+        "clocks_to_t1": 5,
+        "intervening_qs": [
+          {
+            "clock_delta": 1,
+            "event": "S"
+          }
+        ],
+        "width": 16
+      },
+      "4": {
+        "action": "CODE",
+        "address_from_target": 5,
+        "clocks_to_t1": 6,
+        "intervening_qs": [
+          {
+            "clock_delta": 1,
+            "event": "S"
+          }
+        ],
+        "width": 16
+      },
+      "5": {
+        "action": "CODE",
+        "address_from_target": 5,
+        "clocks_to_t1": 7,
+        "intervening_qs": [
+          {
+            "clock_delta": 1,
+            "event": "S"
+          }
+        ],
+        "width": 16
+      },
+      "6": {
+        "action": "CODE",
+        "address_from_target": 5,
+        "clocks_to_t1": 8,
+        "intervening_qs": [
+          {
+            "clock_delta": 1,
+            "event": "S"
+          }
+        ],
+        "width": 16
+      },
+      "7": {
+        "action": "CODE",
+        "address_from_target": 5,
+        "clocks_to_t1": 9,
+        "intervening_qs": [
+          {
+            "clock_delta": 1,
+            "event": "S"
+          }
+        ],
+        "width": 16
+      }
+    },
+    "disp8_read_aw": {
+      "0": {
+        "action": "CODE",
+        "address_from_target": 5,
+        "clocks_to_t1": 1,
+        "intervening_qs": [],
+        "width": 16
+      },
+      "1": {
+        "action": "CODE",
+        "address_from_target": 5,
+        "clocks_to_t1": 3,
+        "intervening_qs": [
+          {
+            "clock_delta": 2,
+            "event": "S"
+          }
+        ],
+        "width": 16
+      },
+      "15": {
+        "action": "MEMR",
+        "address_from_target": 6887,
+        "clocks_to_t1": 17,
+        "intervening_qs": [
+          {
+            "clock_delta": 2,
+            "event": "S"
+          }
+        ],
+        "width": 16
+      },
+      "2": {
+        "action": "MEMR",
+        "address_from_target": 6887,
+        "clocks_to_t1": 6,
+        "intervening_qs": [
+          {
+            "clock_delta": 2,
+            "event": "S"
+          }
+        ],
+        "width": 16
+      },
+      "3": {
+        "action": "MEMR",
+        "address_from_target": 6887,
+        "clocks_to_t1": 5,
+        "intervening_qs": [
+          {
+            "clock_delta": 2,
+            "event": "S"
+          }
+        ],
+        "width": 16
+      },
+      "4": {
+        "action": "MEMR",
+        "address_from_target": 6887,
+        "clocks_to_t1": 6,
+        "intervening_qs": [
+          {
+            "clock_delta": 2,
+            "event": "S"
+          }
+        ],
+        "width": 16
+      },
+      "5": {
+        "action": "MEMR",
+        "address_from_target": 6887,
+        "clocks_to_t1": 7,
+        "intervening_qs": [
+          {
+            "clock_delta": 2,
+            "event": "S"
+          }
+        ],
+        "width": 16
+      },
+      "6": {
+        "action": "MEMR",
+        "address_from_target": 6887,
+        "clocks_to_t1": 8,
+        "intervening_qs": [
+          {
+            "clock_delta": 2,
+            "event": "S"
+          }
+        ],
+        "width": 16
+      },
+      "7": {
+        "action": "MEMR",
+        "address_from_target": 6887,
+        "clocks_to_t1": 9,
+        "intervening_qs": [
+          {
+            "clock_delta": 2,
+            "event": "S"
+          }
+        ],
+        "width": 16
+      }
+    },
+    "nodisp_read_aw": {
+      "0": {
+        "action": "CODE",
+        "address_from_target": 5,
+        "clocks_to_t1": 1,
+        "intervening_qs": [],
+        "width": 16
+      },
+      "1": {
+        "action": "MEMR",
+        "address_from_target": 6887,
+        "clocks_to_t1": 5,
+        "intervening_qs": [],
+        "width": 16
+      },
+      "15": {
+        "action": "MEMR",
+        "address_from_target": 6887,
+        "clocks_to_t1": 17,
+        "intervening_qs": [],
+        "width": 16
+      },
+      "2": {
+        "action": "MEMR",
+        "address_from_target": 6887,
+        "clocks_to_t1": 4,
+        "intervening_qs": [],
+        "width": 16
+      },
+      "3": {
+        "action": "MEMR",
+        "address_from_target": 6887,
+        "clocks_to_t1": 5,
+        "intervening_qs": [],
+        "width": 16
+      },
+      "4": {
+        "action": "MEMR",
+        "address_from_target": 6887,
+        "clocks_to_t1": 6,
+        "intervening_qs": [],
+        "width": 16
+      },
+      "5": {
+        "action": "MEMR",
+        "address_from_target": 6887,
+        "clocks_to_t1": 7,
+        "intervening_qs": [],
+        "width": 16
+      },
+      "6": {
+        "action": "MEMR",
+        "address_from_target": 6887,
+        "clocks_to_t1": 8,
+        "intervening_qs": [],
+        "width": 16
+      },
+      "7": {
+        "action": "MEMR",
+        "address_from_target": 6887,
+        "clocks_to_t1": 9,
+        "intervening_qs": [],
+        "width": 16
+      }
+    }
+  },
+  "schema": "v30-biu-case3-direct-oracle-v2",
+  "status": "FROZEN_BEFORE_PAD10_VALIDATION",
+  "training_sha256": "d073ee40b9038d0e65ddb7e4efe40829edf56483ab16b03cc5b38d28a370e351",
+  "training_summary": "sw/testdata/biu_blackbox/case3-direct-validation-pad6/summary.json"
+}

@@ -9,3 +9,15 @@ sw/testdata/chipcache/
 sw/testdata/campaigns/*/captures/
 sw/testdata/campaigns/*/heartbeat.json
 tests/v30/*/heartbeat.json
+
+# BIU black-box campaign ledgers are local working data.  The frozen oracle
+# JSON files at the root of this directory are versioned explicitly.
+sw/testdata/biu_blackbox/*/
+
+# Top-level experiment transcripts and per-case result dumps are local working
+# data.  Evidence cited by repository notes is versioned explicitly.
+sw/*.log
+sw/*.stdout
+sw/case*.json
+sw/exp_race_characterize.json
+sw/class5_lbcal.json

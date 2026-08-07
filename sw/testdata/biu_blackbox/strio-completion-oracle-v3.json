@@ -1,0 +1,35 @@
+{
+  "frozen_from": [
+    "strio-completion-oracle-v2",
+    "case30-prefixed-rep-pop-collision-chip-v1",
+    "case31-rep-successor-ea-factorial-chip-v1"
+  ],
+  "rules": {
+    "0:none": {
+      "next_action": "CODE",
+      "positive_wait_gap": 2,
+      "zero_wait_gap": 1
+    },
+    "1:immature": {
+      "next_action": "CODE",
+      "positive_wait_gap": 5,
+      "zero_wait_gap": 4
+    },
+    "1:mature": {
+      "next_action": "MEMR",
+      "positive_wait_gap": 6,
+      "zero_wait_gap": 5
+    },
+    "1:none": {
+      "next_action": "CODE",
+      "positive_wait_gap": 5,
+      "zero_wait_gap": 4
+    }
+  },
+  "schema": "v30-biu-strio-completion-oracle-v3",
+  "state_inputs": [
+    "QS pop count during completing transfer",
+    "successor request maturity",
+    "selected wait is zero"
+  ]
+}

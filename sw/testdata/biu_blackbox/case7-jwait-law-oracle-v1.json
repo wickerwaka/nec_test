@@ -1,0 +1,90 @@
+{
+  "controls": {
+    "clock_mhz": [
+      4,
+      8
+    ],
+    "condition_opcodes": [
+      112,
+      117,
+      121,
+      123
+    ],
+    "histories": [
+      "A",
+      "B"
+    ],
+    "repetitions": 5,
+    "waits": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      15
+    ]
+  },
+  "forbidden_variables": [
+    "condition opcode",
+    "branch displacement",
+    "program seed",
+    "absolute ordinal",
+    "preparation-history fingerprint"
+  ],
+  "schema": "v30-biu-case7-jwait-law-oracle-v1",
+  "scope": "taken Jcc final hard reservation colliding with a scheduled class-5 CODE resume",
+  "source": "sw/testdata/biu_blackbox/case7-jwait-law-chip-v1/summary.json",
+  "source_sha256": "cfc6dfab50891a7287eb682d3eb643d34628d4925b7544f6b325dbea69377733",
+  "state_rule": "a scheduled CODE resume yields when Jcc is in its final not-ready reservation clock; earlier JWAIT clocks do not block",
+  "status": "FROZEN_BEFORE_RTL",
+  "table": {
+    "w0": {
+      "redirect_address": 1390,
+      "redirect_t1_from_e": 1,
+      "target_fetches_before_continue": 2
+    },
+    "w1": {
+      "redirect_address": 1390,
+      "redirect_t1_from_e": 1,
+      "target_fetches_before_continue": 2
+    },
+    "w15": {
+      "redirect_address": 1390,
+      "redirect_t1_from_e": 1,
+      "target_fetches_before_continue": 1
+    },
+    "w2": {
+      "redirect_address": 1390,
+      "redirect_t1_from_e": 1,
+      "target_fetches_before_continue": 2
+    },
+    "w3": {
+      "redirect_address": 1390,
+      "redirect_t1_from_e": 2,
+      "target_fetches_before_continue": 1
+    },
+    "w4": {
+      "redirect_address": 1390,
+      "redirect_t1_from_e": 2,
+      "target_fetches_before_continue": 1
+    },
+    "w5": {
+      "redirect_address": 1390,
+      "redirect_t1_from_e": 2,
+      "target_fetches_before_continue": 1
+    },
+    "w6": {
+      "redirect_address": 1390,
+      "redirect_t1_from_e": 1,
+      "target_fetches_before_continue": 1
+    },
+    "w7": {
+      "redirect_address": 1390,
+      "redirect_t1_from_e": 1,
+      "target_fetches_before_continue": 1
+    }
+  }
+}

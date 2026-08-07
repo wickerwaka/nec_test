@@ -1,0 +1,89 @@
+{
+  "collision_phase_counts": {
+    "-1": 24,
+    "-2": 28,
+    "-26": 24,
+    "-27": 8,
+    "-3": 12,
+    "-4": 24,
+    "-5": 24,
+    "0": 16,
+    "None": 168
+  },
+  "details": [],
+  "epistemic_boundary": "EU eligibility and BIU collision transform are frozen; a unified oracle must independently predict the intervening CODE completion",
+  "fit": {
+    "matches": 328,
+    "mismatches": 0,
+    "records": 328,
+    "unsupported": 0
+  },
+  "law": {
+    "INTA1_T1": "actual INTA0 T1 + 7",
+    "IVT_low_T1": "actual INTA0 T1 + 17",
+    "nominal_INTA0_T1": {
+      "F age 0": 7,
+      "F age 1": 9,
+      "F age 2": 8,
+      "S age 0..24": "31 - age",
+      "S age 25..26": "34 - age"
+    },
+    "producer_collision_delay": "1 iff last pre-INTA CODE T4 - nominal INTA0 T1 is -2 or 0; otherwise 0",
+    "pushed_PC": {
+      "S age 0..24 or F age 0": "queue head address",
+      "S age 25..26 or F age 1..2": "queue head address + 1"
+    }
+  },
+  "phase_counts": {
+    "F:0": 44,
+    "F:1": 44,
+    "F:2": 36,
+    "S:0": 4,
+    "S:1": 4,
+    "S:10": 8,
+    "S:11": 8,
+    "S:12": 8,
+    "S:13": 8,
+    "S:14": 8,
+    "S:15": 8,
+    "S:16": 8,
+    "S:17": 8,
+    "S:18": 8,
+    "S:19": 8,
+    "S:2": 4,
+    "S:20": 8,
+    "S:21": 8,
+    "S:22": 8,
+    "S:23": 8,
+    "S:24": 8,
+    "S:25": 8,
+    "S:26": 8,
+    "S:3": 8,
+    "S:4": 8,
+    "S:5": 8,
+    "S:6": 8,
+    "S:7": 8,
+    "S:8": 8,
+    "S:9": 8
+  },
+  "schema": "v30-biu-hwint-recognition-oracle-v1",
+  "scope": "maskable INTR during DIVU completion and one-byte NOP stream",
+  "source": "sw/testdata/biu_blackbox/hwint-sequence-discovery-v2-20260729/summary.json",
+  "source_sha256": "6212636c4be4330a073340f12a4d3e81a0d6e1181144ee215655b9fff1d2402e",
+  "state": {
+    "composed_input": "last producer CODE T4 before nominal INTA T1",
+    "coverage_limit": "capture harness forces hardware interrupt vector 0xFF",
+    "excluded": [
+      "event delay",
+      "history",
+      "clock frequency"
+    ],
+    "required": [
+      "queue head address",
+      "last QS role",
+      "clocks since last QS",
+      "controlled current instruction class"
+    ]
+  },
+  "status": "FROZEN_BEFORE_FRESH_PAD_HANDLER_STACK_VALIDATION"
+}

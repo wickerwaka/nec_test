@@ -1,0 +1,19 @@
+{
+  "counts": [
+    9,
+    10,
+    11,
+    12,
+    13,
+    14
+  ],
+  "gate": "PASS",
+  "heldout": "sw/testdata/biu_blackbox/prefix-phase-heldout-20260729/summary.json",
+  "heldout_sha256": "9daf1cc5e951de8981c6e06d39e1b48805bb5b802d39c03102f4e22437a66c5b",
+  "mismatch_details": [],
+  "mismatches": 0,
+  "oracle": "sw/testdata/biu_blackbox/prefix-phase-oracle-v1.json",
+  "oracle_sha256": "a805579bc34412e8730093cd717904f43e33a340f4435e210081cf44dae7420e",
+  "records": 240,
+  "schema": "v30-biu-prefix-phase-validation-v1"
+}

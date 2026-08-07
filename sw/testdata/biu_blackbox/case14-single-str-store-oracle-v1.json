@@ -1,0 +1,67 @@
+{
+  "case5_control_source": "sw/testdata/biu_blackbox/case5-rep-store-chip-v1/summary.json",
+  "case5_control_source_sha256": "759ccc9d1b7d5817f24fe73478a7ea660866f96071f25bfddaab883948a59d3e",
+  "controls": {
+    "clock_mhz": [
+      8,
+      4
+    ],
+    "histories": [
+      "A",
+      "B"
+    ],
+    "repetitions": 5
+  },
+  "forbidden_variables": [
+    "program seed",
+    "absolute bus ordinal",
+    "preparation-history fingerprint"
+  ],
+  "schema": "v30-biu-case14-rep-store-occupancy-oracle-v1",
+  "source": "sw/testdata/biu_blackbox/case14-single-str-store-chip-v1/summary.json",
+  "source_sha256": "ad6fb471d80f0bd12f5dbe40a2282dee3aa2dc546540c8d612e9e3c494f9c863",
+  "state_rule": "the final REP MOVS/STOS store restart is queue-geometry dependent: occupancy 4 resumes at T4+2, occupancy 5 at T4+4, and occupancy 6 at T4+5; only occupancy 5 takes the retained store-prefetch boost",
+  "status": "FROZEN_BEFORE_FINAL_RTL_VALIDATION",
+  "wait_table_for_occupancy6": {
+    "w0": {
+      "action": "CODE",
+      "address": 1378,
+      "t1_from_selected_t4": 4
+    },
+    "w1": {
+      "action": "CODE",
+      "address": 1378,
+      "t1_from_selected_t4": 5
+    },
+    "w2": {
+      "action": "CODE",
+      "address": 1378,
+      "t1_from_selected_t4": 5
+    },
+    "w3": {
+      "action": "CODE",
+      "address": 1378,
+      "t1_from_selected_t4": 5
+    },
+    "w4": {
+      "action": "CODE",
+      "address": 1378,
+      "t1_from_selected_t4": 5
+    },
+    "w5": {
+      "action": "CODE",
+      "address": 1378,
+      "t1_from_selected_t4": 5
+    },
+    "w6": {
+      "action": "CODE",
+      "address": 1378,
+      "t1_from_selected_t4": 5
+    },
+    "w7": {
+      "action": "CODE",
+      "address": 1378,
+      "t1_from_selected_t4": 5
+    }
+  }
+}
