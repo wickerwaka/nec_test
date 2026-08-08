@@ -21,6 +21,16 @@ sys.path.insert(0, str(SW))
 import testimage                                    # noqa: E402
 import sweep_popa as sp                             # reuse run_board/run_tb
 
+# --- fuzz-v2 T12: RETIRED, not broken.  See sw/retired_v1.py. -----------
+import retired_v1  # noqa: E402
+retired_v1.retire(
+    'sweep_farjmp.py',
+    'far-jump sweep (CLOSED)',
+    'one-shot; anchors at 0x0100, outside the v2 code region',
+    None)
+# ------------------------------------------------------------------------
+
+
 
 def build_image(phase, seg=0):
     anchor = 0x0100

@@ -128,6 +128,68 @@ def _operand_survives(image, ram):
             return (p, byte & 0xFF, image[p])
     return None
 HANDLER_OFF = 0x0400              # IVT-0 handler (V20 convention)
+
+# --------------------------------------------------------------------------- #
+# fuzz-v2 placement (T12 port of T1/T2).
+#
+# WHAT CHANGED AND WHY.  In v1 `compose(stub_linear=...)` PLACED a fall-through
+# store stub at the continuation address, and the emitter's job was to tell it
+# where.  v2 has no stub: the code region is filled with 0xCC (INT3), IVT[3] is
+# composed by `testimage` to point at the terminator, and the terminator pops
+# its own frame and dumps.  So the continuation address is no longer somewhere
+# the emitter ASKS for a stub -- it is simply where the next F pop happens, and
+# the byte there is already the thing that ends the run.  ONE mechanism, and
+# the emitter stops owning it.  The variable is renamed `cont_linear`
+# throughout for that reason: `stub_linear` now names something that does not
+# exist, and a lying name is how the accepted-and-ignored trap starts.
+#
+# Two placement consequences the emitter DOES still own:
+#   1. the body must land inside [CODE_LO, CODE_HI) -- D1's derived-offset rule
+#      below, which keeps the segment register fully random;
+#   2. the terminator and the handler table are LIVE CODE in every image, and
+#      `compose` writes caller `ram` AFTER them, so a `ram` byte landing there
+#      silently eats the thing that produces the dump.  `_UNTOUCHABLE` is that
+#      invariant, enforced where every other placement conflict already is.
+CODE_MARGIN = 0x40                # body keep-out from each end of the region
+_UNTOUCHABLE = (
+    range(testimage.TERM_AT, testimage.CODE_HI),
+    range(testimage.IHT_AT, testimage.IHT_AT + testimage.IHT_N *
+          testimage.IHT_STRIDE),
+)
+# The carve-outs are `fill` (0x90 = NOP), NOT 0xCC, so a run that lands in one
+# does not trap -- it NOPs to the far end.  Fine for a stray prefetch; fatal
+# for a continuation target, which would NOP for thousands of clocks and blow
+# the capture prefix.  Continuation/handler targets go in the 0xCC field.
+_NO_TRAP = tuple(testimage.CARVE_OUTS)
+
+
+def _in_any(addr, regions):
+    return any(addr in r for r in regions)
+
+
+def v2_anchor(rng):
+    """fuzz-v2 D1: random SEGMENT, DERIVED offset.
+
+    `cs` stays uniform over 16 bits -- that is the coverage the suite wants and
+    the whole point of D1 -- and `ip` is solved so the physical address is the
+    designed one.  One rule, no table, and physical containment is exact rather
+    than rejection-sampled."""
+    cs = rng.getrandbits(16)
+    phys = rng.randrange(testimage.CODE_LO + CODE_MARGIN,
+                         testimage.IHT_AT - CODE_MARGIN)
+    return cs, (phys - (cs << 4)) & 0xFFFF
+
+
+def _cont_target(rng):
+    """A continuation/handler landing site in the 0xCC field (see _NO_TRAP)."""
+    for _ in range(64):
+        a = rng.randrange(0x0800, 0xEF00) & 0xFFFE
+        if not _in_any(a, _NO_TRAP) and not _in_any(a, _UNTOUCHABLE) \
+                and not _in_any(a + 24, _NO_TRAP):
+            return a
+    raise ComposeError("no continuation site outside the carve-outs")
+
+
 # serve-v2 capture prefix: normal 0-wait cases finish (incl. store +
 # done marker) well under 1024 records; 1536 leaves headroom. Raise for
 # wait-state emissions. A too-small value fails loudly ("no done
@@ -166,6 +228,82 @@ def emit_div_stamp():
     frequency is UNRECORDED (recoverable only from its content, 21.1)."""
     return (f"# CLOCK DIVIDER: div={EMIT_DIV} ({32 // EMIT_DIV} MHz), PINNED "
             f"at the emission call sites (ucsim_t_provenance 21.1)")
+
+
+# --------------------------------------------------------------------------- #
+# WHERE THE RECORDS COME FROM (fuzz-v2 T12).
+#
+# A GOLDEN COMES FROM SILICON.  `ENGINE = "chip"` is the only setting that
+# produces one and it is the default; nothing below relaxes that.
+#
+# `--engine tb` exists for exactly one reason: after the v2 composition change
+# the emitter could not build an image at all, and "the emitter works again"
+# has to be DEMONSTRABLE without board contact or it is a claim rather than a
+# gate.  It runs the identical generate -> compose -> parse_result -> build_rows
+# pipeline against Verilator instead of the socket.  What it emits is a
+# STRUCTURAL ARTEFACT, not a golden, and `cmd_emit` refuses to write one into
+# the golden tree.
+ENGINE = "chip"
+GOLDEN_TREE = (SW.parent / "tests" / "v30").resolve()
+
+
+class EngineError(RunError):
+    """The selected record source cannot serve this case."""
+
+
+def _tb_core():
+    """Name the core the TB leg runs, EXPLICITLY.
+
+    `check_seq.CORE` is pinned to the ARCHIVED fsm core, and the campaign plan
+    records that `--tb-only` figures were read as ucore figures for exactly
+    this reason: the pin is the only thing that decides and nothing in the
+    output said so.  Ask for `ucore` if this `run_tb` takes a core, and if it
+    does not, SAY which core it therefore is -- do not pass a flag that might
+    be accepted and ignored."""
+    import inspect                                          # noqa: PLC0415
+    import check_seq                                        # noqa: PLC0415
+    if "core" in inspect.signature(check_seq.run_tb).parameters:
+        return "ucore", True
+    return check_seq.CORE, False
+
+
+def _truth_stamp():
+    """The provenance line's truth source.  It must NAME THE ENGINE.
+
+    This used to be the constant string "SOCKET (real chip, use_core=False)",
+    written unconditionally -- so the first offline emission produced a suite
+    whose own log claimed it came off silicon.  A provenance line that cannot
+    be wrong is not provenance."""
+    if ENGINE == "chip":
+        return "SOCKET (real chip, use_core=False)"
+    core, explicit = _tb_core()
+    return (f"VERILATOR TB core={core}"
+            f"{'' if explicit else ' (check_seq.CORE pin)'} "
+            "-- NOT A GOLDEN, NOT SILICON")
+
+
+def _capture(image, host, tag, waits=0, evt=None, iord=None, iords=None,
+             pins=None, want_fired=False, cap=EMIT_CAP):
+    """The one record source for both emit paths."""
+    if ENGINE == "chip":
+        return run_image(image, host, tag, waits=waits, evt=evt, iord=iord,
+                         iords=iords, pins=pins or None, want_fired=want_fired,
+                         cap=cap, use_core=EMIT_USE_CORE, div=EMIT_DIV)
+    if ENGINE != "tb":
+        raise EngineError(f"unknown engine {ENGINE!r}")
+    if iord is not None or iords is not None or pins or evt is not None:
+        raise EngineError(
+            "--engine tb serves no iord/iords/pins/evt: the TB has no port-read "
+            "server and no pin-array driver, so those forms have no offline "
+            "record source.  Emit them on the chip.")
+    import check_seq                                        # noqa: PLC0415
+    core, explicit = _tb_core()
+    kw = {"core": core} if explicit else {}
+    recs = check_seq.run_tb(image, cap, waits=waits, **kw)
+    # v30run records carry `idx` (parse_result phase-splits on it); the TB
+    # emits the same columns in order and nothing else differs.
+    recs = [dict(r, idx=i) for i, r in enumerate(recs)]
+    return (recs, False) if want_fired else recs
 
 
 #----------------------------------------------------------------------------
@@ -717,8 +855,7 @@ def gen_case(spec, rng, ea_boundary=None):
     span/RAM placement is unchanged - it derives from mod/rm/disp/regs."""
     for _ in range(64):
         regs = {r: rnd16(rng) for r in REG16}
-        regs["cs"] = rng.getrandbits(16)
-        regs["ip"] = rng.getrandbits(16)
+        regs["cs"], regs["ip"] = v2_anchor(rng)     # fuzz-v2 D1
         for sr in ("ds", "es", "ss"):
             regs[sr] = rng.getrandbits(16)
         regs["flags"] = (rng.getrandbits(16) & 0x0ED5) | 0xF002
@@ -1116,6 +1253,7 @@ def gen_case(spec, rng, ea_boundary=None):
             lo = (lin("ss", regs["sp"] - 8)) & 0xFFFF
             spans.append(range(lo, lo + 12))
         ivt = None
+        trap_term = False       # fuzz-v2: this case vectors through IVT[3]
         if spec["divtrap"]:
             ivt = {0: (0x0000, HANDLER_OFF)}
             # handler: BR far to the stub (patched in emit_case)
@@ -1125,7 +1263,16 @@ def gen_case(spec, rng, ea_boundary=None):
             vec = instr[1] if spec["swint"] == "cd" else \
                 (3 if spec["swint"] == "brk3" else 4)
             fires = spec["swint"] != "brkv" or bool(regs["flags"] & 0x0800)
-            if fires:
+            if fires and vec == testimage.TERM_VECTOR:
+                # fuzz-v2: vector 3 IS the terminator's vector.  BRK3 (0xCC)
+                # and a random `INT n` that draws n=3 are not special cases to
+                # be excluded -- they simply vector where IVT[3] already points,
+                # which `compose` composes and the golden's own `initial.ram`
+                # records.  Do NOT hand vector 3 to `compose` (it raises), and
+                # do NOT reroll: rerolling would silently delete BRK3 from the
+                # suite, which is exactly the coverage this opcode exists for.
+                trap_term = True
+            elif fires:
                 ivt = {vec: (0x0000, HANDLER_OFF)}
                 spans.append(range(4 * vec, 4 * vec + 4))
                 spans.append(range(HANDLER_OFF, HANDLER_OFF + 5))
@@ -1157,14 +1304,20 @@ def gen_case(spec, rng, ea_boundary=None):
             if bad:
                 break
         for a, _ in ram:
-            if (a & 0xFFFF) in testimage.RESERVED:
+            # fuzz-v2: `compose` writes caller ram AFTER the terminator and the
+            # handler table, so a ram byte landing on either is not rejected by
+            # compose and is not caught by `_operand_survives` (the ram byte
+            # WINS).  It eats the code that produces the dump and the run reads
+            # as "no done marker" three layers away.  Reject it here.
+            if (a & 0xFFFF) in testimage.RESERVED or \
+                    _in_any(a & 0xFFFF, _UNTOUCHABLE):
                 bad = True
         if not bad and _operand_abuts_code(spans):
             bad = True                      # F4bc adjacency-displacement guard
         if bad:
             continue
         c = dict(regs=regs, instr=instr, ram=ram, name=name, ivt=ivt,
-                 next_ip=next_ip, next_cs=next_cs)
+                 next_ip=next_ip, next_cs=next_cs, trap_term=trap_term)
         if spec["key"] in IO_IN_OPS:
             c["iord"] = rng.getrandbits(16)
             c["name"] += f" (iord={c['iord']:04x})"
@@ -1181,8 +1334,7 @@ def gen_evt_case(spec, rng):
     instruction and recognition runs image-fill NOPs."""
     for _ in range(64):
         regs = {r: rnd16(rng) for r in REG16}
-        regs["cs"] = rng.getrandbits(16)
-        regs["ip"] = rng.getrandbits(16)
+        regs["cs"], regs["ip"] = v2_anchor(rng)     # fuzz-v2 D1
         for sr in ("ds", "es", "ss"):
             regs[sr] = rng.getrandbits(16)
         f = (rng.getrandbits(16) & 0x0ED5) | 0xF002
@@ -1203,12 +1355,20 @@ def gen_evt_case(spec, rng):
         # execution margin: test instr + fill NOPs run until recognition
         spans = [range(a_phys, a_phys + len(instr) + 24)]
         ivt = None
-        stub_linear = None
+        cont_linear = None
         if spec["close"] == "handler":
-            stub_linear = rng.randrange(0x0800, 0xEF00) & 0xFFFE
-            ivt = {spec["vec"]: (0x0000, stub_linear)}
+            if spec["vec"] == testimage.TERM_VECTOR:
+                raise ComposeError(
+                    f"evt spec {spec['key']!r} closes on vector "
+                    f"{testimage.TERM_VECTOR}, which fuzz-v2 reserves for the "
+                    "terminator; give it another vector or a 'next' close")
+            # fuzz-v2: nothing is PLACED here any more -- this is just where
+            # the window closes.  The byte is 0xCC, so the handler entry is
+            # itself the INT3 that reaches the terminator.
+            cont_linear = _cont_target(rng)
+            ivt = {spec["vec"]: (0x0000, cont_linear)}
             spans.append(range(4 * spec["vec"], 4 * spec["vec"] + 4))
-            spans.append(range(stub_linear, stub_linear + 24))
+            spans.append(range(cont_linear, cont_linear + 24))
             # interrupt pushes: 3 words below SS:SP; MOV SS,AW moves the
             # stack to AW:SP before the pushes
             pss = "ss"
@@ -1242,7 +1402,8 @@ def gen_evt_case(spec, rng):
             if bad:
                 break
         for a, _v in ram:
-            if (a & 0xFFFF) in testimage.RESERVED:
+            if (a & 0xFFFF) in testimage.RESERVED or \
+                    _in_any(a & 0xFFFF, _UNTOUCHABLE):   # see gen_case
                 bad = True
         if not bad and _operand_abuts_code(spans):
             bad = True                      # F4bc adjacency-displacement guard
@@ -1250,7 +1411,7 @@ def gen_evt_case(spec, rng):
             continue
         name = f"{opname} <{spec['mnem']} d={delay}>"
         return dict(regs=regs, instr=instr, ram=ram, name=name, ivt=ivt,
-                    stub_linear=stub_linear, delay=delay)
+                    cont_linear=cont_linear, delay=delay)
     raise ComposeError("could not place evt case after 64 rerolls")
 
 
@@ -1277,9 +1438,9 @@ def emit_evt_case(spec, case, host, tag, preload_n=0, waits=0, recs_in=None):
         run_instr = instr
 
     if spec["close"] == "handler":
-        stub_linear = case["stub_linear"]
+        cont_linear = case["cont_linear"]
     else:
-        stub_linear = (anchor + len(instr)) & 0xFFFF
+        cont_linear = (anchor + len(instr)) & 0xFFFF
 
     trig = ((case["regs"]["cs"] << 4) + nec_regs["PC"]) & 0xFFFFF
     delay_hw = case["delay"] + (PRELOAD_CYCLES * preload_n)
@@ -1288,9 +1449,10 @@ def emit_evt_case(spec, case, host, tag, preload_n=0, waits=0, recs_in=None):
         evt = (trig, delay_hw, spec["hold"], spec["pin"])
     pins = spec["pins"]
 
+    # fuzz-v2: no `stub_linear=`.  Nothing is placed at the continuation any
+    # more -- it is 0xCC (INT3) and vectors to the composed terminator.
     image, meta = testimage.compose(regs=nec_regs, instr=run_instr,
-                                    ram=case["ram"], ivt=ivt,
-                                    stub_linear=stub_linear)
+                                    ram=case["ram"], ivt=ivt)
     _bad = _operand_survives(image, case["ram"])   # L5 readback guard (F4bc)
     if _bad is not None:
         raise ComposeError(
@@ -1306,10 +1468,8 @@ def emit_evt_case(spec, case, host, tag, preload_n=0, waits=0, recs_in=None):
         # but it is a BANKED chip run, not a new one.
         recs, fired = recs_in, True
     else:
-        recs, fired = run_image(image, host, tag, waits=waits, evt=evt,
-                                iord=None, pins=pins or None, want_fired=True,
-                                cap=EMIT_CAP, use_core=EMIT_USE_CORE,
-                                div=EMIT_DIV)
+        recs, fired = _capture(image, host, tag, waits=waits, evt=evt,
+                               pins=pins, want_fired=True, cap=EMIT_CAP)
     if evt and not fired:
         raise RunError("event did not fire")
     try:
@@ -1317,13 +1477,12 @@ def emit_evt_case(spec, case, host, tag, preload_n=0, waits=0, recs_in=None):
     except RunError as e:
         if "no done marker" not in str(e) or recs_in is not None:
             raise
-        recs, fired = run_image(image, host, tag, waits=waits, evt=evt,  # E retry
-                                iord=None, pins=pins or None, want_fired=True,
-                                cap=EMIT_CAP_RETRY, use_core=EMIT_USE_CORE,
-                                div=EMIT_DIV)
+        recs, fired = _capture(image, host, tag, waits=waits, evt=evt,  # E retry
+                               pins=pins, want_fired=True,
+                               cap=EMIT_CAP_RETRY)
         res = parse_result(recs, meta)
 
-    close_addr = stub_linear if spec["close"] == "handler" else None
+    close_addr = cont_linear if spec["close"] == "handler" else None
     rows, events, i0, i1, q0, qf, fetched, memrd = \
         build_rows(recs, meta["anchor_linear"], n_skip_f=preload_n,
                    n_close=1, close_addr=close_addr)
@@ -1412,7 +1571,7 @@ def emit_evt_case(spec, case, host, tag, preload_n=0, waits=0, recs_in=None):
     fin_regs = {}
     for ik, nk in INTEL2NEC.items():
         if ik == "ip":
-            fin_ip = stub_linear if spec["close"] == "handler" else \
+            fin_ip = cont_linear if spec["close"] == "handler" else \
                 (case["regs"]["ip"] + len(instr)) & 0xFFFF
             if fin_ip != case["regs"]["ip"]:
                 fin_regs["ip"] = fin_ip
@@ -1473,7 +1632,7 @@ def emit_evt_case(spec, case, host, tag, preload_n=0, waits=0, recs_in=None):
     if pins:
         test["pins"] = pins
     if spec["close"] == "handler":
-        test["close_addr"] = stub_linear
+        test["close_addr"] = cont_linear
     # NOTE: no footprint-based reject here. Footprint aliasing over-counts behavioral
     # divergence ~950x (benign 0x90-fill prefetch aliases). Flat-validity is established
     # POST-EMISSION behaviorally (check_core --no-mirror vs +mirror three-way): mirror-
@@ -1643,33 +1802,36 @@ def emit_case(spec, case, host, tag, preload_n=0, waits=0):
         next_ip = (case["regs"]["ip"] + len(instr)) & 0xFFFF
     next_cs = case.get("next_cs")
     cont_cs = next_cs if next_cs is not None else case["regs"]["cs"]
-    stub_linear = ((cont_cs << 4) + next_ip) & 0xFFFF
+    cont_linear = ((cont_cs << 4) + next_ip) & 0xFFFF
     if ivt:
-        # handler at HANDLER_OFF: BR far 0000:stub
-        h = bytes([0xEA, stub_linear & 0xFF, stub_linear >> 8, 0x00, 0x00])
+        # handler at HANDLER_OFF: BR far 0000:continuation.  Retained as-is:
+        # under v2 the trampoline lands on 0xCC and traps to the terminator,
+        # which is the same one-way trip it always made -- only the thing it
+        # arrives at changed.  Its bytes are in every golden's initial.ram,
+        # so removing it would move more of the artifact than it is worth.
+        h = bytes([0xEA, cont_linear & 0xFF, cont_linear >> 8, 0x00, 0x00])
         ram += [(HANDLER_OFF + k, b) for k, b in enumerate(h)]
 
+    # fuzz-v2: no `stub_linear=` (see emit_evt_case).
     image, meta = testimage.compose(regs=nec_regs, instr=run_instr,
-                                    ram=ram, ivt=ivt,
-                                    stub_linear=stub_linear)
+                                    ram=ram, ivt=ivt)
     _bad = _operand_survives(image, ram)     # L5 readback guard (F4bc)
     if _bad is not None:
         raise ComposeError(
             "operand byte overwritten by code/preload at phys "
             f"{_bad[0]:04x}: want {_bad[1]:02x} got {_bad[2]:02x} "
             "(ram-vs-instruction collision; F4bc instrument-failure #3)")
-    recs = run_image(image, host, tag, waits=waits,
-                     iord=case.get("iord"), iords=case.get("iords"),
-                     cap=EMIT_CAP, use_core=EMIT_USE_CORE, div=EMIT_DIV)
+    recs = _capture(image, host, tag, waits=waits,
+                    iord=case.get("iord"), iords=case.get("iords"),
+                    cap=EMIT_CAP)
     try:
         res = parse_result(recs, meta)
     except RunError as e:
         if "no done marker" not in str(e):
             raise
-        recs = run_image(image, host, tag, waits=waits,      # E: retry at 4096
-                         iord=case.get("iord"), iords=case.get("iords"),
-                         cap=EMIT_CAP_RETRY, use_core=EMIT_USE_CORE,
-                         div=EMIT_DIV)
+        recs = _capture(image, host, tag, waits=waits,      # E: retry at 4096
+                        iord=case.get("iord"), iords=case.get("iords"),
+                        cap=EMIT_CAP_RETRY)
         res = parse_result(recs, meta)
 
     rows, events, i0, i1, q0, qf, fetched, memrd = \
@@ -1680,7 +1842,7 @@ def emit_case(spec, case, host, tag, preload_n=0, waits=0):
     # predicted next_ip (guards branch/ret prediction and stub placement)
     pop1 = events[i1][1]
     tgt_lin = (((cont_cs << 4) + next_ip) & 0xFFFFF)
-    if case["ivt"] is None:
+    if case["ivt"] is None and not case.get("trap_term"):
         if pop1 is None or pop1[0] is None or \
                 (pop1[0] & 0xFFFFF) != tgt_lin:
             got_a = None if (pop1 is None or pop1[0] is None) else pop1[0]
@@ -1704,7 +1866,7 @@ def emit_case(spec, case, host, tag, preload_n=0, waits=0):
                               seg.to_bytes(2, "little")):
             placed[4 * vec + k] = b
             init_ram.append([4 * vec + k, b])
-        h = bytes([0xEA, stub_linear & 0xFF, stub_linear >> 8, 0, 0])
+        h = bytes([0xEA, cont_linear & 0xFF, cont_linear >> 8, 0, 0])
         for k, b in enumerate(h):
             placed[(HANDLER_OFF + k) & 0xFFFFF] = b
             init_ram.append([(HANDLER_OFF + k) & 0xFFFFF, b])
@@ -1727,13 +1889,18 @@ def emit_case(spec, case, host, tag, preload_n=0, waits=0):
                 fin_ram.append([a20, b])
 
     # trap detection: IVT vector 0 read inside the window
-    trap_addrs = ()
-    if ivt is not None:
-        _vec = next(iter(ivt))
-        trap_addrs = (4 * _vec, 4 * _vec + 2)
-    trapped = ivt is not None and any(
+    # fuzz-v2: a case that vectors through IVT[3] has NO `ivt` of its own --
+    # `testimage` composes that entry -- but it is a trap in every other sense,
+    # so the vector it reads and the state it lands in are derived the same way.
+    _vec = next(iter(ivt)) if ivt is not None else \
+        (testimage.TERM_VECTOR if case.get("trap_term") else None)
+    trap_addrs = () if _vec is None else (4 * _vec, 4 * _vec + 2)
+    trapped = _vec is not None and any(
         r["t"] == 1 and r["bs_early"] == 5 and r["ad_addr"] in trap_addrs
         for r, _, _ in events[i0:i1 + 1])
+    # where the trap lands: the emitter's own trampoline, or -- for vector 3 --
+    # the terminator `testimage` composed.
+    trap_ip = testimage.TERM_AT if case.get("trap_term") else HANDLER_OFF
 
     got = res["regs"]
     if got.get("PSW") is not None and \
@@ -1743,7 +1910,7 @@ def emit_case(spec, case, host, tag, preload_n=0, waits=0):
     fin_regs = {}
     for ik, nk in INTEL2NEC.items():
         if ik == "ip":
-            fin_ip = HANDLER_OFF if trapped else next_ip
+            fin_ip = trap_ip if trapped else next_ip
             if fin_ip != case["regs"]["ip"]:
                 fin_regs["ip"] = fin_ip
         elif ik == "cs":
@@ -2053,11 +2220,11 @@ def cmd_emit(host, opcodes, n_cases, out_dir, seed_base, preload_n,
     # assertion + log line, so a future use_core-style A/B flag added to the
     # harness cannot silently redirect truth back to the core (see bringup_log
     # "wrong core selected for emission").
-    if EMIT_USE_CORE is not False:
+    if ENGINE == "chip" and EMIT_USE_CORE is not False:
         raise RunError(
             "REFUSING to emit goldens: truth source is not the socket "
             f"(EMIT_USE_CORE={EMIT_USE_CORE!r}); goldens require use_core=False")
-    truth = "SOCKET (real chip, use_core=False)"
+    truth = _truth_stamp()
     stamp = (f"# TRUTH SOURCE: {truth}  seed_base={seed_base}  "
              f"cases={n_cases}  waits={waits}  forms={len(opcodes)}  "
              f"div={EMIT_DIV}")
@@ -2073,6 +2240,8 @@ def cmd_emit(host, opcodes, n_cases, out_dir, seed_base, preload_n,
     # records what the connection actually COMMANDED, not what this file
     # intends.  A suite whose log says UNPINNED has no known frequency.
     def _div_readback():
+        if ENGINE != "chip":
+            return f"# DIVIDER: (engine={ENGINE}: no board, no divider)"
         import v30run as _v30
         r = _v30._runners.get(host)
         return ("# DIVIDER: " + r.div_readback) if r is not None else \
@@ -2085,6 +2254,13 @@ def cmd_emit(host, opcodes, n_cases, out_dir, seed_base, preload_n,
     if waits == 0:
         import v30run as _v30
         try:
+            if ENGINE != "chip":
+                # This block CONNECTS -- it force-cleans the wait rig at
+                # connect -- so it is board contact, and an offline engine must
+                # not do it.  Measured: the first `--engine tb` run opened a
+                # serve session and commanded WRAND anyway, because the probe
+                # was written before there was any engine but the chip.
+                raise EngineError(f"engine={ENGINE}: no board contact")
             (_v30._runners.get(host) or _v30._runners.setdefault(
                 host, _v30.ServeRunner(host))).ensure()
             rig = getattr(_v30._runners.get(host), "rig_readback", "?")
@@ -2191,11 +2367,11 @@ def cmd_emit_boundary(host, opcodes, n_cases, out_dir, seed_base, preload_n,
     out_dir = Path(out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
     log = out_dir / "emit_log.txt"
-    if EMIT_USE_CORE is not False:
+    if ENGINE == "chip" and EMIT_USE_CORE is not False:
         raise RunError(
             "REFUSING to emit goldens: truth source is not the socket "
             f"(EMIT_USE_CORE={EMIT_USE_CORE!r}); goldens require use_core=False")
-    truth = "SOCKET (real chip, use_core=False)"
+    truth = _truth_stamp()
     stamp = (f"# TRUTH SOURCE: {truth}  seed_base={seed_base}  "
              f"cases={n_cases}  waits={waits}  forms={len(opcodes)}  "
              f"div={EMIT_DIV}  "
@@ -2347,8 +2523,27 @@ def main():
     ap.add_argument("--validate", action="store_true",
                     help="reemit: flat-validity three-way gate per index "
                          "(mirror-dependent -> reroll; neither -> KEEP+flag)")
+    ap.add_argument("--engine", choices=["chip", "tb"], default="chip",
+                    help="record source. 'chip' (default) is the socketed part "
+                         "and the ONLY source of a golden. 'tb' runs Verilator "
+                         "offline and emits a STRUCTURAL ARTEFACT, not a "
+                         "golden; it refuses to write into tests/v30.")
     args = ap.parse_args()
-    global EMIT_CAP
+    global EMIT_CAP, ENGINE
+    ENGINE = args.engine
+    if ENGINE != "chip":
+        core, explicit = _tb_core()
+        print(f"# ENGINE={ENGINE}  core={core}"
+              f"{'' if explicit else '  (run_tb takes no core= on this tree; '
+                                     'this is check_seq.CORE)'}\n"
+              "# NOT A GOLDEN.  Silicon is the only correctness reference.",
+              flush=True)
+        out = Path(args.out).resolve()
+        if out == GOLDEN_TREE or GOLDEN_TREE in out.parents:
+            sys.exit(f"REFUSED: --engine {ENGINE} may not write into the "
+                     f"golden tree ({GOLDEN_TREE}). A suite emitted off "
+                     "silicon is not a golden and must not be shelved beside "
+                     "ones that are. Pick an --out elsewhere.")
     if args.waits:
         EMIT_CAP = min(4096, EMIT_CAP * (1 + args.waits))
     if args.cmd == "validate":

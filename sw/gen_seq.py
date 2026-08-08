@@ -34,6 +34,10 @@ DATA_LO, DATA_HI = 0x2000, 0x2F00
 SP0 = 0x3F00
 PC0 = 0x0500
 
+# fuzz-v2's code region, read from testimage rather than copied, so this guard
+# cannot drift away from the thing it is guarding.
+from testimage import CODE_LO as _CODE_LO, CODE_HI as _CODE_HI  # noqa: E402
+
 REG16 = ["ax", "cx", "dx", "bx", "sp", "bp", "si", "di"]
 
 
@@ -1090,6 +1094,64 @@ def form_universe(exts=None):
     return out
 
 
+class V1AnchorStop(RuntimeError):
+    """`gen_seq` still builds a v1-anchored program; fuzz-v2 moved the code
+    region out from under it.  Raised by `generate` so the four standing gates
+    that consume it fail with the DECISION rather than three frames down."""
+
+
+_V1_STOP = None
+
+
+def _v1_anchor_stop(n_bytes):
+    """STOP, with the decision named -- do not paper this over.
+
+    fuzz-v2 T2 moved the code region to [0x8000,0xC000) and `testimage.compose`
+    now rejects any body outside it.  `gen_seq` was left unported BY DESIGN
+    (plan finding F6), and the consequence -- not stated in the plan -- is that
+    FOUR gates cannot run:
+
+        sw/timed_wvec_gate.py     (standing, --core ucore 88/88, +0.0 %)
+        sw/timed_lawcards.py      (standing, 8 GREEN / 0 RED / 3 UNRESOLVED)
+        sw/timed_ins_replay.py    (standing, 1,312/1,312 and 2,624/2,624)
+        sw/check_ff_t4.py         (archived, on demand)
+
+    plus the wrfuzz cells sm3_h1/h3 and w33_poste, and ~20 closed-campaign
+    one-shots.  Measured at T12, e.g.
+        ComposeError: body [0500,05b7) is not inside the code region [8000,c000)
+
+    WHY THIS IS NOT FIXED HERE.  Moving PC0 into the code region is two lines
+    and it is the WRONG TWO LINES to write unreviewed, because it RE-BASES
+    every `fz<seed>` image.  Those three standing gates score against SILICON
+    baselines frozen at the v1 anchor (`biu_rebuild_wvec_baseline.json`, the
+    lawcards chip captures, the INS replay rails).  Re-anchoring makes the
+    stimulus a different program, so the baselines no longer describe it, and
+    a green produced that way would be a fabricated green -- the gate would
+    pass while measuring something nobody has ever captured on the part.
+    Re-basing therefore requires a RE-CAPTURE, which is board work and a user
+    decision, not a code fix.  `gen_seq.far_int_support()` also hands `compose`
+    vector 3, which fuzz-v2 reserves for the terminator, so the port is two
+    mechanisms deep and not one.
+
+    Until that decision is taken these gates are DOWN and are to be reported
+    as down.  Do not quote their registered figures as current."""
+    if PC0 + n_bytes <= _CODE_LO or PC0 >= _CODE_HI:
+        raise V1AnchorStop(
+            f"gen_seq is V1-ANCHORED and fuzz-v2 moved the code region.\n"
+            f"  program : PC0=0x{PC0:04X}, {n_bytes} bytes -> "
+            f"[{PC0:04X},{PC0 + n_bytes:04X})\n"
+            f"  v2 code region : [{_CODE_LO:04X},{_CODE_HI:04X})\n"
+            "  gates DOWN because of this: timed_wvec_gate, timed_lawcards,\n"
+            "    timed_ins_replay (standing); check_ff_t4 (archived);\n"
+            "    sm3_h1_cell, sm3_h3_cell, w33_poste_cell (wrfuzz).\n"
+            "  NOT ported at T12 on purpose: re-anchoring re-bases every\n"
+            "    fz<seed> image, and those gates score against SILICON\n"
+            "    baselines frozen at the v1 anchor.  A green obtained by\n"
+            "    moving PC0 would be measuring a program no part has ever\n"
+            "    run.  Re-capture is board work and a USER DECISION.\n"
+            "  see sw/gen_seq._v1_anchor_stop for the full reasoning.")
+
+
 def generate(seed, nmin=20, nmax=100, exts=()):
     """-> dict(seed, instr, regs, ram, forms, ins). exts = iterable of
     EXT_MENU keys (staged expansions; each changes the program stream for
@@ -1134,6 +1196,7 @@ def generate(seed, nmin=20, nmax=100, exts=()):
     if any(e in FAR_INT_EXTS for e in exts):
         ivt, handler = far_int_support()
         ram += handler                    # IRET + RETF handler stub bytes
+    _v1_anchor_stop(len(instr))
     return dict(seed=seed, instr=instr, regs=regs, ram=ram, ivt=ivt,
                 n_ins=len(p.ins), forms=forms,
                 ins=[bytes(b) for b in p.ins])

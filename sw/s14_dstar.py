@@ -21,6 +21,16 @@ sys.path.insert(0, str(SW))
 
 import s12_census as sc                                    # noqa: E402
 
+# --- fuzz-v2 T12: RETIRED, not broken.  See sw/retired_v1.py. -----------
+import retired_v1  # noqa: E402
+retired_v1.retire(
+    's14_dstar.py',
+    'S14 d* measurement tool (NOT a gate)',
+    'reaches compose(stub_linear=) transitively through s12_census.case_of; a measurement tool of a closed sitting',
+    None)
+# ------------------------------------------------------------------------
+
+
 S2 = ROOT / "sw/testdata/s10/s2-hltsweep"
 S13 = ROOT / "sw/testdata/s13/p1b-ahsweep"
 

@@ -36,6 +36,16 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from v30run import run_test, RunError, extract_txns_large, KIND  # noqa: E402
 import gen_race_law as GRL                             # noqa: E402
 
+# --- fuzz-v2 T12: RETIRED, not broken.  See sw/retired_v1.py. -----------
+import retired_v1  # noqa: E402
+retired_v1.retire(
+    'exp_race.py',
+    'POP-PSW/INT race experiment (CLOSED; the law LANDED)',
+    "reads meta['psw_push_addr'], a channel fuzz-v2 D6 deleted outright -- the terminator now pops its own frame and emits PSW as an ordinary port write",
+    'sw/check_race_law.py (archived, on demand)')
+# ------------------------------------------------------------------------
+
+
 HOST = "root@mister-nec"
 ANCHOR = 0x0500
 HANDLER = 0x0700

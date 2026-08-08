@@ -299,13 +299,10 @@ def _evt_image(spec, case, preload_n=0):
     nec_regs = {es.INTEL2NEC[k]: v for k, v in case["regs"].items()}
     instr = case["instr"]
     anchor = ((case["regs"]["cs"] << 4) + case["regs"]["ip"]) & 0xFFFFF
-    if spec["close"] == "handler":
-        stub_linear = case["stub_linear"]
-    else:
-        stub_linear = (anchor + len(instr)) & 0xFFFF
+    # fuzz-v2 T12: no `stub_linear=`; the continuation is 0xCC (INT3) and
+    # reaches the composed terminator.  `emit_suite` owns the derivation.
     image, meta = testimage.compose(regs=nec_regs, instr=instr,
-                                    ram=case["ram"], ivt=case["ivt"],
-                                    stub_linear=stub_linear)
+                                    ram=case["ram"], ivt=case["ivt"])
     evt = None
     if spec["pin"] is not None:
         evt = (anchor, case["delay"], spec["hold"], spec["pin"])

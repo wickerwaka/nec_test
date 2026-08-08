@@ -24,6 +24,16 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from v30asm import Assembler                          # noqa: E402
 from v30run import run_test, RunError                 # noqa: E402
 
+# --- fuzz-v2 T12: RETIRED, not broken.  See sw/retired_v1.py. -----------
+import retired_v1  # noqa: E402
+retired_v1.retire(
+    'exp_int.py',
+    'ucsim-t INT/NMI recognition anatomy (CLOSED 2026-08-02)',
+    'one-shot experiment on the v1 store-stub image; its findings are in ucsim_t_provenance.md and the mechanism is now covered by the evt suites',
+    'sw/timed_gate.py --suite tests/v30/v0.1-w1evt, sw/timed_fuzz.py')
+# ------------------------------------------------------------------------
+
+
 T_NAMES = {0: "TI", 1: "T1", 2: "T2", 3: "T3", 4: "TW", 5: "T4"}
 Q_NAMES = {0: "-", 1: "F", 2: "E", 3: "S"}
 BUS_STR = {0: "INTA", 1: "IOR", 2: "IOW", 3: "HALT",

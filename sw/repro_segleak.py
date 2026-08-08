@@ -20,6 +20,16 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 import testimage
 import check_core as CC
 
+# --- fuzz-v2 T12: RETIRED, not broken.  See sw/retired_v1.py. -----------
+import retired_v1  # noqa: E402
+retired_v1.retire(
+    'repro_segleak.py',
+    'segment-leak repro (CLOSED)',
+    'one-shot repro against the v1 stub image',
+    None)
+# ------------------------------------------------------------------------
+
+
 BIN = CC.OBJ / "Vtb_v30_core"
 
 

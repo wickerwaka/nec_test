@@ -244,6 +244,75 @@ def parse_resources(tree):
     return out
 
 
+def _hier_count(value):
+    """Parse Quartus' ``total (own)`` hierarchy-cell notation."""
+    m = re.fullmatch(r"([\d,]+)(?:\s+\(([\d,]+)\))?", value.strip())
+    if not m:
+        return None
+    total = int(m.group(1).replace(",", ""))
+    own = int(m.group(2).replace(",", "")) if m.group(2) else total
+    return {"total": total, "own": own}
+
+
+def parse_hierarchy(tree):
+    """Selected ucore map hierarchy counts -- informational, never bars."""
+    rpt = tree / f"{REVISION}.map.rpt"
+    wanted = {"v30_core", "v30u_eu", "v30u_biu", "v30u_ucrom"}
+    out = {}
+    if not rpt.exists():
+        return out
+    for ln in rpt.read_text(errors="replace").splitlines():
+        cols = [x.strip() for x in ln.split(";")]
+        # Hierarchy rows are: node, ALUTs, registers, ..., entity, library.
+        if len(cols) < 11 or cols[9] not in wanted:
+            continue
+        aluts = _hier_count(cols[2])
+        registers = _hier_count(cols[3])
+        if aluts is not None and registers is not None:
+            out[cols[9]] = {"combinational_aluts": aluts,
+                            "dedicated_logic_registers": registers}
+    return out
+
+
+def parse_uninferred_ram(tree):
+    """Count uninferred-RAM fragments and retain their source attribution."""
+    rpt = tree / f"{REVISION}.map.rpt"
+    out = {"total": None, "by_source": {}, "by_entity": {}}
+    if not rpt.exists():
+        return out
+    txt = rpt.read_text(errors="replace")
+    found = re.search(r"Found\s+(\d+)\s+instances of uninferred RAM logic", txt)
+    rows = re.findall(
+        r'RAM logic "([^"]+)" is uninferred[^\n]*?File:\s+(\S+)\s+Line:\s+(\d+)',
+        txt)
+    out["total"] = int(found.group(1)) if found else len(rows)
+    for hierarchy, source, line in rows:
+        key = f"{Path(source).name}:{line}"
+        out["by_source"][key] = out["by_source"].get(key, 0) + 1
+        entity = ("v30u_ucrom" if "v30u_ucrom:" in hierarchy else
+                  "v30u_eu" if "v30u_eu:" in hierarchy else
+                  "v30u_biu" if "v30u_biu:" in hierarchy else
+                  "v30_core" if "v30_core:" in hierarchy else "other")
+        out["by_entity"][entity] = out["by_entity"].get(entity, 0) + 1
+    return out
+
+
+def parse_durations(tree):
+    """Map/fitter elapsed and CPU durations as printed by Quartus."""
+    out = {}
+    for stage in ("map", "fit"):
+        rpt = tree / f"{REVISION}.{stage}.rpt"
+        if not rpt.exists():
+            continue
+        txt = rpt.read_text(errors="replace")
+        elapsed = re.findall(r"Info: Elapsed time:\s*([^\n]+)", txt)
+        cpu = re.findall(r"Info: Total CPU time \(on all processors\):\s*([^\n]+)",
+                         txt)
+        out[stage] = {"elapsed": elapsed[-1].strip() if elapsed else None,
+                      "cpu": cpu[-1].strip() if cpu else None}
+    return out
+
+
 # --------------------------------------------------------------------------- #
 # WHICH BUILD IS THIS -- derived, never asserted
 # --------------------------------------------------------------------------- #
@@ -354,6 +423,9 @@ def score(tree, log_text, a):
     status = parse_status(tree)
     logf = parse_log(log_text)
     res = parse_resources(tree)
+    hierarchy = parse_hierarchy(tree)
+    uninferred_ram = parse_uninferred_ram(tree)
+    durations = parse_durations(tree)
 
     fm = fmax.get(FMAX_CLOCK)
     if fm is None:                       # tolerate a renamed PLL instance
@@ -390,6 +462,9 @@ def score(tree, log_text, a):
     }
     return bars, {"fmax": fmax, "setup": setup, "hold": hold,
                   "status": status, "resources": res,
+                  "ucore_hierarchy": hierarchy,
+                  "uninferred_ram_fragments": uninferred_ram,
+                  "durations": durations,
                   "stages": logf["stages"],
                   "error_lines": logf["error_lines"]}
 

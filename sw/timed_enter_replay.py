@@ -138,7 +138,26 @@ def main():
                                                   "SP": g["sp"]},
                                             instr=instr)
             anchor16 = meta["anchor_linear"] & 0xFFFF
-            assert anchor16 == g["anchor16"], (anchor16, g["anchor16"])
+            if anchor16 != g["anchor16"]:
+                # fuzz-v2 T2 moved the code region, so `compose` now anchors at
+                # 0x8100 while these 154 goldens are SOCKET captures frozen at
+                # 0x0100.  This is NOT a composer bug and it is NOT fixable by
+                # relaxing the assert: the goldens describe a program at a
+                # different address, and every row's address column says so.
+                # Re-anchoring them is a RE-CAPTURE, i.e. board work and a user
+                # decision -- the same disposition as `gen_seq`
+                # (sw/gen_seq._v1_anchor_stop), reached by a different route
+                # because this tool composes directly instead of via gen_seq.
+                raise SystemExit(
+                    "timed_enter_replay IS DOWN (fuzz-v2 T2 anchor move).\n"
+                    f"  composed anchor : {anchor16:#06x}\n"
+                    f"  golden anchor   : {g['anchor16']:#06x}  "
+                    f"({GOLD.name}, 154 frozen SOCKET captures)\n"
+                    "  the goldens, not the composer, are what this now\n"
+                    "  disagrees with.  Do NOT relax this check to get a\n"
+                    "  green -- it would score v2 images against v1 silicon.\n"
+                    "  Fix = re-capture at the v2 anchor (BOARD WORK, USER\n"
+                    "  DECISION), or restore the v1 anchor for this tool.")
             rows = run_engine(args.core, image, g.get("waits") or 0,
                               tuple(g["wrand"]) if g.get("wrand") else None,
                               td)

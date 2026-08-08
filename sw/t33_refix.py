@@ -1,4 +1,14 @@
 import sys,json,gzip,glob; sys.path.insert(0,'.')
+
+# --- fuzz-v2 T12: RETIRED, not broken.  See sw/retired_v1.py. -----------
+import retired_v1  # noqa: E402
+retired_v1.retire(
+    't33_refix.py',
+    'task #33 mc1 re-fix (CLOSED)',
+    'reads testdata/campaigns/mc1, part of the DISCARDED corpus, and drives the board to do it',
+    None)
+# ------------------------------------------------------------------------
+
 from pathlib import Path
 from collections import defaultdict
 import fuzz_campaign as fzc, check_seq
@@ -44,6 +54,8 @@ def censusleg(real,sim):
 pre=defaultdict(int); post=defaultdict(int); npre=npost=0
 img0,_=check_seq.compose({'regs':{},'instr':bytes([0x90]),'ram':None}) if False else (check_seq.testimage.compose(regs={},instr=bytes([0x90])) if hasattr(check_seq,'testimage') else (None,None))
 import testimage
+
+
 img0,_=testimage.compose(regs={},instr=bytes([0x90])); check_seq.run_chip(img0,HOST,use_core=False)
 for r,g in sample:
     k=r['k']; w=r['waits']; wr=(w['wmax'],w['wseed']) if w.get('wrand') else None

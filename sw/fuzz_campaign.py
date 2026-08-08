@@ -393,14 +393,41 @@ def wvec_of(cfg):
     return v
 
 
-def capture_tb(image, meta, cfg):
-    """Single Verilator TB leg (temp hygiene handled inside run_tb)."""
+def capture_tb(image, meta, cfg, core=None):
+    """Single Verilator TB leg (temp hygiene handled inside run_tb).
+
+    `core=None` is `check_seq.CORE`, i.e. the ARCHIVED fsm core -- see
+    `tb_engine()` below, which is the call that makes the engine SAY WHICH ONE
+    IT IS instead of leaving it to a module-level pin."""
     w = cfg["waits"]
     wrand = (w["wmax"], w["wseed"]) if w["wrand"] else None
     fixed = 0 if w["wrand"] else w["fixed"]
     return check_seq.run_tb(image, TB_ROWS, waits=fixed,
                             evt=_evt_tuple(cfg, meta), wrand=wrand,
-                            wvec=wvec_of(cfg))
+                            wvec=wvec_of(cfg), core=core)
+
+
+def tb_engine(core=None):
+    """WHICH ENGINE A TB LEG ACTUALLY RAN -- (core, path, receipt id).
+
+    Erratum E-1 was taken on the archived fsm core because `check_seq.CORE` is
+    pinned to it and NOTHING IN THE OUTPUT SAID SO.  Every tool here that runs
+    a TB leg prints this triple, and it is derived three independent ways:
+
+      * `check_seq.tb_bin(core)` -- the binary that will be executed, built
+        and proved fresh against this tree by the artifact layer;
+      * `timed_fuzz.tb_bin(core)` -- the INDEPENDENT path rule (`obj_dir` for
+        fsm, `obj_dir_<core>` otherwise), ASSERTED equal.  A `--core` flag
+        that is accepted and ignored fails here rather than in a footnote;
+      * `artifact.receipt_id` -- the bytes that binary was built from."""
+    import artifact                                          # noqa: PLC0415
+    import timed_fuzz                                        # noqa: PLC0415
+    binp = Path(check_seq.tb_bin(core))
+    want = Path(timed_fuzz.tb_bin(core if core is not None else check_seq.CORE))
+    assert binp.resolve() == want.resolve(), \
+        f"--core {core}: ran {binp}, timed_fuzz.tb_bin says {want}"
+    return (core if core is not None else check_seq.CORE, str(binp),
+            artifact.receipt_id(binp))
 
 
 def capture_board(image, meta, cfg, host):
@@ -439,7 +466,23 @@ def _raw_lea_mod3_pos(image, real):
     for r in real:
         if fc._tstate(r) == 1 and r["bs_early"] == 4:
             a = r["ad_addr"] & 0xFFFFF
-            if a < 0x10000 and (not pcs or pcs[-1] != a):
+            # fuzz-v2 T12, finding F5.  The filter here was `a < 0x10000`,
+            # written when every seed ran at PS=0 so a code fetch was always a
+            # 16-bit address.  Under D1's segment randomization a fetch is
+            # normally ABOVE 64K -- 15 of 16 seeds -- so the filter silently
+            # recovered nothing and the raw lea_mod3 rule went vacuous for
+            # them.  It is DELETED, not widened: there is no open bus on this
+            # rig (test_mem.sv decodes addr[15:1] only), so every 20-bit
+            # address answers with mirrored image bytes and "is this fetch in
+            # the image" is not a question that can be asked.  The decode below
+            # already works in the physical domain (`image[pc & 0xFFFF]`); only
+            # this collection step was in the wrong one.
+            #
+            # `out` stays 20-bit LINEAR on purpose: `fuzz_accept` matches it
+            # against `r["ad_addr"] & 0xFFFFF` and `gen_soup.lea_mod3_pos`
+            # emits linear too.  Returning the physical offset would have made
+            # the rule match nothing -- the same vacuity by the opposite error.
+            if not pcs or pcs[-1] != a:
                 pcs.append(a)
     pcset = set(pcs)
     out = []
@@ -625,7 +668,8 @@ def _gen_git():
     return _GEN_GIT
 
 
-def eval_case(cid, k, ov, tb_only, host, build_stale, keep_rows=False):
+def eval_case(cid, k, ov, tb_only, host, build_stale, keep_rows=False,
+              core=None):
     """Derive -> build -> compose -> capture -> classify. Returns a dict with
     the result line, verdict/ctx (for escalation), done_idx, timings, coverage
     bits, and (on divergence, or keep_rows) the raw rows for the banker."""
@@ -645,7 +689,7 @@ def eval_case(cid, k, ov, tb_only, host, build_stale, keep_rows=False):
     run_error = None
     if tb_only:
         try:
-            real = capture_tb(image, meta, cfg)
+            real = capture_tb(image, meta, cfg, core=core)
             sim = copy.deepcopy(real)     # TB-vs-TB: plumbing + done-in-window
         except Exception as e:            # noqa: BLE001  (run_tb RuntimeError)
             real = sim = None
@@ -1070,14 +1114,20 @@ def cmd_show(a):
 # measure -- fuzz-v2 ERRATUM E-1.  A MEASUREMENT TOOL, NOT A GATE.
 # ===========================================================================
 def _measure_one(args):
-    cid, k, ov = args
-    res = eval_case(cid, k, ov, tb_only=True, host=None, build_stale=False)
+    cid, k, ov, core = args
+    res = eval_case(cid, k, ov, tb_only=True, host=None, build_stale=False,
+                    core=core)
     ln = res["line"]
     out = {kk: ln.get(kk) for kk in
            ("k", "tier", "raw_mode", "has_tf", "has_halt", "evt", "wild",
             "arch_ok", "arch_restart", "escaped", "escaped_n", "done_idx",
             "verdict")}
     out["has_undoc"] = "undoc" in (res["forms"] or [])
+    # THE ENGINE NAMES ITSELF, per row.  A `--core` flag that is accepted and
+    # ignored is the failure this whole erratum is about, and a header line
+    # printed by the parent process would not have caught it: the rows come
+    # from worker processes, and it is the WORKER that runs the binary.
+    out["core"], out["tb_bin"], out["tb_receipt"] = tb_engine(core)
     return out
 
 
@@ -1097,21 +1147,24 @@ def cmd_measure(a):
     exactly what makes the escape RATE unmeasurable.  Nothing here decides
     anything -- the numbers go to the reviewer.
 
-    THE ENGINE IS NAMED, NOT ASSUMED: `--tb-only` binds `check_seq.CORE`,
-    which is pinned to the ARCHIVED fsm core (`standing_gates.md` §C).  These
-    are statements about the PROGRAM POPULATION, not about a core, and they
-    may not be quoted as an ucore figure."""
+    THE ENGINE IS NAMED, NOT ASSUMED.  E-1's first measurement went through
+    `check_seq.CORE`, which is pinned to the ARCHIVED fsm core
+    (`standing_gates.md` §C / §F-4), and nothing in the output said so, so the
+    numbers could not be quoted as ucore figures.  `--core` now selects the
+    engine explicitly and EVERY ROW carries the core, the binary path and its
+    receipt id, derived by `tb_engine()` inside the worker that ran it."""
     ov = {"force_tier": a.force_tier} if a.force_tier else {}
     ks = list(range(a.start, a.start + a.n))
     jobs = max(1, a.jobs)
+    core, binp, rcpt = tb_engine(a.core)
     print(f"measure {a.cid}: {len(ks)} seeds via the Verilator TB "
-          f"(core={check_seq.CORE}, bin={check_seq.tb_bin()}), jobs={jobs}, "
-          f"ov={ov}")
+          f"(core={core}, bin={binp}, receipt={rcpt}), jobs={jobs}, ov={ov}")
     t0 = time.time()
     rows = []
     with Pool(jobs, initializer=_engine) as pool:
         for i, r in enumerate(pool.imap_unordered(
-                _measure_one, [(a.cid, k, ov) for k in ks], chunksize=4)):
+                _measure_one, [(a.cid, k, ov, a.core) for k in ks],
+                chunksize=4)):
             rows.append(r)
             if a.report_every and (i + 1) % a.report_every == 0:
                 print(f"  {i+1}/{len(ks)} ({(i+1)/(time.time()-t0):.1f}/s)",
@@ -1134,9 +1187,17 @@ def cmd_measure(a):
               f"{100*len(ok)/len(s):5.1f}%   escaped-AND-dumped "
               f"{len(both)}/{len(esc) or 1}")
 
+    # THE ROWS' OWN ACCOUNT of what ran, not the header's: if any worker
+    # disagreed with the parent, the population is mixed and unquotable.
+    seen = sorted({(r["core"], r["tb_bin"], r["tb_receipt"]) for r in rows})
+    assert len(seen) == 1 and seen[0] == (core, binp, rcpt), \
+        f"engine disagreement across workers: header={(core, binp, rcpt)} " \
+        f"rows={seen}"
     print(f"\n=== E-1 on the T2 generator: {len(rows)} seeds in "
           f"{time.time()-t0:.1f}s   (cid={a.cid}, k in [{a.start},"
           f"{a.start + a.n}))")
+    print(f"    ENGINE: core={seen[0][0]}  bin={seen[0][1]}\n"
+          f"            receipt={seen[0][2]}  (all {len(rows)} rows agree)")
     rep("ALL", lambda r: True)
     rep("soup", lambda r: r["tier"] == "soup")
     # the three soup classes that CANNOT terminate offline, separated out so
@@ -1158,7 +1219,8 @@ def cmd_measure(a):
     print(f"  dumps the terminator entered TWICE (discard class): {nrs}")
     if a.out:
         Path(a.out).write_text(json.dumps(
-            {"cid": a.cid, "start": a.start, "n": a.n, "core": check_seq.CORE,
+            {"cid": a.cid, "start": a.start, "n": a.n, "core": core,
+             "tb_bin": binp, "tb_receipt": rcpt,
              "gen_git": _gen_git(), "rows": rows}))
         print(f"  wrote per-seed rows -> {a.out}")
     return 0
@@ -1564,8 +1626,63 @@ def _lint_handlers(cid, n, ov=None):
     return hits
 
 
+def _body_of(image, meta):
+    """The bytes the EU actually executes from the anchor: the composed,
+    SCRUBBED body slice.  `g["instr"]` is the generator's INTENT, and erratum
+    E-2 is that the two are not the same stream."""
+    at = meta["anchor_phys"]
+    return bytes(image[at:at + meta["instr_len"]])
+
+
+def _reason_class(why):
+    """`optable.scan_code` reasons, bucketed for counting: the opcode/port byte
+    is the detail, the CLASS is what a reviewer counts."""
+    if why.startswith("banned 0F"):
+        return "banned 0F"
+    if why.endswith("banned ext"):
+        return why.split()[0] + " " + why.split()[1] + " banned ext"
+    return why.rsplit(" ", 1)[0]
+
+
+def _boundaries(buf):
+    """The instruction-start offsets a linear decode of `buf` produces."""
+    out, i = [], 0
+    while i < len(buf):
+        out.append(i)
+        i += max(1, optable.ilen(buf, i))
+    return out
+
+
 def _lint_soup(cid, n, report_every, ov=None):
+    """fuzz-v2 ERRATUM E-2 -- THE SCAN IS ON THE POST-SCRUB STREAM.
+
+    It used to run `optable.scan_code(g["instr"])`, the generator's
+    PRE-SCRUB byte stream.  T3's 0F rule rewrites the `0F` AND THE BYTE AFTER
+    IT, and when the `0F` is an immediate that byte is the next instruction's
+    opcode -- so the tail re-decodes and the boundaries move.  A lint that
+    describes bytes which do not execute is the vacuous-gate pattern
+    (`docs/notes/artifact_receipt_layer.md`), so the authority is now the
+    composed image's body slice.
+
+    THREE POPULATIONS, kept apart because they mean different things:
+
+      * `hits` (the GATE) -- banned content in the executed stream that the
+        scrub is supposed to have removed, i.e. any `0F` violation, plus the
+        generator's own pre-scrub violations, plus a generator whose emitted
+        instruction lengths do not length-decode.  The pre-scrub scan is
+        RETAINED, not replaced: a banned byte the generator emitted is a
+        generator bug even when the scrub happens to mask it.
+      * `moved` -- bodies whose instruction boundaries the scrub shifted.
+        E-2's own number, measured on every lint run rather than once.
+      * `resid` -- banned group extensions / forbidden-port I/O that exist
+        ONLY post-scrub, i.e. that the boundary shift manufactured.  E-2 rules
+        these ACCEPTED and REPORTED: v2 containment is STRUCTURAL (the 0xCC
+        fill plus INT3 catches an escape by any means), not policy-based.
+        They are counted by reason and printed, never silently dropped."""
     hits = comp_err = wild = brkem = halt = tf = 0
+    moved = 0
+    resid = Counter()
+    resid_ex = []
     t0 = time.time()
     for k in range(n):
         cfg = derive_case(cid, k, dict(ov or {}, force_tier="soup"))
@@ -1574,10 +1691,11 @@ def _lint_soup(cid, n, report_every, ov=None):
         brkem += bool(g["brkem_pos"])
         halt += g["has_halt"]
         tf += g["has_tf"]
-        vio = optable.scan_code(g["instr"])
-        if vio:
-            hits += len(vio)
-            print(f"  SOUP HIT soup/{cid}/{k}: {vio[:4]}")
+        # (i) the GENERATOR's stream: what it MEANT to emit.
+        pre = optable.scan_code(g["instr"])
+        if pre:
+            hits += len(pre)
+            print(f"  SOUP HIT (pre-scrub, generator) soup/{cid}/{k}: {pre[:4]}")
         off = 0
         for ins in g["ins"]:
             if optable.ilen(g["instr"], off) != len(ins):
@@ -1585,18 +1703,105 @@ def _lint_soup(cid, n, report_every, ov=None):
                 print(f"  SOUP MALFORMED soup/{cid}/{k} @off {off}")
                 break
             off += len(ins)
+        # (ii) the ARTIFACT's stream: what the part executes.  This also
+        # subsumes the compose check the old form did separately.
         try:
-            check_seq.compose(g)
+            image, meta = compose_case(g, cfg)
         except Exception as e:                          # noqa: BLE001
             comp_err += 1
             if comp_err <= 5:
                 print(f"  SOUP COMPOSE ERR soup/{cid}/{k}: {e!r}")
+            continue
+        body = _body_of(image, meta)
+        post = optable.scan_code(body)
+        if body != g["instr"]:
+            moved += _boundaries(body) != _boundaries(g["instr"])
+        pre_why = {w for _o, w in pre}
+        for at, why in post:
+            if why.startswith("banned 0F"):
+                hits += 1
+                print(f"  SOUP HIT (post-scrub) soup/{cid}/{k} @{at}: {why}")
+                continue
+            if why in pre_why:
+                continue        # the generator's own, already a gate hit above
+            resid[_reason_class(why)] += 1
+            if len(resid_ex) < 8:
+                resid_ex.append(f"soup/{cid}/{k}@{at}: {why}")
         if report_every and (k + 1) % report_every == 0:
             print(f"  soup {k+1}/{n} ({(k+1)/(time.time()-t0):.0f}/s) "
-                  f"hits={hits} comp_err={comp_err}", flush=True)
+                  f"hits={hits} comp_err={comp_err} moved={moved} "
+                  f"resid={sum(resid.values())}", flush=True)
     print(f"soup: {n} seeds in {time.time()-t0:.1f}s | wild={wild} "
           f"brkem={brkem} halt={halt} tf={tf} | hits={hits} compose_err={comp_err}")
+    print(f"  E-2, on the EXECUTED (post-scrub) body: boundaries moved on "
+          f"{moved}/{n} = {100*moved/max(1,n):.1f}% of bodies; "
+          f"{sum(resid.values())} scrub-created group-ext / port hits "
+          f"in {len(resid)} classes: {dict(resid)}")
+    for e in resid_ex:
+        print(f"    e.g. {e}")
+    print("  (E-2 ruling: these are REPORTED, not a lint failure -- v2 "
+          "containment is structural, the 0xCC fill + INT3, not policy-based)")
+    hits += _lint_soup_control(cid, ov)
     return hits, comp_err
+
+
+def _lint_soup_control(cid, ov=None):
+    """NON-VACUITY for the corrected scan.  A zero above proves nothing unless
+    the scan can produce a non-zero, and unless it is demonstrably reading the
+    POST-scrub bytes rather than the generator's.
+
+    Four plants on one real seed, two of them the discriminator:
+
+      A  `0F 34` planted in the GENERATOR's stream (the lockup pair).  The
+         pre-scrub scan must FIRE, the post-scrub scan must be SILENT, and the
+         composed body must read `90 90` there.  This is the check that could
+         only pass if the two scans read different bytes -- under the old
+         (pre-scrub) lint the second clause was untestable.
+      B  `FE F8` (`FE /7`, a banned group extension) planted in the COMPOSED
+         image's body -- the exact class E-2 measured at 3/2,000.  Must FIRE.
+      C  `E6 FC` (`OUT 0xFC, AL`, the done-marker port) planted the same way.
+         Must FIRE.
+      D  `0F 34` planted in the COMPOSED body, i.e. AFTER the scrub, so the
+         scrub cannot have removed it.  Must FIRE as a GATE hit -- the class
+         that still fails the lint."""
+    cfg = derive_case(cid, 0, dict(ov or {}, force_tier="soup"))
+    g = build(cfg)
+    img, meta = compose_case(g, cfg)
+    at = meta["anchor_phys"]
+    bad = 0
+
+    def say(name, cond, detail):
+        nonlocal bad
+        print(f"  soup CONTROL [{name}]: {detail} -> "
+              f"{'FIRES' if cond else 'DID NOT FIRE'}")
+        if not cond:
+            bad += 1
+
+    # A -- planted before the scrub, AT THE ANCHOR, which is a decode boundary
+    # by construction (a plant at an arbitrary offset can land mid-instruction,
+    # where a linear decode never reaches it and the control is itself vacuous).
+    ga = dict(g, instr=b"\x0f\x34" + bytes(g["instr"][2:]))
+    pre_a = optable.scan_code(ga["instr"])
+    img_a, meta_a = compose_case(ga, cfg)
+    body_a = _body_of(img_a, meta_a)
+    post_a = optable.scan_code(body_a)
+    say("A 0F 34 planted PRE-scrub",
+        bool(pre_a) and not post_a and body_a[0:2] == b"\x90\x90",
+        f"pre={pre_a[:2]} post={post_a[:2]} body[0:2]={body_a[0:2].hex()}")
+
+    # B, C, D -- planted after the scrub, in the composed image
+    for name, blob in (("B FE /7 planted POST-scrub", b"\xfe\xf8"),
+                       ("C OUT 0xFC planted POST-scrub", b"\xe6\xfc"),
+                       ("D 0F 34 planted POST-scrub", b"\x0f\x34")):
+        buf = bytearray(img)
+        buf[at:at + len(blob)] = blob
+        hit = optable.scan_code(_body_of(bytes(buf), meta))
+        gate = [h for h in hit if h[1].startswith("banned 0F")]
+        say(name, bool(hit), f"hit={hit[:2]} gate_class={len(gate)}")
+        if name.startswith("D") and not gate:
+            bad += 1
+            print("  soup CONTROL [D]: fired, but NOT in the gate class")
+    return bad
 
 
 def _lint_raw(cid, n, report_every, ov=None):
@@ -1729,6 +1934,12 @@ def main():
     p.add_argument("--force-tier", choices=["soup", "raw"])
     p.add_argument("--report-every", type=int, default=0)
     p.add_argument("--out", default=None, help="per-seed rows as JSON")
+    p.add_argument("--core", default=None,
+                   help="THE ENGINE, explicitly.  Default None = "
+                        "`check_seq.CORE` = the ARCHIVED fsm core, which is "
+                        "how E-1 was first measured without saying so.  Every "
+                        "row carries the core, binary and receipt actually "
+                        "used.")
     p.set_defaults(func=cmd_measure)
 
     p = sub.add_parser("lint")

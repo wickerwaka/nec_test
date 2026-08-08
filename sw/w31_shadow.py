@@ -148,14 +148,43 @@ def layout(entry):
 
     for ins in g["ins"]:
         pc = place(pc, len(ins))
-    # ...and the STORE STUB, which `testimage.compose` appends after the
-    # program and which `g['ins']` does not carry: NOP x6, OUT imm8,AW,
-    # MOV AW,PS, OUT imm8,AW, BR far.  It is part of the executed image and a
-    # trap storm runs straight into it.
-    pc = meta["stub_linear"] & 0xFFFF
-    for n in (1, 1, 1, 1, 1, 1, 2, 2, 2, 5):
+    # ...and then whatever the program falls into, which `g['ins']` does not
+    # carry but a trap storm runs straight through.
+    #
+    # fuzz-v2 T12: this used to walk the STORE STUB that `compose` appended at
+    # `meta['stub_linear']` -- ten instructions, hand-listed here.  There is no
+    # stub in v2.  The program falls into the 0xCC apron, and every one of
+    # those bytes is a ONE-BYTE INT3, so the layout past the program is uniform
+    # and needs no table: one entry per address until the terminator.  That is
+    # the whole of what replaced the ten-instruction list, which is the shape
+    # this campaign's SIMPLICITY principle predicts.
+    end = meta["term_at"] & 0xFFFF
+    while pc != end:
+        pc = place(pc, 1)
+    for n in _TERM_LAYOUT:
         pc = place(pc, n)
     return lay, cs
+
+
+def _term_layout():
+    """Instruction lengths of the composed terminator, DERIVED not tabled.
+
+    The v1 code carried a hand-written ten-entry list of the store stub's
+    instruction sizes.  A hand list is exactly the fitted table the campaign's
+    SIMPLICITY principle warns about -- it drifts the moment the terminator is
+    edited, silently, because nothing checks it.  Assemble each source line and
+    take its length instead: it cannot drift."""
+    import testimage as _ti                                  # noqa: PLC0415
+    from v30asm import Assembler                             # noqa: PLC0415
+    a = Assembler()
+    out = []
+    for line in (_ti.TERM_HANDLER + _ti.DUMP_TAIL).splitlines():
+        if line.strip():
+            out.append(len(a.assemble(line, org=0)))
+    return tuple(out)
+
+
+_TERM_LAYOUT = _term_layout()
 
 
 def one(path):

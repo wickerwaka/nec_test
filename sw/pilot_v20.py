@@ -22,6 +22,16 @@ import testimage                                     # noqa: E402
 from testimage import ComposeError                   # noqa: E402
 from v30run import run_image, parse_result, RunError  # noqa: E402
 
+# --- fuzz-v2 T12: RETIRED, not broken.  See sw/retired_v1.py. -----------
+import retired_v1  # noqa: E402
+retired_v1.retire(
+    'pilot_v20.py',
+    'opcode-suite campaign v20 oracle pilot (CLOSED)',
+    'the suite it piloted SHIPPED -- tests/v30/v20suite, 3,125,000 cases, a standing gate.  Porting it would mean re-anchoring foreign golden vectors into the v2 code region, which is a design question and not a fix',
+    'python3 sw/ucsim_check.py --suite tests/v30/v20suite --no-mirror')
+# ------------------------------------------------------------------------
+
+
 INTEL2NEC = {
     "ax": "AW", "bx": "BW", "cx": "CW", "dx": "DW",
     "sp": "SP", "bp": "BP", "si": "IX", "di": "IY",

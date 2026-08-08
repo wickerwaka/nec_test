@@ -16,6 +16,16 @@ import exp_iret as I                                   # noqa: E402
 import exp_race as R                                   # noqa: E402
 import check_core as CC                                # noqa: E402
 
+# --- fuzz-v2 T12: RETIRED, not broken.  See sw/retired_v1.py. -----------
+import retired_v1  # noqa: E402
+retired_v1.retire(
+    'pi1a_trace.py',
+    'race-cell per-clock trace (CLOSED)',
+    'a thin driver over exp_iret, which is itself retired',
+    None)
+# ------------------------------------------------------------------------
+
+
 BIN = CC.OBJ / "Vtb_v30_core"
 DELAY = 5
 BOOTN = 2600

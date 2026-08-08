@@ -19,6 +19,16 @@ import testimage
 import emit_suite as es
 from v30run import run_image
 
+# --- fuzz-v2 T12: RETIRED, not broken.  See sw/retired_v1.py. -----------
+import retired_v1  # noqa: E402
+retired_v1.retire(
+    'rerun_ghost.py',
+    'banked ghost-case re-runner (CLOSED)',
+    're-runs cases from the discarded corpus',
+    None)
+# ------------------------------------------------------------------------
+
+
 SUITE = SW.parent / "tests" / "v30" / "v0.1"
 
 

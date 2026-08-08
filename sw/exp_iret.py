@@ -39,6 +39,16 @@ import exp_race as R                                   # noqa: E402
 from exp_int import txns, pushed_words                 # noqa: E402
 import gen_race_law as GRL                             # noqa: E402
 
+# --- fuzz-v2 T12: RETIRED, not broken.  See sw/retired_v1.py. -----------
+import retired_v1  # noqa: E402
+retired_v1.retire(
+    'exp_iret.py',
+    'race-ROM / IRET arm (CLOSED; the law LANDED)',
+    'the POP-PSW/INT race law is in race_law.svh with check_race_law as its (archived) standing gate; this probe interrogated the v1 stub image',
+    'sw/check_race_law.py (archived, on demand)')
+# ------------------------------------------------------------------------
+
+
 HOST = R.HOST
 ANCHOR = 0x0500
 TARGET = 0x0600          # IRET landing (CS=0); store stub sits here

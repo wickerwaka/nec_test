@@ -29,6 +29,16 @@ from v30asm import Assembler                          # noqa: E402
 from exp_biu import fspacing_case, queue_timeline     # noqa: E402
 from v30run import run_test                           # noqa: E402
 
+# --- fuzz-v2 T12: RETIRED, not broken.  See sw/retired_v1.py. -----------
+import retired_v1  # noqa: E402
+retired_v1.retire(
+    'sweep_timing.py',
+    'ucsim-t fgap/fpop timing sweep (CLOSED 2026-08-02)',
+    'superseded by the timed ladder; every case anchors at 0x0500 and asks compose for a store stub',
+    'sw/timed_gate.py, sw/timed_fuzz.py')
+# ------------------------------------------------------------------------
+
+
 FACTS_DIR = Path(__file__).resolve().parent.parent / "docs" / "facts"
 OUT_PATH = FACTS_DIR / "timing_measured.json"
 

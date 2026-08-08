@@ -18,6 +18,16 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from v30asm import Assembler                          # noqa: E402
 from v30run import run_test                           # noqa: E402
 
+# --- fuzz-v2 T12: RETIRED, not broken.  See sw/retired_v1.py. -----------
+import retired_v1  # noqa: E402
+retired_v1.retire(
+    'probe_uncertain.py',
+    'flag/EA uncertainty probe (CLOSED)',
+    'one-shot on the v1 stub image at anchor 0x0500',
+    None)
+# ------------------------------------------------------------------------
+
+
 PSW_CY, PSW_P, PSW_AC, PSW_Z, PSW_S, PSW_V = 0x01, 0x04, 0x10, 0x40, 0x80, 0x800
 STACK = {"SS": 0, "SP": 0x0F00}
 

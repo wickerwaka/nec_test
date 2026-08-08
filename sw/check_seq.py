@@ -68,19 +68,26 @@ ROOT = SW.parent
 # --------------------------------------------------------------------------- #
 CORE = "fsm"
 BIN = ROOT / "hdl" / "tb" / "obj_dir" / "Vtb_v30_core"
-_BIN_OK = []
+_BIN_OK = {}
 
 
-def tb_bin():
+def tb_bin(core=None):
     """The TB binary, BUILT IF THE CONTENT KEY MOVED and then proved fresh
-    against this tree.  Memoised: a 3,242-seed replay pays the hashing once."""
-    if not _BIN_OK:
+    against this tree.  Memoised: a 3,242-seed replay pays the hashing once.
+
+    `core=None` means the module's pinned `CORE` and is what every historical
+    caller gets, byte for byte.  An EXPLICIT core is for a caller that intends
+    to name its engine (fuzz-v2 erratum E-1: the `--tb-only` figures were taken
+    on the ARCHIVED fsm core because this pin is the only thing that decides,
+    and nothing in the output said so).  It does NOT move the pin."""
+    core = CORE if core is None else core
+    if core not in _BIN_OK:
         import check_core                                   # noqa: PLC0415
         import artifact                                     # noqa: PLC0415
-        binp = artifact.ensure(check_core.recipe(CORE), quiet=False,
-                               why=f"check_seq.run_tb (--core {CORE})")
-        _BIN_OK.append(binp)
-    return _BIN_OK[0]
+        _BIN_OK[core] = artifact.ensure(
+            check_core.recipe(core), quiet=False,
+            why=f"check_seq.run_tb (--core {core})")
+    return _BIN_OK[core]
 T_NAME = {0: "Ti", 1: "T1", 2: "T2", 3: "T3", 4: "Tw", 5: "T4"}
 BS_NAME = {0: "INTA", 1: "IOR", 2: "IOW", 3: "HALT",
            4: "CODE", 5: "MEMR", 6: "MEMW", 7: "PASV"}
@@ -98,18 +105,18 @@ def compose(g):
                              handlers=g.get("handlers"))
 
 
-def run_tb(image, n, waits=0, evt=None, wrand=None, wvec=None):
+def run_tb(image, n, waits=0, evt=None, wrand=None, wvec=None, core=None):
     # ALWAYS clean the temp dir (finally below): a leak here accumulates one dir
     # per TB run across the sweep/drift loops that call this, and eventually
     # blows the user disk QUOTA (EDQUOT on every write, while df shows free).
     td = tempfile.mkdtemp(prefix="seq_")
     try:
-        return _run_tb_in(td, image, n, waits, evt, wrand, wvec)
+        return _run_tb_in(td, image, n, waits, evt, wrand, wvec, core)
     finally:
         shutil.rmtree(td, ignore_errors=True)
 
 
-def _run_tb_in(td, image, n, waits, evt, wrand, wvec):
+def _run_tb_in(td, image, n, waits, evt, wrand, wvec, core=None):
     img = Path(td) / "img.hex"
     out = Path(td) / "out.txt"
     # The TB memory is 1 MB FLAT since c78421f (v20 aliasing fix); compose()
@@ -122,7 +129,7 @@ def _run_tb_in(td, image, n, waits, evt, wrand, wvec):
     if len(image) == (1 << 16):
         image = bytes(image) * 16
     img.write_text("\n".join(f"{b:02x}" for b in image) + "\n")
-    args = [str(tb_bin()), f"+bootimg={img}", f"+bootn={n}",
+    args = [str(tb_bin(core)), f"+bootimg={img}", f"+bootn={n}",
             f"+waits={waits}", f"+out={out}"]
     if wvec is not None:
         # explicit wait-vector replay; the +wvec file (one Tw/bus-cycle) mirrors

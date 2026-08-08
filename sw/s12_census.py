@@ -104,9 +104,9 @@ def case_of(form, seed_base, idx=None):
     key = f"{seed_base}/{form}" if idx is None else f"{seed_base}/{form}/{idx}"
     case = es.gen_evt_case(spec, random.Random(key))
     nec = {es.INTEL2NEC[k]: v for k, v in case["regs"].items()}
+    # fuzz-v2 T12: no `stub_linear=` -- there is no store stub to place.
     image, meta = testimage.compose(regs=nec, instr=case["instr"],
-                                    ram=case["ram"], ivt=case["ivt"],
-                                    stub_linear=case["stub_linear"])
+                                    ram=case["ram"], ivt=case["ivt"])
     return spec, case, image, meta
 
 
@@ -247,7 +247,20 @@ def cmd_hltsweep(args):
 # 2.  the emission instrument: which PASS the PSW is read from
 # --------------------------------------------------------------------------- #
 def _psw_rules(txns, meta):
-    K = v30run.KIND
+    """RETIRED SUB-COMMAND (fuzz-v2 T12).  See `cmd_psw`.
+
+    This measured which PASS of a re-running board image the emission PSW was
+    read from, over the `MEMW @ psw_push_addr` channel.  fuzz-v2 D6 DELETED
+    that channel: the terminator pops its own interrupt frame and emits PSW as
+    an ordinary port write inside the dump, so there is exactly one PSW per
+    run and the hazard this instrument existed to measure cannot occur."""
+    raise RuntimeError(
+        "s12_census psw IS RETIRED (fuzz-v2 T12): it reads "
+        "meta['psw_push_addr'], the `MEMW @ 0xFFEC` channel that fuzz-v2 D6 "
+        "deleted.  PSW is now a WORD IN THE RUN -- see v30run.parse_result -- "
+        "so the multi-pass hazard it measured is structurally gone.  The other "
+        "s12_census sub-commands (hltsweep / regold / ackfam) are unaffected.")
+    K = v30run.KIND                                          # noqa: W0101
     done = [t for t in txns if K[t["kind"]] == "IOW"
             and (t["addr"] & 0xFFFF) == testimage.OUT_PORT_DONE]
     pushes = [t for t in txns if K[t["kind"]] == "MEMW"

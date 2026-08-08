@@ -17,10 +17,24 @@ import time
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+
+# --- fuzz-v2 T12: RETIRED, not broken.  See sw/retired_v1.py. -----------
+import retired_v1  # noqa: E402
+retired_v1.retire(
+    'e2_floor_smoke.py',
+    'E2 min-clock-floor smoke (CLOSED)',
+    "a board frequency-floor probe built on exp_int's v1 stub handler; it checks 'stub continuation', a mechanism fuzz-v2 D6 deleted",
+    None)
+# ------------------------------------------------------------------------
+
 from v30asm import Assembler                       # noqa: E402
 from v30run import run_test, RunError              # noqa: E402
 from exp_int import (txns, trigger_t1, pushed_words, handler_ram,  # noqa: E402
+
+
                      ANCHOR, HANDLER, SP0, VEC_INT)
+
+
 
 HOST = "root@mister-nec"
 DIVS = [4, 6, 8, 10, 12, 16]        # 8..2 MHz

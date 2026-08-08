@@ -34,6 +34,16 @@ from v30run import run_test, RunError                  # noqa: E402
 import exp_race as R                                   # noqa: E402
 from exp_int import txns                               # noqa: E402
 
+# --- fuzz-v2 T12: RETIRED, not broken.  See sw/retired_v1.py. -----------
+import retired_v1  # noqa: E402
+retired_v1.retire(
+    'exp_ghost.py',
+    'ghost interrupt-entry experiment (CLOSED)',
+    'one-shot on the v1 stub image; superseded by the evt suites',
+    'sw/timed_gate.py --suite tests/v30/v0.1-w1evt')
+# ------------------------------------------------------------------------
+
+
 HOST = R.HOST
 ANCHOR = 0x0500
 HANDLER = 0x0700
