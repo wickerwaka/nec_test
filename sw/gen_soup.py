@@ -6,9 +6,10 @@ Unlike gen_seq (a curated menu of hand-proven safe gadgets), gen_soup draws
 over the FULL legal opcode space via sw/optable.py, dispatched per Op.policy.
 Containment is structural rather than per-form:
 
-  * full_ivt() points ALL 256 vectors at a bare IRET handler at 0x0480, so
-    every trap (divide, BOUND/INT5, INT n, INTO, single-step, NMI, ...)
-    returns cleanly -> arithmetic / traps need no operand pre-conditioning.
+  * full_ivt() points every vector except the terminator's at the v2 image's
+    interrupt modification-handler table, so every trap (divide, BOUND/INT5,
+    INT n, INTO, single-step, NMI, ...) runs a register-only body and IRETs
+    -> arithmetic / traps need no operand pre-conditioning.
   * memory WRITES in contained mode are windowed (mod0/rm6 direct into the
     0x2000-0x2F00 data window); the 25% non-windowed EA draws degrade to the
     safe mod3 register form. Only WILD seeds emit truly wild memory modrm
@@ -18,14 +19,22 @@ Containment is structural rather than per-form:
   * REP + string forces a MOV CW,0..12 count clamp; PORT stays in the even
     0x08..0xEE harness-safe band (never 0xFC done / 0xFE regs).
 
+FUZZ v2 (plan D1) -- SEGMENT RANDOMIZATION BY DERIVED OFFSET.  Every segment
+register is uniformly random over 16 bits and EVERY literal address the
+generator emits is derived through `Bias.off()`, so the designed PHYSICAL
+address is unchanged while the `ps` / A19-16 column -- dead zero in every seed
+the old system ever produced -- becomes live.  See the `Bias` docstring for
+the one rule; there is no table and no per-form case.
+
 The generator does NOT modify gen_seq (its fz-seed RNG streams are frozen);
 it imports only the byte-layout primitives (Prog + assemble, _imm_biased,
-_mem_ea, the window constants, HANDLER_AT, NOSP).
+_mem_ea, the window constants, NOSP) and subclasses `Prog` for the two
+absolute fixups that carry an address (`BiasProg`).
 
 Returns a g-dict matching the gen_seq contract
-(seed/instr/regs/ram/ivt/n_ins/forms/ins) plus provenance extras
-(has_brkem, brkem_pos, has_halt, has_tf, wild) so check_seq.compose(g) and the
-fuzz classifier consume it unchanged.
+(seed/instr/regs/ram/ivt/handlers/n_ins/forms/ins) plus provenance extras
+(has_brkem, brkem_pos, has_halt, has_tf, wild, phys) so check_seq.compose(g)
+and the fuzz classifier consume it unchanged.
 """
 import argparse
 import random
@@ -36,24 +45,142 @@ from pathlib import Path
 SW = Path(__file__).resolve().parent
 sys.path.insert(0, str(SW))
 from gen_seq import (Prog, _imm_biased, _mem_ea, NOSP,  # noqa: E402
-                     DATA_LO, DATA_HI, SP0, PC0, HANDLER_AT)
+                     DATA_LO, DATA_HI, SP0)
 import optable  # noqa: E402
+import testimage as ti  # noqa: E402  (THE image map: anchor, code region, IHT)
 
-# handler + far-return stub (IRET at 0x0480, RETF at 0x0481). Every IVT slot
-# targets the IRET; far CALL gadgets target the RETF byte.
-IRET_AT = HANDLER_AT            # 0x0480
-RETF_AT = HANDLER_AT + 1        # 0x0481
+# --------------------------------------------------------------------------- #
+# THE ANCHOR (fuzz-v2 task T2 requirement 3).
+#
+# It is `testimage.ANCHOR0` and NOT a generator constant of its own, because a
+# second copy of the map is exactly the thing that drifts.  The map places it at
+# CODE_LO + 0x100, and that is the value this generator wants for its own
+# reasons too:
+#   * 256 bytes of 0xCC (INT3) apron BELOW it, so a backward runaway traps
+#     within one page instead of walking out of the code region;
+#   * 0xBE00 - 0x8100 = 15,616 bytes of headroom above it, ~15x the longest
+#     body this generator can emit (raw payload <= 1024 B, soup <= ~600 B), so
+#     a body can never reach the handler table or the terminator;
+#   * it is inside [CODE_LO, CODE_HI), which is what `testimage.compose`
+#     REQUIRES -- the v1 anchor 0x0500 is why every v2 compose raised.
+ANCHOR = ti.ANCHOR0
+
+# far-return stub, INSIDE the code region (v2).  It was at 0x0480, which is
+# outside [CODE_LO,CODE_HI) and would therefore be counted an ESCAPE by
+# `fuzz_classify.escaped_code_region`; it sits in the 0xCC apron below the
+# anchor, where nothing else is ever placed.
+STUB_AT = ti.CODE_LO + 0x40
+IRET_AT = STUB_AT               # bare IRET
+RETF_AT = STUB_AT + 1           # far-CALL return target
 HANDLER_BYTES = [(IRET_AT, 0xCF), (RETF_AT, 0xCB)]
 
 # windowed target band for wild-mode SP resync + string pointers
 STR_SI_LO, STR_SI_HI = 0x2400, 0x2800
 STR_DI_LO, STR_DI_HI = 0x2900, 0x2D00
 
+# XLAT reads DS0:[BW+AL] with AL fully random, so BW must leave a whole page of
+# headroom inside the data window (see emit_xlat).
+XLAT_LO, XLAT_HI = DATA_LO, DATA_HI - 0x100
 
-def full_ivt():
-    """All 256 vectors -> the bare IRET handler at 0x0480 (1 KB IVT, no
-    collision with the handler at 0x0480 or the program at 0x0500)."""
-    return {n: (0, IRET_AT) for n in range(256)}
+SEG_NAMES = ("PS", "SS", "DS0", "DS1")
+
+
+class Bias:
+    """Plan D1 -- segment randomization by DERIVED OFFSET.  ONE RULE:
+
+        base_seg in [0, 0x1000);   per-register k in [0, 16)
+        seg(name) = base_seg + k[name] * 0x1000
+        off(phys) = (phys - base_seg * 16) & 0xFFFF
+
+    Consequences, all of them exact and none of them a special case:
+
+      * every segment register is UNIFORMLY RANDOM over 16 bits (0x1000
+        base values x 16 k values = 0x10000, each once);
+      * all four share their low 12 bits, so seg*16 agrees mod 2^16 and the
+        PHYSICAL OFFSET of `off(p)` under ANY of them is exactly `p` -- which
+        is the only domain that decodes on this rig (`test_mem.sv` wires
+        addr[15:1] and leaves addr[19:16] unconnected);
+      * a segment-override prefix therefore becomes a physical no-op while
+        genuinely changing A19-16 -- the coverage the `ps` column wants;
+      * IP and EA wrap are closed under it: `off` is taken mod 2^16 and the
+        hardware adds mod 2^16 too, so no wrap needs handling anywhere.
+
+    `any_seg(rng)` draws a FRESH k from the same family: a different A19-16
+    with the same physical base.  It is the only thing that ever produces a
+    segment VALUE other than the four register ones, and it is why
+    `p_sreg_rand` can be 1.0 -- a random segment load is now contained."""
+
+    def __init__(self, seed):
+        rng = random.Random(f"bias/{seed}")
+        self.base_seg = rng.randrange(0x1000)
+        self.k = {nm: rng.randrange(16) for nm in SEG_NAMES}
+
+    def seg(self, name):
+        return self.base_seg + self.k[name] * 0x1000
+
+    def any_seg(self, rng):
+        return self.base_seg + rng.randrange(16) * 0x1000
+
+    def off(self, phys):
+        return (phys - self.base_seg * 16) & 0xFFFF
+
+    def linear(self, phys):
+        """The 20-bit PS-relative linear address of a physical byte (the
+        domain `fuzz_accept`'s code-fetch rows are compared in)."""
+        return ((self.seg("PS") << 4) + self.off(phys)) & 0xFFFFF
+
+
+class BiasProg(Prog):
+    """`Prog` with the two absolute fixups moved onto the bias helper.
+
+    `gen_seq.Prog.assemble` patches a far JMP's off16 and a near-indirect
+    MOV's imm16 from the module constant `PC0` and writes segment 0.  Both are
+    v1 addresses.  This subclass re-patches them after the frozen parent pass,
+    which keeps the forward-branch displacement logic in ONE place -- and it
+    leaves `gen_seq` untouched, so no fz-seed stream moves."""
+
+    def __init__(self, rng, bias):
+        super().__init__(rng)
+        self.b = bias
+        self.abs_seg = {}          # ins_index -> segment word for a far JMP
+
+    def emit_farjmp_next(self):
+        self.abs_seg[len(self.ins)] = self.b.any_seg(self.rng)
+        super().emit_farjmp_next()
+
+    def assemble(self):
+        raw = bytearray(Prog.assemble(self))
+        sizes = [len(b) for b in self.ins]
+        start = [0]
+        for s in sizes:
+            start.append(start[-1] + s)
+        base = self.b.off(ANCHOR)
+        for idx in self.abs_fixups:
+            off = (base + start[idx + 1]) & 0xFFFF      # the NEXT instruction
+            seg = self.abs_seg[idx]
+            i = start[idx]
+            raw[i + 1], raw[i + 2] = off & 0xFF, off >> 8
+            raw[i + 3], raw[i + 4] = seg & 0xFF, seg >> 8
+        for mov_idx, upto in self.reg_ip_fixups:
+            off = (base + start[upto]) & 0xFFFF
+            i = start[mov_idx]
+            raw[i + 1], raw[i + 2] = off & 0xFF, off >> 8
+        return bytes(raw)
+
+
+def full_ivt(bias, rng):
+    """Every vector EXCEPT the terminator's -> a handler-table slot.
+
+    Vector `testimage.TERM_VECTOR` is composed by `testimage.compose` (it is
+    the INT3 the 0xCC fill executes) and `compose` RAISES if a caller sets it,
+    so it is absent here by construction rather than by filtering downstream.
+
+    Each entry gets its own `k`, so the IVT itself carries the whole A19-16
+    family: 255 far pointers whose segments differ and whose physical targets
+    are all inside the handler table."""
+    slots = [ti.IHT_AT + i * ti.IHT_STRIDE for i in range(ti.IHT_N)]
+    return {n: (bias.any_seg(rng), bias.off(rng.choice(slots)))
+            for n in range(256) if n != ti.TERM_VECTOR}
 
 
 @dataclass
@@ -73,10 +200,14 @@ class SoupKnobs:
     p_illegal_mod3: float = 0.0   # emit the illegal LEA/BOUND mod=11 forms (0 =
                                   # never; small in survey campaigns for the
                                   # task-#30 accepted-class regression coverage)
-    p_sreg_rand: float = 0.40     # DS0/DS1 load = random (else 0x0000). A random
-                                  # DS then a windowed write escapes the window
-                                  # (accepted no-done breadth) - set 0 for a
-                                  # strict contained fall-through generation.
+    p_sreg_rand: float = 1.00     # DS0/DS1 load = a FRESH member of the segment
+                                  # family (else the register's own value, an
+                                  # inert reload).  Under plan D1 a "random"
+                                  # segment is a different A19-16 with the same
+                                  # physical base, so it no longer escapes the
+                                  # window and no longer has to be rationed:
+                                  # 0.40 -> 1.00.  `strict` still sets it to 0
+                                  # to hold A19-16 constant across a run.
     stack_cap: int = 24           # max outstanding PUSH-family ops
 
 
@@ -134,14 +265,41 @@ def _port(rng):
     return rng.randrange(0x08, 0xEF) & 0xFE
 
 
+# --------------------------------------------------------------------------- #
+# THE INTERRUPT MODIFICATION-HANDLER POOL (plan D8).
+#
+# ONE RULE: nothing in a handler may TRAP, BRANCH or TOUCH THE STACK.  A
+# handler that traps re-enters a handler and recurses without bound -- and
+# every entry pushes three words, so the recursion eats the stack as well as
+# the clock.  It is the single most dangerous failure mode in the design and
+# it is closed by construction, not by a runtime check.
+#
+# Mechanically the rule is "the register domain only", which is:
+#   * FREE minus the SP writers (already out of FREE_OPS) minus the two
+#     accumulator ops that DIVIDE -- D4 AAM traps on a zero base, and D5 AAD
+#     rides with it as the same encoding pair;
+#   * EA at mod=11, i.e. no memory operand at all, minus the two forms that
+#     REQUIRE memory (8D LEA, 62 BOUND: mod=11 is illegal for both), minus the
+#     group extensions that divide or push.
+# CFLOW_FWD, CFLOW_GADGET, STACK, PORT, SREG, EVT_ONLY, BRKEM and UNDOC are
+# whole policy classes that never enter either pool, so they need no naming
+# here -- which is why this is one rule and not a per-opcode table.
+HANDLER_TRAP_FREE = frozenset({0xD4, 0xD5})            # AAM / AAD
+HANDLER_BANNED_EXT = frozenset({(0xF6, 6), (0xF6, 7),  # DIV / IDIV rm8
+                                (0xF7, 6), (0xF7, 7),  # DIV / IDIV rm16
+                                (0xFF, 6)})            # PUSH rm16
+
+
 # ---------------------------------------------------------------------------
 class Soup:
-    def __init__(self, seed, knobs, evt_pin, wild):
+    def __init__(self, seed, knobs, evt_pin, wild, handler=False):
         self.rng = random.Random(f"soup/{seed}")
         self.k = knobs
         self.evt_pin = evt_pin        # None | 0=INT | 1=NMI | 2=POLL
         self.wild = wild
-        self.p = Prog(self.rng)
+        self.handler = handler        # restricted pools: see the block above
+        self.b = Bias(seed)
+        self.p = BiasProg(self.rng, self.b)
         self.forms = []
         self.stackn = 0
         self.brkem_ins = []           # p.ins indices carrying a BRKEM
@@ -149,6 +307,17 @@ class Soup:
         self.has_tf = False
         self.lea_mod3 = []            # (ins_idx, dest_reg) for illegal LEA-mod3
         self.since_sp = 0             # instrs since last wild SP resync
+        # the two draw pools.  A handler restricts them; nothing else does.
+        self.free_ops = ([o for o in FREE_OPS if o.code not in HANDLER_TRAP_FREE]
+                         if handler else FREE_OPS)
+        self.ea_ops = ([o for o in EA_MODRM_OPS if o.code not in MEM_ONLY_EA]
+                       if handler else EA_MODRM_OPS)
+
+    def _exts(self, op):
+        e = _safe_exts(op)
+        if self.handler:
+            e = [x for x in e if (op.code, x) not in HANDLER_BANNED_EXT]
+        return e
 
     # --- prefix stack -----------------------------------------------------
     def _prefix(self, allow_rep=True):
@@ -168,7 +337,7 @@ class Soup:
         seeds emit a truly wild memory modrm for the non-windowed fraction."""
         rng = self.rng
         if force_windowed or rng.random() < self.k.p_window_ea:
-            ea = _mem_ea(rng)                       # even/odd data-window addr
+            ea = self.b.off(_mem_ea(rng))           # even/odd data-window addr
             return bytes([(reg_field << 3) | 6, ea & 0xFF, ea >> 8])
         if self.wild:
             mod = rng.randrange(3)                  # wild memory (may self-modify)
@@ -188,14 +357,14 @@ class Soup:
 
     # --- family emitters --------------------------------------------------
     def emit_free(self):
-        op = self.rng.choice(FREE_OPS)
+        op = self.rng.choice(self.free_ops)
         imm = (_imm_biased(self.rng, 8 * op.imm).to_bytes(op.imm, "little")
                if op.imm else b"")
         self.p.emit(self._prefix() + bytes([op.code]) + imm)
         return "free"
 
     def emit_ea(self):
-        op = self.rng.choice(EA_MODRM_OPS)
+        op = self.rng.choice(self.ea_ops)
         rng = self.rng
         # LEA (8D) / BOUND (62) REQUIRE a memory operand; a mod=11 (register)
         # encoding is illegal. Default-exclude it (force a windowed mem form) so
@@ -204,7 +373,7 @@ class Soup:
         mem_only = op.code in MEM_ONLY_EA
         illegal = mem_only and rng.random() < self.k.p_illegal_mod3
         if op.group:
-            ext = rng.choice(_safe_exts(op))
+            ext = rng.choice(self._exts(op))
             reg_field = ext
             write = op.code in (0xFE, 0xFF, 0xC6, 0xC7) or \
                 (op.code in (0x80, 0x81, 0x82, 0x83, 0xC0, 0xC1,
@@ -264,28 +433,44 @@ class Soup:
         return "bcd4s"
 
     def emit_les_lds(self):
-        op = self.rng.choice([0xC4, 0xC5])
-        ea = self.rng.randrange(DATA_LO, DATA_HI - 4) & 0xFFFE
-        off = self.rng.getrandbits(16)
-        self.p.ram_set(ea, [off & 0xFF, off >> 8, 0x00, 0x00])   # seg -> 0
-        self.p.emit(bytes([op, (self.rng.choice(NOSP) << 3) | 6,
-                           ea & 0xFF, ea >> 8]))
+        rng = self.rng
+        op = rng.choice([0xC4, 0xC5])
+        ea = rng.randrange(DATA_LO, DATA_HI - 4) & 0xFFFE
+        off = rng.getrandbits(16)
+        # the injected far pointer's SEGMENT word was hardcoded 0, which under
+        # plan D1 is the ONE segment value that is not in the family -- loading
+        # it would take DS0/DS1 off the shared physical base and every later
+        # windowed EA with it.  It is a fresh family member instead: a real
+        # A19-16 change, a physical no-op.
+        seg = self.b.any_seg(rng)
+        self.p.ram_set(ea, [off & 0xFF, off >> 8, seg & 0xFF, seg >> 8])
+        eo = self.b.off(ea)
+        self.p.emit(bytes([op, (rng.choice(NOSP) << 3) | 6,
+                           eo & 0xFF, eo >> 8]))
         return "les_lds"
 
     def emit_moffs(self):
         op = self.rng.choice([0xA0, 0xA1, 0xA2, 0xA3])
-        ea = _mem_ea(self.rng)
+        ea = self.b.off(_mem_ea(self.rng))
         self.p.emit(self._prefix() + bytes([op, ea & 0xFF, ea >> 8]))
         return "moffs"
 
     def emit_xlat(self):
-        self.p.emit(self._prefix() + bytes([0xD7]))              # read-only
+        # XLAT reads DS0:[BW+AL] with AL whatever the stream left in it, so a
+        # bare D7 is an EXISTING CONTAINMENT VIOLATION: BW is fully random and
+        # the read lands at an arbitrary offset.  Windowed the same way
+        # emit_string windows SI/DI -- an atomic MOV BW,<windowed>; D7 pair,
+        # with a whole page of headroom above the target so BW+AL cannot leave
+        # the data window for any AL.
+        bw = self.b.off(self.rng.randrange(XLAT_LO, XLAT_HI))
+        self.p.emit_atomic([bytes([0xBB, bw & 0xFF, bw >> 8]),   # MOV BW
+                            self._prefix() + bytes([0xD7])])     # XLAT (read)
         return "xlat"
 
     def emit_string(self):
         rng = self.rng
-        si = rng.randrange(STR_SI_LO, STR_SI_HI)
-        di = rng.randrange(STR_DI_LO, STR_DI_HI)
+        si = self.b.off(rng.randrange(STR_SI_LO, STR_SI_HI))
+        di = self.b.off(rng.randrange(STR_DI_LO, STR_DI_HI))
         op = rng.choice(STRING_CODES)
         seq = [bytes([0xBE, si & 0xFF, si >> 8]),               # MOV SI
                bytes([0xBF, di & 0xFF, di >> 8]),               # MOV DI
@@ -319,8 +504,8 @@ class Soup:
             return "port_dx"
         # INM/OUTM string I/O (bounded count, windowed pointers)
         op = rng.choice(PORT_STR_OPS)
-        si = rng.randrange(STR_SI_LO, STR_SI_HI)
-        iy = rng.randrange(STR_DI_LO, STR_DI_HI)
+        si = self.b.off(rng.randrange(STR_SI_LO, STR_SI_HI))
+        iy = self.b.off(rng.randrange(STR_DI_LO, STR_DI_HI))
         seq = [bytes([0xBE, si & 0xFF, si >> 8]),               # SI (OUTM src)
                bytes([0xBF, iy & 0xFF, iy >> 8]),               # IY (INM dst)
                bytes([0xBA]) + _port(rng).to_bytes(2, "little"),  # DW=port
@@ -371,11 +556,13 @@ class Soup:
         # PREPARE/DISPOSE (ENTER/LEAVE) with BP windowed + SP resync
         size = rng.randrange(0, 0x20) & 0xFFFE
         level = rng.randrange(0, 4)
-        seq = [bytes([0xBD, 0xE0, 0x3F]),                      # MOV BP,0x3FE0
+        bp = self.b.off(0x3FE0)
+        sp = self.b.off(SP0)
+        seq = [bytes([0xBD, bp & 0xFF, bp >> 8]),              # MOV BP,^0x3FE0
                bytes([0xC8, size & 0xFF, size >> 8, level])]
         if rng.random() < 0.5:
             seq.append(bytes([0xC9]))                          # DISPOSE
-        seq.append(bytes([0xBC, 0x00, 0x3F]))                  # MOV SP,0x3F00
+        seq.append(bytes([0xBC, sp & 0xFF, sp >> 8]))          # MOV SP,^0x3F00
         self.p.emit_atomic(seq)
         return "prepare"
 
@@ -398,16 +585,23 @@ class Soup:
             self.p.emit_farjmp_next()
             return "far_jmp"
         if r < 0.40:                                           # far CALL -> RETF stub
-            self.p.emit(bytes([0x9A, RETF_AT & 0xFF, RETF_AT >> 8, 0, 0]))
+            off = self.b.off(RETF_AT)
+            seg = self.b.any_seg(rng)
+            self.p.emit(bytes([0x9A, off & 0xFF, off >> 8,
+                               seg & 0xFF, seg >> 8]))
             return "far_call"
         if r < 0.62:                                           # software INT
-            k = rng.randrange(3)
-            if k == 0:
-                self.p.emit([0xCC])
-            elif k == 1:
-                self.p.emit([0xCD, rng.randrange(256)])        # any vector (full IVT)
+            # ONE rule: a DELIBERATE software interrupt targets a modification
+            # handler, never the terminator.  Under v2 vector TERM_VECTOR is
+            # the terminator (the 0xCC fill's INT3), so `CC` / `CD 03` would
+            # end the seed at a uniformly random point in its own body -- a
+            # valid dump, but roughly half the corpus truncated for nothing.
+            # The INT3 OPCODE is exercised by the fill on every escape.
+            if rng.random() < 0.5:
+                n = rng.randrange(255)
+                self.p.emit([0xCD, n + (n >= ti.TERM_VECTOR)])
             else:
-                self.p.emit([0xCE])
+                self.p.emit([0xCE])                            # INTO (vector 4)
             return "swint"
         if r < 0.80:                                           # CALL near + RET
             body = [bytes([rng.choice([0x40, 0x48]) + (0 if x == 4 else x)])
@@ -450,10 +644,15 @@ class Soup:
     def emit_sreg(self):
         rng = self.rng
         sreg = rng.choice([0x00, 0x03])          # DS1 (reg=00), DS0 (reg=11)
-        val = rng.getrandbits(16) if rng.random() < self.k.p_sreg_rand else 0x0000
+        # a FRESH family member (new A19-16, same physical base) or the
+        # register's own value (an inert reload).  Both are contained, which is
+        # why p_sreg_rand is 1.0 by default now.
+        val = (self.b.any_seg(rng) if rng.random() < self.k.p_sreg_rand
+               else self.b.seg("DS1" if sreg == 0x00 else "DS0"))
         ea = rng.randrange(DATA_LO, DATA_HI - 2) & 0xFFFE
         self.p.ram_set(ea, [val & 0xFF, val >> 8])
-        self.p.emit(bytes([0x8E, (sreg << 3) | 6, ea & 0xFF, ea >> 8]))
+        eo = self.b.off(ea)
+        self.p.emit(bytes([0x8E, (sreg << 3) | 6, eo & 0xFF, eo >> 8]))
         return "sreg"
 
     def emit_undoc(self):
@@ -485,8 +684,9 @@ class Soup:
 
     def emit_wild_sp(self):
         # wild SP write then forced resync (keeps the stack recoverable)
+        sp = self.b.off(SP0)
         self.p.emit_atomic([bytes([0xBC]) + self.rng.getrandbits(16).to_bytes(2, "little"),
-                            bytes([0xBC, 0x00, 0x3F])])         # MOV SP,rand; MOV SP,0x3F00
+                            bytes([0xBC, sp & 0xFF, sp >> 8])])  # rand; ^0x3F00
         self.since_sp = 0
         return "wild_sp"
 
@@ -537,6 +737,53 @@ class Soup:
         instr = self.p.assemble()
         return instr
 
+    # --- the handler-body driver (plan D8) --------------------------------
+    def build_handler(self, limit):
+        """One handler body of at most `limit` bytes, drawn from the two
+        RESTRICTED pools only.  compose appends the IRET, so a body cannot
+        fall out of its slot and needs no terminator of its own.
+
+        ONE extra rule, and it is about THE 0F SCRUB, not about opcodes: a
+        handler body may not CONTAIN the byte 0x0F anywhere.  `scrub_0f`
+        rewrites a `0F` and THE BYTE AFTER IT to `90 90`, and the byte after a
+        0x0F immediate is the NEXT INSTRUCTION'S OPCODE -- so one boundary-
+        crossing pair turns that instruction into a NOP and re-decodes its
+        tail as fresh instructions, which is how a `C3` (RET) or a `CD`
+        appears in a body that never emitted one.  On the last body byte the
+        partner is the appended IRET itself.  The fuzz body may contain 0x0F
+        freely; a handler may not, because a handler's safety is a claim about
+        its DECODING and the scrub can move its boundaries.  (No handler
+        opcode is 0x0F -- the pools carry none -- so this only ever rejects an
+        immediate, and it costs one redraw.)"""
+        assert self.handler, "build_handler on an unrestricted Soup"
+        self.p = BiasProg(self.rng, self.b)
+        rejects = 0
+        while rejects < 64:
+            mark = len(self.p.ins)
+            (self.emit_free if self.rng.random() < 0.5 else self.emit_ea)()
+            if 0x0F in b"".join(bytes(x) for x in self.p.ins[mark:]):
+                del self.p.ins[mark:]
+                rejects += 1
+                continue
+            if sum(len(x) for x in self.p.ins) > limit:
+                del self.p.ins[mark:]
+                break
+        return b"".join(bytes(x) for x in self.p.ins)
+
+
+def handler_bodies(seed, n=ti.IHT_N, limit=ti.IHT_STRIDE - 1):
+    """The per-seed pool of `n` interrupt modification-handler bodies.
+
+    A SECOND `Soup` instance with restricted knobs -- `handler=True` narrows
+    the two pools per the rule stated above, and `p_window_ea=0` forces every
+    EA to mod=11.  No new emitter and no new opcode list, which is the point:
+    the bodies are drawn from the same generator the fuzz body is."""
+    s = Soup(f"hand/{seed}",
+             SoupKnobs(p_window_ea=0.0, p_brkem=0.0, p_undoc=0.0, p_tf=0.0,
+                       p_halt=0.0, p_illegal_mod3=0.0),
+             evt_pin=None, wild=False, handler=True)
+    return [s.build_handler(limit) for _ in range(n)]
+
 
 def gen_soup(seed, nmin=24, nmax=80, knobs=None, evt_pin=None, wild=None):
     """-> g-dict (compose-ready) + soup provenance extras.
@@ -549,33 +796,44 @@ def gen_soup(seed, nmin=24, nmax=80, knobs=None, evt_pin=None, wild=None):
         wild = rng0.random() < knobs.p_wild_seed
     s = Soup(seed, knobs, evt_pin, wild)
     instr = s.build(nmin, nmax)
+    b = s.b
 
-    # brkem provenance: linear = anchor 0x0500 + byte offset of the BRKEM instr
-    sizes = [len(b) for b in s.p.ins]
-    brkem_pos = [(idx, (PC0 + sum(sizes[:idx])) & 0xFFFFF) for idx in s.brkem_ins]
-    # LEA-mod3 provenance (task #30 accept rule): (linear, dest STORE_ORDER name)
+    # brkem / LEA-mod3 provenance: the 20-bit PS-RELATIVE LINEAR address of the
+    # instruction, which is the domain `fuzz_accept`'s code-fetch rows carry
+    # (`ad_addr & 0xFFFFF`).  Under plan D1 that is no longer the same number
+    # as the physical offset.
+    sizes = [len(x) for x in s.p.ins]
+    def _lin(idx):
+        return ((b.seg("PS") << 4) + b.off(ANCHOR) + sum(sizes[:idx])) & 0xFFFFF
+    brkem_pos = [(idx, _lin(idx)) for idx in s.brkem_ins]
     _rname = ["AW", "CW", "DW", "BW", "SP", "BP", "IX", "IY"]
-    lea_mod3_pos = [((PC0 + sum(sizes[:idx])) & 0xFFFFF, _rname[reg])
-                    for idx, reg in s.lea_mod3]
+    lea_mod3_pos = [(_lin(idx), _rname[reg]) for idx, reg in s.lea_mod3]
 
-    regs = {"PS": 0, "PC": PC0, "SS": 0, "SP": SP0, "DS0": 0, "DS1": 0,
+    ix_phys = rng0.randrange(STR_SI_LO, STR_SI_HI)
+    iy_phys = rng0.randrange(STR_DI_LO, STR_DI_HI)
+    regs = {"PS": b.seg("PS"), "PC": b.off(ANCHOR),
+            "SS": b.seg("SS"), "SP": b.off(SP0),
+            "DS0": b.seg("DS0"), "DS1": b.seg("DS1"),
             "PSW": 0xF202,
             "AW": rng0.getrandbits(16), "BW": rng0.getrandbits(16),
             "CW": rng0.getrandbits(16), "DW": rng0.getrandbits(16),
             "BP": rng0.getrandbits(16),
-            "IX": rng0.randrange(STR_SI_LO, STR_SI_HI),
-            "IY": rng0.randrange(STR_DI_LO, STR_DI_HI)}
+            "IX": b.off(ix_phys), "IY": b.off(iy_phys)}
     ram = [(a, rng0.getrandbits(8)) for a in range(DATA_LO, DATA_HI + 0x100)]
     ram += [(a, rng0.getrandbits(8)) for a in range(0x3E00, 0x4000)]
     for addr, data in s.p.ram_over:
-        ram += [(addr + i, b) for i, b in enumerate(data)]
+        ram += [(addr + i, x) for i, x in enumerate(data)]
     ram += HANDLER_BYTES
 
-    return dict(seed=seed, instr=instr, regs=regs, ram=ram, ivt=full_ivt(),
+    return dict(seed=seed, instr=instr, regs=regs, ram=ram,
+                ivt=full_ivt(b, rng0), handlers=handler_bodies(seed),
                 n_ins=len(s.p.ins), forms=s.forms,
-                ins=[bytes(b) for b in s.p.ins],
+                ins=[bytes(x) for x in s.p.ins],
                 has_brkem=bool(brkem_pos), brkem_pos=brkem_pos,
                 lea_mod3_pos=lea_mod3_pos,
+                # the DESIGNED physical address behind each (seg, off) pair --
+                # what the bias lint checks the derivation against
+                phys={"PC": ANCHOR, "SP": SP0, "IX": ix_phys, "IY": iy_phys},
                 has_halt=s.has_halt, has_tf=s.has_tf, wild=wild)
 
 

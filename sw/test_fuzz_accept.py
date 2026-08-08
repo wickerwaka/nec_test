@@ -134,15 +134,25 @@ def test_open_bus():
              dr=_dr(escape_first + 8, n), sim=None)
     check("open_bus REFUSES tier A (soup)", R.apply(v) is None)
 
-    # full classify path -> KNOWN_ACCEPTED / open_bus (real diverges from sim
-    # AFTER the escape; both share the in-image prefix)
-    sim = real[:escape_first] + [_pasv()] * (n - escape_first)
-    v = fc.classify(real, sim, fc.Ctx(tier="B", real_is_chip=True), engine=eng)
-    check("open_bus seed -> KNOWN_ACCEPTED", v.verdict == fc.KNOWN_ACCEPTED,
-          f"({v.verdict}/{v.sub})")
-    check("open_bus KNOWN_ACCEPTED carries a rule hit", len(v.rule_hits) >= 1)
+    # the engine counts the hit on the rule path
+    eng.consider(dict(covers="functional", ctx=fc.Ctx(tier="B"), real=real,
+                      dr=_dr(escape_first + 8, n), sim=None))
     check("engine counted the open_bus hit", eng.hits["open_bus_escape"] >= 1,
           f"(hits={eng.hits})")
+
+    # FULL CLASSIFY PATH: fuzz-v2 T4.  These fetches are outside the v2 code
+    # region, so `escaped_code_region` fires FIRST and the seed QUARANTINEs on
+    # a containment alarm -- it can no longer reach the accept engine.  That is
+    # the intended v2 behaviour: containment is a falsifier, not an excuse, and
+    # a seed that leaves its code region is a statement about the GENERATOR.
+    # (The rule itself is untouched and still applies to the v1 bank, which
+    # `timed_fuzz` scores through `open_bus_escape_metrics` directly.)
+    sim = real[:escape_first] + [_pasv()] * (n - escape_first)
+    v = fc.classify(real, sim, fc.Ctx(tier="B", real_is_chip=True), engine=eng)
+    check("escaped seed -> QUARANTINE (v2 containment falsifier)",
+          v.verdict == fc.QUARANTINE
+          and any(a.startswith("escaped_code_region") for a in v.alarms),
+          f"({v.verdict}/{v.sub})")
 
 
 # ===========================================================================
@@ -309,14 +319,16 @@ def test_cadence():
     check("cadence inert at w0/no-wrand", inert is None)
 
 
-def _arch_cap(regvals, psw=0xF002):
+def _arch_cap(regvals):
     """Synthetic capture whose arch_dump yields regvals (STORE_ORDER names ->
-    value): one IOW-0xFE write per STORE_ORDER reg + a MEMW PSW @0xFFEC."""
-    from fuzz_classify import STORE_ORDER, PSW_PUSH_AT
+    value): one IOW-0xFE write per STORE_ORDER name, MAGIC at its own index,
+    then the done marker.  PSW is a word IN the run (fuzz-v2 D6) - the
+    `MEMW @ 0xFFEC` channel is gone."""
+    from fuzz_classify import STORE_ORDER, MAGIC
     rows = [_pasv()] * 4
     for name in STORE_ORDER:
-        rows += _cycle(2, 0x00FE, data=regvals.get(name, 0))     # IOW 0xFE
-    rows += _cycle(6, PSW_PUSH_AT, data=psw)                      # MEMW PSW
+        d = MAGIC if name == "MAGIC" else regvals.get(name, 0)
+        rows += _cycle(2, 0x00FE, data=d)                        # IOW 0xFE
     rows += _cycle(2, 0x00FC, data=fc.DONE_SENTINEL)             # done marker
     rows += [_pasv()] * 4
     return rows
@@ -325,7 +337,8 @@ def _arch_cap(regvals, psw=0xF002):
 def test_lea_mod3():
     eng = fa.AcceptEngine.load()
     base = {"AW": 1, "CW": 2, "DW": 3, "BW": 4, "SP": 5, "BP": 6,
-            "IX": 7, "IY": 8, "PS": 0, "SS": 0, "DS0": 0, "DS1": 0}
+            "IX": 7, "IY": 8, "PS": 0, "PC": 9, "PSW": 0xF202,
+            "SS": 0, "DS0": 0, "DS1": 0}
     real = _arch_cap(base)
     n = len(real)
     ctx = fc.Ctx(tier="A", lea_mod3_pos=[(0x0510, "IX")])
@@ -383,7 +396,7 @@ def test_invariant_and_counting():
     # KNOWN_ACCEPTED through the real classifier must carry a rule hit, and the
     # engine must count it (the classify assert guards the without-hit case).
     eng = fa.AcceptEngine.load()
-    lin = 0x0520
+    lin = 0x8520          # inside the v2 code region: no containment alarm
     # a chip capture that reaches done, plus a TB "sim" diverging only AFTER the
     # BRKEM fetch, with brkem_pos set -> functional done_mismatch covered by 8080
     real = ([_pasv()] * 12 + _cycle(4, lin)

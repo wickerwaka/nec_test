@@ -34,6 +34,29 @@
 //    +evhold=<n>     its hold in CPU clocks (12-bit register since 2026-08-04)
 //    +pins=<hex>     static PINS register ([0] INT [1] NMI [2] POLL_N)
 //
+//  Plusargs added for the fuzz-v2 rig RTL (EVT_N = 3 schedulers + the NMI
+//  vector-read overlay).  There is ONE packer -- `arm_evt` below -- for all
+//  three register pairs, because the host packs one layout for all three and a
+//  forked packer on either side of the wire is how INV-1 happened.
+//    +ev2pin/+ev2addr/+ev2delay/+ev2hold   scheduler 1 (EVT2_* at 0x30/0x34)
+//    +ev3pin/+ev3addr/+ev3delay/+ev3hold   scheduler 2 (EVT3_* at 0x38/0x3C)
+//    +tvec=<hex>     TVEC   (0x40): [15:0] IP, [31:16] CS -- the words served
+//                    for the NMI vector reads at linear 0x00008 / 0x0000A
+//    +vecctl=<hex>   VECCTL (0x44): [2:0] vecsub_en, bit n = scheduler n's
+//                    FIRE arms the overlay.  A property of WHICH DIRECTIVE
+//                    FIRED, not of which pin went high, which is the only
+//                    formulation under which a stimulus NMI and a terminating
+//                    NMI coexist in one run.
+//  TVEC and VECCTL are written ONLY when their plusarg is present, so an
+//  invocation that names neither issues byte-identical AXI traffic to the
+//  pre-EVT_N harness -- which is what makes the inertness claim checkable
+//  (sw/fz2_tbsys.py inert) rather than asserted.
+//
+//  Every register this file writes is READ BACK and compared before the run.
+//  INV-1's root cause was the rig silently applying a directive other than the
+//  one it was handed; the readback is what makes that a $fatal instead of a
+//  finding six days later.
+//
 //  Built and run by sw/x1_retention.py.  Define X1_AD_RETENTION at build time
 //  to compile system_large's §56.3a retention model in; the two builds differ
 //  by that define and by nothing else.
@@ -55,6 +78,14 @@ localparam bit [20:0] R_STATUS   = 21'h180010;
 localparam bit [20:0] R_CAPCOUNT = 21'h180014;
 localparam bit [20:0] R_EVT_ADDR = 21'h18001C;
 localparam bit [20:0] R_EVT_CFG  = 21'h180020;
+// fuzz-v2: schedulers 1 and 2 sit at 0x30 + 8*(n-1); scheduler 0 keeps its
+// historical offsets, so a run that arms only it is bit-for-bit unchanged.
+localparam bit [20:0] R_EVT2_ADDR = 21'h180030;
+localparam bit [20:0] R_EVT2_CFG  = 21'h180034;
+localparam bit [20:0] R_EVT3_ADDR = 21'h180038;
+localparam bit [20:0] R_EVT3_CFG  = 21'h18003C;
+localparam bit [20:0] R_TVEC      = 21'h180040;
+localparam bit [20:0] R_VECCTL    = 21'h180044;
 
 logic clk = 0;
 logic reset = 1;
@@ -157,6 +188,50 @@ task automatic axi_read_cap(input int rec, output bit [63:0] r);
 endtask
 
 //----------------------------------------------------------------------------
+// ONE packer for all EVT_N register pairs, mirroring the register writes
+// sw/v30ctl.py performs.  EVT_CFG's hold is SPLIT: [23:16] low 8 bits,
+// [30:27] high 4 -- the 12-bit widen of 2026-08-04 (F46 / gap R1).
+//
+// It READS BACK what it wrote and $fatals on a mismatch.  Every bit of the
+// CFG word is spoken for, so an exact compare is the right compare.
+//----------------------------------------------------------------------------
+task automatic arm_evt(input bit [20:0] a_addr, input bit [20:0] a_cfg,
+                       input string nm,
+                       input integer ea, input integer ed,
+                       input integer eh, input integer ep);
+    bit [31:0] cfgv, wanta, rba, rbc;
+    wanta = 32'(ea) & 32'h000FFFFF;
+    axi_write32(a_addr, wanta);
+    cfgv        = 32'h0;
+    cfgv[15:0]  = ed[15:0];
+    cfgv[23:16] = eh[7:0];
+    cfgv[26:24] = ep[2:0];
+    cfgv[30:27] = eh[11:8];
+    cfgv[31]    = 1'b1;                          // arm
+    axi_write32(a_cfg, cfgv);
+    axi_read32(a_addr, rba);
+    axi_read32(a_cfg,  rbc);
+    $display("SYS EVT %s ADDR=%08x CFG=%08x  readback ADDR=%08x CFG=%08x",
+             nm, wanta, cfgv, rba, rbc);
+    if (rba !== wanta)
+        $fatal(1, "%s ADDR readback %08x != %08x", nm, rba, wanta);
+    if (rbc !== cfgv)
+        $fatal(1, "%s CFG readback %08x != %08x", nm, rbc, cfgv);
+endtask
+
+// EXACT readback compare, deliberately.  VECCTL stores only EVT_N bits, so
+// +vecctl=8 (a fourth scheduler that does not exist) $fatals here rather than
+// running with a silently narrowed directive -- which is INV-1's shape.
+task automatic wr_verify(input bit [20:0] a, input bit [31:0] d,
+                         input string nm);
+    bit [31:0] rb;
+    axi_write32(a, d);
+    axi_read32(a, rb);
+    $display("SYS REG %s=%08x  readback %08x", nm, d, rb);
+    if (rb !== d) $fatal(1, "%s readback %08x != %08x", nm, rb, d);
+endtask
+
+//----------------------------------------------------------------------------
 // test sequence
 //----------------------------------------------------------------------------
 localparam int IMG_BYTES = 65536;          // test_mem is 64 KiB, mirrored
@@ -165,10 +240,21 @@ byte unsigned img [0:IMG_BYTES-1];
 string img_path, cap_path;
 integer ncap, waits, divv, evpin, evdelay, evhold, pinsr;
 integer fd, cnt, i, evaddr;
-bit [31:0] w, cfgw, evtw;
+bit [31:0] w, cfgw;
 bit [63:0] rec;
 bit        armed;
-bit        fired;
+// fuzz-v2: schedulers 1 and 2, and the NMI vector-read overlay
+integer evpin2, evdelay2, evhold2, evaddr2;
+integer evpin3, evdelay3, evhold3, evaddr3;
+bit        armed2, armed3;
+integer    tvecv, vecctlv;
+bit        havetvec, havevecctl;
+// STATUS is LATCHED while the run is live: evt_fired and vec_used live in
+// nec_bus and are cleared by the harness reset that CTRL's stop asserts, so
+// read after the stop they are always 0.
+bit  [2:0] fired;        // STATUS[5:3], one bit per scheduler
+bit        vecused;      // STATUS[6], sticky "the overlay served a CS half"
+bit        capfull;      // STATUS[2]
 
 initial begin
     if (!$value$plusargs("img=%s", img_path))  $fatal(1, "+img required");
@@ -181,6 +267,21 @@ initial begin
     if (!$value$plusargs("evaddr=%h", evaddr))   evaddr  = 0;
     if (!$value$plusargs("evdelay=%d", evdelay)) evdelay = 0;
     if (!$value$plusargs("evhold=%d", evhold))   evhold  = 0;
+
+    armed2 = $value$plusargs("ev2pin=%d", evpin2);
+    if (!$value$plusargs("ev2addr=%h", evaddr2))   evaddr2  = 0;
+    if (!$value$plusargs("ev2delay=%d", evdelay2)) evdelay2 = 0;
+    if (!$value$plusargs("ev2hold=%d", evhold2))   evhold2  = 0;
+
+    armed3 = $value$plusargs("ev3pin=%d", evpin3);
+    if (!$value$plusargs("ev3addr=%h", evaddr3))   evaddr3  = 0;
+    if (!$value$plusargs("ev3delay=%d", evdelay3)) evdelay3 = 0;
+    if (!$value$plusargs("ev3hold=%d", evhold3))   evhold3  = 0;
+
+    havetvec   = $value$plusargs("tvec=%h", tvecv);
+    havevecctl = $value$plusargs("vecctl=%h", vecctlv);
+    if (!havetvec)   tvecv   = 0;
+    if (!havevecctl) vecctlv = 0;
 
     for (i = 0; i < IMG_BYTES; i++) img[i] = 8'h00;
     $readmemh(img_path, img);
@@ -211,18 +312,22 @@ initial begin
     for (i = 0; i < IMG_BYTES; i = i + 4)
         axi_write32(A_MEM + 21'(i), {img[i+3], img[i+2], img[i+1], img[i]});
 
-    // the pin-event scheduler.  EVT_CFG's hold is SPLIT: [23:16] low 8 bits,
-    // [30:27] high 4 -- the 12-bit widen of 2026-08-04 (F46 / gap R1).
-    if (armed) begin
-        axi_write32(R_EVT_ADDR, 32'(evaddr) & 32'h000FFFFF);
-        evtw = 32'h0;
-        evtw[15:0]  = evdelay[15:0];
-        evtw[23:16] = evhold[7:0];
-        evtw[26:24] = evpin[2:0];
-        evtw[30:27] = evhold[11:8];
-        evtw[31]    = 1'b1;                      // arm
-        axi_write32(R_EVT_CFG, evtw);
-    end
+    // the pin-event schedulers, one packer each (see arm_evt above)
+    if (armed)
+        arm_evt(R_EVT_ADDR,  R_EVT_CFG,  "EVT ", evaddr,  evdelay,
+                evhold,  evpin);
+    if (armed2)
+        arm_evt(R_EVT2_ADDR, R_EVT2_CFG, "EVT2", evaddr2, evdelay2,
+                evhold2, evpin2);
+    if (armed3)
+        arm_evt(R_EVT3_ADDR, R_EVT3_CFG, "EVT3", evaddr3, evdelay3,
+                evhold3, evpin3);
+
+    // the NMI vector-read overlay.  WRITTEN ONLY IF ASKED FOR: their reset
+    // value is 0 and a run that names neither must issue the same AXI traffic
+    // as the pre-EVT_N harness, which is the inertness claim.
+    if (havetvec)   wr_verify(R_TVEC,   32'(tvecv),   "TVEC");
+    if (havevecctl) wr_verify(R_VECCTL, 32'(vecctlv), "VECCTL");
 
     axi_write32(R_CTRL, 32'h4);                  // run (skip_pwrup)
 
@@ -232,17 +337,26 @@ initial begin
     // CTRL's stop asserts, so it is LATCHED here while the run is live.  Read
     // after the stop it is always 0, and `emit_suite` treats that as
     // "event did not fire" and throws the case away.
-    cnt = 0; fired = 0;
+    cnt = 0; fired = 3'b000; vecused = 1'b0; capfull = 1'b0;
     while (cnt <= ncap) begin
         repeat (64) @(posedge clk);
         axi_read32(R_STATUS, w);
-        if (w[3]) fired = 1;
+        fired |= w[5:3];                         // one bit per scheduler
+        if (w[6]) vecused = 1'b1;                // NMI overlay served
+        if (w[2]) capfull = 1'b1;
         axi_read32(R_CAPCOUNT, w);
         cnt = int'(w);
-        if (cnt >= 8191) break;                  // capture_buf full
+        // the buffer STOPS when full and its count stops with it, so `cnt`
+        // alone can never end this loop once ncap exceeds the depth.  It used
+        // to test `cnt >= 8191` against a buffer system_large instantiates
+        // 4096 deep, i.e. never, and +ncap above the depth hung until the
+        // watchdog.  cap_full is the harness's own statement that there is no
+        // more trace coming, and it needs no depth constant here.
+        if (capfull) break;
     end
     axi_read32(R_STATUS, w);
-    if (w[3]) fired = 1;
+    fired |= w[5:3];
+    if (w[6]) vecused = 1'b1;
     axi_write32(R_CTRL, 32'h5);                  // stop
 
     axi_read32(R_CAPCOUNT, w);
@@ -254,7 +368,12 @@ initial begin
         $fwrite(fd, "%016x\n", rec);
     end
     $fclose(fd);
-    $display("SYS DONE %0d records fired=%0d", cnt, fired);
+    // `fired` is now a MASK, one bit per scheduler.  With only scheduler 0
+    // armed -- every historical invocation, x1_retention.py included -- it is
+    // 0 or 1 exactly as before, so `SYS DONE ... fired=(\d)` still means what
+    // it meant.
+    $display("SYS DONE %0d records fired=%0d vecused=%0d",
+             cnt, fired, vecused);
     $finish;
 end
 

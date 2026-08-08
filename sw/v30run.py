@@ -492,54 +492,65 @@ KIND = {0: "INTA", 1: "IOR", 2: "IOW", 3: "HALT",
 
 
 def parse_result(recs, meta):
-    """Phase-split the trace and extract final register state."""
+    """Phase-split the trace and extract final register state.
+
+    THE DUMP IS DONE-RELATIVE AND MAGIC-ANCHORED (fuzz-v2 D6/D7), the same rule
+    `fuzz_classify.arch_dump` reads: the LAST `len(store_order)` IOW words at
+    the register port strictly BEFORE the first done marker, carrying MAGIC at
+    its declared index.
+
+    Done-relative because the board image RE-RUNS the program for as long as
+    the capture lasts, so "the first N register words" and "the last MEMW to
+    the PSW scratch word" could come from different passes -- MEASURED on the
+    220 banked S10 captures (ucsim_t_provenance.md 23.1): a capture ending
+    between a later pass's clear and its own PUSH PSW returned PSW 0 (706
+    emission rerolls at w1, the whole HLT.INT w1 golden cell 0/49), and one in
+    220 returned a plausible but WRONG PSW.  PSW is now a WORD IN THE RUN --
+    the terminator pops its own interrupt frame and emits IP/CS/FLAGS as
+    ordinary port writes -- so the `MEMW @ 0xFFEC` channel, its re-run hazard
+    and the `PC = stub_linear + 6 - PS*16` derivation are all gone with the
+    store stub.
+
+    ASYMMETRY WITH `arch_dump` IS DELIBERATE: this is the board path and it
+    RAISES where the classifier returns None.  A missing or forged done marker
+    on hardware is a capture-integrity event for the caller to quarantine, not
+    a seed property to be scored."""
     txns = extract_txns_large(recs)
 
-    # store anchor: first IOW at the register port
-    regw = [t for t in txns if KIND[t["kind"]] == "IOW"
-            and (t["addr"] & 0xFFFF) == testimage.OUT_PORT_REGS]
+    order = meta["store_order"]
     done = [t for t in txns if KIND[t["kind"]] == "IOW"
             and (t["addr"] & 0xFFFF) == testimage.OUT_PORT_DONE]
     if not done:
         raise RunError("no done marker in trace (runaway test?) — quarantine")
     if done[0]["data"] != meta["done_sentinel"]:
         raise RunError(f"done marker data {done[0]['data']:04x} != sentinel")
-    if len(regw) < len(meta["store_order"]):
-        raise RunError(f"only {len(regw)} register words in trace")
-
-    regs_out = {name: regw[i]["data"]
-                for i, name in enumerate(meta["store_order"])}
-
-    # PSW from the PUSH PSW memory write in the scratch area.
-    #
-    # SAME PASS AS THE DONE MARKER.  The board image RE-RUNS the program for as
-    # long as the capture lasts, and every repetition writes `psw_push_addr`
-    # again (a 0x0000 clear, then that pass's PUSH PSW).  `regw` and `done` are
-    # already read from the FIRST pass; taking `pushes[-1]` read the LAST pass
-    # in the capture instead, so the returned PSW belonged to a different run of
-    # the program than every other field.  Two consequences, both MEASURED on
-    # the 220 banked S10 captures (ucsim_t_provenance.md 23.1):
-    #   * a capture whose prefix ends between a later pass's clear and its own
-    #     PUSH PSW returned 0 -- `implausible final PSW 0`, 706 emission
-    #     rerolls at w1 and the whole HLT.INT w1 golden cell (0/49);
-    #   * a capture that ends after a later pass's PUSH returned a PLAUSIBLE but
-    #     WRONG PSW (1 of 220), which is the "unreliable post-handler capture"
-    #     19.9 already worked around without naming.
-    # Bounding the search at the done marker makes the whole record one pass.
     d0 = done[0]["start"]
-    pushes = [t for t in txns if KIND[t["kind"]] == "MEMW"
-              and t["addr"] == meta["psw_push_addr"] and t["start"] < d0]
-    regs_out["PSW"] = pushes[-1]["data"] if pushes else None
+    regw = [t for t in txns if KIND[t["kind"]] == "IOW"
+            and (t["addr"] & 0xFFFF) == testimage.OUT_PORT_REGS
+            and t["start"] < d0]
+    if len(regw) < len(order):
+        raise RunError(f"only {len(regw)} register words before the done marker")
 
-    # final PC from stub placement (design section 4)
-    regs_out["PC"] = (meta["stub_linear"] + 6  # 6-NOP pad executed
-                      - ((regs_out["PS"] << 4) & 0xFFFFF)) & 0xFFFF
+    magic_at = order.index("MAGIC")
+    tail = regw[-len(order):]
+    if tail[magic_at]["data"] != meta["magic"]:
+        raise RunError(f"dump anchor {tail[magic_at]['data']:04x} != MAGIC "
+                       f"{meta['magic']:04x} at index {magic_at}")
+    # >1 anchor before the done marker = the terminating NMI landed mid-dump and
+    # the handler restarted; the second run's AW is the first run's shuttle, so
+    # the record is unrepairable and the caller must discard it.
+    n_magic = sum(1 for t in regw if t["data"] == meta["magic"])
+    if n_magic > 1:
+        raise RunError(f"dump restarted ({n_magic} MAGIC anchors before done) "
+                       "— discard")
 
-    # test-phase bus activity: anchor .. store anchor
+    regs_out = {name: tail[i]["data"] for i, name in enumerate(order)}
+
+    # test-phase bus activity: anchor .. dump anchor
     anchor_i = next((i for i, t in enumerate(txns)
                      if t["addr"] == meta["anchor_linear"]
                      and KIND[t["kind"]] == "CODE"), None)
-    store_i = txns.index(regw[0])
+    store_i = txns.index(tail[0])
     test_txns = txns[anchor_i:store_i] if anchor_i is not None else []
 
     return {

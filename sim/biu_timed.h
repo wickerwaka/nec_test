@@ -171,19 +171,93 @@ public:
     //                      the pin is driven from anchor + delay
     // and it is held for `hold` clocks (0 = to the end of the case).  This is
     // a RIG INPUT, in the same class as `iord` / the INTA constant: nothing
-    // about the part is predicted from it.  The BIU tracks the two anchors
+    // about the part is predicted from it.  The BIU tracks the anchors
     // because they are pin events on ITS OWN row stream.
+    //
+    // SINCE FUZZ v2 THERE ARE `EVT_N` OF THEM (hdl/rtl/nec_bus.sv, the
+    // `generate` loop with `localparam int EVT_N = 3`).  ONE description, N
+    // independent instances, drives OR-ed onto the pins -- exactly as the RTL
+    // has it, and for the same reason: one FSM cannot drift against itself.
+    struct EvtSlot {
+        int trigger = 0;      // 0 none, 1 fetch anchor, 2 window-opening F pop
+        int pin = 0;          // 0 INT, 1 NMI, 2 POLL_N (active low)
+        uint32_t addr = 0;    // 20-bit fetch anchor
+        long delay = 0;
+        long hold = 0;        // 0 = until disarmed
+        bool vecsub = false;  // this directive's FIRE arms the vector overlay
+        long anchor = -1;     // seen on this clock, or -1
+        long assert_clk() const {
+            if (trigger == 0 || anchor < 0) return -1;
+            return anchor + (trigger == 1 ? 2 : 0) + delay;
+        }
+        // The pin this instance drives, as of clock `t`.
+        bool driving(long t) const {
+            const long a = assert_clk();
+            return a >= 0 && t >= a && (hold == 0 || t < a + hold);
+        }
+    };
+    void clear_evt() { ev_.clear(); ev_active_pin_ = 0; }
+    void set_pins(int pins_cfg) { ev_pins_ = pins_cfg; }
+    void add_evt(int trigger, int pin, uint32_t addr, long delay, long hold,
+                 bool vecsub) {
+        EvtSlot s;
+        s.trigger = trigger; s.pin = pin; s.addr = addr & 0xFFFFFu;
+        s.delay = delay; s.hold = hold; s.vecsub = vecsub;
+        ev_.push_back(s);
+    }
+    // The single-schedule form, unchanged in meaning: it is the one every
+    // single-instruction `evt` golden uses (pin_replay.h `read_evt`), and it
+    // is exactly `clear_evt(); set_pins(); add_evt(...)` with no vecsub.
     void set_evt(int trigger, int pin, uint32_t addr, long delay, long hold,
                  int pins_cfg) {
-        ev_trigger_ = trigger; ev_pin_ = pin; ev_addr_ = addr & 0xFFFFFu;
-        ev_delay_ = delay; ev_hold_ = hold; ev_pins_ = pins_cfg;
-        ev_anchor_ = -1;
+        clear_evt();
+        set_pins(pins_cfg);
+        add_evt(trigger, pin, addr, delay, hold, false);
+        ev_active_pin_ = pin;
     }
-    // The clock the scheduled pin goes active on, or -1 while the anchor has
-    // not been seen yet.
+    // The pin the recognition CURRENTLY under consideration belongs to.  With
+    // one schedule this is that schedule's pin (set_evt above); with several
+    // the runner names it per firing, out of the capture's own `which` array.
+    void set_active_pin(int p) { ev_active_pin_ = p; }
+    size_t evt_slots() const { return ev_.size(); }
+
+    // *** THE ONE RULE, PRE-REGISTERED (fuzz v2 T7). ***
+    //
+    //     THE ASSERT CLOCK IN FORCE AT ANY BOUNDARY IS THE MOST RECENT
+    //     ASSERT.
+    //
+    // It is a statement about a PIN, not about a schedule: the schedulers'
+    // drives are OR-ed onto three pins, and the rise the recognition pipeline
+    // is standing on is the last one that happened.  If nothing has asserted
+    // yet, the recognition is waiting for the next rise, and that is the one
+    // returned -- which is the SAME sentence, read forwards, and is what makes
+    // the single-schedule late-assert cases (M14's 32 running goldens) come
+    // out unchanged.
+    //
+    // There is deliberately NO per-event case analysis and NO schedule-overlap
+    // matrix.  In the v2 design the terminator asserts after every stimulus,
+    // so the rule and "the firing's own schedule" agree by construction.
+    //
+    // FALSIFIER: a two-event capture in which a firing is RECOGNISED after a
+    // LATER schedule has already asserted, and whose entry clock matches its
+    // OWN schedule's assert rather than the most recent one.  That would say
+    // the pipeline is per-schedule (i.e. per-pin) and this rule is wrong.
+    int assert_which() const {
+        int past = -1, future = -1;
+        long pa = -1, fa = -1;
+        for (size_t i = 0; i < ev_.size(); ++i) {
+            const long a = ev_[i].assert_clk();
+            if (a < 0) continue;
+            if (a <= clk_) { if (past < 0 || a > pa) { past = int(i); pa = a; } }
+            else if (future < 0 || a < fa) { future = int(i); fa = a; }
+        }
+        return past >= 0 ? past : future;
+    }
+    // The clock the scheduled pin goes active on, or -1 while no anchor has
+    // been seen yet.
     long assert_clk() const {
-        if (ev_trigger_ == 0 || ev_anchor_ < 0) return -1;
-        return ev_anchor_ + (ev_trigger_ == 1 ? 2 : 0) + ev_delay_;
+        const int i = assert_which();
+        return i < 0 ? -1 : ev_[size_t(i)].assert_clk();
     }
     // POLL_N as the 9B `JMP BUSY` row samples it.  Static level from `pins`
     // bit 2, pulled low while the scheduled POLL event drives.
@@ -202,11 +276,12 @@ public:
     static constexpr long kPinPipe = 3;
     bool poll_busy() const {
         if (!(ev_pins_ & 4)) return false;          // POLL_N statically low
-        if (ev_trigger_ == 0 || ev_pin_ != 2) return true;
-        const long a = assert_clk();
+        // NEC_POLL_N = poll_n_in & ~|ev_poll_v -- ANY instance driving pulls
+        // it low, which is the RTL's OR read through the same three flops.
         const long t = clk_ - kPinPipe;
-        if (a < 0 || t < a) return true;            // release not seen yet
-        return ev_hold_ != 0 && t >= a + ev_hold_;
+        for (const EvtSlot& s : ev_)
+            if (s.pin == 2 && s.driving(t)) return false;
+        return true;
     }
     // The recognition BOUNDARY: the clock the successor's opcode WOULD have
     // been popped on.  Same deadline as `opcode_prefetch`, but the byte stays
@@ -214,7 +289,10 @@ public:
     // suppresses its own pop (MEASURED: every vectored golden shows the
     // would-pop cycle with QS idle).
     long boundary_no_pop(bool post_redirect = true);
-    long evt_anchor() const { return ev_anchor_; }
+    long evt_anchor() const {
+        const int i = assert_which();
+        return i < 0 ? -1 : ev_[size_t(i)].anchor;
+    }
     long first_fpop() const { return first_fpop_; }
     // The part leaves HALT: the prefetcher runs again.  (`flush()` already
     // clears `suspended_`; `halted_` is the S8/S9 park and outlives it.)
@@ -308,7 +386,7 @@ public:
     // maskable one is gated -- an NMI is not IE-gated and has nothing to wait
     // for, which is the WHOLE of the exemption and it is not a case in the
     // law, it is the law's own domain.
-    bool maskable() const { return ev_pin_ == 0; }
+    bool maskable() const { return ev_active_pin_ == 0; }
     // The clock before the queue's next byte can be popped.  A pre-decode-
     // executed form's execute strobe sits there -- see loader_impl.h,
     // ONE_BYTE_LOGIC.
@@ -354,6 +432,17 @@ public:
     void set_io_in(uint16_t v) { core_.set_io_in(v); }
     void set_io_seq(const std::vector<uint16_t>& s) { core_.set_io_seq(s); }
     void set_inta(uint16_t v) { core_.set_inta(v); }
+    // The NMI vector-read overlay's TVEC register ([15:0] IP, [31:16] CS) and
+    // its sticky "the overlay actually served" bit (nec_bus.sv `vec_used`,
+    // STATUS[6]).  The overlay itself lives in the functional core, which is
+    // where the read path bottoms out; what the TIMED bus adds is the DATA
+    // PHASE the substituted word puts on the pins (see `Access::vec_sub`).
+    void set_tvec(uint32_t v) { core_.set_tvec(v); }
+    bool vec_used() const { return core_.vec_used(); }
+    // DIAGNOSTIC: the arm state as of THIS clock.  It is derived, so reading
+    // it re-derives it -- otherwise a trace would print whatever the last
+    // `mem_read` happened to leave behind.
+    bool vec_armed_now() { vec_sync(); return core_.vec_armed(); }
     const std::vector<Txn>& txns() const { return core_.txns(); }
     const std::vector<std::pair<uint32_t, uint8_t>>& writes() const {
         return core_.writes();
@@ -421,6 +510,14 @@ private:
         // are driven to 0 over both.  From T2 on it is an ordinary read
         // display: the acknowledge byte on the lanes, PS = IE:seg as usual.
         bool no_addr = false;
+        // The NMI VECTOR-READ OVERLAY served this cycle: the data phase is
+        // `vec_word` instead of the aligned word in memory.  Decided when the
+        // cycle is POSTED rather than at its T2, which is the same instant in
+        // every reachable ordering -- the only thing that can change the arm
+        // state between a read's issue and its own data phase is ANOTHER
+        // vector read, and a cycle cannot contain one.
+        bool vec_sub = false;
+        uint16_t vec_word = 0;
         uint8_t push_n = 0;    // queue bytes this fetch delivers
         uint8_t push_b[2] = {0, 0};
         // M2r: the wait count the rig latches at this cycle's T1 entry, and
@@ -752,15 +849,18 @@ private:
     // separates the two sets at all.
     long pf_infl_to_ = -2;
     int pf_infl_n_ = 0;
-    // S9a: the rig's pin schedule and its two anchors (see set_evt).
-    int ev_trigger_ = 0;
-    int ev_pin_ = 0;
-    uint32_t ev_addr_ = 0;
-    long ev_delay_ = 0;
-    long ev_hold_ = 0;
+    // S9a: the rig's pin schedules and their anchors (see set_evt / add_evt).
+    std::vector<EvtSlot> ev_;
     int ev_pins_ = 0;
-    long ev_anchor_ = -1;
+    int ev_active_pin_ = 0;      // the pin the pending recognition belongs to
     long first_fpop_ = -1;
+    // The NMI vector-read overlay's DISARM clock.  The armed/not-armed state
+    // itself is DERIVED (`vec_sync`): the RTL arms on `|(ev_fire_pulse &
+    // evt_vecsub_en)`, i.e. on the assert clock of a vecsub schedule, and this
+    // model knows every schedule's assert clock -- so the only thing that
+    // needs remembering is when the CS half took it back down.
+    long vec_disarm_clk_ = -1;
+    void vec_sync();
     // S8/S9: once the part is halted the prefetcher never runs again.
     bool halted_ = false;
     bool halt_pending_ = false;

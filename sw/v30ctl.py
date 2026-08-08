@@ -4,10 +4,23 @@
 Runs on the DE10's ARM (MiSTer Linux) as root. Stop MiSTer Main first
 (`killall MiSTer`) so nothing else drives the FPGA-side interfaces.
 
-Address map (hdl/rtl/hps_axi_slave.sv), window at physical 0xFF200000:
+Address map (hdl/rtl/hps_axi_slave.sv -- THE AUTHORITY; this is a restatement),
+window at physical 0xFF200000:
   +0x000000  64 KB test memory (byte-packed)
   +0x100000  32 KB capture buffer (4096 x 64-bit records)
-  +0x180000  registers (MAGIC/CTRL/CFG/PINS/STATUS/CAPCOUNT)
+  +0x140000   4 KB wait-vector replay RAM (host write-only)
+  +0x180000  registers (MAGIC/CTRL/CFG/PINS/STATUS/CAPCOUNT/...):
+       0x1C/0x20  EVT_ADDR  / EVT_CFG   pin-event scheduler 0
+       0x30/0x34  EVT2_ADDR / EVT2_CFG  pin-event scheduler 1
+       0x38/0x3C  EVT3_ADDR / EVT3_CFG  pin-event scheduler 2
+                  -- the three pairs are byte-identical in layout and share ONE
+                     packer here and ONE unpacker in the RTL
+       0x40       TVEC     [15:0] IP  [31:16] CS, served by the NMI vector-read
+                           overlay at linear 0x00008 / 0x0000A while armed
+       0x44       VECCTL   [2:0] vecsub_en, bit n = scheduler n's FIRE arms it
+       0x10       STATUS   [0] pwr_good [1] cpu_running [2] cap_full
+                           [5:3] evt_fired (one bit per scheduler)
+                           [6] vec_used (the overlay served a CS half)
 
 IMPORTANT flow around FPGA reconfiguration: run `v30ctl.py prep` BEFORE
 JTAG-programming a new bitstream (it puts the HPS-FPGA bridges into reset so
@@ -41,19 +54,29 @@ Usage:
                                      #        \\n<base64 of 4096 LE uint64>
                                      #     options (reset to defaults on every
                                      #     RUN when not given):
-                                     #       evt=A:D:H:P  pin-event scheduler:
+                                     #       evt=A:D:H:P  pin-event scheduler 0:
                                      #                    CODE T1 at linear A
                                      #                    (hex), +D clocks,
                                      #                    drive pin P (0=INT
                                      #                    1=NMI 2=POLL) for H
                                      #                    clocks (0=til reset)
+                                     #       evt2=A:D:H:P scheduler 1, same
+                                     #       evt3=A:D:H:P scheduler 2, same
+                                     #       tvec=CS:IP   NMI vector-read
+                                     #                    overlay data (hex)
+                                     #       vecsub=M     VECCTL mask (hex):
+                                     #                    bit n = scheduler n's
+                                     #                    FIRE arms the overlay
                                      #       iord=XXXX    I/O read data (hex,
                                      #                    default FFFF)
                                      #       pins=X       static PINS reg (hex:
                                      #                    b0 INT b1 NMI
                                      #                    b2 POLL_N; default 0)
-                                     #     <evt> in the reply = evt_fired,
-                                     #     sampled before host_reset
+                                     #     <evt> in the reply = STATUS[5:3],
+                                     #     bit n = scheduler n fired, sampled
+                                     #     before host_reset (it was 0/1 when
+                                     #     there was one scheduler, and bit 0
+                                     #     is still scheduler 0)
                                      #   EXIT                     -> OK BYE
                                      # errors: ERR <message>; one command per
                                      # line, all responses flushed
@@ -90,12 +113,142 @@ R_WRAND    = REG_OFF + 0x24   # seeded random per-access waits (Phase 1 rig)
 # THE RIG's pin-event HOLD WIDTH, and the single place it is written down.
 # `hdl/rtl/hps_axi_slave.sv`'s `evt_hold` is the authority; this must track it.
 # 8 until 2026-08-04 (F46: silent truncation of a banked hold=300 to 44),
-# 12 since -- `set_event` below packs [23:16] + [30:27] to reach it.
-RIG_EVT_HOLD_BITS = 12
+# 12 since -- `pack_evt_cfg` below packs [23:16] + [30:27] to reach it.
+RIG_EVT_HOLD_BITS  = 12
+RIG_EVT_DELAY_BITS = 16
+RIG_EVT_ADDR_BITS  = 20
 R_IORDS_CTL  = REG_OFF + 0x28 # iords FIFO: [0] reset (pulse) [1] enable
 R_IORDS_PUSH = REG_OFF + 0x2C # iords FIFO: [15:0] append one value
 
+# Pin-event schedulers 1 and 2 (fuzz v2).  Scheduler 0 keeps its historical
+# offsets so a host that knows nothing about the extra schedulers is bit-for-bit
+# unchanged; the layout of every pair is IDENTICAL and there is exactly ONE
+# packer for it below -- `hps_axi_slave.sv` has exactly one unpacker to match.
+#
+# ON A PRE-T5 BITSTREAM (which is what the board carries until the fuzz-v2
+# flash) these offsets do not exist: the old write decode ends `default: ;` so
+# writes are no-ops, and the old read decode ends `default: rdata <= DEADBEEF`.
+# That degrades safely -- schedulers 1/2 stay silent, TVEC/VECCTL are inert, the
+# old STATUS is `{28'd0, evt_fired, ...}` so the mask reads 0 or 1 exactly as it
+# used to, and DEADBEEF unpacks to pin 6, which is not a pin, so the same-pin
+# refusal cannot fire spuriously.  `rig_readback_check()` DOES fail there, and
+# that is the correct answer: the registers genuinely are not in that fabric.
+R_EVT2_ADDR = REG_OFF + 0x30
+R_EVT2_CFG  = REG_OFF + 0x34
+R_EVT3_ADDR = REG_OFF + 0x38
+R_EVT3_CFG  = REG_OFF + 0x3C
+R_TVEC      = REG_OFF + 0x40  # [15:0] IP  [31:16] CS  (NMI vector overlay data)
+R_VECCTL    = REG_OFF + 0x44  # [2:0] vecsub_en, bit n = scheduler n arms it
+
+# Number of pin-event schedulers.  `hdl/rtl/system_large.sv`'s EVT_N localparam
+# is the authority; hps_axi_slave $fatal's if its offset table disagrees.
+EVT_N = 3
+
+# (EVT_ADDR, EVT_CFG) per scheduler, indexed by `which`.  A TABLE, not a fork:
+# every accessor below indexes this and shares one packer.
+EVT_REGS = ((R_EVT_ADDR,  R_EVT_CFG),
+            (R_EVT2_ADDR, R_EVT2_CFG),
+            (R_EVT3_ADDR, R_EVT3_CFG))
+
+# evt_pin encoding.  `nec_bus.sv` decodes 0/1/2 and NOTHING ELSE: values 3-7
+# make the scheduler fire and drive no pin at all.  There is deliberately no RTL
+# trap and no RTL remap -- a remap is the silent-substitution pattern that
+# caused INV-1 -- so the host is the only place this class of directive can be
+# created, and `pack_evt_cfg` is where it dies.
+EVT_PIN_INT, EVT_PIN_NMI, EVT_PIN_POLL = 0, 1, 2
+EVT_PIN_NAMES = {EVT_PIN_INT: "INT", EVT_PIN_NMI: "NMI", EVT_PIN_POLL: "POLL_N"}
+
+# STATUS (0x10) bit positions -- `hps_axi_slave.sv`
+#   rdata <= {25'd0, vec_used, evt_fired, cap_full, cpu_running, pwr_good}
+ST_PWR_GOOD    = 1 << 0
+ST_CPU_RUNNING = 1 << 1
+ST_CAP_FULL    = 1 << 2
+ST_EVT_FIRED_S = 3            # [5:3], one bit per scheduler
+ST_VEC_USED    = 1 << 6
+
 MAGIC = 0x56333031
+
+
+class RigReadbackError(RuntimeError):
+    """The rig did not read back the directive it was handed.
+
+    INV-1 in one sentence: 760 banked seeds were scored against a capture taken
+    under a directive no engine was ever given, because the rig silently applied
+    something else. Every register added for fuzz v2 has an RTL readback path;
+    this is what makes that checkable, and it is not cosmetic."""
+
+
+def pack_evt_cfg(delay=0, hold=0, pin=EVT_PIN_INT, arm=True):
+    """THE EVT_CFG packer -- one, shared by all EVT_N schedulers.
+
+    EVT_CFG layout (0x20 / 0x34 / 0x3C, byte-identical), and the hold is SPLIT
+    because it grew into the only free space the word had:
+
+        [15:0]  delay      [23:16] hold[7:0]    [26:24] pin
+        [30:27] hold[11:8] [31]    arm
+
+    Out-of-range RAISES; nothing here truncates. The hold register was EIGHT
+    bits until 2026-08-04 and truncated SILENTLY (F46: 760 banked EVT seeds
+    asked for 300 and the socket got 300 & 0xFF = 44). A rig that quietly
+    applies a different directive than the one it was handed poisons every
+    capture it takes -- and a SECOND packer would reintroduce that by drift
+    alone, which is why `set_event` calls this one and there is no other."""
+    if pin not in EVT_PIN_NAMES:
+        raise ValueError(
+            f"evt pin {pin} is not a pin: nec_bus.sv decodes "
+            f"{sorted(EVT_PIN_NAMES)} only "
+            f"({', '.join(f'{k}={v}' for k, v in sorted(EVT_PIN_NAMES.items()))})"
+            "; 3-7 fire the scheduler and drive nothing. The RTL deliberately "
+            "neither traps nor remaps them -- a remap is the silent-"
+            "substitution pattern that caused INV-1 -- so this is where it dies")
+    if not 0 <= hold < (1 << RIG_EVT_HOLD_BITS):
+        raise ValueError(
+            f"evt hold {hold} does not fit the rig's "
+            f"{RIG_EVT_HOLD_BITS}-bit register (max "
+            f"{(1 << RIG_EVT_HOLD_BITS) - 1}); truncating it silently is "
+            f"F46 and it is not done here")
+    if not 0 <= delay < (1 << RIG_EVT_DELAY_BITS):
+        raise ValueError(
+            f"evt delay {delay} does not fit {RIG_EVT_DELAY_BITS} bits")
+    v = ((delay & 0xFFFF) | ((hold & 0xFF) << 16) | ((pin & 7) << 24)
+         | (((hold >> 8) & 0xF) << 27))
+    if arm:
+        v |= 1 << 31
+    return v
+
+
+def unpack_evt_cfg(word):
+    """Inverse of `pack_evt_cfg`, for reading a scheduler back off the rig."""
+    word &= 0xFFFFFFFF
+    return {
+        "delay": word & 0xFFFF,
+        "hold":  ((word >> 16) & 0xFF) | (((word >> 27) & 0xF) << 8),
+        "pin":   (word >> 24) & 7,
+        "arm":   bool((word >> 31) & 1),
+    }
+
+
+def pack_evt_addr(addr):
+    """EVT_ADDR (0x1C / 0x30 / 0x38): [19:0] linear CODE T1 trigger address.
+
+    RAISES rather than masking. A truncated trigger address fires the scheduler
+    on a different instruction -- the same defect as F46 wearing a different
+    hat, and the readback (`{12'd0, evt_addr}`) cannot tell you it happened."""
+    if not 0 <= addr < (1 << RIG_EVT_ADDR_BITS):
+        raise ValueError(
+            f"evt addr {addr:#x} does not fit the rig's "
+            f"{RIG_EVT_ADDR_BITS}-bit trigger register "
+            f"(max {(1 << RIG_EVT_ADDR_BITS) - 1:#x})")
+    return addr
+
+
+def pack_tvec(cs, ip):
+    """TVEC (0x40): [15:0] IP, [31:16] CS -- the two words the NMI vector-read
+    overlay serves at linear 0x00008 / 0x0000A while it is armed."""
+    for name, v in (("cs", cs), ("ip", ip)):
+        if not 0 <= v < (1 << 16):
+            raise ValueError(f"tvec {name} {v:#x} does not fit 16 bits")
+    return ((cs & 0xFFFF) << 16) | (ip & 0xFFFF)
 
 CTRL_HOST_RESET = 1 << 0
 CTRL_POWER_OFF  = 1 << 1
@@ -152,9 +305,13 @@ class Harness:
     def status(self):
         s = self.read32(R_STATUS)
         return {
-            "pwr_good":    bool(s & 1),
-            "cpu_running": bool(s & 2),
-            "cap_full":    bool(s & 4),
+            "pwr_good":    bool(s & ST_PWR_GOOD),
+            "cpu_running": bool(s & ST_CPU_RUNNING),
+            "cap_full":    bool(s & ST_CAP_FULL),
+            # [5:3]: one bit per pin-event scheduler, sticky until it disarms
+            "evt_fired":   (s >> ST_EVT_FIRED_S) & ((1 << EVT_N) - 1),
+            # [6]: the NMI vector-read overlay actually served a CS half
+            "vec_used":    bool(s & ST_VEC_USED),
             "cap_count":   self.read32(R_CAPCOUNT),
             "ctrl":        self.read32(R_CTRL),
             "cfg":         self.read32(R_CFG),
@@ -209,40 +366,188 @@ class Harness:
             self.write32(R_IORDS_PUSH, v & 0xFFFF)
         self.write32(R_IORDS_CTL, 0x2)                 # enable serving
 
-    def set_event(self, addr=None, delay=0, hold=0, pin=0, arm=True):
-        """Arm the pin-event scheduler: on a CODE T1 at linear `addr`,
-        wait `delay` CPU clocks, drive pin (0=INT 1=NMI 2=POLL) for `hold`
+    # ---- pin-event schedulers -----------------------------------------
+    #
+    # EVT_N independent schedulers, ONE register layout, ONE packer
+    # (`pack_evt_cfg`).  `which` selects the scheduler and defaults to 0, so
+    # every historical call site keeps meaning exactly what it meant.
+    def set_event(self, addr=None, delay=0, hold=0, pin=EVT_PIN_INT, arm=True,
+                  which=0, allow_pin_conflict=False, verify=False):
+        """Arm pin-event scheduler `which`: on a CODE T1 at linear `addr`,
+        wait `delay` CPU clocks, drive pin (0=INT 1=NMI 2=POLL_N) for `hold`
         clocks (0 = until disarmed). arm=False disarms.
 
-        EVT_CFG (0x20) layout, and the hold is SPLIT because it grew into the
-        only free space the word had:
+        Packing, and every range guard, is `pack_evt_cfg` / `pack_evt_addr` --
+        read those. Out-of-range RAISES; nothing here truncates.
 
-            [15:0]  delay      [23:16] hold[7:0]    [26:24] pin
-            [30:27] hold[11:8] [31]    arm
+        `allow_pin_conflict=False` (the default) REFUSES to arm this scheduler
+        on a pin another scheduler is already armed on. The pins are OR-ed in
+        `nec_bus.sv` and NMI recognition in the CPU is an EDGE latch
+        (`hdl/rtl/ucore/v30u_eu.sv:297`), so two overlapping asserts produce ONE
+        recognition -- silently, with nothing in the capture to say why. The
+        hardware deliberately does not second-guess this; the host does.
 
-        The hold register was EIGHT bits until 2026-08-04 and truncated
-        SILENTLY (F46: 760 banked EVT seeds asked for 300 and the socket got
-        300 & 0xFF = 44).  It is 12 bits now, and out-of-range raises rather
-        than truncating -- a rig that quietly applies a different directive
-        than the one it was handed poisons every capture it takes."""
-        if addr is not None:
-            self.write32(R_EVT_ADDR, addr & 0xFFFFF)
-        if not 0 <= hold < (1 << RIG_EVT_HOLD_BITS):
+        `verify=True` reads the pair back and raises `RigReadbackError` unless
+        the rig holds exactly what it was handed."""
+        r_addr, r_cfg = self._evt_regs(which)
+        word = pack_evt_cfg(delay=delay, hold=hold, pin=pin, arm=arm)
+        aw = None if addr is None else pack_evt_addr(addr)
+        if arm and not allow_pin_conflict:
+            self._refuse_pin_conflict(which, pin)
+        if aw is not None:
+            self.write32(r_addr, aw)
+        self.write32(r_cfg, word)
+        if verify:
+            self._verify32(r_cfg, word, f"EVT_CFG[{which}]")
+            if aw is not None:
+                self._verify32(r_addr, aw, f"EVT_ADDR[{which}]")
+
+    @staticmethod
+    def _evt_regs(which):
+        if which not in range(EVT_N):
             raise ValueError(
-                f"evt hold {hold} does not fit the rig's "
-                f"{RIG_EVT_HOLD_BITS}-bit register (max "
-                f"{(1 << RIG_EVT_HOLD_BITS) - 1}); truncating it silently is "
-                f"F46 and it is not done here")
-        if not 0 <= delay < (1 << 16):
-            raise ValueError(f"evt delay {delay} does not fit 16 bits")
-        v = ((delay & 0xFFFF) | ((hold & 0xFF) << 16) | ((pin & 7) << 24)
-             | (((hold >> 8) & 0xF) << 27))
-        if arm:
-            v |= 1 << 31
-        self.write32(R_EVT_CFG, v)
+                f"scheduler index {which} out of range: the rig has "
+                f"EVT_N={EVT_N} pin-event schedulers (0..{EVT_N - 1})")
+        return EVT_REGS[which]
 
-    def event_fired(self):
-        return bool(self.read32(R_STATUS) & 8)
+    def read_event(self, which=0):
+        """Read scheduler `which` back off the rig: {addr, delay, hold, pin,
+        arm}. EVT_ADDR reads back as {12'd0, addr[19:0]}, EVT_CFG bit for bit."""
+        r_addr, r_cfg = self._evt_regs(which)
+        d = unpack_evt_cfg(self.read32(r_cfg))
+        d["addr"] = self.read32(r_addr) & ((1 << RIG_EVT_ADDR_BITS) - 1)
+        return d
+
+    def _refuse_pin_conflict(self, which, pin):
+        for other in range(EVT_N):
+            if other == which:
+                continue
+            d = self.read_event(other)
+            if d["arm"] and d["pin"] == pin:
+                raise ValueError(
+                    f"scheduler {other} is already armed on pin {pin} "
+                    f"({EVT_PIN_NAMES.get(pin, '?')}); arming scheduler "
+                    f"{which} on it too OR-es the two drives onto one wire. "
+                    f"NMI recognition is an EDGE latch, so overlapping asserts "
+                    f"produce ONE recognition and the capture will not show "
+                    f"why. Disarm {other} first, or pass "
+                    f"allow_pin_conflict=True to say you meant it")
+
+    def _verify32(self, off, want, name):
+        got = self.read32(off)
+        if got != want:
+            raise RigReadbackError(
+                f"{name} readback {got:#010x} != written {want:#010x} -- the "
+                f"rig is not holding the directive it was handed (INV-1)")
+        return got
+
+    def event_fired(self, which=0):
+        """True iff scheduler `which` fired (STATUS[3+which], sticky)."""
+        self._evt_regs(which)               # bounds check, same table
+        return bool(self.read32(R_STATUS) & (1 << (ST_EVT_FIRED_S + which)))
+
+    def events_fired(self):
+        """STATUS[5:3] as a mask, bit n = scheduler n fired."""
+        return (self.read32(R_STATUS) >> ST_EVT_FIRED_S) & ((1 << EVT_N) - 1)
+
+    def vec_used(self):
+        """STATUS[6]: the NMI vector-read overlay actually served a CS half."""
+        return bool(self.read32(R_STATUS) & ST_VEC_USED)
+
+    # ---- termination-vector overlay -----------------------------------
+    def set_term_vector(self, cs, ip, verify=False):
+        """TVEC (0x40): the CS:IP the NMI vector-read overlay serves at linear
+        0x00008 / 0x0000A while armed. Substituting the DATA (rather than
+        redirecting to another slot or pre-writing the image) is what keeps the
+        terminator working for a seed that scribbles the IVT."""
+        word = pack_tvec(cs, ip)
+        self.write32(R_TVEC, word)
+        if verify:
+            self._verify32(R_TVEC, word, "TVEC")
+        return word
+
+    def read_term_vector(self):
+        """-> (cs, ip)."""
+        v = self.read32(R_TVEC)
+        return ((v >> 16) & 0xFFFF, v & 0xFFFF)
+
+    def set_vecsub_en(self, mask, verify=False):
+        """VECCTL (0x44): bit n = scheduler n's FIRE arms the NMI vector-read
+        overlay. It is keyed on WHICH DIRECTIVE FIRED, not on which pin went
+        high -- with EVT_N schedulers the NMI pin is an OR, and that is the only
+        formulation under which a stimulus NMI and a terminating NMI coexist."""
+        if not 0 <= mask < (1 << EVT_N):
+            raise ValueError(
+                f"vecsub_en mask {mask:#x} does not fit EVT_N={EVT_N} bits")
+        self.write32(R_VECCTL, mask)
+        if verify:
+            self._verify32(R_VECCTL, mask, "VECCTL")
+        return mask
+
+    def read_vecsub_en(self):
+        return self.read32(R_VECCTL) & ((1 << EVT_N) - 1)
+
+    # ---- readback self-check ------------------------------------------
+    def rig_readback_check(self, patterns=None):
+        """Write a directive to every fuzz-v2 register, read it back, and RAISE
+        on the first disagreement. Restores what it found. Run it once at the
+        top of a session, while the harness is stopped: it is the cheap proof
+        that the rig is applying the directives it is handed, which is the one
+        thing INV-1 says nobody checked.
+
+        Returns {register-name: written-word} on success."""
+        if patterns is None:
+            # two distinct values per field, so a stuck bit or a dropped
+            # high-nibble (F46's exact signature) cannot pass both
+            patterns = [
+                dict(addr=0x00000, delay=0x0000, hold=0x001,
+                     pin=EVT_PIN_INT, arm=True),
+                dict(addr=0xFEDCB, delay=0xBEEF, hold=0xABC,
+                     pin=EVT_PIN_POLL, arm=True),
+            ]
+        # save/restore as RAW WORDS: a decode-and-repack round trip through the
+        # guards would refuse to put back anything the guards reject, and this
+        # must leave the rig exactly as it found it
+        saved = [(off, self.read32(off))
+                 for pair in EVT_REGS for off in pair]
+        saved += [(R_TVEC, self.read32(R_TVEC)),
+                  (R_VECCTL, self.read32(R_VECCTL))]
+        out = {}
+        try:
+            for n in range(EVT_N):
+                r_addr, r_cfg = EVT_REGS[n]
+                for p in patterns:
+                    # allow_pin_conflict: this is a register test, no run
+                    self.set_event(which=n, allow_pin_conflict=True,
+                                   verify=True, **p)
+                    out[f"EVT_ADDR[{n}]"] = pack_evt_addr(p["addr"])
+                    out[f"EVT_CFG[{n}]"] = pack_evt_cfg(
+                        delay=p["delay"], hold=p["hold"], pin=p["pin"],
+                        arm=p["arm"])
+                    got = self.read_event(n)
+                    for k, want in p.items():
+                        if got[k] != want:
+                            raise RigReadbackError(
+                                f"EVT[{n}] field {k}: rig holds {got[k]!r}, "
+                                f"handed {want!r} (readback word "
+                                f"{self.read32(r_cfg):#010x} / addr "
+                                f"{self.read32(r_addr):#010x})")
+            for cs, ip in ((0x0000, 0xFFFF), (0xBEEF, 0x1234)):
+                out["TVEC"] = self.set_term_vector(cs, ip, verify=True)
+                if self.read_term_vector() != (cs, ip):
+                    raise RigReadbackError(
+                        f"TVEC: rig holds {self.read_term_vector()}, handed "
+                        f"{(cs, ip)}")
+            for m in range(1 << EVT_N):
+                out["VECCTL"] = self.set_vecsub_en(m, verify=True)
+                if self.read_vecsub_en() != m:
+                    raise RigReadbackError(
+                        f"VECCTL: rig holds {self.read_vecsub_en():#x}, "
+                        f"handed {m:#x}")
+        finally:
+            for off, word in saved:
+                self.write32(off, word)
+        return out
 
     def set_cfg(self, div=None, waits=None, vector=None, small=None,
                 use_core=None):
@@ -315,16 +620,24 @@ def serve(h):
         out.write(s + "\n")
         out.flush()
 
-    def do_run(img, timeout, evt, iord, pins, cap, crc, iords=None):
+    def do_run(img, timeout, evts, iord, pins, cap, crc, iords=None,
+               tvec=None, vecsub=0):
         h.stop()
         h.load_mem(img, 0)
         h.set_iord(iord)
         h.load_iords(iords)        # per-IOR sequence (INS); None -> scalar iord
         h.write32(R_PINS, pins)
-        if evt:
-            h.set_event(addr=evt[0], delay=evt[1], hold=evt[2], pin=evt[3])
-        else:
-            h.set_event(arm=False)
+        # DISARM EVERY scheduler first, then arm the ones this run asked for:
+        # the same-pin refusal reads the rig, so it must see this run's state
+        # and not the previous run's leftovers
+        for n in range(EVT_N):
+            h.set_event(arm=False, which=n)
+        for n, e in enumerate(evts):
+            if e:
+                h.set_event(addr=e[0], delay=e[1], hold=e[2], pin=e[3],
+                            which=n)
+        h.set_term_vector(*(tvec or (0, 0)))
+        h.set_vecsub_en(vecsub)
         h.start()
         t0 = time.time()
         while time.time() - t0 < timeout:
@@ -332,9 +645,14 @@ def serve(h):
                 break
             time.sleep(0.002)
         st = h.status()
-        fired = int(h.event_fired())   # before stop: clears on reset
+        # STATUS[5:3], bit n = scheduler n fired.  Sampled before host_reset:
+        # it clears on reset.  With one scheduler this was 0/1 and it still is,
+        # so `bool(int(field))` -- "did anything fire" -- is unchanged.
+        fired = st["evt_fired"]
         h.stop()
-        h.set_event(arm=False)
+        for n in range(EVT_N):
+            h.set_event(arm=False, which=n)
+        h.set_vecsub_en(0)
         h.write32(R_PINS, 0)
         recs = h.dump_capture(cap)
         blob = struct.pack(f"<{len(recs)}Q", *recs)
@@ -342,14 +660,25 @@ def serve(h):
         reply(f"OK {st['cap_count']} {int(st['cap_full'])} {fired}{tail}")
         reply(base64.b64encode(blob).decode())
 
+    # evt / evt2 / evt3 -> scheduler 0 / 1 / 2.  ONE parse, one table: the
+    # option names differ, the grammar does not.
+    EVT_OPT = {f"evt{n + 1}" if n else "evt": n for n in range(EVT_N)}
+
     def parse_opts(parts):
         timeout = float(parts[1]) if len(parts) > 1 else 3.0
-        evt, iord, pins, cap, iords = None, 0xFFFF, 0, CAP_RECORDS, None
+        iord, pins, cap, iords = 0xFFFF, 0, CAP_RECORDS, None
+        evts = [None] * EVT_N
+        tvec, vecsub = None, 0
         for kv in parts[2:]:
             k, _, v = kv.partition("=")
-            if k == "evt":
+            if k in EVT_OPT:
                 a, d, ho, p = v.split(":")
-                evt = (int(a, 16), int(d), int(ho), int(p))
+                evts[EVT_OPT[k]] = (int(a, 16), int(d), int(ho), int(p))
+            elif k == "tvec":
+                cs, ip = v.split(":")
+                tvec = (int(cs, 16), int(ip, 16))
+            elif k == "vecsub":
+                vecsub = int(v, 16)
             elif k == "iord":
                 iord = int(v, 16)
             elif k == "iords":
@@ -361,7 +690,7 @@ def serve(h):
                 cap = max(1, min(int(v), CAP_RECORDS))
             else:
                 raise ValueError(f"unknown option {k!r}")
-        return timeout, evt, iord, pins, cap, iords
+        return timeout, evts, iord, pins, cap, iords, tvec, vecsub
 
     reply("OK SERVE v2")
     for line in sys.stdin:
@@ -401,7 +730,8 @@ def serve(h):
                     base64.b64decode(sys.stdin.readline().strip()))
                 reply(f"OK BASE {zlib.crc32(base_img) & 0xFFFFFFFF:08x}")
             elif parts[0] == "DELTA":
-                timeout, evt, iord, pins, cap, iords = parse_opts(parts)
+                (timeout, evts, iord, pins, cap, iords,
+                 tvec, vecsub) = parse_opts(parts)
                 patch = base64.b64decode(sys.stdin.readline().strip())
                 if base_img is None:
                     raise ValueError("DELTA without BASE")
@@ -413,11 +743,14 @@ def serve(h):
                     img[off:off + ln] = patch[i:i + ln]
                     i += ln
                 crc = zlib.crc32(img) & 0xFFFFFFFF
-                do_run(bytes(img), timeout, evt, iord, pins, cap, crc, iords)
+                do_run(bytes(img), timeout, evts, iord, pins, cap, crc, iords,
+                       tvec, vecsub)
             elif parts[0] == "RUN":
-                timeout, evt, iord, pins, cap, iords = parse_opts(parts)
+                (timeout, evts, iord, pins, cap, iords,
+                 tvec, vecsub) = parse_opts(parts)
                 img = base64.b64decode(sys.stdin.readline().strip())
-                do_run(img, timeout, evt, iord, pins, cap, None, iords)
+                do_run(img, timeout, evts, iord, pins, cap, None, iords,
+                       tvec, vecsub)
             else:
                 reply(f"ERR unknown command {parts[0]!r}")
         except Exception as e:                        # noqa: BLE001

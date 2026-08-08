@@ -34,6 +34,7 @@ import check_seq                                        # noqa: E402
 import fuzz_classify as fc                              # noqa: E402
 from fuzz_accept import AcceptEngine                    # noqa: E402
 import fuzz_campaign as fzc                             # noqa: E402
+import timed_fuzz as tf                                 # noqa: E402  (banked_wvec)
 
 BANK = SW.parent / "tests" / "v30" / "fuzz_bank"
 LEDGER = BANK / "sig_ledger.json"
@@ -44,20 +45,35 @@ SEV = {fc.SUCCESS: 0, fc.KNOWN_ACCEPTED: 1, fc.TIMING: 2,
 
 def replay_classify(entry, engine):
     """Regenerate + replay a banked seed in the TB and classify chip-vs-TB.
-    Returns (image_sha256, verdict, sig, sub). A TB abort -> ASSERT_PARK."""
+    Returns (image_sha256, verdict, sig, sub). A TB abort -> ASSERT_PARK.
+
+    THE IMAGE COMES FROM `fuzz_campaign.compose_case`, THE SINGLE BUILD PATH.
+    It used to call `check_seq.compose` directly, which is only PART of the
+    build: every image-level rule `compose_case` adds (the fuzz-v2 0F scrub
+    among them) was missing here, so this gate regenerated a DIFFERENT image
+    from the one the capture was taken with -- precisely the GEN-DRIFT the
+    sha256 check exists to catch, reported as drift in the seed rather than as
+    a defect in the gate.
+
+    AND THE BANKED WAIT VECTOR IS REPLAYED.  `wvec` was silently dropped, so a
+    per-access-wait seed was re-run at a FLAT wait profile and scored against a
+    capture taken under a vector.  It reads green today only because no banked
+    seed uses that axis; the v2 corpus is stratified on it."""
     cfg = fzc.derive_case(entry["cid"], entry["k"], entry.get("ov") or {})
     g = fzc.build(cfg)
-    image, meta = check_seq.compose(g)
+    image, meta = fzc.compose_case(g, cfg)
     sha = hashlib.sha256(bytes(image)).hexdigest()
     w = entry.get("waits") or {}
     wrand = (w.get("wmax"), w.get("wseed")) if w.get("wrand") else None
     fixed = 0 if w.get("wrand") else (w.get("fixed") or 0)
+    wvec = tf.banked_wvec(entry)      # RAISES on a sha/length mismatch
     evt = None
     e = entry.get("evt")
     if e:
         evt = (meta["anchor_linear"] & 0xFFFFF, e["delay"], e["hold"], e["pin"])
     try:
-        sim = check_seq.run_tb(image, 4200, waits=fixed, evt=evt, wrand=wrand)
+        sim = check_seq.run_tb(image, 4200, waits=fixed, evt=evt, wrand=wrand,
+                               wvec=wvec)
     except Exception:                                    # noqa: BLE001
         return sha, ASSERT_PARK, None, "tb_abort"
     chip = entry["chip_rows"]

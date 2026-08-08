@@ -112,7 +112,7 @@ def one(cid, k, ov, core, td):
     out = {"seed": f"{cid}/{k}", "tier": cfg["tier"], "cfg_hash": cfg["cfg_hash"],
            "wvec": cfg["wvec"], "wvec_sha256": wv.sha256_of(vec),
            "nmax_eff": cfg["nmax_eff"],
-           "brkem_pairs": fzc.no_brkem_pairs(image), "nongate": True}
+           "bad_0f_pairs": fzc.bad_0f_pairs(image), "nongate": True}
     for name, fn in (("sim", lambda: run_sim(image, vec, ROWS, td)),
                      (core, lambda: run_tb(image, vec, ROWS, td, core))):
         t0 = time.time()

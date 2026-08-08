@@ -96,6 +96,7 @@ H7_RECAP = ROOT / "sw" / "testdata" / "sm3-h7rep" / "capture.json"
 H7_RECAP_ALL = ROOT / "sw" / "testdata" / "sm3-h7rep" / "control_all.json"
 
 import fuzz_classify as fc                            # noqa: E402
+import fuzz_accept as fa                              # noqa: E402
 import ucsim_fuzz as uf                               # noqa: E402
 
 BANKS = ["mc1", "mc2", "t30-raw", "t30-brkem"]
@@ -121,12 +122,23 @@ def excuse(entry, recs, win, evt_replay=False):
         # of the whole campaign (plan, T1..T4) -- no law for it is measured
         # and no gate may pretend one is.
         return "EVT"
-    if fc._open_bus_escaped_before(recs, win, win):
+    if len(fa.open_bus_escape_metrics(recs, win)[0]) >= 8:
         # The program escaped the image and the chip is reading the rig's
         # OPEN BUS (ad_data == ad_addr feedthrough).  The simulator's memory
         # is the 64 KB-mirrored image the board is wired as, so it reads
         # image bytes there: the divergence is the RIG, not the model.
         # Detected with the bank's OWN detector.
+        #
+        # THE PREDICATE MOVED, THE POPULATION DID NOT.  This used to call
+        # `fuzz_classify._open_bus_escaped_before`, which fuzz-v2 T4 replaced
+        # with a PHYSICAL-OFFSET containment falsifier (`escaped_code_region`)
+        # for the v2 image map.  That new predicate would exclude essentially
+        # every seed of THIS (v1, discarded) bank, whose code lives nowhere
+        # near the v2 code region, so it is deliberately NOT used here.
+        # `fuzz_accept.open_bus_escape_metrics` is the v1-era measurement the
+        # deleted predicate mirrored, at its own default threshold of 8 -- the
+        # same rows, the same test, the same count, so this exclusion selects
+        # exactly the seeds it selected before.
         return "OPEN_BUS"
     return None
 

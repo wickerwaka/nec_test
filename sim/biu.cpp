@@ -25,6 +25,11 @@ void Biu::begin_case() {
     io_seq_.clear();
     io_n_ = 0;
     ev_ = 0;
+    // the vector overlay is a per-case rig input, exactly like `iord` and the
+    // INTA constant: a case can never inherit the previous one's
+    tvec_ = 0;
+    vec_arm_ = false;
+    vec_used_ = false;
 }
 
 void Biu::poke(uint32_t a, uint8_t v) { wr(a & 0xFFFFF, v); }
@@ -52,11 +57,15 @@ uint16_t Biu::mem_read(uint16_t seg_val, uint16_t off, bool word,
     uint32_t a = phys(seg_val, off);
     uint32_t a1 = phys(seg_val, uint16_t(off + 1));
     note_access(off, word);
-    uint16_t v = rd(a);
+    // The NMI vector-read overlay (biu.h `set_tvec`): a MEMR of linear
+    // 0x8..0xB reads TVEC's bytes while armed.  `rdm` is the ONLY difference
+    // from an ordinary read, and it is confined to this function, which is
+    // what qualifies the overlay on BS_MEMR.
+    uint16_t v = rdm(a);
     if (word) {
         // The offset wraps inside the segment (16-bit adder), so a word at
         // offset FFFF takes its high byte from offset 0000.
-        v = uint16_t(v | (uint16_t(rd(a1)) << 8));
+        v = uint16_t(v | (uint16_t(rdm(a1)) << 8));
     }
     log(Txn::kMemRead, a, a1, v, word ? 2 : 1, seg_idx, upc);
     // THE DATA-PATH BYTE SWAPPER (read half).  The 16-bit system presents the
@@ -67,7 +76,16 @@ uint16_t Biu::mem_read(uint16_t seg_val, uint16_t off, bool word,
     // mask it off, so nothing architectural changes; what it explains is the
     // companion byte a byte RMW puts back on the bus (measured: `10` case 0,
     // `adc byte [odd], dh` drives EC90 where 90 is the aligned partner).
-    if (!word) v = uint16_t(v | (uint16_t(rd(a ^ 1u)) << 8));
+    if (!word) v = uint16_t(v | (uint16_t(rdm(a ^ 1u)) << 8));
+    // ...and the overlay DISARMS when the CS HALF COMPLETES (nec_bus.sv:
+    // `tick_rise && vec_hit_cs && next_t_state == ST_T4`).  A cycle is at
+    // 0x0000A/B iff its own address has [19:1] == 5; the COMPANION byte a
+    // byte read drags along (a ^ 1, above) rides the same cycle and is not
+    // one, which is why only the cycle addresses are tested here.
+    if (vec_arm_ && (((a >> 1) == 5u) || (word && (a1 >> 1) == 5u))) {
+        vec_arm_ = false;
+        vec_used_ = true;
+    }
     return v;
 }
 

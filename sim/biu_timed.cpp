@@ -135,16 +135,30 @@ void BiuTimed::begin_case() {
     bus_idx_ = 0;
     last_wr_waits_ = 0;
     wlfsr_ = wseed_;
-    // S9a: the pin schedule is a per-case rig input; clear it here so a form
-    // without an `evt` record can never inherit the previous case's.
-    ev_trigger_ = 0;
-    ev_pin_ = 0;
-    ev_addr_ = 0;
-    ev_delay_ = 0;
-    ev_hold_ = 0;
+    // S9a: the pin schedules are a per-case rig input; clear them here so a
+    // form without an `evt` record can never inherit the previous case's.
+    ev_.clear();
     ev_pins_ = 0;
-    ev_anchor_ = -1;
+    ev_active_pin_ = 0;
     first_fpop_ = -1;
+    vec_disarm_clk_ = -1;    // core_.begin_case() cleared TVEC and the arm
+}
+
+// The overlay's arm state, derived from the schedules (biu_timed.h,
+// `vec_disarm_clk_`).  nec_bus.sv arms on the EV_DELAY -> EV_ACTIVE transition
+// of a scheduler whose `vecsub_en` bit is set -- a property of WHICH DIRECTIVE
+// FIRED, not of which pin went high, which is the only formulation under which
+// a stimulus NMI and a terminating NMI coexist in one run.  That transition IS
+// the schedule's assert clock, so "armed" is "some vecsub schedule has
+// asserted, more recently than the last disarm".
+void BiuTimed::vec_sync() {
+    long best = -1;
+    for (const EvtSlot& s : ev_) {
+        if (!s.vecsub) continue;
+        const long a = s.assert_clk();
+        if (a >= 0 && a <= clk_ && a > best) best = a;
+    }
+    core_.set_vec_arm(best >= 0 && best > vec_disarm_clk_);
 }
 
 // M2r: the rig's wait draw for the bus cycle whose T1 opens now.  Mirrors
@@ -288,11 +302,14 @@ void BiuTimed::tick() {
         // older access's T1.
         if (!cur_.is_fetch && cur_.rd_last && eu_accept_clk_ == c)
             eu_slot_busy_ = false;
-        // S9a: the rig's fetch-trigger anchor (tb_v30_core.sv: the CODE T1
-        // whose 20-bit address is `ev_addr`).
-        if (ev_trigger_ == 1 && ev_anchor_ < 0 && cur_.is_fetch &&
-            cur_.addr == ev_addr_)
-            ev_anchor_ = c;
+        // S9a: the rig's fetch-trigger anchor (tb_v30_core.sv / nec_bus.sv:
+        // the CODE T1 whose 20-bit address is this instance's `addr`).  One
+        // loop, EVT_N independent instances, exactly as the generate loop has
+        // it -- an instance that has already triggered keeps its anchor.
+        for (EvtSlot& s : ev_)
+            if (s.trigger == 1 && s.anchor < 0 && cur_.is_fetch &&
+                cur_.addr == s.addr)
+                s.anchor = c;
         // M2r: the rig latches this access's wait count at T1 ENTRY, which
         // fixes the cycle's length and its ONE eval instant.
         cur_.waits = next_waits();
@@ -351,9 +368,12 @@ void BiuTimed::tick() {
         cmt_was_owed_ = pf_owed_;
         halt_pending_ = false;
     }
-    // The data phase opens on T2.
+    // The data phase opens on T2.  With the NMI vector-read overlay serving
+    // this cycle it is TVEC's half, not the aligned word in memory -- the same
+    // substitution nec_bus.sv makes into `rdata_q`, which is what the CPU
+    // latches AND what the capture records on the lanes.
     if (run_ && ci_ == 1 && cur_.sys_word)
-        cur_.data = sys_word_at(cur_.addr);
+        cur_.data = cur_.vec_sub ? cur_.vec_word : sys_word_at(cur_.addr);
 
     const bool display = cmt_valid_ && c >= cmt_disp_ && c < cmt_t1_;
     // S9a (Access::no_addr): an INTA drives no address.  Freeze the FLOATING
@@ -561,7 +581,8 @@ void BiuTimed::tick() {
 
     // S9a: the rig's fpop-trigger anchor -- the WINDOW-OPENING `F` pop
     // (tb_v30_core.sv: `recording && QS == 2'b01 && fcount == 0`).
-    if (ev_trigger_ == 2 && ev_anchor_ < 0 && r.qs == kQsFirst) ev_anchor_ = c;
+    for (EvtSlot& s : ev_)
+        if (s.trigger == 2 && s.anchor < 0 && r.qs == kQsFirst) s.anchor = c;
     if (first_fpop_ < 0 && r.qs == kQsFirst) first_fpop_ = c;
 
     if (rows_) rows_->row(r);
@@ -1168,7 +1189,7 @@ long BiuTimed::boundary_no_pop(bool post_redirect) {
     if (kBndTrace)
         fprintf(stderr, "BND clk=%ld post=%d pin=%d ierise=%ld floor=%ld "
                         "live=%d\n",
-                clk_, int(post_redirect), ev_pin_, ie_rise_,
+                clk_, int(post_redirect), ev_active_pin_, ie_rise_,
                 ie_rise_ >= 0 ? ie_rise_ + kIeFloor : -1, int(live));
     if (post_redirect && live) {
         wait_ie_floor();
@@ -1346,8 +1367,22 @@ void BiuTimed::wait_opr() { wait_next_read(1); }
 
 uint16_t BiuTimed::mem_read(uint16_t seg_val, uint16_t off, bool word,
                             uint8_t seg_idx, uint16_t upc) {
-    uint16_t v = core_.mem_read(seg_val, off, word, seg_idx, upc);
     uint32_t a = phys(seg_val, off);
+    uint32_t a1 = phys(seg_val, uint16_t(off + 1));
+    // The vector overlay's arm state at this read, and the per-CYCLE decision
+    // it implies.  Both are taken BEFORE `core_.mem_read`, which is what
+    // disarms on the CS half: the pins of the cycle that DOES the disarming
+    // still carry the substituted word, exactly as they do in the RTL (the
+    // disarm is at that cycle's own T3->T4 edge, two clocks after its data
+    // phase opened).
+    vec_sync();
+    const bool armed0 = core_.vec_armed();
+    const bool h0 = core_.vec_hit(a);
+    const bool h1 = core_.vec_hit(a1);
+    const uint16_t w0 = core_.vec_word_at(a);
+    const uint16_t w1 = core_.vec_word_at(a1);
+    uint16_t v = core_.mem_read(seg_val, off, word, seg_idx, upc);
+    if (armed0 && !core_.vec_armed()) vec_disarm_clk_ = clk_;
     Access acc;
     acc.rd_val = v;
     acc.bs = kBsMemR;
@@ -1355,20 +1390,26 @@ uint16_t BiuTimed::mem_read(uint16_t seg_val, uint16_t off, bool word,
     acc.upc = upc;
     acc.sys_word = true;
     if (word && (a & 1)) {
-        // The 16-bit bus splits an unaligned word into two byte cycles.
+        // The 16-bit bus splits an unaligned word into two byte cycles, and
+        // each carries its OWN address into the overlay's compare.
         acc.addr = a;
         acc.ube_n = 0;
         acc.rd_last = false;      // the interlock releases on the SECOND half
+        acc.vec_sub = h0;
+        acc.vec_word = w0;
         post(acc);
-        uint32_t a1 = phys(seg_val, uint16_t(off + 1));
         acc.addr = a1;
         acc.ube_n = uint8_t((a1 & 1) ? 0 : 1);
         acc.rd_last = true;
         acc.first_of_access = false;   // M10: one request, two cycles
+        acc.vec_sub = h1;
+        acc.vec_word = w1;
         post(acc);
     } else {
         acc.addr = a;
         acc.ube_n = uint8_t((word || (a & 1)) ? 0 : 1);
+        acc.vec_sub = h0;
+        acc.vec_word = w0;
         post(acc);
     }
     return v;

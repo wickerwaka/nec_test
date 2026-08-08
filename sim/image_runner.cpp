@@ -69,6 +69,10 @@ struct ImgResult {
     // The illegal-form stall (state.h::stalled).  Reported as its own key so a
     // parked run cannot be read as a completed one or as an error.
     bool stalled = false;
+    // The NMI vector-read overlay actually served a vector (nec_bus.sv's
+    // sticky `vec_used`, STATUS[6]).  Reported so the three-leg agreement can
+    // be scored on the INTERCEPTION and not only on its consequence.
+    bool vec_used = false;
     std::string err;
     // Decode census over the bytes the loader actually CONSUMED, so it is a
     // statement about executed code, not about bytes that happen to sit in the
@@ -148,24 +152,59 @@ ImgResult run_one(const ucrom::UcRom& rom, Biu& biu, const json::Value& c,
     if (const json::Value* v = c.get("ilog")) ilog = v->i() != 0;
 
     // --- external-event replay directive ---------------------------------
-    Cpu::EventKind evt_kind = Cpu::kEvtInt;
-    std::vector<long> evt_at, evt_cs, evt_ip;
+    //
+    // FUZZ v2: `evt` is a LIST of rig schedules (nec_bus.sv runs EVT_N = 3
+    // instances of one FSM) and the capture's firing arrays carry a parallel
+    // `which[]` naming the schedule each firing belongs to.  The FUNCTIONAL
+    // model has no clocks, so `addr` / `delay` / `hold` are not read here --
+    // only `pin` (which kind of entry) and `vecsub` (whether this directive's
+    // fire arms the NMI vector-read overlay).  Schema and the accepted legacy
+    // shape: sim/timed_runner.cpp, above `read_boot_evt`.
+    struct ImgSched { int pin = 0; bool vecsub = false; };
+    std::vector<ImgSched> sch;
+    std::vector<long> evt_at, evt_cs, evt_ip, evt_which;
+    auto arr_from = [](const json::Value& o, const char* k,
+                       std::vector<long>& out) {
+        if (const json::Value* v = o.get(k))
+            if (v->type == json::Value::kArr)
+                for (const auto& x : v->arr) out.push_back(long(x.i()));
+    };
     if (const json::Value* e = c.get("evt")) {
-        if (e->type == json::Value::kObj) {
-            const json::Value* pin = e->get("pin");
-            evt_kind = (pin && pin->i() == 1) ? Cpu::kEvtNmi : Cpu::kEvtInt;
-            const json::Value* at = e->get("at");
-            if (at && at->type == json::Value::kArr)
-                for (const auto& x : at->arr) evt_at.push_back(long(x.i()));
-            // The CS:IP the chip's own interrupt frame recorded, per firing.
-            const json::Value* cs = e->get("cs");
-            if (cs && cs->type == json::Value::kArr)
-                for (const auto& x : cs->arr) evt_cs.push_back(long(x.i()));
-            const json::Value* ip = e->get("ip");
-            if (ip && ip->type == json::Value::kArr)
-                for (const auto& x : ip->arr) evt_ip.push_back(long(x.i()));
+        if (e->type == json::Value::kArr) {
+            for (const auto& x : e->arr) {
+                if (x.type != json::Value::kObj) continue;
+                ImgSched s;
+                if (const json::Value* v = x.get("pin")) s.pin = int(v->i());
+                if (const json::Value* v = x.get("vecsub"))
+                    s.vecsub = v->i() != 0;
+                sch.push_back(s);
+            }
+        } else if (e->type == json::Value::kObj) {
+            // legacy single-schedule shape: the firing arrays live inside it
+            ImgSched s;
+            if (const json::Value* v = e->get("pin")) s.pin = int(v->i());
+            sch.push_back(s);
+            arr_from(*e, "at", evt_at);
+            arr_from(*e, "cs", evt_cs);
+            arr_from(*e, "ip", evt_ip);
         }
     }
+    if (sch.empty()) sch.push_back(ImgSched{});
+    if (const json::Value* fr = c.get("fire")) {
+        if (fr->type == json::Value::kObj) {
+            evt_at.clear(); evt_cs.clear(); evt_ip.clear();
+            arr_from(*fr, "at", evt_at);
+            arr_from(*fr, "cs", evt_cs);
+            arr_from(*fr, "ip", evt_ip);
+            arr_from(*fr, "which", evt_which);
+        }
+    }
+    auto which_of = [&](size_t n) -> size_t {
+        if (n < evt_which.size() && evt_which[n] >= 0 &&
+            size_t(evt_which[n]) < sch.size())
+            return size_t(evt_which[n]);
+        return 0;
+    };
     size_t evt_n = 0;
 
     // --- image ------------------------------------------------------------
@@ -205,6 +244,9 @@ ImgResult run_one(const ucrom::UcRom& rom, Biu& biu, const json::Value& c,
     // the whole bank), so both are constants here rather than predictions.
     biu.set_io_in(0xFFFF);
     biu.set_inta(0x00FF);
+    // ...and the harness's TVEC register, the NMI vector-read overlay's data
+    // (biu.h `set_tvec`).  Inert until a `vecsub` directive fires.
+    if (const json::Value* v = c.get("tvec")) biu.set_tvec(uint32_t(v->u()));
 
     long cov0_intem = g_row_cover[0x91], cov0_mfc = g_row_cover[0x93];
     Cpu cpu(rom, biu);
@@ -245,6 +287,13 @@ ImgResult run_one(const ucrom::UcRom& rom, Biu& biu, const json::Value& c,
     auto take_event = [&]() {
         if (m.mode8080) ++res.inta_in_8080;
         cpu.set_evt_at(-1);
+        const ImgSched& s = sch[which_of(evt_n)];
+        // ARM ON WHICH DIRECTIVE FIRED, not on which pin went high -- the only
+        // formulation under which a stimulus NMI and a terminating NMI coexist
+        // in one run (nec_bus.sv: `|(ev_fire_pulse & evt_vecsub_en)`).
+        if (s.vecsub) biu.set_vec_arm(true);
+        const Cpu::EventKind evt_kind =
+            (s.pin == 1) ? Cpu::kEvtNmi : Cpu::kEvtInt;
         if (!cpu.interrupt(evt_kind)) {
             res.err = "interrupt entry did not terminate";
             return false;
@@ -333,6 +382,7 @@ ImgResult run_one(const ucrom::UcRom& rom, Biu& biu, const json::Value& c,
     }
     scan_new();
     res.ev = biu.ev_count();
+    res.vec_used = biu.vec_used();
     res.intem = g_row_cover[0x91] - cov0_intem;
     res.mfc = g_row_cover[0x93] - cov0_mfc;
     return res;
@@ -341,10 +391,11 @@ ImgResult run_one(const ucrom::UcRom& rom, Biu& biu, const json::Value& c,
 void emit(std::FILE* out, long idx, const ImgResult& r, const Biu& biu,
           bool with_code) {
     std::fprintf(out, "{\"i\":%ld,\"ins\":%ld,\"ev\":%ld,\"done\":%d,"
-                      "\"halt\":%d,\"stall\":%d,\"fired\":%d,\"repbad\":%d,"
+                      "\"halt\":%d,\"stall\":%d,\"fired\":%d,\"vecused\":%d,"
+                      "\"repbad\":%d,"
                       "\"intem\":%ld,\"mfc\":%ld,\"repok\":%d,\"inta8080\":%d,\"reppfx\":[",
                  idx, r.ins, r.ev, r.done ? 1 : 0, r.halt ? 1 : 0,
-                 r.stalled ? 1 : 0, r.fired,
+                 r.stalled ? 1 : 0, r.fired, r.vec_used ? 1 : 0,
                  r.rep_withdraw_unmatched, r.intem, r.mfc,
                  r.rep_withdraw_ok, r.inta_in_8080);
     for (int i = 0; i < 8; ++i)

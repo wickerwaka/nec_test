@@ -44,12 +44,13 @@ Hardware constraints encoded in `nec_bus`:
 | 49    | UBE_N (address phase) |
 | 50    | BUSLOCK_N point sample (large) / WR_N not-seen-low sticky (small) |
 | 51    | READY as driven |
-| 52    | INT as driven |
-| 53    | NMI as driven |
-| 54    | POLL_N as driven |
+| 52    | INT as driven (PINS register OR every pin-event scheduler) |
+| 53    | NMI as driven (PINS register OR every pin-event scheduler) |
+| 54    | POLL_N as driven (PINS register AND every pin-event scheduler) |
 | 55    | RESET as driven |
 | 58:56 | T-state (0=TI 1=T1 2=T2 3=T3 4=TW 5=T4) |
-| 63:59 | reserved |
+| 59    | NMI vector-read overlay armed (see `TVEC`/`VECCTL`) |
+| 63:60 | reserved |
 
 The buffer arms when the CPU leaves reset and stops when full (4096 cycles
 = ~1 ms at 4 MHz), so reset release and first fetch are always in the trace.

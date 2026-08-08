@@ -11,6 +11,8 @@ on what each byte IS and how it may be emitted:
   * a full 0F WHITELIST (only the documented extension forms; everything else in
     the 0F space is BANNED - 0F 34 locks the chip, 0F 35-3F are unprobed, 0F
     E0/F0 are V33 BRKXA/RETXA, and the >=0x40 aliases fall into BRKEM),
+  * THE 0F SCRUB (scrub_0f / bad_0f_hits / scan_raw_bytes): the one rule that
+    keeps a generated image out of 8080 emulation mode and off the lockup,
   * ilen(buf, i): a static instruction-length decoder over the legal 1-byte +
     whitelisted-0F space (prefix stacks, modrm+disp, W/ext-dependent immediates).
 
@@ -23,6 +25,7 @@ Run `python3 sw/optable.py --selfcheck` for the standing generation-side gate.
 """
 import argparse
 import json
+import random
 import sys
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -31,6 +34,7 @@ SW = Path(__file__).resolve().parent
 ROOT = SW.parent
 sys.path.insert(0, str(SW))
 import fuzz_cov  # noqa: E402  (GROUP_OPS / MODRM_OPS / F0_MODRM cross-check sets)
+import testimage  # noqa: E402  (THE image map; CODE_SPANS is its code region)
 
 FACTS = ROOT / "docs" / "facts" / "instructions.json"
 
@@ -304,9 +308,127 @@ def is_banned_0f(b2):
     return b2 not in F0_WHITELIST
 
 
-# byte pairs that must NEVER appear (0F prefix + these) - the scrub authority.
-# 0F 34 locks the chip; 0F 35-3F are unprobed; 0F E0/F0 are V33 BRKXA/RETXA.
-HARD_BANNED_0F = frozenset({0x34}) | frozenset(range(0x35, 0x40)) | {0xE0, 0xF0}
+# ---------------------------------------------------------------------------
+# THE 0F SCRUB (fuzz-v2 plan D9).  ONE RULE:
+#
+#     a 0F byte may be followed ONLY by a byte in SCRUB_ALLOWED_0F;
+#     every other 0F xx pair is rewritten to 90 90.
+#
+# It replaces the two rules that stood before it - a HARD_BANNED_0F set (0F 34
+# lockup, 0F 35-3F unprobed, 0F E0/F0 BRKXA/RETXA) plus a `0F FF` BRKEM pair
+# rewrite - because `docs/facts/undocumented_0f.md` (silicon, 2026-07-11)
+# measured that **0F FF is not the 8080 entry surface; 0F + ANY byte >= 0x40
+# is**: 0x40, 0x60, 0x80, 0xA0, 0xC0 and 0xE4 each read IVT[4*imm8], push
+# PSW/PS/PC, clear MD and enter 8080 emulation mode, exactly like BRKEM.  Of the
+# 192 second bytes in that band the composed-image rule removed exactly ONE
+# (0xFF); `gen_raw`'s rule named two more (0xE0, 0xF0) but rewrote only the
+# SECOND byte, to 0x90 -- which is itself in the band, so it turned one alias
+# into another.  The six probed points are the measurement; 0x90 and 0xCC are
+# INFERENCE from the band the document states, not direct observations.
+#
+# SCRUB_ALLOWED_0F is the documented whitelist MINUS 0xFF.  BRKEM itself is the
+# documented 8080 door and 8080 is deferred by user decision (2026-08-05), so a
+# rule that eliminates every alias while leaving the original in would not
+# eliminate anything.  That is the ONE named exception and it is the subject of
+# the rule, not a special case bolted onto it.
+NOP = 0x90
+BRKEM_0F = 0xFF
+SCRUB_ALLOWED_0F = frozenset(F0_WHITELIST) - {BRKEM_0F}
+
+
+def _norm_spans(spans, n):
+    """clamp to [0,n), drop empties, sort, COALESCE overlapping and adjacent.
+    Without the coalesce, one span's end-of-span clause could NOP a `0F` whose
+    legal partner byte lies just inside the next span."""
+    out = []
+    for lo, hi in sorted((max(0, a), min(n, b)) for a, b in spans):
+        if lo >= hi:
+            continue
+        if out and lo <= out[-1][1]:
+            out[-1] = (out[-1][0], max(out[-1][1], hi))
+        else:
+            out.append((lo, hi))
+    return out
+
+
+def scrub_0f(buf, spans=None):
+    """In-place: apply THE 0F RULE to `buf` (a bytearray).  -> pairs rewritten.
+
+    `spans` is a sequence of half-open [lo,hi) byte ranges the rule applies to;
+    None means the whole buffer.  It exists because the rule is about CODE: an
+    image's IVT holds 4-byte vectors and its data window holds operands, and
+    rewriting a byte there does not remove an instruction, it silently
+    redirects a vector or corrupts an operand.  See CODE_SPANS.
+
+    BOTH bytes go to NOP, never only the second: a bare `FF` left behind is a
+    group-5 ModR/M whose `/3` and `/5` are a far CALL / far JMP through a
+    random word, which trades a deferred-scope 8080 entry for an ESCAPE.
+
+    ONE left-to-right pass reaches a fixed point.  Proof: a byte is written
+    only to NOP (0x90); 0x90 is not 0x0F, so no pass can create a new prefix;
+    and a pair left intact cannot be broken later, because its second byte is
+    in SCRUB_ALLOWED_0F, no member of which is 0x0F (so rule (a) cannot fire on
+    it) and which by definition is not "not allowed" (so rule (b) cannot
+    either).  `bad_0f_hits()` is the check that says so on the artifact rather
+    than in the argument."""
+    n = 0
+    for lo, hi in _norm_spans(((0, len(buf)),) if spans is None else spans,
+                              len(buf)):
+        i = buf.find(0x0F, lo, hi)
+        while i >= 0:
+            j = i + 1
+            if j >= hi:
+                # the pair straddles the span end.  NOP the PREFIX only: the
+                # second byte is outside the span (an IVT/operand byte) and
+                # must not move.  Killing 0F alone kills the instruction.
+                buf[i] = NOP
+                n += 1
+                break
+            if buf[j] not in SCRUB_ALLOWED_0F:
+                buf[i] = buf[j] = NOP
+                n += 1
+            i = buf.find(0x0F, j, hi)
+    return n
+
+
+def bad_0f_hits(buf, spans=None):
+    """[(offset, second_byte)] for every 0F pair the rule forbids, plus a
+    trailing lone 0F at a span end.  The independent CHECK for scrub_0f()."""
+    out = []
+    for lo, hi in _norm_spans(((0, len(buf)),) if spans is None else spans,
+                              len(buf)):
+        i = buf.find(0x0F, lo, hi)
+        while i >= 0:
+            j = i + 1
+            if j >= hi:
+                out.append((i, None))
+                break
+            if buf[j] not in SCRUB_ALLOWED_0F:
+                out.append((i, buf[j]))
+            i = buf.find(0x0F, j, hi)
+    return out
+
+
+# ---------------------------------------------------------------------------
+# THE SCRUB REGION - a PARAMETER of the rule, and NOT a second copy of the map.
+#
+# `sw/testimage.py` owns the image map, so this IS its code region and moves
+# when it does.  The rule is about CODE: the image's other regions are the IVT
+# (256 four-byte vectors - once v2 randomises segments these carry arbitrary
+# bytes, and a rewrite there does not remove an instruction, it silently
+# redirects a vector), the data window and stack region (operand bytes), and
+# the loader page (harness code that contains no 0F).  `testimage` asserts at
+# import that every one of those carve-outs is disjoint from [CODE_LO,CODE_HI),
+# which is why one span suffices.
+#
+# RESIDUE, stated rather than hidden: bytes outside the code region are still
+# REACHABLE as code by an escape.  Inside the composed v2 image they are 0xCC
+# (INT3, which contains no 0x0F) or carve-out data, but a raw whole-image seed
+# overwrites them with uniform random bytes.  Generation scrubbing is therefore
+# necessarily incomplete, which is why plan D9 has a SECOND, capture-side
+# clause - discard any capture whose rows show an 8080 entry - and why this
+# clause is not claimed to be enough on its own.
+CODE_SPANS = ((testimage.CODE_LO, testimage.CODE_HI),)
 
 
 # ---------------------------------------------------------------------------
@@ -409,7 +531,12 @@ def scan_code(buf, start=0, end=None):
         j += 1
         movdw_here = None
         if op == 0x0F:
-            if j < end and is_banned_0f(buf[j]):
+            # SCRUB_ALLOWED_0F, not is_banned_0f: the soup whitelist still
+            # contains BRKEM (0F FF) because `ilen` must length-decode it, but
+            # the image scrub rewrites it, so a soup stream that emitted one
+            # would disagree with its own composed image.  Flagging it here is
+            # what makes `p_brkem = 0` a checked property instead of a habit.
+            if j < end and buf[j] not in SCRUB_ALLOWED_0F:
                 hits.append((i, f"banned 0F {buf[j]:02x}"))
         else:
             info = TABLE.get(op)
@@ -428,39 +555,20 @@ def scan_code(buf, start=0, end=None):
     return hits
 
 
-def scan_raw_bytes(buf):
+def scan_raw_bytes(buf, spans=None):
     """Post-scrub safety scan of a raw (data+code) buffer: return (offset,
-    reason) for any residual chip-wedging byte - a banned 0F pair (0F 34 /
-    0F 35-3F / 0F E0 / 0F F0) or a stray HALT(F4)/POLL(9B). ED and the BRKEM
-    aliases (0F >= 0x40) are intentionally left in and never reported."""
-    hits = []
-    n = len(buf)
-    pos = 0
-    while True:
-        i = buf.find(0x0F, pos) if isinstance(buf, (bytes, bytearray)) \
-            else _find(buf, 0x0F, pos)
-        if i < 0 or i >= n - 1:
-            break
-        if buf[i + 1] in HARD_BANNED_0F:
-            hits.append((i, f"residual 0F {buf[i + 1]:02x}"))
-        pos = i + 1
-    for b, why in ((0xF4, "stray HALT F4"), (0x9B, "stray POLL 9B")):
-        pos = 0
-        while True:
-            i = buf.find(b, pos) if isinstance(buf, (bytes, bytearray)) \
-                else _find(buf, b, pos)
-            if i < 0:
-                break
-            hits.append((i, why))
-            pos = i + 1
-    return hits
+    reason) for every 0F pair THE 0F RULE forbids - the lockup 0F 34, the
+    unprobed 0F 35-3F, V33 BRKXA/RETXA 0F E0/F0, BRKEM 0F FF and its whole
+    >= 0x40 alias band.  ED is intentionally left in and never reported.
 
-
-def _find(seq, val, start):
-    for i in range(start, len(seq)):
-        if seq[i] == val:
-            return i
-    return -1
+    F4 (HALT) and 9B (POLL) are NO LONGER REPORTED and no longer scrubbed:
+    their premise was that a random DI/POPF could mask interrupts so an armed
+    wake never arrived and the run was a guaranteed timeout.  Plan D3's
+    terminating NMI is non-maskable, wakes HALT, and its handler does not
+    return - so it ends a POLL wait too.  Dropping them is a coverage gain the
+    terminator pays for, and it is only sound once that terminator exists."""
+    return [(i, f"residual 0F {'??' if b2 is None else format(b2, '02x')}")
+            for i, b2 in bad_0f_hits(buf, spans)]
 
 
 # ---------------------------------------------------------------------------
@@ -524,23 +632,85 @@ def selfcheck(verbose=False):
         if op is None or not op.modrm:
             errs.append(f"F0_MODRM {b2:02x} not whitelisted-with-modrm")
 
-    # 6. required hard bans present. is_banned_0f is the SOUP whitelist gate;
-    #    HARD_BANNED_0F is the RAW-scrub band (blankets 0x35-0x3F, incl. the
-    #    two whitelisted INS/EXT-imm4 forms - raw simply never emits those).
-    if 0x34 not in HARD_BANNED_0F or not is_banned_0f(0x34):
-        errs.append("0F 34 not banned")
+    # 6. THE 0F RULE covers everything the two rules it replaced covered, and
+    #    the BRKEM alias band besides.  is_banned_0f is the SOUP whitelist
+    #    gate; SCRUB_ALLOWED_0F is the SCRUB's allowed set (= that whitelist
+    #    minus BRKEM).  Named, not blanketed, so a reader sees the evidence:
+    if 0x34 in SCRUB_ALLOWED_0F or not is_banned_0f(0x34):
+        errs.append("0F 34 (silent lockup) not scrubbed")
     for b2 in range(0x35, 0x40):
-        if b2 not in HARD_BANNED_0F:
-            errs.append(f"0F {b2:02x} not in the raw-scrub band")
-        if b2 not in F0_WHITELIST and not is_banned_0f(b2):
-            errs.append(f"0F {b2:02x} (unprobed) not soup-banned")
+        if b2 in SCRUB_ALLOWED_0F and b2 not in F0_WHITELIST:
+            errs.append(f"0F {b2:02x} (unprobed) not scrubbed")
     for b2 in (0xE0, 0xF0):
-        if b2 not in HARD_BANNED_0F or not is_banned_0f(b2):
-            errs.append(f"0F {b2:02x} (BRKXA/RETXA) not banned")
+        if b2 in SCRUB_ALLOWED_0F or not is_banned_0f(b2):
+            errs.append(f"0F {b2:02x} (BRKXA/RETXA) not scrubbed")
+    # the 8080 entry surface: docs/facts/undocumented_0f.md measured that EVERY
+    # second byte >= 0x40 is a BRKEM alias, and BRKEM itself is 0F FF.
+    for b2 in range(0x40, 0x100):
+        if b2 in SCRUB_ALLOWED_0F:
+            errs.append(f"0F {b2:02x} (8080 entry surface) not scrubbed")
+    if BRKEM_0F in SCRUB_ALLOWED_0F:
+        errs.append("0F FF (BRKEM) not scrubbed")
+    if BRKEM_0F not in F0_WHITELIST:
+        errs.append("0F FF absent from F0_WHITELIST (ilen cannot decode BRKEM)")
     # every non-whitelisted 0F byte must be soup-banned (definitional guard)
     for b2 in range(256):
         if b2 not in F0_WHITELIST and not is_banned_0f(b2):
             errs.append(f"0F {b2:02x} not soup-banned despite non-whitelist")
+    # SCRUB_ALLOWED_0F is exactly the whitelist minus BRKEM (definitional)
+    if SCRUB_ALLOWED_0F != frozenset(F0_WHITELIST) - {BRKEM_0F}:
+        errs.append("SCRUB_ALLOWED_0F is not F0_WHITELIST minus BRKEM")
+    # WHERE THE NEW RULE IS NARROWER THAN THE OLD RAW-SCRUB BAND, stated so it
+    # cannot drift silently.  The old band blanketed 0x35-0x3F, which swallowed
+    # the two DOCUMENTED INS/EXT reg,imm4 forms; the whitelist keeps them, so a
+    # raw image may now carry `0F 39` / `0F 3B`.  They are documented, they are
+    # what `timed_ins_replay` gates, and gen_soup already emits them into live
+    # code -- but if that judgement is ever revisited, this is the assertion
+    # that fails.
+    _old_band_kept = sorted(b for b in range(0x35, 0x40)
+                            if b in SCRUB_ALLOWED_0F)
+    if _old_band_kept != [0x39, 0x3B]:
+        errs.append(f"0F 35-3F survivors changed: {_old_band_kept} "
+                    f"(was [0x39, 0x3b], the documented INS/EXT-imm4 forms)")
+    # 6b. the scrub on a probe carrying one of every case: an alias, the v2
+    #     INT3 fill as a second byte, BRKEM, the lockup, a 0F meeting a 0F,
+    #     and two LEGAL pairs that must survive untouched.
+    probe = bytearray([0x0F, 0x40, 0x0F, 0xCC, 0x0F, 0xFF, 0x0F, 0x34,
+                       0x0F, 0x0F, 0x40, 0x0F, 0x10, 0xC0, 0x0F, 0x20])
+    once = bytearray(probe)
+    n_rw = scrub_0f(once)
+    twice = bytearray(once)
+    if scrub_0f(twice) != 0 or bytes(twice) != bytes(once):
+        errs.append("scrub_0f is not idempotent on the selfcheck probe")
+    if bad_0f_hits(once):
+        errs.append(f"scrub_0f left {bad_0f_hits(once)} on the probe")
+    if n_rw != 5:
+        errs.append(f"scrub_0f rewrote {n_rw} probe pairs, want 5")
+    if bytes(once[11:]) != bytes([0x0F, 0x10, 0xC0, 0x0F, 0x20]):
+        errs.append("scrub_0f moved a WHITELISTED pair (0F 10 / 0F 20)")
+    # 6c. the fixed point is ARGUED in scrub_0f's docstring; here it is
+    #     MEASURED, on a seeded corpus so the run is reproducible, over the
+    #     three span shapes that exercise the end-of-span clause and the
+    #     coalescer.  Cheap (~0.2 s) and it is this rule's only falsifier that
+    #     survives outside a task's scratchpad.
+    _rng = random.Random("optable/scrub_0f/fixedpoint")
+    _shapes = (None, CODE_SPANS, ((0, 100), (90, 300), (2000, 9999)))
+    _rewrote = _nofix = _dirty = 0
+    for _i in range(200):
+        _b = bytearray(_rng.randbytes(4096))
+        _sp = _shapes[_i % len(_shapes)]
+        _rewrote += scrub_0f(_b, _sp)
+        _c = bytearray(_b)
+        if scrub_0f(_c, _sp) != 0 or bytes(_c) != bytes(_b):
+            _nofix += 1
+        if bad_0f_hits(_b, _sp):
+            _dirty += 1
+    if _nofix:
+        errs.append(f"scrub_0f not a fixed point on {_nofix}/200 random buffers")
+    if _dirty:
+        errs.append(f"scrub_0f left a forbidden pair on {_dirty}/200 buffers")
+    if _rewrote < 500:
+        errs.append(f"the fixed-point corpus was vacuous ({_rewrote} rewrites)")
     if TABLE[0xFE].banned_ext != frozenset({2, 3, 4, 5, 6, 7}):
         errs.append("FE /2-7 not banned")
     if TABLE[0x8E].banned_ext != frozenset({1}):

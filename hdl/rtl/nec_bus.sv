@@ -21,7 +21,15 @@
 //
 //============================================================================
 
-module nec_bus
+module nec_bus #(
+    // Number of independent pin-event schedulers.  A COMPILE-TIME constant,
+    // never host-configurable and never runtime-selectable: system_large
+    // declares the single localparam and passes it to both this module and
+    // hps_axi_slave, so the three files cannot disagree.  The scheduler FSM
+    // below is ONE description inside a generate loop -- there is no second,
+    // hand-copied copy to drift.
+    parameter int EVT_N = 3
+)
 (
     input             clk,
     input             reset,
@@ -64,15 +72,32 @@ module nec_bus
     input             nmi_req,
     input             poll_n_in,
 
-    // Pin-event scheduler: on a CODE T1 at evt_addr, wait evt_delay CPU
-    // clocks, then drive the selected pin for evt_hold clocks (0 = until
-    // disarmed). Gives interrupt tests a cycle-deterministic stimulus.
-    input             evt_arm,
-    input      [19:0] evt_addr,
-    input      [15:0] evt_delay,
-    input      [11:0] evt_hold,      // 12 bits since 2026-08-04 (F46 / gap R1)
-    input       [2:0] evt_pin,     // 0=INT 1=NMI 2=POLL_N(active low)
-    output reg        evt_fired,
+    // Pin-event schedulers (EVT_N of them, identical and independent): on a
+    // CODE T1 at evt_addr, wait evt_delay CPU clocks, then drive the selected
+    // pin for evt_hold clocks (0 = until disarmed). Gives interrupt tests a
+    // cycle-deterministic stimulus.  Each field is packed as EVT_N slices of
+    // its own width; slice 0 is the historical single event.
+    //
+    // evt_pin: 0=INT 1=NMI 2=POLL_N(active low).  Values 3-7 are UNDEFINED:
+    // the scheduler still runs and evt_fired still sets, but no pin is driven.
+    // There is deliberately NO trap and NO remap here -- remapping a value the
+    // host asked for is the silent-substitution pattern that produced INV-1.
+    // The host (sw/v30ctl.py) refuses pin > 2; this comment is the record.
+    input      [EVT_N-1:0]    evt_arm,
+    input      [EVT_N*20-1:0] evt_addr,
+    input      [EVT_N*16-1:0] evt_delay,
+    input      [EVT_N*12-1:0] evt_hold, // 12 b since 2026-08-04 (F46 / gap R1)
+    input      [EVT_N*3-1:0]  evt_pin,
+    // Per-scheduler: this directive's fire ARMS the NMI vector-read overlay.
+    // A property of WHICH DIRECTIVE FIRED, not of which pin went high, so a
+    // stimulus NMI and a terminating NMI can coexist in one run.
+    input      [EVT_N-1:0]    evt_vecsub_en,
+    output     [EVT_N-1:0]    evt_fired,
+
+    // NMI vector-read overlay (fuzz v2 terminator).  {CS, IP} substituted for
+    // the two aligned MEMR words the NMI entry reads at linear 0x00008/0x0000A.
+    input      [31:0] cfg_tvec,
+    output            vec_used,      // sticky: the overlay actually served
 
     // NEC processor pins. AD is presented as a unidirectional trio so the
     // pin-side can be muxed (chip vs. internal v30_core, Campaign 4) without
@@ -462,73 +487,181 @@ end
 
 //----------------------------------------------------------------------------
 // AD bus drive (read data). AD[19:16] are input-only on the adapter.
+//
+// ==== NMI VECTOR-READ OVERLAY (fuzz v2 terminator) ====
+// The NMI entry does NOT run an INTA cycle: it performs two aligned 16-bit
+// MEMR cycles at linear 0x00008 (IP) and 0x0000A (CS), segment zero.  Verified
+// against tests/v30/v0.1-w1evt/NMI.90.json.gz (MEMR T1 at 8, MEMR T1 at 10, no
+// INTA anywhere in the entry) and against hdl/rtl/ucore/v30u_eu.sv's
+// `vector_number = 2` / `vector_phys_early = {2'b0, vector_number, 2'b0}`.
+//
+// While armed, those two words are served from cfg_tvec instead of memory.
+// Three deliberate choices:
+//
+//  1. THE WHOLE 16-BIT WORD IS SUBSTITUTED, not a byte.  That makes
+//     byte-vs-word, UBE and split reads non-questions: whatever lane the CPU
+//     latches, it latches part of the word the host asked for, exactly as it
+//     would from a memory that held it.
+//  2. ALL 19 UPPER BITS ARE COMPARED, so 0x10008 and every other mirror alias
+//     is NOT intercepted.  The CPU's own vector read is at exactly 0x00008.
+//     (test_mem mirrors on addr[15:1] and cannot make this distinction, which
+//     is one of the reasons the overlay is here and not there.)
+//  3. IT IS QUALIFIED ON BS_MEMR -- the same shape as the INTA arm beside it,
+//     one term.  A CODE fetch at 0x8 is the seed executing the IVT and an IOR
+//     at port 8 is the seed reading a port; neither is a vector read.
+//
+// ACCEPTED AND DOCUMENTED: between the arm and the entry, the seed may itself
+// perform a MEMR of 0x8-0xB and see substituted bytes.  There is no
+// first-read-only counter -- that would be a many-cased rule for a case the
+// model can simply reproduce, and sim/ carries the identical overlay.
 //----------------------------------------------------------------------------
+// driven by the "NMI vector-read overlay -- arm and disarm" block below
+reg vec_arm_q, vec_used_q;
+assign vec_used = vec_used_q;
+
+wire vec_read = vec_arm_q && (mem_cycle_type == BS_MEMR);
+wire vec_hit_ip = vec_read && (mem_addr[19:1] == 19'h00004);   // 0x00008
+wire vec_hit_cs = vec_read && (mem_addr[19:1] == 19'h00005);   // 0x0000A
+
 reg [15:0] rdata_q;
 always_ff @(posedge clk) begin
-    rdata_q <= mem_cycle_type == BS_INTA ? {8'h00, cfg_int_vector} : mem_rdata;
+    rdata_q <= mem_cycle_type == BS_INTA ? {8'h00, cfg_int_vector}
+             : vec_hit_ip                ? cfg_tvec[15:0]
+             : vec_hit_cs                ? cfg_tvec[31:16]
+             :                             mem_rdata;
 end
 
 assign ad_drive    = rdata_q;
 assign ad_drive_en = drive_en;
 
 //----------------------------------------------------------------------------
-// Pin-event scheduler
+// Pin-event schedulers -- EVT_N independent instances of ONE FSM description.
+//
+// The FSM body inside the generate loop is the single-event FSM verbatim; the
+// only edits are the per-instance slice wires and the local `ev_fired_r` (an
+// output bit cannot be a `reg` driven from inside a generate).  It is written
+// once so the instances cannot drift, and the count is one localparam in
+// system_large.
+//
+// Each instance drives its pin independently and the drives are OR-ed onto the
+// existing NEC_INT / NEC_NMI / NEC_POLL_N assigns.  Note that NMI recognition
+// in the CPU is an EDGE latch, so two instances driving NMI with overlapping
+// holds produce ONE recognition; that is a host-side constraint (v30ctl), not
+// something this hardware second-guesses.
 //----------------------------------------------------------------------------
 localparam bit [1:0] EV_IDLE = 2'd0, EV_DELAY = 2'd1, EV_ACTIVE = 2'd2,
                      EV_DONE = 2'd3;
-reg  [1:0] ev_st;
-reg [15:0] ev_cnt;
-reg [11:0] ev_hold_cnt;
-reg        ev_drive;
 
-// address match latched at the falling edge (address phase) so the
-// trigger evaluates at the edge that ENDS the matching CODE T1 cycle
-reg mem_addr_match;
-always_ff @(posedge clk) begin
-    if (tick_fall) mem_addr_match <= (ad_in_q == evt_addr);
-end
+wire [EVT_N-1:0] ev_int_v, ev_nmi_v, ev_poll_v;
+wire [EVT_N-1:0] ev_fire_pulse;   // 1 clk, on the clock the instance fires
 
-wire ev_match = (t_state == ST_T1) && mem_cycle_type == BS_CODE &&
-                mem_addr_match;
+genvar ge;
+generate
+for (ge = 0; ge < EVT_N; ge = ge + 1) begin : g_evt
+    wire [19:0] ev_addr  = evt_addr [ge*20 +: 20];
+    wire [15:0] ev_delay = evt_delay[ge*16 +: 16];
+    wire [11:0] ev_hold  = evt_hold [ge*12 +: 12];
+    wire  [2:0] ev_pin   = evt_pin  [ge*3  +:  3];
+    wire        ev_arm   = evt_arm  [ge];
 
-always_ff @(posedge clk) begin
-    if (reset || !evt_arm) begin
-        ev_st       <= EV_IDLE;
-        ev_drive    <= 1'b0;
-        evt_fired   <= 1'b0;
-        ev_cnt      <= '0;
-        ev_hold_cnt <= '0;
-    end else if (tick_rise) begin
-        case (ev_st)
-        EV_IDLE: if (ev_match) begin
-            ev_cnt <= evt_delay;
-            ev_st  <= EV_DELAY;
-        end
-        EV_DELAY: begin
-            if (ev_cnt == 0) begin
-                ev_drive    <= 1'b1;
-                evt_fired   <= 1'b1;
-                ev_hold_cnt <= evt_hold;
-                ev_st       <= EV_ACTIVE;
-            end else ev_cnt <= ev_cnt - 16'd1;
-        end
-        EV_ACTIVE: begin
-            if (evt_hold != 0) begin
-                if (ev_hold_cnt <= 1) begin
-                    ev_drive <= 1'b0;
-                    ev_st    <= EV_DONE;
-                end else ev_hold_cnt <= ev_hold_cnt - 12'd1;
+    reg  [1:0] ev_st;
+    reg [15:0] ev_cnt;
+    reg [11:0] ev_hold_cnt;
+    reg        ev_drive;
+    reg        ev_fired_r;
+
+    // address match latched at the falling edge (address phase) so the
+    // trigger evaluates at the edge that ENDS the matching CODE T1 cycle
+    reg mem_addr_match;
+    always_ff @(posedge clk) begin
+        if (tick_fall) mem_addr_match <= (ad_in_q == ev_addr);
+    end
+
+    wire ev_match = (t_state == ST_T1) && mem_cycle_type == BS_CODE &&
+                    mem_addr_match;
+
+    always_ff @(posedge clk) begin
+        if (reset || !ev_arm) begin
+            ev_st       <= EV_IDLE;
+            ev_drive    <= 1'b0;
+            ev_fired_r  <= 1'b0;
+            ev_cnt      <= '0;
+            ev_hold_cnt <= '0;
+        end else if (tick_rise) begin
+            case (ev_st)
+            EV_IDLE: if (ev_match) begin
+                ev_cnt <= ev_delay;
+                ev_st  <= EV_DELAY;
             end
-            // evt_hold==0: hold until disarmed
+            EV_DELAY: begin
+                if (ev_cnt == 0) begin
+                    ev_drive    <= 1'b1;
+                    ev_fired_r  <= 1'b1;
+                    ev_hold_cnt <= ev_hold;
+                    ev_st       <= EV_ACTIVE;
+                end else ev_cnt <= ev_cnt - 16'd1;
+            end
+            EV_ACTIVE: begin
+                if (ev_hold != 0) begin
+                    if (ev_hold_cnt <= 1) begin
+                        ev_drive <= 1'b0;
+                        ev_st    <= EV_DONE;
+                    end else ev_hold_cnt <= ev_hold_cnt - 12'd1;
+                end
+                // ev_hold==0: hold until disarmed
+            end
+            EV_DONE: ;
+            endcase
         end
-        EV_DONE: ;
-        endcase
+    end
+
+    // the fire is the EV_DELAY -> EV_ACTIVE transition; EV_DELAY is only
+    // reachable while armed, so this needs no further qualification
+    assign ev_fire_pulse[ge] = tick_rise && (ev_st == EV_DELAY) &&
+                               (ev_cnt == 16'd0);
+
+    assign evt_fired[ge] = ev_fired_r;
+    assign ev_int_v [ge] = ev_drive && ev_pin == 3'd0;
+    assign ev_nmi_v [ge] = ev_drive && ev_pin == 3'd1;
+    assign ev_poll_v[ge] = ev_drive && ev_pin == 3'd2;
+end
+endgenerate
+
+wire ev_int  = |ev_int_v;
+wire ev_nmi  = |ev_nmi_v;
+wire ev_poll = |ev_poll_v;
+
+//----------------------------------------------------------------------------
+// NMI vector-read overlay -- arm and disarm (the mux itself is above).
+//
+// ARM on the FIRE of a directive whose evt_vecsub_en bit is set.  Not on the
+// NMI pin going high: with EVT_N schedulers the pin is an OR and "which
+// directive fired" is the only thing that distinguishes a stimulus NMI from
+// the terminating one.
+//
+// DISARM when the CS half completes -- NOT on hold expiry.  The CPU's NMI
+// recognition is an edge latch, so the entry (and therefore the vector read)
+// can be taken long after the pin has released; disarming on the pin would
+// race the very read the overlay exists to serve.
+//
+// vec_used_q is sticky for the run and shares evt_fired's lifecycle exactly:
+// cleared by reset (which system_large drives from harness_reset) or when no
+// owning scheduler is armed any more.  The host reads STATUS before it
+// disarms, the same way it reads evt_fired.
+//----------------------------------------------------------------------------
+wire vec_owner_armed = |(evt_arm & evt_vecsub_en);
+
+always_ff @(posedge clk) begin
+    if (reset || !vec_owner_armed) begin
+        vec_arm_q  <= 1'b0;
+        vec_used_q <= 1'b0;
+    end else if (|(ev_fire_pulse & evt_vecsub_en)) begin
+        vec_arm_q  <= 1'b1;
+    end else if (tick_rise && vec_hit_cs && next_t_state == ST_T4) begin
+        vec_arm_q  <= 1'b0;
+        vec_used_q <= 1'b1;
     end
 end
-
-wire ev_int    = ev_drive && evt_pin == 3'd0;
-wire ev_nmi    = ev_drive && evt_pin == 3'd1;
-wire ev_poll   = ev_drive && evt_pin == 3'd2;
 
 //----------------------------------------------------------------------------
 // Static request outputs
@@ -553,13 +686,25 @@ always_ff @(posedge clk) begin
     cap_valid <= 1'b0;
     if (tick_rise && !reset) begin
         cap_valid  <= 1'b1;
+        // [54:52] are the EFFECTIVE pins -- the NEC_POLL_N / NEC_NMI / NEC_INT
+        // assign outputs, i.e. what the CPU is actually being shown.  They used
+        // to be the static host PINS register (poll_n_in / nmi_req / int_req),
+        // which with EVT_N schedulers OR-ed onto the same pins is no longer
+        // reconstructible from the directives -- and the terminating NMI
+        // changes control flow, so a capture that does not record it cannot be
+        // replayed.  Strictly more information, zero new flops: with every
+        // scheduler disarmed these are bit-identical to the old fields.
+        // (No standing consumer decodes [54:51]; sw/analyze_capture.py's
+        // decode_words, which every golden comparison goes through, skips
+        // them.  sw/decode_capture.py, a viewer, prints them.)
         cap_record <= {
-            5'd0,             // [63:59] reserved
+            4'd0,             // [63:60] reserved
+            vec_arm_q,        // [59]    NMI vector-read overlay armed
             t_state,          // [58:56] T-state during this cycle
             nec_reset_q,      // [55]    RESET driven
-            poll_n_in,        // [54]    POLL_N driven
-            nmi_req,          // [53]    NMI driven
-            int_req,          // [52]    INT driven
+            NEC_POLL_N,       // [54]    POLL_N driven (host | schedulers)
+            NEC_NMI,          // [53]    NMI driven   (host | schedulers)
+            NEC_INT,          // [52]    INT driven   (host | schedulers)
             ready_q,          // [51]    READY driven
             // [50] BUSLOCK_N / WR_N, [48] RD_N, [47:46] QS / {INTAK_N,ASTB}:
             // small mode records sticky seen-active-this-cycle values,

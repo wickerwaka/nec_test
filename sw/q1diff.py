@@ -29,6 +29,7 @@ import q1census as qc                                # noqa: E402
 import timed_fuzz as tf                              # noqa: E402
 import ucsim_fuzz as uf                              # noqa: E402
 import fuzz_classify as fc                           # noqa: E402
+import fuzz_accept as fa                             # noqa: E402
 
 
 def wait_class(entry):
@@ -58,7 +59,12 @@ def one(path):
         return out
     recs = entry["chip_rows"]
     win = uf.window_of(recs)
-    if fc._open_bus_escaped_before(recs, win, win):
+    # v1-bank OPEN_BUS exclusion, unchanged in meaning: the deleted
+    # `fc._open_bus_escaped_before` mirrored `open_bus_escape_metrics` row for
+    # row at a threshold of 8.  fuzz-v2's replacement predicate
+    # (`fc.escaped_code_region`) is written for the v2 image map and does NOT
+    # apply to this bank -- see the note in `timed_fuzz.excuse`.
+    if len(fa.open_bus_escape_metrics(recs, win)[0]) >= 8:
         out["cat"] = "OPEN_BUS"
         return out
     with tempfile.TemporaryDirectory() as td:

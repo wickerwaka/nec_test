@@ -92,6 +92,11 @@ module system_large
 localparam bit [2:0] BS_MEMR = 3'b101;
 localparam bit [2:0] BS_MEMW = 3'b110;
 
+// THE number of pin-event schedulers.  One localparam, passed to both the
+// bridge and the bus, so the register map and the hardware cannot disagree.
+// Compile-time only: nothing the host writes can change it.
+localparam int EVT_N = 3;
+
 // DDRAM - unused, directly assign to 0
 assign {DDRAM_CLK, DDRAM_BURSTCNT, DDRAM_ADDR, DDRAM_DIN, DDRAM_BE, DDRAM_RD, DDRAM_WE} = '0;
 
@@ -127,11 +132,15 @@ wire [15:0] iords_rdata;     // buffered value at that index
 // cfg_iord (IN forms E4/E5/EC/ED and any disabled run are byte-identical).
 wire        iords_active = cfg_iords_en && (iords_raddr < cfg_iords_cnt);
 wire [15:0] iord_eff     = iords_active ? iords_rdata : cfg_iord;
-wire [19:0] evt_addr;
-wire [15:0] evt_delay;
-wire [11:0] evt_hold;        // 12 bits since 2026-08-04 (F46 / gap R1)
-wire  [2:0] evt_pin;
-wire        evt_arm, evt_fired;
+// Pin-event schedulers, EVT_N packed slices per field (see nec_bus.sv)
+wire [EVT_N*20-1:0] evt_addr;
+wire [EVT_N*16-1:0] evt_delay;
+wire [EVT_N*12-1:0] evt_hold;   // 12 b/slice since 2026-08-04 (F46 / gap R1)
+wire [EVT_N*3-1:0]  evt_pin;
+wire [EVT_N-1:0]    evt_arm, evt_fired, evt_vecsub_en;
+// NMI vector-read overlay (fuzz v2 terminator)
+wire [31:0] cfg_tvec;
+wire        vec_used;
 
 wire [19:0] h_mem_addr;
 wire        h_mem_wr_req;
@@ -231,7 +240,7 @@ reg [3:0] por_cnt = '0;
 wire      por = ~&por_cnt;
 always_ff @(posedge clk) if (por) por_cnt <= por_cnt + 4'd1;
 
-hps_axi_slave bridge
+hps_axi_slave #(.EVT_N(EVT_N)) bridge
 (
     .clk(clk),
     .reset(por),
@@ -276,7 +285,10 @@ hps_axi_slave bridge
     .evt_hold(evt_hold),
     .evt_pin(evt_pin),
     .evt_arm(evt_arm),
+    .evt_vecsub_en(evt_vecsub_en),
+    .cfg_tvec(cfg_tvec),
     .evt_fired(evt_fired),
+    .vec_used(vec_used),
 
     .pwr_good(pwr_good),
     .cpu_running(cpu_running),
@@ -494,7 +506,7 @@ assign NEC_ENABLE_N = hb_enable_n | cfg_use_core;
 //----------------------------------------------------------------------------
 // Bus interface
 //----------------------------------------------------------------------------
-nec_bus bus
+nec_bus #(.EVT_N(EVT_N)) bus
 (
     .clk(clk),
     .reset(harness_reset),
@@ -517,12 +529,15 @@ nec_bus bus
     .nmi_req(nmi_req),
     .poll_n_in(poll_n_host),
 
-    .evt_arm(evt_arm & ~harness_reset),
+    .evt_arm(evt_arm & {EVT_N{~harness_reset}}),
     .evt_addr(evt_addr),
     .evt_delay(evt_delay),
     .evt_hold(evt_hold),
     .evt_pin(evt_pin),
+    .evt_vecsub_en(evt_vecsub_en),
     .evt_fired(evt_fired),
+    .cfg_tvec(cfg_tvec),
+    .vec_used(vec_used),
 
     .ad_drive(hb_ad_drive),
     .ad_drive_en(hb_ad_dir),

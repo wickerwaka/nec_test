@@ -42,8 +42,9 @@ and two orthogonal severity axes read with the campaign's own instruments:
 
   FUNC      `fuzz_classify.compare_functional` -- does the ordered functional
             event stream (the writes, the reads, the acknowledges) part?
-  ARCH      `fuzz_classify.arch_dump` -- do the 12 STORE_ORDER registers and
-            the PSW the two sides finish with agree?
+  ARCH      `fuzz_classify.arch_dump` -- do the 15 STORE_ORDER words the two
+            sides finish with agree?  (PSW and PC are words IN that run since
+            fuzz-v2 D6; the `MEMW @ 0xFFEC` PSW channel is gone.)
 
 A seed that is SEQUENCE-clean, FUNC-clean and ARCH-clean is a pure timing
 residue.  A seed that is not is a model error with architectural reach, and

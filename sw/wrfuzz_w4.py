@@ -201,7 +201,7 @@ def cmd_preflight(a):
             if sha != hashlib.sha256(bytes(img2)).hexdigest():
                 hits += 1
                 print(f"  GEN_DRIFT {c['label']}/{k}")
-            npair += fzc.no_brkem_pairs(img)
+            npair += fzc.bad_0f_pairs(img)
             if cfg["evt"] is not None:
                 hits += 1
                 print(f"  EVT PRESENT {c['label']}/{k}")

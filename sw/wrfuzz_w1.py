@@ -277,7 +277,7 @@ def cmd_preflight(a):
             if sha != hashlib.sha256(bytes(img2)).hexdigest():
                 hits += 1
                 print(f"  GEN_DRIFT {label(st)}/{k}")
-            npair += fzc.no_brkem_pairs(img)
+            npair += fzc.bad_0f_pairs(img)
             if cfg["evt"] is not None:
                 hits += 1
                 print(f"  EVT PRESENT {label(st)}/{k}")
@@ -540,7 +540,7 @@ def _regen_one(args):
     img, _ = fzc.compose_case(fzc.build(cfg), cfg)
     v = fzc.wvec_of(cfg)
     return (k, hashlib.sha256(bytes(img)).hexdigest(),
-            fzc.no_brkem_pairs(img), wv.to_hex(v) if v else None)
+            fzc.bad_0f_pairs(img), wv.to_hex(v) if v else None)
 
 
 def cmd_bars(a):

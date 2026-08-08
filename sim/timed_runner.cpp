@@ -356,15 +356,79 @@ constexpr int kResetEntryClocks = 4;
 //     D = max(B, A + 3)  INT      D = max(B, A + 4)  NMI      entry = D + 2
 //
 // with `B` the replayed boundary's retire clock and `A` the rig's assert clock.
-struct BootEvt {
+// --- FUZZ v2: THREE SCHEDULES, AND A FIRING NAMES ITS OWN ---------------------
+//
+// `hdl/rtl/nec_bus.sv` runs `EVT_N = 3` independent instances of ONE scheduler
+// FSM.  The directive therefore carries a LIST of schedules, and the capture's
+// firing arrays carry a parallel `which[]` naming the schedule each firing
+// belongs to -- so the pin kind and the pin pipeline are per FIRING, not per
+// RUN.  See the schema block above `read_boot_evt`.
+struct BootSched {
     int pin = 0;                 // 0 INT, 1 NMI, 2 POLL_N
-    uint32_t addr = 0;
+    uint32_t addr = 0;           // 20-bit CODE T1 fetch anchor
     long delay = 0, hold = 0;
-    int pins = 0;
-    std::vector<long> at, cs, ip;
-    bool armed() const { return !at.empty() || hold != 0 || delay != 0; }
+    bool vecsub = false;         // this directive's fire arms the TVEC overlay
 };
 
+struct BootEvt {
+    std::vector<BootSched> sch;
+    int pins = 0;                // static pin levels: b0 INT, b1 NMI, b2 POLL_N
+    uint32_t tvec = 0;           // [15:0] IP, [31:16] CS
+    std::vector<long> at, cs, ip, which;
+    bool armed() const {
+        if (!at.empty()) return true;
+        for (const BootSched& s : sch)
+            if (s.hold != 0 || s.delay != 0) return true;
+        return false;
+    }
+    // The schedule firing `n` belongs to.  Absent or out-of-range `which`
+    // means schedule 0, which is what a single-schedule directive is; NO
+    // schedule at all (no `--evt` was given) means the inert default, and
+    // that case is reached on every non-event whole-program replay in the
+    // repo -- the HALT branch below asks for it unconditionally.
+    const BootSched& of(size_t n) const {
+        static const BootSched kNone;
+        if (sch.empty()) return kNone;
+        size_t k = 0;
+        if (n < which.size() && which[n] >= 0 &&
+            size_t(which[n]) < sch.size())
+            k = size_t(which[n]);
+        return sch[k];
+    }
+    int which_of(size_t n) const {
+        if (n < which.size() && which[n] >= 0 &&
+            size_t(which[n]) < sch.size())
+            return int(which[n]);
+        return 0;
+    }
+};
+
+// --- THE `evt` DIRECTIVE JSON, fuzz v2 ---------------------------------------
+//
+// The file `--evt` names is ONE object:
+//
+//   {
+//     "evt":  [ {"pin":0, "addr":0x08100, "delay":37, "hold":300,
+//                "vecsub":0}, ... ],        <= EVT_N (3) RIG schedules
+//     "pins": 4,                            static levels: b0 INT b1 NMI b2 POLL_N
+//     "tvec": 48896,                        [15:0] IP, [31:16] CS
+//     "fire": { "at":    [e0, e1, ...],     bus-cycle position of each firing
+//               "cs":    [c0, c1, ...],     the chip's own pushed frame
+//               "ip":    [i0, i1, ...],
+//               "which": [w0, w1, ...] }    schedule index per firing
+//   }
+//
+// `evt` is a LIST; every element defaults each field to 0/false, so a schedule
+// that is not used may be omitted entirely rather than zero-filled.  `which`
+// may be omitted when there is one schedule.
+//
+// LEGACY SHAPE, ACCEPTED FOR FREE (it costs one `if`, and it keeps every
+// standing `--evt-replay` gate green while the writers move): if `evt` is
+// absent, the single schedule's fields (`pin`/`addr`/`delay`/`hold`) are read
+// from the TOP LEVEL, and if `fire` is absent, `at`/`cs`/`ip` are read from the
+// top level too.  Nothing about the new shape is contorted to allow this: both
+// shapes land in exactly the same structure and there is no dispatch past the
+// parse.
 bool read_boot_evt(const char* path, BootEvt& e) {
     std::FILE* f = std::fopen(path, "rb");
     if (!f) {
@@ -380,19 +444,35 @@ bool read_boot_evt(const char* path, BootEvt& e) {
         std::fprintf(stderr, "timed-boot: evt json: %s\n", err.c_str());
         return false;
     }
-    if (const json::Value* v = c.get("pin")) e.pin = int(v->i());
-    if (const json::Value* v = c.get("addr")) e.addr = uint32_t(v->u()) & 0xFFFFFu;
-    if (const json::Value* v = c.get("delay")) e.delay = long(v->i());
-    if (const json::Value* v = c.get("hold")) e.hold = long(v->i());
+    auto sched_from = [](const json::Value& o) {
+        BootSched s;
+        if (const json::Value* v = o.get("pin")) s.pin = int(v->i());
+        if (const json::Value* v = o.get("addr"))
+            s.addr = uint32_t(v->u()) & 0xFFFFFu;
+        if (const json::Value* v = o.get("delay")) s.delay = long(v->i());
+        if (const json::Value* v = o.get("hold")) s.hold = long(v->i());
+        if (const json::Value* v = o.get("vecsub")) s.vecsub = v->i() != 0;
+        return s;
+    };
+    const json::Value* ea = c.get("evt");
+    if (ea && ea->type == json::Value::kArr) {
+        for (const auto& x : ea->arr)
+            if (x.type == json::Value::kObj) e.sch.push_back(sched_from(x));
+    }
+    if (e.sch.empty()) e.sch.push_back(sched_from(c));   // legacy / empty list
     if (const json::Value* v = c.get("pins")) e.pins = int(v->i());
+    if (const json::Value* v = c.get("tvec")) e.tvec = uint32_t(v->u());
+    const json::Value* fr = c.get("fire");
+    const json::Value& src = (fr && fr->type == json::Value::kObj) ? *fr : c;
     auto arr = [&](const char* k, std::vector<long>& out) {
-        if (const json::Value* v = c.get(k))
+        if (const json::Value* v = src.get(k))
             if (v->type == json::Value::kArr)
                 for (const auto& x : v->arr) out.push_back(long(x.i()));
     };
     arr("at", e.at);
     arr("cs", e.cs);
     arr("ip", e.ip);
+    arr("which", e.which);
     return true;
 }
 
@@ -487,13 +567,17 @@ int run_timed_boot(const ucrom::UcRom& rom, const char* image_path, long clocks,
         std::fprintf(stderr, "timed-boot: reset sequence did not terminate\n");
         return 1;
     }
-    // S9b: arm the rig's schedule (a no-op when nothing is scheduled -- the
-    // trigger stays 0 and `assert_clk()` stays -1 forever).
-    if (opt.evt_path && ev.armed())
-        biu.set_evt(1, ev.pin, ev.addr, ev.delay, ev.hold, ev.pins);
-    const CpuTimed::EventKind evkind =
-        (ev.pin == 1) ? CpuTimed::kEvtNmi : CpuTimed::kEvtInt;
-    const long evpipe = (ev.pin == 1) ? 4 : 3;   // the measured pin pipeline
+    // S9b: arm the rig's schedules (a no-op when nothing is scheduled -- every
+    // trigger stays 0 and `assert_clk()` stays -1 forever).  All of them are
+    // fetch-triggered: nec_bus.sv has ONE anchor form.
+    if (opt.evt_path && ev.armed()) {
+        biu.clear_evt();
+        biu.set_pins(ev.pins);
+        for (const BootSched& s : ev.sch)
+            biu.add_evt(1, s.pin, s.addr, s.delay, s.hold, s.vecsub);
+        biu.set_tvec(ev.tvec);
+        biu.set_active_pin(ev.of(0).pin);
+    }
     size_t evt_n = 0;
     long rep_unmatched = 0;
     // S9b census (sec.19.8.2): the mid-string withdrawals the replay took, and
@@ -509,6 +593,9 @@ int run_timed_boot(const ucrom::UcRom& rom, const char* image_path, long clocks,
             cpu.set_fire_cs(evt_n < ev.cs.size() ? ev.cs[evt_n] : -1);
             cpu.set_fire_pc(evt_n < ev.ip.size() ? ev.ip[evt_n] : -1);
             cpu.set_evt_at(ev.at[evt_n]);
+            // ...and the IE gate applies to THIS firing's own pin, which the
+            // capture names in `which[]`.
+            biu.set_active_pin(ev.of(evt_n).pin);
         } else {
             cpu.set_fire_ev(-1);
             cpu.set_fire_cs(-1);
@@ -581,16 +668,24 @@ int run_timed_boot(const ucrom::UcRom& rom, const char* image_path, long clocks,
                 d = biu.clock();
             }
             (void)withdrew;
+            // This firing's own schedule names the pin, and the pin names the
+            // pipeline depth (M14).  The ASSERT clock is the pin's, not the
+            // schedule's -- see BiuTimed::assert_clk's pre-registered rule.
+            const BootSched& fs = ev.of(evt_n);
+            const CpuTimed::EventKind evkind =
+                (fs.pin == 1) ? CpuTimed::kEvtNmi : CpuTimed::kEvtInt;
+            const long evpipe = (fs.pin == 1) ? 4 : 3;
             const long a = biu.assert_clk();
             const long braw = d;
             if (a >= 0 && a + evpipe > d) d = a + evpipe;
             biu.charge_to(d + 2);
             if (std::getenv("V30SIM_EVTTRACE"))
                 std::fprintf(stderr,
-                             "BOUND n=%zu A=%ld B=%ld d=%ld entry=%ld "
-                             "clk=%ld withdrew=%d\n",
-                             evt_n, a, braw, d, d + 2, biu.clock(),
-                             int(withdrew));
+                             "BOUND n=%zu sch=%d pin=%d A=%ld B=%ld d=%ld "
+                             "entry=%ld clk=%ld withdrew=%d vec=%d\n",
+                             evt_n, ev.which_of(evt_n), fs.pin, a, braw, d,
+                             d + 2, biu.clock(), int(withdrew),
+                             int(biu.vec_armed_now()));
             cpu.interrupt(evkind);
             ++evt_n;
             continue;
@@ -608,6 +703,10 @@ int run_timed_boot(const ucrom::UcRom& rom, const char* image_path, long clocks,
             // B + 2 is M14 unchanged.  A halted part makes no bus cycle and
             // never moves PC, so a pending firing fires unconditionally --
             // the same reading image_runner.cpp makes.
+            const BootSched& fs = ev.of(evt_n);
+            const CpuTimed::EventKind evkind =
+                (fs.pin == 1) ? CpuTimed::kEvtNmi : CpuTimed::kEvtInt;
+            const long evpipe = (fs.pin == 1) ? 4 : 3;
             const long a = biu.assert_clk();
             // The decision clock: the earliest the pin pipeline allows, but
             // never before the part is actually halted.  The level the
@@ -617,10 +716,10 @@ int run_timed_boot(const ucrom::UcRom& rom, const char* image_path, long clocks,
                                      : (a + evpipe > biu.clock() ? a + evpipe
                                                                  : biu.clock());
             const bool level = dec >= 0 &&
-                               (ev.hold == 0 || dec - evpipe < a + ev.hold);
-            const bool wakes = level && ev.pin != 2;
+                               (fs.hold == 0 || dec - evpipe < a + fs.hold);
+            const bool wakes = level && fs.pin != 2;
             if (wakes && evt_n < ev.at.size()) {
-                if (ev.pin == 1) {
+                if (fs.pin == 1) {
                     biu.charge_to(dec + 3);     // B = dec+1, entry at B+2
                 } else {
                     biu.charge_to(dec);
@@ -650,9 +749,10 @@ int run_timed_boot(const ucrom::UcRom& rom, const char* image_path, long clocks,
             // DECODE now (loader_impl.h, S9a); the bus just parks.
             if (std::getenv("V30SIM_EVTTRACE"))
                 std::fprintf(stderr, "PARK clk=%ld anchor=%ld A=%ld "
-                                     "pending=%d pin=%d\n",
+                                     "pending=%d sch=%d pin=%d\n",
                              biu.clock(), biu.evt_anchor(), a,
-                             int(ev.at.size() - evt_n), ev.pin);
+                             int(ev.at.size() - evt_n), ev.which_of(evt_n),
+                             fs.pin);
             while (biu.clock() < clocks && ++guard < 100000) biu.tick_idle();
             break;
         }

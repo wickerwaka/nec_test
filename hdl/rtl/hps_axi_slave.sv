@@ -23,17 +23,36 @@
 //                            (change only while host_reset is set)
 //        0x0C  PINS      RW  [0] int_req  [1] nmi_req  [2] poll_n
 //        0x18  IORD      RW  [15:0] data returned for I/O reads (dflt FFFF)
-//        0x1C  EVT_ADDR  RW  [19:0] fetch-address trigger for the pin-event
-//                            scheduler (CODE T1 linear-address match)
+//        0x1C  EVT_ADDR  RW  [19:0] fetch-address trigger for pin-event
+//                            scheduler 0 (CODE T1 linear-address match)
 //        0x20  EVT_CFG   RW  [15:0] delay (CPU clocks after match)
-//                            [23:16] hold (CPU clocks; 0 = until disarmed)
-//                            [26:24] pin (0=INT 1=NMI 2=POLL_N active-low)
+//                            [23:16] hold low 8 / [30:27] hold high 4
+//                            (CPU clocks; 0 = until disarmed)
+//                            [26:24] pin (0=INT 1=NMI 2=POLL_N active-low;
+//                                   3-7 undefined -- fires, drives nothing)
 //                            [31] arm (STATUS[3] = fired; disarm deasserts)
+//                            EVERY BIT OF THIS WORD IS SPOKEN FOR.
+//        0x30  EVT2_ADDR RW  scheduler 1, layout identical to EVT_ADDR
+//        0x34  EVT2_CFG  RW  scheduler 1, layout identical to EVT_CFG
+//        0x38  EVT3_ADDR RW  scheduler 2, layout identical to EVT_ADDR
+//        0x3C  EVT3_CFG  RW  scheduler 2, layout identical to EVT_CFG
+//                            The three pairs share ONE unpacker below, so the
+//                            host packs one layout for all three.  A forked
+//                            packer is how INV-1 happened; a forked unpacker
+//                            would be the same defect on this side of the wire.
+//        0x40  TVEC      RW  [15:0] IP  [31:16] CS -- the words served for the
+//                            NMI vector reads at linear 0x00008 / 0x0000A while
+//                            the overlay is armed (see nec_bus.sv)
+//        0x44  VECCTL    RW  [2:0] vecsub_en, bit n = scheduler n's FIRE arms
+//                            the NMI vector-read overlay
 //        0x24  WRAND     RW  per-access wait insertion (large mode; overrides
 //                            CFG.wait_states). [0] rand-enable  [1] replay-enable
 //                            (replay > rand > uniform)  [7:4] wmax  [31:16] seed
 //                            replay applies the +0x140000 wait-vector RAM
 //        0x10  STATUS    RO  [0] pwr_good  [1] cpu_running  [2] cap_full
+//                            [5:3] evt_fired, one bit per scheduler
+//                            [6] vec_used (sticky: the NMI vector-read overlay
+//                                actually served a CS half)
 //        0x14  CAPCOUNT  RO  records captured
 //        0x28  IORDS_CTL RW  [0] reset (clear write ptr + count, pulse)
 //                            [1] enable (serve the sequence on IOR cycles)
@@ -45,7 +64,13 @@
 //
 //============================================================================
 
-module hps_axi_slave
+module hps_axi_slave #(
+    // Number of pin-event schedulers.  Passed from system_large's single
+    // localparam so this module, nec_bus and the harness cannot disagree.
+    // NOTE: the EVTn register OFFSETS below are an explicit table (0x1C/0x20
+    // then 0x30 + 8*(n-1)); a fourth scheduler needs two more case arms.
+    parameter int EVT_N = 3
+)
 (
     input             clk,
     input             reset,           // sys reset only (not host_reset)
@@ -109,8 +134,8 @@ module hps_axi_slave
     output reg [15:0] h_iords_wdata,
     output reg  [6:0] cfg_iords_cnt,
     output reg        cfg_iords_en,
-    output reg [19:0] evt_addr,
-    output reg [15:0] evt_delay,
+    output reg [EVT_N*20-1:0] evt_addr,
+    output reg [EVT_N*16-1:0] evt_delay,
     // 12 bits since 2026-08-04 (F46 / gap R1).  It was 8, and 760 banked EVT
     // seeds asked for hold=300, which the register truncated to 300&0xFF = 44
     // SILENTLY -- the rig applied a hold the bank does not record.  The width
@@ -118,10 +143,13 @@ module hps_axi_slave
     // stay at [23:16] and the high 4 take the free space at [30:27], so
     // evt_pin[26:24] and evt_arm[31] do not move and an old host that writes
     // zeros there gets exactly the old behaviour.
-    output reg [11:0] evt_hold,
-    output reg  [2:0] evt_pin,
-    output reg        evt_arm,
-    input             evt_fired,
+    output reg [EVT_N*12-1:0] evt_hold,
+    output reg [EVT_N*3-1:0]  evt_pin,
+    output reg [EVT_N-1:0]    evt_arm,
+    output reg [EVT_N-1:0]    evt_vecsub_en,  // VECCTL: arms the NMI overlay
+    output reg [31:0]         cfg_tvec,       // TVEC: {CS, IP}
+    input      [EVT_N-1:0]    evt_fired,
+    input                     vec_used,
 
     // harness status inputs
     input             pwr_good,
@@ -180,6 +208,40 @@ reg  [1:0] lat;
 reg [15:0] rd_lo;
 reg  [6:0] iords_wptr;    // iords buffer host write pointer / running count
 
+//----------------------------------------------------------------------------
+// EVTn register-pair decode.  Scheduler 0 keeps its historical offsets
+// (EVT_ADDR 0x1C / EVT_CFG 0x20), so a host that knows nothing about the extra
+// schedulers is bit-for-bit unchanged; schedulers 1..EVT_N-1 sit at
+// 0x30 + 8*(n-1).  Everything downstream of this decode -- the write unpack
+// and the readback pack -- is written ONCE and indexed, so the three pairs
+// cannot drift apart from each other.
+//
+// `addr` is the latched AXI address and is the same register on the write and
+// the read path, so one decode serves both.
+//----------------------------------------------------------------------------
+reg [1:0] ev_sel;
+reg       ev_is_addr, ev_is_cfg;
+
+always_comb begin
+    ev_sel     = 2'd0;
+    ev_is_addr = 1'b0;
+    ev_is_cfg  = 1'b0;
+    case (addr[7:0])
+    8'h1C: begin ev_sel = 2'd0; ev_is_addr = 1'b1; end
+    8'h20: begin ev_sel = 2'd0; ev_is_cfg  = 1'b1; end
+    8'h30: begin ev_sel = 2'd1; ev_is_addr = 1'b1; end
+    8'h34: begin ev_sel = 2'd1; ev_is_cfg  = 1'b1; end
+    8'h38: begin ev_sel = 2'd2; ev_is_addr = 1'b1; end
+    8'h3C: begin ev_sel = 2'd2; ev_is_cfg  = 1'b1; end
+    default: ;
+    endcase
+end
+
+`ifndef SYNTHESIS
+initial if (EVT_N != 3)
+    $fatal(1, "hps_axi_slave: the EVTn offset table enumerates exactly 3 scheduler pairs; EVT_N=%0d needs matching case arms", EVT_N);
+`endif
+
 always_ff @(posedge clk) begin
     if (reset) begin
         st        <= IDLE;
@@ -219,7 +281,9 @@ always_ff @(posedge clk) begin
         evt_delay       <= '0;
         evt_hold        <= '0;
         evt_pin         <= '0;
-        evt_arm         <= 1'b0;
+        evt_arm         <= '0;
+        evt_vecsub_en   <= '0;
+        cfg_tvec        <= '0;
     end else begin
         awready      <= 1'b0;
         arready      <= 1'b0;
@@ -276,13 +340,6 @@ always_ff @(posedge clk) begin
                         poll_n_out <= wdata[2];
                     end
                     8'h18: cfg_iord <= wdata[15:0];
-                    8'h1C: evt_addr <= wdata[19:0];
-                    8'h20: begin
-                        evt_delay <= wdata[15:0];
-                        evt_hold  <= {wdata[30:27], wdata[23:16]};
-                        evt_pin   <= wdata[26:24];
-                        evt_arm   <= wdata[31];
-                    end
                     8'h24: begin
                         cfg_wait_rand   <= wdata[0];
                         cfg_wait_replay <= wdata[1];
@@ -305,7 +362,20 @@ always_ff @(posedge clk) begin
                             cfg_iords_cnt <= iords_wptr + 7'd1;
                         end
                     end
-                    default: ;
+                    8'h40: cfg_tvec      <= wdata;             // TVEC {CS, IP}
+                    8'h44: evt_vecsub_en <= wdata[EVT_N-1:0];  // VECCTL
+                    // EVT_ADDR / EVT_CFG for every scheduler, one unpacker
+                    default: begin
+                        if (ev_is_addr)
+                            evt_addr[ev_sel*20 +: 20] <= wdata[19:0];
+                        if (ev_is_cfg) begin
+                            evt_delay[ev_sel*16 +: 16] <= wdata[15:0];
+                            evt_hold [ev_sel*12 +: 12] <= {wdata[30:27],
+                                                           wdata[23:16]};
+                            evt_pin  [ev_sel*3  +:  3] <= wdata[26:24];
+                            evt_arm  [ev_sel]          <= wdata[31];
+                        end
+                    end
                     endcase
                     st <= W_NEXT;
                 end else if (sel_mem(addr)) begin
@@ -398,16 +468,31 @@ always_ff @(posedge clk) begin
                                      cfg_int_vector,
                                      4'd0, cfg_wait_states, 2'd0, cfg_clk_div};
                     8'h0C: rdata <= {29'd0, poll_n_out, nmi_req, int_req};
-                    8'h10: rdata <= {28'd0, evt_fired, cap_full, cpu_running, pwr_good};
+                    8'h10: rdata <= {25'd0, vec_used, evt_fired,
+                                     cap_full, cpu_running, pwr_good};
                     8'h14: rdata <= {19'd0, cap_count};
                     8'h18: rdata <= {16'd0, cfg_iord};
-                    8'h1C: rdata <= {12'd0, evt_addr};
-                    8'h20: rdata <= {evt_arm, evt_hold[11:8], evt_pin,
-                                     evt_hold[7:0], evt_delay};
                     8'h24: rdata <= {cfg_wseed, 8'd0, cfg_wmax, 2'd0,
                                      cfg_wait_replay, cfg_wait_rand};
                     8'h28: rdata <= {23'd0, cfg_iords_cnt, 1'd0, cfg_iords_en};
-                    default: rdata <= 32'hDEADBEEF;
+                    8'h40: rdata <= cfg_tvec;
+                    8'h44: rdata <= {{(32-EVT_N){1'b0}}, evt_vecsub_en};
+                    // EVERY new register has a readback: INV-1's root cause was
+                    // that the rig silently applied a directive other than the
+                    // one it was handed, and the readback is what makes that
+                    // checkable.  One packer, indexed, for all EVT_N pairs.
+                    default: begin
+                        if (ev_is_addr)
+                            rdata <= {12'd0, evt_addr[ev_sel*20 +: 20]};
+                        else if (ev_is_cfg)
+                            rdata <= {evt_arm[ev_sel],
+                                      evt_hold [ev_sel*12 + 8 +: 4],
+                                      evt_pin  [ev_sel*3      +: 3],
+                                      evt_hold [ev_sel*12     +: 8],
+                                      evt_delay[ev_sel*16     +: 16]};
+                        else
+                            rdata <= 32'hDEADBEEF;
+                    end
                     endcase
                     st <= R_DATA;
                 end

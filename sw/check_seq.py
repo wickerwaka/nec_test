@@ -88,9 +88,14 @@ QS_NAME = {0: "-", 1: "F", 2: "E", 3: "S"}
 
 
 def compose(g):
+    # `handlers` (fuzz-v2 D8) is the per-seed pool of interrupt
+    # modification-handler bodies; compose appends the IRET to each slot.
+    # `fill` is the CARVE-OUT byte only (IVT / data / stack / loader) -- the
+    # rest of a v2 image is 0xCC by construction, and the task #32 HLT fence
+    # that used to set it is DELETED (it would fill the carve-outs with HALT).
     return testimage.compose(regs=g["regs"], instr=g["instr"],
                              ram=g["ram"], ivt=g.get("ivt"),
-                             fill=g.get("fill", 0x90))   # task #32 HLT-fence (soup)
+                             handlers=g.get("handlers"))
 
 
 def run_tb(image, n, waits=0, evt=None, wrand=None, wvec=None):

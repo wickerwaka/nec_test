@@ -63,6 +63,51 @@ public:
     void set_inta(uint16_t v) { inta_ = v; }
     uint16_t inta_read(uint16_t upc);
 
+    // --- the NMI VECTOR-READ OVERLAY (fuzz v2 terminator) -----------------
+    //
+    // MIRRORS hdl/rtl/nec_bus.sv's overlay EXACTLY.  The NMI entry runs NO
+    // INTA cycle: it performs two aligned 16-bit MEMR cycles at linear
+    // 0x00008 (IP) and 0x0000A (CS), segment zero.  While the overlay is
+    // armed those two words are served from `tvec_` instead of memory.
+    //
+    // THE RTL SUBSTITUTES THE WHOLE 16-BIT WORD FOR THE CYCLE; this models it
+    // BYTE FOR BYTE, and the two statements are the same one.  The rig's
+    // memory is 16 bits wide, so the word a cycle at address `a` is served IS
+    // the aligned word at `a & ~1`: substituting `tvec[15:0]` for the word at
+    // 0x8 and `tvec[31:16]` for the word at 0xA is exactly "bytes 0x8..0xB
+    // read as TVEC's four bytes".  That holds at every width and every
+    // alignment, split word accesses included, because a split's two cycles
+    // carry the two different aligned addresses.  One rule, no case analysis.
+    //
+    // THREE PROPERTIES CARRIED FROM THE RTL, ALL LOAD-BEARING:
+    //  1. QUALIFIED ON MEMR.  A CODE fetch of the IVT and an `IN AL, 8` (IOR
+    //     at port 8) are not vector reads and are not intercepted -- which is
+    //     why this lives in `mem_read` and not in `rd()`.
+    //  2. ALL 19 UPPER ADDRESS BITS COMPARED, so 0x10008 and every other
+    //     64K-mirror alias is NOT intercepted.
+    //  3. DISARMED BY THE CS HALF COMPLETING, not by the pin releasing: NMI
+    //     recognition is an edge latch and the entry can land long after the
+    //     hold expires.  ACCEPTED AND DOCUMENTED, in both engines: a seed that
+    //     itself MEMRs 0x0000A between the arm and the entry disarms the
+    //     overlay early and the real vector CS half then reads memory.  There
+    //     is deliberately no first-read-only counter -- that is the many-cased
+    //     rule the design principle forbids, for a case the model can simply
+    //     reproduce.
+    void set_tvec(uint32_t v) { tvec_ = v; }
+    uint32_t tvec() const { return tvec_; }
+    void set_vec_arm(bool on) { vec_arm_ = on; }
+    bool vec_armed() const { return vec_arm_; }
+    bool vec_used() const { return vec_used_; }        // sticky, per case
+    // Is `a` one of the four overlaid bytes, with the overlay armed?
+    bool vec_hit(uint32_t a) const {
+        return vec_arm_ && (a & 0xFFFFCu) == 0x8u;
+    }
+    // The 16-bit word the overlay drives for a cycle at `a` (the aligned word
+    // containing it).  Only meaningful where `vec_hit(a)`.
+    uint16_t vec_word_at(uint32_t a) const {
+        return uint16_t((a & 2u) ? (tvec_ >> 16) : tvec_);
+    }
+
     // The HALT acknowledge status cycle.  It carries no data and no address;
     // it is logged so the ordered bus stream a multi-instruction replay
     // compares against a capture keeps its position marker (fuzz_classify's
@@ -187,6 +232,12 @@ private:
         uint32_t a = cell(a0);
         return stamp_[a] == epoch_ ? mem_[a] : fill_;
     }
+    // A byte read by a MEMR CYCLE: the vector overlay may serve it.  Only
+    // `mem_read` uses this -- code fetch and I/O go through `rd()` unchanged,
+    // which is property 1 above.
+    uint8_t rdm(uint32_t a) const {
+        return vec_hit(a) ? uint8_t(tvec_ >> (8 * (a & 3))) : rd(a);
+    }
     void wr(uint32_t a0, uint8_t v) {
         uint32_t a = cell(a0);
         mem_[a] = v;
@@ -213,6 +264,10 @@ private:
     size_t io_n_ = 0;
     uint16_t inta_ = 0x00FF;
     uint32_t seq_ = 0;
+    // the NMI vector-read overlay (see set_tvec above)
+    uint32_t tvec_ = 0;
+    bool vec_arm_ = false;
+    bool vec_used_ = false;
     std::vector<std::pair<uint32_t, uint8_t>> writes_;
     std::vector<uint8_t> consumed_;
     int near_wrap_ = 0;

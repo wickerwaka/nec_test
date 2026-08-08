@@ -80,8 +80,8 @@ BANK = ROOT / "tests" / "v30" / "fuzz_bank"
 import check_seq                                     # noqa: E402
 import fuzz_campaign as fzc                          # noqa: E402
 import fuzz_classify as fc                           # noqa: E402
-from testimage import (OUT_PORT_REGS, PSW_PUSH_AT,  # noqa: E402
-                       STORE_ORDER)
+from testimage import (OUT_PORT_REGS, OUT_PORT_DONE,  # noqa: E402
+                       MAGIC, STORE_ORDER)
 
 # sim/biu.h Txn::Kind
 SIM_KIND = {0: "CODE", 1: "MEMR", 2: "MEMW", 3: "IOR", 4: "IOW", 5: "INTA",
@@ -160,24 +160,33 @@ def sim_stream(tx):
 
 
 def arch_of(stream):
-    """fuzz_classify.arch_dump, applied to a normalised stream: the twelve
-    STORE_ORDER registers off the ordered IOW-0xFE cycles, PSW off the LAST
-    MEMW to 0xFFEC."""
-    regs, psw = [], None
+    """`fuzz_classify.arch_dump`'s rule, applied to a normalised stream: the
+    LAST `len(STORE_ORDER)` IOW-0xFE words strictly BEFORE the first IOW-0xFC
+    done marker, anchored by MAGIC at `fc.MAGIC_AT`.
+
+    PSW is a word in that run (the terminator pops its own interrupt frame),
+    so the `MEMW @ 0xFFEC` channel is gone from this leg too -- the two arch
+    readers must agree word for word or a model/chip arch compare means
+    nothing."""
+    regs, done = [], False
     for e in stream:
         if e[0] != "W":
             continue
         _, k, a, _u, commits = e
-        if k == "IOW" and (a & 0xFFFF) == OUT_PORT_REGS and len(commits) == 2:
+        if k != "IOW":
+            continue
+        port = a & 0xFFFF
+        if port == OUT_PORT_DONE:
+            done = True                     # width-agnostic: it is a MARKER
+            break
+        if port == OUT_PORT_REGS and len(commits) == 2:
             regs.append(commits[0][1] | (commits[1][1] << 8))
-        elif k == "MEMW" and (a & 0xFFFF) == (PSW_PUSH_AT & 0xFFFF) and \
-                len(commits) == 2:
-            psw = commits[0][1] | (commits[1][1] << 8)
-    if len(regs) < len(STORE_ORDER):
+    if not done or len(regs) < len(STORE_ORDER):
         return None
-    out = {n: regs[i] for i, n in enumerate(STORE_ORDER)}
-    out["PSW"] = psw
-    return out
+    tail = regs[-len(STORE_ORDER):]
+    if tail[fc.MAGIC_AT] != MAGIC:
+        return None
+    return dict(zip(STORE_ORDER, tail))
 
 
 # --------------------------------------------------------------------------- #
@@ -250,8 +259,12 @@ def regen(entry):
     fuzz case's image is built (task #38): a regeneration path that composes
     differently from the capture path is exactly the GEN-DRIFT the sha gate
     below exists to catch, and one function is the cheapest way never to have
-    it.  With every task-#38 axis off (`ov` carries none of them for any seed
-    banked before it) `compose_case` IS `check_seq.compose`, byte for byte."""
+    it.  ⚠ THAT IS NO LONGER A NO-OP FOR A v1 SEED: since fuzz-v2 D9 landed,
+    `compose_case` applies the widened 0F scrub UNCONDITIONALLY, so a seed
+    banked before it re-derives to a DIFFERENT sha256 wherever its image
+    carried a forbidden `0F xx` pair, and this function reports GEN_DRIFT for
+    it.  That is the intended consequence of the user's decision to discard the
+    v1 corpus, not a defect in the regeneration path."""
     cfg = fzc.derive_case(entry["cid"], entry["k"], entry.get("ov") or {})
     g = fzc.build(cfg)
     image, meta = fzc.compose_case(g, cfg)

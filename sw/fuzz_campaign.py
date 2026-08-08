@@ -118,11 +118,30 @@ def _wvec_weff(v):
     return -(-sum(head) // max(1, len(head)))            # ceil(mean)
 
 
+# EVERY override key this function knows.  An unknown key RAISES (fuzz-v2 task
+# T2 requirement 5): `fence` was deleted here and a caller still passing it
+# would otherwise have been accepted-and-ignored -- the exact trap
+# `CLAUDE.md` names, and the one that hid `want_raw` for three days.
+KNOWN_OV = frozenset({
+    "force_tier", "force_contained", "w0", "force_fixed", "no_evt",
+    "force_evt", "force_wrand", "strict", "no_brkem", "brkem_high",
+    "mainline", "no8080", "wvec_shapes",
+})
+
+
 def derive_case(cid, k, ov=None):
     """derive_axes + optional pilot overrides + nmax_eff recompute + cfg_hash.
-    ov keys: force_tier, force_contained, w0, no_evt, force_evt, force_wrand,
-    wvec_shapes, no8080."""
+    ov keys: KNOWN_OV (an unknown key raises).  (`no8080` is accepted only as
+    True and `brkem_high` only as False: see below.)"""
     ov = ov or {}
+    unknown = sorted(set(ov) - KNOWN_OV)
+    if unknown:
+        raise ValueError(
+            f"derive_case: unknown override key(s) {unknown}; known = "
+            f"{sorted(KNOWN_OV)}.  (`fence` was DELETED by fuzz-v2 task T2: "
+            "the v2 image is 0xCC-filled and `fill` now colours only the four "
+            "carve-outs, so an HLT fence would fill the IVT, the data window, "
+            "the stack and the loader page with 0xF4.)")
     ax = derive_axes(cid, k)
     if ov.get("force_tier"):
         ax["tier"] = ov["force_tier"]
@@ -154,27 +173,52 @@ def derive_case(cid, k, ov=None):
     ax["no_brkem"] = bool(ov.get("no_brkem"))
     ax["brkem_high"] = bool(ov.get("brkem_high"))
     ax["mainline"] = bool(ov.get("mainline"))
-    # task #32 escape containment: fill non-program image space with HLT (0xF4)
-    # instead of NOP (0x90) so wandering/escaping execution HALTS deterministically
-    # inside the 64K image (both legs quiet at the same fence row -> classifiable)
-    # rather than gliding out to open-bus feedthrough. SOUP-only (raw keeps 0x90 +
-    # the open_bus rule; raw payload-mode relies on 0x90 surround). Opt-in axis so
-    # existing banked/composed images stay byte-identical when it is off.
-    ax["fence"] = bool(ov.get("fence"))
-    # task #38 (wrfuzz) -- THE 8080 EXCLUSION, BY CONSTRUCTION.
-    # The user deferred 8080/BRKEM on 2026-08-05, so this campaign's corpora
-    # carry no BRKEM.  It is a GENERATION axis, not a post-filter: `build()`
-    # sets `p_brkem = 0` for soup, hands `no8080` to `gen_raw`'s own scrub, and
-    # `compose_case()` rewrites any residual `0F FF` byte PAIR in the composed
-    # image to `90 90`.  The pair matters because §63.5 found 42 class-A seeds
-    # that reach 8080 mode with the generator's BRKEM knob OFF, 18 of them
-    # carrying a `0F FF` pair the generator never emitted -- an immediate byte
-    # meeting the next opcode.  ⚠ WHAT IT DOES NOT DO: §63.5's other 24 have no
-    # `0F FF` in the image at all and how they enter 8080 mode is STILL NOT
-    # ESTABLISHED, so this axis makes a corpus BRKEM-free, NOT 8080-free.  The
-    # survey COUNTS class-A landings from the captures with §63.5's mechanical
-    # criterion; it does not assume there are none.
-    ax["no8080"] = bool(ov.get("no8080"))
+    # THE task #32 HLT-FENCE AXIS IS DELETED (fuzz-v2 task T2 requirement 5).
+    # It filled non-program image space with 0xF4 so an escape halted in-image.
+    # v2 SUPERSEDES it with the 0xCC (INT3) fill, which is strictly better --
+    # an escape at ANY alignment vectors to the terminator and still dumps,
+    # where a HALT only stopped.  Adapting it was not an option: `fill` in v2
+    # colours the four CARVE-OUTS (IVT, data window, stack, loader page), so a
+    # fence would now write HALT over the IVT and the data the program reads.
+    # A stale `fence` key RAISES in KNOWN_OV above rather than being ignored.
+    # fuzz-v2 D9 -- THE 8080 EXCLUSION, BY CONSTRUCTION AND UNCONDITIONALLY.
+    # It was task #38's opt-in `no8080` axis, and it was too narrow twice over:
+    # it removed only the `0F FF` pair, when silicon says `0F` + ANY byte
+    # >= 0x40 is a full BRKEM alias (`docs/facts/undocumented_0f.md`), and it
+    # was default-off.  It is now ONE unconditional rule at THREE places that
+    # all call `optable.scrub_0f`: `build()` sets `p_brkem = 0`, `gen_raw`
+    # scrubs its own buffer, and `compose_case()` scrubs the composed image.
+    # There is no axis and no cfg_hash entry, because there is no other
+    # configuration to distinguish it from.
+    #
+    # REGISTERED PREDICTION (falsifiable, NOT CONFIRMED -- confirmation needs
+    # the board capture of task T11).  §63.5's 24 unexplained 8080 entries --
+    # seeds that reached emulation mode with NO `0F FF` anywhere in the image
+    # -- were entering through the alias band this rule now closes.  TWO static
+    # routes were MEASURED offline while landing it, both open under the old
+    # system and both shut now:
+    #   (1) a `0F` immediate or displacement byte meeting the next opcode.
+    #       `optable.scan_code` never saw these because it walks INSTRUCTION
+    #       BOUNDARIES and they are inside one; they only decode if execution
+    #       lands off-boundary.  2,000 soup seeds carried 478 such pairs, 330
+    #       of them in the >= 0x40 alias band, and the `0F FF` rule caught 0.
+    #   (2) THE OLD SCRUB MADE THEM.  `gen_raw` rewrote only the SECOND byte of
+    #       a HARD_BANNED pair to 0x90 -- and 0x90 >= 0x40, so `0F 34` became
+    #       `0F 90`, a BRKEM alias by the same silicon finding.  Measured at
+    #       ~10 per raw seed (5,032 over 500).  This is why BOTH bytes go.
+    #       (0x90 is INFERENCE from the >= 0x40 band, not one of the six
+    #       probed second bytes; 0x80 and 0xA0 flank it and both were probed.)
+    # FALSIFIED IF a v2 capture still shows a static-route 8080 entry -- an
+    # entry reached with no intervening write into the code region.  Even
+    # confirmed it is NOT sufficient: a pair can be created at RUNTIME by a
+    # write, which is what D9's second (capture-side) clause is for.
+    if ov.get("no8080") is False:
+        raise ValueError("no8080=False: the 0F scrub is unconditional in "
+                         "fuzz-v2 (plan D9); there is no opt-out")
+    if ov.get("brkem_high"):
+        raise ValueError("brkem_high: refused -- fuzz-v2 eliminates 8080 "
+                         "entry unconditionally (plan D9)")
+    ax["no8080"] = True
     # task #38 -- THE PER-ACCESS WAIT VECTOR AXIS.
     # Drawn from this axis's OWN rng namespace, exactly as `force_wrand` and
     # `force_evt` do, so `derive_axes`'s frozen stream is untouched and every
@@ -196,8 +240,8 @@ def derive_case(cid, k, ov=None):
         weff = w["wmax"] if w["wrand"] else w["fixed"]
     ax["nmax_eff"] = max(NMIN, int(NMAX * NMAX_SCALE_C / (NMAX_SCALE_C + weff)))
     core = {kk: ax[kk] for kk in ("tier", "evt", "waits", "wild", "nmax_eff",
-                                  "strict", "no_brkem", "brkem_high", "mainline",
-                                  "fence")}
+                                  "strict", "no_brkem", "brkem_high",
+                                  "mainline")}
     # task #38: the two new axes are in the hash, and they are added ONLY WHEN
     # SET.  Two configs differing in a vector spec MUST hash differently (the
     # lint proves it); a config with the axis OFF must hash exactly as it did
@@ -211,8 +255,10 @@ def derive_case(cid, k, ov=None):
     # checking that.
     if ax["wvec"]:
         core["wvec"] = ax["wvec"]
-    if ax["no8080"]:
-        core["no8080"] = True
+    # `no8080` is NOT in the hash: it is no longer an axis but a property of
+    # every v2 image, and a hash entry with one possible value distinguishes
+    # nothing.  What the images being different DOES change is `image_sha256`,
+    # which is the thing the bank's GEN-DRIFT gate actually compares.
     ax["cfg_hash"] = hashlib.sha1(
         json.dumps(core, sort_keys=True).encode()).hexdigest()[:12]
     return ax
@@ -222,7 +268,7 @@ def build(cfg):
     """Materialise the g-dict for a derived config."""
     seed = f"{cfg['cid']}/{cfg['k']}"
     if cfg["tier"] == "raw":
-        g = gen_raw(seed, no8080=bool(cfg.get("no8080")))
+        g = gen_raw(seed)
     else:
         pin = cfg["evt"]["pin"] if cfg["evt"] else None
         # strict = contained fall-through generation: suppress the deliberate
@@ -237,21 +283,17 @@ def build(cfg):
             # FUNCTIONAL is a REAL mainline divergence. Keep random-DS (window-
             # only, func-clean chip==core) for breadth. Census: task #29 Phase 5.
             knobs = SoupKnobs(p_brkem=0.0, p_tf=0.0, p_undoc=0.0)
-        elif cfg.get("brkem_high"):
-            # ~50% of seeds carry a BRKEM; suppress the OTHER divergence classes
-            # (tf/undoc/random-DS) so the BRKEM-recovery pilot isolates BRKEM.
-            knobs = SoupKnobs(p_brkem=0.020, p_tf=0.0, p_undoc=0.0,
-                              p_sreg_rand=0.0)
         elif cfg.get("no_brkem"):
             knobs = SoupKnobs(p_brkem=0.0)     # keep tf/undoc/sreg breadth (cheap)
         else:
             knobs = SoupKnobs()
-        if cfg.get("no8080"):
-            # task #38: the 8080 deferral, AT THE KNOB and as a MODIFIER, so
-            # it composes with every existing knob set instead of replacing
-            # one.  Only BRKEM is out of scope; undoc / tf / sreg breadth is
-            # this campaign's own breadth and is left alone.
-            knobs = dataclasses.replace(knobs, p_brkem=0.0)
+        # fuzz-v2 D9: the 8080 exclusion AT THE KNOB, UNCONDITIONALLY and as a
+        # MODIFIER, so it composes with every knob set instead of replacing
+        # one.  Only BRKEM is out of scope; undoc / tf / sreg breadth is this
+        # campaign's own breadth and is left alone.  The soup lint's 0F check
+        # is keyed on the same allowed set, so re-raising `p_brkem` fails lint
+        # loudly instead of silently disagreeing with the composed image.
+        knobs = dataclasses.replace(knobs, p_brkem=0.0)
         g = gen_soup(seed, nmin=cfg["nmin"], nmax=cfg["nmax_eff"],
                      evt_pin=pin, wild=cfg["wild"], knobs=knobs)
     if cfg["evt"] and g.get("has_halt"):
@@ -266,53 +308,37 @@ def build(cfg):
         cfg["evt"]["hold_bits"] = v30ctl.RIG_EVT_HOLD_BITS
         cfg["evt"]["hold_applied"] = (cfg["evt"]["hold"]
                                       & ((1 << v30ctl.RIG_EVT_HOLD_BITS) - 1))
-    # task #32: SOUP HLT-fence fill (0xF4) when the fence axis is on; else 0x90.
-    # RAW always 0x90 (payload mode relies on the NOP surround; raw scrubs 0xF4).
-    g["fill"] = 0xF4 if (cfg["tier"] != "raw" and cfg.get("fence")) else 0x90
     return g
 
 
-BRKEM_PAIR = b"\x0f\xff"
+def scrub_0f_image(image):
+    """Apply THE 0F RULE to a composed image over `optable.CODE_SPANS`.
+    Returns (image, n_pairs).
 
+    ONE RULE, held in `optable.scrub_0f` and stated there: a `0F` byte may be
+    followed only by a byte in `optable.SCRUB_ALLOWED_0F`; every other `0F xx`
+    pair becomes `90 90`.  It replaces `scrub_brkem_image`, which removed only
+    the `0F FF` pair -- about 1/192 of the surface silicon actually has, since
+    `docs/facts/undocumented_0f.md` measured that `0F` + ANY byte >= 0x40 is a
+    full BRKEM alias.  With the v2 `0xCC` fill that gap was not academic:
+    `0xCC >= 0x40`, so every body byte `0x0F` abutting the fill was an alias.
 
-def scrub_brkem_image(image):
-    """task #38.  Rewrite every `0F FF` byte PAIR in a composed image to
-    `90 90`.  Returns (image, n_pairs).
-
-    ONE RULE, and it is the whole mechanism: BRKEM is `0F FF ib` and nothing
-    else in the ISA is that pair, so removing the pair removes the entry.
-    Both bytes go to NOP rather than only the second (which is `gen_raw`'s
-    rule for its own banned set) because a bare `FF` left behind is a group-5
-    ModR/M whose `/3` and `/5` are far CALL / far JMP through a random word --
-    trading a deferred-scope entry for an escape.
-
-    It cannot create a new pair (0x90 is neither 0x0F nor 0xFF), so ONE
-    left-to-right pass reaches a fixed point; `no_brkem_pairs()` is the
-    independent check that says so on the artifact rather than in the
-    argument."""
+    `bad_0f_pairs()` is the independent check that says so on the artifact
+    rather than in the argument."""
     buf = bytearray(image)
-    n = 0
-    i = buf.find(BRKEM_PAIR)
-    while i >= 0:
-        buf[i] = 0x90
-        buf[i + 1] = 0x90
-        n += 1
-        i = buf.find(BRKEM_PAIR, i + 1)
+    n = optable.scrub_0f(buf, optable.CODE_SPANS)
     return bytes(buf), n
 
 
-def no_brkem_pairs(image):
-    """The check, not the argument: how many `0F FF` pairs remain."""
-    b, n = bytes(image), 0
-    i = b.find(BRKEM_PAIR)
-    while i >= 0:
-        n += 1
-        i = b.find(BRKEM_PAIR, i + 1)
-    return n
+def bad_0f_pairs(image):
+    """The check, not the argument: how many forbidden `0F xx` pairs remain in
+    the code region.  Strictly stronger than the `no_brkem_pairs()` it
+    replaces -- 0 here means no BRKEM pair AND no alias AND no lockup."""
+    return len(optable.bad_0f_hits(bytes(image), optable.CODE_SPANS))
 
 
 def compose_case(g, cfg):
-    """`check_seq.compose` plus this campaign's image-level axes.
+    """`check_seq.compose` plus this campaign's image-level rules.
 
     THE ONE PLACE the composed image is built for a fuzz case, so that
     `eval_case`, `show`, `lint` and `ucsim_fuzz.regen` cannot drift apart --
@@ -320,11 +346,14 @@ def compose_case(g, cfg):
     GEN-DRIFT failure the bank's sha gate exists to catch, and the cheapest way
     to never have it is to have one function.
 
-    With every new axis OFF this returns `check_seq.compose(g)` unchanged, so
-    every seed banked before task #38 regenerates byte for byte."""
+    ⚠ THE 0F SCRUB IS UNCONDITIONAL (fuzz-v2 plan D9: "compose_case changes
+    unconditionally; there is no version dispatch and no default-off axis").
+    Every image composed here therefore differs from the one the same (cid, k)
+    composed before this landing wherever a forbidden pair existed, so every
+    seed of the DISCARDED v1 bank re-derives to a new sha256.  That is the
+    intended consequence of the user's corpus decision, not an accident."""
     image, meta = check_seq.compose(g)
-    if cfg.get("no8080"):
-        image, _ = scrub_brkem_image(image)
+    image, _ = scrub_0f_image(image)
     return image, meta
 
 
@@ -456,6 +485,20 @@ def _ctx_for(cfg, g, tb_only):
                cfg_hash=cfg["cfg_hash"])
 
 
+def _escape_count(recs, window):
+    """How many CODE fetches in the window came from outside the code region
+    and the loader page -- `fuzz_classify.escaped_code_region`'s predicate,
+    COUNTED instead of stopping at the first.  Erratum E-1 quotes a median
+    per-seed count, so the count has to exist."""
+    n = 0
+    for r in recs[:window]:
+        if fc._tstate(r) == 1 and r["bs_early"] == 4:
+            p = r["ad_addr"] & 0xFFFF
+            if not (fc.CODE_LO <= p < fc.CODE_HI) and p not in fc.RESERVED:
+                n += 1
+    return n
+
+
 # ===========================================================================
 # Result line (harmonised schema).
 # ===========================================================================
@@ -508,7 +551,8 @@ def era_of(manifest):
             "rules_version": (manifest or {}).get("rules_version")}
 
 
-def result_line(cfg, g, sha, v, di, gen_git, build_stale, ts, bus_cycles=None):
+def result_line(cfg, g, sha, v, di, gen_git, build_stale, ts, bus_cycles=None,
+                arch=None):
     # task #38: the vector is banked IN FULL (`wvec_hex`, 2 chars per entry,
     # NWVEC entries) beside its spec and its sha256.  A vector that exists
     # only as a derivation is one nobody can check the rig's readback against,
@@ -517,7 +561,7 @@ def result_line(cfg, g, sha, v, di, gen_git, build_stale, ts, bus_cycles=None):
     return {
         "k": cfg["k"], "seed": f"{cfg['cid']}/{cfg['k']}", "cid": cfg["cid"],
         "tier": cfg["tier"], "cfg_hash": cfg["cfg_hash"],
-        "wvec": cfg.get("wvec"), "no8080": bool(cfg.get("no8080")),
+        "wvec": cfg.get("wvec"), "no8080": True,
         "wvec_hex": wv.to_hex(vec) if vec else None,
         "wvec_sha256": wv.sha256_of(vec) if vec else None,
         "wvec_n": len(vec) if vec else 0,
@@ -527,6 +571,15 @@ def result_line(cfg, g, sha, v, di, gen_git, build_stale, ts, bus_cycles=None):
         # of range), so a capture at or beyond it is outside the regime the
         # vector means anything in and must be quarantined rather than scored.
         "bus_cycles": bus_cycles,
+        # fuzz-v2 ERRATUM E-1, THE THREE DECOMPOSITIONS, ON EVERY LINE.
+        # `arch_ok` is the RESTATED bar -- a MAGIC-anchored 15-word dump on the
+        # socket/real leg, i.e. the terminator was reached.  `escaped` is the
+        # STRICT predicate the bar was moved off, RETAINED as a diagnostic
+        # counter (row, physical offset) exactly as E-1 says.  `arch_restart`
+        # is the seed the terminator entered twice, which is a DISCARD and not
+        # a dump.  All three `None` when there are no rows.
+        **(arch or {"arch_ok": None, "arch_restart": None, "escaped": None,
+                    "escaped_n": None}),
         "era": _ERA,
         "wild": g.get("wild"), "has_brkem": g.get("has_brkem", False),
         "brkem_pos": g.get("brkem_pos", []), "has_halt": g.get("has_halt", False),
@@ -620,9 +673,16 @@ def eval_case(cid, k, ov, tb_only, host, build_stale, keep_rows=False):
             bus_cycles = wv.bus_cycle_bound(real)
         except Exception:                               # noqa: BLE001
             bus_cycles = None
+    arch = None
+    if real:
+        esc = fc.escaped_code_region(real, v.n)
+        arch = {"arch_ok": fc.arch_dump(real, v.n) is not None,
+                "arch_restart": fc.dump_restarted(real, v.n),
+                "escaped": list(esc) if esc else None,
+                "escaped_n": _escape_count(real, v.n)}
     line = result_line(cfg, g, sha, v, di, _gen_git(), build_stale,
                         time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
-                        bus_cycles=bus_cycles)
+                        bus_cycles=bus_cycles, arch=arch)
     # raw-tier open-bus escape metric: how much of the run left the 64K image
     # into open-bus feedthrough space (task #29 P7; drives the rollup escape
     # fraction and the open_bus_escape accept rule).
@@ -717,12 +777,8 @@ def cmd_run(a):
         ov["strict"] = True
     if a.no_brkem:
         ov["no_brkem"] = True
-    if a.brkem_high:
-        ov["brkem_high"] = True
     if a.mainline:
         ov["mainline"] = True
-    if getattr(a, "fence", False):
-        ov["fence"] = True                 # task #32 soup HLT-fence fill
     if a.force_evt:
         ov["force_evt"] = True
     if a.force_wrand:
@@ -734,8 +790,6 @@ def cmd_run(a):
             print(f"run: unknown wvec shape(s) {bad}; known: {list(wv.SHAPES)}")
             return 2
         ov["wvec_shapes"] = shapes
-    if getattr(a, "no8080", False):
-        ov["no8080"] = True
 
     start = a.start if a.start is not None else _resume_k(results_path)
     end = start + a.session_seeds
@@ -993,8 +1047,6 @@ def cmd_show(a):
         ov["force_tier"] = a.force_tier
     if getattr(a, "wvec_shapes", None):
         ov["wvec_shapes"] = [s for s in a.wvec_shapes.split(",") if s]
-    if getattr(a, "no8080", False):
-        ov["no8080"] = True
     cfg = derive_case(a.cid, a.k, ov)
     g = build(cfg)
     image, meta = compose_case(g, cfg)
@@ -1002,15 +1054,113 @@ def cmd_show(a):
     vec = wvec_of(cfg)
     print(json.dumps({"cfg": {kk: cfg[kk] for kk in
                               ("tier", "evt", "waits", "wild", "nmin",
-                               "nmax_eff", "cfg_hash", "wvec", "no8080")},
+                               "nmax_eff", "cfg_hash", "wvec")},
                       "wvec_sha256": wv.sha256_of(vec) if vec else None,
                       "wvec_head": vec[:32] if vec else None,
-                      "brkem_pairs": no_brkem_pairs(image),
+                      "bad_0f_pairs": bad_0f_pairs(image),
                       "n_ins": g["n_ins"], "wild": g.get("wild"),
                       "has_brkem": g.get("has_brkem"), "brkem_pos": g.get("brkem_pos"),
                       "has_halt": g.get("has_halt"), "raw_mode": g.get("raw_mode"),
                       "image_sha256": sha, "anchor": meta["anchor_linear"]},
                      indent=1))
+    return 0
+
+
+# ===========================================================================
+# measure -- fuzz-v2 ERRATUM E-1.  A MEASUREMENT TOOL, NOT A GATE.
+# ===========================================================================
+def _measure_one(args):
+    cid, k, ov = args
+    res = eval_case(cid, k, ov, tb_only=True, host=None, build_stale=False)
+    ln = res["line"]
+    out = {kk: ln.get(kk) for kk in
+           ("k", "tier", "raw_mode", "has_tf", "has_halt", "evt", "wild",
+            "arch_ok", "arch_restart", "escaped", "escaped_n", "done_idx",
+            "verdict")}
+    out["has_undoc"] = "undoc" in (res["forms"] or [])
+    return out
+
+
+def cmd_measure(a):
+    """ERRATUM E-1 -- both numbers, re-measured on THE REAL GENERATOR.
+
+    E-1 restated the containment bar from (a) THE STRICT ESCAPE PREDICATE --
+    any CODE fetch outside the code region -- to (b) THE OUTCOME, a
+    MAGIC-anchored 15-word dump, after measuring 75/500 escapes on 500
+    RANDOM-BYTE images of which 62 still dumped.  It explicitly did NOT
+    register the restatement, because the population that motivated it was not
+    the population the generator produces.  This command produces that
+    population and reports BOTH numbers with no threshold applied.
+
+    IT IS NOT A GATE and it consults NO EscalationPolicy: a provenance alarm
+    is a hard STOP for a capture campaign, and stopping on the first escape is
+    exactly what makes the escape RATE unmeasurable.  Nothing here decides
+    anything -- the numbers go to the reviewer.
+
+    THE ENGINE IS NAMED, NOT ASSUMED: `--tb-only` binds `check_seq.CORE`,
+    which is pinned to the ARCHIVED fsm core (`standing_gates.md` §C).  These
+    are statements about the PROGRAM POPULATION, not about a core, and they
+    may not be quoted as an ucore figure."""
+    ov = {"force_tier": a.force_tier} if a.force_tier else {}
+    ks = list(range(a.start, a.start + a.n))
+    jobs = max(1, a.jobs)
+    print(f"measure {a.cid}: {len(ks)} seeds via the Verilator TB "
+          f"(core={check_seq.CORE}, bin={check_seq.tb_bin()}), jobs={jobs}, "
+          f"ov={ov}")
+    t0 = time.time()
+    rows = []
+    with Pool(jobs, initializer=_engine) as pool:
+        for i, r in enumerate(pool.imap_unordered(
+                _measure_one, [(a.cid, k, ov) for k in ks], chunksize=4)):
+            rows.append(r)
+            if a.report_every and (i + 1) % a.report_every == 0:
+                print(f"  {i+1}/{len(ks)} ({(i+1)/(time.time()-t0):.1f}/s)",
+                      flush=True)
+
+    def rep(name, sel):
+        s = [r for r in rows if sel(r)]
+        if not s:
+            print(f"  {name:<28} n=0")
+            return
+        esc = [r for r in s if (r["escaped_n"] or 0) > 0]
+        ok = [r for r in s if r["arch_ok"]]
+        cnt = sorted(r["escaped_n"] for r in esc)
+        med = statistics.median(cnt) if cnt else 0
+        both = [r for r in esc if r["arch_ok"]]
+        print(f"  {name:<28} n={len(s):<6} "
+              f"(a) escaped {len(esc):<5} = {100*len(esc)/len(s):5.1f}% "
+              f"(median {med:.0f} fetches, max {cnt[-1] if cnt else 0})   "
+              f"(b) terminator reached {len(ok):<6} = "
+              f"{100*len(ok)/len(s):5.1f}%   escaped-AND-dumped "
+              f"{len(both)}/{len(esc) or 1}")
+
+    print(f"\n=== E-1 on the T2 generator: {len(rows)} seeds in "
+          f"{time.time()-t0:.1f}s   (cid={a.cid}, k in [{a.start},"
+          f"{a.start + a.n}))")
+    rep("ALL", lambda r: True)
+    rep("soup", lambda r: r["tier"] == "soup")
+    # the three soup classes that CANNOT terminate offline, separated out so
+    # the containment number is readable.  None of them is a containment
+    # failure: a TF storm and an unwoken HALT are what plan D3's terminating
+    # NMI exists for (Phase 2, not yet built), and `undoc` is the 0xF1 EU
+    # wedge measured below.
+    rep("  soup, clean (no TF/HALT/undoc)", lambda r: r["tier"] == "soup"
+        and not r["has_tf"] and not r["has_halt"] and not r["has_undoc"])
+    rep("  soup, TF set", lambda r: r["tier"] == "soup" and r["has_tf"])
+    rep("  soup, HALT/POLL", lambda r: r["tier"] == "soup" and r["has_halt"])
+    rep("  soup, undoc opcode", lambda r: r["tier"] == "soup"
+        and r["has_undoc"])
+    rep("  soup, wild", lambda r: r["tier"] == "soup" and r["wild"])
+    rep("raw", lambda r: r["tier"] == "raw")
+    rep("  raw, payload mode", lambda r: r["raw_mode"] == "payload")
+    rep("  raw, whole-image mode", lambda r: r["raw_mode"] == "whole")
+    nrs = sum(1 for r in rows if r["arch_restart"])
+    print(f"  dumps the terminator entered TWICE (discard class): {nrs}")
+    if a.out:
+        Path(a.out).write_text(json.dumps(
+            {"cid": a.cid, "start": a.start, "n": a.n, "core": check_seq.CORE,
+             "gen_git": _gen_git(), "rows": rows}))
+        print(f"  wrote per-seed rows -> {a.out}")
     return 0
 
 
@@ -1052,8 +1202,8 @@ def _lint_wvec(cid, n, ov):
          `cfg_hash`es -- the new axis is IN the hash;
       4. the axis OFF regenerates the image byte for byte, so nothing banked
          before task #38 drifts;
-      5. `no8080` leaves ZERO `0F FF` pairs in the composed image, on BOTH
-         tiers, measured on the artifact;
+      5. THE 0F RULE leaves ZERO forbidden `0F xx` pairs in the composed
+         image's code region, on BOTH tiers, measured on the artifact;
       6. the axis never makes the image a function of the wait vector: two
          seeds identical except for the vector produce the SAME image if and
          only if their `nmax_eff` agrees, and `nmax_eff` is a stated function
@@ -1067,23 +1217,28 @@ def _lint_wvec(cid, n, ov):
     t0 = time.time()
     off = dict(ov)
     off.pop("wvec_shapes", None)
-    off.pop("no8080", None)
     with tempfile.TemporaryDirectory() as td:
         for k in range(n):
             for tier in ("soup", "raw"):
                 base = dict(off, force_tier=tier)
                 cfg0 = derive_case(cid, k, base)
                 img0, _ = compose_case(build(cfg0), cfg0)
-                # (4) the axis OFF is byte-identical to a plain compose
+                # (4) the axis OFF is byte-identical to a plain compose PLUS
+                # THE 0F RULE, and nothing else.  It used to compare against
+                # `check_seq.compose` alone; T3 made the 0F scrub
+                # UNCONDITIONAL inside `compose_case`, so that form now fires
+                # on every image the rule touches -- it would be asserting the
+                # scrub never fires.  What the check is FOR is that
+                # `compose_case` adds exactly one thing to `compose`, and that
+                # the wait-vector axis is not that thing.
                 g0 = build(cfg0)
-                if bytes(img0) != bytes(check_seq.compose(g0)[0]):
+                if bytes(img0) != scrub_0f_image(check_seq.compose(g0)[0])[0]:
                     hits += 1
                     print(f"  WVEC HIT: {tier}/{k} axis-off image moved")
                 # (3)(6) with the axis ON
                 cfgs = []
                 for shape in wv.SHAPES:
-                    c = derive_case(cid, k, dict(base, wvec_shapes=[shape],
-                                                 no8080=True))
+                    c = derive_case(cid, k, dict(base, wvec_shapes=[shape]))
                     if not c["wvec"] or c["wvec"]["shape"] != shape:
                         hits += 1
                         print(f"  WVEC HIT: {tier}/{k}/{shape} spec not set")
@@ -1099,11 +1254,11 @@ def _lint_wvec(cid, n, ov):
                             print(f"  WVEC HIT (enc): {tier}/{k}/{shape} {e}")
                     # (5) BRKEM-free by construction, on the ARTIFACT
                     img, _m = compose_case(build(c), c)
-                    npair = no_brkem_pairs(img)
+                    npair = bad_0f_pairs(img)
                     if npair:
                         hits += 1
-                        print(f"  WVEC HIT: {tier}/{k}/{shape} {npair} 0F FF "
-                              f"pairs survive no8080")
+                        print(f"  WVEC HIT: {tier}/{k}/{shape} {npair} "
+                              f"forbidden 0F pairs survive the scrub")
                 hashes = {c["cfg_hash"] for c in cfgs}
                 if len(hashes) != len(cfgs):
                     hits += 1
@@ -1114,6 +1269,298 @@ def _lint_wvec(cid, n, ov):
                     print(f"  WVEC HIT: {tier}/{k} axis-on hash == axis-off hash")
     print(f"wvec: {n} seeds x 2 tiers x {len(wv.SHAPES)} shapes in "
           f"{time.time()-t0:.1f}s | hits={hits}")
+    return hits
+
+
+# ===========================================================================
+# fuzz-v2 T2 lint legs: the bias helper (D1) and the handler pool (D8).
+# ===========================================================================
+import testimage as ti                                     # noqa: E402
+from gen_soup import ANCHOR, SEG_NAMES                     # noqa: E402
+
+# the (segment register, offset register) pairs whose product is a DESIGNED
+# physical address, and the `phys` key that names the design.
+SEG_OFF_PAIRS = (("PS", "PC"), ("SS", "SP"), ("DS0", "IX"), ("DS1", "IY"))
+
+
+def _seg_off_hits(g, tag):
+    """The D1 identity, on ONE g-dict.  -> list of failure strings."""
+    r, ph = g["regs"], g.get("phys", {})
+    out = []
+    for seg, off in SEG_OFF_PAIRS:
+        want = ph.get(off)
+        if want is None:                      # raw IX/IY are free offsets
+            continue
+        got = ((r[seg] << 4) + r[off]) & 0xFFFF
+        if got != want:
+            out.append(f"{tag} ({seg},{off}) -> {got:04x}, designed {want:04x}")
+    lows = {r[s] & 0xFFF for s in SEG_NAMES}
+    if len(lows) != 1:
+        out.append(f"{tag} segment registers disagree in the low 12 bits: "
+                   f"{sorted(hex(x) for x in lows)}")
+    return out
+
+
+def _ivt_from_image(img):
+    """[(vector, segment, offset, physical offset)] for all 256 composed
+    vectors, read back off the ARTIFACT."""
+    out = []
+    for v in range(256):
+        o = img[4 * v] | (img[4 * v + 1] << 8)
+        s = img[4 * v + 2] | (img[4 * v + 3] << 8)
+        out.append((v, s, o, ((s << 4) + o) & 0xFFFF))
+    return out
+
+
+def _lint_bias(cid, n, ov=None):
+    """fuzz-v2 D1 -- SEGMENT RANDOMIZATION BY DERIVED OFFSET.
+
+    Six checks, each one a place a defect would be silent:
+
+      1. the identity, per register pair: `(seg*16 + off) & 0xFFFF` is the
+         DESIGNED physical address, on both tiers;
+      2. `PS, SS, DS0, DS1` agree in their low 12 bits (the shared physical
+         base that makes a segment override a physical no-op);
+      3. all 256 composed IVT vectors resolve INSIDE the code region, and
+         vector `TERM_VECTOR` is compose's own (-> TERM_AT) rather than the
+         generator's;
+      4. the anchor: the composed image carries the body at `ANCHOR`;
+      5. the `ps` column is LIVE -- every one of the 16 A19-16 values occurs
+         for every one of the four segment registers over the population, and
+         a single seed's four registers do not all share one k;
+      6. NON-VACUITY: the identity check is re-run against a deliberately
+         perturbed register set and MUST fire.  A bar that cannot fail is not
+         a bar."""
+    hits = 0
+    t0 = time.time()
+    kseen = {s: set() for s in SEG_NAMES}
+    bases = set()
+    same_k = 0
+    for k in range(n):
+        for tier in ("soup", "raw"):
+            cfg = derive_case(cid, k, dict(ov or {}, force_tier=tier))
+            g = build(cfg)
+            tag = f"{tier}/{cid}/{k}"
+            for e in _seg_off_hits(g, tag):                       # (1)(2)
+                hits += 1
+                print(f"  BIAS HIT: {e}")
+            r = g["regs"]
+            for s in SEG_NAMES:
+                kseen[s].add(r[s] >> 12)
+            bases.add(r["PS"] & 0xFFF)
+            same_k += len({r[s] >> 12 for s in SEG_NAMES}) == 1
+            if ti.TERM_VECTOR in (g.get("ivt") or {}):            # (3a)
+                hits += 1
+                print(f"  BIAS HIT: {tag} generator set vector "
+                      f"{ti.TERM_VECTOR}, which is compose's")
+            img, meta = compose_case(g, cfg)
+            bad = [(v, p) for v, _s, _o, p in _ivt_from_image(img)
+                   if not (ti.CODE_LO <= p < ti.CODE_HI)]
+            if bad:                                               # (3b)
+                hits += 1
+                print(f"  BIAS HIT: {tag} {len(bad)} IVT vectors resolve "
+                      f"outside the code region, e.g. {bad[:3]}")
+            tv = _ivt_from_image(img)[ti.TERM_VECTOR]
+            if tv[3] != ti.TERM_AT or tv[1] != 0:                 # (3c)
+                hits += 1
+                print(f"  BIAS HIT: {tag} vector {ti.TERM_VECTOR} is "
+                      f"{tv[1]:04x}:{tv[2]:04x}, want 0000:{ti.TERM_AT:04x}")
+            if meta["anchor_phys"] != ANCHOR:                     # (4)
+                hits += 1
+                print(f"  BIAS HIT: {tag} anchor {meta['anchor_phys']:04x} "
+                      f"!= {ANCHOR:04x}")
+            # the body, on the PRE-SCRUB compose: `compose_case` runs the 0F
+            # rule over the code region afterwards and is entitled to move a
+            # body byte, so comparing against the scrubbed image would be
+            # asserting that the scrub never fires.
+            pre, _ = check_seq.compose(g)
+            if bytes(pre[ANCHOR:ANCHOR + len(g['instr'])]) != g["instr"]:
+                hits += 1
+                print(f"  BIAS HIT: {tag} body is not at the anchor")
+    # (5) `Bias` is keyed on the seed alone, so the two tiers of one k share
+    # it: the population here is `n` draws per register, not 2n.  Coupon
+    # collector over 16 values needs ~54; the bar is armed from 200.
+    if n >= 200:
+        for s in SEG_NAMES:
+            if len(kseen[s]) != 16:
+                hits += 1
+                print(f"  BIAS HIT: {s} took only {len(kseen[s])}/16 A19-16 "
+                      f"values over {n} seeds")
+    if same_k == 2 * n and n > 4:
+        hits += 1
+        print("  BIAS HIT: every seed gives all four segment registers the "
+              "same k -- the override coverage is vacuous")
+    # (6) the control: break the derivation and watch the check bite
+    cfg = derive_case(cid, 0, dict(ov or {}, force_tier="soup"))
+    gc = build(cfg)
+    gc["regs"] = dict(gc["regs"], PS=(gc["regs"]["PS"] + 1) & 0xFFFF)
+    ctl = _seg_off_hits(gc, "control")
+    if len(ctl) != 2:      # the (PS,PC) identity AND the low-12 agreement
+        hits += 1
+        print(f"  BIAS HIT: the control did not fire as expected: {ctl}")
+    print(f"bias: {n} seeds x 2 tiers in {time.time()-t0:.1f}s | "
+          f"base_seg values {len(bases)} | A19-16 values per register "
+          f"{ {s: len(kseen[s]) for s in SEG_NAMES} } | "
+          f"control fired on {len(ctl)} checks | hits={hits}")
+    return hits
+
+
+# --- the handler pool (D8) -------------------------------------------------
+# A handler that traps re-enters a handler and recurses without bound.  The
+# scan below is the falsifier: it decodes each composed slot and reports both
+# the FORBIDDEN CONTENT and, from the composed IVT, the RECURSION CYCLE that
+# content would produce.  Trap sources and the vector each raises:
+_TRAP_VEC = {0xCC: 3, 0xCE: 4, 0x62: 5, 0xD4: 0}     # INT3 / INTO / BOUND / AAM
+_BANNED_POLICY = frozenset({optable.CFLOW_FWD, optable.CFLOW_GADGET,
+                            optable.STACK, optable.PORT, optable.SREG,
+                            optable.EVT_ONLY, optable.BRKEM, optable.UNDOC})
+
+
+def _scan_slot(img, at, limit=None):
+    """Decode one handler slot.  -> (violations, raised_vectors).
+
+    Walks from the slot base to the appended IRET, exactly as the EU does.
+    Everything it reports is read off the COMPOSED image, i.e. AFTER the 0F
+    scrub, because the scrub can move an instruction boundary."""
+    limit = limit or ti.IHT_STRIDE
+    vio, raises = [], set()
+    i = at
+    end = at + limit
+    while i < end:
+        j = i
+        while j < end and img[j] in optable.PREFIXES:
+            j += 1
+        if j >= end:
+            vio.append((i - at, "ran off the slot without reaching IRET"))
+            break
+        op = img[j]
+        if op == 0xCF:                       # the IRET compose appended: done
+            return vio, raises
+        if op == 0x0F:
+            vio.append((i - at, "0F extension byte in a handler"))
+            return vio, raises
+        info = optable.TABLE.get(op)
+        pol = info.policy if info else None
+        if pol in _BANNED_POLICY:
+            vio.append((i - at, f"{op:02x} policy {pol}"))
+        if op in _TRAP_VEC:
+            raises.add(_TRAP_VEC[op])
+        if op == 0xCD and j + 1 < end:
+            raises.add(img[j + 1])
+        if op in (0x8D, 0x62):
+            vio.append((i - at, f"{op:02x} requires a memory operand"))
+        if info and info.modrm and j + 1 < end:
+            mrm = img[j + 1]
+            if (mrm >> 6) != 3:
+                vio.append((i - at, f"{op:02x} modrm mod={mrm >> 6}, want 3"))
+            ext = (mrm >> 3) & 7
+            if op in (0xF6, 0xF7) and ext in (6, 7):
+                vio.append((i - at, f"{op:02x} /{ext} DIV/IDIV"))
+                raises.add(0)
+            if op == 0xFF and ext == 6:
+                vio.append((i - at, f"{op:02x} /6 PUSH"))
+        step = max(1, optable.ilen(img, i))
+        i += step
+    else:
+        vio.append((limit, "no IRET inside the slot"))
+    return vio, raises
+
+
+def _handler_cycle(img):
+    """The recursion path a composed image admits, or None.
+
+    vector -> slot (from the composed IVT) -> the vectors that slot's body can
+    raise -> vector ...  Any cycle is unbounded re-entry, and every entry also
+    pushes three words, so it eats the stack as well as the clock."""
+    slot_of = {}
+    for v, _s, _o, p in _ivt_from_image(img):
+        if ti.IHT_AT <= p < ti.IHT_AT + ti.IHT_N * ti.IHT_STRIDE:
+            slot_of[v] = p
+    raises = {}
+    for p in set(slot_of.values()):
+        raises[p] = _scan_slot(img, p)[1]
+    for v0 in sorted(slot_of):
+        seen, path, v = set(), [], v0
+        while v in slot_of and v not in seen:
+            seen.add(v)
+            p = slot_of[v]
+            path.append((v, p))
+            nxt = sorted(raises.get(p, ()))
+            if not nxt:
+                break
+            v = nxt[0]
+            if v in seen:
+                path.append((v, slot_of.get(v)))
+                return path
+    return None
+
+
+def _lint_handlers(cid, n, ov=None):
+    """fuzz-v2 D8 -- THE HANDLER POOL, AND ITS RECURSION FALSIFIER.
+
+    Three checks:
+      1. over `n` seeds x 2 tiers x IHT_N slots, decoded off the COMPOSED
+         image: 0 forbidden instructions and 0 slots that can raise anything;
+      2. 0 recursion cycles in the composed vector->slot->vector graph;
+      3. NON-VACUITY, twice.  The same scanner is pointed at an image whose
+         slot has been overwritten with a body containing an EXCLUDED trapping
+         opcode -- `CD v` (a software interrupt back into itself) and `F7 F6`
+         (DIV by a register, the divide trap) -- and must report BOTH the
+         violation AND the cycle.  Without this the zero above proves only
+         that the scanner is asleep."""
+    hits = 0
+    t0 = time.time()
+    slots = nins = 0
+    for k in range(n):
+        for tier in ("soup", "raw"):
+            cfg = derive_case(cid, k, dict(ov or {}, force_tier=tier))
+            img, _m = compose_case(build(cfg), cfg)
+            for s in range(ti.IHT_N):
+                at = ti.IHT_AT + s * ti.IHT_STRIDE
+                vio, raises = _scan_slot(img, at)
+                slots += 1
+                nins += max(0, img.find(0xCF, at, at + ti.IHT_STRIDE) - at)
+                if vio or raises:
+                    hits += 1
+                    print(f"  HANDLER HIT {tier}/{cid}/{k} slot {s} "
+                          f"@{at:04x}: vio={vio[:3]} raises={sorted(raises)}")
+            cyc = _handler_cycle(img)
+            if cyc:
+                hits += 1
+                print(f"  HANDLER HIT {tier}/{cid}/{k}: recursion cycle {cyc}")
+    # --- (3) the controls ---------------------------------------------------
+    cfg = derive_case(cid, 0, dict(ov or {}, force_tier="soup"))
+    base, _m = compose_case(build(cfg), cfg)
+    ivt = _ivt_from_image(base)
+    v_any = next(v for v, _s, _o, p in ivt
+                 if ti.IHT_AT <= p < ti.IHT_AT + ti.IHT_N * ti.IHT_STRIDE)
+    # (blob, the vector that blob RAISES) -- the plant goes in the slot THAT
+    # vector maps to, so the cycle is one hop and needs no luck.
+    for name, blob, vec in (
+            (f"CD {v_any} (INT back into its own vector)",
+             bytes([0xCD, v_any]), v_any),
+            ("F7 F6 (DIV DW -- the divide trap, vector 0)",
+             b"\xf7\xf6", 0)):
+        img = bytearray(base)
+        at = ivt[vec][3]
+        if not (ti.IHT_AT <= at < ti.IHT_AT + ti.IHT_N * ti.IHT_STRIDE):
+            hits += 1
+            print(f"  handler CONTROL [{name}]: vector {vec} does not point "
+                  f"into the handler table ({at:04x})")
+            continue
+        img[at:at + len(blob)] = blob
+        img[at + len(blob)] = 0xCF
+        vio, raises = _scan_slot(img, at)
+        cyc = _handler_cycle(img)
+        ok = bool(vio) and bool(raises) and cyc is not None
+        print(f"  handler CONTROL [{name}] planted at slot {at:04x} "
+              f"(vector {vec}): vio={vio} raises={sorted(raises)} "
+              f"cycle={cyc if cyc is None else cyc[:4]} -> "
+              f"{'FIRES' if ok else 'DID NOT FIRE'}")
+        if not ok:
+            hits += 1
+    print(f"handlers: {n} seeds x 2 tiers x {ti.IHT_N} slots = {slots} slots, "
+          f"{nins} body bytes decoded in {time.time()-t0:.1f}s | hits={hits}")
     return hits
 
 
@@ -1154,7 +1601,7 @@ def _lint_soup(cid, n, report_every, ov=None):
 
 def _lint_raw(cid, n, report_every, ov=None):
     hits = comp_err = whole = payload = 0
-    scrub_tot = {"pair0f": 0, "halt": 0, "poll": 0, "brkem": 0}
+    scrub_tot = {"pair0f": 0}
     t0 = time.time()
     for k in range(n):
         cfg = derive_case(cid, k, dict(ov or {}, force_tier="raw"))
@@ -1170,7 +1617,10 @@ def _lint_raw(cid, n, report_every, ov=None):
             if comp_err <= 5:
                 print(f"  RAW COMPOSE ERR raw/{cid}/{k}: {e!r}")
             continue
-        vio = optable.scan_raw_bytes(img[:RESERVED_LO])
+        # the CODE REGION, on the WHOLE composed image: the harness page,
+        # the composed IVT and the carve-outs are not code and are not the
+        # rule's business (optable.CODE_SPANS says why).
+        vio = optable.scan_raw_bytes(img, optable.CODE_SPANS)
         if vio:
             hits += len(vio)
             print(f"  RAW HIT raw/{cid}/{k} mode={g['raw_mode']}: {vio[:4]}")
@@ -1189,17 +1639,18 @@ def cmd_lint(a):
     # worker at ~100 % CPU and nothing on stdout.  Pass `--report-every 5000`
     # if you want to watch it.
     ov = {}
-    if getattr(a, "no8080", False):
-        ov["no8080"] = True
     print(f"fuzz lint: cid={a.cid} soup_n={a.n} raw_n={a.raw_n} "
-          f"wvec_n={a.wvec_n} ov={ov}")
+          f"wvec_n={a.wvec_n} bias_n={a.bias_n} handler_n={a.handler_n} "
+          f"ov={ov}")
+    bh = _lint_bias(a.cid, a.bias_n, ov) if a.bias_n else 0
+    hh = _lint_handlers(a.cid, a.handler_n, ov) if a.handler_n else 0
     sh, sc = _lint_soup(a.cid, a.n, a.report_every, ov)
     rh, rc = _lint_raw(a.cid, a.raw_n, a.report_every, ov)
     wh = _lint_wvec(a.cid, a.wvec_n, ov) if a.wvec_n else 0
-    total = sh + sc + rh + rc + wh
+    total = sh + sc + rh + rc + wh + bh + hh
     print(f"\nLINT {'PASS' if total == 0 else 'FAIL'}: "
           f"soup hits={sh} compose_err={sc}; raw hits={rh} compose_err={rc}; "
-          f"wvec hits={wh}")
+          f"wvec hits={wh}; bias hits={bh}; handler hits={hh}")
     return 0 if total == 0 else 1
 
 
@@ -1230,13 +1681,8 @@ def main():
     p.add_argument("--no-evt", action="store_true")
     p.add_argument("--strict", action="store_true",
                    help="strict contained fall-through generation (pilot)")
-    p.add_argument("--fence", action="store_true",
-                   help="task #32: SOUP HLT-fence fill (0xF4) so escapes halt "
-                        "deterministically in-image (raw unaffected)")
     p.add_argument("--no-brkem", action="store_true",
                    help="p_brkem=0 (no 8080-entry dead captures); keeps other breadth")
-    p.add_argument("--brkem-high", action="store_true",
-                   help="p_brkem forced high (~50%% of seeds carry a BRKEM)")
     p.add_argument("--mainline", action="store_true",
                    help="suppress deliberate chip-vs-core-divergent classes "
                         "(brkem/tf/undoc); keep window-only breadth")
@@ -1250,11 +1696,6 @@ def main():
                         f"list from {','.join(wv.SHAPES)}.  Supersedes the "
                         "fixed/wrand wait sources (replay > rand > uniform in "
                         "all three legs)")
-    p.add_argument("--no8080", action="store_true",
-                   help="task #38: BRKEM-free by construction (p_brkem=0 + "
-                        "the raw scrub + the composed-image 0F FF rewrite).  "
-                        "Makes a corpus BRKEM-free, NOT 8080-free -- see "
-                        "ucore_provenance.md §63.5")
     p.add_argument("--done-dist", default=None)
     p.set_defaults(func=cmd_run)
 
@@ -1268,7 +1709,6 @@ def main():
     p.add_argument("--contained", action="store_true")
     p.add_argument("--force-tier", choices=["soup", "raw"])
     p.add_argument("--wvec-shapes", default=None)
-    p.add_argument("--no8080", action="store_true")
     p.set_defaults(func=cmd_show)
 
     p = sub.add_parser("replay")
@@ -1280,6 +1720,17 @@ def main():
     p.add_argument("--force-tier", choices=["soup", "raw"])
     p.set_defaults(func=cmd_replay)
 
+    p = sub.add_parser("measure", help="fuzz-v2 erratum E-1: escape count and "
+                                       "terminator-reached rate (NOT a gate)")
+    p.add_argument("cid")
+    p.add_argument("--n", type=int, default=2000)
+    p.add_argument("--start", type=int, default=0)
+    p.add_argument("--jobs", type=int, default=8)
+    p.add_argument("--force-tier", choices=["soup", "raw"])
+    p.add_argument("--report-every", type=int, default=0)
+    p.add_argument("--out", default=None, help="per-seed rows as JSON")
+    p.set_defaults(func=cmd_measure)
+
     p = sub.add_parser("lint")
     p.add_argument("--cid", default="lint")
     p.add_argument("--n", type=int, default=10000)
@@ -1287,8 +1738,12 @@ def main():
     p.add_argument("--wvec-n", type=int, default=200,
                    help="task #38: seeds for the wait-vector axis leg "
                         "(0 disables it)")
-    p.add_argument("--no8080", action="store_true",
-                   help="task #38: lint the BRKEM-free generation axis")
+    p.add_argument("--bias-n", type=int, default=500,
+                   help="fuzz-v2 T2: seeds for the segment/offset identity "
+                        "leg, with its non-vacuity control (0 disables it)")
+    p.add_argument("--handler-n", type=int, default=500,
+                   help="fuzz-v2 T2: seeds for the handler-pool leg and its "
+                        "recursion falsifier (0 disables it)")
     p.add_argument("--report-every", type=int, default=0)
     p.set_defaults(func=cmd_lint)
 

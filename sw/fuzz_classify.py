@@ -35,7 +35,8 @@ SW = Path(__file__).resolve().parent
 sys.path.insert(0, str(SW))
 import fuzz_cov                                        # noqa: E402
 from testimage import (OUT_PORT_DONE, OUT_PORT_REGS,   # noqa: E402
-                       DONE_SENTINEL, PSW_PUSH_AT, STORE_ORDER)
+                       DONE_SENTINEL, MAGIC, STORE_ORDER,
+                       CODE_LO, CODE_HI, RESERVED)
 
 # column-name maps (identical to check_seq's, kept local so this module has no
 # import cycle with check_seq, which delegates its diff() here)
@@ -100,21 +101,37 @@ def _done_idx(recs):
     return None
 
 
-def _open_bus_escaped_before(recs, pos, window, min_fetches=8):
-    """True if, before row `pos`, the chip made >= min_fetches out-of-image
-    (linear >= 0x10000) CODE fetches reading pure address feedthrough
-    (ad_data == ad_addr & 0xFFFF) - the rig's open-bus signature. Mirrors
-    fuzz_accept.open_bus_escape_metrics (kept local to avoid a circular import)."""
-    feed = 0
-    for i in range(min(pos, window, len(recs))):
+def escaped_code_region(recs, window):
+    """The first CODE fetch that came from outside the two regions a v2 image
+    ever executes from, as `(row, phys)`, or None.
+
+    THE DOMAIN IS THE PHYSICAL OFFSET, because it is the only one that decodes:
+    `hdl/rtl/test_mem.sv:47` decodes `addr[15:1]` and leaves `addr[19:16]`
+    unconnected, so every address in the 1 MB space answers with mirrored image
+    bytes.  THERE IS NO OPEN BUS ON THIS RIG.  The predicate this replaced
+    tested `linear >= 0x10000 and ad_data == (linear & 0xFFFF)` on CODE T1 rows,
+    where `ad_data == addr & 0xFFFF` holds by construction -- so it meant
+    ">= 8 code fetches above 64 K", which under v2's randomized segments is
+    normal and expected rather than evidence of anything.
+
+    The two legitimate regions are the code region (body, handler table,
+    terminator) and the loader page (the reset vector's far jump and the
+    register-injection routine).  Nothing else in a v2 image is ever executed:
+    every other byte of the code region is 0xCC, so an escape traps to INT3 and
+    lands in the terminator at any alignment.
+
+    IT IS A FALSIFIER, NOT AN EXCLUSION.  Under v2 containment an escape is
+    impossible by construction; a fire means containment failed, and that is a
+    finding to be reported (see `provenance_alarms`), never a reason to quietly
+    drop a seed from a population."""
+    n = min(window, len(recs))
+    for i in range(n):
         r = recs[i]
         if _tstate(r) == 1 and r["bs_early"] == 4:
-            a = r["ad_addr"] & 0xFFFFF
-            if a >= 0x10000 and r["ad_data"] == (a & 0xFFFF):
-                feed += 1
-                if feed >= min_fetches:
-                    return True
-    return False
+            p = r["ad_addr"] & 0xFFFF
+            if not (CODE_LO <= p < CODE_HI) and p not in RESERVED:
+                return i, p
+    return None
 
 
 def diff_rows(real, sim, limit=4000, strict_qs=False, window=None):
@@ -240,20 +257,69 @@ def has_done(recs, window):
     return False, None
 
 
-def arch_dump(recs, window):
-    """The 12 STORE_ORDER registers from the IOW-0xFE stream + PSW from the
-    last scratch-area PUSH PSW (MEMW @ 0xFFEC), per v30run.parse_result.
-    None when the store did not complete inside the window."""
-    txns = [t for t in extract_txns(recs) if t["start"] < window]
-    regw = [t for t in txns if KIND[t["kind"]] == "IOW"
-            and (t["addr"] & 0xFFFF) == OUT_PORT_REGS]
-    if len(regw) < len(STORE_ORDER):
-        return None
-    out = {name: regw[i]["data"] for i, name in enumerate(STORE_ORDER)}
-    pushes = [t for t in txns if KIND[t["kind"]] == "MEMW"
-              and (t["addr"] & 0xFFFF) == (PSW_PUSH_AT & 0xFFFF)]
-    out["PSW"] = pushes[-1]["data"] if pushes else None
+MAGIC_AT = STORE_ORDER.index("MAGIC")
+
+
+def dump_words(recs, window):
+    """The IOW-`OUT_PORT_REGS` data words written strictly BEFORE the first
+    done marker (IOW-`OUT_PORT_DONE`), in order, or None when the window holds
+    no done marker at all.
+
+    DONE-RELATIVE, because the capture is not one run of the program: the board
+    image RE-RUNS for as long as the capture lasts (`v30run.parse_result` bounds
+    its search at the done marker for exactly this reason and the old
+    `arch_dump` did not), and a terminator that is entered twice writes the
+    register port twice."""
+    words, out = [], None
+    for tx in extract_txns(recs):
+        if tx["start"] >= window:
+            break
+        if KIND[tx["kind"]] != "IOW":
+            continue
+        port = tx["addr"] & 0xFFFF
+        if port == OUT_PORT_DONE:
+            out = words
+            break
+        if port == OUT_PORT_REGS:
+            words.append(tx["data"])
     return out
+
+
+def arch_dump(recs, window):
+    """The 15 STORE_ORDER registers of the LAST dump before the done marker,
+    or None.
+
+    ANCHORED, NOT POSITIONAL: the last `len(STORE_ORDER)` register words before
+    the done marker must carry `MAGIC` at `MAGIC_AT`, or the run is not a dump
+    and None is returned.  That makes a stray `OUT 0xFE` in the fuzz body
+    harmless (it shifts the window, not the labels) instead of silently
+    mislabelling every register, and it degrades to None rather than to a
+    plausible wrong answer.
+
+    PSW is now a word IN this run -- the terminator pops its own interrupt
+    frame and emits IP/CS/FLAGS as ordinary port writes -- so the `MEMW @
+    0xFFEC` channel and its re-run hazard are gone (plan D6).
+
+    A dump the terminating NMI interrupted and restarted is NOT repaired here:
+    the last run is returned and `dump_restarted()` reports it, because the
+    restarted run's AW has already been clobbered by the first run's shuttle
+    and the seed is the campaign's to DISCARD."""
+    words = dump_words(recs, window)
+    if words is None or len(words) < len(STORE_ORDER):
+        return None
+    tail = words[-len(STORE_ORDER):]
+    if tail[MAGIC_AT] != MAGIC:
+        return None
+    return dict(zip(STORE_ORDER, tail))
+
+
+def dump_restarted(recs, window):
+    """True when more than one `MAGIC` anchor was written before the done
+    marker: the terminating NMI landed mid-dump and the handler ran again.
+    The second run's AW is the first run's shuttle value, so the dump is
+    unrepairable and the seed must be DISCARDED, not fixed up."""
+    words = dump_words(recs, window)
+    return words is not None and words.count(MAGIC) > 1
 
 
 # ===========================================================================
@@ -263,12 +329,24 @@ def provenance_alarms(real, sim, ctx, window):
     """Mechanised capture-integrity alarms - any hit means the capture cannot
     be trusted as evidence and the campaign must STOP to investigate:
       * a Tw row in a w0, non-wrand CHIP capture  (phantom sticky-WRAND wait)
+      * a CODE fetch from outside the code region or the loader page
+                                                   (v2 containment falsifier)
       * a done marker whose data != 0xF00D         (forged / corrupt store)
       * a reset asserted mid-window                (capture restarted)."""
     alarms = []
     if ctx.real_is_chip and ctx.waits == 0 and not ctx.wrand:
         if any(_tstate(r) == 4 for r in real[:window]):
             alarms.append("tw_in_w0_chip")
+    # CONTAINMENT FALSIFIER (plan D1/D7).  A v2 image cannot execute outside the
+    # code region or the loader page: everything else in the code region is 0xCC,
+    # so any escape traps to INT3 and lands in the terminator.  A fire is
+    # therefore a statement about the GENERATOR or the COMPOSER, not about the
+    # seed, and it is reported as an integrity alarm rather than excusing the
+    # seed out of a population the way the open-bus exclusion it replaced did.
+    for tag, recs in (("real", real), ("sim", sim)):
+        esc = escaped_code_region(recs, window)
+        if esc:
+            alarms.append(f"escaped_code_region_{tag}_{esc[1]:04x}@{esc[0]}")
     # A forged/corrupt done marker is a real alarm ONLY in Tier A (soup), where
     # the harness store must emit 0xF00D. Tier B (raw) legitimately forges done
     # markers with random data (a random OUT 0xFC), so the fixed-window verdict
@@ -282,20 +360,17 @@ def provenance_alarms(real, sim, ctx, window):
     # fall-through that wanders past the stub and OUTs junk (0x00c5) to port 0xFC
     # on the CHIP only (the core never reaches it). The normal classifier handles
     # that divergence; it must NOT hard-STOP the campaign as a forged store. So
-    # fire the alarm only when both legs agree on a non-sentinel done value AND
-    # neither leg reached the write via an open-bus escape.
+    # fire the alarm only when both legs agree on a non-sentinel done value.
+    # (The old "unless one leg got there via an open-bus escape" carve-out is
+    # gone with the open-bus predicate: an escape is now an alarm in its own
+    # right two blocks above, so the carve-out could only ever have suppressed
+    # one alarm in favour of another.)
     if ctx.tier == "A":
         pr, ddr = has_done(real, window)
         ps, dds = has_done(sim, window)
         both = pr and ps and ddr is not None and dds is not None
         if both and ddr == dds and ddr != DONE_SENTINEL:
-            dpr, dps = _done_idx(real), _done_idx(sim)
-            escaped = ((dpr is not None
-                        and _open_bus_escaped_before(real, dpr, window))
-                       or (dps is not None
-                           and _open_bus_escaped_before(sim, dps, window)))
-            if not escaped:
-                alarms.append(f"done_data_both_{ddr:04x}")
+            alarms.append(f"done_data_both_{ddr:04x}")
     for tag, recs in (("real", real), ("sim", sim)):
         seen_run = False
         for r in recs[:window]:
