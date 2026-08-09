@@ -946,6 +946,93 @@ def stall_evidence(real, sim, hold_rows):
 
 
 # --------------------------------------------------------------------------- #
+# AMENDMENT A-7 (prereg §19) -- THE FIFTH DECLARED DISCARD CLASS.
+#
+# IT IS A LIMIT OF THE CAPTURE WINDOW AND NOT A DEFECT OF THE PART, and the
+# name says so: the capture is 4,096 records deep, one instruction was still
+# running when the last record was taken, and a longer window would have
+# recorded the entry and the dump.  A `stalled` part (A-4) can NEVER dump; a
+# `long_insn` seed WOULD dump given a longer window.  The two classes are
+# categorically different and nothing in either may be read as the other.
+# --------------------------------------------------------------------------- #
+def long_insn_evidence(real, sim, hold_rows):
+    """AMENDMENT A-7's fifth declared discard class, measured on the SOCKET
+    leg's own rows: THE CAPTURE WINDOW ENDS WHILE ONE INSTRUCTION IS STILL
+    RUNNING, so the terminating NMI is latched and served after the last row.
+
+    `f` is the row the terminating NMI asserts -- the unique `pin_nmi` run of
+    length `TERM_HOLD`, `stall_evidence`'s own identification, unchanged.
+    Reading ONLY rows at or after `f`, `long_insn` is TRUE iff BOTH hold:
+
+      1. THE PART IS STILL RUNNING -- at least one non-PASV row at or after
+         `f`.  This is A-4 clause (3)'s exact NEGATION, so the two classes are
+         disjoint by construction and neither can absorb the other.
+      2. AND IT HAS NOT STARTED AN INSTRUCTION -- not one CODE fetch at or
+         after `f`.  The part is fetching no code and still driving the bus:
+         it is finishing something it started before the pin went high.
+
+    NEITHER CLAUSE LOOKS AT A DUMP.  "The terminator was not reached" is not a
+    term of this predicate, which is what makes the falsifier below a test
+    rather than a tautology.
+
+    WHY NO `TERM_CLOCKS` REACHES IT.  NMI recognition happens at an
+    instruction boundary; a block transfer is ONE instruction and its
+    iteration count came out of the same random bytes as its opcode, so it can
+    run for hundreds of thousands of clocks.  Firing the terminator earlier
+    only moves the pin edge, which is latched and served when that instruction
+    retires -- after the last of the 4,096 records.  `term.vec_used` is TRUE on
+    this class precisely because the run CONTINUES past the capture: the rig's
+    sticky bit and the rows are answering about different intervals.
+
+    NO OPCODE IS NAMED, HERE OR ANYWHERE.  A scan-back for a block-transfer
+    byte resolves ~67 % of random windows by chance (14 of 256 byte values);
+    §17.10 tried it, measured that, and discarded the result.  The class is
+    defined by the observable and by nothing else.
+
+    Returns None when the question cannot be asked of these rows (no rows, no
+    pin columns, no unique terminating-NMI run) -- never False, which would
+    read as a measured absence.  Otherwise a dict; the caller banks
+    `long_insn` = the boolean and this dict as `long_insn_at`.
+
+    THE CORROBORATING MEASUREMENT IS BANKED WITH IT, and it is what makes the
+    class believable rather than merely detectable: `qs_nz` is how many of the
+    post-NMI rows show any queue activity at all.  `QS` is the part's own
+    queue-status pin pair -- it reports a byte leaving the prefetch queue -- so
+    `qs_nz == 0` means no instruction was started or retired for the whole
+    span.  `core_after` / `core_code` are the same two counts on the FABRIC
+    core's rows (A-4's positive-half precedent), because a discard must not
+    discard the chip-vs-core agreement inside it."""
+    if not real or not hold_rows:
+        return None
+    runs = hold_rows.get("pin_nmi") or []
+    base = real[0]["idx"]
+    hits = [s + base for s, L in runs if L == TERM_HOLD]
+    if len(hits) != 1:
+        return None
+    f = hits[0]
+
+    def leg(rows):
+        post = [r for r in rows if r["idx"] >= f] if rows else []
+        return (sum(1 for r in post if r["bs_early"] != BS_PASV),
+                sum(1 for r in post if r["bs_early"] == 4),
+                sum(1 for r in post if r.get("qs")), len(post))
+
+    after, code, qs_nz, npost = leg(real)
+    cafter, ccode, cqs, _ = leg(sim)
+    return {"long_insn": bool(after and not code), "f": f, "after": after,
+            "code_after": code, "qs_nz": qs_nz, "post_rows": npost,
+            "lock_rows": sum(1 for r in real
+                             if r["idx"] >= f and r.get("lock_n") == 0),
+            "core_after": (cafter if sim else None),
+            "core_code": (ccode if sim else None),
+            "core_qs_nz": (cqs if sim else None),
+            # THE POSITIVE HALF: the fabric core is in the same state -- still
+            # driving the bus, still fetching no code -- at the same pin edge.
+            "core_match": (bool(after and not code and cafter and not ccode)
+                           if sim else None)}
+
+
+# --------------------------------------------------------------------------- #
 # AMENDMENT A-6 (prereg §17) -- WHY THIS CAPTURE DID NOT REACH THE TERMINATOR.
 #
 # IT IS A CENSUS AND NOT A DISCARD CLASS.  `fz2_w1.py bars` dispositions on
@@ -1028,7 +1115,15 @@ def term_mechanism(real, sim, hold_rows):
         if st["last_bs"] == BS_HALT:
             return "HALT"
         return "STALLED" if st["stalled"] else "NEAR"
-    if not any(r["bs_early"] == 4 for r in post):
+    # AMENDMENT A-7: ONE COPY OF THE PREDICATE.  This branch used to inline
+    # `not any(bs_early == 4)`; it now asks `long_insn_evidence`, which is the
+    # class's own detector, so `mech == "LONG_INSN"` IMPLIES that detector
+    # fired -- by construction and not by coincidence.  The implication is one
+    # way only: this branch is reached after REACHED / WINDOW / FORGED_DONE /
+    # BUDGET, so the label can UNDER-report the detector and never over-report
+    # it.  A-7 §19.4 relies on exactly that direction.
+    li = long_insn_evidence(real, sim, hold_rows)
+    if li is not None and li["long_insn"]:
         return "LONG_INSN"
     return "OTHER"
 
@@ -1079,6 +1174,7 @@ def result_line(cfg, g, sha, v, di, gen_git, build_stale, ts, bus_cycles=None,
                     "ps3_8080_core": None,
                     "wrote_term": None, "wrote_term_at": None,
                     "stalled": None, "stalled_at": None,
+                    "long_insn": None, "long_insn_at": None,
                     "term": None}),
         "era": _ERA,
         "wild": g.get("wild"), "has_brkem": g.get("has_brkem", False),
@@ -1212,6 +1308,11 @@ def eval_case(cid, k, ov, tb_only, host, build_stale, keep_rows=False,
         # undispositioned seeds; a column on the line needs no rows at all.
         holds = _pin_runs(real, len(real))
         st = stall_evidence(real, sim, holds)
+        # A-7: the same lesson one amendment later.  The fifth class's detector
+        # is computed HERE, from rows that are in hand anyway, and banked as
+        # two columns, so a capture taken under A-7 classifies itself and needs
+        # no retained rows at all.
+        li = long_insn_evidence(real, sim, holds)
         arch = {"arch_ok": aw is not None,
                 "arch_restart": fc.dump_restarted(real, len(real),
                                                   sentinel_only=True),
@@ -1266,6 +1367,11 @@ def eval_case(cid, k, ov, tb_only, host, build_stale, keep_rows=False,
                 # and it costs one string per line.
                 "mech": term_mechanism(real, sim, holds),
                 "stalled_at": st,
+                # AMENDMENT A-7's fifth declared discard class, banked the way
+                # A-4's fourth is: `None` when the rows cannot answer, never a
+                # False that would look like a measured absence.
+                "long_insn": (None if li is None else li["long_insn"]),
+                "long_insn_at": li,
                 # C-6: what the rig reported, what it was handed, what the
                 # rows say.  `None` on a TB leg, which arms no terminator.
                 "term": {

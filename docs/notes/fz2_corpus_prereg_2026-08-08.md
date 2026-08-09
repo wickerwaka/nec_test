@@ -2368,3 +2368,224 @@ stops reaching it.
   rows-only stability rather than to a false MISS, and C-9 read **192/192**.
   It is left alone rather than changed mid-sitting; recorded so it is not
   mistaken for an oversight.
+
+---
+
+## §19 AMENDMENT A-7 — A FIFTH DECLARED DISCARD CLASS: **`LONG_INSN`, THE CAPTURE WINDOW'S OWN LIMIT**
+
+**Written 2026-08-09/10, AFTER the §18 A-6 re-capture that MISSED C-1 with
+UNDISPOSITIONED at 100, and COMMITTED BEFORE the rescore it enables.**
+Appended, never back-edited.  This is the coordinator's disposition of M-1
+(§17.2), which named the mechanism, measured it (§17.10) and deliberately made
+no disposition of it — *"whether it becomes a declared discard class is a
+decision about a registered bar and belongs to the coordinator"* (§17.6).
+
+**NO BAR MOVES.**  C-1 … C-11 keep their text and their registered values
+**character for character** — including A-5's re-registered rate clauses (soup
+**≥ 90.0 %**, raw **≥ 75.0 %**, both still `UNVALIDATED`) and **E-1c = 0, which
+is UNTOUCHED**.  What changes is §3.4's list of declared discard classes:
+**four become five.**
+
+### 19.0 WHAT THIS CLASS IS, AND — LOUDLY — WHAT IT IS NOT
+
+> **IT IS A LIMIT OF THE CAPTURE WINDOW.  IT IS NOT A DEFECT OF THE PART, AND
+> IT IS NOT A FAILURE TO TAKE AN INTERRUPT.**
+
+The name is chosen for the window and not for the part, deliberately, so that a
+reader six months from now cannot take it for silicon behaviour.  The
+distinction from A-4 is **categorical, not one of degree**:
+
+| | A-4 `stalled` | **A-7 `long_insn`** |
+|---|---|---|
+| the part is | **STOPPED** | **RUNNING** |
+| post-NMI bus | **none at all** | 571 … 1,262 non-`PASV` rows |
+| would a longer window help? | **NO — it can never dump** | **YES — it would dump** |
+| what the capture ended in the middle of | nothing | **one instruction** |
+
+`term.vec_used` is **TRUE on every capture in this class** and that is not a
+contradiction: the rig's sticky bit says the overlay served a CS half, which
+happens when the instruction retires — **after the last of the 4,096 records**.
+The bit and the rows are answering about different intervals, exactly as §17.2
+recorded.  ⚠ **`vec_used` TRUE therefore does not mean "the vector was taken
+inside the capture"**, and §14.3's reading of `vec_used` FALSE does not invert.
+
+**Why it is a DISCARD and not a containment failure.**  Nothing escaped, the
+image did not overwrite anything, and the terminator was armed and asserted.
+The capture is 4,096 records deep; a block transfer is ONE instruction and its
+iteration count came out of the same random bytes as its opcode, so it can run
+for hundreds of thousands of clocks.  **No `TERM_CLOCKS` and no `ENTRY_MAX`
+value reaches it**: firing the terminator earlier only moves the pin edge,
+which is latched and served later regardless.
+
+### 19.1 THE TRAP THIS AMENDMENT IS WRITTEN AGAINST — A-4 §15.0's FOUR CONDITIONS, AGAIN
+
+C-1's disposition set is `arch_restart or ps3_8080 or wrote_term or stalled`,
+and **adding a fifth term makes UNDISPOSITIONED fall by construction.**  That
+is the shape amendment A-2 exists to prevent — there, `ps3_8080` fired on 3,840
+of 3,840 and would have driven the count to **0 vacuously**.  So this class is
+admitted under **the same four conditions A-4 was**, all met and reported
+below:
+
+1. the detector is **independent of the thing it explains** and is computed
+   from the SOCKET leg's own rows.  **Neither of its clauses mentions a dump**,
+   which is what makes condition 2 a test rather than a tautology;
+2. a **HARD FALSIFIER, run**: the detector must fire on **ZERO** captures that
+   reached the terminator, over every banked capture in **both campaigns** and
+   **all three banks**;
+3. **no other bar moves**, and C-1's two rate clauses keep their text and
+   values character for character;
+4. the rescore is reported **BOTH WAYS**, with and without the class.
+
+### 19.2 THE DETECTOR
+
+`fuzz_campaign.long_insn_evidence` is the definition; `sw/fz2_longinsn.py` is
+its falsifier and its census, and **no second copy of the predicate exists
+anywhere** — since A-7, `term_mechanism`'s own `LONG_INSN` branch CALLS it.
+
+On the **SOCKET leg's own rows**, let `f` be the row the terminating NMI
+asserts (the unique `pin_nmi` run of length `TERM_HOLD` — A-4's identification,
+unchanged; a stimulus NMI holds 2 or 300 and is a different run).  Reading
+**only rows at or after `f`**, `long_insn` is TRUE iff BOTH hold:
+
+| clause | what it says | why it is there |
+|---|---|---|
+| **(1) THE PART IS STILL RUNNING** — at least one non-`PASV` row at or after `f` | the bus is live when the terminator arrives and stays live | this is **A-4 clause (3)'s exact negation**, so the two classes are **disjoint by construction** and neither can absorb the other.  `fz2_longinsn falsify` checks it rather than asserting it: **0** captures carry both labels, in every bank |
+| **(2) AND IT HAS NOT STARTED AN INSTRUCTION** — not one `CODE` fetch at or after `f` | it is fetching no code and still driving the bus, so it is finishing something it began before the pin went high | this is the clause that does **all** of the falsifier's work — measured below — and it is a statement about the **bus**, not about a dump |
+
+**There is no third clause, no threshold, no tier parameter and no per-opcode
+anything.**  `STALL_IDLE` is A-4's and is not read here.
+
+**DO NOT NAME AN OPCODE.**  §17.10 tried: it regenerated every image
+(`GEN-DRIFT` checked, `sha256` equal on every one) and scanned back for a
+block-transfer byte.  It resolved 9 of 16 and **the result is noise and was
+discarded** — 14 of 256 byte values are block-transfer opcodes, so a 20-byte
+window of random bytes contains one with probability ≈ 67 % by chance, and the
+last *fetch* is a prefetch running ahead of the executing instruction by an
+unknown amount.  **The class is defined by the observable and by nothing else,
+and that is not re-litigated here.**
+
+### 19.3 THE FALSIFIER — RUN, AND REPORTED WITH ITS DENOMINATORS
+
+`python3 sw/fz2_longinsn.py falsify`, over **every banked capture in every
+bank**, both campaigns separately inside each:
+
+| bank | campaign | terminator-REACHED captures | **detector fires on** |
+|---|---|---|---|
+| current (A-6) | `fz2c` | 461 | **0** |
+| current (A-6) | `fz2e` | 205 | **0** |
+| prior (A-5, archived by rename) | `fz2c-A5-archive` | 458 | **0** |
+| prior (A-5, archived by rename) | `fz2e-A5-archive` | 201 | **0** |
+| archive (INV-2) | `fz2c-INV2-archive` | 354 | **0** |
+| archive (INV-2) | `fz2e-INV2-archive` | 101 | **0** |
+| | **TOTAL** | **1,780** | **0 — PASS** |
+
+`not evaluable` is **0** in all three banks.  For contrast, on captures that did
+NOT reach the terminator it fires on **15 / 70** (current), **16 / 73** (prior)
+and **18 / 279** (archive).
+
+**WHICH CLAUSE DOES THE WORK, reported so the conjunction is not taken on
+trust.**  Clause (1) alone fires on **666 / 666**, **659 / 659** and **455 /
+455** reached captures — it does none of it.  **Clause (2) alone fires on 0 of
+every reached population**, so the falsifier is carried entirely by *"not one
+CODE fetch after the NMI"*, which is a statement about the bus and not about a
+dump.  A capture that reaches the terminator **executes its dump**, and
+executing means fetching.
+
+**DISJOINTNESS FROM A-4, CHECKED**: **0** captures carry both `stalled` and
+`long_insn`, in every bank.  A-4's own falsifier is unmoved and was re-run:
+`fz2_stall.py falsify --bank current` is still **0 / 666**.
+
+### 19.4 THE POSITIVE HALF, AND THE MEASUREMENT THAT MAKES IT A MECHANISM
+
+`python3 sw/fz2_longinsn.py census`.  Over the class, in each bank:
+
+| | current | prior | archive |
+|---|---|---|---|
+| captures in the class | **15** | **16** | **18** |
+| tier | **raw 15 / soup 0** | **raw 16 / soup 0** | **raw 18 / soup 0** |
+| `term.vec_used` | **TRUE on all** | **TRUE on all** | **TRUE on all** |
+| post-NMI rows | 15,105 | 15,956 | 8,915 |
+| **rows with ANY queue activity (`qs` != 0)** | **0** | **0** | **0** |
+| rows with `LOCK` asserted | **0** | **0** | **0** |
+| post-NMI bus cycles, by kind | **MEMW 1,289 · MEMR 1,051** | MEMW 1,375 · MEMR 1,138 | MEMW 747 · MEMR 625 |
+| the FABRIC CORE in the same state | **13 / 15** | 14 / 16 | 16 / 18 |
+
+`QS` is the part's own queue-status pin pair — it reports a byte leaving the
+prefetch queue.  **`qs` = 0 on every one of 15,105 post-NMI rows means no byte
+enters the queue and NO INSTRUCTION IS RETIRED**, for hundreds of bus cycles,
+while the bus runs MEMR/MEMW **only** — no CODE, no INTA, no I/O — and `LOCK`
+is **never** asserted, so this is not the 8086 `LOCK`-prefix interrupt-inhibit
+story.  It is measured off the pins, and **it is not a clause of the detector**:
+it is the corroboration that the two-clause detector is finding a real
+mechanism.  Both columns (`qs_nz`, `lock_rows`) are banked with the evidence.
+
+**THE POSITIVE HALF IS BANKED WITH THE DISCARD, NOT THROWN AWAY WITH IT**
+(A-4 §15.3's precedent): on 13 of 15 the fabric core is in the identical state
+at the identical pin edge — bus running, no CODE fetch — which is a real
+chip-vs-core agreement on a real mechanism.
+
+### 19.5 HOW A SEED IS ASKED, AND WHY THE ANSWER IS NOT AN EXTRAPOLATION
+
+**THE DURABLE FIX, LANDED WITH THIS AMENDMENT**: the detector is computed **at
+capture time**, while the rows are in hand, and banked on the result line as
+`long_insn` + `long_insn_at`.  `fz2_w1.REQUIRED_LINE_FIELDS` names both, so the
+preconditions check refuses a capture whose path would not produce them —
+checked before board time, the way §7 checks everything else.  **A capture
+taken under A-7 classifies every seed off its own line and retains no rows to
+do it.**
+
+The §18 capture predates that column and its rows exist for **15 of the 73**
+seeds this class concerns, so `fz2_longinsn.resolve` answers in this order:
+
+1. **`line`** — A-7's own column.  Absent on this capture, present on every
+   future one.
+2. **`rows`** — recomputed from a banked capture.  Definitive.
+3. **`mech`** — A-6's census column reads `LONG_INSN`.  **This is a banked,
+   capture-time record of THIS detector having fired, not an inference about
+   it**: since A-7, `term_mechanism` reaches that label by *calling*
+   `long_insn_evidence`.  Checked and not asserted — recomputing `mech` from
+   the rows of **all 2,202 banked captures in all three banks** reproduces the
+   banked value with **0 differences**, so the refactor moved no label.
+4. **`mech_inconclusive`** — `mech` is present and is some other label.  The
+   labels are applied in a fixed order and an earlier one wins, so this does
+   **NOT** say the detector is False.  The seed **stays UNDISPOSITIONED**.
+5. **`none`** — neither.  Stays UNDISPOSITIONED.
+
+**THE IMPLICATION RUNS ONE WAY, AND THE DIRECTION IS THE POINT.**
+`term_mechanism` reaches its `LONG_INSN` branch only after `REACHED`, `WINDOW`,
+`FORGED_DONE` and `BUDGET`, so the label can **UNDER-report** the detector and
+can never over-report it.  Every uncertainty in this resolver therefore leaves
+the residue **LARGER** — which is the direction that cannot buy a bar.
+
+### 19.6 ITS OWN TIMING, STATED RATHER THAN HIDDEN
+
+**This class is being added after a capture that missed C-1**, and after A-5
+lowered two of C-1's three clauses onto the population that measured them.  Its
+protections are §19.1's four conditions, the falsifier of §19.3 with its 1,780
+denominator, the disjointness check, and the both-ways reporting of §19.7.
+**E-1c's value is not touched** and no rate moves by a hundredth: this class
+disposes seeds, it does not make them reach the terminator.
+
+**AND IT DOES NOT CLEAR C-1.**  §18.6 stated the arithmetic in advance —
+*"if it were taken, E-1c would read 27"* — and **27 is not 0**.  C-1 stays
+**MISSED**, on E-1c alone, exactly as it was before this amendment.
+
+### 19.7 WHAT A-7 CHANGES IN THE TREE
+
+* `sw/fuzz_campaign.py` — `long_insn_evidence`; `term_mechanism`'s `LONG_INSN`
+  branch now CALLS it instead of inlining the predicate (0 label changes over
+  2,202 banked captures); the two new result-line columns.  **No bar, no
+  constant, no threshold and no part of the capture path is touched, and
+  `classify` is not touched**, so no verdict, signature or row-diff moves.
+* `sw/fz2_longinsn.py` — **new**: the detector's falsifier, its census and the
+  resolver.  It reads banked captures only — no board, no TB, no engine.
+* `sw/fz2_w1.py` — C-1's disposition set gains the fifth term; the bar now
+  reports `undispositioned_4class`, `long_insn_total` and
+  `classified_from_long_insn` beside A-4's, permanently.
+  `REQUIRED_LINE_FIELDS` gains the two columns.
+* This document, appended.
+
+`SEEDS_SHA256`, `SEED_LIST_SHA256` and the corpus itself **do not move**: not
+one seed, image, vector or constant changed.  **No board was contacted, no
+bitstream flashed and no Quartus run** for this amendment; every figure in §19
+is read off banked captures, offline.

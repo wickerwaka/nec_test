@@ -79,6 +79,7 @@ sys.path.insert(0, str(SW))
 import check_seq                                          # noqa: E402
 import fuzz_campaign as fzc                               # noqa: E402
 import fuzz_classify as fc                                # noqa: E402
+import fz2_longinsn                                        # noqa: E402
 import fz2_stall                                          # noqa: E402
 import testimage as ti                                    # noqa: E402
 import v30ctl                                             # noqa: E402
@@ -319,6 +320,10 @@ REQUIRED_LINE_FIELDS = (
     # the reason the 2026-08-09 re-capture demonstrated: rows exist for only
     # 67 of its 312 undispositioned seeds and the other 245 cannot be asked.
     "stalled", "stalled_at",
+    # AMENDMENT A-7: the FIFTH discard class, the same way and for the same
+    # reason.  A capture taken under A-7 self-classifies on both columns and
+    # keeps no rows to do it.
+    "long_insn", "long_insn_at",
 )
 REQUIRED_ROW_FIELDS = ("pin_int", "pin_nmi", "pin_poll_n", "vec_armed")
 
@@ -1211,7 +1216,7 @@ def cmd_bars(a):
             "NOT SCOREABLE")
     else:
         m = {}
-        undisp = undisp3 = 0
+        undisp = undisp3 = undisp4 = 0
         # AMENDMENT A-4 -- the FOURTH declared discard class.  Nothing about
         # any bar's text or value moves; §3.4's list gains one row.  The
         # three-term figure is computed and reported BESIDE the four-term one
@@ -1220,10 +1225,23 @@ def cmd_bars(a):
         # 3,840 of 3,840 would have driven this count to 0 by arithmetic.
         capidx = {pop: fz2_stall.capture_index(CID[pop]) for pop in POPS}
         src = Counter()
-        # AMENDMENT A-6's CENSUS COLUMN, REPORTED AND NOT USED.  `mech` is read
-        # off the result line as a banked field; this file does not import
-        # `term_mechanism` and the disposition set below is still A-4's four
-        # classes and nothing else.  It is here so that the residue E-1c
+        # AMENDMENT A-7 -- the FIFTH declared discard class, THE CAPTURE
+        # WINDOW'S OWN LIMIT.  Same shape as A-4's arrival and the same four
+        # protections (§19.0): an independent detector that names no dump, a
+        # HARD falsifier run over every banked capture in every bank, no bar's
+        # text or value moved, and the rescore reported BOTH WAYS.  The
+        # four-class figure is kept beside the five-class one permanently, so
+        # what this class buys stays visible instead of being absorbed.
+        src_li = Counter()
+        # AMENDMENT A-6's CENSUS COLUMN, REPORTED AND NOT USED AS A CLASS.
+        # `mech` is read off the result line as a banked field; this file does
+        # not import `term_mechanism`, and the disposition set below is the
+        # five DECLARED classes and nothing else -- A-6's other labels
+        # (`BUDGET`, `NEAR`, `OTHER`) disposition nothing and never have.
+        # ⚠ `fz2_longinsn.resolve` DOES read `mech`, for one label only, and
+        # only because since A-7 `term_mechanism` reaches that label by calling
+        # A-7's own detector; that file's docstring carries the argument and
+        # the one-way direction of it.  It is here so that the residue E-1c
         # counts can be NAMED in the scored artifact rather than only in a
         # census run beside it -- `mech_undispositioned` is the one table this
         # sitting exists to produce.  A-6 §17.1.
@@ -1258,22 +1276,36 @@ def cmd_bars(a):
                     if r.get("stalled") is not None and \
                             bool(r["stalled"]) != (r.get("mech") == "STALLED"):
                         mech_p3["stalled_vs_mech"] += 1
-                nstall = 0
+                nstall = nlong = 0
                 for r in rest:
                     st, _, how = fz2_stall.resolve(r, capidx[pop])
                     src[how] += 1
                     nstall += bool(st)
-                    if not st:
+                    if st:
+                        continue
+                    # A-7.  Asked ONLY of a seed the four classes did not take,
+                    # so the two are disjoint in the count exactly as they are
+                    # disjoint in the predicate (A-4 clause (3) is A-7 clause
+                    # (1)'s negation; `fz2_longinsn falsify` checks it).
+                    li, _, lihow = fz2_longinsn.resolve(r, capidx[pop])
+                    src_li[lihow] += 1
+                    nlong += bool(li)
+                    if not li:
                         mech_undisp[str(r.get("mech"))] += 1
                 disp, dispst = len(d3), len(d3) + nstall
+                disp5 = dispst + nlong
                 undisp3 += len(bad) - disp
-                undisp += len(bad) - dispst
+                undisp4 += len(bad) - dispst
+                undisp += len(bad) - disp5
                 m[f"{pop}/{tier}"] = {
                     "n": len(sel), "reached": ok,
                     "pct": round(100.0 * ok / len(sel), 2) if sel else None,
-                    "dispositioned": dispst,
+                    "dispositioned": disp5,
+                    "dispositioned_4class": dispst,
                     "dispositioned_3class": disp, "stalled": nstall,
-                    "undispositioned": len(bad) - dispst,
+                    "long_insn": nlong,
+                    "undispositioned": len(bad) - disp5,
+                    "undispositioned_4class": len(bad) - dispst,
                     "undispositioned_3class": len(bad) - disp}
         met = all(v["pct"] is not None
                   and v["pct"] >= E1[k.split("/")[1]] for k, v in m.items())
@@ -1282,8 +1314,10 @@ def cmd_bars(a):
             f"soup >= {E1['soup']} %, raw >= {E1['raw']} %, per population "
             f"{E1_A5}; and 0 UNDISPOSITIONED non-dumping seeds (E-1c, "
             "UNTOUCHED by A-5)",
-            # `undispositioned_3class` is what this bar read before A-4 and is
-            # kept on the record permanently.  `classified_from` says HOW each
+            # `undispositioned_3class` is what this bar read before A-4 and
+            # `undispositioned_4class` what it read before A-7; BOTH are kept
+            # on the record permanently, so what each class buys stays visible
+            # rather than absorbed.  `classified_from` says HOW each
             # remaining seed was asked: `line` = A-4's own capture-time column
             # (self-classifying), `rows` = recomputed from a banked capture,
             # `none` = neither, i.e. UNCLASSIFIABLE -- and an unclassifiable
@@ -1293,8 +1327,11 @@ def cmd_bars(a):
              "mech_undispositioned": dict(mech_undisp),
              "mech_selfcheck": mech_p3,
              "undispositioned_3class": undisp3,
-             "stalled_total": undisp3 - undisp,
-             "classified_from": dict(src)},
+             "undispositioned_4class": undisp4,
+             "stalled_total": undisp3 - undisp4,
+             "long_insn_total": undisp4 - undisp,
+             "classified_from": dict(src),
+             "classified_from_long_insn": dict(src_li)},
             _c1_verdict(met, undisp))
 
     # ---- C-2: the ARCH COLUMN IS NON-VACUOUS ------------------------------
