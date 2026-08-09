@@ -217,6 +217,8 @@ private:
     void deliver_read(bool reads_opr = true);
     void emit_pending();
     void bus_read(uint8_t seg, uint16_t off, bool byte, bool io, uint16_t upc);
+    bool ghost_read_stale(const ucrom::MicroOp& op) const;
+    uint16_t ghost_bus_off() const;
     void bus_write(uint8_t seg, uint16_t off, bool byte, bool io, uint16_t upc,
                    bool opr_eval = false);
     void bus_inta(uint16_t upc);
@@ -833,6 +835,60 @@ void CpuT<Bus>::emit_pending() {
     opr_fresh_ = false;
 }
 
+// ---------------------------------------------------------------------------
+// THE 8F GHOST READ -- the mod==3 stack read that goes out at a STALE address.
+//
+// `8F` at `mod == 3` (the undocumented register-destination POP alias) runs the
+// same four ROM rows as the memory form -- 0058 `SIGMA -> tmpa`, 0059
+// `SP -> IND | SP -> tmpb  CTL MEMR SS`, 005A `SIGMA -> SP  F`, 005B
+// `SIGMA -> IND  E  [-06-]` -- but with a REGISTER r/m the `[-06-]` write-back
+// strobe commits nothing, so the word the read fetches is architecturally dead.
+// It is NOT dead on the bus: the cycle happens, and silicon drives it at a
+// retained internal value rather than at SS:SP.
+//
+// PROVENANCE: this is a PORT of the RTL, not an independent derivation.  The
+// reference is `hdl/rtl/ucore/v30u_eu.sv`'s `ghost_read_stale_alu` /
+// `ghost_off` / `ghost_bus_off`, landed at `d1d9f168d4`
+// (`docs/notes/ghost8f_read_results_2026-08-09.md`).  Row 0058 copies the
+// STANDING SIGMA into `tmpa`; the row below drives that retained scratch value
+// onto the address rails while the register file is also driving SP onto them,
+// and two drivers on one rail read as a wired AND.  That is the whole
+// expression: `tmpa & SP`.
+//
+// WHAT IS PORTED AND WHAT IS NOT -- stated because the RTL's expression is
+// WIDER than this one and a silent subset is a lie:
+//
+//   ported     `ghost_read_stale_alu` (the row shape, verbatim: page 0, opcode
+//              8F, an `E_MEMR` row on segment SS, r/m AND write-back both
+//              REGISTER, and the row's own two transfers SP->IND and SP->tmpb)
+//              and the `ghost_off & SP` contention.
+//   NOT ported `ghost_uses_ea` / `ghost_ea_off` (the RTL's `ea_residue`
+//              register, which this model does not carry), `ghost_uses_mul_hi`
+//              (the 69/6B immediate-IMUL high-word rail) and `ghost_relax`
+//              (the `eu_ghost_full` / `eu_ghost_idle` / `q_ripe` queue
+//              hand-off rails).  Every one of those terms is a PREDECESSOR-
+//              instruction effect, and a golden case has no predecessor: in
+//              the whole `8F.0` suite the RTL evaluates them all inert.
+//
+// *Falsifier*, and it is the reason the omission is written down rather than
+// hidden: any 8F mod==3 cycle whose predecessor left `ea_residue != tmpa`, or
+// which lands on a queue hand-off, will diverge from the RTL here.  That is a
+// WHOLE-PROGRAM population (`timed_fuzz`, `fz2`), not a golden one, and this
+// landing does not claim it.
+// ---------------------------------------------------------------------------
+template <class Bus>
+bool CpuT<Bus>::ghost_read_stale(const ucrom::MicroOp& op) const {
+    return m_.upc.page == 0 && m_.upc.opc == 0x8F &&
+           op.ectl == exec_detail::kEctlMemR && sr_segment(op.sr) == kSS &&
+           m_.M.kind == OperandRef::kReg && m_.WB.kind == OperandRef::kReg &&
+           op.s1 == 28 && op.d1 == 5 && op.s2 == 12 && op.d2 == 1;
+}
+
+template <class Bus>
+uint16_t CpuT<Bus>::ghost_bus_off() const {
+    return uint16_t(m_.tmpa & m_.gpr[kSP]);
+}
+
 template <class Bus>
 void CpuT<Bus>::bus_read(uint8_t seg, uint16_t off, bool byte, bool io, uint16_t upc) {
     if (pend_.active) {  // a queued write must run before the next cycle
@@ -1405,7 +1461,10 @@ bool CpuT<Bus>::run_micro(const MicroPc& entry) {
             // See state.h / ledger A37.
             bool byte = m_.op8 && !m_.bus_word;
             switch (ect) {
-                case exec_detail::kEctlMemR: bus_read(seg, m_.ind, byte, io, op.rom_addr); break;
+                case exec_detail::kEctlMemR:
+                    bus_read(seg, ghost_read_stale(op) ? ghost_bus_off() : m_.ind,
+                             byte, io, op.rom_addr);
+                    break;
                 case exec_detail::kEctlMemW:
                     bus_write(seg, m_.ind, byte, io, op.rom_addr,
                               op.ictl == exec_detail::kIctlMfs);
