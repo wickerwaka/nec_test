@@ -2824,3 +2824,25 @@ passed, clause (b)'s 2 failures would make C-6 read **MISSED**, not MET.
 * This document, appended.
 * **No other file.**  No detector, no discard class, no capture path, no
   constant, no board, no flash, no Quartus.
+
+### 20.7 THE RESCORE AS RUN — `sw/testdata/fz2/fz2_bars.json`, 2026-08-09T18:01:29Z
+
+`python3 sw/fz2_w1.py bars`, offline, off the same banked results §18 and
+§19.8 scored.  **No capture, no board.**
+
+**`FZ2 BARS: 7/11 MET   NOT MET: C-1, C-3, C-6, C-11`** — unchanged.
+**A-8 moved no bar's verdict, including C-6's.**
+
+**LEAF FOR LEAF against the §19.8 artifact: 616 leaves → 660, 48 differing —
+47 of them inside `bars/C-6/measured` and 1 is `ts`.**  `bars/C-6/verdict`
+(`NOT SCOREABLE`), `bars/C-6/registered` and `bars/C-6/statement` are
+**byte-identical**; `holds_in_corpus` is unchanged at `{2: 1241, 300: 679}`;
+`control_leg` is still `null`.  What moved inside `measured` is
+`hold_rows_exact` **0 → 4,636** and `hold_rows_off` **0 → 2** (now counted PER
+DIRECTIVE), `pin_level_clause` from O-2b's *"NOT EVALUABLE"* string to the
+ruling, and the new `c6b` object.  **C-1's, C-11's and every other bar's
+`measured` are identical**, so A-8 touched nothing outside its own clause.
+
+**REPORTED AS REGISTERED: C-6 is NOT SCOREABLE, clause (b) does NOT pass at
+2 / 4,638, and 561 seeds are UNEVALUABLE.**  §20.5 is the verdict and it is
+unchanged by this run.

@@ -1,6 +1,6 @@
 {
  "stage": "fz2 bars",
- "ts": "2026-08-09T17:56:22Z",
+ "ts": "2026-08-09T18:01:29Z",
  "seed_list_sha256": "45d25f31a325c4965da81117d5f4217b86487aa1abb0078faed26a72ed9bec32",
  "bars": {
   "C-1": {
@@ -170,10 +170,70 @@
      "2": 1241,
      "300": 679
     },
-    "hold_rows_exact": 0,
-    "hold_rows_off": 0,
+    "hold_rows_exact": 4636,
+    "hold_rows_off": 2,
     "control_leg": null,
-    "pin_level_clause": "NOT EVALUABLE: hold_rows is dict, not a scalar -- finding O-2, C-6(b) awaits a ruling",
+    "pin_level_clause": "A-8: per directive, on the pin that directive names",
+    "c6b": {
+     "ruling": "A-8: per directive, on the pin that directive names",
+     "seeds": 3840,
+     "unevaluable_shared_pin": 561,
+     "unevaluable_ks": [
+      "fz2c/403000",
+      "fz2c/403008",
+      "fz2c/403009",
+      "fz2c/403012",
+      "fz2c/403013",
+      "fz2c/403014",
+      "fz2c/403016",
+      "fz2c/403017",
+      "fz2c/403021",
+      "fz2c/403022",
+      "fz2c/403028",
+      "fz2c/403035",
+      "fz2c/403037",
+      "fz2c/403038",
+      "fz2c/403041",
+      "fz2c/403045",
+      "fz2c/403047",
+      "fz2c/403052",
+      "fz2c/403058",
+      "fz2c/403059"
+     ],
+     "directives": 4638,
+     "directive_ok": 4636,
+     "directive_bad": 2,
+     "runs_per_directive": {
+      "term:1": 3279,
+      "stim:1": 1356,
+      "stim:2": 1,
+      "stim:0": 2
+     },
+     "holds_evaluated": {
+      "20": 3279,
+      "300": 679,
+      "2": 680
+     },
+     "bad_detail": [
+      {
+       "seed": "fz2e/528016",
+       "sched": "stim",
+       "pin": "pin_int",
+       "hold": 2,
+       "runs": [],
+       "term_fired": 0
+      },
+      {
+       "seed": "fz2e/530063",
+       "sched": "stim",
+       "pin": "pin_int",
+       "hold": 2,
+       "runs": [],
+       "term_fired": 0
+      }
+     ],
+     "strict_single_run_bad": 3
+    },
     "scoreable": true
    },
    "verdict": "NOT SCOREABLE",
