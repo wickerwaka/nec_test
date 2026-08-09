@@ -2,9 +2,20 @@
 
 **Committed 2026-08-08, BEFORE any generation at scale and BEFORE any board
 contact.**  Plan: `~/.claude/plans/explain-how-the-current-proud-nest.md`
-(Phase 5, task T10).  Tree: branch `fuzz-v2-on-relanding`, from HEAD
-`c5f29a405b`.  Driver: `sw/fz2_w1.py`.  Frozen population:
-`sw/testdata/fz2/fz2_population.json`.
+(Phase 5, task T10).  Tree: branch `fuzz-v2-on-relanding`.  Driver:
+`sw/fz2_w1.py`.  Frozen population: `sw/testdata/fz2/fz2_population.json`.
+
+⚠ **THE TREE MOVED UNDER THIS DOCUMENT WHILE IT WAS BEING WRITTEN, and the
+correction is recorded rather than tidied away.**  Every static reading in §7
+and every measurement in §3.2 / §5.3 was taken at **`c5f29a405b`**; the frozen
+population was written at **`ce7fa2c073`** (its own `gen_git` field says so);
+the commit landed on **`9fbbc55a91`**.  The two intervening commits are the
+concurrent Quartus task's retention-build pre-registration and its receipt, and
+`git diff c5f29a405b 9fbbc55a91 -- sw/ hdl/ sim/` is **one line in
+`sw/testdata/receipts/quartus_bitstream.jsonl`** — no code moved, so nothing
+read or measured here is stale.  `SEEDS_SHA256` and `SEED_LIST_SHA256` are
+unchanged across all three (they do not carry `gen_git`, which is exactly why
+the corpus is named by them and not by the file's sha256 — §2.5).
 
 > *"A guiding principal here needs to be simplicity.  This is 80's era
 > hardware, they aren't wasting silicon on anything that isn't necessary.
