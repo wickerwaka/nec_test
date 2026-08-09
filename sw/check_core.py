@@ -65,7 +65,34 @@ CORE_RTL = {
 # tb_v30_core.sv's in-DUT probes (the `d`/`g`/`p` dumps and the coverage
 # readout) are bound to the FSM core's internal signal names; the TB is
 # otherwise engine-neutral.  See its "ENGINE-SPECIFIC PROBES" block.
-CORE_DEFS = {"fsm": ["-DV30_FSM_PROBES"], "ucore": []}
+#
+# `-DV30_UCORE` IS THE UCORE'S SYMMETRIC CHANNEL, AND IT IS INERT TODAY.
+# Landed alone at re-landing step L0b.  **NOTHING IN THE TREE TESTS IT.**
+# THE FALSIFIER, and it is exact -- `grep -rn "ifdef V30_UCORE" hdl/ sim/`
+# returns NOTHING today.  If it still returns nothing after a commit that was
+# supposed to land the consumer, the consumer did not land and any ratchet
+# that commit quotes was measured on the old comparator.
+#
+# WHY IT IS HERE WITH NO CONSUMER.  `5403671558` changed the ucore's
+# COMPARATOR in the same commit as ~19 engine mechanisms: `tb_v30_core.sv`
+# gained an `ifdef V30_UCORE` observer that subtracts a BIU-internal
+# withdrawal event from `bs_active`, so every ucore ratchet in the tree was
+# silently re-measured on a different T-state reconstruction at the same
+# moment the engine moved.  That is why the regressions were unattributable.
+# The define half is separable and is landed here, PRE-MEASURED: the full
+# ucore ratchet set was run with and without it (L0b), the generated
+# Verilator sources are byte-identical, and no number moved.
+#
+# THE OBSERVER HALF IS **NOT** SEPARABLE and is deliberately absent.  It reads
+# `dut.u_biu.halt_withdraw_preview`, which the `irq_halt_entry` BIU mechanism
+# creates; without that mechanism Verilator fails with "Can't find definition
+# of 'halt_withdraw_preview'".  It must land in the same commit as that
+# mechanism, and THAT commit must carry the A/B the original skipped: score
+# the ratchets with the `ifdef` block present and with it removed, on the same
+# RTL.  Do not stub the signal to make the observer land early -- a tied-off
+# withdrawal event is an observer that cannot fire, which is the vacuous-gate
+# pattern `docs/notes/artifact_receipt_layer.md` tracks by name.
+CORE_DEFS = {"fsm": ["-DV30_FSM_PROBES"], "ucore": ["-DV30_UCORE"]}
 
 
 def core_paths(core):
