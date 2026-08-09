@@ -147,6 +147,55 @@ def main():
     check("one-sided junk done -> NOT provenance QUARANTINE",
           not any("done_data" in a for a in v.alarms), f"(alarms={v.alarms})")
 
+    # --- 6. AMENDMENT A-1: the escape is a DIAGNOSTIC, and only the escape ---
+    # `docs/notes/fz2_corpus_prereg_2026-08-08.md` §11.  The census halted on
+    # its second seed (fz2c/400001) on an escape that fired at the SAME row and
+    # the SAME address on BOTH legs with the seed otherwise clean, so the shape
+    # reproduced here is that one: one escaping CODE T1, mirrored into both
+    # legs.  Three things are asserted together, because a demotion nobody can
+    # show still stops is not a safe stop condition:
+    #   (a) the escape is still MEASURED   -- `escaped_code_region` finds it;
+    #   (b) it raises NO alarm and NO STOP -- the seed scores;
+    #   (c) another provenance alarm on the same rows still QUARANTINEs AND
+    #       still STOPs -- the escalation path itself is intact.
+    esc_row = dict(rows[0])
+    esc_row.update({"t": 1, "t_state": 1, "bs_early": 4, "bs_late": 4,
+                    "ad_addr": 0x0123B, "ad_data": 0x00CC, "rst": 0})
+    r_esc = copy.deepcopy(rows)
+    r_esc.insert(400, dict(esc_row))
+    s_esc = copy.deepcopy(rows)
+    s_esc.insert(400, dict(esc_row))
+    found = fc.escaped_code_region(r_esc, len(r_esc))
+    check("A-1(a): the escape is still MEASURED",
+          found is not None and found[1] == 0x123B, f"({found})")
+    v_esc = fc.classify(r_esc, s_esc, ctxA)
+    check("A-1(b): escape raises NO provenance alarm",
+          not any("escaped" in a for a in v_esc.alarms), f"({v_esc.alarms})")
+    check("A-1(b): the escaping seed SCORES (not QUARANTINE)",
+          v_esc.verdict != fc.QUARANTINE, f"(got {v_esc.verdict}/{v_esc.sub})")
+    esc3 = fc.EscalationPolicy()
+    acts3 = esc3.consult(v_esc, ctxA)
+    check("A-1(b): and does NOT stop the campaign",
+          not any(a == ("STOP", "provenance_alarm") for a in acts3),
+          f"({acts3})")
+    # (c) the OTHER alarms are untouched: same rows, one phantom Tw, and the
+    # verdict AND the escalation must both still fire.
+    esc4 = fc.EscalationPolicy()
+    v_tw = fc.classify(chip, copy.deepcopy(rows), ctx_chip)
+    acts4 = esc4.consult(v_tw, ctx_chip)
+    check("A-1(c): a NON-demoted alarm still QUARANTINEs",
+          v_tw.verdict == fc.QUARANTINE and "tw_in_w0_chip" in v_tw.alarms,
+          f"(got {v_tw.verdict}/{v_tw.sub})")
+    check("A-1(c): and still STOPs the campaign",
+          any(a == ("STOP", "provenance_alarm") for a in acts4), f"({acts4})")
+    esc5 = fc.EscalationPolicy()
+    acts5 = esc5.consult(fc.classify(r_shared, s_shared,
+                                     fc.Ctx(tier="A", waits=1,
+                                            real_is_chip=True)),
+                         fc.Ctx(tier="A", waits=1, real_is_chip=True))
+    check("A-1(c): the shared corrupt-store alarm still STOPs",
+          any(a == ("STOP", "provenance_alarm") for a in acts5), f"({acts5})")
+
     # --- escalation STOP dry-run: a w0 un-ruled FUNCTIONAL must STOP ---------
     esc = fc.EscalationPolicy()
     sim = copy.deepcopy(rows)

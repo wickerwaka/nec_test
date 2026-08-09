@@ -140,19 +140,23 @@ def test_open_bus():
     check("engine counted the open_bus hit", eng.hits["open_bus_escape"] >= 1,
           f"(hits={eng.hits})")
 
-    # FULL CLASSIFY PATH: fuzz-v2 T4.  These fetches are outside the v2 code
-    # region, so `escaped_code_region` fires FIRST and the seed QUARANTINEs on
-    # a containment alarm -- it can no longer reach the accept engine.  That is
-    # the intended v2 behaviour: containment is a falsifier, not an excuse, and
-    # a seed that leaves its code region is a statement about the GENERATOR.
-    # (The rule itself is untouched and still applies to the v1 bank, which
-    # `timed_fuzz` scores through `open_bus_escape_metrics` directly.)
+    # FULL CLASSIFY PATH.  ⚠ THIS EXPECTATION CHANGED AT AMENDMENT A-1
+    # (`docs/notes/fz2_corpus_prereg_2026-08-08.md` §11).  These fetches are
+    # outside the v2 code region, and fuzz-v2 T4 made that a provenance alarm,
+    # so this check used to assert QUARANTINE and the seed never reached the
+    # accept engine.  A-1 completes erratum E-1's demotion: the escape is a
+    # DIAGNOSTIC in both tiers, it raises no alarm, and the seed is SCORED --
+    # which for a raw (tier B) whole-image seed is the whole point, since raw
+    # has no 0xCC fill and executes outside the code region by design.  What is
+    # asserted now is exactly that: no containment alarm, and the divergence
+    # reaches the rule path instead of being swallowed by an escalation.
     sim = real[:escape_first] + [_pasv()] * (n - escape_first)
     v = fc.classify(real, sim, fc.Ctx(tier="B", real_is_chip=True), engine=eng)
-    check("escaped seed -> QUARANTINE (v2 containment falsifier)",
-          v.verdict == fc.QUARANTINE
-          and any(a.startswith("escaped_code_region") for a in v.alarms),
-          f"({v.verdict}/{v.sub})")
+    check("A-1: escaped seed raises NO containment alarm",
+          not any(a.startswith("escaped_code_region") for a in v.alarms),
+          f"(alarms={v.alarms})")
+    check("A-1: escaped seed is SCORED, not QUARANTINEd",
+          v.verdict != fc.QUARANTINE, f"({v.verdict}/{v.sub})")
 
 
 # ===========================================================================

@@ -120,10 +120,23 @@ def escaped_code_region(recs, window):
     every other byte of the code region is 0xCC, so an escape traps to INT3 and
     lands in the terminator at any alignment.
 
-    IT IS A FALSIFIER, NOT AN EXCLUSION.  Under v2 containment an escape is
-    impossible by construction; a fire means containment failed, and that is a
-    finding to be reported (see `provenance_alarms`), never a reason to quietly
-    drop a seed from a population."""
+    IT IS A DIAGNOSTIC, AND IT IS NOT AN EXCLUSION.  It is reported on every
+    result line as `escaped` / `escaped_n` (`fuzz_campaign.eval_case`) and it is
+    never a reason to drop a seed from a population.
+
+    ⚠ IT IS NO LONGER A PROVENANCE ALARM, and the reason is a MECHANISM.
+    Amendment A-1 to `docs/notes/fz2_corpus_prereg_2026-08-08.md` (§11) removes
+    it from `provenance_alarms` in BOTH tiers, completing erratum E-1's demotion
+    -- E-1 had already ruled, in writing and before the capture, that the escape
+    count "gates nothing", and only half of that landed.  The justification two
+    paragraphs above ("every other byte of the code region is 0xCC, so an escape
+    traps to INT3") is a SOUP-TIER property: the raw tier's whole-image mode is
+    random bytes over 0x0000-0xFDFF with NO fill (prereg §5.2), so it executes
+    outside [CODE_LO, CODE_HI) by design and this predicate is not written for
+    it.  A raw seed that escapes AND fails to terminate is already caught by the
+    terminator-reached bar; an escape on its own is a statement about the
+    prefetch shadow.  Containment is measured as TERMINATOR-REACHED, which is
+    E-1's predicate and the only one C-1 scores."""
     n = min(window, len(recs))
     for i in range(n):
         r = recs[i]
@@ -329,24 +342,25 @@ def provenance_alarms(real, sim, ctx, window):
     """Mechanised capture-integrity alarms - any hit means the capture cannot
     be trusted as evidence and the campaign must STOP to investigate:
       * a Tw row in a w0, non-wrand CHIP capture  (phantom sticky-WRAND wait)
-      * a CODE fetch from outside the code region or the loader page
-                                                   (v2 containment falsifier)
       * a done marker whose data != 0xF00D         (forged / corrupt store)
-      * a reset asserted mid-window                (capture restarted)."""
+      * a reset asserted mid-window                (capture restarted).
+
+    ⚠ `escaped_code_region` USED TO BE ON THIS LIST AND IS NOT ANY MORE.
+    Amendment A-1 to `docs/notes/fz2_corpus_prereg_2026-08-08.md` (§11) removes
+    it in BOTH tiers -- no soup/raw split, because a two-tier predicate would be
+    a many-cased rule where a single demotion was already decided.  It completes
+    erratum E-1, which had ruled BEFORE the capture that the escape count "gates
+    nothing"; only the result-line half of that ruling had landed, so §2.4's
+    "any provenance alarm still aborts" silently re-armed it and halted the
+    census on its second seed.  The count is still measured and still reported
+    (`escaped` / `escaped_n` on every result line); it is no longer an
+    escalation.  See `escaped_code_region`'s own docstring for the mechanism.
+    NOTHING ELSE IS DEMOTED: every alarm above is still a QUARANTINE and still a
+    STOP."""
     alarms = []
     if ctx.real_is_chip and ctx.waits == 0 and not ctx.wrand:
         if any(_tstate(r) == 4 for r in real[:window]):
             alarms.append("tw_in_w0_chip")
-    # CONTAINMENT FALSIFIER (plan D1/D7).  A v2 image cannot execute outside the
-    # code region or the loader page: everything else in the code region is 0xCC,
-    # so any escape traps to INT3 and lands in the terminator.  A fire is
-    # therefore a statement about the GENERATOR or the COMPOSER, not about the
-    # seed, and it is reported as an integrity alarm rather than excusing the
-    # seed out of a population the way the open-bus exclusion it replaced did.
-    for tag, recs in (("real", real), ("sim", sim)):
-        esc = escaped_code_region(recs, window)
-        if esc:
-            alarms.append(f"escaped_code_region_{tag}_{esc[1]:04x}@{esc[0]}")
     # A forged/corrupt done marker is a real alarm ONLY in Tier A (soup), where
     # the harness store must emit 0xF00D. Tier B (raw) legitimately forges done
     # markers with random data (a random OUT 0xFC), so the fixed-window verdict
@@ -362,9 +376,11 @@ def provenance_alarms(real, sim, ctx, window):
     # that divergence; it must NOT hard-STOP the campaign as a forged store. So
     # fire the alarm only when both legs agree on a non-sentinel done value.
     # (The old "unless one leg got there via an open-bus escape" carve-out is
-    # gone with the open-bus predicate: an escape is now an alarm in its own
-    # right two blocks above, so the carve-out could only ever have suppressed
-    # one alarm in favour of another.)
+    # gone with the open-bus predicate.  It stayed gone through amendment A-1,
+    # which took the escape OFF this list entirely: the carve-out existed to
+    # decide WHICH of two alarms fired, and with only one of them left there is
+    # nothing for it to arbitrate -- the shared-vs-one-sided discriminator below
+    # is what separates a corrupt store from a divergence.)
     if ctx.tier == "A":
         pr, ddr = has_done(real, window)
         ps, dds = has_done(sim, window)
