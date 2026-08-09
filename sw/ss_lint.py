@@ -104,15 +104,23 @@ CORES = {
             # change with no bump; L1 bumps it deliberately, and that is why the
             # version here is 0x8B and not the 0x8A the address appends alone
             # would give.
-            # NOT PRESENT, and their codes are RESERVED, not retired: the 8F
-            # ghost read (0x176), the 8F ghost feed (0x17A-0x17B) and the
-            # PF_LOST decoder hold (0x17C-0x17D).  0x176 is a HOLE `ss_addr_of`
-            # steps over, so the EU region runs 0x100-0x179 with 121 symbols.
-            "SS_VERSION": 0x8B,   # ucore map v11 (0x80 family: never an FSM stream)
+            # WRFUZZ 8F ghost READ: v11 -> v12.  The read's ONE flop TAKES
+            # 0x176 -- the code L1 RESERVED for it, by name and with this
+            # meaning.  A reserved code taken by its named occupant owes no
+            # skip, so `ss_addr_of`'s EU hole term is REMOVED and NOTHING is
+            # renumbered: 0x177-0x179 sat one step past the hole and now sit
+            # one step past the occupant.  THE EU REGION IS DENSE:
+            # 0x100-0x179, 122 symbols, no hole.  ONE appended group, ONE bump.
+            # STILL NOT PRESENT, and their codes remain RESERVED: the 8F ghost
+            # FEED (0x17A-0x17B) and the PF_LOST decoder hold (0x17C-0x17D).
+            # Both are BOOKED UNLANDABLE-AS-DESIGNED -- the feed reaches the
+            # loader chain through the DATA path off the live READY pin and
+            # measured 15.3 MHz on two draws, and the hold is dead without it.
+            "SS_VERSION": 0x8C,   # ucore map v12 (0x80 family: never an FSM stream)
             "SS_BIU_COUNT": 101,
-            "SS_EU_COUNT": 121,
-            "SS_COUNT": 223,
-            "SS_TAG": 0x8BDF,     # (0x8B << 8) | 223
+            "SS_EU_COUNT": 122,
+            "SS_COUNT": 224,
+            "SS_TAG": 0x8CE0,     # (0x8C << 8) | 224
         },
     },
 }

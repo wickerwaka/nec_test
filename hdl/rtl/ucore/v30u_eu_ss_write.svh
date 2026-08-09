@@ -82,6 +82,7 @@
             SSA_E_PEND_IO:             pend_io_n = ss_wdata[0];
             SSA_E_OPR_FRESH:           opr_fresh_n = ss_wdata[0];
             SSA_E_OPR_LOADED:          opr_loaded_n = ss_wdata[0];
+            SSA_E_GHOST_DISCARD:       ghost_rd_discard_n = ss_wdata[0];
             SSA_E_EA_RESIDUE:          ea_residue_n = ss_wdata;
             SSA_E_EA_PAIR_RHS:         ea_pair_rhs_n = ss_wdata;
             SSA_E_EA_PAIR_VALID:       ea_pair_valid_n = ss_wdata[0];

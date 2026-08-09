@@ -148,7 +148,7 @@ begin
         if (row_bus) begin
             if (row_is_wr || row_is_wb) begin
                 pend_active_n = 1'b1;
-                pend_off_n  = acc_off;
+                pend_off_n  = acc_off_nog;
                 pend_seg_n  = acc_seg;
                 pend_byte_n = acc_byte;
                 pend_io_n   = acc_io;
@@ -159,11 +159,18 @@ begin
                 // assertion -- so before this they wrapped in simulation and in
                 // fabric alike.  Both are decremented with an explicit
                 // `!= 2'd0` floor already; this is the matching ceiling.
-                if (acc_split) wr_out_n = (wr_out_n >= 2'd2) ? 2'd3
+                if (acc_split_wr) wr_out_n = (wr_out_n >= 2'd2) ? 2'd3
                                                          : wr_out_n + 2'd2;
                 else if (wr_out_n != 2'd3) wr_out_n = wr_out_n + 2'd1;
             end else begin
                 if (rd_pending_n != 2'd3) rd_pending_n = rd_pending_n + 2'd1;
+                // The 8F ghost read ARMS the discard here, on the clock its
+                // own row posts.  The guard is the regime the mechanism is
+                // measured in: an empty read pipeline, so this row IS the
+                // chain's head.  Behind an older read the baseline delivery
+                // is retained rather than inventing a tag queue.
+                if (ghost_read_stale_alu && (rd_pending_n == 2'd1))
+                    ghost_rd_discard_n = 1'b1;
             end
         end
     end

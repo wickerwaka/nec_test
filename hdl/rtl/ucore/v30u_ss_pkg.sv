@@ -109,22 +109,31 @@ package v30_ss_pkg;
   // stream-CONTENT change is the one class of map edit no gate in this tree
   // can catch.  This is a deliberate divergence from that commit's numbering
   // and is the only reason 0x8B, not 0x8A, is the version here.
+  // WRFUZZ 8F ghost READ: 0x8B -> 0x8C.  The read's ONE flop TAKES 0x176 --
+  // the address that was RESERVED for it, and reserved in this file in as many
+  // words.  It follows the displaced mod3 stack read across the instruction
+  // boundary until the BIU returns it, so a stream frozen in that interval
+  // must carry the bit.  A reserved code taken by its NAMED occupant owes no
+  // skip: `ss_addr_of`'s EU hole term is REMOVED below and NO symbol is
+  // renumbered, because 0x177-0x179 sat one step past the hole and now sit one
+  // step past the occupant, which is the same address.  ONE appended group,
+  // ONE bump.
   //
-  // 0x176 IS NOT ASSIGNED -- it is RESERVED, not retired.  `5403671558` put
-  // `ghost_rd_discard` there and that mechanism (the 8F ghost READ) is
-  // deferred to a later landing, where it takes 0x176 with its original
-  // meaning.  `ss_addr_of` steps over it exactly as it steps over 0x038, and
-  // no symbol below it is renumbered, so the address never means two things.
-  localparam int          SS_VERSION   = 8'h8B;   // ucore map v11 (L1 re-landing)
+  // 0x17A-0x17D REMAIN UNASSIGNED.  `5403671558` put the 8F ghost FEED at
+  // 0x17A-0x17B and the PF_LOST decoder hold at 0x17C-0x17D.  Neither is in
+  // this tree and neither address is; they are named at the end of the EU
+  // region so a later landing reuses the same codes for the same meanings.
+  localparam int          SS_VERSION   = 8'h8C;   // ucore map v12 (8F ghost READ)
   localparam logic [8:0]  SSA_TAG      = 9'h000;
   localparam logic [8:0]  SS_BIU_BASE  = 9'h001;
   localparam int          SS_BIU_COUNT = 101;  // U4 F49 (+5); s11 (-4); s21 (-1); H3 (+1)
   localparam logic [8:0]  SS_EU_BASE   = 9'h100;
-  localparam int          SS_EU_COUNT  = 121;  // U2 p5 (+2 recog); U4 F49 (+1);
+  localparam int          SS_EU_COUNT  = 122;  // U2 p5 (+2 recog); U4 F49 (+1);
                                               // SM3 s25 / §86 (+1, the BRK arm);
                                               // SM3 s26 / §87.A (+1, opr_loaded);
                                               // WRFUZZ LEA (+1, EA residue);
-                                              // WRFUZZ LEA (+2, pair rail)
+                                              // WRFUZZ LEA (+2, pair rail);
+                                              // WRFUZZ 8F (+1, discarded read)
   localparam int          SS_COUNT     = 1 + SS_BIU_COUNT + SS_EU_COUNT;
   localparam logic [15:0] SS_TAG       = {8'(SS_VERSION), 8'(SS_COUNT)};
 
@@ -246,12 +255,12 @@ package v30_ss_pkg;
       ss_addr_of = a;
     end
     else begin
-      // L1: 9'h176 is RESERVED for the deferred 8F ghost READ, so the EU
-      // region carries a hole of exactly the same kind as the BIU's 9'h038.
-      // Same one-term treatment, and no symbol above it is renumbered.
-      a = SS_EU_BASE + 9'(i - 1 - SS_BIU_COUNT);
-      if (a >= 9'h176) a = a + 9'd1;
-      ss_addr_of = a;
+      // The 8F ghost READ has taken 9'h176, the code L1 RESERVED for it, so
+      // the EU region is dense again and the hole term is GONE.  Nothing is
+      // renumbered by its removal: 0x177-0x179 sat one step past the hole and
+      // now sit one step past the occupant, which is the same address.  The
+      // BIU's 9'h038 is the map's only hole.
+      ss_addr_of = SS_EU_BASE + 9'(i - 1 - SS_BIU_COUNT);
     end
   endfunction
 
@@ -294,7 +303,7 @@ package v30_ss_pkg;
   localparam logic [8:0] SSA_B_RQ_LATE          = 9'h06A;
 
   //--------------------------------------------------------------------------
-  // EU region (module v30u_eu): 0x100-0x179, with 0x176 RESERVED
+  // EU region (module v30u_eu): 0x100-0x179, dense (0x176 now occupied)
   //--------------------------------------------------------------------------
   localparam logic [8:0] SSA_E_AX                   = 9'h100;
   localparam logic [8:0] SSA_E_CX                   = 9'h101;
@@ -463,14 +472,16 @@ package v30_ss_pkg;
   // that resumes an instruction silicon never finishes.
   localparam logic [8:0] SSA_E_OPR_LOADED           = 9'h175;
 
-  // 9'h176 -- RESERVED, NOT RETIRED.  Its known future occupant is the
-  // deferred 8F ghost READ's `ghost_rd_discard` (the undocumented 8F mod3
-  // stack read completes after the instruction has retired; the bit follows
-  // the resulting one-place displacement through an overlapping read chain so
-  // the unmatched tail completion is dropped).  It is declared here as a
-  // COMMENT and not as a `localparam`, because `ss_lint`'s check (1) requires
-  // every declared SSA_ symbol to appear exactly twice in the RTL and an
-  // unoccupied symbol would fail it -- correctly.  `ss_addr_of` steps over it.
+  // 9'h176 -- THE RESERVED CODE, TAKEN BY THE OCCUPANT IT WAS RESERVED FOR,
+  // WITH ITS RESERVED MEANING UNCHANGED.  The undocumented 8F mod3 stack read
+  // completes after the instruction has retired.  The bus has no result tags
+  // and returns words in order, so every completion in the chain is taken by
+  // the oldest requester still waiting -- a one-place displacement -- and the
+  // last one has nobody waiting for it.  This bit follows that displacement so
+  // the unmatched TAIL completion is dropped.  L1 declared it here as a
+  // COMMENT and left `ss_addr_of` stepping over the code; both are now gone,
+  // and no symbol moved.
+  localparam logic [8:0] SSA_E_GHOST_DISCARD        = 9'h176;
 
   // The retained EA-adder lane normally follows tmpa.  A ModR/M address
   // calculation writes its pre-displacement base here without disturbing the
@@ -484,9 +495,15 @@ package v30_ss_pkg;
 
   // 9'h17A-9'h17D are UNASSIGNED.  `5403671558` put the 8F ghost FEED
   // (`ghost_rd_feed`, `ghost_rd_ready`) at 0x17A-0x17B and the PF_LOST
-  // decoder hold (`opc_rm_valid`, `opc_rm_byte`) at 0x17C-0x17D; neither
-  // mechanism is in this tree, so neither address is.  They are named here so
-  // the later landing reuses the same codes for the same meanings.
+  // decoder hold (`opc_rm_valid`, `opc_rm_byte`) at 0x17C-0x17D.  BOTH are
+  // BOOKED UNLANDABLE-AS-DESIGNED, with the block characterised and the
+  // mechanism NOT condemned: the feed reaches the loader chain through the
+  // DATA path off the live READY pin and measured 15.3 MHz on two draws
+  // (`docs/notes/ghost8f_results_2026-08-09.md` §9), and the hold is dead
+  // without the feed.  Neither address is in this tree.  They are named here
+  // so a later landing -- a faster fabric, or the mechanism reformulated so
+  // the successor's pop does not ride the data edge -- reuses the same codes
+  // for the same meanings.
 
   function automatic int ss_field_width(input logic [8:0] a);
     case (a)
@@ -721,6 +738,7 @@ package v30_ss_pkg;
       SSA_E_IRQ_LATCH:           ss_field_width = 8;
       SSA_E_BRK:                 ss_field_width = 7;
       SSA_E_OPR_LOADED:          ss_field_width = 1;   // §87.A
+      SSA_E_GHOST_DISCARD:       ss_field_width = 1;
       SSA_E_EA_RESIDUE:          ss_field_width = 16;
       SSA_E_EA_PAIR_RHS:         ss_field_width = 16;
       SSA_E_EA_PAIR_VALID:       ss_field_width = 1;

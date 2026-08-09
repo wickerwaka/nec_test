@@ -149,12 +149,16 @@ module v30u_biu (
     input      [19:0] eu_addr2,    // the SECOND cycle of a split word access
     input             eu_split,    // ...which the BIU manufactures (M10)
     input       [1:0] eu_seg,      // S4:S3 -- 0 ES 1 SS 2 CS/none 3 DS
+    input       [1:0] eu_seg2,     // second half may retain a different rail
     input             eu_word,
     output            eu_slot_busy,
     output            eu_slot_busy_n,
     output            eu_access_active,
     output            eu_direct_fetch,
     output            eu_fetch_tail,
+    output            eu_ghost_full,
+    output            eu_ghost_idle,
+    output            eu_ghost_stack_first,
     input             eu_pair,     // pair write data into the reserved cycle
     input             eu_pair2,    // ...and it fills TWO of them (a split)
     input      [15:0] eu_wdata,
@@ -530,11 +534,41 @@ assign eu_direct_fetch = r_run && r_cur_fetch && (r_cdage == 3'd0);
 assign eu_fetch_tail = (r_absorb_ttl == 2'd1) &&
                        ((!q_ripe && (r_dage <= 3'd4)) ||
                         (q_ripe && (r_dage == 3'd5)));
-// NOT LANDED HERE -- the four rails the 8F GHOST family publishes
-// (`eu_ghost_full`, `eu_ghost_idle`, `eu_ghost_stack_first`, `eu_rd_wait`)
-// are absent with the family itself.  `eu_ghost_full` and `eu_rd_wait` both
-// read the LIVE `ready` PIN, so they are exactly the R7' carriers
-// `sw/r7_lint.py` exists to refuse; see the L1 landing note.
+// THE 8F GHOST READ'S THREE PUBLISHED RAILS -- ON THE REGISTERED READY, NOT
+// ON THE PIN.  §73 / R7', and it is this module's OWN discipline rather than a
+// workaround: M2r (the header, verbatim) says "the CPU registers READY at the
+// end of every clock", and every other READY consumer here already obeys it.
+// The ONLY places the bare pin appears are the `ts` advance itself and
+// `rd_data_edge`, §73's one declared carrier.  `5403671558` published these
+// rails off the bare pin, which made them R7' carriers into the EU; that is
+// what `sw/r7_lint.py` refuses.  Putting them where this module already puts
+// READY costs NO flop and NO save-state address.  (The registered pin's
+// save-state symbol is deliberately NOT spelled anywhere in this comment:
+// `ss_lint` counts those names by text and requires exactly two per symbol, so
+// naming one in prose is a third reference and a FAIL -- correctly.)
+//
+// THE FOURTH RAIL, `eu_rd_wait`, IS NOT HERE.  It has exactly one consumer in
+// `5403671558` and that consumer is the ghost FEED, which this landing does
+// not take: G6 measured the feed at 15.3 MHz on two draws with every worst
+// path launching from the READY register
+// (`docs/notes/ghost8f_results_2026-08-09.md` §9).
+//
+// During fetch T2/Tw the internal AD rail is fully precharged; later phases
+// leave the undocumented 8F register-POP address fighting the stack rail.
+assign eu_ghost_full = r_run && r_cur_fetch &&
+                       ((r_ts == TS_T1) ||
+                        ((r_ts == TS_T2) && !r_ready_prev) ||
+                        (((r_ts == TS_T3) || (r_ts == TS_TW)) && !r_ready_prev));
+// The two other observable points are existing ownership states, not ghost
+// history.  At idle the internal address rail has discharged only to its
+// byte-slice boundaries.  On a fetch T4 with two ripe bytes, an odd stack
+// access has already launched its first byte before the stale rail arrives.
+// These are sampled on the request edge, one state before the observer trace
+// prints the resulting idle/T4 state.
+assign eu_ghost_idle = r_run && r_cur_fetch && (r_ts == TS_T4);
+assign eu_ghost_stack_first = r_run && r_cur_fetch &&
+                              (r_ts == TS_T3) && r_ready_prev &&
+                              (r_q_cnt >= 4'd2);
 
 // M1/M2r: the eval instant.  See the header.
 wire eval_inst = r_run && !r_evald &&
@@ -1472,7 +1506,7 @@ always_comb begin
                 rq_data[1]   = 16'd0;
                 rq_ube[1]    = eu_addr2[0] ? 1'b0 : 1'b1;
                 rq_odd[1]    = eu_addr[0];   // the ACCESS's base, not this cycle's
-                rq_seg[1]    = eu_seg;
+                rq_seg[1]    = eu_seg2;
                 rq_noaddr[1] = 1'b0;
                 rq_wr[1]     = (eu_bs == BS_MEMW) || (eu_bs == BS_IOW);
                 rq_need[1]   = (eu_bs == BS_MEMW) || (eu_bs == BS_IOW);

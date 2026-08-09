@@ -82,6 +82,7 @@
         SSA_E_PEND_IO:             ss_rdata <= {15'b0, pend_io};
         SSA_E_OPR_FRESH:           ss_rdata <= {15'b0, opr_fresh};
         SSA_E_OPR_LOADED:          ss_rdata <= {15'b0, opr_loaded};
+        SSA_E_GHOST_DISCARD:       ss_rdata <= {15'b0, ghost_rd_discard};
         SSA_E_EA_RESIDUE:          ss_rdata <= ea_residue;
         SSA_E_EA_PAIR_RHS:         ss_rdata <= ea_pair_rhs;
         SSA_E_EA_PAIR_VALID:       ss_rdata <= {15'b0, ea_pair_valid};
