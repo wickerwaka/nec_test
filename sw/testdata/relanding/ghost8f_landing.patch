@@ -1,0 +1,1222 @@
+THE 8F GHOST FAMILY, COMPLETE AND SEC.73-TREATED -- MEASURED, **NOT LANDED**.
+
+    git apply sw/testdata/relanding/ghost8f_landing.patch     # -> column C
+    git apply -R sw/testdata/relanding/ghost8f_treatment.patch # -> column B
+
+on top of `9b7ddec4f3` (the pre-registration commit).  Everything in
+`docs/notes/ghost8f_results_2026-08-09.md` is re-derivable from these two.
+
+WHY IT IS NOT LANDED.  G6 is RED on the CONTROL build, TWO DRAWS, with BOTH
+pre-registered refutation conditions met: Fmax 15.3 MHz against a 32 MHz bar
+(BOTH draws, 6bb7cbda05d7569f and 104b51e33fd753b1, identical to the digit),
+and every one of the twelve worst setup paths launching from
+`system_large|c_ready_q`.  `sw/testdata/relanding/ghost8f_worst_paths.rpt` is
+the netlist route.  `CLAUDE.md`'s standing rule is that an RTL landing is not
+accepted without a PASSING Quartus receipt, so this is a measurement, not a
+promotion.
+
+WHAT IT CONTAINS, and all of it is green except G6:
+  * the ghost READ, the ghost FEED and the PF_LOST ModR/M hold, complete
+  * the sec.73 treatment in three parts (P2a rails on `r_ready_prev`,
+    P2b the write-accounting `acc_split_wr`, P2c S_PRERD's data-only arm)
+  * the save-state map at `SS_VERSION` 0x8E / 101 / 126 / 228 / `SS_TAG` 0x8EE4,
+    `ss_addr_of`'s EU hole removed, `ss_lint` and its census PASS at 216 flops
+  * `sw/r7_lint.py` PASS with NO new exceptions
+
+--------------------------------------------------------------------------
+diff --git a/hdl/rtl/ucore/v30_core.sv b/hdl/rtl/ucore/v30_core.sv
+index f8c6ba92e7..e10743464f 100644
+--- a/hdl/rtl/ucore/v30_core.sv
++++ b/hdl/rtl/ucore/v30_core.sv
+@@ -85,18 +85,19 @@ logic   [1:0] scr_qop = '0;
+ wire  [7:0] q_byte;
+ wire        q_ripe, q_ripe_lead_n;
+ wire  [3:0] q_cnt;
++wire        eu_ghost_full, eu_ghost_idle, eu_ghost_stack_first, eu_rd_wait;
+ wire        eu_pop, eu_first, eu_flush;
+ wire        eu_flush_pre, eu_flush_rep, eu_flush_stage, eu_flush_pend;
+ wire        eu_flush_nmi, eu_flush_int_live;
+ wire [15:0] eu_flush_cs, eu_flush_cs_old, eu_flush_ip;
+ wire        eu_flush_cs_we;
+-wire        eu_post, eu_post_hold, eu_halt_irq, eu_vector_post;
++wire        eu_post, eu_post_hold, eu_ghost_preview, eu_halt_irq, eu_vector_post;
+ wire        eu_word, eu_pair, eu_pair2, eu_split;
+ wire        eu_slot_busy, eu_slot_busy_n, eu_access_active;
+ wire        eu_direct_fetch, eu_fetch_tail;
+ wire  [2:0] eu_bs;
+ wire [19:0] eu_addr, eu_addr2;
+-wire  [1:0] eu_seg;
++wire  [1:0] eu_seg, eu_seg2;
+ wire [15:0] eu_wdata, eu_rdata_n;
+ wire        eu_rd_done_n, eu_wr_done_n, eu_wr_eval;
+ wire        eu_rd_edge;
+@@ -192,6 +193,7 @@ v30u_biu u_biu (
+     .flush_ip   (flush_ip),
+     .eu_post    (scr_en ? 1'b0 : eu_post),
+     .eu_post_hold(scr_en ? 1'b0 : eu_post_hold),
++    .eu_ghost_preview(scr_en ? 1'b0 : eu_ghost_preview),
+     .eu_halt_irq(scr_en ? 1'b0 : eu_halt_irq),
+     .eu_vector_post(scr_en ? 1'b0 : eu_vector_post),
+     .eu_bs      (eu_bs),
+@@ -199,12 +201,17 @@ v30u_biu u_biu (
+     .eu_addr2   (eu_addr2),
+     .eu_split   (eu_split),
+     .eu_seg     (eu_seg),
++    .eu_seg2    (eu_seg2),
+     .eu_word    (eu_word),
+     .eu_slot_busy (eu_slot_busy),
+     .eu_slot_busy_n (eu_slot_busy_n),
+     .eu_access_active(eu_access_active),
+     .eu_direct_fetch(eu_direct_fetch),
+     .eu_fetch_tail(eu_fetch_tail),
++    .eu_ghost_full(eu_ghost_full),
++    .eu_ghost_idle(eu_ghost_idle),
++    .eu_ghost_stack_first(eu_ghost_stack_first),
++    .eu_rd_wait(eu_rd_wait),
+     .eu_pair    (scr_en ? 1'b0 : eu_pair),
+     .eu_pair2   (eu_pair2),
+     .eu_wdata   (eu_wdata),
+@@ -258,6 +265,7 @@ v30u_eu u_eu (
+     .flush_ip   (eu_flush_ip),
+     .eu_post    (eu_post),
+     .eu_post_hold(eu_post_hold),
++    .eu_ghost_preview(eu_ghost_preview),
+     .eu_halt_irq(eu_halt_irq),
+     .eu_vector_post(eu_vector_post),
+     .eu_bs      (eu_bs),
+@@ -265,12 +273,17 @@ v30u_eu u_eu (
+     .eu_addr2   (eu_addr2),
+     .eu_split   (eu_split),
+     .eu_seg     (eu_seg),
++    .eu_seg2    (eu_seg2),
+     .eu_word    (eu_word),
+     .eu_slot_busy (eu_slot_busy),
+     .eu_slot_busy_n (eu_slot_busy_n),
+     .eu_access_active(eu_access_active),
+     .eu_direct_fetch(eu_direct_fetch),
+     .eu_fetch_tail(eu_fetch_tail),
++    .eu_ghost_full(eu_ghost_full),
++    .eu_ghost_idle(eu_ghost_idle),
++    .eu_ghost_stack_first(eu_ghost_stack_first),
++    .eu_rd_wait(eu_rd_wait),
+     .eu_pair    (eu_pair),
+     .eu_pair2   (eu_pair2),
+     .eu_wdata   (eu_wdata),
+diff --git a/hdl/rtl/ucore/v30u_biu.sv b/hdl/rtl/ucore/v30u_biu.sv
+index 99d72a433d..4b4d5f9a4b 100644
+--- a/hdl/rtl/ucore/v30u_biu.sv
++++ b/hdl/rtl/ucore/v30u_biu.sv
+@@ -142,6 +142,7 @@ module v30u_biu (
+     // --- EU bus requests (M10: ONE request slot) ---
+     input             eu_post,     // post an access this clock
+     input             eu_post_hold,// reserve now, arbitrate on next idle clock
++    input             eu_ghost_preview, // PF_LOST status preview, then direct T1
+     input             eu_halt_irq, // first INTA belongs to a HALT wake
+     input             eu_vector_post,
+     input       [2:0] eu_bs,       // 0 INTA 1 IOR 2 IOW 5 MEMR 6 MEMW
+@@ -149,12 +150,17 @@ module v30u_biu (
+     input      [19:0] eu_addr2,    // the SECOND cycle of a split word access
+     input             eu_split,    // ...which the BIU manufactures (M10)
+     input       [1:0] eu_seg,      // S4:S3 -- 0 ES 1 SS 2 CS/none 3 DS
++    input       [1:0] eu_seg2,     // second half may retain a different rail
+     input             eu_word,
+     output            eu_slot_busy,
+     output            eu_slot_busy_n,
+     output            eu_access_active,
+     output            eu_direct_fetch,
+     output            eu_fetch_tail,
++    output            eu_ghost_full,
++    output            eu_ghost_idle,
++    output            eu_ghost_stack_first,
++    output            eu_rd_wait,
+     input             eu_pair,     // pair write data into the reserved cycle
+     input             eu_pair2,    // ...and it fills TWO of them (a split)
+     input      [15:0] eu_wdata,
+@@ -530,11 +536,53 @@ assign eu_direct_fetch = r_run && r_cur_fetch && (r_cdage == 3'd0);
+ assign eu_fetch_tail = (r_absorb_ttl == 2'd1) &&
+                        ((!q_ripe && (r_dage <= 3'd4)) ||
+                         (q_ripe && (r_dage == 3'd5)));
+-// NOT LANDED HERE -- the four rails the 8F GHOST family publishes
+-// (`eu_ghost_full`, `eu_ghost_idle`, `eu_ghost_stack_first`, `eu_rd_wait`)
+-// are absent with the family itself.  `eu_ghost_full` and `eu_rd_wait` both
+-// read the LIVE `ready` PIN, so they are exactly the R7' carriers
+-// `sw/r7_lint.py` exists to refuse; see the L1 landing note.
++// THE 8F GHOST FAMILY'S FOUR PUBLISHED RAILS -- ON `r_ready_prev`, NOT ON THE
++// PIN.  §73 / R7', and it is this module's OWN discipline, not a workaround.
++//
++// M2r (the header, verbatim): "the CPU registers READY at the end of every
++// clock" and "`ready_prev` is the registered READY pin".  Every other READY
++// consumer in this module already obeys that -- `eval_inst` reads
++// `r_ready_prev`, and the ONLY places the bare pin appears are the `ts`
++// advance itself and `rd_data_edge`, §73's one declared carrier.
++// `5403671558` published these three rails off the bare pin, which made them
++// R7' carriers into the EU's control cone; that is what `sw/r7_lint.py`
++// refuses and what took the tree to 15.14 MHz.  Putting them where the module
++// already puts READY costs NO flop and NO save-state address -- `r_ready_prev`
++// already has one.  (Its symbol is deliberately not spelled here: `ss_lint`
++// counts SSA_ names by text and requires exactly two per symbol, so naming it
++// in prose is a third reference and a FAIL -- correctly.)
++//
++// WHAT IT COSTS, derived from the rig's READY law ("low from T1 entry, high
++// from the LAST Tw") BEFORE it was measured, and then A/B-measured against the
++// faithful form (docs/notes/ghost8f_prereg_2026-08-09.md §5):
++//   `eu_ghost_stack_first`  EXACTLY unchanged -- on a fetch `ready@T2` and
++//                           `ready@T3` are both `(w == 0)`.
++//   `eu_ghost_full`         differs on ONE clock, the LAST `Tw` of a waited
++//                           fetch.
++//   `eu_rd_wait`            differs on ONE clock, the clock READY rises.
++//   `eu_ghost_idle`         was already register-only and does not move.
++//
++// During fetch T2/Tw the internal AD rail is fully precharged; later phases
++// leave the undocumented 8F register-POP address fighting the stack rail.
++assign eu_ghost_full = r_run && r_cur_fetch &&
++                       ((r_ts == TS_T1) ||
++                        ((r_ts == TS_T2) && !r_ready_prev) ||
++                        (((r_ts == TS_T3) || (r_ts == TS_TW)) && !r_ready_prev));
++// The two other observable points are existing ownership states, not ghost
++// history.  At idle the internal address rail has discharged only to its
++// byte-slice boundaries.  On a fetch T4 with two ripe bytes, an odd stack
++// access has already launched its first byte before the stale rail arrives.
++// These are sampled on the request edge, one state before the observer trace
++// prints the resulting idle/T4 state.
++assign eu_ghost_idle = r_run && r_cur_fetch && (r_ts == TS_T4);
++assign eu_ghost_stack_first = r_run && r_cur_fetch &&
++                              (r_ts == TS_T3) && r_ready_prev &&
++                              (r_q_cnt >= 4'd2);
++// A younger read which is still held off by READY cannot put its own word on
++// the untagged data rail before an older PF_LOST completion.  Publish that
++// existing pin/ownership decision; no wait counter or new history is needed.
++assign eu_rd_wait = r_run && !r_cur_fetch && !r_cur_wr && !r_cur_halt &&
++                    !r_ready_prev;
+ 
+ // M1/M2r: the eval instant.  See the header.
+ wire eval_inst = r_run && !r_evald &&
+@@ -734,6 +782,7 @@ wire [19:0] flush_fast_addr = {flush_cs, 4'd0} + {4'd0, flush_ip};
+ assign bs = halt_withdraw_preview ? BS_CODE
+           : inta_preview ? BS_INTA
+           : vector_follow_preview ? BS_MEMR
++          : eu_ghost_preview ? eu_bs
+           : flush_fast     ? BS_CODE
+           : display        ? r_cmt_bs
+           : (r_run && !st_rel) ? r_cur_bs
+@@ -836,6 +885,7 @@ assign ad_o = (vector_follow_preview && t1_half2) ? eu_addr
+             : flush_fast               ? flush_fast_addr
+             : disp_inta                ? {dinta_hi, 16'h0}
+             : cur_inta                 ? {cinta_hi, 16'h0}
++            : eu_ghost_preview         ? {data_ps(r_cur_seg), eu_addr[15:0]}
+             : display                 ? {disp_hi, display_addr[15:0]}
+             : halt_addr               ? r_cur_addr
+             : (r_run && (r_ts == TS_T1))  ? (r_cur_wr && t1_half2
+@@ -857,6 +907,7 @@ assign ad_oe_ps   = (!ad_oe_addr && r_run && !r_cur_halt &&
+                      (r_ts != TS_T1) && (r_ts != TS_TI)) ||
+                     disp_inta || cur_inta;
+ assign ad_oe_data = (vector_follow_preview && t1_half2) ||
++                    eu_ghost_preview ||
+                     (r_run && r_cur_wr && !r_cur_halt && !r_cur_noaddr &&
+                      (r_ts != TS_TI) && !display);
+ 
+@@ -1472,7 +1523,7 @@ always_comb begin
+                 rq_data[1]   = 16'd0;
+                 rq_ube[1]    = eu_addr2[0] ? 1'b0 : 1'b1;
+                 rq_odd[1]    = eu_addr[0];   // the ACCESS's base, not this cycle's
+-                rq_seg[1]    = eu_seg;
++                rq_seg[1]    = eu_seg2;
+                 rq_noaddr[1] = 1'b0;
+                 rq_wr[1]     = (eu_bs == BS_MEMW) || (eu_bs == BS_IOW);
+                 rq_need[1]   = (eu_bs == BS_MEMW) || (eu_bs == BS_IOW);
+@@ -1909,19 +1960,22 @@ always_comb begin
+         if (!run && cmt_valid &&
+             ((cdage != 3'd0) ||
+              (flush_fast && did_grant && cmt_fetch) ||
+-             (vector_follow_preview && did_grant && !cmt_fetch))) begin
++             (vector_follow_preview && did_grant && !cmt_fetch) ||
++             (eu_ghost_preview && did_grant && !cmt_fetch))) begin
+             run = 1'b1; ts = TS_T1;
+             cur_bs = cmt_bs; cur_addr = cmt_addr; cur_data = cmt_data;
+             cur_ube_n = cmt_ube_n; cur_seg = cmt_seg; cur_odd = cmt_odd;
+             cur_fetch = cmt_fetch; cur_halt = cmt_halt;
+             cur_noaddr = cmt_noaddr; cur_wr = cmt_wr; cur_need = cmt_need;
+             cur_rd_last = cmt_rd_last; cur_pn = cmt_pn;
+-            cur_late_t1 = (flush_fast || vector_follow_preview) ? 1'b0
++            cur_late_t1 = (flush_fast || vector_follow_preview ||
++                           eu_ghost_preview) ? 1'b0
+                         : (cdage != 3'd1) || (cmt_noaddr && cmt_odd);
+             // The direct redirect has no displayed announcement, but its T1
+             // is otherwise an ordinary on-time T1.  Seed the cycle age at the
+             // same value so READY/eval/landing cadence remains unchanged.
+-            dage  = (flush_fast || vector_follow_preview) ? 3'd1 : cdage;
++            dage  = (flush_fast || vector_follow_preview ||
++                     eu_ghost_preview) ? 3'd1 : cdage;
+             evald = 1'b0; sev = 2'd0;
+             cmt_valid = 1'b0;
+             // M10: the bus has TAKEN the whole request -- the slot is free
+diff --git a/hdl/rtl/ucore/v30u_eu.sv b/hdl/rtl/ucore/v30u_eu.sv
+index ac22e76cba..9030faeaeb 100644
+--- a/hdl/rtl/ucore/v30u_eu.sv
++++ b/hdl/rtl/ucore/v30u_eu.sv
+@@ -87,6 +87,7 @@ module v30u_eu (
+     // bus requests
+     output            eu_post,
+     output            eu_post_hold,
++    output            eu_ghost_preview,
+     output            eu_halt_irq,
+     output            eu_vector_post,
+     output      [2:0] eu_bs,
+@@ -94,12 +95,17 @@ module v30u_eu (
+     output     [19:0] eu_addr2,     // split: the second cycle's own address
+     output            eu_split,
+     output      [1:0] eu_seg,
++    output      [1:0] eu_seg2,
+     output            eu_word,
+     input             eu_slot_busy,
+     input             eu_slot_busy_n,
+     input             eu_access_active,
+     input             eu_direct_fetch,
+     input             eu_fetch_tail,
++    input             eu_ghost_full,
++    input             eu_ghost_idle,
++    input             eu_ghost_stack_first,
++    input             eu_rd_wait,
+     output            eu_pair,
+     output            eu_pair2,     // the pairing fills TWO reserved cycles
+     output     [15:0] eu_wdata,
+@@ -382,6 +388,9 @@ reg        opr_loaded;
+ reg [15:0] rdq0, rdq1;     // completed reads awaiting OPR delivery
+ reg  [1:0] rdq_n;
+ reg  [1:0] rd_pending;     // posted reads (rd_last) not yet completed
++reg        ghost_rd_discard; // displaced tail completion after a mod3 POP read
++reg        ghost_rd_feed;  // idle ghost may feed an overlapping successor read
++reg        ghost_rd_ready; // ghost completion matured before successor T1
+ reg  [1:0] rd_done_cnt;    // completed, not yet consumed by an F row
+ reg        rd_age0;        // the oldest completion pulsed on THIS clock
+ reg        iend_owed;      // F22: the post-`E` row owes the successor its reset
+@@ -396,6 +405,11 @@ reg  [1:0] wr_out;         // posted write CYCLES not yet done
+ // --- the opcode latch ------------------------------------------------------
+ reg        opc_valid;
+ reg  [7:0] opc_byte;
++// PF_LOST can let the already-prefetched successor opcode take its one
++// ModR/M byte before the overlapping operand read releases the loader.  This
++// is the decoder's second input latch, not another prefetch-queue slot.
++reg        opc_rm_valid;
++reg  [7:0] opc_rm_byte;
+ reg        pop_is_first;
+ 
+ // --- the loader's working set ----------------------------------------------
+@@ -858,25 +872,65 @@ wire row_is_wb   = (e_type == TY_CTL) && (e_ectl == E_WRITEBACK) && row_wb_mem;
+ wire row_is_inta = (e_type == TY_CTL) && (e_ectl == E_INTA);
+ wire row_bus     = row_is_read || row_is_wr || row_is_wb || row_is_inta;
+ 
+-// NOT LANDED HERE -- THE ENTIRE 8F GHOST FAMILY.  L1 lands `5403671558`
+-// minus the ghost READ (`ghost_rd_discard`, `eu_ghost_full`,
+-// `eu_ghost_stack_first`), the ghost FEED (`ghost_rd_feed`,
+-// `ghost_rd_ready`, `eu_rd_wait`, the `S_PRERD` `ghost_preread_*` arms) and
+-// the PF_LOST decoder hold (`opc_rm_valid`, `opc_rm_byte`).  The FEED was
+-// MEASURED to own the timing collapse (relanding SPIKE, `539c6f8406`:
+-// 41.89 MHz PASS without the family, 15.56 MHz RED with only the read
+-// removed); the READ carries two live-`READY` routes into `stop` and fails
+-// `sw/r7_lint.py`; the decoder hold is provably dead without the feed, since
+-// `opc_rm_valid_n = 1'b1` has exactly one setter and it is gated on
+-// `ghost_rd_ready`.  All three land together once the feed's live pin is off
+-// the EU's control cone (the §73 treatment).
++// A register-bound POP has no ModR/M address to compute, but its discarded
++// stack-read row still reaches the bus.  Row 0058 copies the standing SIGMA
++// value into tmpa; using that retained scratch value reproduces the measured
++// ghost address for the closed histories, while the still-divergent histories
++// remain evidence that the die's stale-address source is not yet universalized.
++// The same row geometry is shared by ordinary POP-register paths, so the
++// undocumented 8F page and its absent memory operand are both part of the
++// select.
++wire ghost_read_stale_alu = (upc_page == 3'd0) && (upc_opc == 8'h8f) &&
++                            row_is_read && (row_seg == 3'd2) &&
++                            (m_kind == OK_REG) && (wb_kind == OK_REG) &&
++                            e_have1 && (e_s1 == 5'd28) && (e_d1 == 5'd5) &&
++                            e_have2 && (e_s2 == 4'd12) && (e_d2 == 2'd1);
++// On the one measured successor overlap, the completed 8F sequence still
++// drives the microaddress while the next loader pre-read stands.  The ghost
++// completion's existing discard bit is its phase/cadence provenance.  The
++// separate feed bit below decides only whether its data may fill the younger
++// untagged read slot; full-phase ghosts still need this tail's bus geometry.
++wire ghost_preread_tail = (st == S_PRERD) && (upc_page == 3'd0) &&
++                           (upc_opc == 8'h8f) && (upc_loc == 4'd4) &&
++                           ghost_rd_discard;
++// Its T1 is also the successor-opcode pop point: use the ordinary pre-pop
++// latch below, so the later E row sees an already-held byte rather than
++// popping it a second time.
++wire ghost_preread_epop = (st == S_PRERD) && ghost_rd_ready &&
++                           !opc_valid && q_ripe &&
++                           (row_posted ||
++                            (ghost_rd_discard && eu_rd_wait)) &&
++                           ((ghost_rd_discard &&
++                             (ghost_rd_feed || eu_access_active)) ||
++                            (!ghost_rd_discard &&
++                             (eu_rd_edge || eu_rd_wait)));
++wire ghost_preread_edge_lag = eu_rd_edge && ghost_preread_tail && opc_valid;
++wire ghost_preread_late = (ghost_preread_epop && !ghost_rd_discard &&
++                           eu_rd_edge) || ghost_preread_edge_lag;
++// Once the PF_LOST opcode is held, the same overlap admits exactly its
++// ModR/M byte.  The ordinary decoder consumes this latch in S_MODRM; all
++// displacement and immediate bytes still come directly from the BIU queue.
++wire ghost_rm_pop = ghost_rd_ready && opc_valid && !opc_rm_valid && q_ripe &&
++                    pla3_has_modrm(pla3_native(opc_byte));
++// The prefixed E4 witness reaches the same untagged hand-off one stage before
++// its micro-row read posts: the ghost completes on the normal-decode charge.
++// That completion is the read store's head; E4's later physical result is the
++// unmatched tail.  This is also the phase that loses E4's I/O and byte rails.
++wire ghost_row_tail = ghost_rd_discard && (pe_opc_reg == 8'h8f) &&
++                      (st == S_NORM_CHG) && (ld_page == 3'd1) &&
++                      (ld_b == 8'he4);
+ 
+ // the access this row asks for.  Its OFFSET is `ind_now`, which is the row's
+ // OWN IND write when it has one -- see "THE ROW'S OWN TRANSFERS" below, next
+ // to the source muxes it needs.
+ wire [2:0] acc_seg   = row_is_wb ? wb_seg : row_seg;
+-wire       acc_byte  = row_is_wb ? wb_byte : row_bbyte;
+-wire       acc_io    = row_is_wb ? 1'b0 : row_io;
++// PF_LOST reaches the successor's bus-space select as well as its stale
++// address.  On the measured REP-prefixed E4 successor the I/O rail is absent,
++// so the otherwise identical read is a word memory cycle at offset 0042.
++wire       ghost_lost_io = row_io && (upc_page == 3'd1) &&
++                           (upc_opc == 8'he4) && (pe_opc_reg == 8'h8f);
++wire       acc_byte  = row_is_wb ? wb_byte : (row_bbyte && !ghost_lost_io);
++wire       acc_io    = row_is_wb ? 1'b0 : (row_io && !ghost_lost_io);
+ wire [15:0] acc_segv = (acc_seg == SEG_ZERO) ? 16'h0000 : sreg[acc_seg[1:0]];
+ 
+ // The PRE-DECODE operand read (loader_impl.h): the operand the sequence
+@@ -886,8 +940,13 @@ wire  [2:0] pr_seg   = pr_use_m ? m_seg : r_seg;
+ wire [15:0] pr_ea    = pr_use_m ? m_ea   : r_ea;
+ wire        pr_byte  = pr_use_m ? m_byte : r_byte;
+ wire [19:0] pr_phys  = {sreg[pr_seg[1:0]], 4'd0} + {4'd0, pr_ea};
+-wire [19:0] pr_phys2 = {sreg[pr_seg[1:0]], 4'd0} + {4'd0, pr_ea + 16'd1};
+ wire        pr_split = !pr_byte && pr_phys[0];
++// A PF_LOST overlap on an odd pre-read leaves the normal segment rail on its
++// first byte and the default data-segment rail on its second.  The BIU already
++// stores each split half independently; publish both rails with the two
++// addresses rather than adding any transaction history.
++wire  [2:0] pr_seg2  = (ghost_preread_tail && pr_split) ? 3'd3 : pr_seg;
++wire [19:0] pr_phys2 = {sreg[pr_seg2[1:0]], 4'd0} + {4'd0, pr_ea + 16'd1};
+ 
+ // The staged write in the pairing latch (exec_impl.h::Pending).
+ wire [15:0] pend_segv = (pend_seg == SEG_ZERO) ? 16'h0000 : sreg[pend_seg[1:0]];
+@@ -1415,12 +1474,77 @@ wire wr_cs1 = e_have1 &&
+ wire [15:0] pc_now = wr_pc1 ? s1_now : pc_after_q;
+ wire [15:0] cs_now = wr_cs1 ? s1_now : sreg[SR_CS];
+ 
+-wire [15:0] acc_off  = row_is_wb ? wb_ea : ind_now;
+-wire [19:0] acc_phys = acc_io ? {4'd0, acc_off}
+-                              : ({acc_segv, 4'd0} + {4'd0, acc_off});
+-wire [19:0] acc_phys2= acc_io ? {4'd0, acc_off + 16'd1}
++wire        ghost_uses_ea = (ea_residue != tmpa);
++wire [13:0] ghost_prev_pla = pla3_native(pe_opc_reg);
++// Immediate IMUL is the one native PLA class (0104, shared by 69/6B) that
++// leaves a second result word on OPR after retiring the low product.  Its two
++// result rails contend for a non-negative immediate; the negative-immediate
++// rail leaves TMPA intact (mc2/1379 versus the mc2/1292 control).
++wire        ghost_uses_mul_hi = (ghost_prev_pla == 14'h0104) && !tmpc[15];
++// The retained EA rail is a word-address rail.  A scratch/SIGMA residue keeps
++// its low bit; a retained ModR/M address normally does not.  MOV-to-segment
++// retains the EA rail itself, including its measured low bit (t30-raw/13).
++wire [15:0] ghost_ea_off = (pe_opc_reg == 8'h8e) ? ea_residue
++                                                  : {ea_residue[15:1], 1'b0};
++wire [15:0] ghost_off = ghost_uses_ea ? ghost_ea_off : tmpa;
++wire [13:0] ghost_next_pla = pla3_native(q_byte);
++wire ghost_next_byte = q_ripe &&
++                       (pla3_byte_only(ghost_next_pla) ||
++                        (pla3_w_from_bit0(ghost_next_pla) && !q_byte[0]));
++// At a completely idle fetch hand-off, the two byte-slice boundaries have
++// different owners.  The predecessor's width leaves the untouched high lane
++// charged; the successor's width leaves the low byte boundary charged.
++// Current-socket value-only mutations expose the two independent terms:
++// predecessor byte C000 else 8000, successor byte 0080 else 0000.
++wire [15:0] ghost_relax = eu_ghost_full ? 16'hFFFF
++                         : eu_ghost_idle ? ((pe_op8 ? 16'hC000 : 16'h8000) |
++                                            (ghost_next_byte ? 16'h0080 : 16'h0000))
++                         : 16'h0000;
++wire [15:0] ghost_bus_off = ghost_uses_mul_hi ? (tmpa & opr)
++                            : (eu_ghost_idle && !q_ripe) ? gpr[R_SP]
++                            : (ghost_off & (gpr[R_SP] | ghost_relax));
++wire [15:0] acc_off  = ghost_read_stale_alu ? ghost_bus_off
++                       : row_is_wb          ? wb_ea : ind_now;
++wire [19:0] acc_phys_base = acc_io ? {4'd0, acc_off}
++                                   : ({acc_segv, 4'd0} + {4'd0, acc_off});
++wire [19:0] ghost_stack_phys = {acc_segv, 4'd0} + {4'd0, ind_now};
++// An odd stack POP has already launched its first byte from SS:SP when the
++// stale address reaches the second half.  Even-stack ghosts launch directly
++// from the stale value.  The real stack address, not the stale pin value,
++// decides whether the word is split.
++wire [19:0] acc_phys = (ghost_read_stale_alu && ghost_stack_phys[0] &&
++                        eu_ghost_stack_first)
++                     ? ghost_stack_phys : acc_phys_base;
++// On an idle odd-stack hand-off the first byte sees the contended stale
++// address, while the second byte sees the un-contended scratch rail.  This is
++// the same split already selected from the real stack address above; no extra
++// history is needed.
++wire [19:0] acc_phys2= (ghost_read_stale_alu && eu_ghost_idle &&
++                        !ghost_uses_ea && ghost_stack_phys[0])
++                      ? (({acc_segv, 4'd0} + {4'd0, ghost_off}) + 20'd1)
++                      : ghost_read_stale_alu ? (acc_phys_base + 20'd1)
++                     : acc_io ? {4'd0, acc_off + 16'd1}
+                               : ({acc_segv, 4'd0} + {4'd0, acc_off + 16'd1});
+-wire       acc_split = !acc_byte && acc_phys[0];
++wire       acc_split = !acc_byte &&
++                       (ghost_read_stale_alu
++                        ? ((ghost_uses_ea || ghost_uses_mul_hi)
++                           ? acc_phys_base[0] : ghost_stack_phys[0])
++                                             : acc_phys[0]);
++// §73 / R7' -- THE WRITE-ACCOUNTING SPLIT, AND WHY IT IS EXACT.
++// `acc_split` above is the BUS value: it drives `eu_split` and `eu_pair2`,
++// which land in the BIU's request registers.  It is ALSO read by
++// `row_wr_add`, and from there it reaches `stop`
++// (`row_wr_add -> wr_after -> retire_ok_e -> bnd_row -> at_bnd -> bnd_fire`),
++// which is how the ghost rails got into the loader's control cone.
++// They cannot MATTER there: `row_wr_add` is gated on `row_is_wr || row_is_wb`
++// and `ghost_read_stale_alu` requires `row_is_read`, so the two are disjoint
++// IN VALUE and joined only IN TEXT.  This is the write side's own value,
++// ghost-free by construction -- not an approximation, and identical to what
++// this expression computed before the family landed.
++wire [15:0] acc_off_nog  = row_is_wb ? wb_ea : ind_now;
++wire [19:0] acc_phys_nog = acc_io ? {4'd0, acc_off_nog}
++                                  : ({acc_segv, 4'd0} + {4'd0, acc_off_nog});
++wire       acc_split_wr  = !acc_byte && acc_phys_nog[0];
+ 
+ //============================================================================
+ // COMBINATIONAL OUTPUTS -- what the BIU samples during THIS clock
+@@ -1537,7 +1661,7 @@ wire       row_slot_wait = row_bus && !row_posted &&
+                            eu_slot_busy &&
+                            !vector_reserved;
+ wire [2:0] row_wr_add    = (row_is_wr || row_is_wb)
+-                           ? (acc_split ? 3'd2 : 3'd1) : 3'd0;
++                           ? (acc_split_wr ? 3'd2 : 3'd1) : 3'd0;
+ wire [2:0] wr_after      = {1'b0, wr_out} + row_wr_add;
+ wire       retire_ok_e   = (wr_after == 3'd0) ||
+                            ((wr_after == 3'd1) && eu_wr_done_n);
+@@ -1708,11 +1832,11 @@ wire tailw_go = (st == S_TAIL_W) && !opc_valid &&
+                 (opr_fresh || !(nr_wait || !opr_free_now));
+ 
+ wire q_demand = ((st == S_OPC_POP) && !bnd_fire) ||
+-                (st == S_EXT_POP) || (st == S_MODRM) ||
++                (st == S_EXT_POP) || ((st == S_MODRM) && !opc_rm_valid) ||
+                 (st == S_D16_LO) ||
+                 ((st == S_D8_B)   && (!ld_ripe_prev ? (chg == 2'd1) : 1'b1)) ||
+                 ((st == S_D16_HI) && (!ld_ripe_prev ? (chg == 2'd1) : 1'b1)) ||
+-                q_demand_row || row_epop ||
++                q_demand_row || row_epop || ghost_preread_epop || ghost_rm_pop ||
+                 // F11 again: both deferred-pop states TAKE the byte only past
+                 // the retire deadline, so neither may DEMAND it before.
+                 (((st == S_EPOP) || (st == S_TAIL_POP) || tailw_go) &&
+@@ -1721,7 +1845,7 @@ wire q_demand = ((st == S_OPC_POP) && !bnd_fire) ||
+ assign q_pop   = q_demand;
+ assign q_first = (st == S_OPC_POP) ? pop_is_first
+                : (st == S_EPOP) || (st == S_TAIL_POP) || tailw_go ||
+-                 row_epop ? 1'b1
++                 row_epop || ghost_preread_epop ? 1'b1
+                : 1'b0;
+ 
+ // --- the bus request -------------------------------------------------------
+@@ -1757,11 +1881,17 @@ wire inta_first = row_is_inta && (upc_page == 3'd7) &&
+ // 7.02.0 posts INTA so the BIU can withdraw the announced fetch instead of
+ // opening its T1.  The latch is set only by S_HALTED and spent by S_IRQ_D.
+ assign eu_post = (vector_early || pr_active || row_post_now) && !eu_slot_busy;
++assign eu_ghost_preview = eu_post && ghost_rd_ready && ghost_rd_feed &&
++                          !ghost_rd_discard;
+ assign eu_post_hold = (vector_early && vector_tail && !eu_direct_fetch &&
+                       !q_ripe && !eu_slot_busy) ||
+                       (row_post_now && inta_first && eu_direct_fetch &&
+                        !irq_fast_inta && !eu_slot_busy) ||
+-                      (row_post_now && (rdq_n == 2'd2) && !eu_slot_busy);
++                      (row_post_now && (rdq_n == 2'd2) && !eu_slot_busy) ||
++                      // PF_LOST's retained 8F tail consumes the younger read
++                      // at its data edge.  Reserve that completion eval; the
++                      // successor request reaches the ordinary EU slot next.
++                      ghost_preread_edge_lag;
+ assign eu_halt_irq = irq_halt_entry;
+ assign eu_vector_post = eu_post && vector_first;
+ assign eu_bs   = vector_early ? BS_MEMR
+@@ -1778,8 +1908,22 @@ assign eu_split= vector_early ? 1'b0
+ assign eu_seg  = vector_early ? 2'd2
+                : pr_active ? seg_code(pr_seg)
+                : row_is_inta ? 2'd2 : (acc_io ? 2'd2 : seg_code(acc_seg));
++assign eu_seg2 = vector_early ? 2'd2
++               : pr_active ? seg_code(pr_seg2)
++               : row_is_inta ? 2'd2 : (acc_io ? 2'd2 : seg_code(acc_seg));
+ assign eu_word = vector_early ? 1'b1
+-               : pr_active ? !pr_byte
++               // The stale 8F word-lane rail outlives its absent operand and
++               // overlays the following byte pre-read on silicon.
++               : pr_active ? (ghost_preread_tail ? 1'b1 : !pr_byte)
++               // The ghost posts on the successor-opcode overlap.  Its lane
++               // mux therefore sees the successor's ordinary PLA width; C0
++               // and C6 successors are the two current-socket byte witnesses.
++               // Retain the earlier full-phase C0 witness as the same mux's
++               // absent-operand input.
++               : (ghost_read_stale_alu &&
++                  (ghost_next_byte ||
++                   (eu_ghost_full && (modrm_reg == 3'd0) &&
++                    (m_idx == 3'd0)))) ? 1'b0
+                : (row_is_inta ? 1'b1 : !acc_byte);
+ 
+ // The data pairing (`emit_pending`).  The row's OWN `-> OPR` write counts:
+@@ -1817,7 +1961,13 @@ wire row_pre_deliver = (st == S_ROW) && !row_blocked && (rowq >= row_qn) &&
+ // this for the `F` row and `opr_now` did not, so every `REP MOVS` middle
+ // iteration whose read landed on the pairing clock drove the STALE OPR:
+ // `F3A4 idx 1` row 14, exp 37032 got 0.
+-wire [15:0] opr_now = (row_wr_opr || poste_wr_opr) ? s1_now
++// The same untagged data rail is also the write-pairing rail.  If a successor
++// store pairs while the ghost word is still in the BIU read latch, that word
++// wins the collision.  Once the completion pulse has handed the word to the
++// EU, the row's ordinary source wins instead.  No added latch is needed.
++wire ghost_edge_pair = ghost_rd_discard && eu_pair && !eu_rd_done_n;
++wire [15:0] opr_now = ghost_edge_pair                    ? eu_rd_edge_d
++                    : (row_wr_opr || poste_wr_opr)       ? s1_now
+                     : (row_pre_deliver && (rdq_n != 2'd0)) ? rdq0
+                     : (row_pre_deliver && eu_rd_done_n)    ? eu_rdata_n
+                     : opr;
+@@ -2076,6 +2226,9 @@ reg     [15:0] rdq0_r;
+ reg     [15:0] rdq1_r;
+ reg      [1:0] rdq_n_r;
+ reg      [1:0] rd_pending_r;
++reg            ghost_rd_discard_r;
++reg            ghost_rd_feed_r;
++reg            ghost_rd_ready_r;
+ reg      [1:0] rd_done_cnt_r;
+ reg            rd_age0_r;
+ reg            iend_owed_r;
+@@ -2088,6 +2241,8 @@ reg      [7:0] pe_pfxcnt_r;
+ reg      [1:0] wr_out_r;
+ reg            opc_valid_r;
+ reg      [7:0] opc_byte_r;
++reg            opc_rm_valid_r;
++reg      [7:0] opc_rm_byte_r;
+ reg            pop_is_first_r;
+ reg      [7:0] ld_b_r;
+ reg     [13:0] ld_pla_r;
+@@ -2207,6 +2362,9 @@ always @* begin
+     rdq1_r = rdq1;
+     rdq_n_r = rdq_n;
+     rd_pending_r = rd_pending;
++    ghost_rd_discard_r = ghost_rd_discard;
++    ghost_rd_feed_r = ghost_rd_feed;
++    ghost_rd_ready_r = ghost_rd_ready;
+     rd_done_cnt_r = rd_done_cnt;
+     rd_age0_r = rd_age0;
+     iend_owed_r = iend_owed;
+@@ -2219,6 +2377,8 @@ always @* begin
+     wr_out_r = wr_out;
+     opc_valid_r = opc_valid;
+     opc_byte_r = opc_byte;
++    opc_rm_valid_r = opc_rm_valid;
++    opc_rm_byte_r = opc_rm_byte;
+     pop_is_first_r = pop_is_first;
+     ld_b_r = ld_b;
+     ld_pla_r = ld_pla;
+@@ -2276,11 +2436,16 @@ always @* begin
+         pend_byte_r = 1'b0; pend_io_r = 1'b0; opr_fresh_r = 1'b0;
+         opr_loaded_r = 1'b0;
+         rdq0_r = 16'd0; rdq1_r = 16'd0; rdq_n_r = 2'd0;
+-        rd_pending_r = 2'd0; rd_done_cnt_r = 2'd0; rd_age0_r = 1'b0;
++        rd_pending_r = 2'd0; ghost_rd_discard_r = 1'b0;
++        ghost_rd_feed_r = 1'b0;
++        ghost_rd_ready_r = 1'b0;
++        rd_done_cnt_r = 2'd0; rd_age0_r = 1'b0;
+         iend_owed_r = 1'b0; pe_opc_reg_r = 8'd0; pe_opc8080_r = 1'b0; pe_op8_r = 1'b0;
+         pe_pfxcnt_r = 8'd0;
+         wr_out_r = 2'd0;
+-        opc_valid_r = 1'b0; opc_byte_r = 8'd0; pop_is_first_r = 1'b1;
++        opc_valid_r = 1'b0; opc_byte_r = 8'd0;
++        opc_rm_valid_r = 1'b0; opc_rm_byte_r = 8'd0;
++        pop_is_first_r = 1'b1;
+         ld_b_r = 8'd0; ld_pla_r = 14'd0; ld_ext_r = 1'b0; ld_page_r = 3'd0;
+         ld_hasrm_r = 1'b0; ld_rm_r = 8'd0; ld_disp_r = 16'd0; ld_dlo_r = 8'd0;
+         ld_grpd_r = 1'b0; ld_byte_r = 1'b0; ld_preread_r = 1'b0; ld_ripe_prev_r = 1'b0;
+@@ -2455,6 +2620,9 @@ reg     [15:0] rdq0_n;
+ reg     [15:0] rdq1_n;
+ reg      [1:0] rdq_n_n;
+ reg      [1:0] rd_pending_n;
++reg            ghost_rd_discard_n;
++reg            ghost_rd_feed_n;
++reg            ghost_rd_ready_n;
+ reg      [1:0] rd_done_cnt_n;
+ reg            rd_age0_n;
+ reg            iend_owed_n;
+@@ -2467,6 +2635,8 @@ reg      [7:0] pe_pfxcnt_n;
+ reg      [1:0] wr_out_n;
+ reg            opc_valid_n;
+ reg      [7:0] opc_byte_n;
++reg            opc_rm_valid_n;
++reg      [7:0] opc_rm_byte_n;
+ reg            pop_is_first_n;
+ reg      [7:0] ld_b_n;
+ reg     [13:0] ld_pla_n;
+@@ -2699,6 +2869,9 @@ always @* begin
+     rdq1_n = rdq1;
+     rdq_n_n = rdq_n;
+     rd_pending_n = rd_pending;
++    ghost_rd_discard_n = ghost_rd_discard;
++    ghost_rd_feed_n = ghost_rd_feed;
++    ghost_rd_ready_n = ghost_rd_ready;
+     rd_done_cnt_n = rd_done_cnt;
+     rd_age0_n = rd_age0;
+     iend_owed_n = iend_owed;
+@@ -2711,6 +2884,8 @@ always @* begin
+     wr_out_n = wr_out;
+     opc_valid_n = opc_valid;
+     opc_byte_n = opc_byte;
++    opc_rm_valid_n = opc_rm_valid;
++    opc_rm_byte_n = opc_rm_byte;
+     pop_is_first_n = pop_is_first;
+     ld_b_n = ld_b;
+     ld_pla_n = ld_pla;
+@@ -2800,14 +2975,100 @@ always @* begin
+             // it is what a store with a fixed number of slots physically does.
+             // Inert on every graded path by sec.27.1's proof; load-bearing in
+             // fabric, where the in-silicon fuzz runs with no assertions at all.
+-            if (rd_done_cnt_n == 2'd0) rd_age0_n = 1'b1;
+-            if (rd_done_cnt_n != 2'd3) rd_done_cnt_n = rd_done_cnt_n + 2'd1;
+             if (rd_pending_n != 2'd0) rd_pending_n = rd_pending_n - 2'd1;
+-            if (rdq_n_n == 2'd0) rdq0_n = eu_rdata_n; else rdq1_n = eu_rdata_n;
+-            if (rdq_n_n != 2'd2) rdq_n_n = rdq_n_n + 2'd1;
++            // The mod3 POP read has no result tag.  Ordinarily its completion
++            // is discarded.  If a successor read has already claimed the
++            // untagged hand-off, however, the ghost word is its head and the
++            // younger physical completion becomes the unmatched tail.
++            if (ghost_row_tail) ghost_rd_feed_n = 1'b1;
++            if (ghost_rd_discard_n &&
++                (ghost_preread_tail || ghost_row_tail)) begin
++                // The bus has no result tags.  If the younger pre-read has
++                // already launched when the old ghost completes, the first
++                // word feeds that waiting read and the younger physical word
++                // becomes the discarded tail.  This is the same ownership
++                // rule as an idle-phase overlap, reached one phase later.
++                if (!ghost_rd_feed_n && !opc_valid && eu_slot_busy_n) begin
++                    ghost_rd_feed_n = 1'b1;
++                    ghost_rd_ready_n = 1'b1;
++                end
++                if (ghost_rd_feed_n) begin
++                    // An idle-phase ghost is the untagged head seen by the
++                    // successor.  Store it now; the successor's physical
++                    // completion is discarded after its opcode pop below.
++                    if (rd_done_cnt_n == 2'd0) rd_age0_n = 1'b1;
++                    if (rd_done_cnt_n != 2'd3) rd_done_cnt_n = rd_done_cnt_n + 2'd1;
++                    if (rdq_n_n == 2'd0) rdq0_n = eu_rdata_n; else rdq1_n = eu_rdata_n;
++                    if (rdq_n_n != 2'd2) rdq_n_n = rdq_n_n + 2'd1;
++                end
++                // A full-phase ghost that overlaps S_PRERD is discarded here
++                // but keeps its token until the opcode pop, preserving the
++                // measured pre-read width and QS cadence without feeding OPR.
++                // If the younger request was already counted when the ghost
++                // landed, its T1 preceded that decision: leave it to the
++                // ordinary completion pop and release the ghost token now.
++                if (!ghost_rd_feed_n && opc_valid) begin
++                    ghost_rd_discard_n = 1'b0;
++                    ghost_rd_feed_n = 1'b0;
++                    ghost_rd_ready_n = 1'b0;
++                end else if (!ghost_rd_feed_n &&
++                             (rd_pending_n != 2'd0)) begin
++                    // Successor T1 has already passed.  Release completion
++                    // ownership so its data lands normally, but remember
++                    // that its T3 data edge owes the opcode pop.
++                    ghost_rd_discard_n = 1'b0;
++                    ghost_rd_feed_n = 1'b0;
++                    ghost_rd_ready_n = 1'b1;
++                end else if (rd_pending_n == 2'd0) begin
++                    ghost_rd_ready_n = 1'b1;
++                end
++            end else if (ghost_rd_discard_n && (rd_pending_n == 2'd0) &&
++                         (st == S_PRERD) && !opc_valid &&
++                         (upc_page == 3'd1) && (upc_opc == 8'he4)) begin
++                // The E4 overlap's physical tail can land after the younger
++                // pre-read has posted.  It owns no data slot, but its presence
++                // is the simple enable for that read's early decoder pops.
++                ghost_rd_ready_n = 1'b1;
++            end else if (ghost_rd_discard_n && (rd_pending_n == 2'd0)) begin
++                // No overlap, or the overlapping opcode has already popped:
++                // this is an unmatched physical completion.
++                ghost_rd_discard_n = 1'b0;
++                if ((st == S_NORM_CHG) && !opc_valid) begin
++                    // The retained 8F-tail data edge already released the
++                    // decoder.  Its later done pulse enables one successor
++                    // request status preview.
++                    ghost_rd_feed_n = 1'b1;
++                    ghost_rd_ready_n = 1'b1;
++                end else begin
++                    ghost_rd_feed_n = 1'b0;
++                    ghost_rd_ready_n = 1'b0;
++                end
++            end else begin
++                if (rd_done_cnt_n == 2'd0) rd_age0_n = 1'b1;
++                if (rd_done_cnt_n != 2'd3) rd_done_cnt_n = rd_done_cnt_n + 2'd1;
++                if (rdq_n_n == 2'd0) rdq0_n = eu_rdata_n; else rdq1_n = eu_rdata_n;
++                if (rdq_n_n != 2'd2) rdq_n_n = rdq_n_n + 2'd1;
++            end
+         end
+         if (eu_wr_done_n && (wr_out_n != 2'd0)) wr_out_n = wr_out_n - 2'd1;
+         if (q_pop && q_ripe && q_first && !first_pop_seen_n) first_pop_seen_n = 1'b1;
++        // Once an opcode is held, GHOST_READY is no longer completion state:
++        // it is a one-clock admission pulse for that opcode's adjacent
++        // ModR/M byte.  If no ripe byte is present on that clock, it expires.
++        if (ghost_rd_ready && opc_valid) ghost_rd_ready_n = 1'b0;
++        if (ghost_rd_ready && ghost_rd_feed && !ghost_rd_discard) begin
++            // This status-preview encoding is a one-clock pulse.
++            ghost_rd_ready_n = 1'b0;
++            ghost_rd_feed_n = 1'b0;
++        end
++        if (ghost_rm_pop) begin
++            // This decoder-side take can ride either the younger pre-read or
++            // the predecessor's final micro-row.  Capture it at the shared
++            // queue-consumer point so both physical phases clear the arm.
++            opc_rm_byte_n = q_byte;
++            opc_rm_valid_n = 1'b1;
++            ghost_rd_ready_n = 1'b0;
++        end
+ 
+         //--------------------------------------------------------------------
+         // ...AND THE FLAG REGISTER IS FED BY THE DATA LATCH, NOT BY THE ROW.
+@@ -3089,6 +3350,12 @@ always @(posedge clk) begin
+         rdq1 <= (srst && !ss_we) ? rdq1_r : rdq1_n;
+         rdq_n <= (srst && !ss_we) ? rdq_n_r : rdq_n_n;
+         rd_pending <= (srst && !ss_we) ? rd_pending_r : rd_pending_n;
++        ghost_rd_discard <= (srst && !ss_we) ? ghost_rd_discard_r
++                                             : ghost_rd_discard_n;
++        ghost_rd_feed <= (srst && !ss_we) ? ghost_rd_feed_r
++                                          : ghost_rd_feed_n;
++        ghost_rd_ready <= (srst && !ss_we) ? ghost_rd_ready_r
++                                           : ghost_rd_ready_n;
+         rd_done_cnt <= (srst && !ss_we) ? rd_done_cnt_r : rd_done_cnt_n;
+         rd_age0 <= (srst && !ss_we) ? rd_age0_r : rd_age0_n;
+         iend_owed <= (srst && !ss_we) ? iend_owed_r : iend_owed_n;
+@@ -3101,6 +3368,8 @@ always @(posedge clk) begin
+         wr_out <= (srst && !ss_we) ? wr_out_r : wr_out_n;
+         opc_valid <= (srst && !ss_we) ? opc_valid_r : opc_valid_n;
+         opc_byte <= (srst && !ss_we) ? opc_byte_r : opc_byte_n;
++        opc_rm_valid <= (srst && !ss_we) ? opc_rm_valid_r : opc_rm_valid_n;
++        opc_rm_byte <= (srst && !ss_we) ? opc_rm_byte_r : opc_rm_byte_n;
+         pop_is_first <= (srst && !ss_we) ? pop_is_first_r : pop_is_first_n;
+         ld_b <= (srst && !ss_we) ? ld_b_r : ld_b_n;
+         ld_pla <= (srst && !ss_we) ? ld_pla_r : ld_pla_n;
+diff --git a/hdl/rtl/ucore/v30u_eu_row.svh b/hdl/rtl/ucore/v30u_eu_row.svh
+index 08b8224ec2..51fd003837 100644
+--- a/hdl/rtl/ucore/v30u_eu_row.svh
++++ b/hdl/rtl/ucore/v30u_eu_row.svh
+@@ -148,7 +148,7 @@ begin
+         if (row_bus) begin
+             if (row_is_wr || row_is_wb) begin
+                 pend_active_n = 1'b1;
+-                pend_off_n  = acc_off;
++                pend_off_n  = acc_off_nog;
+                 pend_seg_n  = acc_seg;
+                 pend_byte_n = acc_byte;
+                 pend_io_n   = acc_io;
+@@ -159,11 +159,19 @@ begin
+                 // assertion -- so before this they wrapped in simulation and in
+                 // fabric alike.  Both are decremented with an explicit
+                 // `!= 2'd0` floor already; this is the matching ceiling.
+-                if (acc_split) wr_out_n = (wr_out_n >= 2'd2) ? 2'd3
++                if (acc_split_wr) wr_out_n = (wr_out_n >= 2'd2) ? 2'd3
+                                                          : wr_out_n + 2'd2;
+                 else if (wr_out_n != 2'd3) wr_out_n = wr_out_n + 2'd1;
+             end else begin
+                 if (rd_pending_n != 2'd3) rd_pending_n = rd_pending_n + 2'd1;
++                // Every scored ghost starts with an empty read pipeline.  If
++                // an excluded/open-bus stream reaches it behind an older read,
++                // retain baseline delivery rather than invent a tag queue.
++                if (ghost_read_stale_alu && (rd_pending_n == 2'd1)) begin
++                    ghost_rd_discard_n = 1'b1;
++                    ghost_rd_feed_n = eu_ghost_idle;
++                    ghost_rd_ready_n = 1'b0;
++                end
+             end
+         end
+     end
+diff --git a/hdl/rtl/ucore/v30u_eu_ss_read.svh b/hdl/rtl/ucore/v30u_eu_ss_read.svh
+index 45ec1458fe..feee17951f 100644
+--- a/hdl/rtl/ucore/v30u_eu_ss_read.svh
++++ b/hdl/rtl/ucore/v30u_eu_ss_read.svh
+@@ -82,9 +82,14 @@
+         SSA_E_PEND_IO:             ss_rdata <= {15'b0, pend_io};
+         SSA_E_OPR_FRESH:           ss_rdata <= {15'b0, opr_fresh};
+         SSA_E_OPR_LOADED:          ss_rdata <= {15'b0, opr_loaded};
++        SSA_E_GHOST_DISCARD:       ss_rdata <= {15'b0, ghost_rd_discard};
+         SSA_E_EA_RESIDUE:          ss_rdata <= ea_residue;
+         SSA_E_EA_PAIR_RHS:         ss_rdata <= ea_pair_rhs;
+         SSA_E_EA_PAIR_VALID:       ss_rdata <= {15'b0, ea_pair_valid};
++        SSA_E_GHOST_FEED:          ss_rdata <= {15'b0, ghost_rd_feed};
++        SSA_E_GHOST_READY:         ss_rdata <= {15'b0, ghost_rd_ready};
++        SSA_E_OPC_RM_VALID:        ss_rdata <= {15'b0, opc_rm_valid};
++        SSA_E_OPC_RM_BYTE:         ss_rdata <= {8'b0, opc_rm_byte};
+         SSA_E_RDQ0:                ss_rdata <= rdq0;
+         SSA_E_RDQ1:                ss_rdata <= rdq1;
+         SSA_E_RDQ_N:               ss_rdata <= {14'b0, rdq_n};
+diff --git a/hdl/rtl/ucore/v30u_eu_ss_write.svh b/hdl/rtl/ucore/v30u_eu_ss_write.svh
+index 1ffbc81fcb..575f3781c3 100644
+--- a/hdl/rtl/ucore/v30u_eu_ss_write.svh
++++ b/hdl/rtl/ucore/v30u_eu_ss_write.svh
+@@ -82,9 +82,14 @@
+             SSA_E_PEND_IO:             pend_io_n = ss_wdata[0];
+             SSA_E_OPR_FRESH:           opr_fresh_n = ss_wdata[0];
+             SSA_E_OPR_LOADED:          opr_loaded_n = ss_wdata[0];
++            SSA_E_GHOST_DISCARD:       ghost_rd_discard_n = ss_wdata[0];
+             SSA_E_EA_RESIDUE:          ea_residue_n = ss_wdata;
+             SSA_E_EA_PAIR_RHS:         ea_pair_rhs_n = ss_wdata;
+             SSA_E_EA_PAIR_VALID:       ea_pair_valid_n = ss_wdata[0];
++            SSA_E_GHOST_FEED:          ghost_rd_feed_n = ss_wdata[0];
++            SSA_E_GHOST_READY:         ghost_rd_ready_n = ss_wdata[0];
++            SSA_E_OPC_RM_VALID:        opc_rm_valid_n = ss_wdata[0];
++            SSA_E_OPC_RM_BYTE:         opc_rm_byte_n = ss_wdata[7:0];
+             SSA_E_RDQ0:                rdq0_n = ss_wdata;
+             SSA_E_RDQ1:                rdq1_n = ss_wdata;
+             SSA_E_RDQ_N:               rdq_n_n = ss_wdata[1:0];
+diff --git a/hdl/rtl/ucore/v30u_eu_step.svh b/hdl/rtl/ucore/v30u_eu_step.svh
+index 63ba084c94..eea3985c27 100644
+--- a/hdl/rtl/ucore/v30u_eu_step.svh
++++ b/hdl/rtl/ucore/v30u_eu_step.svh
+@@ -272,18 +272,23 @@ end
+ // loader_impl.h -- ModR/M, displacement, effective address
+ //----------------------------------------------------------------------------
+ S_MODRM: if (chain == 4'd0) begin
+-    if (!q_ripe) stop = 1'b1;
++    if (!opc_rm_valid_n && !q_ripe) stop = 1'b1;
+     else begin
+-        ld_rm_n = q_byte;
++        // PF_LOST has one decoder-side ModR/M latch beside the existing
++        // opcode latch.  It changes only when this byte was observed; the
++        // rest of the loader continues to consume the BIU queue normally.
++        v1 = opc_rm_valid_n ? {8'd0, opc_rm_byte_n} : {8'd0, q_byte};
++        opc_rm_valid_n = 1'b0;
++        ld_rm_n = v1[7:0];
+         pc_n = pc_n + 16'd1;
+         ld_disp_n = 16'd0;
+         ld_ripe_prev_n = 1'b0;
+         chg_n = 2'd0;
+-        if (q_byte[7:6] == 2'd1)                        st_n = S_D8_A;
+-        else if (q_byte[7:6] == 2'd2)                   st_n = S_D16_LO;
+-        else if ((q_byte[7:6] == 2'd0) && (q_byte[2:0] == 3'd6))
++        if (v1[7:6] == 2'd1)                            st_n = S_D8_A;
++        else if (v1[7:6] == 2'd2)                       st_n = S_D16_LO;
++        else if ((v1[7:6] == 2'd0) && (v1[2:0] == 3'd6))
+                                                         st_n = S_D16_LO;
+-        else if (q_byte[7:6] != 2'd3)                   st_n = S_EA_CHG;
++        else if (v1[7:6] != 2'd3)                       st_n = S_EA_CHG;
+         else                                            st_n = S_BIND;
+         if (st_n != S_BIND) stop = 1'b1;
+     end
+@@ -510,33 +515,91 @@ end
+ 
+ S_PRERD: if (chain == 4'd0) begin
+     // the pre-decode operand read; `wait_opr` opens micro-row 0 at its T4 + 2
++    if (ghost_preread_epop) begin
++        irq_shadow_n = 1'b0;
++        opc_byte_n = q_byte;
++        opc_valid_n = 1'b1;
++        pop_is_first_n = 1'b0;
++        // If the ghost fed this successor, keep one discard token for the
++        // successor's now-unmatched physical completion.  A full-phase ghost
++        // did not feed it and is finished at this pop.
++        ghost_rd_discard_n = ghost_rd_feed_n || ghost_preread_tail;
++        ghost_rd_feed_n = 1'b0;
++        // Reuse the completion-maturity latch as the one-byte ModR/M arm.
++        // Non-ModR/M opcodes clear it here and cannot take a second byte.
++        ghost_rd_ready_n = pla3_has_modrm(pla3_native(q_byte));
++    end
+     if (!row_posted_n) begin
+-        if (eu_slot_busy_n) stop = 1'b1;
+-        else begin
++        // BOTH of `5403671558`'s sub-branches set `stop`, so hoisting it is
++        // exact -- and it is what takes this site out of the ghost's cone.
++        stop = 1'b1;
++        if (!eu_slot_busy_n && !ghost_preread_late) begin
+             row_posted_n = 1'b1;
+             // F48/U4: saturate, do not wrap (see v30u_eu_row.svh).
+             if (rd_pending_n != 2'd3) rd_pending_n = rd_pending_n + 2'd1;
+-            stop = 1'b1;
+         end
+     end else if (rd_done_cnt_n == 2'd0) begin
+         stop = 1'b1;
+     end else begin
+-        rd_done_cnt_n = rd_done_cnt_n - 2'd1;
+-        if (rdq_n_n != 2'd0) begin
+-            opr_n = rdq0_n; rdq0_n = rdq1_n; rdq_n_n = rdq_n_n - 2'd1;
+-            opr_loaded_n = 1'b1;                              // §87.A
++        // The ghost-late take below owns this clock's delivery when it
++        // fires, so the ordinary completion must not ALSO run -- the guard
++        // carries no `stop`, which is what keeps this site out of the cone.
++        if (!ghost_preread_late) begin
++            rd_done_cnt_n = rd_done_cnt_n - 2'd1;
++            if (rdq_n_n != 2'd0) begin
++                opr_n = rdq0_n; rdq0_n = rdq1_n; rdq_n_n = rdq_n_n - 2'd1;
++                opr_loaded_n = 1'b1;                          // §87.A
++            end
++            // F27 -- THE PRE-DECODE READ DOES NOT MAKE OPR "FRESH".  The
++            // loader assigns `m.opr = biu.mem_read(...)` DIRECTLY
++            // (loader_impl.h:495) and never touches `opr_fresh_`, which
++            // `begin_sequence()` left false -- the pairing latch is armed by a
++            // `-> OPR` TRANSFER, not by a read.  With it set, `86`/`87`'s
++            // write-back row emitted the store the instant it posted, handing
++            // the bus the operand the pre-read had just brought IN
++            // (`86 idx 0`: 9054) instead of the register the post-`E` row
++            // `tmpb -> M` is about to swap OUT (9f3e).
++            row_posted_n = 1'b0;
++            st_n = ld_grpd_n ? S_GRPD_CHG : S_ENTER;
+         end
+-        // F27 -- THE PRE-DECODE READ DOES NOT MAKE OPR "FRESH".  The loader
+-        // assigns `m.opr = biu.mem_read(...)` DIRECTLY (loader_impl.h:495) and
+-        // never touches `opr_fresh_`, which `begin_sequence()` left false --
+-        // the pairing latch is armed by a `-> OPR` TRANSFER, not by a read.
+-        // With it set, `86`/`87`'s write-back row emitted the store the instant
+-        // it posted, handing the bus the operand the pre-read had just brought
+-        // IN (`86 idx 0`: 9054) instead of the register the post-`E` row
+-        // `tmpb -> M` is about to swap OUT (9f3e).
++        if (ld_grpd_n) stop = 1'b1;
++    end
++    //------------------------------------------------------------------------
++    // §73 / R7' -- THE GHOST-LATE TAKE IS **DATA AND NEXT-STATE ONLY**.
++    //
++    // `ghost_preread_late` is built from `eu_rd_edge`, §73's ONE declared
++    // READY carrier -- and `sw/r7_lint.py` check (b) deliberately does NOT
++    // except it: "if it ever gates `stop`, R7' is re-opened".  `5403671558`
++    // put this arm at the HEAD of the chain above, where it took `stop` from
++    // 1 to 0, i.e. the live pin released eleven more loader positions.  That
++    // is R7' BY CONSTRUCTION, not a lint artifact, and NO re-timing removes it
++    // -- READY at clock c is not knowable before clock c.
++    //
++    // So the arm keeps everything that is DATA and gives up the one thing that
++    // is CONTROL.  Every write below lands on a register's `D` pin, which is
++    // exactly what §73 admitted `eu_rd_edge` for (`rd_edge_psw_take` on the
++    // `psw` register).  OPR takes the data-edge word on the SAME clock as
++    // `5403671558` and `st` advances on the SAME clock; what changes is that
++    // the chain does not CONTINUE -- `S_ENTER` runs on the following clock in
++    // the two branches where the original released it.  Measured A/B against
++    // the faithful form: docs/notes/ghost8f_prereg_2026-08-09.md §5.
++    //
++    // `st_n`'s taint cannot reach `stop` at chain position >= 1 either: on
++    // every clock where this arm can change `st_n` relative to the ordinary
++    // path, `stop` is already 1 above, so no later position runs.  In the one
++    // branch that does continue (`rd_done_cnt != 0`, `!ld_grpd`) both paths
++    // set `st_n` to the same state and only `opr_n` differs.
++    //------------------------------------------------------------------------
++    if (ghost_preread_late) begin
++        // The successor T1 preceded the ghost completion, so silicon pops at
++        // the successor data edge and hands that edge's word directly to OPR.
++        // Keep one discard token for the later BIU done pulse; the word has
++        // already been consumed here and must not enter rdq a second time.
++        opr_n = eu_rd_edge_d;
++        opr_loaded_n = 1'b1;
+         row_posted_n = 1'b0;
++        ghost_rd_discard_n = 1'b1;
+         st_n = ld_grpd_n ? S_GRPD_CHG : S_ENTER;
+-        if (ld_grpd_n) stop = 1'b1;
+     end
+ end
+ 
+@@ -608,8 +671,17 @@ S_ROW: if (chain == 4'd0) begin
+     if (!stop) begin
+         // the F interlock's own delivery, taken once
+         if (e_f) begin
+-            if (row_reads_opr && (rd_done_cnt_n != 2'd0))
++            if (row_reads_opr && (rd_done_cnt_n != 2'd0)) begin
+                 rd_done_cnt_n = rd_done_cnt_n - 2'd1;
++                // An idle PF_LOST ghost can be the untagged head consumed by
++                // this ordinary micro-row read.  Its younger physical result
++                // is now the unmatched completion represented by the discard
++                // bit; the feed/ready rails have done their job.
++                if (ghost_rd_feed_n) begin
++                    ghost_rd_feed_n = 1'b0;
++                    ghost_rd_ready_n = 1'b0;
++                end
++            end
+             if (rdq_n_n != 2'd0) begin
+                 opr_n = rdq0_n; rdq0_n = rdq1_n; rdq_n_n = rdq_n_n - 2'd1;
+                 opr_fresh_n = 1'b1;
+diff --git a/hdl/rtl/ucore/v30u_ss_pkg.sv b/hdl/rtl/ucore/v30u_ss_pkg.sv
+index fedaac855a..fd620168c3 100644
+--- a/hdl/rtl/ucore/v30u_ss_pkg.sv
++++ b/hdl/rtl/ucore/v30u_ss_pkg.sv
+@@ -109,22 +109,43 @@ package v30_ss_pkg;
+   // stream-CONTENT change is the one class of map edit no gate in this tree
+   // can catch.  This is a deliberate divergence from that commit's numbering
+   // and is the only reason 0x8B, not 0x8A, is the version here.
++  // WRFUZZ 8F ghost READ: 0x8B -> 0x8C.  `ghost_rd_discard` TAKES 0x176 --
++  // the address that was RESERVED for it, and reserved in this file in as many
++  // words.  It follows the displaced mod3 stack read across the instruction
++  // boundary until the BIU returns it, so a stream frozen in that interval
++  // must carry the bit.  No skip is owed for a reserved code taken by its
++  // named occupant; `ss_addr_of`'s hole is REMOVED below and NO symbol is
++  // renumbered (0x177-0x179 keep their addresses by arithmetic).
++  // WRFUZZ 8F ghost FEED: 0x8C -> 0x8D.  `ghost_rd_feed` and `ghost_rd_ready`
++  // are appended at 0x17A-0x17B: the first distinguishes an idle-phase ghost
++  // that feeds the overlapping pre-read from one that is merely discarded, the
++  // second says the ghost completion matured before the successor's T1.
++  // WRFUZZ PF_LOST decoder hold: 0x8D -> 0x8E.  One valid bit and one byte
++  // append the observed successor ModR/M latch at 0x17C-0x17D.
+   //
+-  // 0x176 IS NOT ASSIGNED -- it is RESERVED, not retired.  `5403671558` put
+-  // `ghost_rd_discard` there and that mechanism (the 8F ghost READ) is
+-  // deferred to a later landing, where it takes 0x176 with its original
+-  // meaning.  `ss_addr_of` steps over it exactly as it steps over 0x038, and
+-  // no symbol below it is renumbered, so the address never means two things.
+-  localparam int          SS_VERSION   = 8'h8B;   // ucore map v11 (L1 re-landing)
++  // ⚠ 0x8E IS ALSO `5403671558`'s VERSION FOR THIS SAME SET, AND THAT IS
++  // ARITHMETIC COINCIDENCE, NOT COMPATIBILITY.  L1 spent a version on the
++  // `SSA_E_IRQ_LATCH` WIDENING that `5403671558` did not spend, and that
++  // commit reached 0x8E from a base that had not.  The two v14 streams are NOT
++  // interchangeable: same version, different history, and only this map is in
++  // this tree.
++  localparam int          SS_VERSION   = 8'h8E;   // ucore map v14 (8F ghost family)
+   localparam logic [8:0]  SSA_TAG      = 9'h000;
+   localparam logic [8:0]  SS_BIU_BASE  = 9'h001;
+   localparam int          SS_BIU_COUNT = 101;  // U4 F49 (+5); s11 (-4); s21 (-1); H3 (+1)
++                                              // 8F ghost: +0 -- the four rails
++                                              // it publishes are COMBINATIONAL
++                                              // off `r_ready_prev`, which is
++                                              // already at SSA_B_READY_PREV.
+   localparam logic [8:0]  SS_EU_BASE   = 9'h100;
+-  localparam int          SS_EU_COUNT  = 121;  // U2 p5 (+2 recog); U4 F49 (+1);
++  localparam int          SS_EU_COUNT  = 126;  // U2 p5 (+2 recog); U4 F49 (+1);
+                                               // SM3 s25 / §86 (+1, the BRK arm);
+                                               // SM3 s26 / §87.A (+1, opr_loaded);
++                                              // WRFUZZ 8F (+1, discarded read);
+                                               // WRFUZZ LEA (+1, EA residue);
+-                                              // WRFUZZ LEA (+2, pair rail)
++                                              // WRFUZZ LEA (+2, pair rail);
++                                              // WRFUZZ 8F (+2, feed + maturity);
++                                              // WRFUZZ PF_LOST (+2, ModR/M hold)
+   localparam int          SS_COUNT     = 1 + SS_BIU_COUNT + SS_EU_COUNT;
+   localparam logic [15:0] SS_TAG       = {8'(SS_VERSION), 8'(SS_COUNT)};
+ 
+@@ -246,12 +267,12 @@ package v30_ss_pkg;
+       ss_addr_of = a;
+     end
+     else begin
+-      // L1: 9'h176 is RESERVED for the deferred 8F ghost READ, so the EU
+-      // region carries a hole of exactly the same kind as the BIU's 9'h038.
+-      // Same one-term treatment, and no symbol above it is renumbered.
+-      a = SS_EU_BASE + 9'(i - 1 - SS_BIU_COUNT);
+-      if (a >= 9'h176) a = a + 9'd1;
+-      ss_addr_of = a;
++      // The 8F ghost READ has taken 9'h176, the code L1 RESERVED for it, so
++      // the EU region is dense again and the hole term is GONE.  Nothing is
++      // renumbered by its removal: 0x177-0x179 sat one step past the hole and
++      // now sit one step past `SSA_E_GHOST_DISCARD`, which is the same
++      // address.  The BIU's 9'h038 remains the map's only hole.
++      ss_addr_of = SS_EU_BASE + 9'(i - 1 - SS_BIU_COUNT);
+     end
+   endfunction
+ 
+@@ -294,7 +315,7 @@ package v30_ss_pkg;
+   localparam logic [8:0] SSA_B_RQ_LATE          = 9'h06A;
+ 
+   //--------------------------------------------------------------------------
+-  // EU region (module v30u_eu): 0x100-0x179, with 0x176 RESERVED
++  // EU region (module v30u_eu): 0x100-0x17D, dense
+   //--------------------------------------------------------------------------
+   localparam logic [8:0] SSA_E_AX                   = 9'h100;
+   localparam logic [8:0] SSA_E_CX                   = 9'h101;
+@@ -463,14 +484,13 @@ package v30_ss_pkg;
+   // that resumes an instruction silicon never finishes.
+   localparam logic [8:0] SSA_E_OPR_LOADED           = 9'h175;
+ 
+-  // 9'h176 -- RESERVED, NOT RETIRED.  Its known future occupant is the
+-  // deferred 8F ghost READ's `ghost_rd_discard` (the undocumented 8F mod3
+-  // stack read completes after the instruction has retired; the bit follows
+-  // the resulting one-place displacement through an overlapping read chain so
+-  // the unmatched tail completion is dropped).  It is declared here as a
+-  // COMMENT and not as a `localparam`, because `ss_lint`'s check (1) requires
+-  // every declared SSA_ symbol to appear exactly twice in the RTL and an
+-  // unoccupied symbol would fail it -- correctly.  `ss_addr_of` steps over it.
++  // 9'h176 -- THE RESERVED CODE, TAKEN BY THE OCCUPANT IT WAS RESERVED FOR.
++  // The undocumented 8F mod3 stack read completes after the instruction has
++  // retired.  This bit follows the resulting one-place displacement through an
++  // overlapping read chain, so the unmatched tail completion is dropped.  L1
++  // declared it here as a COMMENT and left `ss_addr_of` stepping over the
++  // code; both are now gone, and no symbol moved.
++  localparam logic [8:0] SSA_E_GHOST_DISCARD        = 9'h176;
+ 
+   // The retained EA-adder lane normally follows tmpa.  A ModR/M address
+   // calculation writes its pre-displacement base here without disturbing the
+@@ -482,11 +502,20 @@ package v30_ss_pkg;
+   localparam logic [8:0] SSA_E_EA_PAIR_RHS          = 9'h178;
+   localparam logic [8:0] SSA_E_EA_PAIR_VALID        = 9'h179;
+ 
+-  // 9'h17A-9'h17D are UNASSIGNED.  `5403671558` put the 8F ghost FEED
+-  // (`ghost_rd_feed`, `ghost_rd_ready`) at 0x17A-0x17B and the PF_LOST
+-  // decoder hold (`opc_rm_valid`, `opc_rm_byte`) at 0x17C-0x17D; neither
+-  // mechanism is in this tree, so neither address is.  They are named here so
+-  // the later landing reuses the same codes for the same meanings.
++  // The bus has no result tags.  Only an IDLE-phase ghost can become the
++  // untagged head consumed by a younger pre-read; a full-phase ghost keeps
++  // ordinary discard semantics.  `GHOST_READY` says the ghost completion
++  // matured before the successor's T1 -- and once an opcode is held it is
++  // re-used as that opcode's one-clock ModR/M admission pulse.
++  localparam logic [8:0] SSA_E_GHOST_FEED           = 9'h17A;
++  localparam logic [8:0] SSA_E_GHOST_READY          = 9'h17B;
++
++  // PF_LOST lets the already-prefetched successor opcode take its ONE ModR/M
++  // byte before the overlapping operand read releases the loader.  This is the
++  // decoder's second input latch beside the opcode latch -- not another
++  // prefetch-queue slot, and not a second queue port.
++  localparam logic [8:0] SSA_E_OPC_RM_VALID         = 9'h17C;
++  localparam logic [8:0] SSA_E_OPC_RM_BYTE          = 9'h17D;
+ 
+   function automatic int ss_field_width(input logic [8:0] a);
+     case (a)
+@@ -721,9 +750,14 @@ package v30_ss_pkg;
+       SSA_E_IRQ_LATCH:           ss_field_width = 8;
+       SSA_E_BRK:                 ss_field_width = 7;
+       SSA_E_OPR_LOADED:          ss_field_width = 1;   // §87.A
++      SSA_E_GHOST_DISCARD:       ss_field_width = 1;
+       SSA_E_EA_RESIDUE:          ss_field_width = 16;
+       SSA_E_EA_PAIR_RHS:         ss_field_width = 16;
+       SSA_E_EA_PAIR_VALID:       ss_field_width = 1;
++      SSA_E_GHOST_FEED:          ss_field_width = 1;
++      SSA_E_GHOST_READY:         ss_field_width = 1;
++      SSA_E_OPC_RM_VALID:        ss_field_width = 1;
++      SSA_E_OPC_RM_BYTE:         ss_field_width = 8;
+       SSA_E_RST_CTR:             ss_field_width = 3;   // F49
+       default: ss_field_width = 0;
+     endcase
+diff --git a/sw/ss_lint.py b/sw/ss_lint.py
+index a230474549..4b5ecdc845 100644
+--- a/sw/ss_lint.py
++++ b/sw/ss_lint.py
+@@ -89,7 +89,6 @@ CORES = {
+             # has anything to wait for.  A parked machine frozen without it
+             # restores as a part that resumes an instruction silicon never
+             # finishes.  Same rule and same reason as every append before it.
+-            # RE-LANDING L1 -- `5403671558` MINUS THE WHOLE 8F GHOST FAMILY.
+             # WRFUZZ H3: v7 -> v8.  One BIU word packs the two request-phase
+             # bits appended at 0x06A; retired 0x066-0x069 remain holes.
+             # WRFUZZ LEA residue: v8 -> v9.  One EU word carries the retained
+@@ -104,15 +103,27 @@ CORES = {
+             # change with no bump; L1 bumps it deliberately, and that is why the
+             # version here is 0x8B and not the 0x8A the address appends alone
+             # would give.
+-            # NOT PRESENT, and their codes are RESERVED, not retired: the 8F
+-            # ghost read (0x176), the 8F ghost feed (0x17A-0x17B) and the
+-            # PF_LOST decoder hold (0x17C-0x17D).  0x176 is a HOLE `ss_addr_of`
+-            # steps over, so the EU region runs 0x100-0x179 with 121 symbols.
+-            "SS_VERSION": 0x8B,   # ucore map v11 (0x80 family: never an FSM stream)
++            # WRFUZZ 8F ghost READ: v11 -> v12.  `ghost_rd_discard` TAKES
++            # 0x176 -- the code L1 RESERVED for it, by name.  A reserved code
++            # taken by its named occupant owes no skip, so `ss_addr_of`'s EU
++            # hole term is REMOVED and nothing is renumbered: 0x177-0x179 sat
++            # one step past the hole and now sit one step past the occupant.
++            # WRFUZZ 8F ghost FEED: v12 -> v13.  Two EU words at 0x17A-0x17B --
++            # `ghost_rd_feed` (an idle-phase ghost may feed the overlapping
++            # pre-read) and `ghost_rd_ready` (the ghost matured before the
++            # successor's T1, re-used as that opcode's ModR/M admission pulse).
++            # WRFUZZ PF_LOST decoder hold: v13 -> v14.  Two EU words at
++            # 0x17C-0x17D -- one valid bit and one byte, the observed successor
++            # ModR/M latch beside the existing opcode latch.
++            # THE EU REGION IS DENSE AGAIN: 0x100-0x17D, 126 symbols, no hole.
++            # ⚠ 0x8E is ALSO `5403671558`'s version for this same set and that
++            # is ARITHMETIC COINCIDENCE, not compatibility -- L1 spent a
++            # version on the SSA_E_IRQ_LATCH widening that commit did not.
++            "SS_VERSION": 0x8E,   # ucore map v14 (0x80 family: never an FSM stream)
+             "SS_BIU_COUNT": 101,
+-            "SS_EU_COUNT": 121,
+-            "SS_COUNT": 223,
+-            "SS_TAG": 0x8BDF,     # (0x8B << 8) | 223
++            "SS_EU_COUNT": 126,
++            "SS_COUNT": 228,
++            "SS_TAG": 0x8EE4,     # (0x8E << 8) | 228
+         },
+     },
+ }

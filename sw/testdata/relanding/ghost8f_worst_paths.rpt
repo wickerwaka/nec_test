@@ -1,0 +1,322 @@
+THE 8F GHOST FAMILY'S G6 REFUTATION -- THE WORST SETUP PATH, DRAW 1.
+
+quartus_gate receipt 6bb7cbda05d7569f (CONTROL/DEFAULT, inputs f81e40c12728d546,
+88 files), tree 9b7ddec4f3-dirty = the sec.73-TREATED form.  DRAW 2
+(receipt 104b51e33fd753b1) reproduces every figure below TO THE DIGIT.
+
+  RED  E3_fmax        15.3 MHz     (bar 32)
+  RED  E4_worst_setup -34.094 ns
+  RED  E5_tns         -10,443.096
+  ALMs 11,995 / 41,910 (29 %)   latches 0   lpm_divide 0   errors 0
+
+ALL TWELVE worst setup paths launch from `system_large|c_ready_q` and land on
+`v30u_eu|opc_base[4]` -- BOTH of the pre-registered refutation conditions
+(docs/notes/ghost8f_prereg_2026-08-09.md P8), and the same endpoint the two
+earlier R7' collapses landed on (sec.73's own note in v30u_eu.sv).
+
+THE ROUTE, read off the netlist below and NOT inferred:
+
+  c_ready_q -> u_biu|eu_rd_edge -> u_eu|ghost_preread_epop -> q_demand
+            -> rd_done_cnt_n -> rdq0_n -> opr_n -> v1 -> Add57* -> Mux348*
+            -> ld_b_n -> st_n -> ... -> opc_base[4]
+
+`stop` IS NOT ON IT.  `sw/r7_lint.py` PASSES on this tree with no new
+exceptions.  The ghost FEED reaches the loader chain through the DATA path --
+register `D` pins the whole way -- and `st_n` is a `D` pin that the next chain
+position reads.  Getting the live pin off `stop` was NECESSARY AND NOT
+SUFFICIENT.
+
+--------------------------------------------------------------------------
+----------------
+; Command Info ;
+----------------
+Report Timing: Found 1 setup paths (1 violated).  Worst case slack is -34.094 
+
+Tcl Command:
+    report_timing -setup -file /tmp/path.txt -npaths 1 -detail full_path
+
+Options:
+    -setup 
+    -npaths 1 
+    -detail full_path 
+    -file {/tmp/path.txt} 
+
+Delay Model:
+    Slow 1100mV 100C Model
+
++---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+; Summary of Paths                                                                                                                                                                                                                                                                                                                ;
++---------+---------------------------------------------+----------------------------------------------------------------------------+-------------------------------------------------------------------------+-------------------------------------------------------------------------+--------------+------------+------------+
+; Slack   ; From Node                                   ; To Node                                                                    ; Launch Clock                                                            ; Latch Clock                                                             ; Relationship ; Clock Skew ; Data Delay ;
++---------+---------------------------------------------+----------------------------------------------------------------------------+-------------------------------------------------------------------------+-------------------------------------------------------------------------+--------------+------------+------------+
+; -34.094 ; emu:emu|system_large:system_large|c_ready_q ; emu:emu|system_large:system_large|v30_core:u_core|v30u_eu:u_eu|opc_base[4] ; emu|pll|pll_inst|altera_pll_i|general[0].gpll~PLL_OUTPUT_COUNTER|divclk ; emu|pll|pll_inst|altera_pll_i|general[0].gpll~PLL_OUTPUT_COUNTER|divclk ; 31.250       ; -0.509     ; 64.705     ;
++---------+---------------------------------------------+----------------------------------------------------------------------------+-------------------------------------------------------------------------+-------------------------------------------------------------------------+--------------+------------+------------+
+
+Path #1: Setup slack is -34.094 (VIOLATED)
+===============================================================================
++-------------------------------------------------------------------------------------------------+
+; Path Summary                                                                                    ;
++--------------------+----------------------------------------------------------------------------+
+; Property           ; Value                                                                      ;
++--------------------+----------------------------------------------------------------------------+
+; From Node          ; emu:emu|system_large:system_large|c_ready_q                                ;
+; To Node            ; emu:emu|system_large:system_large|v30_core:u_core|v30u_eu:u_eu|opc_base[4] ;
+; Launch Clock       ; emu|pll|pll_inst|altera_pll_i|general[0].gpll~PLL_OUTPUT_COUNTER|divclk    ;
+; Latch Clock        ; emu|pll|pll_inst|altera_pll_i|general[0].gpll~PLL_OUTPUT_COUNTER|divclk    ;
+; Data Arrival Time  ; 72.912                                                                     ;
+; Data Required Time ; 38.818                                                                     ;
+; Slack              ; -34.094 (VIOLATED)                                                         ;
++--------------------+----------------------------------------------------------------------------+
+
++--------------------------------------------------------------------------------------+
+; Statistics                                                                           ;
++------------------------+--------+-------+-------------+------------+--------+--------+
+; Property               ; Value  ; Count ; Total Delay ; % of Total ; Min    ; Max    ;
++------------------------+--------+-------+-------------+------------+--------+--------+
+; Setup Relationship     ; 31.250 ;       ;             ;            ;        ;        ;
+; Clock Skew             ; -0.509 ;       ;             ;            ;        ;        ;
+; Data Delay             ; 64.705 ;       ;             ;            ;        ;        ;
+; Number of Logic Levels ;        ; 75    ;             ;            ;        ;        ;
+; Physical Delays        ;        ;       ;             ;            ;        ;        ;
+;  Arrival Path          ;        ;       ;             ;            ;        ;        ;
+;   Clock                ;        ;       ;             ;            ;        ;        ;
+;    IC                  ;        ; 6     ; 4.656       ; 57         ; 0.000  ; 2.302  ;
+;    Cell                ;        ; 6     ; 3.551       ; 43         ; 0.029  ; 1.535  ;
+;   Data                 ;        ;       ;             ;            ;        ;        ;
+;    IC                  ;        ; 84    ; 39.973      ; 62         ; 0.000  ; 1.408  ;
+;    Cell                ;        ; 85    ; 24.732      ; 38         ; 0.000  ; 0.837  ;
+;    uTco                ;        ; 1     ; 0.000       ; 0          ; 0.000  ; 0.000  ;
+;  Required Path         ;        ;       ;             ;            ;        ;        ;
+;   Clock                ;        ;       ;             ;            ;        ;        ;
+;    IC                  ;        ; 6     ; 3.997       ; 56         ; 0.000  ; 1.880  ;
+;    Cell                ;        ; 5     ; 3.117       ; 44         ; 0.296  ; 1.268  ;
+;    PLL Compensation    ;        ; 1     ; -0.307      ; 0          ; -0.307 ; -0.307 ;
++------------------------+--------+-------+-------------+------------+--------+--------+
+Note: Negative delays are omitted from totals when calculating percentages
+
++---------------------------------------------------------------------------------------------------------------------------------------------------+
+; Data Arrival Path                                                                                                                                 ;
++----------+---------+----+------+--------+----------------------------+----------------------------------------------------------------------------+
+; Total    ; Incr    ; RF ; Type ; Fanout ; Location                   ; Element                                                                    ;
++----------+---------+----+------+--------+----------------------------+----------------------------------------------------------------------------+
+; 0.000    ; 0.000   ;    ;      ;        ;                            ; launch edge time                                                           ;
+; 8.207    ; 8.207   ;    ;      ;        ;                            ; clock path                                                                 ;
+;   0.000  ;   0.000 ;    ;      ;        ;                            ; source latency                                                             ;
+;   0.000  ;   0.000 ;    ;      ; 1      ; PIN_Y13                    ; FPGA_CLK2_50                                                               ;
+;   0.000  ;   0.000 ; RR ; IC   ; 1      ; IOIBUF_X56_Y0_N1           ; FPGA_CLK2_50~input|i                                                       ;
+;   0.761  ;   0.761 ; RR ; CELL ; 2      ; IOIBUF_X56_Y0_N1           ; FPGA_CLK2_50~input|o                                                       ;
+;   2.096  ;   1.335 ; RR ; IC   ; 1      ; PLLREFCLKSELECT_X89_Y7_N0  ; emu|pll|pll_inst|altera_pll_i|general[0].gpll~PLL_REFCLK_SELECT|clkin[0]   ;
+;   2.429  ;   0.333 ; RR ; CELL ; 1      ; PLLREFCLKSELECT_X89_Y7_N0  ; emu|pll|pll_inst|altera_pll_i|general[0].gpll~PLL_REFCLK_SELECT|clkout     ;
+;   2.429  ;   0.000 ; RR ; IC   ; 10     ; FRACTIONALPLL_X89_Y1_N0    ; emu|pll|pll_inst|altera_pll_i|general[0].gpll~FRACTIONAL_PLL|refclkin      ;
+;   2.458  ;   0.029 ; RR ; CELL ; 1      ; FRACTIONALPLL_X89_Y1_N0    ; emu|pll|pll_inst|altera_pll_i|general[0].gpll~FRACTIONAL_PLL|vcoph[0]      ;
+;   2.458  ;   0.000 ; RR ; IC   ; 1      ; PLLOUTPUTCOUNTER_X89_Y2_N1 ; emu|pll|pll_inst|altera_pll_i|general[0].gpll~PLL_OUTPUT_COUNTER|vco0ph[0] ;
+;   3.993  ;   1.535 ; RR ; CELL ; 1      ; PLLOUTPUTCOUNTER_X89_Y2_N1 ; emu|pll|pll_inst|altera_pll_i|general[0].gpll~PLL_OUTPUT_COUNTER|divclk    ;
+;   5.012  ;   1.019 ; RR ; IC   ; 1      ; CLKCTRL_G10                ; emu|pll|pll_inst|altera_pll_i|outclk_wire[0]~CLKENA0|inclk                 ;
+;   5.334  ;   0.322 ; RR ; CELL ; 3838   ; CLKCTRL_G10                ; emu|pll|pll_inst|altera_pll_i|outclk_wire[0]~CLKENA0|outclk                ;
+;   7.636  ;   2.302 ; RR ; IC   ; 1      ; FF_X60_Y35_N35             ; emu|system_large|c_ready_q|clk                                             ;
+;   8.207  ;   0.571 ; RR ; CELL ; 1      ; FF_X60_Y35_N35             ; emu:emu|system_large:system_large|c_ready_q                                ;
+; 72.912   ; 64.705  ;    ;      ;        ;                            ; data path                                                                  ;
+;   8.207  ;   0.000 ;    ; uTco ; 1      ; FF_X60_Y35_N35             ; emu:emu|system_large:system_large|c_ready_q                                ;
+;   8.207  ;   0.000 ; RR ; CELL ; 4      ; FF_X60_Y35_N35             ; emu|system_large|c_ready_q|q                                               ;
+;   8.538  ;   0.331 ; RR ; IC   ; 1      ; LABCELL_X60_Y35_N48        ; emu|system_large|u_core|u_biu|eu_rd_edge~0|dataf                           ;
+;   8.625  ;   0.087 ; RR ; CELL ; 2      ; LABCELL_X60_Y35_N48        ; emu|system_large|u_core|u_biu|eu_rd_edge~0|combout                         ;
+;   8.867  ;   0.242 ; RR ; IC   ; 1      ; LABCELL_X60_Y35_N42        ; emu|system_large|u_core|u_eu|ghost_preread_epop~1|dataf                    ;
+;   8.957  ;   0.090 ; RR ; CELL ; 2      ; LABCELL_X60_Y35_N42        ; emu|system_large|u_core|u_eu|ghost_preread_epop~1|combout                  ;
+;   9.199  ;   0.242 ; RR ; IC   ; 1      ; LABCELL_X60_Y35_N6         ; emu|system_large|u_core|u_eu|q_demand~4|dataf                              ;
+;   9.292  ;   0.093 ; RF ; CELL ; 1      ; LABCELL_X60_Y35_N6         ; emu|system_large|u_core|u_eu|q_demand~4|combout                            ;
+;   9.507  ;   0.215 ; FF ; IC   ; 1      ; LABCELL_X60_Y35_N24        ; emu|system_large|u_core|u_eu|q_demand~5|dataf                              ;
+;   9.591  ;   0.084 ; FF ; CELL ; 9      ; LABCELL_X60_Y35_N24        ; emu|system_large|u_core|u_eu|q_demand~5|combout                            ;
+;   9.944  ;   0.353 ; FF ; IC   ; 1      ; LABCELL_X61_Y35_N12        ; emu|system_large|u_core|u_biu|comb~12|dataf                                ;
+;   10.031 ;   0.087 ; FF ; CELL ; 6      ; LABCELL_X61_Y35_N12        ; emu|system_large|u_core|u_biu|comb~12|combout                              ;
+;   10.312 ;   0.281 ; FF ; IC   ; 1      ; LABCELL_X61_Y35_N51        ; emu|system_large|u_core|u_biu|cmt_valid~0|dataf                            ;
+;   10.393 ;   0.081 ; FF ; CELL ; 13     ; LABCELL_X61_Y35_N51        ; emu|system_large|u_core|u_biu|cmt_valid~0|combout                          ;
+;   11.273 ;   0.880 ; FF ; IC   ; 1      ; LABCELL_X61_Y33_N54        ; emu|system_large|u_core|u_biu|Add39~0|dataf                                ;
+;   11.355 ;   0.082 ; FF ; CELL ; 1      ; LABCELL_X61_Y33_N54        ; emu|system_large|u_core|u_biu|Add39~0|combout                              ;
+;   11.584 ;   0.229 ; FF ; IC   ; 1      ; LABCELL_X61_Y33_N57        ; emu|system_large|u_core|u_biu|Add39~3|datad                                ;
+;   11.969 ;   0.385 ; FF ; CELL ; 2      ; LABCELL_X61_Y33_N57        ; emu|system_large|u_core|u_biu|Add39~3|combout                              ;
+;   12.285 ;   0.316 ; FF ; IC   ; 2      ; LABCELL_X61_Y33_N36        ; emu|system_large|u_core|u_biu|Add38~5|datac                                ;
+;   13.122 ;   0.837 ; FF ; CELL ; 1      ; LABCELL_X61_Y33_N36        ; emu|system_large|u_core|u_biu|Add38~5|cout                                 ;
+;   13.122 ;   0.000 ; FF ; IC   ; 2      ; LABCELL_X61_Y33_N39        ; emu|system_large|u_core|u_biu|Add38~17|cin                                 ;
+;   13.276 ;   0.154 ; FR ; CELL ; 4      ; LABCELL_X61_Y33_N39        ; emu|system_large|u_core|u_biu|Add38~17|sumout                              ;
+;   13.525 ;   0.249 ; RR ; IC   ; 1      ; LABCELL_X61_Y33_N24        ; emu|system_large|u_core|u_biu|pf_arm~7|datad                               ;
+;   14.025 ;   0.500 ; RF ; CELL ; 5      ; LABCELL_X61_Y33_N24        ; emu|system_large|u_core|u_biu|pf_arm~7|combout                             ;
+;   14.253 ;   0.228 ; FF ; IC   ; 1      ; LABCELL_X61_Y33_N18        ; emu|system_large|u_core|u_biu|cmt_bs~1|datac                               ;
+;   14.627 ;   0.374 ; FR ; CELL ; 11     ; LABCELL_X61_Y33_N18        ; emu|system_large|u_core|u_biu|cmt_bs~1|combout                             ;
+;   14.999 ;   0.372 ; RR ; IC   ; 1      ; LABCELL_X60_Y33_N48        ; emu|system_large|u_core|u_biu|cmt_valid~1|datab                            ;
+;   15.559 ;   0.560 ; RR ; CELL ; 10     ; LABCELL_X60_Y33_N48        ; emu|system_large|u_core|u_biu|cmt_valid~1|combout                          ;
+;   15.790 ;   0.231 ; RR ; IC   ; 1      ; LABCELL_X60_Y33_N0         ; emu|system_large|u_core|u_biu|rq_bs~5|dataa                                ;
+;   16.395 ;   0.605 ; RR ; CELL ; 3      ; LABCELL_X60_Y33_N0         ; emu|system_large|u_core|u_biu|rq_bs~5|combout                              ;
+;   16.660 ;   0.265 ; RR ; IC   ; 1      ; LABCELL_X60_Y33_N42        ; emu|system_large|u_core|u_biu|slot_accept~2|datae                          ;
+;   16.965 ;   0.305 ; RF ; CELL ; 4      ; LABCELL_X60_Y33_N42        ; emu|system_large|u_core|u_biu|slot_accept~2|combout                        ;
+;   17.204 ;   0.239 ; FF ; IC   ; 1      ; LABCELL_X60_Y33_N30        ; emu|system_large|u_core|u_eu|rd_done_cnt_n~2|datad                         ;
+;   17.722 ;   0.518 ; FF ; CELL ; 40     ; LABCELL_X60_Y33_N30        ; emu|system_large|u_core|u_eu|rd_done_cnt_n~2|combout                       ;
+;   19.130 ;   1.408 ; FF ; IC   ; 1      ; LABCELL_X51_Y32_N48        ; emu|system_large|u_core|u_eu|rdq0_n~14|datac                               ;
+;   19.643 ;   0.513 ; FF ; CELL ; 5      ; LABCELL_X51_Y32_N48        ; emu|system_large|u_core|u_eu|rdq0_n~14|combout                             ;
+;   19.893 ;   0.250 ; FF ; IC   ; 1      ; LABCELL_X51_Y32_N12        ; emu|system_large|u_core|u_eu|opr_n~24|datac                                ;
+;   20.380 ;   0.487 ; FF ; CELL ; 2      ; LABCELL_X51_Y32_N12        ; emu|system_large|u_core|u_eu|opr_n~24|combout                              ;
+;   20.595 ;   0.215 ; FF ; IC   ; 1      ; LABCELL_X51_Y32_N24        ; emu|system_large|u_core|u_eu|v1~37|datab                                   ;
+;   21.162 ;   0.567 ; FF ; CELL ; 24     ; LABCELL_X51_Y32_N24        ; emu|system_large|u_core|u_eu|v1~37|combout                                 ;
+;   21.528 ;   0.366 ; FF ; IC   ; 2      ; LABCELL_X50_Y32_N15        ; emu|system_large|u_core|u_eu|Add57~37|datac                                ;
+;   22.336 ;   0.808 ; FF ; CELL ; 1      ; LABCELL_X50_Y32_N15        ; emu|system_large|u_core|u_eu|Add57~37|cout                                 ;
+;   22.336 ;   0.000 ; FF ; IC   ; 2      ; LABCELL_X50_Y32_N18        ; emu|system_large|u_core|u_eu|Add57~53|cin                                  ;
+;   22.381 ;   0.045 ; FF ; CELL ; 1      ; LABCELL_X50_Y32_N18        ; emu|system_large|u_core|u_eu|Add57~53|cout                                 ;
+;   22.381 ;   0.000 ; FF ; IC   ; 2      ; LABCELL_X50_Y32_N21        ; emu|system_large|u_core|u_eu|Add57~57|cin                                  ;
+;   22.381 ;   0.000 ; FF ; CELL ; 1      ; LABCELL_X50_Y32_N21        ; emu|system_large|u_core|u_eu|Add57~57|cout                                 ;
+;   22.381 ;   0.000 ; FF ; IC   ; 2      ; LABCELL_X50_Y32_N24        ; emu|system_large|u_core|u_eu|Add57~17|cin                                  ;
+;   22.438 ;   0.057 ; FF ; CELL ; 1      ; LABCELL_X50_Y32_N24        ; emu|system_large|u_core|u_eu|Add57~17|cout                                 ;
+;   22.438 ;   0.000 ; FF ; IC   ; 2      ; LABCELL_X50_Y32_N27        ; emu|system_large|u_core|u_eu|Add57~61|cin                                  ;
+;   22.438 ;   0.000 ; FF ; CELL ; 1      ; LABCELL_X50_Y32_N27        ; emu|system_large|u_core|u_eu|Add57~61|cout                                 ;
+;   22.438 ;   0.000 ; FF ; IC   ; 2      ; LABCELL_X50_Y32_N30        ; emu|system_large|u_core|u_eu|Add57~21|cin                                  ;
+;   22.556 ;   0.118 ; FF ; CELL ; 1      ; LABCELL_X50_Y32_N30        ; emu|system_large|u_core|u_eu|Add57~21|cout                                 ;
+;   22.556 ;   0.000 ; FF ; IC   ; 2      ; LABCELL_X50_Y32_N33        ; emu|system_large|u_core|u_eu|Add57~41|cin                                  ;
+;   22.556 ;   0.000 ; FF ; CELL ; 1      ; LABCELL_X50_Y32_N33        ; emu|system_large|u_core|u_eu|Add57~41|cout                                 ;
+;   22.556 ;   0.000 ; FF ; IC   ; 2      ; LABCELL_X50_Y32_N36        ; emu|system_large|u_core|u_eu|Add57~5|cin                                   ;
+;   22.918 ;   0.362 ; FF ; CELL ; 6      ; LABCELL_X50_Y32_N36        ; emu|system_large|u_core|u_eu|Add57~5|sumout                                ;
+;   23.776 ;   0.858 ; FF ; IC   ; 1      ; MLABCELL_X47_Y33_N39       ; emu|system_large|u_core|u_eu|Mux348~6|datad                                ;
+;   24.238 ;   0.462 ; FR ; CELL ; 1      ; MLABCELL_X47_Y33_N39       ; emu|system_large|u_core|u_eu|Mux348~6|combout                              ;
+;   24.495 ;   0.257 ; RR ; IC   ; 1      ; MLABCELL_X47_Y33_N48       ; emu|system_large|u_core|u_eu|Mux348~3|datad                                ;
+;   25.028 ;   0.533 ; RF ; CELL ; 1      ; MLABCELL_X47_Y33_N48       ; emu|system_large|u_core|u_eu|Mux348~3|combout                              ;
+;   25.385 ;   0.357 ; FF ; IC   ; 1      ; MLABCELL_X47_Y33_N6        ; emu|system_large|u_core|u_eu|Mux348~4|datae                                ;
+;   25.589 ;   0.204 ; FF ; CELL ; 3      ; MLABCELL_X47_Y33_N6        ; emu|system_large|u_core|u_eu|Mux348~4|combout                              ;
+;   26.437 ;   0.848 ; FF ; IC   ; 1      ; LABCELL_X43_Y33_N24        ; emu|system_large|u_core|u_eu|Mux358~17|dataf                               ;
+;   26.531 ;   0.094 ; FR ; CELL ; 5      ; LABCELL_X43_Y33_N24        ; emu|system_large|u_core|u_eu|Mux358~17|combout                             ;
+;   26.789 ;   0.258 ; RR ; IC   ; 1      ; LABCELL_X43_Y33_N30        ; emu|system_large|u_core|u_eu|Mux358~19|dataf                               ;
+;   26.887 ;   0.098 ; RF ; CELL ; 28     ; LABCELL_X43_Y33_N30        ; emu|system_large|u_core|u_eu|Mux358~19|combout                             ;
+;   27.687 ;   0.800 ; FF ; IC   ; 1      ; LABCELL_X42_Y32_N57        ; emu|system_large|u_core|u_eu|Decoder27~8|dataf                             ;
+;   27.772 ;   0.085 ; FF ; CELL ; 12     ; LABCELL_X42_Y32_N57        ; emu|system_large|u_core|u_eu|Decoder27~8|combout                           ;
+;   28.110 ;   0.338 ; FF ; IC   ; 1      ; LABCELL_X43_Y32_N39        ; emu|system_large|u_core|u_eu|ld_b_n~10|datae                               ;
+;   28.451 ;   0.341 ; FR ; CELL ; 31     ; LABCELL_X43_Y32_N39        ; emu|system_large|u_core|u_eu|ld_b_n~10|combout                             ;
+;   29.128 ;   0.677 ; RR ; IC   ; 1      ; LABCELL_X40_Y32_N48        ; emu|system_large|u_core|u_eu|Ram14~2|datad                                 ;
+;   29.477 ;   0.349 ; RF ; CELL ; 2      ; LABCELL_X40_Y32_N48        ; emu|system_large|u_core|u_eu|Ram14~2|combout                               ;
+;   29.683 ;   0.206 ; FF ; IC   ; 1      ; LABCELL_X40_Y32_N9         ; emu|system_large|u_core|u_eu|Ram14~3|dataa                                 ;
+;   30.222 ;   0.539 ; FF ; CELL ; 7      ; LABCELL_X40_Y32_N9         ; emu|system_large|u_core|u_eu|Ram14~3|combout                               ;
+;   31.271 ;   1.049 ; FF ; IC   ; 1      ; LABCELL_X40_Y35_N18        ; emu|system_large|u_core|u_eu|Selector1513~1|datad                          ;
+;   31.622 ;   0.351 ; FF ; CELL ; 1      ; LABCELL_X40_Y35_N18        ; emu|system_large|u_core|u_eu|Selector1513~1|combout                        ;
+;   32.200 ;   0.578 ; FF ; IC   ; 1      ; MLABCELL_X39_Y35_N6        ; emu|system_large|u_core|u_eu|Selector1513~2|dataf                          ;
+;   32.282 ;   0.082 ; FF ; CELL ; 1      ; MLABCELL_X39_Y35_N6        ; emu|system_large|u_core|u_eu|Selector1513~2|combout                        ;
+;   32.482 ;   0.200 ; FF ; IC   ; 1      ; MLABCELL_X39_Y35_N24       ; emu|system_large|u_core|u_eu|Selector1513~3|datab                          ;
+;   33.040 ;   0.558 ; FF ; CELL ; 27     ; MLABCELL_X39_Y35_N24       ; emu|system_large|u_core|u_eu|Selector1513~3|combout                        ;
+;   33.754 ;   0.714 ; FF ; IC   ; 1      ; LABCELL_X40_Y33_N30        ; emu|system_large|u_core|u_eu|Ram19~19|datac                                ;
+;   34.197 ;   0.443 ; FR ; CELL ; 8      ; LABCELL_X40_Y33_N30        ; emu|system_large|u_core|u_eu|Ram19~19|combout                              ;
+;   35.036 ;   0.839 ; RR ; IC   ; 1      ; LABCELL_X36_Y34_N21        ; emu|system_large|u_core|u_eu|Equal356~0|datad                              ;
+;   35.400 ;   0.364 ; RF ; CELL ; 7      ; LABCELL_X36_Y34_N21        ; emu|system_large|u_core|u_eu|Equal356~0|combout                            ;
+;   36.343 ;   0.943 ; FF ; IC   ; 1      ; MLABCELL_X39_Y35_N30       ; emu|system_large|u_core|u_eu|st_n~77|dataf                                 ;
+;   36.423 ;   0.080 ; FF ; CELL ; 1      ; MLABCELL_X39_Y35_N30       ; emu|system_large|u_core|u_eu|st_n~77|combout                               ;
+;   37.358 ;   0.935 ; FF ; IC   ; 1      ; LABCELL_X36_Y34_N12        ; emu|system_large|u_core|u_eu|st_n~78|dataf                                 ;
+;   37.440 ;   0.082 ; FF ; CELL ; 1      ; LABCELL_X36_Y34_N12        ; emu|system_large|u_core|u_eu|st_n~78|combout                               ;
+;   37.676 ;   0.236 ; FF ; IC   ; 1      ; LABCELL_X36_Y34_N30        ; emu|system_large|u_core|u_eu|st_n~79|dataf                                 ;
+;   37.759 ;   0.083 ; FF ; CELL ; 30     ; LABCELL_X36_Y34_N30        ; emu|system_large|u_core|u_eu|st_n~79|combout                               ;
+;   38.545 ;   0.786 ; FF ; IC   ; 1      ; LABCELL_X33_Y34_N3         ; emu|system_large|u_core|u_eu|Decoder33~2|datab                             ;
+;   39.106 ;   0.561 ; FF ; CELL ; 5      ; LABCELL_X33_Y34_N3         ; emu|system_large|u_core|u_eu|Decoder33~2|combout                           ;
+;   40.013 ;   0.907 ; FF ; IC   ; 1      ; LABCELL_X33_Y33_N3         ; emu|system_large|u_core|u_eu|st_n~97|datad                                 ;
+;   40.447 ;   0.434 ; FR ; CELL ; 1      ; LABCELL_X33_Y33_N3         ; emu|system_large|u_core|u_eu|st_n~97|combout                               ;
+;   40.857 ;   0.410 ; RR ; IC   ; 1      ; MLABCELL_X34_Y33_N9        ; emu|system_large|u_core|u_eu|st_n~98|dataf                                 ;
+;   40.943 ;   0.086 ; RR ; CELL ; 1      ; MLABCELL_X34_Y33_N9        ; emu|system_large|u_core|u_eu|st_n~98|combout                               ;
+;   41.721 ;   0.778 ; RR ; IC   ; 1      ; LABCELL_X33_Y34_N39        ; emu|system_large|u_core|u_eu|st_n~99|dataf                                 ;
+;   41.810 ;   0.089 ; RR ; CELL ; 33     ; LABCELL_X33_Y34_N39        ; emu|system_large|u_core|u_eu|st_n~99|combout                               ;
+;   42.537 ;   0.727 ; RR ; IC   ; 1      ; LABCELL_X30_Y34_N24        ; emu|system_large|u_core|u_eu|st_zero_ok~13|datad                           ;
+;   43.037 ;   0.500 ; RF ; CELL ; 2      ; LABCELL_X30_Y34_N24        ; emu|system_large|u_core|u_eu|st_zero_ok~13|combout                         ;
+;   43.248 ;   0.211 ; FF ; IC   ; 1      ; LABCELL_X30_Y34_N54        ; emu|system_large|u_core|u_eu|seg_override_n~4|datac                        ;
+;   43.739 ;   0.491 ; FF ; CELL ; 46     ; LABCELL_X30_Y34_N54        ; emu|system_large|u_core|u_eu|seg_override_n~4|combout                      ;
+;   44.489 ;   0.750 ; FF ; IC   ; 1      ; LABCELL_X29_Y35_N30        ; emu|system_large|u_core|u_eu|Selector1798~5|datad                          ;
+;   44.848 ;   0.359 ; FF ; CELL ; 29     ; LABCELL_X29_Y35_N30        ; emu|system_large|u_core|u_eu|Selector1798~5|combout                        ;
+;   45.219 ;   0.371 ; FF ; IC   ; 1      ; LABCELL_X29_Y35_N51        ; emu|system_large|u_core|u_eu|pv~33|dataa                                   ;
+;   45.757 ;   0.538 ; FF ; CELL ; 1      ; LABCELL_X29_Y35_N51        ; emu|system_large|u_core|u_eu|pv~33|combout                                 ;
+;   45.991 ;   0.234 ; FF ; IC   ; 1      ; LABCELL_X29_Y35_N6         ; emu|system_large|u_core|u_eu|pv~34|datac                                   ;
+;   46.437 ;   0.446 ; FR ; CELL ; 8      ; LABCELL_X29_Y35_N6         ; emu|system_large|u_core|u_eu|pv~34|combout                                 ;
+;   46.701 ;   0.264 ; RR ; IC   ; 1      ; LABCELL_X29_Y35_N48        ; emu|system_large|u_core|u_eu|Equal497~0|dataf                              ;
+;   46.794 ;   0.093 ; RF ; CELL ; 2      ; LABCELL_X29_Y35_N48        ; emu|system_large|u_core|u_eu|Equal497~0|combout                            ;
+;   47.037 ;   0.243 ; FF ; IC   ; 1      ; LABCELL_X29_Y35_N24        ; emu|system_large|u_core|u_eu|eu_halted_n~2|datac                           ;
+;   47.549 ;   0.512 ; FF ; CELL ; 5      ; LABCELL_X29_Y35_N24        ; emu|system_large|u_core|u_eu|eu_halted_n~2|combout                         ;
+;   48.779 ;   1.230 ; FF ; IC   ; 1      ; LABCELL_X24_Y37_N24        ; emu|system_large|u_core|u_eu|st_n~140|datad                                ;
+;   49.132 ;   0.353 ; FF ; CELL ; 1      ; LABCELL_X24_Y37_N24        ; emu|system_large|u_core|u_eu|st_n~140|combout                              ;
+;   49.350 ;   0.218 ; FF ; IC   ; 1      ; LABCELL_X24_Y37_N54        ; emu|system_large|u_core|u_eu|st_n~141|datac                                ;
+;   49.831 ;   0.481 ; FF ; CELL ; 1      ; LABCELL_X24_Y37_N54        ; emu|system_large|u_core|u_eu|st_n~141|combout                              ;
+;   50.902 ;   1.071 ; FF ; IC   ; 1      ; LABCELL_X23_Y34_N36        ; emu|system_large|u_core|u_eu|st_n~142|dataf                                ;
+;   50.999 ;   0.097 ; FR ; CELL ; 33     ; LABCELL_X23_Y34_N36        ; emu|system_large|u_core|u_eu|st_n~142|combout                              ;
+;   51.612 ;   0.613 ; RR ; IC   ; 1      ; LABCELL_X24_Y36_N12        ; emu|system_large|u_core|u_eu|Decoder39~8|datac                             ;
+;   52.046 ;   0.434 ; RR ; CELL ; 16     ; LABCELL_X24_Y36_N12        ; emu|system_large|u_core|u_eu|Decoder39~8|combout                           ;
+;   52.714 ;   0.668 ; RR ; IC   ; 1      ; LABCELL_X27_Y36_N54        ; emu|system_large|u_core|u_eu|ld_b_n~70|dataf                               ;
+;   52.808 ;   0.094 ; RF ; CELL ; 42     ; LABCELL_X27_Y36_N54        ; emu|system_large|u_core|u_eu|ld_b_n~70|combout                             ;
+;   53.934 ;   1.126 ; FF ; IC   ; 1      ; MLABCELL_X25_Y33_N42       ; emu|system_large|u_core|u_eu|Ram34~5|datad                                 ;
+;   54.310 ;   0.376 ; FR ; CELL ; 1      ; MLABCELL_X25_Y33_N42       ; emu|system_large|u_core|u_eu|Ram34~5|combout                               ;
+;   54.517 ;   0.207 ; RR ; IC   ; 1      ; MLABCELL_X25_Y33_N30       ; emu|system_large|u_core|u_eu|Ram34~7|datab                                 ;
+;   55.080 ;   0.563 ; RR ; CELL ; 8      ; MLABCELL_X25_Y33_N30       ; emu|system_large|u_core|u_eu|Ram34~7|combout                               ;
+;   55.814 ;   0.734 ; RR ; IC   ; 1      ; LABCELL_X22_Y32_N9         ; emu|system_large|u_core|u_eu|pv~45|dataf                                   ;
+;   55.906 ;   0.092 ; RR ; CELL ; 7      ; LABCELL_X22_Y32_N9         ; emu|system_large|u_core|u_eu|pv~45|combout                                 ;
+;   56.159 ;   0.253 ; RR ; IC   ; 1      ; LABCELL_X22_Y32_N48        ; emu|system_large|u_core|u_eu|Equal591~0|dataf                              ;
+;   56.248 ;   0.089 ; RR ; CELL ; 8      ; LABCELL_X22_Y32_N48        ; emu|system_large|u_core|u_eu|Equal591~0|combout                            ;
+;   56.527 ;   0.279 ; RR ; IC   ; 1      ; LABCELL_X22_Y32_N24        ; emu|system_large|u_core|u_eu|Selector2109~0|dataf                          ;
+;   56.613 ;   0.086 ; RR ; CELL ; 2      ; LABCELL_X22_Y32_N24        ; emu|system_large|u_core|u_eu|Selector2109~0|combout                        ;
+;   57.386 ;   0.773 ; RR ; IC   ; 1      ; LABCELL_X24_Y33_N6         ; emu|system_large|u_core|u_eu|st_n~179|datae                                ;
+;   57.688 ;   0.302 ; RF ; CELL ; 1      ; LABCELL_X24_Y33_N6         ; emu|system_large|u_core|u_eu|st_n~179|combout                              ;
+;   57.929 ;   0.241 ; FF ; IC   ; 1      ; LABCELL_X24_Y33_N57        ; emu|system_large|u_core|u_eu|st_n~180|dataf                                ;
+;   58.010 ;   0.081 ; FF ; CELL ; 29     ; LABCELL_X24_Y33_N57        ; emu|system_large|u_core|u_eu|st_n~180|combout                              ;
+;   59.027 ;   1.017 ; FF ; IC   ; 1      ; LABCELL_X22_Y31_N6         ; emu|system_large|u_core|u_eu|Decoder43~8|datae                             ;
+;   59.255 ;   0.228 ; FF ; CELL ; 20     ; LABCELL_X22_Y31_N6         ; emu|system_large|u_core|u_eu|Decoder43~8|combout                           ;
+;   59.844 ;   0.589 ; FF ; IC   ; 1      ; MLABCELL_X25_Y31_N51       ; emu|system_large|u_core|u_eu|ld_b_n~94|datad                               ;
+;   60.308 ;   0.464 ; FR ; CELL ; 36     ; MLABCELL_X25_Y31_N51       ; emu|system_large|u_core|u_eu|ld_b_n~94|combout                             ;
+;   60.975 ;   0.667 ; RR ; IC   ; 1      ; LABCELL_X23_Y31_N36        ; emu|system_large|u_core|u_eu|Ram40~9|datae                                 ;
+;   61.277 ;   0.302 ; RF ; CELL ; 2      ; LABCELL_X23_Y31_N36        ; emu|system_large|u_core|u_eu|Ram40~9|combout                               ;
+;   61.519 ;   0.242 ; FF ; IC   ; 1      ; LABCELL_X23_Y31_N54        ; emu|system_large|u_core|u_eu|Ram40~33|datag                                ;
+;   61.932 ;   0.413 ; FF ; CELL ; 2      ; LABCELL_X23_Y31_N54        ; emu|system_large|u_core|u_eu|Ram40~33|combout                              ;
+;   62.824 ;   0.892 ; FF ; IC   ; 1      ; LABCELL_X22_Y27_N6         ; emu|system_large|u_core|u_eu|Equal685~0|datad                              ;
+;   63.254 ;   0.430 ; FR ; CELL ; 3      ; LABCELL_X22_Y27_N6         ; emu|system_large|u_core|u_eu|Equal685~0|combout                            ;
+;   63.941 ;   0.687 ; RR ; IC   ; 1      ; MLABCELL_X21_Y28_N57       ; emu|system_large|u_core|u_eu|st_n~222|dataf                                ;
+;   64.037 ;   0.096 ; RF ; CELL ; 2      ; MLABCELL_X21_Y28_N57       ; emu|system_large|u_core|u_eu|st_n~222|combout                              ;
+;   64.335 ;   0.298 ; FF ; IC   ; 1      ; LABCELL_X22_Y28_N15        ; emu|system_large|u_core|u_eu|st_n~237|datad                                ;
+;   64.770 ;   0.435 ; FR ; CELL ; 1      ; LABCELL_X22_Y28_N15        ; emu|system_large|u_core|u_eu|st_n~237|combout                              ;
+;   64.989 ;   0.219 ; RR ; IC   ; 1      ; LABCELL_X22_Y28_N18        ; emu|system_large|u_core|u_eu|st_n~238|datab                                ;
+;   65.540 ;   0.551 ; RF ; CELL ; 1      ; LABCELL_X22_Y28_N18        ; emu|system_large|u_core|u_eu|st_n~238|combout                              ;
+;   65.751 ;   0.211 ; FF ; IC   ; 1      ; LABCELL_X22_Y28_N12        ; emu|system_large|u_core|u_eu|st_n~239|dataf                                ;
+;   65.838 ;   0.087 ; FF ; CELL ; 33     ; LABCELL_X22_Y28_N12        ; emu|system_large|u_core|u_eu|st_n~239|combout                              ;
+;   66.679 ;   0.841 ; FF ; IC   ; 1      ; LABCELL_X22_Y26_N54        ; emu|system_large|u_core|u_eu|Decoder47~4|datad                             ;
+;   67.197 ;   0.518 ; FF ; CELL ; 22     ; LABCELL_X22_Y26_N54        ; emu|system_large|u_core|u_eu|Decoder47~4|combout                           ;
+;   68.040 ;   0.843 ; FF ; IC   ; 1      ; MLABCELL_X21_Y28_N39       ; emu|system_large|u_core|u_eu|opc_from_modrm_n~1|datad                      ;
+;   68.505 ;   0.465 ; FR ; CELL ; 5      ; MLABCELL_X21_Y28_N39       ; emu|system_large|u_core|u_eu|opc_from_modrm_n~1|combout                    ;
+;   68.792 ;   0.287 ; RR ; IC   ; 1      ; MLABCELL_X21_Y28_N21       ; emu|system_large|u_core|u_eu|opc_base[4]~2|dataf                           ;
+;   68.881 ;   0.089 ; RR ; CELL ; 20     ; MLABCELL_X21_Y28_N21       ; emu|system_large|u_core|u_eu|opc_base[4]~2|combout                         ;
+;   69.458 ;   0.577 ; RR ; IC   ; 1      ; LABCELL_X24_Y28_N18        ; emu|system_large|u_core|u_eu|opc_base[4]~16|dataf                          ;
+;   69.553 ;   0.095 ; RF ; CELL ; 3      ; LABCELL_X24_Y28_N18        ; emu|system_large|u_core|u_eu|opc_base[4]~16|combout                        ;
+;   70.778 ;   1.225 ; FF ; IC   ; 1      ; MLABCELL_X34_Y28_N36       ; emu|system_large|u_core|u_eu|opc_base~102|dataf                            ;
+;   70.875 ;   0.097 ; FR ; CELL ; 2      ; MLABCELL_X34_Y28_N36       ; emu|system_large|u_core|u_eu|opc_base~102|combout                          ;
+;   71.164 ;   0.289 ; RR ; IC   ; 1      ; MLABCELL_X34_Y28_N24       ; emu|system_large|u_core|u_eu|opc_base~127|datae                            ;
+;   71.414 ;   0.250 ; RR ; CELL ; 1      ; MLABCELL_X34_Y28_N24       ; emu|system_large|u_core|u_eu|opc_base~127|combout                          ;
+;   72.404 ;   0.990 ; RR ; IC   ; 1      ; LABCELL_X24_Y28_N54        ; emu|system_large|u_core|u_eu|opc_base~128|datae                            ;
+;   72.650 ;   0.246 ; RR ; CELL ; 1      ; LABCELL_X24_Y28_N54        ; emu|system_large|u_core|u_eu|opc_base~128|combout                          ;
+;   72.650 ;   0.000 ; RR ; IC   ; 1      ; FF_X24_Y28_N56             ; emu|system_large|u_core|u_eu|opc_base[4]|d                                 ;
+;   72.912 ;   0.262 ; RR ; CELL ; 1      ; FF_X24_Y28_N56             ; emu:emu|system_large:system_large|v30_core:u_core|v30u_eu:u_eu|opc_base[4] ;
++----------+---------+----+------+--------+----------------------------+----------------------------------------------------------------------------+
+
++----------------------------------------------------------------------------------------------------------------------------------------------------+
+; Data Required Path                                                                                                                                 ;
++----------+----------+----+------+--------+----------------------------+----------------------------------------------------------------------------+
+; Total    ; Incr     ; RF ; Type ; Fanout ; Location                   ; Element                                                                    ;
++----------+----------+----+------+--------+----------------------------+----------------------------------------------------------------------------+
+; 31.250   ; 31.250   ;    ;      ;        ;                            ; latch edge time                                                            ;
+; 38.948   ; 7.698    ;    ;      ;        ;                            ; clock path                                                                 ;
+;   31.250 ;   0.000  ;    ;      ;        ;                            ; source latency                                                             ;
+;   31.250 ;   0.000  ;    ;      ; 1      ; PIN_Y13                    ; FPGA_CLK2_50                                                               ;
+;   31.250 ;   0.000  ; RR ; IC   ; 1      ; IOIBUF_X56_Y0_N1           ; FPGA_CLK2_50~input|i                                                       ;
+;   32.011 ;   0.761  ; RR ; CELL ; 2      ; IOIBUF_X56_Y0_N1           ; FPGA_CLK2_50~input|o                                                       ;
+;   33.182 ;   1.171  ; RR ; IC   ; 1      ; PLLREFCLKSELECT_X89_Y7_N0  ; emu|pll|pll_inst|altera_pll_i|general[0].gpll~PLL_REFCLK_SELECT|clkin[0]   ;
+;   33.490 ;   0.308  ; RR ; CELL ; 1      ; PLLREFCLKSELECT_X89_Y7_N0  ; emu|pll|pll_inst|altera_pll_i|general[0].gpll~PLL_REFCLK_SELECT|clkout     ;
+;   33.490 ;   0.000  ; RR ; IC   ; 10     ; FRACTIONALPLL_X89_Y1_N0    ; emu|pll|pll_inst|altera_pll_i|general[0].gpll~FRACTIONAL_PLL|refclkin      ;
+;   33.183 ;   -0.307 ; RR ; COMP ; 1      ; FRACTIONALPLL_X89_Y1_N0    ; emu|pll|pll_inst|altera_pll_i|general[0].gpll~FRACTIONAL_PLL|vcoph[0]      ;
+;   33.183 ;   0.000  ; RR ; IC   ; 1      ; PLLOUTPUTCOUNTER_X89_Y2_N1 ; emu|pll|pll_inst|altera_pll_i|general[0].gpll~PLL_OUTPUT_COUNTER|vco0ph[0] ;
+;   34.451 ;   1.268  ; RR ; CELL ; 1      ; PLLOUTPUTCOUNTER_X89_Y2_N1 ; emu|pll|pll_inst|altera_pll_i|general[0].gpll~PLL_OUTPUT_COUNTER|divclk    ;
+;   35.397 ;   0.946  ; RR ; IC   ; 1      ; CLKCTRL_G10                ; emu|pll|pll_inst|altera_pll_i|outclk_wire[0]~CLKENA0|inclk                 ;
+;   35.693 ;   0.296  ; RR ; CELL ; 3838   ; CLKCTRL_G10                ; emu|pll|pll_inst|altera_pll_i|outclk_wire[0]~CLKENA0|outclk                ;
+;   37.573 ;   1.880  ; RR ; IC   ; 1      ; FF_X24_Y28_N56             ; emu|system_large|u_core|u_eu|opc_base[4]|clk                               ;
+;   38.057 ;   0.484  ; RR ; CELL ; 1      ; FF_X24_Y28_N56             ; emu:emu|system_large:system_large|v30_core:u_core|v30u_eu:u_eu|opc_base[4] ;
+;   38.948 ;   0.891  ;    ;      ;        ;                            ; clock pessimism removed                                                    ;
+; 38.818   ; -0.130   ;    ;      ;        ;                            ; clock uncertainty                                                          ;
+; 38.818   ; 0.000    ;    ; uTsu ; 1      ; FF_X24_Y28_N56             ; emu:emu|system_large:system_large|v30_core:u_core|v30u_eu:u_eu|opc_base[4] ;
++----------+----------+----+------+--------+----------------------------+----------------------------------------------------------------------------+
+
+----------------------------
+; Extra Fitter Information ;
+----------------------------
+HTML report is unavailable in plain text report export.
+
+
