@@ -89,11 +89,30 @@ CORES = {
             # has anything to wait for.  A parked machine frozen without it
             # restores as a part that resumes an instruction silicon never
             # finishes.  Same rule and same reason as every append before it.
-            "SS_VERSION": 0x87,   # ucore map v7 (0x80 family: never an FSM stream)
-            "SS_BIU_COUNT": 100,
-            "SS_EU_COUNT": 118,
-            "SS_COUNT": 219,
-            "SS_TAG": 0x87DB,     # (0x87 << 8) | 219
+            # RE-LANDING L1 -- `5403671558` MINUS THE WHOLE 8F GHOST FAMILY.
+            # WRFUZZ H3: v7 -> v8.  One BIU word packs the two request-phase
+            # bits appended at 0x06A; retired 0x066-0x069 remain holes.
+            # WRFUZZ LEA residue: v8 -> v9.  One EU word carries the retained
+            # EA-adder lane exposed by undocumented 8D / mod=3, at 0x177.
+            # WRFUZZ LEA pair rail: v9 -> v10.  Two EU words carry the retained
+            # two-register RHS rail and its select bit, at 0x178-0x179.
+            # WRFUZZ IRQ latch WIDTH: v10 -> v11.  SSA_E_IRQ_LATCH grows 6 -> 8
+            # bits (irq_fast_inta, irq_halt_entry).  NO address is added and NO
+            # count changes -- which is the point: the constants below compare
+            # COUNTS, so a widened field is invisible to this lint and the ONLY
+            # thing that can announce it is the version.  `5403671558` made this
+            # change with no bump; L1 bumps it deliberately, and that is why the
+            # version here is 0x8B and not the 0x8A the address appends alone
+            # would give.
+            # NOT PRESENT, and their codes are RESERVED, not retired: the 8F
+            # ghost read (0x176), the 8F ghost feed (0x17A-0x17B) and the
+            # PF_LOST decoder hold (0x17C-0x17D).  0x176 is a HOLE `ss_addr_of`
+            # steps over, so the EU region runs 0x100-0x179 with 121 symbols.
+            "SS_VERSION": 0x8B,   # ucore map v11 (0x80 family: never an FSM stream)
+            "SS_BIU_COUNT": 101,
+            "SS_EU_COUNT": 121,
+            "SS_COUNT": 223,
+            "SS_TAG": 0x8BDF,     # (0x8B << 8) | 223
         },
     },
 }

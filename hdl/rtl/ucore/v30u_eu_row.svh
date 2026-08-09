@@ -47,7 +47,7 @@ begin
         end
     end
     // --- flag write ----------------------------------------------------
-    if (!e_is_rloop && e_w && (sig_mask != 16'd0))
+    if (!e_is_rloop && e_w && !ext4s_early_wblock && (sig_mask != 16'd0))
         commit_flags(sig_mask, sig_flags);
 
     // --- row type ------------------------------------------------------
@@ -199,7 +199,7 @@ begin
             st_n = S_RLOOP;
         end
         stop = 1'b1;
-    end else if (e_e) begin
+    end else if (e_e || ext4s_early_e) begin
         // the successor's opcode pop rides the E row's own clock; a store the
         // pairing latch still owes data defers it to the sequence tail.
         // F11, stated the only way that cannot drift: the demand and the take

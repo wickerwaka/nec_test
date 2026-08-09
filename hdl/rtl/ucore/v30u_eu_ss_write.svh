@@ -82,6 +82,9 @@
             SSA_E_PEND_IO:             pend_io_n = ss_wdata[0];
             SSA_E_OPR_FRESH:           opr_fresh_n = ss_wdata[0];
             SSA_E_OPR_LOADED:          opr_loaded_n = ss_wdata[0];
+            SSA_E_EA_RESIDUE:          ea_residue_n = ss_wdata;
+            SSA_E_EA_PAIR_RHS:         ea_pair_rhs_n = ss_wdata;
+            SSA_E_EA_PAIR_VALID:       ea_pair_valid_n = ss_wdata[0];
             SSA_E_RDQ0:                rdq0_n = ss_wdata;
             SSA_E_RDQ1:                rdq1_n = ss_wdata;
             SSA_E_RDQ_N:               rdq_n_n = ss_wdata[1:0];
@@ -130,6 +133,8 @@
                                          irq_sel_nmi_n = ss_wdata[3];
                                          unhalt_pend_n = ss_wdata[4];
                                          rep_chain_n   = ss_wdata[5];
+                                         irq_fast_inta_n = ss_wdata[6];
+                                         irq_halt_entry_n = ss_wdata[7];
                                        end
             SSA_E_BRK:                 begin                        // §86
                                          brk_p_n       = BRK_FLOOR'(ss_wdata[3:0]);

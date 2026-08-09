@@ -43,8 +43,9 @@ case (r_cond)
                   // two on a chained one (see `irq_rep_1st`/`irq_rep_chn`); the
                   // recognition is LATCHED -- the withdrawal path's own
                   // `0223 JMP INTR` is what reads it back.
-                  else if (intr_pending_n ||
-                           (rep_chained ? irq_rep_chn : irq_rep_1st)) begin
+                  else if ((rep_kind_n != REP_NONE) &&
+                           (intr_pending_n ||
+                            (rep_chained ? irq_rep_chn : irq_rep_1st))) begin
                       intr_pending_n = 1'b1;
                       taken = 1'b0;
                       // ...and the chained boundary's decision edge being one
@@ -53,11 +54,21 @@ case (r_cond)
                       // what puts the flush at accept+9 instead of edge+9.
                       if (rep_chained) bubble = 1'b1;
                   end
-                  else if (rep_test_n == TEST_Z)
-                      taken = (psw_n[FZ] == rep_pol_n);
-                  else if (rep_test_n == TEST_CY)
-                      taken = (psw_n[FCY] == rep_pol_n);
-                  else taken = 1'b1;
+                  else begin
+                      if (rep_test_n == TEST_Z)
+                          taken = (psw_n[FZ] == rep_pol_n);
+                      else if (rep_test_n == TEST_CY)
+                          taken = (psw_n[FCY] == rep_pol_n);
+                      else taken = 1'b1;
+                      // A terminating REP condition retires normally.  TF
+                      // only takes the withdrawal path when another element
+                      // would otherwise run.
+                      if (taken && brk_take && (rep_kind_n != REP_NONE)) begin
+                          intr_pending_n = 1'b1;
+                          taken = 1'b0;
+                          bubble = 1'b1;
+                      end
+                  end
               end
     C_BUSY:   taken = poll_busy;
     C_INTR:   taken = intr_pending_n;

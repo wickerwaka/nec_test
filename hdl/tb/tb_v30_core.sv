@@ -251,6 +251,42 @@ logic        case_active = 0;
 // pin observer: T-state tracking from BS, like nec_bus
 //----------------------------------------------------------------------------
 logic [2:0] tb_t = ST_TI;
+// RE-LANDING L1 -- `5403671558`'s `V30_UCORE`-GUARDED OBSERVER IS DELIBERATELY
+// NOT HERE, AND THE MECHANISM IT READS **IS** LANDED.  (The guard token is
+// spelled around its `ifdef` on purpose: L0b's falsifier for the still-unused
+// define is a grep for that exact two-word string over `hdl/` and `sim/`, and a
+// comment that matched it would answer the falsifier with prose.)  That
+// observer replaced the line below with
+//     wire status_withdrawn = dut.u_biu.halt_withdraw_preview;
+//     wire bs_active = (BS != BS_PASV) && !status_withdrawn;
+// i.e. it gave this TB a SECOND, PRIVATE sample of the status -- a DUT-INTERNAL
+// wire, not a pin.  It has NO FABRIC TWIN: `hdl/rtl/nec_bus.sv:297` computes
+// `bs_active = bs_q != BS_PASV` and that is the reconstruction that runs in
+// fabric and under `tb_sys`, and it structurally cannot see inside the DUT.
+//
+// MEASURED, this tree, identical RTL, A/B (L1): with the observer the four HLT
+// sweeps score 282/283, without it 279/283.  ALL THREE closed cells are FAMILY
+// D -- `w1.INT/9`, `w2.INT/12`, `w3.INT/15` -- and `ucore_provenance.md`
+// §77.A.2 says of exactly those cells, over a 217,507,379-row census, that on
+// this one-sample TB they are "unfixable BY CONSTRUCTION", that the pattern
+// occurs nowhere else in any suite, and registers the falsifier "`tb_sys` /
+// fabric must close all four while `tb_v30_core` must NOT".  The observer moves
+// this TB the forbidden way.  ITS OWN FOURTH CELL IS THE PROOF, and it is the
+// sign that gives it away.  All three cells the observer closes have the SAME
+// shape -- `w1.INT/9` row 11, `w2.INT/12`, `w3.INT/15`: `tstate exp 'Ti' got
+// 'T1'`, a T1 the ucore opens and silicon does not, which an observer that only
+// SUBTRACTS can hide.  The one it cannot close, `w1.INT/8`, is the OPPOSITE
+// sign: row 10 `busstat exp 'CODE' got 'PASV'` -- an announcement silicon HAS
+// and the ucore does not, in the recorded status column itself.  One mechanism
+// (§77.A.2's half-clock status release) produces both signs; a single-sample
+// tracker can only fake one of them, and faking it is not the mechanism.
+//
+// The BIU's `halt_withdraw_preview` IS in this tree and drives `bs` on the
+// withdrawal clock, so the pin behaviour is in the RTL and in any bitstream
+// built from it.  What is withheld is only this TB's private observation of it.
+// Falsifier for landing it later: score family D on `tb_sys`, where the
+// analyser IS `nec_bus`; a half-clock status release must close all four THERE
+// and must not need a DUT-internal probe HERE.
 wire        bs_active = BS != BS_PASV;
 
 wire [2:0] tb_t_next =

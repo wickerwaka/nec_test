@@ -21,7 +21,8 @@ begin
             if (sig_mask != 16'd0)
                 stat_n = (stat_n & ~sig_mask) | (sig_flags & sig_mask);
         end
-        if (!((e_s1 == 5'd20) && !sig_commits)) begin
+        if (!((e_s1 == 5'd20) && !sig_commits) &&
+            !(ext4s_early_post && ext4s_arch_d1)) begin
             `include "v30u_eu_wd1.svh"
         end
     end
@@ -66,6 +67,27 @@ begin
             default: ;
         endcase
         psw_n = (psw_n & PSW_WRITABLE) | PSW_FORCED;
+    end
+
+    // A successor ONE_BYTE_LOGIC write can ride the predecessor's E-row
+    // clock while this post-E row waits for the ROM to advance.  Silicon keeps
+    // both clocks and the successor wins on its one written flag bit.  Preserve
+    // that operation after every possible post-E PSW writer (a FLAGS
+    // destination, W, or CTL).  S_1BL_CHG and the live loader PLA identify the
+    // overlap; this is successor write priority, not another state element.
+    if (st_n == S_1BL_CHG) begin
+        case (pla3_xop(ld_pla_n))
+            PLA3_BL1_SET_DIR: psw_n[FDIR] = 1'b1;
+            PLA3_BL1_CLR_DIR: psw_n[FDIR] = 1'b0;
+            PLA3_BL1_SET_IE:  psw_n[FIE]  = 1'b1;
+            PLA3_BL1_CLR_IE:  psw_n[FIE]  = 1'b0;
+            PLA3_BL1_SET_CY:  psw_n[FCY]  = 1'b1;
+            PLA3_BL1_CLR_CY:  psw_n[FCY]  = 1'b0;
+            // The early CMC strobe was suppressed on this overlap, so toggle
+            // the older post-E result exactly once here.
+            PLA3_BL1_NOT_CY:  psw_n[FCY]  = ~psw_n[FCY];
+            default: ;
+        endcase
     end
 `ifndef SYNTHESIS
     if (row_bus)

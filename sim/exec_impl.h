@@ -607,11 +607,25 @@ bool CpuT<Bus>::cond_true(uint8_t cond) {
                                         biu_.last_write_waits());
                 return false;
             }
+            bool again = true;
             if (m_.rep_test == kTestZ)
-                return ((psw & kFlagZ) != 0) == m_.rep_pol;
-            if (m_.rep_test == kTestCy)
-                return ((psw & kFlagCY) != 0) == m_.rep_pol;
-            return true;
+                again = ((psw & kFlagZ) != 0) == m_.rep_pol;
+            else if (m_.rep_test == kTestCy)
+                again = ((psw & kFlagCY) != 0) == m_.rep_pol;
+            // A live single-step arm is an instruction-boundary recognition,
+            // and REP publishes one after every element that would otherwise
+            // continue.  If the REP condition naturally terminates here, the
+            // instruction retires normally and the trap frame names its
+            // successor; only a continuing loop uses the ROM's withdrawal
+            // path to save COUNT and rewind PC over every prefix.
+            if (again && brk_take_ && m_.rep != kRepNone) {
+                m_.intr_pending = true;
+                biu_.charge(1 + (rep_elems_ >= 2
+                                     ? rep_chain_eval() * biu_.last_write_waits()
+                                     : 0));
+                return false;
+            }
+            return again;
         }
         // BUSY is the 9B POLL_N pin, sampled on the row's own clock.  On the
         // functional bus there is no clock and no pin, so `poll_busy()` is a

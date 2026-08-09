@@ -82,6 +82,9 @@
         SSA_E_PEND_IO:             ss_rdata <= {15'b0, pend_io};
         SSA_E_OPR_FRESH:           ss_rdata <= {15'b0, opr_fresh};
         SSA_E_OPR_LOADED:          ss_rdata <= {15'b0, opr_loaded};
+        SSA_E_EA_RESIDUE:          ss_rdata <= ea_residue;
+        SSA_E_EA_PAIR_RHS:         ss_rdata <= ea_pair_rhs;
+        SSA_E_EA_PAIR_VALID:       ss_rdata <= {15'b0, ea_pair_valid};
         SSA_E_RDQ0:                ss_rdata <= rdq0;
         SSA_E_RDQ1:                ss_rdata <= rdq1;
         SSA_E_RDQ_N:               ss_rdata <= {14'b0, rdq_n};
@@ -121,7 +124,9 @@
         SSA_E_PE_FLAGS:            ss_rdata <= {13'b0, iend_owed, pe_op8,
                                                 pe_opc8080};
         SSA_E_PIN_PIPE:            ss_rdata <= {3'b0, ie_p, nmi_p, int_p};
-        SSA_E_IRQ_LATCH:           ss_rdata <= {10'b0, rep_chain, unhalt_pend,
+        SSA_E_IRQ_LATCH:           ss_rdata <= {8'b0, irq_halt_entry,
+                                                irq_fast_inta,
+                                                rep_chain, unhalt_pend,
                                                 irq_sel_nmi,
                                                 bnd_armed, irq_shadow,
                                                 nmi_latch};

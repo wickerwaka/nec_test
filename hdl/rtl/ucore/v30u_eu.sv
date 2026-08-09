@@ -73,11 +73,22 @@ module v30u_eu (
     output            q_pop,
     output            q_first,
     output            q_flush,
+    output            flush_pre,
+    output            flush_rep,
+    output            flush_stage,
+    output            flush_pend,
+    output            flush_nmi,
+    output            flush_int_live,
     output     [15:0] flush_cs,
+    output     [15:0] flush_cs_old,
+    output            flush_cs_we,
     output     [15:0] flush_ip,
 
     // bus requests
     output            eu_post,
+    output            eu_post_hold,
+    output            eu_halt_irq,
+    output            eu_vector_post,
     output      [2:0] eu_bs,
     output     [19:0] eu_addr,
     output     [19:0] eu_addr2,     // split: the second cycle's own address
@@ -86,6 +97,9 @@ module v30u_eu (
     output            eu_word,
     input             eu_slot_busy,
     input             eu_slot_busy_n,
+    input             eu_access_active,
+    input             eu_direct_fetch,
+    input             eu_fetch_tail,
     output            eu_pair,
     output            eu_pair2,     // the pairing fills TWO reserved cycles
     output     [15:0] eu_wdata,
@@ -212,6 +226,16 @@ reg [15:0] sreg [0:3];
 reg [15:0] pc;
 reg [15:0] psw;
 reg [15:0] tmpa, tmpb, tmpc;
+// The EA adder has a retained output beside the microcode tmp registers.
+// Ordinary tmpa writes refresh it; a ModR/M EA calculation instead leaves the
+// pre-displacement base here.  Only undocumented register-form LEA observes
+// the distinction.
+reg [15:0] ea_residue;
+// A two-register EA also leaves its index input selected on the adder's other
+// rail.  Unary EA forms do not select that rail, so their later undocumented
+// LEA observation continues to come from the ordinary tmpb scratch path.
+reg [15:0] ea_pair_rhs;
+reg        ea_pair_valid;
 reg [15:0] opr;
 reg [15:0] ind;
 reg [15:0] count;
@@ -273,6 +297,8 @@ reg        bnd_armed;      // this `S_OPC_POP` is an instruction boundary
 reg        irq_sel_nmi;    // the kind, latched AT the boundary
 reg        irq_sel_brk;    // ...and the THIRD kind: the single-step trap
 reg        unhalt_pend;    // the NMI wake's `unhalt()`, owed to the entry clock
+reg        irq_fast_inta; // first INTA may consume a standing CODE collision
+reg        irq_halt_entry;// HALT wake owes one IRQ-dispatch handoff clock
 
 // --- the BRK/TF single-step trap (§86; the law is §84.3 / §85.2b) ----------
 // THE ARM DOES NOT SEE A `TF` THAT ROSE TOO RECENTLY, and it is an ARM, not a
@@ -554,6 +580,24 @@ wire e_is_rloop = (e_type == TY_ALU) && e_r;
 wire e_have1 = !e_nopmv;
 wire e_have2 = !e_hasc && ((e_s2 != 4'd15) || (e_d2 != 2'd3));
 
+// The 0F21 negative/no-carry result rail advances the E hand-over to row 5 and inhibits
+// the stale architectural writeback that would otherwise ride that shortened
+// path.  A non-negative 0F21 capture and four 0F23 captures all retain the
+// ordinary row-6 hand-over, so the condition is the ALU sign rail, not an
+// opcode-wide timing shortcut.
+wire ext4s_early_e = (upc_page == 3'd4) && (upc_opc == 8'h21) &&
+                     (upc_loc == 4'd5) && stat[FS] && !stat[FCY];
+wire ext4s_early_wblock = (upc_page == 3'd4) && (upc_opc == 8'h21) &&
+                          (upc_loc == 4'd3) && sig_flags[FS] && !sig_flags[FCY];
+// On the shortened path row 6 is the post-E overlap.  On the ordinary path it
+// is the E row itself and `poste` is still clear, which makes this distinction
+// state-free.
+wire ext4s_early_post = poste && (upc_page == 3'd4) &&
+                        (upc_opc == 8'h21) && (upc_loc == 4'd6);
+wire ext4s_arch_d1 = (e_d1 <= 5'd4) || (e_d1 == 5'd15) ||
+                     (e_d1 == 5'd18) || (e_d1 == 5'd19) ||
+                     (e_d1 >= 5'd24);
+
 //============================================================================
 // SEGMENT / WIDTH HELPERS
 //============================================================================
@@ -756,7 +800,13 @@ wire irq_pin_int = int_p[2];                       // the pin at c-3
 // the same sled on the **NMI** pin acknowledges 24 of 24.  This core scored
 // 3 / 5 / 24 of those, all of them at the forbidden boundary.
 //   *Falsifier*: a maskable acknowledge on silicon whose PUSHED PSW has IE = 0.
-wire irq_int_lvl = int_p[2] && ie_p[2] && psw[FIE];
+// A request sampled on the same clock IE rises is retained in the existing
+// `intr_pending` latch (block (a)) until this floor matures.  The latch has a
+// second, older use for REP withdrawal, so only a non-REP context feeds it
+// into this ordinary-boundary path; REP consumes it through C_INTR instead.
+wire irq_int_lvl = (int_p[2] ||
+                    (intr_pending && (rep_kind == REP_NONE))) &&
+                   ie_p[2] && psw[FIE];
 wire irq_nmi_lvl = nmi_latch;
 wire irq_any     = irq_nmi_lvl || irq_int_lvl;
 // A REP iteration boundary samples at the SAME depth below its own decision
@@ -808,6 +858,19 @@ wire row_is_wb   = (e_type == TY_CTL) && (e_ectl == E_WRITEBACK) && row_wb_mem;
 wire row_is_inta = (e_type == TY_CTL) && (e_ectl == E_INTA);
 wire row_bus     = row_is_read || row_is_wr || row_is_wb || row_is_inta;
 
+// NOT LANDED HERE -- THE ENTIRE 8F GHOST FAMILY.  L1 lands `5403671558`
+// minus the ghost READ (`ghost_rd_discard`, `eu_ghost_full`,
+// `eu_ghost_stack_first`), the ghost FEED (`ghost_rd_feed`,
+// `ghost_rd_ready`, `eu_rd_wait`, the `S_PRERD` `ghost_preread_*` arms) and
+// the PF_LOST decoder hold (`opc_rm_valid`, `opc_rm_byte`).  The FEED was
+// MEASURED to own the timing collapse (relanding SPIKE, `539c6f8406`:
+// 41.89 MHz PASS without the family, 15.56 MHz RED with only the read
+// removed); the READ carries two live-`READY` routes into `stop` and fails
+// `sw/r7_lint.py`; the decoder hold is provably dead without the feed, since
+// `opc_rm_valid_n = 1'b1` has exactly one setter and it is gated on
+// `ghost_rd_ready`.  All three land together once the feed's live pin is off
+// the EU's control cone (the §73 treatment).
+
 // the access this row asks for.  Its OFFSET is `ind_now`, which is the row's
 // OWN IND write when it has one -- see "THE ROW'S OWN TRANSFERS" below, next
 // to the source muxes it needs.
@@ -819,7 +882,7 @@ wire [15:0] acc_segv = (acc_seg == SEG_ZERO) ? 16'h0000 : sreg[acc_seg[1:0]];
 // The PRE-DECODE operand read (loader_impl.h): the operand the sequence
 // READS, and only that one.
 wire        pr_use_m = (m_kind == OK_MEM);
-wire  [2:0] pr_seg   = pr_use_m ? m_seg  : r_seg;
+wire  [2:0] pr_seg   = pr_use_m ? m_seg : r_seg;
 wire [15:0] pr_ea    = pr_use_m ? m_ea   : r_ea;
 wire        pr_byte  = pr_use_m ? m_byte : r_byte;
 wire [19:0] pr_phys  = {sreg[pr_seg[1:0]], 4'd0} + {4'd0, pr_ea};
@@ -1224,8 +1287,28 @@ function automatic [15:0] rb16(input [2:0] code, input [15:0] pair);
     rb16 = code[2] ? {pair[7:0], pair[15:8]} : pair;
 endfunction
 
-wire [15:0] m_rd = (m_kind == OK_REG)  ? (m_byte ? rb16(m_idx, gpr[m_idx[1:0]])
-                                                 : gpr[m_idx])
+// A byte-coded FE/FF-group register feeding the E-tagged stack-write row
+// supplies its unswapped parent word on silicon.  This is distinct from an
+// ordinary byte-register read: the row is M -> OPR while issuing MEMW SS.
+// The current group microcode page excludes immediate and fixed-register PUSH
+// rows, whose unused M decode metadata can otherwise have the same values.
+wire m_modrm_stack_word = (upc_page == 3'd3) &&
+                          (m_kind == OK_REG) && m_byte && e_e &&
+                          row_is_wr && (row_seg == 3'd2) &&
+                          e_have1 && (e_s1 == 5'd19) && (e_d1 == 5'd6);
+// The FE group's undocumented register-direct jump rows have the same
+// physical exception.  Although the ModR/M metadata is byte-coded, the row
+// is `M -> PC; FLUSH` and silicon redirects to the whole parent register
+// (FE E6 with DW=7940 goes to 7940, not the rb16 view 4079).
+wire m_modrm_pc_word = (upc_page == 3'd3) &&
+                       (m_kind == OK_REG) && m_byte &&
+                       e_have1 && (e_s1 == 5'd19) && (e_d1 == 5'd4) &&
+                       (e_ictl == I_FLUSH);
+wire m_modrm_parent_word = m_modrm_stack_word || m_modrm_pc_word;
+wire [15:0] m_reg_rd = !m_byte              ? gpr[m_idx]
+                       : m_modrm_parent_word ? gpr[m_idx[1:0]]
+                                             : rb16(m_idx, gpr[m_idx[1:0]]);
+wire [15:0] m_rd = (m_kind == OK_REG)  ? m_reg_rd
                  : (m_kind == OK_SREG) ? sreg[m_idx[1:0]]
                  : (m_kind == OK_MEM)  ? opr : 16'd0;
 wire [15:0] r_rd = (r_kind == OK_REG)  ? (r_byte ? rb16(r_idx, gpr[r_idx[1:0]])
@@ -1322,7 +1405,12 @@ wire [15:0] ind_now = wr_ind2 ? s2_now : wr_ind1 ? s1_now : ind;
 wire [15:0] pc_after_q = pc + {15'd0, row_q1} + {15'd0, row_q2};
 wire wr_pc1 = e_have1 && (e_d1 == 5'd4) &&
               !((e_s1 == 5'd20) && !sig_commits);
-wire wr_cs1 = e_have1 && (e_d1 == {3'd0, SR_CS}) &&
+wire wr_cs1 = e_have1 &&
+              ((e_d1 == {3'd0, SR_CS}) ||
+               ((e_d1 == 5'd18) && (r_kind == OK_SREG) &&
+                (r_idx[1:0] == SR_CS)) ||
+               ((e_d1 == 5'd19) && (m_kind == OK_SREG) &&
+                (m_idx[1:0] == SR_CS))) &&
               !((e_s1 == 5'd20) && !sig_commits);
 wire [15:0] pc_now = wr_pc1 ? s1_now : pc_after_q;
 wire [15:0] cs_now = wr_cs1 ? s1_now : sreg[SR_CS];
@@ -1402,6 +1490,38 @@ wire [15:0] rd_edge_psw       = (eu_rd_edge_d & PSW_WRITABLE) | PSW_FORCED;
 // The row's own queue demand
 wire q_demand_row = row_need_q && !row_blocked;
 
+// The interrupt entry's first IVT read is reserved while row 7.10.0 is
+// standing, two micro-rows before 7.10.2 accounts for the read.  This is the
+// address-preparation half of the same fixed vector path: NMI and single-step
+// supply their fixed vector numbers, while software and maskable interrupts
+// leave the acquired vector in OPR.  Posting here lets ordinary BIU
+// arbitration decide whether the status follows an idle clock, a direct
+// redirect, or the final no-wait landing phase; no vector-specific delay or
+// bus-state table is needed.
+wire vector_fixed = irq_sel_nmi || irq_sel_brk;
+// A waited landing overlaps only when NMI was taken at the cold opcode-pop
+// boundary.  `irq_fast_inta` already records that boundary for the hardware-
+// acknowledge collision; retaining it through the fixed-vector prologue also
+// distinguishes this one waited overlap from ordinary row-boundary entries.
+// No-wait landings remain the common NMI/BRK path.
+wire vector_tail = eu_fetch_tail && vector_fixed &&
+                   (!q_ripe || (irq_sel_nmi && irq_fast_inta));
+wire vector_overlap = (st == S_ROW) &&
+                      ((eu_direct_fetch && !q_ripe) || vector_tail);
+wire vector_early = !row_blocked && vector_overlap &&
+                    (upc_page == 3'd7) && (upc_opc == 8'h10) &&
+                    (upc_loc == 4'd0);
+wire vector_first = (st == S_ROW) &&
+                    (upc_page == 3'd7) && (upc_opc == 8'h10) &&
+                    (upc_loc == 4'd2);
+wire [15:0] vector_number = irq_sel_nmi ? 16'd2
+                          : irq_sel_brk ? 16'd1 : opr;
+wire [19:0] vector_phys_early = {2'b0, vector_number, 2'b0};
+// When the reservation is still short of T1, the BIU's ordinary slot latch is
+// its provenance at 7.10.2.  All non-overlapped entries arrive here with the
+// slot free and post in the normal way.
+wire vector_reserved = vector_first && (eu_slot_busy || eu_access_active);
+
 // The E row's successor pop (max-of-two-deadlines: the E row's own clock and
 // the retire deadline).  A staged write defers it to the sequence tail.
 //
@@ -1411,7 +1531,11 @@ wire q_demand_row = row_need_q && !row_blocked;
 // term here -- the row must RUN this clock (all four stalls), and the retire
 // deadline must count THE WRITE THIS ROW IS ABOUT TO POST, which the step sees
 // (it reads `wr_out` after its own increment) and the pre-edge wire did not.
-wire       row_slot_wait = row_bus && !row_posted && eu_slot_busy;
+// 7.10.2 owns the read reserved by 7.10.0, so an occupied slot there is its
+// own access, not a reason to post or wait for a second copy.
+wire       row_slot_wait = row_bus && !row_posted &&
+                           eu_slot_busy &&
+                           !vector_reserved;
 wire [2:0] row_wr_add    = (row_is_wr || row_is_wb)
                            ? (acc_split ? 3'd2 : 3'd1) : 3'd0;
 wire [2:0] wr_after      = {1'b0, wr_out} + row_wr_add;
@@ -1433,7 +1557,8 @@ wire pend_after = pend_new && !(opr_fresh || row_wr_opr);
 // PASV and the flush's own `E` on row 6.  The whole taken-JMP family (Jcc,
 // E9/E8/EB/EA, FF.2/.4, RET, INT) is this one term.
 wire row_flush = (e_type == TY_CTL) && !e_farjmp && (e_ictl == I_FLUSH);
-wire row_epop = (st == S_ROW) && e_e && !pend_after && !opc_valid &&
+wire row_epop = (st == S_ROW) && (e_e || ext4s_early_e) &&
+                !pend_after && !opc_valid &&
                 !row_blocked && (rowq >= row_qn) && !row_pre_wait &&
                 !row_slot_wait && retire_ok_e && !row_flush && !bnd_fire;
 
@@ -1463,7 +1588,8 @@ wire row_epop = (st == S_ROW) && e_e && !pend_after && !opc_valid &&
 // MEASURED: `INT.90 idx 14`, retire met on row 3 with a dry queue and the pin
 // maturing on row 4; the chip's row-4 pop is SUPPRESSED.  A one-clock boundary
 // declines it and pops.
-wire bnd_row  = (st == S_ROW) && e_e && !pend_after && !opc_valid &&
+wire bnd_row  = (st == S_ROW) && (e_e || ext4s_early_e) &&
+                !pend_after && !opc_valid &&
                 !row_blocked && (rowq >= row_qn) && !row_pre_wait &&
                 !row_slot_wait && retire_ok_e;
 // ...and `tailw_go` is a pop point too, so it is a boundary point too: the
@@ -1497,19 +1623,18 @@ wire at_bnd   = bnd_row || bnd_epop || bnd_opc;
 // SM3 SITTING 11 -- AND H1's SEPARATE FLOOR IS GONE.  It used to sit in the
 // BIU (`bnd_hold`, five flops, armed by an INTA) and hold this boundary open
 // for two clocks.  The gate above now demands IE up NOW **and** up three
-// clocks ago, so a recognition cannot act on a rising IE at all -- which IS
-// the floor -- and `bnd_hold` was MEASURED INERT against the whole 3,242-seed
+// clocks ago, so a recognition cannot act until a rising IE has crossed the
+// floor -- and `bnd_hold` was MEASURED INERT against the whole 3,242-seed
 // bank (REGISTERED 1,490 / EVT 910 / COMBINED 2,400, to the seed, with it
 // forced to zero).  It is DELETED rather than left standing.
 //
 // WHAT THE BIU STILL NEEDS FROM HERE is the prefetcher SUSPEND: the
 // recognition that PAYS the floor grants the slot between the floor and its
 // own request to NOTHING (the census's two idle clocks).  `eu_bnd_post`
-// carries that condition now -- `!intr_pending` (a REP MID-STRING WITHDRAWAL
-// is not an instruction retire: its recognition was taken inside the loop,
-// sec.19.8.1, and the ROM's REPX path flushes AFTER that decision) AND
-// `!ie_p[3]`, which is exactly "the IE gate is what held this boundary", since
-// the take needs `ie_p[2]` and IE was still low four clocks back.  MEASURED:
+// carries that condition now: `!ie_p[3]` is exactly "the IE gate is what held
+// this boundary", since the take needs `ie_p[2]` and IE was still low four
+// clocks back.  This includes an INT remembered on IE's rise; a REP withdrawal
+// remains on C_INTR's separate route while `rep_kind != REP_NONE`.  MEASURED:
 // forcing the suspend unconditional costs EVT 910 -> 897.
 //
 // AND `!irq_nmi_lvl`, for the SAME reason the floor itself is maskable-only: a
@@ -1571,7 +1696,7 @@ assign eu_bnd_take = bnd_fire;
 // inside `if (post_redirect && live)` with `live = maskable() && ...`, and
 // `maskable()` is `ev_pin_ == 0`: a run with no pin directive never suspends,
 // which is every seed a BRK trap fires in.
-assign eu_bnd_post = irq_take && !intr_pending && !ie_p[3] && !irq_nmi_lvl;
+assign eu_bnd_post = irq_take && !ie_p[3] && !irq_nmi_lvl;
 
 // §35.4 -- ...AND F11's RULE APPLIES TO THE TAIL'S OWN FALL-THROUGH.  With
 // `S_TAIL_W` made zero-cost the tail's POP now happens inside the delivery's
@@ -1618,18 +1743,44 @@ wire row_acts_ok = (st == S_ROW) && !row_blocked && (rowq >= row_qn) &&
                    !row_pre_wait;
 
 wire pr_active = (st == S_PRERD) && !row_posted;
-assign eu_post = (pr_active || (row_acts_ok && row_bus && !row_posted)) &&
-                 !eu_slot_busy;
-assign eu_bs   = pr_active   ? BS_MEMR
+wire row_post_now = row_acts_ok && row_bus && !row_posted &&
+                    !vector_reserved;
+// First hardware acknowledge contested-slot law: ordinary microcode
+// retirement reserves a direct CODE tail until the next idle clock.  A cold
+// opcode-pop boundary, or recognition that already paid the IE floor, keeps
+// the immediate replacement.  This separates the four slow collisions from
+// the mc2/2062 immediate control without a bus-state table.
+wire inta_first = row_is_inta && (upc_page == 3'd7) &&
+                  (upc_opc == 8'h02) && (upc_loc == 4'd0);
+// A HALT wake reaches the interrupt dispatcher while the wake prefetch may
+// still be only an announcement.  Publish that one-clock provenance before
+// 7.02.0 posts INTA so the BIU can withdraw the announced fetch instead of
+// opening its T1.  The latch is set only by S_HALTED and spent by S_IRQ_D.
+assign eu_post = (vector_early || pr_active || row_post_now) && !eu_slot_busy;
+assign eu_post_hold = (vector_early && vector_tail && !eu_direct_fetch &&
+                      !q_ripe && !eu_slot_busy) ||
+                      (row_post_now && inta_first && eu_direct_fetch &&
+                       !irq_fast_inta && !eu_slot_busy) ||
+                      (row_post_now && (rdq_n == 2'd2) && !eu_slot_busy);
+assign eu_halt_irq = irq_halt_entry;
+assign eu_vector_post = eu_post && vector_first;
+assign eu_bs   = vector_early ? BS_MEMR
+               : pr_active   ? BS_MEMR
                : row_is_inta ? BS_INTA
                : row_is_read ? (acc_io ? BS_IOR : BS_MEMR)
                              : (acc_io ? BS_IOW : BS_MEMW);
-assign eu_addr = pr_active ? pr_phys : (row_is_inta ? 20'd0 : acc_phys);
-assign eu_addr2= pr_active ? pr_phys2 : acc_phys2;
-assign eu_split= pr_active ? pr_split : (!row_is_inta && acc_split);
-assign eu_seg  = pr_active ? seg_code(pr_seg)
+assign eu_addr = vector_early ? vector_phys_early
+               : pr_active ? pr_phys : (row_is_inta ? 20'd0 : acc_phys);
+assign eu_addr2= vector_early ? (vector_phys_early + 20'd1)
+               : pr_active ? pr_phys2 : acc_phys2;
+assign eu_split= vector_early ? 1'b0
+               : pr_active ? pr_split : (!row_is_inta && acc_split);
+assign eu_seg  = vector_early ? 2'd2
+               : pr_active ? seg_code(pr_seg)
                : row_is_inta ? 2'd2 : (acc_io ? 2'd2 : seg_code(acc_seg));
-assign eu_word = pr_active ? !pr_byte : (row_is_inta ? 1'b1 : !acc_byte);
+assign eu_word = vector_early ? 1'b1
+               : pr_active ? !pr_byte
+               : (row_is_inta ? 1'b1 : !acc_byte);
 
 // The data pairing (`emit_pending`).  The row's OWN `-> OPR` write counts:
 // the model writes OPR and then emits, both on the row's clock, so the value
@@ -1680,7 +1831,32 @@ assign eu_wdata = opr_now;
 
 // --- the CTL strobes -------------------------------------------------------
 assign q_flush  = row_acts_ok && row_flush;
+// The REP-withdrawal redirect can coincide with the tail of an element whose
+// accepted bus result is still draining into the EU.  Publish that one-bit
+// ownership fact with the flush; the BIU uses it only to choose which side of
+// the redirect clock its next arbitration point occupies.
+// `rep_kind` has already been retired on the no-tail arm by this row, while it
+// remains live until S_TAIL_W on the pending arm.  The common control rail is
+// therefore the withdrawal microaddress itself, not that travelling prefix
+// latch: page 7 / opcode 40 is the one REP-withdrawal sequence in the ROM.
+assign flush_pre = (st == S_ROW) && (upc_page == 3'd7) &&
+                   (upc_opc == 8'h40) && (upc_loc == 4'd6) && !pend_active;
+assign flush_rep = q_flush && (upc_page == 3'd7) && (upc_opc == 8'h40);
+assign flush_stage = q_flush && pend_active;
+// A staged tail delays the redirect only when an external withdrawal still
+// has a completed element read to deliver.  A bare pairing latch has no read
+// behind it and the single-step path consumes its tail in parallel with the
+// redirect; neither owns an extra BIU arbitration point.
+assign flush_pend = q_flush && pend_active && (rdq_n != 2'd0) && !brk_take;
+// Publish the two interrupt rails that physically meet the withdrawal edge.
+// NMI is the part's recognition latch; maskable INT is the live package pin,
+// whose release distinguishes a short impulse from an asserted hold without
+// adding history state to either unit.
+assign flush_nmi = irq_nmi_lvl;
+assign flush_int_live = q_flush && pin_int;
 assign flush_cs = cs_now;
+assign flush_cs_old = sreg[SR_CS];
+assign flush_cs_we = wr_cs1;
 assign flush_ip = pc_now;
 // F25: ...and the prefetcher is held through the reset dispatch.
 assign eu_susp  = (st == S_RESET) ||
@@ -1777,7 +1953,14 @@ wire hlt_wake_disp = (st == S_HALTED) && !irq_nmi_lvl && int_p[1];
 wire hlt_wake_nmi_disp = eu_halted && (st != S_HALTED);
 assign eu_unhalt_disp = hlt_wake_disp || unhalt_pend || hlt_wake_nmi_disp;
 
-assign psw_ie  = psw[FIE];
+// CITF follows the interrupt prologue's FLAGS->OPR F row.  Its clear rail
+// reaches the package-status mux through the ROM lookahead while that row
+// retires, before the flag register itself is written.  The existing OPR-free
+// rail is the row's enable; no history or interrupt-specific state is added.
+wire citf_status_pre = (st == S_ROW) && (upc_page == 3'd7) &&
+                       ((upc_opc == 8'h10) || (upc_opc == 8'h18)) &&
+                       (upc_loc == 4'd8) && opr_free_now;
+assign psw_ie  = psw[FIE] && !citf_status_pre;
 assign md8080  = mode8080;
 
 //----------------------------------------------------------------------------
@@ -1811,6 +1994,9 @@ reg     [15:0] psw_r;
 reg     [15:0] tmpa_r;
 reg     [15:0] tmpb_r;
 reg     [15:0] tmpc_r;
+reg     [15:0] ea_residue_r;
+reg     [15:0] ea_pair_rhs_r;
+reg            ea_pair_valid_r;
 reg     [15:0] opr_r;
 reg     [15:0] ind_r;
 reg     [15:0] count_r;
@@ -1862,6 +2048,8 @@ reg [BRK_FLOOR-1:0] brk_p_r;
 reg            brk_arm_r;
 reg            brk_smp_r;
 reg            unhalt_pend_r;
+reg            irq_fast_inta_r;
+reg            irq_halt_entry_r;
 reg      [1:0] m_kind_r;
 reg      [1:0] r_kind_r;
 reg      [1:0] wb_kind_r;
@@ -1937,6 +2125,9 @@ always @* begin
     tmpa_r = tmpa;
     tmpb_r = tmpb;
     tmpc_r = tmpc;
+    ea_residue_r = ea_residue;
+    ea_pair_rhs_r = ea_pair_rhs;
+    ea_pair_valid_r = ea_pair_valid;
     opr_r = opr;
     ind_r = ind;
     count_r = count;
@@ -1988,6 +2179,8 @@ always @* begin
     brk_arm_r = brk_arm;
     brk_smp_r = brk_smp;
     unhalt_pend_r = unhalt_pend;
+    irq_fast_inta_r = irq_fast_inta;
+    irq_halt_entry_r = irq_halt_entry;
     m_kind_r = m_kind;
     r_kind_r = r_kind;
     wb_kind_r = wb_kind;
@@ -2060,6 +2253,8 @@ always @* begin
         for (rsi = 0; rsi < 4; rsi = rsi + 1) sreg_r[rsi] = 16'd0;
         pc_r = 16'd0; psw_r = PSW_FORCED;
         tmpa_r = 16'd0; tmpb_r = 16'd0; tmpc_r = 16'd0;
+        ea_residue_r = 16'd0;
+        ea_pair_rhs_r = 16'd0; ea_pair_valid_r = 1'b0;
         opr_r = 16'd0; ind_r = 16'd0; count_r = 16'd0; pfxcnt_r = 8'd0;
         stat_r = 16'd0; sign_neg_r = 1'b0; bit_n_r = 4'd0;
         al_op_r = A_ADD; al_tmp_r = 2'd0; al_byte_r = 1'b0;
@@ -2101,6 +2296,8 @@ always @* begin
         rep_chained = 1'b0;
         nmi_latch_r = 1'b0; irq_shadow_r = 1'b0; bnd_armed_r = 1'b0;
         irq_sel_nmi_r = 1'b0; unhalt_pend_r = 1'b0;
+        irq_fast_inta_r = 1'b0;
+        irq_halt_entry_r = 1'b0;
         irq_sel_brk_r = 1'b0; brk_p_r = '0; brk_arm_r = 1'b0;
         brk_smp_r = 1'b0;
         if (bkd_load) begin
@@ -2176,6 +2373,9 @@ reg     [15:0] psw_n;
 reg     [15:0] tmpa_n;
 reg     [15:0] tmpb_n;
 reg     [15:0] tmpc_n;
+reg     [15:0] ea_residue_n;
+reg     [15:0] ea_pair_rhs_n;
+reg            ea_pair_valid_n;
 reg     [15:0] opr_n;
 reg     [15:0] ind_n;
 reg     [15:0] count_n;
@@ -2227,6 +2427,8 @@ reg [BRK_FLOOR-1:0] brk_p_n;
 reg            brk_arm_n;
 reg            brk_smp_n;
 reg            unhalt_pend_n;
+reg            irq_fast_inta_n;
+reg            irq_halt_entry_n;
 reg      [1:0] m_kind_n;
 reg      [1:0] r_kind_n;
 reg      [1:0] wb_kind_n;
@@ -2415,6 +2617,9 @@ always @* begin
     tmpa_n = tmpa;
     tmpb_n = tmpb;
     tmpc_n = tmpc;
+    ea_residue_n = ea_residue;
+    ea_pair_rhs_n = ea_pair_rhs;
+    ea_pair_valid_n = ea_pair_valid;
     opr_n = opr;
     ind_n = ind;
     count_n = count;
@@ -2466,6 +2671,8 @@ always @* begin
     brk_arm_n = brk_arm;
     brk_smp_n = brk_smp;
     unhalt_pend_n = unhalt_pend;
+    irq_fast_inta_n = irq_fast_inta;
+    irq_halt_entry_n = irq_halt_entry;
     m_kind_n = m_kind;
     r_kind_n = r_kind;
     wb_kind_n = wb_kind;
@@ -2546,6 +2753,12 @@ always @* begin
         // because the chain below may write `psw` (see block (g)).
         ie_now = psw_n[FIE];
         brk_now = psw_n[FBRK];
+        // A maskable request present when IE rises is remembered while the
+        // existing three-clock IE floor matures.  `ie_now` and `int_p[0]` are
+        // the two signals sampled on the same preceding clock; the older
+        // boundary tap (`int_p[2]`) would retain a pin that had already fallen.
+        if (ie_now && !ie_p_n[0] && int_p[0])
+            intr_pending_n = 1'b1;
         // §86 -- THE ARM'S TWO EVENTS, BOTH READ OFF REGISTERS ONLY, AND BOTH
         // BEFORE THE CHAIN.  The SAMPLE lands one clock past the boundary's own
         // F pop (`brk_smp`, raised below on the pop's own clock); the TAKE is
@@ -2561,6 +2774,13 @@ always @* begin
         // AND the prefix hand-over" with no second term.
         brk_smp_n = q_pop && q_ripe && q_first;
         unhalt_pend_n = 1'b0;
+        if (bnd_fire)
+            irq_fast_inta_n = bnd_opc || eu_bnd_post;
+        if (eu_post && inta_first) begin
+            irq_fast_inta_n = 1'b0;
+            irq_halt_entry_n = 1'b0;
+        end
+        if (vector_first) irq_fast_inta_n = 1'b0;
         rd_age0_n = 1'b0;
         if (eu_rd_done_n) begin
             // (the two completed-read SVAs are in the clocked observer below --
@@ -2641,6 +2861,8 @@ always @* begin
             trc_pe_upc = {upc_opc_n, upc_loc_n};
 `endif
             `include "v30u_eu_poste.svh"
+            if (tmpa_n != tmpa) ea_residue_n = tmpa_n;
+            if (tmpb_n != tmpb) ea_pair_valid_n = 1'b0;
 `ifndef SYNTHESIS
             trc_pe_post = psw_n;
 `endif
@@ -2783,6 +3005,9 @@ always @(posedge clk) begin
         tmpa <= (srst && !ss_we) ? tmpa_r : tmpa_n;
         tmpb <= (srst && !ss_we) ? tmpb_r : tmpb_n;
         tmpc <= (srst && !ss_we) ? tmpc_r : tmpc_n;
+        ea_residue <= (srst && !ss_we) ? ea_residue_r : ea_residue_n;
+        ea_pair_rhs <= (srst && !ss_we) ? ea_pair_rhs_r : ea_pair_rhs_n;
+        ea_pair_valid <= (srst && !ss_we) ? ea_pair_valid_r : ea_pair_valid_n;
         opr <= (srst && !ss_we) ? opr_r : opr_n;
         ind <= (srst && !ss_we) ? ind_r : ind_n;
         count <= (srst && !ss_we) ? count_r : count_n;
@@ -2834,6 +3059,10 @@ always @(posedge clk) begin
         brk_arm <= (srst && !ss_we) ? brk_arm_r : brk_arm_n;
         brk_smp <= (srst && !ss_we) ? brk_smp_r : brk_smp_n;
         unhalt_pend <= (srst && !ss_we) ? unhalt_pend_r : unhalt_pend_n;
+        irq_fast_inta <= (srst && !ss_we) ? irq_fast_inta_r
+                                          : irq_fast_inta_n;
+        irq_halt_entry <= (srst && !ss_we) ? irq_halt_entry_r
+                                           : irq_halt_entry_n;
         m_kind <= (srst && !ss_we) ? m_kind_r : m_kind_n;
         r_kind <= (srst && !ss_we) ? r_kind_r : r_kind_n;
         wb_kind <= (srst && !ss_we) ? wb_kind_r : wb_kind_n;
