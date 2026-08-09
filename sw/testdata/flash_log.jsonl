@@ -12,3 +12,4 @@
 {"ts":"2026-08-05T13:06:49Z","sof_path":"hdl/output_files_ucore/nec_test_ucore.sof","sha256":"01aca4c0b1e7d75514dd9a41c9b81b82fdc3af1c77b4d2c6a0413228974e58f2","git_describe":"134249a2ad-dirty","verify":"OK"}
 {"ts":"2026-08-05T23:01:06Z","sof_path":"hdl/output_files_ucore/nec_test_ucore.sof","sha256":"1a01a6975e4aca6fe9cefe83002034789dfee5c728cd72c59ea2acbc7f7a9498","git_describe":"f3f7b6b20d-dirty","verify":"OK"}
 {"ts":"2026-08-06T09:47:53Z","sof_path":"hdl/output_files_ucore/nec_test_ucore.sof","sha256":"82b4935092d6fb99644227ee2c1f08b4eaaeb4f0661351e00a07902f121e23b0","git_describe":"6f58a9b157-dirty","verify":"OK"}
+{"ts":"2026-08-09T05:00:11Z","sof_path":"hdl/output_files_ucore/nec_test_ucore.sof","sha256":"8db6dadf5c4c621ceb6bac9b0935146a4193fa3709051636a260e451e0bee205","git_describe":"b629296e3a","verify":"OK"}

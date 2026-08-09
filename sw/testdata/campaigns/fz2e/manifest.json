@@ -1,0 +1,37 @@
+{
+ "cid": "fz2e",
+ "created": "2026-08-09T05:03:02Z",
+ "gen_git": "b629296e3a",
+ "flash_pin": {
+  "ts": "2026-08-09T05:00:11Z",
+  "sof_path": "hdl/output_files_ucore/nec_test_ucore.sof",
+  "sha256": "8db6dadf5c4c621ceb6bac9b0935146a4193fa3709051636a260e451e0bee205",
+  "git_describe": "b629296e3a",
+  "verify": "OK"
+ },
+ "axes": {
+  "raw_frac": 0.2,
+  "nmin": 24,
+  "nmax": 80,
+  "nmax_scale_c": 4,
+  "tb_rows": 4200,
+  "event_frac": 0.25,
+  "wrand_frac": 0.5
+ },
+ "knobs": {
+  "p_prefix": 0.3,
+  "max_prefix": 4,
+  "p_window_ea": 0.75,
+  "p_wild_seed": 0.15,
+  "p_brkem": 0.001,
+  "p_undoc": 0.02,
+  "p_halt": 0.3,
+  "p_tf": 0.002,
+  "p_backward_raw": 0.02,
+  "p_illegal_mod3": 0.0,
+  "p_sreg_rand": 1.0,
+  "stack_cap": 24
+ },
+ "rules_version": "1.0",
+ "sigv": "sig-v1"
+}
