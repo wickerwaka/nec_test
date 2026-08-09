@@ -309,6 +309,96 @@ diagnosed.**
 
 ---
 
+## INV-2 — THE T12 fuzz-v2 CORPUS CAPTURE, AS A GATE
+
+**Opened 2026-08-09.  Status: OPEN — archived by rename, re-capture in the same
+sitting.**  The rig defect is FIXED in `sw/fuzz_campaign.py` at `c32b8cbb9d`
+(amendment A-3, `fz2_corpus_prereg_2026-08-08.md` §13), committed before any
+board contact of that sitting.
+
+### WHAT
+
+| | |
+|---|---|
+| the artifact | the **first fuzz-v2 corpus capture**, 3,840 seeds, taken 2026-08-09 on FLASH #12 in 10.8 minutes of board time |
+| the banks | `sw/testdata/campaigns/fz2c/` (960 result lines, 552 retained captures) and `sw/testdata/campaigns/fz2e/` (2,880 lines, 374 captures) — **74 MB, 926 full per-clock capture files** |
+| the scorings | `sw/testdata/fz2/fz2_bars.json`, `fz2_capture.json`, `fz2_c9.json`, `fz2_preflight.json`, `fz2_idle.json` |
+| sha256, before the move | `results.jsonl` fz2c `f67b496c56a39707…`, fz2e `b95cb470c91a28aa…`; `fz2_bars.json` `e3fc9cfe5da0aa75…`; `fz2_capture.json` `01e0ed2192d23a54…`; `fz2_c9.json` `817566da12e86d24…` |
+
+### WHY
+
+Not because the rows are false.  **They are true silicon** and they are
+retained.  What is false is what they can be scored AGAINST: every one of the
+3,840 seeds was handed a terminating-NMI delay computed by a budget that left
+**7 rows of tail slack at w0 and 1 at w3**, so on 1,048 seeds the terminator
+fired, was intercepted, and the dump ran off the end of the 4,096-record
+capture.  A capture whose termination is decided by the instrument's own
+arithmetic error cannot measure a containment bar.  Stated as a property of the
+artifact: **`(anchor + tail) / scale` over the 194 fully-observable completions
+is PINNED at 461.1 against a reserve of 462.0** — the distribution is
+right-censored at the budget, and no value above it exists in the data because
+none could be recorded.
+
+### WHICH RIG DEFECT
+
+**O-2a**, named in §12.3 of the pre-registration and diagnosed in §13.2:
+`ANCHOR_W0` was a post-RESET row number subtracted from a `CAP_ROWS` that counts
+from record 0 (a 35-row coordinate error), `DUMP_W0` carried a 21-clock
+*estimate* for an NMI entry that measures 53 minimum and 463 maximum, and the
+NMI acceptance latency was in no term of the formula at all.  **FIXED** at
+`c32b8cbb9d`: `ANCHOR_W0` 145→180, `DUMP_W0` 240→219, new measured term
+`ENTRY_MAX` = 463, `TERM_MARGIN` and `TERM_FLOOR` unchanged.  The instrument
+that diagnosed it, `sw/fz2_termcost.py`, reads only banked captures and
+re-derives every number offline.
+
+### WHAT REPLACES IT
+
+A **re-capture of the same 3,840 seeds** — `SEED_LIST_SHA256`
+`45d25f31a325c496…` is unchanged, so it is the same corpus, seed for seed —
+against the **unchanged** bars C-1 … C-11.  Nothing gates on the archived
+capture in the interim; it was never a ratchet (§8.2: *"a first registration is
+not a ratchet"*), so no standing figure moves and none is suspended.
+
+### THE ARCHIVE
+
+**Renamed, never deleted, and nothing was rewritten:**
+
+| from | to |
+|---|---|
+| `sw/testdata/campaigns/fz2c/` | `sw/testdata/campaigns/fz2c-INV2-archive/` |
+| `sw/testdata/campaigns/fz2e/` | `sw/testdata/campaigns/fz2e-INV2-archive/` |
+| `sw/testdata/fz2/fz2_{bars,capture,c9,preflight,idle}.json` | `sw/testdata/fz2/inv2-archive/` |
+
+All 926 retained per-clock captures moved with their banks.  The precedent is
+INV-1's (archive by rename, raw captures retained, nothing deleted) and the
+w1evt-biased habit; the *disposition* is INV-1's, not the biased suite's,
+because here the label is what is false.
+
+**THE ARCHIVE IS LOAD-BEARING AND MUST NOT BE PRUNED.**  It is the only evidence
+of the un-repaired rig, it is the population A-3's three constants were measured
+on, and it is what makes the repair attributable: without it the improvement is
+unverifiable and the before/after cannot be audited.  `sw/fz2_termcost.py` reads
+the archive names first, by design.
+
+### GATE STATUS
+
+| figure | before | after |
+|---|---|---|
+| every standing gate in `standing_gates.md` | — | **UNMOVED.**  No standing gate reads `sw/testdata/campaigns/` |
+| the fuzz-v2 bars C-1 … C-11 | 6 MET / 3 MISSED / 2 NOT SCOREABLE (§12.1) | **VOID pending the re-capture** — not restated, not carried forward |
+| the census/enriched decompositions | 94.9 % / 72.08 % and 94.34 % / 69.72 % | **VOID pending the re-capture** |
+| `SEEDS_SHA256` | `386c65fd641b84a1…` | `48a0f01176fd31b7…` (`TERM_CLOCKS` is derived from the constants) |
+| `SEED_LIST_SHA256` | `45d25f31a325c496…` | **UNCHANGED** — the same 3,840 seeds |
+
+### THE FALSIFIER, registered with the entry
+
+If the re-capture's UNDISPOSITIONED count does **not** fall, the diagnosis is
+wrong and O-2a is not a budget defect.  If the residue that survives is **not**
+dominated by §13.5's stopped-CPU class (O-2d), the partition drawn off the
+banked captures is wrong.  Either outcome is reported as registered.
+
+---
+
 ## AUDITED AND **NOT** INVALIDATED
 
 Recorded because an unexamined suspicion is indistinguishable from an
