@@ -1,11 +1,11 @@
 {
  "stage": "fz2 bars",
- "ts": "2026-08-09T23:01:16Z",
+ "ts": "2026-08-09T23:24:34Z",
  "seed_list_sha256": "45d25f31a325c4965da81117d5f4217b86487aa1abb0078faed26a72ed9bec32",
  "bars": {
   "C-1": {
    "statement": "containment measured as TERMINATOR-REACHED (E-1's predicate), with the escape count kept as a diagnostic",
-   "registered": "soup >= 90.0 %, raw >= 75.0 %, per population [A-5: soup LOWERED from 99.0, raw from 95.0 -- set AFTER measuring soup 98.54/98.89 % and raw 83.54/83.61 % ON THIS POPULATION, NOT DERIVED, and UNVALIDATED until scored on a DISJOINT population]; and 0 UNDISPOSITIONED non-dumping seeds (E-1c, UNTOUCHED by A-5)",
+   "registered": "soup >= 90.0 %, raw >= 75.0 %, per population [A-5: soup LOWERED from 99.0, raw from 95.0 -- set AFTER measuring soup 98.54/98.89 % and raw 83.54/83.61 % ON THIS POPULATION, NOT DERIVED; VALIDATED 2026-08-09 on the DISJOINT A-9 population `fz2v` (960 seeds, k >= 600000, zero overlap): soup 471/480 = 98.12 % >= 90.0 and raw 388/480 = 80.83 % >= 75.0, both MET -- \u00a716.2 / \u00a728]; and 0 UNDISPOSITIONED non-dumping seeds (E-1c, UNTOUCHED by A-5)",
    "measured": {
     "per_tier": {
      "census/soup": {
@@ -95,7 +95,7 @@
      "mech_inconclusive": 20
     }
    },
-   "verdict": "MISSED (rate clauses UNVALIDATED -- A-5)",
+   "verdict": "MISSED (rate clauses VALIDATED on fz2v/960 -- soup 98.12 %, raw 80.83 %; \u00a716.2 / A-9)",
    "finding": null
   },
   "C-2": {

@@ -1,8 +1,13 @@
 {
  "stage": "fz2v preflight",
  "host": "root@mister-nec",
- "gen_git": "fb0845365a",
+ "gen_git": "ed8512e67d",
  "tree_dirty": [
+  {
+   "status": "A ",
+   "path": "docs/notes/int_f3aa_repair_results_2026-08-09.md",
+   "sha256": "992bb9a7893a484bf1098c981c6dbdd388f1c793ec94e9d2d3a869f5fb47aaa6"
+  },
   {
    "status": " M",
    "path": "hdl/rtl/ucore/v30u_biu.sv",
@@ -15,26 +20,36 @@
   },
   {
    "status": " M",
+   "path": "sw/testdata/fz2/fz2_statusanom.json",
+   "sha256": "4b9118d5e0ea36bdd3a680445689f10e477cfdf1235bb1e9bf13733e970adbf8"
+  },
+  {
+   "status": " M",
+   "path": "sw/testdata/receipts/quartus_bitstream.jsonl",
+   "sha256": "9f73f1735026e450adfe750e2642114e1b8a2531e33dd7de09ef66682cb2cda4"
+  },
+  {
+   "status": " M",
    "path": "sw/testdata/receipts/verilator_binary.jsonl",
    "sha256": "0aa0a8520b341d61b9a1140f10ae361af6412aa66b5a6d2a2ed23b87171e7802"
   }
  ],
  "val_seed_list_sha256": "5d83b3a9b6aa7907cbef01eae7f33223b024f1fa9cdf1d56ab879e24925d81be",
- "ts": "2026-08-09T22:50:26Z",
+ "ts": "2026-08-09T23:20:19Z",
  "div_guards": [
   {
    "tag": "fz2v-preflight",
    "readback": "div=8 (4 MHz), commanded by this connection",
    "state": "PINNED",
    "rig": "WRAND=0 replay=0 (commanded clean at connect, OK/OK)",
-   "ts": "2026-08-09T22:50:29Z"
+   "ts": "2026-08-09T23:20:21Z"
   },
   {
    "tag": "fz2v-preflight-end",
    "readback": "div=8 (4 MHz), commanded by this connection",
    "state": "PINNED",
    "rig": "WRAND=0 replay=0 (commanded clean at connect, OK/OK)",
-   "ts": "2026-08-09T22:50:30Z"
+   "ts": "2026-08-09T23:20:22Z"
   }
  ],
  "capture_path_gaps": [],
@@ -48,7 +63,7 @@
   }
  },
  "population_committed": true,
- "uptime": "22:50:27  up 28 days  3:16,  0 users,  load average: 0.00, 0.00, 0.00",
+ "uptime": "23:20:19  up 28 days  3:46,  0 users,  load average: 0.00, 0.00, 0.00",
  "board_procs": [],
  "single_writer": "OK",
  "local_serve_procs": [],
@@ -75,7 +90,7 @@
    "n_files": 88,
    "label": "fuzz-v2-on-relanding RETENTION (X1_AD_RETENTION=1) draw 2 of 2"
   },
-  "gen_git": "fb0845365a",
+  "gen_git": "ed8512e67d",
   "rig_evt_hold_bits": 12,
   "rules_version": "1.0"
  },

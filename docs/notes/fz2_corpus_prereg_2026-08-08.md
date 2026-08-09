@@ -4005,3 +4005,213 @@ discovers it — the same treatment §26.3 gave this one.
   **`abfb39cb6576e3a618675fa7eadfe93f910d482a0197b5c698e678776d0c8d30`**,
   `val_seed_list_sha256`
   **`5d83b3a9b6aa7907cbef01eae7f33223b024f1fa9cdf1d56ab879e24925d81be`**.
+
+---
+
+## §28 THE A-9 VALIDATION, **RESUMED AND FINISHED: 960/960 CAPTURED, AND BOTH RE-REGISTERED RATE CLAUSES ARE MET ON A DISJOINT POPULATION.  THE `UNVALIDATED` MARKER COMES OFF.**
+
+**2026-08-09, board, socket only, FLASH #12, no re-flash.  Reported as
+registered: no bar's text or value moved, nothing was adjusted, and nothing was
+scored until all 960 were captured.**
+
+### 28.1 THE RESUME, AS §27.8 REGISTERED IT
+
+A-10 (§27) was committed at **`ed8512e67d`, BEFORE any board contact of this
+session**.  `python3 sw/fz2_val.py preflight --board` → **OK**, and it had to be
+re-run because `_preflight_ok()` refuses a preflight taken at a different
+`gen_git` — the amendment commit invalidated §26's preflight by construction,
+which is the check working:
+
+* single writer **`no v30/serve process on the board -> SINGLE WRITER`**;
+* era `sof 8db6dadf5c4c… receipt 27fb750f925c… (88 files)` **gen_git
+  `ed8512e67d`**, resident rig RTL gap **EMPTY**;
+* 48-seed regeneration sample **hits=0**; `rig_readback_check` **8 registers**;
+* `check_ab_hw all 800` **MATCH ×3** (chip-vs-golden, core-vs-chip,
+  core-vs-golden); `div_guard` **PINNED** at both ends.
+
+`python3 sw/fz2_val.py capture` then resumed **by `_done_ks()` from k=604012**,
+exactly as §27.5 measured it would, and **ran to the end without halting**:
+
+```
+val/soup/noevt/fix0     skipped (80/80)   val/raw/noevt/fix0     80/80
+val/soup/noevt/wrand3   skipped (80/80)   val/raw/noevt/wrand3   80/80
+val/soup/noevt/wvec-uni skipped (80/80)   val/raw/noevt/wvec-uni 80/80
+val/soup/stim/fix0      skipped (80/80)   val/raw/stim/fix0      80/80
+val/soup/stim/wrand3           80/80      val/raw/stim/wrand3    80/80
+val/soup/stim/wvec-uni         80/80      val/raw/stim/wvec-uni  80/80
+
+FZ2V CAPTURE: 960 seeds in 1.8 min      halted: null
+```
+
+**628 seeds captured this session, 0 seeds re-run, and the 332 banked lines are
+byte-for-byte the ones §26 left** — including 604011's, which still reads
+`QUARANTINE / provenance_alarm:done_data_both_179e`, **the honest verdict under
+the rule in force when it was taken.  The results file was not rewritten.**
+`sw/testdata/campaigns/fz2v/results.jsonl` is **960 lines**, sha256
+`a1a4036eea471925b02443ecb98f43bec59f10646df41deac66672ca55b86e6b`.
+
+**Over the resumed 628: 0 halts, 0 provenance alarms, 0 quarantines, 0
+`build_stale`, one distinct era.**  Verdicts, all 960: `SUCCESS` 902,
+`KNOWN_ACCEPTED` 47, `FUNCTIONAL` 10, `QUARANTINE` **1** — and that 1 is
+604011.
+
+**WHAT A-10 BOUGHT ON THE RESUMED 628 IS NOT CLAIMED, BECAUSE IT IS NOT
+MEASURABLE FROM THE ARTIFACTS.**  Only 81 of the 960 seeds banked rows
+(`fuzz_campaign` banks divergent / keep-rows / ballast captures), and **among
+those 81, exactly one carries the shape — 604011.**  Twelve of the 960 lines
+carry `arch_restart`, the column that was `true` on 604011; six are soup, the
+only tier this clause reaches, and **three of those six lie in the resumed
+block (604030, 605038, 605079)**.  Their rows were not retained, so whether any
+of them would have tripped the pre-amendment clause **cannot be determined and
+is not asserted either way**.
+
+### 28.2 THE INSTRUMENT PROVED ITSELF FIRST — §23.4's mirror check
+
+`fz2_val score` re-runs C-1's rate arithmetic over `fz2c` and `fz2e` and
+compares all four cells against the **committed** `fz2_bars.json` before it
+looks at the validation population at all:
+
+```
+  census/raw       403/480 = 83.96 %      enriched/raw     1213/1440 = 84.24 %
+  census/soup      473/480 = 98.54 %      enriched/soup    1424/1440 = 98.89 %
+  PASS: all four committed C-1 cells reproduced exactly
+```
+
+**A validation measured with a second, subtly different scorer would be
+validating the scorer.**  Disagreements: **0**.
+
+### 28.3 THE SCORE, AS REGISTERED — `sw/testdata/fz2/fz2v_score.json`, 2026-08-09T23:22:46Z
+
+```
+stratum                       cap reached  rows=  arch=
+val/soup/noevt/fix0            80      76     80     76
+val/soup/noevt/wrand3          80      80     78     78
+val/soup/noevt/wvec-uni        80      79     79     79
+val/soup/stim/fix0             80      77     79     76
+val/soup/stim/wrand3           80      80     74     78
+val/soup/stim/wvec-uni         80      79     76     76
+val/raw/noevt/fix0             80      63     69     60
+val/raw/noevt/wrand3           80      66     74     63
+val/raw/noevt/wvec-uni         80      61     77     58
+val/raw/stim/fix0              80      66     72     62
+val/raw/stim/wrand3            80      66     77     64
+val/raw/stim/wvec-uni          80      66     68     60
+
+clause                   measured   registered   verdict
+E-1a soup     471/480 =  98.12 %    >= 90.0 %   MET
+E-1b raw      388/480 =  80.83 %    >= 75.0 %   MET
+
+FZ2V VALIDATION: PASS
+```
+
+> **BOTH CLAUSES MET, AT THE REGISTERED VALUES, WITH NO ADJUSTMENT.**  This is
+> **§23.5's PASS branch**, and it is the first branch of that pre-registration
+> either way.
+
+The margins, stated because a bar met by a hair and a bar met by eight points
+are different facts: soup clears by **+8.12 points**, raw by **+5.83**.
+
+**AND NEITHER CLEARS THE VALUE A-5 REPLACED.**  Against §5.3's original bars
+(soup 99.0, raw 95.0) this population reads **MISSED on both**, exactly as the
+selecting population did.  That is not softened here: **A-5 lowered two bars,
+and all this section establishes is that the LOWERED bars survive a population
+that did not choose them.**  It does not rehabilitate the originals and it is
+not evidence that 90.0 and 75.0 are the right numbers — only that they are not
+fitted to their own measurement.
+
+Reported beside the rates, not scored on this population (§16.2 registers the
+two RATE clauses and only those): discards `stalled` **67**, `long_insn` **21**,
+`wrote_term` **7**, **UNDISPOSITIONED 9**; `quarantines` **1** (604011, above);
+`div_guards` **10**, `div_guards_unpinned` **[]**; `halted` **null**;
+`board_seconds` **107.3**.
+
+### 28.4 WHAT COMES OFF, AND WHAT DOES **NOT**
+
+* **`fz2_w1._c1_verdict` no longer emits `(rate clauses UNVALIDATED -- A-5)`.**
+  It now reads
+  `(rate clauses VALIDATED on fz2v/960 -- soup 98.12 %, raw 80.83 %; §16.2 / A-9)`,
+  and `E1_A5` records the validating population inline.  **90.0 and 75.0 are
+  quotable as ratchets from here**, always with the population named.
+* **THE MARKER CAME OFF BY ARTIFACT, NOT BY EDIT.**  A new `fz2_w1._validation()`
+  is the only thing that can remove it, and it removes it only while
+  `fz2v_score.json` reports `validated`, `captured == 960`, `e1_registered ==
+  {soup: 90.0, raw: 75.0}` and the **same `val_seed_list_sha256` as the frozen
+  population file committed before the capture**.  Its falsifier, run:
+
+  ```
+  with the artifact REMOVED  : MISSED (rate clauses UNVALIDATED -- A-5)
+  with validated=False       : MISSED (rate clauses UNVALIDATED -- A-5)
+  with captured=332 (prefix) : MISSED (rate clauses UNVALIDATED -- A-5)
+  with a DIFFERENT population: MISSED (rate clauses UNVALIDATED -- A-5)
+  restored                   : MISSED (rate clauses VALIDATED on fz2v/960 ...)
+  ```
+
+  **A prefix cannot validate anything** — that clause is `captured == 960`, and
+  it is why §26 could not have removed the marker even if its 332 had read
+  well.
+* **C-1's OWN VERDICT DOES NOT CHANGE.  IT IS STILL `MISSED`**, exactly as
+  §23.5 registered: **E-1c (0 UNDISPOSITIONED) is 27 against 0 and remains its
+  sole blocker.**  A validated rate clause does not buy a bar.
+* **NO MEASURED NUMBER MOVED.**  `sw/fz2_w1.py bars` was re-run and its output
+  diffed field by field against the committed artifact: **the only changes are
+  `bars/C-1/registered`, `bars/C-1/verdict` and `ts`.**  Every measurement in
+  all eleven bars is byte-identical, and the roll-up is unchanged at
+  **8/11 MET, NOT MET: C-1, C-3, C-6**.
+* `python3 sw/fz2_w1.py lint` **PASS, 0 hits, 48 stratum rows**;
+  `python3 sw/fz2_val.py overlap` **PASS, 0 hits** on all seven disjointness
+  checks, re-run after the capture.
+
+### 28.5 BOARD DISCIPLINE, REPORTED
+
+Single-writer asked **before** (preflight: `SINGLE WRITER`) and **after** (no
+`v30ctl`/`serve` process remains); **socket only, `use_core=False` explicit on
+every probe**; **`div_guard` on EVERY probe — 10 in the scored artifact
+(2 preflight + 8 capture) plus the closing one, `unpinned` 0** in all of them;
+`board_idle()` at the close (`OK, use_core=0 left selected`); and the closing
+`use_core=0` chip proof **`chip-vs-golden: MATCH over 800 rows`** taken after
+everything.  **0 transport errors, 0 `RigMismatch`, 0 quarantines in the 628.
+NO RE-FLASH: FLASH #12 throughout, one distinct era stamp on all 960 lines,
+`build_stale` 0.**
+
+### 28.6 THE CONCURRENT WRITERS — **AND ONE OF THEM COMMITTED RTL WHILE THIS CAPTURE WAS RUNNING**
+
+§26.7 reported two other sessions holding uncommitted edits.  This sitting must
+report something sharper, with the clock, because it is exactly the fact a
+reader would otherwise have to infer from an interleaved log:
+
+```
+23:19:49Z  ed8512e67d  A-10 (this session), committed BEFORE board contact
+23:20:19Z              fz2_val preflight --board  -> OK, gen_git ed8512e67d
+23:21:06Z  9c98117a03  ANOTHER SESSION commits hdl/rtl/ucore/v30u_biu.sv (+28)
+                       and v30u_eu.sv (+8) -- DURING this capture
+~23:21-23:23Z          fz2_val capture (628 seeds) and score
+```
+
+`077e10ac53` (`sim/exec_impl.h`, +61) had landed at 23:12:50Z, before the
+amendment.
+
+**IT TOUCHES NOTHING MEASURED HERE, AND THAT IS CHECKED RATHER THAN ASSERTED:**
+
+* **The board was single-writer before and after** — asked both times; no
+  `v30ctl`/`serve` process remains.  No other session contacted the board.
+* **A tree RTL commit does not reach the board.**  There was **NO RE-FLASH**;
+  the fabric leg is **FLASH #12**, built from `b629296e3a`, and **all 960 lines
+  carry one distinct era stamp `sof 8db6dadf5c4c…`** with `build_stale` **0**.
+  The socket leg is the chip.
+* **Nothing on the capture path moved.**  Images are generated by
+  `fuzz_campaign` / `gen_soup` / `gen_raw` / `testimage`; neither commit touches
+  any of them, and the preflight's 48-seed regeneration sample was **0 hits**.
+  No Verilator binary and no `sim/` model is on this capture's path at all, so
+  `077e10ac53` and the `verilator_binary.jsonl` / `quartus_bitstream.jsonl`
+  receipt lines in `9c98117a03` are inert here.
+* **`tree_dirty` in `fz2v_capture.json` is the pre-commit state** (the three
+  paths recorded ` M`), which is consistent with the clock above and is
+  retained rather than tidied.
+* **Every commit of this sitting stages EXPLICIT PATHS**, never `git add -A`,
+  so no RTL, `sim/` or `fz2_statusanom.json` work belonging to another session
+  is swept in.
+
+**What a reader may NOT conclude from this section**: that the ucore in FLASH
+#12 is the ucore in the tree.  It is not, and it was not at §26 either.  Every
+fabric figure in §26 and §28 is readable against **FLASH #12 and nothing
+else** — the standing rule of this repository.

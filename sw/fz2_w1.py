@@ -1805,7 +1805,33 @@ E1 = {"soup": 90.0, "raw": 75.0}
 E1_PRIOR = {"soup": 99.0, "raw": 95.0}          # what §5.3 registered
 E1_A5 = ("[A-5: soup LOWERED from 99.0, raw from 95.0 -- set AFTER measuring "
          "soup 98.54/98.89 % and raw 83.54/83.61 % ON THIS POPULATION, NOT "
-         "DERIVED, and UNVALIDATED until scored on a DISJOINT population]")
+         "DERIVED; VALIDATED 2026-08-09 on the DISJOINT A-9 population `fz2v` "
+         "(960 seeds, k >= 600000, zero overlap): soup 471/480 = 98.12 % >= "
+         "90.0 and raw 388/480 = 80.83 % >= 75.0, both MET -- §16.2 / §28]")
+
+
+def _validation():
+    """AMENDMENT A-9's validation artifact, or None.
+
+    §16.2's clause is that the two re-registered rates are not a ratchet until
+    they have been scored on a population that was NOT used to select them.
+    THE MARKER THEREFORE COMES OFF BY ARTIFACT, NOT BY EDIT: this reads
+    `fz2v_score.json` and accepts it only if it says `validated`, covers the
+    FULL 960, and carries the same `val_seed_list_sha256` as the frozen
+    population file committed before the capture.  Delete or perturb either
+    file and `_c1_verdict` puts the marker straight back -- which is the
+    property that makes its removal falsifiable rather than asserted."""
+    try:
+        d = json.loads((OUT / "fz2v_score.json").read_text())
+        pop = json.loads((OUT / "fz2v_population.json").read_text())
+    except Exception:                                          # noqa: BLE001
+        return None
+    if (d.get("validated") is True and d.get("captured") == 960
+            and d.get("val_seed_list_sha256")
+            == pop.get("val_seed_list_sha256")
+            and d.get("e1_registered") == dict(E1)):
+        return d
+    return None
 
 
 def _lines(cid):
@@ -1832,10 +1858,23 @@ def _c1_verdict(met, undisp):
     have been scored on a DISJOINT population (§16.2).  A bare `MET` on the
     selecting population is exactly what §64.1 forbids, so this function will
     not emit one.  E-1c carries no marker -- it did not move.
-    """
+
+    §28: THE MARKER IS OFF, AND IT CAME OFF BY ARTIFACT.  `_validation()` is
+    the only thing that can remove it, and it removes it only while
+    `fz2v_score.json` says the FULL 960-seed A-9 population was captured and
+    both clauses read MET at the registered values.  The replacement string
+    names the validating population, because a value quoted without the
+    population that earned it is half a ratchet."""
     v = "MET" if (met and undisp == 0) else "MISSED"
     if met:
-        v += " (rate clauses UNVALIDATED -- A-5)"
+        val = _validation()
+        if val is None:
+            v += " (rate clauses UNVALIDATED -- A-5)"
+        else:
+            c = val["clauses"]
+            v += (f" (rate clauses VALIDATED on fz2v/960 -- soup "
+                  f"{c['soup']['measured_pct']} %, raw "
+                  f"{c['raw']['measured_pct']} %; §16.2 / A-9)")
     return v
 
 

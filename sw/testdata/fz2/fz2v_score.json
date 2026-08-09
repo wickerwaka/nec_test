@@ -1,0 +1,229 @@
+{
+ "stage": "fz2v score (prereg \u00a716.2 / A-9)",
+ "ts": "2026-08-09T23:22:46Z",
+ "cid": "fz2v",
+ "captured": 960,
+ "val_seed_list_sha256": "5d83b3a9b6aa7907cbef01eae7f33223b024f1fa9cdf1d56ab879e24925d81be",
+ "e1_registered": {
+  "soup": 90.0,
+  "raw": 75.0
+ },
+ "e1_prior": {
+  "soup": 99.0,
+  "raw": 95.0
+ },
+ "mirror_check": {
+  "pass": true,
+  "cells": {
+   "census/soup": {
+    "n": 480,
+    "reached": 473,
+    "pct": 98.54
+   },
+   "census/raw": {
+    "n": 480,
+    "reached": 403,
+    "pct": 83.96
+   },
+   "enriched/soup": {
+    "n": 1440,
+    "reached": 1424,
+    "pct": 98.89
+   },
+   "enriched/raw": {
+    "n": 1440,
+    "reached": 1213,
+    "pct": 84.24
+   }
+  },
+  "disagreements": []
+ },
+ "clauses": {
+  "soup": {
+   "registered": 90.0,
+   "measured_pct": 98.12,
+   "reached": 471,
+   "n": 480,
+   "verdict": "MET"
+  },
+  "raw": {
+   "registered": 75.0,
+   "measured_pct": 80.83,
+   "reached": 388,
+   "n": 480,
+   "verdict": "MET"
+  }
+ },
+ "validated": true,
+ "per_stratum": [
+  {
+   "j": 0,
+   "stratum": "val/soup/noevt/fix0",
+   "n": 80,
+   "captured": 80,
+   "reached": 76,
+   "rows_exact": 80,
+   "arch_exact": 76,
+   "verdicts": {
+    "SUCCESS": 80
+   }
+  },
+  {
+   "j": 1,
+   "stratum": "val/soup/noevt/wrand3",
+   "n": 80,
+   "captured": 80,
+   "reached": 80,
+   "rows_exact": 78,
+   "arch_exact": 78,
+   "verdicts": {
+    "SUCCESS": 78,
+    "FUNCTIONAL": 2
+   }
+  },
+  {
+   "j": 2,
+   "stratum": "val/soup/noevt/wvec-uni",
+   "n": 80,
+   "captured": 80,
+   "reached": 79,
+   "rows_exact": 79,
+   "arch_exact": 79,
+   "verdicts": {
+    "SUCCESS": 79,
+    "FUNCTIONAL": 1
+   }
+  },
+  {
+   "j": 3,
+   "stratum": "val/soup/stim/fix0",
+   "n": 80,
+   "captured": 80,
+   "reached": 77,
+   "rows_exact": 79,
+   "arch_exact": 76,
+   "verdicts": {
+    "SUCCESS": 79,
+    "FUNCTIONAL": 1
+   }
+  },
+  {
+   "j": 4,
+   "stratum": "val/soup/stim/wrand3",
+   "n": 80,
+   "captured": 80,
+   "reached": 80,
+   "rows_exact": 74,
+   "arch_exact": 78,
+   "verdicts": {
+    "SUCCESS": 73,
+    "FUNCTIONAL": 2,
+    "QUARANTINE": 1,
+    "KNOWN_ACCEPTED": 4
+   }
+  },
+  {
+   "j": 5,
+   "stratum": "val/soup/stim/wvec-uni",
+   "n": 80,
+   "captured": 80,
+   "reached": 79,
+   "rows_exact": 76,
+   "arch_exact": 76,
+   "verdicts": {
+    "SUCCESS": 76,
+    "FUNCTIONAL": 4
+   }
+  },
+  {
+   "j": 6,
+   "stratum": "val/raw/noevt/fix0",
+   "n": 80,
+   "captured": 80,
+   "reached": 63,
+   "rows_exact": 69,
+   "arch_exact": 60,
+   "verdicts": {
+    "SUCCESS": 69,
+    "KNOWN_ACCEPTED": 11
+   }
+  },
+  {
+   "j": 7,
+   "stratum": "val/raw/noevt/wrand3",
+   "n": 80,
+   "captured": 80,
+   "reached": 66,
+   "rows_exact": 74,
+   "arch_exact": 63,
+   "verdicts": {
+    "SUCCESS": 74,
+    "KNOWN_ACCEPTED": 6
+   }
+  },
+  {
+   "j": 8,
+   "stratum": "val/raw/noevt/wvec-uni",
+   "n": 80,
+   "captured": 80,
+   "reached": 61,
+   "rows_exact": 77,
+   "arch_exact": 58,
+   "verdicts": {
+    "SUCCESS": 77,
+    "KNOWN_ACCEPTED": 3
+   }
+  },
+  {
+   "j": 9,
+   "stratum": "val/raw/stim/fix0",
+   "n": 80,
+   "captured": 80,
+   "reached": 66,
+   "rows_exact": 72,
+   "arch_exact": 62,
+   "verdicts": {
+    "SUCCESS": 72,
+    "KNOWN_ACCEPTED": 8
+   }
+  },
+  {
+   "j": 10,
+   "stratum": "val/raw/stim/wrand3",
+   "n": 80,
+   "captured": 80,
+   "reached": 66,
+   "rows_exact": 77,
+   "arch_exact": 64,
+   "verdicts": {
+    "SUCCESS": 77,
+    "KNOWN_ACCEPTED": 3
+   }
+  },
+  {
+   "j": 11,
+   "stratum": "val/raw/stim/wvec-uni",
+   "n": 80,
+   "captured": 80,
+   "reached": 66,
+   "rows_exact": 68,
+   "arch_exact": 60,
+   "verdicts": {
+    "KNOWN_ACCEPTED": 12,
+    "SUCCESS": 68
+   }
+  }
+ ],
+ "discards": {
+  "stalled": 67,
+  "long_insn": 21,
+  "UNDISPOSITIONED": 9,
+  "wrote_term": 7
+ },
+ "undispositioned": 9,
+ "quarantines": 1,
+ "div_guards": 10,
+ "div_guards_unpinned": [],
+ "halted": null,
+ "board_seconds": 107.3
+}
