@@ -403,9 +403,41 @@ def _evt_tuple(cfg, meta):
 # leg (d) proved on `tb_sys` -- the leg whose whole point is that a stimulus
 # NMI and a terminating NMI coexist -- and are not re-chosen here.
 # --------------------------------------------------------------------------- #
+# AMENDMENT A-3 (2026-08-09, prereg sec.13).  The three constants below were
+# CORRECTED after finding O-2a; `sw/fz2_termcost.py` is the instrument and it
+# re-derives every number offline from the archived INV-2 capture.  What was
+# wrong, stated as a property of the artifact:
+#
+#  * ANCHOR_W0 was 145, measured on the ucore TB in POST-RESET row numbers.
+#    The reserve is subtracted from `CAP_ROWS`, which counts from record 0, and
+#    the board holds RESET for the first 33 records.  On the board the anchor's
+#    CODE T1 lands at absolute row 180 -- EXACTLY, on all 353 fixed-wait banked
+#    captures, in BOTH tiers (180/242/275/308 at w0/w1/w2/w3).  A COORDINATE
+#    error of 35 rows, not a tier effect.
+#  * DUMP_W0 was 240 = 219 MEASURED (the dump proper) + 21 ESTIMATED for "the
+#    NMI entry's two vector reads and three pushes".  The 219 is exact and
+#    stands -- it reproduces to the clock on the board, both tiers.  The 21 is
+#    the whole defect: the measured NMI-assert -> first `OUT 0xFE` cost is 53
+#    minimum, 77 median, 463 maximum over 303 banked captures.
+#  * The NMI ACCEPTANCE LATENCY -- the wait for the instruction boundary at
+#    which NMI is taken -- was in no term of the formula at all.  It is named
+#    now, as `ENTRY_MAX`, and it is added OUTSIDE the scaling because the
+#    measurement says it is a CLOCK cost and not a bus-cycle cost: its maximum
+#    shows no trend with `scale` (243 at scale 1.00, 305 at scale 4.75, and
+#    max/scale FALLS monotonically over the eight scale levels the corpus
+#    carries).  FALSIFIER: if the residue after this repair concentrates at
+#    high `weff`, the term scales and this form is wrong.
+#
+# Net effect on the artifact that was mis-budgeted: the tail room left after
+# the NMI assert was 281/335/417/500 rows at w0/w1/w2/w3 against a MEASURED
+# tail floor of 273 at w0 and 499 at w3 -- 7 rows of slack at w0 and ONE at w3,
+# for every seed in the corpus.  The observed required-reserve distribution is
+# censored EXACTLY at 462.0 = TERM_MARGIN x 385, which is the arithmetic proof
+# that the budget and not the seed was the binding limit.
 CAP_ROWS = v30ctl.CAP_RECORDS      # 4,096 -- the rig's capture depth
-ANCHOR_W0 = 145                    # MEASURED: the anchor's first CODE T1 row
-DUMP_W0 = 240                      # MEASURED 219 + the NMI entry's ~5 cycles
+ANCHOR_W0 = 180                    # MEASURED on the board, ABSOLUTE capture row
+DUMP_W0 = 219                      # MEASURED: first `OUT 0xFE` -> done marker
+ENTRY_MAX = 463                    # MEASURED: NMI assert -> first `OUT 0xFE`
 TERM_MARGIN = 1.2                  # a DECLARED margin, not a fit
 TERM_FLOOR = 512                   # registered floor on every seed's delay
 TERM_SCHED = 2                     # scheduler 2 == the `evt3=` option
@@ -429,10 +461,24 @@ def weff_of(cfg):
 def term_clocks(weff):
     """ONE FORMULA, reusing the capture budget's OWN coupling constant.  The
     delay must be late enough not to truncate a normal run and early enough to
-    leave the dump inside the 4,096-record capture; both scale with the cost of
-    a bus cycle, so the reserve does too."""
+    leave the dump inside the 4,096-record capture.
+
+    Three terms, each MEASURED (A-3), and one DECLARED margin:
+
+        scale       = (NMAX_SCALE_C + weff) / NMAX_SCALE_C
+        TERM_CLOCKS = CAP_ROWS
+                      - ceil(TERM_MARGIN * (ANCHOR_W0 + DUMP_W0) * scale)
+                      - ENTRY_MAX
+
+    `ANCHOR_W0` and `DUMP_W0` are bus-cycle costs and scale; `ENTRY_MAX` is the
+    NMI acceptance latency, which the measurement says is a CLOCK cost, and it
+    is therefore added outside the scaling.  ONE formula and ONE set of
+    constants for BOTH tiers: soup and raw were measured separately and are
+    IDENTICAL in all three terms (anchor 180, dump 219, entry floor 53), so a
+    per-tier table would be a fitted table with nothing to fit."""
     scale = (NMAX_SCALE_C + weff) / NMAX_SCALE_C
-    return CAP_ROWS - math.ceil(TERM_MARGIN * (ANCHOR_W0 + DUMP_W0) * scale)
+    return (CAP_ROWS - math.ceil(TERM_MARGIN * (ANCHOR_W0 + DUMP_W0) * scale)
+            - ENTRY_MAX)
 
 
 def term_directive(cfg, meta):

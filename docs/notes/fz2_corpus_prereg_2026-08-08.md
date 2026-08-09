@@ -53,14 +53,22 @@ nothing):
 
 CORPUS_N = 3840
 SEED_LIST_SHA256 = 45d25f31a325c4965da81117d5f4217b86487aa1abb0078faed26a72ed9bec32
-SEEDS_SHA256 = 386c65fd641b84a11b8721fd237d8fbf7b857006cbf2689f3ae4e8f675ee24bd
+SEEDS_SHA256 = 48a0f01176fd31b77faf5d13ede719ff6afbbf49293db682e01298de8c810874
 CENSUS_BANK_N = 480
 C9_N = 192
 C9_REPS = 3
 CAP_ROWS = 4096
-ANCHOR_W0 = 145
-DUMP_W0 = 240
+ANCHOR_W0 = 180
+DUMP_W0 = 219
+ENTRY_MAX = 463
 TERM_MARGIN = 1.2
+
+⚠ **`ANCHOR_W0`, `DUMP_W0` and `ENTRY_MAX` were CHANGED by AMENDMENT A-3
+(§13), a rig-defect repair after finding O-2a.  `SEEDS_SHA256` moved with
+them — every seed's `TERM_CLOCKS` is derived from them — and
+`SEED_LIST_SHA256` did NOT, because the corpus is the same 3,840 seeds.
+No bar moved: C-1 … C-11 keep their text and their values character for
+character.**
 
 `python3 sw/fz2_w1.py lint` parses the table in §2.2, the bar names in §6 and
 every constant above out of THIS FILE and compares them to the code and to the
@@ -181,7 +189,12 @@ From `sw/testdata/fz2/fz2_population.json` (`freeze`, 3,840 seeds, 4.6 s):
 | `has_tf` | 31 | 70 |
 | `has_halt` | 173 | 506 |
 | raw whole-image mode | 332 | 1,032 |
-| `TERM_CLOCKS` range | 2,710 … 3,634 | 1,901 … 3,634 |
+| `TERM_CLOCKS` range | 2,196 … 3,154 | 1,358 … 3,154 |
+
+⚠ **The `TERM_CLOCKS` row is A-3's (§13); before the amendment it read
+`2,710 … 3,634` / `1,901 … 3,634`, and `SEEDS_SHA256` above was
+`386c65fd641b84a1…`.  Every other count in this table is unchanged — the
+corpus is the same 3,840 seeds.**
 
 Two things follow and are registered here rather than discovered later:
 
@@ -249,6 +262,11 @@ image word.  The soup tier has both routes; the raw whole-image tier has
 effectively one (§5.2).
 
 ### 3.2 `TERM_CLOCKS` — ONE FORMULA, reusing the capture budget's own constant
+
+> ⚠ **SUPERSEDED IN ITS CONSTANTS BY AMENDMENT A-3 (§13), 2026-08-09.**  The
+> shape of the formula stands; two of its constants were wrong and a third term
+> was missing, and finding O-2a is what that cost.  §3.2 is kept verbatim below
+> because A-3 is only readable against it.
 
 The terminating NMI's delay is measured from the anchor's `CODE` T1 + 2.  It
 must be late enough not to truncate a normal run and early enough to leave the
@@ -1004,3 +1022,226 @@ So it is **reproducible from the second repetition onward** and the outlier is
 the FIRST capture of that seed — a carry-in, not nondeterminism.  **NO
 DISPOSITION IS MADE HERE.**  C-9 is reported as registered: **191/192 against a
 bar of 192/192, MISSED.**
+
+---
+
+## §13 AMENDMENT A-3 — `TERM_CLOCKS` IS REPAIRED, AND IT IS A RIG DEFECT, NOT A BAR
+
+**Written 2026-08-09, AFTER the T12 capture that MISSED C-1, C-3 and C-9, and
+BEFORE any board contact of this sitting.**  The timing is stated first because
+it is the thing most easily read wrong: this amendment changes a constant that
+sits **upstream of two bars that were missed**, and tuning such a constant until
+those bars pass is fitting dressed as repair.  What protects it is written into
+§13.4, and the first capture is **retained in full** (INV-2) so that the before
+and after are auditable by anyone.
+
+**NO BAR MOVES.**  C-1 … C-11 keep their text and their registered values
+character for character.  E-1a (soup ≥ 99.0 %), E-1b (raw ≥ 95.0 %) and E-1c
+(UNDISPOSITIONED = 0) are untouched.  This amendment changes only the **rig**:
+where §12.3 named a fourth mechanism, this names its cause and repairs it, which
+is the correctness directive's own clause — *"where the rig or a golden is found
+defective, fix the rig and RE-CAPTURE."*
+
+### 13.0 What the first capture produced — the before, quoted so the after is readable
+
+`fz2_bars.json`, T12, 3,840 seeds, FLASH #12, 10.8 min of board time:
+
+| | value |
+|---|---|
+| **C-1** | census/soup **92.29 %** · census/raw **54.79 %** · enriched/soup **89.86 %** · enriched/raw **51.88 %** · **UNDISPOSITIONED 1,048** |
+| MET | C-2 C-4 C-5 C-7 C-8 C-10 |
+| MISSED | C-1 C-3 C-9 |
+| NOT SCOREABLE | C-6 C-11 |
+| decompositions | census rows-exact **94.9 %**, arch-exact **72.08 %**, unscoreable 261 · enriched rows-exact **94.34 %**, arch-exact **69.72 %**, unscoreable 860 |
+
+### 13.1 `term.fired ≥ 4` IS NOT A COUNT — it is a scheduler BITMASK, and there is no repeat firing
+
+§12.3 reported *"1,045 of 1,048 have `term.fired ≥ 4` — the terminating NMI DID
+assert"*.  The predicate is right and the phrasing invites a reading that is
+wrong, and the wrong reading suggests a mechanism that does not exist.
+
+`term.fired` is `STATUS[5:3]` (`v30ctl.ST_EVT_FIRED_S`), **one bit per
+scheduler**, sticky until that scheduler disarms.  `TERM_SCHED` is **2**, so bit
+2 is worth **4**, and `fired ≥ 4` means exactly *"the terminator's own scheduler
+fired"* — once.  Measured over all 3,840 result lines:
+
+| `term.fired` | seeds | meaning |
+|---|---|---|
+| **4** | **1,917** | terminator only — and every one of them is a `noevt` seed |
+| **5** | **1,918** | stimulus (bit 0) **and** terminator — and every one has an `evt` |
+| 1 | 1 | stimulus fired, terminator did not |
+| 0 | 4 | neither fired |
+
+1,920 + 1,920 by construction, and the split is exact.  **The scheduler FSM is
+one-shot and the evidence says so**; nothing fired four times, and there is no
+second, independent firing mechanism.  Recorded here because the artifact, not
+anyone's memory of it, is the authority.
+
+### 13.2 WHAT IS ACTUALLY WRONG — measured, in the capture's own row numbers
+
+Instrument: **`sw/fz2_termcost.py measure`**, offline, over the **734 banked
+captures** of the first sitting (480 census by the frozen rule + 254 enriched by
+quota).  No board, no TB, no engine.
+
+**(a) `ANCHOR_W0 = 145` is a POST-RESET row number subtracted from a `CAP_ROWS`
+that counts from record 0.**  The board holds RESET for the first 33 records and
+`check_seq.run_chip` returns `recs[rel:]`, so the TB measurement and the budget
+were in different coordinate systems.  On the board the anchor's `CODE` T1 lands
+at absolute row:
+
+| | w0 | w1 | w2 | w3 |
+|---|---|---|---|---|
+| **soup** | **180** | 242 | 275 | 308 |
+| **raw** | **180** | 242 | 275 | 308 |
+
+A single exact value per wait level over **353 fixed-wait captures**, zero
+variance, **identical in both tiers**.  A 35-row coordinate error.
+
+**(b) `DUMP_W0 = 240` is `219` MEASURED plus `21` ESTIMATED, and the estimate is
+the defect.**  The 219 is exact and stands — first `OUT 0xFE` to the done marker
+is **219** at w0 (31 captures, both tiers) and **425** at w3, reproducing §3.2's
+TB numbers to the clock.  The 21 stood for *"the NMI entry's two vector reads
+and three pushes"*.  Measured, the NMI-assert → first-`OUT` cost over **303**
+captures is:
+
+    min 53   p50 77   p90 188   p99 357   MAX 463
+
+**(c) THE NMI ACCEPTANCE LATENCY WAS IN NO TERM OF THE FORMULA.**  That is what
+(b)'s tail is: the wait for the instruction boundary at which NMI is taken.  A
+budget that allows 21 clocks for a cost whose floor is 53 has no room for it at
+all.
+
+**(d) The consequence, which is arithmetic and not bad luck.**  Tail room left
+after the NMI assert, against the tail's own measured cost:
+
+| | w0 | w1 | w2 | w3 |
+|---|---|---|---|---|
+| room (`4095 − f`) | **281** | 335 | 417 | **500** |
+| measured tail | **273 … 279** | — | — | **499** |
+| **slack** | **7 rows** | | | **1 row** |
+
+**Every seed in the corpus ran on 7 rows of slack at w0 and 1 at w3.**  And the
+proof that the budget rather than the seed is the binding limit is a censoring
+argument: over the 194 captures whose requirement is fully observable,
+`(anchor + tail) / scale` has a maximum of **461.1** against a reserve of
+**462.0 = 1.2 × (145 + 240)**.  The distribution is **pinned at the reserve**.
+Nothing above it is observable, which is exactly what right-censoring looks
+like.
+
+**(e) §12.3'S OWN GUESS IS REFUTED.**  It read *"a raw-tier seed is not sitting
+at the anchor when the NMI lands, so the entry-plus-dump cost that budget allows
+is not the cost it pays"*.  **The anchor row is identical in both tiers to the
+clock, and so is the dump, and so is the entry floor (53 in both).**  The tiers
+do not differ in dump economics at all.  What differs is the acceptance-latency
+*distribution*, which is a property of what the seed is executing and not a
+constant of the rig.
+
+### 13.3 THE REPAIR — one formula, one set of constants, no tier parameter
+
+```
+scale       = (NMAX_SCALE_C + weff) / NMAX_SCALE_C
+TERM_CLOCKS = CAP_ROWS
+              − ceil(TERM_MARGIN × (ANCHOR_W0 + DUMP_W0) × scale)
+              − ENTRY_MAX
+            = 4096 − ceil(1.2 × (180 + 219) × scale) − 463
+```
+
+| constant | was | is | basis |
+|---|---|---|---|
+| `ANCHOR_W0` | 145 | **180** | MEASURED on the board, ABSOLUTE capture row, 353 captures, both tiers, zero variance |
+| `DUMP_W0` | 240 | **219** | MEASURED, unchanged in value from §3.2's TB figure; the `+21` estimate is removed and replaced by a measured term |
+| `ENTRY_MAX` | *(absent)* | **463** | MEASURED, the largest NMI-assert → first-`OUT` cost over 303 captures |
+| `TERM_MARGIN` | 1.2 | **1.2** | unchanged, a stated margin |
+| `TERM_FLOOR` | 512 | **512** | unchanged, and asserted per seed as before |
+
+**Why `ENTRY_MAX` sits OUTSIDE the scaling.**  Because the measurement says it
+is a **clock** cost and not a bus-cycle cost.  Its maximum shows no trend with
+`scale`, and `max/scale` falls monotonically across the eight scale levels the
+corpus carries:
+
+| scale | 1.00 | 1.25 | 1.50 | 1.75 | 2.00 | 2.75 | 3.00 | 4.75 |
+|---|---|---|---|---|---|---|---|---|
+| max entry | 243 | 300 | 317 | 357 | 116 | **463** | 369 | 305 |
+| max / scale | 243 | 240 | 211 | 204 | 58 | 168 | 123 | **64** |
+
+**FALSIFIER, registered before the re-capture**: if the residue after this
+repair concentrates at high `weff`, the term scales and this form is wrong.
+
+**Why there is no per-tier table.**  §13.2(e).  Soup and raw are identical in
+all three measured terms.  A per-tier constant set would be a fitted table with
+nothing to fit — the signal the standing design principle names.  **The soup
+constants are therefore not merely left standing: they were re-measured, and
+they were wrong in exactly the same two ways as raw's**, which is why 181 soup
+seeds sit in the 1,048 alongside 867 raw ones.
+
+**What it costs.**  `TERM_CLOCKS` moves from `1,901 … 3,634` to
+`1,358 … 3,154`; the floor of 512 holds at every `weff` the corpus uses
+(0/1/2/3/7/8/15 → 3,154 / 3,034 / 2,914 / 2,795 / 2,316 / 2,196 / 1,358).  Tail
+room rises from 281 → **761** at w0 and 500 → **993** at w3.  The price is that
+the earlier terminator pre-empts runs that would have ended on their own:
+measured on the banked captures, **10 of 351** self-terminating runs (2.8 %,
+8 soup / 2 raw).  That is not a loss — the terminator's own dump still produces
+the arch column — but it changes which route ended those runs and it is
+registered here rather than discovered later.
+
+### 13.4 THE REGISTERED PREDICTION — and the protections against fitting it
+
+Derive, register, capture **once**.  `python3 sw/fz2_termcost.py predict`
+reproduces every line below offline:
+
+* Of the **383** banked captures where the terminator was actually needed
+  (i.e. the run had not already dumped), **303 carry a measured requirement**
+  and **303 of 303 fit in the new window** — 186 with both entry and dump
+  observed, 117 more with the entry observed and the dump at its measured
+  `219 × scale`.
+* **80 carry no measured requirement, and NO PREDICTION IS MADE FOR THEM.**
+  They are §13.5's business.
+* **No bar is predicted.**  C-1's rate clauses are not forecast here, and the
+  constants were not chosen by evaluating them.  The reserve was derived from
+  three measurements of the rig's own tail; had it been chosen to maximise a
+  rate, `ENTRY_MAX` would have been swept, and it was not — it is the observed
+  maximum of a measured cost.
+* **One re-capture.**  If it still misses, that is a result to report and not a
+  signal to re-tune.  This paragraph exists so that a second re-tune would have
+  to contradict a committed sentence.
+
+### 13.5 O-2d — A SECOND MECHANISM, INDEPENDENT OF THE BUDGET, NAMED NOT DISPOSED
+
+The same measurement separates the 1,048 into two populations, and only one of
+them is a budget problem.  Of the **80** terminator-needed banked captures whose
+dump never started:
+
+* **49 — THE CPU HAD ALREADY STOPPED.**  The bus was idle (`PASV`, `TI`) for a
+  median of **2,582 clocks** (min 276, max 3,627) *before* the terminating NMI
+  arrived, and `term.vec_used` is **false on all 49**: the NMI asserts for its
+  20 clocks and the part does not respond.  **43 raw / 6 soup.**  Checked on
+  both legs: on **40 of 49 the socket chip and the fabric core stop at the same
+  clock (±2)**, so this is the part's behaviour reproduced by both engines, not
+  a rig fault and not a core divergence.  **No `TERM_CLOCKS` value reaches
+  these.**
+* **31 — the budget class**, bus still running at the NMI, `vec_used` true on
+  29 of 31.
+
+**No disposition is made here**, exactly as §12.3 made none: a fourth declared
+discard class is a decision about a registered bar and belongs to the
+coordinator.  What is registered is the expectation, so that the re-capture can
+falsify it: **the undispositioned residue after this repair is expected to be
+non-zero and to be dominated by this class.**  Scaled off the banked captures
+(49 of the 271 non-dumping ones, 18.1 %) the order of magnitude is ~190 of the
+1,039, but that is an estimate from 734 captures and **not a bar, not a
+prediction of C-1, and not to be quoted as either.**
+
+### 13.6 What A-3 changes in the tree
+
+* `sw/fuzz_campaign.py` — the three constants and `term_clocks`.  Nothing else;
+  `term_directive`, `TERM_SCHED`, `TERM_HOLD`, `TERM_PIN`, `TERM_VECSUB` and
+  `TERM_TVEC` are untouched.
+* `sw/fz2_w1.py` — binds `ENTRY_MAX`, lints it against this document, and
+  freezes it into the population file.
+* `sw/fz2_termcost.py` — **new**, the instrument.  It reads banked captures
+  only.
+* `docs/notes/fz2_corpus_prereg_2026-08-08.md` — §3.2's supersession note, the
+  constants block, and this section.
+* `SEEDS_SHA256` moves, because every seed's `TERM_CLOCKS` is derived from the
+  constants.  **`SEED_LIST_SHA256` does not**: the corpus is the same 3,840
+  seeds in the same order, and that is the name §2.5 says identifies it.

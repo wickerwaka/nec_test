@@ -194,15 +194,22 @@ assert all(set(ov_of(st)) <= fzc.KNOWN_OV for st in STRATA), \
 
 
 # --------------------------------------------------------------------------- #
-# TERM_CLOCKS -- the terminating NMI's delay after the anchor, prereg §3.2.
+# TERM_CLOCKS -- the terminating NMI's delay after the anchor, prereg §3.2 as
+# AMENDED BY A-3 (§13).
 #
 # ONE FORMULA, reusing the capture budget's OWN coupling constant
-# (`NMAX_SCALE_C`): the whole run scales with the cost of a bus cycle, so the
-# reserve does too.  Both w0 constants are MEASURED on the ucore TB (24 seeds,
-# 2026-08-08): the anchor's first CODE T1 lands at row 145 and the dump costs
-# 219 clocks from its first `OUT 0xFE` to the done marker; at fixed w3 the same
-# seeds give 273 and 425, i.e. both scale as the formula says within the
-# declared margin.  MARGIN is a stated margin, not a fit.
+# (`NMAX_SCALE_C`): the bus-cycle costs scale, so the reserve does too, and the
+# NMI acceptance latency -- a CLOCK cost -- is added outside the scaling.  All
+# THREE constants are MEASURED, on the BOARD, in the capture's own absolute row
+# numbers, by `sw/fz2_termcost.py` off the archived INV-2 capture: the anchor's
+# CODE T1 at row 180 (exactly, 353 fixed-wait captures, both tiers), the dump
+# 219 clocks from its first `OUT 0xFE` to the done marker (exactly, both
+# tiers), and the NMI-assert -> first-`OUT` cost 53 min / 77 median / 463 max
+# over 303 captures.  MARGIN is a stated margin, not a fit.
+#
+# The pre-A-3 values were ANCHOR_W0 = 145 (a POST-RESET row number, subtracted
+# from a CAP_ROWS that counts from record 0) and DUMP_W0 = 240 (= 219 measured
+# + 21 estimated for an entry that measures 53).  Finding O-2a.
 # --------------------------------------------------------------------------- #
 # T11: the formula and its constants now live in `fuzz_campaign`, because that
 # is where the CAPTURE PATH arms the terminator (`term_directive`), and a
@@ -210,8 +217,9 @@ assert all(set(ov_of(st)) <= fzc.KNOWN_OV for st in STRATA), \
 # exactly the fork the corpus cannot survive.  Bound here so this module's
 # asserts and `lint`'s document cross-check read the SAME objects.
 CAP_ROWS = fzc.CAP_ROWS            # 4,096 -- the rig's capture depth
-ANCHOR_W0 = fzc.ANCHOR_W0          # MEASURED
-DUMP_W0 = fzc.DUMP_W0              # MEASURED 219 + the NMI entry's ~5 cycles
+ANCHOR_W0 = fzc.ANCHOR_W0          # MEASURED, absolute capture row
+DUMP_W0 = fzc.DUMP_W0              # MEASURED, first `OUT 0xFE` -> done marker
+ENTRY_MAX = fzc.ENTRY_MAX          # MEASURED, NMI assert -> first `OUT 0xFE`
 TERM_MARGIN = fzc.TERM_MARGIN      # declared margin
 TERM_FLOOR = fzc.TERM_FLOOR
 weff_of = fzc.weff_of
@@ -511,6 +519,7 @@ def cmd_freeze(a):
         "seeds_sha256": seeds_sha,
         "seed_list_sha256": seed_list_sha256(),
         "cap_rows": CAP_ROWS, "anchor_w0": ANCHOR_W0, "dump_w0": DUMP_W0,
+        "entry_max": ENTRY_MAX,
         "term_margin": TERM_MARGIN, "nmax_scale_c": fzc.NMAX_SCALE_C,
         "census_bank": census_bank_seeds(),
         "c9": c9_seeds(),
@@ -605,6 +614,7 @@ def cmd_lint(a):
                       ("TERM_MARGIN", str(TERM_MARGIN)),
                       ("ANCHOR_W0", str(ANCHOR_W0)),
                       ("DUMP_W0", str(DUMP_W0)),
+                      ("ENTRY_MAX", str(ENTRY_MAX)),
                       ("CAP_ROWS", str(CAP_ROWS))):
         m = re.search(rf"^{name}\s*=\s*(\S+)\s*$", text, re.M)
         if not m:
