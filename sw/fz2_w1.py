@@ -57,6 +57,8 @@ Subcommands:
   stability   the C-9 sub-sample: 192 seeds x 3 repetitions
   control     the C-6 board control legs (>=2 TVEC values, >=2 hold values,
               the vecsub_en=0 negative control)
+  bank        promote both populations (census by the FROZEN rule, enriched by
+              the quota rule), measuring against `CAP_MB` FIRST -- C-11
   bars        score C-1 .. C-11 from the banked results, OFFLINE
   idle        board_idle() + a closing div_guard readback
 """
@@ -1102,6 +1104,100 @@ def cmd_control(a):
 
 
 # --------------------------------------------------------------------------- #
+# THE BANK PROMOTION -- prereg §4.1 (census) and §4.2 (enriched), C-11.
+#
+# TWO RULES, ONE PER POPULATION, AND THEY ARE NEVER POOLED:
+#
+#   * CENSUS `fz2c` -- the FROZEN ARITHMETIC RULE.  Exactly the 480 seeds
+#     `census_bank_seeds()` enumerated BEFORE the first capture (every second k
+#     of every stratum).  No verdict is read, no quota applies, no ballast.
+#     That is what makes the census's rates POPULATION rates.
+#   * ENRICHED `fz2e` -- `fuzz_bank.promote`'s existing divergence-driven quota
+#     rule, unchanged.  Its promotion selects on the outcome, which is exactly
+#     why no rate is computed on it anywhere in this file.
+#
+# THE CAP IS CHECKED BEFORE ANYTHING IS WRITTEN.  `fuzz_bank.CAP_MB` = 25 caps
+# the PROMOTED BANK under `tests/v30/fuzz_bank/<cid>/seeds/`.  ⚠ It does NOT
+# govern `sw/testdata/campaigns/<cid>/captures/`, which already holds 33 MB with
+# nothing enforcing anything (§17.7's erratum).  §4.3's registered response to a
+# promotion that would trip `_capped` is HALT, REPORT, raise `CAP_MB` in its own
+# commit and RE-BANK the whole population -- never leave a truncated bank, which
+# is a prefix of the promotion order and therefore a selection artefact.  So
+# this command MEASURES first and refuses second; it does not discover the cap
+# by hitting it.
+#
+# AND THE PER-STRATUM `ov` IS BANKED PER SEED.  `check_fuzz_bank` re-derives
+# every banked image from `(cid, k, ov)`; this corpus uses a DIFFERENT `ov` in
+# each of its 48 strata, so a campaign-wide dict would regenerate a different
+# image and be reported as GEN-DRIFT in the seed rather than as a defect here.
+# --------------------------------------------------------------------------- #
+def _row_ov(cid):
+    def f(r):
+        j = _stratum_of(cid, r["k"])
+        if j is None:
+            raise RuntimeError(f"{cid}/{r['k']} is in no registered stratum")
+        return ov_of(STRATA[j])
+    return f
+
+
+def cmd_bank(a):
+    import fuzz_bank as fb
+    OUT.mkdir(parents=True, exist_ok=True)
+    rec = {"stage": "fz2 bank", "ts": time.strftime("%Y-%m-%dT%H:%M:%SZ",
+                                                    time.gmtime()),
+           "cap_mb": fb.CAP_MB, "dry_run": bool(a.dry_run), "pops": {}}
+    pops = [a.pop] if a.pop else list(POPS)
+
+    # --- the measurement, ALWAYS, and before a byte is written --------------
+    halt = []
+    for pop in pops:
+        cid = CID[pop]
+        ks = census_bank_seeds() if pop == "census" else None
+        m = fb.promote(cid, {}, only_ks=ks, ov_of=_row_ov(cid), dry_run=True)
+        rec["pops"][pop] = {"dry_run": m}
+        print(f"== {pop} ({cid}) DRY RUN: {m['n_selected']} seeds, "
+              f"{m['bytes']/(1<<20):.2f} MB against CAP_MB {fb.CAP_MB}  "
+              f"[{'WOULD CAP' if m['would_cap'] else 'inside'}]  "
+              f"{m['promotion']}")
+        if m["would_cap"]:
+            halt.append(pop)
+    if halt:
+        print(f"\n*** HALT: promoting {', '.join(halt)} would trip `_capped`. "
+              "NOTHING WRITTEN.")
+        print("    prereg §4.3's REGISTERED response: halt, report, raise "
+              "`CAP_MB` in its own commit, re-bank the WHOLE population.")
+        print("    A truncated bank is a prefix of the promotion order and is "
+              "a selection artefact.  This is a DECISION, not a retry.")
+        (OUT / "fz2_bank.json").write_text(json.dumps(rec, indent=1))
+        return 2
+    if a.dry_run:
+        (OUT / "fz2_bank.json").write_text(json.dumps(rec, indent=1))
+        return 0
+
+    # --- the promotion ------------------------------------------------------
+    for pop in pops:
+        cid = CID[pop]
+        d = ROOT / "tests" / "v30" / "fuzz_bank" / cid / "seeds"
+        if d.exists() and any(d.glob("*.json.gz")):
+            print(f"*** REFUSED: {d} already holds banked seeds.  A second "
+                  "promotion over the top of a bank is not a re-bank; remove "
+                  "the directory deliberately if that is what is meant.")
+            return 2
+    for pop in pops:
+        cid = CID[pop]
+        ks = census_bank_seeds() if pop == "census" else None
+        t0 = time.time()
+        man = fb.promote(cid, {}, only_ks=ks, ov_of=_row_ov(cid))
+        rec["pops"][pop]["manifest"] = man
+        print(f"== {pop} ({cid}): banked {man['n_banked']} of "
+              f"{man['n_results']} results, {man['bytes']/(1<<20):.2f} MB, "
+              f"_capped {man['promotion'].get('_capped', 0)}, "
+              f"{time.time()-t0:.0f}s  {man['promotion']}")
+    (OUT / "fz2_bank.json").write_text(json.dumps(rec, indent=1))
+    return 0
+
+
+# --------------------------------------------------------------------------- #
 # bars
 # --------------------------------------------------------------------------- #
 BARS = ("C-1", "C-2", "C-3", "C-4", "C-5", "C-6", "C-7", "C-8", "C-9", "C-10",
@@ -1691,6 +1787,11 @@ def main():
     p = sub.add_parser("control")
     p.add_argument("--host", default=HOST)
     p.set_defaults(func=cmd_control)
+    p = sub.add_parser("bank")
+    p.add_argument("--dry-run", action="store_true",
+                   help="measure the promotion against CAP_MB, write nothing")
+    p.add_argument("--pop", choices=POPS, default=None)
+    p.set_defaults(func=cmd_bank)
     p = sub.add_parser("bars")
     p.add_argument("--jobs", type=int, default=8)
     p.set_defaults(func=cmd_bars)

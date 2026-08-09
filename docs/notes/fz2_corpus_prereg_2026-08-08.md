@@ -2846,3 +2846,142 @@ ruling, and the new `c6b` object.  **C-1's, C-11's and every other bar's
 **REPORTED AS REGISTERED: C-6 is NOT SCOREABLE, clause (b) does NOT pass at
 2 / 4,638, and 561 seeds are UNEVALUABLE.**  §20.5 is the verdict and it is
 unchanged by this run.
+
+---
+
+## §21 C-11 — THE BANK PROMOTION IS RUN, AND THE BAR READS **MET**
+
+**Executed 2026-08-09/10, offline.**  This is **not an amendment**: §4.1, §4.2
+and C-11 registered the rules and the clause before the first capture and
+nothing about them is edited here.  C-11 read `NOT SCOREABLE` through §12.1,
+§14.1, §18.2 and §20.7 for one reason — *"the bank promotion was not run this
+sitting"* (`census_banked` **0** of **480**).  It has now been run.
+
+### 21.0 A DISAGREEMENT BETWEEN THE TASK AND THE CODE, REPORTED FIRST
+
+The task described C-11 as unscoreable *"only because the promotion was never
+executed"*.  **That was not the whole of it, and the code is the authority.**
+`fuzz_bank.promote` implements §4.2's **divergence-driven quota rule and
+nothing else** — every FUNCTIONAL, provenance QUARANTINEs capped at 20,
+unexplained TIMING capped at 10 per signature, first 50 per KNOWN_ACCEPTED
+class, a 1-in-50 CADENCE sample, 100 SUCCESS ballast.  **§4.1's FROZEN
+ARITHMETIC RULE did not exist anywhere in the tree**, so running the promotion
+as it stood would have produced a census bank chosen by verdict and C-11's
+first clause — *"the census bank equals the 480 enumerated seeds, seed for
+seed"* — would have read **MISSED**, with a selection artefact banked inside
+it.  Building the frozen path is **executing a registered rule**, not inventing
+one, and it is the only way that clause can be met.
+
+**A second trap, found before it cost anything.**  `check_fuzz_bank`
+re-derives every banked image from `(cid, k, ov)`, and `promote` banked ONE
+campaign-wide `ov`.  This corpus uses **a different `ov` in each of its 48
+strata** (§2.4), so a flat dict would have regenerated a different image for
+47 of them and been reported as **GEN-DRIFT in the seed** rather than as a
+defect in the banker.  `ov` is now resolved **per seed** from the seed's own
+stratum.
+
+### 21.1 THE COST, MEASURED BEFORE A BYTE WAS WRITTEN
+
+`python3 sw/fz2_w1.py bank --dry-run` selects and compresses the identical
+entry the banker writes and reports it against `fuzz_bank.CAP_MB`:
+
+| | seeds selected | compressed | vs `CAP_MB` = 25 |
+|---|---|---|---|
+| `fz2c` (frozen rule) | **480** | **11.06 MB** | **inside** |
+| `fz2e` (quota rule) | **143** | **3.38 MB** | **inside** |
+
+**Neither would trip `_capped`, so §4.3's registered HALT was not reached.**
+It is armed in the driver regardless: `cmd_bank` measures first, and on a
+`would_cap` it writes nothing, prints §4.3's response — *halt, report, raise
+`CAP_MB` in its own commit, re-bank the whole population* — and exits 2.  A
+truncated bank is a prefix of the promotion order and therefore a selection
+artefact; the cap is not discovered by hitting it.
+
+⚠ **`CAP_MB` CAPS THE PROMOTED BANK, NOT `captures/`** — §17.7's erratum,
+carried forward into the code's own comment.  The live capture directories hold
+**33 MB** with nothing enforcing anything, and the 25 MB bar is on a different
+artifact.  §4.3's estimate of ~22 KB per banked entry was good: the measured
+figures are **23.6 KB** (`fz2c`) and **24.2 KB** (`fz2e`).
+
+### 21.2 THE PROMOTION AS RUN
+
+`python3 sw/fz2_w1.py bank`, offline, 284 s:
+
+| | banked | of results | bytes | `_capped` | rule |
+|---|---|---|---|---|---|
+| `fz2c` | **480** | 960 | 11.10 MB | **0** | `frozen_rule` **480** — no other reason appears |
+| `fz2e` | **143** | 2,880 | 3.39 MB | **0** | `rule_first50:open_bus` 50 · `success_ballast` 68 · `functional` 17 · `timing_unexplained` 3 · `rule_first50:lea-mod3` 3 · `cadence_sample` 2 |
+
+**THE PROMOTED BANK REPLAYS SELF-CONSISTENTLY**, checked rather than assumed —
+`check_fuzz_bank.replay_classify` re-run over all **623** newly banked entries:
+**623 stable, 0 improved, 0 worse, 0 GEN-DRIFT, 0 errors.**  The
+banked-vs-replayed verdict matrix is diagonal: QUARANTINE 168 · TIMING 156 ·
+FUNCTIONAL 128 · KNOWN_ACCEPTED 82 · SUCCESS 81 · ASSERT_PARK 8.
+
+### 21.3 THE BAR, AS REGISTERED
+
+| clause | registered | measured | |
+|---|---|---|---|
+| census bank == the 480 enumerated seeds | seed for seed | **480 / 480, `census_exact` true** | **MET** |
+| `_capped` | **0** on either cid | **0** and **0** | **MET** |
+| standing bank | **≤ 3,500** | **623** | **MET** |
+| seeds in both banks | **0** | **0** | **MET** |
+
+> **C-11 READS `MET`.**  `FZ2 BARS: 8/11 MET   NOT MET: C-1, C-3, C-6` —
+> the first time this corpus has moved a bar's verdict since §14.
+
+### 21.4 A FINDING ABOUT THE THIRD CLAUSE, AND IT IS FOR THE COORDINATOR
+
+**"Standing bank ≤ 3,500" is scored as `fz2c` + `fz2e` = 623, because that is
+what `fz2_w1.cmd_bars` computes AND what §4.3's own table computes** (*"standing
+bank ≤ ~1,630 … vs the ≤ 3,500 ceiling"*).  **It is not what §2.1's rationale
+describes.**  §2.1 justifies the number with *"every banked seed is replayed on
+every gate run"*, and the thing that is replayed on every gate run is
+`tests/v30/fuzz_bank/*/seeds/*.json.gz` — `check_fuzz_bank`'s own glob.
+
+**Measured: that bank was 3,242 seeds and is now 3,865** (mc1 1,295 · mc2 1,294
+· t30-raw 568 · t30-brkem 85 · **fz2c 480 · fz2e 143**).  Under §2.1's reading
+the clause is **breached by 365 seeds**; under §4.3's arithmetic and the
+scorer's it is met with 2,877 to spare.
+
+**NO BAR IS RE-READ HERE AND NOTHING IS RESCORED ON THE OTHER READING.**  The
+clause is scored as the document's own table and its own scorer compute it, and
+the discrepancy is reported rather than resolved: **which of the two the ≤ 3,500
+ceiling was meant to bound is a decision about a registered bar and belongs to
+the coordinator.**  The gate's wall time is the thing the number was protecting,
+and it has gone up by **19.2 %**.
+
+### 21.5 WHAT §21 CHANGES IN THE TREE
+
+* `sw/fuzz_bank.py` — `promote` gains `only_ks` (the frozen rule), `ov_of`
+  (per-seed overrides) and `dry_run` (measure, write nothing); the quota rule
+  is lifted verbatim into `_quota_select` and the entry body into `_entry`,
+  which the writer and the measurement now share so the two cannot drift.
+  **All three parameters default to the historical behaviour, so every existing
+  caller is unchanged**, and `CAP_MB` is not touched.
+* `sw/fz2_w1.py` — the `bank` subcommand: measure, halt-or-write, refuse to
+  promote over a bank that already exists.
+* `tests/v30/fuzz_bank/fz2c/`, `tests/v30/fuzz_bank/fz2e/` — the 623 banked
+  entries, their signature indices, shards and manifests; `sig_ledger.json`
+  updated by `promote`'s own `_update_ledger`.
+* `sw/testdata/fz2/fz2_bank.json` — the promotion record.
+* This document, appended.
+
+**No board, no flash, no Quartus, and no capture.  No bar's text or value
+moved.**
+
+### 21.6 THE BARS AFTER §21 — `sw/testdata/fz2/fz2_bars.json`, 2026-08-09T18:10:25Z
+
+**`FZ2 BARS: 8/11 MET   NOT MET: C-1, C-3, C-6`**
+
+**LEAF FOR LEAF against the §20.7 artifact: 660 leaves → 660, 6 differing** —
+`census_banked` **0 → 480**, `census_exact` **False → True`,
+`enriched_banked` **0 → 143**, `total` **0 → 623**, `bars/C-11/verdict`
+**`NOT SCOREABLE` → `MET`**, and `ts`.  **Nothing outside `bars/C-11`
+moved**: C-1 is still `MISSED (rate clauses UNVALIDATED -- A-5)` with
+UNDISPOSITIONED **27**, C-6 is still `NOT SCOREABLE`, C-3 is still `MISSED`
+at **2** runtime PS3 captures, and both populations' three decompositions are
+identical.
+
+**THE ACCEPTANCE CRITERION OF §8.2 IS STILL NOT MET**: three bars are not MET
+and the catch-all is not empty.

@@ -64,11 +64,82 @@ def _arch(rows, window):
     return fc.arch_dump(rows, window)
 
 
-def promote(cid, ov, results_path=None, cap_dir=None):
-    """Select + write banked entries for one campaign. Returns a tally dict."""
+def promote(cid, ov, results_path=None, cap_dir=None, only_ks=None,
+            ov_of=None, dry_run=False):
+    """Select + write banked entries for one campaign. Returns a tally dict.
+
+    `only_ks` -- THE FROZEN-RULE PROMOTION (fuzz-v2 prereg §4.1).  When given,
+    the promoted set is EXACTLY those k's and nothing else: no verdict is read,
+    no quota applies, no per-signature cap applies and there is no SUCCESS
+    ballast.  A census whose bank is chosen by a divergence-driven quota has a
+    selection artefact in it and its rates are not population rates, which is
+    the whole reason that document promotes by arithmetic.  `None` (the
+    default) leaves the historical quota rule below untouched for every
+    existing caller.
+
+    `ov_of` -- a callable `row -> overrides dict`.  A stratified corpus uses a
+    DIFFERENT `ov` per stratum, and `ov` is what `check_fuzz_bank` re-derives
+    the image from, so banking one campaign-wide dict would regenerate a
+    different image and be reported as GEN-DRIFT in the seed rather than as a
+    defect here.  `None` keeps the flat `ov` for every entry.
+
+    `dry_run` -- select and MEASURE (entry count and compressed bytes against
+    `CAP_MB`) and write NOTHING.  Registered response, prereg §4.3: if the
+    promotion would trip `_capped` the bank is not left truncated -- HALT,
+    report, raise `CAP_MB` in its own commit and re-bank the whole population.
+    A truncated bank is a prefix of the promotion order, which is a selection
+    artefact of exactly the kind the design exists to avoid."""
     results_path = results_path or (CAMPAIGNS / cid / "results.jsonl")
     cap_dir = cap_dir or (CAMPAIGNS / cid / "captures")
     rows = [json.loads(l) for l in results_path.read_text().splitlines() if l.strip()]
+
+    if only_ks is not None:
+        want = set(only_ks)
+        promoted = []
+        missing = []
+        for r in rows:
+            if r["k"] not in want:
+                continue
+            cap = _load_capture(cap_dir, r["tier"], r["k"], r["cfg_hash"])
+            if cap is None:
+                missing.append(r["k"])
+                continue
+            promoted.append(("frozen_rule", r, cap))
+        if missing:
+            raise RuntimeError(
+                f"{cid}: the frozen rule names {len(want)} seeds and "
+                f"{len(missing)} have no retained capture: {missing[:10]} -- "
+                "the bank would be a SUBSET of the frozen rule, which C-11 "
+                "reads seed for seed.  Not written.")
+        if dry_run:
+            return _measure(cid, rows, promoted, ov, ov_of)
+        return _write_bank(cid, ov, rows, promoted, ov_of=ov_of)
+
+    if dry_run:
+        promoted = _quota_select(rows, cap_dir)
+        return _measure(cid, rows, promoted, ov, ov_of)
+    return _write_bank(cid, ov, rows, _quota_select(rows, cap_dir),
+                       ov_of=ov_of)
+
+
+def _measure(cid, rows, promoted, ov, ov_of):
+    """What the promotion WOULD cost, without writing a byte.  Same blob the
+    banker compresses, minus the three replay fields (three short strings), so
+    the figure is a floor that is tight to well under a percent."""
+    total = 0
+    for reason, r, cap in promoted:
+        e = _entry(cid, ov, ov_of, reason, r, cap)
+        total += len(gzip.compress(json.dumps(e).encode()))
+    return {"cid": cid, "dry_run": True, "n_selected": len(promoted),
+            "n_results": len(rows), "bytes": total, "cap_mb": CAP_MB,
+            "would_cap": total > CAP_MB * (1 << 20),
+            "promotion": dict(Counter(x[0] for x in promoted))}
+
+
+def _quota_select(rows, cap_dir):
+    """The historical divergence-driven quota rule, lifted verbatim out of
+    `promote` so the frozen rule can sit beside it without either being a
+    special case of the other."""
 
     # per-sig counters for the caps
     timing_by_sig = Counter()
@@ -122,10 +193,45 @@ def promote(cid, ov, results_path=None, cap_dir=None):
             promoted.append(("success_ballast", r, cap))
             ball += 1
 
-    return _write_bank(cid, ov, rows, promoted)
+    return promoted
 
 
-def _write_bank(cid, ov, all_rows, promoted):
+def _entry(cid, ov, ov_of, reason, r, cap):
+    """One banked entry, WITHOUT the three replay fields (which need the TB).
+    Shared by the writer and the dry-run measurement so the two cannot drift."""
+    window = r.get("win") or (cap["line"].get("win"))
+    chip = cap["real"]
+    return {
+        "cid": cid, "k": r["k"], "seed": r["seed"], "tier": r["tier"],
+        "cfg_hash": r["cfg_hash"], "ov": (ov_of(r) if ov_of else ov),
+        "gen_git": r.get("gen_git"), "image_sha256": r["image_sha256"],
+        "verdict": r["verdict"], "sub": r["sub"], "sig": r.get("sig"),
+        "sigv": r.get("sigv"), "first_bad": r.get("first_bad"),
+        "bad_rows": r.get("bad_rows"), "func_mismatch": r.get("func_mismatch"),
+        "done_real": r.get("done_real"), "done_sim": r.get("done_sim"),
+        "rule_hits": r.get("rule_hits", []), "alarms": r.get("alarms", []),
+        "brkem_pos": r.get("brkem_pos", []),
+        "lea_mod3_pos": r.get("lea_mod3_pos", []),
+        "evt": r.get("evt"), "waits": r.get("waits"),
+        # task #38: the PER-ACCESS WAIT VECTOR, banked IN FULL beside its
+        # spec and its sha256.  `wvec_hex` is the literal 4,096-entry
+        # sequence the rig was handed -- not a digest and not a
+        # derivation, so a replay can be checked against what the socket
+        # actually applied rather than against a re-computation of it.
+        "wvec": r.get("wvec"), "wvec_hex": r.get("wvec_hex"),
+        "wvec_sha256": r.get("wvec_sha256"), "wvec_n": r.get("wvec_n", 0),
+        "no8080": r.get("no8080", False),
+        "nmin": r.get("nmin"), "nmax_eff": r.get("nmax_eff"),
+        "has_brkem": r.get("has_brkem"), "has_tf": r.get("has_tf"),
+        "raw_mode": r.get("raw_mode"),
+        "promoted_reason": reason,
+        "chip_arch": _arch(chip, window or min(len(chip), 4000)),
+        "chip_rows": chip,      # the socket leg (regenerable image; rows kept)
+        "banked_ts": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+    }
+
+
+def _write_bank(cid, ov, all_rows, promoted, ov_of=None):
     cdir = BANK / cid
     (cdir / "seeds").mkdir(parents=True, exist_ok=True)
     (cdir / "sigs").mkdir(exist_ok=True)
@@ -137,37 +243,7 @@ def _write_bank(cid, ov, all_rows, promoted):
     total_bytes = 0
     ledger_sigs = []
     for reason, r, cap in promoted:
-        window = r.get("win") or (cap["line"].get("win"))
-        chip = cap["real"]
-        arch = _arch(chip, window or min(len(chip), 4000))
-        entry = {
-            "cid": cid, "k": r["k"], "seed": r["seed"], "tier": r["tier"],
-            "cfg_hash": r["cfg_hash"], "ov": ov,
-            "gen_git": r.get("gen_git"), "image_sha256": r["image_sha256"],
-            "verdict": r["verdict"], "sub": r["sub"], "sig": r.get("sig"),
-            "sigv": r.get("sigv"), "first_bad": r.get("first_bad"),
-            "bad_rows": r.get("bad_rows"), "func_mismatch": r.get("func_mismatch"),
-            "done_real": r.get("done_real"), "done_sim": r.get("done_sim"),
-            "rule_hits": r.get("rule_hits", []), "alarms": r.get("alarms", []),
-            "brkem_pos": r.get("brkem_pos", []),
-            "lea_mod3_pos": r.get("lea_mod3_pos", []),
-            "evt": r.get("evt"), "waits": r.get("waits"),
-            # task #38: the PER-ACCESS WAIT VECTOR, banked IN FULL beside its
-            # spec and its sha256.  `wvec_hex` is the literal 4,096-entry
-            # sequence the rig was handed -- not a digest and not a
-            # derivation, so a replay can be checked against what the socket
-            # actually applied rather than against a re-computation of it.
-            "wvec": r.get("wvec"), "wvec_hex": r.get("wvec_hex"),
-            "wvec_sha256": r.get("wvec_sha256"), "wvec_n": r.get("wvec_n", 0),
-            "no8080": r.get("no8080", False),
-            "nmin": r.get("nmin"), "nmax_eff": r.get("nmax_eff"),
-            "has_brkem": r.get("has_brkem"), "has_tf": r.get("has_tf"),
-            "raw_mode": r.get("raw_mode"),
-            "promoted_reason": reason,
-            "chip_arch": arch,
-            "chip_rows": chip,          # the socket leg (regenerable image; rows kept)
-            "banked_ts": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
-        }
+        entry = _entry(cid, ov, ov_of, reason, r, cap)
         # compute the chip-vs-TB REPLAY verdict now (the round-trip target;
         # deterministic given the TB build) - the banked `verdict` above is the
         # chip-vs-fabric DISCOVERY verdict, kept as provenance.

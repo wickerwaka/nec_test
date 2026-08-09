@@ -1967,7 +1967,7 @@
    "klass": null,
    "tier": "raw",
    "waits_class": "wrand",
-   "count": 4
+   "count": 5
   },
   "b7a127e7776e54a6": {
    "first_campaign": "t30-raw",
@@ -2487,7 +2487,7 @@
    "klass": null,
    "tier": "raw",
    "waits_class": "wrand",
-   "count": 1
+   "count": 2
   },
   "ccc01381655a0c21": {
    "first_campaign": "t30-raw",
@@ -3127,7 +3127,7 @@
    "klass": null,
    "tier": "raw",
    "waits_class": "w0",
-   "count": 2
+   "count": 3
   },
   "c06d42608a3da850": {
    "first_campaign": "t30-raw",
@@ -3143,7 +3143,7 @@
    "klass": null,
    "tier": "raw",
    "waits_class": "wrand",
-   "count": 6
+   "count": 9
   },
   "9229f2519144f2df": {
    "first_campaign": "t30-raw",
@@ -4735,7 +4735,7 @@
    "klass": null,
    "tier": "raw",
    "waits_class": "w0",
-   "count": 4
+   "count": 5
   },
   "cb82147bfdcab38b": {
    "first_campaign": "t30-raw",
@@ -4799,7 +4799,7 @@
    "klass": null,
    "tier": "raw",
    "waits_class": "w0",
-   "count": 4
+   "count": 6
   },
   "e4bffd911e34baa8": {
    "first_campaign": "t30-raw",
@@ -9007,7 +9007,7 @@
    "klass": null,
    "tier": "raw",
    "waits_class": "w0",
-   "count": 2
+   "count": 3
   },
   "4f5e529a96d56866": {
    "first_campaign": "t30-raw",
@@ -9623,7 +9623,7 @@
    "klass": null,
    "tier": "raw",
    "waits_class": "wrand",
-   "count": 2
+   "count": 3
   },
   "4ae1bb61d60adce9": {
    "first_campaign": "t30-raw",
@@ -10327,7 +10327,7 @@
    "klass": "cadence",
    "tier": "raw",
    "waits_class": "wrand",
-   "count": 4
+   "count": 5
   },
   "d52bf8c7b8bd82d8": {
    "first_campaign": "t30-raw",
@@ -11895,7 +11895,7 @@
    "klass": null,
    "tier": "soup",
    "waits_class": "wrand",
-   "count": 34
+   "count": 35
   },
   "57ee2dde644b6de7": {
    "first_campaign": "mc1",
@@ -12559,7 +12559,7 @@
    "klass": null,
    "tier": "soup",
    "waits_class": "wrand",
-   "count": 38
+   "count": 39
   },
   "6ae5b2c7b5061c07": {
    "first_campaign": "mc1",
@@ -12687,7 +12687,7 @@
    "klass": null,
    "tier": "soup",
    "waits_class": "wrand",
-   "count": 29
+   "count": 30
   },
   "c15bf92b9373b572": {
    "first_campaign": "mc1",
@@ -12695,7 +12695,7 @@
    "klass": null,
    "tier": "soup",
    "waits_class": "wrand",
-   "count": 26
+   "count": 27
   },
   "dc15924d6ce67440": {
    "first_campaign": "mc1",
@@ -12727,7 +12727,7 @@
    "klass": null,
    "tier": "soup",
    "waits_class": "wrand",
-   "count": 10
+   "count": 11
   },
   "5b00b671aee37e0c": {
    "first_campaign": "mc1",
@@ -12799,7 +12799,7 @@
    "klass": null,
    "tier": "soup",
    "waits_class": "wrand",
-   "count": 23
+   "count": 24
   },
   "c9e33e1c9794a102": {
    "first_campaign": "mc1",
@@ -13087,7 +13087,7 @@
    "klass": null,
    "tier": "soup",
    "waits_class": "wrand",
-   "count": 20
+   "count": 21
   },
   "70f29957894547b1": {
    "first_campaign": "mc1",
@@ -13671,7 +13671,7 @@
    "klass": null,
    "tier": "soup",
    "waits_class": "wrand",
-   "count": 6
+   "count": 7
   },
   "b11b55542706552a": {
    "first_campaign": "mc1",
@@ -13911,7 +13911,7 @@
    "klass": null,
    "tier": "soup",
    "waits_class": "wrand",
-   "count": 4
+   "count": 7
   },
   "43be410b88e2fa01": {
    "first_campaign": "mc1",
@@ -13943,7 +13943,7 @@
    "klass": null,
    "tier": "soup",
    "waits_class": "wrand",
-   "count": 41
+   "count": 43
   },
   "d77613c0a5036e2d": {
    "first_campaign": "mc1",
@@ -15239,7 +15239,7 @@
    "klass": null,
    "tier": "soup",
    "waits_class": "wrand",
-   "count": 4
+   "count": 5
   },
   "a77bcdfb9e662638": {
    "first_campaign": "mc1",
@@ -15287,7 +15287,7 @@
    "klass": null,
    "tier": "soup",
    "waits_class": "wrand",
-   "count": 16
+   "count": 17
   },
   "24646f9e177cccf0": {
    "first_campaign": "mc1",
@@ -16079,7 +16079,7 @@
    "klass": null,
    "tier": "soup",
    "waits_class": "wrand",
-   "count": 11
+   "count": 12
   },
   "80dcdb0e6d885cc3": {
    "first_campaign": "mc1",
@@ -17407,7 +17407,7 @@
    "klass": null,
    "tier": "soup",
    "waits_class": "w0",
-   "count": 4
+   "count": 5
   },
   "9d9539f9899419e7": {
    "first_campaign": "mc1",
@@ -17447,7 +17447,7 @@
    "klass": null,
    "tier": "soup",
    "waits_class": "wrand",
-   "count": 13
+   "count": 14
   },
   "4b76109d7a847862": {
    "first_campaign": "mc1",
@@ -17575,7 +17575,7 @@
    "klass": null,
    "tier": "soup",
    "waits_class": "wrand",
-   "count": 7
+   "count": 8
   },
   "be65df38ea176d73": {
    "first_campaign": "mc1",
@@ -19015,7 +19015,7 @@
    "klass": null,
    "tier": "soup",
    "waits_class": "wrand",
-   "count": 9
+   "count": 10
   },
   "90e0a3e316d36abe": {
    "first_campaign": "mc1",
@@ -19583,7 +19583,7 @@
    "klass": null,
    "tier": "soup",
    "waits_class": "wrand",
-   "count": 10
+   "count": 11
   },
   "d96bfd74cc13054e": {
    "first_campaign": "mc1",
@@ -20903,7 +20903,7 @@
    "klass": null,
    "tier": "soup",
    "waits_class": "wrand",
-   "count": 7
+   "count": 8
   },
   "bc346a64dedb80fe": {
    "first_campaign": "mc1",
@@ -21455,7 +21455,7 @@
    "klass": null,
    "tier": "soup",
    "waits_class": "w0",
-   "count": 16
+   "count": 19
   },
   "4c5446de488c2a4c": {
    "first_campaign": "mc1",
@@ -23439,7 +23439,7 @@
    "klass": null,
    "tier": "soup",
    "waits_class": "wrand",
-   "count": 3
+   "count": 4
   },
   "451fdb22d54e177d": {
    "first_campaign": "mc1",
@@ -24151,7 +24151,7 @@
    "klass": null,
    "tier": "soup",
    "waits_class": "wrand",
-   "count": 8
+   "count": 9
   },
   "9465e85273eb48b2": {
    "first_campaign": "mc1",
@@ -24287,7 +24287,7 @@
    "klass": null,
    "tier": "soup",
    "waits_class": "wrand",
-   "count": 2
+   "count": 3
   },
   "485a53fc080ad6a8": {
    "first_campaign": "mc1",
@@ -24447,7 +24447,7 @@
    "klass": null,
    "tier": "soup",
    "waits_class": "wrand",
-   "count": 3
+   "count": 4
   },
   "15f5c13d48416ba1": {
    "first_campaign": "mc1",
@@ -24783,7 +24783,7 @@
    "klass": null,
    "tier": "soup",
    "waits_class": "wrand",
-   "count": 4
+   "count": 5
   },
   "6e998fbbf1419a7e": {
    "first_campaign": "mc1",
@@ -25143,7 +25143,7 @@
    "klass": null,
    "tier": "soup",
    "waits_class": "wrand",
-   "count": 2
+   "count": 3
   },
   "0b866255e692504b": {
    "first_campaign": "mc1",
@@ -25471,7 +25471,7 @@
    "klass": null,
    "tier": "soup",
    "waits_class": "wrand",
-   "count": 6
+   "count": 7
   },
   "85f32a66809fa177": {
    "first_campaign": "mc1",
@@ -25663,7 +25663,7 @@
    "klass": null,
    "tier": "soup",
    "waits_class": "wrand",
-   "count": 25
+   "count": 26
   },
   "8dadcac730e460b3": {
    "first_campaign": "mc1",
@@ -26935,7 +26935,7 @@
    "klass": "cadence",
    "tier": "soup",
    "waits_class": "wrand",
-   "count": 2
+   "count": 3
   },
   "71c2c23a7633d7ec": {
    "first_campaign": "mc1",
@@ -27015,7 +27015,7 @@
    "klass": null,
    "tier": "raw",
    "waits_class": "wrand",
-   "count": 5
+   "count": 6
   },
   "96604f22918f1d45": {
    "first_campaign": "mc1",
@@ -27239,7 +27239,7 @@
    "klass": null,
    "tier": "soup",
    "waits_class": "w0",
-   "count": 4
+   "count": 5
   },
   "20a0fd9a7f653669": {
    "first_campaign": "mc1",
@@ -28183,7 +28183,7 @@
    "klass": null,
    "tier": "soup",
    "waits_class": "wrand",
-   "count": 17
+   "count": 18
   },
   "1b9ea2e8bf7e5231": {
    "first_campaign": "mc1",
@@ -30111,7 +30111,7 @@
    "klass": null,
    "tier": "soup",
    "waits_class": "w3",
-   "count": 6
+   "count": 7
   },
   "e74f659eae827617": {
    "first_campaign": "mc1",
@@ -31679,7 +31679,7 @@
    "klass": null,
    "tier": "soup",
    "waits_class": "w0",
-   "count": 3
+   "count": 4
   },
   "8138cd756d8b9e87": {
    "first_campaign": "mc1",
@@ -31767,7 +31767,7 @@
    "klass": null,
    "tier": "soup",
    "waits_class": "w0",
-   "count": 2
+   "count": 7
   },
   "8e4d23d5a4623adb": {
    "first_campaign": "mc1",
@@ -32295,7 +32295,7 @@
    "klass": null,
    "tier": "soup",
    "waits_class": "wrand",
-   "count": 2
+   "count": 3
   },
   "4af029dec299e2dd": {
    "first_campaign": "mc1",
@@ -34359,7 +34359,7 @@
    "klass": null,
    "tier": "soup",
    "waits_class": "wrand",
-   "count": 3
+   "count": 4
   },
   "8ab5943e96018510": {
    "first_campaign": "mc1",
@@ -34447,7 +34447,7 @@
    "klass": null,
    "tier": "soup",
    "waits_class": "wrand",
-   "count": 7
+   "count": 8
   },
   "d3ec10400c9e527b": {
    "first_campaign": "mc1",
@@ -35159,7 +35159,7 @@
    "klass": null,
    "tier": "soup",
    "waits_class": "wrand",
-   "count": 5
+   "count": 6
   },
   "8d71c4a50be6fff3": {
    "first_campaign": "mc1",
@@ -35303,7 +35303,7 @@
    "klass": null,
    "tier": "soup",
    "waits_class": "w0",
-   "count": 5
+   "count": 6
   },
   "72e7b6a39c30b5a8": {
    "first_campaign": "mc1",
@@ -39727,7 +39727,7 @@
    "klass": null,
    "tier": "soup",
    "waits_class": "w0",
-   "count": 4
+   "count": 5
   },
   "85c5dc39277233d1": {
    "first_campaign": "mc1",
@@ -41375,7 +41375,7 @@
    "klass": null,
    "tier": "soup",
    "waits_class": "wrand",
-   "count": 8
+   "count": 9
   },
   "8827a100a29e7e47": {
    "first_campaign": "mc1",
@@ -41407,7 +41407,7 @@
    "klass": null,
    "tier": "soup",
    "waits_class": "w0",
-   "count": 2
+   "count": 3
   },
   "362241d9f6a6c125": {
    "first_campaign": "mc1",
@@ -43655,7 +43655,7 @@
    "klass": null,
    "tier": "soup",
    "waits_class": "w0",
-   "count": 3
+   "count": 4
   },
   "cace5d8a5caa01d9": {
    "first_campaign": "mc1",
@@ -44007,7 +44007,7 @@
    "klass": null,
    "tier": "soup",
    "waits_class": "w2",
-   "count": 4
+   "count": 5
   },
   "3436640e5b884131": {
    "first_campaign": "mc1",
@@ -45143,7 +45143,7 @@
    "klass": null,
    "tier": "soup",
    "waits_class": "w3",
-   "count": 3
+   "count": 4
   },
   "74479029616aa951": {
    "first_campaign": "mc1",
@@ -47455,7 +47455,7 @@
    "klass": "open_bus",
    "tier": "raw",
    "waits_class": "wrand",
-   "count": 2
+   "count": 10
   },
   "8fc58eef2ae8bdab": {
    "first_campaign": "mc1",
@@ -47943,7 +47943,7 @@
    "klass": "cadence",
    "tier": "soup",
    "waits_class": "w1",
-   "count": 2
+   "count": 4
   },
   "122762576cbd4796": {
    "first_campaign": "mc1",
@@ -50111,7 +50111,7 @@
    "klass": "open_bus",
    "tier": "raw",
    "waits_class": "wrand",
-   "count": 2
+   "count": 3
   },
   "85d123e3f43234f3": {
    "first_campaign": "mc1",
@@ -58511,7 +58511,7 @@
    "klass": "open_bus",
    "tier": "raw",
    "waits_class": "wrand",
-   "count": 2
+   "count": 3
   },
   "649e76a5c55fdf22": {
    "first_campaign": "mc1",
@@ -59871,7 +59871,7 @@
    "klass": null,
    "tier": "soup",
    "waits_class": "wrand",
-   "count": 10
+   "count": 11
   },
   "280ecc4c30edbd4e": {
    "first_campaign": "mc1",
@@ -60279,7 +60279,7 @@
    "klass": null,
    "tier": "raw",
    "waits_class": "wrand",
-   "count": 1
+   "count": 2
   },
   "52b387a956707f0e": {
    "first_campaign": "t30-raw",
@@ -60399,7 +60399,7 @@
    "klass": null,
    "tier": "raw",
    "waits_class": "wrand",
-   "count": 1
+   "count": 2
   },
   "52b39bc280688a61": {
    "first_campaign": "t30-raw",
@@ -60807,7 +60807,7 @@
    "klass": null,
    "tier": "raw",
    "waits_class": "w0",
-   "count": 1
+   "count": 2
   },
   "c8b4ecb8018f7970": {
    "first_campaign": "mc2",
@@ -61799,7 +61799,7 @@
    "klass": "open_bus",
    "tier": "raw",
    "waits_class": "wrand",
-   "count": 3
+   "count": 4
   },
   "666d226677acebf2": {
    "first_campaign": "mc2",
@@ -64215,7 +64215,7 @@
    "klass": null,
    "tier": "soup",
    "waits_class": "wrand",
-   "count": 4
+   "count": 6
   },
   "7c6c537d273edcaa": {
    "first_campaign": "mc2",
@@ -66031,7 +66031,7 @@
    "klass": null,
    "tier": "soup",
    "waits_class": "wrand",
-   "count": 2
+   "count": 3
   },
   "a286b07542fa9d05": {
    "first_campaign": "mc2",
@@ -66111,7 +66111,7 @@
    "klass": null,
    "tier": "soup",
    "waits_class": "wrand",
-   "count": 4
+   "count": 6
   },
   "75af08c643eaa4ab": {
    "first_campaign": "mc2",
@@ -67159,7 +67159,7 @@
    "klass": null,
    "tier": "soup",
    "waits_class": "w0",
-   "count": 1
+   "count": 2
   },
   "d0a80a6106675d1f": {
    "first_campaign": "mc2",
@@ -69183,7 +69183,7 @@
    "klass": null,
    "tier": "soup",
    "waits_class": "w0",
-   "count": 1
+   "count": 2
   },
   "8691398c0c1cd8aa": {
    "first_campaign": "mc2",
@@ -69503,7 +69503,7 @@
    "klass": null,
    "tier": "soup",
    "waits_class": "wrand",
-   "count": 2
+   "count": 3
   },
   "aa38fe776b28f148": {
    "first_campaign": "mc2",
@@ -69647,7 +69647,7 @@
    "klass": null,
    "tier": "soup",
    "waits_class": "w0",
-   "count": 1
+   "count": 2
   },
   "ca4ce721645a1035": {
    "first_campaign": "mc2",
@@ -69999,7 +69999,7 @@
    "klass": null,
    "tier": "soup",
    "waits_class": "wrand",
-   "count": 1
+   "count": 2
   },
   "ab4ff789d622f543": {
    "first_campaign": "mc2",
@@ -73511,7 +73511,7 @@
    "klass": "cadence",
    "tier": "soup",
    "waits_class": "wrand",
-   "count": 1
+   "count": 2
   },
   "57e1dac6eecb3a35": {
    "first_campaign": "mc2",
@@ -73591,7 +73591,7 @@
    "klass": null,
    "tier": "soup",
    "waits_class": "wrand",
-   "count": 2
+   "count": 3
   },
   "706b72885f222cd9": {
    "first_campaign": "mc2",
@@ -74863,7 +74863,7 @@
    "klass": null,
    "tier": "soup",
    "waits_class": "w3",
-   "count": 1
+   "count": 2
   },
   "61549825851cf8f9": {
    "first_campaign": "mc2",
@@ -74927,7 +74927,7 @@
    "klass": null,
    "tier": "soup",
    "waits_class": "w0",
-   "count": 1
+   "count": 2
   },
   "d3ca38e25e8b3c00": {
    "first_campaign": "mc2",
@@ -75023,7 +75023,7 @@
    "klass": null,
    "tier": "soup",
    "waits_class": "wrand",
-   "count": 1
+   "count": 2
   },
   "4d01d8e3f28feef8": {
    "first_campaign": "mc2",
@@ -75215,7 +75215,7 @@
    "klass": null,
    "tier": "soup",
    "waits_class": "wrand",
-   "count": 1
+   "count": 2
   },
   "673e0265dda6e9c9": {
    "first_campaign": "mc2",
@@ -75479,7 +75479,7 @@
    "klass": null,
    "tier": "soup",
    "waits_class": "w0",
-   "count": 1
+   "count": 2
   },
   "a6bab2acfcb01db2": {
    "first_campaign": "mc2",
@@ -76951,7 +76951,7 @@
    "klass": null,
    "tier": "soup",
    "waits_class": "wrand",
-   "count": 1
+   "count": 2
   },
   "c9ad5b1af6b7ecb1": {
    "first_campaign": "mc2",
@@ -77471,7 +77471,7 @@
    "klass": null,
    "tier": "soup",
    "waits_class": "wrand",
-   "count": 3
+   "count": 4
   },
   "40636393d133fb98": {
    "first_campaign": "mc2",
@@ -78079,7 +78079,7 @@
    "klass": null,
    "tier": "soup",
    "waits_class": "wrand",
-   "count": 1
+   "count": 2
   },
   "7d341a6e03ed7b5e": {
    "first_campaign": "mc2",
@@ -79951,7 +79951,7 @@
    "klass": null,
    "tier": "soup",
    "waits_class": "w0",
-   "count": 1
+   "count": 2
   },
   "23ce4ac5a2f10c45": {
    "first_campaign": "mc2",
@@ -80127,7 +80127,7 @@
    "klass": null,
    "tier": "raw",
    "waits_class": "w0",
-   "count": 1
+   "count": 2
   },
   "650c8d5487d03050": {
    "first_campaign": "mc2",
@@ -81111,7 +81111,7 @@
    "klass": null,
    "tier": "soup",
    "waits_class": "wrand",
-   "count": 1
+   "count": 2
   },
   "b97ec3d8974d4f8c": {
    "first_campaign": "mc2",
@@ -81183,7 +81183,7 @@
    "klass": null,
    "tier": "soup",
    "waits_class": "wrand",
-   "count": 1
+   "count": 2
   },
   "8f34e089ff35f706": {
    "first_campaign": "mc2",
@@ -89759,7 +89759,7 @@
    "klass": "cadence",
    "tier": "soup",
    "waits_class": "wrand",
-   "count": 1
+   "count": 2
   },
   "8a1be2b8a563cae2": {
    "first_campaign": "mc2",
@@ -93890,7 +93890,7 @@
    "klass": null,
    "tier": "unknown",
    "waits_class": "recapture-evt",
-   "count": 1,
+   "count": 2,
    "admitted": "2026-08-04"
   },
   "37b19473ca77c9c2": {
@@ -94115,7 +94115,7 @@
    "klass": null,
    "tier": "unknown",
    "waits_class": "recapture-evt",
-   "count": 1,
+   "count": 2,
    "admitted": "2026-08-04"
   },
   "6d5504f210cf4a3b": {
@@ -94133,7 +94133,7 @@
    "klass": null,
    "tier": "unknown",
    "waits_class": "recapture-evt",
-   "count": 2,
+   "count": 3,
    "admitted": "2026-08-04"
   },
   "6fe6e604dbc60f72": {
@@ -94927,6 +94927,3646 @@
    "waits_class": "tb-iow-fix",
    "count": 1,
    "admitted": "2026-08-04"
+  },
+  "ee133b150416fb1b": {
+   "first_campaign": "fz2c",
+   "first_verdict": "SUCCESS",
+   "klass": null,
+   "tier": "soup",
+   "waits_class": "w0",
+   "count": 1
+  },
+  "0ad306e7c6140beb": {
+   "first_campaign": "fz2c",
+   "first_verdict": "SUCCESS",
+   "klass": null,
+   "tier": "soup",
+   "waits_class": "w0",
+   "count": 2
+  },
+  "85c8118b4016e609": {
+   "first_campaign": "fz2c",
+   "first_verdict": "SUCCESS",
+   "klass": null,
+   "tier": "soup",
+   "waits_class": "w0",
+   "count": 1
+  },
+  "a8868dab2025a2fe": {
+   "first_campaign": "fz2c",
+   "first_verdict": "FUNCTIONAL",
+   "klass": null,
+   "tier": "soup",
+   "waits_class": "w0",
+   "count": 1
+  },
+  "8f55defc024f100e": {
+   "first_campaign": "fz2c",
+   "first_verdict": "FUNCTIONAL",
+   "klass": null,
+   "tier": "soup",
+   "waits_class": "w0",
+   "count": 4
+  },
+  "bea74f454ba9917c": {
+   "first_campaign": "fz2c",
+   "first_verdict": "SUCCESS",
+   "klass": null,
+   "tier": "soup",
+   "waits_class": "w0",
+   "count": 1
+  },
+  "659671cb67e319f8": {
+   "first_campaign": "fz2c",
+   "first_verdict": "SUCCESS",
+   "klass": null,
+   "tier": "soup",
+   "waits_class": "w0",
+   "count": 1
+  },
+  "629c5b07db22a240": {
+   "first_campaign": "fz2c",
+   "first_verdict": "SUCCESS",
+   "klass": null,
+   "tier": "soup",
+   "waits_class": "w0",
+   "count": 1
+  },
+  "9e82ddfc7ec9265d": {
+   "first_campaign": "fz2c",
+   "first_verdict": "SUCCESS",
+   "klass": null,
+   "tier": "soup",
+   "waits_class": "w0",
+   "count": 1
+  },
+  "8288305fc4b73946": {
+   "first_campaign": "fz2c",
+   "first_verdict": "SUCCESS",
+   "klass": null,
+   "tier": "soup",
+   "waits_class": "w0",
+   "count": 1
+  },
+  "37b1ea52728f77de": {
+   "first_campaign": "fz2c",
+   "first_verdict": "SUCCESS",
+   "klass": null,
+   "tier": "soup",
+   "waits_class": "w0",
+   "count": 1
+  },
+  "de087e398c77bb2f": {
+   "first_campaign": "fz2c",
+   "first_verdict": "SUCCESS",
+   "klass": null,
+   "tier": "soup",
+   "waits_class": "w0",
+   "count": 1
+  },
+  "a458cd8eb0ce4e60": {
+   "first_campaign": "fz2c",
+   "first_verdict": "SUCCESS",
+   "klass": null,
+   "tier": "soup",
+   "waits_class": "w0",
+   "count": 1
+  },
+  "afa1151c609d5d10": {
+   "first_campaign": "fz2c",
+   "first_verdict": "SUCCESS",
+   "klass": null,
+   "tier": "soup",
+   "waits_class": "w0",
+   "count": 1
+  },
+  "d7d4a2f787f20c69": {
+   "first_campaign": "fz2c",
+   "first_verdict": "SUCCESS",
+   "klass": null,
+   "tier": "soup",
+   "waits_class": "w0",
+   "count": 1
+  },
+  "08f5e5345549e46d": {
+   "first_campaign": "fz2c",
+   "first_verdict": "SUCCESS",
+   "klass": null,
+   "tier": "soup",
+   "waits_class": "w0",
+   "count": 1
+  },
+  "1653c73159b811db": {
+   "first_campaign": "fz2c",
+   "first_verdict": "SUCCESS",
+   "klass": null,
+   "tier": "soup",
+   "waits_class": "w0",
+   "count": 1
+  },
+  "b8179bd5f53734d2": {
+   "first_campaign": "fz2c",
+   "first_verdict": "SUCCESS",
+   "klass": null,
+   "tier": "soup",
+   "waits_class": "w0",
+   "count": 1
+  },
+  "07c3d21fcf6af524": {
+   "first_campaign": "fz2c",
+   "first_verdict": "SUCCESS",
+   "klass": null,
+   "tier": "soup",
+   "waits_class": "w0",
+   "count": 1
+  },
+  "5f6dc2218a037370": {
+   "first_campaign": "fz2c",
+   "first_verdict": "SUCCESS",
+   "klass": null,
+   "tier": "soup",
+   "waits_class": "wrand",
+   "count": 1
+  },
+  "0ee37e682fe20745": {
+   "first_campaign": "fz2c",
+   "first_verdict": "SUCCESS",
+   "klass": null,
+   "tier": "soup",
+   "waits_class": "wrand",
+   "count": 1
+  },
+  "c4ff63823339cc49": {
+   "first_campaign": "fz2c",
+   "first_verdict": "SUCCESS",
+   "klass": null,
+   "tier": "soup",
+   "waits_class": "wrand",
+   "count": 1
+  },
+  "b5a710e66026a66d": {
+   "first_campaign": "fz2c",
+   "first_verdict": "SUCCESS",
+   "klass": null,
+   "tier": "soup",
+   "waits_class": "wrand",
+   "count": 1
+  },
+  "213555d538236814": {
+   "first_campaign": "fz2c",
+   "first_verdict": "SUCCESS",
+   "klass": null,
+   "tier": "soup",
+   "waits_class": "wrand",
+   "count": 1
+  },
+  "4c693bb6f3b63927": {
+   "first_campaign": "fz2c",
+   "first_verdict": "SUCCESS",
+   "klass": null,
+   "tier": "soup",
+   "waits_class": "wrand",
+   "count": 1
+  },
+  "704458801fcc0cab": {
+   "first_campaign": "fz2c",
+   "first_verdict": "SUCCESS",
+   "klass": null,
+   "tier": "soup",
+   "waits_class": "wrand",
+   "count": 1
+  },
+  "abf9171d09319787": {
+   "first_campaign": "fz2c",
+   "first_verdict": "SUCCESS",
+   "klass": null,
+   "tier": "soup",
+   "waits_class": "wrand",
+   "count": 1
+  },
+  "51aea0ef15d6f572": {
+   "first_campaign": "fz2c",
+   "first_verdict": "SUCCESS",
+   "klass": null,
+   "tier": "soup",
+   "waits_class": "wrand",
+   "count": 1
+  },
+  "30885a862f0dd2bd": {
+   "first_campaign": "fz2c",
+   "first_verdict": "SUCCESS",
+   "klass": null,
+   "tier": "soup",
+   "waits_class": "wrand",
+   "count": 1
+  },
+  "6a97947278ea528b": {
+   "first_campaign": "fz2c",
+   "first_verdict": "SUCCESS",
+   "klass": null,
+   "tier": "soup",
+   "waits_class": "wrand",
+   "count": 1
+  },
+  "6251b72aa7bd0540": {
+   "first_campaign": "fz2c",
+   "first_verdict": "SUCCESS",
+   "klass": null,
+   "tier": "soup",
+   "waits_class": "wrand",
+   "count": 1
+  },
+  "66cc3548e2b09438": {
+   "first_campaign": "fz2c",
+   "first_verdict": "SUCCESS",
+   "klass": null,
+   "tier": "soup",
+   "waits_class": "wrand",
+   "count": 1
+  },
+  "1de7ab69320cb0d8": {
+   "first_campaign": "fz2c",
+   "first_verdict": "SUCCESS",
+   "klass": null,
+   "tier": "soup",
+   "waits_class": "wrand",
+   "count": 1
+  },
+  "9459801f1bff2360": {
+   "first_campaign": "fz2c",
+   "first_verdict": "SUCCESS",
+   "klass": null,
+   "tier": "soup",
+   "waits_class": "wrand",
+   "count": 1
+  },
+  "38705a3074079fe0": {
+   "first_campaign": "fz2c",
+   "first_verdict": "SUCCESS",
+   "klass": null,
+   "tier": "soup",
+   "waits_class": "wrand",
+   "count": 1
+  },
+  "98a58e2e3f8d1b5e": {
+   "first_campaign": "fz2c",
+   "first_verdict": "SUCCESS",
+   "klass": null,
+   "tier": "soup",
+   "waits_class": "wrand",
+   "count": 1
+  },
+  "9b31a1bccd42b1b6": {
+   "first_campaign": "fz2c",
+   "first_verdict": "SUCCESS",
+   "klass": null,
+   "tier": "soup",
+   "waits_class": "wrand",
+   "count": 1
+  },
+  "48db9fb100ea4e64": {
+   "first_campaign": "fz2c",
+   "first_verdict": "SUCCESS",
+   "klass": null,
+   "tier": "soup",
+   "waits_class": "w0",
+   "count": 1
+  },
+  "e89cb850d16e4436": {
+   "first_campaign": "fz2c",
+   "first_verdict": "SUCCESS",
+   "klass": null,
+   "tier": "soup",
+   "waits_class": "w0",
+   "count": 1
+  },
+  "adcac92d2eb36935": {
+   "first_campaign": "fz2c",
+   "first_verdict": "SUCCESS",
+   "klass": null,
+   "tier": "soup",
+   "waits_class": "w0",
+   "count": 1
+  },
+  "f791746e07d9d5f2": {
+   "first_campaign": "fz2c",
+   "first_verdict": "SUCCESS",
+   "klass": null,
+   "tier": "soup",
+   "waits_class": "w0",
+   "count": 1
+  },
+  "8df6f90d5f113932": {
+   "first_campaign": "fz2c",
+   "first_verdict": "SUCCESS",
+   "klass": null,
+   "tier": "soup",
+   "waits_class": "w0",
+   "count": 1
+  },
+  "911f8f75a79a039a": {
+   "first_campaign": "fz2c",
+   "first_verdict": "SUCCESS",
+   "klass": null,
+   "tier": "soup",
+   "waits_class": "w0",
+   "count": 1
+  },
+  "d09c163a901530d7": {
+   "first_campaign": "fz2c",
+   "first_verdict": "SUCCESS",
+   "klass": null,
+   "tier": "soup",
+   "waits_class": "w0",
+   "count": 1
+  },
+  "7fba7876e50254b2": {
+   "first_campaign": "fz2c",
+   "first_verdict": "SUCCESS",
+   "klass": null,
+   "tier": "soup",
+   "waits_class": "w0",
+   "count": 1
+  },
+  "af1b76205199e882": {
+   "first_campaign": "fz2c",
+   "first_verdict": "SUCCESS",
+   "klass": null,
+   "tier": "soup",
+   "waits_class": "w0",
+   "count": 1
+  },
+  "73bf32af45367318": {
+   "first_campaign": "fz2c",
+   "first_verdict": "SUCCESS",
+   "klass": null,
+   "tier": "soup",
+   "waits_class": "w0",
+   "count": 1
+  },
+  "ad08d63c8748b59a": {
+   "first_campaign": "fz2c",
+   "first_verdict": "SUCCESS",
+   "klass": null,
+   "tier": "soup",
+   "waits_class": "w0",
+   "count": 1
+  },
+  "bc53bda5c32a7b0c": {
+   "first_campaign": "fz2c",
+   "first_verdict": "SUCCESS",
+   "klass": null,
+   "tier": "soup",
+   "waits_class": "w0",
+   "count": 1
+  },
+  "67bdfa71149777dc": {
+   "first_campaign": "fz2c",
+   "first_verdict": "SUCCESS",
+   "klass": null,
+   "tier": "soup",
+   "waits_class": "wrand",
+   "count": 1
+  },
+  "094718f25a0b724f": {
+   "first_campaign": "fz2c",
+   "first_verdict": "SUCCESS",
+   "klass": null,
+   "tier": "soup",
+   "waits_class": "wrand",
+   "count": 1
+  },
+  "885d81a16b558cd1": {
+   "first_campaign": "fz2c",
+   "first_verdict": "SUCCESS",
+   "klass": null,
+   "tier": "soup",
+   "waits_class": "wrand",
+   "count": 1
+  },
+  "c4ed465924e8adfd": {
+   "first_campaign": "fz2c",
+   "first_verdict": "SUCCESS",
+   "klass": null,
+   "tier": "soup",
+   "waits_class": "wrand",
+   "count": 1
+  },
+  "08b39034d06dfc47": {
+   "first_campaign": "fz2c",
+   "first_verdict": "SUCCESS",
+   "klass": null,
+   "tier": "soup",
+   "waits_class": "wrand",
+   "count": 1
+  },
+  "6421e8a1405d6994": {
+   "first_campaign": "fz2c",
+   "first_verdict": "SUCCESS",
+   "klass": null,
+   "tier": "soup",
+   "waits_class": "wrand",
+   "count": 1
+  },
+  "3c8dae831e1da30b": {
+   "first_campaign": "fz2c",
+   "first_verdict": "SUCCESS",
+   "klass": null,
+   "tier": "soup",
+   "waits_class": "wrand",
+   "count": 1
+  },
+  "d7943bfdd2ed2d8d": {
+   "first_campaign": "fz2c",
+   "first_verdict": "SUCCESS",
+   "klass": null,
+   "tier": "soup",
+   "waits_class": "wrand",
+   "count": 1
+  },
+  "49cd875fe44a42d1": {
+   "first_campaign": "fz2c",
+   "first_verdict": "SUCCESS",
+   "klass": null,
+   "tier": "soup",
+   "waits_class": "wrand",
+   "count": 1
+  },
+  "81ec1420614e1476": {
+   "first_campaign": "fz2c",
+   "first_verdict": "SUCCESS",
+   "klass": null,
+   "tier": "soup",
+   "waits_class": "wrand",
+   "count": 1
+  },
+  "31212ab0d5720a01": {
+   "first_campaign": "fz2c",
+   "first_verdict": "SUCCESS",
+   "klass": null,
+   "tier": "soup",
+   "waits_class": "wrand",
+   "count": 1
+  },
+  "8b0e8f9d35c95467": {
+   "first_campaign": "fz2c",
+   "first_verdict": "SUCCESS",
+   "klass": null,
+   "tier": "soup",
+   "waits_class": "wrand",
+   "count": 1
+  },
+  "9315dad9600cbad1": {
+   "first_campaign": "fz2c",
+   "first_verdict": "SUCCESS",
+   "klass": null,
+   "tier": "soup",
+   "waits_class": "wrand",
+   "count": 1
+  },
+  "adfa36b2e8e696ff": {
+   "first_campaign": "fz2c",
+   "first_verdict": "SUCCESS",
+   "klass": null,
+   "tier": "soup",
+   "waits_class": "wrand",
+   "count": 1
+  },
+  "db60023cd1b9a77b": {
+   "first_campaign": "fz2c",
+   "first_verdict": "SUCCESS",
+   "klass": null,
+   "tier": "soup",
+   "waits_class": "wrand",
+   "count": 1
+  },
+  "cf58afd67b17e604": {
+   "first_campaign": "fz2c",
+   "first_verdict": "FUNCTIONAL",
+   "klass": null,
+   "tier": "soup",
+   "waits_class": "w0",
+   "count": 4
+  },
+  "87a39dc476627dc1": {
+   "first_campaign": "fz2c",
+   "first_verdict": "FUNCTIONAL",
+   "klass": null,
+   "tier": "soup",
+   "waits_class": "w0",
+   "count": 2
+  },
+  "c7bfecaee2cf62c6": {
+   "first_campaign": "fz2c",
+   "first_verdict": "FUNCTIONAL",
+   "klass": null,
+   "tier": "raw",
+   "waits_class": "w0",
+   "count": 2
+  },
+  "ebe1672a4b7525b3": {
+   "first_campaign": "fz2c",
+   "first_verdict": "FUNCTIONAL",
+   "klass": null,
+   "tier": "raw",
+   "waits_class": "w0",
+   "count": 1
+  },
+  "810432f4afbb0ba3": {
+   "first_campaign": "fz2c",
+   "first_verdict": "SUCCESS",
+   "klass": null,
+   "tier": "raw",
+   "waits_class": "w0",
+   "count": 1
+  },
+  "efc743477b4b59a2": {
+   "first_campaign": "fz2c",
+   "first_verdict": "KNOWN_ACCEPTED",
+   "klass": "open_bus",
+   "tier": "raw",
+   "waits_class": "w0",
+   "count": 2
+  },
+  "a50f8019fcc13c1f": {
+   "first_campaign": "fz2c",
+   "first_verdict": "KNOWN_ACCEPTED",
+   "klass": "open_bus",
+   "tier": "raw",
+   "waits_class": "w0",
+   "count": 1
+  },
+  "be0d0f63fd1c5b61": {
+   "first_campaign": "fz2c",
+   "first_verdict": "SUCCESS",
+   "klass": null,
+   "tier": "raw",
+   "waits_class": "w0",
+   "count": 1
+  },
+  "f894777e6e083823": {
+   "first_campaign": "fz2c",
+   "first_verdict": "SUCCESS",
+   "klass": null,
+   "tier": "raw",
+   "waits_class": "w0",
+   "count": 1
+  },
+  "dc4a557f015100bc": {
+   "first_campaign": "fz2c",
+   "first_verdict": "SUCCESS",
+   "klass": null,
+   "tier": "raw",
+   "waits_class": "w0",
+   "count": 1
+  },
+  "0f56ffac317a711e": {
+   "first_campaign": "fz2c",
+   "first_verdict": "SUCCESS",
+   "klass": null,
+   "tier": "raw",
+   "waits_class": "w0",
+   "count": 1
+  },
+  "219d1851f19f3503": {
+   "first_campaign": "fz2c",
+   "first_verdict": "SUCCESS",
+   "klass": null,
+   "tier": "raw",
+   "waits_class": "w0",
+   "count": 1
+  },
+  "b52f35319a43fe7e": {
+   "first_campaign": "fz2c",
+   "first_verdict": "SUCCESS",
+   "klass": null,
+   "tier": "raw",
+   "waits_class": "w0",
+   "count": 1
+  },
+  "b18f1ce9e54eb324": {
+   "first_campaign": "fz2c",
+   "first_verdict": "SUCCESS",
+   "klass": null,
+   "tier": "raw",
+   "waits_class": "w0",
+   "count": 1
+  },
+  "b7c7d59acc0e6a61": {
+   "first_campaign": "fz2c",
+   "first_verdict": "SUCCESS",
+   "klass": null,
+   "tier": "raw",
+   "waits_class": "w0",
+   "count": 1
+  },
+  "b2547f3d90d765e7": {
+   "first_campaign": "fz2c",
+   "first_verdict": "SUCCESS",
+   "klass": null,
+   "tier": "raw",
+   "waits_class": "w0",
+   "count": 1
+  },
+  "b6a6c78f73d1a8d7": {
+   "first_campaign": "fz2c",
+   "first_verdict": "SUCCESS",
+   "klass": null,
+   "tier": "raw",
+   "waits_class": "w0",
+   "count": 1
+  },
+  "8421675048c83b46": {
+   "first_campaign": "fz2c",
+   "first_verdict": "SUCCESS",
+   "klass": null,
+   "tier": "raw",
+   "waits_class": "w0",
+   "count": 1
+  },
+  "372b95b5ffbfadbf": {
+   "first_campaign": "fz2c",
+   "first_verdict": "SUCCESS",
+   "klass": null,
+   "tier": "raw",
+   "waits_class": "w0",
+   "count": 1
+  },
+  "806f51df2f3e60f2": {
+   "first_campaign": "fz2c",
+   "first_verdict": "SUCCESS",
+   "klass": null,
+   "tier": "raw",
+   "waits_class": "w0",
+   "count": 1
+  },
+  "b2d4588d730cd60c": {
+   "first_campaign": "fz2c",
+   "first_verdict": "KNOWN_ACCEPTED",
+   "klass": "open_bus",
+   "tier": "raw",
+   "waits_class": "w0",
+   "count": 2
+  },
+  "d463943d95587b29": {
+   "first_campaign": "fz2c",
+   "first_verdict": "SUCCESS",
+   "klass": null,
+   "tier": "raw",
+   "waits_class": "w0",
+   "count": 1
+  },
+  "0a61fd158833379d": {
+   "first_campaign": "fz2c",
+   "first_verdict": "KNOWN_ACCEPTED",
+   "klass": "open_bus",
+   "tier": "raw",
+   "waits_class": "w0",
+   "count": 2
+  },
+  "a2923ae79c989f89": {
+   "first_campaign": "fz2c",
+   "first_verdict": "KNOWN_ACCEPTED",
+   "klass": "open_bus",
+   "tier": "raw",
+   "waits_class": "w0",
+   "count": 1
+  },
+  "f8162a70fd2922e5": {
+   "first_campaign": "fz2c",
+   "first_verdict": "SUCCESS",
+   "klass": null,
+   "tier": "raw",
+   "waits_class": "w0",
+   "count": 1
+  },
+  "c0c192ad85e0e988": {
+   "first_campaign": "fz2c",
+   "first_verdict": "SUCCESS",
+   "klass": null,
+   "tier": "raw",
+   "waits_class": "w0",
+   "count": 1
+  },
+  "6f70171b0dd9deec": {
+   "first_campaign": "fz2c",
+   "first_verdict": "SUCCESS",
+   "klass": null,
+   "tier": "raw",
+   "waits_class": "w0",
+   "count": 1
+  },
+  "59743625e45c77ec": {
+   "first_campaign": "fz2c",
+   "first_verdict": "SUCCESS",
+   "klass": null,
+   "tier": "raw",
+   "waits_class": "w0",
+   "count": 1
+  },
+  "063fef4f70e46ba7": {
+   "first_campaign": "fz2c",
+   "first_verdict": "SUCCESS",
+   "klass": null,
+   "tier": "raw",
+   "waits_class": "w0",
+   "count": 1
+  },
+  "5e74ea9d72693d3a": {
+   "first_campaign": "fz2c",
+   "first_verdict": "SUCCESS",
+   "klass": null,
+   "tier": "raw",
+   "waits_class": "w0",
+   "count": 1
+  },
+  "ee1b4b467203894b": {
+   "first_campaign": "fz2c",
+   "first_verdict": "SUCCESS",
+   "klass": null,
+   "tier": "raw",
+   "waits_class": "w0",
+   "count": 1
+  },
+  "8cdc7ebcb03256d5": {
+   "first_campaign": "fz2c",
+   "first_verdict": "SUCCESS",
+   "klass": null,
+   "tier": "raw",
+   "waits_class": "w0",
+   "count": 1
+  },
+  "4bf06253d10f9dda": {
+   "first_campaign": "fz2c",
+   "first_verdict": "KNOWN_ACCEPTED",
+   "klass": "open_bus",
+   "tier": "raw",
+   "waits_class": "wrand",
+   "count": 2
+  },
+  "6e609e30f32f5f7f": {
+   "first_campaign": "fz2c",
+   "first_verdict": "KNOWN_ACCEPTED",
+   "klass": "open_bus",
+   "tier": "raw",
+   "waits_class": "wrand",
+   "count": 1
+  },
+  "4e7fef25f04dbae5": {
+   "first_campaign": "fz2c",
+   "first_verdict": "SUCCESS",
+   "klass": null,
+   "tier": "raw",
+   "waits_class": "wrand",
+   "count": 1
+  },
+  "67a500868a0ce152": {
+   "first_campaign": "fz2c",
+   "first_verdict": "SUCCESS",
+   "klass": null,
+   "tier": "raw",
+   "waits_class": "wrand",
+   "count": 1
+  },
+  "fd49513f52544a4b": {
+   "first_campaign": "fz2c",
+   "first_verdict": "SUCCESS",
+   "klass": null,
+   "tier": "raw",
+   "waits_class": "wrand",
+   "count": 1
+  },
+  "d96378ab2005c94d": {
+   "first_campaign": "fz2c",
+   "first_verdict": "SUCCESS",
+   "klass": null,
+   "tier": "raw",
+   "waits_class": "wrand",
+   "count": 1
+  },
+  "17975da4d4e35437": {
+   "first_campaign": "fz2c",
+   "first_verdict": "SUCCESS",
+   "klass": null,
+   "tier": "raw",
+   "waits_class": "wrand",
+   "count": 1
+  },
+  "e5d58fcf75465113": {
+   "first_campaign": "fz2c",
+   "first_verdict": "SUCCESS",
+   "klass": null,
+   "tier": "raw",
+   "waits_class": "wrand",
+   "count": 1
+  },
+  "fecab98ef83ba5c9": {
+   "first_campaign": "fz2c",
+   "first_verdict": "SUCCESS",
+   "klass": null,
+   "tier": "raw",
+   "waits_class": "wrand",
+   "count": 1
+  },
+  "ecd06bccf61c851f": {
+   "first_campaign": "fz2c",
+   "first_verdict": "SUCCESS",
+   "klass": null,
+   "tier": "raw",
+   "waits_class": "wrand",
+   "count": 1
+  },
+  "9102b83395ee4069": {
+   "first_campaign": "fz2c",
+   "first_verdict": "SUCCESS",
+   "klass": null,
+   "tier": "raw",
+   "waits_class": "wrand",
+   "count": 1
+  },
+  "7db5826700798536": {
+   "first_campaign": "fz2c",
+   "first_verdict": "KNOWN_ACCEPTED",
+   "klass": "open_bus",
+   "tier": "raw",
+   "waits_class": "wrand",
+   "count": 1
+  },
+  "062e9ce63b7a451e": {
+   "first_campaign": "fz2c",
+   "first_verdict": "SUCCESS",
+   "klass": null,
+   "tier": "raw",
+   "waits_class": "wrand",
+   "count": 1
+  },
+  "5c0d8914b0b5ea71": {
+   "first_campaign": "fz2c",
+   "first_verdict": "SUCCESS",
+   "klass": null,
+   "tier": "raw",
+   "waits_class": "wrand",
+   "count": 1
+  },
+  "65d05e2684716a92": {
+   "first_campaign": "fz2c",
+   "first_verdict": "SUCCESS",
+   "klass": null,
+   "tier": "raw",
+   "waits_class": "wrand",
+   "count": 1
+  },
+  "b98fba9c5716be04": {
+   "first_campaign": "fz2c",
+   "first_verdict": "KNOWN_ACCEPTED",
+   "klass": "open_bus",
+   "tier": "raw",
+   "waits_class": "wrand",
+   "count": 2
+  },
+  "e3ba4c136f5c7a37": {
+   "first_campaign": "fz2c",
+   "first_verdict": "KNOWN_ACCEPTED",
+   "klass": "open_bus",
+   "tier": "raw",
+   "waits_class": "wrand",
+   "count": 1
+  },
+  "c7cfd1b4ff072a85": {
+   "first_campaign": "fz2c",
+   "first_verdict": "SUCCESS",
+   "klass": null,
+   "tier": "raw",
+   "waits_class": "wrand",
+   "count": 1
+  },
+  "9d542791f45f6546": {
+   "first_campaign": "fz2c",
+   "first_verdict": "SUCCESS",
+   "klass": null,
+   "tier": "raw",
+   "waits_class": "wrand",
+   "count": 2
+  },
+  "910d2075abd8aca6": {
+   "first_campaign": "fz2c",
+   "first_verdict": "SUCCESS",
+   "klass": null,
+   "tier": "raw",
+   "waits_class": "wrand",
+   "count": 1
+  },
+  "443bf16729200bcc": {
+   "first_campaign": "fz2c",
+   "first_verdict": "SUCCESS",
+   "klass": null,
+   "tier": "raw",
+   "waits_class": "wrand",
+   "count": 3
+  },
+  "28942892585d42a4": {
+   "first_campaign": "fz2c",
+   "first_verdict": "SUCCESS",
+   "klass": null,
+   "tier": "raw",
+   "waits_class": "wrand",
+   "count": 1
+  },
+  "a5e4e8b79171fbe0": {
+   "first_campaign": "fz2c",
+   "first_verdict": "SUCCESS",
+   "klass": null,
+   "tier": "raw",
+   "waits_class": "wrand",
+   "count": 1
+  },
+  "281fc404de2c7d72": {
+   "first_campaign": "fz2c",
+   "first_verdict": "SUCCESS",
+   "klass": null,
+   "tier": "raw",
+   "waits_class": "wrand",
+   "count": 1
+  },
+  "c74e9b904a305619": {
+   "first_campaign": "fz2c",
+   "first_verdict": "KNOWN_ACCEPTED",
+   "klass": "open_bus",
+   "tier": "raw",
+   "waits_class": "wrand",
+   "count": 1
+  },
+  "ebfb684ea0429f02": {
+   "first_campaign": "fz2c",
+   "first_verdict": "KNOWN_ACCEPTED",
+   "klass": "open_bus",
+   "tier": "raw",
+   "waits_class": "wrand",
+   "count": 2
+  },
+  "f8591494e86f2646": {
+   "first_campaign": "fz2c",
+   "first_verdict": "SUCCESS",
+   "klass": null,
+   "tier": "raw",
+   "waits_class": "wrand",
+   "count": 1
+  },
+  "e0a0f4f49711655f": {
+   "first_campaign": "fz2c",
+   "first_verdict": "SUCCESS",
+   "klass": null,
+   "tier": "raw",
+   "waits_class": "wrand",
+   "count": 1
+  },
+  "bd124694ed6fb135": {
+   "first_campaign": "fz2c",
+   "first_verdict": "SUCCESS",
+   "klass": null,
+   "tier": "raw",
+   "waits_class": "wrand",
+   "count": 1
+  },
+  "3d8541866219fd8d": {
+   "first_campaign": "fz2c",
+   "first_verdict": "SUCCESS",
+   "klass": null,
+   "tier": "raw",
+   "waits_class": "wrand",
+   "count": 1
+  },
+  "3a7a08255e668634": {
+   "first_campaign": "fz2c",
+   "first_verdict": "SUCCESS",
+   "klass": null,
+   "tier": "raw",
+   "waits_class": "wrand",
+   "count": 1
+  },
+  "9017af84f11e1f1c": {
+   "first_campaign": "fz2c",
+   "first_verdict": "SUCCESS",
+   "klass": null,
+   "tier": "raw",
+   "waits_class": "wrand",
+   "count": 1
+  },
+  "6e7995d6974045d4": {
+   "first_campaign": "fz2c",
+   "first_verdict": "SUCCESS",
+   "klass": null,
+   "tier": "raw",
+   "waits_class": "wrand",
+   "count": 1
+  },
+  "7ad1ccba20a90410": {
+   "first_campaign": "fz2c",
+   "first_verdict": "KNOWN_ACCEPTED",
+   "klass": "open_bus",
+   "tier": "raw",
+   "waits_class": "w0",
+   "count": 2
+  },
+  "64592b897b37e920": {
+   "first_campaign": "fz2c",
+   "first_verdict": "KNOWN_ACCEPTED",
+   "klass": "open_bus",
+   "tier": "raw",
+   "waits_class": "w0",
+   "count": 4
+  },
+  "6da977deae613d7d": {
+   "first_campaign": "fz2c",
+   "first_verdict": "SUCCESS",
+   "klass": null,
+   "tier": "raw",
+   "waits_class": "w0",
+   "count": 1
+  },
+  "1624328f7d6b937f": {
+   "first_campaign": "fz2c",
+   "first_verdict": "SUCCESS",
+   "klass": null,
+   "tier": "raw",
+   "waits_class": "w0",
+   "count": 1
+  },
+  "b1af4c20a4df780c": {
+   "first_campaign": "fz2c",
+   "first_verdict": "SUCCESS",
+   "klass": null,
+   "tier": "raw",
+   "waits_class": "w0",
+   "count": 1
+  },
+  "444e66fb5832dbe6": {
+   "first_campaign": "fz2c",
+   "first_verdict": "SUCCESS",
+   "klass": null,
+   "tier": "raw",
+   "waits_class": "w0",
+   "count": 1
+  },
+  "fb289128972042e7": {
+   "first_campaign": "fz2c",
+   "first_verdict": "KNOWN_ACCEPTED",
+   "klass": "open_bus",
+   "tier": "raw",
+   "waits_class": "w0",
+   "count": 2
+  },
+  "58e16a6642b04a90": {
+   "first_campaign": "fz2c",
+   "first_verdict": "KNOWN_ACCEPTED",
+   "klass": "open_bus",
+   "tier": "raw",
+   "waits_class": "w0",
+   "count": 1
+  },
+  "424f09aab9b85d72": {
+   "first_campaign": "fz2c",
+   "first_verdict": "SUCCESS",
+   "klass": null,
+   "tier": "raw",
+   "waits_class": "w0",
+   "count": 1
+  },
+  "2aa1aa26c006d808": {
+   "first_campaign": "fz2c",
+   "first_verdict": "SUCCESS",
+   "klass": null,
+   "tier": "raw",
+   "waits_class": "w0",
+   "count": 1
+  },
+  "d6c57d9ea00ddd62": {
+   "first_campaign": "fz2c",
+   "first_verdict": "KNOWN_ACCEPTED",
+   "klass": "open_bus",
+   "tier": "raw",
+   "waits_class": "w0",
+   "count": 1
+  },
+  "1c9d56be512fcc46": {
+   "first_campaign": "fz2c",
+   "first_verdict": "KNOWN_ACCEPTED",
+   "klass": "open_bus",
+   "tier": "raw",
+   "waits_class": "w0",
+   "count": 2
+  },
+  "4a8eaeaf6b870482": {
+   "first_campaign": "fz2c",
+   "first_verdict": "SUCCESS",
+   "klass": null,
+   "tier": "raw",
+   "waits_class": "w0",
+   "count": 1
+  },
+  "19b85917d2e4d53d": {
+   "first_campaign": "fz2c",
+   "first_verdict": "SUCCESS",
+   "klass": null,
+   "tier": "raw",
+   "waits_class": "w0",
+   "count": 1
+  },
+  "d465d3f433a31d19": {
+   "first_campaign": "fz2c",
+   "first_verdict": "SUCCESS",
+   "klass": null,
+   "tier": "raw",
+   "waits_class": "w0",
+   "count": 1
+  },
+  "521d575e7784f9bb": {
+   "first_campaign": "fz2c",
+   "first_verdict": "SUCCESS",
+   "klass": null,
+   "tier": "raw",
+   "waits_class": "w0",
+   "count": 1
+  },
+  "38d80accaff0c0d5": {
+   "first_campaign": "fz2c",
+   "first_verdict": "SUCCESS",
+   "klass": null,
+   "tier": "raw",
+   "waits_class": "w0",
+   "count": 1
+  },
+  "be24b87ee149301d": {
+   "first_campaign": "fz2c",
+   "first_verdict": "SUCCESS",
+   "klass": null,
+   "tier": "raw",
+   "waits_class": "w0",
+   "count": 1
+  },
+  "38f2c8536b2cc006": {
+   "first_campaign": "fz2c",
+   "first_verdict": "KNOWN_ACCEPTED",
+   "klass": "open_bus",
+   "tier": "raw",
+   "waits_class": "w0",
+   "count": 6
+  },
+  "ab7f3ef7e74467c4": {
+   "first_campaign": "fz2c",
+   "first_verdict": "SUCCESS",
+   "klass": null,
+   "tier": "raw",
+   "waits_class": "w0",
+   "count": 1
+  },
+  "30aff9962087f4ef": {
+   "first_campaign": "fz2c",
+   "first_verdict": "KNOWN_ACCEPTED",
+   "klass": "open_bus",
+   "tier": "raw",
+   "waits_class": "w0",
+   "count": 1
+  },
+  "38a8008129c9c2cf": {
+   "first_campaign": "fz2c",
+   "first_verdict": "KNOWN_ACCEPTED",
+   "klass": "open_bus",
+   "tier": "raw",
+   "waits_class": "w0",
+   "count": 2
+  },
+  "2c2e1d36adaca8d3": {
+   "first_campaign": "fz2c",
+   "first_verdict": "SUCCESS",
+   "klass": null,
+   "tier": "raw",
+   "waits_class": "w0",
+   "count": 1
+  },
+  "331a256fbf2c49ad": {
+   "first_campaign": "fz2c",
+   "first_verdict": "SUCCESS",
+   "klass": null,
+   "tier": "raw",
+   "waits_class": "w0",
+   "count": 1
+  },
+  "7d2d1994e35d4551": {
+   "first_campaign": "fz2c",
+   "first_verdict": "SUCCESS",
+   "klass": null,
+   "tier": "raw",
+   "waits_class": "w0",
+   "count": 1
+  },
+  "17fbc3085ccbe967": {
+   "first_campaign": "fz2c",
+   "first_verdict": "SUCCESS",
+   "klass": null,
+   "tier": "raw",
+   "waits_class": "w0",
+   "count": 1
+  },
+  "d7bc1a348ea9866b": {
+   "first_campaign": "fz2c",
+   "first_verdict": "KNOWN_ACCEPTED",
+   "klass": "open_bus",
+   "tier": "raw",
+   "waits_class": "wrand",
+   "count": 2
+  },
+  "dbc4986b08574431": {
+   "first_campaign": "fz2c",
+   "first_verdict": "SUCCESS",
+   "klass": null,
+   "tier": "raw",
+   "waits_class": "wrand",
+   "count": 1
+  },
+  "8ed716b01ffaf00c": {
+   "first_campaign": "fz2c",
+   "first_verdict": "SUCCESS",
+   "klass": null,
+   "tier": "raw",
+   "waits_class": "wrand",
+   "count": 1
+  },
+  "f38e7040f5fdc7b4": {
+   "first_campaign": "fz2c",
+   "first_verdict": "KNOWN_ACCEPTED",
+   "klass": "open_bus",
+   "tier": "raw",
+   "waits_class": "wrand",
+   "count": 3
+  },
+  "e2f972b7e3acf2d7": {
+   "first_campaign": "fz2c",
+   "first_verdict": "KNOWN_ACCEPTED",
+   "klass": "open_bus",
+   "tier": "raw",
+   "waits_class": "wrand",
+   "count": 1
+  },
+  "579500f11fecdcbc": {
+   "first_campaign": "fz2c",
+   "first_verdict": "SUCCESS",
+   "klass": null,
+   "tier": "raw",
+   "waits_class": "wrand",
+   "count": 1
+  },
+  "757690f8b8ad80e2": {
+   "first_campaign": "fz2c",
+   "first_verdict": "SUCCESS",
+   "klass": null,
+   "tier": "raw",
+   "waits_class": "wrand",
+   "count": 1
+  },
+  "f81dca33e204ff75": {
+   "first_campaign": "fz2c",
+   "first_verdict": "SUCCESS",
+   "klass": null,
+   "tier": "raw",
+   "waits_class": "wrand",
+   "count": 1
+  },
+  "47b88081721a3cd8": {
+   "first_campaign": "fz2c",
+   "first_verdict": "SUCCESS",
+   "klass": null,
+   "tier": "raw",
+   "waits_class": "wrand",
+   "count": 1
+  },
+  "c6943c902a993587": {
+   "first_campaign": "fz2c",
+   "first_verdict": "SUCCESS",
+   "klass": null,
+   "tier": "raw",
+   "waits_class": "wrand",
+   "count": 1
+  },
+  "8687cf7a8368addd": {
+   "first_campaign": "fz2c",
+   "first_verdict": "SUCCESS",
+   "klass": null,
+   "tier": "raw",
+   "waits_class": "wrand",
+   "count": 1
+  },
+  "076f04310f94caa4": {
+   "first_campaign": "fz2c",
+   "first_verdict": "SUCCESS",
+   "klass": null,
+   "tier": "raw",
+   "waits_class": "wrand",
+   "count": 1
+  },
+  "5476d28d53fd5659": {
+   "first_campaign": "fz2c",
+   "first_verdict": "KNOWN_ACCEPTED",
+   "klass": "open_bus",
+   "tier": "raw",
+   "waits_class": "wrand",
+   "count": 2
+  },
+  "1cdbb85b2f9d3737": {
+   "first_campaign": "fz2c",
+   "first_verdict": "KNOWN_ACCEPTED",
+   "klass": "open_bus",
+   "tier": "raw",
+   "waits_class": "wrand",
+   "count": 1
+  },
+  "0fd7931a2054d4de": {
+   "first_campaign": "fz2c",
+   "first_verdict": "SUCCESS",
+   "klass": null,
+   "tier": "raw",
+   "waits_class": "wrand",
+   "count": 1
+  },
+  "fff4012ba005648b": {
+   "first_campaign": "fz2c",
+   "first_verdict": "KNOWN_ACCEPTED",
+   "klass": "open_bus",
+   "tier": "raw",
+   "waits_class": "wrand",
+   "count": 2
+  },
+  "ee6dc4c040facc09": {
+   "first_campaign": "fz2c",
+   "first_verdict": "SUCCESS",
+   "klass": null,
+   "tier": "raw",
+   "waits_class": "wrand",
+   "count": 1
+  },
+  "0910f402af7515af": {
+   "first_campaign": "fz2c",
+   "first_verdict": "SUCCESS",
+   "klass": null,
+   "tier": "raw",
+   "waits_class": "wrand",
+   "count": 1
+  },
+  "fded8e1871135e2b": {
+   "first_campaign": "fz2c",
+   "first_verdict": "SUCCESS",
+   "klass": null,
+   "tier": "raw",
+   "waits_class": "wrand",
+   "count": 1
+  },
+  "c21788410473ca71": {
+   "first_campaign": "fz2c",
+   "first_verdict": "SUCCESS",
+   "klass": null,
+   "tier": "raw",
+   "waits_class": "wrand",
+   "count": 1
+  },
+  "9f517f060cec28d1": {
+   "first_campaign": "fz2c",
+   "first_verdict": "KNOWN_ACCEPTED",
+   "klass": "open_bus",
+   "tier": "raw",
+   "waits_class": "wrand",
+   "count": 2
+  },
+  "390dd1741ea3d4bb": {
+   "first_campaign": "fz2c",
+   "first_verdict": "KNOWN_ACCEPTED",
+   "klass": "open_bus",
+   "tier": "raw",
+   "waits_class": "wrand",
+   "count": 1
+  },
+  "b0e66282a5dfdd53": {
+   "first_campaign": "fz2c",
+   "first_verdict": "SUCCESS",
+   "klass": null,
+   "tier": "raw",
+   "waits_class": "wrand",
+   "count": 1
+  },
+  "eff9252cef8a05e0": {
+   "first_campaign": "fz2c",
+   "first_verdict": "SUCCESS",
+   "klass": null,
+   "tier": "raw",
+   "waits_class": "wrand",
+   "count": 1
+  },
+  "58a0521513bf20b2": {
+   "first_campaign": "fz2c",
+   "first_verdict": "SUCCESS",
+   "klass": null,
+   "tier": "raw",
+   "waits_class": "wrand",
+   "count": 1
+  },
+  "596b4491a3ecf373": {
+   "first_campaign": "fz2c",
+   "first_verdict": "SUCCESS",
+   "klass": null,
+   "tier": "raw",
+   "waits_class": "wrand",
+   "count": 1
+  },
+  "f3d014f3a89f7b3c": {
+   "first_campaign": "fz2c",
+   "first_verdict": "SUCCESS",
+   "klass": null,
+   "tier": "raw",
+   "waits_class": "wrand",
+   "count": 1
+  },
+  "542611a6538913a6": {
+   "first_campaign": "fz2c",
+   "first_verdict": "SUCCESS",
+   "klass": null,
+   "tier": "raw",
+   "waits_class": "wrand",
+   "count": 1
+  },
+  "f9580ce2ca070bb3": {
+   "first_campaign": "fz2c",
+   "first_verdict": "SUCCESS",
+   "klass": null,
+   "tier": "raw",
+   "waits_class": "wrand",
+   "count": 1
+  },
+  "7aa33b040c2b2471": {
+   "first_campaign": "fz2c",
+   "first_verdict": "SUCCESS",
+   "klass": null,
+   "tier": "raw",
+   "waits_class": "wrand",
+   "count": 1
+  },
+  "384101f26fced5a1": {
+   "first_campaign": "fz2c",
+   "first_verdict": "SUCCESS",
+   "klass": null,
+   "tier": "raw",
+   "waits_class": "wrand",
+   "count": 1
+  },
+  "47794e712ceb2b68": {
+   "first_campaign": "fz2c",
+   "first_verdict": "SUCCESS",
+   "klass": null,
+   "tier": "raw",
+   "waits_class": "wrand",
+   "count": 1
+  },
+  "52f33062044e970f": {
+   "first_campaign": "fz2c",
+   "first_verdict": "KNOWN_ACCEPTED",
+   "klass": "open_bus",
+   "tier": "raw",
+   "waits_class": "wrand",
+   "count": 2
+  },
+  "96c7d10bae23ba08": {
+   "first_campaign": "fz2c",
+   "first_verdict": "KNOWN_ACCEPTED",
+   "klass": "open_bus",
+   "tier": "raw",
+   "waits_class": "wrand",
+   "count": 1
+  },
+  "e26126193d8b7609": {
+   "first_campaign": "fz2c",
+   "first_verdict": "KNOWN_ACCEPTED",
+   "klass": "open_bus",
+   "tier": "raw",
+   "waits_class": "wrand",
+   "count": 2
+  },
+  "7f829cd608a4a366": {
+   "first_campaign": "fz2c",
+   "first_verdict": "KNOWN_ACCEPTED",
+   "klass": "open_bus",
+   "tier": "raw",
+   "waits_class": "wrand",
+   "count": 1
+  },
+  "ad2a6a25b2a7a816": {
+   "first_campaign": "fz2c",
+   "first_verdict": "KNOWN_ACCEPTED",
+   "klass": "open_bus",
+   "tier": "raw",
+   "waits_class": "w0",
+   "count": 2
+  },
+  "0192f2b4f3681939": {
+   "first_campaign": "fz2c",
+   "first_verdict": "KNOWN_ACCEPTED",
+   "klass": "open_bus",
+   "tier": "raw",
+   "waits_class": "w0",
+   "count": 2
+  },
+  "0be84bfb24557a6b": {
+   "first_campaign": "fz2c",
+   "first_verdict": "FUNCTIONAL",
+   "klass": null,
+   "tier": "soup",
+   "waits_class": "w0",
+   "count": 1
+  },
+  "a3cf3acaf7a74791": {
+   "first_campaign": "fz2c",
+   "first_verdict": "FUNCTIONAL",
+   "klass": null,
+   "tier": "soup",
+   "waits_class": "wrand",
+   "count": 1
+  },
+  "2700d3244b9e6651": {
+   "first_campaign": "fz2c",
+   "first_verdict": "KNOWN_ACCEPTED",
+   "klass": "cadence",
+   "tier": "soup",
+   "waits_class": "wrand",
+   "count": 1
+  },
+  "c55af0bc0449da80": {
+   "first_campaign": "fz2c",
+   "first_verdict": "FUNCTIONAL",
+   "klass": null,
+   "tier": "soup",
+   "waits_class": "wrand",
+   "count": 1
+  },
+  "500ee8f0c06f2ccc": {
+   "first_campaign": "fz2c",
+   "first_verdict": "FUNCTIONAL",
+   "klass": null,
+   "tier": "soup",
+   "waits_class": "w0",
+   "count": 1
+  },
+  "2ee45f30687a6e46": {
+   "first_campaign": "fz2c",
+   "first_verdict": "KNOWN_ACCEPTED",
+   "klass": "cadence",
+   "tier": "soup",
+   "waits_class": "w0",
+   "count": 1
+  },
+  "ff5c34d328f09edb": {
+   "first_campaign": "fz2c",
+   "first_verdict": "FUNCTIONAL",
+   "klass": null,
+   "tier": "soup",
+   "waits_class": "w0",
+   "count": 1
+  },
+  "4e8751152bc86aa2": {
+   "first_campaign": "fz2c",
+   "first_verdict": "KNOWN_ACCEPTED",
+   "klass": "open_bus",
+   "tier": "raw",
+   "waits_class": "w0",
+   "count": 1
+  },
+  "53f195ed404fa537": {
+   "first_campaign": "fz2c",
+   "first_verdict": "KNOWN_ACCEPTED",
+   "klass": "open_bus",
+   "tier": "raw",
+   "waits_class": "w0",
+   "count": 1
+  },
+  "44ac5cec6de807bd": {
+   "first_campaign": "fz2c",
+   "first_verdict": "KNOWN_ACCEPTED",
+   "klass": "open_bus",
+   "tier": "raw",
+   "waits_class": "w0",
+   "count": 1
+  },
+  "9f3fadce08f929a4": {
+   "first_campaign": "fz2c",
+   "first_verdict": "KNOWN_ACCEPTED",
+   "klass": "open_bus",
+   "tier": "raw",
+   "waits_class": "w0",
+   "count": 1
+  },
+  "2ed70ed22eee6c48": {
+   "first_campaign": "fz2c",
+   "first_verdict": "KNOWN_ACCEPTED",
+   "klass": "open_bus",
+   "tier": "raw",
+   "waits_class": "wrand",
+   "count": 3
+  },
+  "e78f36f19a05f70c": {
+   "first_campaign": "fz2c",
+   "first_verdict": "KNOWN_ACCEPTED",
+   "klass": "open_bus",
+   "tier": "raw",
+   "waits_class": "wrand",
+   "count": 1
+  },
+  "488e0578144b0758": {
+   "first_campaign": "fz2c",
+   "first_verdict": "KNOWN_ACCEPTED",
+   "klass": "open_bus",
+   "tier": "raw",
+   "waits_class": "wrand",
+   "count": 1
+  },
+  "12a127c9dc66b754": {
+   "first_campaign": "fz2c",
+   "first_verdict": "KNOWN_ACCEPTED",
+   "klass": "open_bus",
+   "tier": "raw",
+   "waits_class": "wrand",
+   "count": 1
+  },
+  "c16495f12382494e": {
+   "first_campaign": "fz2c",
+   "first_verdict": "KNOWN_ACCEPTED",
+   "klass": "open_bus",
+   "tier": "raw",
+   "waits_class": "wrand",
+   "count": 1
+  },
+  "0eae5701b90f7d4e": {
+   "first_campaign": "fz2c",
+   "first_verdict": "KNOWN_ACCEPTED",
+   "klass": "open_bus",
+   "tier": "raw",
+   "waits_class": "w0",
+   "count": 1
+  },
+  "79649ccc9e1a1a54": {
+   "first_campaign": "fz2c",
+   "first_verdict": "KNOWN_ACCEPTED",
+   "klass": "open_bus",
+   "tier": "raw",
+   "waits_class": "w0",
+   "count": 1
+  },
+  "9bf021f98e239b7b": {
+   "first_campaign": "fz2c",
+   "first_verdict": "KNOWN_ACCEPTED",
+   "klass": "open_bus",
+   "tier": "raw",
+   "waits_class": "w0",
+   "count": 2
+  },
+  "1911d51259f192e2": {
+   "first_campaign": "fz2c",
+   "first_verdict": "KNOWN_ACCEPTED",
+   "klass": "open_bus",
+   "tier": "raw",
+   "waits_class": "w0",
+   "count": 1
+  },
+  "044d3b4b939f9ae0": {
+   "first_campaign": "fz2c",
+   "first_verdict": "KNOWN_ACCEPTED",
+   "klass": "open_bus",
+   "tier": "raw",
+   "waits_class": "w0",
+   "count": 1
+  },
+  "af766abdcf56ff27": {
+   "first_campaign": "fz2c",
+   "first_verdict": "KNOWN_ACCEPTED",
+   "klass": "open_bus",
+   "tier": "raw",
+   "waits_class": "w0",
+   "count": 1
+  },
+  "a408a730fbb348bc": {
+   "first_campaign": "fz2c",
+   "first_verdict": "KNOWN_ACCEPTED",
+   "klass": "open_bus",
+   "tier": "raw",
+   "waits_class": "wrand",
+   "count": 1
+  },
+  "c13b4f7b639172f6": {
+   "first_campaign": "fz2c",
+   "first_verdict": "KNOWN_ACCEPTED",
+   "klass": "open_bus",
+   "tier": "raw",
+   "waits_class": "wrand",
+   "count": 1
+  },
+  "0dc1d81d13828ca1": {
+   "first_campaign": "fz2c",
+   "first_verdict": "KNOWN_ACCEPTED",
+   "klass": "open_bus",
+   "tier": "raw",
+   "waits_class": "wrand",
+   "count": 1
+  },
+  "51a40d603ed65196": {
+   "first_campaign": "fz2e",
+   "first_verdict": "FUNCTIONAL",
+   "klass": null,
+   "tier": "soup",
+   "waits_class": "w1",
+   "count": 2
+  },
+  "e4642404695cdb86": {
+   "first_campaign": "fz2e",
+   "first_verdict": "FUNCTIONAL",
+   "klass": null,
+   "tier": "soup",
+   "waits_class": "w1",
+   "count": 1
+  },
+  "b5ba2515867afed0": {
+   "first_campaign": "fz2e",
+   "first_verdict": "FUNCTIONAL",
+   "klass": null,
+   "tier": "soup",
+   "waits_class": "w1",
+   "count": 2
+  },
+  "61d78476ed09c8a3": {
+   "first_campaign": "fz2e",
+   "first_verdict": "FUNCTIONAL",
+   "klass": null,
+   "tier": "soup",
+   "waits_class": "w1",
+   "count": 1
+  },
+  "53e9e0128626eed6": {
+   "first_campaign": "fz2e",
+   "first_verdict": "FUNCTIONAL",
+   "klass": null,
+   "tier": "soup",
+   "waits_class": "wrand",
+   "count": 1
+  },
+  "6684c6f54dbe432c": {
+   "first_campaign": "fz2e",
+   "first_verdict": "FUNCTIONAL",
+   "klass": null,
+   "tier": "soup",
+   "waits_class": "wrand",
+   "count": 2
+  },
+  "bac51f61fb832b7c": {
+   "first_campaign": "fz2e",
+   "first_verdict": "TIMING",
+   "klass": null,
+   "tier": "soup",
+   "waits_class": "w0",
+   "count": 1
+  },
+  "6480b9f72966b13a": {
+   "first_campaign": "fz2e",
+   "first_verdict": "TIMING",
+   "klass": null,
+   "tier": "soup",
+   "waits_class": "w0",
+   "count": 2
+  },
+  "2b041cf11061c586": {
+   "first_campaign": "fz2e",
+   "first_verdict": "FUNCTIONAL",
+   "klass": null,
+   "tier": "soup",
+   "waits_class": "w0",
+   "count": 1
+  },
+  "8cb79b8ba571898b": {
+   "first_campaign": "fz2e",
+   "first_verdict": "FUNCTIONAL",
+   "klass": null,
+   "tier": "soup",
+   "waits_class": "w0",
+   "count": 2
+  },
+  "f0de21219de4018c": {
+   "first_campaign": "fz2e",
+   "first_verdict": "FUNCTIONAL",
+   "klass": null,
+   "tier": "soup",
+   "waits_class": "w1",
+   "count": 2
+  },
+  "e4bc6acada629d25": {
+   "first_campaign": "fz2e",
+   "first_verdict": "FUNCTIONAL",
+   "klass": null,
+   "tier": "soup",
+   "waits_class": "w1",
+   "count": 1
+  },
+  "ca69ac6c2218169a": {
+   "first_campaign": "fz2e",
+   "first_verdict": "KNOWN_ACCEPTED",
+   "klass": "cadence",
+   "tier": "soup",
+   "waits_class": "w1",
+   "count": 1
+  },
+  "0276bd27ac8c5c1f": {
+   "first_campaign": "fz2e",
+   "first_verdict": "TIMING",
+   "klass": null,
+   "tier": "soup",
+   "waits_class": "w2",
+   "count": 2
+  },
+  "5bbb77971f02f861": {
+   "first_campaign": "fz2e",
+   "first_verdict": "TIMING",
+   "klass": null,
+   "tier": "soup",
+   "waits_class": "w2",
+   "count": 1
+  },
+  "0f45c88be5c1e397": {
+   "first_campaign": "fz2e",
+   "first_verdict": "FUNCTIONAL",
+   "klass": null,
+   "tier": "soup",
+   "waits_class": "w2",
+   "count": 1
+  },
+  "de867089e1c5ad4b": {
+   "first_campaign": "fz2e",
+   "first_verdict": "FUNCTIONAL",
+   "klass": null,
+   "tier": "soup",
+   "waits_class": "w2",
+   "count": 2
+  },
+  "aa3df37efb0d05a7": {
+   "first_campaign": "fz2e",
+   "first_verdict": "FUNCTIONAL",
+   "klass": null,
+   "tier": "soup",
+   "waits_class": "w3",
+   "count": 1
+  },
+  "b4f744aab8d2cc11": {
+   "first_campaign": "fz2e",
+   "first_verdict": "FUNCTIONAL",
+   "klass": null,
+   "tier": "soup",
+   "waits_class": "w3",
+   "count": 4
+  },
+  "9b9f5bc5eaabceb7": {
+   "first_campaign": "fz2e",
+   "first_verdict": "FUNCTIONAL",
+   "klass": null,
+   "tier": "soup",
+   "waits_class": "w3",
+   "count": 1
+  },
+  "b77ee96c26239e62": {
+   "first_campaign": "fz2e",
+   "first_verdict": "FUNCTIONAL",
+   "klass": null,
+   "tier": "soup",
+   "waits_class": "w3",
+   "count": 2
+  },
+  "ef0b3fe2143cd7fd": {
+   "first_campaign": "fz2e",
+   "first_verdict": "FUNCTIONAL",
+   "klass": null,
+   "tier": "soup",
+   "waits_class": "wrand",
+   "count": 2
+  },
+  "99ab3e3ab4dd655f": {
+   "first_campaign": "fz2e",
+   "first_verdict": "FUNCTIONAL",
+   "klass": null,
+   "tier": "soup",
+   "waits_class": "wrand",
+   "count": 1
+  },
+  "50a55bfead564e28": {
+   "first_campaign": "fz2e",
+   "first_verdict": "KNOWN_ACCEPTED",
+   "klass": "cadence",
+   "tier": "soup",
+   "waits_class": "wrand",
+   "count": 1
+  },
+  "b122dd4eddc17493": {
+   "first_campaign": "fz2e",
+   "first_verdict": "FUNCTIONAL",
+   "klass": null,
+   "tier": "soup",
+   "waits_class": "wrand",
+   "count": 2
+  },
+  "99dc013a9575a22b": {
+   "first_campaign": "fz2e",
+   "first_verdict": "FUNCTIONAL",
+   "klass": null,
+   "tier": "soup",
+   "waits_class": "wrand",
+   "count": 1
+  },
+  "c95be69c13f2486e": {
+   "first_campaign": "fz2e",
+   "first_verdict": "FUNCTIONAL",
+   "klass": null,
+   "tier": "soup",
+   "waits_class": "wrand",
+   "count": 2
+  },
+  "170c55fb6f0e6bed": {
+   "first_campaign": "fz2e",
+   "first_verdict": "FUNCTIONAL",
+   "klass": null,
+   "tier": "soup",
+   "waits_class": "wrand",
+   "count": 1
+  },
+  "76946da3ef5c6cb0": {
+   "first_campaign": "fz2e",
+   "first_verdict": "FUNCTIONAL",
+   "klass": null,
+   "tier": "soup",
+   "waits_class": "wrand",
+   "count": 2
+  },
+  "a49fe9cd43417ee6": {
+   "first_campaign": "fz2e",
+   "first_verdict": "TIMING",
+   "klass": null,
+   "tier": "soup",
+   "waits_class": "wrand",
+   "count": 1
+  },
+  "b62d2ffc44627ea1": {
+   "first_campaign": "fz2e",
+   "first_verdict": "FUNCTIONAL",
+   "klass": null,
+   "tier": "soup",
+   "waits_class": "wrand",
+   "count": 1
+  },
+  "2ac4cac82d574093": {
+   "first_campaign": "fz2e",
+   "first_verdict": "FUNCTIONAL",
+   "klass": null,
+   "tier": "soup",
+   "waits_class": "wrand",
+   "count": 2
+  },
+  "f576407406b8d177": {
+   "first_campaign": "fz2e",
+   "first_verdict": "FUNCTIONAL",
+   "klass": null,
+   "tier": "soup",
+   "waits_class": "w0",
+   "count": 2
+  },
+  "f1b2246e8d9bf7d6": {
+   "first_campaign": "fz2e",
+   "first_verdict": "KNOWN_ACCEPTED",
+   "klass": "open_bus",
+   "tier": "raw",
+   "waits_class": "w0",
+   "count": 2
+  },
+  "762325469c16d777": {
+   "first_campaign": "fz2e",
+   "first_verdict": "KNOWN_ACCEPTED",
+   "klass": "open_bus",
+   "tier": "raw",
+   "waits_class": "w0",
+   "count": 1
+  },
+  "6d643b92de9130d6": {
+   "first_campaign": "fz2e",
+   "first_verdict": "KNOWN_ACCEPTED",
+   "klass": "open_bus",
+   "tier": "raw",
+   "waits_class": "w0",
+   "count": 2
+  },
+  "0f06263e48eec3a0": {
+   "first_campaign": "fz2e",
+   "first_verdict": "KNOWN_ACCEPTED",
+   "klass": "open_bus",
+   "tier": "raw",
+   "waits_class": "w0",
+   "count": 1
+  },
+  "e4136aa98152d90f": {
+   "first_campaign": "fz2e",
+   "first_verdict": "KNOWN_ACCEPTED",
+   "klass": "open_bus",
+   "tier": "raw",
+   "waits_class": "w0",
+   "count": 1
+  },
+  "ddb1a638dc865765": {
+   "first_campaign": "fz2e",
+   "first_verdict": "KNOWN_ACCEPTED",
+   "klass": "open_bus",
+   "tier": "raw",
+   "waits_class": "w0",
+   "count": 2
+  },
+  "6dd3b19a71fad7e8": {
+   "first_campaign": "fz2e",
+   "first_verdict": "KNOWN_ACCEPTED",
+   "klass": "open_bus",
+   "tier": "raw",
+   "waits_class": "w0",
+   "count": 2
+  },
+  "86da37f59e93290f": {
+   "first_campaign": "fz2e",
+   "first_verdict": "KNOWN_ACCEPTED",
+   "klass": "open_bus",
+   "tier": "raw",
+   "waits_class": "w0",
+   "count": 1
+  },
+  "756b346c94ab8e31": {
+   "first_campaign": "fz2e",
+   "first_verdict": "KNOWN_ACCEPTED",
+   "klass": "open_bus",
+   "tier": "raw",
+   "waits_class": "w0",
+   "count": 2
+  },
+  "9e7c912a0a8f85d8": {
+   "first_campaign": "fz2e",
+   "first_verdict": "KNOWN_ACCEPTED",
+   "klass": "open_bus",
+   "tier": "raw",
+   "waits_class": "w0",
+   "count": 1
+  },
+  "ac178775d2430d30": {
+   "first_campaign": "fz2e",
+   "first_verdict": "KNOWN_ACCEPTED",
+   "klass": "open_bus",
+   "tier": "raw",
+   "waits_class": "w0",
+   "count": 1
+  },
+  "672ed4c59621bc97": {
+   "first_campaign": "fz2e",
+   "first_verdict": "KNOWN_ACCEPTED",
+   "klass": "open_bus",
+   "tier": "raw",
+   "waits_class": "w0",
+   "count": 1
+  },
+  "0965c4987f56c2d9": {
+   "first_campaign": "fz2e",
+   "first_verdict": "KNOWN_ACCEPTED",
+   "klass": "open_bus",
+   "tier": "raw",
+   "waits_class": "w0",
+   "count": 2
+  },
+  "17639c5374548702": {
+   "first_campaign": "fz2e",
+   "first_verdict": "KNOWN_ACCEPTED",
+   "klass": "open_bus",
+   "tier": "raw",
+   "waits_class": "w0",
+   "count": 2
+  },
+  "6b7fb11bc99d7b00": {
+   "first_campaign": "fz2e",
+   "first_verdict": "KNOWN_ACCEPTED",
+   "klass": "open_bus",
+   "tier": "raw",
+   "waits_class": "w0",
+   "count": 1
+  },
+  "6ba3c480e63abe51": {
+   "first_campaign": "fz2e",
+   "first_verdict": "KNOWN_ACCEPTED",
+   "klass": "open_bus",
+   "tier": "raw",
+   "waits_class": "w0",
+   "count": 1
+  },
+  "14ba01d691578140": {
+   "first_campaign": "fz2e",
+   "first_verdict": "KNOWN_ACCEPTED",
+   "klass": "open_bus",
+   "tier": "raw",
+   "waits_class": "w0",
+   "count": 2
+  },
+  "8c76c6b3dbc1c415": {
+   "first_campaign": "fz2e",
+   "first_verdict": "KNOWN_ACCEPTED",
+   "klass": "open_bus",
+   "tier": "raw",
+   "waits_class": "w0",
+   "count": 1
+  },
+  "be8bc30966633104": {
+   "first_campaign": "fz2e",
+   "first_verdict": "KNOWN_ACCEPTED",
+   "klass": "open_bus",
+   "tier": "raw",
+   "waits_class": "w0",
+   "count": 2
+  },
+  "e36a25239cbb302b": {
+   "first_campaign": "fz2e",
+   "first_verdict": "KNOWN_ACCEPTED",
+   "klass": "open_bus",
+   "tier": "raw",
+   "waits_class": "w0",
+   "count": 1
+  },
+  "60bae04f941ea4c2": {
+   "first_campaign": "fz2e",
+   "first_verdict": "KNOWN_ACCEPTED",
+   "klass": "open_bus",
+   "tier": "raw",
+   "waits_class": "w0",
+   "count": 1
+  },
+  "e9360b5cc18ad0fb": {
+   "first_campaign": "fz2e",
+   "first_verdict": "KNOWN_ACCEPTED",
+   "klass": "open_bus",
+   "tier": "raw",
+   "waits_class": "w0",
+   "count": 2
+  },
+  "00448b09dda2bd97": {
+   "first_campaign": "fz2e",
+   "first_verdict": "KNOWN_ACCEPTED",
+   "klass": "open_bus",
+   "tier": "raw",
+   "waits_class": "w0",
+   "count": 1
+  },
+  "9877b75d2e3ca523": {
+   "first_campaign": "fz2e",
+   "first_verdict": "KNOWN_ACCEPTED",
+   "klass": "open_bus",
+   "tier": "raw",
+   "waits_class": "w0",
+   "count": 2
+  },
+  "3ebc7faaee3bf8a7": {
+   "first_campaign": "fz2e",
+   "first_verdict": "KNOWN_ACCEPTED",
+   "klass": "open_bus",
+   "tier": "raw",
+   "waits_class": "w0",
+   "count": 2
+  },
+  "85f2ab2fe45d429d": {
+   "first_campaign": "fz2e",
+   "first_verdict": "KNOWN_ACCEPTED",
+   "klass": "open_bus",
+   "tier": "raw",
+   "waits_class": "w0",
+   "count": 1
+  },
+  "77417f2a13123e7d": {
+   "first_campaign": "fz2e",
+   "first_verdict": "KNOWN_ACCEPTED",
+   "klass": "open_bus",
+   "tier": "raw",
+   "waits_class": "w0",
+   "count": 2
+  },
+  "87e031cc34af89bf": {
+   "first_campaign": "fz2e",
+   "first_verdict": "KNOWN_ACCEPTED",
+   "klass": "open_bus",
+   "tier": "raw",
+   "waits_class": "w0",
+   "count": 1
+  },
+  "abb08790c7acbefc": {
+   "first_campaign": "fz2e",
+   "first_verdict": "KNOWN_ACCEPTED",
+   "klass": "open_bus",
+   "tier": "raw",
+   "waits_class": "w0",
+   "count": 2
+  },
+  "51a86d12905c543f": {
+   "first_campaign": "fz2e",
+   "first_verdict": "KNOWN_ACCEPTED",
+   "klass": "open_bus",
+   "tier": "raw",
+   "waits_class": "w0",
+   "count": 1
+  },
+  "0d936b84268322ae": {
+   "first_campaign": "fz2e",
+   "first_verdict": "KNOWN_ACCEPTED",
+   "klass": "open_bus",
+   "tier": "raw",
+   "waits_class": "w0",
+   "count": 2
+  },
+  "7221847cbb3b0af8": {
+   "first_campaign": "fz2e",
+   "first_verdict": "KNOWN_ACCEPTED",
+   "klass": "open_bus",
+   "tier": "raw",
+   "waits_class": "w0",
+   "count": 1
+  },
+  "cee0cfa6aa597a90": {
+   "first_campaign": "fz2e",
+   "first_verdict": "KNOWN_ACCEPTED",
+   "klass": "open_bus",
+   "tier": "raw",
+   "waits_class": "w0",
+   "count": 2
+  },
+  "5fccd72e57fdee60": {
+   "first_campaign": "fz2e",
+   "first_verdict": "KNOWN_ACCEPTED",
+   "klass": "open_bus",
+   "tier": "raw",
+   "waits_class": "w0",
+   "count": 1
+  },
+  "2647cb76fdfe7f0c": {
+   "first_campaign": "fz2e",
+   "first_verdict": "KNOWN_ACCEPTED",
+   "klass": "open_bus",
+   "tier": "raw",
+   "waits_class": "w1",
+   "count": 1
+  },
+  "dd08d95bc7b17ee7": {
+   "first_campaign": "fz2e",
+   "first_verdict": "KNOWN_ACCEPTED",
+   "klass": "open_bus",
+   "tier": "raw",
+   "waits_class": "w1",
+   "count": 2
+  },
+  "409189bf7d0af411": {
+   "first_campaign": "fz2e",
+   "first_verdict": "KNOWN_ACCEPTED",
+   "klass": "open_bus",
+   "tier": "raw",
+   "waits_class": "w1",
+   "count": 2
+  },
+  "c69b3269a94802f8": {
+   "first_campaign": "fz2e",
+   "first_verdict": "KNOWN_ACCEPTED",
+   "klass": "open_bus",
+   "tier": "raw",
+   "waits_class": "w1",
+   "count": 1
+  },
+  "8bff442a440c7c5b": {
+   "first_campaign": "fz2e",
+   "first_verdict": "KNOWN_ACCEPTED",
+   "klass": "open_bus",
+   "tier": "raw",
+   "waits_class": "w1",
+   "count": 2
+  },
+  "b00c118d3fa591e8": {
+   "first_campaign": "fz2e",
+   "first_verdict": "KNOWN_ACCEPTED",
+   "klass": "open_bus",
+   "tier": "raw",
+   "waits_class": "w1",
+   "count": 3
+  },
+  "b16eacf434565495": {
+   "first_campaign": "fz2e",
+   "first_verdict": "KNOWN_ACCEPTED",
+   "klass": "open_bus",
+   "tier": "raw",
+   "waits_class": "w1",
+   "count": 1
+  },
+  "4d45c8e24d676ef7": {
+   "first_campaign": "fz2e",
+   "first_verdict": "KNOWN_ACCEPTED",
+   "klass": "open_bus",
+   "tier": "raw",
+   "waits_class": "w1",
+   "count": 1
+  },
+  "3905b7c68a6eecde": {
+   "first_campaign": "fz2e",
+   "first_verdict": "KNOWN_ACCEPTED",
+   "klass": "open_bus",
+   "tier": "raw",
+   "waits_class": "w1",
+   "count": 2
+  },
+  "ead2345978c16712": {
+   "first_campaign": "fz2e",
+   "first_verdict": "KNOWN_ACCEPTED",
+   "klass": "open_bus",
+   "tier": "raw",
+   "waits_class": "w1",
+   "count": 2
+  },
+  "a3358d69ad5e798d": {
+   "first_campaign": "fz2e",
+   "first_verdict": "KNOWN_ACCEPTED",
+   "klass": "open_bus",
+   "tier": "raw",
+   "waits_class": "w1",
+   "count": 1
+  },
+  "efbc386723184348": {
+   "first_campaign": "fz2e",
+   "first_verdict": "KNOWN_ACCEPTED",
+   "klass": "open_bus",
+   "tier": "raw",
+   "waits_class": "w1",
+   "count": 1
+  },
+  "bc393ff37d79da03": {
+   "first_campaign": "fz2e",
+   "first_verdict": "KNOWN_ACCEPTED",
+   "klass": "open_bus",
+   "tier": "raw",
+   "waits_class": "w1",
+   "count": 2
+  },
+  "36179f1e6f73fbde": {
+   "first_campaign": "fz2e",
+   "first_verdict": "KNOWN_ACCEPTED",
+   "klass": "open_bus",
+   "tier": "raw",
+   "waits_class": "w2",
+   "count": 2
+  },
+  "dab6f62338a4236e": {
+   "first_campaign": "fz2e",
+   "first_verdict": "KNOWN_ACCEPTED",
+   "klass": "open_bus",
+   "tier": "raw",
+   "waits_class": "w2",
+   "count": 1
+  },
+  "44df24e3a6ebbdbc": {
+   "first_campaign": "fz2e",
+   "first_verdict": "FUNCTIONAL",
+   "klass": null,
+   "tier": "raw",
+   "waits_class": "w2",
+   "count": 2
+  },
+  "ab772dfb4c562887": {
+   "first_campaign": "fz2e",
+   "first_verdict": "FUNCTIONAL",
+   "klass": null,
+   "tier": "raw",
+   "waits_class": "w2",
+   "count": 1
+  },
+  "9a1d48b36502b9f0": {
+   "first_campaign": "fz2e",
+   "first_verdict": "KNOWN_ACCEPTED",
+   "klass": "open_bus",
+   "tier": "raw",
+   "waits_class": "w2",
+   "count": 2
+  },
+  "72dd4f07305e11c3": {
+   "first_campaign": "fz2e",
+   "first_verdict": "KNOWN_ACCEPTED",
+   "klass": "open_bus",
+   "tier": "raw",
+   "waits_class": "w2",
+   "count": 1
+  },
+  "90b5f7be67335899": {
+   "first_campaign": "fz2e",
+   "first_verdict": "KNOWN_ACCEPTED",
+   "klass": "open_bus",
+   "tier": "raw",
+   "waits_class": "w2",
+   "count": 2
+  },
+  "cc760d264fbfa08b": {
+   "first_campaign": "fz2e",
+   "first_verdict": "KNOWN_ACCEPTED",
+   "klass": "open_bus",
+   "tier": "raw",
+   "waits_class": "w2",
+   "count": 1
+  },
+  "982a71d624973f5a": {
+   "first_campaign": "fz2e",
+   "first_verdict": "KNOWN_ACCEPTED",
+   "klass": "open_bus",
+   "tier": "raw",
+   "waits_class": "w2",
+   "count": 1
+  },
+  "9ffff3a880374915": {
+   "first_campaign": "fz2e",
+   "first_verdict": "KNOWN_ACCEPTED",
+   "klass": "open_bus",
+   "tier": "raw",
+   "waits_class": "w2",
+   "count": 2
+  },
+  "099fce8105ed54b7": {
+   "first_campaign": "fz2e",
+   "first_verdict": "KNOWN_ACCEPTED",
+   "klass": "open_bus",
+   "tier": "raw",
+   "waits_class": "w2",
+   "count": 1
+  },
+  "17151d00d48f217b": {
+   "first_campaign": "fz2e",
+   "first_verdict": "KNOWN_ACCEPTED",
+   "klass": "open_bus",
+   "tier": "raw",
+   "waits_class": "w2",
+   "count": 2
+  },
+  "f93b56bcfd8cc7a7": {
+   "first_campaign": "fz2e",
+   "first_verdict": "KNOWN_ACCEPTED",
+   "klass": "open_bus",
+   "tier": "raw",
+   "waits_class": "w2",
+   "count": 1
+  },
+  "747a9de2fa61f904": {
+   "first_campaign": "fz2e",
+   "first_verdict": "KNOWN_ACCEPTED",
+   "klass": "open_bus",
+   "tier": "raw",
+   "waits_class": "w2",
+   "count": 2
+  },
+  "827fcf222e60d13e": {
+   "first_campaign": "fz2e",
+   "first_verdict": "KNOWN_ACCEPTED",
+   "klass": "open_bus",
+   "tier": "raw",
+   "waits_class": "w3",
+   "count": 2
+  },
+  "0ee1acdca9d26089": {
+   "first_campaign": "fz2e",
+   "first_verdict": "KNOWN_ACCEPTED",
+   "klass": "open_bus",
+   "tier": "raw",
+   "waits_class": "w3",
+   "count": 1
+  },
+  "b1c8eaf94f9a8863": {
+   "first_campaign": "fz2e",
+   "first_verdict": "KNOWN_ACCEPTED",
+   "klass": "open_bus",
+   "tier": "raw",
+   "waits_class": "w3",
+   "count": 8
+  },
+  "635f3aa490d8bed2": {
+   "first_campaign": "fz2e",
+   "first_verdict": "KNOWN_ACCEPTED",
+   "klass": "open_bus",
+   "tier": "raw",
+   "waits_class": "w3",
+   "count": 1
+  },
+  "da290b5695446aee": {
+   "first_campaign": "fz2e",
+   "first_verdict": "KNOWN_ACCEPTED",
+   "klass": "open_bus",
+   "tier": "raw",
+   "waits_class": "w3",
+   "count": 4
+  },
+  "d91c0e9f6aa894cd": {
+   "first_campaign": "fz2e",
+   "first_verdict": "KNOWN_ACCEPTED",
+   "klass": "open_bus",
+   "tier": "raw",
+   "waits_class": "w3",
+   "count": 2
+  },
+  "d8b93f9e65efd8a6": {
+   "first_campaign": "fz2e",
+   "first_verdict": "KNOWN_ACCEPTED",
+   "klass": "open_bus",
+   "tier": "raw",
+   "waits_class": "w3",
+   "count": 2
+  },
+  "244dec052a0cefa6": {
+   "first_campaign": "fz2e",
+   "first_verdict": "KNOWN_ACCEPTED",
+   "klass": "open_bus",
+   "tier": "raw",
+   "waits_class": "w3",
+   "count": 1
+  },
+  "a8d0aec4ec67f0b7": {
+   "first_campaign": "fz2e",
+   "first_verdict": "KNOWN_ACCEPTED",
+   "klass": "open_bus",
+   "tier": "raw",
+   "waits_class": "w3",
+   "count": 1
+  },
+  "30c67c215433d426": {
+   "first_campaign": "fz2e",
+   "first_verdict": "KNOWN_ACCEPTED",
+   "klass": "open_bus",
+   "tier": "raw",
+   "waits_class": "w3",
+   "count": 2
+  },
+  "a6fa291713e76ac1": {
+   "first_campaign": "fz2e",
+   "first_verdict": "KNOWN_ACCEPTED",
+   "klass": "open_bus",
+   "tier": "raw",
+   "waits_class": "w3",
+   "count": 2
+  },
+  "2a6893bbdd0ec69c": {
+   "first_campaign": "fz2e",
+   "first_verdict": "KNOWN_ACCEPTED",
+   "klass": "open_bus",
+   "tier": "raw",
+   "waits_class": "w3",
+   "count": 1
+  },
+  "3c054d7231cf7860": {
+   "first_campaign": "fz2e",
+   "first_verdict": "KNOWN_ACCEPTED",
+   "klass": "open_bus",
+   "tier": "raw",
+   "waits_class": "w3",
+   "count": 2
+  },
+  "1a1c31c6487944af": {
+   "first_campaign": "fz2e",
+   "first_verdict": "KNOWN_ACCEPTED",
+   "klass": "open_bus",
+   "tier": "raw",
+   "waits_class": "w3",
+   "count": 1
+  },
+  "0d4e1b53e21fef9c": {
+   "first_campaign": "fz2e",
+   "first_verdict": "KNOWN_ACCEPTED",
+   "klass": "open_bus",
+   "tier": "raw",
+   "waits_class": "w3",
+   "count": 1
+  },
+  "859e7c2d20edfb6e": {
+   "first_campaign": "fz2e",
+   "first_verdict": "KNOWN_ACCEPTED",
+   "klass": "open_bus",
+   "tier": "raw",
+   "waits_class": "w3",
+   "count": 1
+  },
+  "8a2834450efdb892": {
+   "first_campaign": "fz2e",
+   "first_verdict": "KNOWN_ACCEPTED",
+   "klass": "open_bus",
+   "tier": "raw",
+   "waits_class": "w3",
+   "count": 2
+  },
+  "ac8ca8cc3e15b3fe": {
+   "first_campaign": "fz2e",
+   "first_verdict": "KNOWN_ACCEPTED",
+   "klass": "open_bus",
+   "tier": "raw",
+   "waits_class": "w3",
+   "count": 1
+  },
+  "507219d7953c6c8d": {
+   "first_campaign": "fz2e",
+   "first_verdict": "KNOWN_ACCEPTED",
+   "klass": "open_bus",
+   "tier": "raw",
+   "waits_class": "w3",
+   "count": 2
+  },
+  "2a94ab27aa2b8aa1": {
+   "first_campaign": "fz2e",
+   "first_verdict": "KNOWN_ACCEPTED",
+   "klass": "open_bus",
+   "tier": "raw",
+   "waits_class": "w3",
+   "count": 1
+  },
+  "5d30fe6836c59296": {
+   "first_campaign": "fz2e",
+   "first_verdict": "KNOWN_ACCEPTED",
+   "klass": "open_bus",
+   "tier": "raw",
+   "waits_class": "wrand",
+   "count": 1
+  },
+  "173850a266103595": {
+   "first_campaign": "fz2e",
+   "first_verdict": "KNOWN_ACCEPTED",
+   "klass": "open_bus",
+   "tier": "raw",
+   "waits_class": "wrand",
+   "count": 1
+  },
+  "29aed899490d6a56": {
+   "first_campaign": "fz2e",
+   "first_verdict": "KNOWN_ACCEPTED",
+   "klass": "open_bus",
+   "tier": "raw",
+   "waits_class": "wrand",
+   "count": 2
+  },
+  "eb0682a015c2c0f0": {
+   "first_campaign": "fz2e",
+   "first_verdict": "KNOWN_ACCEPTED",
+   "klass": "open_bus",
+   "tier": "raw",
+   "waits_class": "wrand",
+   "count": 1
+  },
+  "22ef71640daba62a": {
+   "first_campaign": "fz2e",
+   "first_verdict": "KNOWN_ACCEPTED",
+   "klass": "open_bus",
+   "tier": "raw",
+   "waits_class": "wrand",
+   "count": 2
+  },
+  "90faa2cd7dd7843a": {
+   "first_campaign": "fz2e",
+   "first_verdict": "KNOWN_ACCEPTED",
+   "klass": "open_bus",
+   "tier": "raw",
+   "waits_class": "wrand",
+   "count": 1
+  },
+  "d05ef0472372bcdd": {
+   "first_campaign": "fz2e",
+   "first_verdict": "KNOWN_ACCEPTED",
+   "klass": "open_bus",
+   "tier": "raw",
+   "waits_class": "wrand",
+   "count": 1
+  },
+  "4b3d5e224bc237c2": {
+   "first_campaign": "fz2e",
+   "first_verdict": "KNOWN_ACCEPTED",
+   "klass": "open_bus",
+   "tier": "raw",
+   "waits_class": "wrand",
+   "count": 1
+  },
+  "0942e6cb278ff831": {
+   "first_campaign": "fz2e",
+   "first_verdict": "KNOWN_ACCEPTED",
+   "klass": "open_bus",
+   "tier": "raw",
+   "waits_class": "wrand",
+   "count": 2
+  },
+  "667b641983a4b7ba": {
+   "first_campaign": "fz2e",
+   "first_verdict": "KNOWN_ACCEPTED",
+   "klass": "open_bus",
+   "tier": "raw",
+   "waits_class": "wrand",
+   "count": 1
+  },
+  "8e47593e15c4d2ba": {
+   "first_campaign": "fz2e",
+   "first_verdict": "KNOWN_ACCEPTED",
+   "klass": "lea-mod3",
+   "tier": "raw",
+   "waits_class": "w2",
+   "count": 2
+  },
+  "5427371e3cf7928c": {
+   "first_campaign": "fz2e",
+   "first_verdict": "KNOWN_ACCEPTED",
+   "klass": "lea-mod3",
+   "tier": "raw",
+   "waits_class": "w2",
+   "count": 1
+  },
+  "8bcb861cd168a145": {
+   "first_campaign": "fz2e",
+   "first_verdict": "KNOWN_ACCEPTED",
+   "klass": "lea-mod3",
+   "tier": "raw",
+   "waits_class": "wrand",
+   "count": 2
+  },
+  "e79ef322a4b44511": {
+   "first_campaign": "fz2e",
+   "first_verdict": "SUCCESS",
+   "klass": null,
+   "tier": "soup",
+   "waits_class": "w1",
+   "count": 1
+  },
+  "c3bfdd4e1cdeae1f": {
+   "first_campaign": "fz2e",
+   "first_verdict": "SUCCESS",
+   "klass": null,
+   "tier": "soup",
+   "waits_class": "w1",
+   "count": 1
+  },
+  "f49f14370eafadce": {
+   "first_campaign": "fz2e",
+   "first_verdict": "SUCCESS",
+   "klass": null,
+   "tier": "soup",
+   "waits_class": "w2",
+   "count": 1
+  },
+  "3f78e5de287d8bab": {
+   "first_campaign": "fz2e",
+   "first_verdict": "SUCCESS",
+   "klass": null,
+   "tier": "soup",
+   "waits_class": "w3",
+   "count": 1
+  },
+  "e255de4c57b11149": {
+   "first_campaign": "fz2e",
+   "first_verdict": "SUCCESS",
+   "klass": null,
+   "tier": "soup",
+   "waits_class": "w3",
+   "count": 1
+  },
+  "82a3a6fbde334812": {
+   "first_campaign": "fz2e",
+   "first_verdict": "SUCCESS",
+   "klass": null,
+   "tier": "soup",
+   "waits_class": "wrand",
+   "count": 1
+  },
+  "fd117c711f5d7653": {
+   "first_campaign": "fz2e",
+   "first_verdict": "SUCCESS",
+   "klass": null,
+   "tier": "soup",
+   "waits_class": "wrand",
+   "count": 1
+  },
+  "4eb456832bc0315c": {
+   "first_campaign": "fz2e",
+   "first_verdict": "SUCCESS",
+   "klass": null,
+   "tier": "soup",
+   "waits_class": "wrand",
+   "count": 1
+  },
+  "39d1f94a9f1d2083": {
+   "first_campaign": "fz2e",
+   "first_verdict": "SUCCESS",
+   "klass": null,
+   "tier": "soup",
+   "waits_class": "wrand",
+   "count": 1
+  },
+  "bd08fbff12f068b8": {
+   "first_campaign": "fz2e",
+   "first_verdict": "SUCCESS",
+   "klass": null,
+   "tier": "soup",
+   "waits_class": "w0",
+   "count": 1
+  },
+  "476f59f97908dbac": {
+   "first_campaign": "fz2e",
+   "first_verdict": "SUCCESS",
+   "klass": null,
+   "tier": "soup",
+   "waits_class": "w0",
+   "count": 1
+  },
+  "cdcd1171a46bfcae": {
+   "first_campaign": "fz2e",
+   "first_verdict": "SUCCESS",
+   "klass": null,
+   "tier": "soup",
+   "waits_class": "w1",
+   "count": 1
+  },
+  "265701a0bbcb8032": {
+   "first_campaign": "fz2e",
+   "first_verdict": "SUCCESS",
+   "klass": null,
+   "tier": "soup",
+   "waits_class": "w1",
+   "count": 1
+  },
+  "d7b5ee882df734b0": {
+   "first_campaign": "fz2e",
+   "first_verdict": "SUCCESS",
+   "klass": null,
+   "tier": "soup",
+   "waits_class": "w2",
+   "count": 1
+  },
+  "93219fcfac56fe78": {
+   "first_campaign": "fz2e",
+   "first_verdict": "SUCCESS",
+   "klass": null,
+   "tier": "soup",
+   "waits_class": "wrand",
+   "count": 1
+  },
+  "3a90f11845fae9b9": {
+   "first_campaign": "fz2e",
+   "first_verdict": "SUCCESS",
+   "klass": null,
+   "tier": "soup",
+   "waits_class": "wrand",
+   "count": 1
+  },
+  "70c039237731a048": {
+   "first_campaign": "fz2e",
+   "first_verdict": "SUCCESS",
+   "klass": null,
+   "tier": "soup",
+   "waits_class": "wrand",
+   "count": 1
+  },
+  "22e08428fa1cbe07": {
+   "first_campaign": "fz2e",
+   "first_verdict": "SUCCESS",
+   "klass": null,
+   "tier": "soup",
+   "waits_class": "wrand",
+   "count": 1
+  },
+  "6815dbb610f33932": {
+   "first_campaign": "fz2e",
+   "first_verdict": "SUCCESS",
+   "klass": null,
+   "tier": "raw",
+   "waits_class": "w1",
+   "count": 1
+  },
+  "2ba5e104e9fe8819": {
+   "first_campaign": "fz2e",
+   "first_verdict": "SUCCESS",
+   "klass": null,
+   "tier": "raw",
+   "waits_class": "w1",
+   "count": 1
+  },
+  "cb66b47a053501b1": {
+   "first_campaign": "fz2e",
+   "first_verdict": "SUCCESS",
+   "klass": null,
+   "tier": "raw",
+   "waits_class": "w2",
+   "count": 1
+  },
+  "29a4130a36d14754": {
+   "first_campaign": "fz2e",
+   "first_verdict": "SUCCESS",
+   "klass": null,
+   "tier": "raw",
+   "waits_class": "w3",
+   "count": 1
+  },
+  "ac5d6f8086b52147": {
+   "first_campaign": "fz2e",
+   "first_verdict": "SUCCESS",
+   "klass": null,
+   "tier": "raw",
+   "waits_class": "w3",
+   "count": 1
+  },
+  "9894c0dd80c2522e": {
+   "first_campaign": "fz2e",
+   "first_verdict": "SUCCESS",
+   "klass": null,
+   "tier": "raw",
+   "waits_class": "wrand",
+   "count": 1
+  },
+  "4f3a18419f8a15de": {
+   "first_campaign": "fz2e",
+   "first_verdict": "SUCCESS",
+   "klass": null,
+   "tier": "raw",
+   "waits_class": "wrand",
+   "count": 1
+  },
+  "97bf37730ced6b17": {
+   "first_campaign": "fz2e",
+   "first_verdict": "SUCCESS",
+   "klass": null,
+   "tier": "raw",
+   "waits_class": "wrand",
+   "count": 1
+  },
+  "cc2ca11479e1aa92": {
+   "first_campaign": "fz2e",
+   "first_verdict": "SUCCESS",
+   "klass": null,
+   "tier": "raw",
+   "waits_class": "wrand",
+   "count": 1
+  },
+  "ac75b23b9ec090c3": {
+   "first_campaign": "fz2e",
+   "first_verdict": "SUCCESS",
+   "klass": null,
+   "tier": "raw",
+   "waits_class": "wrand",
+   "count": 1
+  },
+  "379fd254d0d196c2": {
+   "first_campaign": "fz2e",
+   "first_verdict": "SUCCESS",
+   "klass": null,
+   "tier": "raw",
+   "waits_class": "wrand",
+   "count": 1
+  },
+  "0678ac15696ffc93": {
+   "first_campaign": "fz2e",
+   "first_verdict": "SUCCESS",
+   "klass": null,
+   "tier": "raw",
+   "waits_class": "wrand",
+   "count": 1
+  },
+  "0cb4546fbda0019f": {
+   "first_campaign": "fz2e",
+   "first_verdict": "SUCCESS",
+   "klass": null,
+   "tier": "raw",
+   "waits_class": "w0",
+   "count": 1
+  },
+  "29068413e26db6be": {
+   "first_campaign": "fz2e",
+   "first_verdict": "SUCCESS",
+   "klass": null,
+   "tier": "raw",
+   "waits_class": "w2",
+   "count": 1
+  },
+  "e328a262a6ed1066": {
+   "first_campaign": "fz2e",
+   "first_verdict": "SUCCESS",
+   "klass": null,
+   "tier": "raw",
+   "waits_class": "w2",
+   "count": 1
+  },
+  "2bc13bb5eaffc596": {
+   "first_campaign": "fz2e",
+   "first_verdict": "SUCCESS",
+   "klass": null,
+   "tier": "raw",
+   "waits_class": "w3",
+   "count": 1
+  },
+  "da3262dfb755cdc2": {
+   "first_campaign": "fz2e",
+   "first_verdict": "SUCCESS",
+   "klass": null,
+   "tier": "raw",
+   "waits_class": "w3",
+   "count": 1
+  },
+  "9a14d5ea4000e6c1": {
+   "first_campaign": "fz2e",
+   "first_verdict": "SUCCESS",
+   "klass": null,
+   "tier": "raw",
+   "waits_class": "wrand",
+   "count": 1
+  },
+  "fcd07ef9859021cd": {
+   "first_campaign": "fz2e",
+   "first_verdict": "SUCCESS",
+   "klass": null,
+   "tier": "raw",
+   "waits_class": "wrand",
+   "count": 1
+  },
+  "eb32a9b7f32d42b0": {
+   "first_campaign": "fz2e",
+   "first_verdict": "SUCCESS",
+   "klass": null,
+   "tier": "raw",
+   "waits_class": "wrand",
+   "count": 1
+  },
+  "a5efe7256f376a55": {
+   "first_campaign": "fz2e",
+   "first_verdict": "SUCCESS",
+   "klass": null,
+   "tier": "raw",
+   "waits_class": "wrand",
+   "count": 1
+  },
+  "2d131ab9f45ec491": {
+   "first_campaign": "fz2e",
+   "first_verdict": "SUCCESS",
+   "klass": null,
+   "tier": "raw",
+   "waits_class": "wrand",
+   "count": 1
+  },
+  "8366f62d606dfdd9": {
+   "first_campaign": "fz2e",
+   "first_verdict": "KNOWN_ACCEPTED",
+   "klass": "cadence",
+   "tier": "soup",
+   "waits_class": "w3",
+   "count": 1
+  },
+  "53c75735199eb056": {
+   "first_campaign": "fz2e",
+   "first_verdict": "KNOWN_ACCEPTED",
+   "klass": "cadence",
+   "tier": "soup",
+   "waits_class": "w3",
+   "count": 1
+  },
+  "8daba48d5255320c": {
+   "first_campaign": "fz2e",
+   "first_verdict": "KNOWN_ACCEPTED",
+   "klass": "cadence",
+   "tier": "soup",
+   "waits_class": "wrand",
+   "count": 1
+  },
+  "80ac39c371ccc195": {
+   "first_campaign": "fz2e",
+   "first_verdict": "KNOWN_ACCEPTED",
+   "klass": "cadence",
+   "tier": "soup",
+   "waits_class": "wrand",
+   "count": 1
+  },
+  "703d0add3a68d8b4": {
+   "first_campaign": "fz2e",
+   "first_verdict": "KNOWN_ACCEPTED",
+   "klass": "cadence",
+   "tier": "soup",
+   "waits_class": "wrand",
+   "count": 1
+  },
+  "f135af5e95c9da89": {
+   "first_campaign": "fz2e",
+   "first_verdict": "KNOWN_ACCEPTED",
+   "klass": "cadence",
+   "tier": "soup",
+   "waits_class": "wrand",
+   "count": 1
+  },
+  "0bc1c4a7149e9cb1": {
+   "first_campaign": "fz2e",
+   "first_verdict": "KNOWN_ACCEPTED",
+   "klass": "cadence",
+   "tier": "soup",
+   "waits_class": "wrand",
+   "count": 1
+  },
+  "5ec053a78b11f8f5": {
+   "first_campaign": "fz2e",
+   "first_verdict": "KNOWN_ACCEPTED",
+   "klass": "open_bus",
+   "tier": "raw",
+   "waits_class": "wrand",
+   "count": 1
+  },
+  "fc534785be04d6fc": {
+   "first_campaign": "fz2e",
+   "first_verdict": "KNOWN_ACCEPTED",
+   "klass": "open_bus",
+   "tier": "raw",
+   "waits_class": "wrand",
+   "count": 1
+  },
+  "1072728c1e7baec5": {
+   "first_campaign": "fz2e",
+   "first_verdict": "KNOWN_ACCEPTED",
+   "klass": "open_bus",
+   "tier": "raw",
+   "waits_class": "wrand",
+   "count": 1
+  },
+  "756bd2b836b37f76": {
+   "first_campaign": "fz2e",
+   "first_verdict": "KNOWN_ACCEPTED",
+   "klass": "open_bus",
+   "tier": "raw",
+   "waits_class": "wrand",
+   "count": 1
+  },
+  "f5aadacd10028963": {
+   "first_campaign": "fz2e",
+   "first_verdict": "KNOWN_ACCEPTED",
+   "klass": "open_bus",
+   "tier": "raw",
+   "waits_class": "wrand",
+   "count": 1
+  },
+  "a938eabd8b627914": {
+   "first_campaign": "fz2e",
+   "first_verdict": "KNOWN_ACCEPTED",
+   "klass": "open_bus",
+   "tier": "raw",
+   "waits_class": "wrand",
+   "count": 1
+  },
+  "70b3dd6a05bfe8ae": {
+   "first_campaign": "fz2e",
+   "first_verdict": "KNOWN_ACCEPTED",
+   "klass": "open_bus",
+   "tier": "raw",
+   "waits_class": "w0",
+   "count": 1
+  },
+  "cb6d689a45312b50": {
+   "first_campaign": "fz2e",
+   "first_verdict": "KNOWN_ACCEPTED",
+   "klass": "open_bus",
+   "tier": "raw",
+   "waits_class": "w0",
+   "count": 1
+  },
+  "a6983855acb7a47a": {
+   "first_campaign": "fz2e",
+   "first_verdict": "KNOWN_ACCEPTED",
+   "klass": "open_bus",
+   "tier": "raw",
+   "waits_class": "w0",
+   "count": 1
+  },
+  "3d7e1d8b7f7db545": {
+   "first_campaign": "fz2e",
+   "first_verdict": "KNOWN_ACCEPTED",
+   "klass": "open_bus",
+   "tier": "raw",
+   "waits_class": "w0",
+   "count": 1
+  },
+  "cfcc521282d6038e": {
+   "first_campaign": "fz2e",
+   "first_verdict": "KNOWN_ACCEPTED",
+   "klass": "open_bus",
+   "tier": "raw",
+   "waits_class": "w0",
+   "count": 1
+  },
+  "27ffab50b1014ce9": {
+   "first_campaign": "fz2e",
+   "first_verdict": "KNOWN_ACCEPTED",
+   "klass": "open_bus",
+   "tier": "raw",
+   "waits_class": "w0",
+   "count": 1
+  },
+  "daa0e5097b6ea5cf": {
+   "first_campaign": "fz2e",
+   "first_verdict": "KNOWN_ACCEPTED",
+   "klass": "open_bus",
+   "tier": "raw",
+   "waits_class": "w0",
+   "count": 1
+  },
+  "f5b7f9ed0042b974": {
+   "first_campaign": "fz2e",
+   "first_verdict": "KNOWN_ACCEPTED",
+   "klass": "open_bus",
+   "tier": "raw",
+   "waits_class": "w0",
+   "count": 1
+  },
+  "2bded1675884b02e": {
+   "first_campaign": "fz2e",
+   "first_verdict": "KNOWN_ACCEPTED",
+   "klass": "open_bus",
+   "tier": "raw",
+   "waits_class": "w0",
+   "count": 1
+  },
+  "4a15906d511d937d": {
+   "first_campaign": "fz2e",
+   "first_verdict": "KNOWN_ACCEPTED",
+   "klass": "open_bus",
+   "tier": "raw",
+   "waits_class": "w0",
+   "count": 1
+  },
+  "f6b69633b15c9d15": {
+   "first_campaign": "fz2e",
+   "first_verdict": "KNOWN_ACCEPTED",
+   "klass": "open_bus",
+   "tier": "raw",
+   "waits_class": "w0",
+   "count": 1
+  },
+  "c61c1e91b68655ca": {
+   "first_campaign": "fz2e",
+   "first_verdict": "KNOWN_ACCEPTED",
+   "klass": "open_bus",
+   "tier": "raw",
+   "waits_class": "w1",
+   "count": 1
+  },
+  "c6f8b85ae0e19c23": {
+   "first_campaign": "fz2e",
+   "first_verdict": "KNOWN_ACCEPTED",
+   "klass": "open_bus",
+   "tier": "raw",
+   "waits_class": "w1",
+   "count": 1
+  },
+  "0ac8305006e35db4": {
+   "first_campaign": "fz2e",
+   "first_verdict": "KNOWN_ACCEPTED",
+   "klass": "open_bus",
+   "tier": "raw",
+   "waits_class": "w1",
+   "count": 1
+  },
+  "8c49b8167f223f5e": {
+   "first_campaign": "fz2e",
+   "first_verdict": "KNOWN_ACCEPTED",
+   "klass": "open_bus",
+   "tier": "raw",
+   "waits_class": "w1",
+   "count": 1
+  },
+  "4bb7766772d26230": {
+   "first_campaign": "fz2e",
+   "first_verdict": "KNOWN_ACCEPTED",
+   "klass": "open_bus",
+   "tier": "raw",
+   "waits_class": "w1",
+   "count": 1
+  },
+  "5b1bebf4a40127f5": {
+   "first_campaign": "fz2e",
+   "first_verdict": "KNOWN_ACCEPTED",
+   "klass": "open_bus",
+   "tier": "raw",
+   "waits_class": "w1",
+   "count": 1
+  },
+  "a36d180103655b01": {
+   "first_campaign": "fz2e",
+   "first_verdict": "KNOWN_ACCEPTED",
+   "klass": "open_bus",
+   "tier": "raw",
+   "waits_class": "w1",
+   "count": 1
+  },
+  "702bc760e260f020": {
+   "first_campaign": "fz2e",
+   "first_verdict": "KNOWN_ACCEPTED",
+   "klass": "open_bus",
+   "tier": "raw",
+   "waits_class": "w1",
+   "count": 1
+  },
+  "ab00679105e73147": {
+   "first_campaign": "fz2e",
+   "first_verdict": "KNOWN_ACCEPTED",
+   "klass": "open_bus",
+   "tier": "raw",
+   "waits_class": "w2",
+   "count": 2
+  },
+  "1a9f42e2512018e7": {
+   "first_campaign": "fz2e",
+   "first_verdict": "KNOWN_ACCEPTED",
+   "klass": "open_bus",
+   "tier": "raw",
+   "waits_class": "w2",
+   "count": 1
+  },
+  "797121f4e0220fdc": {
+   "first_campaign": "fz2e",
+   "first_verdict": "KNOWN_ACCEPTED",
+   "klass": "open_bus",
+   "tier": "raw",
+   "waits_class": "w2",
+   "count": 1
+  },
+  "0ce53e53d2f411e6": {
+   "first_campaign": "fz2e",
+   "first_verdict": "KNOWN_ACCEPTED",
+   "klass": "open_bus",
+   "tier": "raw",
+   "waits_class": "w2",
+   "count": 1
+  },
+  "6ab636fb49371b42": {
+   "first_campaign": "fz2e",
+   "first_verdict": "KNOWN_ACCEPTED",
+   "klass": "open_bus",
+   "tier": "raw",
+   "waits_class": "w2",
+   "count": 1
+  },
+  "b21af9411b949f5f": {
+   "first_campaign": "fz2e",
+   "first_verdict": "KNOWN_ACCEPTED",
+   "klass": "open_bus",
+   "tier": "raw",
+   "waits_class": "w2",
+   "count": 1
+  },
+  "cb7810e2e4a0d31f": {
+   "first_campaign": "fz2e",
+   "first_verdict": "KNOWN_ACCEPTED",
+   "klass": "open_bus",
+   "tier": "raw",
+   "waits_class": "w2",
+   "count": 1
+  },
+  "3bf9eaf53a15eb2a": {
+   "first_campaign": "fz2e",
+   "first_verdict": "KNOWN_ACCEPTED",
+   "klass": "open_bus",
+   "tier": "raw",
+   "waits_class": "w3",
+   "count": 1
+  },
+  "93da3b6491ca71d8": {
+   "first_campaign": "fz2e",
+   "first_verdict": "KNOWN_ACCEPTED",
+   "klass": "open_bus",
+   "tier": "raw",
+   "waits_class": "w3",
+   "count": 1
+  },
+  "97ecf2a50f804a59": {
+   "first_campaign": "fz2e",
+   "first_verdict": "KNOWN_ACCEPTED",
+   "klass": "open_bus",
+   "tier": "raw",
+   "waits_class": "w3",
+   "count": 1
+  },
+  "5d03b6b1a6b360ac": {
+   "first_campaign": "fz2e",
+   "first_verdict": "KNOWN_ACCEPTED",
+   "klass": "open_bus",
+   "tier": "raw",
+   "waits_class": "w3",
+   "count": 1
+  },
+  "697e610184996c79": {
+   "first_campaign": "fz2e",
+   "first_verdict": "KNOWN_ACCEPTED",
+   "klass": "open_bus",
+   "tier": "raw",
+   "waits_class": "w3",
+   "count": 1
+  },
+  "d262c5d6c48d8996": {
+   "first_campaign": "fz2e",
+   "first_verdict": "KNOWN_ACCEPTED",
+   "klass": "open_bus",
+   "tier": "raw",
+   "waits_class": "w3",
+   "count": 1
+  },
+  "4a149071433e7445": {
+   "first_campaign": "fz2e",
+   "first_verdict": "KNOWN_ACCEPTED",
+   "klass": "open_bus",
+   "tier": "raw",
+   "waits_class": "wrand",
+   "count": 1
+  },
+  "6c49cf7d5f878422": {
+   "first_campaign": "fz2e",
+   "first_verdict": "KNOWN_ACCEPTED",
+   "klass": "open_bus",
+   "tier": "raw",
+   "waits_class": "wrand",
+   "count": 1
+  },
+  "9e31a20d6e0f62bd": {
+   "first_campaign": "fz2e",
+   "first_verdict": "KNOWN_ACCEPTED",
+   "klass": "open_bus",
+   "tier": "raw",
+   "waits_class": "wrand",
+   "count": 1
+  },
+  "c8a0753aa4d6669f": {
+   "first_campaign": "fz2e",
+   "first_verdict": "KNOWN_ACCEPTED",
+   "klass": "open_bus",
+   "tier": "raw",
+   "waits_class": "wrand",
+   "count": 1
+  },
+  "1dbc05e95ca6b337": {
+   "first_campaign": "fz2e",
+   "first_verdict": "KNOWN_ACCEPTED",
+   "klass": "open_bus",
+   "tier": "raw",
+   "waits_class": "wrand",
+   "count": 1
+  },
+  "5db4a1fdcae70433": {
+   "first_campaign": "fz2e",
+   "first_verdict": "KNOWN_ACCEPTED",
+   "klass": "open_bus",
+   "tier": "raw",
+   "waits_class": "wrand",
+   "count": 1
+  },
+  "89757221888e6905": {
+   "first_campaign": "fz2e",
+   "first_verdict": "KNOWN_ACCEPTED",
+   "klass": "open_bus",
+   "tier": "raw",
+   "waits_class": "wrand",
+   "count": 1
+  },
+  "7368f1e7175357fc": {
+   "first_campaign": "fz2e",
+   "first_verdict": "KNOWN_ACCEPTED",
+   "klass": "open_bus",
+   "tier": "raw",
+   "waits_class": "wrand",
+   "count": 1
+  },
+  "5d0662757395b065": {
+   "first_campaign": "fz2e",
+   "first_verdict": "KNOWN_ACCEPTED",
+   "klass": "open_bus",
+   "tier": "raw",
+   "waits_class": "wrand",
+   "count": 1
+  },
+  "2c6629c25d767451": {
+   "first_campaign": "fz2e",
+   "first_verdict": "KNOWN_ACCEPTED",
+   "klass": "open_bus",
+   "tier": "raw",
+   "waits_class": "wrand",
+   "count": 1
+  },
+  "a8632d02bae18f18": {
+   "first_campaign": "fz2e",
+   "first_verdict": "KNOWN_ACCEPTED",
+   "klass": "open_bus",
+   "tier": "raw",
+   "waits_class": "wrand",
+   "count": 1
+  },
+  "f51086e07c082b9b": {
+   "first_campaign": "fz2e",
+   "first_verdict": "KNOWN_ACCEPTED",
+   "klass": "open_bus",
+   "tier": "raw",
+   "waits_class": "wrand",
+   "count": 1
+  },
+  "4f14108741c055dc": {
+   "first_campaign": "fz2e",
+   "first_verdict": "KNOWN_ACCEPTED",
+   "klass": "open_bus",
+   "tier": "raw",
+   "waits_class": "wrand",
+   "count": 1
+  },
+  "7056f1601864eed4": {
+   "first_campaign": "fz2e",
+   "first_verdict": "KNOWN_ACCEPTED",
+   "klass": "open_bus",
+   "tier": "raw",
+   "waits_class": "wrand",
+   "count": 1
+  },
+  "efc088f844361b3f": {
+   "first_campaign": "fz2e",
+   "first_verdict": "KNOWN_ACCEPTED",
+   "klass": "open_bus",
+   "tier": "raw",
+   "waits_class": "wrand",
+   "count": 1
+  },
+  "701a77b549072f15": {
+   "first_campaign": "fz2e",
+   "first_verdict": "KNOWN_ACCEPTED",
+   "klass": "open_bus",
+   "tier": "raw",
+   "waits_class": "wrand",
+   "count": 1
+  },
+  "92b1c483bbcbacd2": {
+   "first_campaign": "fz2e",
+   "first_verdict": "KNOWN_ACCEPTED",
+   "klass": "open_bus",
+   "tier": "raw",
+   "waits_class": "wrand",
+   "count": 1
+  },
+  "d8f03883384fc361": {
+   "first_campaign": "fz2e",
+   "first_verdict": "KNOWN_ACCEPTED",
+   "klass": "open_bus",
+   "tier": "raw",
+   "waits_class": "wrand",
+   "count": 1
+  },
+  "f4616187a6d203b2": {
+   "first_campaign": "fz2e",
+   "first_verdict": "KNOWN_ACCEPTED",
+   "klass": "open_bus",
+   "tier": "raw",
+   "waits_class": "wrand",
+   "count": 1
+  },
+  "98ef06b3248a21e8": {
+   "first_campaign": "fz2e",
+   "first_verdict": "KNOWN_ACCEPTED",
+   "klass": "open_bus",
+   "tier": "raw",
+   "waits_class": "w0",
+   "count": 1
+  },
+  "a5e27893213f9680": {
+   "first_campaign": "fz2e",
+   "first_verdict": "KNOWN_ACCEPTED",
+   "klass": "open_bus",
+   "tier": "raw",
+   "waits_class": "w0",
+   "count": 1
+  },
+  "766861e66312d5ae": {
+   "first_campaign": "fz2e",
+   "first_verdict": "KNOWN_ACCEPTED",
+   "klass": "open_bus",
+   "tier": "raw",
+   "waits_class": "w0",
+   "count": 1
+  },
+  "7d0821ba94b8296a": {
+   "first_campaign": "fz2e",
+   "first_verdict": "KNOWN_ACCEPTED",
+   "klass": "open_bus",
+   "tier": "raw",
+   "waits_class": "w0",
+   "count": 1
+  },
+  "e797647cc5652879": {
+   "first_campaign": "fz2e",
+   "first_verdict": "KNOWN_ACCEPTED",
+   "klass": "open_bus",
+   "tier": "raw",
+   "waits_class": "w0",
+   "count": 1
+  },
+  "5bf28dabdee07af8": {
+   "first_campaign": "fz2e",
+   "first_verdict": "KNOWN_ACCEPTED",
+   "klass": "open_bus",
+   "tier": "raw",
+   "waits_class": "w0",
+   "count": 1
   }
  },
  "legacy_baseline": {

@@ -1,6 +1,6 @@
 {
  "stage": "fz2 bars",
- "ts": "2026-08-09T18:01:29Z",
+ "ts": "2026-08-09T18:10:25Z",
  "seed_list_sha256": "45d25f31a325c4965da81117d5f4217b86487aa1abb0078faed26a72ed9bec32",
  "bars": {
   "C-1": {
@@ -291,18 +291,18 @@
    "statement": "bank integrity: the census bank IS the frozen rule and the two populations are never pooled",
    "registered": "census bank == the 480 enumerated seeds, seed for seed; 0 `_capped` on either cid; standing bank <= 3,500 seeds; 0 seeds in both banks",
    "measured": {
-    "census_banked": 0,
+    "census_banked": 480,
     "census_expected": 480,
-    "census_exact": false,
-    "enriched_banked": 0,
+    "census_exact": true,
+    "enriched_banked": 143,
     "capped": {
      "census": 0,
      "enriched": 0
     },
-    "total": 0,
+    "total": 623,
     "overlap": 0
    },
-   "verdict": "NOT SCOREABLE",
+   "verdict": "MET",
    "finding": null
   }
  },

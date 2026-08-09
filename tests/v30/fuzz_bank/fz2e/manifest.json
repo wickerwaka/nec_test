@@ -1,0 +1,23 @@
+{
+ "cid": "fz2e",
+ "ov": {},
+ "created": "2026-08-09T18:10:13Z",
+ "n_results": 2880,
+ "n_banked": 143,
+ "promotion": {
+  "functional": 17,
+  "timing_unexplained": 3,
+  "cadence_sample": 2,
+  "rule_first50:open_bus": 50,
+  "rule_first50:lea-mod3": 3,
+  "success_ballast": 68
+ },
+ "bytes": 3556518,
+ "cap_mb": 25,
+ "verdict_census": {
+  "SUCCESS": 2721,
+  "FUNCTIONAL": 17,
+  "TIMING": 3,
+  "KNOWN_ACCEPTED": 139
+ }
+}

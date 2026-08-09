@@ -1,0 +1,81 @@
+{
+ "stage": "fz2 bank",
+ "ts": "2026-08-09T18:04:52Z",
+ "cap_mb": 25,
+ "dry_run": false,
+ "pops": {
+  "census": {
+   "dry_run": {
+    "cid": "fz2c",
+    "dry_run": true,
+    "n_selected": 480,
+    "n_results": 960,
+    "bytes": 11596273,
+    "cap_mb": 25,
+    "would_cap": false,
+    "promotion": {
+     "frozen_rule": 480
+    }
+   },
+   "manifest": {
+    "cid": "fz2c",
+    "ov": {},
+    "created": "2026-08-09T18:09:04Z",
+    "n_results": 960,
+    "n_banked": 480,
+    "promotion": {
+     "frozen_rule": 480
+    },
+    "bytes": 11635534,
+    "cap_mb": 25,
+    "verdict_census": {
+     "SUCCESS": 904,
+     "FUNCTIONAL": 11,
+     "KNOWN_ACCEPTED": 45
+    }
+   }
+  },
+  "enriched": {
+   "dry_run": {
+    "cid": "fz2e",
+    "dry_run": true,
+    "n_selected": 143,
+    "n_results": 2880,
+    "bytes": 3544705,
+    "cap_mb": 25,
+    "would_cap": false,
+    "promotion": {
+     "functional": 17,
+     "timing_unexplained": 3,
+     "cadence_sample": 2,
+     "rule_first50:open_bus": 50,
+     "rule_first50:lea-mod3": 3,
+     "success_ballast": 68
+    }
+   },
+   "manifest": {
+    "cid": "fz2e",
+    "ov": {},
+    "created": "2026-08-09T18:10:13Z",
+    "n_results": 2880,
+    "n_banked": 143,
+    "promotion": {
+     "functional": 17,
+     "timing_unexplained": 3,
+     "cadence_sample": 2,
+     "rule_first50:open_bus": 50,
+     "rule_first50:lea-mod3": 3,
+     "success_ballast": 68
+    },
+    "bytes": 3556518,
+    "cap_mb": 25,
+    "verdict_census": {
+     "SUCCESS": 2721,
+     "FUNCTIONAL": 17,
+     "TIMING": 3,
+     "KNOWN_ACCEPTED": 139
+    }
+   }
+  }
+ }
+}

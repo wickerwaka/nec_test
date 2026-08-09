@@ -1,0 +1,17 @@
+{
+ "cid": "fz2c",
+ "ov": {},
+ "created": "2026-08-09T18:09:04Z",
+ "n_results": 960,
+ "n_banked": 480,
+ "promotion": {
+  "frozen_rule": 480
+ },
+ "bytes": 11635534,
+ "cap_mb": 25,
+ "verdict_census": {
+  "SUCCESS": 904,
+  "FUNCTIONAL": 11,
+  "KNOWN_ACCEPTED": 45
+ }
+}
