@@ -1,0 +1,51 @@
+diff --git a/hdl/rtl/ucore/v30u_biu.sv b/hdl/rtl/ucore/v30u_biu.sv
+index 39de966a06..0bb07d027c 100644
+--- a/hdl/rtl/ucore/v30u_biu.sv
++++ b/hdl/rtl/ucore/v30u_biu.sv
+@@ -538,20 +538,18 @@ assign eu_fetch_tail = (r_absorb_ttl == 2'd1) &&
+                         (q_ripe && (r_dage == 3'd5)));
+ // During fetch T2/Tw the internal AD rail is fully precharged; later phases
+ // leave the undocumented 8F register-POP address fighting the stack rail.
+-assign eu_ghost_full = r_run && r_cur_fetch &&
+-                       ((r_ts == TS_T1) ||
+-                        ((r_ts == TS_T2) && !ready) ||
+-                        (((r_ts == TS_T3) || (r_ts == TS_TW)) && !ready));
++// SPIKE BUILD 2: 8F ghost READ removed, ghost FEED and PF_LOST hold KEPT.
++assign eu_ghost_full = 1'b0;
+ // The two other observable points are existing ownership states, not ghost
+ // history.  At idle the internal address rail has discharged only to its
+ // byte-slice boundaries.  On a fetch T4 with two ripe bytes, an odd stack
+ // access has already launched its first byte before the stale rail arrives.
+ // These are sampled on the request edge, one state before the observer trace
+ // prints the resulting idle/T4 state.
+-assign eu_ghost_idle = r_run && r_cur_fetch && (r_ts == TS_T4);
+-assign eu_ghost_stack_first = r_run && r_cur_fetch &&
+-                              (r_ts == TS_T3) && ready &&
+-                              (r_q_cnt >= 4'd2);
++assign eu_ghost_idle = 1'b0;
++assign eu_ghost_stack_first = 1'b0;
++// NOTE: `eu_rd_wait` below is DELIBERATELY LEFT INTACT in this build -- it is
++// the ghost FEED's bare-`ready` carrier and the whole point of the isolation.
+ // A younger read which is still held off by READY cannot put its own word on
+ // the untagged data rail before an older PF_LOST completion.  Publish that
+ // existing pin/ownership decision; no wait counter or new history is needed.
+diff --git a/hdl/rtl/ucore/v30u_eu.sv b/hdl/rtl/ucore/v30u_eu.sv
+index 8f89b0f8ea..13af61001e 100644
+--- a/hdl/rtl/ucore/v30u_eu.sv
++++ b/hdl/rtl/ucore/v30u_eu.sv
+@@ -880,11 +880,10 @@ wire row_bus     = row_is_read || row_is_wr || row_is_wb || row_is_inta;
+ // The same row geometry is shared by ordinary POP-register paths, so the
+ // undocumented 8F page and its absent memory operand are both part of the
+ // select.
+-wire ghost_read_stale_alu = (upc_page == 3'd0) && (upc_opc == 8'h8f) &&
+-                            row_is_read && (row_seg == 3'd2) &&
+-                            (m_kind == OK_REG) && (wb_kind == OK_REG) &&
+-                            e_have1 && (e_s1 == 5'd28) && (e_d1 == 5'd5) &&
+-                            e_have2 && (e_s2 == 4'd12) && (e_d2 == 2'd1);
++// SPIKE BUILD 2: 8F ghost READ removed (address cone + row.svh stop route).
++// The ghost FEED (eu_rd_wait -> ghost_preread_epop/late -> stop in S_PRERD)
++// and the PF_LOST decoder hold are LEFT INTACT.
++wire ghost_read_stale_alu = 1'b0;
+ // On the one measured successor overlap, the completed 8F sequence still
+ // drives the microaddress while the next loader pre-read stands.  The ghost
+ // completion's existing discard bit is its phase/cadence provenance.  The
