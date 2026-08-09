@@ -579,3 +579,178 @@ Two further conditions carried from the plan's integrity rules:
   this document, `sw/fz2_w1.py` and the frozen population; nothing existing was
   edited, so no standing gate's inputs moved.
 * **No ratchet moved and no number restated.**
+
+---
+
+## §11 AMENDMENTS — APPENDED, NEVER BACK-EDITED
+
+Everything above this line is the document as committed on 2026-08-08 at
+`9fbbc55a91`, plus the §0 erratum it already carried.  **Nothing above has been
+edited by any amendment below**, so a reviewer can read the original bar and
+the change to it side by side.  Each amendment states WHAT changed, WHEN it was
+decided relative to the board work, and WHICH registered values moved.
+
+### A-1 — `escaped_code_region` LEAVES THE PROVENANCE-ALARM SET, IN BOTH TIERS
+
+**Decided 2026-08-08, T11, AFTER a 2-seed board result and BEFORE the capture.
+The timing is stated first because an amendment that hides its own timing is
+worse than the contradiction it settles.**  The census ran `fz2c` stratum 0 and
+halted itself on its SECOND seed:
+
+```
+=== run fz2c: 2 seeds in 0.5s STOPPED escalation:provenance_alarm @k=400001
+  verdicts (2): {'SUCCESS': 1, 'QUARANTINE': 1}
+*** cen/soup/noevt/fix0 wrote 2/80 rc=0 -- STOPPED, not nursed ***
+```
+
+on `provenance_alarm:escaped_code_region_real_123b@765,escaped_code_region_sim_123b@765`
+— an escape at the same row and the same address on BOTH legs, with the seed
+otherwise clean (`arch_ok` true, `arch_match` true, MAGIC `0x5EED`, `bad_rows`
+0, `term.readback_ok` true, `escaped_n` 2).  Two seeds is not a population and
+no number below is offered as one.
+
+**WHAT CHANGED.**  `escaped_code_region` is removed from
+`fuzz_classify.provenance_alarms` — **entirely, in both tiers, with no
+soup/raw split.**  It therefore no longer QUARANTINEs a seed and no longer
+raises `("STOP", "provenance_alarm")` in `EscalationPolicy`.  It is still
+COMPUTED and still REPORTED, on every result line, as `escaped` (row, physical
+offset) and `escaped_n` (the count) — `fuzz_campaign.eval_case`, unchanged.
+
+**IT COMPLETES E-1; IT DOES NOT REVISE IT.**  §5.3 already ruled, in writing
+and before any board contact, that the escape count is *"a diagnostic
+counter … and it GATES NOTHING"*.  Only half of that landed: the result-line
+half.  The escalation half never did, and §2.4's blanket *"any provenance alarm
+… still abort"* silently re-armed the thing §5.3 had disarmed.  The two clauses
+contradicted each other, the contradiction was reachable only on the board, and
+the driver was right to halt on it rather than nurse it.  A-1 makes the code do
+what E-1 said, in one place instead of two.
+
+**WHY GLOBAL AND NOT A SOUP/RAW SPLIT.**  A two-tier predicate would be a
+many-cased rule invented after a result, which is the signal the standing design
+principle names, and it would be a second decision where one was already taken.
+The mechanism points the same way: the predicate justifies itself with *"every
+other byte of the code region is `0xCC`, so an escape traps to INT3"* — a
+**soup-tier** property.  The raw tier's whole-image mode is, by §5.2 of this
+document, *"random bytes over `0x0000-0xFDFF` with NO FILL"*, so it executes
+where the predicate forbids **by design**.  One predicate, two tiers, written
+for one of them.  And a raw seed that escapes *and* fails to terminate is
+already caught, by the terminator-reached bar itself.
+
+**THE MEASURED RATES THAT MOTIVATED FINDING IT.**  Recorded at `902ec0de17`, a
+scratchpad probe over 72 corpus seeds (6 per census stratum), **on the
+`tb_v30_core` leg**:
+
+* soup **1/36 = 2.8 %**, raw **16/35 = 45.7 %**, total **17/72 = 23.6 %**
+  (1 harness error).  All 17 escape addresses lay outside `0x8000-0xBFFF` and
+  inside the raw band (`0x15bd` … `0xfb88`).
+* On the board itself, n = 2: **1 of 2 soup seeds escaped** (`fz2c/400001`,
+  `escaped_n` 2, at physical `0x123b`).
+
+⚠ **THE 72-SEED FIGURE IS A SCALE ESTIMATE AND IS NOT AN E-1 NUMBER.**  §5.1
+disqualifies `tb_v30_core` from the E-1 bar in both directions and nothing here
+is quoted for or against it; on a TB leg there is no terminating NMI, so the
+scan window is not cut short.  It is quoted for one purpose only: as a hard
+STOP the predicate would have halted the run within a seed or two of every raw
+stratum, i.e. the raw half of the corpus was **uncapturable** under it.
+
+**WHICH REGISTERED VALUES MOVED: NONE.**  Every bar that gates is untouched,
+character for character — soup ≥ 99.0 %, raw ≥ 95.0 %, UNDISPOSITIONED = 0, and
+C-1 … C-11 as written.  C-1 is scored on `arch_ok` (terminator-reached) and its
+disposition set, neither of which reads the escape.  The strata, the frozen
+population, `SEEDS_SHA256` and `SEED_LIST_SHA256` are unmoved; `fz2_w1 lint`
+still passes.  **Nothing else is demoted**: `tw_in_w0_chip`, the shared
+corrupt-store `done_data_both_*`, and `mid_rst_*` are all still QUARANTINE and
+still STOP.
+
+**PROVED, NOT ASSERTED** — a stop-condition change that cannot be shown to
+still stop is not a safe change.  Three legs, all offline:
+
+* `sw/test_fuzz_classify.py` gains section 6, which asserts on one set of rows
+  that the escape is still MEASURED, that it raises no alarm and no STOP and the
+  seed SCORES, and that a phantom-`Tw` and a shared corrupt-store alarm on the
+  same rows both still QUARANTINE **and** still return
+  `('STOP', 'provenance_alarm')`.
+* `sw/test_fuzz_accept.py`'s full-classify check changed its expectation from
+  QUARANTINE to SCORED, with the reason written beside it.
+* The seed that stopped the run was REPLAYED from its own banked rows against
+  the pre-amendment module and against the tree.  The control reproduces the
+  banked verdict exactly (`QUARANTINE/provenance_alarm:escaped_code_region_…`
+  plus `[('STOP', 'provenance_alarm')]`); the tree returns **`SUCCESS/clean`,
+  no alarms, no escalation, and `escaped_code_region` still reporting
+  `(765, 4667)` with `escaped_n` 2**.  `fz2c/400000` is byte-identical before
+  and after.
+
+**THE TWO BANKED SEEDS ARE DISCARDED FROM THE CORPUS.**  They were scored under
+a rule that no longer exists, and `_done_ks()` resume would otherwise carry the
+superseded QUARANTINE line into the census's own rates.
+`sw/testdata/campaigns/fz2c/` is therefore ARCHIVED BY RENAME to
+`sw/testdata/campaigns/fz2c-prereg-A1-archive/` with this entry as its ledger
+note — **nothing deleted, both raw captures retained byte for byte on disk
+(`sha256` `2d9faf7570ad04d2…` and `1adfa2647d348d2f…`; campaign captures are
+`.gitignore`d by design, as all of them are), nothing gating on them** — so
+that whenever the census does run, it runs from
+`k = 400000` under ONE rule.  (The archive-by-rename precedent is the
+`w1evt-biased` one named in `CLAUDE.md`.)  ⚠ **The census was NOT re-captured in
+this sitting: O-1 below blocks it.**
+
+### O-1 — OPEN FINDING: `ps3_8080` IS TRUE ON EVERY BOARD CAPTURE, AND IT IS THE INSTRUMENT
+
+**NO DISPOSITION IS MADE HERE.  No bar is changed, no predicate is edited, and
+the capture is BLOCKED until this is ruled.**  It is recorded in this document
+rather than in a commit message alone because it is a statement about what two
+of this document's own bars can and cannot measure.
+
+**WHAT WAS MEASURED.**  Both banked board seeds carry `ps3_8080: true` on their
+result line.  Neither contains BRKEM (`has_brkem` false, and C-3's generation
+clause is 0 forbidden `0F xx` pairs).  Reading the rows:
+
+* on the **socket/chip** leg (`real`, `use_core=0`), a `CODE` T1's `ps` column
+  is the STATUS nibble — the reset fetch at linear `0xFFFF0` reads `0x2`,
+  i.e. `{md, ie, CS}` — and **0** rows in either seed set PS3;
+* on the **fabric-core** leg (`sim`, `use_core=1`), the same fetch at the same
+  row reads **`0xF`**, the ADDRESS nibble `A19-16`.  That is exactly the
+  signature `fuzz_campaign._ps3_8080`'s own docstring attributes to the
+  *Verilator TB* leg, and on whose basis it says the caller must not ask the TB.
+  At T2 both legs read `0x2`, which is precisely why `diff_rows` — which
+  compares `ps` at T2 only — has never had to notice.
+
+`eval_case` asks the predicate of **both** legs (§3.4 registers it as *"on
+either leg"*).  The reset fetch is present in every capture by construction and
+its `A19-16` is `0xF`, so **`_ps3_8080(sim, …)` returns True unconditionally,
+from row 9, for every seed of both tiers** — a property of the rig, not of the
+program.  **The control is 382 archived board captures across two campaigns
+(`wr1` + `fz2c`, both tiers, v1 era and v2 era): on 382 of 382 core legs the
+FIRST row the predicate fires on is that reset fetch at `0xFFFF0`, with no
+exceptions.**  On the same `wr1` sample the chip leg reads `0x2` there on 25 of
+25 checked.
+
+**WHAT IT WOULD DO TO THIS DOCUMENT'S BARS, IF A CAPTURE WERE TAKEN NOW.**
+
+* C-3's runtime clause (*"0 captures showing PS3 on a `CODE` T1"*) would read
+  3,840 of 3,840 and score MISSED for a reason that has nothing to do with 8080
+  mode.
+* **Worse, and the reason this blocks rather than merely disappoints**: C-1's
+  disposition set is `arch_restart or ps3_8080 or wrote_term`.  With `ps3_8080`
+  true on every line, **every** non-dumping seed is "dispositioned" and
+  UNDISPOSITIONED is 0 by arithmetic.  §5.3 calls E-1c *"the clause that is not
+  a rate … it bounds the unexplained residue from below, so the bar cannot be
+  met by discarding"*.  It would be met vacuously — the exact failure mode it
+  exists to prevent.
+* §3.4 makes a `ps3_8080` seed a declared DISCARD, so under the document as
+  written the entire corpus is a declared discard.
+
+**WHY IT CANNOT BE LEFT TO BE FIXED AFTER THE CAPTURE.**  `ps3_8080` is
+computed from rows, and rows are retained for 480 census seeds (the frozen
+every-second-k rule) and for a quota'd subset of the enriched population.  For
+the ~3,360 seeds that keep no rows the column **cannot be recomputed offline**,
+so a capture taken now would have to be RE-TAKEN in full — the correctness
+directive's own "fix the rig and RE-CAPTURE", paid twice.
+
+**WHAT IS NOT DECIDED HERE.**  Whether the fix is to read the mode status where
+both legs carry it (both read `0x2` at T2 of the same fetch), or to ask the
+predicate of the socket leg alone, or to change what the core drives at T1, is a
+DECISION about a registered bar's predicate, made after seeing data, and it
+belongs to the coordinator in its own amendment — before a capture, not in a
+patch after one.  Its own falsifier is already available: whichever form is
+chosen must still return True on a seed that genuinely enters 8080 mode, and
+`sw/timed_fuzz.native_exclusion`'s population is where such seeds exist.
