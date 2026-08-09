@@ -3319,6 +3319,19 @@ follow, and each is checked rather than assumed:
 
 **No re-flash is required for this sitting and none is taken.**
 
+**AND ONE THING THE ERA STAMP DOES NOT SAY, RECORDED BEFORE THE CAPTURE RATHER
+THAN DISCOVERED IN IT.**  `fuzz_campaign._gen_git()` is `git rev-parse --short
+HEAD` and is blind to an uncommitted edit.  At the start of this sitting the
+working tree carries **UNCOMMITTED CHANGES TO `hdl/rtl/ucore/v30u_biu.sv` and
+`hdl/rtl/ucore/v30u_eu.sv`** — a prior sitting's work in progress, not this
+one's, and not touched by it.  For a SOCKET capture the substance is unaffected
+(no RTL file, Verilator binary or bitstream is in the loop of a `use_core=0`
+run), but a stamp naming `d1d9f168d4` would otherwise be a claim about a tree
+that is not `d1d9f168d4`.  So `fz2_w1.tree_dirty()` records **every dirty
+tracked file with its sha256** into `fz2v_preflight.json`, `fz2v_capture.json`,
+`fz2_control.json` and `fz2_deadint.json`.  **The delta is recorded beside the
+stamp; the stamp is not widened and the tree is not tidied.**
+
 ---
 
 ## §24 C-6's BOARD LEGS — THE PLAN AND ITS PASS CONDITIONS, REGISTERED BEFORE THE BOARD

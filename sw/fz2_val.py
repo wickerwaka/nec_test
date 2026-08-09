@@ -359,7 +359,7 @@ def _corpus_img(args):
 def cmd_preflight(a):
     OUT.mkdir(parents=True, exist_ok=True)
     rec = {"stage": "fz2v preflight", "host": HOST,
-           "gen_git": fzc._gen_git(),
+           "gen_git": fzc._gen_git(), "tree_dirty": W.tree_dirty(),
            "val_seed_list_sha256": seed_list_sha256(),
            "ts": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
            "div_guards": []}
@@ -570,6 +570,7 @@ def cmd_capture(a):
         print(f"capture: REFUSED -- {why}")
         return 2
     rec = {"stage": "fz2v capture", "host": a.host, "cid": VAL_CID,
+           "gen_git": fzc._gen_git(), "tree_dirty": W.tree_dirty(),
            "val_seed_list_sha256": seed_list_sha256(),
            "started": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
            "strata": [], "div_guards": []}

@@ -462,6 +462,30 @@ def board_idle():
     check_seq.run_chip(img, HOST, use_core=False)
 
 
+def tree_dirty():
+    """WHAT THE WORKING TREE HOLDS THAT `gen_git` DOES NOT DESCRIBE.
+
+    `fuzz_campaign._gen_git()` is `git rev-parse --short HEAD` and is blind to
+    an uncommitted edit, so an era stamp naming a commit can sit on a capture
+    taken against a tree that is not that commit.  For a SOCKET capture the
+    substance is unaffected -- the chip is the chip and no bitstream, binary or
+    RTL file is in its loop -- but the stamp is then a claim the artifact
+    cannot support, and the honest fix is to record the delta beside it rather
+    than to widen the stamp or to tidy the tree.  Tracked files only."""
+    r = subprocess.run(["git", "status", "--porcelain", "--untracked-files=no"],
+                       cwd=ROOT, capture_output=True, text=True)
+    out = []
+    for ln in r.stdout.splitlines():
+        ln = ln.rstrip()
+        if not ln:
+            continue
+        path = ROOT / ln[3:]
+        out.append({"status": ln[:2], "path": ln[3:],
+                    "sha256": (hashlib.sha256(path.read_bytes()).hexdigest()
+                               if path.is_file() else None)})
+    return out
+
+
 def _ssh(cmd, timeout=30):
     r = subprocess.run(["ssh", "-o", "ConnectTimeout=10", HOST, cmd],
                        capture_output=True, text=True, timeout=timeout)
@@ -1250,7 +1274,7 @@ def cmd_control(a):
     OUT.mkdir(parents=True, exist_ok=True)
     rec = {"stage": "fz2 C-6 control legs", "host": a.host,
            "prereg": "§6 C-6 (a)(b)(c); the legs are §24",
-           "gen_git": fzc._gen_git(),
+           "gen_git": fzc._gen_git(), "tree_dirty": tree_dirty(),
            "started": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
            "div_guards": [], "legs": [], "retained": {}}
     div_guard("control-start", rec["div_guards"])
@@ -1478,7 +1502,7 @@ def cmd_deadint(a):
     only to check that what comes back reproduces it."""
     OUT.mkdir(parents=True, exist_ok=True)
     rec = {"stage": "fz2 dead-INT probe (§20.4 / §24.4)", "host": a.host,
-           "gen_git": fzc._gen_git(),
+           "gen_git": fzc._gen_git(), "tree_dirty": tree_dirty(),
            "ts": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
            "div_guards": [], "seeds": []}
     div_guard("deadint-start", rec["div_guards"])
