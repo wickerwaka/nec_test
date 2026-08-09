@@ -77,6 +77,7 @@ pattern one level down).
 | fuzz_campaign lint | `python3 sw/fuzz_campaign.py lint --report-every 5000` | the soup/raw generators never emit a chip-wedging image.  **GREEN, SM3 s12: `LINT PASS: soup hits=0 compose_err=0; raw hits=0 compose_err=0` over 10,000 soup + 100,000 raw seeds.**  §72.7a's NOT-RUN debt is DISCHARGED and the "hang" is EXPLAINED, not fixed: `--report-every` defaults to **0**, so the tool prints NOTHING until each phase ends, and the raw phase is 100,000 seeds at ~69/s ≈ **25 minutes**.  The `do_wait` / 0 % CPU process s11 observed was the WRAPPER SHELL; the worker sits at 99.8 % CPU throughout.  **Pass `--report-every` or it will look hung again** (`ucore_provenance.md` §73.10) |
 | test_fuzz_classify / test_fuzz_accept | `python3 sw/test_fuzz_{classify,accept}.py` | the verdict tree + acceptance rules (offline) |
 | gen_ucore_qsf | `python3 sw/gen_ucore_qsf.py --check` | `hdl/nec_test_ucore.qsf` is a faithful derivative of `hdl/nec_test.qsf` — the two A/B bitstreams differ by the CORE and nothing else |
+| **R7′ structural lint** **NEW** | `python3 sw/r7_lint.py` | the shape §73 closed R7′ with is still the shape in the tree: **no undeclared live-`READY` carrier crosses BIU → EU, and no `stop` in the twelve-position chain is gated by one.**  0.2 s.  See below |
 | **BRK/TF floor cell** ⧉ **NEW, SM3 s24** | `python3 sw/sm3_tf_floor_cell.py score --floors 3` | the single-step trap's floor, against SILICON per clock: **121,890 rows, 0 row-diffs, all 30 retained captures**, at floor **3** and at no other value in [1, 7] (nearest is 11,032).  Scores the RETAINED captures in `sw/testdata/sm3-s24tfcell/` — **no board contact, and none is needed**: the trap is internal, so the cell drives no pin and the captures are deterministic from RESET.  It also re-runs the cell's other registered bars (the TF-clear null, determinism, the `iret`/`popfnone` asymmetry, no-take-at-a-prefix-boundary, storm grace).  **`--core {sim,ucore}` SINCE SM3 s25**: the `ucore` leg is LANDED (§86) and scores **121,860 rows, 0 row-diffs, EXACT on all 30 captures** at its own depth **4** — which IS the model's measured floor of 3, one coordinate over (§86.B) — and **0** at no other depth in [1,7] (nearest 14,630).  W-2 on its own prediction table: surviving depths **{4}**, **22/22 cells**, the two SATURATED controls included.  This is the sharpest gate the trap has and both engines are held to it |
 
 ### THE QUARTUS LEG (G6) — **NEW, SM3 SITTING 13.  IT IS TRIGGERED, NOT ALWAYS-ON.**
@@ -199,6 +200,73 @@ non-vacuous on the exact state it was built to catch.
 > draw, not determinism. **A single green build does not establish closure on
 > this design.** The gate's value is that it makes a 26 MHz swing VISIBLE at the
 > landing rather than three sittings later; it is not a proof of closure.
+
+### THE R7′ STRUCTURAL LINT — **NEW.  IT IS ALWAYS-ON, AND IT IS NOT A TIMING GATE.**
+
+`python3 sw/r7_lint.py`  (exit 0 PASS / 1 VIOLATION / 2 could-not-run, 0.2 s)
+
+**Why it exists.** §73 closed R7′ — the live `READY` pin reaching the EU's
+next-state cone single-cycle at 55–63 logic levels, **19.42 MHz on the default
+build** — and then wrote the invariant that keeps it closed **as a comment** in
+`v30u_eu.sv`: *"`eu_rd_edge` is the ONLY thing in this module that carries the
+LIVE `READY` pin […] everything else the EU reads […] is REGISTER-ONLY."*
+Nothing enforced it.  **Commit `5403671558` crossed it in three places, left the
+comment standing, and no gate saw it** — the standing set has no structural
+check and G6 is triggered, not always-on.  A comment is not a gate.
+
+**What it checks**, both static:
+
+* **(a) the READY-carrier check** — every net that leaves the BIU and enters the
+  EU (derived from the two instantiations in `v30_core.sv`, **not** from a name
+  prefix) has its combinational cone inside the BIU walked.  A net whose cone
+  reaches the bare `ready` pin is a VIOLATION unless it is in
+  `READY_CARRIER_EXCEPTIONS`, which holds **exactly one entry, `eu_rd_edge`**,
+  with its §73 justification inline.  A net driven from a procedural
+  `always_comb` variable cannot be resolved by a static walk, so it must be
+  DECLARED in `DECLARED_UNRESOLVED` with its argument — **two entries,
+  `eu_slot_busy_n` and `q_ripe_lead_n`, both of them §73's own by-elimination
+  list.**  A NEW procedural output has to be declared, not discovered by
+  Quartus three sittings later.
+* **(b) the `stop` control check** — `stop` is what breaks the twelve-position
+  chain, so a condition gating `stop` is IN the chain's control cone.  Every
+  `stop` assignment in `v30u_eu_step.svh` / `v30u_eu_row.svh` is located by a
+  token-level parse of its enclosing `if`/`else if`/`case` arms, and it is a
+  VIOLATION if any governing condition transitively reads a carrier from (a).
+  **(a)'s declared exception is NOT excepted here**: §73's whole point is that
+  the carrier may reach a register's `D` pin and must not reach control.
+
+**WHAT IT DOES NOT ESTABLISH.**  It is a structural check with a declared
+exception list, **not** a synthesis-accurate timing model.  It cannot prove or
+disprove closure — only G6 can, and §74.4 still governs there.  Its value is
+that it is 0.2 s and runs on every landing where a 15-minute build does not.
+
+**NON-VACUITY — DEMONSTRATED ON THE COMMIT PAIR, IN AN ISOLATED WORKTREE.**
+
+| tree | (a) | (b) | exit |
+|---|---|---|---|
+| `7e949925b7` | 1 carrier, all declared | 51 `stop` sites, 0 gated | **0 PASS** |
+| `5403671558` | **3 undeclared carriers** | **7 `stop` sites gated** | **1 FAIL** |
+
+The three it names at `5403671558` are `eu_ghost_full` (`v30u_biu.sv:541`),
+`eu_ghost_stack_first` (`:552`) and `eu_rd_wait` (`:558`), each a one-hop chain
+to the bare pin.  `29dcc5b05f` and `eab6a12b74` (the `fuzz-v2` tip) carry the
+same three.  Two independent MUTATION tests on the CURRENT tree also fire it —
+`assign eu_opr_free = … && ready` for (a), and `if (eu_rd_edge) stop = 1'b1` in
+`S_PRERD` for (b) — so neither leg is vacuous on the shape it must protect now,
+not merely on a historical one.
+
+**AND (b) FOUND MORE THAN THE THREE ASSIGNS.**  At `5403671558` the taint does
+not only run through `S_PRERD`'s `ghost_preread_late`; it runs through the EU's
+ADDRESS computation, and the chain the lint prints is
+`bnd_fire ← at_bnd ← bnd_row ← retire_ok_e ← wr_after ← row_wr_add ←
+acc_split ← acc_phys ← acc_phys_base ← acc_off ← ghost_bus_off ← ghost_relax ←
+eu_ghost_full ← ready`, gating `stop` at `v30u_eu_row.svh:233` and `:249`.
+**The regression was wider than "three `assign`s".**
+
+`--core fsm` is INFORMATIONAL ONLY and never gates (the FSM core is archived).
+For the record it **WOULD FAIL**: `eu_rd_now ← t3_done ← ready`
+(`hdl/rtl/core/v30_biu.sv:865`, `:1179`).  That is not a new finding about the
+archived core and nothing is to be done about it.
 
 ## B. THE STANDING SET — the `ucore`
 
