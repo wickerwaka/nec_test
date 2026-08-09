@@ -1421,29 +1421,49 @@ def cmd_bars(a):
     c6 = json.loads(ctl.read_text()) if ctl.exists() else None
     holds = Counter()
     hold_exact = hold_bad = 0
-    # FINDING O-2, 2026-08-09: C-6(b) IS NOT EVALUABLE AS WRITTEN, and this
-    # code DECLINES to evaluate it rather than inventing a reading.
+    # FINDING O-2b, 2026-08-09: C-6(b) WAS NOT EVALUABLE AS WRITTEN.  The bar's
+    # text says "every event seed's counted high-row run equals its own `hold`
+    # +/- 1 clock" -- SINGULAR -- while `fuzz_campaign._pin_runs` deliberately
+    # returns EVERY run on ALL THREE pins as a dict of [start, length] lists,
+    # because a stimulus NMI and the terminating NMI share the wire and its
+    # docstring says picking one "would be answering the question in the
+    # instrument".  `abs(dict - int)` raised TypeError, and this code DECLINED
+    # to evaluate rather than invent a reading.
     #
-    # The bar's text says "every event seed's counted high-row run equals its
-    # own `hold` +/- 1 clock" -- singular.  The instrument that supplies the
-    # evidence, `fuzz_campaign._pin_runs`, deliberately returns EVERY run on
-    # ALL THREE pins as a dict of [start, length] lists, and its docstring says
-    # in terms that picking one "would be answering the question in the
-    # instrument" -- because a stimulus NMI and the terminating NMI share the
-    # wire.  So `abs(t["hold_rows"] - e["hold"])` is `dict - int` and raises
-    # TypeError on the first event seed; before T12 no board capture had ever
-    # reached this line.  The bar's text and its own instrument were never
-    # reconciled.
+    # AMENDMENT A-8 (prereg §20) IS THE COORDINATOR'S RULING, AND IT IS
+    # EVALUATED HERE.  EVALUATE PER DIRECTIVE: for each ARMED scheduler take
+    # the runs on the pin THAT SCHEDULER'S DIRECTIVE NAMES and compare against
+    # THAT scheduler's own `hold`, +/- 1 clock.  The selection is by the
+    # DIRECTIVE and never by the outcome, so the question is not answered in
+    # the instrument.  There are exactly two schedulers per seed -- the
+    # terminator (`TERM_PIN`, `TERM_HOLD`), armed on every seed, and the
+    # stimulus (`evt.pin`, `evt.hold`), armed on the `stim` strata -- and
+    # `pin_poll_n` is asserted for the whole capture on every seed while NO
+    # directive names it, which is exactly why a per-directive reading and a
+    # longest-run reading are different questions.
     #
-    # NOT REPAIRED HERE.  Choosing what "the counted high-row run" means, after
-    # the capture, is a comparator decision on a registered bar and belongs to
-    # the coordinator in an amendment -- the O-1 precedent exactly.  Nothing is
-    # lost by waiting: `term.hold_rows` is banked on EVERY result line, counted
-    # over the whole capture, so C-6(b) is fully scoreable offline whenever it
-    # is ruled on.  C-6's verdict is unaffected either way: it already reads
-    # NOT SCOREABLE because `cmd_control` is unimplemented on this tree, so
-    # `fz2_control.json` does not exist and `c6 is None`.
+    # WHERE TWO SCHEDULERS NAME THE SAME PIN THEIR RUNS CAN MERGE: the seed is
+    # declared UNEVALUABLE and is COUNTED, never guessed at.  That is a
+    # property of the DIRECTIVE PAIR and is decided without looking at a single
+    # row, so it cannot select on the answer.
+    #
+    # C-6's VERDICT IS UNAFFECTED BY THIS RULING: it reads NOT SCOREABLE
+    # because clauses (a) and (c) are BOARD legs and `cmd_control` is
+    # unimplemented on this tree, so `fz2_control.json` does not exist and
+    # `c6 is None`.  A-8 makes clause (b) evaluable and reports it; it does not
+    # and cannot clear the bar.
     hold_shape = None
+    c6b = {"ruling": "A-8: per directive, on the pin that directive names",
+           "seeds": 0, "unevaluable_shared_pin": 0, "unevaluable_ks": [],
+           "directives": 0, "directive_ok": 0, "directive_bad": 0,
+           "runs_per_directive": Counter(), "holds_evaluated": Counter(),
+           "bad_detail": [],
+           # the SINGLE-RUN reading of the same ruling, reported beside it: a
+           # directive passes only if the named pin carries EXACTLY ONE run of
+           # the right length.  The two readings differ on one seed and the
+           # clause's verdict is the same under both, which is the evidence
+           # that A-8's verdict does not turn on this choice.
+           "strict_single_run_bad": 0}
     if _need(allines, "term"):
         for r in allines:
             e = r.get("evt")
@@ -1451,16 +1471,45 @@ def cmd_bars(a):
             if e:
                 holds[e.get("hold")] += 1
             hr = t.get("hold_rows")
-            if hr is not None and e:
-                if isinstance(hr, (int, float)):
-                    if abs(hr - e["hold"]) <= 1:
-                        hold_exact += 1
-                    else:
-                        hold_bad += 1
+            if hr is None:
+                continue
+            if isinstance(hr, (int, float)):        # a scalar instrument
+                if e and abs(hr - e["hold"]) <= 1:
+                    hold_exact += 1
+                elif e:
+                    hold_bad += 1
+                continue
+            c6b["seeds"] += 1
+            sch = [("term", fzc.TERM_PIN, fzc.TERM_HOLD)]
+            if e:
+                sch.append(("stim", e["pin"], e["hold"]))
+            if len({p for _, p, _ in sch}) != len(sch):
+                c6b["unevaluable_shared_pin"] += 1
+                if len(c6b["unevaluable_ks"]) < 20:
+                    c6b["unevaluable_ks"].append(r["seed"])
+                continue
+            for nm, pin, hold in sch:
+                runs = hr.get(fzc.PIN_COL[pin]) or []
+                c6b["directives"] += 1
+                c6b["runs_per_directive"][f"{nm}:{len(runs)}"] += 1
+                c6b["holds_evaluated"][hold] += 1
+                ok = bool(runs) and all(abs(L - hold) <= 1 for _, L in runs)
+                if not (len(runs) == 1 and abs(runs[0][1] - hold) <= 1):
+                    c6b["strict_single_run_bad"] += 1
+                if ok:
+                    c6b["directive_ok"] += 1
+                    hold_exact += 1
                 else:
-                    hold_shape = (f"NOT EVALUABLE: hold_rows is "
-                                  f"{type(hr).__name__}, not a scalar -- "
-                                  f"finding O-2, C-6(b) awaits a ruling")
+                    c6b["directive_bad"] += 1
+                    hold_bad += 1
+                    if len(c6b["bad_detail"]) < 20:
+                        c6b["bad_detail"].append(
+                            {"seed": r["seed"], "sched": nm,
+                             "pin": fzc.PIN_COL[pin], "hold": hold,
+                             "runs": runs, "term_fired": t.get("fired")})
+    c6b["runs_per_directive"] = dict(c6b["runs_per_directive"])
+    c6b["holds_evaluated"] = {str(k): v for k, v in
+                              c6b["holds_evaluated"].items()}
     bar("C-6", "the rig applied the directives it was handed",
         "EVT2/EVT3_CFG + TVEC + VECCTL round-trip on the readback path; a "
         "PIN-LEVEL proof by counted rows at >= 2 hold values (every seed's "
@@ -1468,7 +1517,12 @@ def cmd_bars(a):
         "interception proven on the rows at >= 2 distinct TVEC values",
         {"holds_in_corpus": dict(holds), "hold_rows_exact": hold_exact,
          "hold_rows_off": hold_bad, "control_leg": c6,
-         "pin_level_clause": hold_shape or "scalar",
+         # A-8 replaces O-2b's "NOT EVALUABLE" string here.  `hold_rows_exact`
+         # / `hold_rows_off` are now counted PER DIRECTIVE, which is what the
+         # ruling evaluates; `c6b` carries the whole reading, including the
+         # UNEVALUABLE count and the strict single-run cross-check.
+         "pin_level_clause": hold_shape or c6b["ruling"],
+         "c6b": c6b,
          "scoreable": _need(allines, "term")},
         "NOT SCOREABLE" if (not _need(allines, "term") or c6 is None
                             or hold_shape)

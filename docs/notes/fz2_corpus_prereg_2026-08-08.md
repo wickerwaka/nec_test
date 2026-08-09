@@ -2652,3 +2652,175 @@ self-consistency falsifier is undisturbed by the refactor.
 
 `python3 sw/fz2_w1.py lint` **PASS, 0 hits, 48 stratum rows**.  `bars` exits
 **1**, as it must while any bar is unmet.
+
+---
+
+## §20 AMENDMENT A-8 — C-6(b) IS RULED: **EVALUATE PER DIRECTIVE**, AND WHERE TWO SCHEDULERS SHARE A PIN THE SEED IS **UNEVALUABLE**
+
+**Written 2026-08-09/10, AFTER §19.8's rescore and COMMITTED BEFORE the rescore
+it enables.  No board was contacted for it and none can be: clauses (a) and (c)
+of C-6 are BOARD legs.**  Appended, never back-edited.  This is the
+coordinator's ruling on finding **O-2b** (§12.4), which recorded that the
+clause and its own instrument were never reconciled and deliberately made no
+disposition.
+
+**NO BAR MOVES.**  C-6's registered text is **not edited, character for
+character**, and neither is any other bar's.  A-8 says how the clause the
+document already registered is **evaluated**; it does not restate it, relax it
+or narrow it.  `SEEDS_SHA256`, `SEED_LIST_SHA256` and the corpus do not move.
+
+### 20.0 WHAT WAS WRONG, IN ONE PARAGRAPH
+
+C-6(b) reads *"every event seed's counted high-row run equals its own `hold`,
+± 1 clock"* — **singular**.  `fuzz_campaign._pin_runs` returns **every** run on
+**all three** pins as a dict of `[start, length]` lists and says in its own
+docstring that picking one *"would be answering the question in the
+instrument"*, because a stimulus NMI and the terminating NMI share the wire.
+`cmd_bars` evaluated `abs(dict - int)`, raised `TypeError`, and — correctly —
+**declined**.
+
+**And a longest-run reading would have been wrong on every seed in the
+corpus**, which is worth stating because it is the trap the ruling avoids:
+`pin_poll_n` is ACTIVE LOW and is therefore "asserted" for the **whole 4,063-row
+capture on all 3,840 seeds**, while **no directive in this corpus names POLL**
+(§9: 0 POLL seeds, stated in advance).  Any rule that reaches for "the run"
+without asking which directive it belongs to picks that one.
+
+### 20.1 THE RULING
+
+> **EVALUATE PER DIRECTIVE.**  For each **ARMED scheduler**, take the run on
+> **the pin that scheduler's directive names**, and compare its length to
+> **that scheduler's own `hold`**, ± 1 clock.
+
+There are exactly two schedulers per seed and both are known from the
+directive, before a single row is read:
+
+| scheduler | pin | hold | armed on |
+|---|---|---|---|
+| **terminator** | `TERM_PIN` = NMI | `TERM_HOLD` = **20** | **every** seed (3,840) |
+| **stimulus** | `evt.pin` | `evt.hold` (**2** or **300**) | the `stim` strata (1,920) |
+
+**The selection is by the DIRECTIVE and never by the outcome**, which is
+precisely what stops the question being answered in the instrument.  `evt.hold`
+is what the host ASKED for; `hold_applied` equals it on **1,920 of 1,920**
+seeds (12-bit rig register, F46), so the two readings coincide and no choice
+between them is being made here.
+
+**A run of length `hold` ± 1 must EXIST on the named pin, and every run on that
+pin must have that length.**  No run is selected from among several and none is
+discarded — with zero runs there is nothing that equals the hold, and the
+directive FAILS.  §20.4 reports the strict *exactly-one-run* reading beside it
+so the choice can be audited.
+
+### 20.2 THE UNEVALUABLE CASE, DECLARED AND COUNTED — **NOT GUESSED**
+
+> **Where two schedulers name the SAME pin their runs can merge.  That seed is
+> declared UNEVALUABLE and is COUNTED.**
+
+It is a property of the **directive pair** and is decided without reading a
+row, so it cannot select on the answer.  In this corpus it is exactly the
+**NMI-stimulus** seeds, where the stimulus and the terminator are both on
+`pin_nmi`.
+
+**MEASURED: 561 of 3,840 seeds — 14.6 % of the corpus and 29.2 % of the 1,920
+event seeds.**  That is the frozen population's own NMI count (§2.3: INT 1,359
+/ NMI 561), reproduced exactly.  Split: **census 146 / enriched 415**;
+**soup 277 / raw 284**.
+
+### 20.3 A FINDING ABOUT THE CORPUS'S EVENT ASSIGNMENT — **`hold = 300` IS STRUCTURALLY IMPOSSIBLE ON AN NMI SEED**
+
+Asked for by the coordinator, and it is sharper than a fraction.  The stimulus
+pin and the stimulus hold are **not independent** in this corpus:
+
+| | `hold = 2` | `hold = 300` |
+|---|---|---|
+| **INT** (`pin` 0) | **680** | **679** |
+| **NMI** (`pin` 1) | **561** | **0** |
+
+**Every one of the 561 unevaluable seeds carries `hold = 2`, and not one NMI
+seed anywhere in the corpus carries `hold = 300`.**  It is not chance — it is
+two registered rules meeting:
+
+* `fuzz_campaign.build` sets `hold = 300` **iff the program contains a HALT**
+  (§2.3 states this);
+* `gen_soup` emits a HALT **only when `evt_pin` is INT or POLL**
+  (`sw/gen_soup.py:723`, `if (not halt_used and self.evt_pin in (0, 2) ...)`),
+  and this corpus has **0 POLL seeds** (§9).
+
+So `has_halt` ⟺ INT, measured **679 / 679 and 561 / 561 with no exceptions**,
+and all 679 are **soup** — the raw tier declares no HALT at all.
+
+**WHAT IT COSTS C-6(b), STATED PLAINLY.**  The **NMI pin's stimulus hold is
+never scored per-directive** — but it never carried more than one value to
+score, so **no hold diversity is lost**.  The evaluated population still
+carries **three distinct hold values** (§20.4), and `pin_nmi` itself is scored
+on **3,279** directives through the terminator.  **What is genuinely not
+proven by this corpus is that the rig applies a 300-clock hold ON THE NMI PIN**
+— that cell is empty by construction, and C-6's own control leg (§6 clause (a),
+`cmd_control`) is where it would be proved.  Registered here rather than
+discovered later.
+
+### 20.4 THE CLAUSE, EVALUATED — `bars/C-6/measured/c6b`
+
+| | |
+|---|---|
+| seeds with `hold_rows` | **3,840** |
+| **UNEVALUABLE (shared pin)** | **561** |
+| **DIRECTIVES EVALUATED** | **4,638** (3,279 terminator + 1,359 stimulus) |
+| **PASS** | **4,636** |
+| **FAIL** | **2** |
+| runs on the named pin | `term:1` **3,279** · `stim:1` **1,356** · `stim:2` **1** · `stim:0` **2** |
+| distinct holds evaluated | **3** — `20` (3,279) · `300` (679) · `2` (680) |
+| strict *exactly-one-run* reading | **3** fail |
+
+**THE TWO FAILURES ARE THE SAME FAILURE, AND THE RIG'S OWN STICKY BIT AGREES
+WITH THE ROWS.**  `fz2e/528016` (raw, `fix1`, INT, `delay` 1,536, `hold` 2) and
+`fz2e/530063` (raw, `fix3`, INT, `delay` 710, `hold` 2): **`pin_int` carries no
+run at all**, and `term.fired` is **0** on both — bit 0, the stimulus
+scheduler's own sticky bit, is clear.  **A directive was armed and did not
+appear on the pin, and the rows and the STATUS readback say so independently.**
+That is what C-6 exists to detect, and it is reported rather than smoothed.
+
+**THE THIRD SEED, AND WHY THE READING DOES NOT DECIDE THE CLAUSE.**  Under the
+strict *exactly-one-run* reading a third directive fails: `fz2c/411076` (raw,
+INT, `hold` 2) carries **two** runs on `pin_int`, **both of length exactly 2**.
+Its `term.fired` is **1** — the terminator's bit is clear while the stimulus
+bit is set — and §18.5's D-3 records the same seed class: **the board image
+re-runs**, so a one-shot scheduler can appear twice in one 4,063-row capture.
+Both readings give **the same clause verdict** and the same order of magnitude
+(2 vs 3 of 4,638), which is the evidence that A-8's verdict does not turn on
+this choice.  **Neither reading is chosen after looking at which seeds it
+catches**: §20.1 registers the "every run must match" form and §20.4 reports
+the other beside it, permanently, in the scored artifact.
+
+### 20.5 C-6'S VERDICT, AS REGISTERED
+
+> **C-6 READS `NOT SCOREABLE`, AND A-8 DOES NOT CHANGE THAT.**
+
+C-6 has **three** clauses and all three are required.  A-8 makes clause **(b)**
+evaluable and **it does not pass**: 2 of 4,638 directives fail. Clauses **(a)**
+(EVT2/EVT3_CFG / TVEC / VECCTL round-trip on the readback path) and **(c)**
+(interception at ≥ 2 distinct `TVEC` values with the `vecsub_en = 0` negative
+control) are **BOARD legs**, `fz2_w1.cmd_control` is unimplemented on this tree
+and returns 2, `sw/testdata/fz2/fz2_control.json` does not exist, and **this
+sitting is offline by instruction**.
+
+**So C-6 is NOT SCOREABLE for a DIFFERENT reason than before**, and both halves
+of that sentence are load bearing: O-2b is **CLOSED** — the clause is evaluable,
+evaluated and reported — while the bar itself stays **NOT SCOREABLE** on
+clauses (a) and (c), exactly as §14.5 and §18.2 said it was.  **It is not
+improved and must not be read as improved.**  Had the control leg existed and
+passed, clause (b)'s 2 failures would make C-6 read **MISSED**, not MET.
+
+### 20.6 WHAT A-8 CHANGES IN THE TREE
+
+* `sw/fz2_w1.py` — `cmd_bars`' C-6 block: the per-directive evaluation, the
+  UNEVALUABLE count with its seeds, the runs-per-directive distribution, the
+  holds actually evaluated, the failing detail, and the strict single-run
+  cross-check, all banked under `bars/C-6/measured/c6b`.  `hold_rows_exact` /
+  `hold_rows_off` now count PER DIRECTIVE and `pin_level_clause` carries the
+  ruling instead of O-2b's "NOT EVALUABLE" string.  **C-6's `registered` text is
+  not touched, and neither is its verdict expression.**
+* This document, appended.
+* **No other file.**  No detector, no discard class, no capture path, no
+  constant, no board, no flash, no Quartus.
