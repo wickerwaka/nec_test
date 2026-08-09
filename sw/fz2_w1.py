@@ -79,6 +79,7 @@ sys.path.insert(0, str(SW))
 import check_seq                                          # noqa: E402
 import fuzz_campaign as fzc                               # noqa: E402
 import fuzz_classify as fc                                # noqa: E402
+import fz2_stall                                          # noqa: E402
 import testimage as ti                                    # noqa: E402
 import v30ctl                                             # noqa: E402
 import v30run                                             # noqa: E402
@@ -312,6 +313,12 @@ REQUIRED_LINE_FIELDS = (
     "arch_ok", "arch_restart", "escaped", "escaped_n",   # exist today
     "arch_words", "arch_sim_ok", "arch_sim_words", "arch_match",
     "ps3_8080", "wrote_term", "term",
+    # AMENDMENT A-4: the fourth discard class is computed AT CAPTURE TIME and
+    # banked on the line, so a future capture classifies itself and needs no
+    # retained rows.  Made a PRECONDITION here, checked before board time, for
+    # the reason the 2026-08-09 re-capture demonstrated: rows exist for only
+    # 67 of its 312 undispositioned seeds and the other 245 cannot be asked.
+    "stalled", "stalled_at",
 )
 REQUIRED_ROW_FIELDS = ("pin_int", "pin_nmi", "pin_poll_n", "vec_armed")
 
@@ -1169,7 +1176,15 @@ def cmd_bars(a):
             "NOT SCOREABLE")
     else:
         m = {}
-        undisp = 0
+        undisp = undisp3 = 0
+        # AMENDMENT A-4 -- the FOURTH declared discard class.  Nothing about
+        # any bar's text or value moves; §3.4's list gains one row.  The
+        # three-term figure is computed and reported BESIDE the four-term one
+        # on every line of this table, so the delta the class buys is visible
+        # rather than absorbed -- the A-2 lesson, where a class that fired on
+        # 3,840 of 3,840 would have driven this count to 0 by arithmetic.
+        capidx = {pop: fz2_stall.capture_index(CID[pop]) for pop in POPS}
+        src = Counter()
         for pop in POPS:
             for tier in TIERS:
                 sel = [r for r in lines[pop]
@@ -1177,21 +1192,42 @@ def cmd_bars(a):
                        and STRATA[_stratum_of(CID[pop], r["k"])]["tier"] == tier]
                 ok = sum(1 for r in sel if r.get("arch_ok"))
                 bad = [r for r in sel if not r.get("arch_ok")]
-                disp = sum(1 for r in bad if r.get("arch_restart")
-                           or r.get("ps3_8080") or r.get("wrote_term"))
-                undisp += len(bad) - disp
+                def _d3(r):
+                    return bool(r.get("arch_restart") or r.get("ps3_8080")
+                                or r.get("wrote_term"))
+                d3 = [r for r in bad if _d3(r)]
+                rest = [r for r in bad if not _d3(r)]
+                nstall = 0
+                for r in rest:
+                    st, _, how = fz2_stall.resolve(r, capidx[pop])
+                    src[how] += 1
+                    nstall += bool(st)
+                disp, dispst = len(d3), len(d3) + nstall
+                undisp3 += len(bad) - disp
+                undisp += len(bad) - dispst
                 m[f"{pop}/{tier}"] = {
                     "n": len(sel), "reached": ok,
                     "pct": round(100.0 * ok / len(sel), 2) if sel else None,
-                    "dispositioned": disp,
-                    "undispositioned": len(bad) - disp}
+                    "dispositioned": dispst,
+                    "dispositioned_3class": disp, "stalled": nstall,
+                    "undispositioned": len(bad) - dispst,
+                    "undispositioned_3class": len(bad) - disp}
         met = all(v["pct"] is not None
                   and v["pct"] >= E1[k.split("/")[1]] for k, v in m.items())
         bar("C-1", "containment measured as TERMINATOR-REACHED (E-1's "
             "predicate), with the escape count kept as a diagnostic",
             f"soup >= {E1['soup']} %, raw >= {E1['raw']} %, per population; "
             "and 0 UNDISPOSITIONED non-dumping seeds",
-            {"per_tier": m, "undispositioned": undisp},
+            # `undispositioned_3class` is what this bar read before A-4 and is
+            # kept on the record permanently.  `classified_from` says HOW each
+            # remaining seed was asked: `line` = A-4's own capture-time column
+            # (self-classifying), `rows` = recomputed from a banked capture,
+            # `none` = neither, i.e. UNCLASSIFIABLE -- and an unclassifiable
+            # seed stays UNDISPOSITIONED.  It is never extrapolated.
+            {"per_tier": m, "undispositioned": undisp,
+             "undispositioned_3class": undisp3,
+             "stalled_total": undisp3 - undisp,
+             "classified_from": dict(src)},
             "MET" if (met and undisp == 0) else "MISSED")
 
     # ---- C-2: the ARCH COLUMN IS NON-VACUOUS ------------------------------

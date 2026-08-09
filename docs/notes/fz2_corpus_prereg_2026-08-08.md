@@ -1374,3 +1374,157 @@ leg alone, `ps3_8080_core` still gating nothing.
   sitting (C-11).  Neither was touched, and neither should be read as improved.
 * The acceptance criterion of §8.2 is **not met**: four bars are not MET and the
   catch-all is not empty.
+
+---
+
+## §15 AMENDMENT A-4 — A FOURTH DECLARED DISCARD CLASS: THE PART STOPPED BEFORE THE TERMINATOR ARRIVED
+
+**Written 2026-08-09, AFTER the §14 re-capture that MISSED C-1, and COMMITTED
+BEFORE the rescore it enables.**  Appended, never back-edited.  This is the
+coordinator's disposition of O-2d (§13.5), which named the mechanism and
+deliberately made no disposition of it.
+
+**NO BAR MOVES.**  C-1 … C-11 keep their text and their registered values
+**character for character** — soup **≥ 99.0 %**, raw **≥ 95.0 %**,
+UNDISPOSITIONED **= 0**, and every other bar exactly as §6 wrote it.  What
+changes is §3.4's list of declared discard classes: **three become four.**
+
+### 15.0 THE TRAP THIS AMENDMENT IS WRITTEN AGAINST
+
+C-1's disposition set is `arch_restart or ps3_8080 or wrote_term`, and
+**adding a fourth term makes UNDISPOSITIONED fall by construction.**  That is
+the exact shape amendment A-2 exists to prevent: there, `ps3_8080` fired on
+3,840 of 3,840 and would have driven the count to **0 vacuously**, and only a
+measured control caught it.  So this class is admitted under four conditions,
+all of them met and reported below:
+
+1. the detector is **independent of the thing it explains** and is computed
+   from the SOCKET leg's own rows — not "the model stalls" (that predicate
+   was measured firing on **96 seeds that DID reach the terminator** and is
+   not used here in any role), and not "no dump", which is circular;
+2. a **HARD FALSIFIER, run**: the detector must fire on **ZERO** captures
+   that reached the terminator, over the whole corpus, both campaigns;
+3. **no other bar moves**, and C-1's two rate clauses keep their text and
+   values character for character;
+4. the rescore is reported **BOTH WAYS**, with and without the class, so the
+   delta it buys is visible rather than absorbed.
+
+### 15.1 THE DETECTOR
+
+`fuzz_campaign.stall_evidence` is the definition; `sw/fz2_stall.py` is its
+falsifier and its census, and no second copy of the predicate exists anywhere.
+On the **SOCKET leg's own rows**, let `f` be the row the terminating NMI
+asserts (the unique `pin_nmi` run of length `TERM_HOLD` — `fz2_termcost`'s own
+identification; a stimulus NMI holds 2 or 300 and is a different run) and
+`last` the last non-`PASV` row before `f`.  **`stalled` is TRUE iff all three
+hold:**
+
+| clause | what it says | why it is there |
+|---|---|---|
+| **(1) NOT A HALT** — `last.bs != HALT` | the bus did not go quiet on a HALT announcement | a HALTed part is **asleep, not stopped**, and the NMI wakes it; §87.A's illegal-form stall drives **no HALT status at all**.  Leaving HALT out is what stops this class from swallowing plan **D3's own subject** — an unwoken HALT is a FINDING about the backstop and must stay visible as UNDISPOSITIONED |
+| **(2) STOPPED BEFORE THE TERMINATOR** — `f - last.idx ≥ STALL_IDLE = 200` | the bus was already quiet when the pin went high | whatever stopped the part happened **before** the terminator was scheduled, not because of it.  Clauses (1) and (2) read **PRE-NMI rows only** and are causally prior to everything the terminator does |
+| **(3) STILL STOPPED AFTER IT** — not one non-`PASV` row at or after `f` | the NMI asserts for its 20 clocks and the part issues **no bus cycle at all** — not a vector read, not a push | strictly **stronger** than "no dump": of the not-reached captures this class does NOT take, **every one has post-NMI bus activity**, so the clause **partitions** the failures rather than restating them |
+
+**The threshold is not what makes the falsifier pass** — clause (3) alone
+fires on 0 of 1,114 terminator-reached captures — and it is not fitted: the
+longest non-HALT pre-NMI idle on a capture that DID reach the terminator is
+**213** clocks over both banks, and the shortest idle this class carries is
+**276**.  200 sits below that gap and is stated, not tuned.  It earns its
+place by **withholding** three otherwise-qualifying seeds (idle 11, 32, 61
+clocks with a dead post-NMI bus) whose stop cannot be told apart from the
+terminator's own arrival; they stay UNDISPOSITIONED.
+
+**Why it is a DISCARD and not a failure**: no `TERM_CLOCKS` value reaches a
+part that has already stopped, and no capture-side repair can.  This is not
+the budget class A-3 repaired — those seeds' buses are still running when the
+NMI lands — and it is not a containment failure, because nothing escaped.
+
+### 15.2 THE FALSIFIER — RUN, AND REPORTED
+
+`python3 sw/fz2_stall.py falsify`, over **every banked capture in both
+campaigns**, in the live corpus and in INV-2's archived one:
+
+| bank | campaign | terminator-REACHED captures | **detector fires on** |
+|---|---|---|---|
+| current | `fz2c` | 458 | **0** |
+| current | `fz2e` | 201 | **0** |
+| archive | `fz2c-INV2-archive` | 354 | **0** |
+| archive | `fz2e-INV2-archive` | 101 | **0** |
+| | **total** | **1,114** | **0 — PASS** |
+
+For contrast, on captures that did NOT reach the terminator it fires on
+**44 / 73** (current) and **49 / 279** (archive).  `not evaluable` is **0** in
+both banks.  The two halves separately, so the reader can see which clause
+does the work: clauses (1)+(2) alone — **pre-NMI rows only** — fire on **1** of
+659 reached in the current bank (`fz2c/407014`, idle 213) and **0** of 455 in
+the archive; clause (3) alone fires on **0** of 1,114.
+
+### 15.3 THE POSITIVE HALF — A STALLED SEED IS NOT A SEED THAT CONTRIBUTED NOTHING
+
+The chip and the fabric core agreeing on the **park clock** is a real
+chip-vs-core match on a real mechanism, so the evidence is **banked with the
+discard, not thrown away with it**.  `stalled_at` carries the core leg's own
+measurement on every such line, and `python3 sw/fz2_stall.py census` reports
+it: on the current bank both legs have rows on **44 of 44**, the core stops
+under the identical detector on **38 / 44**, and it parks on the **SAME CLOCK
+to the clock on 35 / 44** (archive: 43 / 49 and **40 / 49**).  A discard that
+discarded this would be a worse instrument than the one it replaced.
+
+### 15.4 ITS OWN TIMING, AND THE MEASUREMENT LIMIT IT CANNOT ARGUE PAST
+
+**This class is being added after a capture that missed C-1**, and that is
+stated rather than hidden.  Its protections are §15.0's four conditions, the
+falsifier of §15.2, and the both-ways reporting of §15.5.
+
+**Only 67 of the 312 undispositioned seeds can be classified at all.**  The
+other **245** carry verdict `SUCCESS`, and `fuzz_campaign` banks rows only for
+divergent / keep-rows / ballast captures, so there are no rows to ask.  **They
+stay UNDISPOSITIONED and are NOT extrapolated into the class** — an
+unclassifiable seed is undispositioned, and that is the honest reading.  The
+bar's `classified_from` field reports the three populations (`line`, `rows`,
+`none`) on every run so this can never be read off as a rate.
+
+**THE DURABLE FIX, LANDED WITH THIS AMENDMENT**: the detector is computed **at
+capture time**, while the rows are in hand, and banked on the result line as
+`stalled` + `stalled_at`.  A future capture classifies itself and needs no
+retained rows.  `fz2_w1.REQUIRED_LINE_FIELDS` now names both columns, so the
+preconditions check refuses a capture whose path would not produce them —
+checked before board time, the way §7 checks everything else.
+
+### 15.5 THE RESCORE, BOTH WAYS — the before/after, so the delta is auditable
+
+Measured on the §14 re-capture's own banked results by
+`python3 sw/fz2_w1.py bars`, three-class figure beside four-class:
+
+| | **3 classes (as §14 scored it)** | **4 classes (A-4)** | stalled |
+|---|---|---|---|
+| census / soup | 7 | **2** | 5 |
+| census / raw | 75 | **48** | 27 |
+| enriched / soup | 15 | **15** | 0 |
+| enriched / raw | 215 | **204** | 11 |
+| **UNDISPOSITIONED** | **312** | **269** | **43** |
+
+**C-1 IS STILL MISSED.**  The two rate clauses are untouched by this amendment
+and still miss — census/raw **83.54 %** and enriched/raw **83.61 %** against
+**95.0 %**, census/soup **98.54 %** and enriched/soup **98.89 %** against
+**99.0 %** — and E-1c is **269 against 0**.  Reported as registered, not
+restated.  **The class buys 43 seeds of the 312, which is 13.8 %, and it is
+bounded above by 67 — the number that can be classified at all.**  One seed
+(`fz2c/406016`) is both `wrote_term` and stalled and is counted once, by the
+existing class, exactly as the other three overlap.
+
+### 15.6 WHAT A-4 CHANGES IN THE TREE
+
+* `sw/fuzz_campaign.py` — `STALL_IDLE`, `BS_HALT`/`BS_PASV`, `stall_evidence`,
+  and the two new result-line columns.  **No bar, no constant of A-3's, and no
+  part of the capture path is touched.**
+* `sw/fz2_stall.py` — **new**: the falsifier, the census, and the backfill
+  that classifies a pre-A-4 capture out of its banked rows.  It reads banked
+  captures only — no board, no TB, no engine.
+* `sw/fz2_w1.py` — C-1's disposition set gains the fourth term; the bar now
+  reports `undispositioned_3class`, `stalled_total` and `classified_from`
+  beside it, permanently.  `REQUIRED_LINE_FIELDS` gains the two columns.
+* This document, appended.
+
+`SEEDS_SHA256`, `SEED_LIST_SHA256` and the corpus itself **do not move**: not
+one seed, image, vector or constant changed.

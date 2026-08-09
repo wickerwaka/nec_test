@@ -858,6 +858,93 @@ def _vec_rows(recs, win):
     return sum(1 for r in recs[:min(win, len(recs))] if r["vec_armed"])
 
 
+BS_HALT, BS_PASV = 3, 7
+# AMENDMENT A-4.  How long the bus must ALREADY have been quiet when the
+# terminating NMI asserts before the part counts as having stopped BEFORE the
+# terminator rather than because of it.  It is a clock count, not a fit: the
+# longest non-HALT pre-NMI idle measured on a capture that DID reach the
+# terminator is 213 clocks over 1,114 such captures in both banks, and the
+# shortest one this class carries is 276.  The threshold is not what makes the
+# falsifier pass -- clause (3) does that on its own -- and A-4 says so.
+STALL_IDLE = 200
+
+
+def stall_evidence(real, sim, hold_rows):
+    """AMENDMENT A-4's fourth declared discard class, measured on the SOCKET
+    leg's own rows: THE PART STOPPED BEFORE THE TERMINATOR ARRIVED, AND THE
+    TERMINATOR DOES NOT RESTART IT.
+
+    `f` is the row the terminating NMI asserts -- the unique `pin_nmi` run of
+    length `TERM_HOLD`, the same identification `fz2_termcost` uses (a stimulus
+    NMI holds 2 or 300 and is a different run).  `last` is the last non-PASV
+    row before `f`.  `stalled` is TRUE iff ALL THREE hold:
+
+      1. NOT A HALT -- `last.bs != HALT`.  A HALTed part is asleep, not
+         stopped, and the NMI wakes it; §87.A's illegal-form stall drives no
+         HALT status at all, because nothing announced it.  Leaving the HALT
+         case out is what stops this class from swallowing plan D3's own
+         subject -- an unwoken HALT is a FINDING about the backstop and must
+         stay visible as UNDISPOSITIONED.
+      2. STOPPED BEFORE THE TERMINATOR -- `f - last.idx >= STALL_IDLE`.  The
+         bus was already quiet when the pin went high, so whatever stopped it
+         happened before the terminator was scheduled and not because of it.
+         Clauses (1) and (2) are computed from PRE-NMI rows alone and are
+         therefore causally prior to everything the terminator does.
+      3. STILL STOPPED AFTER IT -- not one non-PASV row at or after `f`.  The
+         NMI asserts for its 20 clocks and the part issues no bus cycle at
+         all: not a vector read, not a push, nothing.  This is STRICTLY
+         STRONGER than "no dump" -- of the not-reached captures this class
+         does NOT take, every one has post-NMI bus activity -- so the clause
+         partitions the failures rather than restating them.
+
+    Returns None when the question cannot be asked of these rows (no rows, no
+    pin columns, no unique terminating NMI run) -- never False, which would
+    read as a measured absence.  Otherwise a dict; the caller banks
+    `stalled` = the boolean and this dict as `stalled_at`.
+
+    THE POSITIVE HALF IS BANKED WITH IT.  A stalled seed is not a seed that
+    contributed nothing: `core_last` is the same measurement on the FABRIC
+    CORE's rows and `core_match` is whether the two engines park on the SAME
+    CLOCK.  That is a real chip-vs-core agreement on a real mechanism, and it
+    is recorded here so the discard does not discard the evidence."""
+    if not real or not hold_rows:
+        return None
+    runs = hold_rows.get("pin_nmi") or []
+    base = real[0]["idx"]
+    hits = [s + base for s, L in runs if L == TERM_HOLD]
+    if len(hits) != 1:
+        return None
+    f = hits[0]
+
+    def leg(rows):
+        if not rows:
+            return None, 0
+        act = [r for r in rows if r["idx"] < f and r["bs_early"] != BS_PASV]
+        after = sum(1 for r in rows
+                    if r["idx"] >= f and r["bs_early"] != BS_PASV)
+        return (act[-1] if act else None), after
+
+    last, after = leg(real)
+    if last is None:
+        return None
+    clast, cafter = leg(sim)
+    idle = f - last["idx"]
+    stalled = (last["bs_early"] != BS_HALT and idle >= STALL_IDLE
+               and after == 0)
+    core_stalled = (clast is not None and cafter == 0
+                    and clast["bs_early"] != BS_HALT
+                    and (f - clast["idx"]) >= STALL_IDLE)
+    return {"stalled": bool(stalled), "f": f, "last": last["idx"],
+            "last_bs": last["bs_early"], "idle": idle, "after": after,
+            "core_last": clast["idx"] if clast is not None else None,
+            "core_after": cafter if clast is not None else None,
+            "core_stalled": bool(core_stalled) if sim else None,
+            # THE POSITIVE HALF: same park clock on both legs, to the clock.
+            "core_match": (bool(stalled and core_stalled
+                                and clast["idx"] == last["idx"])
+                           if sim else None)}
+
+
 def result_line(cfg, g, sha, v, di, gen_git, build_stale, ts, bus_cycles=None,
                 arch=None):
     # task #38: the vector is banked IN FULL (`wvec_hex`, 2 chars per entry,
@@ -903,6 +990,7 @@ def result_line(cfg, g, sha, v, di, gen_git, build_stale, ts, bus_cycles=None,
                     "arch_match": None, "ps3_8080": None,
                     "ps3_8080_core": None,
                     "wrote_term": None, "wrote_term_at": None,
+                    "stalled": None, "stalled_at": None,
                     "term": None}),
         "era": _ERA,
         "wild": g.get("wild"), "has_brkem": g.get("has_brkem", False),
@@ -1010,6 +1098,12 @@ def eval_case(cid, k, ov, tb_only, host, build_stale, keep_rows=False,
         aw = fc.arch_dump(real, v.n)
         asw = fc.arch_dump(sim, v.n) if sim else None
         wt = _wrote_term(real, len(real))
+        # A-4: computed HERE, at capture time, while the rows are in hand, and
+        # banked on the result line.  The 2026-08-09 re-capture had to be
+        # classified out of retained rows, which exist for only 67 of its 312
+        # undispositioned seeds; a column on the line needs no rows at all.
+        holds = _pin_runs(real, len(real))
+        st = stall_evidence(real, sim, holds)
         arch = {"arch_ok": aw is not None,
                 "arch_restart": fc.dump_restarted(real, v.n),
                 "escaped": list(esc) if esc else None,
@@ -1050,6 +1144,11 @@ def eval_case(cid, k, ov, tb_only, host, build_stale, keep_rows=False,
                 # did not need to.
                 "wrote_term": wt is not None,
                 "wrote_term_at": wt,
+                # AMENDMENT A-4's fourth declared discard class.  `None` when
+                # the rows cannot answer (a TB leg arms no terminator), never
+                # a False that would look like a measured absence.
+                "stalled": (None if st is None else st["stalled"]),
+                "stalled_at": st,
                 # C-6: what the rig reported, what it was handed, what the
                 # rows say.  `None` on a TB leg, which arms no terminator.
                 "term": {
@@ -1062,7 +1161,7 @@ def eval_case(cid, k, ov, tb_only, host, build_stale, keep_rows=False,
                     "term_hold": TERM_HOLD,
                     "evt_hold": (cfg["evt"] or {}).get("hold"),
                     "evt_pin": (cfg["evt"] or {}).get("pin"),
-                    "hold_rows": _pin_runs(real, len(real)),
+                    "hold_rows": holds,
                     "vec_rows": _vec_rows(real, len(real)),
                 } if term_rec is not None else None}
     line = result_line(cfg, g, sha, v, di, _gen_git(), build_stale,
