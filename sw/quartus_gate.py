@@ -32,6 +32,29 @@ is the deliverable: input manifest hash, tool version, the exact command, the
 parsed figures, and the verdict.  `docs/notes/artifact_receipt_layer.md` §3
 specifies the shared schema this one is the first instance of.
 
+THREE THINGS THE RECEIPT LEARNED (the ucore RE-LANDING campaign, whose evidence
+for nineteen mechanisms is nothing BUT receipts from this tool):
+
+  * **A receipt only ever exists as the output of a completed run.**  Any file
+    at `receipt_path` is UNLINKED before the gate starts, and the default path
+    is gitignored -- it used to be TRACKED, so every branch switch resurrected
+    a fossil receipt beside a newer build's reports and it read as that build's
+    result.  The history that survives a clean build is
+    `sw/testdata/receipts/quartus_bitstream.jsonl`, not this file.
+  * **`configuration` is DERIVED, never asserted.**  It used to be a hardcoded
+    "CONTROL/DEFAULT" string, so every RETENTION receipt ever written was
+    mislabelled as a control build -- and the retention build is the one that
+    gets flashed.  It is now read out of the reports themselves: the `.qsf`
+    macros off `<rev>.flow.rpt` and the command-line `--verilog_macro=` off
+    `<rev>.map.rpt`'s `Info: Command:` line (which is how a retention build is
+    actually made, §sm3-s19b).  **Where the report that would carry the answer
+    is absent, the value is `UNDETERMINED`** -- a default that names a specific
+    configuration is absence reading as data.
+  * `reports` carries the sha256 of every report the gate PARSED, so a receipt
+    written against a stale report set is mechanically detectable instead of an
+    argument about mtimes.  It is the artifact layer's own rule applied to the
+    gate's own inputs.
+
     python3 sw/quartus_gate.py                 # clean build + gate  (~10 min)
     python3 sw/quartus_gate.py --parse-only    # re-gate an existing report set
     python3 sw/quartus_gate.py --tree DIR      # gate a build kept elsewhere
@@ -222,6 +245,89 @@ def parse_resources(tree):
 
 
 # --------------------------------------------------------------------------- #
+# WHICH BUILD IS THIS -- derived, never asserted
+# --------------------------------------------------------------------------- #
+RETENTION_MACRO = "X1_AD_RETENTION"
+
+
+def _macro_name_value(tok):
+    n, _, v = tok.partition("=")
+    return n.strip(), (v.strip() or "1")
+
+
+def parse_configuration(tree):
+    """-> (configuration string, detail dict) read OUT OF THE REPORTS.
+
+    Two sources, because a build has two ways to be given a macro and the
+    retention build uses the second one:
+
+        <rev>.flow.rpt   `VERILOG_MACRO` rows -- what the .qsf set
+        <rev>.map.rpt    `Info: Command:`     -- what the command line passed,
+                         i.e. `quartus_map --verilog_macro="X1_AD_RETENTION=1"`
+
+    A macro seen in EITHER source is set.  Saying it is NOT set requires having
+    read BOTH sources: with one missing the honest answer is UNDETERMINED, not
+    CONTROL."""
+    flow = tree / f"{REVISION}.flow.rpt"
+    mapr = tree / f"{REVISION}.map.rpt"
+    detail = {"qsf_macros": None, "cmdline_macros": None, "macros": None,
+              "command_line": None, "retention": None,
+              "sources": {art.relpath(flow): flow.is_file(),
+                          art.relpath(mapr): mapr.is_file()}}
+    macros = set()
+    if flow.is_file():
+        rows = re.findall(r";\s*VERILOG_MACRO\s*;\s*(\S+)\s*;",
+                          flow.read_text(errors="replace"))
+        detail["qsf_macros"] = sorted(set(rows))
+        macros.update(rows)
+    if mapr.is_file():
+        cmd = None
+        with open(mapr, errors="replace") as f:
+            for ln in f:
+                if ln.lstrip().startswith("Info: Command:"):
+                    cmd = ln.split("Command:", 1)[1].strip()
+                    break
+        detail["command_line"] = cmd
+        cl = re.findall(r'--verilog_macro[= ]"?([^"\s]+)', cmd or "")
+        detail["cmdline_macros"] = sorted(set(cl))
+        macros.update(cl)
+
+    ret = [t for t in macros if _macro_name_value(t)[0] == RETENTION_MACRO
+           and _macro_name_value(t)[1] != "0"]
+    missing = sorted(k for k, ok in detail["sources"].items() if not ok)
+    if ret:
+        detail["macros"] = sorted(macros)
+        detail["retention"] = True
+        return (f"RETENTION ({', '.join(sorted(ret))}) -- DERIVED from "
+                f"{', '.join(sorted(k for k, ok in detail['sources'].items() if ok))}"), detail
+    if missing:
+        # No macro seen, but a source that could have carried one was not read.
+        return (f"UNDETERMINED -- absent: {', '.join(missing)}; "
+                f"nothing read says whether {RETENTION_MACRO} is set"), detail
+    detail["macros"] = sorted(macros)
+    detail["retention"] = False
+    return (f"CONTROL/DEFAULT (no {RETENTION_MACRO}) -- DERIVED from "
+            f"{', '.join(sorted(detail['sources']))}"), detail
+
+
+# the reports this gate PARSES.  Hashed into the receipt so a run against a
+# stale report set is detectable without appealing to mtimes.
+PARSED_REPORTS = (".sta.rpt", ".sta.summary", ".map.summary", ".fit.summary",
+                  ".asm.rpt", ".fit.rpt", ".flow.rpt", ".map.rpt")
+
+
+def report_manifest(tree, logpath):
+    """{n_files, sha256, files} over every report the gate reads.
+
+    `MISSING` is a value (spec §3 rule 2): a report that vanished must move the
+    hash, not silently drop out of it."""
+    paths = [tree / f"{REVISION}{ext}" for ext in PARSED_REPORTS]
+    if logpath is not None:
+        paths.append(Path(logpath))
+    return art.manifest(paths)
+
+
+# --------------------------------------------------------------------------- #
 def build(tree, keep_db, logpath):
     exe = QUARTUS_BIN / "quartus_sh"
     if not exe.exists():
@@ -323,6 +429,17 @@ def main():
     receipt_path = Path(a.receipt) if a.receipt else (tree / "quartus_gate.json")
     logpath = Path(a.log) if a.log else (tree.parent / "quartus_gate_build.log")
 
+    # A RECEIPT ONLY EVER EXISTS AS THE OUTPUT OF A COMPLETED RUN.  Anything
+    # already at this path is a PREVIOUS run's -- or, when the path was still
+    # tracked in git, a fossil that a branch switch put back beside a newer
+    # build's reports.  Remove it now, so a failed or interrupted run leaves NO
+    # receipt rather than leaving the old one to be read as this run's.
+    if receipt_path.exists() or receipt_path.is_symlink():
+        print(f"quartus_gate: removing pre-existing receipt {receipt_path} "
+              f"(a receipt is an OUTPUT; the history is "
+              f"{art.RECEIPT_DIR / 'quartus_bitstream.jsonl'})", flush=True)
+        receipt_path.unlink()
+
     started = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
     mf = input_manifest()
     tv = tool_version()
@@ -358,8 +475,12 @@ def main():
            "ts": started,
            "tool_version": tv,
            "input_manifest": mf,
-           "configuration": "CONTROL/DEFAULT (no X1_AD_RETENTION) -- the "
-                            "configuration every bitstream is derived from",
+           # DERIVED after the build, off the reports actually gated.  Until
+           # then -- and on any path that gates no reports at all -- it stays
+           # UNDETERMINED.  It must never DEFAULT to naming a configuration.
+           "configuration": "UNDETERMINED -- no reports gated",
+           "configuration_detail": None,
+           "reports": None,
            "tree": str(tree)}
 
     # --- E1: the revision file, BEFORE the build --------------------------- #
@@ -405,6 +526,12 @@ def main():
     if logpath.exists():
         log_text = logpath.read_text(errors="replace")
 
+    # WHICH BUILD THIS RECEIPT DESCRIBES -- read out of the reports, and hashed
+    # so the next reader can check the reports have not moved underneath it.
+    rec["configuration"], rec["configuration_detail"] = parse_configuration(tree)
+    rec["reports"] = report_manifest(tree, logpath)
+    print(f"quartus_gate: configuration {rec['configuration']}", flush=True)
+
     bars, figs = score(tree, log_text, a)
     rec["bars"] = bars
     rec["figures"] = figs
@@ -422,10 +549,13 @@ def main():
             rec["outputs"][art.relpath(f)] = art.sha256_file(f)
     _finish(rec, receipt_path)
 
-    print("\n  --- quartus_gate (G6), the CONTROL/DEFAULT build ---")
+    print("\n  --- quartus_gate (G6) ---")
     print(f"  tool     : {rec['tool_version']}")
+    print(f"  config   : {rec['configuration']}")
     print(f"  inputs   : {rec['input_manifest']['n_files']} files, "
           f"sha256 {rec['input_manifest']['sha256'][:16]}…")
+    print(f"  reports  : {rec['reports']['n_files']} files, "
+          f"sha256 {rec['reports']['sha256'][:16]}…")
     print(f"  git      : {rec['git']['describe']}"
           f"{'  (tree DIRTY)' if rec['git']['dirty_tracked'] else ''}")
     for k in sorted(bars):

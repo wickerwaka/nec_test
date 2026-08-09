@@ -2,6 +2,11 @@ db
 greybox_tmp
 incremental_db
 output_files
+# BUILD OUTPUT, deleted by `sw/quartus_gate.py`'s own clean build.  It held one
+# TRACKED file, `quartus_gate.json`, so every branch switch resurrected a fossil
+# receipt beside a newer build's reports -- and a receipt is an OUTPUT, never a
+# checked-in fact.  The surviving history is sw/testdata/receipts/*.jsonl.
+output_files_ucore
 simulation
 hc_output
 scaler
