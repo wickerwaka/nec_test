@@ -1,7 +1,7 @@
 {
- "cid": "fz2e",
- "created": "2026-08-09T16:31:11Z",
- "gen_git": "25e73e4873",
+ "cid": "fz2c",
+ "created": "2026-08-09T14:26:28Z",
+ "gen_git": "e26157c296",
  "flash_pin": {
   "ts": "2026-08-09T05:00:11Z",
   "sof_path": "hdl/output_files_ucore/nec_test_ucore.sof",

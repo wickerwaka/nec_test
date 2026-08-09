@@ -62,8 +62,13 @@ CAMPAIGNS = os.path.join(ROOT, "sw", "testdata", "campaigns")
 # different rigs' tails into one table, which is the one thing this instrument
 # must not do; `--bank all` exists only to say so out loud.
 BANKS = {"archive": ("fz2c-INV2-archive", "fz2e-INV2-archive"),
+         # A-6 archived the A-5-scored capture by RENAME -- NOT an
+         # invalidation: no constant moved, its rows are true silicon taken
+         # under the same budget the A-6 capture uses.  Reachable so a reviewer
+         # can re-run every A-6 number on the bank they were measured on.
+         "prior": ("fz2c-A5-archive", "fz2e-A5-archive"),
          "current": ("fz2c", "fz2e")}
-BANKS["all"] = BANKS["archive"] + BANKS["current"]
+BANKS["all"] = BANKS["archive"] + BANKS["prior"] + BANKS["current"]
 LAST_ROW = fzc.CAP_ROWS - 1
 
 
@@ -347,7 +352,8 @@ def mechanism(real, sim, line):
 
 
 def cmd_mechanism(a):
-    for bank in (["current", "archive"] if a.bank == "all" else [a.bank]):
+    for bank in (["current", "prior", "archive"] if a.bank == "all"
+                 else [a.bank]):
         tot = collections.Counter()
         per_tier = collections.defaultdict(collections.Counter)
         named = collections.defaultdict(list)

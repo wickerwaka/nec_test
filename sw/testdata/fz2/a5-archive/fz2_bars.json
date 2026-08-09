@@ -1,0 +1,857 @@
+{
+ "stage": "fz2 bars",
+ "ts": "2026-08-09T16:04:31Z",
+ "seed_list_sha256": "45d25f31a325c4965da81117d5f4217b86487aa1abb0078faed26a72ed9bec32",
+ "bars": {
+  "C-1": {
+   "statement": "containment measured as TERMINATOR-REACHED (E-1's predicate), with the escape count kept as a diagnostic",
+   "registered": "soup >= 90.0 %, raw >= 75.0 %, per population [A-5: soup LOWERED from 99.0, raw from 95.0 -- set AFTER measuring soup 98.54/98.89 % and raw 83.54/83.61 % ON THIS POPULATION, NOT DERIVED, and UNVALIDATED until scored on a DISJOINT population]; and 0 UNDISPOSITIONED non-dumping seeds (E-1c, UNTOUCHED by A-5)",
+   "measured": {
+    "per_tier": {
+     "census/soup": {
+      "n": 480,
+      "reached": 473,
+      "pct": 98.54,
+      "dispositioned": 5,
+      "dispositioned_3class": 0,
+      "stalled": 5,
+      "undispositioned": 2,
+      "undispositioned_3class": 7
+     },
+     "census/raw": {
+      "n": 480,
+      "reached": 401,
+      "pct": 83.54,
+      "dispositioned": 31,
+      "dispositioned_3class": 4,
+      "stalled": 27,
+      "undispositioned": 48,
+      "undispositioned_3class": 75
+     },
+     "enriched/soup": {
+      "n": 1440,
+      "reached": 1424,
+      "pct": 98.89,
+      "dispositioned": 1,
+      "dispositioned_3class": 1,
+      "stalled": 0,
+      "undispositioned": 15,
+      "undispositioned_3class": 15
+     },
+     "enriched/raw": {
+      "n": 1440,
+      "reached": 1204,
+      "pct": 83.61,
+      "dispositioned": 32,
+      "dispositioned_3class": 21,
+      "stalled": 11,
+      "undispositioned": 204,
+      "undispositioned_3class": 215
+     }
+    },
+    "undispositioned": 269,
+    "undispositioned_3class": 312,
+    "stalled_total": 43,
+    "classified_from": {
+     "rows": 67,
+     "none": 245
+    }
+   },
+   "verdict": "MISSED (rate clauses UNVALIDATED -- A-5)",
+   "finding": null
+  },
+  "C-2": {
+   "statement": "the arch column is non-vacuous -- demonstrated, not assumed",
+   "registered": "MAGIC == 0x5EED on every dump; each of the other 14 STORE_ORDER words takes >= 2 distinct values across the corpus",
+   "measured": {
+    "dumps": 3502,
+    "magic_constant": true,
+    "distinct": {
+     "AW": 2843,
+     "MAGIC": 1,
+     "PC": 3081,
+     "PS": 3099,
+     "PSW": 199,
+     "SS": 3327,
+     "SP": 3143,
+     "DS0": 3375,
+     "DS1": 3355,
+     "BW": 3212,
+     "CW": 2195,
+     "DW": 2603,
+     "BP": 3163,
+     "IX": 3273,
+     "IY": 3270
+    },
+    "flat_words": []
+   },
+   "verdict": "MET",
+   "finding": null
+  },
+  "C-3": {
+   "statement": "8080-free by BOTH clauses",
+   "registered": "0 forbidden `0F xx` pairs on every composed image (generation) AND 0 captures showing PS3 on a CODE T1 (runtime)",
+   "measured": {
+    "bad_0f_pairs": 0,
+    "seeds": 3840,
+    "ps3_8080": 2,
+    "ps3_scoreable": true
+   },
+   "verdict": "MISSED",
+   "finding": null
+  },
+  "C-4": {
+   "statement": "era",
+   "registered": "0 captures with an absent, incomplete or mixed era stamp",
+   "measured": {
+    "distinct_eras": 1,
+    "absent": 0,
+    "incomplete": 0,
+    "build_stale": 0,
+    "lines": 3840
+   },
+   "verdict": "MET",
+   "finding": null
+  },
+  "C-5": {
+   "statement": "no gen-drift",
+   "registered": "0 GEN_DRIFT; 0 wvec re-derive mismatches",
+   "measured": {
+    "gen_drift": 0,
+    "wvec_mismatch": 0,
+    "seeds": 3840
+   },
+   "verdict": "MET",
+   "finding": null
+  },
+  "C-6": {
+   "statement": "the rig applied the directives it was handed",
+   "registered": "EVT2/EVT3_CFG + TVEC + VECCTL round-trip on the readback path; a PIN-LEVEL proof by counted rows at >= 2 hold values (every seed's counted high-row run equals its own `hold`, +/- 1 clock); interception proven on the rows at >= 2 distinct TVEC values",
+   "measured": {
+    "holds_in_corpus": {
+     "2": 1241,
+     "300": 679
+    },
+    "hold_rows_exact": 0,
+    "hold_rows_off": 0,
+    "control_leg": null,
+    "pin_level_clause": "NOT EVALUABLE: hold_rows is dict, not a scalar -- finding O-2, C-6(b) awaits a ruling",
+    "scoreable": true
+   },
+   "verdict": "NOT SCOREABLE",
+   "finding": null
+  },
+  "C-7": {
+   "statement": "no capture reaches 4,096 bus cycles",
+   "registered": "0 seeds at or beyond 4,096",
+   "measured": {
+    "scored": 3840,
+    "max": 957,
+    "at_or_over": 0,
+    "ks": []
+   },
+   "verdict": "MET",
+   "finding": null
+  },
+  "C-8": {
+   "statement": "board discipline",
+   "registered": "div_guard PINNED on 100 % of probes; 0 unpinned readbacks",
+   "measured": {
+    "div_guards": 53,
+    "unpinned": 0,
+    "unpinned_detail": []
+   },
+   "verdict": "MET",
+   "finding": null
+  },
+  "C-10": {
+   "statement": "transport",
+   "registered": "circuit breaker not tripped; no short stratum; the transport-error count is REPORTED, not barred",
+   "measured": {
+    "quarantines": 0,
+    "run_error_lines": 0,
+    "consecutive_quarantine_break_at": null,
+    "halted": null,
+    "c9_errors": 0
+   },
+   "verdict": "MET",
+   "finding": null
+  },
+  "C-9": {
+   "statement": "the capture is stable, rows AND arch",
+   "registered": "192 / 192 stable over 3 reps",
+   "measured": {
+    "seeds": 192,
+    "stable": 192,
+    "unstable": 0,
+    "errors": 0
+   },
+   "verdict": "MET",
+   "finding": null
+  },
+  "C-11": {
+   "statement": "bank integrity: the census bank IS the frozen rule and the two populations are never pooled",
+   "registered": "census bank == the 480 enumerated seeds, seed for seed; 0 `_capped` on either cid; standing bank <= 3,500 seeds; 0 seeds in both banks",
+   "measured": {
+    "census_banked": 0,
+    "census_expected": 480,
+    "census_exact": false,
+    "enriched_banked": 0,
+    "capped": {
+     "census": 0,
+     "enriched": 0
+    },
+    "total": 0,
+    "overlap": 0
+   },
+   "verdict": "NOT SCOREABLE",
+   "finding": null
+  }
+ },
+ "pops": {
+  "census": {
+   "cid": "fz2c",
+   "captured": 960,
+   "per_stratum": [
+    {
+     "j": 0,
+     "stratum": "cen/soup/noevt/fix0",
+     "n": 80,
+     "captured": 80,
+     "rows_exact": 77,
+     "arch_exact": 76,
+     "unscoreable": 1,
+     "verdicts": {
+      "SUCCESS": 77,
+      "FUNCTIONAL": 3
+     }
+    },
+    {
+     "j": 1,
+     "stratum": "cen/soup/noevt/wrand3",
+     "n": 80,
+     "captured": 80,
+     "rows_exact": 80,
+     "arch_exact": 79,
+     "unscoreable": 1,
+     "verdicts": {
+      "SUCCESS": 80
+     }
+    },
+    {
+     "j": 2,
+     "stratum": "cen/soup/noevt/wvec-uni",
+     "n": 80,
+     "captured": 80,
+     "rows_exact": 79,
+     "arch_exact": 78,
+     "unscoreable": 1,
+     "verdicts": {
+      "SUCCESS": 79,
+      "FUNCTIONAL": 1
+     }
+    },
+    {
+     "j": 3,
+     "stratum": "cen/soup/stim/fix0",
+     "n": 80,
+     "captured": 80,
+     "rows_exact": 80,
+     "arch_exact": 78,
+     "unscoreable": 2,
+     "verdicts": {
+      "SUCCESS": 80
+     }
+    },
+    {
+     "j": 4,
+     "stratum": "cen/soup/stim/wrand3",
+     "n": 80,
+     "captured": 80,
+     "rows_exact": 77,
+     "arch_exact": 79,
+     "unscoreable": 0,
+     "verdicts": {
+      "SUCCESS": 77,
+      "FUNCTIONAL": 2,
+      "KNOWN_ACCEPTED": 1
+     }
+    },
+    {
+     "j": 5,
+     "stratum": "cen/soup/stim/wvec-uni",
+     "n": 80,
+     "captured": 80,
+     "rows_exact": 76,
+     "arch_exact": 75,
+     "unscoreable": 4,
+     "verdicts": {
+      "SUCCESS": 76,
+      "FUNCTIONAL": 3,
+      "KNOWN_ACCEPTED": 1
+     }
+    },
+    {
+     "j": 6,
+     "stratum": "cen/raw/noevt/fix0",
+     "n": 80,
+     "captured": 80,
+     "rows_exact": 72,
+     "arch_exact": 64,
+     "unscoreable": 13,
+     "verdicts": {
+      "FUNCTIONAL": 1,
+      "SUCCESS": 72,
+      "KNOWN_ACCEPTED": 7
+     }
+    },
+    {
+     "j": 7,
+     "stratum": "cen/raw/noevt/wrand3",
+     "n": 80,
+     "captured": 80,
+     "rows_exact": 71,
+     "arch_exact": 59,
+     "unscoreable": 15,
+     "verdicts": {
+      "KNOWN_ACCEPTED": 9,
+      "SUCCESS": 71
+     }
+    },
+    {
+     "j": 8,
+     "stratum": "cen/raw/noevt/wvec-uni",
+     "n": 80,
+     "captured": 80,
+     "rows_exact": 74,
+     "arch_exact": 58,
+     "unscoreable": 20,
+     "verdicts": {
+      "KNOWN_ACCEPTED": 6,
+      "SUCCESS": 74
+     }
+    },
+    {
+     "j": 9,
+     "stratum": "cen/raw/stim/fix0",
+     "n": 80,
+     "captured": 80,
+     "rows_exact": 73,
+     "arch_exact": 67,
+     "unscoreable": 11,
+     "verdicts": {
+      "SUCCESS": 73,
+      "KNOWN_ACCEPTED": 7
+     }
+    },
+    {
+     "j": 10,
+     "stratum": "cen/raw/stim/wrand3",
+     "n": 80,
+     "captured": 80,
+     "rows_exact": 68,
+     "arch_exact": 58,
+     "unscoreable": 18,
+     "verdicts": {
+      "KNOWN_ACCEPTED": 12,
+      "SUCCESS": 68
+     }
+    },
+    {
+     "j": 11,
+     "stratum": "cen/raw/stim/wvec-uni",
+     "n": 80,
+     "captured": 80,
+     "rows_exact": 79,
+     "arch_exact": 71,
+     "unscoreable": 9,
+     "verdicts": {
+      "SUCCESS": 79,
+      "KNOWN_ACCEPTED": 1
+     }
+    }
+   ],
+   "rows_exact_mean_pct": 94.38,
+   "arch_exact_mean_pct": 87.71,
+   "unscoreable_total": 95
+  },
+  "enriched": {
+   "cid": "fz2e",
+   "captured": 2880,
+   "per_stratum": [
+    {
+     "j": 12,
+     "stratum": "enr/soup/noevt/fix0",
+     "n": 80,
+     "captured": 80,
+     "rows_exact": 80,
+     "arch_exact": 79,
+     "unscoreable": 1,
+     "verdicts": {
+      "SUCCESS": 80
+     }
+    },
+    {
+     "j": 13,
+     "stratum": "enr/soup/noevt/fix1",
+     "n": 80,
+     "captured": 80,
+     "rows_exact": 78,
+     "arch_exact": 76,
+     "unscoreable": 2,
+     "verdicts": {
+      "SUCCESS": 78,
+      "FUNCTIONAL": 2
+     }
+    },
+    {
+     "j": 14,
+     "stratum": "enr/soup/noevt/fix2",
+     "n": 80,
+     "captured": 80,
+     "rows_exact": 80,
+     "arch_exact": 80,
+     "unscoreable": 0,
+     "verdicts": {
+      "SUCCESS": 80
+     }
+    },
+    {
+     "j": 15,
+     "stratum": "enr/soup/noevt/fix3",
+     "n": 80,
+     "captured": 80,
+     "rows_exact": 80,
+     "arch_exact": 78,
+     "unscoreable": 2,
+     "verdicts": {
+      "SUCCESS": 80
+     }
+    },
+    {
+     "j": 16,
+     "stratum": "enr/soup/noevt/wrand1",
+     "n": 80,
+     "captured": 80,
+     "rows_exact": 80,
+     "arch_exact": 80,
+     "unscoreable": 0,
+     "verdicts": {
+      "SUCCESS": 80
+     }
+    },
+    {
+     "j": 17,
+     "stratum": "enr/soup/noevt/wrand3",
+     "n": 80,
+     "captured": 80,
+     "rows_exact": 80,
+     "arch_exact": 80,
+     "unscoreable": 0,
+     "verdicts": {
+      "SUCCESS": 80
+     }
+    },
+    {
+     "j": 18,
+     "stratum": "enr/soup/noevt/wrand7",
+     "n": 80,
+     "captured": 80,
+     "rows_exact": 80,
+     "arch_exact": 79,
+     "unscoreable": 1,
+     "verdicts": {
+      "SUCCESS": 80
+     }
+    },
+    {
+     "j": 19,
+     "stratum": "enr/soup/noevt/wrand15",
+     "n": 80,
+     "captured": 80,
+     "rows_exact": 79,
+     "arch_exact": 78,
+     "unscoreable": 1,
+     "verdicts": {
+      "SUCCESS": 79,
+      "FUNCTIONAL": 1
+     }
+    },
+    {
+     "j": 20,
+     "stratum": "enr/soup/noevt/wvec-uni",
+     "n": 80,
+     "captured": 80,
+     "rows_exact": 80,
+     "arch_exact": 80,
+     "unscoreable": 0,
+     "verdicts": {
+      "SUCCESS": 80
+     }
+    },
+    {
+     "j": 21,
+     "stratum": "enr/soup/stim/fix0",
+     "n": 80,
+     "captured": 80,
+     "rows_exact": 78,
+     "arch_exact": 79,
+     "unscoreable": 0,
+     "verdicts": {
+      "SUCCESS": 78,
+      "TIMING": 1,
+      "FUNCTIONAL": 1
+     }
+    },
+    {
+     "j": 22,
+     "stratum": "enr/soup/stim/fix1",
+     "n": 80,
+     "captured": 80,
+     "rows_exact": 78,
+     "arch_exact": 79,
+     "unscoreable": 0,
+     "verdicts": {
+      "SUCCESS": 78,
+      "FUNCTIONAL": 1,
+      "KNOWN_ACCEPTED": 1
+     }
+    },
+    {
+     "j": 23,
+     "stratum": "enr/soup/stim/fix2",
+     "n": 80,
+     "captured": 80,
+     "rows_exact": 78,
+     "arch_exact": 78,
+     "unscoreable": 1,
+     "verdicts": {
+      "SUCCESS": 78,
+      "TIMING": 1,
+      "FUNCTIONAL": 1
+     }
+    },
+    {
+     "j": 24,
+     "stratum": "enr/soup/stim/fix3",
+     "n": 80,
+     "captured": 80,
+     "rows_exact": 75,
+     "arch_exact": 75,
+     "unscoreable": 3,
+     "verdicts": {
+      "SUCCESS": 75,
+      "FUNCTIONAL": 3,
+      "KNOWN_ACCEPTED": 2
+     }
+    },
+    {
+     "j": 25,
+     "stratum": "enr/soup/stim/wrand1",
+     "n": 80,
+     "captured": 80,
+     "rows_exact": 76,
+     "arch_exact": 78,
+     "unscoreable": 1,
+     "verdicts": {
+      "SUCCESS": 76,
+      "FUNCTIONAL": 1,
+      "KNOWN_ACCEPTED": 3
+     }
+    },
+    {
+     "j": 26,
+     "stratum": "enr/soup/stim/wrand3",
+     "n": 80,
+     "captured": 80,
+     "rows_exact": 78,
+     "arch_exact": 78,
+     "unscoreable": 2,
+     "verdicts": {
+      "SUCCESS": 78,
+      "FUNCTIONAL": 2
+     }
+    },
+    {
+     "j": 27,
+     "stratum": "enr/soup/stim/wrand7",
+     "n": 80,
+     "captured": 80,
+     "rows_exact": 77,
+     "arch_exact": 79,
+     "unscoreable": 1,
+     "verdicts": {
+      "SUCCESS": 77,
+      "KNOWN_ACCEPTED": 3
+     }
+    },
+    {
+     "j": 28,
+     "stratum": "enr/soup/stim/wrand15",
+     "n": 80,
+     "captured": 80,
+     "rows_exact": 74,
+     "arch_exact": 77,
+     "unscoreable": 1,
+     "verdicts": {
+      "SUCCESS": 74,
+      "FUNCTIONAL": 3,
+      "TIMING": 1,
+      "KNOWN_ACCEPTED": 2
+     }
+    },
+    {
+     "j": 29,
+     "stratum": "enr/soup/stim/wvec-uni",
+     "n": 80,
+     "captured": 80,
+     "rows_exact": 79,
+     "arch_exact": 78,
+     "unscoreable": 2,
+     "verdicts": {
+      "SUCCESS": 79,
+      "FUNCTIONAL": 1
+     }
+    },
+    {
+     "j": 30,
+     "stratum": "enr/raw/noevt/fix0",
+     "n": 80,
+     "captured": 80,
+     "rows_exact": 62,
+     "arch_exact": 62,
+     "unscoreable": 12,
+     "verdicts": {
+      "SUCCESS": 62,
+      "KNOWN_ACCEPTED": 18
+     }
+    },
+    {
+     "j": 31,
+     "stratum": "enr/raw/noevt/fix1",
+     "n": 80,
+     "captured": 80,
+     "rows_exact": 73,
+     "arch_exact": 59,
+     "unscoreable": 19,
+     "verdicts": {
+      "SUCCESS": 73,
+      "KNOWN_ACCEPTED": 7
+     }
+    },
+    {
+     "j": 32,
+     "stratum": "enr/raw/noevt/fix2",
+     "n": 80,
+     "captured": 80,
+     "rows_exact": 73,
+     "arch_exact": 65,
+     "unscoreable": 13,
+     "verdicts": {
+      "KNOWN_ACCEPTED": 6,
+      "SUCCESS": 73,
+      "FUNCTIONAL": 1
+     }
+    },
+    {
+     "j": 33,
+     "stratum": "enr/raw/noevt/fix3",
+     "n": 80,
+     "captured": 80,
+     "rows_exact": 69,
+     "arch_exact": 58,
+     "unscoreable": 17,
+     "verdicts": {
+      "SUCCESS": 69,
+      "KNOWN_ACCEPTED": 11
+     }
+    },
+    {
+     "j": 34,
+     "stratum": "enr/raw/noevt/wrand1",
+     "n": 80,
+     "captured": 80,
+     "rows_exact": 71,
+     "arch_exact": 61,
+     "unscoreable": 14,
+     "verdicts": {
+      "SUCCESS": 71,
+      "KNOWN_ACCEPTED": 9
+     }
+    },
+    {
+     "j": 35,
+     "stratum": "enr/raw/noevt/wrand3",
+     "n": 80,
+     "captured": 80,
+     "rows_exact": 77,
+     "arch_exact": 69,
+     "unscoreable": 11,
+     "verdicts": {
+      "SUCCESS": 77,
+      "KNOWN_ACCEPTED": 3
+     }
+    },
+    {
+     "j": 36,
+     "stratum": "enr/raw/noevt/wrand7",
+     "n": 80,
+     "captured": 80,
+     "rows_exact": 76,
+     "arch_exact": 60,
+     "unscoreable": 20,
+     "verdicts": {
+      "SUCCESS": 76,
+      "KNOWN_ACCEPTED": 4
+     }
+    },
+    {
+     "j": 37,
+     "stratum": "enr/raw/noevt/wrand15",
+     "n": 80,
+     "captured": 80,
+     "rows_exact": 79,
+     "arch_exact": 66,
+     "unscoreable": 13,
+     "verdicts": {
+      "SUCCESS": 79,
+      "KNOWN_ACCEPTED": 1
+     }
+    },
+    {
+     "j": 38,
+     "stratum": "enr/raw/noevt/wvec-uni",
+     "n": 80,
+     "captured": 80,
+     "rows_exact": 75,
+     "arch_exact": 66,
+     "unscoreable": 13,
+     "verdicts": {
+      "SUCCESS": 75,
+      "KNOWN_ACCEPTED": 5
+     }
+    },
+    {
+     "j": 39,
+     "stratum": "enr/raw/stim/fix0",
+     "n": 80,
+     "captured": 80,
+     "rows_exact": 73,
+     "arch_exact": 59,
+     "unscoreable": 19,
+     "verdicts": {
+      "SUCCESS": 73,
+      "KNOWN_ACCEPTED": 7
+     }
+    },
+    {
+     "j": 40,
+     "stratum": "enr/raw/stim/fix1",
+     "n": 80,
+     "captured": 80,
+     "rows_exact": 72,
+     "arch_exact": 65,
+     "unscoreable": 14,
+     "verdicts": {
+      "SUCCESS": 72,
+      "KNOWN_ACCEPTED": 8
+     }
+    },
+    {
+     "j": 41,
+     "stratum": "enr/raw/stim/fix2",
+     "n": 80,
+     "captured": 80,
+     "rows_exact": 71,
+     "arch_exact": 66,
+     "unscoreable": 11,
+     "verdicts": {
+      "SUCCESS": 71,
+      "KNOWN_ACCEPTED": 9
+     }
+    },
+    {
+     "j": 42,
+     "stratum": "enr/raw/stim/fix3",
+     "n": 80,
+     "captured": 80,
+     "rows_exact": 72,
+     "arch_exact": 58,
+     "unscoreable": 18,
+     "verdicts": {
+      "SUCCESS": 72,
+      "KNOWN_ACCEPTED": 8
+     }
+    },
+    {
+     "j": 43,
+     "stratum": "enr/raw/stim/wrand1",
+     "n": 80,
+     "captured": 80,
+     "rows_exact": 72,
+     "arch_exact": 65,
+     "unscoreable": 11,
+     "verdicts": {
+      "KNOWN_ACCEPTED": 8,
+      "SUCCESS": 72
+     }
+    },
+    {
+     "j": 44,
+     "stratum": "enr/raw/stim/wrand3",
+     "n": 80,
+     "captured": 80,
+     "rows_exact": 73,
+     "arch_exact": 66,
+     "unscoreable": 12,
+     "verdicts": {
+      "KNOWN_ACCEPTED": 7,
+      "SUCCESS": 73
+     }
+    },
+    {
+     "j": 45,
+     "stratum": "enr/raw/stim/wrand7",
+     "n": 80,
+     "captured": 80,
+     "rows_exact": 78,
+     "arch_exact": 60,
+     "unscoreable": 20,
+     "verdicts": {
+      "SUCCESS": 78,
+      "KNOWN_ACCEPTED": 2
+     }
+    },
+    {
+     "j": 46,
+     "stratum": "enr/raw/stim/wrand15",
+     "n": 80,
+     "captured": 80,
+     "rows_exact": 74,
+     "arch_exact": 64,
+     "unscoreable": 14,
+     "verdicts": {
+      "SUCCESS": 74,
+      "KNOWN_ACCEPTED": 6
+     }
+    },
+    {
+     "j": 47,
+     "stratum": "enr/raw/stim/wvec-uni",
+     "n": 80,
+     "captured": 80,
+     "rows_exact": 74,
+     "arch_exact": 64,
+     "unscoreable": 13,
+     "verdicts": {
+      "SUCCESS": 74,
+      "KNOWN_ACCEPTED": 6
+     }
+    }
+   ],
+   "rows_exact_mean_pct": 94.58,
+   "arch_exact_mean_pct": 88.33,
+   "unscoreable_total": 282
+  }
+ }
+}

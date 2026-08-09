@@ -45,8 +45,13 @@ CAMPAIGNS = os.path.join(ROOT, "sw", "testdata", "campaigns")
 # rate; the falsifier reports each separately, which is also what makes the
 # archive a second, disjoint population for it.
 BANKS = {"current": ("fz2c", "fz2e"),
+         # the A-5-scored capture, archived BY RENAME at amendment A-6 (prereg
+         # sec.17.8).  NOT an invalidation -- no constant moved -- and kept
+         # reachable so the A-4 falsifier can still be run on the bank it was
+         # first run on.
+         "prior": ("fz2c-A5-archive", "fz2e-A5-archive"),
          "archive": ("fz2c-INV2-archive", "fz2e-INV2-archive")}
-BANKS["all"] = BANKS["current"] + BANKS["archive"]
+BANKS["all"] = BANKS["current"] + BANKS["prior"] + BANKS["archive"]
 BS_NAME = {0: "INTA", 1: "IOR", 2: "IOW", 3: "HALT", 4: "CODE", 5: "MEMR",
            6: "MEMW", 7: "PASV"}
 
@@ -103,7 +108,8 @@ def cmd_falsify(a):
     """THE HARD BAR: the detector must fire on ZERO captures that reached the
     terminator.  Reported per bank, and per campaign inside it."""
     rc = 0
-    for bank in (["current", "archive"] if a.bank == "all" else [a.bank]):
+    for bank in (["current", "prior", "archive"] if a.bank == "all"
+                 else [a.bank]):
         rows = _load(bank)
         print(f"== bank {bank!r} ({', '.join(BANKS[bank])}): "
               f"{len(rows)} banked captures")
@@ -156,7 +162,8 @@ def cmd_census(a):
     """What the class contains, and THE POSITIVE HALF -- the chip-vs-core
     agreement on the park clock, which is the evidence a discard must not
     throw away."""
-    for bank in (["current", "archive"] if a.bank == "all" else [a.bank]):
+    for bank in (["current", "prior", "archive"] if a.bank == "all"
+                 else [a.bank]):
         rows = [(c, l, e) for c, l, e in _load(bank) if e is not None]
         cls = [(c, l, e) for c, l, e in rows if e["stalled"]]
         print(f"== bank {bank!r}: {len(cls)} captures in the class")
