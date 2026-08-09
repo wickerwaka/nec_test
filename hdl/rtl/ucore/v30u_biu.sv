@@ -476,7 +476,7 @@ wire ann_kill  = (q_flush ||
 wire display   = r_cmt_valid && !ann_kill;
 
 // The REP-withdrawal FLUSH can use the redirect edge as an idle arbitration
-// point.  Empty tails normally open T1 directly.  An NMI that meets the
+// point.  Empty tails open T1 directly.  An NMI that meets the
 // younger decoder landing (dage <= 4) withdraws that point; the older landing
 // has already crossed it.  A staged read tail normally owns the edge, except
 // when a still-asserted maskable INT meets it after no write completion on the
@@ -489,6 +489,22 @@ wire display   = r_cmt_valid && !ann_kill;
 // existing phase/ownership rails: there is no interrupt counter, queue, or
 // identity table.
 //
+// THE ASSERTED PIN WITHDRAWS THE DIRECT POINT ON *EITHER* TAIL.  `flush_int_live`
+// was read by the staged arm only, and the empty arm took the direct point
+// unconditionally.  It is ONE rail and it acts the same way on both: while the
+// maskable pin is still asserted at the withdrawal the redirect takes an
+// ordinary idle eval, so EMPTY stands on the FLUSH row and the announcement
+// gets its own clock.  Two disjoint populations, each unanimous:
+//   pin ASSERTED  -> ordinary eval : v0.1 `INT.F3AA`, 35 of 35 empty-tail
+//                    withdrawals (rows 17-22 of each; the golden is silicon)
+//   pin RELEASED  -> direct T1     : fz2c+fz2e, 17 of 17 empty-tail
+//                    withdrawals over 623 seeds, all at pin low
+// The rail is the PIN, not a flush-clock strobe, because the empty arm has to
+// read it one row EARLY (`flush_pre`) as well as on the flush row itself.
+// FALSIFIER: an empty-tail withdrawal whose maskable pin CHANGES between those
+// two adjacent clocks -- the two reads then disagree and EMPTY is shown twice
+// or not at all.  No instance exists in either population above.
+//
 // SOCKET, 2026-08-06, row 7.40.7 -> redirected CODE T1:
 //   empty/direct: mc1/874, mc2/700,2408,3758; NMI-age boundary: mc1/410,607
 //   staged/slow:  mc2/633,1616, t30-raw/235; live-INT exception: mc2/573
@@ -496,8 +512,8 @@ wire flush_idle = !r_run && !r_cmt_valid && (r_rq_n == 2'd0) && !eu_post;
 wire flush_nmi_young = flush_nmi && (r_dage <= 3'd4);
 wire flush_staged_eval = flush_stage && flush_pend && flush_int_live &&
                          !r_wr_done_p && flush_idle;
-wire flush_fast = flush_rep && flush_idle && !flush_stage &&
-                  !flush_nmi_young;
+wire flush_direct = !flush_stage && !flush_nmi_young && !flush_int_live;
+wire flush_fast = flush_rep && flush_idle && flush_direct;
 // A hardware acknowledge posted on a CODE T4 replaces a speculative CODE
 // announcement already waiting behind that fetch.  The status decoder sees
 // the replacement on the collision clock; the ordinary committed-request
@@ -634,9 +650,9 @@ wire pop_now       = q_pop && q_ripe;
 // is a term of the flush clock and not a flop.
 wire e_from_block = q_flush && r_run && r_cur_fetch;
 wire qs_e_now = (r_e_pend || q_flush ||
-                (flush_pre && !flush_nmi_young)) &&
+                (flush_pre && flush_direct)) &&
                 !(q_flush && flush_rep &&
-                  ((!flush_stage && !flush_nmi_young) ||
+                  (flush_direct ||
                    (flush_pend &&
                     !(r_run && !r_cur_fetch && (r_ts < TS_T3)) &&
                     !flush_staged_eval))) &&
@@ -656,7 +672,7 @@ wire qs_e_now = (r_e_pend || q_flush ||
                 // MEASURED: `E8 idx 1` shows E on the push's ANNOUNCEMENT
                 // clock (row 8), not on the flush row's own clock (row 7).
                 (((r_rq_n == 2'd0) && !eu_post) || q_flush ||
-                 (flush_pre && !flush_nmi_young) ||
+                 (flush_pre && flush_direct) ||
                  (r_cmt_valid && !r_cmt_fetch) || (r_run && !r_cur_fetch));
 
 assign qs = qs_e_now ? QS_EMPTY

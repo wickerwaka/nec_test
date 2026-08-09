@@ -1978,8 +1978,14 @@ assign flush_pend = q_flush && pend_active && (rdq_n != 2'd0) && !brk_take;
 // NMI is the part's recognition latch; maskable INT is the live package pin,
 // whose release distinguishes a short impulse from an asserted hold without
 // adding history state to either unit.
+// The pin is published RAW.  It was gated on `q_flush`, which is redundant at
+// both of the BIU's original readers (each is already ANDed with `flush_stage`
+// or `flush_rep`, and both carry `q_flush`) and WRONG for the third: the empty
+// arm reads the same rail on the withdrawal's own preceding row, where the
+// flush strobe is still low.  Removing the gate changes nothing the two old
+// readers see and gives the third the pin it is asking about.
 assign flush_nmi = irq_nmi_lvl;
-assign flush_int_live = q_flush && pin_int;
+assign flush_int_live = pin_int;
 assign flush_cs = cs_now;
 assign flush_cs_old = sreg[SR_CS];
 assign flush_cs_we = wr_cs1;
