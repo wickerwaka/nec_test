@@ -1,6 +1,6 @@
 {
  "stage": "fz2 bars",
- "ts": "2026-08-09T14:39:56Z",
+ "ts": "2026-08-09T15:44:39Z",
  "seed_list_sha256": "45d25f31a325c4965da81117d5f4217b86487aa1abb0078faed26a72ed9bec32",
  "bars": {
   "C-1": {
@@ -12,32 +12,50 @@
       "n": 480,
       "reached": 473,
       "pct": 98.54,
-      "dispositioned": 0,
-      "undispositioned": 7
+      "dispositioned": 5,
+      "dispositioned_3class": 0,
+      "stalled": 5,
+      "undispositioned": 2,
+      "undispositioned_3class": 7
      },
      "census/raw": {
       "n": 480,
       "reached": 401,
       "pct": 83.54,
-      "dispositioned": 4,
-      "undispositioned": 75
+      "dispositioned": 31,
+      "dispositioned_3class": 4,
+      "stalled": 27,
+      "undispositioned": 48,
+      "undispositioned_3class": 75
      },
      "enriched/soup": {
       "n": 1440,
       "reached": 1424,
       "pct": 98.89,
       "dispositioned": 1,
-      "undispositioned": 15
+      "dispositioned_3class": 1,
+      "stalled": 0,
+      "undispositioned": 15,
+      "undispositioned_3class": 15
      },
      "enriched/raw": {
       "n": 1440,
       "reached": 1204,
       "pct": 83.61,
-      "dispositioned": 21,
-      "undispositioned": 215
+      "dispositioned": 32,
+      "dispositioned_3class": 21,
+      "stalled": 11,
+      "undispositioned": 204,
+      "undispositioned_3class": 215
      }
     },
-    "undispositioned": 312
+    "undispositioned": 269,
+    "undispositioned_3class": 312,
+    "stalled_total": 43,
+    "classified_from": {
+     "rows": 67,
+     "none": 245
+    }
    },
    "verdict": "MISSED",
    "finding": null

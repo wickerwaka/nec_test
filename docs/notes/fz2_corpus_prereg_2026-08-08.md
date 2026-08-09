@@ -1528,3 +1528,50 @@ existing class, exactly as the other three overlap.
 
 `SEEDS_SHA256`, `SEED_LIST_SHA256` and the corpus itself **do not move**: not
 one seed, image, vector or constant changed.
+
+### 15.7 THE RESCORE AS RUN — `sw/testdata/fz2/fz2_bars.json`, 2026-08-09T15:44:39Z
+
+§15.5's table was registered from the same code before the scorer was run;
+this is the scorer's own output, and it agrees with it seed for seed.
+
+**`FZ2 BARS: 7/11 MET   NOT MET: C-1, C-3, C-6, C-11`** — the identical
+7 MET / 2 MISSED / 2 NOT SCOREABLE of §14.1.
+
+| | 3 classes | **4 classes** |
+|---|---|---|
+| census/soup undispositioned | 7 | **2** (stalled 5) |
+| census/raw | 75 | **48** (stalled 27) |
+| enriched/soup | 15 | **15** (stalled 0) |
+| enriched/raw | 215 | **204** (stalled 11) |
+| **total** | **312** | **269** |
+| `classified_from` | | `rows` **67**, `none` **245** |
+
+**NO OTHER BAR MOVED, and this is checked rather than asserted**: the new
+`fz2_bars.json` is compared field for field against the one §14 committed, and
+**C-1's `measured` is the only object in the file that differs.**  Every other
+bar's `verdict`, `measured` and `registered` text, both populations' three
+decompositions (census rows-exact **94.38** / arch-exact **87.71** /
+unscoreable **95**; enriched **94.58** / **88.33** / **282**) and
+`seed_list_sha256` are **identical**.
+
+**C-1 REMAINS MISSED** on all three of its clauses: census/raw **83.54 %** and
+enriched/raw **83.61 %** against **95.0 %**; census/soup **98.54 %** and
+enriched/soup **98.89 %** against **99.0 %**; E-1c **269** against **0**.  The
+two rate clauses did not move by a hundredth — the class disposes seeds, it
+does not make them reach the terminator, and nothing in A-4 could have changed
+a rate.
+
+### 15.8 WHAT A-4 DOES NOT SETTLE — the 245, and the coordinator's call
+
+**269 is not 43 short of the bar; it is 202 short of what these rows can even
+speak to.**  Of the 269 still undispositioned, **24** were classified and
+genuinely carry none of the four signatures (20 are A-3's budget class with the
+bus still running and the vector taken; 3 stopped too close to the NMI to
+attribute; 1 is a HALT that took the vector and did not dump), and **245**
+could not be asked at all.
+
+A re-capture of the corpus with `--keep-rows` on every seed would classify
+those 245 — **the cost, and the decision, are the coordinator's** and are
+stated in the sitting report, not taken here.  **No board was contacted for
+this amendment**: every figure in §15 is read off banked captures and banked
+result lines, offline.
