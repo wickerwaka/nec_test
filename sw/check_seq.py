@@ -168,12 +168,21 @@ def _run_tb_in(td, image, n, waits, evt, wrand, wvec, core=None):
 
 
 def run_chip(image, host, use_core=None, waits=0, evt=None, wrand=None,
-             wvec=None, div=DIV_OF_RECORD):
+             wvec=None, div=DIV_OF_RECORD, evts=None, tvec=None, vecsub=0,
+             pin_share=False, term_out=None):
     # 21.1: the divider is SET, never inherited.  `div=None` still means "leave
     # the board default" for the one caller that sweeps frequency deliberately,
     # but it is no longer what a plain capture does by accident.
+    #
+    # T11: `evts`/`tvec`/`vecsub` are the terminating-NMI directive -- up to
+    # EVT_N schedulers, the NMI vector-read overlay's CS:IP, and the mask that
+    # says which scheduler's FIRE arms it.  They are pass-throughs; this
+    # function owns no packing.  `term_out`, when given, is filled with the
+    # rig's readback and STATUS bits (see `v30run.ServeRunner.run`).
     recs = run_image(bytes(image), host, tag="seq", use_core=use_core,
-                     waits=waits, evt=evt, wrand=wrand, wvec=wvec, div=div)
+                     waits=waits, evt=evt, wrand=wrand, wvec=wvec, div=div,
+                     evts=evts, tvec=tvec, vecsub=vecsub,
+                     pin_share=pin_share, term_out=term_out)
     rel = next(i for i, r in enumerate(recs) if not r["rst"])
     return recs[rel:]
 

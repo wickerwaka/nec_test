@@ -30,6 +30,7 @@ import dataclasses
 import gzip
 import hashlib
 import json
+import math
 from collections import Counter
 import os
 import random
@@ -51,9 +52,10 @@ from fuzz_accept import AcceptEngine, open_bus_escape_metrics   # noqa: E402
 from fuzz_classify import Ctx, classify, EscalationPolicy  # noqa: E402
 from gen_soup import gen_soup, SoupKnobs                 # noqa: E402
 from gen_raw import gen_raw                              # noqa: E402
-from v30run import run_image, RunError                  # noqa: E402
+from v30run import run_image, RunError, RigMismatch     # noqa: E402
 import v30ctl                                           # noqa: E402
 import wvec_shapes as wv                                # noqa: E402
+import testimage as ti                                  # noqa: E402
 
 RESERVED_LO = 0xFF00
 NMIN, NMAX = 24, 80
@@ -380,6 +382,71 @@ def _evt_tuple(cfg, meta):
     return (meta["anchor_linear"] & 0xFFFFF, e["delay"], e["hold"], e["pin"])
 
 
+# --------------------------------------------------------------------------- #
+# THE TERMINATING NMI (fuzz-v2 plan D3, pre-registered in
+# `docs/notes/fz2_corpus_prereg_2026-08-08.md` §3.1-§3.3).
+#
+# The image's INT3 backstop is broken by a runtime write over IVT[3] or over
+# the terminator.  The NMI route is IMMUNE TO THE IVT by construction: the rig
+# SUBSTITUTES THE VECTOR DATA at linear 0x00008 / 0x0000A from a register, so
+# there is nothing in memory for the seed to scribble.  That is the whole
+# reason `TVEC` is a register and not a pre-written image word.
+#
+# ONE directive, no per-seed table:
+#   * scheduler `TERM_SCHED` (2), triggered on the anchor's own CODE T1 -- the
+#     same trigger the stimulus event uses, so there is one anchor, not two;
+#   * `TERM_CLOCKS` clocks later, `TERM_HOLD` clocks of NMI;
+#   * `vecsub_en` set for THAT SCHEDULER ONLY, so a stimulus NMI on scheduler 0
+#     enters through the seed's own IVT and only the terminator is substituted.
+#
+# The scheduler index, hold and vecsub mask are the ones `sw/fz2_tbsys.py`
+# leg (d) proved on `tb_sys` -- the leg whose whole point is that a stimulus
+# NMI and a terminating NMI coexist -- and are not re-chosen here.
+# --------------------------------------------------------------------------- #
+CAP_ROWS = v30ctl.CAP_RECORDS      # 4,096 -- the rig's capture depth
+ANCHOR_W0 = 145                    # MEASURED: the anchor's first CODE T1 row
+DUMP_W0 = 240                      # MEASURED 219 + the NMI entry's ~5 cycles
+TERM_MARGIN = 1.2                  # a DECLARED margin, not a fit
+TERM_FLOOR = 512                   # registered floor on every seed's delay
+TERM_SCHED = 2                     # scheduler 2 == the `evt3=` option
+TERM_HOLD = 20                     # clocks of NMI (fz2_tbsys leg (a)/(d))
+TERM_PIN = 1                       # 1 = NMI
+TERM_VECSUB = 1 << TERM_SCHED      # VECCTL: only the terminator substitutes
+TERM_TVEC = (0x0000, ti.TERM_AT)   # CS:IP -> the termination handler
+
+
+def weff_of(cfg):
+    """The seed's EFFECTIVE wait level -- the vector's ceil-mean when it has a
+    vector, otherwise `wmax`/`fixed`.  `_weff` below is the older, vector-blind
+    form kept for the coverage roll-up's own axis; this is the one the capture
+    budget and `term_clocks` use, and there is no third rule."""
+    if cfg.get("wvec"):
+        return _wvec_weff(wv.build(cfg["wvec"]))
+    w = cfg["waits"]
+    return w["wmax"] if w["wrand"] else w["fixed"]
+
+
+def term_clocks(weff):
+    """ONE FORMULA, reusing the capture budget's OWN coupling constant.  The
+    delay must be late enough not to truncate a normal run and early enough to
+    leave the dump inside the 4,096-record capture; both scale with the cost of
+    a bus cycle, so the reserve does too."""
+    scale = (NMAX_SCALE_C + weff) / NMAX_SCALE_C
+    return CAP_ROWS - math.ceil(TERM_MARGIN * (ANCHOR_W0 + DUMP_W0) * scale)
+
+
+def term_directive(cfg, meta):
+    """-> (evts, tvec, vecsub) for `run_chip`, with the seed's stimulus event
+    (if any) on scheduler 0 and the terminator on `TERM_SCHED`."""
+    evts = [None] * v30ctl.EVT_N
+    evts[0] = _evt_tuple(cfg, meta)
+    d = term_clocks(weff_of(cfg))
+    assert d >= TERM_FLOOR, f"TERM_CLOCKS {d} below the registered floor"
+    evts[TERM_SCHED] = (meta["anchor_linear"] & 0xFFFFF, d, TERM_HOLD,
+                        TERM_PIN)
+    return evts, TERM_TVEC, TERM_VECSUB
+
+
 def wvec_of(cfg):
     """The seed's per-access wait vector, or None.  ALWAYS exactly
     `wv.NWVEC` entries: a short load leaves the board's replay RAM holding the
@@ -430,22 +497,49 @@ def tb_engine(core=None):
             artifact.receipt_id(binp))
 
 
-def capture_board(image, meta, cfg, host):
+def capture_board(image, meta, cfg, host, term_out=None):
     """hw-ab: socketed chip (use_core=0) then fabric core (use_core=1), same
-    image/evt/wrand. ensure() force-cleans the rig at connect. One reconnect +
-    retry on RunError, else the caller quarantines."""
+    image/evt/wrand/TVEC/VECCTL. ensure() force-cleans the rig at connect. One
+    reconnect + retry on RunError, else the caller quarantines.
+
+    THE TERMINATING NMI IS ARMED HERE, unconditionally and for every seed --
+    `term_directive` above, `tvec` + `vecsub` on both legs of the A/B pair.
+    There is no version dispatch and no default-off axis, on the same footing
+    as `compose_case`'s unconditional 0F scrub (plan D9): the v1 bank is
+    already discarded by that change, so a second, quieter split would buy
+    nothing and cost a mode nobody can see in a result line.
+
+    `pin_share=True` is the explicit consent the rig demands when two
+    schedulers land on one pin -- a seed whose stimulus event is itself an NMI
+    beside the terminating NMI.  It is passed because the OVERLAY IS KEYED ON
+    WHICH DIRECTIVE FIRED, not on which pin went high, which is the only
+    formulation under which the two coexist; it is not inferred from `vecsub`.
+
+    `term_out`, when given, receives the SOCKET leg's rig readback and STATUS
+    bits (`fired`, `vec_used`), which is what the result line's `term` column
+    is scored from."""
     w = cfg["waits"]
     wrand = (w["wmax"], w["wseed"]) if w["wrand"] else None
     fixed = 0 if w["wrand"] else w["fixed"]
-    evt = _evt_tuple(cfg, meta)
+    evts, tvec, vecsub = term_directive(cfg, meta)
     vec = wvec_of(cfg)
     for attempt in (1, 2):
         try:
             real = check_seq.run_chip(image, host, use_core=False, waits=fixed,
-                                      evt=evt, wrand=wrand, wvec=vec)
+                                      evts=evts, wrand=wrand, wvec=vec,
+                                      tvec=tvec, vecsub=vecsub,
+                                      pin_share=True, term_out=term_out)
             sim = check_seq.run_chip(image, host, use_core=True, waits=fixed,
-                                     evt=evt, wrand=wrand, wvec=vec)
+                                     evts=evts, wrand=wrand, wvec=vec,
+                                     tvec=tvec, vecsub=vecsub,
+                                     pin_share=True)
             return real, sim, None
+        except RigMismatch:
+            # NOT quarantine material.  C-10's reconnect+retry+quarantine
+            # ladder is for TRANSPORT faults; a rig holding a directive other
+            # than the one it was handed is INV-1 happening again, and the
+            # disposition is to STOP, fix the rig and RE-CAPTURE.
+            raise
         except RunError as e:
             if attempt == 2:
                 return None, None, f"run_error:{e}"
@@ -594,6 +688,111 @@ def era_of(manifest):
             "rules_version": (manifest or {}).get("rules_version")}
 
 
+def _ps3_8080(recs, win):
+    """C-3's RUNTIME clause: PS3 set on a CODE T1 inside the window.  This is
+    `timed_fuzz.native_exclusion`'s predicate, transcribed to take rows rather
+    than a bank entry, so a native seed that merely CONTAINS BRKEM bytes is
+    not excluded -- only one that actually entered emulation mode.  8080/BRKEM
+    is deferred by user decision, so the seed is a DISCARD with the reason on
+    its own result line, not a failure.
+
+    ⚠ CHIP/FABRIC ROWS ONLY, and this is MEASURED, not assumed.  On a board
+    capture a `CODE` T1's `ps` column is the STATUS nibble -- the reset fetch
+    at linear 0xFFFF0 reads `ps = 0x2`, i.e. {md, ie, CS}, not `0xF`.  On the
+    Verilator TB's rows the same column is the ADDRESS nibble (that same fetch
+    reads `0xF`), because `diff_rows` only ever compares `ps` at T2 and the
+    difference has never had to matter.  Under fuzz-v2's D1 segment
+    randomization 15 seeds in 16 fetch code ABOVE 64K, so on a TB leg this
+    predicate would fire on almost the whole corpus and discard it.  The
+    caller passes TB rows nothing; see `eval_case`."""
+    if not recs:
+        return None
+    for r in recs[:min(win, len(recs))]:
+        if r.get("t_state", r.get("t")) == 1 and r.get("bs_early") == 4 \
+                and (int(r.get("ps", 0)) & 8):
+            return True
+    return False
+
+
+def _wrote_term(recs, win):
+    """§3.4: a MEMW or IOW into [TERM_AT, CODE_HI) before the first done
+    marker.  The program overwrote the thing that terminates it -- the one leak
+    plan D2 says is not preventable, declared as a discard class in advance.
+
+    Returns [row, "MEMW"|"IOW", addr] for the first such cycle, or None.  The
+    caller banks the BOOLEAN as `wrote_term` (the registered predicate) and
+    this triple as `wrote_term_at`.
+
+    ⚠ A NOTE FOR WHOEVER SCORES C-1, recorded rather than acted on: the
+    registered predicate names IOW as well as MEMW, and on THIS rig an IOW
+    cannot overwrite memory -- `hdl/rtl/test_mem.sv:48-49` gates both write
+    enables on `cycle_type == BS_MEMW`, so an `OUT 0xBF00, AW` is a false
+    positive.  (It was not always so: the `tb_v30_core` defect closed at SM3
+    sitting 6 committed IOW cycles into `mem[]`, which is very likely where
+    the clause comes from.)  The predicate is implemented AS REGISTERED and
+    the evidence is banked beside it, so dropping the IOW clause is a
+    one-line decision somebody can take on the numbers instead of a silent
+    re-key here."""
+    if not recs:
+        return None
+    for i, r in enumerate(recs[:min(win, len(recs))]):
+        if r.get("t_state", r.get("t")) != 1:
+            continue
+        bs = r.get("bs_early")
+        addr = r["ad_addr"] & 0xFFFF
+        if bs == 2 and addr == ti.OUT_PORT_DONE:
+            return None                      # reached the done marker first
+        if bs in (2, 6) and ti.TERM_AT <= addr < ti.CODE_HI:
+            return [i, "IOW" if bs == 2 else "MEMW", addr]
+    return None
+
+
+PIN_COL = {0: "pin_int", 1: "pin_nmi", 2: "pin_poll_n"}
+
+
+def _pin_runs(recs, win):
+    """C-6(b)'s PIN-LEVEL evidence, COUNTED OFF THE ROWS: every maximal run of
+    consecutive rows on which each pin is asserted, as `[start, length]`.
+
+    The levels are `nec_bus.sv`'s EFFECTIVE pins ([54:52]) -- host PINS OR-ed
+    with every armed scheduler -- decoded since T11; before that
+    `decode_words` skipped them and this could not be measured at all.
+    POLL_N is ACTIVE LOW and counts as asserted when the level is 0.
+
+    ALL THREE PINS, and every run, not the longest: with a stimulus NMI and a
+    terminating NMI on the same wire the longest run is whichever held longer,
+    and the bar asks whether each directive's OWN hold is on the pin.  Picking
+    one number here would be answering the question in the instrument.
+
+    Returns None when the rows carry no pin columns (the Verilator TB's do
+    not) -- never an empty dict, which would read as a measured absence."""
+    if not recs or PIN_COL[0] not in recs[0]:
+        return None
+    out = {}
+    for pin, key in PIN_COL.items():
+        runs, start = [], None
+        for i, r in enumerate(recs[:min(win, len(recs))]):
+            hi = (r[key] == 0) if pin == 2 else (r[key] == 1)
+            if hi and start is None:
+                start = i
+            elif not hi and start is not None:
+                runs.append([start, i - start])
+                start = None
+        if start is not None:
+            runs.append([start, min(win, len(recs)) - start])
+        out[key] = runs
+    return out
+
+
+def _vec_rows(recs, win):
+    """How many rows the NMI vector-read overlay was ARMED for ([59]).  C-6(c)
+    reads the interception off the rows; a seed whose capture is not banked
+    still carries this one number on its result line."""
+    if not recs or "vec_armed" not in recs[0]:
+        return None
+    return sum(1 for r in recs[:min(win, len(recs))] if r["vec_armed"])
+
+
 def result_line(cfg, g, sha, v, di, gen_git, build_stale, ts, bus_cycles=None,
                 arch=None):
     # task #38: the vector is banked IN FULL (`wvec_hex`, 2 chars per entry,
@@ -621,8 +820,24 @@ def result_line(cfg, g, sha, v, di, gen_git, build_stale, ts, bus_cycles=None,
         # counter (row, physical offset) exactly as E-1 says.  `arch_restart`
         # is the seed the terminator entered twice, which is a DISCARD and not
         # a dump.  All three `None` when there are no rows.
+        # THE COLUMNS THE PRE-REGISTRATION'S BARS ARE SCORED ON (§7 item 3).
+        # `arch_words` is the socket leg's own 15-word dump and `arch_sim_*`
+        # the fabric leg's, so C-2's non-vacuity ("each of the other 14 words
+        # takes >= 2 distinct values") and the arch-exact decomposition can be
+        # taken from the bank without re-reading a capture; `arch_match` is
+        # the two compared.  `ps3_8080` and `wrote_term` are two of §3.4's
+        # three declared discard classes (`arch_restart` is the third), each
+        # detected independently and named before the capture.  `term` is
+        # C-6's record: what the rig REPORTED (`fired`, `vec_used`) beside
+        # what it was HANDED (`tvec`, `term_clocks`) and what the ROWS say
+        # (`hold_rows`).  A bar whose column is absent reads NOT SCOREABLE,
+        # never MET -- which is why they are defaulted to None and not to 0.
         **(arch or {"arch_ok": None, "arch_restart": None, "escaped": None,
-                    "escaped_n": None}),
+                    "escaped_n": None, "arch_words": None,
+                    "arch_sim_ok": None, "arch_sim_words": None,
+                    "arch_match": None, "ps3_8080": None,
+                    "wrote_term": None, "wrote_term_at": None,
+                    "term": None}),
         "era": _ERA,
         "wild": g.get("wild"), "has_brkem": g.get("has_brkem", False),
         "brkem_pos": g.get("brkem_pos", []), "has_halt": g.get("has_halt", False),
@@ -687,6 +902,10 @@ def eval_case(cid, k, ov, tb_only, host, build_stale, keep_rows=False,
 
     t0 = time.time()
     run_error = None
+    # None on a TB leg and a dict on a board leg: the Verilator TB has ONE
+    # scheduler and no vector-read overlay, so it cannot arm a terminating NMI
+    # and `term` must read absent rather than zero.
+    term_rec = None
     if tb_only:
         try:
             real = capture_tb(image, meta, cfg, core=core)
@@ -695,7 +914,9 @@ def eval_case(cid, k, ov, tb_only, host, build_stale, keep_rows=False,
             real = sim = None
             run_error = f"run_error:tb:{str(e)[:120]}"
     else:
-        real, sim, run_error = capture_board(image, meta, cfg, host)
+        term_rec = {}
+        real, sim, run_error = capture_board(image, meta, cfg, host,
+                                             term_out=term_rec)
     t["capture"] = time.time() - t0
 
     ctx = _ctx_for(cfg, g, tb_only)
@@ -720,10 +941,53 @@ def eval_case(cid, k, ov, tb_only, host, build_stale, keep_rows=False,
     arch = None
     if real:
         esc = fc.escaped_code_region(real, v.n)
-        arch = {"arch_ok": fc.arch_dump(real, v.n) is not None,
+        aw = fc.arch_dump(real, v.n)
+        asw = fc.arch_dump(sim, v.n) if sim else None
+        wt = _wrote_term(real, len(real))
+        arch = {"arch_ok": aw is not None,
                 "arch_restart": fc.dump_restarted(real, v.n),
                 "escaped": list(esc) if esc else None,
-                "escaped_n": _escape_count(real, v.n)}
+                "escaped_n": _escape_count(real, v.n),
+                # the arch column, BOTH LEGS, banked as words and not as a
+                # verdict: C-2's non-vacuity test needs the values themselves
+                "arch_words": aw,
+                "arch_sim_ok": asw is not None,
+                "arch_sim_words": asw,
+                "arch_match": (aw is not None and aw == asw),
+                # the two capture-time discard classes that are not
+                # `arch_restart`, each detected on its own predicate
+                # ON EITHER LEG -- but only where the `ps` column is the mode
+                # status.  A TB leg's is the address nibble, so it is not
+                # asked and the column reads None (NOT SCOREABLE), never a
+                # False that would look like a measured absence.
+                "ps3_8080": (None if tb_only else
+                             bool(_ps3_8080(real, v.n)
+                                  or _ps3_8080(sim, v.n))),
+                # OVER THE WHOLE CAPTURE, not the compared window.  `v.n` is
+                # shrunk to the done marker + 8, and everything below is
+                # evidence about the RIG rather than about the comparison:
+                # the terminating NMI fires at `term_clocks` (1,901 .. 3,634),
+                # which on a seed that terminated normally is far outside that
+                # window.  Scoring the pin off `v.n` would report "the
+                # terminator never asserted" for exactly the seeds where it
+                # did not need to.
+                "wrote_term": wt is not None,
+                "wrote_term_at": wt,
+                # C-6: what the rig reported, what it was handed, what the
+                # rows say.  `None` on a TB leg, which arms no terminator.
+                "term": {
+                    "fired": (term_rec or {}).get("fired"),
+                    "vec_used": (term_rec or {}).get("vec_used"),
+                    "readback_ok": (term_rec or {}).get("readback_ok"),
+                    "tvec": list(TERM_TVEC),
+                    "vecsub": TERM_VECSUB,
+                    "term_clocks": term_clocks(weff_of(cfg)),
+                    "term_hold": TERM_HOLD,
+                    "evt_hold": (cfg["evt"] or {}).get("hold"),
+                    "evt_pin": (cfg["evt"] or {}).get("pin"),
+                    "hold_rows": _pin_runs(real, len(real)),
+                    "vec_rows": _vec_rows(real, len(real)),
+                } if term_rec is not None else None}
     line = result_line(cfg, g, sha, v, di, _gen_git(), build_stale,
                         time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
                         bus_cycles=bus_cycles, arch=arch)
@@ -751,15 +1015,19 @@ def eval_case(cid, k, ov, tb_only, host, build_stale, keep_rows=False,
 # ===========================================================================
 # run.
 # ===========================================================================
-def _pool_init(cid, ov, tb_only, host, build_stale):
+def _pool_init(cid, ov, tb_only, host, build_stale, keep_every=0):
     global _EVAL_ARGS
-    _EVAL_ARGS = (cid, ov, tb_only, host, build_stale)
+    _EVAL_ARGS = (cid, ov, tb_only, host, build_stale, keep_every)
     _engine()
 
 
 def _pool_eval(k):
-    cid, ov, tb_only, host, build_stale = _EVAL_ARGS
-    return eval_case(cid, k, ov, tb_only, host, build_stale)
+    cid, ov, tb_only, host, build_stale, keep_every = _EVAL_ARGS
+    # the SAME arithmetic the sequential loop uses; a `--keep-rows-every` that
+    # worked at `--jobs 1` and was silently dropped at `--jobs 8` is the
+    # accepted-and-ignored trap wearing a parallelism hat
+    return eval_case(cid, k, ov, tb_only, host, build_stale,
+                     keep_rows=(keep_every > 0 and k % keep_every == 0))
 
 
 def _append_fsync(fh, obj):
@@ -840,6 +1108,24 @@ def cmd_run(a):
     print(f"run {a.cid}: seeds [{start},{end}) tb_only={a.tb_only} "
           f"jobs={a.jobs} ov={ov}", flush=True)
 
+    # THE KEEP-ROWS RULE (fuzz-v2 prereg §7 item 2).  `eval_case` has always
+    # taken `keep_rows`; `cmd_run` never set it, so the only SUCCESS rows this
+    # driver ever banked came through the ballast path -- a ~2 % sample capped
+    # at 100 captures / ~17 per stratum.  A frozen census bank cannot be a
+    # quota: its rates are population rates precisely because nothing about
+    # the outcome, and nothing about how many seeds got there first, decides
+    # membership.  `--keep-rows-every N` keeps every k with k % N == 0,
+    # OUTSIDE the ballast quota entirely.  0 = off, which is every historical
+    # invocation unchanged.
+    keep_every = int(getattr(a, "keep_rows_every", 0) or 0)
+
+    def keep_rows_for(k):
+        return keep_every > 0 and k % keep_every == 0
+
+    if keep_every:
+        print(f"  keep-rows: every k % {keep_every} == 0, un-quota'd "
+              f"(the frozen bank rule)", flush=True)
+
     engine = _engine()
     esc_cfg = dict(engine.escalation)
     if a.survey:
@@ -878,9 +1164,11 @@ def cmd_run(a):
                 done_win += 1
         if res["timeout"]:
             timeouts += 1
-        # gzip divergent captures always; SUCCESS ballast up to the per-stratum
-        # quota (stratified tier x waits-class) for the fab-vs-TB float-floor alarm
-        want_cap = res["rows"] is not None and v.verdict != fc.SUCCESS
+        # gzip divergent captures always; the frozen keep-rows bank always,
+        # with NO quota; SUCCESS ballast up to the per-stratum quota
+        # (stratified tier x waits-class) for the fab-vs-TB float-floor alarm
+        want_cap = res["rows"] is not None and (v.verdict != fc.SUCCESS
+                                                or keep_rows_for(res["k"]))
         if not want_cap and res.get("ballast_cand") and res["rows"] is not None:
             strat = (res["tier"], _waits_class_line(res["line"]))
             if sum(ballast.values()) < 100 and ballast[strat] < ballast_cap:
@@ -913,7 +1201,8 @@ def cmd_run(a):
         ks = range(start, end)
         if a.tb_only and a.jobs > 1:
             with Pool(a.jobs, initializer=_pool_init,
-                      initargs=(a.cid, ov, True, a.host, build_stale)) as pool:
+                      initargs=(a.cid, ov, True, a.host, build_stale,
+                                keep_every)) as pool:
                 for i, res in enumerate(pool.imap(_pool_eval, ks, chunksize=4)):
                     handle(res)
                     _progress(res, i, start, t_start, cov, cdir)
@@ -922,7 +1211,17 @@ def cmd_run(a):
                         break
         else:
             for i, k in enumerate(ks):
-                res = eval_case(a.cid, k, ov, a.tb_only, a.host, build_stale)
+                try:
+                    res = eval_case(a.cid, k, ov, a.tb_only, a.host,
+                                    build_stale,
+                                    keep_rows=keep_rows_for(k))
+                except RigMismatch as e:
+                    # a rig-integrity FINDING, not a transport fault: STOP the
+                    # session with the finding in the heartbeat, rather than
+                    # quarantining it into a count nobody reads.
+                    stopped = f"rig_mismatch @k={k}: {e}"
+                    print(f"\n*** {stopped} ***", flush=True)
+                    break
                 handle(res)
                 _progress(res, i, start, t_start, cov, cdir)
                 if stopped:
@@ -967,7 +1266,8 @@ def cmd_run(a):
             Path(a.done_dist).write_text(json.dumps(dist))
             print(f"  wrote done_idx distribution -> {a.done_dist}")
     _verdict_rollup(results_path)
-    return 1 if stopped and "circuit_breaker" in stopped else 0
+    return 1 if stopped and ("circuit_breaker" in stopped
+                             or "rig_mismatch" in stopped) else 0
 
 
 def _heartbeat(cdir, k, i, start, t_start, status="alive"):
@@ -1337,7 +1637,6 @@ def _lint_wvec(cid, n, ov):
 # ===========================================================================
 # fuzz-v2 T2 lint legs: the bias helper (D1) and the handler pool (D8).
 # ===========================================================================
-import testimage as ti                                     # noqa: E402
 from gen_soup import ANCHOR, SEG_NAMES                     # noqa: E402
 
 # the (segment register, offset register) pairs whose product is a DESIGNED
@@ -1902,6 +2201,12 @@ def main():
                         "fixed/wrand wait sources (replay > rand > uniform in "
                         "all three legs)")
     p.add_argument("--done-dist", default=None)
+    p.add_argument("--keep-rows-every", type=int, default=0,
+                   help="fuzz-v2 prereg §7 item 2: RETAIN the full per-clock "
+                        "rows of every k with k %% N == 0, outside the "
+                        "SUCCESS-ballast quota.  0 = off.  This is how a "
+                        "FROZEN bank rule is expressed: the ballast path is "
+                        "capped at 100 captures and cannot be one")
     p.set_defaults(func=cmd_run)
 
     p = sub.add_parser("status")

@@ -18,6 +18,7 @@ import base64
 import collections
 import os
 import queue
+import re
 import struct
 import subprocess
 import sys
@@ -29,6 +30,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import testimage                                    # noqa: E402
+import v30ctl                                       # noqa: E402
 from analyze_capture import decode_large, decode_words  # noqa: E402
 
 REMOTE_DIR = "/media/fat/v30"
@@ -52,6 +54,23 @@ class RunError(Exception):
     pass
 
 
+class RigMismatch(RunError):
+    """THE RIG CANNOT BE SHOWN TO HOLD THE DIRECTIVE IT WAS HANDED.
+
+    One class, two ways in, because the disposition is the same either way:
+      * the readback disagreed with what was sent (INV-1's signature), or
+      * the board's `serve` is too old to be asked at all.
+    Both mean the next capture would be scored against a directive nothing
+    ever confirmed, which is precisely what happened to INV-1's 760 seeds.
+
+    A SUBCLASS of RunError so every existing `except RunError` still catches
+    it -- but `run_image` re-raises it instead of reconnecting, because a
+    reconnect+retry is for a TRANSPORT fault and this is a rig-integrity
+    FINDING.  Retrying it produces a second identical failure reported under
+    the generic transport message, which is how a finding turns into a
+    footnote."""
+
+
 class ServeRunner:
     """Persistent `v30ctl.py serve` session over one ssh connection.
     Eliminates the per-case ssh handshakes, remote python start-ups, and
@@ -65,7 +84,10 @@ class ServeRunner:
         self.last_waits = None  # (waits, use_core) tuple key
         self.last_wrand = None  # WRAND state key (None = never enabled)
         self.last_replay = False  # replay mode currently armed
+        self.ver = 1             # serve protocol version, from the banner
         self.v2 = False          # serve protocol >= v2 (BASE/DELTA/cap)
+        self.v3 = False          # serve protocol >= v3 (verified readback)
+        self.last_term = None    # last run's fired/vec_used/readback record
         self.base = None         # image cached device-side via BASE
         # --- S1 transport diagnostics (RR2 serve-drop investigation) ---
         # Blind-spot fixes: the two L6 drops surfaced only as "connection
@@ -157,7 +179,13 @@ class ServeRunner:
         if not banner.startswith("OK SERVE"):
             self.close()
             raise RunError(f"serve: bad banner {banner[:80]!r}")
-        self.v2 = "v2" in banner
+        # NEGOTIATE ON THE VERSION NUMBER, not on a substring.  `"v2" in
+        # banner` reads False against `OK SERVE v3` and would have silently
+        # dropped a v3 board back onto the v1 RUN path.
+        m = re.match(r"OK SERVE v(\d+)", banner)
+        self.ver = int(m.group(1)) if m else 1
+        self.v2 = self.ver >= 2
+        self.v3 = self.ver >= 3
         self.base = None         # device-side cache gone on reconnect
         self.last_waits = None  # (waits, use_core) tuple key
         self.last_wrand = None  # WRAND state key (None = never enabled)
@@ -310,8 +338,103 @@ class ServeRunner:
             emit(run_start, n)
         return bytes(out) if out else b""
 
+    @staticmethod
+    def _evts(evt, evts):
+        """The ONE scheduler table this client sends.  `evt` is the historical
+        name for scheduler 0; `evts` is the general form.  Both together is a
+        contradiction, not a merge, and it raises."""
+        if evt is not None and evts is not None:
+            raise RunError("run(): pass evt= OR evts=, not both -- evt is "
+                           "exactly evts[0] and a merge would silently pick "
+                           "one")
+        out = [None] * v30ctl.EVT_N
+        if evt is not None:
+            out[0] = tuple(evt)
+        for n, e in enumerate(evts or ()):
+            if n >= v30ctl.EVT_N:
+                raise RunError(f"run(): evts has {len(evts)} entries; the rig "
+                               f"has EVT_N={v30ctl.EVT_N} schedulers")
+            out[n] = None if e is None else tuple(e)
+        return out
+
+    def rig_readback_check(self):
+        """Ask the BOARD to run `v30ctl.Harness.rig_readback_check()` -- write
+        two distinct values into every fuzz-v2 register, read each back, raise
+        on the first disagreement, restore what it found.
+
+        The per-RUN `verify=True` proves the rig held THIS directive; this
+        proves the registers round-trip, which is the stuck-bit / dropped-
+        nibble case (F46's signature) a single directive can pass by luck.
+        Session-start check, not a per-seed one.  Returns the register names
+        the board reported."""
+        self.ensure()
+        if not self.v3:
+            raise RigMismatch(
+                f"serve on {self.host} is protocol v{self.ver}; RBCHECK needs "
+                f"v3.  Deploy sw/v30ctl.py to {REMOTE_DIR} on the board.")
+        self._send("RBCHECK")
+        line = self._readline(30)
+        if not line.startswith("OK RBCHECK"):
+            self.close()
+            raise RigMismatch(f"serve: RBCHECK failed: {line[:200]}")
+        parts = line.split(maxsplit=3)
+        return parts[3].split(",") if len(parts) > 3 else []
+
+    def _check_readback(self, evts, tvec, vecsub, tok, fired_mask):
+        """INV-1's missing step, ON THE CAPTURE PATH.  Repack what was SENT
+        with `v30ctl`'s own packers and compare against the raw register words
+        the rig reported, sampled after programming and before the CPU was
+        released.  RAISES on any disagreement: a run whose directive the rig
+        did not hold is not a capture, it is a capture of something else.
+
+        Returns the term record the result line banks."""
+        rb = tok.get("rb")
+        vec_used = (tok.get("vec") == "1")
+        if rb is None:
+            if self.v3:
+                self.close()
+                raise RunError("serve v3 reply carried no `rb=` readback")
+            return {"fired": fired_mask, "vec_used": None, "readback": None,
+                    "readback_ok": None, "serve_ver": self.ver}
+        parts = rb.split(",")
+        if len(parts) != v30ctl.EVT_N + 2:
+            self.close()
+            raise RunError(f"serve: malformed readback {rb!r}")
+        got = {}
+        for n, pair in enumerate(parts[:v30ctl.EVT_N]):
+            a, _, c = pair.partition(":")
+            got[f"EVT_ADDR[{n}]"] = int(a, 16)
+            got[f"EVT_CFG[{n}]"] = int(c, 16)
+        got["TVEC"] = int(parts[-2], 16)
+        got["VECCTL"] = int(parts[-1], 16)
+        want = {}
+        for n, e in enumerate(evts):
+            if e is None:
+                # a scheduler this run did not ask for is DISARMED, and the
+                # address register is whatever the previous run left: the arm
+                # bit is the whole directive when arm=0, so only it is checked
+                want[f"EVT_CFG[{n}]"] = got[f"EVT_CFG[{n}]"] & ~(1 << 31)
+            else:
+                a, d, ho, p = e
+                want[f"EVT_ADDR[{n}]"] = v30ctl.pack_evt_addr(a)
+                want[f"EVT_CFG[{n}]"] = v30ctl.pack_evt_cfg(
+                    delay=d, hold=ho, pin=p, arm=True)
+        want["TVEC"] = v30ctl.pack_tvec(*(tvec or (0, 0)))
+        want["VECCTL"] = vecsub
+        bad = {k: (got[k], v) for k, v in want.items() if got[k] != v}
+        if bad:
+            self.close()
+            raise RigMismatch(
+                "serve: THE RIG IS NOT HOLDING THE DIRECTIVE IT WAS HANDED "
+                "(INV-1): " + "; ".join(
+                    f"{k} rig={g:#010x} sent={w:#010x}"
+                    for k, (g, w) in sorted(bad.items())))
+        return {"fired": fired_mask, "vec_used": vec_used, "readback": got,
+                "readback_ok": True, "serve_ver": self.ver}
+
     def run(self, image, timeout=3.0, evt=None, iord=None, pins=None,
-            cap=None, iords=None, want_raw=False):
+            cap=None, iords=None, want_raw=False, evts=None, tvec=None,
+            vecsub=0, pin_share=False, term_out=None):
         """evt = (linear_addr, delay, hold, pin 0=INT 1=NMI 2=POLL);
         iord = 16-bit I/O read data; pins = static PINS bits (b0 INT,
         b1 NMI, b2 POLL_N); cap = capture-record prefix to return
@@ -323,11 +446,56 @@ class ServeRunner:
         module never had the parameter, so every s10/s13 probe raised
         `TypeError` at import-time-clean/run-time.  The words were already
         being unpacked here and thrown away; the blackbox retention rule
-        (*full per-clock rows + sha256, never digests alone*) wants them."""
+        (*full per-clock rows + sha256, never digests alone*) wants them.
+
+        THE T11 ADDITIONS -- the rig has had EVT_N schedulers, an NMI
+        vector-read overlay and its arming mask since T5/T8, and this client
+        could reach exactly one of them:
+
+          evts      list of up to `v30ctl.EVT_N` scheduler directives, index n
+                    = scheduler n, each `None` or `(addr, delay, hold, pin)`.
+                    `evt` is the historical spelling of `evts[0]` and still
+                    means exactly that; passing BOTH raises.
+          tvec      (CS, IP) served by the NMI vector-read overlay at linear
+                    0x00008 / 0x0000A -- the DATA is substituted, which is why
+                    a seed that scribbles the IVT cannot break the terminator.
+          vecsub    VECCTL mask, bit n = scheduler n's FIRE arms the overlay.
+                    Keyed on WHICH DIRECTIVE FIRED, not on which pin went high.
+          pin_share explicit consent for two schedulers on one pin (a stimulus
+                    NMI beside a terminating NMI).  The rig REFUSES by default.
+          term_out  a dict, updated in place with what the rig reported and
+                    what it held: fired / vec_used / readback / readback_ok.
+
+        THE READBACK IS NOT OPTIONAL.  Any directive beyond `evts[0]` requires
+        serve v3, which verifies every EVT/TVEC/VECCTL write against the rig
+        before releasing the CPU and returns the raw register words; those
+        words are compared HERE against a repack of what was sent, using
+        `v30ctl`'s own packers.  There is no second packer -- forking one is
+        how INV-1 happened.  A pre-v3 board RAISES rather than running
+        unverified."""
+        evts = self._evts(evt, evts)
         opts = ""
-        if evt is not None:
-            a, d, ho, p = evt
-            opts += f" evt={a:05x}:{d}:{ho}:{p}"
+        for n, e in enumerate(evts):
+            if e is None:
+                continue
+            a, d, ho, p = e
+            opts += f" {'evt' if n == 0 else f'evt{n + 1}'}={a:05x}:{d}:{ho}:{p}"
+        if tvec is not None:
+            opts += f" tvec={tvec[0]:04x}:{tvec[1]:04x}"
+        if vecsub:
+            opts += f" vecsub={vecsub:x}"
+        if pin_share:
+            opts += " pinok=1"
+        needs_v3 = (tvec is not None or vecsub or pin_share
+                    or any(e is not None for e in evts[1:]))
+        if needs_v3 and not self.v3:
+            self.close()
+            raise RigMismatch(
+                f"serve on {self.host} is protocol v{self.ver}; the "
+                f"terminating-NMI directive (evts[1:]/tvec/vecsub) needs v3, "
+                f"which VERIFIES every EVT/TVEC/VECCTL write against the rig "
+                f"and returns the readback.  Running it unverified is INV-1.  "
+                f"Deploy sw/v30ctl.py to {REMOTE_DIR} on the board.")
         if iord is not None:
             opts += f" iord={iord:04x}"
         if iords is not None:
@@ -361,18 +529,34 @@ class ServeRunner:
         hdr = self._readline(timeout + 10)
         if not hdr.startswith("OK "):
             self.close()
+            # the board's OWN readback check fired: `set_event` /
+            # `set_term_vector` / `set_vecsub_en` verify before the CPU is
+            # released, and `RigReadbackError` is v30ctl's name for it.  It is
+            # the same finding as a client-side mismatch, one layer earlier.
+            if "RigReadbackError" in hdr:
+                raise RigMismatch(f"serve: {hdr[:240]}")
             raise RunError(f"serve: run failed: {hdr[:120]}")
         fields = hdr.split()
-        fired = bool(int(fields[3])) if len(fields) > 3 else False
+        # positional fields, then the v3 `k=v` tokens.  A pre-v3 reply simply
+        # has no tokens; a v3 reply's crc still sits at index 4.
+        pos = [f for f in fields if "=" not in f]
+        tok = dict(f.split("=", 1) for f in fields if "=" in f)
+        fired_mask = int(pos[3]) if len(pos) > 3 else 0
+        fired = bool(fired_mask)
         if use_delta:
-            if len(fields) < 5:
+            if len(pos) < 5:
                 self.close()
                 raise RunError("serve: DELTA reply missing crc")
             want = zlib.crc32(image) & 0xFFFFFFFF
-            if int(fields[4], 16) != want:
+            if int(pos[4], 16) != want:
                 self.close()
                 raise RunError(f"serve: image crc mismatch "
-                               f"{fields[4]} != {want:08x}")
+                               f"{pos[4]} != {want:08x}")
+        self.last_term = self._check_readback(evts, tvec, vecsub, tok,
+                                              fired_mask)
+        if term_out is not None:
+            term_out.clear()
+            term_out.update(self.last_term)
         blob = base64.b64decode(self._readline(10))
         words = struct.unpack(f"<{len(blob) // 8}Q", blob)
         if want_raw:
@@ -417,7 +601,9 @@ def _run_image_legacy(image, host, tag="test", waits=0):
 
 def run_image(image, host, tag="test", waits=0, evt=None, iord=None,
               pins=None, want_fired=False, cap=None, use_core=None,
-              wrand=None, wvec=None, iords=None, div=None, want_raw=False):
+              wrand=None, wvec=None, iords=None, div=None, want_raw=False,
+              evts=None, tvec=None, vecsub=0, pin_share=False,
+              term_out=None):
     """Run an image, return capture records (or (recs, evt_fired) with
     want_fired, or (recs, evt_fired, raw_words) with want_raw -- which
     implies want_fired, because that is the shape `s10_board.capture()`
@@ -434,12 +620,16 @@ def run_image(image, host, tag="test", waits=0, evt=None, iord=None,
     or (wmax, seed) = random 0..wmax with that seed. The same seed drives
     both A/B positions. Requires the WRAND-capable bitstream + serve; serve
     path only."""
+    # the directives with no legacy-path equivalent, named once
+    serve_only = (evt is not None or iord is not None or pins is not None
+                  or use_core is not None or wrand is not None
+                  or wvec is not None or want_raw
+                  or evts is not None or tvec is not None or vecsub
+                  or pin_share)
     if os.environ.get("V30_NO_SERVE") == "1":
-        if evt is not None or iord is not None or pins is not None \
-                or use_core is not None or wrand is not None or wvec is not None \
-                or want_raw:
-            raise RunError("evt/iord/pins/use_core/wrand/wvec/want_raw "
-                           "require serve")
+        if serve_only:
+            raise RunError("evt/evts/tvec/vecsub/iord/pins/use_core/wrand/"
+                           "wvec/want_raw require serve")
         return _run_image_legacy(image, host, tag, waits)
     r = _runners.get(host)
     if r is None:
@@ -451,21 +641,26 @@ def run_image(image, host, tag="test", waits=0, evt=None, iord=None,
             r.wrand(wrand if wvec is None else None)
             r.replay(wvec)
             got = r.run(image, evt=evt, iord=iord, pins=pins,
-                        cap=cap, iords=iords, want_raw=want_raw)
+                        cap=cap, iords=iords, want_raw=want_raw,
+                        evts=evts, tvec=tvec, vecsub=vecsub,
+                        pin_share=pin_share, term_out=term_out)
             if want_raw:
                 return got                       # (recs, fired, words)
             recs, fired = got
             return (recs, fired) if want_fired else recs
+        except RigMismatch:
+            # NOT a transport fault: do not reconnect, do not fall back, do
+            # not let the generic message replace the finding.
+            r.close()
+            raise
         except RunError as e:
             r.close()
             if attempt == 2:
                 print(f"serve path failed twice ({e}); trying legacy path",
                       file=sys.stderr)
-    if evt is not None or iord is not None or pins is not None \
-            or use_core is not None or wrand is not None or wvec is not None \
-            or want_raw:
-        raise RunError("serve path failed and evt/iord/pins/use_core/wrand/"
-                       "wvec/want_raw have no legacy fallback")
+    if serve_only:
+        raise RunError("serve path failed and evt/evts/tvec/vecsub/iord/pins/"
+                       "use_core/wrand/wvec/want_raw have no legacy fallback")
     return _run_image_legacy(image, host, tag, waits)
 
 

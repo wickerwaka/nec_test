@@ -462,6 +462,15 @@ def run_serve(lines):
 
 img = base64.b64encode(b"\xf4" * 8).decode()
 
+
+def run_hdr(out):
+    """The RUN/DELTA reply's OK line -- never the banner.  T11 bumped the
+    banner to `OK SERVE v3`, and a filter written as `!= "OK SERVE v2"` would
+    silently start returning the banner instead of the reply."""
+    return [l for l in out
+            if l.startswith("OK ") and not l.startswith("OK SERVE")][0]
+
+
 print("=" * 78)
 print("S1  three schedulers + tvec + vecsub through one RUN line")
 print("=" * 78)
@@ -479,9 +488,9 @@ check("scheduler 2", snap["evt"][2],
       dict(addr=0x600, delay=30, hold=70, pin=2, arm=True))
 check("TVEC", snap["tvec"], (0xBEEF, 0x1234))
 check("VECCTL", snap["vecsub"], 0b100)
-hdr = [l for l in out if l.startswith("OK ") and l != "OK SERVE v2"][0]
+hdr = run_hdr(out)
 check("reply header shape (4 fields, field 4 = STATUS[5:3] = 0b101)",
-      hdr, "OK 7 1 5")
+      " ".join(hdr.split()[:4]), "OK 7 1 5")
 check("all schedulers disarmed and VECCTL cleared after the run",
       ([h.read_event(n)["arm"] for n in range(V.EVT_N)], h.read_vecsub_en()),
       ([False, False, False], 0))
@@ -498,8 +507,8 @@ check("schedulers 1,2 left disarmed", [snap["evt"][n]["arm"] for n in (1, 2)],
       [False, False])
 check("TVEC/VECCTL default to inert", (snap["tvec"], snap["vecsub"]),
       ((0, 0), 0))
-hdr = [l for l in out if l.startswith("OK ") and l != "OK SERVE v2"][0]
-check("reply header", hdr, "OK 7 1 5")
+hdr = run_hdr(out)
+check("reply header", " ".join(hdr.split()[:4]), "OK 7 1 5")
 
 print()
 print("=" * 78)
@@ -520,6 +529,40 @@ for line, want in [
         FAIL.append(line)
     print(f"  {'PASS' if ok else 'FAIL'}  {line}\n         -> "
           f"{(err[0] if err else out)!s:.130}")
+
+print()
+print("=" * 78)
+print("S4  serve v3 -- the verified readback the capture path scores on (T11)")
+print("=" * 78)
+h, out = run_serve([
+    "RUN 0.01 evt=00400:10:50:0 evt3=00600:900:20:1 tvec=0000:bf00 "
+    "vecsub=4 pinok=1 cap=2", img, "EXIT"])
+check("the banner announces v3", out[0], "OK SERVE v3")
+hdr = run_hdr(out)
+tok = dict(f.split("=", 1) for f in hdr.split() if "=" in f)
+check("the reply carries vec= (STATUS[6])", tok.get("vec"), "1")
+rb = tok.get("rb", "").split(",")
+check("the reply carries rb= with EVT_N pairs + TVEC + VECCTL",
+      len(rb), V.EVT_N + 2)
+check("rb's scheduler 0 pair is EXACTLY what v30ctl's packers make of the "
+      "directive that was sent",
+      rb[0], f"{V.pack_evt_addr(0x400):08x}:"
+             f"{V.pack_evt_cfg(delay=10, hold=50, pin=0, arm=True):08x}")
+check("rb's scheduler 2 pair likewise", rb[2],
+      f"{V.pack_evt_addr(0x600):08x}:"
+      f"{V.pack_evt_cfg(delay=900, hold=20, pin=1, arm=True):08x}")
+check("rb's TVEC is the whole 32-bit word", rb[-2],
+      f"{V.pack_tvec(0x0000, 0xBF00):08x}")
+check("rb's VECCTL names only scheduler 2", rb[-1], f"{0b100:08x}")
+check("scheduler 1, not asked for, reads back DISARMED",
+      bool(int(rb[1].split(':')[1], 16) & (1 << 31)), False)
+check("pinok=1 permitted two schedulers on the NMI pin",
+      [h.snapshots[0]["evt"][n]["pin"] for n in (0, 2)], [0, 1])
+
+h2, out2 = run_serve(["RUN 0.01 evt=00400:0:50:1 evt3=00500:0:50:1 pinok=1",
+                      img, "EXIT"])
+check("...and it is the FLAG that permits it: the same line WITH pinok is OK",
+      any(l.startswith("ERR") for l in out2), False)
 
 print()
 print("=" * 78)

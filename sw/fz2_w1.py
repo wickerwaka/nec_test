@@ -65,7 +65,6 @@ import gzip
 import hashlib
 import inspect
 import json
-import math
 import re
 import subprocess
 import sys
@@ -205,26 +204,19 @@ assert all(set(ov_of(st)) <= fzc.KNOWN_OV for st in STRATA), \
 # seeds give 273 and 425, i.e. both scale as the formula says within the
 # declared margin.  MARGIN is a stated margin, not a fit.
 # --------------------------------------------------------------------------- #
-CAP_ROWS = v30ctl.CAP_RECORDS      # 4,096 -- the rig's capture depth
-ANCHOR_W0 = 145                    # MEASURED
-DUMP_W0 = 240                      # MEASURED 219 + the NMI entry's ~5 cycles
-TERM_MARGIN = 1.2                  # declared margin
-TERM_FLOOR = 512
-
-
-def weff_of(cfg):
-    """The seed's effective wait level -- `fuzz_campaign`'s own two rules, not
-    a third one."""
-    if cfg.get("wvec"):
-        return fzc._wvec_weff(wv.build(cfg["wvec"]))
-    w = cfg["waits"]
-    return w["wmax"] if w["wrand"] else w["fixed"]
-
-
-def term_clocks(weff):
-    scale = (fzc.NMAX_SCALE_C + weff) / fzc.NMAX_SCALE_C
-    t = CAP_ROWS - math.ceil(TERM_MARGIN * (ANCHOR_W0 + DUMP_W0) * scale)
-    return t
+# T11: the formula and its constants now live in `fuzz_campaign`, because that
+# is where the CAPTURE PATH arms the terminator (`term_directive`), and a
+# delay this driver asserts on but the capture path computes some other way is
+# exactly the fork the corpus cannot survive.  Bound here so this module's
+# asserts and `lint`'s document cross-check read the SAME objects.
+CAP_ROWS = fzc.CAP_ROWS            # 4,096 -- the rig's capture depth
+ANCHOR_W0 = fzc.ANCHOR_W0          # MEASURED
+DUMP_W0 = fzc.DUMP_W0              # MEASURED 219 + the NMI entry's ~5 cycles
+TERM_MARGIN = fzc.TERM_MARGIN      # declared margin
+TERM_FLOOR = fzc.TERM_FLOOR
+weff_of = fzc.weff_of
+term_clocks = fzc.term_clocks
+assert CAP_ROWS == v30ctl.CAP_RECORDS
 
 
 # Every wait source this corpus registers must leave a usable delay.  The
@@ -247,6 +239,15 @@ def census_bank_seeds():
            if (k - st["k_lo"]) % CENSUS_BANK_STEP == 0]
     assert len(out) == 480, "the frozen census bank is 480 seeds"
     return out
+
+
+# `cmd_run --keep-rows-every N` keeps `k % N == 0`, which is the SAME SET as
+# "every second k of every stratum" only because every census `k_lo` is even.
+# Checked, not assumed: if a later k-block moved to an odd base the driver
+# would silently retain the OTHER half of every stratum.
+assert set(census_bank_seeds()) == {
+    k for st in _CEN for k in seeds_of(st) if k % CENSUS_BANK_STEP == 0}, \
+    "the keep-rows arithmetic and the frozen bank rule name different seeds"
 
 
 # --------------------------------------------------------------------------- #
@@ -353,6 +354,57 @@ def capture_path_gaps():
                                    f"effective pins at [54:52] and vec_armed "
                                    f"at [59])"))
     return gaps
+
+
+# The RTL files the fuzz-v2 DIRECTIVE lives in.  Not "the whole design": a
+# core change is a new campaign by the flash-pin rule already, and this test is
+# the narrower one -- can the resident bitstream be HANDED this corpus at all.
+RIG_RTL = ("hdl/rtl/hps_axi_slave.sv", "hdl/rtl/nec_bus.sv",
+           "hdl/rtl/system_large.sv")
+
+
+def resident_rig_gap():
+    """Whether the bitstream on the board was built from THIS tree's rig RTL.
+
+    Offline, and from artifacts only: the flash log's tail names the resident
+    `.sof`, the quartus receipt whose OUTPUTS contain that `.sof` names every
+    input file with its sha256, and those are compared against the working
+    tree file for file.  Returns {'gap': [(file, tree_sha, built_sha)],
+    'why': str, 'receipt': id}; an empty `gap` is the passing value."""
+    flash = fzc._last_flash_entry()
+    sof = (flash or {}).get("sha256")
+    out = {"gap": [], "why": "", "receipt": None, "flash_sha256": sof}
+    if not sof:
+        out["gap"] = [("<flash_log>", "", "")]
+        out["why"] = "no flash_log entry to read"
+        return out
+    rp = SW / "testdata" / "receipts" / "quartus_bitstream.jsonl"
+    hit = None
+    for ln in rp.read_text().splitlines() if rp.exists() else []:
+        ln = ln.strip()
+        if not ln:
+            continue
+        try:
+            r = json.loads(ln)
+        except Exception:                                   # noqa: BLE001
+            continue
+        if sof in json.dumps(r.get("outputs", {})):
+            hit = r
+    if hit is None:
+        out["gap"] = [("<receipt>", "", "")]
+        out["why"] = f"no quartus receipt outputs the pinned .sof {sof[:12]}…"
+        return out
+    out["receipt"] = hit.get("id")
+    files = (hit.get("inputs") or {}).get("files") or {}
+    for f in RIG_RTL:
+        p = ROOT / f
+        tree = hashlib.sha256(p.read_bytes()).hexdigest() if p.exists() else ""
+        built = files.get(f)
+        if tree != built:
+            out["gap"].append((f, tree, built))
+    out["why"] = (f"receipt {str(hit.get('id'))[:12]}…, "
+                  f"{hit.get('label')!r}")
+    return out
 
 
 # --------------------------------------------------------------------------- #
@@ -647,6 +699,26 @@ def cmd_preflight(a):
     flash = fzc._last_flash_entry()
     rec["flash_log_tail"] = {k: (flash or {}).get(k)
                              for k in ("sha256", "ts", "git_describe", "verify")}
+    # THE RESIDENT BITSTREAM MUST CARRY THE RIG THIS CORPUS DRIVES.
+    # C-4 gates that a capture NAMES an RTL input manifest; it does not gate
+    # that the manifest is THIS tree's.  The whole fuzz-v2 directive lives in
+    # `hps_axi_slave.sv` (TVEC / VECCTL / EVT1-2) and `nec_bus.sv` (the three
+    # schedulers, the vector-read overlay, the effective-pin capture bits), so
+    # a bitstream built before them answers every one of those registers with
+    # zeros.  The readback would catch it at the first seed -- but only after
+    # the board session had started, which is what this whole section exists
+    # to prevent.  Compared per FILE, against the pinned .sof's own receipt.
+    rig = resident_rig_gap()
+    rec["resident_rig"] = rig
+    if rig.get("gap"):
+        ok = False
+        print(f"  *** the RESIDENT bitstream does not carry this tree's rig "
+              f"RTL: {rig['why']}")
+        for f, tree, built in rig["gap"]:
+            print(f"      {f}: tree {tree[:12]}… built-from {str(built)[:12]}…")
+    else:
+        print(f"  resident bitstream carries this tree's rig RTL "
+              f"({rig['why']})")
     rec["manifests"] = {}
     for pop in POPS:
         mp = fzc.CAMPAIGNS / CID[pop] / "manifest.json"
@@ -732,6 +804,18 @@ def cmd_preflight(a):
     if a.board:
         print("== board health")
         div_guard("preflight", rec["div_guards"])
+        # C-6(a), ASKED OF THE RIG rather than assumed: two distinct values
+        # into every EVT/TVEC/VECCTL register, each read back.  The capture
+        # path verifies every RUN's own directive; this is the session-start
+        # check for the stuck bit a single directive can pass by luck.
+        try:
+            regs = v30run._runners[HOST].rig_readback_check()
+            rec["rig_readback_check"] = {"ok": True, "registers": regs}
+            print(f"  rig_readback_check: {len(regs)} registers round-tripped")
+        except Exception as e:                              # noqa: BLE001
+            ok = False
+            rec["rig_readback_check"] = {"ok": False, "error": str(e)[:300]}
+            print(f"  *** rig_readback_check FAILED: {str(e)[:200]}")
         r = subprocess.run([sys.executable, str(SW / "check_ab_hw.py"), "all",
                             "800", "--host", HOST],
                            capture_output=True, text=True, timeout=600)
@@ -783,7 +867,14 @@ def _run_args(st, start, n, host):
         force_tier=st["tier"], contained=False, w0=False, force_fixed=None,
         no_evt=(st["evt"] == "noevt"), force_evt=(st["evt"] == "stim"),
         strict=False, no_brkem=False, mainline=False, survey=True,
-        force_wrand=None, wvec_shapes=None, done_dist=None)
+        force_wrand=None, wvec_shapes=None, done_dist=None,
+        # THE FROZEN CENSUS BANK RULE, handed to the capture path as
+        # arithmetic.  Every census stratum's `k_lo` is even
+        # (400000 + 1000*i), so "every second k of every stratum" IS
+        # `k % 2 == 0`; the assert beside `census_bank_seeds` is that
+        # equivalence, checked rather than asserted in prose.  The enriched population keeps the existing
+        # divergence-driven quota rule and sets 0.
+        keep_rows_every=(CENSUS_BANK_STEP if st["pop"] == "census" else 0))
     src = st["src"]
     if src.startswith("fix"):
         a.force_fixed = int(src[3:])

@@ -67,6 +67,10 @@ Usage:
                                      #       vecsub=M     VECCTL mask (hex):
                                      #                    bit n = scheduler n's
                                      #                    FIRE arms the overlay
+                                     #       pinok=1      let schedulers share
+                                     #                    a pin (stimulus NMI +
+                                     #                    terminating NMI); the
+                                     #                    default REFUSES
                                      #       iord=XXXX    I/O read data (hex,
                                      #                    default FFFF)
                                      #       pins=X       static PINS reg (hex:
@@ -610,6 +614,19 @@ def serve(h):
                                   normal run; reply carries the effective
                                   image's crc32 as a 4th field
       cap=N (RUN/DELTA option)    return only the first N capture records
+
+    v3 additions (banner `OK SERVE v3`; the client negotiates on the version
+    number, so a v2 board still serves a v2 client and vice versa):
+      * every EVT/TVEC/VECCTL write on the RUN path is made with
+        `verify=True` -- read back off the rig and RAISE on a disagreement;
+      * the reply's OK line carries two trailing `k=v` tokens,
+        `vec=<STATUS[6]>` and `rb=<raw register readback>`, sampled after the
+        directive is programmed and BEFORE the CPU is released.  The client
+        repacks what it SENT with this module's packers and compares.  This is
+        INV-1's actual lesson: the failure was not a register width, it was
+        that nothing on the capture path ever asked the rig what it held.
+      * `pinok=1` opts a RUN into schedulers sharing a pin.
+      * `RBCHECK` runs `rig_readback_check()` on the board and reports.
     """
     import base64
     import zlib
@@ -621,7 +638,7 @@ def serve(h):
         out.flush()
 
     def do_run(img, timeout, evts, iord, pins, cap, crc, iords=None,
-               tvec=None, vecsub=0):
+               tvec=None, vecsub=0, pinok=False):
         h.stop()
         h.load_mem(img, 0)
         h.set_iord(iord)
@@ -634,10 +651,27 @@ def serve(h):
             h.set_event(arm=False, which=n)
         for n, e in enumerate(evts):
             if e:
+                # `verify=True`: read the pair back off the rig BEFORE the CPU
+                # is released and RAISE on a disagreement.  INV-1's root cause
+                # was not a register width -- it was that the rig silently
+                # applied a directive other than the one it was handed, and
+                # 760 banked seeds were scored against it.  Verification on
+                # the RUN path is the only place that cannot be skipped.
                 h.set_event(addr=e[0], delay=e[1], hold=e[2], pin=e[3],
-                            which=n)
-        h.set_term_vector(*(tvec or (0, 0)))
-        h.set_vecsub_en(vecsub)
+                            which=n, verify=True,
+                            allow_pin_conflict=pinok)
+        h.set_term_vector(*(tvec or (0, 0)), verify=True)
+        h.set_vecsub_en(vecsub, verify=True)
+        # THE READBACK THE HOST SCORES ON.  Sampled here -- after the whole
+        # directive is programmed and before `start()` -- because the run's
+        # epilogue disarms everything, so a readback taken afterwards would
+        # prove nothing.  Raw 32-bit words: the client repacks what it SENT
+        # with this module's own packers and compares.  It is deliberately not
+        # a decoded summary; a decode on both sides could agree while the
+        # register disagreed.
+        rb = ",".join(f"{h.read32(a):08x}:{h.read32(c):08x}"
+                      for a, c in EVT_REGS)
+        rb += f",{h.read32(R_TVEC):08x},{h.read32(R_VECCTL):08x}"
         h.start()
         t0 = time.time()
         while time.time() - t0 < timeout:
@@ -649,6 +683,9 @@ def serve(h):
         # it clears on reset.  With one scheduler this was 0/1 and it still is,
         # so `bool(int(field))` -- "did anything fire" -- is unchanged.
         fired = st["evt_fired"]
+        # STATUS[6]: the NMI vector-read overlay actually SERVED a CS half.
+        # Sampled at the same instant as `fired`, for the same reason.
+        vec_used = int(bool(st["vec_used"]))
         h.stop()
         for n in range(EVT_N):
             h.set_event(arm=False, which=n)
@@ -657,7 +694,13 @@ def serve(h):
         recs = h.dump_capture(cap)
         blob = struct.pack(f"<{len(recs)}Q", *recs)
         tail = f" {crc:08x}" if crc is not None else ""
-        reply(f"OK {st['cap_count']} {int(st['cap_full'])} {fired}{tail}")
+        # v3 TOKENS, appended after the positional fields (and after the DELTA
+        # crc): `vec=` is STATUS[6] and `rb=` is the pre-start register
+        # readback.  A pre-v3 client splits on whitespace and indexes fields
+        # 3/4, so trailing `k=v` tokens are inert to it; a v3 client REQUIRES
+        # `rb=` and refuses a run that does not carry one.
+        reply(f"OK {st['cap_count']} {int(st['cap_full'])} {fired}{tail}"
+              f" vec={vec_used} rb={rb}")
         reply(base64.b64encode(blob).decode())
 
     # evt / evt2 / evt3 -> scheduler 0 / 1 / 2.  ONE parse, one table: the
@@ -668,7 +711,7 @@ def serve(h):
         timeout = float(parts[1]) if len(parts) > 1 else 3.0
         iord, pins, cap, iords = 0xFFFF, 0, CAP_RECORDS, None
         evts = [None] * EVT_N
-        tvec, vecsub = None, 0
+        tvec, vecsub, pinok = None, 0, False
         for kv in parts[2:]:
             k, _, v = kv.partition("=")
             if k in EVT_OPT:
@@ -679,6 +722,17 @@ def serve(h):
                 tvec = (int(cs, 16), int(ip, 16))
             elif k == "vecsub":
                 vecsub = int(v, 16)
+            elif k == "pinok":
+                # THE CALLER SAYS IT MEANT IT.  `set_event`'s default REFUSES
+                # to arm two schedulers on one pin, because the pins are OR-ed
+                # and NMI recognition is an edge latch, so an ACCIDENTAL
+                # overlap produces one recognition with nothing in the capture
+                # to say why.  A stimulus NMI plus a TERMINATING NMI is the one
+                # configuration where the overlap is the design (the overlay is
+                # keyed on WHICH DIRECTIVE FIRED, not on which pin went high --
+                # `set_vecsub_en`), so it is opted into explicitly, per RUN, and
+                # never inferred from the presence of a `vecsub` mask.
+                pinok = bool(int(v, 0))
             elif k == "iord":
                 iord = int(v, 16)
             elif k == "iords":
@@ -690,9 +744,9 @@ def serve(h):
                 cap = max(1, min(int(v), CAP_RECORDS))
             else:
                 raise ValueError(f"unknown option {k!r}")
-        return timeout, evts, iord, pins, cap, iords, tvec, vecsub
+        return timeout, evts, iord, pins, cap, iords, tvec, vecsub, pinok
 
-    reply("OK SERVE v2")
+    reply("OK SERVE v3")
     for line in sys.stdin:
         parts = line.split()
         if not parts:
@@ -725,13 +779,25 @@ def serve(h):
                 h.stop()
                 h.load_wvec(list(blob))
                 reply(f"OK WVEC {len(blob)}")
+            elif parts[0] == "RBCHECK":
+                # v3: run `rig_readback_check()` ON THE BOARD and report.  The
+                # per-RUN `verify=True` above proves the rig held THIS run's
+                # directive; this proves the registers round-trip two distinct
+                # values per field, which is the stuck-bit / dropped-nibble
+                # case a single directive can pass by luck.  Restores what it
+                # found; run while stopped, at the top of a session.
+                h.stop()
+                # NOT named `out`: `reply` closes over serve's `out`, which is
+                # stdout, and rebinding it here kills the transport
+                rbc = h.rig_readback_check()
+                reply(f"OK RBCHECK {len(rbc)} " + ",".join(sorted(rbc)))
             elif parts[0] == "BASE":
                 base_img = bytearray(
                     base64.b64decode(sys.stdin.readline().strip()))
                 reply(f"OK BASE {zlib.crc32(base_img) & 0xFFFFFFFF:08x}")
             elif parts[0] == "DELTA":
                 (timeout, evts, iord, pins, cap, iords,
-                 tvec, vecsub) = parse_opts(parts)
+                 tvec, vecsub, pinok) = parse_opts(parts)
                 patch = base64.b64decode(sys.stdin.readline().strip())
                 if base_img is None:
                     raise ValueError("DELTA without BASE")
@@ -744,13 +810,13 @@ def serve(h):
                     i += ln
                 crc = zlib.crc32(img) & 0xFFFFFFFF
                 do_run(bytes(img), timeout, evts, iord, pins, cap, crc, iords,
-                       tvec, vecsub)
+                       tvec, vecsub, pinok)
             elif parts[0] == "RUN":
                 (timeout, evts, iord, pins, cap, iords,
-                 tvec, vecsub) = parse_opts(parts)
+                 tvec, vecsub, pinok) = parse_opts(parts)
                 img = base64.b64decode(sys.stdin.readline().strip())
                 do_run(img, timeout, evts, iord, pins, cap, None, iords,
-                       tvec, vecsub)
+                       tvec, vecsub, pinok)
             else:
                 reply(f"ERR unknown command {parts[0]!r}")
         except Exception as e:                        # noqa: BLE001

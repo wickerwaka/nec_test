@@ -203,7 +203,20 @@ QOPS = {0: None, 1: "F", 2: "E", 3: "S"}
 
 
 def decode_words(words):
-    """Decode raw 64-bit capture records (ints) into field dicts."""
+    """Decode raw 64-bit capture records (ints) into field dicts.
+
+    `pin_int` / `pin_nmi` / `pin_poll_n` ([52] / [53] / [54]) are the
+    EFFECTIVE pin levels -- `nec_bus.sv`'s `NEC_INT` / `NEC_NMI` /
+    `NEC_POLL_N` assign outputs, i.e. what the CPU is actually being shown,
+    host PINS register OR-ed with every armed scheduler.  `vec_armed` ([59])
+    is `vec_arm_q`, the NMI vector-read overlay's arm state.
+
+    The RTL has recorded all four since T5/T6; this decoder skipped them, and
+    every golden comparison goes through here.  Without them the fuzz-v2
+    pre-registration's C-6(b) pin-level proof and C-6(c) interception proof
+    cannot be taken from the rows at all.  Adding them is additive: every
+    existing consumer selects columns by name (`fuzz_classify.diff_rows`,
+    `check_ab_hw`, `check_ab_sim`), so nothing compares dicts whole."""
     return [{
         "idx": i,
         "ad_addr": r & 0xFFFFF,
@@ -215,8 +228,12 @@ def decode_words(words):
         "ube_n": (r >> 49) & 1,
         "rd_n": (r >> 48) & 1,
         "lock_n": (r >> 50) & 1,     # max-mode LOCK output pin (active low)
+        "pin_int": (r >> 52) & 1,    # NEC_INT    driven (host | schedulers)
+        "pin_nmi": (r >> 53) & 1,    # NEC_NMI    driven (host | schedulers)
+        "pin_poll_n": (r >> 54) & 1,  # NEC_POLL_N driven (ACTIVE LOW)
         "rst": (r >> 55) & 1,
         "t": (r >> 56) & 7,
+        "vec_armed": (r >> 59) & 1,  # NMI vector-read overlay armed
     } for i, r in enumerate(words)]
 
 
