@@ -696,15 +696,34 @@ def _ps3_8080(recs, win):
     is deferred by user decision, so the seed is a DISCARD with the reason on
     its own result line, not a failure.
 
-    ⚠ CHIP/FABRIC ROWS ONLY, and this is MEASURED, not assumed.  On a board
-    capture a `CODE` T1's `ps` column is the STATUS nibble -- the reset fetch
-    at linear 0xFFFF0 reads `ps = 0x2`, i.e. {md, ie, CS}, not `0xF`.  On the
-    Verilator TB's rows the same column is the ADDRESS nibble (that same fetch
-    reads `0xF`), because `diff_rows` only ever compares `ps` at T2 and the
-    difference has never had to matter.  Under fuzz-v2's D1 segment
-    randomization 15 seeds in 16 fetch code ABOVE 64K, so on a TB leg this
-    predicate would fire on almost the whole corpus and discard it.  The
-    caller passes TB rows nothing; see `eval_case`."""
+    ⚠ SOCKET (`use_core=0`) ROWS ONLY -- AMENDMENT A-2, and this is MEASURED,
+    not assumed.  Only the SOCKET leg's `ps` column is the STATUS nibble at a
+    `CODE` T1: the reset fetch at linear 0xFFFF0 reads `ps = 0x2`, i.e.
+    {md, ie, CS}.  On the FABRIC-CORE leg (`use_core=1`) and on the Verilator
+    TB's rows the same column at the same row reads `0xF`, the ADDRESS nibble
+    A19-16 -- the two legs switch the pads from address to status one clock
+    apart, and `diff_rows` never had to notice because it compares `ps` at T2
+    only.  So on a core leg the predicate fires on the reset fetch of EVERY
+    capture (382 of 382 archived board pairs, finding O-1).
+
+    Sampling at T2 instead does NOT repair it: measured over the same 382
+    pairs the core leg still fires on 103, and on the `t30-brkem` bank -- the
+    one population where 8080 entry is known to exist -- a T2 core-leg sample
+    detects 0 of the 87 entries the socket leg sees.  The mechanism is the RTL,
+    not the comparator: `v30u_biu.data_ps` is `{md8080, psw_ie, segc}` and
+    `md8080` is `v30u_eu.mode8080`, set only by an `MFC` row on the BRKEM path
+    that is ledger R4, UNIMPLEMENTED.  The core's status PS3 is structurally 0,
+    so a core-leg mode clause has nothing to detect even in principle.  The
+    caller therefore asks this of the SOCKET leg alone and banks the core leg's
+    answer as the non-gating diagnostic `ps3_8080_core`; see `eval_case`.
+
+    The `CODE` term is what avoids the retained-PS3-on-stack-writes false
+    positive, not the `T1` term: over the 382 pairs the same one seed
+    (`wr1/219060`, PS3 on a MEMW at both T1 and T2) is the only thing `CODE`
+    removes, at either T-state, and on the socket leg the T1 and T2 forms
+    select the identical seed set (99/99 there, 87/87 on `t30-brkem`) with the
+    first firing row exactly one later.  T1 is kept because it is unchanged and
+    because it is `timed_fuzz.native_exclusion`'s own form."""
     if not recs:
         return None
     for r in recs[:min(win, len(recs))]:
@@ -836,6 +855,7 @@ def result_line(cfg, g, sha, v, di, gen_git, build_stale, ts, bus_cycles=None,
                     "escaped_n": None, "arch_words": None,
                     "arch_sim_ok": None, "arch_sim_words": None,
                     "arch_match": None, "ps3_8080": None,
+                    "ps3_8080_core": None,
                     "wrote_term": None, "wrote_term_at": None,
                     "term": None}),
         "era": _ERA,
@@ -955,14 +975,25 @@ def eval_case(cid, k, ov, tb_only, host, build_stale, keep_rows=False,
                 "arch_sim_words": asw,
                 "arch_match": (aw is not None and aw == asw),
                 # the two capture-time discard classes that are not
-                # `arch_restart`, each detected on its own predicate
-                # ON EITHER LEG -- but only where the `ps` column is the mode
-                # status.  A TB leg's is the address nibble, so it is not
-                # asked and the column reads None (NOT SCOREABLE), never a
-                # False that would look like a measured absence.
-                "ps3_8080": (None if tb_only else
-                             bool(_ps3_8080(real, v.n)
-                                  or _ps3_8080(sim, v.n))),
+                # `arch_restart`, each detected on its own predicate.
+                # AMENDMENT A-2: the SOCKET leg alone.  §3.4 registered this
+                # "on either leg"; finding O-1 measured that the core leg's
+                # `ps` at a CODE T1 is the ADDRESS nibble, so the OR fired on
+                # 382 of 382 archived board pairs and made C-1's
+                # UNDISPOSITIONED 0 by arithmetic.  A T2 sample does not repair
+                # it (103/382 still fire, and 0 of 87 known 8080 entries are
+                # detected); `_ps3_8080`'s docstring carries the measurement
+                # and the RTL reason.  A TB leg is asked nothing at all and the
+                # column reads None (NOT SCOREABLE), never a False that would
+                # look like a measured absence.
+                "ps3_8080": (None if tb_only else bool(_ps3_8080(real, v.n))),
+                # RETIRED, NOT DROPPED (A-2).  The core leg's answer is still
+                # COMPUTED and still REPORTED on every line -- it gates
+                # nothing, it dispositions nothing, and it is here so that the
+                # retirement stays visible in the bank rather than becoming an
+                # absence nobody can audit.  (A-1's `escaped` precedent.)
+                "ps3_8080_core": (None if tb_only else
+                                  bool(_ps3_8080(sim, v.n))),
                 # OVER THE WHOLE CAPTURE, not the compared window.  `v.n` is
                 # shrunk to the done marker + 8, and everything below is
                 # evidence about the RIG rather than about the comparison:

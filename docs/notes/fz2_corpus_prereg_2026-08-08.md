@@ -754,3 +754,118 @@ belongs to the coordinator in its own amendment — before a capture, not in a
 patch after one.  Its own falsifier is already available: whichever form is
 chosen must still return True on a seed that genuinely enters 8080 mode, and
 `sw/timed_fuzz.native_exclusion`'s population is where such seeds exist.
+
+### A-2 — `ps3_8080` IS ASKED OF THE SOCKET LEG ALONE; THE CORE-LEG HALF IS RETIRED
+
+**Decided 2026-08-09, T12, BEFORE any board contact in this sitting and BEFORE
+the capture.  The timing is stated first because an amendment that hides its own
+timing is worse than the contradiction it settles.**  This is a COMPARATOR
+decision taken on a **382-pair archived control**, not on the 2-seed board result
+that surfaced it.  It disposes of finding O-1 (§11, A-1's tail), which blocked
+the capture.
+
+**WHAT CHANGED, IN ONE LINE.**  `fuzz_campaign.eval_case` computed
+`ps3_8080` as `_ps3_8080(real) or _ps3_8080(sim)` — §3.4's *"on either leg"*.
+It now computes it from the **socket leg (`real`, `use_core=0`) alone**.  The
+predicate itself — PS3 set on a `CODE` T1 inside the window — is **not edited**:
+same rows, same terms, same T-state.  The core leg's answer is still COMPUTED
+and still REPORTED, on every result line, as the non-gating diagnostic
+**`ps3_8080_core`** (A-1's `escaped` precedent — retired, not dropped, so the
+retirement stays auditable in the bank).
+
+**THE MEASUREMENT — BOTH ARMS, ON THE 382-PAIR CONTROL.**  The coordinator's
+preferred disposition was to sample the mode status at **T2**, where the O-1
+entry above observed both legs reading `0x2` on the reset fetch.  That had to be
+tested, not assumed, because T1 was chosen deliberately:
+`timed_fuzz.native_exclusion`'s own comment says requiring `CODE` + T1 *"avoids
+treating the separately-booked retained PS3 value on a few stack writes as mode
+entry"*.  Control = the **382 archived board capture pairs** named in O-1
+(`wr1` 380, v1 era; `fz2c-prereg-A1-archive` 2, v2 era; both tiers).  Falsifier
+population = the **`t30-brkem` bank, 116 pairs**, which is where seeds that
+genuinely enter 8080 mode exist.  Tool: `sw/fz2_a2_replay.py`, checked in, board-
+free, re-runnable.
+
+| form | socket leg, control | core leg, control | socket, t30-brkem | core, t30-brkem |
+|---|---|---|---|---|
+| `T1+CODE` (as registered) | **99 / 382** | **382 / 382** | **87 / 116** | **116 / 116** |
+| `T2+CODE` (the candidate) | **99 / 382** | **103 / 382** | **87 / 116** | **0 / 116** |
+
+**ARM 1 — DOES A T2 SAMPLE REINTRODUCE THE NAMED FALSE POSITIVE?  NO.**  On the
+socket leg the T1 and T2 forms select the **identical seed set** — 99 of 382 on
+the control and 87 of 116 on the falsifier bank, set for set, with the first
+firing row exactly **+1** in every one of those 186 cases.  And the retained-PS3
+class the `T1` term was credited with excluding is excluded by the **`CODE`
+term**, not by the T-state: over all 382 pairs the only thing `CODE` removes is
+**one** seed, `wr1/219060`, whose PS3 sits on a **MEMW** cycle — and it is
+removed identically at T1 and at T2.  So T1 was doing none of that work.
+
+**ARM 2 — BUT T2 DOES NOT CLOSE O-1, AND THIS IS WHERE THE PREFERRED ARM FAILS.**
+O-1's premise was that *both legs measurably read the status nibble at T2*.  It
+was observed on one row — the reset fetch — of two seeds.  Over 382 pairs it is
+**false**: at T2 the core leg still fires on **103 of 382**, agreeing with the
+socket leg on only 96 of its 99 (7 core-only, 3 socket-only).  T2 shrinks O-1
+from 382 to 103; it does not close it, and 103 of 3,840 would still be a
+declared DISCARD for a reason that is not 8080 mode.
+
+**AND THE FALSIFIER SETTLES IT.**  On the `t30-brkem` bank a T2 core-leg sample
+detects **0 of 116** — while the socket leg detects **87**.  The core leg at T2
+therefore has **zero measured true positives on the only population where 8080
+entry is known to exist**, and 7 uncorroborated firings on the control.  Keeping
+it would be keeping a false-positive-only clause.
+
+**THE MECHANISM, AND IT IS THE SIMPLE ONE.**  Not a comparator quirk — the RTL.
+`v30u_biu.sv`'s status nibble is `data_ps = {md8080, psw_ie, segc}`; `md8080` is
+`v30u_eu.sv`'s `mode8080`; and `mode8080` is set **only by an `MFC` row**, on the
+8080 loader / BRKEM path that is **ledger R4, unimplemented** — the RTL says so
+in its own words at `v30u_eu.sv:704`, *"UNREACHABLE ON THE CURRENT STIMULUS"*.
+**The ucore's status PS3 is structurally 0.**  A core-leg mode clause has nothing
+to detect even in principle, which is why it reads 0/116 where truth exists, and
+every PS3 it does show is the pads carrying something that is not the mode bit —
+at T1 the address nibble A19-16, which is O-1.  The two legs switch the pads from
+address to status **one clock apart**; that is one pin group and one clock, and
+it is the same family as F53/F55's display-pin work, not a new law.
+
+**WHY NOT "CHANGE WHAT THE CORE DRIVES AT T1".**  O-1 left that open as a third
+option.  It is declined: it would be an RTL landing (Quartus receipt, re-flash,
+re-validation of every fabric figure on this branch) taken to repair a clause
+that, once repaired, would still detect nothing — because `md8080` is 0
+regardless of when the pads present it.  It would also change the core's pin
+behaviour to suit a scorer, which is the wrong direction under a silicon-match
+target.
+
+**WHY T1 AND NOT T2 FOR THE SURVIVING SOCKET CLAUSE.**  They are the same
+predicate on that leg (measured above, both populations).  T1 is kept because it
+is the **unchanged** form, because it is `timed_fuzz.native_exclusion`'s own form
+and keeps the repo's two transcriptions of one predicate identical, and because a
+gratuitous edit to a registered predicate is a second decision where none is
+needed.
+
+**WHICH REGISTERED VALUES MOVED: NONE.**  Every bar that gates is untouched,
+character for character — soup ≥ 99.0 %, raw ≥ 95.0 %, UNDISPOSITIONED = 0, and
+C-1 … C-11 as written.  **C-1's and C-3's text is not edited**, nor is any
+threshold, stratum, seed, `SEEDS_SHA256` or `SEED_LIST_SHA256`.  What moved is
+what the column `ps3_8080` *means* — one leg instead of two — and that is stated
+here rather than in a patch.  Note the direction: the socket-only form
+dispositions **fewer** seeds, so C-1's UNDISPOSITIONED bar and C-3's runtime
+clause both get **HARDER**, never easier.  E-1c's whole purpose — *"it bounds the
+unexplained residue from below, so the bar cannot be met by discarding"* — is
+restored rather than traded away.
+
+**PROVED, NOT ASSERTED.**  Three legs, all offline, all board-free:
+
+* `sw/fz2_a2_replay.py` — the table above, re-derivable from checked-in captures,
+  with five assertions including the registered falsifier (*the chosen form must
+  still return True on a seed that genuinely enters 8080 mode*): **PASS, 0
+  failures**, socket `T1+CODE` **87/116** on `t30-brkem`.
+* `sw/t11_clientpath_gate.py` — **ALL PASS**, including L6's *"every registered
+  column is ON THE LINE"* (`absent=[]`) with `ps3_8080_core` additive.
+* `sw/test_fuzz_classify.py` **0 failures**, `sw/test_fuzz_accept.py` **0
+  failures**, `sw/fz2_a1_replay.py` unchanged in both directions — A-1's
+  disposition is not disturbed.
+
+**WHAT THIS PREDICTS FOR THE CAPTURE, REGISTERED BEFORE IT.**  On the two banked
+v2-era `fz2c` seeds the socket leg reads `ps3_8080` **false** on both (it read
+`true` on both under the OR, entirely from the core leg: 39 and 15 firing rows
+there, 0 on the socket leg).  With D9's unconditional `0F` scrub on every composed
+image, C-3's runtime clause is expected to read **0 of 3,840**; `ps3_8080_core` is
+expected to read **true on essentially every line** and to gate nothing.
