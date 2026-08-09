@@ -260,12 +260,22 @@ def compare_functional(real, sim, window):
     return FuncResult(False, None, None, False, "")
 
 
-def has_done(recs, window):
-    """(present, data) for the first done-marker IOW to 0xFC inside window."""
+def has_done(recs, window, sentinel_only=False):
+    """(present, data) for the first done-marker IOW to 0xFC inside window.
+
+    `sentinel_only` -- AMENDMENT A-10 (prereg §27), and it is `dump_words`'
+    parameter under `dump_words`' rule: a done marker is `OUT OUT_PORT_DONE`
+    CARRYING `DONE_SENTINEL`.  With it set, a non-sentinel write to the done
+    port is not a done marker and is skipped, so the answer is "did the
+    HARNESS'S store emit its marker", not "did anything write to port 0xFC".
+
+    DEFAULT FALSE, so every historical caller means what it meant."""
     for tx in extract_txns(recs):
         if tx["start"] >= window:
             break
         if KIND[tx["kind"]] == "IOW" and (tx["addr"] & 0xFFFF) == OUT_PORT_DONE:
+            if sentinel_only and tx["data"] != DONE_SENTINEL:
+                continue
             return True, tx["data"]
     return False, None
 
@@ -363,7 +373,9 @@ def provenance_alarms(real, sim, ctx, window):
     """Mechanised capture-integrity alarms - any hit means the capture cannot
     be trusted as evidence and the campaign must STOP to investigate:
       * a Tw row in a w0, non-wrand CHIP capture  (phantom sticky-WRAND wait)
-      * a done marker whose data != 0xF00D         (forged / corrupt store)
+      * BOTH legs write the SAME non-sentinel value to the done port and the
+        harness's own `0xF00D` marker appears NOWHERE in either capture
+                                                   (forged / corrupt store)
       * a reset asserted mid-window                (capture restarted).
 
     ⚠ `escaped_code_region` USED TO BE ON THIS LIST AND IS NOT ANY MORE.
@@ -402,11 +414,55 @@ def provenance_alarms(real, sim, ctx, window):
     # decide WHICH of two alarms fired, and with only one of them left there is
     # nothing for it to arbitrate -- the shared-vs-one-sided discriminator below
     # is what separates a corrupt store from a divergence.)
+    #
+    # AMENDMENT A-10 (prereg §27) -- D-2's SENTINEL PREDICATE EXTENDS TO HERE.
+    # §17.5 ruled that a done marker is one that CARRIES THE SENTINEL and gave
+    # `dump_words` / `arch_dump` / `dump_restarted` the predicate; §17.6 says in
+    # so many words that A-6 deliberately did not touch this function, and the
+    # seed that forced the question (`fz2v/604011`, §26.2) was captured after.
+    # The timing is stated in §27.0 and is not hidden here.
+    #
+    # THE MECHANISM: the terminator's tail is `MOV AW, 0xF00D` / `OUT 0xFC, AW`,
+    # and a stimulus NMI can land on that ONE instruction boundary.  The seed's
+    # own D8 modification handler then runs -- modifying registers is its entire
+    # purpose -- and IRET returns INTO the `OUT`, so the store emits the
+    # handler's AW.  The image re-runs, the terminating NMI fires, and the
+    # second pass dumps cleanly with the true sentinel.  Nothing about the rig
+    # or the part is wrong; the alarm's premise ("the harness store must emit
+    # 0xF00D") predates D8 handlers and is what is wrong.
+    #
+    # THE PREDICATE, ONCE, UNIFORMLY: a done marker is `OUT 0xFC` carrying
+    # `DONE_SENTINEL`.  So the question this clause asks is "did the HARNESS'S
+    # done marker never appear AT ALL", and only then is a shared non-sentinel
+    # write to the port evidence of a corrupt store.
+    #
+    # ⚠ WHY THIS IS NOT A DELETION.  Read literally -- "a non-sentinel OUT 0xFC
+    # is not a done marker" applied to both reads below -- the clause becomes
+    # VACUOUS: `has_done(..., sentinel_only=True)` can only ever return
+    # `DONE_SENTINEL`, so `ddr != DONE_SENTINEL` is unreachable and the alarm
+    # can never fire again.  An alarm that can no longer catch anything is a
+    # deletion wearing an extension's clothes.  So the predicate is applied
+    # where it decides EXISTENCE (the suppressing evidence) and the accusing
+    # evidence -- the shared non-sentinel value, and the shared-vs-one-sided
+    # discriminator below it -- is left exactly where it was.  A genuinely
+    # corrupt store stub is deterministic and shared, so it corrupts BOTH legs
+    # and NEITHER of them ever reaches the sentinel; that is still caught, and
+    # `test_fuzz_classify` proves it still fires (§27.3).
+    #
+    # THE TWO WINDOWS ARE DIFFERENT ON PURPOSE, and this is D-1 (§17.4): the
+    # capture is not one run of the program, and the SUPPRESSING evidence is
+    # asked of the whole CAPTURE (the sentinel marker of 604011's second pass
+    # sits at row 3406 of 4063, 2,267 rows past the comparison window), while
+    # the ACCUSING read keeps the comparison `window` it has always had, so
+    # this amendment cannot make the alarm fire anywhere it did not before.
     if ctx.tier == "A":
+        sen_r, _ = has_done(real, len(real), sentinel_only=True)
+        sen_s, _ = has_done(sim, len(sim), sentinel_only=True)
         pr, ddr = has_done(real, window)
         ps, dds = has_done(sim, window)
         both = pr and ps and ddr is not None and dds is not None
-        if both and ddr == dds and ddr != DONE_SENTINEL:
+        if (not sen_r and not sen_s
+                and both and ddr == dds and ddr != DONE_SENTINEL):
             alarms.append(f"done_data_both_{ddr:04x}")
     for tag, recs in (("real", real), ("sim", sim)):
         seen_run = False

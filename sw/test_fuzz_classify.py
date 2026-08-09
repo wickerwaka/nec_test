@@ -147,6 +147,106 @@ def main():
     check("one-sided junk done -> NOT provenance QUARANTINE",
           not any("done_data" in a for a in v.alarms), f"(alarms={v.alarms})")
 
+    # --- 5b. AMENDMENT A-10: D-2's sentinel predicate reaches this clause ----
+    # `docs/notes/fz2_corpus_prereg_2026-08-08.md` §27.  A done marker is an
+    # `OUT 0xFC` carrying `0xF00D`; a non-sentinel one is not a done marker and
+    # raises no done-related alarm.  Read literally that makes the clause
+    # VACUOUS, so the predicate decides EXISTENCE and the shared-vs-one-sided
+    # discriminator is untouched.  Five things are asserted together, because
+    # an alarm that can no longer catch anything is a deletion:
+    #   (a) the 604011 shape -- junk marker inside the window, the harness's
+    #       real sentinel marker LATER IN THE CAPTURE -- no longer alarms;
+    #   (b) and it SCORES, with the arch dumps compared;
+    #   (c) a shared corrupt store with NO sentinel anywhere still QUARANTINEs
+    #       and still STOPs                       (checks 5/A-1(c) above);
+    #   (d) the shared-vs-one-sided discriminator is still what refuses a
+    #       ONE-SIDED junk done when NO sentinel exists on either leg -- i.e.
+    #       the suppressing predicate is not the only thing left standing;
+    #   (e) a capture with no marker of any kind still reads as it should.
+    def _append_txn(rs, src_start, src_end, data, addr=None):
+        """Copy a transaction's rows onto the end of a capture, with new data
+        (and optionally a new address) -- a second pass of the image."""
+        for j in range(src_start, src_end + 1):
+            r = copy.deepcopy(rs[j])
+            if fc._tstate(r) in (2, 3, 4):
+                r["ad_data"] = data
+            if addr is not None and fc._tstate(r) == 1:
+                r["ad_addr"] = (r["ad_addr"] & 0xF0000) | addr
+            rs.append(r)
+
+    dt0 = _find_done_t1(rows, len(rows))
+    tx0 = next(t for t in fc.extract_txns(rows) if t["start"] == dt0)
+    # (a) the 604011 shape, synthesised so a reviewer needs no board capture:
+    #     both legs write junk to 0xFC at the terminator, and the harness's own
+    #     sentinel marker appears later in the capture (the image re-ran).
+    r_604, s_604 = copy.deepcopy(rows), copy.deepcopy(rows)
+    _set_done_data(r_604, 0x179E)
+    _set_done_data(s_604, 0x179E)
+    for rs in (r_604, s_604):
+        _append_txn(rs, tx0["start"], tx0["end"], fc.DONE_SENTINEL)
+    v604 = fc.classify(r_604, s_604, fc.Ctx(tier="A", waits=1,
+                                            real_is_chip=True))
+    check("A-10(a): junk marker + a LATER sentinel -> NO done alarm",
+          not any("done_data" in a for a in v604.alarms),
+          f"(alarms={v604.alarms})")
+    check("A-10(b): and the seed SCORES (not QUARANTINE)",
+          v604.verdict != fc.QUARANTINE, f"(got {v604.verdict}/{v604.sub})")
+    check("A-10(b): with the sentinel-anchored arch dump readable",
+          fc.arch_dump(r_604, len(r_604), sentinel_only=True) is not None
+          and (fc.arch_dump(r_604, len(r_604), sentinel_only=True)
+               == fc.arch_dump(s_604, len(s_604), sentinel_only=True)))
+    esc604 = fc.EscalationPolicy()
+    check("A-10(a): and does NOT stop the campaign",
+          not any(a == ("STOP", "provenance_alarm")
+                  for a in esc604.consult(v604, ctxA)),
+          "")
+    # (d) ONE-SIDED junk with NO sentinel anywhere: the sentinel predicate does
+    #     NOT suppress here (neither leg has a sentinel), so the ORIGINAL
+    #     shared-vs-one-sided discriminator is what must refuse the alarm.
+    r_1s, s_1s = copy.deepcopy(rows), copy.deepcopy(rows)
+    _set_done_data(r_1s, 0x00C5)
+    dt_s = _find_done_t1(s_1s, len(s_1s))
+    s_1s[dt_s]["ad_addr"] = (s_1s[dt_s]["ad_addr"] & 0xF0000) | 0x00AA
+    check("A-10(d): the one-sided fixture has NO sentinel on either leg",
+          not fc.has_done(r_1s, len(r_1s), sentinel_only=True)[0]
+          and not fc.has_done(s_1s, len(s_1s), sentinel_only=True)[0])
+    v1s = fc.classify(r_1s, s_1s, fc.Ctx(tier="A", waits=1,
+                                         real_is_chip=True))
+    check("A-10(d): one-sided junk, no sentinel -> NO done alarm "
+          "(the discriminator, not the predicate)",
+          not any("done_data" in a for a in v1s.alarms),
+          f"(alarms={v1s.alarms})")
+    # and the SHARED form of that same fixture must still fire, which is what
+    # makes (d) a discriminator test rather than a second suppression.
+    r_sh2, s_sh2 = copy.deepcopy(rows), copy.deepcopy(rows)
+    _set_done_data(r_sh2, 0x00C5)
+    _set_done_data(s_sh2, 0x00C5)
+    check("A-10(c): the shared fixture has NO sentinel on either leg",
+          not fc.has_done(r_sh2, len(r_sh2), sentinel_only=True)[0]
+          and not fc.has_done(s_sh2, len(s_sh2), sentinel_only=True)[0])
+    vsh2 = fc.classify(r_sh2, s_sh2, fc.Ctx(tier="A", waits=1,
+                                            real_is_chip=True))
+    check("A-10(c): shared corrupt done, no sentinel -> STILL QUARANTINE",
+          vsh2.verdict == fc.QUARANTINE
+          and any("done_data_both" in a for a in vsh2.alarms),
+          f"(got {vsh2.verdict}/{vsh2.sub})")
+    escsh2 = fc.EscalationPolicy()
+    check("A-10(c): and STILL STOPs the campaign",
+          any(a == ("STOP", "provenance_alarm")
+              for a in escsh2.consult(vsh2, ctxA)), "")
+    # (e) a capture carrying NO write to the done port at all: no done alarm,
+    #     and Tier A reads it as `runaway_both` -- the pre-existing path.
+    r_no, s_no = copy.deepcopy(rows), copy.deepcopy(rows)
+    for rs in (r_no, s_no):
+        d = _find_done_t1(rs, len(rs))
+        rs[d]["ad_addr"] = (rs[d]["ad_addr"] & 0xF0000) | 0x00AA
+    vno = fc.classify(r_no, s_no, ctxA)
+    check("A-10(e): no marker of any kind -> NO done alarm",
+          not any("done_data" in a for a in vno.alarms),
+          f"(alarms={vno.alarms})")
+    check("A-10(e): and Tier A reads it as runaway_both",
+          vno.sub == "runaway_both", f"(sub={vno.sub})")
+
     # --- 6. AMENDMENT A-1: the escape is a DIAGNOSTIC, and only the escape ---
     # `docs/notes/fz2_corpus_prereg_2026-08-08.md` §11.  The census halted on
     # its second seed (fz2c/400001) on an escape that fired at the SAME row and

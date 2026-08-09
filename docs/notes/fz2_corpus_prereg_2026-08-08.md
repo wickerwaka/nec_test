@@ -3707,3 +3707,301 @@ asserted:**
 Recorded because a reader six months from now, finding two unrelated campaigns
 interleaved in the log at the same minute, is owed the fact rather than left to
 infer it.
+
+---
+
+## §27 AMENDMENT A-10 — D-2's SENTINEL PREDICATE EXTENDS TO `provenance_alarms`' TIER-A DONE-DATA CLAUSE, **AND THE TIMING IS STATED FIRST**
+
+**Committed BEFORE any board contact of the resuming session.**  This is the
+coordinator's ruling on §26.3, which named the question and deliberately made no
+disposition.
+
+### 27.0 THE TIMING, FIRST, BECAUSE IT IS THE THING A READER WILL CHECK
+
+> **THIS IS NOT A HALF-LANDED RULING BEING COMPLETED.  IT IS AN EXTENSION OF
+> D-2's PREDICATE TO A PLACE A-6 EXPLICITLY LEFT ALONE, DECIDED AFTER SEEING THE
+> SEED THAT TRIPPED IT.**
+
+§17.6 does not say A-6 ran out of time on `provenance_alarms`.  It says, in its
+own bullet, ***"It does not touch `classify`, so no verdict, signature or
+row-diff moves."***  That was a scope decision made on purpose, and
+`provenance_alarms` lives in the same file and is `classify`'s step 0.  §17.5 did
+observe that *"`provenance_alarms` calls a non-sentinel done marker **forged** in
+its own words, in the same file"* — but it observed it while repairing the OTHER
+half, and shipped.  **A-6 could have extended the predicate here and chose not
+to.**
+
+**The order of events is therefore: the predicate was ruled (A-6, §17.5); this
+function was left out on purpose (§17.6); the validation capture ran; it halted
+on `fz2v/604011`; and only then was this amendment written.**  A rule changed
+after seeing the datum it would have excused is, on its face, the shape of
+fitting, and A-4 §15.0's four conditions exist to make that hard.  Nothing below
+hides behind the fact that the amendment is numbered.
+
+### 27.1 WHAT MAKES IT DEFENSIBLE ANYWAY — four things, none of them "it is inconvenient"
+
+1. **The mechanism is MEASURED, row for row, on both legs, and there is no rig
+   defect.**  §26.2 prints it: the stimulus NMI landed on the instruction
+   boundary between the terminator's `MOV AW, 0xF00D` (row 940) and
+   `OUT 0xFC, AW` (row 964); the vector read at 975 is the SEED's own IVT[2];
+   the seed's D8 modification handler ran at 1013–1120; IRET popped at 1128–1139
+   and resumed AT `OUT 0xFC, AW` (1145); and the store emitted `0x179E` at 1164.
+   The image re-ran and the second pass dumped cleanly with the true sentinel.
+   **`arch_ok` true, `arch_match` true, `bad_rows` 0, both legs IDENTICAL,
+   `mech` `REACHED`, `readback_ok` true.**  Nothing is inferred.
+2. **The alarm's premise predates the thing that violates it.**  The clause says
+   *"the harness store must emit `0xF00D`"*.  It was written for a corrupt store
+   STUB — a deterministic, shared defect (task #29 P7, `mc1` k=9192).  **D8
+   modification handlers exist to modify registers**; that is their entire
+   purpose, and `AW` is a register.  The terminator's store is not immune to an
+   interrupt landing inside it, and the alarm was never told that such handlers
+   would exist.
+3. **The interference window is inherent and cannot be closed.**  It is ONE
+   instruction boundary wide.  **NMI is non-maskable, so no `CLI` closes it**,
+   and the stimulus event is a rig directive delivered at a `delay` the corpus
+   chooses without knowledge of where the program will be.  Widening the
+   terminator (loading `AW` twice, or storing an immediate) would change the
+   terminator's bytes and therefore **invalidate every `image_sha256` in the
+   frozen population and in both committed corpora** — 4,800 of them — for a
+   defect that is not the part's.
+4. **The A/B property, which is what this campaign actually measures, HOLDS.**
+   Both legs took the same NMI at the same row, ran the same handler, emitted the
+   same `0x179E`, and produced identical dumps.  A capture-integrity alarm exists
+   to say *the evidence cannot be trusted*.  Here the evidence is trustworthy and
+   says the two engines agree.
+
+### 27.2 THE RULING, AND THE ONE PLACE IT IS NOT TAKEN LITERALLY
+
+**THE PREDICATE, ONCE, UNIFORMLY: a done marker is an `OUT 0xFC` carrying
+`0xF00D`.  A non-sentinel `OUT 0xFC` is not a done marker and raises no
+done-related alarm.**  The seed then scores under the existing sentinel-aware
+readers — `arch_dump(..., sentinel_only=True)`, which `fuzz_campaign` already
+calls over the whole capture and which is why `arch_ok` was true all along.
+
+⚠ **AND READ LITERALLY, THAT DELETES THE ALARM.**  `has_done(...,
+sentinel_only=True)` can only ever return `DONE_SENTINEL`, so `ddr !=
+DONE_SENTINEL` becomes unreachable and the clause can never fire again.  **An
+alarm that can no longer catch anything is a deletion wearing an extension's
+clothes**, and this document is not going to record one as the other.  So the
+predicate is applied where it decides **EXISTENCE**, and the **accusing**
+evidence is left exactly where it was:
+
+> **The clause fires when the harness's own `0xF00D` marker appears NOWHERE in
+> either capture AND both legs wrote the SAME non-sentinel value to the done
+> port.**
+
+That is the corrupt-store signature and nothing else: a corrupt store stub is
+deterministic and SHARED, so it corrupts both legs and **neither of them ever
+reaches the sentinel**.  The shared-vs-one-sided discriminator (task #29 P7) is
+untouched and is still what separates a corrupt store from a functional
+divergence.
+
+**THE TWO READS USE DIFFERENT WINDOWS, ON PURPOSE, AND THAT IS D-1 (§17.4).**
+The capture is not one run of the program.  604011's sentinel marker sits at row
+**3406 of 4063**, **2,267 rows past** the comparison window of 1,139 — a window
+which the forged marker itself set.  So the SUPPRESSING evidence is asked of the
+whole CAPTURE (`len(recs)`), exactly as the arch column is; the ACCUSING read
+keeps the comparison `window` it has always had.  **The new condition is the old
+condition AND one more conjunct, so A-10 can only ever REMOVE an alarm and can
+never create one anywhere.**  That is a proof, not a sample.
+
+### 27.3 THE FALSIFIER — RUN, AND REPORTED WITH ITS DENOMINATORS
+
+**A stop-condition change that cannot be SHOWN to still stop is not a safe
+change.**  Two instruments, one board-free and one on the real halting rows.
+
+**(a) `python3 sw/test_fuzz_classify.py` — `PASS: 0 failure(s)`, 34 checks.**
+The two pre-existing forged-done checks are **UNCHANGED IN TEXT AND STILL
+FIRE**:
+
+```
+  ok   shared corrupt done -> QUARANTINE  (got QUARANTINE/provenance_alarm:done_data_both_00c5)
+  ok   one-sided junk done -> NOT provenance QUARANTINE  (alarms=[])
+  ok   A-1(c): the shared corrupt-store alarm still STOPs  ([('STOP', 'provenance_alarm')])
+```
+
+They needed **no re-derivation**: the TB fixture's only `OUT 0xFC` is the
+terminator's, so mutating its data leaves no sentinel anywhere and the
+suppressing conjunct is false.  Ten checks were ADDED, because the shared check
+passing is not by itself proof that the discriminator survived:
+
+```
+  ok   A-10(a): junk marker + a LATER sentinel -> NO done alarm  (alarms=[])
+  ok   A-10(b): and the seed SCORES (not QUARANTINE)  (got SUCCESS/clean)
+  ok   A-10(b): with the sentinel-anchored arch dump readable
+  ok   A-10(a): and does NOT stop the campaign
+  ok   A-10(d): the one-sided fixture has NO sentinel on either leg
+  ok   A-10(d): one-sided junk, no sentinel -> NO done alarm (the discriminator, not the predicate)
+  ok   A-10(c): the shared fixture has NO sentinel on either leg
+  ok   A-10(c): shared corrupt done, no sentinel -> STILL QUARANTINE  (got QUARANTINE/provenance_alarm:done_data_both_00c5)
+  ok   A-10(c): and STILL STOPs the campaign
+  ok   A-10(e): no marker of any kind -> NO done alarm  (alarms=[])
+  ok   A-10(e): and Tier A reads it as runaway_both  (sub=runaway_both)
+```
+
+**`A-10(d)` is the one that matters.**  It asserts first that NEITHER leg carries
+a sentinel — so the new conjunct does **not** suppress — and then that a
+one-sided junk done still raises no alarm.  **The thing refusing it is the
+original shared-vs-one-sided discriminator, which is therefore demonstrably
+still load-bearing and not dead code behind a always-true guard.**
+`python3 sw/test_fuzz_accept.py` is **`PASS: 0 failure(s)`** as well.
+
+**(b) `python3 sw/fz2_a10_replay.py` — `FZ2_A10_REPLAY: PASS`**, on the banked
+rows of the halting seed itself.  NEW tool, modelled on `fz2_a1_replay.py`:
+`sw/testdata/campaigns/fz2v/captures/soup_604011_0a5656a31a44.json.gz`, sha256
+**`41a407c71388b8ba8e9a08661a0fb67c4ba62bb7d97bd956c12f9df83154c13f`**, 4,063
+rows per leg.
+
+```
+    OUT 0xFC (real): [(1131, '0x179e'), (3406, '0xf00d')]
+    OUT 0xFC (sim ): [(1131, '0x179e'), (3406, '0xf00d')]
+
+--- LEG 1: the halting seed, as captured
+    BEFORE (b5f2b14f05)    -> QUARANTINE/provenance_alarm:done_data_both_179e
+                              alarms=['done_data_both_179e']  win=1139  bad_rows=0  STOP=True
+                              CONTROL reproduces the banked line: YES
+    AFTER  (tree)          -> SUCCESS/clean
+                              alarms=[]  win=1139  bad_rows=0  STOP=False
+    arch dumps compared: real=ok sim=ok equal=True
+    arch_ok(banked)=True arch_match(banked)=True  replayed arch == banked arch_words: True
+```
+
+**THE CONTROL IS THE WHOLE POINT** and it reproduces the banked line exactly —
+verdict, sub, alarm list and the `('STOP', 'provenance_alarm')` escalation — so
+the AFTER column is evidence.  **The seed now scores: `SUCCESS/clean`, both legs'
+arch dumps read through the sentinel-anchored reader, EQUAL to each other and
+EQUAL to the banked `arch_words`.**
+
+```
+--- LEG 2: THE FALSIFIER -- the same rows with NO sentinel marker anywhere
+    sentinel markers moved off the done port: 2
+    OUT 0xFC (real): [(1131, '0x179e')]  sentinel_present=False
+    OUT 0xFC (sim ): [(1131, '0x179e')]  sentinel_present=False
+    AFTER  (tree)          -> QUARANTINE/provenance_alarm:done_data_both_179e
+                              alarms=['done_data_both_179e']  win=1139  bad_rows=0  STOP=True
+    the alarm STILL CATCHES a corrupt shared store: YES
+
+--- LEG 3: one-sided, and no sentinel on either leg
+    sentinel_present real=False sim=False   done-port writes real=1 sim=0
+    AFTER  (tree)          -> FUNCTIONAL/done_mismatch
+                              alarms=[]  win=1139  bad_rows=1  STOP=False
+    the discriminator still refuses a one-sided junk done: YES
+```
+
+**Leg 2 is a corrupt shared store built out of REAL SILICON ROWS** — the same
+capture, with the second pass's `OUT 0xFC, 0xF00D` moved off the port on both
+legs and nothing else touched — **and the tree still QUARANTINEs it and still
+STOPs the campaign.**
+
+### 27.4 THE BOTH-WAYS RESCORE — **A-10 MOVES EXACTLY ONE LINE IN THE REPOSITORY**
+
+Two halves, and the first is arithmetic rather than a sample: **the new condition
+is the old condition AND one more conjunct, so no line anywhere can newly
+alarm.**  For the other direction, every `results.jsonl` in the tree was scanned
+for a line carrying `done_data_both`:
+
+```
+sw/testdata/campaigns/fz2c-A5-archive/results.jsonl          lines=960     done_data_both=0
+sw/testdata/campaigns/fz2c-INV2-archive/results.jsonl        lines=960     done_data_both=0
+sw/testdata/campaigns/fz2c-prereg-A1-archive/results.jsonl   lines=2       done_data_both=0
+sw/testdata/campaigns/fz2c/results.jsonl                     lines=960     done_data_both=0
+sw/testdata/campaigns/fz2e-A5-archive/results.jsonl          lines=2880    done_data_both=0
+sw/testdata/campaigns/fz2e-INV2-archive/results.jsonl        lines=2880    done_data_both=0
+sw/testdata/campaigns/fz2e/results.jsonl                     lines=2880    done_data_both=0
+sw/testdata/campaigns/fz2v/results.jsonl                     lines=332     done_data_both=1
+sw/testdata/campaigns/mc1/results.jsonl                      lines=10003   done_data_both=0
+sw/testdata/campaigns/mc2/results.jsonl                      lines=10000   done_data_both=0
+sw/testdata/campaigns/wr1/results.jsonl                      lines=3150    done_data_both=0
+sw/testdata/campaigns/wr2/results.jsonl                      lines=296     done_data_both=0
+TOTAL lines 35303  done_data_both lines: 1 [('fz2v', 604011)]
+```
+
+**Over 35,303 banked result lines across every campaign this repository holds,
+exactly ONE ever carried this alarm, and it is the seed the amendment was
+written for.  No committed corpus figure, bar, census, discard class or
+`fz2_bars.json` cell moves.**
+
+### 27.5 AN ERRATUM AGAINST §26.5 — **THE RESUME WOULD NOT HAVE RE-HALTED THERE**
+
+§26.5 says: *"It will halt again at 604011 until the alarm is disposed of."*
+**That is wrong, checked against the artifact rather than recalled.**
+`fz2_val.cmd_capture` resumes by `_done_ks()`, which is **every `k` present in
+`results.jsonl`** — and **604011's line IS present** (it is the 332nd, written
+with `verdict` `QUARANTINE` before the driver stopped).  Measured:
+
+```
+val/soup/stim/wrand3       n=80 done=12 first_missing=604012 last_missing=604079 span=68
+```
+
+So the resume begins at **604012** and never touches 604011.  The sentence
+should have read *"the seed's line is already banked and the resume steps over
+it; what will halt again is the NEXT seed that hits the same mechanism."*
+
+**THE AMENDMENT IS STILL WHAT UNBLOCKS THE RUN, AND THE ARITHMETIC IS WORTH
+STATING BEFORE THE CAPTURE RATHER THAN AFTER.**  The clause is Tier-A only, so
+the exposed remainder is **SOUP** seeds carrying a **stimulus** event: 68 left in
+`val/soup/stim/wrand3` plus 80 in `val/soup/stim/wvec-uni` = **148**.  Of the
+soup stimulus seeds captured so far — 80 in `stim/fix0` plus 12 in
+`stim/wrand3` = **92** — **one** hit the mechanism.  The remaining 480 raw seeds
+are Tier B, where this clause does not apply by construction.
+
+### 27.6 A THIRD SIBLING, **NAMED AND NOT DISPOSED** — `_done_idx`
+
+`fuzz_classify._done_idx` is D-2's other sibling and it identifies a done marker
+**by its PORT** as well.  It sets the Tier-A comparison window
+(`min(..., dend + 8)`), which is why **604011 was compared over 1,139 of its
+4,063 rows** — the window was set by the forged marker.
+
+**IT IS NOT TOUCHED, AND THAT IS DELIBERATE.**  Giving `_done_idx` the sentinel
+predicate would move the comparison window on **every Tier-A seed anywhere in
+the tree that contains a non-sentinel write to port 0xFC**, and with it `win`,
+`bad_rows`, `first_bad`, every signature and potentially every verdict in both
+committed corpora.  That is a rescore of the whole campaign, not an amendment to
+one clause, and it is **not** what §26.3 put to the coordinator.  It is named
+here, with its measurement, so that the next reader finds it recorded rather than
+discovers it — the same treatment §26.3 gave this one.
+
+### 27.7 WHAT A-10 CHANGES IN THE TREE
+
+* `sw/fuzz_classify.py` — `has_done` gains `sentinel_only`, **defaulting False so
+  every historical caller means what it meant** (it is `dump_words`' parameter
+  under `dump_words`' rule); `provenance_alarms`' Tier-A clause gains the one
+  suppressing conjunct and its reasoning.  **No other predicate, no tier
+  parameter, no per-seed case, no list of excused seeds.**
+* `sw/test_fuzz_classify.py` — ten checks added, **none removed or reworded**.
+* `sw/fz2_a10_replay.py` — NEW, the replay + falsifier above.
+* This document, appended.
+* **No other file.**  No bar, no constant, no discard class, no `fz2_w1.py`, no
+  `fz2_val.py`, no banked result line rewritten, no capture deleted, no board,
+  no flash, no Quartus, no RTL and nothing in `sim/`.
+
+### 27.8 WHAT IS REGISTERED FOR THE RESUME — before the board is touched
+
+* The resume is `fz2_val capture` **by `_done_ks()`**, starting at **604012**.
+  **628 seeds** remain; **no seed is re-run and the 332 banked lines stay
+  exactly as they are**, including 604011's `QUARANTINE`, which was the honest
+  verdict under the rule in force when it was taken.  §27.3(b) is where that
+  seed's post-amendment reading lives; **the results file is not rewritten**.
+  Its `arch_ok` is `true`, and `_rate` — C-1's arithmetic, and the only
+  arithmetic §16.2 scores — counts `arch_ok`, so the line's verdict field does
+  not enter either clause either way.
+* **The HARD stops stay armed.**  §2.4 is unchanged: any provenance alarm and
+  the ≥ 5-consecutive-quarantine circuit breaker still abort.  **If the capture
+  halts on a NEW contradiction it will be reported as a halt, not nursed.**
+* **NOTHING IS SCORED UNTIL ALL 960 ARE CAPTURED.**  §16.2's *"captured before
+  the rate is looked at"* is a property of the population, not of a stratum:
+  **no partial rate, no per-stratum rate, and `fz2_val score` is not run on a
+  prefix.**
+* **The bars are §16.2/A-5's, unmoved: soup ≥ 90.0 %, raw ≥ 75.0 %**, and
+  **§23.5's two outcomes are the only two available.**  No adjustment is
+  permitted in either direction.
+* Board discipline as registered: single-writer first, socket only with
+  `use_core=False` explicit, `div_guard()` on every probe with UNPINNED a
+  FINDING, `board_idle()` and a closing `use_core=0` chip proof.  **FLASH #12
+  (`sof 8db6dadf5c4c…`, receipt `27fb750f925c…`, 88 files) is the era and
+  THERE IS NO RE-FLASH.**
+* The frozen population is unchanged and is checked at preflight:
+  `fz2v_population.json` sha256
+  **`abfb39cb6576e3a618675fa7eadfe93f910d482a0197b5c698e678776d0c8d30`**,
+  `val_seed_list_sha256`
+  **`5d83b3a9b6aa7907cbef01eae7f33223b024f1fa9cdf1d56ab879e24925d81be`**.
