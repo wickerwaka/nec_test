@@ -35,6 +35,7 @@ from pathlib import Path
 SW = Path(__file__).resolve().parent
 sys.path.insert(0, str(SW))
 import check_fuzz_bank as cfb                            # noqa: E402
+import bank_status as bs                                 # noqa: E402
 import fuzz_classify as fc                               # noqa: E402
 from fuzz_accept import AcceptEngine                     # noqa: E402
 
@@ -79,12 +80,23 @@ def main():
                          "live tests/v30/fuzz_bank/sig_ledger.json).  Name a "
                          "pre-admission copy retrieved from git to REPRODUCE "
                          "an admission run after its signatures were admitted.")
+    # This tool MIRRORS `check_fuzz_bank`'s population deliberately -- it exists
+    # to explain that gate's `new-sig TIMING` line seed for seed -- so it must
+    # honour the same SUPERSEDED status, or the two would disagree by 3,242
+    # seeds and the explanation would be of a different population than the
+    # gate's.  `--include-superseded` reproduces a pre-SUP-1 admission run.
+    ap.add_argument("--include-superseded", action="store_true",
+                    help="also score banks marked SUPERSEDED in their manifest "
+                         "(docs/notes/invalidation_ledger.md § SUP-1)")
     a = ap.parse_args()
 
     ledger = Path(a.ledger) if a.ledger else cfb.LEDGER
     known = set(json.loads(ledger.read_text()).get("sigs", {})) \
         if ledger.exists() else set()
-    seeds = sorted(cfb.BANK.glob("*/seeds/*.json.gz"))
+    seeds, _dropped = bs.seed_paths(include_superseded=a.include_superseded)
+    note = bs.dropped_note(_dropped)
+    if note:
+        print(f"sm3_sigctl: {note}", flush=True)
     print(f"sm3_sigctl: {len(seeds)} banked seeds, {len(known)} known signatures"
           f" from {ledger}, jobs={a.jobs}", flush=True)
 

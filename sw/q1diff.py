@@ -129,7 +129,12 @@ def main():
     ap.add_argument("--details", type=int, default=0)
     args = ap.parse_args()
 
-    paths = tf.seeds_of([b for b in args.bank.split(",") if b])
+    # MEASUREMENT TOOL, NOT A GATE, AND ITS SUBJECT IS THE v1 CORPUS:
+    # `include_superseded=True` is passed DELIBERATELY so SUP-1's
+    # retirement (docs/notes/invalidation_ledger.md) does not make this
+    # instrument silently vacuous.  It replays nothing on any gate run.
+    paths = tf.seeds_of([b for b in args.bank.split(",") if b],
+                        include_superseded=True)
     if args.pilot:
         paths = tf.stratify(paths, args.pilot)
     elif args.limit:

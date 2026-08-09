@@ -35,6 +35,7 @@ import fuzz_classify as fc                              # noqa: E402
 from fuzz_accept import AcceptEngine                    # noqa: E402
 import fuzz_campaign as fzc                             # noqa: E402
 import timed_fuzz as tf                                 # noqa: E402  (banked_wvec)
+import bank_status as bs                                # noqa: E402
 
 BANK = SW.parent / "tests" / "v30" / "fuzz_bank"
 LEDGER = BANK / "sig_ledger.json"
@@ -86,7 +87,7 @@ def replay_classify(entry, engine):
     return sha, v.verdict, v.sig, v.sub
 
 
-def check(strict=False):
+def check(strict=False, include_superseded=False):
     # RESOLVE THE TB BINARY FIRST, AND EAGERLY.  `check_seq.tb_bin()` builds if
     # the content key moved and then asserts the artifact-layer postcondition
     # (sw/artifact.py) -- this gate is INCARNATION #3's home, the one that
@@ -101,8 +102,26 @@ def check(strict=False):
     engine = AcceptEngine.load()
     known_sigs = set(json.loads(LEDGER.read_text()).get("sigs", {})) \
         if LEDGER.exists() else set()
-    seeds = sorted(BANK.glob("*/seeds/*.json.gz"))
+    # THE REPLAYED POPULATION IS A PREDICATE OVER THE MANIFESTS, not this
+    # module's glob.  A campaign retired with `status: SUPERSEDED` leaves the
+    # gate -- it does not leave the tree, nothing is moved or deleted, and
+    # `--include-superseded` replays it in full (`sw/bank_status.py`,
+    # `docs/notes/invalidation_ledger.md` § SUP-1).  The exclusion is announced
+    # on its own line, never silently.
+    seeds, dropped = bs.seed_paths(include_superseded=include_superseded)
+    note = bs.dropped_note(dropped)
+    if note:
+        print(f"check_fuzz_bank: {note}", flush=True)
     if not seeds:
+        if dropped:
+            # A GATE THAT REPLAYS NOTHING IS NOT A PASS.  If every bank in the
+            # tree has been retired, this gate has gone vacuous and must say so
+            # loudly rather than exit 0 on an empty population -- the exact
+            # failure mode `standing_gates.md` was written against.
+            print("check_fuzz_bank: FAIL | 0 seeds -- EVERY bank is SUPERSEDED "
+                  "and no ACTIVE bank exists.  A gate with an empty population "
+                  "is vacuous, not green.")
+            return 1
         print("check_fuzz_bank: no banked seeds")
         return 0
     gen_drift = worse = improved = float_alarm = new_sig_tim = stable = err = 0
@@ -149,8 +168,12 @@ def check(strict=False):
 def main():
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("--strict", action="store_true")
+    ap.add_argument("--include-superseded", action="store_true",
+                    help="also replay banks marked SUPERSEDED in their "
+                         "manifest (retirement is not deletion -- this is how "
+                         "a pre-v2 figure is re-derived)")
     a = ap.parse_args()
-    return check(a.strict)
+    return check(a.strict, a.include_superseded)
 
 
 if __name__ == "__main__":

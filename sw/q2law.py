@@ -241,8 +241,13 @@ def main():
                                 ROOT / args.suite, args.cases)
         score(ev, f"goldens {args.suite} w{args.waits}", args)
     if args.fuzz:
+        # MEASUREMENT TOOL, NOT A GATE, AND ITS SUBJECT IS THE v1 CORPUS:
+        # `include_superseded=True` is passed DELIBERATELY so SUP-1's
+        # retirement (docs/notes/invalidation_ledger.md) does not make this
+        # instrument silently vacuous.  It replays nothing on any gate run.
         paths = [l.split()[0] for l in open(args.fuzz)] \
-            if Path(args.fuzz).is_file() else tf.seeds_of(tf.BANKS)
+            if Path(args.fuzz).is_file() \
+            else tf.seeds_of(tf.BANKS, include_superseded=True)
         with Pool(args.jobs) as pool:
             fev = [e for r in pool.map(fuzz_events, paths, chunksize=2)
                    for e in r]

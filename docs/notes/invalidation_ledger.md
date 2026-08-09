@@ -22,6 +22,14 @@ session; **no invalidation had ever been recorded in this project.**
 | **THE ARCHIVE** | where the raw data went. **Nothing is ever deleted.** |
 | **GATE STATUS** | every standing figure that moved, and the new status of each gate |
 
+**This file carries a SECOND register, opened 2026-08-09: § SUPERSEDED
+POPULATIONS — NOT INVALIDATIONS (`SUP-n`).** A supersession is filed there and
+never here, because *nothing is wrong with a superseded artifact*: its **WHICH
+RIG DEFECT** field reads **NONE**, no capture is false, and it is retired from
+the DEFAULT population by a `status` key in its own manifest rather than
+discarded from every gate set. Do not read a `SUP-n` entry as evidence of a
+defect, and do not file a defect as a `SUP-n`.
+
 ## A caution about the precedent this directive cites
 
 **The w1evt-biased event is an ARCHIVE-BY-RENAME, not an invalidation**, and
@@ -396,6 +404,237 @@ If the re-capture's UNDISPOSITIONED count does **not** fall, the diagnosis is
 wrong and O-2a is not a budget defect.  If the residue that survives is **not**
 dominated by §13.5's stopped-CPU class (O-2d), the partition drawn off the
 banked captures is wrong.  Either outcome is reported as registered.
+
+---
+
+# SUPERSEDED POPULATIONS — **NOT** INVALIDATIONS
+
+**Opened 2026-08-09.** This register was opened for artifacts that are FALSE.
+The entries below are for artifacts that are TRUE and no longer USED. They are
+filed here because they change what a gate measures and that must be findable in
+one place — and they are filed under their own heading because filing a
+retirement as an invalidation would say something about the data that is not so.
+
+| | an INVALIDATION (INV-n) | a SUPERSESSION (SUP-n) |
+|---|---|---|
+| what is wrong with the capture | something — it was scored against a directive it never saw, or its label is false | **nothing** |
+| the named rig defect | required | **NONE — and that field must read NONE** |
+| the predicate | `timed_fuzz.f46_invalidated`, over the record | `bank_status.is_superseded`, over the manifest |
+| the disposition | out of every gate set, permanently | out of the DEFAULT population; back with one flag |
+| what it says | this measurement was not of what we thought | a better instrument exists |
+
+**The two are independent.** A seed can be neither, either or both, and neither
+predicate is computed from the other. `f46_invalidated` is **0 bank-wide** and
+stays 0 — SUP-1 does not touch it and alleges nothing.
+
+---
+
+## SUP-1 — THE v1 FUZZ CORPUS, AS A REPLAYED POPULATION
+
+**Opened 2026-08-09, branch `fuzz-v2-on-relanding`. Status: RETIRED BY STATUS.
+No rig defect. Nothing moved, renamed or deleted.**
+
+### WHAT
+
+| | |
+|---|---|
+| the artifact | the **v1 fuzz bank** — four campaigns, **3,242 banked seeds**, captured 2026-07-28 |
+| the cids | `mc1` **1,295** · `mc2` **1,294** · `t30-raw` **568** · `t30-brkem` **85** |
+| where it is | `tests/v30/fuzz_bank/{mc1,mc2,t30-raw,t30-brkem}/` — **exactly where it has always been, byte for byte** |
+| what changed in it | four `manifest.json` files gained `status`, `superseded_by`, `as_of_commit`, `superseded_ledger`, `superseded_note`. **No seed file, sig index, result shard or `chip_rows` was touched.** |
+| the tree it was set on | `as_of_commit` `c07fbc0169ed31ca27b94be7a5759c085fb83d0d` |
+
+### WHY — superseded, **not false**
+
+The user directive of this campaign is *"I do not care about the old fuzz data,
+discard it, move on"*, and the fuzz-v2 corpus was captured, scored and banked to
+replace it. Until this entry the v1 seeds were still replayed **on every
+`check_fuzz_bank` run** — 3,242 of the 3,865 seeds in the gate, for **+19.2 %
+wall time and zero information about the population the project now develops
+against** (`fz2_corpus_prereg_2026-08-08.md` §21.4).
+
+**Nothing is alleged about the captures.** They are true silicon; they were taken
+from the socket; they will remain true. Every figure ever quoted off them stays
+true *of them*. What ended is their standing as the population a landing is
+developed and scored against.
+
+This also **RESOLVES C-11's third clause**, which §21.4 reported and did not
+resolve. *"Standing bank ≤ 3,500"* was scored as `fz2c + fz2e` = **623** while
+§2.1 justifies the number with *"every banked seed is replayed on every gate
+run"* — a population of **3,865**, breaching the ceiling by 365.
+**COORDINATOR RULING, 2026-08-09: §2.1's reading is correct** — gate wall time is
+the cost the number exists to bound. The repair is not to shrink `fz2`; it is to
+stop replaying a corpus that was discarded. The two readings now agree at **623**
+and `fz2_w1.cmd_bars` computes **the §2.1 one** (`replayed`), recording both.
+
+### WHICH RIG DEFECT
+
+# **NONE.**
+
+No rig defect is alleged, none is diagnosed, and none is fixed by this entry.
+No capture is false, no directive was mis-applied, no label is wrong.
+`f46_invalidated` is **0** across the whole bank before and after. If this entry
+is ever read as evidence that something was wrong with the v1 captures, it is
+being read wrongly.
+
+### WHAT REPLACES IT
+
+The **fuzz-v2 corpus**, `fz2c` **480** + `fz2e` **143** = **623** banked seeds
+(`fz2_corpus_prereg_2026-08-08.md` §21), promoted 2026-08-09 and replaying
+**623 stable / 0 improved / 0 worse / 0 GEN-DRIFT / 0 errors**.
+
+It is a better instrument on the axes this campaign cares about, and it is
+**measured, not asserted** (census over the banked records):
+
+| axis | v1, 3,242 seeds | v2, 623 seeds |
+|---|---|---|
+| per-access WAIT VECTOR (task #38) | **0** — the axis did not exist | **169** `wvec-uni` (+454 flat) |
+| `PSW.TF` / single-step | **0** seeds carry `has_tf` | **22** |
+| census promotion rule | divergence-driven quota (a selection artefact) | **480 by the FROZEN rule**, `census_exact` true — population rates are population rates |
+| `evt` pin events | 1,165 armed (760 at hold 300) | 295 armed (108 at hold 300) |
+| 8080 / BRKEM | 50 seeds with BRKEM positions + the 85-seed `t30-brkem` bank | **0** — every v2 seed is `no8080` |
+
+### THE ARCHIVE — there is none, because **nothing moved**
+
+**This is the whole point of the mechanism.** INV-1's own words:
+
+> a list can drift away from what it describes and a rename can be undone
+> silently; a predicate computed from the artifact cannot.
+
+INV-1 archived by rename because its captures had to leave a gate set
+permanently. A supersession does not: the population must stay **reachable on
+request**, so a historical figure can be re-derived. So it is a **STATUS**, in
+each campaign's own `manifest.json`, and the population is a predicate over the
+manifests — `sw/bank_status.py`, a leaf module with no engine behind it:
+
+```
+python3 sw/bank_status.py                       # the replayed population
+python3 sw/bank_status.py --include-superseded  # everything banked
+```
+
+A bank with **no** `status` key is `ACTIVE`, so no existing bank and no future
+promotion has to be edited to keep meaning what it means. Every consumer that
+excludes a bank **says so on its own line**; a consumer that dropped 3,242 seeds
+silently would defeat the mechanism.
+
+### GATE STATUS — every figure that moved, and every one that did not
+
+| gate | before | after |
+|---|---|---|
+| `check_fuzz_bank` **population** | **3,865** seeds | **623** seeds |
+| `check_fuzz_bank` **verdict** | **FAIL** — see §"THE BEFORE WAS RED" below | **PASS** — `623 banked seeds \| stable 623 improved 0 worse 0 \| gen_drift 0 regen_err 0 \| float-floor 0 \| new-sig TIMING 0` |
+| `check_fuzz_bank` **wall time** | **1,580 s** (26 m 20 s) | **266 s** (4 m 26 s) — **−83.2 %** |
+| `check_fuzz_bank --include-superseded` | — | **3,865 seeds selected — the pre-SUP-1 population exactly, path for path** (proved: `bank_status.seed_paths(include_superseded=True)` is set- and order-identical to the historical `BANK.glob("*/seeds/*.json.gz")`). It still FAILS, for the reason below, which is not SUP-1's |
+| `timed_fuzz --core ucore --evt-replay` | REGISTERED 1,564/1,702 · EVT 937/1,008 · COMBINED 2,501/2,710 | **NOT MEASURABLE ON THIS BRANCH, with or without the flag** — see §"THE BEFORE WAS RED". Without it: 0 seeds. With it: 3,242 seeds, **all `GEN_DRIFT`** (measured: `--bank mc1 --limit 40` → `GEN_DRIFT=40  SCORED 0`) |
+| `timed_fuzz --core sim --evt-replay` | REGISTERED 1,343/1,702 · EVT 802/1,008 · COMBINED 2,145/2,710 | **NOT MEASURABLE ON THIS BRANCH**, same cause, same evidence |
+| `timed_fuzz --seeddir …/b2-tranche/seeds` | 182/188 (ucore), 161/188 (sim) | **UNTOUCHED** — `--seeddir` does not read the bank |
+| FZ2 bars | 8/11 MET, NOT MET C-1, C-3, C-6 | **8/11 MET, NOT MET C-1, C-3, C-6.** Only C-11's `measured` moved (gains `replayed` 623, `all_banked_incl_superseded` 3,865, `superseded_cids`); no other bar's `measured` changed by one character |
+| C-11, §4.3's reading (`fz2c + fz2e`) | 623 ≤ 3,500 **MET** | 623 ≤ 3,500 **MET** |
+| C-11, §2.1's reading (replayed) | 3,865 ≤ 3,500 **BREACHED by 365** | **623 ≤ 3,500 MET** — and this is the one the scorer computes |
+| `f46_invalidated`, bank-wide | **0** | **0** |
+| every other standing gate | — | **UNMOVED.** No other gate reads the bank glob |
+
+### THE BEFORE WAS RED, AND THE WHOLE RED WAS THE v1 CORPUS
+
+**This was not in the brief and it is not what anyone expected. It is measured,
+and it corrects the framing of the finding this entry acts on.** §21.4 costed
+the v1 corpus at *"+19.2 % wall time and zero information"*. The true cost was
+higher: **on branch `fuzz-v2-on-relanding`, `check_fuzz_bank` over the 3,865-seed
+population FAILS**, and every failing seed is a v1 seed —
+
+```
+check_fuzz_bank: FAIL | 3865 banked seeds | stable 623 improved 0 worse 0
+                      | gen_drift 3157 regen_err 85 | float-floor 0
+                      | new-sig TIMING 0                        (1,580 s)
+```
+
+`mc1` **1,295** + `mc2` **1,294** + `t30-raw` **568** = **3,157 GEN-DRIFT**, and
+all **85** `t30-brkem` seeds raise
+`brkem_high: refused -- fuzz-v2 eliminates 8080 entry unconditionally (plan D9)`.
+The **623** fz2 seeds are the only stable ones in the tree.
+
+**THE CAUSE IS fuzz-v2's OWN PLAN D9, AND IT LANDED LONG BEFORE THIS ENTRY**
+(`sw/fuzz_campaign.py`, commits `e45772e4e0` … `b155b6166b`): the `0F` scrub is
+now **unconditional** at all three build sites, so every v1 image regenerates to
+a different sha256; and `brkem_high` is **refused outright**, so the BRKEM bank
+cannot be composed at all. Both are deliberate, registered and correct. Their
+side effect is that **the v1 corpus stopped being replayable on this branch the
+day D9 landed** — GEN-DRIFT is the gate's designed report for exactly this: *a
+generator change silently moved the seed*.
+
+Three consequences, stated so no one has to rediscover them:
+
+1. **SUP-1 takes `check_fuzz_bank` from FAIL to PASS.** That is a real
+   improvement and it must not be quoted as a repair — nothing was repaired.
+   A corpus the generator no longer builds stopped being replayed.
+2. **`timed_fuzz`'s two v1 fuzz-bank ratchets were already unmeasurable on this
+   branch**, before SUP-1 and independently of it: `--include-superseded`
+   selects all 3,242 and every one categorises `GEN_DRIFT` (`--bank mc1
+   --limit 40` → `GEN_DRIFT=40  SCORED 0`). Honouring status in
+   `timed_fuzz.seeds_of` therefore costs those ratchets **nothing D9 had not
+   already taken**. They are re-derivable only on a tree whose generator
+   predates fuzz-v2 — merge-base `7e949925b7`, or `master`.
+3. **"Reachable on request" means the SEEDS, not the REPLAY.** The flag returns
+   the population path for path; it cannot return a replay the generator can no
+   longer produce. This entry claims the first and does not claim the second.
+
+### WHAT IS LOST — stated plainly, because retirement has a cost
+
+1. **The 532 `OPEN_BUS` seeds.** The v1 bank is 3,242 seeds of which 2,710 are
+   scoreable and **532 are `OPEN_BUS`-excused**. That excused population was a
+   standing reservoir — every landing that shrank it did so by moving seeds out
+   of it, and several were quoted that way (SM3 sitting 25's *"plus 51
+   `OPEN_BUS`"*). Off the default population, that reservoir stops being watched.
+2. **The 8080 / BRKEM class, and the `t30-brkem` bank entirely.** 85 banked seeds
+   and 50 seeds carrying BRKEM positions. **The v2 corpus has ZERO of them** —
+   every fz2 seed is `no8080`. This class is DEFERRED BY USER DECISION
+   (2026-08-05) and structurally unreachable in the ucore, so nothing was gating
+   on it; but the coverage is gone, not merely idle, and a future 8080 campaign
+   must re-capture rather than re-read.
+3. **INV-1's 760 re-captured EVT seeds.** All 760 live in `mc1`/`mc2`. They cost
+   a board session, a 12-bit `evt_hold` in RTL, in flash and on the pin, and a
+   closure with its own bars. They remain byte-identical and reachable; they are
+   no longer replayed. **INV-1's own tooling (`sw/inv1_recapture.py`) reads them
+   explicitly and is unaffected** — its predicate is `f46_invalidated`, not
+   status, and it passes `include_superseded=True` deliberately.
+4. **Re-scoring any pre-v2 landing on the population it was developed against —
+   and this one was ALREADY lost, by D9, not by SUP-1.** Every ucore landing
+   from H1 through the take-clock leg was measured on these 3,242 seeds, seed
+   for seed, and their *"N gained, ZERO lost over all 3,242"* claims are
+   statements about this corpus. **On this branch those claims cannot be
+   re-derived at all**: the seeds are reachable with the flag, but the generator
+   that built their images is gone, so every one of them scores `GEN_DRIFT`.
+   Reproducing them needs a tree whose `sw/fuzz_campaign.py` predates fuzz-v2
+   (merge-base `7e949925b7` or `master`) — a checkout, not a flag. **That is the
+   standing hazard of this entry, and `standing_gates.md` says it in each row.**
+5. **The wait-class mix.** v1 carries 1,765 `wrand` and 1,477 fixed-wait seeds
+   across w0/w1/w2/w3; v2's 623 are 454 flat + 169 `wvec-uni`. The v2 corpus is
+   better on the per-access axis and **thinner in absolute seed count by 5.2×**.
+   Fewer seeds see fewer things; this is a real reduction in incidental coverage
+   that no axis table shows.
+
+### THE FALSIFIER, registered with the entry
+
+The claim is **"nothing moved, status only"**, and the falsifier is about the
+POPULATION, not about any figure's value — because D9 already took the replay
+and this entry must not be credited with something it did not do.
+
+**FALSIFIED IF** `bank_status.seed_paths(include_superseded=True)` is ever not
+set- and order-identical to the historical `tests/v30/fuzz_bank/*/seeds/*.json.gz`
+glob, or if `python3 sw/bank_status.py --include-superseded` prints anything but
+**3865**, or if any file under `tests/v30/fuzz_bank/*/seeds/` differs by one byte
+from its pre-SUP-1 content. All three were checked when this entry was written;
+the first is an equality test anyone can re-run in a second.
+
+**ALSO FALSIFIED IF** any consumer of that glob is found excluding superseded
+seeds **without printing the exclusion**. A silently smaller denominator is how
+a gate goes vacuous without anyone noticing, which is why `check_fuzz_bank`
+returns **1**, not 0, if every bank in the tree is ever retired at once.
+
+If any consumer of `tests/v30/fuzz_bank/*/seeds/*.json.gz` is found excluding
+superseded seeds **without printing the exclusion**, the mechanism is defective
+regardless of the arithmetic: a silently smaller denominator is how a gate goes
+vacuous without anyone noticing.
 
 ---
 

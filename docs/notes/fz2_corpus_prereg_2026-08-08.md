@@ -2985,3 +2985,124 @@ identical.
 
 **THE ACCEPTANCE CRITERION OF §8.2 IS STILL NOT MET**: three bars are not MET
 and the catch-all is not empty.
+
+---
+
+## §22 — THE COORDINATOR'S RULING ON §21.4, AND THE v1 CORPUS RETIRED BY STATUS
+
+**2026-08-09, branch `fuzz-v2-on-relanding`.  Offline: no board, no flash, no
+Quartus, no capture.  The full entry is `docs/notes/invalidation_ledger.md`
+§ SUP-1; this section records only what changes in THIS document's bar.**
+
+### 22.1 THE RULING
+
+§21.4 reported that C-11's third clause — *"standing bank ≤ 3,500"* — was scored
+two ways: as `fz2c + fz2e` = **623** by §4.3's table and by `fz2_w1.cmd_bars`,
+and as `check_fuzz_bank`'s replayed glob = **3,865** by §2.1's own rationale,
+which breaches the ceiling by **365**.  It did not resolve the discrepancy,
+because which population a registered bar bounds is a decision about the bar.
+
+> **RULING: §2.1's reading is correct.**  The ceiling bounds the population
+> REPLAYED ON EVERY GATE RUN, because gate wall time is the cost the number
+> exists to bound.
+
+### 22.2 AND THE REPAIR IS NOT TO SHRINK `fz2`
+
+**3,242 of those 3,865 seeds are the v1 corpus the user discarded outright**
+(*"I do not care about the old fuzz data, discard it, move on"*), replayed on
+every gate run for **+19.2 % wall time and zero information** about the
+population this campaign develops against.  They are retired **BY STATUS, NOT BY
+LOCATION**: a `status: "SUPERSEDED"` key in each of the four campaigns' own
+`manifest.json`, honoured by every consumer through one predicate
+(`sw/bank_status.py`), reachable in full with `--include-superseded`.
+**Nothing was moved, renamed or deleted** — the captures are true silicon and
+stay exactly where they are, byte for byte.  **No rig defect is alleged**; this
+is a SUPERSESSION, filed in its own register, and `f46_invalidated` is **0**
+bank-wide before and after.
+
+### 22.3 WHAT MOVES IN C-11
+
+`fz2_w1.cmd_bars` now scores the third clause on **`replayed`** — the §2.1
+population, computed by `bank_status.seed_paths()` — and records BOTH readings
+in `measured`, so they can never silently diverge again:
+
+| clause | registered | before | after |
+|---|---|---|---|
+| census bank == the 480 enumerated seeds | seed for seed | 480/480, `census_exact` true | **unchanged** |
+| `_capped` | 0 on either cid | 0 and 0 | **unchanged** |
+| standing bank, §4.3's reading (`total`) | ≤ 3,500 | 623 | **623** |
+| standing bank, §2.1's reading (`replayed`) — **THE SCORED ONE** | ≤ 3,500 | **3,865 — BREACHED by 365** | **623 — MET** |
+| seeds in both banks | 0 | 0 | **unchanged** |
+
+C-11's verdict was **MET** and is **MET**; what changed is that it is now MET on
+the reading the clause was written for.  **`FZ2 BARS: 8/11 MET   NOT MET: C-1,
+C-3, C-6` — the same 8 and the same 3**, and against the §21.6 artifact
+**only `bars/C-11` and `ts` differ**: C-11 gains `replayed` 623,
+`all_banked_incl_superseded` 3,865 and `superseded_cids`
+`[mc1, mc2, t30-brkem, t30-raw]`, and its `registered` string names the reading.
+**No other bar's `measured` changed by one character.**
+
+### 22.4 A FINDING THE RULING DID NOT ANTICIPATE — **THE BEFORE WAS RED**
+
+§21.4 costed the v1 corpus at *"+19.2 % wall time and zero information"*.
+**Measured, the cost was higher: on this branch the 3,865-seed population FAILS,
+and the entire failure is the v1 corpus.**
+
+```
+check_fuzz_bank: FAIL | 3865 banked seeds | stable 623 improved 0 worse 0
+                      | gen_drift 3157 regen_err 85 | float-floor 0
+                      | new-sig TIMING 0                        (1,580 s)
+```
+
+`mc1` 1,295 + `mc2` 1,294 + `t30-raw` 568 = **3,157 GEN-DRIFT**; all 85
+`t30-brkem` seeds raise `brkem_high: refused -- fuzz-v2 eliminates 8080 entry
+unconditionally (plan D9)`; the 623 fz2 seeds are the only stable ones.
+
+**THE CAUSE IS THIS DOCUMENT'S OWN PLAN D9** (`sw/fuzz_campaign.py`,
+`e45772e4e0` … `b155b6166b`): the `0F` scrub is unconditional at all three build
+sites, so every v1 image regenerates to a different sha256, and `brkem_high` is
+refused outright. Both are deliberate and correct. Their side effect is that
+**the v1 corpus stopped being replayable the day D9 landed** — which is exactly
+what GEN-DRIFT is designed to report.
+
+So the retirement takes `check_fuzz_bank` **FAIL → PASS** and cuts **83.2 %** of
+its wall time (**1,580 s → 266 s**). Neither is a repair: nothing was repaired,
+a corpus the generator no longer builds stopped being replayed. And the two
+`timed_fuzz` v1 fuzz-bank ratchets were **already unmeasurable on this branch
+before SUP-1** — with `--include-superseded` they select all 3,242 seeds and
+every one categorises `GEN_DRIFT` (`--bank mc1 --limit 40` → `GEN_DRIFT=40
+SCORED 0`). Honouring status in `timed_fuzz.seeds_of` costs them nothing D9 had
+not already taken; they are re-derivable only on a tree whose generator predates
+fuzz-v2 (merge-base `7e949925b7`, or `master`).
+
+**"Reachable on request" therefore means the SEEDS, not the REPLAY.**
+`bank_status.seed_paths(include_superseded=True)` is set- and order-identical to
+the historical glob and returns all 3,865 path for path; it cannot return a
+replay the generator can no longer produce, and SUP-1 does not claim it can.
+
+### 22.5 WHAT §22 CHANGES IN THE TREE
+
+* `sw/bank_status.py` — NEW, a leaf module (stdlib only): `bank_status`,
+  `is_superseded`, `bank_cids`, `seed_paths`, `dropped_note`, and a `report`
+  main.  Absence of a `status` key means `ACTIVE`, so no existing bank and no
+  future promotion has to be edited.
+* `tests/v30/fuzz_bank/{mc1,mc2,t30-raw,t30-brkem}/manifest.json` — five keys
+  added to each.  **No seed file, sig index, result shard or `chip_rows` was
+  touched.**
+* `sw/check_fuzz_bank.py`, `sw/timed_fuzz.py`, `sw/sm3_sigctl.py` — the glob is
+  replaced by the predicate; each gains `--include-superseded`; each PRINTS the
+  exclusion on its own line.
+* `sw/inv1_recapture.py` — `include_superseded=True`, explicitly: INV-1's
+  population is entirely inside the retired banks and the two predicates are
+  independent.
+* `sw/tacensus.py`, `sw/q1diff.py`, `sw/q2census.py`, `sw/q2law.py` —
+  `include_superseded=True`, explicitly, for the same reason: measurement tools
+  whose subject IS the v1 corpus, which gate nothing.
+* `sw/fz2_w1.py` — C-11's third clause, as above.
+* `docs/notes/invalidation_ledger.md` — the SUPERSEDED register and § SUP-1.
+* `docs/notes/standing_gates.md` — `check_fuzz_bank`'s population and its
+  FAIL → PASS, and the two `timed_fuzz` v1 fuzz-bank ratchets, each row now
+  stating that its figure is **not measurable on this branch** and why (§22.4).
+
+**No board, no flash, no Quartus, and no capture.  No bar's text moved, and no
+bar's `measured` moved except C-11's.**

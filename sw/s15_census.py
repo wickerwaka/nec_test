@@ -566,6 +566,11 @@ def rmw_one(path):
 
 def cmd_rmw(a):
     paths = []
+    # ⚠ THE v1 CORPUS, AND ALL OF IT IS `status: SUPERSEDED` SINCE 2026-08-09
+    # (SUP-1, docs/notes/invalidation_ledger.md; the predicate is
+    # `sw/bank_status.py`).  MEASUREMENT TOOL, NOT A GATE: it names these
+    # banks explicitly and reads them deliberately -- they are its subject.
+    # Nothing was moved or deleted, so every path below still resolves.
     for b in ("mc1", "mc2", "t30-raw", "t30-brkem"):
         d = ROOT / "tests" / "v30" / "fuzz_bank" / b / "seeds"
         if d.is_dir():

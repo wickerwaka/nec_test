@@ -287,7 +287,11 @@ def main():
                                          "qs E!=- bs CODE!=PASV")):
                     paths.append(r["path"])
         else:
-            paths = tf.seeds_of(tf.BANKS)
+            # MEASUREMENT TOOL, NOT A GATE, AND ITS SUBJECT IS THE v1 CORPUS:
+            # `include_superseded=True` is passed DELIBERATELY so SUP-1's
+            # retirement (docs/notes/invalidation_ledger.md) does not make this
+            # instrument silently vacuous.  It replays nothing on any gate run.
+            paths = tf.seeds_of(tf.BANKS, include_superseded=True)
         with Pool(args.jobs) as pool:
             res = [r for r in pool.map(fuzz_one, paths, chunksize=2) if r]
         recs = [(t, w, f, g, s) for t, w, f, g, s in res]

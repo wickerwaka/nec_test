@@ -124,6 +124,9 @@ def one(path):
 
 
 def seeds_of(banks):
+    # ⚠ Its default banks are the v1 corpus, `status: SUPERSEDED` since
+    # 2026-08-09 (SUP-1).  MEASUREMENT TOOL, NOT A GATE, and the banks
+    # are named on the command line; nothing was moved or deleted.
     out = []
     for b in banks:
         d = BANK / b / "seeds"

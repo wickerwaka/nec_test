@@ -31,6 +31,11 @@ import ucsim_fuzz as uf                                 # noqa: E402
 import sm3_ackgeom as ag                                # noqa: E402
 
 BANK = ROOT / "tests" / "v30" / "fuzz_bank"
+# ⚠ THE v1 CORPUS, AND ALL OF IT IS `status: SUPERSEDED` SINCE 2026-08-09
+# (SUP-1, docs/notes/invalidation_ledger.md; the predicate is
+# `sw/bank_status.py`).  MEASUREMENT TOOL, NOT A GATE: it names these
+# banks explicitly and reads them deliberately -- they are its subject.
+# Nothing was moved or deleted, so every path below still resolves.
 BANKS = ["mc1", "mc2", "t30-raw", "t30-brkem"]
 CODE, INTA = 4, 0
 

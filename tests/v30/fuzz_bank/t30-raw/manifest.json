@@ -18,5 +18,13 @@
   "TIMING": 310,
   "KNOWN_ACCEPTED": 177,
   "SUCCESS": 263
- }
+ },
+ "status": "SUPERSEDED",
+ "superseded_by": [
+  "fz2c",
+  "fz2e"
+ ],
+ "as_of_commit": "c07fbc0169ed31ca27b94be7a5759c085fb83d0d",
+ "superseded_ledger": "docs/notes/invalidation_ledger.md#sup-1",
+ "superseded_note": "SUPERSEDED, NOT INVALIDATED.  No rig defect is alleged and no capture is false: these chip_rows are true silicon and stay true, byte-identical and in place.  The v1 corpus is retired from the replayed population because the fuzz-v2 corpus replaces it; it is reachable at any time with --include-superseded."
 }

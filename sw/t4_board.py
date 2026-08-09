@@ -39,6 +39,11 @@ from t2b_board import capture, stable_key, HOST, DIVS, REPS   # noqa: E402
 OUT = ROOT / "sw" / "testdata" / "t4"
 
 # --- the victory tranche's frozen population (14.0 B2) --------------------- #
+# ⚠ THE v1 CORPUS, AND ALL OF IT IS `status: SUPERSEDED` SINCE 2026-08-09
+# (SUP-1, docs/notes/invalidation_ledger.md; the predicate is
+# `sw/bank_status.py`).  MEASUREMENT TOOL, NOT A GATE: it names these
+# banks explicitly and reads them deliberately -- they are its subject.
+# Nothing was moved or deleted, so every path below still resolves.
 CIDS = ["mc1", "mc2", "t30-raw"]
 CLASSES = ["fix0", "fix1", "fix2", "fix3",
            "wrand1", "wrand2", "wrand3", "wrand7", "wrand15"]

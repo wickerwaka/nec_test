@@ -52,6 +52,15 @@ QUAR = fc.QUARANTINE
 KACC = fc.KNOWN_ACCEPTED
 SUCC = fc.SUCCESS
 
+# The retirement mechanism lives in `bank_status.py` -- a LEAF module with no
+# classifier and no accept engine behind it, so every consumer of the bank glob
+# (including `timed_fuzz`'s pool workers) can compute the population without
+# dragging this module's imports in.  Re-exported here because this module owns
+# the layout the status keys off.
+from bank_status import (ACTIVE, SUPERSEDED, bank_cids,   # noqa: E402,F401
+                         bank_status, dropped_note, is_superseded,
+                         manifest_of, seed_paths)
+
 
 def _load_capture(cap_dir, tier, k, cfg_hash):
     p = cap_dir / f"{tier}_{k}_{cfg_hash}.json.gz"

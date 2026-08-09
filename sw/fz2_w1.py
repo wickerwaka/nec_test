@@ -78,6 +78,7 @@ SW = Path(__file__).resolve().parent
 ROOT = SW.parent
 sys.path.insert(0, str(SW))
 
+import bank_status as bs                                  # noqa: E402
 import check_seq                                          # noqa: E402
 import fuzz_campaign as fzc                               # noqa: E402
 import fuzz_classify as fc                                # noqa: E402
@@ -1687,15 +1688,31 @@ def cmd_bars(a):
     want = census_bank_seeds()
     exact = banked["census"] == want
     total = len(banked["census"]) + len(banked["enriched"])
+    # THE THIRD CLAUSE IS SCORED ON §2.1's READING, BY COORDINATOR RULING
+    # (2026-08-09; the finding is §21.4).  "Standing bank <= 3,500" bounds THE
+    # POPULATION REPLAYED ON EVERY GATE RUN, because gate wall time is the cost
+    # the number exists to bound -- and that population is `check_fuzz_bank`'s
+    # own, i.e. `bank_status.seed_paths()`, not `fz2c + fz2e`.  Both readings
+    # are recorded in `measured` so the bar can be re-read either way and the
+    # two can never silently diverge again; the SCORER computes `replayed`.
+    # They agree at 623 today only because SUP-1 retired the v1 corpus; before
+    # it, `replayed` was 3,865 and the clause was breached by 365 seeds while
+    # `total` read 623.
+    replayed = len(bs.seed_paths()[0])
+    all_banked = len(bs.seed_paths(include_superseded=True)[0])
     bar("C-11", "bank integrity: the census bank IS the frozen rule and the "
         "two populations are never pooled",
         "census bank == the 480 enumerated seeds, seed for seed; 0 `_capped` "
-        "on either cid; standing bank <= 3,500 seeds; 0 seeds in both banks",
+        "on either cid; standing bank <= 3,500 seeds REPLAYED PER GATE RUN "
+        "(sec.2.1's reading, ruled 2026-08-09); 0 seeds in both banks",
         {"census_banked": len(banked["census"]), "census_expected": len(want),
          "census_exact": exact, "enriched_banked": len(banked["enriched"]),
          "capped": capped, "total": total,
+         "replayed": replayed, "all_banked_incl_superseded": all_banked,
+         "superseded_cids": [c for c in bs.bank_cids(include_superseded=True)
+                             if bs.is_superseded(c)],
          "overlap": len(set(banked["census"]) & set(banked["enriched"]))},
-        "MET" if (exact and not any(capped.values()) and total <= 3500
+        "MET" if (exact and not any(capped.values()) and replayed <= 3500
                   and not (set(banked["census"]) & set(banked["enriched"])))
         else ("NOT SCOREABLE" if not banked["census"] else "MISSED"))
 

@@ -63,6 +63,7 @@ SW = Path(__file__).resolve().parent
 ROOT = SW.parent
 sys.path.insert(0, str(SW))
 
+import bank_status as bs                                  # noqa: E402
 import check_seq                                          # noqa: E402
 import fuzz_campaign as fzc                               # noqa: E402
 import fuzz_classify as fc                                # noqa: E402
@@ -83,9 +84,17 @@ def sha(b):
 
 
 def poisoned():
-    """The population, DERIVED -- never a list.  Same predicate the gate uses."""
+    """The population, DERIVED -- never a list.  Same predicate the gate uses.
+
+    SPANS SUPERSEDED BANKS ON PURPOSE.  INV-1's 760 seeds live entirely in
+    `mc1`/`mc2`, which SUP-1 retired from the replayed population on 2026-08-09
+    (`docs/notes/invalidation_ledger.md`).  Retirement is not deletion and the
+    two predicates are independent: `f46_invalidated` is a statement about a rig
+    defect, `status` a statement about which corpus the project develops
+    against.  Filtering by status here would silently empty INV-1's own closure
+    tooling, so the inclusion is explicit."""
     out = []
-    for p in sorted(BANK.glob("*/seeds/*.json.gz")):
+    for p in sorted(bs.seed_paths(include_superseded=True)[0]):
         e = json.loads(gzip.decompress(p.read_bytes()))
         if tf.f46_invalidated(e):
             out.append((p, e))
@@ -438,9 +447,13 @@ def cmd_rebank(a):
 
 # --------------------------------------------------------------------------- #
 def cmd_verify(a):
-    """The §59.2 integrity bars, as arithmetic over the artifact."""
+    """The §59.2 integrity bars, as arithmetic over the artifact.
+
+    `include_superseded=True` for the same reason `poisoned()` does it: these
+    bars are about INV-1's EVT population, all of which sits in banks SUP-1
+    retired.  Status and invalidation are independent predicates."""
     n_inv = n_evt = n300 = ok300 = 0
-    for p in sorted(BANK.glob("*/seeds/*.json.gz")):
+    for p in sorted(bs.seed_paths(include_superseded=True)[0]):
         e = json.loads(gzip.decompress(p.read_bytes()))
         ev = e.get("evt")
         if not ev:

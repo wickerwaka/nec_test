@@ -177,7 +177,12 @@ def main():
     ap.add_argument("--chains", action="store_true")
     args = ap.parse_args()
     paths = ([l.split()[0] for l in open(args.seeds)]
-             if args.seeds else tf.seeds_of(tf.BANKS))
+             # MEASUREMENT TOOL, NOT A GATE, AND ITS SUBJECT IS THE v1 CORPUS:
+             # `include_superseded=True` is passed DELIBERATELY so SUP-1's
+             # retirement (docs/notes/invalidation_ledger.md) does not make this
+             # instrument silently vacuous.  It replays nothing on any gate run.
+             if args.seeds else tf.seeds_of(tf.BANKS,
+                                            include_superseded=True))
     if args.chains:
         with Pool(args.jobs) as pool:
             rows = [r for rr in pool.map(chains, paths, chunksize=2)

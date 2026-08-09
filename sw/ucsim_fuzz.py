@@ -511,6 +511,10 @@ def main():
     # sentence naming a stale binary into N unreadable case failures.
     simbin.ensure(why=__name__)
     ap = argparse.ArgumentParser()
+    # ⚠ THE v1 CORPUS, `status: SUPERSEDED` SINCE 2026-08-09 (SUP-1,
+    # docs/notes/invalidation_ledger.md).  MEASUREMENT TOOL, NOT A GATE:
+    # the banks are NAMED here, deliberately, and nothing was moved or
+    # deleted, so this default still resolves to the same 3,157 seeds.
     ap.add_argument("--bank", default="mc1,mc2,t30-raw")
     ap.add_argument("--limit", type=int, default=0)
     ap.add_argument("--k", type=int, default=None,

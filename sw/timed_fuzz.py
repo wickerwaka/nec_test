@@ -98,7 +98,14 @@ H7_RECAP_ALL = ROOT / "sw" / "testdata" / "sm3-h7rep" / "control_all.json"
 import fuzz_classify as fc                            # noqa: E402
 import fuzz_accept as fa                              # noqa: E402
 import ucsim_fuzz as uf                               # noqa: E402
+import bank_status as bs                              # noqa: E402
 
+# The v1 corpus.  ⚠ ALL FOUR ARE `status: SUPERSEDED` SINCE 2026-08-09
+# (`docs/notes/invalidation_ledger.md` § SUP-1), so `seeds_of` returns NOTHING
+# for them unless `--include-superseded` is given.  The list is kept, and kept
+# as the `--bank` default, so the historical command line reproduces the
+# historical population EXACTLY when the flag is added -- retirement is not
+# deletion.  `bank_status.bank_cids()` is the ACTIVE population.
 BANKS = ["mc1", "mc2", "t30-raw", "t30-brkem"]
 
 
@@ -579,14 +586,23 @@ def one(path, evt_replay=False, core="sim", hold_mode="banked",
 
 
 # --------------------------------------------------------------------------- #
-def seeds_of(banks):
-    out = []
-    for b in banks:
-        d = BANK / b / "seeds"
-        if not d.is_dir():
-            continue
-        out += sorted(str(p) for p in d.glob("*.json.gz"))
-    return out
+def seeds_of(banks, include_superseded=False):
+    """The seed paths for the named banks, STATUS-FILTERED.
+
+    A campaign retired with `status: SUPERSEDED` in its own `manifest.json`
+    (`sw/bank_status.py`, `docs/notes/invalidation_ledger.md` § SUP-1) is out of
+    the default population even when it is named here -- naming a bank selects
+    it, it does not un-retire it.  Nothing is moved or deleted and
+    `include_superseded=True` returns it in full, which is how a pre-v2 figure
+    is re-derived.  The exclusion is ANNOUNCED on stderr, never silent: a
+    measurement tool that suddenly scores 0 seeds must say why.
+    """
+    out, dropped = bs.seed_paths(include_superseded=include_superseded,
+                                 cids=list(banks))
+    note = bs.dropped_note(dropped)
+    if note:
+        print(f"timed_fuzz: {note}", file=sys.stderr, flush=True)
+    return [str(p) for p in out]
 
 
 def axes_of(path):
@@ -661,6 +677,12 @@ def main():
     simbin.ensure(why=__name__)
     ap = argparse.ArgumentParser()
     ap.add_argument("--bank", default=",".join(BANKS))
+    # RETIREMENT IS NOT DELETION.  The four v1 banks named in `--bank`'s default
+    # are SUPERSEDED (SUP-1); with this flag they are scored in full and every
+    # pre-2026-08-09 figure on this harness is re-derivable byte for byte.
+    ap.add_argument("--include-superseded", action="store_true",
+                    help="score banks marked SUPERSEDED in their manifest "
+                         "(the v1 corpus: mc1, mc2, t30-raw, t30-brkem)")
     # T4: the victory tranche is scored by THIS harness, unchanged -- same
     # regeneration path and sha gate, same window, same column policy.  The
     # only thing --seeddir changes is which directory the records come from.
@@ -722,7 +744,8 @@ def main():
               flush=True)
 
     paths = sorted(str(x) for x in Path(args.seeddir).glob("*.json.gz")) \
-        if args.seeddir else seeds_of([b for b in args.bank.split(",") if b])
+        if args.seeddir else seeds_of([b for b in args.bank.split(",") if b],
+                                      include_superseded=args.include_superseded)
     # Selection only.  With --pop all (the registered gate) NOTHING here runs,
     # so the default path -- including the T3 pilot's own stratification -- is
     # byte for byte what it was.
