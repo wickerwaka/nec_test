@@ -1245,3 +1245,132 @@ prediction of C-1, and not to be quoted as either.**
 * `SEEDS_SHA256` moves, because every seed's `TERM_CLOCKS` is derived from the
   constants.  **`SEED_LIST_SHA256` does not**: the corpus is the same 3,840
   seeds in the same order, and that is the name §2.5 says identifies it.
+
+---
+
+## §14 THE RE-CAPTURE — TAKEN 2026-08-09 UNDER A-3, AND SCORED AS REGISTERED
+
+**One capture, as A-3 §13.4 registered.**  FLASH #12 resident (`sof
+8db6dadf5c4c…`, receipt `27fb750f925c…`), **not re-flashed**.  Amendment A-3 was
+committed at `c32b8cbb9d` and INV-2 at `e26157c296`, both before board contact.
+`preflight --board` **OK** after the `fz2c`/`fz2e` manifests were re-created —
+the archive-by-rename took them, exactly as A-1's did; the new manifests are
+**identical to the archived ones except `gen_git` and `created`**, checked by
+diff, and the flash pin is unmoved.
+
+**3,840 seeds in 11.0 minutes of board time**, inside §6's registered ≤ 30 min.
+**48 of 48 strata `written == n` with `rc = 0`, `halted: None`**, resumed by
+`_done_ks()`.  `div_guard` **PINNED on 53 of 53 probes, 0 unpinned**; socket
+only, `use_core=False`; **0 transport errors, 0 quarantines**; C-9 **1.4 min**;
+`board_idle()` clean and **`check_ab_hw chip 800` MATCH over 800 rows** taken
+after everything.
+
+### 14.1 THE BARS, AS REGISTERED — 7 MET / 2 MISSED / 2 NOT SCOREABLE
+
+Values are the unchanged §6 ones.  The T12 column is INV-2's and is shown only
+so the delta is visible; it gates nothing.
+
+| bar | T12 (INV-2) | **re-capture** | measured now |
+|---|---|---|---|
+| **C-1** | MISSED | **MISSED** | census/soup **98.54 %** · census/raw **83.54 %** · enriched/soup **98.89 %** · enriched/raw **83.61 %**; **UNDISPOSITIONED 312**, bar 0 |
+| **C-2** | MET | **MET** | 3,502 dumps, `MAGIC` constant `0x5EED`, all 14 other words ≥ 2 distinct (min `PSW` 199) |
+| **C-3** | MISSED | **MISSED** | generation **0** forbidden `0F xx` pairs over 3,840; runtime **2** captures with PS3 on a `CODE` T1 |
+| **C-4** | MET | **MET** | 1 distinct era, 0 absent, 0 incomplete, `build_stale` 0, over 3,840 |
+| **C-5** | MET | **MET** | 0 GEN_DRIFT, 0 wvec re-derive mismatches, over all 3,840 |
+| **C-6** | NOT SCOREABLE | **NOT SCOREABLE** | unchanged: `cmd_control` unimplemented **and** O-2b |
+| **C-7** | MET | **MET** | 3,840 scored, max **957** bus cycles, 0 at or over 4,096 |
+| **C-8** | MET | **MET** | **53 `div_guard` probes, 0 unpinned** |
+| **C-9** | MISSED 191/192 | **MET** | **192 / 192 stable**, 0 unstable, 0 errors |
+| **C-10** | MET | **MET** | 0 quarantines, 0 run-error lines, breaker not tripped, no halted stratum |
+| **C-11** | NOT SCOREABLE | **NOT SCOREABLE** | unchanged: the bank promotion was not run this sitting |
+
+Decompositions, never one aggregate — **census**: captured 960, rows-exact
+**94.38 %**, arch-exact **87.71 %**, unscoreable **95**.  **Enriched**: captured
+2,880, rows-exact **94.58 %**, arch-exact **88.33 %**, unscoreable **282**.
+
+### 14.2 WHAT THE REPAIR DID, AND THE PROOF IT IS THE REPAIR
+
+| | T12 (INV-2) | re-capture |
+|---|---|---|
+| **UNDISPOSITIONED** | **1,048** | **312** (−70.2 %) |
+| census/soup reached | 92.29 % | **98.54 %** |
+| census/raw reached | 54.79 % | **83.54 %** |
+| enriched/soup reached | 89.86 % | **98.89 %** |
+| enriched/raw reached | 51.88 % | **83.61 %** |
+| census arch-exact | 72.08 % | **87.71 %** |
+| enriched arch-exact | 69.72 % | **88.33 %** |
+| census unscoreable | 261 | **95** |
+| enriched unscoreable | 860 | **282** |
+| C-9 | 191/192 | **192/192** |
+
+**THE CAUSAL PROOF IS THE CENSORING, LIFTED** (`fz2_termcost.py measure --bank
+{archive,current}`).  On the archived capture, `(anchor + tail)/scale` over 194
+completions maxes at **461.1** against a reserve of **462.0**, and **0 of 194**
+exceed it — they could not.  On the re-capture, over 327 completions the maximum
+is **828.8** and **126 of 327 carry a requirement the pre-A-3 budget could not
+have recorded at all.**  The observed tail at `fix0` runs to **557** rows where
+the old window ended at **281**, and at `fix3` to **934** where it ended at
+**500**.  That is not an improved score; it is the same distribution, seen.
+
+**A-3'S OWN REGISTERED PREDICTION IS MET**: all 303 banked captures with a
+measured requirement were predicted to fit, and the tail-room table
+(761/819/906/992 rows at w0…w3) is the one the re-capture measured.
+
+**A-3'S FALSIFIER IS NOT MET, and it was a real test.**  §13.3 registered: *"if
+the residue after this repair concentrates at high `weff`, the term scales and
+this form is wrong."*  The residue by wait source is **flat** — fix0 6.7 % ·
+fix1 8.8 % · fix2 5.6 % · fix3 10.0 % · wrand1 6.2 % · wrand3 7.8 % · wrand7
+11.2 % · wrand15 8.4 % · wvec 8.1 % — with no trend in `weff`.  `ENTRY_MAX` as a
+clock cost outside the scaling stands.
+
+**ONE MEASUREMENT WENT THE OTHER WAY AND IS REPORTED AS REGISTERED**: with the
+censoring lifted, the observed entry cost now reaches **719** clocks against
+`ENTRY_MAX = 463`.  463 was the largest value the archived capture could show;
+it was not the largest that exists.  **No constant is re-tuned on that account**
+— §13.4 says one re-capture, and a second sweep of `ENTRY_MAX` against a bar
+that is still missed is exactly the fitting this amendment was written to
+prevent.
+
+### 14.3 C-1 IS STILL MISSED, AND O-2d IS WHY — as §13.5 registered
+
+E-1c is still 312 against 0, and the two rate clauses still miss: raw at
+**83.5 %** against 95.0 % and soup at **98.5 % / 98.9 %** against 99.0 %.
+**Reported as registered, not restated.**
+
+§13.5 registered, before the re-capture: *"the undispositioned residue after
+this repair is expected to be non-zero and to be dominated by this class"*, with
+an order-of-magnitude estimate of **~190**.  Measured on the re-capture's own
+banked rows:
+
+* **306 of the 312** carry a signature of the stopped-CPU class or the
+  window; of the 76 terminator-needed banked captures whose dump never started,
+  **44 had a bus already idle ≥ 200 clocks when the NMI arrived** (median
+  **2,124**, max **3,147**), `vec_used` **false on all 44**, **39 raw / 5 soup**.
+* **`vec_used` is false on 218 of the 312.**  The part never took the vector.
+* The tier split is **284 raw / 22 soup**, i.e. the residue is now almost
+  entirely raw whole-image — which is where a random byte stream can stop the
+  part.
+
+The estimate was **~190 and the measurement is 312**, so the estimate was low by
+about 60 %; it was registered as an order of magnitude and not as a bar, and it
+is wrong in the direction that says the class is bigger than the archived
+capture could show — the same censoring, once more.  **NO DISPOSITION IS MADE
+HERE.**  Whether O-2d becomes a fourth declared discard class is a decision
+about a registered bar and belongs to the coordinator.
+
+### 14.4 C-3 read 2, not 1 — and both are runtime, both on the socket leg
+
+`fz2e/509069` (soup, `fix0`) reproduces from T12 exactly; `fz2e/534020` (raw,
+`wrand15`, `raw_mode: payload`) is new.  **0 forbidden `0F xx` pairs at
+generation on all 3,840**, so both are `0F xx` pairs a runtime write created —
+the case §6's C-3 says its two clauses exist for.  A-2's arm holds: the SOCKET
+leg alone, `ps3_8080_core` still gating nothing.
+
+### 14.5 What is unchanged, and therefore still open
+
+* **C-6 and C-11 are NOT SCOREABLE for the same two reasons as T12** —
+  `cmd_control` is unimplemented on this tree (C-6), O-2b's dict-vs-scalar
+  clause awaits a ruling (C-6(b)), and the bank promotion was not run this
+  sitting (C-11).  Neither was touched, and neither should be read as improved.
+* The acceptance criterion of §8.2 is **not met**: four bars are not MET and the
+  catch-all is not empty.

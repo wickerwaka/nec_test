@@ -1,0 +1,8093 @@
+{
+ "stage": "fz2 C-9 stability",
+ "reps": 3,
+ "n_seeds": 192,
+ "started": "2026-08-09T14:38:07Z",
+ "div_guards": [
+  {
+   "tag": "c9-start",
+   "readback": "div=8 (4 MHz), commanded by this connection",
+   "state": "PINNED",
+   "rig": "WRAND=0 replay=0 (commanded clean at connect, OK/OK)",
+   "ts": "2026-08-09T14:38:08Z"
+  },
+  {
+   "tag": "c9-end",
+   "readback": "div=8 (4 MHz), commanded by this connection",
+   "state": "PINNED",
+   "rig": "WRAND=0 replay=0 (commanded clean at connect, OK/OK)",
+   "ts": "2026-08-09T14:39:33Z"
+  }
+ ],
+ "seeds": [
+  {
+   "stratum": "cen/soup/noevt/fix0",
+   "k": 400000,
+   "bad": 0,
+   "arch_stable": true,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 885,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 885,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 885,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 885,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    }
+   ],
+   "rows": "soup_400000_30c46bdfaad5.json.gz",
+   "sha256": "9d8b3c26c002358c11bfa6a98a32145b14c3de1b0221aaea44396f8d5a1b0f1d"
+  },
+  {
+   "stratum": "cen/soup/noevt/fix0",
+   "k": 400020,
+   "bad": 0,
+   "arch_stable": true,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 762,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 762,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 762,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 762,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    }
+   ],
+   "rows": "soup_400020_30c46bdfaad5.json.gz",
+   "sha256": "2ce78640b53f748fe4690814676d1842461f6b873515c56f941698928af0e8cd"
+  },
+  {
+   "stratum": "cen/soup/noevt/fix0",
+   "k": 400040,
+   "bad": 0,
+   "arch_stable": true,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 1417,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 1417,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 1417,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 1417,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    }
+   ],
+   "rows": "soup_400040_30c46bdfaad5.json.gz",
+   "sha256": "321aaee1673821f3d41d5609222360807100bd6c1ea457ddb5075cfe74cc2b64"
+  },
+  {
+   "stratum": "cen/soup/noevt/fix0",
+   "k": 400060,
+   "bad": 0,
+   "arch_stable": true,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 685,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 685,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 685,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 685,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    }
+   ],
+   "rows": "soup_400060_30c46bdfaad5.json.gz",
+   "sha256": "40f0ac9fd84fd8c3984fcbd302c7016e1b31a1d708e032050477421177e88ae6"
+  },
+  {
+   "stratum": "cen/soup/noevt/wrand3",
+   "k": 401000,
+   "bad": 0,
+   "arch_stable": true,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 1264,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 1264,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 1264,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 1264,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    }
+   ],
+   "rows": "soup_401000_44901d475c25.json.gz",
+   "sha256": "7007f134def9399b2fa427ba3b189df3367298a0fa04a0c15c04ab43c5a234f5"
+  },
+  {
+   "stratum": "cen/soup/noevt/wrand3",
+   "k": 401020,
+   "bad": 0,
+   "arch_stable": true,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 964,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 964,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 964,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 964,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    }
+   ],
+   "rows": "soup_401020_25ce80c731ad.json.gz",
+   "sha256": "395d818fce1155b7456f61c508c32f65d999f527c8c2d6ee588842fac0c496cb"
+  },
+  {
+   "stratum": "cen/soup/noevt/wrand3",
+   "k": 401040,
+   "bad": 0,
+   "arch_stable": true,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 1026,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 1026,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 1026,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 1026,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    }
+   ],
+   "rows": "soup_401040_6cd28d68230d.json.gz",
+   "sha256": "32dfc4e1d9a811728e4eb7afa9719cf6fa471bad2aadadc89aae0b48600b5b37"
+  },
+  {
+   "stratum": "cen/soup/noevt/wrand3",
+   "k": 401060,
+   "bad": 0,
+   "arch_stable": true,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 2015,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 2015,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 2015,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 2015,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    }
+   ],
+   "rows": "soup_401060_369f16b8a663.json.gz",
+   "sha256": "5b7478f784db8c0ce68306d3f2e0c985f238679f65ad84bff568072680c1fb84"
+  },
+  {
+   "stratum": "cen/soup/noevt/wvec-uni",
+   "k": 402000,
+   "bad": 0,
+   "arch_stable": true,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 3386,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 3386,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 3386,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 3386,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    }
+   ],
+   "rows": "soup_402000_51f80dfa3892.json.gz",
+   "sha256": "69a202e34f22d9b09224c320fde0dec947b276bb4eab5568da787a6b4a880152"
+  },
+  {
+   "stratum": "cen/soup/noevt/wvec-uni",
+   "k": 402020,
+   "bad": 0,
+   "arch_stable": true,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 2240,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 2240,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 2240,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 2240,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    }
+   ],
+   "rows": "soup_402020_245927f079c5.json.gz",
+   "sha256": "67c475507548db42be4efa62ccc9be3adaa690fd1b625396b59743e67a0b3511"
+  },
+  {
+   "stratum": "cen/soup/noevt/wvec-uni",
+   "k": 402040,
+   "bad": 0,
+   "arch_stable": true,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 1424,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 1424,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 1424,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 1424,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    }
+   ],
+   "rows": "soup_402040_13f3f1dd1206.json.gz",
+   "sha256": "89d60a586077544aec5655bf4da96bf199b31f91f72f4d4c33000e4f097a7e40"
+  },
+  {
+   "stratum": "cen/soup/noevt/wvec-uni",
+   "k": 402060,
+   "bad": 0,
+   "arch_stable": true,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 1350,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 1350,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 1350,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 1350,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    }
+   ],
+   "rows": "soup_402060_7e30c0ba5dbf.json.gz",
+   "sha256": "1cf12767c895b9fac7b97706754219209dea24cb080769ad0a5c636941001aca"
+  },
+  {
+   "stratum": "cen/soup/stim/fix0",
+   "k": 403000,
+   "bad": 0,
+   "arch_stable": true,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    }
+   ],
+   "rows": "soup_403000_bb387e3ecb19.json.gz",
+   "sha256": "57a27b31d98839e6b851648e15514ff5db1056da0f1687d87ed7f728c2b58766"
+  },
+  {
+   "stratum": "cen/soup/stim/fix0",
+   "k": 403020,
+   "bad": 0,
+   "arch_stable": true,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 1402,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 1402,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 1402,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 1402,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    }
+   ],
+   "rows": "soup_403020_c779c3f42026.json.gz",
+   "sha256": "d254098146b46b86dee15c1d469283e6687cf98a4678a10c80424d7955035126"
+  },
+  {
+   "stratum": "cen/soup/stim/fix0",
+   "k": 403040,
+   "bad": 0,
+   "arch_stable": true,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 3583,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 3583,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 3583,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 3583,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    }
+   ],
+   "rows": "soup_403040_73d478eb4681.json.gz",
+   "sha256": "6cd4f0bb78d6bd6a185d79e1c08b8a787ae1b3aa64df43ba194f21ce14f1f579"
+  },
+  {
+   "stratum": "cen/soup/stim/fix0",
+   "k": 403060,
+   "bad": 0,
+   "arch_stable": true,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 1736,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 1736,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 1736,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 1736,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    }
+   ],
+   "rows": "soup_403060_33699ca7f965.json.gz",
+   "sha256": "b97206ae50d02b17d3740bf2f499f96075ba0e1b72f7bb866644197a5958fa7f"
+  },
+  {
+   "stratum": "cen/soup/stim/wrand3",
+   "k": 404000,
+   "bad": 0,
+   "arch_stable": true,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 1907,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 1907,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 1907,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 1907,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    }
+   ],
+   "rows": "soup_404000_f83e78e3e060.json.gz",
+   "sha256": "9a5b0891f3bca9f99f6e2705ce57e542d970b1622e4acd019c35c8bdfc0afda1"
+  },
+  {
+   "stratum": "cen/soup/stim/wrand3",
+   "k": 404020,
+   "bad": 0,
+   "arch_stable": true,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 3451,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 3451,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 3451,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 3451,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    }
+   ],
+   "rows": "soup_404020_06d7c628a366.json.gz",
+   "sha256": "e9b07e710f4c67a6ec9aaf428c18f3b8caf4f99a339a5481581bca90af9c67e8"
+  },
+  {
+   "stratum": "cen/soup/stim/wrand3",
+   "k": 404040,
+   "bad": 0,
+   "arch_stable": true,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 2001,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 2001,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 2001,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 2001,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    }
+   ],
+   "rows": "soup_404040_ceb839c47c2a.json.gz",
+   "sha256": "4405f96e28bd285b376d024607391a4453efe449e82b81011740dc6d3227802c"
+  },
+  {
+   "stratum": "cen/soup/stim/wrand3",
+   "k": 404060,
+   "bad": 0,
+   "arch_stable": true,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 1467,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 1467,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 1467,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 1467,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    }
+   ],
+   "rows": "soup_404060_8443a0412d65.json.gz",
+   "sha256": "87ae844d910e19da8a2450b3e63abf6b8404e12080f988e3fde2f06d2179d5d8"
+  },
+  {
+   "stratum": "cen/soup/stim/wvec-uni",
+   "k": 405000,
+   "bad": 0,
+   "arch_stable": true,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 1653,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 1653,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 1653,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 1653,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    }
+   ],
+   "rows": "soup_405000_5d06458568af.json.gz",
+   "sha256": "9a276acbbdf73cb3797625fe62f4f2ecfcc8dfecdf2ccb6823794393b033735b"
+  },
+  {
+   "stratum": "cen/soup/stim/wvec-uni",
+   "k": 405020,
+   "bad": 0,
+   "arch_stable": true,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 3540,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 3540,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 3540,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 3540,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    }
+   ],
+   "rows": "soup_405020_ca0cc83972f4.json.gz",
+   "sha256": "7e865f2782f9be32ce894a164b0f99d3a537312598f90df3ad96db3d2dc411b9"
+  },
+  {
+   "stratum": "cen/soup/stim/wvec-uni",
+   "k": 405040,
+   "bad": 0,
+   "arch_stable": true,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 3483,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 3483,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 3483,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 3483,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    }
+   ],
+   "rows": "soup_405040_8f3fc268a20a.json.gz",
+   "sha256": "87836e2b44f77541e7ef2109465c440c16bff23e0bb7e2eb638c654d8bc8bc74"
+  },
+  {
+   "stratum": "cen/soup/stim/wvec-uni",
+   "k": 405060,
+   "bad": 0,
+   "arch_stable": true,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 865,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 865,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 865,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 865,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    }
+   ],
+   "rows": "soup_405060_b2628504754e.json.gz",
+   "sha256": "79d335db0833184ba0a68c8bccec0683275c6927621e4620631bfa253bfbff02"
+  },
+  {
+   "stratum": "cen/raw/noevt/fix0",
+   "k": 406000,
+   "bad": 0,
+   "arch_stable": true,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 523,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 523,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    }
+   ],
+   "rows": "raw_406000_99bdf08b95ea.json.gz",
+   "sha256": "2fac29c38a35f147669f9427d52ad31da5f58c4100f5fb9abcea2096121be204"
+  },
+  {
+   "stratum": "cen/raw/noevt/fix0",
+   "k": 406020,
+   "bad": 0,
+   "arch_stable": true,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 3607,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 3607,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 3607,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 3607,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    }
+   ],
+   "rows": "raw_406020_99bdf08b95ea.json.gz",
+   "sha256": "9434caf1654453a4a165fe8a50f744bbc2d4a27f08664890db6e6ea74717ffc5"
+  },
+  {
+   "stratum": "cen/raw/noevt/fix0",
+   "k": 406040,
+   "bad": 0,
+   "arch_stable": true,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 451,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 451,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 451,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 451,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    }
+   ],
+   "rows": "raw_406040_99bdf08b95ea.json.gz",
+   "sha256": "d0912592f3caf19f9f437654dfa9cd9f813ce6e3127a73b05f102f6f06c59ee4"
+  },
+  {
+   "stratum": "cen/raw/noevt/fix0",
+   "k": 406060,
+   "bad": 0,
+   "arch_stable": true,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 3610,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 3610,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 3610,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 3610,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    }
+   ],
+   "rows": "raw_406060_99bdf08b95ea.json.gz",
+   "sha256": "f332f2240184972352b75481da3e52cf74cd7786547f66278589b226cc87d2e8"
+  },
+  {
+   "stratum": "cen/raw/noevt/wrand3",
+   "k": 407000,
+   "bad": 0,
+   "arch_stable": true,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 3453,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 3453,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 3449,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 3449,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    }
+   ],
+   "rows": "raw_407000_5656a02533f4.json.gz",
+   "sha256": "3a4fea1e9e4fad2a214efc7c95905cbdd070e2c64113d51eae5a3ef4899bcf96"
+  },
+  {
+   "stratum": "cen/raw/noevt/wrand3",
+   "k": 407020,
+   "bad": 0,
+   "arch_stable": true,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 1584,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 1584,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 1584,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 1584,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    }
+   ],
+   "rows": "raw_407020_81f1a9600b79.json.gz",
+   "sha256": "9641c74fa6efd8bc1c1c6c31085ca83dfed9eb94cf0f0bbef1ba40be8b98217e"
+  },
+  {
+   "stratum": "cen/raw/noevt/wrand3",
+   "k": 407040,
+   "bad": 0,
+   "arch_stable": true,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    }
+   ],
+   "rows": "raw_407040_b862a848d138.json.gz",
+   "sha256": "4ae425fa375c76d8fe80e9c5e5b69949abb351f189f63b5e741aa7325a5af513"
+  },
+  {
+   "stratum": "cen/raw/noevt/wrand3",
+   "k": 407060,
+   "bad": 0,
+   "arch_stable": true,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 3438,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 3438,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 3438,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 3438,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    }
+   ],
+   "rows": "raw_407060_cecab8691787.json.gz",
+   "sha256": "7b3a51812aa818195e9829ef8aebc9a9c1f7a129d8d67b7909e4a19b96786a06"
+  },
+  {
+   "stratum": "cen/raw/noevt/wvec-uni",
+   "k": 408000,
+   "bad": 0,
+   "arch_stable": true,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 3618,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 3618,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 3619,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 3619,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    }
+   ],
+   "rows": "raw_408000_30111dc6811a.json.gz",
+   "sha256": "05867cb9192845708d4bb984efcaf13f4e816f22c6ece5485ff33829f8ce8603"
+  },
+  {
+   "stratum": "cen/raw/noevt/wvec-uni",
+   "k": 408020,
+   "bad": 0,
+   "arch_stable": true,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 628,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 628,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 628,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 628,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    }
+   ],
+   "rows": "raw_408020_136294f1005d.json.gz",
+   "sha256": "03f318ec74a00e022754d261082beddf99599f65ded1b277dc7f9dcec0c17a83"
+  },
+  {
+   "stratum": "cen/raw/noevt/wvec-uni",
+   "k": 408040,
+   "bad": 0,
+   "arch_stable": true,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 3478,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 3478,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 3478,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 3478,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    }
+   ],
+   "rows": "raw_408040_a535895d2fda.json.gz",
+   "sha256": "272be712e5127bb76406b01b096cb6789fce6199b02e948293ccb050a16ccafd"
+  },
+  {
+   "stratum": "cen/raw/noevt/wvec-uni",
+   "k": 408060,
+   "bad": 0,
+   "arch_stable": true,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    }
+   ],
+   "rows": "raw_408060_bec33966b6f7.json.gz",
+   "sha256": "fe94f01d97993f1b317a8268afe8eee5981cc2cbb37f78b4360e4f7adc9f562b"
+  },
+  {
+   "stratum": "cen/raw/stim/fix0",
+   "k": 409000,
+   "bad": 0,
+   "arch_stable": true,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 3606,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 3606,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 3606,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 3606,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    }
+   ],
+   "rows": "raw_409000_30efbca0bc24.json.gz",
+   "sha256": "441dbb5460667de5b4e2f83c483d907780a356264e8fc1326ee0e6079953b5a8"
+  },
+  {
+   "stratum": "cen/raw/stim/fix0",
+   "k": 409020,
+   "bad": 0,
+   "arch_stable": true,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    }
+   ],
+   "rows": "raw_409020_3f06959986a1.json.gz",
+   "sha256": "38d8a033915b3776e40cdb31ffb65b12e69bfdc5daad383d7c8c5ba5b70d9133"
+  },
+  {
+   "stratum": "cen/raw/stim/fix0",
+   "k": 409040,
+   "bad": 0,
+   "arch_stable": true,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 1923,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 1923,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 1923,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 1923,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    }
+   ],
+   "rows": "raw_409040_256dede90825.json.gz",
+   "sha256": "256c5ddf4c600832236f52498715e714dc9902bf92bac96dcc67cee9c892b3ca"
+  },
+  {
+   "stratum": "cen/raw/stim/fix0",
+   "k": 409060,
+   "bad": 0,
+   "arch_stable": true,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 496,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 496,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 496,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 496,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    }
+   ],
+   "rows": "raw_409060_8f7e1a37a65f.json.gz",
+   "sha256": "385f090fbe671e6744001fe99b567e6ddf022056c8d4d85b23b241ba5612f18d"
+  },
+  {
+   "stratum": "cen/raw/stim/wrand3",
+   "k": 410000,
+   "bad": 0,
+   "arch_stable": true,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 3447,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 3447,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 3440,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 3440,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    }
+   ],
+   "rows": "raw_410000_0a0f37a8968b.json.gz",
+   "sha256": "7327765c229d8f5ea0ba7254e553aee01aba329a3888bf169e72860e375577d2"
+  },
+  {
+   "stratum": "cen/raw/stim/wrand3",
+   "k": 410020,
+   "bad": 0,
+   "arch_stable": true,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    }
+   ],
+   "rows": "raw_410020_ca4cfa3acee7.json.gz",
+   "sha256": "cc6b1e7b4207b9bb14aff853c74f4fbae9f64f14be4cab35c27e7b745287a5be"
+  },
+  {
+   "stratum": "cen/raw/stim/wrand3",
+   "k": 410040,
+   "bad": 0,
+   "arch_stable": true,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 3454,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 3454,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 3454,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 3454,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    }
+   ],
+   "rows": "raw_410040_9ce728ec6a98.json.gz",
+   "sha256": "9031b2966f408eff66b18f945cd339c5ed7d628de14ced08342b7d5ff7ff4df2"
+  },
+  {
+   "stratum": "cen/raw/stim/wrand3",
+   "k": 410060,
+   "bad": 0,
+   "arch_stable": true,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 727,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 727,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 727,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 727,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    }
+   ],
+   "rows": "raw_410060_62b052f1fa38.json.gz",
+   "sha256": "bb3047efbe8ee1ca1feb663a7210433df0da9eafa7dfe87715d872635b5ac369"
+  },
+  {
+   "stratum": "cen/raw/stim/wvec-uni",
+   "k": 411000,
+   "bad": 0,
+   "arch_stable": true,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 3565,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 3565,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 3565,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 3565,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    }
+   ],
+   "rows": "raw_411000_fb823d49dc9d.json.gz",
+   "sha256": "8e0f1096292fbe3d58a0c2a598511bb11b2242c0b0e50ca1551284ca7726f3ad"
+  },
+  {
+   "stratum": "cen/raw/stim/wvec-uni",
+   "k": 411020,
+   "bad": 0,
+   "arch_stable": true,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 996,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 996,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 996,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 996,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    }
+   ],
+   "rows": "raw_411020_da575fe757bf.json.gz",
+   "sha256": "d79db3eea3893005a12885eba0ba5bcd08ae1fd41c18cec4d0b37e1007b63819"
+  },
+  {
+   "stratum": "cen/raw/stim/wvec-uni",
+   "k": 411040,
+   "bad": 0,
+   "arch_stable": true,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 3680,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 3680,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 3680,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 3680,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    }
+   ],
+   "rows": "raw_411040_d52e6b8a53fc.json.gz",
+   "sha256": "892645158f4a653561ff6d9ee06f6855bc2a93234ab35537bc84e9fa9e2efca2"
+  },
+  {
+   "stratum": "cen/raw/stim/wvec-uni",
+   "k": 411060,
+   "bad": 0,
+   "arch_stable": true,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 3534,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 3534,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 3534,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 3534,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    }
+   ],
+   "rows": "raw_411060_0cb56e40c831.json.gz",
+   "sha256": "e5166b02098681c06dbe6730d7332783019908250afba74eb384ac5a5c671b67"
+  },
+  {
+   "stratum": "enr/soup/noevt/fix0",
+   "k": 500000,
+   "bad": 0,
+   "arch_stable": true,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 1177,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 1177,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 1177,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 1177,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    }
+   ],
+   "rows": "soup_500000_30c46bdfaad5.json.gz",
+   "sha256": "8a5cc462de8393df0d837328a8836c3bbd2356e590528f24d8fb7918aef511b7"
+  },
+  {
+   "stratum": "enr/soup/noevt/fix0",
+   "k": 500020,
+   "bad": 0,
+   "arch_stable": true,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 1188,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 1188,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 1188,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 1188,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    }
+   ],
+   "rows": "soup_500020_30c46bdfaad5.json.gz",
+   "sha256": "72c33caa70c00f31f40a594a17a79a9ac9387c0c87299266b28b16d9d97d0f7e"
+  },
+  {
+   "stratum": "enr/soup/noevt/fix0",
+   "k": 500040,
+   "bad": 0,
+   "arch_stable": true,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 1465,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 1465,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 1465,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 1465,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    }
+   ],
+   "rows": "soup_500040_30c46bdfaad5.json.gz",
+   "sha256": "57d1f6219bfb8dea4ae28ed9040bff988d4c41cfee0c572776b5112cff75b750"
+  },
+  {
+   "stratum": "enr/soup/noevt/fix0",
+   "k": 500060,
+   "bad": 0,
+   "arch_stable": true,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 1314,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 1314,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 1314,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 1314,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    }
+   ],
+   "rows": "soup_500060_30c46bdfaad5.json.gz",
+   "sha256": "45ab89742eca4f8c4ea702afa794808b5647b9c4842aafb084238f9d354604ca"
+  },
+  {
+   "stratum": "enr/soup/noevt/fix1",
+   "k": 501000,
+   "bad": 0,
+   "arch_stable": true,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 1462,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 1462,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 1462,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 1462,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    }
+   ],
+   "rows": "soup_501000_00f90b60d267.json.gz",
+   "sha256": "71d456ed7c516a59df865a6186691637456d08f6a31b70dda7f6e2319d3196d1"
+  },
+  {
+   "stratum": "enr/soup/noevt/fix1",
+   "k": 501020,
+   "bad": 0,
+   "arch_stable": true,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 1925,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 1925,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 1925,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 1925,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    }
+   ],
+   "rows": "soup_501020_00f90b60d267.json.gz",
+   "sha256": "68eee7c7f4e41a64fe4aff785d261f737590e8deeebc2652bb82c90b7bc3781f"
+  },
+  {
+   "stratum": "enr/soup/noevt/fix1",
+   "k": 501040,
+   "bad": 0,
+   "arch_stable": true,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 1321,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 1321,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 1321,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 1321,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    }
+   ],
+   "rows": "soup_501040_00f90b60d267.json.gz",
+   "sha256": "40a3cbf70744fa802fea79f1fee5cdb726f9b82f7d036c4016a310369cc047a0"
+  },
+  {
+   "stratum": "enr/soup/noevt/fix1",
+   "k": 501060,
+   "bad": 0,
+   "arch_stable": true,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 1170,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 1170,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 1170,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 1170,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    }
+   ],
+   "rows": "soup_501060_00f90b60d267.json.gz",
+   "sha256": "96f37271e07a71ca60d65f627399bd904750f18cd4d86a3a3798c0cc2ff6f78b"
+  },
+  {
+   "stratum": "enr/soup/noevt/fix2",
+   "k": 502000,
+   "bad": 0,
+   "arch_stable": true,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 1878,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 1878,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 1878,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 1878,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    }
+   ],
+   "rows": "soup_502000_d54d39b75ec1.json.gz",
+   "sha256": "ebefb0749a5ed8c458e36f483e2d8db06a40de73a6807af289434fe25d3f26e0"
+  },
+  {
+   "stratum": "enr/soup/noevt/fix2",
+   "k": 502020,
+   "bad": 0,
+   "arch_stable": true,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 1246,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 1246,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 1246,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 1246,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    }
+   ],
+   "rows": "soup_502020_d54d39b75ec1.json.gz",
+   "sha256": "f6266c1feaf6ca845e22e0787fd3e18fe55cb42b62df313ed290fbd4147bd916"
+  },
+  {
+   "stratum": "enr/soup/noevt/fix2",
+   "k": 502040,
+   "bad": 0,
+   "arch_stable": true,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 1296,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 1296,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 1296,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 1296,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    }
+   ],
+   "rows": "soup_502040_d54d39b75ec1.json.gz",
+   "sha256": "d51225d0f50edfe5d5b234f428be2f0ab1fad9e027157d84f282838cd9720556"
+  },
+  {
+   "stratum": "enr/soup/noevt/fix2",
+   "k": 502060,
+   "bad": 0,
+   "arch_stable": true,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 1313,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 1313,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 1313,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 1313,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    }
+   ],
+   "rows": "soup_502060_d54d39b75ec1.json.gz",
+   "sha256": "e95b4bdc166027473472884aab92fd1a2cc348f86aa7233968a478f1ccd4dd6c"
+  },
+  {
+   "stratum": "enr/soup/noevt/fix3",
+   "k": 503000,
+   "bad": 0,
+   "arch_stable": true,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 1278,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 1278,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 1278,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 1278,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    }
+   ],
+   "rows": "soup_503000_ea0fe83bef6a.json.gz",
+   "sha256": "fe06212cba1564600850fc0914c168012d7d02211d8164f65ac3eaaf684c8aa7"
+  },
+  {
+   "stratum": "enr/soup/noevt/fix3",
+   "k": 503020,
+   "bad": 0,
+   "arch_stable": true,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 1639,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 1639,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 1639,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 1639,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    }
+   ],
+   "rows": "soup_503020_ea0fe83bef6a.json.gz",
+   "sha256": "93fc9176e0d5de274a5ae72833b386df26e9387d5db8ef3cad80dfe3a282af97"
+  },
+  {
+   "stratum": "enr/soup/noevt/fix3",
+   "k": 503040,
+   "bad": 0,
+   "arch_stable": true,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 808,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 808,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 808,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 808,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    }
+   ],
+   "rows": "soup_503040_ea0fe83bef6a.json.gz",
+   "sha256": "56d812ad25083919d933429b1bdac00b38458dfc70fb726ca8917772cd07261b"
+  },
+  {
+   "stratum": "enr/soup/noevt/fix3",
+   "k": 503060,
+   "bad": 0,
+   "arch_stable": true,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 1832,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 1832,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 1832,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 1832,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    }
+   ],
+   "rows": "soup_503060_ea0fe83bef6a.json.gz",
+   "sha256": "b071836d5a64897e4db9d3e63c741fd0edda781021e30448f8731e2d089d8216"
+  },
+  {
+   "stratum": "enr/soup/noevt/wrand1",
+   "k": 504000,
+   "bad": 0,
+   "arch_stable": true,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 1620,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 1620,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 1620,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 1620,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    }
+   ],
+   "rows": "soup_504000_41414bc257bf.json.gz",
+   "sha256": "8e4400a29e8de0b9d7b0dd8da1142a6355c3673f0a4393ad5bd21b5cf684b826"
+  },
+  {
+   "stratum": "enr/soup/noevt/wrand1",
+   "k": 504020,
+   "bad": 0,
+   "arch_stable": true,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 1440,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 1440,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 1440,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 1440,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    }
+   ],
+   "rows": "soup_504020_a18c88d773a4.json.gz",
+   "sha256": "8fe8172b97767b0e48e24774ce9bc1cafddeb889db5bf27fc560d1abdff73fb8"
+  },
+  {
+   "stratum": "enr/soup/noevt/wrand1",
+   "k": 504040,
+   "bad": 0,
+   "arch_stable": true,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 835,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 835,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 835,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 835,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    }
+   ],
+   "rows": "soup_504040_20d49891e11d.json.gz",
+   "sha256": "14b793b1b85c96bfcebefd24794092f36159678068bc75cc585e48793ff39663"
+  },
+  {
+   "stratum": "enr/soup/noevt/wrand1",
+   "k": 504060,
+   "bad": 0,
+   "arch_stable": true,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 1148,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 1148,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 1148,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 1148,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    }
+   ],
+   "rows": "soup_504060_d5b43321327e.json.gz",
+   "sha256": "0b8f29586f7c8a5a0ee741129c4076687c0fa920502440946f158573e19a5a60"
+  },
+  {
+   "stratum": "enr/soup/noevt/wrand3",
+   "k": 505000,
+   "bad": 0,
+   "arch_stable": true,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 1396,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 1396,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 1396,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 1396,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    }
+   ],
+   "rows": "soup_505000_6900e55954d1.json.gz",
+   "sha256": "ff5c84c4a75fea2ddd2f084fba4e170fc49a714d7245c5d6581def0099213ff2"
+  },
+  {
+   "stratum": "enr/soup/noevt/wrand3",
+   "k": 505020,
+   "bad": 0,
+   "arch_stable": true,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 1351,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 1351,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 1351,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 1351,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    }
+   ],
+   "rows": "soup_505020_f44ce74ce31e.json.gz",
+   "sha256": "588f193fe5d688f1abfde3ef9fbd9cbd7161c2eb5b682d857f46a0b5d933f9be"
+  },
+  {
+   "stratum": "enr/soup/noevt/wrand3",
+   "k": 505040,
+   "bad": 0,
+   "arch_stable": true,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 1232,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 1232,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 1232,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 1232,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    }
+   ],
+   "rows": "soup_505040_b0271ea89680.json.gz",
+   "sha256": "1311109be5d024b7e67870d99bfbdc40392089499e36d7fff017af8c41e74caa"
+  },
+  {
+   "stratum": "enr/soup/noevt/wrand3",
+   "k": 505060,
+   "bad": 0,
+   "arch_stable": true,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 952,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 952,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 952,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 952,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    }
+   ],
+   "rows": "soup_505060_71873723eff2.json.gz",
+   "sha256": "50d070f9edd4dd1411ea6ae8cf56252324d2b3965b1161e31d7d15165a8328ec"
+  },
+  {
+   "stratum": "enr/soup/noevt/wrand7",
+   "k": 506000,
+   "bad": 0,
+   "arch_stable": true,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 1425,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 1425,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 1425,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 1425,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    }
+   ],
+   "rows": "soup_506000_4d103a3c91b2.json.gz",
+   "sha256": "d8e5bb1a3fb451a6f77b8d9dd8d0647875411f26f9dd02062010597f93b0b9e0"
+  },
+  {
+   "stratum": "enr/soup/noevt/wrand7",
+   "k": 506020,
+   "bad": 0,
+   "arch_stable": true,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 1252,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 1252,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 1252,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 1252,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    }
+   ],
+   "rows": "soup_506020_80700ee74d04.json.gz",
+   "sha256": "478cbc45e3b79318524e94caebde40a3b35947bb8a248ec5a4fcd6ba3fdbe609"
+  },
+  {
+   "stratum": "enr/soup/noevt/wrand7",
+   "k": 506040,
+   "bad": 0,
+   "arch_stable": true,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 1248,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 1248,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 1248,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 1248,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    }
+   ],
+   "rows": "soup_506040_5772749ee214.json.gz",
+   "sha256": "0cce99a93d9079ef87bcb1356d250c36170f8b28603eaa6d23089958409ac3da"
+  },
+  {
+   "stratum": "enr/soup/noevt/wrand7",
+   "k": 506060,
+   "bad": 0,
+   "arch_stable": true,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 1001,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 1001,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 1001,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 1001,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    }
+   ],
+   "rows": "soup_506060_81a872581c13.json.gz",
+   "sha256": "362043d6e2eabd5362eaa0e009ace9a02850c1cd017bbd2a4ffd54cc2f5969b8"
+  },
+  {
+   "stratum": "enr/soup/noevt/wrand15",
+   "k": 507000,
+   "bad": 0,
+   "arch_stable": true,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 2622,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 2622,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 2622,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 2622,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    }
+   ],
+   "rows": "soup_507000_cc392f28f8a7.json.gz",
+   "sha256": "939407798ab8ccba4618a1adb9dfca6dda270ad9a917e7fd773ae569e871c50c"
+  },
+  {
+   "stratum": "enr/soup/noevt/wrand15",
+   "k": 507020,
+   "bad": 0,
+   "arch_stable": true,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 2750,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 2750,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 2750,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 2750,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    }
+   ],
+   "rows": "soup_507020_bc4850cb99e5.json.gz",
+   "sha256": "dce901afaf22b41c2a733c34578d2af955aeaeaecd56e29bd4f804d4776ef78f"
+  },
+  {
+   "stratum": "enr/soup/noevt/wrand15",
+   "k": 507040,
+   "bad": 0,
+   "arch_stable": true,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 2325,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 2325,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 2325,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 2325,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    }
+   ],
+   "rows": "soup_507040_45ac91106339.json.gz",
+   "sha256": "e735b32c3d4bbd86837a7d5fb2b7c6e732e8b7032e97367196485699c083e3ea"
+  },
+  {
+   "stratum": "enr/soup/noevt/wrand15",
+   "k": 507060,
+   "bad": 0,
+   "arch_stable": true,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 2546,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 2546,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 2546,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 2546,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    }
+   ],
+   "rows": "soup_507060_c47d775721e8.json.gz",
+   "sha256": "2c883b75e2208a9755e33ec3c8712eaf06449f8cc6dbcaa182291841a2db609c"
+  },
+  {
+   "stratum": "enr/soup/noevt/wvec-uni",
+   "k": 508000,
+   "bad": 0,
+   "arch_stable": true,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 2269,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 2269,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 2269,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 2269,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    }
+   ],
+   "rows": "soup_508000_736bc43352fa.json.gz",
+   "sha256": "3d0745edaf898e7193139d983f356b92ecf994f133e09699cfe82da5359397bf"
+  },
+  {
+   "stratum": "enr/soup/noevt/wvec-uni",
+   "k": 508020,
+   "bad": 0,
+   "arch_stable": true,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 823,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 823,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 823,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 823,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    }
+   ],
+   "rows": "soup_508020_25c3f2fdca41.json.gz",
+   "sha256": "b5ffb3cb9f5c2528f90c6fdd47c92a7d8b42e452e6f4278c3b2b9feddd423271"
+  },
+  {
+   "stratum": "enr/soup/noevt/wvec-uni",
+   "k": 508040,
+   "bad": 0,
+   "arch_stable": true,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 1712,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 1712,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 1712,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 1712,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    }
+   ],
+   "rows": "soup_508040_9a0232b2fd00.json.gz",
+   "sha256": "3ff5465238c9c755ca6a4486cdc0244d2c756cd4862fa3c7dad7665d7674dc11"
+  },
+  {
+   "stratum": "enr/soup/noevt/wvec-uni",
+   "k": 508060,
+   "bad": 0,
+   "arch_stable": true,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 1363,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 1363,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 1363,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 1363,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    }
+   ],
+   "rows": "soup_508060_24da6941803b.json.gz",
+   "sha256": "17d28b10ec0f4da45aed02a29ab9dca903c106b36d37683133600f2b8acb4a38"
+  },
+  {
+   "stratum": "enr/soup/stim/fix0",
+   "k": 509000,
+   "bad": 0,
+   "arch_stable": true,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 3024,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 3024,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 3024,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 3024,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    }
+   ],
+   "rows": "soup_509000_f9a97c542bd6.json.gz",
+   "sha256": "dd1e25a6187ee02ab6f4ca3c055ab352cb3441e63b8e90859ea495434506e35f"
+  },
+  {
+   "stratum": "enr/soup/stim/fix0",
+   "k": 509020,
+   "bad": 0,
+   "arch_stable": true,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 1098,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 1098,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 1098,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 1098,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    }
+   ],
+   "rows": "soup_509020_903413b18884.json.gz",
+   "sha256": "287a78dc33fbcd3fb940b177c8ebb97943b0bae170136efe15342443fb68f089"
+  },
+  {
+   "stratum": "enr/soup/stim/fix0",
+   "k": 509040,
+   "bad": 0,
+   "arch_stable": true,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 1244,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 1244,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 1244,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 1244,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    }
+   ],
+   "rows": "soup_509040_db09e889c069.json.gz",
+   "sha256": "d4f2461feda045744662a3a929116831d3c84a4167c6d27ab196f76c2447c60c"
+  },
+  {
+   "stratum": "enr/soup/stim/fix0",
+   "k": 509060,
+   "bad": 0,
+   "arch_stable": true,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 1238,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 1238,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 1238,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 1238,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    }
+   ],
+   "rows": "soup_509060_5b76e82ee01a.json.gz",
+   "sha256": "2a33c860f1e11ea1256e8a7552c5fb1c88ffeaf2d2b2a12fa49bc03cc84d30f4"
+  },
+  {
+   "stratum": "enr/soup/stim/fix1",
+   "k": 510000,
+   "bad": 0,
+   "arch_stable": true,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 3636,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 3636,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 3636,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 3636,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    }
+   ],
+   "rows": "soup_510000_433b25192b6c.json.gz",
+   "sha256": "db90d150f32da8269a0941bf0acc769d7e99d80a794c9de9adbc2e3a195bf3dc"
+  },
+  {
+   "stratum": "enr/soup/stim/fix1",
+   "k": 510020,
+   "bad": 0,
+   "arch_stable": true,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 2047,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 2047,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 2047,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 2047,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    }
+   ],
+   "rows": "soup_510020_482ea710a58a.json.gz",
+   "sha256": "d9ac5345ef8f250d1f8e96fa3a1e8225bda28a096e05d2f3b660f7563b672f13"
+  },
+  {
+   "stratum": "enr/soup/stim/fix1",
+   "k": 510040,
+   "bad": 0,
+   "arch_stable": true,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 1943,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 1943,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 1943,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 1943,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    }
+   ],
+   "rows": "soup_510040_13d69f3a0c60.json.gz",
+   "sha256": "75eeb69a74e8664e4d6f0b7ceb74251afa511b18da7a2f7dc3a03b34fdf77b0d"
+  },
+  {
+   "stratum": "enr/soup/stim/fix1",
+   "k": 510060,
+   "bad": 0,
+   "arch_stable": true,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 1149,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 1149,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 1149,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 1149,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    }
+   ],
+   "rows": "soup_510060_f6f5dabf606f.json.gz",
+   "sha256": "76ba3ec78d1a5903356c6df6d6ef9c93a6eac11371b9c5e6b43c37dc802019cf"
+  },
+  {
+   "stratum": "enr/soup/stim/fix2",
+   "k": 511000,
+   "bad": 0,
+   "arch_stable": true,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 1058,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 1058,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 1058,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 1058,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    }
+   ],
+   "rows": "soup_511000_4102fd4a7b34.json.gz",
+   "sha256": "9d55b39dbe7561d8157e361d2e0d9776b263b4dd1092cc9f662b6cac38504194"
+  },
+  {
+   "stratum": "enr/soup/stim/fix2",
+   "k": 511020,
+   "bad": 0,
+   "arch_stable": true,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 1697,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 1697,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 1697,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 1697,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    }
+   ],
+   "rows": "soup_511020_40bf8130b5a3.json.gz",
+   "sha256": "07e08b5306293d8118d171909b70e49dcb27de76840d47818fa9dea7484c1f19"
+  },
+  {
+   "stratum": "enr/soup/stim/fix2",
+   "k": 511040,
+   "bad": 0,
+   "arch_stable": true,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 1064,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 1064,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 1064,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 1064,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    }
+   ],
+   "rows": "soup_511040_9fb00621eb92.json.gz",
+   "sha256": "82893c1544ae9b54bdc576146b33211ee4caf7756fc2ada2323fd5a782b2cf13"
+  },
+  {
+   "stratum": "enr/soup/stim/fix2",
+   "k": 511060,
+   "bad": 0,
+   "arch_stable": true,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 2655,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 2655,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 2655,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 2655,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    }
+   ],
+   "rows": "soup_511060_492d954fddca.json.gz",
+   "sha256": "4a1ea70f87090fe22443e3062ddaf6d96bb1276a8b7f3050b36618acdec80c56"
+  },
+  {
+   "stratum": "enr/soup/stim/fix3",
+   "k": 512000,
+   "bad": 0,
+   "arch_stable": true,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 3577,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 3577,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 3577,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 3577,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    }
+   ],
+   "rows": "soup_512000_a5336fa08da2.json.gz",
+   "sha256": "9852945b41f04ad3f534fc60a90228020d6f3ec8e092bc20b53a477ac9566e8d"
+  },
+  {
+   "stratum": "enr/soup/stim/fix3",
+   "k": 512020,
+   "bad": 0,
+   "arch_stable": true,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 2940,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 2940,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 2940,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 2940,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    }
+   ],
+   "rows": "soup_512020_f6fa504a3e7e.json.gz",
+   "sha256": "006304474acbb7c64a578181d2184aaa96b65ae0c5bd91f2f96a437164193f95"
+  },
+  {
+   "stratum": "enr/soup/stim/fix3",
+   "k": 512040,
+   "bad": 0,
+   "arch_stable": true,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 1095,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 1095,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 1095,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 1095,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    }
+   ],
+   "rows": "soup_512040_46c6042b5dee.json.gz",
+   "sha256": "8cfe750f9f68e14a42e888d3024d25ab1ac8a4ff9c78c4f652e22f3146c554dc"
+  },
+  {
+   "stratum": "enr/soup/stim/fix3",
+   "k": 512060,
+   "bad": 0,
+   "arch_stable": true,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 3576,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 3576,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 3576,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 3576,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    }
+   ],
+   "rows": "soup_512060_5087be88d5f6.json.gz",
+   "sha256": "a8604f170459508146d587e75055b88c4c6e0e54dc30d41f4cdcf2eaa8acde89"
+  },
+  {
+   "stratum": "enr/soup/stim/wrand1",
+   "k": 513000,
+   "bad": 0,
+   "arch_stable": true,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 1092,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 1092,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 1092,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 1092,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    }
+   ],
+   "rows": "soup_513000_40373fce85bf.json.gz",
+   "sha256": "c5b939c56044452175e0314f9657b9d8f70d2c86ad4206331389481d4eaa18c3"
+  },
+  {
+   "stratum": "enr/soup/stim/wrand1",
+   "k": 513020,
+   "bad": 0,
+   "arch_stable": true,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 3548,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 3548,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 3548,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 3548,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    }
+   ],
+   "rows": "soup_513020_f4f0e989b9e1.json.gz",
+   "sha256": "b7dc738350748ead3af1c3edf7b74d8c2c0f5a3369293a0226080b9b441aa588"
+  },
+  {
+   "stratum": "enr/soup/stim/wrand1",
+   "k": 513040,
+   "bad": 0,
+   "arch_stable": true,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 3536,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 3536,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 3536,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 3536,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    }
+   ],
+   "rows": "soup_513040_ccaf7c0b8ad8.json.gz",
+   "sha256": "1083abd3f1f6fbce83969d1ea33e0953e0da7baec61578d0401c43a95eb768c4"
+  },
+  {
+   "stratum": "enr/soup/stim/wrand1",
+   "k": 513060,
+   "bad": 0,
+   "arch_stable": true,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 842,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 842,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 842,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 842,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    }
+   ],
+   "rows": "soup_513060_440c023cd3db.json.gz",
+   "sha256": "3c3652c00f3568921b82b0cceba1b81d4c4dbcbca867f91844952dfb9a66b795"
+  },
+  {
+   "stratum": "enr/soup/stim/wrand3",
+   "k": 514000,
+   "bad": 0,
+   "arch_stable": true,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 3413,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 3413,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 3413,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 3413,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    }
+   ],
+   "rows": "soup_514000_2d451bf6b60c.json.gz",
+   "sha256": "2ba3a904eb5d8b9758dbd3f0ddd4c61c78cc8b214b4749d376858cc65a43778b"
+  },
+  {
+   "stratum": "enr/soup/stim/wrand3",
+   "k": 514020,
+   "bad": 0,
+   "arch_stable": true,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 1286,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 1286,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 1286,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 1286,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    }
+   ],
+   "rows": "soup_514020_03c2f1f2bc42.json.gz",
+   "sha256": "202465d07e63a5b4a3ec2c51a9ec053b91ea5c8997ea127cf66cd453d1941689"
+  },
+  {
+   "stratum": "enr/soup/stim/wrand3",
+   "k": 514040,
+   "bad": 0,
+   "arch_stable": true,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 1916,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 1916,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 1916,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 1916,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    }
+   ],
+   "rows": "soup_514040_c92d48d2ba07.json.gz",
+   "sha256": "c7717cc90e8e6ad3f09446a527dcfc5e24969a06524a726bfdb358fafaad29a2"
+  },
+  {
+   "stratum": "enr/soup/stim/wrand3",
+   "k": 514060,
+   "bad": 0,
+   "arch_stable": true,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 3445,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 3445,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 3445,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 3445,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    }
+   ],
+   "rows": "soup_514060_c3a07ebca909.json.gz",
+   "sha256": "6200c827acecdbb7b045a6dc3cb56fbb9df145fa016e64ce3e0af571a08dfad0"
+  },
+  {
+   "stratum": "enr/soup/stim/wrand7",
+   "k": 515000,
+   "bad": 0,
+   "arch_stable": true,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 1519,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 1519,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 1519,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 1519,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    }
+   ],
+   "rows": "soup_515000_d35a4ad6d1dc.json.gz",
+   "sha256": "e83d9025bfd118f291ca064ac113737beaec256026d38f708dff57df33276df5"
+  },
+  {
+   "stratum": "enr/soup/stim/wrand7",
+   "k": 515020,
+   "bad": 0,
+   "arch_stable": true,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    }
+   ],
+   "rows": "soup_515020_b24c2a167df9.json.gz",
+   "sha256": "83a25b4e70478d149af063b4b557b8c22a9d4df04a937fc3e651ba9f74e5fa3c"
+  },
+  {
+   "stratum": "enr/soup/stim/wrand7",
+   "k": 515040,
+   "bad": 0,
+   "arch_stable": true,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 3101,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 3101,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 3101,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 3101,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    }
+   ],
+   "rows": "soup_515040_c20112589cbe.json.gz",
+   "sha256": "1a8d325a8e2c30b986af4d0793a0efd7d189f4d9601c559176e67c0b8a104cf9"
+  },
+  {
+   "stratum": "enr/soup/stim/wrand7",
+   "k": 515060,
+   "bad": 0,
+   "arch_stable": true,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 3149,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 3149,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 3149,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 3149,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    }
+   ],
+   "rows": "soup_515060_6ecdef029e96.json.gz",
+   "sha256": "2d6b304ebd677bbecd10b3db5393e869d35985aa58f07c6b9ec568c04fc30953"
+  },
+  {
+   "stratum": "enr/soup/stim/wrand15",
+   "k": 516000,
+   "bad": 0,
+   "arch_stable": true,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 2529,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 2529,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 2529,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 2529,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    }
+   ],
+   "rows": "soup_516000_41d33bd84f92.json.gz",
+   "sha256": "33a778e55446c935bc09bd5b95ee9fe5bdf376b17e384e738a122fd137cf1f5e"
+  },
+  {
+   "stratum": "enr/soup/stim/wrand15",
+   "k": 516020,
+   "bad": 0,
+   "arch_stable": true,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 2527,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 2527,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 2527,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 2527,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    }
+   ],
+   "rows": "soup_516020_2fe289c98b9a.json.gz",
+   "sha256": "a8af0ccef31edc7633b08adbee412ac8c81f73f982fa1a741c225766b3809034"
+  },
+  {
+   "stratum": "enr/soup/stim/wrand15",
+   "k": 516040,
+   "bad": 0,
+   "arch_stable": true,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 2471,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 2471,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 2471,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 2471,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    }
+   ],
+   "rows": "soup_516040_7d8bec63ae6d.json.gz",
+   "sha256": "945263b0b8997df9330abfa16a4b6b228cd8d68043c32ab330670f459c241310"
+  },
+  {
+   "stratum": "enr/soup/stim/wrand15",
+   "k": 516060,
+   "bad": 0,
+   "arch_stable": true,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 2520,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 2520,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 2520,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 2520,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    }
+   ],
+   "rows": "soup_516060_feab7e6d0448.json.gz",
+   "sha256": "29e0b655e7497434400e321b475f1ec62279c95d99dfb090a4a5704a9d8714cc"
+  },
+  {
+   "stratum": "enr/soup/stim/wvec-uni",
+   "k": 517000,
+   "bad": 0,
+   "arch_stable": true,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 1680,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 1680,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 1680,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 1680,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    }
+   ],
+   "rows": "soup_517000_fb458e083d15.json.gz",
+   "sha256": "8ab26037cb459d1cfe11ca877c53505f3bc5af91260841dd2daa93f782b79fe8"
+  },
+  {
+   "stratum": "enr/soup/stim/wvec-uni",
+   "k": 517020,
+   "bad": 0,
+   "arch_stable": true,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 2493,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 2493,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 2493,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 2493,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    }
+   ],
+   "rows": "soup_517020_912556f0600f.json.gz",
+   "sha256": "ba893837c3268339b88dff3d2504a39839f173bd36dff8ef8736b30e568956d5"
+  },
+  {
+   "stratum": "enr/soup/stim/wvec-uni",
+   "k": 517040,
+   "bad": 0,
+   "arch_stable": true,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 3566,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 3566,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 3566,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 3566,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    }
+   ],
+   "rows": "soup_517040_49bc3a2064e5.json.gz",
+   "sha256": "c4850156a61dfc238431169d9bb9c7d03bbb3faf61dc593cb2b7d7d80f858170"
+  },
+  {
+   "stratum": "enr/soup/stim/wvec-uni",
+   "k": 517060,
+   "bad": 0,
+   "arch_stable": true,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 1312,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 1312,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 1312,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 1312,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    }
+   ],
+   "rows": "soup_517060_3cddd365f856.json.gz",
+   "sha256": "62c74cd2e923e03c2d2bd19fef8dbc1ed7e6857f621c13fbbf58182c529e38f0"
+  },
+  {
+   "stratum": "enr/raw/noevt/fix0",
+   "k": 518000,
+   "bad": 0,
+   "arch_stable": true,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 526,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 526,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 526,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 526,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    }
+   ],
+   "rows": "raw_518000_99bdf08b95ea.json.gz",
+   "sha256": "9937b98d7600366e8dd94de5f3858f797a59cb5e2759f79001c48bf817f94486"
+  },
+  {
+   "stratum": "enr/raw/noevt/fix0",
+   "k": 518020,
+   "bad": 0,
+   "arch_stable": true,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    }
+   ],
+   "rows": "raw_518020_99bdf08b95ea.json.gz",
+   "sha256": "e8b885bf92af35f6f94b5737baf87aa4561fb9d3930412cd905d253839ec3f0e"
+  },
+  {
+   "stratum": "enr/raw/noevt/fix0",
+   "k": 518040,
+   "bad": 0,
+   "arch_stable": true,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 634,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 634,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 634,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 634,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    }
+   ],
+   "rows": "raw_518040_99bdf08b95ea.json.gz",
+   "sha256": "7496af678b2c2ab4ceb6e3b674d918f520c7cefbc8477239e703da8c2e2f268a"
+  },
+  {
+   "stratum": "enr/raw/noevt/fix0",
+   "k": 518060,
+   "bad": 0,
+   "arch_stable": true,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 2097,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 2097,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 2097,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 2097,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    }
+   ],
+   "rows": "raw_518060_99bdf08b95ea.json.gz",
+   "sha256": "186c240ab61b45a6efff1d2adb3ac1cad15f6d3e40fb875fd629eed8c63872f0"
+  },
+  {
+   "stratum": "enr/raw/noevt/fix1",
+   "k": 519000,
+   "bad": 0,
+   "arch_stable": true,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 3711,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 3711,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 3711,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 3711,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    }
+   ],
+   "rows": "raw_519000_a2ffe213dfe9.json.gz",
+   "sha256": "4074d47ac6669eeabaee14e3d803102c400a9976d23e8606b633d8a044f0aa80"
+  },
+  {
+   "stratum": "enr/raw/noevt/fix1",
+   "k": 519020,
+   "bad": 0,
+   "arch_stable": true,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 749,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 749,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 749,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 749,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    }
+   ],
+   "rows": "raw_519020_a2ffe213dfe9.json.gz",
+   "sha256": "910154f5a178792027c24dcadae9e83fa7763c42dff2314b885e57b017c00756"
+  },
+  {
+   "stratum": "enr/raw/noevt/fix1",
+   "k": 519040,
+   "bad": 0,
+   "arch_stable": true,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 3636,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 3636,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 3636,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 3636,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    }
+   ],
+   "rows": "raw_519040_a2ffe213dfe9.json.gz",
+   "sha256": "67010a7bf07fd98be61284b290afefbb2268e27c6a02d15315d47124d437a56d"
+  },
+  {
+   "stratum": "enr/raw/noevt/fix1",
+   "k": 519060,
+   "bad": 0,
+   "arch_stable": true,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 763,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 763,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 763,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 763,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    }
+   ],
+   "rows": "raw_519060_a2ffe213dfe9.json.gz",
+   "sha256": "1bdf78c21dfcac43b29f786b1956a0555d748139ae50ad7362c691ee8e1e0de3"
+  },
+  {
+   "stratum": "enr/raw/noevt/fix2",
+   "k": 520000,
+   "bad": 0,
+   "arch_stable": true,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 3604,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 3604,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    }
+   ],
+   "rows": "raw_520000_2c9abbaedc66.json.gz",
+   "sha256": "0a62a87823baba6dc1d78b32c9f9793f8d9828e204259d22e0b008a7c4978a6e"
+  },
+  {
+   "stratum": "enr/raw/noevt/fix2",
+   "k": 520020,
+   "bad": 0,
+   "arch_stable": true,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 3660,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 3660,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 3660,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 3660,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    }
+   ],
+   "rows": "raw_520020_2c9abbaedc66.json.gz",
+   "sha256": "498526095968b906d69956f6b62dd8d2b66230ba3e4f7c0ea2f049b1bc67632f"
+  },
+  {
+   "stratum": "enr/raw/noevt/fix2",
+   "k": 520040,
+   "bad": 0,
+   "arch_stable": true,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 1370,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 1370,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 3627,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 3627,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    }
+   ],
+   "rows": "raw_520040_2c9abbaedc66.json.gz",
+   "sha256": "902433473204e48d6f5fb0ee24104e9859538b1b49d8533861acf06884ac650c"
+  },
+  {
+   "stratum": "enr/raw/noevt/fix2",
+   "k": 520060,
+   "bad": 0,
+   "arch_stable": true,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 3669,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 3669,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 3669,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 3669,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    }
+   ],
+   "rows": "raw_520060_2c9abbaedc66.json.gz",
+   "sha256": "b54f30ade3b58d3d9af3f062fbb3eafa51b2759805a02a467c879c5bc99e8227"
+  },
+  {
+   "stratum": "enr/raw/noevt/fix3",
+   "k": 521000,
+   "bad": 0,
+   "arch_stable": true,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 1653,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 1653,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 1653,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 1653,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    }
+   ],
+   "rows": "raw_521000_17de21d60cf3.json.gz",
+   "sha256": "5d59151f90748533871f55e7d3be9a6eadcbdec16b406eb3c1819bb675a6fe66"
+  },
+  {
+   "stratum": "enr/raw/noevt/fix3",
+   "k": 521020,
+   "bad": 0,
+   "arch_stable": true,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 962,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 962,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 962,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 962,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    }
+   ],
+   "rows": "raw_521020_17de21d60cf3.json.gz",
+   "sha256": "a10826ff3fe272fa716e72efe51e217a00377ebe53210dc154027b2893bc5521"
+  },
+  {
+   "stratum": "enr/raw/noevt/fix3",
+   "k": 521040,
+   "bad": 0,
+   "arch_stable": true,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 3625,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 3625,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 3625,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 3625,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    }
+   ],
+   "rows": "raw_521040_17de21d60cf3.json.gz",
+   "sha256": "bb398fd0834afa643cdf2a44f2a4f1eb33c9e138d01dd0ae92cfa714d0d57b1e"
+  },
+  {
+   "stratum": "enr/raw/noevt/fix3",
+   "k": 521060,
+   "bad": 0,
+   "arch_stable": true,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 827,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 827,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 827,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 827,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    }
+   ],
+   "rows": "raw_521060_17de21d60cf3.json.gz",
+   "sha256": "e9a8af1d88be8ff39ab941f2f71b65c86f072a73abfd710878882abead8d82be"
+  },
+  {
+   "stratum": "enr/raw/noevt/wrand1",
+   "k": 522000,
+   "bad": 0,
+   "arch_stable": true,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 3551,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 3551,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 3551,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 3551,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    }
+   ],
+   "rows": "raw_522000_6d1e423b0cf7.json.gz",
+   "sha256": "6d817076f30464a5970eb5427b16424cfa1bdc94bcd097e131f1389404caa5f8"
+  },
+  {
+   "stratum": "enr/raw/noevt/wrand1",
+   "k": 522020,
+   "bad": 0,
+   "arch_stable": true,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    }
+   ],
+   "rows": "raw_522020_23de8213a10e.json.gz",
+   "sha256": "a32bc323c6d902abf4ce48992befd067b919a5657ad4fe41a640105cf691fdf4"
+  },
+  {
+   "stratum": "enr/raw/noevt/wrand1",
+   "k": 522040,
+   "bad": 0,
+   "arch_stable": true,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    }
+   ],
+   "rows": "raw_522040_1b3a18a91323.json.gz",
+   "sha256": "802ab72443a5ef53114dec33909f049d31bf5ba256c4f2ca646bbc6474144ae9"
+  },
+  {
+   "stratum": "enr/raw/noevt/wrand1",
+   "k": 522060,
+   "bad": 0,
+   "arch_stable": true,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 3546,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 3546,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 3546,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 3546,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    }
+   ],
+   "rows": "raw_522060_e4c9404dcaa7.json.gz",
+   "sha256": "01d98d1354b10e8c30d555f0fa3f14c4580bf8ed871250590109dc2ba0fae909"
+  },
+  {
+   "stratum": "enr/raw/noevt/wrand3",
+   "k": 523000,
+   "bad": 0,
+   "arch_stable": true,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 702,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 702,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 702,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 702,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    }
+   ],
+   "rows": "raw_523000_05c4841e195a.json.gz",
+   "sha256": "8bae297e1eca3b3e09b8929ab988c5cb5a76650c982246f830f42e4cc82d4ee3"
+  },
+  {
+   "stratum": "enr/raw/noevt/wrand3",
+   "k": 523020,
+   "bad": 0,
+   "arch_stable": true,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    }
+   ],
+   "rows": "raw_523020_9265f4cb7252.json.gz",
+   "sha256": "d518fc9fff22c63385ca093a27e2ec7e96704f88b3bfb20d5bcadb4a1d99b5ac"
+  },
+  {
+   "stratum": "enr/raw/noevt/wrand3",
+   "k": 523040,
+   "bad": 0,
+   "arch_stable": true,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    }
+   ],
+   "rows": "raw_523040_7a8511548a88.json.gz",
+   "sha256": "28513999c6e121d47ddd8e57202dbd94403f2c1ac739cf8bb86a62649f17f00f"
+  },
+  {
+   "stratum": "enr/raw/noevt/wrand3",
+   "k": 523060,
+   "bad": 0,
+   "arch_stable": true,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    }
+   ],
+   "rows": "raw_523060_84029f573ee5.json.gz",
+   "sha256": "1ba3b0a22a2aab19a9d257a8a6ab3ef71a92b06dfade030256119d62ff1c4a8e"
+  },
+  {
+   "stratum": "enr/raw/noevt/wrand7",
+   "k": 524000,
+   "bad": 0,
+   "arch_stable": true,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    }
+   ],
+   "rows": "raw_524000_d0a9eb4d1956.json.gz",
+   "sha256": "9a6c233dc27a41db63f4092335c81de85dd53980a766cd2958c42874fdffe55b"
+  },
+  {
+   "stratum": "enr/raw/noevt/wrand7",
+   "k": 524020,
+   "bad": 0,
+   "arch_stable": true,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 826,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 826,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 826,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 826,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    }
+   ],
+   "rows": "raw_524020_9946382dc240.json.gz",
+   "sha256": "73c822e89d179151f67f8df2f6c5724436d37c45a838df33bd189b0484b4b51e"
+  },
+  {
+   "stratum": "enr/raw/noevt/wrand7",
+   "k": 524040,
+   "bad": 0,
+   "arch_stable": true,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    }
+   ],
+   "rows": "raw_524040_ddb95bc9e132.json.gz",
+   "sha256": "628f107e848ba77088f0fb59345450d962828a7807993583a4310ae65498e9f7"
+  },
+  {
+   "stratum": "enr/raw/noevt/wrand7",
+   "k": 524060,
+   "bad": 0,
+   "arch_stable": true,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 2141,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 2141,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 2141,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 2141,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    }
+   ],
+   "rows": "raw_524060_50e25319571e.json.gz",
+   "sha256": "75397921220e2bcac6645cc649de11f095732a2c785021a72be39de019e486ba"
+  },
+  {
+   "stratum": "enr/raw/noevt/wrand15",
+   "k": 525000,
+   "bad": 0,
+   "arch_stable": true,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 2804,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 2804,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 2804,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 2804,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    }
+   ],
+   "rows": "raw_525000_a14bf055e842.json.gz",
+   "sha256": "e5b814f895d3ebc9e5225a076f874a5dd9d4cf048e906077fae8673021018ba4"
+  },
+  {
+   "stratum": "enr/raw/noevt/wrand15",
+   "k": 525020,
+   "bad": 0,
+   "arch_stable": true,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    }
+   ],
+   "rows": "raw_525020_36132e8027ed.json.gz",
+   "sha256": "3d8f3980771043127c2345cbca9f6d62a04ab9cf7dea897fed1e38e94d2eee87"
+  },
+  {
+   "stratum": "enr/raw/noevt/wrand15",
+   "k": 525040,
+   "bad": 0,
+   "arch_stable": true,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 2513,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 2513,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 2513,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 2513,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    }
+   ],
+   "rows": "raw_525040_aee2aae4b2e4.json.gz",
+   "sha256": "8ad8c1488b3f8970b7008cb5a01a477c66a19bb9577635938a8b6242f7f1a233"
+  },
+  {
+   "stratum": "enr/raw/noevt/wrand15",
+   "k": 525060,
+   "bad": 0,
+   "arch_stable": true,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 2789,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 2789,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 2789,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 2789,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    }
+   ],
+   "rows": "raw_525060_b1e3aaba4337.json.gz",
+   "sha256": "c6dd57d0adfcf977824de0bed01b1703c39262026dcd653de98818c6c20f97e3"
+  },
+  {
+   "stratum": "enr/raw/noevt/wvec-uni",
+   "k": 526000,
+   "bad": 0,
+   "arch_stable": true,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 3605,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 3605,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 3605,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 3605,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    }
+   ],
+   "rows": "raw_526000_939d96e54d29.json.gz",
+   "sha256": "685a600d116298b7347d2e9555b0fcb728a2d09b01cf48bfdc7f2c667ea41f0f"
+  },
+  {
+   "stratum": "enr/raw/noevt/wvec-uni",
+   "k": 526020,
+   "bad": 0,
+   "arch_stable": true,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 1003,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 1003,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 1003,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 1003,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    }
+   ],
+   "rows": "raw_526020_b05085660a05.json.gz",
+   "sha256": "aadf695e081c4d27e77ebf51e3c5fa25283bda0cb53964efd62106db12c47508"
+  },
+  {
+   "stratum": "enr/raw/noevt/wvec-uni",
+   "k": 526040,
+   "bad": 0,
+   "arch_stable": true,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 558,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 558,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 558,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 558,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    }
+   ],
+   "rows": "raw_526040_af450b069627.json.gz",
+   "sha256": "0a455ac75a98ef3409e572b5d4923c4be0c35a664d0e7cecc96980f24525ea66"
+  },
+  {
+   "stratum": "enr/raw/noevt/wvec-uni",
+   "k": 526060,
+   "bad": 0,
+   "arch_stable": true,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 3532,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 3532,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 3532,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 3532,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    }
+   ],
+   "rows": "raw_526060_4fb37c336e0c.json.gz",
+   "sha256": "bf99ce369867cba866271f4f84e59a55bec064eb2604313fc6bd6be626a10632"
+  },
+  {
+   "stratum": "enr/raw/stim/fix0",
+   "k": 527000,
+   "bad": 0,
+   "arch_stable": true,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 3583,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 3583,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 3583,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 3583,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    }
+   ],
+   "rows": "raw_527000_fc712b6da82a.json.gz",
+   "sha256": "9f0a38025e06ac2ace6bffce4317039cef6bf86e129d64ae6d628efc4d9dbfc1"
+  },
+  {
+   "stratum": "enr/raw/stim/fix0",
+   "k": 527020,
+   "bad": 0,
+   "arch_stable": true,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 3606,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 3606,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 3606,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 3606,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    }
+   ],
+   "rows": "raw_527020_e1b059185f8c.json.gz",
+   "sha256": "cf70aa1b90809e5700d31868c455075eac8d57b5c78f2eb41682275cf6c171b7"
+  },
+  {
+   "stratum": "enr/raw/stim/fix0",
+   "k": 527040,
+   "bad": 0,
+   "arch_stable": true,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 3583,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 3583,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 3583,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 3583,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    }
+   ],
+   "rows": "raw_527040_29e47e04600c.json.gz",
+   "sha256": "3e2a112e7c479bd17aa5f88a201b1e8e0db23b5bb94f7e5f9847ea1906555422"
+  },
+  {
+   "stratum": "enr/raw/stim/fix0",
+   "k": 527060,
+   "bad": 0,
+   "arch_stable": true,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 791,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 791,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 791,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 791,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    }
+   ],
+   "rows": "raw_527060_9ec34c231ef3.json.gz",
+   "sha256": "a9088a93251298bf531928a814e5beed3e14db67b2f23acba5c264fc8c90acaa"
+  },
+  {
+   "stratum": "enr/raw/stim/fix1",
+   "k": 528000,
+   "bad": 0,
+   "arch_stable": true,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 942,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 942,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 942,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 942,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    }
+   ],
+   "rows": "raw_528000_2df12324c8da.json.gz",
+   "sha256": "d571dce830f7228df597b7b6ffec5dbc9fd846de7ab17422749da7c7da742265"
+  },
+  {
+   "stratum": "enr/raw/stim/fix1",
+   "k": 528020,
+   "bad": 0,
+   "arch_stable": true,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 3674,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 3674,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 3674,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 3674,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    }
+   ],
+   "rows": "raw_528020_ead219a8c492.json.gz",
+   "sha256": "aeaf0022f556799f9cc0bfbda5ad3bb02f62f560b1b23dc138a6eb85e61ec06f"
+  },
+  {
+   "stratum": "enr/raw/stim/fix1",
+   "k": 528040,
+   "bad": 0,
+   "arch_stable": true,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 3654,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 3654,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 3654,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 3654,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    }
+   ],
+   "rows": "raw_528040_9234c27d0d7a.json.gz",
+   "sha256": "8effe85f75bec1522e43d8a39ac5d66b7e98deda57a036cf80662c26771564c0"
+  },
+  {
+   "stratum": "enr/raw/stim/fix1",
+   "k": 528060,
+   "bad": 0,
+   "arch_stable": true,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 3646,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 3646,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 3646,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 3646,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    }
+   ],
+   "rows": "raw_528060_2574d8a84259.json.gz",
+   "sha256": "dec54899aeb396959bc0c1454e70d15b4be2c53ca12c2786d0c07a57053ed58d"
+  },
+  {
+   "stratum": "enr/raw/stim/fix2",
+   "k": 529000,
+   "bad": 0,
+   "arch_stable": true,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 2256,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 2256,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 2256,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 2256,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    }
+   ],
+   "rows": "raw_529000_ed1528131615.json.gz",
+   "sha256": "bb9b644d331f4163e0430e905ec3287048c31dade1db0aa39161ff5c56e5c354"
+  },
+  {
+   "stratum": "enr/raw/stim/fix2",
+   "k": 529020,
+   "bad": 0,
+   "arch_stable": true,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 3607,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 3607,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 3607,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 3607,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    }
+   ],
+   "rows": "raw_529020_8c957380b8c6.json.gz",
+   "sha256": "7a2155c07ccc519d561e5e02fb2d618daf8bac3ef3319b8b67f6bd20407954e6"
+  },
+  {
+   "stratum": "enr/raw/stim/fix2",
+   "k": 529040,
+   "bad": 0,
+   "arch_stable": true,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 3824,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 3824,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 3636,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 3636,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    }
+   ],
+   "rows": "raw_529040_82d60e66e806.json.gz",
+   "sha256": "30538ed3b09cba12f5a160efc9bcf1f5f59d8768dbaccf81a993db494b5b4003"
+  },
+  {
+   "stratum": "enr/raw/stim/fix2",
+   "k": 529060,
+   "bad": 0,
+   "arch_stable": true,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 3646,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 3646,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 3646,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 3646,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    }
+   ],
+   "rows": "raw_529060_3d7e9d23aed0.json.gz",
+   "sha256": "fb006ad8f7b7ab34b120a9386b275cc42763da0ab375409fac34fcd17e7f027c"
+  },
+  {
+   "stratum": "enr/raw/stim/fix3",
+   "k": 530000,
+   "bad": 0,
+   "arch_stable": true,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 1497,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 1497,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 1497,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 1497,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    }
+   ],
+   "rows": "raw_530000_36e1a4c8ce8b.json.gz",
+   "sha256": "4d85123713a62fab56908ce1ed4d2541bd291d55222964f10257eef9b295f491"
+  },
+  {
+   "stratum": "enr/raw/stim/fix3",
+   "k": 530020,
+   "bad": 0,
+   "arch_stable": true,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 1098,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 1098,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 3614,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 3614,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    }
+   ],
+   "rows": "raw_530020_fa1d8c1553a2.json.gz",
+   "sha256": "21fe8db5e33bbec39b56f4a666efab313582fcf791df30bdee0276094a9e48a7"
+  },
+  {
+   "stratum": "enr/raw/stim/fix3",
+   "k": 530040,
+   "bad": 0,
+   "arch_stable": true,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 3577,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 3577,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 3577,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 3577,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    }
+   ],
+   "rows": "raw_530040_2e77d7b4e6fc.json.gz",
+   "sha256": "229c55bc35ea0efb71829b2f25b3bfe2c475a51057087b4c22dfb5f475ec5765"
+  },
+  {
+   "stratum": "enr/raw/stim/fix3",
+   "k": 530060,
+   "bad": 0,
+   "arch_stable": true,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 3577,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 3577,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 3577,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 3577,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    }
+   ],
+   "rows": "raw_530060_05b48d31db04.json.gz",
+   "sha256": "80a53dae5b20f0b4ea84c2d081962a32e37ce6920ad0ffca8b208ce42abb0174"
+  },
+  {
+   "stratum": "enr/raw/stim/wrand1",
+   "k": 531000,
+   "bad": 0,
+   "arch_stable": true,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 3757,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 3757,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 3597,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 3597,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    }
+   ],
+   "rows": "raw_531000_7a53ae19baae.json.gz",
+   "sha256": "6fb0613aa7c706fbfaa6e3791e005b92710229e2f2679174c805701f37361e41"
+  },
+  {
+   "stratum": "enr/raw/stim/wrand1",
+   "k": 531020,
+   "bad": 0,
+   "arch_stable": true,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 3194,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 3194,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 3194,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 3194,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    }
+   ],
+   "rows": "raw_531020_69647ead9d00.json.gz",
+   "sha256": "d201ac31f59ad23040a376da90aeed72ef530a23849eba28b36f905ae7d81fe8"
+  },
+  {
+   "stratum": "enr/raw/stim/wrand1",
+   "k": 531040,
+   "bad": 0,
+   "arch_stable": true,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 612,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 612,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 612,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 612,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    }
+   ],
+   "rows": "raw_531040_ce4e93196230.json.gz",
+   "sha256": "c79f4d0cc31a065d8490119dad1e875a5e651744c20997eef6a8ed3067e5fa09"
+  },
+  {
+   "stratum": "enr/raw/stim/wrand1",
+   "k": 531060,
+   "bad": 0,
+   "arch_stable": true,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 3587,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 3587,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 3587,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 3587,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    }
+   ],
+   "rows": "raw_531060_f13ee07fec7a.json.gz",
+   "sha256": "dbb57b0390cc9826a1572f0fbe8d1fb218b8b3ace3f00aa6a3fd1268a1000324"
+  },
+  {
+   "stratum": "enr/raw/stim/wrand3",
+   "k": 532000,
+   "bad": 0,
+   "arch_stable": true,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 3461,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 3461,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 3458,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 3458,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    }
+   ],
+   "rows": "raw_532000_5ba1ea2e1993.json.gz",
+   "sha256": "08b4ec767467d76d01680e8dddc0cd114ceeae83e32a0d515c7dcc4e72a11fd6"
+  },
+  {
+   "stratum": "enr/raw/stim/wrand3",
+   "k": 532020,
+   "bad": 0,
+   "arch_stable": true,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 675,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 675,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 675,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 675,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    }
+   ],
+   "rows": "raw_532020_1dde9820e0fd.json.gz",
+   "sha256": "ca781d4b5088598122520f6db983ff6a2318cb3581378b72b883f8b6337a93fc"
+  },
+  {
+   "stratum": "enr/raw/stim/wrand3",
+   "k": 532040,
+   "bad": 0,
+   "arch_stable": true,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 708,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 708,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 708,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 708,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    }
+   ],
+   "rows": "raw_532040_cf3bb14dc455.json.gz",
+   "sha256": "ecf0017825c0243c390a69fab760daa68c9dd9f2ba768a64c2498c605c593ac0"
+  },
+  {
+   "stratum": "enr/raw/stim/wrand3",
+   "k": 532060,
+   "bad": 0,
+   "arch_stable": true,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 3472,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 3472,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 3472,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 3472,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    }
+   ],
+   "rows": "raw_532060_864288667af7.json.gz",
+   "sha256": "9f3768d0a13ade3f4fe7dc398cc5c1dd7b2a9a6c8d7126a6c182347295c7b826"
+  },
+  {
+   "stratum": "enr/raw/stim/wrand7",
+   "k": 533000,
+   "bad": 0,
+   "arch_stable": true,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    }
+   ],
+   "rows": "raw_533000_aa87656c101c.json.gz",
+   "sha256": "1fd1e8a41ec54b325a90e9c82e7a688005bf3367f99285ed6f8ea741c7b171e3"
+  },
+  {
+   "stratum": "enr/raw/stim/wrand7",
+   "k": 533020,
+   "bad": 0,
+   "arch_stable": true,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 911,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 911,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 911,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 911,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    }
+   ],
+   "rows": "raw_533020_cb003c6656a9.json.gz",
+   "sha256": "e6172c7cc05e3bb0e47d69ae6a4eb38b47b4cdfbb09d8fa6ae09f5e66b1c32af"
+  },
+  {
+   "stratum": "enr/raw/stim/wrand7",
+   "k": 533040,
+   "bad": 0,
+   "arch_stable": true,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 3167,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 3167,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 3167,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 3167,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    }
+   ],
+   "rows": "raw_533040_77ab2e212bd3.json.gz",
+   "sha256": "6e23ffa6e85cc26add8986454a55751ff1a0c950d9dc0c88a588003bee57e911"
+  },
+  {
+   "stratum": "enr/raw/stim/wrand7",
+   "k": 533060,
+   "bad": 0,
+   "arch_stable": true,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 3203,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 3203,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 3203,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 3203,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    }
+   ],
+   "rows": "raw_533060_6ff36c96cd4b.json.gz",
+   "sha256": "18dfb9db3fadc026c5617dc6a664df4edd3c4c594702d167809f5e00d15c2e77"
+  },
+  {
+   "stratum": "enr/raw/stim/wrand15",
+   "k": 534000,
+   "bad": 0,
+   "arch_stable": true,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 2690,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 2690,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 2690,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 2690,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    }
+   ],
+   "rows": "raw_534000_e009c1496699.json.gz",
+   "sha256": "3a35acb390ef46e37bdc5d68e36409c8f0adf6604650384f9f32380de2a48dab"
+  },
+  {
+   "stratum": "enr/raw/stim/wrand15",
+   "k": 534020,
+   "bad": 0,
+   "arch_stable": true,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 1538,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 1538,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 1538,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 1538,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    }
+   ],
+   "rows": "raw_534020_fa574c2238c2.json.gz",
+   "sha256": "1e9808d202442ff30c778b7e7ccba1ce8cb281311454445ae0a8c913305c027a"
+  },
+  {
+   "stratum": "enr/raw/stim/wrand15",
+   "k": 534040,
+   "bad": 0,
+   "arch_stable": true,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 1467,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 1467,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 1467,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 1467,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    }
+   ],
+   "rows": "raw_534040_936c78463c7c.json.gz",
+   "sha256": "1b1257b31c2f7705f648365a9726be2cd7d16bba26d9faa0a686f60c72b22cb2"
+  },
+  {
+   "stratum": "enr/raw/stim/wrand15",
+   "k": 534060,
+   "bad": 0,
+   "arch_stable": true,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 2476,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 2476,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    }
+   ],
+   "rows": "raw_534060_f6d9392d46b3.json.gz",
+   "sha256": "f0fa9b7827e73695f8167eaf79d92c36ccc86570a6d78725dda492d16bf9b35b"
+  },
+  {
+   "stratum": "enr/raw/stim/wvec-uni",
+   "k": 535000,
+   "bad": 0,
+   "arch_stable": true,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 3484,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 3484,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 3484,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 3484,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    }
+   ],
+   "rows": "raw_535000_067b8fd37b9a.json.gz",
+   "sha256": "be5ec1be35f7ad93145778ef59145dcdd9f469052ab3c8bc8ab2e2aef7c98a19"
+  },
+  {
+   "stratum": "enr/raw/stim/wvec-uni",
+   "k": 535020,
+   "bad": 0,
+   "arch_stable": true,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 4000,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    }
+   ],
+   "rows": "raw_535020_049d8b221b9f.json.gz",
+   "sha256": "171a73984c8140dc4bae32d0cee424b8d87c8fee68910149458a150ad2e6423d"
+  },
+  {
+   "stratum": "enr/raw/stim/wvec-uni",
+   "k": 535040,
+   "bad": 0,
+   "arch_stable": true,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 750,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 750,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 750,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 750,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    }
+   ],
+   "rows": "raw_535040_6071852b4cd2.json.gz",
+   "sha256": "a3ae4cd3a10d3f7ef21cdb69dc264776a72c3a01b0376ff9e1aa8cc9d92b8cf5"
+  },
+  {
+   "stratum": "enr/raw/stim/wvec-uni",
+   "k": 535060,
+   "bad": 0,
+   "arch_stable": true,
+   "cells": [
+    {
+     "leg": "chip",
+     "rep": 2,
+     "n": 3549,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "chip",
+     "rep": 3,
+     "n": 3549,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 2,
+     "n": 3549,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    },
+    {
+     "leg": "fabric",
+     "rep": 3,
+     "n": 3549,
+     "bad": 0,
+     "flick": 0,
+     "first": null
+    }
+   ],
+   "rows": "raw_535060_3a75541a6e54.json.gz",
+   "sha256": "2f9e69960b94c4a0a03d99faaebe303e9e5d8cb6bc7514e99badf8e403d4bfd6"
+  }
+ ],
+ "seconds": 85.2,
+ "stable": 192,
+ "unstable": 0,
+ "errors": 0,
+ "finished": "2026-08-09T14:39:33Z"
+}

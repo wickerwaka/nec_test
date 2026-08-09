@@ -55,9 +55,14 @@ import fuzz_campaign as fzc                                  # noqa: E402
 import testimage as ti                                       # noqa: E402
 
 CAMPAIGNS = os.path.join(ROOT, "sw", "testdata", "campaigns")
-# the two banks the first (INV-2) capture wrote, and their archive names.  The
-# tool reads whichever exist, so it runs before and after the rename.
-CIDS = ("fz2c-INV2-archive", "fz2e-INV2-archive", "fz2c", "fz2e")
+# THE TWO BANKS ARE NEVER POOLED BY DEFAULT.  `archive` is INV-2's -- the
+# capture A-3's constants were measured on, taken under the pre-A-3 budget --
+# and `current` is whatever the live banks hold.  Mixing them would average two
+# different rigs' tails into one table, which is the one thing this instrument
+# must not do; `--bank all` exists only to say so out loud.
+BANKS = {"archive": ("fz2c-INV2-archive", "fz2e-INV2-archive"),
+         "current": ("fz2c", "fz2e")}
+BANKS["all"] = BANKS["archive"] + BANKS["current"]
 LAST_ROW = fzc.CAP_ROWS - 1
 
 
@@ -115,10 +120,10 @@ def _measure_one(path):
             "idle_before_nmi": (f - lastbus) if lastbus is not None else None}
 
 
-def load(paths=None):
+def load(bank="archive", paths=None):
     if paths is None:
         paths = []
-        for cid in CIDS:
+        for cid in BANKS[bank]:
             paths += sorted(glob.glob(
                 os.path.join(CAMPAIGNS, cid, "captures", "*.json.gz")))
     out = []
@@ -139,11 +144,12 @@ def _q(v, p):
 
 
 def cmd_measure(a):
-    rows = load()
+    rows = load(a.bank)
     if not rows:
-        print("fz2_termcost: no banked captures found under "
-              f"{CAMPAIGNS}/{{{','.join(CIDS)}}}/captures/")
+        print(f"fz2_termcost: no banked captures under bank {a.bank!r} "
+              f"({', '.join(BANKS[a.bank])})")
         return 2
+    print(f"== bank {a.bank!r} ({', '.join(BANKS[a.bank])})")
     print(f"== {len(rows)} banked captures  "
           f"({collections.Counter(r['tier'] for r in rows)})")
 
@@ -190,8 +196,10 @@ def cmd_measure(a):
     for s in sorted(by):
         print(f"     scale={s:<7} n={len(by[s]):4d} max={max(by[s]):4d} "
               f"max/scale={max(by[s])/s:7.1f}")
-    print("   -> max/scale FALLS with scale: a CLOCK cost, not a bus-cycle "
-          "cost, so ENTRY_MAX is added OUTSIDE the scaling.")
+    print(f"   -> the formula treats this as a CLOCK cost (ENTRY_MAX added "
+          f"OUTSIDE the scaling),\n      because on the ARCHIVE bank max/scale "
+          f"falls monotonically 243 -> 64.  Read the\n      column above and "
+          f"judge it; the sentence is not asserted of every bank.")
 
     print("\n== TAIL ROOM the budget left, against what the tail costs")
     for src in ("fix0", "fix1", "fix2", "fix3"):
@@ -209,11 +217,29 @@ def cmd_measure(a):
             for r in rows if r["tail"] is not None]
     print(f"   (anchor + tail) / scale over {len(need)} completions: "
           f"min={min(need):.1f} p50={_q(need,.5):.1f} max={max(need):.1f}")
-    print(f"   the PRE-A-3 formula reserved TERM_MARGIN x (145 + 240) = "
-          f"{1.2*385:.1f} per unit scale.")
-    print("   The observed maximum is PINNED at that number.  Nothing above it "
-          "is observable,\n   which is what right-censoring at the reserve "
-          "looks like.")
+    res = {round((fzc.CAP_ROWS - r["term_clocks"]) / r["scale"], 1)
+           for r in rows}
+    print(f"   the reserve these captures were actually taken under, per unit "
+          f"scale: {sorted(res)}")
+    print(f"   (pre-A-3 that was TERM_MARGIN x (145 + 240) = {1.2*385:.1f} flat)")
+    # THE DECISIVE, NON-ARBITRARY TEST: how many completions carry a
+    # requirement the PRE-A-3 reserve could not have recorded at all?  On the
+    # archive bank that number is 0 BY CONSTRUCTION -- which is the whole
+    # point, and why its maximum lands one row under 462.0 rather than
+    # anywhere in particular.
+    done = [r for r in rows if r["tail"] is not None]
+    over = sum(1 for r in done
+               if (r["anchor"] + r["tail"]) / r["scale"] > 1.2 * 385)
+    print(f"   completions whose requirement EXCEEDS the pre-A-3 reserve of "
+          f"{1.2*385:.1f}/scale: {over} / {len(done)}")
+    if over == 0:
+        print("   NONE -- and the maximum lands at the reserve itself.  That "
+              "is right-censoring at\n   the budget: the budget, not the "
+              "seed, was the binding limit.")
+    else:
+        print("   These are requirements the pre-A-3 budget COULD NOT HAVE "
+              "RECORDED.  The censoring\n   is lifted and the distribution's "
+              "upper end is visible for the first time.")
 
     print("\n== O-2d -- A SECOND, INDEPENDENT MECHANISM, separated here")
     cens = [r for r in pop if r["entry"] is None]
@@ -242,10 +268,11 @@ def cmd_predict(a):
     """Apply a candidate constant set to the SAME banked captures.  Reports
     what fits, and -- separately, never folded in -- what carries no measured
     requirement and therefore gets no prediction."""
-    rows = load()
+    rows = load(a.bank)
     if not rows:
-        print("fz2_termcost: no banked captures found")
+        print(f"fz2_termcost: no banked captures under bank {a.bank!r}")
         return 2
+    print(f"== bank {a.bank!r} ({', '.join(BANKS[a.bank])})")
     anchor, dump, entry, marg = a.anchor, a.dump, a.entry, a.margin
 
     def reserve(scale):
@@ -294,8 +321,10 @@ def cmd_predict(a):
 def main():
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     sub = ap.add_subparsers(dest="cmd", required=True)
-    sub.add_parser("measure")
+    m = sub.add_parser("measure")
+    m.add_argument("--bank", choices=sorted(BANKS), default="archive")
     p = sub.add_parser("predict")
+    p.add_argument("--bank", choices=sorted(BANKS), default="archive")
     p.add_argument("--anchor", type=int, default=fzc.ANCHOR_W0)
     p.add_argument("--dump", type=int, default=fzc.DUMP_W0)
     p.add_argument("--entry", type=int, default=fzc.ENTRY_MAX)
