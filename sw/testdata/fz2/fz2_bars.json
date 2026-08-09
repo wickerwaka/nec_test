@@ -1,6 +1,6 @@
 {
  "stage": "fz2 bars",
- "ts": "2026-08-09T16:04:31Z",
+ "ts": "2026-08-09T16:47:16Z",
  "seed_list_sha256": "45d25f31a325c4965da81117d5f4217b86487aa1abb0078faed26a72ed9bec32",
  "bars": {
   "C-1": {
@@ -12,49 +12,69 @@
       "n": 480,
       "reached": 473,
       "pct": 98.54,
-      "dispositioned": 5,
+      "dispositioned": 6,
       "dispositioned_3class": 0,
-      "stalled": 5,
-      "undispositioned": 2,
+      "stalled": 6,
+      "undispositioned": 1,
       "undispositioned_3class": 7
      },
      "census/raw": {
       "n": 480,
-      "reached": 401,
-      "pct": 83.54,
-      "dispositioned": 31,
+      "reached": 403,
+      "pct": 83.96,
+      "dispositioned": 59,
       "dispositioned_3class": 4,
-      "stalled": 27,
-      "undispositioned": 48,
-      "undispositioned_3class": 75
+      "stalled": 55,
+      "undispositioned": 18,
+      "undispositioned_3class": 73
      },
      "enriched/soup": {
       "n": 1440,
       "reached": 1424,
       "pct": 98.89,
-      "dispositioned": 1,
+      "dispositioned": 10,
       "dispositioned_3class": 1,
-      "stalled": 0,
-      "undispositioned": 15,
+      "stalled": 9,
+      "undispositioned": 6,
       "undispositioned_3class": 15
      },
      "enriched/raw": {
       "n": 1440,
-      "reached": 1204,
-      "pct": 83.61,
-      "dispositioned": 32,
-      "dispositioned_3class": 21,
-      "stalled": 11,
-      "undispositioned": 204,
-      "undispositioned_3class": 215
+      "reached": 1213,
+      "pct": 84.24,
+      "dispositioned": 152,
+      "dispositioned_3class": 20,
+      "stalled": 132,
+      "undispositioned": 75,
+      "undispositioned_3class": 207
      }
     },
-    "undispositioned": 269,
-    "undispositioned_3class": 312,
-    "stalled_total": 43,
+    "undispositioned": 100,
+    "mech_census": {
+     "REACHED": 3503,
+     "STALLED": 208,
+     "OTHER": 5,
+     "LONG_INSN": 78,
+     "NEAR": 10,
+     "BUDGET": 26,
+     "WINDOW": 6,
+     "FORGED_DONE": 4
+    },
+    "mech_undispositioned": {
+     "OTHER": 4,
+     "LONG_INSN": 73,
+     "NEAR": 9,
+     "BUDGET": 14
+    },
+    "mech_selfcheck": {
+     "arch_ok_vs_mech": 0,
+     "stalled_vs_mech": 0,
+     "absent": 0
+    },
+    "undispositioned_3class": 302,
+    "stalled_total": 202,
     "classified_from": {
-     "rows": 67,
-     "none": 245
+     "line": 302
     }
    },
    "verdict": "MISSED (rate clauses UNVALIDATED -- A-5)",
@@ -64,24 +84,24 @@
    "statement": "the arch column is non-vacuous -- demonstrated, not assumed",
    "registered": "MAGIC == 0x5EED on every dump; each of the other 14 STORE_ORDER words takes >= 2 distinct values across the corpus",
    "measured": {
-    "dumps": 3502,
+    "dumps": 3513,
     "magic_constant": true,
     "distinct": {
-     "AW": 2843,
+     "AW": 2852,
      "MAGIC": 1,
-     "PC": 3081,
-     "PS": 3099,
+     "PC": 3091,
+     "PS": 3107,
      "PSW": 199,
-     "SS": 3327,
-     "SP": 3143,
-     "DS0": 3375,
-     "DS1": 3355,
-     "BW": 3212,
-     "CW": 2195,
-     "DW": 2603,
-     "BP": 3163,
-     "IX": 3273,
-     "IY": 3270
+     "SS": 3335,
+     "SP": 3151,
+     "DS0": 3384,
+     "DS1": 3364,
+     "BW": 3221,
+     "CW": 2202,
+     "DW": 2610,
+     "BP": 3173,
+     "IX": 3281,
+     "IY": 3277
     },
     "flat_words": []
    },
@@ -282,12 +302,12 @@
      "stratum": "cen/soup/stim/wvec-uni",
      "n": 80,
      "captured": 80,
-     "rows_exact": 76,
-     "arch_exact": 75,
-     "unscoreable": 4,
+     "rows_exact": 75,
+     "arch_exact": 74,
+     "unscoreable": 2,
      "verdicts": {
-      "SUCCESS": 76,
-      "FUNCTIONAL": 3,
+      "SUCCESS": 75,
+      "FUNCTIONAL": 4,
       "KNOWN_ACCEPTED": 1
      }
     },
@@ -350,8 +370,8 @@
      "n": 80,
      "captured": 80,
      "rows_exact": 68,
-     "arch_exact": 58,
-     "unscoreable": 18,
+     "arch_exact": 59,
+     "unscoreable": 17,
      "verdicts": {
       "KNOWN_ACCEPTED": 12,
       "SUCCESS": 68
@@ -362,18 +382,18 @@
      "stratum": "cen/raw/stim/wvec-uni",
      "n": 80,
      "captured": 80,
-     "rows_exact": 79,
+     "rows_exact": 78,
      "arch_exact": 71,
      "unscoreable": 9,
      "verdicts": {
-      "SUCCESS": 79,
-      "KNOWN_ACCEPTED": 1
+      "SUCCESS": 78,
+      "KNOWN_ACCEPTED": 2
      }
     }
    ],
-   "rows_exact_mean_pct": 94.38,
+   "rows_exact_mean_pct": 94.17,
    "arch_exact_mean_pct": 87.71,
-   "unscoreable_total": 95
+   "unscoreable_total": 92
   },
   "enriched": {
    "cid": "fz2e",
@@ -538,7 +558,7 @@
      "captured": 80,
      "rows_exact": 75,
      "arch_exact": 75,
-     "unscoreable": 3,
+     "unscoreable": 2,
      "verdicts": {
       "SUCCESS": 75,
       "FUNCTIONAL": 3,
@@ -618,12 +638,12 @@
      "stratum": "enr/raw/noevt/fix0",
      "n": 80,
      "captured": 80,
-     "rows_exact": 62,
+     "rows_exact": 61,
      "arch_exact": 62,
      "unscoreable": 12,
      "verdicts": {
-      "SUCCESS": 62,
-      "KNOWN_ACCEPTED": 18
+      "SUCCESS": 61,
+      "KNOWN_ACCEPTED": 19
      }
     },
     {
@@ -660,7 +680,7 @@
      "captured": 80,
      "rows_exact": 69,
      "arch_exact": 58,
-     "unscoreable": 17,
+     "unscoreable": 16,
      "verdicts": {
       "SUCCESS": 69,
       "KNOWN_ACCEPTED": 11
@@ -684,12 +704,12 @@
      "stratum": "enr/raw/noevt/wrand3",
      "n": 80,
      "captured": 80,
-     "rows_exact": 77,
-     "arch_exact": 69,
-     "unscoreable": 11,
+     "rows_exact": 76,
+     "arch_exact": 70,
+     "unscoreable": 10,
      "verdicts": {
-      "SUCCESS": 77,
-      "KNOWN_ACCEPTED": 3
+      "SUCCESS": 76,
+      "KNOWN_ACCEPTED": 4
      }
     },
     {
@@ -724,8 +744,8 @@
      "n": 80,
      "captured": 80,
      "rows_exact": 75,
-     "arch_exact": 66,
-     "unscoreable": 13,
+     "arch_exact": 68,
+     "unscoreable": 12,
      "verdicts": {
       "SUCCESS": 75,
       "KNOWN_ACCEPTED": 5
@@ -737,8 +757,8 @@
      "n": 80,
      "captured": 80,
      "rows_exact": 73,
-     "arch_exact": 59,
-     "unscoreable": 19,
+     "arch_exact": 60,
+     "unscoreable": 18,
      "verdicts": {
       "SUCCESS": 73,
       "KNOWN_ACCEPTED": 7
@@ -749,12 +769,12 @@
      "stratum": "enr/raw/stim/fix1",
      "n": 80,
      "captured": 80,
-     "rows_exact": 72,
-     "arch_exact": 65,
+     "rows_exact": 71,
+     "arch_exact": 64,
      "unscoreable": 14,
      "verdicts": {
-      "SUCCESS": 72,
-      "KNOWN_ACCEPTED": 8
+      "SUCCESS": 71,
+      "KNOWN_ACCEPTED": 9
      }
     },
     {
@@ -763,8 +783,8 @@
      "n": 80,
      "captured": 80,
      "rows_exact": 71,
-     "arch_exact": 66,
-     "unscoreable": 11,
+     "arch_exact": 67,
+     "unscoreable": 10,
      "verdicts": {
       "SUCCESS": 71,
       "KNOWN_ACCEPTED": 9
@@ -775,12 +795,12 @@
      "stratum": "enr/raw/stim/fix3",
      "n": 80,
      "captured": 80,
-     "rows_exact": 72,
+     "rows_exact": 71,
      "arch_exact": 58,
      "unscoreable": 18,
      "verdicts": {
-      "SUCCESS": 72,
-      "KNOWN_ACCEPTED": 8
+      "SUCCESS": 71,
+      "KNOWN_ACCEPTED": 9
      }
     },
     {
@@ -788,12 +808,12 @@
      "stratum": "enr/raw/stim/wrand1",
      "n": 80,
      "captured": 80,
-     "rows_exact": 72,
-     "arch_exact": 65,
+     "rows_exact": 71,
+     "arch_exact": 64,
      "unscoreable": 11,
      "verdicts": {
-      "KNOWN_ACCEPTED": 8,
-      "SUCCESS": 72
+      "KNOWN_ACCEPTED": 9,
+      "SUCCESS": 71
      }
     },
     {
@@ -802,8 +822,8 @@
      "n": 80,
      "captured": 80,
      "rows_exact": 73,
-     "arch_exact": 66,
-     "unscoreable": 12,
+     "arch_exact": 67,
+     "unscoreable": 11,
      "verdicts": {
       "KNOWN_ACCEPTED": 7,
       "SUCCESS": 73
@@ -815,8 +835,8 @@
      "n": 80,
      "captured": 80,
      "rows_exact": 78,
-     "arch_exact": 60,
-     "unscoreable": 20,
+     "arch_exact": 61,
+     "unscoreable": 19,
      "verdicts": {
       "SUCCESS": 78,
       "KNOWN_ACCEPTED": 2
@@ -827,12 +847,12 @@
      "stratum": "enr/raw/stim/wrand15",
      "n": 80,
      "captured": 80,
-     "rows_exact": 74,
-     "arch_exact": 64,
+     "rows_exact": 76,
+     "arch_exact": 66,
      "unscoreable": 14,
      "verdicts": {
-      "SUCCESS": 74,
-      "KNOWN_ACCEPTED": 6
+      "SUCCESS": 76,
+      "KNOWN_ACCEPTED": 4
      }
     },
     {
@@ -841,17 +861,17 @@
      "n": 80,
      "captured": 80,
      "rows_exact": 74,
-     "arch_exact": 64,
-     "unscoreable": 13,
+     "arch_exact": 65,
+     "unscoreable": 12,
      "verdicts": {
       "SUCCESS": 74,
       "KNOWN_ACCEPTED": 6
      }
     }
    ],
-   "rows_exact_mean_pct": 94.58,
-   "arch_exact_mean_pct": 88.33,
-   "unscoreable_total": 282
+   "rows_exact_mean_pct": 94.48,
+   "arch_exact_mean_pct": 88.61,
+   "unscoreable_total": 273
   }
  }
 }

@@ -2143,3 +2143,228 @@ invalidation-ledger entry is opened.**  Nothing is deleted.
 * `sw/fz2_termcost.py` — the `mechanism` backfill and its census command.  It
   reads banked captures only — no board, no TB, no engine.
 * This document, appended.
+
+### 17.10 M-1's DECISIVE MEASUREMENT — **`QS` NEVER CHANGES**, and an opcode identification that was TRIED and is NOISE
+
+Measured offline on the archived (`prior`) bank while the §17.7 capture ran; no
+board, no engine, and it changes no prediction in §17.8.
+
+**THE MEASUREMENT.**  Over all **16** `LONG_INSN` captures, on the socket leg's
+own rows, from the terminating NMI to the last row of the capture:
+
+| | |
+|---|---|
+| rows with **`qs != 0`** after the NMI | **0**, over all 16 seeds, **0 of 15,956 rows** |
+| bus cycles after the NMI | 124 … 190 per seed |
+| bus-cycle kinds after the NMI | **MEMR and MEMW only** — no CODE, no INTA, no I/O, on all 16 |
+| read-pointer stride, per iteration | **−2 bytes**, all 16 |
+| write-pointer stride, per iteration | **−2 bytes**, all 16 |
+| `LOCK` asserted | **never** |
+
+`QS` is the CPU's own queue-status pin pair, and it is the part telling the
+world when it takes a byte out of its prefetch queue.  **`QS` = 0 for the whole
+post-NMI span means no byte enters the queue and NO INSTRUCTION IS RETIRED** —
+for 124 to 190 bus cycles, on all sixteen, on both engines.  Together with the
+two descending pointers moving 2 bytes per iteration, that is a word-size block
+transfer with `DF = 1`, **in flight and not finishing**, and it is measured off
+the pins rather than inferred from a taxonomy.
+
+**AND WHAT WAS NOT ESTABLISHED, STATED SO IT IS NOT LATER ASSUMED.**  An attempt
+was made to name the actual opcode by regenerating each image (`GEN-DRIFT`
+checked: `sha256` equal on every one) and scanning back up to 20 bytes from the
+last CODE fetch for a block-transfer opcode.  **IT RESOLVED 9 OF 16 AND THE
+RESULT IS NOISE, AND IT IS DISCARDED**: 14 of 256 byte values are block-transfer
+opcodes, so a 20-byte window of random bytes contains one with probability
+≈ 67 % by chance, and the last *fetch* is a prefetch that runs ahead of the
+executing instruction by an unknown amount.  **No opcode is named.**  The bus
+signature above needs no opcode to be conclusive, and a byte identification at
+5.5 % per-byte background is not evidence.
+
+**THE THREE `NEAR` SEEDS, MEASURED THE SAME WAY.**  `fz2c/406078`,
+`fz2c/408072`, `fz2c/411070`: the bus is dead from the NMI to the last row —
+**761, 1,400 and 1,461 clocks of complete silence**, `qs` never changing, **and
+`core_after` is 0 on all three**, so the fabric core parks as well.  They are
+`NEAR` and not `STALLED` only because A-4's clause (2) is a **PRE**-NMI
+threshold and their pre-NMI idle is 61, 11 and 32 clocks against `STALL_IDLE`
+= 200.  **That threshold is registered and A-6 does not touch it**: moving it
+after seeing which three seeds it withholds is the fitting §15.1 wrote it to
+avoid.  It is recorded here as an observation for the coordinator and nothing
+more.
+
+**THE CATCH-ALL, `fz2c/405062`, IS STILL UNEXPLAINED AND STAYS THAT WAY.**
+Soup, `wvec-uni`, `has_halt`: the last pre-NMI bus cycle is a MEMR 57 clocks
+before the terminator; **one** CODE fetch happens 205 clocks *after* it, with a
+single `qs` = 3 pop; and then the bus is silent for the remaining 650 clocks.
+It is one seed, it carries none of the four discard signatures, and no
+mechanism in this document accounts for it.
+
+---
+
+## §18 THE A-6 RE-CAPTURE — TAKEN 2026-08-09, SCORED AS REGISTERED: **UNDISPOSITIONED 269 → 100, AND ALL 100 ARE NAMED**
+
+**One capture, as §13.4 requires.**  FLASH #12 resident (`sof 8db6dadf5c4c…`,
+receipt `27fb750f925c…`), **NOT re-flashed**.  A-6 was committed at
+`25e73e4873` and the archive-by-rename at `8cc02326e9`, **both before board
+contact**.  `preflight --board` **OK** twice — once before the rename and once
+at the new HEAD — each time: SINGLE WRITER (no `v30ctl`/`serve` on the board,
+no local serve client), resident bitstream carries this tree's rig RTL, 192
+regeneration seeds `hits = 0`, `div_guard` **PINNED**, chip-vs-golden /
+core-vs-chip / core-vs-golden **MATCH over 800 rows** each.
+
+**3,840 seeds in 11.1 minutes of board time**, inside §6's registered ≤ 30 min.
+**48 of 48 strata `written == n` with `rc = 0`, `halted: None`.**  `div_guard`
+**PINNED on 53 of 53 probes, 0 unpinned**; socket only, `use_core=False`;
+**0 transport errors, 0 quarantines**, circuit breaker not tripped; C-9 **1.4
+min**; `board_idle()` clean and **`check_ab_hw chip 800` MATCH over 800 rows**
+taken after everything.  Full per-clock rows retained with `SHA256SUMS` beside
+them (509 + 227 captures).
+
+### 18.1 THE REGISTERED PREDICTIONS OF §17.8, SCORED
+
+| | registered | measured | |
+|---|---|---|---|
+| **P1** | `classified_from` = `line` for all, `none` = 0 | **`{"line": 302}`, `none` absent — every seed asked off its own line, `stalled` is `None` on 0 of 3,840** | **MET** |
+| **P2** | the `mech` census sums to 3,840, `not evaluable` 0 | **3,840, and `mech` absent on 0 lines, `None` on 0** | **MET** |
+| **P3** | `arch_ok` ⟺ `mech` ∈ {`REACHED`,`WINDOW`,`FORGED_DONE`}; `mech == STALLED` ⟺ `stalled` | **0 disagreements and 0 disagreements**, over all 3,840 | **MET** |
+| **P4** | UNDISPOSITIONED non-zero, `LONG_INSN` its largest class; E-1c still MISSED | **100**, of which `LONG_INSN` **73**; **E-1c MISSED** | **MET** |
+| **P5** | the rate clauses rise by under one point | soup **98.54 / 98.89 → unchanged to the hundredth**; raw **83.54 → 83.96** and **83.61 → 84.24** | **MET** |
+| **P6** | C-2/4/5/7/8/9/10 as §14.1; C-3 generation 0; C-6, C-11 NOT SCOREABLE | all as registered — and **C-9 is 192/192 again** | **MET** |
+| **P7** | `SEEDS_SHA256` / `SEED_LIST_SHA256` unmoved, `lint` passes with no re-freeze | both unmoved, `lint` **PASS**, `SEED_LIST_SHA256 45d25f31a325c496…` | **MET** |
+
+**ALL SEVEN MET.**  P5 carries its own reproducibility evidence: this is a
+repeat of the same directive on the same seeds, and **the two soup rates came
+back identical to the hundredth of a point.**
+
+### 18.2 THE BARS — **7 MET / 2 MISSED / 2 NOT SCOREABLE**, the same shape as §14.1
+
+`sw/testdata/fz2/fz2_bars.json`, `2026-08-09T16:47:16Z`.
+
+| bar | §15.7 | **A-6** | measured now |
+|---|---|---|---|
+| **C-1** | MISSED | **MISSED** | soup **98.54 / 98.89** · raw **83.96 / 84.24** (A-5's bars 90.0 / 75.0, `UNVALIDATED`) · **UNDISPOSITIONED 100**, bar 0 |
+| **C-2** | MET | **MET** | **3,513** dumps, `MAGIC` constant, all 14 other words ≥ 2 distinct |
+| **C-3** | MISSED | **MISSED** | generation **0** forbidden `0F xx` pairs over 3,840; runtime **2** |
+| **C-4** | MET | **MET** | 1 distinct era, 0 absent, 0 incomplete, `build_stale` 0 |
+| **C-5** | MET | **MET** | **0 GEN_DRIFT, 0 wvec mismatches** over all 3,840 |
+| **C-6** | NOT SCOREABLE | **NOT SCOREABLE** | unchanged: `cmd_control` unimplemented + O-2b |
+| **C-7** | MET | **MET** | 3,840 scored, max **957** bus cycles, 0 at or over 4,096 |
+| **C-8** | MET | **MET** | **53 probes, 0 unpinned** |
+| **C-9** | MET | **MET** | **192 / 192 stable**, 0 unstable, 0 errors |
+| **C-10** | MET | **MET** | 0 quarantines, 0 run-error lines, breaker not tripped, no halted stratum |
+| **C-11** | NOT SCOREABLE | **NOT SCOREABLE** | unchanged: the bank promotion was not run this sitting |
+
+Decompositions, never one aggregate — **census**: captured 960, rows-exact
+**94.17 %**, arch-exact **87.71 %**, unscoreable **92** (was 94.38 / 87.71 /
+95).  **Enriched**: captured 2,880, rows-exact **94.48 %**, arch-exact
+**88.61 %**, unscoreable **273** (was 94.58 / 88.33 / 282).
+
+**C-1 IS STILL MISSED, AND NOW ON EXACTLY ONE CLAUSE.**  Under A-5's
+re-registered rates all four cells clear their bar; **E-1c is 100 against 0**.
+Reported as registered, not restated.
+
+### 18.3 THE RESIDUE, NAMED — which is the whole point of this sitting
+
+`fz2_bars.json` → `bars.C-1.measured.mech_census` and `.mech_undispositioned`:
+
+| `mech` | whole corpus | **inside the 100 UNDISPOSITIONED** |
+|---|---|---|
+| `REACHED` | 3,503 | — |
+| `STALLED` (A-4) | 208 | — (dispositioned) |
+| **`LONG_INSN`** (M-1) | **78** | **73** |
+| `BUDGET` | 26 | **14** |
+| `NEAR` | 10 | **9** |
+| `WINDOW` (D-1) | 6 | — (repaired) |
+| `FORGED_DONE` (D-2) | 4 | — (repaired) |
+| `OTHER` | 5 | **4** |
+| **total** | **3,840** | **100** |
+
+**269 → 100, and 245 "could not be asked" → 0.**  The move is three things and
+they are separable:
+
+* **the 245 became askable** — A-4's `stalled` and A-6's `mech` are on every
+  line, so `classified_from` is `line` for all of them.  Most of what was
+  unclassifiable turns out to be A-4's already-declared stalled class:
+  `stalled_total` is **202** here against **43** in §15.7, on the same rule;
+* **D-1 + D-2 repaired 10 seeds** (6 `WINDOW` + 4 `FORGED_DONE`), each a
+  complete `MAGIC`-anchored dump that was in the rows and unreadable;
+* **nothing was discarded to get there.**  A-4's four classes are still the
+  whole disposition set, and E-1c counts every one of the 100.
+
+**`LONG_INSN` IS 73 % OF THE REMAINING RESIDUE**, which is P4 as registered.
+**No `TERM_CLOCKS` or `ENTRY_MAX` value reaches it** (§17.2, §17.10).
+
+### 18.4 THE `ENTRY_MAX` FALSIFIER, SCORED — AND ITS SOFT CLAUSE WAS BADLY WRITTEN
+
+§17.3 registered: *"if the re-capture's `BUDGET` class is more than a handful,
+or if its `need` distribution piles up at 463, then 463 is short and this
+derivation is wrong."*
+
+* **The sharp clause is NOT met.**  Three of the 14 undispositioned `BUDGET`
+  seeds carry banked rows, and their measured requirements are
+  **−139, −6 and +492**.  There is no pile-up at 463: **two of the three had
+  139 and 6 rows of headroom and still did not finish**, which is not a budget
+  failure at all.  Only `fz2e/535050` — the same seed §17.3 named in advance —
+  exceeds the reserve, by ~29 clocks.
+* **The soft clause reads "more than a handful" at 14, and it was my clause to
+  write sharply and I did not.**  Reported as the miss it is.  What the
+  measurement says is that the `BUDGET` **label** over-counts the budget class:
+  it means *"the register port was written after the NMI and no
+  first-anchored sentinel done marker followed"*, and §18.5 is one reason that
+  is not the same sentence as *"the window ran out"*.
+* **CONCLUSION, STATED AS A CONCLUSION AND NOT AS A PASS: `ENTRY_MAX` = 463 is
+  NOT REFUTED, and it is not re-tuned.**  It was derived once, registered, and
+  captured against once.
+
+### 18.5 D-3 — A THIRD INSTRUMENT DEFECT, **NAMED AND MEASURED AND NOT REPAIRED**
+
+`dump_words` is anchored to the **FIRST** done marker.  D-2 stopped a *forged*
+one from being that anchor.  It did not stop a **genuine earlier** one.
+
+`fz2e/523040` is the case, and it is legible in one column: the board image
+**re-runs**, and the capture opens part-way through a run whose dump is
+therefore **truncated to its last 8 words** (`0x31b4 … 0x1f89`, no `MAGIC`),
+followed by a real `OUT 0xFC, 0xF00D` at row 927.  The terminator then fires at
+3,068 and writes a **complete, correct 15-word dump** (`0xF00D, 0x5EED, …`)
+ending in `OUT 0xFC, 0xF00D` at 3,472.  `dump_words` stops at row 927, returns
+eight words, and `arch_dump` correctly rejects them — **and never sees the
+dump that is 2,500 rows further on.**
+
+**Measured, both banks, by taking the LAST complete sentinel-anchored dump
+instead of the first**: **2 of 736** banked captures in the A-6 bank, **0 of
+732** in the A-5 bank.  Both are currently labelled `BUDGET`, and both are
+inside the 100.
+
+**IT IS NOT REPAIRED IN THIS SITTING, ON PURPOSE.**  Two repairs have landed
+and the one registered capture has been taken.  Landing a third and
+re-capturing would be iterating the instrument against a bar that is still
+missed, which is exactly what §13.4 forbids and what this whole sequence of
+amendments exists to prevent.  **FALSIFIER, for whoever takes it**: if
+`arch_dump` is re-anchored to the last complete sentinel dump, exactly these
+2 banked captures move and no capture that currently reaches the terminator
+stops reaching it.
+
+### 18.6 WHAT IS STILL OPEN, STATED PLAINLY
+
+* **E-1c is 100 against 0.  C-1 IS MISSED.**  The honest floor §15.8 put
+  "somewhere between 24 and 269" is now **100**, and every one of the 100
+  carries a name.
+* **73 of the 100 are `LONG_INSN`, and no budget reaches them.**  On A-4's own
+  reasoning they would qualify as a fifth declared discard class.  **That
+  decision belongs to the coordinator and is not taken here.**  If it were
+  taken, E-1c would read **27**.
+* **9 are `NEAR`** — dead on both legs for 761 to 1,461 clocks after the NMI,
+  withheld only by A-4's pre-NMI threshold (§17.10).
+* **14 are `BUDGET`**, of which at least 2 are D-3 and 1 is a genuine ~29-clock
+  overrun; the remaining 11 have no banked rows and are **not** attributed.
+* **4 are `OTHER`** and are genuinely unexplained.  The catch-all is **not**
+  empty and was never engineered to be.
+* **C-3, C-6 and C-11 are unchanged and unimproved.**  C-3's runtime clause
+  reads 2 again; one of the two, `fz2e/509069`, reproduces from both earlier
+  captures, and the other is a **different** seed (`fz2e/521059` here,
+  `fz2e/534020` in §14.4) — recorded as an observation, not chased.
+* **`cmd_stability` still reads its arch column at the pre-A-6 window**
+  (`min(len, 4000)`, first-anchored).  C-9 compares three repetitions of the
+  same seed through the same reader, so a dump past that window degrades to
+  rows-only stability rather than to a false MISS, and C-9 read **192/192**.
+  It is left alone rather than changed mid-sitting; recorded so it is not
+  mistaken for an oversight.

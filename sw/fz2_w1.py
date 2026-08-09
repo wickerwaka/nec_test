@@ -1220,6 +1220,16 @@ def cmd_bars(a):
         # 3,840 of 3,840 would have driven this count to 0 by arithmetic.
         capidx = {pop: fz2_stall.capture_index(CID[pop]) for pop in POPS}
         src = Counter()
+        # AMENDMENT A-6's CENSUS COLUMN, REPORTED AND NOT USED.  `mech` is read
+        # off the result line as a banked field; this file does not import
+        # `term_mechanism` and the disposition set below is still A-4's four
+        # classes and nothing else.  It is here so that the residue E-1c
+        # counts can be NAMED in the scored artifact rather than only in a
+        # census run beside it -- `mech_undispositioned` is the one table this
+        # sitting exists to produce.  A-6 §17.1.
+        mech_all = Counter()
+        mech_undisp = Counter()
+        mech_p3 = {"arch_ok_vs_mech": 0, "stalled_vs_mech": 0, "absent": 0}
         for pop in POPS:
             for tier in TIERS:
                 sel = [r for r in lines[pop]
@@ -1232,11 +1242,29 @@ def cmd_bars(a):
                                 or r.get("wrote_term"))
                 d3 = [r for r in bad if _d3(r)]
                 rest = [r for r in bad if not _d3(r)]
+                for r in sel:
+                    mech_all[str(r.get("mech"))] += 1
+                    if "mech" not in r:
+                        mech_p3["absent"] += 1
+                        continue
+                    # P3, THE HARD SELF-CONSISTENCY FALSIFIER (§17.8).  The two
+                    # columns come from the same rows through the same
+                    # functions; a disagreement is a defect in A-6, not a
+                    # finding about the part.
+                    if bool(r.get("arch_ok")) != (r.get("mech") in
+                                                  ("REACHED", "WINDOW",
+                                                   "FORGED_DONE")):
+                        mech_p3["arch_ok_vs_mech"] += 1
+                    if r.get("stalled") is not None and \
+                            bool(r["stalled"]) != (r.get("mech") == "STALLED"):
+                        mech_p3["stalled_vs_mech"] += 1
                 nstall = 0
                 for r in rest:
                     st, _, how = fz2_stall.resolve(r, capidx[pop])
                     src[how] += 1
                     nstall += bool(st)
+                    if not st:
+                        mech_undisp[str(r.get("mech"))] += 1
                 disp, dispst = len(d3), len(d3) + nstall
                 undisp3 += len(bad) - disp
                 undisp += len(bad) - dispst
@@ -1261,6 +1289,9 @@ def cmd_bars(a):
             # `none` = neither, i.e. UNCLASSIFIABLE -- and an unclassifiable
             # seed stays UNDISPOSITIONED.  It is never extrapolated.
             {"per_tier": m, "undispositioned": undisp,
+             "mech_census": dict(mech_all),
+             "mech_undispositioned": dict(mech_undisp),
+             "mech_selfcheck": mech_p3,
              "undispositioned_3class": undisp3,
              "stalled_total": undisp3 - undisp,
              "classified_from": dict(src)},

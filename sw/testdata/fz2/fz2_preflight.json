@@ -1,27 +1,27 @@
 {
  "stage": "fz2 preflight",
  "host": "root@mister-nec",
- "gen_git": "25e73e4873",
+ "gen_git": "8cc02326e9",
  "seed_list_sha256": "45d25f31a325c4965da81117d5f4217b86487aa1abb0078faed26a72ed9bec32",
- "ts": "2026-08-09T16:30:37Z",
+ "ts": "2026-08-09T16:32:14Z",
  "div_guards": [
   {
    "tag": "preflight",
    "readback": "div=8 (4 MHz), commanded by this connection",
    "state": "PINNED",
    "rig": "WRAND=0 replay=0 (commanded clean at connect, OK/OK)",
-   "ts": "2026-08-09T16:30:42Z"
+   "ts": "2026-08-09T16:32:18Z"
   },
   {
    "tag": "preflight-end",
    "readback": "div=8 (4 MHz), commanded by this connection",
    "state": "PINNED",
    "rig": "WRAND=0 replay=0 (commanded clean at connect, OK/OK)",
-   "ts": "2026-08-09T16:30:43Z"
+   "ts": "2026-08-09T16:32:19Z"
   }
  ],
  "capture_path_gaps": [],
- "uptime": "16:30:38  up 27 days 20:56,  0 users,  load average: 0.02, 0.00, 0.01",
+ "uptime": "16:32:14  up 27 days 20:58,  0 users,  load average: 0.08, 0.00, 0.02",
  "board_procs": [],
  "single_writer": "OK",
  "local_serve_procs": [],
@@ -49,7 +49,7 @@
     "n_files": 88,
     "label": "fuzz-v2-on-relanding RETENTION (X1_AD_RETENTION=1) draw 2 of 2"
    },
-   "gen_git": "25e73e4873",
+   "gen_git": "8cc02326e9",
    "rig_evt_hold_bits": 12,
    "rules_version": "1.0"
   },
@@ -64,7 +64,7 @@
     "n_files": 88,
     "label": "fuzz-v2-on-relanding RETENTION (X1_AD_RETENTION=1) draw 2 of 2"
    },
-   "gen_git": "25e73e4873",
+   "gen_git": "8cc02326e9",
    "rig_evt_hold_bits": 12,
    "rules_version": "1.0"
   }
