@@ -416,6 +416,14 @@ gates on a per-class rate.**
 
 ### 5.3 THE VALUES
 
+> ⚠ **THE TWO RATE CLAUSES WERE RE-REGISTERED BY AMENDMENT A-5 (§16),
+> 2026-08-09: E-1a soup **99.0 → 90.0 %**, E-1b raw **95.0 → 75.0 %**.  Both
+> new values were set by user decision AFTER this corpus measured 98.54 /
+> 98.89 % soup and 83.54 / 83.61 % raw, ON that same population, and NEITHER
+> IS DERIVED — the arithmetic in the table below belongs to the OLD values and
+> does not transfer to the new ones.  **E-1c (= 0) is UNTOUCHED.**  §5.3 is
+> kept verbatim because A-5 is only readable against it.**
+
 | clause | registered | the arithmetic behind it |
 |---|---|---|
 | **E-1a soup** | **terminator-reached ≥ 99.0 %**, per population, over the FULL stratum (discards included) | the offline floor without the backstop is 97.1 % on clean soup, and the backstop is monotone — it can only add — so the design's own claim is 100 %.  The 1.0 point is the budget for the two mechanisms the design admits it cannot prevent: a frame landing on the terminator (D2) and a restarted dump (D7).  **Measured mechanism input** (24 soup seeds, ucore TB, scratch cid): 0.25 MEMW into the 16 KB code region per run and **0 into the terminator page**, so P(overwrite) ≈ 0.1 % and the expectation is ≈ 99.9 % |
@@ -458,6 +466,13 @@ input field is absent reads **NOT SCOREABLE**, never MET.
 | **C-9** | **THE CAPTURE IS STABLE**, in rows **and** in the arch column | a declared **5 % stratified sub-sample = 192 seeds × 3 repetitions**, compared in `fuzz_classify.diff_rows`' own window; **192 / 192 stable**, and the 15-word dump identical across all three reps.  A stable row set with an unstable dump is a finding the row diff cannot see, which is why both are compared |
 | **C-10** | **TRANSPORT.**  RunError → one reconnect + one retry, else QUARANTINE; ≥ 5 consecutive quarantines trips the circuit breaker; a short stratum HALTS the driver | circuit breaker **not tripped**, **no halted stratum**; the transport-error count is REPORTED, not barred |
 | **C-11** | **BANK INTEGRITY.**  The census bank IS the frozen rule and the populations are never pooled | the census bank equals the **480** enumerated seeds **seed for seed**; **`_capped` = 0** on both ids; standing bank **≤ 3,500**; **0** seeds in both banks |
+
+⚠ **C-1's row above is SUPERSEDED IN ITS TWO RATE VALUES by AMENDMENT A-5
+(§16), 2026-08-09** — soup **≥ 90.0 %**, raw **≥ 75.0 %**, both set after
+measuring 98.54 / 98.89 % and 83.54 / 83.61 % on the population they are scored
+against, neither derived, and **UNVALIDATED until measured on a disjoint
+population** (§16.2).  C-1's third clause, **0 UNDISPOSITIONED**, is unchanged,
+and **C-2 … C-11 keep their text and their values character for character.**
 
 **Board-time budget, registered.**  At the slower of the two measured rates
 (6.0 /s, §2.1), derated a further 1.5× to 4.0 /s:
@@ -1575,3 +1590,142 @@ those 245 — **the cost, and the decision, are the coordinator's** and are
 stated in the sitting report, not taken here.  **No board was contacted for
 this amendment**: every figure in §15 is read off banked captures and banked
 result lines, offline.
+
+---
+
+## §16 AMENDMENT A-5 — THE TWO RATE CLAUSES ARE RE-REGISTERED BY USER DECISION: SOUP **99.0 → 90.0 %**, RAW **95.0 → 75.0 %**
+
+**Written 2026-08-09, AFTER the §15.7 rescore that MISSED C-1 on all three of
+its clauses, and COMMITTED BEFORE the rescore it enables.**  Appended, never
+back-edited.  Amendments A-3 and A-4 both opened by asserting that **no bar
+moves**.  **This one moves two**, and everything below exists so that a reader
+in six months can decide for themselves what the resulting numbers are worth.
+
+### 16.0 THE TIMING, STATED FIRST — THIS IS THE THING THAT DECIDES WHETHER THESE NUMBERS MEAN ANYTHING
+
+**Both new values were chosen AFTER seeing the measurement, ON the population
+that produced it, and NEITHER IS DERIVED FROM ANY MECHANISM.**
+
+| clause | registered by §5.3 | **measured on THIS corpus (§15.7)** | **re-registered by A-5** |
+|---|---|---|---|
+| **E-1a soup** | **≥ 99.0 %** | census/soup **98.54 %**, enriched/soup **98.89 %** | **≥ 90.0 %** |
+| **E-1b raw** | **≥ 95.0 %** | census/raw **83.54 %**, enriched/raw **83.61 %** | **≥ 75.0 %** |
+| **E-1c undispositioned** | **= 0** | **269** | **= 0 — UNTOUCHED** |
+
+The user's instruction was *"Lets set the bar to 75% and proceed"*, extended to
+*"Also set the soup clause to 90%"*.  That is the whole provenance of both
+numbers.  It is a **decision**, and it is implemented in full — but it is not a
+finding, not an expectation, and not an arithmetic.
+
+Contrast §5.3, which is what a derived bar looks like: 99.0 came from a
+measured 0.25 MEMW/run into the code region and 0 into the terminator page,
+giving an expectation of ≈ 99.9 %; 95.0 came from 70 terminator bytes in a
+16 KB region at 9.7 MEMW/run, giving 1 − (1 − 70/16384)^9.7 ≈ 4.1 % leak and an
+expectation of ≈ 95.9 %.  **Each old value was set below a computed expectation
+and could be missed — and both were.**  **90.0 and 75.0 have no such sentence
+behind them and none is offered.**  No attempt has been made to construct one:
+a mechanism invented after the fact to land on a number already chosen would be
+a fitted rule, which is exactly the signal the standing design principle names.
+
+### 16.1 §64.1 IS THE GOVERNING PRECEDENT, AND IT IS WHY THE VERDICT CARRIES A MARKER
+
+`ucore_provenance.md` §64.1, written after Codex found this pattern in H1's
+re-key: **a refuted key's REPLACEMENT must be validated on data that was not
+used to select it.**  Rejecting a pre-registered candidate on a directed
+capture is what pre-registration is for; choosing its successor by scanning the
+same capture and then scoring the successor on that capture is **fitting, and
+the score is not evidence.**
+
+Both re-registered clauses are in exactly that position.  So:
+
+> **C-1's verdict carries an explicit `rate clauses UNVALIDATED -- A-5` marker
+> whenever the two rate clauses read MET, and the marker stays until they have
+> been measured on a DISJOINT population.  A bare `MET` on the selecting
+> population is what §64.1 forbids, and `fz2_w1.py` will not print one.**
+
+**Neither 90.0 % nor 75.0 % is quotable as a ratchet until that measurement
+exists.**  Not in a commit message, not in `standing_gates.md`, not in
+`CLAUDE.md`'s quick reference, not as "C-1's rate clauses are MET".
+
+### 16.2 WHAT WOULD VALIDATE THEM — stated now, so it cannot be chosen later to suit the answer
+
+A **disjoint population**: a k-block of this generator's seeds that is **not**
+one of the 3,840 in `SEED_LIST_SHA256`, drawn from the same strata by the same
+frozen rule, and **captured on the board before its terminator-reached rate is
+looked at**.  Registered in advance:
+
+* **size ≥ 480 seeds**, the census population's own size, split across both
+  tiers so each clause is scored on its own mechanism (§5.2 — one number for
+  two tiers is either vacuous for soup or a bar on a route raw does not have);
+* **0 seed overlap** with either banked bank, checked the way C-11 checks it;
+* the clauses scored **as written here**, 90.0 and 75.0, with **no further
+  adjustment** — a second re-registration after seeing a second population
+  would make this document a record of fitting rather than of deciding.
+
+**Until then the honest reading of a MET on either rate clause is: "the bar was
+placed below the number after the number was known."**
+
+### 16.3 WHAT DOES NOT MOVE
+
+* **E-1c stays at `= 0`.**  It is measured at **269** and it is **UNTOUCHED**.
+* Every other bar — C-2 … C-11 — keeps its text and its value **character for
+  character**.
+* No seed, image, vector, wait vector or constant moves.  `SEEDS_SHA256` and
+  `SEED_LIST_SHA256` do not move.  The generator, the detector, the capture
+  path and A-4's four discard classes are not touched, and **nothing is
+  re-captured** — this amendment cannot change a measured rate by a hundredth
+  and does not try to.
+
+### 16.4 THE CONSEQUENCE — C-1 IS STILL MISSED, AND NOW FOR EXACTLY ONE REASON
+
+After A-5 the two rate clauses **both pass on both populations**:
+soup 98.54 / 98.89 ≥ 90.0, raw 83.54 / 83.61 ≥ 75.0.  **E-1c does not**, at
+**269 against 0**.
+
+> **C-1 READS `MISSED`.  A-5 DID NOT RESOLVE IT.**  What A-5 changed is *what
+> C-1 means*: before, it was missed on all three clauses; now it is missed on
+> **one**, and that one is the **UNDISPOSITIONED** count.  **E-1c is the sole
+> remaining blocker.**
+
+### 16.5 WHY E-1c IS NOT THE SAME KIND OF CLAUSE AS THE TWO THAT MOVED
+
+§5.3 says it in its own words — E-1c is *"the clause that is **not a rate** …
+it bounds the unexplained residue from below, so the bar cannot be met by
+discarding."*
+
+The two rate clauses bound the **discard fraction from above**.  E-1c is the
+**anti-vacuity floor**: it is the clause that stops the other two from being
+satisfied by explaining seeds away, and it is the reason A-4's fourth discard
+class had to arrive with a hard falsifier and a both-ways table (§15.0)
+instead of simply lowering a residue.  **Lowering a rate makes a bar easier to
+clear; lowering E-1c would remove the thing that makes clearing it mean
+anything.**  Those are not the same act.  **It has not been asked for, and this
+amendment does not touch it.**
+
+### 16.6 AN OBSERVATION ABOUT THE TWO NUMBERS, RECORDED AS AN OBSERVATION
+
+Both new bars sit **≈ 8.5 points below their measured values** — and on the
+census population, **8.54 points below both, exactly**:
+
+| | measured (census) | new bar | margin | measured (enriched) | margin |
+|---|---|---|---|---|---|
+| soup | 98.54 % | 90.0 % | **8.54** | 98.89 % | 8.89 |
+| raw | 83.54 % | 75.0 % | **8.54** | 83.61 % | 8.61 |
+
+This symmetry is **a fact about how the numbers were chosen, not a derivation**,
+and it is recorded here so that nobody later mistakes it for one.  It is in
+fact the clearest available evidence that both bars were placed **relative to
+the measurement** rather than relative to a mechanism — which is precisely what
+§16.0 states and §16.1 marks the verdict for.
+
+### 16.7 WHAT A-5 CHANGES IN THE TREE
+
+* `sw/fz2_w1.py` — the `E1` dict's two values (with the old ones kept in the
+  comment beside them); C-1's `registered` string, which now carries the
+  before/after and the UNVALIDATED qualifier **in the scored artifact itself**;
+  and the verdict's A-5 marker.  The `NOT SCOREABLE` branch's duplicate of the
+  registered text, which had the old values hard-coded, now reads them from
+  `E1` so it cannot go stale again.
+* This document, appended, plus a forward pointer at §5.3 and §6.
+* **No other file.**  No board, no flash, no Quartus, no re-capture.
+

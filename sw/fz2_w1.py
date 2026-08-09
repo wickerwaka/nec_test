@@ -1103,7 +1103,23 @@ BARS = ("C-1", "C-2", "C-3", "C-4", "C-5", "C-6", "C-7", "C-8", "C-9", "C-10",
         "C-11")
 
 # the E-1 VALUE, registered per tier (prereg §5)
-E1 = {"soup": 99.0, "raw": 95.0}
+#
+# AMENDMENT A-5 (prereg §16), 2026-08-09 -- BY USER DECISION the two RATE
+# clauses are RE-REGISTERED: soup 99.0 -> 90.0, raw 95.0 -> 75.0.  BOTH new
+# values were chosen AFTER this corpus measured soup 98.54 / 98.89 % and raw
+# 83.54 / 83.61 %, ON that same population, and NEITHER IS DERIVED from any
+# mechanism -- unlike the old values, each of which sat below a computed
+# expectation (99.9 % and 95.9 %, prereg §5.3) and each of which was missed.
+# `ucore_provenance.md` §64.1: a replacement chosen on the data that refuted
+# its predecessor is FITTED, and its score on that data is not evidence -- so
+# a MET on these clauses is marked UNVALIDATED below and is NOT a ratchet
+# until it has been measured on a DISJOINT population (§16.2).
+# E-1c (0 UNDISPOSITIONED) is UNTOUCHED and is now C-1's sole blocker.
+E1 = {"soup": 90.0, "raw": 75.0}
+E1_PRIOR = {"soup": 99.0, "raw": 95.0}          # what §5.3 registered
+E1_A5 = ("[A-5: soup LOWERED from 99.0, raw from 95.0 -- set AFTER measuring "
+         "soup 98.54/98.89 % and raw 83.54/83.61 % ON THIS POPULATION, NOT "
+         "DERIVED, and UNVALIDATED until scored on a DISJOINT population]")
 
 
 def _lines(cid):
@@ -1118,6 +1134,23 @@ def _stratum_of(cid, k):
         if st["cid"] == cid and st["k_lo"] <= k < st["k_lo"] + st["n"]:
             return j
     return None
+
+
+def _c1_verdict(met, undisp):
+    """C-1's verdict, with AMENDMENT A-5's marker.
+
+    The two RATE clauses were re-registered on the population that measured
+    them (§16.0), so `ucore_provenance.md` §64.1 applies: their score on that
+    population is not evidence for the values.  While they read MET they read
+    MET *UNVALIDATED*, and the marker stays on the verdict string until they
+    have been scored on a DISJOINT population (§16.2).  A bare `MET` on the
+    selecting population is exactly what §64.1 forbids, so this function will
+    not emit one.  E-1c carries no marker -- it did not move.
+    """
+    v = "MET" if (met and undisp == 0) else "MISSED"
+    if met:
+        v += " (rate clauses UNVALIDATED -- A-5)"
+    return v
 
 
 def _need(lines, field):
@@ -1171,8 +1204,10 @@ def cmd_bars(a):
 
     # ---- C-1: CONTAINMENT, the E-1 VALUE ----------------------------------
     if not _need(allines, "wrote_term"):
-        bar("C-1", "containment (E-1)", "soup >= 99.0 %, raw >= 95.0 %, "
-            "0 undispositioned", {"why": "line field `wrote_term` absent"},
+        bar("C-1", "containment (E-1)",
+            f"soup >= {E1['soup']} %, raw >= {E1['raw']} %, "
+            f"0 undispositioned {E1_A5}",
+            {"why": "line field `wrote_term` absent"},
             "NOT SCOREABLE")
     else:
         m = {}
@@ -1216,8 +1251,9 @@ def cmd_bars(a):
                   and v["pct"] >= E1[k.split("/")[1]] for k, v in m.items())
         bar("C-1", "containment measured as TERMINATOR-REACHED (E-1's "
             "predicate), with the escape count kept as a diagnostic",
-            f"soup >= {E1['soup']} %, raw >= {E1['raw']} %, per population; "
-            "and 0 UNDISPOSITIONED non-dumping seeds",
+            f"soup >= {E1['soup']} %, raw >= {E1['raw']} %, per population "
+            f"{E1_A5}; and 0 UNDISPOSITIONED non-dumping seeds (E-1c, "
+            "UNTOUCHED by A-5)",
             # `undispositioned_3class` is what this bar read before A-4 and is
             # kept on the record permanently.  `classified_from` says HOW each
             # remaining seed was asked: `line` = A-4's own capture-time column
@@ -1228,7 +1264,7 @@ def cmd_bars(a):
              "undispositioned_3class": undisp3,
              "stalled_total": undisp3 - undisp,
              "classified_from": dict(src)},
-            "MET" if (met and undisp == 0) else "MISSED")
+            _c1_verdict(met, undisp))
 
     # ---- C-2: the ARCH COLUMN IS NON-VACUOUS ------------------------------
     if not _need(allines, "arch_words"):
@@ -1457,6 +1493,11 @@ def cmd_bars(a):
               f"arch-exact {p['arch_exact_mean_pct']}  "
               f"unscoreable {p['unscoreable_total']}   "
               "(three decompositions, never one aggregate)")
+    # EXACT string equality, deliberately: A-5's `MET (rate clauses
+    # UNVALIDATED -- A-5)` is NOT counted as MET here, and must not be
+    # "fixed" into one.  An unvalidated re-registration does not clear a bar
+    # (§16.1); the marker comes off when §16.2's disjoint population is
+    # measured, and the count follows it then.
     missed = [b for b in BARS if rec["bars"][b]["verdict"] != "MET"]
     print(f"\nFZ2 BARS: {len(BARS)-len(missed)}/{len(BARS)} MET"
           f"{'  NOT MET: ' + ','.join(missed) if missed else ''}")
