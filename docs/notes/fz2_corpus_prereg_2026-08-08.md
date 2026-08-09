@@ -2589,3 +2589,66 @@ disposes seeds, it does not make them reach the terminator.
 one seed, image, vector or constant changed.  **No board was contacted, no
 bitstream flashed and no Quartus run** for this amendment; every figure in §19
 is read off banked captures, offline.
+
+### 19.8 THE RESCORE AS RUN — `sw/testdata/fz2/fz2_bars.json`, 2026-08-09T17:56:22Z
+
+`python3 sw/fz2_w1.py bars`, offline, off the same banked results §18 scored.
+**No capture, no re-capture, no board.**
+
+**`FZ2 BARS: 7/11 MET   NOT MET: C-1, C-3, C-6, C-11`** — the identical
+7 MET / 2 MISSED / 2 NOT SCOREABLE of §14.1, §15.7, §16.8 and §18.2.
+**A-7 moved no bar's verdict.**
+
+**BOTH WAYS, as §19.1 condition 4 requires** — and the three-class column is
+kept beside them permanently, so the whole sequence is visible in one table:
+
+| | **3 classes** (pre-A-4) | **4 classes** (A-4) | **5 classes (A-7)** | `long_insn` |
+|---|---|---|---|---|
+| census / soup | 7 | 1 | **1** | 0 |
+| census / raw | 73 | 18 | **5** | 13 |
+| enriched / soup | 15 | 6 | **1** | 5 |
+| enriched / raw | 207 | 75 | **20** | 55 |
+| **UNDISPOSITIONED** | **302** | **100** | **27** | **73** |
+
+`classified_from_long_insn`: **`rows` 22 · `mech` 58 · `mech_inconclusive`
+20**.  Of the 22 asked from banked rows, the detector is **TRUE on 15 — all 15
+`mech == LONG_INSN`** — and **FALSE on 7 — 3 `NEAR`, 3 `BUDGET`, 1 `OTHER`**.
+**The two sources agree on 22 of 22 where both exist**, which is the check
+§19.5 step 3 rests on, run rather than asserted.  The 20 `mech_inconclusive`
+seeds are **not** disposed and are counted in the 27.
+
+**THE RESIDUE, ALL 27 NAMED** — `mech_undispositioned`:
+**`BUDGET` 14 · `NEAR` 9 · `OTHER` 4**.  `LONG_INSN` has left it entirely.
+§18.6's arithmetic, registered before this amendment existed, said *"if it were
+taken, E-1c would read **27**"*.  **It reads 27.**
+
+**C-1 IS STILL MISSED, ON E-1c ALONE, AND THE VERDICT STRING DID NOT MOVE.**
+Under A-5's re-registered rates all four cells clear their bar — census/soup
+**98.54 %**, enriched/soup **98.89 %**, census/raw **83.96 %**, enriched/raw
+**84.24 %**, none of them moved by a hundredth — and **E-1c is 27 against 0**.
+Reported as registered, not restated.
+
+**NOT ONE OTHER FIELD MOVED, and this is checked rather than asserted.**  The
+new `fz2_bars.json` was compared **leaf for leaf** against the one §18
+committed — 600 leaves before, 616 after, **26 differing**:
+
+* **25 of them are inside `bars/C-1/measured`** — the per-tier `long_insn` /
+  `dispositioned_4class` / `undispositioned_4class` additions, the three
+  `classified_from_long_insn` entries, `long_insn_total` **73**,
+  `undispositioned_4class` **100**, `undispositioned` **100 → 27**, and
+  `mech_undispositioned/LONG_INSN` **73 → absent**;
+* **1 is `ts`**, the run stamp.
+
+**`bars/C-1/verdict` is BYTE-IDENTICAL** — `MISSED (rate clauses UNVALIDATED --
+A-5)` before and after.  ⚠ The task registered *"only C-1's `measured` and
+`verdict` differ"*; **the verdict did NOT differ**, because C-1 was already
+MISSED on E-1c and remains MISSED on E-1c.  Recorded as the miss of that
+expectation rather than restated as a match.  `bars/C-1/registered`,
+`bars/C-1/statement`, every other bar's `verdict` / `measured` / `registered`,
+both populations' three decompositions (census **94.17** / **87.71** / **92**;
+enriched **94.48** / **88.61** / **273**) and `seed_list_sha256` are
+**identical**.  `mech_selfcheck` still reads **0 / 0 / 0**, so A-6's P3
+self-consistency falsifier is undisturbed by the refactor.
+
+`python3 sw/fz2_w1.py lint` **PASS, 0 hits, 48 stratum rows**.  `bars` exits
+**1**, as it must while any bar is unmet.

@@ -1,6 +1,6 @@
 {
  "stage": "fz2 bars",
- "ts": "2026-08-09T16:47:16Z",
+ "ts": "2026-08-09T17:56:22Z",
  "seed_list_sha256": "45d25f31a325c4965da81117d5f4217b86487aa1abb0078faed26a72ed9bec32",
  "bars": {
   "C-1": {
@@ -13,43 +13,55 @@
       "reached": 473,
       "pct": 98.54,
       "dispositioned": 6,
+      "dispositioned_4class": 6,
       "dispositioned_3class": 0,
       "stalled": 6,
+      "long_insn": 0,
       "undispositioned": 1,
+      "undispositioned_4class": 1,
       "undispositioned_3class": 7
      },
      "census/raw": {
       "n": 480,
       "reached": 403,
       "pct": 83.96,
-      "dispositioned": 59,
+      "dispositioned": 72,
+      "dispositioned_4class": 59,
       "dispositioned_3class": 4,
       "stalled": 55,
-      "undispositioned": 18,
+      "long_insn": 13,
+      "undispositioned": 5,
+      "undispositioned_4class": 18,
       "undispositioned_3class": 73
      },
      "enriched/soup": {
       "n": 1440,
       "reached": 1424,
       "pct": 98.89,
-      "dispositioned": 10,
+      "dispositioned": 15,
+      "dispositioned_4class": 10,
       "dispositioned_3class": 1,
       "stalled": 9,
-      "undispositioned": 6,
+      "long_insn": 5,
+      "undispositioned": 1,
+      "undispositioned_4class": 6,
       "undispositioned_3class": 15
      },
      "enriched/raw": {
       "n": 1440,
       "reached": 1213,
       "pct": 84.24,
-      "dispositioned": 152,
+      "dispositioned": 207,
+      "dispositioned_4class": 152,
       "dispositioned_3class": 20,
       "stalled": 132,
-      "undispositioned": 75,
+      "long_insn": 55,
+      "undispositioned": 20,
+      "undispositioned_4class": 75,
       "undispositioned_3class": 207
      }
     },
-    "undispositioned": 100,
+    "undispositioned": 27,
     "mech_census": {
      "REACHED": 3503,
      "STALLED": 208,
@@ -62,7 +74,6 @@
     },
     "mech_undispositioned": {
      "OTHER": 4,
-     "LONG_INSN": 73,
      "NEAR": 9,
      "BUDGET": 14
     },
@@ -72,9 +83,16 @@
      "absent": 0
     },
     "undispositioned_3class": 302,
+    "undispositioned_4class": 100,
     "stalled_total": 202,
+    "long_insn_total": 73,
     "classified_from": {
      "line": 302
+    },
+    "classified_from_long_insn": {
+     "rows": 22,
+     "mech": 58,
+     "mech_inconclusive": 20
     }
    },
    "verdict": "MISSED (rate clauses UNVALIDATED -- A-5)",
