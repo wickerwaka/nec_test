@@ -1085,10 +1085,160 @@ def cmd_stability(a):
 TVEC_A = (0x0000, ti.TERM_AT)                 # -> 0xBF00, the terminator
 TVEC_B = (ti.TERM_AT >> 4, 0x0008)            # -> 0xBF08, same page, other CS:IP
 
+# --------------------------------------------------------------------------- #
+# THE CONTROL STIMULUS -- ONE image shape for every leg, and it is
+# `fz2_tbsys`'s, not a new one: a NOP sled at the anchor ending in `JMP $`.
+#
+# THE SPIN IS LOAD BEARING.  A sled that ran off the end into the 0xCC fill
+# would execute INT3, vector 3 is composed by `testimage` to TERM_AT, and EVERY
+# leg would dump -- including the negative control, which would then control
+# nothing.  The same reasoning is written at `fz2_tbsys.BODY`; it is repeated
+# here because this file has its own copy of the image and a reader of one
+# should not have to find the other.
+# --------------------------------------------------------------------------- #
+CTL_SLED_N = 0x40
+CTL_SPIN = b"\xEB\xFE"                          # JMP $
+CTL_BODY = b"\x90" * CTL_SLED_N + CTL_SPIN
+CTL_DELAY = 400                # clocks after the anchor's CODE T1
+CTL_WRONG_AT = 0xB000          # the DELIBERATELY WRONG vector 2: a spin
+CTL_INT_VECTOR = 0xFF          # the harness CFG's own INT vector, [23:16];
+#                                MEASURED off the INTA rows and REPORTED, never
+#                                assumed -- see `_ctl_inta_vector`.
+CTL_IRET0 = ti.IHT_AT                          # bare-IRET handler slots
+CTL_IRET1 = ti.IHT_AT + ti.IHT_STRIDE
+CTL_ROWS = SW / "testdata" / "campaigns" / "fz2ctl" / "captures"
+
+BUS_STATUS = {0: "INTA", 1: "IOR", 2: "IOW", 3: "HALT",
+              4: "CODE", 5: "MEMR", 6: "MEMW", 7: "PASV"}
+
+
+def _ctl_img_spin():
+    """P1-P5: both interrupt vectors land on a BARE IRET, so the sled keeps
+    spinning and the pin windows are the only thing that moves."""
+    return ti.compose(instr=CTL_BODY,
+                      ivt={CTL_INT_VECTOR: (0, CTL_IRET0), 2: (0, CTL_IRET1)})
+
+
+def _ctl_img_wrong_vector():
+    """V1/V2/N1: vector 2 points at a spin loop, so the run terminates IFF the
+    overlay intercepted the vector read."""
+    return ti.compose(instr=CTL_BODY, ivt={2: (0, CTL_WRONG_AT)},
+                      ram=[(CTL_WRONG_AT + i, b)
+                           for i, b in enumerate(CTL_SPIN)])
+
+
+def _ctl_txns(recs):
+    """Bus transactions off the harness FSM's own T-state annotations --
+    `fz2_tbsys.txns`' shape, on `analyze_capture.decode_words` rows."""
+    out, cur = [], None
+    for r in recs:
+        if r["t"] == 1:
+            cur = {"start": r["idx"], "kind": BUS_STATUS[r["bs_early"]],
+                   "addr": r["ad_addr"], "data": None,
+                   "vec_t1": r.get("vec_armed")}
+        elif r["t"] in (3, 4) and cur is not None:
+            cur["data"] = r["ad_data"]
+        elif r["t"] == 5 and cur is not None:
+            cur["end"] = r["idx"]
+            cur["vec_t4"] = r.get("vec_armed")
+            out.append(cur)
+            cur = None
+    return out
+
+
+def _ctl_inta_vector(tx):
+    """THE INTERRUPT VECTOR THE HARNESS ACTUALLY SUPPLIED, read off the rows.
+
+    `ServeRunner.cfg` sends `-` for the CFG vector field, i.e. it KEEPS
+    whatever the board is holding, so `CTL_INT_VECTOR` is a belief about a
+    sticky register.  The second INTA cycle's data phase carries the byte the
+    rig drove; it is measured and reported, and if it disagrees with the vector
+    this image composed a handler for, that is said out loud."""
+    inta = [t for t in tx if t["kind"] == "INTA"]
+    if len(inta) < 2:
+        return None
+    return inta[1]["data"] & 0xFF
+
+
+def _ctl_dump(recs, tx):
+    """(the 15 arch words or None, the DONE-MARKER word or None).
+
+    The marker is read off the transactions rather than from `dump_words`,
+    which returns the register words and says nothing about the sentinel it
+    stopped at.  A done marker is `OUT OUT_PORT_DONE` CARRYING
+    `DONE_SENTINEL` -- A-6's finding D-2, and a raw image forges the port with
+    random data, which is why the value is checked and not just the port."""
+    done = None
+    for t in tx:
+        if t["kind"] == "IOW" and (t["addr"] & 0xFFFF) == ti.OUT_PORT_DONE:
+            done = t["data"]
+            break
+    return fc.arch_dump(recs, len(recs)), done
+
+
+class _CtlLeg:
+    def __init__(self, name, title):
+        self.name, self.title, self.checks = name, title, []
+        print(f"\n=== LEG {name} -- {title}")
+
+    def chk(self, what, cond, detail=""):
+        self.checks.append({"check": what, "pass": bool(cond),
+                            "detail": str(detail)[:400]})
+        print(f"    [{'PASS' if cond else 'FAIL'}] {what}"
+              f"{('  ' + str(detail)) if detail else ''}")
+        return bool(cond)
+
+    @property
+    def ok(self):
+        return all(c["pass"] for c in self.checks)
+
+    def rec(self, **extra):
+        return {"leg": self.name, "title": self.title, "ok": self.ok,
+                "checks": self.checks, **extra}
+
+
+def _ctl_run(host, image, evts, tvec, vecsub, pin_share=False):
+    """ONE control probe, SOCKET LEG ONLY (`use_core=False`, explicit).
+
+    The rig's own per-run readback is NOT optional and is not re-implemented
+    here: `ServeRunner.run` repacks what was sent with `v30ctl`'s packers and
+    raises `RigMismatch` on any disagreement.  `term_out` is what clause (a)
+    is read from."""
+    term = {}
+    recs = check_seq.run_chip(bytes(image), host, use_core=False, waits=0,
+                              evts=evts, tvec=tvec, vecsub=vecsub,
+                              pin_share=pin_share, term_out=term)
+    return recs, term
+
+
+def _ctl_retain(tag, recs, term, meta):
+    """Full per-clock rows + a sha256 beside them, never a digest alone."""
+    CTL_ROWS.mkdir(parents=True, exist_ok=True)
+    p = CTL_ROWS / f"{tag}.json.gz"
+    with gzip.open(p, "wt") as f:
+        json.dump({"tag": tag, "rows": recs, "term": term, "meta": meta}, f)
+    return {"rows_file": str(p.relative_to(ROOT)), "n_rows": len(recs),
+            "sha256": hashlib.sha256(p.read_bytes()).hexdigest()}
+
 
 def cmd_control(a):
-    print("control: the C-6 board legs (>=2 TVEC values, >=2 hold values, the "
-          "vecsub_en=0 negative control)")
+    """C-6's BOARD LEGS -- clauses (a) and (c), and a directed re-proof of (b).
+
+    Registered in `docs/notes/fz2_corpus_prereg_2026-08-08.md` §6 (C-6) and,
+    leg by leg with its pass conditions, in §24, which was committed before any
+    board contact of this sitting.  DIRECTED PROBES, NOT CORPUS SEEDS: a fixed
+    image, one directive per question, so that what a leg proves does not
+    depend on what a random program happened to do.
+
+    P4 -- **NMI x hold = 300** -- is the reason the pin legs are not just a
+    re-run of A-8's offline reading.  §20.3 measured that the corpus CANNOT
+    produce that cell: `hold = 300` iff the program HALTs, and only INT/POLL
+    seeds HALT.  So the claim *"the rig applies a 300-clock hold on the NMI
+    pin"* is unproven by all 3,840 seeds, and it is precisely the INV-1 axis --
+    a directive silently truncated in a cell nothing visits.  A count that is
+    not 300 +/- 1 there is a RIG FINDING and a hard stop."""
+    print("control: the C-6 board legs (>=2 TVEC values, >=2 hold values on "
+          ">=2 pins, the vecsub_en=0 negative control)")
     gaps = capture_path_gaps()
     if gaps:
         print("control: REFUSED -- capture-path preconditions unmet:")
@@ -1097,11 +1247,320 @@ def cmd_control(a):
         print("  (the offline equivalents are `sw/fz2_tbsys.py` legs a-d, "
               "which DO run today)")
         return 2
-    print("  NOT IMPLEMENTED beyond the refusal: the leg's shape is registered "
-          "in the pre-registration §6 C-6 and its host-side calls do not exist "
-          "on this tree.  Implementing them against an API that has not been "
-          "written would be a guess, not a driver.")
-    return 2
+    OUT.mkdir(parents=True, exist_ok=True)
+    rec = {"stage": "fz2 C-6 control legs", "host": a.host,
+           "prereg": "§6 C-6 (a)(b)(c); the legs are §24",
+           "gen_git": fzc._gen_git(),
+           "started": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+           "div_guards": [], "legs": [], "retained": {}}
+    div_guard("control-start", rec["div_guards"])
+
+    spin_img, spin_meta = _ctl_img_spin()
+    wrong_img, wrong_meta = _ctl_img_wrong_vector()
+    anchor = spin_meta["anchor_linear"] & 0xFFFFF
+    assert (wrong_meta["anchor_linear"] & 0xFFFFF) == anchor
+    rec["stimulus"] = {"anchor_linear": anchor, "delay": CTL_DELAY,
+                       "sled": CTL_SLED_N, "wrong_at": CTL_WRONG_AT,
+                       "spin_image_sha256":
+                           hashlib.sha256(bytes(spin_img)).hexdigest(),
+                       "wrong_image_sha256":
+                           hashlib.sha256(bytes(wrong_img)).hexdigest()}
+
+    # ---- R1: the registers ROUND-TRIP, two distinct values each ------------
+    l = _CtlLeg("R1", "clause (a): every fuzz-v2 register round-trips on the "
+                      "readback path (RBCHECK)")
+    try:
+        regs = v30run._runners[a.host].rig_readback_check()
+        l.chk("RBCHECK: two distinct values written and read back in every "
+              "register", bool(regs), f"{len(regs)} registers: {regs}")
+        rec["legs"].append(l.rec(registers=regs))
+    except Exception as e:                                  # noqa: BLE001
+        l.chk("RBCHECK", False, str(e)[:300])
+        rec["legs"].append(l.rec(error=str(e)[:300]))
+
+    # ---- P1..P5: the PIN-LEVEL proof, counted rows, >=2 holds on >=2 pins --
+    PIN_LEGS = (("P1", 0, 2), ("P2", 0, 300),
+                ("P3", 1, 2), ("P4", 1, 300), ("P5", 1, fzc.TERM_HOLD))
+    inta_vec = None
+    for tag, pin, hold in PIN_LEGS:
+        pname = fzc.PIN_COL[pin]
+        l = _CtlLeg(tag, f"clause (b) directed: {pname} x hold = {hold}"
+                         + ("   [the cell the corpus CANNOT produce -- §20.3]"
+                            if (pin == 1 and hold == 300) else ""))
+        div_guard(f"control-{tag}", rec["div_guards"])
+        evts = [None] * v30ctl.EVT_N
+        evts[0] = (anchor, CTL_DELAY, hold, pin)
+        recs, term = _ctl_run(a.host, spin_img, evts, None, 0)
+        runs = fzc._pin_runs(recs, len(recs))
+        tx = _ctl_txns(recs)
+        if pin == 0 and inta_vec is None:
+            inta_vec = _ctl_inta_vector(tx)
+        mine = runs.get(pname) or []
+        other = fzc.PIN_COL[1 - pin] if pin in (0, 1) else None
+        l.chk(f"exactly ONE run on {pname}", len(mine) == 1, f"runs={mine}")
+        l.chk(f"its length is {hold} +/- 1 clock",
+              len(mine) == 1 and abs(mine[0][1] - hold) <= 1,
+              f"measured {mine[0][1] if mine else None}")
+        l.chk(f"0 runs on the other interrupt pin ({other})",
+              not (runs.get(other) or []), f"runs={runs.get(other)}")
+        l.chk("the rig's own readback held the directive",
+              term.get("readback_ok") is True,
+              f"fired={term.get('fired')} vec_used={term.get('vec_used')}")
+        l.chk("scheduler 0's sticky FIRE bit is set", bool(term.get("fired", 0) & 1),
+              f"fired={term.get('fired')}")
+        ret = _ctl_retain(tag, recs, term, {"evts": evts, "pin": pname,
+                                            "hold": hold})
+        rec["retained"][tag] = ret
+        rec["legs"].append(l.rec(pin=pname, hold=hold, runs=mine,
+                                 all_runs={k: v for k, v in runs.items()},
+                                 measured=(mine[0][1] if mine else None),
+                                 fired=term.get("fired"), **ret))
+        print(f"    rows {ret['n_rows']}  sha256 {ret['sha256'][:16]}…")
+
+    rec["inta_vector_measured"] = inta_vec
+    print(f"\n  the harness's INT vector, MEASURED off the INTA rows: "
+          f"{inta_vec if inta_vec is None else hex(inta_vec)}  "
+          f"(this image composed a handler for {hex(CTL_INT_VECTOR)})")
+
+    # ---- V1/V2: INTERCEPTION at TWO DISTINCT TVEC VALUES -------------------
+    for tag, tvec, want_lin in (("V1", TVEC_A, (TVEC_A[0] << 4) + TVEC_A[1]),
+                                ("V2", TVEC_B, (TVEC_B[0] << 4) + TVEC_B[1])):
+        l = _CtlLeg(tag, f"clause (c): interception at TVEC = "
+                         f"{tvec[0]:04x}:{tvec[1]:04x} -> {want_lin:05x}")
+        div_guard(f"control-{tag}", rec["div_guards"])
+        evts = [None] * v30ctl.EVT_N
+        evts[fzc.TERM_SCHED] = (anchor, CTL_DELAY, fzc.TERM_HOLD, fzc.TERM_PIN)
+        recs, term = _ctl_run(a.host, wrong_img, evts, tvec, fzc.TERM_VECSUB)
+        tx = _ctl_txns(recs)
+        ipr = [t for t in tx if t["kind"] == "MEMR" and t["addr"] == 0x00008]
+        csr = [t for t in tx if t["kind"] == "MEMR" and t["addr"] == 0x0000A]
+        l.chk("MEMR at linear 0x00008 present", bool(ipr), f"{len(ipr)} reads")
+        l.chk(f"0x00008 returns the TVEC IP half {tvec[1]:#06x}",
+              bool(ipr) and ipr[0]["data"] == tvec[1],
+              f"data={ipr[0]['data']:#06x}" if ipr else "no read")
+        l.chk("MEMR at linear 0x0000A present", bool(csr), f"{len(csr)} reads")
+        l.chk(f"0x0000A returns the TVEC CS half {tvec[0]:#06x}",
+              bool(csr) and csr[0]["data"] == tvec[0],
+              f"data={csr[0]['data']:#06x}" if csr else "no read")
+        l.chk("vec_armed is high across the intercepted reads",
+              bool(ipr) and bool(csr) and ipr[0]["vec_t1"] == 1
+              and csr[0]["vec_t1"] == 1,
+              f"ip.vec={ipr[0]['vec_t1'] if ipr else None} "
+              f"cs.vec={csr[0]['vec_t1'] if csr else None}")
+        after = [t for t in tx if t["kind"] == "CODE" and csr
+                 and t["start"] > csr[0]["start"]]
+        nxt = after[0]["addr"] if after else None
+        l.chk(f"the next CODE T1 is at {want_lin:#07x}", nxt == want_lin,
+              f"{nxt if nxt is None else f'{nxt:#07x}'}")
+        l.chk("STATUS[6]: the overlay actually served a CS half",
+              term.get("vec_used") is True, f"vec_used={term.get('vec_used')}")
+        l.chk("the terminator's sticky FIRE bit is set",
+              bool(term.get("fired", 0) & (1 << fzc.TERM_SCHED)),
+              f"fired={term.get('fired')}")
+        words, done = _ctl_dump(recs, tx)
+        l.chk("the CPU did NOT reach the image's own wrong vector "
+              f"({CTL_WRONG_AT:#07x})",
+              not any(t["kind"] == "CODE" and t["addr"] == CTL_WRONG_AT
+                      for t in tx))
+        ret = _ctl_retain(tag, recs, term, {"evts": evts, "tvec": list(tvec),
+                                            "vecsub": fzc.TERM_VECSUB})
+        rec["retained"][tag] = ret
+        rec["legs"].append(l.rec(tvec=list(tvec), next_code=nxt,
+                                 dumped=bool(words), done_marker=done,
+                                 vec_used=term.get("vec_used"),
+                                 fired=term.get("fired"), **ret))
+        # REPORTED, NOT CHECKED: only TVEC_A lands on the terminator's own
+        # entry point.  TVEC_B deliberately lands EIGHT BYTES INTO it, which is
+        # what makes it a proof that the whole 32-bit word is served rather
+        # than that a default worked -- so whether it dumps is not a clause.
+        print(f"    dumped={bool(words)} "
+              f"done_marker={done if done is None else hex(done)}   "
+              f"rows {ret['n_rows']}  sha256 {ret['sha256'][:16]}…")
+
+    # ---- N1: THE NEGATIVE CONTROL ------------------------------------------
+    l = _CtlLeg("N1", "clause (c) NEGATIVE CONTROL: the same image and the "
+                      "same TVEC with vecsub_en = 0 must NOT terminate")
+    div_guard("control-N1", rec["div_guards"])
+    evts = [None] * v30ctl.EVT_N
+    evts[fzc.TERM_SCHED] = (anchor, CTL_DELAY, fzc.TERM_HOLD, fzc.TERM_PIN)
+    recs, term = _ctl_run(a.host, wrong_img, evts, TVEC_A, 0)
+    tx = _ctl_txns(recs)
+    ipr = [t for t in tx if t["kind"] == "MEMR" and t["addr"] == 0x00008]
+    csr = [t for t in tx if t["kind"] == "MEMR" and t["addr"] == 0x0000A]
+    l.chk("the NMI still fired (the control differs in vecsub ONLY)",
+          bool(term.get("fired", 0) & (1 << fzc.TERM_SCHED)),
+          f"fired={term.get('fired')}")
+    l.chk("vec_armed NEVER rises anywhere in the capture",
+          all(r.get("vec_armed") == 0 for r in recs),
+          f"{sum(1 for r in recs if r.get('vec_armed'))} rows armed")
+    l.chk("STATUS[6] clear: the overlay served nothing",
+          term.get("vec_used") is False, f"vec_used={term.get('vec_used')}")
+    l.chk(f"0x00008 returns the IMAGE's own wrong vector {CTL_WRONG_AT:#06x}",
+          bool(ipr) and ipr[0]["data"] == CTL_WRONG_AT,
+          f"data={ipr[0]['data']:#06x}" if ipr else "no read")
+    l.chk("0x0000A returns the image's own CS 0x0000",
+          bool(csr) and csr[0]["data"] == 0x0000,
+          f"data={csr[0]['data']:#06x}" if csr else "no read")
+    l.chk(f"the CPU DID reach the wrong vector {CTL_WRONG_AT:#07x}",
+          any(t["kind"] == "CODE" and t["addr"] == CTL_WRONG_AT for t in tx))
+    words, done = _ctl_dump(recs, tx)
+    l.chk("it did NOT terminate: no 15-word dump and no done marker",
+          words is None and done != ti.DONE_SENTINEL,
+          f"dump={'yes' if words else 'no'} "
+          f"done={done if done is None else hex(done)}")
+    ret = _ctl_retain("N1", recs, term, {"evts": evts, "tvec": list(TVEC_A),
+                                         "vecsub": 0})
+    rec["retained"]["N1"] = ret
+    rec["legs"].append(l.rec(tvec=list(TVEC_A), dumped=bool(words),
+                             vec_used=term.get("vec_used"),
+                             fired=term.get("fired"), **ret))
+
+    # ---- the SHA256SUMS beside the retained rows ---------------------------
+    if CTL_ROWS.exists():
+        (CTL_ROWS / "SHA256SUMS").write_text("\n".join(
+            f"{hashlib.sha256(p.read_bytes()).hexdigest()}  {p.name}"
+            for p in sorted(CTL_ROWS.glob("*.json.gz"))) + "\n")
+    div_guard("control-end", rec["div_guards"])
+
+    # ---- the verdict -------------------------------------------------------
+    holds = sorted({h for _t, _p, h in PIN_LEGS})
+    pins = sorted({fzc.PIN_COL[p] for _t, p, _h in PIN_LEGS})
+    bad = [l["leg"] for l in rec["legs"] if not l["ok"]]
+    unpinned = [g for g in rec["div_guards"] if g["state"] != "PINNED"]
+    rec["holds_proved"] = holds
+    rec["pins_proved"] = pins
+    rec["tvecs_proved"] = [list(TVEC_A), list(TVEC_B)]
+    rec["failing_legs"] = bad
+    rec["div_guards_unpinned"] = unpinned
+    rec["verdict"] = "MET" if (not bad and not unpinned
+                               and len(holds) >= 2 and len(pins) >= 2) else \
+                     "MISSED"
+    rec["finished"] = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
+    (OUT / "fz2_control.json").write_text(json.dumps(rec, indent=1))
+    print(f"\n  holds proved on the pins: {holds} on {pins}")
+    print(f"  TVEC values proved: {TVEC_A} and {TVEC_B}")
+    print(f"  div_guards {len(rec['div_guards'])}, unpinned {len(unpinned)}")
+    print(f"\nFZ2 CONTROL (C-6 board legs): {rec['verdict']}"
+          f"{'  FAILING: ' + ','.join(bad) if bad else ''}  -> "
+          f"{OUT/'fz2_control.json'}")
+    print("  NOTE: this leg scores C-6's clauses (a) and (c) and re-proves (b) "
+          "by directed probe.  C-6's own verdict is `bars`', and clause (b)'s "
+          "corpus reading is 2 / 4,638 (§20.4), so a passing control leg makes "
+          "C-6 READABLE -- MISSED -- and does not make it MET (§20.5, §24.3).")
+    return 0 if rec["verdict"] == "MET" else 1
+
+
+# --------------------------------------------------------------------------- #
+# THE TWO DEAD INT DIRECTIVES -- prereg §20.4 / §24.4
+#
+# `fz2e/528016` and `fz2e/530063` are C-6(b)'s only two failures out of 4,638
+# evaluated directives: an INT directive was ARMED, the rig's readback says it
+# was HELD, `pin_int` carries NO RUN AT ALL, and `term.fired` is **0** -- which
+# is bit 0 clear (the stimulus scheduler) AND bit 2 clear (the terminator).
+# BOTH schedulers are silent on those two seeds, and both are triggered by the
+# SAME event: a `CODE` T1 at the anchor's linear address.  That is the first
+# thing this probe measures, because if the anchor is never fetched then
+# nothing about the schedulers is broken and the finding is about the SEED.
+# --------------------------------------------------------------------------- #
+DEAD_INT = (("fz2e", 528016), ("fz2e", 530063))
+
+
+def _anchor_hits(recs, anchor):
+    return [r["idx"] for r in recs
+            if r["t"] == 1 and r["bs_early"] == 4 and r["ad_addr"] == anchor]
+
+
+def cmd_deadint(a):
+    """Re-run §20.4's two dead INT directives WITH ROWS KEPT, and ask WHY.
+
+    They are run as DIRECTED PROBES: nothing is appended to `fz2e`'s
+    `results.jsonl`, no bank is touched, and the banked result line is read
+    only to check that what comes back reproduces it."""
+    OUT.mkdir(parents=True, exist_ok=True)
+    rec = {"stage": "fz2 dead-INT probe (§20.4 / §24.4)", "host": a.host,
+           "gen_git": fzc._gen_git(),
+           "ts": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+           "div_guards": [], "seeds": []}
+    div_guard("deadint-start", rec["div_guards"])
+    banked = {}
+    for cid in {c for c, _k in DEAD_INT}:
+        banked[cid] = {r["k"]: r for r in _lines(cid)}
+    for cid, k in DEAD_INT:
+        j = _stratum_of(cid, k)
+        st = STRATA[j]
+        cfg = fzc.derive_case(cid, k, ov_of(st))
+        g = fzc.build(cfg)
+        image, meta = fzc.compose_case(g, cfg)
+        evts, tvec, vecsub = fzc.term_directive(cfg, meta)
+        anchor = meta["anchor_linear"] & 0xFFFFF
+        print(f"\n=== {cid}/{k}  {label(st)}")
+        print(f"    directive: evts={evts} tvec={tvec} vecsub={vecsub}")
+        print(f"    anchor linear {anchor:#07x}  weff {weff_of(cfg)}  "
+              f"TERM_CLOCKS {term_clocks(weff_of(cfg))}  "
+              f"nmax_eff {cfg['nmax_eff']}  raw_mode {g.get('raw_mode')}")
+        div_guard(f"deadint-{cid}-{k}", rec["div_guards"])
+        term = {}
+        real, sim, err = fzc.capture_board(image, meta, cfg, a.host,
+                                           term_out=term)
+        if err:
+            print(f"    *** capture error: {err}")
+            rec["seeds"].append({"cid": cid, "k": k, "error": err})
+            continue
+        tx = _ctl_txns(real)
+        runs = fzc._pin_runs(real, len(real))
+        hits = _anchor_hits(real, anchor)
+        codes = [t for t in tx if t["kind"] == "CODE"]
+        b = banked[cid].get(k, {})
+        d = {"cid": cid, "k": k, "stratum": label(st),
+             "image_sha256": hashlib.sha256(bytes(image)).hexdigest(),
+             "banked_image_sha256": b.get("image_sha256"),
+             "directive": {"evts": evts, "tvec": list(tvec), "vecsub": vecsub,
+                           "anchor_linear": anchor,
+                           "evt": cfg["evt"],
+                           "term_clocks": term_clocks(weff_of(cfg)),
+                           "weff": weff_of(cfg)},
+             "n_rows": len(real), "n_txns": len(tx), "n_code_t1": len(codes),
+             "anchor_code_t1_hits": hits[:8],
+             "n_anchor_hits": len(hits),
+             "first_code_addrs": [t["addr"] for t in codes[:12]],
+             "distinct_code_addrs": len({t["addr"] for t in codes}),
+             "pin_runs": runs,
+             "term": term,
+             "banked_term": b.get("term"),
+             "banked_verdict": b.get("verdict"),
+             "banked_arch_ok": b.get("arch_ok"),
+             "reproduced_fired": (term.get("fired")
+                                  == (b.get("term") or {}).get("fired")),
+             }
+        blob = json.dumps({"cid": cid, "k": k, "real": real, "sim": sim,
+                           "term": term, "directive": d["directive"]})
+        CTL_ROWS.mkdir(parents=True, exist_ok=True)
+        p = CTL_ROWS / f"deadint_{cid}_{k}.json.gz"
+        with gzip.open(p, "wt") as f:
+            f.write(blob)
+        d["rows_file"] = str(p.relative_to(ROOT))
+        d["sha256"] = hashlib.sha256(p.read_bytes()).hexdigest()
+        print(f"    rows {len(real)}  CODE T1s {len(codes)} over "
+              f"{d['distinct_code_addrs']} distinct addresses")
+        print(f"    ANCHOR ({anchor:#07x}) CODE T1 hits: {len(hits)} {hits[:8]}")
+        print(f"    pin runs: { {kk: vv for kk, vv in (runs or {}).items()} }")
+        print(f"    term: fired={term.get('fired')} "
+              f"vec_used={term.get('vec_used')} "
+              f"readback_ok={term.get('readback_ok')}")
+        print(f"    banked: fired={(b.get('term') or {}).get('fired')} "
+              f"verdict={b.get('verdict')} arch_ok={b.get('arch_ok')} "
+              f"image sha matches={d['image_sha256'] == b.get('image_sha256')}")
+        print(f"    rows sha256 {d['sha256'][:16]}…")
+        rec["seeds"].append(d)
+    div_guard("deadint-end", rec["div_guards"])
+    if CTL_ROWS.exists():
+        (CTL_ROWS / "SHA256SUMS").write_text("\n".join(
+            f"{hashlib.sha256(p.read_bytes()).hexdigest()}  {p.name}"
+            for p in sorted(CTL_ROWS.glob("*.json.gz"))) + "\n")
+    (OUT / "fz2_deadint.json").write_text(json.dumps(rec, indent=1))
+    print(f"\nFZ2 DEAD-INT: {len(rec['seeds'])} seeds -> "
+          f"{OUT/'fz2_deadint.json'}")
+    return 0
 
 
 # --------------------------------------------------------------------------- #
@@ -1804,6 +2263,9 @@ def main():
     p = sub.add_parser("control")
     p.add_argument("--host", default=HOST)
     p.set_defaults(func=cmd_control)
+    p = sub.add_parser("deadint")
+    p.add_argument("--host", default=HOST)
+    p.set_defaults(func=cmd_deadint)
     p = sub.add_parser("bank")
     p.add_argument("--dry-run", action="store_true",
                    help="measure the promotion against CAP_MB, write nothing")

@@ -3106,3 +3106,291 @@ replay the generator can no longer produce, and SUP-1 does not claim it can.
 
 **No board, no flash, no Quartus, and no capture.  No bar's text moved, and no
 bar's `measured` moved except C-11's.**
+
+---
+
+## §23 AMENDMENT A-9 — §16.2's VALIDATION POPULATION IS ENUMERATED AND FROZEN, **BEFORE IT IS CAPTURED**
+
+**Written 2026-08-09, branch `fuzz-v2-on-relanding` at `d1d9f168d4`, and
+COMMITTED — with the frozen population file and its sha256 — BEFORE ANY BOARD
+CONTACT OF THIS SITTING.**  Appended, never back-edited.
+
+**NO BAR MOVES.**  C-1 … C-11 keep their text and their values character for
+character, **including A-5's re-registered 90.0 / 75.0 and E-1c = 0**.  No new
+discard class is created, no detector changes, no constant moves, and
+`SEEDS_SHA256` / `SEED_LIST_SHA256` are untouched — the 3,840-seed corpus is not
+re-derived, not re-captured and not re-scored by this amendment.
+
+### 23.0 WHAT THIS IS, IN ONE PARAGRAPH
+
+§16.2 registered, before the answer could be known, what would lift the
+`UNVALIDATED` marker A-5 put on C-1's two rate clauses.  This amendment
+**enumerates and freezes that population and nothing else**.  It is written and
+committed first precisely so that the capture that follows cannot be described
+afterwards as having been designed around its own result.
+
+### 23.1 THE POPULATION — the CENSUS grid, moved to the RESERVED band
+
+`cid = fz2v`, `k_base = 600000`, `K_STRIDE = 1000`, `n = 80` — **§2.1's census
+grid, unchanged in every axis, at a different base.**
+
+| i | pop | cid | tier | evt | wait | k range | n |
+|---|---|---|---|---|---|---|---|
+| 0 | val | fz2v | soup | noevt | fix0 | 600000-600079 | 80 |
+| 1 | val | fz2v | soup | noevt | wrand3 | 601000-601079 | 80 |
+| 2 | val | fz2v | soup | noevt | wvec-uni | 602000-602079 | 80 |
+| 3 | val | fz2v | soup | stim | fix0 | 603000-603079 | 80 |
+| 4 | val | fz2v | soup | stim | wrand3 | 604000-604079 | 80 |
+| 5 | val | fz2v | soup | stim | wvec-uni | 605000-605079 | 80 |
+| 6 | val | fz2v | raw | noevt | fix0 | 606000-606079 | 80 |
+| 7 | val | fz2v | raw | noevt | wrand3 | 607000-607079 | 80 |
+| 8 | val | fz2v | raw | noevt | wvec-uni | 608000-608079 | 80 |
+| 9 | val | fz2v | raw | stim | fix0 | 609000-609079 | 80 |
+| 10 | val | fz2v | raw | stim | wrand3 | 610000-610079 | 80 |
+| 11 | val | fz2v | raw | stim | wvec-uni | 611000-611079 | 80 |
+
+> **960 seeds — 480 soup and 480 raw.**  §16.2 registers *"size ≥ 480 seeds …
+> split across both tiers so each clause is scored on its own mechanism"*; this
+> population gives **each clause its own 480**, which is the census's own size
+> **per tier**, and it costs about three minutes of board time at the corpus's
+> measured 5.8 seeds/s.
+
+```
+VAL_CID = fz2v
+VAL_K_BASE = 600000
+VAL_N = 960
+VAL_SEED_LIST_SHA256 = 5d83b3a9b6aa7907cbef01eae7f33223b024f1fa9cdf1d56ab879e24925d81be
+VAL_SEEDS_SHA256 = 546b23ebd28c22851a8d20b576b4134406028fbdc252f27750a843755234f749
+```
+
+**Why `k ≥ 600000` and not a fresh cid at 400000.**  §2.2's last paragraph
+reserved that band in advance, in this document, before the corpus was
+captured: *"RESERVED AND NOT TO BE USED BY THIS CORPUS: `k ≥ 600000`.  Any later
+directed or victory tranche draws from there and is therefore disjoint from
+every seed above by construction — §64.1's disjoint-validation discipline,
+applied to the corpus rather than to a law."*  This is that tranche.  The
+disjointness is a property of the layout; `fz2_w1`'s own `assert max(s["k_lo"] +
+s["n"] for s in STRATA) < K_RESERVED` is the other half of it and already stood.
+
+**What the frozen population contains, counted in advance** (from
+`sw/testdata/fz2/fz2v_population.json`, `freeze`, 2.7 s):
+
+| | soup | raw |
+|---|---|---|
+| seeds | 480 | 480 |
+| with a stimulus event | 240 | 240 |
+| … INT / NMI / POLL | 177 / 63 / 0 | 182 / 58 / 0 |
+| … `hold = 2` / `hold = 300` | 63 / 177 | 240 / 0 |
+| `has_tf` | 23 | 0 |
+| `has_halt` | 177 | 0 |
+| raw whole-image mode | 0 | 342 |
+| `TERM_CLOCKS` range | 2,196 … 3,154 | 2,196 … 3,154 |
+
+§20.3's structural finding reproduces exactly on this population and is
+therefore **not a property of the corpus's own draw**: `hold = 300` ⟺ `has_halt`
+⟺ INT, 177/177 in soup and **0 NMI seeds at `hold = 300` anywhere**, raw
+declaring no HALT at all.
+
+### 23.2 ZERO OVERLAP, CHECKED THE WAY C-11 CHECKS IT — AND THREE WAYS BESIDES
+
+`python3 sw/fz2_val.py overlap`, run before the capture:
+
+| check | result |
+|---|---|
+| `(cid, k)` vs the frozen 3,840 | **0** |
+| `(cid, k)` vs the banked `fz2c` bank (480) — C-11's own intersection | **0** |
+| `(cid, k)` vs the banked `fz2e` bank (143) | **0** |
+| raw `k`, cid ignored, vs the frozen 3,840 | **0** |
+| **composed image sha256 vs all 3,840 corpus images** | **0** |
+| the 960 validation images are pairwise distinct | **0** collisions |
+| validation seeds below `K_RESERVED` | **0** |
+
+**AND ONE CHECK THAT WAS WRONG AND IS REPORTED RATHER THAN QUIETLY DROPPED.**
+A `cfg_hash` intersection was written as a FAIL condition and **fired at 36**.
+It is not a seed identity: `derive_case` hashes the CONFIGURATION AXES
+(`fuzz_campaign.py:264` — tier, waits, `nmax`, `evt`, `wvec`), while the program
+comes from `build`'s RNG keyed on the string `f"{cid}/{k}"`.  **The control that
+settled it is the corpus doing it to itself: the frozen 3,840 carry only 2,969
+distinct `cfg_hash`es — 871 internal collisions.**  The check is now REPORTED
+with that control beside it and scores nothing; the identity checks are the
+`(cid, k)` key, the raw `k` and the composed image, and all three are 0.
+
+### 23.3 WHAT IS SCORED, AND WHAT IS NOT
+
+**Scored — the two clauses §16.2 names, and only those:**
+
+| clause | registered (A-5) | scored on |
+|---|---|---|
+| **E-1a soup** | **≥ 90.0 %** | the 480 soup seeds' terminator-reached rate |
+| **E-1b raw** | **≥ 75.0 %** | the 480 raw seeds' terminator-reached rate |
+
+The rate is C-1's own: **terminator-reached over the FULL stratum, discards
+included** (§5.3).  `sw/fz2_val.py` imports `E1` from `sw/fz2_w1.py`, so the two
+numbers exist in exactly one place in the tree and this scorer cannot hold a
+different pair from the corpus scorer's.
+
+**NOT scored: E-1c.**  §16.2 names the two RATE clauses.  E-1c is C-1's
+anti-vacuity floor, it is measured on the corpus at 27, and this population
+cannot and does not move it.  The validation population's own discard census and
+undispositioned count are **REPORTED** beside the rates, because a containment
+rate quoted without its residue is half a number — and they gate nothing here.
+
+**NOT banked.**  `fz2v` is never handed to `fuzz_bank.promote`, `keep_rows_every`
+is 0, and C-11's three populations (`census_banked`, `enriched_banked`,
+`replayed`) are untouched by construction.
+
+### 23.4 THE INSTRUMENT IS PROVED TO BE THE CORPUS'S BEFORE IT SCORES ANYTHING
+
+`fz2_val score` runs its own rate function over `fz2c` and `fz2e` FIRST and
+compares all four cells against the **committed** `sw/testdata/fz2/fz2_bars.json`
+— `n`, `reached` and `pct` — and **REFUSES to score `fz2v` if any of them
+differs**.  A validation taken with a second, subtly different scorer would be
+validating the scorer.  The four cells it must reproduce are the current
+committed ones:
+
+| cell | committed |
+|---|---|
+| census / soup | 473/480 = **98.54 %** |
+| census / raw | 403/480 = **83.96 %** |
+| enriched / soup | 1424/1440 = **98.89 %** |
+| enriched / raw | 1213/1440 = **84.24 %** |
+
+⚠ **These are NOT §16.8's four numbers, and the difference is not an erratum in
+either place.**  §16.8 recorded 83.54 / 83.61 on the raw tier; that artifact was
+scored **before** the §18 A-6 re-capture, which re-took the corpus.  A-5's two
+values were selected against 83.54 / 83.61 and the population they were selected
+on has since been re-captured at 83.96 / 84.24.  **This changes nothing about
+A-5's provenance — the values were still chosen after seeing that population's
+numbers — and it is why §16.2's disjoint measurement, not a re-reading of the
+corpus, is the thing that validates them.**
+
+### 23.5 THE REGISTERED OUTCOMES — both of them, written before the capture
+
+> **PASS** — both clauses MET on this population.  Then, and only then, the
+> `UNVALIDATED` marker comes off: `fz2_w1._c1_verdict` stops appending
+> `(rate clauses UNVALIDATED -- A-5)`, C-1's `registered` string records the
+> validation and names this population, and **the two values become quotable**.
+> C-1's own verdict does **not** change — E-1c is 27 against 0 and remains its
+> sole blocker (§16.4).
+>
+> **FAIL** — either clause MISSED.  Then **A-5's re-registration is REFUTED on
+> its first disjoint measurement**, the marker STAYS, the failure is recorded in
+> this trail, and **NOTHING IS ADJUSTED**: §16.2's third bullet forbids a second
+> re-registration, and a bar lowered twice to meet two populations is a record of
+> fitting.
+
+**No third outcome is available, and no clause is scored per stratum, per wait
+source or per event class.**  Two numbers, two bars, as §5.2 registered.
+
+### 23.6 WHAT A-9 CHANGES IN THE TREE
+
+* `sw/fz2_val.py` — NEW.  `strata` / `freeze` / `overlap` / `preflight` /
+  `capture` / `score`.  It imports the grid axes, the overrides, the
+  `TERM_CLOCKS` formula, `div_guard`, `board_idle`, `_run_args`, `_done_ks` and
+  **`E1`** from `fz2_w1`; it re-implements none of them.
+* `sw/testdata/fz2/fz2v_population.json` + `.sha256` — the frozen 960, committed
+  **with this section and before the capture**.
+* This document, appended.
+* **No other file.**  No bar, no detector, no discard class, no constant, no
+  board, no flash, no Quartus, and nothing in `fz2_w1.py` — the marker-removal
+  edit, if the validation earns it, is a SEPARATE commit made after the score.
+
+### 23.7 THE ERA THIS CAPTURE IS TAKEN IN, STATED BEFORE IT IS TAKEN
+
+The board carries **FLASH #12** — `nec_test_ucore.sof`
+`8db6dadf5c4c5c62…`(sha256 `8db6dadf5c4c621ceb6bac9b0935146a4193fa3709051636a260e451e0bee205`),
+built from `b629296e3a`, quartus receipt `27fb750f925c…` — and **it is not
+re-flashed by this sitting.**  HEAD is `d1d9f168d4`, and **one RTL landing has
+occurred since that bitstream was built: the 8F ghost READ.**  Three things
+follow, and each is checked rather than assumed:
+
+1. **The rig is not affected.**  `fz2_w1.resident_rig_gap()` compares the three
+   files the fuzz-v2 directive lives in — `hps_axi_slave.sv`, `nec_bus.sv`,
+   `system_large.sv` — against the pinned `.sof`'s own receipt inputs, file for
+   file, and the gap is **EMPTY**.  The 8F ghost read is in `hdl/rtl/ucore/`.
+2. **The socket leg cannot be affected by any bitstream.**  It is the real
+   µPD70116 in its socket at `use_core=0`; the rates this population scores are
+   computed from `arch_ok`, which is the SOCKET leg's own dump.  **The
+   validation measurement is a silicon measurement and the FPGA is transport.**
+3. **The fabric-core leg is one landing behind, and is scored against its own
+   bitstream's tree** — the standing rule.  Its figures (`bad_rows`,
+   `arch_match`) are reported here as a decomposition and **gate nothing in this
+   amendment**; they may not be quoted against HEAD's RTL.
+
+**No re-flash is required for this sitting and none is taken.**
+
+---
+
+## §24 C-6's BOARD LEGS — THE PLAN AND ITS PASS CONDITIONS, REGISTERED BEFORE THE BOARD
+
+**Written 2026-08-09 and COMMITTED BEFORE ANY BOARD CONTACT OF THIS SITTING.**
+This is **not an amendment**: C-6's registered text is not edited, character for
+character, and neither is A-8's ruling on clause (b).  §6 registered three
+clauses and §20.5 recorded that two of them are board legs which had never been
+run because `fz2_w1.cmd_control` was a stub.  This section says what the legs
+are before they are run, so that what comes back cannot be chosen afterwards.
+
+### 24.1 THE THREE CLAUSES AND WHERE EACH IS ANSWERED
+
+| clause | registered text | where it is answered |
+|---|---|---|
+| **(a)** | `EVT2_CFG` / `EVT3_CFG` / `TVEC` / `VECCTL` **round-trip on the readback path** | `control` legs **R1** (RBCHECK) and **R2** (a live directive's own readback), board |
+| **(b)** | a **PIN-LEVEL proof by counted rows at ≥ 2 hold values** | already EVALUATED offline under A-8, **4,636 / 4,638**, plus `control` legs **P1-P5** |
+| **(c)** | **interception proven on the rows at ≥ 2 distinct `TVEC` values**, with the `vecsub_en = 0` negative control **not** terminating | `control` legs **V1**, **V2** and **N1**, board |
+
+### 24.2 THE LEGS, AND WHAT EACH MUST SHOW
+
+Directed probes on a **fixed** image — a NOP sled ending in `JMP $`, the
+`fz2_tbsys` shape — **not corpus seeds**.  Every probe is `use_core=False`,
+every probe is preceded by `div_guard`, and every probe's full per-clock rows
+are retained with a sha256 beside them.
+
+| leg | directive | MUST SHOW |
+|---|---|---|
+| **R1** | none | `rig_readback_check()` writes **two distinct values** into every fuzz-v2 register and reads each back; the board names the registers it round-tripped |
+| **R2** | a live run at `TVEC_B`, `vecsub` set, two schedulers armed | the rig's own `rb=` readback repacks **exactly** to what was sent — `EVT_ADDR[n]`, `EVT_CFG[n]`, `TVEC`, `VECCTL`; a disagreement is `RigMismatch` and a HARD STOP |
+| **P1** | INT, `hold = 2` | exactly **one** run on `pin_int` of length **2 ± 1**; **0** runs on `pin_nmi` |
+| **P2** | INT, `hold = 300` | exactly **one** run on `pin_int` of length **300 ± 1** |
+| **P3** | NMI, `hold = 2` | exactly **one** run on `pin_nmi` of length **2 ± 1**; **0** runs on `pin_int` |
+| **P4** | **NMI, `hold = 300`** | exactly **one** run on `pin_nmi` of length **300 ± 1** |
+| **P5** | NMI, `hold = 20` (`TERM_HOLD`) | exactly **one** run on `pin_nmi` of length **20 ± 1** |
+| **V1** | terminator, `TVEC_A = (0x0000, 0xBF00)`, `vecsub` set, IVT[2] deliberately WRONG | MEMR T1 at linear `0x00008` returns **0xBF00** and at `0x0000A` returns **0x0000**; `vec_armed` high across both; the next `CODE` T1 is at **0xBF00**; the 15-word dump and the done marker appear |
+| **V2** | the same, `TVEC_B = (0x0BF0, 0x0008)` | `0x00008` returns **0x0008** and `0x0000A` returns **0x0BF0**; the next `CODE` T1 is at **0xBF08** — a DIFFERENT physical address, so what is proved is that the whole 32-bit word is served |
+| **N1** | **NEGATIVE CONTROL** — V1's image and directive with `vecsub = 0` | `vec_armed` **never** rises; the vector reads return the image's own WRONG vector; the CPU does **not** reach `0xBF00` and does **not** dump |
+
+**P4 IS THE POINT OF P1-P5 AND IT IS REGISTERED AS SUCH.**  §20.3 measured that
+`hold = 300` is **structurally impossible on an NMI seed** in this corpus —
+`build` raises the hold to 300 iff the program contains a HALT, `gen_soup` emits
+a HALT only when the stimulus pin is INT or POLL, and there are 0 POLL seeds —
+so *"the rig applies a 300-clock hold on the NMI pin"* is **unproven by 3,840
+seeds**.  That is the INV-1 axis exactly: a directive the rig may be truncating
+in a cell the corpus never visits.  **One directed probe closes it, and if the
+counted run comes back anything other than 300 ± 1 that is a RIG FINDING and a
+hard stop**, not a result about the part.
+
+**≥ 2 hold values on ≥ 2 pins** is met by construction: holds {2, 20, 300} × pins
+{INT, NMI}, with the NMI × 300 cell the corpus cannot reach.
+
+### 24.3 C-6's VERDICT, AS IT WILL BE READ
+
+`cmd_bars` scores C-6 **MET** only if clause (b)'s `hold_rows_off` is **0**, at
+least two distinct holds appear in the corpus, **and** `fz2_control.json` carries
+`verdict == "MET"`.  Clause (b) is **2 / 4,638** (§20.4) and this sitting does
+not re-capture the corpus, so:
+
+> **IF EVERY CONTROL LEG PASSES, C-6 MOVES FROM `NOT SCOREABLE` TO `MISSED`, AND
+> THAT IS A RESULT, NOT A REGRESSION.**  §20.5 said it in advance: *"Had the
+> control leg existed and passed, clause (b)'s 2 failures would make C-6 read
+> MISSED, not MET."*  A bar that can finally be read and is not met is worth
+> more than one that could not be read at all.
+
+### 24.4 THE TWO DEAD INT DIRECTIVES
+
+`fz2e/528016` and `fz2e/530063` (§20.4) are re-run **with rows kept**, as
+directed probes outside the corpus's `results.jsonl` — nothing is appended to a
+banked population.  Registered in advance: **what is looked for is WHY**, from
+the rows and the directive.  The candidate explanations are (i) the anchor's
+`CODE` T1 never occurs, so no scheduler triggers — testable, because `term.fired`
+is **0**, i.e. the TERMINATOR did not fire either; (ii) the delay lands beyond
+the capture window; (iii) a scheduler defect.  **If it looks like RTL it is
+characterised and reported, and no RTL is patched in this sitting.**
