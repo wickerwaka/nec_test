@@ -1,27 +1,27 @@
 {
  "stage": "fz2 preflight",
  "host": "root@mister-nec",
- "gen_git": "22f07b629b",
+ "gen_git": "986f7a0249",
  "seed_list_sha256": "45d25f31a325c4965da81117d5f4217b86487aa1abb0078faed26a72ed9bec32",
- "ts": "2026-08-09T05:04:38Z",
+ "ts": "2026-08-09T05:41:32Z",
  "div_guards": [
   {
    "tag": "preflight",
    "readback": "div=8 (4 MHz), commanded by this connection",
    "state": "PINNED",
    "rig": "WRAND=0 replay=0 (commanded clean at connect, OK/OK)",
-   "ts": "2026-08-09T05:04:42Z"
+   "ts": "2026-08-09T05:41:37Z"
   },
   {
    "tag": "preflight-end",
    "readback": "div=8 (4 MHz), commanded by this connection",
    "state": "PINNED",
    "rig": "WRAND=0 replay=0 (commanded clean at connect, OK/OK)",
-   "ts": "2026-08-09T05:04:43Z"
+   "ts": "2026-08-09T05:41:38Z"
   }
  ],
  "capture_path_gaps": [],
- "uptime": "05:04:39  up 27 days  9:30,  0 users,  load average: 0.04, 0.00, 0.05",
+ "uptime": "05:41:33  up 27 days 10:07,  0 users,  load average: 0.00, 0.00, 0.00",
  "board_procs": [],
  "single_writer": "OK",
  "local_serve_procs": [],
@@ -49,7 +49,7 @@
     "n_files": 88,
     "label": "fuzz-v2-on-relanding RETENTION (X1_AD_RETENTION=1) draw 2 of 2"
    },
-   "gen_git": "22f07b629b",
+   "gen_git": "986f7a0249",
    "rig_evt_hold_bits": 12,
    "rules_version": "1.0"
   },
@@ -64,7 +64,7 @@
     "n_files": 88,
     "label": "fuzz-v2-on-relanding RETENTION (X1_AD_RETENTION=1) draw 2 of 2"
    },
-   "gen_git": "22f07b629b",
+   "gen_git": "986f7a0249",
    "rig_evt_hold_bits": 12,
    "rules_version": "1.0"
   }
@@ -74,294 +74,294 @@
    {
     "j": 0,
     "stratum": "cen/soup/noevt/fix0",
-    "sampled": 3,
+    "sampled": 4,
     "bad_0f_pairs": 0
    },
    {
     "j": 1,
     "stratum": "cen/soup/noevt/wrand3",
-    "sampled": 3,
+    "sampled": 4,
     "bad_0f_pairs": 0
    },
    {
     "j": 2,
     "stratum": "cen/soup/noevt/wvec-uni",
-    "sampled": 3,
+    "sampled": 4,
     "bad_0f_pairs": 0
    },
    {
     "j": 3,
     "stratum": "cen/soup/stim/fix0",
-    "sampled": 3,
+    "sampled": 4,
     "bad_0f_pairs": 0
    },
    {
     "j": 4,
     "stratum": "cen/soup/stim/wrand3",
-    "sampled": 3,
+    "sampled": 4,
     "bad_0f_pairs": 0
    },
    {
     "j": 5,
     "stratum": "cen/soup/stim/wvec-uni",
-    "sampled": 3,
+    "sampled": 4,
     "bad_0f_pairs": 0
    },
    {
     "j": 6,
     "stratum": "cen/raw/noevt/fix0",
-    "sampled": 3,
+    "sampled": 4,
     "bad_0f_pairs": 0
    },
    {
     "j": 7,
     "stratum": "cen/raw/noevt/wrand3",
-    "sampled": 3,
+    "sampled": 4,
     "bad_0f_pairs": 0
    },
    {
     "j": 8,
     "stratum": "cen/raw/noevt/wvec-uni",
-    "sampled": 3,
+    "sampled": 4,
     "bad_0f_pairs": 0
    },
    {
     "j": 9,
     "stratum": "cen/raw/stim/fix0",
-    "sampled": 3,
+    "sampled": 4,
     "bad_0f_pairs": 0
    },
    {
     "j": 10,
     "stratum": "cen/raw/stim/wrand3",
-    "sampled": 3,
+    "sampled": 4,
     "bad_0f_pairs": 0
    },
    {
     "j": 11,
     "stratum": "cen/raw/stim/wvec-uni",
-    "sampled": 3,
+    "sampled": 4,
     "bad_0f_pairs": 0
    },
    {
     "j": 12,
     "stratum": "enr/soup/noevt/fix0",
-    "sampled": 3,
+    "sampled": 4,
     "bad_0f_pairs": 0
    },
    {
     "j": 13,
     "stratum": "enr/soup/noevt/fix1",
-    "sampled": 3,
+    "sampled": 4,
     "bad_0f_pairs": 0
    },
    {
     "j": 14,
     "stratum": "enr/soup/noevt/fix2",
-    "sampled": 3,
+    "sampled": 4,
     "bad_0f_pairs": 0
    },
    {
     "j": 15,
     "stratum": "enr/soup/noevt/fix3",
-    "sampled": 3,
+    "sampled": 4,
     "bad_0f_pairs": 0
    },
    {
     "j": 16,
     "stratum": "enr/soup/noevt/wrand1",
-    "sampled": 3,
+    "sampled": 4,
     "bad_0f_pairs": 0
    },
    {
     "j": 17,
     "stratum": "enr/soup/noevt/wrand3",
-    "sampled": 3,
+    "sampled": 4,
     "bad_0f_pairs": 0
    },
    {
     "j": 18,
     "stratum": "enr/soup/noevt/wrand7",
-    "sampled": 3,
+    "sampled": 4,
     "bad_0f_pairs": 0
    },
    {
     "j": 19,
     "stratum": "enr/soup/noevt/wrand15",
-    "sampled": 3,
+    "sampled": 4,
     "bad_0f_pairs": 0
    },
    {
     "j": 20,
     "stratum": "enr/soup/noevt/wvec-uni",
-    "sampled": 3,
+    "sampled": 4,
     "bad_0f_pairs": 0
    },
    {
     "j": 21,
     "stratum": "enr/soup/stim/fix0",
-    "sampled": 3,
+    "sampled": 4,
     "bad_0f_pairs": 0
    },
    {
     "j": 22,
     "stratum": "enr/soup/stim/fix1",
-    "sampled": 3,
+    "sampled": 4,
     "bad_0f_pairs": 0
    },
    {
     "j": 23,
     "stratum": "enr/soup/stim/fix2",
-    "sampled": 3,
+    "sampled": 4,
     "bad_0f_pairs": 0
    },
    {
     "j": 24,
     "stratum": "enr/soup/stim/fix3",
-    "sampled": 3,
+    "sampled": 4,
     "bad_0f_pairs": 0
    },
    {
     "j": 25,
     "stratum": "enr/soup/stim/wrand1",
-    "sampled": 3,
+    "sampled": 4,
     "bad_0f_pairs": 0
    },
    {
     "j": 26,
     "stratum": "enr/soup/stim/wrand3",
-    "sampled": 3,
+    "sampled": 4,
     "bad_0f_pairs": 0
    },
    {
     "j": 27,
     "stratum": "enr/soup/stim/wrand7",
-    "sampled": 3,
+    "sampled": 4,
     "bad_0f_pairs": 0
    },
    {
     "j": 28,
     "stratum": "enr/soup/stim/wrand15",
-    "sampled": 3,
+    "sampled": 4,
     "bad_0f_pairs": 0
    },
    {
     "j": 29,
     "stratum": "enr/soup/stim/wvec-uni",
-    "sampled": 3,
+    "sampled": 4,
     "bad_0f_pairs": 0
    },
    {
     "j": 30,
     "stratum": "enr/raw/noevt/fix0",
-    "sampled": 3,
+    "sampled": 4,
     "bad_0f_pairs": 0
    },
    {
     "j": 31,
     "stratum": "enr/raw/noevt/fix1",
-    "sampled": 3,
+    "sampled": 4,
     "bad_0f_pairs": 0
    },
    {
     "j": 32,
     "stratum": "enr/raw/noevt/fix2",
-    "sampled": 3,
+    "sampled": 4,
     "bad_0f_pairs": 0
    },
    {
     "j": 33,
     "stratum": "enr/raw/noevt/fix3",
-    "sampled": 3,
+    "sampled": 4,
     "bad_0f_pairs": 0
    },
    {
     "j": 34,
     "stratum": "enr/raw/noevt/wrand1",
-    "sampled": 3,
+    "sampled": 4,
     "bad_0f_pairs": 0
    },
    {
     "j": 35,
     "stratum": "enr/raw/noevt/wrand3",
-    "sampled": 3,
+    "sampled": 4,
     "bad_0f_pairs": 0
    },
    {
     "j": 36,
     "stratum": "enr/raw/noevt/wrand7",
-    "sampled": 3,
+    "sampled": 4,
     "bad_0f_pairs": 0
    },
    {
     "j": 37,
     "stratum": "enr/raw/noevt/wrand15",
-    "sampled": 3,
+    "sampled": 4,
     "bad_0f_pairs": 0
    },
    {
     "j": 38,
     "stratum": "enr/raw/noevt/wvec-uni",
-    "sampled": 3,
+    "sampled": 4,
     "bad_0f_pairs": 0
    },
    {
     "j": 39,
     "stratum": "enr/raw/stim/fix0",
-    "sampled": 3,
+    "sampled": 4,
     "bad_0f_pairs": 0
    },
    {
     "j": 40,
     "stratum": "enr/raw/stim/fix1",
-    "sampled": 3,
+    "sampled": 4,
     "bad_0f_pairs": 0
    },
    {
     "j": 41,
     "stratum": "enr/raw/stim/fix2",
-    "sampled": 3,
+    "sampled": 4,
     "bad_0f_pairs": 0
    },
    {
     "j": 42,
     "stratum": "enr/raw/stim/fix3",
-    "sampled": 3,
+    "sampled": 4,
     "bad_0f_pairs": 0
    },
    {
     "j": 43,
     "stratum": "enr/raw/stim/wrand1",
-    "sampled": 3,
+    "sampled": 4,
     "bad_0f_pairs": 0
    },
    {
     "j": 44,
     "stratum": "enr/raw/stim/wrand3",
-    "sampled": 3,
+    "sampled": 4,
     "bad_0f_pairs": 0
    },
    {
     "j": 45,
     "stratum": "enr/raw/stim/wrand7",
-    "sampled": 3,
+    "sampled": 4,
     "bad_0f_pairs": 0
    },
    {
     "j": 46,
     "stratum": "enr/raw/stim/wrand15",
-    "sampled": 3,
+    "sampled": 4,
     "bad_0f_pairs": 0
    },
    {
     "j": 47,
     "stratum": "enr/raw/stim/wvec-uni",
-    "sampled": 3,
+    "sampled": 4,
     "bad_0f_pairs": 0
    }
   ],
   "hits": 0,
-  "seeds": 144
+  "seeds": 192
  },
  "rig_readback_check": {
   "ok": true,

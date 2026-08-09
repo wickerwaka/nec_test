@@ -869,3 +869,138 @@ v2-era `fz2c` seeds the socket leg reads `ps3_8080` **false** on both (it read
 there, 0 on the socket leg).  With D9's unconditional `0F` scrub on every composed
 image, C-3's runtime clause is expected to read **0 of 3,840**; `ps3_8080_core` is
 expected to read **true on essentially every line** and to gate nothing.
+
+---
+
+## §12 THE T12 CAPTURE — TAKEN 2026-08-09, AND SCORED AS REGISTERED
+
+**The capture was taken.**  FLASH #12 resident (`sof 8db6dadf5c4c…`, receipt
+`27fb750f925c…`), not re-flashed.  `preflight --board` **OK** after the `fz2c`
+manifest was re-created (A-1's archive-by-rename took it; the new manifest is
+identical to the archived one except `gen_git`, and the flash pin is unmoved).
+**3,840 seeds in 10.8 minutes of board time** — inside §6's registered ≤ 30 min
+— **48 of 48 strata `written == n` with `rc = 0`, `halted: None`**, resumed by
+`_done_ks()`.  `div_guard` **PINNED on 53 of 53 probes, 0 unpinned**; socket
+only, `use_core=False`; **0 transport errors, 0 quarantines**; closing
+`use_core=0` chip proof **MATCH over 800 rows**; `board_idle()` clean.
+
+### 12.1 THE BARS, AS REGISTERED — 6 MET / 3 MISSED / 2 NOT SCOREABLE
+
+| bar | verdict | measured |
+|---|---|---|
+| **C-1** | **MISSED** | census/soup **92.29 %** (443/480, bar ≥ 99.0) · census/raw **54.79 %** (263/480, bar ≥ 95.0) · enriched/soup **89.86 %** (1,294/1,440) · enriched/raw **51.88 %** (747/1,440); **UNDISPOSITIONED 1,048**, bar **0** |
+| **C-2** | MET | 2,747 dumps, `MAGIC` constant `0x5EED`, all 14 other words ≥ 2 distinct (min `PSW` 161, `CW` 1,562); 0 flat words |
+| **C-3** | **MISSED** | generation **0** forbidden `0F xx` pairs over 3,840; runtime **1** capture with PS3 on a `CODE` T1 |
+| **C-4** | MET | 1 distinct era, 0 absent, 0 incomplete, `build_stale` 0, over 3,840 |
+| **C-5** | MET | 0 GEN_DRIFT, 0 wvec re-derive mismatches, over all 3,840 |
+| **C-6** | **NOT SCOREABLE** | the board legs do not exist on this tree (`cmd_control` is unimplemented, `fz2_control.json` absent) **and** finding O-2 below |
+| **C-7** | MET | 3,840 scored, max **1,006** bus cycles, 0 at or over 4,096 |
+| **C-8** | MET | **53 `div_guard` probes, 0 unpinned** |
+| **C-9** | **MISSED** | **191/192 stable**, 1 unstable, 0 errors |
+| **C-10** | MET | 0 quarantines, 0 run-error lines, breaker not tripped, no halted stratum |
+| **C-11** | **NOT SCOREABLE** | the bank promotion was not run this sitting (`census_banked` 0 of 480) |
+
+Decompositions, never one aggregate — census: captured 960, rows-exact
+**94.9 %**, arch-exact **72.08 %**, unscoreable 261.  Enriched: captured 2,880,
+rows-exact **94.34 %**, arch-exact **69.72 %**, unscoreable 860.
+
+### 12.2 A-2 IS VINDICATED AT CORPUS SCALE, AND IT IS WHY C-1 IS READABLE AT ALL
+
+* `ps3_8080_core` — the retired core-leg half, banked as a non-gating
+  diagnostic — is **true on 3,840 of 3,840**.  O-1 reproduces exactly, at full
+  scale, on the v2 corpus.
+* **Under the pre-A-2 `either leg` predicate, UNDISPOSITIONED would have read
+  `0`.**  Measured on these very lines: 0, not 1,048.  E-1c — *"the clause that
+  is not a rate … it bounds the unexplained residue from below, so the bar
+  cannot be met by discarding"* — would have been met **vacuously**, and the
+  1,048-seed mechanism in §12.3 would have been invisible and **unrecoverable**,
+  because rows are retained for only 480 census seeds.
+* A-2's own registered prediction was *"C-3's runtime clause is expected to read
+  **0 of 3,840**"*.  **It read 1.  THE PREDICTION IS MISSED**, and it is
+  reported as registered rather than restated.  The seed is `fz2e/509069`
+  (soup, `has_brkem` false, **0** forbidden `0F xx` pairs at generation) — i.e.
+  a `0F xx` pair created at RUNTIME, which is exactly the case §6 C-3 warns
+  its two clauses exist for: *"the generation clause alone cannot see a pair a
+  runtime write creates."*  One seed in 3,840 on the socket leg; under the OR it
+  would have been one signal inside 3,840 false positives.
+
+### 12.3 O-2a — THE FOURTH MECHANISM, NAMED AS §5.3'S FALSIFIER DEMANDS
+
+E-1c's registered falsifier: *"E-1c fails if any non-dumping seed carries none
+of the three signatures, which means a fourth mechanism exists and must be named
+before anything else is quoted."*  It fired on **1,048** seeds.  Named, from the
+bank, before anything else is quoted:
+
+**THE TERMINATOR FIRES AND IS INTERCEPTED, BUT THE DUMP DOES NOT COMPLETE
+INSIDE THE 4,096-ROW CAPTURE.**
+
+* **1,039 of 1,048 (99.1 %)** never reached the done marker (`done_real` false).
+* **1,045 of 1,048 (99.7 %)** have `term.fired ≥ 4` — the terminating NMI DID
+  assert — and **819 (78.1 %)** also have `term.vec_used` true, so the vector
+  overlay DID intercept.  This is not a rig that failed to arm.
+* `sub` is `window_truncated` **752**, `runaway_both` **164**, `open_bus` 106 —
+  **916 of 1,048** on the two window classes.
+* **`bus_cycles` max is 1,006** against C-7's bound of 4,096, and C-7 is MET.
+  **The binding limit is the 4,096-ROW capture, not the bus-cycle bound.**
+* Tier split **raw 867 / soup 181**, which matches the reached rates: raw ~52-55 %
+  against soup ~90-92 %.
+
+This points at **§3.2's `TERM_CLOCKS` budget**, not at the rig and not at any of
+§3.4's three signatures: `TERM_CLOCKS = CAP_ROWS − ceil(TERM_MARGIN × (ANCHOR_W0
++ DUMP_W0) × scale)` costs the dump from w0 constants measured on **soup** seeds
+and scaled by `weff`.  A raw-tier seed is not sitting at the anchor when the NMI
+lands, so the entry-plus-dump cost that budget allows is not the cost it pays.
+**NO DISPOSITION IS MADE HERE** — a fourth declared discard class, or a
+re-derived `TERM_CLOCKS` and a re-capture, is a decision about a registered bar
+and belongs to the coordinator.
+
+### 12.4 O-2b — C-6(b) IS NOT EVALUABLE AS WRITTEN
+
+C-6(b) reads *"every event seed's counted high-row run equals its own `hold`
+± 1 clock"* — **singular**.  The instrument that supplies the evidence,
+`fuzz_campaign._pin_runs`, returns **every** run on **all three** pins as a dict
+of `[start, length]` lists, and says in its own docstring that picking one
+*"would be answering the question in the instrument"*, because a stimulus NMI
+and the terminating NMI share the wire.  `fz2_w1.cmd_bars` was written as though
+it returned a scalar and evaluates `abs(dict - int)`:
+
+```
+TypeError: unsupported operand type(s) for -: 'dict' and 'int'
+```
+
+Before T12 no board capture had ever reached that line.  **The bar's text and
+its own instrument were never reconciled.**
+
+**NOT REPAIRED, AND NOTHING IS LOST.**  `cmd_bars` now DECLINES to evaluate the
+clause (records the shape, reads NOT SCOREABLE) instead of crashing, so the other
+ten bars can be reported; it does **not** invent a reading.  C-6's verdict is
+unchanged either way — it was already NOT SCOREABLE because `cmd_control` is
+unimplemented on this tree.  `term.hold_rows` is banked on **every** result line,
+counted over the whole capture, so C-6(b) is fully scoreable offline whenever it
+is ruled on.  For information only, and **not** offered as a score: on the
+reading *"a run of length `hold` ± 1 exists on the event's own `evt_pin`"*,
+**240 of 240** census event seeds satisfy it.  The corpus carries `hold = 2` on
+**1,241** seeds and `hold = 300` on **679**, so §6's ≥ 2 hold values is present.
+
+### 12.5 O-2c — C-9's ONE UNSTABLE SEED IS A FIRST-REPETITION EFFECT, SOCKET LEG ONLY
+
+`enr/raw/stim/fix3` **k = 530060**, rows retained at
+`fz2e/captures/c9/raw_530060_05b48d31db04.json.gz`, sha256
+`d0f2a3282a36d970bba6c23bfe035b9185472679cc82f6909e334a0ec09d25c9`.
+
+* **fabric leg: rep1 = rep2 = rep3, `bad` 0 on every pair.**
+* **socket leg: rep2 ≡ rep3 exactly (`bad` 0)**, and rep1 differs from *both*
+  identically — `bad` **3,257**, `flick` 1, first divergence row **691**.
+* The **arch dump is identical across all three reps**, and `pin_int`,
+  `pin_nmi`, `pin_poll_n` and `rst` are identical on **all 4,000 rows**, so the
+  directive was applied identically and the divergence is not a pin.
+* At row 690 both reps sit in `TW` of a waited `MEMR` at `0x72079`; rep2/rep3
+  take one more wait row and complete, rep1 does not.  The stratum is **`fix3`**
+  — a FIXED wait level.
+* The seed's own accesses are **39 of 39 open-bus feedthrough**
+  (`ob_escape.frac 1.0`).
+
+So it is **reproducible from the second repetition onward** and the outlier is
+the FIRST capture of that seed — a carry-in, not nondeterminism.  **NO
+DISPOSITION IS MADE HERE.**  C-9 is reported as registered: **191/192 against a
+bar of 192/192, MISSED.**

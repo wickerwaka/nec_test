@@ -1271,17 +1271,46 @@ def cmd_bars(a):
     c6 = json.loads(ctl.read_text()) if ctl.exists() else None
     holds = Counter()
     hold_exact = hold_bad = 0
+    # FINDING O-2, 2026-08-09: C-6(b) IS NOT EVALUABLE AS WRITTEN, and this
+    # code DECLINES to evaluate it rather than inventing a reading.
+    #
+    # The bar's text says "every event seed's counted high-row run equals its
+    # own `hold` +/- 1 clock" -- singular.  The instrument that supplies the
+    # evidence, `fuzz_campaign._pin_runs`, deliberately returns EVERY run on
+    # ALL THREE pins as a dict of [start, length] lists, and its docstring says
+    # in terms that picking one "would be answering the question in the
+    # instrument" -- because a stimulus NMI and the terminating NMI share the
+    # wire.  So `abs(t["hold_rows"] - e["hold"])` is `dict - int` and raises
+    # TypeError on the first event seed; before T12 no board capture had ever
+    # reached this line.  The bar's text and its own instrument were never
+    # reconciled.
+    #
+    # NOT REPAIRED HERE.  Choosing what "the counted high-row run" means, after
+    # the capture, is a comparator decision on a registered bar and belongs to
+    # the coordinator in an amendment -- the O-1 precedent exactly.  Nothing is
+    # lost by waiting: `term.hold_rows` is banked on EVERY result line, counted
+    # over the whole capture, so C-6(b) is fully scoreable offline whenever it
+    # is ruled on.  C-6's verdict is unaffected either way: it already reads
+    # NOT SCOREABLE because `cmd_control` is unimplemented on this tree, so
+    # `fz2_control.json` does not exist and `c6 is None`.
+    hold_shape = None
     if _need(allines, "term"):
         for r in allines:
             e = r.get("evt")
             t = r.get("term") or {}
             if e:
                 holds[e.get("hold")] += 1
-            if t.get("hold_rows") is not None and e:
-                if abs(t["hold_rows"] - e["hold"]) <= 1:
-                    hold_exact += 1
+            hr = t.get("hold_rows")
+            if hr is not None and e:
+                if isinstance(hr, (int, float)):
+                    if abs(hr - e["hold"]) <= 1:
+                        hold_exact += 1
+                    else:
+                        hold_bad += 1
                 else:
-                    hold_bad += 1
+                    hold_shape = (f"NOT EVALUABLE: hold_rows is "
+                                  f"{type(hr).__name__}, not a scalar -- "
+                                  f"finding O-2, C-6(b) awaits a ruling")
     bar("C-6", "the rig applied the directives it was handed",
         "EVT2/EVT3_CFG + TVEC + VECCTL round-trip on the readback path; a "
         "PIN-LEVEL proof by counted rows at >= 2 hold values (every seed's "
@@ -1289,8 +1318,10 @@ def cmd_bars(a):
         "interception proven on the rows at >= 2 distinct TVEC values",
         {"holds_in_corpus": dict(holds), "hold_rows_exact": hold_exact,
          "hold_rows_off": hold_bad, "control_leg": c6,
+         "pin_level_clause": hold_shape or "scalar",
          "scoreable": _need(allines, "term")},
-        "NOT SCOREABLE" if (not _need(allines, "term") or c6 is None)
+        "NOT SCOREABLE" if (not _need(allines, "term") or c6 is None
+                            or hold_shape)
         else ("MET" if (hold_bad == 0 and len(holds) >= 2
                         and c6.get("verdict") == "MET") else "MISSED"))
 
