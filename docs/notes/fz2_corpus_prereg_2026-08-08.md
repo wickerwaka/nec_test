@@ -1729,7 +1729,7 @@ the measurement** rather than relative to a mechanism — which is precisely wha
 * This document, appended, plus a forward pointer at §5.3 and §6.
 * **No other file.**  No board, no flash, no Quartus, no re-capture.
 
-### 16.8 THE RESCORE AS RUN — `sw/testdata/fz2/fz2_bars.json`, 2026-08-09T16:00:50Z
+### 16.8 THE RESCORE AS RUN — `sw/testdata/fz2/fz2_bars.json`, 2026-08-09T16:01:27Z
 
 `python3 sw/fz2_w1.py bars`, offline, off the same banked results §15.7 scored.
 **No capture, no re-capture, no board.**
@@ -1787,3 +1787,18 @@ unchanged: `undispositioned_3class` **312**, `stalled_total` **43**,
    that set them.  §16.2 says what would change that, and until it is run the
    correct sentence is *"the bar was placed below the number after the number
    was known"* — not *"containment meets its bar."*
+
+### 16.10 ERRATUM — the `ts` §16.8 first quoted was one run stale
+
+As first committed, §16.8's heading quoted **`2026-08-09T16:00:50Z`** while the
+artifact committed alongside it carried **`2026-08-09T16:01:27Z`**.  Cause:
+`bars` was run **twice** — once for the scored output, then again to confirm
+its **exit code 1** — and the second run rewrote `fz2_bars.json` with a fresh
+stamp.  Corrected forward, recorded not tidied, per the T10 erratum precedent.
+
+**Nothing else in §16.8 is affected, and this was checked rather than assumed**:
+the **committed** artifact was re-diffed leaf for leaf against §15.7's and
+differs in exactly the same **three** leaves — `bars/C-1/registered`,
+`bars/C-1/verdict`, `ts`.  The two runs therefore agree on **every field but
+the stamp**, which is also the only reproducibility evidence this rescore has
+and is worth having: the scorer is deterministic over the banked results.
