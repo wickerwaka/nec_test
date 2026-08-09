@@ -197,6 +197,20 @@ Values are monotone: never re-scored downward without a loud, itemized entry.)
   `timed_wvec_gate.py --core ucore` **88/88, +0.0 %** (the FSM core is 71/88);
   `timed_enter_replay.py --core ucore` **154/154 x5**;
   `timed_ins_replay.py --core ucore --raw` **1,312/1,312** and **2,624/2,624**;
+  ⚠ **NOT MEASURABLE ON `fuzz-v2-on-relanding` — READ THIS BEFORE QUOTING THE
+  NEXT FOUR FIGURES.**  Every v1 fuzz-bank figure below (`mc1`, `mc2`,
+  `t30-raw`, `t30-brkem` = 3,242 seeds) requires REGENERATING each seed's image
+  and hash-checking it against the banked `image_sha256`.  Plan **D9** makes the
+  `0F` scrub UNCONDITIONAL at all three build sites, so on that branch every v1
+  image regenerates to a different sha256: **3,157 GEN-DRIFT + 85 refused, 0
+  scored** (measured; `--bank mc1 --limit 40` gives `GEN_DRIFT=40 SCORED 0`).
+  The four banks are retired **by status, not by location** — nothing moved or
+  deleted, `--include-superseded` still selects all 3,865 seeds — but the flag
+  returns the SEEDS, **not the REPLAY**.  Re-deriving these numbers needs a
+  checkout of a PRE-fuzz-v2 generator (`7e949925b7` or `master`), not a flag.
+  `docs/notes/invalidation_ledger.md` **§ SUP-1**; `standing_gates.md` carries
+  the corrected rows.  This is a SUPERSESSION, not an invalidation: no rig
+  defect is alleged and the v1 `chip_rows` remain true silicon.
   `timed_fuzz.py --core ucore --evt-replay` REGISTERED **1,559/1,702**, EVT
   **934/1,008**, COMBINED **2,493/2,710** — **RAISED at wrfuzz W3.1 (the
   recognition-shadow law, +28 wr1 DIFF_BOUNDARY seeds) after SM3 SITTING 26's
