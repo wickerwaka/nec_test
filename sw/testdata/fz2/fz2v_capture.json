@@ -1,0 +1,117 @@
+{
+ "stage": "fz2v capture",
+ "host": "root@mister-nec",
+ "cid": "fz2v",
+ "gen_git": "fb0845365a",
+ "tree_dirty": [
+  {
+   "status": " M",
+   "path": "hdl/rtl/ucore/v30u_biu.sv",
+   "sha256": "7262f78849ca5982e6ba4f2869c5ba5ab9af5985a4e48f2cd65a00a06529b11f"
+  },
+  {
+   "status": " M",
+   "path": "hdl/rtl/ucore/v30u_eu.sv",
+   "sha256": "aafa0f55951e5508cc286586d2e7463167a47330f758a5f4eb8b1ad8be3de485"
+  },
+  {
+   "status": " M",
+   "path": "sw/testdata/receipts/verilator_binary.jsonl",
+   "sha256": "0aa0a8520b341d61b9a1140f10ae361af6412aa66b5a6d2a2ed23b87171e7802"
+  }
+ ],
+ "val_seed_list_sha256": "5d83b3a9b6aa7907cbef01eae7f33223b024f1fa9cdf1d56ab879e24925d81be",
+ "started": "2026-08-09T22:50:40Z",
+ "strata": [
+  {
+   "stratum": "val/soup/noevt/fix0",
+   "cid": "fz2v",
+   "k_lo": 600000,
+   "n": 80,
+   "written": 80,
+   "rc": 0,
+   "seconds": 9.3,
+   "rate": 8.57
+  },
+  {
+   "stratum": "val/soup/noevt/wrand3",
+   "cid": "fz2v",
+   "k_lo": 601000,
+   "n": 80,
+   "written": 80,
+   "rc": 0,
+   "seconds": 7.5,
+   "rate": 10.73
+  },
+  {
+   "stratum": "val/soup/noevt/wvec-uni",
+   "cid": "fz2v",
+   "k_lo": 602000,
+   "n": 80,
+   "written": 80,
+   "rc": 0,
+   "seconds": 9.5,
+   "rate": 8.45
+  },
+  {
+   "stratum": "val/soup/stim/fix0",
+   "cid": "fz2v",
+   "k_lo": 603000,
+   "n": 80,
+   "written": 80,
+   "rc": 0,
+   "seconds": 7.3,
+   "rate": 11.03
+  },
+  {
+   "stratum": "val/soup/stim/wrand3",
+   "cid": "fz2v",
+   "k_lo": 604000,
+   "n": 80,
+   "written": 12,
+   "rc": 0,
+   "seconds": 1.8,
+   "rate": 45.47
+  }
+ ],
+ "div_guards": [
+  {
+   "tag": "fz2v-00-val/soup/noevt/fix0",
+   "readback": "div=8 (4 MHz), commanded by this connection",
+   "state": "PINNED",
+   "rig": "WRAND=0 replay=0 (commanded clean at connect, OK/OK)",
+   "ts": "2026-08-09T22:50:40Z"
+  },
+  {
+   "tag": "fz2v-01-val/soup/noevt/wrand3",
+   "readback": "div=8 (4 MHz), commanded by this connection",
+   "state": "PINNED",
+   "rig": "WRAND=0 replay=0 (commanded clean at connect, OK/OK)",
+   "ts": "2026-08-09T22:50:50Z"
+  },
+  {
+   "tag": "fz2v-02-val/soup/noevt/wvec-uni",
+   "readback": "div=8 (4 MHz), commanded by this connection",
+   "state": "PINNED",
+   "rig": "WRAND=0 replay=0 (commanded clean at connect, OK/OK)",
+   "ts": "2026-08-09T22:50:58Z"
+  },
+  {
+   "tag": "fz2v-03-val/soup/stim/fix0",
+   "readback": "div=8 (4 MHz), commanded by this connection",
+   "state": "PINNED",
+   "rig": "WRAND=0 replay=0 (commanded clean at connect, OK/OK)",
+   "ts": "2026-08-09T22:51:08Z"
+  },
+  {
+   "tag": "fz2v-04-val/soup/stim/wrand3",
+   "readback": "div=8 (4 MHz), commanded by this connection",
+   "state": "PINNED",
+   "rig": "WRAND=0 replay=0 (commanded clean at connect, OK/OK)",
+   "ts": "2026-08-09T22:51:16Z"
+  }
+ ],
+ "board_seconds": 39.0,
+ "halted": "val/soup/stim/wrand3 wrote 12/80 rc=0 -- STOPPED, not nursed",
+ "finished": "2026-08-09T22:51:19Z"
+}

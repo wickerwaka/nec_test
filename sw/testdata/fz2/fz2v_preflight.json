@@ -1,0 +1,186 @@
+{
+ "stage": "fz2v preflight",
+ "host": "root@mister-nec",
+ "gen_git": "fb0845365a",
+ "tree_dirty": [
+  {
+   "status": " M",
+   "path": "hdl/rtl/ucore/v30u_biu.sv",
+   "sha256": "7262f78849ca5982e6ba4f2869c5ba5ab9af5985a4e48f2cd65a00a06529b11f"
+  },
+  {
+   "status": " M",
+   "path": "hdl/rtl/ucore/v30u_eu.sv",
+   "sha256": "aafa0f55951e5508cc286586d2e7463167a47330f758a5f4eb8b1ad8be3de485"
+  },
+  {
+   "status": " M",
+   "path": "sw/testdata/receipts/verilator_binary.jsonl",
+   "sha256": "0aa0a8520b341d61b9a1140f10ae361af6412aa66b5a6d2a2ed23b87171e7802"
+  }
+ ],
+ "val_seed_list_sha256": "5d83b3a9b6aa7907cbef01eae7f33223b024f1fa9cdf1d56ab879e24925d81be",
+ "ts": "2026-08-09T22:50:26Z",
+ "div_guards": [
+  {
+   "tag": "fz2v-preflight",
+   "readback": "div=8 (4 MHz), commanded by this connection",
+   "state": "PINNED",
+   "rig": "WRAND=0 replay=0 (commanded clean at connect, OK/OK)",
+   "ts": "2026-08-09T22:50:29Z"
+  },
+  {
+   "tag": "fz2v-preflight-end",
+   "readback": "div=8 (4 MHz), commanded by this connection",
+   "state": "PINNED",
+   "rig": "WRAND=0 replay=0 (commanded clean at connect, OK/OK)",
+   "ts": "2026-08-09T22:50:30Z"
+  }
+ ],
+ "capture_path_gaps": [],
+ "population": {
+  "seeds_sha256": "546b23ebd28c22851a8d20b576b4134406028fbdc252f27750a843755234f749",
+  "val_seed_list_sha256": "5d83b3a9b6aa7907cbef01eae7f33223b024f1fa9cdf1d56ab879e24925d81be",
+  "gen_git": "d1d9f168d4",
+  "e1_scored_at": {
+   "raw": 75.0,
+   "soup": 90.0
+  }
+ },
+ "population_committed": true,
+ "uptime": "22:50:27  up 28 days  3:16,  0 users,  load average: 0.00, 0.00, 0.00",
+ "board_procs": [],
+ "single_writer": "OK",
+ "local_serve_procs": [],
+ "flash_log_tail": {
+  "sha256": "8db6dadf5c4c621ceb6bac9b0935146a4193fa3709051636a260e451e0bee205",
+  "ts": "2026-08-09T05:00:11Z",
+  "git_describe": "b629296e3a",
+  "verify": "OK"
+ },
+ "resident_rig": {
+  "gap": [],
+  "why": "receipt 27fb750f925c\u2026, 'fuzz-v2-on-relanding RETENTION (X1_AD_RETENTION=1) draw 2 of 2'",
+  "receipt": "27fb750f925c539e0872506d1aba80d302cd80795073311595a168258d3ee5fe",
+  "flash_sha256": "8db6dadf5c4c621ceb6bac9b0935146a4193fa3709051636a260e451e0bee205"
+ },
+ "manifest": {
+  "sof_sha256": "8db6dadf5c4c621ceb6bac9b0935146a4193fa3709051636a260e451e0bee205",
+  "flash_ts": "2026-08-09T05:00:11Z",
+  "flash_git": "b629296e3a",
+  "flash_verify": "OK",
+  "rtl": {
+   "receipt_id": "27fb750f925c539e0872506d1aba80d302cd80795073311595a168258d3ee5fe",
+   "inputs_sha256": "998e129ef7ec38829f3e39a102d027daeb03df535f808f278bb93178d54958fa",
+   "n_files": 88,
+   "label": "fuzz-v2-on-relanding RETENTION (X1_AD_RETENTION=1) draw 2 of 2"
+  },
+  "gen_git": "fb0845365a",
+  "rig_evt_hold_bits": 12,
+  "rules_version": "1.0"
+ },
+ "regen_sample": {
+  "per_stratum": [
+   {
+    "j": 0,
+    "stratum": "val/soup/noevt/fix0",
+    "sampled": 4,
+    "bad_0f_pairs": 0
+   },
+   {
+    "j": 1,
+    "stratum": "val/soup/noevt/wrand3",
+    "sampled": 4,
+    "bad_0f_pairs": 0
+   },
+   {
+    "j": 2,
+    "stratum": "val/soup/noevt/wvec-uni",
+    "sampled": 4,
+    "bad_0f_pairs": 0
+   },
+   {
+    "j": 3,
+    "stratum": "val/soup/stim/fix0",
+    "sampled": 4,
+    "bad_0f_pairs": 0
+   },
+   {
+    "j": 4,
+    "stratum": "val/soup/stim/wrand3",
+    "sampled": 4,
+    "bad_0f_pairs": 0
+   },
+   {
+    "j": 5,
+    "stratum": "val/soup/stim/wvec-uni",
+    "sampled": 4,
+    "bad_0f_pairs": 0
+   },
+   {
+    "j": 6,
+    "stratum": "val/raw/noevt/fix0",
+    "sampled": 4,
+    "bad_0f_pairs": 0
+   },
+   {
+    "j": 7,
+    "stratum": "val/raw/noevt/wrand3",
+    "sampled": 4,
+    "bad_0f_pairs": 0
+   },
+   {
+    "j": 8,
+    "stratum": "val/raw/noevt/wvec-uni",
+    "sampled": 4,
+    "bad_0f_pairs": 0
+   },
+   {
+    "j": 9,
+    "stratum": "val/raw/stim/fix0",
+    "sampled": 4,
+    "bad_0f_pairs": 0
+   },
+   {
+    "j": 10,
+    "stratum": "val/raw/stim/wrand3",
+    "sampled": 4,
+    "bad_0f_pairs": 0
+   },
+   {
+    "j": 11,
+    "stratum": "val/raw/stim/wvec-uni",
+    "sampled": 4,
+    "bad_0f_pairs": 0
+   }
+  ],
+  "hits": 0,
+  "seeds": 48
+ },
+ "rig_readback_check": {
+  "ok": true,
+  "registers": [
+   "EVT_ADDR[0]",
+   "EVT_ADDR[1]",
+   "EVT_ADDR[2]",
+   "EVT_CFG[0]",
+   "EVT_CFG[1]",
+   "EVT_CFG[2]",
+   "TVEC",
+   "VECCTL"
+  ]
+ },
+ "check_ab_hw": {
+  "rc": 0,
+  "tail": [
+   "== chip position (use_core=0): boot vs golden ==",
+   "chip-vs-golden: MATCH over 800 rows",
+   "",
+   "== core position (use_core=1): boot ==",
+   "core-vs-chip:   MATCH over 800 rows",
+   "core-vs-golden: MATCH over 800 rows"
+  ]
+ },
+ "board_leg": true,
+ "verdict": "OK"
+}

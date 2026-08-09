@@ -1,0 +1,1629 @@
+{
+ "stage": "fz2 STATUS-vs-ROWS census (measurement tool, NOT a gate)",
+ "ts": "2026-08-09T23:00:25Z",
+ "scored": 3840,
+ "disagreements": [
+  {
+   "cid": "fz2c",
+   "k": 405055,
+   "tier": "soup",
+   "sub": "func:R@11",
+   "verdict": "FUNCTIONAL",
+   "raw_mode": null,
+   "arch_ok": true,
+   "rows_say_fired": true,
+   "status_says_fired": false,
+   "fired": 1,
+   "vec_used": false,
+   "vec_rows": 22,
+   "evt": {
+    "pin": 0,
+    "delay": 24,
+    "hold": 300,
+    "hold_bits": 12,
+    "hold_applied": 300
+   },
+   "hold_rows": {
+    "pin_int": [
+     [
+      250,
+      300
+     ]
+    ],
+    "pin_nmi": [
+     [
+      3207,
+      20
+     ]
+    ],
+    "pin_poll_n": [
+     [
+      0,
+      4063
+     ]
+    ]
+   },
+   "ts": "2026-08-09T16:33:56Z"
+  },
+  {
+   "cid": "fz2c",
+   "k": 411076,
+   "tier": "raw",
+   "sub": "open_bus",
+   "verdict": "KNOWN_ACCEPTED",
+   "raw_mode": "whole",
+   "arch_ok": true,
+   "rows_say_fired": true,
+   "status_says_fired": false,
+   "fired": 1,
+   "vec_used": false,
+   "vec_rows": 26,
+   "evt": {
+    "pin": 0,
+    "delay": 44,
+    "hold": 2,
+    "hold_bits": 12,
+    "hold_applied": 2
+   },
+   "hold_rows": {
+    "pin_int": [
+     [
+      222,
+      2
+     ],
+     [
+      1726,
+      2
+     ]
+    ],
+    "pin_nmi": [
+     [
+      3132,
+      20
+     ]
+    ],
+    "pin_poll_n": [
+     [
+      0,
+      4063
+     ]
+    ]
+   },
+   "ts": "2026-08-09T16:35:55Z"
+  },
+  {
+   "cid": "fz2e",
+   "k": 518059,
+   "tier": "raw",
+   "sub": "open_bus",
+   "verdict": "KNOWN_ACCEPTED",
+   "raw_mode": "payload",
+   "arch_ok": true,
+   "rows_say_fired": true,
+   "status_says_fired": false,
+   "fired": 0,
+   "vec_used": false,
+   "vec_rows": 21,
+   "evt": null,
+   "hold_rows": {
+    "pin_int": [],
+    "pin_nmi": [
+     [
+      3301,
+      20
+     ]
+    ],
+    "pin_poll_n": [
+     [
+      0,
+      4063
+     ]
+    ]
+   },
+   "ts": "2026-08-09T16:39:02Z"
+  },
+  {
+   "cid": "fz2e",
+   "k": 519056,
+   "tier": "raw",
+   "sub": "window_truncated",
+   "verdict": "SUCCESS",
+   "raw_mode": "payload",
+   "arch_ok": false,
+   "rows_say_fired": true,
+   "status_says_fired": false,
+   "fired": 0,
+   "vec_used": false,
+   "vec_rows": 820,
+   "evt": null,
+   "hold_rows": {
+    "pin_int": [],
+    "pin_nmi": [
+     [
+      3243,
+      20
+     ]
+    ],
+    "pin_poll_n": [
+     [
+      0,
+      4063
+     ]
+    ]
+   },
+   "ts": "2026-08-09T16:39:15Z"
+  },
+  {
+   "cid": "fz2e",
+   "k": 521059,
+   "tier": "raw",
+   "sub": "open_bus",
+   "verdict": "KNOWN_ACCEPTED",
+   "raw_mode": "whole",
+   "arch_ok": true,
+   "rows_say_fired": true,
+   "status_says_fired": false,
+   "fired": 0,
+   "vec_used": false,
+   "vec_rows": 28,
+   "evt": null,
+   "hold_rows": {
+    "pin_int": [],
+    "pin_nmi": [
+     [
+      3070,
+      20
+     ]
+    ],
+    "pin_poll_n": [
+     [
+      0,
+      4063
+     ]
+    ]
+   },
+   "ts": "2026-08-09T16:39:44Z"
+  },
+  {
+   "cid": "fz2e",
+   "k": 523040,
+   "tier": "raw",
+   "sub": "open_bus",
+   "verdict": "KNOWN_ACCEPTED",
+   "raw_mode": "whole",
+   "arch_ok": false,
+   "rows_say_fired": true,
+   "status_says_fired": false,
+   "fired": 0,
+   "vec_used": false,
+   "vec_rows": 27,
+   "evt": null,
+   "hold_rows": {
+    "pin_int": [],
+    "pin_nmi": [
+     [
+      3035,
+      20
+     ]
+    ],
+    "pin_poll_n": [
+     [
+      0,
+      4063
+     ]
+    ]
+   },
+   "ts": "2026-08-09T16:40:10Z"
+  },
+  {
+   "cid": "fz2e",
+   "k": 528016,
+   "tier": "raw",
+   "sub": "open_bus",
+   "verdict": "KNOWN_ACCEPTED",
+   "raw_mode": "whole",
+   "arch_ok": true,
+   "rows_say_fired": true,
+   "status_says_fired": false,
+   "fired": 0,
+   "vec_used": false,
+   "vec_rows": 24,
+   "evt": {
+    "pin": 0,
+    "delay": 1536,
+    "hold": 2,
+    "hold_bits": 12,
+    "hold_applied": 2
+   },
+   "hold_rows": {
+    "pin_int": [],
+    "pin_nmi": [
+     [
+      3243,
+      20
+     ]
+    ],
+    "pin_poll_n": [
+     [
+      0,
+      4063
+     ]
+    ]
+   },
+   "ts": "2026-08-09T16:41:22Z"
+  },
+  {
+   "cid": "fz2e",
+   "k": 530063,
+   "tier": "raw",
+   "sub": "open_bus",
+   "verdict": "KNOWN_ACCEPTED",
+   "raw_mode": "whole",
+   "arch_ok": false,
+   "rows_say_fired": true,
+   "status_says_fired": false,
+   "fired": 0,
+   "vec_used": false,
+   "vec_rows": 28,
+   "evt": {
+    "pin": 0,
+    "delay": 710,
+    "hold": 2,
+    "hold_bits": 12,
+    "hold_applied": 2
+   },
+   "hold_rows": {
+    "pin_int": [],
+    "pin_nmi": [
+     [
+      3070,
+      20
+     ]
+    ],
+    "pin_poll_n": [
+     [
+      0,
+      4063
+     ]
+    ]
+   },
+   "ts": "2026-08-09T16:42:00Z"
+  },
+  {
+   "cid": "fz2e",
+   "k": 531045,
+   "tier": "raw",
+   "sub": "open_bus",
+   "verdict": "KNOWN_ACCEPTED",
+   "raw_mode": "whole",
+   "arch_ok": true,
+   "rows_say_fired": true,
+   "status_says_fired": false,
+   "fired": 0,
+   "vec_used": false,
+   "vec_rows": 23,
+   "evt": {
+    "pin": 1,
+    "delay": 1437,
+    "hold": 2,
+    "hold_bits": 12,
+    "hold_applied": 2
+   },
+   "hold_rows": {
+    "pin_int": [],
+    "pin_nmi": [
+     [
+      3210,
+      20
+     ]
+    ],
+    "pin_poll_n": [
+     [
+      0,
+      4063
+     ]
+    ]
+   },
+   "ts": "2026-08-09T16:42:14Z"
+  }
+ ],
+ "tier_census": {
+  "soup": 1,
+  "raw": 8
+ },
+ "sub_census": {
+  "func:R@11": 1,
+  "open_bus": 7,
+  "window_truncated": 1
+ },
+ "corpus_sub_base": {
+  "func:R@11": 1,
+  "open_bus": 168,
+  "window_truncated": 278
+ },
+ "div_guards": [
+  {
+   "tag": "replay-fz2c-405055",
+   "readback": "div=8 (4 MHz), commanded by this connection",
+   "state": "PINNED",
+   "rig": "WRAND=0 replay=0 (commanded clean at connect, OK/OK)",
+   "ts": "2026-08-09T23:00:26Z"
+  },
+  {
+   "tag": "replay-fz2c-411076",
+   "readback": "div=8 (4 MHz), commanded by this connection",
+   "state": "PINNED",
+   "rig": "WRAND=0 replay=0 (commanded clean at connect, OK/OK)",
+   "ts": "2026-08-09T23:00:26Z"
+  },
+  {
+   "tag": "replay-fz2e-518059",
+   "readback": "div=8 (4 MHz), commanded by this connection",
+   "state": "PINNED",
+   "rig": "WRAND=0 replay=0 (commanded clean at connect, OK/OK)",
+   "ts": "2026-08-09T23:00:26Z"
+  },
+  {
+   "tag": "replay-fz2e-519056",
+   "readback": "div=8 (4 MHz), commanded by this connection",
+   "state": "PINNED",
+   "rig": "WRAND=0 replay=0 (commanded clean at connect, OK/OK)",
+   "ts": "2026-08-09T23:00:27Z"
+  },
+  {
+   "tag": "replay-fz2e-521059",
+   "readback": "div=8 (4 MHz), commanded by this connection",
+   "state": "PINNED",
+   "rig": "WRAND=0 replay=0 (commanded clean at connect, OK/OK)",
+   "ts": "2026-08-09T23:00:27Z"
+  },
+  {
+   "tag": "replay-fz2e-523040",
+   "readback": "div=8 (4 MHz), commanded by this connection",
+   "state": "PINNED",
+   "rig": "WRAND=0 replay=0 (commanded clean at connect, OK/OK)",
+   "ts": "2026-08-09T23:00:27Z"
+  },
+  {
+   "tag": "replay-fz2e-528016",
+   "readback": "div=8 (4 MHz), commanded by this connection",
+   "state": "PINNED",
+   "rig": "WRAND=0 replay=0 (commanded clean at connect, OK/OK)",
+   "ts": "2026-08-09T23:00:27Z"
+  },
+  {
+   "tag": "replay-fz2e-530063",
+   "readback": "div=8 (4 MHz), commanded by this connection",
+   "state": "PINNED",
+   "rig": "WRAND=0 replay=0 (commanded clean at connect, OK/OK)",
+   "ts": "2026-08-09T23:00:28Z"
+  },
+  {
+   "tag": "replay-fz2e-531045",
+   "readback": "div=8 (4 MHz), commanded by this connection",
+   "state": "PINNED",
+   "rig": "WRAND=0 replay=0 (commanded clean at connect, OK/OK)",
+   "ts": "2026-08-09T23:00:28Z"
+  }
+ ],
+ "replay": [
+  {
+   "cid": "fz2c",
+   "k": 405055,
+   "stratum": "cen/soup/stim/wvec-uni",
+   "image_sha256": "4a526ea9884c97b2977030acc71d154e58df8b170638911818a901fc954018e2",
+   "banked_image_sha256": "4a526ea9884c97b2977030acc71d154e58df8b170638911818a901fc954018e2",
+   "image_reproduces": true,
+   "directive": {
+    "evts": [
+     [
+      360704,
+      24,
+      300,
+      0
+     ],
+     null,
+     [
+      360704,
+      2914,
+      20,
+      1
+     ]
+    ],
+    "tvec": [
+     0,
+     48896
+    ],
+    "vecsub": 4,
+    "anchor_linear": 360704,
+    "evt": {
+     "pin": 0,
+     "delay": 24,
+     "hold": 300,
+     "hold_bits": 12,
+     "hold_applied": 300
+    },
+    "term_clocks": 2914,
+    "weff": 2
+   },
+   "n_rows": 4063,
+   "row_base_idx": 33,
+   "n_txns": 265,
+   "n_code_t1": 175,
+   "anchor_code_t1_hits": [
+    257
+   ],
+   "n_anchor_hits": 1,
+   "distinct_code_addrs": 131,
+   "predicted": {
+    "stim": {
+     "pin": "pin_int",
+     "hold": 300,
+     "predicted_start": 250,
+     "observed": [
+      [
+       250,
+       300
+      ]
+     ]
+    },
+    "term": {
+     "pin": "pin_nmi",
+     "hold": 20,
+     "predicted_start": 3140,
+     "observed": [
+      [
+       3140,
+       20
+      ]
+     ]
+    }
+   },
+   "pin_runs": {
+    "pin_int": [
+     [
+      250,
+      300
+     ]
+    ],
+    "pin_nmi": [
+     [
+      3140,
+      20
+     ]
+    ],
+    "pin_poll_n": [
+     [
+      0,
+      4063
+     ]
+    ]
+   },
+   "term": {
+    "fired": 5,
+    "vec_used": true,
+    "readback": {
+     "EVT_ADDR[0]": 360704,
+     "EVT_CFG[0]": 2284584984,
+     "EVT_ADDR[1]": 0,
+     "EVT_CFG[1]": 0,
+     "EVT_ADDR[2]": 360704,
+     "EVT_CFG[2]": 2165574498,
+     "TVEC": 48896,
+     "VECCTL": 4
+    },
+    "readback_ok": true,
+    "serve_ver": 3
+   },
+   "banked_term": {
+    "fired": 1,
+    "vec_used": false,
+    "readback_ok": true,
+    "tvec": [
+     0,
+     48896
+    ],
+    "vecsub": 4,
+    "term_clocks": 2914,
+    "term_hold": 20,
+    "evt_hold": 300,
+    "evt_pin": 0,
+    "hold_rows": {
+     "pin_int": [
+      [
+       250,
+       300
+      ]
+     ],
+     "pin_nmi": [
+      [
+       3207,
+       20
+      ]
+     ],
+     "pin_poll_n": [
+      [
+       0,
+       4063
+      ]
+     ]
+    },
+    "vec_rows": 22
+   },
+   "banked_verdict": "FUNCTIONAL",
+   "banked_arch_ok": true,
+   "banked_sub": "func:R@11",
+   "fired_reproduces": false,
+   "rows_file": "sw/testdata/campaigns/fz2ctl/captures/replay_fz2c_405055.json.gz",
+   "sha256": "3429b2e13548a22d7453bfbac7099b41557230c38ebdc4f250e76114aa11333c"
+  },
+  {
+   "cid": "fz2c",
+   "k": 411076,
+   "stratum": "cen/raw/stim/wvec-uni",
+   "image_sha256": "756330350f553f544c07ac4389d629a26fcb7eb9dcec8b8b80f8fc6620f5fc05",
+   "banked_image_sha256": "756330350f553f544c07ac4389d629a26fcb7eb9dcec8b8b80f8fc6620f5fc05",
+   "image_reproduces": true,
+   "directive": {
+    "evts": [
+     [
+      491776,
+      44,
+      2,
+      0
+     ],
+     null,
+     [
+      491776,
+      3034,
+      20,
+      1
+     ]
+    ],
+    "tvec": [
+     0,
+     48896
+    ],
+    "vecsub": 4,
+    "anchor_linear": 491776,
+    "evt": {
+     "pin": 0,
+     "delay": 44,
+     "hold": 2,
+     "hold_bits": 12,
+     "hold_applied": 2
+    },
+    "term_clocks": 3034,
+    "weff": 1
+   },
+   "n_rows": 4063,
+   "row_base_idx": 33,
+   "n_txns": 803,
+   "n_code_t1": 66,
+   "anchor_code_t1_hits": [
+    209
+   ],
+   "n_anchor_hits": 1,
+   "distinct_code_addrs": 66,
+   "predicted": {
+    "stim": {
+     "pin": "pin_int",
+     "hold": 2,
+     "predicted_start": 222,
+     "observed": [
+      [
+       222,
+       2
+      ]
+     ]
+    },
+    "term": {
+     "pin": "pin_nmi",
+     "hold": 20,
+     "predicted_start": 3212,
+     "observed": [
+      [
+       3212,
+       20
+      ]
+     ]
+    }
+   },
+   "pin_runs": {
+    "pin_int": [
+     [
+      222,
+      2
+     ]
+    ],
+    "pin_nmi": [
+     [
+      3212,
+      20
+     ]
+    ],
+    "pin_poll_n": [
+     [
+      0,
+      4063
+     ]
+    ]
+   },
+   "term": {
+    "fired": 5,
+    "vec_used": true,
+    "readback": {
+     "EVT_ADDR[0]": 491776,
+     "EVT_CFG[0]": 2147614764,
+     "EVT_ADDR[1]": 0,
+     "EVT_CFG[1]": 0,
+     "EVT_ADDR[2]": 491776,
+     "EVT_CFG[2]": 2165574618,
+     "TVEC": 48896,
+     "VECCTL": 4
+    },
+    "readback_ok": true,
+    "serve_ver": 3
+   },
+   "banked_term": {
+    "fired": 1,
+    "vec_used": false,
+    "readback_ok": true,
+    "tvec": [
+     0,
+     48896
+    ],
+    "vecsub": 4,
+    "term_clocks": 3034,
+    "term_hold": 20,
+    "evt_hold": 2,
+    "evt_pin": 0,
+    "hold_rows": {
+     "pin_int": [
+      [
+       222,
+       2
+      ],
+      [
+       1726,
+       2
+      ]
+     ],
+     "pin_nmi": [
+      [
+       3132,
+       20
+      ]
+     ],
+     "pin_poll_n": [
+      [
+       0,
+       4063
+      ]
+     ]
+    },
+    "vec_rows": 26
+   },
+   "banked_verdict": "KNOWN_ACCEPTED",
+   "banked_arch_ok": true,
+   "banked_sub": "open_bus",
+   "fired_reproduces": false,
+   "rows_file": "sw/testdata/campaigns/fz2ctl/captures/replay_fz2c_411076.json.gz",
+   "sha256": "08be5143721e21d9aaaa6d22cdc01bf256e3a0045292855fdf9d13a5791485f2"
+  },
+  {
+   "cid": "fz2e",
+   "k": 518059,
+   "stratum": "enr/raw/noevt/fix0",
+   "image_sha256": "0de518ec86de9c50da8014984ef29f249365c288a4968c5e439f0d7f4e16cf1b",
+   "banked_image_sha256": "0de518ec86de9c50da8014984ef29f249365c288a4968c5e439f0d7f4e16cf1b",
+   "image_reproduces": true,
+   "directive": {
+    "evts": [
+     null,
+     null,
+     [
+      557312,
+      3154,
+      20,
+      1
+     ]
+    ],
+    "tvec": [
+     0,
+     48896
+    ],
+    "vecsub": 4,
+    "anchor_linear": 557312,
+    "evt": null,
+    "term_clocks": 3154,
+    "weff": 0
+   },
+   "n_rows": 4063,
+   "row_base_idx": 33,
+   "n_txns": 163,
+   "n_code_t1": 112,
+   "anchor_code_t1_hits": [
+    178
+   ],
+   "n_anchor_hits": 1,
+   "distinct_code_addrs": 75,
+   "predicted": {
+    "term": {
+     "pin": "pin_nmi",
+     "hold": 20,
+     "predicted_start": 3301,
+     "observed": [
+      [
+       3301,
+       20
+      ]
+     ]
+    }
+   },
+   "pin_runs": {
+    "pin_int": [],
+    "pin_nmi": [
+     [
+      3301,
+      20
+     ]
+    ],
+    "pin_poll_n": [
+     [
+      0,
+      4063
+     ]
+    ]
+   },
+   "term": {
+    "fired": 4,
+    "vec_used": true,
+    "readback": {
+     "EVT_ADDR[0]": 491776,
+     "EVT_CFG[0]": 0,
+     "EVT_ADDR[1]": 0,
+     "EVT_CFG[1]": 0,
+     "EVT_ADDR[2]": 557312,
+     "EVT_CFG[2]": 2165574738,
+     "TVEC": 48896,
+     "VECCTL": 4
+    },
+    "readback_ok": true,
+    "serve_ver": 3
+   },
+   "banked_term": {
+    "fired": 0,
+    "vec_used": false,
+    "readback_ok": true,
+    "tvec": [
+     0,
+     48896
+    ],
+    "vecsub": 4,
+    "term_clocks": 3154,
+    "term_hold": 20,
+    "evt_hold": null,
+    "evt_pin": null,
+    "hold_rows": {
+     "pin_int": [],
+     "pin_nmi": [
+      [
+       3301,
+       20
+      ]
+     ],
+     "pin_poll_n": [
+      [
+       0,
+       4063
+      ]
+     ]
+    },
+    "vec_rows": 21
+   },
+   "banked_verdict": "KNOWN_ACCEPTED",
+   "banked_arch_ok": true,
+   "banked_sub": "open_bus",
+   "fired_reproduces": false,
+   "rows_file": "sw/testdata/campaigns/fz2ctl/captures/replay_fz2e_518059.json.gz",
+   "sha256": "33806cf28c4c21d602630827c301d2644c4574093642b401fe20c0f730323125"
+  },
+  {
+   "cid": "fz2e",
+   "k": 519056,
+   "stratum": "enr/raw/noevt/fix1",
+   "image_sha256": "2b84220a15a83d083bd1a4904192c2b20a47097cc7ffe408694cfbf4850d95bb",
+   "banked_image_sha256": "2b84220a15a83d083bd1a4904192c2b20a47097cc7ffe408694cfbf4850d95bb",
+   "image_reproduces": true,
+   "directive": {
+    "evts": [
+     null,
+     null,
+     [
+      950528,
+      3034,
+      20,
+      1
+     ]
+    ],
+    "tvec": [
+     0,
+     48896
+    ],
+    "vecsub": 4,
+    "anchor_linear": 950528,
+    "evt": null,
+    "term_clocks": 3034,
+    "weff": 1
+   },
+   "n_rows": 4063,
+   "row_base_idx": 33,
+   "n_txns": 95,
+   "n_code_t1": 73,
+   "anchor_code_t1_hits": [
+    240
+   ],
+   "n_anchor_hits": 1,
+   "distinct_code_addrs": 71,
+   "predicted": {
+    "term": {
+     "pin": "pin_nmi",
+     "hold": 20,
+     "predicted_start": 3243,
+     "observed": [
+      [
+       3243,
+       20
+      ]
+     ]
+    }
+   },
+   "pin_runs": {
+    "pin_int": [],
+    "pin_nmi": [
+     [
+      3243,
+      20
+     ]
+    ],
+    "pin_poll_n": [
+     [
+      0,
+      4063
+     ]
+    ]
+   },
+   "term": {
+    "fired": 4,
+    "vec_used": false,
+    "readback": {
+     "EVT_ADDR[0]": 491776,
+     "EVT_CFG[0]": 0,
+     "EVT_ADDR[1]": 0,
+     "EVT_CFG[1]": 0,
+     "EVT_ADDR[2]": 950528,
+     "EVT_CFG[2]": 2165574618,
+     "TVEC": 48896,
+     "VECCTL": 4
+    },
+    "readback_ok": true,
+    "serve_ver": 3
+   },
+   "banked_term": {
+    "fired": 0,
+    "vec_used": false,
+    "readback_ok": true,
+    "tvec": [
+     0,
+     48896
+    ],
+    "vecsub": 4,
+    "term_clocks": 3034,
+    "term_hold": 20,
+    "evt_hold": null,
+    "evt_pin": null,
+    "hold_rows": {
+     "pin_int": [],
+     "pin_nmi": [
+      [
+       3243,
+       20
+      ]
+     ],
+     "pin_poll_n": [
+      [
+       0,
+       4063
+      ]
+     ]
+    },
+    "vec_rows": 820
+   },
+   "banked_verdict": "SUCCESS",
+   "banked_arch_ok": false,
+   "banked_sub": "window_truncated",
+   "fired_reproduces": false,
+   "rows_file": "sw/testdata/campaigns/fz2ctl/captures/replay_fz2e_519056.json.gz",
+   "sha256": "77f8e439abb071e30e2dbf0d0fb678c8d754348ddc203d106a8be01185ea2230"
+  },
+  {
+   "cid": "fz2e",
+   "k": 521059,
+   "stratum": "enr/raw/noevt/fix3",
+   "image_sha256": "d71e03aa593e7d7766e29d711043a50361d909ecddbb3f2920dcd2359bad53c5",
+   "banked_image_sha256": "d71e03aa593e7d7766e29d711043a50361d909ecddbb3f2920dcd2359bad53c5",
+   "image_reproduces": true,
+   "directive": {
+    "evts": [
+     null,
+     null,
+     [
+      1016064,
+      2795,
+      20,
+      1
+     ]
+    ],
+    "tvec": [
+     0,
+     48896
+    ],
+    "vecsub": 4,
+    "anchor_linear": 1016064,
+    "evt": null,
+    "term_clocks": 2795,
+    "weff": 3
+   },
+   "n_rows": 4063,
+   "row_base_idx": 33,
+   "n_txns": 274,
+   "n_code_t1": 177,
+   "anchor_code_t1_hits": [
+    306
+   ],
+   "n_anchor_hits": 1,
+   "distinct_code_addrs": 138,
+   "predicted": {
+    "term": {
+     "pin": "pin_nmi",
+     "hold": 20,
+     "predicted_start": 3070,
+     "observed": [
+      [
+       3070,
+       20
+      ]
+     ]
+    }
+   },
+   "pin_runs": {
+    "pin_int": [],
+    "pin_nmi": [
+     [
+      3070,
+      20
+     ]
+    ],
+    "pin_poll_n": [
+     [
+      0,
+      4063
+     ]
+    ]
+   },
+   "term": {
+    "fired": 4,
+    "vec_used": true,
+    "readback": {
+     "EVT_ADDR[0]": 491776,
+     "EVT_CFG[0]": 0,
+     "EVT_ADDR[1]": 0,
+     "EVT_CFG[1]": 0,
+     "EVT_ADDR[2]": 1016064,
+     "EVT_CFG[2]": 2165574379,
+     "TVEC": 48896,
+     "VECCTL": 4
+    },
+    "readback_ok": true,
+    "serve_ver": 3
+   },
+   "banked_term": {
+    "fired": 0,
+    "vec_used": false,
+    "readback_ok": true,
+    "tvec": [
+     0,
+     48896
+    ],
+    "vecsub": 4,
+    "term_clocks": 2795,
+    "term_hold": 20,
+    "evt_hold": null,
+    "evt_pin": null,
+    "hold_rows": {
+     "pin_int": [],
+     "pin_nmi": [
+      [
+       3070,
+       20
+      ]
+     ],
+     "pin_poll_n": [
+      [
+       0,
+       4063
+      ]
+     ]
+    },
+    "vec_rows": 28
+   },
+   "banked_verdict": "KNOWN_ACCEPTED",
+   "banked_arch_ok": true,
+   "banked_sub": "open_bus",
+   "fired_reproduces": false,
+   "rows_file": "sw/testdata/campaigns/fz2ctl/captures/replay_fz2e_521059.json.gz",
+   "sha256": "f6c422205c08f3c89dcfb47c49bedcec15c43c151609f04a936a51253b68ddd8"
+  },
+  {
+   "cid": "fz2e",
+   "k": 523040,
+   "stratum": "enr/raw/noevt/wrand3",
+   "image_sha256": "a71075093fd8932c80200c94811bacbd416eb6123dea80335ee2cdacafe879bc",
+   "banked_image_sha256": "a71075093fd8932c80200c94811bacbd416eb6123dea80335ee2cdacafe879bc",
+   "image_reproduces": true,
+   "directive": {
+    "evts": [
+     null,
+     null,
+     [
+      98560,
+      2795,
+      20,
+      1
+     ]
+    ],
+    "tvec": [
+     0,
+     48896
+    ],
+    "vecsub": 4,
+    "anchor_linear": 98560,
+    "evt": null,
+    "term_clocks": 2795,
+    "weff": 3
+   },
+   "n_rows": 4063,
+   "row_base_idx": 33,
+   "n_txns": 375,
+   "n_code_t1": 119,
+   "anchor_code_t1_hits": [
+    258
+   ],
+   "n_anchor_hits": 1,
+   "distinct_code_addrs": 107,
+   "predicted": {
+    "term": {
+     "pin": "pin_nmi",
+     "hold": 20,
+     "predicted_start": 3022,
+     "observed": [
+      [
+       3022,
+       20
+      ]
+     ]
+    }
+   },
+   "pin_runs": {
+    "pin_int": [],
+    "pin_nmi": [
+     [
+      3022,
+      20
+     ]
+    ],
+    "pin_poll_n": [
+     [
+      0,
+      4063
+     ]
+    ]
+   },
+   "term": {
+    "fired": 4,
+    "vec_used": false,
+    "readback": {
+     "EVT_ADDR[0]": 491776,
+     "EVT_CFG[0]": 0,
+     "EVT_ADDR[1]": 0,
+     "EVT_CFG[1]": 0,
+     "EVT_ADDR[2]": 98560,
+     "EVT_CFG[2]": 2165574379,
+     "TVEC": 48896,
+     "VECCTL": 4
+    },
+    "readback_ok": true,
+    "serve_ver": 3
+   },
+   "banked_term": {
+    "fired": 0,
+    "vec_used": false,
+    "readback_ok": true,
+    "tvec": [
+     0,
+     48896
+    ],
+    "vecsub": 4,
+    "term_clocks": 2795,
+    "term_hold": 20,
+    "evt_hold": null,
+    "evt_pin": null,
+    "hold_rows": {
+     "pin_int": [],
+     "pin_nmi": [
+      [
+       3035,
+       20
+      ]
+     ],
+     "pin_poll_n": [
+      [
+       0,
+       4063
+      ]
+     ]
+    },
+    "vec_rows": 27
+   },
+   "banked_verdict": "KNOWN_ACCEPTED",
+   "banked_arch_ok": false,
+   "banked_sub": "open_bus",
+   "fired_reproduces": false,
+   "rows_file": "sw/testdata/campaigns/fz2ctl/captures/replay_fz2e_523040.json.gz",
+   "sha256": "14e3705c85067c13990a1dabb0b9ccefe39068248da08ee940b3d4a3fd220cc6"
+  },
+  {
+   "cid": "fz2e",
+   "k": 528016,
+   "stratum": "enr/raw/stim/fix1",
+   "image_sha256": "41408c2e8bcff4d9cb6437ce12c0a5c1b2d840d7707e75647f73011b88d72297",
+   "banked_image_sha256": "41408c2e8bcff4d9cb6437ce12c0a5c1b2d840d7707e75647f73011b88d72297",
+   "image_reproduces": true,
+   "directive": {
+    "evts": [
+     [
+      753920,
+      1536,
+      2,
+      0
+     ],
+     null,
+     [
+      753920,
+      3034,
+      20,
+      1
+     ]
+    ],
+    "tvec": [
+     0,
+     48896
+    ],
+    "vecsub": 4,
+    "anchor_linear": 753920,
+    "evt": {
+     "pin": 0,
+     "delay": 1536,
+     "hold": 2,
+     "hold_bits": 12,
+     "hold_applied": 2
+    },
+    "term_clocks": 3034,
+    "weff": 1
+   },
+   "n_rows": 4063,
+   "row_base_idx": 33,
+   "n_txns": 547,
+   "n_code_t1": 351,
+   "anchor_code_t1_hits": [
+    240
+   ],
+   "n_anchor_hits": 1,
+   "distinct_code_addrs": 140,
+   "predicted": {
+    "stim": {
+     "pin": "pin_int",
+     "hold": 2,
+     "predicted_start": 1745,
+     "observed": [
+      [
+       1745,
+       2
+      ]
+     ]
+    },
+    "term": {
+     "pin": "pin_nmi",
+     "hold": 20,
+     "predicted_start": 3243,
+     "observed": [
+      [
+       3243,
+       20
+      ]
+     ]
+    }
+   },
+   "pin_runs": {
+    "pin_int": [
+     [
+      1745,
+      2
+     ]
+    ],
+    "pin_nmi": [
+     [
+      3243,
+      20
+     ]
+    ],
+    "pin_poll_n": [
+     [
+      0,
+      4063
+     ]
+    ]
+   },
+   "term": {
+    "fired": 5,
+    "vec_used": true,
+    "readback": {
+     "EVT_ADDR[0]": 753920,
+     "EVT_CFG[0]": 2147616256,
+     "EVT_ADDR[1]": 0,
+     "EVT_CFG[1]": 0,
+     "EVT_ADDR[2]": 753920,
+     "EVT_CFG[2]": 2165574618,
+     "TVEC": 48896,
+     "VECCTL": 4
+    },
+    "readback_ok": true,
+    "serve_ver": 3
+   },
+   "banked_term": {
+    "fired": 0,
+    "vec_used": false,
+    "readback_ok": true,
+    "tvec": [
+     0,
+     48896
+    ],
+    "vecsub": 4,
+    "term_clocks": 3034,
+    "term_hold": 20,
+    "evt_hold": 2,
+    "evt_pin": 0,
+    "hold_rows": {
+     "pin_int": [],
+     "pin_nmi": [
+      [
+       3243,
+       20
+      ]
+     ],
+     "pin_poll_n": [
+      [
+       0,
+       4063
+      ]
+     ]
+    },
+    "vec_rows": 24
+   },
+   "banked_verdict": "KNOWN_ACCEPTED",
+   "banked_arch_ok": true,
+   "banked_sub": "open_bus",
+   "fired_reproduces": false,
+   "rows_file": "sw/testdata/campaigns/fz2ctl/captures/replay_fz2e_528016.json.gz",
+   "sha256": "7b77004cd38cfe26e1f5bf136819f98a1157fb4dd33aac2c8785e0d2f5396c6f"
+  },
+  {
+   "cid": "fz2e",
+   "k": 530063,
+   "stratum": "enr/raw/stim/fix3",
+   "image_sha256": "4ae5458057f0141a579638050cfe378edde48147f1d840b77b345bc4fcd4d870",
+   "banked_image_sha256": "4ae5458057f0141a579638050cfe378edde48147f1d840b77b345bc4fcd4d870",
+   "image_reproduces": true,
+   "directive": {
+    "evts": [
+     [
+      98560,
+      710,
+      2,
+      0
+     ],
+     null,
+     [
+      98560,
+      2795,
+      20,
+      1
+     ]
+    ],
+    "tvec": [
+     0,
+     48896
+    ],
+    "vecsub": 4,
+    "anchor_linear": 98560,
+    "evt": {
+     "pin": 0,
+     "delay": 710,
+     "hold": 2,
+     "hold_bits": 12,
+     "hold_applied": 2
+    },
+    "term_clocks": 2795,
+    "weff": 3
+   },
+   "n_rows": 4063,
+   "row_base_idx": 33,
+   "n_txns": 502,
+   "n_code_t1": 73,
+   "anchor_code_t1_hits": [
+    306
+   ],
+   "n_anchor_hits": 1,
+   "distinct_code_addrs": 73,
+   "predicted": {
+    "stim": {
+     "pin": "pin_int",
+     "hold": 2,
+     "predicted_start": 985,
+     "observed": [
+      [
+       985,
+       2
+      ]
+     ]
+    },
+    "term": {
+     "pin": "pin_nmi",
+     "hold": 20,
+     "predicted_start": 3070,
+     "observed": [
+      [
+       3070,
+       20
+      ]
+     ]
+    }
+   },
+   "pin_runs": {
+    "pin_int": [
+     [
+      985,
+      2
+     ]
+    ],
+    "pin_nmi": [
+     [
+      3070,
+      20
+     ]
+    ],
+    "pin_poll_n": [
+     [
+      0,
+      4063
+     ]
+    ]
+   },
+   "term": {
+    "fired": 5,
+    "vec_used": true,
+    "readback": {
+     "EVT_ADDR[0]": 98560,
+     "EVT_CFG[0]": 2147615430,
+     "EVT_ADDR[1]": 0,
+     "EVT_CFG[1]": 0,
+     "EVT_ADDR[2]": 98560,
+     "EVT_CFG[2]": 2165574379,
+     "TVEC": 48896,
+     "VECCTL": 4
+    },
+    "readback_ok": true,
+    "serve_ver": 3
+   },
+   "banked_term": {
+    "fired": 0,
+    "vec_used": false,
+    "readback_ok": true,
+    "tvec": [
+     0,
+     48896
+    ],
+    "vecsub": 4,
+    "term_clocks": 2795,
+    "term_hold": 20,
+    "evt_hold": 2,
+    "evt_pin": 0,
+    "hold_rows": {
+     "pin_int": [],
+     "pin_nmi": [
+      [
+       3070,
+       20
+      ]
+     ],
+     "pin_poll_n": [
+      [
+       0,
+       4063
+      ]
+     ]
+    },
+    "vec_rows": 28
+   },
+   "banked_verdict": "KNOWN_ACCEPTED",
+   "banked_arch_ok": false,
+   "banked_sub": "open_bus",
+   "fired_reproduces": false,
+   "rows_file": "sw/testdata/campaigns/fz2ctl/captures/replay_fz2e_530063.json.gz",
+   "sha256": "72645e8cd2a0d41abbc3da1fca00d5df6bd8c1d5427263b516892eaafd31401f"
+  },
+  {
+   "cid": "fz2e",
+   "k": 531045,
+   "stratum": "enr/raw/stim/wrand1",
+   "image_sha256": "e826178f76e3d88290787ba8e27e691b84dd860bb4633771506bf9d62d17d4f1",
+   "banked_image_sha256": "e826178f76e3d88290787ba8e27e691b84dd860bb4633771506bf9d62d17d4f1",
+   "image_reproduces": true,
+   "directive": {
+    "evts": [
+     [
+      622848,
+      1437,
+      2,
+      1
+     ],
+     null,
+     [
+      622848,
+      3034,
+      20,
+      1
+     ]
+    ],
+    "tvec": [
+     0,
+     48896
+    ],
+    "vecsub": 4,
+    "anchor_linear": 622848,
+    "evt": {
+     "pin": 1,
+     "delay": 1437,
+     "hold": 2,
+     "hold_bits": 12,
+     "hold_applied": 2
+    },
+    "term_clocks": 3034,
+    "weff": 1
+   },
+   "n_rows": 4063,
+   "row_base_idx": 33,
+   "n_txns": 401,
+   "n_code_t1": 274,
+   "anchor_code_t1_hits": [
+    210
+   ],
+   "n_anchor_hits": 1,
+   "distinct_code_addrs": 260,
+   "predicted": {
+    "stim": {
+     "pin": "pin_nmi",
+     "hold": 2,
+     "predicted_start": 1616,
+     "observed": [
+      [
+       1616,
+       2
+      ],
+      [
+       3213,
+       20
+      ]
+     ]
+    },
+    "term": {
+     "pin": "pin_nmi",
+     "hold": 20,
+     "predicted_start": 3213,
+     "observed": [
+      [
+       1616,
+       2
+      ],
+      [
+       3213,
+       20
+      ]
+     ]
+    }
+   },
+   "pin_runs": {
+    "pin_int": [],
+    "pin_nmi": [
+     [
+      1616,
+      2
+     ],
+     [
+      3213,
+      20
+     ]
+    ],
+    "pin_poll_n": [
+     [
+      0,
+      4063
+     ]
+    ]
+   },
+   "term": {
+    "fired": 5,
+    "vec_used": true,
+    "readback": {
+     "EVT_ADDR[0]": 622848,
+     "EVT_CFG[0]": 2164393373,
+     "EVT_ADDR[1]": 0,
+     "EVT_CFG[1]": 0,
+     "EVT_ADDR[2]": 622848,
+     "EVT_CFG[2]": 2165574618,
+     "TVEC": 48896,
+     "VECCTL": 4
+    },
+    "readback_ok": true,
+    "serve_ver": 3
+   },
+   "banked_term": {
+    "fired": 0,
+    "vec_used": false,
+    "readback_ok": true,
+    "tvec": [
+     0,
+     48896
+    ],
+    "vecsub": 4,
+    "term_clocks": 3034,
+    "term_hold": 20,
+    "evt_hold": 2,
+    "evt_pin": 1,
+    "hold_rows": {
+     "pin_int": [],
+     "pin_nmi": [
+      [
+       3210,
+       20
+      ]
+     ],
+     "pin_poll_n": [
+      [
+       0,
+       4063
+      ]
+     ]
+    },
+    "vec_rows": 23
+   },
+   "banked_verdict": "KNOWN_ACCEPTED",
+   "banked_arch_ok": true,
+   "banked_sub": "open_bus",
+   "fired_reproduces": false,
+   "rows_file": "sw/testdata/campaigns/fz2ctl/captures/replay_fz2e_531045.json.gz",
+   "sha256": "bb8d2a2a1db6bf23efc1020cf9bb7bd9b6f9cd8eded859fa564b7dcc498ee005"
+  }
+ ]
+}

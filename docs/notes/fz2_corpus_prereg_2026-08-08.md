@@ -3407,3 +3407,303 @@ the rows and the directive.  The candidate explanations are (i) the anchor's
 is **0**, i.e. the TERMINATOR did not fire either; (ii) the delay lands beyond
 the capture window; (iii) a scheduler defect.  **If it looks like RTL it is
 characterised and reported, and no RTL is patched in this sitting.**
+
+---
+
+## §25 C-6's BOARD LEGS — **RUN, ALL NINE PASS**, AND C-6 IS FINALLY READABLE: **MISSED**
+
+**Executed 2026-08-09 on the board, socket only (`use_core=False`, explicit),
+FLASH #12, no re-flash.**  This is the execution of §24, which was committed
+before any board contact.  **No bar's text or value moved and none is edited
+here.**
+
+### 25.1 THE LEGS, AS REGISTERED — 9 legs, 44 checks, **44 PASS / 0 FAIL**
+
+`python3 sw/fz2_w1.py control` → `sw/testdata/fz2/fz2_control.json`,
+`FZ2 CONTROL (C-6 board legs): MET`.
+
+| leg | registered in §24.2 | measured |
+|---|---|---|
+| **R1** | RBCHECK round-trips every register | **8 registers**: `EVT_ADDR[0..2]`, `EVT_CFG[0..2]`, **`TVEC`**, **`VECCTL`** |
+| **R2** | a live directive's own readback | `readback_ok` **true on all 9 board probes**; the client repacks with `v30ctl`'s own packers and would raise `RigMismatch` |
+| **P1** | INT × hold 2 | `pin_int` **[[547, 2]]** — one run, length **2**; `pin_nmi` **0 runs** |
+| **P2** | INT × hold 300 | `pin_int` **[[547, 300]]** — one run, length **300**; `pin_nmi` **0 runs** |
+| **P3** | NMI × hold 2 | `pin_nmi` **[[547, 2]]**; `pin_int` **0 runs** |
+| **P4** | **NMI × hold 300 — the cell the corpus cannot produce** | `pin_nmi` **[[547, 300]]** — one run, length **300, EXACT**; `pin_int` **0 runs** |
+| **P5** | NMI × hold 20 (`TERM_HOLD`) | `pin_nmi` **[[547, 20]]** |
+| **V1** | interception at `TVEC_A` | `0x00008` → **0xBF00**, `0x0000A` → **0x0000**, `vec_armed` **1** on both, next `CODE` T1 at **0x0BF00**, `STATUS[6]` **true**, dump + **0xF00D** |
+| **V2** | interception at `TVEC_B` | `0x00008` → **0x0008**, `0x0000A` → **0x0BF0**, `vec_armed` **1** on both, next `CODE` T1 at **0x0BF08** — a DIFFERENT physical address |
+| **N1** | negative control, `vecsub_en = 0` | `vec_armed` **NEVER rises — 0 rows of 4,063**; `STATUS[6]` **false**; `0x00008` → **0xB000**, the image's own wrong vector; the CPU **reaches 0x0B000**; **no dump, no done marker** |
+
+**HOLDS PROVED: {2, 20, 300} on {`pin_int`, `pin_nmi`} — three holds on two
+pins, against a registered "≥ 2 hold values".  TVEC VALUES PROVED: two, differing
+in BOTH halves and landing on different physical addresses.**
+
+> **§20.3's EMPTY CELL IS CLOSED.  P4 measures a 300-clock hold on the NMI pin
+> at exactly 300 rows.**  The corpus cannot produce that cell by construction —
+> `hold = 300` iff the program HALTs, `gen_soup` HALTs only on INT/POLL, and
+> there are 0 POLL seeds — so the claim was unproven by all 3,840 seeds and it
+> is the INV-1 axis exactly: a directive that could have been silently
+> truncated in a cell nothing visits.  It is not truncated.
+
+Two things reported and NOT scored, because §24.2 did not register them:
+**V2 does not dump** (`arch_dump` None, done marker `0xF00D` present) — entering
+8 bytes into the terminator skips register stores, which is what makes `TVEC_B`
+a proof about the 32-bit word rather than about a default; and **the harness's
+INT vector, MEASURED off the second INTA cycle's data phase, is `0xFF`**, which
+is what the probe image composed a handler for.  `ServeRunner.cfg` sends `-` for
+that CFG field, so it was a belief about a sticky register until it was read.
+
+### 25.2 C-6's VERDICT — **MISSED**, EXACTLY AS §24.3 REGISTERED
+
+`python3 sw/fz2_w1.py bars` → **`FZ2 BARS: 8/11 MET   NOT MET: C-1, C-3, C-6`**.
+
+| clause | verdict |
+|---|---|
+| (a) registers round-trip on the readback path | **PASS** (R1, R2) |
+| (b) pin-level proof by counted rows at ≥ 2 hold values | **4,636 / 4,638** — 2 fail |
+| (c) interception at ≥ 2 distinct TVEC values + negative control | **PASS** (V1, V2, N1) |
+
+> **C-6 MOVES `NOT SCOREABLE` → `MISSED`.**  §20.5 registered this outcome in
+> advance and §24.3 repeated it before the board was touched.  **It is not a
+> regression and must not be read as one**: a bar that can finally be read and
+> is not met is worth more than one that could not be read at all.
+
+**LEAF FOR LEAF against the §22 artifact: 206 leaves → 251, THREE differing** —
+`bars/C-6/verdict` (`NOT SCOREABLE` → `MISSED`), `bars/C-8/measured/div_guards`
+(**53 → 63**, this sitting's own probes), and `ts`.  One leaf disappears
+(`bars/C-6/measured/control_leg`, which was `null`) and 46 appear, all inside
+that object.  **Nothing else moved by one character** — C-1's `measured` is
+byte-identical, C-3 is still 2 runtime PS3 captures, C-11 is still MET, and both
+populations' three decompositions are unchanged (census **94.17** / **87.71** /
+**92**; enriched **94.48** / **88.61** / **273**).
+
+### 25.3 THE TWO DEAD INT DIRECTIVES — **THEY DO NOT REPRODUCE**
+
+`python3 sw/fz2_w1.py deadint`, rows kept, nothing appended to any banked
+population.  Both images regenerate byte-identically to their banked
+`image_sha256`.
+
+| | `fz2e/528016` | `fz2e/530063` |
+|---|---|---|
+| anchor `CODE` T1 | row **240** — present, and at the SAME row as the banked capture | row **306**, same |
+| `pin_int`, banked | **[]** | **[]** |
+| **`pin_int`, re-run** | **[[1745, 2]]** | **[[985, 2]]** |
+| predicted start = anchor + delay + 2 − base | **1745** | **985** |
+| `pin_nmi` (terminator), banked and re-run | **[[3243, 20]]** both | **[[3070, 20]]** both |
+| `term.fired`, banked → re-run | **0 → 5** | **0 → 5** |
+
+**Every pin run lands on the clock the directive names.**  §24.4's candidate (i)
+— *the anchor is never fetched* — is **REFUTED**: the anchor `CODE` T1 is
+present, at the identical row, in the banked capture too, which is also why the
+terminator's own NMI sits at the identical row in both.  Candidate (ii), *the
+delay lands beyond the capture*, is refuted by the same arithmetic.
+
+### 25.4 THE FINDING BEHIND THEM — **THE STATUS READBACK, NOT THE SCHEDULER**, AND §20.4's INDEPENDENCE CLAIM IS WITHDRAWN
+
+Chasing the two seeds produced a bank-wide census with **one predicate over two
+independent instruments and no tier, wait or verdict term in it**
+(`sw/fz2_w1.py statusanom`, a MEASUREMENT TOOL, never a gate).  The terminator
+is armed on every seed at `TERM_HOLD = 20`, so its signature in the **ROWS** is a
+20-clock run on `pin_nmi` and its signature in the **STATUS** readback is bit
+`TERM_SCHED`.  They should agree on all 3,840.
+
+> **THEY DISAGREE ON NINE, AND ALWAYS IN THE SAME DIRECTION: the ROWS carry the
+> terminator's 20-clock assertion and the STATUS bit is CLEAR.**
+
+`fz2c/405055` · `fz2c/411076` · `fz2e/518059` · `fz2e/519056` · `fz2e/521059` ·
+`fz2e/523040` · **`fz2e/528016`** · **`fz2e/530063`** · `fz2e/531045` —
+8 raw / 1 soup, 7 of them `sub: open_bus` (a class with only 168 members in
+3,840), and **six of the nine reached the terminator (`arch_ok` true)**.
+
+**RE-RUN ON THE BOARD, ALL NINE, ROWS KEPT: 9 OF 9 FAIL TO REPRODUCE.**  In
+every one the terminator's STATUS bit is now SET (`fired` 0 → 4, or 0 → 5, or
+1 → 5), **every pin run on every armed directive lands within one clock of
+`anchor + delay + 2`**, and every image regenerates byte-identically.  **0 of 9
+reproduce the anomaly.**
+
+Two consequences, and the second is the one that matters:
+
+1. **§20.4's sentence *"the rows and the STATUS readback say so independently"*
+   is WITHDRAWN as evidence.**  On those same two seeds the STATUS *also* denies
+   a terminator firing that the rows prove, so the STATUS word is the unreliable
+   instrument of the pair and cannot corroborate the rows.  What survives of the
+   original observation is the ROW half alone — `pin_int` empty — and that half
+   does not reproduce either.
+2. **NOTHING IS RESCORED.**  C-6(b) is scored at **2 / 4,638** exactly as A-8's
+   ruling and §20.4 computed it.  Re-reading a registered clause on a capture
+   chosen *after* seeing which seeds failed it is `ucore_provenance.md` §64.1's
+   error, whichever direction the re-read moves the number.  **Whether a
+   non-reproducing directive is a failure of C-6(b) is a decision about a
+   registered bar and belongs to the coordinator.**
+
+**NO MECHANISM IS CLAIMED AND NONE IS PATCHED.**  What is established is a rate
+(**9 of 3,840, 0.23 %**), a direction (STATUS clear, rows populated), an
+association (7 of 9 `open_bus`, base rate 168/3,840) and a reproduction result
+(**0 of 9**).  Candidates NOT chosen between: a race on the STATUS sample, which
+`v30ctl.do_run` takes after the capture-full wait and before `stop()`; and the
+`BASE`/`DELTA` re-baseline that a whole-image raw seed always forces.  A
+falsifier that would settle it: arm one scheduler, run the same image N times,
+and count STATUS-vs-rows disagreements against N — this sitting ran 9 and got 0.
+
+---
+
+## §26 THE A-9 VALIDATION CAPTURE — **HALTED AT SEED 332 OF 960 ON A REGISTERED CAPTURE-INTEGRITY STOP.  THE VALIDATION IS NOT MEASURED.**
+
+**2026-08-09, board, socket only, FLASH #12, no re-flash.**  Reported as
+registered.  **No bar's text or value moved, nothing is adjusted, and no rate is
+computed.**
+
+### 26.1 WHAT HAPPENED
+
+`python3 sw/fz2_val.py preflight --board` → **OK**: capture-path preconditions
+all present, single writer, frozen population committed and matching the code,
+resident rig RTL gap **EMPTY**, era `sof 8db6dadf5c4c… receipt 27fb750f925c…
+(88 files)`, 48-seed regeneration sample **0 hits**, `rig_readback_check`
+**8 registers**, `check_ab_hw all 800` **MATCH ×3**, `div_guard` **PINNED** both
+ends.
+
+`python3 sw/fz2_val.py capture` then ran the strata in the registered order and
+**STOPPED**:
+
+```
+val/soup/noevt/fix0      80/80   val/soup/stim/fix0     80/80
+val/soup/noevt/wrand3    80/80   val/soup/stim/wrand3   12/80  <- HALT
+val/soup/noevt/wvec-uni  80/80
+```
+
+**332 of 960 seeds.  `escalation:provenance_alarm @k=604011`.**  The driver
+halted and did not nurse it, which is `fz2_val.cmd_capture`'s registered
+behaviour and §2.4's: *"the HARD capture-integrity stops stay armed: any
+provenance alarm and the ≥ 5-consecutive-quarantine circuit breaker still
+abort."*  **The stop is CORRECT and it is not overridden.**
+
+### 26.2 WHAT THE ALARM IS — **`done_data_both_179e`**, AND THE MECHANISM IS VISIBLE ROW FOR ROW
+
+`fz2v/604011` — soup, `wrand3`, stimulus **NMI** at `delay` 713 `hold` 2.  It
+`arch_ok` **true**, `arch_match` **true**, `bad_rows` **0**, `mech` `REACHED`,
+`readback_ok` **true**, and the two legs are **identical**.  The alarm is
+`provenance_alarms`' Tier-A clause: both legs' FIRST `OUT 0xFC` carried
+**0x179E** instead of `DONE_SENTINEL`, and a *shared* non-sentinel done value is
+its definition of a corrupt store.
+
+The banked rows say what actually happened, and it is two instructions wide:
+
+```
+ 940  CODE  0bf40  0db8   <- B8 0D ..    MOV AW, 0xF00D   (the terminator's own tail)
+ 956  CODE  0bf42  e7f0   <- .. F0 / E7  imm high byte, then OUT
+ 964  CODE  0bf44  f4fc   <- FC F4       the port operand, then HLT
+ 975  MEMR  00008  df10   <- the STIMULUS NMI's vector read -- the SEED's OWN IVT[2],
+ 983  MEMR  0000a  2def      not intercepted (vec_armed low: vecsub is the terminator's)
+ 993  MEMW  0ffec  f006   <- push FLAGS
+1000  MEMW  0ffea  0000   <- push CS
+1007  MEMW  0ffe8  bf43   <- push IP = 0xBF43, the address of `OUT 0xFC, AW`
+1013..1120  CODE 3be00..  <- the seed's own D8 interrupt MODIFICATION HANDLER runs
+1128..1139  MEMR 0ffe8..  <- IRET pops
+1145  CODE  0bf43  e7f0   <- resumes AT `OUT 0xFC, AW`
+1164  IOW   000fc  179e   <- and AW is the HANDLER's, not 0xF00D
+```
+
+> **THE STIMULUS INTERRUPT WAS TAKEN BETWEEN `MOV AW, 0xF00D` AND
+> `OUT 0xFC, AW`, AND THE SEED'S OWN MODIFICATION HANDLER WROTE AW.**  The
+> terminator then emitted its done marker carrying the handler's AW.  The image
+> re-ran, the terminating NMI fired at row 3004, and the second dump is complete
+> and correct with **`OUT 0xFC, 0xF00D`** at row 3439 — which is the dump
+> `arch_dump` returns and why `arch_ok` is true.
+
+**Nothing about the rig is wrong.**  Both legs agree row for row, the rig held
+the directive, and the seed terminated.  What is wrong is the alarm's premise for
+Tier A — *the harness store must emit `0xF00D`* — which D8's modification
+handlers exist to violate: the terminator's store is not immune to an interrupt
+landing inside it.
+
+### 26.3 THIS IS D-2's SIBLING, ONE FUNCTION OVER — **NAMED, NOT DISPOSED**
+
+§17.5 (A-6, finding **D-2**) ruled that **a done marker is one that carries the
+sentinel**, and gave `dump_words` / `arch_dump` / `dump_restarted` a
+`sentinel_only` predicate.  **`provenance_alarms` was not given it**, and its
+Tier-A clause still identifies a done marker by its PORT.  §17.5 says in its own
+words that *"`provenance_alarms` calls a non-sentinel done marker **forged** in
+its own words, in the same file"* — and then repaired only the other half.
+
+**NO DISPOSITION IS MADE HERE, AND THAT IS DELIBERATE.**  Demoting or repairing
+a registered capture-integrity STOP, after seeing the seed that tripped it, is a
+decision about a registered bar.  The governing precedent is **A-1** (§11), which
+is this situation exactly — the census halted on its **second** seed for a
+provenance alarm whose demotion had already been ruled elsewhere, and A-1
+completed that ruling as a numbered amendment.  **Whether D-2's sentinel rule
+extends to `provenance_alarms` belongs to the coordinator**, on A-1's shape: a
+numbered amendment, a hard falsifier, and a both-ways rescore.
+
+### 26.4 WHAT IS **NOT** REPORTED, AND WHY
+
+> **NO RATE IS COMPUTED ON THE 332.**
+
+The population is a **prefix of the registered order**, truncated at a point that
+is not independent of the outcome: the halt is caused by a seed whose dump was
+disturbed.  Four of six soup strata are complete, one is 12/80, and **the entire
+RAW TIER — all 480 seeds, i.e. the whole of clause E-1b — is uncaptured.**  A
+soup number computed on that prefix would be a new statistic on a population
+selected by where a halt happened, and quoting it would be the thing §16.2 was
+written to prevent.  **`fz2_val score` was not run** and no `fz2v_score.json`
+exists.
+
+> **§16.2's VALIDATION IS NOT MEASURED.  A-5's `UNVALIDATED` MARKER STAYS ON
+> C-1's TWO RATE CLAUSES, AND IT STAYS FOR THE REASON IT WAS PUT THERE — NOT
+> BECAUSE THE VALIDATION FAILED.**  `fz2_w1._c1_verdict` is untouched, C-1 still
+> reads `MISSED (rate clauses UNVALIDATED -- A-5)`, and **90.0 and 75.0 remain
+> unquotable as ratchets.**
+
+### 26.5 WHAT IS RETAINED
+
+* `sw/testdata/fz2/fz2v_population.json` + `.sha256` — the frozen 960, committed
+  before the capture, unchanged by it.
+* `sw/testdata/campaigns/fz2v/results.jsonl` — **332 lines**, every one carrying
+  its era stamp, kept in full.  **Nothing is deleted and nothing is banked**:
+  `fz2v` is not promoted, so C-11's three populations are untouched.
+* `sw/testdata/fz2/fz2v_preflight.json`, `fz2v_capture.json` — both carrying
+  `tree_dirty`.
+* `sw/testdata/campaigns/fz2v/captures/soup_604011_0a5656a31a44.json.gz` — the
+  halting seed's full per-clock rows, both legs.
+
+**The capture is RESUMABLE without re-running a seed**: `fz2_val capture`
+resumes by `_done_ks()`, every k actually present, never by `max(k) + 1`.  It
+will halt again at 604011 until the alarm is disposed of.
+
+### 26.6 THE SESSION'S BOARD DISCIPLINE, REPORTED
+
+Single-writer checked before and after (`NO_PROC` both times); socket only,
+`use_core=False` explicit on every probe; **`div_guard` on every probe — 63 in
+the scored artifact, `unpinned` 0**; full per-clock rows retained with sha256
+beside them for all 9 control probes and all 11 replayed seeds
+(`sw/testdata/campaigns/fz2ctl/captures/SHA256SUMS`); `board_idle()` at the
+close; and the closing `use_core=0` chip proof **`chip-vs-golden: MATCH over 800
+rows`**.  **0 transport errors, 0 `RigMismatch`, 0 quarantines outside the one
+that halted the capture.**
+
+### 26.7 A CONCURRENT WRITER IN THE REPOSITORY, REPORTED BECAUSE IT BEARS ON PROVENANCE
+
+**A SECOND SESSION WAS EDITING THIS TREE THROUGHOUT.**  `eb11ffe149`
+(*"INT.F3AA repair: PRE-REGISTRATION"*) landed immediately before §23/§24's
+commit, and while this sitting ran, that session held uncommitted edits to
+`hdl/rtl/ucore/v30u_biu.sv`, `hdl/rtl/ucore/v30u_eu.sv` and later
+`sim/exec_impl.h`, and was running `sw/quartus_gate.py` and `sw/ucsim_check.py`.
+
+**This does not touch any measurement above, and that is checked rather than
+asserted:**
+
+* **The board was single-writer throughout** — asked of the board before and
+  after, `NO_PROC` both times.  No other session contacted it.
+* **Nothing this sitting measured passes through a file that session edited.**
+  The socket leg is the chip; the fabric leg is FLASH #12's bitstream, which no
+  tree edit reaches; and the offline rescore regenerates images through
+  `fuzz_campaign` / `gen_soup` / `gen_raw` / `testimage`, none of which moved.
+* **`tree_dirty` is identical in all four of this sitting's board artifacts** —
+  the same three paths with the same sha256s — so the tree was stable for the
+  whole board session and the `sim/exec_impl.h` edit arrived after it closed.
+* **Every commit of this sitting stages EXPLICIT PATHS**, never `git add -A`, so
+  no in-progress RTL or `sim/` work was swept into it.
+
+Recorded because a reader six months from now, finding two unrelated campaigns
+interleaved in the log at the same minute, is owed the fact rather than left to
+infer it.

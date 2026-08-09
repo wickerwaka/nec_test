@@ -1494,22 +1494,18 @@ def _anchor_hits(recs, anchor):
             if r["t"] == 1 and r["bs_early"] == 4 and r["ad_addr"] == anchor]
 
 
-def cmd_deadint(a):
-    """Re-run §20.4's two dead INT directives WITH ROWS KEPT, and ask WHY.
+def _replay_seeds(host, seeds, guards):
+    """Re-run banked seeds as DIRECTED PROBES with rows kept.
 
-    They are run as DIRECTED PROBES: nothing is appended to `fz2e`'s
-    `results.jsonl`, no bank is touched, and the banked result line is read
-    only to check that what comes back reproduces it."""
-    OUT.mkdir(parents=True, exist_ok=True)
-    rec = {"stage": "fz2 dead-INT probe (§20.4 / §24.4)", "host": a.host,
-           "gen_git": fzc._gen_git(), "tree_dirty": tree_dirty(),
-           "ts": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
-           "div_guards": [], "seeds": []}
-    div_guard("deadint-start", rec["div_guards"])
+    Nothing is appended to any campaign's `results.jsonl` and no bank is
+    touched; the banked result line is read only to say whether what comes
+    back reproduces it.  Rows are retained gzipped with a sha256 beside them,
+    per the blackbox retention rule."""
+    out = []
     banked = {}
-    for cid in {c for c, _k in DEAD_INT}:
+    for cid in {c for c, _k in seeds}:
         banked[cid] = {r["k"]: r for r in _lines(cid)}
-    for cid, k in DEAD_INT:
+    for cid, k in seeds:
         j = _stratum_of(cid, k)
         st = STRATA[j]
         cfg = fzc.derive_case(cid, k, ov_of(st))
@@ -1522,68 +1518,173 @@ def cmd_deadint(a):
         print(f"    anchor linear {anchor:#07x}  weff {weff_of(cfg)}  "
               f"TERM_CLOCKS {term_clocks(weff_of(cfg))}  "
               f"nmax_eff {cfg['nmax_eff']}  raw_mode {g.get('raw_mode')}")
-        div_guard(f"deadint-{cid}-{k}", rec["div_guards"])
+        div_guard(f"replay-{cid}-{k}", guards)
         term = {}
-        real, sim, err = fzc.capture_board(image, meta, cfg, a.host,
+        real, sim, err = fzc.capture_board(image, meta, cfg, host,
                                            term_out=term)
         if err:
             print(f"    *** capture error: {err}")
-            rec["seeds"].append({"cid": cid, "k": k, "error": err})
+            out.append({"cid": cid, "k": k, "error": err})
             continue
         tx = _ctl_txns(real)
-        runs = fzc._pin_runs(real, len(real))
+        runs = fzc._pin_runs(real, len(real)) or {}
         hits = _anchor_hits(real, anchor)
         codes = [t for t in tx if t["kind"] == "CODE"]
         b = banked[cid].get(k, {})
+        bt = b.get("term") or {}
+        # WHERE THE DIRECTIVE SAYS EACH PIN RUN MUST START.  `_pin_runs`
+        # indexes the RESET-STRIPPED list while `_anchor_hits` returns the
+        # capture's own `idx`; the offset is COMPUTED from the first row's own
+        # idx rather than assumed, so a change to how many rows reset holds
+        # cannot turn a passing prediction into a failing one.
+        base = real[0]["idx"] if real else 0
+        pred = {}
+        for nm, e in (("stim", evts[0]), ("term", evts[fzc.TERM_SCHED])):
+            if e and hits:
+                pred[nm] = {"pin": fzc.PIN_COL[e[3]], "hold": e[2],
+                            "predicted_start": hits[0] + e[1] + 2 - base,
+                            "observed": runs.get(fzc.PIN_COL[e[3]])}
         d = {"cid": cid, "k": k, "stratum": label(st),
              "image_sha256": hashlib.sha256(bytes(image)).hexdigest(),
              "banked_image_sha256": b.get("image_sha256"),
+             "image_reproduces": (hashlib.sha256(bytes(image)).hexdigest()
+                                  == b.get("image_sha256")),
              "directive": {"evts": evts, "tvec": list(tvec), "vecsub": vecsub,
-                           "anchor_linear": anchor,
-                           "evt": cfg["evt"],
+                           "anchor_linear": anchor, "evt": cfg["evt"],
                            "term_clocks": term_clocks(weff_of(cfg)),
                            "weff": weff_of(cfg)},
-             "n_rows": len(real), "n_txns": len(tx), "n_code_t1": len(codes),
-             "anchor_code_t1_hits": hits[:8],
+             "n_rows": len(real), "row_base_idx": base, "n_txns": len(tx),
+             "n_code_t1": len(codes), "anchor_code_t1_hits": hits[:8],
              "n_anchor_hits": len(hits),
-             "first_code_addrs": [t["addr"] for t in codes[:12]],
              "distinct_code_addrs": len({t["addr"] for t in codes}),
-             "pin_runs": runs,
-             "term": term,
-             "banked_term": b.get("term"),
-             "banked_verdict": b.get("verdict"),
-             "banked_arch_ok": b.get("arch_ok"),
-             "reproduced_fired": (term.get("fired")
-                                  == (b.get("term") or {}).get("fired")),
-             }
+             "predicted": pred, "pin_runs": runs, "term": term,
+             "banked_term": bt, "banked_verdict": b.get("verdict"),
+             "banked_arch_ok": b.get("arch_ok"), "banked_sub": b.get("sub"),
+             "fired_reproduces": term.get("fired") == bt.get("fired")}
         blob = json.dumps({"cid": cid, "k": k, "real": real, "sim": sim,
                            "term": term, "directive": d["directive"]})
         CTL_ROWS.mkdir(parents=True, exist_ok=True)
-        p = CTL_ROWS / f"deadint_{cid}_{k}.json.gz"
-        with gzip.open(p, "wt") as f:
+        gp = CTL_ROWS / f"replay_{cid}_{k}.json.gz"
+        with gzip.open(gp, "wt") as f:
             f.write(blob)
-        d["rows_file"] = str(p.relative_to(ROOT))
-        d["sha256"] = hashlib.sha256(p.read_bytes()).hexdigest()
-        print(f"    rows {len(real)}  CODE T1s {len(codes)} over "
-              f"{d['distinct_code_addrs']} distinct addresses")
+        d["rows_file"] = str(gp.relative_to(ROOT))
+        d["sha256"] = hashlib.sha256(gp.read_bytes()).hexdigest()
+        print(f"    rows {len(real)} (base idx {base})  CODE T1s {len(codes)} "
+              f"over {d['distinct_code_addrs']} distinct addresses")
         print(f"    ANCHOR ({anchor:#07x}) CODE T1 hits: {len(hits)} {hits[:8]}")
-        print(f"    pin runs: { {kk: vv for kk, vv in (runs or {}).items()} }")
-        print(f"    term: fired={term.get('fired')} "
+        for nm, pv in pred.items():
+            print(f"    {nm:<4}: {pv['pin']} hold {pv['hold']}  predicted "
+                  f"start {pv['predicted_start']}  observed {pv['observed']}")
+        print(f"    term NOW:    fired={term.get('fired')} "
               f"vec_used={term.get('vec_used')} "
               f"readback_ok={term.get('readback_ok')}")
-        print(f"    banked: fired={(b.get('term') or {}).get('fired')} "
-              f"verdict={b.get('verdict')} arch_ok={b.get('arch_ok')} "
-              f"image sha matches={d['image_sha256'] == b.get('image_sha256')}")
-        print(f"    rows sha256 {d['sha256'][:16]}…")
-        rec["seeds"].append(d)
+        print(f"    term BANKED: fired={bt.get('fired')} "
+              f"vec_used={bt.get('vec_used')} verdict={b.get('verdict')} "
+              f"sub={b.get('sub')} arch_ok={b.get('arch_ok')}")
+        print(f"    image reproduces: {d['image_reproduces']}   "
+              f"rows sha256 {d['sha256'][:16]}…")
+        out.append(d)
+    return out
+
+
+def cmd_deadint(a):
+    """Re-run §20.4's two dead INT directives WITH ROWS KEPT, and ask WHY."""
+    OUT.mkdir(parents=True, exist_ok=True)
+    rec = {"stage": "fz2 dead-INT probe (§20.4 / §24.4)", "host": a.host,
+           "gen_git": fzc._gen_git(), "tree_dirty": tree_dirty(),
+           "ts": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+           "div_guards": [], "seeds": []}
+    div_guard("deadint-start", rec["div_guards"])
+    rec["seeds"] = _replay_seeds(a.host, list(DEAD_INT), rec["div_guards"])
     div_guard("deadint-end", rec["div_guards"])
     if CTL_ROWS.exists():
         (CTL_ROWS / "SHA256SUMS").write_text("\n".join(
-            f"{hashlib.sha256(p.read_bytes()).hexdigest()}  {p.name}"
-            for p in sorted(CTL_ROWS.glob("*.json.gz"))) + "\n")
+            f"{hashlib.sha256(q.read_bytes()).hexdigest()}  {q.name}"
+            for q in sorted(CTL_ROWS.glob("*.json.gz"))) + "\n")
     (OUT / "fz2_deadint.json").write_text(json.dumps(rec, indent=1))
     print(f"\nFZ2 DEAD-INT: {len(rec['seeds'])} seeds -> "
           f"{OUT/'fz2_deadint.json'}")
+    return 0
+
+
+# --------------------------------------------------------------------------- #
+# THE STATUS-vs-ROWS CENSUS -- A MEASUREMENT TOOL, NOT A GATE.
+#
+# Found while chasing §20.4's two dead INT directives.  The terminator is armed
+# on EVERY seed with `TERM_HOLD` = 20, so a 20-clock run on `pin_nmi` is its
+# signature in the ROWS, and STATUS bit `TERM_SCHED` is its signature in the
+# READBACK.  The two should agree on all 3,840.  This counts where they do not.
+#
+# It is deliberately one predicate over two independent instruments, with no
+# tier, wait or verdict term in it: whatever it finds is a property of the
+# INSTRUMENTS, and any structure in the seeds it selects is then evidence
+# rather than a filter that produced it.
+# --------------------------------------------------------------------------- #
+def _term_row_signature(t):
+    """Whether the ROWS carry the terminator's own 20-clock NMI assertion."""
+    hr = (t or {}).get("hold_rows") or {}
+    if not isinstance(hr, dict):
+        return None
+    return any(abs(L - fzc.TERM_HOLD) <= 1
+               for _s, L in (hr.get(fzc.PIN_COL[fzc.TERM_PIN]) or []))
+
+
+def status_anomalies():
+    out, n = [], 0
+    for pop in POPS:
+        cid = CID[pop]
+        for r in _lines(cid):
+            t = r.get("term") or {}
+            rowsig = _term_row_signature(t)
+            if rowsig is None:
+                continue
+            n += 1
+            statsig = bool((t.get("fired") or 0) >> fzc.TERM_SCHED & 1)
+            if rowsig != statsig:
+                out.append({"cid": cid, "k": r["k"], "tier": r["tier"],
+                            "sub": r.get("sub"), "verdict": r["verdict"],
+                            "raw_mode": r.get("raw_mode"),
+                            "arch_ok": r.get("arch_ok"),
+                            "rows_say_fired": rowsig,
+                            "status_says_fired": statsig,
+                            "fired": t.get("fired"),
+                            "vec_used": t.get("vec_used"),
+                            "vec_rows": t.get("vec_rows"),
+                            "evt": r.get("evt"),
+                            "hold_rows": t.get("hold_rows"),
+                            "ts": r.get("ts")})
+    return out, n
+
+
+def cmd_statusanom(a):
+    anom, n = status_anomalies()
+    subs = Counter(str(x["sub"]) for x in anom)
+    tiers = Counter(x["tier"] for x in anom)
+    base_sub = Counter(str(r.get("sub")) for pop in POPS
+                       for r in _lines(CID[pop]))
+    print(f"== STATUS vs ROWS on the terminator's own directive, {n} seeds")
+    print(f"   disagreements: {len(anom)}")
+    for x in anom:
+        print(f"   {x['cid']}/{x['k']:<7} tier={x['tier']:<4} "
+              f"sub={str(x['sub']):<16} rows={x['rows_say_fired']} "
+              f"status={x['status_says_fired']} fired={x['fired']} "
+              f"arch_ok={x['arch_ok']} "
+              f"pin_int={(x['hold_rows'] or {}).get('pin_int')}")
+    print(f"\n   tier: {dict(tiers)}   sub: {dict(subs)}")
+    print(f"   corpus-wide `sub` base rate for those classes: "
+          f"{ {k: base_sub[k] for k in subs} }  of {n}")
+    rec = {"stage": "fz2 STATUS-vs-ROWS census (measurement tool, NOT a gate)",
+           "ts": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+           "scored": n, "disagreements": anom,
+           "tier_census": dict(tiers), "sub_census": dict(subs),
+           "corpus_sub_base": {k: base_sub[k] for k in subs}}
+    if a.replay:
+        print(f"\n== RE-RUNNING all {len(anom)} on the board, rows kept")
+        rec["replay"] = _replay_seeds(a.host, [(x["cid"], x["k"])
+                                               for x in anom],
+                                      rec.setdefault("div_guards", []))
+    (OUT / "fz2_statusanom.json").write_text(json.dumps(rec, indent=1))
+    print(f"\n-> {OUT/'fz2_statusanom.json'}")
     return 0
 
 
@@ -2290,6 +2391,11 @@ def main():
     p = sub.add_parser("deadint")
     p.add_argument("--host", default=HOST)
     p.set_defaults(func=cmd_deadint)
+    p = sub.add_parser("statusanom")
+    p.add_argument("--host", default=HOST)
+    p.add_argument("--replay", action="store_true",
+                   help="re-run every disagreeing seed on the board, rows kept")
+    p.set_defaults(func=cmd_statusanom)
     p = sub.add_parser("bank")
     p.add_argument("--dry-run", action="store_true",
                    help="measure the promotion against CAP_MB, write nothing")

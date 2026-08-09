@@ -1,0 +1,319 @@
+{
+ "stage": "fz2 dead-INT probe (\u00a720.4 / \u00a724.4)",
+ "host": "root@mister-nec",
+ "gen_git": "fb0845365a",
+ "tree_dirty": [
+  {
+   "status": " M",
+   "path": "hdl/rtl/ucore/v30u_biu.sv",
+   "sha256": "7262f78849ca5982e6ba4f2869c5ba5ab9af5985a4e48f2cd65a00a06529b11f"
+  },
+  {
+   "status": " M",
+   "path": "hdl/rtl/ucore/v30u_eu.sv",
+   "sha256": "aafa0f55951e5508cc286586d2e7463167a47330f758a5f4eb8b1ad8be3de485"
+  },
+  {
+   "status": " M",
+   "path": "sw/testdata/receipts/verilator_binary.jsonl",
+   "sha256": "0aa0a8520b341d61b9a1140f10ae361af6412aa66b5a6d2a2ed23b87171e7802"
+  }
+ ],
+ "ts": "2026-08-09T22:54:27Z",
+ "div_guards": [
+  {
+   "tag": "deadint-start",
+   "readback": "div=8 (4 MHz), commanded by this connection",
+   "state": "PINNED",
+   "rig": "WRAND=0 replay=0 (commanded clean at connect, OK/OK)",
+   "ts": "2026-08-09T22:54:28Z"
+  },
+  {
+   "tag": "deadint-fz2e-528016",
+   "readback": "div=8 (4 MHz), commanded by this connection",
+   "state": "PINNED",
+   "rig": "WRAND=0 replay=0 (commanded clean at connect, OK/OK)",
+   "ts": "2026-08-09T22:54:28Z"
+  },
+  {
+   "tag": "deadint-fz2e-530063",
+   "readback": "div=8 (4 MHz), commanded by this connection",
+   "state": "PINNED",
+   "rig": "WRAND=0 replay=0 (commanded clean at connect, OK/OK)",
+   "ts": "2026-08-09T22:54:28Z"
+  },
+  {
+   "tag": "deadint-end",
+   "readback": "div=8 (4 MHz), commanded by this connection",
+   "state": "PINNED",
+   "rig": "WRAND=0 replay=0 (commanded clean at connect, OK/OK)",
+   "ts": "2026-08-09T22:54:29Z"
+  }
+ ],
+ "seeds": [
+  {
+   "cid": "fz2e",
+   "k": 528016,
+   "stratum": "enr/raw/stim/fix1",
+   "image_sha256": "41408c2e8bcff4d9cb6437ce12c0a5c1b2d840d7707e75647f73011b88d72297",
+   "banked_image_sha256": "41408c2e8bcff4d9cb6437ce12c0a5c1b2d840d7707e75647f73011b88d72297",
+   "directive": {
+    "evts": [
+     [
+      753920,
+      1536,
+      2,
+      0
+     ],
+     null,
+     [
+      753920,
+      3034,
+      20,
+      1
+     ]
+    ],
+    "tvec": [
+     0,
+     48896
+    ],
+    "vecsub": 4,
+    "anchor_linear": 753920,
+    "evt": {
+     "pin": 0,
+     "delay": 1536,
+     "hold": 2,
+     "hold_bits": 12,
+     "hold_applied": 2
+    },
+    "term_clocks": 3034,
+    "weff": 1
+   },
+   "n_rows": 4063,
+   "n_txns": 547,
+   "n_code_t1": 351,
+   "anchor_code_t1_hits": [
+    240
+   ],
+   "n_anchor_hits": 1,
+   "first_code_addrs": [
+    1048560,
+    1048562,
+    1048564,
+    1048566,
+    65280,
+    65282,
+    65284,
+    65286,
+    65288,
+    65290,
+    65292,
+    65294
+   ],
+   "distinct_code_addrs": 140,
+   "pin_runs": {
+    "pin_int": [
+     [
+      1745,
+      2
+     ]
+    ],
+    "pin_nmi": [
+     [
+      3243,
+      20
+     ]
+    ],
+    "pin_poll_n": [
+     [
+      0,
+      4063
+     ]
+    ]
+   },
+   "term": {
+    "fired": 5,
+    "vec_used": true,
+    "readback": {
+     "EVT_ADDR[0]": 753920,
+     "EVT_CFG[0]": 2147616256,
+     "EVT_ADDR[1]": 0,
+     "EVT_CFG[1]": 0,
+     "EVT_ADDR[2]": 753920,
+     "EVT_CFG[2]": 2165574618,
+     "TVEC": 48896,
+     "VECCTL": 4
+    },
+    "readback_ok": true,
+    "serve_ver": 3
+   },
+   "banked_term": {
+    "fired": 0,
+    "vec_used": false,
+    "readback_ok": true,
+    "tvec": [
+     0,
+     48896
+    ],
+    "vecsub": 4,
+    "term_clocks": 3034,
+    "term_hold": 20,
+    "evt_hold": 2,
+    "evt_pin": 0,
+    "hold_rows": {
+     "pin_int": [],
+     "pin_nmi": [
+      [
+       3243,
+       20
+      ]
+     ],
+     "pin_poll_n": [
+      [
+       0,
+       4063
+      ]
+     ]
+    },
+    "vec_rows": 24
+   },
+   "banked_verdict": "KNOWN_ACCEPTED",
+   "banked_arch_ok": true,
+   "reproduced_fired": false,
+   "rows_file": "sw/testdata/campaigns/fz2ctl/captures/deadint_fz2e_528016.json.gz",
+   "sha256": "99f91ba9d0a13accd9c2098c7e368301aa5a3b8308a26b87a82727663684abf5"
+  },
+  {
+   "cid": "fz2e",
+   "k": 530063,
+   "stratum": "enr/raw/stim/fix3",
+   "image_sha256": "4ae5458057f0141a579638050cfe378edde48147f1d840b77b345bc4fcd4d870",
+   "banked_image_sha256": "4ae5458057f0141a579638050cfe378edde48147f1d840b77b345bc4fcd4d870",
+   "directive": {
+    "evts": [
+     [
+      98560,
+      710,
+      2,
+      0
+     ],
+     null,
+     [
+      98560,
+      2795,
+      20,
+      1
+     ]
+    ],
+    "tvec": [
+     0,
+     48896
+    ],
+    "vecsub": 4,
+    "anchor_linear": 98560,
+    "evt": {
+     "pin": 0,
+     "delay": 710,
+     "hold": 2,
+     "hold_bits": 12,
+     "hold_applied": 2
+    },
+    "term_clocks": 2795,
+    "weff": 3
+   },
+   "n_rows": 4063,
+   "n_txns": 502,
+   "n_code_t1": 73,
+   "anchor_code_t1_hits": [
+    306
+   ],
+   "n_anchor_hits": 1,
+   "first_code_addrs": [
+    1048560,
+    1048562,
+    1048564,
+    1048566,
+    65280,
+    65282,
+    65284,
+    65286,
+    65288,
+    65290,
+    65292,
+    65294
+   ],
+   "distinct_code_addrs": 73,
+   "pin_runs": {
+    "pin_int": [
+     [
+      985,
+      2
+     ]
+    ],
+    "pin_nmi": [
+     [
+      3070,
+      20
+     ]
+    ],
+    "pin_poll_n": [
+     [
+      0,
+      4063
+     ]
+    ]
+   },
+   "term": {
+    "fired": 5,
+    "vec_used": true,
+    "readback": {
+     "EVT_ADDR[0]": 98560,
+     "EVT_CFG[0]": 2147615430,
+     "EVT_ADDR[1]": 0,
+     "EVT_CFG[1]": 0,
+     "EVT_ADDR[2]": 98560,
+     "EVT_CFG[2]": 2165574379,
+     "TVEC": 48896,
+     "VECCTL": 4
+    },
+    "readback_ok": true,
+    "serve_ver": 3
+   },
+   "banked_term": {
+    "fired": 0,
+    "vec_used": false,
+    "readback_ok": true,
+    "tvec": [
+     0,
+     48896
+    ],
+    "vecsub": 4,
+    "term_clocks": 2795,
+    "term_hold": 20,
+    "evt_hold": 2,
+    "evt_pin": 0,
+    "hold_rows": {
+     "pin_int": [],
+     "pin_nmi": [
+      [
+       3070,
+       20
+      ]
+     ],
+     "pin_poll_n": [
+      [
+       0,
+       4063
+      ]
+     ]
+    },
+    "vec_rows": 28
+   },
+   "banked_verdict": "KNOWN_ACCEPTED",
+   "banked_arch_ok": false,
+   "reproduced_fired": false,
+   "rows_file": "sw/testdata/campaigns/fz2ctl/captures/deadint_fz2e_530063.json.gz",
+   "sha256": "eb5d9eb2df9ccc2ecab5f45d6dac190407bf574fae4f71dca72d900d666b9231"
+  }
+ ]
+}
