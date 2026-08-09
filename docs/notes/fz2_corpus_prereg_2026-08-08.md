@@ -1729,3 +1729,61 @@ the measurement** rather than relative to a mechanism — which is precisely wha
 * This document, appended, plus a forward pointer at §5.3 and §6.
 * **No other file.**  No board, no flash, no Quartus, no re-capture.
 
+### 16.8 THE RESCORE AS RUN — `sw/testdata/fz2/fz2_bars.json`, 2026-08-09T16:00:50Z
+
+`python3 sw/fz2_w1.py bars`, offline, off the same banked results §15.7 scored.
+**No capture, no re-capture, no board.**
+
+**`FZ2 BARS: 7/11 MET   NOT MET: C-1, C-3, C-6, C-11`** — the identical
+7 MET / 2 MISSED / 2 NOT SCOREABLE of §14.1 and §15.7.  **A-5 moved no bar's
+verdict.**
+
+C-1, clause by clause, **as registered**:
+
+| clause | measured | bar (A-5) | | prior bar (§5.3) |
+|---|---|---|---|---|
+| census / soup | 473/480 = **98.54 %** | ≥ 90.0 % | **MET** | ≥ 99.0 % (missed) |
+| enriched / soup | 1424/1440 = **98.89 %** | ≥ 90.0 % | **MET** | ≥ 99.0 % (missed) |
+| census / raw | 401/480 = **83.54 %** | ≥ 75.0 % | **MET** | ≥ 95.0 % (missed) |
+| enriched / raw | 1204/1440 = **83.61 %** | ≥ 75.0 % | **MET** | ≥ 95.0 % (missed) |
+| **E-1c UNDISPOSITIONED** | **269** | **= 0** | **MISSED** | = 0 — **UNTOUCHED** |
+
+> **VERDICT: `MISSED (rate clauses UNVALIDATED -- A-5)`.**  Both marks are load
+> bearing.  **MISSED** because E-1c is 269 against 0 — **A-5 did not resolve
+> C-1**, it reduced it from three failing clauses to one.  **UNVALIDATED**
+> because the four MET cells above are scored against bars that were set after
+> those four numbers were read, on those four numbers' own population (§16.0),
+> and under §64.1 that is not evidence for the bars.  **E-1c is now C-1's SOLE
+> blocker**, and it is the one clause of the three that A-5 did not touch.
+
+**NOT ONE OTHER FIELD MOVED, and this is checked rather than asserted.**  The
+new `fz2_bars.json` was compared **leaf for leaf** against the one §15.7
+committed: **3 differing leaves in the whole file**, and they are
+
+* `bars/C-1/registered` — the bar text, now carrying the before/after and the
+  UNVALIDATED qualifier inside the scored artifact itself;
+* `bars/C-1/verdict` — `MISSED` → `MISSED (rate clauses UNVALIDATED -- A-5)`;
+* `ts` — the run stamp.
+
+**`bars/C-1/measured` is byte-identical**, object for object, including every
+`pct`: A-5 cannot move a measured rate and did not.  Every other bar's
+`verdict`, `measured` and `registered`, both populations' three decompositions
+(census **94.38** / **87.71** / **95**; enriched **94.58** / **88.33** /
+**282**) and `seed_list_sha256` are **identical**.  A-4's figures also stand
+unchanged: `undispositioned_3class` **312**, `stalled_total` **43**,
+`classified_from` `rows` **67** / `none` **245**.
+
+`python3 sw/fz2_w1.py lint` **PASS, 0 hits, 48 stratum rows**.  `bars` exits
+**1**, as it must while any bar is unmet.
+
+### 16.9 WHAT A-5 DOES NOT SETTLE
+
+1. **E-1c, at 269 against 0** — and §15.8's reading of it is undisturbed: 269
+   is not 269 short of an explanation, because **245 of them cannot be asked at
+   all** (verdict `SUCCESS`, no banked rows).  Only **24** were classified and
+   genuinely carry none of the four signatures.  The re-capture with
+   `--keep-rows` that would classify the 245 remains the coordinator's call.
+2. **The two rate clauses' own validity.**  They read MET on the population
+   that set them.  §16.2 says what would change that, and until it is run the
+   correct sentence is *"the bar was placed below the number after the number
+   was known"* — not *"containment meets its bar."*
