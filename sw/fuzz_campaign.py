@@ -945,6 +945,94 @@ def stall_evidence(real, sim, hold_rows):
                            if sim else None)}
 
 
+# --------------------------------------------------------------------------- #
+# AMENDMENT A-6 (prereg §17) -- WHY THIS CAPTURE DID NOT REACH THE TERMINATOR.
+#
+# IT IS A CENSUS AND NOT A DISCARD CLASS.  `fz2_w1.py bars` dispositions on
+# A-4's four classes and on nothing here; this column exists so that a residue
+# can be NAMED, which is the one thing 245 of the 269 undispositioned seeds of
+# the 2026-08-09 re-capture could not be.  It is computed HERE, at capture
+# time, while the rows are in hand -- A-4's own lesson, and the reason that
+# amendment's `stalled` column exists.
+#
+# Every label below is either an EXISTING function's answer or the ABSENCE of a
+# bus cycle.  There is no new predicate, no threshold that is not already
+# registered (`STALL_IDLE`), and no per-opcode anything.
+# --------------------------------------------------------------------------- #
+SCORER_WINDOW = 4000        # `fuzz_classify.diff_rows`' own `limit`, in POSITIONS
+
+
+def term_mechanism(real, sim, hold_rows):
+    """The label, or None when the rows cannot be asked (no rows, no unique
+    terminating-NMI run).  Applied in ONE fixed order:
+
+      REACHED      the arch column is there as the scorer read it before A-6.
+      WINDOW       D-1.  A COMPLETE dump is in the capture but lands past the
+                   `SCORER_WINDOW`-POSITION comparison window, while
+                   `term_clocks` budgets the terminator against `CAP_ROWS`
+                   = 4,096 ABSOLUTE rows.  The two ends of one budget were in
+                   different coordinate systems -- the same species of defect
+                   A-3 found at the anchor, at the other end of the capture.
+      FORGED_DONE  D-2.  A complete dump appears once a non-sentinel
+                   `OUT 0xFC` stops being read as a done marker.  A raw image
+                   is random bytes and contains such writes; `classify` says
+                   so in its own comment and then `dump_words` trusted them.
+      BUDGET       the register port WAS written at or after the terminating
+                   NMI and no sentinel done marker followed: the capture ran
+                   out mid-dump.  THIS, and only this, is the class the
+                   `ENTRY_MAX` / `TERM_CLOCKS` budget moves.
+      LONG_INSN    M-1.  Not one CODE fetch at or after the NMI, and the bus
+                   still running.  The part is inside a SINGLE instruction
+                   that outlives the capture -- a block transfer whose
+                   iteration count came out of the same random bytes as the
+                   opcode.  NMI recognition is an edge latch and the entry is
+                   taken when that instruction retires, which is after the
+                   last row of the capture.  No `TERM_CLOCKS` reaches it and
+                   no capture-side repair can: the capture is 4,096 records
+                   deep and one such instruction can run for hundreds of
+                   thousands of clocks.
+      STALLED      amendment A-4's fourth declared discard class, verbatim.
+      HALT         no bus at or after the NMI and the last cycle was a HALT
+                   announcement.  A-4's clause (1) excludes HALT on purpose
+                   (plan D3's subject) and this keeps it visible.
+      NEAR         no bus at or after the NMI, but the bus went quiet less
+                   than `STALL_IDLE` clocks before it -- A-4's three withheld
+                   seeds, whose stop cannot be told apart from the
+                   terminator's own arrival.
+      OTHER        none of the above.  Kept as a catch-all ON PURPOSE: a
+                   census whose catch-all is engineered to be empty measures
+                   its own taxonomy and nothing else.
+
+    None is returned when the question cannot be asked of these rows -- no
+    rows, no pin columns (a TB leg arms no terminator), or no unique
+    terminating-NMI run -- and never a label, which would read as a measured
+    answer.  `fz2_stall`'s `not evaluable` convention, applied here."""
+    if not real or not hold_rows:
+        return None
+    if fc.arch_dump(real, SCORER_WINDOW) is not None:
+        return "REACHED"
+    n = len(real)
+    if fc.arch_dump(real, n) is not None:
+        return "WINDOW"
+    if fc.arch_dump(real, n, sentinel_only=True) is not None:
+        return "FORGED_DONE"
+    st = stall_evidence(real, sim, hold_rows)
+    if st is None:
+        return None
+    f = st["f"]
+    post = [r for r in real if r["idx"] >= f]
+    if any(r["bs_early"] == 2 and (r["ad_addr"] & 0xFFFF) == ti.OUT_PORT_REGS
+           for r in post):
+        return "BUDGET"
+    if st["after"] == 0:
+        if st["last_bs"] == BS_HALT:
+            return "HALT"
+        return "STALLED" if st["stalled"] else "NEAR"
+    if not any(r["bs_early"] == 4 for r in post):
+        return "LONG_INSN"
+    return "OTHER"
+
+
 def result_line(cfg, g, sha, v, di, gen_git, build_stale, ts, bus_cycles=None,
                 arch=None):
     # task #38: the vector is banked IN FULL (`wvec_hex`, 2 chars per entry,
@@ -1095,8 +1183,28 @@ def eval_case(cid, k, ov, tb_only, host, build_stale, keep_rows=False,
     arch = None
     if real:
         esc = fc.escaped_code_region(real, v.n)
-        aw = fc.arch_dump(real, v.n)
-        asw = fc.arch_dump(sim, v.n) if sim else None
+        # AMENDMENT A-6 (prereg §17), findings D-1 and D-2.  THE ARCH COLUMN IS
+        # READ OVER THE WHOLE CAPTURE, and a done marker is one that carries
+        # the sentinel.  `wrote_term` two lines down has been read this way
+        # since T10 and its comment already gives the reason in full: `v.n` is
+        # the COMPARISON window, shrunk to the done marker + 8 and capped at
+        # `fuzz_classify.diff_rows`' `limit` of 4,000 POSITIONS, while
+        # `term_clocks` budgets the terminator against `CAP_ROWS` = 4,096
+        # ABSOLUTE rows.  A capture is 4,063 rows starting at absolute record
+        # 33, so the two ends of one budget were 63 rows apart -- A-3's anchor
+        # defect again, at the other end of the capture -- and a complete,
+        # correct dump landing there read as "the terminator was never
+        # reached".  D-2 is the same sentence about the OTHER axis: a raw
+        # image is 64 K of random bytes, `classify` says in its own comment
+        # that it "legitimately forges done markers with random data", and
+        # `dump_words` then took the first such write as the boundary and
+        # truncated the word list ahead of the terminator's real dump.
+        #
+        # NOTHING ELSE MOVES.  `classify` still compares the two legs over
+        # `v.n` and every verdict, row-diff and signature is untouched: this
+        # is the ARCH COLUMN's own window, not the comparison's.
+        aw = fc.arch_dump(real, len(real), sentinel_only=True)
+        asw = fc.arch_dump(sim, len(sim), sentinel_only=True) if sim else None
         wt = _wrote_term(real, len(real))
         # A-4: computed HERE, at capture time, while the rows are in hand, and
         # banked on the result line.  The 2026-08-09 re-capture had to be
@@ -1105,7 +1213,8 @@ def eval_case(cid, k, ov, tb_only, host, build_stale, keep_rows=False,
         holds = _pin_runs(real, len(real))
         st = stall_evidence(real, sim, holds)
         arch = {"arch_ok": aw is not None,
-                "arch_restart": fc.dump_restarted(real, v.n),
+                "arch_restart": fc.dump_restarted(real, len(real),
+                                                  sentinel_only=True),
                 "escaped": list(esc) if esc else None,
                 "escaped_n": _escape_count(real, v.n),
                 # the arch column, BOTH LEGS, banked as words and not as a
@@ -1148,6 +1257,14 @@ def eval_case(cid, k, ov, tb_only, host, build_stale, keep_rows=False,
                 # the rows cannot answer (a TB leg arms no terminator), never
                 # a False that would look like a measured absence.
                 "stalled": (None if st is None else st["stalled"]),
+                # AMENDMENT A-6's CENSUS column.  It dispositions NOTHING --
+                # `fz2_w1.py bars` reads A-4's four classes and does not import
+                # it -- and it exists so that an UNDISPOSITIONED seed can be
+                # NAMED without keeping its rows.  245 of the 269 seeds the
+                # 2026-08-09 re-capture left undispositioned carried no rows
+                # and could not be asked at all; this is the answer to that,
+                # and it costs one string per line.
+                "mech": term_mechanism(real, sim, holds),
                 "stalled_at": st,
                 # C-6: what the rig reported, what it was handed, what the
                 # rows say.  `None` on a TB leg, which arms no terminator.

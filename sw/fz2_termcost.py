@@ -52,6 +52,7 @@ sys.path.insert(0, SW)
 ROOT = os.path.dirname(SW)
 
 import fuzz_campaign as fzc                                  # noqa: E402
+import fuzz_classify as fc                                   # noqa: E402
 import testimage as ti                                       # noqa: E402
 
 CAMPAIGNS = os.path.join(ROOT, "sw", "testdata", "campaigns")
@@ -318,6 +319,71 @@ def cmd_predict(a):
     return 0
 
 
+# --------------------------------------------------------------------------- #
+# AMENDMENT A-6 (prereg §17) -- WHY A CAPTURE DID NOT REACH THE TERMINATOR,
+# named per capture off its own rows.  This is a CENSUS, not a discard class:
+# nothing here dispositions anything, and `fz2_w1.py bars` does not import it.
+#
+# The labels are applied in ONE fixed order and every one of them is a fact
+# already defined elsewhere in the tree -- there is no new predicate here that
+# is not either an existing function or the absence of a bus cycle.
+# --------------------------------------------------------------------------- #
+MECH = ("REACHED", "WINDOW", "FORGED_DONE", "BUDGET", "LONG_INSN",
+        "STALLED", "HALT", "NEAR", "OTHER")
+
+
+def mechanism(real, sim, line):
+    """The label for ONE banked capture's SOCKET rows.
+
+    `fuzz_campaign.term_mechanism` IS the definition and its docstring is the
+    taxonomy; THIS FILE OWNS NO SECOND COPY OF IT.  The same function runs at
+    capture time and banks its answer as the `mech` column, so a future
+    capture needs no retained rows at all -- exactly the shape A-4 gave
+    `stalled`.  What is here is the BACKFILL, for captures taken before A-6."""
+    if not real:
+        return None
+    holds = ((line.get("term") or {}).get("hold_rows")) or None
+    return fzc.term_mechanism(real, sim, holds)
+
+
+def cmd_mechanism(a):
+    for bank in (["current", "archive"] if a.bank == "all" else [a.bank]):
+        tot = collections.Counter()
+        per_tier = collections.defaultdict(collections.Counter)
+        named = collections.defaultdict(list)
+        n = noev = 0
+        for cid in BANKS[bank]:
+            for p in sorted(glob.glob(os.path.join(
+                    CAMPAIGNS, cid, "captures", "*.json.gz"))):
+                d = json.load(gzip.open(p, "rt"))
+                lab = mechanism(d.get("real"), d.get("sim"), d["line"])
+                if lab is None:
+                    noev += 1
+                    continue
+                n += 1
+                tot[lab] += 1
+                per_tier[d["line"]["tier"]][lab] += 1
+                if lab != "REACHED":
+                    named[lab].append(f"{cid}/{d['line']['k']}")
+        print(f"== bank {bank!r} ({', '.join(BANKS[bank])}): "
+              f"{n} banked captures")
+        for lab in MECH:
+            if tot[lab]:
+                print(f"   {lab:12s} {tot[lab]:5d}   "
+                      f"soup {per_tier['soup'][lab]:4d}  "
+                      f"raw {per_tier['raw'][lab]:4d}")
+        print(f"   {'TOTAL':12s} {n:5d}   not evaluable {noev}")
+        print(f"   NOT REACHED: {n - tot['REACHED']}   of which the two "
+              f"INSTRUMENT classes (D-1 WINDOW + D-2 FORGED_DONE) are "
+              f"{tot['WINDOW'] + tot['FORGED_DONE']}")
+        if a.names:
+            for lab in MECH:
+                if named[lab]:
+                    print(f"   -- {lab}: {' '.join(sorted(named[lab]))}")
+        print()
+    return 0
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     sub = ap.add_subparsers(dest="cmd", required=True)
@@ -329,8 +395,12 @@ def main():
     p.add_argument("--dump", type=int, default=fzc.DUMP_W0)
     p.add_argument("--entry", type=int, default=fzc.ENTRY_MAX)
     p.add_argument("--margin", type=float, default=fzc.TERM_MARGIN)
+    q = sub.add_parser("mechanism")
+    q.add_argument("--bank", choices=sorted(BANKS), default="current")
+    q.add_argument("--names", action="store_true")
     a = ap.parse_args()
-    return {"measure": cmd_measure, "predict": cmd_predict}[a.cmd](a)
+    return {"measure": cmd_measure, "predict": cmd_predict,
+            "mechanism": cmd_mechanism}[a.cmd](a)
 
 
 if __name__ == "__main__":

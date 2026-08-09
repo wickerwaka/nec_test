@@ -1338,6 +1338,13 @@ fix1 8.8 % · fix2 5.6 % · fix3 10.0 % · wrand1 6.2 % · wrand3 7.8 % · wrand
 11.2 % · wrand15 8.4 % · wvec 8.1 % — with no trend in `weff`.  `ENTRY_MAX` as a
 clock cost outside the scaling stands.
 
+> ⚠ **FORWARD POINTER (A-6, §17.3).**  The paragraph below is right about the
+> measurement and its reading of it is the wrong comparison: `ENTRY_MAX` does
+> not bound `entry`, it bounds `anchor + tail + 1 − ceil(1.2 × 399 × scale)`,
+> whose maximum over the same 327 completions is **438**.  The 719-clock
+> capture, `fz2c/402075`, **COMPLETED**.  A-6 re-derives the constant from the
+> uncensored distribution and it **does not move**.
+
 **ONE MEASUREMENT WENT THE OTHER WAY AND IS REPORTED AS REGISTERED**: with the
 censoring lifted, the observed entry cost now reaches **719** clocks against
 `ENTRY_MAX = 463`.  463 was the largest value the archived capture could show;
@@ -1585,6 +1592,15 @@ bus still running and the vector taken; 3 stopped too close to the NMI to
 attribute; 1 is a HALT that took the vector and did not dump), and **245**
 could not be asked at all.
 
+> ⚠ **THE PARENTHESIS IS SUPERSEDED BY A-6 (§17.0), MEASURED SEED FOR SEED ON
+> THE SAME ROWS.**  The 24 are **16** `LONG_INSN` (the part is inside one
+> block-transfer instruction that outlives the capture — no budget reaches it),
+> **2** `WINDOW` + **1** `FORGED_DONE` (two INSTRUMENT defects, complete dumps
+> the scorer could not see), **1** genuine `BUDGET`, **3** `NEAR` (A-4's
+> withheld, unchanged) and **1** catch-all.  **The budget class is one seed, not
+> twenty**, and the "HALT that took the vector and did not dump" **dumped** —
+> it is the `FORGED_DONE` seed, `fz2e/529009`.
+
 A re-capture of the corpus with `--keep-rows` on every seed would classify
 those 245 — **the cost, and the decision, are the coordinator's** and are
 stated in the sitting report, not taken here.  **No board was contacted for
@@ -1802,3 +1818,328 @@ differs in exactly the same **three** leaves — `bars/C-1/registered`,
 `bars/C-1/verdict`, `ts`.  The two runs therefore agree on **every field but
 the stamp**, which is also the only reproducibility evidence this rescore has
 and is worth having: the scorer is deterministic over the banked results.
+
+---
+
+## §17 AMENDMENT A-6 — THE 269 ARE MEASURED, NOT ESTIMATED: **ONE MECHANISM (M-1) AND TWO INSTRUMENT DEFECTS (D-1, D-2)**, AND `ENTRY_MAX` IS RE-DERIVED AND **DOES NOT MOVE**
+
+**Written 2026-08-09/10, AFTER A-5, and COMMITTED BEFORE ANY BOARD CONTACT OF
+THIS SITTING.**  Appended, never back-edited.
+
+**NO BAR MOVES.**  C-1 … C-11 keep their text and their values character for
+character, including A-5's re-registered rate clauses and **E-1c = 0, which is
+untouched**.  **NO NEW DISCARD CLASS IS CREATED.**  A-4's four classes are
+still the whole disposition set, and `fz2_w1.py bars` still reads
+`arch_restart or ps3_8080 or wrote_term or stalled` and nothing else.
+
+**NO SEED, IMAGE, VECTOR, WAIT VECTOR OR CONSTANT MOVES.**  `ENTRY_MAX` stays
+**463** — §17.3 is its re-derivation, and the re-derivation returns the value
+it started with — so `TERM_CLOCKS` is unmoved, so `SEEDS_SHA256` and
+`SEED_LIST_SHA256` are unmoved, and `fz2_w1.py lint` passes against the frozen
+population file with no re-freeze.  **The re-capture §17.7 registers is
+therefore a REPEAT of the same directive on the same 3,840 seeds**, which is
+the strongest form this comparison can take.
+
+### 17.0 WHAT WAS ASKED, AND WHAT THE ARTIFACT SAID BACK
+
+§15.8 characterised the 269 as *"20 are A-3's budget class with the bus still
+running and the vector taken; 3 stopped too close to the NMI to attribute; 1 is
+a HALT that took the vector and did not dump"*, plus **245 that could not be
+asked**.  Measured off the same banked rows, seed for seed, **that
+characterisation is wrong in its main term**, and the corrected one is below.
+The 24 are:
+
+| what §15.8 said | what the rows say | n |
+|---|---|---|
+| "20, A-3's budget class" | **M-1 `LONG_INSN`** — the part is inside ONE instruction that outlives the capture | **16** |
+| | **D-1 `WINDOW`** — a COMPLETE dump the scorer's window cannot see | **2** |
+| | **D-2 `FORGED_DONE`** — a COMPLETE dump a forged done marker truncates | **1** |
+| | **`BUDGET`** — genuinely ran out mid-dump | **1** |
+| "3 stopped too close to the NMI" | **`NEAR`** — A-4's three withheld seeds, unchanged | **3** |
+| "1 HALT that took the vector and did not dump" | it **DID** dump — it is the D-2 seed, `fz2e/529009` | *(counted above)* |
+| | catch-all, genuinely unexplained (`fz2c/405062`) | **1** |
+| | **total** | **24** |
+
+**The budget class is ONE seed of 732 banked captures, not twenty.**  Everything
+else that was being read as a budget failure is either a mechanism no budget
+reaches or an instrument that could not see a dump that was already there.
+
+### 17.1 THE INSTRUMENT — `fuzz_campaign.term_mechanism`, and it dispositions NOTHING
+
+ONE function, applied in ONE fixed order, and **every label is either an
+existing function's answer or the absence of a bus cycle**.  There is no new
+threshold (`STALL_IDLE` is A-4's, unchanged), no tier parameter and no
+per-opcode anything.  Its docstring is the definition; `sw/fz2_termcost.py
+mechanism` is the backfill over banked captures and owns no second copy.
+
+> **IT IS A CENSUS, NOT A CLASS.**  `fz2_w1.py bars` does not import it.  A seed
+> labelled `LONG_INSN` is **UNDISPOSITIONED** and counts against E-1c exactly as
+> it did before this amendment.  What changes is that it can be NAMED.
+
+`REACHED` is deliberately computed on the **PRE-A-6** window, so that D-1's and
+D-2's repairs appear as their own labels instead of being absorbed into
+`REACHED` — the repair stays auditable in the census that measures it.
+
+**THE CENSUS, over every banked capture in both campaigns** (`python3
+sw/fz2_termcost.py mechanism --bank all`):
+
+| label | current (`fz2c`+`fz2e`) | soup / raw | archive (INV-2) | soup / raw |
+|---|---|---|---|---|
+| `REACHED` | **659** | 307 / 352 | 455 | 263 / 192 |
+| `WINDOW` (D-1) | **3** | 0 / 3 | **77** | 19 / 58 |
+| `FORGED_DONE` (D-2) | **1** | 0 / 1 | 0 | — |
+| `BUDGET` | **5** | 1 / 4 | 131 | 23 / 108 |
+| `LONG_INSN` (M-1) | **16** | 0 / 16 | 18 | 0 / 18 |
+| `STALLED` (A-4) | **44** | 5 / 39 | 49 | 6 / 43 |
+| `NEAR` | **3** | 0 / 3 | 1 | 0 / 1 |
+| `OTHER` | **1** | 1 / 0 | 3 | 1 / 2 |
+| **total** | **732** | | **734** | |
+| **not evaluable** | **0** | | **0** | |
+
+The archive column is INV-2's, taken under the pre-A-3 budget; it gates nothing
+and is shown because it is what the same instrument says about a capture whose
+budget was known to be short — `BUDGET` 131 there against **5** here is A-3's
+repair, seen a second way and by a different instrument.
+
+### 17.2 M-1 — THE PART IS INSIDE ONE INSTRUCTION THAT OUTLIVES THE CAPTURE
+
+**This is the mechanism, and it is one sentence: NMI recognition happens at an
+instruction boundary, a block-transfer instruction is ONE instruction, and its
+iteration count came out of the same random bytes as its opcode.**
+
+The evidence, on the socket leg's own rows, over all 16 (`fz2c/406063` quoted
+because it is the median of them, not the extreme):
+
+* **Not one CODE fetch at or after the terminating NMI**, and none for **1,696
+  clocks before it** either.  The part has not started an instruction in that
+  whole span; it is still finishing one.
+* The post-NMI bus is **MEMR and MEMW only**, in equal numbers, at a **constant
+  stride** — `−2` per access, or the `+1 / −3` alternation that is one
+  descending word split into two byte cycles.  That is a block transfer with
+  `DF = 1`, reading one segment and writing another.  No CODE, no INTA, no I/O.
+* **`LOCK` is never asserted** (`lock_n` = 1 on every one of the 762 post-NMI
+  rows), so this is not the 8086 `LOCK`-prefix interrupt-inhibit story.
+* **No vector read happens in the capture at all** — no MEMR anywhere below
+  `0x40` after the NMI — **and `term.vec_used` is TRUE on all 16.**  The rig's
+  own sticky bit says the overlay served a CS half, and `nec_bus.sv` sets it
+  only on a real `vec_hit_cs`.  Both are true because the run continues after
+  the 4,096-record capture buffer has filled: **the NMI IS taken, after the
+  last row.**  `vec_used` is not lying and the rows are not lying; they are
+  answering about different intervals.
+
+  ⚠ **§14.3's *"`vec_used` is false on 218 of the 312 — the part never took the
+  vector"* does not invert.**  A `vec_used` of TRUE does **not** mean the vector
+  was taken inside the capture, and on this class it means the opposite of what
+  it reads like.  Recorded so nobody re-derives the wrong direction from it.
+
+**NO `TERM_CLOCKS` VALUE REACHES THIS CLASS, AND NO `ENTRY_MAX` DOES EITHER.**
+The capture is 4,096 records deep.  One block transfer can iterate up to 65,535
+times, and at the corpus's own wait levels each iteration is tens of clocks —
+hundreds of thousands of clocks for one instruction.  Firing the terminator
+earlier does not help: it only moves the pin edge, which is latched and served
+later regardless.  This is the same shape as A-4's stalled class — *the part is
+not where the budget assumes it is* — and it is **NOT** proposed as a fifth
+discard class here.  §17.6 says why that decision is not this document's.
+
+### 17.3 `ENTRY_MAX`, RE-DERIVED FROM THE UNCENSORED DISTRIBUTION — AND IT DOES NOT MOVE
+
+§14.2 recorded, correctly and as registered, that *"the observed entry cost now
+reaches 719 clocks against `ENTRY_MAX = 463`"*, and A-3 declined to re-tune
+because 463 was the largest value the CENSORED archive could show.  The
+censoring is lifted, so the re-derivation is owed.  **Here it is, and it returns
+463.**
+
+**719 is not the quantity the constant bounds.**  The formula is
+
+```
+    TERM_CLOCKS = CAP_ROWS − ceil(TERM_MARGIN × (ANCHOR_W0 + DUMP_W0) × scale) − ENTRY_MAX
+```
+
+so a capture completes iff `anchor + tail + 1 ≤ ceil(1.2 × 399 × scale) + ENTRY_MAX`.
+Define, per capture, **the `ENTRY_MAX` that capture actually required**:
+
+```
+    need = anchor + tail + 1 − ceil(TERM_MARGIN × (ANCHOR_W0 + DUMP_W0) × scale)
+```
+
+`need` is smaller than `entry` because `TERM_MARGIN` is **multiplicative on
+(anchor + dump)** and its surplus grows with `scale`, while the entry cost is
+additive.  Over the **327 completions of the uncensored current bank**:
+
+| | min | p50 | p90 | p95 | p99 | **MAX** |
+|---|---|---|---|---|---|---|
+| `need` | −1,185 | −30 | 89 | 195 | 395 | **438** |
+
+**`ENTRY_MAX = 463` covers 327 of 327, with 25 clocks to spare**, and the
+distribution shows **no pile-up at the reserve** (p99 = 395).  That is the same
+censoring test §13.2(d) used to convict the pre-A-3 budget, run again and
+**passing**: the requirement's upper end is now visible and it sits BELOW the
+reserve.  The 719-clock capture, `fz2c/402075`, **completed**, with
+`need = 319`.
+
+**The one capture in 732 whose requirement exceeds it** is `fz2e/535050`
+(raw, `wvec-uni`, `weff` 4): 15 register words written from row 3,590 at a
+measured 33.4 rows/word, `MAGIC` present, and the done marker projected ~29
+rows past the last usable row — `need ≈ 492`.
+
+**IT IS NOT USED TO RE-TUNE THE CONSTANT, AND THIS PARAGRAPH IS WHY.**  Moving
+`ENTRY_MAX` from 463 to ≥ 492 would be choosing a constant after seeing which
+single seed it catches, on the same capture that revealed it — `§13.4`'s "one
+re-capture" and `ucore_provenance.md` §64.1's rule, both.  It would buy **at
+most one seed of 269**, and it would cost 29+ clocks of earlier termination on
+every seed in the corpus.  **The derivation is: `ENTRY_MAX` = the observed
+maximum of the measured requirement, which is 438, and 463 ≥ 438.  DERIVED
+ONCE, REGISTERED HERE, AND NOT SWEPT.**
+
+**AND THE OTHER FOUR `BUDGET` CAPTURES ARE NOT BUDGET FAILURES.**  Their `need`
+values are **−6, −113, −881, −289** — they had hundreds of rows to spare — and
+**all four are `wrote_term = True`**: the run overwrote the terminator page, so
+the handler emitted register words and then never reached its own done marker.
+They are already dispositioned by an existing class and the label is describing
+the symptom, not the cause.  Only `fz2e/535050` is a budget miss at all.
+
+**FALSIFIER, REGISTERED BEFORE THE RE-CAPTURE:** if the re-capture's `BUDGET`
+class is more than a handful, or if its `need` distribution piles up at 463,
+then 463 is short and this derivation is wrong.
+
+### 17.4 D-1 — THE ARCH COLUMN WAS READ THROUGH THE **COMPARISON** WINDOW, AND THE BUDGET IS WRITTEN AGAINST THE **CAPTURE**
+
+`fuzz_classify.diff_rows` sets the compare length to
+`min(len(real), len(sim), limit = 4000, dend + 8)` — in **POSITIONS** — and
+`eval_case` then asked `arch_dump(real, v.n)`.  A board capture is **4,063 rows
+beginning at absolute record 33** (the board holds RESET for the first 33 and
+`check_seq.run_chip` returns `recs[rel:]`), so the scoreable region ended at
+**absolute row 4,032** while `term_clocks` budgets the terminator against
+`CAP_ROWS = 4,096`.  **The two ends of one budget were 63 rows apart.**
+
+That is **A-3's anchor defect again, at the other end of the capture**: a row
+number in one coordinate system subtracted from a depth in another.  A-3 fixed
+the near end (`ANCHOR_W0` 145 → 180) and did not look at the far one.
+
+The consequence is not subtle: a **complete, correct, `MAGIC`-anchored 15-word
+dump** landing in rows 4,033-4,095 read as *"the terminator was never
+reached"*.  On the current bank that is **3 captures** (`fz2c/410064` done at
+absolute **4,051**, `fz2e/521054` at **4,004**, `fz2e/528008` at **4,070**);
+on INV-2's archive, where the budget put every dump against the end, it is
+**77**.
+
+**THE REPAIR** is one line of intent and it was already precedent in the same
+function: `wrote_term` has been read over `len(real)` since T10, with a comment
+saying in as many words that `v.n` is the comparison's window and the
+terminator's evidence is not the comparison's business.  The arch column is now
+read the same way.  **`classify` is untouched** — every verdict, row-diff,
+signature and `bad_rows` in this campaign is computed over `v.n` exactly as
+before.
+
+### 17.5 D-2 — A DONE MARKER IS ONE THAT CARRIES THE SENTINEL
+
+`classify` states, in its own comment, that *"Tier B (raw) legitimately forges
+done markers with random data (a random `OUT 0xFC`) … never trusts them"*.
+`dump_words` then took the **first** `OUT 0xFC` as the boundary **whatever it
+carried**, truncated the word list there, and returned words that are not a
+dump.  `provenance_alarms` calls a non-sentinel done marker **forged** in its
+own words, in the same file.
+
+`fz2e/529009` is the case: a raw image writes `OUT 0xFC, 0xE4EE` at absolute
+row **1,721**; the part then HALTs; the terminating NMI at 3,189 wakes it; it
+dumps 15 words from 3,256 and writes `OUT 0xFC, 0xF00D` at **3,629**.  The
+dump is complete, correct and 900 rows inside the window, and the arch column
+read `None`.  **This is the seed §15.8 called "a HALT that took the vector and
+did not dump".  It dumped.**
+
+**THE REPAIR** is ONE predicate — `DONE_SENTINEL` — with no tier parameter,
+because the sentinel is the same in both tiers.  `dump_words`, `arch_dump` and
+`dump_restarted` gain `sentinel_only`, **defaulting to False so that every
+historical caller means what it meant**; only the fz2 arch column passes True.
+
+### 17.6 WHAT THIS AMENDMENT DELIBERATELY DOES **NOT** DO
+
+* **It does not create a fifth discard class.**  `LONG_INSN` is a mechanism no
+  budget reaches, exactly as A-4's stalled class is, and by the same reasoning
+  it would qualify.  **Whether it becomes a declared discard class is a
+  decision about a registered bar and belongs to the coordinator**, on the A-4
+  precedent (§15.0's four conditions, a hard falsifier, and a both-ways
+  rescore).  It is named here and disposed nowhere.
+* **It does not move `ENTRY_MAX`, `TERM_CLOCKS`, `STALL_IDLE`, `TERM_MARGIN`,
+  `ANCHOR_W0`, `DUMP_W0`, `TERM_FLOOR` or any bar.**
+* **It does not touch `classify`**, so no verdict, signature or row-diff moves.
+* **It does not extrapolate.**  The census above is over 732 banked captures,
+  which are the divergent / keep-rows / ballast subset and are **not** a random
+  sample of 3,840.  No figure in §17 is scaled up to corpus size, and the
+  §17.7 re-capture exists precisely so that none has to be.
+
+### 17.7 THE DURABLE FIX, AND THE ARITHMETIC THAT MADE THE CHEAP ROUTE CHEAP
+
+**245 of the 269 could not be asked because `fuzz_campaign` banks rows only for
+divergent / keep-rows / ballast captures.**  §15.8 left the cost of a
+`--keep-rows` re-capture with the coordinator; the arithmetic, checked against
+the real bank rather than recalled:
+
+* `fz2c` **508** captures / **22.61 MB** → **45.6 KB** each; `fz2e` **224** /
+  **10.49 MB** → **48.0 KB** each.  A targeted 245 would be **≈ 11.2 MB**, and
+  a full `--keep-rows-every 1` over 3,840 would be **≈ 175 MB**.  Both figures
+  in §15.8's framing are arithmetically right.
+* ⚠ **but `fuzz_bank.CAP_MB = 25` does NOT govern `captures/`** — it caps the
+  promoted regression bank under `tests/v30/fuzz_bank/<cid>/seeds/`, and the
+  live `captures/` directories already hold **33 MB** between them with nothing
+  enforcing anything.  The 25 MB the decision was measured against is a bar on
+  a different artifact.  Recorded as an erratum against the reasoning, not
+  against the conclusion: 175 MB of rows is still not worth keeping.
+
+**AND NEITHER RE-CAPTURE IS NEEDED, because the answer costs one string per
+line.**  A-4 already computes `stalled` at capture time and banks it; A-6 adds
+**`mech`**, computed by the same function that the offline backfill uses, from
+rows that are in hand anyway (**2.5 ms per seed**, ≈ 10 s over the whole
+corpus, and **zero** extra bytes of capture).  **A capture taken under A-6
+classifies every one of its 3,840 seeds off its own result lines, with no rows
+retained at all.**
+
+### 17.8 THE REGISTERED PREDICTIONS FOR THE RE-CAPTURE — one capture, as §13.4 requires
+
+Reported as registered, never restated.  **No bar is predicted**, and the two
+A-5 rate clauses keep their `UNVALIDATED` marker whatever they read.
+
+* **P1.** `classified_from` reads **`line`: 3,840** and **`none`: 0**.  No seed
+  is unclassifiable.
+* **P2.** The `mech` census sums to 3,840, with `not evaluable` reported
+  separately and expected to be **0**.
+* **P3 — A HARD SELF-CONSISTENCY FALSIFIER.**  `arch_ok` is TRUE **iff** `mech`
+  ∈ {`REACHED`, `WINDOW`, `FORGED_DONE`}, seed for seed over all 3,840; and
+  `mech == STALLED` **iff** `stalled` is TRUE, seed for seed.  The two columns
+  are computed from the same rows by the same functions and **any disagreement
+  is a defect in this amendment**, not a finding about the part.
+* **P4.** **UNDISPOSITIONED WILL STILL BE NON-ZERO**, and `LONG_INSN` will be
+  the largest single class inside it.  **E-1c WILL STILL BE MISSED.**  This is
+  registered BEFORE the capture so that a non-zero residue is a reported result
+  and not a discovery — and so that no reader mistakes A-6 for an attempt to
+  clear the bar.  **No number is predicted for it**: the banked 732 are not a
+  random sample of 3,840 and §17.6 refuses to scale them.
+* **P5.** The two rate clauses RISE, by the D-1 + D-2 repairs only.  On the
+  banked sample those repairs move **4 of 732 (0.55 %)**, so the expected move
+  is **under one point**; they are not forecast more precisely and they are not
+  quotable either way.
+* **P6.** C-2, C-4, C-5, C-7, C-8, C-9, C-10 read as they did in §14.1.  C-3's
+  generation clause stays **0 forbidden `0F xx` pairs**; its runtime clause is
+  a property of the images and the same two seeds are expected.  C-6 and C-11
+  stay **NOT SCOREABLE** for §14.5's two unchanged reasons.
+* **P7.** `SEEDS_SHA256` and `SEED_LIST_SHA256` are **unmoved**, and
+  `fz2_w1.py lint` passes with no re-freeze.  The re-capture is the SAME
+  directive on the SAME seeds.
+
+**THE PRIOR CAPTURE IS ARCHIVED BY RENAME, AND IT IS NOT INVALIDATED.**  No
+constant moved, so nothing it was scored against is defective in the way INV-2's
+was; its rows are true silicon taken under the same budget the re-capture uses.
+This is the **w1evt-biased precedent** — an archive-by-rename, which
+`CLAUDE.md` distinguishes from an invalidation in as many words — and **no
+invalidation-ledger entry is opened.**  Nothing is deleted.
+
+### 17.9 WHAT A-6 CHANGES IN THE TREE
+
+* `sw/fuzz_classify.py` — `dump_words` / `arch_dump` / `dump_restarted` gain
+  `sentinel_only`, **default False**.  Nothing else; `classify` is untouched.
+* `sw/fuzz_campaign.py` — the arch column is read over the whole capture and
+  sentinel-only (D-1, D-2); `SCORER_WINDOW` and `term_mechanism` are added; the
+  result line gains **`mech`**.  No constant, no bar, no capture-path change.
+* `sw/fz2_termcost.py` — the `mechanism` backfill and its census command.  It
+  reads banked captures only — no board, no TB, no engine.
+* This document, appended.

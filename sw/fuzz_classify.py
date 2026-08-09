@@ -273,7 +273,7 @@ def has_done(recs, window):
 MAGIC_AT = STORE_ORDER.index("MAGIC")
 
 
-def dump_words(recs, window):
+def dump_words(recs, window, sentinel_only=False):
     """The IOW-`OUT_PORT_REGS` data words written strictly BEFORE the first
     done marker (IOW-`OUT_PORT_DONE`), in order, or None when the window holds
     no done marker at all.
@@ -282,7 +282,22 @@ def dump_words(recs, window):
     image RE-RUNS for as long as the capture lasts (`v30run.parse_result` bounds
     its search at the done marker for exactly this reason and the old
     `arch_dump` did not), and a terminator that is entered twice writes the
-    register port twice."""
+    register port twice.
+
+    `sentinel_only` -- AMENDMENT A-6 (prereg §17), finding D-2.  A done marker
+    is `OUT OUT_PORT_DONE` CARRYING `DONE_SENTINEL`; the harness store writes
+    no other value, and `provenance_alarms` calls a non-sentinel one FORGED in
+    its own words.  A raw-tier image is 64 K of random bytes and legitimately
+    contains `OUT 0xFC, <junk>` -- `classify` says so out loud ("Tier B (raw)
+    forges done markers with random data ... never trusts them") -- but THIS
+    function trusted the first one whatever it carried, so a forged marker
+    anywhere ahead of the terminator's dump truncated the word list and the
+    arch column read None while a complete, correct 15-word dump sat in the
+    rows behind it.  With `sentinel_only` a non-sentinel `OUT 0xFC` is not a
+    boundary; it is not a register word either, so it is simply skipped.
+    ONE predicate, no tier parameter -- the sentinel is the same in both.
+
+    DEFAULT FALSE, so every historical caller means what it meant."""
     words, out = [], None
     for tx in extract_txns(recs):
         if tx["start"] >= window:
@@ -291,6 +306,8 @@ def dump_words(recs, window):
             continue
         port = tx["addr"] & 0xFFFF
         if port == OUT_PORT_DONE:
+            if sentinel_only and tx["data"] != DONE_SENTINEL:
+                continue
             out = words
             break
         if port == OUT_PORT_REGS:
@@ -298,7 +315,7 @@ def dump_words(recs, window):
     return out
 
 
-def arch_dump(recs, window):
+def arch_dump(recs, window, sentinel_only=False):
     """The 15 STORE_ORDER registers of the LAST dump before the done marker,
     or None.
 
@@ -316,8 +333,10 @@ def arch_dump(recs, window):
     A dump the terminating NMI interrupted and restarted is NOT repaired here:
     the last run is returned and `dump_restarted()` reports it, because the
     restarted run's AW has already been clobbered by the first run's shuttle
-    and the seed is the campaign's to DISCARD."""
-    words = dump_words(recs, window)
+    and the seed is the campaign's to DISCARD.
+
+    `sentinel_only` is `dump_words`' (A-6 / D-2) and defaults False."""
+    words = dump_words(recs, window, sentinel_only)
     if words is None or len(words) < len(STORE_ORDER):
         return None
     tail = words[-len(STORE_ORDER):]
@@ -326,12 +345,14 @@ def arch_dump(recs, window):
     return dict(zip(STORE_ORDER, tail))
 
 
-def dump_restarted(recs, window):
+def dump_restarted(recs, window, sentinel_only=False):
     """True when more than one `MAGIC` anchor was written before the done
     marker: the terminating NMI landed mid-dump and the handler ran again.
     The second run's AW is the first run's shuttle value, so the dump is
-    unrepairable and the seed must be DISCARDED, not fixed up."""
-    words = dump_words(recs, window)
+    unrepairable and the seed must be DISCARDED, not fixed up.
+
+    `sentinel_only` is `dump_words`' (A-6 / D-2) and defaults False."""
+    words = dump_words(recs, window, sentinel_only)
     return words is not None and words.count(MAGIC) > 1
 
 
