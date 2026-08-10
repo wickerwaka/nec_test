@@ -700,6 +700,97 @@ drifts away from the artifact it describes fails, loudly.
 **ALSO FALSIFIED IF** any consumer drops an excluded seed **without printing the
 exclusion**.
 
+### ADDENDUM, 2026-08-10 — THE ERA THIS ENTRY IS ABOUT, AND WHAT A-13 CHANGES
+
+**Nothing above is retracted or rewritten.** This addendum states the era the
+entry was always about, because a re-capture has since made it matter.
+
+The two seeds are excluded on the strength of **their banked captures** —
+`tests/v30/fuzz_bank/fz2e/seeds/{soup_509069_e6e5f2c9b2ec,raw_521059_17de21d60cf3}.json.gz`,
+promoted 2026-08-09T18:09–18:10Z from the **F12-era** corpus, and byte-identical
+since. Recomputing `fuzz_campaign._ps3_8080` over the `chip_rows` those two files
+carry fires on **both**, and over **all 623 banked captures it fires on those two
+and nothing else** (`prereg §34.3`). **EXC-1 is exactly right about the bank,
+seed for seed.**
+
+`0ac4c2a83a` then re-captured the corpus on FLASH #13 **without re-promoting the
+bank**, and on that capture `fz2e/521059` **does not** enter 8080 mode while
+`fz2c/408029` and `fz2e/523042` do (prereg §33). All three are `raw` tier with
+identical `image_sha256` across the eras: **a runtime 8080 entry is a property of
+the capture, not of the seed**, on a tier whose socket leg is not reproducible
+(`0ac4c2a83a` bar C1). **This is not a defect in these captures and not a
+retraction of this entry.**
+
+**AMENDMENT A-13** (`fz2_corpus_prereg_2026-08-08.md` §34) therefore re-registers
+C-3's **R3′b** to justify a *bank* exclusion against **the banked capture's own
+rows, recomputed**, rather than against a campaign result line that may now be a
+different capture. The falsifier below is unchanged in force and stronger in
+form: it no longer trusts a stored column in another file, it decompresses every
+banked seed and recomputes the predicate over the exact rows `check_fuzz_bank`
+replays.
+
+---
+
+## EXC-2 — THE THREE RUNTIME 8080 ENTRIES IN THE **FLASH #13** CORPUS
+
+**Opened 2026-08-10, branch `fuzz-v2-on-relanding`. Status: EXCLUDED BY STATUS.
+No rig defect. Nothing moved, renamed or deleted.**
+
+| | |
+|---|---|
+| the seeds | **`fz2c/408029`** (raw, stratum 8, `KNOWN_ACCEPTED/open_bus`, `sig dcc39a8e7bf43c1f`, 3,074 divergent rows), **`fz2e/509069`** (soup, stratum 21, `FUNCTIONAL/func:R@94`, `sig 8cb79b8ba571898b`, 1,126 rows — **also EXC-1**, and identical leaf for leaf across the re-capture) and **`fz2e/523042`** (raw, stratum 35, `KNOWN_ACCEPTED/open_bus`, `sig 626ef279e6b4d248`, 2,789 rows) |
+| the artifact | `sw/testdata/campaigns/{fz2c,fz2e}/results.jsonl`, the **FLASH #13** re-capture of `0ac4c2a83a` (2026-08-10T00:51:09–01:02:21Z, 3,840 seeds, 0 halts) |
+| what changed | **NOTHING IN ANY MANIFEST.** The exclusion is by arithmetic: `fz2_w1.py bars` filters a `ps3_8080` line out of its tier's numerator **and** denominator and prints the count (C-1 `excluded_ps3_8080`: `census/soup` 0 · `census/raw` 1 · `enriched/soup` 1 · `enriched/raw` 1, total **3**) |
+| the argument | `fz2_corpus_prereg_2026-08-08.md` **§31** (A-12, what *discarded* means) and **§34** (A-13, which artifact justifies which half) |
+| the tree it was set on | `as_of_commit` `db80e00596` |
+
+### WHY
+
+Same mechanism as EXC-1: a `MEMW` into the code region manufactured a `0F xx`
+pair after the compose-time scrub had run, and the part entered 8080 mode at
+runtime. **8080/BRKEM is DEFERRED BY USER DECISION 2026-08-05.** A capture in
+which the part entered a deferred mode is not a member of the scored population.
+
+### WHY NO MANIFEST RECORD IS WRITTEN — AND WHY WRITING ONE WOULD BE WRONG
+
+**`fz2c/408029` and `fz2e/523042` have no file under
+`tests/v30/fuzz_bank/<cid>/seeds/`.** The bank was promoted from the F12-era
+corpus, in which neither seed diverged at all (`SUCCESS`). An `excluded_seeds`
+record for a file that is not in the bank is itself a **failure** of C-3's R3′b
+(*"excluded record names a file that is not in the bank"*), and it would be a
+record about nothing: an exclusion is a statement about a replayed capture, and
+there is no replayed capture to make it about.
+
+`fz2e/509069` **is** banked, and its record already exists — **EXC-1's**. It is
+not duplicated here.
+
+### WHICH RIG DEFECT
+
+# **NONE.**
+
+The captures are true silicon, taken from the socket on FLASH #13, and they stay
+true. They are retained in full in `sw/testdata/campaigns/{fz2c,fz2e}/captures/`.
+
+### WHAT THIS ENTRY IS FOR
+
+**A future promotion.** The bank was deliberately **not** re-promoted from this
+corpus (prereg §34.5, with the numbers that move: the replayed population would
+go **621 → 622**, `fz2e` banking 144 rather than 143). If it ever is, these
+seeds' captures become banked files, and each one must then carry an
+`excluded_seeds` record with a reason — which R3′b will demand, loudly, in its
+A-13 form.
+
+### THE FALSIFIER
+
+**FALSIFIED IF** a `ps3_8080` line in the current corpus is ever found inside a
+scored rate's numerator or denominator — which C-3's **R3′a** recomputes from
+`sel_all` a second way on every `bars` run — or inside the replayed bank without
+an `excluded_seeds` record, which **R3′b** recomputes off the banked rows
+themselves.
+
+**ALSO FALSIFIED IF** the exclusion is ever dropped **without being printed**
+(R3′c).
+
 ---
 
 ## AUDITED AND **NOT** INVALIDATED

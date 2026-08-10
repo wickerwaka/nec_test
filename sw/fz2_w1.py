@@ -2293,22 +2293,65 @@ def cmd_bars(a):
                                "got": {f: (got or {}).get(f) for f in want}})
     r3a_ok = (c1_m is not None) and not r3a_detail
     # ---- R3'b: the BANK, both directions, list against artifact
+    #
+    # AMENDMENT A-13 (prereg §34), 2026-08-10 -- THE JUSTIFICATION SOURCE FOR
+    # THE BANK HALF IS THE BANKED CAPTURE'S OWN ROWS, RECOMPUTED.
+    #
+    # THE TIMING, WHICH §34.0 STATES FIRST: this is edited AFTER R3'b failed.
+    # It failed on the FLASH #13 re-capture (§33) with ONE leaf --
+    # `raw_521059_17de21d60cf3.json.gz` excluded, and the re-captured results
+    # no longer showing `ps3_8080` for it.
+    #
+    # THE MECHANISM, WHICH IS WHY THIS IS NOT A CONVENIENCE: R3'b used to join
+    # the MANIFEST against the CAMPAIGN RESULTS LINE.  That join carries an
+    # UNSTATED ASSUMPTION -- that the bank and the results are the same
+    # capture.  They were, until the corpus was re-captured on FLASH #13
+    # without re-promoting the bank, and `ps3_8080` is a SOCKET-DERIVED column
+    # on a tier whose socket leg is not reproducible (`0ac4c2a83a` bar C1: 12
+    # of 3,840 moved one, 11 of them `raw`, `image_sha256` identical on all
+    # 3,840).  A runtime 8080 entry is therefore a property of THE CAPTURE, not
+    # of the seed -- so the exclusion of a BANKED FILE must be justified
+    # against THAT FILE, and the exclusion of a SEED FROM A RATE against the
+    # RESULT LINE the rate is computed over.  Two consumers, two artifacts,
+    # each checked against the one it governs.  R3'a is untouched and still
+    # reads the result line; only this half moves.
+    #
+    # IT GAINS TEETH RATHER THAN LOSING THEM.  The old form trusted a stored
+    # column in another file.  This one DECOMPRESSES EVERY BANKED SEED and
+    # recomputes `fuzz_campaign._ps3_8080` over the exact rows
+    # `check_fuzz_bank` replays -- the R1 habit, applied to the bank.  A
+    # re-promotion that banks a new 8080 capture still fails
+    # (`banked_not_excluded`); an over-broad list still fails
+    # (`excluded_not_justified`); a record naming a missing file still fails.
+    #
+    # THE WINDOW.  A banked entry carries no `win`, so the whole retained row
+    # list is scored -- which is what the bank replays.  MEASURED, not assumed
+    # (§34.3): over all 623 banked captures the full-window recomputation and
+    # the bank-era `win` recomputation agree on 623 of 623 and both fire on the
+    # same 2, and both agree with the bank-era results column at 0
+    # disagreements.
     r3b_missing, r3b_extra = [], []
+    r3b_scanned = r3b_fires = 0
     for pop in POPS:
         cid = CID[pop]
-        ps3_ks = {r["k"] for r in lines[pop] if r.get("ps3_8080")}
         d = ROOT / "tests" / "v30" / "fuzz_bank" / cid / "seeds"
         files = {q.name for q in d.glob("*.json.gz")} if d.exists() else set()
         excl = bs.excluded_of(cid)
+        ps3_files = set()                 # banked files whose OWN rows fire
         for name in sorted(files):
             try:
-                k = int(name.split("_")[1])
-            except (IndexError, ValueError):                    # noqa: PERF203
-                continue
-            if k in ps3_ks and name not in excl:
-                r3b_missing.append({"cid": cid, "file": name, "k": k,
-                                    "why": "ps3_8080 seed is BANKED and NOT "
-                                           "excluded"})
+                e = json.load(gzip.open(d / name, "rt"))
+            except Exception:                                  # noqa: BLE001
+                continue          # counted below by `scanned` never rising
+            rows = e.get("chip_rows") or []
+            r3b_scanned += 1
+            if rows and fzc._ps3_8080(rows, len(rows)):
+                ps3_files.add(name)
+                r3b_fires += 1
+        for name in sorted(ps3_files - set(excl)):
+            r3b_missing.append({"cid": cid, "file": name,
+                                "why": "the BANKED capture's own rows show "
+                                       "ps3_8080 and it is NOT excluded"})
         for name, recx in sorted(excl.items()):
             if recx.get("class") != "ps3_8080":
                 continue                    # a future EXC of another class
@@ -2317,10 +2360,11 @@ def cmd_bars(a):
                                   "why": "excluded record names a file that is "
                                          "not in the bank"})
                 continue
-            if int(name.split("_")[1]) not in ps3_ks:
+            if name not in ps3_files:
                 r3b_extra.append({"cid": cid, "file": name,
                                   "why": "excluded as `ps3_8080` but the "
-                                         "campaign results do not show it"})
+                                         "BANKED capture's own rows do not "
+                                         "show it"})
             if not (recx.get("reason") or "").strip():
                 r3b_extra.append({"cid": cid, "file": name,
                                   "why": "excluded with no reason on the "
@@ -2347,9 +2391,11 @@ def cmd_bars(a):
         "rows; R2 0 `ps3_8080` seeds UNDISPOSITIONED (declared TAUTOLOGICAL, no "
         "evidential weight); R3' DISCARDED = (a) every `ps3_8080` seed out of "
         "its tier's NUMERATOR AND DENOMINATOR, recomputed a second way, (b) "
-        "every banked `ps3_8080` seed named in its bank's `excluded_seeds` with "
-        "a reason AND no over-exclusion in that class -- a list checked against "
-        "the artifact in both directions, (c) the exclusion counted in C-1's "
+        "A-13 §34: every banked capture whose OWN ROWS show `ps3_8080` -- "
+        "recomputed here, seed by seed, over the exact rows `check_fuzz_bank` "
+        "replays -- named in its bank's `excluded_seeds` with a reason AND no "
+        "over-exclusion in that class, a list checked against the artifact it "
+        "governs in both directions, (c) the exclusion counted in C-1's "
         "own `measured` and printed on stdout.  Non-vacuity is demonstrated "
         "beside this run on the disjoint `t30-brkem` bank by "
         "`sw/fz2_a2_replay.py` (§29.5)",
@@ -2375,7 +2421,13 @@ def cmd_bars(a):
                                             "banked_not_excluded":
                                             r3b_missing,
                                             "excluded_not_justified":
-                                            r3b_extra, "ok": r3b_ok},
+                                            r3b_extra,
+                                            # A-13 / prereg §34
+                                            "SOURCE": "the BANKED capture's "
+                                                      "own rows, recomputed",
+                                            "banked_rows_scanned": r3b_scanned,
+                                            "banked_rows_fires": r3b_fires,
+                                            "ok": r3b_ok},
                           "c_printed": {"c1_excluded_total": c1_excl,
                                         "ok": r3c_ok},
                           "ok": r3_ok}},

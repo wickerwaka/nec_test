@@ -5023,3 +5023,182 @@ re-run here, and it is not quoted anywhere as a figure of this corpus.
 Nothing is amended, excluded, promoted or repaired in this section.  It records
 the state as found, with C-3 red, so that §34's amendment has a committed
 before.
+
+---
+
+## §34 AMENDMENT A-13 — R3′b's JUSTIFICATION SOURCE IS RE-REGISTERED FROM *"the campaign results line"* TO **"the banked capture's own rows, recomputed"**, AND THE TIMING IS STATED FIRST
+
+### 34.0 THE TIMING, FIRST, BECAUSE IT IS THE THING A READER WILL CHECK
+
+**This amendment is written after R3′b failed, on the run that failed it.** §33
+is that run, committed (`db80e00596`) before a line of this was drafted. The
+pattern this campaign has struck ten times — measure a clause, dislike the
+answer, re-register the clause — is exactly the pattern here, and pretending
+otherwise would be worse than the amendment.
+
+Three things make it defensible anyway, and none of them is *"it is
+inconvenient"*:
+
+1. **It is a mechanism, and the mechanism was booked before the failure.**
+   `0ac4c2a83a`'s bar C1 booked the `raw` tier's socket non-reproducibility —
+   12 of 3,840 columns moved, 11 of them `raw`, `image_sha256` identical on all
+   3,840 — **before** this bar was scored. §33.1 identifies `ps3_8080` as one of
+   those columns. The amendment follows from that finding; it was not invented
+   to dispose of it.
+2. **The failing check contained an unstated assumption, and the assumption is
+   the thing that broke.** R3′b joined the **manifest** against the **campaign
+   results line**. That join is sound only while the bank and the results are
+   the same capture. They were, from the promotion (2026-08-09T18:09Z) until
+   the re-capture (2026-08-10T00:51Z). They are not now, and no edit to the
+   exclusion list can make a stale-era join true.
+3. **It gains teeth.** The old form trusted a stored column in a different file.
+   The new one decompresses **every banked seed** and recomputes
+   `fuzz_campaign._ps3_8080` over the exact rows `check_fuzz_bank` replays.
+   §34.4 runs three falsifiers against it, all red.
+
+**AND WHAT IT DOES NOT DO**: it does not touch R3′a, R3′c, R1, R2 or the
+GENERATION clause; it does not remove a component after measuring it
+(`ucore_provenance.md` §64.1, the failure mode A-11 §29.4 explicitly refused);
+and it does not change a single number C-1 computes.
+
+### 34.1 THE RULING
+
+> **A `ps3_8080` exclusion is a statement about a CAPTURE, not about a seed.**
+> Two consumers hold captures, and each is checked against the artifact it
+> governs:
+>
+> * **the scored rates** are computed over the **campaign results line**, so a
+>   line showing `ps3_8080` leaves that tier's numerator and denominator —
+>   **R3′a, unchanged**;
+> * **the replayed bank** replays the **banked capture's `chip_rows`**, so a
+>   banked file whose own rows show `ps3_8080` must carry an `excluded_seeds`
+>   record with a reason, and no file may be excluded in that class whose own
+>   rows do not — **R3′b, as re-registered here, in both directions**.
+
+The one place it goes further than the failure required: the **`banked_not_excluded`**
+direction moves too, not just the direction that failed. Leaving one direction
+on the results line and moving the other would be choosing the source per
+direction after seeing which one hurt.
+
+### 34.2 THE ARITHMETIC, EXACTLY WHERE IT CHANGES — ONE PREDICATE, ONE PLACE
+
+In `sw/fz2_w1.py cmd_bars`, R3′b's `ps3_ks` — a set of `k`'s read off
+`lines[pop]`, i.e. `results.jsonl` — is replaced by `ps3_files`, a set of
+filenames built by decompressing each banked entry and evaluating
+`fzc._ps3_8080(entry["chip_rows"], len(entry["chip_rows"]))`. Both membership
+tests then read `ps3_files`. **Nothing else in the function moves.** Three
+counted leaves are added so the recomputation cannot be silent:
+`SOURCE`, `banked_rows_scanned`, `banked_rows_fires`.
+
+### 34.3 THE WINDOW — MEASURED, NOT ASSUMED
+
+A banked entry carries no `win`, so the **whole retained row list** is scored.
+That is what the bank replays, and it is the **wider** of the two candidate
+windows, so the choice could in principle over-detect. It does not, on this
+bank, and the control is run rather than argued. Over **all 623 banked
+captures**:
+
+| measurement | result |
+|---|---|
+| full-window recomputation fires | **2** |
+| bank-era (`F12` results-line) `win` recomputation fires | **2** |
+| the two recomputations agree | **623 of 623** |
+| recomputation vs the **bank-era** `ps3_8080` column | **0 disagreements** |
+| which files fire | `fz2e/soup_509069_e6e5f2c9b2ec.json.gz` (4,063 rows, `win` 3,610) and `fz2e/raw_521059_17de21d60cf3.json.gz` (4,063 rows, `win` 4,000) — **exactly EXC-1, and nothing else** |
+
+**FALSIFIER, registered here**: if a future bank ever shows the full-window and
+`win` recomputations disagreeing on any seed, the window is doing work and the
+choice must be re-argued rather than inherited.
+
+### 34.4 THE FALSIFIERS — TO BE RUN WITH THE RESCORE
+
+Registered **before** the rescore, in §32.3's form. Each is a full `bars` run,
+each reverted:
+
+| perturbation | must produce |
+|---|---|
+| drop `fz2e/509069` from `excluded_seeds` | **C-3 MISSED**, `R3′b ok false`, **`banked_not_excluded`** naming the file with *"the BANKED capture's own rows show ps3_8080 and it is NOT excluded"* |
+| add an `excluded_seeds` record for a banked seed whose rows do **not** fire | **C-3 MISSED**, `R3′b ok false`, `excluded_not_justified` with *"…the BANKED capture's own rows do not show it"* |
+| add an `excluded_seeds` record naming a file that is **not** in the bank (e.g. `fz2e/523042`) — **the move the task brief asked for** | **C-3 MISSED**, `R3′b ok false`, `excluded_not_justified` with *"excluded record names a file that is not in the bank"* |
+
+### 34.5 WHAT IS DELIBERATELY **NOT** DONE, WITH THE NUMBERS IT WOULD HAVE MOVED
+
+**THE BANK IS NOT RE-PROMOTED FROM THE FLASH #13 CORPUS.** Measured, without
+writing a byte (`fuzz_bank.promote(..., dry_run=True)` plus `_quota_select`):
+
+* `fz2c` frozen rule **480** (unchanged by arithmetic), `fz2e` quota **144**
+  (was 143) → **624 banked files, 11.07 + 3.42 MB, `would_cap` False on both**;
+* of those, **two** would carry a firing capture — `fz2e/509069` and
+  **`fz2e/523042`** — so the replayed population would be **622**, against
+  **621** today;
+* `fz2c/408029` would **not** be banked at all: it is not in the frozen census
+  set.
+
+It is not done for three reasons. (a) `fz2_w1.py bank` **refuses** a second
+promotion over an existing bank by design — *"a second promotion over the top of
+a bank is not a re-bank; remove the directory deliberately"* — so it is a
+deliberate act, not a repair. (b) It would discard 623 true captures in favour of
+a second draw of a socket leg **that is not reproducible**; there is no
+privileged era to promote from, which is the whole content of §33.1. (c) It
+would move `check_fuzz_bank`'s denominator and C-11's frozen-rule bar, neither of
+which is in this sitting's scope. **EXC-2 exists so that the day it is done, the
+two seeds are already on the register.**
+
+### 34.6 THE LEDGER
+
+`docs/notes/invalidation_ledger.md`:
+
+* **EXC-1 gains an ADDENDUM** — nothing above the addendum is rewritten. It
+  states the era the entry was always about (the F12-era banked captures,
+  byte-identical since promotion), records that recomputing over those files
+  fires on **both** and on **2 of 623** bank-wide, and points at A-13.
+* **EXC-2 is OPENED** — the three runtime 8080 entries of the FLASH #13 corpus:
+  `fz2c/408029`, `fz2e/509069` (also EXC-1), `fz2e/523042`. **No manifest record
+  is written**, and the entry says why: two of the three have no banked file, and
+  a record naming a file that is not in the bank is itself an R3′b failure.
+
+### 34.7 THE PRE-REGISTERED CELL MOVES — WRITTEN BEFORE THE RESCORE IS RUN
+
+Against the committed artifact of §33 (`sw/testdata/fz2/fz2_bars.json`,
+2026-08-10T01:17:38Z). Values below are **derived** from the §34.3 control, which
+was run on a separate script against the same bytes — they are a prediction of
+what *this artifact* will say, not a guess.
+
+**CHANGED — 5 leaves**
+
+| leaf | from | to |
+|---|---|---|
+| `bars/C-3/registered` | the A-11/A-12 clause text | the same, with A-13's (b) wording |
+| `bars/C-3/measured/R3_discarded/b_out_of_bank/ok` | `false` | **`true`** |
+| `bars/C-3/measured/R3_discarded/ok` | `false` | **`true`** |
+| `bars/C-3/verdict` | `"MISSED"` | **`"MET"`** |
+| `ts` | 01:17:38Z | the run's own |
+
+**CHANGED TO NULL — 1 leaf**: `bars/C-3/finding` → `null`.
+
+**REMOVED — 3 leaves**: the whole of
+`bars/C-3/measured/R3_discarded/b_out_of_bank/excluded_not_justified[0]`
+(`cid`, `file`, `why`).
+
+**ADDED — 3 leaves**, all under `…/b_out_of_bank`:
+`SOURCE` = *"the BANKED capture's own rows, recomputed"* ·
+**`banked_rows_scanned` = 623** · **`banked_rows_fires` = 2**.
+
+**AND ON STDOUT**: `FZ2 BARS: 9/11 MET  NOT MET: C-1,C-3` → **`10/11 MET  NOT
+MET: C-1`**.
+
+**MOVES NOTHING ELSE, AND THIS IS THE PART WORTH CHECKING.** Explicitly
+predicted **unchanged**: every C-1 per-tier cell including all four
+`excluded_ps3_8080` (0 · 1 · 1 · 1) and `excluded_ps3_8080_total` **3**;
+`C-1.undispositioned` **25**; `C-3.measured.ps3_8080` **3**, `bad_0f_pairs`
+**0**, the whole of `R1_detected` (725 / 3,115 / 3 / 0), `R2_dispositioned`,
+`R3_discarded.in_scored_strata` **3** and its three `seeds` records;
+`b_out_of_bank.banked_and_excluded` **2**; `c_printed`; **and every other bar's
+verdict.** *A-13 is a change to which artifact justifies an exclusion, and it
+must therefore move no rate.*
+
+### 34.8 THE GATES THIS SITTING IS REGISTERED AGAINST
+
+`fz2_w1.py lint` PASS · the leaf-diff above, exactly · a second `bars` run
+differing only in `ts` · `check_fuzz_bank` PASS · `test_fuzz_classify` and
+`test_fuzz_accept` PASS · the three §34.4 falsifiers, each red, each reverted.
